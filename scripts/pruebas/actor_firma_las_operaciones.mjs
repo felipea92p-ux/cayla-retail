@@ -179,6 +179,18 @@ const MIRAN_LA_CUENTA = [
   "fn_es_admin", "fn_es_lider", "fn_mi_perfil", "fn_persona_actual_resumen", "fn_persona_nueva_resumen",
   "fn_stock_por_sede", "fn_terminal_actual", "fn_tiene_acceso_retail", "fn_ubicacion_actual_persona",
   "liberar_apartado", "listar_apartados", "registrar_venta",
+  // ADR-0362 fase 4: «quién mira» en Recibir (la persona de la cuenta, null en una terminal) para avisar «tú hiciste la orden» antes
+  // de que la base lo frene; es identidad, no firma: quien recibe firma con fn_actor_persona_id(true).
+  "fn_recepcion_quien_mira",
+  // ADR-0362 fase 6 (20261013182000 y 20261013212000): el fondo por rendir es de UNA persona, y estas preguntan por la cuenta que
+  // entró, no por el responsable del combo. Es permiso o identidad, no firma (entregar, devolver y anular firman con
+  // fn_actor_persona_id(true)): nadie se entrega plata, registra su devolución ni anula lo de su propio fondo
+  // (fn_fondo_exigir_otra_persona); la pantalla marca «tu fondo» y quién es «yo» (fn_fondos, fn_fondos_movimientos,
+  // fn_fondos_opciones); desde un fondo paga solo su dueña, con su cuenta, nunca una terminal (fn_fondo_para_pagar); y «Mi fondo»
+  // es el de quien mira (fn_mi_fondo). Desde la rendición (20261013233000 y 235000), lo que pregunta «¿es lo tuyo?» lo hace con UNA pieza,
+  // fn_persona_de_la_cuenta (la tarjeta «Tu fondo», las fotos de un gasto del viaje, rendir, quién no aprueba, retirar la propia).
+  "fn_fondo_exigir_otra_persona", "fn_fondos", "fn_fondos_movimientos", "fn_fondos_opciones", "fn_fondo_para_pagar", "fn_mi_fondo",
+  "fn_persona_de_la_cuenta",
 ].sort();
 // Las de roles por módulo (20260923030000) se clasifican y se vigilan en `roles_por_modulo.mjs`: `fn_mi_rol_id` mira la
 // cuenta (permiso) y sus 6 RPC firman con el actor de no-tienda, una vez cada una. Se excluyen acá para que este conteo
@@ -202,7 +214,13 @@ caso(
      -- mira la cuenta (false), nunca un responsable delegado (una terminal no tiene pantalla principal propia que otro le fije).
      -- fn_mis_ventas_del_dia, fn_mi_meta y fn_mis_ventas_por_dia (ADR-0325, D-149): «lo mío» de la integrante. Preguntan por la CUENTA que
      -- consulta, no por un responsable: una terminal compartida recibe 0 filas y nadie ve lo de otra persona poniéndose un responsable.
-     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador|fn_mi_pantalla_principal|fn_mis_ventas_del_dia|fn_mi_meta|fn_mis_ventas_por_dia|regularizar_prenda)\\('),
+     -- fn_guia_quien (ADR-0389, 20261007180000): «ya te ofrecí esta guía» es de la cuenta que mira la pantalla (persona o
+     -- terminal), nunca del responsable del combo: elegir a otra persona no le marca a ella la demo como vista.
+     -- fn_mensaje_pedidos_web_mio / fn_guardar_mensaje_pedidos_web (20261019120000): «mi» texto del mensaje de WhatsApp en pedidos
+     -- web, mismo patrón que fn_mi_pantalla_principal: la preferencia es de la cuenta (false), nunca de un responsable delegado.
+     -- fn_cuentas_bancarias_cambiadas (20261013161000): el aviso «una cuenta de proveedor cambió» no se le muestra a la CUENTA que
+     -- hizo el cambio (ya lo sabe); compara con la cuenta que mira, como fn_guia_quien, nunca con un responsable del combo.
+     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador|fn_mi_pantalla_principal|fn_mensaje_pedidos_web_mio|fn_guardar_mensaje_pedidos_web|fn_mis_ventas_del_dia|fn_mi_meta|fn_mis_ventas_por_dia|regularizar_prenda|fn_guia_quien|fn_cuentas_bancarias_cambiadas)\\('),
      -- regularizar_prenda (20261004204000, ADR-0328): firma con el responsable (true) y compara la CUENTA (false) con quien vendió
      -- —«nadie regulariza su propia venta»—: un permiso, como fn_alcanzo_a.
      count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1

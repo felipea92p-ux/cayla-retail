@@ -86,11 +86,12 @@ export function nombreCorto(f: Pick<FilaER, "nombre" | "unidad">): string {
 // ---- «Ver»: qué se mira (la cabecera dice dónde se trabaja) --------------------------------------------------------------
 
 /**
- * `?ver=` → qué columnas. El líder: una ubicación (por defecto, la sede donde trabaja), «todas» o «empresa»; siempre con
- * CAYLA al lado. Quien tiene el módulo sin ser líder ve solo su tienda: la base ya no le manda otra cosa.
+ * `?ver=` → qué columnas. Quien ve todo (`veFinanzasDeTodo`: el líder, o un rol con Configuración, Cierre de mes o CAYLA Global): una
+ * ubicación (por defecto, la sede donde trabaja), «todas» o «empresa»; siempre con CAYLA al lado. Quien tiene solo «Reportes
+ * financieros» ve solo su tienda: la base ya no le manda otra cosa.
  */
-export function leerVerER(param: string | undefined, filas: readonly FilaER[], esLider: boolean, sedeActual: string | null): string {
-  if (!esLider) return filas.find((f) => f.ubicacionId)?.ubicacionId ?? "todas";
+export function leerVerER(param: string | undefined, filas: readonly FilaER[], veTodo: boolean, sedeActual: string | null): string {
+  if (!veTodo) return filas.find((f) => f.ubicacionId)?.ubicacionId ?? "todas";
   if (param === "todas" || param === "empresa") return param;
   const candidata = param ?? sedeActual;
   if (candidata && filas.some((f) => f.ubicacionId === candidata)) return candidata;
@@ -222,7 +223,7 @@ export function conceptosER(columnas: readonly FilaER[]): ConceptoER[] {
 /** «S/ 44,100» y «−S/ 19,850» (el signo menos de verdad, no el guion), sin céntimos: como el spike. */
 export function solesER(v: number): string {
   const r = Math.round(v);
-  return `${r < 0 ? "−" : ""}S/ ${Math.abs(r).toLocaleString("es-PE")}`;
+  return `${r < 0 ? "−" : ""}S/\u00a0${Math.abs(r).toLocaleString("es-PE")}`;
 }
 
 /** «53,7 %» (coma decimal, como el spike), o null si no hay base (dividir entre cero no es un porcentaje). */
@@ -340,6 +341,28 @@ export function leerLineaDiario(r: Fila): LineaDiario {
   };
 }
 
+/** Un período de un mes (`fn_periodos_mes`): qué unidad es y en qué estado está. */
+export type PeriodoMes = { alcance: string; ubicacionId: string | null; estado: string };
+
+export function leerPeriodoMes(r: Fila): PeriodoMes {
+  return { alcance: String(r.alcance ?? ""), ubicacionId: texto(r.ubicacion_id), estado: String(r.estado ?? "") };
+}
+
+/**
+ * Las unidades de un mes que ya están CERRADAS, con la misma llave que `claveUnidad` (la tienda por su id; «empresa» y «consolidado» por su
+ * nombre). Sus columnas muestran lo que se congeló al cerrar (auditoría de Finanzas 2026-10-16, G09): no cambian aunque después se corrija algo.
+ */
+export function clavesCerradas(periodos: readonly PeriodoMes[]): string[] {
+  return periodos
+    .filter((p) => p.estado === "cerrado")
+    .map((p) => (p.alcance === "ubicacion" ? p.ubicacionId : p.alcance))
+    .filter((k): k is string => !!k);
+}
+
+/** La nota que acompaña a un cuadro con columnas cerradas. */
+export const NOTA_MES_CERRADO =
+  "Las columnas «cerrado» muestran lo que se congeló al cerrar el mes: no cambian aunque después se corrija algo. Si hay que corregirlo, se reabre en Cierre de mes.";
+
 /** Qué operación generó cada línea, en palabras de la tienda. */
 export const TEXTO_REGLA: Record<string, string> = {
   venta: "Ventas",
@@ -353,6 +376,9 @@ export const TEXTO_REGLA: Record<string, string> = {
   merma_traslado: "Faltó en un traslado (en la sede que lo envió)",
   anticipo: "Adelantos de separaciones",
   anticipo_devuelto: "Adelantos devueltos",
+  // ADR-0408 act. 10: lo que un cliente paga por su pedido web antes de que sea una venta (y lo que se anula).
+  pedido_web_pago: "Pagos de pedidos web",
+  pedido_web_pago_anulado: "Pagos de pedidos web anulados",
   gasto: "Gastos",
   compra: "Facturas de mercadería",
   activo: "Activos fijos",
@@ -380,7 +406,8 @@ export function fuentesDe(clave: string): string[] {
   if (clave === "ventas")
     return ["venta_items, sin el IGV", "menos las anulaciones, devoluciones y cambios de este mes, aunque la venta sea de otro"];
   if (clave === "costo") return ["venta_items.costo_unitario", "el costo sellado el día de cada venta, no el de hoy"];
-  if (clave === "fletes") return ["Todavía no hay dónde registrar el flete de una compra"];
+  if (clave === "fletes")
+    return ["gastos «Traer la mercadería» (609): flete, agencia, cargador y embalaje, anotados desde Órdenes de compra (gastos del viaje)", "nunca en el costo de la prenda (decisión 20 del ADR-0362)"];
   if (clave === "mermas")
     return [
       "todo lo que salió sin venderse (fn_perdida_razon, la misma cuenta que la pestaña Pérdidas): faltantes de conteo, restas a mano, dañadas botadas o donadas, lo que faltó en un traslado y la venta anulada cuya prenda no volvió",
@@ -391,7 +418,7 @@ export function fuentesDe(clave: string): string[] {
   if (clave === "g655") return ["activos_fijos dados de baja", "lo que faltaba depreciar el día de la baja"];
   if (clave === "g6599") return ["cajas: lo contado − lo que decía el sistema al cerrar, y lo contado al abrir − el fondo que quedó", "un sobrante resta"];
   if (clave === "g6598")
-    return ["venta_pagos: lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo (Ley 29571)", "una venta anulada lo devuelve: queda en cero"];
+    return ["venta_pagos: lo que no se cobró por redondear el efectivo al múltiplo de S/\u00a00.10, hacia abajo (Ley 29571)", "una venta anulada lo devuelve: queda en cero"];
   return ["gastos vigentes con fecha del mes, sin el IGV de su factura", "menos las notas de crédito de su proveedor"];
 }
 

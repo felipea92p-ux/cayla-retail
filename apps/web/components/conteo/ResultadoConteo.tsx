@@ -6,9 +6,11 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { Volver } from "@/components/ui/Volver";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EditarConteo } from "@/components/conteo/EditarConteo";
 import { EstadoLinea } from "@/components/conteo/EstadoLinea";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 /* ====================================================================
    ResultadoConteo · «Conteo terminado» (Inventario ▸ Conteo, rediseño 2026-09-29)
@@ -77,30 +79,26 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
         volver={volverA ? <Volver href={volverA} a="Movimientos" /> : <Volver href="/inventario/conteo" a="Conteo" />}
       />
 
-      <section className="card-cayla space-y-3 p-5 sm:p-6" aria-labelledby="resultado-conteo">
-        <h2 id="resultado-conteo" className="font-display text-2xl text-tinta">
-          {titulo}
-        </h2>
+      <section data-guia="conteo-resultado.tarjeta" className="card-cayla space-y-3 p-5 sm:p-6" aria-labelledby="resultado-conteo">
+        <TituloSeccion id="resultado-conteo">{titulo}</TituloSeccion>
         <ResumenConteo resumen={resumen} variante="resultado" parcial={parcial} />
         {arranque && <p className="nota-cayla">{arranque.texto}</p>}
-        <div className="flex flex-col gap-2.5 pt-1 sm:flex-row">
-          <Link href="/inventario" className="btn-cayla btn-primario h-11">
+        <div data-guia="conteo-resultado.salidas" className="flex flex-col gap-2.5 pt-1 sm:flex-row">
+          <BotonVer href="/inventario" className="h-11">
             Ver Existencias
-          </Link>
-          <Link href={hrefMovimientos} className="btn-cayla btn-secundario h-11">
+          </BotonVer>
+          <BotonVer href={hrefMovimientos} className="h-11">
             Ver movimientos del conteo
-          </Link>
+          </BotonVer>
           {/* Los conteos de antes del rediseño (sin foto) no se pueden reabrir: no traen confirmaciones. */}
           {conteo.fotoEn !== null && <EditarConteo conteoId={conteo.id} puedeEditar={puedeEditar} variantesCorregidas={corregidas.map((l) => l.varianteId)} />}
         </div>
       </section>
 
       {visibles.length > 0 && (
-        <section className="card-cayla @container overflow-hidden" aria-labelledby="variantes-con-diferencia">
+        <section data-guia="conteo-resultado.diferencias" className="card-cayla @container overflow-hidden" aria-labelledby="variantes-con-diferencia">
           <div className="space-y-0.5 px-4 py-3.5 @[36rem]:px-5">
-            <h2 id="variantes-con-diferencia" className="font-display text-lg text-tinta">
-              Variantes con diferencia
-            </h2>
+            <TituloSeccion id="variantes-con-diferencia">Variantes con diferencia</TituloSeccion>
             <p className="text-sm text-taupe">Lo que CAYLA esperaba y lo que se contó. El stock quedó ajustado.</p>
           </div>
           <ul className="divide-y divide-sand border-t border-sand">
@@ -139,15 +137,15 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
           {filas.length > visibles.length && (
             <p className="border-t border-sand px-4 py-3 text-sm text-taupe @[36rem]:px-5">
               Y {filas.length - visibles.length} {filas.length - visibles.length === 1 ? "variante más" : "variantes más"}.{" "}
-              <Link href={hrefMovimientos} className="text-tinta underline underline-offset-2 hover:text-taupe">
-                Míralas todas en Movimientos →
+              <Link href={hrefMovimientos} className="btn-cayla btn-enlace">
+                Míralas todas en Movimientos
               </Link>
             </p>
           )}
         </section>
       )}
 
-      <p className="nota-cayla">
+      <p data-guia="conteo-resultado.firmas" className="nota-cayla">
         Abrió <b>{conteo.abiertoPorNombre}</b> el {abrio.dia} a las {abrio.hora}
         {cerro ? (
           <>

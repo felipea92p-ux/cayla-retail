@@ -4,6 +4,7 @@ import { useMemo, type ReactNode } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { resumenDeStock, resumenDeVentas, tablaPorCategoria, type FilaDeStock, type PrendaDelResumen, type PrendaVendida } from "@/lib/existencias-resumen";
 import { useVentasDelMes } from "@/lib/useVentasDelMes";
 
@@ -23,7 +24,7 @@ const n = (x: number) => x.toLocaleString("es-PE");
 function Seccion({ titulo, bajada, children }: { titulo: string; bajada?: string; children: ReactNode }) {
   return (
     <section>
-      <h3 className="font-display text-lg leading-tight text-tinta">{titulo}</h3>
+      <TituloSeccion nivel={3}>{titulo}</TituloSeccion>
       {bajada && <p className="mt-0.5 text-xs text-taupe">{bajada}</p>}
       <div className="mt-2.5">{children}</div>
     </section>
@@ -108,7 +109,7 @@ export function ResumenStockOverlay({
       titulo="Resumen del stock"
       subtitulo={`${sedeNombre} · lo que hay hoy y lo vendido ${mes ? `desde el ${mes.desdeTexto}` : "este mes"}.`}
       onClose={onClose}
-      ancho="max-w-2xl"
+      tamano="ancha"
       variante="papel"
     >
       <div className="space-y-6">

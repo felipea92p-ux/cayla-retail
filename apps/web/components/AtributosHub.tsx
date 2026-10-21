@@ -93,6 +93,7 @@ export function AtributosHub({
   categorias,
   prendasConCosto,
   variantesManuales,
+  rotacion,
   puedeEditar,
   puedeEditarEtiquetas,
   puedeDarDescuento,
@@ -113,6 +114,7 @@ export function AtributosHub({
   categorias: ComponentProps<typeof EtiquetasLista>["categorias"];
   prendasConCosto: ComponentProps<typeof EtiquetasLista>["prendasConCosto"];
   variantesManuales: ComponentProps<typeof EtiquetasLista>["variantesManuales"];
+  rotacion: ComponentProps<typeof EtiquetasLista>["rotacion"];
   /** Colores, tallas, tejidos y patrones: el líder o la terminal administrativa (ADR-0160). */
   puedeEditar: boolean;
   /** Etiquetas: el líder o un rol con el módulo Etiquetas (20260923130000). */
@@ -148,16 +150,18 @@ export function AtributosHub({
       <Pestanas
         etiquetaAccesible="Atributos"
         idIndicador="atributos-secciones"
+        guia="atributos.pestanas"
         activa={tipo}
         items={TABS.filter((t) => !tipos || tipos.includes(t.tipo)).map((t) => ({
           clave: t.tipo,
           etiqueta: t.etiqueta,
           href: `/productos/atributos?tipo=${t.tipo}`,
+          guia: `atributos.pestana-${t.tipo}`,
           icono: <IconoTab d={t.icono} />,
         }))}
       />
 
-      <p className="text-xs text-tinta/60">{AYUDA[tipo]}</p>
+      <p data-guia="atributos.ayuda" className="text-xs text-tinta/60">{AYUDA[tipo]}</p>
 
       {tipo === "colores" && <ColoresLista coloresIniciales={colores} puedeEditar={puedeEditar} />}
       {tipo === "tallas" && <TallasLista tallasIniciales={tallas} puedeEditar={puedeEditar} />}
@@ -168,6 +172,7 @@ export function AtributosHub({
           categorias={categorias}
           prendasConCosto={prendasConCosto}
           variantesManuales={variantesManuales}
+          rotacion={rotacion}
           puedeEditar={puedeEditarEtiquetas}
           puedeDarDescuento={puedeDarDescuento}
         />}

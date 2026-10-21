@@ -70,9 +70,9 @@ export const TABLA = {
 // en vez de desbordar. Con `overflow-x-auto` acá (una vez, para las tres
 // tablas que usan este componente) la fila se desborda hacia un scroll
 // horizontal de la tarjeta — nunca una columna que desaparece sin avisar.
-export function Tabla({ children, className = "", style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
+export function Tabla({ children, className = "", style, guia }: { children: ReactNode; className?: string; style?: CSSProperties; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   return (
-    <div className={`${TABLA.contenedor} ${className}`} style={style}>
+    <div data-guia={guia} className={`${TABLA.contenedor} ${className}`} style={style}>
       {children}
     </div>
   );
@@ -86,6 +86,7 @@ export function Encabezado({
   columnas,
   plantilla,
   siempre = false,
+  visible = "hidden sm:grid",
   grande = false,
   orden,
   onOrden,
@@ -93,6 +94,9 @@ export function Encabezado({
   columnas: Columna[];
   plantilla: string;
   siempre?: boolean;
+  /** Desde qué ancho se ve (por defecto, desde `sm`). Una tabla que decide su forma por el ancho de su TARJETA (`@container`) pasa
+   *  su propio corte: `hidden @min-[560px]:grid` (Clientes). */
+  visible?: string;
   /** El orden vigente y quién lo cambia: las columnas que declaran `campo` ordenan al tocarse (la flecha dice hacia dónde y gira al
    *  invertir; `aria-sort` para el lector de pantalla). Las filas se ordenan en quien llama, no aquí. */
   orden?: OrdenTabla;
@@ -102,7 +106,7 @@ export function Encabezado({
   grande?: boolean;
 }) {
   return (
-    <div className={`${siempre ? "grid items-end" : "hidden sm:grid"} ${grande ? "encabezado-tabla-cayla items-center gap-x-4 px-5 py-[11px]" : TABLA.encabezado} ${plantilla}`} role="row">
+    <div className={`${siempre ? "grid items-end" : visible} ${grande ? "encabezado-tabla-cayla items-center gap-x-4 px-5 py-[11px]" : TABLA.encabezado} ${plantilla}`} role="row">
       {columnas.map((c, i) => (
         <span
           key={i}

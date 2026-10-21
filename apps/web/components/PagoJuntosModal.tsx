@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoSelect } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
 import { lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
@@ -47,6 +48,9 @@ import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 // pago. Se ofrece, apagado (2026-09-19, Felipe: en las tres formas de pagar el saldo a favor se sugiere y lo
 // decide quien paga, nunca se descuenta solo); al activarlo se ve el monto a transferir ya reducido. La base lo aplica en el mismo pago
 // (`p_credito`): las filas del historial de cada comprobante dicen «Saldo a favor» y descuentan del libro.
+//
+// A nombre de la empresa (ADR-0387, Felipe 2026-10-12; deshace aquí el «Pagas desde» de ADR-0184): quien tiene Por pagar paga
+// el lote sin atarlo a ninguna tienda, sea líder o no, así que no se manda `p_ubicacion_id`.
 
 export type { DatosPagoProveedor, ResultadoPago };
 
@@ -62,7 +66,6 @@ export function PagoJuntosModal({
   datos,
   onClose,
   onPagado,
-  misTiendas,
 }: {
   proveedorId: string;
   proveedorNombre: string;
@@ -71,10 +74,6 @@ export function PagoJuntosModal({
   onClose: () => void;
   /** Se llama al CERRAR la confirmación de un pago registrado (no antes), con lo que quedó pagado. */
   onPagado: (resultado: ResultadoPago) => void;
-  /** ADR-0184 (F4-F5): solo para un comprador de tienda. `undefined` o vacío = líder, el pago no se ata a ninguna
-   *  tienda (como siempre). Con una sola, se usa directo; con varias, se elige con cuál se paga — es UNA tienda para
-   *  todo el lote (un solo pago), y la base exige que tenga parte en CADA comprobante que reciba algo. */
-  misTiendas?: { id: string; nombre: string }[];
 }) {
   // El orden del modal es el de la aplicación: primero lo más vencido.
   const ordenados = useMemo(
@@ -90,10 +89,11 @@ export function PagoJuntosModal({
   // Los medios con que se paga. Con una sola línea su monto no se escribe: es lo que sale de verdad (`aTransferir`).
   const [lineas, setLineas] = useState<LineaPago[]>([{ monto: "", metodo: formaInicial, referencia: "" }]);
   const [fecha, setFecha] = useState(hoyLima());
-  const [ubicacionPago, setUbicacionPago] = useState(misTiendas?.[0]?.id ?? "");
-  // ADR-0195 F3b: «Sale de». La propuesta de cada medio sale de la tienda con que se paga; el líder, de la tienda del
-  // comprobante más vencido.
-  const cuentas = useCuentasParaElegir("pago", ubicacionPago || ordenados[0]?.ubicacionesDestino[0] || null);
+  // ADR-0195 F3b: «Sale de». La propuesta de cada medio sale de la tienda del comprobante más vencido. A quien no ve las
+  // finanzas de todo, `fn_cuentas_para_elegir` solo le lista en efectivo los cajones y cajas fuertes de las sedes que opera:
+  // si esa tienda no es una de ellas, se le propone una suya. La base vuelve a validar la cuenta al guardar. ADR-0362 fase 6:
+  // «Mi fondo» primero, si quien paga tiene uno.
+  const cuentas = useCuentasParaElegir("pago", ordenados[0]?.ubicacionesDestino[0] || null, true, { conMiFondo: true });
   const [loading, setLoading] = useState(false);
   // Quién registra el pago (ADR-0161/0162): las dos funciones de pago firman con esa persona.
   const responsable = useResponsable();
@@ -176,7 +176,6 @@ export function PagoJuntosModal({
     if (!mediosRpc) return void avisar.error("Cada medio de pago necesita un monto mayor a cero.");
     if (fecha > hoyLima()) return void avisar.error("La fecha del pago no puede ser futura: es cuándo se pagó, no cuándo se pagará.");
     if (aplicaciones.some((a) => a.monto > 0 && a.c.fechaEmision && fecha < a.c.fechaEmision)) return void avisar.error("La fecha del pago no puede ser anterior a la emisión de alguno de los comprobantes.");
-    if (misTiendas && misTiendas.length > 0 && !ubicacionPago) return void avisar.error("Elige con qué tienda pagas.");
     if (!responsable.listo) return void (responsable.motivo && avisar.error(responsable.motivo));
     const firma = responsable.firma();
     setLoading(true);
@@ -193,8 +192,6 @@ export function PagoJuntosModal({
             p_fecha: fecha,
             p_token: token.current,
             ...(credito > 0 ? { p_credito: credito } : {}),
-            // ADR-0184 (F4): sin tiendas propias (líder) el pago no se ata a ninguna, como siempre.
-            ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
           }), firma)
         : await firmar(supabase.rpc("registrar_pago_compras", {
             p_proveedor_id: proveedorId,
@@ -204,7 +201,6 @@ export function PagoJuntosModal({
             p_fecha: fecha,
             p_token: token.current,
             ...(credito > 0 ? { p_credito: credito } : {}),
-            ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
           }), firma);
     cerrarProceso();
     setLoading(false);
@@ -231,7 +227,7 @@ export function PagoJuntosModal({
 
   return (
     <Modal
-      variante="papel"
+      variante="hoja"
       titulo={
         hecho ? (
           <span className="sr-only">Pago registrado</span>
@@ -243,7 +239,7 @@ export function PagoJuntosModal({
         )
       }
       subtitulo={hecho ? undefined : `${ordenados.length === 1 ? "1 comprobante" : `${ordenados.length} comprobantes`} · una sola transferencia`}
-      ancho="max-w-2xl"
+      tamano="ancha"
       onClose={() => (resultado.current ? onPagado(resultado.current) : onClose())}
     >
       {(cerrar) =>
@@ -278,23 +274,21 @@ export function PagoJuntosModal({
                       <span className="text-xs text-tinta/55 sm:hidden">Saldo </span>
                       {c.saldo.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
-                    <input
-                      inputMode="decimal"
-                      value={montos[c.id] ?? ""}
-                      onChange={(e) => alCambiarMonto(c.id, e.target.value)}
-                      onFocus={(e) => e.target.select()}
-                      autoFocus={c.id === ordenados[0].id}
-                      aria-label={`Monto a pagar de ${c.documento}`}
-                      aria-invalid={pasa || invalido || undefined}
-                      className={`w-full rounded-lg border bg-papel px-2.5 py-1.5 text-right text-sm tabular-nums text-tinta outline-none transition-colors duration-200 focus:border-rojo ${pasa || invalido ? "border-rojo text-rojo" : "border-tinta/25"}`}
-                    />
-                    {/* La cascada: cuánto del pago recibe este comprobante. Verde = queda en cero; rojo = se pasa del saldo. */}
-                    <div aria-hidden className="mt-1.5 h-1 overflow-hidden rounded-full bg-sand sm:col-span-3">
-                      <div
-                        className={`h-full origin-left rounded-full transition-[transform,background-color] duration-500 ease-cayla ${pasa ? "bg-rojo" : llena ? "bg-verde" : "bg-tinta"}`}
-                        style={{ transform: `scaleX(${armada && c.saldo > 0 ? Math.min(1, aplicado / c.saldo) : 0})` }}
+                    {/* La caja que se enciende (ADR-0358, ronda 6): con el monto mal, su borde rojo (`data-tono`) y la cifra en rojo. */}
+                    <div className="caja-cayla caja-campo" data-tono={pasa || invalido ? "error" : undefined}>
+                      <input
+                        inputMode="decimal"
+                        value={montos[c.id] ?? ""}
+                        onChange={(e) => alCambiarMonto(c.id, e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        autoFocus={c.id === ordenados[0].id}
+                        aria-label={`Monto a pagar de ${c.documento}`}
+                        aria-invalid={pasa || invalido || undefined}
+                        className={`self-stretch py-0 text-right tabular-nums ${pasa || invalido ? "text-rojo" : ""}`}
                       />
                     </div>
+                    {/* La cascada: cuánto del pago recibe este comprobante. Verde = queda en cero; rojo = se pasa del saldo. */}
+                    <BarraAvance pct={armada && c.saldo > 0 ? (aplicado / c.saldo) * 100 : 0} alto="fina" tono={pasa ? "rojo" : llena ? "verde" : "tinta"} decorativa className="mt-1.5 sm:col-span-3" />
                     <span className={`mt-1 flex min-h-[18px] items-center gap-1.5 text-xs sm:col-start-4 sm:justify-end ${pasa || invalido ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
                       {invalido ? (
                         "Monto no válido"
@@ -316,15 +310,16 @@ export function PagoJuntosModal({
               <div className="grid items-center gap-x-4 bg-tinta/[0.04] px-5 py-3 sm:grid-cols-[1fr_auto]">
                 <span className="label-cayla text-[11px] text-tinta">Total del pago</span>
                 {modo === "vencida" ? (
-                  <label className="flex items-baseline justify-end gap-1">
-                    <span className="font-display text-[22px] text-tinta">S/</span>
+                  // El monto en la caja que se enciende, de 48 px (como `CampoMonto`; aquí sin su etiqueta: la fila ya dice «Total del pago»).
+                  <label className="caja-cayla caja-campo caja-campo-alta justify-self-end">
+                    <span className="font-display select-none text-base leading-none text-tinta/55">S/</span>
                     <input
                       inputMode="decimal"
                       value={totalTxt}
                       onChange={(e) => alCambiarTotal(e.target.value)}
                       onFocus={(e) => e.target.select()}
                       aria-label="Total del pago"
-                      className="font-display w-36 border-b border-tinta/25 bg-transparent text-right text-[22px] tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo"
+                      className="font-display w-36 self-stretch py-0 text-right text-[22px] tabular-nums"
                     />
                   </label>
                 ) : (
@@ -364,17 +359,17 @@ export function PagoJuntosModal({
           </section>
 
           {saldoFavor > 0 && (
-            <div className="rounded-xl border border-verde/40 bg-verde/[0.06] p-4">
+            <div /* unificar-fijo: el saldo a favor con su interruptor para usarlo, no un aviso */ className="rounded-xl border border-verde/40 bg-verde/[0.06] p-4">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  role="switch"
+                  role="switch" /* unificar-fijo: la cara de la pieza (interruptor) sin su etiqueta al lado; el texto va en su bloque */
                   aria-checked={usarFavor}
                   aria-label={`Descontar mi saldo a favor con ${proveedorNombre}`}
                   onClick={() => setUsarFavor((v) => !v)}
-                  className={`relative h-[23px] w-10 shrink-0 rounded-full transition-colors duration-[260ms] ease-cayla ${usarFavor ? "bg-tinta" : "bg-tinta/25"}`}
+                  className="interruptor shrink-0"
                 >
-                  <span aria-hidden className={`absolute left-[3px] top-[3px] h-[17px] w-[17px] rounded-full bg-crema transition-transform duration-300 ease-cayla ${usarFavor ? "translate-x-[17px]" : ""}`} />
+                  <span aria-hidden className="interruptor-perilla" />
                 </button>
                 <div>
                   <p className="text-sm font-semibold text-tinta">Tienes {soles(saldoFavor)} a favor con {proveedorNombre}</p>
@@ -386,17 +381,6 @@ export function PagoJuntosModal({
             </div>
           )}
 
-          {/* ADR-0184 (F4-F5): con una sola tienda propia se paga con ella sin preguntar; con varias, se elige —
-              es UNA tienda para todo el lote, y la base exige que tenga parte en cada comprobante que reciba algo. */}
-          {misTiendas && misTiendas.length > 1 && (
-            <CampoSelect
-              etiqueta="Pagas desde"
-              valor={ubicacionPago}
-              onValor={(v) => setUbicacionPago(v)}
-              opciones={misTiendas.map((t) => ({ valor: t.id, texto: t.nombre }))}
-            />
-          )}
-
           {todoConFavor ? (
             <div className="grid gap-5 sm:grid-cols-[1.7fr_1fr_1fr]">
               <p className="rounded-xl border border-dashed border-tinta/25 px-4 py-3 text-sm text-tinta/65 sm:col-span-2">
@@ -405,7 +389,7 @@ export function PagoJuntosModal({
               <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={setFecha} required />
             </div>
           ) : (
-            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} aplicaciones={aplicaciones.map((a) => ({ total: a.c.total, monto: a.monto }))} />
           )}
 
           <div className="border-t border-tinta/10 pt-4">
@@ -441,13 +425,13 @@ export function PagoJuntosModal({
           <ComboResponsable control={responsable} deshabilitado={loading} />
 
           {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
-          <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">
+          <div className="pie-acciones -mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
             <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
             <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
               Cancelar
             </button>
-            <Boton type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman}>
-              {loading ? "Registrando…" : credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
+            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman}>
+              {credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
             </Boton>
           </div>
         </form>

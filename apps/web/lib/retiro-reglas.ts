@@ -19,6 +19,7 @@ import type { Cantidades, TallaParaReponer } from "./reponer-prenda-reglas";
 
 /** La RPC y sus parámetros en un solo lugar: `retiro-reglas.test.ts` los fija contra la migración. */
 export const RPC_RETIRO = "retirar_del_piso";
+/** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
 export const PARAMETROS_RPC_RETIRO = ["p_ubicacion_id", "p_items", "p_nota", "p_token"] as const;
 
 /** El máximo de la nota (la base lo exige igual: hint `retiro_nota_larga`). */
@@ -95,8 +96,6 @@ export function textoMarcaSinResolverDeRetiro(hora: string): string {
 export function tituloDeExitoRetiro(unidades: number): string {
   return unidades === 1 ? "1 prenda subida al almacén" : `${unidades} prendas subidas al almacén`;
 }
-
-export const TEXTO_YA_ESTABA_SUBIDA = "Esta subida ya estaba registrada. No se repitió.";
 
 /** Lo que Existencias va a decir de una talla que se quede sin ninguna colgada (y que el piso pide: del centro o vendida ayer u
  *  hoy): se avisa ANTES de confirmar (ADR-0208, bloque 3). Decía «las que queden con poco» hasta que «Por reponer» se fundió en

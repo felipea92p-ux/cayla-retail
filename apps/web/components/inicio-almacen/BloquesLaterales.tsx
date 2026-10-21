@@ -1,4 +1,5 @@
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { Anillo } from "@/components/ui/Anillo";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import Link from "next/link";
 import type { CSSProperties } from "react";
@@ -57,10 +58,7 @@ function Kpi({ etiqueta, valor, sub, aro }: { etiqueta: string; valor: number | 
       </p>
       <p className="ia-s">{sub}</p>
       {aro !== undefined && aro !== null && (
-        <svg className="ia-ring ia-l" viewBox="0 0 44 44" aria-hidden>
-          <circle className="ia-bg" cx="22" cy="22" r="18" pathLength="100" />
-          <circle className="ia-fg" cx="22" cy="22" r="18" pathLength="100" style={{ "--off": 100 - aro } as CSSProperties} />
-        </svg>
+        <Anillo pct={aro} tamano="chico" decorativa className="ia-k-anillo" />
       )}
     </div>
   );
@@ -77,7 +75,7 @@ export function PulsoAlmacen({
 }) {
   const pctFoto = fotos && fotos.activos > 0 ? Math.round((fotos.conFoto / fotos.activos) * 100) : fotos ? 100 : null;
   return (
-    <EnVista como="section" className="ia-rv" style={{ "--i": 4 } as CSSProperties}>
+    <EnVista como="section" className="ia-rv" style={{ "--i": 4 } as CSSProperties} guia="inicio.almacen-cifras">
       <Cabecera titulo="Pulso del almacén" />
       <div className="ia-kp">
         {existencias !== undefined && (
@@ -99,7 +97,7 @@ export function PulsoAlmacen({
 
 export function EnCaminoAlmacen({ viajes }: { viajes: ViajeEnCamino[] | null }) {
   return (
-    <EnVista como="section" className="ia-rv" style={{ "--i": 5 } as CSSProperties}>
+    <EnVista como="section" className="ia-rv" style={{ "--i": 5 } as CSSProperties} guia="inicio.almacen-camino">
       <Cabecera titulo="En camino" />
       <div className="card-cayla ia-ruta">
         {viajes === null ? (
@@ -154,7 +152,7 @@ export function PorColgarAlmacen({ existencias }: { existencias: Existencias | n
   if (existencias !== null && existencias.enAlmacen === null) return null; // la sede no separa piso y almacén: no hay nada que colgar
   const tallas = existencias?.porColgar.tallas ?? 0;
   return (
-    <EnVista como="section" className="ia-rv" style={{ "--i": 6 } as CSSProperties}>
+    <EnVista como="section" className="ia-rv" style={{ "--i": 6 } as CSSProperties} guia="inicio.almacen-colgar">
       <Cabecera titulo="Por colgar" />
       <div className="card-cayla ia-rp">
         {existencias === null ? (
@@ -174,7 +172,7 @@ export function PorColgarAlmacen({ existencias }: { existencias: Existencias | n
           <>
             {existencias.primeras.map((p, i) => (
               <Link key={p.clave} href="/inventario?hoy=por_colgar" className={`ia-it ${i === 0 ? "ia-f" : ""}`}>
-                <span className="ia-mg">{p.fotoUrl ? <Image src={p.fotoUrl} alt="" fill sizes="40px" unoptimized /> : <SinFoto tamano="h-full w-full !rounded-none" colorHex={p.colorHex} {...categoriaDe(p)} />}</span>
+                <span className="ia-mg">{p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl} alt="" fill sizes="40px" fallback={<SinFoto tamano="h-full w-full !rounded-none" colorHex={p.colorHex} {...categoriaDe(p)} />} /> : <SinFoto tamano="h-full w-full !rounded-none" colorHex={p.colorHex} {...categoriaDe(p)} />}</span>
                 <div className="min-w-0">
                   <p className="ia-nm">{p.referencia}</p>
                   {p.color && <p className="ia-cl">{p.color}</p>}
@@ -211,7 +209,7 @@ export type AccesoAlmacen = { href: string; etiqueta: string; icono: ClaveIco; d
 export function AccesosAlmacen({ accesos }: { accesos: AccesoAlmacen[] }) {
   if (accesos.length === 0) return null;
   return (
-    <section className="ia-rv" style={{ "--i": 7 } as CSSProperties}>
+    <section className="ia-rv" style={{ "--i": 7 } as CSSProperties} data-guia="inicio.almacen-accesos">
       <Cabecera titulo="Accesos" />
       <div className="ia-acs">
         {accesos.map((a, j) => (

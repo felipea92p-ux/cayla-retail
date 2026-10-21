@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
+import { salidaPropiaReciente } from "@/lib/sesion-salida-propia";
 import { avisoGuardado, CLAVE_AVISO_DE_SESION, decidirAccionDeSesion, DESTINO_DE_ACCION } from "@/lib/sesion-entre-pestanas-reglas";
 
 /* ====================================================================
@@ -54,7 +55,7 @@ export function SesionEntrePestanas() {
     async function comprobar() {
       if (yendo) return;
       const { data } = await supabase.auth.getSession();
-      const accion = decidirAccionDeSesion(idMio.current, data.session?.user.id ?? null);
+      const accion = decidirAccionDeSesion(idMio.current, data.session?.user.id ?? null, salidaPropiaReciente());
       if (accion === "nada") return;
       yendo = true;
       try {

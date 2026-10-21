@@ -33,7 +33,7 @@ import {
 
 // «Editar campaña» del plan (ADR-0372, B5): cambia el nombre y las fechas (la etiqueta de Catálogo ▸ Etiquetas a la que está ligada no cambia) y,
 // al pie, «Quitar»: si la campaña está vacía (ninguna categoría armada, sin tope) se BORRA —es irreversible, así que se confirma con el resumen—; si
-// tiene algo, se ARCHIVA —reversible: sale un «Deshacer» y se restaura desde «Campañas archivadas»— (Felipe, 2026-10-10). Solo un líder la abre (la
+// tiene algo, se ARCHIVA —reversible: sale un «Deshacer» y se restaura desde «Campañas archivadas»— (Felipe, 2026-10-10). La abre quien tiene el módulo Plan de campaña (ADR-0387; la
 // base lo exige también). Guía de foco (ADR-0284): `camposDeLaEdicion` sale de la misma regla que la base. Salir con cambios pregunta.
 
 export function EditarCampanaModal({
@@ -137,7 +137,7 @@ export function EditarCampanaModal({
       antesDeCerrar={salida.pedirAccion}
       bloqueado={trabajando}
       variante="hoja"
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) => (
         <form
@@ -174,7 +174,7 @@ export function EditarCampanaModal({
                   <Boton type="button" onClick={() => setConfirmarBorrado(false)} disabled={trabajando}>
                     No, dejarla
                   </Boton>
-                  <Boton type="button" peso="peligro" cargando={trabajando} onClick={() => void quitarCampana(cerrar)}>
+                  <Boton textoCargando="Borrando…" type="button" peso="peligro" cargando={trabajando} onClick={() => void quitarCampana(cerrar)}>
                     Sí, borrar campaña
                   </Boton>
                 </div>
@@ -197,7 +197,7 @@ export function EditarCampanaModal({
 
           <div className="pie-hoja-fijo">
             <PieGuia guia={guia} listo={cambio ? "Todo listo para guardar." : "Sin cambios todavía."} />
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="pie-acciones pt-2">
               <Boton type="button" onClick={() => salida.pedirAccion(cerrar)}>
                 Cancelar
               </Boton>

@@ -7,7 +7,7 @@ import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { actividadPreviaVenta, descripcionEntregada, etiquetaDia, totalesVenta } from "@/lib/cambios-reglas";
 import { estadoPlazoDevolucion, estadoPrendaDevolucion } from "@/lib/devoluciones-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { hoyLima } from "@/lib/fechas-lima";
+import { diaLima, hoyLima } from "@/lib/fechas-lima";
 
 /**
  * Las compras de Devoluciones (2026-09-18), en dos modos (2026-09-22, ver
@@ -47,10 +47,11 @@ export function DevolucionesVentas({
   onAnular: (linea: LineaVentaReciente) => void;
 }) {
   const accionCompra = (compra: LineaVentaReciente) =>
-    !compra.anulada && hoyLima(new Date(compra.creadoEn)) === hoyLima(ahora) ? (
+    !compra.anulada && diaLima(compra.creadoEn) === hoyLima(ahora) ? (
       <button
         type="button"
         onClick={() => onAnular(compra)}
+        data-guia="devoluciones.anular"
         className="btn-cayla btn-peligro"
       >
         Anular venta
@@ -156,7 +157,7 @@ function ResumenCompraVenta({
       {(onVerVenta || devolvible) && (
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-sand pt-3">
           {onVerVenta && (
-            <button type="button" onClick={() => onVerVenta(primera)} className="btn-cayla btn-enlace gap-1.5 text-[13px]">
+            <button type="button" data-guia="devoluciones.ver-venta" onClick={() => onVerVenta(primera)} className="btn-cayla btn-enlace gap-1.5 text-[13px]">
               <ReceiptText className="h-3.5 w-3.5" aria-hidden />
               Ver venta
             </button>
@@ -165,12 +166,12 @@ function ResumenCompraVenta({
             <span className="ml-auto flex items-center gap-4">
               {veCambios && (
                 // Con la prenda que todavía se puede tocar: Cambios abre su flujo sobre ella.
-                <Link href={`/cambios?item=${devolvible.ventaItemId}`} className="btn-cayla btn-enlace gap-1.5 text-[13px]">
+                <Link data-guia="devoluciones.cambiar" href={`/cambios?item=${devolvible.ventaItemId}`} className="btn-cayla btn-enlace gap-1.5 text-[13px]">
                   <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />
                   Cambiar
                 </Link>
               )}
-              <button type="button" onClick={() => onIniciar(primera, false)} className="btn-cayla btn-secundario h-10 border-taupe/50 px-4">
+              <button type="button" data-guia="devoluciones.devolver" onClick={() => onIniciar(primera, false)} className="btn-cayla btn-secundario h-10 border-taupe/50 px-4">
                 <Undo2 className="h-4 w-4" aria-hidden />
                 Devolver
               </button>

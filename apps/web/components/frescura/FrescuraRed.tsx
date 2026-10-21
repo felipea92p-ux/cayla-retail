@@ -3,7 +3,8 @@ import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
-import { CLASE_TRAMO_PISO, NOMBRE_TRAMO_PISO, TRAMOS_DEL_100, porcentajes, type FamiliaPiso } from "@/lib/frescura-piso";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { CLASE_TRAMO_PISO, NOMBRE_TRAMO_PISO, TRAMOS_DEL_100, lineaDelPiso, segmentosDelPiso } from "@/lib/frescura-piso";
 import { trozosRicos } from "@/lib/frescura-pantalla";
 import { cuadricula, enlaceATienda, familiasDeCayla, razonDeLaTienda, resumenCayla } from "@/lib/frescura-red";
 import { Chip } from "@/components/ui/Chip";
@@ -27,17 +28,6 @@ const PLANTILLAS: Record<number, string> = {
   4: "sm:grid-cols-[minmax(160px,1.6fr)_repeat(4,minmax(0,1fr))]",
 };
 
-function segmentos(f: FamiliaPiso) {
-  return TRAMOS_DEL_100.map((t) => ({ clave: t, nombre: NOMBRE_TRAMO_PISO[t], valor: f.unidades[t], clase: CLASE_TRAMO_PISO[t] }));
-}
-
-function linea(f: FamiliaPiso): string {
-  const pct = porcentajes(f.unidades);
-  return TRAMOS_DEL_100.filter((t) => f.unidades[t] > 0)
-    .map((t) => `${pct[t]} % ${NOMBRE_TRAMO_PISO[t].toLowerCase()}`)
-    .join(" · ");
-}
-
 function Negritas({ texto }: { texto: string }) {
   return (
     <>
@@ -53,7 +43,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
       <div className="space-y-6">
         {cabecera("¿Está fresco el piso de CAYLA?")}
         <section className="card-cayla px-4 py-5 sm:px-5">
-          <Vacio tamano="chico" alinear="izquierda" icono={<Store strokeWidth={1.5} />}>
+          <Vacio tamano="chico" alinear="izquierda" icono={<Store />}>
             Por ahora, la frescura de las tres tiendas juntas la lee el líder. Para ver una tienda, elígela en el selector de arriba.
           </Vacio>
         </section>
@@ -68,24 +58,21 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
       {cabecera(`${respuesta.pregunta} **${respuesta.respuesta}**`)}
 
       <section aria-labelledby="red-titulo" className="card-cayla px-4 py-4 sm:px-5 sm:py-5">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 id="red-titulo" className="font-display text-[22px] leading-tight">
-            {principal ? "CAYLA, las tiendas juntas" : "Las tiendas"}
-            {/* Si una tienda no pasa su puerta o no se pudo leer, la suma también es aproximada (revisión adversaria). */}
-            {principal && faltan.length > 0 && (
-              <>
-                {" "}
-                <Chip tono="pizarra">Aproximado</Chip>
-              </>
-            )}
-          </h2>
-          {principal && <span className="text-[13px] tabular-nums text-taupe">{colgadas(principal.total)}</span>}
-        </div>
+        <TituloSeccion id="red-titulo" dato={principal ? colgadas(principal.total) : undefined}>
+          {principal ? "CAYLA, las tiendas juntas" : "Las tiendas"}
+          {/* Si una tienda no pasa su puerta o no se pudo leer, la suma también es aproximada (revisión adversaria). */}
+          {principal && faltan.length > 0 && (
+            <>
+              {" "}
+              <Chip tono="pizarra">Aproximado</Chip>
+            </>
+          )}
+        </TituloSeccion>
         {principal && (
           <>
-            <BarraApilada segmentos={segmentos(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
+            <BarraApilada segmentos={segmentosDelPiso(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
             <p className="mt-2 text-[13px] tabular-nums text-taupe">
-              {linea(principal)}
+              {lineaDelPiso(principal)}
               {respuesta.antes && (
                 <>
                   {" "}
@@ -102,8 +89,8 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                 <span className="text-[13.5px] font-semibold leading-tight">
                   {f.nombre} <span className="text-[12.5px] font-normal tabular-nums text-taupe">· {unidades(f.total)}</span>
                 </span>
-                <BarraApilada segmentos={segmentos(f)} alto={8} unidad="unidades colgadas" />
-                <span className="text-[12.5px] leading-snug tabular-nums text-taupe">{linea(f)}</span>
+                <BarraApilada segmentos={segmentosDelPiso(f)} alto={8} unidad="unidades colgadas" />
+                <span className="text-[12.5px] leading-snug tabular-nums text-taupe">{lineaDelPiso(f)}</span>
               </li>
             ))}
           </ul>
@@ -115,7 +102,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                 {/* Un <a> simple: abrir la ruta cambia la tienda del selector, nunca se pide por adelantado. */}
                 <a href={enlaceATienda(t.id)} className="btn-cayla btn-enlace inline-flex min-h-6 items-center gap-0.5 text-[14.5px] font-semibold">
                   {t.nombre}
-                  <ChevronRight aria-hidden strokeWidth={1.8} className="h-3.5 w-3.5" />
+                  <ChevronRight aria-hidden className="h-3.5 w-3.5" />
                 </a>
                 {t.principal && <span className="text-[12.5px] font-normal tabular-nums text-taupe"> · {unidades(t.principal.total)}</span>}
               </span>
@@ -123,9 +110,9 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                 <span className="text-[13px] text-taupe sm:col-span-2">{t.fallo}</span>
               ) : t.principal && t.principal.total > 0 ? (
                 <>
-                  <BarraApilada segmentos={segmentos(t.principal)} alto={8} unidad="unidades colgadas" />
+                  <BarraApilada segmentos={segmentosDelPiso(t.principal)} alto={8} unidad="unidades colgadas" />
                   <span className="text-[12.5px] leading-snug tabular-nums text-taupe">
-                    {linea(t.principal)}
+                    {lineaDelPiso(t.principal)}
                     {razonDeLaTienda(t.puerta) && <span className="block text-ambar-profundo">{razonDeLaTienda(t.puerta)}</span>}
                   </span>
                 </>
@@ -149,7 +136,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
       {filas.length > 0 && (
         <Tabla>
           <div className="px-5 py-4">
-            <h2 className="font-display text-[20px] leading-tight sm:text-[22px]">Qué envejece en cada tienda</h2>
+            <TituloSeccion>Qué envejece en cada tienda</TituloSeccion>
             <p className="mt-1 text-[12.5px] text-taupe">De cada 100 unidades colgadas de la categoría, cuántas ya pasaron lo que tarda en venderse.</p>
           </div>
           <Encabezado plantilla={plantilla} columnas={[{ titulo: "Categoría" }, ...red.tiendas.map((t) => ({ titulo: t.nombre, alinear: "der" as const }))]} />

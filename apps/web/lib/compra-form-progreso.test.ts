@@ -59,6 +59,13 @@ describe("requisitosDeCompra · repartir entre tiendas (ADR-0139)", () => {
     expect(requisitosDeCompra(e)[2]).toMatchObject({ ok: false, falta: "Falta el costo de la línea 1", error: { enfocar: "compra-linea-0-costo" } });
   });
 
+  it("el costo con coma decimal cuenta (ADR-0419) y uno que no se entiende frena como uno sin escribir", () => {
+    const ok = con({ lineas: [{ productoId: "p1", cantidad: 2, costoUnitario: "39,90" }] });
+    expect(requisitosDeCompra(ok)[2]).toMatchObject({ ok: true });
+    const mal = con({ lineas: [{ productoId: "p1", cantidad: 2, costoUnitario: "12.500" }] });
+    expect(requisitosDeCompra(mal)[2]).toMatchObject({ ok: false, falta: "La línea 1 tiene un costo que no se entiende", error: { enfocar: "compra-linea-0-costo" } });
+  });
+
   it("un renglón sin producto es un renglón de más: no exige reparto", () => {
     const e = con({ repartir: true, lineas: [linea(24, { [T]: 24 }), { productoId: "", cantidad: 1, costoUnitario: "", reparto: {} }] });
     expect(pendientes(e)).toEqual([]);
@@ -116,9 +123,9 @@ describe("requisitosDeCompra", () => {
   describe("pago", () => {
     it("al contado el pago debe sumar el total: faltan o sobran, con el detalle", () => {
       const corto = requisitosDeCompra(con({ sumaPagos: 100 }))[3];
-      expect(corto).toMatchObject({ ok: false, texto: "Pago por el total", falta: "Faltan S/ 18.00 para el total", error: { enfocar: "compra-pagos-monto-0" } });
+      expect(corto).toMatchObject({ ok: false, texto: "Pago por el total", falta: "Faltan S/\u00a018.00 para el total", error: { enfocar: "compra-pagos-monto-0" } });
       expect(corto.error?.mensaje).toContain("Al contado el pago debe sumar el total");
-      expect(requisitosDeCompra(con({ sumaPagos: 130 }))[3].falta).toBe("Sobran S/ 12.00 sobre el total");
+      expect(requisitosDeCompra(con({ sumaPagos: 130 }))[3].falta).toBe("Sobran S/\u00a012.00 sobre el total");
     });
 
     it("una diferencia de medio centavo se tolera (redondeo)", () => {
@@ -134,7 +141,7 @@ describe("requisitosDeCompra", () => {
       const base = con({ condicion: "credito", pagarAhora: true });
       expect(requisitosDeCompra({ ...base, sumaPagos: 50 })[3]).toMatchObject({ ok: true, texto: "Monto del pago de ahora" });
       const pasado = requisitosDeCompra({ ...base, sumaPagos: 200 })[3];
-      expect(pasado).toMatchObject({ ok: false, falta: "Sobran S/ 82.00 sobre el total" });
+      expect(pasado).toMatchObject({ ok: false, falta: "Sobran S/\u00a082.00 sobre el total" });
       expect(pasado.error?.mensaje).toContain("supera el total");
     });
 

@@ -3,7 +3,7 @@
 import { useState, type KeyboardEvent } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoTexto } from "@/components/ui/campos";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { ProponerValor } from "@/components/alta-producto/ProponerValor";
@@ -13,6 +13,8 @@ import { agruparTallas, alternar, curvaCambiada, faltanDeLaCategoria, porOfrecer
 import { compararTallas } from "@/lib/tallas";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 import { Aviso } from "@/components/ui/Aviso";
+import { SearchX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // La fila «Tallas» del paso 3 de «Nuevo producto» (spike producto-nuevo-v2-2026-09, «Cuando hay mucho»).
 //
@@ -120,7 +122,7 @@ export function ElegirTallas({ deLaCategoria, universo, elegidas, onElegidas, ha
       {hoja && (
         <Modal
           variante="hoja"
-          ancho="max-w-[680px]"
+          tamano="ancha"
           titulo="Agrega otra talla"
           subtitulo={`${todas.length} tallas en el catálogo. Las que elijas se suman a esta prenda.`}
           onClose={() => setHoja(false)}
@@ -254,7 +256,11 @@ function HojaTallas({
       </div>
 
       <div className="scroll-cayla -mx-1 mt-3 max-h-[46vh] overflow-y-auto px-1 pb-1">
-        {grupos.length === 0 && <p className="py-4 text-[13px] text-taupe">Ninguna talla se llama así.</p>}
+        {grupos.length === 0 && (
+          <Vacio tamano="chico" alinear="izquierda" className="px-0 py-4" icono={<SearchX />}>
+            Ninguna talla se llama así.
+          </Vacio>
+        )}
         {grupos.map((g, i) => (
           <section key={g.grupo} className={i > 0 ? "mt-4" : ""}>
             <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{g.grupo}</h3>
@@ -291,19 +297,18 @@ function HojaTallas({
           <p className="text-[12.5px] tabular-nums text-taupe">
             {marcadas.length} {marcadas.length === 1 ? "talla elegida" : "tallas elegidas"}
           </p>
-          <div className="flex gap-2">
-            <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-sutil">
+          <div className="pie-acciones">
+            <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button
+            <Boton peso="primario" cargando={guardando}
               type="button"
               onClick={() => void listo()}
               disabled={guardando || (nuevas.length > 0 && !firma.listo)}
               title={nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}
-              className="btn-cayla btn-primario"
             >
-              {guardando ? "Guardando…" : "Listo"}
-            </button>
+              Listo
+            </Boton>
           </div>
         </div>
       </div>

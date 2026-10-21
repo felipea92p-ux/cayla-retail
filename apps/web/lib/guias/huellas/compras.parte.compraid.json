@@ -1,0 +1,44 @@
+{
+  "guia": "compras.parte.compraid",
+  "ruta": "/compras/parte/[compraId]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 28,
+  "controles": {
+    "app/(app)/compras/parte/[compraId]/page.tsx": [
+      "Volver «/compras/por-pagar»"
+    ],
+    "components/CompraDetallePanel.tsx": [
+      "button «Anular comprobante»",
+      "Boton «Ir a recibir»",
+      "Boton «factura.registrar-pago»",
+      "button «Pagado»",
+      "Boton «→() => setAbierto(true)»",
+      "input «{`Monto a pagar de ${compra.documento}»",
+      "input «Total del pago»",
+      "button «Todo ·»",
+      "ComboResponsable «{responsable}»",
+      "button «Cancelar»",
+      "Boton «{`Registrar pago de ${soles(suma)}»",
+      "CampoTexto «Motivo»",
+      "ComboResponsable «{responsable}» #2",
+      "button «Volver»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/PagoPiezas.tsx": [
+      "BotonCopiar «{que}»",
+      "Boton «Listo»",
+      "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
+      "CampoFecha «Fecha del pago»",
+      "CampoTexto «Referencia»",
+      "input «{`Monto del medio ${i + 1}»",
+      "CampoTexto «Referencia» #2",
+      "button «{`Quitar el medio ${i + 1}»",
+      "button «＋»",
+      "button «Usar»",
+      "button «Completar con el último medio»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
+    ]
+  }
+}

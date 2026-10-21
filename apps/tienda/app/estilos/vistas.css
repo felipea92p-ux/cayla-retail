@@ -1,0 +1,74 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA (ADR-0408) · El paso de una vista a otra (2026-10-17, Felipe: «cuando cambia de vista es muy abrupto»).
+   Next navega dentro de una transición de React y React se la pasa al navegador (`components/Vistas.tsx`): la pantalla se funde de lo
+   de antes a lo que llega —la página nueva o su esqueleto, y del esqueleto al contenido— en vez de cambiar de un cuadro al otro.
+   - Lo que no cambia, no se mueve: la cabecera, la franja de anuncios y la de las tiendas tienen nombre propio y quedan quietas
+     encima (las del esqueleto son las mismas que se veían: `CabeceraConCuenta deEspera`, `Anuncio`, `TiendasDeEspera`).
+   - Lo nuevo aparece sobre lo de antes (lo de antes no se apaga, así no hay un parpadeo claro a mitad del fundido): rápido, una vez,
+     sin rebote.
+   - La foto de la tarjeta tocada vuela a su lugar en la ficha (`FotoQueViaja`): una sola, el tiempo justo para seguirla con la vista.
+   - Mientras dura, los toques pasan a la página de verdad (la vista que se funde no se los traga).
+   - Con «reducir movimiento», nada se mueve: cambia de golpe, como antes. Sin soporte del navegador, igual.
+   ===================================================================================================== */
+
+/* El lugar de la barra de desplazamiento, siempre guardado: donde la barra ocupa espacio (Windows), una página corta (un esqueleto, la
+   bolsa vacía) y una larga tienen el mismo ancho, y nada se corre de lado al pasar de una a otra. Con la barra que flota (Mac, celular)
+   no cambia nada. */
+html { scrollbar-gutter: stable; }
+
+/* La marca de cada vista: un punto de 1 px arriba a la izquierda, invisible. Arriba a la izquierda para que React la vea en pantalla
+   (lo que queda fuera de la pantalla no lo anima). */
+.t-vista-marca { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.t-cab { view-transition-name: t-cabecera; }
+.t-anuncio { view-transition-name: t-anuncio; }
+.t-ubic { view-transition-name: t-tiendas; }
+
+::view-transition { pointer-events: none; }
+
+/* Lo fijo: sin fundido, encima de lo que cambia. Si en la vista que llega no está (la bolsa no lleva la franja de las tiendas), se va
+   sin fundirse. */
+::view-transition-group(t-cabecera),
+::view-transition-group(t-anuncio),
+::view-transition-group(t-tiendas) { animation: none; z-index: 60; }
+::view-transition-old(t-cabecera),
+::view-transition-old(t-anuncio),
+::view-transition-old(t-tiendas) { display: none; }
+::view-transition-new(t-cabecera),
+::view-transition-new(t-anuncio),
+::view-transition-new(t-tiendas) { animation: none; }
+
+/* La página: lo de antes queda quieto debajo y lo nuevo aparece encima. */
+::view-transition-image-pair(root) { isolation: auto; }
+::view-transition-old(root) { animation: none; }
+::view-transition-new(root) { animation: t-vista-llega .24s var(--ease) both; mix-blend-mode: normal; }
+
+/* La foto que viaja de la tarjeta a la ficha (`fotoQueViaja`): cambia de lugar y de tamaño, por encima de todo lo demás. Su nombre es
+   `t-foto-<prenda>`, uno por prenda, y su clase `t-viaja` (`view-transition-class`): en la tarjeta tocada, en el esqueleto de la ficha y
+   en la ficha. */
+::view-transition-group(.t-viaja) { animation-duration: .42s; animation-timing-function: var(--ease); z-index: 50; }
+
+@keyframes t-vista-llega { from { opacity: 0; } }
+
+/* ---- «El título se cuelga» (ADR-0466, Felipe 2026-10-20): la pantalla de carga del cambio de pestaña (Lo nuevo, Ropa, Looks, Ofertas…).
+   Lo hace el ESQUELETO de la lista (`FormaDelEsqueleto`: `CabeceraDeLista` y `Looks`), que ya trae el título real de la pestaña tocada: cada
+   palabra sube desde su línea, una tras otra; la ceja y la frase aparecen; y las tarjetas vacías se cuelgan en cascada, como cuando se monta
+   una exposición en el muro. Al llegar, la página escribe el mismo título quieto en el mismo lugar y cada foto aparece en su marco (el
+   fundido de `FotoTarjeta`). El título espera 120 ms antes de empezar: si la página llega casi al instante, el esqueleto ni alcanza a
+   mostrarlo y nada parpadea. Una vez, sin rebote ni bucle; con «reducir movimiento», todo quieto. ---- */
+@keyframes t-cuelga-sube { from { transform: translateY(108%); } }
+@keyframes t-cuelga-baja { from { opacity: 0; transform: translateY(18px); } }
+@keyframes t-cuelga-aparece { from { opacity: 0; } }
+.t-esqueleto .t-lista-cab.t-cuelga h1 { clip-path: inset(-20% -5% 0 -5%); }
+.t-esqueleto .t-lista-cab.t-cuelga h1 .t-pal { display: inline-block; animation: t-cuelga-sube 480ms var(--ease) both; animation-delay: calc(120ms + var(--j, 0) * 55ms); }
+.t-esqueleto .t-lista-cab.t-cuelga :is(.t-ceja, p) { animation: t-cuelga-aparece 360ms var(--ease) 140ms both; }
+.t-esqueleto :is(.t-grilla > .t-card, .t-looks > .t-look-card) { animation: t-cuelga-baja 460ms var(--ease) both; animation-delay: calc(120ms + var(--i, 0) * 32ms); }
+@media (prefers-reduced-motion: reduce) {
+  .t-esqueleto .t-lista-cab.t-cuelga h1 .t-pal, .t-esqueleto .t-lista-cab.t-cuelga :is(.t-ceja, p), .t-esqueleto :is(.t-grilla > .t-card, .t-looks > .t-look-card) { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
+}

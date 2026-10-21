@@ -269,7 +269,7 @@ export function MarcasLista({
 
   return (
     <div className="space-y-6">
-      <div>
+      <div data-guia="marcas.cabecera">
         {/* La cabecera de Catálogo ▸ Productos (ADR-0254); la de Marcas queda igual hasta que Felipe decida otra (CLAUDE.md). */}
         <EncabezadoPagina
           sede={sede}
@@ -283,7 +283,7 @@ export function MarcasLista({
           subtitulo="De quién es cada prenda y quién la trae. Todo producto lleva una marca y un proveedor que la traiga."
           acciones={
             puedeEditar && (
-              <Boton peso="primario" onClick={() => setModo({ tipo: "nueva" })}>
+              <Boton peso="primario" data-guia="marcas.nueva" onClick={() => setModo({ tipo: "nueva" })}>
                 + Nueva marca
               </Boton>
             )
@@ -301,7 +301,7 @@ export function MarcasLista({
           (o en un celular) la tarjeta mide 300–400 px aunque la ventana mida más (Felipe 2026-10-10). */}
       <section ref={cajaRef} className="card-cayla @container scroll-mt-20 space-y-4 p-4 sm:p-5" aria-label="Lista de marcas">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-          <Buscador
+          <Buscador guia="marcas.buscador"
             valor={busqueda}
             onCambio={alBuscar}
             placeholder="Busca una marca o un proveedor"
@@ -317,6 +317,7 @@ export function MarcasLista({
             {desactivadas.length > 0 && (
               <button
                 type="button"
+                data-guia="marcas.desactivadas"
                 className="pildora-cayla"
                 aria-pressed={verDesactivadas}
                 onClick={() => {
@@ -331,6 +332,7 @@ export function MarcasLista({
             )}
             <button
               type="button"
+              data-guia="marcas.resumen"
               className="btn-cayla btn-sutil inline-flex items-center gap-1.5"
               aria-expanded={resumenAbierto}
               aria-controls="resumen-marcas"
@@ -400,7 +402,7 @@ export function MarcasLista({
         )}
 
         {lista.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3 border-t border-sand pt-4">
+          <div data-guia="marcas.pie" className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3 border-t border-sand pt-4">
             <p className="text-sm text-tinta/70" aria-live="polite">
               Mostrando{" "}
               <b className="font-semibold text-tinta">

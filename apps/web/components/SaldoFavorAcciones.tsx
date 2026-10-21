@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoTexto } from "@/components/ui/campos";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ETIQUETA_METODO, soles } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -16,6 +16,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { CampoSaleDe, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // Reembolso de un proveedor (ADR-0111, corrección 2026-09-18): en vez de dejar el saldo a favor para descontarlo
 // de un próximo pago, el proveedor devuelve el dinero. Baja el saldo a favor y, desde ADR-0195 F3b, dice a qué cuenta
@@ -26,9 +27,7 @@ export function BotonReembolso({ proveedorId, proveedorNombre, saldoFavor }: { p
   if (saldoFavor <= 0) return null;
   return (
     <>
-      <button type="button" onClick={() => setAbierto(true)} className="label-cayla text-[11px] text-rojo hover:underline">
-        Registrar reembolso →
-      </button>
+      <EnlaceVer onClick={() => setAbierto(true)}>Registrar reembolso</EnlaceVer>
       {abierto && <ReembolsoModal proveedorId={proveedorId} proveedorNombre={proveedorNombre} saldoFavor={saldoFavor} onClose={() => setAbierto(false)} />}
     </>
   );
@@ -79,7 +78,7 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
   }
 
   return (
-    <Modal titulo="Registrar reembolso" subtitulo={`${proveedorNombre} · saldo a favor ${soles(saldoFavor)}`} onClose={onClose} ancho="max-w-lg">
+    <Modal titulo="Registrar reembolso" subtitulo={`${proveedorNombre} · saldo a favor ${soles(saldoFavor)}`} onClose={onClose} tamano="mediana">
       {(cerrar) => (
         <form onSubmit={onSubmit} className="space-y-4">
           <p className="text-sm leading-relaxed text-tinta/75">Úsalo cuando el proveedor te devolvió el dinero en vez de dejarlo como saldo a favor. Es un registro: baja tu saldo a favor y queda en su historial.</p>
@@ -121,13 +120,13 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
             <CampoTexto etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Devolvió la diferencia…" />
           </div>
           <ComboResponsable control={responsable} deshabilitado={loading} />
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={cerrar} disabled={loading} className="btn-cayla btn-secundario flex-1">
+          <div className="pie-acciones pt-1">
+            <button type="button" onClick={cerrar} disabled={loading} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={loading || !montoOk} className="btn-cayla btn-primario flex-1">
-              {loading ? "Registrando…" : "Registrar reembolso"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Registrando…" type="submit" disabled={loading || !montoOk}>
+              Registrar reembolso
+            </Boton>
           </div>
         </form>
       )}

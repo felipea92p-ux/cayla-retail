@@ -17,9 +17,11 @@ import { Chip } from "@/components/ui/Chip";
 import { ConfirmarTransmision } from "@/components/ConfirmarTransmision";
 import { Check } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // «Por reintentar» (D-60): lo que Lucode/SUNAT no aceptó al cobrar y espera en la cola. Se reintenta
-// solo (cada cobro y cada apertura de Comprobantes barren la cola, `/api/lucode/reintentar`); acá se ve
+// solo (el trabajo programado cada 5 minutos durante 4 horas, también en producción desde el 2026-10-12; y cada
+// cobro y cada apertura de Comprobantes barren la cola, `/api/lucode/reintentar`); acá se ve
 // cuántas veces se intentó, el último error y hace cuánto espera. «Reintentar ahora» adelanta el barrido
 // para uno. Lo que pasa de una hora se pinta en rojo: el reintento solo no alcanzó y alguien tiene que
 // mirar (Lucode caído mucho rato, credenciales vencidas).
@@ -79,7 +81,7 @@ export function ColaSunatPanel({
   const visibles = filas.filter((f) => coincide([numero(f), nombreDelTipo(f.tipo), nombreDe(f.ubicacion_id), errorDeColaLegible(f.ultimo_error_transmision)], busqueda));
 
   return (
-    <div className="card-cayla anim-sube overflow-hidden" style={{ "--i": 3 } as CSSProperties}>
+    <div data-guia="por-enviar.panel" className="card-cayla anim-sube overflow-hidden" style={{ "--i": 3 } as CSSProperties}>
       {/* La confirmación con el combo «Responsable» antes de reintentar (ADR-0161): la de una fila y la de todas. */}
       {confirmacionTransmitir}
       {confirmarTodos && (
@@ -93,14 +95,14 @@ export function ColaSunatPanel({
       )}
       <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
         <div className="min-w-0">
-          <h2 className="font-display text-xl leading-tight text-tinta">Por enviar a SUNAT</h2>
+          <TituloSeccion>Por enviar a SUNAT</TituloSeccion>
           <p className="mt-0.5 text-xs text-tinta/65">
             Todo lo que todavía no llegó: lo que nunca se intentó, lo que falló y lo que SUNAT rechazó. No pierden su número; si uno pasa de {HORAS_AVISO_COLA} hora, mira el error.
           </p>
         </div>
         {filas.length > 1 && (
-          <BotonCompacto variante="primario" cargando={reintentandoTodos} disabled={transmitiendoId !== null} onClick={() => setConfirmarTodos(true)}>
-            {reintentandoTodos ? "Reintentando…" : `Reintentar los ${filas.length}`}
+          <BotonCompacto variante="primario" data-guia="por-enviar.todos" cargando={reintentandoTodos} textoCargando="Reintentando…" disabled={transmitiendoId !== null} onClick={() => setConfirmarTodos(true)}>
+            {`Reintentar los ${filas.length}`}
           </BotonCompacto>
         )}
       </div>
@@ -125,12 +127,12 @@ export function ColaSunatPanel({
             <div key={f.comprobante_id} className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-tinta/10 px-5 py-3">
               <div className="min-w-[11rem]">
                 <p className="text-[15px] text-tinta">
-                  <span className="text-tinta/65">{nombreDelTipo(f.tipo)}</span> <b className="whitespace-nowrap font-semibold tabular-nums">{numero(f)}</b>
+                  <span className="text-tinta/65">{nombreDelTipo(f.tipo)}</span> <b data-guia="por-enviar.numero" className="whitespace-nowrap font-semibold tabular-nums">{numero(f)}</b>
                 </p>
                 <p className="text-[13px] text-tinta/65">{nombreDe(f.ubicacion_id)}</p>
               </div>
               {/* En el celular, el estado y el error bajan a su propia línea a todo el ancho: al lado del número quedaban cortados. */}
-              <div className="min-w-0 flex-1 max-sm:basis-full">
+              <div data-guia="por-enviar.estado" className="min-w-0 flex-1 max-sm:basis-full">
                 <div className="flex flex-wrap gap-1.5">
                   {f.estado === "rechazado" ? (
                     <Chip tono="rojo">SUNAT lo rechazó</Chip>
@@ -151,8 +153,8 @@ export function ColaSunatPanel({
                 </p>
                 {queHacer && <p className="mt-0.5 text-[13px] leading-snug text-tinta">Qué hacer: {queHacer}</p>}
               </div>
-              <BotonCompacto variante="fila-alerta" cargando={enVuelo} disabled={reintentandoTodos} aria-label={`Reintentar ahora ${numero(f)}`} onClick={() => transmitir(f.comprobante_id)}>
-                {enVuelo ? "Enviando…" : f.estado === "pendiente" && f.intentos_transmision === 0 ? "Enviar ahora" : "Reintentar ahora"}
+              <BotonCompacto variante="fila-alerta" data-guia="por-enviar.reintentar" cargando={enVuelo} textoCargando="Enviando…" disabled={reintentandoTodos} aria-label={`Reintentar ahora ${numero(f)}`} onClick={() => transmitir(f.comprobante_id)}>
+                {f.estado === "pendiente" && f.intentos_transmision === 0 ? "Enviar ahora" : "Reintentar ahora"}
               </BotonCompacto>
             </div>
           );

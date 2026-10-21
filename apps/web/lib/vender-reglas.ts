@@ -4,8 +4,11 @@
 // ningún fetcher server-only pueda arrastrar al navegador.
 
 import { METODOS_PAGO, type MetodoPagoVenta } from "@cayla-retail/shared";
-import { efectivoACobrar, redondeoDelEfectivo, UNIDAD_EFECTIVO } from "./redondeo-efectivo-reglas";
+import { efectivoACobrar, redondeoDelEfectivo, TOPE_VUELTO, UNIDAD_EFECTIVO } from "./redondeo-efectivo-reglas";
+
+export { TOPE_VUELTO };
 import { motivoNoCobrable } from "./vender-stock-local";
+import { precioValido } from "./variantes-ficha-reglas";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -51,10 +54,64 @@ export type PagoAplicado = {
   /** El nº de operación de Yape, Plin o transferencia (opcional, ADR-0230): con él, Ventas ▸ Historial encuentra la venta
    *  aunque la clienta haya perdido la boleta y solo tenga la captura del pago. */
   referencia?: string;
+  /** Con tarjeta o QR: la cuenta «por depositar» de la MÁQUINA que cobró (Izipay, Vendemás; ADR-0429). Nace con la máquina por
+   *  defecto de la tienda y la cajera la cambia con un toque donde hay dos. Viaja como `cuenta_id`; la base la valida. */
+  cuentaId?: string;
 };
 
 /** Los medios que dan un nº de operación que la clienta ve en su celular. */
 export const METODOS_CON_OPERACION: readonly MetodoPagoVenta[] = ["yape", "plin", "transferencia"];
+
+/** Los medios que cobra una máquina (ADR-0429): la plata espera en su cuenta «por depositar» hasta que la máquina la deposita. */
+export const METODOS_CON_MAQUINA: readonly MetodoPagoVenta[] = ["tarjeta", "qr"];
+
+/** Una máquina de cobro de ESTA tienda para un medio, como la devuelve `fn_pos_maquinas_de_sede` (20261016173000). */
+export type MaquinaDeCobro = {
+  maquinaId: string;
+  nombre: string;
+  /** Su cuenta «por depositar»: lo que viaja en el pago. */
+  cuentaId: string;
+  medio: "tarjeta" | "qr";
+  /** Hoy es a donde entra ese medio en esta tienda («A qué cuenta entra cada cobro»): la que la hoja marca de entrada. */
+  porDefecto: boolean;
+};
+
+/** Las filas de la base → máquinas. Una fila rara (sin id, otro medio) se descarta: nunca tumba la caja. */
+export function leerMaquinasDeCobro(filas: readonly Record<string, unknown>[] | null | undefined): MaquinaDeCobro[] {
+  return (filas ?? []).flatMap((f) => {
+    const medio = f.medio === "tarjeta" || f.medio === "qr" ? f.medio : null;
+    if (!medio || !f.maquina_id || !f.cuenta_id) return [];
+    return [{ maquinaId: String(f.maquina_id), nombre: String(f.nombre ?? ""), cuentaId: String(f.cuenta_id), medio, porDefecto: f.por_defecto === true }];
+  });
+}
+
+/** Las máquinas que cobran con ese medio en esta tienda (vacío para efectivo, Yape, Plin y transferencia). */
+export function maquinasPara(maquinas: readonly MaquinaDeCobro[], metodo: MetodoPagoVenta): MaquinaDeCobro[] {
+  return METODOS_CON_MAQUINA.includes(metodo) ? maquinas.filter((m) => m.medio === metodo) : [];
+}
+
+/** La hoja pregunta con cuál máquina solo donde hay DOS o más para ese medio (Felipe 2026-10-05: Lima no pregunta). */
+export function preguntaMaquina(maquinas: readonly MaquinaDeCobro[], metodo: MetodoPagoVenta): boolean {
+  return maquinasPara(maquinas, metodo).length >= 2;
+}
+
+/** La cuenta que lleva un pago recién tocado: la máquina por defecto de la tienda para ese medio; si ninguna está marcada
+ *  como tal, la única que hay; sin máquinas (o con otro medio), nada: la base decide sola, como antes. */
+export function cuentaPorDefecto(maquinas: readonly MaquinaDeCobro[], metodo: MetodoPagoVenta): string | undefined {
+  const opciones = maquinasPara(maquinas, metodo);
+  return (opciones.find((m) => m.porDefecto) ?? (opciones.length === 1 ? opciones[0] : undefined))?.cuentaId;
+}
+
+/** Un pago nuevo con su máquina puesta (si el medio la tiene). */
+export function pagoNuevo(metodo: MetodoPagoVenta, monto: number, maquinas: readonly MaquinaDeCobro[]): PagoAplicado {
+  const cuentaId = cuentaPorDefecto(maquinas, metodo);
+  return cuentaId ? { metodo, monto, cuentaId } : { metodo, monto };
+}
+
+/** El nombre de la máquina de un pago («Vendemás»), para la pista «Cobra en Vendemás y confirma». Sin máquina, null. */
+export function nombreMaquina(maquinas: readonly MaquinaDeCobro[], pago: Pick<PagoAplicado, "metodo" | "cuentaId">): string | null {
+  return maquinasPara(maquinas, pago.metodo).find((m) => m.cuentaId === pago.cuentaId)?.nombre ?? null;
+}
 
 /** El nº de operación tal como se guarda: sin espacios, solo letras y dígitos, hasta 40. Vacío = no se anotó. */
 export function limpiarOperacion(texto: string): string {
@@ -131,9 +188,11 @@ export function vueltoDe(pago: PagoAplicado, redondear = false): number {
  *  **falta** si no llega y **exacto** si es justo; `null` mientras no se haya dicho cuánto paga (la línea queda invisible, reservando su
  *  alto). `monto` es la cifra que se muestra: el vuelto, lo que falta o el cobro exacto. La hoja pinta **exacto en verde** y **falta en
  *  rojo**; el vuelto queda neutro (es información, no un aviso). `vuelto` es el de `vueltoDe` con el mismo redondeo que `aCobrar`. */
-export type LecturaDelRecibido = { estado: "vuelto" | "falta" | "exacto"; monto: number };
+export type LecturaDelRecibido = { estado: "vuelto" | "falta" | "exacto" | "excede"; monto: number };
 export function lecturaDelRecibido(recibido: number | undefined, aCobrar: number, vuelto: number): LecturaDelRecibido | null {
   if (recibido === undefined) return null;
+  // Un vuelto de más de S/ 500 es un billete mal escrito: se marca en rojo y `motivoBloqueoCobro` no deja cobrar.
+  if (vuelto > TOPE_VUELTO) return { estado: "excede", monto: vuelto };
   if (vuelto > 0) return { estado: "vuelto", monto: vuelto };
   if (recibido < aCobrar) return { estado: "falta", monto: redondear2(aCobrar - recibido) };
   return { estado: "exacto", monto: aCobrar };
@@ -182,7 +241,7 @@ export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number, redo
  *  `recibido` va únicamente en efectivo y solo si cubre lo que corresponde: la base lo
  *  guarda para reimprimir el vuelto y su candado (`venta_pagos_recibido_coherente`) rechaza
  *  TODA la venta si `recibido < monto`, así que una cifra a medio escribir no puede viajar. */
-export type PagoParaRpc = { metodo: MetodoPagoVenta | "redondeo"; monto: number; recibido?: number; referencia?: string };
+export type PagoParaRpc = { metodo: MetodoPagoVenta | "redondeo"; monto: number; recibido?: number; referencia?: string; cuenta_id?: string };
 
 export function pagosParaRpc(pagos: readonly PagoAplicado[], redondear = false): PagoParaRpc[] {
   // Con el redondeo del efectivo (ADR-0311) viaja el efectivo YA cobrado en monedas y, aparte, la fila de redondeo: la suma de todo
@@ -190,8 +249,11 @@ export function pagosParaRpc(pagos: readonly PagoAplicado[], redondear = false):
   const { pagos: cobrados, redondeo } = pagosCobrados(pagos, redondear);
   const filas = cobrados
     .filter((p) => p.monto > 0)
-    .map(({ metodo, monto, recibido, referencia }): PagoParaRpc => {
+    .map(({ metodo, monto, recibido, referencia, cuentaId }): PagoParaRpc => {
       if (metodo === "efectivo") return recibido !== undefined && recibido >= monto ? { metodo, monto, recibido } : { metodo, monto };
+      // La máquina que cobró (ADR-0429) viaja solo con tarjeta o QR y solo si la hoja la puso. Una base anterior a 20261016182000
+      // ignora la clave (lee el pago clave por clave): la venta se registra igual.
+      if (METODOS_CON_MAQUINA.includes(metodo)) return cuentaId ? { metodo, monto, cuenta_id: cuentaId } : { metodo, monto };
       // El nº de operación viaja solo si se anotó. Una base que todavía no tiene `venta_pagos.referencia` lo ignora (lee
       // el pago clave por clave): la venta se registra igual.
       const operacion = METODOS_CON_OPERACION.includes(metodo) ? limpiarOperacion(referencia ?? "") : "";
@@ -263,7 +325,7 @@ export function motivoBloqueoCobro(v: {
   if (v.prendas === 0) return "Agrega una prenda para cobrar.";
   // Un ticket que no cobra nada (solo la bolsa de obsequio, a S/ 0.00) no se puede cobrar ni emitir: la base rechaza una venta en S/ 0
   // entera. Se dice aquí, con la causa, en vez de dejar «Elige cómo pagó el cliente» para un total que no tiene qué pagar.
-  if (v.total <= 0) return "El ticket está en S/ 0.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
+  if (v.total <= 0) return "El ticket está en S/\u00a00.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
   if (v.motivoResponsable) return v.motivoResponsable;
   if (v.momento !== "cobrar") return null;
   if (v.proformaVencidaSinConfirmar) return "Confirma que cobras la proforma vencida al precio de entonces.";
@@ -274,7 +336,12 @@ export function motivoBloqueoCobro(v: {
   // Con el redondeo, un efectivo de menos de S/ 0.10 (p. ej. los 0.07 que sobran tras un Yape) no se puede entregar: no hay moneda. Se
   // cobra con otro medio; regalar el monto de otro medio no es redondear.
   const efectivo = v.redondeoEfectivo ? v.pagos.find((p) => p.metodo === "efectivo" && p.monto > 0) : undefined;
-  if (efectivo && efectivoACobrar(efectivo.monto) <= 0) return `El efectivo no puede ser menos de S/ ${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
+  if (efectivo && efectivoACobrar(efectivo.monto) <= 0) return `El efectivo no puede ser menos de S/\u00a0${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
+  // Un vuelto de más de S/ 500 es un billete mal escrito (la base tampoco lo acepta, `venta_pagos_recibido_con_tope`).
+  const conRecibido = v.pagos.find((p) => p.metodo === "efectivo" && p.monto > 0 && p.recibido !== undefined);
+  if (conRecibido && vueltoDe(conRecibido, !!v.redondeoEfectivo) > TOPE_VUELTO) {
+    return `El vuelto pasa de S/\u00a0${TOPE_VUELTO}: revisa con cuánto paga el cliente.`;
+  }
   if (v.sinComprobante) return "Elige el comprobante.";
   if (v.facturaSinRuc) return "La factura necesita el RUC de la empresa.";
   if (v.problemaDocumento) return v.problemaDocumento;
@@ -287,23 +354,48 @@ export function motivoBloqueoCobro(v: {
 // `venta_items` ya tiene (≥ 0, ≤ precio, subtotal generado) y que `registrar_venta`
 // recibe — así queda medido por prenda en vez de disfrazado de "precio más bajo".
 
-/** Un % convertido a monto por unidad: la cuenta EXACTA `precio × % / 100`, llevada al céntimo más cercano (el medio
- *  céntimo, hacia arriba: lo mismo que `round(x, 2)` de Postgres). Es la única cuenta de «un % se vuelve soles» de la
- *  caja: la usan el descuento manual en % y el de campaña (`descuentoDeCampana`, ADR-0302). Fuera de 0..100 se recorta:
- *  0 (o inválido) no descuenta; 100 regala la prenda, nunca más — el candado `venta_items_descuento_no_supera_precio`
- *  lo rechazaría igual.
+/** Un % convertido a monto por unidad, con el precio que queda SIN CÉNTIMOS SUELTOS: la cuenta exacta
+ *  `precio × (100 − %) / 100` se baja al múltiplo de S/ 0.10 de abajo y el descuento es lo que falta para llegar ahí
+ *  (Felipe, 2026-10-14, ADR-0403: «que no se tenga que pagar céntimos; que sea más fácil de pagar y de entender»).
+ *  S/ 39.00 con 20 % da 31.20 (ya es múltiplo) y S/ 89.90 con 20 % da 71.92 → 71.90, así que descuenta 18.00.
+ *  Siempre hacia abajo: nunca se cobra más que el % anunciado (Ley 29571 art. 44; la clienta no paga de más), y el extra que
+ *  se regala es de 0 a 0.09 por unidad. Es la única cuenta de «un % se vuelve soles» de la caja: la usan el descuento
+ *  manual en % y el de campaña (`descuentoDeCampana`). Fuera de 0..100 se recorta: 0 (o inválido) no descuenta; 100 regala
+ *  la prenda, nunca más — el candado `venta_items_descuento_no_supera_precio` lo rechazaría igual.
  *
- *  Va en enteros (céntimos × diezmilésimas de %), no en coma flotante: así S/ 19.90 con 25 % (4.975) daba 4.97 en vez de
- *  4.98, y se equivocaba en 1 de cada ~550 combinaciones de precio y % (medido el 2026-10-01). El % se toma con hasta 4
- *  decimales; el de una campaña tiene 2 (`etiquetas.descuento_pct` es numeric(5,2)). */
+ *  ES LA MISMA CUENTA QUE `retail.fn_descuento_campana` (ADR-0403): la base la usa para verificar las campañas y los topes
+ *  del 15 y del 35 %. Va en enteros (céntimos × diezmilésimas de %), no en coma flotante: en coma flotante el medio
+ *  céntimo de una cuenta cae a un lado u otro según el error de la máquina (medido el 2026-10-01 en ADR-0302: 10 758 de
+ *  5 940 000 combinaciones), y la caja y la base tienen que coincidir al céntimo. El % se toma con hasta 4 decimales; el
+ *  de una campaña tiene 2 (`etiquetas.descuento_pct` es numeric(5,2)). */
 export function descuentoUnitarioPorPorcentaje(precioUnitario: number, porcentaje: number): number {
   if (!Number.isFinite(porcentaje) || porcentaje <= 0) return 0;
   if (porcentaje >= 100) return precioUnitario;
   const precioC = Math.round(precioUnitario * 100);
   const pct4 = Math.round(porcentaje * 10_000); // 33.33 % → 333 300
-  // precioC × pct4 / 1 000 000 es el descuento exacto en céntimos; sumar medio millón antes de truncar lo lleva al
-  // céntimo más cercano. Cabe de sobra en un entero de JS: S/ 99 999.99 × 100 % = 10^13 < 2^53.
-  return Math.floor((precioC * pct4 + 500_000) / 1_000_000) / 100;
+  // precioC × (1 000 000 − pct4) / 1 000 000 es el precio final exacto en céntimos; entre 10 000 000 y × 10 lo baja al
+  // múltiplo de 10 céntimos. Cabe de sobra en un entero de JS: S/ 99 999.99 → 10^13 < 2^53.
+  const finalC = Math.floor((precioC * (1_000_000 - pct4)) / 10_000_000) * 10;
+  return (precioC - finalC) / 100;
+}
+
+/** Cómo la colaboradora le dice la cantidad al apartado «Descuento»: en % del precio o en soles por prenda. */
+export type ModoDescuento = "porcentaje" | "monto";
+
+/** El descuento por unidad que pide el apartado para una línea de ese precio, sea cual sea el modo: en % sale de
+ *  `descuentoUnitarioPorPorcentaje` (con el precio sin céntimos sueltos) y en S/ es el monto tal cual, recortado al precio. */
+export function descuentoPedido(modo: ModoDescuento, valor: number, precioUnitario: number): number {
+  return modo === "monto" ? descuentoUnitarioPorMonto(precioUnitario, valor) : descuentoUnitarioPorPorcentaje(precioUnitario, valor);
+}
+
+/** Un monto en soles (no %) convertido a descuento por unidad, con 2 decimales. Nunca
+ *  supera el precio — el candado `venta_items_descuento_no_supera_precio` lo rechazaría
+ *  igual, pero acá se recorta antes para que "Quedaría en" no muestre un negativo.
+ *  Es lo que la colaboradora escribió, al céntimo: un monto no se redondea (ADR-0403), porque quien lo escribe ya
+ *  decidió cuánto quiere descontar. */
+export function descuentoUnitarioPorMonto(precioUnitario: number, montoUnitario: number): number {
+  if (!Number.isFinite(montoUnitario) || montoUnitario <= 0) return 0;
+  return redondear2(Math.min(montoUnitario, precioUnitario));
 }
 
 // ---- Motivo y argumento del descuento (R-45 / D-44, cerrado el 2026-09-15) ---------
@@ -343,13 +435,13 @@ export const SIN_DETALLE_DESCUENTO: DetalleDescuento = { razon: "", razonOtro: "
 export const RAZON_CAMPANA = "campana";
 
 /**
- * El descuento por unidad de una campaña: EXACTO, el % de la campaña sobre el precio, al céntimo (Felipe, 2026-10-01,
- * ADR-0302). S/ 39.00 con 20 % descuenta S/ 7.80 y se cobra S/ 31.20: lo que dice el papel («−20 %») es lo que se cobra.
- * Reemplaza el redondeo del precio hacia abajo a .90 de ADR-0182, que descontaba hasta casi un sol de más.
+ * El descuento por unidad de una campaña: el % de la campaña sobre el precio, con el precio que queda bajado al múltiplo de
+ * S/ 0.10 (Felipe, 2026-10-14, ADR-0403; antes era exacto al céntimo, ADR-0302). S/ 39.00 con 20 % se cobra S/ 31.20 y
+ * S/ 89.90 con 20 % se cobra S/ 71.90 (la cuenta exacta da 71.92): como mucho 9 céntimos más de descuento por prenda, nunca
+ * menos que el % del papel.
  *
- * ES LA MISMA CUENTA, AL CÉNTIMO, QUE `retail.fn_descuento_campana` (20261001161912): la caja la calcula y
- * `registrar_venta`, `separar_prendas` y `editar_separacion` la verifican. Si divergen, la venta se rechaza en el
- * mostrador.
+ * ES LA MISMA CUENTA, AL CÉNTIMO, QUE `retail.fn_descuento_campana`: la caja la calcula y `registrar_venta`,
+ * `separar_prendas` y `editar_separacion` la verifican. Si divergen, la venta se rechaza en el mostrador.
  */
 export function descuentoDeCampana(precio: number, pct: number): number {
   return descuentoUnitarioPorPorcentaje(precio, pct);
@@ -454,6 +546,13 @@ export function aplicarDescuento<L extends LineaDescontable>(carrito: L[], porce
   return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorPorcentaje(l.precioUnitario, porcentaje));
 }
 
+/** Lo mismo que `aplicarDescuento`, pero con un monto en soles por unidad en vez de un %
+ *  — la otra entrada del apartado «Descuento» (Xstore «Add Discount» admite las dos).
+ *  Vuelve el 2026-10-14 (Felipe) tras haberse quitado el 2026-09-25. */
+export function aplicarDescuentoMonto<L extends LineaDescontable>(carrito: L[], montoUnitario: number, claves: string[], detalle: DetalleDescuento): L[] {
+  return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorMonto(l.precioUnitario, montoUnitario));
+}
+
 /** El % entero que se muestra en el chip de la línea, leído desde el monto guardado
  *  (el monto es la verdad; el % es solo cómo se lo contamos a la colaboradora). */
 export function porcentajeDeLinea(l: { precioUnitario: number; descuentoUnitario: number }): number {
@@ -465,14 +564,14 @@ export function porcentajeDeLinea(l: { precioUnitario: number; descuentoUnitario
  *  que pase el 15 % (antes: solo a un Líder, pasado el 20 %). */
 export const UMBRAL_ARGUMENTO_PCT = 15;
 
-/** Si una línea pide el argumento escrito: su descuento por unidad pasa el 15 % del precio.
- *  Misma cuenta que `registrar_venta` (el 15 % redondeado al céntimo, con 1 céntimo de
- *  holgura) — así un 15 % justo que el redondeo deja en 15.003 % no lo pide en la pantalla
- *  y sí en la base, ni al revés. El candado real vive en la base; esto decide cuándo el
- *  apartado MUESTRA el campo. */
+/** Si una línea pide el argumento escrito: su descuento por unidad pasa lo que da el 15 % de ese precio.
+ *  «Lo que da el 15 %» es `descuentoUnitarioPorPorcentaje(precio, 15)`, con su precio sin céntimos (ADR-0403), y la misma
+ *  cuenta que `registrar_venta` (con 1 céntimo de holgura): así el botón «15 %» no pide argumento aunque el redondeo le
+ *  regale 9 céntimos, ni en la pantalla ni en la base. El candado real vive en la base; esto decide cuándo el apartado
+ *  MUESTRA el campo. */
 export function necesitaArgumentoEscrito(precioUnitario: number, descuentoUnitario: number): boolean {
   if (precioUnitario <= 0 || descuentoUnitario <= 0) return false;
-  return redondear2(descuentoUnitario - redondear2((precioUnitario * UMBRAL_ARGUMENTO_PCT) / 100)) > 0.01;
+  return redondear2(descuentoUnitario - descuentoUnitarioPorPorcentaje(precioUnitario, UMBRAL_ARGUMENTO_PCT)) > 0.01;
 }
 
 /** Los campos del apartado «Descuento», en el orden en que se llenan de arriba abajo. */
@@ -544,4 +643,30 @@ export function textoSinStock(p: SinStockAqui, agotada = "agotada"): string {
   if (!sinStockPorApartado(p)) return agotada;
   const empiezaEnMayuscula = agotada.charAt(0) !== agotada.charAt(0).toLowerCase();
   return empiezaEnMayuscula ? "Apartada para un cliente" : "apartada para un cliente";
+}
+
+/**
+ * ¿Esta prenda no puede entrar al ticket porque no tiene precio? (ADR-0384.) Una prenda de mercadería en S/ 0 es un precio
+ * olvidado: la base la rechaza al cobrar (`venta_sin_precio`), y una venta sin conexión recién se rechazaría al subir, con la prenda
+ * ya entregada. Por eso la caja la frena al agregarla, con la misma regla de Editar producto (`precioValido`): solo lo de una familia
+ * fuera de los motores (la bolsa de obsequio) va en 0. `precio` es el que cobra ESTA tienda (su precio propio, si tiene).
+ */
+export function sinPrecioParaVender(v: { precio: number; fueraDeMotores?: boolean }): boolean {
+  return !precioValido(v.precio, v.fueraDeMotores === true);
+}
+
+
+/** Los comprobantes que se cobran en caja. */
+export type TipoComprobanteVenta = "boleta" | "factura" | "nota_venta";
+export const TIPOS_COMPROBANTE_VENTA: readonly TipoComprobanteVenta[] = ["boleta", "factura", "nota_venta"];
+
+/**
+ * Qué comprobantes ofrece la hoja de cobro: los que la sede tiene con una serie activa (/chaos 2026-10-13: «Nota de venta» se
+ * ofrecía en una sede sin su serie y, al cobrar, la base rechazaba la venta entera). Si la lectura de las series falló (`null`) o la
+ * sede no tiene ninguna, se ofrecen los tres como antes: cobrar dice entonces qué falta, en vez de dejar la caja sin opciones.
+ */
+export function tiposDeComprobanteDeLaSede(series: readonly { tipo: string }[] | null): TipoComprobanteVenta[] {
+  if (!series) return [...TIPOS_COMPROBANTE_VENTA];
+  const conSerie = TIPOS_COMPROBANTE_VENTA.filter((t) => series.some((s) => s.tipo === t));
+  return conSerie.length > 0 ? conSerie : [...TIPOS_COMPROBANTE_VENTA];
 }

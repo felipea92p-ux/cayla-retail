@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Pencil } from "lucide-react";
+import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
+import { ChartColumn } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Encabezado, TABLA, Tabla, type Columna } from "@/components/ui/Tabla";
@@ -37,6 +37,9 @@ import {
 } from "@/lib/rendimiento-meta-reglas";
 import { EditarMetaModal } from "./EditarMetaModal";
 import { GraficoVentasMeta } from "./GraficoVentasMeta";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 
 /* ====================================================================
    El panel de Rendimiento de UNA tienda (ADR-0325, spike docs/maquetas/rendimiento-meta-2026-09/)
@@ -160,9 +163,16 @@ export function PanelRendimiento({
       <div className="flex flex-wrap items-center gap-3">
         <span className="label-cayla text-[11px] font-bold text-taupe">Período</span>
         {/* El período es un filtro de un valor: la píldora del sistema, con su rótulo (ADR-0358). */}
-        <div role="group" aria-label="Período" className="flex flex-wrap items-center gap-2">
+        <div role="group" aria-label="Período" className="flex flex-wrap items-center gap-2" data-guia="rendimiento.periodo">
           {VISTAS.map((v) => (
-            <button key={v.clave} type="button" aria-pressed={vista === v.clave} onClick={() => cambiarVista(v.clave as Vista)} className="pildora-cayla">
+            <button
+              key={v.clave}
+              type="button"
+              aria-pressed={vista === v.clave}
+              onClick={() => cambiarVista(v.clave as Vista)}
+              className="pildora-cayla"
+              data-guia={v.clave === "mes" ? "rendimiento.periodo-mes" : v.clave === "hoy" ? "rendimiento.periodo-hoy" : undefined}
+            >
               {v.etiqueta}
             </button>
           ))}
@@ -170,7 +180,7 @@ export function PanelRendimiento({
       </div>
 
       {/* Las cuatro cifras */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" data-guia="rendimiento.cifras">
         <TarjetaCifra etiqueta={`Soles ${t.periodo}`} valor={SOLES.format(res.soles)}>
           {res.ventas > 0 ? `${res.ventas} ${plural(res.ventas, "venta", "ventas")}` : "Sin ventas todavía"}
         </TarjetaCifra>
@@ -187,7 +197,7 @@ export function PanelRendimiento({
           <TarjetaCifra etiqueta={`Meta ${t.meta}`} valor={`${pctMeta} %`}>
             {res.soles >= res.meta ? `Superada por ${SOLES.format(res.soles - res.meta)}` : `Faltan ${SOLES.format(res.meta - res.soles)} de ${SOLES.format(res.meta)}`}
             {res.tocabaPct !== null && ` · a hoy tocaba ${res.tocabaPct} %`}
-            <BarraAvance pct={pctMeta} marca={res.tocabaPct} />
+            <BarraAvance pct={pctMeta} marca={res.tocabaPct} etiqueta={`Vendido contra la meta ${t.meta}`} className="mt-2" />
           </TarjetaCifra>
         )}
 
@@ -208,7 +218,7 @@ export function PanelRendimiento({
 
       {/* Las tres medidas de la propuesta final (Felipe, 2026-10-03): proyección del mes, prendas por venta y ventas por hora */}
       {(proyeccion || prendas) && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2" data-guia="rendimiento.proyeccion">
           {proyeccion && (
             // La pieza única de cifra (TarjetaCifra, ADR-0358): antes era una copia a mano con la receta del Inicio.
             <TarjetaCifra etiqueta="Proyección del mes" valor={SOLES.format(proyeccion.proyeccion)}>
@@ -232,32 +242,33 @@ export function PanelRendimiento({
       )}
 
       {porHora && (
-        <div className="card-cayla p-4 sm:p-5">
+        <div className="card-cayla p-4 sm:p-5" data-guia="rendimiento.por-hora">
           <p className="label-cayla text-[11px] text-tinta/65">Ventas por hora ({t.periodo})</p>
           {porHora.mejor ? (
             <>
-              <div className="mt-3 flex h-24 items-end gap-1" role="img" aria-label={`Ventas por hora ${t.enPeriodo}. La mejor hora fue ${etiquetaDeHora(porHora.mejor.hora)}, con ${SOLES.format(porHora.mejor.total)}.`}>
-                {porHora.horas.map((h) => {
-                  const alto = Math.max(h.total > 0 ? 6 : 2, Math.round((h.total / porHora.mejor!.total) * 100));
-                  const esMejor = h.hora === porHora.mejor!.hora;
-                  return (
-                    <div key={h.hora} className="flex h-full min-w-0 flex-1 items-end" title={`${etiquetaDeHora(h.hora)} · ${SOLES.format(h.total)} · ${h.ventas} ${plural(h.ventas, "venta", "ventas")}`}>
-                      <div className={`w-full rounded-t ${esMejor ? "bg-taupe" : h.total > 0 ? "bg-sand" : "bg-tinta/10"}`} style={{ height: `${alto}%` }} />
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-1 flex justify-between text-[11px] text-tinta/65 tabular-nums">
-                <span>{etiquetaDeHora(porHora.horas[0].hora)}</span>
-                <span>{etiquetaDeHora(porHora.horas.at(-1)!.hora)}</span>
-              </div>
+              {/* Las barras por tiempo del sistema (ronda 14): la mejor hora en tinta con su cifra; cada hora dice lo suyo al pasar el mouse. */}
+              <BarrasTiempo
+                className="mt-3"
+                alto={112}
+                barras={porHora.horas.map((h, i) => ({
+                  clave: String(h.hora),
+                  valor: h.total,
+                  etiqueta: i === 0 || i === porHora.horas.length - 1 ? etiquetaDeHora(h.hora) : "",
+                  tip: `${etiquetaDeHora(h.hora)} · ${SOLES.format(h.total)} · ${h.ventas} ${plural(h.ventas, "venta", "ventas")}`,
+                  cifra: SOLES.format(h.total),
+                }))}
+                destacada={String(porHora.mejor.hora)}
+                etiqueta={`Ventas por hora ${t.enPeriodo}. La mejor hora fue ${etiquetaDeHora(porHora.mejor.hora)}, con ${SOLES.format(porHora.mejor.total)}.`}
+              />
               <p className="mt-2 text-xs text-tinta/65">
                 La mejor franja fue la de las <b className="font-semibold text-tinta">{etiquetaDeHora(porHora.mejor.hora)}</b>: {SOLES.format(porHora.mejor.total)} en{" "}
                 {porHora.mejor.ventas} {plural(porHora.mejor.ventas, "venta", "ventas")}. Sirve para repartir turnos, no para juzgar a nadie.
               </p>
             </>
           ) : (
-            <p className="mt-2 text-xs text-tinta/65">Sin ventas {t.enPeriodo}: todavía no hay horas que mirar.</p>
+            <Vacio tamano="chico" alinear="izquierda" className="mt-1 px-0" icono={<ChartColumn />}>
+              Sin ventas {t.enPeriodo}: todavía no hay horas que mirar.
+            </Vacio>
           )}
         </div>
       )}
@@ -276,9 +287,9 @@ export function PanelRendimiento({
       )}
 
       {/* Cómo va cada persona */}
-      <section className="space-y-3" aria-label={t.tabla}>
+      <section className="space-y-3" aria-label={t.tabla} data-guia="rendimiento.personas">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="label-cayla text-[11px] font-bold text-taupe">{t.tabla}</h2>
+          <TituloSeccion>{t.tabla}</TituloSeccion>
           <Chip tono="neutro" versalitas={false}>
             Editan la líder de la sede y el Admin
           </Chip>
@@ -342,7 +353,7 @@ export function PanelRendimiento({
                   <div className="min-w-0">
                     {av !== null ? (
                       <>
-                        <BarraAvance pct={av} marca={vista === "mes" ? res.tocabaPct : marcaRitmo} />
+                        <BarraAvance pct={av} alto="fina" marca={vista === "mes" ? res.tocabaPct : marcaRitmo} etiqueta="Avance contra su meta" className="mt-2" />
                         <p className="mt-1 text-xs tabular-nums text-taupe">
                           {av} %{lectura && <> · {lectura}</>}
                           {marcaRitmo !== null && marcaRitmo < 100 && <> · ritmo {marcaRitmo} %</>}
@@ -353,21 +364,18 @@ export function PanelRendimiento({
                     )}
                   </div>
                   <div className="sm:text-right">
-                    <BotonCompacto
-                      variante="fila"
-                      icono={<Pencil aria-hidden strokeWidth={1.75} />}
+                    <LapizEditar
+                      que={`la meta de ${p.nombre}`}
                       disabled={!permiso.puede}
-                      title={permiso.puede ? `Cambiar la meta de ${p.nombre}` : permiso.motivo}
-                      aria-label={`Cambiar la meta de ${p.nombre}`}
+                      title={permiso.puede ? undefined : permiso.motivo}
                       onClick={() => setEditando(p)}
-                    >
-                      Meta
-                    </BotonCompacto>
+                      guia={permiso.puede ? "rendimiento.meta-boton" : undefined}
+                    />
                   </div>
                 </div>
               );
             })}
-            <div className={`${TABLA.pie} flex flex-wrap items-center justify-between gap-x-4 gap-y-1`}>
+            <div className={`${TABLA.pie} flex flex-wrap items-center justify-between gap-x-4 gap-y-1`} data-guia="rendimiento.reparto">
               {asignacion.tipo === "sin_meta" ? (
                 <span>Sin meta de la sede no hay qué repartir.</span>
               ) : (
@@ -436,8 +444,8 @@ function BotonOrden({ activo, onClick, children }: { activo: boolean; onClick: (
 
 function Historial({ cambios }: { cambios: CambioMeta[] }) {
   return (
-    <details className="card-cayla p-5">
-      <summary className="flex cursor-pointer select-none flex-wrap items-center justify-between gap-2 text-sm text-tinta">
+    <details className="card-cayla p-5" data-guia="rendimiento.historial">
+      <summary className="flex cursor-pointer select-none flex-wrap items-center justify-between gap-2 text-sm text-tinta" data-guia="rendimiento.historial-abrir">
         <span>Cambios de meta ({cambios.length})</span>
         <Chip tono="neutro" versalitas={false}>
           no se borran

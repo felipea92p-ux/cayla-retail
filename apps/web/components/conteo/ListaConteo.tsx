@@ -148,7 +148,7 @@ const TarjetaPercha = memo(function TarjetaPercha({
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 py-1 pl-[18px] pr-3">
         <MiniaturaPrenda fotoUrl={g.fotoUrl} colorHex={g.colorHex} tamano="xl" {...categoriaDe(g)} />
         <div className="min-w-[8rem] flex-1">
-          <h3 className="truncate text-base font-semibold leading-snug text-tinta">{g.referencia}</h3>
+          <h3 className="truncate text-base font-semibold leading-snug text-tinta">{/* unificar-fijo: el nombre de la prenda en su tarjeta, un dato y no un título de sección */}{g.referencia}</h3>
           <p className="mt-1.5 flex items-center gap-2 text-sm text-taupe">
             {g.color ? (
               // `inert`: el nombre ya va en texto; sin esto cada tarjeta sumaría una parada de Tab entre campos de conteo.
@@ -164,7 +164,9 @@ const TarjetaPercha = memo(function TarjetaPercha({
         </div>
         <BotonCompletarTodo control={control} ids={ids} nombre={`${g.referencia} ${g.color ?? ""}`.trim()} alCompletar={alCompletar} />
       </header>
-      <table className="w-full table-fixed text-sm">
+      {/* La cara de la tabla del sistema (ADR-0358, ronda 9): cabecera en arena, rayado en hueso, cascada al abrir y la talla recién
+          contada que respira en verde. Sigue siendo una tabla HTML: con 800 tallas, cada fila (`FilaConteo`) se vuelve a dibujar sola. */}
+      <table className="w-full table-fixed text-sm">{/* unificar-fijo: la planilla de Contar con la cara de <Tabla> (encabezado-tabla-cayla, fila-cayla); <table> para que cada talla se redibuje sola */}
         <caption className="sr-only">
           Tallas de {g.referencia} {g.color ?? ""}
         </caption>
@@ -175,22 +177,22 @@ const TarjetaPercha = memo(function TarjetaPercha({
           <col />
         </colgroup>
         <thead>
-          <tr className="bg-hueso/40">
-            <th scope="col" className="py-[5px] pl-[18px] pr-1 text-left text-xs font-normal leading-tight text-taupe">
+          <tr className="encabezado-tabla-cayla">
+            <th scope="col" className="py-2 pl-[18px] pr-1 text-left text-xs font-normal leading-tight text-taupe">
               Talla
             </th>
-            <th scope="col" className="px-1 py-[5px] text-center text-xs font-normal leading-tight text-taupe">
+            <th scope="col" className="px-1 py-2 text-center text-xs font-normal leading-tight text-taupe">
               Debe haber
             </th>
-            <th scope="col" className="px-1 py-[5px] text-center text-xs font-normal leading-tight text-taupe">
+            <th scope="col" className="px-1 py-2 text-center text-xs font-normal leading-tight text-taupe">
               Contaste
             </th>
-            <th scope="col" className="py-[5px] pl-2 pr-3 text-left text-xs font-normal leading-tight text-taupe">
+            <th scope="col" className="py-2 pl-2 pr-3 text-left text-xs font-normal leading-tight text-taupe">
               Estado
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-sand/60">
+        <tbody className="divide-y divide-sand">
           {g.tallas.map((t) => (
             <FilaConteo
               key={t.varianteId}

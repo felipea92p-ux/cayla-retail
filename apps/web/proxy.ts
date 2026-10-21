@@ -1,5 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { direccionDeSinBase } from "@/lib/base-caida-reglas";
 import { RUTA_ELEGIR_SEDE, rutaDeLaVistaGlobal, VALOR_VISTA_GLOBAL } from "@/lib/vista-global";
 import { esRutaPublica } from "@/lib/rutas-publicas";
 import { pasaComoCron } from "@/lib/rutas-cron";
@@ -38,6 +40,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // La pantalla que se pidió, para que quien la necesite del lado del servidor sepa a dónde volver (`/sin-base` cuando la base no
+  // responde: `lib/persona-actual.ts`). Se pisa siempre: lo que llegue de afuera con este nombre no vale.
+  request.headers.set("x-cayla-ruta", request.nextUrl.pathname + request.nextUrl.search);
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -69,12 +75,32 @@ export async function proxy(request: NextRequest) {
   // de validar, igual que antes; el setAll() de arriba sigue escribiendo las cookies
   // nuevas. Y si algún día el proyecto volviera a firmar con secreto simétrico, getClaims()
   // cae solo al viaje de red — se comporta como hoy, no se rompe.
-  const { data: verificado } = await supabase.auth.getClaims();
+  const { data: verificado, error: errorDeSesion } = await supabase.auth.getClaims();
   const haySesion = verificado?.claims != null;
+  // «No pude comprobar la sesión» no es «no hay sesión» (ADR-0450). Si el access token venció y renovarlo falló porque Auth no
+  // respondió (la base caída, un corte), la persona sigue con su sesión abierta: mandarla al login la hacía escribir su contraseña
+  // en una pantalla que tampoco podía hablar con la base. Lo mismo hace la tienda (`apps/tienda/proxy.ts`, «no_se»).
+  const noSePudoComprobar = !haySesion && errorDeSesion != null && isAuthRetryableFetchError(errorDeSesion);
 
   const isLoginPage = request.nextUrl.pathname.startsWith("/login");
   const isAuthCallback = request.nextUrl.pathname.startsWith("/auth");
   const isApi = request.nextUrl.pathname.startsWith("/api/");
+
+  if (noSePudoComprobar && !isLoginPage && !isAuthCallback) {
+    // A una ruta de API, un 503 que quien llama distingue de «sesión vencida» (el 401 de abajo hace que se pida volver a entrar).
+    if (isApi) {
+      return NextResponse.json(
+        { error: "No hay conexión con la base. Tu sesión sigue abierta; vuelve a intentarlo en un momento.", codigo: "base_no_responde" },
+        { status: 503, headers: { "Retry-After": "15", "Cache-Control": "no-store" } },
+      );
+    }
+    // A una pantalla, la que espera y vuelve sola. Una acción de servidor (POST) sigue de largo: falla con su propio aviso y lo que
+    // la persona escribió se queda en la pantalla.
+    if (request.method === "GET" || request.method === "HEAD") {
+      return NextResponse.redirect(new URL(direccionDeSinBase(request.nextUrl.pathname + request.nextUrl.search), request.url));
+    }
+    return response;
+  }
 
   if (!haySesion && !isLoginPage && !isAuthCallback) {
     // A una pantalla se la manda al login; a una ruta de API, no. Un `fetch()`
@@ -130,9 +156,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // `sw.js` y `sin-conexion.html` (ADR-0210) tampoco pasan por la sesión: el navegador pide el service worker sin
   // cookies de la app a veces, y un redirect a /login lo rompería; la página sin conexión no tiene nada privado.
-  // `quitar-fondo.worker.js` (ADR-0228), igual: es código público; redirigido al login, el navegador recibía HTML
-  // donde esperaba JavaScript y el recortador no arrancaba.
   // `mac-etiquetas/` (ADR-0304), igual: el instalador del ayudante se baja con `curl`, sin sesión; redirigido al login,
   // Terminal recibía HTML y la instalación fallaba. Son dos scripts públicos, sin datos.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|quitar-fondo\\.worker\\.js|mac-etiquetas/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|mac-etiquetas/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

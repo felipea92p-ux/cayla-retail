@@ -256,6 +256,7 @@ export function PatronesLista({
   return (
     <div className="space-y-6">
       <BarraAtributos
+        guia="atributos.barra-patrones"
         etiqueta="Filtrar patrones"
         filtros={
           <>
@@ -348,17 +349,17 @@ export function PatronesLista({
       )}
 
       {rechazandoPatron && (
-        <Modal titulo={`Rechazar «${rechazandoPatron.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+        <Modal titulo={`Rechazar «${rechazandoPatron.nombre}»`} onClose={() => setRechazandoAbierto(null)}>
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoPatron.id}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={rechazandoId === rechazandoPatron.id}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={rechazandoId === rechazandoPatron.id}
                   onClick={() => rechazar(rechazandoPatron)}
                 >
@@ -451,7 +452,7 @@ function NuevoPatronModal({
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
-    <Modal titulo="Nuevo patrón" subtitulo="Queda disponible de inmediato para cualquier producto nuevo." ancho="max-w-sm" onClose={onClose}>
+    <Modal titulo="Nuevo patrón" subtitulo="Queda disponible de inmediato para cualquier producto nuevo." onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <CampoGuiado id="nombre" guia={guia}>
@@ -473,8 +474,8 @@ function NuevoPatronModal({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton

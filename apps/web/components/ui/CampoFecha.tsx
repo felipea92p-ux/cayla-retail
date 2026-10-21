@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { ALTO_CONTROL, Campo, Hilo } from "@/components/ui/campos";
+import { Campo } from "@/components/ui/campos";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 
 /* ====================================================================
@@ -292,7 +292,8 @@ export function CampoFecha({
       htmlFor={id}
       etiquetaOculta={caja}
     >
-      <div ref={raiz} className={caja ? "caja-cayla relative px-3" : "relative"}>
+      {/* La caja que se enciende (ADR-0358, ronda 6): también con el calendario abierto (`aria-expanded` del botón). */}
+      <div ref={raiz} className="caja-cayla caja-campo" data-tono={conError ? "error" : undefined}>
         <input
           ref={entrada}
           id={id}
@@ -308,7 +309,7 @@ export function CampoFecha({
           onFocus={() => setEnfocado(true)}
           onBlur={alSalir}
           onKeyDown={tecladoInput}
-          className={`w-full bg-transparent py-2 pl-0.5 pr-7 font-mono text-sm tabular-nums tracking-wider text-tinta outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-tinta/45 disabled:opacity-50 ${ALTO_CONTROL}`}
+          className="self-stretch py-0 font-mono tabular-nums tracking-wider placeholder:font-sans placeholder:tracking-normal disabled:opacity-50"
         />
         <button
           type="button"
@@ -319,14 +320,13 @@ export function CampoFecha({
           aria-expanded={abierto}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => (abierto ? setAbierto(false) : abrir())}
-          className={`absolute right-0.5 top-1/2 -translate-y-1/2 rounded p-0.5 transition-colors ${abierto || enfocado ? "text-rojo" : "text-tinta/55 hover:text-tinta"} disabled:opacity-50`}
+          className={`-mr-1 shrink-0 rounded p-0.5 transition-colors ${abierto || enfocado ? "text-rojo" : "text-tinta/55 hover:text-tinta"} disabled:opacity-50`}
         >
           <svg aria-hidden viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4">
             <rect x="2" y="3.5" width="12" height="10.5" rx="1.5" />
             <path d="M2 7h12M5.5 2v3M10.5 2v3" strokeLinecap="round" />
           </svg>
         </button>
-        {!caja && <Hilo activo={enfocado || abierto} />}
 
         {abierto && pos && destino && createPortal(
           <div
@@ -425,7 +425,7 @@ export function CampoFecha({
             </div>
 
             <div className="mt-2 flex items-center justify-between border-t border-sand pt-2">
-              <button type="button" onClick={() => elegir(elHoy)} className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo">
+              <button type="button" onClick={() => elegir(elHoy)} className="btn-cayla btn-enlace text-[13px]">
                 Hoy
               </button>
               {marcados && (
@@ -442,7 +442,7 @@ export function CampoFecha({
                     setAbierto(false);
                     onValor("");
                   }}
-                  className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo"
+                  className="btn-cayla btn-enlace text-[13px]"
                 >
                   Limpiar
                 </button>

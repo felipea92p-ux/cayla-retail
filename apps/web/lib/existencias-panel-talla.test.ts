@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accionesDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla } from "./existencias-panel-talla";
+import { accionesDeTalla, insigniaDelModelo, lineaDeLoQueFalta, lineaNoAhora, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, separarAcciones, subtituloColgarVarias } from "./existencias-panel-talla";
 import { mejorOrigen } from "./existencias-flujos";
 import { esObjetivo } from "./existencias-mision";
 import { sedesParaPedir } from "./pedidos-entre-sedes-reglas";
@@ -9,23 +9,23 @@ import type { FilaPrenda } from "./existencias-prendas";
 const talla = (x: Partial<FilaPrenda> & { enRed?: { sede: string; ubicacionId: string; cantidad: number }[] }) =>
   ({ pisoDisponible: 0, almacenDisponible: 0, disponible: 0, apartado: 0, danado: 0, planPiso: null, talla: "M", ...x }) as FilaPrenda & { enRed?: { sede: string; ubicacionId: string; cantidad: number }[] };
 const PIDE = { accion: "por_colgar" } as never;
-const TODO = { puedeReponer: true, puedeEnviar: true, puedeAjustar: true, puedeApartar: true, puedePedir: true, origenes: [{ nombre: "Tienda Lima", cantidad: 2 }, { nombre: "Tienda Arequipa", cantidad: 0 }] };
+const TODO = { puedeReponer: true, puedeEnviar: true, puedeAjustar: true, puedeApartar: true, puedePedir: true, puedeReportarDanada: true, origenes: [{ nombre: "Tienda Lima", cantidad: 2 }, { nombre: "Tienda Arequipa", cantidad: 0 }] };
 
 describe("acciones del panel de una talla", () => {
-  it("siete tarjetas con los nombres del sistema; con algo en el piso, vender (apartar) va primero", () => {
+  it("siete acciones con los nombres del sistema; con algo en el piso, vender (apartar) va primero", () => {
     const a = accionesDeTalla(talla({ pisoDisponible: 2, almacenDisponible: 3, disponible: 5 }), TODO, true);
-    expect(a.map((x) => x.texto)).toEqual(["Apartar", "Colgar en el piso", "Subir a almacén", "Enviar a otra sede", "Pedir a otra sede", "Ajustar stock", "Ficha"]);
+    expect(a.map((x) => x.texto)).toEqual(["Apartar", "Colgar en el piso", "Subir a almacén", "Enviar a otra sede", "Pedir a otra sede", "Reportar dañada", "Ajustar stock"]);
   });
   it("la tecla es de la acción, no del lugar: el orden cambia con la talla y el número no", () => {
     const teclas = (f: FilaPrenda) => Object.fromEntries(accionesDeTalla(f, TODO, true).map((x) => [x.clave, x.tecla]));
-    const esperado = { colgar: 1, subir: 2, enviar: 3, apartar: 4, pedir: 5, ajustar: 6, ficha: 7 };
+    const esperado = { colgar: 1, subir: 2, enviar: 3, apartar: 4, pedir: 5, ajustar: 6, danada: 7 };
     expect(teclas(talla({ pisoDisponible: 2, almacenDisponible: 3, disponible: 5 }))).toEqual(esperado);
     expect(teclas(talla({}))).toEqual(esperado);
   });
   it("primero lo que la talla necesita, después lo que se puede y al final lo que no", () => {
     const claves = (f: FilaPrenda) => accionesDeTalla(f, TODO, true).map((x) => `${x.clave}${x.sugerida ? "*" : ""}${x.ok ? "" : "·no"}`);
-    // Sin nada en la sede y una tienda que la tiene: pedir, después lo que se puede (ajustar, ficha), al final lo apagado.
-    expect(claves(talla({ enRed: [{ sede: "Lima", ubicacionId: "lim", cantidad: 2 }] }))).toEqual(["pedir*", "ajustar", "ficha", "apartar·no", "colgar·no", "subir·no", "enviar·no"]);
+    // Sin nada en la sede y una tienda que la tiene: pedir, después lo que se puede (ajustar), al final lo apagado.
+    expect(claves(talla({ enRed: [{ sede: "Lima", ubicacionId: "lim", cantidad: 2 }] }))).toEqual(["pedir*", "ajustar", "apartar·no", "colgar·no", "subir·no", "enviar·no", "danada·no"]);
     // Nada en el piso y algo atrás, sin decisión del motor: colgar primero y sugerida (la misma vara que «Qué toca»).
     expect(claves(talla({ almacenDisponible: 3, disponible: 3 }))[0]).toBe("colgar*");
     // Con el piso en pausa NO se sugiere colgar (podría ya colgar): se ofrece, sin resaltar.
@@ -40,7 +40,7 @@ describe("acciones del panel de una talla", () => {
   });
   it("sin permiso no se dibuja; sin separar piso y almacén tampoco hay colgar ni subir", () => {
     const a = accionesDeTalla(talla({ disponible: 4 }), { puedeReponer: false, puedeEnviar: false, puedeAjustar: false }, true);
-    expect(a.map((x) => x.clave)).toEqual(["ficha"]);
+    expect(a.map((x) => x.clave)).toEqual([]);
     expect(accionesDeTalla(talla({ disponible: 4 }), TODO, false).map((x) => x.clave)).not.toContain("colgar");
   });
   it("sugiere colgar solo si la talla está por colgar y hay algo atrás", () => {
@@ -226,5 +226,45 @@ describe("«Pedir a otra sede» cruza la red con las tiendas por id, no por nomb
   it("la tienda a la que conviene pedir y la misión del día la reconocen", () => {
     expect(mejorOrigen(enRed, sedes)).toEqual({ id: "tru", nombre: "Tienda Trujillo", cantidad: 4 });
     expect(esObjetivo({ varianteId: "v", pisoDisponible: 0, almacenDisponible: 0, disponible: 0, planPiso: null, enRed }, new Set(sedes.map((s) => s.id)))).toBe(true);
+  });
+});
+
+describe("el modal separa lo posible de lo que no (ADR-0391)", () => {
+  it("las filas son solo las posibles; lo demás va en una línea con su motivo", () => {
+    const todas = accionesDeTalla(talla({ pisoDisponible: 1, almacenDisponible: 0, disponible: 1 }), { ...TODO, origenes: [] }, true);
+    const { posibles, noAhora } = separarAcciones(todas);
+    expect(posibles.map((x) => x.clave)).toEqual(["apartar", "subir", "danada", "ajustar"]);
+    expect(noAhora.map((x) => x.clave)).toEqual(["colgar", "enviar", "pedir"]);
+    expect(lineaNoAhora(noAhora)).toBe("No ahora: Colgar (nada en almacén) · Enviar (nada en almacén) · Pedir (ninguna tienda tiene).");
+    expect(lineaNoAhora([])).toBeNull();
+  });
+  it("Reportar dañada entra a la lista, y sin nada en la sede dice por qué no", () => {
+    const con = Object.fromEntries(accionesDeTalla(talla({ pisoDisponible: 2, disponible: 2 }), TODO, true).map((x) => [x.clave, x]));
+    expect(con.danada).toMatchObject({ ok: true, sub: "Pasa a cuarentena", tecla: 7 });
+    const sin = Object.fromEntries(accionesDeTalla(talla({}), TODO, true).map((x) => [x.clave, x]));
+    expect(sin.danada).toMatchObject({ ok: false, sub: "Nada que reportar" });
+    expect(accionesDeTalla(talla({ disponible: 4 }), { ...TODO, puedeReportarDanada: false }, true).map((x) => x.clave)).not.toContain("danada");
+  });
+});
+
+describe("el chip de «Todas» (el modelo entero) sigue la regla de la tarjeta, no solo al motor (ADR-0391, /formidable 2026-10-12)", () => {
+  it("lo que marca el motor gana, en ámbar", () => {
+    expect(insigniaDelModelo({ porColgar: 2, sinColgar: 4, agotadas: 1 })).toEqual({ tono: "ambar", texto: "2 tallas por colgar" });
+    expect(insigniaDelModelo({ porColgar: 1, sinColgar: 0, agotadas: 0 })).toEqual({ tono: "ambar", texto: "1 talla por colgar" });
+  });
+  it("con el piso en pausa (el motor no marca nada) y tallas a 0 colgadas con stock atrás: nunca «Todo en el piso»; se dice en neutro", () => {
+    expect(insigniaDelModelo({ porColgar: 0, sinColgar: 3, agotadas: 0 })).toEqual({ tono: "pizarra", texto: "3 tallas sin colgar" });
+    expect(insigniaDelModelo({ porColgar: 0, sinColgar: 1, agotadas: 2 })).toEqual({ tono: "pizarra", texto: "1 talla sin colgar" });
+  });
+  it("«Todo en el piso» solo cuando nada falta ni se acabó; con algo agotado, el chip rojo va solo", () => {
+    expect(insigniaDelModelo({ porColgar: 0, sinColgar: 0, agotadas: 0 })).toEqual({ tono: "verde", texto: "Todo en el piso" });
+    expect(insigniaDelModelo({ porColgar: 0, sinColgar: 0, agotadas: 1 })).toBeNull();
+  });
+  it("la línea de «Colgar varias» cuenta lo mismo que el chip", () => {
+    expect(subtituloColgarVarias({ porColgar: 2, sinColgar: 5, almacen: 9 })).toBe("2 tallas faltan en el piso");
+    expect(subtituloColgarVarias({ porColgar: 1, sinColgar: 0, almacen: 9 })).toBe("1 talla falta en el piso");
+    expect(subtituloColgarVarias({ porColgar: 0, sinColgar: 4, almacen: 9 })).toBe("4 tallas sin colgar");
+    expect(subtituloColgarVarias({ porColgar: 0, sinColgar: 0, almacen: 9 })).toBe("Elige cuántas de cada una");
+    expect(subtituloColgarVarias({ porColgar: 0, sinColgar: 0, almacen: 0 })).toBe("Nada guardado para colgar");
   });
 });

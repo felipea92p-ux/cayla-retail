@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Flag, Package, Search } from "lucide-react";
+import { Flag, Package, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
@@ -26,6 +26,10 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ElegirPrendas } from "@/components/conteo/ElegirPrendas";
 import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    AbrirConteo · «Abrir un conteo» (Inventario ▸ Conteo). Maqueta: `docs/maquetas/conteo-abrir-2026-09/abrir-conteo.html`.
@@ -253,13 +257,11 @@ export function AbrirConteo({
     );
 
   return (
-    <section className="card-cayla @container" aria-labelledby={idTitulo}>
+    <section data-guia="conteo.abrir" className="card-cayla @container" aria-labelledby={idTitulo}>
       <div className="grid @[46rem]:grid-cols-[minmax(0,1fr)_19.5rem]">
         <div inert={abriendo} className={`min-w-0 space-y-7 p-5 transition-opacity duration-200 @[46rem]:p-8 ${abriendo ? "opacity-60" : ""}`}>
           <div className="space-y-1">
-            <h2 id={idTitulo} className="font-display text-2xl text-tinta">
-              Abrir un conteo
-            </h2>
+            <TituloSeccion id={idTitulo}>Abrir un conteo</TituloSeccion>
             <p className="text-sm text-taupe">
               {separaPisoAlmacen ? "Tres respuestas y empiezas a escanear." : "Aquí se cuenta toda la ubicación: no hay piso y almacén por separado."}
             </p>
@@ -268,18 +270,19 @@ export function AbrirConteo({
           {/* Antes de contar: lo que viene en camino y no se recibió no está en el stock de esta sede. Si ya está en el rack, sale
               «de más»; si no, se recibe después y descuadra lo contado. */}
           {!!trasladosPorAtender && trasladosPorAtender > 0 && (
-            <div className="flex flex-col items-start gap-1.5 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm @[36rem]:flex-row @[36rem]:items-center @[36rem]:gap-3">
-              <span className="min-w-0 flex-1 text-tinta">
-                <b className="font-semibold">Antes de contar:</b> hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por
-                atender. Recíbelos primero, o esas prendas saldrán como diferencia.
-              </span>
-              <Link href="/inventario/traslados" className="btn-cayla btn-enlace text-sm">
-                Ver traslados →
-              </Link>
-            </div>
+            <Aviso
+              tono="atencion"
+              guia="conteo.aviso-traslados"
+              titulo="Antes de contar"
+              accion={<Link href="/inventario/traslados">Ver traslados</Link>}
+            >
+              Hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por atender. Recíbelos
+              primero, o esas prendas saldrán como diferencia.
+            </Aviso>
           )}
 
           {separaPisoAlmacen && (
+            <div data-guia="conteo.donde">
             <CampoGuiado id="donde" guia={guia} titulo="¿Dónde vas a contar?">
               <TarjetasOpcion
                 etiqueta="Dónde vas a contar"
@@ -289,23 +292,25 @@ export function AbrirConteo({
                 opciones={lugares.map((l) => ({
                   valor: l.id,
                   titulo: textoLugar({ sububicacionTipo: l.tipo, sububicacionNombre: l.nombre }),
-                  icono: l.tipo === "piso_venta" ? <IconoPercha className="h-6 w-6" /> : <Package className="h-6 w-6" strokeWidth={1.5} aria-hidden />,
+                  icono: l.tipo === "piso_venta" ? <IconoPercha className="h-6 w-6" /> : <Package /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ className="h-6 w-6" strokeWidth={1.5} aria-hidden />,
                   linea: ultimoPorLugar[l.id] ?? "Nunca se contó",
                   cifra: alcance ? textoVariantesRegistradas(variantesDelConteo(alcance, l.id, null) ?? 0) : null,
                 }))}
               />
             </CampoGuiado>
+            </div>
           )}
 
+          <div data-guia="conteo.que">
           <CampoGuiado id="que" guia={guia} titulo="¿Qué vas a contar?">
             <SegmentoDeslizante
               etiqueta="Qué vas a contar"
               valor={queCuento}
               onCambio={(v) => setQueCuento(v as AlcanceElegido)}
               opciones={[
-                { clave: "todo", etiqueta: "Todo" },
-                { clave: "categoria", etiqueta: "Una categoría" },
-                { clave: "prendas", etiqueta: "Por prenda" },
+                { clave: "todo", etiqueta: "Todo", guia: "conteo.que-todo" },
+                { clave: "categoria", etiqueta: "Una categoría", guia: "conteo.que-categoria" },
+                { clave: "prendas", etiqueta: "Por prenda", guia: "conteo.que-prendas" },
               ]}
             />
             <p aria-live="polite" className="mt-2.5 min-h-5 text-[13px] text-taupe">
@@ -316,7 +321,7 @@ export function AbrirConteo({
               inert={queCuento !== "categoria"}
               className={`grid transition-[grid-template-rows] duration-[340ms] ease-cayla ${queCuento === "categoria" ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
             >
-              <div className="min-h-0 overflow-hidden">
+              <div data-guia="conteo.categorias" className="min-h-0 overflow-hidden">
                 <ElegirCategoria
                   categorias={categorias}
                   valor={categoriaId}
@@ -331,7 +336,7 @@ export function AbrirConteo({
               inert={queCuento !== "prendas"}
               className={`grid transition-[grid-template-rows] duration-[340ms] ease-cayla ${queCuento === "prendas" ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
             >
-              <div className="min-h-0 overflow-hidden">
+              <div data-guia="conteo.prendas" className="min-h-0 overflow-hidden">
                 <ElegirPrendas
                   estado={cargaDePrendas.estado}
                   reintentar={cargaDePrendas.reintentar}
@@ -349,6 +354,7 @@ export function AbrirConteo({
               </div>
             </div>
           </CampoGuiado>
+          </div>
 
           {/* Solo si hay algo que decir de lo elegido. Las dos frases ocupan la misma celda (la invisible reserva el alto); van por
               posición (0 = «Todo», 1 = la parte elegida), no por tipo: en el piso las dos pueden ser «de arranque». */}
@@ -365,7 +371,7 @@ export function AbrirConteo({
                       a.tipo === "arranque" ? "border-sand bg-hueso text-tinta" : "border-ambar/35 bg-ambar/[0.07] text-tinta"
                     } ${visible ? "" : "invisible"}`}
                   >
-                    <Flag aria-hidden strokeWidth={1.5} className={`mt-0.5 h-4 w-4 shrink-0 ${a.tipo === "arranque" ? "text-taupe" : "text-ambar-profundo"}`} />
+                    <Flag aria-hidden className={`mt-0.5 h-4 w-4 shrink-0 ${a.tipo === "arranque" ? "text-taupe" : "text-ambar-profundo"}`} />
                     <span className="min-w-0">
                       <b className="font-semibold">{a.titulo}.</b> {a.texto}
                     </span>
@@ -375,9 +381,11 @@ export function AbrirConteo({
             </div>
           )}
 
-          <CampoGuiado id="quien" guia={guia} titulo="¿Quién cuenta?">
-            <ComboResponsable control={responsable} deshabilitado={abriendo} compacto className="w-full @[36rem]:w-80" />
-          </CampoGuiado>
+          <div data-guia="conteo.quien">
+            <CampoGuiado id="quien" guia={guia} titulo="¿Quién cuenta?">
+              <ComboResponsable control={responsable} deshabilitado={abriendo} compacto className="w-full @[36rem]:w-80" />
+            </CampoGuiado>
+          </div>
 
           {error && (
             <Aviso tono="error">{error}</Aviso>
@@ -386,6 +394,7 @@ export function AbrirConteo({
 
         {/* «Tu conteo»: a la derecha en una tarjeta ancha; en una angosta, la barra pegada abajo con la cifra y el botón. */}
         <aside
+          data-guia="conteo.tu-conteo"
           aria-label="Resumen del conteo"
           className="sticky bottom-0 z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-b-[inherit] border-t border-sand bg-papel px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-b-none @[46rem]:rounded-r-[inherit] @[46rem]:border-l @[46rem]:border-t-0 @[46rem]:bg-hueso/50 @[46rem]:p-7"
         >
@@ -430,15 +439,15 @@ export function AbrirConteo({
           <div className="col-span-2 row-start-2 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:mt-auto">
             <PieGuia guia={guia} listo="Todo listo para empezar." />
           </div>
-          <button
+          <Boton peso="primario" cargando={abriendo} textoCargando="Abriendo…"
             type="button"
             onClick={() => void abrir()}
             disabled={!listo || abriendo}
             title={guia.frase ?? undefined}
-            className={`btn-cayla btn-primario col-start-2 row-start-1 h-11 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:h-12 @[46rem]:w-full ${guia.claseConfirmar}`}
+            className={`col-start-2 row-start-1 h-11 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:h-12 @[46rem]:w-full ${guia.claseConfirmar}`}
           >
-            {abriendo ? "Abriendo…" : "Empezar conteo"}
-          </button>
+            Empezar conteo
+          </Boton>
         </aside>
       </div>
     </section>
@@ -578,28 +587,22 @@ function ElegirCategoria({
 
   return (
     <div className="space-y-3 pt-3">
-      <label className="caja-cayla relative flex items-center gap-2 px-3 @[30rem]:max-w-sm">
-        <Search className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
-        <span className="sr-only">Buscar categoría</span>
-        <input
-          ref={buscador}
-          type="text"
-          autoComplete="off"
-          value={consulta}
-          onChange={(e) => setConsulta(e.target.value)}
-          onKeyDown={(e) => {
-            // Un control que usa el Escape (aquí, borra su búsqueda) no lo deja pasar (ADR-0136).
-            if (e.key === "Escape" && consulta) {
-              e.stopPropagation();
-              setConsulta("");
-            }
-          }}
-          placeholder="Buscar categoría"
-          className="h-10 w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/55"
-        />
-      </label>
-      <div role="radiogroup" aria-label="Categoría" className="-mx-0.5 flex max-h-40 flex-wrap gap-2 overflow-y-auto p-0.5">
-        {visibles.length === 0 && <p className="py-1.5 text-[13px] text-taupe">Ninguna categoría se llama así.</p>}
+      {/* El buscador del sistema (ADR-0358, ronda 5): su Escape borra lo escrito y no cierra la hoja de alrededor (ADR-0136). */}
+      <Buscador
+        guia="conteo.categoria-buscador"
+        ref={buscador}
+        valor={consulta}
+        onCambio={setConsulta}
+        etiqueta="Buscar categoría"
+        placeholder="Buscar categoría"
+        className="@[30rem]:max-w-sm"
+      />
+      <div data-guia="conteo.categoria-lista" role="radiogroup" aria-label="Categoría" className="-mx-0.5 flex max-h-40 flex-wrap gap-2 overflow-y-auto p-0.5">
+        {visibles.length === 0 && (
+          <Vacio tamano="chico" alinear="izquierda" className="px-0 py-1.5" icono={<SearchX />}>
+            Ninguna categoría se llama así.
+          </Vacio>
+        )}
         {visibles.map((c, i) => {
           const activa = c.id === valor;
           return (

@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Shirt, X } from "lucide-react";
+import { Shirt, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { lineasDeLaProforma, numeroDeProforma, TOPE_DESCUENTO_PROFORMA, totalesDeLineas, type Proforma } from "@/lib/proformas-reglas";
@@ -22,6 +22,7 @@ import { Buscador } from "@/components/ui/Buscador";
 import { usePistola } from "@/components/ui/usePistola";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { conPrecioDeLaSede } from "@/lib/precio-sede-reglas";
 
 /** Una prenda del catálogo que se puede poner en una proforma (la arma la página Proformas desde `getCatalogo`). */
@@ -31,7 +32,6 @@ type Fila = { prenda: PrendaParaProforma; cantidad: number; pct: number; motivo:
 
 const PCT_MAX = Math.round(TOPE_DESCUENTO_PROFORMA * 100);
 const descuentoDe = (f: Fila) => descuentoUnitarioPorPorcentaje(f.prenda.precio, f.pct);
-const CONTROL = "rounded-md border border-tinta/15 bg-vidrio/60 px-1.5 py-1 text-xs outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60";
 
 // «Nueva proforma» (spec 2026-09-22): prendas del catálogo con cantidad y descuento (hasta 20 %, con motivo),
 // clienta, validez y nota. La cuenta que se ve es `totalesDeLineas`, la misma que hace `crear_proforma`; la base
@@ -160,7 +160,7 @@ export function NuevaProformaModal({
   const titulo = !inicial ? "Nueva proforma" : inicial.vencida ? `Renovar ${numeroDeProforma(inicial.numero)}` : `Copia de ${numeroDeProforma(inicial.numero)}`;
 
   return (
-    <Modal titulo={titulo} subtitulo={inicial ? "Con los precios de hoy. Revisa y guarda como una proforma nueva." : undefined} ancho="max-w-3xl" onClose={onCerrar}>
+    <Modal titulo={titulo} subtitulo={inicial ? "Con los precios de hoy. Revisa y guarda como una proforma nueva." : undefined} tamano="ancha" onClose={onCerrar}>
       {(cerrar) => (
         <form onSubmit={onCrear} className="mt-5 space-y-4">
           {noCopiadas.length > 0 && (
@@ -170,11 +170,13 @@ export function NuevaProformaModal({
           )}
 
           {esLider && ubicaciones.length > 1 && (
-            <CampoSelect etiqueta="Tienda" valor={ubicacionId} onValor={setUbicacionId} opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))} />
+            <div data-guia="proformas.modal-tienda">
+              <CampoSelect etiqueta="Tienda" valor={ubicacionId} onValor={setUbicacionId} opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))} />
+            </div>
           )}
 
           {/* El buscador: referencia, SKU o código de etiqueta; Enter con un código exacto (escáner) la agrega. */}
-          <div className="relative">
+          <div data-guia="proformas.modal-buscar" className="relative">
             <Buscador
               ref={buscador}
               valor={q}
@@ -228,15 +230,12 @@ export function NuevaProformaModal({
                       <p className="text-sm font-semibold text-tinta">{f.prenda.referencia}</p>
                       <p className="text-xs text-tinta/60">{[f.prenda.talla, f.prenda.color, f.prenda.codigo].filter(Boolean).join(" · ")}</p>
                     </div>
-                    <div className="flex items-center gap-0.5">
-                      <button type="button" aria-label={`Una ${f.prenda.referencia} menos`} onClick={() => (f.cantidad > 1 ? cambiar(id, { cantidad: f.cantidad - 1 }) : quitar(id))} className="grid h-7 w-7 place-items-center rounded-md hover:bg-tinta/10">
-                        <Minus aria-hidden className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="w-6 text-center tabular-nums" aria-label="Cantidad">{f.cantidad}</span>
-                      <button type="button" aria-label={`Una ${f.prenda.referencia} más`} onClick={() => cambiar(id, { cantidad: f.cantidad + 1 })} className="grid h-7 w-7 place-items-center rounded-md hover:bg-tinta/10">
-                        <Plus aria-hidden className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    <PasoCantidad
+                      menos={{ onClick: () => (f.cantidad > 1 ? cambiar(id, { cantidad: f.cantidad - 1 }) : quitar(id)), etiqueta: `Una ${f.prenda.referencia} menos` }}
+                      mas={{ onClick: () => cambiar(id, { cantidad: f.cantidad + 1 }), etiqueta: `Una ${f.prenda.referencia} más` }}
+                    >
+                      <span aria-label="Cantidad">{f.cantidad}</span>
+                    </PasoCantidad>
                     <label className="flex items-center gap-1 text-xs text-tinta/70">
                       Dscto.
                       <input
@@ -249,7 +248,7 @@ export function NuevaProformaModal({
                         placeholder="0"
                         onChange={(e) => cambiar(id, { pct: Math.min(PCT_MAX, Math.max(0, Math.round(Number(e.target.value) || 0))) })}
                         aria-label={`Descuento en % de ${f.prenda.referencia} (hasta ${PCT_MAX} %)`}
-                        className={`${CONTROL} w-12 text-right tabular-nums`}
+                        className="caja-campo-input min-h-8 w-12 px-2 text-right text-xs tabular-nums"
                       />
                       %
                     </label>
@@ -264,7 +263,7 @@ export function NuevaProformaModal({
                       />
                     )}
                     {f.pct > 0 && f.motivo === "otro" && (
-                      <input value={f.detalle} onChange={(e) => cambiar(id, { detalle: e.target.value })} placeholder="¿Por qué?" aria-label="Detalle del motivo" className={`${CONTROL} w-32`} />
+                      <input value={f.detalle} onChange={(e) => cambiar(id, { detalle: e.target.value })} placeholder="¿Por qué?" aria-label="Detalle del motivo" className="caja-campo-input min-h-8 w-32 px-2 text-xs" />
                     )}
                     <p className="ml-auto w-24 text-right tabular-nums">
                       {descuento > 0 && <span className="block text-xs text-tinta/55 line-through">{soles(f.prenda.precio * f.cantidad)}</span>}
@@ -280,7 +279,7 @@ export function NuevaProformaModal({
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div data-guia="proformas.modal-cliente" className="space-y-2">
               <Segmentado
                 etiqueta="Documento del cliente"
                 valor={tipoDoc}
@@ -297,7 +296,7 @@ export function NuevaProformaModal({
               <CampoTexto etiqueta="Vale por (días)" type="number" min="1" max="60" inputMode="numeric" value={dias} onChange={(e) => setDias(e.target.value)} />
               <CampoTexto etiqueta="Nota para el cliente" pie="Sale impresa al pie. Opcional." maxLength={500} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Incluye caja de regalo" />
             </div>
-            <dl className="space-y-1 self-end rounded-[12px] bg-tinta/[0.03] px-4 py-3 text-sm">
+            <dl data-guia="proformas.modal-total" className="space-y-1 self-end rounded-[12px] bg-tinta/[0.03] px-4 py-3 text-sm">
               <div className="flex justify-between text-tinta/70">
                 <dt>
                   {totales.prendas} {totales.prendas === 1 ? "prenda" : "prendas"} · descuentos
@@ -321,19 +320,19 @@ export function NuevaProformaModal({
 
           <ComboResponsable control={responsable} deshabilitado={loading} />
 
-          <div className="flex gap-2 pt-1">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div data-guia="proformas.modal-crear" className="pie-acciones pt-1">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={loading}
               disabled={filas.length === 0 || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {loading ? "Guardando…" : "Crear proforma"}
+              Crear proforma
             </Boton>
           </div>
         </form>
@@ -347,7 +346,7 @@ export function Foto({ prenda }: { prenda: { fotoUrl: string | null; colorHex: s
   if (prenda.fotoUrl) {
     return (
       <span className="relative h-12 w-10 shrink-0 overflow-hidden rounded-[4px] bg-sand/40">
-        <Image src={prenda.fotoUrl} alt={prenda.referencia} fill sizes="40px" className="object-cover" unoptimized />
+        <ImagenDePrenda src={prenda.fotoUrl} alt={prenda.referencia} fill sizes="40px" className="object-cover" fallback={<span aria-hidden className="absolute inset-0" style={{ background: prenda.colorHex ?? "var(--color-hueso)" }} />} />
       </span>
     );
   }

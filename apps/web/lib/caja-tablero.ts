@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { apartadoDeFila, estadoVisible, ORDEN_ESTADO, type ClaveEstado } from "@/lib/separaciones-reglas";
 import { getGastosDeUbicacion } from "@/lib/gastos";
+import { tieneComprobante } from "@/lib/gastos-reglas";
 import { getDevolucionesPendientes } from "@/lib/devoluciones";
 import { getTrasladosPorAtender } from "@/lib/traslados";
 import { diaYHoraLima } from "@/lib/fechas-lima";
@@ -17,7 +18,8 @@ import type { TarjetaCaja } from "@/lib/caja-tablero-reglas";
 //    escribe): la Caja se relee cada vez que entra una venta, y eso lo hace la pantalla de Apartados al abrirse.
 
 export type ApartadoCaja = { id: string; clienta: string; prendas: string; saldo: number; estado: ClaveEstado; estadoTexto: string };
-export type GastoCaja = { id: string; descripcion: string; categoria: string; hora: string; monto: number; conComprobante: boolean };
+/** `medio`: nulo si salió del cajón; «yape» o «plin» si se pagó con el de la tienda (no toca el cajón). */
+export type GastoCaja = { id: string; descripcion: string; categoria: string; hora: string; monto: number; conComprobante: boolean; medio: "yape" | "plin" | null };
 export type PosventaCaja = { id: string; tipo: "cambio" | "devolucion"; hora: string; texto: string; efectivo: number };
 export type PendienteCaja = { clave: string; cantidad: number; texto: string; href: string };
 
@@ -25,7 +27,8 @@ export type ContextoTableroCaja = {
   /** Las tarjetas que esta cuenta puede prender («Tu caja muestra»), en orden. */
   disponibles: TarjetaCaja[];
   apartados: { lista: ApartadoCaja[]; porCobrar: number; activos: number } | null;
-  gastos: { lista: GastoCaja[]; total: number } | null;
+  /** `total`: lo que salió del cajón. `totalApp`: lo pagado con Yape o Plin, que el cajón no descuenta. */
+  gastos: { lista: GastoCaja[]; total: number; totalApp: number } | null;
   posventa: { lista: PosventaCaja[]; efectivoDevuelto: number } | null;
   pendientes: PendienteCaja[];
 };
@@ -109,23 +112,32 @@ async function leerApartados(ubicacionId: string, hoy: string): Promise<Contexto
   };
 }
 
-/** Los gastos de hoy de la tienda que salieron de ESTE cajón (su egreso es un movimiento de esta caja). */
+/**
+ * Los gastos de hoy de la tienda que salieron de ESTE cajón (su egreso es un movimiento de esta caja) y los que se pagaron hoy con el Yape
+ * o el Plin de la tienda (2026-10-12: se registran desde la misma hoja; si no se vieran aquí, quien lo registró creería que no se guardó).
+ * Un gasto con factura dice su medio por su pago (`fn_gastos_lista` ya lo trae así).
+ */
 async function leerGastos(ubicacionId: string, hoy: string, movimientos: readonly { id: string; hora: string }[]): Promise<ContextoTableroCaja["gastos"]> {
   const todos = await getGastosDeUbicacion(ubicacionId, hoy, hoy).catch(() => null);
   if (!todos) return null;
   // La hora es la del egreso del cajón: el gasto solo guarda la fecha.
   const horaDe = new Map(movimientos.map((m) => [m.id, m.hora]));
-  const lista = todos
-    .filter((g) => g.cajaMovimientoId !== null && horaDe.has(g.cajaMovimientoId))
+  const delCajon = (g: (typeof todos)[number]) => g.cajaMovimientoId !== null && horaDe.has(g.cajaMovimientoId);
+  const porApp = (g: (typeof todos)[number]) => g.cajaMovimientoId === null && (g.medioPago === "yape" || g.medioPago === "plin");
+  const lista: GastoCaja[] = todos
+    .filter((g) => delCajon(g) || porApp(g))
     .map((g) => ({
       id: g.id,
       descripcion: g.descripcion || g.categoriaNombre,
       categoria: g.categoriaNombre,
-      hora: horaDe.get(g.cajaMovimientoId!) ?? "",
+      hora: delCajon(g) ? (horaDe.get(g.cajaMovimientoId!) ?? "") : g.creadoEn ? diaYHoraLima(g.creadoEn).hora : "",
       monto: g.montoTotal,
-      conComprobante: g.comprobanteTipo !== "sin_comprobante",
+      // Un gasto del viaje trae su papel de su ficha: la planilla de movilidad es «sin comprobante»; un ticket, no.
+      conComprobante: tieneComprobante(g.comprobanteTipo),
+      medio: delCajon(g) ? null : (g.medioPago as "yape" | "plin"),
     }));
-  return { lista, total: Math.round(lista.reduce((s, g) => s + g.monto, 0) * 100) / 100 };
+  const suma = (filas: GastoCaja[]) => Math.round(filas.reduce((s, g) => s + g.monto, 0) * 100) / 100;
+  return { lista, total: suma(lista.filter((g) => g.medio === null)), totalApp: suma(lista.filter((g) => g.medio !== null)) };
 }
 
 /** Cambios y devoluciones que pasaron por ESTA caja (`caja_id`, lo fija la base al registrarlos). */
@@ -145,7 +157,7 @@ async function leerPosventa(cajaId: string): Promise<ContextoTableroCaja["posven
         en: c.created_at,
         tipo: "cambio" as const,
         hora: diaYHoraLima(c.created_at).hora,
-        texto: dif === 0 ? "Cambio · sin diferencia de precio" : `Cambio · ${dif > 0 ? "pagó" : "se le devolvió"} S/ ${Math.abs(dif).toFixed(2)}`,
+        texto: dif === 0 ? "Cambio · sin diferencia de precio" : `Cambio · ${dif > 0 ? "pagó" : "se le devolvió"} S/\u00a0${Math.abs(dif).toFixed(2)}`,
         efectivo,
       };
     }),
@@ -157,7 +169,7 @@ async function leerPosventa(cajaId: string): Promise<ContextoTableroCaja["posven
         en: d.created_at,
         tipo: "devolucion" as const,
         hora: diaYHoraLima(d.created_at).hora,
-        texto: monto > 0 ? `Devolución · S/ ${monto.toFixed(2)} por ${d.reembolso_metodo ?? "—"}` : "Devolución · sin reembolso",
+        texto: monto > 0 ? `Devolución · S/\u00a0${monto.toFixed(2)} por ${d.reembolso_metodo ?? "—"}` : "Devolución · sin reembolso",
         efectivo,
       };
     }),

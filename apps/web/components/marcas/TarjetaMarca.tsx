@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { estadoDeMarca, monogramaDeMarca, sePuedeEliminarMarca, textoEstadoMarca, type EstadoMarca, type MarcaFila } from "@/lib/marcas";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 
 /** El cuadrito de la marca. Su color DICE EL ESTADO (no decora): verde = la usamos, hueso = nadie la ha usado, ámbar = no se puede
  *  usar (sin proveedor), punteado = desactivada. Solo tokens: es estado, no color de una prenda. */
@@ -84,6 +85,7 @@ export function TarjetaMarca({
       className={`marca-entra rounded-2xl border border-sand bg-crema p-3.5 transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px hover:border-tinta/30 hover:bg-papel motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${destello ? "marca-destello" : ""} ${saliendo ? "marca-sale" : ""}`}
       style={{ "--i": Math.min(indice, 11) } as CSSProperties}
       data-marca={m.id}
+      data-guia="marcas.tarjeta"
     >
       <div className="flex items-start gap-3">
         <span aria-hidden className={`font-display grid h-11 w-11 shrink-0 place-items-center rounded-[13px] text-lg font-semibold ${CLASE_MONOGRAMA[estado]}`}>
@@ -104,7 +106,7 @@ export function TarjetaMarca({
       </div>
 
       <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div className="flex min-w-0 flex-1 basis-56 flex-wrap items-center gap-1.5">
+        <div data-guia="marcas.proveedores" className="flex min-w-0 flex-1 basis-56 flex-wrap items-center gap-1.5">
           {m.proveedores.length > 0 && <span className="label-cayla mr-0.5 text-[10px] text-tinta/65">La trae</span>}
           {m.proveedores.map((p) => (
             // Una línea siempre: un nombre largo se corta con «…» (el nombre entero va en el título) en vez de doblarse dentro de la
@@ -118,15 +120,19 @@ export function TarjetaMarca({
           ))}
         </div>
         {puedeEditar && (
-          <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          <div data-guia="marcas.acciones" className="ml-auto flex shrink-0 items-center gap-1.5">
             {estado === "desactivada" ? (
               <button type="button" onClick={onReactivar} disabled={trabajando} className="btn-cayla btn-secundario">
                 Reactivar
               </button>
             ) : (
-              <button type="button" onClick={onEditar} className={`btn-cayla ${estado === "sin-proveedor" ? "btn-primario" : "btn-secundario"}`}>
-                {estado === "sin-proveedor" ? "Agregar proveedor" : "Editar"}
-              </button>
+              estado === "sin-proveedor" ? (
+                <button type="button" data-guia="marcas.editar" onClick={onEditar} className="btn-cayla btn-primario">
+                  Agregar proveedor
+                </button>
+              ) : (
+                <LapizEditar que={m.nombre} guia="marcas.editar" onClick={onEditar} />
+              )
             )}
             {(estado !== "desactivada" || puedeEliminar) && <MenuAcciones etiqueta={`Más acciones de ${m.nombre}`} texto="Más" items={estado === "desactivada" ? items.filter((i) => i.clave === "eliminar") : items} deshabilitado={trabajando} />}
           </div>

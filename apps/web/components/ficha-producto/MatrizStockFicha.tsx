@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Minus, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { TONOS } from "@/components/MuestraEtiqueta";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
 import { EtiquetasDeLaMatriz, ordenarEtiquetas, type EtiquetaMatriz } from "./EtiquetasDeLaMatriz";
@@ -20,6 +20,7 @@ import { AYUDA_ENCONTRE_PRENDAS, notaSuficiente, type MotivoAjuste } from "@/lib
 import { ConMarca } from "./TiraFicha";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 // La matriz color × talla de Editar producto, con el diseño de «Unidades de hoy» de Nuevo producto (`MatrizCantidades`, Felipe
 // 2026-10-02 noche): la misma tabla con cabecera, franja y punto del color, filas alternadas, la caja − N + por celda (que también
@@ -61,8 +62,6 @@ function anchoColor(tallas: number): string {
 }
 const TITULO_RESUMEN: Record<VistaMatriz, string> = { unidades: "Total", precio: "Precio", costo: "Costo", etiquetas: "Llevan" };
 
-const BOTON_PASO =
-  "grid h-6 w-5 shrink-0 place-items-center rounded-[5px] text-taupe/70 transition-colors hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25";
 
 /** El borrador sin esa celda: al salir de ella vuelve a mostrar su número. */
 function sinClave(b: Record<string, string>, clave: string): Record<string, string> {
@@ -235,14 +234,16 @@ export function MatrizStockFicha({
   return (
     <div className="scroll-mt-20 space-y-2" ref={raiz}>
       {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0358). Angosto, ocupa todo el ancho. */}
+      <div data-guia="editar.vistas">
       <SegmentoDeslizante
         forma="modo"
         etiqueta="Qué se escribe en la tabla"
         valor={vista}
         onCambio={(v) => cambiarVista(v as VistaMatriz)}
-        opciones={pestanas.map(([v, t]) => ({ clave: v, etiqueta: t }))}
+        opciones={pestanas.map(([v, t]) => ({ clave: v, etiqueta: t, guia: `editar.vista-${v}` }))}
         className="w-full @lg:w-auto [&>button]:flex-auto [&>button]:justify-center [&>button]:px-1.5 @lg:[&>button]:flex-none @lg:[&>button]:px-3"
       />
+      </div>
 
       {/* Las bajadas apiladas en la misma celda de grid: la más larga fija el alto, y cambiar de pestaña no mueve la tabla (ADR-0185). */}
       <div className="grid text-[12.5px] text-taupe">
@@ -315,12 +316,14 @@ export function MatrizStockFicha({
                           <button
                             type="button"
                             disabled={deshabilitado}
+                            aria-haspopup="dialog"
+                            data-guia="editar.corregir-talla"
                             title={`Corregir la talla ${nombreTalla}, si se registró mal`}
                             onClick={() => onCorregirTalla(t)}
                             className="group inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 transition-colors hover:bg-papel disabled:pointer-events-none"
                           >
                             {nombreTalla}
-                            <Pencil aria-hidden className="h-2.5 w-2.5 text-tinta/30 transition-colors group-hover:text-tinta/70" />
+                            <Pencil aria-hidden className="h-3 w-3 text-tinta/30 transition-colors group-hover:text-tinta/70" />
                           </button>
                         ) : (
                           <span className="whitespace-nowrap px-1.5 py-0.5">{nombreTalla}</span>
@@ -514,7 +517,7 @@ export function MatrizStockFicha({
         </span>
         {h.puede && (
           <span aria-hidden className="hidden items-center gap-1 text-[12px] font-semibold group-hover:inline-flex group-focus-visible:inline-flex">
-            <Plus strokeWidth={2.5} className="h-3 w-3" />
+            <Plus className="h-3 w-3" />
             {h.queHace === "reactiva" ? "Volver" : "Agregar"}
           </span>
         )}
@@ -549,8 +552,10 @@ export function MatrizStockFicha({
     const quieta = !!bloqueo && u === 0;
     const valor = borrador[f.clave] ?? (esperando ? "" : String(u));
     return (
-      <span
-        className="matriz-paso inline-flex items-center gap-0.5 rounded-[7px] border bg-hueso pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel"
+      <PasoCantidad
+        tamano="celda"
+        sinTab
+        className="matriz-paso"
         data-tocada={tocadas.has(f.clave) || undefined}
         data-cambiada={cambiada || undefined}
         data-nueva={!guardada || undefined}
@@ -558,38 +563,29 @@ export function MatrizStockFicha({
           bloqueo ??
           (cambiada ? (guardada ? `Antes ${antes} · se guarda con «Revisar y guardar»` : "Entra como stock inicial al guardar") : undefined)
         }
-      >
-        <button type="button" tabIndex={-1} disabled={deshabilitado || !puedeBajar} aria-label={`Restar a ${etiqueta}`} onClick={() => paso(f, -1)} className={BOTON_PASO}>
-          <Minus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
-        </button>
-        <input
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={4}
-          autoComplete="off"
-          aria-label={`Cuántas hay de ${etiqueta}`}
-          placeholder={esperando ? "…" : "0"} // sugerir-fijo: una cantidad vacía es cero, sea cual sea la prenda
-          value={valor}
-          disabled={deshabilitado || esperando || quieta}
-          onChange={(e) => escribir(f, e.target.value)}
-          onFocus={(e) => e.currentTarget.select()}
-          onBlur={() => salirDeCelda(f)}
-          className={`w-8 border-0 bg-transparent py-1.5 text-center text-sm tabular-nums outline-none placeholder:text-tinta/25 @lg:w-9 ${
-            cambiada ? "font-semibold text-ambar-profundo" : "text-tinta"
-          }`}
-        />
-        <button
-          type="button"
-          tabIndex={-1}
-          disabled={deshabilitado || esperando || !!bloqueo}
-          aria-label={bloqueo ? `Sumar a ${etiqueta}: ${bloqueo}` : `Sumar a ${etiqueta}`}
-          onClick={() => paso(f, 1)}
-          className={BOTON_PASO}
-        >
-          <Plus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
-        </button>
-      </span>
+        menos={{ onClick: () => paso(f, -1), deshabilitado: deshabilitado || !puedeBajar, etiqueta: `Restar a ${etiqueta}` }}
+        mas={{
+          onClick: () => paso(f, 1),
+          deshabilitado: deshabilitado || esperando || !!bloqueo,
+          etiqueta: bloqueo ? `Sumar a ${etiqueta}: ${bloqueo}` : `Sumar a ${etiqueta}`,
+        }}
+        campo={{
+          type: "text",
+          inputMode: "numeric",
+          pattern: "[0-9]*",
+          maxLength: 4,
+          autoComplete: "off",
+          "aria-label": `Cuántas hay de ${etiqueta}`,
+          placeholder: esperando ? "…" : "0", // sugerir-fijo: una cantidad vacía es cero, sea cual sea la prenda
+          value: valor,
+          disabled: deshabilitado || esperando || quieta,
+          onChange: (e) => escribir(f, e.target.value),
+          onFocus: (e) => e.currentTarget.select(),
+          onBlur: () => salirDeCelda(f),
+          // El «0» de una celda vacía es un fantasma a propósito (25 %), como en Nuevo producto.
+          className: `@lg:w-9 placeholder:text-tinta/25 ${cambiada ? "text-ambar-profundo" : ""}`,
+        }}
+      />
     );
   }
 
@@ -657,7 +653,7 @@ export function MatrizStockFicha({
         aria-label={`${campo === "precio" ? "Precio" : "Costo"} de ${etiqueta}`}
         value={valor}
         disabled={deshabilitado}
-        title={cambiado ? `Antes S/ ${texto(antes!)} · se guarda con «Revisar y guardar»` : undefined}
+        title={cambiado ? `Antes S/\u00a0${texto(antes!)} · se guarda con «Revisar y guardar»` : undefined}
         onChange={(e) => onCambioFila(f.clave, { [campo]: limpiarPrecio(e.target.value) })}
         onFocus={(e) => e.currentTarget.select()}
         className={`w-[58px] rounded-[7px] border border-transparent bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${

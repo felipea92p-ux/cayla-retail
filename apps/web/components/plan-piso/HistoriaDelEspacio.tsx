@@ -1,8 +1,9 @@
 import { Camera } from "lucide-react";
 import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
-import { TABLA, celda } from "@/components/ui/Tabla";
+import { Encabezado, celda, type Columna } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import type { HistoriaDelEspacio as Historia } from "@/lib/espacio-piso";
 import { colorDeGrupo } from "@/lib/mix-piso-visual";
@@ -32,18 +33,21 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
   // no se compara con la de arriba). La plantilla va en un `style` y no en una clase de Tailwind porque lleva el número de grupos: Tailwind solo
   // genera las clases que están escritas completas en el código, y una armada con `${n}` no existiría.
   // La primera columna lleva la fecha y, solo si el piso no estaba cuadrado, su aviso: lo que decide si la foto sirve va donde no hay que desplazarse.
-  const plantilla = { gridTemplateColumns: `9rem repeat(${delRiel.length}, minmax(4.75rem, 1fr)) 5.5rem 11rem 5.5rem` };
-  const titulos = [
-    { texto: "Foto", der: false },
-    ...delRiel.map((g) => ({ texto: CORTO[g.clave] ?? g.nombre, der: true })),
-    { texto: "Total del riel", der: true },
-    { texto: "Mezcla del riel", der: false },
-    { texto: "Fuera del riel", der: true },
+  // Las columnas viajan en una variable de CSS (`--plantilla-historia`) puesta en la caja de la tabla, y el encabezado del sistema y cada fila
+  // la leen con la misma clase (ADR-0358, ronda 7: el encabezado es `<Encabezado>`, no uno a mano).
+  const columnasHistoria = { "--plantilla-historia": `9rem repeat(${delRiel.length}, minmax(4.75rem, 1fr)) 5.5rem 11rem 5.5rem` } as React.CSSProperties;
+  const plantilla = "[grid-template-columns:var(--plantilla-historia)]";
+  const titulos: Columna[] = [
+    { titulo: "Foto" },
+    ...delRiel.map((g) => ({ titulo: CORTO[g.clave] ?? g.nombre, alinear: "der" as const })),
+    { titulo: "Total del riel", alinear: "der" },
+    { titulo: "Mezcla del riel" },
+    { titulo: "Fuera del riel", alinear: "der" },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" data-guia="plan-piso.historia-cifras">
         <TarjetaCifra etiqueta="Fotos tomadas" valor={h.filas.length} className="anim-sube">
           {h.filas.length === 0 ? "todavía ninguna" : "una cada lunes, desde que se pegó"}
         </TarjetaCifra>
@@ -58,9 +62,9 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
         </TarjetaCifra>
       </div>
 
-      <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Fotos del espacio del piso">
+      <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Fotos del espacio del piso" data-guia="plan-piso.historia-fotos">
         <div className="border-b border-sand px-5 py-4">
-          <h2 className="font-display text-xl text-tinta">Fotos del riel</h2>
+          <TituloSeccion>Fotos del riel</TituloSeccion>
           <p className="mt-0.5 max-w-2xl text-[13px] text-tinta/70">
             Cada lunes de madrugada el sistema anota cuántas prendas había colgadas de cada grupo. No se puede reconstruir después: por eso se guarda desde ya.
           </p>
@@ -71,16 +75,10 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
           </Vacio>
         ) : (
           <div className="overflow-x-auto">
-            <div className="min-w-[71rem] divide-y divide-sand">
-              <div className="encabezado-tabla-cayla grid items-end gap-x-4 px-5 py-2" style={plantilla} role="row">
-                {titulos.map((t) => (
-                  <span key={t.texto} role="columnheader" className={`${TABLA.titulo} block min-w-0 ${t.der ? "text-right" : "text-left"}`}>
-                    {t.texto}
-                  </span>
-                ))}
-              </div>
+            <div className="min-w-[71rem] divide-y divide-sand" style={columnasHistoria}>
+              <Encabezado siempre columnas={titulos} plantilla={plantilla} />
               {h.filas.map((f) => (
-                <div key={f.fecha} className="fila-cayla grid items-center gap-x-4 px-5 py-3" style={plantilla} role="row">
+                <div key={f.fecha} className={`fila-cayla grid items-center gap-x-4 px-5 py-3 ${plantilla}`} role="row">
                   <div className={celda("izq", "flex flex-col items-start gap-1 text-sm text-tinta")}>
                     {dia(f.fecha)}
                     {!f.cuadrada && <Chip tono="ambar">Por cuadrar</Chip>}

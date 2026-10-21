@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ComponentType } from "react";
-import { ArrowLeftRight, Check, ChevronDown, ClipboardList, Eye, PencilLine, Truck, Warehouse } from "lucide-react";
+import { ArrowLeftRight, Check, ClipboardList, Eye, PencilLine, Truck, Warehouse } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import type { BotonTarjeta, ClaveAccion, OpcionMas } from "@/lib/existencias-acciones";
 
@@ -61,17 +61,18 @@ export function PieTarjeta({
         <button
           type="button"
           onClick={onBoton}
+          data-guia="existencias.colgar"
           aria-label={`${boton.etiqueta}: ${etiqueta}`}
           className={`${estiloBoton} flex-1 justify-center font-semibold ${
             boton.tipo === "colgar" && boton.sugerido ? "border-ambar/40 bg-ambar/[0.12] text-ambar-profundo hover:border-ambar/60" : "border-tinta/15 bg-papel text-tinta hover:border-tinta/30"
           }`}
         >
-          {boton.tipo === "colgar" ? <IconoPercha aria-hidden className="h-4 w-4 shrink-0" strokeWidth={1.7} /> : <Eye aria-hidden className="h-4 w-4 shrink-0" strokeWidth={1.7} />}
+          {boton.tipo === "colgar" ? <IconoPercha aria-hidden className="h-4 w-4 shrink-0" /> : <Eye aria-hidden className="h-4 w-4 shrink-0" />}
           <span className="truncate">{boton.etiqueta}</span>
         </button>
       ) : (
         <span className={`flex min-w-0 flex-1 items-center gap-1.5 pl-0.5 text-[12.5px] font-semibold ${boton.tipo === "agotada" ? "text-rojo-profundo" : boton.tipo === "sinColgar" ? "text-ambar-profundo" : "text-verde"}`}>
-          {boton.tipo === "ok" && <Check aria-hidden className="h-[15px] w-[15px] shrink-0" strokeWidth={2.2} />}
+          {boton.tipo === "ok" && <Check aria-hidden className="h-4 w-4 shrink-0" />}
           <span className="truncate">{boton.etiqueta}</span>
         </span>
       )}
@@ -79,19 +80,24 @@ export function PieTarjeta({
       <button
         type="button"
         aria-haspopup="menu"
+        data-guia="existencias.mas"
         aria-expanded={abierto}
         aria-label={`Más acciones de ${etiqueta}`}
         onClick={() => setAbierto((a) => !a)}
-        className={`${estiloBoton} shrink-0 border-tinta/15 font-medium text-tinta hover:border-tinta/30 ${abierto ? "bg-hueso" : "bg-papel"}`}
+        // El menú «Más» del sistema (ronda 13): la cara del secundario de `MenuAcciones` con su flecha que gira, a 32 px como su vecino.
+        className="btn-cayla btn-secundario inline-flex h-8 min-h-8 shrink-0 items-center gap-2 px-3 py-0 text-[12.5px]"
       >
         Más
-        <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform duration-200 motion-reduce:transition-none ${abierto ? "rotate-180" : ""}`} strokeWidth={1.8} />
+        <svg aria-hidden viewBox="0 0 10 6" className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla motion-reduce:transition-none ${abierto ? "-rotate-180" : ""}`}>
+          <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />
+        </svg>
       </button>
 
       {abierto && (
         <div
           ref={menu}
           role="menu"
+          data-guia="existencias.mas-menu"
           aria-label={`Acciones de ${etiqueta}`}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
@@ -110,6 +116,7 @@ export function PieTarjeta({
                 key={o.clave}
                 type="button"
                 role="menuitem"
+                data-guia={o.clave === "ficha" ? "existencias.ver-ficha" : undefined}
                 // Se ve pero no se elige, y dice por qué; sigue alcanzable con el teclado (el lector de pantalla oye el motivo).
                 aria-disabled={apagada || undefined}
                 onClick={() => {
@@ -119,7 +126,7 @@ export function PieTarjeta({
                 }}
                 className={`flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] outline-none transition-colors focus-visible:bg-hueso ${apagada ? "cursor-not-allowed text-tinta/45" : "text-tinta hover:bg-hueso"}`}
               >
-                <Ico aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" strokeWidth={1.6} />
+                <Ico aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
                 <span className="min-w-0">
                   {o.etiqueta}
                   {o.motivo && <span className="mt-0.5 block text-[11.5px] leading-snug text-tinta/55">{o.motivo}</span>}

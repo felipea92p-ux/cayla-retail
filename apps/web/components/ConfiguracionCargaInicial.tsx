@@ -23,6 +23,7 @@ import {
   type LecturaCargaInicial,
   type SedeCargaInicial,
 } from "@/lib/carga-inicial-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Tiendas y caja ▸ «Carga inicial de cada sede» (ADR-0328, actividad 4). La carga inicial sin papeles (alta con
 // stock, stock inicial de una prenda nueva en la tienda) se cierra POR SEDE y SOLA en su fecha: el último día abierto. Aquí se ve
@@ -37,7 +38,7 @@ export function ConfiguracionCargaInicial({ lectura, esLider, esAdmin }: { lectu
   const [abierta, setAbierta] = useState<SedeCargaInicial | null>(null);
 
   return (
-    <Superficie className="anim-sube">
+    <Superficie className="anim-sube" guia="config.carga-inicial">
       <TituloDeTarjeta
         titulo="Carga inicial de cada sede"
         bajada="Hasta qué día cada sede carga, sin comprobante, lo que ya tenía al pasar al sistema. Pasada esa fecha, lo que aparezca entra por «Encontré prendas» (Existencias ▸ Ajustar), con su nota."
@@ -168,7 +169,7 @@ function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }: { sed
   const aviso = avisoCargaInicial({ sede: sede.nombre, hasta: sede.hasta, hoy });
 
   return (
-    <Modal variante="hoja" titulo="Cierre de la carga inicial" subtitulo={sede.nombre} onClose={onClose} ancho="max-w-[480px]" bloqueado={enviando}>
+    <Modal variante="hoja" titulo="Cierre de la carga inicial" subtitulo={sede.nombre} onClose={onClose} bloqueado={enviando}>
       <form onSubmit={guardar} className="space-y-4" noValidate>
         <p className="text-[13px] text-taupe">{aviso ?? `${sede.nombre} todavía no tiene fecha: la carga inicial sigue abierta.`}</p>
 
@@ -219,14 +220,14 @@ function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }: { sed
           <button type="button" className="btn-cayla btn-secundario" onClick={onClose} disabled={enviando}>
             Cancelar
           </button>
-          <button
+          <Boton peso="primario" cargando={enviando}
             type="submit"
-            className={`btn-cayla btn-primario ${guia.claseConfirmar}`}
+            className={`${guia.claseConfirmar}`}
             disabled={enviando || !guia.puedeConfirmar}
             title={responsable.motivo ?? guia.frase ?? undefined}
           >
-            {enviando ? "Guardando…" : "Guardar"}
-          </button>
+            Guardar
+          </Boton>
         </div>
       </form>
     </Modal>

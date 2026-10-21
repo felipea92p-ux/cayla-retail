@@ -294,18 +294,69 @@ export function impactoDevolucion(e: {
 // efectivo sin caja abierta (20260916180000): mejor decirlo antes de apretar el botón.
 // ============================================================================
 
+/** Una boleta o factura de la venta que todavía no está aceptada por SUNAT. */
+export type ComprobanteSinAceptar = { documento: string; estado: "pendiente" | "pendiente_reintento" | "enviado" | "rechazado" };
+
+const ESTADOS_EN_CAMINO = new Set<string>(["pendiente", "pendiente_reintento", "enviado", "rechazado"]);
+
+/** La boleta o factura de la venta que todavía no llega a SUNAT, si hay una (la más reciente). Espejo del candado de
+ *  `aprobar_devolucion` (20261012221000, Felipe 2026-10-12): mientras exista, la devolución no se aprueba —sin una boleta
+ *  aceptada no sale la nota de crédito, y la boleta llegaría después por el total—. Una nota de venta, una boleta liberada
+ *  (no_emitido) o anulada no van a SUNAT: no cuentan. */
+export function comprobanteSinAceptar(
+  comprobantes: readonly { tipo: string; estado: string; documento: string; creadoEn: string }[],
+): ComprobanteSinAceptar | null {
+  const enCamino = comprobantes
+    .filter((c) => (c.tipo === "boleta" || c.tipo === "factura") && ESTADOS_EN_CAMINO.has(c.estado))
+    .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn))[0];
+  return enCamino ? { documento: enCamino.documento, estado: enCamino.estado as ComprobanteSinAceptar["estado"] } : null;
+}
+
+/** Lo que dice la pantalla (y la base, con las mismas palabras) cuando la boleta todavía no está aceptada. */
+export function textoEsperaSunat(c: ComprobanteSinAceptar): string {
+  const como = c.estado === "rechazado" ? "SUNAT la rechazó" : c.estado === "enviado" ? "se envió y SUNAT aún no responde" : "todavía no se envía";
+  const queHacer =
+    c.estado === "rechazado"
+      ? "Reintenta su envío en Comprobantes y, cuando SUNAT la acepte, vuelve a aprobar: así sale su nota de crédito."
+      : "Espera a que SUNAT la acepte y vuelve a aprobar: así sale su nota de crédito.";
+  return `La ${c.documento} de esta venta todavía no está aceptada por SUNAT (${como}). ${queHacer}`;
+}
+
+/** Cómo se pagó la venta, por medio (sin el anticipo de un apartado, que no es un medio con que se pueda devolver). */
+export type PagoDeLaVenta = { metodo: string; monto: number };
+
+/** El medio que la pantalla propone para el reembolso: con el que se pagó más (Felipe 2026-10-12: «libre, con aviso»). Si la
+ *  venta no trae pagos conocidos, efectivo, como antes. */
+export function medioSugeridoReembolso(pagos: readonly PagoDeLaVenta[], disponibles: readonly string[]): string {
+  const elegible = pagos.filter((p) => disponibles.includes(p.metodo) && p.monto > 0).sort((a, b) => b.monto - a.monto)[0];
+  return elegible?.metodo ?? "efectivo";
+}
+
 export function revisarAprobacion(e: {
   monto: number | null;
   metodo: string;
   cajaAbierta: boolean;
   valorPagado: number;
+  /** La boleta de la venta que todavía no llega a SUNAT: mientras haya una, no se aprueba (la base también lo exige). */
+  sinAceptar?: ComprobanteSinAceptar | null;
+  /** Cómo se pagó la venta. Elegir otro medio para devolver se permite (Felipe 2026-10-12), pero se avisa. */
+  pagos?: readonly PagoDeLaVenta[];
+  /** Cómo se llama cada medio en pantalla («Tarjeta», «Yape»). */
+  etiquetaMedio?: (metodo: string) => string;
 }): { bloqueo: string | null; aviso: string | null } {
+  if (e.sinAceptar) return { bloqueo: textoEsperaSunat(e.sinAceptar), aviso: null };
   if (e.monto !== null && (Number.isNaN(e.monto) || e.monto < 0)) return { bloqueo: "El monto del reembolso no puede ser negativo.", aviso: null };
   if (e.monto !== null && e.monto > 0 && e.metodo === "efectivo" && !e.cajaAbierta) {
     return { bloqueo: "La caja está cerrada: ábrela en Caja, o reembolsa con otro método.", aviso: null };
   }
   if (e.monto !== null && e.monto > e.valorPagado) {
     return { bloqueo: null, aviso: `Es más de lo que pagó el cliente (${soles(e.valorPagado)}).` };
+  }
+  const pagados = (e.pagos ?? []).filter((p) => p.monto > 0);
+  if (e.monto !== null && e.monto > 0 && pagados.length > 0 && !pagados.some((p) => p.metodo === e.metodo)) {
+    const nombre = e.etiquetaMedio ?? ((m: string) => m);
+    const como = pagados.map((p) => `${nombre(p.metodo)} (${soles(p.monto)})`).join(" y ");
+    return { bloqueo: null, aviso: `Esta venta se pagó con ${como}. Vas a devolver en ${nombre(e.metodo)}: confírmalo con el cliente.` };
   }
   return { bloqueo: null, aviso: null };
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   avisosER,
+  clavesCerradas,
   columnasER,
   conceptosER,
   csvEstado,
@@ -10,10 +11,12 @@ import {
   fuentesDe,
   leerCampana,
   leerFilaER,
+  leerPeriodoMes,
   leerVerER,
   margenQueSePierde,
   mesAnterior,
   mesTitulo,
+  NOTA_MES_CERRADO,
   nombreCorto,
   nombreEje,
   origenDeCifra,
@@ -185,9 +188,9 @@ describe("las filas del cuadro", () => {
 
 describe("cómo se escribe", () => {
   it("soles redondos con el signo menos de verdad", () => {
-    expect(solesER(44100)).toBe("S/ 44,100");
-    expect(solesER(-19850.4)).toBe("−S/ 19,850");
-    expect(solesER(0.2)).toBe("S/ 0");
+    expect(solesER(44100)).toBe("S/\u00a044,100");
+    expect(solesER(-19850.4)).toBe("−S/\u00a019,850");
+    expect(solesER(0.2)).toBe("S/\u00a00");
   });
   it("porcentaje con coma decimal; sin base no hay porcentaje", () => {
     expect(porcentaje(23670, 44100)).toBe("53,7 %");
@@ -403,7 +406,7 @@ describe("las campañas que pasaron", () => {
   });
   it("la frase de las que no se pagaron (la del spike)", () => {
     expect(fraseCampanasMalas(pasadas)).toBe(
-      "Día del Gato y Día del Perro vendieron +3,8 % y +1,5 % contra un día normal y se descontaron S/ 4,500: dejaron S/ 3,942 menos que no hacerlas.",
+      "Día del Gato y Día del Perro vendieron +3,8 % y +1,5 % contra un día normal y se descontaron S/\u00a04,500: dejaron S/\u00a03,942 menos que no hacerlas.",
     );
     expect(fraseCampanasMalas([pasadas[0]!])).toBeNull();
     expect(nombreEje("Día Internacional del Gato")).toBe("Día del Gato");
@@ -421,5 +424,31 @@ describe("las campañas que pasaron", () => {
     });
     expect([c.ventas, c.normal, c.margenExtra, c.descuento, c.momento]).toEqual([1120, 700, 140, 280, "pasada"]);
     expect(c.metaPct).toBeNull();
+  });
+});
+
+// Auditoría de Finanzas 2026-10-16, G09: un mes cerrado se lee de su foto y la pantalla lo dice por columna.
+describe("unidades cerradas de un mes", () => {
+  const TRU = "11111111-1111-4111-8111-111111111111";
+  const LIM = "22222222-2222-4222-8222-222222222222";
+
+  it("lee la fila de fn_periodos_mes y marca solo las CERRADAS, con la llave de claveUnidad", () => {
+    const filas = [
+      { alcance: "ubicacion", ubicacion_id: TRU, estado: "cerrado", huella: "abc", cerrado_en: "2026-09-30T10:00:00Z" },
+      { alcance: "ubicacion", ubicacion_id: LIM, estado: "abierto", huella: null, cerrado_en: null },
+      { alcance: "empresa", ubicacion_id: null, estado: "cerrado", huella: "def", cerrado_en: "2026-09-30T10:00:00Z" },
+      { alcance: "consolidado", ubicacion_id: null, estado: "reabierto", huella: null, cerrado_en: null },
+    ];
+    expect(clavesCerradas(filas.map(leerPeriodoMes))).toEqual([TRU, "empresa"]);
+  });
+
+  it("sin períodos (un mes que nadie cerró) no marca nada", () => {
+    expect(clavesCerradas([])).toEqual([]);
+    expect(clavesCerradas([{ alcance: "ubicacion", ubicacionId: null, estado: "cerrado" }])).toEqual([]); // una tienda sin id no se inventa
+  });
+
+  it("la nota promete lo que hace el sistema: lo congelado no cambia y se corrige reabriendo", () => {
+    expect(NOTA_MES_CERRADO).toMatch(/no cambian/);
+    expect(NOTA_MES_CERRADO).toMatch(/Cierre de mes/);
   });
 });

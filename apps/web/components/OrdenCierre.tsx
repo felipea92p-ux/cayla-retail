@@ -10,11 +10,12 @@ import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto } from "@/components/ui/campos";
 import { MatrizOrdenTabla } from "@/components/MatrizOrden";
-import { costoUnitario, segundas, totalBuenas, urlLlevarATiendas, type MatrizOrden } from "@/lib/produccion-reglas";
+import { costoUnitario, problemaDeBuenas, segundas, totalBuenas, urlLlevarATiendas, type MatrizOrden } from "@/lib/produccion-reglas";
 import type { OrdenProduccion } from "@/lib/produccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 // Cerrar una orden (ADR-0133, F2): cuántas salieron buenas POR TALLA Y COLOR —así las espera `cerrar_produccion`— y
 // el costo REAL de la corrida. La base recalcula el costo unitario sobre las buenas (la merma se absorbe sola) y, si
@@ -77,7 +78,13 @@ export function OrdenCierre({
 
   async function confirmar(confirmaCostoAtipico = false) {
     if (total <= 0) {
-      avisar.error("No salió ninguna prenda buena — si la corrida se perdió, anula la orden en vez de cerrarla.");
+      avisar.error("No salió ninguna prenda buena — si el lote se perdió, anula la orden en vez de cerrarla.");
+      return;
+    }
+    // ADR-0415: hasta el doble de lo pedido por talla (o 5 más si es chica); la base dice lo mismo (`buenas_de_mas`).
+    const deMas = problemaDeBuenas(orden.lineas, buenas);
+    if (deMas) {
+      avisar.error(deMas);
       return;
     }
     if (!responsable.listo) {
@@ -119,8 +126,8 @@ export function OrdenCierre({
   }
 
   return (
-    <section ref={seccion} aria-label="Cierre" className="anim-asentar rounded-2xl border border-verde/40 bg-verde/[0.07] p-4">
-      <h3 className="label-cayla text-[11px] text-verde-profundo">Cuántas salieron buenas · talla × color</h3>
+    <section /* unificar-fijo: la caja del cierre de la orden, con su matriz de tallas: no un aviso */ ref={seccion} aria-label="Cierre" className="anim-asentar rounded-2xl border border-verde/40 bg-verde/[0.07] p-4">
+      <TituloGrupo>Cuántas salieron buenas · talla × color</TituloGrupo>
       <div className="mt-3">
         <MatrizOrdenTabla
           matriz={matriz}
@@ -150,7 +157,7 @@ export function OrdenCierre({
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <CampoMonto etiqueta="Tela (real)" inputMode="decimal" data-campo="cierre-tela" value={tela} onChange={cambiaMonto(setTela)} />
             <CampoMonto etiqueta="Avíos (real)" inputMode="decimal" value={avios} onChange={cambiaMonto(setAvios)} />
-            <CampoMonto etiqueta="Maquila (real)" inputMode="decimal" value={maquila} onChange={cambiaMonto(setMaquila)} />
+            <CampoMonto etiqueta="Servicios (real)" inputMode="decimal" value={maquila} onChange={cambiaMonto(setMaquila)} />
           </div>
           <div className="mt-3 flex items-baseline justify-between rounded-md bg-papel px-3 py-2 text-sm">
             <span className="text-tinta/70">
@@ -189,8 +196,8 @@ export function OrdenCierre({
           onConfirmar={() => confirmar(true)}
         />
       ) : (
-        <Boton peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="mt-4 w-full" onClick={() => confirmar()}>
-          {cargando ? "Cerrando…" : orden.esMuestra ? "Terminar muestra" : "Confirmar entrada al stock"}
+        <Boton textoCargando="Cerrando…" peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="mt-4 w-full" onClick={() => confirmar()}>
+          {orden.esMuestra ? "Terminar muestra" : "Confirmar entrada al stock"}
         </Boton>
       )}
     </section>

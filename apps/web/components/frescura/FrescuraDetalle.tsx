@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
-import { Info } from "lucide-react";
+import { Info, NotebookPen } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
@@ -13,6 +14,7 @@ import { FRASE_SIN_ELLA, QUIZA_MAS, palabraDias, type AccesoFrescura, type Detal
 import type { FrescuraPrenda, Tramo, VaraCategoria } from "@/lib/frescura-reglas";
 import { FrescuraDecidir, FrescuraQuitar } from "./FrescuraDecidir";
 import { EstadoChip, ICONO_SUGERENCIA, NivelChip, TextoConNegritas } from "./piezas";
+import { Vacio } from "@/components/ui/Vacio";
 
 // La hoja de detalle de una prenda de Frescura del piso (ADR-0208, paso 4): el porqué de su estado en palabras de tienda,
 // DÓNDE CAE entre las demás de su categoría (la regla, con cada zona escrita), cómo se vende, sus tallas y qué se puede
@@ -129,18 +131,11 @@ export type ContextoDecision = {
   vigenteId: string | null;
 };
 
-/** La barra «día 3 de 7»: se llena al abrir (200–500 ms, sin rebote; sin movimiento con `prefers-reduced-motion`). */
+/** La barra «día 3 de 7»: la barra de avance del sistema (ronda 13), que se llena al abrir. */
 function BarraDias({ dia, de }: { dia: number; de: number }) {
-  const [lleno, setLleno] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setLleno(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
   return (
     <div className="mt-2.5 flex items-center gap-2.5">
-      <div role="progressbar" aria-valuemin={1} aria-valuemax={de} aria-valuenow={dia} aria-label={`Día ${dia} de ${de}`} className="h-1.5 flex-1 overflow-hidden rounded-full bg-sand">
-        <div className="h-full rounded-full bg-tinta/55 transition-[width] duration-500 ease-cayla motion-reduce:transition-none" style={{ width: lleno ? `${(dia / de) * 100}%` : "0%" }} />
-      </div>
+      <BarraAvance pct={(dia / de) * 100} etiqueta={`Día ${dia} de ${de}`} className="min-w-0 flex-1" />
       <span className="text-[12px] tabular-nums text-taupe">
         día {dia} de {de}
       </span>
@@ -214,7 +209,7 @@ export function FrescuraDetalle({
       }
       onClose={onClose}
       variante="hoja"
-      ancho="sm:max-w-[40rem]"
+      tamano="mediana"
       alCerrarEnfocar={volverA}
     >
       {(cerrar) => modo === "decidir" ? (
@@ -235,7 +230,7 @@ export function FrescuraDetalle({
       ) : (
         <>
           <Bloque primero>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div data-guia="frescura.detalle-estado" className="flex flex-wrap items-center gap-x-3 gap-y-2">
               {detalle.dias !== null && (
                 <span className="font-display text-[30px] font-semibold leading-none tabular-nums">
                   {detalle.dias}
@@ -253,7 +248,7 @@ export function FrescuraDetalle({
             {detalle.regla && <Regla regla={detalle.regla} />}
             {detalle.sinContarla && (
               <div className="mt-2.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal text-taupe">
-                <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
+                <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                   <b className="font-semibold text-tinta">{FRASE_SIN_ELLA}</b> <TextoConNegritas texto={detalle.sinContarla} />
                   {detalle.confianzaSinElla && (
@@ -286,14 +281,14 @@ export function FrescuraDetalle({
                 )}
               </div>
             ) : (
-              <p className="text-[13.5px] leading-relaxed text-taupe">Todavía no se anotó nada de esta prenda.</p>
+              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<NotebookPen />}>Todavía no se anotó nada de esta prenda.</Vacio>
             )}
             {modo === "quitar" && decision.vigenteId ? (
               <div className="mt-3">
                 <FrescuraQuitar decisionId={decision.vigenteId} sede={decision.sede} onNo={() => setModo("detalle")} onListo={cerrar} />
               </div>
             ) : (
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <div data-guia="frescura.decidir" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
                 {puedeDecidir && bloque.estado === "vigente" && (
                   <button type="button" className="btn-cayla btn-secundario" onClick={() => setModo("decidir")}>
                     Anotar otra decisión
@@ -356,7 +351,7 @@ export function FrescuraDetalle({
           </Bloque>
 
           <Bloque titulo={`Tallas en ${sede}`}>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-1.5">
+            <div data-guia="frescura.detalle-tallas" className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-1.5">
               {detalle.tallas.map((t) => (
                 <div key={t.varianteId} className="rounded-[10px] bg-hueso px-2.5 py-2 text-[12.5px] leading-normal">
                   <b className="block text-[13px] font-semibold">{t.talla}</b>
@@ -377,13 +372,13 @@ export function FrescuraDetalle({
           <Bloque titulo="Qué puedes hacer">
             {detalle.acciones.length > 0 ? (
               <>
-                <div className="grid gap-2">
+                <div data-guia="frescura.detalle-acciones" className="grid gap-2">
                   {detalle.acciones.map((a) => {
                     const Icono = ICONO_SUGERENCIA[a.clave];
                     return (
                       <div key={a.clave} className="rounded-xl border border-sand bg-papel px-3.5 py-3">
                         <div className="flex items-start gap-2 text-sm font-semibold">
-                          <Icono aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
+                          <Icono aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
                           <span>{a.titulo}</span>
                         </div>
                         <p className="mt-1 text-[13px] leading-relaxed text-tinta/70">{a.texto}</p>

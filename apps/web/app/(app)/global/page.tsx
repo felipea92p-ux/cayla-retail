@@ -13,6 +13,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 
 // CAYLA Global ▸ Salud del negocio (ADR-0275, paso 1: la puerta). La pregunta de esta pantalla es «¿qué tan sano está
@@ -61,7 +62,7 @@ export default async function SaludDelNegocioPage() {
       {cobertura.falla ? (
         <Aviso tono="error">{cobertura.falla}. Las cifras de abajo no se muestran para no confundir un error con un cero.</Aviso>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-3" data-guia="global.cifras">
           <TarjetaCifra etiqueta="Sedes con datos en el ERP" valor={`${resumen.conDatos} de ${resumen.total}`}>
             {resumen.desde ? `Historia propia desde el ${fechaCorta(resumen.desde)}` : "Todavía ninguna venta en el ERP"}
           </TarjetaCifra>
@@ -75,9 +76,9 @@ export default async function SaludDelNegocioPage() {
       )}
 
       {!cobertura.falla && (
-        <section aria-labelledby="cobertura-titulo" className="space-y-3">
+        <section aria-labelledby="cobertura-titulo" className="space-y-3" data-guia="global.cobertura">
           <div>
-            <h2 id="cobertura-titulo" className="font-display text-xl text-tinta">Con qué datos cuenta esta vista</h2>
+            <TituloSeccion id="cobertura-titulo">Con qué datos cuenta esta vista</TituloSeccion>
             <p className="mt-1 text-sm text-tinta/75">
               Una sede que todavía no opera en el ERP dice eso, no «vendió cero»: sus cifras siguen en Alegra.
             </p>
@@ -94,7 +95,7 @@ export default async function SaludDelNegocioPage() {
                 return (
                   <div key={f.ubicacionId} className={fila(PLANTILLA)} role="row">
                     <span className={celda("izq", "font-medium text-tinta")}>{f.nombre}</span>
-                    <span className={celda()}>
+                    <span className={celda()} data-guia="global.en-erp">
                       <Chip tono={estado.tono}>{estado.texto}</Chip>
                     </span>
                     <span className={celda("izq", "text-tinta/75")}>
@@ -119,8 +120,8 @@ export default async function SaludDelNegocioPage() {
 
       {/* Motor de demanda, etapa 0 (ADR-0346): antes de recomendar nada, si los datos de cada tienda ya dicen la verdad. */}
       <section aria-labelledby="motor-titulo" className="space-y-3">
-        <div>
-          <h2 id="motor-titulo" className="font-display text-xl text-tinta">¿El sistema ya puede recomendar?</h2>
+        <div data-guia="global.motor">
+          <TituloSeccion id="motor-titulo">¿El sistema ya puede recomendar?</TituloSeccion>
           <p className="mt-1 text-sm text-tinta/75">
             Para sugerir qué colgar, trasladar, producir o comprar, cada tienda necesita tres cosas: que al menos 9 de cada 10
             prendas vendidas se registren con su prenda durante 14 días seguidos, el piso cuadrado y el almacén contado.
@@ -134,8 +135,8 @@ export default async function SaludDelNegocioPage() {
       </section>
 
       {accesos.length > 0 && (
-        <section aria-labelledby="accesos-titulo" className="space-y-3">
-          <h2 id="accesos-titulo" className="font-display text-xl text-tinta">Lo que ya puedes ver de toda CAYLA</h2>
+        <section aria-labelledby="accesos-titulo" className="space-y-3" data-guia="global.accesos">
+          <TituloSeccion id="accesos-titulo">Lo que ya puedes ver de toda CAYLA</TituloSeccion>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {accesos.map((a) => (
               <Link key={a.href} href={a.href} className="card-cayla alza-cayla block p-5 hover:bg-sand/30">
@@ -147,7 +148,7 @@ export default async function SaludDelNegocioPage() {
         </section>
       )}
 
-      <p className="nota-cayla">
+      <p className="nota-cayla" data-guia="global.pronto">
         Pronto en esta pantalla: los cuatro veredictos —¿crea valor?, ¿crece?, ¿es rentable?, ¿tiene caja?—, las decisiones
         de la semana con su botón (trasladar, pedir al Taller, mover dinero, ajustar metas) y cada negocio de CAYLA con lo
         que rinde su capital. Crecer y crear valor necesitan 12 meses de historia: se traerán de Alegra como totales

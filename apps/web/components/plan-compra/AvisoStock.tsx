@@ -1,8 +1,9 @@
 import { CircleCheck } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
-import { BotonEnlace } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import type { ConfianzaDelStock } from "@/lib/plan-compra-reglas";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 // El aviso sobre el «Hay hoy» del plan de campaña (ADR-0349 + ADR-0346): «comprar = lo que conviene tener − lo que ya hay», y si lo que
 // ya hay está incompleto la compra sale inflada sin que nadie lo vea. Dice qué tiendas no están al día y lleva a Conteo (solo a quien
@@ -11,7 +12,7 @@ import type { ConfianzaDelStock } from "@/lib/plan-compra-reglas";
 export function AvisoStock({ confianza, puedeContar }: { confianza: ConfianzaDelStock; puedeContar: boolean }) {
   if (confianza.estado === "confiable") {
     return (
-      <p className="flex items-center gap-2 text-sm font-medium text-verde-profundo">
+      <p data-guia="plan.stock" className="flex items-center gap-2 text-sm font-medium text-verde-profundo">
         <CircleCheck aria-hidden className="h-4 w-4 shrink-0" />
         Stock confiable: las tiendas tienen el piso cuadrado y el almacén contado.
       </p>
@@ -19,7 +20,7 @@ export function AvisoStock({ confianza, puedeContar }: { confianza: ConfianzaDel
   }
   if (confianza.estado === "sin-dato") {
     return (
-      <Aviso tono="atencion" titulo="No se pudo verificar el stock">
+      <Aviso guia="plan.stock" tono="atencion" titulo="No se pudo verificar el stock">
         No se pudo comprobar si el «Hay hoy» de las tiendas está completo. Antes de comprar, revisa que el piso y el almacén de cada tienda estén al día.
       </Aviso>
     );
@@ -27,13 +28,12 @@ export function AvisoStock({ confianza, puedeContar }: { confianza: ConfianzaDel
   const sinAlDia = confianza.sedes.filter((s) => !s.alDia);
   return (
     <Aviso
+      guia="plan.stock"
       tono="atencion"
       titulo="El «Hay hoy» está incompleto"
       accion={
         puedeContar ? (
-          <BotonEnlace href="/inventario/conteo" peso="fantasma">
-            Ir a Conteo
-          </BotonEnlace>
+          <BotonVer href="/inventario/conteo">Ir a Conteo</BotonVer>
         ) : undefined
       }
     >
@@ -47,6 +47,35 @@ export function AvisoStock({ confianza, puedeContar }: { confianza: ConfianzaDel
           </Chip>
         ))}
       </span>
+    </Aviso>
+  );
+}
+
+/** «Lima y Trujillo» / «Lima, Arequipa y Trujillo». */
+const enLista = (nombres: readonly string[]) => (nombres.length <= 1 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`);
+
+/**
+ * El mismo aviso en UNA línea, sobre la tabla (prompt maestro 2026-10-13). Desde que el resumen vive en un cajón (Felipe 2026-10-12), lo
+ * único que decía que el «Hay hoy» no es confiable era un número rojo sobre un ícono sin texto: la prueba ciega solo lo encontró tocándolo.
+ * El detalle (qué falta en cada tienda, «Ir a Conteo») sigue en el cajón; esta línea lo abre.
+ */
+export function AvisoStockEnLinea({ confianza, onVer }: { confianza: ConfianzaDelStock; onVer: () => void }) {
+  if (confianza.estado === "confiable") return null;
+  const sinAlDia = confianza.sedes.filter((s) => !s.alDia).map((s) => s.nombre);
+  return (
+    <Aviso
+      tono="atencion"
+      chico
+      guia="plan.stock-linea"
+      accion={
+        <Boton peso="discreto" onClick={onVer}>
+          Ver qué falta
+        </Boton>
+      }
+    >
+      {confianza.estado === "sin-dato" || sinAlDia.length === 0
+        ? "No se pudo comprobar si el stock de las tiendas está al día: «Hay hoy» puede no ser exacto"
+        : `${enLista(sinAlDia)} ${sinAlDia.length === 1 ? "no tiene" : "no tienen"} el stock al día: «Hay hoy» puede no ser exacto`}
     </Aviso>
   );
 }

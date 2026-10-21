@@ -1,0 +1,167 @@
+{
+  "guia": "recibir",
+  "ruta": "/recibir",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 121,
+  "controles": {
+    "app/(app)/recibir/page.tsx": [
+      "Volver «/recibir»",
+      "BotonEnlace «Limpiar filtros»",
+      "Link «recíbela sin factura»",
+      "BotonEnlace «Registrar un comprobante»",
+      "Link «recíbela sin factura» #2"
+    ],
+    "components/AvisoCostoAtipico.tsx": [
+      "Boton «{textoCorregir}»",
+      "Boton «{motivoNoListo ?? undefined}»"
+    ],
+    "components/AvisoTrasladosEnCamino.tsx": [
+      "Link «{uno ? `Abrir el Traslado ${traslados[0].numero}»"
+    ],
+    "components/ColaOfflineAviso.tsx": [
+      "button «Cancelar»",
+      "button «Sí, descartar»",
+      "button «Descartar»"
+    ],
+    "components/ConsultaDocumento.tsx": [
+      "CampoTexto «{contador ? ( <> {}»",
+      "BotonBuscar «→buscar»",
+      "CampoTexto «{etiqueta.nombre}»"
+    ],
+    "components/DecisionFaltanteFila.tsx": [
+      "button «{children}»",
+      "button «Cancelar»",
+      "button «Editar»"
+    ],
+    "components/EnvioRecibido.tsx": [
+      "Link «Se reclama en Notas de crédito ↗»",
+      "BotonImprimir «Imprimir»",
+      "Boton «Recibir otro envío»",
+      "BotonVer «Ver recibidas»"
+    ],
+    "components/FiltrosRecibidas.tsx": [
+      "DesplegablePildora «Proveedor»",
+      "button «{texto}»",
+      "button «{texto}» #2",
+      "BotonLimpiar «Limpiar todo»",
+      "button «{activa ? `Fechas: ${textoFechas(desde || undefined, hasta || undefined, hoy)}»",
+      "button «{p.etiqueta}»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "button «Quitar fechas»"
+    ],
+    "components/LlegoMercaderia.tsx": [
+      "Link «{a.texto}»",
+      "button «Recibir otra llegada»",
+      "Desplegable «{proveedorId}»",
+      "button «+ Agregar proveedor»",
+      "input «{numeroGuia}»",
+      "button «Ver sus facturas pendientes»",
+      "Link «Sí, viene con la»",
+      "Link «Ver las»",
+      "button «No, recibir sin factura»",
+      "BotonDeshacer «→deshacer»",
+      "Link «Crearla en Nuevo producto»",
+      "input «{`Costo por prenda de ${p.referencia}»",
+      "button «{`Quitar ${p.referencia}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/Paginacion.tsx": [
+      "Link «Volver al inicio»",
+      "Link «Siguiente página»"
+    ],
+    "components/ProveedorModal.tsx": [
+      "button «Cerrar»",
+      "CampoTexto «Contacto»",
+      "CampoTexto «Teléfono»",
+      "button «{r}»",
+      "CampoTexto «Otro rubro»",
+      "button «Agregar»",
+      "SegmentoDeslizante «Plazo de crédito»",
+      "CampoTexto «Días»",
+      "button «{ETIQUETA_METODO[m]}»",
+      "CampoTexto «Banco»",
+      "CampoTexto «N.° de cuenta»",
+      "CampoTexto «{<> {}»",
+      "CampoTexto «Celular Yape / Plin»",
+      "button «{ETIQUETA_BILLETERA[b]}»",
+      "button «Usar el teléfono de contacto (»",
+      "CampoTexto «Titular de la cuenta»",
+      "Boton «Cancelar»",
+      "Boton «(sin nombre)»"
+    ],
+    "components/RecepcionEnvio.tsx": [
+      "button «Nada llegó»",
+      "button «{listaPlegada ? \"Cambiar\" : \"Ocultar\"}»",
+      "button «{f.etiqueta}»",
+      "button «Marcar las»",
+      "button «{recienMarcada?.id === c.id && <span key={recienMarcada.n}»",
+      "button «Marcar lo atrasado (»",
+      "CampoTexto «Guía del envío»",
+      "CampoSelect «Entra al almacén de»",
+      "CampoTexto «Entra al almacén de»",
+      "Boton «+ Agregar comprobante»",
+      "button «{c.proveedorNombre}»",
+      "button «{`Quitar ${c.documento}»",
+      "Pestanas «{totales.esperadas}»",
+      "BotonDeshacer «→deshacerLectura»",
+      "button «Agregar»",
+      "button «→() => setAbiertos((a) => ({ ...a, [c.id]: !abierto»",
+      "button «Todo llegó»",
+      "button «Nada llegó» #2",
+      "button «Vaciar»",
+      "button «Contar»",
+      "Link «Se reclama en Notas de crédito ↗»",
+      "ComboBuscable «{`recibir-extra-${i}»",
+      "Desplegable «{ex.varianteId}»",
+      "input «Cantidad»",
+      "Desplegable «{ex.proveedorId}»",
+      "input «Costo unitario»",
+      "button «Quitar»",
+      "Boton «+ Agregar prenda fuera de comprobante»",
+      "Link «Traslados»",
+      "textarea «Llegó una caja abierta, el transportista dejó dos bultos menos…»",
+      "button «{f}»",
+      "button «Los espero todas»",
+      "button «Revisar»",
+      "Boton «(sin nombre)»",
+      "button «Seguir aquí»",
+      "button «Quitar y descartar»",
+      "input «{`${referencia}»"
+    ],
+    "components/RecepcionesCompraLista.tsx": [
+      "button «recibidas.fila»",
+      "button «{diaMes(diaLima(g.fechaRecepcion))}»"
+    ],
+    "components/RecepcionesRecientes.tsx": [
+      "button «recibir.reciente»"
+    ],
+    "components/ResumenPrevioEnvio.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Volver «→cerrar»",
+      "Boton «Confirmar y recibir»"
+    ],
+    "components/recepcion-conteo/LlegoSinAviso.tsx": [
+      "button «→() => setProveedorId(p.id)»",
+      "button «No sé de quién es»",
+      "Link «Sí, viene con la»",
+      "CampoTexto «{campos.etiqueta(\"sin-aviso-guia\", \"Número de guía (opcional)\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{campos.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/PendientesDeRecibir.tsx": [
+      "Link «{e.numero ?? \"Envío\"}»"
+    ],
+    "components/recepcion-envio/EnviosParaRecibir.tsx": [
+      "Link «{`/recibir/envio/${e.id}»",
+      "BotonEnlace «{e.estado === \"abierto\" ? \"Seguir recibiendo\" : \"Recibir\"}»"
+    ],
+    "components/recepcion-envio/RecibirSinGuia.tsx": [
+      "Boton «Llegó esta orden»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ]
+  }
+}

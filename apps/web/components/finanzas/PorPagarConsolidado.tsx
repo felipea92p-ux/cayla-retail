@@ -64,7 +64,7 @@ export function PorPagarConsolidado({
         <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>
       ) : (
         <>
-          <section className="fin-cifras">
+          <section className="fin-cifras" data-guia="fin-por-pagar.cifras">
             {tramos.map((t, i) => (
               <TarjetaCifra
                 key={t.clave}
@@ -87,17 +87,17 @@ export function PorPagarConsolidado({
               </Superficie>
             </div>
           ) : (
-            <Superficie className="anim-sube">
+            <Superficie className="anim-sube" guia="fin-por-pagar.lista">
               <TituloDeTarjeta
                 titulo={verTodas ? "Todo lo que CAYLA debe" : `Lo que debe ${nombre}`}
                 bajada={
                   ver.ubicacionId
-                    ? "Mercadería, gastos, activos e insumos del Taller. De una factura repartida entre tiendas, solo su parte."
+                    ? "Mercadería, gastos, activos e insumos del Taller. Cada factura cuenta entera para la tienda que la pidió, aunque parte de la mercadería vaya a otra."
                     : "Mercadería, gastos, activos e insumos del Taller en una sola lista."
                 }
               >
                 {pagaCompras && (
-                  <Link href="/compras/por-pagar" className="btn-cayla btn-secundario btn-chico">
+                  <Link href="/compras/por-pagar" className="btn-cayla btn-secundario btn-chico" data-guia="fin-por-pagar.varias">
                     Pagar varias de un proveedor
                   </Link>
                 )}
@@ -147,7 +147,7 @@ export function PorPagarConsolidado({
                           {hayPagables && (
                             <td className="fin-num">
                               {puedePagar(f, cuenta) && (
-                                <Link href={hrefPagar(f.id)} scroll={false} className="btn-cayla btn-secundario btn-chico" aria-label={`Pagar ${f.proveedor} ${f.documento}`}>
+                                <Link href={hrefPagar(f.id)} scroll={false} className="btn-cayla btn-secundario btn-chico" aria-label={`Pagar ${f.proveedor} ${f.documento}`} data-guia="fin-por-pagar.pagar">
                                   Pagar
                                 </Link>
                               )}

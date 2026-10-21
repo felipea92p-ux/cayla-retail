@@ -22,6 +22,8 @@ import { PUNTO_DEL_TONO, tonoDeFamilia } from "@/lib/categoria-tonos";
 import { avisoChoque, ejemploParaFamilia, prefijoDesdeNombre, quienUsaNombre, quienUsaPrefijo } from "@/lib/categoria-alta-reglas";
 import { FolderTree, Grid3x3, Layers, Ruler, Shapes } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { BotonEditar } from "@/components/ui/BotonEditar";
+import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
 /**
  * Las familias del negocio (Indumentaria, Calzado...), cada una con sus
@@ -493,12 +495,12 @@ export function CategoriasLista({
                 : "El prefijo ya no se puede cambiar si hay productos con esta categoría."
               : "Queda disponible de inmediato en Productos."
           }
-          ancho="max-w-xl"
+          tamano="mediana"
           onClose={() => abrirBorrador(null)}
         >
           {(cerrar) => (
             <>
-          <div className="mt-5 space-y-4">
+          <div data-guia="categorias.form-datos" className="mt-5 space-y-4">
             {!editando && (
               <CampoSelect
                 etiqueta="Categoría padre (opcional)"
@@ -534,6 +536,7 @@ export function CategoriasLista({
               )}
               <CampoTexto
                 etiqueta="Nombre"
+                maxLength={MAX_NOMBRE_CATALOGO}
                 value={borrador.nombre}
                 onChange={(e) => {
                   const nombre = e.target.value;
@@ -572,12 +575,12 @@ export function CategoriasLista({
 
             <Campo etiqueta="Notas internas (opcional)">
               <textarea
+                className="caja-campo-input resize-none"
                 value={borrador.notas}
                 onChange={(e) => setBorrador({ ...borrador, notas: e.target.value })}
                 rows={2}
                 maxLength={2000}
                 placeholder="Solo la ve el equipo — nunca el cliente."
-                className="w-full resize-none rounded-md border border-tinta/15 bg-papel px-2.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-rojo/50"
               />
             </Campo>
 
@@ -585,7 +588,7 @@ export function CategoriasLista({
               <p className="text-xs text-tinta/65">
                 Temporada por defecto: <span className="font-medium text-tinta">{temporadaPorCategoria[borrador.id] ?? "sin temporada"}</span>.{" "}
                 Se elige en{" "}
-                <Link href={HREF_TEMPORADAS} className="underline underline-offset-2 hover:text-rojo">
+                <Link href={HREF_TEMPORADAS} className="btn-enlace">
                   Atributos ▸ Temporadas
                 </Link>
                 .
@@ -594,7 +597,7 @@ export function CategoriasLista({
           </div>
 
           {editando && !borrador.categoriaPadreId && (
-            <div className="mt-5 border-t border-tinta/10 pt-4">
+            <div data-guia="categorias.form-subcategorias" className="mt-5 border-t border-tinta/10 pt-4">
               <p className="label-cayla text-[11px] text-tinta/65">Subcategorías</p>
               {hijasDeEditada.length > 0 ? (
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -680,7 +683,7 @@ export function CategoriasLista({
           )}
 
           {editando && (
-            <div className="mt-5 space-y-4 border-t border-tinta/10 pt-4">
+            <div data-guia="categorias.form-ejes" className="mt-5 space-y-4 border-t border-tinta/10 pt-4">
               <div>
                 <p className="label-cayla text-[11px] text-tinta/65">Tallas que ofrece</p>
                 {universo.tallas.length > 0 ? (
@@ -700,7 +703,7 @@ export function CategoriasLista({
                 {ejesDraft.tallaIds.length > 0 && (
                   <div className="mt-3">
                     <p className="label-cayla text-[11px] text-tinta/65">Curva habitual</p>
-                    <p className="mt-0.5 text-xs text-tinta/60">Las que vienen marcadas de antemano al crear un producto de esta categoría.</p>
+                    <p className="mt-0.5 text-xs text-tinta/70">Las que vienen marcadas de antemano al crear un producto de esta categoría.</p>
                     <div className="mt-1.5">
                       <SelectorMultiple
                         opciones={universo.tallas.filter((v) => ejesDraft.tallaIds.includes(v.id)).map((v) => ({ valor: v.id, texto: v.texto }))}
@@ -744,29 +747,30 @@ export function CategoriasLista({
 
                 )}
               </div>
-              {puedeEditar && <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>}
+              {puedeEditar && <p className="text-xs text-tinta/70">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>}
             </div>
           )}
 
           <ComboResponsable control={responsable} deshabilitado={guardando || subGuardando || cambiandoId !== null} className="mt-5" />
-          <div className="mt-5 flex items-center justify-between gap-2">
+          <div data-guia="categorias.form-pie" className="mt-5 flex items-center justify-between gap-2">
             {editando ? (
-              <button
+              // Lo peligroso, rojo desde el principio (ADR-0358, `accion.eliminar`): `btn-peligro`, como en Familias.
+              <Boton cargando={cambiandoId === borrador.id} textoCargando="Desactivando…"
                 type="button"
+                peso="peligro"
                 onClick={() => {
                   const c = categorias.find((x) => x.id === borrador.id);
                   if (c) cambiarEstado(c);
                 }}
                 disabled={cambiandoId === borrador.id || !responsable.listo}
                 title={responsable.motivo ?? undefined}
-                className="text-xs text-rojo hover:underline disabled:opacity-50 disabled:no-underline"
               >
-                {cambiandoId === borrador.id ? "Desactivando…" : "Desactivar categoría"}
-              </button>
+                Desactivar categoría
+              </Boton>
             ) : (
               <span />
             )}
-            <div className="flex gap-2">
+            <div className="pie-acciones">
               <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                 Cancelar
               </Boton>
@@ -781,15 +785,15 @@ export function CategoriasLista({
       )}
 
       {desactivadasVisibles.length > 0 && (
-        <section className="space-y-2">
+        <section data-guia="categorias.desactivadas" className="space-y-2">
           <p className="label-cayla text-[11px] text-tinta/65">Desactivadas — no aparecen al crear productos nuevos</p>
           <div className="card-cayla flex flex-wrap gap-2 p-5">
             {desactivadasVisibles.map((c) => (
               <span
                 key={c.id}
-                className="flex items-center gap-2 rounded-lg border border-tinta/10 bg-papel py-1.5 pl-2 pr-3 text-sm text-tinta/60"
+                className="flex items-center gap-2 rounded-lg border border-tinta/10 bg-papel py-1.5 pl-2 pr-3 text-sm text-tinta/70"
               >
-                <span className="rounded bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/50">{c.prefijo ?? "—"}</span>
+                <span className="rounded bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
                 {c.nombre}
                 {/* Sin familia o sin prefijo no hay nada que reactivar: quedaría activa, sin código y fuera de toda
                     sección. La base lo rechaza igual (`fn_categorias_vigencia_candados`); acá no se ofrece el botón. */}
@@ -799,7 +803,7 @@ export function CategoriasLista({
                   </span>
                 )}
                 {puedeEditar && c.familia && c.prefijo && (
-                  <Boton
+                  <Boton textoCargando="Reactivando…"
                     peso="discreto"
                     className="px-2 py-1 text-[10.5px]"
                     cargando={cambiandoId === c.id}
@@ -848,7 +852,7 @@ function TarjetaCategoria({
       detalle={
         <>
           <p className="text-xs tabular-nums text-tinta/65">
-            <span className="mr-1.5 font-mono text-[10.5px] font-semibold text-tinta/55">{c.prefijo ?? "—"}</span>
+            <span className="mr-1.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
             {subcategorias > 0 ? `${subcategorias} sub · ` : ""}
             {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
           </p>
@@ -900,7 +904,7 @@ function VistaRapidaCategoria({
   onEditar: () => void;
 }) {
   return (
-    <Modal conCerrar titulo={categoria.nombre} subtitulo={familia ? (nombreFamilia ?? familia) : "Sin familia asignada"} onClose={onClose} ancho="max-w-lg">
+    <Modal conCerrar titulo={categoria.nombre} subtitulo={familia ? (nombreFamilia ?? familia) : "Sin familia asignada"} onClose={onClose} tamano="mediana">
       <div className="mt-1 grid gap-5 sm:grid-cols-[auto_1fr]">
         <div className="flex items-center gap-3 sm:flex-col sm:items-start sm:gap-2">
           <div
@@ -915,12 +919,13 @@ function VistaRapidaCategoria({
         <div className="space-y-4">
           <Link
             href={`/productos?cat=${categoria.id}`}
+            data-guia="categorias.vista-productos"
             className="group flex items-center justify-between rounded-lg border border-tinta/10 bg-papel px-3 py-2.5 transition-colors hover:border-rojo/40"
           >
             <span className="text-sm text-tinta">
               {productos === 0 ? "Sin productos todavía" : `${productos} ${productos === 1 ? "producto activo" : "productos activos"}`}
             </span>
-            <span className="label-cayla text-[10px] text-tinta/55 group-hover:text-rojo">Ver en Productos →</span>
+            <span className="label-cayla text-[10px] text-tinta/70 group-hover:text-rojo">{/* unificar-fijo: el rótulo de una tarjeta que ya es enlace (no se anida un <EnlaceVer> en un <Link>) */}Ver en Productos →</span>
           </Link>
 
           {padre && (
@@ -931,7 +936,7 @@ function VistaRapidaCategoria({
 
           {hijas.length > 0 && (
             <div>
-              <p className="label-cayla text-[10.5px] text-tinta/55">Subcategorías</p>
+              <p className="label-cayla text-[10.5px] text-tinta/70">Subcategorías</p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {hijas.map((h) => (
                   <button
@@ -948,20 +953,22 @@ function VistaRapidaCategoria({
             </div>
           )}
 
-          <GrupoEjes titulo="Tallas" valores={tallas} marcados={tallasHabituales} />
-          <GrupoEjes titulo="Tejidos" valores={tejidos} />
-          <GrupoEjes titulo="Patrones" valores={patrones} />
+          <div data-guia="categorias.vista-ejes" className="space-y-4">
+            <GrupoEjes titulo="Tallas" valores={tallas} marcados={tallasHabituales} />
+            <GrupoEjes titulo="Tejidos" valores={tejidos} />
+            <GrupoEjes titulo="Patrones" valores={patrones} />
+          </div>
 
           {temporada && (
-            <div>
-              <p className="label-cayla text-[10.5px] text-tinta/55">Temporada por defecto</p>
+            <div data-guia="categorias.vista-temporada">
+              <p className="label-cayla text-[10.5px] text-tinta/70">Temporada por defecto</p>
               <p className="mt-1 text-sm text-tinta">{temporada.nombre ?? "Sin temporada"}</p>
-              <p className="mt-0.5 text-xs text-tinta/60">
+              <p className="mt-0.5 text-xs text-tinta/70">
                 La heredan sus prendas que no tienen la suya.
                 {puedeEditar && (
                   <>
                     {" "}
-                    <Link href={HREF_TEMPORADAS} className="underline underline-offset-2 hover:text-rojo">
+                    <Link href={HREF_TEMPORADAS} className="btn-enlace">
                       {temporada.nombre ? "Cambiarla" : "Elegirla"} en Atributos ▸ Temporadas
                     </Link>
                   </>
@@ -972,18 +979,16 @@ function VistaRapidaCategoria({
 
           {categoria.notas && (
             <div>
-              <p className="label-cayla text-[10.5px] text-tinta/55">Notas internas</p>
+              <p className="label-cayla text-[10.5px] text-tinta/70">Notas internas</p>
               <p className="mt-1 text-xs text-tinta/70">{categoria.notas}</p>
             </div>
           )}
         </div>
       </div>
 
-      <div className="mt-6 flex justify-end gap-2 border-t border-tinta/10 pt-4">
+      <div data-guia="categorias.vista-pie" className="mt-6 flex justify-end gap-2 border-t border-tinta/10 pt-4">
         {puedeEditar && (
-          <Boton peso="primario" onClick={onEditar}>
-            Editar
-          </Boton>
+          <BotonEditar onClick={onEditar} guia="categorias.vista-editar" />
         )}
       </div>
     </Modal>
@@ -995,7 +1000,7 @@ function GrupoEjes({ titulo, valores, marcados }: { titulo: string; valores: Val
   const hayMarcados = !!marcados && marcados.length > 0;
   return (
     <div>
-      <p className="label-cayla text-[10.5px] text-tinta/55">{titulo}{hayMarcados && " · ✓ = curva habitual"}</p>
+      <p className="label-cayla text-[10.5px] text-tinta/70">{titulo}{hayMarcados && " · ✓ = curva habitual"}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {valores.map((v) => (
           <Chip key={v.id} tono="neutro">

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { Chip } from "@/components/ui/Chip";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Lock, Plus, SearchX, ShieldCheck } from "lucide-react";
+import { ChevronDown, Lock, Plus, SearchX, ShieldCheck, Users } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton, Desplegable } from "@/components/ui/campos";
@@ -51,8 +53,11 @@ import {
   type RolVista,
 } from "@/lib/roles-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { AvatarPersona, PilaPersonas } from "@/components/ui/AvatarPersona";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // «Roles y accesos» (ADR-0161 B). Desde el 2026-10-05 (ADR-0342, propuesta de Felipe): los roles en tarjetas (quiénes lo tienen y
 // los íconos de lo que ve) y, abajo, el rol elegido con sus módulos como baldosas (negra = la ve; tocarla dice qué incluye),
@@ -71,14 +76,6 @@ type Modal =
   | { tipo: "asignar"; rol: RolVista }
   | { tipo: "cuentas"; rol: RolVista };
 
-const iniciales = (n: string) =>
-  n
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
 function sinBorrador<T>(b: Record<string, T>, id: string): Record<string, T> {
   const copia = { ...b };
@@ -259,7 +256,7 @@ export function RolesPanel({
   return (
     <div className={`@container space-y-5 ${conCambios ? "pb-24" : ""}`}>
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <div className="w-full max-w-xs space-y-1">
+        <div className="w-full max-w-xs space-y-1" data-guia="roles.responsable">
           {/* UN combo para toda la sección (regla 10 de CLAUDE.md). El mismo control se ve en cada modal y apaga
               «Guardar cambios» si falta. */}
           <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -280,7 +277,7 @@ export function RolesPanel({
 
       <div className="grid gap-5 @[980px]:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-label={`Rol ${rol.nombre}`} className="card-cayla min-w-0 overflow-hidden">
-          <div className="border-b border-tinta/10 px-5 py-4">
+          <div className="border-b border-tinta/10 px-5 py-4" data-guia="roles.cabecera">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 max-w-xl">
                 <p className="label-cayla text-[11px] text-tinta/60">{rol.archivado ? "Rol archivado" : FAMILIAS.find((f) => f.clave === familiaDeRol(rol))?.cabecera}</p>
@@ -299,27 +296,17 @@ export function RolesPanel({
             {cuentas && (
               <div className="mt-3 flex flex-wrap items-center gap-2.5">
                 {cuentasDelElegido.length === 0 ? (
-                  <p className="text-[13px] text-tinta/60">Ninguna cuenta tiene este rol todavía.</p>
+                  <Vacio tamano="chico" alinear="izquierda" className="px-0 py-1" icono={<Users />}>Ninguna cuenta tiene este rol todavía.</Vacio>
                 ) : (
                   <>
-                    <span className="flex" aria-hidden>
+                    <PilaPersonas mas={Math.max(0, cuentasDelElegido.length - 5)}>
                       {cuentasDelElegido.slice(0, 5).map((c) => (
-                        <span
-                          key={`${c.tipo}:${c.id}`}
-                          className={`-ml-2 grid h-7 w-7 place-items-center rounded-full border-2 border-papel text-[10px] font-semibold first:ml-0 ${c.tipo === "terminal" ? "bg-tinta/10 text-tinta/70" : "bg-sand text-tinta"}`}
-                        >
-                          {iniciales(c.nombre)}
-                        </span>
+                        <AvatarPersona key={`${c.tipo}:${c.id}`} personaId={null} nombre={c.nombre} tamano={32} terminal={c.tipo === "terminal"} />
                       ))}
-                      {cuentasDelElegido.length > 5 && (
-                        <span className="-ml-2 grid h-7 w-7 place-items-center rounded-full border-2 border-papel bg-tinta text-[10px] font-semibold text-crema">
-                          +{cuentasDelElegido.length - 5}
-                        </span>
-                      )}
-                    </span>
-                    <button type="button" onClick={() => setModal({ tipo: "cuentas", rol })} className="text-[13px] text-tinta/75 underline decoration-tinta/20 underline-offset-2 hover:text-tinta">
-                      {cuentasDelElegido.length === 1 ? "1 cuenta tiene este rol" : `${cuentasDelElegido.length} cuentas tienen este rol`} →
-                    </button>
+                    </PilaPersonas>
+                    <EnlaceVer onClick={() => setModal({ tipo: "cuentas", rol })}>
+                      {cuentasDelElegido.length === 1 ? "1 cuenta tiene este rol" : `${cuentasDelElegido.length} cuentas tienen este rol`}
+                    </EnlaceVer>
                   </>
                 )}
               </div>
@@ -359,15 +346,15 @@ export function RolesPanel({
             </Aviso>
           )}
           {editable && (
-            <div className="flex flex-wrap items-center gap-2 px-5 pt-4">
-              <label id={`pantalla-principal-${rol.id}-etiqueta`} htmlFor={`pantalla-principal-${rol.id}`} className="label-cayla shrink-0 text-[11px] text-tinta/65">
+            <div className="campo flex flex-wrap items-center gap-2 px-5 pt-4" data-guia="roles.pantalla">
+              <label id={`pantalla-principal-${rol.id}-etiqueta`} htmlFor={`pantalla-principal-${rol.id}`} className="campo-etiqueta shrink-0">
                 Pantalla al entrar
               </label>
               {/* Combo del sistema (ADR-0209), no el <select> del navegador: misma caja y misma lista que el resto del ERP. */}
               <Desplegable
                 id={`pantalla-principal-${rol.id}`}
                 idEtiqueta={`pantalla-principal-${rol.id}-etiqueta`}
-                forma="caja"
+                forma="campo"
                 className="min-w-[200px]"
                 valor={pantallaPrincipalBorrador ?? ""}
                 onValor={(v) => setPantallaPrincipalBorradores((b) => ({ ...b, [rol.id]: v ? (v as ClaveModulo) : null }))}
@@ -379,7 +366,7 @@ export function RolesPanel({
             </div>
           )}
 
-          <div className="space-y-4 px-5 pb-5 pt-4">
+          <div className="space-y-4 px-5 pb-5 pt-4" data-guia="roles.modulos">
             {/* La ayuda aparece al tocar: qué incluye el módulo tocado, en una línea (propuesta del 2026-10-05). */}
             <p role="status" className="min-h-[2.75rem] rounded-xl bg-hueso px-4 py-2.5 text-[13.5px] leading-snug text-tinta/75">
               {ayuda ? (
@@ -467,6 +454,7 @@ export function RolesPanel({
 
         <aside
           aria-label="Efecto del rol"
+          data-guia="roles.efecto"
           className="grid gap-4 self-start @[640px]:grid-cols-2 @[980px]:sticky @[980px]:top-20 @[980px]:max-h-[calc(100vh-6rem)] @[980px]:grid-cols-1 @[980px]:overflow-y-auto"
         >
           <VistaPreviaMenu
@@ -514,7 +502,7 @@ export function RolesPanel({
               Descartar
             </Boton>
             <Boton type="button" peso="primario" onClick={guardar} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
-              {guardando ? "Guardando…" : "Guardar cambios"}
+              Guardar cambios
             </Boton>
           </>
         }
@@ -626,7 +614,7 @@ function TarjetasRoles({
   onNuevo: () => void;
 }) {
   return (
-    <section aria-label="Roles" className="space-y-2.5">
+    <section aria-label="Roles" className="space-y-2.5" data-guia="roles.tarjetas">
       <div className="grid gap-2.5 @[560px]:grid-cols-2 @[900px]:grid-cols-3 @[1240px]:grid-cols-4">
         {roles.map((r) => (
           <TarjetaRol key={r.id} rol={r} elegido={r.id === elegidoId} cuentas={cuentasDe ? cuentasDe(r.id) : null} sinGuardar={sinGuardar(r.id)} onElegir={() => onElegir(r.id)} />
@@ -634,9 +622,10 @@ function TarjetasRoles({
         <button
           type="button"
           onClick={onNuevo}
+          data-guia="roles.nuevo"
           className="grid min-h-[150px] place-content-center justify-items-center gap-1.5 rounded-2xl border border-dashed border-taupe/60 text-[14px] font-semibold text-taupe transition-colors duration-200 ease-cayla hover:border-taupe hover:text-tinta"
         >
-          <Plus aria-hidden className="h-6 w-6" strokeWidth={1.6} />
+          <Plus /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ aria-hidden className="h-6 w-6" strokeWidth={1.5} />
           Nuevo rol
         </button>
       </div>
@@ -678,9 +667,9 @@ function TarjetaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolV
           {sinGuardar && <span className="ml-1.5 align-top text-base text-rojo" title="Cambios sin guardar">•</span>}
         </span>
         {aviso === "sin_modulos" ? (
-          <span className="shrink-0 rounded-full bg-ambar/15 px-2 py-px text-[10.5px] font-semibold text-ambar-profundo">Sin módulos</span>
+          <Chip tono="ambar" className="shrink-0">Sin módulos</Chip>
         ) : aviso === "sin_uso" ? (
-          <span className="shrink-0 rounded-full bg-tinta/[0.06] px-2 py-px text-[10.5px] font-semibold text-tinta/60">Sin uso</span>
+          <Chip tono="neutro" className="shrink-0">Sin uso</Chip>
         ) : null}
       </span>
       <span className="text-[13px] leading-snug text-tinta/65">{lineaDe(rol)}</span>
@@ -692,20 +681,14 @@ function TarjetaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolV
         ))}
         {muestra.length > 8 && <span className="grid h-7 place-items-center px-1 text-[11.5px] font-semibold text-tinta/60">+{muestra.length - 8}</span>}
       </span>
-      <span aria-hidden className="block h-1.5 overflow-hidden rounded-full bg-hueso">
-        <span className={`block h-full rounded-full transition-[width] duration-500 ease-cayla ${rol.fijo ? "bg-taupe" : "bg-tinta"}`} style={{ width: `${Math.round((n / de) * 100)}%` }} />
-      </span>
+      {/* Cuántos módulos ve el rol: una medida, no un avance (un rol con todos no está «listo»): siempre en tinta. */}
+      <BarraAvance pct={(n / de) * 100} tono="tinta" decorativa />
       <span className="flex items-center justify-between gap-2 text-[12.5px] text-tinta/60">
-        <span className="flex" aria-hidden>
+        <PilaPersonas>
           {(cuentas ?? []).slice(0, 4).map((c) => (
-            <span
-              key={`${c.tipo}:${c.id}`}
-              className={`-ml-1.5 grid h-6 w-6 place-items-center rounded-full border-2 border-papel text-[9.5px] font-semibold first:ml-0 ${c.tipo === "terminal" ? "bg-tinta/10 text-tinta/70" : "bg-sand text-tinta"}`}
-            >
-              {iniciales(c.nombre)}
-            </span>
+            <AvatarPersona key={`${c.tipo}:${c.id}`} personaId={null} nombre={c.nombre} tamano={24} terminal={c.tipo === "terminal"} />
           ))}
-        </span>
+        </PilaPersonas>
         <span>
           {rol.fijo && n === de ? "Ve todo" : `${n} de ${de} módulos`}
           {cuentas !== null && ` · ${cuentas.length === 0 ? "sin cuentas" : cuentas.length === 1 ? "1 cuenta" : `${cuentas.length} cuentas`}`}
@@ -734,7 +717,7 @@ function VistaPreviaMenu({
     c === "suma" ? "anim-revelar rounded bg-verde/15 text-verde-profundo" : c === "quita" ? "text-tinta/40 line-through" : "";
   return (
     <section className="card-cayla px-5 py-4">
-      <h3 className="font-display text-lg text-tinta">Así queda su menú</h3>
+      <TituloSeccion nivel={3}>Así queda su menú</TituloSeccion>
       <p className="mt-0.5 text-xs text-tinta/60">
         {todo && !conCambios ? "Ve todo el menú." : conCambios ? "Así quedará al guardar. Lo marcado es lo que cambia." : "Lo que verá en el lateral al entrar."}
       </p>
@@ -787,9 +770,9 @@ function CuentasDelRolModal({ rol, cuentas, onClose }: { rol: RolVista; cuentas:
   const filtradas = cuentas.filter((c) => norm(`${c.nombre} ${c.ubicacion ?? ""}`).includes(norm(q.trim())));
   return (
     <Modal
+      conCerrar
       titulo={rol.nombre}
       subtitulo={`${cuentas.length === 1 ? "1 cuenta tiene" : `${cuentas.length} cuentas tienen`} este rol. Para cambiar el de una, usa «Asignar» o su fila en Cuentas.`}
-      ancho="max-w-md"
       onClose={onClose}
     >
       <div className="mt-4 space-y-2">
@@ -803,9 +786,7 @@ function CuentasDelRolModal({ rol, cuentas, onClose }: { rol: RolVista; cuentas:
         <ul className="h-[320px] overflow-y-auto">
           {filtradas.slice(0, MAX).map((c) => (
             <li key={`${c.tipo}:${c.id}`} className="flex items-center gap-3 border-b border-tinta/5 px-1 py-2.5 text-sm">
-              <span className={`grid h-7 w-7 place-items-center rounded-full text-[10px] font-semibold ${c.tipo === "terminal" ? "bg-tinta/10 text-tinta/70" : "bg-sand text-tinta"}`}>
-                {iniciales(c.nombre)}
-              </span>
+              <AvatarPersona personaId={null} nombre={c.nombre} tamano={32} terminal={c.tipo === "terminal"} />
               <span className="min-w-0">
                 <span className="block truncate text-tinta">{c.nombre}</span>
                 <span className="block text-xs text-tinta/60">

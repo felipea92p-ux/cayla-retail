@@ -47,7 +47,7 @@ export function PanelPrendas({
   const buscando = consulta.trim().length > 0;
 
   return (
-    <div className="vsr-prendas" data-vsr-prendas>
+    <div className="vsr-prendas" data-guia="regularizar.prendas" data-vsr-prendas>
       <CampoGuiado id="prenda" guia={guia} titulo="¿Qué prenda es?" ayuda={sugerida ? "La sugerida es la única que calza en todo." : "Toca la tuya. Si hay más de una que calza, tú la reconoces."}>
         <div className="mb-2 flex flex-wrap items-center">
           <PorQue etiqueta="¿Por qué estas?">
@@ -70,7 +70,7 @@ export function PanelPrendas({
         </div>
       </CampoGuiado>
 
-      <div className="vsr-busca">
+      <div data-guia="regularizar.catalogo" className="vsr-busca">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">¿No ves la tuya?</p>
           <p>Búscala entre todas las prendas del catálogo.</p>
@@ -114,7 +114,7 @@ export function PanelPrendas({
               <span>
                 {enLasDeArriba > 0 ? "Tócala ahí. " : "Prueba con otra palabra, o con el código. "}
                 ¿No está en el catálogo?{" "}
-                <Link href="/productos/nuevo" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                <Link href="/productos/nuevo" className="btn-enlace">
                   Dala de alta
                 </Link>{" "}
                 con su precio oficial y vuelve aquí.

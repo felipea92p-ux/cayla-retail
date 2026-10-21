@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, type MutableRefObject, type ReactNode, type RefObject } from "react";
+import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { ArrowRight, ReceiptText, ScanLine } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
+import { MAX_LARGO_BUSQUEDA } from "@/lib/cambios-reglas";
 import { Desplegable } from "@/components/ui/campos";
 import { usePistola } from "@/components/ui/usePistola";
 import { busquedaDesdeLectura } from "@/lib/cambios-atajos-reglas";
@@ -128,7 +130,7 @@ export function BuscadorVentas({
     <form role="search" onSubmit={enviar} className="space-y-4">
       {/* El buscador del mostrador (ADR-0358, ronda 5): la píldora que se despega al enfocar, con su botón. Busca al tocar
           «Buscar» o con Enter (la pistola teclea el código y un Enter). Escaneando, el ícono pasa al código de barras. */}
-      <Buscador
+      <Buscador guia="posventa.buscador"
         tamano="mostrador"
         ref={campoRef}
         valor={texto}
@@ -143,23 +145,22 @@ export function BuscadorVentas({
         onBlur={() => setEscaneando(false)}
         inputMode="search"
         placeholder={escaneando ? "Escanea la etiqueta…" : "Boleta, DNI, cliente, prenda o código"}
+        maxLength={MAX_LARGO_BUSQUEDA}
         etiqueta="Buscar la venta: boleta, DNI o RUC, nombre del cliente, nombre o código de la prenda"
         className={escaneando ? "escaneando" : ""}
         accion={
-          <button type="submit" disabled={buscando} className="btn-cayla btn-primario h-12 shrink-0">
-            Buscar
-          </button>
+          <BotonBuscar type="submit" peso="primario" disabled={buscando} className="h-12 shrink-0" />
         }
       />
 
       <div className="flex flex-wrap items-center gap-2.5">
         {/* En el celular este chip repite un botón fijo de abajo (la cámara en Cambios, «Escanear prenda» en
             Devoluciones): se esconde ahí. */}
-        <button type="button" onClick={prepararEscaneo} className={`${CHIP_ACCION} ${onCamara || escanearEnBarraMovil ? "max-sm:hidden" : ""}`}>
+        <button type="button" data-guia="posventa.escanear" onClick={prepararEscaneo} className={`${CHIP_ACCION} ${onCamara || escanearEnBarraMovil ? "max-sm:hidden" : ""}`}>
           <ScanLine className="h-4 w-4" aria-hidden />
           Escanear prenda
         </button>
-        <button type="button" onClick={onSinComprobante} className={CHIP_ACCION}>
+        <button type="button" data-guia="posventa.sin-comprobante" onClick={onSinComprobante} className={CHIP_ACCION}>
           <ReceiptText className="h-4 w-4" aria-hidden />
           Sin comprobante
           <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -168,7 +169,7 @@ export function BuscadorVentas({
         {extra}
 
         {puedeVerTodas && (
-          <div className="ml-auto flex items-center gap-2 text-sm text-tinta/70">
+          <div data-guia="posventa.buscar-en" className="ml-auto flex items-center gap-2 text-sm text-tinta/70">
             <span>Buscar en</span>
             <Desplegable
               forma="pastilla"

@@ -9,7 +9,9 @@ import {
   cifrasTablero,
   coincideFactura,
   destinoTexto,
+  diaDelCierre,
   edadEnDias,
+  faltaNotaDelProveedor,
   filtrarFacturas,
   filtrarTablero,
   hace,
@@ -66,6 +68,7 @@ function fila(p: Partial<FilaTablero> & Pick<FilaTablero, "clase" | "id">): Fila
     creadoEn: "2026-09-10T12:00:00Z",
     resuelto: true,
     ...p,
+    notaProveedor: p.notaProveedor ?? null,
     monto,
   };
 }
@@ -122,6 +125,33 @@ describe("antigüedad y urgencia del reclamo (D4: 14 días, una constante del m�
   });
 });
 
+describe("el reloj del reclamo arranca el día de LIMA en que se cerró el faltante", () => {
+  // Como lo manda `notas_credito_tablero()`: `cerrado_en` es un instante en UTC y, en una pendiente, la fecha llega vacía.
+  // Ejemplo inventado: 2026-09-18 01:00 UTC = 17 de septiembre, 20:00 en Lima; «hoy» es el 18.
+  const deNoche = fila({ clase: "pendiente", id: "p-noche", documento: "F001-000500", montoEsperado: 120, unidadesCerradas: 3, cerradoEn: "2026-09-18T01:00:00.123456+00:00", fecha: "" });
+  const vista = armarFilas([deNoche], { hoy: HOY, saldoPorProveedor: {}, movimientos: [] })[0]!;
+
+  it("lo cerrado a las 20:00 del 17 en Lima es del 17, aunque en UTC ya sea el 18", () => {
+    expect(diaDelCierre(deNoche)).toBe("2026-09-17");
+    expect(diaDelCierre({ cerradoEn: "2026-09-18T04:59:00+00:00", fecha: "" })).toBe("2026-09-17"); // 23:59 en Lima
+    expect(diaDelCierre({ cerradoEn: "2026-09-18T05:00:00+00:00", fecha: "" })).toBe("2026-09-18"); // 00:00 en Lima
+  });
+
+  it("al día siguiente ya lleva un día: «Ayer», no «Hoy»", () => {
+    expect(vista.edadDias).toBe(1); // con el corte de UTC daba 0
+    expect(hace(vista.edadDias)).toBe("Ayer");
+  });
+
+  it("el paso «Faltante» de su línea de tiempo lleva el día de Lima", () => {
+    expect(pasosDeNota(vista)[0]).toMatchObject({ clave: "Faltante", fecha: "17/09" }); // con el corte de UTC, «18/09»
+  });
+
+  it("sin un instante que se lea, vale la fecha de la fila", () => {
+    expect(diaDelCierre({ cerradoEn: null, fecha: "2026-09-03" })).toBe("2026-09-03");
+    expect(diaDelCierre({ cerradoEn: "ayer", fecha: "2026-09-03" })).toBe("2026-09-03");
+  });
+});
+
 // ---------------------------------------------------------------------------
 
 describe("qué pasa con el dinero — los tres casos del spike", () => {
@@ -129,7 +159,7 @@ describe("qué pasa con el dinero — los tres casos del spike", () => {
     const r = repartoDestino(847.24, 3923.6, "a_favor");
     expect(r).toEqual({ baja: 847.24, devuelve: 0, aFavor: 0, deudaDespues: 3076.36 });
     expect(textoDestino(r, { documento: "F001-000482", proveedor: "Tejidos Rímac SAC", saldo: 3923.6, destino: "a_favor" })).toBe(
-      "La nota baja lo que se debe de F001-000482 de S/ 3,923.60 a S/ 3,076.36. No sobra dinero.",
+      "La nota baja lo que se debe de F001-000482 de S/\u00a03,923.60 a S/\u00a03,076.36. No sobra dinero.",
     );
   });
 
@@ -145,7 +175,7 @@ describe("qué pasa con el dinero — los tres casos del spike", () => {
   it("factura PAGADA: el texto dice que la factura ya estaba pagada, no que baja una deuda", () => {
     const r = repartoDestino(188.8, 0, "reembolso");
     expect(textoDestino(r, { documento: "F004-000129", proveedor: "Botones y Avíos Lima", saldo: 0, destino: "reembolso" })).toBe(
-      "F004-000129 ya estaba pagado, así que todo el monto es dinero de más. Los S/ 188.80 que sobran te los devuelve Botones y Avíos Lima ahora: se registra el reembolso junto con la nota.",
+      "F004-000129 ya estaba pagado, así que todo el monto es dinero de más. Los S/\u00a0188.80 que sobran te los devuelve Botones y Avíos Lima ahora: se registra el reembolso junto con la nota.",
     );
   });
 
@@ -157,7 +187,7 @@ describe("qué pasa con el dinero — los tres casos del spike", () => {
   it("caso MIXTO: el texto cuenta las dos cosas en orden — primero la deuda, después el sobrante", () => {
     const r = repartoDestino(1180, 1128, "a_favor");
     expect(textoDestino(r, { documento: "F001-000401", proveedor: "Tejidos Rímac SAC", saldo: 1128, destino: "a_favor" })).toBe(
-      "La nota primero baja lo que se debe de F001-000401 de S/ 1,128.00 a S/ 0.00. Los S/ 52.00 que sobran quedan a tu favor con Tejidos Rímac SAC, para otra compra.",
+      "La nota primero baja lo que se debe de F001-000401 de S/\u00a01,128.00 a S/\u00a00.00. Los S/\u00a052.00 que sobran quedan a tu favor con Tejidos Rímac SAC, para otra compra.",
     );
   });
 
@@ -251,13 +281,13 @@ describe("armarFilas: el estado que se ve", () => {
   it("una nota que solo bajó deuda dice «Aplicada» y lo explica", () => {
     expect(chipEstado(por("n2"))).toEqual({ tono: "neutro", texto: "Aplicada" });
     expect(destinoTexto(por("n2"))).toBe("bajó la deuda");
-    expect(siguientePaso(por("n2")).texto).toContain("bajó la deuda de F001-000377 en S/ 354.00");
+    expect(siguientePaso(por("n2")).texto).toContain("bajó la deuda de F001-000377 en S/\u00a0354.00");
   });
 
   it("una nota con saldo vivo es «Emitida» y dice cuánto queda", () => {
     const conSaldo = armarFilas([filas[2]], { hoy: HOY, saldoPorProveedor: { [SUR]: 354 }, movimientos: [] })[0];
     expect(chipEstado(conSaldo)).toEqual({ tono: "verde", texto: "Emitida" });
-    expect(destinoTexto(conSaldo)).toBe("A favor S/ 354.00");
+    expect(destinoTexto(conSaldo)).toBe("A favor S/\u00a0354.00");
   });
 
   it("el reclamo más viejo pide llamar, no escribir otra vez", () => {
@@ -277,7 +307,68 @@ describe("armarFilas: el estado que se ve", () => {
     const m = mensajeParaProveedor(por("p1"));
     expect(m).toContain("F002-000087");
     expect(m).toContain("10 unidades");
-    expect(m).toContain("S/ 330.40");
+    expect(m).toContain("S/\u00a0330.40");
+  });
+});
+
+describe("el documento interno (ADR-0362 fase 5b): de una factura, falta la nota del proveedor", () => {
+  const MES_DI = HOY.slice(0, 7);
+  const filas: FilaTablero[] = [
+    // De una factura: la plata volvió (bajó la deuda) y su IGV espera la nota del proveedor.
+    fila({ clase: "nota", id: "di-f", serieNumero: "DI-000002", documento: "F001-901", monto: 23.6, igv: 3.6, aplicado: 23.6, aFavor: 0, motivo: "faltante", unidadesCerradas: 1 }),
+    // De una boleta: sin IGV, el documento interno basta.
+    fila({ clase: "nota", id: "di-b", serieNumero: "DI-000001", documento: "B001-902", monto: 40, igv: 0, aplicado: 40, aFavor: 0, motivo: "faltante", unidadesCerradas: 2 }),
+    // Una nota del proveedor con IGV: no le falta nada.
+    fila({ clase: "nota", id: "nc", serieNumero: "FC01-000029", documento: "F001-000377", monto: 354, igv: 54, aplicado: 354, aFavor: 0, motivo: "faltante" }),
+  ];
+  const armadas = armarFilas(filas, { hoy: HOY, saldoPorProveedor: { [RIMAC]: 0 }, movimientos: [] });
+  const por = (id: string) => armadas.find((f) => f.id === id)!;
+
+  it("solo al documento interno de una factura le falta la nota del proveedor", () => {
+    expect(faltaNotaDelProveedor(por("di-f"))).toBe(true);
+    expect(faltaNotaDelProveedor(por("di-b"))).toBe(false);
+    expect(faltaNotaDelProveedor(por("nc"))).toBe(false);
+    expect(faltaNotaDelProveedor(fila({ clase: "pendiente", id: "p", serieNumero: null, igv: 0 }))).toBe(false);
+  });
+
+  it("el recorrido no dice «recibida»: lo registró CAYLA, y el de una factura termina en «Falta su nota de crédito»", () => {
+    expect(pasosDeNota(por("di-f")).map((x) => x.clave)).toEqual(["Origen", "Documento interno", "Baja deuda", "Falta su nota"]);
+    expect(pasosDeNota(por("di-f"))[1]).toMatchObject({ titulo: "Documento interno DI-000002", detalle: "Lo que no llegó de F001-901, pasado a saldo a favor" });
+    expect(pasosDeNota(por("di-f"))[3]).toMatchObject({ titulo: "Falta su nota de crédito", estado: "ahora" });
+    expect(pasosDeNota(por("di-b")).map((x) => x.clave)).toEqual(["Origen", "Documento interno", "Baja deuda"]);
+    expect(pasosDeNota(por("nc"))[1].titulo).toBe("Nota FC01-000029 recibida");
+  });
+
+  it("qué hacer ahora: pedir la nota, no «nada pendiente»", () => {
+    expect(siguientePaso(por("di-f"))).toEqual({
+      tono: "aviso",
+      texto: "La plata ya volvió. Falta la nota de crédito de Tejidos Rímac SAC por S/\u00a023.60 contra F001-901: pídesela y, cuando llegue, adjúntala con «Llegó su nota de crédito». Hasta entonces, sus S/\u00a03.60 de IGV quedan en espera.",
+    });
+    expect(siguientePaso(por("di-b")).texto).toContain("Nada pendiente");
+  });
+
+  it("el mensaje para el proveedor, con una sola unidad, en singular", () => {
+    expect(mensajeParaProveedor(por("di-f"))).toContain("En la recepción de F001-901 quedó 1 unidad sin llegar.");
+    expect(mensajeParaProveedor(por("di-f"))).toContain("por S/\u00a023.60 (base S/\u00a020.00 + IGV S/\u00a03.60)");
+  });
+  it("se reclama (actividad 3): está en «Por reclamar» con su chip, pero su plata no se suma como si faltara cobrarla", () => {
+    expect(por("di-f").estado).toBe("por_reclamar");
+    expect(chipEstado(por("di-f"))).toEqual({ tono: "ambar", texto: "Falta su nota de crédito" });
+    expect(destinoTexto(por("di-f"))).toBe("la plata ya volvió");
+    expect(por("di-b").estado).toBe("aplicada");
+    const c = cifrasTablero(armadas, { mes: MES_DI, saldoPorProveedor: { [RIMAC]: 0 }, movimientos: [] });
+    expect(c.porReclamar).toMatchObject({ monto: 0, cantidad: 1, porPedir: { cantidad: 1, igv: 3.6 } });
+    const [grupo] = agruparTablero(armadas.filter((f) => f.estado === "por_reclamar"), "proveedor");
+    expect(grupo!.total).toBe("1 nota");
+  });
+
+  it("cuando llega su nota, ya no falta nada: se aplica, el recorrido la nombra y se encuentra por su serie", () => {
+    const conNota = armarFilas([fila({ ...filas[0]!, notaProveedor: { id: "np-1", serie: "FC01-000777", fecha: "2026-10-20" } })], { hoy: HOY, saldoPorProveedor: { [RIMAC]: 0 }, movimientos: [] })[0]!;
+    expect(faltaNotaDelProveedor(conNota)).toBe(false);
+    expect(conNota.estado).toBe("aplicada");
+    expect(chipEstado(conNota)).toEqual({ tono: "neutro", texto: "Aplicada" });
+    expect(pasosDeNota(conNota).at(-1)).toMatchObject({ clave: "Su nota", titulo: "Nota FC01-000777 del proveedor", detalle: "Su IGV bajó el crédito fiscal de octubre", fecha: "20/10", estado: "hecho" });
+    expect(filtrarTablero([conNota], { pestana: "todas", banda: null, busqueda: "fc01-000777" })).toHaveLength(1);
   });
 });
 
@@ -312,7 +403,7 @@ describe("pestañas, bandas, búsqueda y agrupación", () => {
   it("agrupada por urgencia, lo más urgente va primero y cada banda dice cuánto suma", () => {
     const g = agruparTablero(filas, "urgencia");
     expect(g.map((x) => x.clave)).toEqual(["banda:urgente", "banda:medio", "banda:aplicadas"]);
-    expect(g[0].total).toBe("1 nota · S/ 330.40");
+    expect(g[0].total).toBe("1 nota · S/\u00a0330.40");
   });
   it("agrupada por proveedor, el que más tiene por reclamar va primero", () => {
     const g = agruparTablero(filas, "proveedor");
@@ -391,9 +482,9 @@ describe("validarNota: el espejo de lo que exige la base", () => {
       seriesUsadas: [],
       hoy: HOY,
     });
-    expect(v.errores.monto).toBe("No puede pasar de S/ 848.24.");
+    expect(v.errores.monto).toBe("No puede pasar de S/\u00a0848.24.");
     expect(v.topeSugerido).toBe(847.24);
-    expect(v.explicacionMonto).toContain("S/ 847.24");
+    expect(v.explicacionMonto).toContain("S/\u00a0847.24");
     expect(v.reparto).toBeNull();
   });
 
@@ -407,7 +498,7 @@ describe("validarNota: el espejo de lo que exige la base", () => {
       hoy: HOY,
     });
     expect(v.tope).toBe(5423.6);
-    expect(v.errores.monto).toBe("Como máximo S/ 5,423.60.");
+    expect(v.errores.monto).toBe("Como máximo S/\u00a05,423.60.");
     expect(v.explicacionMonto).toContain("más que el comprobante");
   });
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Camera, SlidersHorizontal, X } from "lucide-react";
+import { Camera, X } from "lucide-react";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Modal } from "@/components/ui/Modal";
 import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
@@ -23,6 +23,9 @@ import {
   type TokenSububicacion,
 } from "@/lib/movimientos-reglas";
 import { grupoPorId } from "@/lib/movimientos-tipos";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { BotonFiltros } from "@/components/ui/FiltrosPildora";
+import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
 
 // Filtros de Movimientos. Viven en la URL (?q=…&cat=…&proc=…&sub=…&rango=…), igual que en
 // Compras: la página es un Server Component que filtra en Postgres, el enlace se puede
@@ -93,7 +96,7 @@ function Pastilla({
     >
       {children}
       {cuenta !== undefined && <span className="pildora-cayla__n">{cuenta.toLocaleString("es-PE")}</span>}
-      {activa && quitable && <X aria-label="quitar" strokeWidth={1.75} className="-mr-1 h-3.5 w-3.5 opacity-70" />}
+      {activa && quitable && <X aria-label="quitar" className="-mr-1 h-3.5 w-3.5 opacity-70" />}
     </button>
   );
 }
@@ -220,7 +223,7 @@ export function FiltrosMovimientos({
   }
 
   const periodos = (
-    <div role="group" aria-label="Período" className={FILA_DESLIZA}>
+    <div role="group" aria-label="Período" data-guia="movimientos.periodos" className={FILA_DESLIZA}>
       {PERIODOS.map((p) => (
         <Pastilla key={p.valor} activa={!mostrarFechas && periodo === String(p.valor)} onClick={() => elegirPeriodo(p.valor)}>
           {p.texto}
@@ -246,7 +249,9 @@ export function FiltrosMovimientos({
         type="button"
         onClick={() => aplicar({ rango: "todo", desde: "", hasta: "" })}
         aria-pressed={periodo === "todo"}
-        className={`btn-cayla btn-enlace mb-2 text-[12.5px] ${periodo === "todo" ? "font-semibold" : ""}`}
+        // `btn-enlace` agranda su caja 0,25 em hacia abajo para pintar el subrayado y lo devuelve con un margen negativo; aquí `mb-2`
+        // le gana a ese margen, así que se descuenta para que «Todo el historial» quede donde estaba.
+        className={`btn-cayla btn-enlace mb-[calc(0.5rem_-_0.25em)] text-[12.5px] ${periodo === "todo" ? "font-semibold" : ""}`}
       >
         Todo el historial
       </button>
@@ -263,7 +268,7 @@ export function FiltrosMovimientos({
   const zona = subDisponibles.length > 0 && (
     // «Zona»: dónde está la prenda dentro de la tienda. Con rótulo: «Todo · Piso · Almacén · Cuarentena» solos no
     // dicen qué se está eligiendo.
-    <div className="flex max-w-full shrink-0 items-center gap-2">
+    <div data-guia="movimientos.zona" className="flex max-w-full shrink-0 items-center gap-2">
       <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
         Zona
       </span>
@@ -302,7 +307,7 @@ export function FiltrosMovimientos({
       {/* Búsqueda. En el celular queda FIJA arriba al bajar (ADR-0241), con la cámara para leer una etiqueta y el botón
           de los filtros: lo que se hace con el pulgar sin volver a subir. La cabecera del ERP es `fixed` (≈58 px). */}
       <div className="sticky top-[3.625rem] z-20 flex items-center gap-2 bg-papel/95 px-3 pb-2 pt-3 backdrop-blur-sm sm:static sm:z-auto sm:bg-transparent sm:px-4 sm:pb-0 sm:pt-4 sm:backdrop-blur-none">
-        <Buscador
+        <Buscador guia="movimientos.buscador"
           ref={entrada}
           valor={busqueda}
           onCambio={setBusqueda}
@@ -317,17 +322,12 @@ export function FiltrosMovimientos({
           aria-label="Escanear una etiqueta"
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-sand bg-papel text-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo sm:hidden"
         >
-          <Camera aria-hidden strokeWidth={1.5} className="h-[18px] w-[18px]" />
+          <Camera aria-hidden className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          onClick={() => setHoja(true)}
-          className="flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-sand bg-papel px-3 text-[13px] font-medium text-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo sm:hidden"
-        >
-          <SlidersHorizontal aria-hidden strokeWidth={1.5} className="h-4 w-4" />
-          Filtros
-          {cuantosFiltros > 0 && <span className="rounded-full bg-tinta px-1.5 text-[10.5px] tabular-nums text-crema">{cuantosFiltros}</span>}
-        </button>
+        {/* El botón de los filtros del sistema (ADR-0358, ronda 10): una píldora más, con cuántos hay puestos en su globito. */}
+        <span className="flex shrink-0 sm:hidden">
+          <BotonFiltros abierto={hoja} activos={cuantosFiltros} onClick={() => setHoja(true)} data-guia="movimientos.filtros-celular" />
+        </span>
         <div className="hidden sm:block">{periodos}</div>
       </div>
 
@@ -352,9 +352,9 @@ export function FiltrosMovimientos({
           {procesoSueltoPildora}
           {zona}
           {hayFiltros && (
-            <button type="button" onClick={limpiar} className="btn-cayla btn-enlace text-xs">
+            <BotonLimpiar onClick={limpiar} guia="movimientos.limpiar">
               Limpiar filtros
-            </button>
+            </BotonLimpiar>
           )}
         </div>
         {procesos}
@@ -378,12 +378,12 @@ export function FiltrosMovimientos({
               )}
               {zona && <section className="space-y-2">{zona}</section>}
               {hrefExportar && (
-                <a href={hrefExportar} download className="btn-cayla btn-enlace text-[13px]">
-                  Exportar a Excel con estos filtros
-                </a>
+                <BotonDescargar href={hrefExportar} chico className="self-start">
+                  Descargar Excel con estos filtros
+                </BotonDescargar>
               )}
-              <div className="flex gap-2 pt-1">
-                <button type="button" onClick={limpiar} className="btn-cayla btn-secundario flex-1">
+              <div className="pie-acciones pt-1">
+                <button type="button" onClick={limpiar} className="btn-cayla btn-secundario">
                   Limpiar
                 </button>
                 <button type="button" onClick={cerrar} className="btn-cayla btn-primario flex-1">

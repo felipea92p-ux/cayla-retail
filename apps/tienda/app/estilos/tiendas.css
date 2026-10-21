@@ -1,0 +1,59 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA (ADR-0408) · actividad 6: «Nuestras tiendas» (la sección de la portada y del Inicio, la de «Cambios y
+   devoluciones» y la página /tiendas; `components/NuestrasTiendas.tsx`).
+   Revisión «a nivel mundial» (2026-10-16): cada tienda es una tarjeta con su nombre en EB Garamond, su dirección, su horario y su
+   WhatsApp, y dos acciones a la vista (escribirle por WhatsApp y «Cómo llegar»). La grilla queda pareja con cualquier cantidad de
+   tiendas (`data-columnas`, de `columnasDeTiendas`): una sola se acomoda a lo ancho, dos y cuatro van de a dos, tres de a tres. Antes, dos
+   tarjetas ocupaban dos tercios y el último quedaba vacío. Clases con `ay-` (las hojas de la tienda son globales). Solo los tokens de
+   app/globals.css: en oscuro se invierten solos.
+   ===================================================================================================== */
+.ay-tiendas { list-style: none; margin: 0; padding: 0; display: grid; gap: 40px; }
+/* «Ver nuestras tiendas y su WhatsApp» (Cambios y devoluciones) lleva a esta sección: el título llega con aire arriba. */
+.ay-tiendas-sec [id] { scroll-margin-top: 28px; }
+.ay-tienda { container: ay-tienda / inline-size; display: flex; flex-direction: column; min-width: 0; border: 0; border-top: 1px solid var(--tinta); border-radius: 0; background: none; }
+.ay-tienda-in { display: flex; flex-direction: column; gap: 16px; flex: 1; padding: 24px 0 0; }
+.ay-tienda-nombre { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; font-weight: 250; font-size: clamp(22px, 2.6cqi, 34px); line-height: 1.05; letter-spacing: .06em; overflow-wrap: anywhere; }
+.ay-tienda-datos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 15px; line-height: 1.55; color: var(--tinta); }
+.ay-tienda-datos li { display: block; }
+.ay-tienda-datos li + li { color: var(--taupe); }
+.ay-tienda-datos .ic { display: none; }
+.ay-tienda-num { color: var(--tinta); font-variant-numeric: tabular-nums; }
+
+/* Las dos acciones, del alto de un dedo y lado a lado; en una tarjeta angosta, una bajo la otra. */
+.ay-tienda-acc { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: auto; padding-top: 8px; }
+.t-btn.ay-tienda-btn { min-height: 48px; padding: 0 22px; gap: 8px; font-size: 13.5px; }
+.t-btn.ay-tienda-btn .ic { width: 18px; height: 18px; }
+.t-btn.ay-tienda-btn:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 3px; }
+
+/* «Ver solo lo que hay aquí» (con cuenta): una fila al pie de la tarjeta, con su flecha; la tienda elegida dice «Viendo lo de …». */
+.ay-tienda-ver { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 52px; margin: 8px 0 0; padding: 0; border-top: 1px solid var(--sand); border-radius: 0; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--tinta); }
+.ay-tienda-ver .ic { width: 16px; height: 16px; flex: none; transition: transform .25s var(--ease); }
+.ay-tienda-ver:hover { background: none; }
+.ay-tienda-ver:hover .ic { transform: translateX(4px); }
+.ay-tienda-ver:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 2px; }
+.ay-tienda-ver[aria-current] { justify-content: flex-start; color: var(--verde); }
+.ay-tienda-ver[aria-current]:hover .ic { transform: none; }
+.ay-tienda[data-elegida] { border-top-color: var(--verde); }
+
+@container ay-tienda (max-width: 300px) {
+  .ay-tienda-acc { grid-area: acc; margin-top: 8px; }
+}
+/* Una tienda sola, a lo ancho: el nombre y sus datos a la izquierda, las acciones a la derecha. */
+@container ay-tienda (min-width: 640px) {
+  .ay-tienda-in { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "nombre" "datos" "acc" "ver"; row-gap: 14px; align-items: start; }
+  .ay-tienda-acc { grid-area: acc; align-self: end; grid-template-columns: repeat(2, auto); margin-top: 0; }
+}
+
+/* Sin tiendas (o sin base): lo dice, sin caerse, y se puede volver a intentar. */
+.ay-tiendas-vacio { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin: 0; padding: 22px 0; border: 0; border-top: 1px solid var(--sand); border-radius: 0; color: var(--taupe); font-size: 14px; }
+.ay-tiendas-vacio > .ic { width: 26px; height: 26px; color: var(--taupe); }
+.ay-tiendas-vacio p { margin: 0; max-width: 52ch; }
+.t-btn.ay-tiendas-reintentar { min-height: 44px; padding: 0 20px; font-size: 13px; }
+
+@container tienda (min-width: 700px) {
+  .ay-tiendas[data-columnas="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ay-tiendas[data-columnas="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container tienda (min-width: 960px) {
+  .ay-tiendas { gap: clamp(24px, 4cqi, 64px); }
+}

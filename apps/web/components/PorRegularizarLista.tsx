@@ -1,14 +1,13 @@
 "use client";
 
 import { useMemo, useRef, useState, type CSSProperties } from "react";
-import { CalendarArrowDown, CalendarArrowUp } from "lucide-react";
+import { CalendarArrowDown, CalendarArrowUp, UserRound } from "lucide-react";
 import { cifrasPorRegularizar, coincideConBusqueda, estaVencida, ordenarVentas, ORDEN_INICIAL, VENTAS_POR_PAGINA, type Orden } from "@/lib/por-regularizar-reglas";
 import { paginar } from "@/lib/paginacion";
 import { avisosDePlazo, diaMes as diaMesDe, sedesParaCerrar } from "@/lib/cola-arranque-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import type { PrendaParaRegularizar } from "@/lib/por-regularizar-mesa";
 import type { LibroPorVenta } from "@/lib/por-regularizar-deduccion";
-import { Desplegable } from "@/components/ui/campos";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { CerrarColaArranqueModal } from "@/components/CerrarColaArranqueModal";
@@ -19,6 +18,7 @@ import { SugerenciasColaModal } from "@/components/SugerenciasColaModal";
 import { FranjaAvance } from "@/components/por-regularizar/FranjaAvance";
 import { MesaRegularizar } from "@/components/por-regularizar/MesaRegularizar";
 import { Buscador } from "@/components/ui/Buscador";
+import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 
 /** Lo mínimo de cada prenda del catálogo para reconocerla y dibujarla (sin costo: esta pantalla la ve almacén). */
 export type { PrendaParaRegularizar };
@@ -170,7 +170,7 @@ export function PorRegularizarLista({
         <div className="card-cayla anim-sube" style={{ "--i": 4 } as CSSProperties}>
           {/* Una sola fila de herramientas (la mesa empieza más arriba): buscar, filtrar, ordenar y «quién vendió»; lo de líder va en «Más». */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-5 pb-3 pt-4">
-            <Buscador
+            <Buscador guia="regularizar.buscador"
               valor={busqueda}
               onCambio={setBusqueda}
               maxLength={120}
@@ -178,7 +178,7 @@ export function PorRegularizarLista({
               etiqueta="Buscar una venta sin registrar"
               className="min-w-[11rem] flex-1 basis-44"
             />
-            <div className="flex flex-wrap items-center gap-2">
+            <div data-guia="regularizar.filtros" className="flex flex-wrap items-center gap-2">
               {FILTROS.map((f) => (
                 <button
                   key={f.clave}
@@ -194,7 +194,7 @@ export function PorRegularizarLista({
                 </button>
               ))}
             </div>
-            <div className="ml-auto flex flex-wrap items-center gap-2">
+            <div data-guia="regularizar.herramientas" className="ml-auto flex flex-wrap items-center gap-2">
               {/* Un solo botón chico que alterna el orden por fecha de venta: el ícono y la palabra dicen cómo está ordenada hoy; tocarlo la invierte. */}
               <button
                 type="button"
@@ -203,12 +203,17 @@ export function PorRegularizarLista({
                 aria-label={orden.dir === "desc" ? "Ordenadas de la más reciente a la más antigua. Cambiar a la más antigua primero" : "Ordenadas de la más antigua a la más reciente. Cambiar a la más reciente primero"}
                 className="inline-flex h-8 items-center gap-1.5 rounded-md border border-sand bg-papel px-2.5 text-xs text-tinta transition-colors hover:bg-hueso"
               >
-                {orden.dir === "asc" ? <CalendarArrowUp aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" /> : <CalendarArrowDown aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" />}
+                {orden.dir === "asc" ? <CalendarArrowUp aria-hidden className="h-3.5 w-3.5 shrink-0" /> : <CalendarArrowDown aria-hidden className="h-3.5 w-3.5 shrink-0" />}
                 <span className="hidden md:inline">{orden.dir === "desc" ? "Recientes" : "Antiguas"}</span>
               </button>
-              <div className="w-52 shrink-0">
-                <Desplegable valor={quien} onValor={setQuien} opciones={[{ valor: "", texto: "Todas las colaboradoras" }, ...vendedoras.map((v) => ({ valor: v, texto: v }))]} forma="caja" etiquetaAccesible="Quién vendió" />
-              </div>
+              <DesplegablePildora
+                icono={UserRound}
+                etiqueta="Vendió"
+                valor={quien}
+                valorPorDefecto=""
+                onValor={setQuien}
+                opciones={[{ valor: "", texto: "Todas las colaboradoras" }, ...vendedoras.map((v) => ({ valor: v, texto: v }))]}
+              />
               {accionesDeLider.length > 0 && <MenuAcciones etiqueta="Más acciones" texto="Más" items={accionesDeLider} />}
             </div>
           </div>
@@ -260,7 +265,7 @@ export function PorRegularizarLista({
         </div>
       </div>
 
-      <p className="nota-cayla text-sm">
+      <p data-guia="regularizar.nota" className="nota-cayla text-sm">
         Son prendas que caja vendió antes de que estuvieran en el sistema. Al regularizarlas, la venta pasa a la prenda real y el stock queda cuadrado. Las pendientes salen todas; las ya resueltas, las de este
         mes y el anterior.
       </p>

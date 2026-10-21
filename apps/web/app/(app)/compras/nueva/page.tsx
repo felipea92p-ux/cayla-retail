@@ -11,6 +11,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Building2, Shirt } from "lucide-react";
 import { BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Registrar una factura de proveedor (ADR-0035). La página solo junta los
 // tres catálogos que el formulario necesita; las reglas (contado exige pago,
@@ -18,10 +19,8 @@ import { Vacio } from "@/components/ui/Vacio";
 // viven en la RPC `registrar_compra`.
 export default async function NuevaCompraPage({ searchParams }: { searchParams: Promise<{ prov?: string }> }) {
   const persona = await exigirModulo("facturas_compra"); // 20260923130000: registrar es del módulo Facturas de compra
-  // ADR-0184 (F5): un comprador de tienda registra con SU tienda como gestora (el backend lo exige: la gestora tiene
-  // que tener parte en el reparto). `tiendasCompra` son las tiendas donde compra (su tienda más las extra
-  // de `compradores_de_tienda`), que pueden no ser solo la sede donde está parado.
-  const esComprador = persona.rol !== "lider";
+  // ADR-0387 (Felipe 2026-10-12; deshace aquí ADR-0184 F5): quien tiene el módulo elige la tienda gestora entre TODAS las
+  // tiendas activas, igual que el líder. El formulario arranca en la sede de la persona y la puede cambiar.
   const { prov } = await searchParams;
   // El costo ya no viaja en el catálogo compartido (20260923193700): se pide aparte. Este módulo es de quien ve el dinero.
   const [directorio, ubicaciones, catalogo, costos, resumen, hayReparto, marcas] = await Promise.all([getProveedores(), getUbicaciones(), getCatalogo(), getCostosVariantes(), getResumenCompras(), repartoDisponible(), getMarcasPorProveedor()]);
@@ -34,14 +33,12 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
 
   // Cabecera del diseño: «← Comprobantes», título y bajada. La entrega el formulario junto al avance «Listo N de 4».
   const cabecera = (
-    <div>
-      <Volver href="/compras" a="Facturas de proveedor" className="mb-4" />
-      <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-      <h1 className="font-display mt-1 text-2xl text-tinta">Registrar factura de proveedor</h1>
-      <p className="mt-1 text-sm text-tinta/65">
-        Lo que se compró queda aquí; la recepción y el pago se anotan contra ella. Copia el documento tal cual llegó: lo que el proveedor no desglosó por talla y color se reparte al recibir.
-      </p>
-    </div>
+    <EncabezadoPagina
+      sede="Todas las tiendas"
+      volver={<Volver href="/compras" a="Facturas de proveedor" />}
+      titulo="Registrar factura de proveedor"
+      subtitulo="Lo que se compró queda aquí; la recepción y el pago se anotan contra ella. Copia el documento tal cual llegó: lo que el proveedor no desglosó por talla y color se reparte al recibir."
+    />
   );
 
   // Sin proveedores o sin catálogo no hay formulario que armar: se muestra la cabecera y el motivo.
@@ -55,7 +52,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
               icono={<Building2 />}
               titulo="Todavía no hay proveedores"
               acciones={
-                <BotonEnlace href="/compras/proveedores" peso="primario">
+                <BotonEnlace href="/compras/proveedores" peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                   Ir a Proveedores
                 </BotonEnlace>
               }
@@ -67,7 +64,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
               icono={<Shirt />}
               titulo="Todavía no hay productos en el catálogo"
               acciones={
-                <BotonEnlace href="/productos" peso="primario">
+                <BotonEnlace href="/productos" peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                   Ir a Productos
                 </BotonEnlace>
               }
@@ -89,11 +86,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
       ubicaciones={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
       // ADR-0139: solo se ofrece «Repartir entre tiendas» si esta base ya tiene el reparto (una base vieja ignoraría `destinos`).
       repartoDisponible={hayReparto}
-      // ADR-0184: solo para un comprador — el líder gestiona con cualquier tienda (`undefined` es «sin restricción»,
-      // el comportamiento de siempre). Si el comprador de alguna razón no tiene ninguna (no debería pasar: el layout
-      // ya lo exige), cae a la lista completa para no dejarlo sin poder elegir nada.
-      misTiendas={esComprador && persona.tiendasCompra.length > 0 ? persona.tiendasCompra : undefined}
-      ubicacionInicialId={esComprador ? (persona.tiendasCompra[0]?.id ?? persona.ubicacionId) : persona.ubicacionId}
+      ubicacionInicialId={persona.ubicacionId}
       variantes={catalogo
         .filter((v) => v.activo)
         .map((v) => ({

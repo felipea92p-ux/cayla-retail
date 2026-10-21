@@ -2,8 +2,8 @@
 
 import { useId, useMemo, useState, type ReactNode, type RefObject } from "react";
 import { Banknote, Palette, PenLine, Ruler, Tag } from "lucide-react";
-import { Modal, botonPrimario } from "@/components/ui/Modal";
-import { CampoTexto } from "@/components/ui/campos";
+import { Modal } from "@/components/ui/Modal";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -45,7 +45,8 @@ function Titulo({ icono, children }: { icono: ReactNode; children: ReactNode }) 
 function enfocarCampo(paso: PasoPrenda | null) {
   if (!paso) return;
   const bloque = document.querySelector<HTMLElement>(`[data-campo="${paso}"]`);
-  bloque?.querySelector<HTMLElement>('input:not([type="hidden"]), [role="combobox"], button[aria-haspopup], button[data-talla]')?.focus();
+  bloque?.querySelector<HTMLElement>('input:not([type="hidden"]), [role="combobox"], button[aria-haspopup], button[data-talla]')?.focus(); // unificar-fijo: el selector que lleva el foco, no un combo
+
 }
 
 /** Las tallas que el modal ofrece para una categoría (ver `tallasDeCategoria`: si `categoria_tallas` no cargó, todas). */
@@ -256,7 +257,7 @@ export function PrendaSinRegistrarModal({
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
       variante="hoja"
-      ancho="max-w-4xl"
+      ancho="max-w-4xl" /* unificar-fijo: la mesa de Ventas sin registrar es de diseño propio (ADR-0360) */
       bloqueado={corregir?.guardando ?? false}
       // Al corregir todo viene lleno: el foco va a la hoja y ninguna lista se abre sola (en Vender sí: se empieza por la categoría).
       focoEnLaHoja={Boolean(corregir)}
@@ -352,17 +353,21 @@ export function PrendaSinRegistrarModal({
                   <span className="font-semibold">{guia.etiqueta("precio", <Titulo icono={<Banknote />}>Precio cobrado</Titulo>)}</span>
                   <span className="mt-0.5 block text-xs text-tinta/65">No cambia: es lo que entró a caja.</span>
                 </span>
-                <span className="shrink-0 font-display text-3xl text-tinta">S/ {corregir.inicial.precio.toFixed(2)}</span>
+                <span className="shrink-0 font-display text-3xl text-tinta">S/&nbsp;{corregir.inicial.precio.toFixed(2)}</span>
               </div>
             </CampoGuiado>
           ) : (
           <CampoGuiado id="precio" guia={guia}>
             <label htmlFor={idPrecio} className="card-cayla flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4">
               <span className="min-w-0 text-[13px] font-semibold text-tinta">{guia.etiqueta("precio", <Titulo icono={<Banknote />}>Precio cobrado</Titulo>)}</span>
-              <span className="flex shrink-0 items-baseline gap-1 font-display text-3xl text-tinta">
-                S/
+              {/* El monto en la caja del sistema, alta (ADR-0358, ronda 6). */}
+              <span className="caja-cayla caja-campo caja-campo-alta w-36 shrink-0 sm:w-44">
+                <span aria-hidden className="font-display text-base leading-none text-tinta/55">
+                  S/
+                </span>
                 <input
                   id={idPrecio}
+                  className="font-display self-stretch py-0 text-right text-2xl max-md:scroll-mb-32"
                   value={precio}
                   onChange={(e) => setPrecio(precioEscribible(e.target.value))}
                   onKeyDown={(e) => {
@@ -377,7 +382,6 @@ export function PrendaSinRegistrarModal({
                   placeholder="0.00"
                   aria-label="Precio cobrado en soles"
                   // En celular, al enfocarlo, deja también a la vista lo que sigue (lo que falta y «Agregar al ticket»).
-                  className="w-20 max-md:scroll-mb-32 rounded-md bg-transparent text-right outline-none placeholder:text-tinta/30 sm:w-28"
                 />
               </span>
             </label>
@@ -407,15 +411,17 @@ export function PrendaSinRegistrarModal({
             guia={guia}
             listo={corregir ? (cambio ? "Listo para guardar." : "Todavía no cambiaste nada.") : "Lista para el ticket. Enter en el precio también la agrega."}
           />
-          <button
+          <Boton
             type="button"
+            peso="primario"
+            cargando={corregir ? corregir.guardando : undefined}
             onClick={agregar}
             disabled={!puedeConfirmar}
             title={guia.frase ?? undefined}
-            className={`${botonPrimario} mt-3 w-full ${guia.claseConfirmar}`}
+            className={`mt-3 w-full flex-1 ${guia.claseConfirmar}`}
           >
-            {corregir ? (corregir.guardando ? "Guardando…" : "Guardar cambios") : "Agregar al ticket"}
-          </button>
+            {corregir ? "Guardar cambios" : "Agregar al ticket"}
+          </Boton>
         </div>
       </div>
     </Modal>
@@ -464,7 +470,7 @@ function EtiquetaPrevia({
   ) : (
     <span className={vacio}>Color</span>
   );
-  const textoPrecio = precio > 0 ? `S/ ${precio.toFixed(2)}` : "S/ 0.00";
+  const textoPrecio = precio > 0 ? `S/\u00a0${precio.toFixed(2)}` : "S/\u00a00.00";
 
   return (
     <div

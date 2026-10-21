@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { etiquetaDeLinea, filasDeLinea, nombresDeDestinos, tiendasConPendiente } from "@/lib/reparto-reglas";
 import { getRepartoDeCompra, type RepartoDeCompra } from "@/lib/compras-reparto";
 import { RepartoPorTienda } from "@/components/RepartoPorTienda";
@@ -14,6 +13,8 @@ import {
   TONO_ESTADO_PAGO,
   TONO_ESTADO_RECEPCION,
   fechaCorta,
+  hayAlgoQueRecibir,
+  nombreDeLineaSinPrenda,
   soles,
   type CompraResumen,
   type LineaCompra,
@@ -26,20 +27,23 @@ import { getCierresCompra, getNotasCreditoCompra, type CierreLinea, type NotaCre
 import { NotasCreditoCompra } from "@/components/NotasCreditoCompra";
 import { BotonCerrarFaltante } from "@/components/AccionesFaltantes";
 import { CompraAcciones } from "@/components/CompraDetallePanel";
-import { BarraAvance } from "@/components/ComprobanteAvance";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ComprobanteEncabezado } from "@/components/ComprobanteEncabezado";
 import { ComprobanteLineaTiempo } from "@/components/ComprobanteLineaTiempo";
 import { ComprobantePagos } from "@/components/ComprobantePagos";
 import { AdjuntosDeFactura } from "@/components/AdjuntosCompra";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
-import { avanceRecepcion, avancePago, complementoDeSaldo, datosCabecera, fraccion, lineaDeTiempo, tonoDeAvance } from "@/lib/comprobante-linea-tiempo";
+import { avanceRecepcion, avancePago, complementoDeSaldo, datosCabecera, fraccion, lineaDeTiempo } from "@/lib/comprobante-linea-tiempo";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getProveedor } from "@/lib/proveedores";
 import { datosPagoDe, type DatosPagoProveedor } from "@/lib/proveedores-reglas";
 import { getSaldosFavor } from "@/lib/saldo-favor";
 import { accionesDeCompraDe, requirePersonaActualV2 } from "@/lib/persona-actual";
 import type { AccionesDeCompra } from "@/lib/modulos";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { PackageOpen } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Detalle de una factura (ADR-0035): qué se compró, qué llegó y qué se pagó,
 // todo calculado desde movimientos y pagos. Desde acá se registra un pago
@@ -79,11 +83,9 @@ export type DetalleCompra = {
   /** Cómo se le paga al proveedor (cuenta, CCI, Yape/Plin, titular, saldo a favor) para el modal de pago. Solo si el comprobante se puede pagar y la lectura salió bien. */
   datosPago?: DatosPagoProveedor;
   /** Qué puede hacer quien mira, módulo por módulo (ADR-0161 P1, 20260923140000): anular, reparto y adjuntos son de Facturas de
-   *  compra; pagar, de Por pagar; las notas, de Notas de crédito. Solo esconde lo que la base igual rechazaría. */
+   *  compra; pagar, de Por pagar; las notas, de Notas de crédito. Solo esconde lo que la base igual rechazaría. Desde ADR-0387
+   *  quien paga lo hace a nombre de la empresa, sin tienda, sea líder o no: el detalle ya no lleva «las tiendas de quien mira». */
   acciones: AccionesDeCompra;
-  /** ADR-0184 (F4-F5): las tiendas con las que paga quien mira, para que «Registrar pago» sepa con cuál (`p_ubicacion_id`).
-   *  `undefined` = líder: paga sin atarse a ninguna, como siempre. */
-  misTiendas?: { id: string; nombre: string }[];
 };
 
 /** Lo que el modal de pago muestra del proveedor. Es un complemento: si la lectura falla el detalle sigue (principio 9) y el pago funciona igual, solo sin la tarjeta «Paga por» ni el saldo a favor a la vista — la base valida igual. */
@@ -128,7 +130,6 @@ export async function cargarDetalleCompra(compraId: string): Promise<DetalleComp
     ubicaciones: ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre })),
     datosPago,
     acciones: accionesDeCompraDe(persona),
-    misTiendas: persona.rol === "lider" ? undefined : persona.tiendasCompra,
   };
 }
 
@@ -175,7 +176,7 @@ export function DatosComprobante({ compra, destino }: Pick<DetalleCompra, "compr
 }
 
 export function CompraDetalle({
-  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones, acciones: permite, misTiendas },
+  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones, acciones: permite },
   adjuntosFallidos = [],
   acciones = true,
 }: {
@@ -234,7 +235,7 @@ export function CompraDetalle({
         {/* Dos tarjetas lado a lado: RECEPCIÓN a la izquierda («210 de 600 u.») y PAGO a la derecha («S/ 2,000.00 de
             S/ 5,923.60»), cada una con su barra que se llena. El «Destino» y la «Condición» que antes vivían acá pasaron
             a la línea gris de la cabecera; el saldo, a la línea de abajo. */}
-        <div className={`grid gap-3 ${esGasto ? "" : "sm:grid-cols-2"}`}>
+        <div data-guia="factura.avance" className={`grid gap-3 ${esGasto ? "" : "sm:grid-cols-2"}`}>
           {/* La pieza única de cifra (TarjetaCifra, ADR-0358), con la barra que se llena en su contexto. */}
           {!esGasto && (
             <TarjetaCifra
@@ -242,26 +243,19 @@ export function CompraDetalle({
               valor={anulada ? "—" : compra.recibidoCantidad.toLocaleString("es-PE")}
               unidad={anulada ? undefined : `de ${compra.facturadoCantidad.toLocaleString("es-PE")} u.`}
             >
-              <BarraAvance
-                avance={avanceDeRecepcion}
-                tono={compra.estadoRecepcion === "parcial" ? "ambar" : compra.estadoRecepcion === "recibida" ? "verde" : "neutro"}
-                etiqueta={`Recepción: ${Math.round(fraccion(avanceDeRecepcion, 1) * 100)}%`}
-              />
+              <BarraAvance pct={fraccion(avanceDeRecepcion, 1) * 100} etiqueta="Recepción" className="mt-2" />
               {unidadesCerradas > 0 && <p className="mt-2">{`${unidadesCerradas.toLocaleString("es-PE")} ${unidadesCerradas === 1 ? "unidad cerrada" : "unidades cerradas"} por faltante.`}</p>}
             </TarjetaCifra>
           )}
           <TarjetaCifra etiqueta="Pago" valor={anulada ? "—" : soles(compra.pagado)} unidad={anulada ? undefined : `de ${soles(compra.total)}`}>
-            <BarraAvance
-              avance={avanceDePago}
-              tono={compra.vencida ? "rojo" : compra.estadoPago === "parcial" ? "ambar" : compra.estadoPago === "pagada" ? "verde" : "neutro"}
-              etiqueta={`Pago: ${Math.round(fraccion(avanceDePago, 1) * 100)}%`}
-            />
+            {/* Vencida: el rojo lo pone la pantalla; si no, la barra va en tinta y pasa a verde al quedar pagada (ronda 13). */}
+            <BarraAvance pct={fraccion(avanceDePago, 1) * 100} tono={compra.vencida ? "rojo" : undefined} etiqueta="Pago" className="mt-2" />
             {compra.notasCredito > 0 && <p className="mt-2">{`${soles(compra.notasCredito)} menos por notas de crédito.`}</p>}
           </TarjetaCifra>
         </div>
 
         {/* ---------- pagos: cada pago nuevo entra con un desliz y un destello ---------- */}
-        <ComprobantePagos pagos={pagos.map((p) => ({ id: p.id, fecha: p.fecha, metodo: p.metodo, referencia: p.referencia, monto: p.monto }))} />
+        <ComprobantePagos pagos={pagos.map((p) => ({ id: p.id, fecha: p.fecha, metodo: p.metodo, referencia: p.referencia, monto: p.monto, noDeducible: p.noDeducible }))} />
 
         {/* Saldo pendiente: lo que falta y, si es a crédito, cuándo vence. Anulada no genera saldo. */}
         {!anulada && (
@@ -280,7 +274,7 @@ export function CompraDetalle({
         {/* ---------- lo que el prototipo no tiene pero la app necesita, bajo un separador discreto ---------- */}
         <div className="cd-mas space-y-6 border-t border-tinta/10 pt-6">
           {/* ---------- líneas ---------- */}
-          <section className="space-y-2">
+          <section className="space-y-2" data-guia="factura.lineas">
             <p className="label-cayla text-[11px] text-tinta/65">Líneas del comprobante</p>
             <Tabla>
               <Encabezado
@@ -297,10 +291,21 @@ export function CompraDetalle({
                 return (
                   <div key={l.id} className={fila(PLANTILLA_LINEAS)}>
                     <span className={celda("izq", "text-sm text-tinta")}>
-                      {l.referencia} <span className="text-tinta/65">{l.varianteId ? [l.talla, l.color].filter(Boolean).join(" / ") || l.sku : "sin desglose"}</span>
-                      {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
+                      {l.productoId ? (
+                        <>
+                          {l.referencia} <span className="text-tinta/65">{l.varianteId ? [l.talla, l.color].filter(Boolean).join(" / ") || l.sku : "sin desglose"}</span>
+                          {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
+                        </>
+                      ) : (
+                        <>
+                          {/* La línea de un comprobante que sale de una orden de compra se pidió por «categoría + marca» (ADR-0362):
+                              la prenda se crea cuando llega la mercadería, por guía. */}
+                          {nombreDeLineaSinPrenda(l)}
+                          <span className="block text-xs text-tinta/55">Sin prenda todavía: llega por guía</span>
+                        </>
+                      )}
                       {l.cerrado > 0 && <span className="block text-xs text-ambar-profundo">{l.cerrado.toLocaleString("es-PE")} cerradas por faltante</span>}
-                      {!anulada && l.pendiente > 0 && (
+                      {!anulada && l.pendiente > 0 && l.productoId && (
                         <BotonCerrarFaltante
                           compra={compra}
                           linea={l}
@@ -323,7 +328,7 @@ export function CompraDetalle({
                       </span>
                       {/* Misma barra que las tarjetas de arriba, en miniatura: acá se
                           lee qué línea puntual falta, no solo el total de la factura. */}
-                      <BarraAvance fina avance={avanceLinea} tono={tonoDeAvance(avanceLinea)} etiqueta={`Recibido: ${l.recibido} de ${l.cantidad}`} />
+                      <BarraAvance pct={avanceLinea * 100} alto="fina" etiqueta="Recibido" texto={`${l.recibido} de ${l.cantidad}`} className="mt-1" />
                     </span>
                     <span className={celda("der", "text-sm tabular-nums text-tinta")}>{soles(l.subtotal)}</span>
                   </div>
@@ -340,17 +345,19 @@ export function CompraDetalle({
           <RepartoPorTienda compra={compra} lineas={lineas} reparto={reparto} ubicaciones={ubicaciones} puedeReasignar={permite.facturas} />
 
           {/* ---------- recepciones ---------- */}
-          <section className="space-y-2">
+          <section className="space-y-2" data-guia="factura.recepciones">
             <div className="flex items-baseline justify-between">
               <p className="label-cayla text-[11px] text-tinta/65">Recepciones</p>
-              {!anulada && compra.estadoRecepcion !== "recibida" && (
-                <Link href={`/compras/recibir?compra=${compra.id}`} className="label-cayla text-[11px] text-rojo hover:underline">
-                  Recibir mercadería →
-                </Link>
+              {!anulada && compra.estadoRecepcion !== "recibida" && hayAlgoQueRecibir(lineas) && (
+                <EnlaceVer href={`/compras/recibir?compra=${compra.id}`}>Recibir mercadería</EnlaceVer>
               )}
             </div>
             {recepciones.length === 0 ? (
-              <p className="card-cayla p-5 text-sm text-tinta/65">Todavía no llegó mercadería de este comprobante.</p>
+              <div className="card-cayla">
+                <Vacio tamano="chico" alinear="izquierda" className="px-5 py-4" icono={<PackageOpen />}>
+                  Todavía no llegó mercadería de este comprobante.
+                </Vacio>
+              </div>
             ) : (
               <Tabla>
                 <Encabezado plantilla={PLANTILLA_RECEPCIONES} columnas={[{ titulo: "Fecha" }, { titulo: "Guía · Destino" }, { titulo: "Unidades", alinear: "der" }]} />
@@ -386,8 +393,8 @@ export function CompraDetalle({
       {/* Página completa: el pie con las acciones va al final del cuerpo, con la misma composición que en el modal
           (en el modal lo dibuja `ModalRuta`, con `acciones={false}` acá). */}
       {acciones && !anulada && (
-        <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
-          <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} permite={permite} misTiendas={misTiendas} />
+        <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4" data-guia="factura.acciones">
+          <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} permite={permite} hayQueRecibir={hayAlgoQueRecibir(lineas)} />
         </div>
       )}
     </>

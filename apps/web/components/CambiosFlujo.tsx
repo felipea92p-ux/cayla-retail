@@ -2,12 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrupadas";
 import { ImpactoVista, ComparacionPrendas, type PrendaFicha } from "@/components/CambioResumen";
@@ -152,7 +155,12 @@ export function CambiosFlujo({
   const [paso, setPaso] = useState<Paso>(guardado ? guardado.paso : lineaInicialId ? 3 : 2);
   const linea = venta.find((l) => l.ventaItemId === lineaId) ?? null;
   const [seleccion, setSeleccion] = useState<Seleccion | null>(guardado ? guardado.seleccion : linea ? seleccionInicial(linea) : null);
-  const [enviando, setEnviando] = useState(false);
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): la prenda que vuelve, la que se lleva, la cantidad, el motivo y
+  // el pago de la diferencia. Si la respuesta se pierde, el paso se congela (ni volver ni cambiar nada) hasta saber si el cambio
+  // quedó; con otra prenda y la marca vieja, la base devolvía el cambio anterior. La marca viaja con lo guardado al cambiar de sede.
+  const envio = useIntento("registrar_cambio", guardado?.intento ?? null);
+  const enviando = envio.enviando;
+  const [revisando, setRevisando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<TicketCambio | null>(null);
   const [avisoContinuar, setAvisoContinuar] = useState<string | null>(null);
@@ -160,25 +168,24 @@ export function CambiosFlujo({
   const [esperandoPistola, setEsperandoPistola] = useState(false);
   const [lectura, setLectura] = useState<{ tono: TonoAvisoLinea; texto: string } | null>(null);
   const campoPrenda = useRef<HTMLInputElement>(null);
-  // Reintento (doble clic, o red que se corta después del commit y antes de la
-  // respuesta — ADR-0032) debe mandar el MISMO token para que el índice único de
-  // `retail.cambios.token_cliente` lo reconozca como el mismo envío.
-  const token = useRef<string>(guardado?.token ?? crypto.randomUUID());
 
   // Lo armado, al día, para `TrabajoPorSede`: si la sede cambia, el cambio queda guardado en ESTA sede. Registrado, ya no hay nada que
   // guardar.
+  // La marca del envío viaja con lo guardado (y si quedó en duda, sigue en duda al volver).
+  const instantaneaDelEnvio = envio.instantanea;
+  const faseDelEnvio = envio.fase;
   useEffect(() => {
     reportarCambio(
       paso !== "exito"
         ? {
             etiqueta: sede,
             unidades: seleccion?.cantidad ?? 1,
-            trabajo: { venta, lineaInicialId, lineaId, paso, seleccion, token: token.current },
+            trabajo: { venta, lineaInicialId, lineaId, paso, seleccion, intento: instantaneaDelEnvio() },
             ...avisosDelCambio({ etiqueta: sede, clienta: compra.clienta, comprobante: compra.comprobante }),
           }
         : null,
     );
-  }, [reportarCambio, paso, sede, seleccion, venta, lineaInicialId, lineaId, compra.clienta, compra.comprobante]);
+  }, [reportarCambio, paso, sede, seleccion, venta, lineaInicialId, lineaId, compra.clienta, compra.comprobante, faseDelEnvio, instantaneaDelEnvio]);
 
   const titulo = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
@@ -201,7 +208,13 @@ export function CambiosFlujo({
           motivo: seleccion.motivo,
           eligioPrenda: r.eligioTodo,
           nueva: r.varianteNueva
-            ? { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva.stockAqui, apartadoAqui: r.varianteNueva.apartadoAqui, otrasSedes: r.otrasSedes }
+            ? {
+                descripcion: r.descripcionNueva,
+                stockAqui: r.varianteNueva.stockAqui,
+                apartadoAqui: r.varianteNueva.apartadoAqui,
+                otrasSedes: r.otrasSedes,
+                precio: r.precioNueva ?? r.varianteNueva.precio,
+              }
             : null,
           sede,
           diferencia: r.diferencia,
@@ -231,13 +244,15 @@ export function CambiosFlujo({
   useFocoAlCambiarDePaso(errorRef, error);
 
   function retroceder() {
+    // En duda no se vuelve: cambiar la prenda o el pago y reenviar podría registrar el cambio dos veces.
+    if (envio.incierto) return;
     setAvisoContinuar(null);
     setError(null);
     if (paso === 4) setPaso(3);
     else if (paso === 3) setPaso(2);
     else onCerrar();
   }
-  useEscapeRetrocede(retroceder, !enviando && paso !== "exito" && !camara);
+  useEscapeRetrocede(retroceder, !enviando && !envio.incierto && paso !== "exito" && !camara);
 
   // Escanear la prenda que se lleva (Felipe 2026-10-09: «que se escanee y se seleccione automáticamente»). La pistola
   // escucha todo el paso 3, dentro del combo de prenda o con el foco en cualquier botón (`fuera: "leer"`, sin robar
@@ -318,27 +333,44 @@ export function CambiosFlujo({
       setError(responsable.motivo);
       return;
     }
-    setEnviando(true);
     setError(null);
-    const { data, error: fallo } = await firmar(
-      createClient().rpc("registrar_cambio", {
-        p_venta_item_id: linea.ventaItemId,
-        p_ubicacion_id: ubicacionId,
-        p_variante_nueva_id: r.varianteNueva.varianteId,
-        p_cantidad: seleccion.cantidad,
-        p_metodo_pago_diferencia: r.diferencia !== 0 ? seleccion.metodo : undefined,
-        p_token: token.current,
-        p_motivo: seleccion.motivo,
-        p_condicion: r.condicion,
-      }),
-      responsable.firma(),
+    const params = {
+      p_venta_item_id: linea.ventaItemId,
+      p_ubicacion_id: ubicacionId,
+      p_variante_nueva_id: r.varianteNueva.varianteId,
+      p_cantidad: seleccion.cantidad,
+      p_metodo_pago_diferencia: r.diferencia !== 0 ? seleccion.metodo : undefined,
+      p_motivo: seleccion.motivo,
+      p_condicion: r.condicion,
+    };
+    const res = await envio.enviar(huellaDe(params), (token, senal) =>
+      firmar(createClient().rpc("registrar_cambio", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
     );
-    setEnviando(false);
-    responsable.despues(fallo);
-    if (fallo) {
-      setError(traducirError(fallo, "registrar el cambio"));
+    if (res.tipo === "ocupado" || res.tipo === "congelado") return;
+    responsable.despues(res.tipo === "error" || res.tipo === "incierto" ? res.error : null);
+    // En duda: el paso lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (res.tipo === "incierto") return;
+    if (res.tipo === "error") {
+      setError(traducirError(res.error, "registrar el cambio"));
       return;
     }
+    registrado(res.tipo === "ok" ? res.data : res.datos.id);
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return registrado(res.datos.id);
+    if (res.tipo === "no_llego") {
+      setError("El cambio no se registró: no se movió ninguna prenda ni plata. Revisa los datos y vuelve a confirmar.");
+      return;
+    }
+    if (res.tipo === "sin_respuesta") setError("Todavía no hay respuesta. Revisa el internet y vuelve a tocar «Revisar si se guardó».");
+  }
+
+  function registrado(data: unknown) {
+    if (!linea || !seleccion || !r || !r.varianteNueva) return;
     // El ticket del cambio (spike 2026-09-26): lo que la clienta se lleva. `nombreResponsable` se lee ANTES de que el
     // combo se vacíe tras guardar.
     setResultado({
@@ -354,7 +386,6 @@ export function CambiosFlujo({
       atendio: nombreResponsable,
       registradoEn: new Date().toISOString(),
     });
-    token.current = crypto.randomUUID();
     setPaso("exito");
     // La actividad y las cifras de arriba se ponen al día por detrás.
     router.refresh();
@@ -366,10 +397,10 @@ export function CambiosFlujo({
         <EncabezadoFlujo
           volverA="Volver a Cambios"
           onVolver={onCerrar}
-          deshabilitado={enviando}
+          deshabilitado={enviando || envio.incierto}
           pasos={PASOS}
           actual={paso}
-          onIrAPaso={(n) => (n === 1 ? onCerrar() : setPaso(n as Paso))}
+          onIrAPaso={(n) => (envio.incierto ? undefined : n === 1 ? onCerrar() : setPaso(n as Paso))}
           titulo={TITULOS[paso]}
           refTitulo={titulo}
         />
@@ -377,7 +408,7 @@ export function CambiosFlujo({
 
       {paso === 2 && (
         <div className="anim-revelar space-y-5">
-          <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
+          <div data-guia="cambios.flujo-prendas" className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
             <fieldset className="mt-4">
               <legend className="sr-only">Prenda que el cliente quiere cambiar</legend>
@@ -388,6 +419,7 @@ export function CambiosFlujo({
                   return (
                     <label
                       key={l.ventaItemId}
+                      data-guia="cambios.prenda-elegir"
                       // En el celular el chip baja a su propia línea (con 375 px se salía de la tarjeta).
                       className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors duration-200 ${
                         estado.cambiable ? "cursor-pointer hover:bg-crema/70" : "cursor-not-allowed"
@@ -418,9 +450,9 @@ export function CambiosFlujo({
               </div>
             </fieldset>
           </div>
-          <PieDelPaso aviso={avisoContinuar}>
+          <PieDelPaso aviso={avisoContinuar} guia="cambios.pie-prenda">
             <Volver onClick={onCerrar} a="Volver a elegir otra venta" />
-            <BotonPrincipal onClick={continuarDesdePrenda}>
+            <BotonPrincipal guia="cambios.continuar" onClick={continuarDesdePrenda}>
               Continuar
               <ArrowRight className="h-4 w-4" aria-hidden />
             </BotonPrincipal>
@@ -431,7 +463,7 @@ export function CambiosFlujo({
       {paso === 3 && linea && seleccion && r && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
+            <div data-guia="cambios.reemplazo" className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
               <CambioReemplazo
                 linea={linea}
                 seleccion={seleccion}
@@ -467,9 +499,9 @@ export function CambiosFlujo({
             </div>
             {/* Con la prenda nueva ya elegida, el panel muestra también qué pasará en el
                 inventario y en la caja: se ve mientras se elige, no solo en la confirmación. */}
-            <PanelValidaciones validaciones={validaciones} impacto={r.varianteNueva && !r.sinStockAqui ? impacto : null} />
+            <PanelValidaciones guia="cambios.validaciones" validaciones={validaciones} impacto={r.varianteNueva && !r.sinStockAqui ? impacto : null} />
           </div>
-          <PieDelPaso aviso={avisoContinuar}>
+          <PieDelPaso aviso={avisoContinuar} guia="cambios.pie-reemplazo">
             <Volver onClick={retroceder} a="Volver al paso anterior" />
             <BotonPrincipal onClick={continuarAConfirmar}>
               Revisar el cambio
@@ -507,7 +539,9 @@ export function CambiosFlujo({
             <PanelValidaciones validaciones={validaciones} />
           </div>
 
-          <ComboResponsable control={responsable} deshabilitado={enviando} className="max-w-sm" />
+          <ComboResponsable control={responsable} deshabilitado={enviando || envio.incierto} className="max-w-sm" />
+
+          {envio.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} />}
 
           {error && (
             // La base rechazó la operación: el aviso recibe el foco para que se lea y se oiga sin buscarlo. `traducirError` abre con
@@ -518,16 +552,16 @@ export function CambiosFlujo({
           )}
 
           <PieDelPaso aviso={null}>
-            <Volver onClick={retroceder} deshabilitado={enviando} a="Volver al paso anterior" />
+            <Volver onClick={retroceder} deshabilitado={enviando || envio.incierto} a="Volver al paso anterior" />
             <div className="flex flex-wrap items-center gap-2">
-              <BotonSecundario onClick={onCerrar} disabled={enviando}>
+              <BotonSecundario onClick={onCerrar} disabled={enviando || envio.incierto}>
                 Cancelar
               </BotonSecundario>
               {/* Como «Cobrar» en Vender: qué se hace a la izquierda; cuánto, a la derecha. Solo si
                   hay diferencia que mover: sin ella, el botón no promete plata. */}
-              <BotonRojo onClick={confirmar} disabled={enviando || !responsable.listo} monto={r.diferencia !== 0 ? soles(Math.abs(r.diferencia)) : undefined}>
-                {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-                {enviando ? "Registrando…" : "Confirmar cambio"}
+              <BotonRojo onClick={confirmar} cargando={enviando} textoCargando="Registrando…" disabled={revisando || !responsable.listo} monto={r.diferencia !== 0 ? soles(Math.abs(r.diferencia)) : undefined}>
+                <Check className="h-4 w-4" aria-hidden />
+                {envio.incierto ? "Volver a intentar" : "Confirmar cambio"}
               </BotonRojo>
             </div>
           </PieDelPaso>

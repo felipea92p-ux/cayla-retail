@@ -2,15 +2,18 @@
 /**
  * Prueba de ADR-0195 F4 — Por pagar consolidado (`20260925120000_finanzas_por_pagar_consolidado.sql`).
  *
- * EL CASO. CAYLA debe cinco cosas a la vez: una factura de mercadería repartida mitad Trujillo, mitad Lima; la luz de
- * Trujillo a crédito (un gasto con factura); un mostrador de Lima a crédito (un activo); el contador, que no es de ninguna
- * tienda (recibo por honorarios, «de la empresa», vencido); y la tela del Taller (un comprobante de Producción).
+ * EL CASO. CAYLA debe cinco cosas a la vez: una factura de mercadería que gestiona Trujillo, repartida mitad Trujillo, mitad
+ * Lima; la luz de Trujillo a crédito (un gasto con factura); un mostrador de Lima a crédito (un activo); el contador, que no es
+ * de ninguna tienda (recibo por honorarios, «de la empresa», vencido); y la tela del Taller (un comprobante de Producción).
  *
  * QUÉ CUBRE
  *   · «Todas»: las cinco, una fila por comprobante entero, con su naturaleza, qué fue, sus unidades y la suma exacta;
- *   · «Una tienda»: la parte de esa tienda (ADR-0139/0187); el Taller ve la tela; «la empresa», solo lo que no es de ninguna;
+ *   · «Una tienda»: las facturas que ELLA gestiona, enteras y sin «partes» (ADR-0387, decisión 45, Felipe 2026-10-12: la deuda
+ *     es 100 % de la tienda que hizo el pedido; lo que otra tienda recibió de esa factura no es deuda suya; antes, la parte de
+ *     cada tienda, ADR-0139/0187); el Taller ve la tela; «la empresa», solo lo que no es de ninguna;
  *   · `p_hasta`: solo lo que vence hasta esa fecha;
- *   · lo anulado no cuenta; lo pagado no aparece; un pago parcial deja el saldo; el pago de una tienda baja solo su parte;
+ *   · lo anulado no cuenta; lo pagado no aparece; un pago parcial deja el saldo; un pago baja la deuda de la factura, que
+ *     sigue siendo entera de la gestora (decisión 45; antes, el pago de una tienda bajaba solo su parte);
  *   · permisos: sin módulo, error; `por_pagar` (Compras) no abre esta lectura; con `cuentas_dinero`, solo su tienda y sin
  *     la tela del Taller; anon no la puede llamar.
  *
@@ -131,7 +134,8 @@ const lineas = (r) => (r.ok ? r.salida.split("\n").filter(Boolean) : []);
   esperar("cinco comprobantes, S/ 5,188 en total: los tres libros sumados", r.ok && l[5] === "5|5188.00", r);
 }
 
-// 2. Una unidad: la parte de cada tienda; el Taller ve la tela; «la empresa», solo lo que no es de ninguna.
+// 2. Una unidad: las facturas que gestiona cada tienda, enteras (ADR-0387, decisión 45); el Taller ve la tela; «la empresa»,
+//    solo lo que no es de ninguna.
 {
   const r = correr(`${ESCENA}
 select string_agg(naturaleza || ':' || saldo || ':' || parte, ',' order by vence) from retail.fn_por_pagar_consolidado(:'tru') where ${MIAS};
@@ -140,11 +144,19 @@ select string_agg(naturaleza || ':' || saldo, ',' order by vence) from retail.fn
 select string_agg(naturaleza || ':' || saldo || ':' || coalesce(ubicacion_id::text, 'empresa'), ',' order by vence) from retail.fn_por_pagar_consolidado(null, null, true) where ${MIAS};
 select unidades from retail.fn_por_pagar_consolidado(:'tru') where id = :'f1';`);
   const [tru, lim, taller, empresa, unidad] = lineas(r);
-  esperar("Trujillo: la luz entera y SU mitad de la mercadería (S/ 708), marcada como parte", r.ok && tru === "gasto:612.00:true,mercaderia:708.00:true", r);
-  esperar("Lima: su mitad y su mostrador; ni la luz de Trujillo ni el contador", r.ok && lim === "mercaderia:708.00,activo:1180.00", r);
+  esperar(
+    "ADR-0387 (decisión 45, Felipe 2026-10-12): Trujillo, que la gestiona, debe la mercadería ENTERA (S/ 1,416), sin marca de parte, y la luz (antes: SU mitad, S/ 708, marcada como parte)",
+    r.ok && tru === "gasto:612.00:false,mercaderia:1416.00:false",
+    r
+  );
+  esperar(
+    "ADR-0387 (decisión 45, Felipe 2026-10-12): Lima, solo su mostrador: lo que recibió de la mercadería que gestiona Trujillo no es deuda suya; ni la luz de Trujillo ni el contador (antes: también su mitad)",
+    r.ok && lim === "activo:1180.00",
+    r
+  );
   esperar("el Taller: la tela", r.ok && taller === "insumo:1180.00", r);
   esperar("la empresa: solo el contador, sin tienda", r.ok && empresa === "gasto:800.00:empresa", r);
-  esperar("la parte dice de qué tienda es", r.ok && unidad === "Tienda Trujillo", r);
+  esperar("ADR-0387 (decisión 45, Felipe 2026-10-12): mirando Trujillo, la factura dice de qué tienda es: la que la gestiona (antes: la parte decía de qué tienda era)", r.ok && unidad === "Tienda Trujillo", r);
 }
 
 // 3. `p_hasta`: lo que vence hasta esa fecha (lo vencido incluido).
@@ -171,7 +183,8 @@ ${SUMA()}`);
   esperar("anulado el mostrador (con su factura), solo queda el contador", r.ok && sinActivo === "1|800.00", r);
 }
 
-// 5. Lo pagado no aparece; el pago parcial deja el saldo; el pago de una tienda baja solo su parte.
+// 5. Lo pagado no aparece; el pago parcial deja el saldo; un pago baja la deuda de la factura, que sigue siendo entera de la
+//    gestora (ADR-0387, decisión 45; antes, el pago de una tienda bajaba solo su parte).
 {
   const r = correr(`${ESCENA}
 select retail.registrar_pagos_compra(:'cg', jsonb_build_array(jsonb_build_object('monto', 612, 'metodo', 'transferencia'))) as _p1 \\gset
@@ -180,15 +193,23 @@ select retail.registrar_pagos_compra(:'f1', jsonb_build_array(jsonb_build_object
 select count(*) from retail.fn_por_pagar_consolidado() where id = :'cg';
 select total, pagado, saldo from retail.fn_por_pagar_consolidado() where id = :'k1';
 select total, pagado, saldo from retail.fn_por_pagar_consolidado() where id = :'f1';
-select count(*) from retail.fn_por_pagar_consolidado(:'tru') where id = :'f1';
-select total, pagado, saldo from retail.fn_por_pagar_consolidado(:'lim') where id = :'f1';
+select count(*), coalesce(sum(saldo), 0) from retail.fn_por_pagar_consolidado(:'tru') where id = :'f1';
+select count(*) from retail.fn_por_pagar_consolidado(:'lim') where id = :'f1';
 ${SUMA()}`);
   const [luz, tela, entera, truParte, limParte, suma] = lineas(r);
   esperar("la luz pagada ya no aparece", r.ok && luz === "0", r);
   esperar("la tela con S/ 500 pagados: queda S/ 680", r.ok && tela === "1180.00|500.00|680.00", r);
-  esperar("la mercadería con la parte de Trujillo pagada: entera, debe S/ 708", r.ok && entera === "1416.00|708.00|708.00", r);
-  esperar("Trujillo ya no la debe", r.ok && truParte === "0", r);
-  esperar("Lima sigue debiendo su mitad", r.ok && limParte === "708.00|0.00|708.00", r);
+  esperar("la mercadería con S/ 708 pagados desde Trujillo: entera, debe S/ 708", r.ok && entera === "1416.00|708.00|708.00", r);
+  esperar(
+    "ADR-0387 (decisión 45, Felipe 2026-10-12): Trujillo, la gestora, sigue debiendo lo que falta de la factura (S/ 708), aunque haya pagado «su mitad» (antes: ya no la debía)",
+    r.ok && truParte === "1|708.00",
+    r
+  );
+  esperar(
+    "ADR-0387 (decisión 45, Felipe 2026-10-12): Lima no la debe: lo que recibió de una factura que gestiona Trujillo no es deuda suya (antes: seguía debiendo su mitad)",
+    r.ok && limParte === "0",
+    r
+  );
   esperar("el total baja exactamente lo pagado (S/ 5,188 − 612 − 500 − 708 = S/ 3,368)", r.ok && suma === "4|3368.00", r);
 }
 
@@ -211,7 +232,11 @@ select pg_temp.intento('select * from retail.fn_por_pagar_consolidado()');`);
   const [sin, porPagar, suya, lima, empresa, taller, pedida, anon] = lineas(r);
   esperar("sin el módulo, la base lo dice", r.ok && sin.includes("módulo Cuentas y dinero"), r);
   esperar("con Por pagar de Compras (y no Cuentas y dinero), tampoco: cada módulo abre su pantalla", r.ok && porPagar.includes("módulo Cuentas y dinero"), r);
-  esperar("con Cuentas y dinero: solo lo de su tienda, la luz y SU mitad", r.ok && suya === "gasto:612.00:true,mercaderia:708.00:true", r);
+  esperar(
+    "ADR-0387 (decisión 45, Felipe 2026-10-12): con Cuentas y dinero, solo lo de su tienda: la luz y la mercadería que Trujillo gestiona, entera y sin marca de parte (antes: SU mitad)",
+    r.ok && suya === "gasto:612.00:false,mercaderia:1416.00:false",
+    r
+  );
   esperar("pedir Lima no devuelve nada", r.ok && lima === "0", r);
   esperar("ni lo de la empresa", r.ok && empresa === "0", r);
   esperar("ni la tela del Taller", r.ok && taller === "0", r);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { conPreciosMasBajos, conPreciosMasBajosDeModelos, costoUnitario, parsearLineasPrellenadas, precioParaMargen, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION, LEYENDA_SEMAFORO, TEXTO_SEMAFORO } from "./produccion-reglas";
+import { conPreciosMasBajos, esProducible, problemaDeBuenas, problemaDeEntrega, topeDeBuenas, conPreciosMasBajosDeModelos, costoUnitario, parsearLineasPrellenadas, precioParaMargen, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION, LEYENDA_SEMAFORO, TEXTO_SEMAFORO } from "./produccion-reglas";
 
 describe("semaforoMargen", () => {
   it("gana con 60% o más de margen", () => {
@@ -91,7 +91,7 @@ describe("el margen se mide con el precio más bajo de cualquier tienda (ADR-037
 
   it("nadie vuelve a medir el margen con el precio de la grilla a secas: todo `semaforoMargen(` de una pantalla pasa por `precioParaMargen`", () => {
     const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
-    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx", "components/OrdenesTablero.tsx", "lib/produccion-reglas.ts"]) {
+    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx", "lib/produccion-reglas.ts"]) {
       const llamadas = leer(ruta).match(/semaforoMargen\([^)]*\)\)?/g) ?? [];
       // La definición (`export function semaforoMargen(precioVenta: number, ...)`) no es una llamada.
       for (const l of llamadas.filter((x) => !x.includes("precioVenta: number"))) expect(l, `${ruta}: ${l}`).toMatch(/precioParaMargen/);
@@ -120,7 +120,6 @@ describe("etapas", () => {
 });
 
 import {
-  COLUMNAS_TABLERO,
   DIAS_ENTREGA_PRONTO,
   claveCelda,
   datosDeVariante,
@@ -132,6 +131,7 @@ import {
   posicionEnMedidor,
   resumenTablero,
   segundas,
+  terminadasDesde,
   totalBuenas,
 } from "./produccion-reglas";
 
@@ -152,9 +152,6 @@ describe("etapaActual", () => {
     expect(etapaActual({ patronaje: "hecho", muestra: "hecho", escalado: "hecho" }, true)).toBe("listo");
     expect(etapasDe(true)).toBe(ETAPAS_MUESTRA);
     expect(etapasDe(false)).toBe(ETAPAS_PRODUCCION);
-  });
-  it("las columnas del tablero son las etapas de producción más «listo», en orden", () => {
-    expect(COLUMNAS_TABLERO.map((c) => c.clave)).toEqual([...ETAPAS_PRODUCCION.map((e) => e.clave), "listo"]);
   });
 });
 
@@ -231,11 +228,11 @@ describe("datosDeVariante: cómo se nombra una prenda de la orden", () => {
     expect(datosDeVariante({ sku: null, codigo: null }).sku).toBe("");
   });
   it("una variante que no llegó no rompe la orden: todo vacío", () => {
-    expect(datosDeVariante(null)).toEqual({ sku: "", talla: null, color: null, colorHex: null });
+    expect(datosDeVariante(null)).toEqual({ sku: "", talla: null, color: null, colorHex: null, colorCodigo: null });
     expect(datosDeVariante(undefined).sku).toBe("");
   });
   it("sin talla o sin color deja null, para que la matriz pinte «Única» / «Sin color»", () => {
-    expect(datosDeVariante({ codigo: "X-1", talla: null, color: null })).toEqual({ sku: "X-1", talla: null, color: null, colorHex: null });
+    expect(datosDeVariante({ codigo: "X-1", talla: null, color: null })).toEqual({ sku: "X-1", talla: null, color: null, colorHex: null, colorCodigo: null });
   });
 });
 
@@ -294,6 +291,26 @@ describe("resumenTablero", () => {
   });
 });
 
+describe("terminadasDesde: las prendas que entraron al stock, por día de Lima", () => {
+  // Ejemplo inventado. `inventariadoEn` como lo manda la base: timestamptz en UTC (2026-10-14 01:00 UTC = 13 de octubre, 20:00 en Lima).
+  const orden = (inventariadoEn: string | null, cantidadBuenas: number | null) => ({ inventariadoEn, cantidadBuenas });
+
+  it("lo que entró a las 20:00 del 13 en Lima es del 13: no suma en «hoy» del 14", () => {
+    const ordenes = [orden("2026-10-14T01:00:00.123456+00:00", 12), orden("2026-10-14T15:00:00+00:00", 5)];
+    expect(terminadasDesde(ordenes, "2026-10-14")).toBe(5); // con el corte de UTC daba 17
+    expect(terminadasDesde(ordenes, "2026-10-13")).toBe(17);
+  });
+
+  it("el borde de la ventana es la medianoche de Lima", () => {
+    expect(terminadasDesde([orden("2026-10-08T04:59:00+00:00", 3)], "2026-10-08")).toBe(0); // 23:59 del 7 en Lima
+    expect(terminadasDesde([orden("2026-10-08T05:00:00+00:00", 3)], "2026-10-08")).toBe(3); // 00:00 del 8 en Lima
+  });
+
+  it("una orden que no entró al stock, o sin buenas anotadas, no suma", () => {
+    expect(terminadasDesde([orden(null, 4), orden("2026-10-14T15:00:00+00:00", null)], "2026-10-01")).toBe(0);
+  });
+});
+
 describe("llevar las prendas a las tiendas (F8)", () => {
   it("arma el enlace a Mover con el Taller de origen y solo las líneas con prendas buenas", () => {
     expect(
@@ -318,5 +335,58 @@ describe("llevar las prendas a las tiendas (F8)", () => {
     expect(parsearLineasPrellenadas("")).toEqual([]);
     expect(parsearLineasPrellenadas("v1,v2:0,v3:-4,v4:2.5,:9,v5:x")).toEqual([]);
     expect(parsearLineasPrellenadas("v1:3,v1:4,v2:1")).toEqual([{ varianteId: "v1", cantidad: 7 }, { varianteId: "v2", cantidad: 1 }]);
+  });
+});
+
+describe("esProducible (Resumen de Producción: qué se le ofrece a la líder para fabricar)", () => {
+  const sano = { estado: "activo", estado_alta: "aprobado", es_prueba: false, categoria_id: "blusas" };
+  const apagadas = new Set(["bolsas"]);
+
+  it("un modelo activo, aprobado, real y de una familia que entra a los motores se ofrece", () => {
+    expect(esProducible(sano, apagadas)).toBe(true);
+  });
+  it("un descontinuado no se produce (ADR-0270)", () => {
+    expect(esProducible({ ...sano, estado: "descontinuado" }, apagadas)).toBe(false);
+  });
+  it("un alta pendiente de aprobación o rechazada todavía no es mercadería", () => {
+    expect(esProducible({ ...sano, estado_alta: "pendiente" }, apagadas)).toBe(false);
+    expect(esProducible({ ...sano, estado_alta: "rechazado" }, apagadas)).toBe(false);
+  });
+  it("un producto de prueba no se ofrece", () => {
+    expect(esProducible({ ...sano, es_prueba: true }, apagadas)).toBe(false);
+  });
+  it("una bolsa (familia fuera de los motores, ADR-0377) no se ofrece, y una categoría hermana sí", () => {
+    expect(esProducible({ ...sano, categoria_id: "bolsas" }, apagadas)).toBe(false);
+    expect(esProducible({ ...sano, categoria_id: "polos" }, apagadas)).toBe(true);
+  });
+  it("lo que no se sabe sigue contando: sin categoría, o sin ninguna familia apagada leída, se ofrece", () => {
+    expect(esProducible({ ...sano, categoria_id: null }, apagadas)).toBe(true);
+    expect(esProducible({ ...sano, categoria_id: "bolsas" }, new Set())).toBe(true);
+  });
+  it("cualquiera de los motivos basta: un descontinuado de prueba y de bolsas sigue fuera", () => {
+    expect(esProducible({ estado: "descontinuado", estado_alta: "pendiente", es_prueba: true, categoria_id: "bolsas" }, apagadas)).toBe(false);
+  });
+});
+
+// ADR-0415 (recomendaciones de /chaos): hasta el doble de lo pedido por talla, y una entrega que no es anterior a hoy.
+describe("las buenas de una talla tienen techo", () => {
+  it("el doble de lo pedido, o 5 más si la talla es chica", () => {
+    expect([topeDeBuenas(6), topeDeBuenas(10), topeDeBuenas(1), topeDeBuenas(0)]).toEqual([12, 20, 6, 5]);
+  });
+  it("dice la primera talla que se pasa; si todas caben, nada", () => {
+    const lineas = [{ varianteId: "a", cantidadPlan: 6 }, { varianteId: "b", cantidadPlan: 1 }];
+    expect(problemaDeBuenas(lineas, { a: 12, b: 6 })).toBeNull();
+    expect(problemaDeBuenas(lineas, { a: "9", b: "2" })).toBeNull();
+    expect(problemaDeBuenas(lineas, { a: 60, b: 1 })).toMatch(/se pidieron 6 y anotaste 60 buenas.*hasta 12/);
+    expect(problemaDeBuenas(lineas, { a: 6, b: 7 })).toMatch(/se pidieron 1 y anotaste 7/);
+  });
+});
+
+describe("la entrega no es anterior a hoy", () => {
+  it("ayer o 1990 no; hoy, más adelante o en blanco sí", () => {
+    const hoy = "2026-10-15";
+    expect(problemaDeEntrega("1990-01-01", hoy)).toMatch(/no puede ser antes de hoy/);
+    expect(problemaDeEntrega("2026-10-14", hoy)).not.toBeNull();
+    for (const f of ["2026-10-15", "2026-11-01", ""]) expect(problemaDeEntrega(f, hoy)).toBeNull();
   });
 });

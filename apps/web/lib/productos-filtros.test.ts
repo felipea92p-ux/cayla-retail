@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  empresaDeUrl,
   faltaDeUrl,
   temporadaDeUrl,
   disponibilidadDeUrl,
@@ -115,7 +116,7 @@ describe("productos-filtros — estado, conteo y chips", () => {
       "Color: Negro",
       "Estado: Todos",
       "Disponibilidad: Pedir a proveedor",
-      "Precio: Hasta S/ 80",
+      "Precio: Hasta S/\u00a080",
     ]);
     expect(chips.find((c) => c.texto.startsWith("Precio"))?.quitar).toEqual(["precioMin", "precioMax"]);
   });
@@ -329,5 +330,24 @@ describe("productos-filtros — temporada y «por completar»", () => {
     expect(chipsDeFiltros("temporada=otono-invierno&falta=foto", nombres).map((c) => c.texto)).toEqual(["Temporada: Otoño-invierno", "Por completar: Sin foto"]);
     expect(chipsDeFiltros("temporada=sin", nombres)[0].texto).toBe("Sin temporada");
     expect(contarFiltrosActivos("temporada=sin&falta=foto")).toBe(2);
+  });
+});
+
+describe("productos-filtros — la tienda (CAYLA / CLAURE, ADR-0467)", () => {
+  const CLAURE = "c1a07e00-0000-4000-8000-000000000002";
+  const nombres = { categoria: () => undefined, marca: () => undefined, proveedor: () => undefined, color: () => undefined, empresa: (id: string) => (id === CLAURE ? "CLAURE" : undefined) };
+  it("la URL solo acepta un id: lo demás no filtra", () => {
+    expect(empresaDeUrl(CLAURE)).toBe(CLAURE);
+    expect(empresaDeUrl("claure")).toBeUndefined();
+    expect(empresaDeUrl("'; drop table productos")).toBeUndefined();
+    expect(empresaDeUrl("")).toBeUndefined();
+    expect(empresaDeUrl(null)).toBeUndefined();
+  });
+  it("el chip dice «Tienda: nombre», se quita con su clave y cuenta como un filtro", () => {
+    expect(chipsDeFiltros(`empresa=${CLAURE}`, nombres)).toEqual([{ texto: "Tienda: CLAURE", quitar: ["empresa"] }]);
+    expect(contarFiltrosActivos(`empresa=${CLAURE}&marca=x`)).toBe(2);
+  });
+  it("una empresa que ya no existe se dice «—», nunca queda en blanco", () => {
+    expect(chipsDeFiltros("empresa=11111111-1111-4111-8111-111111111111", nombres)[0].texto).toBe("Tienda: —");
   });
 });

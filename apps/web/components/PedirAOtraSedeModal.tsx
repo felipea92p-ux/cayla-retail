@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus } from "lucide-react";
-import { Modal, botonCancelar, botonPrimario, campoTexto } from "@/components/ui/Modal";
-import { Desplegable } from "@/components/ui/campos";
+import { Modal, campoTexto } from "@/components/ui/Modal";
+import { Boton, Desplegable } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -29,6 +28,7 @@ import {
   type LineaParaPedir,
   type PrendaPedible,
 } from "@/lib/pedidos-entre-sedes-reglas";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 // «Pedir a otra sede» (ADR-0242 D-7, `pedir_a_otra_sede`): la sede activa le pide prendas a otra tienda para reponer, sin
 // clienta. La otra tienda lo ve en Traslados, «Te piden» (con número en el menú, ADR-0328 act. 17), y lo envía en un solo
@@ -110,29 +110,13 @@ function usePrendasDeSede(sedeId: string) {
 
 function Contador({ etiqueta, cantidad, tope, enviando, onCambiar }: { etiqueta: string; cantidad: number; tope: number; enviando: boolean; onCambiar: (delta: number) => void }) {
   return (
-    <div className="flex shrink-0 items-center gap-1">
-      <button
-        type="button"
-        aria-label={`Una menos de ${etiqueta}`}
-        disabled={enviando || cantidad <= 0}
-        onClick={() => onCambiar(-1)}
-        className="btn-cayla btn-sutil h-9 w-9 justify-center p-0"
-      >
-        <Minus aria-hidden className="h-4 w-4" strokeWidth={1.75} />
-      </button>
-      <span className="w-7 text-center tabular-nums font-semibold text-tinta" aria-live="polite">
-        {cantidad}
-      </span>
-      <button
-        type="button"
-        aria-label={`Una más de ${etiqueta}`}
-        disabled={enviando || cantidad >= tope}
-        onClick={() => onCambiar(1)}
-        className="btn-cayla btn-sutil h-9 w-9 justify-center p-0"
-      >
-        <Plus aria-hidden className="h-4 w-4" strokeWidth={1.75} />
-      </button>
-    </div>
+    <PasoCantidad
+      className="shrink-0"
+      menos={{ onClick: () => onCambiar(-1), deshabilitado: enviando || cantidad <= 0, etiqueta: `Una menos de ${etiqueta}` }}
+      mas={{ onClick: () => onCambiar(1), deshabilitado: enviando || cantidad >= tope, etiqueta: `Una más de ${etiqueta}` }}
+    >
+      {cantidad}
+    </PasoCantidad>
   );
 }
 
@@ -250,11 +234,10 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
       titulo={origen && !elegir ? `Pedir a ${origen.nombre}` : "Pedir a otra sede"}
       subtitulo="Para reponer: al llegar entra a tu stock."
       onClose={onCerrar}
-      ancho="max-w-md"
       bloqueado={enviando}
     >
       {(cerrar) => (
-        <div className="space-y-4">
+        <div data-guia="pedir.campos" className="space-y-4">
           {elegir && (
             <CampoGuiado id="sede" guia={guia} titulo="A qué tienda le pides">
               <Desplegable
@@ -316,9 +299,9 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
                   );
                 })}
                 {catalogo.estado === "listo" && elegidas.length < Math.min(catalogo.prendas.length, TOPE_LINEAS_PEDIDO) && (
-                  <button type="button" disabled={enviando} onClick={() => setElegidas((ls) => [...ls, LINEA_ELEGIDA_VACIA])} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+                  <Boton type="button" peso="discreto" disabled={enviando} onClick={() => setElegidas((ls) => [...ls, LINEA_ELEGIDA_VACIA])} className="btn-chico self-start">
                     + Agregar otra prenda
-                  </button>
+                  </Boton>
                 )}
               </div>
             ) : (
@@ -355,19 +338,19 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
 
           <PieGuia guia={guia} listo="Todo listo para pedir." />
           {/* `pie-hoja-fijo`: «Mejor no» y «Pedir» no se van bajo el pliegue cuando la lista de prendas se alarga (globals.css). */}
-          <div className="pie-hoja-fijo flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} className={botonCancelar} disabled={enviando}>
+          <div className="pie-hoja-fijo pie-acciones pt-1">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={enviando}>
               Mejor no
             </button>
-            <button
+            <Boton peso="primario" cargando={enviando} textoCargando="Pidiendo…"
               type="button"
               disabled={enviando || !guia.puedeConfirmar || motivo !== null}
               title={responsable.motivo ?? guia.frase ?? motivo ?? undefined}
               onClick={() => pedir(cerrar)}
-              className={`${botonPrimario} ${guia.claseConfirmar}`}
+              className={`flex-1 ${guia.claseConfirmar}`}
             >
-              {enviando ? "Pidiendo…" : origen ? `Pedir a ${origen.nombre}` : "Pedir"}
-            </button>
+              {origen ? `Pedir a ${origen.nombre}` : "Pedir"}
+            </Boton>
           </div>
         </div>
       )}

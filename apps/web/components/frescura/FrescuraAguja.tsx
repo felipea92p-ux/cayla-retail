@@ -2,6 +2,7 @@ import { Gauge, Sparkles } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { enlaceBajar, pct, type SenalCategoria, type SinEstrenar } from "@/lib/frescura-aguja";
 
 // Lo que mueve la aguja (ADR-0208, act. 2026-10-10 (b)): hasta tres categorías —las que se quedan y la que se lleva más—, cada una con lo que
@@ -87,10 +88,8 @@ export function FrescuraAguja({
 }) {
   if (!pisoCuadrado && seLlevan.length === 0) return null;
   return (
-    <section aria-labelledby="frescura-aguja-titulo" className="card-cayla px-4 py-4 sm:px-5">
-      <h2 id="frescura-aguja-titulo" className="font-display text-[20px] leading-tight sm:text-[22px]">
-        {pisoCuadrado ? "Lo que mueve la aguja" : "Lo que más se llevan"}
-      </h2>
+    <section aria-labelledby="frescura-aguja-titulo" data-guia="frescura.aguja" className="card-cayla px-4 py-4 sm:px-5">
+      <TituloSeccion id="frescura-aguja-titulo">{pisoCuadrado ? "Lo que mueve la aguja" : "Lo que más se llevan"}</TituloSeccion>
       {!pisoCuadrado ? (
         <>
           <p className="mt-1 text-[13.5px] leading-snug">
@@ -101,7 +100,7 @@ export function FrescuraAguja({
           </p>
         </>
       ) : senales.length === 0 ? (
-        <Vacio tamano="chico" alinear="izquierda" icono={<Gauge strokeWidth={1.5} />} className="mt-2">
+        <Vacio tamano="chico" alinear="izquierda" icono={<Gauge />} className="mt-2">
           Esta semana ninguna categoría se sale de lo normal.
         </Vacio>
       ) : (
@@ -113,7 +112,7 @@ export function FrescuraAguja({
       )}
       {pisoCuadrado && estrenar.prendas > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand pt-3">
-          <Sparkles aria-hidden strokeWidth={1.5} className="h-5 w-5 shrink-0 text-taupe" />
+          <Sparkles aria-hidden className="h-5 w-5 shrink-0 text-taupe" />
           <p className="min-w-0 flex-1 text-[13.5px] leading-snug">
             <span className="font-semibold">
               Sin estrenar: {estrenar.prendas} {estrenar.prendas === 1 ? "prenda" : "prendas"}

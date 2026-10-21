@@ -3,16 +3,13 @@
 // `getTextosDelCartel`) y el cartel mismo (`components/clientas/CartelClub.tsx`).
 //
 // CONTRATO
-//   PROMETE: ninguna cifra escrita a mano. El % del cumpleaños, el vale menor y el mayor de la escala del aniversario, y las
-//            compras y el monto que hacen contar un año salen de `fn_club_textos_legales`: lo mismo que leen los términos y la
-//            página que abre el QR, así el cartel nunca promete otra cosa que lo que ella acepta al escanear. Si falta una
-//            cifra o no tiene sentido (un 0, un negativo), null: el cartel no se imprime con un beneficio inventado.
-//   ASUME:   la forma del jsonb que ya lee el modal de beneficios (`leerBeneficios`, `club-beneficios-reglas.ts`): el % del
-//            cumpleaños, el vale de cada año del 1 al 5 (G-13), las compras (un entero) y el monto en soles.
-//   NO HACE: no decide quién puede ser miembro ni las condiciones del vale: las dicen los términos, al escanear.
+//   PROMETE: ninguna cifra escrita a mano. Lo que se gana por cada sol, lo que valen 100 puntos, el canje mínimo, los días del cupón y el
+//            regalo de cumpleaños salen de la configuración vigente de los puntos (`fn_club_puntos_vigentes`, programa de puntos): lo
+//            mismo que cobra la caja y configura Clientes ▸ Beneficios del club. Si falta una cifra o no tiene sentido (un 0, un
+//            negativo), null: el cartel no se imprime con un beneficio inventado.
+//   NO HACE: no decide quién puede ser miembro ni las condiciones del canje: las dicen los términos, al escanear.
 
-import { leerBeneficios } from "./club-beneficios-reglas";
-import { formatoPct, formatoSoles } from "./club-registro-reglas";
+import { formatoSoles } from "./club-registro-reglas";
 
 /** Lo que el cartel dice igual en toda tienda y con cualquier beneficio vigente (diseño C). */
 export const CARTEL_INVITACION = {
@@ -28,36 +25,40 @@ export type LineaCartel = { beneficio: string; valor: string };
 /** Las tres líneas y la condición del año (la letra chica sin la tienda), iguales para todas las tiendas. */
 export type TextosCartel = { lineas: LineaCartel[]; condiciones: string };
 
-/** «S/ 20 a 60» con la escala que crece; «S/ 40» si todos los años valen lo mismo. Va de menor a mayor aunque no crezca. */
-function rangoDelVale(escala: readonly number[]): string {
-  const menor = Math.min(...escala);
-  const mayor = Math.max(...escala);
-  if (menor === mayor) return formatoSoles(menor);
-  return `${formatoSoles(menor)} a ${formatoSoles(mayor).replace(/^S\/ /, "")}`;
-}
+const numero = (x: unknown): number | null => {
+  const n = typeof x === "number" ? x : typeof x === "string" && x.trim() !== "" ? Number(x) : NaN;
+  return Number.isFinite(n) ? n : null;
+};
+const miles = (n: number) => n.toLocaleString("es-PE");
 
 /**
- * Lo que el cartel dice de los beneficios, desde el jsonb de `fn_club_textos_legales` (o de `fn_club_pagina`, que trae lo mismo).
- * null si no vienen completos o alguna cifra no tiene sentido: entonces el cartel no se dibuja.
+ * Lo que el cartel dice de los puntos, desde el jsonb de `fn_club_puntos_vigentes`. null si no vienen completos o alguna cifra no tiene
+ * sentido: entonces el cartel no se dibuja.
  */
 export function textosDelCartel(json: unknown): TextosCartel | null {
-  const b = leerBeneficios(json);
-  if (!b) return null;
-  const positivo = (n: number) => Number.isFinite(n) && n > 0;
-  if (!positivo(b.pct) || !positivo(b.compras) || !Number.isInteger(b.compras) || !positivo(b.monto)) return null;
-  if (b.escala.length === 0 || !b.escala.every(positivo)) return null;
-  const compras = `${b.compras} ${b.compras === 1 ? "compra" : "compras"}`;
+  if (!json || typeof json !== "object") return null;
+  const o = json as Record<string, unknown>;
+  const porSol = numero(o.puntos_por_sol);
+  const s100 = numero(o.soles_por_100);
+  const minimo = numero(o.canje_minimo);
+  const dias = numero(o.vigencia_dias);
+  const regalo = numero(o.regalo_cumple);
+  const positivo = (n: number | null): n is number => n !== null && n > 0;
+  if (!positivo(porSol) || !positivo(s100) || !positivo(minimo) || !Number.isInteger(minimo) || !positivo(dias) || !Number.isInteger(dias)) return null;
+  if (regalo === null || regalo < 0 || !Number.isInteger(regalo)) return null;
+  const lineas: LineaCartel[] = [
+    { beneficio: "Cada compra", valor: `${porSol === 1 ? "1 punto" : `${miles(porSol)} puntos`} por S/\u00a01` },
+    { beneficio: "100 puntos*", valor: `${formatoSoles(s100)} de descuento` },
+  ];
+  // Sin regalo de cumpleaños configurado, la línea no promete nada: el cartel dice lo nuevo.
+  lineas.push(regalo > 0 ? { beneficio: "Tu cumpleaños", valor: `+${miles(regalo)} puntos` } : { beneficio: "Lo nuevo, primero", valor: "por WhatsApp" });
   return {
-    lineas: [
-      { beneficio: "Tu cumpleaños", valor: `${formatoPct(b.pct)} %` },
-      { beneficio: "Cada aniversario*", valor: `vale de ${rangoDelVale(b.escala)}` },
-      { beneficio: "Lo nuevo, primero", valor: "por WhatsApp" },
-    ],
-    condiciones: `*Un año cuenta si hiciste ${compras} o sumaste ${formatoSoles(b.monto)}. Novedades por WhatsApp solo si las pides. Solo mayores de 18. Condiciones al escanear.`,
+    lineas,
+    condiciones: `*Canjeas desde ${miles(minimo)} puntos por un cupón de ${dias} ${dias === 1 ? "día" : "días"}. Novedades por WhatsApp solo si las pides. Solo mayores de 18. Condiciones al escanear.`,
   };
 }
 
-/** La letra chica al pie del cartel: «Tienda TRU · *Un año cuenta si hiciste 6 compras o sumaste S/ 600. …». */
+/** La letra chica al pie del cartel: «Tienda TRU · *Canjeas desde 200 puntos por un cupón de 7 días. …». */
 export function letraChicaDelCartel(tienda: string, textos: TextosCartel): string {
   return `${tienda.trim()} · ${textos.condiciones}`;
 }

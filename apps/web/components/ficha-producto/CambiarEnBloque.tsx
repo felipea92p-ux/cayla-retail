@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Desplegable } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { alcancesDeBloque, aplicarEnBloque, type CampoBloque, type FilaFicha, type NombresFicha } from "@/lib/variantes-ficha-reglas";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
 
 // Precio o costo en bloque: «Cambiar [Precio|Costo] de [Todas | Color: Negro | Talla: S] a [monto] · Aplicar». Es la
 // fila de grupo de Shopify («si cambias el precio del grupo, cambia en todas sus variantes») y el «Price extra» de Odoo,
@@ -83,7 +84,7 @@ export function CambiarEnBloque({
   }
 
   return (
-    <div className="rounded-xl border border-sand bg-papel px-3 py-2.5">
+    <div data-guia="editar.bloque" className="rounded-xl border border-sand bg-papel px-3 py-2.5">
       <div className="flex flex-wrap items-center gap-2 text-sm text-tinta/80">
         <span>Cambiar</span>
         {campoFijo ? (
@@ -107,7 +108,7 @@ export function CambiarEnBloque({
         )}
         <span>de</span>
         <Desplegable
-          forma="caja"
+          forma="campo"
           className="w-auto min-w-[11rem]"
           etiquetaAccesible="A cuáles variantes"
           valor={alcanceVigente}
@@ -118,15 +119,14 @@ export function CambiarEnBloque({
           opciones={alcances}
         />
         <span>a</span>
-        <span className="caja-cayla flex h-10 w-28 items-center gap-1 px-2.5">
+        {/* La caja que se enciende (ADR-0358, ronda 6), con su «S/» adentro. */}
+        <span className="caja-cayla caja-campo w-28 gap-1 px-2.5">
           <span aria-hidden className="text-xs text-taupe">
             S/
           </span>
           <input
-            type="number"
-            min={0}
-            step="0.01"
-            inputMode="decimal"
+            className={`self-stretch py-0 tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
+            {...atributosMontoTexto(monto)}
             id="variantes-bloque-monto"
             aria-label={campo === "precio" ? "Nuevo precio" : "Nuevo costo"}
             placeholder="0.00"
@@ -140,7 +140,6 @@ export function CambiarEnBloque({
                 aplicar();
               }
             }}
-            className="w-full min-w-0 bg-transparent text-sm tabular-nums text-tinta outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </span>
         <button type="button" onClick={aplicar} disabled={deshabilitado || monto.trim() === ""} className="btn-cayla btn-secundario">

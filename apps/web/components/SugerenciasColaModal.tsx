@@ -13,8 +13,9 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect } from "@/components/ui/campos";
 import { conPrecioDeLaSede } from "@/lib/precio-sede-reglas";
+import { Casilla } from "@/components/ui/Casilla";
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const textoDiferencia = (d: number) => (d === 0 ? "Se cobró el precio oficial" : d < 0 ? `Se cobró ${soles(-d)} menos` : `Se cobró ${soles(d)} más`);
 
 /** Lo último que respondió la base, con la clave (tienda + intento) a la que respondió: una respuesta de otra tienda no vale. */
@@ -115,12 +116,14 @@ export function SugerenciasColaModal({
   }
 
   return (
+    // Una salida a la vista (ADR-0358, ronda 12): con sugerencias, «Cancelar» al pie; sin ninguna, solo se lee y lleva la ×.
     <Modal
+      conCerrar={sugerencias.length === 0}
       titulo="Identificar con sugerencias"
       subtitulo="Ventas sin registrar que tienen una sola prenda posible en el sistema. Marca las que reconozcas."
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-3xl"
+      tamano="ancha"
     >
       {(cerrar) => (
         <div className="space-y-5">
@@ -165,7 +168,7 @@ export function SugerenciasColaModal({
                 <button
                   type="button"
                   onClick={() => setElegidas(pares.length === sugerencias.length ? new Set() : new Set(sugerencias.map((s) => s.prendaId)))}
-                  className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo"
+                  className="btn-cayla btn-enlace"
                 >
                   {pares.length === sugerencias.length ? "Desmarcar todas" : "Marcar todas"}
                 </button>
@@ -177,18 +180,18 @@ export function SugerenciasColaModal({
                   return (
                     <li key={s.prendaId}>
                       <label className={`flex cursor-pointer items-start gap-3 rounded-md border px-3.5 py-3 transition-colors ease-cayla ${marcada ? "border-tinta bg-hueso" : "border-tinta/15 bg-papel"}`}>
-                        <input
-                          type="checkbox"
-                          checked={marcada}
-                          onChange={(e) =>
+                        <Casilla
+                          marcada={marcada}
+                          onCambio={() =>
                             setElegidas((actual) => {
                               const nuevo = new Set(actual);
-                              if (e.target.checked) nuevo.add(s.prendaId);
+                              if (!marcada) nuevo.add(s.prendaId);
                               else nuevo.delete(s.prendaId);
                               return nuevo;
                             })
                           }
-                          className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-tinta)]"
+                          etiqueta={`Unir «${s.venta.descripcion}» con la prenda sugerida`}
+                          className="mt-0.5 shrink-0"
                         />
                         <span className="grid min-w-0 flex-1 gap-x-6 gap-y-1 sm:grid-cols-2">
                           <span className="min-w-0">
@@ -219,13 +222,15 @@ export function SugerenciasColaModal({
           )}
 
           <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
-            <Boton type="button" onClick={cerrar}>
-              {sugerencias.length > 0 ? "Cancelar" : "Cerrar"}
-            </Boton>
             {sugerencias.length > 0 && (
-              <Boton type="button" peso="primario" cargando={guardando} disabled={pares.length === 0} onClick={() => void confirmar()}>
-                {pares.length === 0 ? "Marca al menos una" : `Identificar ${pares.length} ${pares.length === 1 ? "venta" : "ventas"}`}
-              </Boton>
+              <>
+                <Boton type="button" onClick={cerrar}>
+                  Cancelar
+                </Boton>
+                <Boton type="button" peso="primario" cargando={guardando} disabled={pares.length === 0} onClick={() => void confirmar()}>
+                  {pares.length === 0 ? "Marca al menos una" : `Identificar ${pares.length} ${pares.length === 1 ? "venta" : "ventas"}`}
+                </Boton>
+              </>
             )}
           </div>
         </div>

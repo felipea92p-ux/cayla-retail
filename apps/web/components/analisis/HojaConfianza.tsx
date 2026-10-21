@@ -2,7 +2,7 @@
 
 import { Modal } from "@/components/ui/Modal";
 import { useAnalisis } from "@/components/analisis/contexto";
-import { AnillosCondiciones } from "@/components/analisis/TodaviaNo";
+import { AnillosCondiciones, LineasDeLoQueFalta } from "@/components/analisis/TodaviaNo";
 import { Racha } from "@/components/analisis/piezas";
 import { DIAS_SOSTENIDOS } from "@/lib/motor-demanda-reglas";
 
@@ -19,11 +19,10 @@ export function HojaConfianza({ onCerrar }: { onCerrar: () => void }) {
       subtitulo={datos.puedeHablar ? "Las tres condiciones se cumplen." : "Análisis recomienda cuando se cumplen las tres."}
       onClose={onCerrar}
       variante="hoja"
-      ancho="max-w-xl"
-      tituloGrande
+      tamano="mediana"
       conCerrar
     >
-      <div className="analisis analisis-hoja">
+      <div className="analisis analisis-hoja" data-guia="analisis.hoja-confianza">
         <div className="anim">
           <AnillosCondiciones p={mia} />
         </div>
@@ -33,6 +32,7 @@ export function HojaConfianza({ onCerrar }: { onCerrar: () => void }) {
           <p className="h-nota">
             {racha} de {DIAS_SOSTENIDOS} · la misma regla que CAYLA Global
           </p>
+          <LineasDeLoQueFalta p={mia} />
         </div>
         {!datos.puedeHablar && (
           <div className="h-acciones">

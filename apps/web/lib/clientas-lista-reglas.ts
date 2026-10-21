@@ -11,8 +11,10 @@
 //   NO HACE: no pide nada a la base ni lee el reloj (el «hoy» de Lima llega de afuera).
 
 import { COMPRAS_PARA_FRECUENTE, type EstadoFrecuente } from "./clienta-actividad-reglas";
-import { tipoDocumentoDe, type TipoDocumentoClienta } from "./documento-clienta-reglas";
-import { diasEntreFechas } from "./fechas-lima";
+import { TIPOS_DOCUMENTO_CLIENTA, tipoDocumentoDe, type TipoDocumentoClienta } from "./documento-clienta-reglas";
+import { diaLima, diasEntreFechas } from "./fechas-lima";
+import { cumpleLegible } from "./club-clientas-reglas";
+import type { Clienta } from "./clientas-reglas";
 import { nombreCortoSede } from "./stock-por-sede";
 import type { TonoChip } from "@/components/ui/Chip";
 
@@ -22,20 +24,35 @@ import type { TonoChip } from "@/components/ui/Chip";
 
 export type FiltroLista = "todas" | "socias" | "frecuentes" | "con_publicidad" | "sin_publicidad" | "sin_celular" | "cumplen_este_mes" | "archivadas";
 
-/** En el orden del spike (`fichasHTML`), con «Archivados» al final: es la única que mira fuera de las fichas activas. */
+/** En el orden del spike (`fichasHTML`), con «Archivados» al final: es la única que mira fuera de las fichas activas. Los nombres
+ *  hablan en palabras de tienda (Felipe 2026-10-20, diseño B de Fichas): «Compran seguido» y «Reciben novedades» en vez de
+ *  «Frecuentes» y «Con publicidad». Lo que filtran no cambia. */
 export const FILTROS_LISTA: readonly { valor: FiltroLista; texto: string }[] = [
   { valor: "todas", texto: "Todos" },
   { valor: "socias", texto: "Miembros" },
-  { valor: "frecuentes", texto: "Frecuentes" },
-  { valor: "con_publicidad", texto: "Con publicidad" },
-  { valor: "sin_publicidad", texto: "Sin publicidad" },
+  { valor: "frecuentes", texto: "Compran seguido" },
+  { valor: "con_publicidad", texto: "Reciben novedades" },
+  { valor: "sin_publicidad", texto: "No reciben novedades" },
   { valor: "sin_celular", texto: "Sin celular" },
   { valor: "cumplen_este_mes", texto: "Cumplen este mes" },
   { valor: "archivadas", texto: "Archivados" },
 ];
 
+/** @internal Lo lee su prueba (que los cuatro sean los de las cifras de la pantalla).
+ *  Los cuatro filtros que son también las cifras de arriba (diseño B): tocar la cifra filtra la lista, así que no se repiten como
+ *  píldora. Sin las cifras (la base no las dio), la pantalla vuelve a mostrarlos todos como píldora. */
+export const FILTROS_DE_LAS_CIFRAS: readonly FiltroLista[] = ["todas", "socias", "con_publicidad", "frecuentes"];
+
+/** Las píldoras «Para revisar»: lo que no es una cifra (ver `FILTROS_DE_LAS_CIFRAS`). */
+export function filtrosParaRevisar(conCifras: boolean): readonly { valor: FiltroLista; texto: string }[] {
+  return conCifras ? FILTROS_LISTA.filter((f) => !FILTROS_DE_LAS_CIFRAS.includes(f.valor)) : FILTROS_LISTA;
+}
+
 /** Cuántas fichas trae cada página. */
-export const POR_PAGINA = 50;
+export const POR_PAGINA = 20;
+/** La página más lejana que se acepta de la URL: `p_desde` de `fn_clientas_lista` es un `integer`, y una `?pagina=` de nueve
+ *  cifras lo desbordaba (la lista decía «No se pudo leer» en vez de llevarte a la última página). */
+export const MAX_PAGINA = 100_000;
 /** Lo que se busca, recortado: un nombre largo no le sirve a nadie y así la URL no crece sin fin. */
 export const MAX_TERMINO = 80;
 
@@ -43,7 +60,8 @@ export type ParamsLista = { termino: string; filtro: FiltroLista; pagina: number
 
 const ES_FILTRO = new Set<string>(FILTROS_LISTA.map((f) => f.valor));
 
-/** Lo que llega en la URL (`?q=&filtro=&pagina=`), ya saneado: un filtro desconocido es «todas» y una página rara, la 1. */
+/** Lo que llega en la URL (`?q=&filtro=&pagina=`), ya saneado: un filtro desconocido es «todas», una página rara, la 1 y una
+ *  absurdamente lejana, `MAX_PAGINA` (de ahí `getListaClientas` la baja a la última que existe). */
 export function leerParamsLista(p: { q?: string | string[]; filtro?: string | string[]; pagina?: string | string[] }): ParamsLista {
   const uno = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
   const filtro = uno(p.filtro);
@@ -51,7 +69,7 @@ export function leerParamsLista(p: { q?: string | string[]; filtro?: string | st
   return {
     termino: uno(p.q).trim().slice(0, MAX_TERMINO),
     filtro: ES_FILTRO.has(filtro) ? (filtro as FiltroLista) : "todas",
-    pagina: Number.isFinite(pagina) && pagina >= 1 ? pagina : 1,
+    pagina: Number.isFinite(pagina) && pagina >= 1 ? Math.min(pagina, MAX_PAGINA) : 1,
   };
 }
 
@@ -71,6 +89,28 @@ export function hrefLista(actual: ParamsLista, cambios: Partial<ParamsLista>): s
 /** Desde qué fila pide la base la página (`p_desde`). */
 export function desdeDePagina(pagina: number): number {
   return (Math.max(1, pagina) - 1) * POR_PAGINA;
+}
+
+/** La última página que existe para `total` fichas (nunca menos de 1: una lista vacía tiene su página 1). */
+export function ultimaPagina(total: number): number {
+  return Math.max(1, Math.ceil(total / POR_PAGINA));
+}
+
+/** Lo mínimo de una lectura de la lista para saber si la página pedida existe. */
+export type LecturaDeLista = { filas: readonly unknown[]; total: number; falla: string | null };
+
+/**
+ * Lee la página pedida y, si ya no existe (se archivaron fichas, o la URL quedó vieja), la última que sí. La base solo trae
+ * el total junto a una fila, así que una página vacía no dice cuántas hay: se lee la 1 para saberlo. Sin esto la tabla
+ * quedaba vacía con el aviso de «no hay clientes» estando llena. `leer` es la lectura real (inyectada para probarla sin base).
+ */
+export async function leerPaginaQueExiste<L extends LecturaDeLista>(pagina: number, leer: (pagina: number) => Promise<L>): Promise<L> {
+  const lista = await leer(pagina);
+  if (lista.falla || lista.filas.length > 0 || pagina === 1) return lista;
+  const primera = await leer(1);
+  const ultima = ultimaPagina(primera.total);
+  if (primera.falla || ultima === 1) return primera;
+  return leer(ultima);
 }
 
 /* ------------------------------------------------------------------
@@ -152,12 +192,12 @@ export function aClientaDeLista(f: FilaListaClienta): ClientaDeLista {
 
 export type Insignia = { texto: string; tono: TonoChip };
 
-/** La columna «Estado» (spike: `estadoClienta`): Identificado, Miembro o Miembro frecuente; una ficha fuera de la libreta dice
+/** El estado de la fila (spike: `estadoClienta`): «Solo ficha» (antes «Identificado»: tiene ficha y no se unió al club), Miembro o Miembro frecuente; una ficha fuera de la libreta dice
  *  por qué (archivado, anonimizado o unido a otra ficha). «Frecuente» sin ser socia no se pinta: es de las del club (CL-16), y el filtro
  *  «Frecuentes» igual la encuentra para invitarla. */
 export function estadoDeLaFila(c: Pick<ClientaDeLista, "archivadaEn" | "anonimizada" | "fusionadaEnId" | "clubDesde" | "esFrecuente">): Insignia {
   if (c.archivadaEn) return { texto: c.anonimizada && !c.fusionadaEnId ? "Anonimizado" : c.fusionadaEnId ? "Unido a otra ficha" : "Archivado", tono: "apagado" };
-  if (!c.clubDesde) return { texto: "Identificado", tono: "pizarra" };
+  if (!c.clubDesde) return { texto: "Solo ficha", tono: "pizarra" };
   return c.esFrecuente ? { texto: "Miembro frecuente", tono: "verde" } : { texto: "Miembro", tono: "neutro" };
 }
 
@@ -165,8 +205,8 @@ export function estadoDeLaFila(c: Pick<ClientaDeLista, "archivadaEn" | "anonimiz
  *  escribió BAJA dice «Pidió BAJA» (apagada): no es lo mismo que una que todavía no la pidió. */
 export function publicidadDeLaFila(c: Pick<ClientaDeLista, "archivadaEn" | "clubDesde" | "publicidadDesde" | "bajaEn">): Insignia | null {
   if (c.archivadaEn || !c.clubDesde) return null;
-  if (c.publicidadDesde) return { texto: "Publicidad", tono: "verde" };
-  return c.bajaEn ? { texto: "Pidió BAJA", tono: "apagado" } : { texto: "Sin publicidad", tono: "neutro" };
+  if (c.publicidadDesde) return { texto: "Recibe novedades", tono: "verde" };
+  return c.bajaEn ? { texto: "Pidió BAJA", tono: "apagado" } : { texto: "No recibe novedades", tono: "neutro" };
 }
 
 /** «Trujillo» (sin «Tienda»), o «—» si no compró en 12 meses. */
@@ -176,15 +216,10 @@ export function suSedeLegible(suSede: string | null): string {
 
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
-/** El día de un instante en Lima (`aaaa-mm-dd`): Lima va 5 h detrás de UTC todo el año. */
-function diaLima(iso: string): string {
-  return new Date(Date.parse(iso) - 5 * 3600 * 1000).toISOString().slice(0, 10);
-}
-
-/** La columna «Última compra» (spike: «12 sep · hace 18 d»): la fecha corta y cuánto hace, contado en días de Lima. */
+/** La columna «Última compra» (spike: «12 sep · hace 18 d»): la fecha corta y cuánto hace, contado en días de Lima (`diaLima`). */
 export function ultimaCompraLegible(iso: string | null, hoy: string): { fecha: string; hace: string } | null {
-  if (!iso) return null;
   const dia = diaLima(iso);
+  if (!dia) return null;
   const [, m, d] = dia.split("-");
   const dias = diasEntreFechas(dia, hoy);
   return {
@@ -255,19 +290,41 @@ export function cuentaDelFiltro(c: CifrasClientas, filtro: FiltroLista): number 
   }
 }
 
-/** «40 % de los identificados» (o «Todavía ninguno» si no hay fichas). */
+/** «Sus compras quedan ligadas a ellos»: la línea de «Clientes con ficha». */
+export function detalleConFicha(): string {
+  return "Sus compras quedan ligadas a ellos";
+}
+
+/** «40 de cada 100 clientes» (o «Todavía ninguno» si no hay fichas). */
 export function detalleSocias(c: Pick<CifrasClientas, "identificadas" | "socias">): string {
-  return c.identificadas > 0 ? `${Math.round((c.socias / c.identificadas) * 100)} % de los identificados` : "Todavía ninguno";
+  return c.identificadas > 0 ? `${Math.round((c.socias / c.identificadas) * 100)} de cada 100 clientes` : "Todavía ninguno";
 }
 
-/** «3 miembros sin publicidad» / «1 miembro sin publicidad». */
+/** «124 miembros no las pidieron» / «1 miembro no las pidió»: los miembros que no reciben novedades. */
 export function detallePublicidad(c: Pick<CifrasClientas, "sinPublicidad">): string {
-  return `${c.sinPublicidad} miembro${c.sinPublicidad === 1 ? "" : "s"} sin publicidad`;
+  return c.sinPublicidad === 1 ? "1 miembro no las pidió" : `${c.sinPublicidad} miembros no las pidieron`;
 }
 
-/** «3 compras en 6 meses»: el umbral de `clienta-actividad-reglas.ts`, el mismo que usa la base. */
+/** «3 compras o más en 6 meses»: el umbral de `clienta-actividad-reglas.ts`, el mismo que usa la base. */
 export function detalleFrecuentes(): string {
-  return `${COMPRAS_PARA_FRECUENTE} compras en 6 meses`;
+  return `${COMPRAS_PARA_FRECUENTE} compras o más en 6 meses`;
+}
+
+/** La frase de una tarjeta de la lista (diseño B): lo que de verdad se lee de una persona, en una línea —«Miembro desde mar 2026 ·
+ *  compra seguido · recibe novedades»—. Una ficha fuera de la libreta dice por qué (archivada, anonimizada o unida a otra). */
+export function fraseDeLaFila(c: Pick<ClientaDeLista, "archivadaEn" | "anonimizada" | "fusionadaEnId" | "clubDesde" | "esFrecuente" | "publicidadDesde" | "bajaEn">): string {
+  if (c.archivadaEn) {
+    const por = c.anonimizada && !c.fusionadaEnId ? "Ficha anonimizada" : c.fusionadaEnId ? "Ficha unida a otra" : "Ficha archivada";
+    return por;
+  }
+  if (!c.clubDesde) return "Solo tiene ficha, no está en el club";
+  const desde = diaLima(c.clubDesde);
+  const [anio, mes] = desde ? desde.split("-") : [];
+  const partes = [desde ? `Miembro desde ${MESES_CORTOS[Number(mes) - 1]} ${anio}` : "Miembro del club"];
+  if (c.esFrecuente) partes.push("compra seguido");
+  const novedades = publicidadDeLaFila(c);
+  if (novedades) partes.push(novedades.texto === "Pidió BAJA" ? "pidió BAJA" : novedades.texto.toLowerCase());
+  return partes.join(" · ");
 }
 
 /** El pie de la tabla (spike: «N de N clientas · todas las cuentas con el módulo ven a todas»). `total` = cuántas pasan el
@@ -332,4 +389,33 @@ export function frecuenteDeLaFicha(r: ResumenCompras | null, respaldo: EstadoFre
     faltanParaFrecuente: r.esFrecuente ? 0 : Math.max(0, COMPRAS_PARA_FRECUENTE - r.compras6m),
     comprasEnVentana: r.compras6m,
   };
+}
+
+/* ------------------------------------------------------------------
+   Exportar la lista (solo Admin, D-109/G.4): el CSV
+   ------------------------------------------------------------------ */
+
+export const COLUMNAS_EXPORTAR = ["Tipo de documento", "Número de documento", "Nombre", "Celular", "Miembro desde", "Código de miembro", "Novedades por WhatsApp", "Cumpleaños", "Registrado", "Estado"];
+
+type ClientaParaExportar = Pick<
+  Clienta,
+  "documentoTipo" | "documentoNumero" | "nombre" | "telefonoWhatsapp" | "clubDesde" | "codigoClub" | "publicidadDesde" | "cumpleDia" | "cumpleMes" | "cumpleAnio" | "createdAt" | "archivadaEn" | "anonimizada" | "fusionadaEnId"
+>;
+
+/** Una fila del CSV, en el orden de `COLUMNAS_EXPORTAR`. «Miembro desde» y «Registrado» son el día de Lima de su instante
+ *  (`club_desde` y `created_at`, que la base manda en UTC): con sus 10 primeros caracteres, quien entró de 7 pm a medianoche salía
+ *  con el día siguiente. */
+export function filaParaExportar(c: ClientaParaExportar): string[] {
+  return [
+    c.documentoNumero ? (TIPOS_DOCUMENTO_CLIENTA.find((t) => t.valor === c.documentoTipo)?.etiqueta ?? "") : "",
+    c.documentoNumero ?? "",
+    c.nombre ?? "",
+    c.telefonoWhatsapp ?? "",
+    diaLima(c.clubDesde) ?? "",
+    c.codigoClub ?? "",
+    c.publicidadDesde ? "sí" : "no",
+    c.cumpleDia && c.cumpleMes ? cumpleLegible(c.cumpleDia, c.cumpleMes, c.cumpleAnio) : "",
+    diaLima(c.createdAt) ?? "",
+    c.archivadaEn ? (c.anonimizada ? "anonimizado" : c.fusionadaEnId ? "unido a otra ficha" : "archivado") : "activo",
+  ];
 }

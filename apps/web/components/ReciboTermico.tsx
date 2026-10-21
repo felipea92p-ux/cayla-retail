@@ -1,8 +1,7 @@
 import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
-import { textoCumpleEnElRecibo } from "@/lib/club-cumple-canje-reglas";
-import { textoValeEnElRecibo } from "@/lib/club-aniversario-canje-reglas";
+import { textoCuponEnElRecibo } from "@/lib/club-puntos-reglas";
 import { ETIQUETA_DOCUMENTO_COMPROBANTE, llevaDocumento } from "@/lib/documento-comprobante-reglas";
 import { EMISOR, type Emisor } from "@/lib/emisor";
 import {
@@ -18,7 +17,7 @@ import {
   type ReciboVenta,
 } from "@/lib/recibo-reglas";
 
-const s = (n: number) => `S/ ${n.toFixed(2)}`;
+const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /**
  * El comprobante como sale de la térmica de 80 mm: la «representación impresa» de la boleta o
@@ -39,7 +38,13 @@ const s = (n: number) => `S/ ${n.toFixed(2)}`;
  *  · Sin QR del club: el papel lleva solo el QR de SUNAT (Felipe 2026-10-01, ADR-0288 act. j). La clienta se une con el
  *    QR del cartel del mostrador.
  */
-export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta; emisor?: Emisor }) {
+export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
+  recibo: ReciboVenta;
+  emisor?: Emisor;
+  /** La entrega de un apartado (ADR-0399): el papel es la misma boleta o factura, pero en vez de la forma de pago —que mostraría el
+   *  adelanto, un pacto interno— lleva el sello «CANCELADO» y una referencia al apartado, sin plata. */
+  apartado?: { codigo: string };
+}) {
   const { fecha, hora } = fechaHoraLima(recibo.emitidoEn);
   const cli = recibo.cliente;
   const fiscal = desglosaIgv(recibo.tipo);
@@ -111,10 +116,8 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
           <span className="rt-imp">{l.importe.toFixed(2)}</span>
         </div>
       ))}
-      {/* El cumpleaños del club (ADR-0288 D-5): el «Dscto.» de cada prenda ya lo incluye; esto dice cuánto es del club. */}
-      {recibo.cumple && <p className="rt-detalle">{textoCumpleEnElRecibo(recibo.cumple.pct, recibo.cumple.monto)}</p>}
-      {/* El vale de aniversario del club (tanda 1g), igual. */}
-      {recibo.vale && <p className="rt-detalle">{textoValeEnElRecibo(recibo.vale.monto)}</p>}
+      {/* El cupón del Club (programa de puntos): el «Dscto.» de cada prenda ya lo incluye; esto dice cuánto es del cupón. */}
+      {recibo.cupon && <p className="rt-detalle">{textoCuponEnElRecibo(recibo.cupon.monto)}</p>}
 
       <div className="rt-linea" />
       {fiscal && (
@@ -136,7 +139,13 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
       <p className="rt-son">SON: {montoEnLetras(recibo.total)}</p>
 
       <div className="rt-linea" />
-      <p className="rt-subtitulo">Forma de pago</p>
+      {apartado ? (
+        <p className="rt-centro">
+          <span className="rt-cancelado">CANCELADO</span>
+        </p>
+      ) : (
+        <p className="rt-subtitulo">Forma de pago</p>
+      )}
       {recibo.pagos.map((p) => (
         <div key={p.metodo}>
           <div className="rt-fila">
@@ -188,6 +197,7 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
         </p>
         <p className="rt-lema">{emisor.lema}</p>
         <p className="rt-negrita">¡Gracias por tu compra!</p>
+        {apartado && <p>Prendas apartadas · ref. {apartado.codigo}</p>}
       </footer>
 
     </div>

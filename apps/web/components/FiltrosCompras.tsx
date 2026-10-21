@@ -20,6 +20,7 @@ import {
   type EstadoRecepcion,
   type TipoDocumentoCompra,
 } from "@/lib/compras-reglas";
+import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 
 // Filtros de las tablas de Compras. Viven en la URL (?q=…&pago=…): así la
 // página es un Server Component que filtra en Postgres, el enlace se puede
@@ -159,7 +160,7 @@ export function FiltrosCompras({
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
         {/* El buscador único (ADR-0358, ronda 5): busca mientras se escribe; «Buscando…» solo si la base tarda. */}
-        <Buscador
+        <Buscador guia="filtros-compras.buscador"
           id={ID_BUSCADOR}
           valor={busqueda}
           onCambio={setBusqueda}
@@ -173,7 +174,9 @@ export function FiltrosCompras({
             que el botón quede a la altura del input, no de toda la columna. */}
         {[
           accionesAntes,
-          <BotonFiltros key="filtros" abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />,
+          <span key="filtros" data-guia="filtros-compras.boton" className="inline-flex">
+            <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+          </span>,
           accionesDespues,
         ].map(
           (control, i) =>
@@ -186,6 +189,7 @@ export function FiltrosCompras({
       </div>
 
       {panelAbierto && (
+        <div data-guia="filtros-compras.panel">
         <PanelPildoras>
           {ver("proveedor") && (
             <DesplegablePildora
@@ -245,7 +249,7 @@ export function FiltrosCompras({
               onValor={(v) => aplicar({ tipo: v === TODOS ? "" : v })}
               opciones={[
                 { valor: TODOS, texto: "Todos" },
-                ...(["factura", "boleta", "nota_venta"] as const).map((v) => ({ valor: v, texto: ETIQUETA_TIPO_DOCUMENTO[v] })),
+                ...(["factura", "boleta", "nota_venta", "sin_comprobante"] as const).map((v) => ({ valor: v, texto: ETIQUETA_TIPO_DOCUMENTO[v] })),
               ]}
             />
           )}
@@ -275,37 +279,31 @@ export function FiltrosCompras({
 
           {ver("fechas") && <PildoraFechas desde={desde ?? ""} hasta={hasta ?? ""} onCambiar={(d, h) => aplicar({ desde: d, hasta: h })} />}
         </PanelPildoras>
+        </div>
       )}
 
       {chips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2" data-guia="filtros-compras.chips">
           {chips.map((c) => (
-            <button
+            <FiltroPuesto
               key={c.texto}
-              type="button"
-              onClick={() => {
+              onQuitar={() => {
                 if ("q" in c.quitar) setBusqueda("");
                 aplicar(c.quitar);
               }}
-              className="label-cayla anim-entrada inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
-              aria-label={`Quitar filtro ${c.texto}`}
+              etiqueta={`Quitar filtro ${c.texto}`}
             >
               {c.texto}
-              <span aria-hidden className="text-sm leading-none">
-                ×
-              </span>
-            </button>
+            </FiltroPuesto>
           ))}
-          <button
-            type="button"
+          <BotonLimpiar
             onClick={() => {
               setBusqueda("");
               router.push(pathname);
             }}
-            className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo"
           >
             Limpiar todo
-          </button>
+          </BotonLimpiar>
         </div>
       )}
     </div>

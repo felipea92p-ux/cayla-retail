@@ -3,15 +3,11 @@ import {
   aFila,
   itemsPorRegularizar,
   agruparPorDia,
-  diaDeLima,
   elegirComprobante,
   filtrosDesdeParams,
   limitesUTC,
   agruparEnSemanas,
-  mediaMovil,
   mezclaDePagos,
-  pulsoDeVentas,
-  ventanaDeSuavizado,
   piezasDeVenta,
   resumir,
   serieDiaria,
@@ -393,12 +389,6 @@ describe("mezclaDePagos", () => {
   });
 });
 
-describe("diaDeLima", () => {
-  it("las 9:30 p. m. del 19 en Lima siguen siendo el 19 aunque en UTC ya sea el 20", () => {
-    expect(diaDeLima("2026-09-20T02:30:00+00:00")).toBe("2026-09-19");
-  });
-});
-
 describe("piezasDeVenta — lo que hace falta para dibujar cada prenda", () => {
   const conFotos = (color_codigo: string) => ({
     color_codigo,
@@ -463,50 +453,6 @@ describe("títulos de una venta", () => {
     expect(subtituloDePrendas([pz("Blusa Emma")], 1)).toBe("M · Negro");
     expect(subtituloDePrendas([pz("Blusa Emma", "M · Negro", 2)], 2)).toBe("M · Negro");
     expect(subtituloDePrendas([pz("A"), pz("B")], 3)).toBe("3 prendas");
-  });
-});
-
-describe("pulsoDeVentas — un hilo por día y una tendencia que los cruza", () => {
-  const medidas = { ancho: 100, alto: 60, margen: { x: 10, arriba: 10, abajo: 10 } };
-  const d = (total: number, i: number) => ({ fecha: `2026-09-${10 + i}`, ventas: total > 0 ? 1 : 0, total });
-
-  it("el mejor día llega arriba, uno a medias a la mitad y uno sin ventas mide cero", () => {
-    const p = pulsoDeVentas([d(0, 0), d(100, 1), d(50, 2)], medidas);
-    expect(p.base).toBe(50);
-    expect(p.barras.map((b) => b.alto)).toEqual([0, 40, 20]);
-    expect(p.pico).toMatchObject({ indice: 1, y: 10 });
-    expect(p.barras[0].x).toBeLessThan(p.barras[1].x);
-    expect(p.hilo.startsWith("M")).toBe(true);
-  });
-
-  it("el promedio queda entre el suelo y el mejor día", () => {
-    const p = pulsoDeVentas([d(0, 0), d(100, 1), d(50, 2)], medidas);
-    expect(p.promedioY).toBe(30);
-  });
-
-  it("sin ventas no hay pico ni promedio y todo queda pegado al suelo; sin días, nada", () => {
-    const p = pulsoDeVentas([d(0, 0), d(0, 1)], medidas);
-    expect(p.pico).toBeNull();
-    expect(p.promedioY).toBeNull();
-    expect(p.barras.every((b) => b.alto === 0)).toBe(true);
-    expect(pulsoDeVentas([], medidas)).toEqual({ base: 50, barras: [], anchoBarra: 0, hilo: "", promedioY: null, pico: null });
-  });
-
-  it("el grosor del hilo se adapta a cuántos días hay, sin pasarse de 4 ni bajar de 1.5", () => {
-    expect(pulsoDeVentas([d(1, 0)], medidas).anchoBarra).toBe(4);
-    const muchos = Array.from({ length: 400 }, (_, i) => d(i, 0));
-    expect(pulsoDeVentas(muchos, { ...medidas, ancho: 300 }).anchoBarra).toBe(1.5);
-  });
-});
-
-describe("tendencia", () => {
-  it("la media móvil centrada promedia a los vecinos y, en las puntas, a los que haya", () => {
-    expect(mediaMovil([0, 10, 0], 3)).toEqual([5, 10 / 3, 5]);
-    expect(mediaMovil([4, 8], 1)).toEqual([4, 8]);
-  });
-
-  it("se suaviza más cuantos más días hay; con pocos no se toca el dato", () => {
-    expect([5, 9, 10, 20, 21, 90].map(ventanaDeSuavizado)).toEqual([1, 1, 3, 3, 7, 7]);
   });
 });
 

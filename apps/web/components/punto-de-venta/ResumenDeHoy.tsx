@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Clock, History, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { VentasDeHoyLista } from "@/components/VentasDeHoy";
 import type { VentaDeHoy } from "@/lib/useVentasDeHoy";
 import { anchoBarraMeta, resumenDeHoy } from "@/lib/vender-hoy-reglas";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 const soles = (n: number) => `S/${n.toFixed(2)}`;
 
@@ -69,10 +70,8 @@ export function ResumenDeHoy({
         </span>
         {r.pctMeta !== null && (
           <span className="ml-auto flex items-center gap-2">
-            <span className="h-1.5 w-16 overflow-hidden rounded-full bg-tinta/10" aria-hidden>
-              <span className="block h-full rounded-full bg-verde" style={{ width: `${ancho}%` }} />
-            </span>
-            <span className="text-xs font-semibold text-verde tabular-nums">{r.pctMeta}%</span>
+            <BarraAvance pct={ancho} decorativa className="w-16" />
+            <span className={`text-xs font-semibold tabular-nums ${r.pctMeta >= 100 ? "text-verde" : "text-tinta"}`}>{r.pctMeta}%</span>
           </span>
         )}
       </button>
@@ -84,10 +83,11 @@ export function ResumenDeHoy({
 
       {abierto && (
         <Modal
+          conCerrar
           titulo="Ventas de hoy"
           subtitulo={`${ubicacionEtiqueta} · ${r.ventas} ${r.ventas === 1 ? "venta" : "ventas"}${meta ? ` · meta ${soles(meta)}` : ""}`}
           variante="hoja"
-          ancho="max-w-lg"
+          tamano="mediana"
           onClose={() => setAbierto(false)}
         >
           {(cerrar) => (
@@ -95,10 +95,8 @@ export function ResumenDeHoy({
               <p className="font-display text-4xl leading-none text-tinta tabular-nums">{soles(r.total)}</p>
               {r.pctMeta !== null && (
                 <div className="mt-3 flex items-center gap-3">
-                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-tinta/10" aria-hidden>
-                    <span className="block h-full rounded-full bg-verde" style={{ width: `${ancho}%` }} />
-                  </span>
-                  <span className="text-xs font-semibold text-verde tabular-nums">{r.pctMeta}% de la meta</span>
+                  <BarraAvance pct={ancho} decorativa className="min-w-0 flex-1" />
+                  <span className={`text-xs font-semibold tabular-nums ${r.pctMeta >= 100 ? "text-verde" : "text-tinta"}`}>{r.pctMeta}% de la meta</span>
                 </div>
               )}
               <div className="mt-5">
@@ -107,16 +105,16 @@ export function ResumenDeHoy({
               {(verHistorial || verCaja) && (
                 <div className="mt-5 flex gap-2">
                   {verHistorial && (
-                    <Link href="/vender/historial" onClick={cerrar} className="btn-cayla btn-secundario inline-flex h-10 flex-1 items-center justify-center gap-2">
+                    <BotonVer href="/vender/historial" alNavegar={cerrar} className="h-10 flex-1">
                       <History className="h-4 w-4" aria-hidden />
                       Historial completo
-                    </Link>
+                    </BotonVer>
                   )}
                   {verCaja && (
-                    <Link href="/caja" onClick={cerrar} className="btn-cayla btn-secundario inline-flex h-10 flex-1 items-center justify-center gap-2">
+                    <BotonVer href="/caja" alNavegar={cerrar} className="h-10 flex-1">
                       <Wallet className="h-4 w-4" aria-hidden />
                       Ir a Caja
-                    </Link>
+                    </BotonVer>
                   )}
                 </div>
               )}

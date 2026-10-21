@@ -1,0 +1,86 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA (ADR-0408) · Recomendaciones (Felipe 2026-10-15): escribirla (sobre qué y el texto, con sus letras contadas, y
+   que va con su nombre), el «¡Gracias!» al enviarla y «Lo que nos escribiste» con las respuestas de CAYLA. La misma familia que «Mi
+   cuenta»: la ficha en papel, los campos `w-*` (cuenta.css), los bloques `c-*` (club.css) y las insignias `w-estado-chip` (bolsa.css).
+   Solo los tokens de app/globals.css: en oscuro se invierten solos.
+   Revisión «a nivel mundial» (2026-10-16): el título grande de las páginas de ayuda, más aire, y «Lo que nos escribiste» como un panel en
+   hueso al lado del formulario, con cuántas lleva y, vacío, qué pasa con lo que se escribe (clases nuevas con `ay-`).
+   ===================================================================================================== */
+
+/* ---- La página: escribirla arriba (a la izquierda desde 960 px) y las suyas abajo (a la derecha) ---- */
+.r-pag { display: grid; gap: 36px; padding-block: 28px 8px; }
+.r-cab { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.r-cab h1 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: clamp(24.8px, 4.34cqi, 42.2px); line-height: 1.12;  text-wrap: balance; }
+.r-cab h1 em { font-style: italic; color: var(--rojo); }
+.r-cab > .w-texto-sec { max-width: 48ch; font-size: 15px; line-height: 1.55; }
+
+/* ---- La ficha para escribirla ---- */
+.r-form { display: flex; flex-direction: column; gap: 18px; padding: 18px; border: 1px solid var(--sand); border-radius: 0; background: var(--papel); margin-top: 6px; }
+.r-sobre { border: 0; margin: 0; padding: 0; min-width: 0; }
+.r-sobre legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
+.r-sobre-opciones { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Una opción por tienda (radio): del alto de un dedo en el celular, y la elegida en tinta. */
+.r-sobre-op { min-height: 44px; padding: 0 16px; border: 1.5px solid var(--sand); border-radius: 0; background: var(--crema); color: var(--tinta); font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background-color .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease); }
+.r-sobre-op:hover:not(:disabled) { border-color: var(--tinta); }
+.r-sobre-op[aria-checked="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+.r-sobre-op:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.r-sobre-op:disabled { opacity: .55; cursor: default; }
+/* La caja del texto: crece con lo que se escribe (16 px: el celular no hace zoom al tocarla). */
+.w-caja.r-caja { height: auto; min-height: 150px; padding: 12px 14px; line-height: 1.5; resize: vertical; font-size: 16px; }
+.r-bajo { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.r-cuenta { flex: none; font-size: 12px; color: var(--tinta-60); font-variant-numeric: tabular-nums; }
+.r-cuenta[data-tono="cerca"] { color: var(--ambar); font-weight: 600; }
+.r-cuenta[data-tono="pasado"] { color: var(--rojo-profundo); font-weight: 600; }
+/* Que va con su nombre: una nota en hueso, como las del ERP. */
+.r-firma { margin: 0; display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 0; background: var(--hueso); font-size: 13px; line-height: 1.5; }
+.r-firma .ic { width: 18px; height: 18px; color: var(--taupe); margin-top: 1px; }
+
+/* ---- «¡Gracias!» al enviarla: entra una vez, y su visto se dibuja ---- */
+.r-gracias { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 22px 20px; border: 1px solid var(--sand); border-radius: 0; background: var(--papel); margin-top: 6px; animation: r-entra .5s var(--ease) both; }
+.r-gracias .w-titulo { margin: 0; }
+.r-gracias .w-titulo em { color: inherit; }
+.r-gracias-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; color: var(--verde); background: color-mix(in srgb, var(--verde) 14%, transparent); }
+.r-gracias-ic .ic { width: 26px; height: 26px; stroke-dasharray: 24; stroke-dashoffset: 24; animation: r-visto .5s var(--ease) .25s forwards; }
+@keyframes r-entra { from { opacity: 0; transform: translateY(10px); } }
+@keyframes r-visto { to { stroke-dashoffset: 0; } }
+/* El título del «¡Gracias!» recibe el foco al enviarla (quien usa el teclado o un lector sigue desde ahí): no es un control, sin anillo. */
+.r-gracias .w-titulo:focus { outline: none; }
+
+/* ---- «Por hoy ya está»: sin cupo hoy y sin nada escrito, en lugar de una caja que no se podría enviar. El reloj, en hueso. ---- */
+.r-sin-cupo-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; color: var(--taupe); background: var(--hueso); }
+.r-sin-cupo-ic .ic { width: 26px; height: 26px; }
+
+/* ---- «Lo que nos escribiste» ---- */
+.r-mias { align-content: start; }
+.r-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.r-item { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid var(--sand); border-radius: 0; background: var(--papel); min-width: 0; }
+.r-item-cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 10px; font-size: 12.5px; color: var(--tinta-60); }
+.r-item-cab b { color: var(--tinta); font-weight: 600; }
+/* Lo que escribió, tal cual: sus saltos de línea se respetan y una palabra larguísima no rompe la tarjeta. */
+.r-texto { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.r-respuesta { padding: 10px 14px; border-left: 3px solid var(--verde); border-radius: 0 12px 12px 0; background: color-mix(in srgb, var(--verde) 9%, transparent); }
+.r-respuesta-t { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--verde); }
+.r-respuesta-t .ic { width: 15px; height: 15px; }
+.r-respuesta p { margin: 6px 0 0; font-size: 14px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+
+/* ---- «Lo que nos escribiste»: un panel en hueso, con cuántas lleva junto al título (el globito de la tienda) ---- */
+.ay-reco-panel { gap: 16px; padding: 22px 20px; border-radius: 0; background: var(--hueso); }
+.ay-reco-cab { display: flex; align-items: center; gap: 10px; }
+.ay-reco-cuantas { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 0; display: inline-grid; place-items: center; background: var(--papel); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ay-reco-panel .r-item { border-color: color-mix(in srgb, var(--sand) 70%, var(--taupe)); }
+/* Vacío: dice qué falta y qué pasa con lo que se escriba, en tres pasos con su número. */
+.ay-reco-vacio { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.ay-reco-vacio-ic { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 4px; background: var(--papel); color: var(--rojo-profundo); }
+.ay-reco-vacio-ic .ic { width: 22px; height: 22px; }
+.ay-reco-vacio-t { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-size: 18px; font-weight: 250; line-height: 1.12; }
+.ay-reco-pasos { list-style: none; margin: 14px 0 0; padding: 16px 0 0; border-top: 1px solid color-mix(in srgb, var(--sand) 60%, var(--taupe)); display: flex; flex-direction: column; gap: 14px; counter-reset: ay-reco; align-self: stretch; }
+.ay-reco-pasos li { display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 10px; counter-increment: ay-reco; }
+.ay-reco-pasos li::before { content: counter(ay-reco); grid-row: span 2; font-family: var(--nombre); font-style: italic; font-size: 28px; line-height: 1; color: var(--rojo); font-variant-numeric: lining-nums; }
+.ay-reco-pasos b { font-size: 14px; font-weight: 600; line-height: 1.35; }
+.ay-reco-pasos span { font-size: 13px; line-height: 1.45; color: var(--tinta-60); }
+
+@container tienda (min-width: 960px) {
+  .r-pag { grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 64px; padding-block: 64px 8px; align-items: start; }
+  .r-form, .r-gracias { padding: 26px; }
+  .ay-reco-panel { padding: 32px 30px; }
+}

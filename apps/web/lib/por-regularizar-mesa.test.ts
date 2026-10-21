@@ -52,14 +52,14 @@ describe("diferenciaDe y sus textos", () => {
     expect(diferenciaDe({ precioCobrado: 0.3 }, { precio: 0.1 })).toBe(0.2);
   });
   it("la frase y el rótulo dicen lo mismo que el modal de siempre", () => {
-    expect(fraseDeDiferencia(-10)).toBe("Se cobró S/ 10.00 menos que el oficial");
-    expect(fraseDeDiferencia(4)).toBe("Se cobró S/ 4.00 más que el oficial");
+    expect(fraseDeDiferencia(-10)).toBe("Se cobró S/\u00a010.00 menos que el oficial");
+    expect(fraseDeDiferencia(4)).toBe("Se cobró S/\u00a04.00 más que el oficial");
     expect(fraseDeDiferencia(0)).toBe("Se cobró el precio oficial");
-    expect(rotuloDeDiferencia(-10)).toBe("−S/ 10.00");
-    expect(rotuloDeDiferencia(4)).toBe("+S/ 4.00");
+    expect(rotuloDeDiferencia(-10)).toBe("−S/\u00a010.00");
+    expect(rotuloDeDiferencia(4)).toBe("+S/\u00a04.00");
     expect(rotuloDeDiferencia(0)).toBe("Mismo precio");
-    expect(textoDeDiferencia(-10)).toBe("Descuento no planificado: S/ 10.00");
-    expect(textoDeDiferencia(4)).toBe("Sobreprecio: S/ 4.00");
+    expect(textoDeDiferencia(-10)).toBe("Descuento no planificado: S/\u00a010.00");
+    expect(textoDeDiferencia(4)).toBe("Sobreprecio: S/\u00a04.00");
     expect(textoDeDiferencia(0)).toBe("Se cobró el precio oficial");
   });
 });

@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties, type MouseEvent } from "react";
 import { Chip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { estiloDeGrupo, IconoDeGrupo } from "@/components/plan-piso/IconoDeGrupo";
 import type { PropuestaMix } from "@/lib/mix-piso";
 import { escalaDeMancuerna, pctEs, posicionEnEscala } from "@/lib/mix-piso-visual";
@@ -45,8 +46,8 @@ export function Mancuerna({ propuesta: p }: { propuesta: PropuestaMix }) {
   };
 
   return (
-    <section className="card-cayla mc anim-sube" style={{ "--i": 3 } as CSSProperties} aria-label="Hoy, punto de partida, tus ventas y propuesta de cada grupo">
-      <h3 className="font-display text-xl text-tinta">Dónde está cada grupo</h3>
+    <section className="card-cayla mc anim-sube" style={{ "--i": 3 } as CSSProperties} aria-label="Hoy, punto de partida, tus ventas y propuesta de cada grupo" data-guia="plan-piso.mancuerna">
+      <TituloSeccion nivel={3}>Dónde está cada grupo</TituloSeccion>
       <p className="mc-bajada">
         En % de cada total (lo que cuelga, los lugares del riel, tus ventas). Cuando los puntos caen juntos, la mezcla se parece; cuando se separan, se ve quién empuja hacia dónde. Pasa el cursor por un grupo, o tócalo, para leer sus
         cifras. Las prendas que faltan están en la tabla.

@@ -13,7 +13,7 @@ import type { EstadoBotonCierre } from "@/lib/caja-cierre-boton-reglas";
 export function BotonCerrarCaja({ onCerrar }: { onCerrar: () => void }) {
   return (
     <button type="button" onClick={onCerrar} className="cc-boton">
-      <Lock size={18} aria-hidden /> Cerrar caja
+      <Lock size={16} aria-hidden /> Cerrar caja
     </button>
   );
 }
@@ -37,14 +37,14 @@ export function BarraCierreCaja({ estado, onCerrar }: { estado: EstadoBotonCierr
   if (!estado) return null;
   return (
     <div className="cc-barra-pie hidden sm:block">
-      <div className="cc-barra" data-nivel={estado.nivel} role="status">
+      <div data-guia="caja.barra-cierre" className="cc-barra" data-nivel={estado.nivel} role="status">
         <div>
           <b>{estado.titulo}</b>
           <span className="cc-bajada">{estado.bajada}</span>
         </div>
         {onCerrar && (
           <button ref={botonRef} type="button" onClick={onCerrar} className="cc-boton">
-            <Lock size={18} aria-hidden /> Cerrar caja
+            <Lock size={16} aria-hidden /> Cerrar caja
           </button>
         )}
       </div>

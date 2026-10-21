@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   HINTS_REVISION,
+  bloqueoDeAprobacion,
   bloqueoDeRechazo,
   leerPorRevisar,
   mensajeDeRevision,
@@ -72,8 +73,8 @@ describe("leerPorRevisar", () => {
 
 describe("textos de la fila", () => {
   it("precio: uno, un rango o sin precio (una muestra)", () => {
-    expect(textoPrecio(79.9, 79.9)).toBe("S/ 79.90");
-    expect(textoPrecio(59.9, 79.9)).toBe("S/ 59.90 a S/ 79.90");
+    expect(textoPrecio(79.9, 79.9)).toBe("S/\u00a079.90");
+    expect(textoPrecio(59.9, 79.9)).toBe("S/\u00a059.90 a S/\u00a079.90");
     expect(textoPrecio(null, null)).toBe("Sin precio");
     expect(textoPrecio(0, 0)).toBe("Sin precio");
   });
@@ -131,6 +132,43 @@ describe("bloqueoDeRechazo", () => {
   });
 });
 
+describe("bloqueoDeAprobacion (ADR-0384)", () => {
+  const base = { precioMin: 59.9, precioMax: 79.9, admitePrecioCero: false };
+  it("con precio en todas sus variantes activas, se aprueba", () => {
+    expect(bloqueoDeAprobacion(base)).toBeNull();
+  });
+  it("sin variantes activas (precio null), no hay qué frenar: la base tampoco", () => {
+    expect(bloqueoDeAprobacion({ ...base, precioMin: null, precioMax: null })).toBeNull();
+  });
+  it("todas en S/ 0: «No tiene precio», y lleva a su ficha", () => {
+    expect(bloqueoDeAprobacion({ ...base, precioMin: 0, precioMax: 0 })).toMatchObject({ motivo: "precio", texto: "No tiene precio" });
+    expect(bloqueoDeAprobacion({ ...base, precioMin: 0, precioMax: 0 })?.queHacer).toMatch(/Ponle precio en su ficha/);
+  });
+  it("algunas en S/ 0: «Tiene variantes en S/ 0»", () => {
+    expect(bloqueoDeAprobacion({ ...base, precioMin: 0 })?.texto).toBe("Tiene variantes en S/\u00a00");
+  });
+  it("en Empaque (fuera de los motores) el 0 es la bolsa de obsequio: se aprueba", () => {
+    expect(bloqueoDeAprobacion({ precioMin: 0, precioMax: 0, admitePrecioCero: true })).toBeNull();
+  });
+  it("leerPorRevisar marca `admitePrecioCero` solo con la familia de la lista; sin lista, ninguna", () => {
+    expect(leerPorRevisar([fila({ categoria_familia: "empaque" })], new Set(["empaque"])).productos[0].admitePrecioCero).toBe(true);
+    expect(leerPorRevisar([fila({ categoria_familia: "empaque" })]).productos[0].admitePrecioCero).toBe(false);
+    expect(leerPorRevisar([fila({ categoria_familia: null })], new Set(["empaque"])).productos[0].admitePrecioCero).toBe(false);
+  });
+
+  // La base es la que niega (`revisar_producto_censo`, 20261012190000): si deja de mirar las variantes activas en 0 o cambia su hint,
+  // la web estaría adelantando otra regla.
+  it("coincide con lo que la base niega: variantes activas en 0, fuera de Empaque, con el hint sin_precio", () => {
+    const sql = readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", "20261012190000_precio_cero_solo_empaque.sql"), "utf8");
+    expect(sql).toMatch(/vc\.activo and vc\.precio <= 0/);
+    expect(sql).toMatch(/fn_categoria_admite_precio_cero/);
+    expect(sql).toContain("hint = 'sin_precio'");
+    expect(HINTS_REVISION.has("sin_precio")).toBe(true);
+    const delSql = [...sql.matchAll(/using (?:errcode = '42501', )?hint = '([a-z_]+)'/g)].map((m) => m[1]);
+    for (const h of delSql) expect(HINTS_REVISION.has(h)).toBe(true);
+  });
+});
+
 describe("textosRevision", () => {
   it("aprobar es corto y tranquilo; rechazar dice que es permanente y que existe Descontinuar", () => {
     const a = textosRevision("aprobar", "Blusa Emma");
@@ -151,8 +189,8 @@ describe("mensajeDeRevision", () => {
     expect(mensajeDeRevision({ message: msg, hint: "con_ordenes_abiertas", code: "P0001" }, "rechazar la prenda")).toBe(msg);
     expect(mensajeDeRevision({ message: "Solo quien edita el catálogo puede aprobar…", hint: "sin_permiso", code: "42501" }, "aprobar la prenda")).toBe("Solo quien edita el catálogo puede aprobar…");
   });
-  it("lo demás pasa por el traductor de siempre (red caída: no se guardó nada)", () => {
-    expect(mensajeDeRevision({ message: "Failed to fetch" }, "aprobar la prenda")).toMatch(/No se pudo aprobar la prenda: la conexión falló/);
+  it("lo demás pasa por el traductor de siempre (red caída: no se sabe si se guardó, ADR-0410)", () => {
+    expect(mensajeDeRevision({ message: "Failed to fetch" }, "aprobar la prenda")).toMatch(/mientras se intentaba aprobar la prenda: no podemos confirmar si llegó a guardarse/);
   });
   it("«ya se revisó» pide refrescar la lista; lo demás no", () => {
     expect(yaSeRevisoOtraVez({ message: "x", hint: "ya_revisada" })).toBe(true);

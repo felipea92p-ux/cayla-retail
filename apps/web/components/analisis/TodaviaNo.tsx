@@ -5,7 +5,7 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Anillo, ChipEstado, pct, Racha, TilePrenda, NombreCorto } from "@/components/analisis/piezas";
 import type { PreparacionAnalisis } from "@/lib/analisis-tipos";
 import { esTallaUnica } from "@/lib/analisis-reglas";
-import { META_CON_PRENDA as META, pasoParaHablar, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
+import { lineasDeLoQueFalta, META_CON_PRENDA as META, pasoParaHablar, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
 import { DIAS_SOSTENIDOS, fechaCorta } from "@/lib/motor-demanda-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Hourglass } from "lucide-react";
@@ -26,17 +26,19 @@ function faltaPrincipal(p: PreparacionAnalisis | undefined): string {
 
 /** Los tres anillos de las condiciones, con el botón de lo que falta (si la cuenta ve esa pantalla). */
 export function AnillosCondiciones({ p }: { p: PreparacionAnalisis | undefined }) {
-  const { acceso } = useAnalisis();
+  const { acceso, datos } = useAnalisis();
   const v = ventas30(p);
   const ident = ventasConPrendaDe100(p) ?? 0;
   const piso = cumple(p, "piso_cuadrado");
   const almacen = cumple(p, "almacen_contado");
+  // El botón registra lo que todavía se puede: las pendientes (ADR-0357, act. 2026-10-14); la misma regla de «Todavía no» y Frescura.
+  const registrar = pasoParaHablar("venta_identificada", datos.porRegistrar.pendientes, acceso);
   return (
     <div className="anillos">
       <Anillo p={ident} meta={META} color={ident >= META ? "var(--color-verde)" : "var(--color-ambar)"} centro={v.unidades || p?.identificada14 != null ? `${ident}%` : "—"} et="Ventas con su prenda" sub={`meta: ${META} de cada 100`}>
-        {acceso.regularizar && v.sinPrenda > 0 && (
-          <Link href="/inventario/por-regularizar" className="btn-cayla btn-primario btn-s">
-            Registrar {v.sinPrenda}
+        {registrar && !cumple(p, "venta_identificada") && (
+          <Link href={registrar.href} className="btn-cayla btn-primario btn-s">
+            {registrar.texto}
           </Link>
         )}
       </Anillo>
@@ -123,6 +125,7 @@ export function HoyTodaviaNo() {
             </b>{" "}
             · misma regla que CAYLA Global
           </p>
+          <LineasDeLoQueFalta p={mia} />
         </div>
       </section>
 
@@ -176,7 +179,7 @@ export function HoyTodaviaNo() {
             datos.noHabia.slice(0, 5).map((n, k) => (
               <div key={k} className="nh-f">
                 <span>{n.que}</span>
-                <span>{fechaCorta(n.dia)}</span>
+                <span>{n.dia ? fechaCorta(n.dia) : "—"}</span>
               </div>
             ))
           )}
@@ -209,6 +212,23 @@ export function HoyTodaviaNo() {
   );
 }
 
+/**
+ * Desde cuándo puede cumplirse «ventas con su prenda» y cuántas ya se cerraron sin prenda (esas no se registran: por eso el botón registra
+ * menos de las que faltan). ADR-0357, act. 2026-10-14. Nada si ya se cumple.
+ */
+export function LineasDeLoQueFalta({ p }: { p: PreparacionAnalisis | undefined }) {
+  const { datos } = useAnalisis();
+  const { cerradas, fecha } = lineasDeLoQueFalta(p, datos.porRegistrar);
+  if (!cerradas && !fecha) return null;
+  return (
+    <p className="b-nota" style={{ margin: "8px 0 0" }}>
+      {fecha}
+      {fecha && cerradas && " "}
+      {cerradas}
+    </p>
+  );
+}
+
 /** Lo que sigue faltando después de lo principal, en palabras de tienda: «contar el almacén». */
 const TEXTO_FALTA: Record<"venta_identificada" | "piso_cuadrado" | "almacen_contado", string> = {
   venta_identificada: `${DIAS_SOSTENIDOS} días cobrando con la prenda`,
@@ -226,8 +246,9 @@ export function VistaTodaviaNo() {
   const faltan = (mia?.condiciones ?? []).filter((c) => !c.cumple).map((c) => c.clave);
   const primera = faltan[0] ?? null;
   const despues = faltan.slice(1).map((c) => TEXTO_FALTA[c]);
-  // El botón de lo que falta primero, si la cuenta ve esa pantalla.
-  const boton = pasoParaHablar(primera, v.sinPrenda, acceso);
+  // El botón de lo que falta primero, si la cuenta ve esa pantalla: registrar cuenta las pendientes, no todo lo que falta.
+  const boton = pasoParaHablar(primera, datos.porRegistrar.pendientes, acceso);
+  const lineas = lineasDeLoQueFalta(mia, datos.porRegistrar);
   return (
     // La pieza única de vacío (ADR-0358, ronda 5): el reloj dice «todavía no», el título lo que falta primero; el anillo, la racha y
     // los botones siguen debajo, como antes. El chip «Sin datos» repetía el título y se fue.
@@ -266,6 +287,8 @@ export function VistaTodaviaNo() {
           </>
         )}
         {despues.length > 0 && <> Después: {despues.join(" y ")}.</>}
+        {lineas.fecha && <> {lineas.fecha}</>}
+        {lineas.cerradas && <> {lineas.cerradas}</>}
       </Vacio>
     </section>
   );

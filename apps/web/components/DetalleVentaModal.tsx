@@ -3,8 +3,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Printer, WalletCards } from "lucide-react";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { WalletCards } from "lucide-react";
+import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { BoletaA4 } from "@/components/BoletaA4";
 import { ReciboTermico } from "@/components/ReciboTermico";
 import { CorregirPagoModal } from "@/components/CorregirPagoModal";
@@ -22,6 +22,7 @@ import {
   textoNumeroRecibo,
 } from "@/lib/recibo-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 const money = (n: number) => "S/" + n.toFixed(2);
 
@@ -132,7 +133,7 @@ export function DetalleVentaModal({
       titulo="Detalle de la venta"
       subtitulo={ubicacionNombre}
       onClose={onClose}
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) => {
         if (carga.fase === "cargando")
@@ -177,7 +178,7 @@ export function DetalleVentaModal({
             })
           : null;
         return (
-          <div className="space-y-4">
+          <div data-guia="historial.detalle" className="space-y-4">
             <div className="card-cayla p-5 text-center">
               <p className="font-display text-3xl text-tinta">
                 {money(d.total)}
@@ -305,23 +306,12 @@ export function DetalleVentaModal({
 
             <div className="space-y-2">
               <div className="flex flex-wrap gap-2.5">
-                <button
-                  type="button"
-                  className={`${botonPrimario} inline-flex items-center justify-center gap-2`}
-                  disabled={!imprimible || imprimiendo !== null}
-                  onClick={() => setImprimiendo("ticket")}
-                >
-                  <Printer size={14} aria-hidden /> Imprimir ticket
-                </button>
-                <button
-                  type="button"
-                  className={`${botonCancelar} inline-flex items-center justify-center gap-2`}
-                  disabled={!imprimible || imprimiendo !== null}
-                  onClick={() => setImprimiendo("a4")}
-                >
-                  <Printer size={14} aria-hidden /> Imprimir{" "}
-                  {d.recibo?.tipo === "factura" ? "factura" : "boleta"} A4
-                </button>
+                <BotonImprimir peso="primario" className="flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => setImprimiendo("ticket")}>
+                  Imprimir ticket
+                </BotonImprimir>
+                <BotonImprimir className="flex-1" disabled={!imprimible || imprimiendo !== null} onClick={() => setImprimiendo("a4")}>
+                  Imprimir {d.recibo?.tipo === "factura" ? "factura" : "boleta"} A4
+                </BotonImprimir>
               </div>
               {!permiso.ok && (
                 <p className="text-xs text-tinta/65">{permiso.motivo}</p>

@@ -61,7 +61,12 @@ export type TableroNotasCredito = {
  */
 export async function getTableroNotasCredito(): Promise<TableroNotasCredito> {
   const supabase = await createClient();
-  const [{ data, error }, directorio] = await Promise.all([supabase.rpc("notas_credito_tablero"), getProveedores()]);
+  const [{ data, error }, directorio, adjuntas] = await Promise.all([
+    supabase.rpc("notas_credito_tablero"),
+    getProveedores(),
+    // ADR-0362 fase 5b, actividad 3: qué documentos internos ya tienen la nota del proveedor.
+    supabase.rpc("fn_notas_proveedor_tablero" as never),
+  ]);
 
   const proveedores: ProveedorConSaldo[] = directorio.map((p) => ({ id: p.id, nombre: p.nombre, saldoFavor: p.saldo_favor ?? 0, deuda: p.saldo ?? 0 }));
   const saldoPorProveedor = Object.fromEntries(proveedores.map((p) => [p.id, p.saldoFavor]));
@@ -71,7 +76,15 @@ export async function getTableroNotasCredito(): Promise<TableroNotasCredito> {
     throw new Error(`No se pudo leer el tablero de notas de crédito: ${error.message}`);
   }
 
-  const filas = (data ?? []).map(mapearFila);
+  // Sin la función nueva (la base todavía no tiene la actividad 3), ningún documento tiene su nota: se dibuja igual.
+  const notasDelProveedor = new Map<string, FilaTablero["notaProveedor"]>();
+  if (adjuntas.error && !faltaLaFuncion(adjuntas.error)) throw new Error(`No se pudo leer las notas de los proveedores: ${adjuntas.error.message}`);
+  for (const x of ((adjuntas.data ?? []) as Record<string, unknown>[])) {
+    if (x.nota_credito_id && x.nota_proveedor_id) {
+      notasDelProveedor.set(String(x.nota_credito_id), { id: String(x.nota_proveedor_id), serie: String(x.serie_numero ?? ""), fecha: String(x.fecha ?? "").slice(0, 10) });
+    }
+  }
+  const filas = (data ?? []).map(mapearFila).map((f) => ({ ...f, notaProveedor: notasDelProveedor.get(f.id) ?? null }));
   const conLibro = [...new Set([...filas.map((f) => f.proveedorId), ...proveedores.filter((p) => p.saldoFavor > 0).map((p) => p.id)])];
   const libros = await Promise.all(
     conLibro.map(async (id) => (exigir(await supabase.rpc("fn_proveedor_creditos", { p_proveedor_id: id, p_limite: 200 }), "el libro del saldo a favor") as Record<string, unknown>[]).map((m) => mapearMovimiento(m, id))),
@@ -112,6 +125,7 @@ function mapearFila(f: FilaCruda): FilaTablero {
     cerradoEn: t("cerrado_en"),
     creadoEn: String(f.created_at ?? ""),
     resuelto: f.resuelto !== false,
+    notaProveedor: null,
   };
 }
 

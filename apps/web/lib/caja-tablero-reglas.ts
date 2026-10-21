@@ -17,20 +17,21 @@ import { ORDEN_METODOS, type MetodoRitmo } from "./caja-panel-reglas";
    Cobrado en el turno
    ------------------------------------------------------------------ */
 
-export type MetodoCobrado = { clave: "efectivo" | "tarjeta" | "yape" | "transferencia" | "otro"; texto: string; monto: number };
+export type MetodoCobrado = { clave: "efectivo" | "tarjeta" | "yape" | "transferencia" | "qr" | "otro"; texto: string; monto: number };
 
 const TEXTO_METODO: Record<MetodoCobrado["clave"], string> = {
   efectivo: "Efectivo",
   tarjeta: "Tarjeta",
   yape: "Yape / Plin",
   transferencia: "Transferencia",
+  qr: "QR",
   otro: "Otro",
 };
-const ORDEN_METODO: MetodoCobrado["clave"][] = ["efectivo", "tarjeta", "yape", "transferencia", "otro"];
+const ORDEN_METODO: MetodoCobrado["clave"][] = ["efectivo", "tarjeta", "yape", "transferencia", "qr", "otro"];
 
-/** A qué forma de pago de «Cobrado» pertenece un método de `venta_pagos`: Yape y Plin juntos, lo desconocido en «Otro». */
+/** A qué forma de pago de «Cobrado» pertenece un método de `venta_pagos`: Yape y Plin juntos, el QR aparte (es un medio real del mostrador), lo desconocido en «Otro». */
 export function claveDeMetodo(metodo: string): MetodoCobrado["clave"] {
-  return metodo === "plin" || metodo === "yape" ? "yape" : metodo === "efectivo" || metodo === "tarjeta" || metodo === "transferencia" ? metodo : "otro";
+  return metodo === "plin" || metodo === "yape" ? "yape" : metodo === "efectivo" || metodo === "tarjeta" || metodo === "transferencia" || metodo === "qr" ? metodo : "otro";
 }
 
 /**
@@ -61,7 +62,7 @@ export function cobradoDelTurno(porMetodo: Partial<Record<string, number>>): { t
  *  (`soles`). El redondeo no es una forma de pago: no suma a lo cobrado, y la nota lo dice para que nadie busque esos céntimos. */
 export function notaDeRedondeo(redondeo: number, soles: (n: number) => string): string | null {
   if (!(redondeo > 0)) return null;
-  return `− ${soles(redondeo)} de redondeo en efectivo: se cobra al múltiplo de S/ 0.10, hacia abajo, y no suma a lo cobrado.`;
+  return `− ${soles(redondeo)} de redondeo en efectivo: se cobra al múltiplo de S/\u00a00.10, hacia abajo, y no suma a lo cobrado.`;
 }
 
 /* ------------------------------------------------------------------
@@ -150,7 +151,7 @@ export type Cuadre = { clave: ClaveCuadre; texto: string; diferencia: number };
 export function cuadreDe(diferencia: number): Cuadre {
   const d = redondear(diferencia);
   if (Math.abs(d) < 0.01) return { clave: "ok", texto: "Cuadró", diferencia: 0 };
-  const texto = `${d > 0 ? "Sobró" : "Faltó"} S/ ${Math.abs(d).toFixed(2)}`;
+  const texto = `${d > 0 ? "Sobró" : "Faltó"} S/\u00a0${Math.abs(d).toFixed(2)}`;
   return { clave: Math.abs(d) <= TOLERANCIA_CUADRE ? "poco" : "mal", texto, diferencia: d };
 }
 

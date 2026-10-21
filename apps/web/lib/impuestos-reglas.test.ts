@@ -7,6 +7,7 @@ import {
   csvRegistroVentas,
   csvResumenIgv,
   delAnio,
+  diaDelRegistro,
   estadoMes,
   fechaPle,
   leerFilaCompras,
@@ -133,6 +134,13 @@ describe("leer lo que devuelve la base", () => {
     expect(p.renta.tasa).toBeNull();
     expect(p.revisar.boletas.proveedores).toEqual(["Bodega"]);
     expect(p.revisar.sinComprobante).toEqual({ n: 0, total: 0, alegra: 0 });
+    // Sin el aviso (una base de antes de la fase 6 · actividad 8), nada perdido.
+    expect(p.revisar.igvPerdido).toEqual({ n: 0, igv: 0 });
+  });
+
+  it("el IGV perdido por pagar sin banco (fase 6 · actividad 8): cuántos pagos y cuánto IGV, ya restado del crédito", () => {
+    const p = leerPanelImpuestos({ mes: "2026-10-01", revisar: { igv_perdido: { n: 2, igv: "152.54" } } });
+    expect(p.revisar.igvPerdido).toEqual({ n: 2, igv: 152.54 });
   });
 });
 
@@ -144,6 +152,8 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(valorEnCasilla(fila("igv", "2011-03-01", 0.18))).toBe("18");
     expect(valorEnCasilla(fila("renta_pago_cuenta", "2026-01-01", 0.015))).toBe("1.5");
     expect(valorEnCasilla(fila("uit", "2026-01-01", 5500))).toBe("5500");
+    expect(valorEnCasilla(fila("tope_planilla_movilidad", "2026-10-01", 45.2))).toBe("45.20");
+    expect(valorEnCasilla(fila("saldo_favor_igv", "2026-10-01", 12345.6))).toBe("12345.60"); // soles, con sus céntimos (ADR-0433, act. 4b)
   });
 
   it("lo tipeado se guarda como la base lo pide: la tasa como fracción", () => {
@@ -152,6 +162,18 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(parsearParametro("renta_pago_cuenta", "1,5")).toEqual({ ok: true, valor: 0.015 });
     expect(parsearParametro("uit", "S/ 5,500")).toEqual({ ok: true, valor: 5500 });
     expect(parsearParametro("umbral_uit", "300")).toEqual({ ok: true, valor: 300 });
+    expect(parsearParametro("tope_planilla_movilidad", "S/ 45.20")).toEqual({ ok: true, valor: 45.2 });
+    expect(parsearParametro("tope_planilla_movilidad", "45,2")).toEqual({ ok: true, valor: 45.2 });
+  });
+
+  it("el saldo a favor de IGV con que CAYLA arrancó (ADR-0433, act. 4b): soles, con céntimos, miles con coma, y el cero vale", () => {
+    expect(parsearParametro("saldo_favor_igv", "S/ 12,345.67")).toEqual({ ok: true, valor: 12345.67 });
+    expect(parsearParametro("saldo_favor_igv", "12345,5")).toEqual({ ok: true, valor: 12345.5 });
+    expect(parsearParametro("saldo_favor_igv", "0")).toEqual({ ok: true, valor: 0 }); // declarar que no traía saldo es un dato
+    expect(parsearParametro("saldo_favor_igv", "-5").ok).toBe(false);
+    expect(parsearParametro("saldo_favor_igv", "10000001").ok).toBe(false);
+    expect(parsearParametro("saldo_favor_igv", "").ok).toBe(false);
+    expect(parsearParametro("saldo_favor_igv", "mucho").ok).toBe(false);
   });
 
   it("y rechaza lo que la base rechazaría, con palabras de la tienda", () => {
@@ -160,6 +182,8 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(parsearParametro("umbral_uit", "1650000").ok).toBe(false);
     expect(parsearParametro("uit", "").ok).toBe(false);
     expect(parsearParametro("uit", "cinco mil").ok).toBe(false);
+    expect(parsearParametro("tope_planilla_movilidad", "0").ok).toBe(false);
+    expect(parsearParametro("tope_planilla_movilidad", "1500").ok).toBe(false);
   });
 
   it("el de un año y el que rige ese año (si no tiene, el último de antes)", () => {
@@ -169,6 +193,31 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(vigenteEnAnio(ps, "uit", 2025)?.valor).toBe(5350);
     expect(vigenteEnAnio(ps, "uit", 2024)).toBeNull();
     expect(aniosDeRegimen(ps, 2026, [2027])).toEqual([2027, 2026]);
+    // El tope de la planilla rige desde cualquier fecha: no suma años a la tabla del régimen. El saldo de IGV, tampoco (rige desde el día 1 de un mes).
+    expect(aniosDeRegimen([...ps, fila("tope_planilla_movilidad", "2024-05-01", 45.2), fila("saldo_favor_igv", "2023-03-01", 100)], 2026)).toEqual([2026]);
+  });
+});
+
+describe("quién puso cada vigencia, y qué día (Configuración ▸ Impuestos)", () => {
+  it("el día es el de Lima: lo puesto a las 20:00 del 13 de octubre es del 13, aunque en UTC ya sea el 14", () => {
+    // Como lo manda la base (timestamptz en UTC, con microsegundos): 2026-10-14 01:00 UTC = 2026-10-13 20:00 en Lima.
+    const p = leerParametro({ nombre: "igv", vigente_desde: "2011-03-01", valor: 0.18, registrado_por: "Felipe Alvarez", registrado_en: "2026-10-14T01:00:00.123456+00:00", correcciones: 1 });
+    expect(diaDelRegistro(p.registradoEn)).toBe("13 oct 2026");
+    // Lo que se vio en la pantalla el 2026-10-13 a las 19:50 de Lima: decía «14 oct 2026».
+    expect(diaDelRegistro("2026-10-14T00:50:00+00:00")).toBe("13 oct 2026");
+  });
+
+  it("el día cambia a la medianoche de Lima, no a la de UTC; el año también", () => {
+    expect(diaDelRegistro("2026-10-14T04:59:00+00:00")).toBe("13 oct 2026"); // 23:59 en Lima
+    expect(diaDelRegistro("2026-10-14T05:00:00+00:00")).toBe("14 oct 2026"); // 00:00 en Lima
+    expect(diaDelRegistro("2027-01-01T01:00:00+00:00")).toBe("31 dic 2026"); // 20:00 del 31 de diciembre en Lima
+    expect(diaDelRegistro("2026-10-13T20:00:00-05:00")).toBe("13 oct 2026"); // con la hora de Lima escrita
+  });
+
+  it("sin instante, o con uno que no se lee, no inventa un día", () => {
+    expect(diaDelRegistro(null)).toBeNull();
+    expect(diaDelRegistro("")).toBeNull();
+    expect(diaDelRegistro("ayer")).toBeNull();
   });
 });
 
@@ -236,6 +285,15 @@ describe("registros para el contador", () => {
     expect(r.filas).toContainEqual(["Saldo a favor que pasa al mes siguiente", "234.00"]);
     expect(r.filas).toContainEqual(["Régimen", "sin configurar"]);
     expect(r.filas).toContainEqual(["Pago a cuenta de renta", ""]);
+    expect(r.filas).toContainEqual(["IGV perdido por bancarización: pagos en efectivo o desde un fondo (ya restado de las líneas de facturas)", "0.00"]);
+  });
+
+  it("el resumen dice cuánto IGV se perdió por pagar sin banco (ya restado de cada línea de facturas)", () => {
+    const panel = leerPanelImpuestos({ mes: "2026-10-01", foco: { mes: "2026-10-01", credito_gastos: 30 }, revisar: { igv_perdido: { n: 1, igv: 152.54 } } });
+    expect(csvResumenIgv(panel).filas).toContainEqual([
+      "IGV perdido por bancarización: pagos en efectivo o desde un fondo (ya restado de las líneas de facturas)",
+      "152.54",
+    ]);
   });
 
   it("el CSV lleva BOM, comas y comillas escapadas", () => {

@@ -1,8 +1,11 @@
 "use client";
 
 import { useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { ArrowRight } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { Volver } from "@/components/ui/Volver";
 import { Pestanas } from "@/components/ui/Pestanas";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ConNumero, Control, FotoConMarcas, Renglon, RutaDeClics, Ventana, type Marca } from "@/components/GuiaImpresionVisuales";
 import { MEDIDAS, sistemaDelEquipo, type Sistema } from "@/lib/guia-impresion-reglas";
 import { COMANDO_INSTALAR } from "@/lib/mac-etiquetas";
@@ -338,7 +341,7 @@ function GuiaImpresion({ onClose }: { onClose: () => void }) {
       titulo="Guía de impresión de etiquetas"
       subtitulo={`Brother QL-1110NWB, rollo de ${anchoRollo} mm, etiqueta de ${PAPEL}. Se configura una sola vez por computadora.`}
       onClose={onClose}
-      ancho="sm:max-w-5xl"
+      ancho="sm:max-w-5xl" /* unificar-fijo: la guía de impresión dibuja la hoja de etiquetas a tamaño real: es de diseño propio */
       variante="papel"
     >
       {(cerrar) => (
@@ -389,10 +392,10 @@ function GuiaImpresion({ onClose }: { onClose: () => void }) {
             <div className="min-w-0">{paso.visual({ activa, onActiva: setActiva })}</div>
 
             <div className="min-w-0 space-y-4">
-              <h3 className="font-display text-xl leading-snug text-tinta">
+              <TituloSeccion nivel={3}>
                 <span className="mr-2 text-taupe-profundo tabular-nums">{indice + 1}.</span>
                 {paso.titulo}
-              </h3>
+              </TituloSeccion>
               <ol className="space-y-1.5">
                 {paso.acciones.map((a, i) => {
                   const encendida = a.marca !== undefined && activa === a.marca;
@@ -436,10 +439,14 @@ function GuiaImpresion({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
+          {/* Como todo paso a paso (ADR-0358, ronda 17): volver es la flecha redonda, que no se dibuja en el primer paso, y
+              «Siguiente» lleva su flecha. El lugar de la flecha se guarda para que «Paso 1 de 7» no salte de sitio. */}
           <div className="mt-6 flex items-center justify-between gap-3 border-t border-sand pt-4">
-            <button type="button" className="btn-cayla btn-secundario" onClick={() => ir(indice - 1)} disabled={indice === 0}>
-              ← Anterior
-            </button>
+            {indice === 0 ? (
+              <span aria-hidden className="h-[34px] w-[34px] shrink-0" />
+            ) : (
+              <Volver onClick={() => ir(indice - 1)} a="Volver al paso anterior" />
+            )}
             <span className="text-xs tabular-nums text-taupe-profundo">
               Paso {indice + 1} de {pasos.length}
             </span>
@@ -449,7 +456,10 @@ function GuiaImpresion({ onClose }: { onClose: () => void }) {
               </button>
             ) : (
               <button type="button" className="btn-cayla btn-primario" onClick={() => ir(indice + 1)}>
-                Siguiente →
+                <span className="flex items-center gap-2">
+                  Siguiente
+                  <ArrowRight aria-hidden className="-my-1 h-4 w-4 shrink-0" />
+                </span>
               </button>
             )}
           </div>

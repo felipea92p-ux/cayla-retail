@@ -9,6 +9,7 @@
 
 import { ARBOL, rutaActiva, type Nodo } from "./menu";
 import { MODULOS, type ClaveModulo } from "./modulos";
+import { horaLima } from "./fechas-lima";
 
 /** Los módulos que ya anotan su actividad. Crece con cada migración que suma los disparadores de un módulo, y sale en el
  *  orden del catálogo (el de Roles y accesos). `actividad-reglas.test.ts` falla si una migración anota en un módulo que
@@ -19,6 +20,21 @@ const ANOTAN: ReadonlySet<ClaveModulo> = new Set<ClaveModulo>([
   "existencias", "conteos", "traslados", "productos", "liquidacion", "rendimiento", "recibir", "colaboradores", "roles", "configuracion",
   // Órdenes de compra (ADR-0362, 20261010235000 y 20261010235500): crear, editar y anular anotan su línea, sin montos.
   "ordenes_compra",
+  // Proveedores (ADR-0362, fase 5a, 20261013015000): «Llegó la reposición» a mano anota quién marcó lo que repuso el proveedor.
+  "proveedores",
+  // Órdenes de insumos del Taller (ADR-0362, fase 7, 20261013040000): crear, editar y anular anotan su línea, sin montos ni cantidades.
+  "ordenes_insumos",
+  // Producción (ADR-0400, 20261014154000): abrir una orden con sus fases anota su línea («abrió la OP-000012 de Blusa Marina: 50 prendas · afuera: Costura con …»), sin montos.
+  "produccion",
+  // Notas de crédito (ADR-0362, fase 5b, 20261015150000): «Llegó su nota de crédito» anota quién adjuntó la nota del proveedor, sin montos.
+  "notas_credito",
+  // Vitrina web (ADR-0408, actividad 3, 20261014225000): mostrar, ocultar, el precio web y Lo nuevo anotan su línea con quién lo hizo.
+  "vitrina_web",
+  // Campañas de la tienda web (20261021161000): crear y cambiar el diseño de una campaña anota su línea con quién lo hizo.
+  "campanas_web",
+  // Recomendaciones (ADR-0408, 20261015135000): marcar como leída, responder, archivar y sacar del archivo anotan su línea, sin el nombre
+  // ni el texto del cliente.
+  "recomendaciones",
 ]);
 export const MODULOS_CON_ACTIVIDAD: readonly ClaveModulo[] = MODULOS.map((m) => m.clave).filter((c) => ANOTAN.has(c));
 
@@ -155,11 +171,6 @@ export function desdeDe(periodo: Periodo, ahora: Date): string | null {
 }
 
 const FECHA_LARGA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", weekday: "long", day: "numeric", month: "long" });
-const HORA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false });
-
-export function horaLima(iso: string): string {
-  return HORA.format(new Date(iso));
-}
 
 /** «Hoy», «Ayer» o «jueves, 24 de setiembre», en hora de Lima. */
 export function etiquetaDelDia(iso: string, ahora: Date): string {
@@ -191,7 +202,7 @@ export function quien(f: Pick<FilaActividad, "persona_nombre">): string {
 
 /** La línea chica de debajo: hora, aparato, sede (solo si se miran varias) y si fue una venta de prueba. */
 export function pieDeFila(f: FilaActividad, opciones: { conSede: boolean }): string {
-  const partes = [horaLima(f.ocurrio_at)];
+  const partes = [horaLima(f.ocurrio_at) ?? "—"];
   if (f.terminal_nombre) partes.push(f.terminal_nombre);
   if (opciones.conSede && f.ubicacion_nombre) {
     partes.push(f.ubicacion_destino_nombre ? `${f.ubicacion_nombre} → ${f.ubicacion_destino_nombre}` : f.ubicacion_nombre);

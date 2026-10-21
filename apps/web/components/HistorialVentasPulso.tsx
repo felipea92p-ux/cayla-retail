@@ -1,29 +1,28 @@
 "use client";
 
-import { useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ChartColumn } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
-import { NOMBRE_METODO_HISTORIAL, agruparEnSemanas, pulsoDeVentas } from "@/lib/ventas-historial-reglas";
+import { NOMBRE_METODO_HISTORIAL, agruparEnSemanas } from "@/lib/ventas-historial-reglas";
 import type { TotalesHistorial } from "@/lib/ventas-historial";
 import { BarraApilada } from "@/components/ui/BarraApilada";
+import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
 
 // El pulso del período (Ventas ▸ Historial, ADR-0147), en la columna lateral: lo importante son las ventas y esto las
-// acompaña, no las tapa. Cada día es un HILO vertical —la urdimbre del textil— y una curva de tendencia lo cruza —la
-// trama—; el mejor día lleva un nudo (el mismo de la línea de tiempo) y una línea punteada marca el promedio. Al pasar
-// el mouse por el dibujo, el día se enciende y su cifra aparece arriba. Debajo, los datos del período y cómo se pagó.
+// acompaña, no las tapa. Cada día es una barra (las barras por tiempo del sistema, ronda 14 de /unificar; antes eran «hilos»
+// con una curva de tendencia): el mejor día en tinta y una raya punteada marca el promedio. Al pasar el mouse por una barra,
+// su día y su cifra aparecen arriba. Debajo, los datos del período y cómo se pagó.
 //
 // Todo es del RANGO completo, no de la página, y sale de la misma consulta que las cifras del encabezado. Una venta
 // anulada no cuenta. Con más de 120 días los hilos son semanas (cientos de hilos no se leen). Pasado el tope de 1000
 // ventas el dibujo sería de los días más recientes nada más: no se hace, y se dice.
 //
-// Movimiento: los hilos crecen desde el suelo en cascada y la tendencia se traza una vez (`anim-crece-y`, `anim-trazo`,
-// que exige `pathLength={1}`); la barra de pagos crece desde la izquierda. Nada en bucle; todo se apaga con
-// `prefers-reduced-motion`.
+// Movimiento: las barras crecen desde el suelo en cascada (el de la pieza) y la barra de pagos crece desde la izquierda.
+// Nada en bucle; todo se apaga con `prefers-reduced-motion`.
 
-const ANCHO = 300;
-const ALTO = 116;
-const MARGEN = { x: 6, arriba: 12, abajo: 14 };
 const MAX_HILOS = 120;
 
 const partes = (fecha: string) => {
@@ -60,24 +59,20 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
 
   const porSemana = porDia.length > MAX_HILOS;
   const dias = porSemana ? agruparEnSemanas(porDia) : porDia;
-  const pulso = pulsoDeVentas(dias, { ancho: ANCHO, alto: ALTO, margen: MARGEN });
-  const hayDibujo = !parcial && pulso.pico !== null && dias.length > 1;
+  // El mejor día (o semana) y el promedio: la barra en tinta y la raya punteada.
+  const pico = dias.reduce((m, d, i) => (d.total > (dias[m]?.total ?? 0) ? i : m), 0);
+  const promedio = dias.length > 0 ? dias.reduce((a, d) => a + d.total, 0) / dias.length : 0;
+  const hayDibujo = !parcial && (dias[pico]?.total ?? 0) > 0 && dias.length > 1;
   const cobrado = porMetodo.reduce((s, m) => s + m.monto, 0);
 
   // Lo que dice la lectura de arriba: el día bajo el puntero o, sin puntero, el mejor.
-  const enfocado = hayDibujo ? dias[activo ?? pulso.pico!.indice] : null;
+  const enfocado = hayDibujo ? dias[activo ?? pico] : null;
   const nombreDia = (fecha: string) => (porSemana ? `Semana del ${sinSemana(fecha)}` : conSemana(fecha));
 
-  function alMover(e: PointerEvent<SVGSVGElement>) {
-    const caja = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - caja.left) / caja.width) * ANCHO;
-    const i = Math.floor((x - MARGEN.x) / ((ANCHO - 2 * MARGEN.x) / dias.length));
-    setActivo(Math.min(dias.length - 1, Math.max(0, i)));
-  }
 
   return (
     <section aria-label="Ventas por día" className="anim-sube rounded-[20px] bg-papel p-5 ring-1 ring-tinta/[0.07]" style={{ "--i": 3 } as CSSProperties}>
-      <h2 className="text-sm font-bold text-tinta">{porSemana ? "Ventas por semana" : "Ventas por día"}</h2>
+      <TituloSeccion>{porSemana ? "Ventas por semana" : "Ventas por día"}</TituloSeccion>
       <p className="mt-0.5 text-xs text-tinta/60">{periodo}</p>
 
       {parcial ? (
@@ -95,55 +90,27 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
             </span>
           </p>
 
-          <svg
-            viewBox={`0 0 ${ANCHO} ${ALTO}`}
-            role="img"
-            aria-label={`Ventas ${porSemana ? "por semana" : "por día"}, ${periodo}. Mejor ${porSemana ? "semana" : "día"}: ${nombreDia(dias[pulso.pico!.indice].fecha)}, ${soles(dias[pulso.pico!.indice].total)}.`}
-            className="block h-auto w-full touch-pan-y overflow-visible"
-            onPointerMove={alMover}
-            onPointerLeave={() => setActivo(null)}
-          >
-            <line x1={MARGEN.x} x2={ANCHO - MARGEN.x} y1={pulso.base} y2={pulso.base} strokeWidth={1} className="stroke-tinta/20" />
-            {pulso.promedioY !== null && (
-              <line x1={MARGEN.x} x2={ANCHO - MARGEN.x} y1={pulso.promedioY} y2={pulso.promedioY} strokeWidth={1} strokeDasharray="3 4" strokeLinecap="round" className="stroke-tinta/30" />
-            )}
-            {pulso.barras.map((b, i) =>
-              b.alto > 0 ? (
-                <rect
-                  key={i}
-                  x={b.x - pulso.anchoBarra / 2}
-                  y={b.y}
-                  width={pulso.anchoBarra}
-                  height={b.alto}
-                  rx={pulso.anchoBarra / 2}
-                  className={`anim-crece-y transition-colors duration-150 ${i === pulso.pico?.indice || i === activo ? "fill-taupe" : "fill-taupe/50"}`}
-                  // Los hilos nacen del suelo, no del borde del dibujo (el origen por defecto de `anim-crece-y` es «bottom»).
-                  style={{ "--i": Math.min(i, 24), transformOrigin: `0 ${pulso.base}px` } as CSSProperties}
-                />
-              ) : (
-                <circle key={i} cx={b.x} cy={pulso.base} r={Math.max(0.9, pulso.anchoBarra / 2.4)} className={i === activo ? "fill-taupe" : "fill-tinta/20"} />
-              )
-            )}
-            <path d={pulso.hilo} fill="none" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" pathLength={1} className="anim-trazo stroke-taupe-profundo" />
-            {pulso.pico && (
-              <g className="anim-entra" style={{ "--i": 14 } as CSSProperties}>
-                <circle cx={pulso.pico.x} cy={pulso.pico.y} r={4.4} strokeWidth={1.4} className="fill-crema stroke-taupe" />
-                <circle cx={pulso.pico.x} cy={pulso.pico.y} r={1.7} className="fill-taupe" />
-              </g>
-            )}
-            {activo !== null && <circle cx={pulso.barras[activo].x} cy={pulso.base + 7} r={1.9} className="fill-taupe" />}
-            {/* La zona sensible: transparente y por encima de todo, para que el puntero se lea en cualquier parte del dibujo. */}
-            <rect x={0} y={0} width={ANCHO} height={ALTO} fill="transparent" />
-          </svg>
+          {/* Las barras por tiempo del sistema (ronda 14 de /unificar): el mejor día en tinta y la raya punteada del promedio; al pasar el
+              mouse, la lectura de arriba dice el día apuntado. */}
+          <BarrasTiempo
+            className="mt-1"
+            alto={110}
+            cifras="ninguna"
+            barras={dias.map((d) => ({ clave: d.fecha, valor: d.total, tip: `${nombreDia(d.fecha)} · ${soles(d.total)}` }))}
+            destacada={dias[pico].fecha}
+            referencia={{ valor: promedio }}
+            respuesta={{ onApuntar: (clave) => setActivo(clave === null ? null : dias.findIndex((d) => d.fecha === clave)) }}
+            etiqueta={`Ventas ${porSemana ? "por semana" : "por día"}, ${periodo}. Mejor ${porSemana ? "semana" : "día"}: ${nombreDia(dias[pico].fecha)}, ${soles(dias[pico].total)}.`}
+          />
           <div className="mt-1 flex justify-between text-[11px] text-tinta/50">
             <span>{sinSemana(dias[0].fecha)}</span>
             <span>{sinSemana(dias[dias.length - 1].fecha)}</span>
           </div>
         </>
       ) : (
-        <p className="mt-4 rounded-xl border border-dashed border-tinta/15 px-3 py-5 text-center text-xs leading-relaxed text-tinta/65">
+        <Vacio tamano="chico" className="mt-2 py-5" icono={<ChartColumn />}>
           {resumen.ventas === 0 ? "Sin ventas en este período." : "Solo hubo un día de ventas: todavía no hay dibujo."}
-        </p>
+        </Vacio>
       )}
 
       {!parcial && resumen.ventas > 0 && (

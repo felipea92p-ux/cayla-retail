@@ -1,26 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
-import {
-  aCambio,
-  aClienta,
-  aDevolucion,
-  aSeparacion,
-  agruparCompras,
-  COLUMNAS_CLIENTA,
-  type Clienta,
-  type FichaClienta,
-  type FilaCambio,
-  type FilaClienta,
-  type FilaCompra,
-  type FilaDevolucion,
-  type FilaSeparacion,
-} from "@/lib/clientas-reglas";
-import type { TextoClub, TipoTextoClub } from "@/lib/club-reglas";
 import { textosDelCartel, type TextosCartel } from "@/lib/club-cartel-reglas";
 import {
   aCifrasClientas,
   aClientaDeLista,
   desdeDePagina,
+  leerPaginaQueExiste,
   POR_PAGINA,
   type CifrasClientas,
   type ClientaDeLista,
@@ -33,57 +17,34 @@ import {
 // docs/datos/DECISIONES-2026-09-26-clientas.md sección H). Página (server) importa este archivo;
 // el panel cliente SOLO `clientas-reglas.ts` y `clientas-acciones.ts` (un Server Component nunca
 // llama código de un archivo "use client", y viceversa nunca debería hacer falta).
-export type { Clienta, CifrasClientas };
+export type { CifrasClientas };
 
-export type ListaClientas = { filas: ClientaDeLista[]; total: number; falla: string | null };
+/** `pagina` es la que de verdad trae `filas`: la de la URL, o la última que existe si esa ya no existe. */
+export type ListaClientas = { filas: ClientaDeLista[]; total: number; falla: string | null; pagina: number };
 
-/**
- * La lista de /clientas (ADR-0288 tanda 1f, `fn_clientas_lista`): una página del filtro y la búsqueda de la URL, con su sede,
- * su última compra y si es frecuente, calculados por la base sobre TODAS las fichas (no sobre las 50 de la vista). Si la base
- * todavía no tiene la función (migración 20260930210000 sin pegar), devuelve `falla` en vez de tumbar la pantalla
- * (principio 9): la pantalla lo dice y sigue con «+ Nuevo cliente».
- */
-export async function getListaClientas(p: ParamsLista): Promise<ListaClientas> {
-  const supabase = await createClient();
+async function leerPaginaDeClientas(supabase: Awaited<ReturnType<typeof createClient>>, p: ParamsLista): Promise<ListaClientas> {
   const { data, error } = await supabase.rpc("fn_clientas_lista", {
     p_termino: p.termino || undefined,
     p_filtro: p.filtro,
     p_limite: POR_PAGINA,
     p_desde: desdeDePagina(p.pagina),
   });
-  if (error) return { filas: [], total: 0, falla: `No se pudo leer la lista de clientes: ${error.message}` };
+  if (error) return { filas: [], total: 0, falla: `No se pudo leer la lista de clientes: ${error.message}`, pagina: p.pagina };
   const filas = (data ?? []) as FilaListaClienta[];
-  return { filas: filas.map(aClientaDeLista), total: filas[0]?.total ?? 0, falla: null };
+  return { filas: filas.map(aClientaDeLista), total: filas[0]?.total ?? 0, falla: null, pagina: p.pagina };
 }
 
-/** La ficha completa: la clienta más su actividad, LEÍDA de ventas/cambios/devoluciones/
- *  separaciones (nunca una tabla copia) — `fn_clienta_*` cruzan las tres sedes a propósito, ver
- *  esas funciones (20260928180000_clienta_actividad_y_exportar.sql): la ficha es de la marca, no
- *  de la sede donde compró. */
-export async function getFichaClienta(id: string): Promise<FichaClienta | null> {
+/**
+ * La lista de /clientas (ADR-0288 tanda 1f, `fn_clientas_lista`): una página del filtro y la búsqueda de la URL, con su sede,
+ * su última compra y si es frecuente, calculados por la base sobre TODAS las fichas (no sobre las de la página). Si la base
+ * todavía no tiene la función (migración 20260930210000 sin pegar), devuelve `falla` en vez de tumbar la pantalla
+ * (principio 9): la pantalla lo dice y sigue con «+ Nuevo cliente».
+ *
+ * Una `?pagina=` que ya no existe no deja una tabla vacía que diga «no hay clientes»: baja a la última (`leerPaginaQueExiste`).
+ */
+export async function getListaClientas(p: ParamsLista): Promise<ListaClientas> {
   const supabase = await createClient();
-  const [clienta, compras, cambios, devoluciones, separaciones] = await Promise.all([
-    supabase
-      .from("clientas")
-      .select(COLUMNAS_CLIENTA)
-      .eq("id", id)
-      .maybeSingle(),
-    supabase.rpc("fn_clienta_compras", { p_id: id }),
-    supabase.rpc("fn_clienta_cambios", { p_id: id }),
-    supabase.rpc("fn_clienta_devoluciones", { p_id: id }),
-    supabase.rpc("fn_clienta_separaciones", { p_id: id }),
-  ]);
-
-  const filaClienta = exigir(clienta, "la ficha del cliente") as FilaClienta | null;
-  if (!filaClienta) return null;
-
-  return {
-    clienta: aClienta(filaClienta),
-    compras: agruparCompras(exigir(compras, "sus compras") as FilaCompra[]),
-    cambios: (exigir(cambios, "sus cambios") as FilaCambio[]).map(aCambio),
-    devoluciones: (exigir(devoluciones, "sus devoluciones") as FilaDevolucion[]).map(aDevolucion),
-    separaciones: (exigir(separaciones, "sus apartados") as FilaSeparacion[]).map(aSeparacion),
-  };
+  return leerPaginaQueExiste(p.pagina, (pagina) => leerPaginaDeClientas(supabase, { ...p, pagina }));
 }
 
 /* ------------------------------------------------------------------
@@ -115,19 +76,11 @@ export async function getTiendasConWhatsapp(): Promise<{ tiendas: TiendaWhatsapp
  */
 export async function getTextosDelCartel(): Promise<{ textos: TextosCartel | null; falla: string | null }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_club_textos_legales");
+  const { data, error } = await supabase.rpc("fn_club_puntos_vigentes");
   if (error) return { textos: null, falla: `No se pudieron leer los beneficios del club: ${error.message}` };
   const textos = textosDelCartel(data);
-  if (!textos) return { textos: null, falla: "La base no dio completos los beneficios del club (el % del cumpleaños, el vale de cada año o lo que hace contar un año)." };
+  if (!textos) return { textos: null, falla: "La base no dio completa la configuración de los puntos del club (lo que se gana, lo que valen, el canje o el regalo de cumpleaños)." };
   return { textos, falla: null };
-}
-
-/** Los textos vigentes del club (`fn_club_textos_vigentes`), leídos del servidor. Vacío si la base todavía no los tiene. */
-export async function getTextosClub(): Promise<TextoClub[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_club_textos_vigentes");
-  if (error) return [];
-  return (data ?? []).map((t) => ({ tipo: t.tipo as TipoTextoClub, version: t.version, texto: t.texto }));
 }
 
 /** Las cifras de la cabecera de /clientas y la cuenta de cada píldora (como el spike del club, `fichasHTML`), contadas por la

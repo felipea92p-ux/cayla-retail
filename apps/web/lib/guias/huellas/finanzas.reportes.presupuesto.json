@@ -1,0 +1,13 @@
+{
+  "guia": "finanzas.reportes.presupuesto",
+  "ruta": "/finanzas/reportes/presupuesto",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 3,
+  "controles": {
+    "components/finanzas/PresupuestoPanel.tsx": [
+      "BotonDescargar «Descargar Excel»",
+      "Link «fin-presupuesto.cambiar»",
+      "Link «Ponerlos en Configuración»"
+    ]
+  }
+}

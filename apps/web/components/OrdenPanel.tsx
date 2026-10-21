@@ -1,10 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import * as Dialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
@@ -13,7 +11,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
+import { Cajon } from "@/components/ui/Cajon";
 import { MatrizOrdenTabla } from "@/components/MatrizOrden";
 import { ChipEntrega, semaforoDeOrden } from "@/components/OrdenTarjeta";
 import { OrdenCierre } from "@/components/OrdenCierre";
@@ -36,9 +34,8 @@ import {
 import type { OrdenProduccion } from "@/lib/produccion";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
-
-/** Debe coincidir con `.anim-cajon-salida` en globals.css. */
-const MS_SALIDA = 240;
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 const COLOR_PARTE = {
   tela: "bg-tinta",
@@ -72,22 +69,11 @@ export function OrdenPanel({
   onRevertir: () => void;
 }) {
   const router = useRouter();
-  const [saliendo, setSaliendo] = useState(false);
   const [cerrando, setCerrando] = useState(false); // el bloque de cierre por talla está abierto
   const [ocupada, setOcupada] = useState(false);
-  const pedirSalida = useCallback(() => setSaliendo(true), []);
   // Responsable (ADR-0161 act. d): cada cambio de etapa queda en `produccion_etapas_historial` con quien se elige aquí.
   // Un solo combo para todos los botones de etapa: son clics rápidos y pedir a quién en cada uno sería fricción.
   const responsable = useResponsable();
-  useEffect(() => {
-    if (!saliendo) return;
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const t = setTimeout(onCerrar, reducido ? 0 : MS_SALIDA);
-    return () => clearTimeout(t);
-  }, [saliendo, onCerrar]);
-  // Escape cierra el cajón solo si ningún control de adentro lo usó: con la lista del combo «Responsable» abierta, el
-  // primer Escape cierra la lista y el cajón sigue ahí (useEscapeLibre.ts).
-  const alEscape = useEscapeLibre(pedirSalida);
 
   const abierta = orden.estado === "en_proceso";
   // F8: una orden de producción cerrada deja prendas en el stock del Taller; el enlace lleva al traslado con el origen y las líneas ya puestas.
@@ -143,268 +129,253 @@ export function OrdenPanel({
   }
 
   return (
-    <Dialog.Root open onOpenChange={(a) => !a && pedirSalida()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className={`fixed inset-0 z-50 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] ${saliendo ? "anim-velo-salida" : "anim-velo"}`} />
-        <Dialog.Content
-          onEscapeKeyDown={alEscape}
-          aria-describedby={undefined}
-          className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[34rem] flex-col border-l border-sand bg-papel outline-none ${saliendo ? "anim-cajon-salida" : "anim-cajon"}`}
-        >
-          <header className="flex items-start justify-between gap-3 border-b border-sand px-6 pb-4 pt-5">
-            <div className="min-w-0">
-              <p className="label-cayla text-[11px] text-tinta/65">
-                {[
-                  orden.esMuestra ? "Muestra" : orden.categoria,
-                  `${orden.cantidadPlan} prendas`,
-                  orden.fechaEntrega ? `entrega ${diaMes(orden.fechaEntrega)}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-              <Dialog.Title className="font-display mt-1 text-2xl leading-tight text-tinta">{orden.referencia}</Dialog.Title>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                {abierta && <ChipEntrega entrega={entrega} />}
-                {orden.estado === "terminada" && <Chip tono="verde">Terminada · {orden.cantidadBuenas} buenas</Chip>}
-              </div>
+    <Cajon
+      onCerrar={onCerrar}
+      ancho="ancho"
+      sobre={[orden.esMuestra ? "Muestra" : orden.categoria, `${orden.cantidadPlan} prendas`, orden.fechaEntrega ? `entrega ${diaMes(orden.fechaEntrega)}` : null]
+        .filter(Boolean)
+        .join(" · ")}
+      titulo={orden.referencia}
+      debajo={
+        abierta || orden.estado === "terminada" ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {abierta && <ChipEntrega entrega={entrega} />}
+            {orden.estado === "terminada" && <Chip tono="verde">Terminada · {orden.cantidadBuenas} buenas</Chip>}
+          </div>
+        ) : undefined
+      }
+      claseCuerpo="space-y-7"
+      encimaDelPie={
+        llevarUrl ? (
+          <section aria-label="Siguiente paso" className="mx-5 mb-4 rounded-2xl border border-sand bg-crema p-3.5">
+            <p className="label-cayla text-[11px] text-tinta/65">Siguiente paso</p>
+            <p className="mt-1 text-[13px] text-tinta/80">
+              Las {orden.cantidadBuenas} prendas buenas están en el stock del Taller. Para venderlas hay que etiquetarlas y llevarlas a las tiendas: el traslado sale del Taller y cada tienda confirma lo que llegó.
+            </p>
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              <Link href={llevarUrl} className="btn-cayla btn-primario">
+                Llevarlas a las tiendas
+              </Link>
+              {/* ADR-0180: una etiqueta de precio por prenda buena; queda aquí para reimprimir mientras la orden siga cerrada. */}
+              <BotonImprimir href={urlEtiquetasDePrecio({ produccion: orden.id })}>Imprimir etiquetas de precio</BotonImprimir>
             </div>
-            <Dialog.Close
-              className="rounded-full p-2 text-tinta/65 outline-none transition-colors hover:bg-tinta/10 hover:text-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60"
-              aria-label="Cerrar"
-            >
-              <X className="h-4 w-4" />
-            </Dialog.Close>
-          </header>
-
-          <div className="min-h-0 flex-1 space-y-7 overflow-y-auto px-6 py-6">
-            {/* -------- etapas (una orden terminada ya no las necesita: importa lo que salió) -------- */}
-            {orden.estado !== "terminada" && (
-              <section aria-label="Etapas">
-                <h3 className="label-cayla mb-3 text-[11px] text-tinta/65">Etapas</h3>
-                {abierta && <ComboResponsable control={responsable} deshabilitado={ocupada} className="mb-4" />}
-                <ol className="grid grid-cols-3">
-                  {etapas.map((e, i) => {
-                    const estado = orden.etapas[e.clave] ?? "pendiente";
-                    const esActual = abierta && e.clave === actual;
-                    const previaHecha = i > 0 && orden.etapas[etapas[i - 1].clave] === "hecho";
-                    return (
-                      <li key={e.clave} className="relative pt-9 text-center">
-                        {i > 0 && (
-                          <>
-                            <span aria-hidden className="absolute left-[calc(-50%+1rem)] right-[calc(50%+1rem)] top-[13px] h-0.5 bg-sand" />
-                            <span
-                              aria-hidden
-                              className={`absolute left-[calc(-50%+1rem)] right-[calc(50%+1rem)] top-[13px] h-0.5 origin-left bg-verde transition-transform duration-700 ease-cayla ${previaHecha ? "scale-x-100" : "scale-x-0"}`}
-                            />
-                          </>
-                        )}
+          </section>
+        ) : undefined
+      }
+      pie={
+        <>
+          {abierta && !cerrando && (
+            <>
+              <Boton peso="primario" className="flex-1" onClick={() => setCerrando(true)}>
+                {orden.esMuestra ? "Dar por terminada" : "Pasar al stock"}
+              </Boton>
+              <Boton peso="peligro" onClick={onAnular}>
+                Anular
+              </Boton>
+            </>
+          )}
+          {abierta && cerrando && (
+            <Boton peso="discreto" className="flex-1" onClick={() => setCerrando(false)}>
+              Volver sin cerrar
+            </Boton>
+          )}
+          {orden.estado === "terminada" && (
+            <Boton peso="discreto" onClick={onRevertir}>
+              Revertir cierre
+            </Boton>
+          )}
+        </>
+      }
+    >
+      {(cerrar) => (
+        <>
+        {/* -------- etapas (una orden terminada ya no las necesita: importa lo que salió) -------- */}
+        {orden.estado !== "terminada" && (
+          <section aria-label="Etapas">
+            <TituloGrupo className="mb-3">Etapas</TituloGrupo>
+            {abierta && <ComboResponsable control={responsable} deshabilitado={ocupada} className="mb-4" />}
+            <ol className="grid grid-cols-3">
+              {etapas.map((e, i) => {
+                const estado = orden.etapas[e.clave] ?? "pendiente";
+                const esActual = abierta && e.clave === actual;
+                const previaHecha = i > 0 && orden.etapas[etapas[i - 1].clave] === "hecho";
+                return (
+                  <li key={e.clave} className="relative pt-9 text-center">
+                    {i > 0 && (
+                      <>
+                        <span aria-hidden className="absolute left-[calc(-50%+1rem)] right-[calc(50%+1rem)] top-[13px] h-0.5 bg-sand" />
                         <span
                           aria-hidden
-                          className={`absolute left-1/2 top-0 grid h-7 w-7 -translate-x-1/2 place-items-center rounded-full border-2 transition-colors duration-300 ${
-                            estado === "hecho"
-                              ? "border-verde bg-verde text-crema"
-                              : estado === "tercerizado"
-                                ? "border-ambar bg-ambar/10 text-ambar-profundo"
-                                : esActual
-                                  ? "border-tinta bg-papel text-tinta"
-                                  : "border-sand bg-papel text-tinta/50"
-                          }`}
+                          className={`absolute left-[calc(-50%+1rem)] right-[calc(50%+1rem)] top-[13px] h-0.5 origin-left bg-verde transition-transform duration-700 ease-cayla ${previaHecha ? "scale-x-100" : "scale-x-0"}`}
+                        />
+                      </>
+                    )}
+                    <span
+                      aria-hidden
+                      className={`absolute left-1/2 top-0 grid h-7 w-7 -translate-x-1/2 place-items-center rounded-full border-2 transition-colors duration-300 ${
+                        estado === "hecho"
+                          ? "border-verde bg-verde text-crema"
+                          : estado === "tercerizado"
+                            ? "border-ambar bg-ambar/10 text-ambar-profundo"
+                            : esActual
+                              ? "border-tinta bg-papel text-tinta"
+                              : "border-sand bg-papel text-tinta/50"
+                      }`}
+                    >
+                      {estado === "hecho" ? (
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-3.5 w-3.5 fill-none stroke-current stroke-[2.6]"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                         >
-                          {estado === "hecho" ? (
-                            <svg
-                              viewBox="0 0 24 24"
-                              className="h-3.5 w-3.5 fill-none stroke-current stroke-[2.6]"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M5 12.5l4.5 4.5L19 7.5" pathLength={1} className="trazo-linea anim-trazo" />
-                            </svg>
-                          ) : estado === "tercerizado" ? (
-                            <svg
-                              viewBox="0 0 24 24"
-                              className="h-3.5 w-3.5 fill-none stroke-current stroke-[2.4]"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M5 12h14M13 6l6 6-6 6" />
-                            </svg>
-                          ) : (
-                            <span className="text-xs font-semibold tabular-nums">{i + 1}</span>
-                          )}
-                        </span>
-                        <p className="text-[13px] font-semibold text-tinta">{e.etiqueta}</p>
-                        <p className="px-1 text-[11.5px] leading-snug text-tinta/65">
-                          {estado === "tercerizado" ? "Con maquila externa" : e.detalle}
-                        </p>
-                        {abierta && esActual && (
-                          <div className="mt-2.5 flex flex-col items-center gap-1.5">
-                            <Boton
-                              peso="primario"
-                              disabled={ocupada || !responsable.listo}
-                              className="!px-3 !py-2"
-                              onClick={() => fijarEtapa(e.clave, "hecho", estado, `${e.etiqueta} hecho`)}
-                            >
-                              Marcar hecho
-                            </Boton>
-                            <Boton
-                              peso="discreto"
-                              disabled={ocupada || !responsable.listo}
-                              className="!px-3 !py-2"
-                              onClick={() =>
-                                estado === "tercerizado"
-                                  ? fijarEtapa(e.clave, "pendiente", estado, `${e.etiqueta} volvió al Taller`)
-                                  : fijarEtapa(e.clave, "tercerizado", estado, `${e.etiqueta} salió a maquila externa`)
-                              }
-                            >
-                              {estado === "tercerizado" ? "Traer de vuelta" : "Enviar a maquila"}
-                            </Boton>
-                          </div>
-                        )}
-                        {abierta && estado === "hecho" && (
-                          <button
-                            type="button"
-                            disabled={ocupada || !responsable.listo}
-                            onClick={() => fijarEtapa(e.clave, "pendiente", estado, `${e.etiqueta} reabierta`)}
-                            className="mt-1.5 text-[11.5px] text-tinta/65 underline underline-offset-2 outline-none hover:text-tinta focus-visible:text-tinta disabled:opacity-50"
-                          >
-                            Reabrir
-                          </button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ol>
-              </section>
-            )}
-
-            {/* -------- qué se fabrica -------- */}
-            <section aria-label="Qué se fabrica">
-              <h3 className="label-cayla mb-3 text-[11px] text-tinta/65">
-                {orden.estado === "terminada" ? "Lo que salió · talla × color" : "Qué se fabrica · talla × color"}
-              </h3>
-              <MatrizOrdenTabla matriz={matriz} modo={orden.estado === "terminada" ? "resultado" : "plan"} />
-            </section>
-
-            {/* -------- costo (solo el líder) -------- */}
-            {esLider && (
-              <section aria-label="Costo de la corrida">
-                <h3 className="label-cayla mb-3 text-[11px] text-tinta/65">
-                  {orden.estado === "terminada" ? "Costo real de la corrida" : "Costo de la corrida"}
-                </h3>
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="font-display text-4xl leading-none tabular-nums text-tinta">
-                      {costo.total > 0 ? <CifraQueCuenta valor={orden.costoUnitario} formato="soles" alMontar /> : "—"}
+                          <path d="M5 12.5l4.5 4.5L19 7.5" pathLength={1} className="trazo-linea anim-trazo" />
+                        </svg>
+                      ) : estado === "tercerizado" ? (
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-3.5 w-3.5 fill-none stroke-current stroke-[2.4]"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M5 12h14M13 6l6 6-6 6" />
+                        </svg>
+                      ) : (
+                        <span className="text-xs font-semibold tabular-nums">{i + 1}</span>
+                      )}
+                    </span>
+                    <p className="text-[13px] font-semibold text-tinta">{e.etiqueta}</p>
+                    <p className="px-1 text-[11.5px] leading-snug text-tinta/65">
+                      {estado === "tercerizado" ? "Afuera con un servicio" : e.detalle}
                     </p>
-                    <p className="mt-1 text-xs text-tinta/65">
-                      por prenda · {soles(costo.total)} entre {orden.cantidadBuenas ?? orden.cantidadPlan}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    {sem && (
-                      <Chip tono={sem.tono === "gana" ? "verde" : sem.tono === "filo" ? "ambar" : "rojo"}>
-                        {sem.texto} · {Math.round(sem.margen * 100)}%
-                      </Chip>
-                    )}
-                    {orden.precioVenta > 0 && <p className="mt-1.5 text-xs text-tinta/65">precio de venta {soles(orden.precioVenta)}</p>}
-                    {sem?.sede && orden.precioMasBajo && (
-                      <p className="mt-0.5 text-xs text-tinta/65">
-                        el margen usa {soles(orden.precioMasBajo.precio)}, el precio propio de {sem.sede}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {costo.total > 0 && (
-                  <>
-                    {/* La barra es `<BarraApilada>` (ADR-0358): decorativa, las cifras del costo van debajo. */}
-                    <BarraApilada decorativa className="mt-4" alto={12} segmentos={costo.partes.map((p) => ({ clave: p.clave, nombre: p.clave, valor: p.parte, clase: COLOR_PARTE[p.clave] }))} />
-                    <ul className="mt-3 space-y-1.5 text-[13px]">
-                      {costo.partes.map((p) => (
-                        <li key={p.clave} className="flex items-center gap-2.5">
-                          <MuestraTramo clase={COLOR_PARTE[p.clave]} className="h-2.5 w-2.5 rounded-sm" />
-                          <span className="text-tinta/80">{p.etiqueta}</span>
-                          <span className="ml-auto tabular-nums text-tinta/75">{soles(p.valor)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                {sem && (
-                  <div className="mt-5">
-                    <div className="relative">
-                      <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full" aria-hidden>
-                        <span className="flex-[40] bg-rojo/25" />
-                        <span className="flex-[20] bg-ambar/30" />
-                        <span className="flex-[40] bg-verde/30" />
+                    {abierta && esActual && (
+                      <div className="mt-2.5 flex flex-col items-center gap-1.5">
+                        <Boton
+                          peso="primario"
+                          disabled={ocupada || !responsable.listo}
+                          className="!px-3 !py-2"
+                          onClick={() => fijarEtapa(e.clave, "hecho", estado, `${e.etiqueta} hecho`)}
+                        >
+                          Marcar hecho
+                        </Boton>
+                        <Boton
+                          peso="discreto"
+                          disabled={ocupada || !responsable.listo}
+                          className="!px-3 !py-2"
+                          onClick={() =>
+                            estado === "tercerizado"
+                              ? fijarEtapa(e.clave, "pendiente", estado, `${e.etiqueta} volvió al Taller`)
+                              : fijarEtapa(e.clave, "tercerizado", estado, `${e.etiqueta} salió afuera`)
+                          }
+                        >
+                          {estado === "tercerizado" ? "Traer de vuelta" : "Mandar afuera"}
+                        </Boton>
                       </div>
-                      <span
-                        aria-hidden
-                        className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-papel bg-tinta shadow-[0_0_0_1px_var(--color-tinta)] transition-[left] duration-700 ease-cayla"
-                        style={{
-                          left: `${posicionEnMedidor(sem.margen) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <div className="mt-2 flex justify-between text-[11px] text-tinta/65">
-                      <span>{LEYENDA_SEMAFORO.pierde}</span>
-                      <span>{LEYENDA_SEMAFORO.filo}</span>
-                      <span>{LEYENDA_SEMAFORO.gana}</span>
-                    </div>
-                  </div>
-                )}
-              </section>
-            )}
+                    )}
+                    {abierta && estado === "hecho" && (
+                      <button
+                        type="button"
+                        disabled={ocupada || !responsable.listo}
+                        onClick={() => fijarEtapa(e.clave, "pendiente", estado, `${e.etiqueta} reabierta`)}
+                        className="mt-1.5 text-[11.5px] text-tinta/65 underline underline-offset-2 outline-none hover:text-tinta focus-visible:text-tinta disabled:opacity-50"
+                      >
+                        Reabrir
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        )}
 
-            {/* -------- insumos descontados (F3) -------- */}
-            {!orden.esMuestra && <OrdenInsumos orden={orden} insumos={insumos} consumos={consumos} esLider={esLider} editable={abierta} />}
+        {/* -------- qué se fabrica -------- */}
+        <section aria-label="Qué se fabrica">
+          <TituloGrupo className="mb-3">
+            {orden.estado === "terminada" ? "Lo que salió · talla × color" : "Qué se fabrica · talla × color"}
+          </TituloGrupo>
+          <MatrizOrdenTabla matriz={matriz} modo={orden.estado === "terminada" ? "resultado" : "plan"} />
+        </section>
 
-            {orden.nota && <p className="text-sm text-tinta/75">— {orden.nota}</p>}
-
-            {/* -------- cierre por talla -------- */}
-            {abierta && cerrando && <OrdenCierre orden={orden} tallerId={tallerId} matriz={matriz} esLider={esLider} onHecho={pedirSalida} />}
-          </div>
-
-          {llevarUrl && (
-            <section aria-label="Siguiente paso" className="mx-5 mb-4 rounded-2xl border border-sand bg-crema p-3.5">
-              <p className="label-cayla text-[11px] text-tinta/65">Siguiente paso</p>
-              <p className="mt-1 text-[13px] text-tinta/80">
-                Las {orden.cantidadBuenas} prendas buenas están en el stock del Taller. Para venderlas hay que etiquetarlas y llevarlas a las tiendas: el traslado sale del Taller y cada tienda confirma lo que llegó.
-              </p>
-              <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                <Link href={llevarUrl} className="btn-cayla btn-primario">
-                  Llevarlas a las tiendas
-                </Link>
-                {/* ADR-0180: una etiqueta de precio por prenda buena; queda aquí para reimprimir mientras la orden siga cerrada. */}
-                <Link href={urlEtiquetasDePrecio({ produccion: orden.id })} className="btn-cayla btn-secundario">
-                  Imprimir etiquetas de precio
-                </Link>
+        {/* -------- costo (solo el líder) -------- */}
+        {esLider && (
+          <section aria-label="Costo del lote">
+            <TituloGrupo className="mb-3">
+              {orden.estado === "terminada" ? "Costo real del lote" : "Costo del lote"}
+            </TituloGrupo>
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="font-display text-4xl leading-none tabular-nums text-tinta">
+                  {costo.total > 0 ? <CifraQueCuenta valor={orden.costoUnitario} formato="soles" alMontar /> : "—"}
+                </p>
+                <p className="mt-1 text-xs text-tinta/65">
+                  por prenda · {soles(costo.total)} entre {orden.cantidadBuenas ?? orden.cantidadPlan}
+                </p>
               </div>
-            </section>
-          )}
-          <footer className="flex gap-2 border-t border-sand px-6 py-4">
-            {abierta && !cerrando && (
+              <div className="text-right">
+                {sem && (
+                  <Chip tono={sem.tono === "gana" ? "verde" : sem.tono === "filo" ? "ambar" : "rojo"}>
+                    {sem.texto} · {Math.round(sem.margen * 100)}%
+                  </Chip>
+                )}
+                {orden.precioVenta > 0 && <p className="mt-1.5 text-xs text-tinta/65">precio de venta {soles(orden.precioVenta)}</p>}
+                {sem?.sede && orden.precioMasBajo && (
+                  <p className="mt-0.5 text-xs text-tinta/65">
+                    el margen usa {soles(orden.precioMasBajo.precio)}, el precio propio de {sem.sede}
+                  </p>
+                )}
+              </div>
+            </div>
+            {costo.total > 0 && (
               <>
-                <Boton peso="primario" className="flex-1" onClick={() => setCerrando(true)}>
-                  {orden.esMuestra ? "Dar por terminada" : "Cerrar al inventario"}
-                </Boton>
-                <Boton peso="peligro" onClick={onAnular}>
-                  Anular
-                </Boton>
+                {/* La barra es `<BarraApilada>` (ADR-0358): decorativa, las cifras del costo van debajo. */}
+                <BarraApilada decorativa className="mt-4" alto={12} segmentos={costo.partes.map((p) => ({ clave: p.clave, nombre: p.clave, valor: p.parte, clase: COLOR_PARTE[p.clave] }))} />
+                <ul className="mt-3 space-y-1.5 text-[13px]">
+                  {costo.partes.map((p) => (
+                    <li key={p.clave} className="flex items-center gap-2.5">
+                      <MuestraTramo /* unificar-fijo: el cuadrito de color de una leyenda, no un ícono */ clase={COLOR_PARTE[p.clave]} className="h-2.5 w-2.5 rounded-sm" />
+                      <span className="text-tinta/80">{p.etiqueta}</span>
+                      <span className="ml-auto tabular-nums text-tinta/75">{soles(p.valor)}</span>
+                    </li>
+                  ))}
+                </ul>
               </>
             )}
-            {abierta && cerrando && (
-              <Boton peso="discreto" className="flex-1" onClick={() => setCerrando(false)}>
-                Volver sin cerrar
-              </Boton>
+            {sem && (
+              <div className="mt-5">
+                <div className="relative">
+                  <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full" aria-hidden>
+                    <span className="flex-[40] bg-rojo/25" />
+                    <span className="flex-[20] bg-ambar/30" />
+                    <span className="flex-[40] bg-verde/30" />
+                  </div>
+                  <span
+                    aria-hidden
+                    className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-papel bg-tinta shadow-[0_0_0_1px_var(--color-tinta)] transition-[left] duration-700 ease-cayla"
+                    style={{
+                      left: `${posicionEnMedidor(sem.margen) * 100}%`,
+                    }}
+                  />
+                </div>
+                <div className="mt-2 flex justify-between text-[11px] text-tinta/65">
+                  <span>{LEYENDA_SEMAFORO.pierde}</span>
+                  <span>{LEYENDA_SEMAFORO.filo}</span>
+                  <span>{LEYENDA_SEMAFORO.gana}</span>
+                </div>
+              </div>
             )}
-            {orden.estado === "terminada" && (
-              <Boton peso="discreto" onClick={onRevertir}>
-                Revertir cierre
-              </Boton>
-            )}
-          </footer>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+          </section>
+        )}
+
+        {/* -------- insumos descontados (F3) -------- */}
+        {!orden.esMuestra && <OrdenInsumos orden={orden} insumos={insumos} consumos={consumos} esLider={esLider} editable={abierta} />}
+
+        {orden.nota && <p className="text-sm text-tinta/75">— {orden.nota}</p>}
+
+        {/* -------- cierre por talla -------- */}
+        {abierta && cerrando && <OrdenCierre orden={orden} tallerId={tallerId} matriz={matriz} esLider={esLider} onHecho={cerrar} />}
+        </>
+      )}
+    </Cajon>
   );
 }

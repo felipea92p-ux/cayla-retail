@@ -477,10 +477,11 @@ export function enmascararCci(cci: string): string {
   return d.length === 20 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-••••••••••••-${d.slice(18)}` : "••••";
 }
 
-/** «9•• ••• 321». */
+/** «9•• ••• 321». Solo lo que `validarCelular` da por celular (9 dígitos que empiezan con 9): un fijo («044 123456») o un
+ *  número raro no se disfraza de celular, no deja ver nada: «•••». */
 export function enmascararCelular(cel: string): string {
   const d = normalizarCelular(cel);
-  return d.length === 9 ? `9•• ••• ${d.slice(6)}` : "•••";
+  return d.length === 9 && d.startsWith("9") ? `9•• ••• ${d.slice(6)}` : "•••";
 }
 
 /** «193-•••••••-•-45»: deja los 3 primeros y los 2 últimos dígitos, con los guiones donde estaban. */
@@ -602,4 +603,37 @@ export function cuentaLocalVisible(cuenta: string | null, cci: string | null): s
   const c = cuenta?.trim();
   if (!c) return null;
   return cci && soloDigitos(c) === cci ? null : c;
+}
+
+const DATO_BANCARIO: Record<string, string> = {
+  banco: "Banco",
+  cuenta_bancaria: "Cuenta",
+  cci: "CCI",
+  celular_billetera: "Yape / Plin",
+  billeteras: "Billeteras",
+  titular_cuenta: "Titular",
+};
+
+/**
+ * Un cambio de cuenta del historial (20261013161000, Felipe 2026-10-13) dicho para la ficha: qué dato cambió y de qué a qué.
+ * Los números salen enmascarados igual que en «Datos para pagar» (la ficha se mira en la tienda); el banco, las billeteras y el
+ * titular no son secretos y se muestran tal cual. Un dato que no estaba (o se borró) se lee «vacío». Si el cambio cae justo en los
+ * dígitos tapados, las dos máscaras salen iguales: `cambioOculto` lo dice para que la pantalla no muestre un «cambio» invisible.
+ */
+export function cambioBancarioLegible(
+  campo: string,
+  antes: string | null,
+  despues: string | null
+): { dato: string; antes: string; despues: string; cambioOculto: boolean } {
+  const mostrar = (v: string | null): string => {
+    if (!v || !v.trim()) return "vacío";
+    if (campo === "cci") return enmascararCci(v);
+    if (campo === "cuenta_bancaria") return enmascararCuenta(v);
+    if (campo === "celular_billetera") return enmascararCelular(v);
+    return v;
+  };
+  const a = mostrar(antes);
+  const d = mostrar(despues);
+  // Un CCI que cambió solo en los dígitos que la máscara tapa se leería «igual → igual»: `cambioOculto` lo avisa.
+  return { dato: DATO_BANCARIO[campo] ?? campo, antes: a, despues: d, cambioOculto: a === d && (antes ?? "") !== (despues ?? "") };
 }

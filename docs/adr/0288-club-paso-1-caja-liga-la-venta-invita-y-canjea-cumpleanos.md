@@ -578,6 +578,9 @@ parte del club.
 - `descuento_sin_club = descuento_unitario − descuento_club_unitario`.
 - Una prenda al 20 % queda en 28 %.
 - El redondeo es el de Postgres (medio céntimo hacia arriba); la regla de la web lo replica, con prueba.
+- **Cambió el 2026-10-15** ([ADR-0403, «Actualización 2026-10-15»](0403-el-descuento-en-porcentaje-deja-el-precio-sin-centimos.md)):
+  la parte del club es `fn_descuento_campana(precio_unitario − descuento_sin_club, pct)`, la regla única del %: el precio que
+  queda baja al múltiplo de S/ 0.10 (59.90 al 10 % → 53.90, el club pone 6.00, no 5.99). La cascada y todo lo demás siguen igual.
 
 **`registrar_venta`** suma `p_canjear_cumpleanos boolean default false`. Cambia de firma: `drop` de la vieja y `create`
 de la nueva, partiendo de la definición viva de producción (la de la 1a).
@@ -1145,3 +1148,44 @@ versión +1, sin club ni publicidad y una línea de actividad sin datos personal
 sale igual y la tarjeta lo dice; tarjeta «esperando» → «sin PDF» a los 20 s (Lucode sin credenciales) y «Abrir WhatsApp con la boleta» al simular el PDF de producción en la base;
 «Registrar cliente» vuelve a pedir solo el documento. Pruebas: web 321 archivos / 155.187 verdes; SQL `pruebas:agregar-celular` 18/18 (incluye la carrera de dos cajas y un control
 que muerde), y las 7 baterías de Clientas y roles que recorren las funciones que tocan la ficha, en verde (la lista exacta de `clientas_por_modulo` ahora nombra esta función).
+
+## Actualización 2026-10-16 (p): el Club empieza al crear la cuenta en la tienda online, y el cartel lleva ahí
+
+Felipe (2026-10-16): «todo aquel que no tenga registrada su contraseña aún no es parte del club; si el DNI ya existe en ficha o el correo
+pero se ve que no tiene contraseña, entonces debería dejar crearse su cuenta, y en ese momento que se crea la cuenta recién forma parte del
+club, no antes»; y «al escanear el cartel lleva al link tienda.cayla.pe».
+
+- **Una sola puerta al Club: crear la cuenta en la tienda online** (`tienda_registrar_cuenta`, ADR-0408 act. i; 20261016154000). Una ficha
+  de caja o del cartel sin cuenta se une por ese registro.
+- **El cartel deja de inscribir.** El QR del cartel imprimible (Clientes ▸ Cartel) abre https://tienda.cayla.pe
+  (`DIRECCION_TIENDA_ONLINE`, `lib/club-qr-reglas.ts`), el mismo para todas las tiendas, y `/club/<uuid>` —la dirección de los carteles ya
+  impresos— redirige ahí (307): no hay que reimprimirlos. Lo impreso («Te invitamos a ser parte del club», «Escanea y únete en un minuto»,
+  «Condiciones al escanear») sigue siendo cierto y no se tocó.
+- **Se retiró del ERP el registro del cartel** (G-3): `RegistroClub`, sus pasos, sus acciones de servidor, `/api/club/nombre` (ya no es
+  una ruta pública) y sus reglas. Se quedan `/club/privacidad` y `/club/terminos`: son lo que aceptó quien se unió por el cartel; su enlace
+  de vuelta lleva a «Únete al Club en tienda.cayla.pe».
+- **Lo que no cambió:** las 5 personas que el cartel inscribió (del 2 al 11 de octubre) siguen en el Club con su fecha, su código y sus
+  permisos (Felipe eligió no quitarles nada). `registrarse_en_el_club` sigue en la base, sin llamador en la web, porque seis pruebas del
+  Club inscriben con ella; retirarla (con esas pruebas rehechas y el CSS que quedó del registro) es una tarea aparte.
+
+## Actualización 2026-10-20 — Avisos: uno a la vez y mensajes que se editan
+
+Felipe (2026-10-20): Avisos se queda aunque exista la tienda web (la web es para quien entra a mirar; el aviso le llega sin buscarlo, y los
+Términos prometen el aviso de puntos por vencer por WhatsApp). Pidió poder cambiar los mensajes desde la pantalla, que todos terminen
+invitando a tienda.cayla.pe, y eligió mirando el diseño «Uno a la vez» entre tres (`docs/maquetas/avisos-club-2026-10/`).
+
+- **Uno a la vez.** La pantalla es una tanda: cuánto va de hoy, UN miembro con su mensaje tal como le llega, «Enviar por WhatsApp» y
+  «Siguiente» (o Enter), y la fila de hoy por tipo al lado. Quién recibe y qué se anota no cambió.
+- **Mensajes editables, por tienda y con el módulo** (`guardar_mensajes_avisos(tienda, …)`, 20261020151000). Primero salió «solo el
+  líder, para las 3 tiendas» (20261020144000): fue una decisión mía sobre permisos que no me tocaba, y Felipe la corrigió el mismo día:
+  «quien tiene el módulo lo puede hacer y cada tienda (sede) personaliza sus propios mensajes predeterminados». Cada tienda guarda sus
+  versiones en `club_avisos_textos_sede`; lo que no cambió sigue al de CAYLA (`club_textos.aviso_*`, que ya no se edita desde la
+  pantalla). `fn_club_avisos_pendientes` arma cada aviso con el de su tienda (`fn_club_aviso_texto_de`). Lo ya enviado no cambia.
+- **Un cierre común** (el de la tienda, o `club_textos.tipo = 'aviso_cierre'` de CAYLA) va al final de los cuatro avisos, y después, SIEMPRE, la línea de la BAJA,
+  que la pone la base (`fn_club_aviso_componer`) y no se edita (Ley 29733). El texto guardado sigue siendo el mensaje completo, así que
+  `fn_club_avisos_pendientes`, `registrar_aviso_enviado` y la regla `club_textos_aviso_con_baja` no cambiaron.
+- **Qué no se puede guardar** lo decide `fn_club_aviso_problema` (vacío, más de 700 letras, sin `{nombre}`, un dato que ese aviso no
+  completa, la BAJA escrita a mano); la web repite la regla en `lib/club-avisos-mensajes.ts` para avisar antes, y una prueba cruza las dos.
+- **Textos nuevos** (los de la maqueta, más cálidos, con una negrita y un emoji) se publican con la migración una sola vez: si ya hay un
+  cierre, volver a pegarla no pisa lo que el líder haya editado.
+

@@ -25,6 +25,12 @@ export async function getApartadosAbiertos(ubicacionId: string, opciones: { esTe
   // demás pantallas siguen. TEMPORAL, mismo criterio que `getStockPorUbicacion` (ADR-0141).
   if (respuesta.error?.code === "PGRST202") return [];
   const filas = exigir(respuesta, "los apartados");
+  // Cuáles son la reserva de un pedido web (ADR-0408, act. 8). Si la función no responde (no está pegada), la lista sigue sin el
+  // rótulo: la base igual rechaza «Liberar» con su propio aviso.
+  const web = filas.length === 0 ? null : await supabase.rpc("fn_apartados_de_pedidos_web", { p_ubicacion_id: ubicacionId });
+  const deWeb = new Map(
+    (web?.error ? [] : (web?.data ?? [])).map((w) => [w.apartado_id, { codigo: w.pedido_codigo, tiendaPedido: w.tienda_pedido, paraOtraTienda: w.para_otra_tienda }]),
+  );
 
   return filas.map((f) => ({
     id: f.id,
@@ -42,6 +48,7 @@ export async function getApartadosAbiertos(ubicacionId: string, opciones: { esTe
     venceEl: f.vence_el ?? null,
     creadoEn: f.created_at,
     apartoNombre: f.creado_por_nombre ?? null,
-    puedeLiberar: opciones.esTerminal === true || f.puede_liberar,
+    puedeLiberar: (opciones.esTerminal === true || f.puede_liberar) && !deWeb.has(f.id),
+    pedidoWeb: deWeb.get(f.id) ?? null,
   }));
 }

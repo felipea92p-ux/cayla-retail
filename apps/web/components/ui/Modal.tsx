@@ -17,7 +17,12 @@ type Props = {
       "Cancelar" propio del formulario sale con la misma animación que Escape,
       en vez de desaparecer de golpe. */
   children: ReactNode | ((cerrar: () => void) => ReactNode);
-  /** Ancho del panel en escritorio (Tailwind max-w-*). Por defecto el tamaño estándar de formulario corto. */
+  /** El ancho de la hoja (ADR-0358, ronda 12, Felipe 2026-10-14): tres, con nombre, para que nadie invente otra medida.
+      `angosta` 448 px (un formulario corto: un gasto, una categoría, un pago; la de fábrica), `mediana` 576 px (un formulario con una
+      lista o una tabla chica) y `ancha` 768 px (una ficha que se lee: un cliente, un cierre, una orden). */
+  tamano?: TamanoHoja;
+  /** Solo para una hoja con DISEÑO PROPIO (la vista rápida de un producto, Nueva orden de producción): un `max-w-*` a medida. Manda
+      sobre `tamano` y lleva su `unificar-fijo` con el motivo (lo vigila `lib/unificar.test.ts`, familia `modal`). */
   ancho?: string;
   /** A qué elemento devolver el foco al cerrar. Sin esto, Radix intenta volver al
       trigger del diálogo — que estos modales controlados no tienen — y el foco cae al
@@ -36,11 +41,11 @@ type Props = {
   focoEnLaHoja?: boolean;
   /** Algo a la IZQUIERDA de toda la hoja (título, bajada y contenido quedan a su derecha, exactamente como sin él): hoy la foto de la
       prenda en Reponer, Subir a almacén y Ajustar (2026-10-01). La hoja se ensancha justo lo que ocupa (`.hoja-con-lateral`,
-      globals.css) y el resto no se mueve. Solo escritorio: en celular, donde la hoja sube desde abajo, no se muestra. Funciona con
-      `ancho` = max-w-sm | max-w-md | max-w-lg. No entra a la cascada: llega con la hoja. */
+      globals.css) y el resto no se mueve. Solo escritorio: en celular, donde la hoja sube desde abajo, no se muestra. Funciona con los tres
+      tamaños (`tamano`). No entra a la cascada: llega con la hoja. */
   lateral?: ReactNode;
   /** Botones de la cabecera, arriba a la DERECHA de la hoja, siempre a la vista (hoy, «+ Nuevo tejido / patrón / etiqueta» en las hojas de
-      «Nuevo producto», 2026-10-02). Solo variante «hoja» (la «papel» ya usa esa esquina para la ✕). Sale de la cascada y se coloca
+      «Nuevo producto», 2026-10-02). No en una hoja con la ✕, que usa esa esquina. Sale de la cascada y se coloca
       con `position: absolute`; el título deja libre el ancho que ocupa (`pr-40`). */
   acciones?: ReactNode;
   /** La ✕ de cerrar arriba a la derecha, en cualquier variante (la «papel» ya la trae). Hoy: la vista rápida de producto, que se abre
@@ -49,14 +54,11 @@ type Props = {
   /** Algo ENCIMA del título, dentro de la cascada: la vuelta a la hoja de atrás cuando un modal pasa de una vista a otra dentro de la misma
       hoja (hoy, el detalle de un cierre de caja dentro de «Historial de cierres»: flecha + a dónde vuelve, 2026-10-10). */
   arriba?: ReactNode;
-  /** Título de 26 px (el de las hojas «de ficha»: una prenda, un cliente) en vez de los 18 px de un formulario corto. */
-  tituloGrande?: boolean;
-  /** «papel» (Por pagar, 2026-09-19, spike): el panel en `papel` con borde fino y SIN sombra —la profundidad viene del tiempo, no del
-      espacio (regla v3.1)— y una ✕ para cerrar arriba a la derecha. Sin esto, el panel de siempre (`crema` con sombra). */
+  /** La cara de toda hoja es UNA desde el 2026-10-14 (ADR-0358, ronda 12, Felipe eligió P1): el panel en `papel` con borde fino y SIN
+      sombra —la profundidad la da el velo—, el título serif de 24 px y la frase en taupe, la de Finanzas (spike 2026-09-24) y Gasto
+      rápido. Antes había tres: crema con sombra y título de 18 px (la de fábrica), «hoja» (esta) y «papel» (esta con la ✕). `hoja` y
+      `papel` quedan como nombres que ya no cambian la cara: «papel» todavía pone la ✕ (como `conCerrar`). */
   variante?: "papel" | "hoja" | "camara" | "ticket";
-  /* «hoja» (Finanzas, 2026-09-24, spike docs/maquetas/finanzas-2026-09/): el panel en `papel` sin sombra ni ✕, con el
-     título en serif grande y la bajada en taupe —la hoja del spike—. Los campos de adentro van en caja (`fin-control`,
-     app/estilos/finanzas.css). */
   /* «camara» (Vender en el teléfono, 2026-09-25): pantalla completa, sin padding ni borde, fondo tinta; el título queda
      para lectores de pantalla y el contenido dibuja su propia barra (EscanerCamara). Hereda igual el velo, la entrada,
      la cascada de sus piezas y el foco atrapado. */
@@ -74,7 +76,13 @@ type Props = {
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, tituloGrande = false, arriba, variante }: Props) {
+export type TamanoHoja = "angosta" | "mediana" | "ancha";
+export const ANCHO_HOJA: Record<TamanoHoja, string> = { angosta: "max-w-md", mediana: "max-w-xl", ancha: "max-w-3xl" };
+
+export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta", ancho: anchoPropio, alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, arriba, variante }: Props) {
+  const ancho = anchoPropio ?? ANCHO_HOJA[tamano];
+  // La cámara y el ticket dibujan su propia hoja; todas las demás tienen la misma cara (ronda 12).
+  const deCara = variante !== "camara" && variante !== "ticket";
   const [cerrando, setCerrando] = useState(false);
   const hoja = useRef<HTMLDivElement>(null);
   // En el celular la hoja va pegada abajo: con el teclado abierto se apoya sobre él (la cámara no tiene campos).
@@ -155,10 +163,8 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
                 : variante === "ticket"
                   ? // El panel de adentro (el `<aside>` del ticket) llena la hoja: cabecera y pie fijos, el medio scrollea.
                     `flex h-[min(92dvh,92%)] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
-                  : `scroll-cayla max-h-[min(90vh,90%)] overflow-y-auto rounded-t-2xl border border-sand p-6 sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${
-                    // `--fondo-hoja` lo lee `.pie-hoja-fijo` (globals.css) para que el pie pegado pinte el mismo fondo que la hoja.
-                    variante === "papel" || variante === "hoja" ? "bg-papel [--fondo-hoja:var(--color-papel)]" : "bg-crema shadow-xl [--fondo-hoja:var(--color-crema)]"
-                  } ${ancho}`
+                  : // `--fondo-hoja` lo lee `.pie-hoja-fijo` (globals.css) para que el pie pegado pinte el mismo fondo que la hoja.
+                    `scroll-cayla max-h-[min(90vh,90%)] overflow-y-auto rounded-t-2xl border border-sand bg-papel p-6 [--fondo-hoja:var(--color-papel)] sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
             } ${
               cerrando ? "anim-modal-sale" : "anim-modal-entra"
             } cascada-modal${lateral ? " hoja-con-lateral" : ""}`}
@@ -197,11 +203,11 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
           )}
           {arriba}
           <Dialog.Title asChild>
-            <h2 className={`font-display text-tinta ${variante === "camara" || variante === "ticket" ? "sr-only" : ""} ${variante === "hoja" ? "text-2xl leading-tight" : tituloGrande ? "text-[26px] leading-[1.1]" : "text-lg"} ${variante === "papel" || conCerrar ? "pr-8" : ""} ${variante === "hoja" && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
+            <h2 className={`font-display text-tinta ${deCara ? "text-2xl leading-tight" : "sr-only"} ${variante === "papel" || conCerrar ? "pr-8" : ""} ${deCara && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
           </Dialog.Title>
           {subtitulo ? (
             <Dialog.Description asChild>
-              <p className={variante === "camara" || variante === "ticket" ? "sr-only" : variante === "hoja" ? "mb-[18px] mt-1 text-[13.5px] leading-normal text-taupe" : "mb-4 mt-1 text-xs text-tinta/70"}>{subtitulo}</p>
+              <p className={deCara ? "mb-[18px] mt-1 text-[13.5px] leading-normal text-taupe" : "sr-only"}>{subtitulo}</p>
             </Dialog.Description>
           ) : (
             // Radix exige una Description por accesibilidad aunque el modal no muestre una visualmente.
@@ -210,7 +216,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
           {typeof children === "function" ? children(pedirCierre) : children}
           {/* Va DESPUÉS del contenido para no correr el orden de la cascada (`nth-child`), y fuera de ella (`data-sin-cascada`): se coloca
               a la izquierda con `position: absolute` (globals.css, `.hoja-con-lateral`), así que su lugar en el DOM no importa. */}
-          {acciones && variante === "hoja" && (
+          {acciones && deCara && (
             <div data-sin-cascada className="absolute right-6 top-6 z-10 flex items-center gap-2">
               {acciones}
             </div>
@@ -237,9 +243,9 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
 // Estilos de campo compartidos — el mismo patrón que ya usaba EfectivoPanel
 // (el primer modal migrado al sistema v3), para que un formulario nuevo no
 // tenga que reinventar la etiqueta/input/botón de cada modal.
-export const campoEtiqueta = "label-cayla text-[11px] text-tinta/70";
-export const campoTexto =
-  "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo";
+// Desde la ronda 6 de /unificar (ADR-0358) son la etiqueta de `Campo` y la caja que se enciende (antes, versalitas al 70 % y una raya).
+export const campoEtiqueta = "campo-etiqueta";
+export const campoTexto = "caja-campo-input";
 export const botonCancelar =
   "btn-cayla btn-secundario flex-1";
 export const botonPrimario =

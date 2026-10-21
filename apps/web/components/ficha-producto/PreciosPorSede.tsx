@@ -81,12 +81,12 @@ export function PreciosPorSede({
     <div
       className="mt-4 rounded-sm border border-sand bg-papel px-3.5 py-3"
       data-campo="precio-por-tienda"
+      data-guia="editar.precio-tienda"
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <Store
           aria-hidden
           className="h-4 w-4 shrink-0 text-taupe"
-          strokeWidth={1.75}
         />
         <p className="text-[13px] font-semibold text-tinta">
           Precio por tienda

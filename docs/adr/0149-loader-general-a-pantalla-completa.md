@@ -149,6 +149,9 @@ no quitándole una espera al loader.
 **Costos asumidos.**
 - Un aviso que ya estaba a la vista desaparece un instante si arranca otra petición (aunque sea corta) y vuelve con su reloj
   reiniciado. Se prefirió la regla simple («con algo en curso no hay avisos») a una que distinga cuál llegó primero.
+  **Resuelto el 2026-10-14 (ADR-0146, «Actualización 2026-10-14»):** un aviso que ya se vio (su reloj empezó a correr a la vista)
+  no vuelve: se retira al ocuparse la pantalla. Volver con el reloj nuevo lo hacía parecer otro guardado y dejaba dos «Deshacer» a
+  la vez, el primero sobre un estado viejo. Lo que todavía no se vio sigue esperando como aquí se decidió.
 - El loader queda ~395 ms tras responder la base (150 ms de gracia + 220 ms de salida, ADR-0136) y, si la espera fue corta, al
   menos 400 ms una vez visible. Es el anti-parpadeo del diseño original; no se tocó.
 
@@ -200,3 +203,10 @@ otra vía para que la señal no quede pegada. Revisados y fuera a propósito: Ca
 buscan al pulsar Enter o un botón (acción decidida: loader), y Gastos cambia la URL solo por clics. Verificado en el
 navegador con la respuesta retrasada 1,5 s: sin loader, «Buscando…» durante la espera, foco intacto; un cambio de URL
 externo (`router.replace`) actualiza el campo y apaga la señal.
+
+## Actualización 2026-10-14 — lo que ya se vio no vuelve
+
+Nace en el ADR-0146 («Actualización 2026-10-14») y cambia un costo asumido de la actualización del 2026-09-21: al ocuparse la
+pantalla, las tarjetas que ya se vieron se retiran en vez de esconderse y volver con el reloj desde cero; las que no se vieron
+siguen esperando a que el loader se vaya, exactamente como antes. El orden «primero el loader, después el aviso» no cambia. La
+regla es pura (`lib/avisos-reglas.ts`) y `Avisos.tsx` la aplica en el oyente de `suscribirEspera`.

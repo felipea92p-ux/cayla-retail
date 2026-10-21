@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { esFechaQueExiste } from "@/lib/fechas-lima";
 import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
 import {
   ADJUNTOS_BUCKET,
@@ -22,6 +23,7 @@ import {
   type TipoDocumentoCompra,
 } from "@/lib/compras-reglas";
 import { lineaEnMiTienda, otrasTiendasDeJson } from "@/lib/reparto-reglas";
+import { leerNoDeduciblesCon } from "@/lib/no-deducible";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
 // importan SOLO `compras-reglas.ts`.
@@ -149,8 +151,9 @@ export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: 
 
 const ESTADOS_PAGO: EstadoPago[] = ["pendiente", "parcial", "pagada", "anulada"];
 const ESTADOS_RECEPCION: EstadoRecepcion[] = ["sin_recibir", "parcial", "recibida", "anulada"];
-const TIPOS_DOCUMENTO: TipoDocumentoCompra[] = ["factura", "boleta", "nota_venta"];
-const esFecha = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
+const TIPOS_DOCUMENTO: TipoDocumentoCompra[] = ["factura", "boleta", "nota_venta", "sin_comprobante"];
+// Una fecha que existe, no solo con la forma: «2026-02-31» tumbaba Por pagar (/chaos de Compras, ADR-0421).
+const esFecha = (v?: string) => esFechaQueExiste(v);
 
 /** Traduce la URL a filtros, descartando cualquier valor que no sea válido. */
 export function filtrosDesdeParams(p: ParamsCompras): FiltrosCompras {
@@ -372,6 +375,10 @@ type FilaLinea = {
   recibido_aqui?: number | null;
   cerrado_aqui?: number | null;
   otras_tiendas?: unknown;
+  // Línea SIN prenda (la de un comprobante que sale de una orden de compra, ADR-0362): con qué categoría y marca se pidió. Solo los
+  // trae la vista de líneas (`compra_items_resumen`); `lineas_compra_operativo` no devuelve líneas sin prenda (Recibir no las recibe).
+  categoria_id?: string | null;
+  marca_id?: string | null;
 };
 
 /**
@@ -407,26 +414,27 @@ export async function getLineasCompra(compraIds: string[], opciones: { sinMontos
     }
   }
   if (!filas) {
-    filas = exigir(
-      await supabase
-        .from("compra_items_resumen")
-        .select("id, compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario, subtotal, recibido, cerrado, pendiente")
-        .in("compra_id", compraIds),
-      "las líneas de la factura"
-    );
+    // `*` y no la lista: la vista suma `categoria_id` y `marca_id` (línea sin prenda) y los tipos generados todavía no las traen.
+    filas = exigir(await supabase.from("compra_items_resumen").select("*").in("compra_id", compraIds), "las líneas de la factura");
   }
 
   // Referencia del producto y datos de la variante se resuelven aparte: la
   // vista no expone FKs a PostgREST, así que no se puede embeber.
   const productoIds = [...new Set(filas.map((f) => f.producto_id ?? "").filter(Boolean))];
   const varianteIds = [...new Set(filas.map((f) => f.variante_id ?? "").filter(Boolean))];
-  const [productosRes, variantesRes] = await Promise.all([
+  const categoriaIds = [...new Set(filas.map((f) => f.categoria_id ?? "").filter(Boolean))];
+  const marcaIds = [...new Set(filas.map((f) => f.marca_id ?? "").filter(Boolean))];
+  const [productosRes, variantesRes, categoriasRes, marcasRes] = await Promise.all([
     productoIds.length ? supabase.from("productos").select("id, referencia").in("id", productoIds) : Promise.resolve({ data: [], error: null }),
     varianteIds.length
       ? supabase.from("variantes").select("id, sku, codigo, talla:tallas ( valor ), color:colores ( nombre )").in("id", varianteIds)
       : Promise.resolve({ data: [], error: null }),
+    categoriaIds.length ? supabase.from("categorias").select("id, nombre").in("id", categoriaIds) : Promise.resolve({ data: [], error: null }),
+    marcaIds.length ? supabase.from("marcas").select("id, nombre").in("id", marcaIds) : Promise.resolve({ data: [], error: null }),
   ]);
   const productos = new Map(exigir(productosRes, "los productos de la factura").map((p) => [p.id, p.referencia]));
+  const categorias = new Map(exigir(categoriasRes, "las categorías de la factura").map((c) => [c.id, c.nombre]));
+  const marcas = new Map(exigir(marcasRes, "las marcas de la factura").map((m) => [m.id, m.nombre]));
   const variantes = new Map(
     exigir(variantesRes, "las variantes de la factura").map((v) => [v.id, { sku: codigoDeLinea(v), talla: v.talla?.valor ?? null, color: v.color?.nombre ?? null }])
   );
@@ -443,6 +451,9 @@ export async function getLineasCompra(compraIds: string[], opciones: { sinMontos
       talla: v?.talla ?? null,
       color: v?.color ?? null,
       descripcion: f.descripcion,
+      // Sin prenda (productoId vacío): con qué categoría y marca se pidió. Con prenda no hay nada que mostrar aquí.
+      categoria: f.categoria_id ? (categorias.get(f.categoria_id) ?? null) : null,
+      marca: f.marca_id ? (marcas.get(f.marca_id) ?? null) : null,
       cantidad: Number(f.cantidad ?? 0),
       costoUnitario: Number(f.costo_unitario ?? 0),
       subtotal: Number(f.subtotal ?? 0),
@@ -517,7 +528,9 @@ export async function getPagosCompra(compraId: string): Promise<PagoCompra[]> {
       .order("created_at", { ascending: false }),
     "los pagos de la factura"
   );
-  return filas.map((p) => ({ id: p.id, fecha: p.fecha, monto: Number(p.monto), metodo: p.metodo, referencia: p.referencia }));
+  // Cada pago con lo que la base dice no deducible (ADR-0362, fase 6 · actividad 6): si esa lectura falla, se ven sin la marca.
+  const nd = await leerNoDeduciblesCon(supabase, filas.map((p) => `pago:${p.id}`));
+  return filas.map((p) => ({ id: p.id, fecha: p.fecha, monto: Number(p.monto), metodo: p.metodo, referencia: p.referencia, noDeducible: nd.get(`pago:${p.id}`) ?? null }));
 }
 
 /**
@@ -539,8 +552,17 @@ export async function getPagosDeCompras(compraIds: string[]): Promise<Record<str
     console.error("Pagos de los comprobantes de Por pagar:", error?.message ?? "la consulta no devolvió datos");
     return {};
   }
+  const nd = await leerNoDeduciblesCon(supabase, data.map((p) => `pago:${p.id}`));
   const porCompra: Record<string, PagoCompra[]> = {};
-  for (const p of data) (porCompra[p.compra_id] ??= []).push({ id: p.id, fecha: p.fecha, monto: Number(p.monto), metodo: p.metodo, referencia: p.referencia });
+  for (const p of data)
+    (porCompra[p.compra_id] ??= []).push({
+      id: p.id,
+      fecha: p.fecha,
+      monto: Number(p.monto),
+      metodo: p.metodo,
+      referencia: p.referencia,
+      noDeducible: nd.get(`pago:${p.id}`) ?? null,
+    });
   return porCompra;
 }
 

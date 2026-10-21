@@ -1,0 +1,156 @@
+{
+  "guia": "caja",
+  "ruta": "/caja",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 108,
+  "controles": {
+    "app/(app)/caja/page.tsx": [
+      "BotonEnlace «caja.historial-todas»"
+    ],
+    "components/AbrirCajaFormV2.tsx": [
+      "input «0.00»",
+      "input «Ej.: se usó para vuelto antes de abrir»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}» #2",
+      "button «→onElegir»"
+    ],
+    "components/BarraCierreCaja.tsx": [
+      "button «Cerrar caja»",
+      "button «Cerrar caja» #2"
+    ],
+    "components/CajaAbiertaPanel.tsx": [
+      "Boton «caja.gasto»",
+      "Boton «caja.ingreso»",
+      "Boton «caja.historial»",
+      "button «{texto}»",
+      "button «{METODO_RITMO[clave].texto}»"
+    ],
+    "components/CajaTablero.tsx": [
+      "Link «{contenido}»",
+      "button «{contenido}»",
+      "Link «{a.n ? <Globito n={a.n}»",
+      "Link «Vender»",
+      "button «Registrar gasto»",
+      "button «Registrar ingreso»",
+      "button «Cerrar caja»",
+      "button «{on ? <Check size={12}»",
+      "button «Volver a lo predeterminado»",
+      "Link «{`Ver ${p.cantidad}»",
+      "SegmentoDeslizante «(predeterminada)»",
+      "Link «Ver historial completo»",
+      "button «Volver a la predeterminada»"
+    ],
+    "components/CerrarCajaModalV2.tsx": [
+      "button «Listo»",
+      "input «0.00»",
+      "input «{`Cantidad de ${d >= 1 ? `billetes o monedas de ${d}»",
+      "button «Cancelar»",
+      "button «Continuar»",
+      "input «0.00» #2",
+      "CampoSelect «¿A dónde va?»",
+      "CampoSelect «¿A qué banco?»",
+      "CampoTexto «{destinoElegido.referencia}»",
+      "button «Volver y dejar»",
+      "button «Cerrar igual»",
+      "ComboResponsable «{responsable}»",
+      "Volver «→() => setPaso(\"contar\")»",
+      "Boton «{responsable.motivo ?? invalido ?? undefined}»"
+    ],
+    "components/CierreCajaDetalle.tsx": [
+      "button «{texto}»"
+    ],
+    "components/CorregirPagoModal.tsx": [
+      "button «{NOMBRE_METODO[m]}»",
+      "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
+      "CampoTexto «Qué pasó»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/CuentasProveedor.tsx": [
+      "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
+      "LapizEditar «la cuenta»",
+      "BotonCopiar «{que}»"
+    ],
+    "components/DetalleVentaModal.tsx": [
+      "button «Reintentar»",
+      "Boton «Corregir pago»",
+      "BotonImprimir «Imprimir ticket»",
+      "BotonImprimir «Imprimir»"
+    ],
+    "components/FilaMovimientoCaja.tsx": [
+      "button «{`Ver el detalle de ${e.titulo}»"
+    ],
+    "components/GastoRapidoModal.tsx": [
+      "button «{frecuente ? `${nombre}»",
+      "button «→() => onValor(m)»",
+      "CampoTexto «Qué fue»",
+      "CampoSelect «¿A qué se parece?»",
+      "input «Monto en soles»",
+      "button «{soles(m)}»",
+      "CampoTexto «Nota»",
+      "button «¿Te dieron factura o boleta?»",
+      "CampoSelect «Proveedor»",
+      "CampoTexto «Serie y número»",
+      "button «Usa el formulario completo»",
+      "button «Retiro o depósito»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/GraficoCierresDelMes.tsx": [
+      "button «{`${titulo}»"
+    ],
+    "components/HistorialCierresModal.tsx": [
+      "Volver «→volver»",
+      "button «Historial de cierres»",
+      "button «Reintentar»",
+      "button «{f.valor === \"falto\" ? \"caja.historial-falto\" : undefined}»",
+      "button «{`Ver el detalle del cierre del ${dia}»"
+    ],
+    "components/IngresoRapidoModal.tsx": [
+      "button «{o.texto}»",
+      "CampoTexto «¿Quién la trajo?»",
+      "CampoSelect «¿Qué sede la presta?»",
+      "CampoTexto «Qué fue»",
+      "input «Monto en soles»",
+      "CampoTexto «Nota»",
+      "Link «Apartados»",
+      "Link «Vender»",
+      "button «Retiro o depósito»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/MovimientoCajaModal.tsx": [
+      "button «{TEXTO_TIPO[t]}»",
+      "input «0.00»",
+      "Desplegable «{motivoRapido}»",
+      "input «Describe el motivo»",
+      "input «N° de operación, voucher, u otra nota»",
+      "ComboResponsable «{responsable}»",
+      "button «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/ProveedorElegido.tsx": [
+      "a «{tel.texto}»"
+    ],
+    "components/RegistrarGastoModal.tsx": [
+      "button «¿No está? Súmalo»",
+      "button «Cancelar»",
+      "button «Sumar proveedor»",
+      "ComboResponsable «{responsable}»",
+      "button «Cancelar» #2",
+      "Boton «→guardar»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
+    ],
+    "components/gasto-fijo/FichaDePagoTarjeta.tsx": [
+      "BotonCopiar «{que}»",
+      "a «{tel.texto}»"
+    ]
+  }
+}

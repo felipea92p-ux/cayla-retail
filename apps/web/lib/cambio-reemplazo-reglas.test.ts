@@ -139,7 +139,7 @@ describe("descripcionNueva — una prenda sin talla ni color se nombra por su re
     expect(r.avisoSinStock).toBe("Cinturón Cuero está apartada para un cliente: no se entrega desde aquí. No hay en otra sede.");
 
     // Lo que CambiosFlujo le pasa a validarCambio: el título arranca con el nombre, no con un espacio.
-    const nueva = { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva!.stockAqui, apartadoAqui: r.varianteNueva!.apartadoAqui, otrasSedes: r.otrasSedes };
+    const nueva = { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva!.stockAqui, apartadoAqui: r.varianteNueva!.apartadoAqui, otrasSedes: r.otrasSedes, precio: r.precioNueva! };
     const ahora = new Date("2026-09-18T17:00:00Z");
     const stock = validarCambio({
       venta: { comprobante: "Boleta B001-000010", creadoEn: ahora.toISOString(), anulada: false },
@@ -277,7 +277,7 @@ describe("la diferencia se mide contra lo que la clienta pagó, no contra el pre
   });
 
   it("explica el precio de una línea con descuento, y calla si no lo tuvo", () => {
-    expect(textoPagoConDescuento(conCampana)).toBe("Pagó con S/ 20.00 de descuento (lista S/ 100.00)");
+    expect(textoPagoConDescuento(conCampana)).toBe("Pagó con S/\u00a020.00 de descuento (lista S/\u00a0100.00)");
     expect(textoPagoConDescuento(linea)).toBeNull();
   });
 });

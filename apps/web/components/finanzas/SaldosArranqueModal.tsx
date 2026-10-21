@@ -25,6 +25,7 @@ import {
   type LineaPropuesta,
   type SaldoInicial,
 } from "@/lib/balance-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Los saldos de arranque (ADR-0195 F7, ADR-0198): lo que CAYLA tenía al empezar el día de arranque. El spike no dice dónde
 // se cargan; viven aquí, en el propio Balance, en un modal hoja. La primera vez: lo que el sistema ya sabe viene calculado
@@ -146,7 +147,7 @@ export function SaldosArranqueModal({
           : "Lo que CAYLA tenía el día que empezó a usar el sistema. Lo que el sistema ya sabe viene calculado; el resto lo pones tú, con el contador. Se registra una vez."
       }
       onClose={onCerrar}
-      ancho="max-w-[680px]"
+      tamano="ancha"
     >
       {!hayArranque && (
         <CampoFin
@@ -154,7 +155,7 @@ export function SaldosArranqueModal({
           htmlFor="arr-fecha"
           ayuda="Los saldos son los de ese día al abrir, antes de vender. Lo ideal: el primer día de un mes, con el balance que te dé el contador al cierre del anterior."
         >
-          <InputFin id="arr-fecha" type="date" max={hoy} value={fecha} onChange={(e) => e.target.value && setFecha(e.target.value)} />
+          <InputFin id="arr-fecha" data-guia="fin-balance.arranque-fecha" type="date" max={hoy} value={fecha} onChange={(e) => e.target.value && setFecha(e.target.value)} />
         </CampoFin>
       )}
 
@@ -174,7 +175,7 @@ export function SaldosArranqueModal({
             const filas = propuesta.filter((p) => ladoDeCuenta(p.cuenta, p.tipo) === lado);
             if (!filas.length) return null;
             return (
-              <div key={lado} className="fin-arranque-grupo">
+              <div key={lado} className="fin-arranque-grupo" data-guia={`fin-balance.arranque-${lado}`}>
                 <h4>{titulo}</h4>
                 {filas.map((p) => {
                   const editable = hayArranque || p.origen === "manual";
@@ -213,7 +214,7 @@ export function SaldosArranqueModal({
             );
           })}
 
-          <div className="fin-arranque-cuadre" role="status">
+          <div className="fin-arranque-cuadre" role="status" data-guia="fin-balance.arranque-cuadre">
             <span>
               Lo que tenía <b>{solesBalance(cuadre.tiene)}</b> · lo que debía + lo tuyo <b>{solesBalance(cuadre.debe + cuadre.tuyo)}</b>
             </span>
@@ -252,13 +253,13 @@ export function SaldosArranqueModal({
       )}
 
       <ComboResponsable control={responsable} deshabilitado={guardando} />
-      <div className="fin-botones mt-4">
+      <div className="fin-botones mt-4" data-guia="fin-balance.arranque-botones">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={!puedeGuardar || !responsable.listo}>
-          {guardando ? "Guardando…" : hayArranque ? "Guardar corrección" : "Registrar saldos de arranque"}
-        </button>
+        <Boton peso="primario" cargando={guardando} type="button" onClick={guardar} disabled={!puedeGuardar || !responsable.listo}>
+          {hayArranque ? "Guardar corrección" : "Registrar saldos de arranque"}
+        </Boton>
       </div>
     </Modal>
   );

@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cambio de sede y de pestaña · maqueta de movimiento de la tienda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Newsreader:ital,wght@0,400;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · Cambio de sede y cambio de pestaña en la tienda web (2026-10-20)
+   Seis pruebas de movimiento (3 para elegir otra tienda en la cabecera, 3 para pasar de Lo nuevo a Looks, a Ofertas…)
+   sobre la tienda tal como se ve hoy: identidad «A · Muro» (apps/tienda/app/globals.css), claro y oscuro, computador y celular.
+   TODOS los precios y el stock son de EJEMPLO; las fotos y los nombres de las 8 prendas son los de la portada pública.
+   Nada de esto existe en apps/tienda: Felipe elige mirando y recién ahí se construye (CLAUDE.md, «Skills de diseño de afuera», 3).
+   ==================================================================== */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#ddd5c6}
+body{font-family:'DM Sans',system-ui,sans-serif;color:#1a1a18;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+
+/* ---- la barra de la maqueta (no es parte del diseño) ---- */
+.spk{position:sticky;top:0;z-index:200;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:8px 16px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.72);white-space:nowrap}
+.seg button.on{background:#f5f0e8;color:#1a1a18;font-weight:600}
+.spk .chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:rgba(245,240,232,.85)}
+.spk-b{height:30px;padding:0 12px;border:1px solid rgba(245,240,232,.25);border-radius:8px;font-size:12.5px;color:#f5f0e8;display:inline-flex;align-items:center;gap:6px}
+.spk-b svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.escena{padding:16px 16px 60px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.ley{max-width:1180px;width:100%;background:#fbf8f2;border:1px solid #e8e0d0;border-radius:10px;padding:12px 16px;font-size:13px;color:rgba(26,26,24,.82);display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:8px 22px}
+.ley h2{font-size:17px;font-weight:600;color:#1a1a18;margin-bottom:2px}
+.ley h2 small{font-weight:400;color:#805c4c;font-size:12px;margin-left:6px}
+.ley .k{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:#805c4c;display:block;margin-bottom:2px}
+.ley .mide{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:#805c4c;border-top:1px solid #e8e0d0;padding-top:8px}
+.ley .mide b{color:#1a1a18;font-variant-numeric:tabular-nums}
+@media (max-width:900px){.ley{grid-template-columns:1fr}}
+.sx{width:100%;overflow-x:auto;display:flex}.sx>*{margin:0 auto}
+.marco{position:relative;overflow:hidden;background:#ecebe7;box-shadow:0 30px 60px -30px rgba(26,26,24,.35);flex:none}
+.marco.desk{width:1180px;height:780px;border-radius:14px;border:1px solid rgba(26,26,24,.3)}
+.tel{width:391px;height:812px;border-radius:46px;background:#1b1a18;padding:8px;box-shadow:0 30px 60px -30px rgba(26,26,24,.35);flex:none}
+.marco.cel{width:375px;height:796px;border-radius:39px}
+
+/* ====================================================================
+   LA TIENDA (copia fiel de apps/tienda: tokens, letras y piezas que entran en estas dos pantallas)
+   ==================================================================== */
+.tienda{
+  --crema:#ecebe7;--papel:#f4f3f0;--hueso:#e1ded7;--sand:#cbc7be;--tinta:#1c1c1a;--taupe:#615e57;--rojo:#9e1d32;--rojo-profundo:#7d1627;
+  --verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--velo:rgba(28,28,26,.32);--sombra:rgba(28,28,26,.16);
+  --t-foto:#e1ded7;--t-lamina:#e1ded7;--t-hero:#1c1c1a;--t-hero-tinta:#ecebe7;--t-logo:#d13730;--t-oscuro:#1c1c1a;--t-oscuro-tinta:#ecebe7;
+  --t-papel-fijo:#f4f3f0;--t-tinta-fija:#1c1c1a;
+  --tinta-60:color-mix(in srgb,var(--tinta) 64%,transparent);--tinta-40:color-mix(in srgb,var(--tinta) 42%,transparent);
+  --sans:"Archivo",ui-sans-serif,system-ui,sans-serif;--nombre:"Newsreader",ui-serif,Georgia,serif;--ancho:"wdth" 125;
+  --ease:cubic-bezier(.2,.7,.2,1);--vel:1;
+  container-type:inline-size;container-name:tienda;position:absolute;inset:0;display:flex;flex-direction:column;
+  background:var(--crema);color:var(--tinta);font-family:var(--sans);font-size:14px;line-height:1.5;overflow:hidden;
+}
+.tienda[data-theme="dark"]{
+  --crema:#161615;--papel:#1f1f1d;--hueso:#262624;--sand:#3a3936;--tinta:#ecebe7;--taupe:#a9a59c;--rojo:#e47d8d;--rojo-profundo:#f0a0ac;
+  --verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--velo:rgba(0,0,0,.58);--sombra:rgba(0,0,0,.55);
+  --t-foto:#d9d6cf;--t-lamina:#d9d6cf;--t-hero:#0f0f0e;--t-oscuro:#0d0d0c;color-scheme:dark;
+}
+.tienda .ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.t-ancho{width:100%;max-width:1440px;margin-inline:auto;padding-inline:clamp(16px,4cqi,64px)}
+.ceja{display:block;font-size:11px;font-weight:500;font-variation-settings:var(--ancho);letter-spacing:.18em;text-transform:uppercase;color:var(--taupe)}
+
+/* la franja de arriba y la cabecera */
+.t-anuncio{flex:none;height:30px;display:grid;place-items:center;background:var(--t-oscuro);color:var(--t-oscuro-tinta);font-size:10.5px;font-weight:500;font-variation-settings:var(--ancho);letter-spacing:.18em;text-transform:uppercase;white-space:nowrap;overflow:hidden;padding-inline:12px}
+.t-cab{flex:none;position:relative;z-index:15;background:color-mix(in srgb,var(--crema) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--sand)}
+.t-cab-fila{position:relative;height:60px;display:flex;align-items:center;gap:2px;padding-inline:clamp(8px,3cqi,64px)}
+.t-logo{display:flex;align-items:center;padding:4px 6px;color:var(--t-logo);order:-2;margin-right:18px}
+.t-logo svg{display:block;height:26px;width:auto}
+.t-esp{flex:1}
+.t-ico{position:relative;width:42px;height:42px;flex:none;display:grid;place-items:center;color:var(--tinta);transition:opacity .3s}
+.t-ico:hover{opacity:.6}
+.t-ico.t-solo-movil{order:-3}
+.t-nav{display:none;align-items:center;gap:clamp(14px,1.7cqi,26px);height:100%;order:-1;position:relative}
+.t-nav-b{height:100%;font-size:11px;font-weight:500;font-variation-settings:var(--ancho);letter-spacing:.14em;text-transform:uppercase;position:relative;color:var(--tinta);display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.t-nav-b::after{content:"";position:absolute;left:0;right:0;bottom:22px;height:1px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform calc(.4s*var(--vel)) var(--ease)}
+.t-nav-b:hover::after,.t-nav-b[aria-current="page"]::after{transform:scaleX(1)}
+.t-nav-b.oferta{color:var(--rojo)}
+.t-nav-b .ch{width:12px;height:12px}
+.t-flechita{font-size:9px;line-height:1;margin-left:2px;transform:translateY(-1px)}
+@container tienda (min-width:960px){
+  .t-nav{display:flex}
+  .t-cab-fila>.t-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;order:0}
+  .t-ico.t-solo-movil{display:none}
+}
+/* la tienda elegida: su nombre con la flecha; al tocarla, las demás */
+.t-sel{position:relative;display:inline-flex;height:100%;margin-right:4px}
+.t-sede-caja{display:inline-grid;overflow:hidden;vertical-align:bottom;transition:width calc(.34s*var(--vel)) var(--ease)}
+.t-sede-caja>span{grid-area:1/1;white-space:nowrap}
+.t-sel-menu{position:absolute;right:0;top:calc(100% - 6px);min-width:180px;background:var(--papel);border:1px solid var(--sand);box-shadow:0 30px 50px -40px var(--sombra);padding:6px;z-index:20;animation:t-bajar calc(.28s*var(--vel)) var(--ease) both}
+.t-sel-op{display:block;width:100%;text-align:left;padding:10px 14px;font-size:14px;color:var(--tinta);font-family:var(--sans)}
+.t-sel-op:hover{background:var(--hueso)}
+.t-sel-op[aria-current="true"]{font-weight:600}
+@keyframes t-bajar{from{opacity:0;transform:translateY(-12px)}}
+
+/* el cuerpo que se desplaza y las capas de página */
+.t-cuerpo{position:relative;flex:1;overflow:auto;scrollbar-width:thin;scrollbar-gutter:stable}
+.t-escena{position:relative;min-height:100%}
+.t-pagina{position:relative;padding-bottom:60px}
+.t-pagina.capa-vieja{position:absolute;left:0;right:0;top:0;z-index:2;pointer-events:none}
+.t-pagina.capa-vieja.debajo{z-index:1}
+.t-pagina.capa-nueva.encima{position:relative;z-index:3}
+
+/* la cabecera de una lista: ceja, título ancho y frase */
+.t-lista-cab{padding-block:clamp(40px,6cqi,80px) 28px;display:flex;flex-direction:column;gap:10px}
+/* En el celular el título baja hasta 36 px: «ACCESORIOS» (10 letras anchas) cabe en 343 px; con 48 se salía por la derecha. */
+.t-lista-cab h1{margin:10px 0 0;font-family:var(--sans);font-variation-settings:var(--ancho);text-transform:uppercase;font-weight:200;font-size:clamp(36px,8cqi,120px);line-height:.9;letter-spacing:.02em;clip-path:inset(-20% -5% 0 -5%)}
+.t-lista-cab h1 .pal{display:inline-block}
+.t-lista-cab p{margin:8px 0 0;color:var(--taupe);max-width:56ch}
+.t-looks-cab{flex-direction:row;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.t-btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:52px;padding:0 28px;border:1px solid var(--tinta);background:var(--tinta);color:var(--crema);font-size:14px;font-weight:500;letter-spacing:.02em;font-family:var(--sans);transition:background-color .4s var(--ease),color .4s var(--ease)}
+.t-btn-claro{background:transparent;color:var(--tinta)}
+.t-btn-claro:hover{background:var(--tinta);color:var(--crema)}
+.t-btn .ic{width:16px;height:16px;transition:transform .4s var(--ease)}
+.t-btn:hover .ic{transform:translateX(4px)}
+.t-fila-tit{display:flex;align-items:baseline;justify-content:space-between;margin:48px 0 18px}
+.t-ver{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:500;font-variation-settings:var(--ancho);letter-spacing:.14em;text-transform:uppercase;color:var(--tinta);cursor:pointer}
+.t-ver .ic{width:14px;height:14px}
+
+/* la grilla y la tarjeta */
+.t-grilla{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px 14px}
+@container tienda (min-width:960px){.t-grilla{grid-template-columns:repeat(4,minmax(0,1fr));gap:40px 24px}}
+.t-card{position:relative;display:flex;flex-direction:column;min-width:0}
+.t-card-foto{position:relative;display:block;width:100%;aspect-ratio:4/5;background:var(--t-foto);overflow:hidden}
+.t-card-foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:9%;mix-blend-mode:multiply;transition:transform 1.2s var(--ease)}
+.t-card:hover .t-card-foto img{transform:scale(1.03)}
+.t-card-info{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:2px 16px;padding-top:14px}
+.t-card-nom{font-family:var(--nombre);font-style:italic;font-size:17px;line-height:1.2;color:var(--tinta)}
+@container tienda (min-width:960px){.t-card-nom{font-size:21px}}
+.t-precio{font-size:15px;font-variant-numeric:tabular-nums lining-nums;display:inline-block}
+.t-stock{display:inline-block;margin-top:4px;font-size:12px;color:var(--taupe)}
+.t-stock[data-s="hay"]{color:var(--verde)}.t-stock[data-s="ultima"]{color:var(--ambar)}
+.t-dato{display:inline-block}
+
+/* los looks: la lámina con sus prendas numeradas */
+.t-looks{display:grid;gap:24px;grid-template-columns:minmax(0,1fr)}
+@container tienda (min-width:960px){.t-looks{grid-template-columns:repeat(2,minmax(0,1fr));gap:48px}}
+.t-look-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:12px 16px;color:var(--tinta)}
+.t-lamina{grid-column:1/-1;position:relative;aspect-ratio:1/1.08;background:radial-gradient(90% 70% at 50% 40%,var(--t-foto),var(--t-lamina));overflow:hidden}
+.t-pieza{position:absolute;left:var(--x);top:var(--y);width:var(--w);aspect-ratio:4/5;transform:rotate(var(--r));mix-blend-mode:multiply}
+.t-pieza img{width:100%;height:100%;object-fit:contain}
+.t-punto{position:absolute;z-index:5;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;border:2px solid var(--t-papel-fijo);background:var(--t-tinta-fija);color:var(--t-papel-fijo);font-size:12px;font-weight:700;display:grid;place-items:center;font-family:var(--sans)}
+.t-look-card h3{margin:0;font-family:var(--nombre);font-style:italic;font-size:26px;font-weight:400;line-height:1.05}
+.t-look-card small{display:block;color:var(--tinta-60);font-size:13px}
+
+/* el vacío */
+.t-vacio{padding:50px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.t-vacio .ic{width:40px;height:40px;color:var(--taupe)}
+.t-vacio h3{margin:0;font-family:var(--sans);font-variation-settings:var(--ancho);text-transform:uppercase;font-size:clamp(22px,2.6cqi,30px);font-weight:250;letter-spacing:.06em}
+.t-vacio p{margin:0;color:var(--tinta-60);max-width:40ch}
+.t-vacio .t-btn{margin-top:10px}
+
+/* el menú del celular (las mismas entradas de la cabecera) */
+.t-velo{position:absolute;inset:0;z-index:40;background:var(--velo);backdrop-filter:blur(3px);animation:t-aparecer calc(.25s*var(--vel)) var(--ease) both}
+.t-menu{position:absolute;top:0;bottom:0;left:0;z-index:41;width:min(88%,420px);background:var(--crema);display:flex;flex-direction:column;box-shadow:20px 0 50px -30px var(--sombra);animation:t-entrar-izq calc(.4s*var(--vel)) var(--ease) both}
+.t-menu-cab{display:flex;align-items:center;justify-content:space-between;padding:10px 10px 10px 16px;border-bottom:1px solid var(--sand)}
+.t-menu-cab .t-logo{margin:0;order:0}
+.t-menu nav{display:flex;flex-direction:column;padding:18px 8px}
+.t-menu nav button{text-align:left;padding:14px 12px;font-family:var(--sans);font-variation-settings:var(--ancho);text-transform:uppercase;letter-spacing:.14em;font-size:13px;color:var(--tinta)}
+.t-menu nav button[aria-current="page"]{text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1px}
+.t-menu nav button.oferta{color:var(--rojo)}
+@keyframes t-aparecer{from{opacity:0}}
+@keyframes t-entrar-izq{from{transform:translateX(-100%)}}
+
+/* ====================================================================
+   LAS 6 PRUEBAS · todo dura calc(Xms * var(--vel)): «Lenta ×4» multiplica sin tocar nada más
+   ==================================================================== */
+@keyframes apagar{to{opacity:0}}
+@keyframes aparece{from{opacity:0}}
+@keyframes sube-pal{from{transform:translateY(108%)}}
+@keyframes cae-pal{to{transform:translateY(108%)}}
+@keyframes colgar{from{opacity:0;transform:translateY(18px)}}
+
+/* SEDE 1 · La cédula: el nombre rueda y cada prenda se vuelve a colgar con su precio y su stock nuevos */
+@keyframes rueda-sale{to{transform:translateY(-110%);opacity:0}}
+@keyframes rueda-entra{from{transform:translateY(110%);opacity:0}}
+.rueda-sale{animation:rueda-sale calc(340ms*var(--vel)) var(--ease) both}
+.rueda-entra{animation:rueda-entra calc(380ms*var(--vel)) var(--ease) both}
+/* Dos tiempos, porque en medio está la espera: las prendas se descuelgan (se atenúan y bajan 6 px, una tras otra) y se QUEDAN así,
+   con la luz que barre su foto, hasta que llega la tienda nueva; recién ahí se vuelven a colgar con su precio y su stock. */
+@keyframes recolgar-espera{to{opacity:.45;transform:translateY(6px)}}
+.recolgar-espera{animation:recolgar-espera calc(220ms*var(--vel)) var(--ease) both;animation-delay:calc(min(var(--i),11)*26ms*var(--vel))}
+.recolgar-espera .t-card-foto::after,.recolgar-espera .t-lamina::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);background-size:220% 100%;animation:brilla 1.4s linear infinite;animation-delay:calc(260ms*var(--vel))}
+@keyframes recolgar-vuelve{from{opacity:.45;transform:translateY(6px)}}
+.recolgar-vuelve{animation:recolgar-vuelve calc(380ms*var(--vel)) var(--ease) both;animation-delay:calc(min(var(--i),11)*26ms*var(--vel))}
+
+/* El esqueleto de una pestaña (ADR-0445: cada esqueleto es su página): el título real, y marcos que brillan donde van las fotos y
+   líneas donde va el texto. Al llegar la página, cada foto y cada texto aparecen EN SU LUGAR (`hidrata`): nada se mueve. */
+.t-esq .t-card-foto,.t-esq .t-lamina{position:relative;overflow:hidden}
+.t-esq .t-card-foto::after,.t-esq .t-lamina::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);background-size:220% 100%;animation:brilla 1.4s linear infinite}
+.t-esq-linea{position:relative;display:inline-block;height:11px;border-radius:2px;background:var(--hueso);vertical-align:middle;overflow:hidden}
+.t-esq-linea::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--tinta) 10%,transparent) 50%,transparent 70%);background-size:220% 100%;animation:brilla 1.4s linear infinite}
+.t-esq .t-card-nom .t-esq-linea{height:14px}
+.t-esq .t-lamina{background:var(--t-lamina)}
+@keyframes brilla{from{background-position:120% 0}to{background-position:-120% 0}}
+.hidrata .t-card-foto img,.hidrata .t-pieza{animation:aparece calc(500ms*var(--vel)) var(--ease) both}
+.hidrata .t-card-info,.hidrata .t-stock,.hidrata .t-look-card h3,.hidrata .t-look-card .t-precio,.hidrata .t-look-card small,.hidrata .t-punto,.hidrata .t-vacio,.hidrata .t-fila-tit{animation:aparece calc(400ms*var(--vel)) var(--ease) both}
+@keyframes dato-cambia{0%{opacity:1}40%{opacity:0;transform:translateY(3px)}60%{opacity:0;transform:translateY(-3px)}100%{opacity:1;transform:none}}
+.dato-cambia{animation:dato-cambia calc(420ms*var(--vel)) var(--ease) both}
+
+/* SEDE 2 · El velo (Felipe 2026-10-20: «que no sea tan invasivo, no que se ponga en negro sino que tenga un blur oscuro»): un velo
+   oscuro y desenfocado cubre el catálogo —que se sigue viendo detrás—, escribe el nombre de la tienda nueva y se disipa al llegar la página.
+   Antes era un telón grafito opaco que cruzaba de lado a lado. */
+.t-telon{position:absolute;inset:90px 0 0 0;z-index:14;background:color-mix(in srgb,var(--t-hero) 62%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--t-hero-tinta);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px 16px}
+.t-telon.entra{animation:velo-entra calc(320ms*var(--vel)) var(--ease) both}
+.t-telon.sale{animation:velo-sale calc(380ms*var(--vel)) var(--ease) both}
+@keyframes velo-entra{from{opacity:0;backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px)}}
+@keyframes velo-sale{to{opacity:0;backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px)}}
+.t-telon .ceja{color:color-mix(in srgb,var(--t-hero-tinta) 72%,transparent);animation:aparece calc(300ms*var(--vel)) var(--ease) calc(180ms*var(--vel)) both}
+/* El nombre nunca se parte («AREQUI / PA» a 375 px): una sola línea y, en el celular, 34 px de mínimo (8 letras anchas en 343 px). */
+.t-telon h2{font-family:var(--sans);font-variation-settings:var(--ancho);text-transform:uppercase;font-weight:200;font-size:clamp(34px,11cqi,150px);line-height:.9;letter-spacing:.04em;white-space:nowrap;clip-path:inset(-20% -5% 0 -5%)}
+.t-telon h2 span{display:inline-block;animation:sube-pal calc(560ms*var(--vel)) var(--ease) both;animation-delay:calc(160ms*var(--vel) + var(--j)*28ms*var(--vel))}
+.t-telon.sale h2 span{animation:cae-pal calc(260ms*var(--vel)) var(--ease) both;animation-delay:calc(var(--j)*14ms*var(--vel))}
+/* La línea se dibuja y, mientras la página nueva no llega, un hilo la barre (la señal de espera de la tienda, no un adorno). */
+.t-telon .linea{position:relative;overflow:hidden;width:0;height:1px;background:color-mix(in srgb,currentColor 55%,transparent);animation:linea calc(520ms*var(--vel)) var(--ease) calc(380ms*var(--vel)) both}
+.t-telon .linea::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 20%,currentColor 50%,transparent 80%);background-size:60% 100%;background-repeat:no-repeat;animation:hilo 1.1s linear infinite;animation-delay:calc(900ms*var(--vel))}
+@keyframes hilo{from{background-position:-60% 0}to{background-position:160% 0}}
+@keyframes linea{to{width:120px}}
+@keyframes asienta{from{transform:scale(.985);opacity:.6}}
+.s2-asienta{animation:asienta calc(520ms*var(--vel)) var(--ease) both;transform-origin:50% 20%}
+
+/* SEDE 3 · El mapa: la costa con las tres sedes; el marcador viaja hasta la elegida */
+.t-mapa{position:absolute;right:0;top:calc(100% - 6px);width:min(340px,calc(100cqi - 24px));background:var(--papel);border:1px solid var(--sand);box-shadow:0 30px 50px -40px var(--sombra);padding:14px 14px 10px;z-index:20;animation:t-bajar calc(.28s*var(--vel)) var(--ease) both;display:flex;flex-direction:column;gap:6px}
+.t-mapa.pliega{animation:mapa-pliega calc(260ms*var(--vel)) var(--ease) both}
+@keyframes mapa-pliega{to{opacity:0;transform:translateY(-10px)}}
+.t-mapa svg{display:block;width:100%;height:auto;overflow:visible}
+.t-mapa .reticula{fill:none;stroke:var(--pizarra);stroke-width:.6;stroke-dasharray:2 5;opacity:.35}
+.t-mapa .costa{fill:none;stroke:var(--pizarra);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.t-mapa .costa-eco{fill:none;stroke:var(--pizarra);stroke-width:.7;opacity:.35}
+.t-mapa .ruta{fill:none;stroke:var(--rojo);stroke-width:1.1;stroke-dasharray:2 4;stroke-linecap:round;opacity:.9}
+.t-mapa .oceano{font-family:var(--nombre);font-style:italic;font-size:15px;fill:var(--pizarra);letter-spacing:.12em;opacity:.8}
+.t-mapa .ciudad{cursor:pointer}
+.t-mapa .ciudad circle{fill:var(--sand);stroke:var(--tinta);stroke-width:1;transition:fill .3s}
+.t-mapa .ciudad[aria-current="true"] circle{fill:var(--rojo);stroke:var(--rojo)}
+.t-mapa .ciudad text{font-family:var(--sans);font-variation-settings:var(--ancho);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;fill:var(--tinta);font-weight:500}
+.t-mapa .ciudad:hover text{text-decoration:underline;text-underline-offset:3px}
+.t-mapa .ciudad[aria-current="true"] text{font-weight:600}
+.t-mapa .marcador{fill:var(--rojo);stroke:var(--papel);stroke-width:1.5}
+.t-mapa .aro{fill:none;stroke:var(--rojo);stroke-width:1.2;opacity:0}
+/* El marcador ya aterrizó pero la página no llegó: el anillo late hasta que llegue (señal de espera, se apaga al llegar). */
+.t-mapa .aro.late{animation:late 1.1s var(--ease) infinite}
+@keyframes late{0%{r:4.5;opacity:.9}100%{r:16;opacity:0}}
+.t-mapa .pie{font-size:11.5px;color:var(--taupe);text-align:center;padding-top:2px}
+
+/* PESTAÑA 1 · La raya que viaja: una sola raya que corre de la palabra vieja a la nueva; el contenido entra de lado */
+.t-raya{position:absolute;bottom:22px;height:1px;background:var(--tinta);left:var(--x,0px);width:var(--w,0px);transition:left calc(320ms*var(--vel)) var(--ease),width calc(320ms*var(--vel)) var(--ease),background-color .3s;pointer-events:none;display:none}
+.p1 .t-raya{display:block}
+.p1 .t-nav-b[aria-current="page"]::after{display:none}
+.t-raya.roja{background:var(--rojo)}
+@keyframes p1-sale{to{opacity:0;transform:translateX(calc(var(--dir)*-22px))}}
+@keyframes p1-entra{from{opacity:0;transform:translateX(calc(var(--dir)*22px))}}
+.p1-sale{animation:p1-sale calc(200ms*var(--vel)) var(--ease) both}
+.p1-entra{animation:p1-entra calc(300ms*var(--vel)) var(--ease) both}
+
+/* PESTAÑA 2 · El título se cuelga: el título viejo cae por su línea, el nuevo sube palabra por palabra y las prendas se cuelgan en cascada */
+.p2 .t-nav-b[data-fue]::after{transform-origin:right}
+.p2-sale .t-lista-cab h1 .pal{animation:cae-pal calc(220ms*var(--vel)) var(--ease) both;animation-delay:calc(var(--j)*25ms*var(--vel))}
+.p2-sale .t-lista-cab .ceja,.p2-sale .t-lista-cab p,.p2-sale .t-cta,.p2-sale .t-grilla,.p2-sale .t-looks,.p2-sale .t-vacio,.p2-sale .t-fila-tit{animation:apagar calc(180ms*var(--vel)) var(--ease) both}
+.p2-entra .t-lista-cab h1 .pal{animation:sube-pal calc(480ms*var(--vel)) var(--ease) both;animation-delay:calc(150ms*var(--vel) + var(--j)*55ms*var(--vel))}
+.p2-entra .t-lista-cab .ceja,.p2-entra .t-lista-cab p,.p2-entra .t-cta,.p2-entra .t-fila-tit{animation:aparece calc(360ms*var(--vel)) var(--ease) calc(140ms*var(--vel)) both}
+.p2-entra .t-card,.p2-entra .t-look-card,.p2-entra .t-vacio{animation:colgar calc(460ms*var(--vel)) var(--ease) both;animation-delay:calc(120ms*var(--vel) + min(var(--i),7)*32ms*var(--vel))}
+
+/* PESTAÑA 3 · Desde la palabra: la página nueva se despliega desde la palabra tocada hacia los dos lados */
+@keyframes p3-abre{from{clip-path:inset(0 calc(100% - var(--ox)) 0 var(--ox));transform:scale(.985)}to{clip-path:inset(0 0 0 0);transform:none}}
+.p3-entra{animation:p3-abre calc(420ms*var(--vel)) var(--ease) both;transform-origin:var(--ox) 0}
+
+/* Reducir movimiento: todo cambia de golpe */
+.rm *,.rm *::before,.rm *::after{animation:none!important;transition:none!important}
+</style>
+</head>
+<body>
+<div class="spk">
+  <span class="tag">Maqueta · movimiento</span>
+  <span class="tag">Qué se prueba</span><div class="seg" id="segGrupo"><button data-g="sede" class="on">Cambio de sede</button><button data-g="pestana">Cambio de pestaña</button></div>
+  <span class="tag">Prueba</span><div class="seg" id="segPrueba"></div>
+  <span class="tag">Velocidad</span><div class="seg" id="segVel"><button data-v="1" class="on">Normal</button><button data-v="4">Lenta ×4</button></div>
+  <span class="tag">La página nueva tarda</span><div class="seg" id="segRed"><button data-r="0">Nada</button><button data-r="1200" class="on">1,2 s</button><button data-r="3000">3 s</button></div>
+  <span class="tag">Pantalla</span><div class="seg" id="segPant"><button data-p="desk" class="on">Computador</button><button data-p="cel">Celular</button></div>
+  <span class="tag">Tema</span><div class="seg" id="segTema"><button data-t="claro" class="on">Claro</button><button data-t="oscuro">Oscuro</button></div>
+  <label class="chk"><input type="checkbox" id="chkRm"> Reducir movimiento</label>
+  <button class="spk-b" id="btnRepetir" title="Repite el último cambio"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg> Repetir</button>
+</div>
+<div class="escena">
+  <div class="ley" id="ley"></div>
+  <div class="sx"><div id="envol"><div class="marco desk" id="marco"><div class="tienda" id="tienda"></div></div></div></div>
+</div>
+<script>
+/* ---- datos: 8 prendas reales de la portada pública (foto y nombre); precios y stock de EJEMPLO ---- */
+const FOTOS='https://vovjyyiafkxteijimpuy.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/';
+const PRENDAS=[
+ {n:'Blusa Kalessi',p:119,f:'9afb4280-1866-466c-bad1-8a635f45bdea'},
+ {n:'Palazo Tiana',p:139,f:'984f73d6-ce8f-45f2-b7b3-c42ae98f4f06'},
+ {n:'Corset Alba',p:99,f:'7b4450d9-fb1c-4eab-92a7-843d7de778af'},
+ {n:'Pantalón Sastre Strend',p:149,f:'6e022b5c-51ae-4ef1-87b5-10b4d69a5d20'},
+ {n:'Falda Luna',p:89,f:'eeb109f1-d55d-48dc-bfea-e2b5c469b740'},
+ {n:'Palazo Semicadera',p:139,f:'773bebab-3304-4d95-87f8-c56282f475a7'},
+ {n:'Camiseta Cuello V',p:59,f:'42ed56a1-62a4-450f-a02b-5475649e4fd3'},
+ {n:'Corset Olenka',p:109,f:'8f41cefc-d7fb-4244-8bcc-622f09962bb0'},
+];
+const SEDES=[{id:'arequipa',n:'Arequipa',x:157,y:214,off:0},{id:'lima',n:'Lima',x:75,y:145,off:3},{id:'trujillo',n:'Trujillo',x:45,y:82,off:5}];
+const sedeDe=id=>SEDES.find(s=>s.id===id);
+const PAT=['hay','hay','ultima','no','hay','ultima','hay','no'];
+const STOCK_TXT={hay:'Hay',ultima:'Última',no:'No hay'};
+const stock=(i,sede)=>PAT[(i+sedeDe(sede).off)%8];
+const precio=(i,sede)=>{const p=PRENDAS[i].p;if(sede==='lima')return i%3===0?p+10:p;if(sede==='trujillo')return i%2===1?p-10:p;return p};
+const SECCIONES=[
+ {id:'nuevo',nav:'Lo nuevo',ceja:'Recién llegado',titulo:'Lo nuevo',frase:'Lo que llegó a nuestras tiendas en los últimos 30 días.',tipo:'grilla',items:[0,1,2,3,4,5,6,7]},
+ {id:'ropa',nav:'Ropa',menu:true,ceja:'Catálogo',titulo:'Toda la ropa',frase:'Blusas, pantalones, faldas y vestidos. El precio es el de tu tienda.',tipo:'grilla',items:[3,0,5,1,7,2,4,6]},
+ {id:'accesorios',nav:'Accesorios',menu:true,ceja:'Catálogo',titulo:'Accesorios',frase:'Lo que completa el look. (En la maqueta salen prendas: solo hay fotos de ropa.)',tipo:'grilla',items:[6,2,7,4]},
+ {id:'looks',nav:'Looks',ceja:'Looks',titulo:'Arma tu look',frase:null,tipo:'looks',cta:'Arma tu look personalizado'},
+ {id:'ofertas',nav:'Ofertas',oferta:true,ceja:'Campañas vigentes',titulo:'Las ofertas',frase:'El descuento de cada campaña, sobre el precio de tu tienda, hasta su último día.',tipo:'vacio'},
+];
+const secDe=id=>SECCIONES.find(s=>s.id===id);
+const idxSec=id=>SECCIONES.findIndex(s=>s.id===id);
+const LOOKS=[
+ {n:'Oficina suave',items:[1,0,3],pos:[{x:4,y:6,w:46,r:-3},{x:50,y:10,w:44,r:2},{x:26,y:54,w:40,r:-1}]},
+ {n:'Tarde en la ciudad',items:[2,5,6],pos:[{x:6,y:8,w:44,r:2},{x:52,y:6,w:44,r:-2},{x:28,y:52,w:42,r:1}]},
+];
+const IC={
+ bolsa:'<path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+ persona:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/>',
+ menu:'<path d="M4 7h16M4 12h16M4 17h10"/>',
+ tienda:'<path d="M4 9h16l-1.4-4.5H5.4L4 9Z"/><path d="M5 9v11h14V9"/><path d="M10 20v-5h4v5"/>',
+ flecha:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+ chevron:'<path d="M7 10l5 5 5-5"/>',
+ cerrar:'<path d="M6 6l12 12M18 6L6 18"/>',
+};
+const svg=(n,c='ic')=>`<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
+const LOGO_TRAZO="M542 0l20-0.5 15 1.1 18 3.1 17 4.8 18 7.1 12 6 19 11.9 12 9.2 175-8.2 6 2.1 3.4 3.4 2 4-0.1 7-2.1 4-2.2 2.3-3 1.9-4 1-170 18.5-21 12.1-18 11.8-17 13.2-15.2 14.2-15.1 17-17.1 23-13 20-19 32-22.4 41-1.2 1.1-8.2-38.1 20.9-37 25.1-41 18-25 9.2-10.5 11-10.9 12-9.8 10-7.1 38-22.7-6-5.3-15-9.9-14-7.3-9-3.9-12-4.1-15-3.8-14-2-12-0.6-15 0.5-14 1.9-10 2.3-15 4.7-12 5.4-12 6.8-7 4.9-11 9.3-11.3 12.1-6.1 8-6.9 11-6 12-4.8 13-3.3 12-2 13-0.8 10 29.4 27 11 12 14.1 18 10.9 17 7 13 8.2 19 5.9 18 5 22 2.1 16 1 14 0.1 14-1.1 25-2 15-5.2 20-5.8 15-7.2 14-7 11-10.7 14-13.5 14.5-12 10.8-17 13.1-20 13-22 12-17 8.1-26 10.7-17 6.2-22 7.1-25 6.9-25 6-36 7.1-52 7.7-1.3-0.2 0-1 86-185 2.3-3.6 22 10.1 0.4 1.5-67.4 145.5 11-1.2 34-6.9 46-12.1 38-13 26-10.9 16-8 23-13.1 16-11 20-16.9 13.4-14.4 9.7-13 8.2-14 7.1-17 5-19 2-18 0.4-26-2.5-27-4-19-8-24-6.9-15-11.1-19-14.1-19-12.2-13.5-18-16.8-10-8.1-18-13-17-10.9-24-13.2-22-10.7-19-8.3-48-17.8-35-10.9-29-8-24-6.2-57-12.9-75-15-0.1 1.3 3.8 13 6.1 18 12.7 32 13.1 27 19.2 32 20 27 19.2 21.7 25 23.6 23 17.9 30 19.2 27 13.9 29 12.1 21 7 17 4.8 32 7.1 36 5.1 32 1.9 18 0.1 16-0.9 1.3 0.5 2.1 21 0.2 3-0.6 0.9-27 0.7-29-1.2-22-2.2-25-3.7-34-7.3-21-5.7-19-6.3-30-11.8-27-13-21-12-20-13.1-16-11.9-18-15.2-13-12.3-14.4-14.9-19.9-24-16.9-24-11-18-9.3-17-11.9-25-10.8-27-7.2-21-5.9-20-8.8-36 1.1-0.6 3 0.4 83 16.8 60 13 49 12.1 45 12.9 39 13.1 45 18 37 17.9 34 20.2 0.7-0.8 2.9-15 2.2-8 5-14 5.9-13 6.9-12 10-14 6.9-8 10.5-10.5 11-8.9 10-6.9 15-8.2 11-4.7 23-7.1 11-2.1zM774.2 224l20.8-0.9 11 0.7 11 1.7 9 2.3 10 3.7 14 7.2 10 7 4.8 4.3 8.8 9 5.8 7 6 9 6 11 6 15-2.4 2.5-30 14-3 0.5-3.4-4-3.2-8-4.3-8-7.7-11-10.4-10.1-12-7.3-7-2.8-8-2.2-8-1.1-11 0-11 1.1-5 1.2-12 4.7-10 6.2-7 6.2-6.3 7.1-6.1 9-4.7 9-5.2 13-3.1 10-2 9-2.1 18 0.3 12 3.9 22 7 20 4.9 10 5.1 8 5.8 7 7.5 7.4 7 4.9 10 5.1 9 3 6 1.1 13 0.8 12-0.9 9-2.1 9-3.7 10-6.2 6-5.3 7.3-8.1 4.2-6 6-11 3.1-8 4.4-5.3 4-0.1 22 10.9 4.6 2.5 3.8 4-1.2 5-3.7 9-10.2 18-11 14-13.3 12.3-7 5-11 6.1-12 4.8-12 3.1-13 1.9-10 0.3-14-0.3-13-1.8-15-4-13-6-14-9-10.9-9.4-8.3-9-10-14-8-15-6.1-16-4.8-19-2.2-13-1.2-12 0-19 2.2-19 3.9-18 5.9-18 6.1-13 7.2-12 11.1-14 12.1-11.4 8-5.9 12-7.1 9-3.9 10-3.2zM1049.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0.1 2-1.2 2-4.2 2.4-30-0.1-2-1.3-1.2-2-8.8-26.1-48 0-97 0-1 0.2-1.4 2.9-8.1 22-1.5 2.7-2 1.6-29 0.1-4-1.7-1.5-1.7-0.5-2 92.5-263 2.4-5zM1197.8 224l2.2-0.9 28 0 7 0.8 3.3 2.1 75.3 120 1.4 0.8 76-120.7 4-2.4 6-0.6 28 0 2 0.5 1.3 1.4 0.3 3-2.2 6-55.1 86-40.7 63-0.1 108-0.8 5-1.7 2.1-4 1.4-26 0-4-0.9-2-1.7-1.4-3.9-0.1-110-95-148-2.8-6-0.1-3zM1519.3 224l3.7-0.9 26 0 4 1.3 2.5 3.6 0.5 231 134 0.8 3.4 3.2 0.5 3 0.1 26-0.7 4-3.5 3-3.8 0.5-163 0-4-0.9-2.4-2.6-0.8-5 0-260 0.7-4zM1854.7 224l3.3-0.9 43 0 3 0.7 3.1 4.2 92.2 265 0 2-1.1 2-4.2 2.3-30 0-2-1.2-1.3-2.1-8.7-26-48-0.1-97 0-1 0.3-1 1.8-8.6 23-1.7 3-1.7 1.3-29 0.1-3.7-1.4-2.1-3 1.4-7 88.1-249 4.1-11zM1074.7 262l2.7 6 57.1 165-1.5 0.6-58 0-60 0-0.6-0.6 56.2-161zM1878.7 263l1.3-0.9 0.5 0.9 58.9 170-1.4 0.6-57 0-60 0-1.9-0.6z";
+const logo=()=>`<a class="t-logo" href="#" aria-label="CAYLA"><svg viewBox="0 0 2000 580" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="${LOGO_TRAZO}"/></svg></a>`;
+
+/* ---- las 6 pruebas: lo que dice la leyenda ---- */
+const PRUEBAS={
+ sede:[
+  {n:'La cédula',idea:'Solo cambia lo que cambia: el nombre de la tienda rueda hacia arriba como la cédula de un museo, y cada prenda se vuelve a colgar —una tras otra— con su precio y su stock nuevos.',carga:'El nombre rueda al instante (ya se sabe cuál es). Las prendas se descuelgan y se quedan atenuadas, con la luz que barre su foto, hasta que llega la tienda nueva; recién ahí se vuelven a colgar con su precio y su stock.',dura:'≈ 0,6 s + lo que tarde la página',pagas:'Es la más discreta: quien no mira la cabecera puede no darse cuenta de que cambió de tienda.',como:'La palabra de la cabecera con <code>view-transition-name</code>; cada tarjeta con <code>recolgar-espera</code> al tocar (como hoy <code>.t-pendiente</code> atenúa la lista) y <code>recolgar-vuelve</code> cuando llega la página. Sin capa nueva: va sobre <code>vistas.css</code>.',pista:'Toca <b>AREQUIPA ▾</b> en la cabecera y elige otra tienda.'},
+  {n:'El velo',idea:'Un velo oscuro y desenfocado cubre el catálogo —que se sigue viendo detrás, borroso—, escribe en grande el nombre de la tienda nueva y se disipa dejando el catálogo ya cambiado. (Antes era un telón negro de lado a lado; Felipe: «que no sea tan invasivo».)',carga:'El velo se queda hasta que llega la página (0,3 s como mínimo, para no parpadear si llega al instante), con un hilo que barre la línea bajo el nombre; recién entonces se disipa, y las prendas nuevas ya están debajo. Esconde la espera sin tapar la tienda.',dura:'≈ 1,0 s (o lo que tarde la página)',pagas:'Cubre el catálogo mientras dura la espera; se ve que cambió, pero con red lenta el velo dura lo que dure la red.',como:'Una capa <code>t-velo</code> bajo la cabecera con <code>backdrop-filter: blur(14px)</code> y el grafito al 62 %; entra y sale con un fundido, y la salida se dispara cuando Next entrega la página (el mismo momento en que hoy se quita <code>.t-pendiente</code>).',pista:'Toca <b>AREQUIPA ▾</b> en la cabecera y elige otra tienda.'},
+  {n:'El mapa',idea:'Al tocar la tienda se abre un mapa fino de la costa con las tres sedes. Al elegir una, el marcador viaja por la costa hasta ella, el nombre rueda y las prendas se refrescan.',carga:'Las prendas se atenúan desde el toque. El marcador viaja mientras llega la página: si la página llega antes, espera a que aterrice; si llega después, el anillo late sobre la sede hasta que llegue. Recién ahí las prendas se vuelven a colgar y el mapa se pliega.',dura:'≈ 1,2 s (0,55 s de viaje) o lo que tarde la página',pagas:'Cambia el selector (ya no es una lista de nombres): es la más cara de construir, y una sede nueva lejos de la costa pide redibujar el mapa.',como:'Un SVG con la costa y <code>getPointAtLength</code> para el marcador; reemplaza la lista de <code>SelectorTienda</code> (o la lista se queda y el mapa solo sale durante el cambio).',pista:'Toca <b>AREQUIPA ▾</b> en la cabecera y elige una sede en el mapa.'},
+ ],
+ pestana:[
+  {n:'La raya que viaja',idea:'La raya de la pestaña corre de la palabra vieja a la nueva, y el contenido entra de lado en el sentido del recorrido (hacia la derecha si la pestaña nueva está a la derecha).',carga:'Lo que entra de lado es el esqueleto de la pestaña: su título real y marcos que brillan donde van las fotos. Al llegar la página, cada foto y cada texto aparecen en su lugar, sin que nada se mueva.',dura:'≈ 0,3 s + lo que tarde la página',pagas:'Orienta sin protagonismo: el título no se luce. En el celular no hay raya: queda solo el deslizamiento.',como:'<code>view-transition-name: t-raya</code> en la raya (el navegador la mueve sola) y <code>::view-transition-new(root)</code> con un <code>translateX</code> según el orden de la cabecera. El esqueleto ya existe (<code>EnCamino</code>, ADR-0445): solo cambia cómo entra.',pista:'Toca <b>LO NUEVO</b>, <b>LOOKS</b> u <b>OFERTAS</b> en la cabecera (en el celular, el menú ☰).'},
+  {n:'El título se cuelga',idea:'El título viejo cae por su línea, el nuevo sube palabra por palabra y las prendas se cuelgan en cascada, como cuando se monta una exposición en el muro.',carga:'El título sube al instante (ya se sabe cuál es) y lo que se cuelga en cascada son los marcos vacíos que brillan. Al llegar la página, cada foto aparece dentro de su marco y cada texto en su renglón.',dura:'≈ 0,55 s + lo que tarde la página',pagas:'La más rica y la más larga. Dos toques muy seguidos se pisan: se corta la primera.',como:'<code>view-transition-class</code> en el título (<code>t-cuelga</code>) y en las tarjetas del esqueleto, con <code>animation-delay</code> por índice: el mismo patrón de la foto que viaja (ADR-0445).',pista:'Toca <b>LO NUEVO</b>, <b>LOOKS</b> u <b>OFERTAS</b> en la cabecera (en el celular, el menú ☰).'},
+  {n:'Desde la palabra',idea:'La página nueva se despliega desde la palabra tocada, hacia los dos lados, hasta cubrir la vieja. El toque y lo que llega quedan unidos.',carga:'Lo que se despliega es el esqueleto de la pestaña (título real, marcos que brillan). Al llegar la página, las fotos y los textos aparecen en su lugar.',dura:'≈ 0,4 s + lo que tarde la página',pagas:'Es un corte, no un fundido: la vieja no se apaga. En el celular sale desde el menú, no desde una palabra de la cabecera.',como:'<code>::view-transition-new(root)</code> con <code>clip-path: inset(…)</code> cuyo origen se guarda al tocar en una variable (<code>--ox</code>); el esqueleto de <code>EnCamino</code> es lo que se despliega.',pista:'Toca <b>LO NUEVO</b>, <b>LOOKS</b> u <b>OFERTAS</b> en la cabecera (en el celular, el menú ☰).'},
+ ],
+};
+
+/* ---- estado ---- */
+const S={grupo:'sede',prueba:1,vel:1,red:1200,rm:false,pantalla:'desk',tema:'claro',seccion:'nuevo',sede:'arequipa',ocupado:false,ultimo:null,medida:null};
+const $=s=>document.querySelector(s);
+const ms=n=>n*S.vel;
+const espera=n=>new Promise(r=>setTimeout(r,ms(n)));
+/* La página nueva que trae Next: tarda lo que diga «La página nueva tarda» (la red no se pone lenta con la cámara lenta). */
+const llega=()=>new Promise(r=>setTimeout(r,S.red));
+const prueba=()=>PRUEBAS[S.grupo][S.prueba-1];
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+/* ---- dibujo de la tienda ---- */
+function card(i,sede,k){const p=PRENDAS[i],st=stock(i,sede);return`<article class="t-card" style="--i:${k}" data-prenda="${i}">
+ <div class="t-card-foto"><img src="${FOTOS+p.f}.jpg" alt="" loading="lazy" decoding="async"></div>
+ <div class="t-card-info"><span class="t-card-nom">${p.n}</span><span class="t-precio"><b class="t-dato" data-dato="precio">S/ ${precio(i,sede)}</b></span></div>
+ <small class="t-stock t-dato" data-dato="stock" data-s="${st}">${STOCK_TXT[st]}</small></article>`}
+function look(l,sede,k){const total=l.items.reduce((a,i)=>a+precio(i,sede),0);return`<article class="t-look-card" style="--i:${k}" data-look="${k}">
+ <div class="t-lamina">${l.items.map((i,j)=>{const q=l.pos[j];return`<div class="t-pieza" style="--x:${q.x}%;--y:${q.y}%;--w:${q.w}%;--r:${q.r}deg"><img src="${FOTOS+PRENDAS[i].f}.jpg" alt="" loading="lazy"></div><span class="t-punto" style="left:${q.x+q.w-2}%;top:${q.y+4}%">${j+1}</span>`}).join('')}</div>
+ <h3>${l.n}</h3><span class="t-precio"><b class="t-dato" data-dato="total">S/ ${total}</b></span><small>${l.items.length} prendas · ${l.items.map(i=>PRENDAS[i].n.split(' ')[0]).join(', ')}</small></article>`}
+function pagina(sec,sede){
+  const s=secDe(sec);
+  const titulo=s.titulo.split(' ').map((w,j)=>`<span class="pal" style="--j:${j}">${w}</span>`).join(' ');
+  const cab=`<div class="t-lista-cab ${s.tipo==='looks'?'t-looks-cab':''}"><div><span class="ceja">${s.ceja}</span><h1>${titulo}</h1>${s.frase?`<p>${s.frase}</p>`:''}</div>${s.cta?`<button class="t-btn t-btn-claro t-cta">${s.cta} ${svg('flecha')}</button>`:''}</div>`;
+  let cuerpo='';
+  if(s.tipo==='grilla')cuerpo=`<div class="t-grilla">${s.items.map((i,k)=>card(i,sede,k)).join('')}</div>`;
+  if(s.tipo==='looks')cuerpo=`<div class="t-looks">${LOOKS.map((l,k)=>look(l,sede,k)).join('')}</div>`;
+  if(s.tipo==='vacio')cuerpo=`<div class="t-vacio" style="--i:0">${svg('tienda')}<h3>Por ahora no hay ofertas</h3><p>Cuando empiece una campaña, sus prendas aparecen aquí. Mientras tanto, mira toda la tienda.</p><button class="t-btn t-btn-claro">Ver toda la tienda</button></div>
+   <div class="t-fila-tit"><span class="ceja">Recién llegado</span><span class="t-ver">Ver todo ${svg('flecha')}</span></div><div class="t-grilla">${[0,1,2,3].map((i,k)=>card(i,sede,k+1)).join('')}</div>`;
+  const el=document.createElement('div');el.className='t-pagina';el.dataset.seccion=sec;el.innerHTML=`<div class="t-ancho">${cab}${cuerpo}</div>`;return el;
+}
+/* El esqueleto de una pestaña (ADR-0445): la misma cabecera de lista con el título REAL (se sabe antes de pedir nada) y, donde van las
+   prendas, marcos que brillan con sus renglones. Tiene las mismas medidas que la página: al llegar, cada cosa aparece en su lugar. */
+const cardEsq=k=>`<article class="t-card t-esq" style="--i:${k}"><div class="t-card-foto"></div><div class="t-card-info"><span class="t-card-nom"><span class="t-esq-linea" style="width:72%"></span></span><span class="t-precio"><span class="t-esq-linea" style="width:44px"></span></span></div><small class="t-stock"><span class="t-esq-linea" style="width:34px"></span></small></article>`;
+function esqueleto(sec){
+  const s=secDe(sec);
+  const titulo=s.titulo.split(' ').map((w,j)=>`<span class="pal" style="--j:${j}">${w}</span>`).join(' ');
+  const cab=`<div class="t-lista-cab ${s.tipo==='looks'?'t-looks-cab':''}"><div><span class="ceja">${s.ceja}</span><h1>${titulo}</h1>${s.frase?`<p>${s.frase}</p>`:''}</div>${s.cta?`<button class="t-btn t-btn-claro t-cta">${s.cta} ${svg('flecha')}</button>`:''}</div>`;
+  let cuerpo='';
+  if(s.tipo==='looks')cuerpo=`<div class="t-looks">${LOOKS.map((l,k)=>`<article class="t-look-card t-esq" style="--i:${k}"><div class="t-lamina"></div><h3><span class="t-esq-linea" style="width:46%;height:18px"></span></h3><span class="t-precio"><span class="t-esq-linea" style="width:52px"></span></span><small><span class="t-esq-linea" style="width:70%"></span></small></article>`).join('')}</div>`;
+  else{const n=s.tipo==='grilla'?s.items.length:4;cuerpo=`<div class="t-grilla">${Array.from({length:n},(_,k)=>cardEsq(k)).join('')}</div>`;}
+  const el=document.createElement('div');el.className='t-pagina t-esqueleto';el.dataset.seccion=sec;el.innerHTML=`<div class="t-ancho">${cab}${cuerpo}</div>`;return el;
+}
+/* Llegó la página: ocupa el lugar del esqueleto y sus fotos y textos aparecen en su sitio (`hidrata`). */
+function hidratar(esq,real){real.classList.add('hidrata');esq.replaceWith(real);setTimeout(()=>real.classList.remove('hidrata'),ms(600));}
+function cabecera(){return`<div class="t-anuncio">Separa sin pagar · Confirma por WhatsApp · Paga al recoger</div>
+<header class="t-cab"><div class="t-cab-fila">
+ <button class="t-ico t-solo-movil" id="btnMenu" aria-label="Menú">${svg('menu')}</button>
+ ${logo()}
+ <nav class="t-nav" id="nav">${SECCIONES.map(s=>`<button class="t-nav-b ${s.oferta?'oferta':''}" data-sec="${s.id}" ${s.id===S.seccion?'aria-current="page"':''}>${s.nav}${s.menu?svg('chevron','ic ch'):''}</button>`).join('')}<span class="t-raya" id="raya"></span></nav>
+ <span class="t-esp"></span>
+ <div class="t-sel" id="sel"><button class="t-nav-b t-sede" id="btnSede" aria-expanded="false" aria-label="Tienda: ${sedeDe(S.sede).n}. Cambiar"><span class="t-sede-caja" id="sedeCaja"><span class="t-sede-nom">${sedeDe(S.sede).n}</span></span><span class="t-flechita" aria-hidden="true">▾</span></button><div id="selMenu"></div></div>
+ <button class="t-ico" aria-label="Bolsa">${svg('bolsa')}</button>
+ <button class="t-ico" aria-label="Cuenta">${svg('persona')}</button>
+</div></header>
+<div class="t-cuerpo" id="cuerpo"><div class="t-escena" id="escena"></div></div>`}
+
+function montar(){
+  const t=$('#tienda');
+  t.innerHTML=cabecera();
+  t.dataset.theme=S.tema==='oscuro'?'dark':'';
+  t.className='tienda'+(S.rm?' rm':'')+(S.grupo==='pestana'?' p'+S.prueba:' s'+S.prueba);
+  t.style.setProperty('--vel',S.vel);
+  const esc_=$('#escena');esc_.innerHTML='';esc_.appendChild(pagina(S.seccion,S.sede));
+  $('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-sec]');if(b)cambiarPestana(b.dataset.sec,b)});
+  $('#btnSede').addEventListener('click',()=>{const abierto=$('#selMenu').children.length>0;abierto?cerrarSel():abrirSel()});
+  $('#btnMenu').addEventListener('click',abrirMenu);
+  requestAnimationFrame(()=>{ajustarSedeCaja(false);moverRaya(false)});
+}
+function ajustarSedeCaja(animado){const caja=$('#sedeCaja'),nom=caja.querySelector('.t-sede-nom:last-child');if(!animado)caja.style.transition='none';caja.style.width=nom.offsetWidth+'px';if(!animado)requestAnimationFrame(()=>caja.style.transition='')}
+/* La maqueta se encoge para caber en la ventana (un laptop, el panel del costado): `zoom` deja las medidas de adentro intactas. */
+function ajustarZoom(){const ancho=S.pantalla==='cel'?391:1182,alto=S.pantalla==='cel'?812:782;$('#envol').style.zoom=Math.max(.55,Math.min(1,(window.innerWidth-34)/ancho,(window.innerHeight-($('#ley').offsetHeight+120))/alto))}
+window.addEventListener('resize',ajustarZoom);
+function moverRaya(animado){const nav=$('#nav'),b=nav.querySelector('[aria-current="page"]'),r=$('#raya');if(!b)return;if(!animado)r.style.transition='none';r.style.setProperty('--x',b.offsetLeft+'px');r.style.setProperty('--w',b.offsetWidth+'px');r.classList.toggle('roja',b.classList.contains('oferta'));if(!animado)requestAnimationFrame(()=>r.style.transition='')}
+
+/* ---- el selector de tienda (lista, o el mapa en la prueba 3) ---- */
+function abrirSel(){
+  const m=$('#selMenu');$('#btnSede').setAttribute('aria-expanded','true');
+  if(S.grupo==='sede'&&S.prueba===3){m.innerHTML=mapa();m.querySelectorAll('.ciudad').forEach(c=>c.addEventListener('click',()=>cambiarSede(c.dataset.sede)));colocarMarcador(sedeDe(S.sede));}
+  else{m.innerHTML=`<div class="t-sel-menu">${SEDES.map(s=>`<button class="t-sel-op" data-sede="${s.id}" ${s.id===S.sede?'aria-current="true"':''}>${s.n}</button>`).join('')}</div>`;m.querySelectorAll('.t-sel-op').forEach(b=>b.addEventListener('click',()=>cambiarSede(b.dataset.sede)));}
+  setTimeout(()=>document.addEventListener('pointerdown',fueraSel),0);
+}
+function fueraSel(e){if(!$('#sel').contains(e.target)&&!S.ocupado)cerrarSel()}
+function cerrarSel(){$('#selMenu').innerHTML='';$('#btnSede').setAttribute('aria-expanded','false');document.removeEventListener('pointerdown',fueraSel)}
+/* la costa del Perú, trazada a mano alzada desde coordenadas aproximadas (no es cartografía exacta): x=(lon+82)·15, y=(−lat−3)·16 */
+const COSTA='M24 10 L10.5 25.6 L15 44.8 L31.5 60.8 L45 81.6 L51 97.6 L57 113.6 L75 144.8 L87 171 L102 196.8 L126 211 L139.5 217.6 L150 224 L160.5 233.6 L174 244.8';
+function mapa(){return`<div class="t-mapa" id="mapaPanel"><span class="ceja">Tu tienda</span>
+<svg viewBox="0 0 215 262" aria-label="Las tres sedes de CAYLA en el mapa del Perú">
+ <g class="reticula">${[40,90,140,190,240].map(y=>`<line x1="0" y1="${y}" x2="215" y2="${y}"/>`).join('')}${[30,80,130,180].map(x=>`<line x1="${x}" y1="0" x2="${x}" y2="262"/>`).join('')}</g>
+ <path class="costa-eco" d="${COSTA}" transform="translate(-5 4)"/>
+ <path class="costa" d="${COSTA}"/>
+ <text class="oceano" x="18" y="150" transform="rotate(-62 18 150)">Pacífico</text>
+ <path class="ruta" id="ruta" d=""/>
+ ${SEDES.map(s=>`<g class="ciudad" data-sede="${s.id}" role="button" tabindex="0" ${s.id===S.sede?'aria-current="true"':''}><circle cx="${s.x}" cy="${s.y}" r="4"/><text x="${s.x+11}" y="${s.y+3.5}">${s.n}</text></g>`).join('')}
+ <circle class="aro" id="aro" r="4.5"/>
+ <circle class="marcador" id="marcador" r="4.5"/>
+</svg><div class="pie">Elige dónde quieres recoger</div></div>`}
+function colocarMarcador(s){const m=$('#marcador'),a=$('#aro');if(!m)return;m.setAttribute('cx',s.x);m.setAttribute('cy',s.y);a.setAttribute('cx',s.x);a.setAttribute('cy',s.y)}
+function viajarMarcador(de,a,dur){
+  const ruta=$('#ruta'),m=$('#marcador');
+  const dx=a.x-de.x,dy=a.y-de.y,L=Math.hypot(dx,dy),nx=-dy/L,ny=dx/L;/* la normal hacia el océano (abajo-izquierda) */
+  const k=Math.min(34,L*.28),cx=(de.x+a.x)/2+nx*k,cy=(de.y+a.y)/2+ny*k;
+  ruta.setAttribute('d',`M${de.x} ${de.y} Q${cx} ${cy} ${a.x} ${a.y}`);
+  const total=ruta.getTotalLength();ruta.style.strokeDasharray=`${total} ${total}`;ruta.style.strokeDashoffset=total;
+  const t0=performance.now();const easeIO=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+  return new Promise(r=>{const paso=now=>{let t=Math.min(1,(now-t0)/ms(dur));const e=easeIO(t);const p=ruta.getPointAtLength(e*total);m.setAttribute('cx',p.x);m.setAttribute('cy',p.y);ruta.style.strokeDashoffset=total*(1-e);if(t<1)requestAnimationFrame(paso);else r()};requestAnimationFrame(paso)});
+}
+function aterrizar(a){const aro=$('#aro');aro.setAttribute('cx',a.x);aro.setAttribute('cy',a.y);aro.animate([{r:4.5,opacity:.9},{r:18,opacity:0}],{duration:ms(520),easing:'cubic-bezier(.2,.7,.2,1)'});}
+
+/* ---- el menú del celular ---- */
+function abrirMenu(){
+  const t=$('#tienda');const velo=document.createElement('div');velo.className='t-velo';
+  const menu=document.createElement('div');menu.className='t-menu';
+  menu.innerHTML=`<div class="t-menu-cab">${logo()}<button class="t-ico" aria-label="Cerrar">${svg('cerrar')}</button></div><nav>${SECCIONES.map(s=>`<button class="${s.oferta?'oferta':''}" data-sec="${s.id}" ${s.id===S.seccion?'aria-current="page"':''}>${s.nav}</button>`).join('')}</nav>`;
+  const cerrar=()=>{velo.remove();menu.remove()};
+  velo.addEventListener('click',cerrar);menu.querySelector('.t-ico').addEventListener('click',cerrar);
+  menu.querySelectorAll('[data-sec]').forEach(b=>b.addEventListener('click',()=>{const r=b.getBoundingClientRect();cerrar();cambiarPestana(b.dataset.sec,null,r)}));
+  t.append(velo,menu);
+}
+
+/* ---- el nombre que rueda (sede 1 y 3, y bajo el telón en la 2) ---- */
+function rodarNombre(nuevo){
+  const caja=$('#sedeCaja'),viejo=caja.querySelector('.t-sede-nom');
+  const n=document.createElement('span');n.className='t-sede-nom rueda-entra';n.textContent=nuevo;
+  viejo.classList.add('rueda-sale');caja.appendChild(n);
+  caja.style.width=medir(nuevo)+'px';
+  $('#btnSede').setAttribute('aria-label',`Tienda: ${nuevo}. Cambiar`);
+  return espera(380).then(()=>{viejo.remove();n.className='t-sede-nom'});
+}
+function medir(texto){const s=document.createElement('span');s.className='t-sede-nom';s.textContent=texto;s.style.position='absolute';s.style.visibility='hidden';s.style.whiteSpace='nowrap';$('#btnSede').appendChild(s);const w=s.offsetWidth;s.remove();return w}
+
+/* ---- refrescar los datos de la página que ya está (precio y stock por tienda) ---- */
+function refrescarDatos(capa,sede){
+  capa.querySelectorAll('[data-prenda]').forEach(c=>{const i=+c.dataset.prenda,st=stock(i,sede);c.querySelector('[data-dato="precio"]').textContent='S/ '+precio(i,sede);const e=c.querySelector('[data-dato="stock"]');e.dataset.s=st;e.textContent=STOCK_TXT[st]});
+  capa.querySelectorAll('[data-look]').forEach(c=>{const l=LOOKS[+c.dataset.look];c.querySelector('[data-dato="total"]').textContent='S/ '+l.items.reduce((a,i)=>a+precio(i,sede),0)});
+}
+
+/* ---- CAMBIO DE SEDE ---- */
+async function cambiarSede(id,repeticion){
+  if(S.ocupado||id===S.sede)return;
+  S.ocupado=true;const de=S.sede;S.sede=id;const t0=performance.now();
+  if(!repeticion)S.ultimo={tipo:'sede',de,a:id};
+  const capa=$('#escena').lastElementChild,nuevo=sedeDe(id);
+  const pagina_=llega();/* la tienda nueva se pide en el mismo toque */
+  if(S.rm){cerrarSel();$('#sedeCaja').querySelector('.t-sede-nom').textContent=nuevo.n;ajustarSedeCaja(false);descolgar(capa);await pagina_;colgar(capa,false);}
+  else if(S.prueba===1)await sede1(capa,nuevo,pagina_);
+  else if(S.prueba===2)await sede2(capa,nuevo,pagina_);
+  else await sede3(capa,sedeDe(de),nuevo,pagina_);
+  S.ocupado=false;medir_(t0);
+}
+/* Las prendas que esperan la tienda nueva: se descuelgan (atenuadas, con la luz que barre) y, al llegar, se vuelven a colgar con sus datos. */
+const piezasDe=capa=>[...capa.querySelectorAll('.t-card,.t-look-card,.t-vacio')];
+function descolgar(capa){piezasDe(capa).forEach((p,k)=>{p.style.setProperty('--i',Math.min(k,11));p.classList.add('recolgar-espera')})}
+function colgar(capa,animado=true){piezasDe(capa).forEach(p=>{refrescarDatos(p,S.sede);p.classList.remove('recolgar-espera');if(animado){p.classList.add('recolgar-vuelve');p.querySelectorAll('.t-dato').forEach(d=>d.classList.add('dato-cambia'))}});
+  return espera(380+11*26).then(()=>piezasDe(capa).forEach(p=>{p.classList.remove('recolgar-vuelve');p.querySelectorAll('.t-dato').forEach(d=>d.classList.remove('dato-cambia'))}))}
+/* 1 · La cédula */
+async function sede1(capa,nuevo,pagina_){
+  cerrarSel();
+  const r=rodarNombre(nuevo.n);
+  descolgar(capa);
+  await Promise.all([pagina_,espera(220+11*26)]);
+  await colgar(capa);await r;
+}
+/* 2 · El telón */
+async function sede2(capa,nuevo,pagina_){
+  cerrarSel();
+  const telon=document.createElement('div');telon.className='t-telon entra';
+  telon.innerHTML=`<span class="ceja">Ahora ves lo que hay en</span><h2>${[...nuevo.n].map((l,j)=>`<span style="--j:${j}">${l}</span>`).join('')}</h2><span class="linea"></span>`;
+  $('#tienda').appendChild(telon);
+  const r=rodarNombre(nuevo.n);
+  /* cubierto: el velo se queda hasta que llega la página (0,3 s como mínimo después de cubrir, para no parpadear) */
+  await Promise.all([pagina_,espera(320+300)]);
+  refrescarDatos(capa,S.sede);
+  telon.className='t-telon sale';capa.classList.add('s2-asienta');
+  await espera(380);telon.remove();capa.classList.remove('s2-asienta');await r;
+}
+/* 3 · El mapa */
+async function sede3(capa,de,a,pagina_){
+  const panel=$('#mapaPanel');if(!panel){abrirSel();await espera(280)}
+  descolgar(capa);
+  await viajarMarcador(de,a,560);
+  $('#mapaPanel').querySelectorAll('.ciudad').forEach(c=>c.toggleAttribute('aria-current',c.dataset.sede===a.id));
+  const r=rodarNombre(a.n);
+  /* aterrizó: si la página ya llegó, un solo anillo; si no, el anillo late hasta que llegue */
+  let llego=false;pagina_.then(()=>llego=true);await Promise.resolve();
+  const aro=$('#aro');aro.setAttribute('cx',a.x);aro.setAttribute('cy',a.y);
+  if(llego)aterrizar(a);else{aro.classList.add('late');await pagina_;aro.classList.remove('late');}
+  const c=colgar(capa);
+  await espera(380);$('#mapaPanel').classList.add('pliega');await espera(260);cerrarSel();
+  await c;await r;
+}
+
+/* ---- CAMBIO DE PESTAÑA ---- */
+async function cambiarPestana(id,boton,rectMenu,repeticion){
+  if(S.ocupado||id===S.seccion)return;
+  S.ocupado=true;const de=S.seccion;S.seccion=id;const t0=performance.now();
+  if(!repeticion)S.ultimo={tipo:'pestana',de,a:id};
+  const escena=$('#escena'),cuerpo=$('#cuerpo'),vieja=escena.lastElementChild;
+  /* Lo que entra es el ESQUELETO de la pestaña (su título ya se sabe); la página se pide en el mismo toque y, al llegar, ocupa su lugar. */
+  const esq=esqueleto(id),pagina_=llega().then(()=>pagina(id,S.sede));
+  const nav=$('#nav'),bViejo=nav.querySelector('[aria-current="page"]'),bNuevo=nav.querySelector(`[data-sec="${id}"]`);
+  const st=cuerpo.scrollTop;
+  if(S.rm){vieja.remove();escena.appendChild(esq);cuerpo.scrollTop=0;marcarNav(bViejo,bNuevo,false);const real=await pagina_;esq.replaceWith(real);}
+  else{
+    if(S.prueba===1)await pestana1(vieja,esq,de,id,st,bViejo,bNuevo);
+    else if(S.prueba===2)await pestana2(vieja,esq,st,bViejo,bNuevo);
+    else await pestana3(vieja,esq,st,bViejo,bNuevo,boton,rectMenu);
+    const real=await pagina_;hidratar(esq,real);await espera(500);
+  }
+  S.ocupado=false;medir_(t0);
+}
+function marcarNav(bViejo,bNuevo,animado){
+  if(bViejo){bViejo.removeAttribute('aria-current');if(S.prueba===2)bViejo.setAttribute('data-fue','');setTimeout(()=>bViejo.removeAttribute('data-fue'),ms(420));}
+  bNuevo.setAttribute('aria-current','page');moverRaya(animado);
+}
+/* 1 · La raya que viaja */
+async function pestana1(vieja,nueva,de,a,st,bViejo,bNuevo){
+  const dir=idxSec(a)>idxSec(de)?1:-1;
+  vieja.classList.add('capa-vieja','p1-sale');vieja.style.top=(-st)+'px';vieja.style.setProperty('--dir',dir);
+  nueva.classList.add('p1-entra');nueva.style.setProperty('--dir',dir);
+  $('#escena').appendChild(nueva);$('#cuerpo').scrollTop=0;marcarNav(bViejo,bNuevo,true);
+  await espera(320);vieja.remove();nueva.classList.remove('p1-entra');
+}
+/* 2 · El título se cuelga */
+async function pestana2(vieja,nueva,st,bViejo,bNuevo){
+  vieja.classList.add('capa-vieja','p2-sale');vieja.style.top=(-st)+'px';
+  nueva.classList.add('p2-entra');
+  $('#escena').appendChild(nueva);$('#cuerpo').scrollTop=0;marcarNav(bViejo,bNuevo,true);
+  await espera(300);vieja.remove();await espera(420);nueva.classList.remove('p2-entra');
+}
+/* 3 · Desde la palabra */
+async function pestana3(vieja,nueva,st,bViejo,bNuevo,boton,rectMenu){
+  const marco=$('#tienda').getBoundingClientRect();
+  const r=boton?boton.getBoundingClientRect():rectMenu;
+  const ox=r?((r.left+r.width/2-marco.left)/marco.width*100):50;
+  vieja.classList.add('capa-vieja','debajo');vieja.style.top=(-st)+'px';
+  nueva.classList.add('capa-nueva','encima','p3-entra');nueva.style.setProperty('--ox',ox.toFixed(1)+'%');
+  $('#escena').appendChild(nueva);$('#cuerpo').scrollTop=0;marcarNav(bViejo,bNuevo,true);
+  await espera(430);vieja.remove();nueva.classList.remove('capa-nueva','encima','p3-entra');
+}
+
+/* ---- la barra de la maqueta ---- */
+const textoMedida=()=>S.medida?`${S.medida} ms (la página tardó ${S.red?S.red/1000+' s':'nada'}${S.vel>1?', lenta ×'+S.vel:''})`:'—';
+function medir_(t0){S.medida=Math.round(performance.now()-t0);const m=$('#medida');if(m)m.textContent=textoMedida()}
+function leyenda(){const p=prueba();$('#ley').innerHTML=`<div><h2>${S.prueba} · ${p.n}<small>${S.grupo==='sede'?'cambio de sede':'cambio de pestaña'}</small></h2><div>${p.idea}</div><div style="margin-top:6px;color:#805c4c">${p.pista}</div></div>
+<div><span class="k">Mientras llega la página</span>${p.carga}</div>
+<div><span class="k">Dura</span>${p.dura}<span class="k" style="margin-top:8px">Pagas</span>${p.pagas}<span class="k" style="margin-top:8px">Cómo se haría en apps/tienda</span>${p.como}</div>
+<div class="mide"><span>Última corrida medida: <b id="medida">${textoMedida()}</b></span><span>Con «Reducir movimiento»: cambia de golpe y solo queda el esqueleto hasta que llega la página.</span></div>`}
+function segPrueba(){$('#segPrueba').innerHTML=PRUEBAS[S.grupo].map((p,i)=>`<button data-n="${i+1}" class="${S.prueba===i+1?'on':''}">${i+1} · ${p.n}</button>`).join('')}
+function on(seg,sel){seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===sel))}
+$('#segGrupo').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||S.ocupado)return;on(e.currentTarget,b);S.grupo=b.dataset.g;S.prueba=1;S.medida=null;segPrueba();leyenda();montar()});
+$('#segPrueba').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||S.ocupado)return;on(e.currentTarget,b);S.prueba=+b.dataset.n;S.medida=null;leyenda();montar()});
+$('#segVel').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;on(e.currentTarget,b);S.vel=+b.dataset.v;$('#tienda').style.setProperty('--vel',S.vel)});
+$('#segRed').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;on(e.currentTarget,b);S.red=+b.dataset.r});
+$('#segPant').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||S.ocupado)return;on(e.currentTarget,b);S.pantalla=b.dataset.p;const env=$('#envol'),m=$('#marco');env.className=S.pantalla==='cel'?'tel':'';m.className='marco '+(S.pantalla==='cel'?'cel':'desk');ajustarZoom();montar()});
+$('#segTema').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;on(e.currentTarget,b);S.tema=b.dataset.t;$('#tienda').dataset.theme=S.tema==='oscuro'?'dark':''});
+$('#chkRm').addEventListener('change',e=>{S.rm=e.target.checked;$('#tienda').classList.toggle('rm',S.rm)});
+$('#btnRepetir').addEventListener('click',async()=>{if(S.ocupado||!S.ultimo)return;const u=S.ultimo;if(u.tipo==='sede'){S.sede=u.de;montar();await espera(60);cambiarSede(u.a,true)}else{S.seccion=u.de;montar();await espera(60);const b=$('#nav').querySelector(`[data-sec="${u.a}"]`);const r=S.pantalla==='cel'?{left:$('#tienda').getBoundingClientRect().left+40,width:120}:null;cambiarPestana(u.a,S.pantalla==='cel'?null:b,r,true)}});
+segPrueba();leyenda();ajustarZoom();montar();
+</script>
+</body>
+</html>

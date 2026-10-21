@@ -143,9 +143,30 @@ describe("situacionTraslado", () => {
   });
 
   it("solo recepciones y revisiones piden acción; solo cerrados y anulados son historial", () => {
-    const todas: SituacionTraslado[] = ["requiere_recepcion", "requiere_revision", "en_camino_saliente", "con_diferencia", "cerrado", "cerrado_con_diferencia", "anulado"];
-    expect(todas.filter(requiereAccion)).toEqual(["requiere_recepcion", "requiere_revision"]);
+    const todas: SituacionTraslado[] = [
+      "requiere_recepcion",
+      "requiere_revision",
+      "en_camino_saliente",
+      "con_diferencia",
+      "cerrado",
+      "cerrado_con_diferencia",
+      "anulado",
+      "sobrante_por_revisar",
+      "con_sobrante",
+    ];
+    expect(todas.filter(requiereAccion)).toEqual(["requiere_recepcion", "requiere_revision", "sobrante_por_revisar"]);
     expect(todas.filter(esTerminado)).toEqual(["cerrado", "cerrado_con_diferencia", "anulado"]);
+  });
+
+  it("cerrado con algo de más por revisar (ADR-0404): pide acción a quien puede revisarlo en la sede que recibió", () => {
+    const conSobrante = traslado({ estado: "cerrada", cerradoEn: "2026-09-18T15:00:00.000Z", cerradoConDiferencia: true, sobrantesPorRevisar: 1 });
+    expect(situacionTraslado(conSobrante, comoEncargadoTru)).toBe("sobrante_por_revisar");
+    expect(situacionTraslado(conSobrante, comoColaboradorTru)).toBe("con_sobrante");
+    expect(situacionTraslado(conSobrante, { ...comoEncargadoTru, miUbicacionId: TALLER })).toBe("con_sobrante");
+    // Ya revisado: vuelve a ser historial.
+    expect(situacionTraslado({ ...conSobrante, sobrantesPorRevisar: 0 }, comoEncargadoTru)).toBe("cerrado_con_diferencia");
+    // Un traslado que todavía viaja no tiene sobrantes que revisar (lo de más se decide al cerrar).
+    expect(situacionTraslado(traslado({ sobrantesPorRevisar: 3 }), comoEncargadoTru)).toBe("requiere_recepcion");
   });
 });
 

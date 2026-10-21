@@ -51,16 +51,19 @@ export function AnalisisPantalla({
   datos,
   acceso,
   vistaInicial,
+  busquedaInicial = "",
   queFaltaInicial = false,
 }: {
   datos: DatosAnalisis;
   acceso: AccesoAnalisis;
   vistaInicial: VistaAnalisis;
+  /** Lo buscado que llega en la dirección (`?q=`, `leerBusqueda`): otra pantalla trae Análisis ya filtrado. */
+  busquedaInicial?: string;
   queFaltaInicial?: boolean;
 }) {
   const router = useRouter();
   const [vista, setVista] = useState<VistaAnalisis>(vistaInicial);
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(busquedaInicial);
   const [liquidarDesde, setLiquidarDesde] = useState(datos.liquidarDesde);
   const [filtroAcaba, setFiltroAcaba] = useState<FiltroAcaba>("todos");
   const [categoria, setCategoria] = useState<string | null>(null);
@@ -242,7 +245,7 @@ export function AnalisisPantalla({
       <div ref={raiz} className="analisis" onKeyDown={alTeclear}>
         <EncabezadoPagina sede={datos.sede.nombre} titulo="Análisis" subtitulo="Qué se acaba, qué no se mueve, qué nunca salió al piso y qué pedir.">
           {/* Filtra las prendas ya leídas, en el navegador: nunca dice «Buscando…» (ADR-0358, ronda 5). */}
-          <Buscador valor={q} onCambio={setQ} placeholder="Busca una prenda" etiqueta="Busca una prenda" className="w-60 max-w-full" />
+          <Buscador guia="analisis.buscador" valor={q} onCambio={setQ} placeholder="Busca una prenda" etiqueta="Busca una prenda" className="w-60 max-w-full" />
         </EncabezadoPagina>
 
         <FilaPestanas
@@ -257,7 +260,7 @@ export function AnalisisPantalla({
 
         {/* El aviso fijo mientras la tienda no cumple: con los datos de hoy dice qué falta; en «Todavía no», cómo volver. */}
         {modo !== "confiable" && (
-          <Aviso
+          <Aviso guia="analisis.aviso"
             tono="atencion"
             titulo="Datos incompletos"
             className="mt-3.5"
@@ -277,7 +280,7 @@ export function AnalisisPantalla({
           </p>
         )}
 
-        <div key={`${vista}-${vuelta}`} className={`vista ${animar ? "anim" : ""}`} role="tabpanel" aria-label={PESTANAS.find((p) => p.clave === vista)?.texto}>
+        <div key={`${vista}-${vuelta}`} className={`vista ${animar ? "anim" : ""}`} data-guia="analisis.vista" role="tabpanel" aria-label={PESTANAS.find((p) => p.clave === vista)?.texto}>
           {contenido}
         </div>
       </div>
@@ -326,21 +329,22 @@ function FilaPestanas({
   const items: Pestana[] = PESTANAS.map((p) => {
     // «Se está acabando» con prendas avisa (rojo, como antes); «No se vende» solo informa. Sin datos, «—».
     // El texto para lector va solo con un número: «— se están acabando» no dice nada.
-    if (p.clave === "acaba") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaAcaba ?? "—", pide: cuentaAcaba == null ? undefined : "se están acabando", tono: cuentaAcaba ? "rojo" : "neutro" };
-    if (p.clave === "nose") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaQuietas ?? "—", pide: cuentaQuietas == null ? undefined : "no se venden", tono: "neutro" };
-    if (p.clave === "piso") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaPiso ?? "—", pide: cuentaPiso == null ? undefined : "nunca salieron al piso", tono: "neutro" };
-    return { clave: p.clave, etiqueta: p.texto };
+    const guia = `analisis.pestana-${p.clave}`;
+    if (p.clave === "acaba") return { clave: p.clave, guia, etiqueta: p.texto, conteo: cuentaAcaba ?? "—", pide: cuentaAcaba == null ? undefined : "se están acabando", tono: cuentaAcaba ? "rojo" : "neutro" };
+    if (p.clave === "nose") return { clave: p.clave, guia, etiqueta: p.texto, conteo: cuentaQuietas ?? "—", pide: cuentaQuietas == null ? undefined : "no se venden", tono: "neutro" };
+    if (p.clave === "piso") return { clave: p.clave, guia, etiqueta: p.texto, conteo: cuentaPiso ?? "—", pide: cuentaPiso == null ? undefined : "nunca salieron al piso", tono: "neutro" };
+    return { clave: p.clave, guia, etiqueta: p.texto };
   });
 
   return (
     <div className="tabs-fila">
-      <Pestanas items={items} activa={vista} etiquetaAccesible="Preguntas de Análisis" onCambio={(c) => irA(c as VistaAnalisis)} idIndicador="analisis" />
+      <Pestanas items={items} activa={vista} guia="analisis.pestanas" etiquetaAccesible="Preguntas de Análisis" onCambio={(c) => irA(c as VistaAnalisis)} idIndicador="analisis" />
       {puedeHablar ? (
-        <ChipEstado est="bien" onClick={onConfianza} tip="14 días cobrando con la prenda · piso cuadrado · almacén contado">
+        <ChipEstado est="bien" guia="analisis.confianza" onClick={onConfianza} tip="14 días cobrando con la prenda · piso cuadrado · almacén contado">
           Datos confiables
         </ChipEstado>
       ) : (
-        <ChipEstado est="nd" onClick={onConfianza} tip="Todavía no se cumplen las 3 condiciones para recomendar">
+        <ChipEstado est="nd" guia="analisis.confianza" onClick={onConfianza} tip="Todavía no se cumplen las 3 condiciones para recomendar">
           Datos incompletos
         </ChipEstado>
       )}

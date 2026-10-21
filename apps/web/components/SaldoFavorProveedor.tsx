@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { BotonReembolso } from "@/components/SaldoFavorAcciones";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras-reglas";
-import { ETIQUETA_MOVIMIENTO_CREDITO, type MovimientoCredito } from "@/lib/saldo-favor";
+import { etiquetaMovimientoCredito, type MovimientoCredito } from "@/lib/saldo-favor";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // «Saldo a favor» en la ficha del proveedor (ADR-0111, corrección 2026-09-18): lo que el proveedor le debe a
 // CAYLA porque una nota de crédito superó lo que se le debía de su comprobante (típico: un faltante en una factura
@@ -31,19 +31,17 @@ export function SaldoFavorProveedor({
   return (
     // El ancla (#saldo-a-favor) y el nombre de la sección quedan en la <section>; la tarjeta es la pieza única de cifra
     // (TarjetaCifra, ADR-0358). Un saldo en cero es un dato: se ve normal, no apagado.
-    <section id="saldo-a-favor" aria-label="Saldo a favor" className="scroll-mt-24">
+    <section id="saldo-a-favor" aria-label="Saldo a favor" data-guia="proveedor-ficha.saldo-favor" className="scroll-mt-24">
       <TarjetaCifra etiqueta="Saldo a favor" punto={hay ? "verde" : "neutro"} valor={soles(saldo)} tono={hay ? "text-verde-profundo" : undefined}>
         <p className="mt-1 max-w-xl text-sm leading-relaxed text-tinta/70">
           {hay
-            ? `Es plata que ${proveedorNombre} te debe: una nota de crédito superó lo que se le debía de su comprobante. Se descuenta de tu próximo pago (viene activado al pagar) o, si te la devuelve, lo registras como reembolso.`
-            : "Sin saldo a favor. Aparece cuando una nota de crédito supera lo que se le debía al proveedor, por ejemplo un faltante en una factura al contado, que ya estaba pagada."}
+            ? `Es plata que ${proveedorNombre} te debe: una nota de crédito, o lo que pasaste a saldo a favor, superó lo que se le debía de su comprobante. Se descuenta de tu próximo pago (viene activado al pagar) o, si te la devuelve, lo registras como reembolso.`
+            : "Sin saldo a favor. Aparece cuando una nota de crédito, o lo que pasas a saldo a favor desde «Nos debe», supera lo que se le debía al proveedor: por ejemplo, un faltante de una factura que ya pagaste."}
         </p>
         {hay && (tieneDeuda || puedeReembolsar) && (
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
             {tieneDeuda && (
-              <Link href={`/compras/por-pagar?prov=${proveedorId}`} className="label-cayla text-[11px] text-rojo hover:underline">
-                Usar en un pago →
-              </Link>
+              <EnlaceVer href={`/compras/por-pagar?prov=${proveedorId}`}>Usar en un pago</EnlaceVer>
             )}
             {puedeReembolsar && <BotonReembolso proveedorId={proveedorId} proveedorNombre={proveedorNombre} saldoFavor={saldo} />}
           </div>
@@ -63,7 +61,7 @@ export function SaldoFavorProveedor({
                 return (
                   <li key={m.id} className="flex items-baseline justify-between gap-4 py-2">
                     <span className="min-w-0">
-                      <span className="text-sm text-tinta">{ETIQUETA_MOVIMIENTO_CREDITO[m.tipo]}</span>
+                      <span className="text-sm text-tinta">{etiquetaMovimientoCredito(m)}</span>
                       {detalle && <span className="block truncate text-xs text-tinta/60">{detalle}</span>}
                     </span>
                     <span className="shrink-0 text-right">

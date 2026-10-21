@@ -20,10 +20,11 @@
  *      sin correlativo gastado.
  *   c. La factura sigue exigiendo RUC: con carné, `comprobantes_factura_requiere_ruc`; con RUC, se emite.
  *   d. El candado de la tabla, saltándose la función: carné fuera de formato o sin número, y un tipo que no existe.
- *   e. CL-27: registrar a la clienta con su carné liga la venta anterior con boleta a ese carné; la venta con boleta a un
- *      DNI con los mismos dígitos no (el tipo cuenta).
+ *   e. CL-27 retirado (20261019221000, programa de puntos): registrar a la clienta con su carné ya NO liga la venta anterior
+ *      con boleta a ese carné (ni la de un DNI con los mismos dígitos): el historial cuenta desde el registro.
  *   f. Una nota de crédito sobre una boleta con carné lleva el mismo tipo y número.
- *   g. Estructura: los md5 «después» de la sección 0 son los de las funciones vivas; una sola firma de `emitir_comprobante` y
+ *   g. Estructura: los md5 «después» de la sección 0 son los de las funciones vivas (con los dos cambios posteriores deshechos:
+ *      el documento del comprobante y el ligado retirado); una sola firma de `emitir_comprobante` y
  *      sigue sin EXECUTE para la API; los dos candados, validados y con su definición.
  *   h. Pegado: pegarla otra vez deja todo igual (función, permisos, candados, comentario) y el bloque una sola vez; con
  *      `emitir_comprobante` cambiada en vivo, aborta con un mensaje claro y no pisa nada.
@@ -63,6 +64,20 @@ if (VERSIONES.length !== 3) {
   process.exit(1);
 }
 const EMITIR = VERSIONES.find((v) => v.firma.startsWith("retail.emitir_comprobante(")).firma;
+
+// El documento del comprobante (20261013210000, /chaos 2026-10-13) es POSTERIOR y le agregó a emitir_comprobante el DNI de 8
+// dígitos y el RUC de 11: cambia su huella. Para medir y volver a pegar ESTA migración, se deshace dentro de la transacción del caso.
+const DOCUMENTO = readFileSync(join(RAIZ, "supabase", "migrations", "20261013210000_documento_del_comprobante.sql"), "utf8");
+const PAR_DOCUMENTO = DOCUMENTO.match(/'retail\.emitir_comprobante\([^']*\)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$,\s*1\);/);
+if (!PAR_DOCUMENTO) {
+  console.error("✗ No encontré el reemplazo de emitir_comprobante en 20261013210000_documento_del_comprobante.sql.");
+  process.exit(1);
+}
+const SIN_DOCUMENTO_POSTERIOR = `reset role;
+do $deshacer$ begin
+  execute replace(pg_get_functiondef('${EMITIR}'::regprocedure), $n$${PAR_DOCUMENTO[2]}$n$, $o$${PAR_DOCUMENTO[1]}$o$);
+end $deshacer$;
+`;
 
 // Seed local: Felipe (líder y Admin).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -188,6 +203,27 @@ select (select count(*) from retail.ventas where token_cliente = '${token}')
 
 const md5Norm = (expr) =>
   `md5(regexp_replace(regexp_replace(regexp_replace(${expr}, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g'))`;
+
+// El programa de puntos (20261019221000, Felipe 2026-10-19) RETIRÓ el ligado retroactivo: `fn_ligar_ventas_por_documento` se reemplazó
+// ENTERA por una que devuelve 0 (el historial y los puntos cuentan desde el registro). Es POSTERIOR y cambia la huella de una función de
+// la tabla de versiones de esta migración, que la tenía como «no cambia» (26ec241c…, la de 1a). Para medir y volver a pegar ESTA
+// migración sobre su punto de partida, se vuelve a la versión de 1a (20260930160000) dentro de la transacción del caso, pero SOLO si la
+// viva es exactamente la retirada de 221000 (md5 normalizado medido en la base de la rama el 2026-10-19): si alguien la cambia a mano o
+// la vuelve a cambiar, no se deshace nada y (g) lo marca.
+const LIGADO_RETIRADO = "2fb5d021ce6bb43ebc9417df86a14481";
+const PASO_1A = readFileSync(join(RAIZ, "supabase", "migrations", "20260930160000_club_paso1a_venta_ligada_y_documento.sql"), "utf8");
+const LIGAR_1A = PASO_1A.match(/create or replace function retail\.fn_ligar_ventas_por_documento\([\s\S]*?\n\$\$;/)?.[0];
+if (!LIGAR_1A) {
+  console.error("✗ No encontré la definición de fn_ligar_ventas_por_documento en 20260930160000_club_paso1a_venta_ligada_y_documento.sql.");
+  process.exit(1);
+}
+/** Los dos cambios posteriores deshechos: el documento del comprobante (anclado) y el ligado retirado (entera, vuelve a la de 1a). */
+const SIN_POSTERIORES = `${SIN_DOCUMENTO_POSTERIOR}do $deshacer_ligado$ begin
+  if (select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = 'retail.fn_ligar_ventas_por_documento(uuid,text,text)'::regprocedure) = '${LIGADO_RETIRADO}' then
+    execute $l1a$${LIGAR_1A}$l1a$;
+  end if;
+end $deshacer_ligado$;
+`;
 
 let fallas = 0;
 let casos = 0;
@@ -322,19 +358,25 @@ caso(
 );
 
 // =====================================================================================================================
-// e. CL-27: registrar a la clienta con su carné liga la venta anterior
+// e. CL-27 retirado: registrar a la clienta con su carné ya NO liga la venta anterior
 // =====================================================================================================================
+// Hasta el 2026-10-19 la boleta a un carné se ligaba sola a la ficha que se registraba después con ese carné (y la de un DNI con los
+// mismos dígitos no). El programa de puntos lo retiró (20261019221000, Felipe): el historial y los puntos cuentan desde el registro, así
+// que ninguna de las dos se liga, y la ayudante devuelve 0 aunque se la llame directo. La ficha sí queda con su carné.
 caso(
-  "(e) la venta con boleta a un carné se liga al registrar a la clienta con ese carné; la de un DNI con los mismos dígitos, no",
+  "(e) la venta con boleta a un carné NO se liga al registrar después a la clienta con ese carné (ligado retroactivo retirado, 20261019221000), ni la de un DNI con los mismos dígitos; la ficha guarda su carné y la ayudante devuelve 0",
   SEDE + como(FELIPE) +
     VENDER("con_carne", { tipoDoc: "'carne_extranjeria'", num: "'00123456'" }) +
     VENDER("con_dni", { tipoDoc: "'dni'", num: "'00123456'" }) +
     `select retail.registrar_clienta(p_documento_tipo => 'carne_extranjeria', p_documento_numero => '00123456', p_nombre => 'Clienta Carné 1e') as ficha \\gset
 reset role;
-select (select cliente_id = :'ficha'::uuid from retail.ventas where id::text = :'con_carne')
-    || '|' || (select cliente_id is null from retail.ventas where id::text = :'con_dni');
+select retail.fn_ligar_ventas_por_documento(:'ficha'::uuid, 'carne_extranjeria', '00123456') as ligadas \\gset
+select (select cliente_id is null from retail.ventas where id::text = :'con_carne')
+    || '|' || (select cliente_id is null from retail.ventas where id::text = :'con_dni')
+    || '|' || (select documento_tipo || ':' || documento_numero from retail.clientas where id = :'ficha'::uuid)
+    || '|' || :ligadas;
 `,
-  "true|true"
+  "true|true|carne_extranjeria:00123456|0"
 );
 
 // =====================================================================================================================
@@ -362,6 +404,7 @@ select cliente_tipo_doc || '|' || cliente_num_doc || '|' || left(serie, 1) from 
 // =====================================================================================================================
 caso(
   "(g) los md5 «después» de la sección 0 son los de las funciones vivas",
+  SIN_POSTERIORES +
   VERSIONES.map(
     (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
   ).join(""),
@@ -410,7 +453,7 @@ select (length(prosrc) - length(replace(prosrc, 'ADR-0288 D-3', ''))) / length('
 const PEGAR = `reset role;\n${MIGRACION}\nset local search_path = retail, public, extensions;\n`;
 caso(
   "(h) pegarla otra vez deja todo igual: función, permisos, candados y comentario (y el bloque una sola vez)",
-  FOTO + PEGAR + FOTO,
+  SIN_POSTERIORES + FOTO + PEGAR + FOTO,
   (s) => {
     // Sin las líneas vacías que imprimen los `select` de la migración (su reemplazo anclado devuelve void).
     const l = s.split("\n").filter(Boolean);

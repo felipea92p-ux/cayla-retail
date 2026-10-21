@@ -20,6 +20,7 @@ import type { CategoriaPlan, FilaPlan } from "@/lib/plan-compra-reglas";
 export function PlanCategoriaModal({
   planId,
   planNombre,
+  planDias,
   fila,
   vendidoPorTalla,
   tope,
@@ -33,6 +34,8 @@ export function PlanCategoriaModal({
 }: {
   planId: string;
   planNombre: string;
+  /** Los días de la campaña (el normal de respaldo de la hoja). */
+  planDias: number;
   fila: FilaPlan;
   vendidoPorTalla: ReadonlyMap<string, number> | undefined;
   /** El tope de la campaña (null = sin tope) y lo que cuestan las otras categorías con plan. */
@@ -53,12 +56,13 @@ export function PlanCategoriaModal({
   const [sucio, setSucio] = useState(false);
   const salida = useSalidaSinGuardar(sucio, `Escribiste parte del plan de ${fila.c.nombre} y todavía no se guardó. Si sales ahora, se pierde lo que escribiste.`);
   return (
-    <Modal titulo={`Plan de ${fila.c.nombre}`} subtitulo={`${planNombre}.`} onClose={onClose} antesDeCerrar={salida.pedirAccion} variante="hoja" ancho="max-w-2xl">
+    <Modal titulo={`Plan de ${fila.c.nombre}`} subtitulo={`${planNombre}.`} onClose={onClose} antesDeCerrar={salida.pedirAccion} variante="hoja" tamano="ancha">
       {(cerrar) => (
         <>
           <FormularioCategoria
             key={fila.c.id}
             planId={planId}
+            campana={{ nombre: planNombre, dias: planDias }}
             fila={fila}
             vendidoPorTalla={vendidoPorTalla}
             tope={tope}
@@ -73,7 +77,7 @@ export function PlanCategoriaModal({
               if (!(seguir && siguiente !== null)) cerrar();
             }}
             pie={({ guardando, puedeGuardar, motivo, claseConfirmar }) => (
-              <div className="flex flex-wrap justify-end gap-3 pt-2">
+              <div className="pie-acciones pt-2">
                 <Boton type="button" onClick={() => salida.pedirAccion(cerrar)}>
                   Cancelar
                 </Boton>

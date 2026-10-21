@@ -3,7 +3,8 @@ import { exigirOpcional, exigir } from "@/lib/resultado";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { inicioDeDiaLima, diaLima, horaDelDiaLima } from "@/lib/panel-serie";
 import { leerPagos, type PagoDelDia } from "@/lib/caja-comparativa-reglas";
-import type { FilaResumen } from "@/lib/historial-cierres-reglas";
+import { limitesDelMes, type FilaResumen } from "@/lib/historial-cierres-reglas";
+import type { Mes } from "@/lib/facturacion-reglas";
 
 // Caja/POS V2 (2026-09-12) — ver supabase/migrations/0008_caja_y_pagos.sql.
 // `getTableroCaja` alimenta las cifras del TABLERO de Caja (ventas por método, entradas, salidas) desde
@@ -259,7 +260,7 @@ const COLUMNA_INEXISTENTE = "42703";
 
 /**
  * Historial de cajas ya cerradas, más recientes primero. Sin filtro de ubicación a
- * propósito — mismo criterio que Facturación (`getVentasDeHoy`): mientras "control
+ * propósito — mismo criterio que las ventas del día (`fn_ventas_del_dia`): mientras "control
  * total temporal" (0012_control_total_temporal.sql) siga vigente, cualquiera puede
  * operar cualquier sede y `cajas_select` ya deja ver todas; filtrar acá sería una
  * frontera que la base no hace cumplir. Cada fila lleva el nombre de la sede para
@@ -338,6 +339,31 @@ export async function getHistorialCierres(limite = 60, incluirPrueba = false, ub
   let res = await pedir(true);
   if (res.error?.code === COLUMNA_INEXISTENTE) res = await pedir(false);
   const filas = exigir(res, "el historial de cierres de caja") as unknown as FilaCaja[];
+  return completarCierres(filas);
+}
+
+/**
+ * Los cierres de UNA sede en UN mes de Lima, los más recientes primero, sin los de prueba: lo que muestra el modal
+ * «Historial de cierres» al elegir un mes (Felipe 2026-10-12). Son a lo sumo un par por día, así que entran en una
+ * sola lectura; el tope de 200 solo protege de un dato raro.
+ */
+export async function getCierresDelMes(ubicacionId: string, mes: Mes): Promise<CierreCaja[]> {
+  const supabase = await createClient();
+  const { desde, hasta } = limitesDelMes(mes);
+  const pedir = (conPrueba: boolean) => {
+    let q = supabase
+      .from("cajas")
+      .select(conPrueba ? `${CAMPOS_CIERRE}, es_prueba` : CAMPOS_CIERRE)
+      .eq("estado", "cerrada")
+      .eq("ubicacion_id", ubicacionId)
+      .gte("cerrada_en", desde)
+      .lt("cerrada_en", hasta);
+    if (conPrueba) q = q.eq("es_prueba", false);
+    return q.order("cerrada_en", { ascending: false }).limit(200);
+  };
+  let res = await pedir(true);
+  if (res.error?.code === COLUMNA_INEXISTENTE) res = await pedir(false);
+  const filas = exigir(res, "los cierres del mes") as unknown as FilaCaja[];
   return completarCierres(filas);
 }
 

@@ -2,5 +2,7 @@ packages:
   - "apps/*"
   - "packages/*"
 allowBuilds:
+  # @sentry/cli trae su binario como dependencia opcional por plataforma (@sentry/cli-darwin, -linux-x64…): su script de instalación solo lo descarga si falta.
+  '@sentry/cli': false
   sharp: true
   unrs-resolver: true

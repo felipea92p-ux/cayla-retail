@@ -278,6 +278,7 @@ export function textoEstadoMarca(m: Pick<MarcaFila, "activo" | "productos" | "pr
 
 /** Los cuatro filtros del resumen. `activas` es «todas las activas» (no filtra nada más). */
 export type FiltroMarcas = "activas" | "con" | "sin" | "sin-proveedor";
+/** @internal Los cuatro filtros, para que la prueba recorra cada uno. */
 export const FILTROS_MARCAS: readonly FiltroMarcas[] = ["activas", "con", "sin", "sin-proveedor"];
 
 export type ResumenMarcas = Record<FiltroMarcas, number>;

@@ -6,6 +6,7 @@ import { HojaParecidas } from "@/components/alta-producto/HojaParecidas";
 import { TiraParecidas } from "@/components/alta-producto/TiraParecidas";
 import { fechaCorta } from "@/lib/etiqueta-vigencia";
 import type { AlertaVista } from "@/lib/parecidas-alta-vista";
+import { Boton } from "@/components/ui/campos";
 
 // «Prendas parecidas» (Fase 1, 2026-09-30): si el formulario pasa `parecidas`, la alerta va bajo la ficha (escritorio), la tira
 // «2 prendas parecidas · Ver» sobre la barra de abajo (celular y tablet) y la hoja «Ver y comparar» se monta aquí (es un portal: se ve igual con el
@@ -26,6 +27,8 @@ import type { AlertaVista } from "@/lib/parecidas-alta-vista";
 export type DatosFicha = {
   nombre: string;
   codigo: string | null;
+  /** La tienda del producto («CLAURE»), o null si la base aún no tiene tiendas o todavía no se eligió (ADR-0463). */
+  empresa?: string | null;
   /** «Indumentaria › Camisas y Blusas». */
   categoria: string | null;
   marca: string | null;
@@ -61,7 +64,7 @@ export type ParecidasFicha = {
   hoja: ComponentProps<typeof HojaParecidas> | null;
 };
 
-const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /** «Siguiente: Elige el tejido.» —un toque que lleva al campo— o «Todo listo para crear.». Lo usan la ficha y la barra del celular. */
 function Siguiente({ d, clase }: { d: DatosFicha; clase: string }) {
@@ -77,7 +80,7 @@ function Siguiente({ d, clase }: { d: DatosFicha; clase: string }) {
   }
   return (
     <p role="status" className={`${clase} text-taupe`}>
-      <button type="button" onClick={g.onIr} className="text-left underline decoration-tinta/20 underline-offset-4 transition-colors hover:text-tinta hover:decoration-tinta/50">
+      <button type="button" onClick={g.onIr} className="btn-enlace text-left">
         {g.bloquea ? `Siguiente: ${g.texto}` : `Ya puedes crear. Sin elegir todavía: ${g.nombre.toLocaleLowerCase("es")}.`}
       </button>
     </p>
@@ -113,6 +116,7 @@ function Tarjeta({ d }: { d: DatosFicha }) {
         <p className="font-mono text-[12.5px] tabular-nums text-taupe">{d.codigo ?? <Vacio>— código —</Vacio>}</p>
         <p className="font-display mt-0.5 text-2xl leading-tight text-tinta">{d.nombre || <Vacio>Sin nombre</Vacio>}</p>
         <p className="text-[13px] text-taupe">
+          {d.empresa && `${d.empresa} · `}
           {d.categoria ?? <Vacio>Sin categoría</Vacio>}
           {d.marca && ` · ${d.marca}`}
           {d.tejido && ` · ${d.tejido}`}
@@ -133,7 +137,7 @@ function Tarjeta({ d }: { d: DatosFicha }) {
             <span className="flex items-baseline gap-2 whitespace-nowrap">
               {d.campana && d.precio !== null && <span className="text-sm tabular-nums text-taupe line-through">{soles(d.precio)}</span>}
               <span className="font-display text-[22px] tabular-nums text-tinta">
-                {d.campana ? soles(d.campana.precioFinal) : d.precio !== null ? soles(d.precio) : <Vacio>S/ —</Vacio>}
+                {d.campana ? soles(d.campana.precioFinal) : d.precio !== null ? soles(d.precio) : <Vacio>S/&nbsp;—</Vacio>}
               </span>
             </span>
           </div>
@@ -207,6 +211,7 @@ export function FichaPrevia({
           Sin `parecidas` el resumen es el de siempre: una sola columna sin tope. */}
       <aside
         aria-label="La prenda que vas a crear"
+        data-guia="nuevo.ficha"
         className={`hidden lg:sticky lg:top-6 ${parecidas ? "lg:flex lg:max-h-[calc(100dvh-3rem)] lg:flex-col lg:gap-3" : "space-y-3 lg:block"}`}
       >
         <div className={`space-y-3 ${parecidas ? "min-h-0 flex-1 overflow-y-auto lg:-mx-1.5 lg:px-1.5" : ""}`}>
@@ -221,12 +226,12 @@ export function FichaPrevia({
             />
           )}
         </div>
-        <div className={`space-y-3 ${parecidas ? "shrink-0" : ""}`}>
-          <div className="flex gap-2">
+        <div data-guia="nuevo.crear" className={`space-y-3 ${parecidas ? "shrink-0" : ""}`}>
+          <div className="pie-acciones">
             <button type="button" onClick={onCancelar} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined} className="btn-cayla btn-primario flex-1">
+            <button type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined} className="btn-cayla btn-primario">
               {textoCrear}
             </button>
           </div>
@@ -237,7 +242,7 @@ export function FichaPrevia({
       {/* Celular y tablet: barra pegada abajo */}
       {/* Pegada al fondo: desde 2026-09-25 el celular no tiene barra de navegación abajo (el menú es un cajón lateral).
           El aire inferior respeta la zona segura del teléfono. */}
-      <div ref={barra} data-barra-ficha className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2.5 lg:hidden">
+      <div ref={barra} data-barra-ficha data-guia="nuevo.barra" className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2.5 lg:hidden">
         {/* La tira va PRIMERO en la barra (sus márgenes negativos la llevan de borde a borde): se ve sin abrir «Ver» y un toque abre la hoja. */}
         {parecidas && <TiraParecidas alerta={parecidas.alerta} avisoEnLinea={parecidas.avisoEnLinea} onVer={parecidas.onVer} onReintentar={parecidas.onReintentar} />}
         {verMovil && (
@@ -249,16 +254,16 @@ export function FichaPrevia({
           <div className="min-w-0 flex-1 text-[12.5px]">
             <b className="block truncate text-sm text-tinta">{datos.nombre || "Nuevo producto"}</b>
             <span className="tabular-nums text-taupe">
-              {datos.codigo ?? "—"} · {datos.variantes ?? 0} var. · {datos.precio !== null ? soles(datos.precio) : "S/ —"}
+              {datos.codigo ?? "—"} · {datos.variantes ?? 0} var. · {datos.precio !== null ? soles(datos.precio) : "S/\u00a0—"}
               {datos.hoy !== null && datos.hoy > 0 && ` · ${datos.hoy} hoy`}
             </span>
           </div>
           <button type="button" onClick={() => setVerMovil((v) => !v)} aria-expanded={verMovil} className="btn-cayla btn-secundario px-3">
             {verMovil ? "Ocultar" : "Ver"}
           </button>
-          <button type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined} className="btn-cayla btn-primario">
-            {cargando ? "Creando…" : "Crear"}
-          </button>
+          <Boton peso="primario" cargando={cargando} textoCargando="Creando…" type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined}>
+            Crear
+          </Boton>
         </div>
         <Siguiente d={datos} clase="mt-1 text-xs" />
       </div>

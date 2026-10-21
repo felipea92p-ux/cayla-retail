@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import { Package, Shirt, Truck } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { destinosParaEnviar } from "@/lib/para-enviar-reglas";
@@ -23,7 +22,7 @@ import { estaAtrasado } from "@/lib/traslados-reglas";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { ResumenSede, type CifraResumen } from "@/components/ui/ResumenSede";
+import { CifrasExistencias } from "@/components/existencias/CifrasExistencias";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
 // (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
@@ -203,19 +202,11 @@ export default async function InventarioPage({
   // La capacidad cuenta solo ropa colgada (ADR-0329, accesorios fuera del riel): esta tarjeta cuenta lo mismo, la ropa libre en el
   // piso, y dice aparte «+ 17 accesorios», para que «583 de 600» compare lo mismo. Las dos suman lo que cobra la caja (ADR-0331).
   // Solo esta tarjeta: «Para hoy» e Inicio siguen contando lo que contaban.
-  const cifras: CifraResumen[] = separa
-    ? [
-        {
-          ...cifraColgadasEnElPiso({ filas: stock, productos: catalogo.productos, catalogoFallo: catalogo.fallo !== null, capacidad }),
-          etiqueta: "Colgadas en el piso",
-          icono: Shirt,
-        },
-        { valor: guardadas, etiqueta: "Guardadas en el almacén", icono: Package, titulo: "Prendas en el almacén de la tienda: para venderlas hay que colgarlas" },
-      ]
-    : [{ valor: resumen.disponible, nota: notaSemana, etiqueta: "Disponibles aquí", icono: Package, titulo: "Prendas libres en esta sede" }];
-  if (resumen.enTransito > 0) {
-    cifras.push({ valor: resumen.enTransito, etiqueta: "En camino hacia aquí", icono: Truck, href: veTraslados ? "/inventario/traslados" : undefined, titulo: "Prendas que vienen en traslados hacia esta sede" });
-  }
+  // Desde el 2026-10-12 (ADR-0391) «Colgadas» y «Guardadas» FILTRAN la lista de un toque (`CifrasExistencias`, un componente de
+  // cliente: `ResumenSede` solo filtra desde uno); reemplazan al selector «Piso · Almacén · Ambos» de las tarjetas.
+  const colgadas = separa ? cifraColgadasEnElPiso({ filas: stock, productos: catalogo.productos, catalogoFallo: catalogo.fallo !== null, capacidad }) : null;
+  // El piso nunca cuadrado: el plan lo trae (`enPausa`, ADR-0328 d.5). Sin plan (la lectura falló) no se afirma nada: `planFallo` ya lo dice.
+  const pisoSinCuadrar = vende && separa && plan?.enPausa === true;
 
   return (
     <div className="space-y-5">
@@ -235,7 +226,14 @@ export default async function InventarioPage({
         // se hace en cada tarjeta, «Cuadrar el piso» y lo demás pendiente están en «Pendientes», y Recibir, Contar, Trasladar y
         // Apartados siguen en el menú lateral. `/inventario/bajar` conserva su ruta, sin botón en esta pantalla.
       >
-        <ResumenSede sede={ubicacionActiva?.nombre ?? "esta sede"} cifras={cifras} />
+        <CifrasExistencias
+          sede={ubicacionActiva?.nombre ?? "esta sede"}
+          separa={separa}
+          colgadas={colgadas}
+          guardadas={separa ? guardadas : null}
+          disponibles={separa ? null : { valor: resumen.disponible, nota: notaSemana }}
+          enCamino={resumen.enTransito > 0 ? { valor: resumen.enTransito, href: veTraslados ? "/inventario/traslados" : undefined } : null}
+        />
       </EncabezadoPagina>
 
       {/* `key` por sede: cambiar de sede (selector de arriba o `?ubicacion=`) es un `router.refresh`, no una
@@ -274,6 +272,7 @@ export default async function InventarioPage({
         panelFiltros={panelFiltros}
         coloresCatalogo={colores}
         sinRegistrar={sinRegistrar}
+        pisoSinCuadrar={pisoSinCuadrar}
         // ADR-0328 act. 17: «Subir prenda» puede dejarla «para enviar» a otra sede; solo quien ve Traslados arma ese envío.
         destinosParaEnviar={veTraslados ? destinosParaEnviar(ubicaciones, ubicacionActivaId) : []}
         // «Pedir a otra sede» del panel de la talla: las OTRAS tiendas activas (la base rechaza pedirle al Taller).

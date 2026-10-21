@@ -8,9 +8,11 @@ import { avisar } from "@/components/ui/Avisos";
 import { objecionArchivo, subirAdjuntosCompra } from "@/lib/adjuntos-compra";
 import { ADJUNTOS_MAX_POR_FACTURA, fechaCorta, tamanoLegible, type AdjuntoCompra } from "@/lib/compras-reglas";
 import { Boton } from "@/components/ui/campos";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { firmar } from "@/lib/responsable-reglas";
 import { firmaOmitida } from "@/lib/responsable-omitido";
+import { Paperclip } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Adjuntos de una factura de proveedor (20260914180000_compras_adjuntos.sql).
 // Dos piezas sobre el mismo <input type=file>:
@@ -179,19 +181,19 @@ export function AdjuntosDeFactura({
   }
 
   return (
-    <section className="space-y-2">
+    <section className="space-y-2" data-guia="factura.adjuntos">
       <div className="flex items-baseline justify-between">
         <p className="label-cayla text-[11px] text-tinta/65">Adjuntos</p>
         {adjuntos.some((a) => a.url === null) && <span className="text-xs text-tinta/45">Sin acceso al almacén de archivos ahora</span>}
       </div>
       <div className="card-cayla divide-y divide-tinta/10">
-        {adjuntos.length === 0 && <p className="px-5 py-4 text-sm text-tinta/65">Sin documentos adjuntos.</p>}
+        {adjuntos.length === 0 && <Vacio tamano="chico" alinear="izquierda" className="px-5" icono={<Paperclip />}>Sin documentos adjuntos.</Vacio>}
         {adjuntos.map((a) => (
           <div key={a.id} className="flex items-center gap-3 px-5 py-2.5">
             <IconoTipo tipo={a.tipo} />
             <span className="min-w-0 flex-1">
               {a.url ? (
-                <a href={a.url} target="_blank" rel="noopener noreferrer" className="block truncate text-sm text-tinta hover:text-rojo hover:underline">
+                <a href={a.url} target="_blank" rel="noopener noreferrer" className="btn-enlace block truncate text-sm">
                   {a.nombre}
                 </a>
               ) : (
@@ -258,13 +260,13 @@ function QuitarAdjuntoModal({ adjunto, onClose, onQuitado }: { adjunto: AdjuntoC
       {(cerrar) => (
         <div className="space-y-4">
           <p className="text-sm text-tinta/75">Deja de verse en esta factura. El archivo no se destruye: queda guardado por si hace falta recuperarlo.</p>
-          <div className="flex gap-3">
-            <button type="button" onClick={cerrar} className={botonCancelar} disabled={loading}>
+          <div className="pie-acciones">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={loading}>
               Cancelar
             </button>
-            <button type="button" onClick={confirmar} className={botonPrimario} disabled={loading}>
-              {loading ? "Quitando…" : "Quitar"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Quitando…" type="button" onClick={confirmar} disabled={loading}>
+              Quitar
+            </Boton>
           </div>
         </div>
       )}

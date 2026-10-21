@@ -43,12 +43,15 @@ export function ArbolCategoria({
   categoriaId,
   onElegir,
   onCambiar,
+  pausado = false,
 }: {
   familias: FamiliaAlta[];
   categorias: CategoriaAlta[];
   categoriaId: string;
   onElegir: (id: string) => void;
   onCambiar: () => void;
+  /** Falta elegir la tienda (ADR-0463): la luz «Sigue aquí» está en ese campo, no aquí. */
+  pausado?: boolean;
 }) {
   const [familiaAbierta, setFamiliaAbierta] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -97,7 +100,7 @@ export function ArbolCategoria({
             {elegida.prefijo && <p className="text-xs text-tinta/60">Código empieza con {elegida.prefijo}-</p>}
           </div>
         </div>
-        <button type="button" onClick={onCambiar} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
+        <button type="button" onClick={onCambiar} className="btn-cayla btn-enlace text-xs">
           Cambiar
         </button>
       </div>
@@ -142,7 +145,7 @@ export function ArbolCategoria({
 
   return (
     <div className="@container space-y-4">
-      <div>
+      <div data-guia="nuevo.buscar-categoria">
         <Buscador
           id="buscar-categoria"
           valor={busqueda}
@@ -176,10 +179,10 @@ export function ArbolCategoria({
         )}
       </div>
 
-      <div>
+      <div data-guia="nuevo.familias">
         <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
           Familia
-          {!familiaAbierta && <EtiquetaAhora />}
+          {!pausado && !familiaAbierta && <EtiquetaAhora />}
         </p>
         <div className="grid grid-cols-2 gap-2 @2xl:grid-cols-4">
           {aLaVista.map((f) => tarjeta(f))}
@@ -196,7 +199,7 @@ export function ArbolCategoria({
                 <path d={verTodas ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"} />
               </svg>
               <span className="min-w-0">
-                <span className="block text-sm font-medium leading-tight">{verTodas ? "Ver menos" : "Ver más"}</span>
+                <span className="block text-sm font-medium leading-tight">{/* unificar-fijo: una tecla más entre las tarjetas de familia (dice lo que esconde), no el pie de una lista */}{verTodas ? "Ver menos" : "Ver más"}</span>
                 {/* Los nombres de lo escondido, no «3 más»: quien busca zapatos tiene que leer «Calzado» para saber dónde tocar. */}
                 <span className="line-clamp-2 text-xs text-tinta/55" title={nombresOcultos}>
                   {verTodas ? "Solo las principales" : nombresOcultos}
@@ -208,16 +211,17 @@ export function ArbolCategoria({
       </div>
 
       {familiaAbierta && (
-        <div id="categorias-de-la-familia" className="scroll-mb-28 scroll-mt-32 sm:scroll-mt-[11.5rem]">
+        <div id="categorias-de-la-familia" data-guia="nuevo.categorias" className="scroll-mb-28 scroll-mt-32 sm:scroll-mt-[11.5rem]">
           <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
             Categoría
-            <EtiquetaAhora />
+            {!pausado && <EtiquetaAhora />}
           </p>
           <div className="grid grid-cols-2 gap-2 @xl:grid-cols-3 @4xl:grid-cols-4">
             {categoriasDeLaFamilia.map((c) => (
               <button
                 key={c.id}
                 type="button"
+                data-guia="nuevo.categoria"
                 onClick={() => onElegir(c.id)}
                 className="min-h-11 min-w-0 break-words rounded-md border border-tinta/15 px-3 py-2 text-left text-sm text-tinta transition-colors hover:border-tinta hover:bg-tinta/[0.04]"
               >

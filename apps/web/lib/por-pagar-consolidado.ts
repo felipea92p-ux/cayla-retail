@@ -11,7 +11,8 @@ import type { PersonaActualV2 } from "@/lib/persona-actual";
 
 type Lectura<T> = { datos: T; falla: string | null };
 
-/** Lo que se debe según «Ver»: todas (comprobantes enteros), una unidad (su parte) o la empresa. `hasta` = vence hasta esa fecha. */
+/** Lo que se debe según «Ver»: todas, una unidad (las facturas que ella pidió, enteras: ADR-0387, decisión 45) o la empresa.
+ *  Siempre comprobantes enteros. `hasta` = vence hasta esa fecha. */
 export async function getPorPagarConsolidado(ver: Ver, hasta: string | null = null): Promise<Lectura<FilaPorPagar[]>> {
   const supabase = await createClient();
   // Una fila por comprobante con saldo: hoy decenas. PostgREST cortaría en 1.000 sin avisar y la deuda saldría menor, así

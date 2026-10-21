@@ -1,28 +1,45 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
-import { SignpostBig, X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
-import { Vacio } from "@/components/ui/Vacio";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { avisar } from "@/components/ui/Avisos";
 import { RotuloAnaquel } from "@/components/RotuloAnaquel";
+import { TiraBrother } from "@/components/rotulos/TiraBrother";
 import { BotonGuiaImpresion } from "@/components/GuiaImpresion";
 import { AvisoAyudanteMac, useImpresionBrother } from "@/components/impresion/useImpresionBrother";
-import { armarRotulos, copiasDeTexto, MAX_COPIAS, MAX_JUNTOS, MAX_MODELOS_EN_URL, urlRotulos, type ModeloRotulo } from "@/lib/rotulos-reglas";
+import {
+  armarRotulos,
+  copiasDeTexto,
+  MAX_JUNTOS,
+  MAX_MODELOS_EN_URL,
+  recorridoDeImpresion,
+  urlRotulos,
+  type ModeloRotulo,
+} from "@/lib/rotulos-reglas";
 import type { ModeloElegible } from "@/lib/rotulos";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+/** Un doble clic en una × no se lleva también la ficha que se corre a ocupar su lugar. */
+const ENTRE_QUITAR_MS = 450;
 
 /**
- * Rótulos de anaquel (ADR-0366): los modelos elegidos, cómo salen (uno por modelo o todos juntos), cuántas copias de cada
- * uno y el botón que los manda a la Brother. Los modelos viven en la URL (`?productos=`): sumar o quitar uno vuelve a leer
- * su marca y sus tallas del servidor. La hoja de impresión (`#rotulos-print`) va pegada a <body>, como la de etiquetas.
+ * Rótulos de anaquel (ADR-0366; diseño A «Rollo», act. 2026-10-12): a la izquierda qué prendas van en el anaquel y cómo salen
+ * (uno por prenda o todas en uno); a la derecha la Brother, que suelta la tira con los rótulos tal como van a salir, cada uno
+ * con sus copias al costado (`TiraBrother`). El botón de la cabecera los manda a la Brother.
+ *
+ * Las prendas viven en el navegador: sumar o quitar una no vuelve al servidor (el catálogo ya trae la marca y las tallas de
+ * cada modelo) y la URL (`?productos=`) se reescribe sin navegar, para que recargar la página no las pierda. Quitar no
+ * pregunta —es una lista que se arma para imprimir, no toca la base— y se perdona: «Deshacer» en el aviso, también para
+ * «Quitar todas» (Felipe, 2026-10-12). La hoja de impresión (`#rotulos-print`) va pegada a <body>, como la de etiquetas.
  */
 export function ImprimirRotulos({
-  modelos,
+  modelos: iniciales,
   catalogo,
   origen,
   volver,
@@ -30,13 +47,14 @@ export function ImprimirRotulos({
 }: {
   modelos: ModeloRotulo[];
   catalogo: ModeloElegible[];
-  /** Para armar el enlace al sumar o quitar un modelo sin perder adónde vuelve «Volver». */
+  /** Para reescribir la URL al sumar o quitar una prenda sin perder adónde vuelve «Volver». */
   origen: { desde: "existencias" | "almacen" } | { productos: string | null };
   volver: { href: string; a: string };
   sede: string;
 }) {
-  const router = useRouter();
+  const [modelos, setModelos] = useState(iniciales);
   const [juntar, setJuntar] = useState(false);
+  // Las copias son de cada rótulo (su clave): sumar otra prenda no le borra las copias a las que ya estaban.
   const [copias, setCopias] = useState<Record<string, string>>({});
   const puedeJuntar = modelos.length >= 2 && modelos.length <= MAX_JUNTOS;
   const rotulos = useMemo(() => armarRotulos(modelos, juntar && puedeJuntar), [modelos, juntar, puedeJuntar]);
@@ -52,146 +70,219 @@ export function ImprimirRotulos({
     // El mismo papel que la etiqueta (62 × 40,1): en la Mac va derecho, sin pedirle otra medida al ayudante.
     prepararCopia: (copia) => copia.setAttribute("data-modo", "girada"),
   });
-
   const modo = montado ? modoDeEtiquetas() : "girada";
-  const ids = modelos.map((m) => m.productoId);
-  const ir = (nuevos: string[]) => {
-    const href = urlRotulos(nuevos, origen);
-    if (href) router.replace(href, { scroll: false });
+
+  // La lista de prendas: se cambia aquí y la URL la sigue sin navegar (`replaceState` no le pide nada al servidor).
+  const actuales = useRef(modelos);
+  useEffect(() => {
+    actuales.current = modelos;
+  }, [modelos]);
+  const ir = (nuevos: ModeloRotulo[]) => {
+    actuales.current = nuevos;
+    setModelos(nuevos);
+    const href = urlRotulos(
+      nuevos.map((m) => m.productoId),
+      origen,
+    );
+    if (href) window.history.replaceState(null, "", href);
   };
-  const elegidos = new Set(ids);
+  const porId = useMemo(() => new Map(catalogo.map((m) => [m.productoId, m])), [catalogo]);
+  // El buscador es un combo que guarda lo elegido: aquí cada prenda elegida se suma y el campo vuelve a quedar en blanco, con el
+  // cursor puesto para la siguiente (antes lo hacía rearmar la pantalla entera en cada prenda).
+  const [vueltaBuscador, setVueltaBuscador] = useState(0);
+  const sumar = (id: string) => {
+    const m = porId.get(id);
+    setVueltaBuscador((v) => v + 1);
+    if (!m || actuales.current.some((x) => x.productoId === id)) return;
+    ir([...actuales.current, { productoId: m.productoId, referencia: m.referencia, marca: m.marca, tallas: m.tallas }]);
+  };
+
+  // Quitar una prenda o todas: sin pregunta y con «Deshacer» (vuelven las quitadas, en su lugar, sin perder lo sumado después).
+  const ultimoQuitar = useRef(0);
+  const avisoQuitar = useRef<number | null>(null);
+  const quitar = (ids: readonly string[], cuando: number) => {
+    if (cuando - ultimoQuitar.current < ENTRE_QUITAR_MS) return;
+    ultimoQuitar.current = cuando;
+    const antes = actuales.current;
+    const quitadas = antes.filter((m) => ids.includes(m.productoId));
+    if (quitadas.length === 0) return;
+    ir(antes.filter((m) => !ids.includes(m.productoId)));
+    if (avisoQuitar.current !== null) avisar.cerrar(avisoQuitar.current);
+    avisoQuitar.current = avisar.exito(quitadas.length === 1 ? `Quitaste ${quitadas[0].referencia}` : `Quitaste las ${quitadas.length} prendas`, {
+      detalle: quitadas.length > 1 ? "Sus rótulos ya no se imprimen." : undefined,
+      accion: {
+        texto: "Deshacer",
+        onClick: () => {
+          const ahora = actuales.current;
+          const siguen = (m: ModeloRotulo) => ahora.some((x) => x.productoId === m.productoId);
+          // Las quitadas vuelven a su lugar de antes; lo que se sumó mientras tanto queda al final.
+          ir([...antes.filter((m) => quitadas.includes(m) || siguen(m)), ...ahora.filter((x) => !antes.some((m) => m.productoId === x.productoId))]);
+        },
+      },
+      duracion: 7000,
+    });
+  };
+
+  // Imprimir: primero el cabezal recorre la tira (≈1 s, ver `recorridoDeImpresion`) y después va a la Brother.
+  const [recorriendo, setRecorriendo] = useState<{ porRotulo: number } | null>(null);
+  const temporizador = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (temporizador.current !== null) window.clearTimeout(temporizador.current);
+    },
+    [],
+  );
+  const mandar = () => {
+    if (total === 0 || enviando || recorriendo) return;
+    const salen = rotulos.filter((r) => (numeros[r.clave] ?? 0) > 0).length;
+    const { porRotulo, total: ms } = recorridoDeImpresion(salen);
+    if (ms === 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      imprimir();
+      return;
+    }
+    setRecorriendo({ porRotulo });
+    temporizador.current = window.setTimeout(() => {
+      temporizador.current = null;
+      setRecorriendo(null);
+      imprimir();
+    }, ms);
+  };
+
+  const elegidos = new Set(modelos.map((m) => m.productoId));
   const opciones: OpcionCombo<string>[] = catalogo
     .filter((m) => !elegidos.has(m.productoId))
-    .map((m) => ({ valor: m.productoId, texto: m.referencia, detalle: [m.categoria, m.codigo].filter(Boolean).join(" · ") || undefined, claves: m.codigo ? [m.codigo] : undefined }));
-  const lleno = ids.length >= MAX_MODELOS_EN_URL;
+    .map((m) => ({
+      valor: m.productoId,
+      texto: m.referencia,
+      detalle: [m.categoria, m.codigo, m.marca].filter(Boolean).join(" · ") || undefined,
+      claves: m.codigo ? [m.codigo] : undefined,
+    }));
+  const lleno = modelos.length >= MAX_MODELOS_EN_URL;
+  const vacia = modelos.length === 0;
 
-  const agregar = (
-    <ComboBuscable
-      etiquetaAccesible="Agregar un modelo al rótulo"
-      valor=""
-      onValor={(id) => ir([...ids, id])}
-      opciones={opciones}
-      marcador={lleno ? "Ya no caben más modelos" : "Busca un modelo…"} // sugerir-fijo: busca en todo el catálogo, no depende de nada elegido
-      caja
-      className="w-full sm:max-w-sm"
-    />
-  );
-
-  const botonImprimir = (
-    <div className="flex flex-wrap items-center gap-2">
+  const acciones = vacia ? undefined : (
+    // La guía interactiva enciende los dos botones juntos (ADR-0389): el mismo flex que pone la cabecera, para que se vean igual.
+    <div data-guia="rotulos.imprimir" className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
       <BotonGuiaImpresion />
-      <button type="button" className="btn-cayla btn-primario" disabled={total === 0 || enviando} onClick={imprimir}>
-        {total === 0 ? "Nada que imprimir" : enviando ? "Imprimiendo…" : `Imprimir ${plural(total, "rótulo", "rótulos")}`}
-      </button>
+      <BotonImprimir peso="primario" cargando={Boolean(recorriendo || enviando)} disabled={total === 0} onClick={mandar}>
+        {total === 0 ? "Nada que imprimir" : `Imprimir ${plural(total, "rótulo", "rótulos")}`}
+      </BotonImprimir>
     </div>
   );
 
-  const cabecera = (
-    <div>
-      <Volver {...volver} className="mb-4" />
-      <CabeceraPantalla
-        sobretitulo={sede}
-        titulo="Rótulos de anaquel"
-        bajada="Para el anaquel o la bolsa: dice de lejos qué modelo hay ahí, con su marca y sus tallas."
-        acciones={modelos.length > 0 ? botonImprimir : undefined}
-      />
-    </div>
-  );
-
-  if (modelos.length === 0) {
-    return (
-      <div className="space-y-6">
-        {cabecera}
-        <Vacio
-          icono={<SignpostBig />}
-          titulo="¿Qué modelos van en este anaquel?"
-          acciones={<div className="w-[min(24rem,calc(100vw-2rem))] text-left">{agregar}</div>}
-        >
-          Búscalos por nombre o código y aparece el rótulo listo para imprimir. También puedes marcarlos en Productos o en
-          Existencias y tocar «Rótulo».
-        </Vacio>
-      </div>
-    );
-  }
-
-  // El rótulo es el protagonista (Formidable, 2026-10-09): en una columna va justo después de elegir las prendas, antes del aviso
-  // y la nota; desde 1024 px, a la derecha y pegado arriba mientras se baja, como la vista previa de Etiquetas de precio.
   return (
-    <div className="space-y-6">
-      {cabecera}
+    <div className="space-y-8">
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Rótulos de anaquel"
+        subtitulo="Para el canto del anaquel o el frente de las bolsas: dice de lejos qué prenda hay ahí, con su marca y sus tallas."
+        volver={<Volver {...volver} />}
+        acciones={acciones}
+      />
 
-      <div className="grid items-start gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[minmax(18rem,26rem)_minmax(0,1fr)]">
-      <section aria-label="Modelos del rótulo" className="space-y-4 rounded-xl border border-sand bg-papel p-4 lg:col-start-1">
-        <div className="flex flex-wrap items-center gap-2">
-          {modelos.map((m) => (
-            <span key={m.productoId} className="inline-flex items-center gap-1 rounded-full border border-sand bg-crema py-1 pl-3 pr-1 text-sm text-tinta">
-              {m.referencia}
-              <button
-                type="button"
-                onClick={() => ir(ids.filter((id) => id !== m.productoId))}
-                aria-label={`Quitar ${m.referencia}`}
-                className="grid h-6 w-6 place-items-center rounded-full text-taupe hover:bg-hueso hover:text-tinta"
-              >
-                <X aria-hidden className="h-3.5 w-3.5" />
-              </button>
-            </span>
-          ))}
-        </div>
-        {!lleno && agregar}
-        {modelos.length >= 2 && (
-          <div className="flex flex-wrap items-center gap-2 text-sm text-taupe">
-            <span>Cómo salen:</span>
-            <button type="button" className="pildora-cayla" aria-pressed={!juntar || !puedeJuntar} onClick={() => setJuntar(false)}>
-              Un rótulo por modelo
-            </button>
-            <button type="button" className="pildora-cayla" aria-pressed={juntar && puedeJuntar} disabled={!puedeJuntar} onClick={() => setJuntar(true)}>
-              Todos en un rótulo
-            </button>
-            {!puedeJuntar && <span className="text-xs">Juntos se leen hasta {MAX_JUNTOS} modelos.</span>}
-          </div>
-        )}
-      </section>
+      {/* El rótulo es el protagonista (Formidable, 2026-10-09): desde 1024 px, la Brother a la derecha; en una columna, después de elegir. */}
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] xl:gap-10">
+        <div className="min-w-0 space-y-4">
+          <section aria-labelledby="rotulos-titulo" className="space-y-4 rounded-2xl border border-sand bg-papel p-5 sm:p-6">
+            <div className="space-y-1.5" data-guia={vacia ? "rotulos.vacio" : undefined}>
+              <h2 id="rotulos-titulo" className={`font-display leading-tight text-tinta ${vacia ? "text-[32px]" : "text-[26px]"}`}>
+                ¿Qué prendas van en este anaquel?
+              </h2>
+              {vacia && <p className="text-[14.5px] text-tinta/70">Búscalas por nombre o código y el rótulo sale en la Brother, listo para pegar.</p>}
+            </div>
 
-      <section aria-label="Vista previa" className="min-w-0 space-y-3 lg:sticky lg:top-20 lg:col-start-2 lg:row-span-3 lg:row-start-1">
-        <p className="text-sm text-taupe">Así salen, en el papel de la etiqueta (62 × 40,1 mm):</p>
-        <div className="flex flex-wrap gap-6">
-          {rotulos.map((r) => (
-            <figure key={r.clave} className="w-full max-w-[62mm] space-y-2">
-              <VistaQueCabe>
-                <RotuloAnaquel rotulo={r} />
-              </VistaQueCabe>
-              <figcaption className="flex items-center justify-end gap-2 text-sm text-taupe">
-                <label htmlFor={`copias-${r.clave}`}>Copias</label>
-                <input
-                  id={`copias-${r.clave}`}
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={MAX_COPIAS}
-                  value={copias[r.clave] ?? "1"}
-                  onChange={(ev) => setCopias((c) => ({ ...c, [r.clave]: ev.target.value }))}
-                  className="caja-cayla h-9 w-20 px-2 text-right tabular-nums text-tinta"
+            {!vacia && (
+              <div className="space-y-2.5" data-guia="rotulos.modelos">
+                <div className="flex min-h-8 items-center justify-between gap-3">
+                  <span className="label-cayla text-[11px] text-taupe">{plural(modelos.length, "prenda", "prendas")}</span>
+                  {modelos.length >= 2 && (
+                    <button
+                      type="button"
+                      className="btn-cayla btn-peligro !px-3 !py-1.5 text-[12.5px]"
+                      onClick={(ev) =>
+                        quitar(
+                          modelos.map((m) => m.productoId),
+                          ev.timeStamp,
+                        )
+                      }
+                    >
+                      <Trash2 aria-hidden className="h-3.5 w-3.5" />
+                      Quitar todas
+                    </button>
+                  )}
+                </div>
+                <ul aria-label="Prendas del rótulo" className="flex flex-wrap items-center gap-2">
+                  {modelos.map((m) => (
+                    <li key={m.productoId} className="rot-ficha inline-flex max-w-full items-center gap-1 rounded-full border border-sand bg-crema py-1 pl-3 pr-1 text-sm text-tinta">
+                      <span className="truncate">{m.referencia}</span>
+                      <button
+                        type="button"
+                        onClick={(ev) => quitar([m.productoId], ev.timeStamp)}
+                        aria-label={`Quitar ${m.referencia}`}
+                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-taupe transition-colors hover:bg-hueso hover:text-tinta"
+                      >
+                        <X aria-hidden className="h-3.5 w-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {!lleno && (
+              <div data-guia="rotulos.agregar">
+                <ComboBuscable
+                  key={vueltaBuscador}
+                  autoFocus={vueltaBuscador > 0}
+                  etiquetaAccesible="Sumar una prenda al rótulo"
+                  valor=""
+                  onValor={sumar}
+                  opciones={opciones}
+                  marcador="Busca por nombre o código" // sugerir-fijo: busca en todo el catálogo, no depende de nada elegido
+                  caja
+                  className="w-full"
                 />
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-      </section>
+              </div>
+            )}
 
-      {avisoMac && (
-        <div className="lg:col-start-1">
-          <AvisoAyudanteMac {...avisoMac} instalar={instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome con el mismo papel de las etiquetas." />
-        </div>
-      )}
+            {modelos.length >= 2 && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2" data-guia="rotulos.como-salen">
+                <span className="label-cayla text-[11px] text-taupe">Cómo salen</span>
+                <SegmentoDeslizante
+                  forma="modo"
+                  etiqueta="Cómo salen los rótulos"
+                  valor={juntar && puedeJuntar ? "juntas" : "una"}
+                  onCambio={(c) => setJuntar(c === "juntas")}
+                  opciones={[
+                    { clave: "una", etiqueta: "Uno por prenda", guia: "rotulos.por-modelo" },
+                    { clave: "juntas", etiqueta: "Todas en uno", guia: "rotulos.juntos", deshabilitada: !puedeJuntar, ayuda: puedeJuntar ? undefined : `Juntas se leen hasta ${MAX_JUNTOS} prendas` },
+                  ]}
+                />
+                {!puedeJuntar && <span className="w-full text-xs text-tinta/70">Juntas se leen hasta {MAX_JUNTOS} prendas: con más, va uno por prenda.</span>}
+              </div>
+            )}
 
-      <div className="nota-cayla flex flex-wrap items-center justify-between gap-3 lg:col-start-1">
-        <span>
-          <b>Sale en el mismo papel que las etiquetas de precio:</b> no hay que cambiar nada en la Brother. Si sale corto, chico o
-          girado, la guía lo muestra paso a paso.
-        </span>
-        <BotonGuiaImpresion className="btn-cayla btn-secundario shrink-0" />
+            <p className="border-t border-sand pt-3.5 text-[12.5px] text-tinta/70">
+              También puedes marcarlas en <b className="font-semibold text-tinta">Productos</b> o en <b className="font-semibold text-tinta">Existencias</b> y tocar «Rótulo».
+            </p>
+          </section>
+
+          {avisoMac && (
+            <div data-guia="rotulos.aviso-mac">
+              <AvisoAyudanteMac {...avisoMac} instalar={instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome con el mismo papel de las etiquetas." />
+            </div>
+          )}
+        </div>
+
+        <TiraBrother rotulos={rotulos} copias={copias} onCopias={(clave, texto) => setCopias((c) => ({ ...c, [clave]: texto }))} recorriendo={recorriendo} />
       </div>
-      </div>
+
+      <p className="nota-cayla" data-guia="rotulos.nota">
+        <b>Sale en el mismo papel que las etiquetas de precio</b> (62 × 40,1 mm): no hay que cambiar nada en la Brother. Si sale corto,
+        chico o girado, la{" "}
+        <BotonGuiaImpresion className="font-semibold underline underline-offset-2 transition-colors hover:text-rojo">guía de impresión</BotonGuiaImpresion> lo
+        muestra paso a paso.
+      </p>
 
       {montado &&
         createPortal(
@@ -205,32 +296,6 @@ export function ImprimirRotulos({
           </div>,
           document.body,
         )}
-    </div>
-  );
-}
-
-/** 62 mm en píxeles de CSS (96 por pulgada): el ancho del rótulo dibujado a tamaño real. */
-const ANCHO_ROTULO_PX = (62 * 96) / 25.4;
-
-/**
- * La vista previa a tamaño real si cabe; si no (celular, columna angosta), se achica entera para caber, en vez de cortarse a la
- * derecha (Formidable, 2026-10-09: a 375 px se perdían «CAYLA» y las Copias). Solo la pantalla: la hoja de impresión no pasa por aquí.
- */
-function VistaQueCabe({ children }: { children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [escala, setEscala] = useState(1);
-  useEffect(() => {
-    const caja = ref.current;
-    if (!caja) return;
-    const medir = new ResizeObserver(([e]) => setEscala(Math.min(1, e.contentRect.width / ANCHO_ROTULO_PX)));
-    medir.observe(caja);
-    return () => medir.disconnect();
-  }, []);
-  return (
-    <div ref={ref} className="w-full">
-      <div className="w-fit ring-1 ring-sand" style={{ zoom: escala }}>
-        {children}
-      </div>
     </div>
   );
 }

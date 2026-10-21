@@ -89,6 +89,42 @@ Felipe: «que solo salga la marca, el proveedor no ("Marca: Mias")» y «que se 
 2. La **vista rápida del producto** (Catálogo ▸ Productos) lleva «Rótulo» junto a «Etiquetas»: abre los rótulos con ese modelo, y
    «Volver» regresa a Productos. Es del modelo, no de las tallas elegidas, y no depende del stock.
 
+## Actualización 2026-10-12 — la pantalla es la Brother (maqueta A «Rollo») y «Quitar todas»
+
+Felipe pidió tres maquetas «sofisticadas, elegantes y con full animaciones» (`docs/maquetas/rotulos-2026-10/`: A Rollo, B Anaquel,
+C Molde), eligió la **A** y pidió además **una opción para borrar todas las prendas**. Qué cambió:
+
+1. **La vista previa es la Brother y su tira** (`components/rotulos/TiraBrother.tsx`, `app/estilos/rotulos-brother.css`): los
+   rótulos salen uno bajo otro, como del rollo, con el corte punteado entre ellos y las copias al costado (− n +, el mismo paso que
+   Etiquetas de precio); en angosto (< 560 px de columna) las copias bajan bajo cada rótulo. Al pie, cuántos salen y cuánto papel
+   usan (`papelDeTiraCm`: 40,1 mm por rótulo). Sin prendas, la Brother asoma un rótulo de ejemplo en gris («Así sale un rótulo») en
+   lugar del `<Vacio>` con el poste: la escena es el vacío.
+2. **Las prendas viven en el navegador.** Antes cada prenda sumada o quitada era una navegación: el loader tapaba la pantalla y la
+   pantalla se rearmaba entera (`key` por la lista de modelos), borrando las copias. Ahora `getRotulos` trae, junto al catálogo, la
+   marca y las tallas activas de cada modelo (medido en producción el 2026-10-12: 195 modelos y 1.266 variantes, unos 75 KB), y
+   `ImprimirRotulos` suma y quita sin ir al servidor; la URL (`?productos=`) se reescribe con `history.replaceState` para que
+   recargar no pierda nada. Las copias son de cada rótulo y sobreviven a sumar otra prenda.
+   - DECIDÍ: el catálogo con marca y tallas, y la lista en el navegador.
+   - DESCARTÉ: seguir navegando por servidor en cada prenda (loader a pantalla completa y medio segundo o más por prenda: ninguna
+     animación posible) y pedir la marca y las tallas al sumar (una consulta por prenda; la tira esperaría a la red).
+   - SE ROMPE SI: el catálogo pasa de unas 10.000 variantes (~600 KB): ahí conviene traer las tallas solo al sumar.
+3. **«Quitar todas»** (`btn-peligro`, la pieza de «quitar» de ADR-0358) junto al conteo de prendas, desde 2 prendas. No pregunta —es
+   una lista para imprimir, no toca la base— y se perdona con **«Deshacer»** en el aviso (7 s), como el tacho de Etiquetas de precio;
+   la × de una prenda también avisa con «Deshacer». Lo deshecho vuelve a su lugar sin perder lo sumado mientras tanto.
+4. **Cabecera de Productos y Existencias** (`EncabezadoPagina`, con la flecha de volver junto a la sede, ADR-0358); antes era
+   `CabeceraPantalla` con la flecha en una fila aparte. «Modelo» pasa a «prenda» en los textos (lista aparte de `/formidable`).
+5. **Movimiento (ADR-0136), sin excepción nueva:** sin rebote ni bucle y quieto con `prefers-reduced-motion`. Al entrar la impresora
+   baja, se enciende su luz (fija, no respira: el bucle de la maqueta no se construyó) y la tira se imprime rótulo por rótulo; sumar
+   alarga la tira, quitar la saca hacia la derecha y la cierra. Al imprimir, la luz pasa a ámbar y el cabezal (una línea roja,
+   señal y no adorno) recorre cada rótulo **antes** de mandar la hoja (≈1 s, `recorridoDeImpresion`): después no se vería, porque
+   en Windows el diálogo de Chrome detiene la pantalla y en la Mac la tapa el loader mientras responde el ayudante.
+
+Verificado: `lib/rotulos-reglas.test.ts` (28, suma papel, recorrido y la tira con los que salen); en local con Chrome sin ventana,
+sobre una página de andamio con un catálogo inventado (la base local no trae prendas), sumar con Enter, copias, «Quitar todas» →
+«Deshacer» (vuelven con sus copias), juntar y separar, imprimir (el diálogo se abre una vez tras el recorrido), claro, oscuro, 375 px
+sin desborde y movimiento reducido; `tema:auditar` sobre `/rotulos`: 0 hallazgos solo en oscuro. **Falta:** `/formidable` sobre la
+pantalla nueva y la prueba en papel en la Brother del almacén.
+
 ## Verificación
 
 - `lib/rotulos-reglas.test.ts` (13), `lib/mac-etiquetas.test.ts` (versión y medida), `scripts/mac-etiquetas/servidor.prueba.mjs`

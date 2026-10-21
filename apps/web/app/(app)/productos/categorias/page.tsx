@@ -8,6 +8,7 @@ import { getEjesPorCategoria, getTemporadasCatalogo } from "@/lib/catalogo-v2";
 import { compararTallas } from "@/lib/tallas";
 import { nombreTemporada } from "@/lib/temporada-reglas";
 import type { Familia } from "@cayla-retail/shared";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0095: familia+prefijo
 // ya viven en `retail.categorias`, esta es la pantalla que le faltaba.
@@ -118,27 +119,36 @@ export default async function CategoriasPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Productos · Catálogo</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          Categorías
-          <Ayuda titulo="Categorías">
-            Las familias del negocio (Indumentaria, Calzado...) se administran en{" "}
-            <Link href="/productos/familias" className="underline">Productos · Familias</Link> y las marcas de cada producto en{" "}
-            <Link href="/productos/marcas" className="underline">Productos · Marcas</Link>; dentro de cada familia, las
-            categorías (con su prefijo de 3 letras, como BLU de Blusas) sí crecen. El prefijo es lo que hace que el
-            código de una prenda se pueda leer de un vistazo. Una categoría puede, opcionalmente,
-            tener subcategorías (un solo nivel, ej. &ldquo;Vestidos largos&rdquo; bajo &ldquo;Vestidos&rdquo;) — la mayoría
-            no las necesita y se sigue viendo igual que siempre. Al editar una categoría también
-            se elige qué tallas/tejidos/patrones ofrece: una subcategoría tiene su propia lista,
-            no hereda la del padre.
-          </Ayuda>
-        </h1>
-        <p className="mt-1 text-xs text-tinta/55">
-          {totalCategorias.toLocaleString("es-PE")} {totalCategorias === 1 ? "categoría activa" : "categorías activas"}
-          {totalSubcategorias > 0 && ` (${totalSubcategorias.toLocaleString("es-PE")} ${totalSubcategorias === 1 ? "subcategoría" : "subcategorías"})`} ·{" "}
-          {totalProductos.toLocaleString("es-PE")} {totalProductos === 1 ? "producto activo clasificado" : "productos activos clasificados"}
-        </p>
+      <div data-guia="categorias.cabecera">
+        <EncabezadoPagina
+          sede={persona.ubicacionEtiqueta}
+          titulo={
+            <>
+              Categorías
+              {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 46 px (como Marcas). */}
+              <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">
+                <Ayuda titulo="Categorías">
+                  Las familias del negocio (Indumentaria, Calzado...) se administran en{" "}
+                  <Link href="/productos/familias" className="underline">Productos · Familias</Link> y las marcas de cada producto en{" "}
+                  <Link href="/productos/marcas" className="underline">Productos · Marcas</Link>; dentro de cada familia, las
+                  categorías (con su prefijo de 3 letras, como BLU de Blusas) sí crecen. El prefijo es lo que hace que el
+                  código de una prenda se pueda leer de un vistazo. Una categoría puede, opcionalmente,
+                  tener subcategorías (un solo nivel, ej. &ldquo;Vestidos largos&rdquo; bajo &ldquo;Vestidos&rdquo;) — la mayoría
+                  no las necesita y se sigue viendo igual que siempre. Al editar una categoría también
+                  se elige qué tallas/tejidos/patrones ofrece: una subcategoría tiene su propia lista,
+                  no hereda la del padre.
+                </Ayuda>
+              </span>
+            </>
+          }
+          subtitulo={
+            <>
+              {totalCategorias.toLocaleString("es-PE")} {totalCategorias === 1 ? "categoría activa" : "categorías activas"}
+              {totalSubcategorias > 0 && ` (${totalSubcategorias.toLocaleString("es-PE")} ${totalSubcategorias === 1 ? "subcategoría" : "subcategorías"})`} ·{" "}
+              {totalProductos.toLocaleString("es-PE")} {totalProductos === 1 ? "producto activo clasificado" : "productos activos clasificados"}
+            </>
+          }
+        />
       </div>
 
       <CategoriasLista

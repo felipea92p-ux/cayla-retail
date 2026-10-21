@@ -1,0 +1,6 @@
+## Compras: contraste de la flecha de fila (2026-10-13) — solo web, sin migración; rama `claude/inspiring-moser-5fbf72`
+
+- [x] `.cmp-flecha-fila` (`app/estilos/comprobantes-lista.css`) con la tinta al 50 %: 3,24–3,32:1 en claro y 4,34–4,52:1 en oscuro, medido en Facturas, Órdenes y Notas de crédito. Notas deja su `text-tinta/40` y recupera el rojo al pasar el mouse. El movimiento no cambió.
+- [x] **El auditor del tema mide un símbolo decorativo como si fuera texto.** Resuelto el 2026-10-13 en la rama `claude/ecstatic-roentgen-55c0f9` (ADR-0336, actualización del 2026-10-13), con el OK de Felipe: el símbolo que el código oculta con `aria-hidden`, sin letras ni dígitos en su pieza y fuera de una tecla, se mide contra 3:1. La flecha de Compras ya no sale como heredada.
+- [ ] **Dos dibujos de la misma flecha** (familia «icono» de `/unificar`, sin decidir): Facturas y Órdenes usan el carácter «›» (`text-base`) y Notas de crédito el `ChevronRight` de lucide (16 px, trazo 2), que se ve más grande y más grueso. Que sean una sola pieza lo elige Felipe mirando, con `/unificar`.
+- [ ] Órdenes de insumos (`/ordenes-insumos`, rama `claude/purchase-order-phase7-9b0c82`) usa la misma clase y hereda el arreglo al fusionarse, sin tocar nada.

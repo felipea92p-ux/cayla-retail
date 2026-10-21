@@ -4,6 +4,7 @@
 
 import type { CampoDeGuia } from "./guia-campos";
 import { problemaDelRecupero } from "./plan-compra-propuesta";
+import { problemasDeLosMinimos } from "./plan-compra-reparto";
 import { problemaDelTope, problemasDeLaCampana, problemasDeLaEdicion, problemasDelBorrador, type BorradorCampana, type BorradorEdicion, type Borrador, type EtiquetaCampana, type TallaPlan } from "./plan-compra-reglas";
 
 export function camposDelPlan(
@@ -14,9 +15,9 @@ export function camposDelPlan(
   const p = problemasDelBorrador(b, tallas);
   const campo = (id: keyof typeof p, nombre: string, pendiente: string): CampoDeGuia => ({ id, nombre, requerido: true, hecho: !p[id], pendiente: p[id] ?? pendiente });
   return [
-    campo("flojo", "Diciembre flojo", "Escribe cuántas venderías en un diciembre flojo."),
-    campo("normal", "Diciembre normal", "Escribe cuántas venderías en un diciembre normal."),
-    campo("bueno", "Diciembre bueno", "Escribe cuántas venderías en un diciembre bueno."),
+    campo("flojo", "Flojo", "Escribe cuántas venderías si la campaña va floja."),
+    campo("normal", "Normal", "Escribe cuántas venderías si la campaña va normal."),
+    campo("bueno", "Bueno", "Escribe cuántas venderías si la campaña va buena."),
     campo("precio", "Precio", "Escribe el precio de venta promedio."),
     campo("costo", "Costo", "Escribe el costo promedio por prenda."),
     campo("recupero", "Lo que sobra", "Escribe a qué % del precio vendes lo que sobre."),
@@ -39,9 +40,10 @@ export function camposDelTope(texto: string, responsable: { listo: boolean; moti
 export function camposDeLaCampana(b: BorradorCampana, etiquetas: readonly EtiquetaCampana[], nombresEnUso: readonly string[], responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
   const p = problemasDeLaCampana(b, etiquetas, nombresEnUso);
   const campo = (id: "etiqueta" | "nombre" | "desde" | "hasta", nombre: string): CampoDeGuia => ({ id, nombre, requerido: true, hecho: !p[id], pendiente: p[id] ?? "Falta este dato." });
+  // Una campaña del calendario ya viene elegida (act. 2026-10-12 f): solo cuenta si mientras tanto alguien le armó el plan de ese año.
   return [
-    campo("etiqueta", "Campaña de Etiquetas"),
-    campo("nombre", "Nombre del plan"),
+    ...(b.etiquetaId !== null && p.etiqueta ? [campo("etiqueta", "Campaña")] : []),
+    campo("nombre", b.etiquetaId === null ? "Nombre de la campaña" : "Nombre del plan"),
     campo("desde", "Desde"),
     campo("hasta", "Hasta"),
     { id: "responsable", nombre: "Quién crea la campaña", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién crea la campaña." },
@@ -57,6 +59,17 @@ export function camposDeLaEdicion(b: BorradorEdicion, otrosNombres: readonly str
     campo("desde", "Desde"),
     campo("hasta", "Hasta"),
     { id: "responsable", nombre: "Quién edita la campaña", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién edita la campaña." },
+  ];
+}
+
+/** La guía de la hoja del reparto (ADR-0372): los mínimos son opcionales (en blanco = sin mínimo); falta solo lo que la base rechazaría y quién firma. */
+export function camposDelReparto(textos: Readonly<Record<string, string>>, tiendas: readonly { id: string; nombre: string }[], responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
+  const p = problemasDeLosMinimos(textos);
+  return [
+    // En blanco es opcional; mal escrito bloquea (la base lo rechazaría).
+    ...tiendas.map((t): CampoDeGuia => ({ id: `minimo-${t.id}`, nombre: `Mínimo de ${t.nombre}`, requerido: !!p.porTienda[t.id], hecho: !p.porTienda[t.id] && (textos[t.id] ?? "").trim() !== "", pendiente: p.porTienda[t.id] ?? "Opcional." })),
+    { id: "suma", nombre: "La suma de los mínimos", requerido: true, hecho: p.suma === null, pendiente: p.suma ?? "" },
+    { id: "responsable", nombre: "Quién lo fija", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién lo fija." },
   ];
 }
 

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import Link from "next/link";
-import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, SignpostBig, Trash2, X, FunnelX } from "lucide-react";
+import { ChevronRight, History, PackageOpen, PauseCircle, PlayCircle, SignpostBig, Trash2, X, FunnelX, Tag } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
@@ -45,6 +46,8 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { InsigniaPrecios } from "@/components/ficha-producto/InsigniaPrecios";
 import type { PrecioDeTienda } from "@/lib/precio-sede-reglas";
+import { Casilla } from "@/components/ui/Casilla";
+import { BotonEditar, LapizEditar } from "@/components/ui/BotonEditar";
 
 /**
  * Productos ▸ Tabla (ADR-0254, rediseño 2026-09-28 sobre `docs/maquetas/productos-administrar-2026-09/`).
@@ -215,10 +218,10 @@ export function ProductosTabla({
 
   return (
     <div className="@container">
-      <div className="card-cayla overflow-hidden">
+      <div data-guia="productos.tabla" className="card-cayla overflow-hidden">
         {/* Marcar la página y la regla del margen: arriba de las dos formas (filas o tarjetas). */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-sand px-4 py-3 @3xl:px-5">
-          <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-tinta/75">
+          <label data-guia="productos.tabla-marcar" className="flex cursor-pointer items-center gap-2.5 text-[13px] text-tinta/75">
             <CasillaMarca marcada={todos} parcial={algunos} onCambiar={marcarTodos} etiqueta="Marcar todas las de esta página" />
             {marcados.size > 0 ? (
               <span>
@@ -336,22 +339,9 @@ function Th({ children, className = "", title }: { children: ReactNode; classNam
   );
 }
 
-/** Casilla nativa (teclado y lector de pantalla gratis) en tinta: el rojo queda para lo urgente. */
+/** La casilla del sistema (ADR-0358, ronda 6): sigue siendo una casilla nativa, con su «a medias» para la página. */
 function CasillaMarca({ marcada, parcial = false, onCambiar, etiqueta }: { marcada: boolean; parcial?: boolean; onCambiar: () => void; etiqueta: string }) {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (ref.current) ref.current.indeterminate = parcial;
-  }, [parcial]);
-  return (
-    <input
-      ref={ref}
-      type="checkbox"
-      checked={marcada}
-      onChange={onCambiar}
-      aria-label={etiqueta}
-      className="h-[18px] w-[18px] shrink-0 cursor-pointer accent-tinta"
-    />
-  );
+  return <Casilla marcada={marcada} aMedias={parcial} onCambio={onCambiar} etiqueta={etiqueta} className="shrink-0" />;
 }
 
 /** El color que se está mirando: el que tiene el mouse encima, si no el fijado, si no el primero (como la Grilla). */
@@ -400,9 +390,8 @@ function Margen({ margen }: { margen: MargenProducto | null }) {
   return (
     <span className="inline-flex items-center justify-end gap-2 whitespace-nowrap" title={margen.bajo ? `Alguna talla deja menos de ${UMBRAL_MARGEN_BAJO} %` : undefined}>
       <span className={`tabular-nums ${margen.bajo ? "text-ambar" : "text-tinta"}`}>{textoMargen(margen)}</span>
-      <span aria-hidden className="h-1 w-11 overflow-hidden rounded-full bg-hueso">
-        <span className={`block h-full rounded-full ${margen.bajo ? "bg-ambar" : "bg-verde"}`} style={{ width: `${ancho}%` }} />
-      </span>
+      {/* El margen mínimo: una medida, no un avance; el ámbar lo pone un margen bajo. */}
+      <BarraAvance pct={ancho} alto="fina" tono={margen.bajo ? "ambar" : "tinta"} decorativa className="w-11" />
     </span>
   );
 }
@@ -465,6 +454,7 @@ function FilaAncha({
             <button
               type="button"
               onClick={onAbrir}
+              data-guia="productos.tabla-abrir"
               aria-expanded={abierta}
               aria-label={`${abierta ? "Cerrar" : "Ver"} las variantes de ${p.referencia}`}
               className="-ml-1 grid h-7 w-7 shrink-0 place-items-center rounded-md text-tinta/45 transition-colors hover:bg-hueso hover:text-tinta"
@@ -556,9 +546,7 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
       className="pointer-events-none absolute right-4 top-1/2 flex -translate-y-1/2 translate-x-1.5 gap-0.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_color-mix(in_srgb,var(--color-sombra)_35%,transparent)] transition-[opacity,transform] duration-200 ease-cayla group-hover/fila:pointer-events-auto group-hover/fila:translate-x-0 group-hover/fila:opacity-100 group-focus-within/fila:pointer-events-auto group-focus-within/fila:translate-x-0 group-focus-within/fila:opacity-100 [@media(hover:none)]:hidden"
     >
       {acciones.editar && (
-        <Link href={acciones.editar} className={boton} aria-label={`Editar ${referencia}`} title="Editar">
-          <Pencil aria-hidden className="h-4 w-4" />
-        </Link>
+        <LapizEditar href={acciones.editar} que={referencia} />
       )}
       {acciones.existencias && (
         <Link href={acciones.existencias} className={boton} aria-label={`Ver ${referencia} en Existencias`} title="Ver en Existencias">
@@ -574,7 +562,7 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
         aria-label={`Etiquetas de precio de ${referencia}`}
         title="Etiquetas de precio"
       >
-        <Printer aria-hidden className="h-4 w-4" />
+        <Tag aria-hidden className="h-4 w-4" />
       </EnlaceEtiquetas>
       <Link href={acciones.historial} className={boton} aria-label={`Historial de ${referencia}`} title="Historial">
         <History aria-hidden className="h-4 w-4" />
@@ -603,7 +591,7 @@ function AccionesDeVariante({ href, unidades, descripcion, sede }: { href: strin
         aria-label={`Etiqueta de precio de ${descripcion}`}
         title="Imprimir la etiqueta de esta variante"
       >
-        <Printer aria-hidden className="h-4 w-4" />
+        <Tag aria-hidden className="h-4 w-4" />
       </EnlaceEtiquetas>
     </div>
   );
@@ -702,7 +690,7 @@ function FichaVariantes({
   const totalSede = stock && stock !== "error" ? unidadesEnSede(stock, p.variantes.map((v) => v.varianteId)) : null;
 
   return (
-    <div className="anim-revelar px-4 pb-5 pt-3 @3xl:pl-[5.75rem] @3xl:pr-5">
+    <div data-guia="productos.tabla-ficha" className="anim-revelar px-4 pb-5 pt-3 @3xl:pl-[5.75rem] @3xl:pr-5">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <p className="label-cayla text-[10.5px] text-tinta/60">
           {variantesQueSeVenden(p.variantes).length} {variantesQueSeVenden(p.variantes).length === 1 ? "variante" : "variantes"}
@@ -762,10 +750,7 @@ function FichaVariantes({
       {/* Todas las acciones de la prenda: en una pantalla táctil (sin hover) este es el único lugar donde están. */}
       <div className="mt-4 flex flex-wrap gap-2">
         {acciones.editar && (
-          <Link href={acciones.editar} className={boton}>
-            <Pencil aria-hidden className="h-4 w-4" />
-            Editar
-          </Link>
+          <BotonEditar href={acciones.editar} className="min-h-10 text-[12.5px]" />
         )}
         {acciones.existencias && (
           <Link href={acciones.existencias} className={boton}>
@@ -780,7 +765,7 @@ function FichaVariantes({
           sede={acciones.sede}
           className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-[12.5px] text-crema hover:bg-rojo-profundo" : boton)}
         >
-          <Printer aria-hidden className="h-4 w-4" />
+          <Tag aria-hidden className="h-4 w-4" />
           Etiquetas
         </EnlaceEtiquetas>
         <Link href={acciones.historial} className={boton}>
@@ -887,7 +872,7 @@ function BarraMarcadas({
           `${negado ? `${forma} bg-rojo hover:bg-rojo-profundo` : boton} ${variantes.length === 0 ? "pointer-events-none opacity-40" : ""}`
         }
       >
-        <Printer aria-hidden className="h-4 w-4" />
+        <Tag aria-hidden className="h-4 w-4" />
         Etiquetas
       </EnlaceEtiquetas>
       {/* El rótulo del anaquel (ADR-0366): uno por modelo marcado, o todos juntos. No depende del stock de la sede. */}

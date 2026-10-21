@@ -13,6 +13,8 @@ import { nombreDeMes, resumenDeuda, tramosPorPagar, type DeudaFila, type IgvMes 
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
+import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Por pagar de Producción (ADR-0133, F4c) y el consolidado de D-I. Arriba, lo que Producción le debe a sus proveedores, por urgencia. Abajo,
 // «Deuda total de CAYLA»: lo mismo de Compras y de Producción juntos, y el IGV del mes de los dos libros. Es una LECTURA que suma dos libros;
@@ -20,7 +22,20 @@ import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { comprobantes: ComprobanteProduccion[]; deuda: DeudaFila[]; igv: IgvMes | null; hoy: string }) {
+export function PorPagarProduccionPanel({
+  comprobantes,
+  deuda,
+  igv,
+  hoy,
+  sede,
+}: {
+  comprobantes: ComprobanteProduccion[];
+  deuda: DeudaFila[];
+  igv: IgvMes | null;
+  hoy: string;
+  /** La sede de la línea de arriba de la cabecera (el Taller). */
+  sede: string;
+}) {
   const [pagando, setPagando] = useState<ComprobanteProduccion | null>(null);
   const tramos = tramosPorPagar(comprobantes, hoy);
   const totalPorPagar = tramos.reduce((s, t) => s + t.monto, 0);
@@ -31,13 +46,14 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" className="anim-entra">
-        <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Por pagar</h1>
-        <p className="mt-1 max-w-xl text-sm text-tinta/65">Lo que el Taller le debe a sus proveedores, del más urgente al menos. El saldo se calcula de los pagos: nunca se digita.</p>
-      </div>
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Por pagar"
+        subtitulo="Lo que el Taller le debe a sus proveedores, del más urgente al menos. El saldo se calcula de los pagos: nunca se digita."
+      />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div data-guia="prod-por-pagar.cifras" className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra
           punto={totalPorPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar"
@@ -70,20 +86,23 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
 
       {tramos.length === 0 ? (
         <div className="card-cayla">
-          <Vacio icono={<CircleCheck />} titulo="El Taller no debe nada">
+          <Vacio guia="prod-por-pagar.lista" icono={<CircleCheck />} titulo="El Taller no debe nada">
             Cuando registres un comprobante a crédito, aparecerá aquí con su vencimiento.
           </Vacio>
         </div>
       ) : (
-        <div className="space-y-5">
+        <div data-guia="prod-por-pagar.lista" className="space-y-5">
           {tramos.map((t) => (
             <section key={t.clave} className="space-y-2" aria-label={t.etiqueta}>
-              <h2 className="font-display flex flex-wrap items-baseline gap-x-3 text-lg text-tinta">
+              <TituloSeccion
+                dato={
+                  <>
+                    <b>{soles(t.monto)}</b> · {plural(t.comprobantes.length, "comprobante", "comprobantes")}
+                  </>
+                }
+              >
                 {t.etiqueta}
-                <small className="font-sans text-xs tabular-nums text-tinta/65">
-                  {soles(t.monto)} · {plural(t.comprobantes.length, "comprobante", "comprobantes")}
-                </small>
-              </h2>
+              </TituloSeccion>
               <ul className="card-cayla overflow-hidden">
                 {t.comprobantes.map((c) => {
                   const d = c.fechaVencimiento ? diasHasta(c.fechaVencimiento, hoy) : null;
@@ -104,7 +123,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
                         )}
                       </span>
                       <span className="text-right text-[14px] font-semibold tabular-nums text-tinta">{soles(c.saldo)}</span>
-                      <Boton peso="fantasma" onClick={() => setPagando(c)} className="col-span-2 sm:col-span-1">
+                      <Boton peso="fantasma" data-guia="prod-por-pagar.pagar" onClick={() => setPagando(c)} className="col-span-2 sm:col-span-1">
                         Pagar
                       </Boton>
                     </li>
@@ -116,9 +135,9 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
         </div>
       )}
 
-      <section aria-label="Deuda total de CAYLA" className="card-cayla anim-entra space-y-4 p-5" style={{ ["--i" as string]: 3 }}>
+      <section data-guia="prod-por-pagar.deuda-total" aria-label="Deuda total de CAYLA" className="card-cayla anim-entra space-y-4 p-5" style={{ ["--i" as string]: 3 }}>
         <div>
-          <h2 className="font-display text-xl text-tinta">Deuda total de CAYLA</h2>
+          <TituloSeccion>Deuda total de CAYLA</TituloSeccion>
           <p className="text-xs text-tinta/65">Compras y Producción juntos, en un solo lugar. Solo se lee: cada deuda se paga en su propio módulo.</p>
         </div>
 
@@ -134,7 +153,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
                 {consolidado.vencido > 0 ? `${soles(consolidado.vencido)} ya vencidos` : "nada vencido"}
               </p>
             </div>
-            <div>
+            <div data-guia="prod-por-pagar.reparto">
               {/* La barra es `<BarraApilada>` (ADR-0358): Producción contra Compras, el 100 % de la deuda. */}
               <BarraApilada
                 alto={8}
@@ -155,7 +174,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
                 </span>
               </p>
             </div>
-            <ul>
+            <ul data-guia="prod-por-pagar.deudores">
               {deuda.slice(0, 8).map((f) => (
                 <li key={`${f.origen}-${f.proveedorId}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-tinta/10 py-2 text-[13px] last:border-b-0">
                   <span className="min-w-0">
@@ -178,8 +197,8 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
         )}
 
         {igv && (
-          <div className="border-t border-tinta/10 pt-4">
-            <h3 className="label-cayla text-[11px] text-tinta/65">IGV crédito fiscal · {nombreDeMes(igv.mes)}</h3>
+          <div data-guia="prod-por-pagar.igv" className="border-t border-tinta/10 pt-4">
+            <TituloGrupo>IGV crédito fiscal · {nombreDeMes(igv.mes)}</TituloGrupo>
             <dl className="mt-2 divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
               <div className="flex justify-between gap-3 px-3 py-2">
                 <dt>Comprobantes de Compras</dt>

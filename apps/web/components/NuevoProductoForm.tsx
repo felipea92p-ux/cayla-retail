@@ -8,6 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
+import { ElegirEmpresa, TarjetaEmpresa } from "@/components/alta-producto/ElegirEmpresa";
 import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
 import { ElegirMuestra } from "@/components/alta-producto/ElegirMuestra";
 import { ElegirTemporada } from "@/components/alta-producto/ElegirTemporada";
@@ -43,7 +44,7 @@ import {
 } from "@/lib/alta-producto-guia";
 import { nombreTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
 import { temporadaParaAlta } from "@/lib/temporada-ficha-reglas";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { descuentoDeCampana } from "@/lib/vender-reglas";
 import { campanaDelAlta, repartirEtiquetas, unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
 import { useResponsable } from "@/lib/useResponsable";
@@ -89,10 +90,13 @@ import {
 import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
-import { montoDeCelda } from "@/lib/tabla-alta-reglas";
+import { celdaSinPrecio, montoDeCelda, nombreCelda } from "@/lib/tabla-alta-reglas";
+import { precioValido } from "@/lib/variantes-ficha-reglas";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
+import { MAX_DESCRIPCION_PRODUCTO, MAX_NOMBRE_PRODUCTO } from "@/lib/catalogo-topes";
+import { ArrowRight } from "lucide-react";
 
 /** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
 const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
@@ -200,6 +204,13 @@ export function NuevoProductoForm({
     }),
     []
   );
+  // ADR-0463: antes de la categoría, a qué tienda pertenece el producto — solo desde una sede donde operan dos (Lima). `contexto.empresas` nulo
+  // = Trujillo, Arequipa o una base sin tiendas: sin pregunta, y el producto nace en CAYLA. Ninguna viene marcada (Felipe 2026-10-20).
+  const [empresaId, setEmpresaId] = useState("");
+  const empresas = contexto.empresas;
+  const exigeEmpresa = Boolean(empresas && empresas.length > 0);
+  const empresa = empresas?.find((t) => t.id === empresaId) ?? null;
+  const faltaEmpresa = exigeEmpresa && !empresaId;
   const [categoriaId, setCategoriaId] = useState("");
   const [marcaId, setMarcaId] = useState("");
   const [proveedorId, setProveedorId] = useState("");
@@ -263,7 +274,7 @@ export function NuevoProductoForm({
   // está en la base). Con el producto creado no hay nada que perder; tras «crear otro parecido» vuelve a preguntar, porque
   // lo copiado también se perdería. La foto de apertura es la del formulario vacío.
   const fotoActual = fotoFormulario({
-    categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
+    empresaId, categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
     coloresElegidos, fotos: fotos.map((f) => f.clave), precioBase, costoBase, excluidas: [...excluidas].sort(),
     overridePrecio, overrideCosto, etiquetasElegidas, cantidades, sinStock, lugarCarga,
   });
@@ -428,9 +439,16 @@ export function NuevoProductoForm({
     celdasIncluidas.map((c) => c.clave)
   );
   const destinoTexto = textoDestinoStock(destino.etiqueta, lugarCarga, destino.separaPiso);
+  // ADR-0384: una celda de «Precios» con 0 crearía esa variante a S/ 0. Se nombra como en la tabla, para que se encuentre.
+  const celdaEnCero = celdaSinPrecio(celdasIncluidas, overridePrecio);
+  const nombreCeldaEnCero = celdaEnCero
+    ? nombreCelda(colores.find((c) => c.codigo === celdaEnCero.color)?.nombre, tallasOrdenadas.find((t) => t.id === celdaEnCero.tallaId)?.texto)
+    : null;
 
   // ---------- qué falta ----------
   const estado: EstadoAlta = {
+    exigeEmpresa,
+    empresaId,
     categoriaId,
     referencia,
     comprobandoNombre,
@@ -446,6 +464,7 @@ export function NuevoProductoForm({
     celdasIncluidas: celdasIncluidas.length,
     precioBase,
     costoBase,
+    celdaSinPrecio: nombreCeldaEnCero,
     stockTotal: stock.total,
     stockInvalidas: stock.invalidas,
     sinStock: sinStockVigente,
@@ -549,8 +568,21 @@ export function NuevoProductoForm({
   const fotosOrdenadas = ordenarFotosAlta(fotos, coloresElegidos);
 
   // ---------- guardar ----------
+  // Un segundo clic (o Enter) mientras el alta viaja no la manda otra vez: con el mismo token la base devuelve el mismo producto y no
+  // duplica el stock, pero las fotos se suben DESPUÉS de cada respuesta y quedarían dos veces (/chaos de Catálogo 2026-10-14, DC-01).
+  const enviando = useRef(false);
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (enviando.current) return;
+    enviando.current = true;
+    try {
+      await crear();
+    } finally {
+      enviando.current = false;
+    }
+  }
+
+  async function crear() {
     if (!puedeGuardar) {
       // No debería pasar (el botón está apagado y Enter en un campo no envía), pero un envío programático llegaría hasta acá.
       avisar.error(problemas[0]?.texto ?? "Falta completar el formulario.");
@@ -569,8 +601,10 @@ export function NuevoProductoForm({
       const cantidad = leerCantidad(cantidadesVigentes[c.clave] ?? "") ?? 0;
       return { talla_id: c.tallaId, color_codigo: c.color, precio, costo, ...(cantidad > 0 ? { cantidad } : {}) };
     });
-    if (variantes.some((v) => !Number.isFinite(v.precio) || v.precio < 0)) {
-      avisar.error("Una de las celdas tiene un precio inválido.");
+    // La misma regla que Editar producto (`precioValido`): mayor que 0. `problemasAlta` ya lo frena; esto es por si llega un envío
+    // programático (ADR-0384).
+    if (variantes.some((v) => !precioValido(v.precio))) {
+      avisar.error("Una de las celdas tiene un precio en 0 o inválido.");
       return;
     }
     if (variantes.some((v) => !Number.isFinite(v.costo) || v.costo < 0)) {
@@ -607,7 +641,14 @@ export function NuevoProductoForm({
       p_al_piso: conStock && destino.separaPiso && lugarCarga === "piso",
     };
     const firma = responsable.firma();
-    const { data: productoId, error, status } = await firmar(supabase.rpc("crear_producto_con_stock_inicial", params), firma);
+    // ADR-0463: desde una sede con dos tiendas (Lima), el alta va por `crear_producto_con_empresa` (la de siempre + la tienda, en la misma
+    // transacción); sin ellas, por la de siempre y el producto nace en CAYLA. La cola sin conexión guarda cuál usó.
+    const rpcAlta = exigeEmpresa ? "crear_producto_con_empresa" : "crear_producto_con_stock_inicial";
+    const paramsAlta = exigeEmpresa ? { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId } : params;
+    const { data: productoId, error, status } = await firmar(
+      exigeEmpresa ? supabase.rpc("crear_producto_con_empresa", { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId }) : supabase.rpc("crear_producto_con_stock_inicial", params),
+      firma,
+    );
 
     // Sin red (ADR-0210, paso 2): el alta entra a la cola con su token y la hora de ahora. El código y el de barras los
     // pone la base al subir (nunca el navegador); las fotos esperan en IndexedDB y suben después del producto.
@@ -618,8 +659,8 @@ export function NuevoProductoForm({
       const firmaCola = conStock ? responsable.firma(new Date().toISOString()) : firma;
       const op = nuevaOperacion({
         token: token.current,
-        rpc: "crear_producto_con_stock_inicial",
-        params,
+        rpc: rpcAlta,
+        params: paramsAlta,
         firma: firmaCola,
         resumen: `${nombreFinal} · ${variantes.length} variante${variantes.length === 1 ? "" : "s"}${conStock ? ` · ${stock.total} u.` : ""} · ${categoria?.nombre ?? ""}`,
       });
@@ -631,7 +672,7 @@ export function NuevoProductoForm({
       const fotosGuardadas = await guardarFotos(
         token.current,
         nombreFinal,
-        fotosOrdenadas.map((f) => ({ archivo: f.archivo, original: f.original, colorCodigo: f.colorCodigo })),
+        fotosOrdenadas.map((f) => ({ archivo: f.archivo, colorCodigo: f.colorCodigo })),
       );
       fotos.forEach((f) => URL.revokeObjectURL(f.vista));
       setFotos([]);
@@ -680,7 +721,7 @@ export function NuevoProductoForm({
     if (fotosOrdenadas.length > 0) {
       const filas: { producto_id: string; url: string; orden: number; es_principal: boolean; color_codigo: string | null }[] = [];
       for (const f of fotosOrdenadas) {
-        const r = await subirFotoProducto(supabase, f.archivo, f.original);
+        const r = await subirFotoProducto(supabase, f.archivo);
         if ("error" in r) {
           fallidas.push(`${f.archivo.name}: ${r.error}`);
           continue;
@@ -768,7 +809,7 @@ export function NuevoProductoForm({
       .filter(Boolean)
       .join(", ") || null;
   const resumen: Record<NumeroPaso, string> = {
-    1: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : "",
+    1: categoria ? `${empresa ? `${empresa.nombre} · ` : ""}${familia?.nombre ?? ""} › ${categoria.nombre}` : "",
     2: [nombreFinal, marcaNombre, tejidoTexto, patronTexto].filter(Boolean).join(" · "),
     // «26–42 (9) · 8 colores · 68 variantes · 7 fotos»: con muchas tallas se leen primera–última y cuántas.
     3: tallasOrdenadas.length
@@ -782,7 +823,7 @@ export function NuevoProductoForm({
           .join(" · ")
       : "",
     4: [
-      precioNum > 0 ? `S/ ${precioNum.toFixed(2)}` : null,
+      precioNum > 0 ? `S/\u00a0${precioNum.toFixed(2)}` : null,
       stock.total > 0 ? `${plural(stock.total, "unidad", "unidades")} · ${destinoTexto}` : sinStockVigente ? "Sin stock todavía" : null,
     ]
       .filter(Boolean)
@@ -820,13 +861,16 @@ export function NuevoProductoForm({
           disabled={Boolean(faltaDelPasoProblema(problemas, n))}
           className={`btn-cayla btn-primario ${listo ? "hilo-seguir" : ""}`}
         >
-          Seguir →
+          <span className="flex items-center gap-2">
+            Seguir
+            <ArrowRight aria-hidden className="-my-1 h-4 w-4 shrink-0" />
+          </span>
         </button>
       ) : (
         // El paso 4 cierra el alta: aquí termina la persona, así que aquí está «Crear» (la ficha conserva el suyo).
         <button
           type="submit"
-          disabled={!puedeGuardar || !responsable.listo}
+          disabled={cargando || !puedeGuardar || !responsable.listo}
           title={responsable.motivo ?? undefined}
           className={`btn-cayla btn-primario ${listo && !cargando ? "hilo-seguir" : ""}`}
         >
@@ -855,7 +899,10 @@ export function NuevoProductoForm({
           <p className="text-[13px] text-taupe">
             Con la categoría, el sistema ya sabe el código, las tallas y los tejidos que suele llevar. Al tocarla pasas solo al siguiente paso.
           </p>
-          <ArbolCategoria familias={contexto.familias} categorias={contexto.categorias} categoriaId={categoriaId} onElegir={elegirCategoria} onCambiar={cambiarCategoria} />
+          {/* Sin tienda no se elige categoría (ADR-0463): se ve el camino, atenuado, y se enciende al elegir la tienda. La pregunta vive en su propia tarjeta, sobre este paso. */}
+          <div inert={faltaEmpresa} className={faltaEmpresa ? "opacity-50 transition-opacity" : "transition-opacity"}>
+            <ArbolCategoria familias={contexto.familias} categorias={contexto.categorias} categoriaId={categoriaId} onElegir={elegirCategoria} onCambiar={cambiarCategoria} pausado={faltaEmpresa} />
+          </div>
         </div>
       );
     }
@@ -893,6 +940,7 @@ export function NuevoProductoForm({
               <CampoTexto
                 id="nombre-producto"
                 etiqueta="Nombre"
+                maxLength={MAX_NOMBRE_PRODUCTO}
                 caja
                 className="!h-12 text-base"
                 placeholder={sugerirNombre(contextoSugerencia).texto}
@@ -911,7 +959,7 @@ export function NuevoProductoForm({
             </div>
           </FilaAlta>
           <FilaAlta etiqueta="Descripción" ayuda="Opcional · lo que no dice el nombre: corte, largo, detalles" campo="descripcion" estado={est.descripcion}>
-            <CampoTexto etiqueta="Descripción" caja placeholder={sugerirDescripcion(contextoSugerencia).texto} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
+            <CampoTexto etiqueta="Descripción" caja maxLength={MAX_DESCRIPCION_PRODUCTO} placeholder={sugerirDescripcion(contextoSugerencia).texto} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
           </FilaAlta>
 
           {/* Tejido y patrón describen la prenda: van aquí, con el nombre y la marca (spike v2), no con sus variantes. */}
@@ -1250,7 +1298,9 @@ export function NuevoProductoForm({
             <div className="min-w-0 space-y-2.5">
               {/* Los 4 puntos, pegados arriba mientras se baja por el paso (ADR-0260 act. 2026-10-06). */}
               <PuntosAvance pasos={avance} onAbrir={(n) => irAPaso(n as NumeroPaso)} />
-              <QuienRegistra control={responsable} deshabilitado={cargando} />
+              <div data-guia="nuevo.quien">
+                <QuienRegistra control={responsable} deshabilitado={cargando} />
+              </div>
               <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />
               {/* Sin red se puede crear el producto (sube solo), pero no lo que se crea A MITAD del alta: cada uno es su propia
                   operación y el producto necesitaría su id. Decirlo antes evita llenar un paso para chocar al final. */}
@@ -1268,6 +1318,13 @@ export function NuevoProductoForm({
                 </Aviso>
               )}
               {/* Solo el paso abierto: los demás están en los puntos de arriba. `key` lo vuelve a montar al cambiar de paso (entra con su revelado). */}
+              {paso === 1 && empresas && (
+                <TarjetaEmpresa>
+                  <FilaAlta etiqueta="Tienda" campo="empresa" estado={est.empresa}>
+                    <ElegirEmpresa empresas={empresas} empresaId={empresaId} onElegir={setEmpresaId} />
+                  </FilaAlta>
+                </TarjetaEmpresa>
+              )}
               <PasoAlta key={paso} numero={paso} titulo={TITULOS[paso]} pie={pie(paso)}>
                 {cuerpo(paso)}
               </PasoAlta>
@@ -1277,6 +1334,7 @@ export function NuevoProductoForm({
               datos={{
                 nombre: nombreFinal,
                 codigo: categoria ? base : null,
+                empresa: empresa?.nombre ?? null,
                 categoria: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : null,
                 marca: marcaId ? marcaNombre || null : null,
                 tejido: tejidoTexto,

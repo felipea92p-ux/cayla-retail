@@ -13,6 +13,8 @@ import {
   type FilaActividad,
   type Periodo,
 } from "@/lib/actividad-reglas";
+import { SeparadorDia } from "@/components/ui/TituloSeccion";
+import { montosSinCorte } from "@/lib/montos-sin-corte";
 
 // La lista de la actividad (ADR-0207), la misma en el panel de la cabecera y en la pantalla completa. El alcance lo pone
 // la base (`fn_actividad`): aunque se le pida otra sede, una cuenta que no es líder recibe solo la suya.
@@ -113,16 +115,19 @@ export function ListaActividad({
 
   return (
     <div>
-      {agruparPorDia(filas, ahora).map((g) => (
+      {agruparPorDia(filas, ahora).map((g, gi) => (
         <section key={g.dia} className="mb-4 last:mb-0">
-          <h3 className="label-cayla mb-1 text-[11px] text-taupe">{g.dia}</h3>
-          <ul className="divide-y divide-sand/70 border-t border-sand/70">
-            {g.filas.map((f) => (
-              <li key={f.id} className="flex items-start gap-3 py-2.5">
-                <AvatarPersona personaId={f.persona_id} nombre={quien(f)} className="mt-0.5 h-8 w-8 shrink-0 text-xs" />
+          {/* El día que se queda arriba al bajar (ADR-0358, ronda 7), alineado con las filas. */}
+          <SeparadorDia hoy={g.dia === "Hoy"} className="px-0">
+            {g.dia}
+          </SeparadorDia>
+          <ul className="divide-y divide-sand/70">
+            {g.filas.map((f, fi) => (
+              <li key={f.id} className="flex items-start gap-3 py-2.5" data-guia={gi === 0 && fi === 0 ? "actividad.fila" : undefined}>
+                <AvatarPersona personaId={f.persona_id} nombre={quien(f)} tamano={32} className="mt-0.5" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-snug text-tinta">
-                    <span className="font-semibold">{quien(f)}</span> {f.descripcion}
+                    <span className="font-semibold">{quien(f)}</span> {montosSinCorte(f.descripcion) /* la escribe Postgres: «por S/ 189» */}
                   </p>
                   <p className="mt-0.5 text-xs text-taupe">
                     {pieDeFila(f, { conSede })}
@@ -144,7 +149,7 @@ export function ListaActividad({
           ))}
         </div>
       ) : hayMas ? (
-        <button type="button" onClick={cargarMas} className="btn-cayla btn-sutil mt-2 w-full">
+        <button type="button" onClick={cargarMas} className="btn-cayla btn-sutil mt-2 w-full" data-guia="actividad.ver-mas">
           Ver más
         </button>
       ) : null}

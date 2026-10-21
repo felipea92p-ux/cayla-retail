@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
+import { Anillo } from "@/components/ui/Anillo";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
-import { Check, ChevronRight, Info, Shirt, Truck, X } from "lucide-react";
+import { Check, ChevronRight, Info, Truck, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
@@ -18,7 +20,7 @@ import { avisoConteoGuardado, avisoConteoRetomado, envioContado, mensajeDeSalida
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { usePistola } from "@/components/ui/usePistola";
-import { Boton, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto, Desplegable, Interruptor } from "@/components/ui/campos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
@@ -75,6 +77,13 @@ import {
 } from "@/lib/envio-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
+import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
+import type { FilaConCategoria } from "@/lib/categoria-de-prenda";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Lo que llega a la puerta es un envío —una agencia, una guía,
 // varios bultos— y puede traer comprobantes de VARIOS proveedores y prendas que ningún comprobante lista. Todo se
@@ -89,13 +98,13 @@ import { Buscador } from "@/components/ui/Buscador";
 // · Los cuatro indicadores viven DEBAJO de «¿Qué llegó?» y desaparecen al marcar un comprobante.
 // · Escaneo: cada lectura suma 1 al comprobante que trae esa prenda, sea del proveedor que sea.
 // · Fuera de comprobante lleva ORIGEN: de qué proveedor viene y si es regalo.
-// · Cuenta CUALQUIER colaborador de la sede. Quien no es líder no ve dinero (llega en cero desde el
-//   servidor) y no decide qué pasa con lo que faltó: lo deja pendiente y un líder lo cierra después.
+// · Cuenta CUALQUIER colaborador de la sede. Quien no ve el dinero de Compras no ve montos (llegan en cero desde el
+//   servidor). Qué pasa con lo que faltó lo decide quien recibe (ADR-0387; antes, solo un líder).
 //
 // La NOTA DE CRÉDITO ya no se registra acá (2026-09-19, módulo `/compras/notas-credito`): contar prendas y
 // mover dinero eran dos cosas en la misma pantalla, y una de ellas no es de dinero. Lo que queda es contar y
 // decidir qué pasó con lo que faltó; cuando un cierre deja al proveedor debiendo el documento, un aviso
-// discreto lo dice y apunta al módulo («Se reclama en Notas de crédito ↗», solo líder). El faltante se cierra
+// discreto lo dice y apunta al módulo («Se reclama en Notas de crédito ↗», a quien tiene ese módulo). El faltante se cierra
 // igual acá: eso es operación, no dinero. La RPC `recibir_envio` sigue aceptando `p_notas_credito` —la base
 // no se tocó—, pero esta pantalla lo manda siempre vacío.
 //
@@ -114,7 +123,7 @@ type Variante = {
   colorHex?: string | null;
   /** La foto de la prenda en ESE color (`producto_fotos`); `null` = sin foto. */
   fotoUrl?: string | null;
-};
+} & FilaConCategoria;
 type Ubicacion = { id: string; nombre: string };
 type Proveedor = { id: string; nombre: string };
 
@@ -142,6 +151,9 @@ type ConteoDelEnvio = {
 // Panel angosto: cada línea es una tarjeta con su − / +; ancho: la tabla de siempre.
 const PLANTILLA_LINEA = "@[46rem]:grid-cols-[1fr_4rem_6.5rem_3rem_9rem] @[60rem]:grid-cols-[1fr_8.5rem_4rem_7rem_3rem_10rem]";
 
+/** La marca de los campos «Llegó»: Enter salta al siguiente campo marcado (y, tras el último, al escáner). */
+const MARCA_CONTEO = { "data-conteo": true };
+
 const CHIP_ESTADO: Record<EstadoLinea, TonoChip> = { sin_contar: "neutro", completa: "verde", faltan: "ambar", excede: "rojo" };
 const ETIQUETA_ESTADO: Record<EstadoLinea, (faltan: number) => string> = {
   sin_contar: () => "Sin contar",
@@ -160,8 +172,8 @@ export function RecepcionEnvio({
   ubicaciones,
   ubicacionInicialId,
   compraInicialId,
-  esLider,
-  verMontos = esLider,
+  puedeReclamar,
+  verMontos = false,
   comprasConNotaFaltante,
   veTraslados,
   resumen,
@@ -173,9 +185,11 @@ export function RecepcionEnvio({
   ubicaciones: Ubicacion[];
   ubicacionInicialId: string;
   compraInicialId: string | null;
-  esLider: boolean;
+  /** ¿Ve el aviso de lo que el proveedor queda debiendo? Lleva montos y apunta a Notas de crédito: quien tiene ese módulo
+   *  (ADR-0387, Felipe 2026-10-12: el módulo es la llave; antes, solo el líder). */
+  puedeReclamar: boolean;
   /** Los montos de cada comprobante (ADR-0161 P2): quien ve el dinero de Compras, no solo el líder. Las DECISIONES sobre lo que
-   *  faltó siguen siendo `esLider`. */
+   *  faltó son de quien recibe (ADR-0387; antes, solo del líder): la base ya solo pedía poder operar la sede. */
   verMontos?: boolean;
   /** Comprobantes que ya tienen su nota por faltante (es una sola por comprobante): esos no se avisan. */
   comprasConNotaFaltante: string[];
@@ -260,7 +274,8 @@ export function RecepcionEnvio({
   const menuRef = useRef<HTMLDivElement>(null);
   // El resumen previo a recibir: el pedido ya armado y validado, a la espera del «Confirmar».
   const [pedidoListo, setPedidoListo] = useState<{ pedido: PedidoEnvio; movimientos: MovimientoDelEnvio[] } | null>(null);
-  // Costo atípico (20260930124000): los extras (fuera de comprobante) cuyo costo la base marcó y que el líder debe confirmar; el
+  // Costo atípico (20260930124000): los extras (fuera de comprobante) cuyo costo la base marcó y que hay que confirmar (quien ve los
+  // costos al recibir, ADR-0387; antes, solo el líder); el
   // resumen previo sigue abierto mientras tanto. Se borra al volver, al armar otro pedido y al registrar.
   const [atipicos, setAtipicos] = useState<CostoAtipico[] | null>(null);
   // Un token por envío: reintentar (un doble toque, una red lenta) no duplica el stock. Se renueva al terminar.
@@ -268,7 +283,7 @@ export function RecepcionEnvio({
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<Resultado | null>(null);
   const [quitarPendiente, setQuitarPendiente] = useState<CompraResumen | null>(null);
-  // Qué se hace con lo que faltó, por línea (solo líder): ausente = todavía sin decidir (bloquea el confirmar).
+  // Qué se hace con lo que faltó, por línea: ausente = todavía sin decidir (bloquea el confirmar).
   const [decisiones, setDecisiones] = useState<Record<string, Decision | undefined>>(guardado?.decisiones ?? {});
 
   // «¿Salir sin guardar?» (2026-09-28). El conteo de un envío (caja por caja, a veces de un cargamento grande) vive solo
@@ -589,7 +604,7 @@ export function RecepcionEnvio({
     setUbicacionId(id);
   }
 
-  // ---- lo que faltó (D2, solo líder) --------------------------------------------------------------
+  // ---- lo que faltó (D2; desde ADR-0387, lo decide quien recibe) -----------------------------------
   function guardarDecision(lineaId: string, d: Decision) {
     setDecisiones((m) => ({ ...m, [lineaId]: d }));
     setEditando(null);
@@ -603,23 +618,23 @@ export function RecepcionEnvio({
   function esperarTodas() {
     setDecisiones((m) => ({ ...m, ...Object.fromEntries(porDecidir.map((f) => [f.lineaId, "espero" as Decision])) }));
   }
-  const mostrarEditor = (lineaId: string) => esLider && (editando === lineaId || (!decisiones[lineaId] && enfocada !== lineaId));
+  const mostrarEditor = (lineaId: string) => editando === lineaId || (!decisiones[lineaId] && enfocada !== lineaId);
   // El foco «dentro de la línea»: pasar de una celda a otra de la misma línea no cuenta como salir.
   const alEnfocar = (lineaId: string) => () => setEnfocada(lineaId);
   const alDesenfocar = (lineaId: string) => (e: React.FocusEvent<HTMLElement>) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setEnfocada((actual) => (actual === lineaId ? null : actual));
   };
-  // Lo que llegó corto: solo las líneas CONTADAS con menos de lo pendiente. Un colaborador no decide qué pasa
-  // con lo que faltó (queda pendiente y un líder lo cierra), así que para él no hay decisiones ni cierres.
+  // Lo que llegó corto: solo las líneas CONTADAS con menos de lo pendiente. Quien recibe decide qué pasa con lo que faltó
+  // (ADR-0387: el módulo es la llave; antes, solo un líder): `cerrar_linea_compra` solo pide poder operar la sede.
   const lineasCortas = lineasActivas.filter((l) => estadoLinea(llegoLinea(l, reparto), l.pendiente) === "faltan");
   const faltantes = lineasCortas.map((l) => ({ lineaId: l.id, compraId: l.compraId, faltan: faltanteDeLinea(llegoLinea(l, reparto), l.pendiente), costoUnitario: l.costoUnitario }));
-  const cierres = esLider ? cierresElegidos(faltantes, decisiones) : [];
-  const porDecidir = esLider ? sinDecidir(faltantes, decisiones) : [];
+  const cierres = cierresElegidos(faltantes, decisiones);
+  const porDecidir = sinDecidir(faltantes, decisiones);
 
   // Qué le va a quedar debiendo el proveedor: lo cerrado en esta guía más lo que ya estaba cerrado, por
-  // comprobante. No se registra nada acá — es un aviso que apunta a `/compras/notas-credito` (solo líder,
-  // porque lleva monto y va a una pantalla de dinero que a un integrante le daría un error de permiso).
-  const reclamos = esLider
+  // comprobante. No se registra nada acá — es un aviso que apunta a `/compras/notas-credito` (quien tiene Notas de crédito,
+  // porque lleva monto y va a una pantalla de dinero que a quien no la tiene le daría un error de permiso).
+  const reclamos = puedeReclamar
     ? notasPorReclamar(
         bloques.map(({ compra }) => ({
           compra,
@@ -654,6 +669,13 @@ export function RecepcionEnvio({
     const excedida = lineasActivas.find((l) => cantidadLinea(l) > l.pendiente);
     if (excedida) return void avisar.error(`${excedida.referencia}: se intenta recibir ${cantidadLinea(excedida)} pero solo faltan ${excedida.pendiente}.`, { enfocar: `recibir-linea-${excedida.id}` });
     if (!ubicacionId) return void avisar.error("Elige a qué ubicación entra la mercadería.", { enfocar: "recibir-ubicacion" });
+    // Un costo que no se entiende no viaja adivinado (ADR-0419): se dice y se lleva al campo.
+    const extraIlegible = extras.findIndex((x) => !x.esRegalo && montoIlegible(x.costoUnitario));
+    if (extraIlegible >= 0) {
+      setPestana("fuera");
+      avisar.error(MONTO_ILEGIBLE);
+      return void window.setTimeout(() => document.querySelector<HTMLInputElement>(`[data-campo="envio-extra-costo-${extraIlegible}"]`)?.focus(), 60);
+    }
 
     const pedido = armarPedidoEnvio({
       ubicacionId,
@@ -692,7 +714,7 @@ export function RecepcionEnvio({
   }
 
   // «Confirmar y recibir» del resumen: UNA llamada, UNA transacción, con el mismo token (reintentar no duplica).
-  // `confirmadas`: los extras (posición en `p_extras`, desde 1) que el líder confirmó por costo atípico; `null` en el primer intento.
+  // `confirmadas`: los extras (posición en `p_extras`, desde 1) que se confirmaron por costo atípico; `null` en el primer intento.
   async function registrar(confirmadas: number[] | null = null) {
     if (!pedidoListo || loading) return;
     const { movimientos } = pedidoListo;
@@ -748,11 +770,12 @@ export function RecepcionEnvio({
         return;
       }
       setPedidoListo(null);
-      // A quien no es líder la base le dice, sin cifras, que solo un líder confirma: su salida es quitar ese costo (es opcional).
+      // A quien no ve los costos al recibir la base le dice, sin cifras, que no puede confirmarlo: su salida es quitar ese costo
+      // (es opcional) o pedírselo a quien los vea (ADR-0387; antes, solo un líder confirmaba).
       if (error.message === "costo_atipico_sin_lider") {
         setPestana("fuera");
-        avisar.error("El costo de una prenda fuera de comprobante está fuera de lo normal y solo un líder puede confirmarlo.", {
-          detalle: "Borra ese costo (es opcional) y recibe la prenda sin costo, o pídele a un líder que lo confirme. No se registró nada.",
+        avisar.error("El costo de una prenda fuera de comprobante está fuera de lo normal y tu rol no ve los costos para confirmarlo.", {
+          detalle: "Borra ese costo (es opcional) y recibe la prenda sin costo, o pídele a quien los vea que lo confirme. No se registró nada.",
         });
         return;
       }
@@ -768,7 +791,7 @@ export function RecepcionEnvio({
       lotes: (r.lotes ?? []).map((l) => l.lote_id),
       extras: r.extras ?? 0,
       cierres: r.cierres ?? 0,
-      // Lo que el proveedor queda debiendo en documentos: se reclama en el módulo, no acá (0 = nada, o no es líder).
+      // Lo que el proveedor queda debiendo en documentos: se reclama en el módulo, no acá (0 = nada, o no tiene Notas de crédito).
       porReclamar: reclamos.reduce((a, x) => a + x.monto, 0),
       yaRegistrado: r.ya_registrado === true,
       movimientos,
@@ -822,7 +845,7 @@ export function RecepcionEnvio({
               al pasar el mouse o enfocar. Enter salta a la siguiente prenda. */}
           <div className={`grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2.5 @[46rem]:gap-x-3 ${PLANTILLA_LINEA}`}>
             <span className="col-span-2 flex min-w-0 items-center gap-3 @[46rem]:col-span-1">
-              <Miniatura hex={variantePorId.get(l.varianteId)?.colorHex ?? null} fotoUrl={variantePorId.get(l.varianteId)?.fotoUrl ?? null} />
+              <Miniatura variante={variantePorId.get(l.varianteId)} />
               <span className="min-w-0 text-sm text-tinta">
                 <span className="block truncate font-medium @[46rem]:font-normal">{l.referencia}</span>
                 <span className="block truncate text-xs text-tinta/55">
@@ -836,60 +859,45 @@ export function RecepcionEnvio({
             <span className="hidden truncate text-[12.5px] tabular-nums text-tinta/65 @[60rem]:block">{l.sku ?? "—"}</span>
             <span className="hidden text-center text-sm tabular-nums text-tinta/65 @[46rem]:block">{l.pendiente}</span>
             <span className="text-left @[46rem]:text-center">
-              <span
+              <PasoCantidad
                 key={destello?.id === l.id ? destello.n : 0}
-                className={`${destello?.id === l.id ? "anim-pop" : ""} inline-flex items-center overflow-hidden rounded-[10px] border transition-colors focus-within:border-rojo ${
-                  excede ? "border-rojo bg-rojo/[0.08]" : completa ? "border-verde bg-verde/[0.09]" : estado === "faltan" ? "border-ambar bg-ambar/10" : "border-tinta/25"
-                }`}
-              >
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  aria-label="Una unidad menos"
-                  onClick={() => fijar(l.id, l.varianteId!, Math.max(0, (llego ?? 0) - 1))}
-                  className="grid h-[42px] w-10 place-items-center overflow-hidden text-lg text-tinta/65 transition-[width,color] duration-200 hover:text-rojo @[46rem]:h-9 @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
-                >
-                  −
-                </button>
-                <input
-                  type="number"
-                  min={0}
-                  max={l.pendiente}
-                  data-conteo
-                  aria-label={`Llegó de ${l.referencia} ${[l.talla, l.color].filter(Boolean).join(" ")}`}
-                  value={reparto[l.id]?.[l.varianteId] ?? ""}
-                  placeholder="—"
-                  onChange={(e) => fijar(l.id, l.varianteId!, e.target.value === "" ? null : Number(e.target.value))}
-                  onFocus={(e) => e.target.select()}
-                  onKeyDown={(e) => {
+                className={destello?.id === l.id ? "anim-pop" : ""}
+                // El borde y el número dicen lo que llegó: se pasó, está completo, falta.
+                tono={excede ? "error" : completa ? "exito" : estado === "faltan" ? "atencion" : undefined}
+                sinTab
+                // En tabla (panel ancho) el − / + se esconde hasta pasar el mouse por la fila o enfocarla; en tarjeta se ve siempre.
+                claseBotones="overflow-hidden transition-[width,background-color,color,transform] duration-200 ease-cayla @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
+                menos={{ onClick: () => fijar(l.id, l.varianteId!, Math.max(0, (llego ?? 0) - 1)), etiqueta: "Una unidad menos" }}
+                mas={{ onClick: () => fijar(l.id, l.varianteId!, (llego ?? 0) + 1), etiqueta: "Una unidad más" }}
+                campo={{
+                  type: "number",
+                  min: 0,
+                  max: l.pendiente,
+                  ...MARCA_CONTEO,
+                  "aria-label": `Llegó de ${l.referencia} ${[l.talla, l.color].filter(Boolean).join(" ")}`,
+                  value: reparto[l.id]?.[l.varianteId] ?? "",
+                  placeholder: "—",
+                  onChange: (e) => fijar(l.id, l.varianteId!, e.target.value === "" ? null : Number(e.target.value)),
+                  onFocus: (e) => e.target.select(),
+                  onKeyDown: (e) => {
                     if (e.key !== "Enter") return;
                     e.preventDefault();
                     const todos = [...document.querySelectorAll<HTMLInputElement>("input[data-conteo]")].filter((i) => i.offsetParent);
                     const siguiente = todos[todos.indexOf(e.currentTarget) + 1];
                     if (siguiente) siguiente.focus();
                     else escaneoRef.current?.focus();
-                  }}
-                  className={`h-[42px] w-14 bg-transparent text-center text-[15px] tabular-nums outline-none [appearance:textfield] @[46rem]:h-9 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${excede ? "text-rojo" : completa ? "text-verde-profundo" : estado === "faltan" ? "text-ambar-profundo" : "text-tinta/45"}`}
-                />
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  aria-label="Una unidad más"
-                  onClick={() => fijar(l.id, l.varianteId!, (llego ?? 0) + 1)}
-                  className="grid h-[42px] w-10 place-items-center overflow-hidden text-lg text-tinta/65 transition-[width,color] duration-200 hover:text-rojo @[46rem]:h-9 @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
-                >
-                  +
-                </button>
-              </span>
+                  },
+                }}
+              />
             </span>
             <span className={`hidden text-center text-sm tabular-nums @[46rem]:block ${dif === null || dif === 0 ? "text-tinta/45" : dif < 0 ? "font-semibold text-ambar-profundo" : "font-semibold text-rojo"}`}>
               {dif === null ? "—" : dif === 0 ? "0" : dif < 0 ? `−${-dif}` : `+${dif}`}
             </span>
             <span className="justify-self-end text-right @[46rem]:justify-self-start @[46rem]:text-left">
-              <EstadoDeLinea key={estado} estado={estado} faltan={l.pendiente - recibiendoLinea} decision={decision} onEditar={() => setEditando(l.id)} esLider={esLider} />
+              <EstadoDeLinea key={estado} estado={estado} faltan={l.pendiente - recibiendoLinea} decision={decision} onEditar={() => setEditando(l.id)} />
             </span>
           </div>
-          {esLider && estado === "faltan" && (
+          {estado === "faltan" && (
             <div className={`grid transition-[grid-template-rows] duration-[320ms] ease-cayla ${mostrarEditor(l.id) ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} inert={!mostrarEditor(l.id)}>
               <div className="min-h-0 overflow-hidden">
                 <EditorDecision
@@ -934,7 +942,7 @@ export function RecepcionEnvio({
         ) : (
           <CurvaVariantes referencia={l.referencia} variantes={opciones} valores={reparto[l.id] ?? {}} excede={excede} onFijar={(varianteId, n) => fijar(l.id, varianteId, n)} />
         )}
-        {esLider && estado === "faltan" && (
+        {estado === "faltan" && (
           <div className={`grid transition-[grid-template-rows] duration-[320ms] ease-cayla ${mostrarEditor(l.id) ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} inert={!mostrarEditor(l.id)}>
             <div className="min-h-0 overflow-hidden">
               <EditorDecision
@@ -964,14 +972,18 @@ export function RecepcionEnvio({
       <form onSubmit={onSubmit} className={`grid gap-6 lg:grid-cols-[minmax(19rem,23rem)_1fr] lg:items-start ${hayEnvio ? "pb-32 sm:pb-28" : ""}`}>
         {/* ================= izquierda: lo que falta llegar ================= */}
         <aside className="card-cayla anim-entra overflow-hidden lg:sticky lg:top-24" style={{ "--i": 3 } as CSSProperties}>
-          <div className="flex items-center justify-between gap-3 px-4 pt-4">
-            <h2 className="font-display text-[21px] text-tinta">Pendientes de llegar</h2>
-            {hayEnvio && (
-              <button type="button" onClick={() => setListaPlegada((v) => !v)} aria-expanded={!listaPlegada} className="label-cayla text-[10.5px] text-tinta/65 hover:text-rojo lg:hidden">
-                {listaPlegada ? "Cambiar" : "Ocultar"}
-              </button>
-            )}
-          </div>
+          <TituloSeccion
+            className="px-4 pt-4"
+            accion={
+              hayEnvio ? (
+                <button type="button" onClick={() => setListaPlegada((v) => !v)} aria-expanded={!listaPlegada} className="label-cayla text-[10.5px] text-tinta/65 hover:text-rojo lg:hidden">
+                  {listaPlegada ? "Cambiar" : "Ocultar"}
+                </button>
+              ) : undefined
+            }
+          >
+            Pendientes de llegar
+          </TituloSeccion>
           {/* el cuerpo de la lista: en celular, con un envío armado, se pliega por altura (grid 0fr → 1fr) */}
           <div className={`grid transition-[grid-template-rows] duration-[360ms] ease-cayla lg:grid-rows-[1fr] ${hayEnvio && listaPlegada ? "grid-rows-[0fr]" : "grid-rows-[1fr]"}`} inert={hayEnvio && listaPlegada}>
           <div className="min-h-0 overflow-hidden">
@@ -1014,7 +1026,7 @@ export function RecepcionEnvio({
               </span>
             ) : (
               nAtrasadas > 0 && (
-                <button type="button" onClick={marcarAtrasadas} className="label-cayla whitespace-nowrap text-[10px] text-rojo hover:underline">
+                <button type="button" onClick={marcarAtrasadas} className="btn-cayla btn-sutil btn-chico whitespace-nowrap">
                   Marcar las {nAtrasadas} atrasadas
                 </button>
               )
@@ -1039,7 +1051,7 @@ export function RecepcionEnvio({
               >
                 {recienMarcada?.id === c.id && <span key={recienMarcada.n} aria-hidden className="anim-destello-fila pointer-events-none absolute inset-0" />}
                 <span aria-hidden className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[5px] border-[1.5px] ${marcada ? "border-tinta bg-tinta text-crema" : "border-tinta/45 bg-papel"}`}>
-                  {marcada && <Check className="check-trazo h-3 w-3" strokeWidth={3} style={{ "--d": "0ms" } as CSSProperties} />}
+                  {marcada && <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="check-trazo h-3 w-3" strokeWidth={3} style={{ "--d": "0ms" } as CSSProperties} />}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14.5px] font-semibold text-tinta">
@@ -1051,9 +1063,7 @@ export function RecepcionEnvio({
                   <span className="block text-xs text-tinta/65">
                     {textoEsperada(c, ahora)} · {c.recibidoCantidad} de {c.facturadoCantidad} u.{c.facturadoTotal != null && c.facturadoTotal > c.facturadoCantidad ? " · tu parte" : ""}
                   </span>
-                  <span aria-hidden className="mt-1.5 block h-[3px] overflow-hidden rounded-full bg-sand">
-                    <span className="anim-crece-x block h-full rounded-full bg-tinta/45" style={{ width: `${c.facturadoCantidad ? Math.min(100, (c.recibidoCantidad / c.facturadoCantidad) * 100) : 0}%` }} />
-                  </span>
+                  <BarraAvance pct={c.facturadoCantidad ? (c.recibidoCantidad / c.facturadoCantidad) * 100 : 0} alto="fina" decorativa className="mt-1.5" />
                 </span>
                 <span className="shrink-0 text-right">
                   <Chip tono={llegada.tono}>{llegada.texto}</Chip>
@@ -1081,7 +1091,7 @@ export function RecepcionEnvio({
               <div className="card-cayla flex min-h-[10rem] flex-col items-center justify-center gap-2 p-8 text-center">
                 {/* el camión rueda sobre un camino punteado y da la vuelta en cada extremo: adorno, se detiene con movimiento reducido */}
                 <div aria-hidden className="relative mb-2 h-12 w-full max-w-[22rem] overflow-hidden">
-                  <Truck strokeWidth={1.5} className="recibir-camion absolute bottom-[-4px] left-1/2 -ml-[15px] h-[30px] w-[30px] text-tinta/65" />
+                  <Truck /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ strokeWidth={1.5} className="recibir-camion absolute bottom-[-4px] left-1/2 -ml-[15px] h-[30px] w-[30px] text-tinta/65" />
                   <span className="recibir-camino absolute inset-x-0 bottom-0 block h-[2px]" />
                 </div>
                 <p className="font-display text-xl text-tinta">¿Qué llegó?</p>
@@ -1102,7 +1112,7 @@ export function RecepcionEnvio({
               <section className="card-cayla anim-entra grid overflow-hidden @xl:grid-cols-2 @[44rem]:grid-cols-[1.25fr_1fr_1fr]" style={{ "--i": 0 } as CSSProperties}>
                 <div className="flex items-center gap-4 p-5">
                   <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-sand bg-sand/50 text-tinta/65">
-                    <Truck className="h-[22px] w-[22px]" strokeWidth={1.6} />
+                    <Truck className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
                     <p className="font-display text-[21px] leading-tight text-tinta">{tituloEnvio}</p>
@@ -1140,7 +1150,10 @@ export function RecepcionEnvio({
                   )}
                 </div>
                 <div className="flex items-center gap-4 border-t border-tinta/10 p-5 @xl:col-span-2 @[44rem]:col-span-1 @[44rem]:border-l @[44rem]:border-t-0">
-                  <Anillo pct={pctContado} />
+                  {/* Cuánto llevas contado del envío (el anillo del sistema, ronda 13): en tinta mientras falta, verde al 100 %. */}
+                  <Anillo pct={pctContado} tamano="mediano" etiqueta={`${pctContado} % contado`}>
+                    <span className="font-display text-[19px] font-normal">{pctContado}%</span>
+                  </Anillo>
                   <div>
                     <p className="label-cayla text-[10.5px] text-tinta/55">Estado de recepción</p>
                     <p key={estadoDelEnvio} className="anim-asentar font-display text-2xl leading-tight text-tinta">{estadoDelEnvio}</p>
@@ -1157,15 +1170,9 @@ export function RecepcionEnvio({
                   <p className="label-cayla text-[10.5px] text-tinta/55">Comprobantes de este envío</p>
                   {comprasSinMarcar.length > 0 && (
                     <div ref={menuRef} className="relative">
-                      <button
-                        type="button"
-                        aria-expanded={menuAgregar}
-                        aria-haspopup="menu"
-                        onClick={() => setMenuAgregar((v) => !v)}
-                        className="inline-flex items-center gap-1.5 rounded-[10px] border border-dashed border-tinta/25 px-3 py-1.5 text-[12.5px] text-tinta/65 transition-colors hover:border-rojo hover:text-rojo"
-                      >
+                      <Boton type="button" peso="discreto" aria-expanded={menuAgregar} aria-haspopup="menu" onClick={() => setMenuAgregar((v) => !v)} className="btn-chico">
                         + Agregar comprobante
-                      </button>
+                      </Boton>
                       {menuAgregar && (
                         <div role="menu" className="anim-revelar absolute right-0 top-[calc(100%+6px)] z-10 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-sand bg-papel">
                           {comprasSinMarcar.map((c) => {
@@ -1238,6 +1245,7 @@ export function RecepcionEnvio({
                           valor={escaneo}
                           onCambio={setEscaneo}
                           icono="barras"
+                          {...ariaDelBuscador("recepcion-sugerencias", verSugerencias && sugerencias.length > 0, 0)}
                           onFocus={() => setVerSugerencias(true)}
                           onBlur={() => setVerSugerencias(false)}
                           onKeyDown={(e) => {
@@ -1252,25 +1260,22 @@ export function RecepcionEnvio({
                           etiqueta="Escanear una prenda: suma 1 al comprobante que la trae"
                         />
                         {verSugerencias && sugerencias.length > 0 && (
-                          <div role="listbox" aria-label="Prendas que coinciden" className="anim-revelar absolute inset-x-0 top-[calc(100%+6px)] z-10 overflow-hidden rounded-xl border border-sand bg-papel">
-                            {sugerencias.map((l, i) => (
-                              <button
-                                key={l.varianteId}
-                                type="button"
-                                role="option"
-                                aria-selected={i === 0}
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => escanear(l.sku)}
-                                className={`flex w-full items-center justify-between gap-3 border-t border-tinta/10 px-3 py-2 text-left text-[13px] first:border-t-0 hover:bg-tinta/[0.04] ${i === 0 ? "bg-tinta/[0.03]" : ""}`}
-                              >
-                                <span className="min-w-0 truncate text-tinta">
-                                  {l.referencia} {[l.talla, l.color].filter(Boolean).join(" / ")}
-                                  <small className="text-tinta/55"> · {l.sku}</small>
-                                </span>
-                                <small className="shrink-0 text-tinta/55">{documentoDe(l)}</small>
-                              </button>
-                            ))}
-                          </div>
+                          // La lista de sugerencias del sistema (ADR-0358, ronda 9): la miniatura de la prenda, su código y la factura que
+                          // la trae. El Enter toma la primera (si lo escrito no es un código exacto), así que la activa es siempre la primera.
+                          <ListaSugerencias
+                            id="recepcion-sugerencias"
+                            etiqueta="Prendas que coinciden"
+                            // Más ancha que el escáner (que vive a la derecha), para que se lean el código y la factura enteros.
+                            className="absolute right-0 top-[calc(100%+6px)] z-10 w-[min(30rem,calc(100vw-2rem))]"
+                            sugerencias={sugerencias.map((l) => ({
+                              clave: l.varianteId,
+                              miniatura: <MiniaturaPrenda fotoUrl={l.fotoUrl ?? null} colorHex={l.colorHex ?? null} {...categoriaDe(l)} />,
+                              titulo: l.referencia,
+                              detalle: [l.talla, l.color, l.sku].filter(Boolean).join(" · "),
+                              derecha: documentoDe(l),
+                            }))}
+                            onElegir={(i) => escanear(sugerencias[i].sku)}
+                          />
                         )}
                       </div>
                     </div>
@@ -1284,12 +1289,10 @@ export function RecepcionEnvio({
                       {ultimaLectura.texto}
                     </span>
                     {ultimaLectura.deshacer && (
-                      <button type="button" onClick={deshacerLectura} className="label-cayla text-[10px] text-rojo hover:underline">
-                        Deshacer
-                      </button>
+                      <BotonDeshacer onClick={deshacerLectura} className="text-xs" />
                     )}
                     {ultimaLectura.agregar && (
-                      <button type="button" onClick={agregarYReleer} className="label-cayla text-[10px] text-rojo hover:underline">
+                      <button type="button" onClick={agregarYReleer} className="btn-cayla btn-sutil btn-chico">
                         Agregar {ultimaLectura.agregar.documento} al envío
                       </button>
                     )}
@@ -1303,9 +1306,7 @@ export function RecepcionEnvio({
                       <span className="whitespace-nowrap text-xs text-tinta/65">
                         {totales.lineasContadas} de {totales.lineasTotal} {totales.lineasTotal === 1 ? "línea contada" : "líneas contadas"}
                       </span>
-                      <div className="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-sand" role="progressbar" aria-valuenow={totales.lineasContadas} aria-valuemin={0} aria-valuemax={totales.lineasTotal} aria-label="Líneas contadas">
-                        <div className={`h-full rounded-full transition-[width] ${totales.lineasContadas === totales.lineasTotal ? "bg-verde" : "bg-ambar"}`} style={{ width: `${totales.lineasTotal ? (totales.lineasContadas / totales.lineasTotal) * 100 : 0}%` }} />
-                      </div>
+                      <BarraAvance pct={totales.lineasTotal ? (totales.lineasContadas / totales.lineasTotal) * 100 : 0} etiqueta="Líneas contadas" texto={`${totales.lineasContadas} de ${totales.lineasTotal}`} className="min-w-24 flex-1" />
                       {totales.lineasTotal - totales.lineasContadas > 0 && <span className="text-xs text-tinta/55">{totales.lineasTotal - totales.lineasContadas} sin contar: siguen pendientes</span>}
                     </div>
 
@@ -1330,7 +1331,7 @@ export function RecepcionEnvio({
                         <div key={c.id} className="border-t border-tinta/10 first:border-t-0">
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-sand/30 px-5 py-3">
                             <button type="button" onClick={() => setAbiertos((a) => ({ ...a, [c.id]: !abierto }))} aria-expanded={abierto} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                              <ChevronRight aria-hidden className={`h-[18px] w-[18px] shrink-0 text-tinta/55 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`} />
+                              <ChevronRight aria-hidden className={`h-4 w-4 shrink-0 text-tinta/55 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`} />
                               <Ini nombre={c.proveedorNombre} />
                               <span className="min-w-0">
                                 <span className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-tinta">
@@ -1352,9 +1353,7 @@ export function RecepcionEnvio({
                                     {contadasC} de {propias.length} {propias.length === 1 ? "línea" : "líneas"}
                                   </span>
                                 </span>
-                                <span className="mt-1 block h-1 overflow-hidden rounded-full bg-sand">
-                                  <span className={`block h-full rounded-full ${unidadesC >= pendienteTotal ? "bg-verde" : "bg-ambar"}`} style={{ width: `${pendienteTotal ? Math.min(100, (unidadesC / pendienteTotal) * 100) : 0}%` }} />
-                                </span>
+                                <BarraAvance pct={pendienteTotal ? (unidadesC / pendienteTotal) * 100 : 0} alto="fina" decorativa className="mt-1" />
                               </span>
                               {abierto ? (
                                 <>
@@ -1381,18 +1380,13 @@ export function RecepcionEnvio({
                           <div className={`grid transition-[grid-template-rows] duration-[360ms] ease-cayla ${abierto ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} inert={!abierto}>
                             <div className="min-h-0 overflow-hidden">
                             <div className="divide-y divide-tinta/10">
-                              {esLider && cortasC.length >= 2 && (
+                              {cortasC.length >= 2 && (
                                 <div className="px-5 py-2.5">
                                   <DecidirTodas cuantas={cortasC.length} onDecidir={(d) => decidirTodas(c.id, d)} />
                                 </div>
                               )}
                               {ordenadas.map((l) => renderLinea(l))}
                               {ordenadas.length === 0 && <p className="px-5 py-4 text-sm text-tinta/65">Este comprobante ya no tiene nada pendiente.</p>}
-                              {!esLider && cortasC.length > 0 && (
-                                <p className="bg-ambar/[0.05] px-5 py-2.5 text-xs text-ambar-profundo">
-                                  Lo que faltó queda pendiente en el comprobante. Un líder decide después si se espera o se cierra.
-                                </p>
-                              )}
                             </div>
                             </div>
                           </div>
@@ -1400,7 +1394,7 @@ export function RecepcionEnvio({
                       );
                     })}
 
-                    {/* al final, lo que el proveedor va a quedar debiendo — un aviso, no un formulario (solo líder) */}
+                    {/* al final, lo que el proveedor va a quedar debiendo — un aviso, no un formulario (quien tiene Notas de crédito) */}
                     {reclamos.length > 0 && (
                       <div className="space-y-2.5 p-5">
                         {reclamos.map((r) => (
@@ -1469,7 +1463,7 @@ export function RecepcionEnvio({
                               value={ex.cantidad}
                               onChange={(e) => actualizarExtra(i, { cantidad: Math.max(1, Number(e.target.value) || 1) })}
                               onFocus={(e) => e.target.select()}
-                              className="w-16 shrink-0 border-b border-tinta/20 bg-transparent px-1 py-2 text-center text-sm tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo"
+                              className="caja-campo-input w-16 shrink-0 text-center tabular-nums"
                             />
                             <div className="w-48 shrink-0">
                               <Desplegable
@@ -1480,15 +1474,16 @@ export function RecepcionEnvio({
                                 marcador="Proveedor…"
                               />
                             </div>
-                            <label className="flex shrink-0 cursor-pointer items-center gap-2 pb-2 text-sm text-tinta/75">
-                              <input type="checkbox" checked={ex.esRegalo} onChange={(e) => actualizarExtra(i, { esRegalo: e.target.checked, costoUnitario: e.target.checked ? "" : ex.costoUnitario })} className="peer sr-only" />
-                              <span aria-hidden className="relative h-[18px] w-8 rounded-full bg-tinta/25 transition-colors duration-200 after:absolute after:left-0.5 after:top-0.5 after:h-3.5 after:w-3.5 after:rounded-full after:bg-papel after:transition-transform after:duration-[260ms] after:ease-cayla peer-checked:bg-tinta peer-checked:after:translate-x-3.5 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-rojo" />
-                              Es un regalo
-                            </label>
+                            {/* El interruptor del sistema (ADR-0358, ronda 6): se prende en tinta y la perilla se estira al presionar. */}
+                            <div className="shrink-0 pb-2">
+                              <Interruptor
+                                activo={ex.esRegalo}
+                                onActivo={(v) => actualizarExtra(i, { esRegalo: v, costoUnitario: v ? "" : ex.costoUnitario })}
+                                etiqueta="Es un regalo"
+                              />
+                            </div>
                             <input
-                              type="number"
-                              min={0}
-                              step="0.10"
+                              {...atributosMontoTexto(ex.esRegalo ? "" : ex.costoUnitario)}
                               placeholder={ex.esRegalo ? "Sin costo" : "Costo (opc.)"}
                               aria-label="Costo unitario"
                               data-campo={`envio-extra-costo-${i}`}
@@ -1496,9 +1491,10 @@ export function RecepcionEnvio({
                               value={ex.esRegalo ? "" : ex.costoUnitario}
                               onChange={(e) => {
                                 const v = e.target.value;
-                                actualizarExtra(i, { costoUnitario: v === "" ? "" : String(Math.max(0, Number(v) || 0)) });
+                                // Se guarda como se escribe (coma incluida) y se lee al enviar; un negativo queda en 0 (ADR-0419).
+                                actualizarExtra(i, { costoUnitario: v.trim() === "" ? "" : v.trim().startsWith("-") ? "0" : v });
                               }}
-                              className="w-24 shrink-0 border-b border-tinta/20 bg-transparent px-1 py-2 text-right text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo disabled:opacity-40"
+                              className={`caja-campo-input w-24 shrink-0 text-right tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                             />
                             <button type="button" onClick={() => quitarExtra(i)} className="label-cayla shrink-0 pb-2 text-[10px] text-tinta/55 hover:text-rojo">
                               Quitar
@@ -1507,9 +1503,9 @@ export function RecepcionEnvio({
                           </div>
                         );
                       })}
-                      <button type="button" onClick={agregarExtra} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+                      <Boton type="button" peso="discreto" onClick={agregarExtra} className="btn-chico self-start">
                         + Agregar prenda fuera de comprobante
-                      </button>
+                      </Boton>
                     </div>
 
                     {/* ADR-0299: lo que manda otra sede de CAYLA no se recibe en este envío. Se cuenta y se confirma en Traslados
@@ -1519,7 +1515,7 @@ export function RecepcionEnvio({
                       <p className="text-xs text-tinta/65">
                         Eso no se recibe en este envío: se cuenta y se confirma en{" "}
                         {veTraslados ? (
-                          <Link href="/inventario/traslados" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                          <Link href="/inventario/traslados" className="btn-enlace">
                             Traslados
                           </Link>
                         ) : (
@@ -1533,8 +1529,8 @@ export function RecepcionEnvio({
 
                 {/* ---------------- notas del envío ---------------- */}
                 {pestana === "notas" && (
-                  <div className="anim-asentar space-y-2 p-5">
-                    <label htmlFor="recibir-nota" className="label-cayla text-[11px] text-tinta/65">
+                  <div className="campo anim-asentar space-y-2 p-5">
+                    <label htmlFor="recibir-nota" className="campo-etiqueta">
                       Nota del envío (opcional)
                     </label>
                     <textarea
@@ -1543,7 +1539,7 @@ export function RecepcionEnvio({
                       onChange={(e) => setNota(e.target.value)}
                       rows={3}
                       placeholder="Llegó una caja abierta, el transportista dejó dos bultos menos…"
-                      className="w-full rounded-lg border border-tinta/15 bg-transparent px-3 py-2 text-sm text-tinta outline-none transition-colors placeholder:text-tinta/45 focus:border-rojo"
+                      className="caja-campo-input"
                     />
                     {/* frases de todos los días: un toque las agrega a la nota (se puede editar después) */}
                     <div className="flex flex-wrap gap-1.5">
@@ -1594,7 +1590,7 @@ export function RecepcionEnvio({
                   <span key="dec" className="anim-revelar flex flex-wrap items-center gap-x-2 text-xs text-ambar-profundo">
                     <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
                     {porDecidir.length === 1 ? "1 fila llegó con faltante y falta decidir qué pasó" : `${porDecidir.length} filas llegaron con faltante y falta decidir qué pasó`}.
-                    <button type="button" onClick={esperarTodas} className="label-cayla text-[10px] text-rojo hover:underline">
+                    <button type="button" onClick={esperarTodas} className="btn-cayla btn-sutil btn-chico">
                       Los espero todas
                     </button>
                   </span>
@@ -1607,7 +1603,7 @@ export function RecepcionEnvio({
                   <span key="ext" className="anim-revelar flex flex-wrap items-center gap-x-2 text-xs text-ambar-profundo">
                     <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
                     Elige de qué proveedor viene cada prenda fuera de comprobante.
-                    <button type="button" onClick={() => setPestana("fuera")} className="label-cayla text-[10px] text-rojo hover:underline">
+                    <button type="button" onClick={() => setPestana("fuera")} className="btn-cayla btn-enlace text-xs">
                       Revisar
                     </button>
                   </span>
@@ -1657,16 +1653,14 @@ export function RecepcionEnvio({
         <ResumenPrevioEnvio
           filas={resumenPorComprobante(bloques, reparto).map((f) => ({
             ...f,
-            decisiones: esLider
-              ? [...new Set(f.lineasCortas.map((id) => (decisiones[id] ? etiquetaDecision(decisiones[id]!).replace("Lo espero: sigue pendiente", "los espero").replace("Se cierra: ", "se cierra: ") : "sin decidir")))]
-              : ["sigue pendiente"],
+            decisiones: [...new Set(f.lineasCortas.map((id) => (decisiones[id] ? etiquetaDecision(decisiones[id]!).replace("Lo espero: sigue pendiente", "los espero").replace("Se cierra: ", "se cierra: ") : "sin decidir")))],
           }))}
           fuera={totales.fueraDeComprobante}
           fueraDetalle={extras
             .filter(extraCompleto)
             .map((e) => `${variantePorId.get(e.varianteId)?.referencia ?? "Prenda"} ×${e.cantidad}${e.esRegalo ? " (regalo)" : ""}`)
             .join(" · ")}
-          cierresMonto={esLider && cierres.length > 0 ? faltantes.filter((f) => cierres.some((c) => c.lineaId === f.lineaId)).reduce((a, f) => a + f.faltan * f.costoUnitario, 0) : null}
+          cierresMonto={verMontos && cierres.length > 0 ? faltantes.filter((f) => cierres.some((c) => c.lineaId === f.lineaId)).reduce((a, f) => a + f.faltan * f.costoUnitario, 0) : null}
           ubicacionNombre={ubicacionNombre}
           numeroGuia={numeroGuia}
           unidades={unidadesRecibiendo}
@@ -1720,19 +1714,12 @@ export function RecepcionEnvio({
   );
 }
 
-// La prenda: su foto si la hay; si no, su color real (`retail.colores.hex`) con la prenda genérica, para distinguir una blusa negra de una beige sin leer. Sin hex, arena.
-function Miniatura({ hex, fotoUrl = null }: { hex: string | null; fotoUrl?: string | null }) {
-  // Con foto, la foto (quien cuenta compara la prenda con lo que tiene en la mano); sin ella, el color real con la prenda genérica.
-  if (fotoUrl) return <Image src={fotoUrl} alt="" width={40} height={40} unoptimized className="h-10 w-10 shrink-0 rounded-[10px] border border-tinta/10 object-cover transition-transform duration-[260ms] ease-cayla group-hover:scale-105" />;
-  const n = hex && /^#[0-9a-f]{6}$/i.test(hex) ? parseInt(hex.slice(1), 16) : null;
-  const claro = n === null ? true : (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255 > 0.55;
+// La prenda: su foto o, sin foto, el ícono de su categoría sobre su color real (`MiniaturaPrenda`, ADR-0333; antes, una camisa genérica):
+// distingue una blusa negra de una beige sin leer. Crece un poco al pasar el mouse por la fila, como antes.
+function Miniatura({ variante }: { variante: Variante | undefined }) {
   return (
-    <span
-      aria-hidden
-      className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border border-tinta/10 bg-sand transition-transform duration-[260ms] ease-cayla group-hover:scale-105"
-      style={n === null ? undefined : { background: hex! }}
-    >
-      <Shirt className={`h-5 w-5 ${claro ? "text-tinta/40" : "text-crema/75"}`} />
+    <span className="shrink-0 transition-transform duration-[260ms] ease-cayla group-hover:scale-105">
+      <MiniaturaPrenda fotoUrl={variante?.fotoUrl ?? null} colorHex={variante?.colorHex ?? null} tamano="md" {...categoriaDe(variante)} />
     </span>
   );
 }
@@ -1748,32 +1735,15 @@ function Ini({ nombre, chico = false, apilada = false }: { nombre: string; chico
   );
 }
 
-// Cuánto llevas contado del envío, de un vistazo. Ámbar mientras falta, verde al 100 %.
-function Anillo({ pct }: { pct: number }) {
-  const r = 28;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg width="70" height="70" viewBox="0 0 70 70" className="shrink-0" role="img" aria-label={`${pct} % contado`}>
-      <circle cx="35" cy="35" r={r} fill="none" strokeWidth="6" className="stroke-sand" />
-      <circle cx="35" cy="35" r={r} fill="none" strokeWidth="6" strokeLinecap="round" className={`transition-[stroke-dashoffset,stroke] duration-[900ms] ease-cayla ${pct >= 100 ? "stroke-verde" : "stroke-ambar"}`} strokeDasharray={c} strokeDashoffset={c * (1 - Math.min(1, pct / 100))} transform="rotate(-90 35 35)" />
-      <text x="35" y="41" textAnchor="middle" className="fill-tinta font-display" fontSize="19">
-        {pct}%
-      </text>
-    </svg>
-  );
-}
-
-// El estado de la fila y, si llegó corta y ya se decidió qué pasó, esa decisión a la vista. Quien no es líder
-// no decide: la fila solo dice «Sigue pendiente».
-function EstadoDeLinea({ estado, faltan, decision, onEditar, esLider }: { estado: EstadoLinea; faltan: number; decision?: Decision; onEditar: () => void; esLider: boolean }) {
+// El estado de la fila y, si llegó corta y ya se decidió qué pasó, esa decisión a la vista.
+function EstadoDeLinea({ estado, faltan, decision, onEditar }: { estado: EstadoLinea; faltan: number; decision?: Decision; onEditar: () => void }) {
   return (
     <span className="anim-asentar flex flex-col items-start gap-1">
       <Chip tono={CHIP_ESTADO[estado]}>
-        {estado === "completa" && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" strokeWidth={2.4} style={{ "--d": "0ms" } as CSSProperties} />}
+        {estado === "completa" && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" style={{ "--d": "0ms" } as CSSProperties} />}
         {ETIQUETA_ESTADO[estado](faltan)}
       </Chip>
       {decision && <ResumenDecision decision={decision} onEditar={onEditar} />}
-      {!esLider && estado === "faltan" && <span className="text-[11px] leading-tight text-tinta/65">Sigue pendiente</span>}
     </span>
   );
 }
@@ -1812,7 +1782,7 @@ function CurvaVariantes({
   const celda = (v: Variante, etiqueta: string, ancho = "w-14 sm:w-16") => {
     const n = valores[v.varianteId];
     return (
-      <input
+      <input /* unificar-fijo: la celda de una matriz de tallas y colores, no un campo de formulario */
         type="number"
         min={0}
         inputMode="numeric"

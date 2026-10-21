@@ -11,6 +11,7 @@ import { AccionesEnCurso } from "@/components/conteo/AccionesEnCurso";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
 import { ClipboardList } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // El INICIO de Conteo (Inventario ▸ Conteo, rediseño 2026-09-29). Responde una sola pregunta: «¿qué hago ahora?».
 //   · Hay un conteo abierto en esta sede → la tarjeta «Conteo N en curso» (cuántas variantes lleva, seguir o cancelar).
@@ -81,11 +82,9 @@ export function ConteoVista({
       {/* `#contar`: `/inventario/conteo#contar` sigue llegando aquí (enlaces de Movimientos, Existencias y el menú). */}
       <div id="contar" className="scroll-mt-24">
         {abierto ? (
-          <section className="card-cayla space-y-4 p-5 sm:p-6" aria-labelledby="conteo-en-curso">
+          <section data-guia="conteo.en-curso" className="card-cayla space-y-4 p-5 sm:p-6" aria-labelledby="conteo-en-curso">
             <div className="space-y-1">
-              <h2 id="conteo-en-curso" className="font-display text-xl text-tinta">
-                Conteo {abierto.numero} en curso
-              </h2>
+              <TituloSeccion id="conteo-en-curso">Conteo {abierto.numero} en curso</TituloSeccion>
               <p className="text-sm text-taupe">
                 {textoLugar(abierto)} · {textoAlcance(abierto)}
               </p>
@@ -112,13 +111,11 @@ export function ConteoVista({
 
       {/* Sin `overflow-hidden` en la tarjeta: el calendario del filtro se abre hacia abajo y una tarjeta que recorta lo cortaría. La
           lista lleva su propio recorte para sus esquinas. */}
-      <section className="card-cayla @container" aria-labelledby="conteos-recientes">
+      <section data-guia="conteo.recientes" className="card-cayla @container" aria-labelledby="conteos-recientes">
         {/* Título y filtro en UNA fila (se acomodan en dos cuando no caben). El total de conteos ya no va arriba a la derecha: cada
             día dice cuántos trae y el pie dice qué se está viendo; aquí queda solo para el lector de pantalla, que oye el cambio. */}
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 pb-4 pt-4 @[36rem]:px-5">
-          <h2 id="conteos-recientes" className="font-display text-lg text-tinta">
-            Conteos recientes
-          </h2>
+          <TituloSeccion id="conteos-recientes">Conteos recientes</TituloSeccion>
           {recientes.mostrados.length > 0 && (
             <p className="sr-only" aria-live="polite">
               {textoTotalRecientes(recientes)}
@@ -154,7 +151,7 @@ export function ConteoVista({
                     Ir a ese día
                   </Link>
                 )}
-                <Link href={hrefRecientes(null, variantes)} scroll={false} className="btn-cayla btn-primario">
+                <Link href={hrefRecientes(null, variantes)} scroll={false} className="btn-cayla btn-primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                   Ver todos
                 </Link>
               </div>
@@ -167,11 +164,11 @@ export function ConteoVista({
         </div>
       </section>
 
-      <p className="nota-cayla">
+      <p data-guia="conteo.nota" className="nota-cayla">
         <b>Cómo se cuenta:</b> se escanea o se escribe lo que encuentras en la tienda y se compara con lo que CAYLA esperaba. Cada diferencia se confirma antes de cerrar y
         cada ajuste queda como movimiento.{" "}
-        <Link href="/inventario/movimientos?proc=conteo" className="text-tinta underline underline-offset-2 hover:text-taupe">
-          Ver ajustes por conteo →
+        <Link href="/inventario/movimientos?proc=conteo" className="btn-cayla btn-enlace">
+          Ver ajustes por conteo
         </Link>
       </p>
     </div>

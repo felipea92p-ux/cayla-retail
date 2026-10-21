@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { Globito } from "@/components/ui/Globito";
 import Link from "next/link";
 import { ArrowUpDown, Bookmark, FileText, History, LayoutGrid, Undo2, Wallet, type LucideIcon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -30,15 +31,15 @@ export function MasDeLaTienda({ accesos, arriba, pie }: { accesos: readonly Acce
 
   return (
     <>
-      <button type="button" onClick={() => setAbierto(true)} className={BOTON} aria-haspopup="dialog">
+      <button type="button" data-guia="vender.mas" onClick={() => setAbierto(true)} className={BOTON} aria-haspopup="dialog">
         <LayoutGrid className="h-4 w-4" aria-hidden />
         Más
       </button>
 
       {abierto && (
-        <Modal titulo="Más de la tienda" subtitulo="Lo que trabaja de la mano con la venta." variante="hoja" ancho="max-w-md" onClose={() => setAbierto(false)}>
+        <Modal conCerrar titulo="Más de la tienda" subtitulo="Lo que trabaja de la mano con la venta." variante="hoja" onClose={() => setAbierto(false)}>
           {(cerrar) => (
-            <div>
+            <div data-guia="vender.mas-panel">
               {arriba}
               {enMas.length > 0 && (
                 <div className="mt-4 grid grid-cols-3 gap-2">
@@ -78,18 +79,19 @@ export function BotonApartados({ prendas, onApartar, deshabilitado }: { prendas:
       <button
         type="button"
         onClick={onApartar}
+        data-guia="vender.apartados"
         disabled={deshabilitado}
         title={`Lleva ${prendas === 1 ? "la prenda" : `las ${prendas} prendas`} del ticket a Apartados`}
         className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-tinta px-3 text-[12.5px] text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px disabled:opacity-50"
       >
         <Bookmark className="h-4 w-4" aria-hidden />
         Apartar
-        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-crema px-1 text-[10.5px] font-semibold text-tinta tabular-nums">{prendas}</span>
+        <Globito n={prendas} sobreOscuro />
       </button>
     );
   }
   return (
-    <Link href="/vender/apartados" className={BOTON}>
+    <Link href="/vender/apartados" data-guia="vender.apartados" className={BOTON}>
       <Bookmark className="h-4 w-4" aria-hidden />
       Apartados
     </Link>

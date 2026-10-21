@@ -29,8 +29,11 @@ import { ayudaDeCosto, costoConocido, progresoDeCompra, requisitosDeCompra } fro
 import { AyudaCostoLinea, BarraProgreso, BotonRegistrar, CifraCompra, ListaPendientes, NumeroTramo, TextoQueSeAsienta, type EstadoRegistro } from "@/components/CompraFormProgreso";
 import { detalleProveedorCombo, type DatosPagoProveedor } from "@/lib/proveedores-reglas";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
-import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A_FAVOR, soles, totalesCompra } from "@/lib/compras-reglas";
+import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A_FAVOR, problemaDeFechasEIgv, seEnviaLinea, soles, totalesDeLasLineasQueSeEnvian } from "@/lib/compras-reglas";
 import { destinosParaRpc, repartirEnPartesIguales, repartoSoloDe, tiendaGestora, unidadesPorTienda, type RepartoLinea } from "@/lib/reparto-reglas";
+import { Casilla } from "@/components/ui/Casilla";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // Registrar una factura de proveedor (ADR-0035). Dos reglas de Felipe que
 // esta pantalla refleja pero NO decide — las decide la RPC `registrar_compra`:
@@ -75,7 +78,12 @@ let secuenciaLineas = 0;
 // Todo lo numérico con ancho fijo: cada línea es su propia grilla, y una
 // columna `auto` o `fr` en una cifra hacía que "S/ 300,000.00" ensanchara
 // SU fila y no las demás — se descuadraban entre sí y con el encabezado.
-const PLANTILLA_LINEAS = "sm:grid-cols-[1.4fr_1.2fr_5.5rem_7rem_8rem_3.5rem]";
+// `minmax(0, …)` en las dos columnas que crecen: sin él, el texto más largo de «Talla y color» («Sin desglose (se reparte al recibir)»)
+// fijaba el ancho mínimo de su columna y, como la caja de «Producto» sí se deja encoger (ronda 6), Producto quedaba en 78 px sin lugar
+// para escribir (encontrado por el censo de después, 2026-10-13). Así reparten el espacio en su proporción y todas las filas calzan.
+// Las columnas fijas, a la medida de su título más largo («CANTIDAD», «PRECIO C/IGV», «IMPORTE C/IGV», la ×): a 1440 px se llevaban
+// 384 de los 703 px de la tarjeta y la caja de Producto quedaba en 83 px, con su ejemplo cortado (2026-10-14).
+const PLANTILLA_LINEAS = "sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_5rem_6.5rem_6.5rem_2.5rem]";
 // Los <input type=number> sin las flechitas del navegador: ocupan espacio,
 // cambian de tamaño según el valor y no aportan nada al tipear una cantidad.
 const NUMERO = "w-full min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
@@ -107,7 +115,6 @@ const sinMovimiento = () => typeof window !== "undefined" && window.matchMedia?.
 export function CompraFormV2({
   proveedores,
   ubicaciones,
-  misTiendas,
   ubicacionInicialId,
   variantes,
   proveedorInicialId = null,
@@ -116,12 +123,10 @@ export function CompraFormV2({
   repartoDisponible = true,
 }: {
   proveedores: Proveedor[];
+  /** Todas las tiendas activas: la gestora se elige entre ellas, sea líder o no (ADR-0387, Felipe 2026-10-12; antes ADR-0184
+   *  F5 limitaba a quien no es líder a sus tiendas). */
   ubicaciones: Ubicacion[];
-  /** ADR-0184 (F5): solo para un comprador de tienda — las tiendas donde puede ser gestora (`fn_compras_ubicaciones()`),
-   *  un subconjunto de `ubicaciones`. `undefined` = sin restricción (líder, como siempre): elige cualquiera de
-   *  `ubicaciones` y la gestora sale de `tiendasReparto[0]`. Con esto, la gestora sale de LA tienda del comprador que
-   *  siga en el reparto (nunca de la posición 0, que sigue el orden de `ubicaciones` y podría no ser la suya). */
-  misTiendas?: Ubicacion[];
+  /** Con qué tienda arranca «Mercadería destinada a»: la sede de la persona. */
   ubicacionInicialId: string;
   variantes: Variante[];
   /** `?prov=<uuid>`: llega desde «+ Comprobante» de la lista o la ficha de un proveedor. */
@@ -249,20 +254,17 @@ export function CompraFormV2({
   // Solo hay algo que descontar en una factura con IGV; en boleta y nota de
   // venta el precio del papel ya es el costo y el selector no aparece.
   const conIgv = igvEfectivo > 0 && precioIncluyeIgv;
-  const baseDeLinea = (l: Linea) => costoBase(Number(l.costoUnitario), igvEfectivo, conIgv);
+  const baseDeLinea = (l: Linea) => costoBase(numeroDeMonto(l.costoUnitario), igvEfectivo, conIgv);
   // Las líneas que de verdad se mandan (la base numera las suyas, `linea`, desde 1, sobre esta misma lista).
-  const lineasQueSeEnvian = lineas.filter((l) => l.productoId && l.cantidad > 0);
+  const lineasQueSeEnvian = lineas.filter(seEnviaLinea);
   const huellaDeLineas = JSON.stringify(lineasQueSeEnvian.map((l) => [l.productoId, l.varianteId, l.cantidad, baseDeLinea(l)]));
   const costosAtipicos = atipicos && atipicos.huella === huellaDeLineas ? atipicos.costos : null;
   // Lo que se muestra en cada línea: con IGV incluido, lo que dice el papel
   // (cantidad × precio tipeado); sin IGV, la base. El resumen sale de la
-  // misma regla que aplica la RPC (`totalesCompra`), así nunca difieren.
-  const importeDeLinea = (l: Linea) => (conIgv ? Math.round(l.cantidad * (Number(l.costoUnitario) || 0) * 100) / 100 : l.cantidad * baseDeLinea(l));
-  const { subtotal, igv, total } = totalesCompra(
-    lineas.map((l) => ({ cantidad: l.cantidad, costoTipeado: Number(l.costoUnitario) })),
-    igvEfectivo,
-    conIgv,
-  );
+  // misma regla que aplica la RPC (`totalesCompra`), así nunca difieren. Suma EXACTAMENTE las líneas que se envían: una fila a medio
+  // llenar (sin prenda o sin cantidad) no se manda a `registrar_compra`, y sumarla mostraba un total mayor al que se registraba.
+  const importeDeLinea = (l: Linea) => (conIgv ? Math.round(l.cantidad * (numeroDeMonto(l.costoUnitario) || 0) * 100) / 100 : l.cantidad * baseDeLinea(l));
+  const { subtotal, igv, total } = totalesDeLasLineasQueSeEnvian(lineas, igvEfectivo, conIgv);
   const hayPago = condicion === "contado" || pagarAhora;
   const sumaPagos = sumaLineasPago(pagos);
   // Qué falta para poder registrar: UNA sola función pura (lib/compra-form-progreso.ts) alimenta la lista junto al
@@ -283,11 +285,12 @@ export function CompraFormV2({
   });
   const progreso = progresoDeCompra(requisitos);
   // Para el resumen «Dónde cae»: cuántas unidades le tocan a cada tienda (solo cuando se reparte).
-  const unidadesTienda = unidadesPorTienda(lineas.filter((l) => l.productoId && l.cantidad > 0));
+  const unidadesTienda = unidadesPorTienda(lineasQueSeEnvian);
   const porTienda = ubicaciones.filter((u) => (unidadesTienda[u.id] ?? 0) > 0).map((u) => ({ id: u.id, nombre: u.nombre, unidades: unidadesTienda[u.id] }));
   // La tienda gestora que se manda a la RPC (ADR-0184, F3: `p_ubicacion_destino_id` es la gestora desde esta ADR;
-  // `tiendaGestora`, con sus pruebas, en `lib/reparto-reglas.ts`).
-  const gestora = tiendaGestora(repartir, tiendasReparto, ubicacionId, misTiendas?.map((u) => u.id));
+  // `tiendaGestora`, con sus pruebas, en `lib/reparto-reglas.ts`). Sin restricción para nadie (ADR-0387): la elegida o,
+  // repartiendo, la primera tienda del reparto.
+  const gestora = tiendaGestora(repartir, tiendasReparto, ubicacionId);
   // ADR-0195 F3b: «Sale de» en cada medio del pago al contado; la propuesta sale de la tienda gestora.
   const cuentas = useCuentasParaElegir("pago", gestora || null);
   const documentoNormalizado = `${serie.trim().toUpperCase()}-${numero.trim()}`;
@@ -388,12 +391,15 @@ export function CompraFormV2({
   /** `confirmadas`: las líneas (posición desde 1, las de la base) que quien registra confirmó; `null` en el primer intento. */
   async function registrar(confirmadas: number[] | null) {
     if (loading || registrada) return;
-    const validas = lineas.filter((l) => l.productoId && l.cantidad > 0);
+    const validas = lineas.filter(seEnviaLinea);
     // Las mismas reglas que la lista de pendientes (`requisitosDeCompra`): el primer requisito sin cumplir avisa arriba
     // a la derecha Y deja el cursor en el campo. Con el botón deshabilitado hasta cumplirlos, esto es la red de
     // seguridad (Enter, un envío forzado): la base vuelve a exigir todo en `registrar_compra`.
     const pendiente = requisitos.find((r) => !r.ok);
     if (pendiente) return void (pendiente.error && avisar.error(pendiente.error.mensaje, { enfocar: pendiente.error.enfocar }));
+    // ADR-0421: el IGV, la emisión y el vencimiento, como los exige la base (dicho antes de mandar).
+    const fechasOIgv = problemaDeFechasEIgv({ fechaEmision, fechaVencimiento: condicion === "credito" ? fechaVencimiento : null, igvPorcentaje: igvEfectivo, hoy: hoyISO() });
+    if (fechasOIgv) return void avisar.error(fechasOIgv);
     const pagosRpc = hayPago ? lineasPagoParaRpc(pagos, cuentas.cuentas) : null;
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
@@ -413,7 +419,7 @@ export function CompraFormV2({
       p_numero: numero.trim(),
       p_condicion: condicion,
       // Repartido: cada línea trae sus `destinos`, y este parámetro pasa a ser la tienda GESTORA (ADR-0184, F3) —
-      // ya no es solo un valor por defecto. Ver `gestora` arriba: para un comprador nunca es una posición ciega.
+      // ya no es solo un valor por defecto. Ver `gestora` arriba: cualquier tienda activa del reparto (ADR-0387).
       p_ubicacion_destino_id: gestora,
       p_items: validas.map((l, n) => ({
         producto_id: l.productoId,
@@ -512,7 +518,7 @@ export function CompraFormV2({
     >
       <div className="anim-entra col-span-full flex flex-wrap items-end justify-between gap-x-6 gap-y-4" style={{ "--i": 0 } as CSSProperties}>
         {cabecera && <div className="min-w-0 max-w-3xl flex-1">{cabecera}</div>}
-        <div className="w-full sm:ml-auto sm:w-56">
+        <div className="w-full sm:ml-auto sm:w-56" data-guia="nueva.progreso">
           <BarraProgreso listos={progreso.listos} total={progreso.total} />
         </div>
       </div>
@@ -520,7 +526,7 @@ export function CompraFormV2({
           la columna de la derecha y se queda fijo al hacer scroll. */}
       <div className="min-w-0 space-y-6">
         {/* ---------- cabecera ---------- */}
-        <section className="anim-entra card-cayla space-y-4 p-5" style={{ "--i": 2 } as CSSProperties}>
+        <section className="anim-entra card-cayla space-y-4 p-5" style={{ "--i": 2 } as CSSProperties} data-guia="nueva.documento">
           <p className={`${campoEtiqueta} flex items-center gap-2`}>
             <NumeroTramo n={1} listo={progreso.tramos.documento} />
             Documento
@@ -531,7 +537,7 @@ export function CompraFormV2({
               pie={
                 <>
                   ¿No está en la lista?{" "}
-                  <Link href="/compras/proveedores" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                  <Link href="/compras/proveedores" className="btn-enlace">
                     Regístralo en Proveedores
                   </Link>
                   .
@@ -575,7 +581,7 @@ export function CompraFormV2({
                 opciones={TIPOS.map((t) => ({ clave: t.valor, etiqueta: t.texto }))}
               />
             </div>
-            <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-3 sm:col-span-2 sm:grid-cols-[5rem_minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-3 sm:col-span-2 sm:grid-cols-[5rem_minmax(0,1fr)_minmax(0,1fr)]" data-guia="nueva.serie">
               <CampoTexto
                 etiqueta="Serie"
                 id="compra-serie"
@@ -606,7 +612,7 @@ export function CompraFormV2({
                 <CampoFecha etiqueta="Fecha de emisión" valor={fechaEmision} onValor={setFechaEmision} required />
               </div>
             </div>
-            <div className="grid gap-4 sm:col-span-2 sm:grid-cols-3">
+            <div className="grid gap-4 sm:col-span-2 sm:grid-cols-3" data-guia="nueva.condicion">
               <div>
                 <p className={campoEtiqueta}>Condición de pago</p>
                 <SegmentoDeslizante
@@ -621,8 +627,8 @@ export function CompraFormV2({
                     if (cond === "contado" && pagos.length === 1) setPagos([{ ...pagos[0], monto: total > 0 ? total.toFixed(2) : "" }]);
                   }}
                   opciones={[
-                    { clave: "contado", etiqueta: "Contado" },
-                    { clave: "credito", etiqueta: "Crédito" },
+                    { clave: "contado", etiqueta: "Contado", guia: "nueva.contado" },
+                    { clave: "credito", etiqueta: "Crédito", guia: "nueva.credito" },
                   ]}
                 />
                 <p className="mt-1.5 text-xs leading-snug text-tinta/55">{condicion === "contado" ? "Se registra con su pago por el total." : "Queda en Por pagar hasta saldarse."}</p>
@@ -642,7 +648,7 @@ export function CompraFormV2({
                   ) : (
                     <>
                       Lo cambiaste.{" "}
-                      <button type="button" onClick={() => setVencimientoEditado(null)} className="text-rojo hover:underline">
+                      <button type="button" onClick={() => setVencimientoEditado(null)} className="btn-enlace">
                         Volver al sugerido ({fechaCorta(vencimientoSugerido).slice(0, 5)})
                       </button>
                     </>
@@ -657,7 +663,7 @@ export function CompraFormV2({
                   ) : (
                     <>
                       Lo cambiaste.{" "}
-                      <button type="button" onClick={() => setLlegadaEditada(null)} className="text-rojo hover:underline">
+                      <button type="button" onClick={() => setLlegadaEditada(null)} className="btn-enlace">
                         Volver a la sugerida ({fechaCorta(llegadaSugerida).slice(0, 5)})
                       </button>
                     </>
@@ -667,7 +673,6 @@ export function CompraFormV2({
             </div>
             <DestinoDeLaMercaderia
               ubicaciones={ubicaciones}
-              ubicacionesPropia={misTiendas}
               puedeRepartir={repartoDisponible}
               repartir={repartir}
               onRepartir={alternarRepartir}
@@ -681,7 +686,7 @@ export function CompraFormV2({
               mono
               type="number"
               min={0}
-              max={100}
+              max={18}
               step="1"
               value={discriminaIgv(tipo) ? igvPorcentaje : "0"}
               onChange={(e) => setIgvPorcentaje(e.target.value)}
@@ -693,7 +698,7 @@ export function CompraFormV2({
         </section>
 
         {/* ---------- líneas ---------- */}
-        <section className="anim-entra card-cayla space-y-3 p-5" style={{ "--i": 3 } as CSSProperties}>
+        <section className="anim-entra card-cayla space-y-3 p-5" style={{ "--i": 3 } as CSSProperties} data-guia="nueva.lineas">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pb-1">
             <p className={`${campoEtiqueta} flex items-center gap-2`}>
               <NumeroTramo n={2} listo={progreso.tramos.lineas} />
@@ -711,7 +716,7 @@ export function CompraFormV2({
               <p className="text-xs text-tinta/55">Costo unitario tal como figura en el documento: ya es el costo.</p>
             )}
             {repartir && tiendasReparto.length > 1 && (
-              <button type="button" onClick={partesIgualesEnTodas} className="label-cayla ml-auto text-[10.5px] text-rojo hover:underline">
+              <button type="button" onClick={partesIgualesEnTodas} className="btn-cayla btn-sutil btn-chico ml-auto">
                 Repartir todas en partes iguales
               </button>
             )}
@@ -745,7 +750,7 @@ export function CompraFormV2({
                     valor={l.varianteId}
                     onValor={(id) => elegirVariante(i, id)}
                     opciones={[
-                      { valor: "", texto: "Sin desglose (se reparte al recibir)" },
+                      { valor: "", texto: "Sin desglose (se reparte al recibir)", corto: "Sin desglose" },
                       ...(producto?.variantes.map((v) => ({ valor: v.varianteId, texto: [v.talla, v.color].filter(Boolean).join(" / ") || v.sku || "Sin talla ni color" })) ?? []),
                     ]}
                     etiquetaAccesible="Talla y color"
@@ -758,20 +763,18 @@ export function CompraFormV2({
                     aria-label="Cantidad"
                     value={l.cantidad}
                     onChange={(e) => actualizarLinea(i, { cantidad: Math.min(999999, Math.max(1, Number(e.target.value) || 1)) })}
-                    className={`${NUMERO} border-b border-tinta/25 bg-transparent px-0.5 py-2 text-center text-sm tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo`}
+                    className={`${NUMERO} caja-campo-input text-center tabular-nums`}
                   />
                   <div className="min-w-0">
                     <input
-                      type="number"
-                      min={0}
-                      step="0.01"
+                      {...atributosMontoTexto(l.costoUnitario)}
                       id={`compra-linea-${i}-costo`}
                       placeholder="Costo unit."
                       aria-label="Costo unitario"
                       value={l.costoUnitario}
                       onChange={(e) => actualizarLinea(i, { costoUnitario: e.target.value })}
                       onKeyDown={(e) => enterEnCosto(e, i)}
-                      className={`${NUMERO} border-b border-tinta/25 bg-transparent px-0.5 py-2 text-right text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo`}
+                      className={`${NUMERO} caja-campo-input text-right tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                     />
                     <AyudaCostoLinea ayuda={ayudaDeCosto(conocido, l.costoUnitario)} onUsar={() => conocido !== null && actualizarLinea(i, { costoUnitario: String(conocido) })} />
                   </div>
@@ -802,15 +805,15 @@ export function CompraFormV2({
             );
           })}
           <div className="flex items-baseline justify-between">
-            <button type="button" onClick={agregarLinea} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+            <Boton type="button" peso="discreto" onClick={agregarLinea} className="btn-chico">
               + Agregar línea
-            </button>
+            </Boton>
             <span className="text-xs text-tinta/45">Enter en el costo también agrega una línea.</span>
           </div>
         </section>
 
         {/* ---------- pago ---------- */}
-        <section className="anim-entra card-cayla space-y-4 p-5" style={{ "--i": 4 } as CSSProperties}>
+        <section className="anim-entra card-cayla space-y-4 p-5" style={{ "--i": 4 } as CSSProperties} data-guia="nueva.pago">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className={`${campoEtiqueta} flex items-center gap-2`}>
               <NumeroTramo n={3} listo={progreso.tramos.pago} />
@@ -818,14 +821,13 @@ export function CompraFormV2({
             </p>
             {condicion === "credito" && (
               <label className="flex items-center gap-2 text-sm text-tinta/75">
-                <input
-                  type="checkbox"
-                  checked={pagarAhora}
-                  onChange={(e) => {
-                    setPagarAhora(e.target.checked);
+                <Casilla
+                  marcada={pagarAhora}
+                  onCambio={() => {
+                    setPagarAhora(!pagarAhora);
                     setPagoTocado(true);
                   }}
-                  className="accent-rojo"
+                  etiqueta="Registrar un pago ahora"
                 />
                 Registrar un pago ahora
               </label>
@@ -838,6 +840,7 @@ export function CompraFormV2({
                 lineas={pagos}
                 onLineas={setPagos}
                 objetivo={total}
+                totalComprobante={total}
                 exacto={condicion === "contado"}
                 saldoFavor={proveedor?.saldoFavor ?? 0}
                 datosProveedor={proveedor?.datosPago}
@@ -846,7 +849,7 @@ export function CompraFormV2({
               />
             </div>
           ) : (
-            <p className="cr-revela text-sm text-tinta/65">Sin pago por ahora: el comprobante aparecerá en Por pagar con vencimiento el {fechaVencimiento.split("-").reverse().join("/")}.</p>
+            <p className="cr-revela text-sm text-tinta/65">{/* unificar-fijo: explica qué pasará con el comprobante sin pago, no es un vacío */}Sin pago por ahora: el comprobante aparecerá en Por pagar con vencimiento el {fechaVencimiento.split("-").reverse().join("/")}.</p>
           )}
         </section>
 
@@ -874,7 +877,7 @@ export function CompraFormV2({
             </dd>
           </div>
         </dl>
-        <div className="border-t border-sand pt-3">
+        <div className="border-t border-sand pt-3" data-guia="nueva.total">
           <p className={campoEtiqueta}>Total</p>
           <p className="font-display mt-1 text-3xl tabular-nums text-tinta">
             <CifraCompra valor={total} />
@@ -884,7 +887,7 @@ export function CompraFormV2({
           </p>
         </div>
         {/* Antes de guardar: dónde cae este comprobante y cómo cambian las cuentas con ese proveedor. */}
-        <div className="space-y-1.5 border-t border-sand pt-3 text-sm">
+        <div className="space-y-1.5 border-t border-sand pt-3 text-sm" data-guia="nueva.donde-cae">
           <p className={campoEtiqueta}>Dónde cae</p>
           <div className="flex justify-between gap-3">
             <span className="text-tinta/65">Por pagar</span>
@@ -920,16 +923,24 @@ export function CompraFormV2({
         {proveedor && proveedor.saldo != null && total > 0 && (
           <CuentasConProveedor saldo={proveedor.saldo} deudaTotal={deudaTotal} nuevaDeuda={condicion === "credito" ? Math.max(0, total - (hayPago ? sumaPagos : 0)) : 0} />
         )}
-        <SelectorAdjuntos archivos={adjuntos} onArchivos={setAdjuntos} />
+        <div data-guia="nueva.adjuntos">
+          <SelectorAdjuntos archivos={adjuntos} onArchivos={setAdjuntos} />
+        </div>
         {/* La nota va en el resumen y no al final de la columna larga, y
             DESPUÉS de los adjuntos: es lo último que se escribe antes de
             registrar, así queda pegada al botón (pedido de Felipe, 2026-09-14). */}
-        <CampoTexto etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Algo que conviene recordar" />
+        <div data-guia="nueva.nota">
+          <CampoTexto etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Algo que conviene recordar" />
+        </div>
         {/* Lo que falta, a la vista: el botón se activa recién con los cuatro, y en vez de quedar solo gris, esta
             lista dice qué falta (es una vista de `requisitosDeCompra`, las mismas reglas que valida `onSubmit`). */}
-        <ListaPendientes id="compra-pendientes" requisitos={requisitos} />
-        <ComboResponsable control={responsable} deshabilitado={loading || registrada} />
-        <div className="flex flex-col gap-2">
+        <div data-guia="nueva.pendientes">
+          <ListaPendientes id="compra-pendientes" requisitos={requisitos} />
+        </div>
+        <div data-guia="nueva.responsable">
+          <ComboResponsable control={responsable} deshabilitado={loading || registrada} />
+        </div>
+        <div className="flex flex-col gap-2" data-guia="nueva.registrar">
           {costosAtipicos ? (
             <AvisoCostoAtipico
               costos={costosAtipicos}
@@ -947,7 +958,7 @@ export function CompraFormV2({
               {condicion === "contado" ? `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()} y pago · ${soles(total)}` : `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()}`}
             </BotonRegistrar>
           )}
-          <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir("/compras")} disabled={loading || registrada} className="w-full">
+          <Boton type="button" peso="fantasma" onClick={() => salida.pedirSalir("/compras")} disabled={loading || registrada} className="w-full">
             Cancelar
           </Boton>
         </div>

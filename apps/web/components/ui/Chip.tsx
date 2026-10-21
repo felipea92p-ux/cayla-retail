@@ -51,6 +51,7 @@ export function Chip({
   tachado = true,
   children,
   className = "",
+  title,
 }: {
   tono?: TonoChip;
   /** `false` (Cambios, 2026-09-18): texto en minúscula normal y un ícono al lado — un
@@ -65,6 +66,8 @@ export function Chip({
   tachado?: boolean;
   children: ReactNode;
   className?: string;
+  /** Lo que dice al pasar el mouse (el porqué de un aviso). */
+  title?: string;
 }) {
   // `versalitas` conserva su nombre por compatibilidad (≈40 usos), pero desde la guía oficial ya no pone el
   // texto en mayúsculas: es la insignia con punto. `false` sigue siendo la variante con ícono propio, sin punto.
@@ -72,7 +75,7 @@ export function Chip({
     ? `inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs leading-5 ${vivo || tono === "apagado" ? "" : PUNTO}`
     : "inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium leading-5";
   return (
-    <span className={`${forma} whitespace-nowrap rounded-full ${TONO[tono]} ${tono === "apagado" && tachado ? "line-through" : ""} ${className}`}>
+    <span title={title} className={`${forma} whitespace-nowrap rounded-full ${TONO[tono]} ${tono === "apagado" && tachado ? "line-through" : ""} ${className}`}>
       {vivo && versalitas && <span aria-hidden className="cmp-punto-vivo" />}
       {children}
     </span>

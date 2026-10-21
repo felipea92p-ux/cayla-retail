@@ -1,6 +1,24 @@
 import { describe, it, expect } from "vitest";
-import { nombreBajoCosto, objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "./etiqueta-campana";
+import {
+  alcanceCampana,
+  avisoReimprimir,
+  chipDeTarjeta,
+  conteoDeTarjeta,
+  destinoReimprimir,
+  DESCUENTOS_RAPIDOS,
+  nombreBajoCosto,
+  objecionVigencia,
+  parsearDescuento,
+  parsearFecha,
+  prendasBajoCosto,
+  prendasPorCategoria,
+  prendasQueCambianDePrecioHoy,
+  textoConteoTarjeta,
+  type PrendaConCosto,
+} from "./etiqueta-campana";
 import { descuentoDeCampana } from "./vender-reglas";
+
+const HOY = "2026-10-17";
 
 describe("parsearDescuento", () => {
   it.each([
@@ -63,10 +81,13 @@ describe("prendasBajoCosto — el aviso al configurar una campaña", () => {
     // 100 con 10 % = se cobra 90.00, igual al costo.
     expect(prendasBajoCosto(10, [prenda("x", "c", 100, 90)], new Set(["c"]), new Set())).toEqual([]);
   });
-  it("en céntimos: 19.90 con 20 % se cobra 15.92, igual a un costo de 15.92, y no avisa (en coma flotante daba 15.9199…)", () => {
-    expect(prendasBajoCosto(20, [prenda("x", "c", 19.9, 15.92)], new Set(["c"]), new Set())).toEqual([]);
+  it("en céntimos: 19.90 con 20 % se cobra 15.90 (la cuenta exacta da 15.92, ADR-0403), igual a un costo de 15.90, y no avisa", () => {
+    expect(prendasBajoCosto(20, [prenda("x", "c", 19.9, 15.9)], new Set(["c"]), new Set())).toEqual([]);
   });
-  it("cuenta el precio exacto que se cobra (ADR-0302): un céntimo bajo el costo ya avisa", () => {
+  it("el precio sin céntimos de la campaña cuenta: con costo 15.91 ya avisa, aunque la cuenta exacta (15.92) no", () => {
+    expect(prendasBajoCosto(20, [prenda("x", "c", 19.9, 15.91)], new Set(["c"]), new Set()).map((p) => p.id)).toEqual(["x"]);
+  });
+  it("cuenta el precio que se cobra (ADR-0403): un céntimo bajo el costo ya avisa", () => {
     // 100 con 10 % = 90.00: queda 1 céntimo bajo un costo de 90.01.
     expect(prendasBajoCosto(10, [prenda("x", "c", 100, 90.01)], new Set(["c"]), new Set()).map((p) => p.id)).toEqual(["x"]);
   });
@@ -89,7 +110,7 @@ describe("el aviso mide el peor caso entre las tiendas (precio propio, Felipe 20
     expect(prendasBajoCosto(20, [{ ...base, precio: 75, enSede: "Trujillo" }], new Set(["c-faldas"]), new Set())).toEqual([]);
   });
   it("dice el precio más bajo y dónde cuando es el propio de una tienda; si es el de la prenda, solo el nombre", () => {
-    expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", precio: 69.9, enSede: "Trujillo" })).toBe("Falda Emma (FAL-0008) · precio más bajo: S/ 69.90 en Trujillo");
+    expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", precio: 69.9, enSede: "Trujillo" })).toBe("Falda Emma (FAL-0008) · precio más bajo: S/\u00a069.90 en Trujillo");
     expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", precio: 79.9, enSede: null })).toBe("Falda Emma (FAL-0008)");
     expect(nombreBajoCosto({ nombre: "Falda Emma (FAL-0008)", precio: 79.9 })).toBe("Falda Emma (FAL-0008)");
   });
@@ -110,5 +131,165 @@ describe("el aviso mide el peor caso entre las tiendas (precio propio, Felipe 20
         anterior = cobrado;
       }
     }
+  });
+});
+
+describe("cuánto alcanza una campaña, antes de guardar", () => {
+  const prendas = [
+    { id: "jean-28", categoriaId: "jeans" },
+    { id: "jean-30", categoriaId: "jeans" },
+    { id: "polo-s", categoriaId: "polos" },
+    { id: "collar", categoriaId: null },
+  ];
+
+  it("cuenta las prendas a la venta de cada categoría; una prenda sin categoría no suma a ninguna", () => {
+    const cuenta = prendasPorCategoria(prendas);
+    expect(cuenta.get("jeans")).toBe(2);
+    expect(cuenta.get("polos")).toBe(1);
+    expect(cuenta.size).toBe(2);
+  });
+
+  it("suma las de sus categorías y las marcadas a mano, sin contar dos veces la que entra por las dos vías", () => {
+    expect(alcanceCampana(prendas, new Set(["jeans"]), new Set(["jean-28", "polo-s"]))).toEqual({ porCategoria: 2, aMano: 1, total: 3 });
+  });
+
+  it("una marcada a mano que ya no está a la venta (talla desactivada) no cuenta", () => {
+    expect(alcanceCampana(prendas, new Set(), new Set(["talla-desactivada", "collar"]))).toEqual({ porCategoria: 0, aMano: 1, total: 1 });
+  });
+
+  it("sin categorías ni prendas a mano, no alcanza a ninguna", () => {
+    expect(alcanceCampana(prendas, new Set(), new Set())).toEqual({ porCategoria: 0, aMano: 0, total: 0 });
+  });
+
+  it("los descuentos de un toque son todos válidos para la base: entre 0 y 100", () => {
+    for (const v of DESCUENTOS_RAPIDOS) expect(parsearDescuento(String(v))).toEqual({ ok: true, valor: v });
+  });
+});
+
+describe("la tarjeta cuenta lo mismo que su hoja", () => {
+  const aLaVenta = [
+    { id: "jean-28", categoriaId: "jeans" },
+    { id: "jean-30", categoriaId: "jeans" },
+    { id: "polo-s", categoriaId: "polos" },
+  ];
+
+  it("una marca en una talla que ya no se vende no suma, pero se dice (Nuevo: 186 marcas, 164 a la venta)", () => {
+    const c = conteoDeTarjeta(aLaVenta, new Set(), ["jean-28", "polo-s", "talla-desactivada"]);
+    expect(c).toEqual({ porCategoria: 0, aMano: 2, total: 2, fueraDeVenta: 1 });
+    expect(textoConteoTarjeta(c)).toEqual({ texto: "2 prendas a la venta", fuera: "1 marcada que ya no se vende" });
+  });
+
+  it("con categorías, dice cuántas entran por ellas; sin nada, «Sin prendas a la venta»", () => {
+    expect(textoConteoTarjeta(conteoDeTarjeta(aLaVenta, new Set(["jeans"]), ["polo-s"])).texto).toBe("3 prendas a la venta · 2 por categoría");
+    expect(textoConteoTarjeta(conteoDeTarjeta(aLaVenta, new Set(), []))).toEqual({ texto: "Sin prendas a la venta", fuera: null });
+  });
+
+  it("todas las marcas fuera de venta dan cero (Aniversario CAYLA: 8 marcas en tallas desactivadas)", () => {
+    const c = conteoDeTarjeta(aLaVenta, new Set(), Array.from({ length: 8 }, (_, i) => `vieja-${i}`));
+    expect(textoConteoTarjeta(c)).toEqual({ texto: "Sin prendas a la venta", fuera: "8 marcadas que ya no se venden" });
+  });
+});
+
+describe("el chip de la temporada", () => {
+  it("vigente y sin prendas va en ámbar; vigente con prendas, en verde", () => {
+    expect(chipDeTarjeta({ estado: "vigente", hasta: "2026-12-31" }, 0, HOY)).toMatchObject({ texto: "Vigente", tono: "neutro", alerta: "Sin prendas" });
+    expect(chipDeTarjeta({ estado: "vigente", hasta: "2026-12-31" }, 164, HOY)).toEqual({ texto: "Vigente", tono: "verde" });
+  });
+  it("quien no ve los conteos ve «Vigente» y «En N días», como antes", () => {
+    expect(chipDeTarjeta({ estado: "vigente", hasta: null }, null, HOY)).toEqual({ texto: "Vigente", tono: "verde" });
+    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-11-09", enDias: 23 }, null, HOY)).toEqual({ texto: "En 23 días", tono: "ambar" });
+  });
+  it("una que viene sin prendas suma «Sin preparar» en ámbar; una lista va en pizarra", () => {
+    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-11-09", enDias: 23 }, 0, HOY)).toMatchObject({ texto: "En 23 días", tono: "neutro", alerta: "Sin preparar" });
+    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-10-24", enDias: 7 }, 7, HOY)).toEqual({ texto: "En 7 días", tono: "pizarra" });
+    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-10-18", enDias: 1 }, 0, HOY)).toMatchObject({ texto: "Mañana", alerta: "Sin preparar" });
+  });
+  it("una que pasó dice cuándo, con el año si no es este", () => {
+    expect(chipDeTarjeta({ estado: "terminada", hasta: "2026-10-14" }, 0, HOY)).toEqual({ texto: "Pasó el 14 oct.", tono: "neutro" });
+    expect(chipDeTarjeta({ estado: "terminada", hasta: "2025-12-25" }, 3, HOY)).toEqual({ texto: "Pasó el 25 dic. de 2025", tono: "neutro" });
+  });
+  it("sin fechas no hay chip", () => {
+    expect(chipDeTarjeta(null, 0, HOY)).toBeNull();
+  });
+});
+
+describe("prendasQueCambianDePrecioHoy — el papel que queda viejo al guardar una campaña", () => {
+  const HOY_ = "2026-10-17";
+  const aLaVenta = [
+    { id: "blusa", categoriaId: "c-blusas" },
+    { id: "falda", categoriaId: "c-faldas" },
+    { id: "polo", categoriaId: "c-polos" },
+  ];
+  const manuales = new Set(["polo"]);
+  type Campana = Parameters<typeof prendasQueCambianDePrecioHoy>[0];
+  const vigente: Campana = { descuentoPct: 20, vigenteDesde: "2026-09-01", vigenteHasta: "2026-12-31", categoriaIds: ["c-blusas"] };
+  const cambian = (antes: Campana, despues: Campana) => {
+    const r = prendasQueCambianDePrecioHoy(antes, despues, aLaVenta, manuales, HOY_);
+    return [...r.quedan, ...r.salen].sort();
+  };
+
+  it("otro % en una campaña vigente: todas las que alcanza (por categoría y a mano)", () => {
+    expect(cambian(vigente, { ...vigente, descuentoPct: 30 })).toEqual(["blusa", "polo"]);
+  });
+  it("guardar sin cambiar nada que mueva un precio: ninguna", () => {
+    expect(cambian(vigente, { ...vigente, vigenteHasta: "2027-01-15" })).toEqual([]);
+  });
+  it("correr las fechas al futuro: dejan de rebajar hoy", () => {
+    expect(cambian(vigente, { ...vigente, vigenteDesde: "2026-11-01" })).toEqual(["blusa", "polo"]);
+  });
+  it("una que venía y ahora rige desde hoy: empiezan a rebajar", () => {
+    expect(cambian({ ...vigente, vigenteDesde: "2026-11-01" }, { ...vigente, vigenteDesde: "2026-10-17" })).toEqual(["blusa", "polo"]);
+  });
+  it("quitar el descuento: vuelven a su precio", () => {
+    expect(cambian(vigente, { ...vigente, descuentoPct: null })).toEqual(["blusa", "polo"]);
+  });
+  it("sumar una categoría: solo las que entran", () => {
+    expect(cambian(vigente, { ...vigente, categoriaIds: ["c-blusas", "c-faldas"] })).toEqual(["falda"]);
+  });
+  it("una campaña que viene no toca ningún precio hoy, aunque cambie su %", () => {
+    const viene = { ...vigente, vigenteDesde: "2026-11-09", vigenteHasta: "2026-11-30" };
+    expect(cambian(viene, { ...viene, descuentoPct: 40 })).toEqual([]);
+  });
+  it("separa las que quedan rebajadas de las que vuelven a su precio", () => {
+    expect(prendasQueCambianDePrecioHoy(vigente, { ...vigente, categoriaIds: ["c-faldas"] }, aLaVenta, manuales, HOY_)).toEqual({ quedan: ["falda"], salen: ["blusa"] });
+    expect(prendasQueCambianDePrecioHoy(vigente, { ...vigente, descuentoPct: null }, aLaVenta, manuales, HOY_)).toEqual({ quedan: [], salen: ["blusa", "polo"] });
+  });
+  it("sin fechas rige siempre", () => {
+    const siempre: Campana = { ...vigente, vigenteDesde: null, vigenteHasta: null };
+    expect(cambian(siempre, { ...siempre, descuentoPct: 25 })).toEqual(["blusa", "polo"]);
+  });
+});
+
+describe("destinoReimprimir — un enlace que el servidor acepte", () => {
+  const ids = (n: number, letra: string) => Array.from({ length: n }, (_, i) => `${letra}${i}`);
+  it("hasta 150 tallas, las exactas", () => {
+    expect(destinoReimprimir({ quedan: ["a"], salen: ["b"] }, "bf")).toBe("/etiquetas-de-precio?variantes=a,b");
+    expect(destinoReimprimir({ quedan: ids(150, "q"), salen: [] }, "bf")).toContain("?variantes=");
+  });
+  it("más de 150 que siguen en la campaña (354 de «Camisas y Blusas»): la impresión por campaña", () => {
+    expect(destinoReimprimir({ quedan: ids(354, "q"), salen: [] }, "bf")).toBe("/etiquetas-de-precio?campana=bf");
+  });
+  it("más de 150 con algunas que salieron: ningún enlace sirve (la impresión por campaña no las ve)", () => {
+    expect(destinoReimprimir({ quedan: ids(200, "q"), salen: ["s"] }, "bf")).toBeNull();
+    expect(destinoReimprimir({ quedan: [], salen: ids(354, "s") }, "bf")).toBeNull();
+  });
+  it("sin nada que imprimir, nada", () => {
+    expect(destinoReimprimir({ quedan: [], salen: [] }, "bf")).toBeNull();
+  });
+});
+
+describe("avisoReimprimir", () => {
+  it("sin enlace, dice por dónde imprimirlas y no ofrece botón", () => {
+    expect(avisoReimprimir(354, false)).toEqual({
+      detalle: "Cambió el precio en caja de 354 prendas: sus etiquetas de papel dicen el de antes. Son muchas para abrirlas juntas: imprímelas por categoría desde Existencias.",
+      boton: null,
+    });
+  });
+  it("sin prendas que cambien, no hay nada que imprimir", () => {
+    expect(avisoReimprimir(0)).toBeNull();
+  });
+  it("dice cuántas prendas y ofrece imprimir sus etiquetas, sin prometer un número de etiquetas", () => {
+    expect(avisoReimprimir(12)).toEqual({ detalle: "Cambió el precio en caja de 12 prendas: sus etiquetas de papel dicen el de antes.", boton: "Imprimir sus etiquetas" });
+    expect(avisoReimprimir(1)).toEqual({ detalle: "Cambió el precio en caja de 1 prenda: su etiqueta de papel dice el de antes.", boton: "Imprimir su etiqueta" });
   });
 });

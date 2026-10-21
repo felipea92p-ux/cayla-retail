@@ -22,6 +22,9 @@ import {
   unidadesParaVer,
   type FilaPpto,
 } from "@/lib/presupuesto-reglas";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { CalendarX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Finanzas ▸ Reportes ▸ Presupuesto (ADR-0195, capa «para decidir»), dibujado como el spike aprobado
 // (docs/maquetas/finanzas-2026-09/, `vista-reportes.js` → `vistaPresupuesto`): cabecera «¿Vamos según lo planeado?» con
@@ -97,7 +100,7 @@ export function PresupuestoPanel({
         acciones={
           <>
             {esLider ? (
-              <label className="fin-ver">
+              <label className="fin-ver" data-guia="fin-ver.combo">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
                 <SelectFin
                   etiqueta="Qué mirar"
@@ -109,9 +112,9 @@ export function PresupuestoPanel({
             ) : (
               <Chip versalitas={false}>{tiendaNombre ?? bloques[0]?.nombre ?? "Tu tienda"}</Chip>
             )}
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!bloques.length}>
+            <BotonDescargar onClick={descargar} disabled={!bloques.length} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />
@@ -124,7 +127,7 @@ export function PresupuestoPanel({
 
       <div {...entra(1)}>
         <Superficie>
-          <div className="fin-herramientas justify-between">
+          <div className="fin-herramientas justify-between" data-guia="fin-presupuesto.avance">
             <div className="fin-herramientas-titulo min-w-0 flex-1 basis-[420px]">
               <b>{tituloAvance(mes, filas)}</b>
               <p>{bajadaAvance(filas[0]?.momento)}</p>
@@ -138,7 +141,7 @@ export function PresupuestoPanel({
                 opciones={meses.map((m) => ({ valor: m, texto: `${mesTitulo(m)}${m === mesDe(hoy) ? " · a la fecha" : ""}` }))}
               />
               {esLider && (
-                <Link href={`/configuracion?tab=presupuesto&mes=${mes}`} className="btn-cayla btn-secundario btn-chico">
+                <Link href={`/configuracion?tab=presupuesto&mes=${mes}`} className="btn-cayla btn-secundario btn-chico" data-guia="fin-presupuesto.cambiar">
                   Cambiar metas y topes
                 </Link>
               )}
@@ -146,7 +149,7 @@ export function PresupuestoPanel({
           </div>
 
           {bloques.length ? (
-            <div className="fin-tabla-wrap">
+            <div className="fin-tabla-wrap" data-guia="fin-presupuesto.tabla">
               <table className="fin-tabla fin-ppto">
                 <thead>
                   <tr>
@@ -188,12 +191,12 @@ export function PresupuestoPanel({
               </table>
             </div>
           ) : (
-            <p className="px-5 py-8 text-sm text-taupe">No hay nada que mostrar para este mes.</p>
+            <Vacio tamano="chico" className="py-8" icono={<CalendarX />}>No hay nada que mostrar para este mes.</Vacio>
           )}
 
           {(libres.length > 0 || (!conTope && bloques.length > 0)) && (
             <PieTabla>
-              <ul className="fin-avisos">
+              <ul className="fin-avisos" data-guia="fin-presupuesto.avisos">
                 {!conTope && (
                   <li>
                     <Chip tono="pizarra">Ojo</Chip>
@@ -222,7 +225,7 @@ export function PresupuestoPanel({
         </Superficie>
       </div>
 
-      <div {...entra(2, "nota-cayla")}>
+      <div {...entra(2, "nota-cayla")} data-guia="fin-presupuesto.nota">
         El presupuesto no frena nada: nadie queda bloqueado por pasarse. Sirve para ver <b>a tiempo</b> en qué se va la plata, antes de que
         el mes cierre.
       </div>

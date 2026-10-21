@@ -1,0 +1,59 @@
+name: SQL huérfano
+
+# Un PR que se cierra SIN fusionar, con «SQL pegado en producción» marcada y migraciones nuevas, deja a producción por
+# delante del repo: su SQL vive allá y en ningún archivo de main, y la próxima migración que rehaga lo mismo lo borra. Le
+# pasó a #978 (cerrado el 2026-10-12; nada avisó hasta el 2026-10-14). Este workflow abre el aviso «SQL en producción que
+# main no tiene: PR #N», lo comenta en el PR, y lo cierra solo cuando esos archivos llegan a main. Qué decide y qué
+# publica: encabezado de scripts/migraciones/sql-huerfano.mjs y ADR-0251 (actualización 2026-10-14).
+#
+# Cuándo corre: al cerrarse un PR (el aviso sale en el momento); al llegar migraciones a main (cierra los avisos que ya no
+# corresponden); y una vez al día, por si GitHub no entregó un cierre o el PR iba sobre una rama sin este workflow (un PR
+# apilado sobre otro). Con «Run workflow» y un número, revisa ese PR.
+on:
+  pull_request_target:
+    types: [closed]
+  push:
+    branches: [main]
+    paths: ["supabase/migrations/**"]
+  schedule:
+    - cron: "15 12 * * *" # 07:15 en Lima, después de la deriva diaria
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "Número de un PR cerrado para revisar ya (vacío: solo el barrido)"
+        required: false
+
+# En fila: dos corridas a la vez podrían abrir dos avisos del mismo PR.
+concurrency:
+  group: sql-huerfano
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write # abrir, comentar y cerrar el aviso
+  pull-requests: write # comentar en el PR cerrado
+
+jobs:
+  sql-huerfano:
+    name: SQL de PR cerrados sin fusionar
+    # Un PR fusionado lo cubre el push a main. Uno de un fork no pudo pegar nada en producción, y con
+    # pull_request_target recibiría permiso de escribir: no corre.
+    if: ${{ github.event_name != 'pull_request_target' || (github.event.pull_request.merged == false && github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # SIEMPRE main, nunca el código del PR: con pull_request_target este job puede escribir en el repo. Y es main lo que
+      # hay que mirar (qué migraciones tiene), aunque el PR fuera contra otra rama.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: |
+            scripts/migraciones
+            supabase/migrations
+      # El número llega por variable de entorno y el script lo valida; el cuerpo y el título del PR los lee el script con
+      # `gh`, nunca se interpolan aquí (el repo es público y el cuerpo lo escribe quien abre el PR).
+      - name: Revisar y avisar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number || inputs.pr }}
+        run: node scripts/migraciones/sql-huerfano.mjs ${PR:+--pr "$PR"}

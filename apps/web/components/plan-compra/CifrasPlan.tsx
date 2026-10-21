@@ -30,7 +30,7 @@ export function CifrasPlan({
   onSeguirLlenando: () => void;
   /** El tope de inversión: `soportado` = la base ya sabe de topes; `valor` null = sin tope. */
   tope: { soportado: boolean; valor: number | null };
-  /** Abre la hoja del tope; solo se pasa a quien puede fijarlo (un líder). Sin esto, el tope se ve pero no se edita. */
+  /** Abre la hoja del tope; solo se pasa a quien puede fijarlo (quien tiene el módulo Plan de campaña, ADR-0387). Sin esto, el tope se ve pero no se edita. */
   onTope?: () => void;
 }) {
   const verReal = estado !== "antes";
@@ -38,7 +38,7 @@ export function CifrasPlan({
   const lasQueMasVenden = filas.filter((f) => f.puesto !== null);
   const faltan = lasQueMasVenden.filter((f) => !f.linea).length;
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div data-guia="plan.cifras" className="grid gap-3">
       {/* Las cifras cuentan una vez al entrar y cuando cambian (al guardar una categoría): el ojo nota qué se movió (maqueta, ADR-0136). */}
       <TarjetaCifra
         etiqueta="Categorías con plan"
@@ -53,7 +53,7 @@ export function CifrasPlan({
         {totales.conPlan === 0 ? "Empieza por las que más venden" : "Las demás no suman a la compra"}
       </TarjetaCifra>
       <TarjetaCifra etiqueta="Prendas a comprar" valor={<CifraQueCuenta valor={totales.aComprar} alMontar />}>
-        Lo que conviene tener menos lo que ya hay
+        Lo que conviene tener menos lo que hay y lo que ya viene
       </TarjetaCifra>
       <TarjetaCifra
         etiqueta="Inversión al costo"
@@ -77,7 +77,8 @@ export function CifrasPlan({
           ? "Solo las categorías con plan"
           : excede > 0
             ? `Te pasas ${solesES(excede)} del tope de ${solesES(tope.valor)}`
-            : `${Math.round((totales.inversion / tope.valor) * 100)} % del tope de ${solesES(tope.valor)}`}
+            : // El «open-to-buy» de los grandes, en palabras de tienda: cuánta plata queda para comprar (Felipe 2026-10-12).
+              `Te quedan ${solesES(Math.round((tope.valor - totales.inversion) * 100) / 100)} para comprar, de ${solesES(tope.valor)}`}
       </TarjetaCifra>
       {verReal ? (
         <TarjetaCifra etiqueta="Vendido en la campaña" valor={enteroES.format(totales.vendido)}>

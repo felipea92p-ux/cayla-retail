@@ -134,10 +134,10 @@ export function EditarMetaModal({
   }
 
   return (
-    <Modal titulo={`Meta de ${persona.nombre}`} subtitulo={`${mesEtiqueta} · ${ubicacionNombre}`} onClose={onClose} ancho="max-w-md" bloqueado={enviando}>
+    <Modal titulo={`Meta de ${persona.nombre}`} subtitulo={`${mesEtiqueta} · ${ubicacionNombre}`} onClose={onClose} bloqueado={enviando}>
       {(cerrar) => (
         <form onSubmit={guardar} className="mt-2 space-y-4">
-          <dl className="space-y-1 text-sm">
+          <dl className="space-y-1 text-sm" data-guia="rendimiento.meta-actual">
             <div className="flex justify-between gap-3">
               <dt className="text-taupe">Automática, por sus horas</dt>
               <dd className="tabular-nums text-tinta">{persona.metaAutoMes !== null ? SOLES.format(persona.metaAutoMes) : "—"}</dd>
@@ -161,6 +161,7 @@ export function EditarMetaModal({
             </p>
           ) : (
             <>
+              <div data-guia="rendimiento.meta-campo">
               <CampoGuiado id="meta" guia={guia}>
                 <CampoMonto
                   etiqueta={guia.etiqueta("meta", `Meta de ${mesEtiqueta}`)}
@@ -175,6 +176,8 @@ export function EditarMetaModal({
                   pie="La meta de cada día se recalcula sola, en la misma proporción."
                 />
               </CampoGuiado>
+              </div>
+              <div data-guia="rendimiento.meta-motivo">
               <CampoGuiado id="motivo" guia={guia}>
                 <CampoSelect<MotivoMeta>
                   etiqueta={guia.etiqueta("motivo", "Motivo del cambio")}
@@ -188,6 +191,7 @@ export function EditarMetaModal({
                   deshabilitado={enviando}
                 />
               </CampoGuiado>
+              </div>
               {motivo === "otro" && (
                 <CampoGuiado id="detalle" guia={guia}>
                   <CampoTexto
@@ -229,8 +233,8 @@ export function EditarMetaModal({
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
 
-          <div className="flex gap-2 pt-1">
-            <Boton type="button" onClick={cerrar} className="flex-1" disabled={enviando}>
+          <div className="pie-acciones pt-1" data-guia="rendimiento.meta-guardar">
+            <Boton type="button" onClick={cerrar} disabled={enviando}>
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" cargando={enviando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={`flex-1 ${guia.claseConfirmar}`}>

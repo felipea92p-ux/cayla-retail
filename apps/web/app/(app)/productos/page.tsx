@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getPendientesDeLaSede } from "@/lib/recepcion-conteo";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ChevronDown, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
@@ -15,6 +16,7 @@ import {
   getSinTemporadaResumen,
   getFacetasProductos,
   getTemporadasCatalogo,
+  getEmpresasParaFiltro,
   getCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
@@ -106,7 +108,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear, empresas] = await Promise.all([
     listarProductos(filtros, pagina),
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
@@ -124,6 +126,10 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     // ADR-0371: cuántas prendas propuestas esperan que alguien las apruebe. Solo a quien puede revisarlas; `null` si no se pudo saber
     // (la función aún no está en la base): sin número no se avisa nada, nunca un «0» que diga que no hay.
     editaCatalogo ? getPorRevisarResumen() : Promise.resolve(null),
+    // ADR-0393 (decisión 4): lo nuevo que llegó a la sede y todavía no existe en el catálogo («por crear»). `null` si la base no lo sabe.
+    getPendientesDeLaSede(persona.ubicacionId),
+    // ADR-0467: CAYLA y CLAURE, para su filtro. `null` si la base no las tiene o hay una sola: la píldora no aparece.
+    getEmpresasParaFiltro().catch(() => null),
   ]);
 
   // Lo de la sede elegida arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Va después de la
@@ -241,9 +247,10 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               etiquetaAccesible="Cómo ver el catálogo"
               activo={vista}
               reemplazar={false}
+              guia="productos.vista"
               opciones={[
-                { valor: "grilla", etiqueta: "Grilla", href: hrefConVista("grilla"), icono: <LayoutGrid aria-hidden strokeWidth={1.75} /> },
-                { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden strokeWidth={1.75} /> },
+                { valor: "grilla", etiqueta: "Grilla", href: hrefConVista("grilla"), icono: <LayoutGrid aria-hidden />, guia: "productos.vista-grilla" },
+                { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden />, guia: "productos.vista-tabla" },
               ]}
               soloIconoEnCelular
             />
@@ -251,12 +258,12 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
                 y «Volver» regresa a esta misma vista. Con prendas marcadas, la barra de abajo los lleva ya elegidos. */}
             {/* En el celular las tres acciones van en UNA fila (2026-10-09): Grilla/Tabla y Rótulos quedan en su ícono, con la
                 palabra para el lector de pantalla y al pasar el mouse; «Nuevo producto» conserva la suya. */}
-            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:!px-3">
-              <SignpostBig aria-hidden className="h-4 w-4" strokeWidth={1.75} />
+            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:!px-3" data-guia="productos.rotulos">
+              <SignpostBig aria-hidden className="h-4 w-4" />
               <span className="max-sm:sr-only">Rótulos</span>
             </BotonEnlace>
             {editaCatalogo && (
-              <BotonEnlace href="/productos/nuevo" peso="primario">
+              <BotonEnlace href="/productos/nuevo" peso="primario" data-guia="productos.nuevo">
                 + Nuevo producto
               </BotonEnlace>
             )}
@@ -270,6 +277,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         // aquí y no en la ficha: Felipe quitó el aviso de Editar producto el 2026-10-02 («no me sirve»). No es una tarjeta de cifra porque
         // esta pantalla no tiene fila de cifras; es un aviso que desaparece solo cuando no queda nada.
         <Aviso
+          guia="productos.por-revisar"
           tono="atencion"
           titulo={porRevisar === 1 ? "1 prenda por revisar" : `${porRevisar.toLocaleString("es-PE")} prendas por revisar`}
           accion={
@@ -282,10 +290,27 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         </Aviso>
       )}
 
+      {recibidoPorCrear && recibidoPorCrear.porCrear > 0 && (
+        // ADR-0393 (decisión 4): lo que llegó y se contó como «nuevo» espera su ficha. Se crea desde Recibir («Crear ahora»), con las
+        // tallas y colores que llegaron: así la prenda nace con su stock contado.
+        <Aviso
+          guia="productos.por-crear"
+          tono="info"
+          titulo={recibidoPorCrear.porCrear === 1 ? "1 prenda recibida por crear" : `${recibidoPorCrear.porCrear.toLocaleString("es-PE")} prendas recibidas por crear`}
+          accion={
+            <Link href="/recibir" className="btn-cayla btn-enlace text-[13px]">
+              Crear desde Recibir
+            </Link>
+          }
+        >
+          Llegaron a {persona.ubicacionEtiqueta} y se contaron como nuevas: están en el almacén, pero no se pueden vender hasta crearlas.
+        </Aviso>
+      )}
+
       {sinTemporada && sinTemporada.prendas > 0 && (
         // ADR-0246: discreto (nota en hueso, no borde rojo): es trabajo de carga, no algo del mostrador. El porqué va
         // plegado; «Completar» queda fuera del <summary> para no anidar un enlace dentro de un botón.
-        <div className="nota-cayla flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+        <div data-guia="productos.sin-temporada" className="nota-cayla flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
           <details className="group min-w-0 flex-1">
             <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
               <strong>
@@ -318,6 +343,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         panelInicial={panelFiltros}
         sede={enSede ? persona.ubicacionEtiqueta : null}
         temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}
+        empresas={empresas}
         // El tamaño de las tarjetas, al final de la fila del conteo (2026-10-09): en el celular era una fila más entre el orden y las
         // prendas. Solo en la Grilla: la Tabla no tiene tarjetas. La `key` es porque `FiltrosProductos` lo dibuja entre hermanos y React
         // pide key a un elemento que llega del servidor (aviso «unique key prop» en la consola, 2026-10-10).
@@ -361,6 +387,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           />
         )}
 
+        <div data-guia="productos.paginacion">
         <PaginacionPaginas
           pagina={resultado.pagina}
           totalPaginas={resultado.totalPaginas}
@@ -369,6 +396,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           pathname="/productos"
           sustantivo={["producto", "productos"]}
         />
+        </div>
       </div>
     </div>
   );

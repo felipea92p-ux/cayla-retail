@@ -23,10 +23,8 @@ import {
   FAMILIAS,
   alcance,
   diaLargo,
-  diaLima,
   etiquetaDia,
   filtrarEventos,
-  horaLima,
   nombreVariante,
   personasDe,
   resumenHistorial,
@@ -37,6 +35,7 @@ import {
   type Persona,
 } from "@/lib/historial-prenda-reglas";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
+import { horaLima, hoyLima } from "@/lib/fechas-lima";
 import type { LecturaHistorial } from "@/lib/historial-prenda-reglas";
 
 /**
@@ -107,7 +106,7 @@ export function HistorialPrenda({
   onVolver?: () => void;
   onReintentar?: () => void;
 }) {
-  const hoy = diaLima(new Date().toISOString());
+  const hoy = hoyLima();
   const eventos = useMemo(() => (lectura.estado === "ok" ? lectura.eventos : []), [lectura]);
   const [familia, setFamilia] = useState<Familia | "todo">("todo");
   const [persona, setPersona] = useState<string | null>(null);
@@ -118,9 +117,9 @@ export function HistorialPrenda({
 
   return (
     <div className="hp">
-      <div>
+      <div data-guia="historial-prenda.cabeza">
         {onVolver && (
-          <button type="button" className="hp-volver" onClick={onVolver} data-volver>
+          <button type="button" className="hp-volver" onClick={onVolver} data-volver data-guia="historial-prenda.volver">
             <ArrowRight aria-hidden className="rotate-180" />
             {nombre}
           </button>
@@ -129,7 +128,7 @@ export function HistorialPrenda({
       </div>
 
       {lectura.estado === "ok" && !recien && eventos.length > 0 && (
-        <div className="hp-barra">
+        <div data-guia="historial-prenda.filtros" className="hp-barra">
           <div className="hp-pildoras" role="group" aria-label="Qué cambios ver">
             <button type="button" className="hp-pil" aria-pressed={familia === "todo"} onClick={() => setFamilia("todo")}>
               Todo <span className="hp-n">{eventos.filter((e) => e.familia !== "alta").length}</span>
@@ -266,7 +265,7 @@ function Hilo({ eventos, hoy, total, recien, hrefMovimientos }: { eventos: Event
   return (
     <div>
       {/* El hilo cuelga solo de las tarjetas: termina en el nacimiento, no detrás de las notas del pie. */}
-      <div ref={raiz} className="hp-hilo">
+      <div ref={raiz} data-guia="historial-prenda.hilo" className="hp-hilo">
         <span className="hp-linea" aria-hidden />
         {filas}
       </div>
@@ -277,7 +276,7 @@ function Hilo({ eventos, hoy, total, recien, hrefMovimientos }: { eventos: Event
           <span>Cuando alguien le cambie el precio, un color, una etiqueta o la ficha, aparecerá aquí arriba, con su nombre.</span>
         </div>
       )}
-      <div className="hp-nota">
+      <div data-guia="historial-prenda.nota" className="hp-nota">
         <PackageOpen aria-hidden />
         <span>
           Las ventas, traslados y ajustes de stock de esta prenda no están aquí

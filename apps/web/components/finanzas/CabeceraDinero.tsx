@@ -43,6 +43,7 @@ export function CabeceraDinero({
       </CabeceraPantalla>
       <PestanasFin
         etiqueta="Secciones de Cuentas y dinero"
+        guia="fin-dinero.pestanas"
         valor={pestana}
         items={PESTANAS.filter((p) => (p.lista || p.clave === pestana) && (!p.soloLider || esLider)).map((p) => ({ clave: p.clave, etiqueta: p.etiqueta, href: p.href, conteo: conteos[p.clave] }))}
       />

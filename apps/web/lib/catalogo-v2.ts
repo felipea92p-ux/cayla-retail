@@ -8,7 +8,7 @@ import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/produc
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
 import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
-import { disponibilidadDeUrl, estadoDeUrl, estadoParaBase, faltaDeUrl, listaDeUrl, temporadaDeUrl, type Disponibilidad, type Falta } from "@/lib/productos-filtros";
+import { disponibilidadDeUrl, empresaDeUrl, estadoDeUrl, estadoParaBase, faltaDeUrl, listaDeUrl, temporadaDeUrl, type Disponibilidad, type Falta } from "@/lib/productos-filtros";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { leerMonto } from "@/lib/productos-filtro-precio";
 import { leerFacetas, type FacetasProductos } from "@/lib/productos-facetas";
@@ -199,6 +199,8 @@ export type FiltrosProductos = {
   /** Clave de `fn_temporadas()` o `sin`: la temporada de cada color (la del color, si no la del producto, si no la de su
    *  categoría), exigida a la misma variante que los demás filtros. */
   temporada?: string;
+  /** De qué empresa es (CAYLA o CLAURE, `fn_empresas()`): en pantalla «Tienda» (ADR-0467). Con ella, la lista y los conteos solo ven esa empresa. */
+  empresaId?: string;
   /** Lo que le falta a la ficha («Por completar»). */
   falta?: Falta;
   estado?: "activo" | "descontinuado";
@@ -226,6 +228,8 @@ export type ParamsProductosListado = {
   familia?: string;
   talla?: string;
   temporada?: string;
+  /** El id de la empresa (`fn_empresas()`), como `cat` y `marca` llevan el suyo. */
+  empresa?: string;
   falta?: string;
   estado?: string;
   precioMin?: string;
@@ -260,6 +264,7 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
     familias: listaDeUrl(p.familia).filter((f) => FAMILIAS_COLOR.some((x) => x.valor === f)),
     tallas: listaDeUrl(p.talla).filter(esUuid),
     temporada: temporadaDeUrl(p.temporada),
+    empresaId: empresaDeUrl(p.empresa),
     falta: faltaDeUrl(p.falta),
     // Sin `estado` en la URL = solo activas (Felipe, 2026-10-02); `todos` = activas y descontinuadas (`lib/productos-filtros.ts`).
     estado: estadoParaBase(estadoDeUrl(p.estado)),
@@ -334,6 +339,8 @@ function paramsListado(filtros: FiltrosProductos) {
     ...(filtros.familias.length ? { p_familias: filtros.familias } : {}),
     ...(filtros.tallas.length ? { p_tallas: filtros.tallas } : {}),
     ...(filtros.temporada ? { p_temporada: filtros.temporada } : {}),
+    // Solo si hay una elegida: la base de antes del ADR-0467 no conoce el parámetro y sin la clave sigue funcionando.
+    ...(filtros.empresaId ? { p_empresa_id: filtros.empresaId } : {}),
     ...(filtros.falta ? { p_falta: filtros.falta } : {}),
     ...(filtros.estado ? { p_estado: filtros.estado } : {}),
     ...(filtros.precioMin != null ? { p_precio_min: filtros.precioMin } : {}),
@@ -654,6 +661,17 @@ export type FichaTemporadas = TemporadasCatalogo & {
  * Las dos o ninguna: sin la temporada de las categorías, la ficha y el alta ofrecerían «Sin temporada» en vez de «Igual
  * que su categoría (Verano)», y quien lo viera le pondría una a mano a una prenda que ya heredaba la suya.
  */
+/**
+ * Las empresas entre las que filtra Catálogo ▸ Productos (CAYLA, CLAURE; ADR-0467). `null` si la base todavía no las tiene, si falló la
+ * lectura o si hay una sola: con una sola empresa la píldora sería ruido, y la pantalla se ve como siempre (se degrada, no se cae).
+ */
+export async function getEmpresasParaFiltro(): Promise<{ id: string; nombre: string }[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_empresas");
+  if (error || !data || data.length < 2) return null;
+  return data.map((e) => ({ id: e.id, nombre: e.nombre }));
+}
+
 export async function getTemporadasCatalogo(): Promise<TemporadasCatalogo | null> {
   const supabase = await createClient();
   const [resLista, resCategorias] = await Promise.all([

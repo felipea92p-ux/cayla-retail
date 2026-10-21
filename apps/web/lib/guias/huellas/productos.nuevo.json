@@ -1,0 +1,183 @@
+{
+  "guia": "productos.nuevo",
+  "ruta": "/productos/nuevo",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 115,
+  "controles": {
+    "app/(app)/productos/nuevo/page.tsx": [
+      "Volver «{RUTA_ORDENES}»",
+      "Volver «/productos»",
+      "BotonEnlace «Ir a Categorías»"
+    ],
+    "components/ColaOfflineAviso.tsx": [
+      "button «Cancelar»",
+      "button «Sí, descartar»",
+      "button «Descartar»"
+    ],
+    "components/NuevoProductoForm.tsx": [
+      "Volver «→() => irAPaso((n - 1) as NumeroPaso)»",
+      "button «Seguir»",
+      "button «{responsable.motivo ?? undefined}»",
+      "CampoTexto «Nombre»",
+      "CampoTexto «Descripción»",
+      "CampoMonto «Precio de venta»",
+      "CampoMonto «Costo»",
+      "button «{quienRegistra ? \"Cambiar\" : \"Elegir\"}»"
+    ],
+    "components/SelectorColor.tsx": [
+      "input «Elegir color con el selector»",
+      "CampoTexto «{etiqueta}»"
+    ],
+    "components/alta-producto/AlertaParecidas.tsx": [
+      "Link «{accion.etiqueta}»",
+      "button «{accion.etiqueta}»",
+      "button «{FRASE.filaAria(f.nombre, f.detalle)}»"
+    ],
+    "components/alta-producto/ArbolCategoria.tsx": [
+      "button «Cambiar»",
+      "button «{f.nombre}»",
+      "button «{nombreVisible(c)}»",
+      "button «→alternarVerMas»",
+      "button «nuevo.categoria»"
+    ],
+    "components/alta-producto/AvisoParecidos.tsx": [
+      "Link «Abrir»",
+      "Link «{p.referencia}»",
+      "Casilla «Es otro producto distinto, créalo igual.»",
+      "Link «{p.referencia}» #2"
+    ],
+    "components/alta-producto/ConfigurarCategoria.tsx": [
+      "Boton «{firma.motivo ?? undefined}»"
+    ],
+    "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «(sin nombre)»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "button «{c.nombre}»"
+    ],
+    "components/alta-producto/ElegirEtiquetas.tsx": [
+      "Boton «{enLinea ? undefined : \"Crear una etiqueta necesita internet\"}»",
+      "Boton «+ Crear «»",
+      "CampoTexto «Nombre de la etiqueta»",
+      "Boton «{firma.motivo ?? undefined}»",
+      "button «Cancelar»"
+    ],
+    "components/alta-producto/ElegirMarcaProveedor.tsx": [
+      "button «Quitar»",
+      "ComboBuscable «buscar-marca»",
+      "button «Quitar» #2",
+      "ComboBuscable «buscar-proveedor»",
+      "button «+ Registrar una marca o un proveedor nuevo»"
+    ],
+    "components/alta-producto/ElegirMuestra.tsx": [
+      "CampoTexto «{`Buscar ${t.singular}»"
+    ],
+    "components/alta-producto/ElegirTallas.tsx": [
+      "button «Solo las de siempre»",
+      "button «Todas las tallas»",
+      "button «+ Otra talla»",
+      "CampoTexto «Buscar talla»",
+      "button «Cancelar»",
+      "Boton «{nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}»"
+    ],
+    "components/alta-producto/FichaPrevia.tsx": [
+      "button «{g.bloquea ? `Siguiente: ${g.texto}»",
+      "button «Cancelar»",
+      "button «{datos.siguiente ?? undefined}»",
+      "button «{verMovil ? \"Ocultar\" : \"Ver\"}»",
+      "Boton «{datos.siguiente ?? undefined}»"
+    ],
+    "components/alta-producto/FotosAlta.tsx": [
+      "button «{etiqueta}»",
+      "input «(sin nombre)»",
+      "button «{etiqueta}» #2"
+    ],
+    "components/alta-producto/GrillaMuestras.tsx": [
+      "button «{title}»",
+      "button «Ver todos»"
+    ],
+    "components/alta-producto/HojaParecidas.tsx": [
+      "button «{a.accion.etiqueta}»",
+      "button «{vista.pie.boton}»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «{control}»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/MatrizCantidades.tsx": [
+      "SegmentoDeslizante «Qué escribes en la tabla»",
+      "input «1»",
+      "input «(sin nombre)»",
+      "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
+    ],
+    "components/alta-producto/MatrizVariantes.tsx": [
+      "button «{`Ver o quitar las fotos de ${nombreDe(color)}»",
+      "button «{fuera ? `${etiqueta}»",
+      "button «Ver o quitar las fotos de todos los colores»",
+      "button «Quitar»",
+      "button «Listo»"
+    ],
+    "components/alta-producto/NuevaMarcaForm.tsx": [
+      "button «Cambiar»",
+      "ComboBuscable «nm-marca»",
+      "button «+ Proveedor nuevo»",
+      "button «Cambiar» #2",
+      "CampoTexto «Razón social»",
+      "CampoTexto «11 dígitos»",
+      "button «Mejor elijo uno que ya existe»",
+      "ComboBuscable «nm-prov»",
+      "button «Cancelar»",
+      "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/alta-producto/NuevoColorAlta.tsx": [
+      "CampoTexto «Nombre del color»",
+      "Desplegable «{familia}»",
+      "CampoTexto «Código»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»",
+      "button «Elegir»"
+    ],
+    "components/alta-producto/ParecidasDelAlta.tsx": [
+      "button «{TEXTO.verYComparar}»",
+      "Link «{accion.etiqueta}»",
+      "button «{accion.etiqueta}»",
+      "button «{TEXTO.verParecidasAria}»"
+    ],
+    "components/alta-producto/ProductoCreado.tsx": [
+      "Link «Editar el producto»",
+      "Link «{abrirOrden.boton}»",
+      "Link «{completas ? \"Ver las fotos\" : \"Agregar fotos\"}»",
+      "BotonImprimir «Imprimir etiquetas»",
+      "button «Crear otro parecido»",
+      "BotonVer «Ir a productos»"
+    ],
+    "components/alta-producto/ProponerValor.tsx": [
+      "button «{t.boton}»",
+      "CampoTexto «{`Nombre ${tipo === \"tallas\" ? \"de la\" : \"del\"}»",
+      "Boton «{firma.motivo ?? undefined}»",
+      "button «Cancelar»"
+    ],
+    "components/alta-producto/PuntosAvance.tsx": [
+      "button «{`${paso.nombre}»"
+    ],
+    "components/alta-producto/TarjetaParecida.tsx": [
+      "button «{FRASE.deshacerAria(t.nombre)}»",
+      "BotonVer «{FRASE.esElMismoAria(t.nombre)}»",
+      "button «{FRASE.noEsOtroAria(t.nombre)}»",
+      "button «?»"
+    ],
+    "components/alta-producto/TiraParecidas.tsx": [
+      "Link «{interior}»",
+      "button «{interior}»"
+    ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
+    "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
+      "button «Descartar el aviso de etiquetas pendientes»"
+    ]
+  }
+}

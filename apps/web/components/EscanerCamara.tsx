@@ -1,6 +1,7 @@
 "use client";
 
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { Globito } from "@/components/ui/Globito";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Flashlight, FlashlightOff, ShoppingBag, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -112,7 +113,7 @@ const iniciales = (referencia: string) =>
 function Miniatura({ prenda, lado }: { prenda: ResultadoEscaneo["prenda"]; lado: number }) {
   return (
     <span className="relative grid shrink-0 place-items-center overflow-hidden rounded-xl bg-sand font-display text-tinta/55" style={{ width: lado, height: lado, fontSize: lado * 0.34 }}>
-      {prenda?.fotoUrl ? <Image src={prenda.fotoUrl} alt="" fill sizes={`${lado}px`} className="object-cover" unoptimized /> : prenda ? iniciales(prenda.referencia) : "?"}
+      {prenda?.fotoUrl ? <ImagenDePrenda src={prenda.fotoUrl} alt="" fill sizes={`${lado}px`} className="object-cover" fallback={iniciales(prenda.referencia)} /> : prenda ? iniciales(prenda.referencia) : "?"}
     </span>
   );
 }
@@ -413,12 +414,8 @@ export function EscanerCamara({
             <div className="mt-3 flex items-center gap-3 border-t border-sand pt-3">
               {/* La bolsa: adonde vuela cada prenda. Late cuando una entra (y recién ahí cambia su número). */}
               <span ref={bolsaRef} key={latidoBolsa} className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-tinta text-crema ${latidoBolsa > 0 ? "anim-pop" : ""}`}>
-                <ShoppingBag aria-hidden className="h-5 w-5" strokeWidth={1.6} />
-                {ticketMostrado.prendas > 0 && (
-                  <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1 text-[11px] font-medium tabular-nums text-crema ring-2 ring-crema">
-                    {ticketMostrado.prendas}
-                  </span>
-                )}
+                <ShoppingBag aria-hidden className="h-5 w-5" />
+                <Globito n={ticketMostrado.prendas} esquina sobreOscuro etiqueta="prendas en el ticket" className="absolute -right-1.5 -top-1.5" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="label-cayla block text-[10px] text-taupe">

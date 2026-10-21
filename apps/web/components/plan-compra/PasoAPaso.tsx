@@ -18,6 +18,7 @@ import type { FamiliaPlan } from "@/lib/plan-compra";
 
 export function PasoAPaso({
   planId,
+  campana,
   filas,
   vendidoPorTalla,
   totales,
@@ -32,6 +33,8 @@ export function PasoAPaso({
   onTabla,
 }: {
   planId: string;
+  /** La campaña que se planifica: su nombre (los textos hablan de ELLA, no de «diciembre») y sus días (el normal de respaldo). */
+  campana: { nombre: string; dias: number };
   filas: readonly FilaPlan[];
   /** Categoría → talla → unidades vendidas en 90 días: con eso el formulario propone la curva de tallas. */
   vendidoPorTalla: ReadonlyMap<string, ReadonlyMap<string, number>>;
@@ -169,6 +172,7 @@ export function PasoAPaso({
         <div className="anim-revelar" key={actual.c.id}>
           <FormularioCategoria
             planId={planId}
+            campana={campana}
             fila={actual}
             vendidoPorTalla={vendidoPorTalla.get(actual.c.id)}
             tope={tope}

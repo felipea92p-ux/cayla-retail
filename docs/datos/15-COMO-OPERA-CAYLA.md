@@ -274,6 +274,14 @@ permite de forma dinámica registrar mis asesores de atención al cliente»*.
 > la gratificación y la CTS (R-13): el mes de mayor venta es también el de mayor salida
 > de caja.
 
+> **Actualización (2026-10-13, Felipe; ADR-0372 act. 2026-10-13):** «triplica un mes» no se
+> sostiene contra el historial de Sinatra que ya está en el ERP: diciembre vende entre ×1,59
+> y ×2,30 un día normal en Trujillo (mediana ×2,04, 2017–2025) y ×1,1 en Arequipa (2024 y
+> 2025). El Plan de campaña usa el multiplicador de cada tienda medido en su historial
+> cuando el ERP no tiene la campaña del año anterior, y el × 3 queda solo para la tienda
+> que no tiene ni lo uno ni lo otro. *El texto de arriba se conserva como quedó el
+> 2026-09-12.*
+
 **R-20 · CAYLA rota rápido: pasados 30 días sin venderse ya es mala señal.** Pero el
 umbral correcto **depende de la categoría** — una blusa de campaña no es un básico
 atemporal. *Criterio de Felipe.*

@@ -21,7 +21,7 @@ export function ComprobanteLineaTiempo({ linea }: { linea: LineaTiempo }) {
   const [n1, n2, n3] = linea.nodos;
   const [c1, c2] = linea.conectores;
   return (
-    <div className="cd-linea-tiempo" role="list" aria-label="Avance del comprobante">
+    <div className="cd-linea-tiempo" role="list" aria-label="Avance del comprobante" data-guia="factura.linea-tiempo">
       <Nodo nodo={n1} />
       <Conector conector={c1} />
       <Nodo nodo={n2} />
@@ -53,7 +53,7 @@ function Nodo({ nodo }: { nodo: NodoLinea }) {
     <div className="cd-nodo" data-estado={nodo.estado} role="listitem">
       <div className={`cd-pt ${pon ? "anim-pop" : ""}`} onAnimationEnd={() => setPon(false)}>
         {/* Al pasar a «hecho» el ícono cambia de componente (Package/Banknote → Check): React lo monta de nuevo y el tilde se traza (`check-trazo`). */}
-        <Icono aria-hidden className={`h-[15px] w-[15px] ${Icono === Check ? "check-trazo" : ""}`} style={{ "--d": "250ms" } as React.CSSProperties} />
+        <Icono aria-hidden className={`h-4 w-4 ${Icono === Check ? "check-trazo" : ""}`} style={{ "--d": "250ms" } as React.CSSProperties} />
       </div>
       <p className="label-cayla text-[11px] text-tinta/65">{nodo.titulo}</p>
       <p className="-mt-1 text-xs text-tinta/55">{nodo.detalle}</p>

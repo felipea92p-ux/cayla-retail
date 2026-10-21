@@ -9,6 +9,8 @@ import { clave } from "@/lib/buscar-prenda-v2";
 import { createClient } from "@/lib/supabase/client";
 import { armarEquipo, textoEstado, type MiembroEquipo } from "@/lib/inicio-avisos";
 import type { ItemMenu } from "@/lib/menu";
+import { SearchX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 type Props = {
   /** Toda pantalla que este perfil puede abrir, ya resuelta por rol (`menu.riel.flatMap(hojasDe)` en
@@ -146,7 +148,7 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
         onClick={abrir}
         aria-label="Buscar una pantalla o a alguien del equipo"
         title="Buscar  ( Ctrl K )"
-        className="hidden items-center gap-2.5 rounded-full border border-sand bg-hueso px-3.5 py-2 text-[13px] text-tinta/60 transition-colors hover:border-taupe/40 hover:bg-sand sm:flex"
+        className="hidden items-center gap-2.5 rounded-full border border-sand bg-hueso px-3.5 py-2 text-[13px] text-tinta/70 transition-colors hover:border-taupe/40 hover:bg-sand sm:flex"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0">
           <circle cx="10.5" cy="10.5" r="7.5" />
@@ -154,8 +156,8 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
         </svg>
         <span>Buscar…</span>
         <span className="ml-1 flex items-center gap-0.5">
-          <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/50 dark:text-tinta/60">Ctrl</span>
-          <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/50 dark:text-tinta/60">K</span>
+          <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/70">Ctrl</span>
+          <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/70">K</span>
         </span>
       </button>
 
@@ -165,7 +167,7 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
           subtitulo={mostrarEquipo ? "Pantallas del menú y quién está de turno ahora." : "Pantallas del menú."}
           onClose={cerrar}
           variante="papel"
-          ancho="sm:max-w-xl"
+          tamano="mediana"
         >
           <div className="relative mb-4">
             <svg
@@ -221,7 +223,7 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
                     const i = pantallasFiltradas.length + idx;
                     return (
                       <div key={m.personaId} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${i === marcada ? "bg-hueso" : ""}`}>
-                        <AvatarPersona personaId={m.personaId} nombre={m.nombre} className="h-7 w-7 text-xs" />
+                        <AvatarPersona personaId={m.personaId} nombre={m.nombre} tamano={32} />
                         <span className="flex-1">
                           <span className="block text-tinta">{m.nombre}</span>
                           <span className="block text-[11.5px] text-tinta/55">{textoEstado(m.estado)}</span>
@@ -234,7 +236,7 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
             )}
 
             {pantallasFiltradas.length === 0 && equipoFiltrado.length === 0 && (
-              <p className="px-2 py-6 text-center text-sm text-tinta/50 dark:text-tinta/60">Sin coincidencias para «{query}»</p>
+              <Vacio tamano="chico" className="py-6" icono={<SearchX />}>Sin coincidencias para «{query}»</Vacio>
             )}
           </div>
         </Modal>

@@ -282,7 +282,7 @@ select pg_temp.saldo(:'ibk');`);
   esperar("cambiarla desde hoy no mueve lo pasado: el Yape de hace 3 días sigue en el BCP, el de hoy entra a Interbank", r.ok && vigencia === "1080.00|45.00", r);
   esperar("«a qué cuenta entra» dice la de hoy", r.ok && hoyVa === "Interbank prueba F3", r);
   esperar("un gasto pagado por transferencia sale del banco de las transferencias de su tienda", r.ok && conPago === "30.00", r);
-  esperar("la tarjeta no entra a una caja fuerte", r.ok && tarjetaAFuerte.includes("por abonar"), r);
+  esperar("la tarjeta no entra a una caja fuerte", r.ok && tarjetaAFuerte.includes("por depositar"), r);
   esperar("una cuenta a la que hoy entran cobros no se archiva", r.ok && archivar.includes("Hoy entran cobros"), r);
   esperar("una venta anulada ya no suma en el banco", r.ok && anulada === "0.00", r);
 }

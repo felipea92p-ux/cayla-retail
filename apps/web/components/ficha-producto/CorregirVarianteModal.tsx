@@ -129,9 +129,9 @@ export function CorregirVarianteModal({
     // Abre con el foco en la hoja, no en el buscador de color: en el celular, el combo abría su lista hacia ARRIBA al
     // recibir el foco y tapaba entera la primera línea («Si llegó mercadería nueva, usa Agregar color»), que es la defensa
     // contra el único error caro de esta pantalla. Primero se lee; el combo se abre al tocarlo.
-    <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose} ancho="max-w-lg" focoEnLaHoja>
+    <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose} tamano="mediana" focoEnLaHoja>
       {(cerrar) => (
-        <div className="space-y-4">
+        <div data-guia="corregir.cuerpo" className="space-y-4">
           {nuevas ? (
             <p className="text-sm text-tinta/80">
               {cuantas === 1 ? "Todavía no existe: cambiarla no toca stock ni historia." : "Todavía no existen: cambiarlas no toca stock ni historia."}

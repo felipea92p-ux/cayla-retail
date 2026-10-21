@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { diaLima, inicioDeDiaLima, inicioDeMesLima } from "@/lib/panel-serie";
-import { valorPagado } from "@/lib/devoluciones-reglas";
+import { comprobanteSinAceptar, valorPagado, type ComprobanteSinAceptar, type PagoDeLaVenta } from "@/lib/devoluciones-reglas";
 import { fotoDeVariante } from "@/lib/producto-fotos-reglas";
 
 // Devoluciones: el backend (crear_devolucion, aprobar_devolucion, rechazar_devolucion) ya
@@ -41,6 +41,10 @@ export type DevolucionPendiente = {
   comprobante: string | null;
   /** SUNAT ya aceptó un comprobante de la venta: al aprobar se emite sola la nota de crédito. */
   comprobanteAceptado: boolean;
+  /** La boleta o factura de la venta que todavía no llega a SUNAT: mientras exista, no se aprueba (20261012221000). */
+  sinAceptar: ComprobanteSinAceptar | null;
+  /** Cómo se pagó la venta: la pantalla propone ese medio para el reembolso y avisa si se elige otro. */
+  pagos: PagoDeLaVenta[];
   valorPagado: number;
   items: ItemDevolucionPendiente[];
 };
@@ -50,7 +54,7 @@ export async function getDevolucionesPendientes(ubicacionId: string): Promise<De
   const devoluciones = exigir(
     await supabase
       .from("devoluciones")
-      .select("id, venta_id, motivo, created_at, solicitado_por, venta:ventas ( created_at )")
+      .select("id, venta_id, motivo, created_at, solicitado_por, venta:ventas ( created_at, venta_pagos ( metodo, monto ) )")
       .eq("ubicacion_id", ubicacionId)
       .eq("estado", "pendiente")
       .order("created_at", { ascending: false }),
@@ -88,8 +92,15 @@ export async function getDevolucionesPendientes(ubicacionId: string): Promise<De
   // que UNO esté aceptado para que la aprobación emita la nota de crédito.
   const comprobantePorVenta = new Map<string, string>();
   const ventasConComprobanteAceptado = new Set<string>();
+  const comprobantesPorVenta = new Map<string, { tipo: string; estado: string; documento: string; creadoEn: string }[]>();
   for (const c of exigir(comprobantesRes, "las boletas de esas ventas")) {
     if (!c.venta_id) continue;
+    const numero = `${c.serie}-${String(c.numero).padStart(6, "0")}`;
+    comprobantesPorVenta.set(c.venta_id, [
+      ...(comprobantesPorVenta.get(c.venta_id) ?? []),
+      // «boleta B004-000029», con el tipo en minúscula: es la misma frase que arma la base (aprobar_devolucion).
+      { tipo: c.tipo, estado: c.estado, documento: `${c.tipo} ${numero}`, creadoEn: c.created_at },
+    ]);
     if (c.estado === "aceptado") ventasConComprobanteAceptado.add(c.venta_id);
     comprobantePorVenta.set(c.venta_id, `${ETIQUETA_TIPO[c.tipo as TipoComprobante] ?? c.tipo} ${c.serie}-${String(c.numero).padStart(6, "0")}`);
   }
@@ -124,6 +135,9 @@ export async function getDevolucionesPendientes(ubicacionId: string): Promise<De
       vendidoEn: d.venta?.created_at ?? d.created_at,
       comprobante: comprobantePorVenta.get(d.venta_id) ?? null,
       comprobanteAceptado: ventasConComprobanteAceptado.has(d.venta_id),
+      sinAceptar: comprobanteSinAceptar(comprobantesPorVenta.get(d.venta_id) ?? []),
+      // Sin el anticipo de un apartado: no es un medio con que se pueda devolver.
+      pagos: (d.venta?.venta_pagos ?? []).filter((p) => p.metodo !== "anticipo").map((p) => ({ metodo: p.metodo, monto: Number(p.monto) })),
       valorPagado: Math.round(itemsDeEsta.reduce((suma, i) => suma + i.valorPagado, 0) * 100) / 100,
       items: itemsDeEsta,
     };

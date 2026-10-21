@@ -249,6 +249,22 @@ export function porcentajes(c: ConteoPiso): Record<TramoPiso, number> {
   return r;
 }
 
+/**
+ * Los cuatro tramos del 100 % como tramos de `BarraApilada`: la forma en que se dibuja el piso en TODO el ERP (Frescura, «Las N tiendas» de CAYLA
+ * Global y la tarjeta del Inicio). Antes vivía copiada en `FrescuraPiso` y en `FrescuraRed`; un tercer lugar que la dibuje la importa de aquí.
+ */
+export function segmentosDelPiso(f: Pick<FamiliaPiso, "unidades">) {
+  return TRAMOS_DEL_100.map((t) => ({ clave: t, nombre: NOMBRE_TRAMO_PISO[t], valor: f.unidades[t], clase: CLASE_TRAMO_PISO[t] }));
+}
+
+/** Lo que dice la barra en palabras: «41 % fresca · 22 % vigente · 20 % envejeciendo» (solo los tramos con algo). */
+export function lineaDelPiso(f: Pick<FamiliaPiso, "unidades">): string {
+  const pct = porcentajes(f.unidades);
+  return TRAMOS_DEL_100.filter((t) => f.unidades[t] > 0)
+    .map((t) => `${pct[t]} % ${NOMBRE_TRAMO_PISO[t].toLowerCase()}`)
+    .join(" · ");
+}
+
 // ---------------------------------------------------------------------------
 // Contra el mes anterior (decisión 5 de Felipe, 2026-10-10: «la frase dice si el piso está más fresco o más viejo que hace 4 semanas»)
 // ---------------------------------------------------------------------------
@@ -313,8 +329,11 @@ export type PuertaPiso = {
   cuadradoEn?: string | null;
   /** Lo PRIMERO que falta (null si pasa o si no se pudo saber). Decide la razón de la frase y el botón del aviso. */
   falta?: FaltaPuerta | null;
-  /** Ventas de los últimos 30 días sin su prenda (lo que «Registrar N sin prenda» lleva a regularizar). */
+  /** Ventas de los últimos 30 días sin su prenda. */
   sinPrenda?: number;
+  /** De ellas, las que todavía se pueden registrar (pendientes en Por regularizar, sin tope de fechas): el número de «Registrar N sin
+   *  prenda» (ADR-0357, act. 2026-10-14; las cerradas ya no vuelven). Null si no se pudo contar; sin contar (undefined), `sinPrenda`. */
+  pendientes?: number | null;
   /** Si falta «ventas con su prenda», cuál de sus tres casos (los mismos de `avisoDatosDeHoy`): sin ventas en el ERP todavía, menos de 9 de
    *  cada 10 con su prenda, o ya las lleva pero faltan días seguidos (revisión adversaria: decía «no todas llevan su prenda» aunque todas). */
   venta?: "sin_ventas" | "sin_prenda" | "racha";
@@ -368,7 +387,8 @@ export type AccesoPuerta = { existencias: boolean; conteos: boolean };
  */
 export function pasoDeLaPuerta(puerta: PuertaPiso, acceso: AccesoPuerta): { texto: string; href: string } | null {
   if (puerta === null || puerta.puedeHablar) return null;
-  return pasoParaHablar(puerta.falta ?? null, puerta.sinPrenda ?? 0, { regularizar: acceso.existencias, cuadrar: acceso.existencias, conteo: acceso.conteos });
+  const pendientes = puerta.pendientes === undefined ? (puerta.sinPrenda ?? 0) : puerta.pendientes;
+  return pasoParaHablar(puerta.falta ?? null, pendientes, { regularizar: acceso.existencias, cuadrar: acceso.existencias, conteo: acceso.conteos });
 }
 
 /** «Aún no se sabe» desde esta parte del piso, la frase no afirma nada: con tanto gris, el porcentaje de frescas podría ser otro. */
@@ -457,5 +477,5 @@ export function respuestaDelPiso(
 
 /** «S/ 20,222»: soles enteros, con el formato del resto del ERP (`es-PE`, como Inicio y Finanzas). */
 export function solesEnteros(n: number): string {
-  return `S/ ${Math.round(n).toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
+  return `S/\u00a0${Math.round(n).toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
 }

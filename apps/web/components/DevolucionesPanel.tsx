@@ -19,6 +19,7 @@ import type { DevolucionPendiente, DevolucionResuelta } from "@/lib/devoluciones
 import { estadoPrendaDevolucion } from "@/lib/devoluciones-reglas";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { DevolucionArmada } from "@/lib/devoluciones-cambio-de-sede";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 type Filtro = "todas" | "con_devolucion" | "sin_comprobante";
 
@@ -278,9 +279,7 @@ export function DevolucionesPanel({
       <AvisosDevoluciones accesos={accesos} cajaAbierta={cajaAbierta} esLider={esLider} />
 
       <section ref={zonaBusqueda} aria-labelledby="iniciar-devolucion" className="scroll-mt-24 space-y-4">
-        <h2 id="iniciar-devolucion" className="text-[15px] font-semibold text-tinta">
-          Iniciar una devolución
-        </h2>
+        <TituloSeccion id="iniciar-devolucion">Iniciar una devolución</TituloSeccion>
         <BuscadorVentas
           key={`${busqueda}|${todasLasSedes}`}
           valorInicial={busqueda}
@@ -338,12 +337,14 @@ export function DevolucionesPanel({
           <Pestanas
             etiquetaAccesible="Qué ver"
             idIndicador="devoluciones-vistas"
+            guia="devoluciones.pestanas"
             activa={vista}
             onCambio={(v) => setVista(v as Vista)}
             items={PESTANAS.map((p) => ({
               clave: p.valor,
               etiqueta: p.texto,
               conteo: p.cuantas,
+              guia: `devoluciones.pestana-${p.valor}`,
               pide: p.alerta ? (p.cuantas === 1 ? "espera revisión" : "esperan revisión") : undefined,
             }))}
           />
@@ -352,7 +353,7 @@ export function DevolucionesPanel({
             <>
               {/* Filtros de la pestaña con la píldora de filtro del sistema, no con la forma de las pestañas:
                   dos filas iguales no decían cuál manda. */}
-              <div role="group" aria-label="Filtrar las compras" className="pildoras-desliza gap-2 sm:flex-wrap">
+              <div role="group" aria-label="Filtrar las compras" data-guia="devoluciones.filtros" className="pildoras-desliza gap-2 sm:flex-wrap">
                 {FILTROS.map((f) => (
                   <button key={f.valor} type="button" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)} className="pildora-cayla shrink-0">
                     {f.texto} <span className="pildora-cayla__n">{ventasDelFiltro(lineas, f.valor).size}</span>
@@ -388,7 +389,7 @@ export function DevolucionesPanel({
       )}
 
       {/* Celular: la prenda en la mano es la entrada más rápida, al alcance del pulgar (spike 2026-09-26). */}
-      <div className="fixed inset-x-0 bottom-0 z-30 flex gap-2 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
+      <div data-guia="devoluciones.barra-movil" className="fixed inset-x-0 bottom-0 z-30 flex gap-2 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
         <button
           type="button"
           onClick={() => {
@@ -397,7 +398,7 @@ export function DevolucionesPanel({
           }}
           className="flex h-14 flex-1 items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.98]"
         >
-          <ScanLine size={18} aria-hidden />
+          <ScanLine size={20} aria-hidden />
           Escanear prenda
         </button>
         <button
@@ -431,7 +432,7 @@ function AvisosDevoluciones({ accesos, cajaAbierta, esLider }: { accesos: Acceso
   if (cuarentena === 0 && !cajaCerrada) return null;
   const fila = "flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl bg-papel px-4 py-3 text-sm ring-1 ring-tinta/[0.07]";
   return (
-    <div className="space-y-2">
+    <div data-guia="devoluciones.avisos" className="space-y-2">
       {cuarentena > 0 && (
         <p className={fila}>
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ambar/10 text-ambar-profundo">

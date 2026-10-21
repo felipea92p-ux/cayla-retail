@@ -14,7 +14,7 @@ import { ClientasPanel } from "@/components/ClientasPanel";
 // (`exigirModulo`), y la base lo vuelve a exigir: la política de `clientas` y sus funciones
 // preguntan por el módulo (ADR-0249, actualización 2026-09-28).
 export default async function ClientasPage({ searchParams }: { searchParams: Promise<{ q?: string; filtro?: string; pagina?: string }> }) {
-  await exigirModulo("clientas"); // el layout es la puerta del grupo (Clientas o Avisos): las fichas piden «clientas»
+  const persona = await exigirModulo("clientas"); // el layout es la puerta del grupo (Clientas o Avisos): las fichas piden «clientas»
   const params = leerParamsLista(await searchParams);
   // Desde la tanda 1g (ADR-0288, G-1) la ficha ya no muestra un QR personal: no necesita el WhatsApp de cada tienda.
   const [lista, cifras] = await Promise.all([getListaClientas(params), getCifrasClientas()]);
@@ -23,9 +23,12 @@ export default async function ClientasPage({ searchParams }: { searchParams: Pro
       filas={lista.filas}
       total={lista.total}
       falla={lista.falla}
-      params={params}
+      // La página que de verdad se leyó: si la de la URL ya no existe, la última (el pie y su «Anterior» parten de esa).
+      params={{ ...params, pagina: lista.pagina }}
       cifras={cifras}
       hoy={hoyLima()}
+      // Felipe 2026-10-13 (auditoría punto 18): el DNI y el celular completos, solo el líder.
+      verCompleto={persona.rol === "lider"}
     />
   );
 }

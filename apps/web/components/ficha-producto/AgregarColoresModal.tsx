@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Camera } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { BotonFoto } from "@/components/alta-producto/FotosAlta";
@@ -34,6 +34,7 @@ import {
 import { ElegirUnColor, MatrizNuevas, MontosNuevas, PieModal, PuntoColor, VistaPreviaCodigos, type ContextoFicha } from "./piezas";
 import { useSubirFotos } from "./useSubirFotos";
 import { Aviso } from "@/components/ui/Aviso";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // «Llegó un color nuevo» (Shopify «Add another value», mostrando ANTES las combinaciones y dejando desmarcar, como
 // Lightspeed X-Series): se eligen los colores como en el alta (ElegirColores: los más usados en la categoría, el buscador
@@ -105,7 +106,7 @@ export function AgregarColoresModal({
   const [costo, setCosto] = useState(montos.costo);
   // La foto de referencia de cada color nuevo (una por color: volver a elegir la reemplaza).
   const [fotoDe, setFotoDe] = useState<Record<string, string>>({});
-  const { elegir: elegirFoto, ocupado: subiendoFoto, revision } = useSubirFotos({
+  const { elegir: elegirFoto, ocupado: subiendoFoto } = useSubirFotos({
     onSubidas: (nuevas) =>
       setFotoDe((a) => {
         const b = { ...a };
@@ -135,7 +136,7 @@ export function AgregarColoresModal({
   const clasificadas = clasificarCombinaciones(base, combos);
   const nacen = clasificadas.filter((c) => c.queHace === "nueva").length;
   const vuelven = clasificadas.filter((c) => c.queHace === "reactiva");
-  const precioOk = precio.trim() !== "" && precioValido(Number(precio), admitePrecioCero);
+  const precioOk = precio.trim() !== "" && precioValido(numeroDeMonto(precio), admitePrecioCero);
 
   const faltaPrimero = eraSinColor && !colorDeLasQueTiene;
   const puede = !noSePuedeCorregir && !faltaPrimero && !choque && !bloqueo && (combos.length > 0 || !!destinoPrimero) && (nacen === 0 || precioOk);
@@ -155,7 +156,7 @@ export function AgregarColoresModal({
   }
 
   return (
-    <Modal titulo="Agregar color" subtitulo="Llegó un color que la prenda no tenía" onClose={onClose} ancho="max-w-2xl">
+    <Modal titulo="Agregar color" subtitulo="Llegó un color que la prenda no tenía" onClose={onClose} tamano="ancha">
       {(cerrar) => (
         <div className="space-y-5">
           {eraSinColor && (
@@ -196,7 +197,7 @@ export function AgregarColoresModal({
             </section>
           )}
 
-          <section className="space-y-2">
+          <section data-guia="agregar-color.colores" className="space-y-2">
             <p className="text-[12.5px] font-semibold text-tinta">{eraSinColor ? "2 · Los colores que llegaron" : "Los colores que llegaron"}</p>
             <ElegirColores
               colores={disponibles}
@@ -223,7 +224,7 @@ export function AgregarColoresModal({
                     <li key={codigo} className="flex items-center gap-3 rounded-xl border border-sand p-2.5">
                       {url ? (
                         <span className="relative block aspect-[4/5] w-10 shrink-0 overflow-hidden rounded-md border border-sand bg-papel">
-                          <Image src={url} alt={`Foto de ${n.color(codigo)}`} fill sizes="40px" className="object-cover" unoptimized />
+                          <ImagenDePrenda src={url} alt={`Foto de ${n.color(codigo)}`} fill sizes="40px" className="object-cover" fallback={null} />
                         </span>
                       ) : (
                         <BotonFoto
@@ -232,7 +233,7 @@ export function AgregarColoresModal({
                           etiqueta={`Agregar foto de ${n.color(codigo)}`}
                           className="grid aspect-[4/5] w-10 shrink-0 place-items-center rounded-md border-[1.5px] border-dashed border-taupe/55 bg-hueso/35 text-taupe transition-colors hover:border-tinta hover:text-tinta disabled:opacity-50"
                         >
-                          <Camera aria-hidden className="h-4 w-4" strokeWidth={1.6} />
+                          <Camera aria-hidden className="h-4 w-4" />
                         </BotonFoto>
                       )}
                       <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-tinta">
@@ -316,6 +317,7 @@ export function AgregarColoresModal({
           {nacen > 0 && <p className="text-[12.5px] font-medium text-tinta">{ctx.ajusteStock ? NACEN_EN_CERO_CARGABLES : NACEN_SIN_UNIDADES}</p>}
           <p className="text-[12.5px] text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Revisar y guardar».</p>
           <PieModal
+            guia="agregar-color.pie"
             onCancelar={cerrar}
             texto={texto}
             deshabilitado={!puede || subiendoFoto}
@@ -329,7 +331,6 @@ export function AgregarColoresModal({
               cerrar();
             }}
           />
-          {revision}
         </div>
       )}
     </Modal>

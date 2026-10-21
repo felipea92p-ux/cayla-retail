@@ -92,6 +92,7 @@ Cosas que tocó y no hicieron lo esperado: el primer clic en «Elegir la categor
 |---|---|---|---|---|
 | 2026-10-10 | `4f90fdb2` | 4,8 (ley 1: 6 provisional; ley 5: 3) | 5 (crudo 4) | primera revisión; ninguno aplicado: esperan el OK de Felipe |
 | 2026-10-10 | `f05df49e` + migración | **5,4** (ley 1: 6 provisional; ley 5: 4) | 5 (5 de 8 fallan; no era parte de los cambios) | **los 3 cambios aplicados** (Felipe los eligió); ciega sin repetir |
+| 2026-10-13 | `/pantalla` (no es una corrida de `/formidable`) | — | — | **Corrección:** el «¿Salir sin guardar?» con Escape o clic fuera **sí fallaba**: la pregunta salía con la hoja ya cerrada y «Seguir editando» dejaba la pantalla sin responder. Las dos corridas anteriores (y `/chaos` NAV-04) lo dieron por resuelto porque miraron que la pregunta apareciera, no que se pudiera seguir. Arreglado con `antesDeCerrar` (también en Registrar gasto) y vigilado por `lib/hojas-salida-sin-guardar.test.ts` |
 
 ## Segunda corrida (2026-10-10, tras aplicar los tres cambios que Felipe eligió)
 

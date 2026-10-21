@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cómo se conecta Finanzas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="base.css">
+<style>
+/* Mapa de conexiones de Finanzas (2026-10-15). Camino A: una pregunta, una respuesta grande, el detalle en capas.
+   Solo tokens de base.css. El mapa y los hilos se dibujan en SVG a mano. */
+.cap{display:flex;flex-direction:column;gap:22px;padding-top:56px;margin-top:40px;border-top:1px solid var(--sand)}
+.cap-cab{display:flex;flex-direction:column;gap:8px}
+.cap-cab h2{font-size:clamp(30px,4.2vw,40px);line-height:1.06}
+.cap-cab .baj{font-size:15.5px;max-width:66ch}
+.lectura{max-width:68ch}
+.capitulos{position:sticky;top:calc(env(safe-area-inset-top,0px) + 54px);z-index:40;display:flex;gap:4px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--hueso) 85%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);width:fit-content;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.capitulos::-webkit-scrollbar{display:none}
+.capitulos a{text-decoration:none;color:color-mix(in srgb,var(--tinta) 72%,transparent);font-size:12.5px;font-weight:600;letter-spacing:.04em;padding:7px 13px;border-radius:999px;white-space:nowrap;transition:background .25s var(--ease-cayla),color .2s}
+.capitulos a.activo{background:var(--tinta);color:var(--crema)}
+
+/* Portada */
+.portada{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:36px;align-items:end;padding-block:18px 10px}
+@media (max-width:820px){.portada{grid-template-columns:1fr}}
+.portada .pregunta{font-family:var(--serif);font-style:italic;font-size:22px;color:var(--taupe)}
+.portada h1{font-size:clamp(40px,6.4vw,66px);line-height:1}
+.portada h1 em{font-style:italic;color:var(--rojo-p)}
+.portada .frase{font-size:17px;max-width:56ch}
+.cifras-portada{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:520px){.cifras-portada{grid-template-columns:1fr 1fr}}
+.cifras-portada .cifra .valor{font-size:40px}
+
+/* Mapa */
+.mapa{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:16px;align-items:start}
+@media (max-width:1180px){.mapa{grid-template-columns:1fr}}
+.mapa-caja{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:12px;overflow-x:auto}
+.mapa-caja svg{display:block;min-width:820px;width:100%;height:auto}
+.leyenda{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;padding:4px 6px 0}
+.leyenda span{display:inline-flex;align-items:center;gap:7px}
+.leyenda i{width:22px;height:0;border-top:2.5px solid var(--c)}
+.leyenda i.punteada{border-top-style:dashed}
+.nodo{cursor:pointer}
+.nodo rect{fill:var(--papel);stroke:var(--sand);stroke-width:1.2;transition:stroke .2s,fill .2s}
+.nodo text{font-family:var(--sans);font-size:12.5px;font-weight:500;fill:var(--tinta);pointer-events:none}
+.nodo text.sub{font-size:10.5px;font-weight:400;fill:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.nodo .punto{r:4;fill:var(--c)}
+.nodo:hover rect,.nodo.activo rect{stroke:var(--tinta);fill:var(--hueso)}
+.nodo.activo rect{stroke-width:1.8}
+.arista{fill:none;stroke:var(--c);stroke-width:1.6;opacity:.75;transition:stroke-width .25s var(--ease-cayla),opacity .25s}
+.arista.punteada{stroke-dasharray:5 5}
+.arista.resaltada{stroke-width:3.2;opacity:1}
+.animar .arista[data-dibuja]{stroke-dasharray:1;animation:mq-dibuja 1.4s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 70ms + 300ms)}
+.animar .arista.punteada[data-dibuja]{animation-name:none;stroke-dasharray:5 5}
+.cometa{fill:var(--c);opacity:0}
+.centro rect{fill:var(--tinta);stroke:none}
+.centro text{fill:var(--crema);font-family:var(--serif);font-size:22px}
+.centro text.sub{font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;fill:color-mix(in srgb,var(--crema) 70%,transparent)}
+.centro .submod{font-family:var(--sans);font-size:12px;fill:var(--crema);letter-spacing:0;text-transform:none}
+.centro .diario{fill:color-mix(in srgb,var(--crema) 10%,transparent);stroke:color-mix(in srgb,var(--crema) 35%,transparent);stroke-dasharray:4 4}
+.panel{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:20px;display:flex;flex-direction:column;gap:14px;min-height:420px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 108px)}
+@media (max-width:1180px){.panel{position:static;min-height:0}}
+.panel h3{font-size:26px;line-height:1.1}
+.panel .bloque{display:flex;flex-direction:column;gap:4px}
+.panel .bloque p{font-size:14px}
+.panel .asiento{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:13px;background:var(--hueso);border-radius:10px;padding:10px 12px;font-variant-numeric:tabular-nums}
+.panel .asiento .deb::before{content:"DEBE  ";font-size:10px;letter-spacing:.1em;color:var(--taupe);font-weight:600}
+.panel .asiento .hab::before{content:"HABER  ";font-size:10px;letter-spacing:.1em;color:var(--taupe);font-weight:600}
+.panel .asiento .hab{padding-left:16px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.nodos-lista{display:flex;flex-wrap:wrap;gap:8px}
+.nodos-lista button{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:6px 12px 6px 10px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:border-color .2s,transform .2s var(--ease-cayla)}
+.nodos-lista button:hover{transform:translateY(-1px);border-color:var(--taupe)}
+.nodos-lista button[aria-pressed="true"]{border-color:var(--tinta);background:var(--hueso)}
+.nodos-lista i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+
+/* Hilos */
+.hilos-pildoras{display:flex;flex-wrap:wrap;gap:8px}
+.hilos-pildoras button{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:8px 14px;font-size:13.5px;cursor:pointer;transition:background .25s var(--ease-cayla),color .2s,border-color .2s}
+.hilos-pildoras button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.hilo{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(280px,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.hilo{grid-template-columns:1fr}}
+.hilo-cab{display:flex;flex-direction:column;gap:6px;padding-bottom:6px}
+.hilo-cab h3{font-size:28px}
+.pasos{position:relative;display:flex;flex-direction:column;gap:0;padding-left:44px}
+.pasos::before{content:"";position:absolute;left:15px;top:14px;bottom:24px;width:2px;background:var(--sand)}
+.pasos .riel{position:absolute;left:15px;top:14px;width:2px;height:0;background:var(--rojo);transition:height .6s var(--ease-cayla)}
+.paso{position:relative;padding:0 0 22px;transition:opacity .4s var(--ease-cayla)}
+.paso.futuro{opacity:.32}
+.paso .num{position:absolute;left:-44px;top:-2px;width:32px;height:32px;border-radius:50%;border:1.5px solid var(--sand);background:var(--papel);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:15px;transition:background .3s,color .3s,border-color .3s}
+.paso.hecho .num,.paso.actual .num{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.paso.actual .num{box-shadow:0 0 0 4px color-mix(in srgb,var(--rojo) 25%,transparent)}
+.paso .mod{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.paso h4{font-family:var(--sans);font-size:16px;font-weight:600;margin-top:2px}
+.paso p{font-size:14px;margin-top:4px;max-width:60ch}
+.paso .tabla-chip{display:inline-block;font-family:var(--mono);font-size:11.5px;background:var(--hueso);border-radius:6px;padding:2px 7px;margin-top:6px}
+.moneda{position:absolute;left:-36px;width:16px;height:16px;border-radius:50%;background:var(--ambar);border:2px solid var(--papel);box-shadow:0 1px 3px color-mix(in srgb,var(--sombra) 30%,transparent);transition:top .6s var(--ease-cayla);z-index:2}
+.hilo-lado{display:flex;flex-direction:column;gap:12px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 108px)}
+@media (max-width:900px){.hilo-lado{position:static}}
+.hilo-lado .tarjeta{display:flex;flex-direction:column;gap:10px}
+.libro{display:grid;grid-template-columns:1fr auto auto;gap:4px 10px;font-size:13px;font-variant-numeric:tabular-nums}
+.libro .cab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+.libro .fila{display:contents}
+.libro .fila span{padding:5px 0;border-top:1px solid var(--sand)}
+.libro .fila span:nth-child(2),.libro .fila span:nth-child(3){text-align:right;min-width:62px}
+.libro .fila.nueva span{animation:mq-entra .5s var(--ease-cayla) backwards}
+.libro .cuadra{grid-column:1/-1;display:flex;justify-content:space-between;font-size:12.5px;padding-top:8px}
+.hilo-acciones{display:flex;gap:8px;flex-wrap:wrap}
+.donde{display:flex;flex-direction:column;gap:6px}
+.donde .pantalla{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:13.5px;padding:7px 0;border-top:1px solid var(--sand)}
+.donde .pantalla:first-child{border-top:0}
+.donde .pantalla b{font-weight:600}
+.donde .pantalla small{color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+
+/* Huecos */
+.huecos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.hueco{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0;transition:transform .26s var(--ease-cayla),border-color .2s}
+.hueco:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--taupe) 45%,var(--sand))}
+.hueco .medida{font-family:var(--serif);font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+.hueco .medida small{font-family:var(--sans);font-size:13px;color:color-mix(in srgb,var(--tinta) 66%,transparent);display:block;margin-top:4px;line-height:1.35}
+.hueco h4{font-family:var(--sans);font-size:15.5px;font-weight:600}
+.hueco p{font-size:13.5px}
+.hueco .rompe{display:flex;flex-wrap:wrap;gap:5px}
+.hueco .fase{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:8px;border-top:1px solid var(--sand);font-size:12.5px}
+
+/* Simulador */
+.simulador{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.simulador{grid-template-columns:1fr}}
+.fuentes{display:flex;flex-direction:column;gap:14px}
+.fuentes .grupo{display:flex;flex-direction:column;gap:6px}
+.fuentes .grupo .versalita{padding-bottom:2px}
+.fuente{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:12px;background:var(--papel);border:1px solid var(--sand);cursor:pointer;transition:border-color .2s,background .2s}
+.fuente:hover{border-color:var(--taupe)}
+.fuente[aria-disabled="true"]{cursor:default;opacity:.85}
+.fuente .int{position:relative;width:40px;height:22px;border-radius:999px;background:var(--sand);flex:none;transition:background .25s var(--ease-cayla)}
+.fuente .int::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--papel);transition:left .25s var(--ease-cayla),width .2s}
+.fuente[aria-checked="true"] .int{background:var(--tinta)}
+.fuente[aria-checked="true"] .int::after{left:21px}
+.fuente:active .int::after{width:20px}
+.fuente .txt{display:flex;flex-direction:column;gap:1px;min-width:0}
+.fuente .txt b{font-size:14px;font-weight:500}
+.fuente .txt small{font-size:12px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.presets button{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:6px 12px;font-size:12.5px;cursor:pointer}
+.presets button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.preguntas{display:flex;flex-direction:column;gap:12px}
+.pregunta-sim{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.pregunta-sim .fila{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.pregunta-sim .fila b{font-family:var(--serif);font-size:20px;font-weight:500}
+.pregunta-sim .pct{font-family:var(--serif);font-size:26px;font-variant-numeric:tabular-nums}
+.pregunta-sim .pista{height:12px}
+.pregunta-sim .pista>i{transition:width .6s var(--ease-cayla),background .4s}
+.pregunta-sim .veredicto{font-size:13px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.pregunta-sim[data-nivel="bajo"] .pista>i{background:var(--rojo-p)}
+.pregunta-sim[data-nivel="medio"] .pista>i{background:var(--ambar)}
+.pregunta-sim[data-nivel="alto"] .pista>i{background:var(--verde)}
+
+/* Mañana */
+.manana{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px}
+.manana .tarjeta{display:flex;flex-direction:column;gap:10px}
+.manana h4{font-family:var(--serif);font-size:23px;font-weight:500;line-height:1.1}
+.manana dl{margin:0;display:grid;grid-template-columns:86px 1fr;gap:6px 12px;font-size:13.5px}
+.manana dt{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe);padding-top:3px}
+.manana dd{margin:0}
+.manana .ej{background:var(--hueso);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.manana .ej b{font-weight:600}
+.manana .pie{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;padding-top:8px;border-top:1px solid var(--sand)}
+
+/* Diccionario */
+.dicc{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px}
+.cuenta{background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.cuenta .cod{font-family:var(--serif);font-size:22px;line-height:1}
+.cuenta b{font-size:13.5px;font-weight:600}
+.cuenta p{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 74%,transparent)}
+.cuenta .ej{font-size:12px;color:var(--taupe)}
+.buscar{display:flex;align-items:center;gap:8px;max-width:360px;background:var(--hueso);border-radius:999px;padding:8px 14px}
+.buscar input{border:0;background:transparent;font:inherit;font-size:14px;color:inherit;outline:none;flex:1;min-width:0}
+.pie-pagina{margin-top:48px;font-size:13px}
+</style>
+</head>
+<body>
+<header class="mq-barra">
+  <a class="mq-volver" href="index.html" aria-label="Volver a las maquetas"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></a>
+  <div class="mq-titulo"><span class="versalita">Finanzas · antes de construir</span><b>Cómo se conecta Finanzas</b></div>
+  <span class="mq-espacio"></span>
+  <span class="mq-ejemplo">Ejemplos inventados · medidas reales del 15-oct</span>
+  <button class="mq-tema" type="button">Oscuro</button>
+</header>
+
+<main class="pagina">
+<nav class="capitulos" aria-label="Capítulos">
+  <a href="#mapa" class="activo">El mapa</a><a href="#hilos">Sigue un sol</a><a href="#falta">Qué le falta hoy</a><a href="#simulador">Simulador</a><a href="#manana">Con qué se conecta mañana</a><a href="#cuentas">Las cuentas, en tienda</a>
+</nav>
+
+<section class="variante" data-variante="mapa" id="mapa">
+  <div class="portada">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <span class="pregunta" data-entra style="--i:0">¿De dónde saca Finanzas sus números?</span>
+      <h1 data-entra style="--i:1">De lo que ya pasó en la tienda. <em>No guarda nada.</em></h1>
+      <p class="frase tenue" data-entra style="--i:2">Cada venta, cada cierre de caja, cada factura y cada sueldo quedan anotados en su propio módulo. Finanzas los lee y, con 16 reglas, convierte cada hecho en una línea de «entró» y «salió». Por eso un número de Finanzas solo es tan bueno como lo que los otros módulos registraron.</p>
+    </div>
+    <div class="cifras-portada">
+      <div class="cifra" data-sube style="--i:2"><span class="versalita">Reglas del diario</span><span class="valor num" data-cuenta="16">16</span><span class="pie">Una por cada cosa que pasa con plata</span></div>
+      <div class="cifra" data-sube style="--i:3"><span class="versalita">Módulos que le escriben</span><span class="valor num" data-cuenta="13">13</span><span class="pie">8 del ERP y 5 de afuera</span></div>
+      <div class="cifra" data-sube style="--i:4"><span class="versalita">Situaciones de dinero</span><span class="valor num" data-cuenta="19">19</span><span class="pie">de 22 ya construidas</span></div>
+    </div>
+  </div>
+
+  <div class="cap-cab" style="padding-top:30px">
+    <span class="versalita">Capítulo 1</span>
+    <h2>El mapa: quién le manda qué a Finanzas</h2>
+    <p class="baj tenue">Toca un módulo para ver qué le manda, cuándo, con un ejemplo en soles y en qué pantalla de Finanzas termina. El color dice cómo está hoy.</p>
+  </div>
+  <div class="leyenda">
+    <span><i style="--c:var(--verde)"></i>Conectado y con datos</span>
+    <span><i style="--c:var(--ambar)"></i>Construido, pero a medias o sin datos</span>
+    <span><i class="punteada" style="--c:var(--rojo-p)"></i>Todavía no existe</span>
+  </div>
+  <div class="mapa">
+    <div class="mapa-caja"><svg id="svg-mapa" viewBox="0 0 1000 640" role="img" aria-label="Mapa de los módulos que alimentan Finanzas"></svg></div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+  <div class="nodos-lista" id="nodos-lista" aria-label="Módulos"></div>
+</section>
+
+<section class="cap" id="hilos">
+  <div class="cap-cab">
+    <span class="versalita">Capítulo 2</span>
+    <h2>Sigue un sol de punta a punta</h2>
+    <p class="baj tenue">Cinco cosas que pasan todos los días. Cada una recorre los módulos por los que pasa y, al final, cómo se ve en Finanzas. Avanza paso a paso o deja que corra.</p>
+  </div>
+  <div class="hilos-pildoras" id="hilos-pildoras"></div>
+  <div class="hilo" id="hilo"></div>
+</section>
+
+<section class="cap" id="falta">
+  <div class="cap-cab">
+    <span class="versalita">Capítulo 3 · medido en producción el 15 de octubre de 2026</span>
+    <h2>Qué le falta hoy para que el número sea cierto</h2>
+    <p class="baj tenue">Finanzas no está roto: está desalimentado. Cada tarjeta es un hueco, con lo que se midió, qué pregunta rompe y en qué fase se cierra.</p>
+  </div>
+  <div class="huecos" id="huecos"></div>
+</section>
+
+<section class="cap" id="simulador">
+  <div class="cap-cab">
+    <span class="versalita">Capítulo 4</span>
+    <h2>¿Qué pasa si conectamos cada cosa?</h2>
+    <p class="baj tenue">Prende y apaga lo que alimenta a Finanzas y mira qué tan confiable queda cada pregunta. Los porcentajes son una estimación de cuánto del número depende de cada fuente, no una medida exacta.</p>
+  </div>
+  <div class="presets" id="presets"></div>
+  <div class="simulador">
+    <div class="fuentes" id="fuentes"></div>
+    <div class="preguntas" id="preguntas"></div>
+  </div>
+</section>
+
+<section class="cap" id="manana">
+  <div class="cap-cab">
+    <span class="versalita">Capítulo 5</span>
+    <h2>Con qué debería conectarse mañana</h2>
+    <p class="baj tenue">Lo que hoy entra a mano o no entra. En cada caso: qué llegaría, un ejemplo, qué pregunta mejora y cuándo.</p>
+  </div>
+  <div class="manana" id="manana-lista"></div>
+  <div class="nota"><strong>Lo que no vamos a conectar:</strong> una conexión automática al banco. En Perú no hay un conector abierto como el que usan los sistemas de Estados Unidos, y donde existe (Xero, QuickBooks) se cae seguido. El extracto se sube como archivo y el sistema lo cruza: es más aburrido y nunca falla.</div>
+</section>
+
+<section class="cap" id="cuentas">
+  <div class="cap-cab">
+    <span class="versalita">Capítulo 6</span>
+    <h2>Las cuentas del diario, en lenguaje de tienda</h2>
+    <p class="baj tenue">El contador las llama por su número del plan contable. Tú no necesitas saberlo, pero así puedes seguir cualquier línea del diario.</p>
+  </div>
+  <div class="buscar"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><input id="buscar-cuenta" type="text" placeholder="Busca «alquiler», «banco», «SUNAT»…" aria-label="Buscar una cuenta"></div>
+  <div class="dicc" id="dicc"></div>
+</section>
+
+<p class="pie-pagina tenue">Hecho con el código del repo al 15 de octubre de 2026 (<code>fn_asientos</code> y sus 7 parches, las funciones que lee cada pantalla, el §7 bis del plan de Finanzas) y con consultas de solo lectura a producción. Los ejemplos en soles son inventados; las medidas de «Qué le falta hoy» son reales. Las decisiones: ADR-0198, ADR-0120, ADR-0332 y ADR-0417.</p>
+</main>
+
+<script src="base.js"></script>
+<script>
+(function () {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const soles = (n) => "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+  /* ================= CAPÍTULO 1 · EL MAPA ================= */
+  const COLOR = { verde: "var(--verde)", ambar: "var(--ambar)", rojo: "var(--rojo-p)" };
+  const NODOS = [
+    // lado: izq = módulos del ERP; der = lo de afuera
+    { id: "vender", lado: "izq", nombre: "Vender", sub: "ventas, apartados, cambios, devoluciones", estado: "verde",
+      manda: "Cada venta con sus prendas, el costo que tenía cada prenda ese día (sellado) y cómo se cobró. También los adelantos de una separación, la diferencia de un cambio y la plata que se devuelve.",
+      cuando: "En el instante en que se cobra, se separa, se cambia o se aprueba una devolución.",
+      ejemplo: "Vendes una blusa a S/ 118 con Yape en Trujillo; su costo era S/ 45.",
+      regla: "venta · anulacion · devolucion · cambio · anticipo",
+      asiento: [["Banco (Yape)", "118", ""], ["Lo que vendiste", "", "100"], ["IGV de SUNAT", "", "18"], ["Lo que costó", "45", ""], ["Ropa en percha", "", "45"]],
+      donde: ["Resumen", "Reportes ▸ Estado de resultados", "Cuentas y dinero (libro del banco)", "Balance", "Cierre"],
+      hoy: "636 ventas en octubre, todas con su cuenta sellada. Pero 737 líneas son «prenda sin registrar» y entran con costo 0: el 64 % de la venta (ADR-0417 lo arregla con un costo estimado)." },
+    { id: "caja", lado: "izq", nombre: "Caja", sub: "cierres, traslados, gasto rápido", estado: "verde",
+      manda: "Cuánto efectivo había al abrir y al cerrar, la diferencia de cada cierre, a dónde se llevó la plata (caja fuerte, banco, el líder) y cada salida del cajón.",
+      cuando: "Al abrir y cerrar la caja, al trasladar y al registrar un gasto rápido.",
+      ejemplo: "Al cerrar Arequipa faltaron S/ 10, y se llevaron S/ 1,500 a la caja fuerte.",
+      regla: "diferencia_caja · traslado_banco · gasto",
+      asiento: [["Faltante de caja", "10", ""], ["Cajón", "", "10"]],
+      donde: ["Cuentas y dinero ▸ Efectivo por tienda", "Gastos ▸ Egresos por clasificar", "Estado de resultados (faltantes)", "Cierre (cajas cerradas)"],
+      hoy: "27 cierres en octubre. 14 con diferencia: −S/ 1,520 en total. 18 traslados a caja fuerte por S/ 11,453 y ninguno al banco. El traslado a caja fuerte no asienta nada: es plata que sigue siendo tuya, en otro lugar." },
+    { id: "inventario", lado: "izq", nombre: "Inventario", sub: "mermas, conteos, dañadas, traslados", estado: "verde",
+      manda: "Cada prenda que se pierde: un ajuste que resta, una diferencia de conteo, una prenda dañada que se bota o dona, lo que no llegó en un traslado.",
+      cuando: "Al ajustar, al cerrar un conteo o un traslado con diferencia.",
+      ejemplo: "En el conteo de Trujillo faltó una blusa que costó S/ 45.",
+      regla: "merma_conteo · merma_merma · merma_cuarentena · merma_traslado",
+      asiento: [["Prendas perdidas", "45", ""], ["Ropa en percha", "", "45"]],
+      donde: ["Reportes ▸ Estado de resultados (pestaña Pérdidas)", "Balance (ropa contra stock)"],
+      hoy: "Conectado. El Balance compara la cuenta «ropa en percha» con el stock real por su costo: hoy esa comparación no puede cuadrar porque no hay saldos de arranque." },
+    { id: "compras", lado: "izq", nombre: "Compras y Recibir", sub: "facturas, pagos, notas de crédito, lotes", estado: "ambar",
+      manda: "La factura de cada proveedor (mercadería, gasto o activo), cuándo vence, cada pago y de qué cuenta salió, las notas de crédito y los reembolsos. Recibir manda la mercadería que llegó.",
+      cuando: "Al registrar la factura, al pagar, al recibir el lote.",
+      ejemplo: "Compras mercadería por S/ 1,180 con factura a 30 días.",
+      regla: "compra · pago_proveedor · nota_credito_prov · reembolso_prov · igv_perdido",
+      asiento: [["Ropa en percha", "1,000", ""], ["IGV a tu favor", "180", ""], ["Debes al proveedor", "", "1,180"]],
+      donde: ["Cuentas y dinero ▸ Por pagar", "Impuestos (IGV a tu favor)", "Reportes ▸ Flujo (vence en su semana)", "Balance"],
+      hoy: "Construido y vacío: 0 facturas en producción y 9 lotes recibidos sin factura. Por eso Por pagar dice S/ 0 y el IGV a tu favor es 0. Recibir sin factura no asienta nada; el Balance lo avisa como «recibido sin factura»." },
+    { id: "produccion", lado: "izq", nombre: "Producción (Taller)", sub: "lotes, facturas de insumos, pagos", estado: "ambar",
+      manda: "Las facturas de tela e insumos y sus pagos llegan a Por pagar, a Impuestos y a Cuentas y dinero. Lo que fabrica el Taller NO entra al diario: ninguna regla lo toma.",
+      cuando: "Al registrar una factura del Taller o pagarla. Al cerrar un lote, todavía nada.",
+      ejemplo: "El Taller termina 40 blusas. Hoy cuestan lo que diga la ficha de la prenda, no lo que costó hacerlas.",
+      regla: "ninguna en el diario (fuera de la fase 5)",
+      asiento: [["Productos terminados", "—", ""], ["Tela, hilos, horas", "", "—"]],
+      donde: ["Por pagar", "Impuestos (IGV del Taller)", "Cuentas y dinero (pagos)"],
+      hoy: "0 órdenes de producción y 0 facturas del Taller en producción. Las cuentas «productos terminados» y «ventas del Taller» existen en el plan y nadie las usa. Es la fase 5." },
+    { id: "catalogo", lado: "izq", nombre: "Catálogo", sub: "campañas y sus descuentos", estado: "verde",
+      manda: "Qué campaña le dio descuento a cada prenda vendida, y cuánto sube la meta y el fondo de caja en esos días.",
+      cuando: "Al configurar la campaña y en cada venta con descuento.",
+      ejemplo: "En el Aniversario (6 al 8 de octubre) vendiste 38 % más que un día normal.",
+      regla: "ninguna propia: el descuento ya viene restado en lo vendido",
+      asiento: [["Lo que vendiste (ya con descuento)", "", "85"], ["IGV", "", "15.30"], ["Banco", "100.30", ""]],
+      donde: ["Reportes ▸ Campañas", "Reportes ▸ Presupuesto y Flujo (meta del mes)"],
+      hoy: "Conectado. 12 campañas con fechas en producción." },
+    { id: "clientes", lado: "izq", nombre: "Clientes (club)", sub: "descuento del club en cada venta", estado: "verde",
+      manda: "Cuánto del descuento de cada prenda fue por el club. Viene dentro de la venta: no tiene línea propia en Finanzas.",
+      cuando: "Al vender a un miembro del club.",
+      ejemplo: "Una miembro compra a S/ 118 con S/ 10 de descuento del club.",
+      regla: "ninguna propia: baja lo vendido",
+      asiento: [["Banco", "108", ""], ["Lo que vendiste", "", "91.53"], ["IGV", "", "16.47"]],
+      donde: ["Solo dentro de la venta; no hay un reporte «cuánto cuesta el club»"],
+      hoy: "Conectado por dentro de la venta. Si algún día quieres saber cuánto te cuesta el club, el dato ya está guardado en cada línea." },
+    { id: "configuracion", lado: "izq", nombre: "Configuración", sub: "desde cuándo cuenta, mínimo de caja, metas", estado: "ambar",
+      manda: "Desde qué mes cuenta Finanzas (el corte), el mínimo de caja que dispara avisos, la meta diaria de cada tienda, qué cuenta recibe cada medio de cobro y las tasas (IGV, UIT).",
+      cuando: "Cuando el líder lo cambia.",
+      ejemplo: "Finanzas cuenta desde el 1 de octubre de 2026 y avisa si la caja proyectada baja de S/ 15,000.",
+      regla: "corta el diario; decide la cuenta de cada cobro",
+      asiento: [["(no asienta: gobierna a las demás)", "", ""]],
+      donde: ["Todas"],
+      hoy: "El corte y el mínimo están puestos. Ninguna tienda tiene meta diaria y no hay presupuesto: «¿Voy según lo planeado?» no tiene contra qué comparar." },
+    { id: "sunat-cpe", lado: "der", nombre: "SUNAT · comprobantes", sub: "boletas y facturas vía Lucode", estado: "verde",
+      manda: "Cada boleta, factura y nota de crédito emitida y aceptada. De ahí sale el IGV que debes.",
+      cuando: "Al emitir y cuando SUNAT responde.",
+      ejemplo: "614 boletas y 15 facturas aceptadas en octubre: S/ 8,333 de IGV.",
+      regla: "ninguna en el diario (el IGV de la venta ya está en la regla «venta»); Impuestos lee los comprobantes directo",
+      asiento: [["IGV de tus ventas", "", "8,333"]],
+      donde: ["Impuestos (IGV que debes)", "Balance (IGV contra Impuestos)"],
+      hoy: "Conectado y vivo. Es la fuente más completa que tiene Finanzas." },
+    { id: "dynamic", lado: "der", nombre: "Dynamic · planilla", sub: "sueldos pagados por sede", estado: "ambar",
+      manda: "El costo total de la planilla de cada período (del 29 al 28), por sede, cuando Dynamic lo marca «pagado». Solo el líder lo ve.",
+      cuando: "Al pagar el período. Octubre todavía no está pagado.",
+      ejemplo: "Planilla de Trujillo del 29-sep al 28-oct: S/ 15,718.",
+      regla: "planilla",
+      asiento: [["Sueldos", "15,718", ""], ["Sueldos por pagar", "", "15,718"]],
+      donde: ["Reportes ▸ Estado de resultados", "Resumen", "Flujo (real y proyección)", "Cierre (aviso «planilla pagada»)"],
+      hoy: "Llega, pero a medias: S/ 14,902 al mes (oficina y Taller) caen sin sede de retail, y la salida del banco nunca se registra: «sueldos por pagar» sube y nunca baja (situación 15)." },
+    { id: "bancos", lado: "der", nombre: "Bancos · BCP e Interbank", sub: "el extracto", estado: "rojo",
+      manda: "Nada todavía. El extracto no se importa; la conciliación se marca línea por línea a mano.",
+      cuando: "Debería: cada vez que subes el Excel del banco.",
+      ejemplo: "Subes el extracto de Interbank: 38 movimientos; 34 se cruzan solos, 3 son sugeridos, 1 no tiene pareja.",
+      regla: "no asienta: cruza lo que el diario ya dice contra lo que el banco dice",
+      asiento: [["(cruce, no asiento)", "", ""]],
+      donde: ["Cuentas y dinero ▸ Conciliación"],
+      hoy: "0 conciliaciones y 0 movimientos de dinero en producción. Interbank ni siquiera existe como cuenta. Fase 3." },
+    { id: "pos", lado: "der", nombre: "Izipay y Vendemás", sub: "liquidaciones de tarjeta y QR", estado: "rojo",
+      manda: "Nada todavía. Debería mandar cada depósito neto: cuánto vendiste con la máquina, cuánto te depositó y cuánto se quedó.",
+      cuando: "Debería: 1 a 3 días después de cada cobro.",
+      ejemplo: "Vendiste S/ 3,200 con tarjeta el lunes; Izipay deposita S/ 3,158 el miércoles. Comisión S/ 42.",
+      regla: "dinero:abono_tarjeta + gasto (comisión)",
+      asiento: [["Interbank", "3,158", ""], ["Comisión de la máquina", "42", ""], ["Por depositar Izipay", "", "3,200"]],
+      donde: ["Cuentas y dinero", "Gastos (comisión)", "Estado de resultados", "Balance"],
+      hoy: "S/ 12,640 con tarjeta y S/ 10,790 con QR en octubre, registrados como si entraran completos al BCP. La comisión real no existe en el sistema. ADR-0417 lo aprobó; fase 1." },
+    { id: "sire", lado: "der", nombre: "SUNAT · SIRE", sub: "la propuesta de compras y ventas", estado: "rojo",
+      manda: "Nada todavía. SUNAT arma cada mes la lista de facturas que te emitieron (compras) y las que emitiste (ventas). Sería la fuente de la bandeja de facturas.",
+      cuando: "Debería: desde el día 2 de cada mes.",
+      ejemplo: "SUNAT trae 3 facturas a tu RUC: Textiles del Norte S/ 3,540, Hidrandina S/ 410, Grafinort S/ 650. Tú solo dices de qué fue cada una.",
+      regla: "no asienta: alimenta a Compras y Gastos, que sí asientan",
+      asiento: [["(propuesta, no asiento)", "", ""]],
+      donde: ["Gastos (bandeja)", "Impuestos (SIRE listo)", "Cierre"],
+      hoy: "Cero código. CAYLA pasa de 75 UIT, así que ya está obligada a llevar el SIRE; hoy no sabes quién lo presenta. Fases 3 y 4." },
+  ];
+  const SUBMODULOS = ["Resumen", "Gastos", "Cuentas y dinero", "Reportes", "Impuestos", "Cierre de mes"];
+
+  const svg = $("#svg-mapa");
+  const NS = "http://www.w3.org/2000/svg";
+  const el = (n, a = {}, t) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (t != null) e.textContent = t; return e; };
+  const izq = NODOS.filter((n) => n.lado === "izq"), der = NODOS.filter((n) => n.lado === "der");
+  const C = { x: 390, y: 110, w: 220, h: 420 };
+  const posIzq = (i) => ({ x: 30, y: 36 + i * ((640 - 72) / izq.length), w: 230, h: 48 });
+  const posDer = (i) => ({ x: 740, y: 90 + i * ((640 - 180) / der.length), w: 230, h: 48 });
+  const gA = el("g"), gN = el("g"), gC = el("g");
+  svg.append(gA, gN, gC);
+
+  // Centro: Finanzas y el diario
+  const gCentro = el("g", { class: "centro" });
+  gCentro.append(el("rect", { x: C.x, y: C.y, width: C.w, height: C.h, rx: 18 }));
+  gCentro.append(el("text", { x: C.x + C.w / 2, y: C.y + 44, "text-anchor": "middle" }, "Finanzas"));
+  gCentro.append(el("text", { x: C.x + C.w / 2, y: C.y + 64, "text-anchor": "middle", class: "sub" }, "lee · no guarda"));
+  gCentro.append(el("rect", { x: C.x + 16, y: C.y + 84, width: C.w - 32, height: 62, rx: 10, class: "diario" }));
+  gCentro.append(el("text", { x: C.x + C.w / 2, y: C.y + 110, "text-anchor": "middle", class: "sub" }, "El diario"));
+  gCentro.append(el("text", { x: C.x + C.w / 2, y: C.y + 130, "text-anchor": "middle", class: "submod" }, "16 reglas: hecho → entró | salió"));
+  SUBMODULOS.forEach((s, i) => {
+    gCentro.append(el("circle", { cx: C.x + 30, cy: C.y + 180 + i * 38, r: 3, fill: "var(--crema)" }));
+    gCentro.append(el("text", { x: C.x + 42, y: C.y + 185 + i * 38, class: "submod" }, s));
+  });
+  gC.append(gCentro);
+
+  const aristas = {};
+  NODOS.forEach((n, i) => {
+    const esIzq = n.lado === "izq";
+    const p = esIzq ? posIzq(izq.indexOf(n)) : posDer(der.indexOf(n));
+    n.pos = p;
+    const x1 = esIzq ? p.x + p.w : p.x, y1 = p.y + p.h / 2;
+    const x2 = esIzq ? C.x : C.x + C.w, y2 = C.y + 70 + (esIzq ? izq.indexOf(n) : der.indexOf(n)) * (esIzq ? 40 : 60) + 20;
+    const d = `M${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}`;
+    const a = el("path", { d, class: "arista" + (n.estado === "rojo" ? " punteada" : ""), style: `--c:${COLOR[n.estado]};--i:${i}`, "data-dibuja": "", pathLength: "1" });
+    gA.append(a);
+    // cometa: viaja hacia Finanzas (verde/ámbar) o hacia afuera (lo que falta)
+    const cometa = el("circle", { r: 4.5, class: "cometa", style: `--c:${COLOR[n.estado]}` });
+    const mov = el("animateMotion", { dur: "1.5s", begin: "indefinite", fill: "remove", path: esIzq || n.estado !== "rojo" ? d : d, keyPoints: esIzq ? "0;1" : "1;0", keyTimes: "0;1", calcMode: "linear" });
+    const op = el("animate", { attributeName: "opacity", values: "0;1;1;0", dur: "1.5s", begin: "indefinite", fill: "remove" });
+    cometa.append(mov, op);
+    gA.append(cometa);
+    aristas[n.id] = { a, cometa, mov, op };
+
+    const g = el("g", { class: "nodo", tabindex: "0", role: "button", "aria-label": n.nombre, "data-id": n.id, style: `--c:${COLOR[n.estado]}` });
+    g.append(el("rect", { x: p.x, y: p.y, width: p.w, height: p.h, rx: 12 }));
+    g.append(el("circle", { cx: p.x + 16, cy: p.y + p.h / 2, class: "punto" }));
+    g.append(el("text", { x: p.x + 30, y: p.y + 20 }, n.nombre));
+    g.append(el("text", { x: p.x + 30, y: p.y + 36, class: "sub" }, n.sub));
+    g.addEventListener("click", () => elegir(n.id));
+    g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(n.id); } });
+    g.addEventListener("mouseenter", () => viajar(n.id));
+    gN.append(g);
+  });
+  // Títulos de columna
+  gC.append(el("text", { x: 30, y: 18, class: "sub", style: "font-family:var(--sans);font-size:11px;letter-spacing:.12em;fill:var(--taupe);font-weight:600" }, "LO QUE PASA EN LA TIENDA"));
+  gC.append(el("text", { x: 740, y: 72, class: "sub", style: "font-family:var(--sans);font-size:11px;letter-spacing:.12em;fill:var(--taupe);font-weight:600" }, "LO DE AFUERA"));
+
+  function viajar(id) {
+    if (reducido) return;
+    const r = aristas[id]; if (!r) return;
+    r.mov.beginElement(); r.op.beginElement();
+  }
+  const panel = $("#panel"), lista = $("#nodos-lista");
+  NODOS.forEach((n) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.dataset.id = n.id; b.style.setProperty("--c", COLOR[n.estado]);
+    b.innerHTML = `<i></i>${n.nombre}`;
+    b.addEventListener("click", () => elegir(n.id));
+    lista.append(b);
+  });
+  function elegir(id) {
+    const n = NODOS.find((x) => x.id === id);
+    $$(".nodo", svg).forEach((g) => g.classList.toggle("activo", g.dataset.id === id));
+    $$(".arista", svg).forEach((a) => a.classList.remove("resaltada"));
+    aristas[id].a.classList.add("resaltada");
+    $$("button", lista).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === id)));
+    viajar(id);
+    const chipEstado = { verde: '<span class="chip c-verde">Conectado y con datos</span>', ambar: '<span class="chip c-ambar">A medias o sin datos</span>', rojo: '<span class="chip c-rojo">Todavía no existe</span>' }[n.estado];
+    const asiento = n.asiento.map(([q, d, h]) => `<span>${q}</span><span class="num">${d ? `<span class="deb"></span>${d}` : ""}${h ? `<span class="hab"></span>${h}` : ""}</span>`).join("");
+    panel.innerHTML = `
+      <div class="chips">${chipEstado}</div>
+      <h3>${n.nombre}</h3>
+      <div class="bloque"><span class="versalita">Qué le manda a Finanzas</span><p>${n.manda}</p></div>
+      <div class="bloque"><span class="versalita">Cuándo</span><p>${n.cuando}</p></div>
+      <div class="bloque"><span class="versalita">Por ejemplo</span><p>${n.ejemplo}</p><div class="asiento">${asiento}</div><p class="tenue" style="font-size:12px">Regla del diario: <code>${n.regla}</code></p></div>
+      <div class="bloque"><span class="versalita">Dónde se ve</span><div class="chips">${n.donde.map((d) => `<span class="chip c-pizarra">${d}</span>`).join("")}</div></div>
+      <div class="bloque"><span class="versalita">Hoy, en producción</span><p>${n.hoy}</p></div>`;
+    panel.querySelectorAll(".bloque, h3, .chips").forEach((e, i) => { e.setAttribute("data-entra", ""); e.style.setProperty("--i", i); });
+    panel.classList.remove("animar"); void panel.offsetWidth; panel.classList.add("animar");
+  }
+  elegir("vender");
+  // Al entrar, un cometa por conexión, en cascada
+  document.addEventListener("variante", () => {
+    if (reducido) return;
+    NODOS.forEach((n, i) => setTimeout(() => viajar(n.id), 500 + i * 140));
+  });
+
+  /* ================= CAPÍTULO 2 · SIGUE UN SOL ================= */
+  const HILOS = [
+    { id: "yape", nombre: "Una venta con Yape", titulo: "Vendes una blusa a S/ 118 con Yape en Trujillo", baj: "La prenda costó S/ 45. Mira cómo ese cobro llega a seis pantallas de Finanzas sin que nadie escriba nada.",
+      pasos: [
+        { mod: "Vender", t: "La cajera cobra S/ 118 con Yape", p: "Se guarda la venta, la prenda con el costo que tenía ese día (S/ 45, sellado para siempre) y el cobro con la cuenta del banco que recibe los Yape de Trujillo.", tabla: "ventas · venta_items · venta_pagos", libro: [["Banco (Yape de TRU)", 118, 0], ["Lo que vendiste", 0, 100], ["IGV de SUNAT", 0, 18]] },
+        { mod: "Comprobantes · Lucode", t: "Sale la boleta a SUNAT", p: "La boleta se emite al instante y SUNAT la acepta. De aquí saca Impuestos el IGV que debes.", tabla: "comprobantes", libro: [] },
+        { mod: "El diario", t: "La regla «venta» hace sus líneas", p: "No guarda nada: cuando una pantalla pregunta, lee la venta y escribe: entraron S/ 118 al banco, vendiste S/ 100, S/ 18 son de SUNAT; y la ropa bajó S/ 45.", tabla: "fn_asientos → regla venta", libro: [["Lo que costó lo vendido", 45, 0], ["Ropa en percha", 0, 45]] },
+        { mod: "Finanzas", t: "Se ve en seis lugares", p: "Resumen («te quedan»), Estado de resultados (TRU: vendió 100, costó 45, dejó 55), Cuentas y dinero (el banco subió 118), Impuestos (IGV 18), Balance (el banco y la ropa cuadran) y Cierre (el asiento cuadra).", tabla: "", libro: [] },
+      ],
+      donde: [["Resumen", "Suma a «te quedan»"], ["Estado de resultados", "TRU: +100 venta, −45 costo"], ["Cuentas y dinero", "Banco +118 · libro: «Cobro con Yape · TRU»"], ["Impuestos", "IGV que debes +18"], ["Balance", "Banco +118 · Ropa −45"], ["Cierre", "Asiento cuadrado ✓"]],
+      hoy: "Si la prenda fuera «sin registrar», el costo entra en 0 y el margen de ese día sale inflado. Es el hueco más grande de hoy." },
+    { id: "tarjeta", nombre: "Una venta con tarjeta", titulo: "Vendes S/ 118 con tarjeta en la máquina de Vendemás", baj: "La plata no entra hoy ni entera. Así debería verse cuando esté conectado como aprobó el ADR-0417.",
+      pasos: [
+        { mod: "Vender", t: "Cobro con tarjeta, máquina Vendemás", p: "La venta se guarda completa (S/ 118) y el cobro queda en «Por depositar Vendemás», no en el banco: la máquina todavía te lo debe.", tabla: "ventas · venta_pagos (máquina)", libro: [["Por depositar Vendemás", 118, 0], ["Lo que vendiste", 0, 100], ["IGV de SUNAT", 0, 18]] },
+        { mod: "El diario", t: "Costo de la prenda", p: "Igual que con Yape: la ropa baja S/ 45 y «lo que costó» sube S/ 45.", tabla: "fn_asientos → regla venta", libro: [["Lo que costó lo vendido", 45, 0], ["Ropa en percha", 0, 45]] },
+        { mod: "Vendemás → Interbank", t: "Dos días después deposita S/ 114", p: "Llega S/ 114 a Interbank. Los S/ 4 que faltan son la comisión. Hoy esto se registra a mano en Cuentas y dinero; mañana, al subir el extracto, se cruza solo.", tabla: "movimientos_dinero (abono_tarjeta) · gastos (comisión)", libro: [["Interbank", 114, 0], ["Comisión de la máquina", 4, 0], ["Por depositar Vendemás", 0, 118]] },
+        { mod: "Finanzas", t: "La comisión aparece como gasto", p: "«Por depositar Vendemás» vuelve a 0. Gastos muestra S/ 4 de comisión y el Estado de resultados la resta. Si al cuarto día no llega el depósito, Cuentas y dinero avisa.", tabla: "", libro: [] },
+      ],
+      donde: [["Cuentas y dinero", "Por depositar 118 → 0 · Interbank +114"], ["Gastos", "Comisión de la máquina +4"], ["Estado de resultados", "Vendió 100, costó 45, comisión 4"], ["Conciliación", "Depósito cruzado contra la venta ✓"]],
+      hoy: "Hoy la tarjeta se sella al BCP como si entrara completa y al instante, y nadie registra la comisión. Hay S/ 23,430 de octubre así. Decidido en ADR-0417; fase 1." },
+    { id: "taxi", nombre: "Un taxi del cajón", titulo: "La encargada de Arequipa paga S/ 15 de taxi del cajón", baj: "El gasto chico es el que más se pierde. Así entra cuando se anota en el momento.",
+      pasos: [
+        { mod: "Caja", t: "Gasto rápido: «Taxi, S/ 15»", p: "Desde Caja, dos toques. Se crea la salida del cajón de Arequipa y el gasto con su categoría (transporte), sin comprobante, pagado en efectivo.", tabla: "caja_movimientos · gastos", libro: [["Transporte", 15, 0], ["Cajón de AQP", 0, 15]] },
+        { mod: "Caja", t: "El cierre ya lo descuenta", p: "Al cerrar, el efectivo esperado es S/ 15 menos. Si no se hubiera anotado, el cierre habría salido con S/ 15 de faltante «sin explicar».", tabla: "fn_calcular_esperado_caja", libro: [] },
+        { mod: "El diario", t: "Regla «gasto»", p: "La categoría «transporte» dice a qué cuenta va (631). Como no hay factura, no hay IGV a favor.", tabla: "fn_asientos → regla gasto", libro: [] },
+        { mod: "Finanzas", t: "Se ve en cuatro lugares", p: "Gastos (lista y panel), Cuentas y dinero ▸ Efectivo por tienda, Estado de resultados de AQP (transporte) y Presupuesto, si hay meta para esa categoría.", tabla: "", libro: [] },
+      ],
+      donde: [["Gastos", "Transporte · AQP · sin factura · S/ 15"], ["Efectivo por tienda", "Cajón AQP −15"], ["Estado de resultados", "AQP: gastos de operación +15"], ["Presupuesto", "Transporte: va en S/ 15 de la meta"]],
+      hoy: "En octubre, 14 de 27 cierres salieron con faltante (−S/ 1,520 en total). Lo más probable es que sean taxis y gastos así que no se anotaron. El arreglo está en Caja: pedir el motivo en el momento." },
+    { id: "factura", nombre: "Una factura a 30 días", titulo: "Compras mercadería por S/ 1,180 con factura a 30 días", baj: "Una compra toca tres momentos: la factura, la llegada de la ropa y el pago. Finanzas los ve por separado.",
+      pasos: [
+        { mod: "Compras", t: "Registras la factura (S/ 1,000 + S/ 180 de IGV)", p: "Queda la deuda con el proveedor, su vencimiento a 30 días y el IGV que SUNAT te devuelve. La ropa entra a su cuenta por S/ 1,000, sin IGV (ADR-0417).", tabla: "compras · compra_items", libro: [["Ropa en percha", 1000, 0], ["IGV a tu favor", 180, 0], ["Debes al proveedor", 0, 1180]] },
+        { mod: "Recibir", t: "Llega la mercadería", p: "Se abre el lote y las prendas entran al stock. Esto no asienta nada: la ropa ya entró con la factura. Si llega antes que la factura, el Balance lo avisa como «recibido sin factura».", tabla: "lotes · movimientos (entrada)", libro: [] },
+        { mod: "Finanzas", t: "Por pagar la muestra con su vencimiento", p: "Por pagar: S/ 1,180, vence en 30 días. Flujo: la pone en la semana en que vence. Impuestos: S/ 180 a tu favor.", tabla: "fn_por_pagar_consolidado · fn_flujo_caja_proyeccion", libro: [] },
+        { mod: "Compras ▸ Pagar", t: "Pagas por transferencia desde el BCP", p: "El pago sale de la cuenta que eliges. Si saliera del cajón, Caja crea su salida y el cierre la descuenta. Si fuera más de S/ 2,000 en efectivo, perderías el IGV: el diario lo registra como «IGV perdido».", tabla: "compra_pagos", libro: [["Debes al proveedor", 1180, 0], ["BCP", 0, 1180]] },
+        { mod: "Finanzas", t: "La deuda baja a 0", p: "Por pagar deja de mostrarla, el BCP baja S/ 1,180 en Cuentas y dinero y el Flujo real la lista como «salió: proveedores».", tabla: "", libro: [] },
+      ],
+      donde: [["Por pagar", "S/ 1,180 · vence en 30 días → 0 al pagar"], ["Impuestos", "IGV a tu favor +180"], ["Flujo", "Semana del vencimiento: −1,180"], ["Cuentas y dinero", "BCP −1,180 · conciliación"], ["Balance", "Ropa +1,000 · Deudas 1,180 → 0"]],
+      hoy: "En producción hay 0 facturas y 9 lotes recibidos sin factura. Por eso Por pagar está vacío y el IGV a tu favor es 0: no es que no debas nada, es que no está anotado." },
+    { id: "sueldo", nombre: "El sueldo del mes", titulo: "Dynamic paga la planilla de Trujillo: S/ 15,718", baj: "Finanzas no calcula sueldos: los lee de Dynamic cuando el período queda «pagado».",
+      pasos: [
+        { mod: "Dynamic", t: "El período del 29-sep al 28-oct se marca «pagado»", p: "Dynamic calcula sueldos, gratificaciones, CTS y EsSalud de cada persona. A retail solo llega el total por sede, nunca por persona, y solo lo ve el líder.", tabla: "public.v_planilla_pagada → retail.planilla_por_sede", libro: [] },
+        { mod: "El diario", t: "Regla «planilla», el último día del período", p: "Sueldos de Trujillo: S/ 15,718. Lo de la oficina (S/ 11,880) cae en «de la empresa»; el Taller (S/ 3,022) llega solo si Dynamic lo marca como taller.", tabla: "fn_asientos → regla planilla", libro: [["Sueldos (TRU)", 15718, 0], ["Sueldos por pagar", 0, 15718]] },
+        { mod: "Finanzas", t: "El Estado de resultados lo resta", p: "TRU muestra la fila «planilla» con la nota «del 29/09 al 28/10 · N personas (Dynamic)». El Flujo proyecta la próxima planilla con esta cifra.", tabla: "fn_estado_resultados · fn_flujo_caja_proyeccion", libro: [] },
+        { mod: "Lo que falta", t: "La salida del banco nunca se registra", p: "Dynamic paga por transferencia, pero ninguna cuenta de retail baja: «sueldos por pagar» sube cada mes y nunca se cancela (situación 15). El Cierre avisa si el período no está pagado.", tabla: "movimientos_dinero (no existe el tipo)", libro: [] },
+      ],
+      donde: [["Estado de resultados", "TRU: planilla −15,718"], ["Resumen", "Resta de «te quedan»"], ["Flujo", "Próxima planilla: ≈ −33,400 el 30"], ["Cierre", "«Planilla del mes pagada» ⚠ hasta que Dynamic pague"], ["Cuentas y dinero", "Nada: el banco no baja (falta)"]],
+      hoy: "Si octubre se cierra antes de que Dynamic pague, sale sin sueldos y parece ganancia. El Cierre lo avisa. Y S/ 14,902 al mes llegan sin sede de retail: fase 1." },
+  ];
+  const pild = $("#hilos-pildoras"), hiloCaja = $("#hilo");
+  let hiloActual = null, pasoActual = 0, autoTimer = null;
+  HILOS.forEach((h) => {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = h.nombre; b.dataset.id = h.id;
+    b.addEventListener("click", () => abrirHilo(h.id)); pild.append(b);
+  });
+  function abrirHilo(id) {
+    clearTimeout(autoTimer);
+    hiloActual = HILOS.find((h) => h.id === id); pasoActual = 0;
+    $$("button", pild).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === id)));
+    const h = hiloActual;
+    hiloCaja.innerHTML = `
+      <div>
+        <div class="hilo-cab"><h3>${h.titulo}</h3><p class="tenue">${h.baj}</p></div>
+        <div class="pasos" id="pasos"><span class="riel" id="riel"></span><span class="moneda" id="moneda" aria-hidden="true"></span>
+          ${h.pasos.map((p, i) => `<div class="paso ${i === 0 ? "actual" : "futuro"}" data-i="${i}"><span class="num">${i + 1}</span><span class="mod">${p.mod}</span><h4>${p.t}</h4><p>${p.p}</p>${p.tabla ? `<span class="tabla-chip">${p.tabla}</span>` : ""}</div>`).join("")}
+        </div>
+        <div class="hilo-acciones"><button class="btn primario" id="sig" type="button">Siguiente paso</button><button class="btn sutil" id="auto" type="button">Dejar que corra</button><button class="btn sutil" id="otra" type="button">Ver otra vez</button></div>
+      </div>
+      <div class="hilo-lado">
+        <div class="tarjeta"><span class="versalita">El diario, línea por línea</span><div class="libro" id="libro"><span class="cab">Cuenta</span><span class="cab">Entró</span><span class="cab">Salió</span></div></div>
+        <div class="tarjeta"><span class="versalita">Dónde se ve en Finanzas</span><div class="donde">${h.donde.map(([p, q]) => `<div class="pantalla"><b>${p}</b><small>${q}</small></div>`).join("")}</div></div>
+        <div class="nota"><strong>Hoy, en producción:</strong> ${h.hoy}</div>
+      </div>`;
+    $("#sig").addEventListener("click", () => avanzar());
+    $("#auto").addEventListener("click", () => { clearTimeout(autoTimer); const tick = () => { if (pasoActual < h.pasos.length - 1) { avanzar(); autoTimer = setTimeout(tick, 2200); } }; tick(); });
+    $("#otra").addEventListener("click", () => abrirHilo(id));
+    pintarLibro(0); colocarMoneda();
+    if (!reducido) { hiloCaja.classList.remove("animar"); void hiloCaja.offsetWidth; hiloCaja.classList.add("animar"); }
+  }
+  function avanzar() {
+    if (!hiloActual) return;
+    if (pasoActual >= hiloActual.pasos.length - 1) return;
+    pasoActual++;
+    $$(".paso", hiloCaja).forEach((p, i) => { p.classList.toggle("hecho", i < pasoActual); p.classList.toggle("actual", i === pasoActual); p.classList.toggle("futuro", i > pasoActual); });
+    pintarLibro(pasoActual); colocarMoneda();
+    if (pasoActual === hiloActual.pasos.length - 1) $("#sig").textContent = "Fin del recorrido";
+  }
+  function colocarMoneda() {
+    const pasos = $("#pasos"), m = $("#moneda"), r = $("#riel"); if (!pasos) return;
+    const p = $$(".paso", pasos)[pasoActual]; const top = p.offsetTop + 8;
+    m.style.top = top + "px"; r.style.height = Math.max(0, top - 6) + "px";
+  }
+  function pintarLibro(hasta) {
+    const libro = $("#libro"); if (!libro) return;
+    const filas = []; for (let i = 0; i <= hasta; i++) filas.push(...hiloActual.pasos[i].libro.map((f) => ({ f, nueva: i === hasta })));
+    let d = 0, hb = 0;
+    libro.innerHTML = `<span class="cab">Cuenta</span><span class="cab">Entró</span><span class="cab">Salió</span>` +
+      filas.map(({ f: [c, de, ha], nueva }) => { d += de; hb += ha; return `<div class="fila ${nueva ? "nueva" : ""}"><span>${c}</span><span class="num">${de ? soles(de) : ""}</span><span class="num">${ha ? soles(ha) : ""}</span></div>`; }).join("") +
+      (filas.length ? `<div class="cuadra"><span class="tenue">Entró ${soles(d)} · Salió ${soles(hb)}</span>${Math.abs(d - hb) < 0.01 ? '<span class="chip c-verde">Cuadra</span>' : '<span class="chip c-ambar">Descuadra</span>'}</div>` : `<div class="cuadra"><span class="tenue">Todavía no hay líneas en este paso.</span></div>`);
+  }
+  abrirHilo("yape");
+  addEventListener("resize", colocarMoneda);
+
+  /* ================= CAPÍTULO 3 · QUÉ LE FALTA ================= */
+  const HUECOS = [
+    { medida: "64 %", sub: "de la venta de octubre sin costo · S/ 35,311 en 737 líneas", t: "La venta sin prenda entra con costo 0", p: "Cada «prenda sin registrar» se vende sin saber qué costó. El margen sale inflado y en Arequipa el 95 % de la venta está así.", rompe: ["¿Estoy ganando?", "¿Puedo cerrar?"], fase: "Fase 1 · ADR-0417, decisión 1", chip: "c-rojo" },
+    { medida: "36 % o 46 %", sub: "el margen bruto de hoy, según en qué base esté el costo", t: "El costo está guardado de dos formas", p: "Unas compras guardaron el costo con IGV y otras sin. Hasta que todo esté en una sola base no se puede saber cuál es el margen real.", rompe: ["¿Estoy ganando?", "¿Qué deja cada prenda?"], fase: "Fase 1 · ADR-0417, decisión 2", chip: "c-rojo" },
+    { medida: "S/ 1,682", sub: "de gastos en 66 registros · 64 salieron del cajón", t: "Alquileres, luz, contador y publicidad no están", p: "No hay un solo gasto fijo cargado. Sin ellos, la utilidad sale positiva aunque no lo sea, y la caja proyectada no ve el pago del día 30.", rompe: ["¿Estoy ganando?", "¿Me alcanza?"], fase: "Fase 0 · sin código: se cargan en Gastos ▸ Fijos", chip: "c-ambar" },
+    { medida: "0 facturas", sub: "de proveedor · 9 lotes recibidos sin factura", t: "No se sabe lo que CAYLA debe", p: "Por pagar está vacío y el IGV a favor es 0. No es que no debas: es que nadie anotó las facturas.", rompe: ["¿Qué debo?", "¿Cuánto a SUNAT?", "¿Me alcanza?"], fase: "Fase 0 a mano · Fase 3 con la bandeja del SIRE", chip: "c-ambar" },
+    { medida: "S/ 0", sub: "de saldos de arranque · el banco empezó en 0", t: "Nadie le dijo a Finanzas con cuánto empezó", p: "La ropa (S/ 60,828) y los equipos (S/ 59,638) existen, pero no la plata ni las deudas del 30 de septiembre. El Balance no puede cuadrar y la caja proyectada parte de una cifra inventada.", rompe: ["¿Me alcanza?", "¿Qué tengo y qué debo?"], fase: "Fase 0 · se anotan los saldos al 30-sep", chip: "c-ambar" },
+    { medida: "0", sub: "conciliaciones · 0 movimientos de dinero · S/ 11,453 en cajas fuertes", t: "El banco nunca se ha cuadrado", p: "Solo existe el BCP, con saldo 0. Nada ha ido de la caja fuerte al banco. «¿Dónde está mi plata?» es hoy una suma teórica.", rompe: ["¿Me alcanza?", "¿Cuadra?"], fase: "Fase 3 · subir el extracto", chip: "c-rojo" },
+    { medida: "S/ 23,430", sub: "cobrados con tarjeta y QR como si entraran completos", t: "Las comisiones de las máquinas no existen", p: "La tarjeta queda «en tránsito» para siempre y el QR se cuenta como Yape. Unos S/ 700 a 900 por quincena que el margen no descuenta.", rompe: ["¿Estoy ganando?", "¿Cuadra?"], fase: "Fase 1 · ADR-0417, decisión 3", chip: "c-rojo" },
+    { medida: "S/ 14,902", sub: "al mes de planilla sin una sede de retail", t: "La oficina y el Taller caen fuera", p: "Lo de la oficina va a «de la empresa» (bien para el contador, mal para un sueldo que es de una tienda); lo del Taller solo llega si Dynamic lo marca como taller.", rompe: ["¿Qué deja cada tienda?"], fase: "Fase 1 · oficina → empresa, Taller → su sede", chip: "c-ambar" },
+    { medida: "2 de 22", sub: "situaciones de dinero sin construir: pagar planilla y pagar a SUNAT", t: "Dos deudas que suben y nunca bajan", p: "«Sueldos por pagar» e «IGV de SUNAT» crecen cada mes porque la salida del banco no se registra. El Balance dirá que debes más de lo real.", rompe: ["¿Qué debo?", "¿Me alcanza?"], fase: "Fase 1 · dos botones en Cuentas y dinero", chip: "c-ambar" },
+    { medida: "0 órdenes", sub: "de producción · 0 facturas del Taller", t: "Lo que fabrica el Taller no entra al diario", p: "Las cuentas «productos terminados» y «ventas del Taller» existen y nadie las usa. Una prenda hecha en casa cuesta hoy lo que diga su ficha, no lo que costó hacerla.", rompe: ["¿Cuánto cuesta una prenda del Taller?"], fase: "Fase 5 · cuando el Taller produzca en el ERP", chip: "c-ambar" },
+    { medida: "−S/ 1,520", sub: "en 14 de 27 cierres · ≈ 9.7 % del efectivo", t: "Se pierde efectivo sin explicación", p: "Lo más probable son gastos del cajón sin anotar, pero el sistema no lo distingue de un robo. Se arregla en Caja, no en Finanzas.", rompe: ["¿Me alcanza?", "¿Puedo cerrar?"], fase: "Caja · pedir el motivo en el momento", chip: "c-ambar" },
+    { medida: "Sin dato", sub: "las ventas no guardan de qué canal vinieron", t: "Instagram y WhatsApp no existen para Finanzas", p: "Una venta por mensaje se registra igual que una de mostrador. No se puede saber cuánto deja cada canal después del envío y el cobro.", rompe: ["¿Qué canal me deja más?"], fase: "Fase 6", chip: "c-pizarra" },
+    { medida: "Sin meta", sub: "ninguna tienda tiene meta diaria · 0 presupuestos", t: "«¿Voy según lo planeado?» no tiene contra qué comparar", p: "Presupuesto y Caja esperan una meta por día y por categoría de gasto. No están cargadas.", rompe: ["¿Voy según lo planeado?"], fase: "Fase 0 · Configuración ▸ Tiendas y caja", chip: "c-pizarra" },
+  ];
+  $("#huecos").innerHTML = HUECOS.map((h, i) => `<div class="hueco" data-sube style="--i:${i}"><span class="medida">${h.medida}<small>${h.sub}</small></span><h4>${h.t}</h4><p>${h.p}</p><div class="rompe">${h.rompe.map((r) => `<span class="chip ${h.chip}">${r}</span>`).join("")}</div><div class="fase"><span class="tenue">Se cierra en</span><b>${h.fase}</b></div></div>`).join("");
+
+  /* ================= CAPÍTULO 4 · SIMULADOR ================= */
+  const FUENTES = [
+    { id: "ventas", g: "Ya conectado", t: "Ventas, cobros y comprobantes", s: "Vender y Lucode: vivo", fijo: true, on: true },
+    { id: "caja", g: "Ya conectado", t: "Caja: cierres y traslados", s: "Vivo, con faltantes sin motivo", fijo: true, on: true },
+    { id: "planilla", g: "Ya conectado", t: "Planilla leída de Dynamic", s: "Llega el total; a medias por sede", fijo: true, on: true },
+    { id: "fijos", g: "Fase 0 · sin código", t: "Alquileres, luz, contador, publicidad como fijos", s: "Se cargan en Gastos ▸ Fijos" },
+    { id: "facturas", g: "Fase 0 · sin código", t: "Facturas de proveedor registradas", s: "A mano hoy; con la bandeja del SIRE después" },
+    { id: "saldos", g: "Fase 0 · sin código", t: "Saldos de arranque: bancos y deudas al 30-sep", s: "Cuentas y dinero ▸ Saldo inicial" },
+    { id: "metas", g: "Fase 0 · sin código", t: "Meta diaria por tienda y presupuesto", s: "Configuración" },
+    { id: "costoSinPrenda", g: "Fase 1", t: "Costo estimado para la venta sin prenda", s: "ADR-0417, decisión 1" },
+    { id: "costoUnaBase", g: "Fase 1", t: "Todo costo sin IGV, una sola base", s: "ADR-0417, decisión 2" },
+    { id: "comisiones", g: "Fase 1", t: "Interbank, «por depositar» y comisión real", s: "ADR-0417, decisión 3" },
+    { id: "planillaSede", g: "Fase 1", t: "Planilla con su sede (oficina y Taller)", s: "Dynamic → retail" },
+    { id: "pagos", g: "Fase 1", t: "Pago de planilla y pago a SUNAT registrados", s: "Situaciones 15 y 16" },
+    { id: "extracto", g: "Fase 3", t: "Extracto del BCP e Interbank cruzado", s: "Subir el Excel; cruce por fecha, monto y glosa" },
+    { id: "sire", g: "Fases 3 y 4", t: "SIRE: la propuesta de SUNAT aceptada", s: "Facturas que llegan solas; registro listo" },
+    { id: "taller", g: "Fase 5", t: "Taller: el costo de cada prenda hecha en casa", s: "Ficha de costo y capacidad no usada" },
+  ];
+  const PREGUNTAS = [
+    { t: "¿Estoy ganando plata?", base: 20, pesos: { costoSinPrenda: 25, costoUnaBase: 10, fijos: 20, facturas: 5, comisiones: 7, planillaSede: 8, taller: 5 } },
+    { t: "¿Me alcanza a fin de mes?", base: 15, pesos: { saldos: 20, fijos: 15, facturas: 15, extracto: 20, pagos: 10, comisiones: 5 } },
+    { t: "¿Qué debo y a quién?", base: 10, pesos: { facturas: 40, saldos: 20, pagos: 15, taller: 10, comisiones: 5 } },
+    { t: "¿Cuánto le debo a SUNAT?", base: 35, pesos: { facturas: 35, sire: 20, pagos: 10 } },
+    { t: "¿Puedo cerrar el mes tranquilo?", base: 15, pesos: { costoSinPrenda: 15, fijos: 10, facturas: 15, extracto: 20, comisiones: 10, pagos: 10, saldos: 5 } },
+    { t: "¿Voy según lo planeado?", base: 5, pesos: { metas: 55, fijos: 20, facturas: 10, costoSinPrenda: 10 } },
+    { t: "¿Cuánto cuesta una prenda del Taller?", base: 0, pesos: { taller: 70, facturas: 15, planillaSede: 15 } },
+  ];
+  const PRESETS = [
+    { t: "Hoy", on: ["ventas", "caja", "planilla"] },
+    { t: "Después de la Fase 0", on: ["ventas", "caja", "planilla", "fijos", "facturas", "saldos", "metas"] },
+    { t: "Después de la Fase 1", on: ["ventas", "caja", "planilla", "fijos", "facturas", "saldos", "metas", "costoSinPrenda", "costoUnaBase", "comisiones", "planillaSede", "pagos"] },
+    { t: "Después de la Fase 3", on: ["ventas", "caja", "planilla", "fijos", "facturas", "saldos", "metas", "costoSinPrenda", "costoUnaBase", "comisiones", "planillaSede", "pagos", "extracto", "sire"] },
+    { t: "Todo conectado", on: FUENTES.map((f) => f.id) },
+  ];
+  const estado = Object.fromEntries(FUENTES.map((f) => [f.id, !!f.on]));
+  const fuentesCaja = $("#fuentes"), pregCaja = $("#preguntas"), presetsCaja = $("#presets");
+  const grupos = [...new Set(FUENTES.map((f) => f.g))];
+  fuentesCaja.innerHTML = grupos.map((g) => `<div class="grupo"><span class="versalita">${g}</span>${FUENTES.filter((f) => f.g === g).map((f) => `<div class="fuente" role="switch" tabindex="0" data-id="${f.id}" aria-checked="${estado[f.id]}" ${f.fijo ? 'aria-disabled="true"' : ""}><span class="int"></span><span class="txt"><b>${f.t}</b><small>${f.s}</small></span></div>`).join("")}</div>`).join("");
+  pregCaja.innerHTML = PREGUNTAS.map((p, i) => `<div class="pregunta-sim" data-i="${i}"><div class="fila"><b>${p.t}</b><span class="pct num">0 %</span></div><div class="pista"><i style="width:0%"></i></div><span class="veredicto"></span></div>`).join("");
+  presetsCaja.innerHTML = PRESETS.map((p, i) => `<button type="button" data-i="${i}">${p.t}</button>`).join("");
+  function calcular() {
+    PREGUNTAS.forEach((p, i) => {
+      let v = p.base; for (const k in p.pesos) if (estado[k]) v += p.pesos[k];
+      v = Math.min(100, v);
+      const caja = $$(".pregunta-sim", pregCaja)[i];
+      caja.querySelector(".pct").textContent = v + " %";
+      caja.querySelector(".pista>i").style.width = v + "%";
+      const nivel = v >= 85 ? "alto" : v >= 55 ? "medio" : "bajo";
+      caja.dataset.nivel = nivel;
+      const faltan = Object.keys(p.pesos).filter((k) => !estado[k]).sort((a, b) => p.pesos[b] - p.pesos[a]).slice(0, 2).map((k) => FUENTES.find((f) => f.id === k).t.toLowerCase());
+      caja.querySelector(".veredicto").textContent = nivel === "alto" ? "Confiable: el número dice la verdad." : nivel === "medio" ? `Orientativo. Lo que más falta: ${faltan.join(" y ")}.` : `No sirve para decidir. Lo que más falta: ${faltan.join(" y ")}.`;
+    });
+    $$("button", presetsCaja).forEach((b, i) => { const on = new Set(PRESETS[i].on); b.setAttribute("aria-pressed", String(FUENTES.every((f) => estado[f.id] === on.has(f.id)))); });
+  }
+  fuentesCaja.addEventListener("click", (e) => { const f = e.target.closest(".fuente"); if (!f || f.getAttribute("aria-disabled") === "true") return; estado[f.dataset.id] = !estado[f.dataset.id]; f.setAttribute("aria-checked", String(estado[f.dataset.id])); calcular(); });
+  fuentesCaja.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") { const f = e.target.closest(".fuente"); if (f) { e.preventDefault(); f.click(); } } });
+  presetsCaja.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; const on = new Set(PRESETS[b.dataset.i].on); FUENTES.forEach((f) => { estado[f.id] = on.has(f.id) || !!f.fijo; }); $$(".fuente", fuentesCaja).forEach((f) => f.setAttribute("aria-checked", String(estado[f.dataset.id]))); calcular(); });
+  calcular();
+
+  /* ================= CAPÍTULO 5 · MAÑANA ================= */
+  const MANANA = [
+    { t: "La propuesta del SIRE", entra: "Cada factura que un proveedor le emitió a tu RUC, desde el día 2 de cada mes. Y la lista de lo que tú emitiste, para aceptarla.", ej: "<b>Hidrandina, S/ 410, 3 de octubre.</b> Finanzas pregunta: «¿De qué fue esto?». Tú tocas «Luz de Trujillo». La próxima vez ya no pregunta.", mejora: "¿Qué debo? · ¿Cuánto a SUNAT? · la bandeja", cuando: "Fase 3 (bandeja) y Fase 4 (registro listo)", chip: "c-rojo" },
+    { t: "El extracto del banco", entra: "El Excel del BCP y de Interbank. El sistema cruza cada línea con lo que el diario ya dice, por fecha, monto y glosa, y te muestra solo lo que no calza.", ej: "<b>38 movimientos de Interbank:</b> 34 se cruzan solos, 3 son sugeridos («¿este es el depósito de Izipay del lunes?») y 1 no tiene pareja: la comisión de mantenimiento, que se vuelve un gasto con un toque.", mejora: "¿Me alcanza? · ¿Cuadra? · ¿Puedo cerrar?", cuando: "Fase 3", chip: "c-rojo" },
+    { t: "Izipay y Vendemás", entra: "La máquina que cobró cada venta, y el depósito neto de cada una. La diferencia es la comisión real.", ej: "<b>Vendiste S/ 3,200 con tarjeta el lunes.</b> Izipay depositó S/ 3,158 el miércoles. Comisión S/ 42 ✓. Si al cuarto día no llega, te avisa.", mejora: "¿Estoy ganando? (la comisión se resta) · ¿Cuadra?", cuando: "Fase 1 (cuentas) y Fase 3 (cruce)", chip: "c-rojo" },
+    { t: "El Taller, con costo completo", entra: "Por cada modelo, una ficha: tela con su merma, avíos y minutos de confección a un costo por minuto que incluye sueldos, alquiler y máquinas. Y, cada mes, la capacidad que no se usó.", ej: "<b>Blusa Emma: S/ 40.55.</b> Tela 27.20, confección 8.85, avíos 4.50. En un mes flojo, «Taller: capacidad no usada −S/ 1,791» va a gasto y no encarece la prenda.", mejora: "¿Cuánto cuesta una prenda del Taller? · ¿Conviene hacer o comprar?", cuando: "Fase 5, cuando el Taller produzca en el ERP", chip: "c-ambar" },
+    { t: "Dynamic, de ida y vuelta", entra: "Hoy llega el total pagado por sede. Falta: que la oficina y el Taller caigan donde corresponde, y que el pago de la planilla baje del banco.", ej: "<b>El 30 Dynamic paga S/ 33,400.</b> Finanzas propone «Pago de planilla de octubre, S/ 33,400, sale de Interbank». Tú confirmas y «sueldos por pagar» vuelve a 0.", mejora: "¿Qué deja cada tienda? · ¿Qué debo? · ¿Me alcanza?", cuando: "Fase 1 · toca Dynamic: decisión tuya", chip: "c-ambar" },
+    { t: "El pago a SUNAT", entra: "Un botón en Impuestos: «Registrar pago a SUNAT». La deuda de IGV y renta baja y el banco también.", ej: "<b>El martes 20 pagas S/ 9,290.</b> «IGV de SUNAT» baja a 0 y el BCP baja S/ 9,290. Hoy esa deuda solo sube.", mejora: "¿Qué debo? · ¿Me alcanza?", cuando: "Fase 1", chip: "c-ambar" },
+    { t: "El canal de cada venta", entra: "Si la venta fue en mostrador, por Instagram o por WhatsApp, y cuánto costó el envío y el cobro.", ej: "<b>Un pedido de Instagram de S/ 150</b> deja S/ 44 después del envío y el cobro (35 %); en tienda dejaría más, pero la tienda paga alquiler. Hoy las dos ventas se ven igual.", mejora: "¿Qué canal me deja más?", cuando: "Fase 6", chip: "c-pizarra" },
+    { t: "Lima, que abre el 20", entra: "Una sede nueva con sus propios fijos (alquiler S/ 2,800, su gente) y una meta diaria desde el primer día.", ej: "<b>Lima vende S/ 900 al día desde el 20:</b> en octubre deja +S/ 1,660 y el total del mes sube de S/ 7,950 a S/ 12,610. Sin meta ni fijos cargados, Lima parecería gratis.", mejora: "¿Qué deja cada tienda? · ¿Voy según lo planeado?", cuando: "Fase 0 · antes del 20 de octubre", chip: "c-ambar" },
+  ];
+  $("#manana-lista").innerHTML = MANANA.map((m, i) => `<div class="tarjeta" data-sube style="--i:${i}"><span class="chip ${m.chip}">${m.cuando}</span><h4>${m.t}</h4><dl><dt>Qué entra</dt><dd>${m.entra}</dd></dl><div class="ej">${m.ej}</div><div class="pie"><span class="tenue">Mejora</span><b>${m.mejora}</b></div></div>`).join("");
+
+  /* ================= CAPÍTULO 6 · DICCIONARIO ================= */
+  const CUENTAS = [
+    { c: "101", n: "Caja", t: "El cajón de cada tienda, la caja fuerte y lo que lleva el líder", e: "Cobraste S/ 118 en efectivo → 101 sube 118", k: "efectivo cajon caja fuerte" },
+    { c: "104", n: "Cuentas corrientes", t: "Tus bancos: BCP e Interbank. Ahí caen Yape, Plin y transferencias", e: "Un Yape de S/ 118 → 104 sube 118", k: "banco bcp interbank yape plin transferencia" },
+    { c: "105", n: "Medios de pago en tránsito", t: "Lo que la máquina de tarjeta todavía no te deposita", e: "Vendiste S/ 118 con tarjeta → 105 sube 118 hasta que Izipay deposite", k: "tarjeta pos izipay vendemas por depositar" },
+    { c: "122", n: "Anticipos de clientes", t: "El adelanto de una separación: plata que todavía no es venta", e: "Separan una casaca con S/ 59 → 122 sube 50 (+ 9 de IGV)", k: "separacion apartado adelanto" },
+    { c: "1413", n: "Fondos por rendir", t: "Plata entregada a alguien para un viaje o una compra, que debe rendir", e: "Le das S/ 500 a la encargada para el mercado → 1413 sube 500", k: "fondo rendir viaje" },
+    { c: "201", n: "Mercaderías", t: "La ropa en percha, a lo que costó (sin IGV)", e: "Compras por S/ 1,000 → 201 sube 1,000; vendes una de S/ 45 → baja 45", k: "ropa stock inventario prendas percha" },
+    { c: "33x", n: "Activos fijos", t: "Máquinas, muebles, la Zebra, el mostrador", e: "Compras una máquina de coser por S/ 2,000 → 336 sube 2,000", k: "maquinas muebles equipos activos" },
+    { c: "391", n: "Depreciación acumulada", t: "Lo que esas máquinas ya se desgastaron", e: "Cada mes, S/ 33 de la máquina → 391 sube 33", k: "desgaste depreciacion" },
+    { c: "4011", n: "IGV", t: "Lo de SUNAT: sube con lo que vendes, baja con lo que compras con factura", e: "Vendes S/ 118 → +18; compras con factura S/ 1,180 → −180", k: "sunat igv impuesto" },
+    { c: "41", n: "Remuneraciones por pagar", t: "Sueldos que Dynamic calculó y aún no salen del banco", e: "Planilla de TRU S/ 15,718 → 41 sube 15,718 (y hoy nunca baja)", k: "sueldos planilla personal dynamic" },
+    { c: "421", n: "Facturas por pagar", t: "Lo que les debes a los proveedores", e: "Factura a 30 días de S/ 1,180 → 421 sube 1,180; al pagar baja", k: "proveedor deuda por pagar factura" },
+    { c: "451", n: "Tarjeta de crédito de CAYLA", t: "Lo que gastaste con la tarjeta de la empresa y aún no pagas", e: "Pagas la luz con la tarjeta → 451 sube; al pagar la tarjeta baja", k: "tarjeta credito deuda" },
+    { c: "47 · 52 · 591", n: "La plata del dueño", t: "Préstamo del dueño, aporte de capital y utilidades que no se repartieron", e: "Pones S/ 10,000 de tu bolsillo → 52 sube 10,000", k: "dueño aporte prestamo retiro utilidades capital" },
+    { c: "62", n: "Gastos de personal", t: "Sueldos, gratificaciones, CTS, EsSalud del mes", e: "Planilla de octubre → 62 sube 33,400", k: "sueldos planilla personal" },
+    { c: "631 · 635 · 636", n: "Servicios", t: "Transporte, alquiler, luz y agua", e: "Taxi S/ 15 → 631; alquiler de TRU S/ 4,000 → 635; luz S/ 410 → 636", k: "taxi movilidad alquiler luz agua servicios" },
+    { c: "639", n: "Comisiones bancarias", t: "Lo que se queda la máquina de tarjeta o el banco", e: "Izipay deposita S/ 3,158 de S/ 3,200 → 639 sube 42", k: "comision izipay vendemas banco" },
+    { c: "64", n: "Tributos", t: "IGV que perdiste por pagar en efectivo más de S/ 2,000", e: "Pagas S/ 2,360 en efectivo → pierdes 360 de IGV → 64 sube 360", k: "igv perdido bancarizacion efectivo" },
+    { c: "659 · 6599", n: "Pérdidas", t: "Prendas perdidas o dañadas, y los faltantes de caja", e: "Faltó una blusa de S/ 45 en el conteo → 659; faltaron S/ 10 al cerrar → 6599", k: "merma dañada faltante perdida conteo" },
+    { c: "681", n: "Depreciación del mes", t: "El desgaste de este mes de máquinas y muebles", e: "33 máquinas y muebles → ≈ S/ 927 al mes", k: "desgaste depreciacion" },
+    { c: "691", n: "Costo de ventas", t: "Lo que costó la ropa que vendiste", e: "Vendes una blusa que costó S/ 45 → 691 sube 45", k: "costo vendido margen" },
+    { c: "7011", n: "Ventas", t: "Lo que vendiste, sin IGV y ya con descuentos", e: "Cobras S/ 118 → 7011 sube 100", k: "venta ingreso" },
+    { c: "211 · 7012 · 711", n: "Lo del Taller (sin usar)", t: "Productos terminados, ventas del Taller y la producción almacenada", e: "Cuando el Taller produzca en el ERP: 40 blusas a S/ 40.55 → 211 sube 1,622", k: "taller produccion terminados" },
+  ];
+  const dicc = $("#dicc");
+  function pintarDicc(q = "") {
+    const n = q.trim().toLowerCase();
+    const lista = CUENTAS.filter((c) => !n || (c.c + " " + c.n + " " + c.t + " " + c.k).toLowerCase().includes(n));
+    dicc.innerHTML = lista.length ? lista.map((c, i) => `<div class="cuenta" data-entra style="--i:${i}"><span class="cod">${c.c}</span><b>${c.n}</b><p>${c.t}</p><span class="ej">${c.e}</span></div>`).join("") : `<p class="tenue">No hay ninguna cuenta con «${q}». Prueba con «banco», «ropa» o «sueldos».</p>`;
+    if (!reducido) { dicc.classList.remove("animar"); void dicc.offsetWidth; dicc.classList.add("animar"); }
+  }
+  pintarDicc();
+  $("#buscar-cuenta").addEventListener("input", (e) => pintarDicc(e.target.value));
+
+  /* ================= Capítulos: animar al llegar y marcar el activo ================= */
+  const caps = $$(".cap"), enlaces = $$(".capitulos a");
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("animar"); e.target.querySelectorAll("[data-cuenta]").forEach((n) => window.mqContar && window.mqContar(n)); io.unobserve(e.target); } }), { threshold: 0.12 });
+  caps.forEach((c) => io.observe(c));
+  const ioNav = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) enlaces.forEach((a) => a.classList.toggle("activo", a.getAttribute("href") === "#" + e.target.id)); }), { rootMargin: "-40% 0px -55% 0px" });
+  [$("#mapa"), ...caps].forEach((s) => ioNav.observe(s));
+})();
+</script>
+</body>
+</html>

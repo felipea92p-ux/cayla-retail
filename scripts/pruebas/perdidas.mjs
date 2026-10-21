@@ -145,6 +145,11 @@ const DECIDIDOS = {
   salida: ["venta", "cambio", "traslado_salida", "reversion_produccion", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada", "cuarentena_devuelta_proveedor"],
   ajuste: ["conteo", "hallazgo_conteo", "conteo_arranque", "carga_inicial"],
 };
+// Ajustes que escribe una función con un motivo de Ajustar, cuya clase ya decide `CLASE_WEB` (lo prueba TW): «reposicion» la
+// escribe `resolver_sobrante_traslado` (ADR-0404) cuando una prenda de más se da por «encontrada», y es el mismo «Encontré
+// prendas» de Ajustar (a mano, aparece). No va en DECIDIDOS.ajuste: esa lista también arma la puerta suelta (PU), y
+// «reposicion» tiene allí su propia regla (pide nota y solo suma).
+const AJUSTES_DE_AJUSTAR_ESCRITOS_POR_LA_BASE = ["reposicion"];
 const TOTALIDAD = `
 begin;
 create temp table escritos as
@@ -166,7 +171,7 @@ select 'T «Se arregló» no es una salida: resolver_prenda_danada no la acepta 
 select 'T los estados de una dañada salen de la base (se botó, donada, liquidada, devuelta al proveedor)', (select count(distinct motivo) = 4 from escritos where motivo in ('cuarentena_se_boto', 'cuarentena_donada', 'cuarentena_liquidada', 'cuarentena_devuelta_proveedor'));
 select 'T hay motivos escritos por la base que revisar (la búsqueda funciona)', (select count(*) >= 6 from escritos);
 select 'T toda salida que escribe una función tiene su clase decidida', (select coalesce(bool_and(motivo = any (array[${DECIDIDOS.salida.map(lit).join(", ")}])), true) from escritos where tipo = 'salida');
-select 'T todo ajuste con motivo fijo que escribe una función tiene su clase decidida', (select coalesce(bool_and(motivo = any (array[${DECIDIDOS.ajuste.map(lit).join(", ")}])), true) from escritos where tipo = 'ajuste');
+select 'T todo ajuste con motivo fijo que escribe una función tiene su clase decidida', (select coalesce(bool_and(motivo = any (array[${[...DECIDIDOS.ajuste, ...AJUSTES_DE_AJUSTAR_ESCRITOS_POR_LA_BASE].map(lit).join(", ")}])), true) from escritos where tipo = 'ajuste');
 select 'T de las salidas que escribe la base, solo botada y donada son pérdida', (select bool_and(retail.fn_es_perdida('salida', motivo, 1) = (motivo in ('cuarentena_se_boto', 'cuarentena_donada'))) from escritos where tipo = 'salida');
 `;
 

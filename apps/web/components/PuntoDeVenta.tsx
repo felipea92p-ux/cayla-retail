@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { Globito } from "@/components/ui/Globito";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { METODOS_PAGO, METODOS_PAGO_VENTA, type MetodoPagoVenta } from "@cayla-retail/shared";
 import { clasificarFalloDeSubida, esFalloDeRed, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
+import { useIntento } from "@/lib/useIntento";
+import { avisoDeResolucion, cobrosGuardados, conCobro, huellaDe, sinCobro } from "@/lib/intento-reglas";
+import { useEnviosEnCurso } from "@/lib/useEnviosEnCurso";
+import { CobroEnDuda } from "@/components/punto-de-venta/CobroEnDuda";
 import { avisar } from "@/components/ui/Avisos";
 import { resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { agruparCatalogo, agruparPorPrenda, filtrarConStock, type GrupoCatalogo } from "@/lib/catalogo-grupos";
@@ -13,14 +18,16 @@ import { categoriasQueCombinan, claveAnotada, fraseCombina, indiceDeColores, sug
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
+  aplicarDescuentoMonto,
   atendioDelTicket,
   conCodigoDelCatalogo,
   descuentoResultante,
-  descuentoUnitarioPorPorcentaje,
+  descuentoPedido,
   esperaAlCargar,
   metodoDeAtajo,
   cobroEnEfectivo,
   motivoBloqueoCobro,
+  pagoNuevo,
   pagosCobrados,
   pagosParaRpc,
   pagosTrasEditarMonto,
@@ -28,11 +35,14 @@ import {
   RAZON_CAMPANA,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
+  sinPrecioParaVender,
   totalDeLineas,
   vueltoDe,
   conDescuentoDeCampana,
   type CampanaLinea,
   type DetalleDescuento,
+  type MaquinaDeCobro,
+  type ModoDescuento,
   type MomentoTicket,
   type PagoAplicado,
 } from "@/lib/vender-reglas";
@@ -109,22 +119,28 @@ import {
   type CelularEnFicha,
 } from "@/lib/celular-ficha-reglas";
 import { problemaDocumentoComprobante } from "@/lib/documento-comprobante-reglas";
-import { clientaDeTicketGuardado } from "@/lib/clienta-ticket-reglas";
+import { clientaDeTicketGuardado, nombreDeFichaParaComprobante } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
 import { useClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
+import { useCuponDelClub } from "@/components/punto-de-venta/useCuponDelClub";
+import { CodigoDeCuponModal, UsarPuntosModal } from "@/components/punto-de-venta/PuntosYCuponModales";
 import { useReportarTicket } from "@/components/punto-de-venta/TicketPorSede";
 import { CLUB_APAGADO, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
+import { descuentosParaRegistrar, ticketConVale } from "@/lib/club-cupon-reparto-reglas";
 import {
-  avisoCumpleApagado,
-  canjeSinConexion,
-  descuentosParaRegistrar,
-  rechazoDelCanje,
-  ticketConCumple,
-} from "@/lib/club-cumple-canje-reglas";
-import { avisoValeApagado, rechazoDelVale, ticketConVale, valeSinConexion } from "@/lib/club-aniversario-canje-reglas";
+  avisoCuponApagado,
+  ayudaPieCupon,
+  cuponSinConexion,
+  detalleDelCupon,
+  opcionesDeCanje,
+  puntosQueGana,
+  rechazoDelCupon,
+  solesDelCupon,
+} from "@/lib/club-puntos-reglas";
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
+import { ticketParaEspera } from "@/lib/vender-hoy-reglas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { PedirEnOtraTienda } from "@/components/punto-de-venta/PedirEnOtraTienda";
 import { PedidosParaClientes } from "@/components/punto-de-venta/PedidosParaClientes";
@@ -137,6 +153,8 @@ import { RegistrarBajadaModal } from "@/components/punto-de-venta/RegistrarBajad
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJson, soles as solesLiquidacion } from "@/lib/liquidacion-reglas";
+import { Casilla } from "@/components/ui/Casilla";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -150,6 +168,7 @@ export { ID_CARGO_ESPECIAL };
 
 /** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
 const SIN_COLORES: ColorConFicha[] = [];
+const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
 
 export type VarianteBusqueda = PrendaBuscableV2 & {
   /** De qué modelo es (`productos.id`): «Combina bien con» no sugiere la misma prenda ni una que ya está en el ticket. Ausente = se
@@ -232,12 +251,14 @@ export type ItemCarrito = {
 
 export type OrigenDeLinea = "combina_bien_con";
 
-/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el % tal cual lo
- *  escribe (solo %, Felipe 2026-09-25), a qué líneas alcanza (`null` es todo el ticket;
+/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% o S/ por
+ *  prenda; el S/ volvió el 2026-10-14, Felipe), el valor tal cual lo escribe en cada uno, a qué líneas alcanza (`null` es todo el ticket;
  *  `[]` es que todavía no eligió ninguna), el motivo (R-45) y el argumento que pide todo
  *  descuento pasado el 15 %. */
 export type DescuentoForm = {
+  modo: ModoDescuento;
   pct: string;
+  monto: string;
   elegidas: string[] | null;
   razon: string;
   razonOtro: string;
@@ -282,12 +303,9 @@ export type VentaOk = {
   /** Se cobró sin red y quedó guardada en este equipo — todavía no es una venta real en
    *  el servidor (ver `lib/ventas-offline.ts`). Sin comprobante posible hasta que suba. */
   offline: boolean;
-  /** El cumpleaños que canjeó esta venta (ADR-0288 D-5): «Cumpleaños canjeado (−S/46.12)…». Nunca en una venta sin
-   *  conexión (no se encola con canje). */
-  cumple?: { pct: number; monto: number } | null;
-  /** El vale de aniversario que usó esta venta (tanda 1g, G-13): «Vale de aniversario usado (−S/30.00)…». Tampoco sin
-   *  conexión. */
-  vale?: { monto: number } | null;
+  /** El cupón del Club que usó esta venta (programa de puntos): «Cupón del Club usado (−S/10.00)…». Nunca en una venta sin
+   *  conexión (no se encola con cupón). */
+  cupon?: { monto: number } | null;
   /** La venta guardada en el servidor: con ella «Venta registrada» busca el PDF de Lucode para mandarlo por WhatsApp. */
   ventaId?: string | null;
   /** El celular del cliente de la venta (el de su ficha, el más fresco), para ofrecer «Enviar por WhatsApp». Sin cliente, null. */
@@ -300,7 +318,7 @@ const MAX_RESULTADOS = 6;
 
 /** El apartado «Descuento» arranca así siempre: sin valor, sin líneas elegidas (salvo
  *  que `abrirDescuento` traiga unas), sin motivo. */
-const DESCUENTO_VACIO: DescuentoForm = { pct: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
+const DESCUENTO_VACIO: DescuentoForm = { modo: "porcentaje", pct: "", monto: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
 
 export const money = (n: number) => `S/${n.toFixed(2)}`;
 
@@ -349,6 +367,12 @@ type Props = {
   /** La base ya acepta el QR como medio de una venta (`fn_acepta_pago_qr`, 20261002130000). Hasta que la migración esté en
    *  producción, la hoja de cobro muestra los cinco medios de siempre: un cobro con QR ahí se rechazaría entero. */
   qrDisponible?: boolean;
+  /** Las máquinas de cobro de esta tienda (`fn_pos_maquinas_de_sede`, ADR-0429): con tarjeta o QR el pago nace con la máquina por
+   *  defecto y, donde hay dos para un mismo medio (Vendemás e Izipay en TRU y AQP), la hoja de cobro deja cambiarla con un toque.
+   *  Vacío (la base todavía no las conoce, o la tienda no tiene) = la hoja no pregunta y la base sella sola, como antes. */
+  maquinasCobro?: readonly MaquinaDeCobro[];
+  /** Los comprobantes que esta sede puede emitir (los que tienen serie activa, `tiposDeComprobanteDeLaSede`). Sin el dato, los tres. */
+  tiposComprobante?: readonly ("boleta" | "factura" | "nota_venta")[];
   /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, 20261003140000, ADR-0311): el efectivo se cobra al
    *  múltiplo de S/ 0.10, hacia abajo (la ley) y viaja la fila de redondeo. Hasta que la migración esté en producción, la caja cobra
    *  exacto como siempre: una venta con redondeo ahí se rechazaría entera. */
@@ -382,7 +406,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -401,7 +425,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       return cajaCerradaAhora.current ? botonAbrirCaja.current : buscador.current;
     },
   }));
-  const token = useRef<string>(crypto.randomUUID());
+  // La marca del cobro sigue al ticket (/chaos 2026-10-13): reenviar EL MISMO ticket no cobra dos veces; si la respuesta se pierde,
+  // la caja se congela («No sabemos si se cobró», `CobroEnDuda`) hasta saber si la venta quedó. Sacar una prenda y cobrar con la
+  // marca vieja devolvía la venta anterior, y la pantalla anunciaba la nueva.
+  const envio = useIntento("registrar_venta");
+  const [revisandoCobro, setRevisandoCobro] = useState(false);
+  /** Si el cobro en duda fue un corte de red: por qué no se guardó para subir solo (el canje del club, una pieza de liquidación…). */
+  const [sinColaMotivo, setSinColaMotivo] = useState<string | null>(null);
   /** Mutex de la subida de la cola offline: mientras haya una pasada en curso, un
    *  segundo disparo (mount/online/latido solapados, o React Strict Mode invocando el
    *  efecto dos veces en desarrollo) espera esa MISMA pasada en vez de lanzar otra — dos
@@ -446,6 +476,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Si es socia del club (ADR-0288, tanda 1b) y el «Ahora no» de esta venta. Vive aquí y no en la fila: la fila se desmonta
   // al pasar a cobrar, y el ticket impreso necesita saberlo para su QR.
   const clubDeLaClienta = useClubDeLaClienta(clienta?.id ?? null, puedeBuscarClienta);
+  // Los puntos de la clienta y el cupón puesto en esta compra (programa de puntos): vive aquí por lo mismo que el club de arriba.
+  const cuponClub = useCuponDelClub(clienta?.id ?? null, puedeBuscarClienta);
+  const [hojaPuntos, setHojaPuntos] = useState(false);
+  const [hojaCodigo, setHojaCodigo] = useState(false);
   const [esperaAbierta, setEsperaAbierta] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
   // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
@@ -455,6 +489,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Nota del ticket («lo recoge el sábado»): parte del ticket, no del cobro — el ticket
   // en espera (paso siguiente) la guarda y la recupera con las líneas. No va al comprobante.
   const [nota, setNota] = useState("");
+  // Cómo se llama el ticket que está en la caja («Probador 2», «María»): se llena al RETOMAR uno con nombre y vuelve
+  // con él si se lo deja en espera otra vez. Sin esto, el ticket retomado perdía su nombre y la tira lo mostraba como
+  // «Ticket N» (bug 2026-10-12): la cajera ya no sabía de qué clienta era cada uno.
+  const [nombreTicket, setNombreTicket] = useState("");
   // El RESPONSABLE de la venta (ADR-0161; reemplaza la fila «Atendió» del ADR-0163): solo quienes están presentes
   // ahora en la tienda, vacío en cada venta, y sin nadie presente no se cobra. Viaja como `p_asesora_id` y como
   // encabezado `x-responsable` (`firmar`), y es el nombre que sale en el papel del ticket. En el Punto de venta NO se
@@ -471,6 +509,19 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // que subiera (ADR-0036, addendum "por sede").
   const [cola, setCola] = useState<VentaEncolada[]>([]);
   const claveCola = claveLocal(ubicacionId, "cola");
+  // El cobro en curso (/chaos 2026-10-13, NAV-03): se anota antes de mandarlo y se borra al saber qué pasó. Si la página se recarga o
+  // se cierra mientras se cobra, al volver Vender le pregunta a la base por ese envío y dice si la venta quedó.
+  const claveCobro = claveLocal(ubicacionId, "cobro-en-curso");
+  // Un cobro que quedó en el aire en una visita anterior: al montar (y al volver la conexión) se le pregunta a la base y se dice si
+  // la venta quedó (`useEnviosEnCurso`). El cobro en duda de ESTA pestaña lo resuelve su propia hoja (`CobroEnDuda`).
+  useEnviosEnCurso({
+    clave: claveCobro,
+    operacion: "registrar_venta",
+    guardados: cobrosGuardados,
+    tokenPropio: () => envio.instantanea()?.marca.token,
+    avisoDe: avisoDeResolucion,
+    alHecho: () => router.refresh(),
+  });
   // El ticket de esta sede, al día, para `TicketPorSede`: si la sede cambia con Vender abierta, este componente se monta de
   // nuevo (su key lleva la sede) y lo que estaba armado queda en la espera de ESTA sede (Felipe, 2026-10-11).
   const reportarTicket = useReportarTicket();
@@ -494,6 +545,23 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const [clienteNombre, setClienteNombre] = useState(proforma?.cliente ?? "");
   const [aviso, setAviso] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Mientras se cobra o el cobro está en duda, cerrar o recargar la pestaña pregunta antes (el cobro anotado igual se resuelve
+  // al volver, pero la vendedora no se entera en el mostrador). Y si vuelve la conexión con un cobro en duda, se pregunta solo.
+  useEffect(() => {
+    if (!loading && !envio.incierto) return;
+    const antesDeSalir = (ev: BeforeUnloadEvent) => {
+      ev.preventDefault();
+      ev.returnValue = "";
+    };
+    window.addEventListener("beforeunload", antesDeSalir);
+    return () => window.removeEventListener("beforeunload", antesDeSalir);
+  }, [loading, envio.incierto]);
+  useEffect(() => {
+    if (!envio.incierto) return;
+    const alVolver = () => void revisarCobro();
+    window.addEventListener("online", alVolver);
+    return () => window.removeEventListener("online", alVolver);
+  });
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
   // «Agregar bolsa»: la hoja de las bolsas de la tienda (Bolsas de despacho, 2026-10-10).
@@ -652,7 +720,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || hojaClientaAbierta || bajadaPorConfirmar !== null;
+    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -945,8 +1013,22 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   function agregar(
     v: VarianteBusqueda,
     { silencioso = false, confirmar = false, origen }: { silencioso?: boolean; confirmar?: boolean; origen?: OrigenDeLinea } = {}
-  ): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | null {
+  ): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | null {
     if (bloqueado) return null;
+    // ADR-0384: una prenda de mercadería en S/ 0 no entra al ticket (la base no la cobraría; sin conexión, recién lo diría al subir,
+    // con la prenda ya entregada). La bolsa de obsequio sí: es de una familia fuera de los motores.
+    if (sinPrecioParaVender(v)) {
+      if (!silencioso) {
+        avisar.error(`${[v.referencia, v.talla].filter(Boolean).join(" · ")} no tiene precio`, {
+          detalle: "No entra al ticket. Pide que le pongan precio en su ficha (Catálogo ▸ Productos) antes de venderla.",
+        });
+      }
+      setAviso(null);
+      setQ("");
+      setActivo(0);
+      buscador.current?.focus();
+      return "sin_precio";
+    }
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
@@ -1204,7 +1286,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     }
     if (!leida.vigente) {
       avisar.error("Esa etiqueta ya no vale", {
-        detalle: `La prenda cuesta ahora S/ ${solesLiquidacion(pieza.precio)} (etiqueta ${pieza.codigo ?? "nueva"}). Pídele a quien la etiquetó que le pegue la nueva.`,
+        detalle: `La prenda cuesta ahora S/\u00a0${solesLiquidacion(pieza.precio)} (etiqueta ${pieza.codigo ?? "nueva"}). Pídele a quien la etiquetó que le pegue la nueva.`,
       });
       return;
     }
@@ -1303,7 +1385,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // descuento «no entró».
     const cedieron = carrito.filter((it) => {
       if (!it.campana || (claves.length > 0 && !claves.includes(it.claveLinea))) return false;
-      const monto = descuentoUnitarioPorPorcentaje(it.precioUnitario, Number(descuento.pct));
+      const monto = descuentoPedido(descuento.modo, descuento.modo === "monto" ? numeroDeMonto(descuento.monto) : Number(descuento.pct), it.precioUnitario);
       return Number(monto) > 0 && descuentoResultante(it, monto).prevaleceCampana;
     });
     if (cedieron.length > 0) {
@@ -1312,7 +1394,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       );
     }
     // ADR-0379: una pieza de liquidación tiene precio final; el descuento del ticket no la toca.
-    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), claves, detalle).map((it, i) => (actual[i]?.liquidacion ? actual[i]! : it)));
+    setCarrito((actual) =>
+      (descuento.modo === "monto"
+        ? aplicarDescuentoMonto(actual, numeroDeMonto(descuento.monto), claves, detalle)
+        : aplicarDescuento(actual, Number(descuento.pct), claves, detalle)
+      ).map((it, i) => (actual[i]?.liquidacion ? actual[i]! : it)),
+    );
     setMomento("armar");
   }
   function quitarDescuentoDelTicket() {
@@ -1330,6 +1417,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setCarrito([]);
     quitarClienta();
     setNota("");
+    setNombreTicket("");
     setPagos([]);
     setDescuento(DESCUENTO_VACIO);
     responsable.limpiar();
@@ -1353,7 +1441,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       return;
     }
     capturarFlip();
-    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, nombre: nombre || undefined, clienta }]);
+    persistirEspera([...enEspera, ticketParaEspera({ carrito, nota, nombre, clienta }, crypto.randomUUID(), new Date().toISOString())]);
     limpiarTicket();
     buscador.current?.focus();
   }
@@ -1362,7 +1450,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (!ticket) return;
     // Si el ticket actual tiene líneas, se intercambian: el actual ocupa el lugar del retomado.
     const actual: TicketEnEspera | null =
-      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, clienta } : null;
+      carrito.length > 0
+        ? ticketParaEspera({ carrito, nota, nombre: nombreTicket, clienta }, crypto.randomUUID(), new Date().toISOString())
+        : null;
     persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
     // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
     // completa acá, la única puerta por la que algo del navegador vuelve al carrito.
@@ -1380,6 +1470,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     capturarFlip();
     setCarrito(lineas);
     setNota(ticket.nota);
+    // El nombre viaja con el ticket: si se lo vuelve a dejar en espera, la hoja lo propone y la tira lo sigue
+    // llamando igual.
+    setNombreTicket(ticket.nombre ?? "");
     // La clienta vuelve con su ticket (si la tenía); si no, el ticket retomado va sin clienta.
     if (ticket.clienta) elegirClienta(ticket.clienta);
     else quitarClienta();
@@ -1444,47 +1537,52 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     }
   }
 
-  // El canje del cumpleaños (tanda 1c, ADR-0288 D-5): UN descuento de toda la compra, en cascada sobre lo ya rebajado
-  // (CL-11), repartido por prenda con la misma cuenta que `registrar_venta` (céntimos exactos, `ticketConCumple`). El
-  // carrito no cambia: cada línea sigue con su descuento SIN el club, y la parte del club se suma solo al cobrar y en el
-  // total. Lo apagan solos quitar o cambiar la clienta, perder la conexión o que su resumen deje de decir disponible
-  // (`useClubDeLaClienta`).
-  const pctCumple = clubDeLaClienta.pctCumple;
-  const conCumple = useMemo(() => ticketConCumple(carrito, pctCumple), [carrito, pctCumple]);
-  // Un canje que no regala nada (todo a S/ 0) no se manda: la base lo rechazaría (`cumple_sin_monto`) y gastaría su año.
-  const cumpleDelTicket =
-    pctCumple !== null && conCumple.totalCumple > 0 ? { pct: pctCumple, monto: conCumple.totalCumple, totalSinCumple: conCumple.totalSinCumple } : null;
-  // El vale de aniversario (tanda 1g, G-13), igual que el cumpleaños: UNA línea en el pie y el reparto por prenda
-  // (`ticketConVale`, proporcional a lo que cobra cada una, en céntimos exactos). Va una sola ventaja del club por compra:
-  // `useClubDeLaClienta` no deja poner las dos. Un vale que no descuenta nada no se manda (`aniversario_sin_monto`).
-  const montoVale = clubDeLaClienta.montoVale;
-  const conVale = useMemo(() => ticketConVale(carrito, montoVale), [carrito, montoVale]);
+  // El cupón del Club (programa de puntos): UN descuento fijo en soles de toda la compra, repartido por prenda con la misma regla que
+  // repite la base (`ticketConVale` / `fn_club_repartir_vale`, proporcional a lo que cobra cada una, en céntimos exactos), y su código viaja
+  // en `p_codigo_descuento`. El carrito no cambia: cada línea sigue con su descuento SIN el club, y la parte del cupón se suma solo al
+  // cobrar y en el total. Un cupón que no descuenta nada no se manda (la base lo rechazaría: `cupon_sin_monto`).
+  const cuponPuesto = cuponClub.cupon;
+  const conVale = useMemo(() => ticketConVale(carrito, cuponPuesto ? cuponPuesto.valor : null), [carrito, cuponPuesto]);
   const valeDelTicket =
-    montoVale !== null && conVale.totalVale > 0 ? { vale: montoVale, monto: conVale.totalVale, totalSinVale: conVale.totalSinVale } : null;
-  // Las líneas con la parte del club (la de la ventaja que esté puesta; sin ninguna, en 0): las que viajan y se imprimen.
-  const lineasConClub = valeDelTicket ? conVale.lineas : conCumple.lineas;
-  const conVentajaDelClub = cumpleDelTicket !== null || valeDelTicket !== null;
-  const total = cumpleDelTicket
-    ? conCumple.total
-    : valeDelTicket
-      ? conVale.total
-      : totalDeLineas(carrito);
+    cuponPuesto && conVale.totalVale > 0
+      ? {
+          vale: cuponPuesto.valor,
+          monto: conVale.totalVale,
+          totalSinVale: conVale.totalSinVale,
+          cupon: { codigo: cuponPuesto.codigo, detalle: detalleDelCupon(cuponPuesto), ayuda: ayudaPieCupon(cuponPuesto, conVale.totalVale) },
+        }
+      : null;
+  // Las líneas con la parte del cupón (sin cupón, en 0): las que viajan y se imprimen.
+  const lineasConClub = conVale.lineas;
+  const conVentajaDelClub = valeDelTicket !== null;
+  const total = valeDelTicket ? conVale.total : totalDeLineas(carrito);
   const prendas = carrito.reduce((acc, it) => acc + it.cantidad, 0);
+  // Lo que gana la miembro con esta compra (programa de puntos): lo que PAGA (ya con el cupón) por los puntos por sol de hoy, más el
+  // regalo de cumpleaños si le toca. Solo se dice; quien suma es la base al cobrar (`fn_club_puntos_por_venta`).
+  const puntosDelTicket = cuponClub.puntos;
+  const ganaPuntos =
+    clienta && puntosDelTicket?.miembro && carrito.length > 0
+      ? {
+          nombre: (clienta.nombre ?? "").trim().split(/\s+/)[0] || "El cliente",
+          puntos: puntosQueGana(total, puntosDelTicket.config),
+          regalo: puntosDelTicket.regaloDisponible ? puntosDelTicket.config.regaloCumple : 0,
+        }
+      : null;
+  // Un cupón pide una compra mínima: si el ticket bajó de ahí (se quitó una prenda), no se cobra con él (la base lo rechazaría).
+  const cuponNoAlcanza =
+    cuponPuesto && conVale.totalSinVale < cuponPuesto.compraMinima - 1e-9
+      ? `El cupón del Club pide una compra de ${solesDelCupon(cuponPuesto.compraMinima)} o más. Agrega prendas o quita el cupón.`
+      : null;
 
-  // Se apagó SOLO (sin conexión, o su resumen ya no lo da por disponible): el total subió sin que nadie tocara «Quitar», y
-  // quien cobra tiene que saberlo antes de decirle el monto a la clienta.
-  const cumpleSeApago = clubDeLaClienta.cumpleSeApago;
+  // Se quitó SOLO (sin conexión): el total subió sin que nadie tocara «Quitar», y quien cobra tiene que saberlo antes de decirle el
+  // monto al cliente.
+  const cuponSeApago = cuponClub.seApago;
   useEffect(() => {
-    if (!cumpleSeApago) return;
-    const { titulo, detalle } = avisoCumpleApagado(cumpleSeApago.motivo, cumpleSeApago.pct);
+    if (!cuponSeApago) return;
+    const { titulo, detalle } = avisoCuponApagado(cuponSeApago.valor);
     avisar.aviso(titulo, { detalle });
-  }, [cumpleSeApago]);
-  const valeSeApago = clubDeLaClienta.valeSeApago;
-  useEffect(() => {
-    if (!valeSeApago) return;
-    const { titulo, detalle } = avisoValeApagado(valeSeApago.motivo, valeSeApago.monto);
-    avisar.aviso(titulo, { detalle });
-  }, [valeSeApago]);
+  }, [cuponSeApago]);
+
 
   // Un solo motivo para las tres cosas: el `disabled` del botón del ticket, la línea
   // que lo explica debajo, y el freno de `cobrar()`. Derivado acá y no en el ticket
@@ -1504,12 +1602,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     : null;
   // Lo que se le avisa a quien cobra bajo el campo del celular: si también se guarda en la ficha, o que es solo de esta boleta.
   const notaCelularBoleta = notaDelCelularDeLaBoleta({ clienta, celularBoleta, tipoComprobante, puedeGuardarEnFicha: puedeBuscarClienta });
-  // ADR-0379: el regalo del club (cumpleaños o vale) no se usa con piezas de liquidación: la base rechazaría la venta entera.
+  // ADR-0379: el cupón del Club no se usa con piezas de liquidación (precio final): la base rechazaría la venta entera.
   const liquidacionConClub =
     conVentajaDelClub && carrito.some((it) => it.liquidacion)
-      ? "Las prendas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el canje o cóbralas aparte."
+      ? "Las prendas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el cupón o el canje, o cóbralas aparte."
       : null;
-  const motivoBloqueo = liquidacionConClub ?? motivoBloqueoCobro({
+  const motivoBloqueo = liquidacionConClub ?? cuponNoAlcanza ?? motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
     momento,
@@ -1549,7 +1647,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // tocar otro medio. Una fila por medio: tocar uno que ya está no duplica.
   function agregarPago(metodo: MetodoPagoVenta) {
     if (pagos.some((p) => p.metodo === metodo)) return;
-    setPagos((actual) => [...actual, { metodo, monto: Math.max(0, restante) }]);
+    // Con tarjeta o QR el pago nace con la máquina por defecto de la tienda (ADR-0429); la cajera la cambia en la hoja si fue la otra.
+    setPagos((actual) => [...actual, pagoNuevo(metodo, Math.max(0, restante), maquinasCobro)]);
+  }
+  // Con qué máquina se cobró la tarjeta o el QR (ADR-0429): cambia solo la cuenta de ESE pago; el monto y el resto quedan.
+  function cambiarMaquina(indice: number, cuentaId: string) {
+    setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, cuentaId } : p)));
   }
   // Con dos medios, al editar uno el otro toma lo que falta (`pagosTrasEditarMonto`).
   function cambiarMontoPago(indice: number, monto: number) {
@@ -1595,7 +1698,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         tocarMedio(metodo);
       } else if (momento === "armar" && prendas > 0) {
         e.preventDefault();
-        setPagos([{ metodo, monto: Math.max(0, total) }]);
+        setPagos([pagoNuevo(metodo, Math.max(0, total), maquinasCobro)]);
         setMomento("cobrar");
       }
     }
@@ -1661,8 +1764,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   }
 
 
-  async function cobrar(e: React.FormEvent) {
-    e.preventDefault();
+  function anotarCobro(token: string) {
+    guardar(claveCobro, conCobro(cobrosGuardados(leer(claveCobro, [])), { token, total, prendas, enviadoEn: new Date().toISOString() }));
+  }
+  function olvidarCobro(token: string) {
+    guardar(claveCobro, sinCobro(cobrosGuardados(leer(claveCobro, [])), token));
+  }
+
+  async function cobrar(e?: React.FormEvent) {
+    e?.preventDefault();
     // El mismo motivo que apaga el botón frena acá.
     if (momento !== "cobrar" || motivoBloqueo !== null || tipoComprobante === null) {
       if (motivoBloqueo) avisar.error(motivoBloqueo);
@@ -1676,13 +1786,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         variante_id: it.varianteId,
         cantidad: it.cantidad,
         precio_unitario: it.precioUnitario,
-        // Con el cumpleaños o el vale, `descuento_unitario` es el TOTAL (el de siempre + la parte del club, sumados al
+        // Con el cupón, `descuento_unitario` es el TOTAL (el de siempre + la parte del club, sumados al
         // céntimo) y `descuento_club_unitario` la parte del club, que la base recalcula. Sin ventaja del club, el ítem va
         // como siempre.
         ...(conVentajaDelClub ? descuentosParaRegistrar(it.descuentoUnitario, it.descuentoClubUnitario) : { descuento_unitario: it.descuentoUnitario }),
         // Sin descuento viajan como `undefined` (la clave ni aparece en el jsonb) — la
         // RPC los lee con `coalesce(..., '')` y no le importa la diferencia. El motivo describe el descuento SIN el club:
-        // una prenda cuyo único descuento es el cumpleaños no lleva motivo (ADR-0288, «Contrato de la tanda 1c»).
+        // una prenda cuyo único descuento es el cupón no lleva motivo (ADR-0288, «Contrato de la tanda 1c»).
         motivo_descuento: it.razonDescuento || undefined,
         motivo_descuento_detalle: it.razonDescuentoOtro || undefined,
         argumento_descuento: it.argumentoDescuento || undefined,
@@ -1702,7 +1812,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       // Solo montos > 0 (`venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no
       // viaja). El `recibido` del efectivo va aparte de `monto`, y solo si lo cubre.
       p_pagos: pagosParaRpc(pagos, redondeoEfectivoDisponible),
-      p_token: token.current,
+      // La marca la pone `envio` al mandar (sigue a todo lo demás de `params`).
+      p_token: "",
       p_tipo_comprobante: tipoComprobante,
       p_cliente_tipo_doc: clienteTipoDoc,
       p_cliente_num_doc: clienteNumDoc || undefined,
@@ -1713,56 +1824,38 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       p_nota: nota.trim() || undefined,
       // El responsable elegido en el combo (ADR-0161): la venta queda a su nombre (ADR-0163, `asesora_id`).
       p_asesora_id: responsable.elegidoId ?? undefined,
-      // El canje del cumpleaños (ADR-0288 D-5). Sin canje no viaja: la base lo toma como `false`.
-      p_canjear_cumpleanos: cumpleDelTicket ? true : undefined,
-      // El vale de aniversario (tanda 1g, G-13). Sin vale no viaja: la base lo toma como `false`.
-      p_canjear_aniversario: valeDelTicket ? true : undefined,
+      // El cupón del Club (programa de puntos): el código viaja aquí y la base lo valida, reparte y gasta (una sola vez). Sin cupón no viaja.
+      p_codigo_descuento: valeDelTicket ? valeDelTicket.cupon.codigo : undefined,
     };
 
     const supabase = createClient();
-    const { data: ventaId, error } = await firmar(supabase.rpc("registrar_venta", params), responsable.firma());
+    const r = await envio.enviar(huellaDe({ ...params, p_token: undefined }), (token, senal) => {
+      // Antes de mandarlo, el cobro queda anotado: si la página se cae ahora, al volver se pregunta por él.
+      anotarCobro(token);
+      return firmar(supabase.rpc("registrar_venta", { ...params, p_token: token }), responsable.firma()).abortSignal(senal);
+    });
+    // Una ráfaga de clics o de Enter: el primero ya está cobrando.
+    if (r.tipo === "ocupado" || r.tipo === "congelado") return;
 
-    if (error) {
-      // Sin red: no es un rechazo del servidor, es que el envío no llegó. Se intenta
-      // encolar (BACKLOG "resiliencia sin internet", ADR-0036 adaptado) antes de
-      // mostrarlo como un fallo cualquiera — la clienta sigue en el mostrador.
-      if (esFalloDeRed(error)) {
-        // Con el cumpleaños NO se encola (D-5): otra tienda podría canjearlo a la vez, y la clienta ya se habría ido con el
-        // precio rebajado cuando la base la rechazara. Se queda el mismo `p_token`: si la venta alcanzó a guardarse y solo
-        // se perdió la respuesta, volver a confirmar devuelve ESA venta en vez de duplicarla.
-        if (conVentajaDelClub && llevaCanje(params)) {
-          setLoading(false);
-          const { titulo, detalle } = cumpleDelTicket ? canjeSinConexion(cumpleDelTicket.pct) : valeSinConexion();
-          avisar.error(titulo, { detalle });
-          return;
-        }
-        // ADR-0379: una pieza de liquidación tampoco se encola: es UNA prenda y otra caja podría venderla, o rebajarla, mientras tanto.
-        if (carrito.some((it) => it.liquidacion)) {
-          setLoading(false);
-          avisar.error("Sin conexión no se cobra una prenda de liquidación", {
-            detalle: "Es una sola prenda y la base tiene que confirmar que sigue a la venta. Espera a que vuelva el internet, o sácala del ticket y cobra lo demás.",
-          });
-          return;
-        }
-        const stockOverlay = new Map(variantesConOverlay.map((v) => [v.varianteId, v.stockAqui]));
+    if (r.tipo === "incierto") {
+      // Sin red: no es un rechazo del servidor, es que el envío no llegó (o llegó y se perdió la respuesta). Se intenta
+      // encolar (BACKLOG "resiliencia sin internet", ADR-0036 adaptado) con la MISMA marca: si la venta alcanzó a guardarse,
+      // la cola recibe ESA venta en vez de duplicarla. Lo que no se puede encolar queda en duda (`CobroEnDuda`).
+      const sinCola = esFalloDeRed(r.error) ? motivoParaNoEncolar(params) : "La respuesta del servidor no llegó completa.";
+      if (sinCola === null) {
         const items = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
-        if (!carritoPasaElUmbral(items, stockOverlay)) {
-          setLoading(false);
-          avisar.error(
-            "Sin conexión, y esta venta dejaría alguna prenda en 0 sin que el servidor lo confirme — no se puede vender así (ADR-0013). Ajusta la cantidad o espera a que vuelva el internet."
-          );
-          return;
-        }
-        const nuevaVenta: VentaEncolada = { token: token.current, ubicacionId, creadoEn: new Date().toISOString(), items, params, rechazo: null };
+        const nuevaVenta: VentaEncolada = { token: r.token, ubicacionId, creadoEn: new Date().toISOString(), items, params: { ...params, p_token: r.token }, rechazo: null };
         const nuevaCola = [...cola, nuevaVenta];
         if (!guardar(claveCola, nuevaCola)) {
           setLoading(false);
-          avisar.error("No se pudo guardar la venta sin conexión en este navegador (¿modo privado, storage lleno?). No quedó registrada en ningún lado — anótala a mano.");
+          setSinColaMotivo("No se pudo guardar la venta sin conexión en este navegador (¿modo privado, almacenamiento lleno?).");
           return;
         }
+        // La cola se quedó con la marca: ella la sube (o devuelve la venta que ya estaba) cuando vuelva el internet.
+        envio.soltar();
+        olvidarCobro(r.token);
         setCola(nuevaCola);
         setLoading(false);
-        token.current = crypto.randomUUID();
         avisar.exito(`Venta de ${money(total)} guardada sin conexión`, {
           detalle: proformaActiva
             ? `Subirá sola cuando vuelva el internet. ${proformaActiva.numero} sigue «vigente»: márcala luego en Proformas.`
@@ -1777,23 +1870,23 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         limpiarComprobante();
         return;
       }
-
       setLoading(false);
-      // La base rechazó el canje del cumpleaños (ya canjeado en otra tienda, fuera de su mes, ya no es socia, % distinto…):
-      // se apaga, se vuelve a leer su resumen si la base sabe algo que la caja no, y se dice. La venta NO se vuelve a mandar
-      // sola sin el descuento: el total subió y la clienta tiene que saberlo (los pagos ya no cuadran hasta que se revisen).
-      const rechazoCumple = cumpleDelTicket ? rechazoDelCanje(error.hint, cumpleDelTicket.pct) : null;
-      if (rechazoCumple) {
-        clubDeLaClienta.apagarCumpleTrasRechazo(rechazoCumple.releer);
-        avisar.error(traducirError(error, "registrar la venta"), { detalle: rechazoCumple.detalle });
-        responsable.despues(error);
-        return;
-      }
-      // Lo mismo con el vale de aniversario (tanda 1g): se apaga, se relee si la base sabe algo que la caja no, y se dice.
-      const rechazoVale = valeDelTicket ? rechazoDelVale(error.hint) : null;
-      if (rechazoVale) {
-        clubDeLaClienta.apagarValeTrasRechazo(rechazoVale.releer);
-        avisar.error(traducirError(error, "registrar la venta"), { detalle: rechazoVale.detalle });
+      setSinColaMotivo(sinCola);
+      responsable.despues(r.error);
+      return;
+    }
+
+    if (r.tipo === "error") {
+      const error = r.error;
+      // La base dijo que no: no se guardó nada. El cobro anotado ya no está en el aire.
+      olvidarCobro(r.token);
+      setLoading(false);
+      // La base rechazó el cupón del Club (programa de puntos: otra caja lo usó, venció, la compra bajó del mínimo…): se quita, se vuelve a
+      // leer lo que la base sabe y se dice. La venta NO se vuelve a mandar sola sin el cupón: el total subió y el cliente tiene que saberlo.
+      const rechazoCupon = valeDelTicket ? rechazoDelCupon(error.hint) : null;
+      if (rechazoCupon) {
+        cuponClub.apagarTrasRechazo();
+        avisar.error(traducirError(error, "registrar la venta"), { detalle: rechazoCupon.detalle });
         responsable.despues(error);
         return;
       }
@@ -1841,6 +1934,59 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       return;
     }
 
+    // Se guardó (o, tras una duda, la base dijo que ya estaba): el cobro anotado ya no está en el aire.
+    olvidarCobro(r.token);
+    setSinColaMotivo(null);
+    await ventaRegistrada(r.tipo === "ok" ? (r.data as string | null) : typeof r.datos.venta_id === "string" ? r.datos.venta_id : null);
+  }
+
+  /**
+   * Por qué un cobro sin conexión NO se puede guardar para subir solo; `null` si se puede. Con el canje del club (D-5) otra tienda
+   * podría canjearlo a la vez; una pieza de liquidación (ADR-0379) es UNA prenda que otra caja podría vender; y una venta que deja una
+   * prenda en 0 necesita que el servidor lo confirme (ADR-0013). Ese cobro queda en duda (`CobroEnDuda`) hasta saber qué pasó.
+   */
+  function motivoParaNoEncolar(params: ParamsRegistrarVenta): string | null {
+    if (conVentajaDelClub && llevaCanje(params)) {
+      const { titulo, detalle } = cuponSinConexion();
+      return `${titulo}. ${detalle ?? ""}`.trim();
+    }
+    if (carrito.some((it) => it.liquidacion)) {
+      return "Una prenda de liquidación no se cobra sin conexión: es una sola prenda y la base tiene que confirmar que sigue a la venta.";
+    }
+    const stockOverlay = new Map(variantesConOverlay.map((v) => [v.varianteId, v.stockAqui]));
+    const items = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
+    if (!carritoPasaElUmbral(items, stockOverlay)) {
+      return "Sin conexión, esta venta dejaría alguna prenda en 0 sin que el servidor lo confirme (ADR-0013).";
+    }
+    return null;
+  }
+
+  /** ¿Quedó el cobro que está en duda? Con «sí», sigue como cualquier venta registrada; con «no», el ticket se suelta tal cual. */
+  async function revisarCobro() {
+    if (revisandoCobro) return;
+    setRevisandoCobro(true);
+    const token = envio.instantanea()?.marca.token ?? null;
+    const res = await envio.revisar();
+    setRevisandoCobro(false);
+    if (res.tipo === "sin_respuesta") {
+      avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+      return;
+    }
+    if (token) olvidarCobro(token);
+    setSinColaMotivo(null);
+    if (res.tipo === "hecho") {
+      setLoading(true);
+      await ventaRegistrada(typeof res.datos.venta_id === "string" ? res.datos.venta_id : null);
+      return;
+    }
+    avisar.aviso(`El cobro de ${money(total)} no se registró`, {
+      detalle: "No quedó ninguna venta guardada. El ticket sigue igual: revísalo y cobra de nuevo.",
+    });
+  }
+
+  /** Lo que sigue a una venta que quedó en la base: la proforma, SUNAT, el comprobante, el celular y la hoja «Venta registrada». */
+  async function ventaRegistrada(ventaId: string | null) {
+    const supabase = createClient();
     // El comprobante ya se emitió en la MISMA transacción que la venta
     // (0011_venta_con_comprobante.sql) — esta consulta es solo para mostrar su
     // serie-número; nunca puede "fallar en emitir" por separado.
@@ -1865,7 +2011,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           comprobante: { tipo: comp.tipo, serie: comp.serie, numero: comp.numero, created_at: comp.created_at },
           sede: ubicacionEtiqueta,
           cliente: { tipoDoc: clienteTipoDoc, numDoc: clienteNumDoc || null, nombre: clienteNombre.trim() || null },
-          // Con el cumpleaños o el vale, cada prenda con su descuento TOTAL (el de `venta_items`): el papel dice lo que se cobró.
+          // Con el cupón, cada prenda con su descuento TOTAL (el de `venta_items`): el papel dice lo que se cobró.
           lineas: lineasConClub.map((it) => ({
             cantidad: it.cantidad,
             referencia: it.referencia,
@@ -1880,10 +2026,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           redondeo: pagosCobrados(pagos, redondeoEfectivoDisponible).redondeo,
           tasaIgv: 0.18,
           atendio: atendioDelTicket(responsable.lista.elegibles, responsable.elegidoId),
-          // El papel muestra el descuento de cada prenda: dice cuánto de eso es del cumpleaños.
-          cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null,
-          // Lo mismo con el vale de aniversario: cuánto del descuento de las prendas es del vale.
-          vale: valeDelTicket ? { monto: valeDelTicket.monto } : null,
+          // El papel muestra el descuento de cada prenda: dice cuánto de eso es del cupón del Club.
+          cupon: valeDelTicket ? { monto: valeDelTicket.monto } : null,
         });
       }
     }
@@ -1904,7 +2048,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     }
 
     setLoading(false);
-    token.current = crypto.randomUUID();
     responsable.despues(null);
     avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
     setHojaTicket(false);
@@ -1914,13 +2057,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       recibo,
       estado,
       offline: false,
-      cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null,
-      vale: valeDelTicket ? { monto: valeDelTicket.monto } : null,
+      cupon: valeDelTicket ? { monto: valeDelTicket.monto } : null,
       ventaId: ventaId ?? null,
       // El WhatsApp de esta boleta: el que quedó en el paso Comprobante (de su ficha, o escrito ahí). Sin él, no se ofrece el botón.
       celular: tipoComprobante === "nota_venta" ? null : celularBoleta || null,
       celularEnFicha,
     });
+    // El cupón se gastó con esta venta (o no se usó): la próxima empieza sin él, y los puntos de la clienta se leen de nuevo.
+    cuponClub.quitar();
+    cuponClub.recargar();
     const vendidas = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
     setCarrito([]);
     limpiarComprobante();
@@ -1956,6 +2101,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       vuelto={vuelto}
       cobroEfectivo={cobroEfectivo}
       onTocarMedio={tocarMedio}
+      maquinas={maquinasCobro}
+      onMaquina={cambiarMaquina}
       onMontoPago={cambiarMontoPago}
       onRecibido={cambiarRecibido}
       tipoComprobante={tipoComprobante}
@@ -1972,6 +2119,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               nombre={clienteNombre}
               onNombre={setClienteNombre}
               sinNumero={tipoComprobante === "factura" ? undefined : "Sin documento sale a «Cliente varios»."}
+              nombreDeFicha={nombreDeFichaParaComprobante(clienta, clienteDocIdentidad, clienteNumDoc)}
             />
             {/* Un solo hijo a propósito: `.hoja-cobro-doc > fieldset > div:has(> :nth-child(2))` (globals.css) acomoda en dos columnas
                 todo `div` con dos hijos, y esta caja va en su propia fila. */}
@@ -2004,6 +2152,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       formId="ticket-pos"
       onVolver={() => setMomento("armar")}
       compacta={compacta}
+      tipos={tiposComprobante}
     />
   );
 
@@ -2030,8 +2179,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             onIrAEspera={() => setMomento("espera")}
             total={total}
             prendas={prendas}
-            cumple={cumpleDelTicket}
             vale={valeDelTicket}
+            onQuitarCupon={cuponClub.quitar}
+            onAbrirCodigo={() => setHojaCodigo(true)}
+            gana={ganaPuntos}
             pagos={pagos}
             redondeoEfectivo={redondeoEfectivoDisponible}
             tipoComprobante={tipoComprobante}
@@ -2057,6 +2208,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 responsable={responsable}
                 onHojaAbierta={setHojaClientaAbierta}
                 clubDeLaClienta={clubDeLaClienta}
+                puntosDelClub={cuponClub}
+                totalDelTicket={conVale.totalSinVale}
+                hayArticulos={carrito.length > 0}
+                onUsarPuntos={() => setHojaPuntos(true)}
               />
               <FilaDeBolsas bolsas={bolsas} carrito={carrito} bloqueado={bloqueado} onAbrir={() => setBolsasAbiertas(true)} />
             </>
@@ -2121,7 +2276,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                   : undefined
               }
             />
-            <span className="ml-auto">
+            <span className="ml-auto" data-guia="vender.hoy">
               <ResumenDeHoy
                 forma="texto"
                 ventas={ventasDeHoy.ventas}
@@ -2151,7 +2306,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               </p>
               {proformaActiva.confirmacion && (
                 <label className="flex cursor-pointer items-start gap-2 text-ambar-profundo">
-                  <input type="checkbox" checked={confirmoVencida} onChange={(e) => setConfirmoVencida(e.target.checked)} className="mt-0.5 accent-tinta" />
+                  <Casilla
+                    marcada={confirmoVencida}
+                    onCambio={() => setConfirmoVencida(!confirmoVencida)}
+                    etiqueta={`${proformaActiva.confirmacion.titulo} ${proformaActiva.confirmacion.casilla}`}
+                    className="shrink-0"
+                  />
                   <span>
                     <b className="font-semibold">{proformaActiva.confirmacion.titulo}</b> {proformaActiva.confirmacion.casilla}
                   </span>
@@ -2247,14 +2407,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         <button
           type="button"
           onClick={() => setHojaTicket(true)}
+          data-guia="vender.barra-ticket"
           aria-haspopup="dialog"
           className="anim-revelar fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-20 flex items-center gap-3 rounded-2xl bg-tinta py-2.5 pl-3 pr-2.5 text-left text-crema shadow-lg sm:left-[calc(var(--ancho-lateral,0px)+0.75rem)] lg:hidden"
         >
           <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-crema/10">
             <ShoppingBag className="h-5 w-5" aria-hidden />
-            {prendas > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1 text-[10px] font-semibold tabular-nums">{prendas}</span>
-            )}
+            <Globito n={prendas} esquina sobreOscuro late className="absolute -right-1.5 -top-1.5" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[11px] text-crema/70">
@@ -2272,14 +2431,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
       {apilado && hojaTicket && (
-        <Modal titulo="Ticket actual" variante="ticket" ancho="max-w-xl" onClose={() => setHojaTicket(false)} alCerrarEnfocar={buscador}>
+        <Modal titulo="Ticket actual" variante="ticket" tamano="mediana" onClose={() => setHojaTicket(false)} alCerrarEnfocar={buscador}>
           {ticketNodo(true)}
         </Modal>
       )}
 
       {esperaAbierta && (
         <DejarEnEsperaModal
-          ocupados={enEspera.map((t) => t.nombre ?? "")}
+          nombreInicial={nombreTicket}
+          // El ticket que está en la caja ocupa su nombre igual que los de la tira: si se retomó «Probador 1», ese
+          // chip no se vuelve a ofrecer (el campo ya lo trae escrito).
+          ocupados={[...enEspera.map((t) => t.nombre ?? ""), nombreTicket]}
           onDejar={dejarEnEspera}
           onClose={() => setEsperaAbierta(false)}
         />
@@ -2390,6 +2552,41 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         />
       )}
 
+      {hojaPuntos && clienta && puntosDelTicket?.miembro && (() => {
+        // El rango de lo que se puede canjear en ESTA compra lo decide `opcionesDeCanje` (la misma cuenta que la base).
+        const o = opcionesDeCanje(puntosDelTicket.saldo, conVale.totalSinVale, puntosDelTicket.config);
+        return o.tipo === "posible" ? (
+          <UsarPuntosModal
+            clientaId={clienta.id}
+            nombre={(clienta.nombre ?? "").trim().split(/\s+/)[0] || "el cliente"}
+            saldo={puntosDelTicket.saldo}
+            config={puntosDelTicket.config}
+            min={o.min}
+            max={o.max}
+            paso={o.paso}
+            totalDelTicket={conVale.totalSinVale}
+            responsable={responsable}
+            onAplicado={(c) => {
+              cuponClub.poner(c);
+              cuponClub.recargar();
+            }}
+            onClose={() => setHojaPuntos(false)}
+            alCerrarEnfocar={buscador}
+          />
+        ) : null;
+      })()}
+
+      {hojaCodigo && (
+        <CodigoDeCuponModal
+          totalDelTicket={conVale.totalSinVale}
+          cuponesDeLaClienta={puntosDelTicket?.miembro ? puntosDelTicket.cupones : []}
+          nombreClienta={clienta?.nombre ? clienta.nombre.trim().split(/\s+/)[0] : null}
+          onAplicar={cuponClub.poner}
+          onClose={() => setHojaCodigo(false)}
+          alCerrarEnfocar={buscador}
+        />
+      )}
+
       {manualAbierto && (
         <PrendaSinRegistrarModal
           listas={listasPrendaLibre}
@@ -2413,8 +2610,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
       {modalAbrirVisible && (
         // Ancha (`max-w-xl`): angosta, con el aviso «Nadie de turno» pasaba los 800 px de alto (Felipe 2026-10-01).
-        <Modal titulo="Abrir caja" ancho="max-w-xl" onClose={() => setModalCaja(null)} alCerrarEnfocar={focoTrasAbrirCaja}>
-          <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} esperado={fondoUltimoCierre} enHoja />
+        <Modal titulo="Abrir caja" tamano="mediana" onClose={() => setModalCaja(null)} alCerrarEnfocar={focoTrasAbrirCaja}>
+          {(cerrar) => <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} esperado={fondoUltimoCierre} enHoja onCancelar={cerrar} />}
         </Modal>
       )}
       {modalCerrarVisible && cajaId && (
@@ -2422,6 +2619,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
       {ok && <VentaRegistradaModal ok={ok} ubicacionEtiqueta={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador} />}
+
+      {envio.incierto && (
+        <CobroEnDuda
+          total={total}
+          prendas={prendas}
+          sinCola={sinColaMotivo}
+          revisando={revisandoCobro}
+          reintentando={loading}
+          onRevisar={() => void revisarCobro()}
+          onReintentar={() => void cobrar()}
+        />
+      )}
     </div>
   );
 }

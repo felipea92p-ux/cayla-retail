@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { Check } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { textoDeResultado, type RespuestaCuadre } from "@/lib/cuadre-piso-reglas";
 import { AntesDespues, CifrasCuadre } from "./RevisarCuadre";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 /*
  * El resultado del cuadre del piso (ADR-0328): lo que devolvió la base, sin confeti (como «Conteo terminado»). La fecha del
@@ -28,7 +29,7 @@ export function ResultadoCuadre({ respuesta, sede, otraPersona = false }: { resp
       {respuesta.noCargado.length > 0 && (
         <section className="card-cayla overflow-hidden" aria-label="No cargadas">
           <header className="border-b border-tinta/10 px-4 py-3 sm:px-5">
-            <h2 className="font-display text-lg text-tinta">No cargadas · {respuesta.noCargado.length}</h2>
+            <TituloSeccion cuenta={respuesta.noCargado.length}>No cargadas</TituloSeccion>
             <p className="mt-0.5 text-xs text-taupe">
               Se escanearon como guardadas pero el sistema no las tiene en {sede}. El cuadre no las creó: cárgalas con «Ajustar stock» en
               Existencias, o revisa si vinieron de otra sede.
@@ -49,12 +50,12 @@ export function ResultadoCuadre({ respuesta, sede, otraPersona = false }: { resp
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Link href="/inventario" className="btn-cayla btn-primario h-11">
+        <BotonVer href="/inventario" className="h-11">
           Ir a Existencias
-        </Link>
-        <Link href="/inventario/movimientos" className="btn-cayla btn-secundario h-11">
+        </BotonVer>
+        <BotonVer href="/inventario/movimientos" className="h-11">
           Ver Movimientos
-        </Link>
+        </BotonVer>
       </div>
       <p className="nota-cayla">
         Desde hoy, lo que cuelgues o guardes se registra al momento con «Bajar al piso» y «Subir a almacén». Si en unos días el piso del

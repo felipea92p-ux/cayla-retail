@@ -3,6 +3,10 @@ import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { ETIQUETA_MOTIVO_NOTA, fechaCorta, soles, type CompraResumen } from "@/lib/compras-reglas";
 import type { NotaCreditoCompra } from "@/lib/compras-faltantes";
 import { estadoNotaFaltante, montoDeCierres, tasaIgv } from "@/lib/recepciones-reglas";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { FileMinus } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Sección «Notas de crédito» del detalle de un comprobante (D2, ADR-0111): lo que el proveedor
 // ya nos reconoció (faltantes, devoluciones, descuentos). Cada nota dice qué hizo: cuánto bajó lo que se
@@ -23,32 +27,30 @@ export function NotasCreditoCompra({ compra, notas, cerrados }: { compra: Compra
   const esperado = montoDeCierres(cerrados, tasaIgv(compra));
   const unidadesCerradas = cerrados.reduce((a, c) => a + c.faltan, 0);
   return (
-    <section className="space-y-2">
+    <section className="space-y-2" data-guia="factura.notas">
       <div className="flex items-baseline justify-between">
         <p className="label-cayla text-[11px] text-tinta/65">Notas de crédito</p>
         {compra.estado === "vigente" && (
-          <Link href="/compras/notas-credito" className="label-cayla text-[11px] text-rojo hover:underline">
-            Registrar en Notas de crédito ↗
-          </Link>
+          <EnlaceVer href="/compras/notas-credito">Registrar en Notas de crédito</EnlaceVer>
         )}
       </div>
       {(disp.estado === "disponible" || (disp.estado === "bloqueada" && unidadesCerradas > 0)) && (
-        <p className="rounded-xl border border-ambar/40 bg-ambar/[0.06] px-4 py-3 text-sm leading-relaxed text-tinta">
-          <b className="font-semibold text-ambar-profundo">Esperando nota de crédito · {soles(esperado)}</b>
-          <br />
+        <Aviso tono="atencion" titulo={`Esperando nota de crédito · ${soles(esperado)}`}>
           {disp.estado === "disponible"
             ? `Cerraste ${unidadesCerradas} ${unidadesCerradas === 1 ? "unidad" : "unidades"} que no llegaron y el comprobante ya está resuelto. Cuando ${compra.proveedorNombre} emita la nota de crédito, se registra en Notas de crédito: ${compra.saldo > 0 ? "no pagues esa parte." : "como ya está pagado, quedará a tu favor."}`
             : `Cerraste ${unidadesCerradas} ${unidadesCerradas === 1 ? "unidad" : "unidades"} que no llegaron, pero quedan ${disp.quedan} sin recibir ni cerrar. La nota por faltante se registra cuando el comprobante quede al 100 %.`}
-        </p>
+        </Aviso>
       )}
       {notas.length === 0 ? (
-        <p className="card-cayla p-5 text-sm text-tinta/65">
-          Sin notas de crédito. Si el proveedor emite una por un faltante o una devolución, se registra en{" "}
-          <Link href="/compras/notas-credito" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
-            Notas de crédito
-          </Link>
-          : baja lo que se debe y, si ya estaba pagado, queda a tu favor con ese proveedor. Acá se ven las de este comprobante.
-        </p>
+        <div className="card-cayla">
+          <Vacio tamano="chico" alinear="izquierda" className="px-5 py-4" icono={<FileMinus />}>
+            Sin notas de crédito. Si el proveedor emite una por un faltante o una devolución, se registra en{" "}
+            <Link href="/compras/notas-credito" className="btn-enlace">
+              Notas de crédito
+            </Link>
+            : baja lo que se debe y, si ya estaba pagado, queda a tu favor con ese proveedor. Acá se ven las de este comprobante.
+          </Vacio>
+        </div>
       ) : (
         <Tabla>
           <Encabezado plantilla={PLANTILLA} columnas={[{ titulo: "Fecha" }, { titulo: "Nota · Motivo" }, { titulo: "Monto", alinear: "der" }]} />

@@ -39,7 +39,7 @@ const ICONO_TAMANO: Record<TamanoGrilla, typeof Square> = { grande: Square, medi
 export function SelectorTamanoGrilla({ inicial }: { inicial: TamanoGrilla }) {
   const [valor, elegir] = useTamanoGrilla(inicial);
   return (
-    <div className="flex items-center gap-2.5">
+    <div data-guia="productos.tamano" className="flex items-center gap-2.5">
       <span aria-hidden className="label-cayla hidden text-[10.5px] text-tinta/60 sm:inline">
         Tamaño
       </span>
@@ -52,7 +52,7 @@ export function SelectorTamanoGrilla({ inicial }: { inicial: TamanoGrilla }) {
           const Icono = ICONO_TAMANO[t];
           return {
             clave: t,
-            icono: <Icono aria-hidden strokeWidth={1.75} className="sm:hidden" />,
+            icono: <Icono aria-hidden className="sm:hidden" />,
             etiqueta: <span className="max-sm:sr-only">{ROTULO_TAMANO_GRILLA[t]}</span>,
           };
         })}

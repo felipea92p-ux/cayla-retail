@@ -50,6 +50,16 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ pedidosCliente: null })[0]!.nivel).toBe("sinleer");
   });
 
+  it("ADR-0393: lo recibido por terminar lleva a Recibir; si lo más antiguo pasa de 7 días, es urgente", () => {
+    const base = { porSeparar: 5, porDetallar: 0, porCrear: 3, total: 8, envios: [] };
+    const [a] = avisosInicio({ recibidoPorTerminar: { ...base, desde: null } });
+    expect(a).toMatchObject({ clave: "porTerminar", cantidad: 8, nivel: "toca", href: "/recibir", ahora: "Termina 8 prendas recibidas" });
+    expect(a!.detalle).toBe("Contadas y en el almacén, pero sin poder venderse: 5 por separar, 3 por crear.");
+    expect(avisosInicio({ recibidoPorTerminar: { ...base, desde: "2020-01-01T10:00:00Z" } })[0]!.nivel).toBe("urgente");
+    expect(avisosInicio({ recibidoPorTerminar: { ...base, porSeparar: 0, porCrear: 0, total: 0, desde: null } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ recibidoPorTerminar: null })[0]!.nivel).toBe("sinleer");
+  });
+
   it("decisión del 2026-10-04: a los 7 días el Inicio pregunta si el pedido sigue en pie (la reserva allá no vence sola)", () => {
     const [a] = avisosInicio({ pedidosCliente: { llegaron: 0, noLlegaron: 0, sigueEnPie: 2, primero: "Ana Lozano" } });
     expect(a).toMatchObject({ cantidad: 2, nivel: "toca", ahora: "Confirma si 2 pedidos siguen en pie" });
@@ -94,6 +104,44 @@ describe("avisosInicio", () => {
     expect(vencida.nivel).toBe("urgente");
     expect(vencida.titulo).toBe("Facturas de proveedor vencidas");
     expect(avisosInicio({ porPagar: { vencidas: 0, montoVencido: 0, semana: 1, montoSemana: 500 } })[0]!.nivel).toBe("toca");
+  });
+
+  // Felipe 2026-10-13 (auditoría, punto 18): la cuenta bancaria de un proveedor cambió esta semana.
+  it("una cuenta de proveedor que cambió avisa al líder, lleva a su ficha y no se puede ocultar", () => {
+    const uno = avisosInicio({ cuentasBancarias: { cambios: 2, proveedores: 1, ultimoProveedorId: "p1", ultimoProveedor: "Textiles Andina SAC" } })[0]!;
+    expect(uno.clave).toBe("cuentasBancarias");
+    expect(uno.nivel).toBe("toca");
+    expect(uno.ocultable).toBe(false);
+    expect(uno.href).toBe("/compras/proveedores/p1");
+    expect(uno.detalle).toContain("Textiles Andina SAC");
+    expect(uno.ahora).toBe("Confirma la cuenta nueva antes de pagar");
+  });
+  it("varios proveedores con cuenta nueva llevan al directorio; ninguno queda al día; sin leer no se finge «al día»", () => {
+    expect(avisosInicio({ cuentasBancarias: { cambios: 3, proveedores: 3, ultimoProveedorId: "p9", ultimoProveedor: "X" } })[0]!.href).toBe("/compras/proveedores");
+    expect(avisosInicio({ cuentasBancarias: { cambios: 0, proveedores: 0, ultimoProveedorId: null, ultimoProveedor: null } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ cuentasBancarias: null })[0]!.nivel).toBe("sinleer");
+    expect(avisosInicio({})).toEqual([]);
+  });
+
+  // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. No se oculta.
+  it("las notas de crédito por pedir llevan a Notas de crédito, no se ocultan y se vuelven urgentes pasadas dos semanas", () => {
+    const [a] = avisosInicio({ notasPorPedir: { facturas: 2, igv: 18, dias: 3 } });
+    expect(a).toMatchObject({ clave: "notasPorPedir", grupo: "Compras", cantidad: 2, nivel: "toca", href: "/compras/notas-credito", ocultable: false });
+    expect(a!.ahora).toBe("Pide la nota de crédito de 2 facturas");
+    expect(a!.detalle).toBe("La plata ya volvió en 2 facturas, pero falta la nota del proveedor: sus S/\u00a018.00 de IGV esperan.");
+    expect(avisosInicio({ notasPorPedir: { facturas: 1, igv: 3.6, dias: 15 } })[0]!.nivel).toBe("urgente");
+    expect(avisosInicio({ notasPorPedir: { facturas: 0, igv: 0, dias: null } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ notasPorPedir: null })[0]).toMatchObject({ nivel: "sinleer", ocultable: false });
+  });
+  it("las prendas de factura que no llegaron llevan a la ficha del proveedor (o al directorio) y no se ocultan", () => {
+    const [a] = avisosInicio({ prendasSinLlegar: { prendas: 3, facturas: 1, igv: 10.8, proveedores: 1, proveedorId: "p1" } });
+    expect(a).toMatchObject({ clave: "prendasSinLlegar", grupo: "Compras", cantidad: 3, nivel: "toca", href: "/compras/proveedores/p1", ocultable: false });
+    expect(a!.ahora).toBe("Resuelve 3 prendas que te deben");
+    expect(avisosInicio({ prendasSinLlegar: { prendas: 4, facturas: 2, igv: 14.4, proveedores: 2, proveedorId: null } })[0]!.href).toBe("/compras/proveedores");
+    expect(avisosInicio({ prendasSinLlegar: { prendas: 0, facturas: 0, igv: 0, proveedores: 0, proveedorId: null } })[0]!.nivel).toBe("aldia");
+    // Ninguno de los dos se apaga desde «Ajustar».
+    const todos = avisosInicio({ notasPorPedir: { facturas: 1, igv: 3.6, dias: 1 }, prendasSinLlegar: { prendas: 1, facturas: 1, igv: 3.6, proveedores: 1, proveedorId: "p1" } });
+    expect(avisosVisibles(todos, { notasPorPedir: false, prendasSinLlegar: false }, true).activos.map((x) => x.clave)).toEqual(["notasPorPedir", "prendasSinLlegar"]);
   });
 
   // «Por colgar» (ADR-0331 act. b) con la decisión del motor del piso (ADR-0328 act. 7): cuenta TALLAS, como «Para hoy» de
@@ -293,7 +341,7 @@ describe("armarEquipo", () => {
       { ocurrio_at: "2026-09-26T15:00:00Z", accion: "caja_abierta", descripcion: "abrió la caja", persona_id: "f", persona_nombre: "Felipe Alvarez", detalle: {} },
     ]);
     const micaela = e.find((m) => m.personaId === "m")!;
-    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([2, 289, "vendió 2 prendas por S/ 189"]);
+    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([2, 289, "vendió 2 prendas por S/\u00a0189"]);
     const felipe = e.find((m) => m.personaId === "f")!;
     expect([felipe.nombre, felipe.estado]).toEqual(["Felipe A.", null]);
   });
@@ -305,9 +353,9 @@ describe("armarEquipo", () => {
       { ocurrio_at: "2026-09-26T21:00:00Z", accion: "venta_registrada", descripcion: "vendió 1 prenda por S/ 100", persona_id: "m", persona_nombre: "Micaela Quispe", detalle: { total: 100 }, tabla: "ventas", registro_id: "v-anulada" },
     ]);
     const micaela = e.find((m) => m.personaId === "m")!;
-    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([1, 189, "vendió 2 prendas por S/ 189"]);
+    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([1, 189, "vendió 2 prendas por S/\u00a0189"]);
     // Quien anuló sí muestra que anuló (es una acción suya, no una venta).
-    expect(e.find((m) => m.personaId === "l")!.ultima?.texto).toBe("anuló la venta B004-000009 de S/ 100");
+    expect(e.find((m) => m.personaId === "l")!.ultima?.texto).toBe("anuló la venta B004-000009 de S/\u00a0100");
   });
 
   it("una venta de prueba anulada desaparece del todo: ni venta, ni «vendió…», ni «anuló…»", () => {

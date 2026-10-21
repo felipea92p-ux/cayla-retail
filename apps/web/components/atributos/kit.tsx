@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
+import { Chip } from "@/components/ui/Chip";
 import { FunnelX, Shapes } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { Boton } from "@/components/ui/campos";
@@ -41,6 +42,7 @@ export function BarraAtributos({
   filtros,
   busqueda,
   agregar,
+  guia,
 }: {
   /** El nombre del grupo de píldoras: «Filtrar tallas». */
   etiqueta: string;
@@ -48,17 +50,20 @@ export function BarraAtributos({
   filtros: ReactNode;
   busqueda?: Busqueda;
   agregar?: { texto: string; onClick: () => void };
+  /** Ancla de la guía interactiva para la barra entera (`data-guia`, ADR-0389). Una por pestaña: al cambiar de pestaña, la
+   *  guía tiene que encontrar la barra NUEVA, no la de la pestaña que se está yendo. */
+  guia?: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-      <div role="group" aria-label={etiqueta} className="flex flex-wrap items-center gap-1.5">
+    <div data-guia={guia} className="flex flex-wrap items-center gap-x-6 gap-y-3">
+      <div role="group" aria-label={etiqueta} data-guia="vocabulario.filtros" className="flex flex-wrap items-center gap-1.5">
         {filtros}
       </div>
       {(busqueda || agregar) && (
         <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
           {busqueda && <Buscador {...busqueda} />}
           {agregar && (
-            <Boton type="button" peso="primario" onClick={agregar.onClick} className="shrink-0">
+            <Boton type="button" peso="primario" onClick={agregar.onClick} className="shrink-0" data-guia="vocabulario.agregar">
               {agregar.texto}
             </Boton>
           )}
@@ -72,6 +77,7 @@ export function BarraAtributos({
 function Buscador({ valor, onValor, etiqueta, placeholder = "Buscar" }: Busqueda) {
   return (
     <BuscadorUnico
+      guia="vocabulario.buscador"
       valor={valor}
       onCambio={(v) => onValor(v)}
       placeholder={placeholder}
@@ -82,13 +88,14 @@ function Buscador({ valor, onValor, etiqueta, placeholder = "Buscar" }: Busqueda
   );
 }
 
-/** «● ROTACIÓN 4»: el título de cada grupo de tarjetas. Sin `punto`, el de «Desactivadas». */
+/** «● ROTACIÓN 4»: el título de cada grupo de tarjetas, con cuántas hay en el globito. Sin `punto`, el de «Desactivadas». */
 export function TituloGrupo({ punto, cuenta, children }: { punto?: string; cuenta: number; children: ReactNode }) {
   return (
     <p className="label-cayla flex items-center gap-1.5 text-[11px] text-tinta/65">
       {punto && <span aria-hidden className={`inline-block h-1.5 w-1.5 rounded-full ${punto}`} />}
       {children}
-      <span className="font-normal tabular-nums text-tinta/40">{cuenta}</span>
+      {/* Cuántos hay: el globito de los títulos y las pestañas (ADR-0358, ronda 9). */}
+      <span className="titulo-cuenta ml-0.5">{cuenta.toLocaleString("es-PE")}</span>
     </p>
   );
 }
@@ -125,7 +132,7 @@ export function VocabularioVacio({ children, icono = <Shapes /> }: { children: R
 
 /** La insignia de estado junto al nombre: «Pendiente», «Rechazada». */
 function Insignia({ children }: { children: ReactNode }) {
-  return <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">{children}</span>;
+  return <Chip tono="rojo" className="shrink-0">{children}</Chip>;
 }
 
 /** La parte de arriba de la tarjeta que abre un detalle (Tejidos y Patrones: su foto y sus prendas). Las acciones del pie
@@ -179,6 +186,7 @@ export function TarjetaAtributo({
   );
   return (
     <div
+      data-guia="vocabulario.tarjeta"
       className={`group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
         apagada ? "opacity-60" : ""
       }`}
@@ -215,19 +223,6 @@ export function PieTarjeta({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-center gap-x-3 gap-y-1">{children}</div>;
 }
 
-/** Un enlace del pie. Cada uno en una sola línea: «Configurar campaña» partido en dos se leía como dos acciones. */
-export function AccionTarjeta({ onClick, children }: { onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="label-cayla whitespace-nowrap text-[10px] text-tinta/75 underline-offset-4 transition-colors hover:text-tinta hover:underline"
-    >
-      {children}
-    </button>
-  );
-}
-
 /**
  * «Desactivar» no es lo que se hace a diario: aparece al pasar el mouse o al enfocarlo con el teclado, y en pantallas
  * táctiles (sin hover) se ve siempre. Reserva su lugar para que la tarjeta no salte de alto.
@@ -248,7 +243,7 @@ export function DesactivarTarjeta({ onClick, cambiando = false }: { onClick: () 
 /** «Reactivar» de una tarjeta desactivada. */
 export function BotonReactivar({ onClick, cambiando = false }: { onClick: () => void; cambiando?: boolean }) {
   return (
-    <Boton peso="discreto" className="w-full px-2.5! py-1.5 text-[11px] whitespace-nowrap" cargando={cambiando} onClick={onClick}>
+    <Boton textoCargando="Reactivando…" peso="discreto" className="w-full px-2.5! py-1.5 text-[11px] whitespace-nowrap" cargando={cambiando} onClick={onClick}>
       Reactivar
     </Boton>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ImagePlus, RotateCcw, Wand2 } from "lucide-react";
+import { ImagePlus, RotateCcw, Wand2, Shirt, ChevronRight } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
@@ -19,6 +19,7 @@ import { reducirMuestra, subirMuestra } from "@/lib/muestra-atributo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { ayudaDeTejido } from "@/lib/tejido-ayuda";
 import type { ColorDibujo } from "@/lib/dibujo-generado";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * El detalle de un tejido o de un patrón (ADR-0256): se abre al hacer clic en su tarjeta de Atributos.
@@ -105,7 +106,7 @@ export function DetalleMuestraModal({
         .order("referencia");
       if (!vigente) return;
       if (error) {
-        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas") });
+        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas", { lectura: true }) });
         return;
       }
       const prendas = (data ?? []).map((p) => ({
@@ -193,12 +194,12 @@ export function DetalleMuestraModal({
     <Modal
       titulo={muestra.nombre}
       subtitulo={cantidad === null ? (tipo === "tejido" ? "Tejido" : "Patrón") : `${tipo === "tejido" ? "Tejido" : "Patrón"} · ${textoPrendas(cantidad)}`}
-      ancho="max-w-lg"
+      tamano="mediana"
       bloqueado={guardando}
       onClose={onClose}
     >
       <div className="mt-2 space-y-5">
-        <section className="space-y-2">
+        <section data-guia="muestra.dibujo" className="space-y-2">
           <Muestra nombre={muestra.nombre} imagenUrl={imagenVisible} className="aspect-[2/1] w-full" />
           <p className="text-xs text-tinta/60">
             {pendiente
@@ -229,7 +230,7 @@ export function DetalleMuestraModal({
 
           {puedeEditar && !pendiente && generador === null && (
             <div className="flex flex-wrap gap-2">
-              <Boton peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
+              <Boton textoCargando="Subiendo…" peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
                 <span className="inline-flex items-center gap-1.5">
                   <ImagePlus className="h-3.5 w-3.5" aria-hidden />
                   Subir foto
@@ -268,13 +269,13 @@ export function DetalleMuestraModal({
 
           {pendiente && (
             <div className="space-y-3 rounded-lg border border-sand bg-hueso/60 p-3">
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={() => setPendiente(null)} disabled={guardando}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={() => setPendiente(null)} disabled={guardando}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={guardando}
                   onClick={guardar}
                 >
@@ -288,7 +289,7 @@ export function DetalleMuestraModal({
         {/* Qué es el tejido, para qué prendas sirve y cómo se cuida: lo que una integrante necesita para reconocerlo y explicárselo al
             cliente. Lo ve cualquiera que abra el detalle (no solo quien edita). Los patrones no la llevan: su dibujo ya dice qué son. */}
         {ayuda && (
-          <section className="space-y-2">
+          <section data-guia="muestra.sobre" className="space-y-2">
             <p className="label-cayla text-[11px] text-tinta/65">Sobre este tejido</p>
             <div className="rounded-lg border border-sand bg-hueso/60 p-3 text-sm text-tinta/85">
               <p>{ayuda.queEs}</p>
@@ -304,7 +305,7 @@ export function DetalleMuestraModal({
           </section>
         )}
 
-        <section className="space-y-2">
+        <section data-guia="muestra.prendas" className="space-y-2">
           <p className="label-cayla text-[11px] text-tinta/65">Prendas con {palabra.el}</p>
           {carga.estado === "cargando" && (
             <ul className="space-y-2" aria-label="Buscando prendas">
@@ -325,7 +326,7 @@ export function DetalleMuestraModal({
             </div>
           )}
           {carga.estado === "listo" && carga.prendas.length === 0 && (
-            <p className="rounded-lg border border-dashed border-tinta/15 p-3 text-sm text-tinta/60">Ninguna prenda usa {palabra.el} todavía.</p>
+            <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Shirt />}>Ninguna prenda usa {palabra.el} todavía.</Vacio>
           )}
           {carga.estado === "listo" && carga.prendas.length > 0 && (
             <ul className="max-h-72 divide-y divide-sand overflow-y-auto rounded-lg border border-sand">
@@ -334,7 +335,7 @@ export function DetalleMuestraModal({
                   <MiniaturaPrenda fotoUrl={p.fotoUrl} />
                   <div className="min-w-0 flex-1">
                     {veProductos ? (
-                      <Link href={`/productos/${p.id}/editar`} className="block truncate text-sm text-tinta hover:text-rojo-profundo hover:underline">
+                      <Link href={`/productos/${p.id}/editar`} className="btn-enlace inline-block max-w-full truncate align-bottom text-sm">
                         {p.referencia}
                       </Link>
                     ) : (
@@ -363,7 +364,10 @@ export function PieTarjetaMuestra({ prendas }: { prendas: number }) {
   return (
     <span className="flex flex-wrap items-center justify-between gap-x-2 text-xs text-tinta/60">
       <span className="whitespace-nowrap">{textoPrendas(prendas)}</span>
-      <span className="whitespace-nowrap transition-colors group-hover/muestra:text-rojo-profundo">Ver ›</span>
+      <span className="inline-flex items-center gap-0.5 whitespace-nowrap transition-colors group-hover/muestra:text-rojo-profundo">
+        Ver
+        <ChevronRight aria-hidden className="h-3 w-3" />
+      </span>
     </span>
   );
 }

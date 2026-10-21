@@ -15,6 +15,7 @@
 
 import { enEscala } from "./color-escala";
 import { agruparPorFamilia } from "./colores-familias";
+import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 
 const CONECTORES = ["de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
 
@@ -169,6 +170,11 @@ export function repartirFamilias<T extends { codigo: string }>(familias: T[]): {
 // ---------------------------------------------------------------------------
 
 export type EstadoAlta = {
+  /** ADR-0463: el alta pregunta a qué tienda pertenece el producto (CAYLA, CLAURE) ANTES de la categoría. `false` o ausente = la base
+   *  todavía no tiene las tiendas (se pega antes que la web, o aún no): el alta sigue como siempre y el producto nace en CAYLA. */
+  exigeEmpresa?: boolean;
+  /** La tienda elegida. Vacía = todavía sin elegir (no hay valor de fábrica: un producto en la tienda equivocada no se nota hasta tarde). */
+  empresaId?: string;
   categoriaId: string;
   // Marca y proveedor NO están aquí: desde ADR-0283 (2026-09-29) un producto se crea sin ellos y se completan después.
   referencia: string;
@@ -189,6 +195,9 @@ export type EstadoAlta = {
   celdasIncluidas: number;
   precioBase: string;
   costoBase: string;
+  /** La primera celda de la tabla con un precio propio en 0 (o que no es un número), como se lee en pantalla: «Negro en M».
+   *  `null` o ausente = ninguna (`celdaSinPrecio`, lib/tabla-alta-reglas.ts; ADR-0384). */
+  celdaSinPrecio?: string | null;
   /** Paso 4 (ADR-0212): unidades escritas en «Cuántas tienes hoy», en las celdas que siguen en la tabla. */
   stockTotal: number;
   /** Celdas con algo que no es un entero de 0 a 9999 (la pantalla no deja escribirlo; la regla no se fía). */
@@ -215,12 +224,23 @@ export function faltaLugarCarga(e: Pick<EstadoAlta, "stockTotal" | "stockInvalid
 
 /** El bloque de cada problema dice a qué pregunta del alta pertenece (ver `pasoDeProblema`). `tela` = tejido y patrón: describen
  *  la prenda y viven en «¿Cómo es?»; `tallas` y `variantes` son la forma del modelo, en «¿En qué tallas y colores?». */
-export type Problema = { bloque: "categoria" | "nombre" | "tela" | "tallas" | "variantes" | "precio" | "stock"; texto: string };
+/** Lo que se dice de una celda de la tabla con el precio en 0 (ADR-0384): cuál es, dónde está y qué hacer. Una sola frase para
+ *  `problemasAlta` y la guía, que tienen que decir lo mismo. */
+export function textoCeldaSinPrecio(celda: string): string {
+  return `${celda} tiene el precio en 0 (tabla, pestaña Precios): pon un precio mayor que 0 o déjala vacía para que tome el de todas.`;
+}
+
+/** Lo que falta cuando todavía no se dijo a qué tienda pertenece el producto. Una sola frase para `problemasAlta` y la guía. */
+export const TEXTO_FALTA_EMPRESA = "Elige a qué tienda pertenece el producto.";
+
+export type Problema = { bloque: "empresa" | "categoria" | "nombre" | "tela" | "tallas" | "variantes" | "precio" | "stock"; texto: string };
 
 /** Lo que falta, en el orden en que la persona lo encuentra en pantalla: así `problemas[0]` es siempre lo próximo que va a
  *  ver (nombre → tejido → patrón en el paso 2; tallas y tabla en el 3; precio y stock en el 4). */
 export function problemasAlta(e: EstadoAlta): Problema[] {
   const p: Problema[] = [];
+  // La tienda va antes que la categoría (ADR-0463): sin ella no se sabe de qué negocio es el producto.
+  if (e.exigeEmpresa && !e.empresaId) return [{ bloque: "empresa", texto: TEXTO_FALTA_EMPRESA }];
   if (!e.categoriaId) return [{ bloque: "categoria", texto: "Elige qué producto es (familia y categoría)." }];
   if (!e.referencia.trim()) p.push({ bloque: "nombre", texto: "Escribe el nombre del producto." });
   // Sin ni una letra ni un número («...», «✨») la base no tiene con qué formar la clave del nombre y lo rechaza recién al final de los 4 pasos.
@@ -241,8 +261,12 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   if (e.celdasIncluidas === 0) p.push({ bloque: "variantes", texto: "Deja al menos una variante en la tabla." });
   const precio = Number(e.precioBase);
   if (e.precioBase.trim() === "" || !Number.isFinite(precio) || precio <= 0) p.push({ bloque: "precio", texto: "Pon el precio de venta." });
+  if (e.celdaSinPrecio) p.push({ bloque: "precio", texto: textoCeldaSinPrecio(e.celdaSinPrecio) });
   const costo = Number(e.costoBase);
   if (e.costoBase.trim() !== "" && (!Number.isFinite(costo) || costo < 0)) p.push({ bloque: "precio", texto: "El costo no puede ser negativo." });
+  // ADR-0415: hasta S/ 5 000 (la base lo rechaza igual con `variantes_precio_con_tope`).
+  if (precio > MAX_PRECIO_PRENDA) p.push({ bloque: "precio", texto: FRASE_PRECIO_CON_TOPE });
+  if (costo > MAX_PRECIO_PRENDA) p.push({ bloque: "precio", texto: FRASE_COSTO_CON_TOPE });
   // Decidir el stock es obligatorio, no llenarlo: «ninguna» es una respuesta válida, pero tiene que darse. Sin esto, un
   // producto creado con prisa quedaba en 0 y su stock se metía después como «Reposición», sin rastro de que era la carga.
   if (e.stockInvalidas > 0) p.push({ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." });
@@ -335,6 +359,7 @@ export const PASOS_ALTA: readonly PasoAlta[] = [1, 2, 3, 4];
 
 export function pasoDeProblema(p: Problema): PasoAlta {
   switch (p.bloque) {
+    case "empresa":
     case "categoria":
       return 1;
     case "nombre":

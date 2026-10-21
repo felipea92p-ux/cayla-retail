@@ -2,17 +2,18 @@
 // Las mismas reglas las cierra la base (`guardar_metas_tienda`, `guardar_efecto_campana`, checks y disparadores de
 // 20260924210000); aquí solo se dicen con una frase clara ANTES de ir a la base.
 
+import { leerMontoPlata, MONTO_ILEGIBLE } from "./monto-plata-reglas";
+
 export const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"] as const;
 export const DIAS_CORTOS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
-/** "1,500", "1500.50", "S/ 300" → número. Vacío → `null` (sin meta ese día / fondo normal). */
+/** "1,500", "1500.50", "648,50", "S/ 300" → número, con la regla única de `leerMontoPlata`. Vacío → `null` (sin meta ese día / fondo normal). */
 export function parsearMonto(texto: string): Resultado<number | null> {
-  const limpio = texto.replace(/s\/|\s/gi, "").replace(/,/g, "");
-  if (limpio === "") return { ok: true, valor: null };
-  if (!/^-?\d+(\.\d{1,2})?$/.test(limpio)) return { ok: false, error: "Escribe un monto, por ejemplo 1500." };
-  const n = Number(limpio);
+  if (texto.trim() === "") return { ok: true, valor: null };
+  const n = leerMontoPlata(texto);
+  if (n === null) return { ok: false, error: MONTO_ILEGIBLE };
   if (n < 0) return { ok: false, error: "No puede ser negativo." };
   return { ok: true, valor: n };
 }
@@ -202,6 +203,82 @@ export function leerConfiguracion(data: unknown): ConfiguracionTiendas {
       efectos: Object.fromEntries(
         Object.entries((c.efectos ?? {}) as Record<string, { meta_pct: unknown; fondo: unknown }>).map(([u, e]) => [u, { meta_pct: Number(e.meta_pct), fondo: num(e.fondo) }]),
       ),
+    })),
+  };
+}
+
+// ---- Metas por mes y por fecha (ADR-0435, 20261017020000) -------------------------------------------------------------
+// Lo que `fn_parametros_caja` lee para cada día: la meta de una FECHA (final) > la semana de ese MES > la semana tipo. Aquí se
+// validan los montos con las mismas frases claras que la base (que vuelve a validar todo) y se leen las dos funciones nuevas.
+
+/** El mismo tope de la base: una meta es menor a 10 millones (y `NaN` no pasa). */
+const TOPE_META = 10_000_000;
+
+function parsearMeta(texto: string): Resultado<number | null> {
+  const r = parsearMonto(texto);
+  if (r.ok && r.valor !== null && r.valor >= TOPE_META) return { ok: false, error: "Tiene que ser menor a 10 millones." };
+  return r;
+}
+
+/** La semana de UN mes: 7 montos, lunes a domingo. Vacío o 0 = ese día usa la semana tipo de la tienda. */
+export function validarSemanaMes(textos: readonly string[]): Resultado<(number | null)[]> {
+  if (textos.length !== 7) return { ok: false, error: "Faltan días de la semana." };
+  const metas: (number | null)[] = [];
+  for (let i = 0; i < 7; i++) {
+    const r = parsearMeta(textos[i] ?? "");
+    if (!r.ok) return { ok: false, error: `${DIAS_SEMANA[i]}: ${r.error}` };
+    metas.push(r.valor === 0 ? null : r.valor);
+  }
+  return { ok: true, valor: metas };
+}
+
+/** La meta de una fecha: la fecha de hoy en adelante, la meta obligatoria (0 = esa fecha no tiene meta) y la nota de hasta 140 letras. */
+export function validarMetaFecha(entrada: { fecha: string; meta: string; nota: string }, hoy: string): Resultado<{ fecha: string; meta: number; nota: string | null }> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(entrada.fecha)) return { ok: false, error: "Elige la fecha." };
+  if (entrada.fecha < hoy) return { ok: false, error: "Esa fecha ya pasó." };
+  const m = parsearMeta(entrada.meta);
+  if (!m.ok) return { ok: false, error: `Meta: ${m.error}` };
+  if (m.valor === null) return { ok: false, error: "Escribe la meta de ese día (0 si la tienda no abre)." };
+  const nota = entrada.nota.trim();
+  if (nota.length > 140) return { ok: false, error: "La nota puede tener hasta 140 letras." };
+  return { ok: true, valor: { fecha: entrada.fecha, meta: m.valor, nota: nota === "" ? null : nota } };
+}
+
+export type MesMetas = {
+  /** El día 1 del mes («2026-11-01»). */
+  mes: string;
+  /** Lunes a domingo; `null` = ese día usa la semana tipo. */
+  metas: (number | null)[];
+  /** La meta del mes: la suma de los días con fechas y campañas. */
+  total: number | null;
+};
+export type TiendaMetas = { id: string; nombre: string; tipica: (number | null)[]; meses: MesMetas[] };
+export type FechaMeta = { ubicacionId: string; fecha: string; meta: number; nota: string | null };
+export type ConfiguracionMetas = { hoy: string; tiendas: TiendaMetas[]; fechas: FechaMeta[] };
+
+/** Lo que devuelve `fn_configuracion_metas`. `null` si no trae la forma esperada (la base todavía no tiene la migración). */
+export function leerConfiguracionMetas(data: unknown): ConfiguracionMetas | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as { meses?: unknown; tiendas?: unknown; fechas?: unknown; hoy?: unknown };
+  if (!Array.isArray(d.meses) || !Array.isArray(d.tiendas)) return null;
+  const meses = d.meses.map(String);
+  const semana = (v: unknown): (number | null)[] => (Array.isArray(v) && v.length === 7 ? (v as unknown[]).map(num) : Array(7).fill(null));
+  return {
+    hoy: String(d.hoy ?? ""),
+    tiendas: (d.tiendas as Record<string, unknown>[]).map((t) => {
+      const porMes = (t.meses ?? {}) as Record<string, { metas?: unknown; total?: unknown } | undefined>;
+      return {
+        id: String(t.id),
+        nombre: String(t.nombre),
+        tipica: semana(t.tipica),
+        meses: meses.map((mes) => ({ mes, metas: semana(porMes[mes]?.metas), total: num(porMes[mes]?.total) })),
+      };
+    }),
+    fechas: (Array.isArray(d.fechas) ? (d.fechas as Record<string, unknown>[]) : []).map((f) => ({
+      ubicacionId: String(f.ubicacion_id),
+      fecha: String(f.fecha),
+      meta: Number(f.meta),
+      nota: typeof f.nota === "string" && f.nota ? f.nota : null,
     })),
   };
 }

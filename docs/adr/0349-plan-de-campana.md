@@ -76,3 +76,34 @@ ni `drop trigger` (ADR-0195), y es idempotente.
   - Al guardar salió el aviso y la tabla se actualizó.
 
   Después borré esa línea de prueba de la base local.
+
+## Actualización 2026-10-13 — la pantalla cambia la pregunta según el momento de la campaña
+
+**Problema.** El Aniversario 2026 iba en el día 13 de 21 en producción con 0 de 45 categorías planificadas, y la pantalla seguía
+ofreciendo «Armar plan» 45 veces, con «Comprar» e «Inversión» en raya y la leyenda de una barra que no aparecía. Una prueba ciega
+(agente sin contexto, tarea «la campaña ya corre: ¿qué me toca hacer hoy?») concluyó que tenía que armar 5 planes a dos días del
+cierre. El aviso de que el stock de dos tiendas no cuadraba solo lo encontró tocando el «2» rojo de un ícono sin texto.
+
+**Decisión** (Felipe eligió el 2026-10-13, en `docs/pantallas/compras-plan-prompt-maestro.md`, «llevar a Resultados + próxima»):
+- **Antes de la campaña**, la pregunta sigue siendo «¿cuánto compro?» (una acción principal: «Empezar por …»).
+- **Empezada o terminada sin plan**, un aviso dice que empezó (o terminó) sin plan y ofrece «Ver cómo va» (Resultados) y
+  «Planificar <la próxima>». Si no hay próxima, al líder le ofrece «Nueva campaña». Las filas se pueden seguir abriendo: no se
+  bloquea nada.
+- **Con plan**, nada cambia: la tabla compara lo planificado con lo vendido.
+- **Lo que no dice nada no se dibuja.** Con 0 planes no salen «Comprar», «Inversión» ni la leyenda de la barra. Empezada sin plan,
+  tampoco sale «Venta esperada». No salen las píldoras que no filtran (0, o iguales a «Todas»), y la que está puesta no se esconde.
+- **El stock sin cuadrar se lee sin abrir nada**, en una línea sobre la tabla con «Ver qué falta», que abre el cajón con «Ir a
+  Conteo». El cajón de «Resumen y avisos» (Felipe 2026-10-12) se queda: la línea es de 47 px, no el aviso grande que empujaba la tabla.
+- Detalles: las fechas salen una sola vez (en el selector; el chip dice cuánto falta para que termine); el puesto «N.º» va en
+  pizarra (verde es «hecho»); lo vendido sin plan es una cifra, no una frase.
+
+La lógica es pura, en `lib/plan-compra-momento.ts`, con su prueba (los 3 momentos con 0 planes o con algunos). No cambia el cálculo,
+lo que se guarda ni los permisos.
+
+**Descarté:**
+- **Bloquear el plan durante la campaña.** Una reposición del Taller a mitad de campaña puede necesitar un plan, y bloquear es una
+  regla de negocio que nadie pidió.
+- **Volver a poner el aviso grande de stock sobre la tabla.** Deshacía la decisión del 2026-10-12 y bajaba la lista unos 150 px.
+
+**Se rompe si:** una campaña se crea con la fecha de inicio ya pasada para registrar una reposición. Ahí el aviso «empezó sin plan»
+saldría aunque la intención sea planificarla. La salida es abrir una fila: la tabla se puede seguir abriendo.

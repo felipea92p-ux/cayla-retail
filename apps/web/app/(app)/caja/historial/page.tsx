@@ -14,7 +14,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 
 function money(n: number) {
-  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 type Params = { sede?: string; estado?: string; pagina?: string; prueba?: string };
@@ -58,6 +58,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
+      <div data-guia="caja-historial.cabecera">
       <EncabezadoPagina
         sede="Caja · todas las sedes"
         sinHora
@@ -70,6 +71,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
           </>
         }
       />
+      </div>
 
       {aperturas && aperturas.length > 0 && <AperturasPorRevisar aperturas={aperturas} />}
 
@@ -81,7 +83,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
         </div>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div data-guia="caja-historial.cifras" className="grid gap-3 sm:grid-cols-3">
             <TarjetaCifra
               etiqueta="Cuadraron"
               valor={resumen.cuadraron}
@@ -98,13 +100,13 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
             </TarjetaCifra>
           </div>
 
-          <nav aria-label="Filtrar cierres" className="flex flex-wrap items-center gap-2">
+          <nav aria-label="Filtrar cierres" data-guia="caja-historial.filtros" className="flex flex-wrap items-center gap-2">
             <Link href={href({ sede: undefined })} aria-current={!sede ? "page" : undefined} className="pildora-cayla">
               Todas las tiendas
             </Link>
             {sedes.map((u) => (
               <Link key={u.id} href={href({ sede: u.id })} aria-current={sede?.id === u.id ? "page" : undefined} className="pildora-cayla">
-                {u.nombre.replace(/^Tienda\s+/i, "")} <span className="font-normal opacity-60">{resumenTodo.porSede.get(u.id)}</span>
+                {u.nombre.replace(/^Tienda\s+/i, "")} <span className="font-normal">{resumenTodo.porSede.get(u.id)}</span>
               </Link>
             ))}
             <span className="mx-1 h-5 w-px bg-sand" aria-hidden />
@@ -113,7 +115,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
               aria-current={soloConDiferencia ? "page" : undefined}
               className="pildora-cayla"
             >
-              Solo los que no cuadraron <span className="font-normal opacity-60">{conDiferencia}</span>
+              Solo los que no cuadraron <span className="font-normal">{conDiferencia}</span>
             </Link>
           </nav>
 

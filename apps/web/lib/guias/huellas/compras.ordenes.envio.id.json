@@ -1,0 +1,26 @@
+{
+  "guia": "compras.ordenes.envio.id",
+  "ruta": "/compras/ordenes/envio/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 14,
+  "controles": {
+    "app/(app)/compras/ordenes/envio/[id]/page.tsx": [
+      "Volver «/compras/ordenes»",
+      "BotonEnlace «Ver las órdenes de compra»",
+      "BotonEnlace «Ver la orden»"
+    ],
+    "components/ordenes-compra/EnviarOrdenASede.tsx": [
+      "Volver «/compras/ordenes»",
+      "CampoSelect «A qué sede va»",
+      "CampoTexto «Número de guía»",
+      "CampoTexto «Nota»",
+      "Boton «Todo lo que queda»",
+      "Boton «Dejar todas en 0»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Recargar»",
+      "BotonEnlace «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "CampoTexto «{`Cuántas van de la línea ${l.posicion}»"
+    ]
+  }
+}

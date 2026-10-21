@@ -60,6 +60,8 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | 
   etiqueta?: string;
   ref?: Ref<HTMLInputElement>;
   className?: string;
+  /** Ancla de la guía interactiva (ADR-0389): va en la caja de afuera, no en el texto. */
+  guia?: string;
 };
 
 function IconoBarras({ className }: { className?: string }) {
@@ -87,6 +89,7 @@ export function Buscador({
   className = "",
   placeholder,
   onKeyDown,
+  guia,
   ...resto
 }: Props) {
   const propio = useRef<HTMLInputElement | null>(null);
@@ -172,6 +175,7 @@ export function Buscador({
   );
   const caja = (
     <div
+      data-guia={conteo === undefined ? guia : undefined}
       className={`buscador ${mostrador ? "mostrador" : ""} ${conteo === undefined ? className : ""}`}
       data-con-texto={valor ? "" : undefined}
       data-buscando={senal ? "" : undefined}
@@ -220,7 +224,7 @@ export function Buscador({
   );
   if (conteo === undefined) return caja;
   return (
-    <div className={className}>
+    <div data-guia={guia} className={className}>
       {caja}
       <div className="buscador-conteo" aria-live="polite">
         {conteo}

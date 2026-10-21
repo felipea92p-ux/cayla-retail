@@ -1,0 +1,36 @@
+{
+  "guia": "finanzas.dinero.conciliacion",
+  "ruta": "/finanzas/dinero/conciliacion",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 24,
+  "controles": {
+    "components/finanzas/CuentasDinero.tsx": [
+      "Boton «fin-dinero.registrar»",
+      "button «fin-dinero.aviso-registrar»",
+      "button «fin-dinero.poner-plata»",
+      "button «Sacar plata»",
+      "Link «Cambiar en Configuración»",
+      "button «fin-dinero.decir-cuenta»",
+      "ComboResponsable «{responsable}»",
+      "button «(sin nombre)»",
+      "button «revisada»",
+      "button «Revisada»",
+      "button «Anular este saldo…»",
+      "Boton «Anotar»",
+      "button «{fechaCorta(h.fecha, true)}»",
+      "button «Conciliar»",
+      "Casilla «{`${textoLote(l)}»",
+      "ComboResponsable «{responsable}» #2",
+      "button «Cancelar»",
+      "Boton «Registrar»",
+      "button «Anular…»",
+      "ComboResponsable «{responsable}» #3",
+      "button «Volver»",
+      "Boton «{accion}»"
+    ],
+    "components/finanzas/PagosSinCuenta.tsx": [
+      "Boton «Guardar»",
+      "ComboResponsable «{responsable}»"
+    ]
+  }
+}

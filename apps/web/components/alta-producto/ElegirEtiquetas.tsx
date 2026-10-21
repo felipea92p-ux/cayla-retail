@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { Search } from "lucide-react";
 import { MuestraEtiqueta, TONOS } from "@/components/MuestraEtiqueta";
 import { GrillaMuestras, TarjetaMuestraBase, TileVerTodos } from "@/components/alta-producto/GrillaMuestras";
 import { Modal } from "@/components/ui/Modal";
@@ -12,7 +11,7 @@ import { proponerEtiqueta, type ValorCreado } from "@/lib/alta-producto-ejes";
 import type { EtiquetaAlta } from "@/lib/alta-producto-datos";
 import { ayudaDeEtiqueta } from "@/lib/etiqueta-ayuda";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
   agruparEtiquetas,
   coincideConTexto,
@@ -24,8 +23,11 @@ import {
   textoDeDescuento,
 } from "@/lib/etiquetas-alta-reglas";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
-import { Boton } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Buscador } from "@/components/ui/Buscador";
 import { Aviso } from "@/components/ui/Aviso";
+import { Tag } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    ElegirEtiquetas · el campo «Etiquetas» del alta, con el mismo molde que Tejido, Patrón y Temporada (2026-09-29)
@@ -96,7 +98,9 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
     <TooltipProvider delayDuration={250}>
       <div className="space-y-2.5">
         {etiquetas.length === 0 ? (
-          <p className="text-sm text-taupe">{enLinea ? "Todavía no hay etiquetas. Ábrelas desde «Ver todos» para crear la primera." : "Todavía no hay etiquetas."}</p>
+          <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Tag />}>
+            {enLinea ? "Todavía no hay etiquetas. Ábrelas desde «Ver todos» para crear la primera." : "Todavía no hay etiquetas."}
+          </Vacio>
         ) : (
           <GrillaMuestras>
             {visibles.map((et) => (
@@ -133,7 +137,7 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
       {hoja && (
         <Modal
           variante="hoja"
-          ancho="max-w-[680px]"
+          tamano="ancha"
           titulo="Elige las etiquetas"
           subtitulo={`${total} en el catálogo.`}
           onClose={() => setHoja(false)}
@@ -328,31 +332,23 @@ function HojaEtiquetas({
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <label className="caja-cayla flex h-9 w-full items-center gap-2 px-3 sm:w-72">
-          <Search aria-hidden size={14} className="shrink-0 text-tinta/45" />
-          <span className="sr-only">Buscar o crear una etiqueta</span>
-          <input
-            ref={entrada}
-            value={texto}
-            autoFocus
-            autoComplete="off"
-            placeholder="Buscar o crear una etiqueta…"
-            // El teclado del celular no manda «coma» como tecla: llega escrita al final. Se descarta (las etiquetas van de a una).
-            onChange={(e) => setTexto(e.target.value.replace(/,+$/, ""))}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === ",") {
-                e.preventDefault();
-                confirmar();
-              } else if (e.key === "Escape" && texto) {
-                // Este Escape lo usó el campo (borró lo escrito): que no cierre también la hoja (Modal usa `useEscapeLibre`).
-                e.preventDefault();
-                e.stopPropagation();
-                setTexto("");
-              }
-            }}
-            className="h-full min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45"
-          />
-        </label>
+        {/* El buscador del sistema (ADR-0358, ronda 5): su Escape borra lo escrito y no cierra también la hoja (Modal usa `useEscapeLibre`). */}
+        <Buscador
+          ref={entrada}
+          valor={texto}
+          autoFocus
+          etiqueta="Buscar o crear una etiqueta"
+          placeholder="Buscar o crear una etiqueta…"
+          // El teclado del celular no manda «coma» como tecla: llega escrita al final. Se descarta (las etiquetas van de a una).
+          onCambio={(v) => setTexto(v.replace(/,+$/, ""))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === ",") {
+              e.preventDefault();
+              confirmar();
+            }
+          }}
+          className="w-full sm:w-72"
+        />
         {hayCrear && significado.tipo === "nueva" && (
           <Boton type="button" onClick={() => pedirCrear(significado.nombre)} className="h-9 whitespace-nowrap py-0">
             + Crear «{significado.nombre}»
@@ -458,22 +454,19 @@ function NuevaEtiquetaModal({
           ? FRASE_ETIQUETA_INVALIDA
           : null;
   return (
-    <Modal variante="hoja" ancho="max-w-md" titulo="Nueva etiqueta" subtitulo="Escribe cómo se va a llamar." onClose={onCerrar}>
+    <Modal variante="hoja" titulo="Nueva etiqueta" subtitulo="Escribe cómo se va a llamar." onClose={onCerrar}>
       {(cerrar) => (
         <div className="space-y-3">
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-tinta">Nombre de la etiqueta</span>
-            <input
-              autoFocus
-              autoComplete="off"
-              value={texto}
-              onChange={(e) => setTexto(e.target.value.replace(/,+$/, ""))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") e.preventDefault();
-              }}
-              className="caja-cayla h-10 w-full px-3 text-sm text-tinta placeholder:text-tinta/45"
-            />
-          </label>
+          <CampoTexto
+            etiqueta="Nombre de la etiqueta"
+            sinPie
+            autoFocus
+            value={texto}
+            onChange={(e) => setTexto(e.target.value.replace(/,+$/, ""))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.preventDefault();
+            }}
+          />
           {nota && (
             <p role="status" className="text-xs text-ambar-profundo">
               {nota}
@@ -564,10 +557,10 @@ function CrearEtiquetaAbierta({
       </p>
       <AvisoSinIdentidad firma={firma} enHoja />
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => void crear()} disabled={trabajando || !firma.listo} title={firma.motivo ?? undefined} className="btn-cayla btn-primario">
-          {trabajando ? "Creando…" : puedeAprobar ? "Crear y agregar" : "Proponer etiqueta"}
-        </button>
-        <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-sutil">
+        <Boton peso="primario" cargando={trabajando} textoCargando="Creando…" type="button" onClick={() => void crear()} disabled={trabajando || !firma.listo} title={firma.motivo ?? undefined}>
+          {puedeAprobar ? "Crear y agregar" : "Proponer etiqueta"}
+        </Boton>
+        <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-secundario">
           Cancelar
         </button>
       </div>

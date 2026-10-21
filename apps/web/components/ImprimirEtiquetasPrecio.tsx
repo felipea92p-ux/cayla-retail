@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { Minus, Plus, RotateCcw, Tags, Trash2 } from "lucide-react";
+import { RotateCcw, Tags, Trash2 } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Encabezado, Tabla, TABLA, type Columna } from "@/components/ui/Tabla";
 import { CapsulaColor, VARIOS_COLORES } from "@/components/ui/MuestraColor";
 import { Aviso } from "@/components/ui/Aviso";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Vacio } from "@/components/ui/Vacio";
 import { avisar } from "@/components/ui/Avisos";
 import { EtiquetaPrecio } from "@/components/EtiquetaPrecio";
@@ -24,6 +25,7 @@ import {
   type Encabezado as TextosPantalla,
   type EtiquetaPrecio as DatosEtiqueta,
 } from "@/lib/etiqueta-precio-reglas";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // Una fila por color y talla, juntas bajo el nombre de su prenda (Felipe, 2026-10-09: «que no se haga tan cansado de ver tantas
 // cosas»): el nombre se dice una vez por grupo y cada fila dice solo lo que cambia —el color con su cápsula, la talla, el precio— y
@@ -67,6 +69,7 @@ export function ImprimirEtiquetasPrecio({
   sinCodigo,
   impreso,
   volver,
+  sede,
 }: {
   encabezado: TextosPantalla;
   etiquetas: DatosEtiqueta[];
@@ -74,6 +77,8 @@ export function ImprimirEtiquetasPrecio({
   impreso: string;
   /** La pantalla que abrió las etiquetas (`volverDeEtiquetas`): no es del menú, así que sin esto no hay salida. */
   volver: { href: string; a: string };
+  /** La sede de la línea de arriba de la cabecera (donde se imprime). */
+  sede: string;
 }) {
   const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(etiquetas.map((e) => [e.varianteId, String(e.cantidad)])));
   // Las filas sacadas con el tacho, en el orden en que salieron (el «Deshacer» del aviso devuelve la suya). `saliendo`: las que
@@ -167,7 +172,7 @@ export function ImprimirEtiquetasPrecio({
   const imprimir = (
     <div className="flex flex-wrap items-center gap-2">
       <BotonGuiaImpresion />
-      <button type="button" className="btn-cayla btn-primario mov-boton" disabled={total === 0 || enviando} onClick={mandar}>
+      <BotonImprimir peso="primario" disabled={total === 0 || enviando} onClick={mandar}>
         {total === 0 ? (
           "Nada que imprimir"
         ) : enviando ? (
@@ -180,17 +185,14 @@ export function ImprimirEtiquetasPrecio({
             <span className="sr-only">Imprimir {plural(total, "etiqueta", "etiquetas")}</span>
           </>
         )}
-      </button>
+      </BotonImprimir>
     </div>
   );
 
   if (etiquetas.length === 0) {
     return (
       <div className="space-y-6">
-        <div>
-          <Volver {...volver} className="mb-4" />
-          <CabeceraPantalla sobretitulo={encabezado.sobretitulo} titulo={encabezado.titulo} bajada={encabezado.vacio} />
-        </div>
+        <EncabezadoPagina sede={sede} detalle={encabezado.sobretitulo} volver={<Volver {...volver} />} titulo={encabezado.titulo} subtitulo={encabezado.vacio} />
         {sinCodigo.length > 0 && <AvisoSinCodigo prendas={sinCodigo} />}
       </div>
     );
@@ -203,7 +205,7 @@ export function ImprimirEtiquetasPrecio({
 
   // Dos columnas desde 1280 px (Felipe 2026-10-03: «ocupar todo el espacio […] al lado derecho que se muestren las etiquetas en vez
   // de que queden al último»): a la izquierda qué se imprime y cómo; a la derecha la vista previa, pegada arriba mientras se baja.
-  // La ruta está en `SIN_TOPE_DE_ANCHO` del AppShell (sin el tope de `max-w-5xl`). Más angosta, una columna como antes, con la vista
+  // La ruta va a ancho completo (AppShell, ADR-0462: sin el tope de `max-w-5xl`). Más angosta, una columna como antes, con la vista
   // previa justo después de la tabla.
   const vistaPrevia =
     visibles.length > 0 ? (
@@ -235,10 +237,16 @@ export function ImprimirEtiquetasPrecio({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Volver {...volver} className="mb-4" />
-        <CabeceraPantalla sobretitulo={encabezado.sobretitulo} titulo={encabezado.titulo} bajada={encabezado.bajada} acciones={imprimir} />
-      </div>
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): de dónde se llegó («Productos · Blusa Emma») va en
+          la línea de arriba, tras la sede y la fecha. */}
+      <EncabezadoPagina
+        sede={sede}
+        detalle={encabezado.sobretitulo}
+        volver={<Volver {...volver} />}
+        titulo={encabezado.titulo}
+        subtitulo={encabezado.bajada}
+        acciones={imprimir}
+      />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,40%)] xl:gap-8">
         <div className="min-w-0 space-y-5">
@@ -458,25 +466,20 @@ function FilaEtiqueta({
             >
               de {e.cantidad}
             </button>
-            <span className="etq-paso">
-              <button type="button" aria-label={`Una etiqueta menos de ${nombre}`} disabled={numero <= 0} onClick={() => onTexto(String(numero - 1))}>
-                <Minus aria-hidden />
-              </button>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={MAX_POR_PRENDA}
-                value={texto}
-                onChange={(ev) => onTexto(ev.target.value)}
-                onFocus={(ev) => ev.currentTarget.select()}
-                aria-label={`Etiquetas de ${nombre}`}
-                className="tabular-nums"
-              />
-              <button type="button" aria-label={`Una etiqueta más de ${nombre}`} disabled={numero >= MAX_POR_PRENDA} onClick={() => onTexto(String(numero + 1))}>
-                <Plus aria-hidden />
-              </button>
-            </span>
+            <PasoCantidad
+              menos={{ onClick: () => onTexto(String(numero - 1)), deshabilitado: numero <= 0, etiqueta: `Una etiqueta menos de ${nombre}` }}
+              mas={{ onClick: () => onTexto(String(numero + 1)), deshabilitado: numero >= MAX_POR_PRENDA, etiqueta: `Una etiqueta más de ${nombre}` }}
+              campo={{
+                type: "number",
+                inputMode: "numeric",
+                min: 0,
+                max: MAX_POR_PRENDA,
+                value: texto,
+                onChange: (ev) => onTexto(ev.target.value),
+                onFocus: (ev) => ev.currentTarget.select(),
+                "aria-label": `Etiquetas de ${nombre}`,
+              }}
+            />
             <button type="button" className="etq-tacho" aria-label={`Quitar ${nombre}`} title="Quitar esta fila" onClick={(ev) => onQuitar(ev.timeStamp)}>
               <Trash2 aria-hidden />
             </button>

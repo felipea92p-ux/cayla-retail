@@ -1,11 +1,11 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { getCargaInicial } from "@/lib/carga-inicial";
 import { ConfiguracionCargaInicial } from "@/components/ConfiguracionCargaInicial";
-import { getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
-import { getCategoriasGasto, getContextoGastos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
-import { hoyLima } from "@/lib/fechas-lima";
+import { getConfiguracionMetas, getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
+import { getCategoriasGasto, getContextoGastos, getFichasDeFijos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
+import { anioLima, hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PestanasFin } from "@/components/finanzas/kit";
 import { ConfiguracionTiendas } from "@/components/ConfiguracionTiendas";
 import { ConfiguracionEmpresa } from "@/components/ConfiguracionEmpresa";
@@ -14,22 +14,24 @@ import { TablaGastosFijos } from "@/components/GastosFijosYActivos";
 import { getParametrosTributarios } from "@/lib/impuestos";
 import { ConfiguracionImpuestos } from "@/components/ConfiguracionImpuestos";
 import { ConfiguracionCuentas } from "@/components/finanzas/ConfiguracionCuentas";
-import { getMediosDeCobro, getSaldos } from "@/lib/cuentas-dinero";
+import { getMaquinasPos, getMediosDeCobro, getSaldos } from "@/lib/cuentas-dinero";
 import { getPresupuestoConfig } from "@/lib/presupuesto";
 import { ConfiguracionPresupuesto } from "@/components/finanzas/ConfiguracionPresupuesto";
 
 // Configuración (ADR-0195, módulo «configuracion»; delegable desde el ADR-0253): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
-// trae Empresa (solo lectura), Tiendas y caja (F1), Cuentas y cobros (F3), Caja y avisos, Gastos fijos (F2b), Presupuesto
-// (capa «para decidir», `?mes=` elige el mes) e Impuestos (F8), sin pestañas vacías.
+// trae Empresa (solo lectura), Tiendas y caja (F1), Cuentas y cobros (F3), Caja y avisos, Gastos fijos (F2b), Presupuesto (capa
+// «para decidir», `?mes=` elige el mes) e Impuestos (F8), sin pestañas vacías. «Tienda web» fue una pestaña de aquí (ADR-0408 act. 6)
+// hasta el 2026-10-16: desde ADR-0430 es Tienda web ▸ Datos y plazos (`/tienda-web/ajustes`), y desde 20261016223000 con su propio módulo
+// (`ajustes_web`, `fn_puede_ajustes_tienda_web`): Configuración ya no la abre; la dirección vieja, `?tab=tienda-web`, lleva allá (`next.config.ts`).
 const PESTANAS = [
-  { clave: "empresa", etiqueta: "Empresa", href: "/configuracion?tab=empresa" },
-  { clave: "tiendas", etiqueta: "Tiendas y caja", href: "/configuracion?tab=tiendas" },
-  { clave: "cuentas", etiqueta: "Cuentas y cobros", href: "/configuracion?tab=cuentas" },
-  { clave: "caja", etiqueta: "Caja y avisos", href: "/configuracion?tab=caja" },
-  { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos" },
-  { clave: "presupuesto", etiqueta: "Presupuesto", href: "/configuracion?tab=presupuesto" },
-  { clave: "impuestos", etiqueta: "Impuestos", href: "/configuracion?tab=impuestos" },
+  { clave: "empresa", etiqueta: "Empresa", href: "/configuracion?tab=empresa", guia: "config.tab-empresa" },
+  { clave: "tiendas", etiqueta: "Tiendas y caja", href: "/configuracion?tab=tiendas", guia: "config.tab-tiendas" },
+  { clave: "cuentas", etiqueta: "Cuentas y cobros", href: "/configuracion?tab=cuentas", guia: "config.tab-cuentas" },
+  { clave: "caja", etiqueta: "Caja y avisos", href: "/configuracion?tab=caja", guia: "config.tab-caja" },
+  { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos", guia: "config.tab-fijos" },
+  { clave: "presupuesto", etiqueta: "Presupuesto", href: "/configuracion?tab=presupuesto", guia: "config.tab-presupuesto" },
+  { clave: "impuestos", etiqueta: "Impuestos", href: "/configuracion?tab=impuestos", guia: "config.tab-impuestos" },
 ] as const;
 
 export default async function ConfiguracionPage({ searchParams }: { searchParams: Promise<{ tab?: string; mes?: string }> }) {
@@ -39,12 +41,13 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Gestión · Configuración"
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede="Toda CAYLA"
         titulo="Configuración"
-        bajada="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo."
+        subtitulo="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo."
       />
-      <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} />
+      <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} guia="config.pestanas" />
       {pestana === "empresa" && <ConfiguracionEmpresa datos={await getDatosEmpresa()} />}
       {pestana === "tiendas" && <SeccionTiendas esLider={persona.rol === "lider"} esAdmin={persona.esAdmin} />}
       {pestana === "cuentas" && <SeccionCuentas />}
@@ -59,18 +62,20 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
 // La carga inicial de cada sede (ADR-0328, actividad 4) va en esta pestaña: es una fecha de la sede, como su hora de cierre. Si la
 // base todavía no tiene la función (la web salió antes que el SQL), la tarjeta no aparece y nada más cambia.
 async function SeccionTiendas({ esLider, esAdmin }: { esLider: boolean; esAdmin: boolean }) {
-  const [datos, carga] = await Promise.all([getConfiguracionTiendas(), getCargaInicial()]);
+  const [datos, carga, metas] = await Promise.all([getConfiguracionTiendas(), getCargaInicial(), getConfiguracionMetas()]);
   return (
     <ConfiguracionTiendas
       datos={datos}
+      metas={metas}
       despuesDeWhatsapp={carga && carga.sedes.length > 0 ? <ConfiguracionCargaInicial lectura={carga} esLider={esLider} esAdmin={esAdmin} /> : null}
     />
   );
 }
 
-// Cuentas y cobros (ADR-0195 F3): las cuentas con su saldo de hoy (sumado por la base) y a qué cuenta entra cada cobro.
+// Cuentas y cobros (ADR-0195 F3): las cuentas con su saldo de hoy (sumado por la base), a qué cuenta entra cada cobro y las
+// máquinas de cobro (ADR-0429; la tarjeta no se dibuja si la base todavía no las conoce).
 async function SeccionCuentas() {
-  const [cuentas, medios] = await Promise.all([getSaldos(null), getMediosDeCobro()]);
+  const [cuentas, medios, maquinas] = await Promise.all([getSaldos(null), getMediosDeCobro(), getMaquinasPos()]);
   return (
     <>
       {[cuentas.falla, medios.falla]
@@ -80,23 +85,32 @@ async function SeccionCuentas() {
             {f}
           </p>
         ))}
-      <ConfiguracionCuentas cuentas={cuentas.datos} medios={medios.datos} hoy={hoyLima()} />
+      <ConfiguracionCuentas cuentas={cuentas.datos} medios={medios.datos} maquinas={maquinas} hoy={hoyLima()} />
     </>
   );
 }
 
 async function SeccionFijos() {
   const { desde } = rangoMes(mesDe(hoyLima()));
-  const [contexto, categorias, proveedores, fijos] = await Promise.all([
+  const [contexto, categorias, proveedores, fijos, fichas] = await Promise.all([
     getContextoGastos(),
     getCategoriasGasto(),
     getProveedoresParaGasto(),
     getFijosMes(desde, { clave: "todas", ubicacionId: null, soloEmpresa: false }),
+    getFichasDeFijos(),
   ]);
   return (
     <>
       {fijos.falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{fijos.falla}</p>}
-      <TablaGastosFijos fijos={fijos.datos} categorias={categorias} ubicaciones={contexto.ubicaciones} proveedores={proveedores} />
+      <TablaGastosFijos
+        fijos={fijos.datos}
+        categorias={categorias}
+        ubicaciones={contexto.ubicaciones}
+        proveedores={proveedores}
+        fichas={fichas.porFijo}
+        fichaDisponible={fichas.disponible}
+        hoy={hoyLima()}
+      />
       <p className="nota-cayla">
         Un fijo es un recordatorio: cada mes aparece en <b>Finanzas ▸ Gastos ▸ Fijos del mes</b> para registrarlo con lo que llegó de verdad. Si uno deja de pagarse, se archiva: sus gastos ya registrados se quedan.
       </p>
@@ -123,7 +137,7 @@ async function SeccionImpuestos() {
   return (
     <>
       {parametros.falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{parametros.falla}</p>}
-      <ConfiguracionImpuestos parametros={parametros.datos} anioActual={Number(hoyLima().slice(0, 4))} />
+      <ConfiguracionImpuestos parametros={parametros.datos} anioActual={anioLima()} />
     </>
   );
 }

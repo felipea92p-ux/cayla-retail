@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Chip } from "@/components/ui/Chip";
 import { SinFoto } from "@/components/ui/PrendaCelda";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { FRASE, TEXTO, type TarjetaVista } from "@/lib/parecidas-alta-vista";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 // La tarjeta completa de una prenda parecida, dentro de la hoja «Ver y comparar» (Fase 1; maqueta docs/maquetas/producto-buscar-primero-2026-09/).
 //
@@ -59,7 +59,7 @@ export function TarjetaParecida({ tarjeta: t, revisada, resaltar = "", llamada =
         {/* Foto grande o la miniatura neutra: el diseño es lo que se compara, y sin foto no se puede comparar a la vista (y se dice). */}
         <figure className="parecidas-foto">
           {t.fotoUrl ? (
-            <Image src={t.fotoUrl} alt={FRASE.fotoAlt(t.nombre)} fill unoptimized sizes="116px" className="parecidas-foto-img" />
+            <ImagenDePrenda src={t.fotoUrl} alt={FRASE.fotoAlt(t.nombre)} fill sizes="116px" className="parecidas-foto-img" fallback={null} />
           ) : (
             <>
               <SinFoto tamano="h-full w-full" />
@@ -194,14 +194,9 @@ export function TarjetaParecida({ tarjeta: t, revisada, resaltar = "", llamada =
 
         <div className="parecidas-acc">
           {/* «Es el mismo diseño» abre esa prenda: ahí se le suman tallas y colores. Ningún botón lleno: el único de la pantalla es «Seguir». */}
-          <Link
-            href={t.href}
-            className="btn-cayla btn-secundario"
-            aria-label={FRASE.esElMismoAria(t.nombre)}
-            onClick={() => onEsElMismo?.(t.id)}
-          >
-            {TEXTO.esElMismoDiseno} →
-          </Link>
+          <BotonVer href={t.href} etiqueta={FRASE.esElMismoAria(t.nombre)} alNavegar={() => onEsElMismo?.(t.id)}>
+            {TEXTO.esElMismoDiseno}
+          </BotonVer>
           {t.puedeDescartar && (
             <button type="button" className="btn-enlace parecidas-enlace" onClick={() => onRevisada(t.id)} aria-label={FRASE.noEsOtroAria(t.nombre)}>
               {TEXTO.noEsOtroDiseno}

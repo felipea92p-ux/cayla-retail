@@ -1,0 +1,81 @@
+{
+  "guia": "compras.factura.compraid",
+  "ruta": "/compras/factura/[compraId]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 53,
+  "controles": {
+    "app/(app)/compras/factura/[compraId]/page.tsx": [
+      "Volver «/compras»"
+    ],
+    "components/AccionesFaltantes.tsx": [
+      "button «factura.cerrar-faltante»"
+    ],
+    "components/AdjuntosCompra.tsx": [
+      "input «(sin nombre)»",
+      "Boton «{texto}»",
+      "button «{`Quitar ${f.name}»",
+      "a «{a.nombre}»",
+      "a «Ver»",
+      "button «Quitar»",
+      "button «Cancelar»",
+      "Boton «Quitar»"
+    ],
+    "components/CerrarFaltanteModal.tsx": [
+      "CampoSelect «¿En qué tienda faltó?»",
+      "CampoTexto «¿Cuántas unidades se cierran?»",
+      "button «{texto}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cerrar línea con faltante»"
+    ],
+    "components/CompraDetalle.tsx": [
+      "a «Finanzas ▸ Gastos»"
+    ],
+    "components/CompraDetallePanel.tsx": [
+      "button «Anular comprobante»",
+      "Boton «Ir a recibir»",
+      "Boton «factura.registrar-pago»",
+      "button «Pagado»",
+      "Boton «→() => setAbierto(true)»",
+      "input «{`Monto a pagar de ${compra.documento}»",
+      "input «Total del pago»",
+      "button «Todo ·»",
+      "ComboResponsable «{responsable}»",
+      "button «Cancelar»",
+      "Boton «{`Registrar pago de ${soles(suma)}»",
+      "CampoTexto «Motivo»",
+      "ComboResponsable «{responsable}» #2",
+      "button «Volver»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/NotasCreditoCompra.tsx": [
+      "Link «Notas de crédito»"
+    ],
+    "components/PagoPiezas.tsx": [
+      "BotonCopiar «{que}»",
+      "Boton «Listo»",
+      "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
+      "CampoFecha «Fecha del pago»",
+      "CampoTexto «Referencia»",
+      "input «{`Monto del medio ${i + 1}»",
+      "CampoTexto «Referencia» #2",
+      "button «{`Quitar el medio ${i + 1}»",
+      "button «＋»",
+      "button «Usar»",
+      "button «Completar con el último medio»"
+    ],
+    "components/ReasignarReparto.tsx": [
+      "button «factura.reasignar»",
+      "CampoSelect «¿De qué línea?»",
+      "CampoSelect «Sale de»",
+      "CampoSelect «Va a»",
+      "CampoTexto «¿Cuántas unidades se mueven?»",
+      "input «motivo-reasignacion»",
+      "CampoTexto «{motivo === \"otro\" ? \"Nota (cuenta el motivo)\" : \"Nota (opcional)\"}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{error ?? undefined}»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
+    ]
+  }
+}

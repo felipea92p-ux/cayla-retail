@@ -101,9 +101,12 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
   const quedan = textoQuedan(ctx.saldos?.[m.id]);
   const { vuelta, props } = useRepetirAlPasar();
   return (
-    <li className="mv-fila" data-op={m.id} data-mv-tono={TIPOS_VISUALES[rotulo.tipo].tono} data-sel={ctx.abiertoId === m.id ? "" : undefined} {...props}>
+    // La guía (ADR-0389) abre una fila de ejemplo; salta la de una prenda «sin registrar», porque su nombre lleva un verbo que el
+    // piloto no toca (regla «nunca guardar»).
+    <li className="mv-fila" data-guia={/registrar/i.test(rotulo.detalle ?? "") ? undefined : "movimientos.fila"} data-op={m.id} data-mv-tono={TIPOS_VISUALES[rotulo.tipo].tono} data-sel={ctx.abiertoId === m.id ? "" : undefined} {...props}>
       <button
         type="button"
+        data-guia={/registrar/i.test(rotulo.detalle ?? "") ? undefined : "movimientos.fila-abrir"}
         onClick={() => ctx.onAbrir(m)}
         aria-label={`Ver el detalle: ${etiqueta}, ${m.referencia}${variante ? ` ${variante}` : ""}, ${textoDelta(m)}${quedan ? `, ${quedan}` : ""}`}
         className={BOTON_CUBRE_FILA}
@@ -123,7 +126,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
         <div className="mt-1.5 flex min-w-0 items-center gap-2.5" title={m.sku}>
           <MiniaturaPrenda fotoUrl={prenda?.fotoUrl ?? null} />
           <span className="min-w-0">
-            <span className="block truncate text-[13.5px] font-semibold text-tinta">{m.referencia}</span>
+            <span data-guia="movimientos.prenda-nombre" className="block truncate text-[13.5px] font-semibold text-tinta">{m.referencia}</span>
             <span className="block truncate text-xs tabular-nums text-taupe">{[variante, donde].filter(Boolean).join(" · ")}</span>
           </span>
         </div>
@@ -146,7 +149,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
           <span className="whitespace-nowrap text-[11px] text-taupe">{esApartado ? "" : (quedan ?? palabraPrendas(m.cantidad))}</span>
         </span>
         {/* Que se puede tocar, sin tener que descubrirlo: la misma flecha que las tarjetas clicables. */}
-        <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/30" />
+        <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/30" />
       </div>
     </li>
   );
@@ -172,7 +175,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
   const unidades = r.entran + r.salen + r.movidas + r.apartadas + r.liberadas;
   const { vuelta, props } = useRepetirAlPasar();
   return (
-    <li className="mv-fila" data-op={primera.id} data-mv-tono={TIPOS_VISUALES[tipo].tono} data-sel={op.filas.some((m) => m.id === ctx.abiertoId) ? "" : undefined} {...props}>
+    <li className="mv-fila" data-guia="movimientos.grupo" data-op={primera.id} data-mv-tono={TIPOS_VISUALES[tipo].tono} data-sel={op.filas.some((m) => m.id === ctx.abiertoId) ? "" : undefined} {...props}>
       <button
         type="button"
         onClick={() => ctx.onAbrir(primera)}
@@ -221,7 +224,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
           <span className="mv-cant">{textoCantidadOperacionVisual(r, tipo)}</span>
           <span className="whitespace-nowrap text-[11px] text-taupe">{esApartado ? "" : palabraPrendas(unidades)}</span>
         </span>
-        <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/30" />
+        <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/30" />
       </div>
     </li>
   );
@@ -274,7 +277,7 @@ export function FilaBajadas({ operaciones, prendas, ctx }: { operaciones: Operac
             <span className="mv-cant">{r.unidades}</span>
             <span className="whitespace-nowrap text-[11px] text-taupe">{palabraPrendas(r.unidades)}</span>
           </span>
-          <ChevronRight aria-hidden strokeWidth={1.5} className={`h-4 w-4 shrink-0 text-tinta/30 transition-transform ${abierto ? "rotate-90" : ""}`} />
+          <ChevronRight aria-hidden className={`h-4 w-4 shrink-0 text-tinta/30 transition-transform ${abierto ? "rotate-90" : ""}`} />
         </div>
       </div>
       <span aria-hidden className="mv-capas">
@@ -300,15 +303,14 @@ function BotonReferencia({ texto, onClick }: { texto: string; onClick: () => voi
     <button
       type="button"
       onClick={onClick}
-      className="relative z-10 inline-block max-w-full truncate text-left align-bottom text-[13px] text-tinta underline decoration-tinta/30 underline-offset-2 transition-colors hover:text-rojo hover:decoration-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
+      className="btn-enlace relative z-10 inline-block max-w-full truncate text-left align-bottom text-[13px]"
     >
       {texto}
     </button>
   );
 }
 
-/** La referencia: texto, o enlace (tinta subrayado, como los demás enlaces de acción del
- *  sistema — ADR-0105) cuando lleva a algo. `relative z-10` para quedar por encima del botón
+/** La referencia: texto, o enlace (`btn-enlace`, el enlace dentro de una frase: ADR-0358, ronda 8) cuando lleva a algo. `relative z-10` para quedar por encima del botón
  *  que cubre la fila. El enlace lleva el camino de vuelta a esta lista. */
 export function Referencia({ r, volverA }: { r: ReferenciaMovimiento; volverA: string }) {
   return (
@@ -317,7 +319,7 @@ export function Referencia({ r, volverA }: { r: ReferenciaMovimiento; volverA: s
         <Link
           href={conVuelta(r.href, volverA)}
           title={`Abrir ${r.texto}`}
-          className="relative z-10 inline-block max-w-full truncate align-bottom text-[13px] text-tinta underline decoration-tinta/30 underline-offset-2 transition-colors hover:text-rojo hover:decoration-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
+          className="btn-enlace relative z-10 inline-block max-w-full truncate align-bottom text-[13px]"
         >
           {r.texto}
         </Link>

@@ -1,0 +1,33 @@
+{
+  "guia": "compras.ordenes.editar.id",
+  "ruta": "/compras/ordenes/editar/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 21,
+  "controles": {
+    "app/(app)/compras/ordenes/editar/[id]/page.tsx": [
+      "Volver «/compras/ordenes»",
+      "BotonEnlace «Ver las órdenes de compra»",
+      "BotonEnlace «Ver la orden»",
+      "BotonEnlace «Ver la orden» #2"
+    ],
+    "components/ordenes-compra/NuevaOrdenCompra.tsx": [
+      "Volver «/compras/ordenes»",
+      "ComboBuscable «oc-proveedor»",
+      "CampoSelect «Llega a»",
+      "CampoFecha «Entrega estimada»",
+      "CampoTexto «Nota»",
+      "Boton «orden-form.agregar»",
+      "ComboResponsable «{responsable}»",
+      "BotonEnlace «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "button «{`Quitar la línea ${numero}»",
+      "ComboBuscable «{l.categoriaId}»",
+      "ComboBuscable «{l.marcaId}»",
+      "CampoTexto «{`Descripción de la línea ${numero}»",
+      "CampoTexto «{`Cantidad de la línea ${numero}»",
+      "CampoTexto «{`Precio por unidad de la línea ${numero}»",
+      "CampoTexto «{`Descuento de la línea ${numero}»",
+      "SegmentoDeslizante «{`Descuento de la línea ${numero}»"
+    ]
+  }
+}

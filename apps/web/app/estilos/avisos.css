@@ -78,7 +78,7 @@
     border-radius: 0.375rem;
     padding: 0.25rem;
     line-height: 0;
-    color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: gráfico sobre papel */
     opacity: 0;
     transition: opacity 200ms var(--ease-cayla), color 200ms;
   }

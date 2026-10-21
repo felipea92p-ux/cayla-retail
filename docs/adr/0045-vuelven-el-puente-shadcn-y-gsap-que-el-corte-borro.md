@@ -108,3 +108,10 @@ Rama `claude/determined-thompson-f7b8d8` (limpieza de código muerto de `apps/we
   componente generado llegara a importarlo, basta con volver a crear esa línea (`export { cn } from "cn";`).
 - **Ninguna dependencia queda sin uso**: `cn`, `class-variance-authority` y `radix-ui` siguen en `badge`, `tooltip` y
   los filtros; `package.json` no se toca.
+
+## Actualización 2026-10-14 — sale `@radix-ui/react-slot`
+
+Knip (ADR-0406) la encontró sin uso: el `Slot` de `components/ui/badge.tsx` viene del paquete `radix-ui` (`import { Slot } from
+"radix-ui"`), que es lo que genera hoy el CLI de shadcn, y nada importa `@radix-ui/react-slot`. Sale de `apps/web/package.json`. El
+puente no cambia: `radix-ui` la trae por dentro, así que un componente generado que la pidiera por su nombre viejo es volver a
+agregar una línea.

@@ -155,7 +155,6 @@ export function ProveedorModal({
   existentes = [],
   onClose,
   onGuardado,
-  onDesactivar,
 }: {
   inicial: Borrador;
   /** Rubros ya usados en el directorio: los botones que se eligen con un toque. */
@@ -166,8 +165,6 @@ export function ProveedorModal({
   /** `id` del proveedor guardado (el nuevo, o el que se editó): la lista lo marca y lo lleva a la vista. `datos` trae lo
    *  que se guardó, para quien lo necesita en pantalla sin esperar a que la página vuelva a leer el directorio (Recibir). */
   onGuardado: (id: string | null, datos?: { nombre: string; ruc: string | null }) => void;
-  /** Solo al editar: desactivar vive acá y no en la fila (ver ProveedoresPanel). */
-  onDesactivar?: () => Promise<void>;
 }) {
   const [nombre, setNombre] = useState(inicial.nombre);
   const [ruc, setRuc] = useState(inicial.ruc);
@@ -356,7 +353,7 @@ export function ProveedorModal({
                 <div>
                   <p className="label-cayla text-[11px] text-tinta/65">Compras · Proveedores</p>
                   <Dialog.Title asChild>
-                    <h2 className="font-display mt-0.5 text-2xl leading-tight text-tinta">{editando ? "Editar proveedor" : "Registrar proveedor"}</h2>
+                    <h2 className="font-display mt-0.5 text-2xl leading-tight text-tinta">{/* unificar-fijo: es el título de la hoja (Dialog.Title), no de un bloque */}{editando ? "Editar proveedor" : "Registrar proveedor"}</h2>
                   </Dialog.Title>
                 </div>
                 <button type="button" onClick={pedirCierre} aria-label="Cerrar" className="-mr-1 -mt-1 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo">
@@ -368,6 +365,7 @@ export function ProveedorModal({
               <div className="scroll-cayla min-h-0 flex-1 space-y-2 overflow-y-auto px-6 pb-5 pt-2">
                 {/* La razón social y el RUC: el mismo <ConsultaDocumento> que usa Vender/Facturación (una sola copia de
                     la lógica del padrón). `contador` le agrega «n/11», el hilo verde y el ✓ del spike. */}
+                <div data-guia="proveedor-modal.ruc">
                 <ConsultaDocumento
                   tipo="ruc"
                   obligatorio={false}
@@ -379,6 +377,7 @@ export function ProveedorModal({
                   nombre={nombre}
                   onNombre={setNombre}
                 />
+                </div>
 
                 {pregunta.igual && (
                   <PreguntaParecido
@@ -403,11 +402,12 @@ export function ProveedorModal({
                   />
                 )}
 
-                <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                <div data-guia="proveedor-modal.contacto" className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                   <CampoTexto etiqueta="Contacto" autoComplete="off" placeholder="Con quién se coordina" value={contacto} onChange={(e) => setContacto(e.target.value)} />
                   <CampoTexto etiqueta="Teléfono" type="tel" autoComplete="off" placeholder="El WhatsApp de los pedidos" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
                 </div>
 
+                <div data-guia="proveedor-modal.rubros">
                 <Campo
                   etiqueta={
                     <>
@@ -450,7 +450,9 @@ export function ProveedorModal({
                     </button>
                   </div>
                 </Campo>
+                </div>
 
+                <div data-guia="proveedor-modal.plazo">
                 <Campo etiqueta="Plazo de crédito" idEtiqueta="etiqueta-plazo">
                   <SegmentoDeslizante
                     etiqueta="Plazo de crédito"
@@ -464,7 +466,9 @@ export function ProveedorModal({
                     </div>
                   )}
                 </Campo>
+                </div>
 
+                <div data-guia="proveedor-modal.forma-pago">
                 <Campo etiqueta="Forma de pago preferida" idEtiqueta="etiqueta-forma-pago">
                   <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="etiqueta-forma-pago">
                     {FORMAS_PAGO.map((m) => {
@@ -478,9 +482,10 @@ export function ProveedorModal({
                     })}
                   </div>
                 </Campo>
+                </div>
 
                 {/* ADR-0134 · Cómo pagarle. Todo opcional: sin esto el proveedor se registra igual, y en el pago se avisa que falta. */}
-                <section aria-labelledby="proveedor-pago-titulo" className="mt-1 space-y-2 border-t border-tinta/10 pt-4">
+                <section aria-labelledby="proveedor-pago-titulo" data-guia="proveedor-modal.como-pagarle" className="mt-1 space-y-2 border-t border-tinta/10 pt-4">
                   <p id="proveedor-pago-titulo" className="label-cayla text-[11px] text-tinta/65">
                     Cómo pagarle
                   </p>
@@ -552,7 +557,7 @@ export function ProveedorModal({
                     />
                     {/* «Yape» y «Plin» no son un banco ni un teléfono: son la app que hay que abrir. Un celular sin app (o al revés) no puede existir en la base. */}
                     <div>
-                      <span id="proveedor-billeteras-etiqueta" className="label-cayla block text-[11px] text-tinta/65">
+                      <span id="proveedor-billeteras-etiqueta" className="campo-etiqueta">
                         Lo recibe en
                       </span>
                       <div id="proveedor-billeteras" tabIndex={-1} className="mt-1.5 flex flex-wrap items-center gap-1.5 py-1.5 outline-none" role="group" aria-labelledby="proveedor-billeteras-etiqueta">
@@ -571,7 +576,7 @@ export function ProveedorModal({
                   {ofrecerTelefono && (
                     <p className="anim-revelar -mt-1 text-xs text-tinta/65">
                       ¿Es el mismo del contacto?{" "}
-                      <button type="button" onClick={() => setCelular(celularDelTelefono ?? "")} className="text-rojo hover:underline">
+                      <button type="button" onClick={() => setCelular(celularDelTelefono ?? "")} className="btn-enlace">
                         Usar el teléfono de contacto ({celularDelTelefono})
                       </button>
                     </p>
@@ -592,18 +597,9 @@ export function ProveedorModal({
                   />
                 </section>
 
-                {onDesactivar && (
-                  <p className="border-t border-tinta/10 pt-3 text-xs text-tinta/55">
-                    ¿Ya no se le compra?{" "}
-                    <button type="button" onClick={onDesactivar} disabled={fase !== "reposo"} className="text-rojo hover:underline">
-                      Desactivar proveedor
-                    </button>
-                    . Deja de aparecer al registrar comprobantes; su historial se conserva.
-                  </p>
-                )}
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 border-t border-tinta/10 px-6 py-4">
+              <div className="pie-acciones border-t border-tinta/10 px-6 py-4" data-guia="proveedor-modal.pie">
                 <Boton type="button" peso="fantasma" onClick={pedirCierre} disabled={fase !== "reposo"}>
                   Cancelar
                 </Boton>

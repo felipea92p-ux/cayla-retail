@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, ScanLine, X } from "lucide-react";
+import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
@@ -40,7 +41,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { avisoConteoGuardado, avisoConteoRetomado, llegadaContada, mensajeDeSalida, unidadesDeLaLlegada } from "@/lib/recibir-cambio-de-sede";
-import { Desplegable } from "@/components/ui/campos";
+import { Desplegable, Boton } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -48,6 +49,13 @@ import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import { BORRADOR_VACIO, ProveedorModal } from "@/components/ProveedorModal";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
+import { Buscador } from "@/components/ui/Buscador";
+import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 export type ProveedorLlegada = { id: string; nombre: string; ruc: string | null; marcas: string[] };
 
@@ -65,6 +73,7 @@ type ConteoDeLaLlegada = {
 };
 
 const ID_BUSCADOR = "llegada-buscador";
+const ID_LISTA = "llegada-sugerencias";
 
 // «Llegó mercadería» (ADR-0330): la puerta única para lo que llega de un proveedor. Dos preguntas —¿de quién? y ¿qué llegó?— y
 // se recibe en la sede de la cabecera; lo recibido entra al almacén (ADR-0328) y después se etiqueta y se baja al piso. Escribe
@@ -89,6 +98,7 @@ export function LlegoMercaderia({
   recientes,
   verMontos,
   veExistencias,
+  guiaEnEspera = false,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -105,6 +115,9 @@ export function LlegoMercaderia({
   /** Quien ve el dinero de Compras escribe el costo (ADR-0126); los demás reciben sin costo. */
   verMontos: boolean;
   veExistencias: boolean;
+  /** Arriba hay envíos de órdenes de compra esperando (Felipe 2026-10-13, /formidable): la guía de este formulario a mano no se
+   *  enciende sola («Sigue aquí» y «Falta: …» competían con la tarjeta de envíos). Despierta en cuanto la persona lo toca. */
+  guiaEnEspera?: boolean;
 }) {
   const router = useRouter();
   // Lo escaneado es de SU sede (Felipe, 2026-10-11): la página monta esta pantalla con la sede en la key, y lo que se escaneó en
@@ -159,6 +172,12 @@ export function LlegoMercaderia({
     facturaRespondida: susFacturas.length > 0 ? sinFactura.includes(proveedorId) : null,
   });
   const guia = useGuiaCampos(campos, { enModal: false });
+  // Dormida, la guía no marca «Sigue aquí» ni pinta el «Falta: …» del pie: lo que falta sigue diciendo «falta» en cada título. Recibir
+  // usa siempre la guía de verdad (`guia`): si se pulsa sin completar, despierta y lleva a lo que falta.
+  const [despierta, setDespierta] = useState(!guiaEnEspera);
+  const guiaVista: typeof guia = despierta
+    ? guia
+    : { ...guia, ahora: null, estado: (id: string) => (guia.estado(id) === "ahora" ? "falta" : guia.estado(id)) };
 
   // «¿Salir sin guardar?» (2026-10-11): lo escaneado se perdía en silencio al tocar el menú. Llegó junto con guardar lo de cada
   // sede: lo guardado en otra sede solo vive mientras se siga en Recibir, así que salir también lo pierde y también pregunta.
@@ -266,6 +285,13 @@ export function LlegoMercaderia({
       if (falta?.id === "llegada-responsable" && responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
+    // Un costo que no se entiende no viaja adivinado: se dice y se lleva al campo (ADR-0419).
+    const ilegible = lineas.find((l) => montoIlegible(l.costo));
+    if (ilegible) {
+      avisar.error(MONTO_ILEGIBLE);
+      formulario.current?.querySelector<HTMLInputElement>(`[data-campo="llegada-costo-${ilegible.varianteId}"]`)?.focus();
+      return;
+    }
     setLoading(true);
     const params = pedidoRecibirLote({ ubicacionId, proveedorId, lineas, numeroGuia, token: token.current, confirmadas });
     const firma = responsable.firma();
@@ -323,7 +349,7 @@ export function LlegoMercaderia({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onFocusCapture={() => setDespierta(true)} onPointerDownCapture={() => setDespierta(true)}>
       {/* Lo que se recibió sin red y espera subir (ADR-0210): a la vista aunque no se esté recibiendo nada. */}
       <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="llegada" varias="llegadas" />
 
@@ -352,9 +378,10 @@ export function LlegoMercaderia({
       ) : (
         <form ref={formulario} onSubmit={onSubmit} className="card-cayla space-y-6 p-5 sm:p-6">
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
-            <CampoGuiado id="llegada-proveedor" guia={guia} titulo="¿De quién es?" ayuda="El proveedor que la mandó">
+            <div data-guia="recibir.proveedor">
+            <CampoGuiado id="llegada-proveedor" guia={guiaVista} titulo="¿De quién es?" ayuda="El proveedor que la mandó">
               <Desplegable
-                forma="caja"
+                forma="campo"
                 etiquetaAccesible="Proveedor"
                 marcador="Elige el proveedor"
                 valor={proveedorId}
@@ -372,30 +399,31 @@ export function LlegoMercaderia({
                 <p className="mt-1.5 text-xs text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue.</p>
               )}
             </CampoGuiado>
-            <label className="block">
+            </div>
+            <label data-guia="recibir.guia" className="block">
               <span className="mb-1.5 block text-[13px] font-semibold text-tinta">
                 Guía <span className="font-normal text-taupe">opcional</span>
               </span>
-              <input value={numeroGuia} onChange={(e) => setNumeroGuia(e.target.value)} className="caja-cayla h-10 w-full px-3 text-sm text-tinta" />
+              <input value={numeroGuia} onChange={(e) => setNumeroGuia(e.target.value)} className="caja-campo-input" />
             </label>
           </div>
 
           {mismaCaja && (
-            <p role="status" className="-mt-2 rounded-lg border border-ambar/30 bg-ambar/[0.07] px-3.5 py-2.5 text-[13px] text-ambar-profundo">
+            <Aviso tono="atencion" className="-mt-2">
               {mismaCaja}
-            </p>
+            </Aviso>
           )}
 
           {susFacturas.length > 0 &&
             (sinFactura.includes(proveedorId) ? (
               <p className="-mt-2 text-[13px] text-taupe">
                 Se recibe sin factura.{" "}
-                <button type="button" onClick={() => setSinFactura((a) => a.filter((id) => id !== proveedorId))} className="text-tinta/80 underline underline-offset-2 hover:text-rojo">
+                <button type="button" onClick={() => setSinFactura((a) => a.filter((id) => id !== proveedorId))} className="btn-enlace">
                   Ver sus facturas pendientes
                 </button>
               </p>
             ) : (
-              <CampoGuiado id="llegada-factura" guia={guia} titulo="¿Viene con su factura?" ayuda="Si no la trae, igual se recibe">
+              <CampoGuiado id="llegada-factura" guia={guiaVista} titulo="¿Viene con su factura?" ayuda="Si no la trae, igual se recibe">
                 <div className="nota-cayla space-y-3">
                   <p>
                     {proveedor?.nombre} tiene {susFacturas.length === 1 ? "una factura" : `${susFacturas.length} facturas`} por recibir en {ubicacionEtiqueta}. Si
@@ -427,14 +455,18 @@ export function LlegoMercaderia({
               </CampoGuiado>
             ))}
 
-          <CampoGuiado id="llegada-prendas" guia={guia} titulo="¿Qué llegó?" ayuda={ayudaDelBuscador(proveedor)}>
+          <div data-guia="recibir.prendas">
+          <CampoGuiado id="llegada-prendas" guia={guiaVista} titulo="¿Qué llegó?" ayuda={ayudaDelBuscador(proveedor)}>
             <div className="relative">
-              <ScanLine aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-taupe" />
-              <input
+              {/* El buscador de la pistola (<Buscador icono="barras">, ADR-0358, como el de «Contra factura») y, debajo, la lista de
+                  sugerencias del sistema (ronda 9). */}
+              <Buscador
                 id={ID_BUSCADOR}
                 ref={buscador}
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
+                {...ariaDelBuscador(ID_LISTA, listaAbierta, 0)}
+                valor={busqueda}
+                onCambio={setBusqueda}
+                icono="barras"
                 onFocus={() => setEnBuscador(true)}
                 onBlur={() => setEnBuscador(false)}
                 onKeyDown={(e) => {
@@ -448,41 +480,30 @@ export function LlegoMercaderia({
                   }
                 }}
                 placeholder={PLACEHOLDER_BUSCADOR}
-                autoComplete="off"
                 aria-describedby="llegada-lectura"
-                className="caja-cayla h-11 w-full pl-9 pr-3 text-sm text-tinta"
               />
               {listaAbierta &&
                 posLista &&
                 destino &&
                 createPortal(
-                  <ul style={{ position: "fixed", ...posLista }} className="anim-revelar lista-flotante z-50 overflow-y-auto rounded-xl p-1" role="listbox" aria-label="Prendas que coinciden">
-                    {sugerencias.map((p, i) => (
-                      <li key={p.varianteId}>
-                        <button
-                          type="button"
-                          role="option"
-                          aria-selected={i === 0}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            sumar(p);
-                            buscador.current?.focus();
-                          }}
-                          className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-hueso ${i === 0 ? "bg-hueso/60" : ""}`}
-                        >
-                          <Muestra prenda={p} />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-tinta">{p.referencia}</span>
-                            <span className="block truncate text-xs text-taupe">
-                              {detalle(p)} · {p.sku}
-                              {p.marca ? ` · ${p.marca}` : ""}
-                            </span>
-                          </span>
-                          {i === 0 && <span className="label-cayla text-[10px] text-taupe">Enter</span>}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>,
+                  // La lista de sugerencias del sistema (ADR-0358, ronda 9): la miniatura de la prenda, su código debajo y la tecla
+                  // que la toma. El Enter suma la primera (`leer`), así que la activa es siempre la primera y el mouse solo tiñe.
+                  <ListaSugerencias
+                    id={ID_LISTA}
+                    etiqueta="Prendas que coinciden"
+                    style={{ position: "fixed", ...posLista }}
+                    className="z-50"
+                    sugerencias={sugerencias.map((p) => ({
+                      clave: p.varianteId,
+                      miniatura: <Muestra prenda={p} />,
+                      titulo: p.referencia,
+                      detalle: `${detalle(p)} · ${p.sku}${p.marca ? ` · ${p.marca}` : ""}`,
+                    }))}
+                    onElegir={(i) => {
+                      sumar(sugerencias[i]);
+                      buscador.current?.focus();
+                    }}
+                  />,
                   destino,
                 )}
             </div>
@@ -492,12 +513,10 @@ export function LlegoMercaderia({
                   {lectura.bueno ? "✓ " : ""}
                   {lectura.texto}{" "}
                   {lectura.varianteId && (
-                    <button type="button" onClick={deshacer} className="text-tinta/70 underline underline-offset-2 hover:text-rojo">
-                      Deshacer
-                    </button>
+                    <BotonDeshacer onClick={deshacer} />
                   )}
                   {lectura.crear && (
-                    <Link href="/productos/nuevo" target="_blank" onClick={() => (fueACrear.current = true)} className="text-tinta/80 underline underline-offset-2 hover:text-rojo">
+                    <Link href="/productos/nuevo" target="_blank" onClick={() => (fueACrear.current = true)} className="btn-enlace">
                       Crearla en Nuevo producto
                     </Link>
                   )}
@@ -525,35 +544,29 @@ export function LlegoMercaderia({
                           {detalle(p)} · {p.sku}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1" role="group" aria-label={`Cantidad de ${p.referencia}`}>
-                        <button type="button" aria-label="Una menos" onClick={() => cambiarLineas(sumarPrenda(lineas, l.varianteId, -1))} className="btn-cayla btn-sutil h-8 w-8 p-0">
-                          <Minus aria-hidden className="h-3.5 w-3.5" />
-                        </button>
-                        <input
-                          type="number"
-                          min={0}
-                          inputMode="numeric"
-                          aria-label="Cantidad"
-                          value={l.cantidad}
-                          onChange={(e) => cambiarLineas(fijarCantidad(lineas, l.varianteId, Number(e.target.value)))}
-                          className="caja-cayla h-8 w-14 px-1 text-center text-sm tabular-nums text-tinta"
-                        />
-                        <button type="button" aria-label="Una más" onClick={() => cambiarLineas(sumarPrenda(lineas, l.varianteId, 1))} className="btn-cayla btn-sutil h-8 w-8 p-0">
-                          <Plus aria-hidden className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                      <PasoCantidad
+                        role="group"
+                        aria-label={`Cantidad de ${p.referencia}`}
+                        menos={{ onClick: () => cambiarLineas(sumarPrenda(lineas, l.varianteId, -1)), etiqueta: "Una menos" }}
+                        mas={{ onClick: () => cambiarLineas(sumarPrenda(lineas, l.varianteId, 1)), etiqueta: "Una más" }}
+                        campo={{
+                          type: "number",
+                          min: 0,
+                          inputMode: "numeric",
+                          "aria-label": "Cantidad",
+                          value: l.cantidad,
+                          onChange: (e) => cambiarLineas(fijarCantidad(lineas, l.varianteId, Number(e.target.value))),
+                        }}
+                      />
                       {verMontos && (
                         <input
-                          type="number"
-                          min={0}
-                          step="0.10"
-                          inputMode="decimal"
+                          {...atributosMontoTexto(l.costo)}
                           aria-label={`Costo por prenda de ${p.referencia}`}
                           placeholder="Costo S/" // sugerir-fijo: nombra el campo y la moneda, no da un costo de ejemplo
                           data-campo={`llegada-costo-${l.varianteId}`}
                           value={l.costo}
                           onChange={(e) => cambiarLineas(fijarCosto(lineas, l.varianteId, e.target.value))}
-                          className="caja-cayla h-8 w-32 px-2 text-right text-sm tabular-nums text-tinta"
+                          className={`caja-campo-input h-8 min-h-8 w-32 px-2 text-right tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                         />
                       )}
                       <button type="button" aria-label={`Quitar ${p.referencia}`} onClick={() => cambiarLineas(fijarCantidad(lineas, l.varianteId, 0))} className="text-taupe hover:text-rojo">
@@ -565,13 +578,16 @@ export function LlegoMercaderia({
               </ul>
             )}
           </CampoGuiado>
+          </div>
 
-          <CampoGuiado id="llegada-responsable" guia={guia}>
-            <ComboResponsable control={responsable} deshabilitado={loading} />
-          </CampoGuiado>
+          <div data-guia="recibir.responsable">
+            <CampoGuiado id="llegada-responsable" guia={guiaVista}>
+              <ComboResponsable control={responsable} deshabilitado={loading} />
+            </CampoGuiado>
+          </div>
 
-          <div className="space-y-3">
-            <PieGuia guia={guia} listo="Todo listo para recibir." />
+          <div data-guia="recibir.confirmar" className="space-y-3">
+            {despierta && <PieGuia guia={guia} listo="Todo listo para recibir." />}
             {atipicos ? (
               <AvisoCostoAtipico
                 costos={atipicos}
@@ -585,9 +601,9 @@ export function LlegoMercaderia({
                 onConfirmar={() => recibir(atipicos.flatMap((a) => (a.linea === null ? [] : [a.linea])))}
               />
             ) : (
-              <button type="submit" disabled={loading} title={guia.frase ?? undefined} className={`btn-cayla btn-primario w-full sm:w-auto ${guia.claseConfirmar}`}>
-                {loading ? "Recibiendo…" : unidades > 0 ? `Recibir ${unidades} ${unidades === 1 ? "prenda" : "prendas"} en ${ubicacionEtiqueta}` : `Recibir en ${ubicacionEtiqueta}`}
-              </button>
+              <Boton peso="primario" cargando={loading} textoCargando="Recibiendo…" type="submit" disabled={loading} title={guia.frase ?? undefined} className={`w-full sm:w-auto ${guia.claseConfirmar}`}>
+                {unidades > 0 ? `Recibir ${unidades} ${unidades === 1 ? "prenda" : "prendas"} en ${ubicacionEtiqueta}` : `Recibir en ${ubicacionEtiqueta}`}
+              </Boton>
             )}
           </div>
         </form>
@@ -609,11 +625,8 @@ export function LlegoMercaderia({
 
 const detalle = (p: PrendaLlegada) => [p.talla, p.color].filter(Boolean).join(" · ");
 
-/** La foto de la prenda o, si no tiene, el tinte de su color: lo que se reconoce de un vistazo con la caja abierta. */
+/** La miniatura de la prenda: su foto o, sin foto, el ícono de su categoría sobre su color (`MiniaturaPrenda`, ADR-0333): lo que se
+ *  reconoce de un vistazo con la caja abierta, igual que en todo el ERP. */
 function Muestra({ prenda }: { prenda: PrendaLlegada }) {
-  if (prenda.fotoUrl) {
-    // eslint-disable-next-line @next/next/no-img-element -- miniatura de 32 px de Storage; el optimizador no aporta aquí
-    return <img src={prenda.fotoUrl} alt="" className="h-8 w-8 shrink-0 rounded object-cover" />;
-  }
-  return <span aria-hidden className="h-8 w-8 shrink-0 rounded border border-tinta/10 bg-hueso" style={prenda.colorHex ? { backgroundColor: prenda.colorHex } : undefined} />;
+  return <MiniaturaPrenda fotoUrl={prenda.fotoUrl ?? null} colorHex={prenda.colorHex ?? null} {...categoriaDe(prenda)} />;
 }

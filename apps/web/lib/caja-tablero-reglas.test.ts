@@ -35,6 +35,11 @@ describe("cobradoDelTurno", () => {
 
   it("un método desconocido cae en «Otro»", () => {
     expect(cobradoDelTurno({ credito: 10 }).metodos).toEqual([{ clave: "otro", texto: "Otro", monto: 10 }]);
+    // El QR es un medio real del mostrador (`venta_pagos_metodo_check`): se llama «QR», nunca «Otro».
+    expect(cobradoDelTurno({ qr: 937.21, credito: 10 }).metodos).toEqual([
+      { clave: "qr", texto: "QR", monto: 937.21 },
+      { clave: "otro", texto: "Otro", monto: 10 },
+    ]);
   });
 
   it("el redondeo del efectivo (ADR-0311) no es una forma de pago: ni suma a lo cobrado ni cae en «Otro»", () => {
@@ -46,12 +51,12 @@ describe("cobradoDelTurno", () => {
 });
 
 describe("notaDeRedondeo", () => {
-  const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+  const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
   it("con redondeo, lo dice aparte y avisa que no suma a lo cobrado", () => {
     const nota = notaDeRedondeo(0.08, soles);
-    expect(nota).toContain("S/ 0.08");
+    expect(nota).toContain("S/\u00a00.08");
     expect(nota).toContain("de redondeo en efectivo");
-    expect(nota).toContain("múltiplo de S/ 0.10, hacia abajo");
+    expect(nota).toContain("múltiplo de S/\u00a00.10, hacia abajo");
     expect(nota).toContain("no suma a lo cobrado");
   });
   it("sin redondeo (o con una base anterior que no lo manda) no hay nota", () => {
@@ -135,8 +140,8 @@ describe("filtro por medio de pago", () => {
 describe("cuadreDe", () => {
   it("cuadra por debajo de un céntimo", () => expect(cuadreDe(0.004).clave).toBe("ok"));
   it("hasta S/ 5 es ámbar, más es rojo, y dice si faltó o sobró", () => {
-    expect(cuadreDe(-2)).toEqual({ clave: "poco", texto: "Faltó S/ 2.00", diferencia: -2 });
-    expect(cuadreDe(12)).toEqual({ clave: "mal", texto: "Sobró S/ 12.00", diferencia: 12 });
+    expect(cuadreDe(-2)).toEqual({ clave: "poco", texto: "Faltó S/\u00a02.00", diferencia: -2 });
+    expect(cuadreDe(12)).toEqual({ clave: "mal", texto: "Sobró S/\u00a012.00", diferencia: 12 });
   });
 });
 

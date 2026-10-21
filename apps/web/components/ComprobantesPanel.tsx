@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type CSSProperties } from "react";
+import { BotonPuntos } from "@/components/ui/MenuAcciones";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { paginar } from "@/lib/paginacion";
 import { useRouter } from "next/navigation";
@@ -20,7 +21,7 @@ import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
-import { CircleCheck, FileText, Link2, MoreHorizontal, ReceiptText, Store } from "lucide-react";
+import { CircleCheck, FileText, Link2, ReceiptText, Store } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
@@ -31,6 +32,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Los botones de la fila y el motivo que va bajo su estado. Qué botones le tocan a cada estado lo
 // decide `accionesDelComprobante` (con su prueba); esto solo los dibuja. Los handlers vienen por
@@ -58,8 +60,8 @@ function accionComprobante(
       case "reintentar": {
         const enVuelo = handlers.transmitiendoId === c.id;
         return (
-          <BotonCompacto key={accion} variante="fila-alerta" cargando={enVuelo} aria-label={`Reintentar ${numero}`} onClick={() => handlers.onTransmitir(c.id)}>
-            {enVuelo ? "Enviando…" : "Reintentar"}
+          <BotonCompacto key={accion} variante="fila-alerta" cargando={enVuelo} textoCargando="Enviando…" aria-label={`Reintentar ${numero}`} onClick={() => handlers.onTransmitir(c.id)}>
+            Reintentar
           </BotonCompacto>
         );
       }
@@ -78,8 +80,8 @@ function accionComprobante(
       case "consultar": {
         const enVuelo = handlers.consultandoId === c.id;
         return (
-          <BotonCompacto key={accion} variante="fila" cargando={enVuelo} aria-label={`Consultar la anulación de ${numero}`} onClick={() => handlers.onConsultarAnulacion(c.id)}>
-            {enVuelo ? "Consultando…" : "Consultar"}
+          <BotonCompacto key={accion} variante="fila" cargando={enVuelo} textoCargando="Consultando…" aria-label={`Consultar la anulación de ${numero}`} onClick={() => handlers.onConsultarAnulacion(c.id)}>
+            Consultar
           </BotonCompacto>
         );
       }
@@ -96,10 +98,10 @@ function accionComprobante(
 function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | null }) {
   if (!c.pdfUrl && !c.xmlUrl && !c.cdrUrl) return null;
   return (
-    // En una tarjeta angosta (celular) no se dibujan: viven en «Opciones», con botones del tamaño de un dedo.
+    // En una tarjeta angosta (celular) no se dibujan: viven en el «⋯», con botones del tamaño de un dedo.
     <div className="mt-0.5 hidden flex-wrap gap-x-3 text-[12.5px] @min-[640px]:flex">
       {c.pdfUrl && (
-        <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="font-medium text-rojo-profundo hover:underline">
+        <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="btn-enlace font-medium">
           Ver PDF
         </a>
       )}
@@ -109,18 +111,18 @@ function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | n
           target="_blank"
           rel="noreferrer"
           aria-label={`Enviar por WhatsApp ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`}
-          className="text-tinta/65 hover:text-rojo-profundo hover:underline"
+          className="btn-enlace"
         >
           WhatsApp
         </a>
       )}
       {c.xmlUrl && (
-        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="text-tinta/65 hover:text-rojo-profundo hover:underline">
+        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="btn-enlace">
           XML
         </a>
       )}
       {c.cdrUrl && (
-        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="text-tinta/65 hover:text-rojo-profundo hover:underline">
+        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="btn-enlace">
           CDR
         </a>
       )}
@@ -272,7 +274,7 @@ export function ComprobantesPanel({
   }
 
   return (
-    <div className="space-y-6">
+    <div data-guia="comprobantes.lista" className="space-y-6">
       {/* La confirmación con el combo «Responsable» antes de transmitir (ADR-0161). */}
       {confirmacionTransmitir}
       {porConsultarId && (
@@ -302,10 +304,10 @@ export function ComprobantesPanel({
               cuando el sistema apunta al ambiente de producción.
             </Ayuda>
           </p>
-          <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">Todos los comprobantes</h2>
+          <TituloSeccion className="mt-0.5">Todos los comprobantes</TituloSeccion>
           <p className="mt-0.5 text-xs text-tinta/65">Los de {periodo}, con su estado ante SUNAT y lo que se puede hacer con cada uno.</p>
           {comprobantes.length > 0 && (
-            <div className="mt-3 flex">
+            <div data-guia="comprobantes.filtros" className="mt-3 flex">
               <PanelPildoras>
                 <DesplegablePildora
                   icono={FileText}
@@ -371,20 +373,20 @@ export function ComprobantesPanel({
                   <div className="min-w-0">
                     <p className="text-[15px] leading-normal text-tinta">
                       <span className="text-tinta/65">{ETIQUETA_TIPO[c.tipo]}</span>{" "}
-                      <b className="whitespace-nowrap font-semibold">
+                      <b data-guia="comprobantes.numero" className="whitespace-nowrap font-semibold">
                         {c.serie}-{String(c.numero).padStart(6, "0")}
                       </b>
                     </p>
                     <p className="mt-0.5 truncate text-[13px] text-tinta/65 @min-[900px]:hidden">{cliente}</p>
                     {extras[c.id]?.notaDeCredito && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-[11.5px] text-pizarra">
-                        <Link2 aria-hidden size={12} strokeWidth={1.75} />
+                        <Link2 aria-hidden size={12} />
                         Tiene {extras[c.id]!.notaDeCredito!.numero}
                       </p>
                     )}
                     {extras[c.id]?.corrige && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-[11.5px] text-pizarra">
-                        <Link2 aria-hidden size={12} strokeWidth={1.75} />
+                        <Link2 aria-hidden size={12} />
                         Corrige {extras[c.id]!.corrige!.numero}
                       </p>
                     )}
@@ -396,18 +398,16 @@ export function ComprobantesPanel({
                   <p className="font-display text-lg leading-tight tabular-nums text-tinta @min-[640px]:text-right">{soles(Number(c.total))}</p>
 
                   <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-                    <div className="min-w-0">
+                    <div data-guia="comprobantes.estado" className="min-w-0">
                       <Chip tono={chip.tono} className={chip.punteado ? "border-dashed border-tinta/30" : ""}>
                         {chip.texto}
                       </Chip>
                       {motivo && <p className={`mt-1.5 text-[13px] leading-snug ${esRechazo ? "text-rojo-profundo" : "text-tinta/65"}`}>{motivo}</p>}
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div data-guia="comprobantes.acciones" className="flex flex-wrap items-center gap-1.5">
                       {botones}
-                      <BotonCompacto variante="fila" className="max-sm:min-h-11 max-sm:px-4" aria-label={`Opciones de ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`} onClick={() => setConOpciones(c)}>
-                        <MoreHorizontal aria-hidden size={15} strokeWidth={1.75} />
-                        <span>Opciones</span>
-                      </BotonCompacto>
+                      {/* El «⋯» de una fila de una lista (ronda 13): abre la hoja con lo que se hace con el comprobante. En el celular, 44 px. */}
+                      <BotonPuntos que={`${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`} guia="comprobantes.opciones" className="max-sm:h-11 max-sm:w-11" onClick={() => setConOpciones(c)} />
                     </div>
                   </div>
                 </div>
@@ -536,19 +536,19 @@ function ModalAnular({ comprobante, onClose }: { comprobante: Comprobante; onClo
           />
 
           <ComboResponsable control={responsable} deshabilitado={enviandoAnulacion} className="pt-2" />
-          <div className="flex gap-2 pt-3">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones pt-3">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Anulando…"
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={enviandoAnulacion}
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {enviandoAnulacion ? "Anulando…" : "Anular"}
+              Anular
             </Boton>
           </div>
         </form>
@@ -634,19 +634,19 @@ function ModalLiberar({ comprobante, onClose }: { comprobante: Comprobante; onCl
           />
 
           <ComboResponsable control={responsable} deshabilitado={enviandoLiberacion} className="pt-2" />
-          <div className="flex gap-2 pt-3">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones pt-3">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Liberando…"
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={enviandoLiberacion}
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {enviandoLiberacion ? "Liberando…" : "Liberar sin espera"}
+              Liberar sin espera
             </Boton>
           </div>
         </form>

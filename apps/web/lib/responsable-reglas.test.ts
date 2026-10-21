@@ -87,7 +87,16 @@ describe("estadoCombo y su motivo", () => {
     expect(estadoCombo({ cargo: false, fallo: true, lista: LISTA_VACIA, elegidoId: null, admin: true })).toBe("admin");
     expect(motivoSinResponsable("admin", "Tienda TRU")).toBeNull();
   });
-  it("solo «listo» (o el Admin) deja de bloquear", () => {
+  it("una terminal con firma de respaldo (ADR-0454) no pasa por el candado: ni la lista vacía, ni la lectura caída lo bloquean", () => {
+    expect(estadoCombo({ cargo: true, fallo: false, lista: LISTA_VACIA, elegidoId: null, respaldo: true })).toBe("respaldo");
+    expect(estadoCombo({ cargo: false, fallo: true, lista: LISTA_VACIA, elegidoId: null, respaldo: true })).toBe("respaldo");
+    expect(motivoSinResponsable("respaldo", "Tienda LIM")).toBeNull();
+    // Sin respaldo, una lista vacía sigue bloqueando (el candado de siempre).
+    expect(estadoCombo({ cargo: true, fallo: false, lista: LISTA_VACIA, elegidoId: null })).toBe("nadie");
+    // El Admin gana si llegaran los dos (una terminal nunca es Admin, pero el orden no debe dejar un hueco).
+    expect(estadoCombo({ cargo: true, fallo: false, lista: LISTA_VACIA, elegidoId: null, admin: true, respaldo: true })).toBe("admin");
+  });
+  it("solo «listo» (o el Admin, o el respaldo) deja de bloquear", () => {
     expect(motivoSinResponsable("listo", "Tienda TRU")).toBeNull();
     expect(motivoSinResponsable("falta", "Tienda TRU")).toBe("Elige quién hace esta operación.");
     expect(motivoSinResponsable("falta", "Tienda TRU", "atencion")).toBe("Elige quién está atendiendo.");
@@ -206,6 +215,7 @@ describe("dos modos: atender a la clienta u otra operación (Felipe, 2026-09-23)
     "apartados/ApartarVista.tsx",
     "apartados/EntregarVista.tsx",
     "apartados/ModalesApartado.tsx",
+    "apartados/DetalleApartado.tsx",
   ];
   const conCombo = (readdirSync(COMPONENTES, { recursive: true }) as string[])
     .filter((f) => f.endsWith(".tsx"))

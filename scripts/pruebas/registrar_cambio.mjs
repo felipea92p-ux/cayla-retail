@@ -552,6 +552,38 @@ rollback;
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// El plazo de cambio vive en la base (20261012222000), con la misma cuenta que la pantalla: días calendario de Lima.
+// ---------------------------------------------------------------------------
+const VENTA_DE_HACE = (dias) => `update retail.ventas set created_at = ((retail.fn_hoy_lima() - ${dias})::timestamp + interval '12 hours') at time zone 'America/Lima'
+  where id = :'venta_id';`;
+
+error(
+  "una compra de hace 16 días ya no se cambia (el plazo es de 15): lo dice la base, no solo la pantalla",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+${VENTA_DE_HACE(16)}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid());
+`
+  ),
+  "el plazo de cambio de 15 días ya venció"
+);
+
+exito(
+  "una compra de hace exactamente 15 días todavía se cambia (el último día cuenta)",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+${VENTA_DE_HACE(15)}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid()) as cambio_id \\gset
+select count(*) from retail.cambios where id = :'cambio_id';
+rollback;
+`
+  ),
+  ([n]) => Number(n) === 1
+);
+
 function main() {
   try {
     execFileSync("docker", ["exec", CONTENEDOR_LOCAL, "true"]);

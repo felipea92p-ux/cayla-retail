@@ -35,6 +35,7 @@ import {
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { CalendarX, Flag, Scale, Store } from "lucide-react";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Finanzas ▸ Reportes ▸ Balance (ADR-0195 F7; ADR-0198), dibujado como el spike aprobado (`vista-reportes.js` →
 // `vistaBalance`): cabecera «¿Cuánto vale CAYLA?» → la tarjeta «Antes de dibujarlo, el sistema lo comprueba» con cada
@@ -125,12 +126,12 @@ export function BalancePanel({
         bajada={
           verCayla
             ? "Lo que CAYLA tiene, contra lo que debe y lo que es tuyo."
-            : "Lo que es de la tienda: su caja, su mercadería, sus muebles y su parte de lo que se debe. El banco y el capital son de CAYLA entera."
+            : "Lo que es de la tienda: su caja, su mercadería, sus muebles y lo que debe por las facturas que pidió. El banco y el capital son de CAYLA entera."
         }
         acciones={
           <>
             {esLider ? (
-              <label className="fin-ver">
+              <label className="fin-ver" data-guia="fin-ver.combo">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
                 <SelectFin
                   etiqueta="Qué mirar"
@@ -143,13 +144,13 @@ export function BalancePanel({
               <Chip versalitas={false}>{tiendaNombre}</Chip>
             )}
             {esLider && verCayla && (
-              <button type="button" className="btn-cayla btn-secundario" onClick={() => setArranqueAbierto(true)}>
+              <button type="button" className="btn-cayla btn-secundario" onClick={() => setArranqueAbierto(true)} data-guia="fin-balance.arranque">
                 Saldos de arranque
               </button>
             )}
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar}>
+            <BotonDescargar onClick={descargar} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />
@@ -208,7 +209,7 @@ function VistaCayla({
 
   return (
     <>
-      <div {...entra(1)}>
+      <div {...entra(1)} data-guia="fin-balance.chequeos">
         <Superficie pad className="fin-balance-tarjeta">
           <CabeceraBloque
             titulo="Antes de dibujarlo, el sistema lo comprueba"
@@ -230,7 +231,7 @@ function VistaCayla({
         </Superficie>
       </div>
 
-      <div {...entra(2)}>
+      <div {...entra(2)} data-guia="fin-balance.resultado">
         {sit.tipo === "cuadra" ? (
           <BalanceCuadra lineas={lineas} corte={corte} hoy={hoy} />
         ) : sit.tipo === "no_cuadra" ? (
@@ -261,15 +262,15 @@ function VistaCayla({
       </div>
 
       {unidades.length > 0 && (
-        <div {...entra(3)}>
+        <div {...entra(3)} data-guia="fin-balance.tiendas">
           <TablaTiendas unidades={unidades} />
         </div>
       )}
 
-      <div {...entra(4, "nota-cayla")}>
+      <div {...entra(4, "nota-cayla")} data-guia="fin-balance.nota">
         El <b>capital</b> se registra una vez, al arrancar (lo que pusiste en el negocio), con las utilidades que ya traía. Nunca se
         calcula como «lo que falta para que cuadre»: si así fuera, el Balance cuadraría siempre y no probaría nada. Por tienda se
-        muestra <b>lo que es suyo</b> (su cajón, su mercadería, sus muebles y su parte de las facturas); el banco, el capital y el IGV
+        muestra <b>lo que es suyo</b> (su cajón, su mercadería, sus muebles y las facturas que pidió, enteras); el banco, el capital y el IGV
         son de CAYLA entera y no se reparten.
       </div>
     </>
@@ -539,7 +540,7 @@ function VistaTienda({
   const enCurso = unidad.hasta === hoy;
   return (
     <>
-      <section className="fin-cifras">
+      <section className="fin-cifras" data-guia="fin-balance.tienda-cifras">
         <TarjetaCifra etiqueta="Invertido" valor={solesBalance(unidad.invertido)} {...entra(1)}>
           lo que tiene menos lo que debe
         </TarjetaCifra>
@@ -565,7 +566,7 @@ function VistaTienda({
           <CabeceraBloque titulo={tituloCorte(corte, hoy)} bajada={`Lo que es de ${unidad.nombre}.`}>
             {selectorCorte}
           </CabeceraBloque>
-          <div className="fin-balance">
+          <div className="fin-balance" data-guia="fin-balance.tienda-detalle">
             <div>
               <h3>Lo que tiene</h3>
               <ul>
@@ -607,8 +608,8 @@ function VistaTienda({
                 <li>
                   <span>421</span>
                   <span>
-                    Su parte de las facturas por pagar
-                    <small>el reparto de cada factura entre las tiendas</small>
+                    Las facturas por pagar que pidió
+                    <small>enteras, aunque parte de la mercadería vaya a otra tienda</small>
                   </span>
                   <span>{solesBalance(unidad.facturasPorPagar)}</span>
                 </li>
@@ -631,7 +632,7 @@ function VistaTienda({
         </Superficie>
       </div>
 
-      <div {...entra(6, "nota-cayla")}>
+      <div {...entra(6, "nota-cayla")} data-guia="fin-balance.tienda-nota">
         No es un Balance completo: el <b>banco</b>, el <b>capital</b> y el <b>IGV</b> son de CAYLA entera y no se reparten entre las
         tiendas (repartirlos sería inventar un número). Aquí está lo que es de la tienda y cuánto le rinde: la utilidad del mes (Estado
         de resultados) ÷ lo invertido.

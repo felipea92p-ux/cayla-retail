@@ -26,6 +26,7 @@ import {
 } from "../../lib/perdidas-reglas";
 import { FunnelX, PackageCheck } from "lucide-react";
 import { Vacio } from "../ui/Vacio";
+import { TituloSeccion } from "../ui/TituloSeccion";
 
 // La pestaña «Pérdidas» de Movimientos (ADR-0328, actividad 14; Felipe, 2026-10-04). Responde «¿cuánto perdimos?» con
 // la MISMA cuenta que Finanzas (Mermas del Estado de resultados) y el resumen de Inventario: la base la decide
@@ -66,7 +67,7 @@ export function PerdidasVista({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div data-guia="perdidas.periodo" className="flex flex-wrap items-center justify-between gap-3">
         {selectorPeriodo}
         {filtrada && (
           <p className="flex flex-wrap items-center gap-2 text-sm text-tinta/75">
@@ -91,13 +92,14 @@ export function PerdidasVista({
             <SinPerdidas sede={sede} periodoTexto={periodoTexto} filtrada={filtrada} periodo={periodo} />
           ) : (
             <>
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div data-guia="perdidas.rankings" className="grid gap-6 lg:grid-cols-2">
                 <MasFaltan resumen={resumen} />
                 <PorRazon resumen={resumen} />
               </div>
               <PorCategoriaYTalla resumen={resumen} />
               {!filtrada && repeticiones && repeticiones.length > 0 && <SeRepite repeticiones={repeticiones} />}
               <ListaHechos
+                guia="perdidas.perdido"
                 titulo="Lo que se perdió"
                 bajada="De lo más reciente a lo más antiguo. Toca una prenda para ver solo sus pérdidas."
                 hechos={resumen.hechos.filter((h) => h.lado === "perdida")}
@@ -107,6 +109,7 @@ export function PerdidasVista({
                 vacio="Nada salió sin venderse en este período."
               />
               <ListaHechos
+                guia="perdidas.aparecio"
                 titulo="Lo que apareció · por explicar"
                 bajada="Prendas que el sistema no tenía y aparecieron. No se restan de lo perdido: cada una tiene su historia."
                 hechos={resumen.hechos.filter((h) => h.lado === "aparecio")}
@@ -126,7 +129,7 @@ export function PerdidasVista({
         </>
       )}
 
-      <p className="nota-cayla">
+      <p data-guia="perdidas.nota" className="nota-cayla">
         <b>Una sola cuenta:</b> perder es todo lo que salió sin venderse —faltantes al contar o quitados a mano, dañadas que se
         botaron o donaron, la venta anulada cuya prenda no volvió y lo que faltó en un traslado (en la sede que lo envió)—. Es la
         misma cifra de «Mermas» en Finanzas. Lo liquidado es venta; el stock inicial, el primer conteo de una sede y lo que se
@@ -162,7 +165,7 @@ function Cifras({
   const p = resumen.perdido;
   const a = resumen.aparecio;
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div data-guia="perdidas.cifras" className="grid gap-3 sm:grid-cols-3">
       <TarjetaCifra
         etiqueta={`Se perdió en ${sede} · ${periodoTexto}`}
         valor={p.unidades === 0 ? "0" : `−${p.unidades.toLocaleString("es-PE")}`}
@@ -216,9 +219,7 @@ function Cifras({
 function MasFaltan({ resumen }: { resumen: ResumenPerdidas }) {
   return (
     <section aria-labelledby="mas-faltan" className="card-cayla p-5">
-      <h2 id="mas-faltan" className="font-display text-xl text-tinta">
-        Más faltan
-      </h2>
+      <TituloSeccion id="mas-faltan">Más faltan</TituloSeccion>
       <p className="mt-1 text-sm text-taupe">Categoría · talla · color con más prendas perdidas en el período.</p>
       {resumen.masFaltan.length === 0 ? (
         <p className="mt-4 text-sm text-tinta/75">Nada se perdió en el período.</p>
@@ -247,9 +248,7 @@ function PorRazon({ resumen }: { resumen: ResumenPerdidas }) {
   const perdidas = resumen.porRazon.filter((r) => r.lado === "perdida");
   return (
     <section aria-labelledby="por-razon" className="card-cayla p-5">
-      <h2 id="por-razon" className="font-display text-xl text-tinta">
-        Por qué se perdió
-      </h2>
+      <TituloSeccion id="por-razon">Por qué se perdió</TituloSeccion>
       <p className="mt-1 text-sm text-taupe">Cada prenda perdida, una sola vez, por su razón.</p>
       {perdidas.length === 0 ? (
         <p className="mt-4 text-sm text-tinta/75">Nada se perdió en el período.</p>
@@ -285,13 +284,13 @@ function PorCategoriaYTalla({ resumen }: { resumen: ResumenPerdidas }) {
     </li>
   );
   return (
-    <section aria-label="Lo perdido por categoría y por talla" className="card-cayla grid gap-6 p-5 lg:grid-cols-2">
+    <section aria-label="Lo perdido por categoría y por talla" data-guia="perdidas.categoria-talla" className="card-cayla grid gap-6 p-5 lg:grid-cols-2">
       <div>
-        <h2 className="font-display text-xl text-tinta">Por categoría</h2>
+        <TituloSeccion>Por categoría</TituloSeccion>
         <ul className="mt-3 divide-y divide-sand">{resumen.porCategoria.map((c) => fila2(c.categoria, c.unidades, c.soles, c.categoria))}</ul>
       </div>
       <div>
-        <h2 className="font-display text-xl text-tinta">Por talla</h2>
+        <TituloSeccion>Por talla</TituloSeccion>
         <ul className="mt-3 divide-y divide-sand">{tallas.map((t) => fila2(t.talla, t.unidades, t.soles, t.talla))}</ul>
       </div>
     </section>
@@ -301,10 +300,8 @@ function PorCategoriaYTalla({ resumen }: { resumen: ResumenPerdidas }) {
 // Lo mismo que avisa el Inicio del líder, con un enlace por hallazgo a la pestaña filtrada.
 function SeRepite({ repeticiones }: { repeticiones: Repeticion[] }) {
   return (
-    <section id="se-repite" aria-labelledby="se-repite-titulo" className="card-cayla scroll-mt-24 p-5">
-      <h2 id="se-repite-titulo" className="font-display text-xl text-tinta">
-        Se repite
-      </h2>
+    <section id="se-repite" aria-labelledby="se-repite-titulo" data-guia="perdidas.se-repite" className="card-cayla scroll-mt-24 p-5">
+      <TituloSeccion id="se-repite-titulo">Se repite</TituloSeccion>
       <p className="mt-1 text-sm text-taupe">
         En los últimos 30 días: la misma prenda o la misma zona perdió en dos días distintos, o se quitaron muchas sin nota.
       </p>
@@ -323,6 +320,7 @@ function SeRepite({ repeticiones }: { repeticiones: Repeticion[] }) {
 }
 
 function ListaHechos({
+  guia,
   titulo,
   bajada,
   hechos,
@@ -331,6 +329,8 @@ function ListaHechos({
   modulos,
   vacio,
 }: {
+  /** Ancla de la guía (ADR-0389). */
+  guia: string;
   titulo: string;
   bajada: string;
   hechos: HechoPerdida[];
@@ -354,8 +354,8 @@ function ListaHechos({
     { titulo: "Respaldo" },
   ];
   return (
-    <section aria-label={titulo}>
-      <h2 className="font-display text-xl text-tinta">{titulo}</h2>
+    <section aria-label={titulo} data-guia={guia}>
+      <TituloSeccion>{titulo}</TituloSeccion>
       <p className="mt-1 text-sm text-taupe">{bajada}</p>
       <Tabla className="mt-3">
         {hechos.length === 0 ? (
@@ -372,7 +372,7 @@ function ListaHechos({
                 <div key={`${h.fuente}-${h.id}`} role="row" className={fila(plantilla)}>
                   <span className={celda("izq", "text-sm tabular-nums text-taupe")}>{diaCorto(h.dia)}</span>
                   <span className={celda("izq", "text-sm")}>
-                    <Link href={hrefPerdidas({ periodo, varianteId: h.varianteId })} className="text-tinta underline decoration-tinta/25 underline-offset-2 hover:text-rojo">
+                    <Link href={hrefPerdidas({ periodo, varianteId: h.varianteId })} className="btn-enlace">
                       {etiquetaPrenda(h)}
                     </Link>
                     {h.codigo && <span className="ml-1.5 text-xs text-taupe">{h.codigo}</span>}
@@ -389,7 +389,7 @@ function ListaHechos({
                   )}
                   <span className={celda("izq", "text-sm text-tinta/75")}>
                     {doc ? (
-                      <Link href={doc} className="underline decoration-tinta/25 underline-offset-2 hover:text-rojo">
+                      <Link href={doc} className="btn-enlace">
                         {respaldo}
                       </Link>
                     ) : (

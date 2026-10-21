@@ -1,0 +1,27 @@
+{
+  "guia": "ordenes-insumos.nueva",
+  "ruta": "/ordenes-insumos/nueva",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 17,
+  "controles": {
+    "components/ordenes-insumo/NuevaOrdenInsumo.tsx": [
+      "Volver «{RUTA_ORDENES_INSUMO}»",
+      "ComboBuscable «oi-proveedor»",
+      "CampoSelect «Llega a»",
+      "CampoFecha «Entrega estimada»",
+      "CampoTexto «Nota»",
+      "Boton «oi-form.agregar»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{errorHoja.accion.texto}»",
+      "BotonEnlace «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "button «{`Quitar la línea ${numero}»",
+      "ComboBuscable «{l.insumoId}»",
+      "CampoTexto «{`Descripción de la línea ${numero}»",
+      "CampoTexto «{`Cantidad de la línea ${numero}»",
+      "CampoTexto «{`Precio por ${porUnidad}»",
+      "CampoTexto «{`Descuento de la línea ${numero}»",
+      "SegmentoDeslizante «{`Descuento de la línea ${numero}»"
+    ]
+  }
+}

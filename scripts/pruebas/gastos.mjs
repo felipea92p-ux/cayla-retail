@@ -275,7 +275,39 @@ select count(*) from retail.fn_categorias_gasto();`);
   esperar("no se le cuelga una nota de crédito de mercadería a un gasto", r.ok && Number(nc) === 0, r);
   esperar("nadie lee `gastos` directo (ni el líder)", r.ok && gastosDirecto.includes("permission denied"), r);
   esperar("nadie lee `categorias_gasto` directo", r.ok && catDirecto.includes("permission denied"), r);
-  esperar("las 11 categorías se leen por su función", r.ok && Number(categorias) === 11, r);
+  // 13 desde los gastos del viaje (ADR-0362 fase 6 · actividad 3, 20261013221000): «Traer la mercadería» (609) y «Viaje de compra» (631).
+  esperar("las 13 categorías se leen por su función", r.ok && Number(categorias) === 13, r);
+}
+
+// 9. El gasto rápido de Caja pagado con el Yape o el Plin de la tienda (ADR-0368, act. 2026-10-12): lo que manda la hoja (sin caja y
+//    sin cuenta) cae en la cuenta donde entra ese medio en la tienda y NO toca el cajón: ni egreso ni cambio en lo esperado del cierre.
+{
+  const r = correr(`${ESCENA}
+select retail.crear_cuenta_dinero('BCP prueba gasto rápido', 'banco', 0, retail.fn_hoy_lima() - 5) as bcp \\gset
+select retail.crear_cuenta_dinero('Interbank prueba gasto rápido', 'banco', 0, retail.fn_hoy_lima() - 5) as ibk \\gset
+select retail.guardar_medio_de_cobro(:'tru', 'yape', :'bcp') as _m1 \\gset
+select retail.guardar_medio_de_cobro(:'tru', 'plin', :'ibk') as _m2 \\gset
+select retail.fn_calcular_esperado_caja(:'caja')::text as esperado_antes \\gset
+select count(*) as movs_antes from retail.caja_movimientos where caja_id = :'caja' \\gset
+${cambiaA(MICAELA)}${conModuloGastos}
+select retail.registrar_gasto(p_ubicacion_id => :'tru', p_categoria => 'transporte', p_descripcion => 'Movilidad', p_fecha => retail.fn_hoy_lima(),
+  p_monto_total => 5, p_comprobante => null, p_medio_pago => 'yape', p_caja_id => null, p_caja_movimiento_id => null, p_referencia => null,
+  p_token => gen_random_uuid()) as gy \\gset
+select retail.registrar_gasto(p_ubicacion_id => :'tru', p_categoria => 'suministros', p_descripcion => 'Bolsas — para la campaña', p_fecha => retail.fn_hoy_lima(),
+  p_monto_total => 12, p_comprobante => null, p_medio_pago => 'plin', p_caja_id => null, p_caja_movimiento_id => null, p_referencia => null,
+  p_token => gen_random_uuid()) as gp \\gset
+${cambiaA(FELIPE)}
+select retail.fn_calcular_esperado_caja(:'caja')::text = :'esperado_antes';
+select count(*) = :'movs_antes'::int from retail.caja_movimientos where caja_id = :'caja';
+select medio_pago, caja_movimiento_id is null, cuenta_dinero_id = :'bcp' from retail.gastos where id = :'gy';
+select medio_pago, caja_movimiento_id is null, cuenta_dinero_id = :'ibk' from retail.gastos where id = :'gp';
+select count(*) from retail.fn_gastos_lista(retail.fn_hoy_lima(), retail.fn_hoy_lima(), :'tru') where id in (:'gy', :'gp') and caja_movimiento_id is null and medio_pago in ('yape', 'plin');`);
+  const [esperado, movs, yape, plin, enLista] = lineas(r);
+  esperar("un gasto por Yape o Plin desde Caja no cambia lo esperado del cajón", r.ok && esperado === "t", r);
+  esperar("…ni crea un movimiento de caja", r.ok && movs === "t", r);
+  esperar("el de Yape cae en la cuenta donde entra el Yape de la tienda", r.ok && yape === "yape|t|t", r);
+  esperar("el de Plin, en la del Plin", r.ok && plin === "plin|t|t", r);
+  esperar("los dos salen en la lista del día con su medio (así los muestra «Gastos del turno»)", r.ok && Number(enLista) === 2, r);
 }
 
 console.log(fallos ? `\n${fallos} caso(s) fallaron` : "\nTodo en orden");

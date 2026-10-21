@@ -14,10 +14,13 @@ import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta, solesRedondo } from "@/lib/gastos-reglas";
 import { DIAS_CORTOS, DIAS_SEMANA, TEXTO_ESTADO, estadoCampana, ordenarCampanas, parsearMonto, parsearPorcentaje, validarTienda } from "@/lib/configuracion-reglas";
 import { ajustarCelular, celularValido } from "@/lib/club-reglas";
-import type { CampanaConfig, ConfiguracionTiendas as Datos, TiendaConfig } from "@/lib/configuracion-reglas";
+import type { CampanaConfig, ConfiguracionMetas, ConfiguracionTiendas as Datos, TiendaConfig } from "@/lib/configuracion-reglas";
 import { BotonEnlace } from "@/components/ui/campos";
+import { BotonVer } from "@/components/ui/BotonDescargar";
+import { Casilla, type Guardar } from "@/components/ConfiguracionCasilla";
+import { ConfiguracionMetasMes } from "@/components/ConfiguracionMetasMes";
 
-// Configuración ▸ Tiendas y caja (ADR-0195 F1), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgTiendas`):
+// Configuración ▸ Tiendas y caja (ADR-0195 F1; metas por mes y por fecha, ADR-0435), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgTiendas`):
 // dos tablas —lo normal de cada tienda (meta por día y fondo) y lo que cambia cada campaña— donde CADA CASILLA SE GUARDA
 // SOLA al salir de ella si cambió, firmada con el responsable. Sin botones «Guardar»: la base vuelve a validar todo.
 // ADR-0288 tanda 1b suma una tercera, con el mismo patrón: el WhatsApp de cada tienda para el QR del club
@@ -25,38 +28,6 @@ import { BotonEnlace } from "@/components/ui/campos";
 
 const texto = (n: number | null) => (n === null ? "" : String(n));
 const corto = (nombre: string) => nombre.replace(/^Tienda\s+/i, "");
-
-type Guardar = (hacer: () => PromiseLike<{ error: unknown }>, que: string, listo: string) => Promise<boolean>;
-
-/** Una casilla numérica que se guarda al salir (blur) si su texto cambió. Si el guardado falla, vuelve a lo de antes. */
-function Casilla({ valor, etiqueta, ancho, alGuardar, placeholder = "—" }: { valor: string; etiqueta: string; ancho: string; alGuardar: (nuevo: string) => Promise<boolean>; placeholder?: string }) {
-  const [t, setT] = useState(valor);
-  const [antes, setAntes] = useState(valor);
-  // Si la base trae otro valor (otro guardado, un refresco), la casilla lo toma.
-  if (valor !== antes) {
-    setAntes(valor);
-    setT(valor);
-  }
-  return (
-    <input
-      aria-label={etiqueta}
-      inputMode="decimal"
-      value={t}
-      placeholder={placeholder}
-      onChange={(e) => setT(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        if (e.key === "Escape") setT(valor);
-      }}
-      onBlur={async () => {
-        if (t.trim() === valor.trim()) return;
-        const ok = await alGuardar(t);
-        if (!ok) setT(valor);
-      }}
-      className={`fin-control fin-num inline-block ${ancho}`}
-    />
-  );
-}
 
 /** La hora de cierre: se guarda al salir si cambió (vacía = sin hora, Caja no proyecta). */
 function CasillaHora({ valor, etiqueta, alGuardar }: { valor: string; etiqueta: string; alGuardar: (hora: string) => Promise<boolean> }) {
@@ -267,7 +238,7 @@ function FilaCampana({ campana, tiendas, hoy, guardar }: { campana: CampanaConfi
 
 /** `despuesDeWhatsapp`: otra tarjeta de la sede que va entre el WhatsApp y las campañas (la carga inicial, ADR-0328). Se pasa
  *  armada desde la página: tiene su propio responsable y su propia hoja, no usa las casillas de aquí. */
-export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Datos; despuesDeWhatsapp?: ReactNode }) {
+export function ConfiguracionTiendas({ datos, metas, despuesDeWhatsapp }: { datos: Datos; metas?: ConfiguracionMetas | null; despuesDeWhatsapp?: ReactNode }) {
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
@@ -298,14 +269,14 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3" data-guia="config.guardado">
         <p className="max-w-md text-[13px] text-taupe">Cada casilla se guarda sola al salir de ella, a nombre de quien figure como responsable. Cada cambio queda en la historia.</p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando} />
         </div>
       </div>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.tiendas-normal">
         <TituloDeTarjeta titulo="Lo normal de cada tienda" bajada="Meta de venta de cada día de la semana (con IGV, lo que ve la caja), lo que debe quedar en el cajón al cerrar y a qué hora cierra.">
           <Chip tono={rigenHoy.length ? "ambar" : "verde"}>Hoy rige: {rigenHoy.length ? rigenHoy.map((c) => c.nombre).join(" y ") : "lo normal"}</Chip>
         </TituloDeTarjeta>
@@ -336,14 +307,16 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
         </PieTabla>
       </Superficie>
 
-      <Superficie className="anim-sube">
+      {metas && metas.tiendas.length > 0 && <ConfiguracionMetasMes metas={metas} guardar={guardar} />}
+
+      <Superficie className="anim-sube" guia="config.tiendas-whatsapp">
         <TituloDeTarjeta
           titulo="WhatsApp de cada tienda"
-          bajada="El número al que los clientes le escriben desde el QR del club (el cartel del mostrador). Sin número, esa tienda no muestra QR y el club sigue, sin novedades por WhatsApp."
+          bajada="El número al que los clientes le escriben desde el QR del club (el cartel del mostrador) y desde la tienda web, donde llegan sus pedidos. Sin número, esa tienda no muestra QR ni sale en la web, y el club sigue, sin novedades por WhatsApp."
         >
-          <Link href="/clientas/cartel" className="btn-cayla btn-secundario btn-chico">
+          <BotonVer href="/clientas/cartel" chico>
             Ver el cartel del club
-          </Link>
+          </BotonVer>
         </TituloDeTarjeta>
         <div className="fin-tabla-wrap">
           <table className="fin-tabla fin-tabla-apretada">
@@ -371,7 +344,7 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
 
       {despuesDeWhatsapp}
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.tiendas-campanas">
         <TituloDeTarjeta titulo="Campañas: lo que cambian en la caja" bajada="Las campañas y sus fechas son las de Catálogo ▸ Etiquetas. Aquí se dice, por tienda, cuánto sube la meta y qué fondo dejar. Vacío = lo normal.">
           <BotonEnlace href="/productos/atributos?tipo=etiquetas">+ Nueva campaña (en Catálogo ▸ Etiquetas)</BotonEnlace>
         </TituloDeTarjeta>
@@ -402,7 +375,7 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
         </PieTabla>
       </Superficie>
 
-      <div className="nota-cayla">
+      <div className="nota-cayla" data-guia="config.tiendas-nota">
         Una sola lista de fechas: la de las campañas. La caja ve la meta de hoy y cuánto le falta; al cerrar, el fondo que tiene que dejar. Si deja menos, <b>se le pide confirmar, no se le bloquea</b>, y el cierre queda anotado para el líder.{" "}
         <Link href="/caja" className="btn-enlace">
           Ver cómo se ve en Caja

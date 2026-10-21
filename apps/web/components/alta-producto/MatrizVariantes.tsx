@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { Globito } from "@/components/ui/Globito";
 import { Camera } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Punto } from "@/components/alta-producto/ElegirColores";
-import { BotonFoto, useFotosPendientes, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
+import { RAYADO_FUERA } from "@/components/alta-producto/rayado";
+import { BotonFoto, BotonQuitarFoto, useFotosPendientes, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import type { CeldaAlta } from "@/lib/alta-producto";
 import { leyendaVariantes, textoFotosDeFila } from "@/lib/tabla-alta-reglas";
 
@@ -24,8 +26,8 @@ import { leyendaVariantes, textoFotosDeFila } from "@/lib/tabla-alta-reglas";
 
 type Color = { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null; tipo?: string | null };
 
-/** El rayado de «no existe»: el mismo en los pasos 3 y 4. */
-export const RAYADO_FUERA = "bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_srgb,var(--color-tinta)_5%,transparent)_6px_7px)] text-tinta/25";
+/** El rayado de «no existe»: el mismo en los pasos 3 y 4. Vive en `rayado.ts` (la tabla de cantidades lo usa sin arrastrar las fotos); se sigue exportando de aquí. */
+export { RAYADO_FUERA };
 
 export function MatrizVariantes({
   celdas,
@@ -58,13 +60,19 @@ export function MatrizVariantes({
     tallas.map((t) => t.texto)
   );
 
-  const { agregar, quitar, revision } = useFotosPendientes({ fotos, onFotos });
+  const { agregar, quitar } = useFotosPendientes({ fotos, onFotos });
   // De qué color se están mirando las fotos (para quitar alguna). `undefined` = ninguna hoja abierta; `null` = las de
   // «Todos los colores» (o de la prenda, si no tiene colores).
   const [viendo, setViendo] = useState<string | null | undefined>(undefined);
   const generales = fotos.filter((f) => f.colorCodigo === null);
   const nombreDe = (codigo: string | null) =>
     codigo === null ? (colores.length ? "todos los colores" : "la prenda") : (colores.find((c) => c.codigo === codigo)?.nombre ?? codigo);
+
+  // La × de la miniatura: con una sola foto la quita; con varias abre la hoja para elegir cuál (no adivina cuál era el error).
+  function quitarDe(suyas: FotoPendiente[], color: string | null) {
+    if (suyas.length === 1) quitar(suyas[0].clave);
+    else setViendo(color);
+  }
 
   function alternar(clave: string) {
     const copia = new Set(excluidas);
@@ -111,7 +119,7 @@ export function MatrizVariantes({
                 <tr key={color ?? "sin-color"}>
                   <th scope="row" className="sticky left-0 z-[1] whitespace-nowrap border-r border-t border-sand bg-papel py-1.5 pl-2 pr-2 text-left font-medium text-tinta sm:py-2 sm:pl-3 sm:pr-2.5">
                     <div className="flex items-center gap-1.5 sm:gap-2.5">
-                      <FotosDeFila suyas={suyas} nombre={nombreDe(color)} disabled={disabled} onArchivos={(a) => agregar(a, color)} />
+                      <FotosDeFila suyas={suyas} nombre={nombreDe(color)} disabled={disabled} onArchivos={(a) => agregar(a, color)} onQuitar={() => quitarDe(suyas, color)} />
                       <div className="flex min-w-0 flex-col leading-tight">
                         <span className="flex items-center gap-1.5 text-[12.5px] font-semibold sm:text-[13.5px]">
                           {c && <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
@@ -122,7 +130,7 @@ export function MatrizVariantes({
                             type="button"
                             onClick={() => setViendo(color)}
                             aria-label={`Ver o quitar las fotos de ${nombreDe(color)}`}
-                            className="w-fit text-left text-[11px] font-normal text-taupe underline decoration-tinta/20 underline-offset-2 hover:text-tinta"
+                            className="btn-enlace w-fit text-left text-[11px] font-normal"
                           >
                             {textoFotosDeFila(suyas.length, false)}
                           </button>
@@ -173,7 +181,7 @@ export function MatrizVariantes({
       {colores.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12.5px] text-tinta">
           <span className="font-medium">Una foto para todos los colores:</span>
-          <FotosDeFila suyas={generales} nombre="todos los colores" disabled={disabled} onArchivos={(a) => agregar(a, null)} />
+          <FotosDeFila suyas={generales} nombre="todos los colores" disabled={disabled} onArchivos={(a) => agregar(a, null)} onQuitar={() => quitarDe(generales, null)} />
           {generales.length > 0 && (
             <button type="button" onClick={() => setViendo(null)} aria-label="Ver o quitar las fotos de todos los colores" className="btn-cayla btn-enlace text-xs">
               {textoFotosDeFila(generales.length, false)}
@@ -191,7 +199,6 @@ export function MatrizVariantes({
         <Modal
           titulo={`Fotos de ${nombreDe(viendo)}`}
           subtitulo="Se suben al crear el producto. Para agregar otra, toca la foto en la tabla."
-          ancho="max-w-md"
           onClose={() => setViendo(undefined)}
         >
           {(cerrar) => {
@@ -225,13 +232,24 @@ export function MatrizVariantes({
           }}
         </Modal>
       )}
-      {revision}
     </div>
   );
 }
 
-/** La foto de una fila: la miniatura (con el número si tiene varias; tocarla agrega otra) o, si no tiene, la cámara. */
-function FotosDeFila({ suyas, nombre, disabled, onArchivos }: { suyas: FotoPendiente[]; nombre: string; disabled: boolean; onArchivos: (a: File[]) => void }) {
+/** La foto de una fila: la miniatura (con el número si tiene varias; tocarla agrega otra) con su × para quitarla, o, si no tiene, la cámara. */
+function FotosDeFila({
+  suyas,
+  nombre,
+  disabled,
+  onArchivos,
+  onQuitar,
+}: {
+  suyas: FotoPendiente[];
+  nombre: string;
+  disabled: boolean;
+  onArchivos: (a: File[]) => void;
+  onQuitar: () => void;
+}) {
   if (suyas.length === 0) {
     return (
       <BotonFoto
@@ -240,22 +258,28 @@ function FotosDeFila({ suyas, nombre, disabled, onArchivos }: { suyas: FotoPendi
         etiqueta={`Agregar foto de ${nombre}`}
         className="grid h-[42px] w-[34px] shrink-0 place-items-center rounded-[5px] border border-dashed border-tinta/25 text-taupe transition-colors hover:border-tinta/45 hover:text-tinta disabled:opacity-40"
       >
-        <Camera aria-hidden className="h-[17px] w-[17px]" strokeWidth={1.7} />
+        <Camera aria-hidden className="h-4 w-4" />
       </BotonFoto>
     );
   }
   return (
-    <BotonFoto
-      onArchivos={onArchivos}
-      disabled={disabled}
-      etiqueta={`${suyas.length} foto${suyas.length === 1 ? "" : "s"} de ${nombre} · toca para agregar otra`}
-      className="relative h-[42px] w-[34px] shrink-0 rounded-[5px] border border-sand bg-hueso disabled:opacity-40"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
-      <img src={suyas[0].vista} alt="" className="h-full w-full rounded-[4px] object-cover" />
-      {suyas.length > 1 && (
-        <span className="absolute -right-[5px] -top-1.5 rounded-full bg-tinta px-[5px] text-[9.5px] font-bold leading-[15px] tabular-nums text-crema">{suyas.length}</span>
-      )}
-    </BotonFoto>
+    <span className="relative shrink-0">
+      <BotonFoto
+        onArchivos={onArchivos}
+        disabled={disabled}
+        etiqueta={`${suyas.length} foto${suyas.length === 1 ? "" : "s"} de ${nombre} · toca para agregar otra`}
+        className="relative block h-[42px] w-[34px] rounded-[5px] border border-sand bg-hueso disabled:opacity-40"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
+        <img src={suyas[0].vista} alt="" className="h-full w-full rounded-[4px] object-cover" />
+        {suyas.length > 1 && <Globito n={suyas.length} esquina etiqueta="fotos" className="absolute -right-1.5 -top-1.5" />}
+      </BotonFoto>
+      <BotonQuitarFoto
+        onClick={onQuitar}
+        disabled={disabled}
+        etiqueta={suyas.length === 1 ? `Quitar la foto de ${nombre}` : `Ver o quitar las ${suyas.length} fotos de ${nombre}`}
+        className="-left-1.5 -top-1.5"
+      />
+    </span>
   );
 }

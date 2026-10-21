@@ -6,15 +6,17 @@ import { TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
+import { campoEtiqueta, campoTexto } from "@/components/ui/Modal";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { diferenciaApertura, leerMonto, motivoAperturaValido } from "@/lib/caja-cierre-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { Boton } from "@/components/ui/campos";
 
 function money(n: number) {
-  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 /**
@@ -32,11 +34,14 @@ export function AbrirCajaFormV2({
   ubicacionEtiqueta,
   esperado,
   enHoja = false,
+  onCancelar,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
   esperado: number | null;
   enHoja?: boolean;
+  /** Dentro de la hoja de Vender: «Cancelar» antes de «Abrir caja», la salida a la vista de toda hoja que guarda (ADR-0358, ronda 12). */
+  onCancelar?: () => void;
 }) {
   const router = useRouter();
   const [opcion, setOpcion] = useState<"igual" | "otro" | null>(esperado === null ? "otro" : null);
@@ -80,12 +85,12 @@ export function AbrirCajaFormV2({
   }
 
   return (
-    <form onSubmit={onSubmit} className={enHoja ? "space-y-4" : "card-cayla space-y-4 p-5"}>
+    <form data-guia="caja.abrir" onSubmit={onSubmit} className={enHoja ? "space-y-4" : "card-cayla space-y-4 p-5"}>
       <div>
         {!enHoja && <p className="label-cayla text-[11px] text-taupe-profundo">Abrir caja</p>}
-        <h2 className="font-display mt-0.5 text-2xl text-tinta">
+        <TituloSeccion className="mt-0.5">
           {esperado === null ? `${ubicacionEtiqueta} no tiene una caja abierta` : "Antes de abrir, cuenta el cajón"}
-        </h2>
+        </TituloSeccion>
       </div>
 
       {esperado !== null && (
@@ -124,8 +129,8 @@ export function AbrirCajaFormV2({
             <label className={campoEtiqueta} htmlFor="apertura-monto">
               {esperado === null ? "Monto con el que abres (efectivo en el cajón)" : "¿Cuánto hay en el cajón?"}
             </label>
-            <div className="flex items-baseline gap-1.5 border-b border-tinta/20 focus-within:border-rojo">
-              <span className="font-display text-xl text-tinta/50">S/</span>
+            <div className="caja-cayla caja-campo caja-campo-alta">
+              <span aria-hidden className="font-display text-base leading-none text-tinta/55">S/</span>
               <input
                 id="apertura-monto"
                 inputMode="decimal"
@@ -134,7 +139,7 @@ export function AbrirCajaFormV2({
                 placeholder="0.00"
                 value={montoTexto}
                 onChange={(e) => setMontoTexto(e.target.value)}
-                className="font-display w-full bg-transparent py-1 text-2xl tabular-nums text-tinta outline-none"
+                className="font-display self-stretch py-0 text-2xl tabular-nums"
               />
             </div>
           </div>
@@ -167,14 +172,25 @@ export function AbrirCajaFormV2({
       )}
 
       <ComboResponsable control={responsable} deshabilitado={loading} />
-      <button
-        type="submit"
-        disabled={loading || !listo || !responsable.listo}
-        title={responsable.motivo ?? undefined}
-        className={`${botonPrimario} w-full`}
-      >
-        {loading ? "Abriendo…" : monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
-      </button>
+      {enHoja && onCancelar ? (
+        <div className="pie-acciones">
+          <Boton type="button" onClick={onCancelar} disabled={loading}>
+            Cancelar
+          </Boton>
+          <Boton peso="primario" cargando={loading} textoCargando="Abriendo…" type="submit" disabled={loading || !listo || !responsable.listo} title={responsable.motivo ?? undefined} className="flex-1">
+            {monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
+          </Boton>
+        </div>
+      ) : (
+        <Boton peso="primario" cargando={loading} textoCargando="Abriendo…"
+          type="submit"
+          disabled={loading || !listo || !responsable.listo}
+          title={responsable.motivo ?? undefined}
+          className={`flex-1 w-full`}
+        >
+          {monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
+        </Boton>
+      )}
     </form>
   );
 }

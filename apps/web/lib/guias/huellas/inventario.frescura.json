@@ -1,0 +1,77 @@
+{
+  "guia": "inventario.frescura",
+  "ruta": "/gestion/frescura",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 49,
+  "controles": {
+    "components/frescura/CifraSinSaber.tsx": [
+      "button «¿Por qué?»"
+    ],
+    "components/frescura/FrescuraAguja.tsx": [
+      "BotonEnlace «Completa tallas»",
+      "Boton «Ver cuáles cambiar de lugar»",
+      "BotonEnlace «Cuelga más»",
+      "BotonEnlace «Estrenar en el piso»"
+    ],
+    "components/frescura/FrescuraComoSeLee.tsx": [
+      "Link «Complétalas en Catálogo»"
+    ],
+    "components/frescura/FrescuraDecidir.tsx": [
+      "input «traslado»",
+      "Link «Armar traslado»",
+      "Link «Retirar del piso en Existencias»",
+      "CampoTexto «{guia.etiqueta(\"nota\", \"Nota (opcional)\")}»",
+      "button «+ Agregar una nota»",
+      "ComboResponsable «{responsable}»",
+      "button «Ver»",
+      "button «No, todavía no»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "input «accion»",
+      "CampoTexto «{guia.etiqueta(\"nota\", \"¿Qué pasó? (opcional)\")}»",
+      "ComboResponsable «{responsable}» #2",
+      "button «No»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
+    ],
+    "components/frescura/FrescuraDetalle.tsx": [
+      "button «Anotar otra decisión»",
+      "button «Anotar lo que hice»",
+      "button «Quitar lo anotado»",
+      "button «Volver a intentar»",
+      "Link «{b.texto}»"
+    ],
+    "components/frescura/FrescuraFila.tsx": [
+      "button «frescura.prenda-nombre»",
+      "Boton «{accion.verbo}»",
+      "Link «{accion.verbo}»",
+      "button «{accion.verbo}»",
+      "button «¿Por qué?»",
+      "button «{error.conVer ? \"Ver\" : \"Entendido\"}»"
+    ],
+    "components/frescura/FrescuraPanel.tsx": [
+      "button «frescura.como-se-lee»",
+      "DesplegablePildora «Categoría»",
+      "DesplegablePildora «Estado»",
+      "button «Por decidir»",
+      "button «Decididas»",
+      "BotonLimpiar «Limpiar filtros»",
+      "button «Ver todas las prendas (»",
+      "button «Ver todas las prendas»",
+      "button «Limpiar filtros»",
+      "button «Limpiar filtros» #2",
+      "button «Verlas todas»",
+      "button «{verGuardadas ? \"Ocultar\" : \"Ver cuáles\"}»",
+      "button «{verNuncaColgadas ? \"Ocultar\" : \"Ver cuáles\"}»",
+      "button «Volver a intentar»"
+    ],
+    "components/frescura/FrescuraPiso.tsx": [
+      "BotonEnlace «{paso.texto}»"
+    ],
+    "components/frescura/FrescuraRed.tsx": [
+      "a «{t.nombre}»",
+      "a «Ver»"
+    ],
+    "components/frescura/FrescuraTablero.tsx": [
+      "button «→() => onElegir(activa ? null : f.categoriaId)»"
+    ]
+  }
+}

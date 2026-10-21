@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Qué colores bajar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   MAQUETA · Plan del piso ▸ Propuesta ▸ «Qué colores bajar» (2026-10-12). Solo diseño, nada de esto está construido.
+   Tokens = los de apps/web/app/globals.css (claro) y apps/web/app/estilos/tema.css (oscuro). El único hex fuera de este bloque es el de
+   las PRENDAS (retail.colores.hex, que es dato y no interfaz). Cifras de TRU y AQP: producción, solo lectura, 12-oct-2026.
+   El lenguaje del riel y de la percha es el de apps/web/app/estilos/plan-piso.css; Chip, Aviso, Vacio y Boton, los del ERP.
+   ===================================================================== */
+:root{
+  --color-rojo:#b8412d;--color-rojo-profundo:#8b2a1f;--color-crema:#f5f0e8;--color-tinta:#1a1a18;--color-sand:#e8e0d0;--color-taupe:#805c4c;--color-taupe-profundo:#805c4c;
+  --color-papel:#fbf8f2;--color-hueso:#eae1d2;--color-sombra:#1a1a18;--color-vidrio:#ffffff;--color-pizarra:#4c5d6e;--color-tinta-60:#5b544c;
+  --color-verde:#48603f;--color-verde-profundo:#44583a;--color-ambar:#74501a;--color-ambar-profundo:#734f15;
+  --color-tinta-fija:#1a1a18;--color-crema-fija:#f5f0e8;
+  --radius-sm:4px;--radius-md:8px;--radius-lg:12px;--radius-xl:16px;--radius-2xl:20px;
+  --ease-cayla:cubic-bezier(.32,.72,.24,1);
+  --shadow-md:0 8px 24px -8px color-mix(in srgb,var(--color-sombra) 11%,transparent);
+  --shadow-sm:0 1px 2px color-mix(in srgb,var(--color-sombra) 5%,transparent);
+  --serif:'EB Garamond',ui-serif,Georgia,'Times New Roman',serif;--sans:'DM Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  /* el color de cada grupo del riel (plan-piso.css): por posición, nunca rojo */
+  --grupo-0:var(--color-taupe);--grupo-1:var(--color-pizarra);--grupo-2:var(--color-verde);
+  --grupo-3:color-mix(in srgb,var(--color-ambar) 72%,var(--color-sand));
+  --grupo-4:color-mix(in srgb,var(--color-taupe) 80%,var(--color-papel));
+  --grupo-5:color-mix(in srgb,var(--color-tinta) 82%,var(--color-papel));
+  --grupo-fuera:color-mix(in srgb,var(--color-tinta) 52%,var(--color-papel));
+  --pp-otros:color-mix(in srgb,var(--color-taupe) 34%,var(--color-papel));
+  color-scheme:light;
+}
+html[data-tema="oscuro"]{
+  --color-crema:#1a1a18;--color-papel:#242422;--color-hueso:#31302d;--color-sand:#3d3c38;--color-sombra:#000000;--color-vidrio:#31302d;
+  --color-tinta:#f5f0e8;--color-tinta-60:#b9b2a7;--color-taupe:#c4a898;--color-taupe-profundo:#c4a898;
+  --color-rojo:#e8806a;--color-rojo-profundo:#f29a86;--color-verde:#9ccb8d;--color-verde-profundo:#a8d49a;--color-ambar:#e4b968;--color-ambar-profundo:#ecc676;--color-pizarra:#a2b8cd;
+  --shadow-md:0 8px 24px -8px rgb(0 0 0 / .5);--shadow-sm:0 1px 2px rgb(0 0 0 / .3);
+  --grupo-4:color-mix(in srgb,var(--color-taupe) 66%,var(--color-papel));
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);font-size:14px;line-height:1.45;color:var(--color-tinta);background:var(--color-crema);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:left}
+:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
+[hidden]{display:none!important}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ---------- barra de la maqueta (no es parte del diseño) ---------- */
+.ctl{position:sticky;top:0;z-index:50;background:var(--color-tinta-fija);color:var(--color-crema-fija);padding:10px 20px;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;font-size:12.5px}
+.ctl b{font-weight:600;margin-right:6px;opacity:.7}
+.ctl .seg{display:inline-flex;background:color-mix(in srgb,var(--color-crema-fija) 12%,transparent);border-radius:8px;padding:3px;gap:2px;flex-wrap:wrap}
+.ctl .seg button{padding:5px 11px;border-radius:6px;color:color-mix(in srgb,var(--color-crema-fija) 78%,transparent)}
+.ctl .seg button[aria-pressed=true]{background:var(--color-crema-fija);color:var(--color-tinta-fija)}
+.ctl .tit{font-family:var(--serif);font-size:17px;letter-spacing:.01em}
+/* los estados 2 a 4 son exploración (no recomendados); el 5 es la recomendación */
+.ctl .seg .seg-explor{display:inline-flex;align-items:center;flex-wrap:wrap;gap:2px;padding:0 3px 0 10px;border-radius:7px;outline:1px dashed color-mix(in srgb,var(--color-crema-fija) 40%,transparent);outline-offset:-1px}
+.ctl .seg .seg-et{font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb,var(--color-crema-fija) 62%,transparent);padding-right:6px;white-space:nowrap}
+.ctl .seg .seg-explor button[aria-pressed=false]{color:color-mix(in srgb,var(--color-crema-fija) 62%,transparent)}
+.ctl .seg button.rec{font-weight:600;box-shadow:inset 0 0 0 1.5px var(--color-crema-fija)}
+.etq-explor{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:1px 9px;margin-right:8px;border-radius:999px;border:1px dashed color-mix(in srgb,var(--color-tinta) 40%,transparent);color:var(--color-tinta-60);vertical-align:1px}
+.nota-estado{padding:12px 20px;font-size:13px;color:var(--color-tinta-60);background:color-mix(in srgb,var(--color-hueso) 70%,var(--color-crema));border-bottom:1px solid var(--color-sand)}
+.nota-estado b{color:var(--color-tinta);font-weight:600}
+.fuera{padding:0 0 40px}
+.hoja{display:flex;justify-content:center;padding:0}
+body[data-vista="libre"] .hoja{padding:18px 16px 0}
+
+/* ---------- marco de la app ---------- */
+.marco{display:grid;grid-template-columns:272px minmax(0,1fr);background:var(--color-crema);width:100%;min-height:700px}
+body[data-vista="libre"] .marco{border:1px solid var(--color-sand);border-radius:10px;overflow:hidden}
+body[data-vista="1440"] .marco{width:1440px;--pad-pagina:64px}
+body[data-vista="1024"] .marco{width:1024px;--pad-pagina:48px}
+body[data-vista="libre"] .marco{--pad-pagina:48px;max-width:1440px}
+.lat{background:color-mix(in srgb,var(--color-hueso) 55%,var(--color-crema));border-right:1px solid var(--color-sand);padding:20px 12px;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.lat .logo{font-family:var(--serif);letter-spacing:.34em;font-size:15px;padding:4px 14px 22px;font-weight:500}
+.lat .logo small{display:block;font-family:var(--sans);font-size:9px;letter-spacing:.3em;color:var(--color-taupe-profundo);margin-top:2px}
+.lat a{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-radius:10px;color:var(--color-tinta);text-decoration:none}
+.lat a.hijo{padding:7px 14px 7px 30px;font-size:13.5px;color:var(--color-tinta-60)}
+.lat a.on{background:var(--color-sand);color:var(--color-tinta);font-weight:500}
+.lat a i{font-style:normal;color:var(--color-taupe-profundo);font-size:11px}
+.lat .pie{margin-top:auto;padding:14px;font-size:12px;color:var(--color-taupe-profundo);border-top:1px solid var(--color-sand)}
+.lat .pie b{display:block;color:var(--color-tinta);font-weight:500;font-size:13px}
+.cuerpo{min-width:0}
+.top{height:58px;border-bottom:1px solid var(--color-sand);display:flex;align-items:center;gap:12px;padding:0 24px}
+.top .busca{background:color-mix(in srgb,var(--color-hueso) 70%,transparent);border-radius:999px;padding:7px 16px;color:var(--color-taupe-profundo);font-size:13px;min-width:190px}
+.top .der{margin-left:auto;display:flex;gap:18px;align-items:center;font-size:11px;letter-spacing:.12em;font-weight:600;text-transform:uppercase}
+.top .sede{border:1px solid var(--color-sand);border-radius:8px;padding:7px 12px}
+.pagina{margin:0 auto;padding:28px 0 56px;width:calc(100% - 2*var(--pad-pagina));max-width:1040px}
+.enc .linea{display:flex;align-items:center;gap:14px;font-size:11px;letter-spacing:.13em;font-weight:600;text-transform:uppercase;color:var(--color-taupe-profundo)}
+.enc .linea::before{content:"";width:36px;height:1px;background:var(--color-taupe)}
+.enc h1{font-family:var(--serif);font-weight:400;font-size:46px;line-height:1.1;margin:10px 0 8px;letter-spacing:-.01em}
+.enc p{font-size:15.5px;color:var(--color-tinta-60);max-width:560px}
+.tabs{max-width:100%;overflow-x:auto;display:inline-flex;margin:22px 0 24px;padding:5px;gap:2px;background:var(--color-vidrio);border:1px solid var(--color-sand);border-radius:16px}
+.tabs span{padding:9px 19px;border-radius:11px;font-size:11.5px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;display:inline-flex;gap:8px;align-items:center}
+.tabs span.on{background:var(--color-tinta);color:var(--color-crema)}
+
+/* ---------- Chip (components/ui/Chip.tsx): insignia con punto, sin borde ---------- */
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;font-size:13px;line-height:20px;border-radius:999px;white-space:nowrap;background:var(--color-sand);color:var(--color-taupe)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.chip.ambar{background:color-mix(in srgb,var(--color-ambar) 15%,transparent);color:var(--color-ambar)}
+.chip.verde{background:color-mix(in srgb,var(--color-verde) 15%,transparent);color:var(--color-verde)}
+.chip.pizarra{background:color-mix(in srgb,var(--color-pizarra) 15%,transparent);color:var(--color-pizarra)}
+.chip.tinta{background:transparent;font-weight:600;color:var(--color-tinta);box-shadow:inset 0 0 0 1.5px var(--color-tinta)}
+.chip.apagado{background:transparent;border:1px solid color-mix(in srgb,var(--color-tinta) 10%,transparent);color:color-mix(in srgb,var(--color-tinta) 65%,transparent)}
+.chip.apagado::before{display:none}
+
+/* ---------- Boton (btn-cayla) ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius-md);border:1px solid transparent;padding:8px 16px;font-size:13.5px;font-weight:500;line-height:1.25;white-space:nowrap;position:relative;
+  transition:translate 260ms var(--ease-cayla),box-shadow 260ms var(--ease-cayla),background-color 200ms var(--ease-cayla),border-color 200ms var(--ease-cayla)}
+.btn svg{width:15px;height:15px;stroke-width:2;transition:translate 300ms var(--ease-cayla)}
+.btn:hover{translate:0 -2px;box-shadow:var(--shadow-md)}
+.btn:hover svg.flecha{translate:4px 0}
+.btn:active{translate:0 0;scale:.97}
+.btn.primario{background:var(--color-tinta);color:var(--color-crema)}
+.btn.primario:hover{background:var(--color-rojo-profundo)}
+.btn.secundario{background:transparent;color:var(--color-tinta);border-color:var(--color-sand)}
+.btn.secundario:hover{border-color:color-mix(in oklab,var(--color-taupe) 40%,transparent);background:color-mix(in oklab,var(--color-sand) 50%,transparent)}
+
+/* ---------- Aviso (components/ui/Aviso.tsx): la franja a la izquierda ---------- */
+.aviso-linea{--c:var(--color-ambar);--cp:var(--color-ambar-profundo);display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 12px;align-items:start;padding:12px 14px 12px 12px;border-radius:6px 14px 14px 6px;
+  border:1px solid color-mix(in srgb,var(--c) 32%,transparent);border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 6%,var(--color-papel));color:var(--color-tinta);
+  animation:av-entra 280ms var(--ease-cayla) both,av-franja 520ms var(--ease-cayla) both}
+.aviso-linea[data-tono="info"]{--c:var(--color-pizarra);--cp:var(--color-pizarra)}
+.aviso-linea-ic{grid-column:1;grid-row:1 / span 2;display:grid;place-items:center;width:18px;height:22px;color:var(--cp)}
+.aviso-linea-ic svg{width:16px;height:16px;stroke-width:2.2;stroke-dasharray:0 100;animation:trazo 520ms var(--ease-cayla) 220ms forwards}
+.aviso-linea-tit{grid-column:2;grid-row:1;margin:1px 0 0;font-size:14px;font-weight:600;line-height:1.4;color:var(--cp)}
+.aviso-linea-det{grid-column:2;margin:0;font-size:13.5px;line-height:1.5;color:color-mix(in srgb,var(--color-tinta) 78%,transparent)}
+.aviso-linea-acc{grid-column:3;grid-row:1 / span 2;align-self:center}
+.aviso-linea-acc button{display:inline-flex;align-items:center;gap:6px;font:500 13px/1 var(--sans);color:var(--cp);padding:8px 12px;border-radius:8px;border:1px solid var(--color-sand);white-space:nowrap;
+  text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--cp) 35%,transparent);text-underline-offset:3px;transition:background-color 200ms}
+.aviso-linea-acc button:hover{background:color-mix(in srgb,var(--c) 12%,transparent)}
+.aviso-linea-acc button svg{width:14px;height:14px}
+@keyframes av-entra{from{opacity:0;transform:translate3d(0,-4px,0)}}
+@keyframes av-franja{from{border-left-color:transparent}}
+@keyframes trazo{to{stroke-dasharray:100 0}}
+
+/* ---------- Vacio (components/ui/Vacio.tsx), grande ---------- */
+.vacio{display:flex;flex-direction:column;align-items:center;text-align:center;padding:36px 24px 40px}
+.vacio>*{animation:vac-sube 460ms var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*55ms + 60ms)}
+.vacio-ic{position:relative;width:56px;height:56px;border-radius:999px;display:grid;place-items:center;background:color-mix(in srgb,var(--color-hueso) 92%,transparent);color:var(--color-taupe)}
+.vacio-ic svg{width:26px;height:26px;stroke-width:1.5}
+.vacio-tit{margin:16px 0 0;font:400 22px/1.2 var(--serif);color:var(--color-tinta);max-width:36ch;text-wrap:balance}
+.vacio-frase{margin:6px 0 0;font-size:14px;line-height:1.55;color:var(--color-taupe);max-width:52ch;text-wrap:pretty}
+.vacio-frase b{color:var(--color-tinta);font-weight:600}
+.vacio-acciones{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px}
+@keyframes vac-sube{from{opacity:0;transform:translateY(8px)}}
+
+/* ---------- nota-cayla ---------- */
+.nota-cayla{background:color-mix(in oklab,var(--color-hueso) 85%,transparent);border-radius:var(--radius-xl);padding:14px 18px;font-size:13px;line-height:1.6;color:var(--color-taupe)}
+.nota-cayla b,.nota-cayla strong{color:var(--color-tinta);font-weight:600}
+.card-cayla{background:var(--color-papel);border:1px solid var(--color-sand);border-radius:var(--radius-xl)}
+
+/* =====================================================================
+   El riel y la percha — copiado de plan-piso.css (solo lo que esta maqueta dibuja)
+   ===================================================================== */
+.pp-raiz{container-type:inline-size;container-name:pp;display:grid;gap:24px;min-width:0}
+.pp-raiz *,.pp-raiz *::before,.pp-raiz *::after{box-sizing:border-box}
+.pp-raiz button{text-align:left;color:inherit;cursor:pointer}
+.pp-defs{position:absolute;width:0;height:0;overflow:hidden}
+.pp-card{--pp-pad:24px;--pp-banda:14px;--pp-gap:9px;--pp-solape:.4;--pp-poste:color-mix(in srgb,var(--color-tinta) 58%,transparent);
+  background:var(--color-papel);border:1px solid var(--color-sand);border-radius:var(--radius-xl);padding:var(--pp-pad);display:grid;gap:26px;min-width:0}
+@container pp (max-width:760px){.pp-card{--pp-pad:20px;--pp-banda:12px}}
+.pp-etq{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--color-taupe-profundo)}
+.pp-estado{display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px 32px}
+.pp-est-cifra{display:grid;gap:6px}
+.pp-est-n{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pp-est-n b{font-family:var(--serif);font-weight:400;font-size:68px;line-height:.9;letter-spacing:-.02em;font-variant-numeric:lining-nums tabular-nums}
+.pp-est-n span{font-family:var(--serif);font-size:28px;line-height:1;color:var(--color-tinta-60);font-variant-numeric:lining-nums tabular-nums}
+.pp-est-texto{flex:1 1 300px;display:grid;gap:10px;padding-top:2px}
+.pp-est-chips{display:flex;flex-wrap:wrap;gap:6px 8px}
+.pp-est-texto p{font-size:15px;line-height:1.45;color:var(--color-tinta);max-width:520px}
+.pp-est-texto p b{font-weight:600}
+.pp-est-texto p em{font-style:normal;color:var(--color-tinta-60)}
+.pp-riel{display:grid;gap:10px;min-width:0}
+.pp-rcab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px}
+.pp-rtit{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px}
+.pp-rsub{font-size:13px;color:var(--color-tinta-60)}
+.pp-banda{background:color-mix(in srgb,var(--color-hueso) 52%,var(--color-papel));border-radius:var(--radius-lg);padding:14px var(--pp-banda) 16px;min-width:0}
+.pp-rail{display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px var(--pp-gap);
+  --paso:clamp(min(15px,calc((100cqi - 2*var(--pp-pad) - 2*var(--pp-banda) - 8px)/var(--mayor,1))),calc((100cqi - 2*var(--pp-pad) - 2*var(--pp-banda) - (var(--ng) - 1)*var(--pp-gap) - 8px)/var(--total)),34px);
+  --gw:calc(var(--paso)*(1 + var(--pp-solape)));--gh:calc(var(--gw)*1.5)}
+.pp-blq{position:relative;flex:none;width:max(3px,calc(var(--paso)*var(--n)));padding-top:2px;display:flex;align-items:flex-start}
+.pp-blq::before{content:"";position:absolute;left:0;top:0;width:100%;height:3px;border-radius:2px;background:var(--pp-c,var(--pp-poste))}
+.pp-p{flex:none;display:block;width:calc(var(--gw)*var(--f,1));height:var(--gh);margin-right:calc(var(--gw)*var(--f,1)*var(--pp-solape)/(1 + var(--pp-solape))*-1);transform-origin:50% 0;
+  animation:pp-cuelga 300ms var(--ease-cayla) backwards;animation-delay:calc(min(var(--i,0),14)*14ms)}
+.pp-p svg{display:block;width:100%;height:100%;overflow:visible}
+@keyframes pp-cuelga{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
+.pp-libre{flex:1 1 170px;position:relative;min-height:var(--gh);padding-top:10px;display:grid;place-content:center;justify-items:center;text-align:center;gap:1px;min-width:0}
+.pp-libre::before{content:"";position:absolute;left:0;right:0;top:0;border-top:3px dashed color-mix(in srgb,var(--color-tinta) 30%,transparent)}
+.pp-libre b{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1;font-variant-numeric:lining-nums tabular-nums;letter-spacing:-.01em}
+.pp-libre span{font-size:14px;font-weight:500}
+.pp-libre small{font-size:12.5px;color:var(--color-tinta-60);max-width:260px;line-height:1.35;margin-top:3px}
+.pp-et-caja{position:absolute;left:0;right:0;bottom:calc(100% + 7px);height:14px}
+.pp-et{display:block;font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--color-taupe-profundo);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.pp-sil{fill:var(--pp-c);stroke:color-mix(in srgb,var(--color-tinta) 32%,transparent);stroke-width:.7;stroke-linejoin:round}
+.pp-p[data-color-dato] .pp-sil{stroke:color-mix(in srgb,var(--color-tinta) 46%,transparent)}
+.pp-ic[data-color-dato] .pp-sil{stroke:color-mix(in srgb,var(--color-tinta) 55%,transparent);stroke-width:1.2}
+.pp-d{fill:none;stroke:var(--color-papel);stroke-width:1;opacity:.6;stroke-linecap:round;stroke-linejoin:round}
+.pp-hg{fill:none;stroke:var(--color-tinta-60);stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.pp-hd{fill:none;stroke:var(--pp-c);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.pp-ic{display:block;flex:none;overflow:visible}
+.pp-chips{display:flex;flex-wrap:wrap;gap:6px 8px;list-style:none}
+.pp-chip{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:3px 12px 3px 8px;border-radius:999px;border:1px solid var(--color-sand);background:var(--color-papel);font-size:12.5px;line-height:1.2}
+.pp-chip .pp-ic{width:15px;height:19px}
+.pp-chip b{font-weight:700;font-variant-numeric:lining-nums tabular-nums}
+.pp-leyenda{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;list-style:none}
+@container pp (max-width:820px){.pp-leyenda{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pp-leyenda li{display:flex}
+.pp-lg{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:9px 14px 9px 12px;border-radius:var(--radius-lg);border:1px solid var(--color-sand);background:var(--color-papel)}
+.pp-lg .pp-ic{width:30px;height:38px}
+.pp-lg-t{display:grid;gap:2px;min-width:0;flex:1}
+.pp-lg-t b{font-size:13.5px;font-weight:600;line-height:1.25}
+.pp-lg-t small{font-size:12.5px;color:var(--color-tinta-60);line-height:1.3;font-variant-numeric:lining-nums tabular-nums}
+.pp-pie{display:flex;flex-wrap:wrap;align-items:center;gap:6px 20px;font-size:12.5px;line-height:1.4;color:var(--color-tinta-60)}
+.pp-escala{display:inline-flex;align-items:center;gap:8px}
+.pp-cap{min-height:18px}
+.pp-cap b{color:var(--color-tinta);font-weight:600}
+.pp-colores{flex:1 1 100%;max-width:62ch}
+.pp-porque{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:4px 12px 4px 6px;border-radius:999px;border:1px solid var(--color-sand);background:var(--color-papel);font-size:12.5px;font-weight:500;line-height:1.2;transition:background-color 200ms var(--ease-cayla)}
+.pp-porque:hover{background:var(--color-sand)}
+.pp-porque[aria-expanded="true"]{background:var(--color-hueso);border-color:var(--color-taupe)}
+.pp-q{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--color-sand);font-family:var(--serif);font-size:14px;font-weight:600;line-height:1}
+.pp-panel{flex:1 1 100%;background:var(--color-hueso);border-radius:var(--radius-lg);padding:16px 18px;display:grid;gap:10px;font-size:13.5px;line-height:1.5;color:var(--color-tinta-60);animation:pp-entra 260ms var(--ease-cayla) both}
+.pp-panel p{max-width:620px}
+.pp-panel b{color:var(--color-tinta);font-weight:600}
+.pp-pt{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--color-taupe-profundo);margin-top:4px}
+.pp-panel ul{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 22px}
+@container pp (max-width:700px){.pp-panel ul{grid-template-columns:minmax(0,1fr)}}
+.pp-panel li{font-size:13px;line-height:1.4}
+.pp-panel li b{display:block}
+@keyframes pp-entra{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.pp-fuera{display:grid;gap:10px}
+.pp-fuera-cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px}
+.pp-fuera-cab span:last-child{font-size:13px;color:var(--color-tinta-60)}
+.pp-fichas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;list-style:none}
+@container pp (max-width:640px){.pp-fichas{grid-template-columns:minmax(0,1fr)}}
+.pp-ficha{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border:1px solid var(--color-sand);border-radius:var(--radius-lg);background:color-mix(in srgb,var(--color-hueso) 40%,var(--color-papel));--pp-c:var(--grupo-fuera)}
+.pp-ficha .pp-ic{width:28px;height:36px}
+.pp-ficha b{display:block;font-size:13.5px;font-weight:600;line-height:1.25}
+.pp-ficha span{display:block;font-size:12.5px;color:var(--color-tinta-60);line-height:1.35}
+.recorte{position:relative}
+.recorte::after{content:"";position:absolute;left:0;right:0;bottom:0;height:0}
+.corte{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.13em;font-weight:600;text-transform:uppercase;color:var(--color-taupe-profundo);opacity:.75}
+.corte::before,.corte::after{content:"";flex:1;border-top:1px dashed color-mix(in srgb,var(--color-tinta) 28%,transparent)}
+
+/* =====================================================================
+   NUEVO · «Qué colores bajar» (prefijo qc-)
+   ===================================================================== */
+.qc-sec{display:grid;gap:16px;min-width:0}
+.qc-cab{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.qc-sub{font-size:13px;color:var(--color-tinta-60);max-width:68ch;flex:1 1 100%}
+.qc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+@container pp (max-width:780px){.qc-grid{grid-template-columns:minmax(0,1fr)}}
+.qc-card{background:var(--color-papel);border:1px solid var(--color-sand);border-radius:var(--radius-xl);padding:20px;display:grid;gap:14px;align-content:start;min-width:0;
+  animation:qc-entra 300ms var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*55ms)}
+@keyframes qc-entra{from{opacity:0;transform:translateY(6px)}}
+.qc-gh{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.qc-gh .pp-ic{width:26px;height:32px;margin-top:2px}
+.qc-gh-t{display:grid;gap:1px;min-width:0;flex:1}
+.qc-gh-t b{font-size:14px;font-weight:600;line-height:1.3}
+.qc-gh-t small{font-size:12.5px;color:var(--color-tinta-60);font-variant-numeric:lining-nums tabular-nums}
+.qc-gh .chip{margin-left:auto;flex:none}
+.qc-verdict{font-family:var(--serif);font-weight:400;font-size:21px;line-height:1.25;letter-spacing:-.005em;color:var(--color-tinta);text-wrap:balance}
+.qc-filas{display:grid}
+.qc-fila{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:1px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--color-sand)}
+.qc-fila:first-child{border-top:0;padding-top:2px}
+.qc-fila .pp-ic{width:22px;height:27px;grid-row:1 / span 2}
+.qc-n{font-size:14px;font-weight:600;line-height:1.3}
+.qc-fila .chip{grid-column:3;grid-row:1 / span 2;align-self:center}
+.qc-hechos{grid-column:2;font-size:12.5px;color:var(--color-tinta-60);font-variant-numeric:lining-nums tabular-nums;line-height:1.35}
+.qc-hechos b{font-weight:600;color:var(--color-tinta)}
+.qc-resto{display:grid;animation:pp-entra 220ms var(--ease-cayla) both}
+.qc-mas{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--color-tinta);padding:6px 4px;border-radius:8px;width:fit-content;
+  text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--color-tinta) 30%,transparent);text-underline-offset:3px;transition:background-color 200ms}
+.qc-mas:hover{background:color-mix(in srgb,var(--color-sand) 55%,transparent)}
+.qc-mas svg{width:14px;height:14px;transition:rotate 200ms var(--ease-cayla)}
+.qc-mas[aria-expanded="true"] svg{rotate:180deg}
+.qc-linea{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px;line-height:1.4;color:var(--color-tinta-60)}
+.qc-linea>b{font-weight:600;color:var(--color-tinta)}
+.qc-mini{display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 6px;border-radius:999px;border:1px solid var(--color-sand);background:color-mix(in srgb,var(--color-hueso) 35%,var(--color-papel));font-size:12.5px;color:var(--color-tinta);font-weight:500}
+.qc-mini .pp-ic{width:12px;height:15px}
+.qc-senal{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.45;color:var(--color-tinta-60);padding:10px 12px;border-radius:var(--radius-lg);background:color-mix(in srgb,var(--color-pizarra) 8%,var(--color-papel));border:1px solid color-mix(in srgb,var(--color-pizarra) 22%,transparent)}
+.qc-senal svg{flex:none;width:16px;height:16px;margin-top:2px;color:var(--color-pizarra)}
+.qc-senal b{color:var(--color-tinta);font-weight:600}
+.qc-acc{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 12px}
+.qc-acc-der{display:flex;align-items:center;gap:8px}
+.qc-hint{flex:1 1 100%;margin-top:-2px}
+.qc-nota-grid{grid-column:1 / -1}
+.qc-grid:has(.qc-card.abierta) .qc-nota-grid{grid-column:auto;align-self:start}
+.qc-main{display:grid;gap:14px;align-content:start;min-width:0}
+.qc-card.abierta{grid-column:1 / -1}
+@container pp (min-width:781px){.qc-card.abierta{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:28px;align-items:start}}
+/* estado 1: solo hechos */
+.qc-hecho-card{padding:18px 20px;gap:10px}
+.qc-hecho-card .qc-eyebrow{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--color-taupe-profundo)}
+.qc-pocas{font-size:12.5px;color:var(--color-tinta-60);padding-top:2px}
+/* estado 3: AQP */
+.qc-aqp{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@container pp (max-width:780px){.qc-aqp{grid-template-columns:minmax(0,1fr)}}
+.qc-fam{display:grid;gap:10px}
+.qc-fam-fila{display:grid;grid-template-columns:7.5rem minmax(0,1fr) 4.5rem;gap:12px;align-items:center;font-size:13px}
+.qc-fam-pista{height:12px;border-radius:6px;background:var(--color-sand);overflow:hidden}
+.qc-fam-barra{display:block;height:100%;width:calc(var(--w)*1%);border-radius:6px;background:var(--color-pizarra);animation:qc-crece 520ms var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*55ms + 120ms);transform-origin:left}
+@keyframes qc-crece{from{transform:scaleX(0)}}
+.qc-fam-n{text-align:right;font-variant-numeric:lining-nums tabular-nums;color:var(--color-tinta-60)}
+.qc-grandes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.qc-grande{display:grid;justify-items:center;gap:4px;padding:12px 6px 10px;border-radius:var(--radius-lg);border:1px solid var(--color-sand);background:color-mix(in srgb,var(--color-hueso) 30%,var(--color-papel));text-align:center}
+.qc-grande .pp-ic{width:34px;height:42px}
+.qc-grande b{font-size:13.5px;font-weight:600;line-height:1.2}
+.qc-grande small{font-size:12.5px;color:var(--color-tinta-60);font-variant-numeric:lining-nums tabular-nums}
+.qc-lider{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 16px;border-radius:var(--radius-lg);border:1px dashed color-mix(in srgb,var(--color-tinta) 28%,transparent);font-size:13.5px;color:var(--color-tinta-60)}
+.qc-lider svg{width:14px;height:14px}
+.qc-lider b{color:var(--color-tinta);font-weight:600}
+/* variante B: la percha en contorno */
+.qc-b .pp-blq{width:auto;padding-right:2px;margin-top:22px}
+.qc-b .pp-banda{padding-bottom:40px}
+.qc-b .pp-blq .pp-et-caja{display:block}
+.qc-gp{position:relative;cursor:pointer;border-radius:6px;margin-left:2px;margin-right:1px;width:var(--gw);animation:pp-cuelga 300ms var(--ease-cayla) backwards;animation-delay:calc(240ms + var(--i,0)*28ms)}
+.qc-gp .pp-sil{fill:color-mix(in srgb,var(--pp-c) 55%,var(--color-papel));stroke:var(--color-tinta);stroke-opacity:.85;stroke-width:1.9;stroke-dasharray:3.2 2.4;transition:fill 200ms var(--ease-cayla)}
+.qc-gp .pp-d{opacity:.25}
+.qc-gp .qc-ent{position:absolute;top:calc(100% + 3px);left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-taupe-profundo);white-space:nowrap;line-height:1}
+.qc-gp:hover .pp-sil,.qc-gp[aria-pressed="true"] .pp-sil{fill:color-mix(in srgb,var(--pp-c) 85%,var(--color-papel))}
+.qc-gp[aria-pressed="true"] .qc-ent{color:var(--color-tinta)}
+.qc-gp:focus-visible{outline-offset:4px}
+.qc-lg-dots{display:inline-flex;flex:none;padding-left:8px}
+.qc-lg-dots i{width:16px;height:16px;border-radius:50%;margin-left:-6px;border:1.5px solid var(--color-papel);background:var(--c);box-shadow:0 0 0 1px color-mix(in srgb,var(--color-tinta) 40%,transparent)}
+.qc-lg-ent{color:var(--color-tinta);font-weight:500}
+
+/* =====================================================================
+   ESTADO 5 · «Lo mínimo que recomiendo» (prefijo qc5-)
+   Una orden (el Aviso con su botón), una franja quieta con una fila por grupo y una nota. Nada negro salvo el botón principal.
+   ===================================================================== */
+.qc5-sec{display:grid;gap:16px;min-width:0}
+/* el botón principal dentro del Aviso: el negro del sistema, no el enlace con borde de los otros estados */
+.qc5-aviso .aviso-linea-acc{display:grid;justify-items:end;gap:8px}
+.qc5-aviso .aviso-linea-acc .btn.primario{border-color:transparent;text-decoration:none;color:var(--color-crema);padding:9px 18px;font:500 13.5px/1.25 var(--sans)}
+.qc5-aviso .aviso-linea-acc .btn.primario:hover{background:var(--color-rojo-profundo)}
+.qc5-quien{max-width:210px;text-align:right;font-size:12px;line-height:1.4;color:var(--color-tinta-60)}
+@container pp (max-width:760px){
+  .qc5-aviso{grid-template-columns:auto minmax(0,1fr)}
+  .qc5-aviso .aviso-linea-acc{grid-column:2;grid-row:auto;justify-items:start;margin-top:8px}
+  .qc5-quien{text-align:left;max-width:none}
+}
+/* anotación de la maqueta, no parte del diseño */
+.qc5-maq{margin-top:-6px;font-size:12px;line-height:1.5;color:var(--color-tinta-60);border:1px dashed color-mix(in srgb,var(--color-tinta) 28%,transparent);border-radius:var(--radius-md);padding:8px 12px}
+.qc5-maq b{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-taupe-profundo);margin-right:6px}
+/* la franja: UNA tarjeta, seis filas que se despliegan */
+.qc5-franja{overflow:hidden}
+.qc5-fr-cab{display:grid;gap:4px;padding:18px 22px 14px}
+.qc5-fr-sub{font-size:13px;color:var(--color-tinta-60);max-width:68ch}
+.qc5-lista{list-style:none;border-top:1px solid var(--color-sand)}
+.qc5-item+.qc5-item{border-top:1px solid var(--color-sand)}
+.qc5-item h3{font:inherit}
+.qc5-fila{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;width:100%;min-height:64px;padding:12px 22px;transition:background-color 200ms var(--ease-cayla)}
+.qc5-fila:hover{background:color-mix(in srgb,var(--color-sand) 40%,transparent)}
+.qc5-fila:focus-visible{outline-offset:-3px}
+.qc5-fila .pp-ic{width:26px;height:32px}
+.qc5-fila-t{display:grid;gap:2px;min-width:0}
+.qc5-fila-t b{font-size:12.5px;font-weight:600;line-height:1.3;color:var(--color-tinta-60)}
+.qc5-frase{font-size:15px;line-height:1.4;color:var(--color-tinta);text-wrap:pretty}
+.qc5-chev{width:16px;height:16px;color:var(--color-taupe);transition:rotate 200ms var(--ease-cayla)}
+.qc5-fila[aria-expanded="true"] .qc5-chev{rotate:180deg}
+.qc5-panel{display:grid;gap:14px;padding:2px 22px 20px 62px;animation:pp-entra 260ms var(--ease-cayla) both}
+.qc5-t{border-collapse:collapse;width:100%;max-width:600px;font-variant-numeric:lining-nums tabular-nums}
+.qc5-t th{padding:0 0 8px 12px;text-align:right;vertical-align:bottom;width:104px;font-size:11px;font-weight:700;letter-spacing:.13em;line-height:1.3;text-transform:uppercase;color:var(--color-taupe-profundo)}
+.qc5-t th:first-child{text-align:left;padding-left:0;width:auto}
+.qc5-t th small{display:block;font-size:11.5px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--color-tinta-60)}
+.qc5-t td{padding:8px 0 8px 12px;border-top:1px solid var(--color-sand);text-align:right;font-size:14px}
+.qc5-t td:first-child{text-align:left;padding-left:0}
+.qc5-t .tono{display:flex;align-items:center;gap:10px;font-weight:500}
+.qc5-t tr.otros td{color:var(--color-tinta-60)}
+.qc5-t tr.otros .tono{font-weight:400}
+.qc5-t tfoot td{font-weight:600;border-top:1.5px solid color-mix(in srgb,var(--color-tinta) 30%,transparent)}
+/* la muestra de color de una familia: es DATO (hex de retail.colores), con contorno que se invierte para verse en claro y en oscuro */
+.qc5-sw{display:inline-block;flex:none;width:16px;height:16px;border-radius:50%;background:var(--sw);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--color-tinta) 45%,transparent)}
+.qc5-sw.sin{background:none;box-shadow:none;border:1.5px dashed color-mix(in srgb,var(--color-tinta) 40%,transparent)}
+.qc5-pq{display:grid;gap:10px;justify-items:start}
+.qc5-porque{padding:12px 16px;max-width:640px}
+.qc5-porque p{display:grid;gap:0}
+.qc5-nota{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px}
+.qc5-nota .btn.secundario{background:var(--color-papel);border-color:color-mix(in srgb,var(--color-taupe) 40%,transparent)}
+
+/* pie de la maqueta: real o ilustrativo */
+.notas{max-width:1040px;margin:28px auto 0;padding:0 20px;display:grid;gap:14px;font-size:13px;color:var(--color-tinta-60)}
+.notas h2{font-family:var(--serif);font-weight:400;font-size:24px;color:var(--color-tinta)}
+.notas table{border-collapse:collapse;width:100%;font-size:12.5px}
+.notas td,.notas th{border-top:1px solid var(--color-sand);padding:7px 10px 7px 0;vertical-align:top;text-align:left}
+.notas th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-taupe-profundo)}
+.notas b{color:var(--color-tinta);font-weight:600}
+</style>
+</head>
+<body data-vista="libre">
+
+<div class="ctl">
+  <span class="tit">Qué colores bajar · maqueta</span>
+  <span><b>Estado</b><span class="seg" id="seg-estado" role="group" aria-label="Estado">
+    <button data-v="1" aria-pressed="false">1 · TRU hoy · Por cuadrar</button>
+    <span class="seg-explor" role="group" aria-label="Exploración, no recomendado">
+      <span class="seg-et">Exploración · no recomendado</span>
+      <button data-v="2" aria-pressed="false">2 · TRU cuadrado · vista previa</button>
+      <button data-v="3" aria-pressed="false">3 · AQP</button>
+      <button data-v="4" aria-pressed="false">4 · Variante B · perchas en contorno</button>
+    </span>
+    <button data-v="5" class="rec" aria-pressed="true">5 · Lo mínimo que recomiendo</button>
+  </span></span>
+  <span><b>Tema</b><span class="seg" id="seg-tema" role="group" aria-label="Tema">
+    <button data-v="claro" aria-pressed="true">Claro</button>
+    <button data-v="oscuro" aria-pressed="false">Oscuro</button>
+  </span></span>
+  <span><b>Ancho</b><span class="seg" id="seg-vista" role="group" aria-label="Ancho">
+    <button data-v="libre" aria-pressed="true">Ajustado</button>
+    <button data-v="1440" aria-pressed="false">1440</button>
+    <button data-v="1024" aria-pressed="false">1024 con menú</button>
+  </span></span>
+</div>
+<div class="nota-estado" id="nota-estado"></div>
+
+<div class="fuera"><div class="hoja">
+<div class="marco" id="marco">
+  <aside class="lat">
+    <div class="logo">CAYLA<small>RETAIL</small></div>
+    <a>Inicio</a><a>Ventas <i>›</i></a><a>Inventario <i>⌄</i></a>
+    <a class="hijo">Existencias</a><a class="hijo on">Plan del piso</a><a class="hijo">Frescura del piso</a><a class="hijo">Movimientos</a>
+    <a>Catálogo <i>›</i></a><a>Compras <i>›</i></a><a>Finanzas <i>›</i></a><a>Clientes <i>›</i></a><a>Análisis</a>
+    <div class="pie"><b>Felipe Alvarez</b>LÍDER · <span id="lat-sede">TIENDA TRU</span></div>
+  </aside>
+  <div class="cuerpo">
+    <div class="top"><span class="busca">Buscar…</span>
+      <span class="der"><span>Actividad</span><span aria-hidden="true">☾</span><span class="sede" id="top-sede">Tienda TRU ⌄</span></span></div>
+    <div class="pagina">
+      <div class="enc">
+        <div class="linea" id="enc-linea">Tienda TRU · lunes, 12 de octubre</div>
+        <h1>Plan del piso</h1>
+        <p id="enc-p">Cuánto lugar le toca a cada grupo en el riel y qué colores conviene bajar del almacén.</p>
+      </div>
+      <div class="tabs" role="tablist"><span class="on">Propuesta</span><span>Grupos</span><span>Historia</span></div>
+      <div id="contenido" class="pp-raiz"></div>
+    </div>
+  </div>
+</div>
+</div></div>
+
+<section class="notas" id="notas">
+  <h2>Qué es real y qué es ilustrativo</h2>
+  <table>
+    <tr><th>Qué</th><th>Real o ilustrativo</th><th>Fuente</th></tr>
+    <tr><td>Hex de cada color de prenda (Negro, Moka, Celeste…)</td><td><b>Real</b></td><td>retail.colores.hex, consulta de solo lectura del 2026-10-12</td></tr>
+    <tr><td>«vendió · cuelgan · atrás» de Polos, Pantalones, Vestidos, Bodys, Abrigo y Jeans en TRU</td><td><b>Real</b> (según el sistema, piso sin cuadrar)</td><td>Misma cuenta que fn_piso_plan_lectura viva (ventas escaneadas y anotadas pendiente + cerrada_sin_prenda; stock libre por fn_existencias_base), ventas del 29-sep al 12-oct. Los totales por grupo cuadran con la tabla T1 de datos-foto: 144/407/267, 23/49/15, 56/120/79, 35/162/59, 6/113/37, 42/64/50</td></tr>
+    <tr><td>Niveles de Polos (Baja más / Baja si hay lugar / Mantén / Ya tiene de sobra / Prueba)</td><td><b>Calculados</b> en la investigación (tabla B) con el piso «por cuadrar» como proxy; Azul claro sale de la lista de «ya hay de sobra» de datos-foto</td><td>estadistica-metodos.md, tabla B y hallazgo 22</td></tr>
+    <tr><td>Niveles de los otros cinco grupos (Pantalones, Vestidos, Bodys, Abrigo)</td><td><b>Ilustrativos</b> («vista previa»): se asignaron a mano mirando las listas de hechos; no salen de la fórmula</td><td>propuesta.md §3 y §5</td></tr>
+    <tr><td>Jeans «Aún aprendiendo»</td><td><b>Ilustrativo</b>: se calculó con la regla de callar (menos de 20 ventas efectivas, anotadas a media cuenta); el umbral es criterio a confirmar por Felipe</td><td>estadistica-metodos.md, hallazgo 11</td></tr>
+    <tr><td>Veredictos en palabras de tienda y panel «¿Por qué?»</td><td><b>Ilustrativos</b> (texto propuesto)</td><td>estadistica-metodos.md, hallazgo 22</td></tr>
+    <tr><td>AQP: 81 colgadas, 29 en almacén, qué se vende por familia y color, «En TRU hay 102 de Negro»</td><td><b>Real</b></td><td>datos-foto T1, T3, T4; familias de color por consulta del 2026-10-12</td></tr>
+    <tr><td>Las perchas de «Hoy» y su color (casi todas «Otros colores»)</td><td><b>Real</b> (aplicando la regla de coloresDeLasPerchas a lo que cuelga en TRU)</td><td>apps/web/lib/plan-piso-colores.ts</td></tr>
+    <tr><td>Variante B: cuántas perchas en contorno</td><td><b>Ilustrativo</b>: una por color sugerido, sin cantidad de prendas</td><td>propuesta.md §7 b)</td></tr>
+    <tr><td>Que la cuenta ve Existencias y es líder (botones «Cuadrar el piso», «Bajar estos», línea de otras tiendas)</td><td><b>Supuesto</b> de la maqueta</td><td>propuesta.md §2 y §4</td></tr>
+    <tr><td><b>Estado 5.</b> Los números por tono (vendió, cuelgan, atrás) y el total de cada grupo, en TRU</td><td><b>Real</b> (según el sistema, piso sin cuadrar; aproximado, sin descontar cambios y devoluciones)</td><td>Consulta de solo lectura a producción de TRU del 2026-10-12. Vendió = escaneadas + anotadas de los últimos 12 días; cuelgan = lo libre en el piso del sistema; atrás = lo libre en el almacén del sistema. Los totales por grupo son 268·143·407, 79·56·120, 59·35·162, 50·42·64, 37·6·113 y 15·23·49. Suman 305 cuelgan, no 306: la tarjeta del riel de arriba conserva el 306 de los otros estados</td></tr>
+    <tr><td><b>Estado 5.</b> La fila «Otros tonos» de cada tabla</td><td><b>Derivada</b>: total del grupo menos los tonos mostrados</td><td>Resta hecha en la maqueta para que cada tabla cuadre; no sale de la consulta tal cual. No se dibuja en Jeans (resta cero)</td></tr>
+    <tr><td><b>Estado 5.</b> La muestra de color de cada familia (Neutros = Negro y Blanco partidos; Azules = Azul denim; Tierras = Moka; Rojos = Rojo)</td><td><b>Real</b> el hex, <b>ilustrativa</b> la elección de cuál representa a la familia</td><td>retail.colores.hex. Es dato de prenda (data-color-dato), con contorno que se invierte en oscuro</td></tr>
+    <tr><td><b>Estado 5.</b> La frase de cada grupo, el aviso, el panel «¿Por qué?» y la nota final</td><td><b>Ilustrativos</b> (texto propuesto)</td><td>Pedido de Felipe y ronda de verificación del 2026-10-12. Las frases salen de comparar vendió contra cuelgan por familia; no dicen cantidades ni dan una orden</td></tr>
+    <tr><td><b>Estado 5.</b> «Escanear lo guardado» y la nota de quién confirma el cuadre</td><td><b>Supuesto</b> de la maqueta: el botón no lleva a nada</td><td>Solo un líder confirma el cuadre; una cuenta que no ve Existencias vería «Pídele a una líder que cuadre el piso»</td></tr>
+  </table>
+</section>
+
+<!-- Los símbolos de las siluetas, UNA vez (SiluetasDelPlan.tsx) -->
+<svg class="pp-defs" aria-hidden="true" focusable="false"><defs>
+  <symbol id="pp-h" viewBox="0 0 40 60"><g class="pp-hg"><path d="M20 12 V8 C20 5 21.6 3.2 23.7 3.2 C25.7 3.2 27.2 4.6 27.2 6.4"/><path d="M20 12 L4.5 24.5 H35.5 Z"/></g></symbol>
+  <symbol id="pp-s-polos_tops_blusas" viewBox="0 0 40 60"><path d="M14.5 17.5 L4.5 22.5 L8 30 L13 27.5 L13 53.5 Q20 55.5 27 53.5 L27 27.5 L32 30 L35.5 22.5 L25.5 17.5 C24 21.2 16 21.2 14.5 17.5 Z"/></symbol>
+  <symbol id="pp-s-jeans" viewBox="0 0 40 60"><path d="M12 17.5 H28 L30.8 55.5 H21.3 L20 31 L18.7 55.5 H9.2 Z"/><path class="pp-d" d="M12.2 22 H27.8 M20 22 V31"/></symbol>
+  <symbol id="pp-s-pantalones_faldas_shorts" viewBox="0 0 40 60"><path d="M13 17.5 H27 L27.8 23 L36 53 Q20 57.5 4 53 L12.2 23 Z"/><path class="pp-d" d="M12.4 23 H27.6"/></symbol>
+  <symbol id="pp-s-vestidos_conjuntos" viewBox="0 0 40 60"><path d="M14.5 16.5 L17 16.5 L18.2 22.5 C19.2 24.3 20.8 24.3 21.8 22.5 L23 16.5 L25.5 16.5 L26.8 27 L24.4 32 L36 55 Q20 59 4 55 L15.6 32 L13.2 27 Z"/><path class="pp-d" d="M15.8 32 H24.2"/></symbol>
+  <symbol id="pp-s-bodys_corsets_lenceria" viewBox="0 0 40 60"><path d="M13.5 16.5 L16.8 16.5 L18 22 C19 24.2 21 24.2 22 22 L23.2 16.5 L26.5 16.5 L27.8 27 C27.8 31.5 25.6 33.5 25.6 37.5 C29 39.5 31 43.5 31 47.5 C27.8 46.8 24.6 47.8 23.2 52 H16.8 C15.4 47.8 12.2 46.8 9 47.5 C9 43.5 11 39.5 14.4 37.5 C14.4 33.5 12.2 31.5 12.2 27 Z"/><path class="pp-d" d="M13.8 28 H26.2"/></symbol>
+  <symbol id="pp-s-abrigo_y_capas" viewBox="0 0 40 60"><path d="M14 17 L7.2 20.4 L4 49 H10 L11.4 31.5 V56 H28.6 V31.5 L30 49 H36 L32.8 20.4 L26 17 L20 26.5 Z"/><path class="pp-d" d="M20 26.5 V56 M14.6 18.5 L17.8 32 M25.4 18.5 L22.2 32"/></symbol>
+  <symbol id="pp-s-accesorios_de_impulso" viewBox="0 0 40 60"><path d="M5 27 H17.5 V34.5 C17.5 39 14.5 41.5 11.2 41.5 C7.8 41.5 5 39 5 34.5 Z"/><path d="M22.5 27 H35 V34.5 C35 39 32.2 41.5 28.8 41.5 C25.5 41.5 22.5 39 22.5 34.5 Z"/><path class="pp-hd" d="M17.5 29.5 Q20 27.4 22.5 29.5 M5 28 L2.5 25.5 M35 28 L37.5 25.5"/></symbol>
+  <symbol id="pp-s-bolsos_y_calzado" viewBox="0 0 40 60"><path d="M7 30 H33 L35.5 52 Q35.5 54.5 33 54.5 H7 Q4.5 54.5 4.5 52 Z"/><path class="pp-hd" d="M13.5 30 V25 C13.5 19.5 26.5 19.5 26.5 25 V30"/><path class="pp-d" d="M5.5 38 H34.5"/></symbol>
+</defs></svg>
+
+<script>
+"use strict";
+/* ============================ DATOS ============================ */
+// Hex REALES de retail.colores (consulta de solo lectura, 2026-10-12). Son DATO de la prenda, no color de interfaz.
+const HEX = {
+  'Negro':'#2D2C2F','Blanco':'#ffffff','Beige':'#D5BA98','Celeste':'#A9CADA','Chocolate':'#4B342F','Moka':'#A47864','Azul medio':'#4A638D',
+  'Azul claro':'#80A0D4','Azul denim':'#5979A2','Marrón':'#694833','Vino':'#6C2831','Gris perla':'#C5C5C5','Gris':'#848587','Gris antracita':'#48464A',
+  'Turquesa':'#33BECC','Crudo':'#F3ECE0','Rojo':'#BD332D','Vainilla':'#F2E6B1','Topo':'#82776B','Camel':'#B0885B','Rosado':'#F0A1BF'
+};
+const GRUPOS = [
+  { clave:'polos_tops_blusas', nombre:'Polos, tops y blusas', corto:'Polos' },
+  { clave:'jeans', nombre:'Jeans', corto:'Jeans' },
+  { clave:'pantalones_faldas_shorts', nombre:'Pantalones, faldas y shorts', corto:'Pantalones' },
+  { clave:'vestidos_conjuntos', nombre:'Vestidos, conjuntos y enterizos', corto:'Vestidos' },
+  { clave:'bodys_corsets_lenceria', nombre:'Bodys, corsets y lencería', corto:'Bodys' },
+  { clave:'abrigo_y_capas', nombre:'Abrigo y capas', corto:'Abrigo' }
+];
+// TRU (producción 2026-10-12, «según el sistema»). Cada fila: v = vendió en 12 días (escaneadas + anotadas), k = cuelgan, a = atrás.
+// n = nivel: mas | si | manten | sobra | prueba. Polos: niveles de la TABLA B (estadistica-metodos.md). Los demás grupos: niveles de VISTA PREVIA.
+const TRU = [
+  { colg:144, atras:407, real:true,
+    verdict:'Baja primero Negro. Moka, si hay lugar.',
+    filas:[ {c:'Negro',v:33,k:12,a:48,n:'mas'}, {c:'Moka',v:12,k:3,a:27,n:'si'}, {c:'Azul medio',v:0,k:0,a:13,n:'prueba'},
+            {c:'Blanco',v:47,k:18,a:47,n:'manten'}, {c:'Beige',v:27,k:13,a:39,n:'manten'} ],
+    sobra:[ {c:'Celeste',v:25,k:15,a:30}, {c:'Azul claro',v:1,k:4,a:19} ],
+    hechos:[ {c:'Blanco',v:47,k:18,a:47}, {c:'Negro',v:33,k:12,a:48}, {c:'Beige',v:27,k:13,a:39} ] },
+  { colg:23, atras:49, real:false, aprendiendo:true,
+    verdict:'Aún aprendiendo: faltan ventas para decir.',
+    filas:[ {c:'Celeste',v:8,k:3,a:17}, {c:'Azul denim',v:4,k:6,a:9} ],
+    hechos:[ {c:'Celeste',v:8,k:3,a:17}, {c:'Azul denim',v:4,k:6,a:9} ] },
+  { colg:56, atras:120, real:false,
+    verdict:'Baja primero Celeste. Negro, si hay lugar.',
+    filas:[ {c:'Celeste',v:12,k:2,a:5,n:'mas'}, {c:'Negro',v:11,k:7,a:9,n:'si'}, {c:'Turquesa',v:0,k:0,a:5,n:'prueba'},
+            {c:'Beige',v:8,k:7,a:13,n:'manten'}, {c:'Chocolate',v:6,k:6,a:9,n:'manten'} ],
+    sobra:[ {c:'Gris antracita',v:1,k:4,a:5}, {c:'Vino',v:0,k:4,a:6} ],
+    senal:{c:'Azul denim',v:7,k:1,a:0},
+    hechos:[ {c:'Celeste',v:12,k:2,a:5}, {c:'Negro',v:11,k:7,a:9}, {c:'Beige',v:8,k:7,a:13} ] },
+  { colg:35, atras:162, real:false,
+    verdict:'Baja primero Marrón. Blanco y Gris perla, si hay lugar.',
+    filas:[ {c:'Marrón',v:10,k:3,a:9,n:'mas'}, {c:'Blanco',v:6,k:3,a:19,n:'si'}, {c:'Gris perla',v:6,k:2,a:4,n:'si'},
+            {c:'Gris',v:3,k:0,a:3,n:'prueba'}, {c:'Beige',v:7,k:6,a:20,n:'manten'}, {c:'Negro',v:6,k:4,a:9,n:'manten'} ],
+    sobra:[ {c:'Crudo',v:2,k:3,a:26}, {c:'Rojo',v:3,k:3,a:13} ],
+    hechos:[ {c:'Marrón',v:10,k:3,a:9}, {c:'Beige',v:7,k:6,a:20}, {c:'Blanco',v:6,k:3,a:19} ] },
+  { colg:6, atras:113, real:false,
+    verdict:'Baja primero Chocolate. Negro, si hay lugar.',
+    filas:[ {c:'Chocolate',v:5,k:1,a:15,n:'mas'}, {c:'Negro',v:5,k:1,a:5,n:'si'}, {c:'Blanco',v:4,k:0,a:15,n:'prueba'},
+            {c:'Topo',v:3,k:0,a:12,n:'prueba'}, {c:'Beige',v:1,k:0,a:9,n:'prueba'} ],
+    sobra:[ {c:'Vino',v:1,k:1,a:14} ],
+    hechos:[ {c:'Chocolate',v:5,k:1,a:15}, {c:'Negro',v:5,k:1,a:5}, {c:'Blanco',v:4,k:0,a:15} ] },
+  { colg:42, atras:64, real:false,
+    verdict:'Baja primero Blanco y Chocolate. Negro, si hay lugar.',
+    filas:[ {c:'Blanco',v:7,k:2,a:6,n:'mas'}, {c:'Chocolate',v:7,k:2,a:2,n:'mas'}, {c:'Negro',v:6,k:2,a:5,n:'si'},
+            {c:'Azul claro',v:2,k:0,a:8,n:'prueba'}, {c:'Camel',v:3,k:2,a:5,n:'manten'}, {c:'Vino',v:3,k:1,a:5,n:'manten'} ],
+    sobra:[ {c:'Celeste',v:3,k:6,a:5}, {c:'Gris antracita',v:0,k:6,a:1} ],
+    hechos:[ {c:'Blanco',v:7,k:2,a:6}, {c:'Chocolate',v:7,k:2,a:2}, {c:'Negro',v:6,k:2,a:5} ] }
+];
+// Lo que cuelga hoy en TRU, ya repartido en perchas de 20 prendas por la regla de plan-piso-colores.ts (casi todo cae en «Otros colores»).
+const HOY_TRU = [
+  { n:7.2,  col:[HEX.Blanco,HEX.Celeste,HEX.Beige,HEX.Negro,HEX.Chocolate,'otros','otros','otros'] },
+  { n:1.15, col:[HEX['Azul denim'],'otros'] },
+  { n:2.8,  col:[HEX.Beige,'otros','otros'] },
+  { n:1.75, col:[HEX.Beige,'otros'] },
+  { n:0.3,  col:['otros'] },
+  { n:2.1,  col:[HEX.Beige,'otros','otros'] }
+];
+// AQP: perchas de 50 prendas; sin mezcla de colores conocida el riel usa el color del grupo.
+const HOY_AQP = [ {n:1.0,col:[]}, {n:0,col:[]}, {n:0.16,col:[]}, {n:0.4,col:[]}, {n:0,col:[]}, {n:0.06,col:[]} ];
+// Variante B: los colores que «entran» (los de nivel Baja más y Baja si hay lugar, por grupo).
+const ENTRAN = [ ['Negro','Moka'], [], ['Celeste','Negro'], ['Marrón','Blanco','Gris perla'], ['Chocolate','Negro'], ['Blanco','Chocolate','Negro'] ];
+
+const NIVEL = {
+  mas:    { txt:'Baja más',          chip:'tinta' },
+  si:     { txt:'Baja si hay lugar', chip:'ambar' },
+  manten: { txt:'Mantén',            chip:'' },
+  sobra:  { txt:'Ya tiene de sobra', chip:'apagado' },
+  prueba: { txt:'Prueba',            chip:'pizarra' }
+};
+const ESTADOS = {
+  1:'<b>Lo que Felipe verá hoy en producción.</b> El piso de TRU no está cuadrado (cuadres_piso: 0 filas), así que la sección no sugiere nada: avisa que primero hay que cuadrar y muestra solo <b>hechos «según el sistema»</b> (lo que más se vende, con lo que cuelga y lo que hay atrás), sin ningún imperativo.',
+  2:'<b>TRU cuando cuadre su piso, con las cifras de hoy (vista previa).</b> Polos usa los niveles calculados de la investigación (tabla B); los otros cinco grupos llevan niveles de <b>vista previa</b> armados a mano con las listas de hechos. Prueba: «y 2 más», «¿Por qué?» (abierto en Polos) y «Bajar estos». Los números son hechos, nunca cantidades a bajar.',
+  3:'<b>AQP.</b> Sin cuadre y con el almacén casi vacío (29 prendas): dice que aún no hay con qué decidir, muestra qué se vende (familia de color y colores grandes) y, solo a líderes, una línea de contexto sobre TRU, sin cantidades sugeridas.',
+  4:'<b>Variante B: los colores sugeridos como perchas en contorno dentro de «Cómo quedaría».</b> Para compararla con la sección aparte (estado 2). Exige cambiar lo escrito del ADR-0352 (c): hoy dice que «Cómo quedaría» repite la mezcla de hoy y no elige colores. Toca una percha en contorno para ver por qué entra.',
+  5:'<b>Lo mínimo que recomiendo (TRU, hoy, piso sin cuadrar).</b> Una sola orden con un solo botón principal: contar lo que está guardado. Debajo, quieta, una frase por grupo que dice qué familia de color se vende más de lo que cuelga (tócala para ver los números por tono). Sin cantidades, sin niveles, sin otras tiendas y sin un botón que mande a mover prendas. Los estados 2 a 4 quedan como exploración: chocan con decisiones de Felipe (no repetir «Colgar primero», no sugerir cantidades, el piso aún no está cuadrado en ninguna sede).'
+};
+
+/* ============================ HELPERS ============================ */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = n => n >= 1000 ? String(Math.floor(n/1000)) + ',' + String(n%1000).padStart(3,'0') : String(n);
+const I = {
+  alerta:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+  flecha:'<svg class="flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
+  abajo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+  camisa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>',
+  candado:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+};
+// La prenda del grupo sobre el color de la prenda (o del grupo): ADR-0333, el ícono de su categoría sobre su color.
+function sil(clave, hex, cls = '', grupoIdx = null) {
+  const c = hex ? hex : `var(--grupo-${grupoIdx})`;
+  return `<svg class="pp-ic ${cls}" viewBox="2 15 36 43" style="--pp-c:${c}" aria-hidden="true" focusable="false" ${hex ? 'data-color-dato' : ''}><use href="#pp-s-${clave}" class="pp-sil"/></svg>`;
+}
+const hechos = f => `vendió <b>${f.v}</b> · cuelgan <b>${f.k}</b> · atrás <b>${f.a}</b>`;
+const cc = hex => hex ? `--pp-c:${hex}` : '';
+
+/* ============================ RIEL ============================ */
+function percha(clave, f, i, color) {
+  const c = color === null || color === undefined ? '' : `--pp-c:${color === 'otros' ? 'var(--pp-otros)' : color};`;
+  const dato = color && color !== 'otros' ? 'data-color-dato' : '';
+  return `<span class="pp-p" style="--f:${f.toFixed(3)};--i:${i};${c}" ${dato}><svg viewBox="0 0 40 60" preserveAspectRatio="none" aria-hidden="true" focusable="false"><use href="#pp-h"/><use href="#pp-s-${clave}" class="pp-sil"/></svg></span>`;
+}
+function tramo(gi, def, opts = {}) {
+  const g = GRUPOS[gi];
+  const nShow = def.n > 0 ? Math.max(def.n, 0.6) : 0;
+  const ghosts = opts.ghosts || [];
+  if (nShow === 0 && ghosts.length === 0) return '';
+  const full = Math.floor(nShow + 1e-9), resto = nShow - full;
+  const ps = []; let i = 0;
+  for (let k = 0; k < full; k++) ps.push(percha(g.clave, 1, i++, def.col[k] ?? null));
+  if (resto > 0.001) ps.push(percha(g.clave, resto, i++, def.col[full] ?? null));
+  ghosts.forEach((nom, k) => {
+    ps.push(`<button type="button" class="pp-p qc-gp" data-g="${gi}" data-c="${esc(nom)}" aria-pressed="false" aria-label="${esc(nom)} entra en ${esc(g.nombre)}" style="--f:1;--i:${k};${cc(HEX[nom])}" data-color-dato><svg viewBox="0 0 40 60" preserveAspectRatio="none" aria-hidden="true" focusable="false"><use href="#pp-h"/><use href="#pp-s-${g.clave}" class="pp-sil"/></svg><span class="qc-ent">entra</span></button>`);
+  });
+  const rotulo = opts.rotulo ? `<span class="pp-et-caja"><span class="pp-et">${esc(g.corto)}</span></span>` : '';
+  return `<div class="pp-blq${opts.rotulo ? ' qc-conghost' : ''}" data-g="${g.clave}" style="--n:${(nShow + ghosts.length).toFixed(3)};--pp-c:var(--grupo-${gi})">${rotulo}${ps.join('')}</div>`;
+}
+
+/* ============================ ENCABEZADO DE LA TARJETA DEL RIEL ============================ */
+function estadoCard({ colgadas, capacidad, sede, cuadrado, vistaPrevia, riel }) {
+  const libres = capacidad - colgadas;
+  const chips = [];
+  if (!cuadrado) chips.push('<span class="chip ambar">Por cuadrar</span>');
+  if (vistaPrevia) chips.push('<span class="chip pizarra">Vista previa: piso cuadrado</span>');
+  const etq = cuadrado ? 'Lo que cuelga en el riel' : 'Según el sistema';
+  const frase = cuadrado
+    ? `Cuelgan <b>${fmt(colgadas)}</b> de ${fmt(capacidad)} lugares; quedan <b>${fmt(libres)}</b> libres.`
+    : `El sistema dice que el riel está a medias: quedan <b>${fmt(libres)}</b> lugares libres. <em>Cuando cuadres el piso, estas cifras serán las de verdad.</em>`;
+  return `<section class="pp-card" aria-label="El riel de la tienda">
+    <header class="pp-estado">
+      <div class="pp-est-cifra"><span class="pp-etq">${etq}</span><div class="pp-est-n"><b>${fmt(colgadas)}</b><span>de ${fmt(capacidad)} prendas</span></div></div>
+      <div class="pp-est-texto"><div class="pp-est-chips">${chips.join('')}</div><p>${frase}</p></div>
+    </header>${riel}</section>`;
+}
+function rielHoy({ hoy, total, sub, libreCifra, libreNota, mayor }) {
+  const tramos = GRUPOS.map((_, gi) => tramo(gi, hoy[gi])).join('');
+  return `<div class="pp-riel" data-riel="hoy">
+    <div class="pp-rcab"><div class="pp-rtit"><h3 class="pp-etq">Hoy</h3><span class="pp-rsub">${sub}</span></div></div>
+    <div class="pp-banda"><div class="pp-rail" role="img" aria-label="Lo que cuelga hoy en el riel" style="--total:${total};--ng:7;--mayor:${mayor}">
+      ${tramos}
+      <div class="pp-libre"><b>${libreCifra}</b><span>lugares libres</span><small>${libreNota}</small></div>
+    </div></div></div>`;
+}
+function fueraDelRiel(a, b, sub = 'No entran en el reparto. Lo que cuelga, según el sistema.') {
+  const ficha = (clave, nombre, txt) => `<li class="pp-ficha"><svg class="pp-ic" viewBox="2 15 36 43" aria-hidden="true"><use href="#pp-s-${clave}" class="pp-sil"/></svg><div><b>${nombre}</b><span>${txt}</span></div></li>`;
+  return `<section class="pp-fuera" aria-label="Fuera del riel"><div class="pp-fuera-cab"><h2 class="pp-etq">Fuera del riel</h2><span>${sub}</span></div>
+    <ul class="pp-fichas">${ficha('accesorios_de_impulso','Accesorios de impulso y caja',a)}${ficha('bolsos_y_calzado','Bolsos y calzado',b)}</ul></section>`;
+}
+
+/* ============================ TARJETAS DE «QUÉ COLORES BAJAR» ============================ */
+function filaColor(f, conNivel) {
+  const nv = conNivel && f.n ? NIVEL[f.n] : null;
+  return `<div class="qc-fila">${sil(f.clave, HEX[f.c])}
+    <span class="qc-n">${esc(f.c)}</span>
+    ${nv ? `<span class="chip ${nv.chip}">${nv.txt}</span>` : ''}
+    <span class="qc-hechos">${hechos(f)}</span></div>`;
+}
+function textoPorQue(f) {
+  const t = {
+    mas:`<b>${esc(f.c)}</b> se vendieron ${f.v} y solo cuelgan ${f.k}; atrás tienes ${f.a}.`,
+    si:`<b>${esc(f.c)}</b> vende bien con pocas colgadas, pero son pocas ventas todavía.`,
+    manten:`<b>${esc(f.c)}</b> lo que cuelga se parece a lo que se vende.`,
+    prueba:`<b>${esc(f.c)}</b> casi no se ha colgado; cuelga un modelo en S, M y L dos semanas para saber.`,
+    sobra:`<b>${esc(f.c)}</b> cuelga más de lo que se vende; no cuelgues más. Nada se retira a la fuerza.`
+  };
+  return t[f.n];
+}
+function panelPorQue(gi, d) {
+  const todas = [...d.filas, ...(d.sobra || []).map(s => ({ ...s, n:'sobra' }))];
+  const orden = ['mas','si','prueba','manten','sobra'];
+  todas.sort((a, b) => orden.indexOf(a.n) - orden.indexOf(b.n));
+  const li = todas.map(f => `<li>${textoPorQue(f)}</li>`).join('');
+  const preview = d.real ? '' : '<p><b>Vista previa.</b> Los niveles de este grupo son de ejemplo: todavía no salen del cálculo. Los números (vendió, cuelgan, atrás) sí son los de hoy.</p>';
+  return `<div class="pp-panel" id="panel-${gi}" hidden>
+    <p>Miramos tres cosas de cada color: <b>cuánto se vendió</b> en los últimos 12 días, <b>cuánto cuelga</b> hoy y <b>cuánto tienes atrás</b> en el almacén. Lo anotado en caja sin registrar cuenta a medias, porque el color lo teclea quien cobra.</p>
+    <p>Si de un color se vendió muy poco, no te decimos que lo bajes por eso: solo te sugerimos probarlo. La lista no cambia de un día a otro; se revisa cada mes.</p>
+    ${preview}
+    <h4 class="pp-pt">Qué significa cada palabra</h4>
+    <ul><li><b>Baja más</b>Se vende más de lo que cuelga y hay atrás.</li><li><b>Baja si hay lugar</b>Vende bien con pocas colgadas, pero son pocas ventas.</li><li><b>Mantén</b>Lo que cuelga se parece a lo que se vende.</li><li><b>Ya tiene de sobra</b>No cuelgues más; nada se retira a la fuerza.</li><li><b>Prueba</b>Casi no se ha colgado: cuelga un modelo y mira dos semanas.</li></ul>
+    <h4 class="pp-pt">Cómo salió cada color</h4>
+    <ul>${li}</ul></div>`;
+}
+function tarjetaLista(gi, i, abierto) {
+  const g = GRUPOS[gi], d = TRU[gi];
+  const col = f => ({ ...f, clave: g.clave });
+  const visibles = d.filas.slice(0, 3), resto = d.filas.slice(3);
+  const prev = d.real ? '' : '<span class="chip pizarra">Vista previa</span>';
+  const cab = `<div class="qc-gh">${sil(g.clave, null, '', gi)}<div class="qc-gh-t"><b>${esc(g.nombre)}</b><small>Cuelgan ${d.colg} · atrás ${d.atras}</small></div>${d.aprendiendo ? '<span class="chip pizarra">Aún aprendiendo</span>' : prev}</div>`;
+  const filas = visibles.map(f => filaColor(col(f), !d.aprendiendo)).join('');
+  const masBtn = resto.length ? `<button type="button" class="qc-mas" data-mas="${gi}" aria-expanded="false" aria-controls="resto-${gi}">y ${resto.length} más ${I.abajo}</button><div class="qc-resto qc-filas" id="resto-${gi}" hidden>${resto.map(f => filaColor(col(f), true)).join('')}</div>` : '';
+  const sobra = d.sobra && d.sobra.length
+    ? `<div class="qc-linea"><b>Ya tiene de sobra:</b>${d.sobra.map(s => `<span class="qc-mini">${sil(g.clave, HEX[s.c])}${esc(s.c)}</span>`).join('')}<span>no cuelgues más</span></div>` : '';
+  const senal = d.senal
+    ? `<div class="qc-senal">${I.info}<span><b>${esc(d.senal.c)}</b> se vende y no hay atrás (${hechos(d.senal)}): pídelo al Taller o a otra tienda.</span></div>` : '';
+  const aprende = d.aprendiendo ? '<div class="qc-pocas">Hay muy pocas ventas de jeans para decir qué color. Se muestra lo que hay y se vuelve a mirar cuando se vendan más.</div>' : '';
+  const accion = d.aprendiendo ? '' : `<span class="qc-acc-der"><button type="button" class="btn primario" data-bajar="${gi}">Bajar estos ${I.flecha}</button></span>`;
+  return `<article class="qc-card${abierto ? ' abierta' : ''}" style="--i:${i}" aria-label="${esc(g.nombre)}">
+    <div class="qc-main">
+    ${cab}
+    <p class="qc-verdict">${esc(d.verdict)}</p>
+    <div class="qc-filas">${filas}</div>${masBtn}${aprende}${senal}${sobra}
+    <div class="qc-acc">
+      <button type="button" class="pp-porque" data-por="${gi}" aria-expanded="${abierto ? 'true' : 'false'}" aria-controls="panel-${gi}"><span class="pp-q" aria-hidden="true">?</span><span>¿Por qué?</span></button>
+      ${accion}
+    </div>
+    <div class="nota-cayla qc-hint" id="hint-${gi}" hidden>Aquí se abriría <b>Existencias ▸ Bajar</b>, con estos colores y las prendas por escanear en cero. La maqueta no abre nada.</div>
+    </div>
+    ${panelPorQue(gi, d).replace('hidden', abierto ? '' : 'hidden')}
+  </article>`;
+}
+function tarjetaHechos(gi, i) {
+  const g = GRUPOS[gi], d = TRU[gi];
+  const filas = d.hechos.map(f => filaColor({ ...f, clave: g.clave }, false)).join('');
+  const pocas = d.aprendiendo ? '<div class="qc-pocas">Pocas ventas todavía.</div>' : '';
+  return `<article class="qc-card qc-hecho-card" style="--i:${i}" aria-label="${esc(g.nombre)}">
+    <div class="qc-gh">${sil(g.clave, null, '', gi)}<div class="qc-gh-t"><b>${esc(g.nombre)}</b><small>Cuelgan ${d.colg} · atrás ${d.atras}</small></div><span class="chip">Según el sistema</span></div>
+    <div class="qc-eyebrow">Lo que más se vende</div>
+    <div class="qc-filas">${filas}</div>${pocas}
+  </article>`;
+}
+
+/* ============================ ESTADOS ============================ */
+function estado1() {
+  const riel = rielHoy({ hoy:HOY_TRU, total:30, mayor:8, sub:'Según el sistema · 306 de 600 prendas', libreCifra:'294', libreNota:'Según el sistema: puede haber menos.' });
+  return `
+  ${estadoCard({ colgadas:306, capacidad:600, cuadrado:false, riel:riel })}
+  <section class="qc-sec" aria-label="Qué colores bajar">
+    <div class="qc-cab"><h2 class="pp-etq">Qué colores bajar</h2><span class="chip ambar">En pausa</span>
+      <p class="qc-sub">Para cada grupo del riel: qué colores conviene bajar del almacén al piso, según lo que se vende, lo que cuelga y lo que hay atrás.</p></div>
+    <div class="aviso-linea" data-tono="atencion" role="status">
+      <span class="aviso-linea-ic">${I.alerta}</span>
+      <p class="aviso-linea-tit">Primero cuadra el piso</p>
+      <div class="aviso-linea-det">Sin eso no sabemos qué colores ya cuelgan, así que todavía no te decimos cuáles bajar. Lo de abajo es lo que dice el sistema, no una orden.</div>
+      <span class="aviso-linea-acc"><button type="button">Cuadrar el piso ${I.flecha}</button></span>
+    </div>
+    <div class="qc-grid" style="align-items:stretch">${[0,1,2,3,4,5].map((gi, i) => tarjetaHechos(gi, i)).join('')}</div>
+    <p class="nota-cayla"><strong>Según el sistema.</strong> «Cuelgan» es lo que está anotado como colgado; hasta cuadrar el piso puede ser menos que lo real. «Vendió» cuenta los últimos 12 días, con las ventas escaneadas y las anotadas en caja. Solo habla del riel de ropa.</p>
+  </section>
+  <div class="corte">sigue: Fuera del riel</div>
+  ${fueraDelRiel('11 cuelgan','14 cuelgan')}`;
+}
+function estado2() {
+  const riel = rielHoy({ hoy:HOY_TRU, total:30, mayor:8, sub:'Vista previa con las cifras de hoy · 306 de 600 prendas', libreCifra:'294', libreNota:'Lugares sin prenda en el riel.' });
+  return `
+  ${estadoCard({ colgadas:306, capacidad:600, cuadrado:true, vistaPrevia:true, riel:riel })}
+  <section class="qc-sec" aria-label="Qué colores bajar">
+    <div class="qc-cab"><h2 class="pp-etq">Qué colores bajar</h2><span class="chip pizarra">Vista previa con las cifras de hoy</span>
+      <p class="qc-sub">Para cada grupo del riel: qué colores conviene bajar del almacén al piso, según lo que se vende, lo que cuelga y lo que hay atrás. Te decimos qué colores, no cuántas prendas.</p></div>
+    <div class="qc-grid">${[0,1,2,3,4,5].map((gi, i) => tarjetaLista(gi, i, gi === 0)).join('')}
+      <p class="nota-cayla qc-nota-grid"><strong>Solo habla del riel de ropa.</strong> Los números son lo que hay y lo que se vendió, no una orden: tú decides cuántas prendas bajar. «Ya tiene de sobra» quiere decir que no cuelgues más; no se retira nada.</p></div>
+  </section>
+  <div class="corte">sigue: Fuera del riel</div>
+  ${fueraDelRiel('11 cuelgan','14 cuelgan')}`;
+}
+function estado3() {
+  const riel = rielHoy({ hoy:HOY_AQP, total:36, mayor:1, sub:'Según el sistema · 81 de 1,800 prendas', libreCifra:'1,719', libreNota:'Según el sistema: puede haber menos.' });
+  const fam = [ ['Neutros',116,'Negro, Blanco, Crudo'], ['Tierras',50,'Marrón, Beige, Chocolate'], ['Rojos',20,'Vino'], ['Azules',16,'Celeste'], ['Rosados',7,'Rosado'] ];
+  const grandes = [ ['Negro',64], ['Blanco',28], ['Marrón',21], ['Vino',17], ['Beige',15], ['Crudo',11] ];
+  return `
+  ${estadoCard({ colgadas:81, capacidad:1800, cuadrado:false, riel:riel })}
+  <section class="qc-sec" aria-label="Qué colores bajar">
+    <div class="qc-cab"><h2 class="pp-etq">Qué colores bajar</h2><span class="chip pizarra">Aún sin datos</span></div>
+    <div class="card-cayla vacio" role="status">
+      <span class="vacio-ic" style="--i:0">${I.camisa}</span>
+      <h3 class="vacio-tit" style="--i:1">Aún no hay prendas cargadas aquí para decidir</h3>
+      <p class="vacio-frase" style="--i:2">El almacén de esta tienda tiene <b>29 prendas</b> en el sistema. Cuando se cargue el inventario y se cuadre el piso, aquí verás qué colores bajar. Mientras tanto, esto es lo que se vende.</p>
+      <div class="vacio-acciones" style="--i:3"><button type="button" class="btn secundario">Ir a Existencias ${I.flecha}</button></div>
+    </div>
+    <div class="qc-aqp">
+      <article class="qc-card" style="--i:0"><div class="qc-gh"><div class="qc-gh-t"><b>Lo que más se vende</b><small>Ropa del riel · últimos 10 días con venta</small></div><span class="chip">Según lo anotado en caja</span></div>
+        <div class="qc-fam">${fam.map((f, k) => `<div class="qc-fam-fila" style="--i:${k}"><span><b style="font-weight:600">${f[0]}</b></span><span class="qc-fam-pista"><i class="qc-fam-barra" style="--w:${(f[1] / 116 * 100).toFixed(1)};display:block"></i></span><span class="qc-fam-n">vendió ${f[1]}</span></div>`).join('')}</div>
+        <div class="qc-pocas">Casi todas las ventas se anotaron a mano: el color es el que tecleó quien cobró.</div></article>
+      <article class="qc-card" style="--i:1"><div class="qc-gh"><div class="qc-gh-t"><b>Los colores grandes</b><small>Los seis que más salen</small></div></div>
+        <div class="qc-grandes">${grandes.map(([n, v]) => `<div class="qc-grande">${sil('polos_tops_blusas', HEX[n])}<b>${n}</b><small>vendió ${v}</small></div>`).join('')}</div></article>
+    </div>
+    <div class="qc-lider">${I.candado}<span class="chip">Solo líderes</span><span>Para tener en cuenta: en <b>Tienda TRU</b> hay <b>102</b> prendas de <b>Negro</b>. El traslado entre tiendas lo decide el líder.</span></div>
+  </section>
+  <div class="corte">sigue: Fuera del riel</div>
+  ${fueraDelRiel('35 cuelgan','nada cuelga todavía')}`;
+}
+function estado4() {
+  const tramos = GRUPOS.map((_, gi) => tramo(gi, HOY_TRU[gi], { ghosts:ENTRAN[gi], rotulo:(HOY_TRU[gi].n + ENTRAN[gi].length) >= 2 })).join('');
+  const leyenda = GRUPOS.map((g, gi) => {
+    const e = ENTRAN[gi];
+    const dots = e.length ? `<span class="qc-lg-dots" aria-hidden="true">${e.map(n => `<i style="--c:${HEX[n]}"></i>`).join('')}</span>` : '';
+    const txt = TRU[gi].aprendiendo ? 'aún aprendiendo' : `entra <span class="qc-lg-ent">${e.join(' · ')}</span>`;
+    return `<li><div class="pp-lg" style="--pp-c:var(--grupo-${gi})">${sil(g.clave, null, '', gi)}<span class="pp-lg-t"><b>${esc(g.nombre)}</b><small>${txt}</small></span>${dots}</div></li>`;
+  }).join('');
+  const rielB = `<div class="pp-zona" style="display:grid;gap:26px"><div class="pp-riel qc-b" data-riel="prop">
+    <div class="pp-rcab"><div class="pp-rtit"><h3 class="pp-etq">Cómo quedaría</h3><span class="pp-rsub">Lo que cuelga más los colores que entrarían, en contorno</span></div>
+      <button type="button" class="pp-porque" data-por="b" aria-expanded="false" aria-controls="panel-b"><span class="pp-q" aria-hidden="true">?</span><span>¿Por qué?</span></button>
+      <div class="pp-panel" id="panel-b" hidden><p>Las perchas en contorno son <b>colores que entrarían</b>, elegidos por lo que se vende, lo que cuelga hoy y lo que hay atrás en el almacén. Una percha en contorno es un color, no una cantidad: cuántas prendas bajar lo decides tú.</p><p>Toca una para ver sus números.</p></div></div>
+    <div class="pp-banda"><div class="pp-rail" role="img" aria-label="Cómo quedaría el riel con los colores que entrarían" style="--total:36;--ng:6;--mayor:12">${tramos}</div></div>
+    <ul class="pp-leyenda" aria-label="Colores que entrarían por grupo">${leyenda}</ul>
+  </div>
+  <div class="pp-pie"><span class="pp-cap" id="cap-b">Toca una percha en contorno para ver por qué entra.</span>
+    <span class="pp-colores">Las perchas llenas son lo que cuelga hoy; las de contorno son colores que entrarían según lo que se vende y lo que hay atrás. No son una cantidad.</span></div></div>`;
+  return `
+  <section class="pp-card" aria-label="El riel de la tienda">
+    <header class="pp-estado">
+      <div class="pp-est-cifra"><span class="pp-etq">Lo que cuelga en el riel</span><div class="pp-est-n"><b>306</b><span>de 600 prendas</span></div></div>
+      <div class="pp-est-texto"><div class="pp-est-chips"><span class="chip pizarra">Vista previa: piso cuadrado</span><span class="chip pizarra">Variante B</span></div><p>Cuelgan <b>306</b> de 600 lugares; quedan <b>294</b> libres.</p></div>
+    </header>
+    ${rielB}
+  </section>
+  <div class="corte">sigue: Fuera del riel</div>
+  ${fueraDelRiel('11 cuelgan','14 cuelgan')}`;
+}
+
+/* ============================ ESTADO 5 · LO MÍNIMO QUE RECOMIENDO ============================ */
+// Muestra de cada familia: un hex REAL de retail.colores como representante (dato de prenda, no color de interfaz).
+const FAM5 = {
+  neutros:{ n:'Neutros', sw:`linear-gradient(90deg, ${HEX.Negro} 50%, ${HEX.Blanco} 50%)` },
+  azules: { n:'Azules',  sw:HEX['Azul denim'] },
+  tierras:{ n:'Tierras', sw:HEX.Moka },
+  rojos:  { n:'Rojos',   sw:HEX.Rojo }
+};
+// TRU, producción 2026-10-12, «según el sistema». tot = [vendió en 12 días, cuelgan, atrás] de todo el grupo; fam = [familia, vendió, cuelgan, atrás].
+// Vendió = escaneadas + anotadas; cuelgan = lo libre en el piso del sistema; atrás = lo libre en el almacén del sistema (aproximado, sin descontar cambios y devoluciones).
+// Mismo orden que el riel (Polos, Jeans, Pantalones, Vestidos, Bodys, Abrigo): ordenar por ventas sería un ranking.
+const TRU5 = [
+  { frase:'Se vende más neutro de lo que cuelga; cuelga más azul de lo que se vende.',
+    tot:[268,143,407], fam:[['neutros',100,44,143],['azules',34,27,74],['tierras',78,38,128]] },
+  { frase:'Todo es azul: aquí no hay mezcla de tonos que mirar.',
+    tot:[15,23,49], fam:[['azules',15,23,49]] },
+  { frase:'El azul se vende y casi no cuelga.',
+    tot:[79,56,120], fam:[['azules',25,5,28],['neutros',25,26,40],['tierras',25,18,36]] },
+  { frase:'Cuelga más rojo de lo que se vende.',
+    tot:[59,35,162], fam:[['rojos',4,7,31],['neutros',26,15,68],['tierras',19,11,41]] },
+  { frase:'Casi no cuelga nada de este grupo; se vende neutro y tierra.',
+    tot:[37,6,113], fam:[['neutros',16,2,32],['tierras',13,2,52]] },
+  { frase:'Lo que cuelga se parece a lo que se vende.',
+    tot:[50,42,64], fam:[['neutros',19,12,14],['tierras',17,17,25],['azules',8,9,19]] }
+];
+const PORQUE5 = ['Comparamos cuánto se vendió de cada tono con cuánto cuelga hoy.', 'Con pocas ventas solo se dice lo grande.', 'Es una lectura, no una orden: tú decides qué colgar.'];
+
+function estadoCard5(riel) {
+  return `<section class="pp-card" aria-label="El riel de la tienda">
+    <header class="pp-estado">
+      <div class="pp-est-cifra"><span class="pp-etq">En el riel</span><div class="pp-est-n"><b>306</b><span>de 600 lugares</span></div></div>
+      <div class="pp-est-texto"><div class="pp-est-chips"><span class="chip ambar">Por cuadrar</span></div><p>Quedan <b>294</b> lugares libres.</p></div>
+    </header>${riel}</section>`;
+}
+function itemGrupo5(gi, abierto) {
+  const g = GRUPOS[gi], d = TRU5[gi];
+  const suma = d.fam.reduce((s, f) => [s[0] + f[1], s[1] + f[2], s[2] + f[3]], [0, 0, 0]);
+  const otros = d.tot.map((t, k) => t - suma[k]);
+  const hayOtros = otros.some(x => x > 0);
+  const filas = d.fam.map(([k, v, c, a]) => `<tr><td><span class="tono"><i class="qc5-sw" data-color-dato style="--sw:${FAM5[k].sw}" aria-hidden="true"></i>${FAM5[k].n}</span></td><td>${v}</td><td>${c}</td><td>${a}</td></tr>`).join('');
+  const filaOtros = hayOtros ? `<tr class="otros"><td><span class="tono"><i class="qc5-sw sin" aria-hidden="true"></i>Otros tonos</span></td><td>${otros[0]}</td><td>${otros[1]}</td><td>${otros[2]}</td></tr>` : '';
+  const pie = (d.fam.length > 1 || hayOtros) ? `<tfoot><tr><td>Todo el grupo</td><td>${d.tot[0]}</td><td>${d.tot[1]}</td><td>${d.tot[2]}</td></tr></tfoot>` : '';
+  const chev = I.abajo.replace('<svg ', '<svg class="qc5-chev" ');
+  return `<li class="qc5-item">
+    <h3><button type="button" class="qc5-fila" data-q5-fila="${gi}" aria-expanded="${abierto ? 'true' : 'false'}" aria-controls="q5-panel-${gi}">
+      ${sil(g.clave, null, '', gi)}
+      <span class="qc5-fila-t"><b>${esc(g.nombre)}</b><span class="qc5-frase">${esc(d.frase)}</span></span>${chev}
+    </button></h3>
+    <div class="qc5-panel" id="q5-panel-${gi}"${abierto ? '' : ' hidden'}>
+      <table class="qc5-t"><caption class="sr-only">Tonos de ${esc(g.nombre)}: vendidas en 12 días, lo que cuelga y lo que hay atrás</caption>
+        <thead><tr><th scope="col">Tono</th><th scope="col">Vendió<small>12 días</small></th><th scope="col">Cuelgan<small>en el piso</small></th><th scope="col">Atrás<small>en el almacén</small></th></tr></thead>
+        <tbody>${filas}${filaOtros}</tbody>${pie}</table>
+      <div class="qc5-pq">
+        <button type="button" class="pp-porque" data-q5-por="${gi}" aria-expanded="false" aria-controls="q5-pq-${gi}"><span class="pp-q" aria-hidden="true">?</span><span>¿Por qué?</span></button>
+        <div class="pp-panel qc5-porque" id="q5-pq-${gi}" hidden><p>${PORQUE5.map(t => `<span>${t}</span>`).join('')}</p></div>
+      </div>
+    </div></li>`;
+}
+function estado5() {
+  const riel = rielHoy({ hoy:HOY_TRU, total:30, mayor:8, sub:'306 de 600 lugares', libreCifra:'294', libreNota:'Hasta cuadrar el piso, puede haber menos.' });
+  return `
+  ${estadoCard5(riel)}
+  <section class="qc5-sec" aria-label="Qué hacer primero y qué tonos se mueven">
+    <div class="aviso-linea qc5-aviso" data-tono="atencion" role="status">
+      <span class="aviso-linea-ic">${I.alerta}</span>
+      <p class="aviso-linea-tit">Primero falta contar lo que está guardado</p>
+      <div class="aviso-linea-det">Escanea lo que de verdad hay en el almacén y en el piso; un líder confirma. Mientras no se haga, el sistema no sabe qué ya cuelga. Hasta entonces, todo lo que ves aquí es según el sistema.</div>
+      <span class="aviso-linea-acc"><button type="button" class="btn primario" data-q5-escanear>Escanear lo guardado ${I.flecha}</button><small class="qc5-quien">Solo un líder confirma el cuadre.</small></span>
+    </div>
+    <p class="qc5-maq"><b>Nota de la maqueta</b>El botón lleva a escanear lo guardado; aquí no abre nada. Una cuenta que no ve Existencias vería, en su lugar y sin botón: «Pídele a una líder que cuadre el piso».</p>
+    <section class="card-cayla qc5-franja" aria-label="Qué tonos se mueven en cada grupo">
+      <header class="qc5-fr-cab"><h2 class="pp-etq">Mientras tanto: qué tonos se mueven en cada grupo</h2>
+        <p class="qc5-fr-sub">Cuántas se vendieron en los últimos 12 días, cuántas cuelgan hoy y cuántas hay atrás.</p></header>
+      <ul class="qc5-lista">${GRUPOS.map((_, gi) => itemGrupo5(gi, GRUPOS[gi].clave === 'pantalones_faldas_shorts')).join('')}</ul>
+    </section>
+    <div class="nota-cayla qc5-nota"><span>Lo que sí te dice qué colgar hoy es <strong>«Por colgar»</strong> en Existencias, que se enciende cuando el piso está cuadrado.</span>
+      <button type="button" class="btn secundario">Ir a Existencias ${I.flecha}</button></div>
+  </section>
+  <div class="corte">sigue: Fuera del riel</div>
+  ${fueraDelRiel('11 cuelgan','14 cuelgan','No entran en el reparto. Lo que cuelga hoy.')}`;
+}
+
+/* ============================ CONTROL ============================ */
+const estadoActual = { estado:5, tema:'claro', vista:'libre' }; // abre en el 5, la recomendación; el 1 a 4 siguen igual con ?estado=N
+const params = new URLSearchParams(location.search);
+if (params.get('estado')) estadoActual.estado = +params.get('estado');
+if (params.get('tema')) estadoActual.tema = params.get('tema');
+if (params.get('vista')) estadoActual.vista = params.get('vista');
+
+function pintar() {
+  const e = estadoActual;
+  document.documentElement.setAttribute('data-tema', e.tema);
+  document.body.setAttribute('data-vista', e.vista);
+  document.getElementById('contenido').innerHTML = { 1:estado1, 2:estado2, 3:estado3, 4:estado4, 5:estado5 }[e.estado]();
+  const explor = e.estado >= 2 && e.estado <= 4 ? '<span class="etq-explor">Exploración · no recomendado</span>' : '';
+  document.getElementById('nota-estado').innerHTML = explor + ESTADOS[e.estado];
+  // la frase de la cabecera de la pantalla: en el 5 ya no promete decir qué colores bajar
+  document.getElementById('enc-p').textContent = e.estado === 5
+    ? 'Cuánto lugar le toca a cada grupo en el riel.'
+    : 'Cuánto lugar le toca a cada grupo en el riel y qué colores conviene bajar del almacén.';
+  const aqp = e.estado === 3;
+  document.getElementById('enc-linea').textContent = (aqp ? 'Tienda AQP' : 'Tienda TRU') + ' · lunes, 12 de octubre';
+  document.getElementById('top-sede').textContent = (aqp ? 'Tienda AQP' : 'Tienda TRU') + ' ⌄';
+  document.getElementById('lat-sede').textContent = aqp ? 'TIENDA AQP' : 'TIENDA TRU';
+  for (const [id, key] of [['seg-estado','estado'],['seg-tema','tema'],['seg-vista','vista']]) {
+    document.querySelectorAll('#' + id + ' button').forEach(b => b.setAttribute('aria-pressed', String(String(e[key]) === b.dataset.v)));
+  }
+}
+['seg-estado','seg-tema','seg-vista'].forEach(id => document.getElementById(id).addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  const key = { 'seg-estado':'estado', 'seg-tema':'tema', 'seg-vista':'vista' }[id];
+  estadoActual[key] = key === 'estado' ? +b.dataset.v : b.dataset.v;
+  pintar();
+}));
+
+// Interacciones del diseño: «y N más», «¿Por qué?», «Bajar estos» y las perchas en contorno.
+document.getElementById('contenido').addEventListener('click', ev => {
+  // estado 5: una fila por grupo que se despliega, y su «¿Por qué?»
+  const f5 = ev.target.closest('[data-q5-fila]');
+  if (f5) {
+    const abierto = f5.getAttribute('aria-expanded') === 'true';
+    f5.setAttribute('aria-expanded', String(!abierto));
+    document.getElementById('q5-panel-' + f5.dataset.q5Fila).hidden = abierto;
+    return;
+  }
+  const p5 = ev.target.closest('[data-q5-por]');
+  if (p5) {
+    const abierto = p5.getAttribute('aria-expanded') === 'true';
+    p5.setAttribute('aria-expanded', String(!abierto));
+    document.getElementById('q5-pq-' + p5.dataset.q5Por).hidden = abierto;
+    return;
+  }
+  const mas = ev.target.closest('[data-mas]');
+  if (mas) {
+    const abierto = mas.getAttribute('aria-expanded') === 'true';
+    mas.setAttribute('aria-expanded', String(!abierto));
+    document.getElementById('resto-' + mas.dataset.mas).hidden = abierto;
+    const n = TRU[+mas.dataset.mas].filas.length - 3;
+    mas.firstChild.textContent = abierto ? `y ${n} más ` : 'ver menos ';
+    return;
+  }
+  const por = ev.target.closest('[data-por]');
+  if (por) {
+    const abierto = por.getAttribute('aria-expanded') === 'true';
+    por.setAttribute('aria-expanded', String(!abierto));
+    document.getElementById('panel-' + por.dataset.por).hidden = abierto;
+    por.closest('.qc-card')?.classList.toggle('abierta', !abierto);
+    return;
+  }
+  const baj = ev.target.closest('[data-bajar]');
+  if (baj) { const h = document.getElementById('hint-' + baj.dataset.bajar); h.hidden = !h.hidden; return; }
+  const gp = ev.target.closest('.qc-gp');
+  if (gp) {
+    const ya = gp.getAttribute('aria-pressed') === 'true';
+    document.querySelectorAll('.qc-gp').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    const cap = document.getElementById('cap-b');
+    if (ya) { cap.textContent = 'Toca una percha en contorno para ver por qué entra.'; return; }
+    gp.setAttribute('aria-pressed', 'true');
+    const gi = +gp.dataset.g, nom = gp.dataset.c;
+    const f = TRU[gi].filas.find(x => x.c === nom);
+    cap.innerHTML = `<b>${esc(nom)}</b> en ${esc(GRUPOS[gi].nombre)} · ${NIVEL[f.n].txt}: ${hechos(f)}.`;
+  }
+});
+pintar();
+</script>
+</body>
+</html>

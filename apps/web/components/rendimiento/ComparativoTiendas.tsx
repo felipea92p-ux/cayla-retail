@@ -36,7 +36,7 @@ export function ComparativoTiendas({
   onElegir: (ubicacionId: string) => void;
 }) {
   return (
-    <div role="tablist" aria-label="Tienda" className="grid gap-3 sm:grid-cols-3">
+    <div role="tablist" aria-label="Tienda" className="grid gap-3 sm:grid-cols-3" data-guia="rendimiento.tiendas">
       {sedes.map((s) => {
         const activa = s.ubicacionId === activaId;
         const mes = s.panelDisponible ? resumenDeSede(s.serie, "mes", hoy) : null;
@@ -50,6 +50,7 @@ export function ComparativoTiendas({
             aria-selected={activa}
             aria-controls="panel-tienda"
             onClick={() => onElegir(s.ubicacionId)}
+            data-guia={activa ? "rendimiento.tienda-activa" : "rendimiento.tienda-otra"}
             className={`w-full rounded-xl border bg-papel p-4 text-left transition-colors hover:border-taupe ${activa ? "border-tinta shadow-[inset_0_-3px_0_var(--color-tinta)]" : "border-sand"}`}
           >
             <div className="flex items-start justify-between gap-2">
@@ -73,7 +74,7 @@ export function ComparativoTiendas({
                 <p className="mt-0.5 text-xs text-tinta/65">
                   {pct !== null && mes.meta !== null ? `${pct} % de ${SOLES.format(mes.meta)} este mes` : "Este mes · sin meta cargada"}
                 </p>
-                {pct !== null && <BarraAvance pct={pct} marca={mes.tocabaPct} className="mt-2.5" />}
+                {pct !== null && <BarraAvance pct={pct} marca={mes.tocabaPct} etiqueta="Vendido contra la meta del mes" className="mt-2.5" />}
               </>
             ) : (
               <p className="mt-2 text-xs text-tinta/65">No se pudieron leer las metas ahora.</p>

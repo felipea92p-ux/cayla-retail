@@ -1,0 +1,44 @@
+{
+  "guia": "inventario.cuadrar",
+  "ruta": "/inventario/cuadrar",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 26,
+  "controles": {
+    "app/(app)/inventario/cuadrar/page.tsx": [
+      "Volver «/inventario»"
+    ],
+    "components/EscanerConteo.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Escribir el código»",
+      "button «Dar de alta»",
+      "button «Una menos»",
+      "button «Una más»",
+      "button «Listo»"
+    ],
+    "components/conteo/PasosConteo.tsx": [
+      "button «{contenido}»"
+    ],
+    "components/cuadre-piso/CuadrarPisoForm.tsx": [
+      "Link «Ir al conteo»",
+      "button «Continuar»",
+      "button «{descartar ? \"Sí, borrar lo escaneado\" : \"Empezar de nuevo\"}»",
+      "button «No hay ninguna guardada»",
+      "input «Escanea o escribe el código»",
+      "button «cuadrar.camara»",
+      "button «Deshacer la última»",
+      "button «Quitar»",
+      "button «Escanear con la cámara»",
+      "button «{motivoRevisar ?? undefined}»",
+      "button «Volver a intentar»",
+      "ComboResponsable «{responsable}»",
+      "CampoTexto «{notaRequerida ? \"Por qué se vuelve a cuadrar\" : \"Nota (opcional)\"}»",
+      "button «(sin nombre)»",
+      "button «Sigue: confirmar»",
+      "Boton «{motivoConfirmar ?? undefined}»"
+    ],
+    "components/cuadre-piso/ResultadoCuadre.tsx": [
+      "BotonVer «Ir a Existencias»",
+      "BotonVer «Ver Movimientos»"
+    ]
+  }
+}

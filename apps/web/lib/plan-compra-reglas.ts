@@ -10,7 +10,8 @@
 //     con lo que se recupera = precio × recupero %.
 //   · Cuantil crítico = Cu ÷ (Cu + Co): la probabilidad de cubrir la demanda que conviene comprar.
 //   · La demanda de la campaña es incierta: tres escenarios (flojo, normal, bueno) forman una distribución triangular; se compra
-//     hasta su cuantil crítico, menos lo que ya hay en la red.
+//     hasta su cuantil crítico, menos lo que ya hay en la red y lo que ya viene en órdenes de compra sin llegar (`porLlegar`,
+//     `lib/plan-compra-pedido.ts`, Felipe 2026-10-13).
 //   · La curva de tallas la propone el sistema desde lo vendido (con su prenda o anotado) en 90 días, apoyada en un reparto parejo
 //     entre las tallas de la categoría con el mismo encogimiento del motor de demanda: n/(n+k), k = 10 unidades.
 //
@@ -21,13 +22,18 @@
 
 import type { PreparacionSede } from "./motor-demanda-reglas";
 import type { PropuestaCategoria } from "./plan-compra-propuesta";
+import type { TiendaReparto } from "./plan-compra-reparto";
+import { enCaminoDe, type PedidoCategoria } from "./plan-compra-pedido";
 import { compararTallas } from "./tallas";
+import { proyectarCampana } from "./plan-compra-historial";
 
 export const RPC_PLAN = "fn_plan_compra";
 export const RPC_GUARDAR_LINEA = "guardar_plan_compra_linea";
 export const RPC_GUARDAR_TOPE = "guardar_plan_compra_tope";
 export const RPC_PLANES = "fn_planes_compra";
 export const RPC_CREAR_CAMPANA = "crear_plan_compra";
+/** «Campaña nueva» (act. 2026-10-12 f): la etiqueta de campaña en Etiquetas y su plan, en una transacción. */
+export const RPC_CAMPANA_NUEVA = "crear_campana_con_plan";
 export const RPC_EDITAR_CAMPANA = "editar_plan_compra";
 export const RPC_QUITAR_CAMPANA = "quitar_plan_compra";
 export const RPC_RESTAURAR_CAMPANA = "restaurar_plan_compra";
@@ -211,7 +217,7 @@ export type Calculo = {
   cuantil: number;
   /** Las unidades que conviene tener para la campaña. */
   objetivo: number;
-  /** Lo que ya hay en la red. */
+  /** Lo que ya hay en la red más lo que ya viene en órdenes de compra sin llegar: con eso se cuenta para la campaña. */
   stock: number;
   /** Lo que hay que comprar: objetivo − stock, nunca negativo. */
   comprar: number;
@@ -231,14 +237,14 @@ export function calcular(l: Pick<LineaPlan, "flojo" | "normal" | "bueno" | "prec
  * más, sobrar o quedarse corto, y hacia qué diciembre empuja la compra. Las cinco franjas son las del número, no una regla nueva.
  */
 export function lecturaDelCuantil(cuantil: number): { costo: string; compra: string } {
-  if (cuantil >= 0.99) return { costo: "lo que sobra se vende casi al costo: sobrar no te cuesta", compra: "cubrir hasta un diciembre bueno" };
-  if (cuantil >= 0.75) return { costo: "sobrar te cuesta poco frente a quedarte corto", compra: "comprar más cerca del diciembre bueno" };
-  if (cuantil > 0.6) return { costo: "quedarte corto te cuesta un poco más que sobrar", compra: "comprar un poco por encima del diciembre normal" };
-  if (cuantil >= 0.4) return { costo: "quedarte corto y sobrar te cuestan parecido", compra: "comprar cerca del diciembre normal" };
-  return { costo: "sobrar te cuesta caro", compra: "comprar más cerca del diciembre flojo" };
+  if (cuantil >= 0.99) return { costo: "lo que sobra se vende casi al costo: sobrar no te cuesta", compra: "cubrir hasta el bueno" };
+  if (cuantil >= 0.75) return { costo: "sobrar te cuesta poco frente a quedarte corto", compra: "comprar más cerca del bueno" };
+  if (cuantil > 0.6) return { costo: "quedarte corto te cuesta un poco más que sobrar", compra: "comprar un poco por encima del normal" };
+  if (cuantil >= 0.4) return { costo: "quedarte corto y sobrar te cuestan parecido", compra: "comprar cerca del normal" };
+  return { costo: "sobrar te cuesta caro", compra: "comprar más cerca del flojo" };
 }
 
-/** «Lo que sobra se vende casi al costo: sobrar no te cuesta, así que conviene cubrir hasta un diciembre bueno.» El porqué del número. */
+/** «Lo que sobra se vende casi al costo: sobrar no te cuesta, así que conviene cubrir hasta el bueno.» El porqué del número. */
 export function porQue(c: Calculo): string {
   const { costo, compra } = lecturaDelCuantil(c.cuantil);
   return `${costo.charAt(0).toUpperCase()}${costo.slice(1)}, así que conviene ${compra}.`;
@@ -318,7 +324,7 @@ export function leerNumeroDeMonto(t: string): number | null {
   return /^\d+(\.\d{1,2})?$/.test(sinMiles) ? Number(sinMiles) : null;
 }
 
-/** Topes contra un error de tipeo, no reglas de negocio: ninguna categoría de CAYLA vende 100 000 prendas en un diciembre ni una prenda cuesta
+/** Topes contra un error de tipeo, no reglas de negocio: ninguna categoría de CAYLA vende 100 000 prendas en una campaña ni una prenda cuesta
  *  S/ 100 000. Sin ellos, un «999999999999» pasaba la guía y la base respondía un error técnico (chaos 2026-10-10). */
 export const MAX_UNIDADES_ESCENARIO = 100_000;
 export const MAX_MONTO_PRENDA = 100_000;
@@ -329,18 +335,18 @@ export function problemasDelBorrador(b: Borrador, tallas: readonly TallaPlan[]):
   const flojo = entero(b.flojo);
   const normal = entero(b.normal);
   const bueno = entero(b.bueno);
-  const demasiadas = `Revisa el número: más de ${MAX_UNIDADES_ESCENARIO.toLocaleString("es-PE")} prendas en un diciembre no parece de una categoría.`;
-  if (flojo === null) p.flojo = "Escribe cuántas venderías en un diciembre flojo (puede ser 0).";
+  const demasiadas = `Revisa el número: más de ${MAX_UNIDADES_ESCENARIO.toLocaleString("es-PE")} prendas en una campaña no parece de una categoría.`;
+  if (flojo === null) p.flojo = "Escribe cuántas venderías si la campaña va floja (puede ser 0).";
   else if (flojo > MAX_UNIDADES_ESCENARIO) p.flojo = demasiadas;
-  if (normal === null) p.normal = "Escribe cuántas venderías en un diciembre normal.";
+  if (normal === null) p.normal = "Escribe cuántas venderías si la campaña va normal.";
   else if (normal > MAX_UNIDADES_ESCENARIO) p.normal = demasiadas;
-  else if (flojo !== null && normal < flojo) p.normal = "Un diciembre normal no vende menos que uno flojo.";
-  if (bueno === null) p.bueno = "Escribe cuántas venderías en un diciembre bueno.";
+  else if (flojo !== null && normal < flojo) p.normal = "El normal no puede ser menos que el flojo.";
+  if (bueno === null) p.bueno = "Escribe cuántas venderías si la campaña va buena.";
   else if (bueno > MAX_UNIDADES_ESCENARIO) p.bueno = demasiadas;
-  else if (normal !== null && bueno < normal) p.bueno = "Un diciembre bueno no vende menos que uno normal.";
+  else if (normal !== null && bueno < normal) p.bueno = "El bueno no puede ser menos que el normal.";
   const precio = leerNumeroDeMonto(b.precio);
   const costo = leerNumeroDeMonto(b.costo);
-  const caro = `Revisa el monto: más de S/ ${MAX_MONTO_PRENDA.toLocaleString("es-PE")} por prenda no parece real.`;
+  const caro = `Revisa el monto: más de S/\u00a0${MAX_MONTO_PRENDA.toLocaleString("es-PE")} por prenda no parece real.`;
   if (precio === null || precio <= 0) p.precio = "Escribe el precio de venta promedio de la categoría.";
   else if (precio > MAX_MONTO_PRENDA) p.precio = caro;
   if (costo === null) p.costo = "Escribe el costo promedio por prenda.";
@@ -431,10 +437,10 @@ export const estadoCampana = (hoy: string, desde: string, hasta: string): Estado
 /** «Se vendieron 140: entre el normal (120) y el bueno (180).» Para comparar el supuesto con lo que pasó. */
 export function fraseDeLoReal(vendido: number, l: Pick<LineaPlan, "flojo" | "normal" | "bueno">): string {
   const donde =
-    vendido < l.flojo ? "menos que el diciembre flojo"
+    vendido < l.flojo ? "menos que el flojo"
     : vendido <= l.normal ? "entre el flojo y el normal"
     : vendido <= l.bueno ? "entre el normal y el bueno"
-    : "más que el diciembre bueno";
+    : "más que el bueno";
   return `Se vendieron ${vendido}: ${donde}.`;
 }
 
@@ -444,8 +450,7 @@ export function fraseDeLoReal(vendido: number, l: Pick<LineaPlan, "flojo" | "nor
 
 /** Cómo se escriben las cantidades, el dinero y las fechas en esta pantalla (una sola vez, no en cada componente). */
 export const enteroES = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
-export const solesES = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-export const fechaLargaES = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("es-PE", { day: "numeric", month: "long" });
+export const solesES = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** Cuántas categorías son «las que más venden». */
 export const TOP_VENTAS = 10;
@@ -472,6 +477,12 @@ export type FilaPlan = {
   propuesta?: PropuestaCategoria | null;
   /** El % de lo que sobra de la campaña (C5): con él arranca una categoría sin plan. null = nadie lo fijó todavía. */
   recuperoDefecto?: number | null;
+  /** Lo necesario para repartir el objetivo entre las tiendas (`lib/plan-compra-reparto.ts`); undefined = la base no lo manda. */
+  reparto?: TiendaReparto[];
+  /** Lo ya pedido en órdenes de compra para esta campaña (`lib/plan-compra-pedido.ts`); undefined = nada pedido o la base no lo manda. */
+  pedido?: PedidoCategoria;
+  /** Lo pedido que todavía no llegó a ninguna tienda: se suma a `stock` en la cuenta de «Comprar». 0 si no hay o la base no lo manda. */
+  enCamino: number;
 };
 
 const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);
@@ -483,17 +494,22 @@ function porVentas(a: FilaPlan, b: FilaPlan): number {
 /**
  * Una fila por categoría activa, con su cuenta hecha, ordenada por lo que más vende (la que más vende primero; a igual venta, la de más
  * stock; a igual stock, por nombre). El orden es estable: dos lecturas iguales dan la misma tabla. `ordenarFilas` la reordena.
+ * `pedido` (lo pedido en órdenes, por categoría): lo que falta llegar se cuenta como si ya estuviera, así «Comprar» no lo pide dos veces.
  */
-export function armarFilas(plan: LecturaPlan): FilaPlan[] {
+export function armarFilas(plan: LecturaPlan, pedido?: ReadonlyMap<string, PedidoCategoria> | null): FilaPlan[] {
   const filas = plan.categorias
     .map((c): FilaPlan => {
       const linea = plan.lineas.get(c.id);
       const stock = plan.stock.get(c.id) ?? 0;
+      const delPedido = pedido?.get(c.id);
+      const enCamino = enCaminoDe(delPedido);
       return {
         c,
         linea,
         stock,
-        calculo: linea ? calcular(linea, stock) : null,
+        calculo: linea ? calcular(linea, stock + enCamino) : null,
+        pedido: delPedido,
+        enCamino,
         vendido: plan.vendidoEnCampana.get(c.id) ?? 0,
         ventas: sumaDe(plan.vendidoPorTalla.get(c.id)),
         puesto: null,
@@ -593,7 +609,11 @@ export function momentoDeLaCampana(hoy: string, desde: string, hasta: string): M
     const n = diasEntre(hoy, desde);
     return { estado, fuerte: n === 1 ? "Falta 1 día" : `Faltan ${n} días`, resto: "para que empiece" };
   }
-  if (estado === "durante") return { estado, fuerte: `Día ${diasEntre(desde, hoy) + 1} de ${diasEntre(desde, hasta) + 1}`, resto: "lo que se vendió hasta hoy va al lado" };
+  if (estado === "durante") {
+    // Lo que queda, no lo que ya dice la tabla («lo que se vendió va al lado» repetía la frase de arriba; prompt maestro 2026-10-13).
+    const quedan = diasEntre(hoy, hasta);
+    return { estado, fuerte: `Día ${diasEntre(desde, hoy) + 1} de ${diasEntre(desde, hasta) + 1}`, resto: quedan === 0 ? "termina hoy" : quedan === 1 ? "termina mañana" : `termina en ${quedan} días` };
+  }
   return { estado, fuerte: `Terminó hace ${dias(diasEntre(hasta, hoy))}`, resto: "mira lo que pasó contra lo que supusiste" };
 }
 
@@ -618,18 +638,14 @@ export const posicionEnEscala = (valor: number, escala: number): number => (esca
 
 /** Cuántos días de ventas mira `fn_plan_compra` para la curva y para «lo que vendiste» (los 90 días de siempre). */
 export const DIAS_DE_VENTAS = 90;
-/** «Diciembre triplica un mes promedio» (R-19, docs/datos/15-COMO-OPERA-CAYLA.md): un diciembre normal vende tres meses normales. */
-export const MESES_DE_UN_DICIEMBRE = 3;
-
 /**
- * Lo que sale de «un diciembre normal vende el triple de un mes normal», con lo vendido en los últimos 90 días: un mes normal es
- * ventas ÷ 3 y diciembre, tres de esos. Es UNA sola propuesta, la del escenario normal, porque es la única que tiene un dato detrás
- * (R-19): el flojo y el bueno los decide quien arma el plan. Sin ventas no hay qué proponer (null).
+ * El «normal» cuando la base todavía no manda la propuesta de tres escenarios (C4): lo que la categoría vende por día en los últimos 90
+ * días, llevado a los días de ESTA campaña (la misma regla del normal de C4, que reemplazó a «diciembre triplica un mes», R-19: con ella,
+ * San Valentín de dos semanas pedía tres meses de venta). Sin ventas o sin días, no hay qué proponer (null).
  */
-export function propuestaDeNormal(ventas90: number): number | null {
-  if (!Number.isFinite(ventas90) || ventas90 <= 0) return null;
-  const mensual = ventas90 / (DIAS_DE_VENTAS / 30);
-  return Math.round(mensual * MESES_DE_UN_DICIEMBRE);
+export function propuestaDeNormal(ventas90: number, diasCampana: number): number | null {
+  if (!Number.isFinite(ventas90) || ventas90 <= 0 || !Number.isFinite(diasCampana) || diasCampana <= 0) return null;
+  return Math.round((ventas90 / DIAS_DE_VENTAS) * diasCampana);
 }
 
 /**
@@ -679,6 +695,16 @@ export type SedeStock = {
   /** Lo que falta, dicho corto («piso sin cuadrar»), o null si está al día. */
   falta: string | null;
 };
+
+/**
+ * El número del botón «Resumen y avisos» (Felipe 2026-10-12: el resumen va en un cajón y la tabla queda a la vista): cuántas tiendas no
+ * tienen su stock al día; 1 si no se pudo comprobar (no se dice «todo bien» por un error). 0 = el botón va sin número.
+ */
+export function avisosDelResumen(c: Pick<ConfianzaDelStock, "estado" | "sedes">): number {
+  if (c.estado === "sin-dato") return 1;
+  if (c.estado === "confiable") return 0;
+  return c.sedes.filter((s) => !s.alDia).length;
+}
 
 export type ConfianzaDelStock = {
   /** `sin-dato`: no se pudo comprobar (la lectura falló o la cuenta no opera ninguna tienda). Nunca se dice «confiable» por omisión. */
@@ -800,8 +826,9 @@ export function segmentosDelTope(filas: readonly FilaPlan[]): SegmentoTope[] {
 /** Una campaña con plan, para el selector. `conPlan`: cuántas categorías ya tienen su plan. `archivado` y `conTope` (B5): si salió del selector y
  *  si tiene un tope fijado (con categorías o con tope, «Quitar» la archiva en vez de borrarla). */
 export type CampanaPlan = { id: string; nombre: string; desde: string; hasta: string; etiquetaId: string | null; conPlan: number; archivado: boolean; conTope: boolean };
-/** Una campaña de Catálogo ▸ Etiquetas (aprobada y con fechas). `planId`: el plan que ya tiene, o null si todavía no. */
-export type EtiquetaCampana = { id: string; nombre: string; desde: string; hasta: string; planId: string | null };
+/** Una campaña de Catálogo ▸ Etiquetas (aprobada). Sus fechas son las de un año y vuelven cada año (como en Historial); sin fechas, null.
+ *  `planes`: los planes que ya tiene, con el año en que termina cada uno (uno por año, act. 2026-10-12 f); `planId`, el del último año. */
+export type EtiquetaCampana = { id: string; nombre: string; desde: string | null; hasta: string | null; planId: string | null; planes: { id: string; anio: number }[] };
 /** `edicion` (B5): la base ya sabe editar, quitar y restaurar campañas; si no, la pantalla esconde esas opciones. */
 export type CampanasLeidas = { planes: CampanaPlan[]; etiquetas: EtiquetaCampana[]; edicion: boolean };
 
@@ -824,7 +851,13 @@ export function leerCampanas(v: unknown): CampanasLeidas | null {
     const nombre = texto(e.nombre);
     const desde = fechaIso(e.desde);
     const hasta = fechaIso(e.hasta);
-    return id && nombre && desde && hasta ? [{ id, nombre, desde, hasta, planId: texto(e.plan_id) }] : [];
+    // Sin fechas también entra (desde 2026-10-12 f): el selector le dice al líder que se las ponga en Etiquetas, en vez de esconderla.
+    const planes = lista(e.planes).flatMap((x) => {
+      const pid = texto(x.id);
+      const anio = numero(x.anio);
+      return pid && anio > 0 ? [{ id: pid, anio }] : [];
+    });
+    return id && nombre ? [{ id, nombre, desde: desde && hasta ? desde : null, hasta: desde && hasta ? hasta : null, planId: texto(e.plan_id), planes }] : [];
   });
   return { planes, etiquetas, edicion: lista(v.planes).some((p) => typeof p.archivado === "boolean") };
 }
@@ -838,41 +871,100 @@ export const fechaCortaES = (iso: string): string => {
 /** «Diciembre 2026 · 1 dic – 31 dic». */
 export const rotuloDeCampana = (c: Pick<CampanaPlan, "nombre" | "desde" | "hasta">): string => `${c.nombre} · ${fechaCortaES(c.desde)} – ${fechaCortaES(c.hasta)}`;
 
-/** El nombre con que nace el plan de una etiqueta: «Día de la Madre 2027». Lo mismo que pone la base si no se le da uno. */
-export const nombreDeLaCampana = (e: Pick<EtiquetaCampana, "nombre" | "desde">): string => `${e.nombre} ${e.desde.slice(0, 4)}`;
+/** El nombre con que nace el plan de una campaña en un año: «Día de la Madre 2027». Lo mismo que pone la base si no se le da uno (el año del fin). */
+export const nombreDeLaCampana = (e: Pick<EtiquetaCampana, "nombre">, anio: number): string => `${e.nombre} ${anio}`;
 
-export type BorradorCampana = { etiquetaId: string; nombre: string; desde: string; hasta: string };
+/** Las fechas de una campaña de Etiquetas en un año, con la misma regla que Historial (`proyectarCampana`: manda el año del fin; Día de la Madre
+ *  sigue a su segundo domingo de mayo). null si la etiqueta no tiene fechas. */
+export function fechasDelAnio(e: Pick<EtiquetaCampana, "desde" | "hasta">, anio: number): { desde: string; hasta: string } | null {
+  return e.desde && e.hasta ? proyectarCampana({ desde: e.desde, hasta: e.hasta }, anio) : null;
+}
+
+/** Una campaña del calendario que todavía no tiene plan ese año: «Black Friday 2026, del 9 al 30 nov». */
+export type RanuraCalendario = { etiquetaId: string; anio: number; nombre: string; desde: string; hasta: string };
+
+/** ¿Esa campaña ya tiene plan ese año? (también uno archivado: la base no deja otro igual). */
+const tienePlanEn = (e: Pick<EtiquetaCampana, "id" | "planes">, anio: number, planes: readonly Pick<CampanaPlan, "etiquetaId" | "hasta">[]) =>
+  e.planes.some((p) => p.anio === anio) || planes.some((p) => p.etiquetaId === e.id && Number(p.hasta.slice(0, 4)) === anio);
+
+/**
+ * El calendario sin plan (Felipe 2026-10-12, opción A): cada campaña de Etiquetas con fechas, este año y el que viene, que todavía no tiene plan
+ * ese año y no terminó. Es lo que el selector ofrece para «Armar plan».
+ */
+export function ranurasSinPlan(c: Pick<CampanasLeidas, "etiquetas" | "planes">, hoy: string): RanuraCalendario[] {
+  const anio = Number(hoy.slice(0, 4));
+  return c.etiquetas
+    .flatMap((e) =>
+      [anio, anio + 1].flatMap((a): RanuraCalendario[] => {
+        const f = fechasDelAnio(e, a);
+        if (!f || f.hasta < hoy || tienePlanEn(e, a, c.planes)) return [];
+        return [{ etiquetaId: e.id, anio: a, nombre: nombreDeLaCampana(e, a), ...f }];
+      }),
+    )
+    .sort((x, y) => x.desde.localeCompare(y.desde) || x.nombre.localeCompare(y.nombre, "es"));
+}
+
+/** Las campañas de Etiquetas sin fechas: no se pueden armar hasta que se les pongan (el selector se lo dice al líder). */
+export const campanasSinFechas = (c: Pick<CampanasLeidas, "etiquetas">): EtiquetaCampana[] => c.etiquetas.filter((e) => !e.desde || !e.hasta);
+
+/** La hoja de una campaña: la de una del calendario (`etiquetaId`, ya llena) o una campaña NUEVA que no está en Etiquetas (`etiquetaId` null). */
+export type BorradorCampana = { etiquetaId: string | null; nombre: string; desde: string; hasta: string };
 export type CampoCampana = "etiqueta" | "nombre" | "desde" | "hasta";
 
-/** El borrador que arranca al elegir una etiqueta: su nombre y sus fechas. */
-export const borradorDeCampana = (e: EtiquetaCampana | null): BorradorCampana => (e ? { etiquetaId: e.id, nombre: nombreDeLaCampana(e), desde: e.desde, hasta: e.hasta } : { etiquetaId: "", nombre: "", desde: "", hasta: "" });
+/** La hoja de una campaña del calendario: su nombre y sus fechas de ese año. */
+export const borradorDeRanura = (r: RanuraCalendario): BorradorCampana => ({ etiquetaId: r.etiquetaId, nombre: r.nombre, desde: r.desde, hasta: r.hasta });
+/** La hoja de una campaña nueva: vacía. */
+export const borradorNuevo = (): BorradorCampana => ({ etiquetaId: null, nombre: "", desde: "", hasta: "" });
+/** El nombre del plan de una campaña nueva: el de la campaña con el año en que termina, como lo pone la base. */
+export const nombreDelPlanNuevo = (b: Pick<BorradorCampana, "nombre" | "hasta">): string => `${b.nombre.replace(/\s+/g, " ").trim()} ${b.hasta.slice(0, 4)}`;
 
 /** Un nombre de plan para compararlo con otro: sin tildes, sin mayúsculas y con un solo espacio entre palabras. «Navídad  2026» y «navidad 2026»
  *  son el mismo nombre en el selector (chaos 2026-10-10: convivían). */
 export const nombreComparable = (t: string) => sinTildes(t).replace(/\s+/g, " ").trim();
 
-/** Lo que impide crear la campaña, campo por campo (vacío = se puede): lo mismo que rechaza `crear_plan_compra`. */
+/**
+ * Lo que impide crear la campaña, campo por campo (vacío = se puede): lo mismo que rechazan `crear_plan_compra` (una del calendario) y
+ * `crear_campana_con_plan` (una nueva). `nombresEnUso`: los nombres de los planes que ya existen.
+ */
 export function problemasDeLaCampana(b: BorradorCampana, etiquetas: readonly EtiquetaCampana[], nombresEnUso: readonly string[] = []): Partial<Record<CampoCampana, string>> {
   const p: Partial<Record<CampoCampana, string>> = {};
-  const e = etiquetas.find((x) => x.id === b.etiquetaId);
-  if (!e) p.etiqueta = "Elige la campaña de Etiquetas que vas a planificar.";
-  else if (e.planId) p.etiqueta = "Esa campaña ya tiene su plan: ábrelo desde el selector.";
-  const nombre = b.nombre.trim();
-  if (!nombre) p.nombre = "Ponle un nombre al plan.";
-  else if (nombresEnUso.some((n) => nombreComparable(n) === nombreComparable(nombre))) p.nombre = "Ya hay un plan con ese nombre: ponle otro.";
+  const nombre = b.nombre.replace(/\s+/g, " ").trim();
+  const anio = fechaIso(b.hasta) ? Number(b.hasta.slice(0, 4)) : null;
+  const enUso = (n: string) => nombresEnUso.some((x) => nombreComparable(x) === nombreComparable(n));
+  if (b.etiquetaId !== null) {
+    const e = etiquetas.find((x) => x.id === b.etiquetaId);
+    if (!e) p.etiqueta = "Esa campaña ya no está en Etiquetas: vuelve a elegirla en el selector.";
+    else if (anio !== null && tienePlanEn(e, anio, [])) p.etiqueta = `Esa campaña ya tiene su plan de ${anio}: ábrelo desde el selector.`;
+    if (!nombre) p.nombre = "Ponle un nombre al plan.";
+    else if (enUso(nombre)) p.nombre = "Ya hay un plan con ese nombre: ponle otro.";
+  } else if (!nombre) {
+    p.nombre = "Escribe el nombre de la campaña.";
+  } else if (etiquetas.some((e) => nombreComparable(e.nombre) === nombreComparable(nombre))) {
+    const e = etiquetas.find((x) => nombreComparable(x.nombre) === nombreComparable(nombre))!;
+    // Una sin fechas no se puede elegir en el selector (sale apagada): se le dice dónde ponérselas.
+    p.nombre = e.desde
+      ? `«${e.nombre}» ya está en el calendario: elígela en el selector.`
+      : `«${e.nombre}» ya está en Etiquetas, sin fechas: pónselas en Catálogo ▸ Etiquetas («Configurar campaña») y saldrá en el calendario.`;
+  } else if (anio !== null && enUso(nombreDelPlanNuevo(b))) {
+    p.nombre = `Ya hay un plan «${nombreDelPlanNuevo(b)}»: ponle otro nombre a la campaña.`;
+  }
   if (!fechaIso(b.desde)) p.desde = "Escribe desde cuándo empieza.";
   if (!fechaIso(b.hasta)) p.hasta = "Escribe hasta cuándo dura.";
   else if (fechaIso(b.desde) && b.hasta < b.desde) p.hasta = "La campaña no puede terminar antes de empezar.";
   return p;
 }
 
-/** Los argumentos de `crear_plan_compra`. */
+/** Los argumentos de `crear_plan_compra` (una campaña del calendario). */
 export const argsCrearCampana = (b: BorradorCampana) => ({ p_etiqueta_id: b.etiquetaId, p_nombre: b.nombre.replace(/\s+/g, " ").trim() || null, p_desde: b.desde, p_hasta: b.hasta });
+/** Los argumentos de `crear_campana_con_plan` (una campaña nueva). */
+export const argsCampanaNueva = (b: BorradorCampana) => ({ p_nombre: b.nombre.replace(/\s+/g, " ").trim(), p_desde: b.desde, p_hasta: b.hasta });
 
-/** Si las fechas del plan no son las de su etiqueta, lo dice (la diferencia nunca es silenciosa); si coinciden, null. */
+/** Si las fechas del plan no son las de su campaña ESE AÑO, lo dice (la diferencia nunca es silenciosa); si coinciden o no hay con qué comparar, null. */
 export function diferenciaConLaEtiqueta(b: Pick<BorradorCampana, "desde" | "hasta">, e: Pick<EtiquetaCampana, "nombre" | "desde" | "hasta"> | undefined): string | null {
-  if (!e || (b.desde === e.desde && b.hasta === e.hasta)) return null;
-  return `«${e.nombre}» en Etiquetas va del ${fechaCortaES(e.desde)} al ${fechaCortaES(e.hasta)}. Un plan de compra puede ser más ancho que la campaña de venta: ajusta las fechas solo si lo quieres así.`;
+  if (!e || !fechaIso(b.hasta)) return null;
+  const f = fechasDelAnio(e, Number(b.hasta.slice(0, 4)));
+  if (!f || (b.desde === f.desde && b.hasta === f.hasta)) return null;
+  return `«${e.nombre}» en Etiquetas va del ${fechaCortaES(f.desde)} al ${fechaCortaES(f.hasta)}. Un plan de compra puede ser más ancho que la campaña de venta: ajusta las fechas solo si lo quieres así.`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -971,4 +1063,55 @@ export function campanasDelSelector(planes: readonly CampanaPlan[], hoy: string)
     ...porVenir.map((campana) => ({ campana, grupo: `Por venir · ${campana.desde.slice(0, 4)}` })),
     ...terminadas.map((campana) => ({ campana, grupo: "Terminadas" })),
   ];
+}
+
+/** Una fila del selector: un plan que se abre, una campaña del calendario que se arma, o una sin fechas (solo se lee). */
+export type EntradaSelector =
+  | { tipo: "plan"; campana: CampanaPlan; grupo: string }
+  | { tipo: "calendario"; ranura: RanuraCalendario; grupo: string }
+  | { tipo: "sin-fechas"; etiqueta: EtiquetaCampana; grupo: string };
+
+/** El orden de los grupos: en curso, por venir (por año), terminadas y, al final, las que no tienen fechas. */
+function rangoDeGrupo(g: string): number {
+  if (g === "En curso") return 0;
+  const m = /^Por venir · (\d{4})$/.exec(g);
+  if (m) return Number(m[1]);
+  return g === "Terminadas" ? 99_998 : 99_999;
+}
+
+/**
+ * El selector como CALENDARIO (Felipe 2026-10-12, opción A): los planes de siempre más las campañas de Etiquetas que todavía no tienen plan este
+ * año o el que viene, cada una en su grupo, y —solo para quien puede armar— las que no tienen fechas. Los grupos quedan seguidos (el combo los
+ * dibuja con un título por tanda) y, dentro de cada uno, por fecha.
+ */
+export function calendarioDelSelector(c: Pick<CampanasLeidas, "etiquetas" | "planes">, hoy: string, conSinFechas: boolean): EntradaSelector[] {
+  const desde = (x: EntradaSelector) => (x.tipo === "plan" ? x.campana.desde : x.tipo === "calendario" ? x.ranura.desde : "9999");
+  const nombre = (x: EntradaSelector) => (x.tipo === "plan" ? x.campana.nombre : x.tipo === "calendario" ? x.ranura.nombre : x.etiqueta.nombre);
+  const enCurso = (r: RanuraCalendario) => estadoCampana(hoy, r.desde, r.hasta) === "durante";
+  const todas: EntradaSelector[] = [
+    ...campanasDelSelector(c.planes, hoy).map(({ campana, grupo }) => ({ tipo: "plan" as const, campana, grupo })),
+    ...ranurasSinPlan(c, hoy).map((ranura) => ({ tipo: "calendario" as const, ranura, grupo: enCurso(ranura) ? "En curso" : `Por venir · ${ranura.desde.slice(0, 4)}` })),
+    ...(conSinFechas ? campanasSinFechas(c).map((etiqueta) => ({ tipo: "sin-fechas" as const, etiqueta, grupo: "Sin fechas en Etiquetas" })) : []),
+  ];
+  // Las terminadas, de la más reciente a la más vieja (como antes); el resto, por fecha.
+  return todas.sort((a, b) => {
+    const r = rangoDeGrupo(a.grupo) - rangoDeGrupo(b.grupo);
+    if (r !== 0) return r;
+    const f = a.grupo === "Terminadas" ? desde(b).localeCompare(desde(a)) : desde(a).localeCompare(desde(b));
+    return f || nombre(a).localeCompare(nombre(b), "es");
+  });
+}
+
+/**
+ * La tienda que la persona tiene elegida en la cabecera, si es una de las que se miran (Felipe 2026-10-12: Resultados e Historial arrancan en
+ * la sede en la que estás). En CAYLA Global, en el Taller o el Almacén, o en una sede que no aparece: null, y se ve toda CAYLA.
+ */
+export function tiendaDeLaCabecera(sede: string | null, tiendas: readonly { id: string }[]): string | null {
+  return sede && tiendas.some((t) => t.id === sede) ? sede : null;
+}
+
+/** Las tiendas con la de la cabecera primero y las demás en su orden (Historial: tu tienda es la primera columna). */
+export function laDeLaCabeceraPrimero<T extends { id: string }>(tiendas: readonly T[], sede: string | null): T[] {
+  const i = sede ? tiendas.findIndex((t) => t.id === sede) : -1;
+  return i <= 0 ? [...tiendas] : [tiendas[i], ...tiendas.filter((_, k) => k !== i)];
 }

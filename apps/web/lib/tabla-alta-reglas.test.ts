@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { claveCelda, construirCeldas } from "./alta-producto";
 import {
+  cambiosDeRelleno,
+  celdaSinPrecio,
+  celdaVecina,
+  columnasEditables,
   costoDistinto,
   leyendaVariantes,
   limpiarPrecio,
   llenarTodas,
   montoDeCelda,
+  movimientoDeTecla,
+  nombreCelda,
   pasoCantidad,
   precioDistinto,
+  precioPropioInvalido,
   textoCostoBase,
   textoFotosDeFila,
   textoPrecioBase,
@@ -129,7 +136,7 @@ describe("precios de la tabla", () => {
   });
 
   it("vacía = S/ precio de venta", () => {
-    expect(textoPrecioBase("89.9")).toBe("S/ 89.90");
+    expect(textoPrecioBase("89.9")).toBe("S/\u00a089.90");
     expect(textoPrecioBase("")).toBe("el precio de venta");
   });
 });
@@ -146,7 +153,7 @@ describe("costos de la tabla", () => {
   });
 
   it("vacía = S/ costo de arriba, o sin costo (es opcional)", () => {
-    expect(textoCostoBase("1.2")).toBe("S/ 1.20");
+    expect(textoCostoBase("1.2")).toBe("S/\u00a01.20");
     expect(textoCostoBase("")).toBe("sin costo");
     expect(textoCostoBase("0")).toBe("sin costo");
   });
@@ -172,5 +179,160 @@ describe("textoFotosDeFila", () => {
     expect(textoFotosDeFila(0, true)).toBe("usa la de todos");
     expect(textoFotosDeFila(1, true)).toBe("1 foto");
     expect(textoFotosDeFila(3, false)).toBe("3 fotos");
+  });
+});
+
+describe("celdaSinPrecio — un 0 escrito en una celda de «Precios» no crea la variante a S/ 0 (ADR-0384)", () => {
+  const celdas = construirCeldas(["s", "m"], ["NEG", "BEI"]);
+  const clave = (talla: string, color: string) => claveCelda(talla, color);
+
+  it("vacía no cuenta: toma el precio de todas, que se revisa aparte", () => {
+    expect(celdaSinPrecio(celdas, {})).toBeNull();
+    expect(celdaSinPrecio(celdas, { [clave("m", "NEG")]: "  " })).toBeNull();
+    expect(precioPropioInvalido(undefined)).toBe(false);
+    expect(precioPropioInvalido("")).toBe(false);
+  });
+
+  it("un precio mayor que 0 sirve; 0, 0.00 y lo que no es número no", () => {
+    expect(precioPropioInvalido("59.90")).toBe(false);
+    expect(precioPropioInvalido("0.01")).toBe(false);
+    for (const malo of ["0", "0.00", ".", "abc"]) expect(precioPropioInvalido(malo)).toBe(true);
+  });
+
+  it("devuelve la PRIMERA celda en 0, en el orden de la tabla (color por color, talla por talla)", () => {
+    const precios = { [clave("m", "BEI")]: "0", [clave("s", "NEG")]: "79.90", [clave("m", "NEG")]: "0" };
+    expect(celdaSinPrecio(celdas, precios)?.clave).toBe(clave("m", "NEG"));
+  });
+
+  it("una celda quitada de la tabla no cuenta: no se crea", () => {
+    const incluidas = celdas.filter((c) => c.clave !== clave("m", "NEG"));
+    expect(celdaSinPrecio(incluidas, { [clave("m", "NEG")]: "0" })).toBeNull();
+  });
+});
+
+describe("nombreCelda — la celda se llama igual en la tabla y en «Falta»", () => {
+  it("color en talla; sin color o sin talla, lo dice", () => {
+    expect(nombreCelda("Negro", "M")).toBe("Negro en M");
+    expect(nombreCelda(null, "M")).toBe("Sin color en M");
+    expect(nombreCelda("Negro", null)).toBe("Negro en Única");
+    expect(nombreCelda(undefined, undefined)).toBe("Sin color en Única");
+  });
+});
+
+describe("movimientoDeTecla (el teclado de la tabla de cantidades, ADR-0396 A2)", () => {
+  const tecla = (key: string, o: Partial<{ shiftKey: boolean; altKey: boolean; ctrlKey: boolean; metaKey: boolean }> = {}) => ({ key, shiftKey: false, altKey: false, ctrlKey: false, metaKey: false, ...o });
+
+  it("Enter y ↓ bajan; Shift+Enter y ↑ suben; solo Enter pasa a la talla siguiente al llegar al fondo", () => {
+    expect(movimientoDeTecla(tecla("Enter"))).toEqual({ sentido: 1, envolver: true });
+    expect(movimientoDeTecla(tecla("ArrowDown"))).toEqual({ sentido: 1, envolver: false });
+    expect(movimientoDeTecla(tecla("Enter", { shiftKey: true }))).toEqual({ sentido: -1, envolver: true });
+    expect(movimientoDeTecla(tecla("ArrowUp"))).toEqual({ sentido: -1, envolver: false });
+  });
+
+  it("con Alt, Ctrl o Meta la tecla es del navegador (atajos): no se mueve nada", () => {
+    for (const mod of ["altKey", "ctrlKey", "metaKey"] as const) {
+      expect(movimientoDeTecla(tecla("Enter", { [mod]: true }))).toBeNull();
+      expect(movimientoDeTecla(tecla("ArrowDown", { [mod]: true }))).toBeNull();
+    }
+  });
+
+  it("Shift+flecha selecciona texto (no se mueve) y cualquier otra tecla es del campo", () => {
+    expect(movimientoDeTecla(tecla("ArrowDown", { shiftKey: true }))).toBeNull();
+    expect(movimientoDeTecla(tecla("ArrowUp", { shiftKey: true }))).toBeNull();
+    for (const k of ["Tab", "ArrowLeft", "ArrowRight", "a", "7", "Escape", "Backspace", " "]) expect(movimientoDeTecla(tecla(k))).toBeNull();
+  });
+});
+
+describe("columnasEditables y celdaVecina", () => {
+  const TALLAS = ["S", "M", "L"];
+  const COLORES = ["NEG", "CRU", "PRO"];
+  const celdas = construirCeldas(TALLAS, COLORES);
+  const k = (talla: string, color: string) => claveCelda(talla, color);
+  const abajo = { sentido: 1, envolver: false } as const;
+  const arriba = { sentido: -1, envolver: false } as const;
+  const enter = { sentido: 1, envolver: true } as const;
+  const shiftEnter = { sentido: -1, envolver: true } as const;
+
+  it("una lista por talla, con las celdas de cada color de arriba abajo", () => {
+    expect(columnasEditables(COLORES, TALLAS, celdas, new Set())).toEqual([
+      [k("S", "NEG"), k("S", "CRU"), k("S", "PRO")],
+      [k("M", "NEG"), k("M", "CRU"), k("M", "PRO")],
+      [k("L", "NEG"), k("L", "CRU"), k("L", "PRO")],
+    ]);
+  });
+
+  it("salta las quitadas y las que el modelo no tiene; una columna entera rayada se omite", () => {
+    const excluidas = new Set([k("M", "CRU"), k("L", "NEG"), k("L", "CRU"), k("L", "PRO")]);
+    const sinProLM = celdas.filter((c) => !(c.color === "PRO" && c.tallaId === "M"));
+    expect(columnasEditables(COLORES, TALLAS, sinProLM, excluidas)).toEqual([
+      [k("S", "NEG"), k("S", "CRU"), k("S", "PRO")],
+      [k("M", "NEG")],
+    ]);
+  });
+
+  it("una sola fila y una sola columna", () => {
+    expect(columnasEditables(["NEG"], TALLAS, celdas, new Set())).toEqual([[k("S", "NEG")], [k("M", "NEG")], [k("L", "NEG")]]);
+    expect(columnasEditables(COLORES, ["M"], celdas, new Set())).toEqual([[k("M", "NEG"), k("M", "CRU"), k("M", "PRO")]]);
+  });
+
+  it("sin colores ni tallas es UNA celda: el eje nulo cuenta como una fila y una columna", () => {
+    const unica = construirCeldas([], []);
+    expect(columnasEditables([null], [null], unica, new Set())).toEqual([[claveCelda(null, null)]]);
+  });
+
+  const columnas = columnasEditables(COLORES, TALLAS, celdas, new Set([k("M", "CRU")]));
+
+  it("↓ baja dentro de la talla, salta la celda quitada y NO envuelve: al fondo se queda", () => {
+    expect(celdaVecina(columnas, k("S", "NEG"), abajo)).toBe(k("S", "CRU"));
+    expect(celdaVecina(columnas, k("M", "NEG"), abajo)).toBe(k("M", "PRO"));
+    expect(celdaVecina(columnas, k("S", "PRO"), abajo)).toBeNull();
+  });
+
+  it("↑ sube dentro de la talla y NO envuelve: arriba se queda", () => {
+    expect(celdaVecina(columnas, k("S", "PRO"), arriba)).toBe(k("S", "CRU"));
+    expect(celdaVecina(columnas, k("M", "PRO"), arriba)).toBe(k("M", "NEG"));
+    expect(celdaVecina(columnas, k("S", "NEG"), arriba)).toBeNull();
+  });
+
+  it("Enter al fondo pasa a la primera celda de la talla siguiente; en la última celda de todas se acaba", () => {
+    expect(celdaVecina(columnas, k("S", "PRO"), enter)).toBe(k("M", "NEG"));
+    expect(celdaVecina(columnas, k("M", "PRO"), enter)).toBe(k("L", "NEG"));
+    expect(celdaVecina(columnas, k("L", "PRO"), enter)).toBeNull();
+  });
+
+  it("Shift+Enter arriba pasa a la última celda de la talla anterior; en la primera de todas se acaba", () => {
+    expect(celdaVecina(columnas, k("M", "NEG"), shiftEnter)).toBe(k("S", "PRO"));
+    expect(celdaVecina(columnas, k("L", "NEG"), shiftEnter)).toBe(k("M", "PRO"));
+    expect(celdaVecina(columnas, k("S", "NEG"), shiftEnter)).toBeNull();
+  });
+
+  it("una clave que no está en la tabla (la celda quitada, una ajena, vacía) no adivina a dónde ir", () => {
+    expect(celdaVecina(columnas, k("M", "CRU"), enter)).toBeNull();
+    expect(celdaVecina(columnas, "ajena", enter)).toBeNull();
+    expect(celdaVecina(columnas, "", abajo)).toBeNull();
+    expect(celdaVecina([], k("S", "NEG"), enter)).toBeNull();
+  });
+});
+
+describe("cambiosDeRelleno («Llenar todas con»)", () => {
+  const celdas = construirCeldas(["S", "M"], ["NEG", "BLA"]);
+  const excluidas = new Set([claveCelda("M", "BLA")]);
+
+  it("con un número lo pone en todas las que siguen en la tabla (también «007» como 7), sea cual sea la pantalla", () => {
+    const esperado = [claveCelda("S", "NEG"), claveCelda("M", "NEG"), claveCelda("S", "BLA")].map((clave) => ({ clave, valor: "7" }));
+    expect(cambiosDeRelleno(celdas, excluidas, "007", true)).toEqual(esperado);
+    expect(cambiosDeRelleno(celdas, excluidas, "007", false)).toEqual(esperado);
+  });
+
+  it("vacía (borrada o con una tecla que no es dígito): Nuevo producto deja vacías esas celdas; Nueva orden no toca nada", () => {
+    for (const texto of ["", "a", "-", " ", "e"]) {
+      expect(cambiosDeRelleno(celdas, excluidas, texto, true)).toHaveLength(3);
+      expect(cambiosDeRelleno(celdas, excluidas, texto, true).every((c) => c.valor === "")).toBe(true);
+      expect(cambiosDeRelleno(celdas, excluidas, texto, false)).toEqual([]);
+    }
+  });
+
+  it("un «0» sí se aplica: es la forma de dejar todo en cero a propósito", () => {
+    expect(cambiosDeRelleno(celdas, excluidas, "0", false).every((c) => c.valor === "0")).toBe(true);
   });
 });

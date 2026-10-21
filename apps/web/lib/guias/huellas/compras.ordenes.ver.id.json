@@ -1,0 +1,64 @@
+{
+  "guia": "compras.ordenes.ver.id",
+  "ruta": "/compras/ordenes/ver/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 42,
+  "controles": {
+    "app/(app)/compras/ordenes/ver/[id]/page.tsx": [
+      "Volver «/compras/ordenes»",
+      "BotonEnlace «Ver las órdenes de compra»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
+    ],
+    "components/ordenes-compra/AccionesOrden.tsx": [
+      "BotonImprimir «También sirve para guardar la orden en PDF»",
+      "BotonEnlace «orden.registrar-comprobante»",
+      "BotonEnlace «orden.enviar»",
+      "Boton «Anular orden»",
+      "CampoTexto «Por qué se anula»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/ordenes-compra/BotonEditarOrden.tsx": [
+      "BotonEditar «{`/compras/ordenes/editar/${id}»"
+    ],
+    "components/ordenes-compra/ComprobantesDeOrden.tsx": [
+      "Boton «orden.anular-comprobante»",
+      "CampoTexto «Por qué se anula»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/ordenes-compra/EnviosDeOrden.tsx": [
+      "Boton «orden.anular-envio»",
+      "CampoTexto «Por qué se anula»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Recargar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/ordenes-compra/GastoDelViaje.tsx": [
+      "Boton «{guia}»",
+      "SegmentoDeslizante «Para qué fue»",
+      "SegmentoDeslizante «Qué pagaste»",
+      "CampoSelect «Qué pagaste»",
+      "CampoMonto «¿Cuánto costó?»",
+      "CampoFecha «¿Cuándo?»",
+      "SegmentoDeslizante «Qué papel te dieron»",
+      "CampoSelect «Qué papel te dieron»",
+      "CampoTexto «Serie y número»",
+      "CampoTexto «RUC de quien te lo dio»",
+      "button «{`Quitar ${o.numero}»",
+      "ComboBuscable «{paraAgregar}»",
+      "Boton «→() => setAgregando(true)»",
+      "SegmentoDeslizante «Cómo pagaste»",
+      "CampoSelect «Cómo pagaste»",
+      "CampoTexto «{concepto === \"otro\" ? \"¿Qué se pagó?\" : \"Nota\"}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ]
+  }
+}

@@ -67,7 +67,7 @@ export function EditorDecision({
   onCancelar?: () => void;
 }) {
   return (
-    <div role="group" aria-label={`Qué pasó con lo que falta de ${nombre}`} className="anim-revelar mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl border border-ambar/40 bg-ambar/[0.06] px-4 py-2.5">
+    <div /* unificar-fijo: la pregunta con sus píldoras para elegir, no un aviso */ role="group" aria-label={`Qué pasó con lo que falta de ${nombre}`} className="anim-revelar mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl border border-ambar/40 bg-ambar/[0.06] px-4 py-2.5">
       <span className="mr-1 text-[13px] text-tinta">
         ¿Qué pasó con {faltan === 1 ? "la" : `las ${faltan}`} que {faltan === 1 ? "falta" : "faltan"}?
       </span>
@@ -80,7 +80,7 @@ export function EditorDecision({
         </Pildora>
       ))}
       {onCancelar && (
-        <button type="button" onClick={onCancelar} className="label-cayla ml-1 text-[11px] text-tinta/65 hover:text-rojo">
+        <button type="button" onClick={onCancelar} className="btn-cayla btn-secundario ml-1 h-8 px-3">
           Cancelar
         </button>
       )}
@@ -93,7 +93,7 @@ export function ResumenDecision({ decision, onEditar }: { decision: Decision; on
   return (
     <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
       <span className={`text-[11px] leading-tight ${decision === "espero" ? "text-tinta/65" : "font-semibold text-tinta"}`}>{etiquetaDecision(decision)}</span>
-      <button type="button" onClick={onEditar} className="label-cayla text-[10px] text-rojo hover:underline">
+      <button type="button" onClick={onEditar} className="btn-cayla btn-enlace text-[11px]">
         Editar
       </button>
     </span>

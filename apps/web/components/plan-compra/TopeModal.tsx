@@ -16,7 +16,7 @@ import { camposDelTope } from "@/lib/plan-compra-guia";
 import { RPC_GUARDAR_TOPE, argsGuardarTope, solesES } from "@/lib/plan-compra-reglas";
 
 // El tope de inversión de una campaña (ADR-0372, B2): cuánto se decidió invertir, al costo. La pantalla lo compara con lo que suman las
-// categorías con plan y AVISA si te pasas; nunca bloquea un plan. Solo un líder lo fija (la base lo exige también). Guía de foco
+// categorías con plan y AVISA si te pasas; nunca bloquea un plan. Lo fija quien tiene el módulo Plan de campaña (la base lo exige también; ADR-0387: ya no solo un líder). Guía de foco
 // (ADR-0284): `camposDelTope` sale de la misma regla (`problemaDelTope`) que la base. «Quitar el tope» deja la campaña sin tope.
 
 export function TopeModal({ planId, planNombre, topeActual, onClose }: { planId: string; planNombre: string; topeActual: number | null; onClose: () => void }) {
@@ -48,7 +48,7 @@ export function TopeModal({ planId, planNombre, topeActual, onClose }: { planId:
   }
 
   return (
-    <Modal titulo="Tope de inversión" subtitulo={`Cuánto invertir al costo en ${planNombre}. Te avisamos si el plan se pasa; nunca te impide guardarlo.`} onClose={onClose} variante="hoja" ancho="max-w-md">
+    <Modal titulo="Tope de inversión" subtitulo={`Cuánto invertir al costo en ${planNombre}. Te avisamos si el plan se pasa; nunca te impide guardarlo.`} onClose={onClose} variante="hoja">
       {(cerrar) => (
         <form
           onSubmit={(e) => {
@@ -65,7 +65,7 @@ export function TopeModal({ planId, planNombre, topeActual, onClose }: { planId:
           </CampoGuiado>
           <div className="pie-hoja-fijo">
             <PieGuia guia={guia} listo="Todo listo para guardar." />
-            <div className="flex flex-wrap justify-end gap-3 pt-2">
+            <div className="pie-acciones pt-2">
               {topeActual !== null && (
                 <Boton type="button" peso="peligro" disabled={trabajando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void guardar(null, cerrar)} className="mr-auto">
                   Quitar el tope

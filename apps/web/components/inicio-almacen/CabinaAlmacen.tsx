@@ -1,4 +1,5 @@
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { Anillo } from "@/components/ui/Anillo";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import Link from "next/link";
 import type { CSSProperties } from "react";
@@ -9,6 +10,7 @@ import { CifraAlVer } from "./CifraAlVer";
 import { EnVista } from "./EnVista";
 import { Ico } from "./iconos";
 import { ReintentarLectura } from "./ReintentarLectura";
+import { ChevronRight } from "lucide-react";
 
 // La cabina del Inicio de Almacén (Felipe, 2026-09-30, maqueta docs/maquetas/inicio-almacen-2026-09/): «Nuevo producto» con
 // su botón, debajo lo último que se registró (para mirar antes de crear otro igual), y al lado «Sigue ahora».
@@ -41,13 +43,13 @@ export function CabinaAlmacen({
 }) {
   const lista = nuevos ? nuevos.slice(0, 3) : null;
   return (
-    <section className="ia-hero ia-rv" style={{ "--i": 1 } as CSSProperties} aria-label="Nuevo producto">
+    <section className="ia-hero ia-rv" style={{ "--i": 1 } as CSSProperties} aria-label="Nuevo producto" data-guia="inicio.almacen-cabina">
       <i className="ia-aur ia-a" aria-hidden />
       <i className="ia-aur ia-b" aria-hidden />
       <div className="ia-hl">
         <p className="ia-lbl">Registrar mercadería</p>
         <h2>Nuevo producto</h2>
-        <div className="ia-ac">
+        <div className="ia-ac" data-guia="inicio.almacen-crear">
           <Link id="ia-cta" href="/productos/nuevo" className="ia-cta ia-mag">
             <span>Crear producto</span>
             <span className="ia-plus">
@@ -76,7 +78,7 @@ export function CabinaAlmacen({
             </a>
           )}
         </div>
-        <div className="ia-lst">
+        <div className="ia-lst" data-guia="inicio.almacen-ultimos">
           {lista === null ? (
             <p className="ia-rs-msg">
               No se pudo leer lo último registrado. Puedes crear el producto igual.
@@ -97,7 +99,7 @@ export function CabinaAlmacen({
 function FilaReciente({ p }: { p: NuevoProducto }) {
   return (
     <Link href={hrefFichaProducto(p.id)} className="ia-rs">
-      <span className="ia-th">{p.fotoUrl ? <Image src={p.fotoUrl} alt="" fill sizes="44px" unoptimized /> : <SinFoto tamano="h-full w-full !rounded-none" colorHex={colorUnico(p.colores)} {...categoriaDe(p)} />}</span>
+      <span className="ia-th">{p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl} alt="" fill sizes="44px" fallback={<SinFoto tamano="h-full w-full !rounded-none" colorHex={colorUnico(p.colores)} {...categoriaDe(p)} />} /> : <SinFoto tamano="h-full w-full !rounded-none" colorHex={colorUnico(p.colores)} {...categoriaDe(p)} />}</span>
       <div className="ia-mtx">
         <p className="ia-nm">{p.referencia}</p>
         <p className="ia-mt">
@@ -109,7 +111,10 @@ function FilaReciente({ p }: { p: NuevoProducto }) {
           </span>
         </p>
       </div>
-      <span className="ia-ya">Ver →</span>
+      <span className="ia-ya inline-flex items-center gap-0.5">
+        Ver
+        <ChevronRight aria-hidden className="h-3.5 w-3.5" />
+      </span>
     </Link>
   );
 }
@@ -129,10 +134,7 @@ function SigueAhora({
 }) {
   const aro = (
     <div className="ia-fila">
-      <svg className="ia-ring" viewBox="0 0 44 44" aria-hidden>
-        <circle className="ia-bg" cx="22" cy="22" r="18" pathLength="100" />
-        <circle className="ia-fg" cx="22" cy="22" r="18" pathLength="100" style={{ "--off": 100 - avance.pct } as CSSProperties} />
-      </svg>
+      <Anillo pct={avance.pct} tamano="chico" decorativa />
       <p className="ia-t">
         <b>
           <CifraAlVer valor={avance.alDia} /> de {avance.total}
@@ -144,7 +146,7 @@ function SigueAhora({
 
   if (!ahora) {
     return (
-      <EnVista como="aside" className="ia-ah ia-rv" style={{ "--i": 2 } as CSSProperties}>
+      <EnVista como="aside" className="ia-ah ia-rv" style={{ "--i": 2 } as CSSProperties} guia="inicio.almacen-sigue">
         <p className="ia-lbl">
           <i className={hayColaSinLeer ? "ia-toca" : "ia-ok"} />
           Sigue ahora
@@ -178,7 +180,7 @@ function SigueAhora({
   }
 
   return (
-    <EnVista como="aside" className="ia-ah ia-rv" style={{ "--i": 2 } as CSSProperties}>
+    <EnVista como="aside" className="ia-ah ia-rv" style={{ "--i": 2 } as CSSProperties} guia="inicio.almacen-sigue">
       <p className="ia-lbl">
         <i className={ahora.nivel === "urgente" ? "" : "ia-toca"} />
         Sigue ahora

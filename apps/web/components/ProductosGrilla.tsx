@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { Chip } from "@/components/ui/Chip";
 import { MarcaProveedorLinea } from "@/components/MarcaProveedorLinea";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
@@ -12,6 +11,9 @@ import { colorPrincipal, coloresDe, rangoSoles, variantesQueSeVenden } from "@/l
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { SwatchesColor } from "@/components/ProductoPiezas";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { precargarMiniaturas } from "@/components/ui/precargar-miniaturas";
+import { SIZES_TARJETA_PRODUCTOS as SIZES_FOTO, SIZES_VISTA_RAPIDA } from "@/lib/fotos-tamanos";
 import {
   alertaDeStock,
   textoDeStock,
@@ -186,6 +188,18 @@ function TarjetaProducto({
 
   const nombreActivo = colorHover ?? colorFijo ?? colorPrincipal(colores)?.nombre ?? null;
   const activo = colores.find((c) => c.nombre === nombreActivo) ?? null;
+  const sinFoto = (
+    <>
+      {/* Sin foto de ese color: el ícono de su categoría sobre el color (`MosaicoPrenda`, ADR-0333). La capa absoluta es de este
+          contenedor: el mosaico trae su propio `relative`. */}
+      <div className="absolute inset-0">
+        <MosaicoPrenda forma="relleno" colorHex={activo?.hex} {...categoriaDe(producto)} className="h-full w-full !rounded-none transition-colors duration-300" />
+      </div>
+      <span className="label-cayla absolute right-2.5 top-2.5 rounded-full bg-papel/85 px-2 py-1 text-[9px] text-tinta/70">
+        Muestra{activo ? ` — ${activo.nombre}` : ""}
+      </span>
+    </>
+  );
 
   // Una prenda descontinuada no dispara alertas y se ve como tal; «Sin stock» no es rojo (lib/productos-stock.ts).
   // /70 y no /55: el número de una descontinuada con stock (una liquidación) es justo el que más hay que poder leer.
@@ -197,27 +211,24 @@ function TarjetaProducto({
   const enSede = stock && stock !== "error" ? unidadesEnSede(stock, producto.variantes.map((v) => v.varianteId)) : null;
 
   return (
-    <div className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
+    <div
+      data-guia="productos.tarjeta"
+      // Con el mouse encima, las fotos de los otros colores empiezan a bajar: cuando toque un punto de color, la foto ya está.
+      onPointerEnter={(e) => {
+        if (e.pointerType !== "mouse") return;
+        // La foto de la vista rápida (la del color que se ve ahora) se adelanta: un clic abre la hoja con la foto ya lista.
+        precargarMiniaturas([activo?.fotoUrl], SIZES_VISTA_RAPIDA);
+        precargarMiniaturas(colores.map((c) => c.fotoUrl), SIZES_FOTO);
+      }}
+      className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
+    >
       <button
         type="button"
         onClick={() => setVistaRapida(true)}
         aria-label={`Vista rápida de ${producto.referencia}${descontinuado ? " (descontinuado)" : ""}`}
         className="relative aspect-[4/5] w-full text-left outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-rojo/40 focus-visible:ring-inset"
       >
-        {activo?.fotoUrl ? (
-          <Image src={activo.fotoUrl} alt={`${producto.referencia} — ${activo.nombre}`} fill sizes="(min-width: 1024px) 25vw, 50vw" className="object-cover" unoptimized />
-        ) : (
-          <>
-            {/* Sin foto de ese color: el ícono de su categoría sobre el color (`MosaicoPrenda`, ADR-0333). La capa absoluta es de este
-                contenedor: el mosaico trae su propio `relative`. */}
-            <div className="absolute inset-0">
-              <MosaicoPrenda forma="relleno" colorHex={activo?.hex} {...categoriaDe(producto)} className="h-full w-full !rounded-none transition-colors duration-300" />
-            </div>
-            <span className="label-cayla absolute right-2.5 top-2.5 rounded-full bg-papel/85 px-2 py-1 text-[9px] text-tinta/70">
-              Muestra{activo ? ` — ${activo.nombre}` : ""}
-            </span>
-          </>
-        )}
+        {activo?.fotoUrl ? <ImagenDePrenda src={activo.fotoUrl} alt={`${producto.referencia} — ${activo.nombre}`} fill sizes={SIZES_FOTO} className="object-cover" fondo={activo.hex} fallback={sinFoto} /> : sinFoto}
         {descontinuado && (
           // Abajo a la izquierda: arriba a la derecha ya vive «Muestra — color» y en una tarjeta angosta chocarían.
           // Con fondo propio: sobre una foto oscura, un chip transparente no se lee.
@@ -231,7 +242,7 @@ function TarjetaProducto({
 
       <div className={`flex flex-1 flex-col ${compacta ? "gap-2 px-3 py-3" : "gap-2.5 px-4 py-4"}`}>
         <div>
-          <p className={`font-display leading-tight text-tinta ${compacta ? "text-[14px]" : "text-[17px]"}`}>{producto.referencia}</p>
+          <p data-guia="productos.nombre" className={`font-display leading-tight text-tinta ${compacta ? "text-[14px]" : "text-[17px]"}`}>{producto.referencia}</p>
           <p className="label-cayla mt-0.5 truncate text-[10px] text-tinta/55">
             {compacta ? (producto.codigo ?? "sin código") : `${producto.codigo ?? "sin código"} · ${producto.categoria ?? "sin categoría"}`}
           </p>
@@ -241,7 +252,7 @@ function TarjetaProducto({
         </div>
         <div className="h-px bg-sand" />
         {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
-        <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
+        <div data-guia="productos.precio-stock" className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
           <span className="text-[15px] font-semibold tabular-nums text-tinta">
             {/* El precio de la tienda elegida arriba (su precio propio, si tiene): el que cobra la caja aquí (Felipe 2026-10-10). */}
             {rangoSoles(variantesQueSeVenden(producto.variantes).map((v) => preciosAqui?.[v.varianteId] ?? v.precio)) ?? "—"}
@@ -289,7 +300,7 @@ function TarjetaProducto({
             {[lineas.detalle, ...lineas.avisos].filter(Boolean).join(" · ")}
           </p>
         )}
-        <div className="flex items-center justify-between gap-2">
+        <div data-guia="productos.colores" className="flex items-center justify-between gap-2">
           <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} max={3} onMas={() => setVistaRapida(true)} />
           <span className="min-w-0 truncate text-right text-[11px] text-tinta/55" title={activo?.nombre ?? undefined}>{activo?.nombre ?? ""}</span>
         </div>

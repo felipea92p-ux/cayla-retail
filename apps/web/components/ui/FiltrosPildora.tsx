@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, FunnelX, Minus, SearchX, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
-import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
-import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, filtrarCombo, tramosPorGrupo } from "@/lib/combo-reglas";
 import { TODOS, alternarEnLista, textoPildora, textoPildoraVarias, type EstadoCasilla } from "@/lib/pildora-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 
@@ -24,60 +23,41 @@ import { Vacio } from "@/components/ui/Vacio";
 
 export { TODOS };
 
-/** El botón "Filtros · N" que abre/cierra el panel — mismo alto y mismo
- *  ritmo vertical que el campo de búsqueda al lado (ver comentario en cada
- *  consumidor sobre el `<span>` de etiqueta transparente que los empareja). */
+/** El botón «Filtros» que abre y cierra el panel (ADR-0358, ronda 10: Felipe lo eligió tocándolo el 2026-10-13): una píldora más, con la
+ *  cara de las que abre —borde arena, su ícono y su nombre en letra normal; abierto, borde tinta y la flecha roja—. Cuántos filtros hay
+ *  puestos va en el globito de los títulos y las pestañas (`titulo-cuenta`), que entra subiendo con el primero. Antes eran dos caras: «FILTROS
+ *  · 1» en versalitas y, en Existencias, un cuadrado solo ícono con una cifra negra en la esquina. */
 export function BotonFiltros({
   abierto,
   activos,
   onClick,
   soloIcono = false,
+  "data-guia": guia,
 }: {
   abierto: boolean;
   activos: number;
   onClick: () => void;
-  /** Solo el icono, cuadrado y del alto de su fila (Existencias, 2026-10-06): el nombre va como etiqueta y al pasar el mouse, y
-   *  cuántos filtros hay puestos, en una cifra sobre la esquina. Las demás barras siguen con «Filtros · N» en texto. */
+  /** Ancla de la guía (ADR-0389), en el botón mismo. */
+  "data-guia"?: string;
+  /** Bajo `sm`, solo el ícono en un cuadrado de 38 px con un punto si hay filtros puestos, como las demás píldoras (`soloIconoEnCelular`):
+   *  el buscador del celular conserva su ancho (Productos, Existencias). Desde `sm`, la píldora entera. */
   soloIcono?: boolean;
 }) {
-  if (soloIcono) {
-    const nombre = activos > 0 ? `Filtros · ${activos} ${activos === 1 ? "puesto" : "puestos"}` : "Filtros";
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        aria-expanded={abierto}
-        aria-controls="filtros-panel"
-        aria-label={nombre}
-        title={nombre}
-        className={`relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors ${
-          abierto || activos > 0 ? "border-tinta/30 bg-tinta/[0.04] text-tinta" : "border-sand bg-papel text-tinta/65 hover:border-taupe hover:text-tinta"
-        }`}
-      >
-        <SlidersHorizontal aria-hidden className="h-4 w-4" strokeWidth={1.75} />
-        {activos > 0 && (
-          <b aria-hidden className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-tinta px-1 text-[10.5px] font-semibold leading-none tabular-nums text-crema">
-            {activos}
-          </b>
-        )}
-      </button>
-    );
-  }
+  const nombre = activos > 0 ? `Filtros · ${activos} ${activos === 1 ? "puesto" : "puestos"}` : "Filtros";
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-expanded={abierto}
-      aria-controls="filtros-panel"
-      className={`label-cayla mt-1.5 ${ALTO_CONTROL} inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-3.5 text-[11px] transition-colors ${
-        abierto || activos > 0
-          ? "border-tinta/30 bg-tinta/[0.04] text-tinta"
-          : "border-tinta/15 text-tinta/65 hover:border-tinta/25 hover:text-tinta"
-      }`}
-    >
-      <SlidersHorizontal aria-hidden className="h-3.5 w-3.5" />
-      Filtros{activos > 0 ? ` · ${activos}` : ""}
-    </button>
+    <div className={`pildora-filtro shrink-0 ${soloIcono ? "pildora-filtro-icono-celular" : ""}`} data-abierta={abierto ? "" : undefined}>
+      <button type="button" data-guia={guia} onClick={onClick} aria-expanded={abierto} aria-controls="filtros-panel" aria-label={nombre} className="pildora-filtro-boton">
+        <SlidersHorizontal aria-hidden className="pildora-filtro-icono" />
+        {soloIcono && activos > 0 && <span aria-hidden className="pildora-filtro-punto" />}
+        <span className="pildora-filtro-nombre">Filtros</span>
+        {activos > 0 && (
+          <span aria-hidden className="titulo-cuenta pildora-filtro-cuenta">
+            {activos}
+          </span>
+        )}
+        <ChevronDown aria-hidden className="pildora-filtro-flecha" />
+      </button>
+    </div>
   );
 }
 
@@ -87,10 +67,10 @@ export function BotonFiltros({
  *  filas desparejas, la mitad del ancho desperdiciada a los costados de cada una): se quedan en una sola
  *  fila que se desliza en horizontal, como el riel de períodos que ya usan Vender e Historial. Desde
  *  `sm` (640px) hay aire de sobra y vuelve a `flex-wrap`, que se ve mejor con todas a la vista de una. */
-export function PanelPildoras({ children, filas = false }: { children: ReactNode; /** Hijos `FilaPildoras` apilados. */ filas?: boolean }) {
+export function PanelPildoras({ children, filas = false, guia }: { children: ReactNode; /** Hijos `FilaPildoras` apilados. */ filas?: boolean; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   if (filas) {
     return (
-      <div id="filtros-panel" className="anim-revelar flex flex-col divide-y divide-tinta/10 rounded-xl bg-sand/50 p-1 shadow-sm">
+      <div id="filtros-panel" data-guia={guia} className="anim-revelar flex flex-col divide-y divide-tinta/10 rounded-xl bg-sand/50 p-1.5 shadow-sm">
         {children}
       </div>
     );
@@ -98,7 +78,8 @@ export function PanelPildoras({ children, filas = false }: { children: ReactNode
   return (
     <div
       id="filtros-panel"
-      className="anim-revelar scroll-cayla flex flex-nowrap items-center divide-x divide-tinta/10 overflow-x-auto rounded-xl bg-sand/50 p-1 shadow-sm sm:flex-wrap"
+      data-guia={guia}
+      className="anim-revelar scroll-cayla flex flex-nowrap items-center gap-2 overflow-x-auto rounded-xl bg-sand/50 p-2 shadow-sm sm:flex-wrap"
     >
       {children}
     </div>
@@ -114,7 +95,7 @@ export function FilaPildoras({ titulo, children }: { titulo: string; children: R
       <span aria-hidden className="label-cayla shrink-0 px-3 pt-1 text-[10px] text-tinta/45 lg:w-[5.5rem] lg:pt-0">
         {titulo}
       </span>
-      <div className="flex min-w-0 flex-wrap items-center divide-x divide-tinta/10">{children}</div>
+      <div className="flex min-w-0 flex-wrap items-center gap-2 py-1">{children}</div>
     </div>
   );
 }
@@ -148,8 +129,10 @@ type VariasOpciones = {
 };
 
 /** Una opción de la lista. `cantidad`: cuántas prendas trae (Productos, ADR-0308). `grupo` / `hijo`: la fila es el encabezado de un
- *  grupo marcable (una familia) o un elemento dentro de él; `estado` dice cómo se ve su casilla cuando la lista tiene esa jerarquía. */
-type OpcionPildora = OpcionCombo<string> & { cantidad?: number; grupo?: boolean; hijo?: boolean; estado?: EstadoCasilla };
+ *  grupo marcable (una familia) o un elemento dentro de él; `estado` dice cómo se ve su casilla cuando la lista tiene esa jerarquía.
+ *  `apartado`: el título del grupo al que pertenece, como el <optgroup> (el `Opcion.grupo` de Desplegable): las opciones seguidas del
+ *  mismo apartado se listan bajo ese título en versalitas («Cuánto lleva», «Otros», «Temporada» en Frescura; ADR-0358, ronda 9). */
+type OpcionPildora = OpcionCombo<string> & { cantidad?: number; grupo?: boolean; hijo?: boolean; estado?: EstadoCasilla; apartado?: string };
 
 export function DesplegablePildora({
   icono: Icono,
@@ -196,7 +179,8 @@ export function DesplegablePildora({
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {
     if (!mostrarBuscador || !busqueda) return opciones;
-    return filtrarCombo(opciones, busqueda, (o) => ({ texto: o.texto }));
+    // El apartado también se busca, como el grupo de Desplegable: «temporada» encuentra las del apartado Temporada.
+    return filtrarCombo(opciones, busqueda, (o) => ({ texto: o.texto, detalle: o.apartado }));
   }, [opciones, busqueda, mostrarBuscador]);
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
   const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;
@@ -292,7 +276,16 @@ export function DesplegablePildora({
   }
 
   return (
-    <div className={`relative flex items-center ${encoger ? "min-w-0" : ""}`} ref={contenedor}>
+    // La píldora que dice su nombre (ADR-0358, ronda 6: Felipe la eligió tocándola el 2026-10-13): borde arena con su ícono y su
+    // nombre en letra normal; PUESTA (distinta de lo que vale sola), se rellena de tinta, dice lo elegido y lleva su ✕ adentro —como el
+    // filtro por clic de la ronda 1—. Abierta, el borde se afirma y la flecha gira roja. Estilos: app/estilos/campos-y-casillas.css.
+    <div
+      ref={contenedor}
+      className={`pildora-filtro ${encoger ? "min-w-0" : "shrink-0"} ${soloIconoEnCelular ? "pildora-filtro-icono-celular" : ""}`}
+      data-puesta={activa || undefined}
+      data-abierta={abierto || undefined}
+      data-quitable={puedeQuitar || undefined}
+    >
       <button
         ref={disparador}
         type="button"
@@ -302,31 +295,22 @@ export function DesplegablePildora({
         aria-controls={`${id}-lista`}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`label-cayla group relative flex h-9 min-w-0 ${encoger ? "" : "shrink-0"} items-center gap-1.5 whitespace-nowrap text-[11px] transition-colors ${
-          puedeQuitar ? "pl-3 pr-1" : "px-3"
-        } ${activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"} ${soloIconoEnCelular ? "max-sm:h-[38px] max-sm:w-[38px] max-sm:justify-center max-sm:px-0" : ""}`}
+        className="pildora-filtro-boton"
       >
-        <Icono
-          aria-hidden
-          className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"} ${
-            soloIconoEnCelular ? "max-sm:h-4 max-sm:w-4 max-sm:text-tinta/65" : ""
-          }`}
-        />
-        {soloIconoEnCelular && activa && <span aria-hidden className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-tinta sm:hidden" />}
-        {/* «Categoría ▾» sin elegir; «Categoría: Blusas» elegida (Felipe, 2026-10-02): antes decía solo «Todas» y la píldora
-            se distinguía únicamente por el ícono. El valor no se recorta a ciegas: hasta 16rem y con «…». */}
-        <span className={`${activa ? "text-tinta/55" : ""} ${soloIconoEnCelular ? "max-sm:hidden" : ""}`}>
+        <Icono aria-hidden className="pildora-filtro-icono" />
+        {soloIconoEnCelular && activa && <span aria-hidden className="pildora-filtro-punto" />}
+        {/* «Categoría ▾» sin elegir; «Categoría: Blusas» elegida (Felipe, 2026-10-02). El valor no se recorta a ciegas: hasta 16rem y con «…». */}
+        <span className="pildora-filtro-nombre">
           {etiqueta}
           {texto.valor && ":"}
         </span>
         {texto.valor && (
-          <span className={`flex min-w-0 max-w-[16rem] items-center gap-1.5 ${activa ? "text-tinta" : ""} ${soloIconoEnCelular ? "max-sm:hidden" : ""}`}>
+          <span className="pildora-filtro-valor">
             {elegida?.icono && <span className="shrink-0">{elegida.icono}</span>}
             <span className="truncate">{texto.valor}</span>
           </span>
         )}
-        {!puedeQuitar && <ChevronDown aria-hidden className={`h-3 w-3 shrink-0 text-tinta/35 ${soloIconoEnCelular ? "max-sm:hidden" : ""}`} />}
-        <Hilo activo={abierto} reposo={false} />
+        {!puedeQuitar && <ChevronDown aria-hidden className="pildora-filtro-flecha" />}
       </button>
       {puedeQuitar && (
         <button
@@ -338,9 +322,9 @@ export function DesplegablePildora({
             else onValor(valorPorDefecto);
           }}
           aria-label={`Quitar filtro ${etiqueta}`}
-          className={`${soloIconoEnCelular ? "max-sm:hidden" : ""} mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-tinta/45 transition-colors hover:bg-tinta/[0.06] hover:text-rojo`}
+          className="pildora-filtro-quitar"
         >
-          <X aria-hidden className="h-3 w-3" />
+          <X aria-hidden />
         </button>
       )}
 
@@ -400,53 +384,22 @@ export function DesplegablePildora({
                 )}
               </li>
             ) : (
-              mostradas.map((o, i) => {
-                // Con jerarquía (Color), la casilla dice lo que hace la base: familia marcada ⇒ sus tonos ya van incluidos.
-                const marcada = o.estado ? o.estado === "marcada" || o.estado === "cubierta" : marcadas.includes(o.valor);
-                const parcial = o.estado === "parcial";
-                return (
-                  <li
-                    key={o.valor}
-                    data-i={i}
-                    role="option"
-                    aria-selected={marcada || parcial}
-                    onMouseEnter={() => setActivo(i)}
-                    onClick={() => elegir(o)}
-                    className={`relative flex cursor-pointer select-none items-center rounded-md py-2 pr-3 text-sm outline-none transition-colors ${
-                      o.hijo ? "pl-8" : "pl-3"
-                    } ${o.grupo && i > 0 ? "mt-1.5 rounded-t-none border-t border-tinta/10 pt-2.5" : ""} ${
-                      i === activo ? "bg-rojo/10 text-tinta" : "text-tinta"
-                    } ${!varias && o.valor === valor ? "font-semibold" : ""} ${o.grupo ? "font-medium" : ""}`}
-                  >
-                    {varias && (
-                      <span
-                        aria-hidden
-                        className={`mr-2 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border ${
-                          o.estado === "cubierta"
-                            ? "border-tinta/45 bg-tinta/45 text-crema"
-                            : marcada
-                              ? "border-tinta bg-tinta text-crema"
-                              : parcial
-                                ? "border-tinta bg-tinta/10 text-tinta"
-                                : "border-tinta/30"
-                        }`}
-                      >
-                        {marcada && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
-                        {parcial && <Minus className="h-2.5 w-2.5" strokeWidth={3} />}
-                      </span>
-                    )}
-                    {o.icono && <span className="mr-2 inline-block align-middle">{o.icono}</span>}
-                    <span className="align-middle">{o.texto}</span>
-                    {parcial && <span className="sr-only">, algunos tonos marcados</span>}
-                    {o.estado === "cubierta" && <span className="sr-only">, ya incluido en la familia marcada</span>}
-                    {o.cantidad != null && (
-                      <span className="ml-auto pl-4 text-xs tabular-nums text-tinta/45" aria-label={`${o.cantidad} ${o.cantidad === 1 ? "prenda" : "prendas"}`}>
-                        {o.cantidad}
-                      </span>
-                    )}
+              // Los apartados (lib/combo-reglas.ts): un título y sus opciones en un `role="group"`; sin apartado, las filas sueltas de
+              // siempre. El índice de cada fila es el de la lista plana, así las flechas no saben que hay apartados.
+              tramosPorGrupo(mostradas.map((o) => ({ o, grupo: o.apartado }))).map((t, k) =>
+                t.grupo === undefined ? (
+                  <Fragment key={`t${k}`}>{t.items.map(({ o: { o }, i }) => opcion(o, i))}</Fragment>
+                ) : (
+                  <li key={`t${k}`} role="presentation">
+                    <p id={`${id}-g${k}`} aria-hidden className="label-cayla px-3 pb-1 pt-2.5 text-[10px] text-tinta/55">
+                      {t.grupo}
+                    </p>
+                    <ul role="group" aria-labelledby={`${id}-g${k}`}>
+                      {t.items.map(({ o: { o }, i }) => opcion(o, i))}
+                    </ul>
                   </li>
-                );
-              })
+                )
+              )
             )}
           </ul>
         </div>,
@@ -454,6 +407,62 @@ export function DesplegablePildora({
         )}
     </div>
   );
+
+  function opcion(o: OpcionPildora, i: number) {
+    // Con jerarquía (Color), la casilla dice lo que hace la base: familia marcada ⇒ sus tonos ya van incluidos.
+    const marcada = o.estado ? o.estado === "marcada" || o.estado === "cubierta" : marcadas.includes(o.valor);
+    const parcial = o.estado === "parcial";
+    return (
+      <li
+        key={o.valor}
+        data-i={i}
+        role="option"
+        aria-selected={marcada || parcial}
+        onMouseEnter={() => setActivo(i)}
+        onClick={() => elegir(o)}
+        className={`relative flex cursor-pointer select-none items-center rounded-md py-2 pr-3 text-sm outline-none transition-colors ${
+          o.hijo ? "pl-8" : "pl-3"
+        } ${o.grupo && i > 0 ? "mt-1.5 rounded-t-none border-t border-tinta/10 pt-2.5" : ""} ${
+          i === activo ? "bg-rojo/10 text-tinta" : "text-tinta"
+        } ${!varias && o.valor === valor ? "font-medium" : ""} ${o.grupo ? "font-medium" : ""}`}
+      >
+        {/* Una sola opción: la elegida lleva el hilo rojo de canto y su ✓, como toda lista de combo (ADR-0358, ronda 6). */}
+        {!varias && (
+          <span
+            aria-hidden
+            className={`absolute -left-1 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${o.valor === valor ? "scale-y-100" : "scale-y-0"}`}
+          />
+        )}
+        {varias && (
+          <span
+            aria-hidden
+            className={`mr-2 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border ${
+              o.estado === "cubierta"
+                ? "border-tinta/45 bg-tinta/45 text-crema"
+                : marcada
+                  ? "border-tinta bg-tinta text-crema"
+                  : parcial
+                    ? "border-tinta bg-tinta/10 text-tinta"
+                    : "border-tinta/30"
+            }`}
+          >
+            {marcada && <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-2.5 w-2.5" strokeWidth={3} />}
+            {parcial && <Minus /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-2.5 w-2.5" strokeWidth={3} />}
+          </span>
+        )}
+        {o.icono && <span className="mr-2 inline-block align-middle">{o.icono}</span>}
+        <span className="align-middle">{o.texto}</span>
+        {parcial && <span className="sr-only">, algunos tonos marcados</span>}
+        {o.estado === "cubierta" && <span className="sr-only">, ya incluido en la familia marcada</span>}
+        {o.cantidad != null && (
+          <span className="ml-auto pl-4 text-xs tabular-nums text-tinta/45" aria-label={`${o.cantidad} ${o.cantidad === 1 ? "prenda" : "prendas"}`}>
+            {o.cantidad}
+          </span>
+        )}
+        {!varias && o.valor === valor && <Check aria-hidden className={`combo-tilde ${o.cantidad == null ? "ml-auto" : ""}`} />}
+      </li>
+    );
+  }
 }
 
 /** La lista flotante, al ancho de su texto y no al de la píldora (con la píldora de 90 px los nombres de marca se partían en

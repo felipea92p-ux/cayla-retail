@@ -1,0 +1,113 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA (ADR-0408) · «Mi perfil» (Felipe 2026-10-15: «podría estar mejor distribuido, más ordenado y entendible»).
+   Arriba el saludo y cuatro cuadros que dicen de un vistazo cómo están tus pedidos, tu Club, tus favoritos y tus avisos (y llevan a su
+   sección); debajo, una sección por tema, separadas por una línea y todas con la misma cabeza: título, cuántos hay y su «Ver todos». En la
+   computadora, «Mis pedidos» y «Mi Club CAYLA» van lado a lado y lo demás a todo el ancho, con las prendas en el carril con flechas del
+   Inicio: ninguna columna queda vacía y ninguna sección se vuelve una grilla del catálogo. Antes, la tarjeta del Club y «Salir de mi
+   cuenta» ocupaban la primera pantalla del celular y las novedades eran ocho tarjetas grandes en medio del perfil.
+   Prefijo propio `pf-` (las hojas de estilo de la tienda son globales). Solo los tokens de app/globals.css: en oscuro se invierten solos.
+   ===================================================================================================== */
+
+.pf-perfil { display: flex; flex-direction: column; gap: 22px; padding-block: 20px 28px; }
+
+/* ---- El saludo ---- */
+.pf-cab { display: flex; flex-direction: column; gap: 8px; }
+.pf-cab h1 { margin: 2px 0 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: clamp(21.1px, 4.96cqi, 33.5px); line-height: 1.12;  }
+.pf-cab h1 em { font-style: italic; color: var(--rojo); }
+.pf-cab-linea { margin: 0; font-size: 14px; color: var(--tinta-60); }
+.pf-cab .w-nota { margin-top: 6px; }
+
+/* ---- Los cuatro cuadros: dos por fila en el celular, los cuatro en fila desde la tablet. La flecha hacia abajo dice que llevan a su
+   sección, más abajo en la misma página. ---- */
+.pf-atajos ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.pf-atajos li { display: flex; min-width: 0; }
+.pf-atajo { position: relative; flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px; border-radius: 0; border: 1px solid var(--sand); background: var(--papel); color: var(--tinta); transition: border-color .2s; }
+.pf-atajo:hover { border-color: var(--taupe); }
+.pf-atajo:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.pf-atajo-ic { width: 36px; height: 36px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--hueso); color: var(--rojo-profundo); }
+.pf-atajo-ic .ic { width: 18px; height: 18px; }
+.pf-atajo-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pf-atajo-txt b { font-size: 14px; font-weight: 700; }
+.pf-atajo-txt small { display: flex; align-items: baseline; gap: 6px; font-size: 12.5px; line-height: 1.35; color: var(--tinta-60); }
+/* Verde: hay algo listo para ti; ámbar: algo está pendiente (las mismas tintas de las insignias de los pedidos). */
+.pf-atajo-txt small[data-tono="verde"] { color: var(--verde); font-weight: 600; }
+.pf-atajo-txt small[data-tono="ambar"] { color: var(--ambar); font-weight: 600; }
+.pf-atajo-txt small[data-tono]::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: currentColor; transform: translateY(-1px); }
+.pf-atajo-ir { position: absolute; top: 12px; right: 12px; display: grid; color: var(--taupe); transition: transform .25s var(--ease); }
+.pf-atajo-ir .ic { width: 16px; height: 16px; }
+.pf-atajo:hover .pf-atajo-ir { transform: translateY(2px); }
+
+/* ---- Las secciones: separadas por una línea, con la misma cabeza ---- */
+.pf-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); }
+.pf-sec { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding-block: 22px; border-top: 1px solid var(--sand); scroll-margin-top: 12px; }
+.pf-sec-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
+.pf-sec-cab h2 { margin: 0; display: flex; align-items: center; gap: 10px; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-size: 18px; font-weight: 250; line-height: 1.12; }
+/* Cuántos hay: el globito, pegado al título (como el de «Ver todos» del catálogo). */
+.pf-cuenta { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 0; display: inline-grid; place-items: center; background: var(--sand); font-family: var(--sans); font-size: 12px; font-weight: 700; line-height: 1; color: var(--tinta); }
+.pf-sec-cab .t-ver { padding-block: 0; }
+/* Un botón suelto de una sección («Ver toda la tienda», «Volver a intentar»), alineado con el texto: sin la sangría del botón chico. */
+.pf-sec .t-btn.t-btn-chico { margin-left: 0; }
+/* La línea de las novedades, bajo su título: cuánto llegó y que no hay publicidad. */
+.pf-sec-sub { margin: 0; display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; line-height: 1.5; color: var(--tinta-60); }
+.pf-sec-sub b { color: var(--tinta); font-weight: 600; }
+.pf-sec-sub .ic { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--rojo-profundo); }
+/* El carril de prendas (el del Inicio, catalogo.css): sus flechas, a la altura de las fotos. */
+.pf-carril { --flecha-y: 40%; }
+
+/* ---- Mi Club CAYLA: la tarjeta y, si hay lugar para los dos, los beneficios a su lado. Se mide la sección y no la pantalla: en una
+   laptop la sección es media página, y con la tarjeta al lado los beneficios quedaban en una columna de 200 px. ---- */
+.pf-club { container: pf-club / inline-size; }
+.pf-club-fila { display: flex; flex-direction: column; gap: 14px; }
+.pf-club .t-tarjeta-club { max-width: 300px; }
+.pf-beneficios { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pf-beneficios .c-reintentar { margin-left: 0; }
+
+/* ---- Tu cuenta: el correo, sus dos botones y, aparte, «Eliminar mi cuenta» ---- */
+.pf-acceso { display: flex; flex-direction: column; gap: 14px; padding: 16px; border-radius: 0; border: 1px solid var(--sand); background: var(--papel); }
+.pf-acceso-correo { margin: 0; font-size: 14px; line-height: 1.5; }
+.pf-acceso-correo > span { color: var(--tinta-60); }
+.pf-acceso-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.pf-acceso-acc .t-btn.t-btn-chico { margin-left: 0; }
+.pf-acceso-acc form { display: contents; }
+.pf-acceso-eliminar { align-self: flex-start; color: var(--rojo-profundo); text-decoration-color: color-mix(in srgb, var(--rojo-profundo) 45%, transparent); }
+.pf-acceso-eliminar:hover { color: var(--tinta); }
+
+/* ---- Mientras llega (FormaDelEsqueleto, forma «perfil»): las mismas cajas, que brillan ---- */
+.t-esqueleto .pf-perfil i { display: block; }
+.pf-cab .pf-esq-ceja { width: 72px; height: 9px; margin: 0; }
+.pf-esq-hola { width: min(320px, 70%); height: clamp(34px, 8cqi, 52px); border-radius: 0; background: var(--hueso); }
+.pf-cab .pf-esq-linea { width: min(260px, 60%); margin-top: 2px; }
+.pf-esq-atajo .pf-atajo-ic { background: var(--hueso); }
+.pf-esq-atajo .pf-atajo-txt { flex: 1; }
+.pf-esq-tarjeta { width: 100%; max-width: 300px; aspect-ratio: 1.586; border-radius: 0; background: var(--hueso); }
+.pf-esq-beneficio { height: 76px; border-radius: 0; border: 1px solid var(--sand); background: var(--papel); }
+.pf-esq-atajo .t-esqueleto-linea { margin-top: 0; width: 70%; }
+.pf-esq-atajo .t-esqueleto-linea + .t-esqueleto-linea { width: 50%; margin-top: 8px; }
+.t-esqueleto .pf-sec .t-esqueleto-titulo { margin-bottom: 4px; }
+
+@container pf-club (min-width: 540px) {
+  .pf-club-fila { display: grid; grid-template-columns: minmax(240px, 280px) minmax(0, 1fr); align-items: start; gap: 20px; }
+}
+@container tienda (min-width: 700px) {
+  .pf-atajos ul { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@container tienda (min-width: 960px) {
+  .pf-perfil { gap: 28px; padding-block: 32px 44px; }
+  .pf-atajo { flex-direction: row; align-items: center; gap: 12px; padding: 16px 40px 16px 16px; }
+  .pf-atajo-ir { top: 50%; right: 16px; margin-top: -8px; }
+  .pf-sec { padding-block: 28px; }
+  .pf-carril { --flecha-borde: -20px; }
+  .pf-acceso { flex-direction: row; align-items: center; gap: 18px; padding: 14px 18px; }
+  .pf-acceso-correo { flex: 1; min-width: 0; }
+  .pf-acceso-eliminar { align-self: center; }
+}
+/* «Mis pedidos» y «Mi Club CAYLA» lado a lado (el Club, un poco más ancho: lleva la tarjeta) solo en una pantalla ancha; en una laptop
+   cada media página quedaba angosta. Lo demás, a todo el ancho. */
+@container tienda (min-width: 1200px) {
+  .pf-cuerpo { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); column-gap: 48px; }
+  .pf-sec { grid-column: 1 / -1; }
+  .pf-sec[data-mitad] { grid-column: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-atajo, .pf-atajo-ir { transition: none; }
+}

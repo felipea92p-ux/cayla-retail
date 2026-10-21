@@ -11,6 +11,21 @@ import { iconoDeEtiqueta, rotuloDeEtiqueta, type IconoEtiqueta } from "./etiquet
 import { normalizarNombre } from "./patron-visual";
 import { descuentoDeCampana } from "./vender-reglas";
 
+/** De qué empresa es la prenda y cómo se dice en el papel (ADR-0463): su nombre arriba, el colibrí solo si es CAYLA y el link al pie. */
+export type EmpresaEtiqueta = { nombre: string; conLogo: boolean; web: string };
+
+/** La web que sale en el papel (Felipe, 2026-10-20): la tienda online, no «cayla.pe». */
+export const WEB_DE_LA_ETIQUETA = "tienda.cayla.pe";
+
+/** La empresa de la casa: lo que dice el papel de toda prenda cuya empresa no se conoce (datos viejos, una base sin empresas). */
+export const EMPRESA_CASA: EmpresaEtiqueta = { nombre: "CAYLA", conLogo: true, web: WEB_DE_LA_ETIQUETA };
+
+/** Lo que el papel dice de una empresa. El colibrí es la marca de CAYLA: solo ella lo lleva (se decide por su `clave`, no por si
+ *  tiene `logo_url`: un logo cargado para otra empresa no lo hace salir en el papel de CAYLA ni al revés). Sin web guardada, la de siempre. */
+export function empresaDeEtiqueta(e: { clave: string; nombre: string; web: string | null }): EmpresaEtiqueta {
+  return { nombre: e.nombre.trim() || EMPRESA_CASA.nombre, conLogo: e.clave === "cayla", web: e.web?.trim() || WEB_DE_LA_ETIQUETA };
+}
+
 /** Lo que la base sabe de una prenda que entró (una variante: modelo + talla + color). */
 export type VarianteEtiqueta = {
   id: string;
@@ -30,6 +45,8 @@ export type VarianteEtiqueta = {
   /** De quién es la prenda (`productos.marca_id`, siempre tiene una). Opcional en el tipo: quien arma variantes sin ella
    *  (pruebas, datos viejos) simplemente no la imprime. */
   marca?: string | null;
+  /** De qué empresa es (`productos.empresa_id`). Ausente = la de la casa, CAYLA. */
+  empresa?: EmpresaEtiqueta | null;
 };
 
 /** Otra talla del mismo modelo: de aquí sale la fila «Tallas del modelo». */
@@ -69,6 +86,8 @@ export type EtiquetaPrecio = {
   /** La marca de la prenda (Felipe, 2026-09-29): va en el pie, a la izquierda del QR y sobre el código, que es el único
    *  hueco que la etiqueta tiene con y sin campaña; sobre el nombre no cabe (con campaña sobra 1,4 mm de alto). */
   marca?: string | null;
+  /** Qué dice el papel de la empresa: nombre arriba, colibrí solo de CAYLA y el link al pie. Siempre trae uno (CAYLA si no se sabe). */
+  empresa: EmpresaEtiqueta;
   /** Las tallas en que se hace el modelo EN ESTE COLOR —no el stock del día: la etiqueta impresa no cambia sola—,
    *  ordenadas como se leen en tienda. Siempre incluye la propia. */
   tallasDelModelo: string[];
@@ -246,6 +265,7 @@ export function armarEtiquetas(
       colorMuestra: v.colorMuestra ?? null,
       talla: v.talla?.trim() || null,
       marca: v.marca?.trim() || null,
+      empresa: v.empresa ?? EMPRESA_CASA,
       tallasDelModelo: tallasDelModelo(v, hermanas),
       precio: v.precio,
       campana: c && descuento > 0 ? { nombre: c.nombre, pct: c.pct, hasta: c.hasta, descuento } : null,

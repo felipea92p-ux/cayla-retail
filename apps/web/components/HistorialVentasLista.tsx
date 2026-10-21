@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import Link from "next/link";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
@@ -129,10 +129,11 @@ function FilaVenta({ v, onAbrir, puedeFacturar }: { v: FilaHistorial; onAbrir: (
   const subtitulo = subtituloDePrendas(v.piezas, v.unidades);
   const meta = [v.hora, nombreCortoSede(v.ubicacion), v.clienta ?? "Cliente varios", v.vendedor && `Vendido por ${v.vendedor}`].filter(Boolean).join(" · ");
   return (
-    <li className="group relative rounded-2xl transition-colors duration-200 hover:bg-tinta/[0.025] focus-within:bg-tinta/[0.025] [&+&]:border-t [&+&]:border-dashed [&+&]:border-tinta/10">
+    <li data-guia="historial.venta" className="group relative rounded-2xl transition-colors duration-200 hover:bg-tinta/[0.025] focus-within:bg-tinta/[0.025] [&+&]:border-t [&+&]:border-dashed [&+&]:border-tinta/10">
       <button
         type="button"
         onClick={onAbrir}
+        data-guia="historial.venta-abrir"
         aria-label={`Ver el detalle de la venta de las ${v.hora} en ${v.ubicacion}, ${soles(v.total)}${v.anulada ? ", anulada" : ""}`}
         className="absolute inset-0 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
       />
@@ -166,10 +167,11 @@ function FilaVenta({ v, onAbrir, puedeFacturar }: { v: FilaHistorial; onAbrir: (
                 (comprobanteAccionable(v, puedeFacturar) ? (
                   <Link
                     href="/vender/comprobantes/por-reintentar"
+                    data-guia="historial.venta-sunat"
                     title="Resolverlo en Comprobantes ▸ Por enviar"
                     className="relative z-10 rounded-full transition-shadow hover:ring-1 hover:ring-current focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
                   >
-                    <Chip tono={TONO_COMPROBANTE[v.comprobante.estado]}>{ESTADO_ETIQUETA[v.comprobante.estado]} →</Chip>
+                    <Chip tono={TONO_COMPROBANTE[v.comprobante.estado]}>{ESTADO_ETIQUETA[v.comprobante.estado]}</Chip>
                   </Link>
                 ) : (
                   <Chip tono={TONO_COMPROBANTE[v.comprobante.estado]}>{ESTADO_ETIQUETA[v.comprobante.estado]}</Chip>
@@ -224,6 +226,7 @@ function Racimo({ piezas, anulada }: { piezas: PrendaDeVenta[]; anulada: boolean
 /** La foto de la prenda o, sin ella, un mosaico de su color (con un filete interior para que un beige o un blanco no desaparezcan sobre el papel). */
 function Miniatura({ p }: { p: PrendaDeVenta }) {
   const base = "block h-10 w-10 rounded-lg ring-2 ring-papel";
-  if (p.fotoUrl) return <Image src={p.fotoUrl} alt="" width={40} height={40} unoptimized className={`${base} object-cover`} />;
-  return <span className={`${base} shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]`} style={{ background: p.colorHex ?? "var(--color-sand)" }} />;
+  const mosaico = <span className={`${base} shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]`} style={{ background: p.colorHex ?? "var(--color-sand)" }} />;
+  if (p.fotoUrl) return <ImagenDePrenda src={p.fotoUrl} alt="" width={40} height={40} className={`${base} object-cover`} fallback={mosaico} />;
+  return mosaico;
 }

@@ -58,14 +58,14 @@ export function PedidosParaClientes({
           const Icono = llego ? PackageCheck : PackageX;
           return (
             <li key={p.grupoId} className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <Icono aria-hidden className={`h-4 w-4 shrink-0 ${llego ? "text-verde-profundo" : "text-ambar-profundo"}`} strokeWidth={1.75} />
+              <Icono aria-hidden className={`h-4 w-4 shrink-0 ${llego ? "text-verde-profundo" : "text-ambar-profundo"}`} />
               {/* Con un ancho mínimo, en un celular el botón baja bajo el texto en vez de apretarlo en una columna de 2 palabras. */}
               <p className="min-w-[12rem] flex-1">
                 {llego ? "Llegó" : "No llegó"} de {nombreCortoSede(p.otraSede)} para <b className="font-semibold">{nombreCliente(p.cliente)}</b>
                 <span className="text-tinta/65"> · {p.lineas.map(etiquetaLinea).join(", ")}</span>
               </p>
               <button type="button" onClick={() => setAbierto({ tipo: "avisar", pedido: p })} className={BOTON}>
-                <MessageCircle aria-hidden className="h-3.5 w-3.5" strokeWidth={1.75} />
+                <MessageCircle aria-hidden className="h-3.5 w-3.5" />
                 {llego ? "Avisar por WhatsApp" : "Avisar que no llegó"}
               </button>
             </li>
@@ -73,7 +73,7 @@ export function PedidosParaClientes({
         })}
         {preguntas.map((p) => (
           <li key={p.grupoId} className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <CircleHelp aria-hidden className="h-4 w-4 shrink-0 text-ambar-profundo" strokeWidth={1.75} />
+            <CircleHelp aria-hidden className="h-4 w-4 shrink-0 text-ambar-profundo" />
             <p className="min-w-[12rem] flex-1">
               ¿Sigue en pie el pedido de <b className="font-semibold">{nombreCliente(p.cliente)}</b>?
               <span className="text-tinta/65">

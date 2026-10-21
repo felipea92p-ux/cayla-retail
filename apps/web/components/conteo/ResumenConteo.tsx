@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BarraAvance } from "../ui/BarraAvance";
 // Rutas relativas a propósito (ver `EstadoLinea.tsx`): la prueba de render corre en vitest, que no resuelve `@/` para valores.
 import { textoProgreso, textoResumen, textoRevision, textoTerminado, type ResumenConteo as ResumenDeConteo } from "../../lib/conteo-reglas";
 
@@ -21,7 +22,7 @@ import { textoProgreso, textoResumen, textoRevision, textoTerminado, type Resume
      Con líneas de «Aplicar todos completos» (ADR-0328) las dos dicen aparte cuántas quedaron «sin contar».
                      `parcial` suma cuántas quedaron sin verificar.
 
-   Una pantalla tiene UNA barra de progreso (`role="progressbar"`): por eso «completo» y «progreso» no se combinan en
+   Una pantalla tiene UNA barra de progreso (la que el lector anuncia como tal): por eso «completo» y «progreso» no se combinan en
    la misma página.
 
    Alto reservado (ADR-0185): la barra mide siempre 6 px y el texto de progreso es de una línea; la línea de cifras
@@ -50,19 +51,9 @@ function Progreso({ resumen, lateral, conPorcentaje = false }: { resumen: Resume
         <p className={`min-w-0 tabular-nums text-tinta ${conPorcentaje ? "text-[15px] font-semibold" : "text-sm font-medium"}`}>{texto}</p>
         {lateral ? <span className="shrink-0 text-xs text-taupe">{lateral}</span> : null}
       </div>
-      {/* Discreta: 6 px, tinta sobre sand, la que ya usaba el conteo. Progreso no es «correcto», por eso no es verde. */}
+      {/* La barra de avance del sistema (ronda 13): tinta mientras se cuenta y verde cuando ya se verificó todo. */}
       <div className={conPorcentaje ? "mt-1.5 flex items-center gap-4" : undefined}>
-      <div
-        role="progressbar"
-        aria-label="Variantes verificadas"
-        aria-valuemin={0}
-        aria-valuemax={variantes}
-        aria-valuenow={Math.min(verificadas, variantes)}
-        aria-valuetext={texto}
-        className={`h-1.5 overflow-hidden rounded-full bg-sand ${conPorcentaje ? "min-w-0 flex-1" : "mt-1.5"}`}
-      >
-        <div className="h-full rounded-full bg-tinta transition-[width] duration-300 ease-cayla" style={{ width: `${porcentaje}%` }} />
-      </div>
+      <BarraAvance pct={porcentaje} etiqueta="Variantes verificadas" texto={texto} className={conPorcentaje ? "min-w-0 flex-1" : "mt-1.5"} />
       {conPorcentaje && <span className="w-9 shrink-0 text-right text-sm tabular-nums text-tinta/70">{porcentaje}%</span>}
       </div>
     </div>

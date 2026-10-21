@@ -36,7 +36,11 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { efectivoACobrar, redondeoDelEfectivo } from "../../apps/web/lib/redondeo-efectivo-reglas.ts";
-import { DESHACER_POSTERIORES, REHACER_POSTERIORES } from "./registrar-venta-antes-de-precio-sede.mjs";
+import { DESHACER_POSTERIORES, REHACER_POSTERIORES, DESHACER_TOKEN_ENTREGA, REHACER_TOKEN } from "./registrar-venta-antes-de-precio-sede.mjs";
+import { DESHACER_ENTREGA_POR_EL_TOTAL, REHACER_ENTREGA_POR_EL_TOTAL } from "./entregar-antes-de-apartados-sin-anticipo.mjs";
+// Las máquinas de cobro (20261016173000, ADR-0429) parcharon por ancla fn_cuenta_sellada y fn_asiento_cuenta_de_medio DESPUÉS del
+// redondeo: las partes viejas se pegan sobre su punto de partida y se rehacen después (como con registrar_venta).
+import { DESHACER_MAQUINAS_SELLO, REHACER_MAQUINAS_SELLO } from "./sello-antes-de-maquinas.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const MIGRACION_REGLA = "supabase/migrations/20261003100000_redondeo_efectivo_regla.sql";
@@ -246,7 +250,7 @@ rollback;`);
   const parte1 = readFileSync(MIGRACION_CANDADO, "utf8");
   const parte2 = readFileSync(MIGRACION_LECTORES, "utf8");
   const huellas = Object.fromEntries([...parte2.matchAll(/c_(sellada|resumen|dia)_despues constant text := '([0-9a-f]{32})'/g)].map((m) => [m[1], m[2]]));
-  const r12 = correr(`begin;\n${parte1}\n${parte1}\n${parte2}\n${parte2}
+  const r12 = correr(`begin;\n${DESHACER_MAQUINAS_SELLO}\n${parte1}\n${parte1}\n${parte2}\n${parte2}
 select 'h|' || p.proname || '|' || md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g'))
   from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('fn_cuenta_sellada', 'fn_resumen_caja', 'fn_ventas_del_dia');
 rollback;`);
@@ -328,7 +332,7 @@ rollback;`);
   // ---- 19. La migración del diario se pega dos veces y deja la huella prometida ----
   const diario = readFileSync(MIGRACION_DIARIO, "utf8");
   const huellaDiario = (diario.match(/c_despues constant text := '([0-9a-f]{32})'/) ?? [])[1];
-  const r19 = correr(`begin;\n${diario}\n${diario}
+  const r19 = correr(`begin;\n${DESHACER_MAQUINAS_SELLO}\n${diario}\n${diario}
 select 'h|' || md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g'))
   from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'fn_asiento_cuenta_de_medio';
 select 'cuentas|' || count(*) from retail.cuentas where codigo = '6598';
@@ -339,7 +343,8 @@ rollback;`);
   // ---- 20. Los demás medios siguen yendo a su cuenta, y si alguien cambió la función el parche aborta ----
   const r20 = correr(`select 'm|' || retail.fn_asiento_cuenta_de_medio('efectivo') || retail.fn_asiento_cuenta_de_medio('tarjeta') || retail.fn_asiento_cuenta_de_medio('yape') || retail.fn_asiento_cuenta_de_medio('plin')
   || retail.fn_asiento_cuenta_de_medio('transferencia') || retail.fn_asiento_cuenta_de_medio('qr') || retail.fn_asiento_cuenta_de_medio('anticipo') || retail.fn_asiento_cuenta_de_medio('saldo_a_favor');`);
-  esperar("los demás medios no cambiaron de cuenta (efectivo 101, tarjeta 105, yape/plin/transferencia/qr 104, anticipo 122, saldo a favor 421)", r20.ok && r20.salida === "m|101105104104104104122421", r20.ok ? r20.salida : r20.mensaje);
+  // El QR que entra espera en la máquina (105) desde 20261016173000 (ADR-0429), igual que la tarjeta; antes iba a la 104 como Yape.
+  esperar("los demás medios no cambiaron de cuenta (efectivo 101, tarjeta 105, yape/plin/transferencia 104, qr 105 desde ADR-0429, anticipo 122, saldo a favor 421)", r20.ok && r20.salida === "m|101105104104104105122421", r20.ok ? r20.salida : r20.mensaje);
   const r20b = correr(`begin;
 do $x$ begin execute replace(pg_get_functiondef('retail.fn_asiento_cuenta_de_medio(text,text)'::regprocedure), 'saldo_a_favor', 'saldo_a_favor_x'); end $x$;
 ${diario}
@@ -519,7 +524,7 @@ rollback;`);
     const l30 = Object.fromEntries(r30.salida.split("\n").filter(Boolean).map((l) => [l.split("|")[0], l.slice(l.indexOf("|") + 1)]));
     const resumen30 = JSON.parse(l30.resumen);
     esperar("entregar_separacion: guarda anticipo 50.02, efectivo 29.80 (recibió 30) y redondeo 0.08; la suma de las filas es el total del apartado (79.90)", l30.filas === "anticipo=50.02 efectivo=29.80/30.00 redondeo=0.08" && l30.suma === "79.90|79.90", JSON.stringify(l30));
-    esperar("la boleta final sale por el saldo EXACTO (29.88): el redondeo no toca el comprobante", l30.boleta === "29.88|25.32|4.56", l30.boleta);
+    esperar("la boleta final sale por el TOTAL EXACTO (79.90, sin mencionar el adelanto): el redondeo no toca el comprobante", l30.boleta === "79.90|67.71|12.19", l30.boleta);
     esperar("el apartado queda entregado y ligado a la venta; los verificadores de apartados dan 0 problemas", l30.estado === "entregada|true" && l30.verifica === "0|0", `${l30.estado} ${l30.verifica}`);
     esperar("Caja: «Efectivo en el cajón» = 100.00 + 29.80 (el adelanto fue Yape) y el redondeo viaja aparte (0.08)", l30.esperado === "129.80" && Number(resumen30.redondeo) === 0.08, `${l30.esperado} ${l30.resumen}`);
     esperar("el diario asienta los 0.08 contra la cuenta 6598 (gasto) y todos los asientos cuadran", Number(l30.diario6598) === 0.08 && l30.descuadrados === "0", `${l30.diario6598} ${l30.descuadrados}`);
@@ -578,18 +583,21 @@ rollback;`);
   // ---- 35. La migración: se pega dos veces, deja la huella prometida y UNA firma; aborta si la función cambió o si falta una parte ----
   const entrega = readFileSync(MIGRACION_ENTREGA, "utf8");
   const huellaEntrega = (entrega.match(/c_despues constant text := '([0-9a-f]{32})'/) ?? [])[1];
-  const r35 = correr(`begin;\n${entrega}\n${entrega}
+  // Dos parches posteriores a la migración del redondeo, del más nuevo al más viejo: la entrega por el total (20261014150000, ADR-0399) y el
+  // token que sigue al contenido (20261013201000). Se deshacen dentro de la transacción.
+  const r35 = correr(`begin;\n${DESHACER_ENTREGA_POR_EL_TOTAL}\n${DESHACER_TOKEN_ENTREGA}\n${entrega}\n${entrega}
 select 'h|' || md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g'))
   from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'entregar_separacion';
 select 'sobrecargas|' || count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'entregar_separacion';
 rollback;`);
   esperar("la migración de entregar_separacion es re-ejecutable, deja la huella prometida y UNA sola firma", r35.ok && r35.salida.includes(`h|${huellaEntrega}`) && r35.salida.includes("sobrecargas|1"), r35.ok ? r35.salida : r35.mensaje);
   const r35b = correr(`begin;
+${DESHACER_ENTREGA_POR_EL_TOTAL}
 do $x$ begin execute replace(pg_get_functiondef('retail.entregar_separacion(uuid,jsonb,uuid)'::regprocedure), 'Ese apartado no existe', 'Ese apartado no existe (cambiado en vivo)'); end $x$;
 ${entrega}
 rollback;`);
   esperar("el parche de entregar_separacion aborta si la función cambió desde que se escribió (no la pisa a ciegas)", !r35b.ok && r35b.mensaje.includes("cambió desde que se escribió esta migración"), r35b.ok ? "pasó y debía abortar" : r35b.mensaje);
-  const r35c = correr(`begin;\ndrop function retail.fn_redondeo_efectivo(numeric);\n${entrega}\nrollback;`);
+  const r35c = correr(`begin;\n${DESHACER_ENTREGA_POR_EL_TOTAL}\ndrop function retail.fn_redondeo_efectivo(numeric);\n${entrega}\nrollback;`);
   esperar("el parche de entregar_separacion aborta si falta la regla de la que depende", !r35c.ok && r35c.mensaje.includes("falta retail.fn_redondeo_efectivo"), r35c.ok ? "pasó y debía abortar" : r35c.mensaje);
 
   // =====================================================================================================================
@@ -614,7 +622,14 @@ rollback;`);
   // ---- 36. Cada parte, pegada ENTERA como un solo texto, termina con su fila «QUEDÓ BIEN» ----
   for (const parte of PARTES_A_PEGAR) {
     // La de registrar_venta se pega sobre su punto de partida y después se rehacen los parches posteriores (precio por sede, origen sugerido): la base termina igual.
-    const r = pegarComoEditor(parte === "20261003130000_registrar_venta_redondeo" ? `${DESHACER_POSTERIORES}\n${textoDe(parte)}\n${REHACER_POSTERIORES}` : textoDe(parte));
+    // La de entregar_separacion, igual: sin la entrega por el total y sin el token (posteriores) y después se rehacen, del más viejo al más nuevo.
+    const r = pegarComoEditor(
+      parte === "20261003130000_registrar_venta_redondeo" ? `${DESHACER_POSTERIORES}\n${textoDe(parte)}\n${REHACER_POSTERIORES}`
+      // Los lectores y el diario parchan fn_cuenta_sellada y fn_asiento_cuenta_de_medio, que las máquinas de cobro (ADR-0429) volvieron a
+      // parchar después: se pegan sobre su punto de partida y se rehacen las máquinas (la migración entera, idempotente).
+      : parte === "20261003111000_redondeo_lectores" || parte === "20261003120000_redondeo_diario" ? `${DESHACER_MAQUINAS_SELLO}\n${textoDe(parte)}\n${REHACER_MAQUINAS_SELLO}`
+      : parte === "20261003135000_entregar_separacion_redondeo" ? `${DESHACER_ENTREGA_POR_EL_TOTAL}\n${DESHACER_TOKEN_ENTREGA}\n${textoDe(parte)}\n${REHACER_TOKEN}\n${REHACER_ENTREGA_POR_EL_TOTAL}`
+      : textoDe(parte));
     esperar(`${parte.slice(0, 14)} pegada entera (como la pega el editor) termina con su fila «QUEDÓ BIEN»`, r.ok && r.salida.split("\n").filter((l) => l.includes("QUEDÓ BIEN") && l.startsWith(parte.slice(0, 14))).length === 1, r.ok ? r.salida.slice(-400) : r.mensaje);
   }
 
@@ -649,13 +664,27 @@ rollback;`);
       "ADR-0365: reparte lo cobrado (con el redondeo de antes) y vuelve a calcular el redondeo con fn_redondeo_efectivo si queda efectivo y la caja redondea; sin efectivo, la fila de redondeo desaparece. La suma de filas no cambia.",
     entregar_separacion: "PARCHADA (20261003135000, actividad 6): el saldo en efectivo al entregar acepta la fila de redondeo y exige que sea el redondeo exacto de la ley.",
     fn_acepta_redondeo_efectivo: "La bandera del despliegue (20261003140000): solo mira el catálogo para saber si la base ya recibe el redondeo; no suma pagos.",
+    fn_anticipo_solo_de_apartado:
+      "Candado diferido del anticipo (20261013155000): relee UNA fila de venta_pagos para saber si sigue siendo 'anticipo'; no suma pagos y el redondeo no le toca.",
     fn_asientos: "Cada fila de venta_pagos genera su Debe, así que el asiento cuadra solo; el medio redondeo va a la cuenta 6598 por fn_asiento_cuenta_de_medio (20261003120000, actividad 3) y la anulación lo revierte. No se parchó.",
+    fn_bal_anticipos:
+      "El Balance (ADR-0433 act. 10, 20261017035000): suma lo recibido de cada adelanto (separacion_pagos) hasta el corte, con su IGV por pago; un adelanto no se redondea (ADR-0311 §7). No toca venta_pagos.",
     fn_bal_causas_dinero: "Solo lee separacion_pagos.",
     fn_calcular_esperado_caja: "Suma el monto de la fila de EFECTIVO: ya es lo físico (múltiplo de 0.10). No se toca.",
     fn_comparativa_caja: "Caja compara hoy contra ayer (ADR-0319): devuelve la fila de redondeo como una más, a propósito, para que el total vendido coincida con el de Vender y el historial (como fn_totales_historial_ventas); la pantalla la deja fuera de «Cómo te pagaron» (`metodosComparados`). No se parchó.",
+    fn_detalle_separacion:
+      "El historial de un apartado (ADR-0414): lista cada fila de separacion_pagos (adelanto y abonos, que no se redondean, ADR-0311 §7) con su fecha y quién cobró. Solo lee, no suma pagos ni toca venta_pagos.",
+    fn_finanzas_confianza:
+      "El medidor de confianza (ADR-0417, 20261015235000): suma solo los pagos con tarjeta y qr del mes para saber cuánto pasa por la máquina; filtra por medio, así que la fila de redondeo (que va con el efectivo) queda fuera y no suma dinero.",
     fn_dinero_libro: "Filtra por medios explícitos (yape, plin, tarjeta, transferencia, qr): el redondeo queda fuera.",
     fn_flujo_caja_proyeccion: "Filtra por medios explícitos: el redondeo queda fuera.",
+    fn_igv_de_la_separacion:
+      "El IGV de los pagos de un adelanto (ADR-0433 act. 10, 20261017035000): suma el de cada fila de separacion_pagos (el adelanto y sus abonos no se redondean, ADR-0311 §7), para que lo que reversa la devolución o la entrega sea lo mismo que entró. No suma dinero ni toca venta_pagos.",
     fn_flujo_lineas: "Efectivo = metodo 'efectivo' (lo físico), igual que fn_calcular_esperado_caja. No se toca.",
+    fn_pedido_web_vender:
+      "La venta de un pedido web (ADR-0408 act. 10, 20261015051000) se cobra con UNA fila «anticipo» por lo pagado: el efectivo entró antes, con cada pago del pedido (pedido_web_pagos), así que la venta no tiene efectivo ni fila de redondeo.",
+    fn_pedido_web_verificar:
+      "Candado diferido del pedido web (20261015051000): exige que su venta tenga exactamente UNA fila de venta_pagos, «anticipo» por lo pagado; una fila de redondeo ahí sería un estado imposible (esa venta no cobra efectivo).",
     fn_sello_caja: "Solo cuenta filas de venta_pagos_correcciones (ADR-0365) para el tablero en vivo: no suma pagos.",
     fn_resumen_caja: "PARCHADA (20261003111000): el redondeo sale de por_metodo, de otros y de ventas_otros, y viaja aparte.",
     fn_totales_historial_ventas: "Deja el redondeo como una fila más de «cómo se pagó» a propósito: la lista sigue sumando el total vendido.",
@@ -665,6 +694,12 @@ rollback;`);
     registrar_venta: "PARCHADA (20261003130000, actividad 5): acepta la fila de redondeo y exige que sea el redondeo exacto de la ley.",
     resumen_separaciones: "Apartados: lectura de separacion_pagos.",
     separar_prendas: "Adelanto de un apartado: no se redondea (ADR-0311 §7); solo escribe separacion_pagos.",
+    fn_pos_pendientes:
+      "Las máquinas de cobro (ADR-0429, 20261016191000): cuenta cuántos pagos con tarjeta o QR hubo ese día en esa tienda (para el cargo fijo por pago de la tarifa); filtra `vp.metodo = p.medio` (tarjeta, qr), así que la fila de redondeo (que va con el efectivo) queda fuera. El bruto lo toma de fn_dinero_libro, que ya la excluye.",
+    fn_resellar_cobros_a_maquinas:
+      "La corrección de una vez (ADR-0429, 20261016193000): mueve la cuenta sellada de los pagos con tarjeta o QR (`vp.metodo in ('tarjeta', 'qr')`) de un banco a la puente de su máquina; no suma montos y la fila de redondeo no le toca.",
+    trg_efectivo_de_caja:
+      "Disparador diferido del efectivo de la caja (/chaos 2026-10-13): de una fila de venta_pagos solo lee su venta para saber de qué caja es; la cuenta del cajón la hace fn_calcular_esperado_caja (que ya sabe del redondeo). No suma pagos.",
   };
   const r14 = correr(`select p.proname from pg_proc p where p.pronamespace = 'retail'::regnamespace
     and (p.prosrc ilike '%venta_pagos%' or p.prosrc ilike '%separacion_pagos%') order by 1;`);

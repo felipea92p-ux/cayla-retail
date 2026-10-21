@@ -1,6 +1,6 @@
 // Reglas puras de /colaboradores: sin base de datos ni React, para probarlas sin ninguno de los dos y
 // para que el servidor y el navegador digan exactamente lo mismo (importable desde ambos lados).
-import { diaYHoraLima } from "./fechas-lima";
+import { diaLima, diaYHoraLima } from "./fechas-lima";
 import type {
   Colaborador,
   DynamicDisponible,
@@ -80,12 +80,12 @@ export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo">, soyAdmin =
   return ["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"];
 }
 
-const dosDigitos = (n: number) => String(n).padStart(2, "0");
-
-/** «16/09/2026», en hora de Lima (mismo día en servidor y navegador). */
+/** «16/09/2026», en hora de Lima (mismo día en servidor y navegador); un instante que no se lee, «—». */
 export function fechaLima(iso: string): string {
-  const lima = new Date(Date.parse(iso) - 5 * 3600 * 1000);
-  return `${dosDigitos(lima.getUTCDate())}/${dosDigitos(lima.getUTCMonth() + 1)}/${lima.getUTCFullYear()}`;
+  const dia = diaLima(iso);
+  if (!dia) return "—";
+  const [a, m, d] = dia.split("-");
+  return `${d}/${m}/${a}`;
 }
 
 /** «22/09 11:15», en hora de Lima. */

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Boton } from "@/components/ui/campos";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { soles } from "@/lib/compras-reglas";
 import { useContar } from "@/lib/useContar";
 import type { AyudaCosto, Requisito } from "@/lib/compra-form-progreso";
@@ -44,9 +45,7 @@ export function BarraProgreso({ listos, total }: { listos: number; total: number
       <p className="label-cayla text-right text-[11px] text-tinta/65">
         Listo {listos} de {total}
       </p>
-      <div className="cr-progreso mt-2" role="progressbar" aria-label="Avance del comprobante" aria-valuemin={0} aria-valuemax={total} aria-valuenow={listos}>
-        <i style={{ "--p": total > 0 ? listos / total : 0 } as CSSProperties} />
-      </div>
+      <BarraAvance pct={total > 0 ? (listos / total) * 100 : 0} alto="fina" etiqueta="Avance del comprobante" texto={`Listo ${listos} de ${total}`} className="mt-2" />
     </div>
   );
 }
@@ -129,7 +128,7 @@ export function AyudaCostoLinea({ ayuda, onUsar }: { ayuda: AyudaCosto | null; o
     contenido = (
       <>
         Costo actual {soles(ayuda.ultimo)} ·{" "}
-        <button type="button" onClick={onUsar} className="text-rojo underline-offset-2 hover:underline">
+        <button type="button" onClick={onUsar} className="btn-enlace">
           Usar
         </button>
       </>

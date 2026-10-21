@@ -1,3 +1,42 @@
+/** Un cupón del Club tal como lo devuelven `canjear_puntos` y `tienda_canjear_puntos`. */
+export type CuponDelClub = {
+  codigo: string
+  puntos: number
+  valor: number
+  compra_minima: number
+  vence_el: string
+  estado: "activo" | "usado" | "vencido"
+  /** true si la misma clave de operación ya había creado este cupón (doble toque o reintento). */
+  repetido: boolean
+  /** El saldo de puntos de la dueña después del canje. */
+  saldo: number
+}
+
+/** Lo que dice `validar_cupon`: ok con el cupón, o el motivo por el que no sirve. */
+export type ValidacionDeCupon =
+  | { ok: true; codigo: string; valor: number; compra_minima: number; vence_el: string; puntos: number; de: string | null }
+  | { ok: false; motivo: "no_existe"; intentos: number }
+  | { ok: false; motivo: "usado" | "bloqueado" | "reservado" }
+  | { ok: false; motivo: "vencido"; vence_el: string }
+  | { ok: false; motivo: "minimo"; compra_minima: number; faltan: number }
+
+/** Lo que devuelve `resumen_puntos_caja`: la configuración vigente (siempre) y, si es miembro, su saldo, su regalo y sus cupones vivos. */
+export type ResumenDePuntosEnCaja = {
+  puntos_por_sol: number
+  soles_por_100: number
+  canje_minimo: number
+  compra_minima_x: number
+  vigencia_dias: number
+  regalo_cumple: number
+  miembro: boolean
+  saldo?: number
+  valor_saldo?: number
+  cumple_dia?: number | null
+  cumple_mes?: number | null
+  regalo_disponible?: boolean
+  cupones?: { codigo: string; valor: number; compra_minima: number; vence_el: string }[]
+}
+
 export type Json =
   | string
   | number
@@ -3329,6 +3368,7 @@ export type Database = {
           codigo: string | null
           created_at: string
           descripcion: string | null
+          empresa_id: string
           es_prueba: boolean
           estado: string
           estado_alta: string
@@ -3352,6 +3392,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
+          empresa_id?: string
           es_prueba?: boolean
           estado?: string
           estado_alta?: string
@@ -3375,6 +3416,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
+          empresa_id?: string
           es_prueba?: boolean
           estado?: string
           estado_alta?: string
@@ -5446,6 +5488,8 @@ export type Database = {
       fn_cola_arranque_candidatas: { Args: { p_ubicacion_id: string }; Returns: { en_stock: number; prenda_id: string; variante_id: string }[] }
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
       fn_catalogo_version: { Args: never; Returns: number }
+      // 20261013153000: md5 del stock que la cuenta ve en una sede; useStockEnVivo solo relee si cambia.
+      fn_stock_huella: { Args: { p_ubicacion_id: string }; Returns: string }
       fn_acepta_pago_qr: { Args: never; Returns: boolean }
       fn_acepta_redondeo_efectivo: { Args: never; Returns: boolean }
       fn_variantes_con_costo_oficial: { Args: { p_ids: string[] }; Returns: string[] }
@@ -5743,6 +5787,7 @@ export type Database = {
           p_cumple_anio?: number
           p_tallas?: Json
           p_version_esperada?: number
+          p_correo?: string
         }
         Returns: number
       }
@@ -5819,6 +5864,108 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: Json
       }
+      // Tienda web ▸ Campañas (20261021161000): las campañas de la tienda online con el diseño de cada una.
+      fn_campanas_web: { Args: never; Returns: Json }
+      fn_campana_diseno: { Args: { p_etiqueta_id: string }; Returns: Json }
+      guardar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null; p_diseno: Json }; Returns: Json }
+      programar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
+      desprogramar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
+      crear_campana_vista_previa: { Args: { p_etiqueta_id: string }; Returns: Json }
+      // Vitrina web ▸ Esperan una talla (ADR-0408, actividad 12; 20261015030000): lo que esperan los clientes, sin datos personales.
+      fn_vitrina_esperan: { Args: never; Returns: Json }
+      // Vitrina web (ADR-0408, actividad 3; 20261014225000). Sin precio web: en la web vale el precio de cada tienda.
+      fn_vitrina_modelos: { Args: never; Returns: Json }
+      vitrina_guardar_modelo: {
+        Args: {
+          p_producto_id: string
+          p_publicado: boolean
+          p_en_lo_nuevo: string
+          p_descripcion_web: string | null
+          p_version: number | null
+        }
+        Returns: Json
+      }
+      vitrina_mostrar: {
+        Args: { p_producto_ids: string[]; p_publicado: boolean }
+        Returns: Json
+      }
+      // Ventas ▸ Pedidos web (ADR-0408, actividad 8; motor 20261014235000, ERP 20261015010000 y 20261015011000). Los plazos son
+      // opcionales: sin ellos, la base usa los de Configuración ▸ Tienda web.
+      fn_pedidos_web_tablero: { Args: { p_ubicacion_id: string }; Returns: Json }
+      fn_pedidos_web_por_confirmar: { Args: { p_ubicacion_id: string }; Returns: number | null }
+      fn_pedido_web_detalle: { Args: { p_pedido_id: string }; Returns: Json }
+      confirmar_pedido_web: {
+        Args: { p_pedido_id: string; p_lineas: Json; p_horas_para_confirmar?: number }
+        Returns: Json
+      }
+      no_confirmar_pedido_web: {
+        Args: { p_pedido_id: string; p_motivo: string; p_horas_para_confirmar?: number }
+        Returns: Json
+      }
+      anular_pedido_web: { Args: { p_pedido_id: string; p_motivo: string }; Returns: Json }
+      reservar_linea_pedido_web: {
+        Args: { p_linea_id: string; p_ubicacion_id?: string; p_sububicacion_id?: string }
+        Returns: Json
+      }
+      enviar_pedido_web_desde: {
+        Args: { p_pedido_id: string; p_ubicacion_origen_id: string; p_fecha_estimada_llegada: string; p_token?: string }
+        Returns: Json
+      }
+      fn_apartados_de_pedidos_web: {
+        Args: { p_ubicacion_id: string }
+        Returns: { apartado_id: string; pedido_codigo: string; tienda_pedido: string; para_otra_tienda: boolean }[]
+      }
+      // Vitrina web ▸ Looks (ADR-0408, actividad 11; 20261015031000): las combinaciones de «Arma tu look».
+      fn_vitrina_looks: { Args: never; Returns: Json }
+      vitrina_guardar_look: {
+        Args: {
+          p_look_id: string | null
+          p_nombre: string
+          p_frase: string | null
+          p_publicado: boolean
+          p_piezas: Json
+          p_lugar: number | null
+          p_version: number | null
+        }
+        Returns: Json
+      }
+      vitrina_mostrar_look: {
+        Args: { p_look_id: string; p_publicado: boolean; p_version: number }
+        Returns: Json
+      }
+      // Vitrina web ▸ Probador (ADR-0434, actividad 1; 20261017003000): los recortes de las fotos para «Arma el tuyo». Anotar y
+      // revisar firman con el responsable del combo.
+      fn_vitrina_recortes: { Args: never; Returns: Json }
+      registrar_recorte: {
+        Args: { p_foto: string; p_recorte: string; p_proporcion: number; p_motivo?: string | null }
+        Returns: Json
+      }
+      revisar_recorte: { Args: { p_foto: string; p_usar: boolean }; Returns: Json }
+      // El «Deshacer» de un recorte descartado (/chaos, 2026-10-17; 20261017183000): lo devuelve a «listo» o «por revisar» solo si sigue
+      // descartado, y queda en la Actividad.
+      deshacer_descarte_recorte: { Args: { p_foto: string; p_estado: string }; Returns: Json }
+      // Vitrina web ▸ Probador, los largos y la lista viva (ADR-0434, actividad 3; 20261017015000). Los dos guardados firman con el
+      // responsable del combo.
+      fn_vitrina_probador: { Args: never; Returns: Json }
+      vitrina_guardar_largo: { Args: { p_producto_id: string; p_largo_cm: number | null }; Returns: Json }
+      vitrina_guardar_largos_tipicos: { Args: { p_largos: Json }; Returns: Json }
+      // Cobrar dentro del pedido web (ADR-0408, actividad 9; motor 20261015000000, token 20261015042000). El efectivo no lleva n.º
+      // de operación (null); el token lo pone `useIntento`.
+      registrar_pago_pedido_web: {
+        Args: { p_pedido_id: string; p_monto: number; p_medio: string; p_numero_operacion?: string | null; p_token?: string }
+        Returns: Json
+      }
+      anular_pago_pedido_web: { Args: { p_pago_id: string; p_motivo: string }; Returns: Json }
+      // Entregar un pedido web con el código de 4 cifras (ADR-0408, actividad 10; 20261015052000). El token lo pone `useIntento`.
+      entregar_pedido_web: { Args: { p_pedido_id: string; p_codigo: string; p_token?: string }; Returns: Json }
+      // Anular un pedido web pagado: devuelve la plata y anula su venta y su boleta (ADR-0408; 20261015114000). El token lo pone `useIntento`.
+      anular_pedido_web_pagado: { Args: { p_pedido_id: string; p_motivo: string; p_token?: string }; Returns: Json }
+      // Clientes ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15; 20261015135000): lo que los clientes recomiendan desde la tienda online,
+      // con su nombre. Las tres que escriben firman con el responsable del combo.
+      fn_recomendaciones: { Args: never; Returns: Json }
+      marcar_recomendacion_leida: { Args: { p_id: string }; Returns: Json }
+      responder_recomendacion: { Args: { p_id: string; p_respuesta: string }; Returns: Json }
+      archivar_recomendacion: { Args: { p_id: string; p_archivar: boolean }; Returns: Json }
       unirse_al_club: {
         Args: {
           p_clienta_id: string
@@ -5954,6 +6101,18 @@ export type Database = {
         Args: { p_clienta_id: string; p_tipo: string; p_referencia: string; p_texto: string; p_ubicacion_id: string }
         Returns: string
       }
+      /** Módulo «Avisos del club», «Editar mensajes» (20261020151000): el mensaje que rige en esa tienda para cada aviso (completo),
+       *  su cierre (null = sin cierre) y si ya personalizó alguno. */
+      fn_club_avisos_textos: {
+        Args: { p_ubicacion_id: string }
+        Returns: Json
+      }
+      /** «Editar mensajes»: guarda los mensajes propios de una tienda, solo lo que cambió (cuerpos sin cierre ni BAJA). Con el
+       *  módulo. Hints: mensaje_aviso_invalido (detail = el aviso), avisos_otra_tienda. Devuelve cuántos textos cambió. */
+      guardar_mensajes_avisos: {
+        Args: { p_ubicacion_id: string; p_mensajes: Json; p_cierre: string }
+        Returns: number
+      }
       /** Módulo «Avisos del club»: cuántos avisos no deshechos se anotaron HOY (Lima) desde esa tienda, por tipo (solo los
        *  tipos con al menos uno). */
       fn_club_avisos_enviados_hoy: {
@@ -5965,12 +6124,77 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      /** Módulo «Avisos del club»: las cuentas de Google unidas a una ficha en los últimos 60 días y todavía abiertas, las que
+       *  faltan avisar primero (ADR-0469, 20261021170000). aviso_estado: pendiente, enviado o sin_celular. */
+      fn_vinculos_google_recientes: {
+        Args: never
+        Returns: {
+          id: string
+          clienta_id: string
+          nombre: string
+          telefono: string | null
+          nombre_google: string
+          correo: string
+          creado_en: string
+          aviso_estado: string
+          avisado_en: string | null
+        }[]
+      }
+      /** Módulo «Avisos del club»; firma con el responsable. Repetido no hace nada. Hints: vinculo_no_existe, vinculo_deshecho. */
+      registrar_vinculo_google_avisado: {
+        Args: { p_id: string; p_ubicacion_id: string }
+        Returns: undefined
+      }
+      /** Solo el líder; firma con su cuenta. Cierra la cuenta web y deja la ficha intacta. Hints: solo_lider, vinculo_no_existe. */
+      desvincular_cuenta_google: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       /** Solo el líder. p_escala = [{ "anio": 1, "monto": 20 }, …] (los cinco años, como la devuelve fn_club_pagina; montos que
        *  no bajan). Si cambia algo, publica una versión nueva de `terminos`. Hints: solo_lider, beneficios_invalidos
        *  (detail = el campo), terminos_no_reconocidos. */
       guardar_beneficios_club: {
         Args: { p_pct: number; p_compras: number; p_monto: number; p_dias: number; p_escala: Json }
         Returns: undefined
+      }
+      /** Puntos del Club (actividad 1): guarda una versión nueva de la configuración. Solo el líder. Devuelve desde cuándo rige (15 días si toca lo que valen los puntos o el canje). */
+      guardar_beneficios_puntos: {
+        Args: {
+          p_puntos_por_sol: number
+          p_soles_por_100: number
+          p_canje_minimo: number
+          p_compra_minima_x: number
+          p_vigencia_dias: number
+          p_regalo_cumple: number
+          p_tope_costo_pct: number
+          p_vigente_desde?: string
+        }
+        Returns: string
+      }
+      /** Puntos del Club (actividad 3): canjea puntos de una miembro por un cupón con código desde la caja. La misma clave (p_token) devuelve el mismo cupón. */
+      canjear_puntos: {
+        Args: { p_clienta_id: string; p_puntos: number; p_token?: string }
+        Returns: CuponDelClub
+      }
+      /** Puntos del Club (actividad 8): lo que muestra Clientes ▸ Beneficios del club (configuración vigente y programada, cifras del programa, últimos cambios). Solo lee; con el módulo beneficios_club. */
+      resumen_beneficios_puntos: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      /** Puntos del Club (actividad 10): la configuración vigente de los puntos, pública (cartel y página del QR). */
+      fn_club_puntos_vigentes: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      /** Puntos del Club (actividad 5): lo que la caja muestra de los puntos de una clienta (lectura). */
+      resumen_puntos_caja: {
+        Args: { p_clienta_id: string }
+        Returns: ResumenDePuntosEnCaja
+      }
+      /** Puntos del Club (actividad 4): ¿sirve este código de cupón? ok con su valor, o el motivo; cuenta los códigos que no existen (5 en 5 min bloquean la cuenta). */
+      validar_cupon: {
+        Args: { p_codigo: string; p_total?: number }
+        Returns: ValidacionDeCupon
       }
       /** Servidor (cron diario con CRON_SECRET): anonimiza las fichas sin compra en 3 años. Devuelve cuántas. */
       fn_club_anonimizar_inactivas: {
@@ -6007,37 +6231,10 @@ export type Database = {
         Args: { p_id: string; p_version_esperada?: number }
         Returns: number
       }
-      unir_clientas: {
-        Args: {
-          p_mantener_id: string
-          p_fusionar_id: string
-          p_version_mantener_esperada?: number
-          p_version_fusionar_esperada?: number
-        }
-        Returns: {
-          anonimizada: boolean
-          archivada_en: string | null
-          archivada_por: string | null
-          created_at: string
-          created_por: string | null
-          cumple_dia: number | null
-          cumple_mes: number | null
-          documento_numero: string | null
-          documento_tipo: string
-          club_desde: string | null
-          codigo_club: string | null
-          cumple_anio: number | null
-          publicidad_desde: string | null
-          fusionada_en_id: string | null
-          id: string
-          motivo_archivo: string | null
-          nombre: string | null
-          tallas: Json | null
-          telefono_whatsapp: string | null
-          version: number
-          whatsapp_consentimiento_en: string | null
-          preferencias: Json
-        }
+      // 20261015132000: deja pedido el cambio del correo de entrada de su cuenta web y devuelve la ficha de un solo uso (solo el servidor).
+      restablecer_acceso_tienda_web: {
+        Args: { p_clienta_id: string; p_correo: string }
+        Returns: Json
       }
       exportar_clientas: {
         Args: never
@@ -6089,6 +6286,19 @@ export type Database = {
       fn_clienta_separaciones: {
         Args: { p_id: string }
         Returns: { separacion_id: string; codigo: string; fecha: string; estado: string; total: number; vence_el: string }[]
+      }
+      fn_clienta_tienda_online: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      fn_anotar_lectura_padron: {
+        Args: { p_tipo: string; p_numero: string; p_nombre: string }
+        Returns: undefined
+      }
+      // «Restablecer acceso a la tienda web» (20261015132000): la cuenta web y el restablecimiento pendiente de la ficha.
+      fn_clienta_acceso_web: {
+        Args: { p_id: string }
+        Returns: Json
       }
       fn_clientas_lista: {
         Args: { p_termino?: string; p_filtro?: string; p_limite?: number; p_desde?: number }
@@ -6362,6 +6572,7 @@ export type Database = {
           p_items: Json
           p_motivo: string
           p_motivo_codigo: string
+          p_token?: string
           p_ubicacion_id: string
           p_venta_id: string
         }
@@ -6481,6 +6692,47 @@ export type Database = {
           nombre: string
           orden: number
         }[]
+      }
+      fn_empresas: {
+        Args: never
+        Returns: {
+          clave: string
+          id: string
+          logo_url: string | null
+          nombre: string
+          orden: number
+          web: string | null
+        }[]
+      }
+      fn_empresas_de_sede: {
+        Args: { p_sede_id: string }
+        Returns: {
+          clave: string
+          id: string
+          nombre: string
+          orden: number
+        }[]
+      }
+      crear_producto_con_empresa: {
+        Args: {
+          p_al_piso?: boolean
+          p_categoria_id: string
+          p_confirmo_distinto?: boolean
+          p_descripcion?: string
+          p_etiqueta_ids?: string[]
+          p_marca_id?: string
+          p_patron_id?: string
+          p_proveedor_id?: string
+          p_referencia: string
+          p_sede_id: string
+          p_tejido_id?: string
+          p_temporada?: string
+          p_empresa_id: string
+          p_token?: string
+          p_ubicacion_id?: string
+          p_variantes: Json
+        }
+        Returns: string
       }
       crear_producto_con_stock_inicial: {
         Args: {
@@ -6927,25 +7179,6 @@ export type Database = {
         Args: { p_que?: string }
         Returns: undefined
       }
-      fn_historial_producto_cambios: {
-        Args: { p_producto_id: string }
-        Returns: {
-          campo: string
-          categoria_anterior_nombre: string
-          categoria_nueva_nombre: string
-          created_at: string
-          entidad: string
-          id: string
-          usuario_id: string
-          usuario_nombre: string
-          valor_anterior: string
-          valor_nuevo: string
-          variante_color: string
-          variante_id: string
-          variante_sku: string
-          variante_talla: string
-        }[]
-      }
       fn_facturas_para_nota_credito: {
         Args: {
           p_filtro?: string
@@ -7312,6 +7545,7 @@ export type Database = {
           p_categoria_id?: string
           p_colores?: string[]
           p_disponibilidad?: string
+          p_empresa_id?: string
           p_estado?: string
           p_falta?: string
           p_familias?: string[]
@@ -7331,6 +7565,7 @@ export type Database = {
           p_categoria_id?: string
           p_colores?: string[]
           p_disponibilidad?: string
+          p_empresa_id?: string
           p_estado?: string
           p_falta?: string
           p_familias?: string[]
@@ -7456,6 +7691,30 @@ export type Database = {
           unidades: number
         }[]
       }
+      // 20261013161000: datos bancarios solo para quien ve Proveedores, Por pagar o Cuentas y dinero (Felipe 2026-10-13).
+      fn_puede_ver_datos_bancarios: { Args: never; Returns: boolean }
+      fn_proveedor_datos_bancarios: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          banco: string | null
+          cuenta_bancaria: string | null
+          cci: string | null
+          celular_billetera: string | null
+          billeteras: string[] | null
+          titular_cuenta: string | null
+        }[]
+      }
+      fn_proveedor_cambios_bancarios: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          campo: string
+          antes: string | null
+          despues: string | null
+          cambiado_por_nombre: string | null
+          cambiado_en: string
+        }[]
+      }
+      fn_cuentas_bancarias_cambiadas: { Args: { p_dias?: number }; Returns: Json }
       fn_proveedor_metricas_compras: {
         Args: { p_proveedor_id: string }
         Returns: {
@@ -7911,6 +8170,24 @@ export type Database = {
         }[]
       }
       fn_stock_por_sede_json: { Args: never; Returns: Json }
+      // ADR-0270: la fórmula única de «cuánto hay» por prenda y sede (sin sede = todas; sin productos = todos).
+      fn_existencias: {
+        Args: { p_ubicacion_id?: string; p_producto_ids?: string[] }
+        Returns: {
+          variante_id: string
+          producto_id: string
+          ubicacion_id: string
+          fisico: number
+          danado: number
+          apartado: number
+          disponible: number
+          piso_libre: number
+          almacen_libre: number
+          sin_lugar: number
+          en_camino: number
+          talla_retirada: boolean
+        }[]
+      }
       fn_sububicacion_por_defecto: {
         Args: { p_ubicacion_id: string; p_uso: string }
         Returns: string
@@ -8012,6 +8289,13 @@ export type Database = {
         Returns: undefined
       }
       restaurar_rol: { Args: { p_rol_id: string }; Returns: undefined }
+      fn_terminal_firma_respaldo: {
+        Args: never
+        Returns: {
+          nombre: string
+          persona_id: string
+        }[]
+      }
       fn_terminales: {
         Args: never
         Returns: {

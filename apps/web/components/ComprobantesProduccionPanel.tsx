@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { FunnelX, Receipt, SearchX } from "lucide-react";
+import { FunnelX, Receipt, SearchX, Truck } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
-import { Boton, BotonEnlace, Desplegable } from "@/components/ui/campos";
+import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -15,6 +15,8 @@ import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 const ETIQUETA_FILTRO: Record<FiltroEstado, string> = { todos: "Todos", por_pagar: "Por pagar", vencidos: "Vencidos", pagados: "Pagados", anulados: "Anulados" };
 
@@ -31,6 +33,7 @@ export function ComprobantesProduccionPanel({
   insumos,
   hoy,
   tallerId,
+  sede,
 }: {
   comprobantes: ComprobanteProduccion[];
   proveedores: ProveedorProduccion[];
@@ -38,6 +41,8 @@ export function ComprobantesProduccionPanel({
   insumos: InsumoParaComprobante[];
   hoy: string;
   tallerId: string | null;
+  /** La sede de la línea de arriba de la cabecera (el Taller). */
+  sede: string;
 }) {
   const [estado, setEstado] = useState<FiltroEstado>("todos");
   const [proveedorId, setProveedorId] = useState("");
@@ -52,18 +57,19 @@ export function ComprobantesProduccionPanel({
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Facturas de insumos</h1>
-          <p className="mt-1 max-w-xl text-sm text-tinta/65">La factura de quien le vende al Taller: qué se compró, a qué precio y cuánto falta pagar. Es un libro aparte del de Compras.</p>
-        </div>
-        <Boton peso="primario" onClick={() => setNuevo(true)}>
-          + Nueva factura
-        </Boton>
-      </div>
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Facturas de insumos"
+        subtitulo="La factura de quien le vende al Taller: qué se compró, a qué precio y cuánto falta pagar. Es un libro aparte del de Compras."
+        acciones={
+          <Boton peso="primario" data-guia="prod-facturas.nueva" onClick={() => setNuevo(true)}>
+            + Nueva factura
+          </Boton>
+        }
+      />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div data-guia="prod-facturas.cifras" className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra
           punto={resumen.porPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar"
@@ -97,11 +103,12 @@ export function ComprobantesProduccionPanel({
       {comprobantes.length === 0 ? (
         <div className="card-cayla">
           <Vacio
+            guia="prod-facturas.lista"
             icono={<Receipt />}
             titulo="Todavía no hay facturas de insumos"
             acciones={
               todosLosProveedores.length === 0 ? (
-                <BotonEnlace href="/produccion/proveedores" peso="primario">
+                <BotonEnlace href="/produccion/proveedores" peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                   Ir a Proveedores
                 </BotonEnlace>
               ) : (
@@ -119,7 +126,7 @@ export function ComprobantesProduccionPanel({
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             {/* El estado deja menos comprobantes en la misma lista: la píldora de filtro, igual que en Compras (ADR-0358). */}
-            <div role="group" aria-label="Filtrar por estado" className="flex flex-wrap items-center gap-2">
+            <div data-guia="prod-facturas.estados" role="group" aria-label="Filtrar por estado" className="flex flex-wrap items-center gap-2">
               {(
                 [
                   { clave: "todos", etiqueta: "Todos", conteo: comprobantes.length },
@@ -134,14 +141,17 @@ export function ComprobantesProduccionPanel({
                 </button>
               ))}
             </div>
-            <Desplegable
+            <div data-guia="prod-facturas.proveedor">
+            <DesplegablePildora
+              icono={Truck}
+              etiqueta="Proveedor"
               valor={proveedorId}
+              valorPorDefecto=""
               onValor={(v) => setProveedorId(v)}
               opciones={[{ valor: "", texto: "Todos los proveedores" }, ...todosLosProveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
-              etiquetaAccesible="Filtrar por proveedor"
-              forma="caja"
             />
-            <Buscador valor={busqueda} onCambio={setBusqueda} atajo placeholder="Proveedor o F001-123" etiqueta="Buscar factura" className="ml-auto min-w-52" />
+            </div>
+            <Buscador guia="prod-facturas.buscador" valor={busqueda} onCambio={setBusqueda} atajo placeholder="Proveedor o F001-123" etiqueta="Buscar factura" className="ml-auto min-w-52" />
           </div>
 
           {visibles.length === 0 ? (
@@ -183,7 +193,7 @@ export function ComprobantesProduccionPanel({
               )}
             </div>
           ) : (
-            <div className="card-cayla overflow-hidden">
+            <div data-guia="prod-facturas.lista" className="card-cayla overflow-hidden">
               <div className="hidden grid-cols-[4rem_minmax(0,1.6fr)_7rem_7rem_11rem] gap-4 border-b border-tinta/10 px-4 py-2.5 sm:grid">
                 <span className="label-cayla text-[11px] text-tinta/65">Fecha</span>
                 <span className="label-cayla text-[11px] text-tinta/65">Proveedor</span>
@@ -203,7 +213,7 @@ export function ComprobantesProduccionPanel({
                       >
                         <span className="hidden text-[13px] tabular-nums text-tinta/75 sm:block">{diaMes(c.fechaEmision)}</span>
                         <span className="min-w-0">
-                          <span className={`block truncate text-[14px] ${c.estado === "anulada" ? "text-tinta/55 line-through" : "text-tinta"}`}>{c.proveedor}</span>
+                          <span data-guia="prod-facturas.proveedor-fila" className={`block truncate text-[14px] ${c.estado === "anulada" ? "text-tinta/55 line-through" : "text-tinta"}`}>{c.proveedor}</span>
                           <span className="block text-xs text-tinta/65">
                             {etiquetaTipo(c.tipo, true)} {c.serie}-{c.numero} · {plural(c.lineas, "línea", "líneas")}
                             <span className="sm:hidden"> · {diaMes(c.fechaEmision)}</span>

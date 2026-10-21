@@ -11,12 +11,12 @@ import { Chip } from "@/components/ui/Chip";
 import {
   MOTIVOS_LIBERACION,
   estadoVencimiento,
-  hoyLima,
   resumirApartados,
   textoVencimiento,
   type Apartado,
   type MotivoLiberacion,
 } from "@/lib/apartados-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -80,7 +80,7 @@ export function ApartadosModal({
         }`;
 
   return (
-    <Modal conCerrar titulo={liberando ? "Liberar apartado" : "Apartados"} subtitulo={liberando ? undefined : subtitulo} onClose={onClose} ancho="max-w-2xl">
+    <Modal conCerrar={!liberando} titulo={liberando ? "Liberar apartado" : "Apartados"} subtitulo={liberando ? undefined : subtitulo} onClose={onClose} tamano="ancha">
       {(cerrar) =>
         liberando ? (
           <form onSubmit={liberar} className="mt-2 space-y-4" noValidate>
@@ -106,7 +106,7 @@ export function ApartadosModal({
               <Boton type="button" onClick={() => { setLiberando(null); setMotivo(""); setIntento(false); responsable.limpiar(); }} className="flex-1">
                 Volver
               </Boton>
-              <Boton
+              <Boton textoCargando="Liberando…"
                 type="submit"
                 peso="primario"
                 cargando={enviando}
@@ -156,7 +156,11 @@ export function ApartadosModal({
                       <p className="text-[11px] text-tinta/45">Apartó {a.apartoNombre ?? "—"}</p>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
-                      {a.venceEl === null ? (
+                      {a.pedidoWeb ? (
+                        // La reserva de un pedido web (ADR-0408, act. 8): su número ya va en el nombre; el chip dice que no vence aquí
+                        // (se entrega o se libera desde Tienda web ▸ Pedidos, por eso no lleva «Liberar») o adónde viaja.
+                        <Chip tono="pizarra">{a.pedidoWeb.paraOtraTienda ? `Pedido web · viaja a ${a.pedidoWeb.tiendaPedido}` : "Pedido web · no vence"}</Chip>
+                      ) : a.venceEl === null ? (
                         <Chip tono="pizarra">Para otra sede · no vence</Chip>
                       ) : (
                         <Chip tono={estado === "vencido" ? "rojo" : estado === "hoy" ? "ambar" : "neutro"}>{textoVencimiento(a.venceEl, hoy)}</Chip>

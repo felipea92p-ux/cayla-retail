@@ -5,14 +5,16 @@
 
 import type { MetodoPago } from "@cayla-retail/shared";
 import { filtrarPrendasV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
-import { UNIDAD_EFECTIVO, efectivoACobrar, redondeoDelEfectivo } from "./redondeo-efectivo-reglas";
+import { TOPE_VUELTO, UNIDAD_EFECTIVO, efectivoACobrar, redondeoDelEfectivo } from "./redondeo-efectivo-reglas";
 import type { ReservaEnOrigen } from "./pedidos-con-cliente-reglas";
+import { diaLima, diaMes } from "./fechas-lima";
 
 /** D3 (Felipe, 2026-09-22): 7 días para recoger, aviso cuando faltan 2, 2 días para decidir tras vencer. */
 export const PLAZO_DIAS = 7;
 export const AVISO_DIAS = 2;
 export const GRACIA_DIAS = 2;
-export const EXTENSIONES_MAX = 1;
+/** Cuántas veces se aplaza un apartado: 1 hasta el 2026-10-15; 2 desde ADR-0414 (Felipe), con el tope de 30 días desde que se apartó. */
+export const EXTENSIONES_MAX = 2;
 /** SUNAT: una boleta de más de S/700 identifica a la compradora. */
 export const TOPE_BOLETA_SIN_DNI = 700;
 
@@ -94,7 +96,9 @@ export function estadoVisible(a: Pick<Apartado, "estado" | "venceEl" | "adelanto
 /** Orden de la lista «Todos»: primero lo que exige una acción hoy. */
 export const ORDEN_ESTADO: Record<ClaveEstado, number> = { devolver: 0, vencida: 1, porvencer: 2, vigente: 3, cerrada: 4 };
 
-/** La barra del plazo: 7 tramos de plazo + 2 de gracia. `pasado` ya transcurrió, `hoy` es el día actual. */
+/** La barra del plazo: 7 tramos de plazo + 2 de gracia. `pasado` ya transcurrió, `hoy` es el día actual. `creadaEl` es el día de
+ *  Lima en que se apartó, `diaLima(a.creadaEn)`: la base guarda el instante en UTC y calcula `vence_el` con ese mismo día de Lima
+ *  (`fn_hoy_lima()` + 7); con los 10 primeros caracteres del instante, lo apartado de 7 pm a medianoche arrancaba «mañana». */
 export type TramoPlazo = { tipo: "plazo" | "gracia"; momento: "pasado" | "hoy" | "futuro" };
 export function tramosDelPlazo(creadaEl: string, hoy: string): TramoPlazo[] {
   const dia = diasEntre(creadaEl, hoy);
@@ -104,7 +108,21 @@ export function tramosDelPlazo(creadaEl: string, hoy: string): TramoPlazo[] {
   }));
 }
 
+/** La línea de tiempo de Entregar (Apartó → Hoy → Vence): cuántos días tiene el plazo y cuántos ya pasaron, contados desde el día
+ *  de Lima en que se apartó (`diaLima(a.creadaEn)`, como `tramosDelPlazo`). Sin ese día —un instante que no se lee—, la línea no
+ *  avanza: no se inventa cuándo se apartó. */
+export function avanceDelPlazo(creadaEl: string | null, hoy: string, venceEl: string): { total: number; pasados: number } {
+  if (!creadaEl) return { total: 1, pasados: 0 };
+  const total = Math.max(1, diasEntre(creadaEl, venceEl));
+  return { total, pasados: Math.min(total, Math.max(0, diasEntre(creadaEl, hoy))) };
+}
+
 export const soloDigitos = (s: string) => s.replace(/\D/g, "");
+
+/** ¿El apartado se hizo CON constancia (sin boleta de anticipo)? Es todo apartado nuevo (ADR-0399, Felipe 2026-10-14): el adelanto es un pacto
+ *  interno, la clienta se lleva el código APT-… como constancia y la boleta o factura sale una sola vez, al entregar, por el total. Un apartado
+ *  VIEJO, de antes, ya tiene su boleta de anticipo con el correlativo gastado: conserva su ticket y su texto de siempre. */
+export const esConstancia = (a: Pick<Apartado, "comprobanteAnticipo">): boolean => a.comprobanteAnticipo === null;
 
 /** Lo que se busca en «Entregar» y en «Todos»: código, nombre, DNI, celular o comprobante. */
 export function coincide(a: Apartado, texto: string): boolean {
@@ -190,6 +208,14 @@ export function esCelularPeru(texto: string): boolean {
   return /^9\d{8}$/.test(soloDigitos(texto));
 }
 
+/** El adelanto mínimo de un apartado (Felipe 2026-10-15, D1): el 30 % del total, redondeado hacia arriba al céntimo. Es la misma cuenta
+ *  de `separar_prendas` (20261016003000), que lo hace cumplir; aquí solo se dice antes de guardar. El atajo «30 %» del formulario
+ *  redondea al sol hacia arriba, así que siempre lo cumple. */
+const ADELANTO_MINIMO_PCT = 30;
+function adelantoMinimo(total: number): number {
+  return Math.ceil((Math.round(total * 100) * ADELANTO_MINIMO_PCT) / 100) / 100;
+}
+
 export function erroresDelApartado(f: FormularioApartado, total: number): Partial<Record<CampoApartado, string>> {
   const e: Partial<Record<CampoApartado, string>> = {};
   if (!f.nombres.trim()) e.nombres = "Escribe los nombres.";
@@ -211,6 +237,9 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
   else if (f.pagos.some((p) => !(p.monto > 0))) e.pago = "Cada medio lleva un monto mayor a cero.";
   else if (adelanto > total) e.pago = "El adelanto no puede pasar el total.";
   else if (f.pagos.some((p) => p.metodo === "efectivo" && p.recibido !== undefined && p.recibido < p.monto)) e.pago = "Lo recibido en efectivo no alcanza.";
+  else if (vueltoDelAdelanto(f.pagos) > TOPE_VUELTO) e.pago = `El vuelto pasa de S/\u00a0${TOPE_VUELTO}: revisa cuánto entregó.`;
+  else if (adelanto + 0.001 < adelantoMinimo(total))
+    e.pago = `El adelanto mínimo es ${soles(adelantoMinimo(total))} (el ${ADELANTO_MINIMO_PCT} % del total).`;
   if (f.devolucionMedio === "transferencia") {
     if (soloDigitos(f.devolucionCci).length !== 20) e.devolucion = "El CCI tiene 20 dígitos.";
   } else {
@@ -270,6 +299,8 @@ export type CobroDelSaldo = {
   sinMoneda: boolean;
   /** Lo recibido en efectivo no alcanza a lo que se cobra. */
   noAlcanza: boolean;
+  /** El vuelto pasa del tope (S/ 500): es un billete mal escrito y la base no lo acepta. */
+  vueltoExcede: boolean;
 };
 
 /** El saldo al entregar: con Yape/tarjeta se cobra justo; solo el efectivo da vuelto. Con `redondear` (ADR-0311) el efectivo se cobra
@@ -289,11 +320,21 @@ export function cobroDelSaldo(pagos: readonly PagoAdelanto[], saldo: number, red
   const excede = pagado > saldo + 0.001;
   const sinMoneda = redondear && efectivo !== null && efectivo.deuda > 0 && efectivo.aCobrar <= 0;
   const noAlcanza = efectivo !== null && pagoEfectivo?.recibido !== undefined && pagoEfectivo.recibido < efectivo.aCobrar;
-  return { falta, vuelto, excede, listo: saldo === 0 || (falta === 0 && !excede && pagos.length > 0 && !sinMoneda), efectivo, sinMoneda, noAlcanza };
+  const vueltoExcede = vuelto > TOPE_VUELTO;
+  return {
+    falta,
+    vuelto,
+    excede,
+    listo: saldo === 0 || (falta === 0 && !excede && pagos.length > 0 && !sinMoneda && !vueltoExcede),
+    efectivo,
+    sinMoneda,
+    noAlcanza,
+    vueltoExcede,
+  };
 }
 
 /** Lo que se le dice a quien cobra cuando el efectivo del saldo no llega a una moneda de S/ 0.10 (los 0.07 que sobran tras un Yape). */
-export const AVISO_EFECTIVO_SIN_MONEDA = `El efectivo no puede ser menos de S/ ${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
+export const AVISO_EFECTIVO_SIN_MONEDA = `El efectivo no puede ser menos de S/\u00a0${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
 
 /** Texto de «cómo se le devuelve», para la boleta y las listas. El CCI nunca se muestra completo. */
 export function textoDevolucion(a: Pick<Apartado, "devolucionMedio" | "devolucionNumero" | "devolucionCciFinal">): string {
@@ -322,11 +363,7 @@ export function mensajeWhatsapp(a: Pick<Apartado, "nombres" | "codigo" | "venceE
 /** Lo que la base sabe de los avisos de un apartado (`fn_avisos_separaciones`, 20260926233000). */
 export type AvisoApartado = { avisos: number; ultimoEn: string; ultimoPor: string | null };
 
-/** El día de Lima (`aaaa-mm-dd`) de un instante: «hoy» se cuenta en la hora de la tienda, no en la del servidor. */
-export function diaLima(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-}
-
+/** «Hoy» se cuenta en la hora de la tienda, no en la del servidor: el día del último aviso es el de Lima (`diaLima`). */
 export function avisadaHoy(aviso: AvisoApartado | undefined, hoy: string): boolean {
   return !!aviso && diaLima(aviso.ultimoEn) === hoy;
 }
@@ -403,6 +440,21 @@ export const TOPE_SEPARACIONES = 200;
 
 // ---- Abonos (Apartados v2, paso 2 — 20260927100000) ----------------------------------------------------------------
 
+/** «2 pagos» en la fila del Historial: el adelanto y los abonos, todos. Con un solo pago no dice nada (ya lo dice «pagó S/…»). Antes la
+ *  fila contaba solo los abonos («1 abono») y un cliente que pagó dos veces parecía haber pagado una (prueba ciega, 2026-10-15). */
+export function textoPagosDeFila(pagos: readonly PagoApartado[]): string | null {
+  return pagos.length > 1 ? `${pagos.length} pagos` : null;
+}
+
+/** El detalle del aviso «Abono de S/… anotado». La boleta de anticipo solo existe en los apartados viejos: desde ADR-0399 el abono no
+ *  emite comprobante, y nombrarla mandaba a buscar un papel que no salió (/chaos 2026-10-15). */
+export function avisoDeAbono(a: Pick<Apartado, "nombres" | "comprobanteAnticipo">, r: { saldo: number; venceEl: string | null }): string {
+  const nombre = a.nombres.split(/\s+/)[0] || a.nombres;
+  const falta = r.saldo > 0 ? `falta S/${r.saldo.toFixed(2)}` : "ya pagó todo";
+  const hasta = r.venceEl ? ` · recoge hasta el ${diaMes(r.venceEl)}` : "";
+  return `${nombre}: ${falta}${hasta}.${esConstancia(a) ? "" : " Sale su boleta de anticipo."}`;
+}
+
 /**
  * Cuántos días más se la espera si al abonar se elige «esperarla» (Felipe, 2026-09-26): 2, o 3 si el abono cubre la
  * mitad o más de lo que le faltaba. Sin elegirlo, el plazo no cambia. La base hace la misma cuenta (`abonar_separacion`).
@@ -410,9 +462,6 @@ export const TOPE_SEPARACIONES = 200;
 export function diasEsperaPorAbono(monto: number, saldo: number): 2 | 3 {
   return monto * 2 >= saldo ? 3 : 2;
 }
-
-/** Los abonos de un apartado, sin el adelanto con que se apartó. */
-export const abonosDe = (a: Pick<Apartado, "pagos">) => a.pagos.filter((p) => p.abono);
 
 // ---- Opciones de Apartados (paso 5 — 20260927130000) --------------------------------------------------------------
 
@@ -513,4 +562,3 @@ export function textoEstadoPedido(p: Pick<PedidoApartado, "estado" | "direccion"
   if (p.estado === "apartado") return "Apartado con adelanto";
   return "Cancelado";
 }
-

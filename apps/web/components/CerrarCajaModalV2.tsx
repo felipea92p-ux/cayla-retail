@@ -7,7 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { totalEfectivoEncolado, type VentaEncolada } from "@/lib/ventas-offline";
-import { CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { CampoSelect, CampoTexto, Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -28,7 +28,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 
 function money(n: number) {
-  return (n < 0 ? "-S/ " : "S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n < 0 ? "-S/\u00a0" : "S/\u00a0") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 type Esperado = {
@@ -336,7 +336,7 @@ export function CerrarCajaModalV2({
           : "Escribe cuánto vas a trasladar. Lo que no traslades se queda en el cajón para el próximo turno."
       }
       onClose={onClose}
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) =>
         paso === "contar" ? (
@@ -388,8 +388,8 @@ export function CerrarCajaModalV2({
                 <label htmlFor="cierre-monto" className={campoEtiqueta}>
                   Contado en físico
                 </label>
-                <div className="mt-1 flex items-baseline gap-1.5 border-b border-tinta/20 focus-within:border-rojo">
-                  <span className="font-display text-xl text-tinta/50">S/</span>
+                <div className="mt-1 caja-cayla caja-campo caja-campo-alta">
+                  <span aria-hidden className="font-display text-base leading-none text-tinta/55">S/</span>
                   <input
                     id="cierre-monto"
                     inputMode="decimal"
@@ -398,7 +398,7 @@ export function CerrarCajaModalV2({
                     placeholder="0.00"
                     value={contadoTexto}
                     onChange={(e) => setContadoTexto(e.target.value)}
-                    className="font-display w-full bg-transparent py-1 text-3xl tabular-nums text-tinta outline-none"
+                    className="font-display self-stretch py-0 text-2xl tabular-nums"
                   />
                 </div>
                 <details className="mt-3 rounded-lg border border-dashed border-sand px-3 py-2">
@@ -410,14 +410,14 @@ export function CerrarCajaModalV2({
                       const cantidad = parseInt(billetes[d] ?? "", 10) || 0;
                       return (
                         <label key={d} className="grid grid-cols-[3.25rem_4rem_1fr] items-center gap-2 text-xs text-tinta/65">
-                          <b className="font-semibold text-tinta">{d >= 1 ? `S/ ${d}` : `${Math.round(d * 100)} cts`}</b>
+                          <b className="font-semibold text-tinta">{d >= 1 ? `S/\u00a0${d}` : `${Math.round(d * 100)} cts`}</b>
                           <input
                             inputMode="numeric"
                             placeholder="0"
                             value={billetes[d] ?? ""}
                             onChange={(e) => cambiarBillete(d, e.target.value.replace(/\D/g, ""))}
                             aria-label={`Cantidad de ${d >= 1 ? `billetes o monedas de ${d} soles` : `monedas de ${Math.round(d * 100)} céntimos`}`}
-                            className="w-full rounded border border-sand bg-vidrio px-2 py-1 text-right text-sm tabular-nums text-tinta outline-none focus:border-rojo"
+                            className="caja-campo-input min-h-8 px-2 text-right tabular-nums"
                           />
                           <span className={`text-right tabular-nums ${cantidad > 0 ? "text-tinta" : "text-tinta/35"}`}>
                             {money(cantidad * d)}
@@ -448,11 +448,11 @@ export function CerrarCajaModalV2({
                 )}
               </p>
             )}
-            <div className="flex gap-2 pt-1">
-              <button type="button" onClick={cerrar} className={botonCancelar}>
+            <div className="pie-acciones pt-1">
+              <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
                 Cancelar
               </button>
-              <button type="submit" disabled={contado === null || contado < 0} className={botonPrimario}>
+              <button type="submit" disabled={contado === null || contado < 0} className="btn-cayla btn-primario">
                 Continuar
               </button>
             </div>
@@ -465,7 +465,7 @@ export function CerrarCajaModalV2({
             <span className="font-display text-2xl tabular-nums">{money(contado ?? 0)}</span>
           </div>
           {fondoPedido && (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-pizarra/30 bg-pizarra/10 px-3.5 py-2.5">
+            <div /* unificar-fijo: el fondo que pide la campaña, un dato del cierre junto a «Contaste» y «Queda en el cajón», no un aviso */ className="flex items-center justify-between gap-3 rounded-xl border border-pizarra/30 bg-pizarra/10 px-3.5 py-2.5">
               <span className="text-sm font-semibold text-tinta">Deja {money(fondoPedido.monto)} para el próximo turno</span>
               <span className="text-xs text-pizarra">{fondoPedido.motivo}</span>
             </div>
@@ -474,8 +474,8 @@ export function CerrarCajaModalV2({
             <label className={campoEtiqueta} htmlFor="traslado-monto">
               ¿Cuánto vas a trasladar?
             </label>
-            <div className="flex items-baseline gap-1.5 border-b border-tinta/20 focus-within:border-rojo">
-              <span className="font-display text-xl text-tinta/50">S/</span>
+            <div className="caja-cayla caja-campo caja-campo-alta">
+              <span aria-hidden className="font-display text-base leading-none text-tinta/55">S/</span>
               <input
                 id="traslado-monto"
                 inputMode="decimal"
@@ -487,7 +487,7 @@ export function CerrarCajaModalV2({
                   setTrasladoTexto(e.target.value);
                   setPideConfirmar(false);
                 }}
-                className="font-display w-full bg-transparent py-1 text-3xl tabular-nums text-tinta outline-none"
+                className="font-display self-stretch py-0 text-2xl tabular-nums"
               />
             </div>
           </div>
@@ -523,7 +523,7 @@ export function CerrarCajaModalV2({
               )}
             </div>
           )}
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-ambar/35 bg-ambar/10 px-3.5 py-2.5">
+          <div /* unificar-fijo: la cifra de lo que queda en el cajón, no un aviso */ className="flex items-center justify-between gap-3 rounded-xl border border-ambar/35 bg-ambar/10 px-3.5 py-2.5">
             <span className="label-cayla text-[10px] leading-snug text-ambar-profundo">
               Queda en el cajón
               <br />
@@ -562,20 +562,21 @@ export function CerrarCajaModalV2({
           <ComboResponsable control={responsable} deshabilitado={loading} />
           <div className="flex gap-2 pt-1">
             <Volver onClick={() => setPaso("contar")} a="Volver a contar" className="self-center" />
-            <button
+            <Boton
               type="submit"
-              disabled={loading || bloqueaCierre || !!invalido || !responsable.listo}
+              peso="primario"
+              cargando={loading}
+              textoCargando="Cerrando…"
+              disabled={bloqueaCierre || !!invalido || !responsable.listo}
               title={responsable.motivo ?? invalido ?? undefined}
-              className={botonPrimario}
+              className="flex-1"
             >
-              {loading
-                ? "Cerrando…"
-                : bloqueaCierre
-                  ? "Esperando ventas offline…"
-                  : trasladado > 0
-                    ? `Cerrar caja · trasladar ${money(trasladado)}`
-                    : "Cerrar caja sin trasladar"}
-            </button>
+              {bloqueaCierre
+                ? "Esperando ventas offline…"
+                : trasladado > 0
+                  ? `Cerrar caja · trasladar ${money(trasladado)}`
+                  : "Cerrar caja sin trasladar"}
+            </Boton>
           </div>
         </form>
         )

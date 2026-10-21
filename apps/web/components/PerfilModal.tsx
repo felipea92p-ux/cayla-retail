@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -8,8 +9,9 @@ import { BUCKET_FOTOS_PERFIL } from "@/lib/foto-perfil";
 import { recordarFotoPersona } from "@/lib/useFotoPersona";
 import { avisar } from "@/components/ui/Avisos";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
+import { Boton } from "@/components/ui/campos";
 
 // "Mi perfil" (0014_perfil.sql, 2026-09-14): casi todo acá es de solo lectura
 // a propósito — nombres/apellidos/correo/rol/estado/ubicación son de Dynamic
@@ -54,8 +56,10 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   );
 }
 
-export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion = false }: {
+export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion = false, onDemo }: {
   onClose: () => void;
+  /** Abre «Demo» (ADR-0389): elegir qué módulo o submódulo volver a ver con su guía interactiva. */
+  onDemo?: () => void;
   /** ¿Su rol ve Colaboradores o Roles y accesos? (20260923131000: ya no son solo del líder). El líder, siempre. */
   veAdministracion?: boolean;
   /** ¿Ve el módulo Configuración? (ADR-0253: ya se da a un rol; al líder se le puede quitar). */
@@ -74,7 +78,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
       .maybeSingle()
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
-        if (errCarga) avisar.error(traducirError(errCarga, "cargar tu perfil"));
+        if (errCarga) avisar.error(traducirError(errCarga, "cargar tu perfil", { lectura: true }));
         else if (data) {
           const miPerfil = data as MiPerfil;
           setPerfil(miPerfil);
@@ -159,7 +163,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
   }
 
   return (
-    <Modal conCerrar titulo="Mi perfil" subtitulo="Tu información personal y de cuenta." onClose={alCerrar} ancho="max-w-lg">
+    <Modal conCerrar titulo="Mi perfil" subtitulo="Tu información personal y de cuenta." onClose={alCerrar} tamano="mediana">
       {(cerrar) => {
         void cerrar; // el cierre animado de Modal no distingue "en vuelo" — se controla acá, con alCerrar
         if (cargando) return <p className="py-8 text-center text-sm text-tinta/65">Cargando…</p>;
@@ -177,20 +181,19 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
           <div className="mt-5 space-y-6">
             {/* ---------- avatar ---------- */}
             <div className="flex items-center gap-4">
-              <AvatarPersona personaId={perfil.persona_id} nombre={nombreCompleto} className="h-20 w-20 text-2xl" />
+              <AvatarPersona personaId={perfil.persona_id} nombre={nombreCompleto} tamano={80} />
               <div className="space-y-2">
                 <input ref={inputRef} type="file" accept="image/jpeg" onChange={onArchivo} className="hidden" />
-                <div className="flex gap-2">
-                  <button
+                <div className="pie-acciones">
+                  <Boton cargando={subiendo} textoCargando="Subiendo…"
                     type="button"
                     onClick={() => inputRef.current?.click()}
                     disabled={subiendo}
-                    className={botonCancelar}
                   >
-                    {subiendo ? "Subiendo…" : perfil.foto_url ? "Cambiar foto" : "Subir foto"}
-                  </button>
+                    {perfil.foto_url ? "Cambiar foto" : "Subir foto"}
+                  </Boton>
                   {perfil.foto_url && (
-                    <button type="button" onClick={onEliminarFoto} disabled={subiendo} className="btn-cayla btn-peligro flex-1">
+                    <button type="button" onClick={onEliminarFoto} disabled={subiendo} className="btn-cayla btn-peligro">
                       Eliminar
                     </button>
                   )}
@@ -240,7 +243,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                     <span className="block text-sm text-tinta">Colaboradores</span>
                     <span className="mt-0.5 block text-xs text-tinta/55">A quién de Dynamic se le abre la puerta de retail.</span>
                   </span>
-                  <span aria-hidden className="text-tinta/45">→</span>
+                  <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
                 </Link>
                 )}
                 {/* Configuración (ADR-0195 F1): se ofrece a quien ve el módulo (ADR-0253: ya no es solo del líder). */}
@@ -254,9 +257,27 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                       <span className="block text-sm text-tinta">Configuración</span>
                       <span className="mt-0.5 block text-xs text-tinta/55">Meta de cada día, fondo de caja y lo que cambia cada campaña.</span>
                     </span>
-                    <span aria-hidden className="text-tinta/45">→</span>
+                    <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
                   </Link>
                 )}
+              </div>
+            )}
+
+            {/* Demo (ADR-0389, Felipe 2026-10-07): la guía de cada pantalla se ofrece una sola vez; aquí se repite la que quieras. */}
+            {onDemo && (
+              <div>
+                <p className="label-cayla mb-3 text-[11px] text-tinta/65">Aprender</p>
+                <button
+                  type="button"
+                  onClick={onDemo}
+                  className="card-cayla flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-sand/40"
+                >
+                  <span>
+                    <span className="block text-sm text-tinta">Demo</span>
+                    <span className="mt-0.5 block text-xs text-tinta/55">Elige un módulo y te mostramos, paso a paso, qué hace cada cosa.</span>
+                  </span>
+                  <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
+                </button>
               </div>
             )}
 
@@ -266,7 +287,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
               <button
                 type="button"
                 onClick={() => setClaveAbierta(true)}
-                className="label-cayla text-[11px] text-tinta/70 underline decoration-tinta/30 underline-offset-2 hover:text-rojo"
+                className="btn-cayla btn-enlace text-[13px]"
               >
                 Cambiar contraseña
               </button>
@@ -314,8 +335,8 @@ function CambiarClave({ onListo }: { onListo: () => void }) {
 
   return (
     <form onSubmit={onSubmit} className="card-cayla space-y-3 p-4">
-      <div>
-        <label className="label-cayla text-[11px] text-tinta/70" htmlFor="clave-nueva">
+      <div className="campo">
+        <label className="campo-etiqueta" htmlFor="clave-nueva">
           Contraseña nueva
         </label>
         <input
@@ -324,11 +345,11 @@ function CambiarClave({ onListo }: { onListo: () => void }) {
           autoComplete="new-password"
           value={nueva}
           onChange={(e) => setNueva(e.target.value)}
-          className="w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo"
+          className="caja-campo-input mt-1.5"
         />
       </div>
-      <div>
-        <label className="label-cayla text-[11px] text-tinta/70" htmlFor="clave-confirmar">
+      <div className="campo">
+        <label className="campo-etiqueta" htmlFor="clave-confirmar">
           Confirmar contraseña
         </label>
         <input
@@ -337,16 +358,16 @@ function CambiarClave({ onListo }: { onListo: () => void }) {
           autoComplete="new-password"
           value={confirmar}
           onChange={(e) => setConfirmar(e.target.value)}
-          className="w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo"
+          className="caja-campo-input mt-1.5"
         />
       </div>
-      <div className="flex gap-2">
-        <button type="button" onClick={onListo} className={botonCancelar}>
+      <div className="pie-acciones">
+        <button type="button" onClick={onListo} className="btn-cayla btn-secundario">
           Cancelar
         </button>
-        <button type="submit" disabled={guardando} className={botonPrimario}>
-          {guardando ? "Guardando…" : "Guardar contraseña"}
-        </button>
+        <Boton peso="primario" cargando={guardando} type="submit" disabled={guardando}>
+          Guardar contraseña
+        </Boton>
       </div>
     </form>
   );

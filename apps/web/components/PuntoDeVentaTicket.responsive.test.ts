@@ -29,7 +29,7 @@ const codigo = readFileSync(ruta, "utf8");
 
 describe("PuntoDeVentaTicket — el ticket no se desborda en móvil angosto", () => {
   it("el <aside> raíz puede encogerse al ancho real del viewport (min-w-0)", () => {
-    expect(codigo).toMatch(/<aside className="[^"]*\bmin-w-0\b[^"]*">/);
+    expect(codigo).toMatch(/<aside[^>]*\bclassName="[^"]*\bmin-w-0\b[^"]*"[^>]*>/);
   });
 
   // Desde el 2026-09-30 cada prenda es UNA fila compacta (`punto-de-venta/LineaDelTicket.tsx`, spike del club):
@@ -47,22 +47,26 @@ describe("PuntoDeVentaTicket — el ticket no se desborda en móvil angosto", ()
   });
 
   it("la fila «Descuento» + «Dejar en espera» puede bajar a una segunda línea", () => {
-    // Desde la tanda 1c del club, arriba de ella va la del cumpleaños: se busca a partir de su comentario.
-    const inicio = codigo.indexOf("mb-3 flex", codigo.indexOf("Fila «Descuento»"));
+    // Arriba de ella van la del cupón del Club y la de los puntos que gana: se busca a partir de su comentario. Desde el programa de
+    // puntos la fila suma «Código de cupón», por eso el tramo que se mira es más largo.
+    const comentario = codigo.indexOf("{/* Fila «Descuento», solo mientras");
+    expect(comentario).toBeGreaterThan(-1);
+    const inicio = codigo.indexOf("mb-3 flex", comentario);
     expect(inicio).toBeGreaterThan(-1);
     const fila = codigo.slice(inicio, inicio + 90);
     expect(fila).toContain("flex-wrap");
-    expect(codigo.slice(inicio, inicio + 2200)).toContain("Dejar en espera");
+    expect(codigo.slice(inicio, inicio + 3200)).toContain("Dejar en espera");
   });
 
-  // ADR-0288 D-5 (tanda 1c): «Cumpleaños del club · 10 % de la compra  −S/46.12» sobre el total. A 320 px el texto y el
-  // monto no caben en una línea: el monto baja, no empuja el ticket fuera de la pantalla.
-  it("la línea del cumpleaños del club puede bajar a una segunda línea", () => {
-    const inicio = codigo.indexOf("{cumple && cumple.monto > 0 && (");
+  // Programa de puntos (2026-10-19): «Cupón del Club CAY-XXXX-XXXX · S/ 10 en compras desde S/ 30  −S/ 10  Quitar» sobre el total
+  // (reemplaza la línea del 10 % de cumpleaños). A 320 px el texto y el monto no caben en una línea: el monto baja, no empuja el ticket
+  // fuera de la pantalla.
+  it("la línea del cupón del club puede bajar a una segunda línea", () => {
+    const inicio = codigo.indexOf("{vale && vale.monto > 0 && (");
     expect(inicio).toBeGreaterThan(-1);
     const fila = codigo.slice(inicio, inicio + 160);
     expect(fila).toContain("flex-wrap");
-    expect(codigo.slice(inicio, inicio + 700)).toContain("textoPieCumple");
+    expect(codigo.slice(inicio, inicio + 700)).toContain("TEXTO_PIE_CUPON");
   });
 
   it("la fila subtotal/IGV + Total puede bajar a una segunda línea, y el Total sigue a la derecha", () => {

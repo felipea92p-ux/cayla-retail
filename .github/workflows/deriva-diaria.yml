@@ -7,6 +7,12 @@ name: Deriva diaria
 # armó o el comparador no pudo leer), también sale en rojo y lo dice en el mismo aviso: «ningún aviso» nunca quiere
 # decir «hoy no se miró». Lo simula scripts/migraciones/deriva-diaria.test.mjs.
 #
+# Desde el ADR-0402 no compara con main a secas sino con main MÁS el SQL que los PR abiertos declaran pegado
+# (`scripts/migraciones/deriva-pegados.mjs`): el SQL se pega antes de fusionar, así que producción va por delante con los
+# PR abiertos, y comparar con main solo dejaba el aviso rojo casi todos los días (el 2026-10-14, 239 de 302 diferencias
+# eran de PR abiertos con la casilla marcada). Ahora el rojo dice «producción tiene algo que nadie declara (un arreglo en
+# vivo, SQL pegado sin PR o sin casilla, un PR que se cerró), o le falta algo de main o de lo que un PR declara».
+#
 # El repo es PÚBLICO: el registro de este job y el aviso los ve cualquiera. Por eso publican solo SI hay diferencias,
 # nunca cuáles ni cuántas (`--resumen`): «este revoke de main no está en producción» diría qué puerta sigue abierta, y
 # «5 de main sin pegar» el día que se fusiona un PR que crea 5 funciones también. Los nombres y las cuentas se miran en
@@ -27,6 +33,7 @@ concurrency:
 permissions:
   contents: read
   issues: write
+  pull-requests: read # leer los PR abiertos y su casilla (ADR-0402)
 
 jobs:
   deriva:
@@ -82,32 +89,72 @@ jobs:
           docker exec -i supabase_db_cayla-retail psql -U postgres -d postgres -At -q -v ON_ERROR_STOP=1 < scripts/migraciones/deriva.sql > "$RUNNER_TEMP/main.tsv"
           echo "huellas de main: $(wc -l < "$RUNNER_TEMP/main.tsv") objetos"
 
+      # ADR-0402: el SQL que los PR abiertos declaran pegado en producción (marcaron «SQL pegado en producción»), para
+      # sumarlo a main antes de comparar. Solo PR de este repo: un fork no pudo pegar nada, y su SQL no corre en este job.
+      # Si GitHub no responde, falla aquí y el aviso dice que hoy no se pudo comparar: nunca cae a comparar con main a secas.
+      - name: PR que declaran su SQL pegado
+        id: pegados
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/migraciones/deriva-pegados.mjs reunir "$RUNNER_TEMP/pegados"
+
+      # Ese SQL sobre la base de main, todos los PR juntos y en orden de versión (como se fue pegando), y otra vez las
+      # huellas. Un PR que no arma sobre el main de hoy no hace fallar el paso: lo dice el aviso, y la corrida sale roja.
+      - name: Huellas de main con lo pegado
+        id: huellas_pegados
+        run: |
+          node scripts/migraciones/deriva-pegados.mjs aplicar "$RUNNER_TEMP/pegados"
+          docker exec -i supabase_db_cayla-retail psql -U postgres -d postgres -At -q -v ON_ERROR_STOP=1 < scripts/migraciones/deriva.sql > "$RUNNER_TEMP/main-mas-pegados.tsv"
+          echo "huellas de main con lo pegado: $(wc -l < "$RUNNER_TEMP/main-mas-pegados.tsv") objetos"
+
+      # Para mirar los nombres en privado. Salen solo del código de main y de los PR (públicos), nunca de producción: con las
+      # huellas de producción (deriva.sql por el conector de Supabase) y `deriva.mjs`, dicen qué no declara nadie. Si GitHub
+      # no guarda el artefacto, la comparación sigue: es una ayuda, no parte del veredicto.
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: huellas-main-mas-pegados
+          path: |
+            ${{ runner.temp }}/main-mas-pegados.tsv
+            ${{ runner.temp }}/pegados/plan.json
+            ${{ runner.temp }}/pegados/resultado.json
+          retention-days: 30
+
       - name: Comparar y avisar
         id: comparar
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set +e
-          linea=$(node scripts/migraciones/deriva.mjs "$RUNNER_TEMP/main.tsv" "$RUNNER_TEMP/produccion.tsv" --resumen)
+          linea=$(node scripts/migraciones/deriva.mjs "$RUNNER_TEMP/main-mas-pegados.tsv" "$RUNNER_TEMP/produccion.tsv" --resumen --con-pegados)
           diferencias=$?
+          pegados=$(node scripts/migraciones/deriva-pegados.mjs resumen "$RUNNER_TEMP/pegados")
+          sin_armar=$?
           set -e
           echo "$linea"
+          echo "$pegados"
+          if [ "$diferencias" -gt 1 ]; then echo "::error::El comparador falló (código $diferencias)."; exit 1; fi
+          if [ "$sin_armar" -gt 1 ]; then echo "::error::No se pudo leer qué PR se sumaron (código $sin_armar)."; exit 1; fi
           titulo="Producción ≠ main (deriva diaria)"
           abierto=$(gh issue list --state open --search "\"$titulo\" in:title" --json number -q '.[0].number // empty')
           hoy=$(TZ=America/Lima date +%F)
-          if [ "$diferencias" -eq 0 ]; then
-            if [ -n "$abierto" ]; then gh issue close "$abierto" --comment "$hoy: $linea"; fi
+          if [ "$diferencias" -eq 0 ] && [ "$sin_armar" -eq 0 ]; then
+            if [ -n "$abierto" ]; then gh issue close "$abierto" --comment "$hoy: $linea $pegados"; fi
             exit 0
           fi
-          if [ "$diferencias" -ne 1 ]; then echo "::error::El comparador falló (código $diferencias)."; exit 1; fi
+          # Iguales con lo que SÍ se pudo sumar, pero un PR no armó: lo que ese PR declara no se pudo comprobar.
+          if [ "$diferencias" -eq 0 ]; then linea="✗ No se pudo comprobar todo lo que los PR abiertos declaran pegado (ver abajo)."; fi
           {
             echo "**$hoy** — $linea"
             echo
-            echo "Qué quiere decir: algo que está en main no está pegado en producción, o producción tiene un arreglo que main"
-            echo "no tiene (y se perdería la próxima vez que una migración recree esa función). Los nombres no se publican aquí"
-            echo "porque el repo es público: pídele a Claude «corre la deriva de producción» (usa el conector de Supabase, solo"
-            echo "lectura), o corre \`scripts/migraciones/deriva.sql\` en el SQL Editor y compáralo con \`pnpm migraciones:deriva\`."
-            echo "Ver ADR-0251."
+            echo "$pegados"
+            echo
+            echo "Qué quiere decir: producción no corre main más el SQL que los PR abiertos declaran pegado. O tiene algo que"
+            echo "nadie declara (un arreglo hecho directo en producción, SQL pegado desde una rama sin PR o sin marcar la casilla,"
+            echo "un PR que se cerró), o le falta algo de main o de lo que un PR declara pegado. Los nombres no se publican aquí"
+            echo "porque el repo es público: pídele a Claude «¿qué no declara nadie en la deriva de hoy?» (baja el artefacto"
+            echo "\`huellas-main-mas-pegados\` de esta corrida y lo compara con producción por el conector de Supabase, solo lectura)."
+            echo "Ver ADR-0251 y ADR-0402."
           } > "$RUNNER_TEMP/aviso.md"
           if [ -n "$abierto" ]; then
             gh issue comment "$abierto" --body-file "$RUNNER_TEMP/aviso.md"
@@ -129,12 +176,16 @@ jobs:
           PRODUCCION: ${{ steps.produccion.outcome }}
           MAIN: ${{ steps.main.outcome }}
           HUELLAS_MAIN: ${{ steps.huellas_main.outcome }}
+          PEGADOS: ${{ steps.pegados.outcome }}
+          HUELLAS_PEGADOS: ${{ steps.huellas_pegados.outcome }}
           COMPARAR: ${{ steps.comparar.outcome }}
           CORRIDA: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           if [ "$PRODUCCION" = failure ]; then paso="Huellas de producción: no respondió, la llave no coincide o falta configurarla"
           elif [ "$MAIN" = failure ]; then paso="Main, como el CI: las migraciones de main no armaron"
           elif [ "$HUELLAS_MAIN" = failure ]; then paso="Huellas de main"
+          elif [ "$PEGADOS" = failure ]; then paso="PR que declaran su SQL pegado: GitHub no respondió"
+          elif [ "$HUELLAS_PEGADOS" = failure ]; then paso="Huellas de main con lo pegado"
           elif [ "$COMPARAR" = failure ]; then paso="Comparar: el comparador no pudo leer las huellas"
           else paso="preparar el job"; fi
           titulo="Producción ≠ main (deriva diaria)"

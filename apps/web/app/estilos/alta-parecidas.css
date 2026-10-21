@@ -345,26 +345,6 @@
   padding: 1.125rem 1.5rem 0.5rem;
   background: var(--color-papel);
 }
-.parecidas-caja {
-  max-width: 448px;
-}
-.parecidas-caja input {
-  width: 100%;
-  height: 48px;
-  padding: 0 14px;
-  background: transparent;
-  color: var(--color-tinta);
-  font-size: 16px;
-  outline: none;
-}
-.parecidas-caja input::placeholder {
-  color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
-  opacity: 1;
-}
-.parecidas-caja:focus-within {
-  outline: 2px solid var(--color-rojo);
-  outline-offset: 1px;
-}
 .parecidas-cuenta {
   margin-top: 8px;
   font-size: 12.5px;
@@ -530,7 +510,7 @@
 .parecidas-sepa::before {
   content: "·";
   margin-right: 10px;
-  color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+  color: color-mix(in srgb, var(--color-tinta) 45%, transparent); /* contraste: no aplica — un «·» de adorno entre datos, y hoy ningún componente lo pinta */
 }
 .parecidas-colores {
   display: inline-flex;
@@ -571,7 +551,7 @@
   color: var(--color-tinta);
 }
 .parecidas-sep {
-  color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+  color: color-mix(in srgb, var(--color-tinta) 45%, transparent); /* contraste: no aplica — separador de adorno, y hoy ningún componente lo pinta */
 }
 .parecidas-cargada {
   font-size: 13px;
@@ -762,10 +742,6 @@
   .parecidas-foto {
     width: 88px;
     height: 128px;
-  }
-  /* El campo se queda en 16 px: con menos, Safari en el iPhone agranda la página al enfocarlo y la hoja queda descuadrada. */
-  .parecidas-caja input {
-    padding-inline: 10px;
   }
   .parecidas-acc .btn-cayla {
     flex: 1 1 100%;

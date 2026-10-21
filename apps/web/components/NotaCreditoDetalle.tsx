@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
-import { ArrowUpRight, Check, Copy } from "lucide-react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -12,13 +11,19 @@ import { ETIQUETA_METODO } from "@/lib/compras-reglas";
 import {
   ETIQUETA_MOTIVO_NOTA,
   chipEstado,
+  diaDelCierre,
+  esDocumentoInterno,
+  faltaNotaDelProveedor,
   hace,
   mensajeParaProveedor,
+  nombreDeNotaDeCredito,
   pasosDeNota,
   siguientePaso,
   type FilaVista,
   type MovimientoFavor,
 } from "@/lib/notas-credito-reglas";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 /* ====================================================================
    Detalle de una nota de crédito (2026-09-19)
@@ -41,44 +46,38 @@ import {
    dibuja al copiar el mensaje — respuesta a un clic, 320 ms, una sola vez.
    ==================================================================== */
 
-export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar }: { nota: FilaVista; movimientos: MovimientoFavor[]; onCerrar: () => void; onRegistrar: (compraId: string) => void }) {
-  const [copiado, setCopiado] = useState(false);
+export function NotaCreditoDetalle({
+  nota: f,
+  movimientos,
+  onCerrar,
+  onRegistrar,
+  onAdjuntar,
+}: {
+  nota: FilaVista;
+  movimientos: MovimientoFavor[];
+  onCerrar: () => void;
+  onRegistrar: (compraId: string) => void;
+  /** «Llegó su nota de crédito» (fase 5b): adjuntar la nota del proveedor a este documento interno. */
+  onAdjuntar: (id: string) => void;
+}) {
   const chip = chipEstado(f);
   const pasos = pasosDeNota(f);
   const sugerencia = siguientePaso(f);
-  const neto = Math.round((f.monto - (f.igv || f.monto - f.monto / 1.18)) * 100) / 100;
+  // Un documento interno trae su IGV exacto (0 sin factura): no se estima el 18 % de su monto.
+  const interno = esDocumentoInterno(f.serieNumero);
+  const faltaNota = faltaNotaDelProveedor(f);
+  const neto = Math.round((f.monto - (interno ? f.igv : f.igv || f.monto - f.monto / 1.18)) * 100) / 100;
   const igv = Math.round((f.monto - neto) * 100) / 100;
 
   // El libro de este proveedor, acotado a lo que toca a esta nota: lo que ella aportó y lo que salió
   // después. Los usos no dicen de cuál nota salieron (ver `repartoFifo`): se dice así, no se inventa.
   const delProveedor = movimientos.filter((m) => m.tipo !== "nota_credito");
 
-  async function copiar() {
-    const texto = mensajeParaProveedor(f);
-    try {
-      await navigator.clipboard.writeText(texto);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = texto;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.append(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-      } catch {
-        /* sin portapapeles: el texto igual está a la vista para copiarlo a mano */
-      }
-      ta.remove();
-    }
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 2200);
-  }
 
-  const titulo = f.clase === "pendiente" ? `Nota por reclamar · ${f.documento}` : `Nota de crédito ${f.serieNumero ?? ""}`;
+  const titulo = f.clase === "pendiente" ? `Nota por reclamar · ${f.documento}` : nombreDeNotaDeCredito(f.serieNumero);
 
   return (
-    <Modal titulo={titulo} subtitulo={`${f.proveedorNombre} · ${f.clase === "pendiente" ? `cerrado el ${diaMes(f.cerradoEn?.slice(0, 10) ?? f.fecha)}` : `registrada el ${diaMes(f.fecha)}`}`} variante="papel" ancho="max-w-3xl" onClose={onCerrar}>
+    <Modal titulo={titulo} subtitulo={`${f.proveedorNombre} · ${f.clase === "pendiente" ? `cerrado el ${diaMes(diaDelCierre(f))}` : `${interno ? "registrado" : "registrada"} el ${diaMes(f.fecha)}`}`} variante="papel" tamano="ancha" onClose={onCerrar}>
       {(cerrar) => (
         <div className="mt-4 space-y-5">
           <div className="flex flex-wrap items-center gap-2">
@@ -90,11 +89,11 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
           <dl className="grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">
             <Celda k={f.clase === "pendiente" ? "Esperado" : "Monto"} v={soles(f.monto)} s="con IGV" />
             <Celda k="Base" v={soles(neto)} s="sin IGV" />
-            <Celda k="IGV" v={soles(igv)} s="crédito fiscal que resta" />
+            <Celda k="IGV" v={soles(igv)} s={faltaNota ? "en espera de la nota del proveedor" : interno && igv <= 0 ? "sin IGV" : "crédito fiscal que resta"} />
           </dl>
 
           <section>
-            <h3 className="label-cayla mb-2 text-[11px] text-tinta/65">Recorrido</h3>
+            <TituloGrupo className="mb-2">Recorrido</TituloGrupo>
             <div className="grid">
               {pasos.map((p, i) => (
                 <div key={p.clave} className="nc-paso" data-estado={p.estado} data-hilo={p.estado === "hecho" && pasos[i + 1] && pasos[i + 1].estado !== "pendiente" ? "true" : "false"} style={{ ["--i" as string]: i }}>
@@ -110,7 +109,7 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
           </section>
 
           <section>
-            <h3 className="label-cayla mb-2 text-[11px] text-tinta/65">Comprobante de origen</h3>
+            <TituloGrupo className="mb-2">Comprobante de origen</TituloGrupo>
             <div className="flex flex-wrap items-center gap-3.5 rounded-xl border border-sand px-3.5 py-3">
               <span className="min-w-0 flex-1">
                 <b className="font-semibold tabular-nums text-tinta">{f.documento}</b>
@@ -126,14 +125,12 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
                   Se debe<b className="font-display block text-[17px] font-normal tabular-nums text-tinta">{soles(f.compraSaldo)}</b>
                 </span>
               </span>
-              <Link href={`/compras/factura/${f.compraId}`} className="label-cayla inline-flex items-center gap-1.5 text-[11px] text-rojo hover:underline">
-                Ver comprobante <ArrowUpRight aria-hidden className="h-3.5 w-3.5" />
-              </Link>
+              <EnlaceVer href={`/compras/factura/${f.compraId}`}>Ver comprobante</EnlaceVer>
             </div>
           </section>
 
           <section>
-            <h3 className="label-cayla mb-2 text-[11px] text-tinta/65">{f.clase === "pendiente" ? "Qué pasará con el dinero cuando llegue la nota" : "Qué pasó con el dinero"}</h3>
+            <TituloGrupo className="mb-2">{f.clase === "pendiente" ? "Qué pasará con el dinero cuando llegue la nota" : "Qué pasó con el dinero"}</TituloGrupo>
             <div className="grid gap-3">
               {f.clase === "pendiente" ? (
                 <Parte
@@ -160,34 +157,26 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
             </div>
           </section>
 
-          {f.clase === "pendiente" && !f.bloqueada && (
+          {((f.clase === "pendiente" && !f.bloqueada) || faltaNota) && (
             <section>
-              <h3 className="label-cayla mb-2 text-[11px] text-tinta/65">Mensaje para el proveedor</h3>
+              <TituloGrupo className="mb-2">Mensaje para el proveedor</TituloGrupo>
               <p className="whitespace-pre-line rounded-xl border border-dashed border-tinta/25 px-3.5 py-3 text-[13px] leading-relaxed text-tinta/80">{mensajeParaProveedor(f)}</p>
-              <button type="button" onClick={copiar} className={`label-cayla mt-1.5 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] transition-colors ${copiado ? "bg-verde/10 text-verde-profundo" : "text-tinta/55 hover:text-rojo"}`}>
-                {copiado ? (
-                  <>
-                    <Check aria-hidden className="anim-tilde h-3.5 w-3.5" /> Copiado
-                  </>
-                ) : (
-                  <>
-                    <Copy aria-hidden className="h-3.5 w-3.5" /> Copiar mensaje
-                  </>
-                )}
-              </button>
+              <BotonCopiar texto={() => mensajeParaProveedor(f)} que="el mensaje para el proveedor" className="mt-2">
+                Copiar mensaje
+              </BotonCopiar>
             </section>
           )}
 
           <section>
-            <h3 className="label-cayla mb-1 text-[11px] text-tinta/65">
-              Historial <span className="font-normal normal-case tracking-normal text-tinta/45">· no se edita ni se borra</span>
-            </h3>
+            <TituloGrupo className="mb-1" nota="no se edita ni se borra">
+              Historial
+            </TituloGrupo>
             <ul className="border-t border-tinta/10">
               {f.clase === "pendiente" ? (
-                <Movimiento fecha={f.cerradoEn?.slice(0, 10) ?? f.fecha} titulo="Cierre por faltante" detalle={`${f.unidadesCerradas.toLocaleString("es-PE")} ${f.unidadesCerradas === 1 ? "unidad" : "unidades"} en ${f.documento}`} monto={soles(f.monto)} />
+                <Movimiento fecha={diaDelCierre(f)} titulo="Cierre por faltante" detalle={`${f.unidadesCerradas.toLocaleString("es-PE")} ${f.unidadesCerradas === 1 ? "unidad" : "unidades"} en ${f.documento}`} monto={soles(f.monto)} />
               ) : (
                 <>
-                  <Movimiento fecha={f.fecha} titulo={`Nota ${f.serieNumero ?? ""} registrada`} detalle={f.nota ?? ETIQUETA_MOTIVO_NOTA[f.motivo ?? "otro"] ?? ""} monto={soles(f.monto)} />
+                  <Movimiento fecha={f.fecha} titulo={`${nombreDeNotaDeCredito(f.serieNumero)} ${interno ? "registrado" : "registrada"}`} detalle={f.nota ?? ETIQUETA_MOTIVO_NOTA[f.motivo ?? "otro"] ?? ""} monto={soles(f.monto)} />
                   {delProveedor.map((m) => (
                     <Movimiento
                       key={m.id}
@@ -206,6 +195,11 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
             {f.clase === "pendiente" && !f.bloqueada && (
               <Boton type="button" peso="primario" onClick={() => onRegistrar(f.compraId)}>
                 Registrar la nota
+              </Boton>
+            )}
+            {faltaNota && (
+              <Boton type="button" peso="primario" onClick={() => onAdjuntar(f.id)}>
+                Llegó su nota de crédito
               </Boton>
             )}
           </div>
@@ -231,9 +225,7 @@ function Parte({ etiqueta, monto, fraccion, tono }: { etiqueta: string; monto: s
     <div className="grid grid-cols-[1fr_auto] items-baseline gap-x-3.5 gap-y-0.5">
       <span className="text-[13.5px] text-tinta/80">{etiqueta}</span>
       <span className={`font-semibold tabular-nums ${tono === "verde" ? "text-verde-profundo" : "text-tinta"}`}>{monto}</span>
-      <span aria-hidden className="col-span-2 mt-0.5 h-[5px] overflow-hidden rounded-full bg-sand">
-        <i className={`anim-crece-x block h-full origin-left rounded-full ${tono === "verde" ? "bg-verde" : "bg-tinta"}`} style={{ width: `${Math.max(0, Math.min(100, fraccion * 100))}%` }} />
-      </span>
+      <BarraAvance pct={fraccion * 100} tono={tono} decorativa className="col-span-2 mt-0.5" />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { compararTallas } from "./tallas";
-import { diasEntreFechas } from "./fechas-lima";
+import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 import { precioPropioMasBajo } from "./precio-sede-reglas";
 
@@ -118,16 +118,6 @@ export function etapaActual(etapas: Partial<Record<EtapaClave, EstadoEtapa>>, es
   return pendiente ? pendiente.clave : "listo";
 }
 
-/** Columnas del tablero, en el orden en que la prenda las recorre. Las muestras no entran al tablero:
- *  tienen otras tres etapas y van en su propia franja. */
-export const COLUMNAS_TABLERO = [
-  { clave: "corte", titulo: "Por cortar" },
-  { clave: "confeccion", titulo: "En confección" },
-  { clave: "acabado", titulo: "En acabados" },
-  { clave: "listo", titulo: "Listas para cerrar" },
-] as const;
-export type ColumnaTablero = (typeof COLUMNAS_TABLERO)[number]["clave"];
-
 /** Cuántos días antes de la entrega una orden abierta empieza a avisar. Es una convención de menú, no
  *  un dato del Taller: se puede afinar cuando haya plazos reales por etapa (Eficiencia, F7). */
 export const DIAS_ENTREGA_PRONTO = 2;
@@ -156,19 +146,21 @@ export type VarianteLeida = {
   sku?: string | null;
   codigo?: string | null;
   talla?: { valor: string } | null;
-  color?: { nombre: string; hex: string | null } | null;
+  color?: { codigo?: string | null; nombre: string; hex: string | null } | null;
 };
 
 /** Cómo Producción nombra una prenda en pantalla. Las dos lecturas del módulo (las líneas de una orden y las variantes
  *  del formulario de nueva orden) pasan por aquí, para que ninguna vuelva a leer solo `sku` y deje un hueco.
  *  El campo se sigue llamando `sku` (lo consumen buscadores y tooltips), pero trae el CÓDIGO DE ETIQUETA con respaldo al
  *  sku legado, o `""` si la variante no tiene ninguno. Solo se MUESTRA: para identificar una prenda se compara `varianteId`. */
-export function datosDeVariante(v: VarianteLeida | null | undefined): { sku: string; talla: string | null; color: string | null; colorHex: string | null } {
+export function datosDeVariante(v: VarianteLeida | null | undefined): { sku: string; talla: string | null; color: string | null; colorHex: string | null; colorCodigo: string | null } {
   return {
     sku: v ? codigoDeEtiqueta(v) : "",
     talla: v?.talla?.valor ?? null,
     color: v?.color?.nombre ?? null,
     colorHex: v?.color?.hex ?? null,
+    // El código del vocabulario (ADR-0400): con él la orden propone la tela del mismo color. Falta en las lecturas viejas que no lo piden.
+    colorCodigo: v?.color?.codigo ?? null,
   };
 }
 
@@ -215,6 +207,28 @@ export function totalBuenas(buenas: Record<string, number | string>): number {
   return Object.values(buenas).reduce<number>((s, v) => s + Math.max(0, Math.floor(Number(v) || 0)), 0);
 }
 
+/** Lo más que puede anotarse como bueno de una talla (ADR-0415): el doble de lo pedido, o 5 más si la talla es chica. Que salgan
+ *  algunas más es real (el corte rindió); más que eso es casi siempre un cero de más. La base dice lo mismo (`buenas_de_mas`). */
+export function topeDeBuenas(plan: number): number {
+  return Math.max(plan * 2, plan + 5);
+}
+
+/** La frase de la primera talla que pasa el tope, para decirlo antes de mandar; null si todas caben. */
+export function problemaDeBuenas(lineas: readonly { varianteId: string; cantidadPlan: number }[], buenas: Readonly<Record<string, number | string>>): string | null {
+  for (const l of lineas) {
+    const anotadas = Math.max(0, Math.floor(Number(buenas[l.varianteId]) || 0));
+    if (anotadas > topeDeBuenas(l.cantidadPlan)) {
+      return `De una talla se pidieron ${l.cantidadPlan} y anotaste ${anotadas} buenas: más del doble de lo pedido. Revisa la cantidad; si de verdad salieron tantas, anota hasta ${topeDeBuenas(l.cantidadPlan)} y abre otra orden con el resto.`;
+    }
+  }
+  return null;
+}
+
+/** La entrega es una promesa del Taller: no puede ser antes de hoy (ADR-0415, `entrega_pasada`). Vacía es válida (es opcional). */
+export function problemaDeEntrega(fecha: string, hoy: string): string | null {
+  return fecha !== "" && fecha < hoy ? "La entrega no puede ser antes de hoy: elige el día en que el Taller la va a entregar, o déjala en blanco." : null;
+}
+
 /** Lo planeado que no salió bueno (segundas o pérdidas). Nunca negativo. */
 export function segundas(plan: number, buenas: number): number {
   return Math.max(0, plan - buenas);
@@ -232,7 +246,7 @@ export function desgloseCosto(costoTela: number, costoAvios: number, costoMaquil
     partes: [
       { clave: "tela", etiqueta: "Tela", valor: costoTela, parte: parte(costoTela) },
       { clave: "avios", etiqueta: "Avíos", valor: costoAvios, parte: parte(costoAvios) },
-      { clave: "maquila", etiqueta: "Maquila", valor: costoMaquila, parte: parte(costoMaquila) },
+      { clave: "maquila", etiqueta: "Servicios de afuera", valor: costoMaquila, parte: parte(costoMaquila) },
     ],
   };
 }
@@ -276,6 +290,16 @@ export function resumenTablero(ordenes: OrdenParaResumen[], hoy: string): Resume
   };
 }
 
+/** Las prendas buenas que entraron al stock desde el día `desde` (`aaaa-mm-dd` de Lima): el «terminadas hoy · 7 días · 30 días» del
+ *  Taller en el Observatorio. `inventariadoEn` es un instante que la base manda en UTC: se compara su día de LIMA (`diaLima`); con
+ *  sus 10 primeros caracteres, lo cerrado de 7 pm a medianoche contaba como terminado al día siguiente. */
+export function terminadasDesde(ordenes: readonly { inventariadoEn: string | null; cantidadBuenas: number | null }[], desde: string): number {
+  return ordenes.reduce((suma, o) => {
+    const dia = diaLima(o.inventariadoEn);
+    return dia !== null && dia >= desde ? suma + (o.cantidadBuenas ?? 0) : suma;
+  }, 0);
+}
+
 // ---------------------------------------------------------------------------
 // Siguiente paso de una orden cerrada: llevarlas a las tiendas (ADR-0133, F8)
 // ---------------------------------------------------------------------------
@@ -306,4 +330,28 @@ export function parsearLineasPrellenadas(param: string | undefined): { varianteI
     acum.set(id, (acum.get(id) ?? 0) + n);
   }
   return [...acum.entries()].map(([varianteId, cantidad]) => ({ varianteId, cantidad }));
+}
+
+// ---------------------------------------------------------------------------
+// ¿Un modelo se puede ofrecer para producir? (Resumen de Producción, 2026-10-13)
+//
+// CONTRATO
+//   PROMETE: decir si un modelo entra a «¿Qué producir?» y a las tarjetas de «Para decidir». Entra solo si está activo (un descontinuado
+//            no se produce, ADR-0270), aprobado (un alta pendiente o rechazada todavía no es mercadería), no es de prueba y su familia
+//            no está fuera de los motores (ADR-0377: bolsas, cajas, empaque; Felipe decidió el 2026-10-13 que Producción ▸ Resumen
+//            también la respeta, porque «¿Qué producir?» decide qué fabricar).
+//   ASUME:   lo que no se sabe sigue contando, igual que la base (`fn_categoria_entra_a_motores`): un modelo sin categoría, o una lectura
+//            de familias que falló (conjunto vacío), NO lo sacan. Ante la duda se muestra; nunca se esconde una prenda de verdad.
+//   NO HACE: no lee la base ni decide qué familia está apagada (eso lo marca un líder en Catálogo ▸ Familias); y NO cierra la puerta
+//            de la base: `abrir_produccion` todavía no mira el estado del producto (candado #6 del backlog), así que esto solo
+//            decide qué se le OFRECE a la líder en el Resumen.
+// ---------------------------------------------------------------------------
+
+export type ProductoParaProducir = { estado: string; estado_alta: string; es_prueba: boolean; categoria_id: string | null };
+
+export function esProducible(p: ProductoParaProducir, categoriasApagadas: ReadonlySet<string>): boolean {
+  if (p.estado !== "activo") return false;
+  if (p.estado_alta !== "aprobado") return false;
+  if (p.es_prueba) return false;
+  return !p.categoria_id || !categoriasApagadas.has(p.categoria_id);
 }

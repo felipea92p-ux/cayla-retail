@@ -1,6 +1,8 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import {
+  agruparMaquinas,
+  leerAlertaPos,
   leerCierre,
   leerConciliacion,
   leerConciliacionCuenta,
@@ -10,12 +12,14 @@ import {
   leerMovimiento,
   leerMovimientoDueno,
   leerSinCuenta,
+  type AlertaPos,
   type CierreConDiferencia,
   type Conciliacion,
   type ConciliacionCuenta,
   type CuentaDinero,
   type EfectivoFila,
   type FilaMedio,
+  type MaquinaPos,
   type MovimientoDinero,
   type MovimientoDueno,
   type SinCuenta,
@@ -72,6 +76,25 @@ export async function getMediosDeCobro(): Promise<Lectura<FilaMedio[]>> {
   const { data, error } = await supabase.rpc("fn_medios_de_cobro" as never);
   if (error) return { datos: [], falla: falla("a qué cuenta entra cada cobro", error) };
   return { datos: ((data ?? []) as Fila[]).map(leerMedio), falla: null };
+}
+
+/** Solo el líder: las máquinas de cobro (Izipay, Vendemás) con su cuenta «por depositar» y en qué tiendas cobran (ADR-0429).
+ *  Nulo si la base todavía no las conoce (la web salió antes que la migración 20261016173000): la tarjeta no se dibuja y
+ *  nada más cambia. */
+export async function getMaquinasPos(): Promise<MaquinaPos[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_pos_maquinas" as never);
+  if (error) return null;
+  return agruparMaquinas((data ?? []) as Fila[]);
+}
+
+/** Solo el líder: por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4). Vacío si la base todavía
+ *  no lo sabe (falta la migración 20261016191000) o la lectura falla: la pantalla no avisa nada y sigue igual. */
+export async function getAlertasPos(): Promise<AlertaPos[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_pos_alertas" as never);
+  if (error) return [];
+  return ((data ?? []) as Fila[]).map(leerAlertaPos);
 }
 
 /** Solo el líder: lo que movió plata este mes y todavía no dice de qué cuenta. */

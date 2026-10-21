@@ -61,6 +61,8 @@ import {
   type VistaTemporadas,
 } from "@/lib/temporadas-pantalla";
 import { Buscador } from "@/components/ui/Buscador";
+import { Casilla } from "@/components/ui/Casilla";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 
 /**
@@ -193,8 +195,8 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
   const falta = r.sinTemporada;
   const cifra = (n: number | string) => <b className="font-semibold tabular-nums text-tinta">{n}</b>;
   return (
-    <div role="group" aria-label="Trabajo de temporadas" className="flex flex-wrap items-center gap-x-8 gap-y-2.5 rounded-lg bg-hueso/60 px-4 py-3 text-sm text-tinta/80">
-      <Atajo accion="Completar" punto={falta > 0 ? "bg-rojo-profundo" : "bg-verde"} onClick={() => onElegir("completar")}>
+    <div role="group" aria-label="Trabajo de temporadas" data-guia="temporadas.franja" className="flex flex-wrap items-center gap-x-8 gap-y-2.5 rounded-lg bg-hueso/60 px-4 py-3 text-sm text-tinta/80">
+      <Atajo accion="Completar" guia="temporadas.atajo-completar" punto={falta > 0 ? "bg-rojo-profundo" : "bg-verde"} onClick={() => onElegir("completar")}>
         {falta > 0 ? (
           <>
             {cifra(falta)} {falta === 1 ? "prenda" : "prendas"} sin temporada
@@ -203,7 +205,7 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
           "Todas las prendas tienen temporada"
         )}
       </Atajo>
-      <Atajo accion="Por categoría" punto={r.categoriasSinTemporada > 0 ? "bg-ambar" : "bg-verde"} onClick={() => onElegir("categorias")}>
+      <Atajo accion="Por categoría" guia="temporadas.atajo-categorias" punto={r.categoriasSinTemporada > 0 ? "bg-ambar" : "bg-verde"} onClick={() => onElegir("categorias")}>
         {r.categoriasSinTemporada > 0 ? (
           <>
             {cifra(r.categoriasSinTemporada)} de {r.categorias} {r.categorias === 1 ? "categoría" : "categorías"} sin temporada
@@ -212,7 +214,7 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
           "Todas las categorías tienen temporada"
         )}
       </Atajo>
-      <Atajo accion="Calendario" punto={r.enCurso ? "bg-verde" : "bg-tinta/25"} onClick={() => onElegir("calendario")}>
+      <Atajo accion="Calendario" guia="temporadas.atajo-calendario" punto={r.enCurso ? "bg-verde" : "bg-tinta/25"} onClick={() => onElegir("calendario")}>
         {r.enCurso ? (
           <>
             {cifra(NOMBRE_ESTACION[r.enCurso.estacion])} en curso
@@ -226,9 +228,9 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
   );
 }
 
-function Atajo({ accion, punto, onClick, children }: { accion: string; punto: string; onClick: () => void; children: ReactNode }) {
+function Atajo({ accion, punto, onClick, children, guia }: { accion: string; punto: string; onClick: () => void; children: ReactNode; /** Ancla de la guía interactiva (ADR-0389). */ guia?: string }) {
   return (
-    <button type="button" onClick={onClick} className="group/atajo inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-left">
+    <button type="button" onClick={onClick} data-guia={guia} className="group/atajo inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-left">
       <span aria-hidden className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${punto}`} />
       <span>{children}</span>
       <span className="label-cayla whitespace-nowrap text-[10.5px] text-tinta/75 underline underline-offset-4 transition-colors group-hover/atajo:text-rojo-profundo">
@@ -244,9 +246,9 @@ function TituloVista({ titulo, bajada, children, desfase }: { titulo: string; ba
   return (
     <div className={`flex flex-wrap items-start justify-between gap-x-4 gap-y-3 ${className}`} style={style}>
       <div className="min-w-0 space-y-1">
-        <div className="flex items-center gap-3">
+        <div data-guia="temporadas.volver" className="flex items-center gap-3">
           {alLista && <Volver onClick={alLista} a="Las nueve temporadas" />}
-          <h2 className="font-display text-xl text-tinta">{titulo}</h2>
+          <TituloSeccion>{titulo}</TituloSeccion>
         </div>
         <p className="max-w-3xl text-sm text-taupe">{bajada}</p>
       </div>
@@ -285,6 +287,7 @@ function VistaNueve({
   return (
     <>
       <BarraAtributos
+        guia="atributos.barra-temporadas"
         etiqueta="Filtrar temporadas"
         filtros={
           <>
@@ -302,7 +305,7 @@ function VistaNueve({
 
       <FranjaTrabajo resumen={resumen} onElegir={onElegir} />
 
-      <div key={grupo} className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
+      <div key={grupo} data-guia="temporadas.nueve" className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
         {gruposConAlgo
           .filter((g) => grupo === "todas" || g === grupo)
           .map((g) => (
@@ -370,7 +373,7 @@ function VistaCalendario({
   let pieza = desfase + 2;
 
   return (
-    <section className="space-y-3" aria-label="Calendario de estaciones">
+    <section className="space-y-3" aria-label="Calendario de estaciones" data-guia="temporadas.calendario">
       <TituloVista
         desfase={desfase}
         titulo="Calendario"
@@ -557,7 +560,6 @@ function ModalFecha({
     <Modal
       titulo={`Cambiar el inicio de ${nombre}`}
       subtitulo={`Fecha guardada: ${textoInstanteLima(evento.inicio)} (${NOMBRE_FUENTE[evento.fuente]}).`}
-      ancho="max-w-md"
       onClose={onClose}
       bloqueado={guardando}
     >
@@ -586,8 +588,8 @@ function ModalFecha({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton
@@ -670,7 +672,6 @@ function ModalAnio({
     <Modal
       titulo={`Agregar el calendario de ${anio}`}
       subtitulo="Vienen con una fecha aproximada, a mediodía. Si tienes las horas de SENAMHI (o del Observatorio Naval de EE. UU. mientras SENAMHI no publique), cópialas y marca de dónde salen."
-      ancho="max-w-md"
       onClose={onClose}
       bloqueado={guardando}
     >
@@ -698,8 +699,8 @@ function ModalAnio({
               <PieGuia guia={guia} listo="Todo listo para agregar." />
             </>
           )}
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton
@@ -780,7 +781,7 @@ function VistaCategorias({
   }
 
   return (
-    <section className="space-y-3" aria-label="La temporada de cada categoría">
+    <section className="space-y-3" aria-label="La temporada de cada categoría" data-guia="temporadas.categorias">
       <TituloVista
         desfase={desfase}
         titulo="Por categoría"
@@ -821,7 +822,7 @@ function VistaCategorias({
                       valor={valor}
                       onValor={(v) => pedirCambio(c, v)}
                       opciones={opciones}
-                      forma="caja"
+                      forma="campo"
                       etiquetaAccesible={`Temporada por defecto de ${c.nombre}`}
                     />
                   ) : (
@@ -992,7 +993,7 @@ function VistaPorCompletar({
 
   if (lista.length === 0) {
     return (
-      <section className="space-y-3" aria-label="Prendas por completar">
+      <section className="space-y-3" aria-label="Prendas por completar" data-guia="temporadas.completar">
         <TituloVista desfase={desfase} titulo="Por completar" bajada="Prendas activas sin temporada propia, de un color ni de su categoría." />
         <div className="card-cayla anim-entra p-6 text-center" style={entra(desfase + 1).style}>
           <p className="font-display text-xl text-verde-profundo">Todas las prendas tienen temporada</p>
@@ -1003,7 +1004,7 @@ function VistaPorCompletar({
   }
 
   return (
-    <section className="space-y-3" aria-label="Prendas por completar">
+    <section className="space-y-3" aria-label="Prendas por completar" data-guia="temporadas.completar">
       <TituloVista
         desfase={desfase}
         titulo="Por completar"
@@ -1081,7 +1082,7 @@ function VistaPorCompletar({
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <div className="w-full sm:w-56">
-              <Desplegable valor={temporada} onValor={setTemporada} opciones={opciones} forma="caja" marcador="Elegir temporada" etiquetaAccesible="Temporada que se les pone" />
+              <Desplegable valor={temporada} onValor={setTemporada} opciones={opciones} forma="campo" marcador="Elegir temporada" etiquetaAccesible="Temporada que se les pone" />
             </div>
             <button type="button" className="btn-cayla btn-primario h-10" disabled={!!motivo} title={motivo ?? undefined} onClick={pedirAsignar}>
               Asignar a {elegidas.length}
@@ -1167,7 +1168,7 @@ function GrupoPorCompletar({
               {puedeEditar && g.activa && (
                 <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                   <div className="w-full sm:w-52">
-                    <Desplegable valor={eleccion} onValor={onEleccion} opciones={opciones} forma="caja" marcador="Elegir temporada" etiquetaAccesible={`Temporada para toda la categoría ${g.categoria}`} />
+                    <Desplegable valor={eleccion} onValor={onEleccion} opciones={opciones} forma="campo" marcador="Elegir temporada" etiquetaAccesible={`Temporada para toda la categoría ${g.categoria}`} />
                   </div>
                   <button type="button" className="btn-cayla btn-secundario btn-chico w-full sm:w-auto" disabled={!eleccion} title={eleccion ? undefined : "Elige primero la temporada."} onClick={onPonerCategoria}>
                     Ponérsela a la categoría
@@ -1188,7 +1189,7 @@ function GrupoPorCompletar({
                 <>
                   <span className={celda()}>
                     {abreFicha ? (
-                      <Link href={`/productos/${p.productoId}/editar`} className="block truncate text-tinta hover:text-rojo-profundo hover:underline">
+                      <Link href={`/productos/${p.productoId}/editar`} className="btn-enlace inline-block max-w-full truncate align-bottom">
                         {p.nombre}
                       </Link>
                     ) : (
@@ -1237,13 +1238,7 @@ function GrupoPorCompletar({
                   )}
                 >
                   <span className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={marcada}
-                      onChange={() => onAlternar(p.productoId)}
-                      aria-label={`Marcar ${p.nombre}`}
-                      className="h-[18px] w-[18px] cursor-pointer accent-tinta"
-                    />
+                    <Casilla marcada={marcada} onCambio={() => onAlternar(p.productoId)} etiqueta={`Marcar ${p.nombre}`} />
                   </span>
                   {contenido}
                 </label>

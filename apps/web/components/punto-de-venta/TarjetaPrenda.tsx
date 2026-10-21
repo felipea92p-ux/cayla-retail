@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, type CSSProperties, type KeyboardEvent } from "react";
-import Image from "next/image";
+import { Globito } from "@/components/ui/Globito";
 import { Plus } from "lucide-react";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { colorInicial, puntosAVista, resumenDePrenda, type GrupoCatalogo, type PrendaCatalogo } from "@/lib/catalogo-grupos";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { precargarMiniaturas } from "@/components/ui/precargar-miniaturas";
+import { SIZES_OPCIONES_VENDER, SIZES_TARJETA_VENDER as SIZES_FOTO } from "@/lib/fotos-tamanos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { motivoNoCobrable, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
-import { Badge } from "@/components/ui/badge";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -88,6 +90,8 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
   const almacen = elegido.almacenTotal;
   const capa = (c: Color, entra: boolean) => {
     const v = c.tallas[0]?.variante;
+    // Sin foto: el ícono de su categoría sobre el COLOR de la prenda (`MosaicoPrenda`, el mismo del buscador).
+    const sinFoto = <MosaicoPrenda colorHex={v?.colorHex} prefijo={v?.categoriaPrefijo} familia={v?.categoriaFamilia ?? null} categoria={v?.categoria} forma="grilla" className="h-full w-full !rounded-none" />;
     return (
       <div
         key={c.clave}
@@ -95,10 +99,9 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
         onAnimationEnd={entra ? (e) => e.target === e.currentTarget && setSaliente(null) : undefined}
       >
         {c.fotoUrl ? (
-          <Image src={c.fotoUrl} alt={[nombre, c.color].filter(Boolean).join(" ")} fill sizes="(min-width: 1280px) 20vw, 45vw" className="object-cover transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.04]" unoptimized />
+          <ImagenDePrenda src={c.fotoUrl} alt={[nombre, c.color].filter(Boolean).join(" ")} fill sizes={SIZES_FOTO} className="object-cover transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.04]" fondo={v?.colorHex} fallback={sinFoto} />
         ) : (
-          // Sin foto: el ícono de su categoría sobre el COLOR de la prenda (`MosaicoPrenda`, el mismo del buscador).
-          <MosaicoPrenda colorHex={v?.colorHex} prefijo={v?.categoriaPrefijo} familia={v?.categoriaFamilia ?? null} categoria={v?.categoria} forma="grilla" className="h-full w-full !rounded-none" />
+          sinFoto
         )}
         {c.color && (
           <span className="vg-capa-nombre absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-papel/90 px-2 py-0.5 text-[11px] font-semibold text-tinta">
@@ -111,10 +114,18 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
 
   return (
     <article
+      data-guia="vender.prenda"
       aria-label={nombre}
       style={{ "--i": Math.min(indice, 11) } as CSSProperties}
       // Toda la prenda sin nada en el piso: «solo en el almacén» se distingue de «agotada» (D-40). Al 55 % el ámbar ya
       // no se leía, así que en ese caso se apaga solo la foto.
+      // Con el mouse encima, las fotos de los otros colores empiezan a bajar: al pasar por un punto de color la foto ya está.
+      onPointerEnter={(e) => {
+        if (e.pointerType !== "mouse") return;
+        // La foto de la hoja de opciones (la del color elegido) se adelanta: tocar la prenda abre la hoja con la foto ya lista.
+        precargarMiniaturas([elegido?.fotoUrl], SIZES_OPCIONES_VENDER);
+        precargarMiniaturas(prenda.colores.map((c) => c.fotoUrl), SIZES_FOTO);
+      }}
       className={`anim-entra group relative flex h-full flex-col gap-2 rounded-xl border p-2.5 ${
         soloEnAlmacen ? "border-ambar/60 bg-crema" : sinStock ? "border-rojo-profundo/40 bg-crema opacity-55" : "alza-cayla border-sand bg-papel"
       }`}
@@ -126,6 +137,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
         onClick={() => onAbrir(prenda.clave, elegido.clave)}
         disabled={bloqueado}
         aria-label={`Ver todos los colores y tallas de ${nombre}`}
+        data-guia="vender.prenda-abrir"
         className="absolute inset-0 cursor-pointer rounded-xl disabled:cursor-default"
       />
       <div className={`pointer-events-none relative aspect-square overflow-hidden rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
@@ -140,7 +152,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
       </div>
 
       {prenda.colores.length > 1 && (
-        <div role="radiogroup" aria-label={`Color de ${nombre}`} onKeyDown={alTecladoPuntos} className="relative z-10 flex flex-wrap items-center gap-1" onPointerLeave={() => setVistaPrevia(null)}>
+        <div role="radiogroup" aria-label={`Color de ${nombre}`} data-guia="vender.prenda-colores" onKeyDown={alTecladoPuntos} className="relative z-10 flex flex-wrap items-center gap-1" onPointerLeave={() => setVistaPrevia(null)}>
           {aVista.map((c) => {
             const estado = c.stockTotal > 0 ? "piso" : c.almacenTotal > 0 ? "almacen" : "agotado";
             const activo = c.clave === elegido.clave;
@@ -226,11 +238,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
       )}
 
       {/* El globito se re-asienta cada vez que cambia la cantidad (`key`). */}
-      {enCarrito > 0 && (
-        <Badge key={`globo-${enCarrito}`} className="anim-pop pointer-events-none absolute top-2 right-2 z-20 h-6 min-w-6 rounded-full px-1.5 text-xs">
-          {enCarrito}
-        </Badge>
-      )}
+      <Globito n={enCarrito} esquina late etiqueta="en el ticket" className="absolute top-2 right-2 z-20" />
     </article>
   );
 }

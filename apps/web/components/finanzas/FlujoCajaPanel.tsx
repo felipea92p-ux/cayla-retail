@@ -18,6 +18,7 @@ import {
   etiquetasEje,
   fraseDelFlujo,
   listasDelFlujo,
+  queFaltaEnLaProyeccion,
   queVence,
   rangoDelMes,
   soles,
@@ -32,6 +33,10 @@ import {
   type Proyeccion,
 } from "@/lib/flujo-caja-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { CalendarX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { FaltanProyeccion } from "@/components/finanzas/FaltanProyeccion";
 
 // Finanzas ▸ Reportes ▸ Flujo de caja (ADR-0195 F6), dibujado como el spike aprobado (`vistaFlujo`, «¿Por qué vendí bien y
 // no hay plata?»): a la izquierda lo que ya pasó (lo que entró por medio, lo que salió por concepto, y semana a semana); a
@@ -77,9 +82,9 @@ export function FlujoCajaPanel({
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!real && !proyeccion}>
+            <BotonDescargar onClick={descargar} disabled={!real && !proyeccion} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />
@@ -91,10 +96,10 @@ export function FlujoCajaPanel({
       ))}
 
       <section className="fin-dos-col fin-der">
-        <div {...entra(1)}>
+        <div {...entra(1)} data-guia="fin-flujo.paso">
           <Superficie pad>
             {/* Un <div> y no un <p>: el combo es una caja, y una caja dentro de un <p> rompe el HTML del servidor. */}
-            <div className="fin-etq">
+            <div className="fin-etq" data-guia="fin-flujo.mes">
               Lo que ya pasó ·{" "}
               <SelectEnLineaFin
                 etiqueta="Qué mes mirar"
@@ -106,13 +111,19 @@ export function FlujoCajaPanel({
                 })}
               />
             </div>
-            {real ? <LoQuePaso real={real} /> : <p className="text-sm text-taupe">Sin datos de este mes.</p>}
+            {real ? (
+              <LoQuePaso real={real} />
+            ) : (
+              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<CalendarX />}>
+                Sin datos de este mes.
+              </Vacio>
+            )}
           </Superficie>
         </div>
 
-        <div {...entra(2)}>
+        <div {...entra(2)} data-guia="fin-flujo.viene">
           <Superficie pad>
-            <div className="fin-etq">
+            <div className="fin-etq" data-guia="fin-flujo.cuantas-semanas">
               Lo que viene · próximas{" "}
               <SelectEnLineaFin
                 etiqueta="Cuántas semanas mirar"
@@ -121,7 +132,13 @@ export function FlujoCajaPanel({
                 opciones={SEMANAS_POSIBLES.map((n) => ({ valor: String(n), texto: `${n} semanas` }))}
               />
             </div>
-            {proyeccion ? <LoQueViene p={proyeccion} /> : <p className="text-sm text-taupe">Sin datos de lo que viene.</p>}
+            {proyeccion ? (
+              <LoQueViene p={proyeccion} />
+            ) : (
+              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<CalendarX />}>
+                Sin datos de lo que viene.
+              </Vacio>
+            )}
           </Superficie>
         </div>
       </section>
@@ -134,6 +151,7 @@ function LoQuePaso({ real }: { real: FlujoReal }) {
   const frase = fraseDelFlujo(real);
   const sinCuenta = textoSinCuenta(real.sinCuenta);
   const planilla = real.planilla.reduce((a, p) => a + p.pagado, 0);
+  const planillaRegistrada = real.categorias.find((c) => c.clave === "planilla")?.monto ?? 0;
   return (
     <>
       <h3 className="fin-h-flujo">Entró {soles(real.entro)}</h3>
@@ -169,9 +187,9 @@ function LoQuePaso({ real }: { real: FlujoReal }) {
           </ul>
         </>
       )}
-      <div className="nota-cayla">{pintarPartes(frase.partes)}</div>
+      <div className="nota-cayla" data-guia="fin-flujo.frase">{pintarPartes(frase.partes)}</div>
 
-      <div className="fin-tabla-wrap mt-4">
+      <div className="fin-tabla-wrap mt-4" data-guia="fin-flujo.semana-a-semana">
         <table className="fin-tabla fin-tabla-flujo">
           <caption className="sr-only">Semana a semana: lo que entró, lo que salió y lo que quedó</caption>
           <thead>
@@ -223,7 +241,7 @@ function LoQuePaso({ real }: { real: FlujoReal }) {
       <p className="nota-cayla mt-3">
         {real.planillaVisible
           ? planilla > 0
-            ? `La planilla la paga Dynamic y todavía no baja de ningún banco aquí: en este período, ${soles(planilla)}.`
+            ? `La planilla la paga Dynamic y lo que no registres como pago de un banco no baja de ninguno aquí: en este período, ${soles(planilla)}${planillaRegistrada > 0 ? `, de los que ya registraste ${soles(planillaRegistrada)} (sale arriba como «Pago de la planilla»)` : ""}.`
             : "La planilla la paga Dynamic y todavía no baja de ningún banco aquí."
           : "La planilla la paga Dynamic y no se ve desde tu cuenta: no baja de ningún banco aquí."}
       </p>
@@ -234,20 +252,36 @@ function LoQuePaso({ real }: { real: FlujoReal }) {
 function LoQueViene({ p }: { p: Proyeccion }) {
   const eje = etiquetasEje(p.semanas.map((w) => w.desde));
   const sinMeta = tiendasDeLaProyeccion(p).filter((t) => t.origen !== "meta");
+  const { provisional, faltan } = queFaltaEnLaProyeccion(p);
   return (
     <>
-      <h3 className="fin-hoy">Hoy tienes {soles(p.saldoHoy)}</h3>
+      <h3 className="fin-hoy">
+        Hoy tienes {provisional ? "≈ " : ""}
+        {soles(p.saldoHoy)}
+        {provisional && (
+          <>
+            {" "}
+            <Chip tono="pizarra" versalitas={false}>
+              Provisional
+            </Chip>
+          </>
+        )}
+      </h3>
+      <FaltanProyeccion provisional={provisional} faltan={faltan} className="mb-3" />
       <p className="mb-2 text-[13px] leading-snug text-taupe">
         Entra lo que esperas vender (la meta de cada día, con sus campañas); sale lo que vence (facturas, planilla, alquileres, gastos fijos).
       </p>
       {p.diasDeCaja !== null && (
-        <p className="fin-dias">
-          <Chip tono={tonoDiasDeCaja(p.diasDeCaja)} versalitas={false}>
+        <p className="fin-dias" data-guia="fin-flujo.dias">
+          <Chip tono={provisional ? "pizarra" : tonoDiasDeCaja(p.diasDeCaja)} versalitas={false}>
+            {provisional ? "≈ " : ""}
             {p.diasDeCaja} {p.diasDeCaja === 1 ? "día" : "días"} de caja
+            {provisional ? " · provisional" : ""}
           </Chip>
           <span>
-            Si mañana no vendieras nada, tu plata alcanza para {p.diasDeCaja} {p.diasDeCaja === 1 ? "día" : "días"}: salen {soles(p.salidasDiarias)} en un día normal (los
-            últimos 30 días, con la planilla).
+            Si mañana no vendieras nada, tu plata alcanzaría para {provisional ? "unos " : ""}
+            {p.diasDeCaja} {p.diasDeCaja === 1 ? "día" : "días"}: salen {soles(p.salidasDiarias)} en un día normal (los últimos 30 días, con la planilla).
+            {provisional ? " No cuenta el IGV ni lo que falte registrar." : ""}
           </span>
         </p>
       )}
@@ -267,7 +301,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
           lineas: [`Entra ${soles(w.entra)} · Sale ${soles(w.sale)}`, `Queda ${soles(w.saldo)}`, queVence(p.salidas, w.desde, w.hasta)],
         }))}
       />
-      <div className="fin-tabla-wrap mt-3">
+      <div className="fin-tabla-wrap mt-3" data-guia="fin-flujo.que-vence">
         <table className="fin-tabla fin-tabla-flujo">
           <caption className="sr-only">Lo que viene, semana por semana</caption>
           <thead>
@@ -312,9 +346,9 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         </table>
       </div>
       {sinMeta.length > 0 && (
-        <p className="nota-cayla mt-3">
+        <p className="nota-cayla mt-3" data-guia="fin-flujo.sin-meta">
           <b>{sinMeta.map((t) => t.nombre).join(" y ")}</b> {sinMeta.length === 1 ? "no tiene" : "no tienen"} meta{sinMeta.some((t) => t.origen === "mixto") ? " algunos días" : ""}: se
-          espera lo que cobró en promedio esos mismos días de la semana en las últimas 8 semanas. Ponle meta en{" "}
+          espera su promedio de ese día de la semana (hasta 8 semanas atrás){sinMeta.some((t) => t.corto) ? "; con pocos días de historia se acerca al promedio de todos sus días, para que un día atípico no mande" : ""}. Ponle meta en{" "}
           <Link href="/configuracion?tab=tiendas" className="underline underline-offset-2 hover:text-rojo">
             Configuración ▸ Tiendas y caja
           </Link>
@@ -322,7 +356,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         </p>
       )}
       {!p.planillaVisible && <p className="nota-cayla mt-3">La planilla no se ve desde tu cuenta en Dynamic: no está en lo que sale.</p>}
-      <p className="nota-cayla mt-3">
+      <p className="nota-cayla mt-3" data-guia="fin-flujo.config">
         El mínimo de caja y los avisos se cambian en{" "}
         <Link href="/configuracion?tab=caja" className="underline underline-offset-2 hover:text-rojo">
           Configuración ▸ Caja y avisos

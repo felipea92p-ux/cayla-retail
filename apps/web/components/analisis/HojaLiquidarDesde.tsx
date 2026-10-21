@@ -20,6 +20,7 @@ import {
   type EfectoLiquidar,
   type ErrorEnTresLineas,
 } from "@/lib/analisis-liquidar-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Análisis v4 (ADR-0357): la hoja que guarda «Liquidar desde» para TODAS las tiendas y todas las personas (Felipe, 2026-10-06).
 // El control se mueve en «No se vende» y las prendas cambian de grupo en vivo; esta hoja confirma el número, muestra en dos tarjetas
@@ -83,12 +84,12 @@ export function HojaLiquidarDesde({ dias, onCerrar, onGuardado }: { dias: number
   }
 
   return (
-    <Modal conCerrar
+    // Una salida a la vista (ADR-0358, ronda 12): si hay algo que guardar, «Cancelar»; si solo dice cómo está, la ×.
+    <Modal conCerrar={!efecto.cambia}
       titulo={`Liquidar desde ${efecto.dias} días`}
       subtitulo={efecto.cambia ? "Para todas las tiendas y todo el equipo." : "Así está para todas las tiendas."}
       onClose={onCerrar}
       variante="hoja"
-      ancho="max-w-md"
       bloqueado={guardando}
       focoEnLaHoja
     >
@@ -131,20 +132,19 @@ export function HojaLiquidarDesde({ dias, onCerrar, onGuardado }: { dias: number
             </div>
           )}
 
-          <div className="h-acciones">
+          <div className="h-acciones pie-acciones">
             {efecto.cambia ? (
               <>
-                <button
-                  type="submit"
-                  className="btn-cayla btn-primario"
-                  disabled={!responsable.listo || guardando}
-                  title={responsable.motivo ?? undefined}
-                >
-                  {guardando ? "Guardando…" : "Guardar para todos"}
-                </button>
                 <button type="button" className="btn-cayla btn-secundario" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </button>
+                <Boton peso="primario" cargando={guardando}
+                  type="submit"
+                  disabled={!responsable.listo || guardando}
+                  title={responsable.motivo ?? undefined}
+                >
+                  Guardar para todos
+                </Boton>
               </>
             ) : null}
           </div>

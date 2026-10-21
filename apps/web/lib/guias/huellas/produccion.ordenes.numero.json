@@ -1,0 +1,160 @@
+{
+  "guia": "produccion.ordenes.numero",
+  "ruta": "/produccion/ordenes/[numero]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 100,
+  "controles": {
+    "app/(app)/produccion/ordenes/[numero]/page.tsx": [
+      "Volver «/produccion/ordenes»",
+      "BotonVer «Ver las órdenes»"
+    ],
+    "components/AvisoCostoAtipico.tsx": [
+      "Boton «{textoCorregir}»",
+      "Boton «{motivoNoListo ?? undefined}»"
+    ],
+    "components/SelectorColor.tsx": [
+      "input «Elegir color con el selector»",
+      "CampoTexto «{etiqueta}»"
+    ],
+    "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «(sin nombre)»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "button «{c.nombre}»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «{control}»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/MatrizCantidades.tsx": [
+      "SegmentoDeslizante «Qué escribes en la tabla»",
+      "input «1»",
+      "input «(sin nombre)»",
+      "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
+    ],
+    "components/alta-producto/NuevoColorAlta.tsx": [
+      "CampoTexto «Nombre del color»",
+      "Desplegable «{familia}»",
+      "CampoTexto «Código»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»",
+      "button «Elegir»"
+    ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
+    "components/orden-pagina/AccionesDeLaOrden.tsx": [
+      "Boton «prod-orden.anular-orden»",
+      "Boton «prod-orden.pasar-al-stock»",
+      "Boton «prod-orden.revertir»"
+    ],
+    "components/orden-pagina/AnotarAvanceModal.tsx": [
+      "CampoTexto «{`${t.nombre}»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? problemasDeTela[0] ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/AnotarSalidaModal.tsx": [
+      "CampoTexto «N.º de guía»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/AnotarVueltaModal.tsx": [
+      "SegmentoDeslizante «Qué anotas»",
+      "CampoTexto «Qué pasó con lo que no volvió bueno»",
+      "CampoTexto «N.º de guía»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/AnularLaOrdenModal.tsx": [
+      "CampoTexto «Por qué la anulas»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Volver»",
+      "Boton «{afuera ? textoPrendasAfuera(afuera) : (responsable.motivo ?? undefined)}»"
+    ],
+    "components/orden-pagina/AnularSalidaOVueltaModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"motivo\", \"Por qué la anulas\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/CambiarQuienModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/DeshacerAvanceModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/LineaDeTiempo.tsx": [
+      "Boton «{primeraAnulable === e ? \"prod-orden.anular\" : undefined}»",
+      "BotonDeshacer «→() => setDeshaciendo(e)»"
+    ],
+    "components/orden-pagina/MarcarFaseModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/PasarAlStockModal.tsx": [
+      "Boton «Anotarla ahora»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/PideAtencion.tsx": [
+      "button «{abierto ? \"Ocultar\" : \"¿Por qué?\"}»"
+    ],
+    "components/orden-pagina/RevertirLaOrdenModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Volver»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/RutaDeFases.tsx": [
+      "Boton «{fase.id === idDeLaQueMarca ? \"prod-orden.marcar\" : undefined}»",
+      "BotonDeshacer «→() => setHoja({ tipo: \"desmarcar\", faseId: fase.id»",
+      "Boton «{fase.actual ? \"prod-orden.terminar\" : undefined}»",
+      "Boton «{fase.id === idDeLaQueRecibe ? \"prod-orden.vuelta\" : undefined}»",
+      "Boton «{fase.id === idDeLaQueSale ? \"prod-orden.salida\" : undefined}»",
+      "button «{fase.id === idDeLaQueCambia ? \"prod-orden.cambiar-quien\" : undefined}»"
+    ],
+    "components/orden-pagina/TelaDeLaOrdenVista.tsx": [
+      "BotonEnlace «{i === 0 ? \"prod-orden.pedir-tela\" : undefined}»",
+      "Boton «prod-orden.anotar-tela»",
+      "Boton «prod-orden.devolver-tela»"
+    ],
+    "components/orden-pagina/TelaUsadaModal.tsx": [
+      "CampoSelect «Qué tela o avío»",
+      "CampoTexto «{guia.etiqueta(\"cantidad\", devuelve ? `Cuántos ${unidad}»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-produccion/AgregarColor.tsx": [
+      "button «{`Quitar ${nombre}»",
+      "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
+    ],
+    "components/orden-produccion/FasesDeLaOrden.tsx": [
+      "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
+      "SegmentoDeslizante «{`Dónde va el ${nombreEnFrase}»",
+      "CampoSelect «Proveedor»",
+      "CampoMonto «Cobra por esta orden»",
+      "CampoFecha «Prometido para»",
+      "CampoSelect «Proveedor» #2",
+      "CampoMonto «Por prenda»",
+      "CampoTexto «Cantidad mínima»",
+      "CampoFecha «Prometido para» #2",
+      "CampoMonto «Fijo por orden»",
+      "button «+ fijo por orden (ponchado, matriz)»"
+    ]
+  }
+}

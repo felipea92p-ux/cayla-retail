@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Chip } from "@/components/ui/Chip";
 import { AlertTriangle, ClipboardCheck } from "lucide-react";
 
 /* ====================================================================
@@ -12,17 +13,17 @@ import { AlertTriangle, ClipboardCheck } from "lucide-react";
 
 export function ChipAlerta({ children, titulo }: { children: ReactNode; titulo?: string }) {
   return (
-    <span title={titulo} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ambar/15 px-2.5 py-1 text-xs leading-none text-ambar-profundo">
-      <AlertTriangle aria-hidden className="h-[15px] w-[15px] shrink-0" strokeWidth={1.75} />
+    <Chip tono="ambar" versalitas={false} title={titulo}>
+      <AlertTriangle aria-hidden className="h-3 w-3 shrink-0" />
       {children}
-    </span>
+    </Chip>
   );
 }
 
 export function ChipMantener({ children = "Mantener", titulo }: { children?: ReactNode; titulo?: string }) {
   return (
     <span title={titulo} className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-tinta/15 bg-papel px-3 py-1.5 text-xs leading-none text-tinta/75">
-      <ClipboardCheck aria-hidden className="h-[15px] w-[15px] shrink-0 text-tinta/60" strokeWidth={1.6} />
+      <ClipboardCheck aria-hidden className="h-3 w-3 shrink-0 text-tinta/60" />
       {children}
     </span>
   );

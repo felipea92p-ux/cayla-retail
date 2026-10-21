@@ -1,0 +1,5 @@
+## Íconos del menú con ojo de tienda: lo que queda (2026-10-13)
+- [x] **22 íconos del lateral redibujados** (ver la bitácora del día); el árbol y el golden del menú no cambiaron.
+- [x] **Los otros juegos de íconos siguen al menú** (ADR-0358, una función, una pieza): Roles y accesos (`IconoModulo`), los accesos rápidos del Inicio, el Inicio de almacén, la percha de Existencias y el botón «Actividad» leen de `lib/menu-iconos.ts`. Un módulo nuevo que sale en el menú hereda su ícono solo; lo vigila `lib/menu-iconos.test.ts`.
+- [ ] **Decide Felipe mirando: Marcas y Atributos a 18 px.** Marcas (cinta con estrella) y Atributos (cuaderno de muestras) son los dos que más piden el ojo de Felipe: se leen bien grandes, pero a tamaño de menú son los más abstractos. Alternativas probadas y descartadas en la lámina de trabajo: etiqueta con costuras a los lados, ® y etiqueta colgante con estrella (esta última se parece a Categorías).
+- [ ] **Un ícono de «Talla» / cinta métrica no se usó**: ninguna pantalla del menú es «Tallas» (viven como pestaña de Atributos, ADR-0306). Si algún día una pestaña se vuelve módulo, la cinta métrica de lucide (`ruler`) es el candidato.

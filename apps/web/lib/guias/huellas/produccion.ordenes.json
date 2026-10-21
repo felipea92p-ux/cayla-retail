@@ -1,0 +1,156 @@
+{
+  "guia": "produccion.ordenes",
+  "ruta": "/produccion/ordenes",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 104,
+  "controles": {
+    "components/AvisoCostoAtipico.tsx": [
+      "Boton «{textoCorregir}»",
+      "Boton «{motivoNoListo ?? undefined}»"
+    ],
+    "components/MatrizOrden.tsx": [
+      "input «{`Buenas de ${c.nombre}»"
+    ],
+    "components/ModeloNuevoCampos.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del modelo\")}»",
+      "CampoSelect «{guia.etiqueta(\"categoria\", \"Categoría\")}»",
+      "CampoMonto «{guia.etiqueta(\"precio\", \"Precio a tienda (c/u)\")}»",
+      "button «Mejor elegir uno que ya existe»",
+      "Link «Créalo en Productos»"
+    ],
+    "components/NuevaOrdenProduccionForm.tsx": [
+      "SegmentoDeslizante «Tipo de orden»",
+      "Link «Editar producto»",
+      "CampoTexto «Fecha de entrega»",
+      "CampoTexto «Nota»",
+      "Link «Ponle precio en Editar producto»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Usar ese modelo»",
+      "Boton «Es otro modelo, crearlo igual»",
+      "button «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/OrdenCierre.tsx": [
+      "CampoMonto «Tela (real)»",
+      "CampoMonto «Avíos (real)»",
+      "CampoMonto «Servicios (real)»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/OrdenInsumos.tsx": [
+      "button «{abierto ? \"Cancelar devolución\" : \"Devolver al estante\"}»",
+      "input «0»",
+      "button «Devolver todo»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Link «Cárgalos en Insumos»",
+      "button «{i.nombre}»",
+      "input «0» #2",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «{responsable.motivo ?? undefined}» #2"
+    ],
+    "components/OrdenModales.tsx": [
+      "input «Por qué se cancela el lote»",
+      "ComboResponsable «{responsable}»",
+      "button «Volver»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "ComboResponsable «{responsable}» #2",
+      "button «Volver» #2",
+      "Boton «{responsable.motivo ?? undefined}» #2"
+    ],
+    "components/OrdenPanel.tsx": [
+      "Link «Llevarlas a las tiendas»",
+      "BotonImprimir «Imprimir etiquetas de precio»",
+      "Boton «{orden.esMuestra ? \"Dar por terminada\" : \"Pasar al stock\"}»",
+      "Boton «Anular»",
+      "Boton «Volver sin cerrar»",
+      "Boton «Revertir cierre»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Marcar hecho»",
+      "Boton «(sin nombre)»",
+      "button «Reabrir»"
+    ],
+    "components/SelectorColor.tsx": [
+      "input «Elegir color con el selector»",
+      "CampoTexto «{etiqueta}»"
+    ],
+    "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «(sin nombre)»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "button «{c.nombre}»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «{control}»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/MatrizCantidades.tsx": [
+      "SegmentoDeslizante «Qué escribes en la tabla»",
+      "input «1»",
+      "input «(sin nombre)»",
+      "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
+    ],
+    "components/alta-producto/NuevoColorAlta.tsx": [
+      "CampoTexto «Nombre del color»",
+      "Desplegable «{familia}»",
+      "CampoTexto «Código»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»",
+      "button «Elegir»"
+    ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
+    "components/motor-demanda/MotorEnProduccion.tsx": [
+      "button «{curva.total > 0 ? `Usar la del motor · ${curva.total}»"
+    ],
+    "components/orden-produccion/AgregarColor.tsx": [
+      "button «{`Quitar ${nombre}»",
+      "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
+    ],
+    "components/orden-produccion/ConsejoDeLaRed.tsx": [
+      "Boton «{`Usarla: pone las ${curva.total}»",
+      "button «prod-orden-nueva.red-abrir»",
+      "Desplegable «{String(diasObjetivo)}»"
+    ],
+    "components/orden-produccion/ElegirModelo.tsx": [
+      "button «prod-orden-nueva.modelo-fila»",
+      "button «→() => onCrear(escrito)»",
+      "button «Cambiar»"
+    ],
+    "components/orden-produccion/FasesDeLaOrden.tsx": [
+      "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
+      "SegmentoDeslizante «{`Dónde va el ${nombreEnFrase}»",
+      "CampoSelect «Proveedor»",
+      "CampoMonto «Cobra por esta orden»",
+      "CampoFecha «Prometido para»",
+      "CampoSelect «Proveedor» #2",
+      "CampoMonto «Por prenda»",
+      "CampoTexto «Cantidad mínima»",
+      "CampoFecha «Prometido para» #2",
+      "CampoMonto «Fijo por orden»",
+      "button «+ fijo por orden (ponchado, matriz)»"
+    ],
+    "components/orden-produccion/TelaDeLaOrden.tsx": [
+      "CampoSelect «Tela»",
+      "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"m\"}»",
+      "Casilla «Dejar este consumo como el del modelo»",
+      "CampoSelect «Avío»",
+      "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"unid.\"}»",
+      "Boton «+ Agregar avío»"
+    ],
+    "components/ordenes-lista/FilaDeOrden.tsx": [
+      "button «{`Abrir ${f.numeroTexto}»",
+      "Link «{`Abrir ${f.numeroTexto}»",
+      "button «{guiaPorque ? \"prod-ordenes.porque\" : undefined}»"
+    ],
+    "components/ordenes-lista/OrdenesLista.tsx": [
+      "Boton «prod-ordenes.nueva»",
+      "Pestanas «→(clave) => setPestana(clave as PestanaLista)»",
+      "button «{f.texto}»",
+      "Boton «+ Crear el primer modelo»"
+    ]
+  }
+}

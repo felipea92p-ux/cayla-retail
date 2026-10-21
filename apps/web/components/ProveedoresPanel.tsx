@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowDown, ChevronRight, FunnelX, SearchX, Truck } from "lucide-react";
+import { ChevronRight, FunnelX, SearchX, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Proveedor, ResumenProveedores } from "@/lib/proveedores";
 import { ProveedorModal, BORRADOR_VACIO, type Borrador } from "@/components/ProveedorModal";
@@ -17,11 +18,12 @@ import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { Sparkline } from "@/components/ui/Sparkline";
-import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
+import { Tabla, Encabezado, fila, celda, type Columna } from "@/components/ui/Tabla";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // La tabla de líder gana columnas según el ANCHO DE LA TABLA, no el de la ventana (container queries de
 // Tailwind: `@3xl`, `@5xl`, `@7xl` miden el contenedor `@container` de <Tabla>). Con el menú lateral abierto
@@ -189,20 +191,20 @@ export function ProveedoresPanel({
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Proveedores</h1>
-          <p className="mt-1 text-sm text-tinta/65">A quién se le compra. Un proveedor tiene que estar acá antes de poder registrar su comprobante.</p>
-        </div>
-        {puedeEditar && (
-          <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)}>
-            <span className="flex items-center gap-2">
-              <span aria-hidden>+</span> Registrar proveedor
-            </span>
-          </Boton>
-        )}
-      </div>
+      <EncabezadoPagina
+        sede="Todas las tiendas"
+        titulo="Proveedores"
+        subtitulo="A quién se le compra. Un proveedor tiene que estar acá antes de poder registrar su comprobante."
+        acciones={
+          puedeEditar && (
+            <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)} aria-haspopup="dialog" data-guia="proveedores.registrar">
+              <span className="flex items-center gap-2">
+                <span aria-hidden>+</span> Registrar proveedor
+              </span>
+            </Boton>
+          )
+        }
+      />
 
       {verMontos && resumen && <ProveedoresIndicadores resumen={resumen} reparto={reparto} foco={foco} onFoco={setFoco} onAbrir={setAbiertoId} />}
 
@@ -210,7 +212,7 @@ export function ProveedoresPanel({
           a la derecha; en celular los rubros bajan y se desplazan en horizontal. */}
       {hayProveedores && (
         <div className="anim-entra flex flex-wrap items-center gap-x-4 gap-y-3" style={{ ["--i" as string]: 6 }}>
-          <Buscador
+          <Buscador guia="proveedores.buscador"
             id="proveedores-buscar"
             valor={busqueda}
             onCambio={setBusqueda}
@@ -222,7 +224,7 @@ export function ProveedoresPanel({
           />
           {rubros.length > 0 && (
             // El rubro deja menos proveedores en la misma lista: la píldora de filtro del sistema (ADR-0358).
-            <div role="group" aria-label="Filtrar por rubro" className="flex flex-wrap items-center gap-2">
+            <div role="group" aria-label="Filtrar por rubro" data-guia="proveedores.rubros" className="flex flex-wrap items-center gap-2">
               {[{ clave: "", etiqueta: "Todos", conteo: totalActivos }, ...rubros.map((r) => ({ clave: r.clave, etiqueta: r.etiqueta, conteo: r.conteo }))].map((o) => (
                 <button key={o.clave || "todos"} type="button" aria-pressed={(rubro ?? "") === o.clave} onClick={() => setRubro(o.clave || null)} className="pildora-cayla">
                   {o.etiqueta} <span className="pildora-cayla__n">{o.conteo}</span>
@@ -234,6 +236,7 @@ export function ProveedoresPanel({
             <button
               type="button"
               aria-pressed={filtrarSinPago}
+              data-guia="proveedores.sin-pago"
               onClick={() => setSoloSinPago((v) => !v)}
               className={`anim-revelar rounded-full border px-3 py-1 text-xs tabular-nums transition-colors duration-200 ${
                 filtrarSinPago ? "border-tinta bg-tinta text-crema" : "border-ambar/40 bg-ambar/10 text-ambar-profundo hover:border-ambar-profundo"
@@ -310,6 +313,7 @@ export function ProveedoresPanel({
       ) : activos.length === 0 ? null : (
         // `overflow-y-hidden`: mientras las filas se deslizan (FLIP) algunas pasan un instante fuera de la
         // tarjeta; sin esto, `overflow-x-auto` les da a las dos direcciones scroll y parpadea una barra vertical.
+        <div data-guia="proveedores.lista">
         <Tabla className="@container anim-entra overflow-y-hidden" style={{ ["--i" as string]: 7 }}>
           {verMontos ? <EncabezadoOrdenable orden={orden} onOrden={(c) => setOrden((o) => siguienteOrden(o, c))} /> : <Encabezado plantilla={PLANTILLA_BASE} columnas={[{ titulo: "Proveedor" }, { titulo: "RUC" }]} />}
           {activos.map((p, indice) => (
@@ -331,6 +335,7 @@ export function ProveedoresPanel({
             />
           ))}
         </Tabla>
+        </div>
       )}
 
       {desactivados.length > 0 && (
@@ -391,16 +396,6 @@ export function ProveedoresPanel({
             }
             router.refresh();
           }}
-          onDesactivar={
-            borrador.id
-              ? async () => {
-                  const p = proveedores.find((x) => x.id === borrador.id);
-                  if (!p) return;
-                  await onCambiarEstado(p);
-                  setBorrador(null);
-                }
-              : undefined
-          }
         />
       )}
     </div>
@@ -550,7 +545,7 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
       {/* El destello vive en su propia capa: `animation` es una sola propiedad, y si se pusiera en la fila
           pisaría a la entrada `anim-entra` (y al quitarlo, la entrada se repetiría). */}
       {reciente && <span aria-hidden className="anim-destello-fila pointer-events-none absolute inset-0" />}
-      <button type="button" onClick={onAbrir} aria-label={`${p.nombre}: abrir vista rápida`} className="min-w-0 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-rojo/60">
+      <button type="button" onClick={onAbrir} data-guia="proveedores.nombre" aria-label={`${p.nombre}: abrir vista rápida`} className="min-w-0 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-rojo/60">
         <NombreCelda p={p} busqueda={busqueda} marcas={marcas} marcarSinPago />
       </button>
       <span className="hidden truncate font-mono text-xs tabular-nums text-tinta/75 @7xl:block">{p.ruc ? <Resaltado texto={p.ruc} busqueda={busqueda} /> : "Sin RUC"}</span>
@@ -558,7 +553,7 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
         {serie && <Sparkline serie={serie} indice={indice} />}
         <span className={p.facturado_12m ? "text-tinta" : "text-tinta/45"}>{soles(p.facturado_12m ?? 0)}</span>
       </span>
-      <span className="text-right text-sm tabular-nums">
+      <span className="text-right text-sm tabular-nums" data-guia="proveedores.saldo">
         {saldo > 0 ? (
           <>
             <Link
@@ -567,12 +562,19 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
             >
               {soles(saldo)}
             </Link>
-            {/* La deuda a escala: el largo es la parte del mayor saldo de la lista y el rojo, lo ya vencido. */}
-            <span aria-hidden title={vencido ? `Vencido: ${soles(p.saldo_vencido ?? 0)}` : "Nada vencido"} className="mt-1 block h-[3px] overflow-hidden rounded-full bg-sand">
-              <span className="anim-crece-x flex h-full" style={{ width: `${Math.max(4, (saldo / maxSaldo) * 100)}%`, ["--i" as string]: 8 + Math.min(indice, 10) }}>
-                <span className="h-full bg-rojo" style={{ width: `${(Math.min(p.saldo_vencido ?? 0, saldo) / saldo) * 100}%` }} />
-                <span className="h-full flex-1 bg-tinta/45" />
-              </span>
+            {/* La deuda a escala del mayor saldo de la lista (ronda 14 de /unificar): la barra apilada del sistema, lo ya vencido en rojo y
+                lo que falta vencer en tinta, medida contra el mayor saldo (el hueco del final es la pista). */}
+            <span title={vencido ? `Vencido: ${soles(p.saldo_vencido ?? 0)}` : "Nada vencido"} className="mt-1 block">
+              <BarraApilada
+                alto={4}
+                decorativa
+                total={maxSaldo}
+                retraso={8 + Math.min(indice, 10)}
+                segmentos={[
+                  { clave: "vencido", nombre: "Vencido", valor: Math.min(p.saldo_vencido ?? 0, saldo), clase: "bg-rojo" },
+                  { clave: "por-vencer", nombre: "Por vencer", valor: saldo - Math.min(p.saldo_vencido ?? 0, saldo), clase: "bg-tinta" },
+                ]}
+              />
             </span>
           </>
         ) : (
@@ -597,13 +599,14 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
         {p.activo ? (
           <Link
             href={`/compras/nueva?prov=${p.id}`}
+            data-guia="proveedores.comprobante"
             className="btn-cayla btn-secundario relative whitespace-nowrap"
           >
             + Comprobante
           </Link>
         ) : (
-          <Boton type="button" peso="discreto" cargando={cambiando} onClick={onReactivar} className="relative px-2.5 py-1.5 text-[11px]">
-            {cambiando ? "…" : "Reactivar"}
+          <Boton textoCargando="Reactivando…" type="button" peso="discreto" cargando={cambiando} onClick={onReactivar} className="relative px-2.5 py-1.5 text-[11px]">
+            Reactivar
           </Boton>
         )}
         <ChevronRight aria-hidden className="h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-300 ease-cayla group-hover:translate-x-0 group-hover:opacity-100" />
@@ -613,44 +616,20 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
 }
 
 // Los encabezados de Facturado, Saldo y Última compra ordenan la tabla; el nombre también (clic en
-// «Proveedor»). La flecha dice hacia dónde y GIRA al invertir el orden. `aria-sort` para el lector de pantalla.
-// Las columnas se muestran con los mismos cortes que las celdas de `FilaLider` (COLUMNAS_LIDER).
+// «Proveedor»). Es <Encabezado> con `orden` (ADR-0358, ronda 7): la flecha dice hacia dónde y GIRA al invertir el orden, con
+// `aria-sort` para el lector de pantalla. Las columnas se muestran con los mismos cortes que las celdas de `FilaLider`
+// (COLUMNAS_LIDER), y el encabezado entero solo desde @3xl: más angosta, cada fila se lee sola.
+const COLUMNAS_ENCABEZADO_LIDER: Columna[] = [
+  { titulo: "Proveedor", campo: "nombre" },
+  { titulo: "RUC", clase: "hidden @7xl:block" },
+  { titulo: "Facturado · 12 m", campo: "facturado", alinear: "der", clase: "hidden @3xl:block" },
+  { titulo: "Saldo", campo: "saldo", alinear: "der" },
+  { titulo: "A favor", campo: "favor", alinear: "der", clase: "hidden @5xl:block" },
+  { titulo: "Entregas", alinear: "der", clase: "hidden @5xl:block" },
+  { titulo: "Última compra", campo: "ultima", alinear: "der", clase: "hidden @7xl:block" },
+  { titulo: "", clase: "hidden @3xl:block" },
+];
+
 function EncabezadoOrdenable({ orden, onOrden }: { orden: Orden; onOrden: (c: CampoOrden) => void }) {
-  const col = (titulo: string, campo: CampoOrden | null, opts: { der?: boolean; desde?: "sm" | "lg" | "xl" } = {}) => {
-    const visible = opts.desde === "xl" ? "hidden @7xl:flex" : opts.desde === "lg" ? "hidden @5xl:flex" : opts.desde === "sm" ? "hidden @3xl:flex" : "flex";
-    const alinear = opts.der ? "justify-end text-right" : "text-left";
-    if (!campo) {
-      return (
-        <span key={titulo || "accion"} className={`label-cayla ${visible} ${alinear} whitespace-nowrap text-[11px] text-tinta/55`} role="columnheader">
-          {titulo}
-        </span>
-      );
-    }
-    const activo = orden.campo === campo;
-    return (
-      <button
-        key={titulo}
-        type="button"
-        role="columnheader"
-        aria-sort={activo ? (orden.dir === "desc" ? "descending" : "ascending") : "none"}
-        onClick={() => onOrden(campo)}
-        className={`label-cayla ${visible} items-center gap-1 whitespace-nowrap text-[11px] transition-colors hover:text-rojo ${alinear} ${activo ? "text-tinta" : "text-tinta/55"}`}
-      >
-        {titulo}
-        <ArrowDown aria-hidden className={`h-3 w-3 shrink-0 transition-[opacity,transform] duration-300 ease-cayla ${activo ? "opacity-100" : "opacity-0"} ${activo && orden.dir === "asc" ? "rotate-180" : ""}`} />
-      </button>
-    );
-  };
-  return (
-    <div className={`hidden gap-x-4 px-5 py-2 @3xl:grid ${COLUMNAS_LIDER}`} role="row">
-      {col("Proveedor", "nombre")}
-      {col("RUC", null, { desde: "xl" })}
-      {col("Facturado · 12 m", "facturado", { der: true, desde: "sm" })}
-      {col("Saldo", "saldo", { der: true })}
-      {col("A favor", "favor", { der: true, desde: "lg" })}
-      {col("Entregas", null, { der: true, desde: "lg" })}
-      {col("Última compra", "ultima", { der: true, desde: "xl" })}
-      {col("", null, { desde: "sm" })}
-    </div>
-  );
+  return <Encabezado plantilla={`${COLUMNAS_LIDER} @max-3xl:hidden!`} columnas={COLUMNAS_ENCABEZADO_LIDER} orden={orden} onOrden={(c) => onOrden(c as CampoOrden)} />;
 }

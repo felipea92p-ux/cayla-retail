@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type MouseEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Bike, Coffee, Droplet, Package, Paperclip, PencilLine, ShoppingBag, Smartphone, SprayCan, Star, Toilet, Wrench, Zap, type LucideIcon } from "lucide-react";
+import { Bike, Check, Coffee, Droplet, Package, Paperclip, PencilLine, ShoppingBag, Smartphone, SprayCan, Star, Toilet, Wrench, Zap, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 import { traducirError } from "@/lib/error-escritura";
@@ -11,17 +11,25 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { soles } from "@/lib/compras-reglas";
+import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
+import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import { partirSerieNumero, validarGasto, type CategoriaGasto } from "@/lib/gastos-reglas";
 import {
   CLAVE_OTRO,
   DIAS_FRECUENCIA,
   GASTO_RAPIDO_VACIO,
+  MEDIOS_RAPIDOS,
   TEXTO_COMPROBANTE_RAPIDO,
+  TEXTO_MEDIO_RAPIDO,
   borradorDeGastoRapido,
   camposDeGastoRapido,
   categoriaDe,
@@ -31,15 +39,17 @@ import {
   nombreCategoria,
   opcionesOtro,
   textoVeces,
+  textosDelMedio,
   type ComprobanteRapido,
   type ConceptoOrdenado,
   type EstadoGastoRapido,
+  type MedioRapido,
 } from "@/lib/gasto-rapido-reglas";
 
 // Caja ▸ Registrar gasto, la versión rápida (maqueta A, Felipe 2026-10-09: docs/maquetas/gasto-rapido-caja-2026-10/).
 // Un mosaico con lo que se paga en una tienda —ordenado por lo que más se usa en ESTA sede, con ★ y sus veces en los 4 primeros—,
-// el monto (con los montos de siempre de ese concepto) y listo: sale del cajón abierto, al contado. La factura o boleta se abre
-// solo si la dieron. La regla es la de Finanzas (`validarGasto` → `registrar_gasto`): esta hoja solo arma el borrador más corto.
+// el monto (con los montos de siempre de ese concepto) y listo: sale del cajón abierto, al contado, o del Yape o el Plin de la tienda
+// (2026-10-12; entonces el cajón no cambia). La factura o boleta se abre solo si la dieron. La regla es la de Finanzas (`validarGasto` → `registrar_gasto`): esta hoja solo arma el borrador más corto.
 // Movimiento rico por decisión de Felipe (ADR-0136, act. 2026-10-09): ola del mosaico, ★ que se dibuja, veces que cuentan, tinta que
 // se derrama desde el clic, cifra del botón que sube, check que se dibuja al terminar. Sin rebote ni bucle; se apaga con reduced-motion.
 
@@ -135,6 +145,55 @@ export function Baldosa({
   );
 }
 
+/**
+ * «¿Cómo lo pagaste?»: las fichas de medio de la hoja de cobro de Vender (mismo ícono, mismo color, se rellenan al elegir), acostadas
+ * para que ocupen 50 px (Felipe 2026-10-12, «similar al de cobrar, sin ocupar tanto espacio»). Un radiogroup como `Segmentado`: una sola
+ * parada de Tab y las flechas cambian de medio.
+ */
+function FichasMedio({ valor, onValor }: { valor: MedioRapido; onValor: (m: MedioRapido) => void }) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  function alTeclado(e: KeyboardEvent<HTMLButtonElement>, i: number) {
+    const delta = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+    if (!delta) return;
+    e.preventDefault();
+    const siguiente = (i + delta + MEDIOS_RAPIDOS.length) % MEDIOS_RAPIDOS.length;
+    onValor(MEDIOS_RAPIDOS[siguiente]);
+    refs.current[siguiente]?.focus();
+  }
+  return (
+    <div role="radiogroup" aria-label="Cómo lo pagaste" className="grid grid-cols-3 gap-2">
+      {MEDIOS_RAPIDOS.map((m, i) => {
+        const elegida = m === valor;
+        return (
+          <button
+            key={m}
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
+            type="button"
+            role="radio"
+            aria-checked={elegida}
+            tabIndex={elegida ? 0 : -1}
+            onClick={() => onValor(m)}
+            onKeyDown={(e) => alTeclado(e, i)}
+            className={`metodo-${m} hoja-cobro-medio es-acostada ${elegida ? "es-elegido" : ""}`}
+          >
+            {elegida && (
+              <span className="hoja-cobro-marca">
+                <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+              </span>
+            )}
+            <span className="hoja-cobro-acostada">
+              <span className="hoja-cobro-icono">{iconoMetodo(m, "h-full w-full")}</span>
+              <span className="hoja-cobro-nombre label-cayla font-bold leading-none">{TEXTO_MEDIO_RAPIDO[m]}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function GastoRapidoModal({
   caja,
   ubicacionNombre,
@@ -163,9 +222,12 @@ export function GastoRapidoModal({
   const responsable = useResponsable();
   const [e, setE] = useState<EstadoGastoRapido>(GASTO_RAPIDO_VACIO);
   const [documento, setDocumento] = useState("");
-  const [guardando, setGuardando] = useState(false);
-  const [listo, setListo] = useState<{ que: string; monto: number } | null>(null);
-  const [token] = useState(() => crypto.randomUUID());
+  const [listo, setListo] = useState<{ que: string; monto: number; sello: string } | null>(null);
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): si la respuesta se pierde, la hoja se congela hasta saber si
+  // el gasto quedó; cambiar el monto y reenviar con la marca vieja devolvía el gasto anterior.
+  const intento = useIntento("registrar_gasto");
+  const guardando = intento.enviando;
+  const [revisando, setRevisando] = useState(false);
   const montoRef = useRef<HTMLInputElement>(null);
   const poner = <K extends keyof EstadoGastoRapido>(k: K, v: EstadoGastoRapido[K]) => setE((x) => ({ ...x, [k]: v }));
 
@@ -173,6 +235,7 @@ export function GastoRapidoModal({
   const esOtro = e.concepto === CLAVE_OTRO;
   const categoria = nombreCategoria(categorias, categoriaDe(e));
   const hayFrecuentes = conceptos.some((c) => c.frecuente);
+  const textos = textosDelMedio(e.medio, ubicacionNombre);
 
   const campos = [
     ...camposDeGastoRapido(e),
@@ -186,6 +249,10 @@ export function GastoRapidoModal({
   ];
   const guia = useGuiaCampos(campos);
   const montoNumero = Number(e.monto);
+  // ADR-0362 (fase 6 · actividad 6, decisiones 56 y 70): con factura o boleta de S/ 2 000 o más, lo pagado en efectivo queda «no
+  // deducible». Se deja registrar; la hoja lo avisa.
+  const conComprobanteGrande = e.conComprobante && Number.isFinite(montoNumero) && montoNumero >= UMBRAL_BANCARIZACION;
+  const avisoNoDeducible = conComprobanteGrande ? avisoBancarizacion(montoNumero, [{ monto: montoNumero, medio: e.medio }]) : null;
   const montoListo = campos.some((c) => c.id === "monto" && c.hecho);
 
   const avisoSalida = useSalidaSinGuardar(
@@ -219,17 +286,37 @@ export function GastoRapidoModal({
     }
     const v = validarGasto(borradorDeGastoRapido(e, caja, hoy), hoy);
     if (!v.ok) return avisar.error(v.error);
-    setGuardando(true);
-    const { error } = await firmar(createClient().rpc("registrar_gasto" as never, { ...v.valor, p_token: token } as never), responsable.firma());
-    setGuardando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "registrar el gasto"));
+    const r = await intento.enviar(huellaDe(v.valor), (token, senal) =>
+      firmar(createClient().rpc("registrar_gasto" as never, { ...v.valor, p_token: token } as never), responsable.firma()).abortSignal(senal),
+    );
+    if (r.tipo === "ocupado" || r.tipo === "congelado") return;
+    responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") return avisar.error(traducirError(r.error, "registrar el gasto"));
+    registrado(v.valor.p_monto_total);
+  }
+
+  function registrado(monto: number) {
     const que = esOtro ? e.otroTexto.trim() : (conceptoPorClave(e.concepto)?.nombre ?? "Gasto");
-    setListo({ que, monto: v.valor.p_monto_total });
+    setListo({ que, monto, sello: textos.sello });
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return registrado(Number(res.datos.monto ?? montoNumero));
+    if (res.tipo === "no_llego") {
+      avisar.aviso("El gasto no se registró", { detalle: "No quedó nada guardado. Revisa los datos y vuelve a registrarlo." });
+      return;
+    }
+    avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
   }
 
   // El sello de «listo» sale DESPUÉS del loader, nunca debajo (la regla de ADR-0149: primero «espera», después «listo»). Una vez a la
-  // vista se queda un momento, y después la hoja se cierra y Caja se refresca (el cajón ya lo descuenta).
+  // vista se queda un momento, y después la hoja se cierra y Caja se refresca (el cajón ya lo descuenta; con Yape o Plin, «Gastos del turno»
+  // ya lo muestra).
   const pantallaLibre = useSyncExternalStore(suscribirEspera, () => !esperaOcupada(), () => true);
   const [selloAlaVista, setSelloAlaVista] = useState(false);
   // Una vez a la vista se queda, aunque el refresco de después vuelva a ocupar la pantalla (se ajusta al dibujar, sin efecto).
@@ -238,7 +325,7 @@ export function GastoRapidoModal({
     if (!listo || !selloAlaVista) return;
     const corto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const t = window.setTimeout(() => {
-      avisar.exito("Gasto registrado", { detalle: `${listo.que} · ${soles(listo.monto)}. Salió del cajón: la caja ya lo descuenta.` });
+      avisar.exito("Gasto registrado", { detalle: `${listo.que} · ${soles(listo.monto)}. ${listo.sello}` });
       const guardiaFuera = avisoSalida.retirarYa();
       onCerrar();
       void guardiaFuera.then(() => router.refresh());
@@ -248,7 +335,7 @@ export function GastoRapidoModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selloAlaVista]);
 
-  const textoBoton = montoListo ? `Registrar ${soles(montoNumero)}` : "Registrar gasto";
+  const textoBoton = intento.incierto ? "Volver a intentar" : montoListo ? `Registrar ${soles(montoNumero)}` : "Registrar gasto";
 
   return (
     <Modal
@@ -256,16 +343,21 @@ export function GastoRapidoModal({
       titulo="Registrar gasto"
       subtitulo={
         <span className="inline-flex items-center gap-2">
-          <span aria-hidden className="gr-punto" />
-          Sale del cajón de {ubicacionNombre}, que está abierto.
+          <span aria-hidden className="gr-punto" data-medio={e.medio} />
+          {textos.subtitulo}
         </span>
       }
-      onClose={() => avisoSalida.pedirAccion(onCerrar)}
-      bloqueado={guardando}
-      ancho="max-w-[560px]"
+      // «¿Salir sin guardar?» se pregunta ANTES de animar la salida (Escape, el velo), y `onClose` ya no pregunta: pasado por
+      // `onClose`, «Seguir editando» tras un Escape dejaba la hoja montada e invisible, y «Cancelar» tenía que soltar la guardia del «atrás».
+      antesDeCerrar={avisoSalida.pedirAccion}
+      onClose={onCerrar}
+      bloqueado={guardando || intento.incierto}
+      tamano="mediana"
     >
       {(cerrar) => (
         <form onSubmit={guardar} className="gr-hoja relative space-y-5" noValidate>
+          {/* En duda, los datos no se tocan: cambiarlos y reenviar podría registrar el gasto dos veces. */}
+          <fieldset disabled={intento.incierto} className="campos-congelables min-w-0 space-y-5">
           <CampoGuiado
             id="concepto"
             guia={guia}
@@ -383,6 +475,13 @@ export function GastoRapidoModal({
             )}
           </CampoGuiado>
 
+          <CampoGuiado id="medio" guia={guia} titulo="¿Cómo lo pagaste?">
+            <FichasMedio valor={e.medio} onValor={(v) => setE((x) => ({ ...x, medio: v, medioElegido: true }))} />
+            <p key={e.medio} className="anim-revelar mt-1.5 text-xs text-tinta/65">
+              {textos.ayuda}
+            </p>
+          </CampoGuiado>
+
           <CampoGuiado id="nota" guia={guia} titulo="Nota">
             <CampoTexto etiqueta="Nota" caja value={e.nota} onChange={(ev) => poner("nota", ev.target.value)} maxLength={120} />
           </CampoGuiado>
@@ -448,6 +547,8 @@ export function GastoRapidoModal({
             </div>
           </div>
 
+          <AvisoNoDeducible aviso={avisoNoDeducible} reservar={conComprobanteGrande} />
+
           {onRetiro && (
             <p className="text-[12.5px] text-taupe">
               ¿Sale plata del cajón y no es un gasto (un retiro, un depósito al banco)?{" "}
@@ -460,17 +561,21 @@ export function GastoRapidoModal({
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
+          </fieldset>
+
+          {intento.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} />}
 
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
-            <PieGuia guia={guia} listo="Todo listo: sale del cajón." />
-            <div className="ml-auto flex gap-3">
-              <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando}>
+            <PieGuia guia={guia} listo={textos.listo} />
+            <div className="ml-auto pie-acciones">
+              <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando || intento.incierto}>
                 Cancelar
               </Boton>
               <Boton
                 type="submit"
                 peso="primario"
                 cargando={guardando}
+                disabled={revisando}
                 title={guia.frase ?? undefined}
                 aria-disabled={!guia.puedeConfirmar || undefined}
                 className={`gr-registrar ${guia.claseConfirmar}`}
@@ -490,7 +595,7 @@ export function GastoRapidoModal({
               </svg>
               <p className="gr-listo-titulo font-display">{soles(listo.monto)}</p>
               <p className="gr-listo-que">{listo.que}</p>
-              <p className="gr-listo-detalle">Salió del cajón: la caja ya lo descuenta.</p>
+              <p className="gr-listo-detalle">{listo.sello}</p>
             </div>
           )}
           {avisoSalida.aviso}

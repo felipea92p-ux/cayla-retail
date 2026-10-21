@@ -9,9 +9,11 @@ import type { AperturaPorRevisar } from "@/lib/caja";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Boton } from "@/components/ui/campos";
 
 function money(n: number) {
-  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function cuando(iso: string) {
@@ -51,11 +53,9 @@ export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevis
   }
 
   return (
-    <section className="card-cayla space-y-3 p-5" aria-labelledby="aperturas-por-revisar">
+    <section data-guia="caja-historial.aperturas" className="card-cayla space-y-3 p-5" aria-labelledby="aperturas-por-revisar">
       <div>
-        <h2 id="aperturas-por-revisar" className="font-display text-xl text-tinta">
-          Aperturas con diferencia por revisar
-        </h2>
+        <TituloSeccion id="aperturas-por-revisar">Aperturas con diferencia por revisar</TituloSeccion>
         <p className="text-sm text-tinta/65">Abrieron con un monto distinto del que dejó el cierre anterior de su sede.</p>
       </div>
       <ComboResponsable control={responsable} deshabilitado={revisando !== null} className="max-w-sm" />
@@ -77,15 +77,15 @@ export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevis
                 </p>
                 <p className="text-xs italic text-tinta/60">«{a.motivo}»</p>
               </div>
-              <button
+              <Boton cargando={revisando === a.cajaId}
                 type="button"
                 onClick={() => revisar(a.cajaId)}
                 disabled={revisando !== null || !responsable.listo}
                 title={responsable.motivo ?? undefined}
-                className="btn-cayla btn-secundario shrink-0"
+                className="shrink-0"
               >
-                {revisando === a.cajaId ? "Guardando…" : "Marcar como revisada"}
-              </button>
+                Marcar como revisada
+              </Boton>
             </li>
           );
         })}

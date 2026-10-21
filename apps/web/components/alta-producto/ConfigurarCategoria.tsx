@@ -7,6 +7,9 @@ import { guardarEjesCategoria, type EjeIds, type TipoVocabulario } from "@/lib/a
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { Aviso } from "@/components/ui/Aviso";
+import { Tags } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 // Una categoría sin tallas (o sin tejidos/patrones, si su familia los exige)
 // no tiene con qué armar un producto. En vez de mandar a la Líder a otra
@@ -100,7 +103,7 @@ export function ConfigurarCategoria({
 
       <p className="label-cayla text-[11px] text-tinta/60">{t.accion}</p>
       {universo.length === 0 ? (
-        <p className="text-sm text-tinta/60">No hay valores aprobados todavía. Créalos en Catálogo → Atributos.</p>
+        <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Tags />}>No hay valores aprobados todavía. Créalos en Catálogo → Atributos.</Vacio>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {universo.map((v) => (
@@ -114,15 +117,14 @@ export function ConfigurarCategoria({
       {error && <Aviso tono="error">{error}</Aviso>}
 
       <AvisoSinIdentidad firma={firma} />
-      <button
+      <Boton peso="primario" cargando={guardando}
         type="button"
         onClick={() => void guardar()}
         disabled={elegidos.length === 0 || guardando || !firma.listo}
         title={firma.motivo ?? undefined}
-        className="btn-cayla btn-primario"
       >
-        {guardando ? "Guardando…" : `Guardar en ${categoriaNombre}`}
-      </button>
+        {`Guardar en ${categoriaNombre}`}
+      </Boton>
     </div>
   );
 }

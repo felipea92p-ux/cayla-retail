@@ -67,8 +67,10 @@ ELEGIDA (`productos/[id]/editar/page.tsx`): si la bolsa se pasa a una categoría
 
 - **Descarté** el 0 en cualquier producto: una prenda con el precio olvidado se vendería gratis sin que nadie lo note, y el precio por tienda tampoco lo
   aceptaría (`precios_sede_precio_positivo`). Para regalar una prenda sigue el descuento.
-- **Queda igual, a propósito:** Nuevo producto sigue pidiendo un precio mayor que 0 (y `crear_producto_con_variantes` también lo exige en la base). Una bolsa
-  de obsequio nueva se da de alta con un precio y se deja en 0 desde su ficha.
+- **Queda igual, a propósito:** Nuevo producto sigue pidiendo un precio mayor que 0. Una bolsa de obsequio nueva se da de alta con un precio y se deja
+  en 0 desde su ficha. *(Corregido el 2026-10-12: aquí decía que `crear_producto_con_variantes` también lo exigía en la base; no era así —aceptaba
+  «0 o más»—, y una celda de la tabla de precios en 0 lo dejaba pasar. Desde el ADR-0384 la regla de esta sección vale también en la base: alta,
+  edición, aprobación y venta.)*
 
 ## Se rompe si…
 
@@ -112,3 +114,41 @@ apagada y el script (62 movidas, 62 con rastro, 0 mal anotadas después). Falta 
   `frescura_vara_cayla` 11/12 (datos sucios de la base local compartida).
 - **El volcado del diccionario** (`docs/datos/generado/`) entra con `familias.entra_a_motores` al refrescarlo después de pegar.
 - Una venta anotada de «Anillos · Blanco · Talla 6» a S/ 1.00 quedó fuera del script a propósito.
+
+## Actualización 2026-10-13: la pestaña Grupos del Plan del piso también pregunta
+
+**Lo que se vio.** En Tienda TRU, Plan del piso ▸ Grupos mostraba «Bolsas · Sin grupo · Elegir grupo», la tarjeta «Sin grupo: 1
+categoría nueva por ubicar» en rojo y «Siguiente por revisar: Bolsas». La familia «Empaque» SÍ estaba apagada en producción
+(`entra_a_motores = false`, verificado de solo lectura), y el reparto del plan (`fn_piso_plan_lectura`) ya la ignoraba. Pero la
+pestaña Grupos lee de `fn_categorias_grupo_mix`, que listaba TODA categoría activa, y `fijar_grupos_de_categorias` aceptaba darle
+grupo. Era la séptima lectura que tenía que preguntar y no preguntaba: una categoría que por decisión no va al riel le pedía al líder
+un lugar en el riel.
+
+**Lo que se decidió.** La categoría de una familia apagada **no aparece** en Grupos (no es «Sin grupo»: no tiene grupo que elegir) y la
+base **rechaza** darle uno (`grupos_mix_categoria_fuera_del_plan`, 22023). Se descartó mostrarla en una sección «Fuera del plan»: la
+pantalla ya tiene mucho y esa información vive en Catálogo ▸ Familias, donde se apaga. Es en vivo: al encender la familia reaparece.
+Migración `20261013130000_plan_del_piso_grupos_ignoran_familias_apagadas.sql` (dos reemplazos anclados, una parte, re-ejecutable; anclas
+contadas contra producción: 1 y 1). La web no cambia: el conteo «Categorías» baja solo (46 → 45) y el mensaje del rechazo ya se muestra
+tal cual (todo `hint` que empieza por `grupos_mix_`). Lo vigila `pnpm pruebas:motores-familias-apagadas` (casos G1-G3 y R1).
+
+**En producción desde el 2026-10-13** (Felipe la pegó; verificado de solo lectura: las dos funciones preguntan, 45 categorías en el plan, 0 sin grupo). Pendiente: refrescar el diccionario.
+
+## Actualización 2026-10-13: «¿Qué producir?» del Resumen de Producción también la respeta
+
+**Lo que había.** La lista de motores que preguntan por la familia no incluía a Producción ▸ Resumen: `getModelosProducibles` trataba como producible a
+todo producto con una variante activa y `fn_resumen_variantes`, su fuente, no pregunta `fn_categoria_entra_a_motores`. Una bolsa con ventas y stock podía
+salir «Producir ya» y abrir una orden de corte que el Taller no fabrica. El análisis `docs/pantallas/produccion.md` (§4.2) lo señaló: ningún documento decía
+si esa pantalla estaba exenta, y la letra de `CLAUDE.md` («todo motor de decisión que cuente ventas o stock por categoría») decía que no.
+
+**Lo que se decidió (Felipe, 2026-10-13).** Sí aplica: «¿Qué producir?» **decide qué fabricar**, no es plata. Se resuelve en la web, no en la base:
+`getModelosProducibles({ soloProducibles: true })` quita los modelos de una categoría apagada (`categoriasFueraDeMotores`, la misma lectura de Frescura) junto
+con los descontinuados, los pendientes o rechazados y los de prueba (`esProducible`, `lib/produccion-reglas.ts`; ADR-0270). Se descartó parchar
+`fn_resumen_variantes` con otro reemplazo anclado: la función es de las más tocadas y el filtro por modelo cuesta una consulta chica que ya existe.
+
+**Lo que NO hace.** «Nueva orden» sigue ofreciendo todo el catálogo y `abrir_produccion` no mira el estado ni la familia: quien abre una orden por otra vía
+no encuentra este filtro. El candado en la base es el #6 del backlog (`docs/BACKLOG.md:44`, L, estructural) y es de Felipe. Ante la duda sigue contando
+(ADR-0377 punto 3): sin categoría o con la lectura de familias caída, el modelo se muestra.
+
+**Producción hoy** (volcado de solo lectura del 2026-10-13): 235 productos, todos aprobados y ninguno de prueba; el filtro dejaría fuera 1 descontinuado y
+hasta 2 de familias apagadas. Lo vigilan 7 pruebas de `esProducible` (`lib/produccion-reglas.test.ts`). `pnpm pruebas:motores-familias-apagadas` no tiene caso
+de Producción porque no hay función nueva en la base; la regla vive en la web.

@@ -4,6 +4,8 @@ import {
   armarEtiquetas,
   campanaSaleEnLaFila,
   cantidadDeTexto,
+  EMPRESA_CASA,
+  empresaDeEtiqueta,
   encabezadoDeEtiquetas,
   etiquetasDelAlta,
   expandir,
@@ -21,6 +23,7 @@ import {
   unidadesDeParam,
   urlEtiquetasDePrecio,
   volverDeEtiquetas,
+  WEB_DE_LA_ETIQUETA,
   type EtiquetaDeLaPrenda,
   type HermanaEtiqueta,
   type VarianteEtiqueta,
@@ -85,6 +88,29 @@ describe("armarEtiquetas · la marca de la prenda (Felipe, 2026-09-29)", () => {
     const con = armarEtiquetas(new Map([["m", 2]]), [blusa("m", "M", { marca: "CAYLA" })], [hermana("M"), hermana("L")]).etiquetas[0];
     const sin = armarEtiquetas(new Map([["m", 2]]), [blusa("m", "M")], [hermana("M"), hermana("L")]).etiquetas[0];
     expect({ ...con, marca: undefined }).toEqual({ ...sin, marca: undefined });
+  });
+});
+
+describe("la empresa en el papel (ADR-0463, Felipe 2026-10-20)", () => {
+  it("CAYLA lleva el colibrí y CLAURE solo su nombre; las dos con el link de la tienda online, no «cayla.pe»", () => {
+    expect(empresaDeEtiqueta({ clave: "cayla", nombre: "CAYLA", web: null })).toEqual({ nombre: "CAYLA", conLogo: true, web: "tienda.cayla.pe" });
+    expect(empresaDeEtiqueta({ clave: "claure", nombre: "CLAURE", web: "tienda.cayla.pe" })).toEqual({ nombre: "CLAURE", conLogo: false, web: "tienda.cayla.pe" });
+    expect(WEB_DE_LA_ETIQUETA).toBe("tienda.cayla.pe");
+  });
+  it("el colibrí se decide por la clave, no por si la empresa tiene logo cargado", () => {
+    expect(empresaDeEtiqueta({ clave: "claure", nombre: "CLAURE", web: null }).conLogo).toBe(false);
+    expect(empresaDeEtiqueta({ clave: "cayla", nombre: "  ", web: "  " })).toEqual({ nombre: "CAYLA", conLogo: true, web: "tienda.cayla.pe" });
+  });
+  it("una prenda sin empresa conocida sale como CAYLA (datos viejos, base sin empresas)", () => {
+    const { etiquetas } = armarEtiquetas(new Map([["m", 1]]), [blusa("m", "M")], [hermana("M")]);
+    expect(etiquetas[0].empresa).toEqual(EMPRESA_CASA);
+  });
+  it("la empresa de la variante llega a la etiqueta y no cambia nada más", () => {
+    const claure = empresaDeEtiqueta({ clave: "claure", nombre: "CLAURE", web: null });
+    const con = armarEtiquetas(new Map([["m", 2]]), [blusa("m", "M", { empresa: claure })], [hermana("M"), hermana("L")]).etiquetas[0];
+    const sin = armarEtiquetas(new Map([["m", 2]]), [blusa("m", "M")], [hermana("M"), hermana("L")]).etiquetas[0];
+    expect(con.empresa.nombre).toBe("CLAURE");
+    expect({ ...con, empresa: undefined }).toEqual({ ...sin, empresa: undefined });
   });
 });
 
@@ -233,11 +259,11 @@ describe("mejorCampanaPorVariante — la misma que elige la caja", () => {
 
 describe("armarEtiquetas con campaña (ADR-0180 paso 2)", () => {
   const campana = { etiquetaId: "e1", nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-09-30" };
-  it("la etiqueta lleva el descuento exacto de la caja: 79.90 con 20 % se cobra 63.92 (ADR-0302)", () => {
+  it("la etiqueta lleva el descuento de la caja, con el precio sin céntimos: 79.90 con 20 % se cobra 63.90 (la cuenta exacta da 63.92, ADR-0403)", () => {
     const { etiquetas } = armarEtiquetas(new Map([["s", 1]]), [blusa("s", "S", { precio: 79.9 })], [], new Map([["s", campana]]));
-    expect(etiquetas[0].campana).toEqual({ nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-09-30", descuento: 15.98 });
+    expect(etiquetas[0].campana).toEqual({ nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-09-30", descuento: 16 });
   });
-  it("el «−20 %» del papel es verdad: S/ 39.00 se cobra S/ 31.20, no S/ 30.90", () => {
+  it("el «−20 %» del papel es verdad cuando la cuenta cae en S/0.10: S/ 39.00 se cobra S/ 31.20, no S/ 30.90", () => {
     const { etiquetas } = armarEtiquetas(new Map([["s", 1]]), [blusa("s", "S", { precio: 39 })], [], new Map([["s", campana]]));
     const e = etiquetas[0];
     const enCentimos = (soles: number) => Math.round(soles * 100);
@@ -365,8 +391,8 @@ describe("iconosPorVariante — etiquetas a mano y por categoría, con un solo d
     const iconos = iconosPorVariante(variantes, new Map([["camisa", ["aniv", "liq"]]]), new Map(), catalogo, campanas, HOY);
     const { etiquetas } = armarEtiquetas(new Map([["camisa", 1]]), [blusa("camisa", "M", { precio: 89.9 })], [], campanas, iconos);
     expect(etiquetas[0].iconos.map((i) => i.icono)).toEqual(["liquidar", "aniversario"]);
-    // 20 %, no 30 % ni 10 %: 89.90 → 71.92, es decir, 17.98 de descuento (exacto, ADR-0302).
-    expect(etiquetas[0].campana).toMatchObject({ nombre: "Para liquidar", pct: 20, descuento: 17.98 });
+    // 20 %, no 30 % ni 10 %: 89.90 → 71.92 exacto, que baja a 71.90, es decir, 18.00 de descuento (ADR-0403).
+    expect(etiquetas[0].campana).toMatchObject({ nombre: "Para liquidar", pct: 20, descuento: 18 });
   });
 });
 

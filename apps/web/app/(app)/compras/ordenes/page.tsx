@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ClipboardList, FunnelX, SearchX } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
-import { getDestinosOrden, getResumenOrdenes, listarOrdenesCompra } from "@/lib/ordenes-compra";
+import { getDestinosOrden, getOrdenesPorEnviar, getResumenOrdenes, listarOrdenesCompra } from "@/lib/ordenes-compra";
 import {
   ESTADO_ORDEN,
   POR_REPARTIR_LISTA,
@@ -19,6 +19,7 @@ import {
   recienDe,
   textoDestino,
   vacioDeLista,
+  vacioEnOtrasSedes,
   type FiltrosLista,
   type ParamsLista,
 } from "@/lib/ordenes-compra-reglas";
@@ -32,6 +33,10 @@ import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { BotonEnlace } from "@/components/ui/campos";
+import { GastoDelViaje } from "@/components/ordenes-compra/GastoDelViaje";
+import { TuFondoConRendir } from "@/components/fondos/TuFondoConRendir";
+import { getResumenMiFondo } from "@/lib/fondos";
+import { mostrarTuFondo } from "@/lib/fondos-reglas";
 import { PaginacionCursor } from "@/components/Paginacion";
 import { BuscadorOrdenes } from "@/components/ordenes-compra/BuscadorOrdenes";
 
@@ -47,6 +52,14 @@ import { BuscadorOrdenes } from "@/components/ordenes-compra/BuscadorOrdenes";
 //
 // Cada fila abre la orden en una ventana sobre la lista (ruta interceptada `@modal/(.)ordenes/ver/[id]`): la lista no se desmonta y al
 // cerrar se vuelve donde se estaba. La «›» del final dice que se abre.
+//
+// «Tu fondo» (fase 6 · actividad 4) es una cifra más, solo para quien tiene un fondo: lo que le queda de la plata que CAYLA le entregó
+// para comprar. No cambia con los filtros; baja sola al pagar desde «Mi fondo» o anotar un gasto del viaje (las dos hojas refrescan).
+// Desde la actividad 5 lleva «Rendir» (o «Ver tu rendición»), que abre la hoja de la rendición (`TuFondoConRendir`).
+//
+// «Por enviar» (fase 3) es una píldora más, al final: las órdenes generadas que todavía tienen algo por enviar a una sede, en TODAS las
+// sedes (la cifra cuenta todas, así que elegir una sede o un estado la apaga). La base no filtra por eso: `listarOrdenesCompra` cruza la lista
+// con `fn_ordenes_compra_por_enviar`. Si esa función no responde (la web publicada antes que la migración), la píldora no sale.
 //
 // Las columnas las decide el ANCHO DE LA TABLA, no el de la ventana (container queries: `@container` en <Tabla>, como
 // Proveedores). Con el menú abierto la tabla es ~370 px más angosta que la ventana, y una tabla que decidía por la ventana
@@ -70,26 +83,40 @@ const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("
 
 export default async function OrdenesCompraPage({ searchParams }: { searchParams: Promise<ParamsLista> }) {
   const persona = await exigirModulo("ordenes_compra");
-  const [params, destinosLeidos, resumen] = await Promise.all([searchParams, getDestinosOrden(), getResumenOrdenes()]);
+  const [params, destinosLeidos, resumen, porEnviar, fondo] = await Promise.all([
+    searchParams,
+    getDestinosOrden(),
+    getResumenOrdenes(),
+    getOrdenesPorEnviar(),
+    getResumenMiFondo(),
+  ]);
+  const tuFondo = mostrarTuFondo(fondo) ? fondo : null;
   const destinos = destinosLeidos ?? [];
   // Una sede inactiva que todavía tiene órdenes también se puede elegir (sale en las píldoras).
   const idsElegibles = [...destinos.map((d) => d.id), ...(resumen ?? []).flatMap((r) => (r.destinoId ? [r.destinoId] : []))];
   const filtros = filtrosDeLista(params, { sedeActual: persona.ubicacionId, destinos: idsElegibles });
-  const { filas: leidas, falla } = await listarOrdenesCompra(filtros);
+  const { filas: leidas, falla } = await listarOrdenesCompra(filtros, porEnviar);
   const { filas, cursorSiguiente } = paginaDeOrdenes(leidas);
+  // Lo buscado no está en la sede elegida: se mira si está en otra, para no decir «no existe» de una orden que sí existe (/formidable).
+  const enOtrasSedes =
+    filas.length === 0 && !falla && filtros.q && filtros.destino !== TODAS && !filtros.porEnviar
+      ? vacioEnOtrasSedes(filtros, (await listarOrdenesCompra({ ...filtros, destino: TODAS, antesDe: null })).filas)
+      : null;
 
   const nuevaOrden = (
-    <BotonEnlace href="/compras/ordenes/nueva" peso="primario">
+    <BotonEnlace href="/compras/ordenes/nueva" peso="primario" data-guia="ordenes.nueva">
       + Nueva orden de compra
     </BotonEnlace>
   );
-  const sinFiltros = filtros.destino === TODAS && !filtros.estado && !filtros.q && !filtros.antesDe;
+  const sinFiltros = filtros.destino === TODAS && !filtros.estado && !filtros.q && !filtros.antesDe && !filtros.porEnviar;
   // Ninguna orden en ninguna sede: la primera vez no hay nada que filtrar, solo invitar a crear la primera.
   const primeraVez = !falla && (resumen ? conteoDeDestino(resumen, TODAS, null) === 0 : sinFiltros && filas.length === 0);
 
   const nombreDe = (id: string) => destinos.find((d) => d.id === id)?.nombre ?? resumen?.find((r) => r.destinoId === id)?.destinoNombre ?? null;
   const miSede = destinos.find((d) => d.id === persona.ubicacionId) ?? null;
   const pildoras = pildorasDeDestino(destinos, resumen, filtros.estado);
+  // Cuántas cifras hay arriba: las de las órdenes (2, o 3 con la sede donde se trabaja) y «Tu fondo».
+  const nCifras = (resumen ? (miSede ? 3 : 2) : 0) + (tuFondo ? 1 : 0);
   // La orden que se acaba de guardar (Nueva o Editar vuelven aquí con `?recien=`): se marca para que se vea que quedó.
   const recien = recienDe(params);
 
@@ -99,7 +126,13 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
         sede={persona.ubicacionEtiqueta}
         titulo="Órdenes de compra"
         subtitulo="Lo que le pides a cada proveedor: qué, a cuánto y a qué tienda llega."
-        acciones={nuevaOrden}
+        acciones={
+          // «+ Gasto del viaje» (fase 6 · actividad 3): lo que costó traer la compra o el viaje, a una o varias órdenes.
+          <div className="flex flex-wrap items-center gap-3">
+            <GastoDelViaje guia="ordenes.gasto-viaje" />
+            {nuevaOrden}
+          </div>
+        }
       />
 
       {falla ? (
@@ -107,32 +140,45 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
           {falla}
         </Aviso>
       ) : primeraVez ? (
-        <div className="card-cayla">
-          <Vacio icono={<ClipboardList />} titulo="Todavía no hay órdenes de compra" acciones={nuevaOrden}>
-            Crea la primera con lo que le vas a pedir a un proveedor: aquí vas a ver su número, a qué tienda llega y cuánto suma.
-          </Vacio>
-        </div>
+        <>
+          {/* Sin órdenes todavía, el fondo igual se usa: un gasto del viaje no necesita orden. */}
+          {tuFondo && (
+            <div className="@container grid grid-cols-2 gap-3 @min-[40rem]:grid-cols-3">
+              <TuFondoConRendir fondo={tuFondo} guia="ordenes.tu-fondo" className="col-span-2 @min-[40rem]:col-span-1" />
+            </div>
+          )}
+          <div className="card-cayla">
+            <Vacio icono={<ClipboardList />} titulo="Todavía no hay órdenes de compra" acciones={nuevaOrden}>
+              Crea la primera con lo que le vas a pedir a un proveedor: aquí vas a ver su número, a qué tienda llega y cuánto suma.
+            </Vacio>
+          </div>
+        </>
       ) : (
         <>
           {/* En fila desde 40 rem de ANCHO DISPONIBLE (no de ventana). Más angosto (celular, o el menú abierto en una ventana chica),
               en dos filas: el total arriba, a lo ancho, y las otras dos lado a lado; una debajo de otra empujaban la lista fuera de
               la primera pantalla. */}
-          {resumen && (
-            <div className="@container">
-              <div className={`grid grid-cols-2 gap-3 ${miSede ? "@min-[40rem]:grid-cols-3" : ""}`}>
-                <CifraGeneradas
-                  etiqueta="Pedido a proveedores"
-                  {...generadasDe(resumen, TODAS)}
-                  donde={["en todas las sedes", "en todas las sedes"]}
-                  className={miSede ? "col-span-2 @min-[40rem]:col-span-1" : ""}
-                />
+          {(resumen || tuFondo) && (
+            <div className="@container" data-guia="ordenes.cifras">
+              <div className={`grid grid-cols-2 gap-3 ${COLUMNAS_CIFRAS[nCifras] ?? ""}`}>
+                {resumen && (
+                  <CifraGeneradas
+                    etiqueta="Pedido a proveedores"
+                    {...generadasDe(resumen, TODAS)}
+                    donde={["en todas las sedes", "en todas las sedes"]}
+                    className={nCifras === 3 ? "col-span-2 @min-[40rem]:col-span-1" : ""}
+                  />
+                )}
                 {/* El nombre completo («Tienda Lima»): «Llega a Lima» a secas se confundía con lo que llega a Lima para repartir. */}
-                {miSede && <CifraGeneradas etiqueta={`Llega a ${miSede.nombre}`} {...generadasDe(resumen, miSede.id)} />}
-                <CifraGeneradas
-                  etiqueta="Por repartir"
-                  {...generadasDe(resumen, POR_REPARTIR_LISTA)}
-                  donde={["se reparte desde Lima", "se reparten desde Lima"]}
-                />
+                {resumen && miSede && <CifraGeneradas etiqueta={`Llega a ${miSede.nombre}`} {...generadasDe(resumen, miSede.id)} />}
+                {resumen && (
+                  <CifraGeneradas
+                    etiqueta="Por repartir"
+                    {...generadasDe(resumen, POR_REPARTIR_LISTA)}
+                    donde={["se reparte desde Lima", "se reparten desde Lima"]}
+                  />
+                )}
+                {tuFondo && <TuFondoConRendir fondo={tuFondo} guia="ordenes.tu-fondo" className={resumen ? "" : "col-span-2"} />}
               </div>
             </div>
           )}
@@ -143,7 +189,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
               <BuscadorOrdenes filtros={filtros} />
               {/* A dónde llega y el estado dejan menos órdenes en la MISMA lista: la píldora de filtro del sistema (ADR-0358). Cambiar
                   uno conserva el otro y la búsqueda, y vuelve a la primera página (`hrefLista`). */}
-              <nav aria-label="Filtrar las órdenes" className="pildoras-desliza items-center gap-2 sm:flex-wrap">
+              <nav aria-label="Filtrar las órdenes" data-guia="ordenes.filtros" className="pildoras-desliza items-center gap-2 sm:flex-wrap">
                 {pildoras.map((p) => (
                   <Link
                     key={p.valor}
@@ -172,13 +218,26 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                     </Link>
                   );
                 })}
+                {/* «Por enviar»: tocarla pone la vista de todas las sedes con lo que falta enviar; tocarla de nuevo la quita. */}
+                {porEnviar && (
+                  <Link
+                    href={hrefLista(filtros, { porEnviar: !filtros.porEnviar })}
+                    aria-current={filtros.porEnviar ? "page" : undefined}
+                    title="Órdenes con algo por enviar a una sede, de todas las sedes"
+                    data-guia="ordenes.por-enviar"
+                    className="pildora-cayla shrink-0"
+                  >
+                    Por enviar
+                    <span className="pildora-cayla__n">{porEnviar.size.toLocaleString("es-PE")}</span>
+                  </Link>
+                )}
               </nav>
             </div>
 
             {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
-            <div data-resultados className="divide-y divide-sand">
+            <div data-resultados data-guia="ordenes.lista" className="divide-y divide-sand">
               {filas.length === 0 ? (
-                <VacioFiltrado filtros={filtros} nombreDestino={nombreDe(filtros.destino)} nuevaOrden={nuevaOrden} />
+                <VacioFiltrado filtros={filtros} nombreDestino={nombreDe(filtros.destino)} nuevaOrden={nuevaOrden} enOtrasSedes={enOtrasSedes} />
               ) : (
                 <>
                   {/* Los títulos, solo con la tabla en columnas (el `Encabezado` decide por la ventana; esta caja, por la tabla). */}
@@ -201,12 +260,15 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                     const estado = ESTADO_ORDEN[f.estado];
                     const anulada = f.estado === "anulada";
                     const esRecien = f.id === recien;
+                    // En la vista «Por enviar», cuántas unidades le quedan por enviar a ESA orden.
+                    const porEnviarDe = filtros.porEnviar ? (porEnviar?.get(f.id) ?? null) : null;
                     return (
                       <Link
                         key={f.id}
                         href={`/compras/ordenes/ver/${f.id}`}
                         style={{ ["--k" as string]: Math.min(i, 8) }}
                         data-recien={esRecien ? "" : undefined}
+                        data-guia="ordenes.fila"
                         className={fila(PLANTILLA, "cmp-fila")}
                       >
                         <span className={celda()}>
@@ -224,7 +286,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                             <span className="block text-xs text-taupe">del {diaMes(f.fechaEmision)}</span>
                           )}
                         </span>
-                        <span className={celda("izq", "text-tinta")}>
+                        <span className={celda("izq", "text-tinta")} data-guia="ordenes.proveedor">
                           <Resaltado texto={f.proveedorNombre} busqueda={filtros.q} />
                           <span className={`${SEGUNDA_LINEA} truncate`}>
                             {fraseDestino(f.destinoNombre)}
@@ -233,11 +295,16 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                         </span>
                         <span className={celda("izq", `${SOLO_ANCHA} text-tinta/80`)}>{textoDestino(f.destinoNombre)}</span>
                         <span className={celda("izq", `${SOLO_ANCHA} tabular-nums text-tinta/80`)}>{diaMes(f.fechaEntregaEstimada)}</span>
-                        <span className={`${CIFRA} ${SOLO_ANCHA} text-tinta/80`}>{f.unidades.toLocaleString("es-PE")}</span>
+                        <span className={`${CIFRA} ${SOLO_ANCHA} text-tinta/80`}>
+                          {f.unidades.toLocaleString("es-PE")}
+                          {porEnviarDe != null && <span className="block text-xs font-normal text-taupe">{porEnviarDe.toLocaleString("es-PE")} por enviar</span>}
+                        </span>
                         {/* Una anulada no suma: su total va tachado. */}
                         <span className={`${CIFRA} cmp-total font-medium`}>
                           <span className={anulada ? "text-tinta/45 line-through" : "text-tinta"}>{soles(f.total)}</span>
-                          <span className={`${SEGUNDA_LINEA} font-normal`}>{plural(f.unidades, "unidad", "unidades")}</span>
+                          <span className={`${SEGUNDA_LINEA} font-normal`}>
+                            {porEnviarDe != null ? `${porEnviarDe.toLocaleString("es-PE")} por enviar` : plural(f.unidades, "unidad", "unidades")}
+                          </span>
                         </span>
                         <span className={celda("izq", CON_COLUMNAS)}>
                           <Chip tono={estado.tono}>{estado.texto}</Chip>
@@ -267,6 +334,10 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
   );
 }
 
+/** Las columnas de la fila de cifras según cuántas hay. Tres: la primera a lo ancho en lo angosto y en fila desde 40 rem. Cuatro (con
+ *  «Tu fondo»): dos y dos en lo angosto, en fila recién desde 56 rem (en 40 rem, cuatro cifras de 150 px partían los montos). */
+const COLUMNAS_CIFRAS: Record<number, string> = { 3: "@min-[40rem]:grid-cols-3", 4: "@min-[56rem]:grid-cols-4" };
+
 /** Una cifra de arriba: el monto de las órdenes generadas (las anuladas no suman) y cuántas son. Informa: no filtra ni lleva.
  *  `donde`, en singular y plural, sigue a la cantidad («1 orden generada · se reparte desde Lima»). */
 function CifraGeneradas({
@@ -291,8 +362,37 @@ function CifraGeneradas({
 }
 
 /** La lista quedó vacía por los filtros o la búsqueda: dice qué se está mirando, deja quitar cada filtro y ofrece el camino. */
-function VacioFiltrado({ filtros, nombreDestino, nuevaOrden }: { filtros: FiltrosLista; nombreDestino: string | null; nuevaOrden: ReactNode }) {
+function VacioFiltrado({
+  filtros,
+  nombreDestino,
+  nuevaOrden,
+  enOtrasSedes,
+}: {
+  filtros: FiltrosLista;
+  nombreDestino: string | null;
+  nuevaOrden: ReactNode;
+  enOtrasSedes: ReturnType<typeof vacioEnOtrasSedes>;
+}) {
   const v = vacioDeLista(filtros, nombreDestino);
+  if (enOtrasSedes) {
+    return (
+      <Vacio
+        icono={<SearchX />}
+        titulo={enOtrasSedes.titulo}
+        filtros={v.filtros}
+        acciones={
+          <>
+            <BotonEnlace href={enOtrasSedes.href} peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
+              Ver en todas las sedes
+            </BotonEnlace>
+            <BotonEnlace href={hrefLista(filtros, { q: "" })}>Borrar la búsqueda</BotonEnlace>
+          </>
+        }
+      >
+        {enOtrasSedes.frase}
+      </Vacio>
+    );
+  }
   return (
     <Vacio
       icono={filtros.q ? <SearchX /> : <FunnelX />}
@@ -302,10 +402,14 @@ function VacioFiltrado({ filtros, nombreDestino, nuevaOrden }: { filtros: Filtro
         filtros.q ? (
           <BotonEnlace href={hrefLista(filtros, { q: "" })}>Borrar la búsqueda</BotonEnlace>
         ) : (
-          <>
-            {filtros.destino !== TODAS && <BotonEnlace href={hrefLista(filtros, { destino: TODAS })}>Ver todas las sedes</BotonEnlace>}
-            {nuevaOrden}
-          </>
+          filtros.porEnviar ? (
+            <BotonEnlace href={hrefLista(filtros, { porEnviar: false })}>Ver todas las órdenes</BotonEnlace>
+          ) : (
+            <>
+              {filtros.destino !== TODAS && <BotonEnlace href={hrefLista(filtros, { destino: TODAS })}>Ver todas las sedes</BotonEnlace>}
+              {nuevaOrden}
+            </>
+          )
         )
       }
     >

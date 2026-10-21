@@ -11,12 +11,11 @@ import {
   lineaDeTiempo,
   resumenDePago,
   textoFechaHito,
-  tonoDeAvance,
   type EntradaLineaTiempo,
 } from "./comprobante-linea-tiempo";
 
 const HOY = "2026-09-19";
-const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 const base: EntradaLineaTiempo = {
   fechaEmision: "2026-09-10",
@@ -105,14 +104,6 @@ describe("lineaDeTiempo", () => {
   });
 });
 
-describe("tonoDeAvance", () => {
-  it("verde completo, ámbar a medias, neutro sin nada, rojo si hay alerta", () => {
-    expect(tonoDeAvance(1)).toBe("verde");
-    expect(tonoDeAvance(0.4)).toBe("ambar");
-    expect(tonoDeAvance(0)).toBe("neutro");
-    expect(tonoDeAvance(0.4, { alerta: true })).toBe("rojo");
-  });
-});
 
 describe("idsNuevos", () => {
   it("devuelve solo lo que no se había visto", () => {
@@ -128,16 +119,16 @@ describe("resumenDePago", () => {
     expect(resumenDePago({ ...f, objetivo: 500, suma: 500, exacto: true })).toEqual({ tono: "verde", texto: "Cubre el total." });
   });
   it("queda saldo: neutro (pago posterior) o ámbar (al contado, falta)", () => {
-    expect(resumenDePago({ ...f, objetivo: 500, suma: 200, exacto: false })).toEqual({ tono: "neutro", texto: "Quedarán S/ 300.00 por pagar." });
-    expect(resumenDePago({ ...f, objetivo: 500, suma: 200, exacto: true })).toEqual({ tono: "ambar", texto: "Falta S/ 300.00 para el total." });
+    expect(resumenDePago({ ...f, objetivo: 500, suma: 200, exacto: false })).toEqual({ tono: "neutro", texto: "Quedarán S/\u00a0300.00 por pagar." });
+    expect(resumenDePago({ ...f, objetivo: 500, suma: 200, exacto: true })).toEqual({ tono: "ambar", texto: "Falta S/\u00a0300.00 para el total." });
   });
   it("se pasa: rojo, y con varias líneas antepone la suma", () => {
-    expect(resumenDePago({ ...f, lineas: 2, objetivo: 500, suma: 520, exacto: false })).toEqual({ tono: "rojo", texto: "Suman S/ 520.00 · Se pasa por S/ 20.00." });
+    expect(resumenDePago({ ...f, lineas: 2, objetivo: 500, suma: 520, exacto: false })).toEqual({ tono: "rojo", texto: "Suman S/\u00a0520.00 · Se pasa por S/\u00a020.00." });
   });
   it("usar más saldo a favor del que hay: rojo", () => {
     const r = resumenDePago({ ...f, objetivo: 500, suma: 500, exacto: false, saldoFavorUsado: 80, saldoFavorDisponible: 50 });
     expect(r.tono).toBe("rojo");
-    expect(r.texto).toContain("solo tienes S/ 50.00");
+    expect(r.texto).toContain("solo tienes S/\u00a050.00");
   });
   it("evita el ruido de coma flotante (0.1 + 0.2)", () => {
     expect(resumenDePago({ ...f, objetivo: 0.3, suma: 0.1 + 0.2, exacto: false }).tono).toBe("verde");

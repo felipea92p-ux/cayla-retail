@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, Info, Search, X } from "lucide-react";
+import { ChevronDown, CircleCheck, Info, Shirt } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Desplegable, type Opcion } from "@/components/ui/campos";
+import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Buscador } from "@/components/ui/Buscador";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import {
   FILTROS_ESTADO,
   SIN_FILTROS,
@@ -52,6 +54,7 @@ import { FrescuraPiso } from "./FrescuraPiso";
 import { FrescuraAguja } from "./FrescuraAguja";
 import { loQueMueveLaAguja, loQueSeLlevan, sinEstrenar } from "@/lib/frescura-aguja";
 import { conteoDeTodo, pisoDeLaTienda, pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
+import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
 // demás de su categoría, y qué hacer con lo que se queda. Maqueta aprobada: `docs/maquetas/frescura-3c-2026-09/` (colores
@@ -183,13 +186,13 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const tableroCompacto = (cifras?.porDecidir ?? 0) > 0;
   const abierta = ctx && prendaAbierta ? (enTabla.find((p) => p.clave === prendaAbierta) ?? null) : null;
 
-  // Las opciones de los combos (ADR-0209: sin <select>; Estado tiene 11 y trae buscador solo).
-  const opcionesCategoria: Opcion<string>[] = useMemo(() => {
+  // Las opciones de las píldoras (ADR-0209: sin <select>; Estado tiene 10 y trae buscador solo).
+  const opcionesCategoria: { valor: string; texto: string }[] = useMemo(() => {
     const vistas = new Map<string, string>();
     for (const p of enTabla) vistas.set(p.categoriaId, p.categoriaNombre);
     return [{ valor: TODAS_LAS_CATEGORIAS, texto: "Todas las categorías" }, ...[...vistas].map(([valor, texto]) => ({ valor, texto }))];
   }, [enTabla]);
-  const opcionesEstado: Opcion<FiltroEstado>[] = FILTROS_ESTADO.map((f) => ({ valor: f.valor, texto: f.texto, ...("grupo" in f ? { grupo: f.grupo } : {}) }));
+  const opcionesEstado = FILTROS_ESTADO.map((f) => ({ valor: f.valor, texto: f.texto, ...("grupo" in f ? { apartado: f.grupo } : {}) }));
 
   // Una categoría que no está en la tabla (un enlace viejo, o la otra sede del selector con `?cat=` puesto) es «todas»:
   // si no, el combo decía «Elegir» —que en todo el sistema es «falta elegir»— y la tabla salía vacía sin explicar por qué.
@@ -289,13 +292,14 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const botonComoSeLee = (
     <button
       type="button"
+      data-guia="frescura.como-se-lee"
       className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]"
       aria-expanded={comoSeLee}
       aria-controls="frescura-como-se-lee"
       onClick={() => setComoSeLee((v) => !v)}
     >
       ¿Cómo se lee esto?
-      <ChevronDown aria-hidden strokeWidth={1.8} className={`ml-1 h-3.5 w-3.5 transition-transform ${comoSeLee ? "rotate-180" : ""}`} />
+      <ChevronDown aria-hidden className={`ml-1 h-3.5 w-3.5 transition-transform ${comoSeLee ? "rotate-180" : ""}`} />
     </button>
   );
 
@@ -335,47 +339,26 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               acciones={botonComoSeLee}
             />
             {/* Filtros: en el estado del panel, copiados a la URL. */}
-            <div className="flex flex-wrap items-center gap-2.5 px-4 py-3 sm:px-5">
-              <div className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_220px] items-center sm:max-w-[340px]">
-                <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
-                <input
-                  type="text"
-                  value={filtros.q}
-                  maxLength={80}
-                  onChange={(e) => cambiar({ q: e.target.value })}
-                  placeholder="Prenda, color o código"
-                  aria-label="Buscar prenda, color o código"
-                  autoComplete="off"
-                  className="h-full w-full min-w-0 bg-transparent pl-9 pr-8 text-sm text-tinta outline-none placeholder:text-taupe"
-                  onKeyDown={(e) => {
-                    // Escape borra lo escrito; si no había nada, lo deja pasar (ADR-0136, useEscapeLibre).
-                    if (e.key === "Escape" && filtros.q) {
-                      e.stopPropagation();
-                      cambiar({ q: "" });
-                    }
-                  }}
-                />
-                {filtros.q && (
-                  <button type="button" aria-label="Borrar la búsqueda" onClick={() => cambiar({ q: "" })} className="absolute right-2 rounded p-1 text-taupe hover:text-tinta">
-                    <X aria-hidden className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-              <Desplegable
-                valor={filtros.cat}
-                onValor={(cat) => cambiar({ cat })}
-                opciones={opcionesCategoria}
-                forma="caja"
-                etiquetaAccesible="Categoría"
-                className="w-full min-[480px]:w-52"
+            <div data-guia="frescura.filtros" className="flex flex-wrap items-center gap-2.5 px-4 py-3 sm:px-5">
+              {/* El buscador del sistema (ADR-0358, ronda 5): su «×» y su Escape borran lo escrito sin cerrar nada de alrededor (ADR-0136). */}
+              <Buscador
+                guia="frescura.buscador"
+                valor={filtros.q}
+                onCambio={(q) => cambiar({ q })}
+                maxLength={80}
+                placeholder="Prenda, color o código"
+                etiqueta="Buscar prenda, color o código"
+                className="min-w-0 flex-[1_1_220px] sm:max-w-[340px]"
               />
-              <Desplegable
+              {/* Las píldoras de filtro del sistema (ADR-0358, ronda 9): la de «Estado» lista sus opciones en tres apartados con título. */}
+              <DesplegablePildora icono={Shirt} etiqueta="Categoría" valor={filtros.cat} onValor={(cat) => cambiar({ cat })} opciones={opcionesCategoria} valorPorDefecto={TODAS_LAS_CATEGORIAS} />
+              <DesplegablePildora
+                icono={CircleCheck}
+                etiqueta="Estado"
                 valor={filtros.estado}
-                onValor={(estado) => cambiar({ estado })}
+                onValor={(estado) => cambiar({ estado: estado as FiltroEstado })}
                 opciones={opcionesEstado}
-                forma="caja"
-                etiquetaAccesible="Estado"
-                className="w-full min-[480px]:w-56"
+                valorPorDefecto={SIN_FILTROS.estado}
               />
               {/* Apagar «Por decidir» es pedir ver todas (`todas`): si no, la vista de entrada lo volvería a poner. */}
               <button
@@ -393,9 +376,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 </button>
               )}
               {hayFiltros(filtros) && (
-                <button type="button" className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]" onClick={() => quitarFiltros(prendaAbierta)}>
-                  Quitar filtros
-                </button>
+                <BotonLimpiar onClick={() => quitarFiltros(prendaAbierta)}>Limpiar filtros</BotonLimpiar>
               )}
               {tablero.length === 0 && <span className="ml-auto">{botonComoSeLee}</span>}
             </div>
@@ -413,17 +394,17 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
             )}
             {sede.decisiones.estado === "sin_lectura" && sede.decisiones.aviso && (
               <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
-                <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
+                <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{sede.decisiones.aviso}</span>
               </p>
             )}
 
             {primeroLoDecidible ? (
-              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-sand px-4 py-2.5 sm:px-5">
+              <div data-guia="frescura.franja" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-sand px-4 py-2.5 sm:px-5">
                 {/* Sin el conteo: la píldora «Por decidir N» lo dice 40 px más arriba (Formidable 2026-10-09, ley 8: el mismo número salía 6 veces).
                     Con un solo grupo, su nombre va en esta misma franja y no en una propia (Formidable 2026-10-10 (c): 57 px menos). */}
                 {franjaUnica ? (
-                  <h2 className="text-sm font-semibold text-tinta">
+                  <h2 className="text-sm font-semibold text-tinta">{/* unificar-fijo: la franja compacta de Frescura (Formidable 2026-10-10 c), par del span de al lado */}
                     Esperan tu decisión <span className="font-normal text-taupe">· {grupos[0].nombre}</span>
                   </h2>
                 ) : (
@@ -456,14 +437,14 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                   <>
                     <b className="font-semibold text-tinta">Todavía no anotaste ninguna decisión.</b> Cuando decidas qué hacer con una prenda, la verás aquí con cómo le va.{" "}
                     <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => quitarFiltros(null)}>
-                      Quitar filtros
+                      Limpiar filtros
                     </button>
                   </>
                 ) : (
                   <>
                     Ninguna prenda con estos filtros.{" "}
                     <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => quitarFiltros(null)}>
-                      Quitar filtros
+                      Limpiar filtros
                     </button>
                   </>
                 )}
@@ -474,17 +455,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                   <Fragment key={g.categoriaId}>
                     {!franjaUnica && (
                     <div className="border-t border-sand px-4 pb-3 pt-4 sm:px-5">
-                      <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1.5">
-                        <h2 className="font-display text-[20px] leading-tight sm:text-[22px]">
-                          {g.nombre}
-                          {/* El conteo del grupo solo cuando hay varios: con uno solo repetía la franja (ley 8). */}
-                          {grupos.length > 1 && (
-                            <span className="ml-1.5 font-sans text-[12.5px] font-medium text-taupe">
-                              {g.prendas.length} {g.prendas.length === 1 ? "prenda" : "prendas"}
-                            </span>
-                          )}
-                        </h2>
-                      </div>
+                      {/* El conteo del grupo solo cuando hay varios: con uno solo repetía la franja (ley 8). */}
+                      <TituloSeccion cuenta={grupos.length > 1 ? g.prendas.length : undefined}>{g.nombre}</TituloSeccion>
                     </div>
                     )}
                     <div className="overflow-x-auto [scrollbar-width:thin]">
@@ -533,7 +505,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
             {/* El pie: «Mostrando N de M» solo con filtros (sin ellos, la franja y las cifras ya lo dicen); el almacén en cifras con los
                 nombres a un toque (Formidable 2026-10-09, ley 8: eran 12 nombres en 6 renglones). */}
             {(hayFiltros(filtros) || (efectivos.porDecidir && porDecidirOtras > 0) || resumenDelPie?.guardadas || resumenDelPie?.nuncaColgadas || resumenDelPie?.agotadas) && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand px-4 py-3 text-[12.5px] text-taupe sm:px-5">
+              <div data-guia="frescura.pie" className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand px-4 py-3 text-[12.5px] text-taupe sm:px-5">
                 {hayFiltros(filtros) && (
                   <span>
                     Mostrando <b className="font-semibold text-tinta">{visibles.length}</b> de {enTabla.length} {enTabla.length === 1 ? "prenda" : "prendas"} ·{" "}

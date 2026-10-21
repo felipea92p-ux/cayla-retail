@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   aniosConHistoria,
+  aniosQueCaben,
+  decadaDe,
+  ventanaDeAnios,
   campanasDelAnio,
   crecimiento,
   diasDeLaCampana,
   filasDelAnio,
+  faltaEnElCalendario,
+  filtrarYOrdenar,
   rangoDeCampana,
+  type OrdenHistorial,
   leerHistorial,
   medir,
   mismaFechaEn,
@@ -15,6 +21,7 @@ import {
   sumarDias,
   textoCrecimiento,
   textoMultiplicador,
+  totalDeCayla,
   totalDelAnio,
   type LecturaHistorial,
   type Medida,
@@ -133,10 +140,60 @@ describe("crecer contra el año anterior", () => {
       ["aqp", 10],
     ]);
   });
+  it("el año de toda CAYLA suma las tiendas y crece solo si todas tienen los dos años completos", () => {
+    const parejo = lectura("2026-10-12", [TRU, AQP], "2024-01-01", "2025-12-31", (_t, f) => (f.startsWith("2025") ? 2 : 1));
+    const t = totalDeCayla(parejo, 2025);
+    expect(t.soles).toBe(365 * 2 * 2);
+    expect(t.crecimiento).toBeCloseTo((365 * 2) / 366 - 1);
+    // Arequipa abrió en 2025: sumarla haría «crecer» a CAYLA sin vender más. No se compara.
+    const nueva = lectura("2026-10-12", [TRU, AQP], "2024-01-01", "2025-12-31", (t2, f) => (t2 === "aqp" && f < "2025-01-01" ? 0 : 1));
+    expect(totalDeCayla(nueva, 2025).crecimiento).toBeNull();
+  });
   it("el total del año crece solo si los dos años están completos", () => {
     const l = lectura("2026-10-12", [TRU], "2024-01-01", "2025-12-31", (_t, f) => (f.startsWith("2025") ? 2 : 1));
     expect(totalDelAnio(l, "tru", 2025).crecimiento).toBeCloseTo((365 * 2) / 366 - 1);
     expect(totalDelAnio(l, "tru", 2024).crecimiento).toBeNull();
+  });
+});
+
+describe("buscar y ordenar las campañas del año", () => {
+  const l = lectura("2026-10-12", [TRU], "2024-11-01", "2025-12-31", (_t, f) => (f.slice(5) >= "12-11" && f.slice(5) <= "12-25" ? 3000 : 1000));
+  const etiquetas = [
+    { id: "nav", nombre: "Navidad", desde: "2026-12-11", hasta: "2026-12-25" },
+    { id: "hal", nombre: "Halloween", desde: "2026-10-17", hasta: "2026-10-31" },
+    { id: "dia", nombre: "Día de la Madre", desde: "2026-04-26", hasta: "2026-05-10" },
+  ];
+  const filas = filasDelAnio(l, etiquetas, 2025);
+  const nombres = (o: OrdenHistorial, q = "") => filtrarYOrdenar(filas, q, o).map((f) => f.campana.nombre);
+  it("por fecha, de enero a diciembre", () => {
+    expect(nombres("fecha")).toEqual(["Día de la Madre", "Halloween", "Diciembre", "Navidad"]);
+  });
+  it("la de ahora y las que vienen: arranca por la que está en curso y da la vuelta al año", () => {
+    const ahora = (hoy: string) => filtrarYOrdenar(filas, "", "ahora", hoy).map((f) => f.campana.nombre);
+    // El 12 de octubre: lo próximo es Halloween, después diciembre; Día de la Madre ya pasó y va al final.
+    expect(ahora("2026-10-12")).toEqual(["Halloween", "Diciembre", "Navidad", "Día de la Madre"]);
+    // El 20 de octubre, Halloween está en curso: va primero.
+    expect(ahora("2026-10-20")[0]).toBe("Halloween");
+    // El 15 de diciembre, Diciembre y Navidad están en curso (empatan en 0: por nombre).
+    expect(ahora("2026-12-15")).toEqual(["Diciembre", "Navidad", "Día de la Madre", "Halloween"]);
+  });
+  it("una campaña que cruza el año está en curso a los dos lados del cambio", () => {
+    const c = { desde: "2025-12-20", hasta: "2026-01-06" };
+    expect(faltaEnElCalendario(c, "2026-12-28")).toBe(0);
+    expect(faltaEnElCalendario(c, "2026-01-03")).toBe(0);
+    expect(faltaEnElCalendario(c, "2026-12-10")).toBe(10);
+  });
+  it("de la A a la Z y al revés", () => {
+    expect(nombres("az")).toEqual(["Día de la Madre", "Diciembre", "Halloween", "Navidad"]);
+    expect(nombres("za")).toEqual(["Navidad", "Halloween", "Diciembre", "Día de la Madre"]);
+  });
+  it("las más vendidas primero (Diciembre, 31 días con Navidad adentro) y al revés", () => {
+    expect(nombres("mas")[0]).toBe("Diciembre");
+    expect(nombres("menos").at(-1)).toBe("Diciembre");
+  });
+  it("busca sin tildes ni mayúsculas", () => {
+    expect(nombres("fecha", "dia")).toEqual(["Día de la Madre"]);
+    expect(nombres("fecha", "NAV")).toEqual(["Navidad"]);
   });
 });
 
@@ -177,5 +234,38 @@ describe("qué año se abre y qué se lee", () => {
     expect(textoMultiplicador(1.83)).toBe("×1.8");
     expect(textoCrecimiento(0.124)).toBe("+12 %");
     expect(textoCrecimiento(-0.08)).toBe("−8 %");
+  });
+});
+
+describe("la fila de años cuando no caben todos (Felipe 2026-10-12)", () => {
+  const TREINTA = Array.from({ length: 30 }, (_, k) => 2046 - k); // 2046 … 2017
+  it("si caben todos, todos y sin «Más años»", () => {
+    expect(ventanaDeAnios([2026, 2025, 2024], 2025, 9)).toEqual({ visibles: [2026, 2025, 2024], resto: [] });
+  });
+  it("el elegido queda al medio, con sus vecinos a los costados", () => {
+    const v = ventanaDeAnios(TREINTA, 2030, 5);
+    expect(v.visibles).toEqual([2032, 2031, 2030, 2029, 2028]);
+    expect(v.resto).toHaveLength(25);
+    expect(v.resto).not.toContain(2030);
+  });
+  it("en los extremos la ventana se apoya en el borde", () => {
+    expect(ventanaDeAnios(TREINTA, 2046, 5).visibles).toEqual([2046, 2045, 2044, 2043, 2042]);
+    expect(ventanaDeAnios(TREINTA, 2017, 5).visibles).toEqual([2021, 2020, 2019, 2018, 2017]);
+    expect(ventanaDeAnios(TREINTA, 2045, 4).visibles).toEqual([2046, 2045, 2044, 2043]);
+  });
+  it("un año que no está (la URL a mano) cae en el más nuevo; nunca menos de una píldora", () => {
+    expect(ventanaDeAnios(TREINTA, 1999, 3).visibles).toEqual([2046, 2045, 2044]);
+    expect(ventanaDeAnios(TREINTA, 2030, 0).visibles).toEqual([2030]);
+  });
+  it("cuántas caben: todas si entran; si no, dejando lugar a «Más años»", () => {
+    const m = { pildora: 64, separacion: 8, mas: 130 };
+    expect(aniosQueCaben(10, { ...m, ancho: 1000 })).toBe(10);
+    expect(aniosQueCaben(30, { ...m, ancho: 1000 })).toBe(12);
+    expect(aniosQueCaben(30, { ...m, ancho: 343 })).toBe(2);
+    expect(aniosQueCaben(30, { ...m, ancho: 100 })).toBe(1);
+  });
+  it("la década para agrupar la lista", () => {
+    expect(decadaDe(2034)).toBe("2030–2039");
+    expect(decadaDe(2020)).toBe("2020–2029");
   });
 });

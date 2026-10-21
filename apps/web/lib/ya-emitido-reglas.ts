@@ -127,7 +127,7 @@ export type NuestroComprobante = {
 
 const RAIZ: Record<NuestroComprobante["tipo"], RaizUbl> = { boleta: "Invoice", factura: "Invoice", nota_credito: "CreditNote", nota_debito: "DebitNote" };
 const CODIGO_TIPO: Partial<Record<NuestroComprobante["tipo"], string>> = { boleta: "03", factura: "01" };
-const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+const soles = (n: number) => `S/ ${n.toFixed(2)}`; // monto-partible: este texto se guarda en la cola de Lucode (`enCola`); lo de SUNAT no se toca sin Felipe
 
 /**
  * En qué se distingue el documento que tiene Lucode del nuestro, en palabras de la tienda; vacío = es el mismo. El cliente

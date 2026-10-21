@@ -15,11 +15,11 @@ import {
   listarMovimientos,
   periodoCorto,
   serializarCursorMovimientos,
-  hoyEnLima,
   type CategoriaFiltro,
   type ParamsMovimientos,
 } from "@/lib/movimientos-v2";
 import { desdeDeUltimosDias, restarDias } from "@/lib/movimientos-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { PerdidasVista } from "@/components/perdidas/PerdidasVista";
@@ -179,7 +179,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
               // Las bajadas al piso del día se pliegan solo en «Todos» sin búsqueda (ADR-0241): con la píldora
               // «Piso ↔ almacén» o buscando una prenda, cada una es su fila.
               plegar={!filtros.categoria && !filtros.motivo && !filtros.busqueda}
-              hoyLima={hoyEnLima()}
+              hoyLima={hoyLima()}
               enlaceCompras={esLider}
               enlaceVentas={veModulo(persona, "historial")}
             />
@@ -188,6 +188,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
       </section>
 
       <PaginacionCursor
+        guia="movimientos.paginas"
         mostradas={operaciones.length}
         cursorSiguiente={siguiente ? serializarCursorMovimientos(siguiente) : null}
         hayCursor={!!cursor}
@@ -203,7 +204,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
           prometer lo que no hace (ADR-0234). Las filas ya se ven tocables (flecha, referencia subrayada). */}
       {/* ADR-0241: sin la instrucción de uso («Toca un movimiento…»): las filas ya se ven tocables (flecha, referencia
           subrayada) y a la tercera visita era ruido. Queda la regla del negocio. */}
-      <p className="nota-cayla">
+      <p data-guia="movimientos.nota" className="nota-cayla">
         <b>Registro transparente:</b> cada movimiento queda con quién lo hizo, a qué hora y contra qué documento (boleta, factura
         del proveedor, traslado, conteo). No se edita ni se borra nunca — se corrige con otro movimiento, y los dos quedan.
       </p>
@@ -217,11 +218,12 @@ function PestanasMovimientos({ activa }: { activa: "movimientos" | "perdidas" })
   return (
     <Pestanas
       idIndicador="movimientos-vistas"
+      guia="movimientos.pestanas"
       etiquetaAccesible="Vistas de Movimientos"
       activa={activa}
       items={[
-        { clave: "movimientos", etiqueta: "Movimientos", href: "/inventario/movimientos" },
-        { clave: "perdidas", etiqueta: "Pérdidas", href: hrefPerdidas() },
+        { clave: "movimientos", etiqueta: "Movimientos", href: "/inventario/movimientos", guia: "movimientos.pestana-movimientos" },
+        { clave: "perdidas", etiqueta: "Pérdidas", href: hrefPerdidas(), guia: "movimientos.pestana-perdidas" },
       ]}
     />
   );
@@ -231,7 +233,7 @@ function PestanasMovimientos({ activa }: { activa: "movimientos" | "perdidas" })
  *  30 días de «se repite», que es lo mismo que avisa el Inicio del líder) y la vista. Sin filtros de Movimientos: es otra
  *  pregunta («¿cuánto perdimos?»), con su propio período (por defecto, este mes). */
 async function PaginaPerdidas({ ubicacionId, modulos, params }: { ubicacionId: string; modulos: readonly string[]; params: ParamsPerdidas }) {
-  const hoy = hoyEnLima();
+  const hoy = hoyLima();
   const rango = rangoPerdidas(params.p, hoy);
   const filtro = filtrosPerdidas(params);
   const filtrada = Boolean(filtro.varianteId || filtro.sububicacionId);

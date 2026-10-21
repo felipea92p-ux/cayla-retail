@@ -11,6 +11,8 @@ import { Boton, Desplegable } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Encabezado, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -94,7 +96,7 @@ export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" data-guia="plan-piso.grupos-cifras">
         <TarjetaCifra etiqueta="Categorías" valor={resumen.total} className="anim-sube">
           activas, repartidas en {grupos.length} grupos
         </TarjetaCifra>
@@ -109,10 +111,10 @@ export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix
         </TarjetaCifra>
       </div>
 
-      <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Grupos del plan del piso">
+      <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Grupos del plan del piso" data-guia="plan-piso.grupos-tabla">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-sand px-5 py-4">
           <div className="min-w-0">
-            <h2 className="font-display text-xl text-tinta">Grupos del plan</h2>
+            <TituloSeccion>Grupos del plan</TituloSeccion>
             <p className="mt-0.5 max-w-xl text-[13px] text-tinta/70">
               {esLider
                 ? "Revisa a qué grupo va cada categoría. Lo que cambies o confirmes queda con tu firma."
@@ -120,11 +122,9 @@ export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix
             </p>
           </div>
           {esLider && (
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5" data-guia="plan-piso.grupos-acciones">
               {siguiente && (
-                <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => irA(siguiente)}>
-                  Siguiente por revisar: {siguiente.categoria} →
-                </button>
+                <EnlaceVer onClick={() => irA(siguiente)}>Siguiente por revisar: {siguiente.categoria}</EnlaceVer>
               )}
               {porConfirmar > 0 && (
                 <button type="button" className="btn-cayla btn-secundario" onClick={() => setPendientes(confirmarPropuestas(pendientes, categorias))}>
@@ -227,7 +227,7 @@ function SeccionSinGrupo({ categorias, children }: { categorias: CategoriaMix[];
   return (
     <div>
       <CabeceraDeSeccion derecha={`${categorias.length} ${categorias.length === 1 ? "categoría" : "categorías"}`}>
-        <h3 className="text-sm font-semibold text-tinta">Sin grupo</h3>
+        <h3 className="text-sm font-semibold text-tinta">{/* unificar-fijo: la banda que agrupa filas dentro de la tabla, con sus chips; no es un título de bloque */}Sin grupo</h3>
         <Chip tono="ambar">Elige uno</Chip>
       </CabeceraDeSeccion>
       <div>{children}</div>
@@ -242,7 +242,7 @@ function SeccionDeGrupo({ s, children }: { s: Seccion; children: React.ReactNode
       <CabeceraDeSeccion
         derecha={`${n} ${n === 1 ? "categoría" : "categorías"}${s.porRevisar > 0 ? ` · ${s.porRevisar} por revisar` : ""}`}
       >
-        <h3 className="text-sm font-semibold text-tinta">{s.grupo.nombre}</h3>
+        <h3 className="text-sm font-semibold text-tinta">{/* unificar-fijo: la banda que agrupa filas dentro de la tabla, con sus chips; no es un título de bloque */}{s.grupo.nombre}</h3>
         <span title={ROL_AYUDA[s.grupo.rol]}>
           <Chip tono="pizarra">{ROL_ETIQUETA[s.grupo.rol]}</Chip>
         </span>
@@ -279,7 +279,7 @@ function FilaCategoria({
   const opciones = gruposPermitidos(c, grupos).map((g) => ({ valor: g.clave, texto: g.nombre }));
 
   return (
-    <div id={`cat-${c.categoriaId}`} data-campo={`cat-${c.categoriaId}`} className={fila(PLANTILLA, "sm:items-center")}>
+    <div id={`cat-${c.categoriaId}`} data-campo={`cat-${c.categoriaId}`} data-guia="plan-piso.grupos-fila" className={fila(PLANTILLA, "sm:items-center")}>
       <div className={celda("izq")}>
         <span className="text-sm text-tinta">{c.categoria}</span>
         {c.prefijo && <span className="ml-2 font-mono text-[11px] text-taupe">{c.prefijo}</span>}
@@ -298,7 +298,7 @@ function FilaCategoria({
       <div className={celda("izq", "flex flex-wrap items-center gap-2")}>
         {esLider ? (
           <>
-            <Desplegable
+            <Desplegable // unificar-fijo: el combo de una fila de la tabla (elige su grupo), no un filtro
               valor={preparado ?? c.grupoClave ?? ""}
               onValor={(clave) => onPreparar(conCambio(pendientes, c, clave))}
               opciones={opciones}
@@ -395,7 +395,7 @@ function HojaGuardarGrupos({
       titulo="Guardar los grupos"
       subtitulo={cambios.length === 1 ? "1 categoría" : `${cambios.length} categorías`}
       onClose={onClose}
-      ancho="max-w-[520px]"
+      tamano="mediana"
       bloqueado={enviando}
     >
       <form onSubmit={guardar} className="space-y-4" noValidate>
@@ -421,14 +421,14 @@ function HojaGuardarGrupos({
           <button type="button" className="btn-cayla btn-secundario" onClick={onClose} disabled={enviando}>
             Cancelar
           </button>
-          <button
+          <Boton peso="primario" cargando={enviando}
             type="submit"
-            className={`btn-cayla btn-primario ${choque ? "" : guia.claseConfirmar}`}
+            className={`${choque ? "" : guia.claseConfirmar}`}
             disabled={enviando || (!choque && !guia.puedeConfirmar)}
             title={choque ? undefined : (responsable.motivo ?? guia.frase ?? undefined)}
           >
-            {enviando ? "Guardando…" : choque ? "Actualizar y revisar" : "Guardar"}
-          </button>
+            {choque ? "Actualizar y revisar" : "Guardar"}
+          </Boton>
         </div>
       </form>
     </Modal>

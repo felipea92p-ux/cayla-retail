@@ -18,6 +18,11 @@ export const RUTAS_DE_CRON = [
   "/api/inventario/frescura-vara-cayla",
   // ADR-0329 (Plan del piso): la foto del espacio del piso por sede y categoría, los lunes de madrugada (3:00 de Lima).
   "/api/inventario/espacio-piso",
+  // ADR-0408 (tienda online, actividad 7): cierra los pedidos web que nadie confirmó en el plazo de Tienda web ▸ Ajustes,
+  // cada 15 minutos; desde 20261016001000 también anula los confirmados que nadie pagó en las horas de «Si no paga».
+  "/api/pedidos-web/cerrar-vencidos",
+  // 20261016003000 (Felipe 2026-10-15, D4): libera los apartados vencidos de todas las tiendas, cada madrugada (3:40 de Lima).
+  "/api/apartados/vencer",
 ] as const;
 
 /** ¿La petición trae la clave del cron? Sin `CRON_SECRET` configurado no pasa nadie, tampoco «Bearer undefined» ni «Bearer ». */

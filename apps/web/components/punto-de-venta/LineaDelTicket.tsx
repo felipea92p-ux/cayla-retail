@@ -3,14 +3,9 @@
 import { Percent, Trash2 } from "lucide-react";
 import { money, type ItemCarrito } from "@/components/PuntoDeVenta";
 import { filaDelTicket, type DetalleVariante, type TonoStock } from "@/lib/ticket-linea-reglas";
-
-/** El campo numérico sin las flechitas del navegador: «−» y «+» ya son eso. */
-const SIN_FLECHAS = "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 const PUNTO: Record<TonoStock, string> = { verde: "bg-verde", ambar: "bg-ambar", excedido: "bg-rojo-profundo" };
-
-/** Los dos botones del paso: los del spike (`h-7 w-6`), apagados en gris en vez de desaparecer. */
-const BOTON_PASO = "h-7 w-6 rounded-md text-base transition-colors hover:bg-sand/40 disabled:text-tinta/30 disabled:hover:bg-transparent";
 
 type Props = {
   linea: ItemCarrito;
@@ -46,7 +41,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
     <article className="px-5 py-2.5">
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1" title={f.titulo}>
-          <h3 className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{nombre}</h3>
+          <h3 className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{/* unificar-fijo: el nombre de la prenda en el ticket es un dato */}{nombre}</h3>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] leading-snug text-tinta/65">
             <span>{f.detalle}</span>
             {f.stock && (
@@ -58,37 +53,26 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
           </p>
         </div>
 
+        {/* El paso de cantidad del sistema (ADR-0358, ronda 17): la caja del campo con el − y el + adentro. */}
         {f.conPaso && (
-          <div className="flex h-8 shrink-0 items-center rounded-lg border border-sand bg-crema has-[input:focus]:border-rojo">
-            <button
-              type="button"
-              aria-label="Reducir cantidad"
-              onClick={() => onCantidad(linea.claveLinea, linea.cantidad - 1)}
-              disabled={linea.cantidad <= 1}
-              className={BOTON_PASO}
-            >
-              −
-            </button>
-            <input
-              aria-label={`Cantidad de ${nombre}`}
-              type="number"
-              min={1}
-              max={linea.stockAqui}
-              value={linea.cantidad}
-              onChange={(e) => onCantidad(linea.claveLinea, Number(e.target.value))}
-              className={`w-6 bg-transparent text-center text-sm font-semibold text-tinta tabular-nums outline-none ${SIN_FLECHAS}`}
-            />
-            <button
-              type="button"
-              aria-label="Aumentar cantidad"
-              title={f.alTope ? `Máximo disponible en sede: ${linea.stockAqui}` : undefined}
-              onClick={() => onCantidad(linea.claveLinea, linea.cantidad + 1)}
-              disabled={f.alTope}
-              className={BOTON_PASO}
-            >
-              +
-            </button>
-          </div>
+          <PasoCantidad
+            className="shrink-0"
+            menos={{ onClick: () => onCantidad(linea.claveLinea, linea.cantidad - 1), deshabilitado: linea.cantidad <= 1, etiqueta: "Reducir cantidad" }}
+            mas={{
+              onClick: () => onCantidad(linea.claveLinea, linea.cantidad + 1),
+              deshabilitado: f.alTope,
+              etiqueta: "Aumentar cantidad",
+              title: f.alTope ? `Máximo disponible en sede: ${linea.stockAqui}` : undefined,
+            }}
+            campo={{
+              "aria-label": `Cantidad de ${nombre}`,
+              type: "number",
+              min: 1,
+              max: linea.stockAqui,
+              value: linea.cantidad,
+              onChange: (e) => onCantidad(linea.claveLinea, Number(e.target.value)),
+            }}
+          />
         )}
 
         {/* El importe abre el descuento de esta prenda (el ex «Desc.»): el «%» chico lo anuncia y, con descuento, se

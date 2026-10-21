@@ -17,6 +17,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 // «Dar acceso» (ADR-0341, propuesta del 2026-10-05, pantalla 3): quién, dónde trabaja y qué hace, en una sola hoja con la guía
 // de foco. Antes era «Agregar colaboradores»: elegía personas y ubicación, y todas entraban como Integrante y pendientes. Ahora el
@@ -90,7 +91,7 @@ export function DarAccesoModal({
     <Modal
       titulo="Dar acceso"
       subtitulo={soyLider ? "Entra en cuanto confirmes." : "Queda esperando el ok de un líder."}
-      ancho="max-w-xl"
+      tamano="mediana"
       variante="hoja"
       onClose={onClose}
     >
@@ -108,7 +109,7 @@ export function DarAccesoModal({
         >
           <CampoGuiado id="quien" guia={guia} titulo="¿Quién?" ayuda="Personas activas en Dynamic sin acceso a retail" retiene="fila">
             <Buscador valor={busqueda} onCambio={setBusqueda} placeholder="Buscar por nombre o correo" />
-            <ul className="scroll-cayla mt-2 max-h-56 space-y-1.5 overflow-y-auto pr-1" aria-label="Personas disponibles">
+            <ul className="scroll-cayla mt-2 max-h-56 space-y-1.5 overflow-y-auto pr-1" aria-label="Personas disponibles" data-guia="colaboradores.dar-personas">
               {visibles.length === 0 ? (
                 <li className="py-3">
                   {disponibles.length === 0 ? (
@@ -135,13 +136,13 @@ export function DarAccesoModal({
                           marcada ? "border-tinta bg-hueso" : "border-sand hover:border-taupe"
                         }`}
                       >
-                        <AvatarPersona personaId={d.persona_id} nombre={d.nombre} className="h-9 w-9 text-sm" />
+                        <AvatarPersona personaId={d.persona_id} nombre={d.nombre} />
                         <span className="min-w-0">
                           <span className="block truncate text-[14px] font-semibold text-tinta">{d.nombre}</span>
                           <span className="block truncate text-xs text-tinta/60">{[d.sede, d.correo].filter(Boolean).join(" · ")}</span>
                         </span>
                         <span className={`grid h-6 w-6 place-items-center rounded-full ${marcada ? "bg-tinta text-crema" : "border-2 border-sand text-transparent"}`}>
-                          <Check aria-hidden className="h-3.5 w-3.5" strokeWidth={2.5} />
+                          <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden className="h-3.5 w-3.5" strokeWidth={3} />
                         </span>
                       </button>
                     </li>
@@ -152,7 +153,7 @@ export function DarAccesoModal({
           </CampoGuiado>
 
           <CampoGuiado id="sede" guia={guia} titulo="¿Dónde trabaja?">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Sede">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Sede" data-guia="colaboradores.dar-sede">
               {sedes.map((u) => (
                 <button
                   key={u.id}
@@ -171,7 +172,7 @@ export function DarAccesoModal({
 
           {opcionesRol && (
             <CampoGuiado id="rol" guia={guia} titulo="¿Qué hace?" ayuda="Su rol decide lo que ve">
-              <ul className="space-y-2" aria-label="Rol">
+              <ul className="space-y-2" aria-label="Rol" data-guia="colaboradores.dar-rol">
                 {opcionesRol.map((r) => {
                   const elegido = r.id === rolId;
                   const muestra = r.modulos.filter((m) => m !== "inicio");
@@ -212,15 +213,15 @@ export function DarAccesoModal({
           )}
 
           <div className="pie-hoja-fijo">
-            <div className="space-y-2 border-t border-sand pt-3">
+            <div className="space-y-2 border-t border-sand pt-3" data-guia="colaboradores.dar-confirmar">
               <PieGuia guia={guia} listo={soyLider ? "Todo listo para dar acceso." : "Todo listo para pedir el acceso."} />
-              <div className="flex gap-2">
-                <button type="button" className="btn-cayla btn-secundario flex-1" onClick={cerrar}>
+              <div className="pie-acciones">
+                <button type="button" className="btn-cayla btn-secundario" onClick={cerrar}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn-cayla btn-primario flex-1" disabled={!listo} title={responsable.motivo ?? undefined}>
-                  {enviando ? "Guardando…" : soyLider ? (personas.length > 1 ? `Dar acceso a ${personas.length}` : "Dar acceso") : "Pedir acceso"}
-                </button>
+                <Boton peso="primario" cargando={enviando} type="submit" disabled={!listo} title={responsable.motivo ?? undefined}>
+                  {soyLider ? (personas.length > 1 ? `Dar acceso a ${personas.length}` : "Dar acceso") : "Pedir acceso"}
+                </Boton>
               </div>
             </div>
           </div>

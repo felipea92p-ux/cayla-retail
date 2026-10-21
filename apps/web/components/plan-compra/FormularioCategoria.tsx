@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { avisoDelPrecio, montoParaVolver, numeroDeOrden } from "@/lib/plan-compra-pedido";
 import { useRouter } from "next/navigation";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
+import { Aviso } from "@/components/ui/Aviso";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -14,7 +16,10 @@ import { useResponsable } from "@/lib/useResponsable";
 import { compararTallas } from "@/lib/tallas";
 import { BarraRango } from "@/components/plan-compra/BarraRango";
 import { camposDelPlan } from "@/lib/plan-compra-guia";
+import { Check, Sparkles } from "lucide-react";
+import { Ayuda } from "@/components/Ayuda";
 import { explicarPropuesta } from "@/lib/plan-compra-propuesta";
+import { RepartoTiendas } from "@/components/plan-compra/RepartoTiendas";
 import {
   RPC_GUARDAR_LINEA,
   argsGuardar,
@@ -33,6 +38,7 @@ import {
   versionParaGuardar,
   type Borrador,
   type FilaPlan,
+  leerNumeroDeMonto,
 } from "@/lib/plan-compra-reglas";
 
 // El formulario de UNA categoría del plan de campaña (ADR-0349): sus tres escenarios, el precio, el costo, a cuánto se vende lo que
@@ -71,8 +77,26 @@ export type PieDelFormulario = {
   claseConfirmar: string;
 };
 
+/**
+ * El pie de la caja de precio o de costo, con un botón que vuelve a poner el del catálogo (Felipe 2026-10-12: «si lo quito, un botón que me regrese
+ * el que existe en el sistema»). Solo aparece si la caja no dice ya eso.
+ */
+function PieConVuelta({ texto, monto, onVolver }: { texto: string; monto: string | null; onVolver: (monto: string) => void }) {
+  return (
+    <span className="flex flex-wrap items-baseline gap-x-2">
+      <span>{texto}</span>
+      {monto && (
+        <button type="button" onClick={() => onVolver(monto)} className="btn-cayla btn-enlace text-xs">
+          Usar el del catálogo: S/&nbsp;{monto}
+        </button>
+      )}
+    </span>
+  );
+}
+
 export function FormularioCategoria({
   planId,
+  campana,
   fila,
   vendidoPorTalla,
   tope,
@@ -87,6 +111,8 @@ export function FormularioCategoria({
   irAlMontar = false,
 }: {
   planId: string;
+  /** La campaña que se planifica: su nombre (los textos hablan de ELLA, no de «diciembre») y sus días (el normal de respaldo). */
+  campana: { nombre: string; dias: number };
   /** La categoría con todo lo que la lectura sabe de ella: su plan, lo que hay, lo vendido, el catálogo y dónde está el stock. */
   fila: FilaPlan;
   vendidoPorTalla: ReadonlyMap<string, number> | undefined;
@@ -112,7 +138,7 @@ export function FormularioCategoria({
   /** Al aparecer, lleva el cursor al primer campo: se pasó a la siguiente categoría y el botón que se tocó ya no existe. */
   irAlMontar?: boolean;
 }) {
-  const { c: categoria, linea, stock, ventas, ventas30, sedes, catalogo } = fila;
+  const { c: categoria, linea, stock, enCamino, ventas, ventas30, sedes, catalogo } = fila;
   const router = useRouter();
   const responsable = useResponsable();
   const tallas = useMemo(() => [...categoria.tallas].sort((a, b) => compararTallas(a.valor, b.valor)), [categoria]);
@@ -147,7 +173,8 @@ export function FormularioCategoria({
     return () => window.clearTimeout(t);
   }, [irAlMontar]);
   const lineaViva = lineaDeBorrador(b, tallas);
-  const calculo = lineaViva ? calcular(lineaViva, stock) : null;
+  // Lo que ya viene en órdenes de compra se cuenta como lo que hay: la misma cuenta que la fila de la tabla (`armarFilas`).
+  const calculo = lineaViva ? calcular(lineaViva, stock + enCamino) : null;
   const porTalla = calculo ? comprarPorTalla(calculo.comprar, tallas, lineaViva!.curva) : null;
   const sumaCurva = tallas.reduce((s, t) => s + (Number(b.curva[t.id] || "0") || 0), 0);
   const cambiar = (k: keyof Omit<Borrador, "curva">) => (v: string) => setB((x) => ({ ...x, [k]: v }));
@@ -156,7 +183,12 @@ export function FormularioCategoria({
   // La propuesta de los tres escenarios (C4) si la base la manda; si no (base vieja), la de antes: solo el normal.
   const sugerida = fila.propuesta;
   const porque = sugerida ? explicarPropuesta(sugerida) : null;
-  const propuesta = propuestaDeNormal(ventas);
+  // «Normal 263: lo que vende…» → «Lo que vende…»: la cifra ya se ve grande en la tarjeta; el «!» dice solo de dónde sale.
+  const sinCifra = (t: string) => {
+    const resto = t.slice(t.indexOf(":") + 1).trim();
+    return resto.charAt(0).toUpperCase() + resto.slice(1);
+  };
+  const propuesta = propuestaDeNormal(ventas, campana.dias);
   // Mientras el precio y el costo sean los que vinieron del catálogo, la ayuda lo dice: «revísalo» (no es una decisión de nadie todavía).
   const delCatalogo = !linea && catalogo !== null ? { precio: catalogo.precio.toFixed(2), costo: catalogo.costo.toFixed(2) } : null;
 
@@ -189,7 +221,7 @@ export function FormularioCategoria({
     // Todos los títulos de la guía con el mismo alto: el que dice «Sigue aquí» medía 21 px y los demás 24,5, y la caja de abajo subía 3 px cada
     // vez que la luz pasaba al siguiente campo (ADR-0185: nada se mueve bajo el mouse).
     <form onSubmit={guardar} className="space-y-6 [&_[data-campo]>p:first-child]:min-h-6.5">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
+      <div data-guia="plan-modal.historia" className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
         <span>
           Vendiste <b className="font-semibold text-tinta">{enteroES.format(ventas)}</b> en 90 días
           {ventas30 !== null && (
@@ -203,30 +235,67 @@ export function FormularioCategoria({
           Hoy hay <b className="font-semibold text-tinta">{enteroES.format(stock)}</b>
           {sedes && sedes.length > 0 ? <span className="text-tinta/70">: {sedes.map((x) => `${x.ubicacion} ${enteroES.format(x.unidades)}`).join(" · ")}</span> : " entre tiendas y Taller"}
         </span>
-        {sugerida !== undefined ? (
-          <>
-            {/* C4 (Felipe 2026-10-12): el sistema propone los tres escenarios y dice de dónde salió cada uno; la persona los corrige. */}
-            <Boton
-              type="button"
-              className="ml-auto"
-              disabled={sugerida === null}
-              onClick={() =>
-                sugerida &&
-                setB((x) => ({ ...x, flojo: sugerida.flojo === null ? x.flojo : String(sugerida.flojo), normal: String(sugerida.normal), bueno: String(sugerida.bueno) }))
-              }
-            >
-              Proponer los tres desde lo vendido
-            </Boton>
-            {sugerida === null ? (
-              <span className="basis-full text-xs text-tinta/65">Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios.</span>
-            ) : (
-              <ul className="basis-full space-y-0.5 text-xs text-tinta/65">
-                <li>{porque!.flojo}</li>
-                <li>{porque!.normal}</li>
-                <li>{porque!.bueno}</li>
-              </ul>
+        {fila.pedido && fila.pedido.unidades > 0 && (
+          <span>
+            Ya pedidas <b className="font-semibold text-tinta">{enteroES.format(fila.pedido.unidades)}</b>
+            <span className="text-tinta/70"> en {fila.pedido.ordenes.map(numeroDeOrden).join(", ")}</span>
+            {fila.pedido.porLlegar !== null && (
+              <span className="text-tinta/70">
+                {fila.pedido.porLlegar === 0 ? " · ya llegaron" : ` · ${enteroES.format(fila.pedido.porLlegar)} por llegar`}
+              </span>
             )}
-          </>
+          </span>
+        )}
+        {sugerida !== undefined ? (
+          sugerida === null ? (
+            <span className="basis-full text-xs text-tinta/65">Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios.</span>
+          ) : (
+            // C4 (Felipe 2026-10-12): la propuesta a la vista —las tres cifras grandes, cada una con su «!» que dice de dónde salió, como en
+            // Productos— y un botón principal que las pone en las cajas. Una cifra ya puesta lleva su ✓.
+            <div data-guia="plan-modal.propuesta" className="basis-full rounded-xl border border-sand bg-papel p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[13px] font-semibold text-tinta">Lo que propone el sistema</p>
+                <Boton
+                  type="button"
+                  peso="primario"
+                  onClick={() =>
+                    setB((x) => ({ ...x, flojo: sugerida.flojo === null ? x.flojo : String(sugerida.flojo), normal: String(sugerida.normal), bueno: String(sugerida.bueno) }))
+                  }
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Sparkles aria-hidden className="h-4 w-4" />
+                    Usar estos tres
+                  </span>
+                </Boton>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {(
+                  [
+                    ["flojo", "Flojo", sugerida.flojo, sugerida.flojo === null ? (sugerida.motivoSinFlojo ?? "Escríbelo tú.") : sinCifra(porque!.flojo)],
+                    ["normal", "Normal", sugerida.normal, sinCifra(porque!.normal)],
+                    ["bueno", "Bueno", sugerida.bueno, sinCifra(porque!.bueno)],
+                  ] as const
+                ).map(([clave, nombre, valor, explica]) => {
+                  const puesto = valor !== null && b[clave] === String(valor);
+                  return (
+                    <div key={clave} className={`rounded-lg px-3 py-2 transition-colors duration-300 ease-cayla ${puesto ? "bg-verde/10" : "bg-hueso"}`}>
+                      <p className="flex items-center gap-1.5 text-xs text-taupe">
+                        {nombre}
+                        <Ayuda titulo={`${nombre}: de dónde sale`}>{explica}</Ayuda>
+                      </p>
+                      <p className="flex items-baseline gap-1.5 font-display text-2xl leading-tight text-tinta">
+                        {valor === null ? "—" : enteroES.format(valor)}
+                        {puesto && (
+                          <Check aria-label="Ya está en el plan" className="h-4 w-4 text-verde" />
+                        )}
+                      </p>
+                      {valor === null && <p className="text-[11.5px] text-tinta/65">escríbelo tú</p>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )
         ) : (
           <>
             <Boton type="button" className="ml-auto" disabled={propuesta === null} onClick={() => propuesta !== null && cambiar("normal")(String(propuesta))}>
@@ -235,33 +304,45 @@ export function FormularioCategoria({
             <span className="basis-full text-xs text-tinta/65">
               {propuesta === null
                 ? "Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios."
-                : `Diciembre triplica un mes normal: un mes normal son ${enteroES.format(Math.round(ventas / 3))}, así que un diciembre normal serían ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
+                : `Lo que vendió por día en 90 días, llevado a los ${campana.dias} días de la campaña: un normal de ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
             </span>
           </>
         )}
       </div>
 
-      <fieldset>
-        <legend className="text-[13px] font-semibold text-tinta">¿Cuántas venderías en diciembre?</legend>
-        <p className="mt-0.5 text-[12.5px] text-tinta/70">Llena las tres cajas: si el mes va flojo, normal o bueno.</p>
+      <fieldset data-guia="plan-modal.escenarios">
+        <legend className="text-[13px] font-semibold text-tinta">¿Cuántas venderías en {campana.nombre}?</legend>
+        <p className="mt-0.5 text-[12.5px] text-tinta/70">Llena las tres cajas: si la campaña va floja, normal o buena.</p>
         <div className="mt-3 grid gap-4 sm:grid-cols-3">
           <CampoGuiado id="flojo" guia={guia} titulo="Flojo">
-            <CampoTexto etiqueta="Diciembre flojo, prendas" caja inputMode="numeric" value={b.flojo} onChange={(e) => cambiar("flojo")(soloDigitos(e.target.value))} />
+            <CampoTexto etiqueta="Flojo, prendas" caja inputMode="numeric" value={b.flojo} onChange={(e) => cambiar("flojo")(soloDigitos(e.target.value))} />
           </CampoGuiado>
           <CampoGuiado id="normal" guia={guia} titulo="Normal">
-            <CampoTexto etiqueta="Diciembre normal, prendas" caja inputMode="numeric" value={b.normal} onChange={(e) => cambiar("normal")(soloDigitos(e.target.value))} />
+            <CampoTexto etiqueta="Normal, prendas" caja inputMode="numeric" value={b.normal} onChange={(e) => cambiar("normal")(soloDigitos(e.target.value))} />
           </CampoGuiado>
           <CampoGuiado id="bueno" guia={guia} titulo="Bueno">
-            <CampoTexto etiqueta="Diciembre bueno, prendas" caja inputMode="numeric" value={b.bueno} onChange={(e) => cambiar("bueno")(soloDigitos(e.target.value))} />
+            <CampoTexto etiqueta="Bueno, prendas" caja inputMode="numeric" value={b.bueno} onChange={(e) => cambiar("bueno")(soloDigitos(e.target.value))} />
           </CampoGuiado>
         </div>
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div data-guia="plan-modal.precios" className="grid gap-4 sm:grid-cols-2">
+        {/* El precio del Plan es un SUPUESTO (Felipe 2026-10-12): no cambia el de las prendas; si se aparta del catálogo, se dice. */}
+        {avisoDelPrecio(leerNumeroDeMonto(b.precio), fila.catalogo?.precio ?? null) && (
+          <Aviso tono="atencion" chico className="sm:col-span-2 sm:order-last">
+            {avisoDelPrecio(leerNumeroDeMonto(b.precio), fila.catalogo?.precio ?? null)!.texto}
+          </Aviso>
+        )}
         <CampoGuiado id="precio" guia={guia} titulo="Precio de venta">
           <CampoMonto
             etiqueta={<span className="sr-only">Precio de venta, promedio de la categoría</span>}
-            pie={delCatalogo && b.precio === delCatalogo.precio ? "Del catálogo · revísalo" : "Promedio de la categoría"}
+            pie={
+              <PieConVuelta
+                texto={delCatalogo && b.precio === delCatalogo.precio ? "Del catálogo · revísalo" : "Promedio de la categoría"}
+                monto={montoParaVolver(b.precio, fila.catalogo?.precio ?? null)}
+                onVolver={(m) => cambiar("precio")(m)}
+              />
+            }
             inputMode="decimal"
             value={b.precio}
             onChange={(e) => cambiar("precio")(soloMonto(e.target.value))}
@@ -270,7 +351,13 @@ export function FormularioCategoria({
         <CampoGuiado id="costo" guia={guia} titulo="Costo por prenda">
           <CampoMonto
             etiqueta={<span className="sr-only">Costo por prenda, promedio</span>}
-            pie={delCatalogo && b.costo === delCatalogo.costo ? "Del catálogo · revísalo" : "Lo que te cuesta cada una, en promedio"}
+            pie={
+              <PieConVuelta
+                texto={delCatalogo && b.costo === delCatalogo.costo ? "Del catálogo · revísalo" : "Lo que te cuesta cada una, en promedio"}
+                monto={montoParaVolver(b.costo, fila.catalogo?.costo ?? null)}
+                onVolver={(m) => cambiar("costo")(m)}
+              />
+            }
             inputMode="decimal"
             value={b.costo}
             onChange={(e) => cambiar("costo")(soloMonto(e.target.value))}
@@ -279,7 +366,7 @@ export function FormularioCategoria({
       </div>
 
       <CampoGuiado id="recupero" guia={guia} titulo="Lo que sobre, ¿a qué % del precio lo vendes?">
-        <div className="flex flex-wrap items-start gap-x-4 gap-y-1">
+        <div data-guia="plan-modal.recupero" className="flex flex-wrap items-start gap-x-4 gap-y-1">
           <div className="flex w-32 items-center gap-2">
             <div className="min-w-0 flex-1">
               <CampoTexto etiqueta="Lo que sobre, en % del precio" caja inputMode="numeric" value={b.recupero} onChange={(e) => cambiar("recupero")(soloDigitos(e.target.value))} />
@@ -289,7 +376,7 @@ export function FormularioCategoria({
             </span>
           </div>
           <p className="min-w-0 flex-1 basis-60 pt-2.5 text-[13px] leading-snug text-tinta/80">
-            {loQueSobra ?? "Lo que quede sin vender después de diciembre: a cuánto lo venderías en la liquidación de enero. Con el precio y el costo escritos, aquí ves qué cambia en la compra."}
+            {loQueSobra ?? "Lo que quede sin vender al terminar la campaña: a cuánto lo venderías después, en la liquidación. Con el precio y el costo escritos, aquí ves qué cambia en la compra."}
             {!linea && fila.recuperoDefecto != null && b.recupero === String(fila.recuperoDefecto) && (
               <span className="mt-1 block text-xs text-tinta/65">Es el % de CAYLA para esta campaña: cámbialo si esta categoría se recupera distinto.</span>
             )}
@@ -297,6 +384,7 @@ export function FormularioCategoria({
         </div>
       </CampoGuiado>
 
+      <div data-guia="plan-modal.curva">
       <CampoGuiado id="curva" guia={guia} titulo="Curva de tallas" ayuda={`Suma ${sumaCurva} %`}>
         {tallas.length === 0 ? (
           <p className="text-sm text-tinta/70">Esta categoría no tiene tallas cargadas: se compra el total.</p>
@@ -333,23 +421,37 @@ export function FormularioCategoria({
           </div>
         )}
       </CampoGuiado>
+      </div>
 
-      <div className="rounded-xl bg-hueso px-4 py-3">
+      <div data-guia="plan-modal.porque" className="rounded-xl bg-hueso px-4 py-3">
         {calculo ? (
           <>
             <p className="text-sm text-tinta/80">
               Conviene tener <b className="font-semibold text-tinta">{enteroES.format(calculo.objetivo)}</b> para la campaña; ya hay{" "}
-              <b className="font-semibold text-tinta">{enteroES.format(calculo.stock)}</b>. {porQue(calculo)}
+              <b className="font-semibold text-tinta">{enteroES.format(stock)}</b>
+              {enCamino > 0 && (
+                <>
+                  {" "}y vienen <b className="font-semibold text-tinta">{enteroES.format(enCamino)}</b> en órdenes de compra
+                </>
+              )}
+              . {porQue(calculo)}
             </p>
             {lineaViva && (
               <div className="mt-3">
-                <BarraRango viva linea={lineaViva} calculo={calculo} />
+                <BarraRango viva linea={lineaViva} calculo={calculo} enCamino={enCamino} />
               </div>
             )}
             {tope !== null && <EfectoEnElTope efecto={efectoEnElTope(inversionDeLasDemas, calculo.inversion, tope)} tope={tope} />}
+            {fila.reparto && fila.reparto.length > 1 && (
+              <RepartoTiendas
+                objetivo={calculo.objetivo}
+                tiendas={fila.reparto}
+                taller={(sedes ?? []).filter((s) => !fila.reparto!.some((t) => t.nombre === s.ubicacion)).reduce((a, s) => a + s.unidades, 0)}
+              />
+            )}
           </>
         ) : (
-          <p className="text-sm text-tinta/70">Cuando completes los tres diciembres, el precio, el costo y lo que sobre, aquí ves por qué se compra eso.</p>
+          <p className="text-sm text-tinta/70">Cuando completes los tres escenarios, el precio, el costo y lo que sobre, aquí ves por qué se compra eso.</p>
         )}
       </div>
 
@@ -359,7 +461,7 @@ export function FormularioCategoria({
         <ComboResponsable control={responsable} deshabilitado={guardando} />
       </CampoGuiado>
 
-      <div className={enPantalla ? "space-y-1" : "pie-hoja-fijo"}>
+      <div data-guia="plan-modal.pie" className={enPantalla ? "space-y-1" : "pie-hoja-fijo"}>
         {/* La respuesta, siempre a la vista mientras se escribe (antes quedaba al fondo de la hoja, fuera de la pantalla). */}
         <p className="flex flex-wrap items-baseline gap-x-2 pt-1" aria-live="polite">
           {calculo ? (

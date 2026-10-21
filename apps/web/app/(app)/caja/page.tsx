@@ -7,7 +7,7 @@ import { DIAS_FRECUENCIA, ordenarPorFrecuencia } from "@/lib/gasto-rapido-reglas
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getParametrosCaja } from "@/lib/configuracion";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { createClient } from "@/lib/supabase/server";
 import { tolerar } from "@/lib/resultado";
 import { History } from "lucide-react";
@@ -42,7 +42,7 @@ export default async function CajaPage({ searchParams }: { searchParams: Promise
           titulo="Caja"
           subtitulo="Abre la caja para empezar a vender."
           acciones={
-            <BotonEnlace href="/caja/historial">
+            <BotonEnlace href="/caja/historial" data-guia="caja.historial-todas">
               <History className="h-4 w-4" aria-hidden />
               Historial de cierres
             </BotonEnlace>

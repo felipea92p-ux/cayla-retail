@@ -15,7 +15,7 @@ import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 /** «el 04/10» o «entre el 30/09 y el 04/10»: cuándo se vendió lo que se va a cerrar. */
 const cuandoSeVendio = (desde: string, hasta: string) => {
   const a = diaYHoraLima(desde).dia;
@@ -152,7 +152,7 @@ export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: Se
           </CampoGuiado>
 
           <PieGuia guia={guia} listo={sede ? `Todo listo para cerrar ${sede.pendientes} ${sede.pendientes === 1 ? "prenda" : "prendas"}.` : "Todo listo."} />
-          <div className="pie-hoja-fijo flex justify-end gap-3 pt-2">
+          <div className="pie-hoja-fijo pie-acciones pt-2">
             <Boton type="button" onClick={cerrar}>
               Cancelar
             </Boton>

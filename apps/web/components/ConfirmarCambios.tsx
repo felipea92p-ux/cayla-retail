@@ -9,6 +9,7 @@ import { agruparCambios, type GrupoCambios, type ResumenCambios } from "@/lib/pr
 import { Volver } from "@/components/ui/Volver";
 import { Casilla } from "@/components/ui/Casilla";
 import { nombreCorto, soles, unirConY, type tiendasAlCambiarPrecio } from "@/lib/precio-sede-reglas";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 /**
  * La hoja «Revisa y guarda los cambios» (ADR-0257; Felipe eligió la opción A de la pregunta 2 el 2026-09-28).
@@ -71,7 +72,6 @@ export function ConfirmarCambios({
       titulo="Revisa y guarda los cambios"
       subtitulo={`Esto es lo que va a cambiar en «${nombre}». Nada se guarda hasta que confirmes.`}
       variante="hoja"
-      ancho="max-w-md"
       bloqueado={enCurso}
       onClose={onClose}
     >
@@ -80,10 +80,9 @@ export function ConfirmarCambios({
           <div className="max-h-[36vh] divide-y divide-sand overflow-y-auto pr-1">
             {grupos.map((g) => (
               <section key={g.clave} className="py-2.5 first:pt-0">
-                <h3 className="label-cayla mb-1.5 flex items-center gap-2 text-[11px] text-taupe">
+                <TituloGrupo cuenta={g.cantidad} className="mb-1.5">
                   {g.titulo}
-                  <span className="rounded-full bg-ambar/15 px-2 text-[11px] font-semibold tracking-normal text-ambar">{g.cantidad}</span>
-                </h3>
+                </TituloGrupo>
                 <ul className="space-y-1">
                   {g.lineas.map((l, i) => (
                     // Un valor largo (un nombre, «marca · proveedor») baja a su propia línea y se parte ahí; antes no cabía, el
@@ -169,7 +168,7 @@ function PrecioEnCadaTienda({
   const aNuevo = datos.despues !== null ? `a ${soles(datos.despues)}` : "al precio nuevo de cada talla";
   return (
     <section aria-label="Precio en cada tienda" className="rounded-sm border border-sand bg-hueso/40 px-3 py-2.5">
-      <h3 className="label-cayla mb-1.5 text-[11px] text-taupe">Precio en cada tienda</h3>
+      <TituloGrupo className="mb-1.5">Precio en cada tienda</TituloGrupo>
       <ul className="space-y-2 text-sm text-tinta">
         {datos.siguen.length > 0 && (
           <li className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">

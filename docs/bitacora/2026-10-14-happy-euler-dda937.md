@@ -1,0 +1,4 @@
+## 2026-10-14 (Un corte de red ya no promete «No se guardó nada», ADR-0410 — aprobado por Felipe)
+Qué hice: la frase de siempre de `traducirError` ante un corte de red pasa a ser la honesta («no podemos confirmar si llegó a guardarse; revisa si ya aparece registrado») en toda escritura, y las 19 lecturas piden `{ lectura: true }` para decir solo «se cortó la conexión». Inventario: 249 llamadas en 151 archivos; cambian hasta 172 escrituras (114 sin token).
+Por qué así: «Failed to fetch» sale igual si la petición no salió que si la base guardó y se perdió la respuesta (reproducido en Ingresar insumo); diez módulos ya lo habían arreglado cada uno por su cuenta, y lo más expuesto eran las pantallas SIN token, donde repetir duplica.
+Felipe se lleva: tras un corte, la colaboradora mira antes de repetir en vez de duplicar un pago, un lote o un movimiento de caja; queda abierto que la lista de atrás no se refresca sola tras el corte (seguimiento aparte).

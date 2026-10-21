@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import Link from "next/link";
 import { avisar, enfocar } from "@/components/ui/Avisos";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 import { enlaceWhatsAppA, numeroWhatsApp } from "@/lib/facturacion-comprobantes-reglas";
@@ -99,16 +101,10 @@ export function TrasladoEnviado({
     return () => window.removeEventListener("resize", ajustar);
   }, [mensaje]);
 
-  async function copiar() {
-    try {
-      await navigator.clipboard.writeText(mensaje);
-      avisar.exito("Mensaje copiado", { detalle: `Pégalo en el chat de ${destino}.` });
-    } catch {
-      // Sin permiso o sin portapapeles: el texto queda marcado para que lo copie a mano.
-      areaMensaje.current?.focus();
-      areaMensaje.current?.select();
-      avisar.error("No se pudo copiar solo", { detalle: "El mensaje quedó marcado: cópialo con Ctrl+C (o mantén pulsado en el celular)." });
-    }
+  // Sin permiso o sin portapapeles: además del aviso de la pieza, el texto queda marcado para que lo copie a mano.
+  function marcarMensaje() {
+    areaMensaje.current?.focus();
+    areaMensaje.current?.select();
   }
 
   return (
@@ -125,9 +121,10 @@ export function TrasladoEnviado({
 
       {/* Para revisar la caja antes de cerrarla: quien envía sí ve las cantidades. */}
       <section aria-labelledby="caja-enviada" className="space-y-2">
-        <h3 id="caja-enviada" className="label-cayla text-[11px] text-tinta/70">
-          Lo que va en la caja · {unidades} {unidades === 1 ? "prenda" : "prendas"}
-        </h3>
+        {/* El id va en la caja de afuera: `TituloGrupo` no lleva id, y la sección se nombra con su título entero (con la cuenta). */}
+        <div id="caja-enviada">
+          <TituloGrupo cuenta={unidades}>Lo que va en la caja</TituloGrupo>
+        </div>
         <ul className="divide-y divide-sand rounded-xl border border-sand">
           {prendas.map((p, i) => (
             <li key={`${p.etiqueta}-${i}`} className="flex items-baseline justify-between gap-3 px-3.5 py-2.5">
@@ -139,9 +136,9 @@ export function TrasladoEnviado({
       </section>
 
       <section aria-labelledby="avisar-sede" className="space-y-2.5">
-        <h3 id="avisar-sede" className="label-cayla text-[11px] text-tinta/70">
-          Avísale a {destino}
-        </h3>
+        <div id="avisar-sede">
+          <TituloGrupo>Avísale a {destino}</TituloGrupo>
+        </div>
         <p className="text-sm leading-relaxed text-taupe">
           El mensaje ya está escrito. No dice cuántas prendas van.
         </p>
@@ -151,15 +148,15 @@ export function TrasladoEnviado({
           value={mensaje}
           rows={4}
           aria-label={`Mensaje para ${destino}`}
-          className="w-full resize-none overflow-hidden rounded-xl border border-sand bg-hueso px-3.5 py-3 text-sm leading-relaxed text-tinta outline-none focus:border-rojo"
+          className="caja-campo-input resize-none overflow-hidden"
         />
         <div className="flex flex-wrap gap-2">
           <a href={enlaceWhatsAppA(whatsappDestino, mensaje)} target="_blank" rel="noopener noreferrer" className="btn-cayla btn-primario">
             Abrir WhatsApp
           </a>
-          <button type="button" onClick={copiar} className="btn-cayla btn-secundario">
+          <BotonCopiar texto={mensaje} que="el mensaje" alCopiar={() => avisar.exito("Mensaje copiado", { detalle: `Pégalo en el chat de ${destino}.` })} alFallar={marcarMensaje}>
             Copiar mensaje
-          </button>
+          </BotonCopiar>
         </div>
         {sinChatDirecto && (
           <p className="text-xs text-taupe">{destino} no tiene un WhatsApp guardado: WhatsApp te va a preguntar a quién se lo mandas.</p>

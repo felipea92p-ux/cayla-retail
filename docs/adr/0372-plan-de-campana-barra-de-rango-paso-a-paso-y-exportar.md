@@ -176,6 +176,189 @@ pestaña para ver y comparar las campañas anteriores. Plan aprobado (C1–C6) y
   con la historia real de Trujillo (2025: S/ 1 649 544, +9 %; Navidad ×2.0, Diciembre ×1.8). **Migraciones `20261012160000` y `20261012161000` EN PRODUCCIÓN
   desde el 2026-10-12** (orden de Felipe; ensayo revertido antes; verificado como líder: las 6 funciones responden, las internas no se exponen y
   anon no lee). Falta la carga de Sinatra (`carga-sinatra.sql`, fuera del repo).
+- **Las tiendas activas salen siempre** (Felipe: «quiero ver Arequipa, Lima y Trujillo, que son mis tiendas activas»): migración
+  `20261012162000` (reemplazos anclados en `fn_historial_ventas` y `fn_plan_compra_resultados`), **en producción desde el 2026-10-12**. Antes solo
+  salían las tiendas con algún dato y Lima desaparecía (no vende aún en el ERP y su Sinatra 2026 no es un diario); ahora sale con «Sin dato» o 0.
+  La historia de Sinatra en producción quedó cargada: 3 085 días de TRU y 816 de AQP (3 901).
 - **El detalle de una fila del Historial** (Felipe: «al darle clic a una fila, los detalles»): `DetalleCampanaHistorial.tsx`, el día a día de la
   campaña contra un día normal (mejor y peor día) y la misma campaña año por año (una lectura chica por año). Sinatra no sabe de prendas: el
   detalle de prendas y colores está en Resultados, y la hoja lleva ahí si la campaña tiene su plan en el ERP.
+
+## Actualización 2026-10-12 (b) — durante y después de la campaña, cuánto le toca a cada tienda, y buscar en las tablas
+
+- **Lo rescatado de los referentes** (WSSI de los compradores de moda; maqueta `docs/maquetas/plan-campana-ubicacion-2026-10/`): en el Plan, el
+  simulador (supuestos que se mueven sin guardar) y «Te quedan S/ X»; en Resultados, «¿Cómo va?» (lo vendido contra lo que el plan esperaba a hoy,
+  con la forma de los días de la misma campaña el año pasado) como **primera tarjeta de cifras**, «Pedir más o impulsar» solo si alguna categoría lo
+  pide, y al terminar el cierre con sell-through (precio lleno · rebaja · sobra). Lo que Análisis ya hace por prenda y tienda no se repite: un acceso,
+  solo para quien ve ese módulo. Migración `20261012163000` (`por_dia`, `filas[].rebajadas`, `stock` en `fn_plan_compra_resultados`).
+- **Cuánto le toca a cada tienda** (Felipe: «de manera global debemos comprar tanto, pero cada sede es única»). Decisiones suyas: se reparte según
+  lo que vendió cada tienda en 90 días (su ritmo por día), se manda todo al inicio, y una tienda que casi no vende (Lima) recibe un mínimo que fija un
+  líder. Regla en `lib/plan-compra-reparto.ts` (redondeo por restos mayores; el mínimo es un piso, no un extra). Migración `20261012164000`:
+  `planes_compra_reparto (plan_id, ubicacion_id, minimo_pct 1–90)` + `guardar_plan_compra_minimo` (solo líder, firmado; la suma de una campaña no
+  pasa de 100 %; solo tiendas activas) + `tiendas_activas` y `minimos` en la propuesta.
+  **DECIDÍ** guardar solo el mínimo y calcular el reparto al leer. **DESCARTÉ** guardar el reparto de cada categoría por tienda (cada venta lo dejaría
+  viejo y habría que recalcularlo en otro lado: dos verdades). **SE ROMPE SI** una tienda abre a mitad de campaña: no tiene 90 días y le toca solo su
+  mínimo hasta que venda.
+- **Compacto por defecto** (Felipe: «para visualizar más rápido la tabla»): el resumen del Plan es una fila de cifras («Toda CAYLA», con su «!» que
+  dice qué tiendas suma) y «Ver detalle» abre lo que sobra, el reparto, las tarjetas y el simulador. La fila se decide por el ancho de la TARJETA
+  (consulta de contenedor), no de la ventana: con el menú abierto, un laptop de 1200 px deja 940 para el resumen.
+- **Buscar y ordenar** en Historial y Resultados (como el Plan). En Resultados **toda fila abre su detalle**, también la que aún no vende: contra lo
+  esperado (siempre toda CAYLA: el plan es de todas) y contra la misma campaña del año anterior, por categoría (sale de la propuesta, que ya lo lee).
+  Sin dato lo dice: antes del ERP, Sinatra solo tiene soles por tienda. La comparación es por `categoria_id`: una categoría rehecha entre campañas
+  diría «0» en vez de «sin dato» (en el backlog).
+- **Verificado:** reglas (resultados 30, historial 23, reparto y propuesta), pruebas SQL `pnpm pruebas:plan-compra-historia` 13/13, guías
+  interactivas recorridas en local (Plan 22 pasos, Resultados 12, Historial 11; la demo no escribió en la base). **Migraciones `20261012163000` y
+  `20261012164000` EN PRODUCCIÓN desde el 2026-10-12** (ensayadas y deshechas antes; las pegó Felipe; verificadas como líder: Aniversario CAYLA 2026
+  trae 11 días, 34 categorías con stock y las tres tiendas activas; la tabla nueva con RLS y sin políticas, no la lee la web).
+
+## Actualización 2026-10-12 (c) — Resultados de una tienda
+
+Felipe: «al seleccionar una tienda, ¿no debería mostrar de manera individual lo que es suyo, y Toda CAYLA el global?». Eligió que todo siga a la
+tienda. Las tarjetas de tienda son el filtro (las píldoras que repetían lo mismo se fueron); con una elegida, «¿Cómo va?», «Pedir más o impulsar» y
+la columna «Contra el plan» de la tabla son de ELLA, y «Toda CAYLA» sigue siendo el total.
+
+- **Su parte del plan** sale de la misma regla del reparto del Plan (`porcentajes` de `lib/plan-compra-reparto.ts`, con `tiendasParaRepartir`, que
+  ahora usan los dos): el «normal» de cada categoría × la fracción que le toca. Sin la propuesta, no hay plan de la tienda: se dice, no se inventa.
+- Migración `20261012212000` (reservada): `por_dia_tienda` y `stock_tienda` en `fn_plan_compra_resultados` (reemplazo anclado, solo lee). Sin ella,
+  «¿Cómo va?» de una tienda queda en cero y «Pedir más» de una tienda no aparece (no se inventa sin su stock).
+- **DECIDÍ** medir la tienda contra su parte del reparto. **DESCARTÉ** guardar un plan por tienda (otra cifra que llenar y que se desalinea del total).
+  **SE ROMPE SI** el reparto cambia a mitad de campaña (un mínimo nuevo para Lima): la parte de cada tienda se recalcula con el mínimo de hoy, también
+  hacia atrás; el «esperado» de ayer no queda guardado.
+- «Pedir más o impulsar» abre Análisis ya buscando su categoría (`?q=`, que Análisis ahora lee); Análisis mira la sede elegida arriba.
+
+## Actualización 2026-10-12 (d) — la tabla primero
+
+Felipe: «la información está bien, pero no veo la tabla principal». Spike `docs/maquetas/plan-campana-rediseno-2026-10/` (5 rediseños del Plan y 3
+lugares para «Pedir más o impulsar», con la altura de la primera fila medida en cada uno). Eligió:
+
+- **Plan: el botón «Resumen y avisos»** (opción D, sin tocar la cabecera): el aviso de stock, las cifras de toda CAYLA, lo que sobra, el reparto y el
+  simulador viven en el cajón de la derecha (`CajonFicha`, el de Equipo: sin velo, la tabla sigue viva detrás). El botón lleva un número con las
+  tiendas que tienen el stock sin cuadrar (`avisosDelResumen`). La primera categoría pasó de ~1 000 px a 569 px en una pantalla de 900.
+  **DECIDÍ** el cajón con su número. **DESCARTÉ** dejar el aviso de stock a la vista (es lo que más empujaba la tabla) y la cabecera corta (cambia la
+  regla de cabecera del ERP, ADR-0220). **SE ROMPE SI** nadie abre el cajón: el número rojo es lo único que recuerda que el «Hay hoy» está incompleto.
+- **Resultados: R2**, «Pedir más o impulsar» dentro de la tabla de categorías. Durante la campaña, la columna «Lo que sobró» (que siempre decía «Al
+  terminar») se cambia por «Qué hacer» y «Alcanza para», y la píldora «Piden atención N» deja solo esas; «¿Cómo va?» lleva a esa píldora. El acceso
+  a la prenda exacta en Análisis pasó a la hoja de la categoría. Se borraron `SenalesCampana` y `ResumenCompactoPlan`: una tabla de categorías, no dos.
+
+## Actualización 2026-10-12 (e) — las órdenes de compra en el Plan, el precio como supuesto y «a precio lleno» al vender
+
+Spike `docs/maquetas/plan-precios-ordenes-2026-10/`. Decisiones de Felipe:
+
+- **Una orden de compra es de una campaña por sus fechas** («Diciembre es del 1 al 31»): la que llega dentro de ellas (su entrega estimada; sin
+  ella, su emisión). Sin campo nuevo en la orden. `fn_plan_compra_pedido` (migración `20261012224000`) da lo pedido por categoría (solo órdenes
+  `generada`) y la lista de órdenes. **Lo pedido se muestra, no se resta** de «Comprar»: las órdenes (ADR-0362) solo están generadas o anuladas y no
+  saben cuándo llegó la mercadería; restarlo contaría dos veces lo que ya entró al stock. Cuando Órdenes reciba contra la orden (su fase 4), pasa
+  a restar. Se ve en la fila («12 ya pedidas»), en la hoja de la categoría (con sus números de orden) y en el cajón «Resumen y avisos» (total y
+  órdenes, cada una lleva a su detalle).
+  **DECIDÍ** por fechas, como pidió Felipe. **DESCARTÉ** que la orden elija su campaña (exacto, pero un campo nuevo en Órdenes). **SE ROMPE SI**
+  dos campañas se pisan (Diciembre y Navidad): la misma orden sale en las dos; y una orden para Navidad que llega en noviembre no cuenta en ninguna.
+- **El precio del Plan es un supuesto** (no cambia el de las prendas). Si se aparta 1 % o más del promedio del catálogo, la hoja lo avisa con
+  cuánto y lleva a cambiarlo en Productos (`avisoDelPrecio`). Se descartó llevarlo al catálogo desde el Plan y el «precio de campaña con fechas»
+  (Vender hoy solo acepta descuentos y la etiqueta colgada mentiría al volver, ADR-0370).
+- **«A precio lleno» se mide con el precio al que se vendió** (migración `20261012223000`): `fn_unidades_vendidas` comparaba lo cobrado con el
+  precio de lista de HOY, así que una tienda con su propio precio contaba como «rebajada» sin descuento y cualquier cambio de precio deformaba
+  «Rebajadas» y «Lo que sobró» hacia atrás. Ahora usa `venta_items.precio_unitario` (el precio de la sede al vender; el descuento va aparte).
+
+## Actualización 2026-10-12 (f) — el selector es el calendario, un plan por campaña y por año, y «Campaña nueva» en Etiquetas
+
+**El problema.** El selector solo mostraba los planes ya creados y crear uno pedía elegir la etiqueta, el nombre y las dos fechas. Peor: la base
+dejaba UN plan por etiqueta para siempre (`planes_compra_una_por_etiqueta`), aunque las campañas de Etiquetas vuelven cada año (Historial ya las
+lleva a cualquier año). Con «Halloween 2026» creado, «Halloween 2027» era imposible: en enero el Plan se quedaba sin campañas que armar.
+
+**Lo que se decidió (Felipe, opción A de `docs/maquetas/plan-selector-campanas-2026-10/`; «con el mismo formato»).**
+- Un plan por campaña **y por año** (el del fin, como Historial): índice `planes_compra_una_por_etiqueta_y_anio`.
+- El selector ES el calendario: los planes más cada campaña de Etiquetas sin plan este año o el que viene, con sus fechas de ese año
+  (`ranurasSinPlan`, `calendarioDelSelector`, `fechasDelAnio` = `proyectarCampana` de Historial). Tocarla abre su hoja ya llena (nombre del año,
+  fechas, responsable) y un toque la arma (`crear_plan_compra`). Quien no es líder la ve apagada («sin plan»). Las campañas sin fechas salen al
+  final, solo para el líder, pidiendo que se las pongan en Etiquetas.
+- «Campaña que no está en el calendario» crea la campaña en Catálogo ▸ Etiquetas con el formato de las demás y su plan, en UNA transacción
+  (`crear_campana_con_plan`), por los mismos caminos que Etiquetas: el INSERT pasa por `etiquetas_estado_biut` (aprobada si quien la crea puede
+  editar etiquetas), las fechas las pone `actualizar_campana_etiqueta` (sin descuento ni categorías: no toca ningún precio) y el plan,
+  `crear_plan_compra`. Si algo falla, no queda ni la etiqueta ni el plan.
+
+DECIDÍ: escribir en Etiquetas desde el Plan, con una función que reutiliza las de Etiquetas.
+DESCARTÉ: un plan suelto sin etiqueta (no aparece en Historial ni vuelve al año siguiente) y solo un enlace a Etiquetas (salir y volver en plena
+compra; además, Etiquetas hoy no tiene cómo marcar una etiqueta como «Campaña y festividad»: todas nacen en «General»).
+SE ROMPE SI: dos líderes crean «Cyber Wow» a la vez — la base lo impide (`etiquetas_clave_unica`: entra uno, el otro lee «ya está»); o si alguien
+edita un plan y lo mueve al año de otro de la misma campaña: lo rechaza el índice por año.
+
+Pruebas: `scripts/pruebas/plan_compra.mjs` C5–C7 y D1–D4; `lib/plan-compra-reglas.test.ts` (calendario, selector, hoja en sus dos caras).
+Migración `20261012234000_plan_compra_campana_por_anio_y_campana_nueva.sql` (una sola parte, sin políticas).
+
+## Actualización 2026-10-13 — sin la campaña en el ERP, el bueno sale del historial y no del × 3
+
+**El problema.** Trujillo y Arequipa venden en el ERP desde el 30 de setiembre de 2026, así que para Navidad 2026 ninguna tienda tiene la misma
+campaña del año anterior en el ERP y todas caían en «normal × 3». El historial de Sinatra, cargado el 2026-10-12, dice otra cosa: diciembre vende
+entre ×1,59 y ×2,30 un día normal en Trujillo (mediana ×2,04, 2017–2025; Navidad del 11 al 25, ×2,0) y ×1,16 y ×1,11 en Arequipa (2024 y 2025).
+Con × 3, el bueno salía 1,5 veces el de su historia en Trujillo y 2,6 veces en Arequipa, y la compra de Navidad es la más cara del año.
+
+**Lo que se decidió (Felipe, 2026-10-13: «prepara el cambio del multiplicador en una rama»).** El bueno de cada tienda sale del primero que exista:
+1. la campaña del año anterior en el ERP (punto medio, o solo normal × multiplicador si se agotó), como antes;
+2. si no, la misma campaña del año anterior en el historial: normal × el multiplicador de esa tienda, medido con `medir`, la misma regla de la
+   pestaña Historial (soles por día de la campaña ÷ soles por día de sus 60 días de antes, con al menos 20 días con venta en la base);
+3. si tampoco, normal × 3.
+
+Solo web, sin migración: `conHistorial` en `lib/plan-compra-propuesta.ts` llena `multiplicadorHistorial` por tienda, y `getPlanCompra` lee
+`fn_historial_ventas` para `rangoDeCampana(previa)` justo después de la propuesta, porque las fechas de «la misma campaña del año anterior» las define
+la base (`previa`). La hoja de la categoría lo explica: «Tienda Trujillo: normal × 2.0 (lo que esa tienda vendió de más en esa campaña el año pasado,
+según su historial)». El × 3 dice ahora si la campaña no estaba ni en el ERP ni en el historial, o si el historial no se pudo leer.
+
+DECIDÍ: medir el multiplicador en la web con `medir` de Historial y las fechas `previa` de la base.
+DESCARTÉ: (a) llevar la cuenta a `fn_plan_compra_propuesta`, porque pide migración y pegado en producción para algo que Historial ya calcula en la
+web, y dejaría el multiplicador definido dos veces, en SQL y en TS; (b) la mediana de varios años, que es más estable (Trujillo va de 1,59 a 2,30),
+pero el camino del ERP usa solo el año anterior y dos varas para el mismo bueno se contradirían el año que viene; (c) el punto medio con lo vendido,
+porque Sinatra no sabe de categorías ni de unidades.
+SE ROMPE SI: el año anterior fue raro para una tienda (Trujillo 2021, ×1,59): la propuesta lo hereda tal cual, igual que con el ERP; o si a la carga
+de Sinatra le faltan días en los 60 de la base: con menos de 20 días con venta no hay multiplicador y vuelve el × 3, como dice la explicación.
+
+Si `fn_historial_ventas` no responde, el Plan se ve igual que antes (× 3) y la explicación no afirma que la campaña falte en el historial.
+
+**Verificado.** `lib/plan-compra-propuesta.test.ts` (26, 10 nuevas: el orden ERP → historial → × 3, cada tienda con el suyo, el mismo número que
+`medir`, la base delgada, la tienda sin historial, sin historial leído y las dos explicaciones); suite de la web (461 archivos), `tsc` y `eslint`.
+En el navegador local, Navidad 2026: Casacas (vendida en Trujillo) dice «normal × 2.0 … según su historial» y Vestidos (vendida en Lima, sin
+historial) «normal × 3 (esa campaña del año pasado no está ni en el ERP ni en su historial)».
+
+**Queda para Felipe.** El simulador «¿Y si la campaña vende distinto?» sigue arrancando en ×3.0 (`components/plan-compra/SimuladorPlan.tsx:16`) y su
+mínimo es ×1.5, por debajo del cual está Arequipa: decidir si arranca en el multiplicador de la propuesta.
+
+## Actualización 2026-10-13 (b) — lo pedido en órdenes de compra se resta de «Comprar»: solo lo que falta llegar
+
+**El problema.** La actualización (e) dejó lo pedido en órdenes a la vista sin restarlo, porque las órdenes no sabían cuándo llegaba la
+mercadería y restarlo contaba dos veces lo que ya había entrado al stock: «cuando Órdenes reciba contra la orden (su fase 4), pasa a restar».
+Las fases 3 (envíos), 4 (recepción) y 5a («Nos debe») de ADR-0362 ya están en producción. Sin restar, quien arma Navidad con órdenes hechas
+ve «Comprar 200» cuando 150 ya vienen en camino, y puede comprar dos veces lo mismo.
+
+**Lo que se decidió (Felipe, 2026-10-13: «haz que el plan reste lo pedido en órdenes»).** Se resta lo que todavía no está en ninguna tienda.
+Por cada línea de una orden `generada` de la campaña (migración `20261013213000`, `fn_plan_compra_pedido` suma `por_llegar`):
+- lo que todavía no salió en un envío vigente (lo pedido − lo enviado en envíos en camino, abiertos o cerrados; nunca negativo),
+- más lo que va en un envío en camino o abierto (todavía no entra al stock),
+- más lo que el proveedor debe reponer: los faltantes «No vino» de envíos cerrados, menos lo ya resuelto en «Nos debe».
+
+Lo que llegó en un envío cerrado ya está en «Hay hoy» y no se vuelve a restar; lo que se perdió o fue a otra sede no va a llegar por esa
+orden. La reposición de un «No vino» entra al stock y salda su deuda en el mismo acto, así que pasa de «por llegar» a «Hay hoy» sin contarse dos
+veces. En la web, `armarFilas` cuenta `porLlegar` como si ya estuviera (`calcular(línea, hay + por llegar)`); la hoja de la categoría y el
+simulador usan la misma cuenta. La fila dice «20 ya pedidas · 15 por llegar, ya descontadas» (o «ya llegaron»), y «N más de lo que pide el
+plan» solo cuenta lo que pone de más el pedido, no lo que ya sobraba en la red. La barra parte lo que se cuenta en tres tramos: lo que hay
+(verde), lo que viene en órdenes (verde claro) y lo que hay que comprar (negro). «Hay hoy» sigue siendo lo que está en las tiendas.
+
+DECIDÍ: medir por línea de la orden, con los mismos estados de envío que usa Órdenes para «enviado» (`fn_orden_compra_detalle`).
+DESCARTÉ: (a) restar todo lo pedido sin mirar los envíos, porque lo que ya llegó estaría dos veces; (b) partir de max(pedido, facturado), como
+«por enviar» en Órdenes, porque el Plan muestra lo pedido y restar más de lo que dice «ya pedidas» no se podría explicar en la fila (si un
+proveedor factura de más, esas prendas se ven cuando llegan); (c) dar por perdido un faltante «No vino», porque «Nos debe» lo trata como una deuda
+por reponer (decisiones 14 y 24 de ADR-0362).
+SE ROMPE SI: una orden para Navidad llega antes de la campaña (entrega en noviembre): no es «de la campaña» por sus fechas (act. e), así que lo
+que viene en camino no se resta hasta que llega y entra al stock; o si la fase 5b agrega una forma de saldar una deuda que sí traiga prendas:
+hoy toda resolución saca la deuda de «por llegar».
+
+Si la base todavía no manda `por_llegar` (la web publicada antes de pegar el SQL), `porLlegar` es null y el Plan no resta nada: se ve como
+antes. **Migración `20261013213000` EN PRODUCCIÓN desde el 2026-10-13** (orden de Felipe; ensayo revertido antes; después, el cuerpo vivo tiene la
+huella del archivo, `bd7ca122bda0933b1de184b920f2e653`, con los mismos permisos).
+
+**Verificado.** `lib/plan-compra-pedido.test.ts` y `lib/plan-compra-reglas.test.ts` (9 casos nuevos: leer `por_llegar` con la base nueva y la vieja,
+un total que no se inventa a medias, la resta en `armarFilas`, lo que llegó que no se resta dos veces, nunca negativo y las frases); suite de la
+web (461 archivos), `tsc` y las pruebas de `scripts/migraciones`. Casos de base `O2` y `O3` en `scripts/pruebas/plan_compra_historia.mjs`:
+una orden de 30 con un envío recibido de 20 (17 llegaron y 3 «No vino», con 1 ya repuesta), otro recibido de 2 que se perdieron, uno en camino
+de 6 y uno anulado de 50 da 10 por llegar; una orden toda recibida da 0. Se corrieron dentro de un rollback sobre la base local, con las cinco
+tablas de envíos y sus índices creados desde sus migraciones (la primera versión del caso anotaba dos diferencias en la misma línea de un envío,
+que la base no admite: lo encontró el CI) (a la base local le faltan 38 migraciones y no se tocó); en el CI corren sobre la base completa. La consulta nueva se probó en
+producción en solo lectura (compila contra las tablas reales; hoy hay 0 órdenes de compra, así que no cambia ningún número todavía).

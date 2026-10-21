@@ -39,6 +39,7 @@ import {
   validarCelular,
   variacionCosto,
   type EstadoProveedor,
+  cambioBancarioLegible,
 } from "./proveedores-reglas";
 
 describe("rubros", () => {
@@ -299,6 +300,19 @@ describe("datos para pagar (ADR-0134)", () => {
     expect(enmascararCuenta("193-2145678-0-45")).toBe("193-•••••••-•-45");
   });
 
+  it("enmascarar el celular: solo lo que valida como celular (9 dígitos que empiezan con 9); un fijo no se disfraza de celular", () => {
+    expect(enmascararCelular("+51 987 654 321")).toBe("9•• ••• 321");
+    expect(enmascararCelular("044 123456")).toBe("•••"); // fijo de Trujillo: 9 dígitos con la clave, no empieza con 9
+    expect(enmascararCelular("014567890")).toBe("•••"); // fijo de Lima con el 0
+    expect(enmascararCelular("887654321")).toBe("•••"); // 9 dígitos que no empiezan con 9
+    expect(enmascararCelular("98765432")).toBe("•••"); // 8 dígitos
+    expect(enmascararCelular("")).toBe("•••");
+    // Lo que enmascara como celular es exactamente lo que `validarCelular` acepta.
+    for (const n of ["987654321", "+51987654321", "944 000 111", "044123456", "887654321", "98765432"]) {
+      expect(enmascararCelular(n) !== "•••").toBe(validarCelular(n) === null);
+    }
+  });
+
   it("valida el CCI: 20 dígitos exactos, vacío es válido (todo es opcional)", () => {
     expect(validarCci("")).toBeNull();
     expect(validarCci("   ")).toBeNull();
@@ -434,5 +448,31 @@ describe("marcasParaMostrar", () => {
   it("si caben todas no hay ocultas", () => {
     expect(marcasParaMostrar(["Ana"], "", 3)).toEqual({ visibles: ["Ana"], ocultas: 0 });
     expect(marcasParaMostrar([], "x", 3)).toEqual({ visibles: [], ocultas: 0 });
+  });
+});
+
+describe("cambioBancarioLegible (historial de cuentas, Felipe 2026-10-13)", () => {
+  it("el CCI cambiado sale enmascarado, antes y después", () => {
+    expect(cambioBancarioLegible("cci", "00219300123456789012", "00219300999999999999")).toEqual({
+      dato: "CCI",
+      antes: "002-193-••••••••••••-12",
+      despues: "002-193-••••••••••••-99",
+      cambioOculto: false,
+    });
+  });
+  it("una cuenta nueva (antes no había) dice «vacío»", () => {
+    expect(cambioBancarioLegible("cuenta_bancaria", null, "193-1234567-0-45")).toEqual({ dato: "Cuenta", antes: "vacío", despues: "193-•••••••-•-45", cambioOculto: false });
+  });
+  it("el Yape se enmascara como celular", () => {
+    expect(cambioBancarioLegible("celular_billetera", "987654321", "912345678").despues).toBe("9•• ••• 678");
+  });
+  it("el banco y el titular no son secretos: se muestran tal cual", () => {
+    expect(cambioBancarioLegible("titular_cuenta", "Ana Pérez", "Luis Díaz")).toEqual({ dato: "Titular", antes: "Ana Pérez", despues: "Luis Díaz", cambioOculto: false });
+    expect(cambioBancarioLegible("banco", "BCP", "")).toEqual({ dato: "Banco", antes: "BCP", despues: "vacío", cambioOculto: false });
+  });
+  it("un CCI que cambió solo en los dígitos tapados no se lee «igual → igual»: lo marca", () => {
+    const c = cambioBancarioLegible("cci", "00219300123456789012", "00219300999999999912");
+    expect(c.antes).toBe(c.despues);
+    expect(c.cambioOculto).toBe(true);
   });
 });

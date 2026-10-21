@@ -4,6 +4,7 @@ import type { EventoAcceso } from "@/lib/colaboradores";
 import { fechaLima, fraseEvento, plural } from "@/lib/colaboradores-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { Chip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // El registro de actividad de /colaboradores. Solo dibuja lo que recibe; las decisiones viven en `ColaboradoresPanel`. Las tablas
 // de personas por estado y la de terminales se fueron el 2026-10-05: las reemplazan la lista de Equipo y sus fichas
@@ -13,14 +14,9 @@ export function ListaActividad({ eventos }: { eventos: EventoAcceso[] }) {
   const total = eventos[0]?.total ?? 0;
   return (
     <div className="card-cayla p-5">
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-tinta/10 pb-3">
-        <div>
-          <h2 className="font-display text-lg text-tinta">Registro de accesos</h2>
-          <p className="text-xs text-tinta/65">Cada alta, baja, suspensión, reactivación y cambio de ubicación queda escrito una vez. No se edita ni se borra.</p>
-        </div>
-        <span className="text-xs tabular-nums text-tinta/65">
-          {total > eventos.length ? `Los ${eventos.length} más recientes de ${total}` : plural(total, "evento", "eventos")}
-        </span>
+      <div className="mb-4 border-b border-tinta/10 pb-3">
+        <TituloSeccion dato={total > eventos.length ? `Los ${eventos.length} más recientes de ${total}` : plural(total, "evento", "eventos")}>Registro de accesos</TituloSeccion>
+        <p className="text-xs text-tinta/65">Cada alta, baja, suspensión, reactivación y cambio de ubicación queda escrito una vez. No se edita ni se borra.</p>
       </div>
       <ol className="space-y-2.5">
         {eventos.map((e) => {

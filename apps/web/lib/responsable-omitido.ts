@@ -71,6 +71,40 @@ export const ACCIONES_SIN_RESPONSABLE = {
   orden_compra_editar: "Editar una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Y anularla (actividad 5, migración 20261010235500).
   orden_compra_anular: "Anular una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Registrar el comprobante de una orden y anularlo (fase 2, migración 20261012211000): una sola clave para las dos acciones.
+  orden_compra_comprobante: "Registrar o anular el comprobante de una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Enviar lo de una orden a una sede y anular el envío (fase 3, migración 20261012225000): una sola clave para las dos acciones.
+  orden_compra_envio: "Enviar a una sede lo de una orden de compra, o anular ese envío (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Órdenes de insumos del Taller (ADR-0362, fase 7; migración 20261013040000): la decisión 39 extendida al Taller, por la misma razón
+  // (quien compra tela tampoco está en el kiosco). Una terminal sigue eligiendo quién: la base no deja una orden sin autor.
+  orden_insumo_crear: "Crear una orden de insumos del Taller (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  orden_insumo_editar: "Editar una orden de insumos del Taller (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  orden_insumo_anular: "Anular una orden de insumos del Taller (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // ADR-0362 fase 7 parte 2 (20261015020000): el papel del proveedor de una orden de insumos.
+  orden_insumo_comprobante: "Registrar el comprobante de una orden de insumos del Taller (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Fondos por rendir (ADR-0362, fase 6; migración 20261013182000): quien entrega plata, recibe lo devuelto o anula un error firma con su
+  // cuenta; una terminal elige quién. La base además impide que la persona mueva su propio fondo desde ahí.
+  fondo_entregar: "Entregar plata al fondo de una persona (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  fondo_devolver: "Registrar lo que una persona devuelve de su fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  fondo_anular: "Anular una entrega o una devolución de fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Gastos del viaje (ADR-0362, fase 6 · actividad 3; migración 20261013222000): quien compra anota lo que pagó con su cuenta.
+  gasto_viaje_registrar: "Registrar un gasto del viaje de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // La rendición del fondo (ADR-0362, fase 6 · actividad 5; migraciones 20261013233000 y 20261013235000): la foto del papel de un gasto del
+  // viaje (evidencia, como el adjunto de una factura), rendir el propio fondo (solo con la cuenta de su dueña) y aprobar o devolver una
+  // rendición (quien la revisa firma con su cuenta; una terminal elige quién).
+  gasto_viaje_foto: "Sumar o quitar la foto del papel de un gasto del viaje (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  fondo_rendir: "Rendir el propio fondo (solo con la cuenta de su dueña: desde una terminal no se rinde)",
+  fondo_rendicion_aprobar: "Aprobar la rendición de un fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  fondo_rendicion_devolver: "Devolver para corregir la rendición de un fondo, o retirar la propia (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // ADR-0362 fase 6 · actividad 7 (20261014145000): la deuda de un faltante se salda cuando la persona devuelve la plata.
+  fondo_deuda_pagar: "Registrar lo que una persona paga de la deuda de un faltante de su fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  fondo_deuda_anular: "Anular el pago de la deuda de un faltante de fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // «Arma el tuyo» (ADR-0434, actividad 2; migración 20261017013000; Felipe 2026-10-16): el recorte que el ERP guarda solo al subir una
+  // foto, para el probador de la tienda online. Nadie hace una operación aparte: solo subió la foto.
+  recorte_foto: "Guardar el recorte de una foto para el probador de la tienda online al subirla (lo hace el ERP solo, y con la cuenta de una persona firma ella)",
+  // Tienda online (ADR-0469; migración 20261021170000): un líder deshace la unión de una cuenta de Google con un miembro. Un líder siempre
+  // entra con su cuenta de persona (una terminal nunca es líder): firma él mismo.
+  vinculo_google_desvincular: "Deshacer la unión de una cuenta de Google con un miembro de la tienda online (solo un líder, y firma con su propia cuenta)",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;

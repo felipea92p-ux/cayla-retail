@@ -25,6 +25,7 @@ import type { EstadoCampo } from "@/lib/guia-campos";
 import { opcionesDeMarca } from "@/lib/marca-proveedor-reglas";
 import { sugerirDescripcion } from "@/lib/sugerencias-alta-producto";
 import { soles } from "@/lib/compras-reglas";
+import { TEXTO_AVISO_ORDEN, tituloAvisoOrden } from "@/lib/nos-debe-reglas";
 import {
   POR_REPARTIR,
   TOPES,
@@ -52,6 +53,7 @@ import {
   type DatosNuevaOrden,
 } from "@/lib/ordenes-compra-reglas";
 import { crearOrdenCompra, editarOrdenCompra } from "@/lib/ordenes-compra-acciones";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Nueva orden de compra (ADR-0362, fase 1 · actividad 2). Arriba, a quién se le pide y a dónde llega; abajo, lo que se pide, una
 // tarjeta por línea (categoría y marca obligatorias, descripción opcional, cantidad, precio y descuento), con el total al pie. Se usa
@@ -209,6 +211,9 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const total = totalCentimos(orden.lineas) / 100;
   const cuantas = unidades(orden.lineas);
   const problemaEntrega = problemaDeEntrega(orden.entrega, hoy, editar?.entregaOriginal);
+  // «Nos debe» (ADR-0362, fase 5a, decisión 14): si el proveedor elegido debe prendas por reponer, se avisa antes de pedirle lo nuevo.
+  const deudaDelProveedor = orden.proveedorId ? (datos.nosDebe?.[orden.proveedorId] ?? null) : null;
+  const nombreDelProveedor = datos.proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? deudaDelProveedor?.nombre ?? "Este proveedor";
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -323,7 +328,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
         }
         volver={<Volver href="/compras/ordenes" a="Órdenes de compra" />}
       >
-        <div className="anim-sube flex items-end gap-6 text-right" style={{ ["--i" as string]: 1 }}>
+        <div data-guia="orden-form.cifras" className="anim-sube flex items-end gap-6 text-right" style={{ ["--i" as string]: 1 }}>
           {/* Al editar, el número ya está en el título. */}
           {!editar && (
             <div>
@@ -351,7 +356,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
       <form onSubmit={guardar} noValidate className="space-y-6">
         {/* Proveedor, destino, entrega y nota: dos por fila y, con lugar (tarjeta de 52 rem o más), los cuatro en una (Felipe, 2026-10-10:
             «hay mucho espacio, se puede compactar más»). */}
-        <section className="@container card-cayla p-4 sm:p-5" aria-label="Proveedor y destino">
+        <section data-guia="orden-form.datos" className="@container card-cayla p-4 sm:p-5" aria-label="Proveedor y destino">
           <div className="grid gap-x-5 gap-y-4 @min-[28rem]:grid-cols-2 @min-[52rem]:grid-cols-4">
           {/* Cada título va en una fila de ALTO FIJO (`TITULO_FIJO`), no en el de `CampoGuiado`: su alto cambiaba con el estado de la guía
               (con ✓ 25 px, con «Sigue aquí» 21 px) y las cuatro cajas quedaban a distinta altura mientras se llenaba (Felipe, 2026-10-10:
@@ -416,13 +421,23 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           </div>
         </section>
 
-        <section className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que pides">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="font-display text-xl text-tinta">Lo que pides</h2>
-            <p className="text-sm tabular-nums text-taupe">
-              {orden.lineas.length} {orden.lineas.length === 1 ? "línea" : "líneas"} · {cuantas.toLocaleString("es-PE")} {cuantas === 1 ? "unidad" : "unidades"}
-            </p>
-          </div>
+        {/* Lo que este proveedor todavía debe de otra compra: se le puede pedir en esta orden, o marcar al recibirlo (fase 5a). */}
+        {deudaDelProveedor && deudaDelProveedor.unidades > 0 && (
+          <Aviso tono="info" guia="orden-form.nos-debe" titulo={tituloAvisoOrden(nombreDelProveedor, deudaDelProveedor)}>
+            {TEXTO_AVISO_ORDEN}
+          </Aviso>
+        )}
+
+        <section data-guia="orden-form.lineas" className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que pides">
+          <TituloSeccion
+            dato={
+              <>
+                {orden.lineas.length} {orden.lineas.length === 1 ? "línea" : "líneas"} · <b>{cuantas.toLocaleString("es-PE")}</b> {cuantas === 1 ? "unidad" : "unidades"}
+              </>
+            }
+          >
+            Lo que pides
+          </TituloSeccion>
 
           {orden.lineas.length === 0 && (
             <CampoGuiado id="lineas" guia={guia}>
@@ -468,7 +483,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           ))}
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-sand pt-4">
-            <Boton type="button" onClick={agregarLinea} disabled={orden.lineas.length >= TOPES.lineas}>
+            <Boton type="button" onClick={agregarLinea} disabled={orden.lineas.length >= TOPES.lineas} data-guia="orden-form.agregar">
               + Agregar otra prenda
             </Boton>
             <p className="text-sm text-taupe">
@@ -477,17 +492,17 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           </div>
         </section>
 
-        <section className="space-y-3" aria-label="Guardar">
+        <section data-guia="orden-form.guardar" className="space-y-3" aria-label="Guardar">
           {!esPersona && (
             <CampoGuiado id="responsable" guia={guia} titulo={editar ? "Quién hace el cambio" : "Quién hace la orden"} className="max-w-sm">
               <ComboResponsable control={responsable} deshabilitado={guardando} />
             </CampoGuiado>
           )}
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex flex-wrap justify-end gap-2.5">
+          <div className="pie-acciones">
             <BotonEnlace href="/compras/ordenes">Cancelar</BotonEnlace>
             <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Guardando…" : editar ? "Guardar cambios" : "Guardar orden"}
+              {editar ? "Guardar cambios" : "Guardar orden"}
             </Boton>
           </div>
         </section>
@@ -551,7 +566,7 @@ function LineaOrden({
   // tarjeta apretada: «Línea N» con su ✕ arriba, categoría y marca, descripción, cantidad y precio, descuento y el subtotal.
   return (
     <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[56rem]:rounded-lg @min-[56rem]:py-2">
-      <div className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[56rem]:items-center ${FILA_ANCHA}`}>
+      <div data-guia="orden-form.linea" className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[56rem]:items-center ${FILA_ANCHA}`}>
         <div className="col-span-2 flex items-center justify-between gap-2 @min-[56rem]:col-span-1 @min-[56rem]:justify-start">
           <p className="text-[13px] font-semibold text-tinta @min-[56rem]:hidden">{etiqueta(id, `Línea ${numero}`)}</p>
           <span className="hidden items-center gap-1 text-[12px] tabular-nums text-taupe @min-[56rem]:inline-flex" title={`Línea ${numero}`}>

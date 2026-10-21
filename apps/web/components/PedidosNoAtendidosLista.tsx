@@ -7,9 +7,12 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { PedidoNoAtendido } from "@/lib/pedidos-no-atendidos";
 import { describirMotivo } from "@/lib/se-probo-reglas";
+import { ClipboardList } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // La mitad cliente de la pantalla de verificación (D-79, ADR-0152): marcar resuelto es la única
 // escritura que esta pantalla ofrece — anotar uno nuevo todavía no tiene botón acá a propósito
@@ -36,10 +39,10 @@ export function PedidosNoAtendidosLista({ pedidos }: { pedidos: PedidoNoAtendido
 
   return (
     <div className="space-y-7">
-      <section className="space-y-3">
-        <h2 className="label-cayla text-tinta/60">Pendientes ({pendientes.length})</h2>
+      <section data-guia="pedidos.pendientes" className="space-y-3">
+        <TituloSeccion cuenta={pendientes.length}>Pendientes</TituloSeccion>
         {pendientes.length === 0 ? (
-          <p className="text-sm text-tinta/60">Ningún pedido pendiente en esta sede.</p>
+          <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<ClipboardList />}>Ningún pedido pendiente en esta sede.</Vacio>
         ) : (
           <ul className="divide-y divide-tinta/10 rounded-md border border-tinta/10">
             {pendientes.map((pedido) => (
@@ -50,8 +53,8 @@ export function PedidosNoAtendidosLista({ pedidos }: { pedidos: PedidoNoAtendido
       </section>
 
       {resueltos.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="label-cayla text-tinta/60">Resueltos ({resueltos.length})</h2>
+        <section data-guia="pedidos.resueltos" className="space-y-3">
+          <TituloSeccion cuenta={resueltos.length}>Resueltos</TituloSeccion>
           <ul className="divide-y divide-tinta/10 rounded-md border border-tinta/10 opacity-60">
             {resueltos.map((pedido) => (
               <FilaPedido key={pedido.id} pedido={pedido} resolviendo={false} onResolver={undefined} />
@@ -76,7 +79,7 @@ function FilaPedido({
   const que = pedido.productoReferencia ?? pedido.descripcionLibre ?? "—";
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+    <li data-guia="pedidos.fila" className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
       <div className="min-w-0">
         <p className="truncate text-sm text-tinta">
           {que}
@@ -92,7 +95,7 @@ function FilaPedido({
       {pedido.resuelto ? (
         <Chip tono="verde">Resuelto</Chip>
       ) : (
-        <Boton peso="fantasma" cargando={resolviendo} onClick={onResolver}>
+        <Boton peso="fantasma" cargando={resolviendo} onClick={onResolver} data-guia="pedidos.resolver">
           Marcar resuelto
         </Boton>
       )}

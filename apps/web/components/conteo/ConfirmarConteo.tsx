@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Flag, Info } from "lucide-react";
+import { Flag, Info } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EstadoLinea } from "@/components/conteo/EstadoLinea";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -13,7 +13,7 @@ import { MuestraColor } from "@/components/ui/MuestraColor";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { notaAjuste, textoQuedanSinVerificar, textoSeActualizaran } from "@/lib/conteo-reglas";
-import { existenciaTrasElAjuste, mensajeDeCierre, textoAjusteNegativo, textoQuedarianEnNegativo, type FilaConteoVista } from "@/lib/conteo-revision";
+import { conteoYaCerrado, existenciaTrasElAjuste, mensajeDeCierre, textoAjusteNegativo, textoQuedarianEnNegativo, type FilaConteoVista } from "@/lib/conteo-revision";
 import { paginar } from "@/lib/paginacion";
 import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
@@ -22,6 +22,9 @@ import { camposDeFirma, esPedidoDeNombre, firmaEnPantalla, mandaNombre, pregunta
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { useResponsable } from "@/lib/useResponsable";
 import { Volver } from "@/components/ui/Volver";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Boton } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
 
 /* ====================================================================
    Confirmar conteo · el último paso: lo que va a cambiar, y cerrar
@@ -131,6 +134,11 @@ export function ConfirmarConteo({
         conNombre ? responsable.firma() : firmaOmitida("conteo_cerrar")
       );
       if (conNombre) responsable.despues(error);
+      if (conteoYaCerrado(error)) {
+        // Ya estaba cerrado (un reintento tras una respuesta perdida, u otra persona): se muestra cómo quedó, como tras cerrar.
+        router.push(urlConteo);
+        return;
+      }
       if (error) {
         if (esPedidoDeNombre(error)) {
           // La base no tenía de quién heredar: se pregunta una vez, aquí mismo, sin perder lo revisado.
@@ -165,14 +173,11 @@ export function ConfirmarConteo({
 
   return (
     <>
-      <section ref={tarjeta} className="card-cayla @container scroll-mt-24 space-y-4 p-4 sm:p-5">
-        <h2 className="font-display text-2xl text-tinta">{filas.length === 0 ? "No hay existencias que cambiar." : textoSeActualizaran(filas.length)}</h2>
+      <section ref={tarjeta} data-guia="confirmar.lista" className="card-cayla @container scroll-mt-24 space-y-4 p-4 sm:p-5">
+        <TituloSeccion>{filas.length === 0 ? "No hay existencias que cambiar." : textoSeActualizaran(filas.length)}</TituloSeccion>
 
         {negativas > 0 && (
-          <p role="status" className="flex items-start gap-2 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm text-ambar-profundo">
-            <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-            {textoQuedarianEnNegativo(negativas)}
-          </p>
+          <Aviso tono="atencion">{textoQuedarianEnNegativo(negativas)}</Aviso>
         )}
 
         {filas.length > 0 && (
@@ -210,10 +215,9 @@ export function ConfirmarConteo({
                     </div>
                   </div>
                   {negativa && f.actual !== null && quedaria !== null && (
-                    <p className="mt-2 flex items-start gap-2 rounded-lg border border-ambar/35 bg-ambar/[0.07] px-3 py-2 text-xs text-ambar-profundo">
-                      <AlertTriangle aria-hidden className="mt-px h-3.5 w-3.5 shrink-0" />
+                    <Aviso tono="atencion" chico className="mt-2">
                       {textoAjusteNegativo({ actual: f.actual, quedaria })}
-                    </p>
+                    </Aviso>
                   )}
                   {nota && (
                     <p className="mt-2 flex items-start gap-2 rounded-lg bg-hueso px-3 py-2 text-xs text-tinta/80">
@@ -244,9 +248,7 @@ export function ConfirmarConteo({
       </section>
 
       {parcial && (
-        <p role="status" className="rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm text-ambar-profundo">
-          {textoQuedanSinVerificar(pendientes)}
-        </p>
+        <Aviso tono="atencion">{textoQuedanSinVerificar(pendientes)}</Aviso>
       )}
       {correctas > 0 && <p className="nota-cayla">{filas.length === 0 && yaAjustadas === 0 ? "Todas las variantes verificadas coinciden y no cambiarán." : "Las demás variantes coinciden y no cambiarán."}</p>}
       {yaAjustadas > 0 && (
@@ -256,20 +258,17 @@ export function ConfirmarConteo({
       )}
       {notaArranque &&
         (notaArranque.tono === "aviso" ? (
-          <p role="status" className="flex items-start gap-2 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm text-ambar-profundo">
-            <Flag aria-hidden strokeWidth={1.5} className="mt-0.5 h-4 w-4 shrink-0" />
-            {notaArranque.texto}
-          </p>
+          <Aviso tono="atencion">{notaArranque.texto}</Aviso>
         ) : (
           <p className="nota-cayla sin-i flex items-start gap-2">
-            <Flag aria-hidden strokeWidth={1.5} className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
+            <Flag aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
             {notaArranque.texto}
           </p>
         ))}
       {/* Quién cierra: a nombre de quién va (lo que sabe el aparato o el heredado de hoy, con «¿No es…?»), o el combo una sola vez.
           La persona de la sesión no ve nada. */}
       {enPantalla.modo === "elegir" ? (
-        <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Quién cierra el conteo">
+        <section data-guia="confirmar.quien" className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Quién cierra el conteo">
           <p className="text-sm text-tinta/80">{enPantalla.texto}</p>
           <CampoGuiado id="firma" guia={guia} titulo={preguntaFirma("cierre_conteo")}>
             <ComboResponsable control={combo} deshabilitado={cerrando} compacto className="w-full sm:w-80" />
@@ -305,18 +304,18 @@ export function ConfirmarConteo({
         }
         resumen={<p>{razonApagado ?? resumenPie}</p>}
         acciones={
-          <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <div data-guia="confirmar.pie" className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
             {/* Mientras se cierra el conteo no se sale a revisar (como antes): la flecha queda apagada y no responde. */}
             <Volver href={urlRevisar} a="Volver a revisar" className={`self-center ${cerrando ? "pointer-events-none opacity-50" : ""}`} />
-            <button
+            <Boton peso="primario" cargando={cerrando} textoCargando="Actualizando…"
               type="button"
               disabled={cerrando || razonApagado !== null}
               title={razonApagado ?? undefined}
               onClick={() => void cerrar()}
-              className={`btn-cayla btn-primario h-11 w-full sm:w-auto ${preguntar ? guia.claseConfirmar : ""}`}
+              className={`h-11 w-full sm:w-auto ${preguntar ? guia.claseConfirmar : ""}`}
             >
-              {cerrando ? "Actualizando…" : "Cerrar y actualizar existencias"}
-            </button>
+              Cerrar y actualizar existencias
+            </Boton>
           </div>
         }
       />

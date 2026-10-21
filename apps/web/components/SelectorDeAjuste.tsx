@@ -1,9 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Minus, Plus } from "lucide-react";
 import { limpiarTextoAjuste, textoTrasPaso, type ModoAjuste } from "@/lib/ajuste-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 /** Una talla del ajuste, ya dicha en voz de tienda (la arma `AjustarInventarioModal` con las reglas de `lib/ajuste-reglas.ts`). */
 export type FilaDeAjuste = {
@@ -63,38 +63,30 @@ export function SelectorDeAjuste({
                 <p className="text-sm text-tinta">{f.principal}</p>
                 {f.detalle && <p className="text-xs text-taupe">{f.detalle}</p>}
               </div>
-              <span className="inline-flex h-9 shrink-0 items-center rounded-lg border border-sand bg-papel">
-                <button
-                  type="button"
-                  aria-label={`Una menos de la talla ${f.talla}`}
-                  disabled={bloqueado || menos === null}
-                  onClick={() => menos !== null && onTexto(f.varianteId, menos)}
-                  className="grid h-9 w-9 place-items-center text-tinta/70 disabled:opacity-30"
-                >
-                  <Minus className="h-3.5 w-3.5" aria-hidden />
-                </button>
-                <input
+              <PasoCantidad
+                className="shrink-0"
+                menos={{
+                  onClick: () => menos !== null && onTexto(f.varianteId, menos),
+                  deshabilitado: bloqueado || menos === null,
+                  etiqueta: `Una menos de la talla ${f.talla}`,
+                }}
+                mas={{
+                  onClick: () => mas !== null && onTexto(f.varianteId, mas),
+                  deshabilitado: bloqueado || mas === null,
+                  etiqueta: `Una más de la talla ${f.talla}`,
+                }}
+                campo={{
                   // Al sumar o restar hace falta el «−»: un teclado solo numérico no lo trae.
-                  inputMode={modo === "contado" ? "numeric" : "text"}
-                  aria-label={`${etiquetaControl} · talla ${f.talla}`}
+                  inputMode: modo === "contado" ? "numeric" : "text",
+                  "aria-label": `${etiquetaControl} · talla ${f.talla}`,
                   // Vacío no es lo mismo al contar («no la conté») que al sumar o restar (0): el marcador lo dice.
-                  placeholder={modo === "contado" ? "—" : "0"}
-                  value={texto}
-                  disabled={bloqueado}
-                  onChange={(e) => onTexto(f.varianteId, limpiarTextoAjuste(e.target.value, modo))}
-                  onFocus={(e) => e.currentTarget.select()}
-                  className="w-10 bg-transparent text-center text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/35"
-                />
-                <button
-                  type="button"
-                  aria-label={`Una más de la talla ${f.talla}`}
-                  disabled={bloqueado || mas === null}
-                  onClick={() => mas !== null && onTexto(f.varianteId, mas)}
-                  className="grid h-9 w-9 place-items-center text-tinta/70 disabled:opacity-30"
-                >
-                  <Plus className="h-3.5 w-3.5" aria-hidden />
-                </button>
-              </span>
+                  placeholder: modo === "contado" ? "—" : "0",
+                  value: texto,
+                  disabled: bloqueado,
+                  onChange: (e) => onTexto(f.varianteId, limpiarTextoAjuste(e.target.value, modo)),
+                  onFocus: (e) => e.currentTarget.select(),
+                }}
+              />
             </div>
             {problema && (
               <Aviso tono="error" chico className="ml-12 mt-1.5">

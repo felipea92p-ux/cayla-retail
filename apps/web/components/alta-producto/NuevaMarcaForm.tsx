@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { marcasParecidas, type MarcaConProveedores, type ProveedorOpcion } from "@/lib/marcas";
 import { proveedoresParecidos } from "@/lib/proveedores-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
@@ -21,6 +22,7 @@ import {
   type ProveedorDelFormulario,
 } from "@/lib/marca-proveedor-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { MAX_NOMBRE_MARCA } from "@/lib/catalogo-topes";
 
 // El formulario «Registrar marca o proveedor» (ADR-0109; spike Nuevo producto v2, 2026-09-28): lo usan el selector de
 // Nuevo producto/censo/edición Y la pantalla Catálogo → Marcas — una sola forma de crear una marca, no dos.
@@ -194,6 +196,8 @@ export function NuevaMarcaForm({
     if (!firma.listo) return setError(firma.motivo);
     const nombre = marcaNombre.trim();
     if (!nombre) return setError("Elige la marca o escribe una nueva.");
+    // ADR-0405: el mismo tope que la base (`marcas_textos_con_tope`); la marca se escribe en el combo, que no corta solo.
+    if (nombre.length > MAX_NOMBRE_MARCA) return setError(`El nombre de la marca admite hasta ${MAX_NOMBRE_MARCA} letras.`);
     if (porResponder.length > 0) {
       return setError(
         porResponder.length === 1
@@ -353,37 +357,32 @@ export function NuevaMarcaForm({
         ) : provNuevo ? (
           <div className="space-y-1.5">
             <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label htmlFor="nuevo-proveedor" className="mb-1 block text-xs text-tinta/70">
-                  Razón social
-                </label>
-                <input
-                  id="nuevo-proveedor"
-                  autoFocus
-                  value={provNombre}
-                  onChange={(e) => setProvNombre(e.target.value)}
-                  onKeyDown={enter}
-                  placeholder="Textil Andina SAC" // sugerir-fijo: razón social de un proveedor nuevo; no depende de nada elegido antes
-                  autoComplete="off"
-                  className="caja-cayla h-10 w-full px-3 text-sm text-tinta placeholder:text-tinta/45"
-                />
-              </div>
-              <div>
-                <label htmlFor="nuevo-ruc" className="mb-1 block text-xs text-tinta/70">
-                  RUC <span className="text-taupe">· opcional</span>
-                </label>
-                <input
-                  id="nuevo-ruc"
-                  inputMode="numeric"
-                  maxLength={11}
-                  value={provRuc}
-                  onChange={(e) => setProvRuc(e.target.value.replace(/\D/g, ""))}
-                  onKeyDown={enter}
-                  placeholder="11 dígitos" // sugerir-fijo: formato del RUC; es el mismo para cualquier proveedor
-                  autoComplete="off"
-                  className="caja-cayla h-10 w-full px-3 text-sm tabular-nums text-tinta placeholder:text-tinta/45"
-                />
-              </div>
+              <CampoTexto
+                etiqueta="Razón social"
+                sinPie
+                id="nuevo-proveedor"
+                autoFocus
+                value={provNombre}
+                onChange={(e) => setProvNombre(e.target.value)}
+                onKeyDown={enter}
+                placeholder="Textil Andina SAC" // sugerir-fijo: razón social de un proveedor nuevo; no depende de nada elegido antes
+              />
+              <CampoTexto
+                etiqueta={
+                  <>
+                    RUC <span className="font-normal normal-case tracking-normal text-taupe">· opcional</span>
+                  </>
+                }
+                sinPie
+                id="nuevo-ruc"
+                inputMode="numeric"
+                maxLength={11}
+                value={provRuc}
+                onChange={(e) => setProvRuc(e.target.value.replace(/\D/g, ""))}
+                onKeyDown={enter}
+                placeholder="11 dígitos" // sugerir-fijo: formato del RUC; es el mismo para cualquier proveedor
+                className="tabular-nums"
+              />
             </div>
             <p className="text-xs text-taupe">
               Con esto alcanza para seguir; el contacto, el banco y el plazo se completan después en Compras.
@@ -442,19 +441,19 @@ export function NuevaMarcaForm({
 
       <AvisoSinIdentidad firma={firma} />
       <PieGuia guia={guia} listo="Todo listo para registrar." />
-      <div className="flex justify-end gap-2">
+      <div className="pie-acciones">
         <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-secundario">
           Cancelar
         </button>
-        <button
+        <Boton peso="primario" cargando={guardando}
           type="button"
           onClick={() => void guardar()}
           disabled={guardando || !listo || !firma.listo}
           title={firma.motivo ?? guia.frase ?? undefined}
-          className={`btn-cayla btn-primario ${guia.claseConfirmar}`}
+          className={`${guia.claseConfirmar}`}
         >
-          {guardando ? "Guardando…" : textoGuardar}
-        </button>
+          {textoGuardar}
+        </Boton>
       </div>
     </div>
   );

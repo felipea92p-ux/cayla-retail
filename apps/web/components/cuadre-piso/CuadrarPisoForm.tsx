@@ -3,14 +3,14 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Camera, Info, Loader2, Minus, Plus, ScanBarcode, Undo2 } from "lucide-react";
+import { Camera, Info, ScanBarcode, Undo2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 import { avisar } from "@/components/ui/Avisos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Chip } from "@/components/ui/Chip";
-import { CampoTexto, Interruptor } from "@/components/ui/campos";
+import { CampoTexto, Interruptor, Boton } from "@/components/ui/campos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { EsqueletoTabla, EsqueletoTarjetas } from "@/components/Esqueleto";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -74,6 +74,7 @@ import {
 import { CifrasCuadre, AntesDespues, ListasCuadre } from "./RevisarCuadre";
 import { ResultadoCuadre } from "./ResultadoCuadre";
 import { Aviso } from "@/components/ui/Aviso";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 /*
  * «Cuadrar el piso» (ADR-0328, decisión técnica 4). Tres pasos y el resultado:
@@ -595,7 +596,9 @@ export function CuadrarPisoForm({
 
   return (
     <div className="space-y-4">
-      <PasosConteo actual={paso} pasos={PASOS} etiqueta="Pasos del cuadre del piso" />
+      <div data-guia="cuadrar.pasos">
+        <PasosConteo actual={paso} pasos={PASOS} etiqueta="Pasos del cuadre del piso" />
+      </div>
 
       {estado.cuadradoEn && (
         <p className="nota-cayla">
@@ -605,15 +608,9 @@ export function CuadrarPisoForm({
       )}
 
       {conteo && (
-        <div
-          role="status"
-          className="anim-revelar flex flex-wrap items-start justify-between gap-x-3 gap-y-2 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo"
-        >
-          <p className="min-w-0 flex-1 basis-64">{textoConteoAbierto(conteo, sede)}</p>
-          <Link href={`/inventario/conteo/${conteo.conteoId}`} className="btn-cayla btn-enlace shrink-0 text-[13px]">
-            Ir al conteo
-          </Link>
-        </div>
+        <Aviso tono="atencion" accion={<Link href={`/inventario/conteo/${conteo.conteoId}`}>Ir al conteo</Link>}>
+          {textoConteoAbierto(conteo, sede)}
+        </Aviso>
       )}
 
       {borrador && (
@@ -650,7 +647,7 @@ export function CuadrarPisoForm({
           {/* Antes de la primera lectura, lo que hay que cuidar; ya escaneando, una línea (en el celular, el campo tiene que verse sin
               bajar la pantalla). */}
           {datos.lineas.length === 0 && datos.pendientes.length === 0 ? (
-            <ul className="nota-cayla sin-i list-disc space-y-1 pl-8 text-sm">
+            <ul data-guia="cuadrar.cuidados" className="nota-cayla sin-i list-disc space-y-1 pl-8 text-sm">
               <li>Hazlo antes de abrir: si mientras escaneas se vende, se repone o se recibe algo del almacén, tendrás que volver a escanear esas prendas.</li>
               <li>Escanea solo lo GUARDADO. No escanees las dañadas (cuarentena) ni el estante de Apartados: el cuadre no las mueve.</li>
               <li>Una prenda guardada sin etiqueta no se puede escanear y quedaría como colgada: cárgala antes de cuadrar.</li>
@@ -676,13 +673,15 @@ export function CuadrarPisoForm({
           )}
 
           <CampoGuiado id="guardado" guia={guiaEscaneo} titulo="Lo guardado" ayuda="Cada lectura suma 1. Si tienes 12 iguales, escanea una y cambia el número.">
-            <section className="card-cayla p-4 sm:p-5">
+            <section data-guia="cuadrar.escaner" className="card-cayla p-4 sm:p-5">
               <label htmlFor="cuadre-escaner" className="sr-only">
                 Escanear prenda guardada
               </label>
-              <div className="caja-cayla relative">
-                <ScanBarcode aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-tinta/45" />
+              {/* La caja que se enciende (ADR-0358, ronda 6), del alto de la pistola. */}
+              <div className="caja-cayla caja-campo min-h-14">
+                <ScanBarcode aria-hidden className="pointer-events-none h-5 w-5 shrink-0 text-tinta/45" />
                 <input
+                  className="self-stretch py-0 text-base disabled:cursor-not-allowed"
                   ref={escaner}
                   id="cuadre-escaner"
                   type="text"
@@ -701,11 +700,10 @@ export function CuadrarPisoForm({
                     e.currentTarget.value = "";
                     leer(texto);
                   }}
-                  className="h-14 w-full bg-transparent pl-11 pr-4 text-base text-tinta outline-none placeholder:text-tinta/45 disabled:cursor-not-allowed disabled:opacity-60"
                 />
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => setCamara(true)} disabled={congelada} className="btn-cayla btn-secundario h-11">
+                <button type="button" data-guia="cuadrar.camara" onClick={() => setCamara(true)} disabled={congelada} className="btn-cayla btn-secundario h-11">
                   <Camera aria-hidden className="h-4 w-4" />
                   Escanear con la cámara
                 </button>
@@ -731,7 +729,7 @@ export function CuadrarPisoForm({
                 {anuncio}
               </p>
               {datos.lineas.length === 0 && (
-                <div className="mt-4 border-t border-tinta/10 pt-4">
+                <div data-guia="cuadrar.todo-colgado" className="mt-4 border-t border-tinta/10 pt-4">
                   <Interruptor
                     activo={datos.confirmoVacio}
                     onActivo={(v) => cambiar((d) => ({ ...d, confirmoVacio: v }))}
@@ -767,43 +765,28 @@ export function CuadrarPisoForm({
                         </div>
                       </div>
                       <div className="relative ml-auto flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          aria-label={`Una menos de ${nombre}`}
-                          disabled={congelada}
-                          onClick={() => cambiarCantidad(l.varianteId, l.cantidad - 1)}
-                          className="btn-cayla btn-secundario h-11 w-11 p-0"
-                        >
-                          <Minus aria-hidden className="h-4 w-4" />
-                        </button>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          aria-label={`Cantidad de ${nombre}`}
-                          disabled={congelada}
-                          value={edicion[l.varianteId] ?? String(l.cantidad)}
-                          onFocus={(e) => e.currentTarget.select()}
-                          onChange={(e) => {
-                            const valor = e.target.value;
-                            setEdicion((m) => ({ ...m, [l.varianteId]: valor }));
+                        <PasoCantidad
+                          menos={{ onClick: () => cambiarCantidad(l.varianteId, l.cantidad - 1), deshabilitado: congelada, etiqueta: `Una menos de ${nombre}` }}
+                          mas={{ onClick: () => cambiarCantidad(l.varianteId, l.cantidad + 1), deshabilitado: congelada, etiqueta: `Una más de ${nombre}` }}
+                          campo={{
+                            type: "text",
+                            inputMode: "numeric",
+                            "aria-label": `Cantidad de ${nombre}`,
+                            disabled: congelada,
+                            value: edicion[l.varianteId] ?? String(l.cantidad),
+                            onFocus: (e) => e.currentTarget.select(),
+                            onChange: (e) => {
+                              const valor = e.target.value;
+                              setEdicion((m) => ({ ...m, [l.varianteId]: valor }));
+                            },
+                            onBlur: (e) => confirmarNumero(l.varianteId, e.currentTarget.value),
+                            onKeyDown: (e) => {
+                              if (e.key !== "Enter") return;
+                              e.preventDefault();
+                              volverAlEscaner();
+                            },
                           }}
-                          onBlur={(e) => confirmarNumero(l.varianteId, e.currentTarget.value)}
-                          onKeyDown={(e) => {
-                            if (e.key !== "Enter") return;
-                            e.preventDefault();
-                            volverAlEscaner();
-                          }}
-                          className="caja-cayla h-11 w-14 text-center text-base tabular-nums text-tinta disabled:opacity-60"
                         />
-                        <button
-                          type="button"
-                          aria-label={`Una más de ${nombre}`}
-                          disabled={congelada}
-                          onClick={() => cambiarCantidad(l.varianteId, l.cantidad + 1)}
-                          className="btn-cayla btn-secundario h-11 w-11 p-0"
-                        >
-                          <Plus aria-hidden className="h-4 w-4" />
-                        </button>
                         <button type="button" disabled={congelada} onClick={() => quitar(l.varianteId)} className="btn-cayla btn-sutil ml-1 h-11">
                           Quitar
                         </button>
@@ -816,12 +799,11 @@ export function CuadrarPisoForm({
           )}
 
           {sinGuardado && datos.lineas.length > 0 && (
-            <p role="status" className="rounded-xl border border-ambar/35 bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
-              Este navegador no puede guardar lo escaneado: termina el cuadre antes de salir de la pantalla.
-            </p>
+            <Aviso tono="atencion">Este navegador no puede guardar lo escaneado: termina el cuadre antes de salir de la pantalla.</Aviso>
           )}
 
           <BarraFija
+            guia="cuadrar.barra"
             aviso={<PieGuia guia={guiaEscaneo} listo="Listo para revisar." />}
             resumen={
               <span>
@@ -830,7 +812,7 @@ export function CuadrarPisoForm({
               </span>
             }
             acciones={
-              <div className="flex w-full items-center gap-2 sm:w-auto">
+              <div data-guia="cuadrar.revisar" className="flex w-full items-center gap-2 sm:w-auto">
                 <button type="button" onClick={() => setCamara(true)} disabled={congelada} aria-label="Escanear con la cámara" className="btn-cayla btn-secundario h-11 w-11 shrink-0 p-0 sm:hidden">
                   <Camera aria-hidden className="h-5 w-5" />
                 </button>
@@ -939,19 +921,17 @@ export function CuadrarPisoForm({
                     Sigue: confirmar
                   </button>
                 ) : (
-                  <button
+                  <Boton
                     type="button"
-                    className={`btn-cayla btn-primario h-11 flex-1 sm:flex-none ${motivoConfirmar ? "" : guiaConfirmar.claseConfirmar}`}
-                    disabled={enviando || (!congelada && (motivoConfirmar !== null || vista?.estado !== "lista"))}
+                    peso="primario"
+                    cargando={enviando}
+                    textoCargando="Cuadrando…"
+                    className={`h-11 flex-1 sm:flex-none ${motivoConfirmar ? "" : guiaConfirmar.claseConfirmar}`}
+                    disabled={!congelada && (motivoConfirmar !== null || vista?.estado !== "lista")}
                     title={motivoConfirmar ?? undefined}
                     onClick={() => void confirmar()}
                   >
-                    {enviando ? (
-                      <>
-                        <Loader2 aria-hidden className="h-4 w-4 motion-safe:animate-spin" />
-                        Cuadrando…
-                      </>
-                    ) : congelada ? (
+                    {congelada ? (
                       BOTON_COMPROBAR_CUADRE
                     ) : (
                       // En el celular, sin la sede (la barra ya la dice arriba): el nombre largo de una sede no cabe junto a «Volver».
@@ -960,7 +940,7 @@ export function CuadrarPisoForm({
                         <span className="max-sm:hidden">Cuadrar el piso de {sede}</span>
                       </>
                     )}
-                  </button>
+                  </Boton>
                 )}
               </div>
             }

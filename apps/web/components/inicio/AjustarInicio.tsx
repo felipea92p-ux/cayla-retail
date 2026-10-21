@@ -42,6 +42,7 @@ export function AjustarInicio({
     <>
       <button
         type="button"
+        aria-haspopup="dialog"
         onClick={() => setAbierto(true)}
         className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[12.5px] text-taupe transition-colors hover:bg-tinta/5"
       >
@@ -58,10 +59,10 @@ export function AjustarInicio({
           subtitulo="Solo aparecen avisos de los módulos que tu rol ve. Lo urgente sale igual aunque lo apagues."
           onClose={() => setAbierto(false)}
           variante="hoja"
-          ancho="max-w-lg"
+          tamano="mediana"
         >
           {(cerrar) => (
-            <div className="space-y-5">
+            <div className="space-y-5" data-guia="inicio.ajustar-lista">
               {grupos.map((g) => (
                 <div key={g}>
                   <p className="label-cayla mb-2 text-[11px] text-tinta/65">{g}</p>
@@ -81,15 +82,13 @@ export function AjustarInicio({
                             {a.ocultable ? (
                               <button
                                 type="button"
-                                role="switch"
+                                role="switch" // unificar-fijo: la cara del interruptor del sistema, con su título a la izquierda en la fila
                                 aria-checked={activo}
                                 aria-label={a.titulo}
                                 onClick={() => guardar({ ...eleccion, [a.clave]: !activo })}
-                                className={`relative h-6 w-10 shrink-0 rounded-full transition-colors duration-200 ${activo ? "bg-verde" : "bg-tinta/30"}`}
+                                className="interruptor"
                               >
-                                <span
-                                  className={`absolute top-[3px] left-[3px] size-[18px] rounded-full bg-crema transition-transform duration-200 ease-cayla ${activo ? "translate-x-4" : ""}`}
-                                />
+                                <span aria-hidden className="interruptor-perilla" />
                               </button>
                             ) : (
                               <span className="flex shrink-0 items-center gap-1 text-xs text-rojo-profundo">

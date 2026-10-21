@@ -95,13 +95,13 @@ describe("leerNumero: lo que se tipea en el puesto", () => {
   it("una línea con miles con punto dice cómo escribirlo, con las dos lecturas", () => {
     expect(problemaDeLinea(linea({ cantidad: "1.000" }), CTX)).toBe("¿«1.000» son 1000? Escribe la cantidad sin punto: 1000.");
     expect(problemaDeLinea(linea({ cantidad: "2", precio: "1.500" }), CTX)).toBe(
-      "¿«1.500» es S/ 1500 o S/ 1.50? Escríbelo sin punto (1500) o con dos decimales (1.50).",
+      "¿«1.500» es S/\u00a01500 o S/\u00a01.50? Escríbelo sin punto (1500) o con dos decimales (1.50).",
     );
   });
   it("la duda se dice a la vista bajo la línea (no solo al pasar el mouse): cantidad, precio o descuento en soles; sin duda, nada", () => {
     expect(dudaDeLinea(linea({ cantidad: "1.000" }))).toBe("¿«1.000» son 1000? Escribe la cantidad sin punto: 1000.");
-    expect(dudaDeLinea(linea({ precio: "12.500" }))).toBe("¿«12.500» es S/ 12500 o S/ 12.50? Escríbelo sin punto (12500) o con dos decimales (12.50).");
-    expect(dudaDeLinea(linea({ modoDescuento: "soles", descuento: "1.000" }))).toContain("¿«1.000» es S/ 1000 o S/ 1.00?");
+    expect(dudaDeLinea(linea({ precio: "12.500" }))).toBe("¿«12.500» es S/\u00a012500 o S/\u00a012.50? Escríbelo sin punto (12500) o con dos decimales (12.50).");
+    expect(dudaDeLinea(linea({ modoDescuento: "soles", descuento: "1.000" }))).toContain("¿«1.000» es S/\u00a01000 o S/\u00a01.00?");
     expect(dudaDeLinea(linea({ modoDescuento: "pct", descuento: "1.000" }))).toBeNull();
     expect(dudaDeLinea(linea())).toBeNull();
   });
@@ -151,8 +151,8 @@ describe("problemaDeLinea: las mismas reglas que crear_orden_compra (CR3 de scri
     ["cantidad 0", { cantidad: "0" }, "La cantidad va de 1 a 99 999 unidades, sin decimales."],
     ["cantidad de más", { cantidad: "100000" }, "La cantidad va de 1 a 99 999 unidades, sin decimales."],
     ["sin precio", { precio: "" }, "Escribe el precio por unidad."],
-    ["precio con tres decimales", { precio: "10.555" }, "El precio va de S/ 0 a S/ 99 999.99, con hasta dos decimales."],
-    ["precio en letras", { precio: "diez" }, "El precio va de S/ 0 a S/ 99 999.99, con hasta dos decimales."],
+    ["precio con tres decimales", { precio: "10.555" }, "El precio va de S/\u00a00 a S/\u00a099 999.99, con hasta dos decimales."],
+    ["precio en letras", { precio: "diez" }, "El precio va de S/\u00a00 a S/\u00a099 999.99, con hasta dos decimales."],
     ["precio 0 (un regalo del proveedor)", { precio: "0" }, null],
     ["descuento en soles mayor que la línea", { cantidad: "2", precio: "10", descuento: "20.01", modoDescuento: "soles" }, "El descuento no puede pasar de lo que cuesta la línea."],
     ["descuento en soles igual a la línea", { cantidad: "2", precio: "10", descuento: "20", modoDescuento: "soles" }, null],
@@ -290,12 +290,18 @@ describe("editar: la orden guardada vuelve al formulario y viaja con su versión
     anuladaEn: null,
     motivoAnulacion: null,
     lineas: [
-      { posicion: 1, categoriaId: "cat", categoria: "Chompas", marcaId: "marca", marca: "CAYLA", descripcion: "Cuello alto", cantidad: 30, precioUnitario: 42, descuento: 0, descuentoPct: null, subtotal: 1260 },
-      { posicion: 2, categoriaId: "cat", categoria: "Tops", marcaId: "marca", marca: "CAYLA", descripcion: null, cantidad: 12, precioUnitario: 25.5, descuento: 15.3, descuentoPct: 5, subtotal: 290.7 },
-      { posicion: 3, categoriaId: "cat", categoria: "Tops", marcaId: "marca", marca: "CAYLA", descripcion: null, cantidad: 2, precioUnitario: 10, descuento: 2.5, descuentoPct: null, subtotal: 17.5 },
+      { id: null, facturado: null, pendiente: null, enviado: null, porEnviar: null, posicion: 1, categoriaId: "cat", categoria: "Chompas", marcaId: "marca", marca: "CAYLA", descripcion: "Cuello alto", cantidad: 30, precioUnitario: 42, descuento: 0, descuentoPct: null, subtotal: 1260 },
+      { id: null, facturado: null, pendiente: null, enviado: null, porEnviar: null, posicion: 2, categoriaId: "cat", categoria: "Tops", marcaId: "marca", marca: "CAYLA", descripcion: null, cantidad: 12, precioUnitario: 25.5, descuento: 15.3, descuentoPct: 5, subtotal: 290.7 },
+      { id: null, facturado: null, pendiente: null, enviado: null, porEnviar: null, posicion: 3, categoriaId: "cat", categoria: "Tops", marcaId: "marca", marca: "CAYLA", descripcion: null, cantidad: 2, precioUnitario: 10, descuento: 2.5, descuentoPct: null, subtotal: 17.5 },
     ],
     unidades: 44,
     total: 1568.2,
+    // Fase 2: una base que todavía no cuenta comprobantes (la orden se edita igual).
+    comprobantes: [],
+    papel: null,
+    // Fase 3: una base que todavía no cuenta envíos (la orden se edita igual).
+    envios: null,
+    deudaDe: null,
   };
 
   it("el descuento vuelve como se escribió: en % si la línea lo recuerda, si no en soles; sin descuento, en % y vacío", () => {

@@ -14,6 +14,7 @@ import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TarjetaPrenda } from "@/components/punto-de-venta/TarjetaPrenda";
 import { etiquetaPrecioDeSede } from "@/lib/precio-sede-reglas";
+import { Interruptor } from "@/components/ui/campos";
 
 /**
  * Cuántas tarjetas se pintan de entrada y cuántas se suman cada vez que el centinela del fondo entra a la
@@ -208,6 +209,7 @@ export function PuntoDeVentaCatalogo({
             // (h-14) y mismo lugar: la encargada busca «escanear» donde siempre estuvo.
             <button
               type="button"
+              data-guia="vender.escanear"
               onClick={onAbrirCamara}
               disabled={bloqueado}
               className="btn-cayla btn-primario flex h-14 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap"
@@ -219,7 +221,7 @@ export function PuntoDeVentaCatalogo({
           <div className="relative z-20 min-w-0 flex-1 max-sm:static">
             {/* El buscador del mostrador (ADR-0358, ronda 5): la píldora que se despega, con el código de barras que se enciende
                 en rojo («acá se escanea» sin una palabra más). Filtra mientras se escribe. */}
-            <Buscador
+            <Buscador guia="vender.buscador"
               tamano="mostrador"
               icono="barras"
               id="venta-buscar"
@@ -233,7 +235,7 @@ export function PuntoDeVentaCatalogo({
               onKeyDown={onTeclado}
               placeholder="Escanea la etiqueta o busca la prenda"
               etiqueta="Escanea la etiqueta o busca la prenda"
-              role="combobox"
+              role="combobox" // unificar-fijo: la búsqueda del mostrador (pistola y fotos), que la pieza no hace
               aria-expanded={resultados.length > 0}
               aria-controls="venta-resultados"
               aria-activedescendant={resultados.length > 0 ? `venta-op-${activo}` : undefined}
@@ -242,7 +244,8 @@ export function PuntoDeVentaCatalogo({
             {q && (
               <ul
                 id="venta-resultados"
-                role="listbox"
+                role="listbox" // unificar-fijo: la lista con fotos y stock de la búsqueda del mostrador
+                data-guia="vender.resultados"
                 aria-label="Prendas encontradas"
                 className="card-cayla anim-globo absolute top-16 right-0 left-0 divide-y divide-sand overflow-hidden !p-0 shadow-lg"
               >
@@ -319,6 +322,7 @@ export function PuntoDeVentaCatalogo({
             <button
               type="button"
               onClick={modoCamara ? onBuscarPorTexto : onAbrirCamara}
+              data-guia={modoCamara ? "vender.buscar-por-nombre" : "vender.camara"}
               disabled={bloqueado}
               aria-label={modoCamara ? "Buscar la prenda por nombre" : "Escanear QR con la cámara"}
               className="grid w-14 shrink-0 place-items-center rounded-xl border border-sand bg-papel text-tinta/75 transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
@@ -336,6 +340,7 @@ export function PuntoDeVentaCatalogo({
           <button
             type="button"
             onClick={() => onPrendaSinRegistrar()}
+            data-guia="vender.sin-registrar"
             disabled={bloqueado}
             // En una fila angosta (el teléfono, o el panel de una laptop con el lateral abierto) el texto se parte en dos
             // líneas en vez de robarle ancho al campo o a la cámara. Por el ancho del panel (`@md`), no de la ventana.
@@ -358,6 +363,7 @@ export function PuntoDeVentaCatalogo({
         <button
           type="button"
           onClick={() => setCatalogoAbierto((v) => !v)}
+          data-guia="vender.ver-catalogo"
           aria-expanded={catalogoAbierto}
           aria-controls="venta-catalogo-filtros venta-catalogo-grilla"
           className="btn-cayla btn-secundario mt-3 flex h-11 w-full items-center justify-center gap-2 sm:hidden"
@@ -378,29 +384,15 @@ export function PuntoDeVentaCatalogo({
               cuántas tarjetas esconde: sin ese número, una prenda que no aparece parece que
               no existe. */}
           <div className="mt-3 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={soloConStock}
-              onClick={() => onSoloConStock(!soloConStock)}
-              disabled={bloqueado}
-              // `shrink-0`: con el contador largo de al lado, el interruptor se partía en dos líneas y la fila crecía.
-              className="group flex shrink-0 items-center gap-2.5 rounded-md py-1"
-            >
-              <span
-                aria-hidden
-                className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-300 ease-[var(--ease-cayla)] ${
-                  soloConStock ? "border-tinta bg-tinta" : "border-sand bg-sand/60"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-3.5 w-3.5 rounded-full shadow-sm transition-transform duration-300 ease-[var(--ease-cayla)] ${
-                    soloConStock ? "translate-x-4 bg-crema" : "bg-tinta/45"
-                  }`}
-                />
-              </span>
-              <span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>
-            </button>
+            {/* El interruptor del sistema (ADR-0358, ronda 6). `shrink-0`: con el contador largo de al lado, se partía en dos líneas. */}
+            <div data-guia="vender.solo-stock" className="shrink-0 py-1">
+              <Interruptor
+                activo={soloConStock}
+                onActivo={onSoloConStock}
+                disabled={bloqueado}
+                etiqueta={<span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>}
+              />
+            </div>
             {soloConStock && ocultasSinStock > 0 && (
               // Un color escondido porque su piso está en 0 no está «agotado» si tiene prendas en el almacén de esta sede
               // (D-40): se dice cuántos, para que se sepa que apagando el filtro aparecen. Cuenta COLORES (los puntos de
@@ -415,7 +407,7 @@ export function PuntoDeVentaCatalogo({
           </div>
 
           {/* Catálogo, la ruta secundaria: las categorías tienen ahora toda la fila. */}
-          <div className="scroll-cayla -mx-1 mt-1 flex gap-2 overflow-x-auto px-1 pb-3 pt-1">
+          <div data-guia="vender.categorias" className="scroll-cayla -mx-1 mt-1 flex gap-2 overflow-x-auto px-1 pb-3 pt-1">
             {categorias.map((c, i) => (
               <button
                 key={c}

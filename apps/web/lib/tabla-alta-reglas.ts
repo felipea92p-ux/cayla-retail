@@ -10,6 +10,7 @@
 //   NO HACE: no guarda nada ni decide qué se manda a la RPC: eso sigue en `NuevoProductoForm`.
 
 import { leerCantidad, limpiarCantidad, type CeldaAlta } from "./alta-producto";
+import { precioValido } from "./variantes-ficha-reglas";
 
 /** Tope de una celda de cantidad (`leerCantidad`/`crear_producto_con_stock_inicial`): un entero de 4 dígitos. */
 const CANTIDAD_MAXIMA = 9999;
@@ -58,6 +59,22 @@ export function vaciarTodas(celdas: readonly CeldaAlta[], excluidas: ReadonlySet
   return celdas.filter((c) => !excluidas.has(c.clave)).map((c) => ({ clave: c.clave, valor: "" }));
 }
 
+/**
+ * Lo que hace escribir (o borrar) en «Llenar todas con». Con un número, lo pone en todas las celdas que siguen en la tabla. Con la caja VACÍA —porque se borró o porque se tecleó algo que no
+ * es un dígito— depende de la pantalla: en Nuevo producto es el reverso de lo anterior y deja vacías esas celdas (`borraAlVaciar`, lo de siempre); en «Nueva orden» NO toca nada, porque ahí
+ * las cantidades suelen venir de la sugerencia de la red o de teclearlas una por una, y una tecla de más no debe vaciar la orden entera sin avisar (revisión adversaria de A2, 2026-10-13).
+ */
+export function cambiosDeRelleno(
+  celdas: readonly CeldaAlta[],
+  excluidas: ReadonlySet<string>,
+  texto: string,
+  borraAlVaciar: boolean
+): { clave: string; valor: string }[] {
+  const limpio = limpiarCantidad(texto);
+  if (limpio !== "") return llenarTodas(celdas, excluidas, limpio);
+  return borraAlVaciar ? vaciarTodas(celdas, excluidas) : [];
+}
+
 /** Los botones «−» / «+» junto a una celda: suman o restan 1 al entero leído (vacío cuenta 0), sin pasar de
  *  0 a 9999. El resultado vuelve a texto con la misma convención que tipear a mano: 0 se guarda vacío. */
 export function pasoCantidad(valor: string, delta: -1 | 1): string {
@@ -88,7 +105,7 @@ export function precioDistinto(valor: string | undefined, precioBase: string): b
 /** El precio de venta como se lee en la tabla: «S/ 89.90». Sin precio todavía, «el precio de venta». */
 export function textoPrecioBase(precioBase: string): string {
   const n = Number(precioBase);
-  return Number.isFinite(n) && n > 0 ? `S/ ${n.toFixed(2)}` : "el precio de venta";
+  return Number.isFinite(n) && n > 0 ? `S/\u00a0${n.toFixed(2)}` : "el precio de venta";
 }
 
 /** El costo de arriba leído como número: es opcional, así que vacío (o algo que no es un número) es 0, como lo guarda el alta. */
@@ -109,13 +126,34 @@ export function costoDistinto(valor: string | undefined, costoBase: string): boo
 /** El costo de arriba como se lee en la tabla: «S/ 12.50». Sin costo (es opcional), las vacías quedan «sin costo». */
 export function textoCostoBase(costoBase: string): string {
   const n = costoDeArriba(costoBase);
-  return n > 0 ? `S/ ${n.toFixed(2)}` : "sin costo";
+  return n > 0 ? `S/\u00a0${n.toFixed(2)}` : "sin costo";
 }
 
 /** Lo que vale una celda de «Precios» o «Costos» al crear: lo escrito en ella o, vacía, el monto de todas. Un texto que no es
  *  número da NaN a propósito: el formulario lo frena antes de llamar a la base. */
 export function montoDeCelda(propio: string | undefined, base: number): number {
   return propio !== undefined && propio.trim() !== "" ? Number(propio) : base;
+}
+
+/** Cómo se llama una celda en pantalla: «Negro en M», «Sin color en Única». La misma frase en la tabla (para el lector) y en
+ *  «Falta», para que la persona encuentre la celda que se le nombra. */
+export function nombreCelda(color: string | null | undefined, talla: string | null | undefined): string {
+  return `${color || "Sin color"} en ${talla || "Única"}`;
+}
+
+/**
+ * La primera celda (de las que siguen en la tabla) con un precio PROPIO que no sirve: un 0, o algo que no es un número. Vacía no
+ * cuenta: toma el precio de todas, que se revisa aparte. Es la regla de Editar producto (`precioValido`, ADR-0377), sin la
+ * excepción de Empaque: Nuevo producto pide siempre un precio mayor que 0 (una bolsa de obsequio se deja en 0 desde su ficha).
+ * Sin esto, un «0» escrito por error en una celda creaba la prenda a S/ 0 y la caja la vendía gratis (ADR-0384).
+ */
+export function celdaSinPrecio<C extends { clave: string }>(celdas: readonly C[], precios: Readonly<Record<string, string>>): C | null {
+  return celdas.find((c) => precioPropioInvalido(precios[c.clave])) ?? null;
+}
+
+/** ¿Lo escrito en una celda de «Precios» no sirve? Vacía sirve (toma el de todas). La celda lo marca y `celdaSinPrecio` la nombra. */
+export function precioPropioInvalido(propio: string | undefined): boolean {
+  return propio !== undefined && propio.trim() !== "" && !precioValido(Number(propio));
 }
 
 export type Leyenda = {
@@ -146,4 +184,59 @@ export function leyendaVariantes(incluidas: number, colores: readonly string[], 
 export function textoFotosDeFila(n: number, hayGeneral: boolean): string {
   if (n > 0) return `${n} foto${n === 1 ? "" : "s"}`;
   return hayGeneral ? "usa la de todos" : "agrega su foto";
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------
+// El teclado de la tabla de cantidades (ADR-0396, A2): quien carga una curva de 3 colores × 4 tallas no debería buscar cada celda con el mouse. Enter y ↓ bajan por la
+// talla (la columna), ↑ y Shift+Enter suben; al llegar al fondo, Enter pasa a la talla siguiente (como una planilla) y ↓ se queda donde está. Lo que se mueve es solo el
+// cursor: nada de esto escribe ni envía. Aquí vive lo que se puede equivocar sin que se note —qué celdas tienen caja, a cuál se salta, cuándo se acaba— para probarlo sin React.
+
+export type MovimientoDeTecla = { sentido: 1 | -1; envolver: boolean };
+
+/** Qué hace una tecla dentro de una celda: Enter y ↓ van a la de abajo, Shift+Enter y ↑ a la de arriba; solo Enter (con o sin Shift) pasa de una talla a la otra al
+ *  llegar al fondo. Con Alt, Ctrl o Meta, con Shift+flecha o con cualquier otra tecla, `null`: la tecla es del navegador (atajos, selección de texto). */
+export function movimientoDeTecla(k: { key: string; shiftKey: boolean; altKey: boolean; ctrlKey: boolean; metaKey: boolean }): MovimientoDeTecla | null {
+  if (k.altKey || k.ctrlKey || k.metaKey) return null;
+  if (k.key === "Enter") return { sentido: k.shiftKey ? -1 : 1, envolver: true };
+  if (k.shiftKey) return null;
+  if (k.key === "ArrowDown") return { sentido: 1, envolver: false };
+  if (k.key === "ArrowUp") return { sentido: -1, envolver: false };
+  return null;
+}
+
+/** Una lista por columna (talla) con las claves de las celdas que TIENEN caja, de arriba abajo. Una celda quitada o que el modelo no tiene no cuenta (no hay a dónde
+ *  saltar); una columna sin ninguna celda con caja se omite, para que «la siguiente talla» sea siempre una que se puede escribir. */
+export function columnasEditables(
+  filas: readonly (string | null)[],
+  columnas: readonly (string | null)[],
+  celdas: readonly CeldaAlta[],
+  excluidas: ReadonlySet<string>
+): string[][] {
+  const porClave = new Map(celdas.map((c) => [`${c.color ?? ""}\u0000${c.tallaId ?? ""}`, c] as const));
+  const listas: string[][] = [];
+  for (const talla of columnas) {
+    const claves: string[] = [];
+    for (const color of filas) {
+      const celda = porClave.get(`${color ?? ""}\u0000${talla ?? ""}`);
+      if (celda && !excluidas.has(celda.clave)) claves.push(celda.clave);
+    }
+    if (claves.length > 0) listas.push(claves);
+  }
+  return listas;
+}
+
+/** La celda a la que va el cursor desde `desde`. Sentido 1: la siguiente de su columna; al fondo, si `envolver`, la primera de la columna siguiente; si no, `null`
+ *  (se queda). Sentido −1: el espejo. Una `desde` que no está en la tabla da `null`: nunca se adivina. */
+export function celdaVecina(columnas: readonly (readonly string[])[], desde: string, mov: MovimientoDeTecla): string | null {
+  for (let c = 0; c < columnas.length; c++) {
+    const r = columnas[c].indexOf(desde);
+    if (r < 0) continue;
+    const vecina = columnas[c][r + mov.sentido];
+    if (vecina !== undefined) return vecina;
+    if (!mov.envolver) return null;
+    const otra = columnas[c + mov.sentido];
+    if (!otra) return null;
+    return mov.sentido === 1 ? otra[0] : (otra.at(-1) ?? null);
+  }
+  return null;
 }

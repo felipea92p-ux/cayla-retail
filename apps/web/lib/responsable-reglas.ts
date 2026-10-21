@@ -22,6 +22,9 @@
  *    combo, ve un aviso. El candado es para las cuentas compartidas de cada tienda (caja y almacén) y para quien firma
  *    por otra persona; la cuenta del Admin es suya.
  *  · Después de guardar vuelve a como vino al abrir (elegida la persona de la sesión, o vacío).
+ *  · TEMPORAL (ADR-0454, Felipe 2026-10-19, hasta integrar Lima con Dynamic): una terminal con FIRMA DE RESPALDO
+ *    (`terminales.firma_respaldo_id`, hoy Caja Lima y Almacén Lima) no pide responsable en ningún módulo: la base firma
+ *    siempre a nombre de esa persona (`fn_actor_persona_id`). Es el estado `respaldo`; la pantalla no manda encabezados.
  *
  * CÓMO VIAJA. En encabezados de la petición (`x-responsable`, `x-ubicacion` y, en la venta sin conexión,
  * `x-momento`), no como un parámetro nuevo en ~40 funciones (ADR-0161 §2: cambiar firmas deja sobrecargas vivas,
@@ -67,6 +70,7 @@ export type ListaResponsable = {
   salieron: number;
 };
 
+/** @internal Comodidad de la prueba: la lista sin nadie (la pantalla la arma desde la base). */
 export const LISTA_VACIA: ListaResponsable = { elegibles: [], enPausa: [], salieron: 0 };
 
 function aPersona(f: FilaDeTurno): PersonaDeTurno {
@@ -126,8 +130,10 @@ export function responsableInicial(tocado: string | null | undefined, propuesto:
  *  · `falta`      — hay a quién elegir y todavía no se eligió.
  *  · `listo`      — hay un responsable vigente.
  *  · `admin`      — la sesión es de un Admin: firma él, sin lista ni asistencia (se puede guardar).
+ *  · `respaldo`   — la sesión es de una terminal con firma de respaldo (ADR-0454): la base firma a nombre del respaldo, sin lista
+ *                   ni asistencia ni encabezados (se puede guardar).
  */
-export type EstadoCombo = "cargando" | "sin_lectura" | "nadie" | "falta" | "listo" | "admin";
+export type EstadoCombo = "cargando" | "sin_lectura" | "nadie" | "falta" | "listo" | "admin" | "respaldo";
 
 export function estadoCombo(v: {
   cargo: boolean;
@@ -135,8 +141,10 @@ export function estadoCombo(v: {
   lista: ListaResponsable;
   elegidoId: string | null;
   admin?: boolean;
+  respaldo?: boolean;
 }): EstadoCombo {
   if (v.admin) return "admin";
+  if (v.respaldo) return "respaldo";
   if (!v.cargo) return v.fallo ? "sin_lectura" : "cargando";
   if (v.lista.elegibles.length === 0) return "nadie";
   return responsableVigente(v.lista, v.elegidoId) ? "listo" : "falta";
@@ -150,6 +158,7 @@ export function motivoSinResponsable(estado: EstadoCombo, sede: string, modo: Mo
   switch (estado) {
     case "listo":
     case "admin":
+    case "respaldo":
       return null;
     case "falta":
       return modo === "atencion" ? "Elige quién está atendiendo." : "Elige quién hace esta operación.";

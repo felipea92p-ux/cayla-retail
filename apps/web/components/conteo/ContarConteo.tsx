@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Anillo } from "@/components/ui/Anillo";
 import { useRouter } from "next/navigation";
-import { Camera, Clock, Info, ScanBarcode, UserRound, X } from "lucide-react";
+import { Camera, Clock, Info, ScanBarcode, UserRound, X, ScanLine, SearchX } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
 import { AltaAlVuelo } from "@/components/conteo/AltaAlVuelo";
@@ -40,6 +41,7 @@ import { avisarLectura } from "@/lib/sonido-conteo";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    ContarConteo · la pantalla donde se cuenta (Inventario ▸ Conteo ▸ Contar, rediseño 2026-09-29)
@@ -573,14 +575,18 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
       >
         <CifrasCabecera control={control} />
       </EncabezadoPagina>
-      <PasosConteo actual="contar" />
+      <div data-guia="conteo.pasos">
+        <PasosConteo actual="contar" />
+      </div>
       {notaAcotada}
 
       <div ref={tarjetaRef} role="region" aria-label="Contar" className="space-y-3">
         {/* Escanear o buscar: UN campo de ancho completo. La cámara vive en la barra de abajo del celular. */}
-        <div className="relative">
-          <ScanBarcode aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-rojo-profundo" />
+        {/* La caja que se enciende (ADR-0358, ronda 6), con el código de barras adentro: aquí se escanea (la pistola escribe y da Enter). */}
+        <div data-guia="contar.escaner" className="caja-cayla caja-campo min-h-[42px] [@media(pointer:coarse)]:min-h-12">
+          <ScanBarcode aria-hidden className="pointer-events-none h-5 w-5 shrink-0 text-rojo-profundo" />
           <input
+            className="self-stretch py-0 text-base placeholder:text-ellipsis"
             ref={escanerRef}
             type="text"
             value={texto}
@@ -597,7 +603,6 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
             autoCapitalize="off"
             spellCheck={false}
             enterKeyHint="search"
-            className="h-[42px] w-full min-w-0 rounded-lg border border-taupe/25 bg-papel pl-11 pr-3 text-base text-tinta outline-none transition-colors placeholder:text-taupe placeholder:text-ellipsis focus:border-rojo-profundo/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/40 [@media(pointer:coarse)]:h-12"
           />
         </div>
 
@@ -619,14 +624,26 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
           </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
             {ultimaId && <UltimaLectura control={control} prenda={porId.get(ultimaId) ?? prendaSinFicha(ultimaId)} />}
-            {hayVariantes && !vaciaPorAcotar && <BotonAplicarTodos control={control} alPedir={pedirAplicarTodos} />}
+            {hayVariantes && !vaciaPorAcotar && (
+              <span data-guia="contar.aplicar-todos" className="inline-flex">
+                <BotonAplicarTodos control={control} alPedir={pedirAplicarTodos} />
+              </span>
+            )}
           </div>
         </div>
 
         {!hayVariantes ? (
-          <p className="card-cayla px-5 py-6 text-sm text-taupe">No hay variantes registradas en esta ubicación. Escanea una para agregarla al conteo.</p>
+          <div className="card-cayla">
+            <Vacio tamano="chico" alinear="izquierda" className="px-5 py-5" icono={<ScanLine />}>
+              No hay variantes registradas en esta ubicación. Escanea una para agregarla al conteo.
+            </Vacio>
+          </div>
         ) : vaciaPorAcotar ? (
-          <p className="card-cayla px-5 py-6 text-sm text-taupe">Ninguna de las variantes pedidas está en este conteo. Escanea la prenda para agregarla.</p>
+          <div className="card-cayla">
+            <Vacio tamano="chico" alinear="izquierda" className="px-5 py-5" icono={<ScanLine />}>
+              Ninguna de las variantes pedidas está en este conteo. Escanea la prenda para agregarla.
+            </Vacio>
+          </div>
         ) : (
           <>
             {nCoincidencias === 0 && (
@@ -640,7 +657,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
               />
             )}
             {/* Aunque no coincida nada la lista sigue montada (escondida): volver a dibujarla al borrar el buscador costaría medio segundo. */}
-            <div hidden={nCoincidencias === 0}>
+            <div data-guia="contar.lista" hidden={nCoincidencias === 0}>
               <ListaConteo
                 grupos={grupos}
                 coincidencias={coincidencias}
@@ -728,7 +745,7 @@ function CifrasCabecera({ control }: { control: ControlConteo }) {
     { valor: r.conDiferencia, etiqueta: "Con diferencia", color: r.conDiferencia > 0 ? "text-rojo-profundo" : "text-verde" },
   ];
   return (
-    <section aria-label="Resumen del conteo" className="anim-sube flex w-full divide-x divide-sand rounded-2xl border border-sand bg-papel lg:w-auto">
+    <section data-guia="contar.cifras" aria-label="Resumen del conteo" className="anim-sube flex w-full divide-x divide-sand rounded-2xl border border-sand bg-papel lg:w-auto">
       {celdas.map((c) => (
         <div key={c.etiqueta} className="min-w-0 flex-1 px-4 py-4 lg:w-[8.75rem] lg:flex-none">
           <p className={`font-display text-2xl leading-none tabular-nums ${c.color}`}>{c.valor}</p>
@@ -747,28 +764,6 @@ function textoInicio(iso: string): string {
   return `${de("day")}/${de("month")}/${de("year")} · ${de("hour")}:${de("minute")}`;
 }
 
-/** El anillo del progreso: pista en sand y avance en terracota (el mismo que el hilo de CAYLA), sin animación de más. */
-function Anillo({ porcentaje }: { porcentaje: number }) {
-  const r = 16;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg aria-hidden viewBox="0 0 40 40" className="h-10 w-10 shrink-0 -rotate-90">
-      <circle cx="20" cy="20" r={r} fill="none" strokeWidth="3.5" className="stroke-sand" />
-      <circle
-        cx="20"
-        cy="20"
-        r={r}
-        fill="none"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={c * (1 - porcentaje / 100)}
-        className="stroke-rojo transition-[stroke-dashoffset] duration-300 ease-cayla"
-      />
-    </svg>
-  );
-}
-
 /**
  * La barra de información bajo el buscador: quién cuenta, cómo va y desde cuándo. Solo tres bloques (los pendientes ya
  * están arriba a la derecha). El responsable se eligió al abrir el conteo: aquí solo se ve su nombre, sin «Cambiar». Solo si
@@ -784,7 +779,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
   return (
     <div className="grid grid-cols-1 divide-y divide-sand rounded-xl border border-sand bg-papel sm:grid-cols-3 sm:divide-x sm:divide-y-0">
       <div className={bloque}>
-        <UserRound aria-hidden strokeWidth={1.5} className="h-8 w-8 shrink-0 text-taupe" />
+        <UserRound aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
         <div className="min-w-0 flex-1">
           <p className="text-xs text-tinta/70">Responsable</p>
           {mostrarCombo ? (
@@ -795,7 +790,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
         </div>
       </div>
       <div className={bloque}>
-        <Anillo porcentaje={porcentaje} />
+        <Anillo pct={porcentaje} tamano="chico" decorativa />
         <div className="min-w-0">
           <p className="text-xs text-tinta/70">Progreso</p>
           <p className="flex items-baseline gap-3 text-base font-medium tabular-nums text-tinta">
@@ -807,7 +802,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
         </div>
       </div>
       <div className={bloque}>
-        <Clock aria-hidden strokeWidth={1.5} className="h-8 w-8 shrink-0 text-taupe" />
+        <Clock aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
         <div className="min-w-0">
           <p className="text-xs text-tinta/70">Inicio del conteo</p>
           <p className="text-base font-medium tabular-nums text-tinta">{textoInicio(creadoEn)}</p>
@@ -821,7 +816,9 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
 function SinCoincidencias({ texto, sugeridas, alSumar }: { texto: string; sugeridas: PrendaConteo[]; alSumar: (p: PrendaConteo) => void }) {
   return (
     <div className="card-cayla space-y-3 px-5 py-6">
-      <p className="text-sm text-taupe">Ninguna variante coincide con «{texto}».</p>
+      <Vacio tamano="chico" alinear="izquierda" className="p-0" icono={<SearchX />}>
+        Ninguna variante coincide con <b>«{texto}»</b>.
+      </Vacio>
       {sugeridas.length > 0 && (
         <div className="space-y-2 rounded-xl border border-sand bg-papel px-3.5 py-3 text-sm text-tinta">
           <p>No estaba en la lista de este conteo. ¿Es alguna de estas?</p>
@@ -892,13 +889,13 @@ function PieContar({
           lateral={
             // Discreto: la ÚNICA confirmación por lectura. Sin modales ni avisos flotantes.
             <span role="status" aria-live="polite" className="inline-block min-w-[5.5rem] text-right">
-              {guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "✓ Guardado" : null}
+              {guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "✓ Guardado" : null /* unificar-fijo: el estado de la planilla mientras se guarda sola, no un botón */}
             </span>
           }
         />
       }
       acciones={
-        <div className="flex w-full items-center gap-2 sm:w-auto">
+        <div data-guia="contar.pie" className="flex w-full items-center gap-2 sm:w-auto">
           <button type="button" onClick={alCamara} aria-label="Escanear con la cámara" className="btn-cayla btn-secundario h-11 w-11 shrink-0 p-0 sm:hidden">
             <Camera aria-hidden className="h-5 w-5" />
           </button>

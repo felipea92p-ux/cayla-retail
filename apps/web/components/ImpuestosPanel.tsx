@@ -9,6 +9,8 @@ import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { CabeceraBloque, Herramientas, SelectFin, Superficie } from "@/components/finanzas/kit";
+import { ImpuestosPulso } from "@/components/finanzas/ImpuestosPulso";
+import { pulsoImpuestos } from "@/lib/impuestos-pulso-reglas";
 import { descargarBlob, descargarCsv, textoCsv } from "@/lib/exportar-csv";
 import { crearZip } from "@/lib/zip-simple";
 import { mesesRecientes, solesRedondo, textoMes } from "@/lib/gastos-reglas";
@@ -32,6 +34,8 @@ import {
 } from "@/lib/impuestos-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Settings2 } from "lucide-react";
+import { BotonVer } from "@/components/ui/BotonDescargar";
+import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Impuestos (ADR-0195 F8), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, `vista-impuestos.js`):
 // cabecera con «CAYLA entera» y las descargas → cuatro cifras → el límite del régimen y lo que conviene revisar → los
@@ -113,29 +117,34 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
-            <button type="button" className="btn-cayla btn-secundario" disabled={bajando !== null} onClick={() => bajar("ventas")}>
-              {bajando === "ventas" ? "Armando…" : "Registro de ventas"}
-            </button>
-            <button type="button" className="btn-cayla btn-secundario" disabled={bajando !== null} onClick={() => bajar("compras")}>
-              {bajando === "compras" ? "Armando…" : "Registro de compras"}
-            </button>
-            <button type="button" className="btn-cayla btn-primario" disabled={bajando !== null} onClick={() => bajar("paquete")}>
-              {bajando === "paquete" ? "Armando…" : "Paquete para el contador"}
-            </button>
+            <Boton cargando={bajando === "ventas"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("ventas")} data-guia="fin-impuestos.registro-ventas">
+              Registro de ventas
+            </Boton>
+            <Boton cargando={bajando === "compras"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("compras")} data-guia="fin-impuestos.registro-compras">
+              Registro de compras
+            </Boton>
+            <Boton peso="primario" cargando={bajando === "paquete"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("paquete")} data-guia="fin-impuestos.paquete">
+              Paquete para el contador
+            </Boton>
           </>
         }
       />
 
       {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
 
-      <section className="fin-cifras">
+      {/* Camino A (Felipe 2026-10-15): primero la respuesta, después las cifras. */}
+      <ImpuestosPulso pulso={pulsoImpuestos(panel)} />
+
+      <section className="fin-cifras" data-guia="fin-impuestos.cifras">
         <TarjetaCifra etiqueta="IGV cobrado al vender" valor={foco ? solesRedondo(foco.debito) : null} {...entra(1)}>
           {foco
             ? `${tasaIgv} % de las ventas del mes, de ${plural(foco.comprobantes, "comprobante emitido", "comprobantes emitidos")}${foco.igvNotasCredito > 0 ? `. Ya resta ${solesRedondo(foco.igvNotasCredito)} de notas de crédito` : ""}`
             : "Sin datos"}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="IGV que descuentas" valor={foco ? solesRedondo(foco.credito) : null} {...entra(2)}>
-          {`Facturas de mercadería, gastos, activos e insumos${foco && foco.creditoNotas > 0 ? `, menos ${solesRedondo(foco.creditoNotas)} de notas de crédito` : ""}`}
+          {`Facturas de mercadería, gastos, activos e insumos${foco && foco.creditoNotas > 0 ? `, menos ${solesRedondo(foco.creditoNotas)} de notas de crédito` : ""}${
+            panel.revisar.igvPerdido.igv > 0 ? `, menos ${solesRedondo(panel.revisar.igvPerdido.igv)} que se pierde por pagar sin banco` : ""
+          }`}
         </TarjetaCifra>
         <TarjetaCifra
           etiqueta={aFavor ? `Saldo a favor para ${siguiente}` : `IGV a pagar en ${siguiente}`}
@@ -169,11 +178,11 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
         <ParaRevisar panel={panel} />
       </section>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="fin-impuestos.historial">
         <Herramientas>
           <b className="text-sm font-semibold text-tinta">Últimos 6 meses</b>
           <span className="text-[12.5px] text-taupe">{mesCorto(mesActual)} (*) va a la fecha y todavía puede cambiar. Toca un mes para verlo.</span>
-          <label className="ml-auto flex items-center gap-2 whitespace-nowrap text-[12.5px] text-taupe">
+          <label className="ml-auto flex items-center gap-2 whitespace-nowrap text-[12.5px] text-taupe" data-guia="fin-impuestos.otro-mes">
             Otro mes
             <SelectFin
               etiqueta="Mes que se mira"
@@ -204,11 +213,20 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
         </div>
       </Superficie>
 
-      <p className="nota-cayla">
-        El pago a SUNAT todavía no se registra aquí: llega con Cuentas y dinero, porque sale de una cuenta de CAYLA. Mientras tanto, «sin pago registrado» solo dice que el sistema no lo sabe.
+      <p className="nota-cayla" data-guia="fin-impuestos.nota">
+        El pago a SUNAT se registra en Cuentas y dinero («Pagar a SUNAT (el IGV)», sale de un banco): baja lo que debes de IGV y el banco. El 1 % de renta a cuenta va como gasto de «Tributos». Mientras no se registre, «sin pago registrado» solo dice que el sistema no lo sabe.{" "}
+        <Link href="/finanzas/dinero" className="btn-cayla btn-enlace">
+          Registrar el pago
+        </Link>
       </p>
     </div>
   );
+}
+
+/** «2026-10» → «2026-09»: el mes que se declara ahora (la pantalla abre en él). */
+function mesAnteriorA(mes: string): string {
+  const [a, m] = mes.split("-").map(Number) as [number, number];
+  return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`;
 }
 
 function FilaMes({ m, mesActual, activa, onAbrir }: { m: MesIgv; mesActual: string; activa: boolean; onAbrir: () => void }) {
@@ -219,6 +237,8 @@ function FilaMes({ m, mesActual, activa, onAbrir }: { m: MesIgv; mesActual: stri
       tabIndex={0}
       aria-current={activa ? "true" : undefined}
       className={activa ? "fin-fila-activa" : undefined}
+      // Guía interactiva (ADR-0389): el mes en curso y el que se declara ahora, para pasar de uno al otro y volver.
+      data-guia={m.mes === mesActual ? "fin-impuestos.mes-en-curso" : m.mes === mesAnteriorA(mesActual) ? "fin-impuestos.mes-a-declarar" : undefined}
       onClick={onAbrir}
       onKeyDown={(ev) => {
         if (ev.key === "Enter" || ev.key === " ") {
@@ -257,7 +277,7 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
   const titulo = n !== null ? `El límite de ${n.toLocaleString("es-PE")} UIT` : "El límite de ventas";
   if (umbral.umbralSoles === null || !uit) {
     return (
-      <Superficie pad className="anim-sube">
+      <Superficie pad className="anim-sube" guia="fin-impuestos.limite">
         <CabeceraBloque titulo={titulo} bajada="Al cruzarlo, SUNAT te exige llevar el Libro Diario y el Mayor electrónicos." />
         <Vacio tamano="chico" icono={<Settings2 />} accion={{ texto: "Configúralos en Configuración ▸ Impuestos", href: "/configuracion?tab=impuestos" }}>
           Falta el valor de la UIT o el límite del régimen.
@@ -271,7 +291,7 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
   const tono = tonoAvance(umbral.avance);
   const provisional = uit.provisional || parametros.umbralUit?.provisional;
   return (
-    <Superficie pad className="anim-sube">
+    <Superficie pad className="anim-sube" guia="fin-impuestos.limite">
       <CabeceraBloque titulo={titulo} bajada="Al cruzarlo, SUNAT te exige llevar el Libro Diario y el Mayor electrónicos.">
         <Chip tono={tono}>{porcentaje(avance)}</Chip>
       </CabeceraBloque>
@@ -280,7 +300,7 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
         <i style={{ width: `${Math.min(1, avance) * 100}%` }} />
       </div>
       <div className="fin-marcas">
-        <span>S/ 0</span>
+        <span>S/&nbsp;0</span>
         <span>
           Vendido en 12 meses: <b>{solesRedondo(umbral.ventas12m)}</b>
         </span>
@@ -328,6 +348,14 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
       accion: r.boletas.gastos > 0 ? { texto: "Ver gastos", href: `/finanzas/gastos?mes=${mes}&ver=todas` } : undefined,
     });
   }
+  // ADR-0362, fase 6 · actividad 8 (decisión 72): el IGV que se perdió en el mes del pago. La base ya lo restó; aquí se dice y se dice qué hacer.
+  if (r.igvPerdido.igv > 0) {
+    puntos.push({
+      tono: "ambar",
+      titulo: `${solesRedondo(r.igvPerdido.igv)} de IGV que no se descuenta`,
+      detalle: `${plural(r.igvPerdido.n, "pago", "pagos")} en efectivo o desde un fondo de facturas de S/\u00a02,000 o más. SUNAT pide pagarlas por el banco: ese IGV ya está restado de lo que descuentas.`,
+    });
+  }
   if (r.rechazados.n > 0) {
     puntos.push({
       tono: "rojo",
@@ -354,10 +382,10 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
   puntos.push({
     tono: "pizarra",
     titulo: "Recibos por honorarios: retención del 8 %",
-    detalle: `${r.honorarios.n > 0 ? `${plural(r.honorarios.n, "recibo", "recibos")} este mes${r.honorarios.mayores ? `, ${r.honorarios.mayores} de más de S/ 1,500` : ""}. ` : ""}El contador define si CAYLA debe retener. Mientras tanto, se paga el total.`,
+    detalle: `${r.honorarios.n > 0 ? `${plural(r.honorarios.n, "recibo", "recibos")} este mes${r.honorarios.mayores ? `, ${r.honorarios.mayores} de más de S/\u00a01,500` : ""}. ` : ""}El contador define si CAYLA debe retener. Mientras tanto, se paga el total.`,
   });
   return (
-    <Superficie pad className="anim-sube">
+    <Superficie pad className="anim-sube" guia="fin-impuestos.revisar">
       <CabeceraBloque titulo="Para revisar antes de declarar" bajada="Lo que puede hacer que pagues de más." />
       <ul className="fin-decidir">
         {puntos.map((p) => (
@@ -368,9 +396,9 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
               <p>{p.detalle}</p>
             </div>
             {p.accion ? (
-              <Link href={p.accion.href} className="btn-cayla btn-sutil btn-chico">
+              <BotonVer href={p.accion.href} chico>
                 {p.accion.texto}
-              </Link>
+              </BotonVer>
             ) : (
               <span />
             )}

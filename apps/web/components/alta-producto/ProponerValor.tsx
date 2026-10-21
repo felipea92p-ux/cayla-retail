@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { guardarEjesCategoria, proponerValorVocabulario, sumarAlEje, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { sinTildes } from "@/lib/marcas";
@@ -70,7 +71,6 @@ export function ProponerValor(props: Props) {
       {abierto && (
         <Modal
           variante="hoja"
-          ancho="max-w-md"
           titulo={t.titulo}
           subtitulo="¿No está? Agrégalo. Si no eres Líder, queda pendiente hasta que un Líder lo apruebe."
           onClose={() => setAbierto(false)}
@@ -134,39 +134,35 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="sr-only" htmlFor={`nuevo-${tipo}`}>
-          Nombre {tipo === "tallas" ? "de la" : "del"} {t.singular} nuev{tipo === "tallas" ? "a" : "o"}
-        </label>
-        <input
-          id={`nuevo-${tipo}`}
-          autoFocus
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          onKeyDown={(e) => {
-            // Enter NO debe enviar el formulario grande: acá solo agrega este valor.
-            if (e.key === "Enter") {
-              e.preventDefault();
-              void agregar();
-            }
-            if (e.key === "Escape") onCerrar();
-          }}
-          placeholder={sugerirValorNuevo(tipo, familia, universo).texto}
-          disabled={trabajando}
-          className="caja-cayla h-10 min-w-0 flex-1 px-3 text-sm text-tinta placeholder:text-tinta/45"
-        />
-      </div>
+      <CampoTexto
+        etiqueta={`Nombre ${tipo === "tallas" ? "de la" : "del"} ${t.singular} nuev${tipo === "tallas" ? "a" : "o"}`}
+        caja
+        sinPie
+        id={`nuevo-${tipo}`}
+        autoFocus
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onKeyDown={(e) => {
+          // Enter NO debe enviar el formulario grande: acá solo agrega este valor.
+          if (e.key === "Enter") {
+            e.preventDefault();
+            void agregar();
+          }
+          if (e.key === "Escape") onCerrar();
+        }}
+        placeholder={sugerirValorNuevo(tipo, familia, universo).texto}
+        disabled={trabajando}
+      />
       <div className="flex flex-wrap items-center gap-2.5">
-        <button
+        <Boton peso="primario" cargando={trabajando}
           type="button"
           onClick={() => void agregar()}
           disabled={!texto.trim() || trabajando || !firma.listo}
           title={firma.motivo ?? undefined}
-          className="btn-cayla btn-primario"
         >
-          {trabajando ? "Guardando…" : "Agregar"}
-        </button>
-        <button type="button" onClick={() => onCerrar()} disabled={trabajando} className="btn-cayla btn-sutil">
+          Agregar
+        </Boton>
+        <button type="button" onClick={() => onCerrar()} disabled={trabajando} className="btn-cayla btn-secundario">
           Cancelar
         </button>
       </div>

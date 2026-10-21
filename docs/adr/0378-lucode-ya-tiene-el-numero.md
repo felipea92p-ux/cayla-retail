@@ -70,7 +70,7 @@ Dos cosas lo empeoraban:
 - **Una migración** (que `fn_tomar_comprobantes_para_reintento` salte los «ya emitido», o que la RPC devuelva la fecha de emisión). Cambio de
   esquema en producción para algo que la web resuelve sola; queda como mejora si algún día hace falta.
 - **Que el trabajo programado transmita en producción** para que la cola avance de noche. Es la decisión de «salir en vivo» que `cronNoTransmite`
-  guarda a propósito: es de Felipe, no de este arreglo.
+  guarda a propósito: es de Felipe, no de este arreglo. **Felipe la tomó el mismo 2026-10-12** (ADR-0165, «Actualización 2026-10-12»).
 
 ## Cómo se verificó
 

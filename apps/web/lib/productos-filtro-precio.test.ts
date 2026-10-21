@@ -47,11 +47,11 @@ describe("productos-filtro-precio — cajas, texto y control", () => {
   });
 
   it("el texto dice lo filtrado con números de verdad, nunca un tope inventado", () => {
-    expect(textoRangoPrecio("40", "80")).toBe("S/ 40 – S/ 80");
-    expect(textoRangoPrecio("40", "")).toBe("Desde S/ 40");
-    expect(textoRangoPrecio(null, "39.9")).toBe("Hasta S/ 39.90");
+    expect(textoRangoPrecio("40", "80")).toBe("S/\u00a040 – S/\u00a080");
+    expect(textoRangoPrecio("40", "")).toBe("Desde S/\u00a040");
+    expect(textoRangoPrecio(null, "39.9")).toBe("Hasta S/\u00a039.90");
     expect(textoRangoPrecio("", "")).toBeNull();
-    expect(solesFiltro(120)).toBe("S/ 120");
+    expect(solesFiltro(120)).toBe("S/\u00a0120");
   });
 
   it("los tiradores en las puntas mandan «sin tope», no el número de la punta", () => {

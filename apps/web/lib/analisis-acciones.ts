@@ -21,7 +21,7 @@ function tallasDe<T extends object>(filas: readonly T[]): T[] {
 }
 
 /** Dónde vuelve «Volver» desde las pantallas que lo aceptan. */
-export const RUTA_ANALISIS = "/inventario/resumen";
+export const RUTA_ANALISIS = "/gestion/analisis";
 
 /**
  * «Comprar»: del Taller, una orden de Producción con el modelo ya elegido; de terceros, una compra nueva con su proveedor.
@@ -68,6 +68,12 @@ export function hrefLiquidar(prendas: readonly Pick<PrendaAnalisis, "varianteId"
   const tallas = tallasDe(prendas);
   if (!a.etiquetas || tallas.length === 0 || tallas.length > MAX_VARIANTES_EN_URL) return null;
   return urlEtiquetasDePrecio({ variantes: tallas.map((p) => p.varianteId) }, RUTA_ANALISIS);
+}
+
+/** «Registrar ventas»: la cola de ventas sin su prenda (Por regularizar), si la cuenta la ve (ADR-0357, act. 2026-10-14). */
+export const HREF_POR_REGULARIZAR = "/inventario/por-regularizar";
+export function hrefRegistrarVentas(a: Pick<AccesoAnalisis, "regularizar">): string | null {
+  return a.regularizar ? HREF_POR_REGULARIZAR : null;
 }
 
 /** «Reponer»: bajar al piso lo que está guardado (una de cada una). null si nada tiene almacén o la cuenta no ve Existencias. */
