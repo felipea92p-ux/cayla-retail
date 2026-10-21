@@ -1,5 +1,23 @@
 import { z } from "zod";
-import { ambienteDeCampana, colorDelSello, comprobarLectura, coloresDeCampana, textoSobre } from "@cayla-retail/shared";
+import {
+  CUENTAS_CAMPANA,
+  DURACIONES_CAMPANA,
+  EFECTOS_CAMPANA,
+  ENTRADAS_CAMPANA,
+  FRANJAS_CAMPANA,
+  INTENSIDADES_CAMPANA,
+  ambienteDeCampana,
+  colorDelSello,
+  comprobarLectura,
+  coloresDeCampana,
+  textoSobre,
+  type CuentaCampana,
+  type DuracionCampana,
+  type EfectoCampana,
+  type EntradaCampana,
+  type FranjaCampana,
+  type IntensidadCampana,
+} from "@cayla-retail/shared";
 import { normalizar } from "./buscador";
 
 // El diseño de la campaña que gana la portada (Tienda web ▸ Campañas, maqueta docs/maquetas/campanas-tienda-2026-10): la base lo arma en
@@ -20,6 +38,13 @@ const esquemaDiseno = z.object({
   plantilla: z.string(),
   paleta: z.number().int().min(0).max(2),
   acento: z.string().nullable().optional(),
+  // El movimiento: lo que falte o venga raro toma su valor de siempre (la tienda nunca se cae por un dato de movimiento).
+  franja: z.enum(FRANJAS_CAMPANA).catch("rota"),
+  entrada: z.enum(ENTRADAS_CAMPANA).catch("telon"),
+  efecto: z.enum(EFECTOS_CAMPANA).catch("ninguno"),
+  intensidad: z.enum(INTENSIDADES_CAMPANA).catch("poca"),
+  duracion: z.enum(DURACIONES_CAMPANA).catch("una"),
+  cuenta: z.enum(CUENTAS_CAMPANA).catch("siempre"),
   donde: esquemaDonde.optional(),
 });
 
@@ -40,6 +65,15 @@ export type DisenoDeLaTienda = {
   colores: { fondo: string; texto: string; acento: string; /** La letra que se lee sobre el acento (el botón). */ boton: string };
   /** El sello de descuento de cada prenda: un color que se lee sobre la foto (se ajusta solo) y la letra que se lee sobre él. */
   sello: { fondo: string; texto: string };
+  /** El movimiento: la franja, cómo entra la portada, el efecto (con su intensidad y su duración) y cuándo se ve la cuenta regresiva. */
+  movimiento: {
+    franja: FranjaCampana;
+    entrada: EntradaCampana;
+    efecto: EfectoCampana;
+    intensidad: IntensidadCampana;
+    duracion: DuracionCampana;
+    cuenta: CuentaCampana;
+  };
   /** Dónde se ve: lo que el líder apagó vuelve a verse como siempre. */
   donde: { franja: boolean; portada: boolean; catalogo: boolean; sello: boolean; bolsa: boolean };
 };
@@ -62,6 +96,14 @@ export function interpretarDisenoCampana(dato: unknown, nombreDeLaPortada: strin
     plantilla: diseno.plantilla,
     colores: { ...colores, boton: textoSobre(colores.acento) },
     sello: colorDelSello(colores),
+    movimiento: {
+      franja: diseno.franja,
+      entrada: diseno.entrada,
+      efecto: diseno.efecto,
+      intensidad: diseno.intensidad,
+      duracion: diseno.duracion,
+      cuenta: diseno.cuenta,
+    },
     donde: { ...TODO, ...diseno.donde },
   };
 }

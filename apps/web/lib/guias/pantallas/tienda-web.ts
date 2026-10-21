@@ -1161,7 +1161,7 @@ export const GUIA_CAMPANAS_WEB: Guia = {
   ],
 };
 
-// Tienda web ▸ Campañas ▸ Diseñar la campaña (Felipe 2026-10-21). Por ahora: el ambiente y los colores. La demo elige un ambiente y una paleta
+// Tienda web ▸ Campañas ▸ Diseñar la campaña (Felipe 2026-10-21): ambiente, colores, movimiento y dónde se ve. La demo elige un ambiente y una paleta
 // para mostrar cómo cambia la vista previa, pero nunca guarda: «Guardar borrador» se explica con la pieza encendida, sin tocarla.
 export const GUIA_CAMPANAS_EDITOR: Guia = {
   id: "tienda-web.campanas.editor",
@@ -1189,6 +1189,19 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       texto: "Cada ambiente trae tres paletas. Si ninguna te gusta, puedes ponerle tu propio color de acento al botón y a la palabra de color.",
     },
     {
+      id: "movimiento",
+      ancla: "campana-editor.movimiento",
+      opcional: true,
+      titulo: "El movimiento",
+      texto: "Cómo corre la franja de arriba, cómo entra la portada y qué efecto cae o brilla sobre ella: confeti, copos, patitas… Cada ambiente trae el suyo y tú lo cambias si quieres. Puede pasar una vez al llegar o seguir suave. Quien tiene «reducir movimiento» en su aparato ve la tienda quieta.",
+    },
+    {
+      id: "donde",
+      ancla: "campana-editor.donde",
+      titulo: "Dónde se ve",
+      texto: "Eliges qué partes de la tienda se visten con el diseño: la franja de arriba, la portada, una banda en el catálogo, el sello de cada prenda y la línea de la bolsa. Una que apagas se ve como siempre. Al menos una tiene que quedar encendida.",
+    },
+    {
       id: "lectura",
       ancla: "campana-editor.lectura",
       opcional: true,
@@ -1199,7 +1212,7 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       id: "vista",
       ancla: "campana-editor.vista",
       titulo: "Así se ve",
-      texto: "La portada de la tienda cambia mientras eliges. Puedes verla como en un computador o como en un celular. Es un dibujo para decidir los colores; la tienda de verdad lleva las fotos de las prendas.",
+      texto: "La tienda cambia mientras eliges: la portada, el catálogo y la bolsa, como en un computador o en un celular. «Movimiento reducido» muestra cómo la ve quien tiene el movimiento apagado. Es un dibujo para decidir; la tienda de verdad lleva las fotos de las prendas.",
     },
     {
       id: "responsable",

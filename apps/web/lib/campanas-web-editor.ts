@@ -11,11 +11,17 @@
 //            o el candado ya exigen.
 //   NO HACE: leer ni escribir en la base, ni decidir permisos (lo hace `fn_exigir_modulo('campanas_web')`).
 //
-// Esta entrega edita ambiente y colores. Movimiento, textos, imagen propia y «dónde se ve» se suman al borrador en las actividades que
-// siguen; el parche ya viaja como llaves sueltas, así que sumarlos no cambia nada de lo que hay aquí.
+// Esta entrega edita ambiente, colores, movimiento y «dónde se ve». Textos e imagen propia se suman al borrador en las actividades que siguen;
+// el parche ya viaja como llaves sueltas, así que sumarlos no cambia nada de lo que hay aquí.
 
 import {
   AMBIENTES_CAMPANA,
+  CUENTAS_CAMPANA,
+  DURACIONES_CAMPANA,
+  EFECTOS_CAMPANA,
+  ENTRADAS_CAMPANA,
+  FRANJAS_CAMPANA,
+  INTENSIDADES_CAMPANA,
   ambienteDeCampana,
   comprobarLectura,
   coloresDeCampana,
@@ -23,8 +29,20 @@ import {
   type AmbienteCampana,
   type ColoresDeCampana,
   type ComprobacionDeLectura,
+  type CuentaCampana,
+  type DuracionCampana,
+  type EfectoCampana,
+  type EntradaCampana,
+  type FranjaCampana,
+  type IntensidadCampana,
 } from "@cayla-retail/shared";
 import { campanaDeJson, type CampanaWeb, type EstadoDiseno, type ModoDiseno } from "./campanas-web-reglas";
+
+/** Las cinco piezas de la tienda que el diseño puede vestir. */
+export const PIEZAS_DONDE = ["franja", "portada", "catalogo", "sello", "bolsa"] as const;
+export type PiezaDonde = (typeof PIEZAS_DONDE)[number];
+export type Donde = Record<PiezaDonde, boolean>;
+export const DONDE_TODO: Donde = { franja: true, portada: true, catalogo: true, sello: true, bolsa: true };
 
 /** El diseño guardado, completo (lo que devuelve `fn_campana_diseno_json`). */
 export type DisenoGuardado = {
@@ -32,15 +50,16 @@ export type DisenoGuardado = {
   plantilla: string | null;
   paleta: number;
   acento: string | null;
-  franja: string;
-  entrada: string;
-  efecto: string;
-  intensidad: string;
-  duracion: string;
-  cuenta: string;
+  franja: FranjaCampana;
+  entrada: EntradaCampana;
+  efecto: EfectoCampana;
+  intensidad: IntensidadCampana;
+  duracion: DuracionCampana;
+  cuenta: CuentaCampana;
   titular: string | null;
   bajada: string | null;
   boton: string | null;
+  donde: Donde;
   estado: EstadoDiseno;
   version: number;
 };
@@ -50,6 +69,12 @@ export type FichaCampana = { hoy: string; campana: CampanaWeb; diseno: DisenoGua
 const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
 const entero = (v: unknown, defecto: number): number => (typeof v === "number" && Number.isInteger(v) ? v : defecto);
+const dePila = <T extends string>(lista: readonly T[], v: unknown, defecto: T): T => (lista.includes(v as T) ? (v as T) : defecto);
+
+function dondeDeJson(v: unknown): Donde {
+  const o = esObjeto(v) ? v : {};
+  return Object.fromEntries(PIEZAS_DONDE.map((k) => [k, typeof o[k] === "boolean" ? o[k] : true])) as Donde;
+}
 
 function disenoGuardadoDeJson(v: unknown): DisenoGuardado | null {
   if (!esObjeto(v)) return null;
@@ -61,15 +86,16 @@ function disenoGuardadoDeJson(v: unknown): DisenoGuardado | null {
     plantilla: texto(v.plantilla),
     paleta: entero(v.paleta, 0),
     acento: texto(v.acento),
-    franja: texto(v.franja) ?? "rota",
-    entrada: texto(v.entrada) ?? "telon",
-    efecto: texto(v.efecto) ?? "ninguno",
-    intensidad: texto(v.intensidad) ?? "poca",
-    duracion: texto(v.duracion) ?? "una",
-    cuenta: texto(v.cuenta) ?? "siempre",
+    franja: dePila(FRANJAS_CAMPANA, v.franja, "rota"),
+    entrada: dePila(ENTRADAS_CAMPANA, v.entrada, "telon"),
+    efecto: dePila(EFECTOS_CAMPANA, v.efecto, "ninguno"),
+    intensidad: dePila(INTENSIDADES_CAMPANA, v.intensidad, "poca"),
+    duracion: dePila(DURACIONES_CAMPANA, v.duracion, "una"),
+    cuenta: dePila(CUENTAS_CAMPANA, v.cuenta, "siempre"),
     titular: texto(v.titular),
     bajada: texto(v.bajada),
     boton: texto(v.boton),
+    donde: dondeDeJson(v.donde),
     estado,
     version: Math.max(1, entero(v.version, 1)),
   };
@@ -92,12 +118,22 @@ export type BorradorDiseno = {
   paleta: number;
   /** Un color propio para el acento, o `null` para usar el de la paleta. */
   acento: string | null;
-  /** Con el ambiente nacen su efecto y su franja de fábrica; las actividades que siguen los dejan cambiar. */
-  efecto: string;
-  franja: string;
+  /** El movimiento: con el ambiente nacen su efecto y su franja de fábrica; lo demás nace de siempre. El líder los cambia a gusto. */
+  franja: FranjaCampana;
+  entrada: EntradaCampana;
+  efecto: EfectoCampana;
+  intensidad: IntensidadCampana;
+  duracion: DuracionCampana;
+  cuenta: CuentaCampana;
+  /** Dónde se ve: qué piezas de la tienda viste el diseño. */
+  donde: Donde;
 };
 
-export const BORRADOR_VACIO: BorradorDiseno = { plantilla: null, paleta: 0, acento: null, efecto: "ninguno", franja: "rota" };
+export const BORRADOR_VACIO: BorradorDiseno = {
+  plantilla: null, paleta: 0, acento: null,
+  franja: "rota", entrada: "telon", efecto: "ninguno", intensidad: "poca", duracion: "una", cuenta: "siempre",
+  donde: DONDE_TODO,
+};
 
 const esAmbiente = (v: string | null): v is AmbienteCampana => AMBIENTES_CAMPANA.some((a) => a.clave === v);
 
@@ -105,15 +141,31 @@ const esAmbiente = (v: string | null): v is AmbienteCampana => AMBIENTES_CAMPANA
 export function borradorDe(ficha: Pick<FichaCampana, "diseno">): BorradorDiseno {
   const d = ficha.diseno;
   if (!d || d.modo !== "ambiente" || !esAmbiente(d.plantilla)) return { ...BORRADOR_VACIO };
-  return { plantilla: d.plantilla, paleta: d.paleta, acento: d.acento, efecto: d.efecto, franja: d.franja };
+  return {
+    plantilla: d.plantilla, paleta: d.paleta, acento: d.acento,
+    franja: d.franja, entrada: d.entrada, efecto: d.efecto, intensidad: d.intensidad, duracion: d.duracion, cuenta: d.cuenta,
+    donde: { ...d.donde },
+  };
 }
 
-/** Elegir un ambiente: nace con su primera paleta, su efecto y su franja de fábrica, y sin color propio (el que había era para otro fondo). */
+/** Elegir un ambiente: nace con su primera paleta y su movimiento de fábrica (su efecto, su franja y lo demás de siempre), sin color propio (el que
+ *  había era para otro fondo). Lo que ya se eligió de «dónde se ve» se conserva: no depende del ambiente. */
 export function conAmbiente(b: BorradorDiseno, clave: AmbienteCampana): BorradorDiseno {
   if (b.plantilla === clave) return b;
   const a = ambienteDeCampana(clave)!;
-  return { plantilla: clave, paleta: 0, acento: null, efecto: a.efecto, franja: a.franja };
+  return {
+    ...BORRADOR_VACIO, plantilla: clave, efecto: a.efecto, franja: a.franja, donde: b.donde,
+  };
 }
+
+/** Cambiar una pieza del movimiento (la franja, la entrada, el efecto…). */
+export const conMovimiento = <K extends "franja" | "entrada" | "efecto" | "intensidad" | "duracion" | "cuenta">(b: BorradorDiseno, llave: K, valor: BorradorDiseno[K]): BorradorDiseno => ({ ...b, [llave]: valor });
+
+/** Encender o apagar una pieza de «dónde se ve». */
+export const conDonde = (b: BorradorDiseno, pieza: PiezaDonde, encendida: boolean): BorradorDiseno => ({ ...b, donde: { ...b.donde, [pieza]: encendida } });
+
+/** ¿Alguna pieza de la tienda queda vestida? */
+export const hayDonde = (b: Pick<BorradorDiseno, "donde">): boolean => PIEZAS_DONDE.some((k) => b.donde[k]);
 
 export const conPaleta = (b: BorradorDiseno, paleta: number): BorradorDiseno => ({ ...b, paleta, acento: null });
 export const conAcento = (b: BorradorDiseno, acento: string | null): BorradorDiseno => ({ ...b, acento: acento ? acento.toLowerCase() : null });
@@ -129,36 +181,36 @@ export function lecturaDelBorrador(b: BorradorDiseno): { ok: boolean; items: Com
 // ---------------------------------------------------------------- Qué cambió → el parche
 
 /** Lo que cambió entre lo guardado y lo que hay en pantalla, como el parche de `guardar_campana_diseno`; `null` si nada cambió o aún no hay
- *  ambiente. Si la campaña no tenía diseño se manda lo mínimo para crearlo (modo y ambiente) más lo que se apartó de fábrica. */
+ *  ambiente. Si la campaña no tenía diseño se manda lo mínimo para crearlo (modo y ambiente) más todo lo que se eligió. */
 export function parcheDeCambios(guardado: BorradorDiseno | null, ahora: BorradorDiseno): Record<string, unknown> | null {
   if (!ahora.plantilla) return null;
   const parche: Record<string, unknown> = {};
-  if (!guardado || !guardado.plantilla) {
+  const crea = !guardado || !guardado.plantilla;
+  if (crea) {
     parche.modo = "ambiente";
     parche.plantilla = ahora.plantilla;
-    parche.paleta = ahora.paleta;
-    parche.acento = ahora.acento;
-    parche.efecto = ahora.efecto;
-    parche.franja = ahora.franja;
-    return parche;
+  } else if (ahora.plantilla !== guardado.plantilla) parche.plantilla = ahora.plantilla;
+  const antes = crea ? BORRADOR_VACIO : guardado;
+  for (const k of ["paleta", "acento", "franja", "entrada", "efecto", "intensidad", "duracion", "cuenta"] as const) {
+    if (crea || ahora[k] !== antes[k]) parche[k] = ahora[k];
   }
-  if (ahora.plantilla !== guardado.plantilla) parche.plantilla = ahora.plantilla;
-  if (ahora.paleta !== guardado.paleta) parche.paleta = ahora.paleta;
-  if (ahora.acento !== guardado.acento) parche.acento = ahora.acento;
-  if (ahora.efecto !== guardado.efecto) parche.efecto = ahora.efecto;
-  if (ahora.franja !== guardado.franja) parche.franja = ahora.franja;
+  for (const k of PIEZAS_DONDE) if (crea ? ahora.donde[k] !== BORRADOR_VACIO.donde[k] : ahora.donde[k] !== antes.donde[k]) parche[`donde_${k}`] = ahora.donde[k];
   return Object.keys(parche).length ? parche : null;
 }
 
 // ---------------------------------------------------------------- Qué falta
 
-export type PasoDelEditor = "ambiente" | "colores";
+export type PasoDelEditor = "ambiente" | "colores" | "movimiento" | "donde";
 
-/** Lo que le falta al diseño para poder programarse, en el orden de las pantallas: elegir un ambiente y que sus letras se lean. */
+/** Lo que le falta al diseño para poder programarse, en el orden de las pantallas: elegir un ambiente, que sus letras se lean y que se vea en
+ *  alguna pieza de la tienda. */
 export function faltanDelDiseno(b: BorradorDiseno): { paso: PasoDelEditor; texto: string }[] {
   if (!b.plantilla) return [{ paso: "ambiente", texto: "elegir un ambiente" }];
-  if (b.acento !== null && !esColorHex(b.acento)) return [{ paso: "colores", texto: "un color que sea #rrggbb" }];
-  return lecturaDelBorrador(b).ok ? [] : [{ paso: "colores", texto: "un color que se lea bien" }];
+  const faltan: { paso: PasoDelEditor; texto: string }[] = [];
+  if (b.acento !== null && !esColorHex(b.acento)) faltan.push({ paso: "colores", texto: "un color que sea #rrggbb" });
+  else if (!lecturaDelBorrador(b).ok) faltan.push({ paso: "colores", texto: "un color que se lea bien" });
+  if (!hayDonde(b)) faltan.push({ paso: "donde", texto: "elegir dónde se ve" });
+  return faltan;
 }
 
 // ---------------------------------------------------------------- Errores de la base en palabras de tienda

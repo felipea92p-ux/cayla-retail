@@ -5,6 +5,7 @@ import { CADA_MS, estadoDeFrase } from "@/lib/anuncio";
 import { variablesDelDiseno, type DisenoDeLaTienda } from "@/lib/diseno-campana";
 import "@/app/estilos/anuncio.css";
 import "@/app/estilos/campana.css";
+import "@/app/estilos/campana-efectos.css";
 
 // Lo que dijo la última franja a la vista y en qué vuelta iba (2026-10-17, Felipe: «cuando cambia de vista es muy abrupto»). Las páginas
 // de la bolsa y de la cuenta dibujan su propia franja: sin esto, mientras cargaban la franja quedaba vacía y, al llegar, volvía a la
@@ -28,7 +29,9 @@ export function Anuncio({ frases: propias, diseno = null }: { frases: string[]; 
     if (recordada && mismas(recordada.frases, propias)) return recordada;
     return { frases: propias, vuelta: 0 };
   });
-  const frases = propias.length > 0 ? propias : inicio.frases;
+  // El diseño de la campaña decide cómo corre la franja: «quieta» deja solo la frase de la campaña (la primera), «marquesina» las pasa de lado.
+  const modo = diseno?.donde.franja ? diseno.movimiento.franja : "rota";
+  const frases = modo === "quieta" ? (propias.length > 0 ? propias : inicio.frases).slice(0, 1) : propias.length > 0 ? propias : inicio.frases;
   const desde = mismas(inicio.frases, frases) ? inicio.vuelta : 0;
   const [vuelta, setVuelta] = useState(desde);
   const [quieta, setQuieta] = useState(false);
@@ -50,6 +53,22 @@ export function Anuncio({ frases: propias, diseno = null }: { frases: string[]; 
       document.removeEventListener("visibilitychange", andar);
     };
   }, [frases.length, quieta]);
+  if (modo === "marquesina" && frases.length > 0) {
+    // Las frases corren de lado, dos veces seguidas para que el hueco de la vuelta no se note; con «reducir movimiento» queda quieta (campana-efectos.css).
+    return (
+      <div className="t-anuncio cmp-marquesina" data-campana={diseno?.plantilla} style={diseno ? variablesDelDiseno(diseno) : undefined}>
+        <div className="cmp-pista">
+          {[0, 1].map((vuelta) =>
+            frases.map((frase, i) => (
+              <span key={`${vuelta}-${i}`} aria-hidden={vuelta === 1 ? true : undefined}>
+                {frase}
+              </span>
+            )),
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       className="t-anuncio t-anuncio-pila"

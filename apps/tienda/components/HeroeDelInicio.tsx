@@ -5,6 +5,7 @@ import { variablesDelDiseno, type DisenoDeLaTienda } from "@/lib/diseno-campana"
 import { fechaCorta, fechaLarga, partirTitulo, pctTexto } from "@/lib/portada";
 import { CollageDePrendas } from "./CollageDePrendas";
 import { CuentaRegresiva } from "./CuentaRegresiva";
+import { EfectoDeCampana } from "./EfectoDeCampana";
 import { Icono } from "./Icono";
 import { Isotipo } from "./Isotipo";
 import { TextoConMarca } from "./Marca";
@@ -53,8 +54,10 @@ export function HeroeDelInicio({
     <section
       className={`t-hero t-hero-inicio${hero.tipo === "campana" ? "" : " sin-campana"}`}
       data-campana={vestido?.plantilla}
+      data-entrada={vestido?.movimiento.entrada}
       style={vestido ? variablesDelDiseno(vestido) : undefined}
     >
+      {vestido && !enEspera && <EfectoDeCampana efecto={vestido.movimiento.efecto} intensidad={vestido.movimiento.intensidad} duracion={vestido.movimiento.duracion} />}
       <Isotipo className="t-colibri" />
       <div className="t-hero-texto">
         {hero.tipo === "campana" ? (
@@ -73,7 +76,7 @@ export function HeroeDelInicio({
             <p className="t-hero-desc">
               <b>−{pctTexto(hero.campana.pct)} % en prendas elegidas.</b> Sepáralas online, confírmalas por WhatsApp y recógelas en tu tienda.
             </p>
-            {hero.campana.hasta && <CuentaRegresiva hasta={hero.campana.hasta} />}
+            {hero.campana.hasta && vestido?.movimiento.cuenta !== "no" && <CuentaRegresiva hasta={hero.campana.hasta} soloElUltimoDia={vestido?.movimiento.cuenta === "ultimo"} />}
             <div className="t-hero-acciones">
               {boton("t-btn t-btn-claro", verCampana, "Ver la campaña")}
               {(verNuevo || enEspera) &&

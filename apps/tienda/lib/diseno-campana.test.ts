@@ -89,3 +89,24 @@ describe("el sello y a quién se le aplica", () => {
     expect(aplicaA(null, "Aniversario CAYLA")).toBe(false);
   });
 });
+
+describe("el movimiento del diseño", () => {
+  it("lo que falta toma su valor de siempre: franja rota, telón, sin efecto, poca, una vez y cuenta siempre", () => {
+    expect(interpretarDisenoCampana(dato(disenoOk), "Aniversario CAYLA")?.movimiento).toEqual({
+      franja: "rota", entrada: "telon", efecto: "ninguno", intensidad: "poca", duracion: "una", cuenta: "siempre",
+    });
+  });
+
+  it("lee el movimiento que programó el líder", () => {
+    const d = interpretarDisenoCampana(
+      dato({ ...disenoOk, franja: "marquesina", entrada: "ninguna", efecto: "copos", intensidad: "media", duracion: "continuo", cuenta: "ultimo" }),
+      "Aniversario CAYLA",
+    );
+    expect(d?.movimiento).toEqual({ franja: "marquesina", entrada: "ninguna", efecto: "copos", intensidad: "media", duracion: "continuo", cuenta: "ultimo" });
+  });
+
+  it("un dato de movimiento raro no tumba el diseño: toma su valor de siempre", () => {
+    const d = interpretarDisenoCampana(dato({ ...disenoOk, efecto: "fuegos", franja: 3, cuenta: null, duracion: "siempre" }), "Aniversario CAYLA");
+    expect(d?.movimiento).toMatchObject({ efecto: "ninguno", franja: "rota", cuenta: "siempre", duracion: "una" });
+  });
+});

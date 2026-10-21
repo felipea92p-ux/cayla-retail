@@ -2,22 +2,28 @@ import { describe, expect, it } from "vitest";
 import { AMBIENTES_CAMPANA } from "@cayla-retail/shared";
 import {
   BORRADOR_VACIO,
+  DONDE_TODO,
+  PIEZAS_DONDE,
   borradorDe,
   coloresDelBorrador,
   conAcento,
   conAmbiente,
+  conDonde,
+  conMovimiento,
   conPaleta,
+  hayDonde,
   errorDeCampanas,
   faltanDelDiseno,
   leerFichaCampana,
   parcheDeCambios,
+  type BorradorDiseno,
   type DisenoGuardado,
 } from "./campanas-web-editor";
 
 const campana = { id: "c1", nombre: "Aniversario CAYLA", pct: 20, desde: "2026-10-12", hasta: "2026-10-25", estado: "vivo", prendas: 112, diseno: null };
 const diseno = (p: Partial<DisenoGuardado> = {}): DisenoGuardado => ({
   modo: "ambiente", plantilla: "aniversario", paleta: 0, acento: null, franja: "rota", entrada: "telon", efecto: "destellos",
-  intensidad: "poca", duracion: "una", cuenta: "siempre", titular: null, bajada: null, boton: null, estado: "borrador", version: 1, ...p,
+  intensidad: "poca", duracion: "una", cuenta: "siempre", titular: null, bajada: null, boton: null, donde: { ...DONDE_TODO }, estado: "borrador", version: 1, ...p,
 });
 
 describe("leerFichaCampana: lo que manda la base", () => {
@@ -48,10 +54,13 @@ describe("leerFichaCampana: lo que manda la base", () => {
   });
 });
 
+/** Un borrador completo con lo que importe a la prueba. */
+const bor = (p: Partial<BorradorDiseno> = {}): BorradorDiseno => ({ ...BORRADOR_VACIO, donde: { ...DONDE_TODO }, ...p });
+
 describe("el borrador", () => {
   it("una campaña sin diseño abre vacía; con diseño de ambiente, con lo guardado", () => {
     expect(borradorDe({ diseno: null })).toEqual(BORRADOR_VACIO);
-    expect(borradorDe({ diseno: diseno({ plantilla: "gato", paleta: 2, acento: "#aabbcc", efecto: "patitas" }) })).toEqual({ plantilla: "gato", paleta: 2, acento: "#aabbcc", efecto: "patitas", franja: "rota" });
+    expect(borradorDe({ diseno: diseno({ plantilla: "gato", paleta: 2, acento: "#aabbcc", efecto: "patitas" }) })).toEqual(bor({ plantilla: "gato", paleta: 2, acento: "#aabbcc", efecto: "patitas" }));
   });
 
   it("un diseño de imagen propia o de un ambiente que el catálogo no conoce no se abre como ambiente", () => {
@@ -60,17 +69,18 @@ describe("el borrador", () => {
   });
 
   it("elegir un ambiente trae su primera paleta, su efecto y su franja, y suelta el color propio", () => {
-    const b = conAmbiente({ plantilla: "cyber", paleta: 2, acento: "#00aa55", efecto: "copos", franja: "quieta" }, "gato");
-    expect(b).toEqual({ plantilla: "gato", paleta: 0, acento: null, efecto: "patitas", franja: "rota" });
+    const b = conAmbiente(bor({ plantilla: "cyber", paleta: 2, acento: "#00aa55", efecto: "copos", franja: "quieta", intensidad: "media", cuenta: "no" }), "gato");
+    // el movimiento nace de fábrica con el ambiente (menos «dónde se ve», que no depende de él)
+    expect(b).toEqual(bor({ plantilla: "gato", efecto: "patitas" }));
   });
 
   it("volver a elegir el mismo ambiente no cambia nada (no pierde la paleta que ya eligió)", () => {
-    const b = { plantilla: "gato" as const, paleta: 2, acento: "#aabbcc", efecto: "patitas", franja: "rota" };
+    const b = bor({ plantilla: "gato", paleta: 2, acento: "#aabbcc", efecto: "patitas" });
     expect(conAmbiente(b, "gato")).toBe(b);
   });
 
   it("cambiar de paleta suelta el color propio; poner uno propio lo guarda en minúscula", () => {
-    const b = { plantilla: "cyber" as const, paleta: 0, acento: "#00aa55", efecto: "destellos", franja: "marquesina" };
+    const b = bor({ plantilla: "cyber", paleta: 0, acento: "#00aa55", efecto: "destellos", franja: "marquesina" });
     expect(conPaleta(b, 1)).toMatchObject({ paleta: 1, acento: null });
     expect(conAcento(b, "#FF00AA").acento).toBe("#ff00aa");
     expect(conAcento(b, null).acento).toBeNull();
@@ -93,7 +103,9 @@ describe("parcheDeCambios: solo lo que cambió", () => {
 
   it("la primera vez manda lo mínimo para crear el diseño", () => {
     const ahora = conAmbiente(BORRADOR_VACIO, "navidad");
-    expect(parcheDeCambios(null, ahora)).toEqual({ modo: "ambiente", plantilla: "navidad", paleta: 0, acento: null, efecto: "copos", franja: "rota" });
+    expect(parcheDeCambios(null, ahora)).toEqual({
+      modo: "ambiente", plantilla: "navidad", paleta: 0, acento: null, franja: "rota", entrada: "telon", efecto: "copos", intensidad: "poca", duracion: "una", cuenta: "siempre",
+    });
     expect(parcheDeCambios(BORRADOR_VACIO, ahora)).toEqual(parcheDeCambios(null, ahora));
   });
 
@@ -105,6 +117,19 @@ describe("parcheDeCambios: solo lo que cambió", () => {
     expect(parcheDeCambios(guardado, conPaleta(guardado, 2))).toEqual({ paleta: 2 });
     expect(parcheDeCambios(guardado, conAcento(guardado, "#112233"))).toEqual({ acento: "#112233" });
     expect(parcheDeCambios({ ...guardado, acento: "#112233" }, { ...guardado, acento: null })).toEqual({ acento: null });
+  });
+
+  it("lo que se aparta de fábrica en «dónde se ve» viaja con el primer guardado", () => {
+    expect(parcheDeCambios(null, conDonde(conAmbiente(BORRADOR_VACIO, "gato"), "sello", false))).toMatchObject({ donde_sello: false });
+    expect(parcheDeCambios(null, conAmbiente(BORRADOR_VACIO, "gato"))).not.toHaveProperty("donde_sello");
+  });
+
+  it("cada pieza del movimiento y de «dónde se ve» viaja sola", () => {
+    expect(parcheDeCambios(guardado, conMovimiento(guardado, "duracion", "continuo"))).toEqual({ duracion: "continuo" });
+    expect(parcheDeCambios(guardado, conMovimiento(guardado, "efecto", "copos"))).toEqual({ efecto: "copos" });
+    expect(parcheDeCambios(guardado, conMovimiento(guardado, "cuenta", "ultimo"))).toEqual({ cuenta: "ultimo" });
+    expect(parcheDeCambios(guardado, conDonde(guardado, "bolsa", false))).toEqual({ donde_bolsa: false });
+    expect(parcheDeCambios(conDonde(guardado, "bolsa", false), guardado)).toEqual({ donde_bolsa: true });
   });
 
   it("cambiar de ambiente manda lo que cambia: el ambiente, la paleta, el color propio y la franja (Black Week comparte el efecto)", () => {
@@ -133,6 +158,18 @@ describe("qué falta para poder programar", () => {
   it("un color propio que no es #rrggbb también falta", () => {
     const b = { ...conAmbiente(BORRADOR_VACIO, "cyber"), acento: "rojo" };
     expect(faltanDelDiseno(b)).toEqual([{ paso: "colores", texto: "un color que sea #rrggbb" }]);
+  });
+
+  it("sin ninguna pieza encendida en «dónde se ve» falta elegir dónde se ve; con una basta", () => {
+    const apagado = PIEZAS_DONDE.reduce((b, k) => conDonde(b, k, false), conAmbiente(BORRADOR_VACIO, "cyber"));
+    expect(hayDonde(apagado)).toBe(false);
+    expect(faltanDelDiseno(apagado)).toEqual([{ paso: "donde", texto: "elegir dónde se ve" }]);
+    expect(faltanDelDiseno(conDonde(apagado, "franja", true))).toEqual([]);
+  });
+
+  it("si faltan los colores y el dónde se ve, lista los dos en el orden de las pantallas", () => {
+    const b = PIEZAS_DONDE.reduce((x, k) => conDonde(x, k, false), conAcento(conAmbiente(BORRADOR_VACIO, "cyber"), "#1a1a19"));
+    expect(faltanDelDiseno(b).map((f) => f.paso)).toEqual(["colores", "donde"]);
   });
 });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AMBIENTES_CAMPANA } from "@cayla-retail/shared";
-import { BORRADOR_VACIO, conAcento, conAmbiente, conPaleta, faltanDelDiseno, type BorradorDiseno } from "./campanas-web-editor";
+import { BORRADOR_VACIO, PIEZAS_DONDE, conAcento, conAmbiente, conDonde, conMovimiento, conPaleta, faltanDelDiseno, type BorradorDiseno } from "./campanas-web-editor";
 import { camposDeDiseno, faltanDelDisenoEnLaGuia } from "./campanas-web-guia";
 import { faltanDe, siguienteDe } from "./guia-campos";
 
@@ -15,6 +15,9 @@ const ESCENARIOS: { nombre: string; b: BorradorDiseno }[] = [
   { nombre: "color propio que se lee", b: conAcento(conAmbiente(BORRADOR_VACIO, "cyber"), "#00aa55") },
   { nombre: "color propio que no se lee", b: conAcento(conAmbiente(BORRADOR_VACIO, "cyber"), "#1a1a19") },
   { nombre: "color propio que no es #rrggbb", b: { ...conAmbiente(BORRADOR_VACIO, "cyber"), acento: "rojo" } },
+  { nombre: "sin ninguna pieza en «dónde se ve»", b: PIEZAS_DONDE.reduce((b, k) => conDonde(b, k, false), conAmbiente(BORRADOR_VACIO, "cyber")) },
+  { nombre: "una sola pieza en «dónde se ve»", b: conDonde(PIEZAS_DONDE.reduce((b, k) => conDonde(b, k, false), conAmbiente(BORRADOR_VACIO, "cyber")), "sello", true) },
+  { nombre: "colores que no se leen y nada en «dónde se ve»", b: PIEZAS_DONDE.reduce((b, k) => conDonde(b, k, false), conAcento(conAmbiente(BORRADOR_VACIO, "cyber"), "#1a1a19")) },
 ];
 
 describe("la guía de foco del editor dice lo mismo que la validación", () => {
@@ -26,10 +29,10 @@ describe("la guía de foco del editor dice lo mismo que la validación", () => {
     });
   }
 
-  it("sin ambiente sigue «Ambiente» y luego «Colores»; con ambiente y paleta ya no falta nada del diseño", () => {
+  it("sin ambiente sigue «Ambiente» y luego «Colores» y «Dónde se ve»; con ambiente y paleta ya no falta nada del diseño", () => {
     const vacio = camposDeDiseno(BORRADOR_VACIO, R);
     expect(siguienteDe(vacio)?.id).toBe("ambiente");
-    expect(faltanDe(vacio).map((c) => c.id)).toEqual(["ambiente", "colores"]);
+    expect(faltanDe(vacio).map((c) => c.id)).toEqual(["ambiente", "colores", "donde"]);
     const listo = camposDeDiseno(conAmbiente(BORRADOR_VACIO, "gato"), R);
     expect(faltanDe(listo)).toEqual([]);
   });
@@ -44,5 +47,17 @@ describe("la guía de foco del editor dice lo mismo que la validación", () => {
   it("sin responsable falta quién lo cambia, con el motivo que da el combo", () => {
     const c = camposDeDiseno(conAmbiente(BORRADOR_VACIO, "gato"), { responsableListo: false, responsableMotivo: "Elige quién está de turno." });
     expect(faltanDe(c).map((x) => `${x.id}:${x.pendiente}`)).toEqual(["responsable:Elige quién está de turno."]);
+  });
+});
+
+describe("el movimiento en la guía", () => {
+  it("es opcional: nunca bloquea ni se lista como falta, y se marca hecho solo cuando se apartó del de fábrica", () => {
+    const base = conAmbiente(BORRADOR_VACIO, "gato");
+    const antes = camposDeDiseno(base, R).find((c) => c.id === "movimiento")!;
+    expect(antes.requerido).toBe(false);
+    expect(antes.hecho).toBe(false);
+    const despues = camposDeDiseno(conMovimiento(base, "duracion", "continuo"), R).find((c) => c.id === "movimiento")!;
+    expect(despues.hecho).toBe(true);
+    expect(faltanDe([despues])).toEqual([]);
   });
 });
