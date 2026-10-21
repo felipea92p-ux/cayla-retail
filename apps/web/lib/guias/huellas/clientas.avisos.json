@@ -2,7 +2,7 @@
   "guia": "clientas.avisos",
   "ruta": "/clientas/avisos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 21,
+  "total": 23,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -30,6 +30,10 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «Guardar mensajes»"
+    ],
+    "components/clientas/VinculosGoogleAvisos.tsx": [
+      "Boton «{bloqueo ?? \"Abre WhatsApp Web con su número y el texto listos\"}»",
+      "Boton «La cuenta de Google deja de entrar a esta ficha»"
     ]
   }
 }

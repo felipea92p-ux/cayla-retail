@@ -369,10 +369,10 @@ export const ARBOL: readonly Nodo[] = [
       // sede donde se está parado: en CAYLA Global no se abre (no es de la vista global).
       { id: "tiendaWeb.recomendaciones", modulo: "recomendaciones", etiqueta: "Recomendaciones", estado: "viva", ruta: "/tienda-web/recomendaciones", icono: "recomendaciones", pajaro: "07 Colibrí" },
       // Lo que la web muestra de cada tienda y los plazos de los pedidos (ADR-0408, actividad 6). Era la pestaña «Tienda web» de
-      // Configuración y la abría su módulo; desde 20261016223000 tiene el suyo («Datos y plazos de la tienda web»). El rótulo dice qué
-      // hay dentro: «Ajustes» a secas era demasiado general. El dato sigue siendo del Ganso, como el resto de Configuración.
+      // Configuración y la abría su módulo; desde 20261016223000 tiene el suyo («Datos y plazos de la tienda web»). El rótulo («Conf. Tienda», Felipe
+      // 2026-10-21; antes «Datos y plazos») dice qué hay dentro: «Ajustes» a secas era demasiado general. El dato sigue siendo del Ganso, como el resto de Configuración.
       // `soloConModulo`: antes de los roles (un perfil sin módulos) esta pantalla no existía, así que la fila no le aparece a nadie.
-      { id: "tiendaWeb.ajustes", modulo: "ajustes_web", soloConModulo: true, etiqueta: "Datos y plazos", estado: "viva", ruta: "/tienda-web/ajustes", icono: "ajustesWeb", pajaro: "01 Ganso" },
+      { id: "tiendaWeb.ajustes", modulo: "ajustes_web", soloConModulo: true, etiqueta: "Conf. Tienda", estado: "viva", ruta: "/tienda-web/ajustes", icono: "ajustesWeb", pajaro: "01 Ganso" },
     ],
   },
 

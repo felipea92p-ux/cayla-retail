@@ -1293,6 +1293,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   diseño C «Invitación» (2026-10-01, `app/estilos/cartel-club.css`): sus cifras (% del cumpleaños, vale menor y mayor de la
   escala, compras y monto del año) salen de `lib/clientas.ts:getTextosDelCartel` → RPC `fn_club_textos_legales` (una lectura
   para todas las tiendas) → `lib/club-cartel-reglas.ts`; sin ellas no se dibuja.
+- `/clientas/avisos` ▸ «Cuentas de Google unidas a un miembro» (ADR-0469, `20261021170000`, **sin pegar en producción**): quien entró a la tienda online
+  con Google y ya tenía una ficha con ese correo queda unido a ella (`tienda_vincular_cuenta_google`, que llama `apps/tienda/lib/google-servidor.ts`).
+  `lib/vinculos-google.ts` (server) → RPC `fn_vinculos_google_recientes` → `components/clientas/VinculosGoogleAvisos.tsx` (dentro de `AvisosClubPanel`):
+  «Avisar» abre `web.whatsapp.com/send` y anota con `registrar_vinculo_google_avisado`; «Deshacer la unión» (solo líder) llama `desvincular_cuenta_google`
+  (`lib/vinculos-google-acciones.ts`). Mismo módulo `avisos_club`: no hay módulo nuevo.
 - `/clientas/avisos` (ADR-0288 act. g, G-8; tanda 1g, módulo **`avisos_club`**, sin pegar): Clientas pasa a GRUPO del menú
   (Fichas · Avisos). `app/(app)/clientas/layout.tsx` es la puerta del grupo (`clientas` o `avisos_club`); las fichas
   (`page.tsx`) piden `clientas` y `avisos/layout.tsx` pide `avisos_club`. En CAYLA Global no se abre (manda desde UNA

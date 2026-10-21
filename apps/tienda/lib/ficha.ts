@@ -258,19 +258,19 @@ export function combinaCon(looks: readonly Look[], productoId: string, prendas: 
  * si todas son de ahí; si no, «Sigue mirando»); `ver`: la lista de eso mismo, para su «Ver todo» (sin nada, toda la tienda).
  */
 export function parecidasA(
-  prenda: { id: string; categoria: { nombre: string; prefijo: string | null } | null },
+  prenda: { id: string; categoria: { nombre: string; prefijo: string | null; familia?: string | null } | null },
   prendas: readonly Prenda[],
   { fuera = [], cuantas = 8 }: { fuera?: readonly string[]; cuantas?: number } = {},
 ): { prendas: Prenda[]; ceja: string; ver: { categoria: string | null; grupo: string | null } } {
   const clave = claveCategoria(prenda.categoria);
-  const grupo = clave ? grupoDe(clave) : null;
+  const grupo = clave ? grupoDe(clave, prenda.categoria?.familia) : null;
   const sacar = new Set([prenda.id, ...fuera]);
   // 0: su categoría · 1: su grupo · 2: su menú · 3: lo demás.
   const cercania = (p: Prenda): number => {
     const suya = claveCategoria(p.categoria);
     if (!clave || !suya) return 3;
     if (suya === clave) return 0;
-    const g = grupoDe(suya);
+    const g = grupoDe(suya, p.categoria?.familia);
     if (grupo && g.clave === grupo.clave) return 1;
     return grupo && g.menu === grupo.menu ? 2 : 3;
   };

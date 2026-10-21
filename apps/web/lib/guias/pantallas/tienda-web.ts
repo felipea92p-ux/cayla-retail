@@ -32,7 +32,7 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       ancla: "tienda-web.tiendas",
       opcional: true,
       titulo: "Las tiendas en la web",
-      texto: "En verde, la tienda se ve y el cliente puede recoger ahí lo que separa. En ámbar, está encendida pero le falta un dato y no se ve. «Datos y plazos» te lleva a completarla.",
+      texto: "En verde, la tienda se ve y el cliente puede recoger ahí lo que separa. En ámbar, está encendida pero le falta un dato y no se ve. «Conf. Tienda» te lleva a completarla.",
     },
     {
       id: "pendientes",
@@ -1049,19 +1049,19 @@ export const GUIA_RECOMENDACIONES: Guia = {
   alSalir: [{ tipo: "escape" }],
 };
 
-// Tienda web ▸ Ajustes (ADR-0430; antes la pestaña «Tienda web» de Configuración, ADR-0408 act. 6). Cada casilla se guarda sola al salir
-// de ella, así que la demo no escribe en ninguna: solo enciende cada parte y la explica.
+// Tienda web ▸ Conf. Tienda (ADR-0430; antes «Datos y plazos» y la pestaña «Tienda web» de Configuración, ADR-0408 act. 6). Cada tarjeta se
+// guarda con su botón «Guardar»; la demo no lo aprieta: solo enciende cada parte y la explica.
 export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
   id: "tienda-web.ajustes",
   ruta: "/tienda-web/ajustes",
-  titulo: "Datos y plazos",
+  titulo: "Conf. Tienda",
   resumen: "Lo que la tienda online muestra de cada tienda y cuánto espera un pedido en cada paso.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "Los ajustes de la tienda web",
-      texto: "Aquí decides qué ve el cliente de cada tienda en la tienda online y cuánto espera un pedido antes de cerrarse solo. Cada casilla se guarda sola al salir de ella, firmada por el responsable. En la demo solo miramos, sin guardar nada.",
+      texto: "Aquí decides qué ve el cliente de cada tienda en la tienda online y cuánto espera un pedido antes de cerrarse solo. Cada tarjeta se guarda con su botón «Guardar», firmada por el responsable. En la demo solo miramos, sin guardar nada.",
     },
     {
       id: "sedes",
@@ -1077,10 +1077,17 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
       texto: "Con nombre, WhatsApp y dirección, la tienda se puede encender: el cliente la ve y puede recoger ahí lo que separa. Apagada, no la ve. En la demo no la tocamos.",
     },
     {
+      id: "guardar",
+      ancla: "config.tienda-web-guardar",
+      opcional: true,
+      titulo: "Guardar la tienda",
+      texto: "Lo que escribes y el interruptor quedan como borrador: la web no cambia hasta que aprietas «Guardar» al pie de la tarjeta. Mientras tanto te avisa «Tienes cambios sin guardar». En la demo no lo apretamos.",
+    },
+    {
       id: "plazos",
       ancla: "config.tienda-web-plazos",
       titulo: "Para todas las sedes",
-      texto: "La línea de arriba es la vida de un pedido: el cliente separa, tú confirmas, paga y recoge, con el plazo de cada paso. Debajo se cambian esos plazos, y desde cuántas prendas el cliente ve el número en vez de «Hay».",
+      texto: "La línea de arriba es la vida de un pedido: el cliente separa, tú confirmas, paga y recoge, con el plazo de cada paso. Debajo se cambian esos plazos, y desde cuántas prendas el cliente ve el número en vez de «Hay»; se guardan con su propio botón «Guardar».",
     },
     {
       id: "nota",
@@ -1093,7 +1100,7 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes qué muestra la tienda web de cada tienda y sus plazos. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Datos y plazos.",
+      texto: "Ya sabes qué muestra la tienda web de cada tienda y sus plazos. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Conf. Tienda.",
     },
   ],
 };
