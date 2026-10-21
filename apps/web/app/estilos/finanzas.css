@@ -439,6 +439,13 @@
     gap: 16px;
     align-items: start;
   }
+  /* Las tarjetas de las tiendas (Tienda web ▸ Conf. Tienda): todas en una fila mientras quepan, a 18 rem como mínimo cada una. */
+  .fin-sedes-fila {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: 16px;
+    align-items: start;
+  }
   .fin-columna {
     display: flex;
     flex-direction: column;

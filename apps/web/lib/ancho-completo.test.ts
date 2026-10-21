@@ -21,7 +21,7 @@ import { ARBOL, type Nodo } from "./menu";
 const RAIZ = join(__dirname, "..");
 const MARCADOR = "data-ancho-completo";
 /** Las rutas que llevaban el tope el 2026-10-20, cuando se invirtió la regla. Al revisar una a lo ancho, se saca de AppShell y de aquí. */
-const CON_TOPE_HOY = ["/actividad", "/buscar", "/comercial", "/configuracion", "/finanzas", "/global", "/movimientos", "/pedidos-no-atendidos", "/rendimiento", "/sin-acceso", "/tienda-web"];
+const CON_TOPE_HOY = ["/actividad", "/buscar", "/comercial", "/configuracion", "/finanzas", "/global", "/movimientos", "/pedidos-no-atendidos", "/rendimiento", "/sin-acceso"];
 const QUIEN_PIDE_ANCHO_COMPLETO = ["components/inicio-almacen/InicioAlmacen.tsx", "components/observatorio/Observatorio.tsx", "components/ui/Aventurero.tsx"];
 
 function archivos(dir: string): string[] {
@@ -65,8 +65,8 @@ describe("el ancho de las pantallas (ADR-0462)", () => {
 
   // Producción entró entera el 2026-09-22, y «Órdenes de insumos» (`/ordenes-insumos`, su ruta NO cuelga de `/produccion` a propósito:
   // ADR-0362) quedó con el tope hasta la Formidable del 2026-10-15: al pasar de Proveedores a Órdenes de insumos el título saltaba 32 px.
-  // Clientes (Fichas, Avisos, Beneficios) entró el 2026-10-20 (Felipe: «no ocupan todo el espacio»). Cada grupo comparte un solo ancho.
-  for (const grupo of ["produccion", "clientas"]) {
+  // Clientes (Fichas, Avisos, Beneficios) entró el 2026-10-20 (Felipe: «no ocupan todo el espacio»); Tienda web (Resumen, Pedidos, Vitrina, Recomendaciones, Datos y plazos) el 2026-10-21. Cada grupo comparte un solo ancho.
+  for (const grupo of ["produccion", "clientas", "tiendaWeb"]) {
     it(`toda pantalla del grupo «${grupo}» va sin tope: pasar de una a otra no mueve el título`, () => {
       const nodo = ARBOL.find((n) => n.id === grupo);
       expect(nodo).toBeDefined();
