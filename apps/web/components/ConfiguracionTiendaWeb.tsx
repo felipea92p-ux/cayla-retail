@@ -9,7 +9,8 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
-import { Interruptor } from "@/components/ui/campos";
+import { Boton, Interruptor } from "@/components/ui/campos";
+import { PieAcciones } from "@/components/ui/PieAcciones";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraBloque, CampoFin, InputFin, Superficie } from "@/components/finanzas/kit";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
@@ -44,17 +45,18 @@ import {
   type SedeWeb,
 } from "@/lib/tienda-web-reglas";
 
-// Tienda web ▸ Ajustes (ADR-0430; antes Configuración ▸ Tienda web, ADR-0408, actividad 6; maqueta `vConfig` de docs/maquetas/tienda-online-2026-10/): lo que la
-// tienda online le muestra al cliente de cada tienda —nombre, WhatsApp, dirección y horario, y si se muestra— y los plazos de
-// los pedidos web. Dibujada con el kit de Finanzas como el resto de Configuración (ADR-0195), y como sus otras pestañas: CADA
-// CASILLA SE GUARDA SOLA AL SALIR DE ELLA, firmada con el responsable, sin botón «Guardar» (la maqueta tenía uno; aquí manda
-// cómo se guarda el resto de Configuración: una función, una pieza).
+// Tienda web ▸ Conf. Tienda (ADR-0430; antes «Datos y plazos» y, antes, Configuración ▸ Tienda web, ADR-0408, actividad 6; maqueta `vConfig` de
+// docs/maquetas/tienda-online-2026-10/): lo que la tienda online le muestra al cliente de cada tienda —nombre, WhatsApp, dirección y
+// horario, y si se muestra— y los plazos de los pedidos web. Dibujada con el kit de Finanzas (ADR-0195). CADA TARJETA SE GUARDA CON SU
+// BOTÓN «Guardar», firmada con el responsable (Felipe 2026-10-21: guardar solo al salir de una casilla no estaba bien: nadie sabía
+// cuándo se había guardado). Lo escrito, y el interruptor «Se ve en la web», quedan como borrador hasta apretarlo.
 //
 // El WhatsApp es `ubicaciones.whatsapp_numero`, el mismo del QR del club (Tiendas y caja): se guarda con `guardar_whatsapp_tienda`,
 // la misma función y la misma regla de allá. El resto, con `guardar_sede_tienda_web`, que no deja encender una tienda a la que
 // le falte algo (la guía de foco lo dice antes, con la misma regla: `faltaParaMostrar`).
 
-type Guardar = (hacer: () => PromiseLike<{ error: unknown }>, que: string, listo: string) => Promise<boolean>;
+/** `listo` es el aviso de éxito; `null` guarda sin avisar (el paso previo de un guardado en dos partes). */
+type Guardar = (hacer: () => PromiseLike<{ error: unknown }>, que: string, listo: string | null) => Promise<boolean>;
 type CampoTexto = "nombreWeb" | "direccion" | "horario";
 
 /** El horario se escribe igual en cualquier tienda: su ejemplo no depende de nada elegido antes. */
@@ -68,8 +70,8 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
-  // La tienda cuyo «Se ve en la web» se está guardando: su interruptor espera la respuesta.
-  const [cambiandoEn, setCambiandoEn] = useState<string | null>(null);
+  // La tienda cuya tarjeta se está guardando: su botón espera la respuesta.
+  const [guardandoEn, setGuardandoEn] = useState<string | null>(null);
 
   // Lo escrito en cada tienda. Cuando la base trae datos nuevos (otro guardado, un refresco), cada caja toma lo nuevo salvo la
   // que la persona tiene escrita distinto (`fusionarBorrador`): un refresco no le borra a nadie lo que lleva escrito.
@@ -81,7 +83,8 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     const nuevas = listaDe(datos.sedes);
     setBorradores((b) => Object.fromEntries(datos.sedes.map((s) => [s.id, fusionarBorrador(b[s.id] ?? nuevas[s.id]!, bases[s.id] ?? nuevas[s.id]!, nuevas[s.id]!)])));
     setBases(nuevas);
-    setMostrar(Object.fromEntries(datos.sedes.map((s) => [s.id, s.mostrar])));
+    // El interruptor sin guardar se respeta, igual que lo escrito: solo toma lo nuevo el que no se tocó.
+    setMostrar((m) => Object.fromEntries(datos.sedes.map((s) => [s.id, m[s.id] === vista.sedes.find((x) => x.id === s.id)?.mostrar ? s.mostrar : (m[s.id] ?? s.mostrar)])));
     setVista(datos);
   }
 
@@ -108,7 +111,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
       avisar.error(traducirError(error as never, que));
       return false;
     }
-    avisar.exito(listo);
+    if (listo) avisar.exito(listo);
     router.refresh();
     return true;
   };
@@ -135,51 +138,60 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
       listo,
     );
 
-  async function alSalir(s: SedeWeb, campo: CampoTexto) {
+  /** ¿La tarjeta de esta tienda tiene algo escrito o encendido que la base todavía no tiene? */
+  const tieneCambios = (s: SedeWeb) => {
     const b = borradores[s.id];
     const base = bases[s.id];
-    if (!b || !base || limpiarTexto(b[campo]) === limpiarTexto(base[campo])) return;
+    if (!b || !base) return false;
+    const texto = (["nombreWeb", "direccion", "horario"] as const).some((k) => limpiarTexto(b[k]) !== limpiarTexto(base[k]));
+    return texto || b.whatsapp !== base.whatsapp || (mostrar[s.id] ?? s.mostrar) !== s.mostrar;
+  };
+
+  /** El botón «Guardar» de una tarjeta: valida todo antes de escribir nada, guarda el WhatsApp (su propia función, la del QR del club) y
+   *  después el resto, con un solo aviso al final. Si algo falla, lo escrito se queda para corregirlo y volver a guardar. */
+  async function guardarTarjeta(s: SedeWeb) {
+    const b = borradores[s.id];
+    const base = bases[s.id];
+    if (!b || !base) return;
+    const enWeb = mostrar[s.id] ?? s.mostrar;
     const largo = errorDeLargo(b);
-    if (largo) {
-      avisar.error(`${s.nombre}: ${largo}`);
-      revertir(s.id, campo);
-      return;
+    if (largo) return avisar.error(`${s.nombre}: ${largo}`);
+    if (b.whatsapp !== "" && !celularValido(b.whatsapp)) {
+      return avisar.error(`WhatsApp de ${s.nombre}: tiene 9 dígitos y empieza en 9. Si la tienda no tiene uno, déjalo vacío.`);
     }
-    const nuevo = limpiarTexto(b[campo]);
-    const listo = {
-      nombreWeb: nuevo ? `${s.nombre}: en la web se llama «${nuevo}».` : `${s.nombre}: sin nombre en la web.`,
-      direccion: nuevo ? `${s.nombre}: dirección para recoger guardada.` : `${s.nombre}: sin dirección para recoger.`,
-      horario: nuevo ? `${s.nombre}: horario guardado.` : `${s.nombre}: sin horario en la web.`,
-    }[campo];
-    const ok = await guardarSede(s, b, mostrar[s.id] ?? false, `guardar ${NOMBRE_DATO[DATO_DE[campo]].toLocaleLowerCase("es")} de ${s.nombre}`, listo);
-    if (!ok) revertir(s.id, campo);
-  }
-
-  async function alSalirWhatsapp(s: SedeWeb) {
-    const numero = borradores[s.id]?.whatsapp ?? "";
-    if (numero === (bases[s.id]?.whatsapp ?? "")) return;
-    if (numero !== "" && !celularValido(numero)) {
-      avisar.error(`WhatsApp de ${s.nombre}: tiene 9 dígitos y empieza en 9. Si la tienda no tiene uno, déjalo vacío.`);
-      revertir(s.id, "whatsapp");
-      return;
+    const falta = faltaParaMostrar(b);
+    if (enWeb && falta.length > 0) {
+      return avisar.error(`${s.nombre}: para mostrarla en la web falta ${falta.map((d) => NOMBRE_DATO[d].toLocaleLowerCase("es")).join(", ")}.`);
     }
-    const ok = await guardar(
-      () => createClient().rpc("guardar_whatsapp_tienda", { p_ubicacion_id: s.id, p_numero: numero || undefined }),
-      "guardar el WhatsApp de la tienda",
-      numero
-        ? `${s.nombre}: WhatsApp ${numero}. Es el mismo del QR del club.`
-        : `${s.nombre}: sin WhatsApp. No se ve en la web ni muestra el QR del club.`,
-    );
-    if (!ok) revertir(s.id, "whatsapp");
-  }
-
-  async function alCambiarMostrar(s: SedeWeb, valor: boolean) {
-    const b = borradores[s.id] ?? borradorDe(s);
-    const nombre = limpiarTexto(b.nombreWeb) ?? nombreCorto(s.nombre);
-    setCambiandoEn(s.id);
-    const ok = await guardarSede(s, b, valor, `${valor ? "mostrar" : "ocultar"} ${s.nombre} en la web`, valor ? `«${nombre}» ya se ve en la web.` : `«${nombre}» ya no se ve en la web.`);
-    setCambiandoEn(null);
-    if (ok) setMostrar((m) => ({ ...m, [s.id]: valor }));
+    const cambioWhatsapp = b.whatsapp !== base.whatsapp;
+    const cambioResto = (["nombreWeb", "direccion", "horario"] as const).some((k) => limpiarTexto(b[k]) !== limpiarTexto(base[k])) || enWeb !== s.mostrar;
+    setGuardandoEn(s.id);
+    try {
+      if (cambioWhatsapp) {
+        const ok = await guardar(
+          () => createClient().rpc("guardar_whatsapp_tienda", { p_ubicacion_id: s.id, p_numero: b.whatsapp || undefined }),
+          "guardar el WhatsApp de la tienda",
+          cambioResto
+            ? null
+            : b.whatsapp
+              ? `${s.nombre}: WhatsApp ${b.whatsapp}. Es el mismo del QR del club.`
+              : `${s.nombre}: sin WhatsApp. No se ve en la web ni muestra el QR del club.`,
+        );
+        if (!ok) return;
+      }
+      if (cambioResto) {
+        const nombre = limpiarTexto(b.nombreWeb) ?? nombreCorto(s.nombre);
+        await guardarSede(
+          s,
+          b,
+          enWeb,
+          `guardar la tienda ${s.nombre}`,
+          enWeb !== s.mostrar ? (enWeb ? `«${nombre}» ya se ve en la web.` : `«${nombre}» ya no se ve en la web.`) : `${s.nombre}: cambios guardados.`,
+        );
+      }
+    } finally {
+      setGuardandoEn(null);
+    }
   }
 
   if (!datos.sedes.length) {
@@ -190,15 +202,15 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <p className="max-w-md text-[13px] text-taupe">
-          Cada casilla se guarda sola al salir de ella, a nombre de quien figure como responsable; la web lo muestra en unos minutos. Arriba
-          de cada tienda ves cómo la verá el cliente mientras escribes.
+          Escribe los cambios y guarda cada tarjeta con su botón «Guardar», a nombre de quien figure como responsable; la web lo muestra en
+          unos minutos. Arriba de cada tienda ves cómo la verá el cliente mientras escribes.
         </p>
         <div className="w-full max-w-xs">
-          <ComboResponsable control={responsable} deshabilitado={guardando} />
+          <ComboResponsable control={responsable} deshabilitado={guardando || guardandoEn !== null} />
         </div>
       </div>
 
-      <section className="fin-dos-col" data-guia="config.tienda-web-sedes">
+      <section className="fin-sedes-fila" data-guia="config.tienda-web-sedes">
         {datos.sedes.map((s, i) => (
           <TarjetaSede
             key={s.id}
@@ -208,11 +220,13 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
             primera={i === 0}
             guia={guia}
             pendientes={pendientes}
-            guardandoMostrar={cambiandoEn === s.id}
+            guardado={{ mostrar: s.mostrar, ...(bases[s.id] ?? borradorDe(s)) }}
+            sucio={tieneCambios(s)}
+            guardando={guardandoEn === s.id}
             onEscribir={(campo, valor) => escribir(s.id, campo, valor)}
             onRevertir={(campo) => revertir(s.id, campo)}
-            onSalir={(campo) => (campo === "whatsapp" ? alSalirWhatsapp(s) : alSalir(s, campo))}
-            onMostrar={(v) => alCambiarMostrar(s, v)}
+            onMostrar={(v) => setMostrar((m) => ({ ...m, [s.id]: v }))}
+            onGuardar={() => guardarTarjeta(s)}
           />
         ))}
       </section>
@@ -238,11 +252,13 @@ function TarjetaSede({
   primera,
   guia,
   pendientes,
-  guardandoMostrar,
+  guardado,
+  sucio,
+  guardando,
   onEscribir,
   onRevertir,
-  onSalir,
   onMostrar,
+  onGuardar,
 }: {
   sede: SedeWeb;
   borrador: BorradorSede;
@@ -250,14 +266,17 @@ function TarjetaSede({
   primera: boolean;
   guia: GuiaCampos;
   pendientes: ReadonlySet<string>;
-  guardandoMostrar: boolean;
+  /** Lo que la base ya tiene de esta tienda: el chip de arriba dice lo que ve el cliente hoy, no lo que está escrito sin guardar. */
+  guardado: { mostrar: boolean } & BorradorSede;
+  sucio: boolean;
+  guardando: boolean;
   onEscribir: (campo: keyof BorradorSede, valor: string) => void;
   onRevertir: (campo: keyof BorradorSede) => void;
-  onSalir: (campo: keyof BorradorSede) => void;
   onMostrar: (valor: boolean) => void;
+  onGuardar: () => void;
 }) {
   const falta = faltaParaMostrar(b);
-  const estado = estadoSedeWeb({ mostrar: enWeb, ...b });
+  const estado = estadoSedeWeb(guardado);
   const paraLaFrase = limpiarTexto(b.nombreWeb) ?? nombreCorto(s.nombre);
   // La marca de la guía solo en los datos que llegaron vacíos al abrir (una tienda completa no se llena de marcas).
   const etiqueta = (dato: DatoWeb | "horario", texto: string): ReactNode => (pendientes.has(idCampo(s.id, dato)) ? guia.etiqueta(idCampo(s.id, dato), texto) : texto);
@@ -267,7 +286,6 @@ function TarjetaSede({
     ...(limpiarTexto(b.horario) === null ? [{ id: idCampo(s.id, "horario"), nombre: NOMBRE_DATO.horario, requerido: false, sugerido: true, hecho: false, pendiente: "" }] : []),
   ];
   const teclas = (campo: keyof BorradorSede) => (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") e.currentTarget.blur();
     if (e.key === "Escape") onRevertir(campo);
   };
   const caja = (campo: CampoTexto, placeholder: string, tope: number) => (
@@ -278,7 +296,6 @@ function TarjetaSede({
       placeholder={placeholder}
       autoComplete="off"
       onChange={(e) => onEscribir(campo, e.target.value)}
-      onBlur={() => onSalir(campo)}
       onKeyDown={teclas(campo)}
     />
   );
@@ -334,7 +351,6 @@ function TarjetaSede({
               autoComplete="off"
               placeholder="987 654 321"
               onChange={(e) => onEscribir("whatsapp", ajustarCelular(e.target.value))}
-              onBlur={() => onSalir("whatsapp")}
               onKeyDown={teclas("whatsapp")}
               className="fin-num"
             />
@@ -366,7 +382,7 @@ function TarjetaSede({
           <Interruptor
             activo={enWeb}
             onActivo={onMostrar}
-            disabled={guardandoMostrar || (!enWeb && falta.length > 0)}
+            disabled={guardando || (!enWeb && falta.length > 0)}
             etiqueta="Se ve en la web"
             pie={
               enWeb
@@ -377,6 +393,16 @@ function TarjetaSede({
             }
           />
         </div>
+        <PieAcciones guia={primera ? "config.tienda-web-guardar" : undefined}>
+          {sucio && !guardando && (
+            <span role="status" className="mr-auto self-center text-[12.5px] text-taupe">
+              Tienes cambios sin guardar.
+            </span>
+          )}
+          <Boton peso="primario" cargando={guardando} disabled={!sucio} onClick={onGuardar}>
+            Guardar
+          </Boton>
+        </PieAcciones>
       </div>
     </Superficie>
   );
@@ -391,36 +417,32 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
     setB(borradorParametros(parametros));
   }
 
-  async function alSalir(campo: keyof BorradorParametros) {
-    if (b[campo].trim() === base[campo].trim()) return;
+  const sucio = JSON.stringify(b) !== JSON.stringify(base);
+  const [guardando, setGuardando] = useState(false);
+
+  async function guardarPlazos() {
     const v = validarParametrosTiendaWeb(b);
-    if (!v.ok) {
-      avisar.error(v.error);
-      setB(base);
-      return;
-    }
+    if (!v.ok) return avisar.error(v.error);
     const p = v.valor;
-    const listo = {
-      horasParaConfirmar: `Un pedido sin confirmar se cierra solo a las ${p.horasParaConfirmar} horas.`,
-      horasAvisoSinPagar: `Un pedido confirmado sin ningún pago se anula solo a las ${p.horasAvisoSinPagar} horas.`,
-      diasAvisoSinRecoger: `Un pedido pagado y sin recoger avisa a los ${p.diasAvisoSinRecoger} días.`,
-      quedanPocasDesde: `El cliente ve el número con ${p.quedanPocasDesde} o menos.`,
-    }[campo];
-    const ok = await guardar(
-      () =>
-        createClient().rpc(
-          "guardar_parametros_tienda_web" as never,
-          {
-            p_horas_para_confirmar: p.horasParaConfirmar,
-            p_horas_aviso_sin_pagar: p.horasAvisoSinPagar,
-            p_dias_aviso_sin_recoger: p.diasAvisoSinRecoger,
-            p_quedan_pocas_desde: p.quedanPocasDesde,
-          } as never,
-        ),
-      "guardar los plazos de la tienda web",
-      listo,
-    );
-    if (!ok) setB(base);
+    setGuardando(true);
+    try {
+      await guardar(
+        () =>
+          createClient().rpc(
+            "guardar_parametros_tienda_web" as never,
+            {
+              p_horas_para_confirmar: p.horasParaConfirmar,
+              p_horas_aviso_sin_pagar: p.horasAvisoSinPagar,
+              p_dias_aviso_sin_recoger: p.diasAvisoSinRecoger,
+              p_quedan_pocas_desde: p.quedanPocasDesde,
+            } as never,
+          ),
+        "guardar los plazos de la tienda web",
+        `Plazos guardados: se confirma en ${p.horasParaConfirmar} h, se anula sin pago a las ${p.horasAvisoSinPagar} h y se avisa a los ${p.diasAvisoSinRecoger} días sin recoger.`,
+      );
+    } finally {
+      setGuardando(false);
+    }
   }
 
   const casilla = (campo: keyof BorradorParametros, etiqueta: string, ayuda: ReactNode, unidad?: string) => (
@@ -431,9 +453,7 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
           inputMode="numeric"
           value={b[campo]}
           onChange={(e) => setB((x) => ({ ...x, [campo]: e.target.value.replace(/[^\d-]/g, "") }))}
-          onBlur={() => alSalir(campo)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") e.currentTarget.blur();
             if (e.key === "Escape") setB(base);
           }}
           className="fin-num"
@@ -456,6 +476,16 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
       <Aviso tono="atencion" chico>
         Cambiar estos números afecta a todas las sedes desde el siguiente pedido.
       </Aviso>
+      <PieAcciones>
+        {sucio && !guardando && (
+          <span role="status" className="mr-auto self-center text-[12.5px] text-taupe">
+            Tienes cambios sin guardar.
+          </span>
+        )}
+        <Boton peso="primario" cargando={guardando} disabled={!sucio} onClick={guardarPlazos}>
+          Guardar
+        </Boton>
+      </PieAcciones>
     </Superficie>
   );
 }
