@@ -12,7 +12,7 @@ const LADO_QR_MM = 19;
  * La etiqueta de precio impresa: 40,1 × 62 mm, para el cartón de 5 × 8 cm (ADR-0180). Diseño «D · Editorial», arreglo
  * «QR abajo». Las medidas viven en `globals.css` (`.etiqueta-precio`) y son milímetros: esto es papel, no pantalla.
  *
- * Para la clienta: CAYLA arriba y la marca de la prenda al pie, en qué tallas viene el modelo con la suya marcada, prenda,
+ * Para la clienta: la empresa (CAYLA o CLAURE, con el colibrí solo CAYLA) arriba y la marca de la prenda al pie, en qué tallas viene el modelo con la suya marcada, prenda,
  * color, sus etiquetas comerciales (ícono + palabra, una fila que baja a 2 líneas si no caben juntas) y el precio. Con una
  * campaña vigente (paso 2), el precio de lista tachado con «Válido hasta el dd.mm» a su derecha, y el que cobra la caja con su
  * «−20 %» en negro. Para la colaboradora: el código escrito (si la pistola falla se teclea), la fecha de impresión (si conviven
@@ -31,13 +31,16 @@ export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtique
         {/* El colibrí en vector (calcado de /cayla-isotipo.png, 223 × 150): el PNG de 223 px, ennegrecido con filtro,
             salía serruchado en la Brother (Felipe, 2026-09-25). En vector la térmica lo dibuja nítido a su resolución.
             Trazo 9 de 223 en 6,2 mm = 0,25 mm (3 puntos): con 7 quedaba en 2,3, bajo el mínimo de globals.css. */}
-        <svg viewBox="0 0 223 150" aria-hidden fill="none" stroke="#000" strokeWidth={9} strokeLinejoin="round">
-          <path d="M3,6 C45,14 95,28 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102" />
-          <path d="M3,6 C10,40 40,70 70,80 C85,85 100,87 112,87" />
-          <path d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12" />
-          <path d="M172,16 C156,22 144,38 134,62" />
-        </svg>
-        <b>CAYLA</b>
+        {/* El colibrí es la marca de CAYLA: el papel de otra empresa (CLAURE) lleva solo su nombre (Felipe, 2026-10-20, ADR-0463). */}
+        {e.empresa.conLogo && (
+          <svg viewBox="0 0 223 150" aria-hidden fill="none" stroke="#000" strokeWidth={9} strokeLinejoin="round">
+            <path d="M3,6 C45,14 95,28 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102" />
+            <path d="M3,6 C10,40 40,70 70,80 C85,85 100,87 112,87" />
+            <path d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12" />
+            <path d="M172,16 C156,22 144,38 134,62" />
+          </svg>
+        )}
+        <b>{e.empresa.nombre}</b>
       </header>
 
       {e.tallasDelModelo.length > 0 && (
@@ -112,7 +115,7 @@ export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtique
           {e.marca && <span className="etq-marca">{e.marca}</span>}
           <span className="etq-cod">{e.codigo}</span>
           <small>Impreso {impreso}</small>
-          <small>cayla.pe</small>
+          <small className="etq-web">{e.empresa.web}</small>
         </div>
         <div className="etq-qr">
           <CodigoQR texto={e.codigo} ladoMm={LADO_QR_MM} />

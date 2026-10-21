@@ -1078,8 +1078,19 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       texto: "La prenda queda a nombre de quien la registra. Se elige una sola vez, al empezar.",
     },
     {
+      id: "empresa",
+      ancla: "nuevo.empresa",
+      // Solo existe cuando la base ya tiene las tiendas (ADR-0463): sin ellas el alta empieza por la familia.
+      opcional: true,
+      titulo: "Primero, la tienda",
+      texto: "Di de qué negocio es la prenda: CAYLA o CLAURE. Hasta que lo hagas, la familia y la categoría esperan. En la demo elegimos la primera, solo para seguir.",
+      demostrar: [{ tipo: "clic", ancla: "nuevo.empresa-elegir", siEsta: true }],
+    },
+    {
       id: "familias",
       ancla: "nuevo.familias",
+      // La demo elige la tienda si hace falta: sin ella la familia espera y no se puede tocar.
+      preparar: [{ tipo: "clic", ancla: "nuevo.empresa-elegir", siEsta: true }],
       titulo: "Empieza por la familia",
       texto: "«Sigue aquí» te marca lo que toca ahora. Elige la familia de la prenda: ropa, calzado, accesorios… (te abrimos la primera).",
     },
