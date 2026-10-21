@@ -390,3 +390,6 @@ antes de que existiera la página no sabe que tiene una ficha, y la página no t
   era miembro; la ficha de una boleta recibe la bienvenida de una persona nueva (`avisoAlCrear` recibe `era_del_club`). Sin la palabra
   «ficha». «Ya hay una cuenta con este DNI» suma qué hacer si no la creó la persona («Restablecer acceso» en tienda).
 - El cartel del Club lleva a tienda.cayla.pe (ADR-0288, «Actualización 2026-10-16 (p)»).
+
+
+**Actualización 2026-10-21 (grupos y respaldo por familia).** Chompas y Poleras pasan a «Chompas/Abrigos»; Accesorios se reparte en Bolsos/Cinturones, Lentes/Gorros/Pañuelos, Bisutería/Belleza y Otros accesorios. Se cierra el pendiente de arriba: `tienda_catalogo` manda `categoria.familia` (migración `20261021163000`) y una categoría que la tabla por prefijo no conoce cae según su familia (`GRUPO_DE_LA_FAMILIA`), no siempre en abrigos; sin familia, en «Más ropa». Descartado: columnas de grupo nuevas (un paso más) y la categoría madre (casi sin uso).
