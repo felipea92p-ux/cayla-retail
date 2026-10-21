@@ -226,6 +226,10 @@ export const PRUEBAS = [
   // imposible rechazados sin escribir nada, y `cuentas_web` cerrada a todos. ROLLBACK.
   "pruebas:tienda-cuentas",
   "pruebas:tienda-cuenta-simple",
+  // Entrar con Google une la cuenta a la ficha que ya tenía ese correo (ADR-0469): el nombre debe parecerse, una sola ficha sin cuenta ni
+  // archivar; el vínculo queda registrado y por avisar a la dueña; Avisar (módulo avisos_club) y Deshacer la unión (solo el líder) cierran
+  // la cuenta sin tocar la ficha; y `tienda_mi_cuenta` no trae documento, celular ni dirección. ROLLBACK.
+  "pruebas:tienda-vincular-google",
 
   // La Vitrina web y el catálogo de la tienda online (ADR-0408, actividad 3): el módulo nace sin rol y sin él no se lee ni guarda;
   // la versión frena a la segunda persona, mostrar varios es todo o nada y cada cambio deja su línea en la Actividad;

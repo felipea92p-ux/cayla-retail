@@ -115,7 +115,7 @@ export default async function Catalogo({ searchParams }: Props) {
   const menuPedido =
     menuLeido &&
     !esFavoritos &&
-    (!categoriaElegida || grupoDe(categoriaElegida.clave).menu === menuLeido.clave) &&
+    (!categoriaElegida || grupoDe(categoriaElegida.clave, categoriaElegida.familia).menu === menuLeido.clave) &&
     (!grupoPedido || grupoPedido.menu === menuLeido.clave)
       ? menuLeido
       : null;
@@ -137,7 +137,7 @@ export default async function Catalogo({ searchParams }: Props) {
   const enOtras = loPedidoEnTodas.length - vista.length;
   // El grupo encendido: el pedido o el de la categoría elegida. Lo elegido sale en los filtros aunque esta tienda no tenga nada de eso
   // (con 0): la persona ve dónde está.
-  const grupoActivo = grupoPedido ?? (categoriaElegida ? grupoDe(categoriaElegida.clave) : null);
+  const grupoActivo = grupoPedido ?? (categoriaElegida ? grupoDe(categoriaElegida.clave, categoriaElegida.familia) : null);
   const grupos = gruposConLoElegido(gruposDe(deLaLista), grupoActivo, categoriaElegida);
   const categorias = categoriasConLaElegida(categoriasDe(deLaLista), categoriaElegida);
   const delActivo = grupoActivo ? grupos.find((g) => g.clave === grupoActivo.clave) ?? null : null;
@@ -148,7 +148,7 @@ export default async function Catalogo({ searchParams }: Props) {
   // En «Toda la tienda», el título dice lo que se está viendo: la categoría (con su grupo arriba) o el grupo (con su menú arriba).
   const ceja =
     lista === "todo" && categoriaElegida
-      ? grupoDe(categoriaElegida.clave).nombre
+      ? grupoDe(categoriaElegida.clave, categoriaElegida.familia).nombre
       : lista === "todo" && grupoPedido
         ? MENUS.find((m) => m.clave === grupoPedido.menu)?.nombre ?? cab.ceja
         : cab.ceja;

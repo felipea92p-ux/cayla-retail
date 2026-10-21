@@ -102,6 +102,9 @@ export const ACCIONES_SIN_RESPONSABLE = {
   // «Arma el tuyo» (ADR-0434, actividad 2; migración 20261017013000; Felipe 2026-10-16): el recorte que el ERP guarda solo al subir una
   // foto, para el probador de la tienda online. Nadie hace una operación aparte: solo subió la foto.
   recorte_foto: "Guardar el recorte de una foto para el probador de la tienda online al subirla (lo hace el ERP solo, y con la cuenta de una persona firma ella)",
+  // Tienda online (ADR-0469; migración 20261021170000): un líder deshace la unión de una cuenta de Google con un miembro. Un líder siempre
+  // entra con su cuenta de persona (una terminal nunca es líder): firma él mismo.
+  vinculo_google_desvincular: "Deshacer la unión de una cuenta de Google con un miembro de la tienda online (solo un líder, y firma con su propia cuenta)",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;

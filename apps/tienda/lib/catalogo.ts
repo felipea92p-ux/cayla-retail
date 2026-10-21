@@ -25,6 +25,9 @@ const esquemaPrenda = z
     codigo: z.string().nullable(),
     nombre: z.string().min(1),
     categoria: z.object({ nombre: z.string().min(1), prefijo: z.string().nullable() }).nullable(),
+    // La familia de la categoría (indumentaria, accesorios…), para ubicar en su sección una categoría que la tabla de grupos no conoce. Una base
+    // que todavía no la manda no rompe nada: queda sin familia.
+    categoria_familia: z.string().nullish().catch(null),
     // De qué empresa es la prenda (CAYLA o CLAURE, ADR-0465). Sin el dato (una base que aún no lo manda), la tarjeta no dibuja la insignia.
     empresa: z.object({ clave: z.string().min(1), nombre: z.string().min(1) }).nullable().catch(null),
     // El precio del modelo en la tienda elegida (con «Todas», el mayor entre las tiendas de la web).
@@ -59,7 +62,7 @@ export type Prenda = {
   id: string;
   codigo: string | null;
   nombre: string;
-  categoria: { nombre: string; prefijo: string | null } | null;
+  categoria: { nombre: string; prefijo: string | null; familia?: string | null } | null;
   empresa: { clave: string; nombre: string } | null;
   precio: number;
   precioFinal: number;
@@ -92,7 +95,7 @@ export function interpretarCatalogo(dato: unknown): Catalogo | null {
         id: d.id,
         codigo: d.codigo,
         nombre: d.nombre,
-        categoria: d.categoria,
+        categoria: d.categoria ? { ...d.categoria, familia: d.categoria_familia ?? null } : null,
         empresa: d.empresa,
         precio: d.precio,
         precioFinal: d.precio_final,
@@ -287,7 +290,7 @@ export const leerCategoria = (v: string | string[] | undefined): string | null =
   return c ? c.slice(0, 80) : null;
 };
 
-export type CategoriaLista = { clave: string; nombre: string; cuantas: number };
+export type CategoriaLista = { clave: string; nombre: string; cuantas: number; familia?: string | null };
 
 /** Las categorías que tienen algo publicado, de la que más tiene a la que menos (empate: por nombre). */
 export function categoriasDe(prendas: readonly Prenda[]): CategoriaLista[] {
@@ -295,7 +298,7 @@ export function categoriasDe(prendas: readonly Prenda[]): CategoriaLista[] {
   for (const p of prendas) {
     const clave = claveCategoria(p.categoria);
     if (!clave || !p.categoria) continue;
-    const c = porClave.get(clave) ?? { clave, nombre: p.categoria.nombre, cuantas: 0 };
+    const c = porClave.get(clave) ?? { clave, nombre: p.categoria.nombre, cuantas: 0, familia: p.categoria.familia };
     c.cuantas += 1;
     porClave.set(clave, c);
   }

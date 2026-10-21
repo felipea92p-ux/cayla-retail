@@ -1,7 +1,7 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 732 llamadas `.rpc` de `apps/web` contra 1537 funciones del schema `retail` en producción: 513 con los parámetros leídos (se comparan uno por uno), 71 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 148 con el nombre en un ternario o una variable.
+> Comparadas 735 llamadas `.rpc` de `apps/web` contra 1537 funciones del schema `retail` en producción: 516 con los parámetros leídos (se comparan uno por uno), 71 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 148 con el nombre en un ternario o una variable.
 > **Foto de producción: 2026-10-21 19:52 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
@@ -11,7 +11,7 @@
 > de arriba. *Aviso*: la pantalla no manda un parámetro que la función acepta (normal si tiene valor por defecto). *Sobrecarga*: dos
 > funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (1072 en la
 > foto: en su mayoría disparadores, candados de dinero y ayudantes que llaman otras funciones) se dejan fuera de «sin llamada» a
-> propósito; 302 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 770 no las nombra ninguna pantalla y aquí no se listan.
+> propósito; 303 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 769 no las nombra ninguna pantalla y aquí no se listan.
 
 ---
 
@@ -447,7 +447,7 @@ foto ni ninguna migración del repo conocen.
 - `fn_tela_en_camino` · `apps/web/lib/tela-del-taller-reglas.ts:70` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `crear_producto_con_variantes` · `apps/web/lib/useColaProductos.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 
-## Funciones sin llamada detectada desde `apps/web` — 156
+## Funciones sin llamada detectada desde `apps/web` — 154
 
 Existen en producción y ninguna pantalla de `apps/web` las nombra entre comillas (ni con un `.rpc("…")` directo ni de otra
 forma; los comentarios y las pruebas no cuentan; las `fn_*` se descartan a propósito). **Esto NO prueba que sobren.** Cada
@@ -499,7 +499,6 @@ select p.proname from pg_proc p
 - `crear_invitacion_club`
 - `crear_pedido_web`
 - `desprogramar_campana_diseno`
-- `desvincular_cuenta_google`
 - `emitir_comprobante`
 - `emitir_nota`
 - `extender_separacion`
@@ -525,7 +524,6 @@ select p.proname from pg_proc p
 - `registrar_mensaje_publicidad`
 - `registrar_movimiento`
 - `registrar_pago_compra`
-- `registrar_vinculo_google_avisado`
 - `registrarse_en_el_club`
 - `resumen_sin_comprobante`
 - `tienda_anotar_entrada`

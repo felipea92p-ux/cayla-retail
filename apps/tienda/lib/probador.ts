@@ -107,7 +107,7 @@ const PREFIJOS_METIDOS: readonly string[] = ["BOD"];
 /** La zona de una categoría, por su prefijo (nunca por el nombre visible, que se renombra). null: no entra al probador. La regla vive
  *  en `packages/shared` (`zonaDelProbador`): el ERP cuenta con la misma qué prendas preparar (Tienda web ▸ Vitrina ▸ Probador). */
 export function zonaDe(categoria: Prenda["categoria"]): Zona | null {
-  return zonaDelProbador(claveCategoria(categoria));
+  return zonaDelProbador(claveCategoria(categoria), categoria?.familia);
 }
 
 /* =============================================== 3. Juntar el catálogo y el probador =============================================== */

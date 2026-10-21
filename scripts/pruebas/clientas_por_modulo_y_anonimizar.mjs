@@ -260,6 +260,17 @@ const DE_LOS_PUNTOS_EN_CAJA = ["canjear_puntos", "resumen_puntos_caja", "validar
 DE_LA_TIENDA.push("tienda_mis_puntos");
 const DE_LOS_PUNTOS_INTERNAS = ["fn_club_conservacion_hasta", "fn_club_puntos_anotar", "fn_club_puntos_por_venta"];
 
+// Y entrar con Google que une la cuenta a la ficha que ya tenía ese correo (ADR-0469, 20261021170000). Tres funciones tocan la ficha:
+//  · tienda_vincular_cuenta_google: la llama el servidor de la tienda con el rol `tienda_web` (no es una cuenta del ERP): sin módulo a
+//    propósito, como las de DE_LA_TIENDA, y solo `tienda_web` la ejecuta (lo prueba tienda_vincular_google.mjs);
+//  · fn_vinculos_google_recientes (lista, nombre y celular de la ficha para avisarle a su dueña): con el candado de Avisos, `avisos_club`
+//    (DE_AVISOS); y registrar_vinculo_google_avisado, que no lee la ficha, lo lleva igual;
+//  · desvincular_cuenta_google: cierra la cuenta web y anota en la actividad de Clientes. No es de ningún módulo: es SOLO del líder
+//    (`fn_es_lider()` y un 42501 si no, escrito en el código); el vigilante exige esa pregunta.
+DE_LA_TIENDA.push("tienda_vincular_cuenta_google");
+DE_AVISOS.push("fn_vinculos_google_recientes");
+const DEL_LIDER = ["desvincular_cuenta_google"];
+
 // Seed local: Felipe (líder y admin), Micaela (integrante de Trujillo, con Clientas por su rol).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -782,6 +793,8 @@ const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.pron
   and not (x.proname in (${DE_AVISOS.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''avisos_club''\\)')
   and not (x.proname in (${DE_PEDIDOS_WEB.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_pedido_web_exigir\\(')
   and not (x.proname in (${DE_RECOMENDACIONES.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''recomendaciones''\\)')
+  and not (x.proname in (${DEL_LIDER.map((n) => `'${n}'`).join(", ")})
+           and x.src ~ 'if\\s+not\\s+retail\\.fn_es_lider\\(\\)\\s+then\\s+raise\\s+exception[^;]*errcode\\s*=\\s*''42501''')
   and not (x.proname in (${DE_LOS_PUNTOS_EN_CAJA.map((n) => `'${n}'`).join(", ")})
            and x.src ~ 'if\\s+not\\s*\\(\\s*retail\\.fn_ve_modulo\\(''vender''\\)\\s+or\\s+retail\\.fn_ve_modulo\\(''clientas''\\)\\s*\\)\\s+then\\s+raise\\s+exception[^;]*errcode\\s*=\\s*''42501''')
   and not (x.proname in (${DE_LOS_PUNTOS_INTERNAS.map((n) => `'${n}'`).join(", ")})
@@ -797,7 +810,7 @@ const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' orde
 caso(
   `(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 10, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g, la 1 del cobro (agregar_celular_clienta) las ${DE_LA_TIENDA.length} de la tienda online, las 2 de los pedidos web, las ${DE_LA_FICHA_Y_LA_TIENDA.length} de la ficha y la tienda online (fn_clienta_tienda_online y las de «Restablecer acceso»), la 1 de Recomendaciones (fn_recomendaciones) y las ${DE_LOS_PUNTOS_EN_CAJA.length + DE_LOS_PUNTOS_INTERNAS.length} de los puntos del Club, y todas llevan el candado del módulo salvo las 2 de la página, las 2 del servidor y las ${DE_LA_TIENDA.length} de la tienda (las de Avisos, las de los pedidos web y la de Recomendaciones, el de su módulo; las de los puntos en caja, «Vender o Clientas»; las internas de los puntos, sin EXECUTE para nadie de la API)`,
   VIGILANTE("true") + VIGILANTE(SIN_EL_CANDADO),
-  `${[...LAS_DE_LA_FICHA, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_LA_TIENDA, ...DE_PEDIDOS_WEB, ...DE_LA_FICHA_Y_LA_TIENDA, ...DE_RECOMENDACIONES, ...DE_LOS_PUNTOS_EN_CAJA, ...DE_LOS_PUNTOS_INTERNAS].sort().join(",")}\nninguna`
+  `${[...LAS_DE_LA_FICHA, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_LA_TIENDA, ...DE_PEDIDOS_WEB, ...DE_LA_FICHA_Y_LA_TIENDA, ...DE_RECOMENDACIONES, ...DE_LOS_PUNTOS_EN_CAJA, ...DE_LOS_PUNTOS_INTERNAS, ...DEL_LIDER].sort().join(",")}\nninguna`
 );
 caso(
   "(5) el vigilante muerde: una función NUEVA que devuelve el DNI sin el candado (o con el candado solo en un comentario) sale nombrada",
