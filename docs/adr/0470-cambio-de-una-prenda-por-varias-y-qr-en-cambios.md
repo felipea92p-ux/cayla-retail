@@ -96,6 +96,10 @@ de la base cae al camino de una prenda). Refrescar el diccionario (`pnpm datos:g
 
 - `md5(prosrc)` igual al de la base local en: `fn_acepta_qr_en_cambios` fea61f3c…, `fn_dinero_libro` 3bda3634…, `fn_cambio_salidas_solo_agregar` 947b52fa…, `registrar_cambio_varias` c1adaac6…, `fn_resolver_intento` fff182d5…,
   `fn_actividad_cambio` 42c1d744…, `fn_analisis_sede` 38ba197d…, `fn_asientos` e8799a68…, `fn_demanda_sede` 3e03af81….
+- **`fn_resolver_intento`: la operación está en otro lugar de la lista que en el repo.** Al pegarla en producción, `registrar_cambio_varias` quedó entre `registrar_cambio` y `separar_pedido_para_apartar`
+  (md5 fff182d5…). Al correr las suites de Postgres del PR se vio que las migraciones viejas (20261014194000, 20261015042000) anclan en que esas dos sigan juntas, así que el archivo
+  `20261021192000` se corrigió para agregarla al final de la tanda (después de `anular_pedido_web_pagado`). El efecto es el mismo (es una lista de membresía); **no se vuelve a pegar en producción**:
+  el md5 de esa función allá es distinto al de una base nueva solo por el orden de la lista.
 - **Distintos a propósito de local:** `fn_piso_plan_lectura` (prod 9fd51152…) y `fn_resumen_comparacion` (prod d5300100…). Sin mi parche, local y producción ya diferían (migraciones de otras ramas que aún no están en producción);
   el parche está puesto en las dos (comprobado por su texto).
 - `fn_acepta_qr_en_cambios()` = true; el candado de `cambios` acepta `qr`; la política `cambio_salidas_select` existe; `anon` no ejecuta `registrar_cambio_varias` y `authenticated` sí; `cambio_salidas` tiene 0 filas (nadie ha guardado un cambio por varias en producción).

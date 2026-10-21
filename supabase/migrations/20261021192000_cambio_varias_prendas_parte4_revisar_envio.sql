@@ -8,7 +8,9 @@
 --
 -- QUÉ HACE. Suma `registrar_cambio_varias` a la lista de operaciones de `fn_resolver_intento`. No hace falta una rama nueva: su fila
 -- queda en `cambios.token_cliente`, igual que la de `registrar_cambio`, y la rama que revisa los cambios es la que atrapa lo demás.
--- Reemplazo anclado sobre la lista (formato de 20261015114000): si la lista cambió, se detiene sin tocar nada.
+-- Reemplazo anclado sobre la lista (formato de 20261015114000): si la lista cambió, se detiene sin tocar nada. La operación va AL FINAL de la tanda de
+-- `separar_pedido_para_apartar` (después de `anular_pedido_web_pagado`), nunca entre `registrar_cambio` y `separar_pedido_para_apartar`: las migraciones
+-- viejas (20261014194000 y 20261015042000) anclan en que esas dos sigan juntas y varias suites de Postgres las rehacen (el CI también).
 --
 -- DECIDÍ: la web manda el cambio por varias con su propia operación (`registrar_cambio_varias`) y no con la de `registrar_cambio`: la
 -- marca de «no llegó» de `fn_resolver_intento` se guarda por (operación, token), y `fn_intento_con_huella` de la función de la parte 2
@@ -46,10 +48,10 @@ end;
 $f$;
 
 select pg_temp.reemplazar('retail.fn_resolver_intento(text, uuid)',
-$v$'registrar_cambio', 'separar_pedido_para_apartar'$v$,
-$n$'registrar_cambio', 'registrar_cambio_varias', 'separar_pedido_para_apartar'$n$,
+$v$'separar_pedido_para_apartar', 'registrar_pago_pedido_web', 'entregar_pedido_web', 'anular_pedido_web_pagado'$v$,
+$n$'separar_pedido_para_apartar', 'registrar_pago_pedido_web', 'entregar_pedido_web', 'anular_pedido_web_pagado', 'registrar_cambio_varias'$n$,
 1);
 
 select 'Cambio por varias · parte 4 (revisar el envío)' as parte,
-       case when pg_get_functiondef('retail.fn_resolver_intento(text, uuid)'::regprocedure) like '%''registrar_cambio'', ''registrar_cambio_varias''%'
+       case when pg_get_functiondef('retail.fn_resolver_intento(text, uuid)'::regprocedure) like '%''anular_pedido_web_pagado'', ''registrar_cambio_varias''%'
             then 'QUEDÓ BIEN' else 'REVISAR' end as resultado;
