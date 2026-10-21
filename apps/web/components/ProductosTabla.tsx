@@ -46,6 +46,8 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { InsigniaPrecios } from "@/components/ficha-producto/InsigniaPrecios";
 import type { PrecioDeTienda } from "@/lib/precio-sede-reglas";
+import { precioDeHoy, type CampanaDeVariante, type PrecioDeHoy } from "@/lib/precio-de-hoy";
+import { PrecioConCampana } from "@/components/ficha-producto/PrecioConCampana";
 import { Casilla } from "@/components/ui/Casilla";
 import { BotonEditar, LapizEditar } from "@/components/ui/BotonEditar";
 
@@ -73,6 +75,8 @@ type Fila = {
   colores: ColorDisponible[];
   tallas: string[];
   precio: string;
+  /** Si una campaña la rebaja hoy, lo que cobra la caja (ADR-0472): la fila tacha `precio` y lo dice. */
+  deHoy: PrecioDeHoy | null;
   costo: string | null;
   margen: MargenProducto | null;
   alerta: ReturnType<typeof alertaDeStock>;
@@ -103,8 +107,11 @@ export function ProductosTabla({
   hrefLimpiar,
   preciosTienda = {},
   preciosAqui,
+  campanasHoy,
 }: {
   productos: ProductoListado[];
+  /** La campaña que cobra la caja hoy por variante (`campanasQueCobra`, ADR-0472). Ausente = no se pudo leer: el precio de siempre. */
+  campanasHoy?: Record<string, CampanaDeVariante>;
   /** Por prenda, el precio en cada tienda (`preciosDeTiendaPorProducto`): la insignia «2 precios». */
   preciosTienda?: Record<string, PrecioDeTienda[]>;
   /** Los precios propios de la tienda elegida arriba (variante → precio). La fila, sus variantes y el margen usan ESE precio: el que
@@ -137,6 +144,7 @@ export function ProductosTabla({
           colores: coloresDe(p.variantes),
           tallas: tallasDe(p.variantes),
           precio: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => v.precio)) ?? "—",
+          deHoy: campanasHoy ? precioDeHoy(variantesQueSeVenden(p.variantes).map((v) => ({ id: v.varianteId, precio: v.precio })), (id) => campanasHoy[id]) : null,
           costo: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => (tieneCosto(v.costo) ? v.costo : null))),
           margen: margenDe(variantesQueSeVenden(p.variantes)),
           alerta: alertaDeStock(p),
@@ -146,7 +154,7 @@ export function ProductosTabla({
           otrosPrecios: preciosTienda[p.productoId] ?? [],
         };
       }),
-    [productos, existencias, preciosTienda, preciosAqui],
+    [productos, existencias, preciosTienda, preciosAqui, campanasHoy],
   );
 
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
@@ -489,7 +497,7 @@ function FilaAncha({
           <Tallas tallas={tallas} />
         </td>
         <td className="whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-tinta">
-          {fila.precio}
+          {fila.deHoy ? <PrecioConCampana precio={fila.deHoy} enUnaLinea className="justify-end" /> : fila.precio}
           <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
         </td>
         {conMargen && (
@@ -629,7 +637,7 @@ function TarjetaFila({
           <div className="flex items-start justify-between gap-3">
             <p className="font-display min-w-0 truncate text-[17px] leading-tight text-tinta">{p.referencia}</p>
             <p className="shrink-0 text-right text-[14px] tabular-nums text-tinta">
-              {fila.precio}
+              {fila.deHoy ? <PrecioConCampana precio={fila.deHoy} className="justify-end" /> : fila.precio}
               <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
             </p>
           </div>
