@@ -1,6 +1,6 @@
 # ADR-0471 — Tienda web ▸ Campañas: el diseño de la tienda online durante cada campaña
 
-- **Fecha:** 2026-10-21 · **Estado:** código y pruebas listos en la rama `claude/campaign-designs-animations-5eae76`; **las migraciones `20261021161000`, `20261021181000` y `20261021194000` NO están en producción** (esperan el OK de Felipe, en ese orden). El PR #1190 hace algo parecido y ya está en parte en producción (tabla `retail.campana_disenos`, módulo `campanas`, ADR-0436): se resuelve aparte; por eso aquí todos los nombres son distintos (`campana_web_disenos`, `tienda_diseno_campana`, módulo `campanas_web`).
+- **Fecha:** 2026-10-21 · **Estado:** código y pruebas listos en la rama `claude/campaign-designs-animations-5eae76`; **las migraciones `20261021161000`, `20261021181000`, `20261021194000` y `20261021195000` NO están en producción** (esperan el OK de Felipe, en ese orden). El PR #1190 hace algo parecido y ya está en parte en producción (tabla `retail.campana_disenos`, módulo `campanas`, ADR-0436): se resuelve aparte; por eso aquí todos los nombres son distintos (`campana_web_disenos`, `tienda_diseno_campana`, módulo `campanas_web`).
 - **Relacionados:** ADR-0430 (grupo Tienda web), ADR-0161 (módulos y roles), ADR-0306 (un módulo es una entrada del menú), ADR-0408 (la tienda online), ADR-0169 (tokens), ADR-0136 (movimiento), ADR-0195 (políticas y deadlocks), ADR-0290 (sugerencias coherentes), ADR-0389 (guías interactivas), ADR-0356 (caos). Maqueta: `docs/maquetas/campanas-tienda-2026-10/`.
 
 ## El problema
@@ -30,7 +30,7 @@ Una campaña (`etiquetas` con estilo `campana`) solo se veía en la tienda onlin
 
 ## Verificado
 
-Pruebas de base `pnpm pruebas:campanas-web` (89 escenarios: permisos, lista, CHECK, guardar, tienda, almacén, programar, vista previa), reglas puras del ERP y de la tienda, guías, Knip. En el navegador (ERP y tienda contra la base local): editor en los dos modos, guardado, programar y pasar a borrador, vista previa abierta en la tienda, la portada con imagen en escritorio y celular. `/chaos` (2026-10-21, semilla 2110): 0 estados imposibles; 3 hallazgos de gravedad 4 o 2 leve abiertos (tablero de caos).
+Pruebas de base `pnpm pruebas:campanas-web` (89 escenarios: permisos, lista, CHECK, guardar, tienda, almacén, programar, vista previa), reglas puras del ERP y de la tienda, guías, Knip. En el navegador (ERP y tienda contra la base local): editor en los dos modos, guardado, programar y pasar a borrador, vista previa abierta en la tienda, la portada con imagen en escritorio y celular. `/chaos` (2026-10-21, semilla 2110): 0 estados imposibles; sus 3 hallazgos menores (reintento tras perder la respuesta, ruta de imagen, tope de enlaces) se cerraron el mismo día con su prueba (`20261021195000`) y se repitieron con la misma semilla.
 
 ## Sin verificar
 
