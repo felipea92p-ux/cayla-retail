@@ -719,7 +719,7 @@ function main() {
     [
       "de,desde,frase,id,nombre,numero,piezas,total,total_final",
       "ancho,color,foto,giro,posicion,prenda,tallas,x,y",
-      "campana,categoria,desde,id,nombre,precio,precio_final",
+      "campana,categoria,desde,empresa,id,nombre,precio,precio_final",
       "hay,talla,variante_id",
       "ancho,color,foto,giro,posicion,prenda,x,y",
     ].join("\n"),

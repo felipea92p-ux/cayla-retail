@@ -18,7 +18,7 @@
  *      tienda no muestra.
  *   I. Los looks (`20261021003000_vitrina_looks_con_claure_solo_en_lima.sql`): el editor de la Vitrina ofrece las prendas de CLAURE y deja
  *      publicar un look que lleve una; ese look sale en Lima (lista y enlace) y NO en Trujillo; un look solo de CAYLA sale en las dos.
- *      Y cada prenda del look dice su empresa (`20261021005000_tienda_looks_trae_la_empresa_de_cada_prenda.sql`) con la misma regla del
+ *      Y cada prenda del look dice su empresa (`20261021014000_tienda_looks_trae_la_empresa_de_cada_prenda.sql`) con la misma regla del
  *      catálogo: en Lima sí, en Trujillo no.
  *   J. La bolsa (`20261021011000_tienda_bolsa_trae_la_empresa_de_cada_prenda.sql`): cada línea dice la empresa de su prenda con la misma regla
  *      del catálogo: en Lima sí; en Trujillo no.
@@ -49,7 +49,7 @@ const MIGRACIONES = [
   "supabase/migrations/20261021001000_tienda_catalogo_trae_la_empresa.sql",
   "supabase/migrations/20261021002000_tienda_separar_y_bolsa_empresa_por_tienda.sql",
   "supabase/migrations/20261021003000_vitrina_looks_con_claure_solo_en_lima.sql",
-  "supabase/migrations/20261021005000_tienda_looks_trae_la_empresa_de_cada_prenda.sql",
+  "supabase/migrations/20261021014000_tienda_looks_trae_la_empresa_de_cada_prenda.sql",
   "supabase/migrations/20261021011000_tienda_bolsa_trae_la_empresa_de_cada_prenda.sql",
   "supabase/migrations/20261021013000_tienda_pedidos_traen_la_empresa_de_cada_prenda.sql",
 ];
@@ -256,7 +256,9 @@ esperarValor(
 );
 
 console.log("K. El pedido dice la empresa de cada prenda");
-const DEJAR = `
+// El piso de partida con «hay»: desde 20261021010000 (ADR-0468) un look sale en una tienda solo si cada prenda, en su color, tiene algo LIBRE ahí.
+// Un colchón en el piso de la tienda, por el libro (una «entrada»), como las demás pruebas de la tienda.
+const COLCHON = `
 select id as lim_piso from retail.sububicaciones where ubicacion_id = :'lim' and tipo = 'piso_venta' \\gset
 select id as tru_piso from retail.sububicaciones where ubicacion_id = :'tru' and tipo = 'piso_venta' \\gset
 insert into retail.configuracion_tienda_web (id) values (true) on conflict (id) do nothing;
@@ -268,6 +270,8 @@ begin
     values (p_v, p_u, p_sub, 'entrada', p_n, 'prueba', 'prueba tienda empresas: colchón') returning id into v_mov;
   perform retail.fn_aplicar_movimiento(v_mov);
 end $f$;
+`;
+const DEJAR = `${COLCHON}
 select pg_temp.dejar(:'v_emma', :'lim', :'lim_piso', 5), pg_temp.dejar(:'v_carla', :'lim', :'lim_piso', 5), pg_temp.dejar(:'v_emma', :'tru', :'tru_piso', 5);
 `;
 // Separa en una tienda las prendas dadas (al precio que dice la bolsa) y devuelve la empresa de cada línea del pedido, por nombre.
@@ -296,8 +300,10 @@ esperarValor("Trujillo: la bolsa no dice empresa", escenario(VARIANTES_BOLSA + e
 
 console.log("I. Los looks");
 // Un look solo de CAYLA (Emma + Falda) y uno con CLAURE (Emma + Carla). Las piezas llevan su color, como en el editor.
-const LOOKS = `
+const LOOKS = `${COLCHON}
 select id as falda from retail.productos where referencia = 'Falda Renata' \\gset
+select pg_temp.dejar(v.id, :'lim', :'lim_piso', 5) from retail.variantes v where v.producto_id in (:'emma', :'falda', :'carla') and v.activo;
+select pg_temp.dejar(v.id, :'tru', :'tru_piso', 5) from retail.variantes v where v.producto_id in (:'emma', :'falda') and v.activo;
 select retail.vitrina_mostrar(array[:'falda']::uuid[], true) \\gset
 select retail.vitrina_guardar_look(null, 'ZZ Look solo CAYLA', null, true,
          jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'color', 'NEG'), jsonb_build_object('producto_id', :'falda', 'color', 'NEG')),

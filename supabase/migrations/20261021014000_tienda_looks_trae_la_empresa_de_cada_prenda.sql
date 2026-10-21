@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261021005000_tienda_looks_trae_la_empresa_de_cada_prenda.sql — CAYLA V2 · Tienda online (ADR-0465)
+-- 20261021014000_tienda_looks_trae_la_empresa_de_cada_prenda.sql — CAYLA V2 · Tienda online (ADR-0465)
 -- Cada prenda de un look dice a qué empresa pertenece, para que la página del look la escriba encima de su nombre.
 --
 -- EL PROBLEMA PRIMERO. Un look puede mezclar prendas de CAYLA y de CLAURE (20261021003000) y solo sale en Lima. Sin la empresa en cada
@@ -20,7 +20,7 @@
 --
 -- PRODUCCIÓN. Una sola parte, idempotente (se puede pegar dos veces): un reemplazo anclado; no toma tablas en exclusiva ni toca
 -- políticas (sin riesgo de 40P01). Cuenta que su ancla aparezca UNA vez: si alguien cambió la función, se detiene sin tocar nada. Sin
--- `select … into` dentro de un texto entre comillas. El orden con la publicación de la web no importa. Requiere 20261021001000.
+-- `select … into` dentro de un texto entre comillas. El orden con la publicación de la web no importa. Requiere 20261021001000 y 20261021010000 (tienda_looks_por_tienda, que reescribe la función).
 -- ============================================================================
 
 set search_path = retail, public, extensions;

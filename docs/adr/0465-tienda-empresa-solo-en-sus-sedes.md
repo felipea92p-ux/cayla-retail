@@ -33,7 +33,7 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
   `vitrina_mostrar_look` usaban el catálogo sin tienda (que ya no trae CLAURE), así que no ofrecían sus prendas y rechazaban el look. Ahora usan
   `fn_vitrina_catalogo_de_looks()`: las prendas que se ven en alguna tienda de la web (sin tienda + cada tienda), sin marcar el look con una tienda.
   **Cada prenda del look dice su empresa encima de su nombre** (Felipe 2026-10-21; la frase del look no se usa para eso: la escribe quien arma el look):
-  `fn_tienda_looks_json` copia el `empresa` del catálogo de esa tienda a cada prenda (`20261021005000`), así que sigue la misma regla —solo en Lima— y la página del
+  `fn_tienda_looks_json` copia el `empresa` del catálogo de esa tienda a cada prenda (`20261021014000`), así que sigue la misma regla —solo en Lima— y la página del
   look y su hoja de tallas lo escriben como una línea chica sobre el nombre (`.t-look-empresa`).
 - **La bolsa (Felipe 2026-10-21):** (1) la bolsa también muestra la tienda en que se está: el selector de tienda de la cabecera (el mismo del catálogo; cambiar de
   tienda vacía la bolsa y lo avisa antes) y su dirección `/bolsa?sede=` (con prendas, manda la tienda de la bolsa; sin ellas, la de la dirección o la última elegida);
@@ -47,7 +47,7 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
   (`PrendaDelPedido`). `tienda_mis_pedidos` (de la que sale `tienda_pedido`) suma `empresa` a cada línea, con la regla de siempre pero mirando la tienda DEL PEDIDO (donde
   se recoge): un pedido a Lima la dice; uno a Trujillo, no (`20261021013000`).
 - **Migraciones** (todas idempotentes, una parte, sin tablas en exclusiva ni políticas): `20261021000000_tienda_empresa_solo_en_sus_sedes`,
-  `20261021001000_tienda_catalogo_trae_la_empresa`, `20261021002000_tienda_separar_y_bolsa_empresa_por_tienda`, `20261021003000_vitrina_looks_con_claure_solo_en_lima`, `20261021005000_tienda_looks_trae_la_empresa_de_cada_prenda` (el 004 lo tomó otra rama), `20261021011000_tienda_bolsa_trae_la_empresa_de_cada_prenda`, `20261021013000_tienda_pedidos_traen_la_empresa_de_cada_prenda`. Requieren `20261020225000` (ya en
+  `20261021001000_tienda_catalogo_trae_la_empresa`, `20261021002000_tienda_separar_y_bolsa_empresa_por_tienda`, `20261021003000_vitrina_looks_con_claure_solo_en_lima`, `20261021014000_tienda_looks_trae_la_empresa_de_cada_prenda` (el 004 lo tomó otra rama), `20261021011000_tienda_bolsa_trae_la_empresa_de_cada_prenda`, `20261021013000_tienda_pedidos_traen_la_empresa_de_cada_prenda`. Requieren `20261020225000` (ya en
   producción). El orden con la publicación de la web no importa.
 
 ## Alternativas descartadas
