@@ -13,6 +13,7 @@ import {
   hrefDePrenda,
   hrefLista,
   insigniaOferta,
+  insigniasDeTarjeta,
   interpretarCatalogo,
   leerCampana,
   leerCategoria,
@@ -397,5 +398,52 @@ describe("las listas: Lo nuevo, las ofertas y Más vendidos (actividad 5)", () =
       "Blusa C",
       "Blusa B",
     ]);
+  });
+});
+
+describe("la empresa de la prenda (ADR-0465)", () => {
+  const CAYLA = { clave: "cayla", nombre: "CAYLA" };
+  const CLAURE = { clave: "claure", nombre: "CLAURE" };
+  const con = (extra: object) => leer({ ...EMMA, ...extra });
+  const dicen = (p: Prenda, o?: { puesto?: number | null; sinNuevo?: boolean }) => insigniasDeTarjeta(p, o).map((i) => `${i.clave}:${i.texto}`);
+
+  it("la lee de la base; sin el dato (una base que aún no lo manda) o con uno raro, la prenda se ve igual y sin empresa", () => {
+    expect(con({ empresa: CLAURE }).empresa).toEqual(CLAURE);
+    expect(emma.empresa).toBeNull();
+    expect(con({ empresa: { clave: "", nombre: "" } }).empresa).toBeNull();
+    expect(con({ empresa: "CLAURE" }).empresa).toBeNull();
+  });
+
+  it("con «Nuevo»: la empresa va DEBAJO de «Nuevo»", () => {
+    expect(dicen(con({ empresa: CLAURE, nuevo: { dias: 3 } }))).toEqual(["nuevo:Nuevo", "empresa:CLAURE"]);
+  });
+
+  it("sin «Nuevo»: la empresa va ARRIBA, antes del puesto y de la oferta", () => {
+    expect(dicen(con({ empresa: CAYLA }))).toEqual(["empresa:CAYLA"]);
+    const p = con({ empresa: CAYLA, precio_final: 63.9, campana: { nombre: "Aniversario", pct: 20 } });
+    expect(dicen(p, { puesto: 2 })).toEqual(["empresa:CAYLA", "puesto:N.º 2", "oferta:−20 %"]);
+  });
+
+  it("con todas: puesto, oferta, «Nuevo» y la empresa al final", () => {
+    const p = con({ empresa: CLAURE, nuevo: { dias: 1 }, precio_final: 63.9, campana: { nombre: "Aniversario", pct: 20 } });
+    expect(dicen(p, { puesto: 1 })).toEqual(["puesto:N.º 1", "oferta:−20 %", "nuevo:Nuevo", "empresa:CLAURE"]);
+  });
+
+  it("en Lo nuevo (sin «Nuevo» en cada tarjeta) la empresa sube arriba", () => {
+    expect(dicen(con({ empresa: CLAURE, nuevo: { dias: 3 } }), { sinNuevo: true })).toEqual(["empresa:CLAURE"]);
+  });
+
+  it("sin empresa, las insignias de siempre", () => {
+    expect(dicen(con({ nuevo: { dias: 3 } }))).toEqual(["nuevo:Nuevo"]);
+    expect(dicen(emma)).toEqual([]);
+  });
+});
+
+describe("la familia de la categoría (20261021163000)", () => {
+  it("la lee de la base y la deja dentro de la categoría; sin el dato (una base que aún no lo manda) o con uno raro, la prenda se ve igual", () => {
+    expect(leer({ ...EMMA, categoria_familia: "indumentaria" }).categoria).toEqual({ nombre: "Camisas y Blusas", prefijo: "CMS", familia: "indumentaria" });
+    expect(leer(EMMA).categoria?.familia ?? null).toBeNull();
+    expect(leer({ ...EMMA, categoria_familia: 7 }).categoria?.familia ?? null).toBeNull();
+    expect(leer({ ...EMMA, categoria: null, categoria_familia: "calzado" }).categoria).toBeNull();
   });
 });

@@ -3,8 +3,6 @@ import Link from "next/link";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
 import { CarrilConFlechas } from "@/components/CarrilConFlechas";
-import { ConfianzaPortada } from "@/components/portada/ConfianzaPortada";
-import { FotoTarjeta } from "@/components/FotoTarjeta";
 import { HeroeDelInicio } from "@/components/HeroeDelInicio";
 import { Icono } from "@/components/Icono";
 import { TarjetaLook } from "@/components/looks/TarjetaLook";
@@ -16,18 +14,15 @@ import { TarjetaPrenda } from "@/components/TarjetaPrenda";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import {
   campanasDe,
-  colorDeDibujo,
   filtrarYOrdenar,
-  formaDe,
-  fotoOptimizable,
-  fotosDeTarjeta,
   hrefLista,
   leerCampana,
   type Prenda,
 } from "@/lib/catalogo";
-import { leerBeneficiosDelClub, leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
+import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
+import { leerConfigDePuntosDelClub } from "@/lib/puntos-servidor";
 import { hoyLima } from "@/lib/cuentas";
-import { categoriasDelInicio, heroDelInicio } from "@/lib/inicio";
+import { heroDelInicio } from "@/lib/inicio";
 import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
 import { leerMisRecomendaciones } from "@/lib/recomendaciones-servidor";
@@ -35,7 +30,8 @@ import { hrefLooks } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
 import { anioLima, fechaCorta, pctTexto } from "@/lib/portada";
-import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
+import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
@@ -65,13 +61,13 @@ const hrefInicio = (sede: string | null, oferta: string | null = null) => {
 export default async function Inicio({ searchParams }: Props) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
-  const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const [catalogo, { campana }, sesion, lecturaLooks, beneficios] = await Promise.all([
+  const pedida = await sedeDeLaPagina(sp, sedes, "/inicio", claveDeSede);
+  const [catalogo, { campana }, sesion, lecturaLooks, puntosDelClub] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     leerPortada(),
     leerSesion(),
     leerLooks(pedida?.id ?? null),
-    leerBeneficiosDelClub(),
+    leerConfigDePuntosDelClub(),
   ]);
   const [lectura, avisosDelClub, mias, vistos] =
     sesion.estado === "con_sesion"
@@ -97,12 +93,10 @@ export default async function Inicio({ searchParams }: Props) {
   const elegida = catalogo?.sede ? sedes.find((s) => s.id === catalogo.sede) ?? null : null;
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const prendas = (catalogo?.prendas ?? []).filter((p) => hayEnTienda(p.stock, elegida?.id ?? null));
-  const enTxt = elegida ? ` en ${elegida.nombre}` : "";
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
   const nota = (p: Prenda) => notaDeStock(p.stock, elegida, sedes);
 
   const hero = heroDelInicio(campana, prendas);
-  const categorias = categoriasDelInicio(prendas);
   const nuevos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" });
   const ofertas = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "ofertas" });
   const campanas = campanasDe(prendas);
@@ -124,8 +118,6 @@ export default async function Inicio({ searchParams }: Props) {
     >
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
       <HeroeDelInicio hero={hero} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
-      {/* Quien todavía no tiene sesión ve de un vistazo lo que la tienda cumple (la franja que era de la portada). */}
-      {!conSesion && <ConfianzaPortada tiendas={sedes.map((s) => s.nombre)} />}
 
       {catalogo === null ? (
         <div className="t-ancho">
@@ -140,43 +132,13 @@ export default async function Inicio({ searchParams }: Props) {
         </div>
       ) : (
         <>
-          {/* Los círculos de las categorías: en la computadora, centrados si caben y, si no, desde la primera (antes se cortaban
-              las primeras ocho a la izquierda, sin forma de verlas), con flechas para el mouse (`CarrilConFlechas`). */}
-          {categorias.length > 0 && (
-            <CarrilConFlechas className="t-circs-envol">
-              <nav className="t-circs" aria-label="Categorías">
-                {categorias.map((c) => {
-                  const foto = fotosDeTarjeta(c.prenda)[0];
-                  return (
-                    <Link key={c.clave} className="t-circ" href={hrefLista({ sede, categoria: c.clave, orden: "destacado" })} data-nuevo={c.nueva ? "" : undefined}>
-                      <span className="t-circ-img">
-                        <FotoTarjeta
-                          foto={foto}
-                          segunda={null}
-                          optimizar={[foto ? fotoOptimizable(foto, origenFotos) : false, false]}
-                          nombre=""
-                          forma={formaDe(c.prenda.categoria?.prefijo)}
-                          color={colorDeDibujo(c.prenda)}
-                          tamanos="96px"
-                        />
-                      </span>
-                      <b>{c.corto}</b>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </CarrilConFlechas>
-          )}
-
           {nuevos.length > 0 && (
             <section className="t-sec t-ancho" aria-labelledby="lo-nuevo">
               <div className="t-sec-cab">
                 <div>
-                  <span className="t-ceja">Recién llegado{enTxt}</span>
                   <h2 id="lo-nuevo">
                     Lo <em>nuevo</em>
                   </h2>
-                  <p>Lo que llegó a nuestras tiendas en los últimos 30 días.</p>
                 </div>
                 <Link className="t-ver" href={lista("nuevo")}>
                   Ver todo <b>{nuevos.length}</b>
@@ -197,11 +159,9 @@ export default async function Inicio({ searchParams }: Props) {
             <section className="t-sec t-ancho" aria-labelledby="arma-tu-look">
               <div className="t-sec-cab">
                 <div>
-                  <span className="t-ceja">Combinaciones listas</span>
                   <h2 id="arma-tu-look">
                     Arma tu <em>look</em>
                   </h2>
-                  <p>Prendas que se ven bien juntas. Agrega el look completo y eliges cada talla en un solo paso.</p>
                 </div>
                 <Link className="t-ver" href={hrefLooks(sede)}>
                   Ver todos <b>{looks.length}</b>
@@ -221,11 +181,9 @@ export default async function Inicio({ searchParams }: Props) {
               <div className="t-ancho">
                 <div className="t-sec-cab">
                   <div>
-                    <span className="t-ceja">Campañas vigentes{enTxt}</span>
                     <h2 id="las-ofertas">
                       Las <em>ofertas</em>
                     </h2>
-                    <p>El descuento de cada campaña, sobre el precio de tu tienda.</p>
                   </div>
                   <Link className="t-ver" href={lista("ofertas", ofertaElegida?.id ?? null)}>
                     Ver todas <b>{ofertaElegida ? ofertaElegida.cuantas : ofertas.length}</b>
@@ -263,23 +221,19 @@ export default async function Inicio({ searchParams }: Props) {
             <section className="t-sec t-ancho" aria-labelledby="mas-vendidos">
               <div className="t-sec-cab">
                 <div>
-                  <span className="t-ceja">Lo que más se llevan</span>
                   <h2 id="mas-vendidos">
                     Más <em>vendidos</em>
                   </h2>
-                  <p>Por modelo, en los últimos 30 días.</p>
                 </div>
                 <Link className="t-ver" href={lista("vendidos")}>
-                  Ver el ranking <Icono nombre="flecha" />
+                  Ver todo <Icono nombre="flecha" />
                 </Link>
               </div>
               <ol className="t-top">
-                {vendidos.map((p, i) => (
+                {/* El orden de izquierda a derecha ya es el ranking (la lista es ordenada): sin números grandes sobre las fotos. */}
+                {vendidos.map((p) => (
                   <li key={p.id}>
-                    <span className="t-top-n" aria-hidden="true">
-                      {i + 1}
-                    </span>
-                    <TarjetaPrenda prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} />
+                    <TarjetaPrenda prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo />
                   </li>
                 ))}
               </ol>
@@ -294,11 +248,12 @@ export default async function Inicio({ searchParams }: Props) {
         desde={cuenta?.clubDesde ?? anioLima()}
         conCuenta={conSesion}
         esDelClub={cuenta?.esDelClub ?? conSesion}
-        cumplePct={beneficios?.pct ?? null}
+        regaloCumple={puntosDelClub?.regaloCumple ?? null}
       />
       {sedes.length > 0 && (
         <NuestrasTiendas
           sedes={sedes}
+          ceja=""
           ver={Object.fromEntries(sedes.map((s) => [s.id, { href: hrefInicio(claveDeSede(s.nombre)), actual: elegida?.id === s.id }]))}
         />
       )}

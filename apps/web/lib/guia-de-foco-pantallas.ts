@@ -45,6 +45,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/clientas": { estado: "no-aplica", motivo: "Lista de clientas con buscador y filtros; todo lo que se llena vive en sus ventanas (registrar clienta, la ficha, «Llegó un mensaje de WhatsApp»), cada una con su guía en el registro de modales." },
   // ADR-0288 act. g (tanda 1g): una bandeja; lo único que se llena es quién envía (se enciende si falta). «Beneficios del club» es un modal.
   "/clientas/avisos": { estado: "aplicada", evidencia: ["components/clientas/AvisosClubPanel.tsx"] },
+  // Programa de puntos (actividad 8): Clientes ▸ Beneficios del club. Llega con lo vigente (o lo ya programado): la guía se mueve cuando algo se
+  // borra o se escribe mal (`lib/club-puntos-config-guia.ts`, la misma regla que apaga «Guardar», probada contra `problemasDeConfig`).
+  "/clientas/beneficios": { estado: "aplicada", evidencia: ["components/clientas/BeneficiosPuntosPanel.tsx"] },
   "/clientas/cartel": { estado: "no-aplica", motivo: "Hoja de impresión del cartel del club: una hoja A4 por tienda con su QR; se revisa y se imprime, no hay campos que completar ni pasos." },
   // ---- colaboradores ----
   // Rediseño del 2026-10-05 (Equipo): una lista agrupada por sede con buscador y atajos; lo que se cambia vive en la ficha.
@@ -302,6 +305,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/InsumoModales.tsx": { estado: "aplicada", evidencia: ["components/InsumoModales.tsx"] },
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
+  // Avisos, «Editar mensajes» (2026-10-20): cada aviso es un campo (lo que rechazaría `fn_club_aviso_problema`), el cierre opcional y quién lo cambia.
+  "components/clientas/EditarMensajesAvisos.tsx": { estado: "aplicada", evidencia: ["components/clientas/EditarMensajesAvisos.tsx"] },
   // Pedidos web (ADR-0408 act. 8): confirmar enciende prenda por prenda y después quién; cerrar y anular, el motivo y quién; enviar, el día.
   "components/pedidos-web/PedidoWebHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/PedidoWebHoja.tsx"] },
   "components/pedidos-web/EnviarPedidoWebHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/EnviarPedidoWebHoja.tsx"] },
@@ -310,6 +315,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/pedidos-web/RegistrarPagoHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/RegistrarPagoHoja.tsx"] },
   "components/pedidos-web/AnularPagoHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/AnularPagoHoja.tsx"] },
   "components/pedidos-web/AnularPedidoPagadoHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/AnularPedidoPagadoHoja.tsx"] },
+  "components/pedidos-web/EditarMensajePredeterminadoHoja.tsx": { estado: "no-aplica", motivo: "Un solo campo de texto (el mensaje) con su vista previa; los botones no dependen de otros campos." },
   "components/liquidacion/EtiquetarPiezaModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/EtiquetarPiezaModal.tsx"] },
   "components/liquidacion/PiezaLiquidacionModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/PiezaLiquidacionModal.tsx"] },
   // Precio por tienda (Felipe 2026-10-09): «Precio distinto en una sede» (tienda, precio, por qué, quién) y «Quitar» (quién).
@@ -348,6 +354,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/orden-pagina/RevertirLaOrdenModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo revierte): el texto dice qué pasa con el stock; no hay camino que indicar." },
   // Actividad 7: anotar lo que se usó de la tela (o devolver lo que sobró): cuánto —con lo que hay en el estante o lo ya descontado— y quién lo anota.
   "components/orden-pagina/TelaUsadaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/TelaUsadaModal.tsx"] },
+  "components/orden-pagina/MarcarFaseModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién la marca o la deshace): el título dice qué fase queda hecha o por hacer y no cuenta prendas; no hay camino que indicar." },
   "components/orden-pagina/DeshacerAvanceModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo deshace): el título dice qué anotación se deshace y cuántas prendas vuelven a quedar por terminar; no hay camino que indicar." },
   // La orden de Producción, en su `<Cajon>` (ADR-0358 ronda 17). Su archivo trae un solo control (quién lo hace), pero el cajón lleva
   // adentro el cierre («Pasar al stock»: `OrdenCierre.tsx`, 4 controles) y los insumos (`OrdenInsumos.tsx`, 4): ahí está el camino que guiar.
@@ -396,15 +403,12 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/TejidosLista.tsx": { estado: "aplicada", evidencia: ["components/TejidosLista.tsx"] },
   "components/TemporadasLista.tsx": { estado: "aplicada", evidencia: ["components/TemporadasLista.tsx"] },
   "components/TerminalesModales.tsx": PENDIENTE, // 6 controles
-  // ADR-0288 act. g (tanda 1g): «Beneficios del club», del líder, desde Clientas ▸ Avisos. Llega con lo vigente: la guía se mueve cuando algo
-  // se borra o se escribe mal (`lib/club-beneficios-guia.ts`, la misma regla que apaga «Guardar»).
   // ADR-0341: Dar acceso en una hoja. Falta = lo mismo que apaga el botón: a quién, la sede, el rol (si se leyeron los roles) y quién lo da.
   "components/colaboradores/DarAccesoModal.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/DarAccesoModal.tsx"] },
   // ADR-0340: la ficha de una persona del Equipo, en su `<Cajon>`. La guía vive en el panel abierto (`lib/ficha-colaborador-guia.ts`): «Cambiar
   // rol» pide quién lo hace, el rol nuevo y, solo al bajar a un líder sin sede, la sede donde queda (lo que exige `asignar_rol`); «Suspender»,
   // quién lo hace y el motivo como sugerido (Felipe 2026-10-17: se enciende y sale en «Falta», pero nunca bloquea); cambiar la sede, reactivar y quitar el acceso son un toque y solo piden quién lo hace.
   "components/colaboradores/FichaColaborador.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/FichaColaborador.tsx"] },
-  "components/clientas/BeneficiosClubModal.tsx": { estado: "aplicada", evidencia: ["components/clientas/BeneficiosClubModal.tsx"] },
   // Recomendaciones (ADR-0408): desde el 2026-10-17 la hoja es un `<Cajon>`, que la prueba también cuenta como hoja. Su guía: la respuesta,
   // que falta hasta estar bien escrita, y quién lo hace. «Falta» = lo que `responder_recomendacion` rechazaría (`lib/recomendaciones-guia.ts`).
   "components/recomendaciones/RecomendacionHoja.tsx": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
@@ -436,6 +440,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/SaldosArranqueModal.tsx": PENDIENTE, // 3 controles
   // ADR-0288 tanda 1a: la hoja ganó el alta de la clienta. Tanda 1g: solo el documento (tipo, número, nombre) y quién atiende.
   "components/punto-de-venta/ClientaDelTicket.tsx": { estado: "aplicada", evidencia: ["components/punto-de-venta/ClientaDelTicket.tsx"] },
+  // Programa de puntos (actividad 5): «Usar puntos» es un stepper (un solo control: cuántos canjear, con el rango que la base aceptaría)
+  // y «Código de cupón» es un campo con su resultado al instante (se pregunta solo al completar el código): ninguno lleva pasos.
+  "components/punto-de-venta/PuntosYCuponModales.tsx": { estado: "no-aplica", motivo: "Dos hojas de UN solo control cada una: el stepper de puntos a canjear y el campo del código del cupón, con su resultado a la vista al instante." },
   "components/punto-de-venta/Esperas.tsx": PENDIENTE, // 2 controles
   "components/punto-de-venta/RegistrarBajadaModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién atiende, el mismo combo del ticket) antes de registrar desde Vender la bajada al piso que se olvidó (ADR-0321): el texto dice qué prenda entra y dónde queda; el botón se apaga hasta elegir y dice por qué." },
   // ADR-0362 (actividad 5): «Anular orden». Falta lo que la base rechazaría: el motivo y, desde una terminal, quién la anula.

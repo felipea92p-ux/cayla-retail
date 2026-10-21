@@ -1,0 +1,4 @@
+## 2026-10-20 (Pantallas para diseñar la tienda web por campaña, desde el ERP)
+Qué hice: una maqueta tocable en `docs/maquetas/campanas-tienda-2026-10/` con 4 pantallas: lista de campañas, editor de 5 pasos con la tienda reaccionando en vivo, hoja de programar y la tienda vista por el cliente (antes, en vivo, último día, terminó), en computador y celular, claro y oscuro. Sin código del ERP ni de la tienda.
+Por qué así: la campaña ya existe como etiqueta (fechas, % y prendas); el diseño cuelga de ella para que la tienda nunca diga un precio distinto al de la caja. Los ambientes son un catálogo cerrado y el contraste se mide: un color que no se lee apaga «Programar».
+Felipe se lleva: algo que mirar y tocar (comando en el README) y cuatro decisiones: movimiento una vez o continuo, foto propia sí o no, quién configura (módulo `campanas_web`) y qué hacer si dos campañas coinciden.

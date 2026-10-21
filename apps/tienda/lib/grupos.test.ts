@@ -3,6 +3,7 @@ import type { Prenda } from "./catalogo";
 import { delGrupo, delMenu, grupoDe, gruposDe, GRUPOS, leerGrupo, leerMenu, MENUS, tituloPartido } from "./grupos";
 
 const prenda = (nombre: string, prefijo: string | null, extra: Partial<Prenda> = {}): Prenda => ({
+  empresa: null,
   id: nombre,
   codigo: null,
   nombre,
@@ -32,19 +33,47 @@ describe("los grupos de categorías", () => {
     expect(new Set(GRUPOS.map((g) => g.clave)).size).toBe(GRUPOS.length);
   });
 
-  it("la ropa va en «Ropa» y lo demás en «Accesorios»; lo que nadie ordenó cae en «Encima y más»", () => {
+  it("la ropa va en «Ropa» y lo demás en «Accesorios»; lo que nadie ordenó cae en «Chompas/Abrigos»", () => {
     expect(grupoDe("CMS").clave).toBe("arriba");
     expect(grupoDe("COR").clave).toBe("arriba");
     expect(grupoDe("VES").clave).toBe("vestidos");
     expect(grupoDe("JEA").clave).toBe("abajo");
     expect(grupoDe("BLZ").clave).toBe("encima");
-    expect(grupoDe("CAR")).toMatchObject({ clave: "accesorios", menu: "accesorios" });
+    // Chompas y poleras abrigan: van con las casacas, no con las blusas (Felipe, 2026-10-21).
+    expect(grupoDe("CMP").clave).toBe("encima");
+    expect(grupoDe("SUD").clave).toBe("encima");
+    expect(grupoDe("LEN").clave).toBe("vestidos");
+    expect(grupoDe("CAR")).toMatchObject({ clave: "bolsos", menu: "accesorios" });
+    expect(grupoDe("CIN").clave).toBe("bolsos");
+    expect(grupoDe("LSO")).toMatchObject({ clave: "cabeza", menu: "accesorios" });
+    expect(grupoDe("REL").clave).toBe("bisuteria");
+    expect(grupoDe("ACC")).toMatchObject({ clave: "mas", menu: "accesorios" });
     expect(grupoDe("ARE")).toMatchObject({ clave: "bisuteria", menu: "accesorios" });
     expect(grupoDe("MAQ").clave).toBe("bisuteria");
     expect(grupoDe("ZAP").clave).toBe("calzado");
-    // Una categoría nueva (o sin prefijo: su clave es el nombre) se ve, en «Encima y más».
-    expect(grupoDe("KIM")).toMatchObject({ clave: "encima", menu: "ropa" });
-    expect(grupoDe("Kimonos").clave).toBe("encima");
+    // Una categoría nueva sin familia (una base que todavía no la manda; o sin prefijo: su clave es el nombre) se ve, en «Más ropa».
+    expect(grupoDe("KIM")).toMatchObject({ clave: "otras", menu: "ropa" });
+    expect(grupoDe("Kimonos").clave).toBe("otras");
+  });
+
+  it("una categoría nueva cae en la sección de su familia, no en un cajón cualquiera; la tabla por prefijo manda sobre la familia", () => {
+    expect(grupoDe("KIM", "indumentaria")).toMatchObject({ clave: "otras", menu: "ropa" });
+    expect(grupoDe("TAC", "calzado")).toMatchObject({ clave: "calzado", menu: "accesorios" });
+    expect(grupoDe("DIA", "bisuteria").clave).toBe("bisuteria");
+    expect(grupoDe("BRO", "belleza").clave).toBe("bisuteria");
+    expect(grupoDe("GUA", "accesorios")).toMatchObject({ clave: "mas", menu: "accesorios" });
+    expect(grupoDe("SEL", "papeleria").clave).toBe("mas");
+    // Una familia que nadie conoce no rompe: va a «Más ropa», como sin familia.
+    expect(grupoDe("XXX", "familia_inventada").clave).toBe("otras");
+    // Lo que la tabla conoce no cambia por su familia (aunque venga distinta).
+    expect(grupoDe("CMP", "accesorios").clave).toBe("encima");
+    expect(grupoDe("CAR", null).clave).toBe("bolsos");
+  });
+
+  it("toda familia que la base permite tiene su grupo de respaldo, y todo grupo de respaldo existe", () => {
+    for (const familia of ["indumentaria", "calzado", "accesorios", "bisuteria", "belleza", "papeleria", "empaque"]) {
+      expect(GRUPOS.map((g) => g.clave)).toContain(grupoDe("NUEVA", familia).clave);
+    }
   });
 
   it("gruposDe: solo los grupos con algo, en su orden; sus categorías en el orden de su lista y lo desconocido al final, por cuántas hay", () => {
@@ -63,18 +92,34 @@ describe("los grupos de categorías", () => {
     const g = gruposDe(prendas);
     expect(g.map((x) => [x.clave, x.cuantas, x.categorias.map((c) => [c.clave, c.cuantas])])).toEqual([
       ["arriba", 3, [["CMS", 2], ["TOP", 1]]],
-      ["encima", 5, [["CAS", 1], ["CAP", 1], ["PON", 2], ["KIM", 1]]],
+      ["encima", 2, [["CAS", 1], ["CAP", 1]]],
+      ["otras", 3, [["PON", 2], ["KIM", 1]]],
       ["bisuteria", 1, [["ARE", 1]]],
     ]);
     expect(g[0].categorias[0].prendas.map((p) => p.nombre)).toEqual(["Blusa 1", "Blusa 2"]);
     expect(gruposDe([])).toEqual([]);
   });
 
+  it("una categoría nueva de calzado o de bisutería se ve en su menú y su grupo, sin que nadie toque la tabla", () => {
+    const conFamilia = (nombre: string, prefijo: string, familia: string) =>
+      prenda(nombre, prefijo, { categoria: { nombre: `Cat ${prefijo}`, prefijo, familia } });
+    const prendas = [conFamilia("Tacones", "TAC", "calzado"), conFamilia("Diadema", "DIA", "bisuteria"), conFamilia("Kimono", "KIM", "indumentaria"), prenda("Blusa", "CMS")];
+    expect(gruposDe(prendas).map((g) => [g.clave, g.categorias.map((c) => c.clave)])).toEqual([
+      ["arriba", ["CMS"]],
+      ["otras", ["KIM"]],
+      ["bisuteria", ["DIA"]],
+      ["calzado", ["TAC"]],
+    ]);
+    expect(delMenu(prendas, "accesorios").map((p) => p.nombre)).toEqual(["Tacones", "Diadema"]);
+    expect(delMenu(prendas, "ropa").map((p) => p.nombre)).toEqual(["Kimono", "Blusa"]);
+    expect(delGrupo(prendas, leerGrupo("calzado")).map((p) => p.nombre)).toEqual(["Tacones"]);
+  });
+
   it("delGrupo: solo las del grupo (sin grupo, todas); leerGrupo: solo un grupo que existe", () => {
     const prendas = [prenda("Top", "TOP"), prenda("Aretes", "ARE"), prenda("Sin categoría", null)];
     expect(delGrupo(prendas, leerGrupo("arriba")).map((p) => p.nombre)).toEqual(["Top"]);
     expect(delGrupo(prendas, null)).toHaveLength(3);
-    expect(leerGrupo("bisuteria")?.nombre).toBe("Bisutería y belleza");
+    expect(leerGrupo("bisuteria")?.nombre).toBe("Bisutería/Belleza");
     expect(leerGrupo(["abajo", "arriba"])?.clave).toBe("abajo");
     for (const raro of [undefined, "", "  ", "Arriba", "otra"]) expect(leerGrupo(raro), String(raro)).toBeNull();
   });

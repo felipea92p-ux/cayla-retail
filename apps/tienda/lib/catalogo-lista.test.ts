@@ -10,6 +10,7 @@ const AREQUIPA = { id: "5d1c2b96-1d3e-4801-b92f-9271696ee999", nombre: "Arequipa
 const TIENDAS = [AREQUIPA, LIMA, TRUJILLO];
 
 const prenda = (nombre: string, prefijo: string, sedes: Record<string, Nivel> | null): Prenda => ({
+  empresa: null,
   id: nombre,
   codigo: null,
   nombre,
@@ -88,31 +89,31 @@ describe("lo que dice la lista vacía en la tienda elegida", () => {
 
 describe("lo elegido siempre a la vista en los filtros", () => {
   const enLima = [prenda("Bolso", "CAR", { [LIMA.id]: 2 }), prenda("Gorro", "GOR", { [LIMA.id]: 1 }), prenda("Top", "TOP", { [LIMA.id]: 1 })];
-  const accesorios = leerGrupo("accesorios")!;
+  const bolsos = leerGrupo("bolsos")!;
   const cinturones = { clave: "CIN", nombre: "Cinturones", cuantas: 3 };
 
   it("la categoría elegida que aquí no tiene nada sale con 0, en su lugar dentro de su grupo", () => {
-    const grupos = gruposConLoElegido(gruposDe(enLima), accesorios, cinturones);
-    const suyo = grupos.find((g) => g.clave === "accesorios")!;
-    // El orden del grupo: CAR, MOC, RIN, ACC, CIN, BUF, PAS, GOR…
-    expect(suyo.categorias.map((c) => `${c.clave}:${c.cuantas}`)).toEqual(["CAR:1", "CIN:0", "GOR:1"]);
-    expect(suyo.cuantas).toBe(2);
+    const grupos = gruposConLoElegido(gruposDe(enLima), bolsos, cinturones);
+    const suyo = grupos.find((g) => g.clave === "bolsos")!;
+    // El orden del grupo: CAR, MOC, RIN, CIN.
+    expect(suyo.categorias.map((c) => `${c.clave}:${c.cuantas}`)).toEqual(["CAR:1", "CIN:0"]);
+    expect(suyo.cuantas).toBe(1);
     // Los demás grupos, tal cual y en su orden.
-    expect(grupos.map((g) => g.clave)).toEqual(["arriba", "accesorios"]);
+    expect(grupos.map((g) => g.clave)).toEqual(["arriba", "bolsos", "cabeza"]);
   });
 
   it("el grupo elegido que aquí no tiene nada también sale, con 0, en su lugar entre los grupos", () => {
     const grupos = gruposConLoElegido(gruposDe(enLima), leerGrupo("abajo"), null);
-    expect(grupos.map((g) => `${g.clave}:${g.cuantas}`)).toEqual(["arriba:1", "abajo:0", "accesorios:2"]);
+    expect(grupos.map((g) => `${g.clave}:${g.cuantas}`)).toEqual(["arriba:1", "abajo:0", "bolsos:1", "cabeza:1"]);
     expect(GRUPOS.findIndex((g) => g.clave === "abajo")).toBeGreaterThan(GRUPOS.findIndex((g) => g.clave === "arriba"));
   });
 
   it("sin nada elegido, o con lo elegido ya a la vista, los grupos quedan iguales", () => {
     const base = gruposDe(enLima);
     expect(gruposConLoElegido(base, null, null)).toEqual(base);
-    expect(gruposConLoElegido(base, accesorios, { clave: "CAR", nombre: "Cat CAR", cuantas: 1 })).toEqual(base);
+    expect(gruposConLoElegido(base, bolsos, { clave: "CAR", nombre: "Cat CAR", cuantas: 1 })).toEqual(base);
     // Una categoría de OTRO grupo no se cuela en el grupo elegido.
-    expect(gruposConLoElegido(base, accesorios, { clave: "VES", nombre: "Vestidos", cuantas: 2 })).toEqual(base);
+    expect(gruposConLoElegido(base, bolsos, { clave: "VES", nombre: "Vestidos", cuantas: 2 })).toEqual(base);
   });
 
   it("en una sola fila, la categoría elegida que aquí no tiene nada sale al final, con 0", () => {

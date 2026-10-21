@@ -8,7 +8,7 @@
  *   2. Dice que sí solo cuando las prendas de los pedidos web POR CONFIRMAR de OTROS clientes que recogen en ESA tienda (y que
  *      no pasaron su plazo) cubren lo que queda libre de esa talla ahí: una de una, dos de dos (en uno o en dos pedidos), no una
  *      de dos; lo de la propia cuenta, otra tienda, un pedido vencido (con el plazo de Configuración ▸ Tienda web) o uno ya
- *      confirmado no cuentan; sin nada libre en esa tienda, no.
+ *      confirmado no cuentan; sin nada libre en esa tienda (se agotó después de separar), no.
  *   3. «Lo libre» es la pieza de la ficha (`fn_tienda_disponible`): la reserva de un pedido confirmado ya lo baja.
  *   4. Nunca sale una cifra ni quién: las llaves son las tallas activas del modelo y cada valor es un sí o un no.
  *   5. null sin cuenta, con un modelo oculto, con una tienda que no es de la web o sin tienda («Todas»).
@@ -264,9 +264,12 @@ select concat_ws(',', :'confirmado', ${VE()});`,
   "false|false,true|false",
 );
 escenario(
-  "sin nada libre en esa tienda no hay nada que avisar (la ficha ya dice «Otra tienda»), aunque otro la haya separado ahí",
-  `select pg_temp.dejar(:'v', :'lim', :'lim_piso', 1);
+  // ADR-0458: «Separar» solo acepta lo que hay en la tienda de recojo; la tienda se queda sin nada libre DESPUÉS de que otro separó (se vendió en
+  // el mostrador, se apartó), y entonces ya no hay nada que avisar (la ficha dice «Agotada»).
+  "sin nada libre en esa tienda no hay nada que avisar (la ficha ya dice «Agotada»), aunque otro la haya separado ahí cuando había",
+  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 1);
 ${SEPARAR("usr_b", "tru", "v")}
+select pg_temp.vaciar(:'v', :'tru');
 select ${VE("tru")};`,
   "false|false",
 );

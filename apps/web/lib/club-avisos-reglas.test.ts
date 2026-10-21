@@ -5,7 +5,6 @@ import {
   agruparPorTipo,
   celularAMedias,
   claveDelAviso,
-  contarPorTipo,
   enlaceWhatsAppWeb,
   leerAvisos,
   marcadoresSinCompletar,
@@ -64,20 +63,15 @@ describe("agrupar y contar por tipo", () => {
     fila({ clienta_id: "a", tipo: "rebaja", referencia: "p1" }),
     fila({ clienta_id: "b", tipo: "cumpleanos" }),
     fila({ clienta_id: "c", tipo: "rebaja", referencia: "p1" }),
-    fila({ clienta_id: "d", tipo: "aniversario", referencia: "v1" }),
+    fila({ clienta_id: "d", tipo: "puntos", referencia: "2026-11-08" }),
   ]);
 
   it("los grupos salen en el orden del club (cupones primero) y sin grupos vacíos; dentro, el orden de llegada", () => {
     expect(agruparPorTipo(avisos).map((g) => [g.tipo, g.avisos.map((a) => a.clientaId)])).toEqual([
       ["cumpleanos", ["b"]],
-      ["aniversario", ["d"]],
+      ["puntos", ["d"]],
       ["rebaja", ["a", "c"]],
     ]);
-  });
-
-  it("cuenta los cuatro tipos aunque alguno sea 0, y el total", () => {
-    expect(contarPorTipo(avisos)).toEqual({ cumpleanos: 1, aniversario: 1, novedades: 0, rebaja: 2, total: 4 });
-    expect(contarPorTipo([])).toEqual({ cumpleanos: 0, aniversario: 0, novedades: 0, rebaja: 0, total: 0 });
   });
 
   it("cada tipo tiene su texto, y solo novedades y rebajas cuentan para el tope de 2 al mes (CL-21)", () => {

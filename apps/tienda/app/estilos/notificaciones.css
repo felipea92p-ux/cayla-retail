@@ -1,0 +1,55 @@
+/* «Todas las notificaciones» (Felipe, 2026-10-19): la lista con búsqueda, casillas y paginado. Colores solo de tokens (tema claro y oscuro). */
+
+.n-pag { display: flex; flex-direction: column; gap: 14px; padding-block: 28px 48px; }
+.n-pag h1 { font-size: 34px; line-height: 1.1; }
+.n-pag h1 em { color: var(--rojo); font-style: italic; }
+
+.n-buscar { display: flex; gap: 10px; max-width: 520px; }
+.n-buscar input {
+  flex: 1; min-width: 0; height: 40px; padding: 0 14px; border-radius: 999px;
+  border: 1px solid var(--sand); background: var(--papel); color: var(--tinta); font-size: 14px;
+}
+.n-buscar input:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+
+.n-lista-caja { display: flex; flex-direction: column; gap: 10px; }
+.n-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; color: var(--tinta-60); }
+.n-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.n-acciones .t-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.n-lista { list-style: none; margin: 0; padding: 0; border: 1px solid var(--sand); border-radius: 14px; background: var(--papel); overflow: hidden; }
+.n-fila { display: flex; align-items: stretch; border-top: 1px solid var(--sand); }
+.n-fila:first-child { border-top: 0; }
+.n-casilla { flex: none; align-self: center; width: 18px; height: 18px; margin: 0 4px 0 14px; accent-color: var(--rojo); cursor: pointer; }
+.n-enlace { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; padding: 14px 10px; color: inherit; text-decoration: none; }
+.n-enlace:hover { background: var(--hueso); }
+.n-enlace:focus-visible { outline: 2px solid var(--rojo); outline-offset: -2px; }
+.n-ic { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; color: var(--rojo-profundo); }
+.n-ic .ic { width: 18px; height: 18px; }
+.n-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.n-txt b { font-size: 14.5px; font-weight: 600; line-height: 1.3; }
+.n-txt small { font-size: 13px; line-height: 1.4; color: var(--tinta-60); }
+.n-txt time { font-size: 12px; color: var(--tinta-60); }
+.n-enlace > .t-avisos-punto { align-self: center; margin-left: auto; }
+.n-fila > .t-avisos-borrar { align-self: center; margin-right: 8px; }
+
+/* El aviso en el celular (ADR-0461): una línea de explicación y el botón; sin caja propia, para que no compita con la lista. */
+.n-celular { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; font-size: 13.5px; color: var(--tinta-60); }
+.n-celular-txt { margin: 0; max-width: 60ch; line-height: 1.45; }
+
+.n-vacio { margin: 0; padding: 28px 18px; border: 1px dashed var(--sand); border-radius: 14px; color: var(--tinta-60); text-align: center; font-size: 14px; }
+
+.n-paginas { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; font-size: 13.5px; color: var(--tinta-60); }
+.n-paginas a { color: var(--tinta); text-decoration: underline; text-decoration-color: var(--tinta-40); text-underline-offset: 3px; }
+.n-paginas a:last-child { justify-self: end; }
+.n-paginas a:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 4px; }
+
+@media (max-width: 560px) {
+  .n-pag h1 { font-size: 28px; }
+  .n-barra { flex-direction: column; align-items: stretch; }
+  .n-acciones { justify-content: stretch; }
+  .n-acciones .t-btn { flex: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .n-enlace { transition: none; }
+}

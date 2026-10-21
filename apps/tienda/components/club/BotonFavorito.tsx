@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { guardarFavorito } from "@/app/acciones/club";
 import { MENSAJES_CLUB, mensajeFavorito } from "@/lib/club";
+import { volarCorazon } from "@/lib/corazon-vuela";
 import { Icono } from "../Icono";
 import { useGuardados } from "./Guardados";
 import { useAvisoBreve } from "./useAvisoBreve";
@@ -47,11 +48,12 @@ export function BotonFavorito({
   const [pendiente, iniciar] = useTransition();
   const { aviso, mostrar } = useAvisoBreve();
 
-  function tocar() {
+  function tocar(e: React.MouseEvent<HTMLButtonElement>) {
     if (pendiente) return;
     const nuevo = !activo;
     setActivo(nuevo);
     if (nuevo) setLatidos((n) => n + 1);
+    const origen = e.currentTarget;
     iniciar(async () => {
       const estado = await guardarFavorito(productoId, nuevo);
       const problema = mensajeFavorito(estado);
@@ -61,7 +63,11 @@ export function BotonFavorito({
         return;
       }
       guardados?.marcar(productoId, nuevo);
-      if (estado === "guardado") mostrar(MENSAJES_CLUB.favoritoGuardado, true);
+      if (estado === "guardado") {
+        mostrar(MENSAJES_CLUB.favoritoGuardado, true);
+        // Ya quedó guardado: el corazón vuela a «Favoritos» (dentro del menú de la cuenta), para que se sepa dónde quedó sin una palabra más.
+        volarCorazon(origen);
+      }
     });
   }
 

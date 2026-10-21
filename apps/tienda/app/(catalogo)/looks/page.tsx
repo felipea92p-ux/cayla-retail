@@ -3,14 +3,13 @@ import Link from "next/link";
 import { Icono } from "@/components/Icono";
 import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
-import { EntradaProbador } from "@/components/probador/EntradaProbador";
-import { fotoOptimizable, hrefLista } from "@/lib/catalogo";
+import { hrefLista } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { hrefLooks, looksDeATres } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
-import { armarProbador, indizar, lookInicial, presentes } from "@/lib/probador";
-import { leerProbador } from "@/lib/probador-servidor";
-import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { hrefDelProbador } from "@/lib/probador";
+import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
+import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { hayEnTienda } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../estilos/looks.css";
@@ -25,25 +24,20 @@ export const metadata: Metadata = { title: "Arma tu look · CAYLA" };
 export default async function Looks({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
-  const pedida = sedeDeLaUrl(sp.sede, sedes);
-  // Con los looks, el probador de la misma tienda: si tiene prendas, su tarjeta va arriba (ADR-0434, actividad 10).
-  const [lectura, catalogo, lecturaProbador] = await Promise.all([
-    leerLooks(pedida?.id ?? null),
-    leerCatalogo(pedida?.id ?? null),
-    leerProbador(pedida?.id ?? null),
-  ]);
+  const pedida = await sedeDeLaPagina(sp, sedes, "/looks", claveDeSede);
+  const [lectura, catalogo] = await Promise.all([leerLooks(pedida?.id ?? null), leerCatalogo(pedida?.id ?? null)]);
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = lectura?.sede ? sedes.find((s) => s.id === lectura.sede) ?? null : null;
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
+  // Cada tienda muestra solo los looks que puede vestir con lo que tiene (ADR-0468). Si en la elegida no hay ninguno, se mira en cuáles de
+  // las otras sí hay, para llevar allá (solo en ese caso se hacen las otras lecturas, que se comparten entre visitas).
+  const otrasConLooks =
+    elegida && lectura?.looks.length === 0
+      ? (await Promise.all(sedes.filter((s) => s.id !== elegida.id).map(async (s) => ((await leerLooks(s.id))?.looks.length ? s : null)))).flatMap((s) => (s ? [s] : []))
+      : [];
   // La cabecera (el menú y el buscador) dice lo mismo que el catálogo de esa tienda.
   const prendas = (catalogo?.prendas ?? []).filter((p) => hayEnTienda(p.stock, elegida?.id ?? null));
-  // Lo que el probador de esta tienda abre: si no hay nada que probar aquí, la tarjeta no se dibuja.
-  const delProbador = lecturaProbador
-    ? armarProbador(prendas, lecturaProbador, { elegida, tiendas: sedes, optimizable: (url) => fotoOptimizable(url, origenFotos) })
-    : [];
-  const lookDelProbador = lookInicial(delProbador);
-
   return (
     <MarcoCatalogo
       prendas={prendas}
@@ -55,15 +49,16 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
       ]}
     >
       <div className="t-ancho">
-        <header className="t-lista-cab">
-          <span className="t-ceja">Combinaciones listas</span>
+        <header className="t-lista-cab t-looks-cab">
           <h1>
             Arma tu <em>look</em>
           </h1>
-          <p>Prendas que se ven bien juntas. Agrega el look completo y eliges cada talla en un solo paso.</p>
+          {/* Los looks de CAYLA están abajo; este es el camino para armar el propio (el probador). Siempre a la vista: si todavía no hay
+              prendas que probar en esa tienda, el probador lo dice y lleva de vuelta a los looks. */}
+          <Link className="t-btn t-btn-sec" href={hrefDelProbador(sede)}>
+            Arma tu look personalizado <Icono nombre="flecha" />
+          </Link>
         </header>
-
-        {presentes(lookDelProbador).length > 0 && <EntradaProbador look={lookDelProbador} indice={indizar(delProbador)} sede={sede} />}
 
         {lectura === null ? (
           <div className="t-vacio" role="status">
@@ -73,6 +68,17 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
             <Link className="t-btn" href={hrefLooks(pedida ? claveDeSede(pedida.nombre) : null)}>
               Volver a intentar
             </Link>
+          </div>
+        ) : lectura.looks.length === 0 && elegida && otrasConLooks.length > 0 ? (
+          <div className="t-vacio">
+            <Icono nombre="tienda" />
+            <h3>{`Por ahora no hay looks completos en ${elegida.nombre}`}</h3>
+            <p>A estos looks les faltan prendas que hoy están en otras tiendas. Mira los que sí están completos o arma el tuyo con lo que hay aquí.</p>
+            {otrasConLooks.map((s) => (
+              <Link key={s.id} className="t-btn" href={hrefLooks(claveDeSede(s.nombre))}>
+                {`Ver los looks de ${s.nombre}`}
+              </Link>
+            ))}
           </div>
         ) : lectura.looks.length === 0 ? (
           <div className="t-vacio">

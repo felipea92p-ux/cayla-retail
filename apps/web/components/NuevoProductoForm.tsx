@@ -8,6 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
+import { ElegirEmpresa, TarjetaEmpresa } from "@/components/alta-producto/ElegirEmpresa";
 import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
 import { ElegirMuestra } from "@/components/alta-producto/ElegirMuestra";
 import { ElegirTemporada } from "@/components/alta-producto/ElegirTemporada";
@@ -203,6 +204,13 @@ export function NuevoProductoForm({
     }),
     []
   );
+  // ADR-0463: antes de la categoría, a qué tienda pertenece el producto — solo desde una sede donde operan dos (Lima). `contexto.empresas` nulo
+  // = Trujillo, Arequipa o una base sin tiendas: sin pregunta, y el producto nace en CAYLA. Ninguna viene marcada (Felipe 2026-10-20).
+  const [empresaId, setEmpresaId] = useState("");
+  const empresas = contexto.empresas;
+  const exigeEmpresa = Boolean(empresas && empresas.length > 0);
+  const empresa = empresas?.find((t) => t.id === empresaId) ?? null;
+  const faltaEmpresa = exigeEmpresa && !empresaId;
   const [categoriaId, setCategoriaId] = useState("");
   const [marcaId, setMarcaId] = useState("");
   const [proveedorId, setProveedorId] = useState("");
@@ -266,7 +274,7 @@ export function NuevoProductoForm({
   // está en la base). Con el producto creado no hay nada que perder; tras «crear otro parecido» vuelve a preguntar, porque
   // lo copiado también se perdería. La foto de apertura es la del formulario vacío.
   const fotoActual = fotoFormulario({
-    categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
+    empresaId, categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
     coloresElegidos, fotos: fotos.map((f) => f.clave), precioBase, costoBase, excluidas: [...excluidas].sort(),
     overridePrecio, overrideCosto, etiquetasElegidas, cantidades, sinStock, lugarCarga,
   });
@@ -439,6 +447,8 @@ export function NuevoProductoForm({
 
   // ---------- qué falta ----------
   const estado: EstadoAlta = {
+    exigeEmpresa,
+    empresaId,
     categoriaId,
     referencia,
     comprobandoNombre,
@@ -631,7 +641,14 @@ export function NuevoProductoForm({
       p_al_piso: conStock && destino.separaPiso && lugarCarga === "piso",
     };
     const firma = responsable.firma();
-    const { data: productoId, error, status } = await firmar(supabase.rpc("crear_producto_con_stock_inicial", params), firma);
+    // ADR-0463: desde una sede con dos tiendas (Lima), el alta va por `crear_producto_con_empresa` (la de siempre + la tienda, en la misma
+    // transacción); sin ellas, por la de siempre y el producto nace en CAYLA. La cola sin conexión guarda cuál usó.
+    const rpcAlta = exigeEmpresa ? "crear_producto_con_empresa" : "crear_producto_con_stock_inicial";
+    const paramsAlta = exigeEmpresa ? { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId } : params;
+    const { data: productoId, error, status } = await firmar(
+      exigeEmpresa ? supabase.rpc("crear_producto_con_empresa", { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId }) : supabase.rpc("crear_producto_con_stock_inicial", params),
+      firma,
+    );
 
     // Sin red (ADR-0210, paso 2): el alta entra a la cola con su token y la hora de ahora. El código y el de barras los
     // pone la base al subir (nunca el navegador); las fotos esperan en IndexedDB y suben después del producto.
@@ -642,8 +659,8 @@ export function NuevoProductoForm({
       const firmaCola = conStock ? responsable.firma(new Date().toISOString()) : firma;
       const op = nuevaOperacion({
         token: token.current,
-        rpc: "crear_producto_con_stock_inicial",
-        params,
+        rpc: rpcAlta,
+        params: paramsAlta,
         firma: firmaCola,
         resumen: `${nombreFinal} · ${variantes.length} variante${variantes.length === 1 ? "" : "s"}${conStock ? ` · ${stock.total} u.` : ""} · ${categoria?.nombre ?? ""}`,
       });
@@ -792,7 +809,7 @@ export function NuevoProductoForm({
       .filter(Boolean)
       .join(", ") || null;
   const resumen: Record<NumeroPaso, string> = {
-    1: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : "",
+    1: categoria ? `${empresa ? `${empresa.nombre} · ` : ""}${familia?.nombre ?? ""} › ${categoria.nombre}` : "",
     2: [nombreFinal, marcaNombre, tejidoTexto, patronTexto].filter(Boolean).join(" · "),
     // «26–42 (9) · 8 colores · 68 variantes · 7 fotos»: con muchas tallas se leen primera–última y cuántas.
     3: tallasOrdenadas.length
@@ -882,7 +899,10 @@ export function NuevoProductoForm({
           <p className="text-[13px] text-taupe">
             Con la categoría, el sistema ya sabe el código, las tallas y los tejidos que suele llevar. Al tocarla pasas solo al siguiente paso.
           </p>
-          <ArbolCategoria familias={contexto.familias} categorias={contexto.categorias} categoriaId={categoriaId} onElegir={elegirCategoria} onCambiar={cambiarCategoria} />
+          {/* Sin tienda no se elige categoría (ADR-0463): se ve el camino, atenuado, y se enciende al elegir la tienda. La pregunta vive en su propia tarjeta, sobre este paso. */}
+          <div inert={faltaEmpresa} className={faltaEmpresa ? "opacity-50 transition-opacity" : "transition-opacity"}>
+            <ArbolCategoria familias={contexto.familias} categorias={contexto.categorias} categoriaId={categoriaId} onElegir={elegirCategoria} onCambiar={cambiarCategoria} pausado={faltaEmpresa} />
+          </div>
         </div>
       );
     }
@@ -1298,6 +1318,13 @@ export function NuevoProductoForm({
                 </Aviso>
               )}
               {/* Solo el paso abierto: los demás están en los puntos de arriba. `key` lo vuelve a montar al cambiar de paso (entra con su revelado). */}
+              {paso === 1 && empresas && (
+                <TarjetaEmpresa>
+                  <FilaAlta etiqueta="Tienda" campo="empresa" estado={est.empresa}>
+                    <ElegirEmpresa empresas={empresas} empresaId={empresaId} onElegir={setEmpresaId} />
+                  </FilaAlta>
+                </TarjetaEmpresa>
+              )}
               <PasoAlta key={paso} numero={paso} titulo={TITULOS[paso]} pie={pie(paso)}>
                 {cuerpo(paso)}
               </PasoAlta>
@@ -1307,6 +1334,7 @@ export function NuevoProductoForm({
               datos={{
                 nombre: nombreFinal,
                 codigo: categoria ? base : null,
+                empresa: empresa?.nombre ?? null,
                 categoria: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : null,
                 marca: marcaId ? marcaNombre || null : null,
                 tejido: tejidoTexto,

@@ -232,7 +232,7 @@ rollback;`,
           (select string_agg(k, ',') from jsonb_array_elements(retail.tienda_catalogo() -> 'prendas') x, jsonb_object_keys(x -> 'nuevo') k where x ->> 'id' = :'p_a'),
           not jsonb_path_exists(retail.tienda_catalogo(), '$.** ? (@ == 7193)'));
       rollback;`,
-    "campana,categoria,codigo,colores,desde,fotos,id,nombre,nuevo,precio,precio_final,stock,vendidos|1|dias|t",
+    "campana,categoria,categoria_familia,codigo,colores,desde,empresa,fotos,id,nombre,nuevo,precio,precio_final,stock,vendidos|1|dias|t",
   );
 
   // ---------------------------------------------------------------- 3. La ayuda

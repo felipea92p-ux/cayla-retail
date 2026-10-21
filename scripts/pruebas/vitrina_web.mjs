@@ -21,6 +21,9 @@
  *      «sin precio» es que ninguna tienda de la web la ofrece (`fn_tienda_precio_talla`), dicho en la hoja, el lote y la pantalla. El
  *      atajo de la regla dice lo mismo que `fn_tienda_precio_talla` en TODO el catálogo; tres mutantes (mirar solo la ficha, un atajo
  *      que deja pasar el 0 y la pieza común rota) y la prueba los ve.
+ *   4d. Un producto nuevo nace visible (Felipe 2026-10-19, `20261019214000`): lo que da de alta un líder, o lo que se aprueba después,
+ *      entra con «Se ve en la web» encendido y su línea en la Actividad; prueba y empaque no; esconderlo se respeta; lo que ya existía
+ *      no se toca; y la tienda sigue pidiendo «se puede vender» (sin tallas con precio no sale).
  *   5. La migración se puede volver a correr, también sobre una base que tenía la versión vieja (con precio web).
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder) o Micaela (integrante de Trujillo): nunca se
@@ -343,7 +346,7 @@ function main() {
       select talla_id as t1, color_codigo as c1 from retail.variantes where producto_id = :'emma' order by sku limit 1 \\gset
       insert into retail.productos (referencia, categoria_id, marca_id, proveedor_id) values ('ZZ Vitrina virgen', :'cat', :'marca', :'prov') returning id as zz \\gset
       insert into retail.variantes (producto_id, sku, precio, talla_id, color_codigo) values (:'zz', 'ZZ-VITRINA-1', 50, :'t1', :'c1');
-      ${guardar("zz")} \\gset
+      ${guardar("zz", { version: VERSION("zz") })} \\gset
       select retail.eliminar_producto(:'zz') is not null;
       select concat_ws('|', (select count(*) from retail.productos where id = :'zz'), (select count(*) from retail.vitrina_productos where producto_id = :'zz'));
       rollback;`),
@@ -604,7 +607,7 @@ function main() {
     correr(`${PREPARAR}${guardar("emma")} \\gset
       select string_agg(k, ',' order by k) from ${EN_CATALOGO("emma")} t(x), jsonb_object_keys(x) k;
       rollback;`),
-    "campana,categoria,codigo,colores,desde,fotos,id,nombre,nuevo,precio,precio_final,stock,vendidos",
+    "campana,categoria,categoria_familia,codigo,colores,desde,empresa,fotos,id,nombre,nuevo,precio,precio_final,stock,vendidos",
   );
   esperarValor(
     "como tienda_web: el catálogo responde (con «Todas» y con una tienda) y la tabla se niega",
@@ -834,6 +837,85 @@ rollback;`);
     esperar(
       "MUTANTE la regla del precio de la tienda ofrece una talla a S/ 0: la Vitrina deja mostrar la falda sin precio JUNTO con la tienda (no tiene su propia cuenta)",
       r.ok && r.salida.split("\n").at(-1) === "se puede",
+      r.ok ? r.salida : r.mensaje,
+    );
+  }
+
+  // ---------------------------------------------------------------- 4d. Un producto nuevo nace visible
+  // Felipe, 2026-10-19 (`20261019214000_vitrina_producto_nuevo_nace_visible.sql`): lo que se da de alta sale en la web sin que nadie
+  // lo encienda; lo que ya existía no se toca, y esconderlo sigue siendo un toque en la Vitrina.
+  console.log("— Un producto nuevo nace visible —");
+  const NACE_VISIBLE = readFileSync("supabase/migrations/20261019214000_vitrina_producto_nuevo_nace_visible.sql", "utf8");
+  const COMO = (sub) => `set local request.jwt.claim.sub = '${sub}';\nset local request.jwt.claims = '{"sub":"${sub}","role":"authenticated"}';\n`;
+  /** Da de alta «ZZ Nuevo» en la categoría de Blusa Emma, como quien está en sesión. Deja :nuevo. */
+  const ALTA = (nombre = "ZZ Nuevo", extra = "") =>
+    `insert into retail.productos (categoria_id, referencia${extra ? ", es_prueba" : ""}) values (:'cat_blusas', '${nombre}'${extra ? ", true" : ""}) returning id as nuevo \\gset\n`;
+  const FILA = `select concat_ws('|', publicado, publicado_en is not null, creado_por is not null) from retail.vitrina_productos where producto_id = :'nuevo'`;
+  {
+    const r = correr(`${PREPARAR}${NACE_VISIBLE}${ALTA()}${FILA};\nrollback;`);
+    esperarValor("un producto que da de alta un líder nace con «Se ve en la web» encendido, con su fecha y quién lo creó", r, "t|t|t");
+  }
+  {
+    const r = correr(`${PREPARAR}${NACE_VISIBLE}${ALTA()}select count(*) from retail.actividad where modulo = 'vitrina_web' and accion = 'vitrina_mostrada' and registro_id = :'nuevo'::text;\nrollback;`);
+    esperarValor("…y queda su línea en la Actividad, como cualquier cambio de la vitrina", r, "1");
+  }
+  {
+    // Crearlo ANTES de sus tallas es el orden real del alta: sin tallas con precio no sale; con una talla con precio, sale solo.
+    const r = correr(`${PREPARAR}${SEDES_EN_LA_WEB}${NACE_VISIBLE}${ALTA()}${COMO_TIENDA.replace(/\n/g, " ")}
+      select count(*) from jsonb_array_elements(retail.tienda_catalogo() -> 'prendas') x where x ->> 'id' = :'nuevo';
+      reset role;
+      insert into retail.variantes (producto_id, talla_id, color_codigo, precio, costo)
+        select :'nuevo', v.talla_id, v.color_codigo, 59.90, 20 from retail.variantes v where v.producto_id = :'emma' and v.activo limit 1;
+      ${COMO_TIENDA.replace(/\n/g, " ")}
+      select count(*) from jsonb_array_elements(retail.tienda_catalogo() -> 'prendas') x where x ->> 'id' = :'nuevo';
+      rollback;`);
+    esperar(
+      "sin tallas con precio no sale en la tienda (la fila encendida no basta: sigue mandando «se puede vender»), y con una talla con precio sale solo",
+      r.ok && r.salida.split("\n").join("|") === "0|1",
+      r.ok ? r.salida : r.mensaje,
+    );
+  }
+  {
+    const r = correr(`${PREPARAR}${NACE_VISIBLE}${ALTA("ZZ Prueba", "prueba")}select count(*) from retail.vitrina_productos where producto_id = :'nuevo';\nrollback;`);
+    esperarValor("un producto de prueba no entra a la vitrina", r, "0");
+  }
+  {
+    // Una bolsa (familia fuera de los motores) se vende en la caja: no se le crea fila.
+    const r = correr(`${PREPARAR}${NACE_VISIBLE}${comoEmpaque("emma")}${ALTA().replace(":'cat_blusas'", ":'cat_emma'")}select count(*) from retail.vitrina_productos where producto_id = :'nuevo';\nrollback;`);
+    esperarValor("un producto de empaque (bolsas, cajas) no entra a la vitrina: no se muestra en la web nunca", r, "0");
+  }
+  {
+    // Esconderlo es un toque; ni tocar el producto ni guardar otra cosa lo vuelven a encender.
+    const r = correr(`${PREPARAR}${NACE_VISIBLE}${ALTA()}select retail.vitrina_mostrar(array[:'nuevo']::uuid[], false) \\gset
+      update retail.productos set descripcion = 'Cambió la descripción' where id = :'nuevo';
+      update retail.productos set estado_alta = 'aprobado' where id = :'nuevo';
+      select publicado from retail.vitrina_productos where producto_id = :'nuevo';\nrollback;`);
+    esperarValor("si lo esconden, se queda escondido aunque después editen el producto", r, "f");
+  }
+  {
+    // Los que ya existían no se tocan: ni una fila más que la del nuevo.
+    const r = correr(`${PREPARAR}select count(*) as antes from retail.vitrina_productos \\gset
+      ${NACE_VISIBLE}${ALTA()}select (select count(*) from retail.vitrina_productos) - :antes;\nrollback;`);
+    esperarValor("solo se crea la fila del producto nuevo: los modelos que ya existían no se tocan", r, "1");
+  }
+  {
+    // La alta al vuelo (conteo / recibir) nace pendiente: sin fila hasta que el líder la aprueba; al aprobarse, entra visible.
+    const r = correr(`${PREPARAR}${NACE_VISIBLE}
+      select ct.talla_id as talla from retail.categoria_tallas ct join retail.tallas t on t.id = ct.talla_id and t.activo where ct.categoria_id = :'cat_blusas' limit 1 \\gset
+      ${COMO(MICAELA)}
+      select retail.fn_mi_rol_id() as rol_mica \\gset
+      delete from retail.rol_modulos where rol_id = :'rol_mica' and modulo in ('productos', 'atributos');
+      select set_config('request.headers', json_build_object('x-ubicacion', :'tru')::text, true) as _h \\gset
+      select variante_id as va from retail.censo_crear_variante('ZZ Propuesta', :'cat_blusas', 'TESTVIT-1', :'talla', null, 0, 59.90) \\gset
+      select producto_id as pp from retail.variantes where id = :'va' \\gset
+      select estado_alta || '|' || (select count(*) from retail.vitrina_productos where producto_id = :'pp') from retail.productos where id = :'pp';
+      ${COMO(FELIPE)}
+      update retail.productos set estado_alta = 'aprobado' where id = :'pp';
+      select (select publicado from retail.vitrina_productos where producto_id = :'pp');
+      rollback;`);
+    esperar(
+      "lo que alguien propone al contar o recibir nace pendiente y sin fila; cuando el líder lo aprueba, entra encendido",
+      r.ok && r.salida.split("\n").join("|") === "pendiente|0|t",
       r.ok ? r.salida : r.mensaje,
     );
   }

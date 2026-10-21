@@ -13,16 +13,15 @@ export type Beneficio = { icono: "tienda" | "bolsa" | "regalo"; titulo: string; 
 
 /**
  * Los tres beneficios del panel: lo que la tienda ya hace (la ficha dice cuánto hay de cada talla en cada tienda; se separa sin pagar
- * en la web y se recoge en la tienda; el Club da el descuento de cumpleaños y el vale por aniversario que cobra la caja).
+ * en la web y se recoge en la tienda; el Club da puntos en cada compra, que se cambian por cupones, y un regalo de puntos en el cumpleaños).
  */
 export const BENEFICIOS_DE_ENTRADA: readonly Beneficio[] = [
   { icono: "tienda", titulo: "Mira cuánto hay en cada tienda", texto: "Cada talla y cada color, tienda por tienda." },
   { icono: "bolsa", titulo: "Separa sin pagar aquí", texto: "Coordinas el pago por WhatsApp y lo recoges en tu tienda." },
-  { icono: "regalo", titulo: "Descuento en tu cumpleaños", texto: "Y un vale de compra por cada año en el Club." },
+  { icono: "regalo", titulo: "Puntos en cada compra", texto: "Los cambias por cupones; en tu cumpleaños, más puntos." },
 ];
 
 /** La línea de confianza al pie del panel del Club (la página de cambios lo dice igual). */
-export const CONFIANZA_CLUB = "Cambias o devuelves en cualquier tienda CAYLA.";
 
 /** El texto bajo la tarjeta de «Crear cuenta»: antes de saber el nombre, y con el nombre ya puesto. */
 export const PIE_DE_TARJETA = {

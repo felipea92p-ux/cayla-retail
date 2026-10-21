@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { pasosParaSeparar } from "@/lib/ayuda";
 import { leerSedes } from "@/lib/tiendas-servidor";
-import { LineaDePasos } from "./ayuda/LineaDePasos";
-import { Icono } from "./Icono";
 
 /**
  * «Así se separa» (maqueta, `seccionComo`): los cuatro pasos, en la portada y en el Inicio, con la MISMA línea de tiempo y los mismos
@@ -13,24 +11,46 @@ import { Icono } from "./Icono";
  */
 export async function AsiSeSepara({ conCuenta = false }: { conCuenta?: boolean }) {
   const sedes = await leerSedes();
-  const pasos = pasosParaSeparar(
+  // Los mismos cuatro pasos de «Cómo separar» (`pasosParaSeparar`), con su título y UNA frase corta bajo cada uno (A · Muro: el número
+  // grande en cursiva, el título y una línea); el detalle completo vive en «Cómo separar».
+  const [elige] = pasosParaSeparar(
     sedes.map((s) => s.nombre),
     conCuenta,
   );
+  const pasos: { titulo: string; texto: string; hecho: boolean }[] = [
+    { titulo: elige.titulo, texto: elige.texto.split(". ")[0].replace(/\.$/, "") + ".", hecho: false },
+    conCuenta
+      ? { titulo: "Ya tienes tu cuenta", texto: "Con ella separas y sigues tus pedidos.", hecho: true }
+      : { titulo: "Entra o crea tu cuenta", texto: "Con tu correo, en un minuto.", hecho: false },
+    { titulo: "Toca «Separar» y mándalo por WhatsApp", texto: "El mensaje ya va escrito. No pagas nada en la web.", hecho: false },
+    { titulo: "Paga y recógelo", texto: "Coordinas el pago con la tienda y lo recoges con tu código.", hecho: false },
+  ];
   return (
     <section className="t-sec t-ancho ay-asi" aria-labelledby="asi-se-separa">
       <div className="t-sec-cab">
         <div>
-          <span className="t-ceja">Sin pagar en la web</span>
           <h2 id="asi-se-separa">
             Así se <em>separa</em>
           </h2>
         </div>
-        <Link className="t-ver" href="/como-separar">
-          Cómo funciona <Icono nombre="flecha" />
+        <Link className="t-sec-nota" href="/como-separar">
+          Sin pagar en la web
         </Link>
       </div>
-      <LineaDePasos pasos={pasos} />
+      <ol className="as-pasos" aria-label="Los pasos para separar">
+        {pasos.map((p, i) => (
+          <li key={p.titulo} className="as-paso" data-hecho={p.hecho ? "" : undefined}>
+            <span className="as-n" aria-hidden="true">
+              {i + 1}
+            </span>
+            <b>
+              {p.hecho && <span className="t-sr">Hecho: </span>}
+              {p.titulo}
+            </b>
+            <span className="as-x">{p.texto}</span>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }

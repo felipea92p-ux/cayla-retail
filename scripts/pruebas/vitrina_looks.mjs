@@ -43,7 +43,11 @@ import { readFileSync } from "node:fs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
-const MIGRACIONES = ["supabase/migrations/20261015031000_vitrina_looks.sql", "supabase/migrations/20261015032000_tienda_looks.sql"];
+const MIGRACIONES = [
+  "supabase/migrations/20261015031000_vitrina_looks.sql",
+  "supabase/migrations/20261015032000_tienda_looks.sql",
+  "supabase/migrations/20261021010000_tienda_looks_por_tienda.sql",
+];
 const APLICAR_ANTES = process.env.APLICAR_ANTES
   ? process.env.APLICAR_ANTES.split(",")
       .map((f) => f.trim())
@@ -193,8 +197,19 @@ const TALLAS_CONTRA_FICHA = (look, sede = null) => {
               jsonb_array_elements(pz -> 'tallas') with ordinality u(ta, o)
         where pz -> 'prenda' ->> 'id' = :'emma'));\n`;
 };
+/**
+ * Stock para que un look se vea en una tienda (20261021010000, ADR-0468): un look sale en una tienda solo si cada una de sus prendas, en su
+ * color, tiene algo libre ahí. `HAY_EN` pone 5 libres en el piso de venta de `sede` (tru|lim) de cada talla activa de `prod` (de un
+ * color, o de todos); `SIN_STOCK` deja a esos modelos sin nada, para partir de cero; `STOCK_EN_LAS_DOS` los deja a los cuatro con todo en las dos.
+ */
+const SIN_STOCK = (...prods) => `delete from retail.stock where variante_id in (select id from retail.variantes where producto_id in (${prods.map((p) => `:'${p}'`).join(", ")}));\n`;
+const HAY_EN = (sede, prod, color = null) =>
+  `insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada)
+     select v.id, :'${sede}'::uuid, (select s.id from retail.sububicaciones s where s.ubicacion_id = :'${sede}' and s.tipo = 'piso_venta' limit 1), 5, 0
+       from retail.variantes v where v.producto_id = :'${prod}' and v.activo${color ? ` and v.color_codigo = '${color}'` : ""};\n`;
+const STOCK_EN_LAS_DOS = `${SIN_STOCK("emma", "falda", "vestido", "carla")}${["emma", "falda", "vestido", "carla"].map((p) => HAY_EN("tru", p) + HAY_EN("lim", p)).join("")}`;
 /** El escenario del precio: Lima cobra más la blusa, Trujillo menos la falda, el vestido con campaña y la falda negra con otra. */
-const ESCENA_PRECIOS = `${SEDES_EN_LA_WEB}${EN_LA_VITRINA}
+const ESCENA_PRECIOS = `${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${STOCK_EN_LAS_DOS}
 ${precioEnTienda("emma", "lim", "89.90")}${precioEnTienda("falda", "tru", "69.90")}
 ${campana("ZZ Aniversario", 10)}${aTodasLasTallas("vestido")}${campana("ZZ Negro", 20)}${aUnColor("falda", "NEG")}
 ${crear("look")}${crear("look2", { nombre: "ZZ Noche", ps: piezas(["vestido", "NEG"], ["carla", "BEI"]) })}`;
@@ -600,7 +615,10 @@ function main() {
         union all select v.id, :'lim'::uuid, :'sub_piso_lim'::uuid, 2, 2 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'emma' and v.color_codigo = 'BEI' and t.valor = 'M'
         union all select v.id, :'lim'::uuid, :'sub_cua_lim'::uuid, 3, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'emma' and v.color_codigo = 'BEI' and t.valor = 'L'
         union all select v.id, :'taller'::uuid, null::uuid, 5, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'emma' and v.color_codigo = 'BEI' and t.valor = 'L'
-        union all select v.id, :'lim'::uuid, :'sub_piso_lim'::uuid, 1, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'carla' and v.color_codigo = 'BEI' and t.valor = '32';
+        union all select v.id, :'lim'::uuid, :'sub_piso_lim'::uuid, 1, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'carla' and v.color_codigo = 'BEI' and t.valor = '32'
+        -- Para que el look salga completo en las DOS tiendas (ADR-0468): la blusa S también en Lima y el pantalón 30 también en Trujillo.
+        union all select v.id, :'lim'::uuid, :'sub_piso_lim'::uuid, 1, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'emma' and v.color_codigo = 'BEI' and t.valor = 'S'
+        union all select v.id, :'tru'::uuid, :'sub_alm_tru'::uuid, 1, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'carla' and v.color_codigo = 'BEI' and t.valor = '30';
       ${crear("look", { ps: piezas(["emma", "BEI"], ["carla", "BEI"]) })}
       select string_agg((select string_agg(ta ->> 'talla' || '=' || (ta ->> 'hay'), ',' order by o) from jsonb_array_elements(pz -> 'tallas') with ordinality u(ta, o)), ' ' order by (pz ->> 'posicion')::int)
         from jsonb_array_elements(retail.tienda_look(:'look') -> 'look' -> 'piezas') pz;
@@ -609,7 +627,7 @@ function main() {
       select (select string_agg(ta ->> 'talla' || '=' || (ta ->> 'hay'), ',' order by o) from jsonb_array_elements(pz -> 'tallas') with ordinality u(ta, o))
         from jsonb_array_elements(retail.tienda_look(:'look') -> 'look' -> 'piezas') pz where (pz ->> 'posicion')::int = 2;
       rollback;`),
-    "S=true,M=false,L=false 28=false,30=false,32=true,34=false\n28=false,30=false,32=false,34=false",
+    "S=true,M=false,L=false 28=false,30=true,32=true,34=false\n28=false,30=true,32=false,34=false",
   );
   // La regla única de «hay» (20261015012000): el look lee la misma pieza que la ficha. Con Cuarentena, lo apartado, el Taller y una tienda
   // que sale de la web, ninguna talla puede decir «hay» en el look y «no hay» en la ficha (su total), ni al revés.
@@ -624,7 +642,10 @@ function main() {
         union all select v.id, :'lim'::uuid, :'sub_piso_lim'::uuid, 2, 2 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'emma' and v.color_codigo = 'BEI' and t.valor = 'M'
         union all select v.id, :'lim'::uuid, :'sub_cua_lim'::uuid, 3, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'emma' and v.color_codigo = 'BEI' and t.valor = 'L'
         union all select v.id, :'taller'::uuid, null::uuid, 5, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'emma' and v.color_codigo = 'BEI' and t.valor = 'L'
-        union all select v.id, :'lim'::uuid, :'sub_piso_lim'::uuid, 1, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'carla' and v.color_codigo = 'BEI' and t.valor = '32';
+        union all select v.id, :'lim'::uuid, :'sub_piso_lim'::uuid, 1, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'carla' and v.color_codigo = 'BEI' and t.valor = '32'
+        -- Para que el look salga completo en las DOS tiendas (ADR-0468): la blusa S también en Lima y el pantalón 30 también en Trujillo.
+        union all select v.id, :'lim'::uuid, :'sub_piso_lim'::uuid, 1, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'emma' and v.color_codigo = 'BEI' and t.valor = 'S'
+        union all select v.id, :'tru'::uuid, :'sub_alm_tru'::uuid, 1, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'carla' and v.color_codigo = 'BEI' and t.valor = '30';
       ${crear("look", { ps: piezas(["emma", "BEI"], ["carla", "BEI"]) })}`;
   /** Cuántas tallas del look dicen distinto que la ficha (`hay` contra el total de la talla) | cuántas se compararon | cuántas «hay». */
   const LOOK_CONTRA_FICHA = `select count(*) filter (where (ta ->> 'hay')::boolean is distinct from (coalesce(f.x ->> 'total', '0') <> '0'))
@@ -639,7 +660,18 @@ function main() {
       update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'lim';
       ${LOOK_CONTRA_FICHA}
       rollback;`),
-    "0|7|2\n0|7|1",
+    "0|7|3\n0|7|2",
+  );
+  // ADR-0458 (20261019223000, Felipe 2026-10-19): cada tienda maneja lo suyo. Con una tienda elegida, la talla de un look dice «hay» solo si
+  // la tienda elegida la tiene; antes miraba todas las de la web y ofrecía una talla que la bolsa luego no dejaba agregar. Sin tienda, como antes.
+  const TALLAS_DEL_LOOK = (sede) => `select string_agg((select string_agg(ta ->> 'talla' || '=' || (ta ->> 'hay'), ',' order by o) from jsonb_array_elements(pz -> 'tallas') with ordinality u(ta, o)), ' ' order by (pz ->> 'posicion')::int)
+        from jsonb_array_elements(retail.tienda_look(:'look', ${sede}) -> 'look' -> 'piezas') pz;\n`;
+  esperarValor(
+    "con una tienda elegida, el «hay» de cada talla del look es el de ESA tienda: la talla que solo hay en la otra dice «no hay» (y sin tienda, el total de las dos)",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${STOCK_DE_LA_REGLA}
+      ${TALLAS_DEL_LOOK(":'tru'")}${TALLAS_DEL_LOOK(":'lim'")}${TALLAS_DEL_LOOK("null")}
+      rollback;`),
+    "S=true,M=false,L=false 28=false,30=true,32=false,34=false\nS=true,M=false,L=false 28=false,30=false,32=true,34=false\nS=true,M=false,L=false 28=false,30=true,32=true,34=false",
   );
   esperarValor(
     "cada talla trae su variante (la de ese modelo, color y talla) para que la bolsa sepa qué agregar",
@@ -658,7 +690,7 @@ function main() {
   // ni va en un look (en la web solo va ropa). Lo que se exige siempre: el look ofrece EXACTAMENTE las tallas de la ficha.
   esperarValor(
     "las tallas del look son EXACTAMENTE las que ofrece la ficha en esa tienda: una talla a S/ 0 (ADR-0384) no sale; con precio propio en Trujillo, la de ropa sale en Trujillo y con «Todas» (el mayor), no en Lima",
-    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${crear("look", { ps: piezas(["emma", "NEG"], ["carla", "BEI"]) })}
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${STOCK_EN_LAS_DOS}${crear("look", { ps: piezas(["emma", "NEG"], ["carla", "BEI"]) })}
       update retail.variantes set precio = 0 where sku = 'BLU-EMMA-NEG-L';
       ${TALLAS_CONTRA_FICHA("look")}${TALLAS_CONTRA_FICHA("look", "tru")}
       ${precioEnTienda("emma", "tru", "99.90")}
@@ -687,14 +719,79 @@ function main() {
     [
       "de,desde,frase,id,nombre,numero,piezas,total,total_final",
       "ancho,color,foto,giro,posicion,prenda,tallas,x,y",
-      "campana,categoria,desde,id,nombre,precio,precio_final",
+      "campana,categoria,desde,empresa,id,nombre,precio,precio_final",
       "hay,talla,variante_id",
       "ancho,color,foto,giro,posicion,prenda,x,y",
     ].join("\n"),
   );
+  // ---- 4b. Por tienda (20261021010000, ADR-0468): un look sale en una tienda solo si TODAS sus prendas, en su color, tienen algo ahí ----
+  console.log("— Por tienda —");
+  /** Los nombres de los looks que ve una tienda (`sede` una variable psql, o null = «Todas»), en su orden con su «Look N de M». */
+  const LOOKS_DE = (sede) =>
+    `select coalesce(string_agg((l ->> 'nombre') || ' ' || (l ->> 'numero') || '/' || (l ->> 'de'), ', ' order by (l ->> 'numero')::int), 'ninguno')
+       from jsonb_array_elements(retail.tienda_looks(${sede ? `:'${sede}'` : "null"}) -> 'looks') l;\n`;
+  // La falda solo existe en Trujillo: el look con la falda sale en Trujillo y con «Todas» (está completo en una tienda), no en Lima, y
+  // abierto en Lima ya no está (la página dice «Este look ya no está»). El look sin la falda sale en las dos. (Sin tienda elegida = null: la web
+  // solo lo usa con una única tienda; la base responde «completo en alguna».)
+  const ESCENA_FALDA_SOLO_EN_TRUJILLO = `${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${SIN_STOCK("emma", "falda", "vestido", "carla")}
+      ${HAY_EN("tru", "emma")}${HAY_EN("lim", "emma")}${HAY_EN("tru", "falda")}${HAY_EN("tru", "vestido")}${HAY_EN("lim", "vestido")}
+      ${crear("con_falda", { nombre: "ZZ Con falda" })}${crear("sin_falda", { nombre: "ZZ Sin falda", ps: piezas(["emma", "BEI"], ["vestido", "AZM"]) })}`;
+  esperarValor(
+    "una prenda que solo hay en Trujillo: su look sale en Trujillo y sin tienda elegida (completo en alguna), no en Lima (y el «Look N de M» cuenta solo los de esa tienda)",
+    correr(`${ESCENA_FALDA_SOLO_EN_TRUJILLO}
+      ${LOOKS_DE("tru")}${LOOKS_DE("lim")}${LOOKS_DE(null)}
+      select concat_ws('|', coalesce(retail.tienda_look(:'con_falda', :'tru') ->> 'look', 'null') <> 'null', coalesce(retail.tienda_look(:'con_falda', :'lim') ->> 'look', 'null'),
+          retail.tienda_look(:'sin_falda', :'lim') -> 'look' ->> 'numero', retail.tienda_look(:'sin_falda', :'lim') -> 'look' ->> 'de');
+      rollback;`),
+    "ZZ Con falda 1/2, ZZ Sin falda 2/2\nZZ Sin falda 1/1\nZZ Con falda 1/2, ZZ Sin falda 2/2\nt|null|1|1",
+  );
+  esperarValor(
+    "las prendas repartidas entre tiendas no hacen un look: la blusa solo en Trujillo y la falda solo en Lima no se ofrece en ninguna (ni sin tienda elegida)",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${SIN_STOCK("emma", "falda", "vestido", "carla")}
+      ${HAY_EN("tru", "emma")}${HAY_EN("lim", "falda")}${HAY_EN("tru", "vestido")}${HAY_EN("lim", "vestido")}
+      ${crear("look", { ps: piezas(["emma", "BEI"], ["falda", "NEG"]) })}
+      ${LOOKS_DE("tru")}${LOOKS_DE("lim")}${LOOKS_DE(null)}
+      rollback;`),
+    "ninguno\nninguno\nninguno",
+  );
+  esperarValor(
+    "es por COLOR: si el look lleva la falda negra y en Lima solo hay la beige, no sale en Lima",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${SIN_STOCK("emma", "falda", "vestido", "carla")}
+      ${HAY_EN("tru", "emma")}${HAY_EN("lim", "emma")}${HAY_EN("tru", "falda", "NEG")}${HAY_EN("lim", "falda", "BEI")}
+      ${crear("look", { ps: piezas(["emma", "BEI"], ["falda", "NEG"]) })}
+      ${LOOKS_DE("tru")}${LOOKS_DE("lim")}
+      rollback;`),
+    "ZZ Fin de semana 1/1\nninguno",
+  );
+  esperarValor(
+    "lo apartado, lo de la Cuarentena y lo del Taller no cuentan (la regla de «hay» de la ficha): si toda la falda de Lima está apartada, el look no sale en Lima",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${STOCK_EN_LAS_DOS}
+      update retail.stock set cantidad_apartada = cantidad
+       where ubicacion_id = :'lim' and variante_id in (select id from retail.variantes where producto_id = :'falda');
+      ${crear("look", { ps: piezas(["emma", "BEI"], ["falda", "NEG"]) })}
+      ${LOOKS_DE("tru")}${LOOKS_DE("lim")}
+      rollback;`),
+    "ZZ Fin de semana 1/1\nninguno",
+  );
+  esperarValor(
+    "sin tiendas en la web no se sabe dónde hay nada: no se esconde ningún look (aunque no haya stock)",
+    correr(`${PREPARAR}${EN_LA_VITRINA}${SIN_STOCK("emma", "falda", "vestido", "carla")}${crear("look")}
+      ${LOOKS_DE(null)}
+      rollback;`),
+    "ZZ Fin de semana 1/1",
+  );
+  {
+    // El mutante: decidir qué look se ve como antes (sin mirar la tienda). La prueba de la falda en Trujillo tiene que ponerse roja.
+    const r = correr(`${ESCENA_FALDA_SOLO_EN_TRUJILLO}
+      ${MUTAR("retail.fn_tienda_looks_json(jsonb, uuid[], uuid, boolean)", "or exists (select 1 from completo_en c", "or true or exists (select 1 from completo_en c")}
+      ${LOOKS_DE("lim")}
+      rollback;`);
+    esperar("el look que ignora la tienda (como antes de ADR-0468): la prueba de la falda solo en Trujillo lo ve", r.ok && r.salida !== "ZZ Sin falda 1/1", r.ok ? r.salida : r.mensaje);
+  }
+
   esperarValor(
     "como tienda_web: los looks responden (con «Todas» y con una tienda) y las tablas y el guardar se niegan",
-    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${crear("look")}
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${STOCK_EN_LAS_DOS}${crear("look")}
       ${COMO_TIENDA}select concat_ws('|', jsonb_array_length(retail.tienda_looks() -> 'looks'), jsonb_array_length(retail.tienda_looks(:'tru') -> 'looks'),
           retail.tienda_look(:'look', :'lim') -> 'look' ->> 'nombre');
       rollback;`),
@@ -734,7 +831,7 @@ function main() {
   }
   {
     // El look con su propia lista de tallas (toda talla activa de su color, también la de S/ 0): la comparación con la ficha lo ve.
-    const r = correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${crear("look", { ps: piezas(["emma", "NEG"], ["carla", "BEI"]) })}
+    const r = correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${STOCK_EN_LAS_DOS}${crear("look", { ps: piezas(["emma", "NEG"], ["carla", "BEI"]) })}
       update retail.variantes set precio = 0 where sku = 'BLU-EMMA-NEG-L';
       ${MUTAR("retail.fn_tienda_looks_json(jsonb, uuid[], uuid, boolean)", "from ofrecido o\n                        left join retail.tallas ta",
               "from (select v.id as variante_id, v.talla_id, v.producto_id, v.color_codigo from retail.variantes v where v.activo) o\n                        left join retail.tallas ta")}

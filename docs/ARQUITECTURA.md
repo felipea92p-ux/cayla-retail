@@ -980,7 +980,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `grant select (numero)` por el candado de columnas del dinero; lee la RPC `fn_orden_produccion`: orden, líneas, fases con su estado derivado y `por_variante`, tela, costos,
   línea de tiempo y permisos, todo en una lectura) + `lib/orden-pagina-reglas.ts` y `lib/orden-pagina-guia.ts` (puros) → `components/orden-pagina/` (`FichaDeLaOrden`,
   `RutaDeFases`, `TelaDeLaOrdenVista`, `CostoDeLaOrden`, `LineaDeTiempo`, `AccionesDeLaOrden`; hojas `AnotarAvanceModal` → RPC `registrar_avance`, `CambiarQuienModal` →
-  `cambiar_quien_fase`, `DeshacerAvanceModal` → `deshacer_avance`). Las fases (`produccion_fases`) y lo anotado (`produccion_avances`, `produccion_salidas`,
+  `cambiar_quien_fase`, `DeshacerAvanceModal` → `deshacer_avance`). **Desde R1 (ADR-0400 act. k y l, 2026-10-19) la ruta de fases es Ploteo · Corte · Habilitado · Costura · Ojales y botones (opcional) · Limpiar hilos y revisar · Planchado · Etiquetar y embolsar** (la base acepta también la ruta anterior, Corte · Costura · Acabado, `fn_produccion_fases_normalizar`); **Ploteo es una fase que se marca en vez de contarse** (`MarcarFaseModal` → `marcar_fase_hecha` / `deshacer_marca_fase`, tabla `produccion_fase_marcas`, solo se agrega; `fn_fase_es_hito` y `lib/orden-fases-reglas.ts:FASES`), no entra a la cadena de cantidades (`fn_produccion_fase_anterior` la salta, así que Corte sigue siendo la primera que cuenta) y su servicio cobra por orden (el fijo). Las fases (`produccion_fases`) y lo anotado (`produccion_avances`, `produccion_salidas`,
   `produccion_vueltas`; solo se agrega, nunca se edita ni se borra: lo corregido es una fila contraria) las escriben solo funciones `security definer` (RLS sin políticas); `registrar_salida` y `registrar_vuelta` (hojas `AnotarSalidaModal` y
   `AnotarVueltaModal`: una sola tabla talla × color; la Vuelta elige con un segmento «Volvieron buenas · Segundas · Faltaron» y pide «qué pasó» si hay segundas o faltantes;
   reglas puras en `lib/orden-pagina-reglas.ts`, guía de foco en `lib/orden-pagina-guia.ts`). Una Salida o una Vuelta mal anotada se **anula** con su motivo desde la línea de tiempo (`AnularSalidaOVueltaModal` → `anular_salida` / `anular_vuelta`, ADR-0400 actividad 4b): la base escribe una fila contraria (`anula_id`, cantidades en negativo; nada se borra) y la lectura marca cada salida y vuelta con `anulada` y `anulable`. **La tela usada (ADR-0400, actividad 7):** `TelaDeLaOrdenVista` ofrece «Anotar lo que usaste» y «Devolver lo que sobró» (`TelaUsadaModal` → `registrar_consumo_insumo` / `devolver_insumo_de_produccion`, partiendo entre lotes con `anotarConsumoEnLotes`; reglas puras en `lib/orden-tela-usada-reglas.ts`), «Terminé» del corte pregunta la tela, y «¿alcanza?» cuenta lo que otras órdenes reservan y muestra lo pedido (`fn_tela_pendiente_de_la_orden`, también dentro de `fn_ordenes_produccion_lista`; «Pedir N m» lleva a `/ordenes-insumos/nueva`). **El Resumen (`/produccion`, ADR-0400 actividad 8d)** cuenta lo que piden las órdenes con UNA cuenta (`demandaDelTaller` sobre `fn_tela_del_taller`: la tela declarada de cada orden y, donde no hay, el rendimiento medido), nombra los pedidos de cada tela (se muestran, no se suman), dice dónde está cada orden («Hoy en el Taller», la lectura de la lista) y manda a **pedir** cuando falta; quien no es líder ve `ProduccionSoloLider` en las cinco pantallas de dinero. **Pasar al stock, anular y revertir (ADR-0400, actividad 6)** se hacen en la página de la orden (`AccionesDeLaOrden` → `PasarAlStockModal` / `AnularLaOrdenModal` / `RevertirLaOrdenModal` → `cerrar_produccion`, `anular_produccion`, `revertir_produccion`; reglas puras en `lib/orden-pagina-reglas.ts`): `cerrar_produccion` no deja entrar más buenas que las terminadas en la última fase ni cierra con prendas afuera, toma el costo de servicios de lo devengado (`fn_costo_servicios_orden`) y escribe lo medido en `producto_consumos`; solo las buenas entran al stock; los costos del Taller (`fn_costos_producciones`, `fn_costos_insumos_taller`) los ve el líder o quien ve Producción en ese Taller (`fn_ve_costos_del_taller`). La hoja «Nueva orden» abre por `abrir_orden_produccion` (envuelve a `abrir_produccion` y `abrir_produccion_con_modelo_nuevo`) y
@@ -1271,6 +1271,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `components/clientas/HistoriaPermisos.tsx` (RPC `fn_clienta_permisos`; `lib/historia-permisos-reglas.ts`),
   vía `lib/club-ficha-acciones.ts`. Ayudantes internos: `fn_venta_devuelta_entera`,
   `fn_club_compras_netas`, `fn_club_resumen_compras`.
+  **Programa de puntos (ADR-0459, `20261019201000…222000`, sin pegar):** la caja lee `resumen_puntos_caja` y canjea con
+  `canjear_puntos` / valida un código con `validar_cupon` (`lib/club-acciones.ts`, `components/punto-de-venta/useCuponDelClub.ts`,
+  `PuntosYCuponModales.tsx`; reglas puras en `lib/club-puntos-reglas.ts`); el cupón viaja a `registrar_venta` en `p_codigo_descuento`,
+  repartido con `lib/club-cupon-reparto-reglas.ts`. La ficha dibuja `components/clientas/PuntosDeLaFicha.tsx`
+  (`lib/club-puntos-ficha-reglas.ts`). Clientes ▸ Avisos suma «Puntos por vencer» (`fn_club_avisos_pendientes`, tipo `puntos`).
+- `/clientas/beneficios` (módulo `beneficios_club`, ADR-0459) → `lib/club-puntos-config.ts` → RPC `resumen_beneficios_puntos`;
+  guarda con `guardar_beneficios_puntos` (`lib/club-puntos-acciones.ts`, `components/clientas/BeneficiosPuntosPanel.tsx`;
+  reglas en `lib/club-puntos-config-reglas.ts`, guía de foco en `lib/club-puntos-config-guia.ts`).
 - `/club/[tienda]`, `/club/privacidad`, `/club/terminos` (PÚBLICAS, sin sesión; `proxy.ts` deja pasar solo `/club/<uuid>` y
   esos dos nombres, `lib/rutas-publicas.ts`; ADR-0288 act. g). **Desde el 2026-10-16 el Club empieza al crear la cuenta en la tienda
   online** (Felipe; `20261016154000`, ADR-0288 act. p): `/club/<uuid>`, la dirección de los carteles ya impresos, solo redirige (307) a
@@ -1283,6 +1291,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   diseño C «Invitación» (2026-10-01, `app/estilos/cartel-club.css`): sus cifras (% del cumpleaños, vale menor y mayor de la
   escala, compras y monto del año) salen de `lib/clientas.ts:getTextosDelCartel` → RPC `fn_club_textos_legales` (una lectura
   para todas las tiendas) → `lib/club-cartel-reglas.ts`; sin ellas no se dibuja.
+- `/clientas/avisos` ▸ «Cuentas de Google unidas a un miembro» (ADR-0469, `20261021170000`, **sin pegar en producción**): quien entró a la tienda online
+  con Google y ya tenía una ficha con ese correo queda unido a ella (`tienda_vincular_cuenta_google`, que llama `apps/tienda/lib/google-servidor.ts`).
+  `lib/vinculos-google.ts` (server) → RPC `fn_vinculos_google_recientes` → `components/clientas/VinculosGoogleAvisos.tsx` (dentro de `AvisosClubPanel`):
+  «Avisar» abre `web.whatsapp.com/send` y anota con `registrar_vinculo_google_avisado`; «Deshacer la unión» (solo líder) llama `desvincular_cuenta_google`
+  (`lib/vinculos-google-acciones.ts`). Mismo módulo `avisos_club`: no hay módulo nuevo.
 - `/clientas/avisos` (ADR-0288 act. g, G-8; tanda 1g, módulo **`avisos_club`**, sin pegar): Clientas pasa a GRUPO del menú
   (Fichas · Avisos). `app/(app)/clientas/layout.tsx` es la puerta del grupo (`clientas` o `avisos_club`); las fichas
   (`page.tsx`) piden `clientas` y `avisos/layout.tsx` pide `avisos_club`. En CAYLA Global no se abre (manda desde UNA
@@ -1292,6 +1305,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `deshacer_aviso_enviado`; «Pidió BAJA» con `registrar_baja_whatsapp`) + `BeneficiosClubModal.tsx` (líder,
   `guardar_beneficios_club`), vía `lib/club-avisos-acciones.ts`. Reglas puras en `lib/club-avisos-reglas.ts`,
   `lib/club-beneficios-reglas.ts` y la guía en `lib/club-beneficios-guia.ts`.
+  **Desde el 2026-10-20 (diseño «Uno a la vez», migraciones `20261020144000` y `20261020151000`, las dos en producción desde el 2026-10-20):** la pantalla muestra
+  UN miembro a la vez con su mensaje en burbuja (`components/clientas/BurbujaAviso.tsx`) y la fila de hoy al lado; «Editar mensajes»
+  (quien tiene el módulo, los mensajes de SU tienda) abre `EditarMensajesAvisos.tsx`, que lee `fn_club_avisos_textos(tienda)` (por
+  `lib/club-avisos.ts:getTextosDeAvisos`) y guarda con `guardar_mensajes_avisos(tienda, …)` (`lib/club-avisos-acciones.ts`) en
+  `club_avisos_textos_sede`. Armar, separar y validar un mensaje: `lib/club-avisos-mensajes.ts`
+  (la misma regla que `fn_club_aviso_problema` y `fn_club_aviso_componer`).
 - `/tienda-web/recomendaciones` (ADR-0408, Felipe 2026-10-15; módulo **`recomendaciones`**, nace solo para el líder; migraciones
   `20261015134000` y `20261015135000`, **sin pegar en producción**): lo que los clientes le recomiendan a CAYLA desde la tienda online,
   siempre con su nombre. Tercera hija del grupo Clientes (después de Avisos); `app/(app)/clientas/layout.tsx` también la deja pasar y

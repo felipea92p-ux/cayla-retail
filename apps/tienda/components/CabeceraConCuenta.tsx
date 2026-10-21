@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useId, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { salir } from "@/app/acciones/cuenta";
@@ -12,8 +12,15 @@ import { useGuardados } from "./club/Guardados";
 import { useCamino } from "./EnCamino";
 import { BotonCerrarSesion } from "./cuenta/BotonCerrarSesion";
 import { FotoTarjeta } from "./FotoTarjeta";
+import { EVENTO_BUSCAR } from "@/lib/buscar-evento";
+import { claveDeLaOpcion, type OpcionTienda } from "@/lib/sede-elegida";
+import { vaciarBolsaPorCambioDeTienda } from "@/app/acciones/bolsa";
+import { marcarUbicacionPreguntada, recordarSede, sedeYaRecordada, ubicacionYaPreguntada } from "@/lib/sede-cookie";
+import { claveMasCercana, debePedirUbicacion } from "@/lib/sede-cercana";
+import { ahoraMs, debeCubrir, esperaHastaElTope, esperaParaSalir, VELO_SALE_MS } from "@/lib/sede-velo";
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
+import { NombreQueRueda, VeloDeSede } from "./VeloDeSede";
 // El globo rojo de la bolsa y del corazón (`.t-globo`).
 import "@/app/estilos/bolsa.css";
 
@@ -44,7 +51,6 @@ function hrefDeEntrada(base: "/entrar" | "/crear-cuenta"): string {
 }
 
 /** «3 favoritos», «1 favorito»: lo que oye el lector en el corazón. */
-const etiquetaFavoritos = (n: number | null) => (n ? `Favoritos: ${n} ${n === 1 ? "guardado" : "guardados"}` : "Favoritos");
 
 // La lista del buscador no viaja con cada página (2026-10-17): se pide al primer roce de la lupa (`GET /api/buscador`) y se guarda en
 // este aparato 30 s por tienda, los mismos que el catálogo se comparte en el servidor (el navegador también la guarda esos 30 s): abrir y
@@ -101,6 +107,8 @@ export function CabeceraConCuenta({
   nombre: nombrePropio = null,
   visitante: visitantePropio = false,
   deEspera = false,
+  tiendas = null,
+  prendasEnBolsa = 0,
 }: {
   datos: DatosCabecera;
   actual?: SeccionActual;
@@ -116,6 +124,10 @@ export function CabeceraConCuenta({
   visitante?: boolean;
   /** La cabecera de una página que todavía carga (el esqueleto): repite la última que se vio; sin ninguna vista, la que le pasan. */
   deEspera?: boolean;
+  /** Las tiendas de la web para elegir («Todas ▾», a la derecha de la cabecera); null con una sola tienda. */
+  tiendas?: OpcionTienda[] | null;
+  /** Cuántas prendas lleva la bolsa: cambiar de tienda la vacía, y el selector lo avisa antes. */
+  prendasEnBolsa?: number;
 }) {
   const vista = useSyncExternalStore(sinAvisos, deEspera ? laUltima : ninguna, ninguna);
   const datos = vista?.datos ?? propios;
@@ -152,6 +164,19 @@ export function CabeceraConCuenta({
     setHoja(null);
     disparador.current?.focus();
   }
+
+  // «Buscar» ya no está en la cabecera: vive en la barra del catálogo (`BotonBuscarCatalogo`), que le avisa a la cabecera con este evento.
+  useEffect(() => {
+    const alPedir = (e: Event) => {
+      const boton = (e as CustomEvent<{ boton?: HTMLButtonElement | null }>).detail?.boton ?? null;
+      disparador.current = boton;
+      prepararBuscador();
+      setHoja("buscar");
+    };
+    window.addEventListener(EVENTO_BUSCAR, alPedir);
+    return () => window.removeEventListener(EVENTO_BUSCAR, alPedir);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `prepararBuscador` se vuelve a crear en cada dibujo y solo lee `datos.sede`.
+  }, [datos.sede]);
 
   // Con una hoja abierta: Escape la cierra y la página de atrás no se desplaza.
   useEffect(() => {
@@ -194,47 +219,29 @@ export function CabeceraConCuenta({
               <MenuGrande key={m.clave} menu={m} hrefNuevo={datos.nuevo.href} />
             ))}
             <Link className="t-nav-b" href={datos.looks} aria-current={marca("looks")}>
-              Arma tu look
+              Looks
             </Link>
-            {datos.probador && (
-              <Link className="t-nav-b" href={datos.probador} aria-current={marca("probador")}>
-                Arma el tuyo
-              </Link>
-            )}
-            <Link className="t-nav-b" href={datos.vendidos.href} aria-current={marca("vendidos")}>
-              Más vendidos
-            </Link>
-            <Link className="t-nav-b oferta" href={datos.ofertas.href} aria-current={marca("ofertas")}>
+            <Link className="t-nav-b" href={datos.ofertas.href} aria-current={marca("ofertas")}>
               Ofertas
             </Link>
           </nav>
           <span className="t-esp" />
-          <button
-            type="button"
-            className="t-ico"
-            aria-label="Buscar"
-            onPointerEnter={prepararBuscador}
-            onFocus={prepararBuscador}
-            onTouchStart={prepararBuscador}
-            onClick={(e) => {
-              prepararBuscador();
-              abrir("buscar", e.currentTarget);
-            }}
-          >
-            <Icono nombre="lupa" />
-          </button>
-          <Link className="t-ico t-solo-grande" href={datos.favoritos} aria-label={etiquetaFavoritos(cuantosFavoritos)} aria-current={marca("favoritos")}>
-            <Icono nombre="corazon" />
-            {cuantosFavoritos ? <span className="t-globo">{cuantosFavoritos}</span> : null}
-          </Link>
-          {!visitante && campanita}
-          <MenuDeLaCuenta nombre={nombre} enCuenta={actual === "cuenta"} visitante={visitante} />
+          {tiendas && <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />}
+          {/* La bolsa antes y la cuenta al final (Felipe 2026-10-19): la cuenta, con su menú, queda en la esquina. */}
           {bolsa}
+          {!visitante && campanita}
+          <MenuDeLaCuenta
+            nombre={nombre}
+            enCuenta={actual === "cuenta"}
+            visitante={visitante}
+            hrefFavoritos={datos.favoritos}
+            favoritos={cuantosFavoritos}
+          />
         </div>
       </header>
 
       {hoja && <div className="t-velo" aria-hidden="true" onClick={cerrar} />}
-      {hoja === "menu" && <HojaMenu datos={datos} favoritos={cuantosFavoritos} cerrar={cerrar} visitante={visitante} />}
+      {hoja === "menu" && <HojaMenu datos={datos} cerrar={cerrar} visitante={visitante} />}
       {hoja === "buscar" && <HojaBuscar datos={datos} indice={indiceDeEstaTienda} reintentar={prepararBuscador} cerrar={cerrar} />}
     </>
   );
@@ -246,6 +253,11 @@ export function CabeceraConCuenta({
  * para reconocerla de un vistazo; a la derecha, lo último que llegó de ese menú (Felipe 2026-10-15: el menú «Ropa» era una lista de
  * texto con un hueco al medio y una columna de 17 filas que mezclaba la ropa con los aretes y el maquillaje).
  */
+/** «Lentes/Gorros/Pañuelos» es una sola palabra sin espacios: sin un punto de corte no cabe en su columna y pisa a la vecina. */
+function conCortes(nombre: string) {
+  return nombre.split("/").flatMap((parte, i) => (i === 0 ? [parte] : ["/", <wbr key={i} />, parte]));
+}
+
 function MenuGrande({ menu, hrefNuevo }: { menu: MenuCabecera; hrefNuevo: string }) {
   return (
     <div className="t-mega-envol">
@@ -258,15 +270,12 @@ function MenuGrande({ menu, hrefNuevo }: { menu: MenuCabecera; hrefNuevo: string
           {menu.grupos.map((g) => (
             <div key={g.clave} className="t-mega-grupo">
               <h4>
-                <Link href={g.href}>{g.nombre}</Link>
+                <Link href={g.href}>{conCortes(g.nombre)}</Link>
               </h4>
               <ul>
                 {g.categorias.map((c) => (
                   <li key={c.clave}>
                     <Link className="t-mega-cat" href={c.href}>
-                      <span className="t-mega-mini" aria-hidden="true">
-                        <FotoChicaDe foto={c.foto} tamanos="40px" />
-                      </span>
                       <span className="t-mega-cat-nom">{c.nombre}</span>
                       <small>{c.cuantas}</small>
                     </Link>
@@ -320,13 +329,199 @@ function FotoChicaDe({ foto, tamanos }: { foto: FotoChica; tamanos: string }) {
 }
 
 /**
+ * La tienda que se mira (A · Muro, Felipe 2026-10-19: «siempre se debe elegir una tienda», sin «Todas»): su nombre con una flecha, en la
+ * cabecera de la computadora y del celular; al tocarla se abren las demás. Son enlaces (la tienda elegida va en la dirección y se puede
+ * compartir) y, al elegir una, se recuerda en una cookie: la próxima visita sin tienda en la dirección abre en esa.
+ */
+function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]; prendasEnBolsa: number }) {
+  const [abierto, setAbierto] = useState(false);
+  // La tienda a la que quiere pasar mientras la bolsa lleva prendas: se confirma antes (cambiar de tienda vacía la bolsa).
+  const [pendiente, setPendiente] = useState<OpcionTienda | null>(null);
+  const [cambiando, cambiar] = useTransition();
+  // El velo de «Ahora ves lo que hay en LIMA» (ADR-0466): la pantalla de carga de este cambio, que Next no muestra por su cuenta (cambiar de
+  // tienda es la misma vista, `claveDeVista`). Se queda mientras llega la página y un mínimo, y se va sola a los 8 s si no llega.
+  const [velo, setVelo] = useState<{ nombre: string; desde: number; arriba: number; fase: "espera" | "sale" } | null>(null);
+  const router = useRouter();
+  const caja = useRef<HTMLDivElement | null>(null);
+  const boton = useRef<HTMLButtonElement | null>(null);
+  const idMenu = useId();
+  useEffect(() => {
+    if (!abierto) return;
+    const fuera = (e: PointerEvent) => {
+      if (caja.current && !caja.current.contains(e.target as Node)) {
+        setAbierto(false);
+        setPendiente(null);
+      }
+    };
+    const alEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setAbierto(false);
+        setPendiente(null);
+        boton.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", fuera);
+    window.addEventListener("keydown", alEscape);
+    return () => {
+      document.removeEventListener("pointerdown", fuera);
+      window.removeEventListener("keydown", alEscape);
+    };
+  }, [abierto]);
+  // El velo se disipa cuando la página llegó (`cambiando` vuelve a false) y ya estuvo a la vista el mínimo; o al tope, aunque no llegue.
+  useEffect(() => {
+    if (!velo || velo.fase !== "espera" || cambiando) return;
+    const t = window.setTimeout(() => setVelo((v) => (v ? { ...v, fase: "sale" } : v)), esperaParaSalir(ahoraMs() - velo.desde));
+    return () => window.clearTimeout(t);
+  }, [velo, cambiando]);
+  useEffect(() => {
+    if (!velo || velo.fase !== "espera") return;
+    const t = window.setTimeout(() => setVelo((v) => (v ? { ...v, fase: "sale" } : v)), esperaHastaElTope(ahoraMs() - velo.desde));
+    return () => window.clearTimeout(t);
+  }, [velo]);
+  useEffect(() => {
+    if (velo?.fase !== "sale") return;
+    const t = window.setTimeout(() => setVelo(null), VELO_SALE_MS);
+    return () => window.clearTimeout(t);
+  }, [velo]);
+  const elegida = opciones.find((o) => o.actual) ?? opciones[0];
+  // Elegir una tienda: se recuerda en la cookie, se cubre con el velo y se navega dentro de una transición (`cambiando` dura hasta que la
+  // página nueva llega). Con prendas en la bolsa, antes se vacía (la persona ya lo confirmó).
+  const ir = (o: OpcionTienda, vaciar: boolean) => {
+    const clave = claveDeLaOpcion(o.href);
+    if (clave) recordarSede(clave);
+    setAbierto(false);
+    setPendiente(null);
+    // Justo bajo la cabecera: lo que rueda en ella se ve nítido (el velo es `fixed` en el `<body>`).
+    const arriba = Math.max(0, Math.round(document.querySelector(".t-cab")?.getBoundingClientRect().bottom ?? 0));
+    setVelo({ nombre: o.nombre, desde: ahoraMs(), arriba, fase: "espera" });
+    cambiar(async () => {
+      if (vaciar) await vaciarBolsaPorCambioDeTienda();
+      router.push(o.href, { scroll: false });
+    });
+  };
+  // Lo último que vio este selector, para que la respuesta de la ubicación (que llega segundos después) decida con lo de AHORA y no con lo
+  // de cuando se preguntó: otra tienda elegida a mano, otra página o prendas nuevas en la bolsa.
+  const vivo = useRef({ opciones, prendasEnBolsa, ir });
+  useEffect(() => {
+    vivo.current = { opciones, prendasEnBolsa, ir };
+  });
+  const pidioUbicacion = useRef(false);
+  // La tienda más cercana (Felipe 2026-10-21): al entrar al Inicio por primera vez se pide la ubicación y se pasa a la tienda más cercana, con
+  // el mismo velo de cambiar de tienda. La ubicación solo se usa para esto, aquí en el aparato: no se manda ni se guarda; se recuerda la
+  // tienda (la cookie de siempre). Si dice que no, o no hay señal, se queda en la tienda de siempre y no se le vuelve a preguntar.
+  useEffect(() => {
+    if (pidioUbicacion.current || !("geolocation" in navigator)) return;
+    const estado = () => ({
+      ruta: window.location.pathname,
+      tiendaRecordada: sedeYaRecordada(),
+      yaPreguntada: ubicacionYaPreguntada(),
+      prendasEnBolsa: vivo.current.prendasEnBolsa,
+      tiendas: vivo.current.opciones.length,
+    });
+    if (!debePedirUbicacion(estado())) return;
+    pidioUbicacion.current = true;
+    navigator.geolocation.getCurrentPosition(
+      (posicion) => {
+        marcarUbicacionPreguntada();
+        const { opciones: ahora, ir: irA } = vivo.current;
+        // Si mientras tanto eligió una a mano, cambió de página o llenó la bolsa, no se le cambia nada por su cuenta.
+        if (!debePedirUbicacion({ ...estado(), yaPreguntada: false })) return;
+        const clave = claveMasCercana(
+          { lat: posicion.coords.latitude, lng: posicion.coords.longitude },
+          ahora.flatMap((o) => claveDeLaOpcion(o.href) ?? []),
+        );
+        const cercana = clave ? ahora.find((o) => claveDeLaOpcion(o.href) === clave) : undefined;
+        if (!cercana) return;
+        if (cercana.actual) recordarSede(clave!);
+        else irA(cercana, false);
+      },
+      () => marcarUbicacionPreguntada(),
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 600_000 },
+    );
+  }, [opciones, prendasEnBolsa]);
+  return (
+    <div className="t-persona t-sel-tienda" ref={caja}>
+      <button
+        ref={boton}
+        type="button"
+        className="t-nav-b"
+        aria-label={`Tienda: ${elegida.nombre}. Cambiar`}
+        aria-expanded={abierto}
+        aria-controls={abierto ? idMenu : undefined}
+        onClick={() => {
+          setPendiente(null);
+          setAbierto((a) => !a);
+        }}
+      >
+        <NombreQueRueda nombre={elegida.nombre} /> <span aria-hidden="true">▾</span>
+      </button>
+      {velo && <VeloDeSede nombre={velo.nombre} fase={velo.fase} arriba={velo.arriba} />}
+      {abierto && (
+        <div className="t-persona-menu" id={idMenu}>
+          {pendiente ? (
+            // Con prendas en la bolsa, cambiar de tienda las quita: un aviso corto y dos botones.
+            <div className="t-sel-aviso" role="alert">
+              <p>Tu bolsa se vaciará.</p>
+              <div className="t-sel-aviso-acc">
+                <button type="button" className="t-btn t-btn-chico" disabled={cambiando} onClick={() => ir(pendiente, true)}>
+                  Cambiar a {pendiente.nombre}
+                </button>
+                <button type="button" className="t-enlace" onClick={() => setPendiente(null)}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            opciones.map((o) => (
+              <Link
+                key={o.href}
+                className="t-persona-op"
+                href={o.href}
+                scroll={false}
+                aria-current={o.actual ? "true" : undefined}
+                onClick={(e) => {
+                  // Un clic con modificador (abrir en otra pestaña) sigue siendo un enlace normal.
+                  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                  e.preventDefault();
+                  // La misma tienda: no hay nada que esperar (un velo se quedaría hasta el tope).
+                  if (!debeCubrir(claveDeLaOpcion(elegida.href), claveDeLaOpcion(o.href) ?? "")) {
+                    setAbierto(false);
+                    return;
+                  }
+                  if (prendasEnBolsa > 0) setPendiente(o);
+                  else ir(o, false);
+                }}
+              >
+                {o.nombre}
+              </Link>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * El menú de la persona (Felipe 2026-10-15: «al dar click en la persona debería desplegar algo con el nombre, "Mi perfil" y cerrar
  * sesión»). Baja del ícono, en el celular y en la computadora; se cierra con Escape, al tocar fuera o al elegir. «Cerrar sesión» es el
  * mismo botón de «Tu cuenta» en «Mi perfil» (`salir`, `BotonCerrarSesion`) y dice «Cerrando sesión…» mientras la espera. Es un
  * desplegable (el botón dice si está abierto y qué abre; se recorre con Tab), no un `role="menu"`: ese rol promete moverse con las
  * flechas, y con dos opciones no hace falta.
  */
-function MenuDeLaCuenta({ nombre, enCuenta, visitante }: { nombre: string | null; enCuenta: boolean; visitante: boolean }) {
+function MenuDeLaCuenta({
+  nombre,
+  enCuenta,
+  visitante,
+  hrefFavoritos,
+  favoritos,
+}: {
+  nombre: string | null;
+  enCuenta: boolean;
+  visitante: boolean;
+  hrefFavoritos: string;
+  favoritos: number | null;
+}) {
   const [abierto, setAbierto] = useState(false);
   const caja = useRef<HTMLDivElement | null>(null);
   const boton = useRef<HTMLButtonElement | null>(null);
@@ -360,6 +555,7 @@ function MenuDeLaCuenta({ nombre, enCuenta, visitante }: { nombre: string | null
         aria-label={visitante ? "Entrar o crear mi cuenta" : nombre ? `Tu cuenta, ${nombre}` : "Tu cuenta"}
         aria-expanded={abierto}
         aria-controls={abierto ? idMenu : undefined}
+        data-destino-corazon
         onClick={() => setAbierto((a) => !a)}
       >
         <Icono nombre="persona" />
@@ -376,6 +572,10 @@ function MenuDeLaCuenta({ nombre, enCuenta, visitante }: { nombre: string | null
                 <Icono nombre="persona" />
                 Crear mi cuenta
               </Link>
+              <Link className="t-persona-op" href={hrefFavoritos} onClick={() => setAbierto(false)}>
+                <Icono nombre="corazon" />
+                Favoritos{favoritos ? <small className="t-persona-n"> {favoritos}</small> : null}
+              </Link>
             </>
           ) : (
             <>
@@ -388,6 +588,10 @@ function MenuDeLaCuenta({ nombre, enCuenta, visitante }: { nombre: string | null
                 <Icono nombre="persona" />
                 Mi perfil
               </Link>
+              <Link className="t-persona-op" href={hrefFavoritos} onClick={() => setAbierto(false)}>
+                <Icono nombre="corazon" />
+                Favoritos{favoritos ? <small className="t-persona-n"> {favoritos}</small> : null}
+              </Link>
               <form action={salir}>
                 <BotonCerrarSesion className="t-persona-op" conIcono />
               </form>
@@ -399,9 +603,17 @@ function MenuDeLaCuenta({ nombre, enCuenta, visitante }: { nombre: string | null
   );
 }
 
-/** El menú del celular (maqueta, hoja «menu»): lo grande arriba (con «Arma tu look» y los favoritos, que en el celular no van en la
- *  fila de arriba), las categorías en dos columnas bajo su menú («Ropa», «Accesorios») y la ayuda al pie. */
-function HojaMenu({ datos, favoritos, cerrar, visitante }: { datos: DatosCabecera; favoritos: number | null; cerrar: () => void; visitante: boolean }) {
+/** El menú del celular (A · Muro, Felipe 2026-10-19: lo mismo que la cabecera de la computadora, sin más): las mismas secciones, en
+ *  grande («Ropa» se abre y muestra sus grupos), la tienda que se mira con su título, y al pie la cuenta, «Favoritos» y la ayuda. */
+function HojaMenu({
+  datos,
+  cerrar,
+  visitante,
+}: {
+  datos: DatosCabecera;
+  cerrar: () => void;
+  visitante: boolean;
+}) {
   return (
     <div className="t-menu" role="dialog" aria-modal="true" aria-label="Menú">
       <div className="t-menu-cab">
@@ -414,58 +626,53 @@ function HojaMenu({ datos, favoritos, cerrar, visitante }: { datos: DatosCabecer
       </div>
       <nav className="t-menu-grandes" aria-label="Secciones">
         <Link href={datos.nuevo.href} onClick={cerrar}>
-          Lo nuevo <small>{datos.nuevo.cuantas}</small>
+          Lo nuevo
         </Link>
+        {datos.menus.map((m) => (
+          <details key={m.clave} className="t-menu-acor">
+            <summary>{m.nombre}</summary>
+            <div className="t-menu-sub">
+              <Link href={m.href} onClick={cerrar}>
+                {m.todo}
+              </Link>
+              {m.grupos.map((g) => (
+                <div key={g.clave} className="t-menu-grupo">
+                  <Link className="t-menu-grupo-t" href={g.href} onClick={cerrar}>
+                    {g.nombre}
+                  </Link>
+                  {g.categorias.map((c) => (
+                    <Link key={c.clave} href={c.href} onClick={cerrar}>
+                      {c.nombre}
+                    </Link>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </details>
+        ))}
         <Link href={datos.looks} onClick={cerrar}>
-          Arma tu look
+          Looks
         </Link>
-        {datos.probador && (
-          <Link href={datos.probador} onClick={cerrar}>
-            Arma el tuyo
-          </Link>
-        )}
-        <Link href={datos.vendidos.href} onClick={cerrar}>
-          Más vendidos
-        </Link>
-        <Link href={datos.favoritos} onClick={cerrar}>
-          Favoritos {favoritos ? <small>{favoritos}</small> : null}
-        </Link>
-        <Link className="oferta" href={datos.ofertas.href} onClick={cerrar}>
-          Ofertas <small>{datos.ofertas.cuantas}</small>
+        <Link href={datos.ofertas.href} onClick={cerrar}>
+          Ofertas
         </Link>
       </nav>
-      {datos.menus.map((m) => (
-        <nav key={m.clave} className="t-menu-cats" aria-label={m.nombre}>
-          <h4>{m.nombre}</h4>
-          <Link className="t-menu-todo" href={m.href} onClick={cerrar}>
-            {m.todo} <small>{m.grupos.reduce((n, g) => n + g.categorias.reduce((k, c) => k + c.cuantas, 0), 0)}</small>
-          </Link>
-          {m.grupos.flatMap((g) => g.categorias).map((c) => (
-            <Link key={c.clave} href={c.href} onClick={cerrar}>
-              {c.nombre}
-            </Link>
-          ))}
-        </nav>
-      ))}
       <div className="t-menu-pie">
-        {visitante ? (
-          <Link className="t-enlace" href={hrefDeEntrada("/entrar")} onClick={cerrar}>
-            Entrar o crear mi cuenta
-          </Link>
-        ) : (
-          <Link className="t-enlace" href="/cuenta" onClick={cerrar}>
-            Mi perfil y mis pedidos
-          </Link>
-        )}
-        <Link className="t-enlace" href="/como-separar" onClick={cerrar}>
+        <Link href={visitante ? hrefDeEntrada("/entrar") : "/cuenta"} onClick={cerrar}>
+          {visitante ? "Entrar" : "Mi perfil"}
+        </Link>
+        <Link href={datos.favoritos} onClick={cerrar}>
+          Favoritos
+        </Link>
+        <Link href="/como-separar" onClick={cerrar}>
           Cómo separar
         </Link>
-        <Link className="t-enlace" href="/tiendas" onClick={cerrar}>
-          Nuestras tiendas
+        <Link href="/tiendas" onClick={cerrar}>
+          Tiendas
         </Link>
         {/* Lo que el cliente le quiera recomendar a CAYLA (Felipe 2026-10-15), con su nombre: solo con cuenta. */}
         {!visitante && (
-          <Link className="t-enlace" href="/recomendaciones" onClick={cerrar}>
+          <Link href="/recomendaciones" onClick={cerrar}>
             Recomendaciones
           </Link>
         )}

@@ -39,6 +39,11 @@ export type PrendaWeb = {
   categoria: string | null;
   categoriaPrefijo: string | null;
   categoriaFamilia: string | null;
+  /** El producto de la prenda: con él se busca su empresa (`productos.empresa_id`). */
+  productoId: string | null;
+  /** La empresa a la que pertenece la prenda (ADR-0463): su nombre y su clave. Solo se llena en una sede con dos empresas (`conEmpresas`). */
+  empresa: string | null;
+  empresaClave: string | null;
 };
 
 export type PedidoDeLista = {
@@ -195,7 +200,51 @@ export type PedidoDetalle = {
   anulacionBoleta: CaminoBoleta | null;
   /** Anulado después de pagarse: la nota de crédito que anuló su boleta (si nació). */
   notaCredito: NotaCreditoWeb | null;
+  /** El cupón del Club que el cliente puso al separar (20261019224000). null sin cupón (o en una base sin él). */
+  cupon: CuponDelPedidoWeb | null;
 };
+
+/** El cupón del Club de un pedido web: reservado (espera el cobro), usado (en su boleta) o liberado (volvió al cliente, y por qué). */
+export type CuponDelPedidoWeb = {
+  codigo: string;
+  valor: number;
+  /** Lo que descuenta del total ahora: 0 si se liberó al quitar prendas. */
+  descuento: number;
+  estado: "reservado" | "usado" | "liberado";
+  liberadoMotivo: "compra_minima" | "cubre_todo" | "pedido_anulado" | "pedido_vencido" | null;
+};
+
+const MOTIVOS_CUPON: readonly NonNullable<CuponDelPedidoWeb["liberadoMotivo"]>[] = ["compra_minima", "cubre_todo", "pedido_anulado", "pedido_vencido"];
+
+/** Lo de `cupon` en `fn_pedido_web_detalle`. null si no trae un código (un pedido sin cupón). */
+export function leerCuponDelPedido(x: unknown): CuponDelPedidoWeb | null {
+  const c = obj(x);
+  const codigo = texto(c.codigo);
+  if (!codigo) return null;
+  const estado = c.estado === "usado" || c.estado === "liberado" ? c.estado : "reservado";
+  const motivo = MOTIVOS_CUPON.includes(c.liberado_motivo as NonNullable<CuponDelPedidoWeb["liberadoMotivo"]>)
+    ? (c.liberado_motivo as CuponDelPedidoWeb["liberadoMotivo"])
+    : null;
+  return { codigo, valor: numero(c.valor), descuento: numero(c.descuento), estado, liberadoMotivo: estado === "liberado" ? motivo : null };
+}
+
+/**
+ * Lo que la hoja del pedido dice del cupón, en palabras de tienda: «Cupón CAY-… · − S/ 5.00» y en qué quedó. El descuento ya está
+ * restado del total (la base lo hace al separar); aquí solo se cuenta.
+ */
+export function textoDelCupon(c: CuponDelPedidoWeb): { titulo: string; chip: string; detalle: string } {
+  const titulo = c.descuento > 0 ? `Cupón ${c.codigo} · − ${soles(c.descuento)}` : `Cupón ${c.codigo}`;
+  if (c.estado === "usado") return { titulo, chip: "Usado", detalle: "Ya se gastó: va descontado en la boleta del pedido." };
+  if (c.estado === "reservado")
+    return { titulo, chip: "Reservado", detalle: "Reservado para este pedido: nadie más lo usa, ni en caja. Se gasta al cobrar el pedido completo." };
+  const detalle =
+    c.liberadoMotivo === "compra_minima"
+      ? `Volvió al cliente: sin las prendas que se quitaron, el pedido ya no llega a su compra mínima. El total es sin descuento.`
+      : c.liberadoMotivo === "cubre_todo"
+        ? "Volvió al cliente: sin las prendas que se quitaron, el cupón cubría todo el pedido. El total es sin descuento."
+        : "Volvió al cliente porque el pedido se cerró. Lo puede usar en otra compra mientras siga vigente.";
+  return { titulo, chip: "Liberado", detalle };
+}
 
 type Crudo = Record<string, unknown>;
 const obj = (x: unknown): Crudo => (x && typeof x === "object" && !Array.isArray(x) ? (x as Crudo) : {});
@@ -235,7 +284,33 @@ function leerPrenda(x: unknown): PrendaWeb {
     categoria: texto(p.categoria),
     categoriaPrefijo: texto(p.categoria_prefijo),
     categoriaFamilia: texto(p.categoria_familia),
+    productoId: texto(p.producto_id),
+    empresa: null,
+    empresaClave: null,
   };
+}
+
+export type EmpresaDeSede = { id: string; clave: string; nombre: string };
+
+/** Le pone a cada prenda de un detalle su empresa. `empresaDeProducto` es producto → id de empresa (`productos.empresa_id`) y `empresas` las
+ *  de la sede (`fn_empresas_de_sede`). Una prenda cuya empresa no se conoce queda sin ella: nunca se inventa una. */
+export function conEmpresas(detalle: PedidoDetalle, empresas: EmpresaDeSede[], empresaDeProducto: Map<string, string>): PedidoDetalle {
+  const porId = new Map(empresas.map((e) => [e.id, e]));
+  return {
+    ...detalle,
+    lineas: detalle.lineas.map((l) => {
+      const e = l.productoId ? porId.get(empresaDeProducto.get(l.productoId) ?? "") : undefined;
+      return e ? { ...l, empresa: e.nombre, empresaClave: e.clave } : l;
+    }),
+  };
+}
+
+/** Lo que el detalle del pedido dice de la empresa de una prenda (ADR-0463, Felipe 2026-10-20): solo donde conviven dos empresas (Lima:
+ *  `variasEmpresas`, que sale de `fn_empresas_de_sede`, nunca del nombre de la sede) y solo si la base la trajo. CAYLA va en neutro y las
+ *  demás en pizarra: es informativo, no un semáforo. */
+export function empresaDeLaPrenda(prenda: Pick<PrendaWeb, "empresa" | "empresaClave">, variasEmpresas: boolean): { texto: string; tono: "neutro" | "pizarra" } | null {
+  if (!variasEmpresas || !prenda.empresa) return null;
+  return { texto: prenda.empresa, tono: prenda.empresaClave === "cayla" ? "neutro" : "pizarra" };
 }
 
 /** Lo de `fn_pedidos_web_tablero`. Lo que no se entiende se salta (una fila rota no tumba la lista). */
@@ -364,6 +439,7 @@ export function leerDetalle(data: unknown): PedidoDetalle | null {
     entregadoPor: texto(d.entregado_por),
     anulacionBoleta: leerCaminoBoleta(d.anulacion_boleta),
     notaCredito: leerNotaCredito(d.nota_credito),
+    cupon: leerCuponDelPedido(d.cupon),
     pagos: lista(d.pagos).map((x): PagoDeLista => {
       const g = obj(x);
       return {
@@ -1146,15 +1222,28 @@ export type PlantillaWhatsapp = "libre" | "confirmado" | "cobro" | "sinstock" | 
 
 const primerNombre = (nombre: string) => nombre.trim().split(/\s+/)[0] ?? nombre;
 
+/**
+ * El código de un cupón a medias, para un mensaje que sale de la tienda: «CAY-••••-9H2M». El cupón es al portador (lo usa quien tenga el
+ * código), así que por WhatsApp no viaja entero (Felipe, 2026-10-19); entero se ve en Pedidos web del ERP.
+ */
+export function cuponAMedias(codigo: string): string {
+  const partes = codigo.trim().toUpperCase().split("-");
+  const ultima = partes[partes.length - 1] ?? "";
+  return partes.length >= 3 ? `${partes[0]}-••••-${ultima}` : `••••${ultima.slice(-4)}`;
+}
+
 /** Los mensajes de la maqueta (`plantilla`), con la tienda y la dirección de Tienda web ▸ Ajustes. */
 export function mensajeWhatsapp(
-  p: Pick<PedidoDetalle, "codigo" | "total" | "falta" | "pagado" | "cliente" | "tiendaWeb">,
+  p: Pick<PedidoDetalle, "codigo" | "total" | "falta" | "pagado" | "cliente" | "tiendaWeb"> & { cupon?: CuponDelPedidoWeb | null },
   plantilla: PlantillaWhatsapp,
 ): string {
   const n = primerNombre(p.cliente.nombre);
   const tienda = `CAYLA ${p.tiendaWeb.nombre}`;
+  // El cupón del Club que sigue descontando (reservado o ya usado): el total ya lo resta, y el mensaje dice por qué bajó.
+  const cupon = p.cupon && p.cupon.estado !== "liberado" && p.cupon.descuento > 0 ? p.cupon : null;
+  const conCupon = cupon ? `, ya con tu cupón ${cuponAMedias(cupon.codigo)} de − ${soles(cupon.descuento)}` : "";
   if (plantilla === "confirmado")
-    return `Hola ${n}, confirmamos tu pedido ${p.codigo} en ${tienda} (${soles(p.total)}). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda?${p.tiendaWeb.direccion ? ` Lo recoges en ${p.tiendaWeb.direccion}.` : ""}`;
+    return `Hola ${n}, confirmamos tu pedido ${p.codigo} en ${tienda} (${soles(p.total)}${conCupon}). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda?${p.tiendaWeb.direccion ? ` Lo recoges en ${p.tiendaWeb.direccion}.` : ""}`;
   if (plantilla === "cobro") return `Hola ${n}, te escribimos por tu pedido ${p.codigo}. Falta pagar ${soles(p.falta)}. ¿Te pasamos los datos para el Yape?`;
   if (plantilla === "devolucion")
     return `Hola ${n}, te escribimos de ${tienda} por tu pedido ${p.codigo}: quedó anulado y te devolvemos ${soles(p.pagado)}. ¿Cómo prefieres recibirlo?`;
@@ -1170,6 +1259,28 @@ export function mensajeWhatsapp(
 /** El enlace de WhatsApp al celular del cliente (si su número se entiende; si no, WhatsApp pregunta a quién). */
 export function enlaceWhatsappPedido(p: Parameters<typeof mensajeWhatsapp>[0], plantilla: PlantillaWhatsapp): string {
   return enlaceWhatsAppA(p.cliente.celular, mensajeWhatsapp(p, plantilla));
+}
+
+/** Lo que el mensaje necesita del pedido: el código, el primer nombre del cliente y el nombre de la tienda web (sin el resto). */
+type DatosDelMensaje = { codigo: string; cliente: { nombre: string; celular?: string | null }; tiendaWeb: { nombre: string } };
+
+/** El mensaje de fábrica de los pedidos web. Sus marcas se llenan con cada pedido: {nombre}, {tienda} y {codigo}. */
+export const MENSAJE_PREDETERMINADO_WEB = "Hola {nombre}, te escribimos de {tienda} por tu pedido {codigo}.";
+/** Tope de letras del mensaje propio (lo mismo que la base: `fn_guardar_mensaje_pedidos_web`). */
+export const MAX_MENSAJE_PREDETERMINADO_WEB = 600;
+
+/** El texto que se envía a este cliente: el mensaje propio de la persona (o el de fábrica si no tiene uno), con sus marcas llenas. */
+export function mensajePredeterminadoDelPedido(p: DatosDelMensaje, mensajePropio: string | null | undefined): string {
+  const plantilla = mensajePropio?.trim() ? mensajePropio : MENSAJE_PREDETERMINADO_WEB;
+  return plantilla
+    .replaceAll("{nombre}", primerNombre(p.cliente.nombre))
+    .replaceAll("{tienda}", `CAYLA ${p.tiendaWeb.nombre}`)
+    .replaceAll("{codigo}", p.codigo);
+}
+
+/** El enlace de WhatsApp del mensaje predeterminado (el propio de la persona, o el de fábrica), al celular del cliente. */
+export function enlaceWhatsappMensajePredeterminado(p: DatosDelMensaje, mensajePropio: string | null | undefined): string {
+  return enlaceWhatsAppA(p.cliente.celular, mensajePredeterminadoDelPedido(p, mensajePropio));
 }
 
 /** «DNI ••••4415 · Cel. 900 000 440 · Miembro del club». */

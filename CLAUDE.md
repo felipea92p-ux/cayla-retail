@@ -219,6 +219,16 @@ estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en 
 contraste medido y lo que quedó fuera (formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`. **El modo oscuro entró el
 2026-10-05 sobre esos mismos tokens: ver «Modo oscuro» más abajo.**
 
+## Toda pantalla ocupa todo el ancho (regla — ADR-0462, Felipe 2026-10-20)
+
+**Una pantalla nueva usa el ancho completo de la pantalla: no se centra en una columna angosta.** El marco (`components/AppShell.tsx`) ya lo
+hace solo: una ruta nueva no tiene que pedir nada. Lo que sí te toca es **llenar ese ancho con sentido**: cifras en fila, tabla a lo ancho,
+una columna al costado (un ejemplo, un resumen, una vista previa) y campos de a dos cuando la pantalla es muy ancha, como Clientes ▸
+Beneficios del club. Un párrafo largo o un formulario corto se topan por su cuenta (`max-w-prose`, `max-w-2xl`), nunca la pantalla entera.
+Se revisa a 1440 y 1920 px, además de 375. Las pantallas que nacieron antes con el tope de 64 rem viven en `CON_TOPE_DE_ANCHO` (AppShell):
+es deuda, solo baja, y `lib/ancho-completo.test.ts` falla si una ruta nueva entra ahí. Al revisar una de ellas a lo ancho, se saca de la lista
+(y de `CON_TOPE_HOY` en la prueba). El Inicio («/») sigue con tope: el de almacén, el Observatorio y Aventurero lo quitan con `data-ancho-completo`.
+
 ## Modo oscuro (regla — ADR-0336, Felipe 2026-10-05)
 
 **El ERP tiene modo oscuro, y una pantalla que usa solo tokens lo alcanza sin hacer nada.** Es una preferencia del APARATO
@@ -303,7 +313,7 @@ ni el cajón abierto**: la pila es rama (`DismissableLayer.Branch`) de toda capa
 Para lo que no pasa por `fetch`: `useEsperando(activo, mensaje?)` (hook), `esperar(mensaje?) → fin()` (imperativo) y
 `<EsperaPantalla />` en cada `loading.tsx`. Una petición que no debe bloquear lleva el header `x-espera: no`. **Al agregar una
 RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la lista de lectura de `espera-reglas.ts`** (hoy
-`fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`); si no, el loader bloqueará la pantalla mientras se busca
+`fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`, `validar_`); si no, el loader bloqueará la pantalla mientras se busca
 o se escribe. **Un buscador que filtra por URL (`?q=`) navega con `buscar(href)` de `useBusquedaEnUrl`
 (`components/ui/BusquedaEnUrl.tsx`), nunca con `router.push` suelto:** lo tipeado no abre el loader; el campo dice «Buscando…»
 (`<Buscador buscando>`) y la lista marcada con `data-resultados` se atenúa (Felipe 2026-09-28). Un filtro por clic sigue con el loader.
@@ -499,6 +509,27 @@ siempre el OK de Felipe**. Respeta los tokens (ADR-0169), el movimiento sin rebo
 `/sugerir` y `/multi-view-responsive` sin duplicarlas. **Es obligatoria con tablero, todavía sin prueba en el CI:** al terminar una pantalla o un
 modal, corre `/formidable`; el avance módulo por módulo vive en `docs/formidable/README.md` (piloto: Inventario ▸ Frescura del piso). Detalle:
 `docs/adr/0350-formidable-el-iphone-llevado-al-erp.md` y `.claude/skills/formidable/`.
+
+## Skills de diseño de afuera: se consultan, no mandan (regla — Felipe 2026-10-17)
+
+**`frontend-design` (Anthropic) y `ui-ux-pro-max` solo se consultan: nunca mandan sobre los colores ni sobre las piezas ya decididas.**
+No viven en el repo (cada quien las instala en su `~/.claude/skills/`), pero se activan solas en casi cualquier tarea de interfaz y empujan
+a elegir una estética propia —fuentes, paletas, estilos—. Si lo que sugieren choca con este archivo, gana este archivo:
+1. **En el ERP (`apps/web`), colores y letras:** solo los tokens de `apps/web/app/globals.css` con su oscuro en `estilos/tema.css`
+   (ADR-0169 y ADR-0336). Nunca una paleta, un hex ni una fuente que proponga la skill.
+2. **En el ERP, piezas y movimiento:** la tabla de «Una función, una pieza» (ADR-0358) y la regla de ADR-0136. Una sugerencia de la skill
+   no reemplaza una pieza decidida ni abre otra variante; una idea que valga para el ERP pasa por `/unificar` y Felipe la elige mirando.
+3. **La tienda online (`apps/tienda`) puede tener identidad visual propia** (Felipe 2026-10-17, al pedir su rediseño completo): ahí las
+   skills SÍ proponen paleta, letras y estilo, pero siempre como 2 o 3 direcciones en maquetas tocables (`docs/maquetas/`) que Felipe
+   elige mirando, nunca directo en el código. Lo elegido se escribe en `apps/tienda/app/globals.css`, que sigue siendo la única fuente
+   de la tienda; desde ahí, la tienda se trata como el ERP (nada se reinventa pieza por pieza). El logo y el colibrí son la marca y no
+   se rediseñan sin que Felipe lo pida, y lo que decida la tienda no viaja al ERP.
+4. **Nunca `--persist`, en ninguna de las dos apps:** `ui-ux-pro-max` no crea `design-system/<proyecto>/MASTER.md` ni sus `pages/*.md`.
+   Se presenta como «fuente de verdad» y sería una segunda, compitiendo con los `globals.css`, los ADR y `docs/unificar/`; una carpeta
+   `design-system/` no entra a un commit.
+
+Sirven, además, para lo que el repo no decide: criterios de accesibilidad y de UX, cómo elegir un gráfico, ideas para una maqueta en
+`docs/maquetas/`. La búsqueda de `ui-ux-pro-max` está en inglés (en español no encuentra nada) y nunca lleva datos de CAYLA.
 
 ## Una función, una pieza (regla — ADR-0358, Felipe 2026-10-06)
 

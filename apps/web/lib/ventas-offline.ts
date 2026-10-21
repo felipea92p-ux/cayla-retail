@@ -53,10 +53,9 @@ export type ItemRegistrarVenta = {
   argumento_descuento?: string;
   /** La etiqueta de campaña que dio el descuento; solo con `motivo_descuento: "campana"`. */
   descuento_etiqueta_id?: string;
-  /** La parte de `descuento_unitario` (que sigue siendo el TOTAL) que es del club: el cumpleaños de la socia (ADR-0288 D-5,
-   *  con `p_canjear_cumpleanos: true`; la base la recalcula y rechaza si no coincide, `cumple_descuento_distinto`) o su vale de
-   *  aniversario (tanda 1g, con `p_canjear_aniversario: true`; reparto de `ticketConVale`). Se arma con
-   *  `descuentosParaRegistrar` de `lib/club-cumple-canje-reglas.ts`. */
+  /** La parte de `descuento_unitario` (que sigue siendo el TOTAL) que es del cupón del Club (programa de puntos, con su código en
+   *  `p_codigo_descuento`; reparto de `ticketConVale`, la base lo recalcula y rechaza si no coincide, `cupon_descuento_distinto`). Se
+   *  arma con `descuentosParaRegistrar` de `lib/club-cupon-reparto-reglas.ts`. */
   descuento_club_unitario?: number;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que almacén necesita para regularizarla. */
   descripcion_libre?: string;
@@ -67,11 +66,11 @@ export type ItemRegistrarVenta = {
   pieza_liquidacion_codigo?: string;
 };
 
-/** El payload completo de `registrar_venta` (18 parámetros desde la tanda 1g; la caja manda los 14 de abajo: `p_cliente_id`
- *  se sumó en la tanda 1a del club, `p_canjear_cumpleanos` en la 1c y `p_canjear_aniversario` en la 1g, ADR-0288). Se guarda
- *  entero en la cola y se reenvía sin cambios al subir — el `p_token` adentro es el mismo que dejó el envío que falló, así que
- *  un reintento (desde esta pestaña o desde otra) no duplica. Una venta con el cumpleaños o el vale NUNCA entra a la cola
- *  (`llevaCanje`). */
+/** El payload de `registrar_venta` que manda la caja (`p_cliente_id` se sumó en la tanda 1a del club, ADR-0288; el cupón del Club
+ *  viaja en `p_codigo_descuento`. `p_canjear_cumpleanos` y `p_canjear_aniversario` siguen en la firma de la base, pero el 10 % y el
+ *  vale se retiraron el 2026-10-19 y la caja ya no los manda). Se guarda entero en la cola y se reenvía sin cambios al subir — el
+ *  `p_token` adentro es el mismo que dejó el envío que falló, así que un reintento (desde esta pestaña o desde otra) no duplica. Una
+ *  venta con cupón NUNCA entra a la cola (`llevaCanje`). */
 export type ParamsRegistrarVenta = {
   p_ubicacion_id: string;
   p_items: ItemRegistrarVenta[];
@@ -93,13 +92,6 @@ export type ParamsRegistrarVenta = {
   /** El RESPONSABLE de la venta (combo del ADR-0161; antes, la fila «Atendió» del ADR-0163). Es el mismo uuid que
    *  viaja en `x-responsable`: la venta queda a nombre de quien la hizo, no de la cuenta. */
   p_asesora_id?: string;
-  /** Canjear el cumpleaños de la socia del ticket (ADR-0288 D-5): la base exige socia, su mes de Lima y un canje por año, y
-   *  recalcula la parte del club de cada ítem. La web no lo ofrece sin conexión, y una venta con canje no se encola
-   *  (`llevaCanje`): si la conexión se corta al cobrarla, la caja lo dice y la asesora decide (esperar, o quitarlo). */
-  p_canjear_cumpleanos?: boolean;
-  /** Usar el vale de aniversario de la socia del ticket (tanda 1g, G-13): la base exige que esté disponible y una sola ventaja
-   *  del club por venta (`club_un_cupon_por_compra`). Igual que el cumpleaños, nunca va a la cola (`llevaCanje`). */
-  p_canjear_aniversario?: boolean;
 };
 
 export type VentaEncolada = {
@@ -179,14 +171,12 @@ export function carritoPasaElUmbral(items: readonly ItemVentaEncolada[], stockPi
   return true;
 }
 
-/** ¿Esta venta canjea el cumpleaños o el vale de aniversario? Entonces NO se encola (ADR-0288 D-5 y tanda 1g): sin conexión
- *  otra tienda podría usarlo a la vez, y cuando la venta subiera y la base la rechazara, la clienta ya se habría ido con el
- *  precio rebajado. Mira las señales (los parámetros y la parte del club de cada ítem): la base exige que vayan juntas
- *  (`cumple_sin_canje`). */
-export function llevaCanje(params: Pick<ParamsRegistrarVenta, "p_canjear_cumpleanos" | "p_canjear_aniversario" | "p_items">): boolean {
+/** ¿Esta venta usa un cupón del Club? Entonces NO se encola (programa de puntos): el cupón es de una sola vez y, sin conexión, otra
+ *  caja podría gastarlo a la vez; cuando la venta subiera y la base la rechazara, el cliente ya se habría ido con el precio rebajado.
+ *  Mira las dos señales (el código y la parte del club de cada ítem): la base exige que vayan juntas. */
+export function llevaCanje(params: Pick<ParamsRegistrarVenta, "p_items" | "p_codigo_descuento">): boolean {
   return (
-    params.p_canjear_cumpleanos === true ||
-    params.p_canjear_aniversario === true ||
+    Boolean(params.p_codigo_descuento) ||
     params.p_items.some((it) => (it.descuento_club_unitario ?? 0) > 0)
   );
 }

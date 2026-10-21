@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { COMPRAS_PARA_FRECUENTE, MESES_PARA_FRECUENTE, estadoFrecuente } from "./clienta-actividad-reglas";
 import {
   COLUMNAS_EXPORTAR,
+  FILTROS_DE_LAS_CIFRAS,
   FILTROS_LISTA,
   MAX_PAGINA,
   POR_PAGINA,
@@ -14,6 +15,8 @@ import {
   detalleSocias,
   estadoDeLaFila,
   filaParaExportar,
+  filtrosParaRevisar,
+  fraseDeLaFila,
   frecuenteDeLaFicha,
   hrefLista,
   leerPaginaQueExiste,
@@ -174,8 +177,8 @@ describe("una fila de la lista", () => {
     expect(c).toMatchObject({ id: "c1", documentoTipo: "carne_extranjeria", suSede: "Tienda Trujillo", comprasSede: 2, compras12m: 3, esFrecuente: true });
   });
 
-  it("Estado: Identificado, Miembro o Miembro frecuente; archivado, anonimizado o unido a otra ficha dicen por qué", () => {
-    expect(estadoDeLaFila(fila({}))).toEqual({ texto: "Identificado", tono: "pizarra" });
+  it("Estado: Solo ficha, Miembro o Miembro frecuente; archivado, anonimizado o unido a otra ficha dicen por qué", () => {
+    expect(estadoDeLaFila(fila({}))).toEqual({ texto: "Solo ficha", tono: "pizarra" });
     expect(estadoDeLaFila(fila({ club_desde: "2026-01-01", es_frecuente: false }))).toEqual({ texto: "Miembro", tono: "neutro" });
     expect(estadoDeLaFila(fila({ club_desde: "2026-01-01", es_frecuente: true }))).toEqual({ texto: "Miembro frecuente", tono: "verde" });
     expect(estadoDeLaFila(fila({ archivada_en: "2026-09-01" })).texto).toBe("Archivado");
@@ -185,11 +188,22 @@ describe("una fila de la lista", () => {
 
   it("Publicidad: solo una socia activa tiene algo que decir", () => {
     expect(publicidadDeLaFila(fila({}))).toBeNull();
-    expect(publicidadDeLaFila(fila({ club_desde: "2026-01-01" }))).toEqual({ texto: "Sin publicidad", tono: "neutro" });
-    expect(publicidadDeLaFila(fila({ club_desde: "2026-01-01", publicidad_desde: "2026-02-01" }))).toEqual({ texto: "Publicidad", tono: "verde" });
+    expect(publicidadDeLaFila(fila({ club_desde: "2026-01-01" }))).toEqual({ texto: "No recibe novedades", tono: "neutro" });
+    expect(publicidadDeLaFila(fila({ club_desde: "2026-01-01", publicidad_desde: "2026-02-01" }))).toEqual({ texto: "Recibe novedades", tono: "verde" });
     expect(publicidadDeLaFila(fila({ club_desde: "2026-01-01", archivada_en: "2026-09-01" }))).toBeNull();
     // Escribió BAJA: «Pidió BAJA», apagada (el spike la distingue de la que todavía no la pidió).
     expect(publicidadDeLaFila(fila({ club_desde: "2026-01-01", baja_en: "2026-07-02" }))).toEqual({ texto: "Pidió BAJA", tono: "apagado" });
+  });
+
+  it("la frase de la tarjeta dice quién es en una línea", () => {
+    const f = (c: Partial<FilaListaClienta>) => fraseDeLaFila(fila({ es_frecuente: false, ...c }));
+    expect(f({})).toBe("Solo tiene ficha, no está en el club");
+    expect(f({ club_desde: "2026-03-14T15:00:00Z", es_frecuente: false })).toBe("Miembro desde mar 2026 · no recibe novedades");
+    expect(f({ club_desde: "2026-03-14T15:00:00Z", es_frecuente: true, publicidad_desde: "2026-04-02" })).toBe("Miembro desde mar 2026 · compra seguido · recibe novedades");
+    expect(f({ club_desde: "2026-03-14T15:00:00Z", baja_en: "2026-06-11" })).toBe("Miembro desde mar 2026 · pidió BAJA");
+    expect(f({ archivada_en: "2026-09-01" })).toBe("Ficha archivada");
+    expect(f({ archivada_en: "2026-09-01", anonimizada: true })).toBe("Ficha anonimizada");
+    expect(f({ archivada_en: "2026-09-01", anonimizada: true, fusionada_en_id: "c2" })).toBe("Ficha unida a otra");
   });
 
   it("Su sede sin «Tienda»; sin compras en 12 meses, «—»", () => {
@@ -262,11 +276,17 @@ describe("cifras, píldoras y pie", () => {
     expect(FILTROS_LISTA.map((f) => cuentaDelFiltro(cifras, f.valor))).toEqual([20, 8, 4, 5, 3, 6, 2, 1]);
   });
 
+  it("las cuatro cifras de arriba filtran, así que no se repiten como píldora; sin cifras vuelven todas", () => {
+    expect(FILTROS_DE_LAS_CIFRAS).toEqual(["todas", "socias", "con_publicidad", "frecuentes"]);
+    expect(filtrosParaRevisar(true).map((f) => f.valor)).toEqual(["sin_publicidad", "sin_celular", "cumplen_este_mes", "archivadas"]);
+    expect(filtrosParaRevisar(false)).toEqual(FILTROS_LISTA);
+  });
+
   it("los detalles de las tarjetas", () => {
-    expect(detalleSocias(cifras)).toBe("40 % de los identificados");
+    expect(detalleSocias(cifras)).toBe("40 de cada 100 clientes");
     expect(detalleSocias({ identificadas: 0, socias: 0 })).toBe("Todavía ninguno");
-    expect(detallePublicidad(cifras)).toBe("3 miembros sin publicidad");
-    expect(detallePublicidad({ sinPublicidad: 1 })).toBe("1 miembro sin publicidad");
+    expect(detallePublicidad(cifras)).toBe("3 miembros no las pidieron");
+    expect(detallePublicidad({ sinPublicidad: 1 })).toBe("1 miembro no las pidió");
   });
 
   it("el pie: N de los activos (o de los archivados) y que todas las cuentas con el módulo ven a todos", () => {

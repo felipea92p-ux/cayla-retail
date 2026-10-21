@@ -5,7 +5,7 @@ import {
   fotoOptimizable,
   fotosDeTarjeta,
   hrefDePrenda,
-  insigniaOferta,
+  insigniasDeTarjeta,
   muestras,
   precioTarjeta,
   type Prenda,
@@ -23,6 +23,13 @@ import { RapidoDeTarjeta } from "./RapidoDeTarjeta";
  * ficha, con la tienda elegida. El corazón sabe solo si está guardado (`ProveedorGuardados`, en el marco del catálogo); fuera de él
  * («Mi cuenta») se lo dice `guardado`.
  */
+const CLASE_INSIGNIA = {
+  puesto: "t-insignia",
+  oferta: "t-insignia oferta",
+  nuevo: "t-insignia cp-insignia-nuevo",
+  empresa: "t-insignia cp-insignia-nuevo",
+} as const;
+
 export function TarjetaPrenda({
   prenda,
   sede,
@@ -48,12 +55,11 @@ export function TarjetaPrenda({
 }) {
   const [foto, segunda] = fotosDeTarjeta(prenda);
   const precio = precioTarjeta(prenda);
-  const oferta = insigniaOferta(prenda);
-  const nueva = Boolean(prenda.nuevo) && !sinNuevo;
+  const insignias = insigniasDeTarjeta(prenda, { puesto, sinNuevo });
   const { visibles, mas } = muestras(prenda);
   const href = hrefDePrenda(prenda, sede);
   // Las insignias van dentro de la foto, que el lector salta: el nombre las dice también («Falda Luna, −12 %, nuevo»).
-  const insigniasDichas = [puesto ? `N.º ${puesto} en más vendidos` : null, oferta, nueva ? "nuevo" : null].filter(Boolean).join(", ");
+  const insigniasDichas = insignias.map((i) => (i.clave === "puesto" ? `${i.texto} en más vendidos` : i.clave === "nuevo" ? "nuevo" : i.texto)).join(", ");
   return (
     // Lo que la tarjeta ya muestra, para que la ficha llegue con eso mismo mientras carga (`RecordarPrendaTocada`, lib/prenda-tocada.ts).
     <article
@@ -77,12 +83,15 @@ export function TarjetaPrenda({
             color={colorDeDibujo(prenda)}
             pronto={arriba}
           />
-          {(puesto || oferta || nueva) && (
+          {insignias.length > 0 && (
             <span className="t-insignias">
-              {puesto && <span className="t-insignia">N.º {puesto}</span>}
-              {oferta && <span className="t-insignia oferta">{oferta}</span>}
-              {/* «Nuevo» va claro (2026-10-16): con casi todo el catálogo nuevo, un sello negro en cada foto le quitaba la vista a la prenda. */}
-              {nueva && <span className="t-insignia cp-insignia-nuevo">Nuevo</span>}
+              {/* «Nuevo» va claro (2026-10-16): con casi todo el catálogo nuevo, un sello negro en cada foto le quitaba la vista a la prenda.
+                  La empresa es esa misma insignia con su nombre (ADR-0465): debajo de «Nuevo», o arriba si la tarjeta no lo tiene. */}
+              {insignias.map((i) => (
+                <span key={i.clave} className={CLASE_INSIGNIA[i.clave]}>
+                  {i.texto}
+                </span>
+              ))}
             </span>
           )}
         </Link>

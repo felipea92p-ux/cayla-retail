@@ -985,6 +985,14 @@ body {
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
+  /* El link de la tienda online («tienda.cayla.pe», 15 caracteres, Felipe 2026-10-20): en mayúsculas y con este espaciado no cabe
+     junto al QR y se cortaba en «…CAYLA.P». En minúsculas y sin espaciado entra entero en la columna de datos. */
+  .etq-datos small.etq-web {
+    font-size: 1.8mm;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+  }
   /* El QR: 19 mm con su zona muda (el lado lo pone `EtiquetaPrecio.tsx`; lib/qr.ts), por encima de los 18 mm
      verificados con la pistola Zebra. Con 22 mm el código de al lado se cortaba («CMS-0011-NAR…») desde que la
      etiqueta pasó a 40,1 mm de ancho. El margen negativo mete SOLO esa zona blanca en el acolchado: abajo está el

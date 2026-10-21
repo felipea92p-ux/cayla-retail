@@ -37,3 +37,21 @@ export function usuarioDeGoogle(u: UsuarioDelProyecto): UsuarioDeGoogle | null {
     texto(identidad?.identity_data?.full_name) || texto(identidad?.identity_data?.name) || texto(u.user_metadata?.full_name) || texto(u.user_metadata?.name) || correo.split("@")[0];
   return { id: u.id, correo, nombre: nombre.slice(0, MAX_NOMBRE) };
 }
+
+/** Qué sigue cuando entra alguien con Google que todavía no tiene cuenta y la base ya contestó si su correo era de una ficha
+ *  (ADR-0469). `listo`: la cuenta ya existe (se unió a su ficha, o ya la tenía). `registrar`: no es de ninguna ficha, o la base no
+ *  contestó: se crea la cuenta simple de siempre (que dirá lo que ya decía si hay un problema). `rechazar`: hay una ficha con ese
+ *  correo pero no se puede unir sola (otro nombre, archivada, ya con cuenta): nadie queda a medias, y se manda a una tienda. */
+export type SiguienteTrasVincular = "listo" | "registrar" | "rechazar";
+
+export function siguienteTrasVincular(estado: "vinculada" | "ya_tiene_cuenta" | "no_aplica" | "no_coincide" | "sin_respuesta"): SiguienteTrasVincular {
+  switch (estado) {
+    case "vinculada":
+    case "ya_tiene_cuenta":
+      return "listo";
+    case "no_coincide":
+      return "rechazar";
+    default:
+      return "registrar";
+  }
+}

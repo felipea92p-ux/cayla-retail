@@ -144,6 +144,17 @@ de Vercel 64 o más nueva: `pnpm --filter tienda medicion:leer`. Qué dice cada 
 `docs/backlog/2026-10-17-distracted-vaughan-22269f.md`. Una página nueva se suma a `RUTAS_MEDIDAS` (la prueba lo pide) y un `loading.tsx`
 nuevo dibuja `EsqueletoDePagina` (su `data-esqueleto` es lo que la medición busca).
 
+## El paso entre vistas: el velo y el título que se cuelga (ADR-0466, 2026-10-20)
+
+Dos movimientos que son también la pantalla de carga de su cambio. **Cambiar de tienda** (`SelectorTienda`, `components/CabeceraConCuenta.tsx`): un velo oscuro y
+desenfocado bajo la cabecera, «Ahora ves lo que hay en LIMA», que se disipa cuando llega la página (`components/VeloDeSede.tsx`; cuándo se queda y cuándo
+se va, con su tope de 8 s, en `lib/sede-velo.ts`); como cambiar de tienda es la misma vista para `claveDeVista`, Next no muestra ningún esqueleto y el velo
+es el único aviso. **Cambiar de pestaña:** el esqueleto de la lista (`FormaDelEsqueleto`: `CabeceraDeLista` y `Looks`) escribe su título palabra por palabra
+subiendo desde su línea y cuelga las tarjetas vacías en cascada (`vistas.css`). Un movimiento nuevo de este tipo sigue la misma regla: **lo que ya se sabe sale al
+instante, lo que falta se espera con la señal de la tienda y la animación termina cuando llega la página**, y se apaga con «reducir movimiento» con
+`animation: none`. **Un `backdrop-filter` se escribe SIN su versión `-webkit-`:** si están las dos, el empaquetador de CSS deja solo la prefijada y Chrome
+no desenfoca (ADR-0466).
+
 ## Levantarla en local
 
 1. La base local del repo arriba (`npx supabase start`) con las migraciones de la tienda (`20261014220000…`, `20261014223000…`,

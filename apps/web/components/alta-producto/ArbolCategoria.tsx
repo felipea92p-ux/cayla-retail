@@ -43,12 +43,15 @@ export function ArbolCategoria({
   categoriaId,
   onElegir,
   onCambiar,
+  pausado = false,
 }: {
   familias: FamiliaAlta[];
   categorias: CategoriaAlta[];
   categoriaId: string;
   onElegir: (id: string) => void;
   onCambiar: () => void;
+  /** Falta elegir la tienda (ADR-0463): la luz «Sigue aquí» está en ese campo, no aquí. */
+  pausado?: boolean;
 }) {
   const [familiaAbierta, setFamiliaAbierta] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -179,7 +182,7 @@ export function ArbolCategoria({
       <div data-guia="nuevo.familias">
         <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
           Familia
-          {!familiaAbierta && <EtiquetaAhora />}
+          {!pausado && !familiaAbierta && <EtiquetaAhora />}
         </p>
         <div className="grid grid-cols-2 gap-2 @2xl:grid-cols-4">
           {aLaVista.map((f) => tarjeta(f))}
@@ -211,7 +214,7 @@ export function ArbolCategoria({
         <div id="categorias-de-la-familia" data-guia="nuevo.categorias" className="scroll-mb-28 scroll-mt-32 sm:scroll-mt-[11.5rem]">
           <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
             Categoría
-            <EtiquetaAhora />
+            {!pausado && <EtiquetaAhora />}
           </p>
           <div className="grid grid-cols-2 gap-2 @xl:grid-cols-3 @4xl:grid-cols-4">
             {categoriasDeLaFamilia.map((c) => (

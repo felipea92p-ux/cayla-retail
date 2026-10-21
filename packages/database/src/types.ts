@@ -1,3 +1,42 @@
+/** Un cupón del Club tal como lo devuelven `canjear_puntos` y `tienda_canjear_puntos`. */
+export type CuponDelClub = {
+  codigo: string
+  puntos: number
+  valor: number
+  compra_minima: number
+  vence_el: string
+  estado: "activo" | "usado" | "vencido"
+  /** true si la misma clave de operación ya había creado este cupón (doble toque o reintento). */
+  repetido: boolean
+  /** El saldo de puntos de la dueña después del canje. */
+  saldo: number
+}
+
+/** Lo que dice `validar_cupon`: ok con el cupón, o el motivo por el que no sirve. */
+export type ValidacionDeCupon =
+  | { ok: true; codigo: string; valor: number; compra_minima: number; vence_el: string; puntos: number; de: string | null }
+  | { ok: false; motivo: "no_existe"; intentos: number }
+  | { ok: false; motivo: "usado" | "bloqueado" | "reservado" }
+  | { ok: false; motivo: "vencido"; vence_el: string }
+  | { ok: false; motivo: "minimo"; compra_minima: number; faltan: number }
+
+/** Lo que devuelve `resumen_puntos_caja`: la configuración vigente (siempre) y, si es miembro, su saldo, su regalo y sus cupones vivos. */
+export type ResumenDePuntosEnCaja = {
+  puntos_por_sol: number
+  soles_por_100: number
+  canje_minimo: number
+  compra_minima_x: number
+  vigencia_dias: number
+  regalo_cumple: number
+  miembro: boolean
+  saldo?: number
+  valor_saldo?: number
+  cumple_dia?: number | null
+  cumple_mes?: number | null
+  regalo_disponible?: boolean
+  cupones?: { codigo: string; valor: number; compra_minima: number; vence_el: string }[]
+}
+
 export type Json =
   | string
   | number
@@ -3329,6 +3368,7 @@ export type Database = {
           codigo: string | null
           created_at: string
           descripcion: string | null
+          empresa_id: string
           es_prueba: boolean
           estado: string
           estado_alta: string
@@ -3352,6 +3392,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
+          empresa_id?: string
           es_prueba?: boolean
           estado?: string
           estado_alta?: string
@@ -3375,6 +3416,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
+          empresa_id?: string
           es_prueba?: boolean
           estado?: string
           estado_alta?: string
@@ -6052,6 +6094,18 @@ export type Database = {
         Args: { p_clienta_id: string; p_tipo: string; p_referencia: string; p_texto: string; p_ubicacion_id: string }
         Returns: string
       }
+      /** Módulo «Avisos del club», «Editar mensajes» (20261020151000): el mensaje que rige en esa tienda para cada aviso (completo),
+       *  su cierre (null = sin cierre) y si ya personalizó alguno. */
+      fn_club_avisos_textos: {
+        Args: { p_ubicacion_id: string }
+        Returns: Json
+      }
+      /** «Editar mensajes»: guarda los mensajes propios de una tienda, solo lo que cambió (cuerpos sin cierre ni BAJA). Con el
+       *  módulo. Hints: mensaje_aviso_invalido (detail = el aviso), avisos_otra_tienda. Devuelve cuántos textos cambió. */
+      guardar_mensajes_avisos: {
+        Args: { p_ubicacion_id: string; p_mensajes: Json; p_cierre: string }
+        Returns: number
+      }
       /** Módulo «Avisos del club»: cuántos avisos no deshechos se anotaron HOY (Lima) desde esa tienda, por tipo (solo los
        *  tipos con al menos uno). */
       fn_club_avisos_enviados_hoy: {
@@ -6063,12 +6117,77 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      /** Módulo «Avisos del club»: las cuentas de Google unidas a una ficha en los últimos 60 días y todavía abiertas, las que
+       *  faltan avisar primero (ADR-0469, 20261021170000). aviso_estado: pendiente, enviado o sin_celular. */
+      fn_vinculos_google_recientes: {
+        Args: never
+        Returns: {
+          id: string
+          clienta_id: string
+          nombre: string
+          telefono: string | null
+          nombre_google: string
+          correo: string
+          creado_en: string
+          aviso_estado: string
+          avisado_en: string | null
+        }[]
+      }
+      /** Módulo «Avisos del club»; firma con el responsable. Repetido no hace nada. Hints: vinculo_no_existe, vinculo_deshecho. */
+      registrar_vinculo_google_avisado: {
+        Args: { p_id: string; p_ubicacion_id: string }
+        Returns: undefined
+      }
+      /** Solo el líder; firma con su cuenta. Cierra la cuenta web y deja la ficha intacta. Hints: solo_lider, vinculo_no_existe. */
+      desvincular_cuenta_google: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       /** Solo el líder. p_escala = [{ "anio": 1, "monto": 20 }, …] (los cinco años, como la devuelve fn_club_pagina; montos que
        *  no bajan). Si cambia algo, publica una versión nueva de `terminos`. Hints: solo_lider, beneficios_invalidos
        *  (detail = el campo), terminos_no_reconocidos. */
       guardar_beneficios_club: {
         Args: { p_pct: number; p_compras: number; p_monto: number; p_dias: number; p_escala: Json }
         Returns: undefined
+      }
+      /** Puntos del Club (actividad 1): guarda una versión nueva de la configuración. Solo el líder. Devuelve desde cuándo rige (15 días si toca lo que valen los puntos o el canje). */
+      guardar_beneficios_puntos: {
+        Args: {
+          p_puntos_por_sol: number
+          p_soles_por_100: number
+          p_canje_minimo: number
+          p_compra_minima_x: number
+          p_vigencia_dias: number
+          p_regalo_cumple: number
+          p_tope_costo_pct: number
+          p_vigente_desde?: string
+        }
+        Returns: string
+      }
+      /** Puntos del Club (actividad 3): canjea puntos de una miembro por un cupón con código desde la caja. La misma clave (p_token) devuelve el mismo cupón. */
+      canjear_puntos: {
+        Args: { p_clienta_id: string; p_puntos: number; p_token?: string }
+        Returns: CuponDelClub
+      }
+      /** Puntos del Club (actividad 8): lo que muestra Clientes ▸ Beneficios del club (configuración vigente y programada, cifras del programa, últimos cambios). Solo lee; con el módulo beneficios_club. */
+      resumen_beneficios_puntos: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      /** Puntos del Club (actividad 10): la configuración vigente de los puntos, pública (cartel y página del QR). */
+      fn_club_puntos_vigentes: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      /** Puntos del Club (actividad 5): lo que la caja muestra de los puntos de una clienta (lectura). */
+      resumen_puntos_caja: {
+        Args: { p_clienta_id: string }
+        Returns: ResumenDePuntosEnCaja
+      }
+      /** Puntos del Club (actividad 4): ¿sirve este código de cupón? ok con su valor, o el motivo; cuenta los códigos que no existen (5 en 5 min bloquean la cuenta). */
+      validar_cupon: {
+        Args: { p_codigo: string; p_total?: number }
+        Returns: ValidacionDeCupon
       }
       /** Servidor (cron diario con CRON_SECRET): anonimiza las fichas sin compra en 3 años. Devuelve cuántas. */
       fn_club_anonimizar_inactivas: {
@@ -6566,6 +6685,47 @@ export type Database = {
           nombre: string
           orden: number
         }[]
+      }
+      fn_empresas: {
+        Args: never
+        Returns: {
+          clave: string
+          id: string
+          logo_url: string | null
+          nombre: string
+          orden: number
+          web: string | null
+        }[]
+      }
+      fn_empresas_de_sede: {
+        Args: { p_sede_id: string }
+        Returns: {
+          clave: string
+          id: string
+          nombre: string
+          orden: number
+        }[]
+      }
+      crear_producto_con_empresa: {
+        Args: {
+          p_al_piso?: boolean
+          p_categoria_id: string
+          p_confirmo_distinto?: boolean
+          p_descripcion?: string
+          p_etiqueta_ids?: string[]
+          p_marca_id?: string
+          p_patron_id?: string
+          p_proveedor_id?: string
+          p_referencia: string
+          p_sede_id: string
+          p_tejido_id?: string
+          p_temporada?: string
+          p_empresa_id: string
+          p_token?: string
+          p_ubicacion_id?: string
+          p_variantes: Json
+        }
+        Returns: string
       }
       crear_producto_con_stock_inicial: {
         Args: {
@@ -7378,6 +7538,7 @@ export type Database = {
           p_categoria_id?: string
           p_colores?: string[]
           p_disponibilidad?: string
+          p_empresa_id?: string
           p_estado?: string
           p_falta?: string
           p_familias?: string[]
@@ -7397,6 +7558,7 @@ export type Database = {
           p_categoria_id?: string
           p_colores?: string[]
           p_disponibilidad?: string
+          p_empresa_id?: string
           p_estado?: string
           p_falta?: string
           p_familias?: string[]
@@ -8120,6 +8282,13 @@ export type Database = {
         Returns: undefined
       }
       restaurar_rol: { Args: { p_rol_id: string }; Returns: undefined }
+      fn_terminal_firma_respaldo: {
+        Args: never
+        Returns: {
+          nombre: string
+          persona_id: string
+        }[]
+      }
       fn_terminales: {
         Args: never
         Returns: {

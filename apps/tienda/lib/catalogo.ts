@@ -25,6 +25,11 @@ const esquemaPrenda = z
     codigo: z.string().nullable(),
     nombre: z.string().min(1),
     categoria: z.object({ nombre: z.string().min(1), prefijo: z.string().nullable() }).nullable(),
+    // La familia de la categoría (indumentaria, accesorios…), para ubicar en su sección una categoría que la tabla de grupos no conoce. Una base
+    // que todavía no la manda no rompe nada: queda sin familia.
+    categoria_familia: z.string().nullish().catch(null),
+    // De qué empresa es la prenda (CAYLA o CLAURE, ADR-0465). Sin el dato (una base que aún no lo manda), la tarjeta no dibuja la insignia.
+    empresa: z.object({ clave: z.string().min(1), nombre: z.string().min(1) }).nullable().catch(null),
     // El precio del modelo en la tienda elegida (con «Todas», el mayor entre las tiendas de la web).
     precio: z.number().positive(),
     // Lo que paga el cliente con la campaña (el mismo `precio` si no hay); `desde`: la campaña no toca a todas sus tallas por igual.
@@ -57,7 +62,8 @@ export type Prenda = {
   id: string;
   codigo: string | null;
   nombre: string;
-  categoria: { nombre: string; prefijo: string | null } | null;
+  categoria: { nombre: string; prefijo: string | null; familia?: string | null } | null;
+  empresa: { clave: string; nombre: string } | null;
   precio: number;
   precioFinal: number;
   desde: boolean;
@@ -89,7 +95,8 @@ export function interpretarCatalogo(dato: unknown): Catalogo | null {
         id: d.id,
         codigo: d.codigo,
         nombre: d.nombre,
-        categoria: d.categoria,
+        categoria: d.categoria ? { ...d.categoria, familia: d.categoria_familia ?? null } : null,
+        empresa: d.empresa,
         precio: d.precio,
         precioFinal: d.precio_final,
         desde: d.desde,
@@ -129,6 +136,25 @@ export function precioTarjeta(p: Prenda): PrecioTarjeta {
 
 /** La insignia roja de la foto: «−12 %». */
 export const insigniaOferta = (p: Prenda): string | null => (p.campana && p.precioFinal < p.precio ? `−${pctTexto(p.campana.pct)} %` : null);
+
+/** Una insignia de la foto de la tarjeta: de qué es y qué dice. */
+export type InsigniaTarjeta = { clave: "puesto" | "oferta" | "nuevo" | "empresa"; texto: string };
+
+/**
+ * Las insignias de la foto, de arriba abajo: el puesto en Más vendidos, la campaña, «Nuevo» y la empresa de la prenda (ADR-0465, Felipe
+ * 2026-10-20: la de la empresa es la de «Nuevo» con su nombre, y va DEBAJO de «Nuevo»; si la tarjeta no la tiene, va ARRIBA de todas).
+ */
+export function insigniasDeTarjeta(p: Prenda, { puesto, sinNuevo = false }: { puesto?: number | null; sinNuevo?: boolean } = {}): InsigniaTarjeta[] {
+  const oferta = insigniaOferta(p);
+  const nueva = Boolean(p.nuevo) && !sinNuevo;
+  const empresa: InsigniaTarjeta[] = p.empresa ? [{ clave: "empresa", texto: p.empresa.nombre }] : [];
+  return [
+    ...(nueva ? [] : empresa),
+    ...(puesto ? [{ clave: "puesto" as const, texto: `N.º ${puesto}` }] : []),
+    ...(oferta ? [{ clave: "oferta" as const, texto: oferta }] : []),
+    ...(nueva ? [{ clave: "nuevo" as const, texto: "Nuevo" }, ...empresa] : []),
+  ];
+}
 
 /** Las muestras de color de la tarjeta: hasta `max`, y cuántas más hay. */
 export function muestras(p: Prenda, max = 5): { visibles: Color[]; mas: number } {
@@ -264,7 +290,7 @@ export const leerCategoria = (v: string | string[] | undefined): string | null =
   return c ? c.slice(0, 80) : null;
 };
 
-export type CategoriaLista = { clave: string; nombre: string; cuantas: number };
+export type CategoriaLista = { clave: string; nombre: string; cuantas: number; familia?: string | null };
 
 /** Las categorías que tienen algo publicado, de la que más tiene a la que menos (empate: por nombre). */
 export function categoriasDe(prendas: readonly Prenda[]): CategoriaLista[] {
@@ -272,7 +298,7 @@ export function categoriasDe(prendas: readonly Prenda[]): CategoriaLista[] {
   for (const p of prendas) {
     const clave = claveCategoria(p.categoria);
     if (!clave || !p.categoria) continue;
-    const c = porClave.get(clave) ?? { clave, nombre: p.categoria.nombre, cuantas: 0 };
+    const c = porClave.get(clave) ?? { clave, nombre: p.categoria.nombre, cuantas: 0, familia: p.categoria.familia };
     c.cuantas += 1;
     porClave.set(clave, c);
   }

@@ -25,13 +25,6 @@ export function textoNivel(n: Nivel): string {
 /** El color de la celda: verde si hay, rojo profundo si quedan pocas, tenue si no hay. */
 export const tonoNivel = (n: Nivel): "hay" | "poco" | "cero" => (n === "hay" ? "hay" : n > 0 ? "poco" : "cero");
 
-/** Debajo de la tabla: qué quiere decir «Hay» con el umbral de hoy. */
-export function leyendaNiveles(umbral: number): string {
-  const u = Math.min(3, Math.max(1, Math.trunc(umbral) || 3));
-  const cuantas = u === 1 ? "Si queda una, dice «Última»." : `Si quedan ${u} o menos, ves cuántas.`;
-  return `«Hay»: ${u + 1} o más. ${cuantas} Cambia con cada venta en tienda.`;
-}
-
 export type Tienda = { id: string; nombre: string };
 export type NotaStock = { texto: string; tono: "ok" | "poco" | "no" };
 

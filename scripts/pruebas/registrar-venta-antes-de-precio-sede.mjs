@@ -6,8 +6,9 @@
 // que sigue al contenido (20261013201000), una llamada insertada antes de buscar el token; y por último, el descuento sin céntimos
 // (20261014173000, ADR-0403), dos reemplazos anclados en los topes del 35 y del 15 %; y el cumpleaños sin céntimos (20261015182000,
 // ADR-0403 act. 2026-10-15), dos reemplazos anclados en la cuenta del club; y la máquina de cobro (20261016182000, ADR-0429), un
-// reemplazo anclado en el insert de `venta_pagos` (le suma `cuenta_dinero_id`). El candado de huella de la migración vieja los rechaza, y
-// está bien que lo haga.
+// reemplazo anclado en el insert de `venta_pagos` (le suma `cuenta_dinero_id`); y el programa de puntos del Club (20261019202000,
+// 204000, 221000 y 224000, ADR-0459), diez reemplazos anclados: los puntos al final, el cupón, el rechazo del 10 % y del vale, y el
+// cupón reservado. El candado de huella de la migración vieja los rechaza, y está bien que lo haga.
 //
 // Para probar la migración vieja sobre SU punto de partida, este texto devuelve la función a como estaba antes de esos parches
 // (se deshacen del más nuevo al más viejo). SOLO va dentro de una transacción que se deshace, o seguido de `REHACER_POSTERIORES`
@@ -173,7 +174,60 @@ end $deshacer$;
 export const REHACER_PRECIO_SEDE = readFileSync("supabase/migrations/20261010100200_venta_cobra_precio_de_sede.sql", "utf8");
 export const REHACER_ORIGEN_SUGERENCIA = readFileSync("supabase/migrations/20261010220100_venta_items_origen_sugerencia_parte2.sql", "utf8");
 
+/** Los reemplazos anclados del programa de puntos del Club (ADR-0459) sobre `registrar_venta`, en el orden en que se aplican:
+ *  20261019202000 (los puntos al final), 20261019204000 (el cupón: 4a–4g), 20261019221000 (rechaza el 10 % de cumpleaños y el
+ *  vale con `beneficio_retirado`) y 20261019224000 (5d: un cupón reservado para un pedido web no se cobra en caja). Cada par
+ *  [viejo, nuevo] se lee del archivo: solo las llamadas `pg_temp.reemplazar('retail.registrar_venta(…)', $v$…$v$, $v$…$v$, 1)`,
+ *  nunca las de las otras funciones que esos archivos tocan. */
+const CLUB_PUNTOS = [
+  ["20261019202000_club_puntos_ganar.sql", 1],
+  ["20261019204000_club_puntos_cobrar_con_cupon.sql", 7],
+  ["20261019221000_club_puntos_retira_cumple_vale_y_ligado.sql", 1],
+  ["20261019224000_club_puntos_pedido_web.sql", 1],
+].flatMap(([archivo, cuantos]) => {
+  const texto = readFileSync(`supabase/migrations/${archivo}`, "utf8");
+  const pares = [...texto.matchAll(/pg_temp\.reemplazar\(\s*'retail\.registrar_venta\([^']*\)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$,\s*1\);/g)].map((m) => [m[1], m[2]]);
+  if (pares.length !== cuantos) throw new Error(`registrar-venta-antes-de-precio-sede: en ${archivo} esperaba ${cuantos} reemplazos de registrar_venta y hay ${pares.length}`);
+  return pares;
+});
+/** Inverso del programa de puntos: del último reemplazo al primero, el texto nuevo vuelve a ser el viejo. Si la base no los tiene
+ *  (la de main), `replace` no cambia nada. */
+export const DESHACER_CLUB_PUNTOS = `do $deshacer$
+declare
+  v_firma text := ${FIRMA};
+begin
+${[...CLUB_PUNTOS]
+  .reverse()
+  .map(([viejo, nuevo]) => `  execute replace(pg_get_functiondef(v_firma::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`)
+  .join("\n")}
+end $deshacer$;
+`;
+/** Y rehecho en su orden, SOLO sobre `registrar_venta` (volver a pegar los cuatro archivos enteros recrearía tablas, disparadores y
+ *  una docena de funciones que aquí no se miden). Re-ejecutable: primero deshace lo que ya esté y después aplica los diez, cada uno
+ *  sobre un texto viejo que tiene que aparecer exactamente una vez. No sirve el «si el texto nuevo ya está, no hago nada» de
+ *  `pg_temp.reemplazar`: 224000 (5d) edita por dentro el texto nuevo de 204000 (4c), y con esa guarda una segunda pasada metería otra
+ *  vez el bloque del cupón. Una base sin el programa de puntos (sin `club_cupones`, la de main antes de fusionar) no tiene nada que
+ *  rehacer: ahí no hace nada, igual que el inverso. */
+export const REHACER_CLUB_PUNTOS = `${DESHACER_CLUB_PUNTOS}
+do $rehacer$
+declare
+  v_firma text := ${FIRMA};
+  v_def text;
+begin
+  if to_regclass('retail.club_cupones') is null then
+    return;
+  end if;
+${CLUB_PUNTOS.map(
+  ([viejo, nuevo]) => `  v_def := pg_get_functiondef(v_firma::regprocedure);
+  if (length(v_def) - length(replace(v_def, $q$${viejo}$q$, ''))) / length($q$${viejo}$q$) <> 1 then
+    raise exception 'registrar_venta cambió: no puedo rehacer un reemplazo del programa de puntos';
+  end if;
+  execute replace(v_def, $q$${viejo}$q$, $q$${nuevo}$q$);`,
+).join("\n")}
+end $rehacer$;
+`;
+
 /** Todos los parches posteriores al redondeo, deshechos del más nuevo al más viejo. */
-export const DESHACER_POSTERIORES = `${DESHACER_MAQUINA}\n${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
+export const DESHACER_POSTERIORES = `${DESHACER_CLUB_PUNTOS}\n${DESHACER_MAQUINA}\n${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
 /** Y rehechos en su orden. */
-export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}\n${REHACER_PRECIO_CERO}\n${REHACER_TOKEN}\n${REHACER_DESCUENTO_SIN_CENTIMOS}\n${REHACER_CUMPLE_SIN_CENTIMOS}\n${REHACER_MAQUINA}`;
+export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}\n${REHACER_PRECIO_CERO}\n${REHACER_TOKEN}\n${REHACER_DESCUENTO_SIN_CENTIMOS}\n${REHACER_CUMPLE_SIN_CENTIMOS}\n${REHACER_MAQUINA}\n${REHACER_CLUB_PUNTOS}`;

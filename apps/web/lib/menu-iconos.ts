@@ -153,6 +153,8 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // ni el pulso de CAYLA Global, que pueden estar en el mismo lateral.
   resumenWeb: "M3 3h7v9H3z M14 3h7v5h-7z M14 12h7v9h-7z M3 16h7v5H3z", // lucide «layout-dashboard»
   // Controles deslizantes: Tienda web ▸ Ajustes (ADR-0430), lo que la tienda online muestra de cada tienda y sus plazos.
+  // Regalo: los beneficios del club (puntos y cupones, programa de puntos 2026-10-19). Distinto del corazón del club, que ya es del grupo.
+  puntos: "M20 12v10H4V12 M2 7h20v5H2z M12 22V7 M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z", // lucide «gift»
   ajustesWeb: "M21 4h-7 M10 4H3 M21 12h-9 M8 12H3 M21 20h-5 M12 20H3 M14 2v4 M8 10v4 M16 18v4", // lucide «sliders-horizontal»
 };
 
