@@ -39,12 +39,17 @@ a.t-campana[data-campana]:hover, .t-campana[data-campana][aria-current="true"] {
 
 /* El título de una campaña con diseño, como en la vista previa del ERP: sobrio, en una línea por palabra (nunca partido a media palabra), con la última
    palabra en cursiva y en el color de acento; el descuento grande en cursiva y los botones con su flecha. La portada de siempre no cambia. */
-.t-hero[data-campana] .t-hero-tit { font-variation-settings: "wdth" 100; font-weight: 500; letter-spacing: 0; line-height: 1.02; font-size: clamp(30px, 4.6cqi, 68px); }
+.t-hero[data-campana] .t-hero-tit { font-variation-settings: "wdth" 100; font-weight: 500; letter-spacing: 0; line-height: 1.02; font-size: clamp(32px, 5.6cqi, 80px); }
 .t-hero[data-campana] .t-hero-tit em { font-family: var(--nombre); font-style: italic; font-weight: 400; text-transform: none; font-size: 1.18em; line-height: 1.05; }
 .t-hero[data-campana] .t-hero-dcto { display: flex; align-items: baseline; gap: 12px; margin: 28px 0 0; }
-.t-hero[data-campana] .t-hero-dcto b { font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: clamp(34px, 3.6cqi, 52px); line-height: 1; color: var(--cmp-acento); }
+.t-hero[data-campana] .t-hero-dcto b { font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: clamp(36px, 4.2cqi, 60px); line-height: 1; color: var(--cmp-acento); }
 .t-hero[data-campana] .t-hero-dcto span { font-size: 14px; color: var(--cmp-texto); }
 .t-hero[data-campana] .t-hero-como { margin: 12px 0 0; max-width: 38ch; font-size: 15px; line-height: 1.55; color: var(--cmp-texto); opacity: .9; }
+/* Entre 640 y 959 px la portada de siempre es de una sola columna y deja el costado en blanco: con diseño de campaña, el texto y la obra van lado a lado
+   desde 640 px (a partir de 960 ya lo hace la portada de siempre). */
+@container tienda (min-width: 640px) and (max-width: 959.98px) {
+  .t-hero[data-campana].t-hero-inicio { grid-template-columns: minmax(0, 1fr) minmax(0, 38%); align-items: end; gap: clamp(20px, 4cqi, 48px); padding: clamp(32px, 6cqi, 72px) clamp(16px, 4cqi, 64px) 0; }
+}
 .t-hero[data-campana] .t-btn-borde { background: transparent; color: var(--cmp-texto); border-color: color-mix(in srgb, var(--cmp-texto) 75%, transparent); }
 @media (hover: hover) {
   .t-hero[data-campana] .t-btn-borde:hover:not(:disabled) { background: var(--cmp-texto); color: var(--cmp-fondo); }
