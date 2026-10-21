@@ -16,6 +16,7 @@ import {
   getSinTemporadaResumen,
   getFacetasProductos,
   getTemporadasCatalogo,
+  getEmpresasParaFiltro,
   getCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
@@ -107,7 +108,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear, empresas] = await Promise.all([
     listarProductos(filtros, pagina),
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
@@ -127,6 +128,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     editaCatalogo ? getPorRevisarResumen() : Promise.resolve(null),
     // ADR-0393 (decisión 4): lo nuevo que llegó a la sede y todavía no existe en el catálogo («por crear»). `null` si la base no lo sabe.
     getPendientesDeLaSede(persona.ubicacionId),
+    // ADR-0467: CAYLA y CLAURE, para su filtro. `null` si la base no las tiene o hay una sola: la píldora no aparece.
+    getEmpresasParaFiltro().catch(() => null),
   ]);
 
   // Lo de la sede elegida arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Va después de la
@@ -340,6 +343,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         panelInicial={panelFiltros}
         sede={enSede ? persona.ubicacionEtiqueta : null}
         temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}
+        empresas={empresas}
         // El tamaño de las tarjetas, al final de la fila del conteo (2026-10-09): en el celular era una fila más entre el orden y las
         // prendas. Solo en la Grilla: la Tabla no tiene tarjetas. La `key` es porque `FiltrosProductos` lo dibuja entre hermanos y React
         // pide key a un elemento que llega del servidor (aviso «unique key prop» en la consola, 2026-10-10).
