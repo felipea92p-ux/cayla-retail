@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 68,
+  "total": 69,
   "controles": {
     "app/(app)/productos/campanas/page.tsx": [
       "BotonVer «Cómo se ven en la tienda web»"
@@ -81,6 +81,9 @@
       "Boton «Rechazar»",
       "button «{cambiando ? \"Desactivando…\" : \"Desactivar\"}»",
       "Boton «Reactivar»"
+    ],
+    "components/etiqueta-prendas/EtiquetaColgada.tsx": [
+      "button «{`${x.producto.referencia}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",
