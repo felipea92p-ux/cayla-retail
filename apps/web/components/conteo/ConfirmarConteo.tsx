@@ -76,6 +76,7 @@ export function ConfirmarConteo({
   puedeCerrar,
   firma = { tipo: "propia" },
   notaArranque = null,
+  notaAtajo = null,
 }: {
   conteoId: string;
   /** Las variantes que cambian, ya en orden (`diferenciasEnOrden`). */
@@ -92,6 +93,8 @@ export function ConfirmarConteo({
   firma?: FirmaDelPaso;
   /** Lo que se dice del conteo de arranque (`notaDeArranque`), o `null`. */
   notaArranque?: { texto: string; tono: "nota" | "aviso" } | null;
+  /** Cuántas variantes contadas se completaron con «Completar todo» (`textoAtajoEnRevision`), o `null` si ninguna: cuentan, pero quien cierra lo sabe. */
+  notaAtajo?: string | null;
 }) {
   const router = useRouter();
   // El mismo recuerdo que Contar, Revisar y Cancelar: quien eligieron en este aparato para este conteo firma también el cierre.
@@ -256,6 +259,7 @@ export function ConfirmarConteo({
           {yaAjustadas === 1 ? "1 variante ya se ajustó en el cierre anterior y no cambia al cerrar de nuevo." : `${yaAjustadas} variantes ya se ajustaron en el cierre anterior y no cambian al cerrar de nuevo.`}
         </p>
       )}
+      {notaAtajo && <p className="nota-cayla">{notaAtajo}</p>}
       {notaArranque &&
         (notaArranque.tono === "aviso" ? (
           <Aviso tono="atencion">{notaArranque.texto}</Aviso>
