@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { CalendarHeart, HandHeart, RefreshCw, Shirt, Stamp } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -20,6 +20,7 @@ import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { BotonesPendiente, BotonReactivar } from "@/components/atributos/kit";
 import { CampanaModal, NuevaEtiquetaModal, botonCampana, ordenarEtiquetas, type CategoriaOpcion, type Etiqueta } from "@/components/EtiquetasLista";
 import { SelloTinta } from "@/components/sellos/SelloTinta";
+import { useColumnasDeLaBilletera, useCupoDelLookbook } from "@/components/sellos/useMedidasDeSellos";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { useResponsable } from "@/lib/useResponsable";
@@ -40,6 +41,7 @@ import {
   fechaLarga,
   fraseDelSello,
   loQueTiene,
+  lookbookVisible,
   marcaDelPase,
   paseInicial,
   pilasDeLaVista,
@@ -68,8 +70,6 @@ const ICONO_VISTA: Record<VistaSellos, ReactNode> = {
   general: <Stamp aria-hidden className="h-4 w-4" />,
 };
 
-/** Cuántas prendas se ven en el lookbook antes del «+ N más». */
-const LOOKBOOK_MAX = 11;
 
 export function SellosPantalla({
   sede,
@@ -123,6 +123,12 @@ export function SellosPantalla({
   const [configurando, setConfigurando] = useState<Etiqueta | null>(null);
   const [etiquetando, setEtiquetando] = useState<Etiqueta | null>(null);
   const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
+  // La billetera tiene dos columnas (la pila y el pase en grande) o una, según su ancho (una consulta de contenedor en sellos.css). Con
+  // una, el pase en grande va justo debajo del pase abierto: en el celular no queda al final de toda la pila, lejos de lo que tocaste.
+  const [refBilletera, columnasBilletera] = useColumnasDeLaBilletera();
+  const enLinea = columnasBilletera < 2;
+  // El lookbook muestra dos filas: las columnas las pone el ancho, y la última casilla dice cuántas faltan (`lookbookVisible`).
+  const [refLookbook, columnasLookbook] = useCupoDelLookbook();
 
   const esCampanas = vista === "campanas";
   const T = TEXTOS_MODO[esCampanas ? "campanas" : "sellos"];
@@ -438,8 +444,9 @@ export function SellosPantalla({
                   ? "Sin fechas"
                   : TEXTOS_VISTA[vistaDeEstilo(e.estilo)].nombre;
     const editable = puedeEditar(e) && e.activo && e.estado === "aprobado";
-    const visibles = p.modelos.slice(0, LOOKBOOK_MAX);
-    const resto = p.modelos.length - visibles.length;
+    const cupo = lookbookVisible(p.modelos.length, columnasLookbook);
+    const visibles = p.modelos.slice(0, cupo.visibles);
+    const resto = cupo.resto;
     return (
       <>
         <div className="sl-kick" style={{ "--i": 0 } as CSSProperties}>
@@ -454,7 +461,14 @@ export function SellosPantalla({
         </p>
         {prendasVitrina &&
           (p.modelos.length > 0 ? (
-            <div className="sl-lookbook mt-6" data-guia="sellos.lookbook" style={{ "--i": 3 } as CSSProperties}>
+            <div
+              ref={refLookbook}
+              className="sl-lookbook mt-6"
+              data-guia="sellos.lookbook"
+              // Pocas prendas (no llenan una fila): se centran bajo el título en vez de quedar pegadas a la izquierda.
+              data-pocas={p.modelos.length < columnasLookbook ? "" : undefined}
+              style={{ "--i": 3, "--sl-n": p.modelos.length } as CSSProperties}
+            >
               {visibles.map((m, j) => (
                 <div key={m.clave} className="sl-prenda" style={{ "--j": j } as CSSProperties}>
                   <div className="sl-prenda-foto">
@@ -592,23 +606,34 @@ export function SellosPantalla({
           {esCampanas ? "Crea la primera con su nombre y después ponle sus fechas, su descuento y sus prendas." : "Crea uno y márcalo en sus prendas."}
         </Vacio>
       ) : (
-        <div key={vista} className="sl-billetera">
-          <div data-guia="sellos.pila">
-            {pilas.map((pila) => (
-              <section key={pila.clave} className="sl-pila" aria-label={pila.titulo}>
-                <h3 className="sl-pila-titulo">
-                  {pila.titulo}
-                  <Globito n={pila.pases.length} />
-                </h3>
-                {pila.pases.map((e) => pase(e, pila.tono, indice++))}
-              </section>
-            ))}
+        <div key={vista} className="sl-marco">
+          <div ref={refBilletera} className="sl-billetera">
+            <div data-guia="sellos.pila">
+              {pilas.map((pila) => (
+                <section key={pila.clave} className="sl-pila" aria-label={pila.titulo}>
+                  <h3 className="sl-pila-titulo">
+                    {pila.titulo}
+                    <Globito n={pila.pases.length} />
+                  </h3>
+                  {pila.pases.map((e) => (
+                    <Fragment key={e.id}>
+                      {pase(e, pila.tono, indice++)}
+                      {enLinea && abierto?.id === e.id && (
+                        <div className="sl-detalle sl-detalle-en-linea" aria-live="polite" data-guia="sellos.detalle">
+                          {detalle(e)}
+                        </div>
+                      )}
+                    </Fragment>
+                  ))}
+                </section>
+              ))}
+            </div>
+            {abierto && !enLinea && (
+              <aside key={abierto.id} className="sl-detalle" aria-live="polite" data-guia="sellos.detalle">
+                {detalle(abierto)}
+              </aside>
+            )}
           </div>
-          {abierto && (
-            <aside key={abierto.id} className="sl-detalle" aria-live="polite" data-guia="sellos.detalle">
-              {detalle(abierto)}
-            </aside>
-          )}
         </div>
       )}
 

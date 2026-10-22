@@ -4,10 +4,12 @@ import {
   VISTAS_SELLOS,
   avanceDeCampana,
   bajadaDelPase,
+  columnasQueCaben,
   diasEntre,
   fechaLarga,
   fraseDelSello,
   loQueTiene,
+  lookbookVisible,
   marcaDelPase,
   paseInicial,
   pilasDeLaVista,
@@ -182,3 +184,41 @@ describe("lo que dice el pase abierto", () => {
     expect(loQueTiene(FILAS[5]!, 0, [], HOY)[0]).toMatchObject({ hecho: false, detalle: "sin fechas" });
   });
 });
+
+describe("el lookbook: dos filas y el «+N» abajo a la derecha", () => {
+  it("si todas caben se ven todas, sin «+N»", () => {
+    expect(lookbookVisible(0, 5)).toEqual({ visibles: 0, resto: 0 });
+    expect(lookbookVisible(3, 5)).toEqual({ visibles: 3, resto: 0 });
+    expect(lookbookVisible(10, 5)).toEqual({ visibles: 10, resto: 0 });
+  });
+  it("si sobran, la última casilla de la segunda fila es el «+N»", () => {
+    // La captura de Felipe: 39 prendas, 5 columnas → 9 prendas y «+30».
+    expect(lookbookVisible(39, 5)).toEqual({ visibles: 9, resto: 30 });
+    expect(lookbookVisible(11, 5)).toEqual({ visibles: 9, resto: 2 });
+    // En el celular entran 3 por fila.
+    expect(lookbookVisible(39, 3)).toEqual({ visibles: 5, resto: 34 });
+  });
+  it("nunca menos de una columna ni de una fila", () => {
+    expect(lookbookVisible(4, 0)).toEqual({ visibles: 1, resto: 3 });
+    expect(lookbookVisible(4, 2, 0)).toEqual({ visibles: 1, resto: 3 });
+  });
+});
+
+describe("cuántas columnas caben (la cuenta de `auto-fill`)", () => {
+  it("como el navegador: casillas de al menos el mínimo, con su hueco entre ellas", () => {
+    // El pase en grande a 1440 px mide ~633 px: casillas de 132 con 14 de hueco → 4.
+    expect(columnasQueCaben(633, 132, 14)).toBe(4);
+    // La captura de Felipe: ~790 px → 5.
+    expect(columnasQueCaben(790, 132, 14)).toBe(5);
+    // Justo: 2 casillas de 132 y un hueco de 14 caben en 278.
+    expect(columnasQueCaben(278, 132, 14)).toBe(2);
+    expect(columnasQueCaben(277, 132, 14)).toBe(1);
+    // Celular: ~343 px con casillas de 96 y 10 de hueco → 3.
+    expect(columnasQueCaben(343, 96, 10)).toBe(3);
+  });
+  it("sin ancho todavía (antes de medir), una", () => {
+    expect(columnasQueCaben(0, 132, 14)).toBe(1);
+    expect(columnasQueCaben(500, 0, 14)).toBe(1);
+  });
+});
+

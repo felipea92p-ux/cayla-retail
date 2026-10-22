@@ -76,3 +76,23 @@ Sellos de punta a punta en el navegador (15 pasos, sin escribir nada en la base)
 
 Producción. `guias:recorrer` (esta Mac no tiene el navegador de Playwright). Guardar de verdad desde la pantalla nueva (crear, configurar,
 desactivar): usa las mismas puertas y hojas de antes, sin cambios, pero no se corrió `/chaos` sobre ella.
+
+## Actualización 2026-10-22 (noche) — dos filas de prendas, el texto centrado y el detalle junto al pase en pantallas angostas
+
+Felipe, mirando la pantalla con 39 prendas: «quiero que solo salgan 2 líneas y en la última de la derecha abajo salga el +28 dependiendo de las
+prendas extra que haya, ya que los datos de abajo se pierden de vista muy fácilmente. Y centra mejor el texto de la campaña para que quede justo
+en medio de las prendas, y verifica que todo sea lo más responsive posible, también desde teléfono».
+
+- **Dos filas como mucho.** Cuántas prendas entran por fila lo decide el ancho (`repeat(auto-fill, minmax(--sl-min, 1fr))`); la pantalla lee
+  esas mismas variables (`--sl-min`, `--sl-hueco`) y hace la cuenta del navegador (`columnasQueCaben`). Si sobran prendas, la última casilla de
+  la segunda fila dice «+N» (`lookbookVisible`): 7 por fila y «+26» a 1920 px, 4 y «+32» a 1440, 3 y «+34» a 375.
+- **El nombre, su línea de arriba y su frase, centrados sobre las prendas.** Con pocas prendas (no llenan una fila) también ellas se centran.
+- **En pantallas angostas el pase en grande va justo debajo del pase abierto**, no al final de toda la pila. Se decide por el ancho de la
+  pantalla de Sellos (consulta de contenedor de 56 rem), no por el de la ventana: a 1024 px, con el lateral abierto, dos columnas apretaban
+  las prendas. La pantalla lee `--sl-columnas` del mismo CSS.
+- **Una cifra de la derecha del pase nunca se parte** («8» / «AGO» con un nombre largo): el nombre se corta con sus puntos.
+
+Verificado en local a 1920, 1440, 1280, 1024, 768, 414, 390, 375, 360 y 320 px: dos filas, el «+N» en la última casilla, el título centrado
+exacto sobre las prendas, sin nada que se salga de la pantalla; pocas prendas centradas, una campaña sin prendas y una vista vacía (General).
+Con prendas marcadas solo para la prueba en la base local (119 filas), borradas al terminar.
+

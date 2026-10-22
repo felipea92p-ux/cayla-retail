@@ -244,6 +244,22 @@ export function prendasDelSello(
   return { modelos, unidades: porTalla ? unidades : null, vendidas: porTalla ? vendidas : null };
 }
 
+/** Cuántas columnas pone una grilla `repeat(auto-fill, minmax(<minimo>, 1fr))` con `gap: <hueco>` en `ancho` px: la cuenta del navegador
+ *  (cada columna mide al menos `minimo` y entre dos va un `hueco`). Nunca menos de una. */
+export function columnasQueCaben(ancho: number, minimo: number, hueco: number): number {
+  if (!(ancho > 0) || !(minimo > 0)) return 1;
+  return Math.max(1, Math.floor((ancho + Math.max(0, hueco)) / (minimo + Math.max(0, hueco))));
+}
+
+/** Cuántas prendas caben en el lookbook (Felipe 2026-10-22: «que solo salgan 2 líneas y en la última de la derecha abajo salga el +28»):
+ *  con `columnas` por fila y `filas` filas, si todas caben se ven todas; si sobran, se ven todas las casillas menos una y esa última
+ *  (abajo a la derecha) dice cuántas faltan. Las columnas las decide el ancho (la grilla es `auto-fill`), así que el «+N» cambia con él. */
+export function lookbookVisible(total: number, columnas: number, filas = 2): { visibles: number; resto: number } {
+  const casillas = Math.max(1, Math.floor(columnas)) * Math.max(1, Math.floor(filas));
+  if (total <= casillas) return { visibles: Math.max(0, total), resto: 0 };
+  return { visibles: casillas - 1, resto: total - (casillas - 1) };
+}
+
 // ---- Lo que dice el pase abierto ------------------------------------------------------------------------------------------
 
 const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? uno : varios}`;
