@@ -1,0 +1,11 @@
+## Cierre de mes: cuatro pendientes por sede (2026-10-22) — rama `claude/cierre-chequeos-diferencias`, sin subir
+
+- [x] **Chequeos `envios_con_diferencia`, `conteos_abiertos`, `sobrantes_traslado` y `facturas_sin_recibir`** en `fn_cierre_mes_estado` (avisan antes de la fecha de corte, frenan desde ella) → `20261023121500_cierre_mes_chequeos_de_pendientes.sql` (versión provisional) + `cerrar_periodo` nombra cada uno en su mensaje. ADR provisional `docs/adr/XXXX-cierre-de-mes-chequeos-de-pendientes.md`.
+- [x] **Web:** `apps/web/lib/cierre-reglas.ts` (claves, títulos, frase con la sede, enlace) con su prueba; `textoChequeo` recibe la unidad como tercer parámetro opcional.
+- [x] **Prueba:** `pnpm pruebas:cierre-diferencias` (74 casos), en la lista del job de Postgres.
+- [ ] **Reservar** el número del ADR (`pnpm reservar adr`) y la versión de la migración (`pnpm reservar migracion`) al abrir el PR (`/abrir-pr`), y renombrar los archivos.
+- [ ] **Pegar en producción con el OK de Felipe**, antes de cerrar octubre. Antes de pegar: comparar las definiciones vivas de `fn_cierre_mes_estado` y `cerrar_periodo` con las del repo (el ancla aborta si cambiaron). Después: refrescar el volcado y el diccionario (`pnpm datos:generar:produccion`) para la columna nueva de `parametros_finanzas`.
+- [ ] **Decisión de Felipe: mercadería en camino.** `facturas_sin_recibir` cuenta toda factura de mercadería vigente con prendas sin recibir, también la que viene en camino con `fecha_estimada_llegada` posterior al fin de mes. Desde noviembre frena el cierre hasta que llegue o se cierre la línea. Si eso es demasiado, se excluye lo que tenga fecha estimada futura.
+- [ ] **Decisión de Felipe: mover la fecha de corte.** Hoy es un UPDATE explícito sobre `parametros_finanzas`. Si hace falta una pantalla en Configuración (con su guía, historial y permiso), es otra actividad.
+- [ ] **Hueco conocido: envío reabierto o abierto sin cerrar.** `reabrir_envio` baja sus diferencias de `vigente` y mientras está abierto no tiene ninguna: el chequeo `envios_con_diferencia` no lo ve, y «Nos debe» tampoco. Un chequeo aparte ("envíos sin cerrar") lo cubriría.
+- [ ] **Los sobrantes `cobra_aparte` y `proxima_compra`** (de `despacho_diferencias`) no tienen una resolución por hacer en la base y no cuentan; si Compras quiere seguirlos, necesitan su propio flujo antes de ser un chequeo.
