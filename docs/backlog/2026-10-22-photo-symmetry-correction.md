@@ -6,3 +6,6 @@
 - [ ] **Comparar con la prenda física** las fotos corregidas con IA que más pueden haber cambiado: VES-0014, VES-0015, TOP-0018 (texto del pecho), POL-0015 (etiqueta del cuello), JEA-0015 (ancho). Todas las fotos viejas siguen en el almacén.
 - [ ] **Fotos sin revisar:** las de color que no son la principal, los accesorios y las 84 que ya eran PNG. Decidir si en lote con la API de OpenAI (cuenta aparte del plan Plus) o de a una con ChatGPT.
 - [ ] Mensaje para el equipo de fotos (WhatsApp): sin fondo, sin gancho/pinzas/etiqueta colgante, lazos y etiquetas cosidas se quedan, una foto por color. Ya redactado en la conversación del 2026-10-22; falta enviarlo.
+- [ ] **Subir las 13 fotos rehechas con ChatGPT** (SHO-0011, ACC-0001, ACC-0018, ACC-0021 BLA/NEG, ACC-0023, CAR-0005, CMS-0048 NUD, LSO-0001, PAN-0016, POL-0040, TOP-0072): al subirlas desde Editar producto el recorte nuevo se genera solo. Escribe en producción: espera el OK de Felipe, foto por foto.
+- [ ] **Mirar blusas reales en el probador** después del cambio de tamaño por torso (ADR-0449 act. c): cambian de tamaño ~80 % de las blusas, poco cada una.
+

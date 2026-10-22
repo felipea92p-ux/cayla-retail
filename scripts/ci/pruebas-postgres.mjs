@@ -1478,6 +1478,11 @@ export const PRUEBAS = [
   // anuladas; categorías, prendas y equipo suman lo vendido; horas pico = promedio de 4 semanas; solo Admin.
   "pruebas:observatorio",
 
+  // Los dos arreglos de octubre que vivían solo en producción y hoy están en `main` (20261022200000 y 20261022201000): Roles y
+  // accesos no lista a quien Dynamic dio de baja, y el panel de una tienda cuenta la prenda sin registrar en la categoría que
+  // se declaró en caja; cada caso con su control (la versión de antes los pisa), los permisos, los atributos y la huella del cuerpo de producción. ROLLBACK.
+  "pruebas:arreglos-en-vivo-roles-observatorio",
+
   // Aprobar una etiqueta propuesta (trigger `fn_etiquetas_estado_trigger`): la base exige un comentario en toda transición
   // a «aprobado» —también al reactivar una rechazada— y la pantalla de Etiquetas tiene que mandarlo (cuerpo con `notas`;
   // antes mandaba solo el estado y ninguna propuesta se podía aprobar). También fija que una propuesta pendiente no entra

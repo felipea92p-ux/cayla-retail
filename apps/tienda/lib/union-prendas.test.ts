@@ -5,9 +5,16 @@ import {
   AJUSTE_MAXIMO_DE_ARRIBA,
   ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA,
   anchoDelBajo,
+  ANCHO_ESTANDAR_DEL_TORSO,
+  BANDA_MUERTA_DEL_TORSO,
+  BAJO_CREIBLE_MAXIMO,
+  BAJO_CREIBLE_MINIMO,
   cajaDeArribaAjustada,
   cajaDeAbajoUnida,
   direccionParaMedir,
+  FACTOR_MAXIMO_DEL_TORSO,
+  FACTOR_MINIMO_DEL_TORSO,
+  factorDelTorso,
   filaAltaDelBorde,
   FILA_ESTIMADA_DEL_BORDE,
   FRANJAS_DEL_BAJO,
@@ -207,6 +214,76 @@ describe("cajaDeArribaAjustada: solo crece lo dibujado demasiado chico, lo demá
   it("crece en proporción a lo que le falta: justo lo que necesita para llegar a la cintura mínima", () => {
     const c = cajaDeArribaAjustada(con(0.4))!; // 64 px de bajo contra 76,5
     expect(c.w / 160).toBeCloseTo(MINIMO / 64, 1);
+  });
+});
+
+describe("factorDelTorso: una blusa se escala por el ancho de su propio bajo", () => {
+  it("una blusa con el bajo típico (40 cm) no se toca", () => {
+    expect(factorDelTorso(ANCHO_ESTANDAR_DEL_TORSO)).toBeNull();
+    expect(factorDelTorso(ANCHO_ESTANDAR_DEL_TORSO * (1 + BANDA_MUERTA_DEL_TORSO / 2))).toBeNull();
+  });
+
+  it("dibujada demasiado grande (bajo ancho) se encoge, y demasiado chica (bajo angosto) crece", () => {
+    expect(factorDelTorso(52)!).toBeLessThan(1);
+    expect(factorDelTorso(30)!).toBeGreaterThan(1);
+  });
+
+  it("corrige solo una parte (0,8) de lo que falta, y nunca pasa de sus topes", () => {
+    expect(factorDelTorso(50)!).toBeCloseTo((ANCHO_ESTANDAR_DEL_TORSO / 50) ** 0.8, 5);
+    expect(factorDelTorso(BAJO_CREIBLE_MINIMO)!).toBeLessThanOrEqual(FACTOR_MAXIMO_DEL_TORSO);
+    expect(factorDelTorso(BAJO_CREIBLE_MAXIMO)!).toBeGreaterThanOrEqual(FACTOR_MINIMO_DEL_TORSO);
+  });
+
+  it("una medida increíble (fuera de 18 a 62 cm, NaN) no toca la prenda", () => {
+    for (const cm of [0, 5, BAJO_CREIBLE_MINIMO - 0.1, BAJO_CREIBLE_MAXIMO + 0.1, 120, NaN, -3]) expect(factorDelTorso(cm)).toBeNull();
+  });
+
+  it("es monótono: cuanto más ancho el bajo, más se encoge", () => {
+    const k = [24, 30, 36, 44, 50, 58].map((cm) => factorDelTorso(cm) ?? 1);
+    for (let i = 1; i < k.length; i++) expect(k[i]).toBeLessThanOrEqual(k[i - 1]);
+  });
+});
+
+describe("cajaDeArribaAjustada con porTorso: una blusa se encoge o crece según su propio bajo", () => {
+  // Una blusa de 160 px de ancho cuyo bajo mide `cm` centímetros.
+  const blusa = (cm: number, extra: { metida?: boolean; porTorso?: boolean } = {}) => ({
+    caja: { x: 110, y: 44, w: 160, h: 160 },
+    medida: { filaDelBorde: 0.9, borde: (cm * PX_POR_CM) / 160, pretina: null, bajo: null, anchoBajo: null } as MedidaDelRecorte,
+    metida: extra.metida ?? false,
+    porTorso: extra.porTorso ?? true,
+  });
+
+  it("una blusa dibujada ancha se encoge (la regla de siempre jamás la encogía)", () => {
+    const c = cajaDeArribaAjustada(blusa(54))!;
+    expect(c.w).toBeLessThan(160);
+    expect(cajaDeArribaAjustada(blusa(54, { porTorso: false }))).toBeNull();
+  });
+
+  it("una blusa dibujada chica crece, aunque su bajo pase de la cintura mínima de la unión", () => {
+    // 34 cm de bajo: la regla de siempre (mínimo 30,6) no la toca; la del torso sí la agranda hacia 40.
+    expect(cajaDeArribaAjustada(blusa(34, { porTorso: false }))).toBeNull();
+    expect(cajaDeArribaAjustada(blusa(34))!.w).toBeGreaterThan(160);
+  });
+
+  it("una blusa con el bajo típico no se mueve ni un píxel", () => {
+    expect(cajaDeArribaAjustada(blusa(40))).toBeNull();
+    expect(cajaDeArribaAjustada(blusa(41))).toBeNull();
+  });
+
+  it("escala parejo, desde el centro de los hombros y sin subir", () => {
+    for (const cm of [30, 54]) {
+      const c = cajaDeArribaAjustada(blusa(cm))!;
+      expect(c.w / c.h).toBeCloseTo(1, 1);
+      expect(Math.abs(c.x + c.w / 2 - (110 + 80))).toBeLessThanOrEqual(1);
+      expect(c.y).toBe(44);
+    }
+  });
+
+  it("sin medida creíble, metida o sin medida, no se ajusta", () => {
+    expect(cajaDeArribaAjustada(blusa(54, { metida: true }))).toBeNull();
+    expect(cajaDeArribaAjustada({ ...blusa(54), medida: null })).toBeNull();
+    expect(cajaDeArribaAjustada({ ...blusa(54), medida: SIN_MEDIDA })).toBeNull();
+    expect(cajaDeArribaAjustada(blusa(70))).toBeNull(); // un bajo de 70 cm es una foto rara
   });
 });
 
