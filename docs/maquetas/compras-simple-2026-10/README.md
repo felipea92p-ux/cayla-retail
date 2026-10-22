@@ -110,7 +110,7 @@ comparación contra ese resultado.
   «Usar ese» y «No, es otro». Al registrarlo, sigue directo a su primera compra («Es tu primera compra con él: dinos qué es»). Lo demás
   (cuentas, contacto) lo completa Compras.
 - **«¿A qué tienda va?»** al final de cada prenda, después de la venta: Tienda TRU, AQP o LIM. La tienda de la prenda anterior sale
-  marcada «Como la anterior». Revisar dice «va a TRU»; un papel con prendas para dos tiendas dice «Falta mandar a TRU, AQP» y se manda
+  marcada «Como la anterior». Revisar dice «va a TRU»; un papel con prendas para dos tiendas dice «Mandar a TRU, AQP» y se manda
   en un envío por tienda: al elegir la tienda en «Armar un envío» se marcan solos los papeles que tienen prendas para ella y se ve solo
   lo que va a esa tienda. Al recibir, cada tienda ve solo lo suyo («Lo que anotó Marisol al comprar para Tienda TRU») y una línea con
   lo que de ese papel va a otra tienda.
@@ -119,7 +119,7 @@ comparación contra ese resultado.
 1. Registrar una compra → chip «Jeans» → queda Confecciones Lupe. Borra el chip y escribe «lupe» en el buscador: también.
 2. Textiles Rosa → chip «Polos» → solo sus 3 polos.
 3. Un habitual → cantidad, costo y venta de un toque → **¿A qué tienda va?** → TRU. Otra prenda → … → AQP (la anterior sale marcada).
-   Papel → Guardar: la fila dice «Falta mandar a TRU, AQP». Armar un envío → TRU → Mandar; Armar un envío → AQP → Mandar: «A TRU, AQP».
+   Papel → Guardar: la fila dice «Mandar a TRU, AQP». Armar un envío → TRU → Mandar; Armar un envío → AQP → Mandar: «A TRU, AQP».
 4. Registrar una compra → Nuevo proveedor → escribe «Textiles Rosa» → sale el aviso. «No, es otro» → otro nombre, «No tiene RUC» →
    Registrar y seguir → su primera compra.
 

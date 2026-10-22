@@ -493,6 +493,7 @@ const ICO = {
   mano:'<path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/>',
   aviso:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',
   sello:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  bolsa:'<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/>',
 };
 const ic = (n, cls="ico") => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[n]}</svg>`;
 const reg = (id) => S.regs.find((r) => r.id === id);
@@ -615,7 +616,7 @@ function escena1() {
 
 /* ======================= Paso 2 · La compradora (celular) ======================= */
 function escena2() {
-  return `<div class="quien">${ic("camara")}<span>La usa <b>la compradora</b>, en su celular, cuando paga: en el puesto o por un pedido al proveedor. Empieza en su Inicio: toca «Tu ronda de compras». Después prueba «Registrar una compra», «Otro gasto», «Armar un envío» y «Terminé por hoy».</span></div>
+  return `<div class="quien">${ic("bolsa")}<span>La usa <b>la compradora</b>, en su celular, cuando paga: en el puesto o por un pedido al proveedor. Empieza en su Inicio: toca «Tu ronda de compras». Después prueba «Registrar una compra», «Otro gasto», «Armar un envío» y «Terminé por hoy».</span></div>
   <div class="escena-tel">${telHTML()}
   <div class="lado"><span class="kick">Lo que hace ${PERSONAS[S.tel.quien].nombre.split(" ")[0]}</span><h3>Lo de siempre, en pocos toques</h3>
     <p>Elige al proveedor y ve lo que más le compra. Un toque arma la prenda con la cantidad, el costo y la venta de la vez pasada.</p>
@@ -653,7 +654,7 @@ function pantallaTel() {
       const enviada = S.envios.filter((e) => e.comps.includes(r.id)).map((e) => e.tienda), falta = r.clase === "compra" ? tiendasPendientes(r).filter((x) => x !== "*") : [];
       if (r.clase === "ingreso") return `<div class="fila-tel"><span class="mini">${voucherHTML(r,true)}</span><span class="t"><b>${COMO[r.como]}</b><small>${r.como==="yatenia"?"Plata del fondo":"Plata que te dieron"} · ${r.hora}</small></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="m" style="color:var(--verde)">+ ${soles(r.monto)}</span><span class="chip ${r.estado==="pendiente"?"ambar":"verde"} sinpunto" style="height:18px;font-size:9.5px">${r.estado==="pendiente"?"Por confirmar":"Confirmada"}</span></span></div>`;
       const det = r.clase === "gasto" ? `Otro gasto · ${r.hora}` : `${r.lineas?.length ? resumenLineas(r.lineas) : "Compra"} · ${r.hora}`;
-      const chip = r.clase === "gasto" ? "" : falta.length ? `<span class="chip ambar sinpunto" style="height:18px;font-size:9.5px">Falta mandar a ${falta.join(", ")}</span>` : enviada.length && !tiendasPendientes(r).length ? `<span class="chip verde sinpunto" style="height:18px;font-size:9.5px">A ${enviada.join(", ")}</span>` : `<span class="chip ambar sinpunto" style="height:18px;font-size:9.5px">Sin envío</span>`;
+      const chip = r.clase === "gasto" ? "" : falta.length ? `<span class="chip ambar sinpunto" style="height:18px;font-size:9.5px">Mandar a ${falta.join(", ")}</span>` : enviada.length && !tiendasPendientes(r).length ? `<span class="chip verde sinpunto" style="height:18px;font-size:9.5px">A ${enviada.join(", ")}</span>` : `<span class="chip ambar sinpunto" style="height:18px;font-size:9.5px">Sin envío</span>`;
       return `<div class="fila-tel"><span class="mini">${r.clase==="gasto" ? ic("billete") : `<div style="transform:scale(1);width:100%">${papelHTML(r,true)}</div>`}</span><span class="t"><b>${r.clase==="gasto"?h(r.tipo):TIPOS[r.tipo]}${r.provId?" · "+h(provDe(r.provId).nombre):""}</b><small>${det}</small></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="m">${soles(r.monto)}</span>${chip}</span></div>`;
     }).join("");
     const sinEnvio = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && tiendasPendientes(r).length).length;
@@ -661,7 +662,7 @@ function pantallaTel() {
       <div class="saldo ${c.queda<0?"debe":""}"><div class="l">${c.queda<0?"Pusiste de tu bolsillo":"Te queda para comprar"}</div><div class="v">${soles(Math.abs(c.queda))}</div>
         <div class="d">De ${soles(c.total)}${c.porConfirmar?` (${soles(c.porConfirmar)} por confirmar)`:""} · compras ${soles(c.compras)} · otros gastos ${soles(c.gastos)}</div><div class="barra"><i style="width:${pct}%"></i></div></div>
       <button class="btn-tel sec" style="margin-bottom:12px;height:44px" data-a="tel" data-v="plata-como">${ic("mas")}Me dieron plata</button>
-      <div class="grandes"><button class="grande uno" data-a="c-empezar">${ic("camara")}Registrar una compra</button><button class="grande dos" data-a="tel" data-v="gasto">${ic("billete")}Otro gasto</button></div>
+      <div class="grandes"><button class="grande uno" data-a="c-empezar">${ic("bolsa")}Registrar una compra</button><button class="grande dos" data-a="tel" data-v="gasto">${ic("billete")}Otro gasto</button></div>
       <div class="sec-tel"><span>Hoy</span><span>${regs.length}</span></div><div class="lista-tel">${filas}</div>
       <div class="abajo"><button class="btn-tel sec" data-a="tel" data-v="envio">${ic("camion")}Armar un envío ${sinEnvio?`<span class="globito pide">${sinEnvio}</span>`:""}</button><button class="btn-tel sec" data-a="tel" data-v="fin">Terminé por hoy</button></div></div>`;
   }
