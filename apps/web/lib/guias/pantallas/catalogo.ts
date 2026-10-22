@@ -106,7 +106,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.precio-stock",
       opcional: true,
       titulo: "Precio y cuántas hay aquí",
-      texto: "A la izquierda, el precio que cobra la caja en la tienda elegida arriba; si otra tienda la vende a otro precio, una insignia dice «2 precios». A la derecha, cuántas puedes vender aquí y, debajo, cuántas en otras sedes, en el taller o en camino. «Sin stock»: no queda en ninguna sede.",
+      texto: "A la izquierda, lo que cobra la caja en la tienda elegida arriba (si una campaña la rebaja hoy, con el de lista tachado y su «−20 %»); «2 precios» si otra tienda la vende a otro. A la derecha, cuántas puedes vender aquí y, debajo, en otras sedes, el taller o en camino. «Sin stock»: no queda en ninguna.",
     },
     {
       id: "colores",
@@ -398,7 +398,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       ancla: "editar.precio",
       opcional: true,
       titulo: "Precio de la prenda",
-      texto: "El precio que se cobra. Si las tallas tienen precios distintos, te muestra desde cuánto hasta cuánto.",
+      texto: "El precio de lista; si las tallas tienen precios distintos, desde cuánto hasta cuánto. Si una campaña la rebaja hoy, debajo dice cuánto cobra la caja y hasta cuándo. Si cambias etiquetas o precios, en ámbar, lo que cobrará al guardar.",
     },
     {
       id: "falta",

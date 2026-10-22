@@ -246,6 +246,21 @@ export function vistaPreviaQuitar(c: CampanaParaVistaPrevia, prendasQuitadas: nu
   return { titulo: `«${c.nombre}» deja de rebajar ${prendas}`, detalle: `Desde hoy, en Vender se cobran sin este ${textoPct(c.descuentoPct)}.`, sinEfectoHoy: false };
 }
 
+/** Las prendas a las que etiquetar les cambia el precio en caja HOY (ADR-0472): con descuento y en su temporada, las que ganan la
+ *  etiqueta (`quedan`) y las que la pierden (`salen`); si la etiqueta no rebaja hoy, ninguna. Las que entran por su categoría no están
+ *  en `cambio` (no se marcan ni se quitan a mano). Como al guardar una campaña (`prendasQueCambianDePrecioHoy`), no mira otras campañas:
+ *  si una prenda sigue rebajada por otra mayor, se reimprime igual y el papel sale con lo que cobra la caja (no hace daño). */
+export function prendasQueCambianAlEtiquetar(
+  c: Pick<CampanaParaVistaPrevia, "descuentoPct" | "vigenteDesde" | "vigenteHasta">,
+  cambio: { agregar: readonly string[]; quitar: readonly string[] },
+  hoy: string,
+): { quedan: string[]; salen: string[] } {
+  if (c.descuentoPct === null || !(c.descuentoPct > 0)) return { quedan: [], salen: [] };
+  const v = vigenciaDe(c.vigenteDesde, c.vigenteHasta, hoy);
+  if (v && v.estado !== "vigente") return { quedan: [], salen: [] };
+  return { quedan: [...cambio.agregar], salen: [...cambio.quitar] };
+}
+
 const textoPct = (pct: number) => `${pct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %`;
 
 // ---- Escanear para marcar (Felipe 2026-10-21, maqueta `docs/maquetas/etiqueta-escanear-2026-10/`, dirección B) ----------------

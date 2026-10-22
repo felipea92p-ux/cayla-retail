@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Camera, ChevronRight, FunnelX, ScanLine, Shirt } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
@@ -25,7 +26,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { soles } from "@/lib/compras-reglas";
 import { fotoPrincipal } from "@/lib/inventario-reglas";
-import { nombreBajoCosto, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
+import { avisoReimprimir, destinoReimprimir, nombreBajoCosto, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
 import {
   alternarProducto,
   alternarVariante,
@@ -43,6 +44,7 @@ import {
   nombreDeTalla,
   otrasTallas,
   precioConCampana,
+  prendasQueCambianAlEtiquetar,
   textoCambio,
   textoTallas,
   vistaPrevia,
@@ -147,6 +149,7 @@ export function PrendasDeEtiquetaModal({
   // Etiquetar prendas es Catálogo (ADR-0161): el combo está junto al botón desde que se abre la hoja, para que quien
   // registra se vea antes de empezar y no aparezca de golpe al primer clic (la confirmación usa el mismo).
   const responsable = useResponsable();
+  const router = useRouter();
 
   const porCategoria = useMemo(() => new Set(etiqueta.categoriaIds), [etiqueta.categoriaIds]);
 
@@ -379,7 +382,17 @@ export function PrendasDeEtiquetaModal({
         r.agregadas > 0 ? `${r.agregadas} ${r.agregadas === 1 ? "prenda etiquetada" : "prendas etiquetadas"}` : null,
         r.quitadas > 0 ? `${r.quitadas} ${r.quitadas === 1 ? "prenda liberada" : "prendas liberadas"}` : null,
       ].filter(Boolean);
-      avisar.exito(`«${etiqueta.nombre}»: ${partes.join(" y ") || "sin cambios"}`);
+      // Con descuento que rige hoy, las prendas que ganaron o perdieron la etiqueta cambiaron de precio en caja: su etiqueta de papel
+      // dice el de antes. El aviso lo dice y lleva a imprimir solo esas, como al guardar una campaña (ADR-0441, ADR-0472).
+      const cambian = prendasQueCambianAlEtiquetar(etiqueta, cambio, hoy);
+      const destino = destinoReimprimir(cambian, etiqueta.id);
+      const reimprimir = avisoReimprimir(cambian.quedan.length + cambian.salen.length, destino !== null);
+      avisar.exito(
+        `«${etiqueta.nombre}»: ${partes.join(" y ") || "sin cambios"}`,
+        reimprimir
+          ? { detalle: reimprimir.detalle, accion: destino && reimprimir.boton ? { texto: reimprimir.boton, onClick: () => router.push(destino) } : undefined }
+          : undefined,
+      );
       // Las que ya no se venden siguen puestas si no se quitaron: la tarjeta tiene que seguir contándolas.
       onAplicado([...marcadas, ...(quitarFuera ? [] : fueraDeVenta)], r);
     } catch {

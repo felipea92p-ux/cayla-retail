@@ -8,6 +8,7 @@ import {
   iconosPorVariante,
   mejorCampanaPorVariante,
   sumarEntradas,
+  type CampanaDeVariante,
   type EmpresaEtiqueta,
   type EtiquetaDeLaPrenda,
   type EtiquetaPrecio,
@@ -121,18 +122,15 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
 
   // La campaña de HOY de cada prenda: la etiqueta dice lo que la caja cobra hoy, venga de donde venga.
   // Y el precio de ESTA tienda (precio propio, Felipe 2026-10-09): la etiqueta que se imprime aquí dice lo que cobra la caja de aquí.
-  const [deHoy, preciosSede, empresas] = await Promise.all([campanasDe(supabase, hoy, [...entradas.keys()]), getPreciosPorSede([origen.ubicacionId]), getEmpresasDelPapel(supabase)]);
+  const [campanas, preciosSede, empresas] = await Promise.all([
+    campanasQueCobra(supabase, hoy, [...entradas.keys()]),
+    getPreciosPorSede([origen.ubicacionId]),
+    getEmpresasDelPapel(supabase),
+  ]);
   const propios = preciosSede[origen.ubicacionId] ?? {};
-  const etiquetaIds = [...new Set(deHoy.map((f) => f.etiqueta_id))];
-  const hastas = new Map(
-    etiquetaIds.length === 0
-      ? []
-      : exigir(await supabase.from("etiquetas").select("id, vigente_hasta").in("id", etiquetaIds), "hasta cuándo rigen las campañas").map((e) => [e.id, e.vigente_hasta] as const),
-  );
 
   // Los íconos de las etiquetas comerciales de cada prenda (Felipe, 2026-09-29): las elegidas a mano y las que la alcanzan
-  // por su categoría, con o sin descuento. La ganadora del precio sigue siendo la de `deHoy`, la misma de la caja.
-  const campanas = mejorCampanaPorVariante(deHoy, hastas);
+  // por su categoría, con o sin descuento. La ganadora del precio sigue siendo la de `campanas`, la misma de la caja.
   const iconos = await iconosDeLasPrendas(supabase, variantes, campanas, hoy);
 
   return {
@@ -217,6 +215,20 @@ async function stockEnTienda(supabase: Cliente, ubicacionId: string, varianteIds
     "el stock de la tienda",
   );
   return sumarEntradas(filas);
+}
+
+/** La campaña que cobra la caja en `fecha` por prenda, con hasta cuándo rige: de las que alcanzan a cada una (`fn_campanas_por_variante`,
+ *  la MISMA función de la caja), la de mayor %; a igual %, por nombre. La leen la etiqueta de papel y Catálogo (ADR-0472). Lanza si la
+ *  base no responde: el papel no se imprime con un precio dudoso, y Catálogo la tolera mostrando el precio de lista. */
+export async function campanasQueCobra(supabase: Cliente, fecha: string, varianteIds: string[]): Promise<Map<string, CampanaDeVariante>> {
+  const filas = await campanasDe(supabase, fecha, varianteIds);
+  const etiquetaIds = [...new Set(filas.map((f) => f.etiqueta_id))];
+  const hastas = new Map(
+    etiquetaIds.length === 0
+      ? []
+      : exigir(await supabase.from("etiquetas").select("id, vigente_hasta").in("id", etiquetaIds), "hasta cuándo rigen las campañas").map((e) => [e.id, e.vigente_hasta] as const),
+  );
+  return mejorCampanaPorVariante(filas, hastas);
 }
 
 /** Las campañas que rigen en `fecha` sobre esas prendas: la MISMA función que usa la caja (`fn_campanas_por_variante`). */
