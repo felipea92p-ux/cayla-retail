@@ -9,9 +9,11 @@
  *        (un envío reabierto) no cuentan; un envío con dos faltantes cuenta UNA vez; lo abierto después del mes no frena ese mes.
  *   · B  `conteos_abiertos`: el conteo sin cerrar de la sede, con desde cuándo y cuál; cerrado, anulado, de prueba o abierto
  *        después del mes no cuentan.
- *   · C  `sobrantes_traslado`: lo de más de un traslado «por revisar», por la sede que lo recibió; el ya revisado no cuenta.
+ *   · C  `sobrantes_traslado`: lo de más de un traslado «por revisar», por la sede que lo recibió; el ya revisado no cuenta; un
+ *        traslado con dos líneas sobrantes cuenta UN traslado (y todas sus prendas).
  *   · D  `facturas_sin_recibir`: facturas de mercadería vigentes sin recibir o recibidas en parte, por la sede que las gestiona;
- *        recibida, recibida por cierre de línea, anulada o emitida después del mes no cuentan; al llegar la mercadería, sale.
+ *        recibida, recibida por cierre de línea, anulada o emitida después del mes no cuentan; al llegar la mercadería, sale; las
+ *        prendas por recibir descuentan las líneas cerradas a propósito (10 − 4 recibidas − 3 cerradas = 3).
  *   · E  AVISA EN OCTUBRE, BLOQUEA EN NOVIEMBRE: con la fecha de fábrica, los cuatro avisan en septiembre y octubre (0 bloqueantes,
  *        4 avisos) y bloquean en noviembre y diciembre (4 bloqueantes, 0 avisos); los que pasan llevan la misma marca;
  *        el consolidado y las demás unidades no cambian; y también lo ve una cuenta autenticada (la pantalla de verdad).
@@ -195,6 +197,19 @@ begin
   perform pg_temp.prender();
   return v_id;
 end $f$;
+-- Una SEGUNDA línea de un traslado que ya tiene un sobrante (otra prenda, el mismo traslado): el traslado sigue siendo uno solo.
+create function pg_temp.sobrante_linea(p_sobrante uuid, p_cant integer) returns uuid language plpgsql as $f$
+declare v_s retail.traslado_sobrantes%rowtype; v_r uuid; v_id uuid;
+begin
+  perform pg_temp.apagar();
+  select * into v_s from retail.traslado_sobrantes where id = p_sobrante;
+  insert into retail.transferencia_recepciones (transferencia_id, variante_id, cantidad_recibida) values (v_s.transferencia_id, pg_temp.c('vb'), p_cant) returning id into v_r;
+  insert into retail.traslado_sobrantes (transferencia_id, transferencia_recepcion_id, variante_id, ubicacion_id, ubicacion_origen_id, cantidad, estado, creado_en)
+  values (v_s.transferencia_id, v_r, pg_temp.c('vb'), v_s.ubicacion_id, v_s.ubicacion_origen_id, p_cant, 'por_revisar', v_s.creado_en)
+  returning id into v_id;
+  perform pg_temp.prender();
+  return v_id;
+end $f$;
 -- Una factura de mercadería gestionada por la sede: p_fact prendas facturadas, p_rec recibidas y p_cerr cerradas a propósito.
 create function pg_temp.factura(p_ubic uuid, p_fecha date, p_fact integer, p_rec integer, p_cerr integer default 0,
                                 p_total numeric default 1180, p_estado text default 'vigente') returns uuid language plpgsql as $f$
@@ -223,13 +238,14 @@ ${AYUDANTES}
 ${cambiaA(FELIPE)}
 select p.id as felipe from public.personas p where p.auth_user_id = '${FELIPE}' \\gset
 select v.id as va from retail.variantes v where v.id <> '22222222-2222-4222-8222-222222222222' order by v.id limit 1 \\gset
+select v.id as vb from retail.variantes v where v.id not in ('22222222-2222-4222-8222-222222222222', :'va') order by v.id limit 1 \\gset
 insert into retail.ubicaciones (nombre, tipo) values ('Tienda Prueba Cierre A', 'tienda') returning id as ua \\gset
 insert into retail.ubicaciones (nombre, tipo) values ('Tienda Prueba Cierre B', 'tienda') returning id as ub \\gset
 insert into retail.ubicaciones (nombre, tipo) values ('Tienda Prueba Cierre C', 'tienda') returning id as uc \\gset
 insert into retail.proveedores (nombre, activo) values ('Proveedor prueba cierre diferencias', true) returning id as prov \\gset
 insert into retail.categorias (nombre, familia) values ('Polos prueba cierre diferencias', 'accesorios') returning id as cat \\gset
 insert into retail.marcas (nombre) values ('Marca prueba cierre diferencias') returning id as marca \\gset
-insert into ctx values ('felipe', :'felipe'), ('va', :'va'), ('prov', :'prov'), ('cat', :'cat'), ('marca', :'marca');
+insert into ctx values ('felipe', :'felipe'), ('va', :'va'), ('vb', :'vb'), ('prov', :'prov'), ('cat', :'cat'), ('marca', :'marca');
 `;
 
 // Atajos para escribir los casos.
@@ -327,6 +343,12 @@ select 'C3 es de la sede que RECIBIÓ: la que envió (B) pasa', ${pasa(OCT, "ub"
 select pg_temp.sobrante(:'ua', :'ub', 1, '2026-11-03 10:00-05');
 select 'C4 un sobrante de noviembre no frena octubre', ${dato(OCT, "ua", "sobrantes_traslado", "n")}::int = 2;
 select 'C4 y en noviembre cuentan los tres: 3 traslados, 6 prendas', ${dato(NOV, "ua", "sobrantes_traslado", "n")}::int = 3 and ${dato(NOV, "ua", "sobrantes_traslado", "unidades")}::int = 6;
+select pg_temp.sobrante(:'uc', :'ub', 2, '2026-10-09 10:00-05') as s5 \\gset
+select pg_temp.sobrante_linea(:'s5', 3);
+select 'C5 un traslado con DOS líneas de sobrante cuenta UN traslado y las 5 prendas (no 2 traslados)',
+  not ${pasa(OCT, "uc", "sobrantes_traslado")} and ${dato(OCT, "uc", "sobrantes_traslado", "n")}::int = 1 and ${dato(OCT, "uc", "sobrantes_traslado", "unidades")}::int = 5;
+select pg_temp.sobrante(:'uc', :'ub', 1, '2026-10-10 10:00-05');
+select 'C5 y otro traslado distinto suma 1 más: 2 traslados, 6 prendas', ${dato(OCT, "uc", "sobrantes_traslado", "n")}::int = 2 and ${dato(OCT, "uc", "sobrantes_traslado", "unidades")}::int = 6;
 `;
 
 // ---- D · facturas_sin_recibir -----------------------------------------------------------------------------------------------
@@ -352,6 +374,13 @@ update retail.compras set recibido_cantidad = facturado_cantidad where id = :'f1
 select 'D5 al llegar la mercadería la factura sale: queda 1 factura, 6 prendas, S/ 590',
   ${dato(OCT, "ua", "facturas_sin_recibir", "n")}::int = 1 and ${dato(OCT, "ua", "facturas_sin_recibir", "unidades")}::int = 6
   and ${dato(OCT, "ua", "facturas_sin_recibir", "monto")}::numeric = 590;
+select pg_temp.factura(:'uc', '2026-10-15', 10, 4, 3, 590);
+select 'D6 recibida en parte y con 3 prendas cerradas a propósito: faltan 3 (10 − 4 recibidas − 3 cerradas), no 6',
+  not ${pasa(OCT, "uc", "facturas_sin_recibir")} and ${dato(OCT, "uc", "facturas_sin_recibir", "n")}::int = 1
+  and ${dato(OCT, "uc", "facturas_sin_recibir", "unidades")}::int = 3;
+select pg_temp.factura(:'uc', '2026-10-16', 10, 0, 3, 118);
+select 'D6 y una sin recibir nada pero con 3 cerradas a propósito suma 7: 2 facturas, 10 prendas',
+  ${dato(OCT, "uc", "facturas_sin_recibir", "n")}::int = 2 and ${dato(OCT, "uc", "facturas_sin_recibir", "unidades")}::int = 10;
 `;
 
 // ---- E · avisa en octubre, bloquea en noviembre (con la fecha de fábrica) -----------------------------------------------------
