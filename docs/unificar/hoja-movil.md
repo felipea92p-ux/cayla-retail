@@ -17,6 +17,11 @@ abrieron: 61 hojas y 21 listas).
 
 ![Hoy y B, a 375 px](capturas/hoja-movil.jpg)
 
+El mostrador a 375 px (PL-105): el ticket de Vender con su asa, el ticket mientras la venta se envía (no se cierra; el loader de
+ADR-0149 va encima) y las Opciones de Apartados.
+
+![Vender y Apartados, a 375 px](capturas/hoja-movil-vender.jpg)
+
 ## Por qué esta
 
 Felipe pidió que la experiencia del teléfono «quede sofisticada y llena de animaciones», y la hoja de hoy no se portaba como una hoja:
