@@ -183,6 +183,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/productos/[id]/editar": { estado: "aplicada", evidencia: ["components/ProductoForm.tsx"] },
   "/productos/[id]/historial": { estado: "no-aplica", motivo: "Historial de solo lectura de una prenda (ADR-0354); solo hay filtros de tipo y de persona." },
   "/productos/atributos": { estado: "no-aplica", motivo: "Tablero de tarjetas, búsqueda y filtros por pestaña; todo lo que se llena vive en ventanas propias (colores, tejidos, patrones, tallas, temporadas, etiquetas), cada una con su guía en el registro de modales." },
+  "/productos/campanas": { estado: "no-aplica", motivo: "Tablero de tarjetas de campañas, búsqueda y filtros; lo que se llena (nueva campaña, configurar, prendas) vive en las ventanas de Sellos, cada una con su guía en el registro de modales." },
   "/productos/categorias": PENDIENTE,
   "/productos/familias": { estado: "no-aplica", motivo: "Muestra las familias como tarjetas de solo lectura; lo que se llena vive en la ventana «Nueva familia», que lleva su propia guía (registro de modales)." },
   "/productos/marcas": { estado: "aplicada", evidencia: ["components/alta-producto/NuevaMarcaForm.tsx"] },

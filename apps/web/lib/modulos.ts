@@ -16,7 +16,7 @@ export const CLAVES_MODULO = [
   "tienda_web", "pedidos_web", "vitrina_web", "campanas_web", "recomendaciones", "ajustes_web",
   "clientas", "avisos_club", "beneficios_club",
   "existencias", "conteos", "traslados", "movimientos", "recibir",
-  "productos", "atributos", "etiquetas", "liquidacion",
+  "productos", "atributos", "etiquetas", "campanas", "liquidacion",
   "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "notas_credito", "plan_compra",
   "produccion", "ordenes_insumos",
   "analisis", "frescura", "plan_piso", "colaboradores", "roles",
@@ -103,7 +103,12 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "recibir", grupo: "Inventario", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
   { clave: "productos", grupo: "Catálogo", nombre: "Productos", incluye: "Crear, editar y archivar prendas; precios, fotos y códigos" },
   { clave: "atributos", grupo: "Catálogo", nombre: "Categorías, marcas y atributos", incluye: "Crear, editar, desactivar y aprobar propuestas" },
-  { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar, aprobar y archivar etiquetas, configurar su campaña y descuento, y ponérselas a las prendas" },
+  // ADR-0473 (Felipe 2026-10-22): en pantalla se llaman «Sellos» («etiqueta» queda para el papel con el precio); la clave no cambia.
+  { clave: "etiquetas", grupo: "Catálogo", nombre: "Sellos", incluye: "Crear, editar, aprobar y archivar los sellos de las prendas (Nuevo, Top ventas, Hecho a mano…), con descuento o sin él, y ponérselos a las prendas" },
+  // ADR-0473: las campañas salen de Atributos a su propia entrada. La clave `campanas` nació en Tienda web (PR #1190) y se muda
+  // aquí (20261022151000, Felipe 2026-10-22: «reusar `campanas`»). Guarda una campaña quien ve Campañas, Campañas de la tienda web
+  // o Sellos (`fn_puede_campanas`).
+  { clave: "campanas", grupo: "Catálogo", nombre: "Campañas", incluye: "Crear y archivar campañas (San Valentín, Halloween, Navidad…), elegir sus fechas, su descuento, sus prendas y las categorías donde rige, repetirlas el año siguiente e imprimir sus etiquetas de precio" },
   // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan sin entrar al catálogo. Nace sin rol (20261010195000);
   // el líder se lo da después a las terminales de almacén y caja.
   { clave: "liquidacion", grupo: "Catálogo", nombre: "Liquidación", incluye: "Etiquetar las prendas sueltas que se liquidan sin registrarlas en el catálogo, bajarles el precio con una etiqueta nueva y retirarlas" },
@@ -265,7 +270,7 @@ export function modulosDeHoy(
  *  - verDineroCompras       ← ve Facturas de compra, Por pagar o Notas de crédito, completo
  *                             (`fn_puede_ver_dinero_de_compras`, 20260923130000). Solo VER: qué ESCRIBE cada uno lo dice
  *                             `accionesDeCompra` (P1, 20260923140000)
- *  - editarEtiquetas        ← ve Etiquetas, completo (`fn_puede_editar_etiquetas`; también las etiquetas CON descuento, ADR-0293)
+ *  - editarEtiquetas        ← ve Sellos (`etiquetas`), completo (`fn_puede_editar_etiquetas`; también las etiquetas CON descuento, ADR-0293, ADR-0473)
  *  - analizar               ← ve Análisis, completo (`fn_puede_analizar`)
  *  - registrarGastos        ← ve Gastos, completo (`fn_gastos_ubicaciones`, ADR-0195 F2): los de SU tienda
  *  - verCuentasDinero       ← ve Cuentas y dinero, completo (ADR-0195 F3): las cuentas y el efectivo de SU tienda

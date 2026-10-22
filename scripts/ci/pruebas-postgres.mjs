@@ -247,6 +247,10 @@ export const PRUEBAS = [
   // nadie directo y sus CHECK dejan fuera todo lo que la tienda no conoce. ROLLBACK.
   "pruebas:campanas-web",
 
+  // La llave de las campañas (ADR-0476): con «Campañas», «Campañas de la tienda web» o «Sellos» se crea, se guarda, se le ponen
+  // prendas y se desactiva una campaña; sin ninguno, cada puerta la rechaza; un sello que no es campaña sigue siendo de Sellos. ROLLBACK.
+  "pruebas:campanas-llave-unica",
+
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el
   // umbral de Configuración y NUNCA deja salir la cifra de 4 o más; la ficha de un oculto es null; precio por talla. Y UN SOLO
@@ -503,6 +507,12 @@ export const PRUEBAS = [
   // lo consume; «Aplicar todos completos» marca «aplicada sin contar» y el historial lo suma aparte. Con controles que muerden
   // por mutación. Cada caso: ROLLBACK.
   "pruebas:conteo-firma-arranque",
+
+  // Conteo ▸ «Completar todo» de una tarjeta (ADR-0328; Felipe, 2026-10-05; 20261022145000): cuenta las tallas pendientes con
+  // `conteo_contar` y las marca `completada_con_atajo` (SIGUE contando: vale para el arranque y para la exactitud; la marca solo
+  // informa en Revisar). No pisa lo contado a mano, es idempotente, todo o nada, y contar a mano la línea apaga la marca. Con
+  // controles que muerden por mutación. Cada caso: ROLLBACK.
+  "pruebas:conteo-atajo-tarjeta",
 
   // Candado solo-RPC (ADR-0119): authenticated y anon no escriben directo en ventas, venta_items,
   // venta_anulacion_items, clientas, conteos ni lotes; las RPC siguen escribiendo. Cada caso: ROLLBACK.

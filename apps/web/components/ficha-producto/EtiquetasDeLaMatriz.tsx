@@ -58,18 +58,18 @@ export function EtiquetasDeLaMatriz({
   const cuenta = elegida ? cuentaEtiqueta(filas, elegida) : null;
 
   return (
-    <section aria-label="Etiquetas" className="space-y-3 rounded-xl border border-sand bg-papel p-3 @lg:p-4" id="matriz-etiquetas">
+    <section aria-label="Sellos y campañas" className="space-y-3 rounded-xl border border-sand bg-papel p-3 @lg:p-4" id="matriz-etiquetas">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
         <p className="text-[13px] text-tinta">
           {nombre && cuenta ? (
             <>
               <b className="font-semibold">{nombre}</b>{" "}
               <span className="text-taupe">
-                · la {cuenta.con === 1 ? "lleva 1 talla" : `llevan ${cuenta.con} tallas`} de {cuenta.de}
+                · en {cuenta.con} de {cuenta.de} {cuenta.de === 1 ? "talla" : "tallas"}
               </span>
             </>
           ) : (
-            "Elige una etiqueta"
+            "Elige un sello o una campaña"
           )}
         </p>
         {elegida && cuenta && (

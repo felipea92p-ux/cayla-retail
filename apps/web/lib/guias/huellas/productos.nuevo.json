@@ -57,7 +57,7 @@
       "button «{c.nombre}»"
     ],
     "components/alta-producto/ElegirEtiquetas.tsx": [
-      "Boton «{enLinea ? undefined : \"Crear una etiqueta necesita internet\"}»",
+      "Boton «{enLinea ? undefined : \"Crear un sello necesita internet\"}»",
       "Boton «+ Crear «»",
       "CampoTexto «Nombre de la etiqueta»",
       "Boton «{firma.motivo ?? undefined}»",
