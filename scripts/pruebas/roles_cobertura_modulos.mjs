@@ -140,12 +140,6 @@ const SOLO_PANTALLA = {
     "fn_actividad, fn_asesoras_de_turno) son funciones compartidas que ya comprueban la sede, no el módulo — las mismas que " +
     "usan Caja e Historial.",
   cambios: "registrar_cambio solo mira la sede; cambios_select deja leer a líder o a quien opera esa sede.",
-  // Deuda corta (ADR-0473, 2026-10-22): en producción el guardián ya existe (`fn_puede_campanas`, pegada con #1260 / ADR-0476);
-  // en el repo llega cuando #1260 se fusione. Ese día esta prueba falla a propósito: se borra esta entrada.
-  campanas:
-    "Catálogo ▸ Campañas (ADR-0473): su guardián es fn_puede_campanas (crear_campana, activar_campana, actualizar_campana_etiqueta), " +
-    "que está en producción desde el 2026-10-22 pero entra al repo con #1260 (ADR-0476). Hasta entonces, en el repo la base solo " +
-    "pide Sellos (fn_puede_editar_etiquetas) para guardar una campaña.",
   // devoluciones salió el 2026-10-09: anular_venta la exige (fn_ve_modulo, 20261009182413_anular_venta_quien_ve_devoluciones).
   facturacion: "emitir_comprobante solo comprueba la sede; comprobantes_select deja leer a líder o a la sede.",
   // Una decisión, no una deuda (ADR-0430, 2026-10-16): el Resumen no guarda nada ni lee nada propio.
