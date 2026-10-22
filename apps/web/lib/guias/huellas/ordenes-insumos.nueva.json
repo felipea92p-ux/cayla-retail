@@ -19,7 +19,7 @@
       "ComboBuscable «{l.insumoId}»",
       "CampoTexto «{`Descripción de la línea ${numero}»",
       "CampoTexto «{`Cantidad de la línea ${numero}»",
-      "CampoTexto «{`Precio por ${porUnidad}»",
+      "CampoTexto «{`Costo por ${porUnidad}»",
       "CampoTexto «{`Descuento de la línea ${numero}»",
       "SegmentoDeslizante «{`Descuento de la línea ${numero}»"
     ]
