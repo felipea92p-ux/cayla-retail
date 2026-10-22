@@ -16,6 +16,7 @@ import {
   vistaPreviaQuitar,
   avisoFueraDeVenta,
   type ProductoEtiquetable,
+  prendasQueCambianAlEtiquetar,
 } from "./etiquetar-prendas";
 
 const v = (id: string) => ({ id, talla: "M", color: "Negro" });
@@ -261,5 +262,25 @@ describe("precioConCampana — el precio antes y después, con la cuenta de la c
   });
   it("sin un precio mayor que 0 (la bolsa de obsequio), nada", () => {
     expect(precioConCampana(conPrecios(0, null), 20)).toBeNull();
+  });
+});
+
+describe("prendasQueCambianAlEtiquetar: qué etiquetas de papel quedan viejas (ADR-0472)", () => {
+  const cambio = { agregar: ["a", "b"], quitar: ["c"] };
+  const HOY = "2026-10-21";
+
+  it("con descuento que rige hoy: las que la ganan y las que la pierden", () => {
+    expect(prendasQueCambianAlEtiquetar({ descuentoPct: 10, vigenteDesde: "2026-10-01", vigenteHasta: "2026-10-25" }, cambio, HOY)).toEqual({
+      quedan: ["a", "b"],
+      salen: ["c"],
+    });
+    expect(prendasQueCambianAlEtiquetar({ descuentoPct: 20, vigenteDesde: null, vigenteHasta: null }, cambio, HOY).quedan).toHaveLength(2);
+  });
+
+  it("sin descuento, o fuera de su temporada, ningún precio cambia hoy", () => {
+    const nada = { quedan: [], salen: [] };
+    expect(prendasQueCambianAlEtiquetar({ descuentoPct: null, vigenteDesde: null, vigenteHasta: null }, cambio, HOY)).toEqual(nada);
+    expect(prendasQueCambianAlEtiquetar({ descuentoPct: 30, vigenteDesde: "2026-11-27", vigenteHasta: "2026-11-30" }, cambio, HOY)).toEqual(nada);
+    expect(prendasQueCambianAlEtiquetar({ descuentoPct: 30, vigenteDesde: "2026-09-01", vigenteHasta: "2026-09-30" }, cambio, HOY)).toEqual(nada);
   });
 });

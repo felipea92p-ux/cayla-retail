@@ -14,7 +14,9 @@ import { urlRotulos } from "@/lib/rotulos-reglas";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
-import { rangoSoles } from "@/lib/productos-vista";
+import { rangoSoles, variantesQueSeVenden } from "@/lib/productos-vista";
+import { precioDeHoy, type CampanaDeVariante } from "@/lib/precio-de-hoy";
+import { PrecioConCampana } from "@/components/ficha-producto/PrecioConCampana";
 import {
   alternarVariantes,
   armarMatriz,
@@ -78,12 +80,16 @@ export function VistaRapidaProducto({
   onEliminar,
   onCambiarEstado,
   preciosAqui,
+  campanasHoy,
   colores = SIN_COLORES,
   tarjetasLook = SIN_TARJETAS,
 }: {
   producto: ProductoListado;
   /** Precio propio de esta sede por variante (ADR-0370): la matriz muestra el que cobra su caja. */
   preciosAqui?: Record<string, number>;
+  /** La campaña que cobra la caja hoy por variante (ADR-0472): la cabecera tacha el precio de lista y dice el de la caja, la campaña y
+   *  hasta cuándo. La matriz sigue con el precio de lista de cada talla. Ausente = no se pudo leer: el precio de siempre. */
+  campanasHoy?: Record<string, CampanaDeVariante>;
   /** La ficha de cada color activo (ADR-0316; Felipe 2026-10-10): bajo la foto, con qué se combina el color que está en ella. Vacío = nada. */
   colores?: ColorConFicha[];
   /** El catálogo de la sede como tarjetas prenda×color con su piso (`tarjetasDesdeVariantes`): la frase «Combina bien con un jean o una
@@ -172,6 +178,16 @@ export function VistaRapidaProducto({
       : hrefEnExistencias(producto.variantes, fijado === "" ? null : fijado);
 
   const nVariantes = matriz.nVariantes;
+  const deHoy = useMemo(
+    () =>
+      campanasHoy
+        ? precioDeHoy(
+            variantesQueSeVenden(producto.variantes).map((v) => ({ id: v.varianteId, precio: preciosAqui?.[v.varianteId] ?? v.precio })),
+            (id) => campanasHoy[id],
+          )
+        : null,
+    [campanasHoy, producto.variantes, preciosAqui],
+  );
   const descontinuado = producto.estado !== "activo";
 
   // La vuelta de página ficha ↔ historial: lo de antes sale (190 ms), después entra lo nuevo (ADR-0136, respuesta a un clic).
@@ -224,7 +240,9 @@ export function VistaRapidaProducto({
             )}
           </span>
           <span className="vr-dato vr-sep" style={{ ["--vr-j" as string]: 3 }}>
-            {matriz.precioUnico ? (
+            {deHoy ? (
+              <PrecioConCampana precio={deHoy} nombre className="font-semibold text-tinta" />
+            ) : matriz.precioUnico ? (
               <>
                 <b className="tabular-nums">{rangoSoles([matriz.precioMin])}</b> en {nVariantes === 1 ? "la variante" : `las ${nVariantes} variantes`}
               </>
