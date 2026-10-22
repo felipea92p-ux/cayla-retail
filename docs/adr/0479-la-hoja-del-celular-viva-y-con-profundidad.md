@@ -1,7 +1,8 @@
 # ADR-0479 — La hoja del celular: viva y con profundidad
 
 - **Fecha:** 2026-10-22 · **Estado:** aceptado (Felipe eligió «B · Hoja viva con profundidad» mirando la maqueta). En construcción por
-  actividades en la rama `claude/unificar-animaciones-moviles-51e9d0`: **actividad 1 hecha** (la hoja viva en `<Modal>`).
+  actividades en la rama `claude/unificar-animaciones-moviles-51e9d0`: **actividades 1 y 2 hechas** (la hoja viva en `<Modal>` y el
+  ticket de Vender).
 - **Relacionados:** ADR-0136 (regla de movimiento de modales), ADR-0358 (una función, una pieza: `/unificar`), ADR-0185 (la página no
   se encoge bajo el mouse), ADR-0146 (avisos), ADR-0149 (loader único), PL-105 (Vender, Cambios y Devoluciones a 375 px).
 - **Maqueta y auditoría:** `docs/maquetas/hojas-movil-2026-10/index.html` (pestaña «Lo que encontré»).
@@ -42,7 +43,7 @@ Todo vale **solo bajo 640 px**, donde la hoja va pegada abajo. En escritorio y e
 | # | Actividad | Estado |
 |---|---|---|
 | 1 | La hoja viva en `<Modal>` | **Hecha** |
-| 2 | El mostrador: el ticket de Vender con el dedo; Vender, Cambios, Devoluciones y Apartados a 375 px | Por hacer |
+| 2 | El mostrador: el ticket de Vender con el dedo; Vender, Cambios, Devoluciones y Apartados a 375 px | **Hecha** |
 | 3 | La profundidad: lo de atrás se aleja y vuelve con el dedo | Por hacer |
 | 4 | Filtros a media altura | Por hacer |
 | 5 | El cajón como hoja alta | Por hacer |
@@ -72,6 +73,8 @@ Todo vale **solo bajo 640 px**, donde la hoja va pegada abajo. En escritorio y e
 - **El asa** (`.asa-hoja`, `data-asa-hoja`) va al final de la hoja, fuera de la cascada y antes de la capa de las listas (que tiene que
   ser lo último, `combos-fuera-de-la-cascada.test.ts`), y se dibuja arriba con `position: absolute`. No es un control (`aria-hidden`):
   la salida del teclado y del lector sigue siendo Escape, la ✕ o «Cancelar», así que la huella de controles de las guías no cambia.
+  Tampoco recibe toques (`pointer-events: none`, corregido en la actividad 2): el dedo lo escucha la hoja entera, y su franja de 24 px
+  le tapaba la punta a la ✕ de arriba a la derecha.
 - **Entrada y salida:** `cayla-hoja-movil-entra` (desde el 100 %, 460 ms) y `cayla-hoja-movil-sale` (300 ms, `--ease-salida`), solo en
   `.cascada-modal` bajo 640 px y sin «reducir movimiento». El loader (`Espera`) usa las mismas clases y no cambia; la cámara tampoco.
   `MS_SALIDA_CELULAR` (300) en `Modal.tsx` espera esa salida antes de desmontar. Si la hoja se fue con el dedo, `Modal` no le pone la
@@ -85,3 +88,18 @@ detalle de una venta y el buscador siguen al dedo y se cierran; Registrar gasto 
 hoja no se mueve; un arrastre corto y lento vuelve al mismo lugar sin dejar estilos. En escritorio (1440 × 900) no hay asa y la hoja
 sigue a 72 px de arriba. `vitest` completo (587 archivos), `tsc`, `eslint`, `knip` y `knip:produccion` en verde. **No verificado en
 un iPhone real.**
+
+## Actividad 2 — el mostrador
+
+- **El ticket de Vender** (`<Modal variante="ticket">`) también lleva asa y se baja con el dedo. Su lista corre por dentro del `<aside>`:
+  el gesto mira lo que corre bajo el dedo, así que desde la cabecera o el pie se baja la hoja y desde la lista desplazada se desplaza la
+  lista. Bajarlo no toca el ticket, que vive en Vender: al volver a abrirlo sigue con sus prendas.
+- **Mientras la venta se envía, el ticket no se cierra:** `PuntoDeVenta.tsx` le pasa `bloqueado={envio.enviando}` (`useIntento`). Vale
+  para el dedo, el velo y Escape. Antes, el velo y Escape podían cerrar la hoja a mitad de un cobro; no duplicaba nada (la venta va
+  con su token), pero la persona perdía de vista si se cobró.
+
+**Verificado (2026-10-22, local, 375 × 812 táctil emulado, cuenta Admin):** el ticket con una prenda se baja con el dedo desde la
+cabecera y, al reabrirlo, la prenda sigue; con «Confirmar cobro» pulsado y `registrar_venta` retenida en el navegador de prueba (nunca
+llegó a la base: 0 ventas nuevas en la base local), ni el dedo ni Escape cierran la hoja. Cambios y Devoluciones (paso 2 de cada
+uno) a 375 px sin desborde; en Apartados, «Opciones» abre con asa y se cierra con el dedo. Capturas en la sesión. `vitest`
+completo, `tsc` y `eslint` en verde.

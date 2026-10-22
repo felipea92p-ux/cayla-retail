@@ -145,8 +145,10 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
 
   // En el celular la hoja se baja con el dedo (ADR-0479). Soltarla para cerrar pasa por `antesDeCerrar`, como Escape,
   // el velo y la ✕: sin cambios sale desde donde quedó; con cambios vuelve a su lugar y pregunta «¿Salir sin guardar?».
+  // El ticket de Vender también es una hoja que sube desde abajo (su lista corre por dentro, y el gesto lo respeta).
+  const conAsa = deCara || variante === "ticket";
   const enlazarArrastre = useHojaArrastre({
-    activo: deCara,
+    activo: conAsa,
     bloqueado,
     velo,
     alSoltarParaCerrar: (salir) => {
@@ -273,7 +275,7 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
           {/* El asa del celular (ADR-0479): dice que la hoja se baja con el dedo. Va al final y fuera de la cascada por lo
               mismo que la capa de abajo, y se dibuja arriba de la hoja con `position: absolute` (globals.css, `.asa-hoja`).
               No es un control: la salida para el teclado y el lector sigue siendo Escape, la ✕ o «Cancelar». */}
-          {deCara && <div aria-hidden data-asa-hoja data-sin-cascada className="asa-hoja" />}
+          {conAsa && <div aria-hidden data-asa-hoja data-sin-cascada className="asa-hoja" />}
           <div data-capa-flotante data-sin-cascada />
           </Dialog.Content>
         </div>

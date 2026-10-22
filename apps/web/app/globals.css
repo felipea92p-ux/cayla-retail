@@ -1842,14 +1842,15 @@ html[data-buscando] [data-resultados] {
 @layer components {
   .asa-hoja { display: none; }
   @media (max-width: 639.98px) {
-    /* Arriba de la hoja, en el relleno: corre con el contenido (si la hoja está desplazada, bajar el dedo desplaza). */
+    /* Arriba de la hoja, en el relleno: corre con el contenido (si la hoja está desplazada, bajar el dedo desplaza). No
+       recibe toques: el dedo lo escucha la hoja entera, y así la franja no le quita la punta a la ✕ ni a la cabecera del ticket. */
     .asa-hoja {
       position: absolute;
       inset: 0 0 auto;
       height: 1.5rem;
       display: grid;
       place-items: center;
-      touch-action: none;
+      pointer-events: none;
     }
     .asa-hoja::before {
       content: "";
