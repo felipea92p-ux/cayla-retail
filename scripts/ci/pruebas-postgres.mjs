@@ -504,7 +504,7 @@ export const PRUEBAS = [
   // por mutación. Cada caso: ROLLBACK.
   "pruebas:conteo-firma-arranque",
 
-  // Conteo ▸ «Completar todo» de una tarjeta (ADR-0328; Felipe, 2026-10-05; 20261005233700): cuenta las tallas pendientes con
+  // Conteo ▸ «Completar todo» de una tarjeta (ADR-0328; Felipe, 2026-10-05; 20261022145000): cuenta las tallas pendientes con
   // `conteo_contar` y las marca `completada_con_atajo` (SIGUE contando: vale para el arranque y para la exactitud; la marca solo
   // informa en Revisar). No pisa lo contado a mano, es idempotente, todo o nada, y contar a mano la línea apaga la marca. Con
   // controles que muerden por mutación. Cada caso: ROLLBACK.

@@ -6598,7 +6598,7 @@ export type Database = {
         Args: { p_conteo_id: string; p_variantes: string[] }
         Returns: Json
       }
-      // ADR-0328 (20261005233700): «Completar todo» de una tarjeta, contado y marcado en una sola llamada; devuelve { completadas, lineas }.
+      // ADR-0328 (20261022145000): «Completar todo» de una tarjeta, contado y marcado en una sola llamada; devuelve { completadas, lineas }.
       conteo_completar_tarjeta: {
         Args: { p_conteo_id: string; p_lineas: Json }
         Returns: Json

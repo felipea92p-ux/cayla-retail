@@ -1,5 +1,8 @@
 -- ============================================================================
--- 20261005233700_conteo_atajo_por_tarjeta.sql — CAYLA V2 · Inventario ▸ Conteo (ADR-0328, actividad 15; decisión de Felipe 2026-10-05)
+-- 20261022145000_conteo_atajo_por_tarjeta.sql — CAYLA V2 · Inventario ▸ Conteo (ADR-0328, actividad 15; decisión de Felipe 2026-10-05)
+-- RENOMBRADA el 2026-10-22 desde `20261005233700_conteo_atajo_por_tarjeta.sql` (versión reservada: ADR-0381). El SQL NO cambió. YA ESTÁ PEGADA
+-- EN PRODUCCIÓN (Felipe, SQL Editor, comprobada por efectos el 2026-10-22; el SQL Editor no deja fila en `schema_migrations`: 0 filas con la versión
+-- vieja ni con el nombre). No se pega de nuevo; si se pegara, es idempotente. Mismo trato que `20261014171000_cuarentena_no_se_ajusta_a_mano.sql`.
 -- «Completar todo» de una tarjeta CUENTA, pero ahora lo DICE: la línea queda marcada `completada_con_atajo`.
 --
 -- EL PROBLEMA PRIMERO.

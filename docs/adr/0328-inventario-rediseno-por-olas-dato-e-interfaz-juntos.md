@@ -562,7 +562,8 @@ corrupción y ese ajuste habría fallado igual por `hallazgo_conteo_no_cerrado`;
 estado antes de tomar candados); (d) la base no comprueba que la cantidad del atajo sea la
 esperada: es informativo y quien puede llamar la función también puede contar a mano esa cifra.
 
-**Estado.** La migración (`20261005233700_conteo_atajo_por_tarjeta.sql`, una sola parte, sin políticas, idempotente) ya la pegó Felipe
+**Estado.** La migración (`20261022145000_conteo_atajo_por_tarjeta.sql`, creada el 5-oct como `20261005233700` y renombrada el 22-oct a su versión
+reservada, sin cambiar una línea de SQL, igual que la de la cuarentena el 14-oct; una sola parte, sin políticas, idempotente) ya la pegó Felipe
 en producción (lo confirmó el 2026-10-22); comprobada ese día por efectos (solo lectura): columna `boolean not null default false`, restricción, disparador y su
 función, `conteo_completar_tarjeta` con `security definer` ejecutable por `authenticated` y no por `anon`, firmas de `conteo_contar` y
 `fn_conteo_lineas_json` idénticas a las que llama, 0 filas marcadas. Prueba SQL de 15 casos con controles por mutación

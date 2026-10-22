@@ -1,7 +1,7 @@
 ## 2026-10-22 («Completar todo» de una tarjeta de Conteo cuenta, pero lo dice — ADR-0328, decisión 10, segunda mitad)
 Qué hice: el botón «Completar todo» de cada tarjeta (un modelo y color) ahora manda UNA llamada a `conteo_completar_tarjeta` en vez de una por talla, y la base
 deja marcada cada línea (`conteo_items.completada_con_atajo`). Sigue contando para la exactitud y para el arranque, pero Revisar y Confirmar dicen «N de M variantes contadas
-se completaron con «Completar todo», con lo que CAYLA esperaba». La migración `20261005233700` la pegó Felipe en producción (comprobada por efectos el 2026-10-22: columna,
+se completaron con «Completar todo», con lo que CAYLA esperaba». La migración (`20261022145000`, creada como `20261005233700` y renombrada a su versión reservada sin cambiar el SQL) la pegó Felipe en producción (comprobada por efectos el 2026-10-22: columna,
 restricción, disparador, función, permisos y 0 filas marcadas). El trabajo se hizo el 2026-10-05 sobre una rama que quedó 2620 commits detrás de `main`; se rehízo en una rama
 nueva desde `main` con solo los tres commits de Conteo (los de Análisis y de Buscar quedaron superados: `main` rehízo Análisis y ya lee `fn_existencias` en Buscar).
 Una revisión independiente de solo lectura (SQL, web e integración con `main`, y un escéptico por hallazgo) no encontró nada que bloquee ni corrompa; con lo que sí confirmó

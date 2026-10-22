@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Pruebas del atajo «Completar todo» de una tarjeta de Conteo (ADR-0328; decisión de Felipe, 2026-10-05; migración
- * `20261005233700_conteo_atajo_por_tarjeta.sql`) — CAYLA V2.
+ * `20261022145000_conteo_atajo_por_tarjeta.sql`) — CAYLA V2.
  *
  * QUÉ PRUEBA (todo en la BASE):
  *   · CUENTA PERO LO DICE. `conteo_completar_tarjeta` cuenta, con `conteo_contar`, las variantes pedidas que siguen sin cifra y las
