@@ -69,6 +69,23 @@ describe("destinoDelMedio: solo lo del medio elegido", () => {
     expect(destinoDelMedio("transferencia", d)?.filas.map((f) => f.etiqueta)).toEqual(["CCI"]);
   });
 
+  it("si la cuenta no puede ver los datos, dice «no puedes verlos» y NO «no tiene cuenta» (una transferencia no se revierte)", () => {
+    const oculto = { ...base, ocultos: true };
+    for (const m of ["transferencia", "deposito", "yape", "plin"]) {
+      const d = destinoDelMedio(m, oculto)!;
+      expect(d.aviso).toBe("No puedes ver los datos de pago de este proveedor. Pídeselos a quien paga.");
+      expect(d.filas).toEqual([]);
+      expect(d.sinPermiso).toBe(true); // la pantalla no ofrece «Agregar en su ficha»
+      expect(d.aviso).not.toMatch(/no tiene/i);
+    }
+    // Lo que no lleva destino sigue sin decir nada, oculto o no.
+    for (const m of ["efectivo", "otro", "saldo_a_favor"]) expect(destinoDelMedio(m, oculto)).toBeNull();
+    // Con permiso (ocultos ausente o false) y sin cuenta cargada, sí es «no tiene»: son dos cosas distintas.
+    const sinCuenta = destinoDelMedio("transferencia", { ...base, ocultos: false })!;
+    expect(sinCuenta.aviso).toBe("Este proveedor no tiene cuenta ni CCI registrados.");
+    expect(sinCuenta.sinPermiso).toBeUndefined(); // ahí sí: el dato falta y se puede agregar en su ficha
+  });
+
   it("avisa (sin bloquear) cuando le falta lo del medio elegido", () => {
     expect(destinoDelMedio("transferencia", base)?.aviso).toBe("Este proveedor no tiene cuenta ni CCI registrados.");
     expect(destinoDelMedio("yape", base)?.aviso).toBe("Este proveedor no tiene Yape / Plin registrado.");

@@ -1410,8 +1410,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`/compras/proveedores/[id]`, «Datos para pagar»), `PagoJuntosModal` y el pago individual; `ProveedorModal` («Cómo
   pagarle»), la lista (chip/filtro «Sin datos de pago»), `LineasPago` y `CompraFormV2` (avisos de destino). Reglas puras en
   `lib/proveedores-reglas.ts` (normalizar/enmascarar/validar, `bancoDeCci`, `sinDatosDePago`, `cuentaLocalVisible`).
-  **Quién ve los datos para pagar (2026-10-13, auditoría punto 18, migración `20261013161000`):** solo quien ve Proveedores,
-  Por pagar o Cuentas y dinero, o puede editar un proveedor (`fn_puede_ver_datos_bancarios()`). La tabla ya no entrega las seis
+  **Quién ve los datos para pagar (2026-10-13, auditoría punto 18, migración `20261013161000`; desde el 2026-10-21, migración
+  `20261021200000`, también Órdenes de compra):** solo quien ve Proveedores, Por pagar, Cuentas y dinero u Órdenes de compra, o puede
+  editar un proveedor (`fn_puede_ver_datos_bancarios()`). La tabla ya no entrega las seis
   columnas bancarias en una lectura directa (permiso por columna); `fn_proveedores()` las devuelve en NULL a los demás y
   `getProveedor` (ficha) las lee por la RPC `fn_proveedor_datos_bancarios(uuid)` (si la RPC no existe todavía, PGRST202, de la
   tabla como antes). Cada cambio queda en `proveedores_cambios_bancarios` (disparador): la ficha lo muestra con
@@ -1502,6 +1503,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `cerrar_linea_compra` las rechazan. El papel es único entre los vigentes (`compras_papel_vigente_unico`). **«Sin comprobante»**
   (decisión 50, migración `20261012235000`, **sin pegar**): cuarto tipo, sin serie ni número (la base pone `SC` + la secuencia
   `compras_sin_comprobante_seq`), sin IGV; en la web, `pidePapel`/`palabrasDelTipo` y, a 375 px, el tipo en un desplegable.
+- **Nueva orden de compra: prefiltro, registrar proveedor y «Cómo pagarle»** (ADR-0362, actualización 2026-10-21; migraciones `20261021200000`,
+  `201000` y `202000`, **sin pegar**): `lib/ordenes-compra.ts` `getDatosNuevaOrden` suma `fn_proveedor_categorias` (lectura; UNA fila por proveedor con sus categorías en un arreglo,
+  derivadas de sus productos, las marcas de un solo proveedor, sus órdenes generadas y sus comprobantes vigentes) → `lib/orden-compra-prefiltro.ts` (puro: `afinidadDe`, `prefiltrar`,
+  `lineaNoCalza`) → `NuevaOrdenCompra.tsx`, con la fila «Ver todas (N)» (`ampliar`) de `ComboBuscable`. «+ Registrar proveedor» →
+  `RegistrarProveedorOrden.tsx` + `lib/proveedor-de-orden-reglas.ts` (puro) → RPC `registrar_proveedor_de_orden` (módulo Órdenes de compra; con la cuenta de una persona firma `proveedor_de_orden`, desde una terminal se elige quién).
+  «Cómo pagarle» → `ComoPagarle.tsx` → `ProveedorElegido` → `fn_proveedor_datos_bancarios` (que ahora lee también quien tiene Órdenes de compra).
 - **Enviar una orden a una sede** (ADR-0362, fase 3, 2026-10-12; migraciones `20261012225000` y `20261012230000`, **sin pegar**):
   `/compras/ordenes/envio/[id]` → `components/ordenes-compra/EnviarOrdenASede.tsx` + `lib/envio-orden-reglas.ts` (puro: precarga de lo por
   enviar, validación espejo, `p_lineas`) → RPC `crear_envio` (tablas `despachos` y `despacho_items`: una guía, una sede, `ENV-000001`,
@@ -1958,15 +1965,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     (`HojaOrdenCompra.tsx` + `app/estilos/orden-compra-papel.css`, `#orden-compra-print` pegado a <body>) lleva quién emite
     (`getEmpresaParaOrden`, `configuracion_empresa`) y el documento se llama como la orden (`useTituloDeImpresion`: «OC-000129.pdf»).
   - `/compras/ordenes/editar/[id]` («Editar OC-000129», actividad 4) → `lib/ordenes-compra.ts:getDatosEditarOrden` (lo de «Nueva orden»
-    más la orden, con lo inactivo que ya tenía sumado a las listas; más `puedeAgregarProveedor` y `getRubrosEnUso`, igual que «Nueva orden») +
-    `NuevaOrdenCompra` con `editar` (montado con `key` = versión) →
+    más la orden, con lo inactivo que ya tenía sumado a las listas) + `NuevaOrdenCompra` con `editar` (montado con `key` = versión) →
     `lib/ordenes-compra-acciones.ts:editarOrdenCompra` (`editar_orden_compra`, firma `orden_compra_editar`, versión esperada: PT409 si otra
     persona guardó antes) + `lib/orden-compra-alta.ts` (`borradorDeDetalle`, `argsEditarOrden`). Lo de antes queda en
     `orden_compra_versiones`; crear y editar anotan en Actividad (módulo `ordenes_compra`, sin montos).
   - `/compras/ordenes/nueva` («Nueva orden de compra») → `lib/ordenes-compra.ts:getDatosNuevaOrden` (proveedores, marcas, vínculos,
     categorías, destinos y `fn_ordenes_compra_siguiente`; con sus rubros, para que el combo no ofrezca a los proveedores solo de gastos:
     `lib/proveedores-reglas.ts:proveedoresParaPedir`, ADR-0452 act. 2026-10-21) + `components/ordenes-compra/NuevaOrdenCompra.tsx`
-    (con «+ Agregar proveedor» en el combo, si la cuenta tiene el módulo Proveedores: `ProveedorModal` fuera del `<form>`) →
+    (su «+ Registrar proveedor» es `RegistrarProveedorOrden`, por el módulo Órdenes de compra: abajo; el filtro de arriba no lo toca, y a esa hoja
+    le pasa TODOS los proveedores para avisar de un repetido) →
     `lib/ordenes-compra-acciones.ts:crearOrdenCompra` (`crear_orden_compra`, firma `orden_compra_crear`: persona sin combo, terminal
     con combo) + `lib/orden-compra-alta.ts` (números como se tipean, cálculo de línea en céntimos, guía de foco, argumentos).
   - `/global/elige-sede` → `components/EligeSede.tsx` (la misma acción del selector). `/global/entrar` (route handler):

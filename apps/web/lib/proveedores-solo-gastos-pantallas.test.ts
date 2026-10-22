@@ -41,7 +41,7 @@ describe("los proveedores solo de gastos no se ofrecen para comprar ni recibir m
 
   it("las listas que alimentan esas pantallas traen los rubros (sin ellos el filtro no ve a nadie)", () => {
     expect(leer("lib/compras.ts")).toMatch(/from\("proveedores"\)\.select\("id, nombre, ruc, rubros"\)/);
-    expect(leer("lib/ordenes-compra.ts")).toMatch(/from\("proveedores"\)\.select\("id, nombre, ruc, rubros"\)/);
+    expect(leer("lib/ordenes-compra.ts")).toMatch(/from\("proveedores"\)\.select\("id, nombre, ruc, rubros[,"]/);
     expect(leer("lib/marcas-datos.ts")).toMatch(/from\("proveedores"\)\.select\("id, nombre, rubros"\)/);
     expect(leer("app/(app)/productos/marcas/page.tsx")).toMatch(/from\("proveedores"\)\.select\("id, nombre, rubros"\)/);
   });
@@ -59,13 +59,18 @@ describe("los proveedores solo de gastos no se ofrecen para comprar ni recibir m
 
 describe("«+ Agregar proveedor» se dibuja fuera del <form>", () => {
   // Quien usa `useAltaDeProveedor` dibuja `alta.modal` DESPUÉS de cerrar su <form> (o fuera de él).
-  for (const ruta of ["components/ordenes-compra/NuevaOrdenCompra.tsx", "components/CompraFormV2.tsx", "components/recepcion-conteo/LlegoSinAviso.tsx"]) {
+  for (const ruta of ["components/CompraFormV2.tsx", "components/recepcion-conteo/LlegoSinAviso.tsx"]) {
     it(`${ruta}: alta.modal va después del </form>`, () => {
       const fuente = leer(ruta);
       expect(fuente).toMatch(/\{alta\.modal\}/);
       expect(fuente.lastIndexOf("{alta.modal}")).toBeGreaterThan(fuente.lastIndexOf("</form>"));
     });
   }
+
+  it("Nueva orden dibuja su «Registrar proveedor» fuera del <form> de la orden", () => {
+    const fuente = leer("components/ordenes-compra/NuevaOrdenCompra.tsx");
+    expect(fuente.indexOf("<RegistrarProveedorOrden")).toBeGreaterThan(fuente.lastIndexOf("</form>"));
+  });
 
   it("Llegó mercadería dibuja su ProveedorModal fuera del <form> de la llegada", () => {
     const fuente = leer("components/LlegoMercaderia.tsx");

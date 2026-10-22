@@ -307,6 +307,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/InsumoModales.tsx": { estado: "aplicada", evidencia: ["components/InsumoModales.tsx"] },
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
+  // Registrar proveedor desde Nueva orden (2026-10-21): el RUC y la razón social (un solo campo: la consulta los pinta juntos), o solo el nombre con
+  // «No tiene RUC», y el WhatsApp si se escribió; la pregunta «¿no será uno que ya tienes?» sin contestar también bloquea. Sale de lo que la función
+  // `registrar_proveedor_de_orden` ya exige (`lib/proveedor-de-orden-reglas.ts`, con su prueba).
+  "components/ordenes-compra/RegistrarProveedorOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/RegistrarProveedorOrden.tsx"] },
   "components/campanas-web/VistaPreviaCampana.tsx": { estado: "no-aplica", motivo: "Una hoja de un solo paso: «Crear enlace» y copiarlo. El único control es el «Responsable» de siempre y la hoja dice qué hace antes de pedir nada." },
   // Avisos, «Editar mensajes» (2026-10-20): cada aviso es un campo (lo que rechazaría `fn_club_aviso_problema`), el cierre opcional y quién lo cambia.
   "components/clientas/EditarMensajesAvisos.tsx": { estado: "aplicada", evidencia: ["components/clientas/EditarMensajesAvisos.tsx"] },

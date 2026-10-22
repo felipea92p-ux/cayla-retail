@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
+import { leerCategoriasDeProveedor,
   ESTADO_ENVIO,
   ESTADO_ORDEN,
   POR_REPARTIR_LISTA,
@@ -641,5 +641,35 @@ describe("qué se puede hacer con una orden que tiene (o no) envíos", () => {
     expect(estadoDeEnvioDeOrden({ envios: [], lineas: [linea({ enviado: 0 })] })).toBe("ninguno");
     expect(estadoDeEnvioDeOrden({ envios: [vivo()], lineas: [linea({ enviado: 4, porEnviar: 6 })] })).toBe("en_parte");
     expect(estadoDeEnvioDeOrden({ envios: [vivo()], lineas: [linea({ enviado: 10, porEnviar: 0 }), linea({ id: "i2", enviado: 0, porEnviar: 0 })] })).toBe("completo");
+  });
+});
+
+describe("leerCategoriasDeProveedor: lo que devuelve fn_proveedor_categorias (una fila por proveedor)", () => {
+  it("arma el mapa proveedor → categorías, sin repetir", () => {
+    const r = leerCategoriasDeProveedor([
+      { proveedor_id: "p1", categorias: ["c1", "c2", "c1"] },
+      { proveedor_id: "p2", categorias: ["c3"] },
+    ]);
+    expect(r).toEqual({ p1: ["c1", "c2"], p2: ["c3"] });
+  });
+  it("una lista vacía es «nadie maneja nada todavía», no «no se pudo leer»", () => {
+    expect(leerCategoriasDeProveedor([])).toEqual({});
+  });
+  it("si la respuesta no es una lista (la base aún no tiene la función) es null: no se filtra", () => {
+    expect(leerCategoriasDeProveedor(null)).toBeNull();
+    expect(leerCategoriasDeProveedor({})).toBeNull();
+    expect(leerCategoriasDeProveedor(undefined)).toBeNull();
+  });
+  it("ignora filas incompletas, sin arreglo o con categorías que no son texto", () => {
+    expect(
+      leerCategoriasDeProveedor([null, 3, {}, { proveedor_id: "p1" }, { categorias: ["c1"] }, { proveedor_id: "p1", categorias: "c1" }, { proveedor_id: "p1", categorias: [7, "", "c1"] }]),
+    ).toEqual({ p1: ["c1"] });
+  });
+  it("con cientos de proveedores sigue siendo una fila por proveedor (el tope de PostgREST son 1.000 filas)", () => {
+    const filas = Array.from({ length: 300 }, (_, i) => ({ proveedor_id: `p${i}`, categorias: Array.from({ length: 52 }, (_, k) => `c${k}`) }));
+    expect(filas.length).toBeLessThan(1000);
+    const r = leerCategoriasDeProveedor(filas)!;
+    expect(Object.keys(r)).toHaveLength(300);
+    expect(r["p299"]).toHaveLength(52);
   });
 });

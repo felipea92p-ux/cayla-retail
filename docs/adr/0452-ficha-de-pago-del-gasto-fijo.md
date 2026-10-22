@@ -76,12 +76,12 @@ viejo— es mercadería. El que vende algo y además cobra gastos («Telas» y �
 solo-de-gastos y **conserva al que ya está elegido** en una orden que se edita. Es la mitad que faltaba de `esProveedorDeGasto` (que mira «algún rubro es Gastos» y alimenta el combo de Gastos).
 
 **Qué se hizo:** Nueva y Editar orden de compra usan `proveedoresParaPedir`. La orden NO deja de aceptar a cualquier proveedor activo (la base no cambió: `crear_orden_compra` valida «activo»);
-solo se dejó de OFRECER lo que casi seguro es un error. A la vez, el combo trae **«+ Agregar proveedor»** (`crear` de `ComboBuscable`, con lo escrito de punto de partida; 11 dígitos son un RUC) para quien tiene
-el módulo Proveedores (`editarCuentasProveedor` = `fn_puede_gestionar_proveedores`); quien no, ve a quién pedírselo. Abre el mismo `ProveedorModal` de Proveedores y de Llegó mercadería, fuera del `<form>`
-(ADR-0128), sin el botón de rubro «Gastos» (un proveedor de servicios se suma desde Gastos), y le pasa el directorio COMPLETO como «existentes» para avisar de un RUC o nombre repetido, también el de un servicio.
+solo se dejó de OFRECER lo que casi seguro es un error. El «+ Registrar proveedor» de esa pantalla es el de la entrega 1 de Nueva orden (`RegistrarProveedorOrden`, función `registrar_proveedor_de_orden`, por el módulo
+Órdenes de compra: quien puede crear la orden puede registrar a su proveedor); este cambio solo le pasa el directorio COMPLETO (también los de gastos) para que avise de un RUC o un nombre repetido.
+Primero se hizo una alta propia con `ProveedorModal` (exigía el módulo Proveedores); al traer main la de la entrega 1 se **descartó**: la otra tiene el permiso correcto para esa pantalla.
 
 **Segunda tanda (Felipe, el mismo 2026-10-21, al ver la auditoría):** el mismo filtro (`proveedoresParaPedir`) se aplicó a las otras cinco pantallas donde se elige a quién se le compra o se le recibe
-mercadería, y el «+ Agregar proveedor» donde faltaba:
+mercadería, y el «+ Agregar proveedor» donde faltaba (Registrar factura y Llegó sin aviso, con el módulo Proveedores):
 
 | Pantalla | Qué cambió |
 |---|---|
@@ -91,7 +91,7 @@ mercadería, y el «+ Agregar proveedor» donde faltaba:
 | Alta/edición de producto y conteo (`getCatalogoMarcas`) | filtra, salvo quien ya trae una marca |
 | Marcas ▸ «¿Quién la trae?» | filtra con la misma excepción; los nombres de los ya vinculados salen de todos los activos |
 
-Una sola pieza para el alta (`components/useAltaDeProveedor.tsx`, la usan Nueva orden, Registrar factura y Llegó sin aviso) y una sola regla de conservar: `proveedoresParaPedir(lista, conservar)` acepta un id o varios.
+Una sola pieza para el alta de las dos pantallas que no tenían (`components/useAltaDeProveedor.tsx`: el mismo `ProveedorModal` de Proveedores, fuera del `<form>`, con el módulo Proveedores) y una sola regla de conservar: `proveedoresParaPedir(lista, conservar)` acepta un id o varios.
 La excepción de catálogo es de fondo: **quien ya trae una marca es de mercadería por definición**, aunque tenga además el rubro «Gastos»; ocultarlo dejaría una pareja marca-proveedor a medias. Basta mirar los vínculos (`marca_proveedores`): la llave compuesta de `productos` obliga a que todo producto con marca y proveedor tenga el suyo, y así la regla no depende de una ventana de productos ni cambia con el tiempo; al editar un producto, su proveedor actual se conserva aparte.
 `getProveedoresActivos` ganó el campo `rubros` (aditivo: sus otros llamadores no lo usan). `lib/proveedores-solo-gastos-pantallas.test.ts` vigila que ninguna de las seis pantallas pierda el filtro y que el alta nunca se dibuje dentro de un `<form>`.
 

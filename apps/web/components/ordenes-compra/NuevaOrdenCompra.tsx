@@ -13,18 +13,21 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { useAltaDeProveedor } from "@/components/useAltaDeProveedor";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { MarcaCampo } from "@/components/alta-producto/guia";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { ComoPagarle } from "@/components/ordenes-compra/ComoPagarle";
+import { RegistrarProveedorOrden, type ProveedorDeLista } from "@/components/ordenes-compra/RegistrarProveedorOrden";
+import type { ProveedorRegistrado } from "@/lib/proveedor-de-orden-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { EstadoCampo } from "@/lib/guia-campos";
 import { opcionesDeMarca } from "@/lib/marca-proveedor-reglas";
 import { proveedoresParaPedir } from "@/lib/proveedores-reglas";
+import { afinidadDe, lineaNoCalza, prefiltrar, textoDeAfinidad, type AvisoDeLinea } from "@/lib/orden-compra-prefiltro";
 import { sugerirDescripcion } from "@/lib/sugerencias-alta-producto";
 import { soles } from "@/lib/compras-reglas";
 import { TEXTO_AVISO_ORDEN, tituloAvisoOrden } from "@/lib/nos-debe-reglas";
@@ -98,19 +101,29 @@ type Props = {
   hoy: string;
   /** La sede donde se trabaja, si es una tienda o un almacén: «Llega a» arranca ahí (decisión por defecto de la fase 1). */
   destinoInicial: string;
-  /** La cuenta tiene el módulo Proveedores: el combo ofrece «+ Agregar proveedor». Sin él, dice a quién pedírselo. */
-  puedeAgregarProveedor: boolean;
-  /** Los rubros que ya usan los proveedores: los botones del formulario de «Agregar proveedor». */
-  rubrosEnUso: string[];
   editar?: EdicionOrden;
 };
 
-export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgregarProveedor, rubrosEnUso, editar }: Props) {
+export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: Props) {
   const router = useRouter();
   const [orden, setOrden] = useState<OrdenBorrador>(
     () => editar?.inicial ?? { proveedorId: "", destino: destinoInicial, entrega: "", nota: "", lineas: [lineaVacia("l1")] },
   );
   const [guardando, setGuardando] = useState(false);
+  // La hoja «Cómo pagarle» del proveedor elegido (solo lectura: no entra al borrador ni a lo que se guarda).
+  const [verComoPagarle, setVerComoPagarle] = useState(false);
+  // «Registrar proveedor» (Felipe 2026-10-21): lo que se había tipeado en el buscador (la hoja está abierta si no es `null`) y los
+  // proveedores que se registraron en esta pantalla, que se suman a los que cargó la página (que no se vuelve a pedir).
+  const [registro, setRegistro] = useState<string | null>(null);
+  const [nuevos, setNuevos] = useState<(ProveedorDeLista & { telefono: string | null })[]>([]);
+  const proveedores = useMemo(
+    () => (nuevos.length ? [...datos.proveedores, ...nuevos.filter((n) => !datos.proveedores.some((p) => p.id === n.id))] : datos.proveedores),
+    [datos.proveedores, nuevos],
+  );
+  // Con el proveedor elegido, las categorías y las marcas ofrecen primero lo suyo; «Ver todas» (al pie de cada lista) amplía una de
+  // las dos y se apaga al cambiar de proveedor (`orden-compra-prefiltro.ts`).
+  const [categoriasTodas, setCategoriasTodas] = useState(false);
+  const [marcasTodas, setMarcasTodas] = useState(false);
   // «Llega a» viene puesto con la sede donde se trabaja: hasta que la persona lo elige (aunque elija la misma), la guía lo trata como
   // sugerido y no lo marca con ✓ (ADR-0284 act. h). Al editar, el destino es el que la orden ya tenía: cuenta como elegido.
   const [destinoElegido, setDestinoElegido] = useState(Boolean(editar));
@@ -123,28 +136,6 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgrega
 
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
-
-  // «+ Agregar proveedor» (`useAltaDeProveedor`): los proveedores recién guardados se suman a la lista de la orden, sin esperar a que la
-  // página relea el directorio: sin ellos diría «el proveedor no es válido» sobre uno que acaba de nacer (la base sí lo acepta). La
-  // página NO se refresca: no aporta nada a esta orden y, al editar, un refresco con la orden cambiada por otra persona remonta el
-  // formulario (`key` = versión) y pierde lo escrito.
-  const [agregados, setAgregados] = useState<DatosNuevaOrden["proveedores"]>([]);
-  const proveedores = useMemo(
-    () => [...datos.proveedores, ...agregados.filter((a) => !datos.proveedores.some((p) => p.id === a.id))],
-    [datos.proveedores, agregados],
-  );
-
-  // Sin el directorio leído (`datos.falla`) no se ofrece: el aviso de arriba dice que no se pudo leer, y un alta con la lista vacía no
-  // avisaría de un proveedor repetido (principio 9).
-  const alta = useAltaDeProveedor({
-    habilitado: puedeAgregarProveedor && !datos.falla,
-    rubrosEnUso,
-    existentes: proveedores,
-    alGuardar: (p) => {
-      setAgregados((a) => [...a, { id: p.id, nombre: p.nombre, ruc: p.ruc, rubros: [] }]);
-      elegirProveedor(p.id);
-    },
-  });
 
   const ctx: ContextoValidacion = useMemo(
     () => ({
@@ -181,8 +172,9 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgrega
 
   // ---- opciones de los combos ----
   const nombreMarca = useMemo(() => new Map(datos.marcas.map((m) => [m.id, m.nombre])), [datos.marcas]);
-  // A quién se le PIDE mercadería: sin los proveedores que son solo de gastos (luz, agua, internet: ADR-0452). La base acepta a cualquiera
-  // activo, y el que está elegido —o el que la orden traía al abrirse— se queda, pero ofrecerlos era un error esperando a pasar.
+  // A quién se le PIDE mercadería: sin los proveedores que son solo de gastos (luz, agua, internet: ADR-0452, act. 2026-10-21). La base acepta
+  // a cualquiera activo, y el que está elegido —o el que la orden traía al abrirse— se queda, pero ofrecerlos era un error esperando a pasar.
+  // «Registrar proveedor» recibe a TODOS (`proveedores`) para avisar de un RUC o un nombre que ya existe, también el de un servicio.
   const opcionesProveedor: OpcionCombo<string>[] = useMemo(
     () =>
       proveedoresParaPedir(proveedores, [orden.proveedorId, editar?.inicial.proveedorId]).map((p) => {
@@ -203,6 +195,12 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgrega
     [datos.marcas, proveedores, datos.vinculos, orden.proveedorId],
   );
   const opcionesCategoria: OpcionCombo<string>[] = useMemo(() => datos.categorias.map((c) => ({ valor: c.id, texto: c.nombre })), [datos.categorias]);
+  // El prefiltro (Felipe 2026-10-21): solo lo que el proveedor maneja, más lo ya elegido en alguna línea (no desaparece), con «Ver todas».
+  const afinidad = useMemo(() => afinidadDe(orden.proveedorId, datos.categoriasDeProveedor, datos.vinculos), [orden.proveedorId, datos.categoriasDeProveedor, datos.vinculos]);
+  const yaElegidas = useMemo(() => new Set(orden.lineas.flatMap((l) => [l.categoriaId, l.marcaId]).filter(Boolean)), [orden.lineas]);
+  const categoriasVista = prefiltrar(opcionesCategoria, afinidad?.categorias ?? null, { verTodas: categoriasTodas, conservar: yaElegidas });
+  const marcasVista = prefiltrar(opcionesMarca, afinidad?.marcas ?? null, { verTodas: marcasTodas, conservar: yaElegidas });
+  const textoAfinidad = textoDeAfinidad(afinidad);
   const opcionesDestino = useMemo(
     // «Por repartir», corto en la caja: «(llega a Lima)» la partía en dos renglones en una pantalla angosta. Lo explica el título de su
     // grupo en la lista abierta, ANTES de elegirlo (Formidable, 2026-10-10: dos de dos pruebas ciegas no sabían qué era).
@@ -213,6 +211,8 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgrega
     [datos.destinos],
   );
   const categoriaPor = useMemo(() => new Map(datos.categorias.map((c) => [c.id, c])), [datos.categorias]);
+  // Cada línea dice si su categoría o su marca ya no son de este proveedor (se deriva: al volver al proveedor de antes, se va sola).
+  const nombresDeLinea = { categoria: (id: string) => categoriaPor.get(id)?.nombre, marca: (id: string) => nombreMarca.get(id) };
 
   // La única marca de un proveedor se pone sola en las líneas que todavía no tienen marca (casi todos traen una sola).
   const marcaUnicaDe = (proveedorId: string) => {
@@ -222,7 +222,17 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgrega
 
   function elegirProveedor(proveedorId: string) {
     const unica = marcaUnicaDe(proveedorId);
+    // Otro proveedor, otra lista: «Ver todas» vuelve a empezar cerrado.
+    setCategoriasTodas(false);
+    setMarcasTodas(false);
     setOrden((o) => ({ ...o, proveedorId, lineas: o.lineas.map((l) => (l.marcaId || !unica ? l : { ...l, marcaId: unica })) }));
+  }
+  /** Un proveedor que se acaba de registrar (o que ya estaba y no se había cargado): se suma a la lista y se elige, y la hoja se cierra. */
+  function alRegistrarse(p: ProveedorRegistrado, telefono: string | null) {
+    // Con su WhatsApp, para que «Cómo pagarle» no diga «Falta teléfono» de uno que acaba de registrarse con él.
+    setNuevos((n) => (n.some((x) => x.id === p.id) ? n : [...n, { id: p.id, nombre: p.nombre, ruc: p.ruc, telefono }]));
+    setRegistro(null);
+    elegirProveedor(p.id);
   }
   function cambiarLinea(clave: string, cambios: Partial<LineaBorrador>) {
     setOrden((o) => ({ ...o, lineas: o.lineas.map((l) => (l.clave === clave ? { ...l, ...cambios } : l)) }));
@@ -243,7 +253,8 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgrega
   const problemaEntrega = problemaDeEntrega(orden.entrega, hoy, editar?.entregaOriginal);
   // «Nos debe» (ADR-0362, fase 5a, decisión 14): si el proveedor elegido debe prendas por reponer, se avisa antes de pedirle lo nuevo.
   const deudaDelProveedor = orden.proveedorId ? (datos.nosDebe?.[orden.proveedorId] ?? null) : null;
-  const nombreDelProveedor = proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? deudaDelProveedor?.nombre ?? "Este proveedor";
+  const proveedorElegido = proveedores.find((p) => p.id === orden.proveedorId);
+  const nombreDelProveedor = proveedorElegido?.nombre ?? deudaDelProveedor?.nombre ?? "Este proveedor";
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -392,7 +403,14 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgrega
               (con ✓ 25 px, con «Sigue aquí» 21 px) y las cuatro cajas quedaban a distinta altura mientras se llenaba (Felipe, 2026-10-10:
               «debería estar alineado»). El proveedor va sin ayuda al lado: con «Sigue aquí» no cabía en la columna. */}
           <CampoGuiado id="proveedor" guia={guia}>
-            <p className={TITULO_FIJO}>{etiqueta("proveedor", "Proveedor")}</p>
+            <p className={TITULO_FIJO}>
+              {etiqueta("proveedor", "Proveedor")}
+              {proveedorElegido && (
+                <button type="button" data-guia="orden-form.como-pagarle" onClick={() => setVerComoPagarle(true)} className="btn-cayla btn-enlace ml-auto text-xs font-normal">
+                  Cómo pagarle
+                </button>
+              )}
+            </p>
             <ComboBuscable
               id="oc-proveedor"
               caja
@@ -401,10 +419,8 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgrega
               valor={orden.proveedorId}
               onValor={elegirProveedor}
               opciones={opcionesProveedor}
-              crearArriba
-              crear={alta.crear}
+              crear={{ etiqueta: (q) => (q ? `+ Registrar proveedor «${q}»` : "+ Registrar proveedor"), onCrear: (q) => setRegistro(q) }}
             />
-            {!puedeAgregarProveedor && <p className="mt-1.5 text-xs text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue.</p>}
           </CampoGuiado>
           <CampoGuiado id="destino" guia={guia}>
             <p className={TITULO_FIJO}>{etiqueta("destino", "Llega a")}</p>
@@ -471,6 +487,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgrega
           >
             Lo que pides
           </TituloSeccion>
+          {textoAfinidad && <p className="text-xs text-taupe">{textoAfinidad}</p>}
 
           {orden.lineas.length === 0 && (
             <CampoGuiado id="lineas" guia={guia}>
@@ -507,8 +524,11 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgrega
               guia={guia}
               etiqueta={etiqueta}
               estado={estadoVisible}
-              opcionesCategoria={opcionesCategoria}
-              opcionesMarca={opcionesMarca}
+              opcionesCategoria={categoriasVista.opciones}
+              opcionesMarca={marcasVista.opciones}
+              ampliarCategoria={categoriasVista.filtrada ? { texto: `Ver todas (${categoriasVista.total})`, onAmpliar: () => setCategoriasTodas(true) } : undefined}
+              ampliarMarca={marcasVista.filtrada ? { texto: `Ver todas (${marcasVista.total})`, onAmpliar: () => setMarcasTodas(true) } : undefined}
+              noCalza={lineaNoCalza(l, afinidad, nombresDeLinea)}
               placeholderDescripcion={sugerirDescripcion(categoriaPor.get(l.categoriaId) ?? null).texto}
               onCambio={(cambios) => cambiarLinea(l.clave, cambios)}
               onQuitar={() => quitarLinea(l.clave)}
@@ -541,9 +561,11 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgrega
         </section>
       </form>
 
-      {/* Fuera del <form> (ADR-0128): un `submit` del alta no debe llegar a «Guardar orden». */}
-      {alta.modal}
       {avisoSalida.aviso}
+      {verComoPagarle && proveedorElegido && <ComoPagarle proveedor={proveedorElegido} onClose={() => setVerComoPagarle(false)} />}
+      {registro !== null && (
+        <RegistrarProveedorOrden proveedores={proveedores} tipeado={registro} esPersona={esPersona} responsable={responsable} onRegistrado={alRegistrarse} onClose={() => setRegistro(null)} />
+      )}
     </div>
   );
 }
@@ -563,6 +585,9 @@ function LineaOrden({
   estado,
   opcionesCategoria,
   opcionesMarca,
+  ampliarCategoria,
+  ampliarMarca,
+  noCalza,
   placeholderDescripcion,
   onCambio,
   onQuitar,
@@ -575,6 +600,11 @@ function LineaOrden({
   estado: (id: string) => EstadoCampo | null;
   opcionesCategoria: OpcionCombo<string>[];
   opcionesMarca: OpcionCombo<string>[];
+  /** «Ver todas (N)» al pie de la lista cuando se está mostrando solo lo que el proveedor maneja; sin esto, la lista ya es la completa. */
+  ampliarCategoria?: { texto: string; onAmpliar: () => void };
+  ampliarMarca?: { texto: string; onAmpliar: () => void };
+  /** La categoría o la marca de esta línea no son de lo que maneja el proveedor elegido (derivado; nunca bloquea). */
+  noCalza?: AvisoDeLinea | null;
   placeholderDescripcion: string;
   onCambio: (cambios: Partial<LineaBorrador>) => void;
   onQuitar: () => void;
@@ -613,11 +643,11 @@ function LineaOrden({
         </div>
         <div className="col-span-2 @min-[28rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>Categoría</p>
-          <ComboBuscable caja etiquetaAccesible={`Categoría de la línea ${numero}`} marcador="Categoría…" valor={l.categoriaId} onValor={(categoriaId) => onCambio({ categoriaId })} opciones={opcionesCategoria} />
+          <ComboBuscable caja etiquetaAccesible={`Categoría de la línea ${numero}`} marcador="Categoría…" valor={l.categoriaId} onValor={(categoriaId) => onCambio({ categoriaId })} opciones={opcionesCategoria} ampliar={ampliarCategoria} />
         </div>
         <div className="col-span-2 @min-[28rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>Marca</p>
-          <ComboBuscable caja etiquetaAccesible={`Marca de la línea ${numero}`} marcador="Marca…" valor={l.marcaId} onValor={(marcaId) => onCambio({ marcaId })} opciones={opcionesMarca} />
+          <ComboBuscable caja etiquetaAccesible={`Marca de la línea ${numero}`} marcador="Marca…" valor={l.marcaId} onValor={(marcaId) => onCambio({ marcaId })} opciones={opcionesMarca} ampliar={ampliarMarca} />
         </div>
         <div className="col-span-2 @min-[56rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>
@@ -676,6 +706,11 @@ function LineaOrden({
       {duda && (
         <Aviso tono="atencion" chico className="mt-2">
           {duda}
+        </Aviso>
+      )}
+      {noCalza && (
+        <Aviso tono={noCalza.tono} chico className="mt-2">
+          {noCalza.texto}
         </Aviso>
       )}
     </CampoGuiado>

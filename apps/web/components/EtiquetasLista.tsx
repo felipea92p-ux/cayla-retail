@@ -123,11 +123,14 @@ function ordenar(lista: Etiqueta[]) {
   return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
-/** «Campaña», o «Repetir» si su temporada ya pasó. El año va en el `title` y en el título de la hoja: «Repetir en 2027» no cabe
- *  en el pie de la tarjeta a 1024 px (101 px de texto en 86). */
+/** «Configurar», o «Repetir» si su temporada ya pasó. Decía «Campaña» hasta el 2026-10-21, pero la hoja la usa toda etiqueta
+ *  (también Nuevo o Hecho a mano), no solo una campaña. El año va en el `title` y en el título de la hoja: «Repetir en 2027» no
+ *  cabe en el pie de la tarjeta a 1024 px (101 px de texto en 86). */
 const botonCampana = (e: Etiqueta, hoy: string) => {
   const r = repetirTemporada(e.vigenteDesde, e.vigenteHasta, hoy);
-  return r ? { texto: "Repetir", title: `Repetir en ${r.anio}: abre la campaña con las fechas de ${r.anio}` } : { texto: "Campaña", title: undefined };
+  return r
+    ? { texto: "Repetir", title: `Repetir en ${r.anio}: abre la campaña con las fechas de ${r.anio}` }
+    : { texto: "Configurar", title: "Su descuento, sus fechas y sus categorías" };
 };
 
 function TarjetaEtiqueta({
@@ -774,7 +777,7 @@ function CampanaModal({
 
   return (
     <Modal
-      titulo={repetir ? `Repetir «${etiqueta.nombre}» en ${repetir.anio}` : `Campaña «${etiqueta.nombre}»`}
+      titulo={repetir ? `Repetir «${etiqueta.nombre}» en ${repetir.anio}` : `Configuración «${etiqueta.nombre}»`}
       subtitulo={
         repetir
           ? `Las fechas son las de ${etiqueta.vigenteHasta?.slice(0, 4)}, pasadas a ${repetir.anio}. Revisa el descuento y las categorías, y guarda.`

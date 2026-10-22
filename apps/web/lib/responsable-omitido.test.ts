@@ -32,7 +32,7 @@ describe("acciones sin responsable", () => {
   it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra, las 3 de Avisos del club, las tres de la cola de arranque (cerrar, reabrir e identificar), crear, editar y anular una orden de compra, registrar o anular su comprobante y enviarla a una sede o anular el envío (ADR-0362), crear, editar y anular una orden de insumos del Taller y registrar su comprobante (ADR-0362, fase 7), entregar, devolver y anular la plata de un fondo, registrar un gasto del viaje y sumarle la foto de su papel, rendir el propio fondo y aprobar o devolver una rendición, y pagar o anular el pago de la deuda de un faltante (ADR-0362, fase 6), el recorte de una foto al subirla (ADR-0434) y deshacer la unión de una cuenta de Google con un miembro (ADR-0469), menos Editar producto (ADR-0354) y Regularizar prenda", () => {
     expect(clavesBase).toHaveLength(28);
     expect([...DESCRIPCION_VIGENTE.keys()].sort()).toEqual(Object.keys(ACCIONES_SIN_RESPONSABLE).sort());
-    expect(DESCRIPCION_VIGENTE.size).toBe(53);
+    expect(DESCRIPCION_VIGENTE.size).toBe(54);
     expect(DESCRIPCION_VIGENTE.has("producto_confirmar_cambios")).toBe(false);
     expect(DESCRIPCION_VIGENTE.has("regularizar_prenda")).toBe(false);
   });
