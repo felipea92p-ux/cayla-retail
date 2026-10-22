@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aplicarProvision, delMes, leerProvision, notaEstimado, resumenDeProvision, type FilaProvision } from "./planilla-provision-reglas";
+import { aplicarProvision, delMes, leerProvision, notaProvisionado, resumenDeProvision, type FilaProvision } from "./planilla-provision-reglas";
 import type { FilaER } from "./resultados-reglas";
 
 const fila = (p: Partial<FilaER>): FilaER => ({
@@ -11,7 +11,7 @@ const fila = (p: Partial<FilaER>): FilaER => ({
 });
 const prov = (p: Partial<FilaProvision>): FilaProvision => ({
   ubicacionId: null, sedeCodigo: "X", unidad: "tienda", periodoId: "p1", fechaIni: "2026-09-28", fechaFin: "2026-10-28",
-  personas: 3, diasPeriodo: 31, diasCorridos: 20, devengado: 0, alCierre: null,
+  personas: 3, diasPeriodo: 31, diasCorridos: 20, devengado: 0, deHoy: 0, alCierre: null,
   ...p,
 });
 
@@ -111,7 +111,7 @@ describe("aplicarProvision", () => {
 
   it("deja la nota de lo asentado y le suma la de lo estimado", () => {
     const [, aqp] = aplicarProvision([TRU, fila({ ...AQP, planillaNota: "Planilla del 29/08 al 28/09 · 3 personas (Dynamic)" })], [prov({ ubicacionId: "u-aqp", devengado: 60, personas: 3 })]);
-    expect(aqp!.planillaNota).toBe("Planilla del 29/08 al 28/09 · 3 personas (Dynamic) · Estimado hasta hoy con las boletas de Dynamic (3 personas); cuando Dynamic pague el período, entra lo pagado de verdad.");
+    expect(aqp!.planillaNota).toBe("Planilla del 29/08 al 28/09 · 3 personas (Dynamic) · Provisionado hasta hoy con las boletas de Dynamic (3 personas); las horas de cada día entran cuando la persona cierra su jornada. Cuando Dynamic pague el período, entra lo pagado de verdad.");
   });
 
   it("una fila sin estimación, o con una que no suma nada, queda tal cual (la misma referencia)", () => {
@@ -141,13 +141,48 @@ describe("resumenDeProvision", () => {
   it("cuántas sedes, personas y plata tiene la estimación de un mes; sin nada, null", () => {
     expect(resumenDeProvision([])).toBeNull();
     expect(resumenDeProvision([prov({ devengado: 0 })])).toBeNull();
-    expect(resumenDeProvision([prov({ devengado: 200, alCierre: 300, personas: 12 }), prov({ devengado: 50, alCierre: null, personas: 3 })])).toEqual({ sedes: 2, personas: 15, devengado: 250, alCierre: 350 });
+    expect(resumenDeProvision([prov({ devengado: 200, alCierre: 300, personas: 12 }), prov({ devengado: 50, alCierre: null, personas: 3 })])).toEqual({ sedes: 2, personas: 15, devengado: 250, alCierre: 350, deHoy: 0 });
   });
 });
 
-describe("notaEstimado", () => {
+describe("notaProvisionado", () => {
   it("dice cuántas personas, en singular o plural", () => {
-    expect(notaEstimado(1, null)).toContain("(1 persona)");
-    expect(notaEstimado(12, null)).toContain("(12 personas)");
+    expect(notaProvisionado(1, 0, null)).toContain("(1 persona)");
+    expect(notaProvisionado(12, 0, null)).toContain("(12 personas)");
+  });
+
+  it("sin nada de hoy explica por qué las horas llegan al cerrar la jornada; con lo de hoy, dice cuánto es y que se corrige", () => {
+    expect(notaProvisionado(5, 0, null)).toContain("las horas de cada día entran cuando la persona cierra su jornada");
+    expect(notaProvisionado(5, 640, null)).toContain("S/\u00a0640 son de hoy, calculados con las horas que lleva cada persona, y se corrigen cuando cierra su jornada");
+  });
+});
+
+describe("lo de hoy (act. 2026-10-22)", () => {
+  const base = { ubicacion_id: "u-tru", sede_codigo: "TRU", unidad: "tienda", periodo_id: "p1", fecha_ini: "2026-09-28", fecha_fin: "2026-10-28", personas: 12, dias_periodo: 31, dias_corridos: 24, devengado: "10000.50", al_cierre: "14000" };
+
+  it("la base lo trae en su columna y la pantalla lo suma al devengado, sabiendo cuánto es de hoy", () => {
+    const [f] = leerProvision([{ ...base, hoy_estimado: "640.25" }]);
+    expect(f).toMatchObject({ devengado: 10640.75, deHoy: 640.25, alCierre: 14000 });
+  });
+
+  it("nulo (hoy es feriado, no hay jornadas, la base falló) o sin la columna (antes de pegar la migración): no suma nada", () => {
+    expect(leerProvision([{ ...base, hoy_estimado: null }])[0]).toMatchObject({ devengado: 10000.5, deHoy: 0 });
+    expect(leerProvision([base])[0]).toMatchObject({ devengado: 10000.5, deHoy: 0 });
+  });
+
+  it("un estimado de hoy negativo o ilegible jamás resta: vale 0", () => {
+    expect(leerProvision([{ ...base, hoy_estimado: "-50" }])[0]).toMatchObject({ devengado: 10000.5, deHoy: 0 });
+    expect(leerProvision([{ ...base, hoy_estimado: "abc" }])[0]).toMatchObject({ devengado: 10000.5, deHoy: 0 });
+  });
+
+  it("entra al Estado de resultados con el resto del devengado, y la nota de la fila dice cuánto es de hoy", () => {
+    const [tru] = aplicarProvision([TRU], leerProvision([{ ...base, hoy_estimado: "640" }]));
+    expect(tru).toMatchObject({ planillaEstimada: 10640.5, planilla: 10640.5 });
+    expect(tru!.planillaNota).toContain("S/\u00a0640 son de hoy");
+  });
+
+  it("el resumen de la confianza suma lo de hoy de todas las sedes", () => {
+    const r = resumenDeProvision([prov({ devengado: 1000, deHoy: 100 }), prov({ devengado: 500, deHoy: 40.5 })]);
+    expect(r).toMatchObject({ devengado: 1500, deHoy: 140.5 });
   });
 });

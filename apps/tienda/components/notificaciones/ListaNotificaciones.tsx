@@ -41,7 +41,8 @@ const fechaHora = (iso: string) =>
 export function ListaNotificaciones({ filas, total, busqueda }: { filas: FilaNotificacion[]; total: number; busqueda: string }) {
   const router = useRouter();
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
-  const [, iniciar] = useTransition();
+  // `borrando`: mientras la cuenta responde, los botones se apagan y la lista lo dice (antes el toque no mostraba nada).
+  const [borrando, iniciar] = useTransition();
 
   function alternar(clave: string) {
     setSeleccion((actual) => {
@@ -70,17 +71,17 @@ export function ListaNotificaciones({ filas, total, busqueda }: { filas: FilaNot
   }
 
   return (
-    <section className="n-lista-caja" aria-label="Tus notificaciones">
+    <section className="n-lista-caja" aria-label="Tus notificaciones" aria-busy={borrando || undefined}>
       <div className="n-barra">
         <span>
           {total === 1 ? "1 notificación" : `${total} notificaciones`}
           {busqueda ? ` para «${busqueda}»` : ""}
         </span>
         <div className="n-acciones">
-          <button type="button" className="t-btn t-btn-sec" disabled={seleccion.size === 0} onClick={() => borrar([...seleccion])}>
+          <button type="button" className="t-btn t-btn-sec" disabled={seleccion.size === 0 || borrando} aria-busy={borrando || undefined} onClick={() => borrar([...seleccion])}>
             Eliminar seleccionadas{seleccion.size > 0 ? ` (${seleccion.size})` : ""}
           </button>
-          <button type="button" className="t-btn t-btn-peligro" disabled={total === 0} onClick={borrarTodas}>
+          <button type="button" className="t-btn t-btn-peligro" disabled={total === 0 || borrando} aria-busy={borrando || undefined} onClick={borrarTodas}>
             Eliminar todas
           </button>
         </div>
@@ -112,7 +113,7 @@ export function ListaNotificaciones({ filas, total, busqueda }: { filas: FilaNot
                 </span>
                 {f.sinVer ? <span className="t-avisos-punto" role="img" aria-label="Sin leer" /> : null}
               </Link>
-              <button type="button" className="t-avisos-borrar" aria-label={`Eliminar: ${f.titulo}`} onClick={() => borrar([f.clave])}>
+              <button type="button" className="t-avisos-borrar" disabled={borrando} aria-label={`Eliminar: ${f.titulo}`} onClick={() => borrar([f.clave])}>
                 <Icono nombre="cerrar" />
               </button>
             </li>

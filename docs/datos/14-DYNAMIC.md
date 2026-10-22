@@ -524,6 +524,16 @@ verse sin sueldos, sin error. Quien toque esa boleta debe avisar a retail.
 
 ---
 
+
+**Lo de hoy (act. 2026-10-22, `20261022081000`).** Dynamic no cuenta el día en curso: `horas_trabajadas` queda NULL hasta que hay `salida_final`. Retail estima el día con
+`retail.fn_planilla_hoy_por_sede`: lee `public.marcajes` de hoy (no anuladas; entrada, `salida_*`, `retorno_*`, `salida_final`) y las tasas de la boleta
+(`pago_base`, `descuento_afp`, `provision_total`, `horas_mes`, `monto_movilidad`, `dias_trabajados`) y entrega la columna `hoy_estimado` (por sede, nula si hoy es feriado en `feriados` o
+si algo falla). Medido contra 17 días reales: ±5 % del día en 13 de 17. **Si Dynamic renombra alguna de esas claves o cambia los tipos de marcación, sale nulo sin error.**
+
+**El costo es el costo real (ADR-0474, `20261022164000`).** `retail.planilla_por_sede.costo_total` ya no es `v_planilla_pagada.costo_total` de Dynamic (`total + provision_total`, donde `total` es lo
+que RECIBE la persona): es `total + descuento_pension + retencion_4ta + aporte_essalud + provision_total` (bruto + EsSalud + provisiones). La provisión de un período abierto hace lo mismo con las claves
+`descuento_afp`, `retencion_4ta`, `aporte_essalud` de la boleta, y prorratea el EsSalud por días corridos (en un período abierto es el del mes entero). **Si Dynamic renombra esos campos, el costo vuelve a verse corto sin error.**
+
 ## 8. Qué NO se puede tocar desde retail
 
 | Objeto | Desde la app de retail | Por qué |
