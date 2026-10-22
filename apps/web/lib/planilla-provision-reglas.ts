@@ -1,13 +1,14 @@
-// La planilla estimada por sede (ADR-0453, Felipe 2026-10-17). Lógica pura: la usan el Resumen, Resultados y el medidor de confianza.
+// La planilla PROVISIONADA por sede (ADR-0453, Felipe 2026-10-17; «Provisionado» y lo de hoy, 2026-10-22). Lógica pura: la usan el Resumen,
+// Resultados y el medidor de confianza.
 //
 // EL PROBLEMA. Dynamic solo le entrega a retail la planilla cuando la marca pagada, unos días después de cerrar el período (del 29 al 28):
 // casi todo el mes cada sede se veía SIN sueldos, el «te quedan» salía inflado y «Tu ritmo» pedía menos de lo que hace falta vender.
 // La base ya sabe lo que corresponde pagar hasta hoy (`fn_planilla_provision`: la boleta en vivo de Dynamic, agregada por sede, con el
-// sueldo fijo en proporción a los días). Qué hace este archivo: leerlo y sumarlo, MARCADO como estimado, a las filas del Estado de
+// sueldo fijo en proporción a los días, y —aparte— lo que llevan hoy quienes están en su jornada). Qué hace este archivo: leerlo y sumarlo, MARCADO como provisionado, a las filas del Estado de
 // resultados. Qué NO hace: calcular plata (la cifra sale de Dynamic) ni tocar el libro (el diario, el Balance y el cierre siguen con lo
-// pagado de verdad: la estimación vive solo en lo que se ve, y desaparece sola cuando Dynamic paga ese período).
+// pagado de verdad: la provisión vive solo en lo que se ve, y desaparece sola cuando Dynamic paga ese período).
 
-import type { DetalleGastoER, FilaER } from "./resultados-reglas";
+import { solesER, type DetalleGastoER, type FilaER } from "./resultados-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v !== "" && Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -28,8 +29,16 @@ export type FilaProvision = {
   personas: number;
   diasPeriodo: number;
   diasCorridos: number;
-  /** Lo que corresponde pagar hasta hoy (horas trabajadas; el sueldo fijo, en proporción a los días). */
+  /**
+   * Lo que corresponde pagar hasta hoy: las horas de las jornadas ya cerradas, el sueldo fijo en proporción a los días y, SUMADO AQUÍ al leer, lo de
+   * hoy (`deHoy`). La base los devuelve en columnas aparte (`devengado`, `hoy_estimado`); la pantalla solo conoce el total.
+   */
   devengado: number;
+  /**
+   * De `devengado`, lo que es de HOY: lo que llevan hasta ahora quienes están en su jornada, calculado por horas y movilidad (Dynamic no lo cuenta
+   * hasta que cierran). 0 si no hay, si hoy es feriado o si la base todavía no lo trae. Se corrige solo cuando cada persona cierra su jornada.
+   */
+  deHoy: number;
   /** Lo que costaría el período entero; `null` con menos de 7 días corridos (una semana rara decidiría el mes). */
   alCierre: number | null;
 };
@@ -44,6 +53,7 @@ export function leerProvision(data: unknown): FilaProvision[] {
     const r = obj(x);
     const periodoId = txt(r.periodo_id);
     if (!periodoId) continue;
+    const deHoy = Math.max(0, r2(num(r.hoy_estimado)));
     filas.push({
       ubicacionId: txt(r.ubicacion_id),
       sedeCodigo: String(r.sede_codigo ?? ""),
@@ -54,7 +64,9 @@ export function leerProvision(data: unknown): FilaProvision[] {
       personas: num(r.personas),
       diasPeriodo: num(r.dias_periodo),
       diasCorridos: num(r.dias_corridos),
-      devengado: num(r.devengado),
+      // Lo de hoy viene aparte (nulo = sin estimado) y entra al devengado; una base sin la columna (antes de pegar su migración) da 0.
+      devengado: r2(num(r.devengado) + deHoy),
+      deHoy,
       alCierre: r.al_cierre == null ? null : num(r.al_cierre),
     });
   }
@@ -67,21 +79,27 @@ export const delMes = (prov: readonly FilaProvision[], mes: string): FilaProvisi
 /** La clave con la que una fila de provisión cae en una fila del Estado de resultados: la ubicación, o «empresa». */
 const claveDe = (p: FilaProvision): string => p.ubicacionId ?? "empresa";
 
-type Suma = { devengado: number; alCierre: number; personas: number };
-const vacia = (): Suma => ({ devengado: 0, alCierre: 0, personas: 0 });
+type Suma = { devengado: number; alCierre: number; personas: number; deHoy: number };
+const vacia = (): Suma => ({ devengado: 0, alCierre: 0, personas: 0, deHoy: 0 });
 function sumar(s: Suma, p: FilaProvision): Suma {
   return {
     devengado: r2(s.devengado + p.devengado),
     // Sin proyección todavía (pocos días corridos), el período entero no se adivina: vale lo devengado, nunca menos.
     alCierre: r2(s.alCierre + Math.max(p.devengado, p.alCierre ?? p.devengado)),
     personas: s.personas + p.personas,
+    deHoy: r2(s.deHoy + p.deHoy),
   };
 }
 
-/** «Estimado hasta hoy con las boletas de Dynamic (12 personas)…»: la nota que acompaña al tramo de sueldos. */
-export function notaEstimado(personas: number, previa: string | null): string {
-  const est = `Estimado hasta hoy con las boletas de Dynamic (${personas} ${personas === 1 ? "persona" : "personas"}); cuando Dynamic pague el período, entra lo pagado de verdad.`;
-  return previa ? `${previa} · ${est}` : est;
+/**
+ * «Provisionado hasta hoy con las boletas de Dynamic (12 personas)…»: la nota que acompaña al tramo de sueldos. Dice qué parte es de hoy y por
+ * qué se mueve: Dynamic cuenta las horas de un día cuando la persona cierra su jornada, así que lo de hoy es un cálculo con lo que lleva cada una.
+ */
+export function notaProvisionado(personas: number, deHoy: number, previa: string | null): string {
+  const quienes = `${personas} ${personas === 1 ? "persona" : "personas"}`;
+  const hoy = deHoy > 0 ? `${solesER(deHoy)} son de hoy, calculados con las horas que lleva cada persona, y se corrigen cuando cierra su jornada` : "las horas de cada día entran cuando la persona cierra su jornada";
+  const nota = `Provisionado hasta hoy con las boletas de Dynamic (${quienes}); ${hoy}. Cuando Dynamic pague el período, entra lo pagado de verdad.`;
+  return previa ? `${previa} · ${nota}` : nota;
 }
 
 function conPersonal(detalle: readonly DetalleGastoER[], monto: number): DetalleGastoER[] {
@@ -120,17 +138,17 @@ export function aplicarProvision(filas: readonly FilaER[], prov: readonly FilaPr
       planillaEstimada: s.devengado,
       planillaAlCierre: s.alCierre,
       planillaPersonas: s.personas,
-      planillaNota: notaEstimado(s.personas, f.planillaNota),
+      planillaNota: notaProvisionado(s.personas, s.deHoy, f.planillaNota),
     };
   });
 }
 
-/** Lo que el medidor de confianza necesita saber de la estimación de un mes: cuántas sedes, cuántas personas y cuánto. */
-export type ResumenProvision = { sedes: number; personas: number; devengado: number; alCierre: number };
+/** Lo que el medidor de confianza necesita saber de la provisión de un mes: cuántas sedes, cuántas personas, cuánto y cuánto de eso es de hoy. */
+export type ResumenProvision = { sedes: number; personas: number; devengado: number; alCierre: number; deHoy: number };
 
 export function resumenDeProvision(prov: readonly FilaProvision[]): ResumenProvision | null {
   const util = prov.filter((p) => p.devengado > 0);
   if (!util.length) return null;
   const s = util.reduce(sumar, vacia());
-  return { sedes: util.length, personas: s.personas, devengado: s.devengado, alCierre: s.alCierre };
+  return { sedes: util.length, personas: s.personas, devengado: s.devengado, alCierre: s.alCierre, deHoy: s.deHoy };
 }
