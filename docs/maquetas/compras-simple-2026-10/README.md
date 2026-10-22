@@ -186,6 +186,6 @@ accesos, y sus tablas y funciones quedan. En producción, el 2026-10-22, tenían
 esconde ningún dato. Lo que un proveedor debe por lo que no llegó o se cobró de más sigue en **«Nos debe»** (Proveedores y Por pagar),
 que ahora se alimenta de «Revisar compras» («Reclamar al proveedor»).
 
-**Por resolver:** si un proveedor entrega una **nota de crédito** de SUNAT (devuelve plata de una factura), hoy no tendría dónde
-anotarse. Recomendado: una acción dentro de la factura («El proveedor nos dio una nota de crédito»), sin opción en el menú
-(ADR-0306: una acción dentro de una pantalla no es un módulo). Toca comprobantes y SUNAT: la decide Felipe.
+**Notas de crédito de proveedores: por ahora no se manejan** (Felipe, 2026-10-22). No hay pantalla ni acción para anotarlas. Si un
+proveedor devuelve plata o debe algo, va por «Nos debe». Si más adelante se necesitan, lo recomendado es una acción dentro de la
+factura, sin opción en el menú (ADR-0306).
