@@ -130,3 +130,7 @@ lectura de habituales y de las categorías que el proveedor ya maneja (`fn_prove
 
 **Ajuste (2026-10-22):** «Nuevo proveedor» y «Algo nuevo de este proveedor» quedan **fijos al pie de la pantalla** (junto a «Revisar
 la compra» cuando ya hay prendas anotadas): la lista corre por detrás y nunca hay que bajar hasta el final para verlos.
+
+**Ajuste (2026-10-22):** «¿Qué es?» (la categoría de un producto nuevo) tiene **buscador**: filtra mientras se escribe, sin tildes ni
+mayúsculas, y también encuentra por las prendas típicas de cada categoría («cárdigan» → Chompas). Si no hay ninguna, lo dice y sugiere
+otra palabra. Para probarlo: Textiles Rosa → Algo nuevo → escribe «jean», «BLÚSA» o «zapatos».

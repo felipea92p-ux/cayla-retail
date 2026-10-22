@@ -748,13 +748,19 @@ function pantallaTel() {
   }
   /* Producto nuevo, una pregunta a la vez */
   if (t.p === "n-cat") {
-    const suyas = [...new Set(comprasDe(B.provId).flatMap((c) => c.lineas.map((l) => l.cat)))];
-    const otras = Object.keys(CATEGORIAS).filter((c) => !suyas.includes(c));
+    const q = norm(t.q), coincide = (c) => !q || norm(c).includes(q) || norm(CATEGORIAS[c].chips.join(" ")).includes(q);
+    const suyasTodas = [...new Set(comprasDe(B.provId).flatMap((c) => c.lineas.map((l) => l.cat)))];
+    const suyas = suyasTodas.filter(coincide);
+    const otras = Object.keys(CATEGORIAS).filter((c) => !suyasTodas.includes(c) && coincide(c));
     const tile = (c, ya) => `<button class="tile" data-a="n-cat" data-v="${c}">${ic("percha")}<span>${c}<br><small>${ya?"Ya le compras":"&nbsp;"}</small></span></button>`;
     const primera = !comprasDe(B.provId).length;
-    return `<div class="tel-pant">${atras(primera ? "c-prov" : "c-hab")}${avance("Qué es")}<h4>${primera ? "Es tu primera compra con él: dinos qué es" : "¿Qué es?"}</h4><p class="sub">Elige la categoría.</p>
-      ${suyas.length?`<div class="sec-tel"><span>Lo que ya le compras</span></div><div class="papeles">${suyas.map((c)=>tile(c,true)).join("")}</div><div class="sec-tel"><span>Otras</span></div>`:'<div style="height:14px"></div>'}
-      <div class="papeles">${otras.map((c)=>tile(c,false)).join("")}</div></div>`;
+    const grupos = !suyas.length && !otras.length
+      ? `<div class="vacio" style="margin-top:8px"><b>No hay una categoría «${h(t.q)}»</b>Prueba con otra palabra, como «blusa» o «jean». Si de verdad falta, Compras la crea.</div>`
+      : (suyas.length ? `<div class="sec-tel"><span>Lo que ya le compras</span></div><div class="papeles">${suyas.map((c)=>tile(c,true)).join("")}</div>` : "")
+        + (otras.length ? `${suyas.length ? '<div class="sec-tel"><span>Otras</span></div>' : '<div style="height:12px"></div>'}<div class="papeles">${otras.map((c)=>tile(c,false)).join("")}</div>` : "");
+    return `<div class="tel-pant">${atras(primera ? "c-prov" : "c-hab")}${avance("Qué es")}<h4>${primera ? "Es tu primera compra con él: dinos qué es" : "¿Qué es?"}</h4><p class="sub">Busca o elige la categoría.</p>
+      <div class="buscar" style="padding:0;border:0;margin-top:12px">${ic("lupa","lupa")}<input class="caja" style="padding-left:38px;height:46px" placeholder="Busca la categoría" value="${h(t.q||"")}" data-in="n-cat-q" autocomplete="off"></div>
+      ${grupos}</div>`;
   }
   if (t.p === "n-nombre") {
     const c = CATEGORIAS[a.cat];
@@ -1270,6 +1276,7 @@ document.addEventListener("input", (ev) => {
   else if (k === "ing-monto") S.corrVal = v.replace(/[^\d.]/g,"");
   else if (k === "n-nombre") S.bor.actual.nombre = v;
   else if (k === "c-prov-q") S.tel.q = v;
+  else if (k === "n-cat-q") S.tel.q = v;
   else if (k === "pn-nombre") { S.tel.pn.nombre = v; S.tel.pn.noEsDup = false; }
   else if (k === "pn-ruc") S.tel.pn.ruc = v.replace(/\D/g, "").slice(0, 11);
   else if (k === "pn-marcas") S.tel.pn.marcas = v;
