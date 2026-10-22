@@ -61,7 +61,7 @@ import { crearOrdenCompra, editarOrdenCompra } from "@/lib/ordenes-compra-accion
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Nueva orden de compra (ADR-0362, fase 1 · actividad 2). Arriba, a quién se le pide y a dónde llega; abajo, lo que se pide, una
-// tarjeta por línea (categoría y marca obligatorias, descripción opcional, cantidad, precio y descuento), con el total al pie. Se usa
+// tarjeta por línea (categoría y marca obligatorias, descripción opcional, cantidad, costo y descuento), con el total al pie. Se usa
 // sobre todo en el celular, en Gamarra: cada línea es una tarjeta que se apila, y el botón de guardar queda a la vista.
 //
 // Quién firma (decisión 39): con la cuenta de una PERSONA no hay combo —firma ella (`orden_compra_crear`)—; desde una TERMINAL, el combo
@@ -81,7 +81,7 @@ const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
 // estado de la guía (✓, «Sigue aquí», falta, opcional).
 const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
 // La fila de una línea cuando hay lugar (sección de 56 rem o más). La comparten el encabezado y cada fila: marca de la guía y número ·
-// categoría · marca · descripción · cantidad · precio · descuento (caja + «% / S/») · subtotal · quitar.
+// categoría · marca · descripción · cantidad · costo · descuento (caja + «% / S/») · subtotal · quitar.
 const FILA_ANCHA = "@min-[56rem]:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_6rem_minmax(9rem,11rem)_6.5rem_2rem]";
 
 /** Editar una orden «generada» en vez de crear una (actividad 4). */
@@ -507,7 +507,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
                 Descripción <span className="text-[12px] font-normal text-taupe">opcional</span>
               </span>
               <span>Cantidad</span>
-              <span>Precio u.</span>
+              <span>Costo u.</span>
               <span className="truncate">
                 Descuento <span className="text-[12px] font-normal text-taupe">si hay</span>
               </span>
@@ -628,7 +628,7 @@ function LineaOrden({
   // Dos caras, según el ancho de la SECCIÓN (`@container` de «Lo que pides»), no de la ventana: con el menú abierto una laptop deja la
   // sección en ~700 px. Con 56 rem o más, la línea es UNA FILA (Felipe, 2026-10-10: «hay mucho espacio… quizás por fila»): los títulos
   // van en el encabezado de arriba, la marca de la guía y el número abren la fila, y la ✕ la cierra. Más angosta (y en el celular), una
-  // tarjeta apretada: «Línea N» con su ✕ arriba, categoría y marca, descripción, cantidad y precio, descuento y el subtotal.
+  // tarjeta apretada: «Línea N» con su ✕ arriba, categoría y marca, descripción, cantidad y costo, descuento y el subtotal.
   return (
     <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[56rem]:rounded-lg @min-[56rem]:py-2">
       <div data-guia="orden-form.linea" className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[56rem]:items-center ${FILA_ANCHA}`}>
@@ -660,8 +660,8 @@ function LineaOrden({
           <CampoTexto caja sinPie etiqueta={`Cantidad de la línea ${numero}`} inputMode="numeric" placeholder="0" value={l.cantidad} onChange={(e) => onCambio({ cantidad: e.target.value })} />
         </div>
         <div>
-          <p className={`${TITULO} @min-[56rem]:hidden`}>Precio por unidad</p>
-          <CampoTexto caja sinPie etiqueta={`Precio por unidad de la línea ${numero}, en soles`} inputMode="decimal" placeholder="0.00" value={l.precio} onChange={(e) => onCambio({ precio: e.target.value })} />
+          <p className={`${TITULO} @min-[56rem]:hidden`}>Costo por unidad</p>
+          <CampoTexto caja sinPie etiqueta={`Costo por unidad de la línea ${numero}, en soles`} inputMode="decimal" placeholder="0.00" value={l.precio} onChange={(e) => onCambio({ precio: e.target.value })} />
         </div>
         <div className="col-span-2 @min-[56rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>

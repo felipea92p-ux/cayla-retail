@@ -15,7 +15,7 @@ import { volar, type Vuelo } from "./vuelo";
 /* ====================================================================
    La etiqueta colgada (Prendas de una etiqueta, dirección B): la etiqueta como se cuelga en el piso, con lo que la lleva.
    Su nombre, el descuento en rojo, las fechas, cuántas prendas la llevan (contando lo que todavía no se aplica), lo que cambia y
-   el MOSAICO: cada talla y color es una pieza con su color o su foto. Lo que se pone lleva un anillo verde, lo que se quita queda
+   el MOSAICO: cada producto es UNA pieza con su foto (o su color) y, si junta varias tallas y colores, su «×N» (Felipe 2026-10-22). Lo que se pone lleva un anillo verde, lo que se quita queda
    tenue y tachado, y lo que entra por su categoría lleva un filo pizarra. Abajo, cuánto cobra la caja hoy y con la etiqueta.
 
    El mosaico dibuja SOLO las piezas que caben en el alto que queda (`useCuantasCaben`): el resto es «+N». Así la etiqueta nunca
@@ -78,7 +78,8 @@ export function EtiquetaColgada({
     const d = vueloRef.current;
     if (!d) return;
     vueloRef.current = null;
-    const id = d.ids.find((x) => raiz.querySelector(`[data-pieza="${CSS.escape(x)}"]`));
+    // La prenda vuela a la pieza de su producto: la que junta alguna de las tallas recién marcadas.
+    const id = colgada.piezas.find((p) => p.ids.some((x) => d.ids.includes(x)))?.id;
     const pieza = id ? raiz.querySelector<HTMLElement>(`[data-pieza="${CSS.escape(id)}"]`) : null;
     // En el celular el mosaico no se ve: la prenda vuela al número.
     const destino = pieza && pieza.offsetParent !== null ? pieza : total.current;
@@ -145,12 +146,21 @@ export function EtiquetaColgada({
               data-estado={x.estado}
               data-espera={espera.has(x.id) ? "" : undefined}
               className="eqp-pieza"
-              title={`${x.producto.referencia} · ${nombreDeTalla(x.variante)}${x.estado === "sale" ? " (se la quitas)" : x.estado === "categoria" ? " (por su categoría)" : x.estado === "nueva" ? " (por poner)" : ""}`}
+              title={`${x.producto.referencia} · ${x.ids.length === 1 ? nombreDeTalla(x.variante) : `${x.ids.length} tallas y colores`}${x.estado === "sale" ? " (se la quitas)" : x.estado === "categoria" ? " (por su categoría)" : x.estado === "nueva" ? " (por poner)" : ""}`}
             >
               <Pieza pieza={x} />
+              {x.ids.length > 1 && (
+                <span aria-hidden className="eqp-veces">
+                  ×{x.ids.length}
+                </span>
+              )}
             </span>
           ))}
-          {colgada.mas > 0 && <span className="eqp-mas" role="listitem">+{colgada.mas}</span>}
+          {colgada.mas > 0 && (
+            <span className="eqp-mas" role="listitem" title={`${colgada.mas} producto${colgada.mas === 1 ? "" : "s"} más`}>
+              +{colgada.mas}
+            </span>
+          )}
           {colgada.piezas.length === 0 && Array.from({ length: COLUMNAS }, (_, i) => <span key={i} aria-hidden className="eqp-hueco" />)}
         </div>
 

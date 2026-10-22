@@ -344,14 +344,23 @@ export function otrasTallas(p: ProductoEtiquetable, marcadas: ReadonlySet<string
   return p.variantes.filter((v) => !marcadas.has(v.id)).map((v) => v.id);
 }
 
-/** Una pieza del mosaico de la etiqueta: una talla y color. `nueva` = se la pones ahora; `sigue` = ya la llevaba; `categoria` = la
- *  lleva por la regla de la campaña; `sale` = se la quitas (queda tenue y tachada hasta aplicar). */
-export type PiezaEtiqueta = { id: string; producto: ProductoEtiquetable; variante: VarianteEtiquetable; estado: "nueva" | "sigue" | "categoria" | "sale" };
+/** Una pieza del mosaico de la etiqueta: UN producto con sus tallas y colores en el mismo estado (Felipe 2026-10-22: la foto de unos
+ *  jeans repetida cinco veces no dejaba ver nada; ahora sale una vez con su «×5»). `ids` son sus tallas y colores, `variante` la
+ *  primera (su color dibuja la pieza sin foto). `nueva` = se la pones ahora; `sigue` = ya la llevaba; `categoria` = la lleva por la
+ *  regla de la campaña; `sale` = se la quitas (queda tenue y tachada hasta aplicar). */
+export type PiezaEtiqueta = {
+  id: string;
+  producto: ProductoEtiquetable;
+  variante: VarianteEtiquetable;
+  ids: string[];
+  estado: "nueva" | "sigue" | "categoria" | "sale";
+};
 
 /**
  * La etiqueta como se ve colgada: cuántas tallas y colores la llevan contando lo que aún no se aplica (`total`), y las piezas del
- * mosaico, primero lo que acabas de poner (la última arriba), después lo que se quita, lo que ya la llevaba y lo de su categoría.
- * Solo se dibujan `max`; el resto es `mas`. Lo que se quita no cuenta en `total`: al aplicar, ya no la lleva.
+ * mosaico, una por producto y estado: primero lo que acabas de poner (lo último arriba), después lo que se quita, lo que ya la
+ * llevaba y lo de su categoría. Solo se dibujan `max` piezas; `mas` dice cuántas quedaron fuera. Lo que se quita no cuenta en
+ * `total`: al aplicar, ya no la lleva.
  */
 export function etiquetaColgada(
   productos: readonly ProductoEtiquetable[],
@@ -362,21 +371,32 @@ export function etiquetaColgada(
 ): { total: number; agregar: number; quitar: number; piezas: PiezaEtiqueta[]; mas: number } {
   const porVariante = new Map<string, { producto: ProductoEtiquetable; variante: VarianteEtiquetable }>();
   for (const producto of productos) for (const variante of producto.variantes) porVariante.set(variante.id, { producto, variante });
-  const pieza = (id: string, estado: PiezaEtiqueta["estado"]): PiezaEtiqueta[] => {
-    const x = porVariante.get(id);
-    return x ? [{ id, ...x, estado }] : [];
-  };
   const heredadas = productos.filter((p) => p.categoriaId !== null && porCategoria.has(p.categoriaId));
-  const deCategoria = heredadas.flatMap((p) => p.variantes.map((v) => ({ id: v.id, producto: p, variante: v, estado: "categoria" as const })));
-  const enCategoria = new Set(deCategoria.map((x) => x.id));
+  const enCategoria = new Set(heredadas.flatMap((p) => p.variantes.map((v) => v.id)));
   // `marcadas` guarda el orden en que se marcaron: lo último marcado va primero, que es lo que la persona busca con la vista.
-  const nuevas = [...marcadas].filter((id) => !iniciales.has(id) && !enCategoria.has(id)).reverse().flatMap((id) => pieza(id, "nueva"));
-  const salen = [...iniciales].filter((id) => !marcadas.has(id) && !enCategoria.has(id)).flatMap((id) => pieza(id, "sale"));
-  const siguen = [...marcadas].filter((id) => iniciales.has(id) && !enCategoria.has(id)).flatMap((id) => pieza(id, "sigue"));
-  const todas = [...nuevas, ...salen, ...siguen, ...deCategoria];
+  const nuevas = [...marcadas].filter((id) => !iniciales.has(id) && !enCategoria.has(id)).reverse();
+  const salen = [...iniciales].filter((id) => !marcadas.has(id) && !enCategoria.has(id));
+  const siguen = [...marcadas].filter((id) => iniciales.has(id) && !enCategoria.has(id));
+  // Un producto es UNA pieza por estado, en el lugar de su talla más reciente: si le pones dos tallas, sale una vez con «×2».
+  const piezas = new Map<string, PiezaEtiqueta>();
+  const juntar = (ids: readonly string[], estado: PiezaEtiqueta["estado"]) => {
+    for (const id of ids) {
+      const x = porVariante.get(id);
+      if (!x) continue;
+      const clave = `${x.producto.id}:${estado}`;
+      const ya = piezas.get(clave);
+      if (ya) ya.ids.push(id);
+      else piezas.set(clave, { id: clave, producto: x.producto, variante: x.variante, ids: [id], estado });
+    }
+  };
+  juntar(nuevas, "nueva");
+  juntar(salen, "sale");
+  juntar(siguen, "sigue");
+  juntar([...enCategoria], "categoria");
+  const todas = [...piezas.values()];
   const caben = todas.length > max ? Math.max(0, max - 1) : todas.length;
   return {
-    total: nuevas.length + siguen.length + deCategoria.length,
+    total: nuevas.length + siguen.length + enCategoria.size,
     agregar: nuevas.length,
     quitar: salen.length,
     piezas: todas.slice(0, caben),

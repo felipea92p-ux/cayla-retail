@@ -91,20 +91,26 @@ describe("otrasTallas — «Ponérsela a sus otras N tallas»", () => {
 
 describe("etiquetaColgada — la etiqueta y su mosaico", () => {
   it("lo último marcado va primero; lo que se quita no cuenta pero se ve", () => {
-    const e = etiquetaColgada(productos, new Set(["a"]), new Set(["b", "c"]), sin, 12);
-    expect(e.piezas.map((x) => [x.id, x.estado])).toEqual([["c", "nueva"], ["b", "nueva"], ["a", "sale"]]);
+    const e = etiquetaColgada(productos, new Set(["a"]), new Set(["b", "d"]), sin, 12);
+    expect(e.piezas.map((x) => [x.producto.id, x.estado, x.ids])).toEqual([["p2", "nueva", ["d"]], ["p1", "nueva", ["b"]], ["p1", "sale", ["a"]]]);
     expect(e).toMatchObject({ total: 2, agregar: 2, quitar: 1, mas: 0 });
+  });
+  it("un producto sale UNA vez con todas sus tallas y colores (su «×N»), no una foto por talla", () => {
+    const e = etiquetaColgada(productos, sin, new Set(["a", "d", "b", "c"]), sin, 12);
+    expect(e.piezas.map((x) => [x.producto.id, x.ids])).toEqual([["p1", ["c", "b", "a"]], ["p2", ["d"]]]);
+    // Lo que cuenta la etiqueta siguen siendo las tallas y colores.
+    expect(e).toMatchObject({ total: 4, agregar: 4 });
   });
   it("lo de su categoría cuenta y se dibuja con su marca", () => {
     const e = etiquetaColgada(productos, sin, sin, new Set(["c-anillos"]), 12);
     expect(e.total).toBe(1);
     expect(e.piezas[0].estado).toBe("categoria");
   });
-  it("con más piezas que lugares, la última es «+N»", () => {
-    const e = etiquetaColgada(productos, sin, new Set(["a", "b", "c", "d"]), sin, 3);
-    expect(e.piezas).toHaveLength(2);
+  it("con más productos que lugares, la última pieza es «+N»", () => {
+    const e = etiquetaColgada(productos, sin, new Set(["a", "d"]), sin, 1);
+    expect(e.piezas).toHaveLength(0);
     expect(e.mas).toBe(2);
-    expect(etiquetaColgada(productos, sin, new Set(["a", "b", "c"]), sin, 3)).toMatchObject({ mas: 0 });
+    expect(etiquetaColgada(productos, sin, new Set(["a", "b", "c", "d"]), sin, 2)).toMatchObject({ mas: 0 });
   });
 });
 
