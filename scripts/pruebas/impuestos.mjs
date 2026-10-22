@@ -8,17 +8,18 @@
  *   · crédito del mes: facturas de mercadería, gastos, activos y del Taller, menos la nota de crédito del proveedor; las
  *     boletas y los recibos por honorarios no dan crédito; la compra anulada no está;
  *   · el saldo a favor se arrastra de un mes al siguiente (y aunque se pida un solo mes);
- *   · la pantalla en una lectura: lo que conviene revisar, el pago a cuenta y el límite de ventas (12 meses) contra el
- *     umbral en UIT;
+ *   · la pantalla en una lectura: lo que conviene revisar, el pago a cuenta y el límite de ventas (el AÑO calendario, de enero a hoy)
+ *     contra el umbral en UIT;
  *   · parámetros con vigencia: se agregan, se corrigen con una fila nueva (gana la más reciente), se validan, quedan en la
  *     historia de Configuración y nunca se editan ni se borran;
  *   · permisos: el líder o quien tiene el módulo (Impuestos; los parámetros, Configuración — ADR-0253); nadie lee la tabla directo;
  *   · los registros de ventas y de compras para el contador, con sus columnas;
  *   · el saldo a favor de IGV con que CAYLA arrancó (ADR-0433, act. 4b; lo declara el contador): el IGV mensual parte de él, un saldo declarado a mitad de
  *     la cadena la reemplaza, uno anterior a los primeros datos la alarga hacia atrás, una corrección es una fila nueva, y se valida.
- *   · el aviso anticipado del límite (`20261023161000`, ADR sin número aún): las ventas del AÑO (comprobantes de enero a hoy, sin IGV, menos notas de crédito, sin anulados ni pruebas) más lo
- *     vendido antes del sistema se miden contra `aviso_umbral_uit` y `umbral_uit` × UIT; lo de antes del sistema rige por año exacto (no se hereda), una corrección es una fila
- *     nueva, y se valida (en UIT, el aviso antes del límite, soles de 0 a 10 millones, desde el 1 de enero). Ninguna cifra tributaria está en el código: los umbrales de la prueba salen de los parámetros.
+ *   · el límite y el aviso anticipado (`20261023161000`, ADR sin número aún) miden la MISMA cifra, el AÑO calendario: los comprobantes de enero a hoy (sin IGV, menos notas de crédito, sin
+ *     anulados ni pruebas) más el ajuste opcional del año; se miden contra `aviso_umbral_uit` y `umbral_uit` × UIT. En enero la cuenta vuelve a cero sola (con el reloj puesto en enero, lo de
+ *     diciembre y el ajuste del año anterior no suman), el ajuste rige por año exacto (no se hereda), no se siembra (sin fila vale 0), una corrección es una fila nueva, y se valida (en UIT,
+ *     el aviso antes del límite, soles de 0 a 10 millones, desde el 1 de enero). Ninguna cifra tributaria está en el código: los umbrales de la prueba salen de los parámetros.
  *   · la composición del IGV (Ley 32387): 16 % + 2 % hasta 2025, 15,5 % + 2,5 % en 2026… siempre suman el total `igv` de ese día; el total y `fn_tasa_igv` no cambian; la nota vieja
  *     «16 % + IPM 2 %» queda en la historia (solo-agregar) y la que rige ya no la dice.
  *   · la migración se puede pegar dos veces: ni filas ni funciones cambian.
@@ -228,23 +229,26 @@ select retail.fn_impuestos_panel('2099-01-01') ->> 'mes' = to_char(date_trunc('m
   esperar("un mes futuro se lleva al mes en curso", r.ok && futuro === "t", r);
 }
 
-// 5. El límite: ventas sin IGV de los últimos 12 meses contra el umbral en UIT.
+// 5. El límite: ventas sin IGV del AÑO calendario (de enero a hoy) contra el umbral en UIT. Ya no son 12 meses móviles.
 {
   const r = correr(`${ESCENA}
-select (retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_12m')::numeric as antes \\gset
+select (retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_anio')::numeric as antes \\gset
 select retail.fn_impuestos_panel() -> 'umbral' ->> 'umbral_soles', retail.fn_impuestos_panel() -> 'umbral' ->> 'cruzado';
 select pg_temp.comp(:'tru', 'boleta', 'B982', 1, 11800, 'aceptado', 'produccion', retail.fn_hoy_lima());
-select pg_temp.comp(:'tru', 'boleta', 'B982', 2, 11800, 'aceptado', 'produccion', (date_trunc('month', retail.fn_hoy_lima()) - interval '12 months')::date + 3);
-select (retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_12m')::numeric - :antes;
+-- El 31 de diciembre del año pasado: con 12 meses móviles contaba; con el año calendario, no.
+select pg_temp.comp(:'tru', 'boleta', 'B982', 2, 11800, 'aceptado', 'produccion', date_trunc('year', retail.fn_hoy_lima())::date - 1);
+select (retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_anio')::numeric - :antes;
 select retail.guardar_parametro_tributario('umbral_uit', date_trunc('year', retail.fn_hoy_lima())::date, 1);
 select retail.fn_impuestos_panel() -> 'umbral' ->> 'umbral_soles', retail.fn_impuestos_panel() -> 'umbral' ->> 'cruzado',
-       (retail.fn_impuestos_panel() -> 'umbral' ->> 'avance')::numeric = round(((retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_12m')::numeric) / 5500, 4);
-select jsonb_array_length(retail.fn_impuestos_panel() -> 'umbral' -> 'ventas_meses');`);
-  const [inicial, delta, cruzado, meses] = sinIds(r);
+       (retail.fn_impuestos_panel() -> 'umbral' ->> 'avance')::numeric = round(((retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_anio')::numeric) / 5500, 4);
+select jsonb_array_length(retail.fn_impuestos_panel() -> 'umbral' -> 'ventas_meses');
+select (retail.fn_impuestos_panel() -> 'umbral') ? 'ventas_12m';`);
+  const [inicial, delta, cruzado, meses, sigue12] = sinIds(r);
   esperar("con los valores de arranque, el límite es 300 UIT × S/ 5,500 = S/ 1,650,000 y no se cruzó", r.ok && inicial === "1650000.00|false", r);
-  esperar("una boleta de S/ 11,800 este mes suma S/ 10,000 sin IGV; la de hace 12 meses ya no cuenta", r.ok && Number(delta) === 10000, r);
-  esperar("con un límite de 1 UIT, se cruzó y el avance es ventas ÷ S/ 5,500", r.ok && cruzado === "5500.00|true|t", r);
+  esperar("una boleta de S/ 11,800 de hoy suma S/ 10,000 sin IGV; la del 31 de diciembre del año pasado ya no cuenta (es el año calendario, no 12 meses)", r.ok && Number(delta) === 10000, r);
+  esperar("con un límite de 1 UIT, se cruzó y el avance es ventas del año ÷ S/ 5,500", r.ok && cruzado === "5500.00|true|t", r);
   esperar("trae 24 meses de ventas para proyectar", r.ok && Number(meses) === 24, r);
+  esperar("la cifra de «12 meses» ya no viaja en el panel", r.ok && sigue12 === "f", r);
 }
 
 // 6. Parámetros: se agregan, se corrigen con una fila nueva, se validan y quedan en la historia.
@@ -459,15 +463,15 @@ select pg_temp.intento($q$insert into retail.parametros_tributarios (nombre, vig
 select pg_temp.intento($q$insert into retail.parametros_tributarios (nombre, vigente_desde, valor) values ('ventas_previas_erp', '2031-01-01', 0)$q$);
 select pg_temp.intento($q$insert into retail.parametros_tributarios (nombre, vigente_desde, valor) values ('no_existe', '2031-01-01', 1)$q$);
 select valor || '|' || provisional from retail.parametros_tributarios where nombre = 'aviso_umbral_uit' and vigente_desde = '2026-01-01';
-select valor || '|' || provisional from retail.parametros_tributarios where nombre = 'ventas_previas_erp' and vigente_desde = '2026-01-01';`);
-  const [ok1, ok2, finito, conTexto, mesAviso, avisoCero, mesPrevias, previasNeg, previasEnorme, previasCero, desconocido, avisoSemilla, previasSemilla] = lineas(r);
+select count(*) from retail.parametros_tributarios where nombre = 'ventas_previas_erp' and vigente_desde = '2026-01-01';`);
+  const [ok1, ok2, finito, conTexto, mesAviso, avisoCero, mesPrevias, previasNeg, previasEnorme, previasCero, desconocido, avisoSemilla, ajusteSembrado] = lineas(r);
   esperar("los componentes del IGV rigen desde cualquier fecha (como el total)", r.ok && ok1 === "SIN_ERROR" && ok2 === "SIN_ERROR", r);
   esperar("un componente va entre 0 y 100 % y sin texto", r.ok && finito.includes("valor_coherente") && conTexto.includes("valor_coherente"), r);
   esperar("el aviso rige desde el 1 de enero y va en UIT mayores que cero", r.ok && mesAviso.includes("parametros_tributarios_anual") && avisoCero.includes("valor_coherente"), r);
-  esperar("lo vendido antes del sistema rige desde el 1 de enero, no es negativo, no pasa de 10 millones y el cero vale", r.ok && mesPrevias.includes("parametros_tributarios_anual") && previasNeg.includes("valor_coherente") && previasEnorme.includes("valor_coherente") && previasCero === "SIN_ERROR", r);
+  esperar("el ajuste de ventas del año rige desde el 1 de enero, no es negativo, no pasa de 10 millones y el cero vale", r.ok && mesPrevias.includes("parametros_tributarios_anual") && previasNeg.includes("valor_coherente") && previasEnorme.includes("valor_coherente") && previasCero === "SIN_ERROR", r);
   esperar("un nombre desconocido sigue rechazado", r.ok && desconocido.includes("parametros_tributarios_nombre_check"), r);
   esperar("el aviso de arranque es 250 UIT y es decisión de Felipe (no queda «por confirmar»)", r.ok && avisoSemilla === "250.0000|false", r);
-  esperar("lo vendido antes del sistema arranca en 0 y «por confirmar»: así el aviso sabe que puede estar corto", r.ok && previasSemilla === "0.0000|true", r);
+  esperar("el ajuste opcional NO se siembra: sin fila vale 0 y nada lo exige", r.ok && Number(ajusteSembrado) === 0, r);
 }
 
 // 13. Guardar los dos parámetros nuevos: se valida y solo lo hace quien tiene el módulo Configuración.
@@ -506,7 +510,7 @@ select pg_temp.intento($q$select retail.guardar_parametro_tributario('aviso_umbr
   esperar("un aviso por debajo del límite se acepta", r.ok && menos === "SIN_ERROR", r);
   esperar("en un año sin límite cargado, el aviso se acepta (no hay contra qué compararlo)", r.ok && anioSinLimite === "SIN_ERROR", r);
   esperar("el aviso rige desde el 1 de enero", r.ok && /rigen por año/.test(soloEnero ?? ""), r);
-  esperar("lo vendido antes del sistema: ni negativo, ni de más de 10 millones, ni vacío", r.ok && [previasNeg, previasEnorme, previasNulo].every((m) => /de 0 a 10 millones/.test(m ?? "")), r);
+  esperar("el ajuste de ventas del año: ni negativo, ni de más de 10 millones, ni vacío", r.ok && [previasNeg, previasEnorme, previasNulo].every((m) => /de 0 a 10 millones/.test(m ?? "")), r);
   esperar("y también desde el 1 de enero", r.ok && /rigen por año/.test(previasMarzo ?? ""), r);
   esperar("los componentes del IGV no se editan desde la función: no son parámetros que se guarden desde Configuración", r.ok && /no existe/.test(general ?? "") && /no existe/.test(ipm ?? ""), r);
   esperar("120000.5 y luego 150000: dos filas nuevas; repetir 150000 no agrega nada", r.ok && Number(filasNuevas) === 2, r);
@@ -515,17 +519,16 @@ select pg_temp.intento($q$select retail.guardar_parametro_tributario('aviso_umbr
   esperar("una colaboradora sin el módulo Configuración no guarda ninguno de los dos", r.ok && /necesita el módulo «Configuración»/.test(micaela1 ?? "") && /necesita el módulo «Configuración»/.test(micaela2 ?? ""), r);
 }
 
-// 14. El panel: las ventas del AÑO y el aviso. Los umbrales de la prueba salen de los parámetros (UIT y límite que rigen), no de cifras escritas aquí.
+// 14. El panel: las ventas del AÑO, la misma cifra para la tarjeta del límite y para el aviso. Los umbrales de la prueba salen de los parámetros (UIT y límite que rigen), no de cifras escritas aquí.
 {
   const anio = `date_trunc('year', retail.fn_hoy_lima())::date`;
   const r = correr(`${ESCENA_MIN}
 select (retail.fn_impuestos_panel() -> 'parametros' -> 'uit' ->> 'valor')::numeric as uit \\gset
 select (retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_anio')::numeric as antes \\gset
-select (retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_12m')::numeric as antes12 \\gset
-select u ->> 'aviso_soles', u ->> 'ventas_previas', u ->> 'previas_confirmadas', u ->> 'aviso_alcanzado', u ->> 'anio_cruzado',
+select u ->> 'aviso_soles', u ->> 'ajuste', u ->> 'aviso_alcanzado', u ->> 'cruzado',
        (u ->> 'anio')::int = extract(year from retail.fn_hoy_lima())::int, (u ->> 'ventas_anio')::numeric = (u ->> 'ventas_anio_erp')::numeric
   from (select retail.fn_impuestos_panel() -> 'umbral' as u) x;
-select retail.fn_impuestos_panel() -> 'parametros' -> 'aviso_umbral_uit' ->> 'valor';
+select retail.fn_impuestos_panel() -> 'parametros' -> 'aviso_umbral_uit' ->> 'valor', (retail.fn_impuestos_panel() -> 'parametros') ? 'ventas_previas';
 -- Comprobantes de este año: una boleta (base 10 000), otra anulada y otra de pruebas (no cuentan) y una nota de crédito (resta 1 000); y una boleta del 31 de dic del año pasado (no es de este año).
 select pg_temp.comp(:'tru', 'boleta', 'B983', 1, 11800, 'aceptado', 'produccion', retail.fn_hoy_lima()) as b1 \\gset
 select pg_temp.comp(:'tru', 'boleta', 'B983', 2, 5900, 'anulado', 'produccion', retail.fn_hoy_lima()) as b2 \\gset
@@ -533,46 +536,72 @@ select pg_temp.comp(:'tru', 'boleta', 'B983', 3, 5900, 'aceptado', 'sandbox', re
 select pg_temp.comp(:'tru', 'nota_credito', 'FC93', 1, 1180, 'aceptado', 'produccion', retail.fn_hoy_lima(), :'b1') as nc \\gset
 select pg_temp.comp(:'tru', 'boleta', 'B983', 4, 11800, 'aceptado', 'produccion', (${anio} - 1)) as b4 \\gset
 select (retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_anio_erp')::numeric - :antes;
--- Este año SIN fila de lo de antes (la de arranque se apaga solo dentro de esta transacción, que siempre se deshace: un parámetro no se borra, su disparador), pero con la del año pasado y la
--- del que viene: si el panel las heredara, el año pasado (777 777) aparecería aquí.
-set local session_replication_role = replica;
-delete from retail.parametros_tributarios where nombre = 'ventas_previas_erp' and vigente_desde = ${anio};
-set local session_replication_role = origin;
+-- El ajuste de este año NO existe (no se siembra), pero sí el del año pasado y el del que viene: si el panel los heredara, el del año pasado (777 777) aparecería aquí.
 select retail.guardar_parametro_tributario('ventas_previas_erp', (${anio} - interval '1 year')::date, 777777) as _p0 \\gset
 select retail.guardar_parametro_tributario('ventas_previas_erp', (${anio} + interval '1 year')::date, 888888) as _p1 \\gset
-select retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_previas', retail.fn_impuestos_panel() -> 'umbral' ->> 'previas_confirmadas';
+select retail.fn_impuestos_panel() -> 'umbral' ->> 'ajuste', (retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_anio')::numeric = (retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_anio_erp')::numeric;
 select retail.guardar_parametro_tributario('ventas_previas_erp', ${anio}, 300000) as _p2 \\gset
-select u ->> 'ventas_previas', u ->> 'previas_confirmadas', (u ->> 'ventas_anio')::numeric - (u ->> 'ventas_anio_erp')::numeric
+select u ->> 'ajuste', (u ->> 'ventas_anio')::numeric - (u ->> 'ventas_anio_erp')::numeric
   from (select retail.fn_impuestos_panel() -> 'umbral' as u) x;
-select (p ->> 'anio')::int = extract(year from retail.fn_hoy_lima())::int, p ->> 'valor', p ->> 'provisional'
-  from (select retail.fn_impuestos_panel() -> 'parametros' -> 'ventas_previas' as p) x;
 select (retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_anio')::numeric as t \\gset
 -- El límite y el aviso se ponen RELATIVOS a lo que lleva el año: límite = t + 4 000, aviso = t − 1 000 (en UIT de la UIT que rige).
 select retail.guardar_parametro_tributario('umbral_uit', ${anio}, round((:t + 4000) / :uit, 4)) as _l \\gset
 select retail.guardar_parametro_tributario('aviso_umbral_uit', ${anio}, round((:t - 1000) / :uit, 4)) as _a \\gset
-select u ->> 'aviso_alcanzado', u ->> 'anio_cruzado', abs((u ->> 'aviso_soles')::numeric - (:t - 1000)) < 1, abs((u ->> 'umbral_soles')::numeric - (:t + 4000)) < 1
+select u ->> 'aviso_alcanzado', u ->> 'cruzado', abs((u ->> 'aviso_soles')::numeric - (:t - 1000)) < 1, abs((u ->> 'umbral_soles')::numeric - (:t + 4000)) < 1,
+       (u ->> 'avance')::numeric = round((u ->> 'ventas_anio')::numeric / (u ->> 'umbral_soles')::numeric, 4)
   from (select retail.fn_impuestos_panel() -> 'umbral' as u) x;
 select retail.guardar_parametro_tributario('ventas_previas_erp', ${anio}, 305000) as _p3 \\gset
-select u ->> 'aviso_alcanzado', u ->> 'anio_cruzado', (u ->> 'anio_avance')::numeric >= 1
+select u ->> 'aviso_alcanzado', u ->> 'cruzado', (u ->> 'avance')::numeric >= 1
   from (select retail.fn_impuestos_panel() -> 'umbral' as u) x;
 select retail.guardar_parametro_tributario('ventas_previas_erp', ${anio}, 0) as _p4 \\gset
-select u ->> 'aviso_alcanzado', u ->> 'anio_cruzado', u ->> 'previas_confirmadas'
-  from (select retail.fn_impuestos_panel() -> 'umbral' as u) x;
-select (retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_12m')::numeric - :antes12;`);
-  const [defecto, avisoUit, delta, sinHeredar, conPrevias, shape, ya, cruzaAviso, vuelve, doce] = sinIds(r);
+select u ->> 'aviso_alcanzado', u ->> 'cruzado', u ->> 'ajuste'
+  from (select retail.fn_impuestos_panel() -> 'umbral' as u) x;`);
+  const [defecto, avisoUit, delta, sinHeredar, conAjuste, ya, cruzaAviso, vuelve] = sinIds(r);
   const aviso = (defecto ?? "").split("|");
-  esperar("por defecto: el aviso son 250 UIT × S/ 5,500 = S/ 1,375,000; sin nada cargado de antes (0, sin confirmar) y sin avisar", r.ok && aviso[0] === "1375000.00" && Number(aviso[1]) === 0 && aviso[2] === "false" && aviso[3] === "false" && aviso[4] === "false", r);
-  esperar("el panel dice en qué año mide y, sin lo de antes, las ventas del año son las del sistema", r.ok && aviso[5] === "t" && aviso[6] === "t", r);
-  esperar("el parámetro del aviso viaja en el panel (250 UIT)", r.ok && Number(avisoUit) === 250, r);
+  esperar("por defecto: el aviso son 250 UIT × S/ 5,500 = S/ 1,375,000; sin ajuste (0), sin avisar ni haber cruzado el límite", r.ok && aviso[0] === "1375000.00" && Number(aviso[1]) === 0 && aviso[2] === "false" && aviso[3] === "false", r);
+  esperar("el panel dice en qué año mide y, sin ajuste, las ventas del año son las del sistema", r.ok && aviso[4] === "t" && aviso[5] === "t", r);
+  esperar("el parámetro del aviso viaja en el panel (250 UIT) y el ajuste ya no viaja entre los parámetros", r.ok && avisoUit === "250.0000|f", r);
   esperar("las ventas del año suman la boleta (10 000) menos la nota de crédito (1 000); no cuentan la anulada, la de pruebas ni la del año pasado → 9 000", r.ok && Number(delta) === 9000, r);
-  esperar("lo vendido antes del sistema rige por año EXACTO: lo cargado para el año pasado y el que viene no entra a este año", r.ok && Number(sinHeredar?.split("|")[0]) === 0 && sinHeredar?.split("|")[1] === "false", r);
-  esperar("cargado el de este año (300 000): suma a las ventas del año y queda confirmado", r.ok && Number(conPrevias?.split("|")[0]) === 300000 && conPrevias?.split("|")[1] === "true" && Number(conPrevias?.split("|")[2]) === 300000, r);
-  esperar("y viaja en los parámetros con su año y ya no «por confirmar»", r.ok && shape === "t|300000.0000|false", r);
-  esperar("con el aviso en (ventas − 1 000) y el límite en (ventas + 4 000): el aviso se enciende y el límite no", r.ok && ya === "true|false|t|t", r);
-  esperar("sumando 5 000 más de lo vendido antes: pasó el límite → el aviso se apaga y se marca el límite cruzado", r.ok && cruzaAviso === "false|true|t", r);
-  esperar("quitando lo de antes (0 confirmado), vuelve a estar lejos del aviso", r.ok && vuelve === "false|false|true", r);
-  // La tarjeta de 12 meses mide solo comprobantes: sube 9 000 (este año) y, salvo en diciembre, 10 000 más (la boleta del 31 dic pasado). Los 300 000 de antes del sistema no entran.
-  esperar("lo de antes del sistema no toca la tarjeta de 12 meses (sigue midiendo solo comprobantes)", r.ok && [9000, 19000].includes(Number(doce)), r);
+  esperar("el ajuste rige por año EXACTO: lo cargado para el año pasado y el que viene no entra a este año", r.ok && sinHeredar === "0|t", r);
+  esperar("cargado el de este año (300 000): suma a las ventas del año", r.ok && Number(conAjuste?.split("|")[0]) === 300000 && Number(conAjuste?.split("|")[1]) === 300000, r);
+  esperar("con el aviso en (ventas − 1 000) y el límite en (ventas + 4 000): el aviso se enciende, el límite no, y el avance de la tarjeta es ventas del año ÷ límite", r.ok && ya === "true|false|t|t|t", r);
+  esperar("sumando 5 000 más de ajuste: pasó el límite → el aviso se apaga y se marca el límite cruzado (la tarjeta y el aviso leen la misma cifra)", r.ok && cruzaAviso === "false|true|t", r);
+  esperar("quitando el ajuste (0), vuelve a estar lejos del aviso", r.ok && vuelve === "false|false|0.0000", r);
+}
+
+// 14b. En enero la cuenta vuelve a cero sola. Se pone el reloj de la base en el 31 de diciembre y luego en el 15 de enero (la función del reloj se reemplaza dentro de la transacción, que siempre se deshace).
+{
+  const reloj = (d) => `create or replace function retail.fn_hoy_lima() returns date language sql stable as $$ select date '${d}' $$;\n`;
+  const r = correr(`${ESCENA_MIN}
+${reloj("2026-12-31")}
+select pg_temp.comp(:'tru', 'boleta', 'B984', 1, 11800, 'aceptado', 'produccion', '2026-12-20') as d1 \\gset
+select pg_temp.comp(:'tru', 'boleta', 'B984', 2, 5900, 'aceptado', 'produccion', '2027-01-10') as e1 \\gset
+select retail.guardar_parametro_tributario('ventas_previas_erp', '2026-01-01', 777777) as _p \\gset
+select u ->> 'anio', (u ->> 'ventas_anio_erp')::numeric, u ->> 'ajuste'
+  from (select retail.fn_impuestos_panel() -> 'umbral' as u) x;
+${reloj("2027-01-15")}
+select u ->> 'anio', (u ->> 'ventas_anio_erp')::numeric, u ->> 'ajuste', (u ->> 'ventas_anio')::numeric, u ->> 'cruzado',
+       (u ->> 'avance')::numeric = round((u ->> 'ventas_anio')::numeric / (u ->> 'umbral_soles')::numeric, 4)
+  from (select retail.fn_impuestos_panel() -> 'umbral' as u) x;`);
+  const [diciembre, enero] = sinIds(r);
+  const [anioDic, erpDic] = (diciembre ?? "").split("|");
+  esperar("el 31 de diciembre el año todavía suma lo de diciembre (10 000 del 20 de diciembre; el ajuste de 2026, 777 777, también)", r.ok && anioDic === "2026" && Number(erpDic) >= 10000 && diciembre.endsWith("|777777.0000"), r);
+  esperar("el 15 de enero el año es 2027: solo cuenta lo de 2027 (5 000), el ajuste de 2026 no se hereda y la tarjeta vuelve a medir desde cero", r.ok && /^2027\|5000\.00\|0\|5000\.00\|false\|t$/.test(enero ?? ""), r);
+}
+
+// 14c. A mitad de año el año suma TODOS los meses desde enero, no solo el mes en curso: con el reloj en el 15 de junio, una boleta de enero y otra de junio cuentan; una de diciembre pasado, no.
+{
+  const reloj = (d) => `create or replace function retail.fn_hoy_lima() returns date language sql stable as $$ select date '${d}' $$;\n`;
+  const r = correr(`${ESCENA_MIN}
+${reloj("2026-06-15")}
+select (retail.fn_impuestos_panel() -> 'umbral' ->> 'ventas_anio_erp')::numeric as antes \\gset
+select pg_temp.comp(:'tru', 'boleta', 'B985', 1, 11800, 'aceptado', 'produccion', '2026-01-10') as m1 \\gset
+select pg_temp.comp(:'tru', 'boleta', 'B985', 2, 5900, 'aceptado', 'produccion', '2026-06-05') as m2 \\gset
+select pg_temp.comp(:'tru', 'boleta', 'B985', 3, 11800, 'aceptado', 'produccion', '2025-12-20') as m3 \\gset
+select u ->> 'anio', (u ->> 'ventas_anio_erp')::numeric - :antes, (u ->> 'ventas_anio')::numeric - :antes
+  from (select retail.fn_impuestos_panel() -> 'umbral' as u) x;`);
+  const [medio] = sinIds(r);
+  esperar("en junio el año suma enero y junio (10 000 + 5 000) y no suma diciembre del año pasado", r.ok && medio === "2026|15000.00|15000.00", r);
 }
 
 // 15. La migración se puede pegar dos veces: ni filas ni funciones cambian.
@@ -585,7 +614,7 @@ select count(*) as filas from retail.parametros_tributarios \\gset
 ${MIGRACION_AVISO}
 select 'migracion: pegarla otra vez deja las funciones igual', ((${huella}) = :'h1')::text;
 select 'migracion: y no agrega ninguna fila', ((select count(*) from retail.parametros_tributarios) = :filas)::text;
-select 'migracion: el aviso del panel está una sola vez', ((select (length(d) - length(replace(d, 'v_total_anio := v_erp_anio', ''))) / length('v_total_anio := v_erp_anio') from (select pg_get_functiondef('retail.fn_impuestos_panel(date)'::regprocedure) d) x) = 1)::text;
+select 'migracion: el aviso del panel está una sola vez', ((select (length(d) - length(replace(d, 'v_total_anio := v_12m + coalesce(v_previas_valor, 0)', ''))) / length('v_total_anio := v_12m + coalesce(v_previas_valor, 0)') from (select pg_get_functiondef('retail.fn_impuestos_panel(date)'::regprocedure) d) x) = 1)::text;
 select 'migracion: y las validaciones del guardado, una sola vez', ((select (length(d) - length(replace(d, 'El aviso va en UIT (250), no en soles.', ''))) / length('El aviso va en UIT (250), no en soles.') from (select pg_get_functiondef('retail.guardar_parametro_tributario(text,date,numeric,text)'::regprocedure) d) x) = 1)::text;`);
   const filas = Object.fromEntries(lineas(r).filter((l) => l.includes("|")).map((l) => l.split("|")));
   esperar("migración: pegarla otra vez deja las funciones igual", r.ok && filas["migracion: pegarla otra vez deja las funciones igual"] === "true", r);
