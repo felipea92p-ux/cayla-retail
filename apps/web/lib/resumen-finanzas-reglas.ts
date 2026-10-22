@@ -852,19 +852,20 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     });
   }
 
-  // El aviso anticipado del límite (250 UIT, parámetro): «Llevas S/ X vendidos este año, a S/ Y de las 300 UIT: habla con tu contador». Mide el año calendario y suma lo vendido antes del
-  // sistema si se cargó. Si llegó al aviso, REEMPLAZA al «Vas al X % del límite» de abajo (mismo tema, menos preciso); si el año ya pasó el límite pero los 12 meses no (lo de antes del
-  // sistema lo empuja), sale en rojo; si los 12 meses ya lo cruzaron, manda el aviso de abajo.
+  // El aviso anticipado del límite (250 UIT, parámetro): «Llevas S/ X vendidos este año, a S/ Y de las 300 UIT: habla con tu contador». Mide el año calendario, la misma cifra que la
+  // tarjeta del límite, y dice que cuenta lo registrado en el sistema. Mientras no llegue al límite REEMPLAZA al «Vas al X % del límite» de abajo (mismo tema, menos preciso);
+  // pasado el límite manda el aviso rojo de siempre.
   const datosIgv = r.igv.estado === "ok" ? r.igv.datos : null;
   const anticipado = datosIgv ? avisoUmbral(datosIgv) : null;
-  const hayAnticipado = !!datosIgv && !!anticipado?.titulo && (anticipado.nivel === "aviso" || (anticipado.nivel === "cruzado" && !datosIgv.umbral.cruzado));
-  if (anticipado?.titulo && hayAnticipado) {
+  const tituloAnticipado = anticipado?.nivel === "aviso" ? anticipado.titulo : null;
+  const hayAnticipado = tituloAnticipado !== null;
+  if (anticipado && tituloAnticipado) {
     out.push({
       clave: "umbral_aviso",
       orden: CLASE.umbral,
-      tono: anticipado.nivel === "cruzado" ? "rojo" : "ambar",
-      titulo: anticipado.titulo,
-      detalle: [anticipado.detalle, anticipado.quedaCorto].filter(Boolean).join(" "),
+      tono: "ambar",
+      titulo: tituloAnticipado,
+      detalle: [anticipado.detalle, anticipado.alcance].filter(Boolean).join(" "),
       impacto: null,
       href: enlace("impuestos", "/finanzas/impuestos"),
       boton: "Ver",
@@ -878,7 +879,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     const u = r.igv.datos.umbral;
     const tono = tonoAvance(u.avance);
     if (tono === "rojo" || (tono === "ambar" && !hayAnticipado)) {
-      const proy = proyectarUmbral(u.ventasMeses, r.hoy, u.umbralSoles, u.primerMes);
+      const proy = proyectarUmbral(u.ventasMeses, r.hoy, u.umbralSoles, u.primerMes, u.ajuste);
       const uit = r.igv.datos.parametros.umbralUit?.valor;
       out.push({
         clave: "umbral",

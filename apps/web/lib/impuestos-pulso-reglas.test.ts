@@ -9,10 +9,9 @@ const mes = (p: Partial<MesIgv>): MesIgv => ({
 });
 const PANEL: PanelImpuestos = {
   hoy: "2026-10-15", mes: "2026-09", mesActual: "2026-10", foco: mes({}), historial: [],
-  parametros: { igv: { valor: 0.18, provisional: false }, uit: { valor: 5500, provisional: false, anio: 2026 }, umbralUit: { valor: 300, provisional: false }, regimen: { texto: "rmt", provisional: false }, renta: { valor: 0.01, provisional: false }, avisoUmbralUit: { valor: 250, provisional: false }, ventasPrevias: null },
+  parametros: { igv: { valor: 0.18, provisional: false }, uit: { valor: 5500, provisional: false, anio: 2026 }, umbralUit: { valor: 300, provisional: false }, regimen: { texto: "rmt", provisional: false }, renta: { valor: 0.01, provisional: false }, avisoUmbralUit: { valor: 250, provisional: false } },
   umbral: {
-    ventas12m: 1120000, umbralSoles: 1650000, avance: 0.68, cruzado: false, primerMes: "2025-10", ventasMeses: [],
-    anio: 2026, ventasAnioErp: 900000, ventasPrevias: 0, previasConfirmadas: false, ventasAnio: 900000, avisoSoles: 1375000, anioAvance: 0.5455, avisoAlcanzado: false, anioCruzado: false,
+    anio: 2026, ventasAnio: 900000, ventasAnioErp: 900000, ajuste: 0, umbralSoles: 1650000, avance: 0.5455, cruzado: false, primerMes: "2025-10", ventasMeses: [], avisoSoles: 1375000, avisoAlcanzado: false,
   },
   renta: { base: 89000, tasa: 0.01, monto: 890 },
   revisar: {
@@ -77,40 +76,31 @@ describe("pulsoImpuestos", () => {
 
   describe("la alerta anticipada del límite", () => {
     const claves = (p: ReturnType<typeof pulsoImpuestos>) => (p.estado === "sin_mes" ? [] : p.porHacer.map((h) => h.clave));
-    // Un sistema que lleva el año entero (desde el 2025-10): el año está completo y no hay nada que advertir.
-    const aviso = { ...PANEL.umbral, ventasAnioErp: 1_400_000, ventasAnio: 1_400_000, avisoAlcanzado: true, anioAvance: 0.8485 };
+    const aviso = { ...PANEL.umbral, ventasAnioErp: 1_400_000, ventasAnio: 1_400_000, avisoAlcanzado: true, avance: 0.8485 };
 
     it("lejos del aviso no dice nada", () => {
       expect(claves(pulsoImpuestos(PANEL))).not.toContain("aviso_umbral");
     });
 
-    it("entre el aviso y el límite: «habla con tu contador», con lo que falta y sin cifras tributarias escritas en el código", () => {
+    it("entre el aviso y el límite: «habla con tu contador», con lo que falta, qué cuenta y sin cifras tributarias escritas en el código", () => {
       const p = pulsoImpuestos({ ...PANEL, umbral: aviso });
       expect(claves(p)).toEqual(["rechazados", "boletas", "aviso_umbral"]);
       if (p.estado === "sin_mes") throw new Error("hay mes");
       expect(p.porHacer.find((h) => h.clave === "aviso_umbral")!.texto).toBe(
-        "Llevas S/\u00a01,400,000 vendidos este año, a S/\u00a0250,000 de las 300 UIT: habla con tu contador. Pasadas las 300 UIT, el pago a cuenta de renta deja de ser el 1 % de lo vendido. Mejor verlo antes de que pase."
+        "Llevas S/\u00a01,400,000 vendidos este año, a S/\u00a0250,000 de las 300 UIT: habla con tu contador. Pasadas las 300 UIT, el pago a cuenta de renta deja de ser el 1 % de lo vendido. Mejor verlo antes de que pase. El aviso cuenta lo registrado en el sistema: puede quedar por debajo de la cifra real."
       );
     });
 
     it("pasado el límite lo dice distinto: confirmar desde qué mes cambia", () => {
-      const p = pulsoImpuestos({ ...PANEL, umbral: { ...aviso, ventasAnio: 1_700_000, avisoAlcanzado: false, anioCruzado: true } });
+      const p = pulsoImpuestos({ ...PANEL, umbral: { ...aviso, ventasAnio: 1_700_000, avisoAlcanzado: false, cruzado: true, avance: 1.03 } });
       if (p.estado === "sin_mes") throw new Error("hay mes");
       expect(p.porHacer.find((h) => h.clave === "aviso_umbral")!.texto).toContain("Pasaste las 300 UIT este año");
     });
 
-    it("si el sistema empezó a mitad de año y lo de antes no está cargado, avisa que puede quedarse corto, con el enlace a donde se carga", () => {
-      const p = pulsoImpuestos({ ...PANEL, umbral: { ...PANEL.umbral, primerMes: "2026-09" } });
-      if (p.estado === "sin_mes") throw new Error("hay mes");
-      const h = p.porHacer.find((x) => x.clave === "ventas_previas")!;
-      expect(h.texto).toContain("El sistema tiene ventas desde septiembre 2026");
-      expect(h.texto).toContain("puede quedarse corto");
-      expect(h.href).toBe("/configuracion?tab=impuestos");
-    });
-
-    it("lo de antes ya confirmado (aunque sea cero) apaga esa advertencia", () => {
-      const p = pulsoImpuestos({ ...PANEL, umbral: { ...PANEL.umbral, primerMes: "2026-09", previasConfirmadas: true } });
-      expect(claves(p)).not.toContain("ventas_previas");
+    it("no deja nada pendiente por cargar: empiece cuando empiece el sistema, no hay un «por hacer» extra", () => {
+      for (const primerMes of [null, "2026-09", "2026-01", "2025-03"]) {
+        expect(claves(pulsoImpuestos({ ...PANEL, umbral: { ...aviso, primerMes } }))).toEqual(["rechazados", "boletas", "aviso_umbral"]);
+      }
     });
   });
 });

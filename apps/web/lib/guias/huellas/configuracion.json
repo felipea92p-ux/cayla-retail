@@ -30,7 +30,7 @@
       "button «config.nuevo-tope»",
       "Casilla «{`Saldo a favor de IGV al empezar ${textoMes(t.vigenteDesde.slice(0, 7))}»",
       "button «config.nuevo-saldo»",
-      "Casilla «{`Ventas de ${anio}»",
+      "Casilla «{`Ajuste de ventas de ${anio}»",
       "button «+ Año nuevo»",
       "Casilla «{`Límite de ventas de ${anio}»",
       "Casilla «{`Aviso anticipado de ${anio}»",

@@ -1180,8 +1180,8 @@ export const GUIA_CONFIGURACION: Guia = {
       id: "impuestos-previas",
       ancla: "config.impuestos-previas",
       opcional: true,
-      titulo: "Ventas de antes del sistema",
-      texto: "Lo vendido en el año antes de que el sistema empezara a contar, sin IGV. Suma al aviso de ventas del año de Impuestos; sin cargarlo, ese aviso puede quedarse corto. Cada año va aparte: lo de uno no pasa al siguiente.",
+      titulo: "Ajuste de ventas del año",
+      texto: "Opcional. El aviso de ventas del año de Impuestos cuenta lo registrado en el sistema y puede quedar por debajo de la cifra real. Si tu contador te da otra cifra, escribe aquí cuánto sumar, sin IGV. Cada año va aparte: el de uno no pasa al siguiente.",
     },
     {
       id: "impuestos-regimen",

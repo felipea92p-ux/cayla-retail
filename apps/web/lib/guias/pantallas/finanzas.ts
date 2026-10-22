@@ -1249,7 +1249,7 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       id: "limite",
       ancla: "fin-impuestos.limite",
       titulo: "El límite de ventas",
-      texto: "Lo vendido en los últimos 12 meses contra el límite del régimen. Al cruzarlo, SUNAT pide llevar más libros. La franja rayada es a dónde llegarías a diciembre a este ritmo.",
+      texto: "Lo vendido en el año, de enero a hoy, contra el límite del régimen (y el aviso que salta antes, para hablar con el contador). Al cruzarlo, SUNAT pide llevar más libros. La franja rayada es a dónde llegarías a diciembre a este ritmo. Cuenta lo registrado en el sistema: puede quedar por debajo de la cifra real.",
     },
     {
       id: "revisar",

@@ -143,7 +143,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
             : nombre === "saldo_favor_igv"
               ? `S/\u00a0${v.valor.toFixed(2)} a favor`
               : nombre === "ventas_previas_erp"
-                ? `S/\u00a0${v.valor.toFixed(2)} vendidos antes del sistema`
+                ? `S/\u00a0${v.valor.toFixed(2)} de ajuste`
                 : `${v.valor} UIT`;
     return guardar(nombre, vigenteDesde, v.valor, null, `${que}: ${legible}.`);
   };
@@ -152,7 +152,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
   const tasas = parametros.filter((p) => p.nombre === "igv").sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
   const topes = parametros.filter((p) => p.nombre === "tope_planilla_movilidad").sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
   const saldos = parametros.filter((p) => p.nombre === "saldo_favor_igv").sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
-  // Lo vendido antes del sistema rige por año exacto: se listan los años que ya tienen algo y el año en curso (aunque no se haya cargado).
+  // El ajuste de ventas del año rige por año exacto: se listan los años que ya tienen algo y el año en curso (aunque no se haya cargado).
   const aniosPrevias = [...new Set([...parametros.filter((p) => p.nombre === "ventas_previas_erp").map((p) => Number(p.vigenteDesde.slice(0, 4))), anioActual])].sort((a, b) => b - a);
   const uits = parametros.filter((p) => p.nombre === "uit");
   const aniosUit = [...new Set([...uits.map((u) => Number(u.vigenteDesde.slice(0, 4))), ...aniosUitExtra])].sort((a, b) => b - a);
@@ -281,8 +281,8 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
 
         <Superficie pad className="anim-sube" guia="config.impuestos-previas">
           <CabeceraBloque
-            titulo="Ventas de antes del sistema"
-            bajada="Lo vendido en el año antes de que el sistema empezara a contar, sin IGV. Suma al aviso de ventas del año (Impuestos)."
+            titulo="Ajuste de ventas del año"
+            bajada="Opcional. El aviso de ventas del año cuenta lo registrado en el sistema; si tu contador te da una cifra distinta, escribe aquí cuánto sumar, sin IGV."
           />
           <ul className="fin-vigencias">
             {aniosPrevias.map((anio) => {
@@ -292,9 +292,9 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
                   <span>
                     {anio}
                     {p && !p.provisional ? (
-                      <Quien p={p} onConfirmar={confirmar(p, `Ventas de antes del sistema ${anio}`)} />
+                      <Quien p={p} onConfirmar={confirmar(p, `Ajuste de ventas ${anio}`)} />
                     ) : (
-                      <small>sin cargar: el aviso solo cuenta lo que el sistema vio</small>
+                      <small>sin ajuste: cuenta solo lo registrado en el sistema</small>
                     )}
                   </span>
                   <span className="fin-con-unidad">
@@ -302,9 +302,9 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
                     <Casilla
                       valor={p && !p.provisional ? valorEnCasilla(p) : ""}
                       placeholder="0.00"
-                      etiqueta={`Ventas de ${anio} de antes del sistema, en soles sin IGV`}
+                      etiqueta={`Ajuste de ventas de ${anio}, en soles sin IGV`}
                       ancho="w-28"
-                      alGuardar={guardarCasilla("ventas_previas_erp", `${anio}-01-01`, `Ventas de antes del sistema ${anio}`)}
+                      alGuardar={guardarCasilla("ventas_previas_erp", `${anio}-01-01`, `Ajuste de ventas ${anio}`)}
                     />
                   </span>
                 </li>
@@ -312,7 +312,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
             })}
           </ul>
           <p className="fin-tenue mt-3 text-[13px]">
-            Solo lo emitido antes del primer mes con ventas en el sistema. Si algún día se cargan esas ventas en Facturación, pon 0 aquí: se contarían dos veces.
+            Si ese monto ya está registrado en el sistema, déjalo en 0: se contaría dos veces. Cada año va aparte: el de uno no pasa al siguiente.
           </p>
         </Superficie>
       </section>

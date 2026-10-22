@@ -78,33 +78,28 @@ export type PanelImpuestos = {
     renta: Vigente | null;
     /** Cuántas UIT de ventas del año encienden el aviso anticipado (250), antes del límite (300). Parámetro, no una cifra del código. */
     avisoUmbralUit: Vigente | null;
-    /** Lo vendido ANTES del sistema en el año en curso (sin IGV, en soles): lo carga el contador o Felipe; `null` = nunca se cargó. */
-    ventasPrevias: (Vigente & { anio: number }) | null;
   };
+  /** El límite del régimen y el aviso anticipado miden la MISMA cifra: el AÑO calendario (de enero a hoy), no 12 meses móviles. En enero vuelve a cero sola. */
   umbral: {
-    ventas12m: number;
+    /** El año que se mide. `null` si la base es más vieja que esta web (todavía mide 12 meses móviles). */
+    anio: number | null;
+    /** Ventas del año, sin sumar el IGV: lo registrado en el sistema más el ajuste opcional. `null` si la base es más vieja que esta web. */
+    ventasAnio: number | null;
+    /** De enero a hoy según los comprobantes (sin IGV, menos notas de crédito): lo registrado en el sistema. */
+    ventasAnioErp: number;
+    /** Ajuste opcional de este año que se suma a lo registrado (0 si no hay). */
+    ajuste: number;
     umbralSoles: number | null;
+    /** Ventas del año ÷ límite (0 a 1 y más). */
     avance: number | null;
+    /** Las ventas del año ya llegaron al límite. */
     cruzado: boolean;
     primerMes: string | null;
     ventasMeses: { mes: string; base: number }[];
-    /** El aviso anticipado mide el AÑO calendario (la tarjeta del límite, 12 meses móviles). `null` si la base es más vieja que esta web. */
-    anio: number | null;
-    /** De enero a hoy según los comprobantes (sin IGV, menos notas de crédito). */
-    ventasAnioErp: number;
-    /** Lo cargado de antes del sistema para este año (0 si no se cargó). */
-    ventasPrevias: number;
-    /** `true` si alguien confirmó el monto de antes del sistema (aunque sea cero); si no, el aviso puede quedarse corto. */
-    previasConfirmadas: boolean;
-    /** Ventas del año: lo del sistema más lo de antes. `null` si la base es más vieja que esta web. */
-    ventasAnio: number | null;
     /** Las UIT del aviso en soles (UIT × aviso); `null` si falta la UIT o el aviso. */
     avisoSoles: number | null;
-    anioAvance: number | null;
     /** Las ventas del año llegaron al aviso y todavía no al límite. */
     avisoAlcanzado: boolean;
-    /** Las ventas del año ya llegaron al límite. */
-    anioCruzado: boolean;
   };
   renta: { base: number; tasa: number | null; monto: number | null };
   revisar: {
@@ -130,7 +125,6 @@ export function leerPanelImpuestos(data: unknown): PanelImpuestos {
   const rv = obj(d.revisar);
   const par = (k: string) => obj(rv[k]);
   const uit = vigente(p.uit);
-  const previas = vigente(p.ventas_previas);
   const reg = p.regimen ? obj(p.regimen) : null;
   return {
     hoy: texto(d.hoy),
@@ -145,25 +139,20 @@ export function leerPanelImpuestos(data: unknown): PanelImpuestos {
       regimen: reg && REGIMENES.includes(texto(reg.texto) as Regimen) ? { texto: texto(reg.texto) as Regimen, provisional: reg.provisional === true } : null,
       renta: vigente(p.renta),
       avisoUmbralUit: vigente(p.aviso_umbral_uit),
-      ventasPrevias: previas ? { ...previas, anio: num(obj(p.ventas_previas).anio) } : null,
     },
     umbral: {
-      ventas12m: num(u.ventas_12m),
+      // Los campos del año llegan con 20261023161000; una base más vieja no los trae (`ventasAnio` null) y la tarjeta y el aviso callan (no se cae).
+      anio: numONull(u.anio),
+      ventasAnio: numONull(u.ventas_anio),
+      ventasAnioErp: num(u.ventas_anio_erp),
+      ajuste: num(u.ajuste),
       umbralSoles: numONull(u.umbral_soles),
       avance: numONull(u.avance),
       cruzado: u.cruzado === true,
       primerMes: u.primer_mes ? aMes(u.primer_mes) : null,
       ventasMeses: (Array.isArray(u.ventas_meses) ? u.ventas_meses : []).map((m) => ({ mes: aMes(obj(m).mes), base: num(obj(m).base) })),
-      // Los campos del aviso anticipado llegan con 20261023161000; una base más vieja no los trae y el aviso calla (no se cae).
-      anio: numONull(u.anio),
-      ventasAnioErp: num(u.ventas_anio_erp),
-      ventasPrevias: num(u.ventas_previas),
-      previasConfirmadas: u.previas_confirmadas === true,
-      ventasAnio: numONull(u.ventas_anio),
       avisoSoles: numONull(u.aviso_soles),
-      anioAvance: numONull(u.anio_avance),
       avisoAlcanzado: u.aviso_alcanzado === true,
-      anioCruzado: u.anio_cruzado === true,
     },
     renta: { base: num(r.base), tasa: numONull(r.tasa), monto: numONull(r.monto) },
     revisar: {
@@ -229,21 +218,19 @@ export function estadoMes(m: Pick<MesIgv, "mes" | "aPagar" | "saldoAFavor" | "de
 export type Proyeccion = {
   /** Promedio de venta sin IGV de los últimos meses completos (hasta 3) con datos. */
   ritmoMensual: number;
-  /** Ventas de los 12 meses a diciembre de este año si se sigue a este ritmo (a diciembre, los 12 meses son el año). */
+  /** Lo que llevará el AÑO calendario a diciembre si se sigue a este ritmo (lo registrado más el ajuste). */
   proyectadoDiciembre: number;
-  /** El primer mes en que los 12 meses pasarían el límite (hasta 24 meses adelante); null si no llega. */
+  /** El primer mes de ESTE año en que lo acumulado pasaría el límite; null si no llega antes de diciembre (en enero la cuenta vuelve a cero). */
   mesCruce: string | null;
   yaCruzado: boolean;
-  /** Cuántos meses de ventas tiene el sistema (menos de 12: la cifra de 12 meses todavía se queda corta). */
-  mesesConDatos: number;
 };
 
 /**
- * Proyecta el límite con lo que hay, sin inventar crecimiento: los meses que ya pasaron cuentan lo vendido; el mes en curso,
- * lo vendido o el ritmo (lo que sea mayor); los que vienen, el ritmo. El ritmo es el promedio de hasta 3 meses completos
- * con ventas; si el sistema recién empieza, el mes en curso llevado a mes completo.
+ * Proyecta el límite con lo que hay, sin inventar crecimiento: la norma mide el AÑO calendario (de enero a diciembre), así que se suma mes a mes desde enero. Los meses que ya pasaron
+ * cuentan lo vendido; el mes en curso, lo vendido o el ritmo (lo que sea mayor); los que vienen, el ritmo. El ritmo es el promedio de hasta 3 meses completos con ventas (pueden ser
+ * del año pasado, en enero); si el sistema recién empieza, el mes en curso llevado a mes completo. `ajuste` es el ajuste opcional del año, que se suma desde el principio.
  */
-export function proyectarUmbral(ventasMeses: readonly { mes: string; base: number }[], hoy: string, umbralSoles: number | null, primerMes: string | null): Proyeccion {
+export function proyectarUmbral(ventasMeses: readonly { mes: string; base: number }[], hoy: string, umbralSoles: number | null, primerMes: string | null, ajuste = 0): Proyeccion {
   const actual = mesDe(hoy);
   const venta = new Map(ventasMeses.map((v) => [v.mes, v.base]));
   const desde = primerMes && primerMes <= actual ? primerMes : actual;
@@ -258,24 +245,17 @@ export function proyectarUmbral(ventasMeses: readonly { mes: string; base: numbe
     if (mes === actual) return Math.max(venta.get(actual) ?? 0, ritmoMensual);
     return ritmoMensual;
   };
-  const doceHasta = (mes: string) => Array.from({ length: 12 }, (_, i) => ventaDe(sumarMeses(mes, -i))).reduce((s, x) => s + x, 0);
-  const vendido12 = Array.from({ length: 12 }, (_, i) => venta.get(sumarMeses(actual, -i)) ?? 0).reduce((s, x) => s + x, 0);
-  const yaCruzado = umbralSoles !== null && umbralSoles > 0 && vendido12 >= umbralSoles;
+  const mesesDelAnio = Array.from({ length: 12 }, (_, i) => `${a}-${String(i + 1).padStart(2, "0")}`);
+  // Lo acumulado de enero hasta ese mes, con la proyección donde todavía no hay venta.
+  const acumuladoHasta = (mes: string) => mesesDelAnio.filter((x) => x <= mes).reduce((s, x) => s + ventaDe(x), ajuste);
+  const vendidoAnio = mesesDelAnio.filter((x) => x <= actual).reduce((s, x) => s + (venta.get(x) ?? 0), ajuste);
+  const yaCruzado = umbralSoles !== null && umbralSoles > 0 && vendidoAnio >= umbralSoles;
 
   let mesCruce: string | null = null;
   if (!yaCruzado && umbralSoles !== null && umbralSoles > 0) {
-    for (let i = 0; i <= 24; i++) {
-      const mes = sumarMeses(actual, i);
-      if (doceHasta(mes) >= umbralSoles) {
-        mesCruce = mes;
-        break;
-      }
-    }
+    mesCruce = mesesDelAnio.find((x) => x >= actual && acumuladoHasta(x) >= umbralSoles) ?? null;
   }
-  const [anio, mesNum] = actual.split("-").map(Number) as [number, number];
-  const diciembre = `${anio}-12`;
-  const mesesConDatos = primerMes && primerMes <= actual ? 12 * (anio - Number(primerMes.slice(0, 4))) + (mesNum - Number(primerMes.slice(5, 7))) + 1 : 0;
-  return { ritmoMensual, proyectadoDiciembre: doceHasta(diciembre), mesCruce, yaCruzado, mesesConDatos };
+  return { ritmoMensual, proyectadoDiciembre: acumuladoHasta(`${a}-12`), mesCruce, yaCruzado };
 }
 
 /** El tono del avance hacia el límite: verde lejos, ámbar desde el 60 %, rojo al cruzarlo. */
@@ -293,31 +273,34 @@ export function porcentaje(fraccion: number, decimales = 1): string {
 
 // ---- El aviso anticipado del límite: «habla con tu contador» antes de que cambie el pago a cuenta ---------------------------
 
+/** Lo que cuenta el aviso, dicho siempre que se muestra: lo registrado en el sistema. Puede quedar por debajo de la cifra real, y se dice. */
+export const ALCANCE_DEL_AVISO = "El aviso cuenta lo registrado en el sistema: puede quedar por debajo de la cifra real.";
+
 export type NivelAvisoUmbral = "sin_datos" | "lejos" | "aviso" | "cruzado";
 export type AvisoUmbral = {
   /** `sin_datos`: la base es más vieja que esta web o falta la UIT / el aviso. `lejos`: todavía no llega. `aviso`: entre el aviso y el límite. `cruzado`: ya pasó el límite. */
   nivel: NivelAvisoUmbral;
-  /** Ventas del año calendario: lo del sistema más lo cargado de antes. */
+  /** Ventas del año calendario: lo registrado en el sistema más el ajuste opcional. */
   ventasAnio: number | null;
   ventasSistema: number;
-  ventasPrevias: number;
+  ajuste: number;
   /** Cuánto falta para el límite (0 si ya lo pasó). */
   faltaSoles: number | null;
   /** «Llevas S/ 1,400,000 vendidos este año, a S/ 250,000 de las 300 UIT: habla con tu contador.» Solo en `aviso` y `cruzado`. */
   titulo: string | null;
   detalle: string | null;
-  /** El aviso de que la cifra puede quedarse corta: el sistema empezó a mitad de año y lo de antes no está confirmado. Va aparte: se muestra aunque el nivel sea `lejos`. */
-  quedaCorto: string | null;
+  /** Qué cuenta el aviso (`ALCANCE_DEL_AVISO`). Va aparte del título: se muestra aunque el nivel sea `lejos`; `null` solo si no hay datos. */
+  alcance: string | null;
 };
 
 /**
  * El aviso anticipado, con las palabras de la tienda. Ninguna cifra tributaria vive aquí: las ventas del año, los soles del aviso y del límite los calcula la base con los
- * parámetros (`aviso_umbral_uit`, `umbral_uit`, la UIT del año); este código solo los junta en una frase. Mide el año CALENDARIO (la regla del pago a cuenta de renta), no los 12
- * meses móviles de la tarjeta del límite.
+ * parámetros (`aviso_umbral_uit`, `umbral_uit`, la UIT del año); este código solo los junta en una frase. Mide el año CALENDARIO (la regla del pago a cuenta de renta), la misma
+ * cifra que la tarjeta del límite.
  */
 export function avisoUmbral(p: Pick<PanelImpuestos, "parametros" | "umbral">): AvisoUmbral {
   const u = p.umbral;
-  const vacio: AvisoUmbral = { nivel: "sin_datos", ventasAnio: u.ventasAnio, ventasSistema: u.ventasAnioErp, ventasPrevias: u.ventasPrevias, faltaSoles: null, titulo: null, detalle: null, quedaCorto: null };
+  const vacio: AvisoUmbral = { nivel: "sin_datos", ventasAnio: u.ventasAnio, ventasSistema: u.ventasAnioErp, ajuste: u.ajuste, faltaSoles: null, titulo: null, detalle: null, alcance: null };
   // Una base más vieja que esta web no trae las ventas del año: no se inventa un aviso con ceros.
   if (u.ventasAnio === null) return vacio;
 
@@ -328,17 +311,8 @@ export function avisoUmbral(p: Pick<PanelImpuestos, "parametros" | "umbral">): A
   const pasado = limiteUit !== null ? `Pasadas las ${limiteUit.toLocaleString("es-PE")} UIT` : "Pasado el límite del régimen";
   const tasa = p.parametros.renta ? `${Math.round(p.parametros.renta.valor * 1000) / 10} %` : null;
 
-  // El año empezó en el sistema a mitad de camino y nadie confirmó lo de antes: la cifra puede estar corta.
-  const empezoTarde = u.primerMes === null || (u.anio !== null && u.primerMes > `${u.anio}-01`);
-  const quedaCorto =
-    !u.previasConfirmadas && empezoTarde
-      ? `${
-          u.primerMes === null ? "Todavía no hay ventas de este año en el sistema" : `El sistema tiene ventas desde ${textoMes(u.primerMes)}`
-        } y lo vendido antes no está cargado: este aviso puede quedarse corto. Cárgalo en Configuración ▸ Impuestos.`
-      : null;
-
-  const base = { ventasAnio: u.ventasAnio, ventasSistema: u.ventasAnioErp, ventasPrevias: u.ventasPrevias, faltaSoles, quedaCorto };
-  if (u.anioCruzado) {
+  const base = { ventasAnio: u.ventasAnio, ventasSistema: u.ventasAnioErp, ajuste: u.ajuste, faltaSoles, alcance: ALCANCE_DEL_AVISO };
+  if (u.cruzado) {
     return {
       ...base,
       nivel: "cruzado",
@@ -365,8 +339,8 @@ export function avisoUmbral(p: Pick<PanelImpuestos, "parametros" | "umbral">): A
 // `saldo_favor_igv` (ADR-0433, actividad 4b): el saldo a favor de IGV con que CAYLA arrancó, que da el contador de la última declaración («saldo a favor del
 // periodo anterior»). Rige desde el DÍA 1 de un mes («al empezar octubre traíamos S/ X»): ese mes, el IGV mensual parte de ese monto en vez de arrastrar lo calculado.
 //
-// `aviso_umbral_uit` y `ventas_previas_erp` (alerta de 250 UIT, ADR sin número aún): cuántas UIT de ventas del año encienden el aviso anticipado, y lo vendido en el año ANTES de que el
-// sistema empezara a contar (sin IGV, en soles). Los dos rigen por año. Los componentes del IGV (`igv_general`, `igv_ipm`) viven en la tabla como referencia y no se editan desde aquí.
+// `aviso_umbral_uit` y `ventas_previas_erp` (alerta de 250 UIT, ADR sin número aún): cuántas UIT de ventas del año encienden el aviso anticipado, y un ajuste OPCIONAL a las ventas del año
+// (sin IGV, en soles; sin fila vale 0 y nada lo exige). Los dos rigen por año. Los componentes del IGV (`igv_general`, `igv_ipm`) viven en la tabla como referencia y no se editan desde aquí.
 export type NombreParametro =
   | "igv"
   | "uit"
@@ -455,8 +429,8 @@ export function parsearParametro(nombre: Exclude<NombreParametro, "regimen">, ti
     return { ok: true, valor: Math.round(n * 100) / 100 };
   }
   if (nombre === "ventas_previas_erp") {
-    // Cero vale: declarar que antes del sistema no se vendió es un dato (y apaga el «puede quedarse corto»).
-    if (n < 0 || n > 10000000) return { ok: false, error: "Lo vendido antes del sistema va en soles, sin IGV (0 si no hubo), hasta 10 millones." };
+    // Cero vale: es declarar que no hay ajuste.
+    if (n < 0 || n > 10000000) return { ok: false, error: "El ajuste de ventas del año va en soles, sin IGV (0 si no hay), hasta 10 millones." };
     return { ok: true, valor: Math.round(n * 100) / 100 };
   }
   if (nombre === "aviso_umbral_uit") {
