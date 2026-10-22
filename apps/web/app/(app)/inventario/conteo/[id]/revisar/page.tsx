@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { exigirModulo } from "@/lib/persona-actual";
-import { getCatalogoConteo, getDetalleConteo } from "@/lib/conteos";
+import { getCatalogoConteo, getCompletadasConAtajo, getDetalleConteo } from "@/lib/conteos";
+import { opcional } from "@/lib/resultado";
 import { textoLugar } from "@/lib/conteo-reglas";
 import { unirLineasConPrendas } from "@/lib/conteo-revision";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -19,7 +20,7 @@ export default async function RevisarConteoPage({ params }: { params: Promise<{ 
   const { id } = await params;
   // Un layout no vuelve a ejecutarse al navegar entre hijas: cada página repite la puerta del módulo.
   const persona = await exigirModulo("conteos");
-  const [detalle, prendas] = await Promise.all([getDetalleConteo(id), getCatalogoConteo()]);
+  const [detalle, prendas, conAtajo] = await Promise.all([getDetalleConteo(id), getCatalogoConteo(), opcional(getCompletadasConAtajo(id), "lo completado con el atajo")]);
   if (!detalle) notFound();
   const c = detalle.conteo;
   if (c.estado !== "abierto") redirect(`/inventario/conteo/${c.id}`);
@@ -42,7 +43,7 @@ export default async function RevisarConteoPage({ params }: { params: Promise<{ 
       <div data-guia="conteo.pasos">
         <PasosConteo actual="revisar" />
       </div>
-      <RevisarConteo key={`${c.id}-${generadoEn}`} conteoId={c.id} filas={filas} generadoEn={generadoEn} />
+      <RevisarConteo key={`${c.id}-${generadoEn}`} conteoId={c.id} filas={filas} generadoEn={generadoEn} conAtajo={conAtajo} />
     </div>
   );
 }
