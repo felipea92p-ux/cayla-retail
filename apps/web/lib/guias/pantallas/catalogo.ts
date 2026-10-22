@@ -544,7 +544,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       ancla: "atributos.prendas",
       opcional: true,
       titulo: "Sus prendas",
-      texto: "Abre la lista de prendas, cada una con su foto: márcalas para ponerles la etiqueta o quítasela a varias de una vez. «Con la etiqueta» deja solo las que ya la llevan. Si baja el precio, cada fila dice cuánto queda y, antes de aplicar, te muestra qué cambia en caja.",
+      texto: "Abre la lista de prendas: márcalas, o escanea su etiqueta con la pistola (en el teléfono, con la cámara), y a la derecha ves la etiqueta llenarse. Se marca la talla y el color que escaneas. Si baja el precio, antes de aplicar te muestra qué cambia en caja.",
     },
     {
       id: "campana",

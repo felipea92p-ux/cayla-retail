@@ -6,13 +6,22 @@
 // excepciones por variante, pero lo que viaja a la base son ids de VARIANTE
 // (`retail.etiquetar_variantes`, 20260919010000): el modelo por variante no cambia.
 
+import { resolverCodigoV2 } from "./buscar-prenda-v2";
 import { vigenciaDe } from "./etiqueta-vigencia";
 import { normalizarNombre } from "./patron-visual";
 import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
 
 /** `colorHex` y `precio` son para que la hoja muestre la prenda como es (su color, su precio de etiqueta); la lógica de marcar
- *  no los usa. */
-export type VarianteEtiquetable = { id: string; talla: string | null; color: string | null; colorHex?: string | null; precio?: number | null };
+ *  no los usa. `codigos` son los que lee la pistola o la cámara (el `sku`, el código de la etiqueta y los de fábrica): sin
+ *  ellos la prenda solo se marca con la casilla. */
+export type VarianteEtiquetable = {
+  id: string;
+  talla: string | null;
+  color: string | null;
+  colorHex?: string | null;
+  precio?: number | null;
+  codigos?: readonly string[];
+};
 
 /** La foto y el prefijo y la familia de la categoría son para la miniatura (`MiniaturaPrenda`, ADR-0333): sin foto, el ícono de
  *  su categoría sobre su color. */
@@ -253,3 +262,137 @@ export function prendasQueCambianAlEtiquetar(
 }
 
 const textoPct = (pct: number) => `${pct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %`;
+
+// ---- Escanear para marcar (Felipe 2026-10-21, maqueta `docs/maquetas/etiqueta-escanear-2026-10/`, dirección B) ----------------
+
+/** Qué hace una lectura: «poner» la etiqueta (lo de siempre) o «quitarla». Leer dos veces la misma prenda NO alterna: la pistola a
+ *  veces lee dos veces y la cámara vuelve a ver la misma etiqueta, y una segunda lectura desharía la primera sin que nadie lo note.
+ *  Para quitar con el lector se cambia el modo. */
+export type ModoLectura = "poner" | "quitar";
+
+/** Una prenda que ya no se vende (talla desactivada): no está en la lista, pero su etiqueta sí se puede leer. */
+export type PrendaFueraDeVenta = { referencia: string; talla: string | null; color: string | null; codigos: readonly string[] };
+
+export type Lectura =
+  | { tipo: "puesta" | "ya-la-llevaba" | "quitada" | "no-la-llevaba" | "por-categoria"; producto: ProductoEtiquetable; variante: VarianteEtiquetable }
+  | { tipo: "fuera-de-venta"; prenda: PrendaFueraDeVenta }
+  | { tipo: "desconocido"; codigo: string };
+
+/**
+ * Lo que pasa al leer `codigo` (pistola o cámara): se busca la prenda exacta como en Vender (`resolverCodigoV2`: el código de la
+ * etiqueta o el de fábrica, sin mayúsculas, con el apóstrofo de la pistola como guion) y se marca o se quita SOLO esa talla y color,
+ * la que está en la mano. Nada se guarda: es lo mismo que tocar su casilla, y se aplica con «Revisar y aplicar».
+ */
+export function leerCodigo(
+  codigo: string,
+  modo: ModoLectura,
+  datos: { productos: readonly ProductoEtiquetable[]; marcadas: ReadonlySet<string>; porCategoria: ReadonlySet<string>; fueraDeVenta?: readonly PrendaFueraDeVenta[] },
+): { lectura: Lectura; marcadas: Set<string> } {
+  const marcadas = new Set(datos.marcadas);
+  const buscables = datos.productos.flatMap((producto) =>
+    producto.variantes.map((variante) => ({ ...buscable(variante.codigos, producto.referencia, variante), producto, variante })),
+  );
+  const hallada = resolverCodigoV2(codigo, buscables);
+  if (!hallada) {
+    const fuera = resolverCodigoV2(codigo, (datos.fueraDeVenta ?? []).map((prenda, i) => ({ ...buscable(prenda.codigos, prenda.referencia, prenda, `fuera-${i}`), prenda })));
+    return { lectura: fuera ? { tipo: "fuera-de-venta", prenda: fuera.prenda } : { tipo: "desconocido", codigo: codigo.trim() }, marcadas };
+  }
+  const { producto, variante } = hallada;
+  if (producto.categoriaId !== null && datos.porCategoria.has(producto.categoriaId)) return { lectura: { tipo: "por-categoria", producto, variante }, marcadas };
+  const la = marcadas.has(variante.id);
+  if (modo === "poner") {
+    marcadas.add(variante.id);
+    return { lectura: { tipo: la ? "ya-la-llevaba" : "puesta", producto, variante }, marcadas };
+  }
+  marcadas.delete(variante.id);
+  return { lectura: { tipo: la ? "quitada" : "no-la-llevaba", producto, variante }, marcadas };
+}
+
+function buscable(codigos: readonly string[] | undefined, referencia: string, v: { talla: string | null; color: string | null }, id = "") {
+  const [sku = "", ...resto] = codigos ?? [];
+  return { varianteId: id, sku, codigosBarras: resto, referencia, talla: v.talla, color: v.color };
+}
+
+/** «M · Negro», o «Única» si la prenda no tiene ni talla ni color. */
+export const nombreDeTalla = (v: { talla: string | null; color: string | null }) => [v.talla, v.color].filter(Boolean).join(" · ") || "Única";
+
+/** Lo que la hoja dice tras una lectura, en palabras de tienda: verde si la etiqueta quedó puesta, taupe si se quitó, ámbar si no
+ *  entró (con por qué) y pizarra si ya la llevaba. El texto de la cámara es el mismo. */
+export function mensajeLectura(l: Lectura): { tono: "verde" | "taupe" | "ambar" | "pizarra"; estado: string; titulo: string; detalle: string } {
+  switch (l.tipo) {
+    case "puesta":
+      return { tono: "verde", estado: "Lleva la etiqueta", titulo: l.producto.referencia, detalle: nombreDeTalla(l.variante) };
+    case "ya-la-llevaba":
+      return { tono: "pizarra", estado: "Ya la llevaba", titulo: l.producto.referencia, detalle: `${nombreDeTalla(l.variante)}: no cambia nada` };
+    case "quitada":
+      return { tono: "taupe", estado: "Se la quitas", titulo: l.producto.referencia, detalle: nombreDeTalla(l.variante) };
+    case "no-la-llevaba":
+      return { tono: "pizarra", estado: "No la llevaba", titulo: l.producto.referencia, detalle: `${nombreDeTalla(l.variante)}: no hay nada que quitar` };
+    case "por-categoria":
+      return { tono: "pizarra", estado: "Por su categoría", titulo: l.producto.referencia, detalle: "Ya la lleva por la regla de la campaña" };
+    case "fuera-de-venta":
+      return { tono: "ambar", estado: "Ya no se vende", titulo: l.prenda.referencia, detalle: `${nombreDeTalla(l.prenda)} está desactivada: no se le pone` };
+    case "desconocido":
+      return { tono: "ambar", estado: "No la encontramos", titulo: l.codigo, detalle: "No es el código de ninguna prenda a la venta. Búscala por su nombre." };
+  }
+}
+
+/** Las tallas y colores de la prenda que todavía no llevan la etiqueta: «Ponérsela a sus otras N tallas», justo después de leer
+ *  una. Las que entran por categoría ya la llevan: ninguna. */
+export function otrasTallas(p: ProductoEtiquetable, marcadas: ReadonlySet<string>, porCategoria: ReadonlySet<string>): string[] {
+  if (p.categoriaId !== null && porCategoria.has(p.categoriaId)) return [];
+  return p.variantes.filter((v) => !marcadas.has(v.id)).map((v) => v.id);
+}
+
+/** Una pieza del mosaico de la etiqueta: una talla y color. `nueva` = se la pones ahora; `sigue` = ya la llevaba; `categoria` = la
+ *  lleva por la regla de la campaña; `sale` = se la quitas (queda tenue y tachada hasta aplicar). */
+export type PiezaEtiqueta = { id: string; producto: ProductoEtiquetable; variante: VarianteEtiquetable; estado: "nueva" | "sigue" | "categoria" | "sale" };
+
+/**
+ * La etiqueta como se ve colgada: cuántas tallas y colores la llevan contando lo que aún no se aplica (`total`), y las piezas del
+ * mosaico, primero lo que acabas de poner (la última arriba), después lo que se quita, lo que ya la llevaba y lo de su categoría.
+ * Solo se dibujan `max`; el resto es `mas`. Lo que se quita no cuenta en `total`: al aplicar, ya no la lleva.
+ */
+export function etiquetaColgada(
+  productos: readonly ProductoEtiquetable[],
+  iniciales: ReadonlySet<string>,
+  marcadas: ReadonlySet<string>,
+  porCategoria: ReadonlySet<string>,
+  max: number,
+): { total: number; agregar: number; quitar: number; piezas: PiezaEtiqueta[]; mas: number } {
+  const porVariante = new Map<string, { producto: ProductoEtiquetable; variante: VarianteEtiquetable }>();
+  for (const producto of productos) for (const variante of producto.variantes) porVariante.set(variante.id, { producto, variante });
+  const pieza = (id: string, estado: PiezaEtiqueta["estado"]): PiezaEtiqueta[] => {
+    const x = porVariante.get(id);
+    return x ? [{ id, ...x, estado }] : [];
+  };
+  const heredadas = productos.filter((p) => p.categoriaId !== null && porCategoria.has(p.categoriaId));
+  const deCategoria = heredadas.flatMap((p) => p.variantes.map((v) => ({ id: v.id, producto: p, variante: v, estado: "categoria" as const })));
+  const enCategoria = new Set(deCategoria.map((x) => x.id));
+  // `marcadas` guarda el orden en que se marcaron: lo último marcado va primero, que es lo que la persona busca con la vista.
+  const nuevas = [...marcadas].filter((id) => !iniciales.has(id) && !enCategoria.has(id)).reverse().flatMap((id) => pieza(id, "nueva"));
+  const salen = [...iniciales].filter((id) => !marcadas.has(id) && !enCategoria.has(id)).flatMap((id) => pieza(id, "sale"));
+  const siguen = [...marcadas].filter((id) => iniciales.has(id) && !enCategoria.has(id)).flatMap((id) => pieza(id, "sigue"));
+  const todas = [...nuevas, ...salen, ...siguen, ...deCategoria];
+  const caben = todas.length > max ? Math.max(0, max - 1) : todas.length;
+  return {
+    total: nuevas.length + siguen.length + deCategoria.length,
+    agregar: nuevas.length,
+    quitar: salen.length,
+    piezas: todas.slice(0, caben),
+    mas: todas.length - caben,
+  };
+}
+
+/** Cuánto cobra la caja por las prendas que se ponen ahora, una de cada talla y color: hoy y con la etiqueta (la cuenta de la caja,
+ *  `descuentoDeCampana`). Sin descuento o sin precios, `null`. */
+export function cajaAntesDespues(productos: readonly ProductoEtiquetable[], agregar: readonly string[], pct: number | null): { antes: number; despues: number } | null {
+  if (pct === null || pct <= 0 || agregar.length === 0) return null;
+  const ids = new Set(agregar);
+  const lineas = productos
+    .flatMap((p) => p.variantes)
+    .filter((v) => ids.has(v.id) && typeof v.precio === "number" && v.precio > 0)
+    .map((v) => ({ cantidad: 1, precioUnitario: v.precio as number, descuentoUnitario: descuentoDeCampana(v.precio as number, pct) }));
+  if (lineas.length === 0) return null;
+  return { antes: totalDeLineas(lineas.map((l) => ({ ...l, descuentoUnitario: 0 }))), despues: totalDeLineas(lineas) };
+}
