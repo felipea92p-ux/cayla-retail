@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Prueba de la provisión de planilla por sede — ADR-0453 (`20261018040000_planilla_provision_por_sede.sql`).
+ * Prueba de la provisión de planilla por sede — ADR-0453 (`20261018040000_planilla_provision_por_sede.sql` y, encima,
+ * `20261022081000_planilla_provision_hoy_por_horario.sql`).
  *
  * QUÉ CUBRE
  *   · EL CÁLCULO: por sede, lo devengado hasta hoy (horas trabajadas; el sueldo fijo en proporción a los días corridos) y lo
@@ -14,6 +15,10 @@
  *     mes», ve todas las sedes y «de la empresa»; con solo «Reportes financieros», la suya; sin él, nada; `anon` y `authenticated` no
  *     llaman a la función interna. Y ninguna de las dos pregunta `fn_es_lider()` por su cuenta (la regla A1 de `pruebas:finanzas-alcance`).
  *   · PEGAR DOS VECES no cambia las funciones.
+ *   · LO DE HOY (`20261022081000_planilla_provision_hoy_por_horario.sql`, act. 2026-10-22): `hoy_estimado`, lo que llevan hoy quienes están en
+ *     su jornada = horas de hoy × la tasa por hora de su boleta + su movilidad del día. Sus tres candados: SIN FERIADO, SIN JORNADA RARA (doble
+ *     entrada, retorno suelto, salida sin retorno, marca anulada, 22 horas, sin tasa, sueldo fijo, prueba, no entró hoy) y SE REEMPLAZA AL CERRAR
+ *     (con salida final deja de contar). Y el principio 9: sin marcaciones, o con una columna que cambió, sale nulo y lo demás se devuelve igual.
  *
  * CÓMO. Cada escena corre dentro de UNA transacción con ROLLBACK; fechas de 2030 para no cruzarse con datos reales. Dynamic se
  * simula con lo mínimo que la función necesita (`public.fn_es_admin_o_lider`, `public.periodos_planilla`, la vista puente y
@@ -38,7 +43,10 @@ const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora — Tienda Trujillo
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261018040000_planilla_provision_por_sede.sql"), "utf8");
+// La base ya tiene las dos migraciones de ADR-0453 aplicadas, en orden. La escena pega SOLO la última (la de lo de hoy: hace `drop function` de
+// las dos funciones y las crea de nuevo) para que vean las tablas de ensayo. Pegar la primera encima ya no se puede: no puede cambiar el tipo de
+// lo que devuelven, y está bien que falle (así un pegado equivocado en producción no borra en silencio la columna nueva).
+const MIGRACION_HOY = readFileSync(join(RAIZ, "supabase", "migrations", "20261022081000_planilla_provision_hoy_por_horario.sql"), "utf8");
 
 function psql(sql) {
   return execFileSync(
@@ -120,12 +128,20 @@ create function public.fn_es_admin_o_lider() returns boolean language sql stable
 $f$;
 create view retail.planilla_por_sede as select null::text as sede_codigo where false;
 create table public.periodos_planilla (id uuid primary key, fecha_ini date not null, fecha_fin date not null, estado text not null);
-create table public.filas_de_ensayo (periodo_id uuid not null, sede text not null, tipo_vinculo text not null, sueldo_fijo boolean not null, total numeric not null, provision_total numeric not null);
+create table public.filas_de_ensayo (periodo_id uuid not null, sede text not null, tipo_vinculo text not null, sueldo_fijo boolean not null, total numeric not null, provision_total numeric not null,
+  persona_id uuid, pago_base numeric, descuento_afp numeric, monto_movilidad numeric, horas_mes numeric, dias_trabajados numeric);
+create table public.feriados_de_ensayo (periodo_id uuid not null, fecha date not null);
+-- Las marcaciones de Dynamic (lo mínimo que lee lo de hoy): una fila por marca, el tipo como texto.
+create table public.marcajes (persona_id uuid not null, tipo text not null, timestamp_marca timestamptz not null, fecha_jornada date, anulada_at timestamptz);
 create function public.fn_proyeccion_periodo(p_periodo uuid) returns jsonb language plpgsql stable as $f$
 begin
   if p_periodo = 'f0f0f0f0-0000-4000-8000-0000000000d1'::uuid then raise exception 'Dynamic de ensayo se cayó'; end if;
-  return jsonb_build_object('filas', coalesce((select jsonb_agg(jsonb_build_object('sede', sede, 'tipo_vinculo', tipo_vinculo, 'sueldo_fijo', sueldo_fijo, 'total', total, 'provision_total', provision_total))
-                                                from public.filas_de_ensayo where periodo_id = p_periodo), '[]'::jsonb));
+  return jsonb_build_object(
+    'filas', coalesce((select jsonb_agg(jsonb_build_object('sede', sede, 'tipo_vinculo', tipo_vinculo, 'sueldo_fijo', sueldo_fijo, 'total', total, 'provision_total', provision_total,
+                                                           'persona_id', persona_id, 'pago_base', pago_base, 'descuento_afp', descuento_afp, 'monto_movilidad', monto_movilidad,
+                                                           'horas_mes', horas_mes, 'dias_trabajados', dias_trabajados))
+                         from public.filas_de_ensayo where periodo_id = p_periodo), '[]'::jsonb),
+    'feriados', coalesce((select jsonb_agg(jsonb_build_object('fecha', fecha, 'nombre', 'Feriado de ensayo')) from public.feriados_de_ensayo where periodo_id = p_periodo), '[]'::jsonb));
 end $f$;
 insert into public.sedes (codigo, nombre, tipo) values ('ZTAL', 'Taller de ensayo', 'taller'), ('ZCCO', 'Central de ensayo', 'central'), ('ZMIN', 'Sede chica de ensayo', 'tienda');
 insert into public.periodos_planilla (id, fecha_ini, fecha_fin, estado) values
@@ -144,7 +160,7 @@ select 'f0f0f0f0-0000-4000-8000-0000000000a1'::uuid, x.sede, x.vinculo, x.fijo, 
 insert into public.filas_de_ensayo (periodo_id, sede, tipo_vinculo, sueldo_fijo, total, provision_total)
 select 'f0f0f0f0-0000-4000-8000-0000000000b1'::uuid, 'TRU', 'planilla', false, 777, 77 from generate_series(1, 4);
 
-${MIGRACION}
+${MIGRACION_HOY}
 `;
 
 // Todos los casos usan ESTE rango: el período A (termina el 28-oct) y el D (el 28-nov); el B ya está pagado y el C no existe.
@@ -162,7 +178,7 @@ select 'C5 la central es «de la empresa»: sin ubicación', (select unidad = 'e
 select 'C6 una sede con 2 personas no se devuelve (con 1 sola, el agregado sería su sueldo)', (select count(*) = 0 from pv where sede_codigo = 'ZMIN');
 select 'C7 el período ya pagado no se estima: entra lo real', (select count(*) = 0 from pv where periodo_id = 'f0f0f0f0-0000-4000-8000-0000000000b1');
 select 'C8 el período del mes siguiente (que hace fallar a Dynamic) se salta y los demás salen', (select count(*) = 4 and count(distinct periodo_id) = 1 from pv);
-select 'C9 nunca una persona: la respuesta no trae nombre ni persona', (select pg_get_function_result('retail.fn_planilla_provision_calc(date, date, date)'::regprocedure) !~* '(nombre|persona_id|apellido|documento)');
+select 'C9 nunca una persona: la respuesta no trae nombre ni persona', (select pg_get_function_result('retail.fn_planilla_provision_calc(date, date, date, timestamptz)'::regprocedure) !~* '(nombre|persona_id|apellido|documento)');
 select 'C9 ni la pública', (select pg_get_function_result('retail.fn_planilla_provision(date, date, uuid)'::regprocedure) !~* '(nombre|persona_id|apellido|documento)');
 `;
 
@@ -214,25 +230,135 @@ select 'R3 pedir otra sede falla', (select pg_temp.intento(format('select * from
 ${conModulo("cierre_mes")}
 select 'R3b con «Cierre de mes» ve lo mismo que el líder: todas las sedes y «de la empresa», como el Estado de resultados', (select count(*) = 4 and count(distinct unidad) = 3 from retail.fn_planilla_provision('2030-10-01', '2030-11-30'));
 select 'R3b y puede pedir una sola sede', (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_planilla_provision('2030-10-01', '2030-11-30', :'tru'));
-select 'R3c ninguna de las dos funciones pregunta fn_es_lider() por su cuenta (la regla A1 de pruebas:finanzas-alcance)', (select count(*) = 0 from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname like 'fn_planilla_provision%' and regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g') ~ 'fn_es_lider\\s*\\(');
-select 'R4 anon no puede llamar a ninguna', (select not has_function_privilege('anon', 'retail.fn_planilla_provision(date, date, uuid)', 'execute') and not has_function_privilege('anon', 'retail.fn_planilla_provision_calc(date, date, date)', 'execute'));
-select 'R4 una sesión llama a la pública pero no a la interna', (select has_function_privilege('authenticated', 'retail.fn_planilla_provision(date, date, uuid)', 'execute') and not has_function_privilege('authenticated', 'retail.fn_planilla_provision_calc(date, date, date)', 'execute'));
+select 'R3c ninguna de las dos funciones pregunta fn_es_lider() por su cuenta (la regla A1 de pruebas:finanzas-alcance)', (select count(*) = 0 from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('fn_planilla_provision', 'fn_planilla_provision_calc', 'fn_planilla_hoy_por_sede') and regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g') ~ 'fn_es_lider\\s*\\(');
+select 'R4 anon no puede llamar a ninguna', (select not has_function_privilege('anon', 'retail.fn_planilla_provision(date, date, uuid)', 'execute') and not has_function_privilege('anon', 'retail.fn_planilla_provision_calc(date, date, date, timestamptz)', 'execute'));
+select 'R4 una sesión llama a la pública pero no a la interna', (select has_function_privilege('authenticated', 'retail.fn_planilla_provision(date, date, uuid)', 'execute') and not has_function_privilege('authenticated', 'retail.fn_planilla_provision_calc(date, date, date, timestamptz)', 'execute'));
 `;
 
 const CASOS_REPEGAR = `
 select set_config('prueba.planilla', 'si', true);
-create temp table antes as select p.proname, md5(pg_get_functiondef(p.oid)) as huella from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname like 'fn_planilla_provision%';
-${MIGRACION}
-select 'I1 pegar la migración dos veces deja las funciones idénticas', (select count(*) = 2 and bool_and(a.huella = md5(pg_get_functiondef(p.oid))) from antes a join pg_proc p on p.proname = a.proname join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'retail');
+create temp table antes as select p.proname, md5(pg_get_functiondef(p.oid)) as huella from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname in ('fn_planilla_provision', 'fn_planilla_provision_calc', 'fn_planilla_hoy_por_sede');
+${MIGRACION_HOY}
+select 'I1 pegar la migración de lo de hoy dos veces deja las tres funciones idénticas', (select count(*) = 3 and bool_and(a.huella = md5(pg_get_functiondef(p.oid))) from antes a join pg_proc p on p.proname = a.proname join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'retail');
 `;
 
 // ---------------------------------------------------------------------------------------------------------------------------
+// LO DE HOY (act. 2026-10-22). «Ahora» = 14-oct-2030 20:00 UTC = 15:00 en Lima. La tasa de la boleta de ensayo: por hora
+// (pago_base 800 − AFP 100 + provisión 100) / 100 horas = 8.00; por día presente: movilidad 160 / 10 días = 16.00.
+//   p01 en horario desde las 09:00 Lima (6 h)            → 6 × 8 + 16 = 64.00
+//   p02 con su almuerzo ya tomado (1 h de ausencia)      → 5 × 8 + 16 = 56.00
+//   p03 en el almuerzo AHORA (cuenta hasta que salió, 5 h) → 56.00
+//   las demás son jornadas que NO deben contar (ver cada caso).
+// ---------------------------------------------------------------------------------------------------------------------------
+const AHORA = "2030-10-14 20:00:00+00";
+const ID = (n) => `a0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+const MARCAS = `
+insert into public.marcajes (persona_id, tipo, timestamp_marca, fecha_jornada, anulada_at) values
+  ('${ID(1)}', 'entrada', '2030-10-14 14:00:00+00', null, null),
+  ('${ID(2)}', 'entrada', '2030-10-14 14:00:00+00', null, null), ('${ID(2)}', 'salida_almuerzo', '2030-10-14 17:00:00+00', null, null), ('${ID(2)}', 'retorno_almuerzo', '2030-10-14 18:00:00+00', null, null),
+  ('${ID(3)}', 'entrada', '2030-10-14 14:00:00+00', null, null), ('${ID(3)}', 'salida_almuerzo', '2030-10-14 19:00:00+00', null, null),
+  ('${ID(4)}', 'entrada', '2030-10-14 14:00:00+00', null, null), ('${ID(4)}', 'salida_final', '2030-10-14 19:30:00+00', null, null),
+  ('${ID(5)}', 'entrada', '2030-10-14 14:00:00+00', null, null), ('${ID(5)}', 'entrada', '2030-10-14 14:30:00+00', null, null),
+  ('${ID(6)}', 'entrada', '2030-10-14 14:00:00+00', null, null), ('${ID(6)}', 'retorno_almuerzo', '2030-10-14 17:00:00+00', null, null),
+  ('${ID(7)}', 'entrada', '2030-10-14 14:00:00+00', null, null), ('${ID(7)}', 'salida_almuerzo', '2030-10-14 17:00:00+00', null, null), ('${ID(7)}', 'salida_personal', '2030-10-14 18:00:00+00', null, null),
+  ('${ID(8)}', 'entrada', '2030-10-13 22:00:00+00', '2030-10-14', null),
+  ('${ID(9)}', 'entrada', '2030-10-14 14:00:00+00', null, '2030-10-14 15:00:00+00'),
+  ('${ID(10)}', 'entrada', '2030-10-14 14:00:00+00', null, null),
+  ('${ID(11)}', 'entrada', '2030-10-14 14:00:00+00', null, null),
+  ('${ID(12)}', 'entrada', '2030-10-14 14:00:00+00', null, null),
+  ('${ID(13)}', 'entrada', '2030-10-13 14:00:00+00', null, null),
+  ('${ID(14)}', 'entrada', '2030-10-14 21:00:00+00', null, null);
+`;
+// La boleta de UNA persona con la tasa de ensayo (o de varias, si se pasan). `hoy_de` devuelve lo que se estima hoy en su sede.
+const FUNCIONES_HOY = `
+create function pg_temp.fila(p_id uuid, p_vinculo text default 'planilla', p_fijo boolean default false, p_horas_mes numeric default 100) returns jsonb language sql as $f$
+  select jsonb_build_object('persona_id', p_id, 'sede', 'ZTAL', 'tipo_vinculo', p_vinculo, 'sueldo_fijo', p_fijo, 'pago_base', 800, 'descuento_afp', 100,
+                            'provision_total', 100, 'monto_movilidad', 160, 'horas_mes', p_horas_mes, 'dias_trabajados', 10, 'total', 700)
+$f$;
+create function pg_temp.hoy_de(p_filas jsonb, p_feriados jsonb default '[]') returns numeric language sql as $f$
+  select estimado from retail.fn_planilla_hoy_por_sede(jsonb_build_object('filas', p_filas, 'feriados', p_feriados), '2030-10-14', '${AHORA}')
+$f$;
+`;
+const CASOS_HOY = `
+select set_config('prueba.planilla', 'si', true);
+${FUNCIONES_HOY}
+${MARCAS}
+select 'H1 en horario desde las 09:00: 6 h × 8 + 16 de movilidad = 64', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(1)}'))) = 64.00);
+select 'H2 con su almuerzo ya tomado, la hora de ausencia no cuenta: 5 h → 56', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(2)}'))) = 56.00);
+select 'H3 en el almuerzo ahora: cuenta hasta que salió (5 h) → 56', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(3)}'))) = 56.00);
+select 'H4 SE REEMPLAZA AL CERRAR: con salida final ya no se estima (sus horas reales entran por Dynamic)', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(4)}'))) is null);
+select 'H5 doble entrada: jornada rara, no cuenta', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(5)}'))) is null);
+select 'H6 un retorno sin salida: jornada rara, no cuenta', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(6)}'))) is null);
+select 'H7 una salida seguida de otra salida (sin retorno): jornada rara, no cuenta', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(7)}'))) is null);
+select 'H8 una jornada de 22 horas se descarta (más de 14)', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(8)}'))) is null);
+select 'H9 una marca anulada no existe: sin entrada, no cuenta', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(9)}'))) is null);
+select 'H10 sin tasa (horas_mes = 0: empezó este período) no se estima', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(10)}', 'planilla', false, 0))) is null);
+select 'H11 quien cobra sueldo fijo no entra (su sueldo ya corre por días)', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(11)}', 'planilla', true))) is null);
+select 'H12 el grupo prueba no entra', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(12)}', 'prueba'))) is null);
+select 'H13 quien solo marcó AYER no cuenta hoy', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(13)}'))) is null);
+select 'H14 una entrada que todavía no pasó (a las 16:00 Lima, son las 15:00) no cuenta', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(14)}'))) is null);
+select 'H15 CANDADO DE FERIADO: si hoy es feriado en la boleta, no se estima', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(1)}')), '[{"fecha": "2030-10-14", "nombre": "Feriado"}]'::jsonb) is null);
+select 'H15b un feriado de OTRO día no lo apaga', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(1)}')), '[{"fecha": "2030-10-08", "nombre": "Feriado"}]'::jsonb) = 64.00);
+select 'H16 varias personas de una sede se suman: 64 + 56 + 56 = 176', (select pg_temp.hoy_de(jsonb_build_array(pg_temp.fila('${ID(1)}'), pg_temp.fila('${ID(2)}'), pg_temp.fila('${ID(3)}'), pg_temp.fila('${ID(4)}'), pg_temp.fila('${ID(5)}'))) = 176.00);
+select 'H17 solo importes y personas contadas por sede: nunca el nombre ni el id de una persona', (select pg_get_function_result('retail.fn_planilla_hoy_por_sede(jsonb, date, timestamptz)'::regprocedure) !~* '(nombre|persona_id|apellido|documento)');
+`;
+
+// La integración con la provisión: la boleta de ensayo del Taller (ZTAL) trae a p01..p04 con las tasas de arriba.
+const PERSONAS_ZTAL = `
+delete from public.filas_de_ensayo where periodo_id = 'f0f0f0f0-0000-4000-8000-0000000000a1' and sede = 'ZTAL';
+insert into public.filas_de_ensayo (periodo_id, sede, tipo_vinculo, sueldo_fijo, total, provision_total, persona_id, pago_base, descuento_afp, monto_movilidad, horas_mes, dias_trabajados)
+select 'f0f0f0f0-0000-4000-8000-0000000000a1'::uuid, 'ZTAL', 'planilla', false, 700, 100, ('a0000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, 800, 100, 160, 100, 10 from generate_series(1, 4) n;
+`;
+const CALC_HOY = `create temp table ph as select * from retail.fn_planilla_provision_calc('2030-10-01', '2030-11-30', '2030-10-14', '${AHORA}');`;
+const CASOS_HOY_CALCULO = `
+select set_config('prueba.planilla', 'si', true);
+${PERSONAS_ZTAL}
+${MARCAS}
+${CALC_HOY}
+select 'HC1 el Taller devuelve lo de hoy: p01 + p02 + p03 = 176 (p04 ya cerró)', (select hoy_estimado = 176.00 and unidad = 'taller' from ph where sede_codigo = 'ZTAL');
+select 'HC2 el devengado y el cierre NO cambian por lo de hoy: va en su columna aparte (4 × 800)', (select devengado = 3200.00 and personas = 4 from ph where sede_codigo = 'ZTAL');
+select 'HC3 las sedes sin marcaciones de hoy salen con hoy_estimado nulo, no en cero', (select bool_and(hoy_estimado is null) and count(*) = 3 from ph where sede_codigo <> 'ZTAL');
+-- SE REEMPLAZA AL CERRAR: p01 marca su salida final y lo de hoy baja de 176 a 112 (p02 + p03); el devengado sigue igual.
+insert into public.marcajes values ('${ID(1)}', 'salida_final', '2030-10-14 19:45:00+00', null, null);
+create temp table ph2 as select * from retail.fn_planilla_provision_calc('2030-10-01', '2030-11-30', '2030-10-14', '${AHORA}');
+select 'HC4b y en la provisión completa también: lo de hoy queda en 112 (p02 + p03) y el devengado igual', (select hoy_estimado = 112.00 and devengado = 3200.00 from ph2 where sede_codigo = 'ZTAL');
+insert into public.feriados_de_ensayo values ('f0f0f0f0-0000-4000-8000-0000000000a1', '2030-10-14');
+create temp table ph3 as select * from retail.fn_planilla_provision_calc('2030-10-01', '2030-11-30', '2030-10-14', '${AHORA}');
+select 'HC5 FERIADO: hoy no se estima para ninguna sede, y el devengado sigue igual', (select bool_and(hoy_estimado is null) and (select devengado from ph3 where sede_codigo = 'ZTAL') = 3200.00 from ph3);
+delete from public.feriados_de_ensayo;
+create temp table ph4 as select * from retail.fn_planilla_provision_calc('2030-10-01', '2030-11-30', '2030-11-05', '2030-11-05 20:00:00+00');
+select 'HC6 si hoy no cae dentro del período, no hay estimado de hoy', (select count(*) > 0 and bool_and(hoy_estimado is null) from ph4);
+select 'HC7 la pública entrega la columna hoy_estimado', (select pg_get_function_result('retail.fn_planilla_provision(date, date, uuid)'::regprocedure) ~ 'hoy_estimado');
+`;
+const CASOS_HOY_FALLAS = `
+select set_config('prueba.planilla', 'si', true);
+${PERSONAS_ZTAL}
+${MARCAS}
+-- Principio 9: sin las marcaciones de Dynamic (local, CI), la provisión de siempre sale igual y lo de hoy, nulo.
+drop table public.marcajes;
+create temp table pf as select * from retail.fn_planilla_provision_calc('2030-10-01', '2030-11-30', '2030-10-14', '${AHORA}');
+select 'HF1 sin la tabla de marcaciones: 4 sedes con su devengado y lo de hoy nulo', (select count(*) = 4 and bool_and(hoy_estimado is null) and (select devengado from pf where sede_codigo = 'ZTAL') = 3200.00 from pf);
+`;
+const CASOS_HOY_COLUMNA = `
+select set_config('prueba.planilla', 'si', true);
+${PERSONAS_ZTAL}
+${MARCAS}
+-- Si Dynamic renombra una columna, lo de hoy falla: se avisa en el log y la provisión de siempre se devuelve igual.
+alter table public.marcajes rename column anulada_at to anulada_cambiada;
+create temp table pc as select * from retail.fn_planilla_provision_calc('2030-10-01', '2030-11-30', '2030-10-14', '${AHORA}');
+select 'HF2 con una columna cambiada: 4 sedes, devengado intacto y lo de hoy nulo (no un error)', (select count(*) = 4 and bool_and(hoy_estimado is null) and (select devengado from pc where sede_codigo = 'ZTAL') = 3200.00 from pc);
+`;
+
 verificar("El cálculo por sede", correr(`${ESCENA}${CASOS_CALCULO}`), casosDe(CASOS_CALCULO));
 verificar("El tiempo corrido", correr(`${ESCENA}${CASOS_TIEMPO}`), casosDe(CASOS_TIEMPO));
 verificar("Lo cerrado se queda cerrado", correr(`${ESCENA}${CASOS_CERRADO}`), casosDe(CASOS_CERRADO));
 verificar("Sin Dynamic", correr(`${ESCENA}${CASOS_SIN_DYNAMIC}`), casosDe(CASOS_SIN_DYNAMIC));
 verificar("Permisos", correr(`${ESCENA}${CASOS_PERMISOS}`), casosDe(CASOS_PERMISOS));
 verificar("Pegar dos veces", correr(`${ESCENA}${CASOS_REPEGAR}`), casosDe(CASOS_REPEGAR));
+verificar("Lo de hoy: los tres candados, jornada por jornada", correr(`${ESCENA}${CASOS_HOY}`), casosDe(CASOS_HOY));
+verificar("Lo de hoy dentro de la provisión", correr(`${ESCENA}${CASOS_HOY_CALCULO}`), casosDe(CASOS_HOY_CALCULO));
+verificar("Lo de hoy sin las marcaciones de Dynamic", correr(`${ESCENA}${CASOS_HOY_FALLAS}`), casosDe(CASOS_HOY_FALLAS));
+verificar("Lo de hoy con una columna de Dynamic cambiada", correr(`${ESCENA}${CASOS_HOY_COLUMNA}`), casosDe(CASOS_HOY_COLUMNA));
 
 console.log(fallos ? `\n${fallos} de ${casos} verificaciones fallaron` : `\nLas ${casos} verificaciones pasaron`);
 process.exit(fallos ? 1 : 0);
