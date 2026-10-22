@@ -5,6 +5,10 @@
 // «ahora estás en Lima». El velo es la pantalla de carga de ese cambio. Lógica pura, con su prueba al lado; el componente
 // (`components/SelectorTienda.tsx`) solo la usa.
 
+/** El aviso de ventana con el que cualquier botón de la página pide «cambiar de tienda» al selector de la cabecera («Ver lo que hay» de cada
+ *  tienda). Así es EL MISMO cambio —cookie, velo, bolsa que se vacía con confirmación— y no una navegación suelta. `detail` es el `href`. */
+export const EVENTO_CAMBIAR_TIENDA = "cayla:cambiar-tienda";
+
 /** Cuánto tarda el velo en cubrir (ms): el fundido de entrada. */
 export const VELO_ENTRA_MS = 320;
 /** Lo que el velo se queda, como mínimo, DESPUÉS de cubrir (ms): si la página llega al instante, el nombre alcanza a leerse y el velo no

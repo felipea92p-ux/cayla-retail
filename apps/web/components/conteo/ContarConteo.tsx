@@ -8,7 +8,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
 import { AltaAlVuelo } from "@/components/conteo/AltaAlVuelo";
 import { BotonAplicarTodos, ConfirmarAplicarTodos } from "@/components/conteo/AplicarTodosCompletos";
-import { ControlConteo, type EstadoGuardado, type FalloDeGuardado } from "@/components/conteo/control-conteo";
+import { ControlConteo, type EstadoGuardado, type FalloDeGuardado, type LineaDelAtajo } from "@/components/conteo/control-conteo";
 import { ListaConteo } from "@/components/conteo/ListaConteo";
 import { PasosConteo } from "@/components/conteo/PasosConteo";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
@@ -292,22 +292,48 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
   );
 
   /**
-   * «Completar todo» de una tarjeta: «encontré todo tal como CAYLA esperaba» en ESE modelo y color. Cada variante
-   * que SIGUE pendiente se cuenta con lo que debe haber, por el mismo camino que cualquier cantidad escrita (`alConfirmar`: mismo
-   * responsable, mismo guardado agrupado y en serie, mismo estado y progreso). Las que ya tienen número no se tocan
-   * (`pendientesParaCompletar`). Si falta el responsable, se avisa una sola vez y no se anota ninguna. Devuelve cuántas anotó.
+   * Lo que sale a la red con «Completar todo»: UNA llamada (`conteo_completar_tarjeta`) que cuenta las tallas con la misma `conteo_contar`
+   * y las marca «completadas con el atajo» (cuentan, pero Revisar lo dice; ADR-0328, opción C de Felipe). Un solo camino: la función
+   * está en la base desde antes de publicar esta pantalla, así que no hay respaldo talla por talla (ADR-0328, act. 2026-10-22).
+   */
+  const enviarCompletar = useCallback(
+    async (lineas: LineaDelAtajo[]) =>
+      await firmar(
+        createClient()
+          .rpc("conteo_completar_tarjeta", { p_conteo_id: conteo.id, p_lineas: lineas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidad })) })
+          .setHeader("x-espera", "no"),
+        responsableRef.current.firma()
+      ),
+    [conteo.id]
+  );
+
+  /**
+   * «Completar todo» de una tarjeta: «encontré todo tal como CAYLA esperaba» en ESE modelo y color. Cada variante que SIGUE pendiente se
+   * cuenta con lo que debe haber: se pinta YA (como cualquier cantidad escrita) y sale UNA sola petición (`control.completar`). Las que
+   * ya tienen número no se tocan (`pendientesParaCompletar`). Si falta el responsable, se avisa una sola vez y no se anota ninguna. Si la
+   * base rechaza, las líneas vuelven a pendiente y se dice por qué. Devuelve cuántas pintó.
    */
   const completarTodo = useCallback(
     (varianteIds: string[]): number => {
-      let anotadas = 0;
-      for (const id of pendientesParaCompletar(varianteIds, control.linea)) {
-        const l = control.linea(id);
-        if (!l || !alConfirmar(id, l.debeHaber)) break;
-        anotadas++;
+      const r = responsableRef.current;
+      if (!r.listo) {
+        setAviso({ tipo: "texto", texto: r.motivo ?? "Elige quién cuenta antes de anotar." });
+        return 0;
       }
+      const items = pendientesParaCompletar(varianteIds, control.linea).flatMap((id) => {
+        const l = control.linea(id);
+        return l ? [{ varianteId: id, cantidad: l.debeHaber }] : [];
+      });
+      const { anotadas, resultado } = control.completar(items, enviarCompletar);
+      void resultado.then((res) => {
+        if (!("error" in res)) return;
+        // Un rechazo por el responsable (asistencia) vacía el combo y relee la lista, como al contar.
+        responsableRef.current.despues(res.error);
+        setAviso({ tipo: "texto", texto: traducirError(res.error, "completar esa tarjeta") });
+      });
       return anotadas;
     },
-    [control, alConfirmar]
+    [control, enviarCompletar]
   );
 
   // «Aplicar todos completos»: las que SIGUEN pendientes y nadie contó, entre las que se ven (la lista acotada y, si hay texto, lo que deja

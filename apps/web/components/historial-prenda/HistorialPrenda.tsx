@@ -57,7 +57,7 @@ const TONO: Record<Familia, string> = {
   alta: "var(--color-rojo)",
 };
 const ICONO: Record<Familia, LucideIcon> = { precio: Banknote, variantes: Palette, etiquetas: Tag, ficha: FileText, fotos: IconoImagen, alta: Sprout };
-const NOMBRE_FAMILIA: Record<Familia, string> = { precio: "Precio", variantes: "Colores y tallas", etiquetas: "Etiquetas", ficha: "Ficha", fotos: "Fotos", alta: "Nació" };
+const NOMBRE_FAMILIA: Record<Familia, string> = { precio: "Precio", variantes: "Colores y tallas", etiquetas: "Sellos y campañas", ficha: "Ficha", fotos: "Fotos", alta: "Nació" };
 
 // Cada persona con un tono propio y estable (sale de su id): la misma cara se reconoce en toda la lista.
 const TONOS_PERSONA = ["var(--color-taupe)", "var(--color-pizarra)", "var(--color-verde)", "var(--color-ambar)"];

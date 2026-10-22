@@ -247,6 +247,10 @@ export const PRUEBAS = [
   // nadie directo y sus CHECK dejan fuera todo lo que la tienda no conoce. ROLLBACK.
   "pruebas:campanas-web",
 
+  // La llave de las campañas (ADR-0476): con «Campañas», «Campañas de la tienda web» o «Sellos» se crea, se guarda, se le ponen
+  // prendas y se desactiva una campaña; sin ninguno, cada puerta la rechaza; un sello que no es campaña sigue siendo de Sellos. ROLLBACK.
+  "pruebas:campanas-llave-unica",
+
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el
   // umbral de Configuración y NUNCA deja salir la cifra de 4 o más; la ficha de un oculto es null; precio por talla. Y UN SOLO
@@ -503,6 +507,12 @@ export const PRUEBAS = [
   // lo consume; «Aplicar todos completos» marca «aplicada sin contar» y el historial lo suma aparte. Con controles que muerden
   // por mutación. Cada caso: ROLLBACK.
   "pruebas:conteo-firma-arranque",
+
+  // Conteo ▸ «Completar todo» de una tarjeta (ADR-0328; Felipe, 2026-10-05; 20261022145000): cuenta las tallas pendientes con
+  // `conteo_contar` y las marca `completada_con_atajo` (SIGUE contando: vale para el arranque y para la exactitud; la marca solo
+  // informa en Revisar). No pisa lo contado a mano, es idempotente, todo o nada, y contar a mano la línea apaga la marca. Con
+  // controles que muerden por mutación. Cada caso: ROLLBACK.
+  "pruebas:conteo-atajo-tarjeta",
 
   // Candado solo-RPC (ADR-0119): authenticated y anon no escriben directo en ventas, venta_items,
   // venta_anulacion_items, clientas, conteos ni lotes; las RPC siguen escribiendo. Cada caso: ROLLBACK.
@@ -1300,6 +1310,11 @@ export const PRUEBAS = [
   // sin IGV, al crédito o al contado, y fuera del Registro de Compras de Impuestos. ROLLBACK siempre.
   "pruebas:ordenes-compra-sin-comprobante",
 
+  // El precio de venta SUGERIDO que viaja con la línea de la orden (ADR-0362, decisión 21): se guarda con sus motivos, las reglas son las mismas al
+  // crear y al editar, editar SOLO el sugerido cuenta como cambio (la huella lo mira), el comprobante lo hereda sin pisar lo que el papel traiga y
+  // quien recibe lo ve aunque no haya papel. ROLLBACK siempre.
+  "pruebas:orden-compra-sugerido",
+
   // Qué categorías maneja cada proveedor, derivado de lo que ya existe (productos, marcas de un solo proveedor, órdenes generadas y
   // comprobantes vigentes), para que Nueva orden ofrezca primero lo suyo: solo con el módulo Órdenes de compra; una orden o un
   // comprobante anulado, un producto rechazado o de prueba, y una marca que traen dos proveedores no cuentan. ROLLBACK siempre.
@@ -1468,6 +1483,11 @@ export const PRUEBAS = [
   // El Observatorio, el Inicio del Admin (ADR-0322): lo de hoy por tienda cuadra con cada venta, sin las de prueba ni las
   // anuladas; categorías, prendas y equipo suman lo vendido; horas pico = promedio de 4 semanas; solo Admin.
   "pruebas:observatorio",
+
+  // Los dos arreglos de octubre que vivían solo en producción y hoy están en `main` (20261022200000 y 20261022201000): Roles y
+  // accesos no lista a quien Dynamic dio de baja, y el panel de una tienda cuenta la prenda sin registrar en la categoría que
+  // se declaró en caja; cada caso con su control (la versión de antes los pisa), los permisos, los atributos y la huella del cuerpo de producción. ROLLBACK.
+  "pruebas:arreglos-en-vivo-roles-observatorio",
 
   // Aprobar una etiqueta propuesta (trigger `fn_etiquetas_estado_trigger`): la base exige un comentario en toda transición
   // a «aprobado» —también al reactivar una rechazada— y la pantalla de Etiquetas tiene que mandarlo (cuerpo con `notas`;

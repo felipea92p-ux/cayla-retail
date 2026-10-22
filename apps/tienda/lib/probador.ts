@@ -104,6 +104,9 @@ export const OPCIONAL: Record<Zona, boolean> = { vestido: false, arriba: false, 
 /** El body va metido: debajo de lo de abajo. */
 const PREFIJOS_METIDOS: readonly string[] = ["BOD"];
 
+/** Las prendas de arriba que se dibujan por su propio torso (ADR-0449 act. c): blusas, camisas, polos y tops. Las de abrigo (casacas, chalecos, blazers) quedan con la regla de siempre. */
+const PREFIJOS_POR_TORSO: readonly string[] = ["CMS", "BLU", "TOP", "POL", "COR"];
+
 /** La zona de una categoría, por su prefijo (nunca por el nombre visible, que se renombra). null: no entra al probador. La regla vive
  *  en `packages/shared` (`zonaDelProbador`): el ERP cuenta con la misma qué prendas preparar (Tienda web ▸ Vitrina ▸ Probador). */
 export function zonaDe(categoria: Prenda["categoria"]): Zona | null {
@@ -150,6 +153,8 @@ export type PrendaDelProbador = {
   categoria: string | null;
   zona: Zona;
   metida: boolean;
+  /** Se dibuja por el ancho de su propio torso (blusa, camisa, polo, top) y no solo por el largo típico de su categoría. */
+  porTorso?: boolean;
   largo: number;
   /** Los colores que se ofrecen, en el orden del catálogo. Al menos uno. */
   colores: ColorDelProbador[];
@@ -245,6 +250,7 @@ export function armarProbador(
         categoria: p.categoria?.nombre ?? null,
         zona,
         metida: clave !== null && PREFIJOS_METIDOS.includes(clave),
+        porTorso: zona === "arriba" && clave !== null && PREFIJOS_POR_TORSO.includes(clave),
         largo: extra.largo,
         colores,
       },

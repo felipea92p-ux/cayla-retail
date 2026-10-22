@@ -1,3 +1,4 @@
+import { BotonDeFormulario } from "@/components/BotonDeFormulario";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -345,9 +346,9 @@ function Extra({ p, tienda, diasParaCambiar }: { p: Pedido; tienda: string; dias
     return (
       <form action={volverASeparar}>
         <input type="hidden" name="codigo" value={p.codigo} />
-        <button className="t-btn t-btn-ancho" type="submit">
+        <BotonDeFormulario className="t-btn t-btn-ancho" textoPendiente="Separando…">
           Volver a separar
-        </button>
+        </BotonDeFormulario>
       </form>
     );
   }

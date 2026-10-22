@@ -1,16 +1,22 @@
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 // ADR-0161: cambiar el catálogo es operación de tienda; la firma del combo «Responsable» que manda la pantalla
 // viaja a la base en cada consulta de este cliente (sin firma, igual que antes).
 import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import { objecionVigencia, parsearDescuento, parsearFecha } from "@/lib/etiqueta-campana";
+import { estiloConocido } from "@/lib/etiqueta-grupos";
 
 // POST/PATCH /api/productos/etiquetas → vocabulario cerrado de etiquetas
 // (ADR-0095). Mismo mecanismo que tejidos/patrones. Sin restricción por
 // sede a propósito (Felipe, 2026-09-18: "empresa uniforme") — la columna
 // `sedes_permitidas` sigue en el esquema, dormida, pero este endpoint ya
 // no la lee ni la escribe.
+const COLUMNAS_FILA = "id, nombre, activo, notas, estado";
+
+/** La función todavía no está en esta base (PostgREST no la encuentra): se sigue por el camino de antes. */
+const faltaLaFuncion = (e: { code?: string }) => e.code === "PGRST202" || e.code === "42883";
+
 export async function POST(request: Request) {
   await requirePersonaActualV2();
 
@@ -20,11 +26,26 @@ export async function POST(request: Request) {
     return Response.json({ error: "Falta el nombre de la etiqueta." }, { status: 400 });
   }
 
+  // Desde Catálogo ▸ Campañas nace con estilo `campana`; desde Sellos, sin estilo (la base pone «neutral»). ADR-0473.
+  const estilo = cuerpo?.estilo === undefined ? undefined : estiloConocido(String(cuerpo.estilo));
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-  const { data, error } = await supabase.from("etiquetas").insert({ nombre }).select("id, nombre, activo, notas, estado").single();
+  // Una campaña se crea con `crear_campana` (ADR-0476): corre con permisos propios y pide la llave de los tres módulos (Campañas,
+  // Campañas de la tienda web o Sellos); un alta directa en la tabla la dejaría «por aprobar» para quien no ve Sellos.
+  if (estilo === "campana") {
+    // Sin tipos generados todavía (ADR-0476 no está en el volcado): se nombra a mano.
+    const creada = (await supabase.rpc("crear_campana" as never, { p_nombre: nombre } as never)) as unknown as { data: string | null; error: { code?: string; message: string } | null };
+    if (!creada.error) {
+      const { data: fila, error: errorFila } = await supabase.from("etiquetas").select(COLUMNAS_FILA).eq("id", creada.data as string).single();
+      if (errorFila) return Response.json({ error: traducirError(errorFila, "leer la campaña recién creada", { lectura: true }) }, { status: 400 });
+      return Response.json({ etiqueta: fila });
+    }
+    if (!faltaLaFuncion(creada.error)) return Response.json({ error: traducirError(creada.error, "agregar la campaña") }, { status: 400 });
+    // Una base sin ADR-0476 todavía: el camino de antes (el alta directa, con su estilo).
+  }
+  const { data, error } = await supabase.from("etiquetas").insert(estilo ? { nombre, estilo } : { nombre }).select(COLUMNAS_FILA).single();
 
   if (error) {
-    return Response.json({ error: traducirError(error, "agregar la etiqueta") }, { status: 400 });
+    return Response.json({ error: traducirError(error, estilo === "campana" ? "agregar la campaña" : "agregar el sello") }, { status: 400 });
   }
 
   return Response.json({ etiqueta: data });
@@ -34,10 +55,11 @@ export async function PATCH(request: Request) {
   // 20260923130000: el líder o un rol con el módulo Etiquetas (`editarEtiquetas`). Lo que lleva descuento sigue siendo del
   // líder: se dice aquí con palabras y la base lo vuelve a exigir (política `etiquetas_update`, `fn_puede_tocar_etiqueta`).
   const persona = await requirePersonaActualV2();
-  if (!puede(persona, "editarEtiquetas")) {
-    return Response.json({ error: "Editar etiquetas necesita el módulo Etiquetas en tu rol." }, { status: 403 });
+  // Una campaña también la edita quien ve Campañas o Campañas de la tienda web (Felipe 2026-10-22, ADR-0473); la base decide
+  // fila por fila (`fn_puede_tocar_etiqueta`: una campaña pide `fn_puede_campanas`, un sello `fn_puede_editar_etiquetas`).
+  if (!puede(persona, "editarEtiquetas") && !veModulo(persona, "campanas") && !veModulo(persona, "campanas_web")) {
+    return Response.json({ error: "Editar sellos o campañas necesita el módulo Sellos o Campañas en tu rol." }, { status: 403 });
   }
-  const esLider = persona.rol === "lider";
 
   const cuerpo = await request.json().catch(() => null);
   const id = typeof cuerpo?.id === "string" ? cuerpo.id : "";
@@ -52,11 +74,10 @@ export async function PATCH(request: Request) {
   // Se atiende aparte de los demás cambios para no dejar un PATCH a medias.
   if ("campana" in cuerpoObj) {
     const c = (cuerpoObj.campana ?? {}) as Record<string, unknown>;
+    // Quién pone el descuento lo decide la base (`actualizar_campana_etiqueta`): ADR-0293 lo abrió a Sellos y ADR-0476 a los tres
+    // módulos de campañas. Aquí ya no se pide ser líder.
     const descuento = parsearDescuento(c.descuentoPct === null || c.descuentoPct === undefined ? "" : String(c.descuentoPct));
     if (!descuento.ok) return Response.json({ error: descuento.error }, { status: 400 });
-    if (!esLider && descuento.valor !== null) {
-      return Response.json({ error: "Poner un descuento en una etiqueta es solo de un líder. Deja el descuento vacío." }, { status: 403 });
-    }
     const desde = parsearFecha(typeof c.vigenteDesde === "string" ? c.vigenteDesde : "");
     if (!desde.ok) return Response.json({ error: desde.error }, { status: 400 });
     const hasta = parsearFecha(typeof c.vigenteHasta === "string" ? c.vigenteHasta : "");
@@ -131,13 +152,29 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "No hay cambios para guardar." }, { status: 400 });
   }
 
-  const { data, error } = await supabase.from("etiquetas").update(patch).eq("id", id).select("id, nombre, activo, notas, estado").single();
+  // Desactivar o reactivar una CAMPAÑA va por `activar_campana` (ADR-0476): la política de la tabla sigue pidiendo Sellos, y con solo
+  // Campañas o Campañas de la tienda web el cambio directo no encontraría la fila. La función repite el candado de «en uso».
+  if (Object.keys(patch).length === 1 && "activo" in patch) {
+    const { data: fila } = await supabase.from("etiquetas").select("estilo").eq("id", id).maybeSingle();
+    if (fila?.estilo === "campana") {
+      const r = (await supabase.rpc("activar_campana" as never, { p_id: id, p_activo: patch.activo } as never)) as unknown as { error: { code?: string; message: string } | null };
+      if (!r.error) {
+        const { data: lista, error: errorLista } = await supabase.from("etiquetas").select(COLUMNAS_FILA).eq("id", id).single();
+        if (errorLista) return Response.json({ error: traducirError(errorLista, "leer la campaña", { lectura: true }) }, { status: 400 });
+        return Response.json({ etiqueta: lista });
+      }
+      if (!faltaLaFuncion(r.error)) return Response.json({ error: traducirError(r.error, "guardar los cambios") }, { status: 400 });
+      // Una base sin ADR-0476 todavía: el camino de antes.
+    }
+  }
+
+  const { data, error } = await supabase.from("etiquetas").update(patch).eq("id", id).select(COLUMNAS_FILA).single();
 
   if (error) {
     if (error.code === "PGRST116") {
       return Response.json({ error: "No existe esa etiqueta." }, { status: 404 });
     }
-    return Response.json({ error: traducirError(error, "guardar la etiqueta") }, { status: 400 });
+    return Response.json({ error: traducirError(error, "guardar los cambios") }, { status: 400 });
   }
 
   return Response.json({ etiqueta: data });

@@ -32,11 +32,13 @@ describe("avisoEtiquetaAgregada", () => {
     const { titulo, detalle } = avisoEtiquetaAgregada("Oferta", "pendiente");
     expect(`${titulo} ${detalle}`).not.toMatch(/ya la puedes usar|no te frena/i);
     expect(detalle).toMatch(/Líder/);
-    expect(detalle).toMatch(/aprobarla/);
+    expect(detalle).toMatch(/aprobarlo/);
+    expect(avisoEtiquetaAgregada("Día del Padre", "pendiente", "campanas").detalle).toMatch(/aprobarla/);
   });
 
   it("una etiqueta que nace aprobada solo avisa que se agregó", () => {
-    expect(avisoEtiquetaAgregada("Oferta", "aprobado")).toEqual({ titulo: "Etiqueta Oferta agregada" });
+    expect(avisoEtiquetaAgregada("Oferta", "aprobado")).toEqual({ titulo: "Sello Oferta agregado" });
+    expect(avisoEtiquetaAgregada("Día del Padre", "aprobado", "campanas")).toEqual({ titulo: "Campaña Día del Padre agregada" });
   });
 });
 

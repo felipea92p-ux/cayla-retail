@@ -199,9 +199,9 @@ export function ComoTePagaron({ hoy, ayer }: Pick<Props, "hoy" | "ayer">) {
           {filas.map((f, i) => (
             <div key={f.metodo} className="cmp-metodo">
               <span className="inline-flex items-center gap-1.5 text-[13px]"><i className="h-2 w-2 rounded-full" style={{ background: COLOR_METODO[f.metodo] ?? "var(--color-taupe)" }} />{NOMBRE_METODO[f.metodo] ?? f.metodo}</span>
-              <span className="cmp-pista">
-                <span className="cmp-pista-barra" style={{ width: dentro ? `${(f.hoy / mx) * 100}%` : 0, background: COLOR_METODO[f.metodo] ?? "var(--color-taupe)", transitionDelay: `${i * 70}ms` }} />
-                <span className="cmp-pista-marca" style={{ left: `${(f.ayerDia / mx) * 100}%` }} title="Dónde terminó ayer este medio" />
+              <span className="cmp-carril">
+                <span className="cmp-carril-barra" style={{ width: dentro ? `${(f.hoy / mx) * 100}%` : 0, background: COLOR_METODO[f.metodo] ?? "var(--color-taupe)", transitionDelay: `${i * 70}ms` }} />
+                <span className="cmp-carril-marca" style={{ left: `${(f.ayerDia / mx) * 100}%` }} title="Dónde terminó ayer este medio" />
               </span>
               <span className="text-right text-[13px] tabular-nums"><b>{soles(f.hoy)}</b><br /><span className="text-[11.5px] text-tinta/60">ayer {soles(f.ayerDia)}</span></span>
             </div>

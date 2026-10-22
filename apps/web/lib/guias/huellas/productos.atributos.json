@@ -2,7 +2,7 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 171,
+  "total": 182,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «(sin nombre)»"
@@ -54,8 +54,15 @@
       "Boton «Reintentar»",
       "Link «{p.referencia}»"
     ],
+    "components/EscanerBusqueda.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Buscar escribiendo»",
+      "button «Listo ·»",
+      "button «Mejor buscar escribiendo»"
+    ],
     "components/EtiquetasLista.tsx": [
       "BotonImprimir «(sin nombre)»",
+      "BotonVer «Diseño en la tienda web»",
       "BotonFiltro «Todas»",
       "BotonFiltro «{ESTILOS[g].grupo}»",
       "BotonFiltro «Vigentes hoy»",
@@ -67,6 +74,8 @@
       "CampoTexto «Motivo (opcional)»",
       "Boton «Cancelar» #2",
       "Boton «Confirmar rechazo»",
+      "button «campana-web.prendas»",
+      "button «campana-web.configurar»",
       "CampoTexto «{guia.etiqueta(\"descuento\", \"Descuento (%)\")}»",
       "button «Sin descuento»",
       "button «{v}»",
@@ -78,7 +87,7 @@
       "Boton «Cancelar» #3",
       "Boton «{guia.frase ?? undefined}»",
       "button «{c.nombre}»",
-      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la etiqueta\")}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", `Nombre ${delUno}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #4",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
@@ -103,24 +112,27 @@
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/PrendasDeEtiquetaModal.tsx": [
-      "ComboResponsable «{responsable}»",
-      "Boton «Volver»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "Boton «Escanear las etiquetas con la cámara del teléfono»",
       "BotonFiltro «Todas»",
       "BotonFiltro «Con la etiqueta»",
       "BotonFiltro «Sin ella»",
       "DesplegablePildora «Categoría»",
+      "SegmentoDeslizante «Qué hace una lectura»",
       "button «Marca todas las tallas de los productos de la lista. Los que entran por su categoría ya la llevan.»",
-      "button «Quita la etiqueta a los productos de la lista. Los que entran por su categoría la siguen llevando.»",
-      "BotonDeshacer «→() => setQuitarFuera(false)»",
-      "button «Quitárselas»",
+      "button «Desmarca los productos de la lista. Los que entran por su categoría siguen marcados.»",
       "Boton «Reintentar»",
       "Casilla «{`${nombre}»",
-      "button «{nombre}»",
+      "button «(sin nombre)»",
       "Casilla «{nombreTalla}»",
-      "ComboResponsable «{responsable}» #2",
+      "BotonDeshacer «→() => setQuitarFuera(false)»",
+      "button «Quitárselas»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Volver»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
       "Boton «Cancelar»",
-      "Boton «{requiereRevision ? \"Revisar y aplicar\" : \"Aplicar\"}»"
+      "Boton «{requiereRevision ? \"Revisar y aplicar\" : \"Aplicar\"}»",
+      "button «→onOtras»",
+      "BotonDeshacer «Deshacer esta lectura»"
     ],
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",
@@ -206,6 +218,9 @@
       "Boton «Rechazar»",
       "button «{cambiando ? \"Desactivando…\" : \"Desactivar\"}»",
       "Boton «Reactivar»"
+    ],
+    "components/etiqueta-prendas/EtiquetaColgada.tsx": [
+      "button «{`${x.producto.referencia}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",

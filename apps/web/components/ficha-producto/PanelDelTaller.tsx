@@ -37,6 +37,7 @@ export function PanelDelTaller({
   pendientes,
   completadaAqui,
   onIrPendiente,
+  campana = null,
   deshabilitado,
 }: {
   ctx: ContextoFicha;
@@ -54,6 +55,9 @@ export function PanelDelTaller({
   pendientes: readonly PendienteFicha[];
   completadaAqui: boolean;
   onIrPendiente: (p: PendienteFicha, colorSinFoto: string | null) => void;
+  /** Lo que cobra la caja hoy con la campaña de la prenda, o lo que cobrará al guardar (`fraseCajaCobra`, ADR-0472). `null` = sin
+   *  campaña: la tarjeta dice solo el precio, como siempre. */
+  campana?: { texto: string; alGuardar: boolean } | null;
   deshabilitado: boolean;
 }) {
   const n = ctx.nombres;
@@ -221,9 +225,18 @@ export function PanelDelTaller({
       )}
 
       {precios.length > 0 && (
-        <div data-guia="editar.precio" className="taller-tarjeta flex items-center justify-between">
-          <span className="taller-tit">Precio de la prenda</span>
-          <span className="taller-rango">{rangoDePrecios(precios).replace("–", " – ")}</span>
+        <div data-guia="editar.precio" className="taller-tarjeta">
+          <div className="flex items-center justify-between">
+            <span className="taller-tit">Precio de la prenda</span>
+            <span className="taller-rango">{rangoDePrecios(precios).replace("–", " – ")}</span>
+          </div>
+          {/* La campaña no toca el precio guardado: la caja la descuenta al cobrar. Sin esta línea, poner una etiqueta con descuento
+              parecía no hacer nada (ADR-0472). Lo que cambia al guardar va en ámbar, como todo lo cambiado de la ficha. */}
+          {campana && (
+            <p role="status" className={`mt-2 border-t border-sand pt-2 text-[12.5px] leading-snug ${campana.alGuardar ? "text-ambar-profundo" : "text-tinta/75"}`}>
+              {campana.texto}
+            </p>
+          )}
         </div>
       )}
 

@@ -250,7 +250,7 @@ export function CampanasPanel({
                 {!vienen.length && (
                   <tr>
                     <td colSpan={6} className="fin-tenue">
-                      No hay campañas con fechas por venir. Se crean en Catálogo ▸ Etiquetas.
+                      No hay campañas con fechas por venir. Se crean en Catálogo ▸ Campañas.
                     </td>
                   </tr>
                 )}
@@ -273,7 +273,7 @@ export function CampanasPanel({
       <div {...entra(4, "nota-cayla")} data-guia="fin-campanas.nota">
         Una campaña también puede valer por otras cosas (clientes nuevos, sacar mercadería que no rota). El sistema no decide por ti: te
         dice <b>cuánto cuesta</b> en margen, para que la decisión sea a sabiendas. Las fechas, el descuento y las categorías se cambian en
-        Catálogo ▸ Etiquetas; la meta y el fondo, en{" "}
+        Catálogo ▸ Campañas; la meta y el fondo, en{" "}
         {esLider ? (
           <Link href="/configuracion?tab=tiendas" className="underline underline-offset-2">
             Configuración ▸ Tiendas y caja

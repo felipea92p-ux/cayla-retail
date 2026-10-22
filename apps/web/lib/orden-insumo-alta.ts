@@ -115,9 +115,9 @@ export function problemaDeLineaInsumo(l: LineaInsumoBorrador, ctx: Pick<Contexto
   if (cant.tipo === "mal" || cant.escalado < 1 || cant.escalado > TOPES_INSUMO.cantidadMilesimas)
     return `La cantidad va de 0.001 a 99 999.999 ${plural}, con hasta tres decimales.`;
   const precio = leerPrecioInsumo(l.precio);
-  if (precio.tipo === "vacio") return `Escribe el precio por ${nombreUnidad(unidad, 1)}.`;
+  if (precio.tipo === "vacio") return `Escribe el costo por ${nombreUnidad(unidad, 1)}.`;
   if (precio.tipo === "mal" && precio.motivo === "ambiguo") return dudaDePrecioInsumo(l.precio);
-  if (precio.tipo === "mal" || precio.escalado > TOPES_INSUMO.precioDiezmilesimas) return "El precio va de S/\u00a00 a S/\u00a099 999.9999, con hasta cuatro decimales.";
+  if (precio.tipo === "mal" || precio.escalado > TOPES_INSUMO.precioDiezmilesimas) return "El costo va de S/\u00a00 a S/\u00a099 999.9999, con hasta cuatro decimales.";
   if (l.modoDescuento === "pct") {
     const p = leerNumero(l.descuento, 4);
     if (p.tipo === "mal" || (p.tipo === "ok" && p.escalado > 1_000_000)) return "El descuento va de 0 % a 100 %.";

@@ -433,8 +433,8 @@ export function fuentesDe(clave: string): string[] {
     ];
   if (clave === "g62")
     return [
-      "planilla_por_sede (Dynamic): lo pagado + las provisiones de la sede, del período que termina en el mes",
-      "mientras Dynamic no pague el período, una provisión con las boletas de cada persona hasta hoy (no entra al diario)",
+      "planilla_por_sede (Dynamic): el costo real de la sede (lo pagado con la AFP y la renta de 4ª que se retienen, el EsSalud del empleador y las provisiones), del período que termina en el mes",
+      "mientras Dynamic no pague el período, una provisión del costo real con las boletas de cada persona hasta hoy (no entra al diario)",
     ];
   if (clave === "g681") return ["activos_fijos", "costo ÷ vida útil, mes a mes, desde el mes siguiente a la compra"];
   if (clave === "g655") return ["activos_fijos dados de baja", "lo que faltaba depreciar el día de la baja"];
