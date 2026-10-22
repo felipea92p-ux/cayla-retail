@@ -1,7 +1,7 @@
 # ADR-0476 — Campañas: una llave para los dos módulos y para Sellos
 
 - **Fecha:** 2026-10-22 · **Estado:** migración `20261022203000_campanas_llave_de_los_tres_modulos.sql` y su prueba
-  (`pnpm pruebas:campanas-llave-unica`, 27/27 en local) en la rama `claude/campanas-llave-unica`. **No está pegada en producción.**
+  (`pnpm pruebas:campanas-llave-unica`, 27/27 en local) en la rama `claude/campanas-llave-unica`. **Pegada en producción el 2026-10-22** (orden de Felipe, después de `20261022151000` de ADR-0473; quedó registrada como `20261022204822`). Verificada: las 10 funciones con el md5 de esta migración aplicada en local, lo de diseño de #1190 sin permiso de ejecutar, `campana_disenos` comentada.
 - **Relacionados:** ADR-0436 (Campañas con diseño propio, PR #1190, **sin fusionar**), ADR-0471 (Tienda web ▸ Campañas,
   `campanas_web`), ADR-0473 (Catálogo ▸ Campañas y «Sellos», otra rama), ADR-0161 y ADR-0306 (módulos y roles), ADR-0293 (descuento
   por etiqueta), ADR-0195 (políticas y deadlocks).
@@ -77,5 +77,5 @@ en solo lectura:
 
 ## Sin verificar
 
-Contra producción (no se pegó) y la suite completa de Postgres en un stack propio (la corre el CI). La base local compartida está a medio
+La suite completa de Postgres en un stack propio (la corre el CI). La base local compartida está a medio
 migrar: no tiene `campanas_web` y sí tiene la fila de `campanas`.
