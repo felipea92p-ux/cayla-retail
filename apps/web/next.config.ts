@@ -124,7 +124,11 @@ const nextConfig: NextConfig = {
       { source: "/productos/tallas", destination: "/productos/atributos?tipo=tallas", permanent: false },
       { source: "/productos/tejidos", destination: "/productos/atributos?tipo=tejidos", permanent: false },
       { source: "/productos/patrones", destination: "/productos/atributos?tipo=patrones", permanent: false },
-      { source: "/productos/etiquetas", destination: "/productos/atributos?tipo=etiquetas", permanent: false },
+      // Sellos dejó de ser una pestaña de Atributos y Campañas dejó de ser una fila aparte (Felipe 2026-10-22): las dos viven en
+      // Catálogo ▸ Sellos, con las campañas como primera vista. Los enlaces guardados a cualquiera de las tres siguen llegando.
+      { source: "/productos/etiquetas", destination: "/productos/sellos?vista=rotacion", permanent: false },
+      { source: "/productos/atributos", has: [{ type: "query", key: "tipo", value: "etiquetas" }], destination: "/productos/sellos?vista=rotacion", permanent: false },
+      { source: "/productos/campanas", destination: "/productos/sellos", permanent: false },
       // Facturación pasó a llamarse Comprobantes (2026-09-22, D-60): el envío a SUNAT es automático y
       // la pantalla es de series. Los enlaces viejos siguen llegando: la lista del mes es «Emitidos»,
       // y el Resumen y los códigos de descuento (que ya no se muestran) caen en Series.

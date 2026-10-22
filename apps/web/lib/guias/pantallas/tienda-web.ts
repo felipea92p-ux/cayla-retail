@@ -1117,7 +1117,7 @@ export const GUIA_CAMPANAS_WEB: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Las campañas de la tienda web",
-      texto: "Aquí ves las campañas que tiene la tienda online y cuáles ya tienen su propio diseño. Las fechas, el descuento y las prendas se arman en Catálogo ▸ Campañas; esta pantalla es para decidir cómo se ve la tienda mientras dura cada una. Es una demo: no se guarda nada.",
+      texto: "Aquí ves las campañas que tiene la tienda online y cuáles ya tienen su propio diseño. Las fechas, el descuento y las prendas se arman en Catálogo ▸ Sellos; esta pantalla es para decidir cómo se ve la tienda mientras dura cada una. Es una demo: no se guarda nada.",
     },
     {
       id: "cifras",
@@ -1180,7 +1180,7 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "El diseño de una campaña",
-      texto: "Aquí decides cómo se ve la tienda online mientras dura esta campaña: su ambiente o tu propia imagen, los colores y el movimiento. El descuento, las fechas y las prendas no se cambian aquí: salen de Catálogo ▸ Campañas. Es una demo: no se guarda nada.",
+      texto: "Aquí decides cómo se ve la tienda online mientras dura esta campaña: su ambiente o tu propia imagen, los colores y el movimiento. El descuento, las fechas y las prendas no se cambian aquí: salen de Catálogo ▸ Sellos. Es una demo: no se guarda nada.",
     },
     {
       id: "modo",
@@ -1244,7 +1244,7 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       id: "estado",
       ancla: "campana-editor.estado",
       titulo: "Borrador o programada",
-      texto: "Un diseño nace como borrador: la tienda todavía no lo muestra. Cuando lo programas, la tienda lo muestra mientras dure la campaña, con las fechas que ya tiene en Catálogo ▸ Campañas; al terminar, la tienda vuelve sola a verse como siempre.",
+      texto: "Un diseño nace como borrador: la tienda todavía no lo muestra. Cuando lo programas, la tienda lo muestra mientras dure la campaña, con las fechas que ya tiene en Catálogo ▸ Sellos; al terminar, la tienda vuelve sola a verse como siempre.",
     },
     {
       id: "guardar",
@@ -1270,7 +1270,7 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       id: "pestanas",
       ancla: "campana-web.pestanas",
       titulo: "Diseño, o datos y prendas",
-      texto: "La campaña tiene dos partes. «Diseño» es lo que acabamos de ver. «Datos y prendas» es su descuento, sus fechas y sus prendas: lo mismo que en Catálogo ▸ Campañas, sin salir de aquí. Te la abrimos.",
+      texto: "La campaña tiene dos partes. «Diseño» es lo que acabamos de ver. «Datos y prendas» es su descuento, sus fechas y sus prendas: lo mismo que en Catálogo ▸ Sellos, sin salir de aquí. Te la abrimos.",
     },
     {
       id: "datos",

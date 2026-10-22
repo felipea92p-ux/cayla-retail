@@ -96,8 +96,8 @@ export function NuevaCampanaModal({
       titulo={nueva ? "Campaña nueva" : `Armar el plan de ${ranura.nombre}`}
       subtitulo={
         nueva
-          ? "Una fecha que no está en el calendario. Queda en Catálogo ▸ Campañas como las demás y vuelve cada año."
-          : `De Catálogo ▸ Campañas, con sus fechas de ${ranura.anio}. Ajústalas si la compra necesita más días.`
+          ? "Una fecha que no está en el calendario. Queda en Catálogo ▸ Sellos como las demás y vuelve cada año."
+          : `De Catálogo ▸ Sellos, con sus fechas de ${ranura.anio}. Ajústalas si la compra necesita más días.`
       }
       onClose={onClose}
       variante="hoja"
@@ -143,7 +143,7 @@ export function NuevaCampanaModal({
           {nueva && nombreLimpio && conFechas && !guia.campos.find((c) => c.id === "nombre" && !c.hecho) && (
             <Aviso tono="info" chico titulo="Esto es lo que se crea">
               <span className="block">
-                <b className="font-semibold">En Catálogo ▸ Campañas:</b> «{nombreLimpio}», del {fechaCortaES(b.desde)} al {fechaCortaES(b.hasta)}, aprobada y
+                <b className="font-semibold">En Catálogo ▸ Sellos:</b> «{nombreLimpio}», del {fechaCortaES(b.desde)} al {fechaCortaES(b.hasta)}, aprobada y
                 sin descuento: no cambia ningún precio.
               </span>
               <span className="mt-1 block">

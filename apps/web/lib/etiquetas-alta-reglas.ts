@@ -82,7 +82,7 @@ export function agruparEtiquetas(etiquetas: readonly EtiquetaAlta[]): GrupoDeEti
 }
 
 /** «20 % dto», «12.5 % dto»: lo que la campaña descuenta, tal cual (no se redondea: 12.5 no es 13), si descuenta. Mismo formato
- *  que Catálogo ▸ Atributos ▸ Etiquetas (`es-PE`). */
+ *  que Catálogo ▸ Sellos (`es-PE`). */
 export function textoDeDescuento(et: Pick<EtiquetaAlta, "descuentoPct">): string | null {
   if (et.descuentoPct === null) return null;
   return `${et.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} % dto`;

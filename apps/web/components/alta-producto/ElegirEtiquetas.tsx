@@ -255,7 +255,7 @@ function TarjetaEtiqueta({
 
 /**
  * El contenido de «Ver todos»: el buscador (también sirve para crear una etiqueta que no existe) y el vocabulario
- * completo agrupado por Rotación/Artesanal/Campaña y festividad/General, igual que Catálogo ▸ Atributos ▸ Etiquetas.
+ * completo agrupado por Rotación/Artesanal/Campaña y festividad/General, igual que Catálogo ▸ Sellos.
  * Tocar una tarjeta acá NO cierra la hoja: a diferencia de Tejido/Patrón/Temporada, de etiquetas se eligen varias.
  */
 function HojaEtiquetas({

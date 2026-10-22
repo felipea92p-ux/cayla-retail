@@ -66,3 +66,10 @@ guías de Atributos y de Campañas (`guias.test.ts`) y toda la suite de la web.
 Producción. La pestaña «Datos y prendas» y el enlace al diseño web en Tienda web: la base local no tiene las migraciones de Tienda web ▸
 Campañas (`campanas_web`, `fn_campana_diseno`). Un rol que solo ve `campanas` o `campanas_web` guardando una campaña: depende de
 `fn_puede_campanas`, que llega con la migración de la otra sesión.
+
+## Actualización 2026-10-22 (tarde) — Sellos reemplaza a Campañas (ADR-0481)
+
+Esa misma tarde Felipe pidió sacar los sellos de Atributos y que «Sellos» fuera la entrada de Catálogo, con las campañas dentro como su primera
+vista («campañas ya no sería un submódulo, sellos la debería reemplazar»). `/productos/campanas` redirige a `/productos/sellos`, la pestaña
+«Sellos» de Atributos se fue y la pantalla es una billetera de pases. Lo de la base que se decidió aquí sigue igual: una campaña es una fila de
+`etiquetas` con estilo `campana`, el módulo `campanas` sigue existiendo (ahora abre la fila Sellos) y `fn_puede_campanas` no cambia.

@@ -69,7 +69,8 @@ describe("Roles y accesos dibuja cada módulo como el menú (`iconoDeModulo`)", 
   // Los únicos sin trazo en el lateral: se abren desde los botones de la cabecera (ADR-0306). `IconoModulo` les pone uno de lucide.
   const SIN_ICONO_DE_MENU: readonly ClaveModulo[] = ["roles", "configuracion"];
   // No son una fila propia del menú: el módulo reúne varias filas, o es una pestaña de otra (ver `APARTE` en lib/menu-iconos.ts).
-  const A_MANO: readonly ClaveModulo[] = ["produccion", "atributos", "reportes_financieros", "etiquetas", "colaboradores", "actividad"];
+  // Campañas es la primera vista de Catálogo ▸ Sellos desde el 2026-10-22: abre esa fila, pero en Roles conserva su calendario.
+  const A_MANO: readonly ClaveModulo[] = ["produccion", "atributos", "reportes_financieros", "campanas", "colaboradores", "actividad"];
   const delArbol = iconosPorModulo(ARBOL);
 
   it.each(CLAVES_MODULO)("%s", (modulo) => {

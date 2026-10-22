@@ -814,7 +814,7 @@ describe("varias campañas: leer el selector y crear una desde una etiqueta (ADR
     expect(problemasDeLaCampana(ok, etiquetas, [])).toEqual({});
     expect(problemasDeLaCampana({ ...ok, nombre: " " }, etiquetas).nombre).toMatch(/Escribe el nombre de la campaña/);
     expect(problemasDeLaCampana({ ...ok, nombre: "NAVIDAD" }, etiquetas).nombre).toMatch(/ya está en el calendario/);
-    expect(problemasDeLaCampana({ ...ok, nombre: "sin fechas" }, etiquetas).nombre).toMatch(/«Sin fechas» ya está en Catálogo ▸ Campañas, sin fechas: pónselas/);
+    expect(problemasDeLaCampana({ ...ok, nombre: "sin fechas" }, etiquetas).nombre).toMatch(/«Sin fechas» ya está en Catálogo ▸ Sellos, sin fechas: pónselas/);
     expect(problemasDeLaCampana(ok, etiquetas, ["cyber wow 2026"]).nombre).toMatch(/Ya hay un plan «Cyber Wow 2026»/);
     expect(nombreDelPlanNuevo({ nombre: "  Cyber   Wow ", hasta: "2027-01-02" })).toBe("Cyber Wow 2027");
   });

@@ -96,7 +96,7 @@ export function PlanCampana({
   puedeContar: boolean;
   /** Ve Análisis: el simulador ofrece el acceso a «Qué pedir», prenda por prenda. */
   veAnalisis?: boolean;
-  /** Solo para «Campaña nueva»: escribe en Catálogo ▸ Campañas y sigue siendo de un líder. El resto del plan, el mínimo por tienda
+  /** Solo para «Campaña nueva»: escribe en Catálogo ▸ Sellos y sigue siendo de un líder. El resto del plan, el mínimo por tienda
    *  incluido, es de quien tiene el módulo (ADR-0387; ADR-0362, decisión 64). */
   esLider: boolean;
   /** La URL pedía una campaña que no existe (vieja o escrita a mano): se muestra la más reciente y se dice. */
@@ -235,8 +235,8 @@ export function PlanCampana({
               }
             >
               {hayArchivadas
-                ? "Las que quitaste siguen en «Campañas archivadas»: restaura una o crea otra a partir de Catálogo ▸ Campañas."
-                : "Crea una a partir de una campaña de Catálogo ▸ Campañas y aquí armas cuánto comprar de cada categoría."}
+                ? "Las que quitaste siguen en «Campañas archivadas»: restaura una o crea otra a partir de Catálogo ▸ Sellos."
+                : "Crea una a partir de una campaña de Catálogo ▸ Sellos y aquí armas cuánto comprar de cada categoría."}
             </Vacio>
           </div>
         )}

@@ -449,3 +449,14 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
 - **Dónde vive:** `apps/web/components/ui/Aventurero.tsx`, `apps/web/app/estilos/aventurero.css` (que también importa `global-error.tsx`,
   pintada sin globals.css) y la foto en `apps/web/public/aventurero.webp` (recortada para que el texto no tape al gato; la pantalla del
   monitor y el teléfono no se leen a ese tamaño).
+
+## Actualización 2026-10-22 — Catálogo ▸ Sellos, la billetera de pases (ADR-0481), pedido por Felipe
+
+- **Qué:** el sello de tinta se estampa al aparecer (baja, gira a su lugar y deja un anillo de tinta que se abre), el pase se abre y se cierra
+  (su cuerpo baja de 0fr a 1fr y lo de adentro entra en cascada), el pase cerrado sube 8 px al pasar el mouse, el título del pase abierto sube
+  por su ranura, la frase y las prendas entran en cascada, las cifras cuentan desde cero (`CifraQueCuenta`) y el visto de «Lo que ya tiene» se
+  dibuja.
+- **Por qué se admite:** Felipe pidió «sofisticado, elegante y con full animaciones» y eligió esta maqueta entre seis (docs/maquetas/sellos-2026-10/).
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote, solo tokens del tema, y con `prefers-reduced-motion` todo queda quieto.
+  **Nada en bucle:** el punto que respiraba junto a «rige hoy» en la maqueta no entró; un bucle nuevo es otra decisión de Felipe.
+- **Dónde vive:** `apps/web/app/estilos/sellos.css`, `components/sellos/` y lo vigila `lib/sellos-movimiento.test.ts`.

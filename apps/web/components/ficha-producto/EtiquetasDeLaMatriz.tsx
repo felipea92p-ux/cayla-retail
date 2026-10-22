@@ -13,7 +13,7 @@ import { Vacio } from "@/components/ui/Vacio";
 export type EtiquetaMatriz = { valor: string; texto: string; estilo: string };
 
 // Las etiquetas de la pestaña «Etiquetas» de la matriz (Felipe 2026-10-03): DEBAJO de la tabla, con todo el ancho, y dibujadas
-// como en Catálogo ▸ Atributos ▸ Etiquetas (la misma `MuestraEtiqueta` y los mismos grupos), para reconocerlas por su dibujo y
+// como en Catálogo ▸ Sellos (la misma `MuestraEtiqueta` y los mismos grupos), para reconocerlas por su dibujo y
 // no leyendo nombres. Se elige UNA: es el «pincel» con que se tocan las celdas de arriba. Cada tarjeta dice cuántas tallas la
 // llevan, con una barra que se llena al ponerla (respuesta a la acción, ADR-0136; sin bucle, apagada con reduced-motion).
 

@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Catálogo ▸ Sellos · maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · Catálogo ▸ Sellos (2026-10-22)
+   Sellos sale de Atributos y es su propia entrada de Catálogo; Campañas deja de ser fila propia y pasa a ser la vista
+   principal de Sellos. Con botones se ven los otros tres grupos: Rotación, Artesanal y General.
+   Tres direcciones (A, B, C) con las MISMAS piezas del ERP (tokens de apps/web/app/globals.css y su oscuro de
+   estilos/tema.css, ADR-0169 / ADR-0336; piezas de la tabla «Una función, una pieza», ADR-0358). Lo que cambia entre
+   ellas es el orden de la pantalla y cómo se elige la vista.
+   Datos: los sellos y campañas REALES de producción del 2026-10-22 (nombres, fechas, % y prendas marcadas a mano).
+   Las cifras de rotación (quedan, vendidas, tallas agotadas) son de EJEMPLO.
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+--t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.66);--t50:rgba(26,26,24,.55);--t30:rgba(26,26,24,.3);--t15:rgba(26,26,24,.15);--t08:rgba(26,26,24,.08);
+--vidrio:rgba(255,255,255,.5);--lienzo:#ddd5c6;--sombra:rgba(26,26,24,.35);--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{--crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;
+--t80:rgba(245,240,232,.85);--t65:rgba(245,240,232,.68);--t50:rgba(245,240,232,.58);--t30:rgba(245,240,232,.3);--t15:rgba(245,240,232,.15);--t08:rgba(245,240,232,.08);
+--vidrio:rgba(49,48,45,.6);--lienzo:#0f0f0e;--sombra:rgba(0,0,0,.6)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+svg.ic.s{width:14px;height:14px}svg.ic.m{width:20px;height:20px}
+.serif{font-family:'EB Garamond',serif;font-weight:500}
+.vs{text-transform:uppercase;letter-spacing:.12em;font-weight:600;font-size:11px}
+.num{font-variant-numeric:tabular-nums}
+@keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes llena{from{transform:scaleX(0)}to{transform:none}}
+@keyframes asoma{from{opacity:0}}
+.cas>*{animation:entra .42s var(--ease) both;animation-delay:calc(var(--i,0) * 45ms)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ---- barra de la maqueta (no es parte del diseño) ---- */
+.spk{position:sticky;top:0;z-index:200;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:8px 16px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.spk b{font-weight:600}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.72)}
+.seg button.on{background:#f5f0e8;color:#1a1a18;font-weight:600}
+.ley{max-width:1400px;margin:14px auto 0;padding:0 16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.ley button{text-align:left;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:10px 14px;font-size:12.5px;color:var(--t80);transition:border-color .2s,background .2s}
+.ley button b{display:block;color:var(--tinta);font-size:13.5px;margin-bottom:2px}
+.ley button.on{border-color:var(--tinta);background:var(--hueso)}
+.escena{padding:14px 16px 60px}
+.ajuste{margin:0 auto;position:relative}
+.marco{position:absolute;top:0;left:0;transform-origin:top left;display:grid;grid-template-columns:272px minmax(0,1fr);grid-template-rows:60px minmax(0,1fr);background:var(--crema);border:1px solid var(--t30);border-radius:14px;overflow:hidden;box-shadow:0 30px 60px -30px var(--sombra)}
+
+/* ---- el marco del ERP (lateral + cabecera) ---- */
+.lat{grid-row:1/3;border-right:1px solid var(--sand);background:var(--crema);padding:18px 14px;overflow:auto;scrollbar-width:none}
+.lat .logo{display:flex;align-items:center;gap:10px;padding:0 8px 18px;font-family:'EB Garamond',serif;font-size:22px;letter-spacing:.18em}
+.lat .logo i{width:26px;height:26px;border-radius:50%;background:var(--rojo);display:inline-block}
+.lat .g{display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:10px;color:var(--t80);font-size:13.5px}
+.lat .g svg{width:20px;height:20px;stroke-width:1.5}
+.lat .g.ab{color:var(--tinta);font-weight:600}
+.lat .hs{margin:2px 0 8px 20px;padding-left:12px;border-left:1px solid var(--sand)}
+.lat .h{position:relative;display:flex;align-items:center;justify-content:space-between;height:34px;padding:0 10px;border-radius:9px;font-size:13px;color:var(--t65)}
+.lat .h.on{background:var(--hueso);color:var(--tinta);font-weight:600}
+.lat .h.on::before{content:"";position:absolute;left:-13px;top:8px;bottom:8px;width:2px;border-radius:2px;background:var(--tinta)}
+.lat .h .nuevo{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--verde)}
+.lat .h.ido{color:var(--t30);text-decoration:line-through;text-decoration-color:var(--t30)}
+.cab{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 28px;border-bottom:1px solid var(--sand)}
+.cab .p{height:34px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border:1px solid var(--sand);border-radius:999px;font-size:12.5px;color:var(--t80)}
+.cab .av{width:32px;height:32px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:14px}
+.pant{overflow:auto;scrollbar-width:thin;container-type:inline-size;container-name:pant}
+.pag{padding:28px 40px 80px}
+
+/* ---- piezas del ERP ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:12px;border:1px solid var(--tinta);background:var(--tinta);color:var(--crema);font-weight:600;font-size:13.5px;white-space:nowrap;transition:background .2s,transform .2s,border-color .2s,box-shadow .2s}
+.btn:hover{background:var(--rojo-p);border-color:var(--rojo-p);color:#fbf8f2;transform:translateY(-2px);box-shadow:0 8px 16px -10px var(--sombra)}
+.btn.sec{background:transparent;color:var(--tinta);border-color:var(--t30)}.btn.sec:hover{background:var(--hueso);color:var(--tinta);border-color:var(--t30)}
+.btn.sut{background:var(--hueso);color:var(--tinta);border-color:transparent}.btn.sut:hover{background:var(--sand);color:var(--tinta);border-color:transparent}
+.btn.ch{height:32px;padding:0 11px;font-size:12.5px;border-radius:9px;gap:6px}
+.btn.ancho{width:100%}
+.voz-cab .btn{font-size:11px;letter-spacing:.12em;text-transform:uppercase;height:40px}
+.ver{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--rojo)}
+.ver svg{transition:transform .25s var(--ease)}.ver:hover svg{transform:translateX(4px)}
+.enl{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--t30);font-size:12.5px;color:var(--t80)}.enl:hover{color:var(--rojo-p);text-decoration-color:var(--rojo)}
+.chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;background:var(--hueso);color:var(--t80);white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.v{color:var(--verde);background:color-mix(in srgb,var(--verde) 14%,transparent)}
+.chip.a{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 14%,transparent)}
+.chip.p{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 14%,transparent)}
+.glo{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--hueso);font-size:11px;font-weight:600;color:var(--t80);letter-spacing:0}
+.glo.pide{background:color-mix(in srgb,var(--ambar) 18%,transparent);color:var(--ambar)}
+.nota{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-radius:12px;background:var(--hueso);font-size:12.5px;color:var(--t80)}
+.nota .i{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--taupe);color:var(--taupe);display:grid;place-items:center;font-family:'EB Garamond',serif;font-weight:600;font-size:12px;margin-top:1px}
+.aviso{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;border-left:3px solid var(--ambar);background:color-mix(in srgb,var(--ambar) 10%,transparent);font-size:12.5px;color:var(--t80)}
+.aviso svg{color:var(--ambar);margin-top:1px}
+.aviso b{color:var(--tinta);font-weight:600}
+.barra{height:6px;border-radius:999px;background:var(--sand);overflow:hidden}
+.barra>i{display:block;height:100%;border-radius:inherit;background:var(--tinta);transform-origin:left;animation:llena .6s var(--ease) both}
+.barra.f{height:3px}.barra.g{height:12px}
+.barra>i.v{background:var(--verde)}
+.apil{display:flex;height:8px;border-radius:999px;background:var(--sand);overflow:hidden;gap:2px}
+.apil>i{display:block;height:100%;transform-origin:left;animation:llena .6s var(--ease) both}
+.tit-sec{display:flex;align-items:baseline;gap:10px;margin:28px 0 12px}
+.tit-sec h2{font-family:'EB Garamond',serif;font-weight:500;font-size:21px;line-height:1.2}
+.tit-sec .der{margin-left:auto;font-size:12.5px;color:var(--t65)}
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:18px}
+.busc{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:12px;background:var(--hueso);color:var(--t65);font-size:13px;min-width:240px}
+.busc kbd{margin-left:auto;font:inherit;font-size:11px;border:1px solid var(--t30);border-radius:5px;padding:0 5px;color:var(--t65)}
+.pil{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:13px;font-weight:500;transition:background .2s,border-color .2s}
+.pil:hover{background:var(--hueso)}
+.pil.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.pil.on .glo{background:color-mix(in srgb,var(--crema) 18%,transparent);color:var(--crema)}
+.pil svg{width:15px;height:15px}
+
+/* ---- cabecera de pantalla (EncabezadoPagina) ---- */
+.enc{display:flex;gap:24px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.enc-s{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.enc-s .hilo{width:34px;height:1px;background:var(--taupe);opacity:.6}.enc-s .t{color:var(--t65)}
+.enc h1{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1.05;margin-top:10px}
+.enc p.fr{color:var(--t65);margin-top:6px;max-width:680px;font-size:14px}
+.enc .acc{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ---- pestañas de vidrio (Pestanas) ---- */
+.pest{position:relative;display:inline-flex;gap:2px;padding:4px;border-radius:14px;background:var(--vidrio);border:1px solid var(--t08);backdrop-filter:blur(22px)}
+.pest .pi{position:absolute;top:4px;bottom:4px;left:0;border-radius:10px;background:var(--tinta);box-shadow:0 8px 18px -10px var(--sombra);transition:transform .45s var(--ease),width .45s var(--ease)}
+.pest button{position:relative;z-index:1;display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:10px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t80);transition:color .3s}
+.pest button.on{color:var(--crema)}
+.pest button.on .glo{background:color-mix(in srgb,var(--crema) 20%,transparent);color:var(--crema)}
+.pest button svg{width:16px;height:16px}
+
+/* ---- tarjeta de cifra (TarjetaCifra) ---- */
+.cifras{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr))}
+.cifra{position:relative;text-align:left;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:14px 16px 15px;transition:background .25s,border-color .25s,transform .25s}
+.cifra small{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.cifra small svg{width:15px;height:15px}
+.cifra b{display:block;font-family:'EB Garamond',serif;font-size:34px;line-height:1.1;font-weight:500;margin-top:6px}
+.cifra span{display:block;font-size:12.5px;color:var(--t65);margin-top:2px}
+button.cifra:hover{border-color:var(--t30);transform:translateY(-2px)}
+button.cifra.on{background:var(--sand);border-color:var(--sand)}
+button.cifra .fl{position:absolute;right:14px;top:14px;color:var(--t50);transition:transform .25s var(--ease)}
+button.cifra:hover .fl{transform:translateX(3px)}
+button.cifra.on .fl{color:var(--tinta)}
+
+/* ---- la muestra del sello (MuestraEtiqueta) ---- */
+.mu{position:relative;overflow:hidden;border-radius:10px;background:color-mix(in srgb,var(--a) 15%,var(--crema));color:var(--a)}
+.mu svg{display:block;width:100%;height:100%}
+.mu.tira{aspect-ratio:3/1;max-height:84px;width:100%}
+.mu.cua{width:40px;height:40px;border-radius:10px;flex:none}
+.mu.cua.g{width:56px;height:56px;border-radius:12px}
+
+/* ---- tarjeta de sello (TarjetaAtributo + TarjetaEtiqueta) ---- */
+.grilla{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,15rem),1fr))}
+.ts{display:flex;flex-direction:column;gap:9px;padding:10px 10px 12px;border-radius:16px;background:var(--papel);border:1px solid var(--sand);transition:border-color .25s,box-shadow .35s,transform .25s}
+.ts:hover{border-color:var(--t30);transform:translateY(-2px)}
+.ts.brillo{box-shadow:0 0 0 3px color-mix(in srgb,var(--tinta) 22%,transparent)}
+.ts h3{font-weight:600;font-size:14.5px;line-height:1.25;padding:0 4px}
+.ts .det{display:flex;flex-direction:column;gap:5px;padding:0 4px;font-size:11.5px;color:var(--t65)}
+.ts .det .fila{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ts .det strong{color:var(--tinta);font-weight:600}
+.ts .acc{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:auto;padding:2px 2px 0}
+.ts .acc .ancho{grid-column:1/-1}
+.ts.apag{opacity:.62}
+
+/* ===== A · Pestañas y el año a la vista ===== */
+.anio{padding:16px 20px 14px}
+.anio .cab-a{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.anio .cab-a h2{font-family:'EB Garamond',serif;font-weight:500;font-size:21px}
+.anio .ley-a{display:flex;gap:14px;margin-left:auto;font-size:11.5px;color:var(--t65)}
+.anio .ley-a i{display:inline-block;width:14px;height:6px;border-radius:9px;margin-right:6px;vertical-align:middle}
+.pista{position:relative;margin-top:4px;padding-top:20px}
+.meses{display:grid;grid-template-columns:repeat(12,1fr);border-bottom:1px solid var(--sand)}
+.meses span{font-size:10.5px;letter-spacing:.12em;font-weight:600;color:var(--t50);padding:0 0 6px 6px;border-left:1px solid var(--sand)}
+.meses span.ya{color:var(--tinta)}
+.carriles{position:relative}
+.carriles .rej{position:absolute;inset:0;display:grid;grid-template-columns:repeat(12,1fr);pointer-events:none}
+.carriles .rej i{border-left:1px solid var(--t08)}
+.bar{position:absolute;height:44px;display:flex;flex-direction:column;gap:5px;cursor:pointer;text-align:left}
+.bar .b{height:9px;border-radius:999px;transform-origin:left;animation:llena .7s var(--ease) both;transition:filter .2s,height .2s}
+.bar .l{font-size:11.5px;line-height:1.15;white-space:nowrap;color:var(--t65)}
+.bar.ahora .l{color:var(--tinta);font-weight:600}
+.bar:hover .b{filter:brightness(.88)}
+.bar:hover .l{color:var(--tinta)}
+.hoy{position:absolute;top:0;bottom:0;width:0;border-left:1.5px solid var(--rojo);pointer-events:none;z-index:1}
+.hoy span{position:absolute;top:0;left:6px;font-size:10px;line-height:14px;letter-spacing:.12em;font-weight:700;color:var(--rojo);white-space:nowrap}
+.sinf{display:flex;align-items:center;gap:10px;margin-top:6px;padding-top:10px;border-top:1px dashed var(--sand);font-size:12px;color:var(--t65)}
+.mas{display:flex;justify-content:center;margin-top:12px}
+.mas button{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;font-size:12.5px;color:var(--taupe);font-weight:600;border-radius:999px}
+.mas button:hover{background:var(--hueso)}
+.mas svg{transition:transform .3s var(--ease)}.mas button.ab svg{transform:rotate(180deg)}
+.bajada{margin-top:14px;font-size:13.5px;color:var(--t65);max-width:780px}
+
+/* ===== B · Una tabla con la ficha al lado ===== */
+.cuerpoB{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;margin-top:16px;align-items:start}
+@container pant (max-width: 980px){.cuerpoB{grid-template-columns:minmax(0,1fr)}.cuerpoB .ficha{position:static}}
+@container pant (min-width: 1500px){.cuerpoB{grid-template-columns:minmax(0,1fr) 440px}}
+.herr{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--sand)}
+.herr .pils{display:flex;gap:6px;flex-wrap:wrap}
+.herr .busc{margin-left:auto}
+.th,.tr{display:grid;gap:14px;align-items:center;padding:0 16px}
+.th{height:36px;background:var(--crema);border-bottom:1px solid var(--sand);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--t65)}
+.sep{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:8px;height:34px;padding:0 16px;background:color-mix(in srgb,var(--papel) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--sand);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--t65)}
+.sep .pt{width:6px;height:6px;border-radius:50%;background:var(--t30)}
+.tr{position:relative;min-height:64px;border-bottom:1px solid var(--sand);cursor:pointer;transition:background .2s;font-size:13px}
+.tr:last-child{border-bottom:0}
+.tr:hover{background:var(--crema)}
+.tr.on{background:var(--hueso)}
+.tr.on::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:2px;border-radius:2px;background:var(--rojo)}
+.tr .nom{display:flex;align-items:center;gap:12px;min-width:0}
+.tr .nom b{font-weight:600;display:block;line-height:1.25}
+.tr .nom small{display:block;font-size:11.5px;color:var(--t65)}
+.tr .sub{font-size:11.5px;color:var(--t65)}
+.tr .flecha{color:var(--t50);justify-self:end;transition:transform .25s var(--ease)}
+.tr:hover .flecha,.tr.on .flecha{color:var(--tinta);transform:translateX(3px)}
+.tr .apag{color:var(--t50)}
+.ficha{position:sticky;top:12px;padding:14px 14px 16px}
+.ficha .mu.tira{max-height:120px}
+.ficha h3{font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1.1;margin:14px 2px 6px}
+.ficha .fl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 2px;font-size:12.5px;color:var(--t65)}
+.ficha dl{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--sand);border:1px solid var(--sand);border-radius:12px;overflow:hidden;margin:14px 0}
+.ficha dl div{background:var(--papel);padding:10px 12px}
+.ficha dt{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.ficha dd{font-family:'EB Garamond',serif;font-size:24px;line-height:1.15;margin-top:2px}
+.ficha .tiempo{margin:4px 2px 14px}
+.ficha .tiempo .tx{display:flex;justify-content:space-between;font-size:12px;color:var(--t65);margin-bottom:6px}
+.ficha .tiempo .tx b{color:var(--tinta);font-weight:600}
+.ficha .botones{display:grid;gap:8px}
+.ficha .pie{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--sand);font-size:12px;color:var(--t65)}
+.ficha .pie kbd{font:inherit;font-size:11px;border:1px solid var(--t30);border-radius:5px;padding:0 5px;margin:0 2px}
+
+/* ===== C · Cifras que eligen y lo de hoy al frente ===== */
+.ahora{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,26rem),1fr))}
+.heroe{display:grid;grid-template-columns:200px minmax(0,1fr);gap:18px;padding:14px;border-radius:20px;background:var(--papel);border:1px solid var(--sand)}
+.heroe .mu{height:100%;min-height:200px;border-radius:14px}
+.heroe h3{font-family:'EB Garamond',serif;font-weight:500;font-size:32px;line-height:1.05;margin:8px 0 4px}
+.heroe .cuenta{display:flex;align-items:baseline;gap:8px;margin:12px 0 6px}
+.heroe .cuenta b{font-family:'EB Garamond',serif;font-weight:500;font-size:44px;line-height:1}
+.heroe .cuenta span{font-size:13px;color:var(--t65)}
+.heroe .datos{display:flex;gap:18px;flex-wrap:wrap;margin:12px 0;font-size:12.5px;color:var(--t65)}
+.heroe .datos strong{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:22px;color:var(--tinta);line-height:1.1}
+.heroe .botones{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.viene{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,21rem),1fr))}
+.vc{display:flex;align-items:flex-start;gap:14px;padding:14px;border-radius:16px;background:var(--papel);border:1px solid var(--sand)}
+.vc .dias{flex:none;width:64px;text-align:center;padding:8px 0;border-radius:12px;background:var(--hueso)}
+.vc .dias b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1}
+.vc .dias span{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.vc h4{font-weight:600;font-size:14px;line-height:1.25}
+.vc p{font-size:12px;color:var(--t65);margin:2px 0 8px}
+.lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,22rem),1fr));column-gap:24px}
+.li{display:flex;align-items:center;gap:12px;min-height:58px;border-bottom:1px solid var(--sand)}
+.li .tx{flex:1;min-width:0}
+.li .tx b{display:block;font-weight:600;font-size:13.5px}
+.li .tx small{font-size:12px;color:var(--t65)}
+.rot{display:grid;grid-template-columns:180px minmax(0,1fr) repeat(3,110px);gap:20px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--sand)}
+.rot:last-child{border-bottom:0}
+@container pant (max-width: 1000px){.rot{grid-template-columns:120px minmax(0,1fr) repeat(3,84px);gap:12px}}
+.rot h4{font-weight:600;font-size:15px}
+.rot .n{font-family:'EB Garamond',serif;font-size:28px;line-height:1}
+.rot .n small{display:block;font-family:'DM Sans';font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-top:4px}
+.art{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,18rem),1fr))}
+.art .ts .mu.tira{aspect-ratio:2/1;max-height:none}
+
+/* ---- aviso de la maqueta ---- */
+.toast{position:fixed;top:60px;right:20px;z-index:300;max-width:360px;padding:12px 14px;border-radius:12px;background:var(--papel);border:1px solid var(--sand);border-left:3px solid var(--verde);box-shadow:0 18px 40px -20px var(--sombra);font-size:12.5px;color:var(--t80);animation:entra .3s var(--ease) both}
+</style>
+</head>
+<body>
+<div class="spk">
+  <span class="tag">Maqueta · Catálogo ▸ Sellos</span>
+  <div class="seg" id="ctlDir"><button data-v="A" class="on">A · Pestañas y el año</button><button data-v="B">B · Tabla y ficha</button><button data-v="C">C · Cifras y lo de hoy</button></div>
+  <div class="seg" id="ctlTema"><button data-v="claro" class="on">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <div class="seg" id="ctlAncho"><button data-v="1024">1024</button><button data-v="1440" class="on">1440</button><button data-v="1920">1920</button></div>
+  <span style="margin-left:auto;color:rgba(245,240,232,.6);font-size:12px">Sellos y campañas reales de producción (22-oct) · cifras de rotación de ejemplo · nada se guarda</span>
+</div>
+<div class="ley" id="ley">
+  <button data-v="A" class="on"><b>A · Pestañas y el año a la vista</b>Las cuatro vistas como pestañas de vidrio. En Campañas, primero el año entero con la línea de hoy; abajo, las tarjetas por tramo.</button>
+  <button data-v="B"><b>B · Una tabla con la ficha al lado</b>Todo en una tabla que se filtra con píldoras (Campañas primero). Al tocar una fila, su ficha al costado con lo que se puede hacer; ↑ ↓ pasan de una a otra.</button>
+  <button data-v="C"><b>C · Cifras que eligen y lo de hoy al frente</b>Las cuatro cifras de arriba son los botones. En Campañas, lo que rige hoy en grande con cuánto le falta; después lo que viene, con su cuenta regresiva.</button>
+</div>
+<div class="escena"><div class="ajuste" id="ajuste"><div class="marco" id="marco"></div></div></div>
+
+<script>
+/* ============================ datos ============================ */
+const HOY = "2026-10-22";
+const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const GRUPOS = {
+  campana:{vista:"campanas",nombre:"Campañas",color:"var(--taupe)"},
+  urgencia:{vista:"rotacion",nombre:"Rotación",color:"var(--ambar)"},
+  positivo:{vista:"artesanal",nombre:"Artesanal",color:"var(--verde)"},
+  neutral:{vista:"general",nombre:"General",color:"var(--tinta)"},
+};
+const VISTAS = [
+  {clave:"campanas",estilo:"campana",nombre:"Campañas",icono:"calendario",nuevo:"Nueva campaña",
+   frase:"Las fechas del año en que se vende distinto: cuándo rige cada una, su descuento y en qué prendas. Vale en todas las tiendas y en la tienda online."},
+  {clave:"rotacion",estilo:"urgencia",nombre:"Rotación",icono:"rotacion",nuevo:"Nuevo sello",
+   frase:"Cómo se mueve la prenda: lo nuevo, lo que más se vende, lo que se acaba y lo que hay que sacar. Al lado de cada uno, lo que dicen las ventas de los últimos 30 días."},
+  {clave:"artesanal",estilo:"positivo",nombre:"Artesanal",icono:"aguja",nuevo:"Nuevo sello",
+   frase:"Cómo se hizo la prenda: a mano, pieza única o la reedición de un modelo que ya tuvimos."},
+  {clave:"general",estilo:"neutral",nombre:"General",icono:"sello",nuevo:"Nuevo sello",
+   frase:"Los sellos que no son de un grupo: Estreno, Sorteo y los que vayas creando."},
+];
+// id, nombre, estilo, desde, hasta, %, prendas marcadas a mano, categorías, ícono, activo, rotación (EJEMPLO)
+const S = [
+  ["aniv","Aniversario CAYLA","campana","2026-10-01","2026-10-25",10,0,0,"estrella"],
+  ["hall","Halloween","campana","2026-09-15","2026-10-31",null,47,1,"calabaza"],
+  ["gato","Día Internacional del Gato","campana","2026-10-24","2026-10-30",null,7,0,"gato"],
+  ["bf","Black Friday","campana","2026-11-09","2026-11-30",null,0,0,"bolsa"],
+  ["nav","Navidad","campana","2026-12-11","2026-12-25",null,0,0,"arbol"],
+  ["cyber","CyberWow","campana",null,null,null,0,0,"rayo"],
+  ["sanv","San Valentín","campana","2026-01-31","2026-02-14",null,0,0,"corazon"],
+  ["gal","Galentine's Day","campana","2026-02-06","2026-02-13",null,0,0,"corazon",false],
+  ["mujer","Día de la Mujer","campana","2026-02-22","2026-03-08",null,0,0,"flor"],
+  ["tierra","Día de la Tierra","campana","2026-04-08","2026-04-22",null,0,0,"hoja"],
+  ["madre","Día de la Madre","campana","2026-04-26","2026-05-10",null,0,0,"flor"],
+  ["patrias","Fiestas Patrias","campana","2026-07-14","2026-07-29",null,0,0,"bandera"],
+  ["perro","Día Internacional del Perro","campana","2026-08-12","2026-08-26",null,0,0,"perro"],
+  ["nuevo","Nuevo","urgencia",null,null,null,225,0,"destello",true,{quedan:418,vendidas:96,agotadas:12}],
+  ["top","Top ventas","urgencia",null,null,null,9,0,"llama",true,{quedan:23,vendidas:41,agotadas:0}],
+  ["ult","Últimas unidades","urgencia","2026-09-01","2027-01-31",null,4,0,"reloj",true,{quedan:6,vendidas:3,agotadas:2}],
+  ["liq","Para liquidar","urgencia","2026-09-01","2026-12-31",20,0,0,"porciento",true,null],
+  ["mano","Hecho a mano","positivo",null,null,null,0,0,"aguja"],
+  ["unica","Pieza única","positivo",null,null,null,0,0,"diamante"],
+  ["reed","Reedición","positivo",null,null,null,7,0,"vuelta"],
+  ["estreno","Estreno","neutral",null,null,null,13,0,"estrellita"],
+  ["sorteo","Sorteo","neutral",null,null,100,1,0,"regalo"],
+  ["lt","Para liquidar — Taller","neutral",null,null,null,0,0,"porciento",false],
+  ["la","Para liquidar — Tienda AQP","neutral",null,null,null,0,0,"porciento",false],
+  ["ll","Para liquidar — Tienda LIM","neutral",null,null,null,0,0,"porciento",false],
+  ["ltr","Para liquidar — Tienda TRU","neutral",null,null,null,0,0,"porciento",false],
+].map(([id,n,g,d,h,pct,prendas,cats,ic,activo=true,rot=null])=>({id,n,g,d,h,pct,prendas,cats,ic,activo,rot}));
+const porId = Object.fromEntries(S.map(s=>[s.id,s]));
+
+/* ============================ reglas (las de lib/sellos-campanas.ts y lib/etiqueta-campana.ts) ============================ */
+const dia = (f)=>new Date(f+"T12:00:00");
+const dias = (a,b)=>Math.round((dia(b)-dia(a))/864e5);
+const fc = (f)=>{const x=dia(f);return `${x.getDate()} ${MESES[x.getMonth()]}`};
+const rango = (s)=>!s.d&&!s.h?null:`${s.d?fc(s.d):"…"} – ${s.h?fc(s.h):"…"}${s.h&&s.h.slice(0,4)!==HOY.slice(0,4)?" "+s.h.slice(0,4):""}`;
+function tramo(s){ if(!s.d&&!s.h) return "sin_fechas"; if(s.d&&HOY<s.d) return "proximas"; if(s.h&&HOY>s.h) return "pasaron"; return "ahora"; }
+const alcance = (s)=>s.prendas + s.cats*16; // EJEMPLO: una categoría llega a ~16 prendas
+function chip(s){
+  const t = tramo(s);
+  if(t==="ahora") return alcance(s)===0?{t:"Vigente",c:"",alerta:"Sin prendas"}:{t:"Vigente",c:"v"};
+  if(t==="proximas"){const n=dias(HOY,s.d);const q=n===1?"Mañana":`En ${n} días`;return alcance(s)===0?{t:q,c:"",alerta:"Sin preparar"}:{t:q,c:"p"};}
+  if(t==="pasaron") return {t:`Pasó el ${fc(s.h)}`,c:""};
+  return null;
+}
+const TRAMOS = [["ahora","Rigen hoy"],["proximas","Próximas"],["sin_fechas","Sin fechas"],["pasaron","Ya pasaron"]];
+function porTramo(lista){
+  return TRAMOS.map(([k,t])=>({k,t,l:lista.filter(s=>tramo(s)===k).sort((a,b)=>(a.d||"").localeCompare(b.d||""))})).filter(x=>x.l.length);
+}
+const deVista = (v,activos=true)=>S.filter(s=>GRUPOS[s.g].vista===v && s.activo===activos);
+const textoPrendas = (s)=>{
+  const p = s.prendas, c = s.cats;
+  if(!p&&!c) return null;
+  return [p?`${p} prenda${p===1?"":"s"} marcada${p===1?"":"s"}`:"", c?`${c} categoría${c===1?"":"s"}`:""].filter(Boolean).join(" · ");
+};
+const textoRot = (r)=>r?`${r.quedan===1?"Queda":"Quedan"} ${r.quedan.toLocaleString("es-PE")} unidades · ${r.vendidas} vendidas en 30 días${r.agotadas?` · ${r.agotadas} tallas agotadas`:""}`:null;
+const accionCampana = (s)=>tramo(s)==="pasaron"?"Repetir":"Configurar";
+
+/* ============================ dibujos ============================ */
+const IC = {
+  calendario:'<rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 10h18"/><path d="M8 14h2M14 14h2M8 17.5h2"/>',
+  rotacion:'<path d="M4 12a8 8 0 0 1 13.6-5.7L20 8.5"/><path d="M20 3.5v5h-5"/><path d="M20 12a8 8 0 0 1-13.6 5.7L4 15.5"/><path d="M4 20.5v-5h5"/>',
+  aguja:'<path d="M18.5 3.5 6 16"/><path d="M16.5 3.5h2a2 2 0 0 1 2 2v2"/><path d="M6 16l-2.5 4.5L8 18"/><path d="M14 9c-3 0-9 1-9.5 5"/>',
+  sello:'<path d="M9.5 3.5h5l-.8 6.5h-3.4z"/><path d="M5 13.5c0-1.9 1.6-3.5 3.5-3.5h7c1.9 0 3.5 1.6 3.5 3.5V15H5z"/><path d="M4 18.5h16M6 21h12"/>',
+  mas:'<path d="M12 5v14M5 12h14"/>',
+  flecha:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  chevron:'<path d="M6 9l6 6 6-6"/>',
+  derecha:'<path d="M9 6l6 6-6 6"/>',
+  lupa:'<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
+  impresora:'<path d="M7 9V3.5h10V9"/><rect x="3.5" y="9" width="17" height="8" rx="2"/><path d="M7 14h10v6.5H7z"/>',
+  alerta:'<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.5v.1"/>',
+  prendas:'<path d="M9 3.5 4 6l1.5 4.5L7 10v10.5h10V10l1.5.5L20 6l-5-2.5c-.5 1.4-1.7 2.5-3 2.5S9.5 4.9 9 3.5z"/>',
+  ajustes:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+  web:'<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 9h18M6.5 6.8h.1M9 6.8h.1"/>',
+  // el lateral
+  inicio:'<path d="M4 11 12 4l8 7v9H4z"/><path d="M10 20v-6h4v6"/>',
+  ventas:'<path d="M5 7h14l-1.2 12.5H6.2z"/><path d="M9 7a3 3 0 0 1 6 0"/>',
+  inventario:'<path d="M3.5 8 12 3.5 20.5 8v8L12 20.5 3.5 16z"/><path d="M3.5 8 12 12.5 20.5 8M12 12.5v8"/>',
+  catalogo:'<rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+  compras:'<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  produccion:'<path d="M4 20.5V10l5 3V10l5 3V5h6v15.5z"/>',
+  clientes:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.6 3.2-5.5 6.5-5.5s6 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.3 2.4 3.5 5.2"/>',
+  finanzas:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+};
+const ic = (k,cls="")=>`<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
+
+// Los dibujos de las muestras: centrados en (0,0), dentro de ±14 (como MuestraEtiqueta.tsx).
+const D = {
+  estrella:'<path d="M0-13 3.8-4.2 13-3.6 6-2.4 8 11.5 0 6.2-8 11.5-6-2.4-13-3.6-3.8-4.2Z" fill="currentColor"/>',
+  calabaza:'<path d="M0-8C-6-11-13-7-13 1S-6 12 0 9C6 12 13 9 13 1S6-11 0-8Z" fill="currentColor" opacity=".9"/><path d="M0-8C-3-3-3 5 0 9M0-8C3-3 3 5 0 9" stroke="var(--crema)" stroke-width="1.2" fill="none" opacity=".55"/><path d="M0-8C0-11 1-13 3.5-14" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/>',
+  gato:'<path d="M-11-12-10 0C-10 7-5 11 0 11S10 7 10 0L11-12 4-6H-4Z" fill="currentColor"/><circle cx="-4" cy="1" r="1.6" fill="var(--crema)"/><circle cx="4" cy="1" r="1.6" fill="var(--crema)"/><path d="M-1.5 5.5 0 7 1.5 5.5" stroke="var(--crema)" stroke-width="1.2" fill="none" stroke-linecap="round"/>',
+  perro:'<path d="M-7-9C-1-12 1-12 7-9L8 4C8 9 4 12 0 12S-8 9-8 4Z" fill="currentColor"/><path d="M-7-9C-11-9-13-3-12 3-10 4-9 1-8-2M7-9C11-9 13-3 12 3 10 4 9 1 8-2" fill="currentColor" opacity=".7"/><circle cx="-3.5" cy="-1" r="1.5" fill="var(--crema)"/><circle cx="3.5" cy="-1" r="1.5" fill="var(--crema)"/><ellipse cx="0" cy="5" rx="2.6" ry="1.9" fill="var(--crema)"/>',
+  bolsa:'<path d="M-10-5H10L12 12H-12Z" fill="currentColor"/><path d="M-5-5V-8C-5-12-2-14 0-14S5-12 5-8V-5" stroke="currentColor" stroke-width="2.2" fill="none"/><text x="0" y="8" text-anchor="middle" font-size="10" font-weight="700" fill="var(--crema)" font-family="DM Sans">%</text>',
+  arbol:'<path d="M0-14 8-3H4L10 6H-10L-4-3H-8Z" fill="currentColor"/><rect x="-2" y="6" width="4" height="6" fill="currentColor"/>',
+  rayo:'<path d="M3-14-8 2H0L-3 14 8-2H0Z" fill="currentColor"/>',
+  corazon:'<path d="M0 12C-10 5-13 0-13-5-13-10-9-13-5.5-13-3-13-1-11.5 0-9.5 1-11.5 3-13 5.5-13 9-13 13-10 13-5 13 0 10 5 0 12Z" fill="currentColor"/>',
+  flor:'<g fill="currentColor"><circle cx="0" cy="-7" r="5.5"/><circle cx="6.7" cy="-2.2" r="5.5"/><circle cx="4.1" cy="5.7" r="5.5"/><circle cx="-4.1" cy="5.7" r="5.5"/><circle cx="-6.7" cy="-2.2" r="5.5"/></g><circle cx="0" cy="0" r="3.6" fill="var(--crema)"/>',
+  hoja:'<path d="M-11 11C-12-3-3-13 12-12 12 3 3 12-11 11Z" fill="currentColor"/><path d="M-11 11 6-6" stroke="var(--crema)" stroke-width="1.4" fill="none" opacity=".7"/>',
+  bandera:'<path d="M-10-12V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M-9-11H12V3H-9Z" fill="currentColor" opacity=".25"/><path d="M-9-11H-2V3H-9ZM5-11H12V3H5Z" fill="currentColor"/>',
+  destello:'<path d="M0-13Q1.6-1.6 13 0 1.6 1.6 0 13-1.6 1.6-13 0-1.6-1.6 0-13Z" fill="currentColor"/><path d="M10-12Q10.6-10.6 12-10 10.6-9.4 10-8 9.4-9.4 8-10 9.4-10.6 10-12Z" fill="currentColor"/>',
+  llama:'<path d="M0-14C2-8 9-5 9 3 9 9 5 13 0 13S-9 9-9 3C-9-2-6-5-4-7-4-3-2-1 0-1-1-6 0-10 0-14Z" fill="currentColor"/>',
+  reloj:'<path d="M-8-12H8M-8 12H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M-5.5-12C-5.5-3 0-1.5 0 0 0 1.5-5.5 3-5.5 12M5.5-12C5.5-3 0-1.5 0 0 0 1.5 5.5 3 5.5 12" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M-4.2 11 0 5 4.2 11Z" fill="currentColor"/>',
+  porciento:'<path d="M-12-4-4-12H12V4L4 12Z" fill="currentColor" opacity=".9"/><circle cx="6" cy="-6" r="2" fill="var(--crema)"/><text x="-1" y="5" text-anchor="middle" font-size="11" font-weight="700" fill="var(--crema)" font-family="DM Sans">%</text>',
+  aguja:'<path d="M10-12-9 11" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><ellipse cx="8.5" cy="-10.3" rx="1.2" ry="2.6" transform="rotate(40 8.5 -10.3)" fill="var(--crema)"/><path d="M8-10C2-14-9-8-4 0S-12 12-13 5" stroke="currentColor" stroke-width="1.3" fill="none" stroke-dasharray="2 2"/>',
+  diamante:'<path d="M-12-4-6-11H6L12-4 0 12Z" fill="currentColor"/><path d="M-12-4H12M-6-11-2-4 0 12 2-4 6-11" stroke="var(--crema)" stroke-width="1.1" fill="none" opacity=".6"/>',
+  vuelta:'<path d="M-10 0A10 10 0 0 1 7-7.5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M4-12 9-7 3-4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 0A10 10 0 0 1-7 7.5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M-4 12-9 7-3 4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  estrellita:'<path d="M0-13 2.6-2.6 13 0 2.6 2.6 0 13-2.6 2.6-13 0-2.6-2.6Z" fill="currentColor"/><circle cx="9" cy="-9" r="2" fill="currentColor"/><circle cx="-9" cy="9" r="1.5" fill="currentColor"/>',
+  regalo:'<rect x="-11" y="-4" width="22" height="16" rx="1.5" fill="currentColor"/><rect x="-12" y="-8" width="24" height="5" rx="1" fill="currentColor"/><path d="M0-8V12" stroke="var(--crema)" stroke-width="2"/><path d="M0-8C-3-14-9-13-7-9-6-8-3-8 0-8 3-8 6-8 7-9 9-13 3-14 0-8Z" fill="currentColor" opacity=".8"/>',
+};
+function muestra(s, cls="tira"){
+  const a = GRUPOS[s.g].color, d = D[s.ic] || D.estrellita;
+  if(cls.startsWith("cua")) return `<div class="mu ${cls}" style="--a:${a}"><svg viewBox="-20 -20 40 40" aria-hidden="true"><g transform="scale(.95)">${d}</g></svg></div>`;
+  const vb = cls==="alta" ? "0 0 120 120" : "0 0 180 60";
+  const cuerpo = cls==="alta"
+    ? `<g transform="translate(28 26) rotate(-14) scale(.7)" opacity=".18">${d}</g><g transform="translate(94 96) rotate(12) scale(.7)" opacity=".18">${d}</g><g transform="translate(60 60) scale(1.55)">${d}</g>`
+    : `<g transform="translate(34 38) rotate(-14) scale(.85)" opacity=".18">${d}</g><g transform="translate(146 22) rotate(12) scale(.85)" opacity=".18">${d}</g><g transform="translate(90 30) scale(1.6)">${d}</g>`;
+  return `<div class="mu ${cls==="alta"?"":cls}" style="--a:${a}" role="img" aria-label="Ilustración del sello ${s.n}"><svg viewBox="${vb}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${cuerpo}</svg></div>`;
+}
+const chipHTML = (s)=>{const c=chip(s);if(!c)return "";return `<span class="chip ${c.c}">${c.t}</span>${c.alerta?`<span class="chip a">${c.alerta}</span>`:""}`};
+
+/* ============================ piezas comunes ============================ */
+const estado = {dir:"A", vista:"campanas", tema:"claro", ancho:1440, selB:"hall", pasadasAbiertas:false, desactAbiertos:false, ultimaPintada:null};
+function lateral(){
+  const g = (k,t,ab=false)=>`<div class="g ${ab?"ab":""}">${ic(k)}<span>${t}</span></div>`;
+  return `<div class="logo"><i></i>CAYLA</div>
+  ${g("inicio","Inicio")}${g("ventas","Ventas")}${g("inventario","Inventario")}
+  ${g("catalogo","Catálogo",true)}
+  <div class="hs">
+    <div class="h">Productos</div><div class="h">Categorías</div><div class="h">Marcas</div><div class="h">Atributos</div>
+    <div class="h on">Sellos <span class="nuevo">Nuevo</span></div>
+    <div class="h ido" title="Campañas ya no es una fila: vive dentro de Sellos">Campañas</div>
+    <div class="h">Liquidación</div>
+  </div>
+  ${g("compras","Compras")}${g("produccion","Producción")}${g("clientes","Clientes")}${g("finanzas","Finanzas")}${g("web","Tienda web")}`;
+}
+function cabeceraERP(){
+  return `<span class="p">Actividad</span><span class="p">◐ Tema</span><span class="p">Tienda TRU ${ic("chevron","s")}</span><span class="av">FA</span>`;
+}
+const vistaAct = ()=>VISTAS.find(v=>v.clave===estado.vista);
+function encabezado({acciones=true, cifrasDer=""}={}){
+  const v = vistaAct();
+  const acc = acciones ? `<div class="acc voz-cab">
+      ${v.clave==="campanas"?`<button class="btn sec" data-toast="Lleva a Tienda web ▸ Campañas (para quien ve ese módulo)">Cómo se ven en la web ${ic("flecha")}</button>`:""}
+      <button class="btn" data-toast="Abre la hoja «${v.nuevo}» de siempre">${ic("mas")} ${v.nuevo}</button></div>` : "";
+  return `<header class="enc" data-guia="sellos.cabecera"><div>
+      <div class="enc-s"><span>Tienda TRU</span><span class="hilo"></span><span class="t">Jueves 22 de octubre</span></div>
+      <h1>Sellos</h1>
+      <p class="fr">Lo que se le marca a una prenda. Primero las campañas del año; con los botones, los demás sellos.</p>
+    </div>${cifrasDer||acc}</header>`;
+}
+function tarjeta(s, {conRot=false}={}){
+  const r = rango(s), pr = textoPrendas(s), c = chip(s);
+  const imprimir = s.pct!==null && tramo(s)!=="proximas" && s.activo;
+  const esCamp = s.g==="campana";
+  return `<article class="ts ${s.activo?"":"apag"}" id="t-${s.id}">
+    ${muestra(s)}
+    <h3>${s.n}</h3>
+    <div class="det">
+      ${c||r?`<div class="fila">${chipHTML(s)}${r?`<span class="num">${r}</span>`:""}</div>`:""}
+      ${s.pct!==null?`<span><strong class="num">${s.pct} % de descuento</strong> · ${s.cats?`${s.cats} categoría`:"solo en las prendas marcadas"}</span>`:""}
+      ${pr?`<span class="num">${pr}</span>`:(s.activo?`<span>Todavía en ninguna prenda</span>`:"")}
+      ${conRot&&s.rot?`<span class="num" style="color:var(--t80)">${textoRot(s.rot)}</span>`:""}
+    </div>
+    <div class="acc">
+      ${s.activo?`<button class="btn sut ch" data-toast="Abre «Prendas» de ${s.n}">Prendas</button>
+      <button class="btn sut ch" data-toast="Abre «Configuración ${s.n}»">${esCamp?accionCampana(s):"Configurar"}</button>
+      ${imprimir?`<button class="btn sec ch ancho" data-toast="Imprime las etiquetas de precio de ${s.n}">${ic("impresora","s")} ${tramo(s)==="pasaron"?"Imprimir con el precio normal":"Imprimir etiquetas de precio"}</button>`:""}`
+      :`<button class="btn sec ch ancho" data-toast="Reactiva ${s.n}">Reactivar</button>`}
+    </div>
+    ${esCamp&&s.activo?`<button class="btn sec ch" style="align-self:flex-start;margin:0 2px" data-toast="Lleva al diseño de ${s.n} en la tienda web">Diseño en la tienda web ${ic("flecha","s")}</button>`:""}
+  </article>`;
+}
+function grilla(lista, op){ return `<div class="grilla cas">${lista.map((s,i)=>tarjeta(s,op).replace('<article','<article style="--i:'+i+'"')).join("")}</div>`; }
+function notaRotacion(){
+  return `<div class="nota"><span class="i">i</span><span>En 30 días se vendieron 612 unidades y 371 salieron sin registrar qué prenda eran: las cifras de Rotación solo ven las 241 registradas. <i style="color:var(--t50)">(Cifras de ejemplo)</i></span></div>`;
+}
+function bloqueDesactivados(lista){
+  if(!lista.length) return "";
+  return `<div class="mas"><button id="btnDesact" class="${estado.desactAbiertos?"ab":""}">${estado.desactAbiertos?"Ocultar los desactivados":`Ver ${lista.length} desactivado${lista.length===1?"":"s"}`} ${ic("chevron","s")}</button></div>
+    ${estado.desactAbiertos?`<div style="margin-top:12px">${grilla(lista)}</div>`:""}`;
+}
+
+/* ============================ A · Pestañas y el año a la vista ============================ */
+function pestanas(){
+  return `<div class="pest" id="pest" role="tablist" aria-label="Qué sellos ver"><span class="pi" id="pi"></span>
+    ${VISTAS.map(v=>`<button role="tab" data-vista="${v.clave}" class="${v.clave===estado.vista?"on":""}" aria-selected="${v.clave===estado.vista}">${ic(v.icono)}${v.nombre}<span class="glo">${deVista(v.clave).length}</span></button>`).join("")}
+  </div>`;
+}
+function lineaDelAnio(){
+  const camp = deVista("campanas").filter(s=>s.d&&s.h);
+  const x = (f)=>{const d=dia(f), ini=dia("2026-01-01");return Math.max(0,Math.min(1,(d-ini)/864e5/365));};
+  const trackPx = estado.ancho - 272 - 80 - 42;
+  const ordenadas = [...camp].sort((a,b)=>a.d.localeCompare(b.d));
+  const fin = []; // dónde termina cada carril (fracción del año), contando el ancho de su nombre
+  const pos = ordenadas.map(s=>{
+    const x0 = x(s.d), x1 = x(s.h), lab = (s.n.length*6.3+12)/trackPx;
+    let c = fin.findIndex(f=>f < x0 - .004);
+    if(c===-1){c=fin.length;fin.push(0);}
+    fin[c] = Math.max(x1, x0+lab);
+    return {s,x0,x1,c};
+  });
+  const alto = fin.length*48 + 6;
+  const color = (s)=>({ahora:"var(--verde)",proximas:"var(--pizarra)",pasaron:"var(--t30)"}[tramo(s)]);
+  const mesHoy = dia(HOY).getMonth();
+  return `<section class="tarjeta anio" style="margin-top:18px" data-guia="sellos.anio">
+    <div class="cab-a"><h2>Tu año de campañas</h2><span class="glo">2026</span>
+      <div class="ley-a"><span><i style="background:var(--verde)"></i>Rige hoy</span><span><i style="background:var(--pizarra)"></i>Próxima</span><span><i style="background:var(--t30)"></i>Ya pasó</span></div></div>
+    <div class="pista">
+      <div class="hoy" style="left:${x(HOY)*100}%"><span>HOY · ${fc(HOY).toUpperCase()}</span></div>
+      <div class="meses">${MESES.map((m,i)=>`<span class="${i===mesHoy?"ya":""}">${m.toUpperCase()}</span>`).join("")}</div>
+      <div class="carriles" style="height:${alto}px">
+        <div class="rej">${MESES.map(()=>"<i></i>").join("")}</div>
+        ${pos.map(({s,x0,x1,c},i)=>`<button class="bar ${tramo(s)}" data-ir="${s.id}" title="${s.n} · ${rango(s)}" style="left:${x0*100}%;top:${c*48+12}px;width:calc(${Math.max(x1-x0,.012)*100}% );min-width:12px">
+          <span class="b" style="background:${color(s)};animation-delay:${i*40}ms;width:100%"></span><span class="l">${s.n}</span></button>`).join("")}
+      </div>
+    </div>
+    <div class="sinf">${ic("calendario","s")} Sin fechas todavía: <b style="color:var(--tinta);font-weight:600">CyberWow</b> · <a class="enl" data-toast="Abre «Configuración CyberWow»">Ponle sus fechas</a></div>
+  </section>`;
+}
+function vistaA(){
+  const v = vistaAct();
+  let cuerpo = "";
+  if(v.clave==="campanas"){
+    const tr = porTramo(deVista("campanas"));
+    cuerpo = lineaDelAnio() + tr.map(t=>{
+      const lista = t.k==="pasaron" && !estado.pasadasAbiertas ? [] : t.l;
+      return `<div class="tit-sec"><h2>${t.t}</h2><span class="glo">${t.l.length}</span>${t.k==="ahora"?`<span class="der">Cambian el precio en caja y en la web hoy</span>`:""}</div>
+        ${lista.length?grilla(lista):""}
+        ${t.k==="pasaron"?`<div class="mas"><button id="btnPasadas" class="${estado.pasadasAbiertas?"ab":""}">${estado.pasadasAbiertas?"Ocultar las que ya pasaron":`Ver las ${t.l.length} que ya pasaron`} ${ic("chevron","s")}</button></div>`:""}`;
+    }).join("") + bloqueDesactivados(deVista("campanas",false));
+  } else {
+    const lista = deVista(v.clave);
+    cuerpo = `${v.clave==="rotacion"?`<div style="margin-top:18px">${notaRotacion()}</div>`:""}
+      <div class="tit-sec"><h2>${v.nombre}</h2><span class="glo">${lista.length}</span></div>
+      ${grilla(lista,{conRot:true})}${bloqueDesactivados(deVista(v.clave,false))}`;
+  }
+  return `<div class="pag">${encabezado()}
+    <div style="margin-top:22px">${pestanas()}</div>
+    <p class="bajada">${v.frase}</p>
+    ${cuerpo}</div>`;
+}
+
+/* ============================ B · Una tabla con la ficha al lado ============================ */
+const COLS = {
+  campanas:{t:"minmax(0,1.5fr) minmax(170px,1.3fr) 104px 20px",h:["Campaña","Cuándo","Prendas",""]},
+  rotacion:{t:"minmax(0,1.6fr) 72px 72px 84px minmax(110px,1fr) 20px",h:["Sello","Prendas","Quedan","Vendidas","Salió en 30 días",""]},
+  artesanal:{t:"minmax(0,2fr) 90px 96px minmax(110px,.9fr) 20px",h:["Sello","Prendas","Descuento","Estado",""]},
+  general:{t:"minmax(0,2fr) 90px 96px minmax(110px,.9fr) 20px",h:["Sello","Prendas","Descuento","Estado",""]},
+};
+function filaB(s,i){
+  const v = estado.vista, on = s.id===estado.selB ? "on" : "";
+  const bajo = [s.activo?"":"Desactivado", v==="campanas"&&s.pct!==null?`${s.pct} % de descuento`:"", v==="rotacion"&&s.rot?.agotadas?`${s.rot.agotadas} tallas agotadas`:""].filter(Boolean).join(" · ");
+  const nom = `<div class="nom">${muestra(s,"cua")}<div style="min-width:0"><b>${s.n}</b>${bajo?`<small>${bajo}</small>`:""}</div></div>`;
+  const pr = s.prendas||s.cats ? `<span class="num">${s.prendas}${s.cats?` <span class="sub">+ ${s.cats} cat.</span>`:""}</span>` : `<span class="apag">Ninguna</span>`;
+  const pct = s.pct!==null ? `<span class="num">${s.pct} %</span>` : `<span class="apag">—</span>`;
+  let celdas;
+  if(v==="campanas"){
+    const t = tramo(s);
+    let tiempo = "";
+    if(t==="ahora"){const tot=dias(s.d,s.h)||1, ya=dias(s.d,HOY);tiempo=`<div class="barra f" style="margin-top:7px;max-width:180px"><i style="width:${Math.round(ya/tot*100)}%"></i></div>`;}
+    celdas = [nom, `<div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${chipHTML(s)}<span class="num sub">${rango(s)||"Sin fechas"}</span></div>${tiempo}</div>`, pr];
+  } else if(v==="rotacion"){
+    const r = s.rot;
+    const ritmo = r?`<div class="apil" title="Vendidas contra lo que queda"><i style="width:${r.vendidas/(r.vendidas+r.quedan)*100}%;background:var(--tinta)"></i><i style="flex:1;background:var(--sand)"></i></div><span class="sub">${Math.round(r.vendidas/(r.vendidas+r.quedan)*100)} %</span>`:`<span class="apag">Sin prendas</span>`;
+    celdas = [nom, pr, r?`<span class="num">${r.quedan}</span>`:`<span class="apag">—</span>`, r?`<span class="num">${r.vendidas}</span>`:`<span class="apag">—</span>`, `<div>${ritmo}</div>`];
+  } else {
+    celdas = [nom, pr, pct, s.activo?(s.prendas?`<span class="chip v">En uso</span>`:`<span class="chip">Sin prendas</span>`):`<span class="chip">Desactivado</span>`];
+  }
+  return `<div class="tr ${on}" data-sel="${s.id}" style="grid-template-columns:${COLS[v].t};--i:${i}" role="row" tabindex="${on?0:-1}">${celdas.join("")}<span class="flecha">${ic("derecha")}</span></div>`;
+}
+function fichaB(){
+  const s = porId[estado.selB]; if(!s) return "";
+  const esCamp = s.g==="campana", t = tramo(s), r = rango(s);
+  let tiempo = "";
+  if(esCamp && t==="ahora"){const tot=dias(s.d,s.h), ya=dias(s.d,HOY), falta=dias(HOY,s.h);tiempo=`<div class="tiempo"><div class="tx"><span>Empezó el ${fc(s.d)}</span><b>${falta===0?"Termina hoy":`Termina en ${falta} día${falta===1?"":"s"}`}</b></div><div class="barra"><i style="width:${Math.round(ya/tot*100)}%"></i></div></div>`;}
+  if(esCamp && t==="proximas"){const n=dias(HOY,s.d);tiempo=`<div class="tiempo"><div class="tx"><span>Empieza el ${fc(s.d)}</span><b>Faltan ${n} día${n===1?"":"s"}</b></div></div>`;}
+  const aviso = s.activo && alcance(s)===0 && (t==="ahora"||t==="proximas"||!esCamp)
+    ? `<div class="aviso" style="margin-bottom:12px">${ic("alerta","s")}<span><b>${t==="ahora"?"Rige hoy, pero no llega a ninguna prenda.":"Todavía no llega a ninguna prenda."}</b> ${t==="ahora"&&s.pct?"No cambia ningún precio. ":""}Márcalas en «Prendas» o elige categorías en «Configurar».</span></div>` : "";
+  const imprimir = s.pct!==null && t!=="proximas" && s.activo;
+  return `<aside class="tarjeta ficha" data-guia="sellos.ficha" aria-live="polite">
+    ${muestra(s)}
+    <h3>${s.n}</h3>
+    <div class="fl">${chipHTML(s)}${r?`<span class="num">${r}</span>`:""}<span>· ${GRUPOS[s.g].nombre}</span></div>
+    <dl><div><dt>Prendas</dt><dd class="num">${s.prendas}</dd></div><div><dt>Categorías</dt><dd class="num">${s.cats}</dd></div><div><dt>Descuento</dt><dd class="num">${s.pct!==null?s.pct+" %":"—"}</dd></div></dl>
+    ${tiempo}${aviso}
+    ${s.rot?`<p style="font-size:12.5px;color:var(--t80);margin:-2px 2px 14px">${textoRot(s.rot)}</p>`:""}
+    <div class="botones">
+      ${s.activo?`<button class="btn" data-toast="Abre «Prendas» de ${s.n}">${ic("prendas")} Prendas</button>
+      <button class="btn sec" data-toast="Abre «Configuración ${s.n}»">${ic("ajustes")} ${esCamp?accionCampana(s):"Configurar"}</button>
+      ${imprimir?`<button class="btn sec" data-toast="Imprime las etiquetas de precio">${ic("impresora")} Imprimir etiquetas de precio</button>`:""}`
+      :`<button class="btn sec" data-toast="Reactiva ${s.n}">Reactivar</button>`}
+    </div>
+    ${esCamp&&s.activo?`<div style="margin-top:12px"><a class="ver" data-toast="Lleva al diseño en la tienda web">Diseño en la tienda web ${ic("flecha","s")}</a></div>`:""}
+    <div class="pie"><span>${listaB().findIndex(x=>x.id===s.id)+1} de ${listaB().length}</span><span><kbd>↑</kbd><kbd>↓</kbd> para pasar</span></div>
+  </aside>`;
+}
+function listaB(){
+  const l = deVista(estado.vista);
+  if(estado.vista!=="campanas") return l;
+  return porTramo(l).flatMap(t=>t.l);
+}
+function vistaB(){
+  const v = vistaAct();
+  const camp = deVista("campanas"), ahora = camp.filter(s=>tramo(s)==="ahora"), prox = camp.filter(s=>tramo(s)==="proximas");
+  const sinPrep = [...ahora,...prox].filter(s=>alcance(s)===0);
+  const cif = v.clave==="campanas"
+    ? [["Rigen hoy",ahora.length,ahora.map(s=>s.n).join(" y ")],["Próxima",`${dias(HOY,prox[0].d)} días`,`${prox[0].n} · ${rango(prox[0])}`],["Sin preparar",sinPrep.length,sinPrep.map(s=>s.n).join(", ")]]
+    : v.clave==="rotacion"
+    ? [["Prendas con sello",deVista("rotacion").reduce((a,s)=>a+s.prendas,0),"entre los 4 sellos"],["Vendidas en 30 días",140,"de las prendas con sello · ejemplo"],["Tallas agotadas",14,"en Nuevo y Últimas unidades · ejemplo"]]
+    : [["Sellos",deVista(v.clave).length,v.nombre],["Prendas con sello",deVista(v.clave).reduce((a,s)=>a+s.prendas,0),"marcadas a mano"],["Sin prendas",deVista(v.clave).filter(s=>!s.prendas).length,"todavía en ninguna"]];
+  let filas;
+  if(v.clave==="campanas"){
+    filas = porTramo(deVista("campanas")).map(t=>`<div class="sep"><span class="pt" style="${t.k==="ahora"?"background:var(--verde)":t.k==="proximas"?"background:var(--pizarra)":""}"></span>${t.t}<span class="glo">${t.l.length}</span></div>${t.l.map(filaB).join("")}`).join("");
+  } else filas = deVista(v.clave).map(filaB).join("") + deVista(v.clave,false).map(filaB).join("");
+  return `<div class="pag">${encabezado()}
+    <div class="cifras cas" style="margin-top:22px">${cif.map(([a,b,c],i)=>`<div class="cifra" style="--i:${i}"><small>${a}</small><b class="num">${b}</b><span>${c}</span></div>`).join("")}</div>
+    <div class="cuerpoB">
+      <section class="tarjeta" style="overflow:hidden" data-guia="sellos.tabla">
+        <div class="herr">
+          <div class="pils" role="group" aria-label="Qué sellos ver">${VISTAS.map(x=>`<button class="pil ${x.clave===estado.vista?"on":""}" data-vista="${x.clave}">${ic(x.icono)}${x.nombre}<span class="glo">${deVista(x.clave).length}</span></button>`).join("")}</div>
+          <div class="busc">${ic("lupa")} Buscar ${v.clave==="campanas"?"una campaña":"un sello"}<kbd>/</kbd></div>
+        </div>
+        <div class="th" style="grid-template-columns:${COLS[v.clave].t}">${COLS[v.clave].h.map(h=>`<span>${h}</span>`).join("")}</div>
+        <div class="cas" role="rowgroup">${filas}</div>
+      </section>
+      ${fichaB()}
+    </div>
+    <div class="nota" style="margin-top:16px"><span class="i">i</span><span>${v.frase}${v.clave==="rotacion"?" Ojo: en 30 días 371 de 612 unidades vendidas salieron sin registrar qué prenda eran (ejemplo).":""}</span></div>
+  </div>`;
+}
+
+/* ============================ C · Cifras que eligen y lo de hoy al frente ============================ */
+function vistaC(){
+  const v = vistaAct();
+  const camp = deVista("campanas"), ahora = camp.filter(s=>tramo(s)==="ahora").sort((a,b)=>a.h.localeCompare(b.h));
+  const detalle = {
+    campanas:`${ahora.length} rigen hoy`,
+    rotacion:`${deVista("rotacion").reduce((a,s)=>a+s.prendas,0)} prendas con sello`,
+    artesanal:`${deVista("artesanal").reduce((a,s)=>a+s.prendas,0)} prendas con sello`,
+    general:`${deVista("general").reduce((a,s)=>a+s.prendas,0)} prendas con sello`,
+  };
+  const cif = `<div class="cifras" role="group" aria-label="Qué sellos ver" style="margin-top:22px;grid-template-columns:repeat(4,minmax(0,1fr))" data-guia="sellos.vistas">
+    ${VISTAS.map(x=>`<button class="cifra ${x.clave===estado.vista?"on":""}" data-vista="${x.clave}" aria-pressed="${x.clave===estado.vista}"><small>${ic(x.icono)}${x.nombre}</small><b class="num">${deVista(x.clave).length}</b><span>${detalle[x.clave]}</span><span class="fl">${ic("flecha")}</span></button>`).join("")}</div>`;
+  let cuerpo = "";
+  if(v.clave==="campanas"){
+    const prox = camp.filter(s=>tramo(s)==="proximas").sort((a,b)=>a.d.localeCompare(b.d));
+    const resto = camp.filter(s=>["sin_fechas","pasaron"].includes(tramo(s))).sort((a,b)=>tramo(a)==="sin_fechas"?-1:tramo(b)==="sin_fechas"?1:(b.h||"").localeCompare(a.h||""));
+    cuerpo = `
+      <div class="tit-sec"><h2>Rigen hoy</h2><span class="glo">${ahora.length}</span><span class="der">Cambian el precio en caja y en la web</span></div>
+      <div class="ahora cas">${ahora.map((s,i)=>{
+        const tot=dias(s.d,s.h), ya=dias(s.d,HOY), falta=dias(HOY,s.h);
+        const sinP = alcance(s)===0;
+        return `<article class="heroe" style="--i:${i}" id="t-${s.id}">${muestra(s,"alta")}
+          <div style="min-width:0;display:flex;flex-direction:column">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">${chipHTML(s)}</div>
+            <h3>${s.n}</h3><span style="font-size:12.5px;color:var(--t65)" class="num">${rango(s)}</span>
+            <div class="cuenta"><b class="num">${falta}</b><span>día${falta===1?"":"s"} para que termine · ${fc(s.h)}</span></div>
+            <div class="barra g"><i style="width:${Math.round(ya/tot*100)}%"></i></div>
+            <div class="datos"><span><strong class="num">${s.pct!==null?s.pct+" %":"—"}</strong>descuento</span><span><strong class="num">${s.prendas}</strong>prendas marcadas</span><span><strong class="num">${s.cats}</strong>categorías</span></div>
+            ${sinP?`<div class="aviso">${ic("alerta","s")}<span><b>No llega a ninguna prenda:</b> ${s.pct?"su "+s.pct+" % no rebaja nada hoy. ":""}Márcalas en «Prendas».</span></div>`:""}
+            <div class="botones" style="margin-top:auto;padding-top:12px">
+              <button class="btn ch" data-toast="Abre «Prendas» de ${s.n}">${ic("prendas","s")} Prendas</button>
+              <button class="btn sec ch" data-toast="Abre «Configuración ${s.n}»">Configurar</button>
+              ${s.pct!==null?`<button class="btn sec ch" data-toast="Imprime las etiquetas de precio">${ic("impresora","s")} Imprimir etiquetas</button>`:""}
+              <button class="btn sec ch" data-toast="Lleva al diseño en la tienda web">Diseño web ${ic("flecha","s")}</button>
+            </div>
+          </div></article>`;}).join("")}</div>
+      <div class="tit-sec"><h2>Lo que viene</h2><span class="glo">${prox.length}</span><span class="der">Prepáralas antes de que empiecen</span></div>
+      <div class="viene cas">${prox.map((s,i)=>{const n=dias(HOY,s.d),sinP=alcance(s)===0;return `<article class="vc" style="--i:${i}" id="t-${s.id}">
+          <div class="dias"><b class="num">${n}</b><span>día${n===1?"":"s"}</span></div>
+          <div style="min-width:0;flex:1"><h4>${s.n}</h4><p class="num">${rango(s)} · ${sinP?"ninguna prenda todavía":textoPrendas(s)}</p>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${sinP?`<span class="chip a">Sin preparar</span>`:`<span class="chip p">Lista</span>`}
+            <button class="btn ${sinP?"":"sut"} ch" style="margin-left:auto" data-toast="Abre «Prendas» de ${s.n}">${sinP?"Preparar":"Prendas"}</button></div></div>
+          ${muestra(s,"cua")}</article>`;}).join("")}</div>
+      <div class="tit-sec"><h2>Sin fechas y ya pasaron</h2><span class="glo">${resto.length}</span><span class="der">«Repetir» la abre con las fechas de 2027</span></div>
+      <div class="tarjeta" style="padding:4px 18px"><div class="lista">${resto.map(s=>`<div class="li">${muestra(s,"cua")}<div class="tx"><b>${s.n}</b><small class="num">${tramo(s)==="sin_fechas"?"Sin fechas: ponle cuándo rige":`Pasó el ${fc(s.h)} · ${rango(s)}`}</small></div>
+          <button class="btn sut ch" data-toast="${tramo(s)==="sin_fechas"?"Abre «Configuración "+s.n+"»":"Abre «Repetir "+s.n+" en 2027»"}">${tramo(s)==="sin_fechas"?"Configurar":"Repetir"}</button></div>`).join("")}</div></div>
+      ${bloqueDesactivados(deVista("campanas",false))}`;
+  } else if(v.clave==="rotacion"){
+    const lista = deVista("rotacion");
+    cuerpo = `<div style="margin-top:18px">${notaRotacion()}</div>
+      <div class="tit-sec"><h2>Cómo se mueve cada uno</h2><span class="glo">${lista.length}</span><span class="der">Últimos 30 días</span></div>
+      <div class="tarjeta cas" style="overflow:hidden">${lista.map((s,i)=>{const r=s.rot;return `<div class="rot" style="--i:${i}">
+          ${muestra(s)}
+          <div style="min-width:0"><h4>${s.n}</h4><div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">${chipHTML(s)}${s.pct!==null?`<span class="chip nodot" style="background:var(--hueso)">${s.pct} % de descuento</span>`:""}</div>
+            ${r?`<div class="apil" style="max-width:420px"><i style="width:${r.vendidas/(r.vendidas+r.quedan)*100}%;background:var(--tinta)"></i><i style="flex:1;background:var(--sand)"></i></div><span style="font-size:11.5px;color:var(--t65)">${Math.round(r.vendidas/(r.vendidas+r.quedan)*100)} % de lo que había salió en 30 días</span>`
+            :`<div class="aviso" style="max-width:460px">${ic("alerta","s")}<span><b>No llega a ninguna prenda.</b> Márcalas en «Prendas».</span></div>`}
+            <div style="display:flex;gap:6px;margin-top:10px"><button class="btn sut ch" data-toast="Abre «Prendas» de ${s.n}">Prendas</button><button class="btn sut ch" data-toast="Abre «Configuración ${s.n}»">Configurar</button></div></div>
+          <div class="n num">${s.prendas}<small>prendas</small></div>
+          <div class="n num">${r?r.quedan:"—"}<small>quedan</small></div>
+          <div class="n num">${r?r.vendidas:"—"}<small>vendidas</small></div></div>`;}).join("")}</div>`;
+  } else {
+    const lista = deVista(v.clave);
+    cuerpo = `<p class="bajada">${v.frase}</p>
+      <div class="tit-sec"><h2>${v.nombre}</h2><span class="glo">${lista.length}</span></div>
+      <div class="art">${grilla(lista).replace('class="grilla cas"','class="art cas"')}</div>${bloqueDesactivados(deVista(v.clave,false))}`;
+  }
+  return `<div class="pag">${encabezado()}${cif}${cuerpo}</div>`;
+}
+
+/* ============================ pintar ============================ */
+const marco = document.getElementById("marco"), ajuste = document.getElementById("ajuste");
+const ALTOS = {1024:768,1440:900,1920:1080};
+function pintar(conservarScroll=false){
+  const pantViejo = marco.querySelector(".pant"), y = conservarScroll && pantViejo ? pantViejo.scrollTop : 0;
+  marco.innerHTML = `<aside class="lat">${lateral()}</aside><div class="cab">${cabeceraERP()}</div><main class="pant">${({A:vistaA,B:vistaB,C:vistaC})[estado.dir]()}</main>`;
+  marco.querySelector(".pant").scrollTop = y;
+  medir(); moverPildora();
+}
+function medir(){
+  const W = estado.ancho, H = ALTOS[W];
+  const libre = Math.min(window.innerWidth - 32, 1600);
+  const k = Math.min(1, libre / W);
+  marco.style.width = W+"px"; marco.style.height = H+"px"; marco.style.transform = `scale(${k})`;
+  ajuste.style.width = W*k+"px"; ajuste.style.height = H*k+"px";
+}
+function moverPildora(){
+  const p = document.getElementById("pest"); if(!p) return;
+  const on = p.querySelector("button.on"), pi = document.getElementById("pi");
+  pi.style.width = on.offsetWidth+"px"; pi.style.transform = `translateX(${on.offsetLeft-4}px)`;
+}
+let tt;
+function toast(t){
+  document.querySelector(".toast")?.remove(); clearTimeout(tt);
+  const d = document.createElement("div"); d.className="toast"; d.innerHTML = `<b style="color:var(--tinta)">En la maqueta no se guarda nada.</b><br>${t}.`;
+  document.body.appendChild(d); tt = setTimeout(()=>d.remove(), 3200);
+}
+document.addEventListener("click",(e)=>{
+  const vb = e.target.closest("[data-vista]");
+  if(vb){ estado.vista = vb.dataset.vista; const l=listaB(); if(!l.some(s=>s.id===estado.selB)) estado.selB = l[0]?.id; pintar(true); return; }
+  const sel = e.target.closest("[data-sel]");
+  if(sel){ estado.selB = sel.dataset.sel; pintar(true); return; }
+  const ir = e.target.closest("[data-ir]");
+  if(ir){
+    const s = porId[ir.dataset.ir];
+    if(tramo(s)==="pasaron" && !estado.pasadasAbiertas){ estado.pasadasAbiertas = true; pintar(true); }
+    const t = document.getElementById("t-"+s.id); if(!t) return;
+    t.scrollIntoView({behavior:"smooth",block:"center"}); t.classList.add("brillo"); setTimeout(()=>t.classList.remove("brillo"),1400); return;
+  }
+  if(e.target.closest("#btnPasadas")){ estado.pasadasAbiertas = !estado.pasadasAbiertas; pintar(true); return; }
+  if(e.target.closest("#btnDesact")){ estado.desactAbiertos = !estado.desactAbiertos; pintar(true); return; }
+  const ts = e.target.closest("[data-toast]"); if(ts){ toast(ts.dataset.toast); return; }
+});
+document.addEventListener("keydown",(e)=>{
+  if(estado.dir!=="B" || !["ArrowDown","ArrowUp"].includes(e.key)) return;
+  const l = listaB(), i = l.findIndex(s=>s.id===estado.selB);
+  const n = l[Math.max(0,Math.min(l.length-1,i+(e.key==="ArrowDown"?1:-1)))]; if(!n) return;
+  e.preventDefault(); estado.selB = n.id; pintar(true);
+  marco.querySelector(`[data-sel="${n.id}"]`)?.scrollIntoView({block:"nearest"});
+});
+function seg(id, fn){
+  document.getElementById(id).addEventListener("click",(e)=>{
+    const b = e.target.closest("button"); if(!b) return;
+    document.querySelectorAll(`#${id} button`).forEach(x=>x.classList.toggle("on",x===b)); fn(b.dataset.v);
+  });
+}
+function elegirDir(v){
+  estado.dir = v;
+  document.querySelectorAll("#ctlDir button,#ley button").forEach(x=>x.classList.toggle("on",x.dataset.v===v));
+  pintar();
+}
+seg("ctlDir", elegirDir);
+document.getElementById("ley").addEventListener("click",(e)=>{const b=e.target.closest("button");if(b) elegirDir(b.dataset.v);});
+seg("ctlTema", (v)=>{document.documentElement.dataset.tema=v; pintar(true);});
+seg("ctlAncho", (v)=>{estado.ancho=+v; pintar();});
+window.addEventListener("resize", medir);
+const q = new URLSearchParams(location.search);
+if(q.get("dir")) elegirDir(q.get("dir"));
+if(q.get("vista")) estado.vista = q.get("vista");
+if(q.get("tema")){document.documentElement.dataset.tema=q.get("tema");document.querySelectorAll("#ctlTema button").forEach(x=>x.classList.toggle("on",x.dataset.v===q.get("tema")));}
+if(q.get("ancho")){estado.ancho=+q.get("ancho");document.querySelectorAll("#ctlAncho button").forEach(x=>x.classList.toggle("on",x.dataset.v===q.get("ancho")));}
+pintar();
+document.fonts?.ready.then(()=>moverPildora());
+</script>
+</body>
+</html>

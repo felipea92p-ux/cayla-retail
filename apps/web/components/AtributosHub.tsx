@@ -5,8 +5,6 @@ import { ColoresLista } from "@/components/ColoresLista";
 import { TallasLista } from "@/components/TallasLista";
 import { TejidosLista } from "@/components/TejidosLista";
 import { PatronesLista } from "@/components/PatronesLista";
-import { EtiquetasLista } from "@/components/EtiquetasLista";
-import type { cargarEtiquetasPantalla } from "@/lib/etiquetas-pantalla-datos";
 import { TemporadasLista } from "@/components/TemporadasLista";
 import type { ComponentProps } from "react";
 
@@ -29,25 +27,23 @@ import type { ComponentProps } from "react";
  * de Categorías y Productos.
  */
 
-type Tipo = "colores" | "tallas" | "tejidos" | "patrones" | "etiquetas" | "temporadas";
+type Tipo = "colores" | "tallas" | "tejidos" | "patrones" | "temporadas";
 
 // EL ORDEN ES DE RELEVANCIA, no cronológico ni alfabético:
-//   1. Sellos — lo comercial (Nuevo, Top ventas, Para liquidar). Las campañas vivían
-//      aquí hasta el 2026-10-22: desde ADR-0473 son Catálogo ▸ Campañas.
-//   2. Colores y 3. Tallas — obligatorios: no existe una variante sin las dos, y
+//   (Sellos —Nuevo, Top ventas, Para liquidar— fue la primera pestaña hasta el 2026-10-22: desde ese día es su propia
+//   entrada de Catálogo, Catálogo ▸ Sellos, con las campañas dentro. Felipe lo pidió.)
+//   1. Colores y 2. Tallas — obligatorios: no existe una variante sin las dos, y
 //      un colaborador las necesita al recibir mercadería. Colores va primero
 //      porque es el que más se propone (35 vs 22).
-//   4. Tejidos y 5. Patrones — opcionales, atributos del producto que además
+//   3. Tejidos y 4. Patrones — opcionales, atributos del producto que además
 //      dependen de la categoría. Patrones: es el vocabulario más chico.
-//   6. Temporadas (ADR-0246) — también de la prenda y opcional, pero lista CERRADA
+//   5. Temporadas (ADR-0246) — también de la prenda y opcional, pero lista CERRADA
 //      de nueve: aquí no se propone nada, se mira el calendario y se completa lo
 //      que quedó «Sin temporada». Por eso va al final.
 // La primera pestaña es también la que abre `/productos/atributos` sin `?tipo=`
 // (ver `page.tsx`); las rutas viejas `/productos/colores` etc. siguen entrando
 // directo a la suya.
 const TABS: { tipo: Tipo; etiqueta: string; icono: string }[] = [
-  // Cinta de marcapáginas — distinta del colgante de Categorías a propósito.
-  { tipo: "etiquetas", etiqueta: "Sellos", icono: "M6 3h12a1 1 0 011 1v16l-7-4-7 4V4a1 1 0 011-1z" },
   // Gota: el color de la tela.
   { tipo: "colores", etiqueta: "Colores", icono: "M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" },
   // Barras ascendentes: S, M, L — la progresión de una talla.
@@ -69,7 +65,6 @@ const AYUDA: Record<Tipo, string> = {
   tallas: "Vocabulario cerrado de talla. Aprobar exige un comentario: una talla mal aprobada ensucia la unicidad de variante y es más cara de deshacer con SKUs ya colgando.",
   tejidos: "Vocabulario cerrado de tejido — atributo del producto, no cambia entre tallas de la misma prenda. Haz clic en uno para ver su foto y las prendas que lo usan.",
   patrones: "Vocabulario cerrado de patrón/estampado — igual que tejido, atributo del producto. Haz clic en uno para ver su foto y las prendas que lo usan.",
-  etiquetas: "Los sellos que se le ponen a una prenda (Nuevo, Top ventas, Hecho a mano, Para liquidar). La etiqueta con el precio se imprime aparte, y las campañas viven en Catálogo ▸ Campañas.",
   temporadas:
     "De qué temporada es la prenda: una sola, de una lista fija de nueve. La del color manda sobre la de la prenda, y la de la prenda sobre la de su categoría. Al empezar la estación que la termina, Frescura avisa «Temporada pasada» y sugiere qué hacer (nunca rebaja sola).",
 };
@@ -90,10 +85,7 @@ export function AtributosHub({
   patrones,
   prendasPorTejido = {},
   prendasPorPatron = {},
-  sellos = null,
   puedeEditar,
-  puedeEditarEtiquetas,
-  puedeDarDescuento,
   temporadas = null,
   esLider = false,
   veProductos = false,
@@ -107,15 +99,8 @@ export function AtributosHub({
   /** Cuántas prendas usan cada tejido / patrón (ADR-0256). Solo se leen al abrir esas pestañas. */
   prendasPorTejido?: Record<string, number>;
   prendasPorPatron?: Record<string, number>;
-  /** Sellos (ADR-0473): lo que leyó el servidor al abrir esa pestaña (`cargarEtiquetasPantalla`), sin las campañas. `null` en las demás. */
-  sellos?: Awaited<ReturnType<typeof cargarEtiquetasPantalla>> | null;
   /** Colores, tallas, tejidos y patrones: el líder o la terminal administrativa (ADR-0160). */
   puedeEditar: boolean;
-  /** Sellos: el líder o un rol con el módulo Sellos (`etiquetas`, 20260923130000). */
-  puedeEditarEtiquetas: boolean;
-  /** Poner, cambiar o quitar el descuento de una etiqueta, y tocar las que lo llevan: el líder o un rol con Etiquetas, igual
-   *  que `puedeEditarEtiquetas` (ADR-0293; antes SOLO el líder). `fn_puede_dar_descuento_por_etiqueta`. */
-  puedeDarDescuento: boolean;
   /** Temporadas (ADR-0246): lo que armó el servidor al abrir esa pestaña, o la nota de por qué no pudo (su SQL todavía
    *  no está en esta base). `null` en las demás pestañas: no se lee. */
   temporadas?: ComponentProps<typeof TemporadasLista>["carga"];
@@ -124,7 +109,7 @@ export function AtributosHub({
   /** La cuenta ve el módulo «Productos» (ADR-0161): solo entonces «Sin temporada» y el detalle de un tejido o patrón
    *  enlazan a la ficha de cada prenda. */
   veProductos?: boolean;
-  /** Las pestañas que ve esta cuenta. Un rol con Etiquetas y sin Categorías/atributos entra solo a la suya. Ausente = todas. */
+  /** Las pestañas que ve esta cuenta. Ausente = todas. */
   tipos?: readonly Tipo[];
 }) {
   // La pestaña activa vive en la URL (`?tipo=`), no en estado de React —
@@ -161,16 +146,6 @@ export function AtributosHub({
       {tipo === "tallas" && <TallasLista tallasIniciales={tallas} puedeEditar={puedeEditar} />}
       {tipo === "tejidos" && <TejidosLista tejidosIniciales={tejidos} puedeEditar={puedeEditar} prendasPorId={prendasPorTejido} veProductos={veProductos} colores={coloresDibujo} />}
       {tipo === "patrones" && <PatronesLista patronesIniciales={patrones} puedeEditar={puedeEditar} prendasPorId={prendasPorPatron} veProductos={veProductos} colores={coloresDibujo} />}
-      {tipo === "etiquetas" && sellos && <EtiquetasLista
-          modo="sellos"
-          etiquetasIniciales={sellos.etiquetas}
-          categorias={sellos.categorias}
-          prendasConCosto={sellos.prendasConCosto}
-          variantesManuales={sellos.variantesManuales}
-          rotacion={sellos.rotacion}
-          puedeEditar={puedeEditarEtiquetas}
-          puedeDarDescuento={puedeDarDescuento}
-        />}
       {tipo === "temporadas" && <TemporadasLista carga={temporadas} puedeEditar={puedeEditar} esLider={esLider} veProductos={veProductos} />}
     </div>
   );

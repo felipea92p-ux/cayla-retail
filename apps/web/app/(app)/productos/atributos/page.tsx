@@ -1,7 +1,6 @@
-import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
-import { cargarEtiquetasPantalla } from "@/lib/etiquetas-pantalla-datos";
 import { Ayuda } from "@/components/Ayuda";
 import { AtributosHub } from "@/components/AtributosHub";
 import type { EventoCalendario, Temporada, TemporadaEfectiva } from "@/lib/temporada-reglas";
@@ -108,34 +107,16 @@ async function leerTemporadas(supabase: Supabase): Promise<{ datos: DatosPestana
 // aprueba/rechaza. Una sola carga de datos, una sola pantalla, 5 pestañas.
 // Las rutas viejas siguen funcionando vía `redirects()` en next.config.ts.
 export default async function AtributosPage({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
-  const persona = await requirePersonaActualV2();
-  const supabase = await createClient();
   const { tipo: tipoParam } = await searchParams;
+  // `?tipo=etiquetas` (los sellos, la primera pestaña hasta el 2026-10-22) lo redirige next.config.ts a Catálogo ▸ Sellos.
+  // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
+  const persona = await exigirModulo("atributos");
+  const supabase = await createClient();
   // Mismo orden que las pestañas de `AtributosHub`; la primera es la que abre por defecto.
-  const TIPOS = ["etiquetas", "colores", "tallas", "tejidos", "patrones", "temporadas"] as const;
-  // Un rol con Etiquetas y sin Categorías/atributos (20260923130000) ve SOLO la pestaña de etiquetas; uno con Categorías/
-  // atributos y sin Etiquetas, las otras cinco (Temporadas incluida, ADR-0246). El líder, todas.
-  const veEtiquetas = veModulo(persona, "etiquetas");
-  const veAtributos = veModulo(persona, "atributos");
-  const tipos = TIPOS.filter((t) => (t === "etiquetas" ? veEtiquetas : veAtributos));
-  const tipo = tipos.find((t) => t === tipoParam) ?? tipos[0] ?? TIPOS[0];
-  const puedeEditarEtiquetas = puede(persona, "editarEtiquetas");
-  // Configurar el descuento de una etiqueta y tocar las que lo llevan: líder o un rol con Etiquetas (ADR-0293, 2026-09-30;
-  // `fn_puede_dar_descuento_por_etiqueta` = `fn_puede_editar_etiquetas`). Antes era solo el líder y esas tarjetas salían sin acciones.
-  const puedeDarDescuento = puedeEditarEtiquetas;
+  const TIPOS = ["colores", "tallas", "tejidos", "patrones", "temporadas"] as const;
+  const tipo = TIPOS.find((t) => t === tipoParam) ?? TIPOS[0];
   // Se lanza ya, en paralelo con el resto de la carga; se espera abajo.
   const cargaTemporadas = tipo === "temporadas" ? cargarTemporadas(supabase) : Promise.resolve(null);
-  // Los sellos (ADR-0473): la misma lectura que Catálogo ▸ Campañas, sin las campañas. Rotación (ADR-0441), solo para quien edita
-  // sellos Y puede analizar (la misma puerta de `fn_analisis_sede`).
-  const cargaSellos =
-    tipo === "etiquetas"
-      ? cargarEtiquetasPantalla({
-          modo: "sellos",
-          puedeEditar: puedeEditarEtiquetas,
-          conRotacion: puedeEditarEtiquetas && (persona.rol === "lider" || veModulo(persona, "analisis")),
-          esLider: persona.rol === "lider",
-        })
-      : Promise.resolve(null);
 
   const [resColores, resTallas, resTejidos, resPatrones, resUsos] = await Promise.all([
     supabase
@@ -198,7 +179,6 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     if (u.patron_id) prendasPorPatron[u.patron_id] = (prendasPorPatron[u.patron_id] ?? 0) + 1;
   }
   const temporadas = await cargaTemporadas;
-  const sellos = await cargaSellos;
 
   return (
     <div className="space-y-6">
@@ -212,10 +192,11 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
               <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">
                 <Ayuda titulo="Atributos">
                   Los vocabularios cerrados que describen una prenda además de su categoría: color,
-                  talla, tejido, patrón, etiqueta libre y temporada. En los cinco primeros, cualquiera
-                  con sesión propone un valor nuevo y lo puede usar de inmediato; un Líder lo aprueba o
-                  lo rechaza después. La temporada es una lista fija de nueve: en su pestaña se ve el
-                  calendario y se completan las prendas que todavía no la tienen.
+                  talla, tejido, patrón y temporada. En los cuatro primeros, cualquiera con sesión
+                  propone un valor nuevo y lo puede usar de inmediato; un Líder lo aprueba o lo
+                  rechaza después. La temporada es una lista fija de nueve: en su pestaña se ve el
+                  calendario y se completan las prendas que todavía no la tienen. Los sellos (Nuevo,
+                  Top ventas, las campañas) viven en Catálogo ▸ Sellos.
                 </Ayuda>
               </span>
             </>
@@ -231,14 +212,10 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         patrones={patrones}
         prendasPorTejido={prendasPorTejido}
         prendasPorPatron={prendasPorPatron}
-        sellos={sellos}
         puedeEditar={puede(persona, "editarCatalogo")}
-        puedeEditarEtiquetas={puedeEditarEtiquetas}
-        puedeDarDescuento={puedeDarDescuento}
         temporadas={temporadas}
         esLider={persona.rol === "lider"}
         veProductos={veModulo(persona, "productos")}
-        tipos={tipos}
       />
     </div>
   );
