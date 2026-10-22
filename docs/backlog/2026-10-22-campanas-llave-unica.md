@@ -1,6 +1,6 @@
 ## 🔑 Una llave para las campañas (2026-10-22, ADR-0476) — migración sin pegar; rama `claude/campanas-llave-unica`
 
-- [x] **`fn_puede_campanas()` = líder o `campanas`, `campanas_web` o `etiquetas`**, y en el repo, como en producción, las funciones de una campaña (`crear_campana`, `guardar_campana`, `activar_campana`, `campana_detalle`, `etiquetar_variantes`, `actualizar_campana_etiqueta`, el disparador de alta). `pnpm pruebas:campanas-llave` 27/27.
+- [x] **`fn_puede_campanas()` = líder o `campanas`, `campanas_web` o `etiquetas`**, y en el repo, como en producción, las funciones de una campaña (`crear_campana`, `guardar_campana`, `activar_campana`, `campana_detalle`, `etiquetar_variantes`, `actualizar_campana_etiqueta`, el disparador de alta). `pnpm pruebas:campanas-llave-unica` 27/27.
 - [x] **Lo de diseño de #1190 archivado** (sin permiso de ejecutar; `campana_disenos` comentada; nada borrado).
 - [ ] **Pegar `20261022203000` en producción** con el OK de Felipe, de una vez (sin políticas). Antes o junto con la migración de ADR-0473.
 - [ ] **ADR-0473 (otra rama):** usar la clave `campanas` (`insert … on conflict (clave) do update` a Catálogo) en vez de `campanas_catalogo`, y no parchar `fn_puede_editar_etiquetas`.

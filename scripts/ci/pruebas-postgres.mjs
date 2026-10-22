@@ -249,7 +249,7 @@ export const PRUEBAS = [
 
   // La llave de las campañas (ADR-0476): con «Campañas», «Campañas de la tienda web» o «Sellos» se crea, se guarda, se le ponen
   // prendas y se desactiva una campaña; sin ninguno, cada puerta la rechaza; un sello que no es campaña sigue siendo de Sellos. ROLLBACK.
-  "pruebas:campanas-llave",
+  "pruebas:campanas-llave-unica",
 
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el

@@ -1,7 +1,7 @@
 # ADR-0476 — Campañas: una llave para los dos módulos y para Sellos
 
 - **Fecha:** 2026-10-22 · **Estado:** migración `20261022203000_campanas_llave_de_los_tres_modulos.sql` y su prueba
-  (`pnpm pruebas:campanas-llave`, 27/27 en local) en la rama `claude/campanas-llave-unica`. **No está pegada en producción.**
+  (`pnpm pruebas:campanas-llave-unica`, 27/27 en local) en la rama `claude/campanas-llave-unica`. **No está pegada en producción.**
 - **Relacionados:** ADR-0436 (Campañas con diseño propio, PR #1190, **sin fusionar**), ADR-0471 (Tienda web ▸ Campañas,
   `campanas_web`), ADR-0473 (Catálogo ▸ Campañas y «Sellos», otra rama), ADR-0161 y ADR-0306 (módulos y roles), ADR-0293 (descuento
   por etiqueta), ADR-0195 (políticas y deadlocks).
@@ -68,7 +68,7 @@ en solo lectura:
 
 ## Verificado
 
-- `APLICAR_ANTES=… pnpm pruebas:campanas-llave`: 27/27 en el Postgres local, en transacciones con ROLLBACK. Con cada uno de los tres
+- `APLICAR_ANTES=… pnpm pruebas:campanas-llave-unica`: 27/27 en el Postgres local, en transacciones con ROLLBACK. Con cada uno de los tres
   módulos: crea, lee, guarda, pone y quita prendas, desactiva. Sin ninguno: cada puerta la rechaza. Un sello no es de Campañas. La
   migración se aplica dos veces seguidas.
 - **Desde el estado de producción:** la `20261017151000` de #1190 y después esta, en una transacción. El diff de los cuerpos solo muestra

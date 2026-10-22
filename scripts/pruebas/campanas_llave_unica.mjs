@@ -21,8 +21,8 @@
  * DA POR SENTADO: el seed (Felipe líder, Micaela integrante sin Sellos ni Campañas, «Blusa Emma» con varias tallas).
  *
  * USO
- *   pnpm pruebas:campanas-llave    → necesita el stack local (`npx supabase start`)
- *   pnpm pruebas:campanas-llave -- --contenedor supabase_db_<mi-pila>
+ *   pnpm pruebas:campanas-llave-unica    → necesita el stack local (`npx supabase start`)
+ *   pnpm pruebas:campanas-llave-unica -- --contenedor supabase_db_<mi-pila>
  */
 
 import { execFileSync } from "node:child_process";
