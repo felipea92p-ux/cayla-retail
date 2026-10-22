@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search, X } from "lucide-react";
+import { Check, Search, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { crearLector } from "@/components/EscanerCamara";
-import { normalizarLectura } from "@/lib/escaner-reglas";
+import { esLecturaRepetida, normalizarLectura } from "@/lib/escaner-reglas";
 
 /* ====================================================================
    EscanerBusqueda · leer UNA etiqueta o boleta con la cámara y buscarla (Cambios, spike 2026-09-26)
@@ -13,7 +13,14 @@ import { normalizarLectura } from "@/lib/escaner-reglas";
    quiere encontrar la compra: la cámara lee el primer código que ve (el QR de la etiqueta o el de SUNAT impreso en la
    boleta), se cierra y la pantalla lo busca. Mismo lector (`crearLector`: detector del navegador o jsQR), misma hoja
    `variante="camara"` (ADR-0136) y el mismo plan B sin permiso o sin cámara: buscar escribiendo.
+
+   `continuo` (Prendas de una etiqueta, 2026-10-22): la cámara NO se cierra al leer. Lee una etiqueta tras otra, se salta la
+   misma durante `PAUSA_MISMO_CODIGO_MS` (como Vender) y abajo dice qué pasó con la última, con «Listo» para volver.
    ==================================================================== */
+
+/** Lo que la pantalla dice de la última lectura, en el modo continuo. `clave` cambia con cada lectura (también si se repite el
+ *  mismo texto), para que la tarjeta entre de nuevo. */
+export type RespuestaLectura = { clave: number; tono: "verde" | "taupe" | "ambar" | "pizarra"; estado: string; titulo: string; detalle: string };
 
 type Estado = "abriendo" | "leyendo" | "sin-permiso" | "sin-camara";
 
@@ -23,7 +30,10 @@ export function EscanerBusqueda({
   onClose,
   titulo = "Escanear para cambiar",
   pista = "Centra la etiqueta o el QR de la boleta en el cuadro",
+  continuo,
 }: {
+  /** Leer en ráfaga sin cerrar: la última respuesta y lo que va del total («12 con la etiqueta»). */
+  continuo?: { respuesta: RespuestaLectura | null; resumen: string };
   /** Lo que dice la barra de arriba. Cambios lee etiquetas y boletas; Existencias solo etiquetas (ADR-0237). */
   titulo?: string;
   /** La indicación bajo el cuadro. */
@@ -41,11 +51,14 @@ export function EscanerBusqueda({
   useEffect(() => {
     onCodigoRef.current = onCodigo;
   }, [onCodigo]);
+  // Fijo desde que se abre: cambiar de modo a mitad de la lectura no tiene sentido.
+  const [enRafaga] = useState(() => !!continuo);
 
   useEffect(() => {
     let vivo = true;
     let flujo: MediaStream | null = null;
     let reloj = 0;
+    let ultima: { codigo: string; en: number } | null = null;
 
     (async () => {
       if (!navigator.mediaDevices?.getUserMedia) return setEstado("sin-camara");
@@ -71,7 +84,15 @@ export function EscanerBusqueda({
         try {
           const crudo = lienzoRef.current ? await leer(video, lienzoRef.current) : null;
           const codigo = crudo ? normalizarLectura(crudo) : "";
-          if (codigo && vivo) {
+          if (codigo && vivo && enRafaga) {
+            // En ráfaga, la misma etiqueta frente a la cámara no se vuelve a leer hasta la pausa; otra sí, enseguida.
+            const ahora = performance.now();
+            if (!esLecturaRepetida(codigo, ultima, ahora)) {
+              ultima = { codigo, en: ahora };
+              navigator.vibrate?.(35);
+              onCodigoRef.current(codigo);
+            }
+          } else if (codigo && vivo) {
             // Una lectura basta: se apaga la cámara antes de buscar, así no lee dos veces la misma boleta.
             vivo = false;
             navigator.vibrate?.(35);
@@ -92,7 +113,7 @@ export function EscanerBusqueda({
       window.clearTimeout(reloj);
       flujo?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [enRafaga]);
 
   const sinCamara = estado === "sin-permiso" || estado === "sin-camara";
   const botonRedondo =
@@ -149,11 +170,35 @@ export function EscanerBusqueda({
             )}
           </div>
 
-          <div className="papel-fijo relative z-10 px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3">
-            <button type="button" onClick={onEscribir} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-crema/30 text-sm font-medium text-crema">
-              <Search aria-hidden className="h-4 w-4" />
-              Mejor buscar escribiendo
-            </button>
+          <div className="papel-fijo relative z-10 space-y-3 px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3">
+            {continuo && !sinCamara ? (
+              <>
+                {/* Alto fijo: la primera respuesta no empuja el botón (ADR-0185). */}
+                <div aria-live="polite" className="min-h-[4.25rem]">
+                  {continuo.respuesta ? (
+                    <div key={continuo.respuesta.clave} data-tono={continuo.respuesta.tono} className="lectura-camara anim-revelar flex items-center gap-3 rounded-2xl bg-papel px-4 py-3 text-tinta">
+                      <span aria-hidden className="lectura-camara-punto size-2.5 shrink-0 rounded-full" />
+                      <span className="min-w-0 flex-1">
+                        <span className="lectura-camara-estado block text-[11px] font-semibold uppercase tracking-[0.12em]">{continuo.respuesta.estado}</span>
+                        <span className="block truncate text-sm font-medium">{continuo.respuesta.titulo}</span>
+                        <span className="block truncate text-xs text-tinta/65">{continuo.respuesta.detalle}</span>
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="pt-5 text-center text-[13px] text-crema/80">Escanea una prenda tras otra: no hace falta tocar nada.</p>
+                  )}
+                </div>
+                <button type="button" onClick={cerrar} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-crema text-sm font-medium text-tinta">
+                  <Check aria-hidden className="h-4 w-4" />
+                  Listo · {continuo.resumen}
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={onEscribir} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-crema/30 text-sm font-medium text-crema">
+                <Search aria-hidden className="h-4 w-4" />
+                Mejor buscar escribiendo
+              </button>
+            )}
           </div>
         </>
       )}
