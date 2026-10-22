@@ -1810,6 +1810,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   marcada «estimado» y fuera del libro, a las filas de `fn_estado_resultados`) en `getEstadoResultados` (`lib/resultados.ts`, Reportes y
   Escenarios), `getResumenFinanzas` y `getConfianzaFinanzas` (`lib/resumen-finanzas.ts`); `lib/pulso-reglas.ts` ya no cuenta dos veces los
   sueldos ni el desgaste (los gastos de operación de la base los incluyen). El Flujo de caja sigue repitiendo el último período (pendiente).
+  **Lo de hoy y «Provisionado» (ADR-0453, act. 2026-10-22):** `fn_planilla_hoy_por_sede` (20261022081000; interna) estima lo que llevan hoy quienes están en su jornada
+  (marcaciones de `public.marcajes` × tasas de la boleta; sin feriado, sin jornada rara, se reemplaza al cerrar) y sale en la columna `hoy_estimado` de las dos funciones;
+  `leerProvision` la suma al devengado y las pantallas dicen «provisionado».
 - **Finanzas F3–F10** (2026-09-25, ADR-0195, PR #396; detalle por fase en `docs/finanzas/fases/`). Todas las pantallas se
   arman con `components/finanzas/kit.tsx` + `app/estilos/finanzas.css`; permisos en la base con `fn_es_lider()` o
   `fn_capacidad_por_modulos(array['<clave>'])` y la tienda de la cuenta.
