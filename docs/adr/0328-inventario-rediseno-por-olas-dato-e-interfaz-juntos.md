@@ -505,3 +505,46 @@ protegía nada, y con la nueva el CI la corre después de todas las de `main`, i
 **SE ROMPE SI** alguien recrea `fn_movimiento_no_ajusta_cuarentena` o el disparador en otra migración sin partir de este archivo, o si
 una función nueva necesita escribir un `ajuste` en la cuarentena a propósito: el disparador la rechaza entera (todo o nada) y
 `pruebas:cuarentena-no-se-ajusta` lo dice.
+
+## Actualización 2026-10-22 — «Completar todo» de una tarjeta cuenta, pero lo dice (decisión 10, segunda mitad)
+
+**El problema, primero.** La decisión 10 le puso la verdad a «Aplicar todos completos» (el atajo de TODO el conteo): lo aplicado sin
+mirar queda como «Sin contar» y no sube la exactitud. Pero cada tarjeta (un modelo y un color, con sus tallas) tiene su propio botón
+«Completar todo» que hace lo mismo de a una tarjeta —anota, en las tallas pendientes, lo que CAYLA esperaba— y la pantalla lo mandaba
+a la base como si la persona hubiera escrito cada número: una llamada a `conteo_contar` por talla, sin rastro de que fue un atajo.
+Eso importa por la parte 2 de esta decisión: el primer conteo completo de un lugar es «de arranque» y fija el punto de partida; uno que
+nadie miró deja los errores de la carga inicial para el conteo siguiente, donde entran como merma (cuenta 659) en un libro que no se
+corrige.
+
+**Lo que decidió Felipe (2026-10-05, entre dejarlo, marcarlo «sin contar» o contarlo pero decirlo):** contarlo pero decirlo.
+
+**DECIDÍ:** la tarjeta completada con el atajo SIGUE contando (sube la exactitud, vale para el arranque y puede tener diferencia, porque
+la persona tenía la tarjeta delante y afirmó lo que veía) y queda MARCADA: `conteo_items.completada_con_atajo`. Revisar y Confirmar
+dicen «N de M variantes contadas se completaron con «Completar todo»: nadie escribió su cantidad». Solo informa: no bloquea ni cambia
+qué se aplica, y si no hubo ninguna no dice nada. La pantalla manda UNA llamada por tarjeta, `conteo_completar_tarjeta(conteo, líneas)`,
+que en una sola transacción llama a `conteo_contar` línea por línea (mismos candados y mismo orden) y marca lo que ella contó.
+Estados que dejan de ser posibles (`conteo_items_atajo_coherente` + un disparador): una marca sin cifra, una línea a la vez «con el
+atajo» y «aplicada sin contar» (son dos historias: una contó, la otra no) y una línea recontada a mano que sigue diciendo «con el atajo».
+**DESCARTÉ:** (1) marcarla `aplicada_sin_contar` (opción B): el atajo perdería su razón de ser —habría que escribir cada talla— y se
+frenaría el conteo en la semana más cargada; (2) deducirla de los datos («contada = esperada»): casi todas las líneas bien contadas
+coinciden con lo esperado, y el atajo quedaría confundido con el conteo honesto; (3) recordarlo solo en el navegador: no viaja entre
+aparatos (se cuenta en el celular y se revisa en la computadora) ni sobrevive a cerrar la pestaña, y es justo en Revisar donde se
+necesita; (4) un parámetro nuevo en `conteo_contar`: recrearla entera arrastra sus parches vivos, así que la función nueva la LLAMA y
+no la toca; (5) que el atajo escriba el stock de ahora, como `conteo_aplicar_completos`: cambiaría lo que el botón ya hace (quien ve 3 y
+confirma 3 tiene una diferencia si entre tanto se vendió una).
+**SE ROMPE SI** alguien usa «Completar todo» en las 30 tarjetas para terminar rápido y quien cierra no lee la frase: informa, no frena.
+Si pasa en un arranque real, el paso siguiente es pedir confirmación en Confirmar cuando la mayoría de lo contado vino del atajo
+(decisión de Felipe, no se hizo). También se rompe si `conteo_contar` cambia de firma y `conteo_completar_tarjeta` no se rehace con ella.
+
+**Si la web sale antes que el SQL** (el orden de despliegue): PostgREST contesta `PGRST202` y la pantalla cae sola al camino de siempre,
+talla por talla y sin marca (`funcionNoExiste`, `lib/conteo-atajo.ts`); la frase de Revisar no sale hasta que exista la columna. Esa
+talla contada por el respaldo NO lleva marca, así que la frase puede decir «2 de 4» cuando fueron 3 los completados con el botón: dura
+solo hasta pegar el SQL.
+
+**Estado.** La migración (`20261005233700_conteo_atajo_por_tarjeta.sql`, una sola parte, sin políticas, idempotente) ya la pegó Felipe
+en producción (lo confirmó el 2026-10-22); comprobada ese día por efectos (solo lectura): columna `boolean not null default false`, restricción, disparador y su
+función, `conteo_completar_tarjeta` con `security definer` ejecutable por `authenticated` y no por `anon`, firmas de `conteo_contar` y
+`fn_conteo_lineas_json` idénticas a las que llama, 0 filas marcadas. Prueba SQL de 15 casos con controles por mutación
+(`pnpm pruebas:conteo-atajo-tarjeta`, en el runner de tandas del CI). Verificado en el navegador contra una base propia: una sola
+petición por tarjeta, la marca solo en las líneas del atajo (la escrita a mano no la lleva), la frase en Revisar y en Confirmar, el
+respaldo con la función ausente y 375 px sin desborde.
