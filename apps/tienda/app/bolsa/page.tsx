@@ -1,3 +1,4 @@
+import { BotonDeFormulario } from "@/components/BotonDeFormulario";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { elegirTiendaDeRecojo, quitarDeLaBolsa } from "@/app/acciones/bolsa";
@@ -169,9 +170,9 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                     <input type="hidden" name="variante" value={linea.varianteId} />
                     <input type="hidden" name="vista" value={linea.cantidad} />
                     <input type="hidden" name="todas" value="1" />
-                    <button className={`w-quitar${urgente ? " urgente" : ""}`} type="submit" aria-label={`Quitar de tu bolsa: ${leer}`}>
+                    <BotonDeFormulario className={`w-quitar${urgente ? " urgente" : ""}`} textoPendiente="Quitando…" aria-label={`Quitar de tu bolsa: ${leer}`}>
                       Quitar
-                    </button>
+                    </BotonDeFormulario>
                   </form>
                 );
                 if (yaNoEsta(linea)) {
@@ -266,10 +267,9 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                 </span>
                 <form action={elegirTiendaDeRecojo} className="w-lista" role="group" aria-labelledby="tienda-de-recojo">
                   {v.tiendas.map((t) => (
-                    <button
+                    <BotonDeFormulario
                       key={t.sede.id}
                       className="w-opcion t-op-tienda"
-                      type="submit"
                       name="sede"
                       value={t.sede.id}
                       aria-pressed={t.elegida}
@@ -282,7 +282,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                         </span>
                         <Icono nombre="tienda" />
                       </span>
-                    </button>
+                    </BotonDeFormulario>
                   ))}
                 </form>
               </div>
