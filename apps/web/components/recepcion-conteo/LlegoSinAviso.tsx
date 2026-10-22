@@ -11,9 +11,11 @@ import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { CajaFardo } from "./piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { useAltaDeProveedor } from "@/components/useAltaDeProveedor";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { diaMes } from "@/lib/fechas-lima";
+import { proveedoresParaPedir } from "@/lib/proveedores-reglas";
 import { urlContraFactura } from "@/lib/llegada-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { TOPES_CONTEO, mensajeAlGuardar } from "@/lib/recepcion-conteo-reglas";
@@ -27,19 +29,28 @@ import { abrirEnvioSinAviso } from "@/lib/recepcion-conteo-acciones";
 /** «No sé de quién es» (Felipe 2026-10-14): a veces Compras manda sin decir de quién es. Se cuenta igual y el proveedor se pone al cerrar. */
 const SIN_PROVEEDOR = "sin-proveedor";
 
+/** Un proveedor de la puerta. `rubros`: quien es solo de gastos no se ofrece (`proveedoresParaPedir`); los recién agregados no los traen. */
+export type ProveedorDeLaPuerta = { id: string; nombre: string; ruc?: string | null; rubros?: readonly string[]; marcas?: readonly string[] };
+
 export type FacturaPorRecibir = { id: string; proveedorId: string; documento: string; fechaEmision: string | null; pendientes: number };
 
 export function LlegoSinAviso({
   ubicacionId,
   ubicacionEtiqueta,
   proveedores,
+  rubrosEnUso,
+  puedeAgregarProveedor,
   facturas,
   hayListaArriba = false,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
   /** Con sus marcas (se leen en la puerta): se ven bajo cada proveedor y sirven para encontrarlo. */
-  proveedores: readonly { id: string; nombre: string; marcas?: readonly string[] }[];
+  proveedores: readonly ProveedorDeLaPuerta[];
+  /** Los rubros que ya usa el directorio: los botones del formulario de «Agregar proveedor». */
+  rubrosEnUso: readonly string[];
+  /** La cuenta tiene el módulo Proveedores (lo que exige `registrar_proveedor`): puede dar de alta uno desde aquí. */
+  puedeAgregarProveedor: boolean;
   facturas: readonly FacturaPorRecibir[];
   /** Arriba hay envíos u órdenes de Compras para esta sede: esta tarjeta es para lo que NO está en esa lista (formidable, 2026-10-14). */
   hayListaArriba?: boolean;
@@ -53,6 +64,20 @@ export function LlegoSinAviso({
   const [abriendo, setAbriendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const susFacturas = facturas.filter((f) => f.proveedorId === proveedorId && f.pendientes > 0);
+  // «¿No está? + Agregar proveedor»: lo que llega sin aviso a veces es de un proveedor que todavía no está en el directorio. El recién
+  // guardado se suma a la lista y queda elegido, sin esperar a que la página relea el directorio.
+  const [agregados, setAgregados] = useState<ProveedorDeLaPuerta[]>([]);
+  const todos = [...proveedores, ...agregados.filter((a) => !proveedores.some((p) => p.id === a.id))];
+  const alta = useAltaDeProveedor({
+    habilitado: puedeAgregarProveedor,
+    rubrosEnUso,
+    existentes: todos.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc ?? null })),
+    alGuardar: (p) => {
+      setAgregados((a) => [...a, { id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: [] }]);
+      setProveedorId(p.id);
+      setBuscar("");
+    },
+  });
 
   const campos = useGuiaCampos(
     [
@@ -83,13 +108,16 @@ export function LlegoSinAviso({
   // Los proveedores que coinciden con lo escrito (por nombre o por marca), hasta 6, SIEMPRE en el mismo orden: el elegido se marca con
   // su ✓ donde está (Felipe 2026-10-14: subirlo al primer lugar al tocarlo confundía, parecía que la lista había cambiado). Solo si lo
   // escrito lo deja fuera de los 6, se agrega al final para que no desaparezca lo elegido.
+  // A quién se le RECIBE mercadería: sin quien es solo de gastos (luz, agua…; ADR-0452, act. 2026-10-21), salvo el que ya está elegido.
+  const directorio = proveedoresParaPedir(todos, proveedorId);
   const q = normalizar(buscar);
-  const coinciden = proveedores.filter((p) => !q || normalizar(p.nombre).includes(q) || (p.marcas ?? []).some((m) => normalizar(m).includes(q)));
-  const elegido = proveedores.find((p) => p.id === proveedorId) ?? null;
+  const coinciden = directorio.filter((p) => !q || normalizar(p.nombre).includes(q) || (p.marcas ?? []).some((m) => normalizar(m).includes(q)) || (p.ruc ?? "").includes(q));
+  const elegido = directorio.find((p) => p.id === proveedorId) ?? null;
   const primeros = coinciden.slice(0, 6);
   const aLaVista = elegido && !primeros.some((p) => p.id === elegido.id) ? [...primeros, elegido] : primeros;
 
   return (
+    <>
     <div id="sin-aviso" className="grid scroll-mt-6 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
       <section className="card-cayla grid gap-6 overflow-hidden p-5 sm:grid-cols-[200px_minmax(0,1fr)] sm:p-6" aria-label="Llegó sin aviso" data-guia="recibir.sin-aviso">
         <div className="grid place-items-start justify-center pt-1.5">
@@ -115,7 +143,7 @@ export function LlegoSinAviso({
 
           <CampoGuiado id="sin-aviso-proveedor" guia={campos}>
             <p className="mb-1.5 text-[13px] font-semibold text-tinta">{campos.etiqueta("sin-aviso-proveedor", "¿De quién es?")}</p>
-            <Buscador valor={buscar} onCambio={setBuscar} placeholder="Busca el proveedor por nombre o marca" etiqueta="Buscar el proveedor" />
+            <Buscador valor={buscar} onCambio={setBuscar} placeholder="Busca el proveedor por nombre, marca o RUC" etiqueta="Buscar el proveedor" />
             <ul className="mt-2 space-y-1.5" role="radiogroup" aria-label="Proveedor">
               {aLaVista.map((p) => (
                 <li key={p.id}>
@@ -169,6 +197,16 @@ export function LlegoSinAviso({
                 </button>
               </li>
             </ul>
+            {puedeAgregarProveedor ? (
+              <p className="mt-2 text-xs text-taupe">
+                ¿No está?{" "}
+                <button type="button" onClick={() => alta.abrir(buscar)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
+                  + Agregar proveedor
+                </button>
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue, o elige «No sé de quién es».</p>
+            )}
           </CampoGuiado>
 
           {susFacturas.length > 0 && (
@@ -231,6 +269,9 @@ export function LlegoSinAviso({
         </p>
       </aside>
     </div>
+    {/* Fuera del <form> (ADR-0128): un `submit` del alta no debe llegar a «Empezar a contar». */}
+    {alta.modal}
+    </>
   );
 }
 

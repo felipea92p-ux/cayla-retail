@@ -1,10 +1,10 @@
-import { exigirModulo } from "@/lib/persona-actual";
+import { exigirModulo, puede } from "@/lib/persona-actual";
 import { getCatalogo, getCostosVariantes } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getResumenCompras } from "@/lib/compras";
-import { getMarcasPorProveedor, getProveedores } from "@/lib/proveedores";
+import { getMarcasPorProveedor, getProveedores, getRubrosEnUso } from "@/lib/proveedores";
 import { repartoDisponible } from "@/lib/compras-reparto";
-import { datosPagoDe } from "@/lib/proveedores-reglas";
+import { datosPagoDe, proveedoresParaPedir } from "@/lib/proveedores-reglas";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { CompraFormV2 } from "@/components/CompraFormV2";
 import { Volver } from "@/components/ui/Volver";
@@ -23,12 +23,26 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
   // tiendas activas, igual que el líder. El formulario arranca en la sede de la persona y la puede cambiar.
   const { prov } = await searchParams;
   // El costo ya no viaja en el catálogo compartido (20260923193700): se pide aparte. Este módulo es de quien ve el dinero.
-  const [directorio, ubicaciones, catalogo, costos, resumen, hayReparto, marcas] = await Promise.all([getProveedores(), getUbicaciones(), getCatalogo(), getCostosVariantes(), getResumenCompras(), repartoDisponible(), getMarcasPorProveedor()]);
+  // «+ Agregar proveedor» en el combo: solo con el módulo Proveedores (`registrar_proveedor` lo exige). Los rubros en uso son secundarios.
+  const puedeAgregarProveedor = puede(persona, "editarCuentasProveedor");
+  const [directorio, ubicaciones, catalogo, costos, resumen, hayReparto, marcas, rubrosEnUso] = await Promise.all([
+    getProveedores(),
+    getUbicaciones(),
+    getCatalogo(),
+    getCostosVariantes(),
+    getResumenCompras(),
+    repartoDisponible(),
+    getMarcasPorProveedor(),
+    puedeAgregarProveedor ? getRubrosEnUso() : Promise.resolve([] as string[]),
+  ]);
   // Solo los activos; con su plazo, forma de pago y saldo (lo financiero es de líder, y esta pantalla también) y con
   // cómo se les paga (cuenta, CCI, Yape/Plin, titular: ADR-0134), que sale del mismo directorio, sin otra consulta.
   // Y con sus marcas (ADR-0140): el nombre es la razón social, pero se les busca por la marca; opcional (`null` → sin marcas).
-  const proveedores = directorio
-    .filter((p) => p.activo)
+  // A quien se le registra una factura de MERCADERÍA: sin los proveedores que son solo de gastos (luz, agua, internet: ADR-0452, act.
+  // 2026-10-21), salvo el que llega por `?prov=` (desde «+ Comprobante» de su ficha). La luz a crédito se paga en Por pagar, no se registra aquí.
+  const proveedorDeLaUrl = prov && /^[0-9a-f-]{36}$/i.test(prov) ? prov : null;
+  const activos = directorio.filter((p) => p.activo);
+  const proveedores = proveedoresParaPedir(activos, proveedorDeLaUrl)
     .map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: marcas?.[p.id] ?? [], plazoCreditoDias: p.plazo_credito_dias, formaPagoPreferida: p.forma_pago_preferida, saldo: p.saldo, saldoFavor: p.saldo_favor, datosPago: datosPagoDe(p, p.saldo_favor ?? 0) }));
 
   // Cabecera del diseño: «← Comprobantes», título y bajada. La entrega el formulario junto al avance «Listo N de 4».
@@ -41,8 +55,9 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
     />
   );
 
-  // Sin proveedores o sin catálogo no hay formulario que armar: se muestra la cabecera y el motivo.
-  if (proveedores.length === 0 || catalogo.length === 0) {
+  // Sin proveedores o sin catálogo no hay formulario que armar: se muestra la cabecera y el motivo. Quien puede agregar proveedores sí
+  // ve el formulario sin ninguno (si todos eran de gastos, el combo ofrece «+ Agregar proveedor»).
+  if ((proveedores.length === 0 && !puedeAgregarProveedor) || catalogo.length === 0) {
     return (
       <div className="space-y-6">
         {cabecera}
@@ -81,7 +96,10 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
     <CompraFormV2
       cabecera={cabecera}
       proveedores={proveedores}
-      proveedorInicialId={prov && /^[0-9a-f-]{36}$/i.test(prov) ? prov : null}
+      todosLosProveedores={activos.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc }))}
+      puedeAgregarProveedor={puedeAgregarProveedor}
+      rubrosEnUso={rubrosEnUso}
+      proveedorInicialId={proveedorDeLaUrl}
       deudaTotal={resumen.deuda}
       ubicaciones={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
       // ADR-0139: solo se ofrece «Repartir entre tiendas» si esta base ya tiene el reparto (una base vieja ignoraría `destinos`).

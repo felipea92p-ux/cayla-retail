@@ -76,7 +76,9 @@ export type ContactoProveedorOrden = {
 };
 
 export type DatosNuevaOrden = {
-  proveedores: (ProveedorOpcion & { ruc: string | null } & ContactoProveedorOrden)[];
+  /** Todos los proveedores ACTIVOS (lo que la base acepta en una orden), con sus rubros: el combo ofrece solo a quienes se les pide mercadería
+   *  (`proveedoresParaPedir`), pero la validación sigue contra todos. */
+  proveedores: (ProveedorOpcion & { ruc: string | null; rubros: string[] } & ContactoProveedorOrden)[];
   marcas: MarcaOpcion[];
   vinculos: Vinculo[];
   categorias: { id: string; nombre: string; prefijo: string | null; familia: string | null }[];
