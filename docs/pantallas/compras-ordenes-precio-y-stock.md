@@ -230,7 +230,7 @@ Cada una es un corte vertical con su commit y su verificación. **Dinero (precio
 
 1. **Reglas puras de la ayuda de precio** (`lib/orden-compra-precio-ayuda.ts`, hecha 2026-10-22): la cuenta de §4.2, las bandas y la biblioteca de §4.5, con una
    prueba que recorre todas las bandas del precio del medio, de 0 a infinito, y exige que cada condición sea excluyente. Sin pantalla.
-2. **Base: guardar el sugerido** (migración propia, una parte; `crear_orden_compra` / `editar_orden_compra` / detalle y el comprobante y la
+2. **Base: guardar el sugerido** (hecha 2026-10-22 en local: migración `20261022080000`, prueba `pnpm pruebas:orden-compra-sugerido`; **falta pegarla en producción, con el OK de Felipe**) (migración propia, una parte; `crear_orden_compra` / `editar_orden_compra` / detalle y el comprobante y la
    recepción lo llevan; decisión 21 de ADR-0362 actualizada). Prueba de Postgres con mutantes.
 3. **Base: `fn_categoria_precios`** (una fila por categoría: prendas que la sustentan, precio del medio, rango, ganancia típica con cuántos costos
    la sustentan, **y el último costo pagado por marca dentro de la categoría** para el aviso «costo distinto al de la última compra»; puerta `ordenes_compra`; familias
