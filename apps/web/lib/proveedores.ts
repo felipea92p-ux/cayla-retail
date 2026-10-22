@@ -204,6 +204,9 @@ export type ProveedorFicha = {
   rubros: string[];
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
+  /** `false` = la base no le entregó los datos bancarios a esta cuenta (no tiene permiso): los seis campos vienen en null por eso, NO
+   *  porque el proveedor no tenga cuenta. Las pantallas de pago lo dicen («no puedes verlos»), nunca «no tiene cuenta». */
+  bancarios_visibles: boolean;
 };
 
 // Los datos bancarios ya no se leen de la tabla (20261013161000, Felipe 2026-10-13): solo los ve quien ve Proveedores, Por
@@ -232,9 +235,12 @@ export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
       .select("banco, cuenta_bancaria, cci, celular_billetera, billeteras, titular_cuenta")
       .eq("id", id)
       .maybeSingle();
-    return { ...ficha, ...(exigirOpcional(comoAntes, "los datos para pagar del proveedor") ?? SIN_DATOS_BANCARIOS) };
+    return { ...ficha, ...(exigirOpcional(comoAntes, "los datos para pagar del proveedor") ?? SIN_DATOS_BANCARIOS), bancarios_visibles: true };
   }
-  return { ...ficha, ...(exigir(bancarios, "los datos para pagar del proveedor")[0] ?? SIN_DATOS_BANCARIOS) };
+  // Cero filas = la cuenta no puede verlos (`fn_proveedor_datos_bancarios` no devuelve nada sin permiso); una fila con todo en null =
+  // sí puede y el proveedor no tiene cuenta cargada. Son dos cosas distintas y la pantalla las dice distinto.
+  const fila = exigir(bancarios, "los datos para pagar del proveedor")[0];
+  return { ...ficha, ...(fila ?? SIN_DATOS_BANCARIOS), bancarios_visibles: fila !== undefined };
 }
 
 /**

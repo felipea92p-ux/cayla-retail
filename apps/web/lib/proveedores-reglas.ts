@@ -554,6 +554,9 @@ export type DatosPagoProveedor = {
   formaPagoPreferida: string | null;
   /** Lo que el proveedor le debe a CAYLA (saldo a favor), disponible para descontar de este pago. */
   saldoFavor?: number;
+  /** `true` = la cuenta que mira NO puede ver los datos para pagar (la base los devolvió en blanco por permiso): no se sabe si el
+   *  proveedor tiene cuenta, y no se dice «no tiene». Sin dato, los datos se leyeron bien. */
+  ocultos?: boolean;
 };
 
 type FilaProveedorPago = {
@@ -567,6 +570,8 @@ type FilaProveedorPago = {
   telefono: string | null;
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
+  /** `false` = la base no entregó los datos bancarios a esta cuenta (cero filas de `fn_proveedor_datos_bancarios`). Sin dato, se leyeron. */
+  bancarios_visibles?: boolean;
 };
 
 export function datosPagoDe(p: FilaProveedorPago, saldoFavor?: number): DatosPagoProveedor {
@@ -582,6 +587,7 @@ export function datosPagoDe(p: FilaProveedorPago, saldoFavor?: number): DatosPag
     plazoCreditoDias: p.plazo_credito_dias,
     formaPagoPreferida: p.forma_pago_preferida,
     ...(saldoFavor != null ? { saldoFavor } : {}),
+    ...(p.bancarios_visibles === false ? { ocultos: true } : {}),
   };
 }
 

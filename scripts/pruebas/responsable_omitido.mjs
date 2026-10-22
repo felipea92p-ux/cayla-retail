@@ -184,8 +184,9 @@ caso(
 // (`fondo_deuda_pagar`, `fondo_deuda_anular`, 20261014145000). Y una más: el comprobante de una orden de insumos del Taller
 // (`orden_insumo_comprobante`, 20261015020000; ADR-0362 fase 7 parte 2), con el trato de la orden de tienda. Y una más: el recorte que el
 // ERP guarda solo al subir una foto, para el probador de la tienda online (`recorte_foto`, 20261017013000; ADR-0434, Felipe 2026-10-16). Y una
-// más: deshacer la unión de una cuenta de Google con un miembro (`vinculo_google_desvincular`, 20261021170000; ADR-0469), solo del líder.
-const TOTAL = EN_SECO ? "28" : "53";
+// más: deshacer la unión de una cuenta de Google con un miembro (`vinculo_google_desvincular`, 20261021170000; ADR-0469), solo del líder. Y una
+// más: registrar un proveedor nuevo desde una orden de compra (`proveedor_de_orden`, 20261021202000; ADR-0362), con el trato de la orden.
+const TOTAL = EN_SECO ? "28" : "54";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
 // El gasto del viaje es la excepción con motivo: se anota en Gamarra, donde nadie marca entrada (ADR-0362 fase 6, provisional). Sumarle
 // la foto de su papel no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`).
