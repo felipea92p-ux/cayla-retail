@@ -55,6 +55,10 @@ type Props = {
       «Nuevo producto», 2026-10-02). No en una hoja con la ✕, que usa esa esquina. Sale de la cascada y se coloca
       con `position: absolute`; el título deja libre el ancho que ocupa (`pr-40`). */
   acciones?: ReactNode;
+  /** Solo en el celular: la hoja abre a media altura y se estira hacia arriba con el dedo (ADR-0479). Para una lista de
+      opciones que se aplican al momento (Filtros de Productos y de Existencias): se ve lo primero y su botón, y lo de atrás.
+      Si la hoja es baja (menos del 62 % de la pantalla), abre entera. */
+  mediaAltura?: boolean;
   /** La ✕ de cerrar arriba a la derecha, en cualquier variante (la «papel» ya la trae). Hoy: la vista rápida de producto, que se abre
       también en el celular, donde el velo no siempre se alcanza a tocar. Sale de la cascada (`data-sin-cascada`) para no correr el turno. */
   conCerrar?: boolean;
@@ -86,7 +90,7 @@ type Props = {
 export type TamanoHoja = "angosta" | "mediana" | "ancha";
 export const ANCHO_HOJA: Record<TamanoHoja, string> = { angosta: "max-w-md", mediana: "max-w-xl", ancha: "max-w-3xl" };
 
-export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta", ancho: anchoPropio, alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, arriba, variante }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta", ancho: anchoPropio, alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, arriba, variante, mediaAltura = false }: Props) {
   const ancho = anchoPropio ?? ANCHO_HOJA[tamano];
   // La cámara y el ticket dibujan su propia hoja; todas las demás tienen la misma cara (ronda 12).
   const deCara = variante !== "camara" && variante !== "ticket";
@@ -122,16 +126,6 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
   useEffect(() => {
     onCloseActual.current = onClose;
   }, [onClose]);
-  useEffect(() => {
-    if (!cerrando) return;
-    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const enCelular = variante !== "camara" && window.matchMedia?.(CELULAR).matches;
-    const ms = msSalidaPropia.current ?? (enCelular ? MS_SALIDA_CELULAR : MS_SALIDA);
-    // Lo de atrás vuelve a su lugar mientras la hoja se va, en el mismo tiempo.
-    devolverFondo(fondo.current, sinMovimiento ? 0 : ms);
-    const temporizador = setTimeout(() => onCloseActual.current(), sinMovimiento ? 0 : ms);
-    return () => clearTimeout(temporizador);
-  }, [cerrando, variante]);
 
   // Escape, el velo y la ✕ pasan por `antesDeCerrar` si lo hay (de una ref, como `onClose`: suele llegar como flecha nueva).
   const antesDeCerrarActual = useRef(antesDeCerrar);
@@ -155,8 +149,9 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
   // el velo y la ✕: sin cambios sale desde donde quedó; con cambios vuelve a su lugar y pregunta «¿Salir sin guardar?».
   // El ticket de Vender también es una hoja que sube desde abajo (su lista corre por dentro, y el gesto lo respeta).
   const conAsa = deCara || variante === "ticket";
-  const enlazarArrastre = useHojaArrastre({
+  const arrastre = useHojaArrastre({
     activo: conAsa,
+    aMedia: mediaAltura,
     bloqueado,
     velo,
     alSoltarParaCerrar: (salir) => {
@@ -178,18 +173,33 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
     if (!conAsa || !window.matchMedia?.(CELULAR).matches || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const llave = alejarFondo(MS_ENTRADA_CELULAR);
     fondo.current = llave;
+    // Una hoja que abre a media altura aleja lo de atrás solo en esa proporción (si no, saltaría al primer toque).
+    if (arrastre.progresoActual() > 0) moverFondo(llave, arrastre.progresoActual(), MS_ENTRADA_CELULAR);
     return () => {
       devolverFondo(llave, 0);
       fondo.current = null;
     };
-  }, [conAsa]);
+  }, [conAsa, arrastre]);
   const ponerHoja = useCallback(
     (el: HTMLDivElement | null) => {
       hoja.current = el;
-      enlazarArrastre(el);
+      arrastre.enlazar(el);
     },
-    [enlazarArrastre]
+    [arrastre]
   );
+
+  useEffect(() => {
+    if (!cerrando) return;
+    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const enCelular = variante !== "camara" && window.matchMedia?.(CELULAR).matches;
+    const ms = msSalidaPropia.current ?? (enCelular ? MS_SALIDA_CELULAR : MS_SALIDA);
+    // Una hoja que quedó movida (a media altura) sale desde ahí: su estilo le gana a la salida de la clase.
+    if (msSalidaPropia.current === null) arrastre.salirDesdeDondeEsta(sinMovimiento ? 0 : ms);
+    // Lo de atrás vuelve a su lugar mientras la hoja se va, en el mismo tiempo.
+    devolverFondo(fondo.current, sinMovimiento ? 0 : ms);
+    const temporizador = setTimeout(() => onCloseActual.current(), sinMovimiento ? 0 : ms);
+    return () => clearTimeout(temporizador);
+  }, [cerrando, variante, arrastre]);
 
   return (
     <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierreDesdeFuera()}>

@@ -1874,6 +1874,13 @@ html[data-buscando] [data-resultados] {
       animation: cayla-hoja-movil-sale 300ms var(--ease-salida) both;
     }
   }
+  /* Una hoja que quedó fuera de su lugar (a media altura, `data-movida`, la pone useHojaArrastre) sale con su transición: la
+     animación de salida, sobre la misma propiedad, la cancelaría y la hoja (y el velo) saltarían abajo de golpe (medido). Lleva el
+     `:not(...)` de la regla de salida de arriba para pesar más que ella. */
+  .cascada-modal[data-movida].anim-modal-sale:not([data-variante="camara"]),
+  [data-movida].anim-velo-salida {
+    animation: none;
+  }
 }
 
 /* ---- HOJA CON EL TECLADO ARRIBA (2026-10-08) — `useHojaSobreElTeclado` (components/ui/) ----

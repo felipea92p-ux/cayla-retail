@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
 import {
   decidirGesto,
   destinoAlSoltar,
   duracionHacia,
   posicionAlArrastrar,
   progresoDeCierre,
+  puntoMedio,
   velocidad,
   type Muestra,
 } from "@/lib/hoja-gesto";
@@ -17,9 +18,17 @@ const CELULAR = "(max-width: 639.98px)";
 /** Lo que no arrastra la hoja aunque el dedo baje encima: escribir, elegir en una lista abierta, mover un deslizador. */
 const NO_ARRASTRA = 'input, textarea, select, [contenteditable="true"], [role="slider"], [data-capa-flotante] > *, [data-sin-arrastre]';
 
+/** El pie que se queda pegado abajo (`.pie-hoja-fijo`): a media altura sube con lo que baja la hoja, para seguir a la vista. */
+const PIE = ":scope > .pie-hoja-fijo, :scope > form > .pie-hoja-fijo";
+
+/** Lo que tarda en llegar a media altura al abrir: lo mismo que `cayla-hoja-movil-entra` en globals.css. */
+const MS_ENTRADA = 460;
+
 type Opciones = {
   /** La hoja tiene cara (no la cámara, que es pantalla completa). */
   activo: boolean;
+  /** Abre a media altura y se estira hacia arriba (Filtros, actividad 4 de ADR-0479). Solo si la hoja es alta. */
+  aMedia?: boolean;
   /** Guardando sin token: la hoja oye el dedo pero no se va, igual que Escape, el velo y la ✕. */
   bloqueado: boolean;
   /** El velo de la hoja: se aclara en la misma proporción en que baja la hoja. */
@@ -35,13 +44,17 @@ type Opciones = {
 type Gesto = { x0: number; y0: number; eje: "hoja" | null; muestras: Muestra[]; corredores: HTMLElement[]; y: number };
 
 /**
- * La hoja del celular sigue al dedo (ADR-0479). Devuelve un ref de callback ESTABLE para el `Dialog.Content`: los
- * listeners se ponen una vez por hoja y un nuevo render no corta un arrastre a la mitad (la hoja de Registrar gasto
- * se redibuja ~100 veces por segundo). Las reglas de cuándo y a dónde viven puras en `lib/hoja-gesto.ts`.
+ * La hoja del celular sigue al dedo (ADR-0479). `enlazar` es un ref de callback ESTABLE para el `Dialog.Content`: los
+ * listeners se ponen una vez por hoja y un nuevo render no corta un arrastre a la mitad (la hoja de Registrar gasto se
+ * redibuja ~100 veces por segundo). Las reglas de cuándo y a dónde viven puras en `lib/hoja-gesto.ts`.
  *
  * Mueve la hoja y el velo escribiendo el estilo directo (sin estado de React: un dedo dispara un evento por cuadro) y
  * con `!important`, porque una animación CSS en curso (la entrada de la hoja, el velo con `both`) le gana a un estilo en
- * línea normal pero no a uno importante. Al volver a su lugar suelta todo y la hoja queda con sus clases de siempre.
+ * línea normal pero no a uno importante. Abierta del todo, suelta todo y la hoja queda con sus clases de siempre; a media
+ * altura se queda movida.
+ *
+ * `salirDesdeDondeEsta(ms)`: para que Escape, el velo o la ✕ saquen hasta abajo una hoja que quedó movida (a media altura):
+ * la salida de la clase no puede con el estilo importante. Devuelve si la movió.
  *
  * Solo con el dedo y bajo 640 px: en escritorio y en tablet, donde la hoja va arriba y al centro, no hace nada.
  */
@@ -51,44 +64,63 @@ export function useHojaArrastre(opciones: Opciones) {
     op.current = opciones;
   });
   const quitar = useRef<(() => void) | null>(null);
+  const salirMovida = useRef<((ms: number) => boolean) | null>(null);
+  const progreso = useRef(0);
 
-  return useCallback((hoja: HTMLElement | null) => {
+  const enlazar = useCallback((hoja: HTMLElement | null) => {
     quitar.current?.();
     quitar.current = null;
+    salirMovida.current = null;
+    progreso.current = 0;
     if (!hoja) return;
 
     let g: Gesto | null = null;
     let alto = 0;
+    let medio: number | null = null;
     let yAhora = 0;
     let vSoltada = 0;
     let reloj: ReturnType<typeof setTimeout> | undefined;
     const sinMovimiento = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    const enCelular = () => window.matchMedia?.(CELULAR).matches ?? false;
 
     const pintar = (y: number, ms = 0) => {
       yAhora = y;
+      // `data-movida`: con la hoja fuera de su lugar, la salida de la clase no se pone (globals.css): su animación sobre la misma
+      // propiedad cancelaría la transición y la hoja saltaría abajo.
+      for (const el of [hoja, op.current.velo.current]) el?.toggleAttribute("data-movida", y > 0);
       const transicion = ms ? `${ms}ms var(--ease-cayla)` : "";
       hoja.style.setProperty("transition", transicion ? `transform ${transicion}` : "none", "important");
       hoja.style.setProperty("transform", `translate3d(0, ${y}px, 0)`, "important");
-      const progreso = progresoDeCierre(y, alto);
+      if (medio !== null) {
+        const pie = hoja.querySelector<HTMLElement>(PIE);
+        const sube = Math.min(Math.max(y, 0), medio);
+        pie?.style.setProperty("transition", transicion ? `transform ${transicion}` : "none", "important");
+        pie?.style.setProperty("transform", `translate3d(0, ${-sube}px, 0)`, "important");
+      }
+      const p = progresoDeCierre(y, alto);
+      progreso.current = p;
       const velo = op.current.velo.current;
       if (velo) {
         velo.style.setProperty("transition", transicion ? `opacity ${transicion}` : "none", "important");
-        velo.style.setProperty("opacity", String(1 - progreso), "important");
+        velo.style.setProperty("opacity", String(1 - p), "important");
       }
-      op.current.alMoverse?.(progreso, ms);
+      op.current.alMoverse?.(p, ms);
     };
     const soltarEstilos = () => {
-      for (const el of [hoja, op.current.velo.current]) {
+      for (const el of [hoja, op.current.velo.current, hoja.querySelector<HTMLElement>(PIE)]) {
         el?.style.removeProperty("transition");
         el?.style.removeProperty("transform");
         el?.style.removeProperty("opacity");
+        el?.removeAttribute("data-movida");
       }
       yAhora = 0;
+      progreso.current = 0;
     };
-    const volver = (vy: number) => {
-      const ms = sinMovimiento() ? 0 : duracionHacia(yAhora, vy);
-      pintar(0, ms);
-      reloj = setTimeout(soltarEstilos, ms + 20);
+    /** Lleva la hoja a un punto que no es «cerrada»: abierta del todo suelta los estilos al llegar; a media altura se queda. */
+    const irA = (destino: number, vy: number) => {
+      const ms = sinMovimiento() ? 0 : duracionHacia(destino - yAhora, vy);
+      pintar(destino, ms);
+      if (destino <= 0) reloj = setTimeout(soltarEstilos, ms + 20);
     };
     // Puede llegar tarde: después de «¿Salir sin guardar?» → «Salir», con la hoja ya de vuelta en su lugar.
     const salir = () => {
@@ -99,10 +131,27 @@ export function useHojaArrastre(opciones: Opciones) {
       pintar(alto, ms);
       op.current.alSalir(ms);
     };
+    salirMovida.current = (ms) => {
+      if (yAhora <= 0) return false;
+      clearTimeout(reloj);
+      pintar(alto || hoja.offsetHeight, ms);
+      return true;
+    };
+
+    // A media altura: entra desde el borde y se detiene a la mitad (solo si la hoja es alta; si no, abre entera).
+    if (op.current.aMedia && op.current.activo && enCelular()) {
+      alto = hoja.offsetHeight;
+      medio = puntoMedio(alto, window.innerHeight);
+      if (medio !== null) {
+        pintar(alto);
+        void hoja.offsetWidth;
+        pintar(medio, sinMovimiento() ? 0 : MS_ENTRADA);
+      }
+    }
 
     const alTocar = (e: TouchEvent) => {
       g = null;
-      if (!op.current.activo || e.touches.length !== 1 || !window.matchMedia?.(CELULAR).matches) return;
+      if (!op.current.activo || e.touches.length !== 1 || !enCelular()) return;
       const objetivo = e.target instanceof Element ? e.target : null;
       if (!objetivo || objetivo.closest(NO_ARRASTRA)) return;
       // Lo que corre bajo el dedo, de adentro hacia la hoja: si algo no está arriba del todo, bajar el dedo es desplazarlo.
@@ -122,9 +171,10 @@ export function useHojaArrastre(opciones: Opciones) {
       const dy = t.clientY - g.y0;
       if (g.eje === null) {
         const arriba = g.corredores.every((c) => c.scrollTop <= 0);
-        // Mientras se decide, un dedo que baja con todo arriba no se le entrega al navegador: si empieza su gesto, no lo suelta.
-        if (dy > 0 && arriba && e.cancelable) e.preventDefault();
-        const eje = decidirGesto(dx, dy, arriba);
+        const enTope = g.y <= 0.5;
+        // Mientras se decide, un dedo que va a ser de la hoja no se le entrega al navegador: si empieza su gesto, no lo suelta.
+        if (e.cancelable && ((dy > 0 && arriba) || !enTope)) e.preventDefault();
+        const eje = decidirGesto(dx, dy, arriba, enTope);
         if (eje === null) return;
         if (eje === "contenido") {
           g = null;
@@ -147,7 +197,8 @@ export function useHojaArrastre(opciones: Opciones) {
       if (!gesto || gesto.eje !== "hoja") return;
       hoja.removeAttribute("data-arrastrando");
       const vy = e.type === "touchcancel" ? 0 : velocidad(gesto.muestras);
-      const destino = op.current.bloqueado ? 0 : destinoAlSoltar(yAhora, gesto.y, [0, alto], vy);
+      const puntos = medio !== null ? [0, medio, alto] : [0, alto];
+      const destino = op.current.bloqueado ? gesto.y : destinoAlSoltar(yAhora, gesto.y, puntos, vy);
       if (destino >= alto) {
         vSoltada = vy;
         let salio = false;
@@ -156,8 +207,11 @@ export function useHojaArrastre(opciones: Opciones) {
           salir();
         });
         if (salio) return;
+        // Con cambios, vuelve a donde estaba (abierta o a media altura) mientras pregunta.
+        irA(gesto.y, vy);
+        return;
       }
-      volver(vy);
+      irA(destino, vy);
     };
 
     hoja.addEventListener("touchstart", alTocar, { passive: true });
@@ -172,4 +226,9 @@ export function useHojaArrastre(opciones: Opciones) {
       hoja.removeEventListener("touchcancel", alSoltar);
     };
   }, []);
+
+  const salirDesdeDondeEsta = useCallback((ms: number) => salirMovida.current?.(ms) ?? false, []);
+  /** Cuánto de la hoja está fuera ahora (0 abierta del todo): a media altura, lo de atrás se aleja solo en esa proporción. */
+  const progresoActual = useCallback(() => progreso.current, []);
+  return useMemo(() => ({ enlazar, salirDesdeDondeEsta, progresoActual }), [enlazar, salirDesdeDondeEsta, progresoActual]);
 }

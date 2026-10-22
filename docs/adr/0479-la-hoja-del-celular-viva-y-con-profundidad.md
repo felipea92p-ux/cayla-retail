@@ -1,8 +1,8 @@
 # ADR-0479 — La hoja del celular: viva y con profundidad
 
 - **Fecha:** 2026-10-22 · **Estado:** aceptado (Felipe eligió «B · Hoja viva con profundidad» mirando la maqueta). En construcción por
-  actividades en la rama `claude/unificar-animaciones-moviles-51e9d0`: **actividades 1, 2 y 3 hechas** (la hoja viva en `<Modal>`, el
-  ticket de Vender y la profundidad).
+  actividades en la rama `claude/unificar-animaciones-moviles-51e9d0`: **actividades 1 a 4 hechas** (la hoja viva en `<Modal>`, el
+  ticket de Vender, la profundidad y Filtros a media altura).
 - **Relacionados:** ADR-0136 (regla de movimiento de modales), ADR-0358 (una función, una pieza: `/unificar`), ADR-0185 (la página no
   se encoge bajo el mouse), ADR-0146 (avisos), ADR-0149 (loader único), PL-105 (Vender, Cambios y Devoluciones a 375 px).
 - **Maqueta y auditoría:** `docs/maquetas/hojas-movil-2026-10/index.html` (pestaña «Lo que encontré»).
@@ -45,7 +45,7 @@ Todo vale **solo bajo 640 px**, donde la hoja va pegada abajo. En escritorio y e
 | 1 | La hoja viva en `<Modal>` | **Hecha** |
 | 2 | El mostrador: el ticket de Vender con el dedo; Vender, Cambios, Devoluciones y Apartados a 375 px | **Hecha** |
 | 3 | La profundidad: lo de atrás se aleja y vuelve con el dedo | **Hecha** |
-| 4 | Filtros a media altura | Por hacer |
+| 4 | Filtros a media altura | **Hecha** |
 | 5 | El cajón como hoja alta | Por hacer |
 | 6 | Registro: familia en `/unificar`, ADR-0136 y `CLAUDE.md`; PR | Por hacer |
 | 7 | Que un toque no deje nada pegado (`:hover` solo con mouse) | Por hacer |
@@ -134,3 +134,28 @@ contenido quedan a 15 px de cada borde y de 345 px de ancho los dos, sin nada as
 cerrarlo. Con el procesador frenado 4 veces, la entrada corre a 17 ms por cuadro, sin cuadros lentos, igual con y sin profundidad (no
 mide la tarjeta gráfica de un teléfono barato: eso se ve en el iPhone). Lo de las actividades 1 y 2, repetido con la profundidad puesta,
 sigue igual. `vitest` completo, `tsc`, `eslint`, `knip` y `knip:produccion` en verde.
+
+## Actividad 4 — Filtros a media altura
+
+- **`<Modal mediaAltura>`:** en el celular la hoja entra desde el borde y se detiene dejando media pantalla a la vista (`puntoMedio` en
+  `lib/hoja-gesto.ts`; si la hoja es baja, menos del 62 % de la pantalla, abre entera). La usan los Filtros de Productos y de
+  Existencias, que aplican cada cambio al momento: se ve lo primero, su botón y, detrás, la lista que cambia.
+- **A media altura, todo gesto vertical es de la hoja** (`decidirGesto` con `hojaEnTope` falso): hacia arriba se estira hasta abierta del
+  todo, hacia abajo se cierra; lo de adentro recién se desplaza con la hoja estirada, como en iOS. Los tres puntos (abierta, media,
+  cerrada) los decide `destinoAlSoltar`, igual que antes: un tercio del tramo o un tirón.
+- **El pie a la vista:** el `.pie-hoja-fijo` sube lo mismo que baja la hoja (hasta la media altura), así «Ver 21 productos» queda pegado
+  abajo de la pantalla en las dos alturas.
+- **Lo de atrás en proporción:** a media altura se aleja solo lo que corresponde (0,95, no 0,92); `<Modal>` lo ajusta con
+  `progresoActual()` del gancho apenas aleja lo de atrás. Si no, saltaba al primer toque.
+- **Salir desde la media altura con Escape, el velo o la ✕:** la hoja está movida con un estilo importante, así que sale con su
+  transición (`salirDesdeDondeEsta`). La clase de salida no se le pone (`data-movida` en la hoja y el velo, regla en globals.css): su
+  animación sobre `transform` cancelaba la transición y la hoja saltaba abajo de golpe (medido: a los 16 ms ya estaba abajo). La primera
+  versión lo decidía en `pedirCierre` leyendo una ref, y el linter de React lo rechazó con razón (`pedirCierre` se pasa a los hijos
+  durante el render); con el atributo, `pedirCierre` quedó como era.
+
+**Verificado (2026-10-22, local, 375 × 812 táctil emulado):** Filtros de Productos abre con el borde en 406 px (la mitad) y «Ver 21
+productos» entre 752 y 811 px; un gesto hacia arriba desde el contenido la estira (borde en 193 px) sin desplazar lo de adentro; bajarla
+lento un poco más de un tercio la devuelve a 406; un tirón desde ahí la cierra y no deja estilos; Escape desde la mitad la baja en 300
+ms (406 → 574 → 718 → … → 812). Filtros de Existencias (`/inventario`) también abre a la mitad. Lo de las actividades 1 a 3 sigue igual
+(hoja con texto, contenido desplazado, arrastre corto, escritorio, ticket cobrando, barra de Caja). `vitest` completo, `tsc`, `eslint`,
+`knip` y `knip:produccion` en verde.

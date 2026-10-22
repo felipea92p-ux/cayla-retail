@@ -33,13 +33,27 @@ export type Muestra = { t: number; y: number };
 
 /**
  * De quién es el gesto, o `null` si el dedo todavía no se movió lo suficiente para saberlo.
- * La hoja solo toma el gesto cuando el dedo BAJA y todo lo que corre bajo él está arriba del todo; de lado (una
- * tabla que corre, un riel de píldoras) o hacia arriba, el gesto es del contenido.
+ * Con la hoja abierta del todo, la hoja solo toma el gesto cuando el dedo BAJA y todo lo que corre bajo él está arriba del
+ * todo; de lado (una tabla que corre, un riel de píldoras) o hacia arriba, el gesto es del contenido. Con la hoja a media
+ * altura (`hojaEnTope` falso), todo gesto vertical es de la hoja: primero se estira, después se desplaza lo de adentro.
  */
-export function decidirGesto(dx: number, dy: number, contenidoArriba: boolean): "hoja" | "contenido" | null {
+export function decidirGesto(dx: number, dy: number, contenidoArriba: boolean, hojaEnTope = true): "hoja" | "contenido" | null {
   if (Math.abs(dx) < MOVIMIENTO_MINIMO && Math.abs(dy) < MOVIMIENTO_MINIMO) return null;
   if (Math.abs(dx) > Math.abs(dy)) return "contenido";
+  if (!hojaEnTope) return "hoja";
   return dy > 0 && contenidoArriba ? "hoja" : "contenido";
+}
+
+/** Una hoja a media altura deja a la vista la mitad de la pantalla (Filtros: se ve lo primero y su botón). */
+const FRACCION_MEDIA = 0.5;
+
+/**
+ * Dónde se detiene una hoja que abre a media altura (px hacia abajo desde abierta del todo), o `null` si es tan baja que no
+ * vale la pena partirla: con menos del 62 % de la pantalla, abre entera.
+ */
+export function puntoMedio(alto: number, pantalla: number): number | null {
+  if (alto <= 0 || pantalla <= 0 || alto < pantalla * 0.62) return null;
+  return Math.round(alto - pantalla * FRACCION_MEDIA);
 }
 
 /** Cuánto cede algo que se tira `d` px más allá de su tope: crece cada vez menos y nunca pasa de `tope`. Sin rebote.

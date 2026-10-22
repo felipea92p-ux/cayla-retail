@@ -11,6 +11,7 @@ import {
   goma,
   posicionAlArrastrar,
   progresoDeCierre,
+  puntoMedio,
   velocidad,
 } from "./hoja-gesto";
 
@@ -40,6 +41,23 @@ describe("decidirGesto", () => {
   it("subiendo el dedo o de lado, nunca es de la hoja", () => {
     expect(decidirGesto(0, -12, true)).toBe("contenido");
     expect(decidirGesto(20, 10, true)).toBe("contenido");
+  });
+
+  it("a media altura, todo gesto vertical es de la hoja (primero se estira); de lado sigue siendo del contenido", () => {
+    expect(decidirGesto(0, -12, false, false)).toBe("hoja");
+    expect(decidirGesto(0, 12, false, false)).toBe("hoja");
+    expect(decidirGesto(20, 10, true, false)).toBe("contenido");
+  });
+});
+
+describe("puntoMedio", () => {
+  it("una hoja alta se detiene dejando media pantalla a la vista", () => {
+    expect(puntoMedio(730, 812)).toBe(730 - 406);
+  });
+
+  it("una hoja baja (menos del 62 % de la pantalla) abre entera", () => {
+    expect(puntoMedio(480, 812)).toBeNull();
+    expect(puntoMedio(0, 812)).toBeNull();
   });
 });
 
