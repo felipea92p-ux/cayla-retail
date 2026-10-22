@@ -55,9 +55,9 @@ describe("problemaDeLineaInsumo: las reglas de una línea de `fn_orden_insumo_va
     ["tres decimales", { cantidad: "12.505" }, null],
     ["el máximo, 99 999.999 conos a S/ 99 999.9999", { insumoId: "hilo", cantidad: "99999.999", precio: "99999.9999" }, null],
     ["la cantidad dice su unidad (conos)", { insumoId: "hilo", cantidad: "1.2345" }, "La cantidad va de 0.001 a 99 999.999 conos, con hasta tres decimales."],
-    ["sin precio: lo pide por la unidad", { precio: "" }, "Escribe el precio por metro."],
-    ["precio con cinco decimales", { precio: "10.55555" }, "El precio va de S/\u00a00 a S/\u00a099 999.9999, con hasta cuatro decimales."],
-    ["precio en letras", { precio: "diez" }, "El precio va de S/\u00a00 a S/\u00a099 999.9999, con hasta cuatro decimales."],
+    ["sin precio: lo pide por la unidad", { precio: "" }, "Escribe el costo por metro."],
+    ["precio con cinco decimales", { precio: "10.55555" }, "El costo va de S/\u00a00 a S/\u00a099 999.9999, con hasta cuatro decimales."],
+    ["precio en letras", { precio: "diez" }, "El costo va de S/\u00a00 a S/\u00a099 999.9999, con hasta cuatro decimales."],
     ["precio 0 (un regalo del proveedor)", { precio: "0" }, null],
     ["un botón a S/ 0.0350", { insumoId: "boton", cantidad: "1000", precio: "0.0350" }, null],
     ["descuento en soles mayor que la línea", { cantidad: "2", precio: "10", descuento: "20.01", modoDescuento: "soles" }, "El descuento no puede pasar de lo que cuesta la línea."],
@@ -151,7 +151,7 @@ describe("camposDeLaOrdenInsumo: la guía de foco (CR3, E6, E7 de la base)", () 
   });
   it("una línea con problema dice cuál es y bloquea; el responsable solo se pide en una terminal (decisión 39)", () => {
     const campos = camposDeLaOrdenInsumo(orden({ lineas: [linea(), linea({ clave: "l2", precio: "" })] }), CTX, SIN_COMBO);
-    expect(campos.find((c) => c.id === "linea-l2")).toMatchObject({ nombre: "Línea 2", hecho: false, pendiente: "Escribe el precio por metro." });
+    expect(campos.find((c) => c.id === "linea-l2")).toMatchObject({ nombre: "Línea 2", hecho: false, pendiente: "Escribe el costo por metro." });
     expect(camposDeLaOrdenInsumo(orden(), CTX, SIN_COMBO).some((c) => c.id === "responsable")).toBe(false);
     const terminal = camposDeLaOrdenInsumo(orden(), CTX, { pide: true, listo: false, motivo: "Elige quién hace esta operación." });
     expect(terminal.at(-1)).toMatchObject({ id: "responsable", requerido: true, hecho: false });

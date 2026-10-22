@@ -48,7 +48,7 @@ import {
 // nadie busque un botón que no está. Todo con tolerancia: una base que todavía no los cuenta no trae nada de esto y la orden se ve como
 // siempre.
 //
-// # · Insumo (código y descripción) · Cantidad · Precio u. · Descuento · Subtotal. Las columnas las decide el ANCHO DISPONIBLE
+// # · Insumo (código y descripción) · Cantidad · Costo u. · Descuento · Subtotal. Las columnas las decide el ANCHO DISPONIBLE
 // (`@container`), no la ventana: con menos de 40 rem la cuenta de la línea va en un renglón bajo el insumo.
 const PLANTILLA = "@min-[40rem]:grid-cols-[2rem_minmax(0,1fr)_7.5rem_6.5rem_6.5rem_7rem]";
 const EN_COLUMNAS = "hidden @min-[40rem]:block";
@@ -109,7 +109,7 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
               { titulo: "#" },
               { titulo: "Insumo" },
               { titulo: "Cantidad", alinear: "der" },
-              { titulo: "Precio u.", alinear: "der" },
+              { titulo: "Costo u.", alinear: "der" },
               { titulo: "Descuento", alinear: "der" },
               { titulo: "Subtotal", alinear: "der" },
             ]}

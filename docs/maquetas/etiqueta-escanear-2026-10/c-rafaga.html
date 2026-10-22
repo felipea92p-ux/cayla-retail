@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C · Ráfaga</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+<script src="_datos.js"></script>
+<script src="_comun.js"></script>
+<script>
+/* ====================================================================
+   C · RÁFAGA. La hoja tiene dos modos, como «GRILLA / TABLA»: ESCANEAR (el de entrada) y LISTA. Escanear es una mesa: cada
+   prenda leída cae como una tarjeta sobre la pila —la última arriba, las anteriores se corren detrás— con su sello y el precio
+   que baja; lo que no entra se aparta a «No entraron», con su motivo. A la derecha, el marcador de la ráfaga. Pensada para el
+   que tiene 40 prendas del sorteo en los brazos y quiere escanear sin mirar la pantalla. «Revisar» pasa a la Lista con «Lo que
+   cambia» ya puesto, por si quiere ajustar algo a mano, y de ahí a aplicar.
+   ==================================================================== */
+const { icono, esc, soles, plural, mini } = EQD;
+const DEF = {
+  letra: "c",
+  estilos: `
+    .hoja.c{padding:26px 28px 0;height:100%;overflow:hidden;display:flex;flex-direction:column}
+    .hoja.c>[data-cuerpo]{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+    .c-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    .modo{position:relative;display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--sand);border-radius:10px;padding:3px;isolation:isolate}
+    .modo button{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 16px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--t65);transition:color 220ms var(--ease)}
+    .modo button[aria-pressed=true]{color:var(--tinta)}
+    .modo .pista{position:absolute;z-index:0;top:3px;bottom:3px;left:3px;border-radius:8px;background:var(--papel);box-shadow:var(--sh-sm);transition:transform 360ms var(--ease),width 360ms var(--ease)}
+    .modo svg.ic{width:14px;height:14px}
+    .c-vista{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:18px;animation:revelar 300ms var(--ease) both}
+    .c-escanear{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px}
+    .c-mesa{position:relative;min-height:330px;border-radius:var(--r-2xl);background:var(--hueso);overflow:hidden;display:grid;place-items:center;isolation:isolate}
+    .c-mesa::before{content:"";position:absolute;inset:0;background-image:radial-gradient(color-mix(in srgb,var(--tinta) 9%,transparent) 1px,transparent 1.2px);background-size:18px 18px;opacity:.7;z-index:-1}
+    .c-mesa.lee{animation:mesa-lee 600ms var(--ease) 1}
+    @keyframes mesa-lee{0%{box-shadow:inset 0 0 0 0 transparent}30%{box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--verde) 55%,transparent)}100%{box-shadow:inset 0 0 0 0 transparent}}
+    .c-mesa.lee-ambar{animation:mesa-lee-a 600ms var(--ease) 1}
+    @keyframes mesa-lee-a{30%{box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--ambar) 60%,transparent)}}
+    /* la invitación: la etiqueta con su QR y el rayo de la pistola que la cruza */
+    .c-invita{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px;transition:opacity 300ms var(--ease),transform 300ms var(--ease)}
+    .c-invita.fuera{opacity:0;transform:scale(.96);pointer-events:none}
+    .c-etq-ilus{position:relative;width:150px;padding:18px 14px 10px;background:var(--papel);border-radius:12px;border:1px solid var(--sand);transform:rotate(-5deg);box-shadow:0 18px 34px -20px color-mix(in srgb,var(--sombra) 45%,transparent);animation:sube 800ms var(--ease) 200ms backwards}
+    .c-etq-ilus::before{content:"";position:absolute;top:8px;left:50%;width:9px;height:9px;margin-left:-4.5px;border-radius:50%;background:var(--hueso);box-shadow:inset 0 0 0 1px var(--sand)}
+    .c-etq-ilus svg.qr{width:100%;height:auto;display:block;border-radius:4px}
+    .c-etq-ilus .rayo{position:absolute;left:-14px;right:-14px;top:30%;height:2px;background:var(--rojo);box-shadow:0 0 12px 2px color-mix(in srgb,var(--rojo) 55%,transparent);border-radius:2px;animation:rayo-c 2.2s var(--ease) 900ms 2 both}
+    @keyframes rayo-c{0%{top:22%;opacity:0}15%{opacity:1}85%{opacity:1}100%{top:82%;opacity:0}}
+    .c-invita h3{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:28px;line-height:1.1}
+    .c-invita p{color:var(--t65);max-width:380px;font-size:14px}
+    /* la pila de tarjetas */
+    .c-pila{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+    .carta{position:absolute;width:min(360px,86%);background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:16px;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center;pointer-events:auto;
+      box-shadow:0 26px 44px -26px color-mix(in srgb,var(--sombra) 50%,transparent);transition:transform 520ms var(--ease),opacity 520ms var(--ease),filter 520ms var(--ease)}
+    .carta .mini{grid-row:1/4;width:64px;height:78px;border-radius:12px}.carta .mini svg.ic{width:30px;height:30px}
+    .carta .nom{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:22px;line-height:1.1}
+    .carta .det{font-size:12.5px;color:var(--t55)}.carta .det .mono{font-size:11px}
+    .carta .pr{grid-column:1/-1;display:flex;align-items:baseline;justify-content:space-between;gap:10px;border-top:1px dashed var(--t15);margin-top:10px;padding-top:10px}
+    .carta .pr s{color:var(--t45);font-size:13px}
+    .carta .pr b{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+    .carta .sello-c{position:absolute;right:14px;top:-14px;display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 6px;border-radius:999px;background:var(--verde);color:var(--crema-fija);font-size:12px;font-weight:600;letter-spacing:.02em;box-shadow:0 8px 18px -8px color-mix(in srgb,var(--sombra) 50%,transparent)}
+    :root[data-tema="oscuro"] .carta .sello-c{color:var(--tinta-fija)}
+    .carta .sello-c .visto{width:18px;height:18px;background:color-mix(in srgb,var(--crema-fija) 22%,transparent)}
+    .carta .sello-c.pizarra{background:var(--pizarra)}.carta .sello-c.taupe{background:var(--taupe)}.carta .sello-c.ambar{background:var(--ambar)}
+    .carta.cae{animation:cae 560ms var(--ease) both}
+    @keyframes cae{from{opacity:0;transform:translate3d(0,-70px,0) rotate(-7deg) scale(1.06)}}
+    .carta.cae .sello-c{animation:sella 420ms var(--ease) 320ms both}
+    @keyframes sella{from{opacity:0;transform:scale(1.6) rotate(-8deg)}}
+    .carta[data-pos="1"]{transform:translate3d(18px,14px,0) rotate(3deg) scale(.95);opacity:.9}
+    .carta[data-pos="2"]{transform:translate3d(-18px,26px,0) rotate(-3.5deg) scale(.9);opacity:.65}
+    .carta[data-pos="3"]{transform:translate3d(6px,36px,0) rotate(1.5deg) scale(.86);opacity:.35}
+    .carta[data-pos="4"]{transform:translate3d(0,44px,0) scale(.82);opacity:0}
+    .carta[data-pos="1"] .sello-c,.carta[data-pos="2"] .sello-c,.carta[data-pos="3"] .sello-c{opacity:0;transition:opacity 300ms}
+    .carta .acc{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .carta[data-pos]:not([data-pos="0"]) .acc{visibility:hidden}
+    .c-mesa .pie-mesa{position:absolute;left:14px;right:14px;bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:var(--t55)}
+    .c-mesa .pie-mesa .listo{display:inline-flex;align-items:center;gap:7px}
+    .c-mesa .pie-mesa .listo i{width:7px;height:7px;border-radius:50%;background:var(--verde);color:var(--verde);animation:pulso-vivo 2.2s var(--ease) infinite}
+    /* el marcador */
+    .c-marcador{display:flex;flex-direction:column;gap:14px;min-height:0}
+    .c-marcador .card{padding:16px}
+    .c-cifra{display:flex;align-items:baseline;gap:10px}
+    .c-cifra b{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:64px;line-height:.9;font-variant-numeric:tabular-nums}
+    .c-cifra b.pop{animation:pop 420ms var(--ease)}
+    .c-cifra span{font-size:13px;color:var(--t65);line-height:1.3}
+    .barra-ap{display:flex;height:10px;border-radius:999px;background:var(--hueso);overflow:hidden;gap:2px;margin-top:12px}
+    .barra-ap i{display:block;height:100%;transition:flex-grow 600ms var(--ease);flex-basis:0}
+    .barra-ap .v{background:var(--verde)}.barra-ap .p{background:var(--pizarra)}.barra-ap .a{background:var(--ambar)}
+    .leyenda{display:flex;flex-direction:column;gap:4px;margin-top:10px;font-size:12.5px;color:var(--t65)}
+    .leyenda span{display:flex;align-items:center;gap:8px}.leyenda i{width:8px;height:8px;border-radius:2px}
+    .c-no{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow:auto}
+    .c-no .n{display:flex;align-items:center;gap:10px;font-size:12.5px;animation:entrada 320ms var(--ease) backwards}
+    .c-no .n .mini{width:26px;height:32px;border-radius:6px}.c-no .n .mini svg.ic{width:13px;height:13px}
+    .c-no .n small{display:block;color:var(--ambar-p)}
+    .c-pie{flex:none;margin-top:16px;padding:14px 0 20px;border-top:1px solid var(--t10);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--papel)}
+    .c-pie .der{display:flex;gap:8px;align-items:center}
+    .c-lista{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+    .c-caja-lista{flex:1;min-height:10rem;display:flex;flex-direction:column;border:1px solid var(--sand);border-radius:var(--r-lg);overflow:hidden}
+    .c-scroll{flex:1;min-height:0;overflow:auto}
+    @container escena (max-width:760px){.c-escanear{grid-template-columns:1fr}.c-marcador{flex-direction:row;flex-wrap:wrap}.c-marcador>*{flex:1 1 240px}}
+    @container escena (max-width:640px){
+      .hoja.c{padding:18px 16px 0;height:94%}
+      .c-mesa{min-height:340px}
+      .c-vista{flex:none}.c-escanear{flex:none}.c-lista{flex:none}.c-caja-lista{flex:none;min-height:0}.c-scroll{flex:none;overflow:visible}
+      .c-pie{position:sticky;bottom:0;z-index:4}
+      .c-mesa .pie-mesa .listo{display:none}.c-mesa .pie-mesa{justify-content:center}
+      .c-pie{margin-top:14px;padding:12px 0 16px}.c-pie .der{width:100%}.c-pie .der .btn{flex:1}
+      .carta .nom{font-size:19px}.carta .mini{width:52px;height:64px}
+      .modo button{padding:8px 12px}
+    }
+  `,
+  montar(api, { vista = "escanear" } = {}) {
+    const { modelo: m, Modelo } = api;
+    const e = m.e;
+    api.rafaga = api.rafaga || { puestas: 0, repetidas: 0, no: 0, cartas: [] };
+    const hoja = api.abrirHoja(`
+      <div class="c-cab cascada">
+        <div>${api.cabeceraHoja(m)}</div>
+        <div class="modo" data-modo-vista role="group" aria-label="Cómo ver"><span class="pista"></span>
+          <button data-vista="escanear" aria-pressed="${vista === "escanear"}">${icono("scan")} Escanear</button>
+          <button data-vista="lista" aria-pressed="${vista === "lista"}">${icono("lista")} Lista</button></div>
+      </div>
+      <div data-cuerpo><div data-vista-cont class="c-vista" style="display:flex"></div>
+        <div class="c-pie"><span class="tenue" data-resumen style="font-size:13.5px"></span><span class="der"><button class="btn sec" data-cancelar>Cancelar</button><button class="btn pri" data-aplicar>Revisar y aplicar</button></span></div>
+      </div>`, { ancho: 1000, clase: "c" });
+    const $ = (s) => hoja.querySelector(s);
+    api.ui = { hoja, $, vista };
+    const modo = $("[data-modo-vista]");
+    requestAnimationFrame(() => api.moverPista(modo));
+    modo.addEventListener("click", (ev) => { const b = ev.target.closest("[data-vista]"); if (b) ir(b.dataset.vista); });
+    $("[data-cancelar]").onclick = () => api.cerrarHoja();
+    $("[data-aplicar]").onclick = (ev) => {
+      if (api.ui.vista === "escanear" && e.descuentoPct != null) return ir("lista", { filtro: "cambios" });
+      if (e.descuentoPct == null) return api.aplicar(hoja, ev.currentTarget);
+      api.revisarEn(hoja, { alVolver: () => DEF.montar(api, { vista: "lista" }) });
+    };
+
+    function ir(v, { filtro } = {}) {
+      api.ui.vista = v;
+      modo.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.vista === v)));
+      api.moverPista(modo);
+      const cont = $("[data-vista-cont]");
+      cont.style.animation = "none"; void cont.offsetWidth; cont.style.animation = "";
+      if (v === "escanear") pintarEscanear(cont); else pintarLista(cont, filtro);
+      pintarPie();
+    }
+    function pintarEscanear(cont) {
+      const R = api.rafaga;
+      cont.innerHTML = `<div class="c-escanear">
+        <div class="c-mesa" data-mesa>
+          <div class="c-invita ${R.cartas.length ? "fuera" : ""}" data-invita>
+            <div class="c-etq-ilus">${api.qrSvg("VES-0018-OLI-M")}<i class="rayo"></i></div>
+            <h3>Escanea las prendas, una tras otra</h3>
+            <p>La pistola lee aunque no toques nada. Cada prenda cae aquí con la etiqueta puesta; lo que no entra se aparta con su motivo.</p>
+            <button class="btn sec" data-camara>${icono("camara")} Usar la cámara del teléfono</button>
+          </div>
+          <div class="c-pila" data-pila></div>
+          <div class="pie-mesa"><span class="listo"><i></i> Lector listo</span>${api.segmentoHtml(m)}</div>
+        </div>
+        <aside class="c-marcador">
+          <div class="card"><span class="versal taupe">Esta ráfaga</span>
+            <div class="c-cifra" style="margin-top:6px"><b data-n-puestas>${R.puestas}</b><span data-n-txt>${R.puestas === 1 ? "prenda nueva<br>con la etiqueta" : "prendas nuevas<br>con la etiqueta"}</span></div>
+            <div class="barra-ap" aria-hidden="true"><i class="v" data-bv></i><i class="p" data-bp></i><i class="a" data-ba></i></div>
+            <div class="leyenda"><span><i style="background:var(--verde)"></i><b data-lv>${R.puestas}</b> marcadas</span><span><i style="background:var(--pizarra)"></i><b data-lp>${R.repetidas}</b> ya la llevaban</span><span><i style="background:var(--ambar)"></i><b data-la>${R.no}</b> no entraron</span></div>
+          </div>
+          <div class="card"><span class="versal taupe">No entraron</span><div class="c-no" data-no style="margin-top:10px">${R.no ? "" : `<p class="tenue" style="font-size:12.5px">Nada por ahora. Aquí cae lo que no se pudo etiquetar.</p>`}</div></div>
+          <div class="card" style="display:flex;flex-direction:column;gap:8px"><span class="versal taupe">Total con «${esc(e.nombre)}»</span><span style="font-family:'EB Garamond',serif;font-size:30px;font-weight:600;line-height:1" data-total>${Modelo.totalPrendas(m)}</span><span class="tenue" style="font-size:12.5px">prendas, contando las de antes</span></div>
+        </aside></div>`;
+      const seg = cont.querySelector("[data-segmento]"); requestAnimationFrame(() => api.moverPista(seg));
+      seg.addEventListener("click", (ev) => { const b = ev.target.closest("[data-modo]"); if (!b) return; m.modo = b.dataset.modo; seg.dataset.tono = m.modo; seg.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); api.moverPista(seg); });
+      cont.querySelector("[data-camara]").onclick = () => abrirCam();
+      // Las cartas de antes vuelven a la mesa, quietas.
+      const pila = cont.querySelector("[data-pila]");
+      R.cartas.slice(0, 5).reverse().forEach((r) => pila.appendChild(carta(r, false)));
+      ordenarPila(pila);
+      barra();
+      R.noHtml?.forEach((h) => cont.querySelector("[data-no]").insertAdjacentHTML("beforeend", h));
+    }
+    function pintarLista(cont, filtro) {
+      cont.innerHTML = `<div class="c-lista">
+        ${api.lectorHtml({ camara: true })}
+        <div class="pildoras" data-pildoras></div>
+        <div class="c-caja-lista"><div class="a-cab-lista fila entre" style="padding:8px 10px 8px 14px;border-bottom:1px solid var(--t07);font-size:12.5px;color:var(--t55)"><span class="num" data-conteo></span><span class="fila" style="gap:6px"><button class="btn sut" style="min-height:30px;font-size:12.5px" data-marcar-todos>Marcar todos</button><button class="btn sut" style="min-height:30px;font-size:12.5px" data-quitar-todos>Quitar todos</button></span></div>
+        <div class="c-scroll" data-scroll><ul class="lista-prendas" data-lista></ul></div></div></div>`;
+      api.ui.lista = api.montarLista(cont, { scroller: cont.querySelector("[data-scroll]"), conCambios: true, alCambiar: pintarPie });
+      if (filtro) api.ui.lista.filtrar(filtro);
+      cont.querySelector("[data-camara]").onclick = (ev) => { ev.preventDefault(); abrirCam(); };
+    }
+    function abrirCam() { api.cam = api.abrirCamara({ titulo: `«${e.nombre}»`, resumen: () => `${plural(api.rafaga.puestas, "nueva", "nuevas")} con la etiqueta`, alCerrar: () => { api.cam = null; } }); }
+    function pintarPie() {
+      const c = Modelo.cambio(m), n = c.agregar.length + c.quitar.length;
+      $("[data-resumen]").innerHTML = n ? esc(Modelo.textoCambio(m)) : "Nada cambió todavía: escanea o marca prendas.";
+      const b = $("[data-aplicar]"); b.disabled = !n;
+      b.innerHTML = e.descuentoPct == null ? "Aplicar" : api.ui.vista === "escanear" ? `Revisar ${icono("der", "flecha")}` : "Revisar y aplicar";
+    }
+    api.pintarPie = pintarPie;
+    api.ir = ir;
+    ir(vista);
+  },
+
+  alLeer(r, api) {
+    const ui = api.ui; if (!ui || !ui.hoja.isConnected || !ui.$("[data-vista-cont]")) return;
+    const m = api.modelo, R = api.rafaga;
+    // En la Lista, la lectura se comporta como en A: marca y muestra la fila.
+    if (ui.vista !== "escanear") {
+      api.barrer(ui.$("[data-lector]"), r.tono);
+      if (r.p) ui.lista.mostrar(r.p, r.tono); else api.aviso(api.mensaje(m, r).chip, "ambar");
+      return api.pintarPie();
+    }
+    const entra = r.estado === "puesta" || r.estado === "quitada";
+    if (entra) R.puestas += r.estado === "puesta" ? 1 : 0;
+    else if (r.tono === "ambar") R.no++;
+    else R.repetidas++;
+    const mesa = ui.$("[data-mesa]"), pila = ui.$("[data-pila]");
+    api.reAnimar(mesa, r.tono === "ambar" ? "lee-ambar" : "lee");
+    ui.$("[data-invita]").classList.add("fuera");
+    const c = DEF.carta(r, true, api);
+    pila.appendChild(c);
+    if (r.tono === "ambar") {
+      // Lo que no entra se lee, se queda un instante y se aparta a «No entraron».
+      DEF.ordenarPila(pila, c);
+      const t = api.mensaje(m, r);
+      const h = `<div class="n">${api.miniDe(r)}<span class="crece">${esc(t.titulo)}<small>${esc(t.chip)}${r.estado === "desconocido" ? ` · ${esc(r.codigo)}` : ""}</small></span></div>`;
+      R.noHtml = [h, ...(R.noHtml || [])];
+      setTimeout(async () => {
+        const lista = ui.$("[data-no]"); if (!lista) return;
+        if (!R.no || lista.querySelector("p")) lista.innerHTML = "";
+        lista.insertAdjacentHTML("afterbegin", h);
+        await api.volarEl(c, lista.firstElementChild, { dur: 520 });
+        c.remove(); DEF.ordenarPila(pila);
+      }, api.quieto() ? 0 : 1300);
+    } else {
+      R.cartas.unshift(r);
+      DEF.ordenarPila(pila);
+    }
+    DEF.marcador(api);
+    api.pintarPie();
+  },
+  /** Una carta de la pila: la prenda, su sello y el precio que baja (si cayó recién, cuenta). */
+  carta(r, nueva, api_) {
+    const api = api_ || window.__api; const m = api.modelo, t = api.mensaje(m, r);
+    const pr = r.v && api.Modelo.precio(m, r.v.precio);
+    const el = document.createElement("article");
+    el.className = "carta" + (nueva ? " cae" : ""); el.dataset.r = r.id;
+    const resto = api.Modelo.restoDeTallas(m, r);
+    const ok = r.estado === "puesta" || r.estado === "quitada";
+    el.innerHTML = `<span class="sello-c ${t.tono === "verde" ? "" : t.tono}"><span class="visto ${t.tono === "verde" ? "" : t.tono}"><svg viewBox="0 0 24 24"><path d="${r.tono === "ambar" ? "M12 7v6M12 17h.01" : "M20 6 9 17l-5-5"}"/></svg></span>${esc(t.chip)}</span>
+      ${api.miniDe(r)}
+      <div class="nom">${esc(t.titulo)}</div>
+      <div class="det">${esc(t.det)}${t.det ? " · " : ""}<span class="mono">${esc(r.codigo)}</span></div>
+      <div class="det">${esc(r.estado === "puesta" || r.estado === "quitada" ? (r.p.categoria) : t.linea)}</div>
+      ${pr && ok ? `<div class="pr"><span class="tenue" style="font-size:12px">En caja <s>${soles(r.estado === "puesta" ? pr.antes : pr.despues)}</s></span><b data-vivo>${soles(r.estado === "puesta" ? pr.antes : pr.despues)}</b></div>` : ""}
+      ${ok ? `<div class="acc">${resto ? `<button class="btn sut" style="min-height:30px;font-size:12.5px" data-todas>${icono(r.modo === "poner" ? "plus" : "minus", "mas")} ${r.modo === "poner" ? "Ponérsela" : "Quitársela"} a sus otras ${plural(resto, "talla", "tallas")}</button>` : ""}<button class="btn enlace" data-deshacer>${icono("deshacer")} Deshacer</button></div>` : ""}`;
+    const vivo = el.querySelector("[data-vivo]");
+    if (vivo) {
+      const hasta = r.estado === "puesta" ? pr.despues : pr.antes;
+      if (nueva) { vivo.dataset.v = r.estado === "puesta" ? pr.antes : pr.despues; setTimeout(() => api.cuenta(vivo, hasta, { dur: 900, fmt: soles, ultimo: hasta === 0 ? "Gratis" : undefined }), api.quieto() ? 0 : 420); }
+      else vivo.textContent = hasta === 0 ? "Gratis" : soles(hasta);
+    }
+    el.querySelector("[data-todas]")?.addEventListener("click", (ev) => { const n = api.Modelo.todasSusTallas(m, r); ev.currentTarget.outerHTML = `<span class="chip verde">${icono("check")} ${plural(n, "talla más", "tallas más")}</span>`; api.rafaga.puestas += r.modo === "poner" ? n : 0; DEF.marcador(api); api.pintarPie(); });
+    el.querySelector("[data-deshacer]")?.addEventListener("click", () => {
+      api.Modelo.deshacer(m, r); const R = api.rafaga; R.cartas = R.cartas.filter((x) => x !== r); if (r.estado === "puesta") R.puestas--;
+      el.animate([{ opacity: 1 }, { opacity: 0, transform: "translate3d(60px,-10px,0) rotate(6deg)" }], { duration: 340, easing: "ease-in" }).onfinish = () => { const p = el.parentElement; el.remove(); p && DEF.ordenarPila(p); if (!R.cartas.length) api.ui.$("[data-invita]")?.classList.remove("fuera"); };
+      DEF.marcador(api); api.pintarPie();
+    });
+    return el;
+  },
+  /** La última arriba; las demás se corren detrás, más chicas y tenues. Más de 5 se van del todo. */
+  ordenarPila(pila, arriba) {
+    const cartas = [...pila.querySelectorAll(".carta")].reverse();
+    if (arriba) { cartas.splice(cartas.indexOf(arriba), 1); cartas.unshift(arriba); }
+    cartas.forEach((c, i) => { c.dataset.pos = String(Math.min(i, 4)); c.style.zIndex = String(20 - i); if (i > 5) c.remove(); });
+  },
+  marcador(api) {
+    const R = api.rafaga, $ = api.ui.$; if (!$("[data-n-puestas]")) return;
+    const b = $("[data-n-puestas]"); api.cuenta(b, R.puestas, { dur: 420 }); api.reAnimar(b, "pop");
+    $("[data-n-txt]").innerHTML = R.puestas === 1 ? "prenda nueva<br>con la etiqueta" : "prendas nuevas<br>con la etiqueta";
+    $("[data-lv]").textContent = R.puestas; $("[data-lp]").textContent = R.repetidas; $("[data-la]").textContent = R.no;
+    $("[data-bv]").style.flexGrow = R.puestas; $("[data-bp]").style.flexGrow = R.repetidas; $("[data-ba]").style.flexGrow = R.no;
+    api.cuenta($("[data-total]"), api.Modelo.totalPrendas(api.modelo));
+  },
+
+  async demo(api) {
+    const { pausa } = api; const $ = (s) => api.ui.hoja.querySelector(s);
+    await pausa(1400);
+    for (const [c, ms] of [["VES-0018-OLI-M", 1500], ["JEA-0006-AZU-28", 1400], ["CMS-0021-CEL-S", 1400], ["VES-0018-OLI-M", 1500], ["7750885001237", 2400], ["ACC-0023-OLI-STD", 1300], ["CMP-0004-CAM-M", 1300], ["VES-0018-VIN-XL", 2400], ["TOP-0005-NEG-S", 1600]]) { api.leer(c); await pausa(ms); }
+    $(".carta[data-pos='0'] [data-todas]")?.click(); await pausa(1500);
+    $("[data-aplicar]").click(); await pausa(1800);
+    $("[data-aplicar]").click(); await pausa(2800);
+    api.ui.hoja.querySelector("[data-aplicar]")?.click();
+  },
+};
+// Las cartas que vuelven a la mesa al cambiar de vista usan la api viva.
+const montarOriginal = DEF.montar;
+DEF.montar = function (api, o) { window.__api = api; return montarOriginal.call(this, api, o); };
+function carta(r, nueva) { return DEF.carta(r, nueva); }
+function ordenarPila(p, a) { return DEF.ordenarPila(p, a); }
+function barra() { const a = window.__api; if (a && a.ui.$("[data-n-puestas]")) { const R = a.rafaga; a.ui.$("[data-bv]").style.flexGrow = R.puestas; a.ui.$("[data-bp]").style.flexGrow = R.repetidas; a.ui.$("[data-ba]").style.flexGrow = R.no; } }
+EQ.iniciar(DEF);
+</script>
+</body>
+</html>

@@ -1577,7 +1577,7 @@ export const GUIA_ORDEN: Guia = {
       id: "lineas",
       ancla: "orden.lineas",
       titulo: "Lo que se pidió",
-      texto: "Una fila por prenda: categoría y marca, cuántas, el precio de cada una, el descuento y el subtotal. Abajo, cuántas líneas y unidades, y el total de la orden.",
+      texto: "Una fila por prenda: categoría y marca, cuántas, el costo de cada una, el descuento y el subtotal. Abajo, cuántas líneas y unidades, y el total de la orden.",
     },
     {
       id: "papel-linea",

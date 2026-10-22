@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 61,
+  "total": 68,
   "controles": {
     "app/(app)/productos/campanas/page.tsx": [
       "BotonVer «Cómo se ven en la tienda web»"
@@ -11,6 +11,12 @@
       "ComboResponsable «{control}»",
       "Boton «Cancelar»",
       "Boton «{control?.motivo ?? undefined}»"
+    ],
+    "components/EscanerBusqueda.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Buscar escribiendo»",
+      "button «Listo ·»",
+      "button «Mejor buscar escribiendo»"
     ],
     "components/EtiquetasLista.tsx": [
       "BotonImprimir «(sin nombre)»",
@@ -45,24 +51,27 @@
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/PrendasDeEtiquetaModal.tsx": [
-      "ComboResponsable «{responsable}»",
-      "Boton «Volver»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "Boton «Escanear las etiquetas con la cámara del teléfono»",
       "BotonFiltro «Todas»",
       "BotonFiltro «Con la etiqueta»",
       "BotonFiltro «Sin ella»",
       "DesplegablePildora «Categoría»",
+      "SegmentoDeslizante «Qué hace una lectura»",
       "button «Marca todas las tallas de los productos de la lista. Los que entran por su categoría ya la llevan.»",
       "button «Desmarca los productos de la lista. Los que entran por su categoría siguen marcados.»",
-      "BotonDeshacer «→() => setQuitarFuera(false)»",
-      "button «Quitárselas»",
       "Boton «Reintentar»",
       "Casilla «{`${nombre}»",
-      "button «{nombre}»",
+      "button «(sin nombre)»",
       "Casilla «{nombreTalla}»",
-      "ComboResponsable «{responsable}» #2",
+      "BotonDeshacer «→() => setQuitarFuera(false)»",
+      "button «Quitárselas»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Volver»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
       "Boton «Cancelar»",
-      "Boton «{requiereRevision ? \"Revisar y aplicar\" : \"Aplicar\"}»"
+      "Boton «{requiereRevision ? \"Revisar y aplicar\" : \"Aplicar\"}»",
+      "button «→onOtras»",
+      "BotonDeshacer «Deshacer esta lectura»"
     ],
     "components/atributos/kit.tsx": [
       "Boton «vocabulario.agregar»",

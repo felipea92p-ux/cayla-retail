@@ -1,3 +1,4 @@
+import { BotonDeFormulario } from "@/components/BotonDeFormulario";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -81,9 +82,9 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
               <p className="w-texto-sec">Algo falló mientras la creabas y no quedó guardada. Vuelve a crearla: tu correo queda libre para usarlo otra vez.</p>
             </div>
             <form action={rehacerCuenta}>
-              <button className="t-btn t-btn-ancho" type="submit">
+              <BotonDeFormulario className="t-btn t-btn-ancho" textoPendiente="Creando tu cuenta…">
                 Crear mi cuenta otra vez
-              </button>
+              </BotonDeFormulario>
             </form>
           </div>
         </div>

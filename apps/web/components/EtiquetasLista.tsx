@@ -21,7 +21,6 @@ import {
   BotonesPendiente,
   BotonReactivar,
   DesactivarTarjeta,
-  GRILLA_ATRIBUTOS,
   PieTarjeta,
   SinCoincidencias,
   TarjetaAtributo,
@@ -97,6 +96,11 @@ type Estilo = EstiloEtiqueta;
 const ESTILOS = GRUPOS_ETIQUETA;
 const ORDEN_GRUPOS = ORDEN_GRUPOS_ETIQUETA;
 
+/** La grilla de Etiquetas no es la de Colores o Tallas (`GRILLA_ATRIBUTOS`, 2 a 5 columnas fijas): su tarjeta lleva chips, fechas,
+ *  descuento, rotación y hasta tres botones, y a 5 columnas medía ~120 px («Imprimir etiquetas de precio» se salía por el costado).
+ *  Aquí caben tantas columnas como tarjetas de 13 rem entren: una sola a 375 px, tres a 1024, cinco o seis a 1920. */
+const GRILLA_ETIQUETAS = "grid gap-3 grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))]";
+
 type Etiqueta = {
   id: string;
   nombre: string;
@@ -163,7 +167,9 @@ function TarjetaEtiqueta({
   const textos = conteo ? textoConteoTarjeta(conteo) : null;
   return (
     <TarjetaAtributo
-      muestra={<MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} />}
+      // Con la tarjeta a todo lo ancho (una columna en el celular) la franja 3:1 llegaba a ~115 px de alto: se topa en 80 y el
+      // dibujo se recorta arriba y abajo (`slice`), sin deformarse.
+      muestra={<MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} className="aspect-[3/1] max-h-20 w-full" />}
       nombre={e.nombre}
       notas={e.estado !== "rechazado" ? e.notas : null}
       insignia={e.estado === "pendiente" ? "Pendiente" : e.estado === "rechazado" ? "Rechazada" : null}
@@ -204,8 +210,10 @@ function TarjetaEtiqueta({
           {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>} {/* unificar-fijo: dice el estado del descuento, no que falte algo */}
           {/* ADR-0180 paso 2: con la campaña vigente se imprimen sus etiquetas (precio rebajado); al terminar, las mismas
               prendas vuelven al precio normal. Antes de empezar no hay nada que imprimir: la etiqueta diría el precio de hoy. */}
+          {/* A lo ancho de la tarjeta, como «Prendas» y «Configurar», y con el texto que baja de renglón: la tarjeta mide ~130 px
+              a 375 px y ~88 px a 1024 (5 columnas), y en una sola línea el botón se salía por el costado. */}
           {e.descuentoPct !== null && e.estado === "aprobado" && !apagada && vigencia?.estado !== "proxima" && (
-            <BotonImprimir href={urlEtiquetasDePrecio({ campana: e.id })} chico className="mt-0.5 self-start">
+            <BotonImprimir href={urlEtiquetasDePrecio({ campana: e.id })} chico className="mt-0.5 w-full whitespace-normal text-balance text-center leading-tight">
               {vigencia?.estado === "terminada" ? "Imprimir con el precio normal" : "Imprimir etiquetas de precio"}
             </BotonImprimir>
           )}
@@ -530,7 +538,7 @@ export function EtiquetasLista({
               </TituloGrupo>
               {/* Con cuántos datos se juzga: si buena parte de lo vendido no dice qué prenda fue, las cifras de Rotación miran solo una parte. */}
               {clave === "urgencia" && notaRotacion && <p className="nota-cayla text-xs">{notaRotacion}</p>}
-              <div className={GRILLA_ATRIBUTOS}>
+              <div className={GRILLA_ETIQUETAS}>
                 {lista.map((e) => (
                   <TarjetaEtiqueta
                     key={e.id}
@@ -587,7 +595,7 @@ export function EtiquetasLista({
       {desactivadasVisibles.length > 0 && (
         <section className="space-y-3">
           <TituloGrupo cuenta={desactivadasVisibles.length}>{`Desactivad${T.o}s — ya no se pueden poner en una prenda nueva`}</TituloGrupo>
-          <div className={GRILLA_ATRIBUTOS}>
+          <div className={GRILLA_ETIQUETAS}>
             {desactivadasVisibles.map((e) => (
               <TarjetaEtiqueta key={e.id} e={e} vigencia={null} hoy={hoy} apagada>
                 {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) && (
