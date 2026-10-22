@@ -4,10 +4,13 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
+import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
 import { useHojaSobreElTeclado } from "@/components/ui/useHojaSobreElTeclado";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
 const MS_SALIDA = 220;
+/** En el celular la hoja baja entera hasta el borde (ADR-0479): debe coincidir con `cayla-hoja-movil-sale` en globals.css. */
+const MS_SALIDA_CELULAR = 300;
 
 type Props = {
   titulo: ReactNode;
@@ -84,7 +87,12 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
   // La cámara y el ticket dibujan su propia hoja; todas las demás tienen la misma cara (ronda 12).
   const deCara = variante !== "camara" && variante !== "ticket";
   const [cerrando, setCerrando] = useState(false);
+  // La hoja se fue con el dedo (ADR-0479): ya está abajo, así que la salida de siempre no se pone encima, y el
+  // desmontaje espera lo que tarda en llegar (`msSalidaPropia`) y no los 220 ms de la animación de salida.
+  const [salidaPropia, setSalidaPropia] = useState(false);
+  const msSalidaPropia = useRef<number | null>(null);
   const hoja = useRef<HTMLDivElement>(null);
+  const velo = useRef<HTMLDivElement>(null);
   // En el celular la hoja va pegada abajo: con el teclado abierto se apoya sobre él (la cámara no tiene campos).
   const contenedor = useHojaSobreElTeclado<HTMLDivElement>(variante !== "camara");
 
@@ -111,9 +119,11 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
   useEffect(() => {
     if (!cerrando) return;
     const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const temporizador = setTimeout(() => onCloseActual.current(), sinMovimiento ? 0 : MS_SALIDA);
+    const enCelular = variante !== "camara" && window.matchMedia?.("(max-width: 639.98px)").matches;
+    const ms = msSalidaPropia.current ?? (enCelular ? MS_SALIDA_CELULAR : MS_SALIDA);
+    const temporizador = setTimeout(() => onCloseActual.current(), sinMovimiento ? 0 : ms);
     return () => clearTimeout(temporizador);
-  }, [cerrando]);
+  }, [cerrando, variante]);
 
   // Escape, el velo y la ✕ pasan por `antesDeCerrar` si lo hay (de una ref, como `onClose`: suele llegar como flecha nueva).
   const antesDeCerrarActual = useRef(antesDeCerrar);
@@ -133,11 +143,37 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
     if (!bloqueado) pedirCierreDesdeFuera();
   });
 
+  // En el celular la hoja se baja con el dedo (ADR-0479). Soltarla para cerrar pasa por `antesDeCerrar`, como Escape,
+  // el velo y la ✕: sin cambios sale desde donde quedó; con cambios vuelve a su lugar y pregunta «¿Salir sin guardar?».
+  const enlazarArrastre = useHojaArrastre({
+    activo: deCara,
+    bloqueado,
+    velo,
+    alSoltarParaCerrar: (salir) => {
+      const decidir = antesDeCerrarActual.current;
+      if (decidir) decidir(salir);
+      else salir();
+    },
+    alSalir: (ms) => {
+      msSalidaPropia.current = ms;
+      setSalidaPropia(true);
+      setCerrando(true);
+    },
+  });
+  const ponerHoja = useCallback(
+    (el: HTMLDivElement | null) => {
+      hoja.current = el;
+      enlazarArrastre(el);
+    },
+    [enlazarArrastre]
+  );
+
   return (
     <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierreDesdeFuera()}>
       <Dialog.Portal>
         <Dialog.Overlay
-          className={`fixed inset-0 z-50 bg-sombra/35 dark:bg-sombra/60 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
+          ref={velo}
+          className={`fixed inset-0 z-50 bg-sombra/35 dark:bg-sombra/60 backdrop-blur-[2px] ${cerrando ? (salidaPropia ? "" : "anim-velo-salida") : "anim-velo"}`}
         />
         {/* La posición vive en este contenedor y NO en el panel: una animación
             de entrada usa `transform`, y si la posición también fuera un
@@ -155,7 +191,7 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
           }`}
         >
           <Dialog.Content
-            ref={hoja}
+            ref={ponerHoja}
             data-variante={variante ?? "normal"}
             className={`pointer-events-auto relative w-full outline-none ${
               variante === "camara"
@@ -164,9 +200,11 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
                   ? // El panel de adentro (el `<aside>` del ticket) llena la hoja: cabecera y pie fijos, el medio scrollea.
                     `flex h-[min(92dvh,92%)] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
                   : // `--fondo-hoja` lo lee `.pie-hoja-fijo` (globals.css) para que el pie pegado pinte el mismo fondo que la hoja.
-                    `scroll-cayla max-h-[min(90vh,90%)] overflow-y-auto rounded-t-2xl border border-sand bg-papel p-6 [--fondo-hoja:var(--color-papel)] sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
+                    // En el celular el alto se mide en `dvh` (con la barra de Safari a la vista, `vh` cortaba la hoja) y lo
+                    // que corre no arrastra a la página de atrás al llegar al final (`overscroll-contain`, ADR-0479).
+                    `scroll-cayla max-h-[min(90dvh,90%)] overflow-y-auto rounded-t-2xl border border-sand bg-papel p-6 [--fondo-hoja:var(--color-papel)] max-sm:overscroll-contain sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
             } ${
-              cerrando ? "anim-modal-sale" : "anim-modal-entra"
+              cerrando ? (salidaPropia ? "" : "anim-modal-sale") : "anim-modal-entra"
             } cascada-modal${lateral ? " hoja-con-lateral" : ""}`}
             onEscapeKeyDown={alEscape}
             // Radix enfoca el primer control al abrir; con `focoEnLaHoja`, la hoja misma (Radix le da tabIndex -1).
@@ -232,6 +270,10 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
               «Registrar gasto» tardaba 1 s en verse entero; el selector de sede de la cabecera, 0,33 s. `data-sin-cascada`
               saca a la capa y lo que cuelga de ella ya no es hijo directo: la lista entra con su propio movimiento, el de
               la sede. Va al final para no correr el turno (`--k`) de ninguna pieza; vacía no ocupa lugar. */}
+          {/* El asa del celular (ADR-0479): dice que la hoja se baja con el dedo. Va al final y fuera de la cascada por lo
+              mismo que la capa de abajo, y se dibuja arriba de la hoja con `position: absolute` (globals.css, `.asa-hoja`).
+              No es un control: la salida para el teclado y el lector sigue siendo Escape, la ✕ o «Cancelar». */}
+          {deCara && <div aria-hidden data-asa-hoja data-sin-cascada className="asa-hoja" />}
           <div data-capa-flotante data-sin-cascada />
           </Dialog.Content>
         </div>
