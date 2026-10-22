@@ -236,7 +236,7 @@ Cada una es un corte vertical con su commit y su verificación. **Dinero (precio
    la sustentan, **y el último costo pagado por marca dentro de la categoría** para el aviso «costo distinto al de la última compra»; puerta `ordenes_compra`; familias
    apagadas fuera). Prueba de Postgres: límite de 1.000 filas, permiso, familia apagada, ceros.
 4. **Pantalla: precio sugerido y franja de ayuda de precio** (caja, «Usar el precio habitual», franja con ≤ 3 avisos y «¿Por qué?», motivos, detalle
-   de la orden). Guía de foco, guía interactiva, `/sugerir`, 1440 y 1920 px, modo oscuro. **Al importar `lib/orden-compra-precio-ayuda.ts`, sacarlo de `ignoreFiles`
+   de la orden). Guía de foco, guía interactiva, `/sugerir`, 1440 y 1920 px, modo oscuro. **Si el SQL de la actividad 2 aún no está pegado, el detalle no trae `precio_venta_sugerido`: la caja NO se ofrece** (la función vieja ignora las claves que no conoce y el sugerido se perdería en silencio, con la compradora creyendo que lo guardó; la lectura se hace tolerante como `fn_proveedor_categorias`). **Al importar `lib/orden-compra-precio-ayuda.ts`, sacarlo de `ignoreFiles`
    en `knip.ts`** (el candado «probado = en pantalla» existe para que «lo uso después» no se quede).
 5. **Base: `fn_orden_compra_stock`** (hechos por categoría y tienda: disponible, en camino, por llegar con tope de 90 días, ventas de 30 días, días de
    historia, % sin registrar, campañas), extrayendo «por llegar» de `fn_plan_compra_pedido` a una función compartida (con cuidado con los parches por
