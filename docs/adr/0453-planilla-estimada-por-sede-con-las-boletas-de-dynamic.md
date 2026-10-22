@@ -99,3 +99,46 @@ los números como si fueran aparte, y por eso no lo cazaron). Una prueba nueva r
 - **El Flujo de caja** (su salida «Pago de la planilla») sigue repitiendo el último período. Felipe pidió que las cifras sean las mismas: es el paso siguiente, en su
   propio PR, con `al_cierre` como fuente única (el Resumen muestra lo devengado a la fecha; el Flujo, lo que saldrá del banco el día de pago: dos cortes de la misma boleta).
 - Si una tienda queda con menos de 3 personas en Dynamic, su estimación desaparece (la protección de quien cobra). Es una decisión de privacidad de D-33, no un error.
+
+## Actualización 2026-10-22 — «Provisionado» y lo de HOY por horario (Felipe)
+
+**Pedido.** Felipe, 2026-10-22: «Provisionado» en vez de «estimado», y estimar también lo de hoy «por horario». Migración `20261022081000_planilla_provision_hoy_por_horario.sql`
+(reservada con `pnpm reservar`); el resto sale de este mismo ADR.
+
+**El problema primero.** Dynamic no cuenta el día en curso: `fn_recalcular_jornada` solo llena `jornadas.horas_trabajadas` cuando hay entrada Y salida final; una persona
+«abierta» o «en pausa» vale 0 y la planilla lo lee como `coalesce(horas_trabajadas, 0)`. Así que la provisión de arriba siempre iba un día atrás en horas (el sueldo fijo no:
+corre por días corridos). Dynamic nunca estima «hoy por horario»; lo hace retail, con las tasas de la propia boleta y las marcaciones de hoy.
+
+**Lo que se midió antes de decidir (producción, solo lectura, 2026-10-22).** Un día cerrado se estimó con lo que se sabía el día anterior y se comparó con lo que Dynamic sumó de
+verdad (`fn_planilla_calcular` cortado en D−1 y en D; 17 días, 5 al 21 de octubre):
+- el costo PROMEDIO por hora (`(total + provisión) / horas`) sobrestima 13 % de forma sistemática: mezcla la movilidad, que se paga por día presente;
+- el modelo que separa las tasas —por hora `(pago_base − descuento_afp + provision_total) / horas_mes`, por día `monto_movilidad / dias_trabajados`— cae dentro de ±5 % del
+  día (≈ ±S/ 35 de S/ 1 200) en 13 de 17 días; los otros tres (7, 9 y 10 de octubre) entre −17 % y +6 %;
+- el feriado (8 de octubre, Combate de Angamos) falla un 46 %: ese día Dynamic suma +S/ 956 de `monto_feriados` a todos, sin relación con las horas;
+- un día pesa ≈ S/ 1 200 de ≈ S/ 29 000 acumulados: aunque hoy fallara un 20 %, el total se movería menos de 0,5 %.
+
+**DECIDÍ.** Una función interna `retail.fn_planilla_hoy_por_sede(boleta, hoy, ahora)` y una columna nueva `hoy_estimado` en `fn_planilla_provision_calc` y `fn_planilla_provision`.
+Va APARTE de `devengado` (que no cambia): la web lo suma al leer (`leerProvision`) y dice cuánto es de hoy en la nota. Horas de hoy = `(ahora − entrada) − ausencias cerradas`
+(cada `salida_*` hasta su `retorno_*`, la misma regla que `fn_recalcular_jornada`; en una ausencia, solo hasta que salió). Tres candados:
+1. **Sin feriado:** si hoy está en `feriados` de la boleta, `hoy_estimado` es nulo.
+2. **Sin jornada rara:** una sola entrada, ninguna salida final, secuencia regular, `0 < horas ≤ 14`, con tasa (`horas_mes > 0`), sin `prueba` y sin sueldo fijo.
+3. **Se reemplaza al cerrar:** solo cuentan las jornadas SIN salida final; al marcarla, sus horas reales entran por Dynamic y dejan de estimarse. La boleta se lee ANTES que las
+   marcaciones: si una jornada cierra entre las dos lecturas se pierde un instante, nunca se cuenta doble.
+
+**DESCARTÉ.** (a) El costo promedio por hora: sobrestima 13 % sin que quien lo lee pueda saberlo. (b) Sumarlo dentro de `devengado`: la web no podría decir cuánto es de hoy ni
+apagarlo, y las pruebas de la cifra firme se mezclarían con las de la estimada. (c) Leer `jornadas.estado`: el estado no trae cuándo empezó una ausencia en curso; las marcaciones sí.
+
+**SE ROMPE SI.** Dynamic renombra `pago_base`, `descuento_afp`, `provision_total`, `monto_movilidad`, `horas_mes` o `dias_trabajados` (sale nulo, sin error), agrega un concepto que
+crezca por hora (un bono por hora: se subestimaría), o cambia los tipos de marcación (`salida_*`/`retorno_*`). Principio 9: sin `public.marcajes` (local, CI) o si algo falla,
+`hoy_estimado` es nulo, se avisa en el log y la provisión de siempre sale igual (pruebas HF1 y HF2).
+
+**Se queda como estaba.** `al_cierre` (su ritmo cuenta los días corridos con hoy y las horas hasta ayer: subestima ≈ 1/23 a mitad de mes; no se toca aquí); lo que se ve sigue fuera
+del libro (diario, Balance y cierre); «Provisionado» reemplaza a «estimado» en la tarjeta de confianza, Resultados y el Pulso.
+
+**Cómo se probó.** `pnpm pruebas:planilla-provision`: 61 verificaciones (H1–H17 jornada por jornada, HC1–HC7 dentro de la provisión, HF1/HF2 con Dynamic caído o cambiado, I1 pegar dos
+veces) con Dynamic simulado (`public.marcajes`, feriados, tasas). Control negativo: quitar el candado «sin salida final» hace fallar 4 casos y quitar el de feriado, 2. Pegar la
+migración vieja (`20261018040000`) DESPUÉS de esta falla a propósito (no puede cambiar lo que devuelven las funciones): así un pegado equivocado no borra la columna nueva en silencio.
+Web: `lib/planilla-provision-reglas.test.ts` (+7), `lib/finanzas-confianza.test.ts`.
+
+**Lo que no se pudo probar en local ni de noche.** La pausa de almuerzo y las horas transcurridas contra jornadas ABIERTAS reales: de madrugada en Lima no hay ninguna.
+Se valida en solo lectura en horario de trabajo (comparar el estimado de las 18:00 con lo que Dynamic suma al cerrar el día).

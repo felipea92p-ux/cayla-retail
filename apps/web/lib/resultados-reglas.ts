@@ -318,7 +318,7 @@ export function avisosER(columnas: readonly FilaER[], enCurso: boolean): AvisoER
   } else if (columnas.some((f) => f.planillaEstimada > 0)) {
     out.push({
       tono: "pizarra",
-      texto: "Los sueldos marcados «estimado» son lo que corresponde pagar hasta hoy según las boletas de Dynamic. Cuando Dynamic pague el período entra lo pagado de verdad y el estimado desaparece.",
+      texto: "Los sueldos marcados «provisionado» son lo que corresponde pagar hasta hoy según las boletas de Dynamic; las horas de hoy se calculan con lo que lleva cada persona y se corrigen al cerrar su jornada. Cuando Dynamic pague el período entra lo pagado de verdad y la provisión desaparece.",
     });
   } else if (enCurso && columnas.every((f) => f.planilla === 0)) {
     out.push({
@@ -434,7 +434,7 @@ export function fuentesDe(clave: string): string[] {
   if (clave === "g62")
     return [
       "planilla_por_sede (Dynamic): lo pagado + las provisiones de la sede, del período que termina en el mes",
-      "mientras Dynamic no pague el período, un estimado con las boletas de cada persona hasta hoy (no entra al diario)",
+      "mientras Dynamic no pague el período, una provisión con las boletas de cada persona hasta hoy (no entra al diario)",
     ];
   if (clave === "g681") return ["activos_fijos", "costo ÷ vida útil, mes a mes, desde el mes siguiente a la compra"];
   if (clave === "g655") return ["activos_fijos dados de baja", "lo que faltaba depreciar el día de la baja"];
