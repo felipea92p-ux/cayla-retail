@@ -4,6 +4,7 @@ import {
   alternarRubro,
   bancoDeCci,
   billeterasTexto,
+  borradorDeLoBuscado,
   chipEntregas,
   claveRubro,
   cuentaLocalVisible,
@@ -12,6 +13,7 @@ import {
   enmascararCci,
   enmascararCelular,
   enmascararCuenta,
+  esSoloDeGastos,
   formatoCci,
   formatoCelular,
   normalizarCci,
@@ -24,9 +26,11 @@ import {
   opcionesDeRubro,
   ordenarProveedores,
   proveedorConRuc,
+  proveedoresParaPedir,
   repartoDeuda,
   resaltarCoincidencia,
   rubrosConConteo,
+  rubrosSinGastos,
   serie12Meses,
   siguienteOrden,
   siguientePaso,
@@ -376,6 +380,13 @@ describe("datos para pagar (ADR-0134)", () => {
     expect(d.saldoFavor).toBe(120);
     expect("saldoFavor" in datosPagoDe({ ...{ id: "prov-1", banco: null, cuenta_bancaria: null, cci: null, celular_billetera: null, billeteras: null, titular_cuenta: null, telefono: null, plazo_credito_dias: null, forma_pago_preferida: null } })).toBe(false);
   });
+
+  it("datosPagoDe marca `ocultos` solo cuando la base no entregó los datos bancarios (permiso), no cuando el proveedor no tiene cuenta", () => {
+    const fila = { id: "prov-1", banco: null, cuenta_bancaria: null, cci: null, celular_billetera: null, billeteras: null, titular_cuenta: null, telefono: null, plazo_credito_dias: null, forma_pago_preferida: null };
+    expect("ocultos" in datosPagoDe(fila)).toBe(false); // sin dato: se leyeron bien
+    expect("ocultos" in datosPagoDe({ ...fila, bancarios_visibles: true })).toBe(false); // se leyeron y no hay cuenta cargada
+    expect(datosPagoDe({ ...fila, bancarios_visibles: false }).ocultos).toBe(true); // no se pudo ver
+  });
 });
 
 describe("marcasPorProveedor (ADR-0140)", () => {
@@ -474,5 +485,79 @@ describe("cambioBancarioLegible (historial de cuentas, Felipe 2026-10-13)", () =
     const c = cambioBancarioLegible("cci", "00219300123456789012", "00219300999999999912");
     expect(c.antes).toBe(c.despues);
     expect(c.cambioOculto).toBe(true);
+  });
+});
+
+
+describe("proveedores de mercadería y de gastos (ADR-0452, complemento 2026-10-21)", () => {
+  // Los 9 que siembra 20261018004000 llevan {Gastos}; los viejos del directorio casi no traen rubros.
+  const luz = { id: "luz", nombre: "Luz del Sur S.A.A.", rubros: ["Gastos"] };
+  const agua = { id: "agua", nombre: "SEDAPAL", rubros: ["gastos "] };
+  const mixto = { id: "mixto", nombre: "Textiles Andina", rubros: ["Telas", "Gastos"] };
+  const sinRubros = { id: "viejo", nombre: "Confecciones Peña", rubros: [] as string[] };
+  const polos = { id: "polos", nombre: "Polos del Norte", rubros: ["Polos"] };
+  const todos = [luz, mixto, agua, sinRubros, polos];
+
+  it("es solo de gastos el que tiene rubros y todos son «Gastos», sin importar tildes ni mayúsculas", () => {
+    expect(esSoloDeGastos(luz)).toBe(true);
+    expect(esSoloDeGastos(agua)).toBe(true);
+    expect(esSoloDeGastos({ rubros: ["GASTOS", "gastos"] })).toBe(true);
+  });
+
+  it("el que no tiene rubros NO es de gastos: el directorio viejo es mercadería hasta que alguien diga otra cosa", () => {
+    expect(esSoloDeGastos(sinRubros)).toBe(false);
+    expect(esSoloDeGastos({ rubros: ["", "   "] })).toBe(false);
+  });
+
+  it("el que vende algo y además cobra gastos se queda como de mercadería", () => {
+    expect(esSoloDeGastos(mixto)).toBe(false);
+    expect(esSoloDeGastos(polos)).toBe(false);
+  });
+
+  it("«Gastos generales» o «Gasto» no son el rubro Gastos: no se adivina por parecido", () => {
+    expect(esSoloDeGastos({ rubros: ["Gastos generales"] })).toBe(false);
+    expect(esSoloDeGastos({ rubros: ["Gasto"] })).toBe(false);
+  });
+
+  it("proveedoresParaPedir saca a los solo de gastos y respeta el orden de la lista", () => {
+    expect(proveedoresParaPedir(todos).map((p) => p.id)).toEqual(["mixto", "viejo", "polos"]);
+    expect(proveedoresParaPedir([])).toEqual([]);
+  });
+
+  it("proveedoresParaPedir conserva al que ya está elegido, aunque sea de gastos (una orden vieja que se edita)", () => {
+    expect(proveedoresParaPedir(todos, "luz").map((p) => p.id)).toEqual(["luz", "mixto", "viejo", "polos"]);
+    // Elegir otro lo suelta: la lista vuelve a quedar sin él.
+    expect(proveedoresParaPedir(todos, "polos").map((p) => p.id)).toEqual(["mixto", "viejo", "polos"]);
+    expect(proveedoresParaPedir(todos, null).map((p) => p.id)).toEqual(["mixto", "viejo", "polos"]);
+  });
+
+  it("proveedoresParaPedir conserva a varios a la vez (los que ya traen una marca) y acepta una lista sin rubros", () => {
+    expect(proveedoresParaPedir(todos, new Set(["luz", "agua"])).map((p) => p.id)).toEqual(["luz", "mixto", "agua", "viejo", "polos"]);
+    expect(proveedoresParaPedir(todos, ["agua", null, undefined]).map((p) => p.id)).toEqual(["mixto", "agua", "viejo", "polos"]);
+    // Una lista que no trae rubros (la de Recibir antes de este cambio) es toda de mercadería: no se esconde a nadie por no saber.
+    const sinRubros = [{ id: "a" }, { id: "b" }];
+    expect(proveedoresParaPedir(sinRubros).map((p) => p.id)).toEqual(["a", "b"]);
+    expect(esSoloDeGastos({})).toBe(false);
+    expect(esSoloDeGastos({ rubros: null })).toBe(false);
+  });
+
+  it("no cambia la lista que recibe", () => {
+    const copia = [...todos];
+    proveedoresParaPedir(todos, "luz");
+    expect(todos).toEqual(copia);
+  });
+
+  it("rubrosSinGastos quita «Gastos» de los botones del alta y deja el resto como estaba", () => {
+    expect(rubrosSinGastos(["Telas", "Gastos", "Avíos", "gastos "])).toEqual(["Telas", "Avíos"]);
+    expect(rubrosSinGastos([])).toEqual([]);
+  });
+
+  it("borradorDeLoBuscado: 11 dígitos son un RUC; cualquier otra cosa, el nombre", () => {
+    expect(borradorDeLoBuscado("20100017491")).toEqual({ nombre: "", ruc: "20100017491" });
+    expect(borradorDeLoBuscado("  20 100 017 491 ")).toEqual({ nombre: "", ruc: "20100017491" });
+    expect(borradorDeLoBuscado("  Textiles   Kero ")).toEqual({ nombre: "Textiles Kero", ruc: "" });
+    // Un número de otro largo (un celular, un DNI) no se cuela como RUC.
+    expect(borradorDeLoBuscado("987654321")).toEqual({ nombre: "987654321", ruc: "" });
+    expect(borradorDeLoBuscado("")).toEqual({ nombre: "", ruc: "" });
   });
 });

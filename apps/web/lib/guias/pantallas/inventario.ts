@@ -1389,14 +1389,14 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.sin-aviso",
       opcional: true,
       titulo: "¿Llegó algo sin aviso?",
-      texto: "Lo que vino directo del proveedor se recibe igual: eliges de quién es (o «No sé de quién es», y se elige al cerrar), la guía si la trae y quién recibe, y se cuenta por categoría. Si ese proveedor tiene una factura por recibir aquí, te ofrece recibir contra ella. En la demo no lo abrimos.",
+      texto: "Lo que vino directo del proveedor se recibe igual: eliges de quién es (si no está y tu cuenta puede, «+ Agregar proveedor»; o «No sé de quién es»), la guía y quién recibe, y se cuenta por categoría. Si ese proveedor tiene una factura por recibir aquí, te ofrece recibir contra ella. En la demo no lo abrimos.",
     },
     {
       id: "proveedor",
       ancla: "recibir.proveedor",
       opcional: true,
       titulo: "¿De quién es?",
-      texto: "Elige el proveedor que la mandó; si es nuevo, «+ Agregar proveedor» lo registra ahí mismo. Si tiene una factura por recibir, te pregunta si vino con ella: así se cuenta contra la factura y queda claro qué faltó.",
+      texto: "Elige el proveedor que la mandó; si es nuevo y tu cuenta puede, «+ Agregar proveedor» lo registra ahí mismo. Si tiene una factura por recibir, te pregunta si vino con ella: así se cuenta contra la factura y queda claro qué faltó.",
     },
     {
       id: "guia",

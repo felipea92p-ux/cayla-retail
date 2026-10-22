@@ -68,11 +68,14 @@ export function ComparacionPrendas({
   nueva,
   cantidad,
   diferencia,
+  otras = [],
 }: {
   devuelta: PrendaFicha;
   nueva: PrendaFicha | null;
   cantidad: number;
   diferencia: number;
+  /** Las demás prendas que se lleva en el mismo cambio (ADR-0470), cada una con su cantidad y su precio. */
+  otras?: readonly (PrendaFicha & { cantidad: number })[];
 }) {
   const textoDiferencia = diferencia > 0 ? "Diferencia a cobrar" : diferencia < 0 ? "Diferencia a devolver" : "Diferencia";
   return (
@@ -82,6 +85,26 @@ export function ComparacionPrendas({
         <HiloDelCambio />
         <FichaPrenda titulo={cantidad > 1 ? `Se lleva (${cantidad})` : "Nueva prenda"} prenda={nueva} vacia="Elige la talla y el color que se lleva." hueco />
       </div>
+      {nueva && otras.length > 0 && (
+        <div className="rounded-[18px] bg-tinta/[0.06] p-[18px]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta/65">Y también se lleva</p>
+          <ul className="mt-3 space-y-3">
+            {otras.map((p, i) => (
+              <li key={`${p.referencia}-${p.talla}-${p.color}-${i}`} className="flex items-center gap-3.5">
+                <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="lg" />
+                <div className="min-w-0">
+                  <p className="font-display truncate text-[19px] leading-tight text-tinta">
+                    {p.referencia}
+                    {p.cantidad > 1 ? ` (×${p.cantidad})` : ""}
+                  </p>
+                  <p className="text-sm text-tinta/75">{varianteLegible(p)}</p>
+                  <p className="mt-0.5 text-sm tabular-nums text-tinta">{soles(p.precio * p.cantidad)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {nueva && (
         <div className="flex items-baseline justify-between gap-4 px-1" aria-live="polite">
           <span className="text-sm text-tinta/75">{textoDiferencia}</span>
@@ -109,7 +132,7 @@ export function ListaValidaciones({ validaciones }: { validaciones: readonly Val
         // triángulo y la misma palabra para el lector, así que no depende solo del color.
         const { Icono, clase, lector } = v.tono === "rojo" ? { ...ICONO_VALIDACION.alerta, clase: "text-rojo-profundo" } : ICONO_VALIDACION[v.estado];
         return (
-          <li key={v.clave} className="flex gap-2.5">
+          <li key={`${v.clave}-${i}`} className="flex gap-2.5">
             {/* Los checks se trazan uno tras otro al aparecer el panel. */}
             <Icono
               className={`mt-0.5 h-5 w-5 shrink-0 ${clase} ${v.estado === "ok" && v.tono !== "rojo" ? "check-trazo" : ""}`}

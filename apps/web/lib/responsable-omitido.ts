@@ -73,6 +73,9 @@ export const ACCIONES_SIN_RESPONSABLE = {
   orden_compra_anular: "Anular una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Registrar el comprobante de una orden y anularlo (fase 2, migración 20261012211000): una sola clave para las dos acciones.
   orden_compra_comprobante: "Registrar o anular el comprobante de una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Registrar un proveedor nuevo desde la orden (2026-10-21, migración 20261021202000): la compradora, en Gamarra, no puede esperar a quien administra
+  // proveedores. Con su cuenta firma ella; una terminal sigue eligiendo quién, como en las demás acciones de la orden.
+  proveedor_de_orden: "Registrar un proveedor nuevo desde una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Enviar lo de una orden a una sede y anular el envío (fase 3, migración 20261012225000): una sola clave para las dos acciones.
   orden_compra_envio: "Enviar a una sede lo de una orden de compra, o anular ese envío (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Órdenes de insumos del Taller (ADR-0362, fase 7; migración 20261013040000): la decisión 39 extendida al Taller, por la misma razón
@@ -102,6 +105,9 @@ export const ACCIONES_SIN_RESPONSABLE = {
   // «Arma el tuyo» (ADR-0434, actividad 2; migración 20261017013000; Felipe 2026-10-16): el recorte que el ERP guarda solo al subir una
   // foto, para el probador de la tienda online. Nadie hace una operación aparte: solo subió la foto.
   recorte_foto: "Guardar el recorte de una foto para el probador de la tienda online al subirla (lo hace el ERP solo, y con la cuenta de una persona firma ella)",
+  // Tienda online (ADR-0469; migración 20261021170000): un líder deshace la unión de una cuenta de Google con un miembro. Un líder siempre
+  // entra con su cuenta de persona (una terminal nunca es líder): firma él mismo.
+  vinculo_google_desvincular: "Deshacer la unión de una cuenta de Google con un miembro de la tienda online (solo un líder, y firma con su propia cuenta)",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;

@@ -1020,7 +1020,7 @@ export const GUIA_NUEVA_FACTURA: Guia = {
       id: "documento",
       ancla: "nueva.documento",
       titulo: "1 · El documento",
-      texto: "Busca al proveedor por nombre o RUC (si no está, se registra antes en Proveedores) y elige si es factura, boleta o nota de venta. Al elegirlo ves su plazo, lo que ya le debes y si te debe algo a favor.",
+      texto: "Busca al proveedor por nombre o RUC (si no está, «+ Agregar proveedor» lo registra ahí mismo, si tu cuenta puede) y elige si es factura, boleta o nota de venta. Al elegirlo ves su plazo, lo que ya le debes y si te debe algo a favor.",
     },
     {
       id: "serie",
@@ -1469,7 +1469,7 @@ const PASOS_FORMULARIO_ORDEN = {
     id: "datos",
     ancla: "orden-form.datos",
     titulo: "Proveedor y a dónde llega",
-    texto: "El proveedor (búscalo por nombre, marca o RUC) y a qué tienda llega la mercadería; «por repartir» si llega a Lima y se separa después. La entrega estimada va si la sabes, y la nota es para lo que el proveedor debe saber.",
+    texto: "El proveedor (búscalo por nombre, marca o RUC; si no está, «+ Registrar proveedor» con su RUC y nombre) y a qué tienda llega la mercadería; «por repartir» si llega a Lima. La entrega estimada va si la sabes, y la nota es para lo que el proveedor debe saber.",
   },
   // «Nos debe» (ADR-0362, fase 5a): sale al elegir un proveedor que todavía debe prendas por reponer de otra compra.
   nosDebe: {
@@ -1478,6 +1478,14 @@ const PASOS_FORMULARIO_ORDEN = {
     opcional: true,
     titulo: "Si el proveedor te debe algo",
     texto: "Si este proveedor todavía te debe prendas de otra compra, aquí te lo recuerda, con cuántas y cuánto valen: pídeselas en esta orden o márcalas cuando lleguen.",
+  },
+  // «Cómo pagarle» (2026-10-21): aparece al elegir el proveedor. Es una hoja que solo se lee; la demo la abre y la cierra sin tocar nada.
+  comoPagarle: {
+    id: "como-pagarle",
+    ancla: "orden-form.como-pagarle",
+    opcional: true,
+    titulo: "Cómo se le paga",
+    texto: "Con el proveedor elegido, «Cómo pagarle» te muestra su teléfono y a dónde va la plata: primero el titular, para compararlo con el nombre que muestra el banco, y luego la cuenta, el CCI o el Yape. Cada dato se copia con un toque.",
   },
   lineas: {
     id: "lineas",
@@ -1490,7 +1498,8 @@ const PASOS_FORMULARIO_ORDEN = {
     ancla: "orden-form.linea",
     opcional: true,
     titulo: "Cada línea",
-    texto: "Categoría y marca, una descripción si ayuda a reconocerla, cuántas y a cuánto cada una. El descuento lo escribes en % o en soles, y al lado ves el otro y el subtotal. La ✕ quita la línea.",
+    texto: "Categoría y marca: con el proveedor elegido ves primero lo que él maneja y «Ver todas» muestra el resto. Si eliges algo que no es suyo, la línea te lo avisa debajo, sin impedir guardar. Luego descripción, cantidad, precio y descuento (en % o en soles). La ✕ quita la línea.",
+
   },
   agregar: {
     id: "agregar",
@@ -1520,6 +1529,7 @@ export const GUIA_NUEVA_ORDEN: Guia = {
     },
     PASOS_FORMULARIO_ORDEN.datos,
     PASOS_FORMULARIO_ORDEN.nosDebe,
+    PASOS_FORMULARIO_ORDEN.comoPagarle,
     PASOS_FORMULARIO_ORDEN.lineas,
     PASOS_FORMULARIO_ORDEN.linea,
     PASOS_FORMULARIO_ORDEN.agregar,
@@ -1695,6 +1705,7 @@ export const GUIA_EDITAR_ORDEN: Guia = {
     },
     { ...PASOS_FORMULARIO_ORDEN.datos, opcional: true },
     PASOS_FORMULARIO_ORDEN.nosDebe,
+    PASOS_FORMULARIO_ORDEN.comoPagarle,
     { ...PASOS_FORMULARIO_ORDEN.lineas, opcional: true },
     PASOS_FORMULARIO_ORDEN.linea,
     { ...PASOS_FORMULARIO_ORDEN.agregar, opcional: true },

@@ -2,6 +2,7 @@ import "server-only";
 import type { TipoDocumentoClienta } from "@cayla-retail/shared";
 import { cache } from "react";
 import { base, leerConRespaldo } from "./base";
+import { correoOcultoValido } from "./google";
 import {
   leerCasillaWhatsapp,
   leerIntentoDeCodigo,
@@ -183,6 +184,36 @@ export async function registrarCuentaSimpleEnBase(d: DatosCuentaSimple): Promise
       console.error(JSON.stringify({ evento: "tienda_registrar_cuenta_simple_fallo", codigo: e.code ?? null, hint }));
     }
     return { ok: false, hint, detalle: typeof e.detail === "string" ? e.detail : null };
+  }
+}
+
+export type DatosVinculoGoogle = { usuarioWebId: string; correo: string; nombre: string; textos: string };
+
+/** Lo que dijo la base al unir una cuenta de Google a la ficha que ya tenía su correo (`tienda_vincular_cuenta_google`, 20261021170000).
+ *  `sin_respuesta`: la base no contestó o todavía no tiene la función (la web se publicó antes de pegar la migración): quien llama sigue
+ *  como si no hubiera ficha, y el registro de siempre dirá lo que ya decía. */
+export type ResultadoVinculo =
+  | { estado: "vinculada" | "ya_tiene_cuenta" | "no_aplica" | "no_coincide" | "sin_respuesta" }
+  /** La ficha ya tiene cuenta abierta con OTRO correo y el nombre coincide: `correoCuenta` es ese correo, a medias (20261021182000). */
+  | { estado: "otro_correo"; correoCuenta: string };
+
+export async function vincularCuentaGoogleEnBase(d: DatosVinculoGoogle): Promise<ResultadoVinculo> {
+  try {
+    const [fila] = await base()`
+      select retail.tienda_vincular_cuenta_google(${d.usuarioWebId}::uuid, ${d.correo}::text, ${d.nombre}::text, ${d.textos}::text) as r`;
+    const estado = ESTADO(fila?.r);
+    if (estado === "otro_correo") {
+      const correoCuenta = correoOcultoValido((fila?.r as { correo_cuenta?: unknown }).correo_cuenta);
+      // Sin un correo a medias que se pueda mostrar, se dice lo de siempre (la persona no se une igual).
+      return correoCuenta ? { estado, correoCuenta } : { estado: "no_coincide" };
+    }
+    const conocidos = ["vinculada", "ya_tiene_cuenta", "no_aplica", "no_coincide"] as const;
+    return conocidos.includes(estado as (typeof conocidos)[number]) ? { estado: estado as (typeof conocidos)[number] } : { estado: "sin_respuesta" };
+  } catch (error) {
+    const e = error as { hint?: unknown; code?: unknown };
+    // Sin el mensaje de la base en el registro: puede traer datos de la persona. El código y el hint bastan.
+    console.error(JSON.stringify({ evento: "tienda_vincular_cuenta_google_fallo", codigo: e.code ?? null, hint: typeof e.hint === "string" ? e.hint : null }));
+    return { estado: "sin_respuesta" };
   }
 }
 

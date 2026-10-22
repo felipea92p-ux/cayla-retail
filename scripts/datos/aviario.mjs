@@ -45,7 +45,10 @@ export const AVIARIO = [
       "guias_vistas",
       // Las acciones que Felipe soltó del combo «Responsable» (ADR-0162): es qué firma cada cuenta, o sea identidad y acceso.
       // Refresco del volcado del 2026-10-02.
-      "acciones_sin_responsable"] },
+      "acciones_sin_responsable",
+      // Lo que cada colaborador prefiere de su cuenta (hoy el mensaje que manda a los pedidos web): una preferencia por cuenta, como
+      // `guias_vistas`. Asignada en el refresco del volcado del 2026-10-21.
+      "preferencias_colaborador"] },
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
       "productos", "variantes", "precios_sede", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
@@ -79,6 +82,13 @@ export const AVIARIO = [
       // es de la misma vitrina y de la etiqueta, que son de Loro. En producción desde el 2026-10-17 (migraciones `campanas_*` de
       // otra sesión, todavía fuera de main); la asignó el refresco del volcado de ese día.
       "campana_disenos",
+      // Refresco del 2026-10-21: los diseños y las vistas previas de la campaña de la tienda web (migraciones de otra sesión): son del
+      // mismo cuaderno de campañas que `campana_disenos`.
+      "campana_web_disenos", "campana_web_previas",
+      // ADR-0463: la empresa a la que pertenece cada prenda (CAYLA o CLAURE) y en qué sedes opera cada una. La empresa es un dato del producto,
+      // no de la marca ni de la factura (que sale siempre con el RUC de CAYLA): lo maneja quien responde por el catálogo. En producción desde
+      // el 2026-10-20; las asignó el refresco del volcado del 2026-10-21.
+      "empresas", "empresa_sedes",
     ] },
   // Tucán es la traducción al estándar de Shopify (ADR-0030); sus tablas no existen en V2.
   { n: "03", pajaro: "Tucán", modulo: "Taxonomía universal", tablas: [] },
@@ -145,6 +155,8 @@ export const AVIARIO = [
       "venta_pagos_correcciones",
       // `clientes` pasó a llamarse `clientas` (D-48, vocabulario obligatorio); el refresco del 2026-09-23 lo confirmó.
       "clientas", "codigos_descuento", "cambios", "devoluciones", "devolucion_items",
+      // ADR-0470 (2026-10-21): las prendas que se lleva la clienta en un cambio por VARIAS prendas; hijas de `cambios`.
+      "cambio_salidas",
       // ADR-0249: qué ficha de clienta se unió a cuál (unir fichas repetidas). Refresco del 2026-09-28.
       "clientas_fusiones",
       // Separaciones (apartar prendas con adelanto) y lo que la clienta pidió y no había: nacen en el mostrador.
@@ -203,6 +215,16 @@ export const AVIARIO = [
       // `fn_parametros_caja` —lo que ve el mostrador—, como `ubicacion_metas_dia`: el mismo pájaro. En producción desde el 2026-10-17
       // (PR #1152). Refresco del volcado de ese día.
       "ubicacion_metas_mes", "ubicacion_metas_fecha",
+      // Tienda online (2026-10-19 y 20): la bandeja de notificaciones de cada cuenta y su historial, y los aparatos que pidieron avisos en el
+      // celular con su cola de envíos. Son de la cuenta de la tienda, como `favoritos_web`. Asignadas en el refresco del volcado del 2026-10-21.
+      "avisos_bandeja", "avisos_tienda", "tienda_push_suscripciones", "tienda_push_envios",
+      // Programa de puntos del Club: su configuración por versiones, cada movimiento y el saldo, los cupones que se canjean y sus intentos, y
+      // los mensajes de aviso que cada sede edita (Clientas ▸ Avisos). Son del Club: el mismo pájaro que `club_canjes`. Asignadas en el
+      // refresco del volcado del 2026-10-21.
+      "club_puntos_config", "club_puntos_movimientos", "club_puntos_saldos", "club_cupones", "club_cupon_intentos", "club_avisos_textos_sede",
+      // ADR-0469: cada vez que una cuenta de Google se unió a la ficha que ya tenía ese correo (a quién se le avisó, y si un líder lo deshizo).
+      // Es de la cuenta de la tienda, como `cuentas_web`. En producción desde el 2026-10-21.
+      "cuentas_web_vinculos_google",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales",
@@ -275,6 +297,9 @@ export const AVIARIO = [
       // servicio y lo que vuelve (con sus líneas), cuánta tela lleva cada modelo y la lista de precios de los servicios por fase. Todo se
       // maneja desde Producción. En producción desde el 2026-10-17 (20261014154000); las asignó el refresco del volcado de ese día.
       "produccion_fases", "produccion_avances", "produccion_insumos", "produccion_salidas", "produccion_salida_lineas",
+      // ADR-0400 (act. k y l): lo que se marcó «hecho» en una fase que no cuenta prendas (Ploteo). Es de las fases: el mismo pájaro.
+      // Asignada en el refresco del volcado del 2026-10-21.
+      "produccion_fase_marcas",
       "produccion_vueltas", "produccion_vuelta_lineas", "producto_consumos", "proveedor_tarifas"] },
   // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
   // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
@@ -303,6 +328,9 @@ export const AVIARIO = [
       // tarifa, qué días cubrió cada depósito y cada cobro que se reselló a su máquina. Es Cuentas y dinero, como `medios_de_cobro` y
       // `movimientos_dinero`. Están en producción desde el 2026-10-16 (sus migraciones aún no están en main: PR #1138); las asignó el
       // refresco del volcado del 2026-10-17. Finanzas (Felipe) confirma la asignación.
+      // ADR-0452: lo que se sabe de un gasto fijo para poder pagarlo sin quien lo cargó (a quién, cómo, el recibo, el contrato) y su historia de
+      // cambios. Es de los gastos fijos: el mismo pájaro. Asignadas en el refresco del volcado del 2026-10-21.
+      "gastos_fijos_ficha", "gastos_fijos_ficha_cambios",
       "pos_maquinas", "pos_maquinas_sedes", "pos_tarifas", "pos_abonos_lotes", "cobros_resellados"] },
   { n: "12", pajaro: "Urraca", modulo: "Contabilidad",
     tablas: ["activos_fijos",

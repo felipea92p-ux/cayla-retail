@@ -55,6 +55,15 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "cambio_salidas_select",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.cambios c\n  WHERE (c.id = cambio_salidas.cambio_id)))",
+  "roles": "{authenticated}",
+  "schemaname": "retail",
+  "tablename": "cambio_salidas",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "cambios_select",
   "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",

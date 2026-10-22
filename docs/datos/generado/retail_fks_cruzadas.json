@@ -65,6 +65,16 @@
   "src_table": "campana_disenos"
  },
  {
+  "conname": "campana_web_disenos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "campana_web_disenos"
+ },
+ {
   "conname": "cierres_cola_arranque_cerrado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "cierres_cola_arranque"
@@ -95,6 +105,11 @@
   "src_table": "club_avisos_enviados"
  },
  {
+  "conname": "club_avisos_textos_sede_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_avisos_textos_sede"
+ },
+ {
   "conname": "club_canjes_anulado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "club_canjes"
@@ -105,6 +120,11 @@
   "src_table": "club_canjes"
  },
  {
+  "conname": "club_cupones_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_cupones"
+ },
+ {
   "conname": "club_invitaciones_creada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "club_invitaciones"
@@ -113,6 +133,16 @@
   "conname": "club_permisos_registrado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "club_permisos"
+ },
+ {
+  "conname": "club_puntos_config_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_puntos_config"
+ },
+ {
+  "conname": "club_puntos_movimientos_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_puntos_movimientos"
  },
  {
   "conname": "club_textos_creado_por_fkey",
@@ -310,6 +340,16 @@
   "src_table": "cuentas_dinero"
  },
  {
+  "conname": "cuentas_web_vinculos_google_avisado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuentas_web_vinculos_google"
+ },
+ {
+  "conname": "cuentas_web_vinculos_google_revertido_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuentas_web_vinculos_google"
+ },
+ {
   "conname": "despacho_cierres_hecho_por_fkey",
   "ref_table": "public.personas",
   "src_table": "despacho_cierres"
@@ -458,6 +498,11 @@
   "conname": "gastos_fijos_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "gastos_fijos"
+ },
+ {
+  "conname": "gastos_fijos_ficha_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gastos_fijos_ficha"
  },
  {
   "conname": "gastos_usuario_id_fkey",
@@ -710,6 +755,11 @@
   "src_table": "precios_sede_prenda"
  },
  {
+  "conname": "preferencias_colaborador_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "preferencias_colaborador"
+ },
+ {
   "conname": "prendas_danadas_resuelto_por_fkey",
   "ref_table": "public.personas",
   "src_table": "prendas_danadas"
@@ -753,6 +803,11 @@
   "conname": "produccion_etapas_historial_hecho_por_fkey",
   "ref_table": "public.personas",
   "src_table": "produccion_etapas_historial"
+ },
+ {
+  "conname": "produccion_fase_marcas_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_fase_marcas"
  },
  {
   "conname": "produccion_fases_creado_por_fkey",
@@ -1006,6 +1061,11 @@
  },
  {
   "conname": "terminales_desactivada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "terminales"
+ },
+ {
+  "conname": "terminales_firma_respaldo_id_fkey",
   "ref_table": "public.personas",
   "src_table": "terminales"
  },

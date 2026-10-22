@@ -35,13 +35,17 @@ import { delGrupo, delMenu, grupoDe, gruposDe, leerGrupo, leerMenu, MENUS, titul
 import { leerMisLooksEnBase } from "@/lib/looks-guardados-servidor";
 import { armarProbador } from "@/lib/probador";
 import { leerProbador } from "@/lib/probador-servidor";
+import { aplicaA, variablesDelDiseno, type DisenoDeLaTienda } from "@/lib/diseno-campana";
+import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
 import { fechaLarga, pctTexto } from "@/lib/portada";
+import { leerPortada } from "@/lib/portada-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerPagina, paginaDe, POR_PAGINA } from "@/lib/paginas";
 import { leerSedes } from "@/lib/tiendas-servidor";
+import "@/app/estilos/campana.css";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -91,11 +95,13 @@ export default async function Catalogo({ searchParams }: Props) {
   // Lo guardado es la misma lectura del marco del catálogo (una sola consulta por visita). En los favoritos, también los looks que armó
   // en «Arma el tuyo» (ADR-0434, actividad 8) y lo del probador para dibujarlos: si no llegan, la lista de prendas se ve igual.
   const conCuenta = sesion?.estado === "con_sesion" ? sesion.usuarioId : null;
-  const [catalogo, guardados, misLooks, lecturaProbador] = await Promise.all([
+  const [catalogo, guardados, misLooks, lecturaProbador, diseno] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     conCuenta ? leerGuardadosEnBase(conCuenta) : null,
     conCuenta ? leerMisLooksEnBase(conCuenta) : null,
     conCuenta ? leerProbador(pedida?.id ?? null) : null,
+    // El diseño de la campaña que anuncia la portada (la misma lectura de la franja): viste su banda y el sello de sus prendas.
+    leerPortada().then(({ campana }) => leerDisenoDeCampana(campana?.nombre)),
   ]);
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = catalogo?.sede ? sedes.find((s) => s.id === catalogo.sede) ?? null : null;
@@ -115,7 +121,7 @@ export default async function Catalogo({ searchParams }: Props) {
   const menuPedido =
     menuLeido &&
     !esFavoritos &&
-    (!categoriaElegida || grupoDe(categoriaElegida.clave).menu === menuLeido.clave) &&
+    (!categoriaElegida || grupoDe(categoriaElegida.clave, categoriaElegida.familia).menu === menuLeido.clave) &&
     (!grupoPedido || grupoPedido.menu === menuLeido.clave)
       ? menuLeido
       : null;
@@ -137,7 +143,7 @@ export default async function Catalogo({ searchParams }: Props) {
   const enOtras = loPedidoEnTodas.length - vista.length;
   // El grupo encendido: el pedido o el de la categoría elegida. Lo elegido sale en los filtros aunque esta tienda no tenga nada de eso
   // (con 0): la persona ve dónde está.
-  const grupoActivo = grupoPedido ?? (categoriaElegida ? grupoDe(categoriaElegida.clave) : null);
+  const grupoActivo = grupoPedido ?? (categoriaElegida ? grupoDe(categoriaElegida.clave, categoriaElegida.familia) : null);
   const grupos = gruposConLoElegido(gruposDe(deLaLista), grupoActivo, categoriaElegida);
   const categorias = categoriasConLaElegida(categoriasDe(deLaLista), categoriaElegida);
   const delActivo = grupoActivo ? grupos.find((g) => g.clave === grupoActivo.clave) ?? null : null;
@@ -148,7 +154,7 @@ export default async function Catalogo({ searchParams }: Props) {
   // En «Toda la tienda», el título dice lo que se está viendo: la categoría (con su grupo arriba) o el grupo (con su menú arriba).
   const ceja =
     lista === "todo" && categoriaElegida
-      ? grupoDe(categoriaElegida.clave).nombre
+      ? grupoDe(categoriaElegida.clave, categoriaElegida.familia).nombre
       : lista === "todo" && grupoPedido
         ? MENUS.find((m) => m.clave === grupoPedido.menu)?.nombre ?? cab.ceja
         : cab.ceja;
@@ -276,7 +282,7 @@ export default async function Catalogo({ searchParams }: Props) {
             {/* Una tarjeta por campaña, que la elige o la suelta. Con una sola, la tarjeta solo informa: elegirla no cambiaba nada. */}
             {campanas.length === 1 ? (
               <div className="t-campanas">
-                <div className="t-campana">
+                <div className="t-campana" {...vestidoDeCampana(diseno, campanas[0].nombre)}>
                   <DatosDeCampana c={campanas[0]} />
                 </div>
               </div>
@@ -286,6 +292,7 @@ export default async function Catalogo({ searchParams }: Props) {
                   <Link
                     key={c.id}
                     className="t-campana"
+                    {...vestidoDeCampana(diseno, c.nombre)}
                     href={href({ campana: campana === c.id ? null : c.id, categoria: null })}
                     aria-current={campana === c.id ? "true" : undefined}
                     scroll={false}
@@ -414,6 +421,7 @@ export default async function Catalogo({ searchParams }: Props) {
                       puesto={lista === "vendidos" && orden === "destacado" ? pag.desde + i + 1 : null}
                       sinNuevo={lista === "nuevo"}
                       arriba={i < ARRIBA}
+                      diseno={diseno}
                     />
                   ))}
                 </div>
@@ -444,6 +452,11 @@ export default async function Catalogo({ searchParams }: Props) {
       </div>
     </MarcoCatalogo>
   );
+}
+
+/** Con el diseño de la campaña (si el líder dejó la banda del catálogo encendida), la tarjeta de ESA campaña toma sus colores. */
+function vestidoDeCampana(diseno: DisenoDeLaTienda | null, nombre: string) {
+  return diseno?.donde.catalogo && aplicaA(diseno, nombre) ? { "data-campana": diseno.plantilla, style: variablesDelDiseno(diseno) } : {};
 }
 
 /** Lo que dice la tarjeta de una campaña: su descuento, su nombre, cuántas prendas tiene y hasta cuándo. */
