@@ -6,6 +6,7 @@ import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { SinFoto } from "@/components/ui/PrendaCelda";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
 import { soles } from "@/lib/compras-reglas";
 import { textoRango } from "@/lib/etiqueta-vigencia";
@@ -20,10 +21,18 @@ import { volar, type Vuelo } from "./vuelo";
 
    El mosaico dibuja SOLO las piezas que caben en el alto que queda (`useCuantasCaben`): el resto es «+N». Así la etiqueta nunca
    necesita su propio scroll. Cuando una prenda se marca, vuela de su fila a su pieza (`vuelo.ts`) y la etiqueta se asienta.
+   Al pasar el mouse por una pieza, un globito dice qué prenda es; al hacer clic, la hoja lleva a su fila y la abre (`onVer`).
    ==================================================================== */
 
 const COLUMNAS = 6;
-const SEPARACION = 6;
+
+/** Lo que el globito dice del estado de la pieza, después de su nombre. */
+const ESTADO_PIEZA: Record<PiezaEtiqueta["estado"], string> = {
+  nueva: "Por poner",
+  sigue: "Ya la lleva",
+  categoria: "La lleva por su categoría",
+  sale: "Se la quitas",
+};
 
 export function EtiquetaColgada({
   nombre,
@@ -35,6 +44,7 @@ export function EtiquetaColgada({
   caja,
   vueloRef,
   onCaben,
+  onVer,
 }: {
   nombre: string;
   descuentoPct: number | null;
@@ -48,6 +58,8 @@ export function EtiquetaColgada({
   vueloRef: RefObject<Vuelo | null>;
   /** Cuántas piezas caben en el mosaico: la hoja recorta la lista con este número. */
   onCaben: (n: number) => void;
+  /** Clic en una pieza: la hoja lleva a la fila de ese producto en la lista y le abre sus tallas y colores. */
+  onVer: (productoId: string) => void;
 }) {
   const tarjeta = useRef<HTMLDivElement>(null);
   const mosaico = useRef<HTMLDivElement>(null);
@@ -137,32 +149,50 @@ export function EtiquetaColgada({
           {colgada.agregar + colgada.quitar === 0 && <span className="text-xs text-taupe">Escanea o marca prendas para sumarlas</span>}
         </div>
 
-        <div ref={mosaico} className="eqp-mosaico" role="list" aria-label="Prendas que llevan la etiqueta">
-          {colgada.piezas.map((x) => (
-            <span
-              key={x.id}
-              role="listitem"
-              data-pieza={x.id}
-              data-estado={x.estado}
-              data-espera={espera.has(x.id) ? "" : undefined}
-              className="eqp-pieza"
-              title={`${x.producto.referencia} · ${x.ids.length === 1 ? nombreDeTalla(x.variante) : `${x.ids.length} tallas y colores`}${x.estado === "sale" ? " (se la quitas)" : x.estado === "categoria" ? " (por su categoría)" : x.estado === "nueva" ? " (por poner)" : ""}`}
-            >
-              <Pieza pieza={x} />
-              {x.ids.length > 1 && (
-                <span aria-hidden className="eqp-veces">
-                  ×{x.ids.length}
-                </span>
-              )}
-            </span>
-          ))}
-          {colgada.mas > 0 && (
-            <span className="eqp-mas" role="listitem" title={`${colgada.mas} producto${colgada.mas === 1 ? "" : "s"} más`}>
-              +{colgada.mas}
-            </span>
-          )}
-          {colgada.piezas.length === 0 && Array.from({ length: COLUMNAS }, (_, i) => <span key={i} aria-hidden className="eqp-hueco" />)}
-        </div>
+        <TooltipProvider delayDuration={150} skipDelayDuration={400}>
+          <div ref={mosaico} className="eqp-mosaico" role="group" aria-label="Prendas que llevan la etiqueta">
+            {colgada.piezas.map((x) => {
+              const tallas = x.ids.length === 1 ? nombreDeTalla(x.variante) : `${x.ids.length} tallas y colores`;
+              return (
+                <Tooltip key={x.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      data-pieza={x.id}
+                      data-estado={x.estado}
+                      data-espera={espera.has(x.id) ? "" : undefined}
+                      className="eqp-pieza"
+                      aria-label={`${x.producto.referencia}, ${tallas}. ${ESTADO_PIEZA[x.estado]}. Verla en la lista`}
+                      onClick={() => onVer(x.producto.id)}
+                    >
+                      <span className="eqp-foto">
+                        <Pieza pieza={x} />
+                      </span>
+                      {x.ids.length > 1 && (
+                        <span aria-hidden className="eqp-veces">
+                          ×{x.ids.length}
+                        </span>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" sideOffset={6} collisionPadding={8} className="max-w-[15rem] leading-snug">
+                    <span className="block font-semibold">{x.producto.referencia}</span>
+                    <span className="block">
+                      {tallas} · {ESTADO_PIEZA[x.estado]}
+                    </span>
+                    <span className="mt-0.5 block text-background/75">Haz clic para verla en la lista</span>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+            {colgada.mas > 0 && (
+              <span className="eqp-mas" title={`${colgada.mas} producto${colgada.mas === 1 ? "" : "s"} más`}>
+                +{colgada.mas}
+              </span>
+            )}
+            {colgada.piezas.length === 0 && Array.from({ length: COLUMNAS }, (_, i) => <span key={i} aria-hidden className="eqp-hueco" />)}
+          </div>
+        </TooltipProvider>
 
         {descuentoPct !== null && (
           <div className="eqp-solo-ancho">
@@ -205,7 +235,9 @@ function Pieza({ pieza }: { pieza: PiezaEtiqueta }) {
   return <ImagenDePrenda src={pieza.producto.fotoUrl} alt="" width={48} height={58} className="h-full w-full object-cover" fallback={sinFoto} />;
 }
 
-/** Cuántas piezas caben en el mosaico sin que haga falta un scroll: filas enteras de `COLUMNAS`, según el alto que le queda. */
+/** Cuántas piezas caben en el mosaico sin que haga falta un scroll: filas enteras de `COLUMNAS`, según el alto que le queda. La
+ *  separación y el relleno salen del CSS (`.eqp-mosaico`), y el tamaño de `clientWidth`/`clientHeight`, que no cambian mientras la
+ *  hoja entra creciendo (un `getBoundingClientRect` la mediría a media escala). */
 function useCuantasCaben(caja: RefObject<HTMLDivElement | null>, onCaben: (n: number) => void) {
   const avisar = useRef(onCaben);
   useLayoutEffect(() => {
@@ -215,11 +247,14 @@ function useCuantasCaben(caja: RefObject<HTMLDivElement | null>, onCaben: (n: nu
     const el = caja.current;
     if (!el || typeof ResizeObserver === "undefined") return;
     const medir = () => {
-      const { width, height } = el.getBoundingClientRect();
-      if (width === 0) return;
-      const lado = (width - SEPARACION * (COLUMNAS - 1)) / COLUMNAS;
-      const fila = (lado * 6) / 5 + SEPARACION;
-      const filas = Math.max(1, Math.floor((height + SEPARACION) / fila));
+      const css = getComputedStyle(el);
+      const ancho = el.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight);
+      const alto = el.clientHeight - parseFloat(css.paddingTop) - parseFloat(css.paddingBottom);
+      if (!(ancho > 0)) return;
+      const separacion = parseFloat(css.rowGap) || 0;
+      const lado = (ancho - separacion * (COLUMNAS - 1)) / COLUMNAS;
+      const fila = (lado * 6) / 5 + separacion;
+      const filas = Math.max(1, Math.floor((alto + separacion) / fila));
       avisar.current(filas * COLUMNAS);
     };
     medir();
