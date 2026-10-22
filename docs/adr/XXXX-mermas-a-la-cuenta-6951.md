@@ -46,8 +46,18 @@ de 6951 (se repite la migración con ese código).
 Un mes cerrado tiene el diario **congelado** con las mermas en la 659 y su **huella**. Si la función de hoy asentara esas mermas en la 6951, la huella viva dejaría de
 coincidir con la congelada y Cierre de mes diría «algo cambió». La migración **aborta** (con el nombre de cada mes) si existe un período `cerrado` en
 `retail.periodos`; hoy producción no tiene ninguno. Solo cuenta `cerrado`: uno `reabierto` no tiene nada congelado. Si la migración ya está aplicada, volver a pegarla
-**no hace nada** (aunque después se hayan cerrado meses con la 6951). Mientras corre toma `retail.periodos` en SHARE ROW EXCLUSIVE (3 s de espera y falla limpio) para
-que nadie cierre un mes entre la guarda y el final.
+**no hace nada** (aunque después se hayan cerrado meses con la 6951).
+
+**Quién espera a quién (revisión del 2026-10-22).** Para que nadie cierre un mes entre la guarda y el final, la guarda y el «deshacer» toman `diario_cerrado`,
+`periodos` y `periodo_cierres` en SHARE ROW EXCLUSIVE, en ese orden. Candar solo `periodos` NO bastaba: `cerrar_periodo` escribe en `diario_cerrado` (el diario
+congelado) **antes** que en `periodos` y en `periodo_cierres` después, así que una guarda que corría en medio de un cierre pasaba de largo, sin esperar, y el mes se cerraba
+con la 659 en su foto mientras el diario de hoy ya decía 6951. Se reprodujo con dos sesiones: antes del arreglo la migración terminó en 0,09 s sin esperar; después, espera al
+cierre (con un cierre que dura más de 3 s, `lock_timeout` la corta limpio sin cambiar nada; con uno de 4 s, espera 2 s y pega). Qué garantiza, con exactitud: un cierre que ya
+escribió en alguna de las tres tablas se ESPERA y la guarda lo ve ya cerrado; un cierre o una reapertura que llegue después queda en espera hasta que termine la
+migración; las lecturas no se frenan; y vale mientras todo corra en UNA transacción (el SQL Editor lo hace). El orden es el de `cerrar_periodo` para no esperarse en
+círculo con un cierre (una reapertura y el cierre de «CAYLA entera» escriben en otro orden, pero solo existen con un mes ya cerrado, donde la guarda aborta de todos
+modos; si se cruzaran, Postgres corta una de las dos con un error limpio y nada queda a medias). La prueba `perdidas.mjs` (casos MC) usa dos sesiones reales: una simula el cierre a medias y la otra corre la guarda y el «deshacer»; con el candado
+de antes (solo `periodos`) terminaban en milisegundos y la prueba falla.
 
 ## Quién lee la 659 (inventario del 2026-10-22)
 
@@ -73,9 +83,12 @@ mermas; la pestaña Pérdidas; las diferencias de caja (6599) y el redondeo (659
 ## Cómo se pega y cómo se deshace
 
 Un archivo, una parte (no hay políticas ni `alter table`: ADR-0195 no aplica; sin `select … into` dentro de un texto: ADR-0288). Orden: (1) el OK del contador;
-(2) sin meses cerrados y nadie cerrando uno; (3) pegar tal cual; (4) las dos consultas de «CÓMO VERIFICAR» del encabezado; (5) fusionar el PR de la web;
-(6) actualizar `docs/MANUAL-CONTABLE-CAYLA.md` (reglas 11 y de resultados), `docs/finanzas/fases/F5.md` y `docs/datos/modulos/12-contabilidad.md`, que dicen «659 =
-mermas»; (7) recién entonces cerrar octubre. El «down» está en el encabezado de la migración, ejecutable (la prueba lo corre).
+(2) las dos **huellas md5** de «CÓMO VERIFICAR ANTES DE PEGAR» coinciden con producción (`select md5(pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure))` y lo
+mismo para `fn_estado_resultados`; el 2026-10-22 daban `49f364de2b5c43a02a0f386cbac28d50` y `aac084b0a829d2e8f4dcf7bf365f091c`; si no coinciden, producción cambió y se revisa antes
+de pegar); (3) sin meses cerrados; si el SQL Editor responde «canceling statement due to lock timeout», alguien estaba cerrando o reabriendo un mes: no cambió nada, se espera y se
+pega de nuevo; (4) pegar tal cual; (5) las dos consultas de «CÓMO VERIFICAR DESPUÉS DE PEGAR»; (6) fusionar el PR de la web; (7) actualizar `docs/MANUAL-CONTABLE-CAYLA.md`
+(reglas 11 y de resultados), `docs/finanzas/fases/F5.md` y `docs/datos/modulos/12-contabilidad.md`, que dicen «659 = mermas»; (8) recién entonces cerrar octubre. El «down» está en
+el encabezado de la migración, ejecutable (la prueba lo corre).
 
 ## Pendiente del contador
 

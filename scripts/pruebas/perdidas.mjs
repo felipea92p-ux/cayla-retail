@@ -30,6 +30,9 @@
  *         «deshacer» del encabezado funciona y deja la función como estaba, repetir la migración no daña nada, y con un mes
  *         CERRADO aborta nombrándolo sin dejar nada hecho (con uno solo reabierto, o ya aplicada, no); y un mes cerrado ANTES
  *         con la 659 en su foto se sigue leyendo (el detalle de mermas sigue a la sección, no a un código).
+ *   · MC — el candado de un mes EN CURSO: con DOS sesiones reales, una que simula un cierre a medias (escribió su diario
+ *         congelado y todavía no toca `periodos`, como hace `cerrar_periodo`), la guarda de la migración y el «deshacer»
+ *         ESPERAN a que ese cierre termine; con el candado solo sobre `periodos` pasaban de largo sin esperar.
  *
  * LOS NÚMEROS ESPERADOS ESTÁN CALCULADOS A MANO (comentario de la escena), no salen de las funciones.
  *
@@ -40,7 +43,7 @@
  *   pnpm pruebas:perdidas    → con las migraciones ya aplicadas en el local
  */
 
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
@@ -60,6 +63,18 @@ function correr(sql) {
   } catch (e) {
     return { ok: false, mensaje: `${e.stderr ?? ""}${e.message ?? ""}` };
   }
+}
+/** Lo mismo que `correr`, pero sin bloquear: dos sesiones a la vez (la prueba MC). El SQL ya trae su propio final. */
+function correrAparte(sql) {
+  return new Promise((resolve) => {
+    const hijo = execFile(
+      "docker",
+      ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
+      { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+      (error, salida, stderr) => resolve(error ? { ok: false, mensaje: `${stderr ?? ""}${error.message ?? ""}` } : { ok: true, salida: salida.trim() })
+    );
+    hijo.stdin.end(sql);
+  });
 }
 const cambiaA = (id) => `set local request.jwt.claim.sub = '${id}';\n`;
 
@@ -757,6 +772,74 @@ select 'MG7 un mes cerrado con la 659 congelada se sigue leyendo: sus mermas cue
   and (select (detalle_mermas -> 0 ->> 'regla') = 'merma_merma' from er_feb);
 `;
 
+// MC · el candado de un mes EN CURSO. `cerrar_periodo` escribe en `diario_cerrado` (el diario congelado) ANTES que en `periodos`
+// y en `periodo_cierres`; si la guarda solo candara `periodos`, una guarda que corre en medio de un cierre pasaba de largo, sin
+// esperar, y el mes se cerraba con la 659 en su foto mientras el diario de hoy ya decía 6951. Aquí son DOS sesiones de verdad:
+//   · la 1 hace lo primero que hace un cierre (escribe una línea en `diario_cerrado`) y la sostiene mientras alguien espere por
+//     ella (a lo más 8 s: si nadie espera, la prueba MC falla por su cuenta); después un segundo más y la deshace;
+//   · la 2 espera a que la 1 haya escrito, mide, y corre la guarda (MC1) o el «deshacer» (MC2). Con el candado sobre las tres
+//     tablas, la 2 queda en cola hasta que la 1 termina (≥ 1 s); con el de antes (solo `periodos`) terminaba en milisegundos.
+const CIERRE_A_MEDIAS = `
+begin;
+insert into retail.diario_cerrado (cierre_id, n, fecha, asiento, regla, cuenta, debe, haber)
+values (gen_random_uuid(), 1, '2031-03-05', 'cierre:a_medias', 'venta', (select codigo from retail.cuentas order by codigo limit 1), 1, 0);
+do $sostiene$
+declare
+  i integer := 0;
+begin
+  while i < 160 and not exists (
+    select 1 from pg_locks l join pg_class c on c.oid = l.relation
+     where not l.granted and l.pid <> pg_backend_pid() and c.relnamespace = 'retail'::regnamespace
+       and c.relname in ('diario_cerrado', 'periodos', 'periodo_cierres')
+  ) loop
+    perform pg_sleep(0.05);
+    i := i + 1;
+  end loop;
+  perform pg_sleep(1);
+end
+$sostiene$;
+rollback;
+`;
+const MC_ESPERA = `
+do $espera$
+declare
+  i integer := 0;
+begin
+  while not exists (
+    select 1 from pg_locks l join pg_class c on c.oid = l.relation
+     where l.granted and l.mode = 'RowExclusiveLock' and l.pid <> pg_backend_pid()
+       and c.relnamespace = 'retail'::regnamespace and c.relname = 'diario_cerrado'
+  ) loop
+    i := i + 1;
+    if i > 200 then
+      raise exception 'MC: la sesión del cierre a medias no llegó a escribir en diario_cerrado';
+    end if;
+    perform pg_sleep(0.05);
+  end loop;
+end
+$espera$;
+create temp table mc_ini as select clock_timestamp() as t;
+`;
+// El «deshacer» tal cual, menos su candado: deja la base como está HOY en producción sin tomar ningún candado, para que la
+// prueba de la guarda mida SOLO el candado de la guarda.
+const DESHACER_SIN_CANDADO = DESHACER_6951.replace(/^[ \t]*lock table .*$/gm, "-- (sin candado)");
+const CANDADO_TRES_TABLAS = /lock table retail\.diario_cerrado, retail\.periodos, retail\.periodo_cierres in share row exclusive mode;/;
+const CASOS_MC1 = `
+select 'MC1 con un cierre a medias (ya escribió su diario congelado, aún no toca periodos) la guarda ESPERA a que termine y recién entonces pega',
+  (select clock_timestamp() - t from mc_ini) >= interval '800 milliseconds'
+  and position($q$'6951'$q$ in ${ASIENTOS_6951}) > 0 and position($q$'659'$q$ in ${ASIENTOS_6951}) = 0;
+`;
+const CASOS_MC2 = `
+select 'MC2 con un cierre a medias el DESHACER también ESPERA a que termine, y recién entonces vuelve a la 659',
+  (select clock_timestamp() - t from mc_ini) >= interval '800 milliseconds'
+  and position($q$'659'$q$ in ${ASIENTOS_6951}) > 0;
+`;
+/** Corre una sesión 2 (la que mide) a la vez que la sesión 1 del cierre a medias. Devuelve la de la 2 y si la 1 terminó bien. */
+async function conCierreAMedias(sesion2) {
+  const [cierre, medida] = await Promise.all([correrAparte(CIERRE_A_MEDIAS), correrAparte(sesion2)]);
+  return { cierre, medida };
+}
+
 // ---------------------------------------------------------------------------------------------------------------------------
 verificar("Clasificación", correr(CLASIFICACION), casosDe(CLASIFICACION));
 verificar("Totalidad", correr(TOTALIDAD), casosDe(TOTALIDAD));
@@ -784,6 +867,32 @@ verificar("Mermas a la 6951 · candado A (ya aplicada)", correr(ESCENA_6951(CASO
 verificar("Mermas a la 6951 · candado B (mes cerrado)", correr(ESCENA_6951(CASOS_6951_GUARDA_B)), casosDe(CASOS_6951_GUARDA_B));
 verificar("Mermas a la 6951 · candado C (mes reabierto)", correr(ESCENA_6951(CASOS_6951_GUARDA_C)), casosDe(CASOS_6951_GUARDA_C));
 verificar("Mermas a la 6951 · un mes cerrado con la 659 se sigue leyendo", correr(ESCENA_6951(CASOS_6951_LECTURA)), casosDe(CASOS_6951_LECTURA));
+
+// M10/M11 · lo que el encabezado promete y que el texto debe seguir trayendo.
+esperar(
+  "M10 el encabezado trae las huellas md5 de las definiciones vivas de producción (fn_asientos y fn_estado_resultados) y la consulta para compararlas antes de pegar",
+  MIGRACION_6951.includes("CÓMO VERIFICAR ANTES DE PEGAR") &&
+    MIGRACION_6951.includes("49f364de2b5c43a02a0f386cbac28d50") &&
+    MIGRACION_6951.includes("aac084b0a829d2e8f4dcf7bf365f091c") &&
+    MIGRACION_6951.includes("md5(pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure))") &&
+    MIGRACION_6951.includes("md5(pg_get_functiondef('retail.fn_estado_resultados(date, date, uuid)'::regprocedure))")
+);
+esperar(
+  "M11 la guarda y el DESHACER candan las TRES tablas donde escribe un cierre (diario_cerrado, periodos y periodo_cierres), no solo periodos",
+  CANDADO_TRES_TABLAS.test(bloqueDo(MIGRACION_6951, "guarda_6951")) && CANDADO_TRES_TABLAS.test(bloqueDo(DESHACER_6951, "deshacer_6951")),
+  { guarda: bloqueDo(MIGRACION_6951, "guarda_6951").match(/lock table.*/)?.[0], deshacer: bloqueDo(DESHACER_6951, "deshacer_6951").match(/lock table.*/)?.[0] }
+);
+
+// MC · con un cierre a medias en otra sesión, la guarda y el «deshacer» esperan (dos sesiones reales; ver arriba).
+esperar("MC0 el «deshacer» sin candado se armó quitando exactamente la línea del candado (la prueba de la guarda mide solo el de la guarda)", DESHACER_SIN_CANDADO !== DESHACER_6951 && !CANDADO_TRES_TABLAS.test(DESHACER_SIN_CANDADO) && DESHACER_SIN_CANDADO.includes("mermas_reemplazar"));
+{
+  const guarda = await conCierreAMedias(`begin;\n${DESHACER_SIN_CANDADO}\n${MC_ESPERA}\n${MIGRACION_6951}\n${CASOS_MC1}\nrollback;\n`);
+  esperar("MC0 la sesión del cierre a medias (de la guarda) corrió sin error", guarda.cierre.ok, guarda.cierre);
+  verificar("Mermas a la 6951 · candado de un mes en curso (la guarda espera)", guarda.medida, casosDe(CASOS_MC1));
+  const deshacer = await conCierreAMedias(`begin;\n${MC_ESPERA}\n${DESHACER_6951}\n${CASOS_MC2}\nrollback;\n`);
+  esperar("MC0 la sesión del cierre a medias (del deshacer) corrió sin error", deshacer.cierre.ok, deshacer.cierre);
+  verificar("Mermas a la 6951 · candado de un mes en curso (el deshacer espera)", deshacer.medida, casosDe(CASOS_MC2));
+}
 
 console.log(fallos ? `\n${fallos} de ${casos} verificaciones fallaron` : `\nLas ${casos} verificaciones pasaron`);
 process.exit(fallos ? 1 : 0);

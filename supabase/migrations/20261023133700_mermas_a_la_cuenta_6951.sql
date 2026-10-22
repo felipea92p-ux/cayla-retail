@@ -48,8 +48,14 @@
 -- huella. Si la función de hoy asentara esas mermas en la 6951, la huella viva dejaría de coincidir con la congelada
 -- («algo cambió» en Cierre de mes). Un mes cerrado nunca cambia: si ya existe un período `cerrado` en `retail.periodos`, la
 -- migración ABORTA y nombra el mes. Hoy producción no tiene ninguno. Se reabre con motivo, se pega y se vuelve a cerrar.
--- Si la migración ya está aplicada, volver a pegarla NO hace nada (aunque después se hayan cerrado meses con la 6951), y
--- mientras corre toma `retail.periodos` en SHARE ROW EXCLUSIVE para que nadie cierre un mes entre la guarda y el final.
+-- Si la migración ya está aplicada, volver a pegarla NO hace nada (aunque después se hayan cerrado meses con la 6951).
+-- Para que nadie cierre un mes entre la guarda y el final, la guarda (y el «deshacer») toman `diario_cerrado`, `periodos` y
+-- `periodo_cierres` en SHARE ROW EXCLUSIVE: las tres tablas donde escribe `cerrar_periodo`, que escribe en `diario_cerrado`
+-- ANTES que en `periodos` (por eso no bastaba el candado sobre `periodos` solo). Qué garantiza, con exactitud: un cierre que
+-- ya escribió en alguna de las tres se ESPERA (si tarda más de 3 s, `lock_timeout` corta limpio sin cambiar nada y se pega de
+-- nuevo cuando termine) y, al terminar, la guarda lo ve ya cerrado; un cierre o una reapertura que llegue después queda en
+-- espera hasta que termine la migración. No frena las lecturas, y vale mientras todo corra en UNA transacción (el SQL
+-- Editor corre todo lo pegado en una).
 --
 -- QUÉ NO CAMBIA (probado: scripts/pruebas/perdidas.mjs, casos M y MG, y estado_resultados.mjs, casos N):
 --   · ningún total del Estado de resultados (ventas, costo, fletes, mermas, margen, planilla, gastos, resultado, IGV), ni
@@ -77,14 +83,26 @@
 --
 -- ORDEN DE PEGADO. Es UN solo archivo y UNA sola parte, y no depende del orden respecto de otros parches de `fn_asientos`
 --   (reemplazo anclado sobre lo que esté vivo) mientras ninguno recree la función entera. Requiere solo lo ya en
---   producción: 20260925130000 (diario), 20261004220000 (el faltante de traslado). Orden: (1) el OK del contador; (2) sin
---   meses cerrados (ver arriba) y nadie cerrando un mes en ese momento; (3) pegar esta migración tal cual en el SQL Editor
---   (trae `retail.` y su `search_path`; no toma políticas ni hace `alter table`: ADR-0195 no aplica; sin `select … into`
---   dentro de un texto entre comillas simples, ADR-0288); (4) correr las dos consultas de «CÓMO VERIFICAR»; (5) fusionar el
---   PR de la web, que ahora rotula la fila «Mermas» con la 6951 y lee las dos cuentas (la 659 también) para no quedar vacía
---   si web y base se publican en distinto orden; (6) actualizar los documentos de arriba; (7) recién entonces cerrar octubre.
+--   producción: 20260925130000 (diario), 20261004220000 (el faltante de traslado). Orden: (1) el OK del contador; (2) las dos
+--   huellas md5 de «CÓMO VERIFICAR ANTES DE PEGAR» coinciden con producción; (3) sin meses cerrados (ver arriba); si el SQL
+--   Editor responde «canceling statement due to lock timeout», alguien estaba cerrando o reabriendo un mes: nada cambió,
+--   espera a que termine y pega de nuevo; (4) pegar esta migración tal cual en el SQL Editor (trae `retail.` y su
+--   `search_path`; no toma políticas ni hace `alter table`: ADR-0195 no aplica; sin `select … into` dentro de un texto entre
+--   comillas simples, ADR-0288); (5) correr las dos consultas de «CÓMO VERIFICAR DESPUÉS DE PEGAR»; (6) fusionar el PR de
+--   la web, que ahora rotula la fila «Mermas» con la 6951 y lee las dos cuentas (la 659 también) para no quedar vacía si web
+--   y base se publican en distinto orden; (7) actualizar los documentos de arriba; (8) recién entonces cerrar octubre.
 --
--- CÓMO VERIFICAR (solo lectura, después de pegar):
+-- CÓMO VERIFICAR ANTES DE PEGAR (solo lectura, en producción). Esta migración reemplaza texto dentro de la definición VIVA de
+--   dos funciones, así que solo vale si producción sigue como estaba el 2026-10-22, cuando se escribió. Las huellas md5 de
+--   esas dos definiciones vivas en producción ese día:
+--     fn_asientos(date, date, uuid)           = 49f364de2b5c43a02a0f386cbac28d50
+--     fn_estado_resultados(date, date, uuid)  = aac084b0a829d2e8f4dcf7bf365f091c
+--   select md5(pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure)) as fn_asientos,
+--          md5(pg_get_functiondef('retail.fn_estado_resultados(date, date, uuid)'::regprocedure)) as fn_estado_resultados;
+--       → deben dar esas dos huellas. Si alguna no coincide, producción cambió desde entonces: NO pegues, revisa qué cambió
+--         (la guarda de texto de la migración atajaría un cambio que quite el texto a reemplazar, pero no uno que lo deje en pie).
+--
+-- CÓMO VERIFICAR DESPUÉS DE PEGAR (solo lectura):
 --   select codigo, nombre, tipo, seccion_resultados, activo from retail.cuentas where codigo in ('659', '6951', '6598', '6599') order by codigo;
 --       → 4 filas; la 6951 es gasto de la sección «mermas»; las otras tres como estaban.
 --   select position($q$'659'$q$ in pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure)) as quedan_659,
@@ -93,15 +111,16 @@
 --
 -- CÓMO DESHACERLA (el «down»). Sirve para volver a la 659 si el contador pide otra cosa ANTES de cerrar un mes. Copia el
 --   bloque de abajo SIN el «-- » del comienzo de cada línea y pégalo en el SQL Editor (también una sola parte, idempotente).
---   Se niega si ya hay un mes cerrado (su foto guarda la 6951 desde que se pegó esto). Deja la cuenta 6951 en el plan, sin
---   movimientos (inofensiva; para borrarla del todo: delete from retail.cuentas where codigo = '6951', que fallará mientras
---   algún cierre la guarde, y está bien). La prueba `perdidas.mjs` (M) ejecuta este mismo bloque, así que no se pudre.
+--   Se niega si ya hay un mes cerrado (su foto guarda la 6951 desde que se pegó esto) y toma los mismos tres candados de la
+--   guarda. Deja la cuenta 6951 en el plan, sin movimientos (inofensiva; para borrarla del todo: delete from retail.cuentas
+--   where codigo = '6951', que fallará mientras algún cierre la guarde, y está bien). La prueba `perdidas.mjs` (M) ejecuta
+--   este mismo bloque, así que no se pudre.
 -- ----- DESHACER (DOWN) -----
 -- set lock_timeout = '3s';
 -- set search_path = retail, public, extensions;
 -- do $deshacer_6951$
 -- begin
---   lock table retail.periodos in share row exclusive mode;
+--   lock table retail.diario_cerrado, retail.periodos, retail.periodo_cierres in share row exclusive mode;
 --   if exists (select 1 from retail.periodos where estado = 'cerrado') then
 --     raise exception 'Hay meses ya CERRADOS: su foto guarda las mermas en la cuenta 6951. Deshacer ahora movería su huella. Reabre esos meses con motivo en Cierre de mes, deshaz y vuelve a cerrarlos.'
 --       using hint = 'mermas_6951_deshacer_mes_cerrado';
@@ -156,8 +175,10 @@ begin
     return;
   end if;
 
-  -- Nadie cierra un mes entre esta lectura y el final de la migración (lectura libre, escritura en espera: 3 s y falla limpio).
-  lock table retail.periodos in share row exclusive mode;
+  -- Nadie cierra un mes entre esta lectura y el final de la migración. `cerrar_periodo` escribe en `diario_cerrado` ANTES que
+  -- en `periodos` y en `periodo_cierres` después: se toman las tres, en ese mismo orden (así la migración y un cierre no se
+  -- esperan en círculo). Un cierre ya empezado se espera (3 s y falla limpio); las lecturas siguen libres.
+  lock table retail.diario_cerrado, retail.periodos, retail.periodo_cierres in share row exclusive mode;
 
   for r in
     select to_char(p.mes, 'YYYY-MM') || ' ' || coalesce(u.nombre, case p.alcance when 'empresa' then 'de la empresa' else 'CAYLA entera' end) as mes
