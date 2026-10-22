@@ -216,6 +216,11 @@ textarea.caja{height:72px;padding:10px 12px;resize:none}
 .hab.nuevo{grid-template-columns:40px 1fr;border:1.5px dashed var(--rojo);color:var(--rojo-profundo);align-items:center}
 .hab.nuevo .sw{background:color-mix(in srgb,var(--rojo) 10%,transparent);border-color:transparent}
 .lista-hab{display:flex;flex-direction:column;gap:8px}
+.tel .buscar svg.lupa{left:13px;top:15px}
+.filtros-tel{display:flex;gap:6px;overflow-x:auto;margin:12px -18px 0;padding:0 18px 2px;scrollbar-width:none}
+.filtros-tel::-webkit-scrollbar{display:none}
+.filtros-tel .op{flex:none;height:32px;padding:0 12px;font-size:12.5px}
+.filtros-tel .op small{margin-left:4px;opacity:.7}
 .lista-hab > *:nth-child(2){animation-delay:40ms}.lista-hab > *:nth-child(3){animation-delay:80ms}.lista-hab > *:nth-child(4){animation-delay:120ms}.lista-hab > *:nth-child(5){animation-delay:160ms}.lista-hab > *:nth-child(6){animation-delay:200ms}.lista-hab > *:nth-child(7){animation-delay:240ms}.lista-hab > *:nth-child(8){animation-delay:280ms}
 .igual{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:14px 16px;border-radius:16px;background:var(--tinta);color:var(--crema);font-weight:600;text-align:left;margin-top:6px}
 .igual small{display:block;font-weight:400;opacity:.75;font-size:12px}
@@ -379,7 +384,7 @@ textarea.caja{height:72px;padding:10px 12px;resize:none}
     <h3>Lo que decidiste para esta maqueta</h3>
     <ul>
       <li><b>Ella anota su plata; Compras la confirma</b>La compradora anota lo que le transfirieron (cómo, cuánto y la foto del voucher) y, solo la primera vez, lo que ya tenía del fondo. Puede comprar con esa plata mientras Compras la confirma. Lo que sobra pasa a la próxima ronda.</li>
-      <li><b>La compradora: proveedor y lo de siempre</b>Elige al proveedor y ve lo que más le compra: un toque arma la prenda con la cantidad, el costo y la venta de la vez pasada. Si es algo nuevo, lo da de alta en cinco preguntas (con aviso si ya existe). Al final, el papel: foto y monto.</li>
+      <li><b>La compradora: proveedor y lo de siempre</b>Busca al proveedor por nombre o por lo que vende (o lo registra si es nuevo) y ve lo que más le compra, con filtro por categoría: un toque arma la prenda con la cantidad, el costo y la venta de la vez pasada, y al final de cada prenda dice a qué tienda va. Si es algo nuevo, lo da de alta en cinco preguntas (con aviso si ya existe). Al final, el papel: foto y monto.</li>
       <li><b>«Otro gasto» aparte</b>Taxi, cargador, comida o envío salen del mismo fondo y nunca se suman al costo de las prendas.</li>
       <li><b>Ella arma el envío</b>Elige los comprobantes que van en el fardo y a qué tienda. A esa tienda le aparece «Viene un envío».</li>
       <li><b>La tienda recibe con costo</b>Suma las prendas que ya existen o crea la nueva ahí mismo con la ficha completa, y escribe el costo de cada una leyendo el papel. El stock entra con su costo y el sistema dice al instante si cuadra. Si algo no coincide, lo marca y avisa.</li>
@@ -448,12 +453,12 @@ const S = {
   ],
   regs: [
     { id:"i1", salida:"s1", clase:"ingreso", como:"transf", monto:3000, hora:"9:10", estado:"confirmada", foto:true },
-    { id:"c1", salida:"s1", clase:"compra", tipo:"factura", monto:426, hora:"11:20", provId:"rosa", fecha:"2026-10-22", lineas:[L("Blusa manga globo","Blusas","CAYLA","Crudo",12,17.5,39.9), L("Polo básico algodón","Polos","CAYLA","Negro",18,12,29.9)], papel:{ prov:"Textiles Rosa E.I.R.L.", num:"F001-00482", ruc:"RUC 20601234567", lineas:[["Blusa manga globo",12,17.5],["Polo básico algodón",18,12]] } },
-    { id:"c2", salida:"s1", clase:"compra", tipo:"boleta", monto:480, hora:"12:05", provId:"lupe", fecha:"2026-10-22", lineas:[L("Jean mom tiro alto","Jeans","Lupe Jeans","Azul medio",12,40,89.9)], papel:{ prov:"Confecciones Lupe", num:"B002-01177", lineas:[["Jean mom tiro alto",12,40]] } },
+    { id:"c1", salida:"s1", clase:"compra", tipo:"factura", monto:426, hora:"11:20", provId:"rosa", fecha:"2026-10-22", lineas:[{...L("Blusa manga globo","Blusas","CAYLA","Crudo",12,17.5,39.9), tienda:"AQP"}, {...L("Polo básico algodón","Polos","CAYLA","Negro",18,12,29.9), tienda:"AQP"}], papel:{ prov:"Textiles Rosa E.I.R.L.", num:"F001-00482", ruc:"RUC 20601234567", lineas:[["Blusa manga globo",12,17.5],["Polo básico algodón",18,12]] } },
+    { id:"c2", salida:"s1", clase:"compra", tipo:"boleta", monto:480, hora:"12:05", provId:"lupe", fecha:"2026-10-22", lineas:[{...L("Jean mom tiro alto","Jeans","Lupe Jeans","Azul medio",12,40,89.9), tienda:"AQP"}], papel:{ prov:"Confecciones Lupe", num:"B002-01177", lineas:[["Jean mom tiro alto",12,40]] } },
     { id:"g1", salida:"s1", clase:"gasto", tipo:"Taxi", monto:25, hora:"10:05" },
     { id:"g2", salida:"s1", clase:"gasto", tipo:"Cargador", monto:15, hora:"13:30" },
     { id:"i2", salida:"s1", clase:"ingreso", como:"yape", monto:500, hora:"13:10", estado:"pendiente", foto:true },
-    { id:"c3", salida:"s1", clase:"compra", tipo:"nota", monto:380, hora:"14:40", provId:"p214", fecha:"2026-10-22", lineas:[L("Falda plisada midi","Faldas","","Verde oliva",10,38,79.9)], papel:{ prov:"Puesto 214 · Gamarra", num:"N° 0358", lineas:[["Falda plisada midi",10,38]] } },
+    { id:"c3", salida:"s1", clase:"compra", tipo:"nota", monto:380, hora:"14:40", provId:"p214", fecha:"2026-10-22", lineas:[{...L("Falda plisada midi","Faldas","","Verde oliva",10,38,79.9), tienda:"LIM"}], papel:{ prov:"Puesto 214 · Gamarra", num:"N° 0358", lineas:[["Falda plisada midi",10,38]] } },
   ],
   envios: [ { id:"e1", salida:"s1", tienda:"AQP", bultos:2, comps:["c1","c2"], hora:"15:10", estado:"camino" } ],
   tel: { p:"erp", quien:"mar" },
@@ -501,6 +506,20 @@ const diasDesde = (f) => Math.round((HOY - new Date(f + "T12:00:00")) / 86400000
 const haceTexto = (f) => { const d = diasDesde(f); return d <= 0 ? "hoy" : d === 1 ? "ayer" : `hace ${d} días`; };
 const elDia = (f) => { const d = new Date(f + "T12:00:00"); if (diasDesde(f) <= 0) return "hoy"; if (diasDesde(f) === 1) return "ayer"; return d.getMonth() === HOY.getMonth() ? `el ${d.getDate()}` : `el ${d.getDate()} de ${MESES[d.getMonth()]}`; };
 const provDe = (id) => PROVS.find((p) => p.id === id);
+const CIUDAD = { TRU:"Trujillo", AQP:"Arequipa", LIM:"Lima" };
+/* ¿Qué categorías vende cada proveedor? (de lo que ya se le compró) */
+const catsDe = (provId) => [...new Set(comprasDe(provId).flatMap((c) => c.lineas.map((l) => l.cat)))];
+/* ¿Se parece a un proveedor que ya existe? Mismo nombre sin «E.I.R.L.»/«S.A.C.», o uno dentro del otro */
+function provParecido(nombre) {
+  const n = norm(corto(nombre)); if (n.length < 4) return null;
+  return PROVS.find((pv) => { const m = norm(corto(pv.nombre)); return m === n || m.includes(n) || n.includes(m); }) || null;
+}
+/* A qué tiendas le falta mandar este papel: cada tienda de sus prendas que todavía no tiene su envío («*» = sin tienda anotada) */
+function tiendasPendientes(r) {
+  const ts = r.lineas?.length ? [...new Set(r.lineas.map((l) => l.tienda || "*"))] : ["*"];
+  return ts.filter((t) => !S.envios.some((x) => x.comps.includes(r.id) && (t === "*" || x.tienda === t)));
+}
+const libreParaTienda = (r, tienda) => tiendasPendientes(r).some((t) => t === "*" || t === tienda);
 const corto = (nombre) => nombre.replace(/\s+(E\.I\.R\.L\.|S\.A\.C\.|S\.A\.)$/, "");
 const claveProducto = (l) => norm(l.nombre) + "|" + l.cat + "|" + (l.marca || "");
 function comprasDe(provId) {
@@ -631,13 +650,13 @@ function pantallaTel() {
     const regs = S.regs.filter((r) => r.salida === ronda).slice().reverse();
     const pct = Math.max(0, Math.min(100, c.queda / c.total * 100));
     const filas = regs.map((r) => {
-      const env = S.envios.find((e) => e.comps.includes(r.id));
+      const enviada = S.envios.filter((e) => e.comps.includes(r.id)).map((e) => e.tienda), falta = r.clase === "compra" ? tiendasPendientes(r).filter((x) => x !== "*") : [];
       if (r.clase === "ingreso") return `<div class="fila-tel"><span class="mini">${voucherHTML(r,true)}</span><span class="t"><b>${COMO[r.como]}</b><small>${r.como==="yatenia"?"Plata del fondo":"Plata que te dieron"} · ${r.hora}</small></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="m" style="color:var(--verde)">+ ${soles(r.monto)}</span><span class="chip ${r.estado==="pendiente"?"ambar":"verde"} sinpunto" style="height:18px;font-size:9.5px">${r.estado==="pendiente"?"Por confirmar":"Confirmada"}</span></span></div>`;
       const det = r.clase === "gasto" ? `Otro gasto · ${r.hora}` : `${r.lineas?.length ? resumenLineas(r.lineas) : "Compra"} · ${r.hora}`;
-      const chip = r.clase === "gasto" ? "" : env ? `<span class="chip verde sinpunto" style="height:18px;font-size:9.5px">A ${env.tienda}</span>` : `<span class="chip ambar sinpunto" style="height:18px;font-size:9.5px">Sin envío</span>`;
+      const chip = r.clase === "gasto" ? "" : falta.length ? `<span class="chip ambar sinpunto" style="height:18px;font-size:9.5px">Falta mandar a ${falta.join(", ")}</span>` : enviada.length && !tiendasPendientes(r).length ? `<span class="chip verde sinpunto" style="height:18px;font-size:9.5px">A ${enviada.join(", ")}</span>` : `<span class="chip ambar sinpunto" style="height:18px;font-size:9.5px">Sin envío</span>`;
       return `<div class="fila-tel"><span class="mini">${r.clase==="gasto" ? ic("billete") : `<div style="transform:scale(1);width:100%">${papelHTML(r,true)}</div>`}</span><span class="t"><b>${r.clase==="gasto"?h(r.tipo):TIPOS[r.tipo]}${r.provId?" · "+h(provDe(r.provId).nombre):""}</b><small>${det}</small></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="m">${soles(r.monto)}</span>${chip}</span></div>`;
     }).join("");
-    const sinEnvio = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && !S.envios.some((e)=>e.comps.includes(r.id))).length;
+    const sinEnvio = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && tiendasPendientes(r).length).length;
     return `${aviso}<div class="tel-pant"><div class="tel-top"><button class="volver" data-a="tel" data-v="erp" aria-label="Volver a Inicio">${ic("atras")}</button><span style="font-size:13px;color:var(--t60)">Mi ronda de compras</span></div>
       <div class="saldo ${c.queda<0?"debe":""}"><div class="l">${c.queda<0?"Pusiste de tu bolsillo":"Te queda para comprar"}</div><div class="v">${soles(Math.abs(c.queda))}</div>
         <div class="d">De ${soles(c.total)}${c.porConfirmar?` (${soles(c.porConfirmar)} por confirmar)`:""} · compras ${soles(c.compras)} · otros gastos ${soles(c.gastos)}</div><div class="barra"><i style="width:${pct}%"></i></div></div>
@@ -650,25 +669,53 @@ function pantallaTel() {
   const B = S.bor, prov = B ? provDe(B.provId) : null, a = B?.actual;
   const atras = (v) => `<div class="tel-top"><button class="volver" data-a="ir" data-v="${v}" aria-label="Volver">${ic("atras")}</button><span style="font-size:13px;color:var(--t60)">${prov?"Compra a "+h(prov.nombre):"Registrar una compra"}</span></div>`;
   const avance = (nombrePaso) => {
-    const pasos = !B || B.camino !== "nuevo" ? ["Proveedor","Producto","Cantidad","Costo","Venta","Revisar","Papel"]
-      : ["Proveedor","Qué es","Nombre"].concat(prov.marcas.length > 1 ? ["Marca"] : []).concat(["Color","Tallas","Cantidad","Costo","Venta","Revisar","Papel"]);
+    const pasos = !B || B.camino !== "nuevo" ? ["Proveedor","Producto","Cantidad","Costo","Venta","Tienda","Revisar","Papel"]
+      : ["Proveedor","Qué es","Nombre"].concat(prov.marcas.length > 1 ? ["Marca"] : []).concat(["Color","Tallas","Cantidad","Costo","Venta","Tienda","Revisar","Papel"]);
     const i = Math.max(0, pasos.indexOf(nombrePaso)), n = pasos.length;
     return `<div class="avance-tel"><span>Paso ${i+1} de ${n} · ${nombrePaso}</span><i><b style="width:${Math.round((i+1)/n*100)}%"></b></i></div>`;
   };
   const teclado = `<div class="teclado">${["1","2","3","4","5","6","7","8","9",".","0","←"].map((k)=>`<button data-a="tecla" data-v="${k}">${k}</button>`).join("")}</div>`;
   if (t.p === "c-prov") {
-    const orden = PROVS.slice().sort((x, y) => (comprasDe(y.id).map(c=>c.fecha).sort().pop()||"").localeCompare(comprasDe(x.id).map(c=>c.fecha).sort().pop()||""));
-    const filas = orden.map((pv) => { const cs = comprasDe(pv.id); const ult = cs.map(c=>c.fecha).sort().pop();
-      return `<button class="hab" data-a="c-prov" data-v="${pv.id}"><span class="sw" style="background:var(--hueso);color:var(--taupe)">${ic("caja")}</span><span><b>${h(pv.nombre)}</b><span class="cm">${cs.length ? `Le compraste ${cs.length} ${cs.length===1?"vez":"veces"} · la última ${haceTexto(ult)}` : "Todavía no le compras"}</span></span></button>`; }).join("");
-    return `${aviso}<div class="tel-pant">${atras("inicio")}${avance("Proveedor")}<h4>¿A quién le compras?</h4><p class="sub">Primero los que más le compras.</p><div class="lista-hab" style="margin-top:14px">${filas}</div></div>`;
+    const q = norm(t.q), cat = t.cat || "";
+    const todasCats = Object.keys(CATEGORIAS).filter((c) => PROVS.some((pv) => catsDe(pv.id).includes(c)));
+    const ultimaDe = (id) => comprasDe(id).map((c) => c.fecha).sort().pop() || "";
+    const orden = PROVS.slice().sort((x, y) => ultimaDe(y.id).localeCompare(ultimaDe(x.id)))
+      .filter((pv) => (!q || norm(pv.nombre).includes(q)) && (!cat || catsDe(pv.id).includes(cat)));
+    const filas = orden.map((pv) => { const cs = comprasDe(pv.id), ult = ultimaDe(pv.id), cats = catsDe(pv.id);
+      return `<button class="hab" data-a="c-prov" data-v="${pv.id}"><span class="sw" style="background:var(--hueso);color:var(--taupe)">${ic("caja")}</span><span><b>${h(pv.nombre)}</b><span class="cm">${cats.length ? cats.join(" · ") : "Todavía no le compras"}</span>${cs.length ? `<span class="vp">Le compraste ${cs.length} ${cs.length===1?"vez":"veces"} · la última ${haceTexto(ult)}</span>` : ""}</span></button>`; }).join("");
+    const chips = ["", ...todasCats].map((c) => `<button class="op" aria-pressed="${cat===c}" data-a="c-prov-cat" data-v="${c}">${c || "Todos"}</button>`).join("");
+    return `${aviso}<div class="tel-pant">${atras("inicio")}${avance("Proveedor")}<h4>¿A quién le compras?</h4><p class="sub">Busca por nombre o por lo que vende.</p>
+      <div class="buscar" style="padding:0;border:0;margin-top:12px">${ic("lupa","lupa")}<input class="caja" style="padding-left:38px;height:46px" placeholder="Busca el proveedor" value="${h(t.q||"")}" data-in="c-prov-q" autocomplete="off"></div>
+      <div class="filtros-tel">${chips}</div>
+      <div class="lista-hab" style="margin-top:12px">${filas || `<div class="vacio"><b>No hay ${cat ? `quien te venda ${cat.toLowerCase()}` : "un proveedor así"}${q ? ` con «${h(t.q)}»` : ""}</b>Prueba con otra categoría o regístralo abajo.</div>`}
+        <button class="hab nuevo" data-a="c-prov-nuevo"><span class="sw">${ic("mas")}</span><span><b>Nuevo proveedor</b><span class="cm" style="color:inherit;opacity:.8">Alguien a quien todavía no le compras</span></span></button></div></div>`;
+  }
+  if (t.p === "c-prov-nuevo") {
+    const n = t.pn || {}, dup = provParecido(n.nombre || ""), sinRuc = n.sinRuc;
+    const rucOk = sinRuc || /^\d{11}$/.test(n.ruc || ""), listo = norm(n.nombre).length >= 3 && rucOk && (!dup || n.noEsDup);
+    return `<div class="tel-pant">${atras("c-prov")}<h4>Nuevo proveedor</h4><p class="sub">Lo básico para anotar la compra. Lo demás lo completa Compras.</p>
+      <div class="campo" style="margin-top:16px"><span class="campo-et">Nombre</span><input class="caja" style="height:48px" placeholder="Como dice su papel o su letrero" value="${h(n.nombre||"")}" data-in="pn-nombre" autocomplete="off"></div>
+      ${dup && !n.noEsDup ? `<div class="nota" style="margin-top:10px;flex-direction:column;gap:8px"><span>¿Es <b style="color:var(--tinta)">${h(dup.nombre)}</b>? Ya está registrado.</span><span style="display:flex;gap:8px"><button class="btn btn-primario" style="height:34px" data-a="c-prov" data-v="${dup.id}">Usar ese</button><button class="btn btn-secundario" style="height:34px" data-a="pn-no-dup">No, es otro</button></span></div>` : ""}
+      <div class="campo" style="margin-top:14px"><span class="campo-et">RUC <em>· si tiene</em></span><input class="caja" style="height:48px" inputmode="numeric" maxlength="11" placeholder="11 números" value="${h(n.ruc||"")}" data-in="pn-ruc" ${sinRuc?"disabled":""}>
+        <button class="op" style="align-self:flex-start;margin-top:6px" aria-pressed="${!!sinRuc}" data-a="pn-sin-ruc">No tiene RUC</button></div>
+      <div class="campo" style="margin-top:14px"><span class="campo-et">Marcas que trae <em>· opcional</em></span><input class="caja" style="height:48px" placeholder="Separadas por coma" value="${h(n.marcas||"")}" data-in="pn-marcas" autocomplete="off"></div>
+      <div class="abajo"><button class="btn-tel prim" ${listo?"":"disabled"} data-a="pn-guardar">Registrar y seguir ${ic("flecha")}</button></div></div>`; // sugerir-fijo: nombre, RUC y marcas de un proveedor nuevo no dependen de nada elegido antes
+  }
+  if (t.p === "c-tienda") {
+    const ult = S.bor.ultimaTienda;
+    return `<div class="tel-pant">${atras("c-venta")}${avance("Tienda")}<h4>¿A qué tienda va?</h4><p class="sub">${a.cant} · ${h(a.nombre)}</p>
+      <div class="lista-hab" style="margin-top:16px">${Object.keys(TIENDAS).map((k)=>`<button class="hab" data-a="c-tienda" data-v="${k}"><span class="sw" style="background:var(--hueso);color:var(--taupe)">${ic("caja")}</span><span><b>${TIENDAS[k]}${ult===k?'<span class="chip pizarra sinpunto ya" style="height:18px;font-size:9px">Como la anterior</span>':""}</b><span class="cm">${CIUDAD[k]}</span></span></button>`).join("")}</div></div>`;
   }
   if (t.p === "c-hab") {
-    const todos = habitualesDe(B.provId), ver = t.todos ? todos : todos.slice(0, 6);
+    const todos = habitualesDe(B.provId), cat = t.cat || "", deCat = cat ? todos.filter((x) => x.cat === cat) : todos;
+    const ver = t.todos || cat ? deCat : deCat.slice(0, 6);
+    const cats = [...new Set(todos.map((x) => x.cat))];
+    const chips = cats.length > 1 ? `<div class="filtros-tel">${["", ...cats].map((c) => `<button class="op" aria-pressed="${cat===c}" data-a="c-hab-cat" data-v="${c}">${c || "Todos"}<small>${c ? todos.filter((x)=>x.cat===c).length : todos.length}</small></button>`).join("")}</div>` : "";
     const enCompra = (hb) => B.lineas.some((l) => claveProducto(l) === hb.clave);
     const tarjetas = ver.map((hb, i) => { const u = hb.ultima; const col = hb.color;
-      return `<button class="hab" data-a="c-hab" data-v="${i}"><span class="sw" data-color-dato style="background:${col?col[1]:"var(--hueso)"};color:${col&&parseInt(col[1].slice(1,3),16)<140?"#f5f0e8":"#1a1a18"}">${ic("percha")}</span><span><b>${h(hb.nombre)}${enCompra(hb)?'<span class="chip verde sinpunto ya" style="height:18px;font-size:9px">Ya va</span>':""}</b><span class="cm">${hb.cat}${hb.marca?" · "+h(hb.marca):" · Sin marca"}${col?" · "+col[0]:""}</span><span class="vp">La vez pasada: ${u.cant} a ${soles(u.costo)} · se vendió a ${soles(u.venta)} · ${haceTexto(u.fecha)}</span></span></button>`; }).join(""); // tema-fijo: texto sobre el color de la prenda (dato)
-    const mas = !t.todos && todos.length > 6 ? `<button class="btn btn-enlace" style="align-self:center;margin:4px 0" data-a="c-todos">Ver todos los suyos (${todos.length})</button>` : "";
-    return `${aviso}<div class="tel-pant">${atras("c-prov")}${avance("Producto")}<h4>¿Qué le compras hoy?</h4><p class="sub">Lo que más le compras a ${h(prov.nombre)}.</p>
+      return `<button class="hab" data-a="c-hab" data-v="${h(hb.clave)}"><span class="sw" data-color-dato style="background:${col?col[1]:"var(--hueso)"};color:${col&&parseInt(col[1].slice(1,3),16)<140?"#f5f0e8":"#1a1a18"}">${ic("percha")}</span><span><b>${h(hb.nombre)}${enCompra(hb)?'<span class="chip verde sinpunto ya" style="height:18px;font-size:9px">Ya va</span>':""}</b><span class="cm">${hb.cat}${hb.marca?" · "+h(hb.marca):" · Sin marca"}${col?" · "+col[0]:""}</span><span class="vp">La vez pasada: ${u.cant} a ${soles(u.costo)} · se vendió a ${soles(u.venta)} · ${haceTexto(u.fecha)}</span></span></button>`; }).join(""); // tema-fijo: texto sobre el color de la prenda (dato)
+    const mas = !t.todos && !cat && todos.length > 6 ? `<button class="btn btn-enlace" style="align-self:center;margin:4px 0" data-a="c-todos">Ver todos los suyos (${todos.length})</button>` : "";
+    return `${aviso}<div class="tel-pant">${atras("c-prov")}${avance("Producto")}<h4>¿Qué le compras hoy?</h4><p class="sub">Lo que más le compras a ${h(prov.nombre)}.</p>${chips}
       <div class="lista-hab" style="margin-top:14px">${tarjetas}${mas}<button class="hab nuevo" data-a="c-nuevo"><span class="sw">${ic("mas")}</span><span><b>Algo nuevo de este proveedor</b><span class="cm" style="color:inherit;opacity:.8">Una prenda que todavía no le compraste</span></span></button></div>
       ${B.lineas.length?`<div class="abajo"><button class="btn-tel sec" data-a="ir" data-v="c-revisar">Revisar la compra <span class="globito">${B.lineas.length}</span></button></div>`:""}</div>`;
   }
@@ -687,7 +734,7 @@ function pantallaTel() {
       <div class="abajo"><button class="btn-tel prim" ${valido?"":"disabled"} data-a="${cfg.ok}">${t.p==="c-cant"?`Seguir con ${v||0}`:t.p==="c-venta"?"Anotar":"Seguir"} ${ic("flecha")}</button></div></div>`;
   }
   if (t.p === "c-revisar") {
-    const filas = B.lineas.map((l, i) => `<div class="fila-tel ${B.recien===i?"recien":""}"><button data-a="c-editar" data-v="${i}" style="display:contents;text-align:left"><span class="mini" data-color-dato style="background:${l.color?l.color[1]:"var(--hueso)"}">${ic("percha")}</span><span class="t"><b>${l.cant} · ${h(l.nombre)}</b><small>${soles(l.costo)} c/u · se venderá a ${soles(l.venta)}</small></span></button><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="m">${soles(l.cant*l.costo)}</span><button class="btn btn-enlace" style="font-size:12px" data-a="c-quitar" data-v="${i}">Quitar</button></span></div>`).join("");
+    const filas = B.lineas.map((l, i) => `<div class="fila-tel ${B.recien===i?"recien":""}"><button data-a="c-editar" data-v="${i}" style="display:contents;text-align:left"><span class="mini" data-color-dato style="background:${l.color?l.color[1]:"var(--hueso)"}">${ic("percha")}</span><span class="t"><b>${l.cant} · ${h(l.nombre)}</b><small>${soles(l.costo)} c/u · se venderá a ${soles(l.venta)}${l.tienda?` · va a ${l.tienda}`:""}</small></span></button><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="m">${soles(l.cant*l.costo)}</span><button class="btn btn-enlace" style="font-size:12px" data-a="c-quitar" data-v="${i}">Quitar</button></span></div>`).join("");
     return `${aviso}<div class="tel-pant">${atras("c-hab")}${avance("Revisar")}<h4>Tu compra a ${h(corto(prov.nombre))}</h4><p class="sub">Toca una prenda para corregirla.</p>
       <div class="lista-tel" style="margin-top:14px">${filas || `<div class="vacio"><b>Todavía no anotas nada</b>Elige qué le compras.</div>`}</div>
       <div class="fila-tel" style="border:0;padding:12px 4px"><span class="t"><b>Total</b><small>${B.lineas.reduce((x,l)=>x+l.cant,0)} prendas</small></span><span class="m" style="font-family:var(--serif);font-size:22px">${soles(totalBor())}</span></div>
@@ -778,10 +825,11 @@ function pantallaTel() {
       <p class="sub" style="margin-top:14px">Si te dieron un papel, podrás sacarle foto. Si no, igual se guarda.</p></div>`;
   }
   if (t.p === "envio") {
-    const libres = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && !S.envios.some((e)=>e.comps.includes(r.id)));
+    const libresTodas = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && tiendasPendientes(r).length);
+    const libres = t.envio?.tienda ? libresTodas.filter((r) => libreParaTienda(r, t.envio.tienda)) : libresTodas;
     const e = t.envio || (t.envio = { sel: libres.map((r)=>r.id), tienda:null, bultos:1 });
-    if (!libres.length) return `<div class="tel-pant">${top("Armar un envío","")}<div class="vacio" style="margin-top:30px"><b>Todo está en un envío</b>Cuando registres otra compra, aparecerá aquí para mandarla.</div></div>`;
-    const marcas = libres.map((r)=>`<button class="marca" aria-pressed="${e.sel.includes(r.id)}" data-a="env-sel" data-v="${r.id}"><span class="check">${e.sel.includes(r.id)?ic("check"):""}</span><span class="mini" style="width:34px;height:40px;overflow:hidden;border-radius:4px;background:var(--hueso)">${papelHTML(r,true)}</span><span style="flex:1;min-width:0"><b>${TIPOS[r.tipo]}${r.provId?" · "+h(provDe(r.provId).nombre):""}</b><br><small style="color:var(--t60)">${r.lineas?.length?resumenLineas(r.lineas)+" · ":""}${r.hora}</small></span><b>${soles(r.monto)}</b></button>`).join("");
+    if (!libresTodas.length) return `<div class="tel-pant">${top("Armar un envío","")}<div class="vacio" style="margin-top:30px"><b>Todo está en un envío</b>Cuando registres otra compra, aparecerá aquí para mandarla.</div></div>`;
+    const marcas = libres.map((r)=>`<button class="marca" aria-pressed="${e.sel.includes(r.id)}" data-a="env-sel" data-v="${r.id}"><span class="check">${e.sel.includes(r.id)?ic("check"):""}</span><span class="mini" style="width:34px;height:40px;overflow:hidden;border-radius:4px;background:var(--hueso)">${papelHTML(r,true)}</span><span style="flex:1;min-width:0"><b>${TIPOS[r.tipo]}${r.provId?" · "+h(provDe(r.provId).nombre):""}</b><br><small style="color:var(--t60)">${r.lineas?.length?(e.tienda?resumenLineas(r.lineas.filter((l)=>!l.tienda||l.tienda===e.tienda))||"Nada para "+e.tienda:resumenLineas(r.lineas)+" · "+[...new Set(r.lineas.map((l)=>l.tienda).filter(Boolean))].join(", "))+" · ":""}${r.hora}</small></span><b>${soles(r.monto)}</b></button>`).join("");
     const tiendas = Object.keys(TIENDAS).map((k)=>`<button class="tile" aria-pressed="${e.tienda===k}" data-a="env-tienda" data-v="${k}">${k}<small>${TIENDAS[k].replace("Tienda ","")==="LIM"?"Lima":k==="AQP"?"Arequipa":k==="TRU"?"Trujillo":"Lima"}</small></button>`).join("");
     const listo = e.sel.length && e.tienda;
     return `<div class="tel-pant">${top("¿Qué va en este fardo?","Marca los papeles de lo que va junto.")}
@@ -792,7 +840,7 @@ function pantallaTel() {
       <div class="abajo"><button class="btn-tel prim" ${listo?"":"disabled"} data-a="env-mandar">${ic("camion")}Mandar ${e.tienda?"a "+TIENDAS[e.tienda]:""}</button></div></div>`;
   }
   if (t.p === "fin") {
-    const sinEnvio = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && !S.envios.some((e)=>e.comps.includes(r.id)));
+    const sinEnvio = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && tiendasPendientes(r).length);
     const sobra = c.queda;
     return `<div class="tel-pant">${top("Tu ronda de hoy","")}
       <div class="lista-tel" style="margin-top:14px">
@@ -840,12 +888,14 @@ function escena3() {
 }
 /* Lo que anotó la compradora para este papel: cada prenda por su nombre, con un toque para sumarla o crearla */
 function anotadoHTML(r, R, per) {
+  const tiendaEnvio = S.envios.find((x) => x.id === S.abiertoEnvio)?.tienda;
+  const otras = (r.lineas || []).filter((l) => l.tienda && l.tienda !== tiendaEnvio);
   if (!r.lineas?.length) return "";
   const yaEsta = (l) => R.lineas.some((x) => x.comp === r.id && norm((x.nuevo || prod(x.prod)).nombre) === norm(l.nombre));
-  const filas = r.lineas.map((l, i) => { const p = CATALOGO.find((c) => norm(c.nombre) === norm(l.nombre));
+  const filas = r.lineas.map((l, i) => { if (l.tienda && l.tienda !== tiendaEnvio) return ""; const p = CATALOGO.find((c) => norm(c.nombre) === norm(l.nombre));
     const accion = yaEsta(l) ? '<span class="chip verde sinpunto">Registrada</span>' : R.cerrada ? "" : p ? `<button class="btn btn-secundario" style="height:34px" data-a="rec-elegir" data-v="${p.id}">Sumar</button>` : `<button class="btn btn-secundario" style="height:34px" data-a="rec-crear-de" data-v="${i}">Crear</button>`;
     return `<div class="dif" style="grid-template-columns:minmax(0,1fr) auto"><span><b>${l.cant} · ${h(l.nombre)}</b><br><small style="color:var(--t60)">${l.cat}${l.marca?" · "+h(l.marca):""} · ${soles(l.costo)} c/u${p?"":" · todavía no está en Catálogo"}</small></span>${accion}</div>`; }).join("");
-  return `<div style="padding:14px 18px;border-bottom:1px solid var(--sand);display:flex;flex-direction:column;gap:8px"><span class="campo-et">Lo que anotó ${per.nombre.split(" ")[0]} al comprar</span>${filas}</div>`;
+  return `<div style="padding:14px 18px;border-bottom:1px solid var(--sand);display:flex;flex-direction:column;gap:8px"><span class="campo-et">Lo que anotó ${per.nombre.split(" ")[0]} al comprar para ${tiendaEnvio ? TIENDAS[tiendaEnvio] : "esta tienda"}</span>${filas}${otras.length ? `<small style="color:var(--t60)">Además, de este papel: ${resumenLineas(otras, 3)} va a ${[...new Set(otras.map((l)=>l.tienda))].join(", ")}.</small>` : ""}</div>`;
 }
 function recepcionHTML(e) {
   const R = recDe(e.id), per = PERSONAS[salida(e.salida).persona];
@@ -1123,7 +1173,16 @@ const ACC = {
   "ir": (v) => irA(v),
   "c-prov": (v) => { S.bor = { provId:v, lineas:[], actual:null, camino:"hab", editIdx:null }; irA(habitualesDe(v).length ? "c-hab" : "n-cat"); if (!habitualesDe(v).length) S.bor.camino = "nuevo"; },
   "c-todos": () => { S.tel.todos = true; },
-  "c-hab": (v) => { const B=S.bor, todos=habitualesDe(B.provId), hb=(S.tel.todos?todos:todos.slice(0,6))[Number(v)], u=hb.ultima;
+  "c-hab-cat": (v) => { S.tel.cat = v; },
+  "c-prov-cat": (v) => { S.tel.cat = v; },
+  "c-prov-nuevo": () => { S.tel = { quien:S.tel.quien, p:"c-prov-nuevo", pn:{ nombre:S.tel.q || "" } }; },
+  "pn-no-dup": () => { S.tel.pn.noEsDup = true; },
+  "pn-sin-ruc": () => { S.tel.pn.sinRuc = !S.tel.pn.sinRuc; if (S.tel.pn.sinRuc) S.tel.pn.ruc = ""; },
+  "pn-guardar": () => { const n = S.tel.pn, id = nuevoId("prov");
+    PROVS.push({ id, nombre:n.nombre.trim(), ruc:n.sinRuc ? null : n.ruc, marcas:(n.marcas||"").split(",").map((x)=>x.trim()).filter(Boolean) });
+    ACC["c-prov"](id); avisoTel(`${n.nombre.trim()} quedó registrado. Compras completa sus datos.`); },
+  "c-tienda": (v) => { S.bor.actual.tienda = v; S.bor.ultimaTienda = v; anotarLinea(); },
+  "c-hab": (v) => { const B=S.bor, hb=habitualesDe(B.provId).find((x)=>x.clave===v), u=hb.ultima;
     const idx = B.lineas.findIndex((l)=>claveProducto(l)===hb.clave);
     B.camino = "hab"; B.editIdx = idx >= 0 ? idx : null;
     B.actual = { nombre:hb.nombre, cat:hb.cat, marca:hb.marca, color:hb.color, cant:idx>=0?B.lineas[idx].cant:u.cant, costo:idx>=0?B.lineas[idx].costo:u.costo, venta:idx>=0?B.lineas[idx].venta:u.venta, prev:{ cant:u.cant, costo:u.costo, venta:u.venta } };
@@ -1131,9 +1190,9 @@ const ACC = {
   "c-cant-ok": () => { S.bor.actual.cant = Number(S.tel.monto); irA("c-costo"); },
   "c-costo-igual": () => { S.bor.actual.costo = S.bor.actual.prev.costo; irA("c-venta"); },
   "c-costo-ok": () => { S.bor.actual.costo = Number(S.tel.monto); irA("c-venta"); },
-  "c-venta-igual": () => { S.bor.actual.venta = S.bor.actual.prev.venta; anotarLinea(); },
-  "c-venta-sug": () => { S.bor.actual.venta = ventaSugerida(S.bor.actual.costo, S.bor.actual.cat); anotarLinea(); },
-  "c-venta-ok": () => { S.bor.actual.venta = Number(S.tel.monto); anotarLinea(); },
+  "c-venta-igual": () => { S.bor.actual.venta = S.bor.actual.prev.venta; irA("c-tienda"); },
+  "c-venta-sug": () => { S.bor.actual.venta = ventaSugerida(S.bor.actual.costo, S.bor.actual.cat); irA("c-tienda"); },
+  "c-venta-ok": () => { S.bor.actual.venta = Number(S.tel.monto); irA("c-tienda"); },
   "c-editar": (v) => { const B=S.bor, l=B.lineas[Number(v)]; B.editIdx = Number(v); B.camino = "hab"; B.actual = { ...l, prev:{ cant:l.cant, costo:l.costo, venta:l.venta } }; irA("c-cant"); },
   "c-quitar": (v) => { S.bor.lineas.splice(Number(v),1); S.bor.recien = null; },
   "c-al-papel": () => { S.tel = { quien:S.tel.quien, p:"papel" }; },
@@ -1152,7 +1211,8 @@ const ACC = {
   "tel-gasto": (v) => { S.tel = { quien:S.tel.quien, p:"gasto-monto", gasto:v }; },
   "tel-guardar-gasto": () => { S.regs.push({ id:nuevoId("g"), salida:sid(), clase:"gasto", tipo:S.tel.gasto, monto:Number(S.tel.monto), hora:"15:24" }); S.tel = { quien:S.tel.quien, p:"inicio"}; avisoTel("Gasto guardado"); },
   "env-sel": (v) => { const s=S.tel.envio.sel; S.tel.envio.sel = s.includes(v)?s.filter(x=>x!==v):[...s,v]; },
-  "env-tienda": (v) => { S.tel.envio.tienda = v; },
+  "env-tienda": (v) => { const e = S.tel.envio; e.tienda = v;
+    e.sel = S.regs.filter((r) => r.salida === sid() && r.clase === "compra" && libreParaTienda(r, v)).map((r) => r.id); },
   "env-bultos": (v) => { S.tel.envio.bultos = Math.max(1, S.tel.envio.bultos + Number(v)); },
   "env-mandar": () => { const e=S.tel.envio; S.envios.push({ id:nuevoId("e"), salida:sid(), tienda:e.tienda, bultos:e.bultos, comps:e.sel, hora:"15:24", estado:"camino" }); S.tel = { quien:S.tel.quien, p:"inicio"}; avisoTel(`Listo: a ${TIENDAS[e.tienda]} le aparece «Viene un envío»`); },
   "fin-sobra": (v) => { S.tel.sobra = v; },
@@ -1203,6 +1263,10 @@ document.addEventListener("input", (ev) => {
   else if (k === "c-precio") S.modal.precio = v.replace(/[^\d.]/g,"");
   else if (k === "ing-monto") S.corrVal = v.replace(/[^\d.]/g,"");
   else if (k === "n-nombre") S.bor.actual.nombre = v;
+  else if (k === "c-prov-q") S.tel.q = v;
+  else if (k === "pn-nombre") { S.tel.pn.nombre = v; S.tel.pn.noEsDup = false; }
+  else if (k === "pn-ruc") S.tel.pn.ruc = v.replace(/\D/g, "").slice(0, 11);
+  else if (k === "pn-marcas") S.tel.pn.marcas = v;
   else if (k === "n-marca-otra") S.tel.otra = v;
   else if (k === "m-costo") S.modal.costo = v.replace(/[^\d.]/g,"");
   else if (k === "c-costo") S.modal.costo = v.replace(/[^\d.]/g,"");

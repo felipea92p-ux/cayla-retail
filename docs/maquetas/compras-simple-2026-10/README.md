@@ -98,3 +98,32 @@ probar la primera compra. La maqueta no guarda nada en el navegador: recargar la
 normalizada + categoría + marca, contar y ordenar por veces y fecha), **sin crear una tabla de productos por proveedor**. Es una
 lectura (una función `fn_` de solo lectura, que va a la lista de lectura de `lib/espera-reglas.ts`), y el aviso de duplicado es la misma
 comparación contra ese resultado.
+
+## Buscar por categoría, proveedor nuevo y «¿A qué tienda va?» (2026-10-22, noche)
+
+**Qué cambió (pedido de Felipe):**
+- **Buscar por categoría.** En «¿A quién le compras?» hay un buscador por nombre y chips por categoría («Todos · Blusas · Polos ·
+  Jeans …»): con «Jeans» solo quedan los proveedores a los que ya se les compró jeans, y cada proveedor dice qué vende («Jeans ·
+  Shorts»). En «¿Qué le compras hoy?», los chips filtran sus productos por categoría, con cuántos hay en cada una («Blusas 4»).
+- **Proveedor nuevo.** Al final de la lista, «Nuevo proveedor»: nombre, RUC (11 números o «No tiene RUC») y las marcas que trae
+  (opcional). Si el nombre se parece a uno registrado, avisa antes de duplicarlo: «¿Es Textiles Rosa E.I.R.L.? Ya está registrado», con
+  «Usar ese» y «No, es otro». Al registrarlo, sigue directo a su primera compra («Es tu primera compra con él: dinos qué es»). Lo demás
+  (cuentas, contacto) lo completa Compras.
+- **«¿A qué tienda va?»** al final de cada prenda, después de la venta: Tienda TRU, AQP o LIM. La tienda de la prenda anterior sale
+  marcada «Como la anterior». Revisar dice «va a TRU»; un papel con prendas para dos tiendas dice «Falta mandar a TRU, AQP» y se manda
+  en un envío por tienda: al elegir la tienda en «Armar un envío» se marcan solos los papeles que tienen prendas para ella y se ve solo
+  lo que va a esa tienda. Al recibir, cada tienda ve solo lo suyo («Lo que anotó Marisol al comprar para Tienda TRU») y una línea con
+  lo que de ese papel va a otra tienda.
+
+**Recorrido para probarlo** (paso 2, celular):
+1. Registrar una compra → chip «Jeans» → queda Confecciones Lupe. Borra el chip y escribe «lupe» en el buscador: también.
+2. Textiles Rosa → chip «Polos» → solo sus 3 polos.
+3. Un habitual → cantidad, costo y venta de un toque → **¿A qué tienda va?** → TRU. Otra prenda → … → AQP (la anterior sale marcada).
+   Papel → Guardar: la fila dice «Falta mandar a TRU, AQP». Armar un envío → TRU → Mandar; Armar un envío → AQP → Mandar: «A TRU, AQP».
+4. Registrar una compra → Nuevo proveedor → escribe «Textiles Rosa» → sale el aviso. «No, es otro» → otro nombre, «No tiene RUC» →
+   Registrar y seguir → su primera compra.
+
+**Para llevarlo al ERP:** el proveedor nuevo es `registrar_proveedor_de_orden` (ya existe: nombre + RUC o «sin RUC», no duplica y
+devuelve el que ya estaba). La tienda de cada prenda es el destino de la línea, que ya existe en el reparto por tienda de las órdenes
+de compra (ADR-0139 y la fase 3 de ADR-0362: «Por repartir» y el envío a cada sede). Los chips por categoría son un filtro de la misma
+lectura de habituales y de las categorías que el proveedor ya maneja (`fn_proveedor_categorias`).
