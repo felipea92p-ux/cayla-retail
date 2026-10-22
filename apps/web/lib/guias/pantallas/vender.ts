@@ -173,7 +173,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       opcional: true,
       ...CAJA_ABIERTA,
       titulo: "Las bolsas",
-      texto: "«Agregar bolsa» abre las bolsas de la tienda (papel chica o grande, TNT, de regalo): toca una y entra al ticket con su precio, como cualquier prenda. Aquí ves cuántas lleva.",
+      texto: "«Agregar bolsa», al lado del cliente, abre las bolsas de la tienda (papel chica o grande, TNT, de regalo): toca una y entra al ticket con su precio, como cualquier prenda. El número del botón dice cuántas lleva; con un cliente elegido queda solo la bolsa.",
     },
     {
       id: "ticket-pie",
@@ -181,7 +181,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       solo: "escritorio",
       ...CAJA_ABIERTA,
       titulo: "Descuento, espera y quién atiende",
-      texto: "«Aplicar descuento» rebaja el ticket o solo unas prendas, en % o en soles, con su motivo; el % deja el precio sin céntimos. «Código de cupón» canjea un cupón del Club. «Dejar en espera» guarda el ticket para atender a otro cliente. Arriba del botón eliges quién atiende.",
+      texto: "«Aplicar descuento» rebaja el ticket o solo unas prendas, en % o en soles, con su motivo; el % deja el precio sin céntimos. «Código de cupón» canjea un cupón del Club. «Dejar en espera», arriba junto al título, guarda el ticket para atender a otro cliente. Sobre «Cobrar» eliges quién atiende.",
     },
     {
       id: "codigo-cupon",

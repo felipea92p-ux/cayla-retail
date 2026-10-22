@@ -99,7 +99,7 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
       <div className="space-y-2.5">
         {etiquetas.length === 0 ? (
           <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Tag />}>
-            {enLinea ? "Todavía no hay etiquetas. Ábrelas desde «Ver todos» para crear la primera." : "Todavía no hay etiquetas."}
+            {enLinea ? "Todavía no hay sellos. Ábrelos desde «Ver todos» para crear el primero." : "Todavía no hay sellos."}
           </Vacio>
         ) : (
           <GrillaMuestras>
@@ -114,7 +114,7 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
                 onTocar={() => setUltimaId(et.id)}
               />
             ))}
-            <TileVerTodos total={total} singular="etiqueta" plural="etiquetas" onClick={() => setHoja(true)} />
+            <TileVerTodos total={total} singular="sello o campaña" plural="sellos y campañas" onClick={() => setHoja(true)} />
           </GrillaMuestras>
         )}
 
@@ -138,12 +138,12 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
         <Modal
           variante="hoja"
           tamano="ancha"
-          titulo="Elige las etiquetas"
+          titulo="Elige sellos y campañas"
           subtitulo={`${total} en el catálogo.`}
           onClose={() => setHoja(false)}
           // «+ Nueva etiqueta» arriba a la derecha, a la vista (Felipe 2026-10-02): antes solo aparecía al escribir un nombre que no existe.
           acciones={
-            <Boton type="button" peso="primario" onClick={() => setNueva(true)} disabled={!enLinea} title={enLinea ? undefined : "Crear una etiqueta necesita internet"} className="h-9 whitespace-nowrap py-0">
+            <Boton type="button" peso="primario" onClick={() => setNueva(true)} disabled={!enLinea} title={enLinea ? undefined : "Crear un sello necesita internet"} className="h-9 whitespace-nowrap py-0">
               + Nueva etiqueta
             </Boton>
           }
@@ -302,7 +302,7 @@ function HojaEtiquetas({
       : significado.tipo === "invalida"
         ? FRASE_ETIQUETA_INVALIDA
         : significado.tipo === "nueva" && !enLinea
-          ? "Sin conexión no se pueden crear etiquetas nuevas. Elige entre las que ya existen."
+          ? "Sin conexión no se pueden crear sellos nuevos. Elige entre los que ya existen."
           : null;
 
   function pedirCrear(nombre: string) {
@@ -338,7 +338,7 @@ function HojaEtiquetas({
           valor={texto}
           autoFocus
           etiqueta="Buscar o crear una etiqueta"
-          placeholder="Buscar o crear una etiqueta…"
+          placeholder="Buscar o crear un sello…"
           // El teclado del celular no manda «coma» como tecla: llega escrita al final. Se descarta (las etiquetas van de a una).
           onCambio={(v) => setTexto(v.replace(/,+$/, ""))}
           onKeyDown={(e) => {
@@ -361,7 +361,7 @@ function HojaEtiquetas({
           {notaTexto ??
             (hayCrear && significado.tipo === "nueva"
               ? `Escribiste «${significado.nombre}»: elige una de abajo o pulsa «+ Crear» para agregarla.`
-              : `Escribiste «${texto.trim()}»: elige la etiqueta de abajo.`)}
+              : `Escribiste «${texto.trim()}»: elígelo en la lista de abajo.`)}
         </p>
       )}
 
@@ -393,7 +393,7 @@ function HojaEtiquetas({
 
       <div className="scroll-cayla -mx-1 mt-3 max-h-[52vh] overflow-y-auto px-1 pb-1">
         {grupos.length === 0 ? (
-          <p className="py-4 text-[13px] text-taupe">{texto.trim() ? `Nada coincide con «${texto.trim()}».` : "No hay etiquetas para elegir."}</p>
+          <p className="py-4 text-[13px] text-taupe">{texto.trim() ? `Nada coincide con «${texto.trim()}».` : "No hay sellos ni campañas para elegir."}</p>
         ) : (
           <div className="space-y-3">
             {grupos.map((g) => (
@@ -449,12 +449,12 @@ function NuevaEtiquetaModal({
     significado.tipo === "existe" && significado.motivo !== "elegible" && significado.motivo !== "elegida"
       ? fraseDeExistente(significado.motivo)
       : significado.tipo === "existe"
-        ? `«${significado.etiqueta?.nombre ?? texto.trim()}» ya existe: tócala en la lista para marcarla.`
+        ? `«${significado.etiqueta?.nombre ?? texto.trim()}» ya existe: tócalo en la lista para marcarlo.`
         : significado.tipo === "invalida"
           ? FRASE_ETIQUETA_INVALIDA
           : null;
   return (
-    <Modal variante="hoja" titulo="Nueva etiqueta" subtitulo="Escribe cómo se va a llamar." onClose={onCerrar}>
+    <Modal variante="hoja" titulo="Nuevo sello" subtitulo="Escribe cómo se va a llamar." onClose={onCerrar}>
       {(cerrar) => (
         <div className="space-y-3">
           <CampoTexto
@@ -525,7 +525,7 @@ function CrearEtiquetaAbierta({
     const { valor, error: errCrear } = await proponerEtiqueta(nombre, firma.encabezados());
     setTrabajando(false);
     if (errCrear || !valor) {
-      setError(errCrear ?? "No se pudo crear la etiqueta. Reintenta.");
+      setError(errCrear ?? "No se pudo crear el sello. Reintenta.");
       return;
     }
     if (valor.aprobado) onAprobada(valor);
@@ -537,7 +537,7 @@ function CrearEtiquetaAbierta({
       ref={panel}
       tabIndex={-1}
       role="group"
-      aria-label={`Crear la etiqueta ${nombre}`}
+      aria-label={`Crear el sello ${nombre}`}
       className="space-y-2.5 rounded-md border border-sand bg-hueso p-3 outline-none"
       onKeyDown={(e) => {
         if (e.key === "Escape" && !trabajando) {
@@ -558,7 +558,7 @@ function CrearEtiquetaAbierta({
       <AvisoSinIdentidad firma={firma} enHoja />
       <div className="flex flex-wrap items-center gap-2">
         <Boton peso="primario" cargando={trabajando} textoCargando="Creando…" type="button" onClick={() => void crear()} disabled={trabajando || !firma.listo} title={firma.motivo ?? undefined}>
-          {puedeAprobar ? "Crear y agregar" : "Proponer etiqueta"}
+          {puedeAprobar ? "Crear y agregar" : "Proponer sello"}
         </Boton>
         <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-secundario">
           Cancelar

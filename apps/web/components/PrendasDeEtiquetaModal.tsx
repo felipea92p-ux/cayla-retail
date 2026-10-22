@@ -141,6 +141,8 @@ export function PrendasDeEtiquetaModal({
   const [leida, setLeida] = useState<Leida | null>(null);
   const [camara, setCamara] = useState(false);
   const [caben, setCaben] = useState(18);
+  // El producto que se pidió ver desde la etiqueta (clic en su pieza): su fila se abre, queda arriba de la lista y respira una vez.
+  const [senalada, setSenalada] = useState<{ id: string; clave: number } | null>(null);
   const tactil = usePantallaTactil();
   const buscador = useRef<HTMLInputElement>(null);
   const lista = useRef<HTMLDivElement>(null);
@@ -307,6 +309,18 @@ export function PrendasDeEtiquetaModal({
     setMarcadas(siguiente);
   }
 
+  /** Clic en una pieza de la etiqueta: lleva a la fila de ese producto con sus tallas y colores abiertos. Si un filtro la escondía
+   *  (la búsqueda, la categoría o una píldora), se quitan: sin eso, el clic no llevaría a ningún lado. */
+  function verEnLista(productoId: string) {
+    if (!visibles.some((p) => p.id === productoId)) {
+      setTexto("");
+      setCategoriaId(TODOS);
+      setMarca({ filtro: "todas", ids: null });
+    }
+    setAbiertos((a) => new Set(a).add(productoId));
+    setSenalada((s) => ({ id: productoId, clave: (s?.clave ?? 0) + 1 }));
+  }
+
   /** La miniatura de la fila, si se ve dentro de la lista (una fila fuera de la vista no es un buen punto de partida). */
   function miniDeFila(productoId: string): Element | null {
     const el = lista.current?.querySelector(`[data-mini="${CSS.escape(productoId)}"]`);
@@ -335,6 +349,7 @@ export function PrendasDeEtiquetaModal({
     }
     setMarcadas(r.marcadas);
     setLeida(respuesta);
+    setSenalada(null);
     return respuesta;
   };
 
@@ -344,6 +359,19 @@ export function PrendasDeEtiquetaModal({
     leerAhora.current(p.codigo);
   }, []);
   usePistola(buscador, { activa: carga.estado === "listo" && !enConfirmacion && !camara && !guardando, alLeer: alLeerPistola, fuera: "leer" });
+
+  // Ya con la fila dibujada y abierta: la lista (solo ella, no la hoja) corre hasta dejarla arriba, con sus tallas debajo, y el foco
+  // pasa a su botón para seguir con el teclado desde ahí.
+  useEffect(() => {
+    if (!senalada) return;
+    const caja = lista.current;
+    const fila = caja?.querySelector<HTMLElement>(`[data-fila="${CSS.escape(senalada.id)}"]`);
+    if (!caja || !fila) return;
+    const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const destino = caja.scrollTop + fila.getBoundingClientRect().top - caja.getBoundingClientRect().top;
+    caja.scrollTo({ top: Math.max(0, destino), behavior: quieto ? "auto" : "smooth" });
+    fila.querySelector<HTMLElement>("[aria-expanded]")?.focus({ preventScroll: true });
+  }, [senalada]);
 
   function deshacerLeida() {
     if (!leida) return;
@@ -358,7 +386,7 @@ export function PrendasDeEtiquetaModal({
     const p = leida.lectura.producto;
     vuelo.current = { ids: leida.otras, desde: () => document.querySelector("[data-leida-mini]") };
     setMarcadas((m) => new Set([...m, ...leida.otras]));
-    setLeida({ ...leida, otras: [], estado: "Lleva la etiqueta", tono: "verde", detalle: `Todas sus tallas · ${textoTallas(p, new Set([...marcadas, ...leida.otras]), false)}` });
+    setLeida({ ...leida, otras: [], estado: "Marcada", tono: "verde", detalle: `Todas sus tallas · ${textoTallas(p, new Set([...marcadas, ...leida.otras]), false)}` });
   }
 
   async function aplicar() {
@@ -407,8 +435,8 @@ export function PrendasDeEtiquetaModal({
   const subtitulo = (
     <span className="max-md:hidden">
       {etiqueta.descuentoPct === null
-        ? "Etiqueta informativa: no cambia ningún precio. Marca o escanea las prendas que la llevan."
-        : `${etiqueta.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} % de descuento: en Vender baja solo, a las prendas que lleven la etiqueta. Márcalas o escanéalas.`}
+        ? "No cambia ningún precio. Marca o escanea las prendas que van aquí."
+        : `${etiqueta.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} % de descuento: en Vender baja solo, a las prendas marcadas. Márcalas o escanéalas.`}
     </span>
   );
   const listo = carga.estado === "listo";
@@ -468,8 +496,8 @@ export function PrendasDeEtiquetaModal({
                   valor={modo}
                   onCambio={(c) => setModo(c as ModoLectura)}
                   opciones={[
-                    { clave: "poner", etiqueta: "Poner", ayuda: "Cada prenda que escaneas lleva la etiqueta" },
-                    { clave: "quitar", etiqueta: "Quitar", ayuda: "Cada prenda que escaneas deja de llevarla" },
+                    { clave: "poner", etiqueta: "Poner", ayuda: "Cada prenda que escaneas queda marcada" },
+                    { clave: "quitar", etiqueta: "Quitar", ayuda: "Cada prenda que escaneas se desmarca" },
                   ]}
                 />
               </div>
@@ -512,7 +540,7 @@ export function PrendasDeEtiquetaModal({
                     type="button"
                     disabled={porQuitar === 0 || guardando}
                     onClick={() => setMarcadas(marcarProductos(editables, marcadas, false))}
-                    title="Quita la etiqueta a los productos de la lista. Los que entran por su categoría la siguen llevando."
+                    title="Desmarca los productos de la lista. Los que entran por su categoría siguen marcados."
                     className="btn-cayla btn-sutil btn-chico"
                   >
                     Quitar todos
@@ -532,7 +560,7 @@ export function PrendasDeEtiquetaModal({
                 )}
                 {listo && visibles.length === 0 && (
                   <Vacio tamano="chico" className="py-12" icono={<FunnelX />}>
-                    {marca.filtro === "con" ? "Ninguna prenda de esta búsqueda lleva la etiqueta." : "Ningún producto coincide con ese filtro."}
+                    {marca.filtro === "con" ? "Ninguna prenda de esta búsqueda está marcada." : "Ningún producto coincide con ese filtro."}
                   </Vacio>
                 )}
                 {listo && visibles.length > 0 && (
@@ -545,9 +573,15 @@ export function PrendasDeEtiquetaModal({
                       const precio = precioConCampana(p, etiqueta.descuentoPct);
                       const nombre = p.referencia;
                       const recien = leida && "producto" in leida.lectura && leida.lectura.producto.id === p.id ? leida : null;
+                      // La fila que acaba de leerse o que se pidió ver desde la etiqueta respira una vez (la clave nueva la repite).
+                      const respira = recien
+                        ? { clave: `l${recien.clave}`, tono: recien.tono }
+                        : senalada?.id === p.id
+                          ? { clave: `s${senalada.clave}`, tono: lleva ? "verde" : "taupe" }
+                          : null;
                       return (
                         <li key={p.id} data-fila={p.id}>
-                          <div key={recien?.clave ?? "fila"} data-tono={recien?.tono} className={`flex items-center gap-3 px-3 py-2 ${recien ? "eqp-fila-leida" : ""}`}>
+                          <div key={respira?.clave ?? "fila"} data-tono={respira?.tono} className={`flex items-center gap-3 px-3 py-2 ${respira ? "eqp-fila-leida" : ""}`}>
                             <Casilla
                               estado={estado}
                               disabled={heredada || guardando}
@@ -650,6 +684,7 @@ export function PrendasDeEtiquetaModal({
                 caja={caja}
                 vueloRef={vuelo}
                 onCaben={setCaben}
+                onVer={verEnLista}
               />
             )}
           </aside>

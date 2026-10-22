@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 //  1. `min-w-0` en el `<aside>`: le permite encogerse al ancho real del viewport en vez de
 //     imponerle su contenido mínimo a toda la pantalla.
 //  2. `flex-wrap` en las tres filas cuyo contenido no cabe en un ancho angosto (cantidad/precio/
-//     importe de cada prenda; descuento + «Dejar en espera»; subtotal+IGV + Total): sin esto,
+//     importe de cada prenda; descuento + «Código de cupón»; subtotal+IGV + Total): sin esto,
 //     encoger el `<aside>` con (1) simplemente movería el recorte de «toda la pantalla» a
 //     «esta fila» — cada una necesita poder bajar a una segunda línea en vez de recortarse.
 //
@@ -46,16 +46,29 @@ describe("PuntoDeVentaTicket — el ticket no se desborda en móvil angosto", ()
     expect(linea.match(/\bshrink-0\b/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
   });
 
-  it("la fila «Descuento» + «Dejar en espera» puede bajar a una segunda línea", () => {
-    // Arriba de ella van la del cupón del Club y la de los puntos que gana: se busca a partir de su comentario. Desde el programa de
-    // puntos la fila suma «Código de cupón», por eso el tramo que se mira es más largo.
+  it("la fila «Descuento» + «Código de cupón» puede bajar a una segunda línea", () => {
+    // Arriba de ella van la del cupón del Club y la de los puntos que gana: se busca a partir de su comentario.
     const comentario = codigo.indexOf("{/* Fila «Descuento», solo mientras");
     expect(comentario).toBeGreaterThan(-1);
-    const inicio = codigo.indexOf("mb-3 flex", comentario);
+    const inicio = codigo.indexOf("mb-2 flex", comentario);
     expect(inicio).toBeGreaterThan(-1);
     const fila = codigo.slice(inicio, inicio + 90);
     expect(fila).toContain("flex-wrap");
-    expect(codigo.slice(inicio, inicio + 3200)).toContain("Dejar en espera");
+    expect(codigo.slice(inicio, inicio + 3600)).toContain(">cupón");
+    // En un ticket angosto las dos frases se acortan («Descuento · Cupón») para no partir la fila en dos líneas.
+    expect(codigo.slice(inicio, inicio + 3600)).toContain("@max-[21rem]:hidden");
+  });
+
+  // «Dejar en espera» vive en la cabecera desde el 2026-10-22, junto al título. En un ticket angosto (o con el chip
+  // «En espera · N» al lado) se queda en su ícono: con texto empujaría la cabecera fuera del ticket de 320 px.
+  it("«Dejar en espera» va en la cabecera y se achica a su ícono en un ticket angosto", () => {
+    const cabecera = codigo.indexOf('className="@container flex min-h-[4.5rem]');
+    expect(cabecera).toBeGreaterThan(-1);
+    const bloque = codigo.slice(cabecera, codigo.indexOf("<form", cabecera));
+    expect(bloque).toContain("onClick={onDejarEnEspera}");
+    expect(bloque).toContain('aria-label="Dejar en espera"');
+    expect(bloque).toContain("@max-[20rem]:w-8");
+    expect(bloque).toContain("shrink-0");
   });
 
   // Programa de puntos (2026-10-19): «Cupón del Club CAY-XXXX-XXXX · S/ 10 en compras desde S/ 30  −S/ 10  Quitar» sobre el total
