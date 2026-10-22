@@ -97,7 +97,8 @@ export const PRUEBAS = [
   "pruebas:impuestos",
 
   // Estado de resultados (ADR-0195 F5): el diario cuadra, cada regla de posteo, unidades y consolidado, planilla de
-  // Dynamic, permisos, campañas y un año de volumen. ROLLBACK.
+  // Dynamic, permisos, campañas y un año de volumen; y las mermas en la 6951 (antes 659, migración 20261023133700): el Estado de
+  // resultados, el Balance y la conciliación dan lo mismo antes y después, y 6599/6598 no se mueven. ROLLBACK.
   "pruebas:estado-resultados",
 
   // Presupuesto (ADR-0195, capa para decidir): guardar y leer con historial, una sola meta (la de las metas del día),
@@ -118,8 +119,9 @@ export const PRUEBAS = [
   "pruebas:reversa-de-cobro",
 
   // Pérdidas (ADR-0328 act. 14): UNA definición —cada tipo y motivo clasificado, todo motivo que escribe la base decidido—,
-  // la pestaña (razón, categoría, talla, «más faltan», lo que apareció aparte, traslados y anulaciones), el 659 del diario
-  // igual al total de la pestaña sede por sede, permisos y la guarda de meses cerrados. ROLLBACK.
+  // la pestaña (razón, categoría, talla, «más faltan», lo que apareció aparte, traslados y anulaciones), el 6951 del diario
+  // (antes la 659) igual al total de la pestaña sede por sede, permisos y la guarda de meses cerrados; y la migración de las
+  // mermas a la 6951: mismas líneas y mismos totales, su «deshacer», idempotente, y el candado de mes cerrado. ROLLBACK.
   "pruebas:perdidas",
 
   // Resumen de Finanzas (ADR-0195 F10): cada número es el de su fase (F2–F9 y Presupuesto) mirando CAYLA entera, una
