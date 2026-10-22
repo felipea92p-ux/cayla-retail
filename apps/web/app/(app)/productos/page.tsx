@@ -43,6 +43,8 @@ import { getPorRevisarResumen } from "@/lib/revisar-productos-datos";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { preciosDeTiendaPorProducto } from "@/lib/precio-sede-reglas";
 import { variantesQueSeVenden } from "@/lib/productos-vista";
+import { campanasQueCobra } from "@/lib/etiquetas-precio";
+import { hoyLima } from "@/lib/fechas-lima";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -147,7 +149,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // filtros puestos). Sin conteos, no se avisa.
   const descontinuadas =
     resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
-  const [existencias, preciosTiendas, catalogoSede, pisoSede] = await Promise.all([
+  const [existencias, preciosTiendas, catalogoSede, pisoSede, campanas] = await Promise.all([
     getExistenciasProductos(
       resultado.productos.map((p) => p.productoId),
       persona.ubicacionId
@@ -158,7 +160,11 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     // leen Vender y siete pantallas) y el piso cobrable de esta sede. Secundarios: si alguno falla, la hoja no dice la frase.
     getCatalogo().catch(() => null),
     getDisponibleEnSede(persona.ubicacionId).catch(() => null),
+    // Lo que cobra la caja HOY con su campaña (ADR-0472, Felipe 2026-10-21): la misma lectura que la etiqueta de papel. Si no responde,
+    // las tarjetas muestran el precio de lista, como antes de esto: la lista no se cae por una campaña.
+    campanasQueCobra(supabase, hoyLima(), resultado.productos.flatMap((p) => p.variantes.map((v) => v.varianteId))).catch(() => null),
   ]);
+  const campanasHoy = campanas ? Object.fromEntries(campanas) : undefined;
   const tarjetasLook = catalogoSede && pisoSede ? tarjetasDesdeVariantes(catalogoSede, (id) => cantidadCobrable(pisoSede.get(id))) : [];
   // El precio de cada prenda en CADA tienda (para «2 precios»: cuenta precios distintos, no tiendas), y el de la tienda elegida arriba
   // para el precio grande de la tarjeta y la fila (Felipe 2026-10-10: en TRU, FAL-0008 decía S/ 79.90 y la caja cobraba 69.90). En
@@ -367,6 +373,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             tamanoInicial={tamanoGrilla}
             preciosTienda={preciosTienda}
             preciosAqui={preciosAqui}
+            campanasHoy={campanasHoy}
             colores={fichasDeColor}
             tarjetasLook={tarjetasLook}
           />
@@ -384,6 +391,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             hrefLimpiar="/productos?vista=tabla"
             preciosTienda={preciosTienda}
             preciosAqui={preciosAqui}
+            campanasHoy={campanasHoy}
           />
         )}
 
