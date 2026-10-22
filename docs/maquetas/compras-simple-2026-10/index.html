@@ -216,6 +216,10 @@ textarea.caja{height:72px;padding:10px 12px;resize:none}
 .hab.nuevo{grid-template-columns:40px 1fr;border:1.5px dashed var(--rojo);color:var(--rojo-profundo);align-items:center}
 .hab.nuevo .sw{background:color-mix(in srgb,var(--rojo) 10%,transparent);border-color:transparent}
 .lista-hab{display:flex;flex-direction:column;gap:8px}
+/* Lo que siempre tiene que estar a mano (proveedor nuevo, algo nuevo, revisar): fijo abajo mientras la lista corre por detrás */
+.fijo-abajo{position:sticky;bottom:-18px;margin:auto -18px -18px;padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px;background:linear-gradient(to bottom,transparent,var(--crema) 22px);z-index:2}
+.fijo-abajo .hab{animation:none;box-shadow:0 10px 24px -14px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.fijo-abajo .hab.nuevo{background:var(--papel)}
 .tel .buscar svg.lupa{left:13px;top:15px}
 .filtros-tel{display:flex;gap:6px;overflow-x:auto;margin:12px -18px 0;padding:0 18px 2px;scrollbar-width:none}
 .filtros-tel::-webkit-scrollbar{display:none}
@@ -688,8 +692,8 @@ function pantallaTel() {
     return `${aviso}<div class="tel-pant">${atras("inicio")}${avance("Proveedor")}<h4>¿A quién le compras?</h4><p class="sub">Busca por nombre o por lo que vende.</p>
       <div class="buscar" style="padding:0;border:0;margin-top:12px">${ic("lupa","lupa")}<input class="caja" style="padding-left:38px;height:46px" placeholder="Busca el proveedor" value="${h(t.q||"")}" data-in="c-prov-q" autocomplete="off"></div>
       <div class="filtros-tel">${chips}</div>
-      <div class="lista-hab" style="margin-top:12px">${filas || `<div class="vacio"><b>No hay ${cat ? `quien te venda ${cat.toLowerCase()}` : "un proveedor así"}${q ? ` con «${h(t.q)}»` : ""}</b>Prueba con otra categoría o regístralo abajo.</div>`}
-        <button class="hab nuevo" data-a="c-prov-nuevo"><span class="sw">${ic("mas")}</span><span><b>Nuevo proveedor</b><span class="cm" style="color:inherit;opacity:.8">Alguien a quien todavía no le compras</span></span></button></div></div>`;
+      <div class="lista-hab" style="margin-top:12px">${filas || `<div class="vacio"><b>No hay ${cat ? `quien te venda ${cat.toLowerCase()}` : "un proveedor así"}${q ? ` con «${h(t.q)}»` : ""}</b>Prueba con otra categoría o regístralo abajo.</div>`}</div>
+      <div class="fijo-abajo"><button class="hab nuevo" data-a="c-prov-nuevo"><span class="sw">${ic("mas")}</span><span><b>Nuevo proveedor</b><span class="cm" style="color:inherit;opacity:.8">Alguien a quien todavía no le compras</span></span></button></div></div>`;
   }
   if (t.p === "c-prov-nuevo") {
     const n = t.pn || {}, dup = provParecido(n.nombre || ""), sinRuc = n.sinRuc;
@@ -717,8 +721,9 @@ function pantallaTel() {
       return `<button class="hab" data-a="c-hab" data-v="${h(hb.clave)}"><span class="sw" data-color-dato style="background:${col?col[1]:"var(--hueso)"};color:${col&&parseInt(col[1].slice(1,3),16)<140?"#f5f0e8":"#1a1a18"}">${ic("percha")}</span><span><b>${h(hb.nombre)}${enCompra(hb)?'<span class="chip verde sinpunto ya" style="height:18px;font-size:9px">Ya va</span>':""}</b><span class="cm">${hb.cat}${hb.marca?" · "+h(hb.marca):" · Sin marca"}${col?" · "+col[0]:""}</span><span class="vp">La vez pasada: ${u.cant} a ${soles(u.costo)} · se vendió a ${soles(u.venta)} · ${haceTexto(u.fecha)}</span></span></button>`; }).join(""); // tema-fijo: texto sobre el color de la prenda (dato)
     const mas = !t.todos && !cat && todos.length > 6 ? `<button class="btn btn-enlace" style="align-self:center;margin:4px 0" data-a="c-todos">Ver todos los suyos (${todos.length})</button>` : "";
     return `${aviso}<div class="tel-pant">${atras("c-prov")}${avance("Producto")}<h4>¿Qué le compras hoy?</h4><p class="sub">Lo que más le compras a ${h(prov.nombre)}.</p>${chips}
-      <div class="lista-hab" style="margin-top:14px">${tarjetas}${mas}<button class="hab nuevo" data-a="c-nuevo"><span class="sw">${ic("mas")}</span><span><b>Algo nuevo de este proveedor</b><span class="cm" style="color:inherit;opacity:.8">Una prenda que todavía no le compraste</span></span></button></div>
-      ${B.lineas.length?`<div class="abajo"><button class="btn-tel sec" data-a="ir" data-v="c-revisar">Revisar la compra <span class="globito">${B.lineas.length}</span></button></div>`:""}</div>`;
+      <div class="lista-hab" style="margin-top:14px">${tarjetas}${mas}</div>
+      <div class="fijo-abajo"><button class="hab nuevo" data-a="c-nuevo"><span class="sw">${ic("mas")}</span><span><b>Algo nuevo de este proveedor</b><span class="cm" style="color:inherit;opacity:.8">Una prenda que todavía no le compraste</span></span></button>
+        ${B.lineas.length?`<button class="btn-tel prim" data-a="ir" data-v="c-revisar">Revisar la compra <span class="globito">${B.lineas.length}</span></button>`:""}</div></div>`;
   }
   if (t.p === "c-cant" || t.p === "c-costo" || t.p === "c-venta") {
     const v = t.monto || "", prev = a.prev;

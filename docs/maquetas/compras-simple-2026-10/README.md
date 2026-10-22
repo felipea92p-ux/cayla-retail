@@ -127,3 +127,6 @@ comparación contra ese resultado.
 devuelve el que ya estaba). La tienda de cada prenda es el destino de la línea, que ya existe en el reparto por tienda de las órdenes
 de compra (ADR-0139 y la fase 3 de ADR-0362: «Por repartir» y el envío a cada sede). Los chips por categoría son un filtro de la misma
 lectura de habituales y de las categorías que el proveedor ya maneja (`fn_proveedor_categorias`).
+
+**Ajuste (2026-10-22):** «Nuevo proveedor» y «Algo nuevo de este proveedor» quedan **fijos al pie de la pantalla** (junto a «Revisar
+la compra» cuando ya hay prendas anotadas): la lista corre por detrás y nunca hay que bajar hasta el final para verlos.
