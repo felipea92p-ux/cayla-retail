@@ -19,12 +19,15 @@
 --     (todo o nada). No reescribe `conteo_contar` (lleva marcas de ADR-0189 y parches vivos, y una migración anterior ya descartó
 --     tocar su firma): la LLAMA, línea por línea, y marca las que ella acaba de contar. Devuelve {completadas, lineas} como su hermana
 --     `conteo_aplicar_completos`, para que la pantalla tome las líneas de la base.
---   · Un disparador apaga la marca cuando la línea se vuelve a verificar o se le borra la cifra: escribir el número a mano ES mirar.
+--   · Un disparador apaga la marca cuando la línea se vuelve a verificar (cada llamada a `conteo_contar`, aunque sea con la misma cifra) o se
+--     le borra la cifra. OJO: la pantalla no manda una cifra igual a la ya anotada, así que teclear encima el mismo número NO la apaga;
+--     por eso la frase de Revisar dice «con lo que CAYLA esperaba» y no «nadie escribió su cantidad».
 --
 -- ESTADOS QUE DEJAN DE SER POSIBLES:
 --   · una línea «completada con el atajo» sin cifra (CHECK);
 --   · una línea que es a la vez «completada con el atajo» y «aplicada sin contar»: son dos historias (una contó, la otra no);
---   · una línea que se volvió a contar a mano y sigue diciendo «con el atajo» (el disparador la apaga en la misma escritura).
+--   · una línea que se volvió a verificar en la base (otra llamada a `conteo_contar`) y sigue diciendo «con el atajo»: el disparador la
+--     apaga en la misma escritura.
 --
 -- DESCARTÉ
 --   · Deducirlo de los datos («contada = lo esperado»): la inmensa mayoría de las líneas bien contadas coinciden con lo esperado; el
@@ -44,8 +47,8 @@
 -- un instante `conteo_items` (columna con valor por defecto: no reescribe la tabla; el CHECK lee sus filas una vez: ~235 en producción
 -- el 2026-10-03). Sin políticas ni `drop trigger` (el disparador va con `create or replace trigger`): no choca con el Asesor de
 -- seguridad (ADR-0195). Con `lock_timeout` de 3 s: si una tienda está guardando, falla sin trabar y se vuelve a pegar. Idempotente. La
--- web vieja sigue funcionando con la columna puesta (nadie la lee); la web NUEVA necesita esto pegado ANTES (si no, «Completar todo»
--- cae al camino viejo, línea por línea, y la frase de Revisar no sale: ver `ContarConteo.tsx`).
+-- web vieja sigue funcionando con la columna puesta (nadie la lee); la web NUEVA necesita esto pegado ANTES: sin la función, «Completar
+-- todo» recibe un error de la base y la pantalla lo avisa (las tallas se cuentan a mano, como siempre); no hay camino de respaldo.
 --
 -- SE ROMPE SI alguien escribe `completada_con_atajo = true` fuera de `conteo_completar_tarjeta` (la tabla no se escribe desde la API: RLS
 -- solo deja leer), o si `conteo_contar` cambia de firma y esta función no se rehace con ella.

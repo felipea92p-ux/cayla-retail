@@ -2,16 +2,24 @@
 
 - [x] **SQL en producción:** `20261005233700_conteo_atajo_por_tarjeta.sql` (una sola parte, sin políticas, idempotente) la pegó Felipe; comprobada por efectos el 2026-10-22
   (solo lectura): columna, restricción `conteo_items_atajo_coherente`, disparador, `conteo_completar_tarjeta` (`security definer`, `authenticated` sí / `anon` no) y 0 filas marcadas.
-- [x] **Web, prueba SQL y documentación** (ADR-0328 «Actualización 2026-10-22», fila de `docs/ARQUITECTURA.md`, `pruebas:conteo-atajo-tarjeta` en la lista `PRUEBAS` del runner de tandas).
-- [ ] **Fusionar la web** (el SQL ya está): el PR debe marcar «SQL pegado en producción» (el check compara producción con lo que el CI vio cambiar a la migración).
-- [ ] **Versión de la migración:** hoy es `20261005233700`, «en medio de la historia» (el candado `migraciones:versiones` solo avisa «no está reservado»). El precedente del 2026-10-14
-  (ADR-0328, cuarentena) es traerla con una versión nueva reservada (`pnpm reservar migracion`, una etiqueta en el remoto) sin cambiar una línea de SQL, para que el CI la corra después
-  de todas las de `main`, igual que en producción; producción no guarda ni su versión ni su nombre (0 filas en `schema_migrations`, consultado el 2026-10-22), así que renombrar es seguro.
-  No se hizo porque reservar publica una etiqueta: se hace al subir la rama.
-- [ ] **Refrescar el diccionario** (`pnpm datos:generar:produccion`, `pnpm datos:comparar`) y **regenerar `packages/database/src/types.ts`** (la función y la columna están escritas a mano).
-- [ ] **Hueco conocido, solo hasta fusionar la web:** una talla contada por el respaldo (web nueva con el SQL aún sin pegar) no lleva marca; la frase de Revisar puede subcontar.
+- [x] **Web, prueba SQL y documentación** (ADR-0328 «Actualización 2026-10-22», nota cruzada en ADR-0282, fila de `docs/ARQUITECTURA.md`, `pruebas:conteo-atajo-tarjeta` en la lista `PRUEBAS` del runner de tandas).
+- [x] **Revisión independiente** (solo lectura; SQL, web e integración, con un escéptico por hallazgo): sin BLOQUEA ni ALTA. Atendido: respaldo «talla por talla» quitado (código muerto desde el pegado),
+  frase cambiada a «con lo que CAYLA esperaba», comentarios de `conteos.ts` y de la migración (solo cabecera), referencias del ADR y los siete «sin pegar» viejos de Conteo en `ARQUITECTURA.md`.
+- [ ] **URGENTE antes de las 07:00 de Lima del 2026-10-23: abrir el PR.** La «Deriva diaria» compara producción con `main` MÁS el SQL que los PR **abiertos** declaran pegado (ADR-0402); mi SQL está en
+  producción y ningún PR abierto lo declara, así que el aviso «Producción ≠ main» saldría en rojo (público, sin pérdida de datos). El PR debe marcar «SQL pegado en producción».
+- [ ] **Versión de la migración:** hoy es `20261005233700`, «en medio de la historia» (`migraciones:versiones` solo avisa «no está reservado»). El precedente del 2026-10-14 (ADR-0328, cuarentena) es
+  traerla con una versión nueva reservada (`pnpm reservar migracion`, una etiqueta en el remoto) sin cambiar una línea de SQL, para que el CI la corra después de todas las de `main`, igual que en producción;
+  producción no guarda ni su versión ni su nombre (0 filas en `schema_migrations`, consultado el 2026-10-22), así que renombrar es seguro. No se hizo porque reservar publica una etiqueta: se hace al subir la rama.
+- [ ] **Refrescar el diccionario** (`pnpm datos:generar:produccion`, `pnpm datos:comparar`; la foto de ayer, 21-oct, aún no trae la función ni la columna) y **regenerar `packages/database/src/types.ts`** (la función y la columna están escritas a mano).
+- [ ] **`scripts/purga/restaurar-purga.sql` (BAJA, de antes de esta rama):** reinserta respaldos viejos con `jsonb_populate_recordset`; las columnas `not null` que el respaldo no trae llegan como NULL y la restauración
+  falla con 23502. Ya pasaba con `aplicada_sin_contar` y ahora también con `completada_con_atajo`. Arreglo en el script: rellenar con `column_default` las columnas `not null` ausentes + un caso en `purgar_producto_de_prueba.mjs`.
+- [ ] **Deadlock posible (BAJA, ya existía con `conteo_contar` suelto):** `ajustar_inventario` toma el stock y luego el conteo (vía `registrar_hallazgo_de_conteo`), el atajo toma el conteo y luego el stock. Solo con un conteo reabierto y
+  un ajuste enlazado a una línea suya al mismo tiempo; Postgres cancela una, sin corrupción, y ese ajuste habría fallado igual (`hallazgo_conteo_no_cerrado`). Arreglo: en `registrar_hallazgo_de_conteo`, validar el estado antes de tomar candados.
+- [ ] **Aviso del fallo de un lote (BAJA):** si `conteo_completar_tarjeta` o `conteo_aplicar_completos` fallan, el aviso es un texto neutro que se va solo (8 s) y las líneas reaparecen pendientes; no pierde nada y Revisar lista
+  las pendientes. Mejorarlo (aviso persistente con el nombre de la tarjeta y «Reintentar») es un pulido para los DOS atajos a la vez.
 - [ ] **Decisión de Felipe, si algún día hace falta:** si «Completar todo» se usa en casi todo un arranque real, pedir confirmación en Confirmar cuando la mayoría de lo contado vino del atajo
   (hoy solo informa; ADR-0328 «SE ROMPE SI»).
+- [ ] **Cuando se rehaga `fn_conteo_detalle`:** sumarle `con_atajo` a su jsonb y quitar el `select` de `getCompletadasConAtajo` (hoy la única lectura de Conteo que no pasa por una función).
 - [ ] **Lo que quedó fuera de esta rama** (sigue en `claude/inventory-screens-redesign-50dda1`, sin publicar): el análisis de la estructura del módulo Inventario
   (`docs/pantallas/inventario-modulo.md`, hecho el 2026-10-05 sobre un `main` de 2620 commits atrás), el aviso de ventas sin prenda en Análisis (los archivos donde se enchufaba ya no existen:
   Análisis se rehízo como «Análisis v4») y `/buscar` con `fn_existencias` (ya está en `main`). El aviso de Análisis hay que volver a pensarlo contra la pantalla nueva si se quiere.
