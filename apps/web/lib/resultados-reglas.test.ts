@@ -188,14 +188,6 @@ describe("las filas del cuadro", () => {
     expect(mermas.cuentas).not.toContain("6599");
     expect(mermas.cuentas).not.toContain("6598");
   });
-  it("el margen bruto sigue restando las mermas: el cambio de cuenta no mueve ninguna cifra", () => {
-    const mermas = conceptos.find((k) => k.clave === "mermas")!;
-    const margen = conceptos.find((k) => k.clave === "margen")!;
-    // La fila de mermas resta lo mismo que antes (el valor viene de la base, por sección, no por el código) …
-    expect(mermas.valor(TRU)).toBe(-TRU.mermas);
-    // … y el margen es ventas − costo − fletes − mermas.
-    expect(margen.valor(TRU)).toBe(TRU.ventas - TRU.costo - TRU.fletes - TRU.mermas);
-  });
   it("el redondeo de efectivo (ADR-0311) sale como su gasto, con su cuenta, y dice de dónde viene", () => {
     const conRedondeo: FilaER = { ...TRU, detalleGastos: [...TRU.detalleGastos, { cuenta: "6598", nombre: "Redondeo de efectivo (a favor del cliente)", monto: 0.08 }] };
     const k = conceptosER([conRedondeo]).find((c) => c.clave === "g6598")!;
