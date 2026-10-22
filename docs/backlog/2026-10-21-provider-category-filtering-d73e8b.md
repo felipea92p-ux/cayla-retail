@@ -14,3 +14,13 @@
 - [ ] Decisiones abiertas de Felipe: ver el ADR-0362 (actualización 2026-10-21).
 - [ ] Aparte (no bloquea): `compras/nueva/page.tsx` arma los datos de pago desde `fn_proveedores`, que devuelve la cuenta en blanco a quien no la ve: ahí «sin cuenta» también puede ser «no puedes verla». Cuenta a quien tiene Facturas de compra sin Por pagar.
 - [ ] Aparte: la columna Categoría queda muy angosta a 1280 px (la lista desplegable envuelve «Ver todas (N)» en tres líneas); la rama de Análisis ya le da 11 rem desde 62 rem de ancho.
+
+## Precio sugerido y avisos de compra (2026-10-22; diseño en `docs/pantallas/compras-ordenes-precio-y-stock.md`)
+- [x] Actividad 1: reglas puras de la ayuda de precio (`lib/orden-compra-precio-ayuda.ts`, 65 pruebas, 17 mutantes detectados). Sin pantalla: `knip.ts` la declara en `ignoreFiles`.
+- [x] Actividad 2 (base): `20261022080000_orden_compra_precio_sugerido.sql`; prueba de base `pruebas:orden-compra-sugerido` (25 casos, 21 mutantes detectados); las 28 suites de órdenes, comprobante, envíos, recepción, compras y fondos dan lo mismo antes y después.
+- [x] **`20261022080000` pegada en producción por Felipe el 2026-10-22** (una parte, después de `20261021202000`); la consulta de verificación del PR #1248 dio las ocho columnas en `true`.
+- [ ] Refrescar el diccionario de datos (`pnpm datos:generar:produccion`) para las dos columnas nuevas (`orden_compra_items.precio_venta_sugerido` y `sugerido_motivos`).
+- [ ] Actividad 3: `fn_categoria_precios` (una fila por categoría: precio del medio, prendas, ganancia típica y el último costo por marca para el aviso «costo distinto al de la última compra»).
+- [ ] Actividad 4: la columna «Precio sugerido», el botón «Usar el precio habitual», la franja de ayuda y los motivos. **La caja no se ofrece si el detalle no trae `precio_venta_sugerido`** (web antes que el SQL = sugerido perdido en silencio). Al importar el archivo de reglas, sacarlo de `ignoreFiles` en `knip.ts`.
+- [ ] Actividades 5 y 6: avisos de stock (ya pediste, ya hay mucho > 3 semanas, campaña cerca, buena compra, sin datos); `fn_orden_compra_stock` con desglose por tienda y plan (decisión de permisos de Felipe).
+- [ ] Actividad 7: cierre (ADR-0362 act., ARQUITECTURA, `/focus`, `tema:auditar`, `/formidable`, `/chaos`, SQL en orden).

@@ -24,7 +24,7 @@ import type { GastoDeOrden } from "@/lib/gastos-viaje-reglas";
 //
 // Con gastos del viaje (fase 6 · actividad 3): bajo los envíos, «Traerla costó S/ X» (`GastosDeOrden`), si la orden tiene alguno.
 //
-// # · Categoría y marca (+ descripción) · Cantidad · Precio · Descuento · Subtotal. Las columnas las decide el ANCHO DISPONIBLE
+// # · Categoría y marca (+ descripción) · Cantidad · Costo · Descuento · Subtotal. Las columnas las decide el ANCHO DISPONIBLE
 // (`@container`), no la ventana: la misma pieza vive en una ventana de 896 px y en una página con el menú abierto, donde con una
 // ventana chica la tabla mide 400 px y la prenda se aplastaba a cero. Con menos de 40 rem no hay columnas: la cuenta de la línea va
 // en un solo renglón bajo la prenda («30 × S/ 42.00 = S/ 1,260.00»), en vez de un renglón por cifra.
@@ -86,7 +86,7 @@ export function DetalleOrdenCompra({ orden: d, gastos = null }: { orden: Detalle
               { titulo: "#" },
               { titulo: "Prenda" },
               { titulo: "Cantidad", alinear: "der" },
-              { titulo: "Precio u.", alinear: "der" },
+              { titulo: "Costo u.", alinear: "der" },
               { titulo: "Descuento", alinear: "der" },
               { titulo: "Subtotal", alinear: "der" },
             ]}
