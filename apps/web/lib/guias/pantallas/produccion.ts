@@ -1405,7 +1405,7 @@ const PASOS_FORMULARIO_OI = {
     ancla: "oi-form.linea",
     opcional: true,
     titulo: "Cada línea",
-    texto: "El insumo (por su nombre o su código), una descripción si ayuda, la cantidad en su unidad con hasta tres decimales (12.5 metros) y el precio por esa unidad con hasta cuatro (un botón a S/\u00a00.0350). El descuento va en % o en soles; al lado, el subtotal. La ✕ quita la línea.",
+    texto: "El insumo (por su nombre o su código), una descripción si ayuda, la cantidad en su unidad con hasta tres decimales (12.5 metros) y el costo por esa unidad con hasta cuatro (un botón a S/\u00a00.0350). El descuento va en % o en soles; al lado, el subtotal. La ✕ quita la línea.",
   },
   unidadCambiada: {
     id: "unidad-cambiada",
@@ -1488,7 +1488,7 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       id: "lineas",
       ancla: "oi.lineas",
       titulo: "Lo que se pidió",
-      texto: "Una fila por insumo: su nombre y su código, cuánto en su unidad, el precio de cada una (con cuatro decimales si los usa), el descuento y el subtotal. Abajo, cuánto se pidió de cada unidad y el total.",
+      texto: "Una fila por insumo: su nombre y su código, cuánto en su unidad, el costo de cada una (con cuatro decimales si los usa), el descuento y el subtotal. Abajo, cuánto se pidió de cada unidad y el total.",
     },
     {
       id: "papel-linea",

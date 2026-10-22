@@ -171,22 +171,57 @@ export const SOLAPE_DE_LA_UNION = 3;
 /** Cuánto puede crecer, a lo más, una prenda de arriba que se dibuja con el bajo demasiado angosto (×1,3). Nunca se encoge: una prenda ancha es ancha a propósito. */
 export const AJUSTE_MAXIMO_DE_ARRIBA = 1.3;
 
+/** El ancho del bajo (cm) de una blusa o un polo «típico», plano. Contra él se mide el bajo de cada blusa para saber si se dibujó grande o chica. */
+export const ANCHO_ESTANDAR_DEL_TORSO = 40;
+/** Cuánto de lo que falta o sobra se corrige (0,8 de la razón entre el ancho típico y el medido): el largo típico de la categoría se equivoca en un sentido, pero la
+ *  forma de la foto también se mueve (un poco de vuelo, una manga), así que no se llega al 100 %. */
+export const PESO_DEL_TORSO = 0.8;
+/** Lo más que se encoge o se agranda una blusa por su torso (×0,75 a ×1,35). */
+export const FACTOR_MINIMO_DEL_TORSO = 0.75;
+export const FACTOR_MAXIMO_DEL_TORSO = 1.35;
+/** El ancho del bajo (cm) que se cree: fuera de 18 a 62 cm la medida es de una foto rara (un corsé, una capa) y no se toca la prenda. */
+export const BAJO_CREIBLE_MINIMO = 18;
+export const BAJO_CREIBLE_MAXIMO = 62;
+/** Una corrección menor a esto (3 %) no se aplica: lo que ya se ve bien no se mueve ni un píxel. */
+export const BANDA_MUERTA_DEL_TORSO = 0.03;
+
 /**
- * La prenda de arriba que se dibuja con el bajo más angosto de lo que una persona puede llevar: si su bajo mide menos que la cintura más
- * angosta que admite la unión (`ANCHO_ESTANDAR_DE_LA_UNION` menos su holgura, 30,6 cm), la blusa está dibujada demasiado chica (su largo en cm
- * es el típico de su categoría, igual para todas las blusas, y no encaja con su forma): crece desde el centro de los hombros, sin subir, lo justo
- * hasta alcanzar esa cintura (proporcional a lo que le falta, y a lo más `AJUSTE_MAXIMO_DE_ARRIBA`). Todo lo demás queda EXACTAMENTE como estaba:
- * no encoge nunca (los oversize, las casacas y los cardigans son anchos a propósito) y desde la cintura mínima hacia arriba no toca nada, así lo que
- * ya se ve bien no se mueve ni un píxel. Continua: justo en el umbral crece 1,0. `null`: sin cambio (sin medida, metida, o ya en rango).
+ * Cuánto hay que escalar una blusa para que su torso (el ancho de su bajo) mida lo de una blusa típica. Cada categoría se dibuja con UN largo típico
+ * (60 cm un polo, 65 una camisa), y una blusa corta o larga de verdad sale dibujada demasiado grande o chica: el torso, que se mide de su propio recorte, lo corrige
+ * (el bajo dibujado = largo típico × proporción × fracción del bajo, y el bajo real es el mismo con el largo real: la razón entre los dos es la del largo).
+ * `null`: sin cambio (medida increíble, o ya dentro de la banda muerta).
  */
-export function cajaDeArribaAjustada(arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; metida: boolean }): Caja | null {
+export function factorDelTorso(bajoCm: number): number | null {
+  if (!(bajoCm >= BAJO_CREIBLE_MINIMO) || !(bajoCm <= BAJO_CREIBLE_MAXIMO)) return null;
+  const k = Math.min(FACTOR_MAXIMO_DEL_TORSO, Math.max(FACTOR_MINIMO_DEL_TORSO, (ANCHO_ESTANDAR_DEL_TORSO / bajoCm) ** PESO_DEL_TORSO));
+  return Math.abs(k - 1) < BANDA_MUERTA_DEL_TORSO ? null : k;
+}
+
+/**
+ * La prenda de arriba, ajustada a su propia forma.
+ * - Una blusa, camisa, polo o top (`porTorso`): se escala por su torso (`factorDelTorso`), crece o se encoge desde el centro de los hombros, sin subir. Es lo que
+ *   hace que una blusa corta no se vea del tamaño de una larga (el largo típico de la categoría es el mismo para todas).
+ * - Lo demás (casacas, chalecos, blazers, abrigos): solo crece, y solo si su bajo es implausiblemente angosto: si mide menos que la cintura más angosta que
+ *   admite la unión (`ANCHO_ESTANDAR_DE_LA_UNION` menos su holgura, 30,6 cm), crece lo justo hasta alcanzarla, a lo más `AJUSTE_MAXIMO_DE_ARRIBA`. No encoge nunca:
+ *   una prenda de abrigo es ancha a propósito. Continua: justo en el umbral crece 1,0.
+ * `null`: sin cambio (sin medida, metida, o ya en rango).
+ */
+export function cajaDeArribaAjustada(arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; metida: boolean; porTorso?: boolean }): Caja | null {
   const m = arriba.medida;
   const c = arriba.caja;
   if (arriba.metida || !m || m.borde === null || !(c.w > 0) || !(c.h > 0)) return null;
   const bajoPx = c.w * Math.max(m.borde, anchoDelBajo(m) ?? 0);
-  const minimoPx = ANCHO_ESTANDAR_DE_LA_UNION * (1 - HOLGURA_DE_LA_UNION) * PX_POR_CM;
-  if (!(bajoPx > 0) || bajoPx >= minimoPx) return null;
-  const k = Math.min(AJUSTE_MAXIMO_DE_ARRIBA, minimoPx / bajoPx);
+  if (!(bajoPx > 0)) return null;
+  let k: number;
+  if (arriba.porTorso) {
+    const porElTorso = factorDelTorso(bajoPx / PX_POR_CM);
+    if (porElTorso === null) return null;
+    k = porElTorso;
+  } else {
+    const minimoPx = ANCHO_ESTANDAR_DE_LA_UNION * (1 - HOLGURA_DE_LA_UNION) * PX_POR_CM;
+    if (bajoPx >= minimoPx) return null;
+    k = Math.min(AJUSTE_MAXIMO_DE_ARRIBA, minimoPx / bajoPx);
+  }
   const w = c.w * k;
   return { x: Math.round(c.x + c.w / 2 - w / 2), y: c.y, w: Math.round(w), h: Math.round(c.h * k) };
 }

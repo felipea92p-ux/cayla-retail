@@ -14,7 +14,7 @@ const LARGO_MAXIMO = 80;
 export function BuscadorNotificaciones({ inicial }: { inicial: string }) {
   const router = useRouter();
   const [texto, setTexto] = useState(inicial);
-  const [, iniciar] = useTransition();
+  const [buscando, iniciar] = useTransition();
 
   function cambiar(valor: string) {
     setTexto(valor);
@@ -34,6 +34,7 @@ export function BuscadorNotificaciones({ inicial }: { inicial: string }) {
         placeholder="Buscar en tus notificaciones"
         aria-label="Buscar en tus notificaciones"
         autoComplete="off"
+        aria-busy={buscando || undefined}
       />
     </form>
   );

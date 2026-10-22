@@ -15,6 +15,9 @@
 --     pedidos no atendidos—, de padres a hijos, SIN sus columnas generadas (como
 --     `venta_items.subtotal`, que la base recalcula sola: reinsertarla a mano falla). Si el respaldo trae una tabla que este
 --     script no sabe devolver, no devuelve nada: una restauración a medias es peor que ninguna;
+--   · un respaldo VIEJO se restaura aunque la tabla haya ganado columnas después: en las columnas NOT NULL con valor de fábrica
+--     (como `conteo_items.aplicada_sin_contar`) que el respaldo no trae, la fila vuelve con ese valor; si la columna es NOT NULL
+--     SIN valor de fábrica, no se inventa nada: se niega y dice qué tabla y qué columna es (ver el comentario del bucle);
 --   · a las otras prendas les quita lo que la purga les había devuelto (lo vendido), y ninguna serie de comprobantes
 --     retrocede: vuelve al número que tenía solo si hoy va por detrás (si ya se emitió otro, sigue donde está);
 --   · con `session_replication_role = replica` para que los disparadores no reescriban las filas al volver (por ejemplo,
@@ -91,17 +94,38 @@ set local session_replication_role = replica;
 
 do $$
 declare
-  r record; v_cols text; v_nombre text := current_setting('cayla_purga.nombre'); v_producto text;
+  r record; v_cols text; v_sel text; v_col text; v_nombre text := current_setting('cayla_purga.nombre'); v_producto text;
 begin
   -- Padres antes que hijos. Cada tabla se devuelve con TODAS sus columnas menos las generadas.
+  --
+  -- UN RESPALDO VIEJO NO TRAE LAS COLUMNAS QUE LA TABLA GANÓ DESPUÉS. `jsonb_populate_recordset` entrega la clave que falta como
+  -- NULL —no como el valor de fábrica de la columna—, y en una columna `NOT NULL` con valor de fábrica (como
+  -- `conteo_items.aplicada_sin_contar`, `boolean not null default false`) eso aborta la restauración entera con 23502: quien se
+  -- arrepiente de una purga se quedaría sin red. Por eso, en cada columna NOT NULL que tiene valor de fábrica, la lista que se
+  -- inserta (`v_sel`) lleva `coalesce(columna, <valor de fábrica>)`: la fila vuelve como habría quedado si la columna hubiera
+  -- existido siempre (es lo mismo que le hizo la migración a las filas que ya estaban).
+  --   · Solo NOT NULL: en una columna que admite NULL, un NULL es un dato, y no se puede distinguir «el respaldo no la traía» de
+  --     «era nula»; esas se devuelven tal cual vinieron.
+  --   · Una columna NOT NULL SIN valor de fábrica que el respaldo no trae no se inventa: la restauración se niega y dice qué
+  --     tabla y qué columna es (el `exception` de abajo).
   for r in select t as tabla from unnest(pg_temp.tablas_en_orden()) with ordinality as x(t, n) order by n
   loop
-    select string_agg(format('%I', c.column_name), ', ' order by c.ordinal_position) into v_cols
+    select string_agg(format('%I', c.column_name), ', ' order by c.ordinal_position),
+           string_agg(case when c.is_nullable = 'NO' and c.column_default is not null
+                           then format('coalesce(%I, %s)', c.column_name, c.column_default)
+                           else format('%I', c.column_name) end, ', ' order by c.ordinal_position)
+      into v_cols, v_sel
       from information_schema.columns c
      where c.table_schema = 'retail' and c.table_name = r.tabla and c.is_generated = 'NEVER';
-    execute format(
-      'insert into retail.%I (%s) select %s from jsonb_populate_recordset(null::retail.%I, (select coalesce(jsonb_agg(fila), ''[]''::jsonb) from respaldo_purgas.filas where purga = %L and tabla = %L))',
-      r.tabla, v_cols, v_cols, r.tabla, v_nombre, r.tabla);
+    begin
+      execute format(
+        'insert into retail.%I (%s) select %s from jsonb_populate_recordset(null::retail.%I, (select coalesce(jsonb_agg(fila), ''[]''::jsonb) from respaldo_purgas.filas where purga = %L and tabla = %L))',
+        r.tabla, v_cols, v_sel, r.tabla, v_nombre, r.tabla);
+    exception when not_null_violation then
+      get stacked diagnostics v_col = column_name;
+      raise exception '[restaurar] No se restaura nada: el respaldo «%» trae filas de «%» sin un dato que hoy es obligatorio y no tiene valor de fábrica (columna «%»). Esa columna se agregó después de la purga; hay que decidir a mano qué valor llevan esas filas. Detalle de la base: %',
+        v_nombre, r.tabla, coalesce(v_col, '?'), sqlerrm;
+    end;
   end loop;
 
   -- El stock de las otras prendas: se les quita lo que la purga les devolvió (lo vendido). Restar y no copiar el número de
