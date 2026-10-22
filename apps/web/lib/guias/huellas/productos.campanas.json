@@ -1,0 +1,90 @@
+{
+  "guia": "productos.campanas",
+  "ruta": "/productos/campanas",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 68,
+  "controles": {
+    "app/(app)/productos/campanas/page.tsx": [
+      "BotonVer «Cómo se ven en la tienda web»"
+    ],
+    "components/ConfirmarConResponsable.tsx": [
+      "ComboResponsable «{control}»",
+      "Boton «Cancelar»",
+      "Boton «{control?.motivo ?? undefined}»"
+    ],
+    "components/EscanerBusqueda.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Buscar escribiendo»",
+      "button «Listo ·»",
+      "button «Mejor buscar escribiendo»"
+    ],
+    "components/EtiquetasLista.tsx": [
+      "BotonImprimir «(sin nombre)»",
+      "BotonVer «Diseño en la tienda web»",
+      "BotonFiltro «Todas»",
+      "BotonFiltro «{ESTILOS[g].grupo}»",
+      "BotonFiltro «Vigentes hoy»",
+      "button «atributos.prendas»",
+      "button «atributos.campana»",
+      "CampoTexto «Comentario (obligatorio)»",
+      "Boton «Cancelar»",
+      "Boton «→() => aprobar(aprobandoEtiqueta)»",
+      "CampoTexto «Motivo (opcional)»",
+      "Boton «Cancelar» #2",
+      "Boton «Confirmar rechazo»",
+      "button «campana-web.prendas»",
+      "button «campana-web.configurar»",
+      "CampoTexto «{guia.etiqueta(\"descuento\", \"Descuento (%)\")}»",
+      "button «Sin descuento»",
+      "button «{v}»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "button «{avisoDia.boton}»",
+      "BotonDeshacer «(sin nombre)»",
+      "button «Quitar todas»",
+      "Boton «Cancelar» #3",
+      "Boton «{guia.frase ?? undefined}»",
+      "button «{c.nombre}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", `Nombre ${delUno}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar» #4",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/PrendasDeEtiquetaModal.tsx": [
+      "Boton «Escanear las etiquetas con la cámara del teléfono»",
+      "BotonFiltro «Todas»",
+      "BotonFiltro «Con la etiqueta»",
+      "BotonFiltro «Sin ella»",
+      "DesplegablePildora «Categoría»",
+      "SegmentoDeslizante «Qué hace una lectura»",
+      "button «Marca todas las tallas de los productos de la lista. Los que entran por su categoría ya la llevan.»",
+      "button «Desmarca los productos de la lista. Los que entran por su categoría siguen marcados.»",
+      "Boton «Reintentar»",
+      "Casilla «{`${nombre}»",
+      "button «(sin nombre)»",
+      "Casilla «{nombreTalla}»",
+      "BotonDeshacer «→() => setQuitarFuera(false)»",
+      "button «Quitárselas»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Volver»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "Boton «Cancelar»",
+      "Boton «{requiereRevision ? \"Revisar y aplicar\" : \"Aplicar\"}»",
+      "button «→onOtras»",
+      "BotonDeshacer «Deshacer esta lectura»"
+    ],
+    "components/atributos/kit.tsx": [
+      "Boton «vocabulario.agregar»",
+      "Boton «Limpiar filtros»",
+      "button «{abrir.titulo}»",
+      "Boton «Aprobar»",
+      "Boton «Rechazar»",
+      "button «{cambiando ? \"Desactivando…\" : \"Desactivar\"}»",
+      "Boton «Reactivar»"
+    ],
+    "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
+      "button «Descartar el aviso de etiquetas pendientes»"
+    ]
+  }
+}

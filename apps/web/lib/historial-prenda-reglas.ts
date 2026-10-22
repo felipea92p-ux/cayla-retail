@@ -89,7 +89,7 @@ export const VENTANA_GUARDADO_MS = 120_000;
 export const FAMILIAS: { id: Exclude<Familia, "alta">; nombre: string }[] = [
   { id: "precio", nombre: "Precio" },
   { id: "variantes", nombre: "Colores y tallas" },
-  { id: "etiquetas", nombre: "Etiquetas" },
+  { id: "etiquetas", nombre: "Sellos y campañas" },
   { id: "ficha", nombre: "Ficha" },
   { id: "fotos", nombre: "Fotos" },
 ];

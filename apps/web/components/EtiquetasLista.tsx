@@ -56,6 +56,8 @@ import { GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, type EstiloEtiqueta } from "@/l
 import { normalizarNombre } from "@/lib/patron-visual";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { BotonVer } from "@/components/ui/BotonDescargar";
+import { campanasPorTramo, ESTILO_AL_CREAR, TEXTOS_MODO, TITULO_TRAMO, type ModoEtiquetas } from "@/lib/sellos-campanas";
 
 /**
  * Vocabulario cerrado de etiquetas de catálogo (folksonomy: "Oferta",
@@ -144,6 +146,7 @@ function TarjetaEtiqueta({
   apagada = false,
   conteo = null,
   rotacion = null,
+  disenoHref = null,
   children,
 }: {
   e: Etiqueta;
@@ -154,6 +157,8 @@ function TarjetaEtiqueta({
   conteo?: ConteoTarjeta | null;
   /** Rotación: lo que dicen los datos («Quedan 1 unidad · 2 vendidas en 30 días»), `textoRotacion`. */
   rotacion?: string | null;
+  /** Su diseño en la tienda online (Tienda web ▸ Campañas, ADR-0471), para quien ve ese módulo; `null`, sin el enlace. */
+  disenoHref?: string | null;
   children?: ReactNode;
 }) {
   const rango = textoRango(e.vigenteDesde, e.vigenteHasta);
@@ -212,6 +217,11 @@ function TarjetaEtiqueta({
               {vigencia?.estado === "terminada" ? "Imprimir con el precio normal" : "Imprimir etiquetas de precio"}
             </BotonImprimir>
           )}
+          {disenoHref && (
+            <BotonVer href={disenoHref} chico className="mt-0.5 self-start">
+              Diseño en la tienda web
+            </BotonVer>
+          )}
         </>
       }
     >
@@ -221,6 +231,7 @@ function TarjetaEtiqueta({
 }
 
 export function EtiquetasLista({
+  modo,
   etiquetasIniciales,
   categorias,
   prendasConCosto,
@@ -228,7 +239,10 @@ export function EtiquetasLista({
   rotacion = null,
   puedeEditar,
   puedeDarDescuento = false,
+  disenoWeb = false,
 }: {
+  /** Qué pantalla es (ADR-0473): Atributos ▸ Sellos o Catálogo ▸ Campañas. Las filas ya llegan filtradas (`esDelModo`). */
+  modo: ModoEtiquetas;
   etiquetasIniciales: Etiqueta[];
   categorias: CategoriaOpcion[];
   /** Las prendas con su precio para elegirlas y avisar cuáles quedarían bajo su costo. El costo solo llega a quien tiene permiso de dinero (en los demás es 0 y no avisa). */
@@ -241,6 +255,9 @@ export function EtiquetasLista({
   puedeEditar: boolean;
   /** Tocar una etiqueta CON descuento o ponerle uno: el líder o un rol con el módulo Etiquetas, igual que `puedeEditar` (ADR-0293; la base lo vuelve a exigir). */
   puedeDarDescuento?: boolean;
+  /** Campañas: la cuenta ve Tienda web ▸ Campañas y cada tarjeta enlaza a su diseño (solo las que la tienda muestra: aprobadas,
+   *  activas y con descuento, la misma regla de `fn_campana_diseno`). */
+  disenoWeb?: boolean;
 }) {
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
@@ -248,6 +265,7 @@ export function EtiquetasLista({
   // responsable (Felipe, 2026-09-29): se firman con su clave de `responsable-omitido.ts`; agregar y editar conservan el combo.
   // «Prendas» abre su propio modal con su propio combo (`PrendasDeEtiquetaModal`).
   const responsable = useResponsable();
+  const T = TEXTOS_MODO[modo];
   const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [etiquetas, setEtiquetas] = useState(() => ordenar(etiquetasIniciales));
   const [agregando, setAgregando] = useState(false);
@@ -310,11 +328,11 @@ export function EtiquetasLista({
       const res = await fetch("/api/productos/etiquetas", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ nombre }),
+        body: JSON.stringify({ nombre, estilo: ESTILO_AL_CREAR[modo] }),
       });
       const datos = await res.json();
       if (!res.ok) {
-        avisar.error(datos.error ?? "No se pudo agregar la etiqueta.");
+        avisar.error(datos.error ?? `No se pudo agregar ${T.la} ${T.uno}.`);
         return;
       }
       setEtiquetas((actual) =>
@@ -326,7 +344,7 @@ export function EtiquetasLista({
             activo: true,
             notas: datos.etiqueta.notas,
             estado: datos.etiqueta.estado,
-            estilo: "neutral",
+            estilo: ESTILO_AL_CREAR[modo],
             vigenteDesde: null,
             vigenteHasta: null,
             descuentoPct: null,
@@ -337,7 +355,7 @@ export function EtiquetasLista({
       responsable.despues(null);
       // Una propuesta pendiente NO se puede usar todavía (el alta de producto y «Prendas» solo aceptan aprobadas): el aviso
       // ya no promete lo contrario. Los textos viven en `lib/etiqueta-aprobacion-reglas.ts`.
-      const { titulo, detalle } = avisoEtiquetaAgregada(datos.etiqueta.nombre, datos.etiqueta.estado);
+      const { titulo, detalle } = avisoEtiquetaAgregada(datos.etiqueta.nombre, datos.etiqueta.estado, modo);
       avisar.exito(titulo, detalle ? { detalle } : undefined);
       setAgregando(false);
       setNombre("");
@@ -368,14 +386,14 @@ export function EtiquetasLista({
       });
       const datos = await res.json();
       if (!res.ok) {
-        avisar.error(datos.error ?? `No se pudo ${verbo.toLowerCase()} la etiqueta.`);
+        avisar.error(datos.error ?? `No se pudo ${verbo.toLowerCase()} ${T.la} ${T.uno}.`);
         return;
       }
       // `notas` vuelve del servidor: es el comentario que se muestra como ayuda junto al nombre de la etiqueta.
       setEtiquetas((actual) =>
         ordenar(actual.map((x) => (x.id === e.id ? { ...x, estado: "aprobado" as const, activo: true, notas: datos.etiqueta.notas } : x)))
       );
-      avisar.exito(e.estado === "rechazado" ? `${e.nombre} reactivada` : `${e.nombre} aprobada`, e.estado === "rechazado" ? { detalle: "Vuelve a aparecer al etiquetar una variante." } : undefined);
+      avisar.exito(e.estado === "rechazado" ? `${e.nombre} reactivad${T.o}` : `${e.nombre} aprobad${T.o}`, e.estado === "rechazado" ? { detalle: `Vuelve a aparecer al elegir ${T.varios} de una prenda.` } : undefined);
       setAprobandoAbierto(null);
       setComentarioAprobar("");
     } catch {
@@ -395,11 +413,11 @@ export function EtiquetasLista({
       });
       const datos = await res.json();
       if (!res.ok) {
-        avisar.error(datos.error ?? "No se pudo rechazar la etiqueta.");
+        avisar.error(datos.error ?? `No se pudo rechazar ${T.la} ${T.uno}.`);
         return;
       }
       setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, activo: false, estado: "rechazado" as const } : x))));
-      avisar.exito(`${e.nombre} rechazada`, { detalle: "Cae a Desactivadas. Se puede reactivar después si hace falta." });
+      avisar.exito(`${e.nombre} rechazad${T.o}`, { detalle: `Cae a Desactivad${T.o}s. Se puede reactivar después si hace falta.` });
       setRechazandoAbierto(null);
       setMotivoRechazo("");
     } catch {
@@ -421,11 +439,11 @@ export function EtiquetasLista({
       });
       const datos = await res.json();
       if (!res.ok) {
-        avisar.error(datos.error ?? "No se pudo reactivar la etiqueta.");
+        avisar.error(datos.error ?? `No se pudo reactivar ${T.la} ${T.uno}.`);
         return;
       }
       setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, activo: true, estado: "aprobado" as const } : x))));
-      avisar.exito(`${e.nombre} reactivada`, { detalle: "Vuelve a aparecer al etiquetar una variante." });
+      avisar.exito(`${e.nombre} reactivad${T.o}`, { detalle: `Vuelve a aparecer al elegir ${T.varios} de una prenda.` });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -443,11 +461,11 @@ export function EtiquetasLista({
       });
       const datos = await res.json();
       if (!res.ok) {
-        avisar.error(datos.error ?? "No se pudo desactivar la etiqueta.");
+        avisar.error(datos.error ?? `No se pudo desactivar ${T.la} ${T.uno}.`);
         return;
       }
       setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, activo: false } : x))));
-      avisar.exito(`${e.nombre} desactivada`, { detalle: "Deja de aparecer al etiquetar una variante nueva; el historial se conserva." });
+      avisar.exito(`${e.nombre} desactivad${T.o}`, { detalle: `Deja de aparecer al elegir ${T.varios} de una prenda nueva; el historial se conserva.` });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -458,13 +476,14 @@ export function EtiquetasLista({
   return (
     <div className="space-y-6">
       <BarraAtributos
-        etiqueta="Filtrar etiquetas"
+        etiqueta={T.filtrar}
         filtros={
           <>
             <BotonFiltro activo={grupo === "todas"} onClick={() => { setGrupo("todas"); setAnimar(true); }} cuenta={activas.length}>
               Todas
             </BotonFiltro>
-            {gruposConEtiquetas.map((g) => (
+            {/* En Campañas todas son del mismo grupo: no hay nada que separar por estilo (ADR-0473). */}
+            {modo === "sellos" && gruposConEtiquetas.map((g) => (
               <BotonFiltro
                 key={g}
                 activo={grupo === g}
@@ -489,31 +508,38 @@ export function EtiquetasLista({
             )}
           </>
         }
-        busqueda={{ valor: busqueda, onValor: setBusqueda, etiqueta: "Buscar etiqueta", placeholder: "Buscar etiqueta" }}
-        agregar={{ texto: "+ Agregar etiqueta", onClick: () => setAgregando(true) }}
+        busqueda={{ valor: busqueda, onValor: setBusqueda, etiqueta: `Buscar ${T.uno}`, placeholder: `Buscar ${T.uno}` }}
+        agregar={{ texto: `+ Agregar ${T.uno}`, onClick: () => setAgregando(true) }}
       />
 
       {hayFiltros && activasVisibles.length + desactivadasVisibles.length === 0 && (
         <SinCoincidencias onQuitar={quitarFiltros}>
-          {q ? <>Ninguna etiqueta coincide con «{busqueda.trim()}» con los filtros actuales.</> : "Ninguna etiqueta cumple estos filtros."}
+          {q ? <>Ningun{T.o === "o" ? "" : "a"} {T.uno} coincide con «{busqueda.trim()}» con los filtros actuales.</> : `Ningun${T.o === "o" ? "" : "a"} ${T.uno} cumple estos filtros.`}
         </SinCoincidencias>
       )}
 
       <div key={`${grupo}-${soloVigentes}`} className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
-        {ORDEN_GRUPOS.map((clave) => {
-          // Dentro del grupo, por temporada (lo que rige, lo que viene, lo que pasó); las que no tienen fechas, por nombre.
-          const delGrupo = ordenarPorTemporada(activasVisibles.filter((e) => e.estilo === clave), hoy);
-          if (delGrupo.length === 0) return null;
-          const { grupo: nombreGrupo, dot } = ESTILOS[clave];
+        {/* Sellos: por grupo de estilo. Campañas: por su fecha (rigen hoy, próximas, sin fechas, ya pasaron), ADR-0473. */}
+        {(modo === "campanas"
+          ? campanasPorTramo(activasVisibles, hoy).map((t) => ({ clave: t.tramo, titulo: TITULO_TRAMO[t.tramo], punto: t.tramo === "ahora" ? "bg-verde" : undefined, lista: t.campanas }))
+          : ORDEN_GRUPOS.map((clave) => ({
+              clave,
+              titulo: ESTILOS[clave].grupo,
+              punto: ESTILOS[clave].dot,
+              // Dentro del grupo, por temporada (lo que rige, lo que viene, lo que pasó); las que no tienen fechas, por nombre.
+              lista: ordenarPorTemporada(activasVisibles.filter((e) => e.estilo === clave), hoy),
+            }))
+        ).map(({ clave, titulo, punto, lista }) => {
+          if (lista.length === 0) return null;
           return (
             <section key={clave} className="space-y-3">
-              <TituloGrupo punto={dot} cuenta={delGrupo.length}>
-                {nombreGrupo}
+              <TituloGrupo punto={punto} cuenta={lista.length}>
+                {titulo}
               </TituloGrupo>
               {/* Con cuántos datos se juzga: si buena parte de lo vendido no dice qué prenda fue, las cifras de Rotación miran solo una parte. */}
               {clave === "urgencia" && notaRotacion && <p className="nota-cayla text-xs">{notaRotacion}</p>}
               <div className={GRILLA_ETIQUETAS}>
-                {delGrupo.map((e) => (
+                {lista.map((e) => (
                   <TarjetaEtiqueta
                     key={e.id}
                     e={e}
@@ -521,6 +547,7 @@ export function EtiquetasLista({
                     hoy={hoy}
                     conteo={puedeEditar ? conteoDeTarjeta(prendasConCosto, new Set(e.categoriaIds), manuales[e.id] ?? []) : null}
                     rotacion={lineaRotacion(e)}
+                    disenoHref={modo === "campanas" && disenoWeb && e.estado === "aprobado" && e.descuentoPct !== null ? `/tienda-web/campanas/${e.id}` : null}
                   >
                     {/* Una etiqueta CON descuento cambia el precio en caja; quien tiene el módulo Etiquetas también la configura (ADR-0293). */}
                     {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) &&
@@ -567,7 +594,7 @@ export function EtiquetasLista({
 
       {desactivadasVisibles.length > 0 && (
         <section className="space-y-3">
-          <TituloGrupo cuenta={desactivadasVisibles.length}>Desactivadas — ya no se pueden aplicar a una variante nueva</TituloGrupo>
+          <TituloGrupo cuenta={desactivadasVisibles.length}>{`Desactivad${T.o}s — ya no se pueden poner en una prenda nueva`}</TituloGrupo>
           <div className={GRILLA_ETIQUETAS}>
             {desactivadasVisibles.map((e) => (
               <TarjetaEtiqueta key={e.id} e={e} vigencia={null} hoy={hoy} apagada>
@@ -584,7 +611,7 @@ export function EtiquetasLista({
       )}
 
       {agregando && (
-        <NuevaEtiquetaModal nombre={nombre} onNombre={setNombre} responsable={responsable} guardando={guardando} onGuardar={guardar} onClose={() => setAgregando(false)} />
+        <NuevaEtiquetaModal modo={modo} nombre={nombre} onNombre={setNombre} responsable={responsable} guardando={guardando} onGuardar={guardar} onClose={() => setAgregando(false)} />
       )}
 
       {etiquetando && (
@@ -602,6 +629,7 @@ export function EtiquetasLista({
 
       {configurando && (
         <CampanaModal
+          modo={modo}
           etiqueta={configurando}
           puedeDarDescuento={puedeDarDescuento}
           categorias={categorias}
@@ -671,6 +699,92 @@ export function EtiquetasLista({
   );
 }
 
+/**
+ * UNA campaña, con la misma tarjeta, los mismos botones («Prendas», «Configurar» o «Repetir») y las mismas hojas que en
+ * Catálogo ▸ Campañas. La monta la ficha de Tienda web ▸ Campañas (pestaña «Datos y prendas»): Felipe, 2026-10-22, «que se pueda
+ * editar, agregar prendas y demás cosas a las campañas desde ambos módulos» y «mismas piezas dentro» (ADR-0473). Guarda por las
+ * mismas rutas; la base decide quién puede (`fn_puede_campanas`).
+ */
+export function TarjetaDeCampana({
+  campana,
+  categorias,
+  prendasConCosto,
+  variantesManuales,
+}: {
+  campana: Etiqueta;
+  categorias: CategoriaOpcion[];
+  prendasConCosto: PrendaConCosto[];
+  /** Las prendas puestas a mano en ESTA campaña. */
+  variantesManuales: string[];
+}) {
+  const [e, setE] = useState(campana);
+  const [manuales, setManuales] = useState(variantesManuales);
+  const [configurando, setConfigurando] = useState(false);
+  const [etiquetando, setEtiquetando] = useState(false);
+  const hoy = hoyLima();
+  const editable = e.estado === "aprobado" && e.activo;
+  return (
+    <div className="max-w-xs">
+      <TarjetaEtiqueta
+        e={e}
+        vigencia={vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy)}
+        hoy={hoy}
+        apagada={!e.activo}
+        conteo={conteoDeTarjeta(prendasConCosto, new Set(e.categoriaIds), manuales)}
+      >
+        {editable && (
+          <PieTarjeta>
+            <div className="grid w-full gap-1.5">
+              <button type="button" onClick={() => setEtiquetando(true)} data-guia="campana-web.prendas" className="btn-cayla btn-sutil btn-chico w-full whitespace-nowrap">
+                Prendas
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfigurando(true)}
+                title={botonCampana(e, hoy).title}
+                data-guia="campana-web.configurar"
+                className="btn-cayla btn-sutil btn-chico w-full whitespace-nowrap"
+              >
+                {botonCampana(e, hoy).texto}
+              </button>
+            </div>
+          </PieTarjeta>
+        )}
+      </TarjetaEtiqueta>
+      {!editable && (
+        <p className="nota-cayla mt-3 text-xs">Esta campaña está desactivada o pendiente de aprobar: se cambia en Catálogo ▸ Campañas.</p>
+      )}
+      {etiquetando && (
+        <PrendasDeEtiquetaModal
+          etiqueta={e}
+          prendasConCosto={prendasConCosto}
+          marcasManuales={manuales}
+          onClose={() => setEtiquetando(false)}
+          onAplicado={(finales) => {
+            setManuales(finales);
+            setEtiquetando(false);
+          }}
+        />
+      )}
+      {configurando && (
+        <CampanaModal
+          modo="campanas"
+          etiqueta={e}
+          puedeDarDescuento
+          categorias={categorias}
+          prendasConCosto={prendasConCosto}
+          variantesManuales={manuales}
+          onClose={() => setConfigurando(false)}
+          onGuardado={(cambios) => {
+            setE((actual) => ({ ...actual, ...cambios }));
+            setConfigurando(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Configurar campaña: descuento, fechas y categorías, guardados juntos por el
 // RPC `actualizar_campana_etiqueta` (todo o nada). Las categorías son
@@ -679,6 +793,7 @@ export function EtiquetasLista({
 // misma prenda, Vender aplicará solo el mayor (paso aparte, aún sin construir).
 // ---------------------------------------------------------------------------
 function CampanaModal({
+  modo,
   etiqueta,
   puedeDarDescuento,
   categorias,
@@ -687,6 +802,7 @@ function CampanaModal({
   onClose,
   onGuardado,
 }: {
+  modo: ModoEtiquetas;
   etiqueta: Etiqueta;
   /** Sin esto (un rol con Etiquetas que no es líder), la campaña se configura SIN descuento: fechas y categorías. */
   puedeDarDescuento: boolean;
@@ -697,6 +813,7 @@ function CampanaModal({
   onGuardado: (cambios: Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "categoriaIds">) => void;
 }) {
   // Si su temporada ya pasó, la hoja abre para repetirla: las mismas fechas, un año después (se guardan solo con «Guardar»).
+  const T = TEXTOS_MODO[modo];
   const [repetir] = useState(() => repetirTemporada(etiqueta.vigenteDesde, etiqueta.vigenteHasta, hoyLima()));
   const [descuento, setDescuento] = useState(etiqueta.descuentoPct === null ? "" : String(etiqueta.descuentoPct));
   const [desde, setDesde] = useState((repetir ? repetir.desde : etiqueta.vigenteDesde) ?? "");
@@ -770,7 +887,7 @@ function CampanaModal({
       const destino = destinoReimprimir(cambian, etiqueta.id);
       const reimprimir = avisoReimprimir(cambian.quedan.length + cambian.salen.length, destino !== null);
       avisar.exito(
-        `${etiqueta.nombre} actualizada`,
+        `${etiqueta.nombre} actualizad${T.o}`,
         reimprimir
           ? { detalle: reimprimir.detalle, accion: destino && reimprimir.boton ? { texto: reimprimir.boton, onClick: () => router.push(destino) } : undefined }
           : undefined,
@@ -820,7 +937,7 @@ function CampanaModal({
                             .map(nombreBajoCosto)
                             .join(", ")}${bajoCosto.length > 2 ? "…" : ""}). Se puede guardar igual.`
                         : pct.valor === null
-                          ? "Vacío: la etiqueta solo marca prendas y no cambia precios."
+                          ? `Vacío: ${T.la} ${T.uno} solo marca prendas y no cambia precios.`
                           : `Baja ${textoPct(pct.valor)} % el precio en Vender, sin pedir código.`
                   }
                   autoComplete="off"
@@ -925,7 +1042,7 @@ function CampanaModal({
 
           <p className="nota-cayla text-xs">
             {DESCUENTO_YA_SE_APLICA
-              ? "En Vender, las prendas con esta etiqueta llevan el descuento solas, dentro de las fechas. Si una prenda tiene varias campañas, se aplica solo la de mayor descuento."
+              ? `En Vender, las prendas con est${T.o === "o" ? "e" : "a"} ${T.uno} llevan el descuento solas, dentro de las fechas. Si una prenda tiene varias campañas, se aplica solo la de mayor descuento.`
               : "Esto guarda la configuración. Todavía no cambia el precio en Vender."}
           </p>
 
@@ -973,6 +1090,7 @@ function ChipsCategorias({
  * alguien que firma. Vive en su propio componente para que la guía nazca y muera con la ventana.
  */
 function NuevaEtiquetaModal({
+  modo,
   nombre,
   onNombre,
   responsable,
@@ -980,6 +1098,7 @@ function NuevaEtiquetaModal({
   onGuardar,
   onClose,
 }: {
+  modo: ModoEtiquetas;
   nombre: string;
   onNombre: (v: string) => void;
   responsable: ControlResponsable;
@@ -987,16 +1106,18 @@ function NuevaEtiquetaModal({
   onGuardar: () => void;
   onClose: () => void;
 }) {
+  const T = TEXTOS_MODO[modo];
+  const delUno = `${T.la === "el" ? "del" : "de la"} ${T.uno}`;
   const guia = useGuiaCampos([
-    { id: "nombre", nombre: "Nombre de la etiqueta", requerido: true, hecho: nombre.trim() !== "", pendiente: "Escribe el nombre de la etiqueta." },
+    { id: "nombre", nombre: `Nombre ${delUno}`, requerido: true, hecho: nombre.trim() !== "", pendiente: `Escribe el nombre ${delUno}.` },
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
-    <Modal titulo="Nueva etiqueta" subtitulo="Queda disponible de inmediato para cualquier variante." onClose={onClose}>
+    <Modal titulo={T.nuevo} subtitulo={T.agregarDetalle} onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <CampoGuiado id="nombre" guia={guia}>
-            <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre de la etiqueta")} value={nombre} onChange={(e) => onNombre(e.target.value)} placeholder="Ej. Oferta, Verano 2026" autoFocus />
+            <CampoTexto etiqueta={guia.etiqueta("nombre", `Nombre ${delUno}`)} value={nombre} onChange={(e) => onNombre(e.target.value)} placeholder={T.ejemplo} autoFocus />
           </CampoGuiado>
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -1014,7 +1135,7 @@ function NuevaEtiquetaModal({
               title={responsable.motivo ?? guia.frase ?? undefined}
               className={`flex-1 ${guia.claseConfirmar}`}
             >
-              Guardar etiqueta
+              Guardar {T.uno}
             </Boton>
           </div>
         </div>
