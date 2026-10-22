@@ -3,6 +3,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { alejarFondo, devolverFondo, moverFondo } from "@/components/ui/fondoDeLaHoja";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
 import { useHojaSobreElTeclado } from "@/components/ui/useHojaSobreElTeclado";
@@ -11,6 +12,9 @@ import { useHojaSobreElTeclado } from "@/components/ui/useHojaSobreElTeclado";
 const MS_SALIDA = 220;
 /** En el celular la hoja baja entera hasta el borde (ADR-0479): debe coincidir con `cayla-hoja-movil-sale` en globals.css. */
 const MS_SALIDA_CELULAR = 300;
+/** Y llega desde el borde en lo mismo que `cayla-hoja-movil-entra`: lo de atrás se aleja a su ritmo. */
+const MS_ENTRADA_CELULAR = 460;
+const CELULAR = "(max-width: 639.98px)";
 
 type Props = {
   titulo: ReactNode;
@@ -93,6 +97,8 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
   const msSalidaPropia = useRef<number | null>(null);
   const hoja = useRef<HTMLDivElement>(null);
   const velo = useRef<HTMLDivElement>(null);
+  // La llave de lo de atrás (fondoDeLaHoja.ts): solo la tiene la hoja que lo alejó.
+  const fondo = useRef<symbol | null>(null);
   // En el celular la hoja va pegada abajo: con el teclado abierto se apoya sobre él (la cámara no tiene campos).
   const contenedor = useHojaSobreElTeclado<HTMLDivElement>(variante !== "camara");
 
@@ -119,8 +125,10 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
   useEffect(() => {
     if (!cerrando) return;
     const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const enCelular = variante !== "camara" && window.matchMedia?.("(max-width: 639.98px)").matches;
+    const enCelular = variante !== "camara" && window.matchMedia?.(CELULAR).matches;
     const ms = msSalidaPropia.current ?? (enCelular ? MS_SALIDA_CELULAR : MS_SALIDA);
+    // Lo de atrás vuelve a su lugar mientras la hoja se va, en el mismo tiempo.
+    devolverFondo(fondo.current, sinMovimiento ? 0 : ms);
     const temporizador = setTimeout(() => onCloseActual.current(), sinMovimiento ? 0 : ms);
     return () => clearTimeout(temporizador);
   }, [cerrando, variante]);
@@ -161,7 +169,20 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
       setSalidaPropia(true);
       setCerrando(true);
     },
+    alMoverse: (progreso, ms) => moverFondo(fondo.current, progreso, ms),
   });
+
+  // Lo de atrás se aleja mientras la hoja está abierta (la «B» de ADR-0479): solo en el celular y sin «reducir movimiento».
+  // Si la hoja se desmonta sin su salida (una navegación), lo de atrás vuelve de una.
+  useEffect(() => {
+    if (!conAsa || !window.matchMedia?.(CELULAR).matches || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const llave = alejarFondo(MS_ENTRADA_CELULAR);
+    fondo.current = llave;
+    return () => {
+      devolverFondo(llave, 0);
+      fondo.current = null;
+    };
+  }, [conAsa]);
   const ponerHoja = useCallback(
     (el: HTMLDivElement | null) => {
       hoja.current = el;

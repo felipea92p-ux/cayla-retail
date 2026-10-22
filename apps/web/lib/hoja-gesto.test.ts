@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  FONDO_ALEJADO,
   FRACCION_PARA_PASAR,
   MOVIMIENTO_MINIMO,
   TOPE_GOMA,
   decidirGesto,
   destinoAlSoltar,
   duracionHacia,
+  fondoSegun,
   goma,
   posicionAlArrastrar,
   progresoDeCierre,
@@ -127,6 +129,24 @@ describe("destinoAlSoltar (con una altura media)", () => {
 
   it("los puntos pueden venir en cualquier orden", () => {
     expect(destinoAlSoltar(100, 0, [ALTO, 0, media], 1.5)).toBe(media);
+  });
+});
+
+describe("fondoSegun (lo de atrás se aleja y vuelve con el dedo)", () => {
+  it("con la hoja abierta, lo de atrás está alejado del todo", () => {
+    expect(fondoSegun(0)).toEqual({ escala: FONDO_ALEJADO.escala, bajada: FONDO_ALEJADO.bajada, radio: FONDO_ALEJADO.radio });
+  });
+
+  it("con la hoja cerrada, lo de atrás vuelve a su lugar exacto", () => {
+    expect(fondoSegun(1)).toEqual({ escala: 1, bajada: 0, radio: 0 });
+  });
+
+  it("a mitad de camino, a mitad de camino; y nunca se pasa de los extremos", () => {
+    const medio = fondoSegun(0.5);
+    expect(medio.escala).toBeCloseTo((FONDO_ALEJADO.escala + 1) / 2, 5);
+    expect(medio.bajada).toBeCloseTo(FONDO_ALEJADO.bajada / 2, 5);
+    expect(fondoSegun(-0.4)).toEqual(fondoSegun(0));
+    expect(fondoSegun(1.7)).toEqual(fondoSegun(1));
   });
 });
 

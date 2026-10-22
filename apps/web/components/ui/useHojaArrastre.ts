@@ -28,6 +28,8 @@ type Opciones = {
   alSoltarParaCerrar: (salir: () => void) => void;
   /** La hoja ya va saliendo con el dedo y llega abajo en `ms`: quien la abrió la desmonta sin su animación de salida. */
   alSalir: (ms: number) => void;
+  /** Cada vez que la hoja se mueve: cuánto de ella se fue (0 abierta, 1 cerrada) y en cuántos ms llega. Lo usa lo de atrás. */
+  alMoverse?: (progreso: number, ms: number) => void;
 };
 
 type Gesto = { x0: number; y0: number; eje: "hoja" | null; muestras: Muestra[]; corredores: HTMLElement[]; y: number };
@@ -67,11 +69,13 @@ export function useHojaArrastre(opciones: Opciones) {
       const transicion = ms ? `${ms}ms var(--ease-cayla)` : "";
       hoja.style.setProperty("transition", transicion ? `transform ${transicion}` : "none", "important");
       hoja.style.setProperty("transform", `translate3d(0, ${y}px, 0)`, "important");
+      const progreso = progresoDeCierre(y, alto);
       const velo = op.current.velo.current;
       if (velo) {
         velo.style.setProperty("transition", transicion ? `opacity ${transicion}` : "none", "important");
-        velo.style.setProperty("opacity", String(1 - progresoDeCierre(y, alto)), "important");
+        velo.style.setProperty("opacity", String(1 - progreso), "important");
       }
+      op.current.alMoverse?.(progreso, ms);
     };
     const soltarEstilos = () => {
       for (const el of [hoja, op.current.velo.current]) {

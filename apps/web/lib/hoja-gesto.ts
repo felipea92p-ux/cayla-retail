@@ -99,6 +99,25 @@ export function duracionHacia(distancia: number, vy: number): number {
   return Math.round(Math.min(420, Math.max(180, ms)));
 }
 
+/**
+ * Lo de atrás con la hoja abierta (la «B» que eligió Felipe): la pantalla se aleja a 0,92, baja 12 px y su cabecera se
+ * redondea 18 px, como una tarjeta que quedó debajo. @internal La prueba mide los extremos.
+ */
+export const FONDO_ALEJADO = { escala: 0.92, bajada: 12, radio: 18 } as const;
+
+/**
+ * Cómo dibujar lo de atrás según cuánto de la hoja se fue (0 abierta, 1 cerrada): vuelve a su lugar al mismo ritmo que el
+ * dedo baja la hoja.
+ */
+export function fondoSegun(progreso: number): { escala: number; bajada: number; radio: number } {
+  const p = Math.min(1, Math.max(0, progreso));
+  return {
+    escala: FONDO_ALEJADO.escala + (1 - FONDO_ALEJADO.escala) * p,
+    bajada: FONDO_ALEJADO.bajada * (1 - p),
+    radio: FONDO_ALEJADO.radio * (1 - p),
+  };
+}
+
 /** Cuánto de la hoja se fue (0 abierta, 1 cerrada): el velo se aclara en esa misma proporción. */
 export function progresoDeCierre(y: number, alto: number): number {
   if (alto <= 0) return 0;

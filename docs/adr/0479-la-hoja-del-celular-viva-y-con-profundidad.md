@@ -1,8 +1,8 @@
 # ADR-0479 — La hoja del celular: viva y con profundidad
 
 - **Fecha:** 2026-10-22 · **Estado:** aceptado (Felipe eligió «B · Hoja viva con profundidad» mirando la maqueta). En construcción por
-  actividades en la rama `claude/unificar-animaciones-moviles-51e9d0`: **actividades 1 y 2 hechas** (la hoja viva en `<Modal>` y el
-  ticket de Vender).
+  actividades en la rama `claude/unificar-animaciones-moviles-51e9d0`: **actividades 1, 2 y 3 hechas** (la hoja viva en `<Modal>`, el
+  ticket de Vender y la profundidad).
 - **Relacionados:** ADR-0136 (regla de movimiento de modales), ADR-0358 (una función, una pieza: `/unificar`), ADR-0185 (la página no
   se encoge bajo el mouse), ADR-0146 (avisos), ADR-0149 (loader único), PL-105 (Vender, Cambios y Devoluciones a 375 px).
 - **Maqueta y auditoría:** `docs/maquetas/hojas-movil-2026-10/index.html` (pestaña «Lo que encontré»).
@@ -44,7 +44,7 @@ Todo vale **solo bajo 640 px**, donde la hoja va pegada abajo. En escritorio y e
 |---|---|---|
 | 1 | La hoja viva en `<Modal>` | **Hecha** |
 | 2 | El mostrador: el ticket de Vender con el dedo; Vender, Cambios, Devoluciones y Apartados a 375 px | **Hecha** |
-| 3 | La profundidad: lo de atrás se aleja y vuelve con el dedo | Por hacer |
+| 3 | La profundidad: lo de atrás se aleja y vuelve con el dedo | **Hecha** |
 | 4 | Filtros a media altura | Por hacer |
 | 5 | El cajón como hoja alta | Por hacer |
 | 6 | Registro: familia en `/unificar`, ADR-0136 y `CLAUDE.md`; PR | Por hacer |
@@ -89,6 +89,11 @@ hoja no se mueve; un arrastre corto y lento vuelve al mismo lugar sin dejar esti
 sigue a 72 px de arriba. `vitest` completo (587 archivos), `tsc`, `eslint`, `knip` y `knip:produccion` en verde. **No verificado en
 un iPhone real.**
 
+La medición de la auditoría repetida después (98 escenarios, 81 abrieron): **las 51 hojas de `<Modal>` tienen asa** (antes 0) y **49 se
+cierran con el dedo**; las otras 2 estaban desplazadas (la talla en la vista rápida, 202 px; una capa de Existencias, 25 px) y el dedo
+desplazó el contenido, que es lo que tiene que pasar. 53 entran con `cayla-hoja-movil-entra`. Sin asa quedan el cajón (actividad 5), la
+hoja hecha a mano de Proveedor (actividad 10) y la cámara (fuera a propósito).
+
 ## Actividad 2 — el mostrador
 
 - **El ticket de Vender** (`<Modal variante="ticket">`) también lleva asa y se baja con el dedo. Su lista corre por dentro del `<aside>`:
@@ -103,3 +108,29 @@ cabecera y, al reabrirlo, la prenda sigue; con «Confirmar cobro» pulsado y `re
 llegó a la base: 0 ventas nuevas en la base local), ni el dedo ni Escape cierran la hoja. Cambios y Devoluciones (paso 2 de cada
 uno) a 375 px sin desborde; en Apartados, «Opciones» abre con asa y se cierra con el dedo. Capturas en la sesión. `vitest`
 completo, `tsc` y `eslint` en verde.
+
+## Actividad 3 — la profundidad
+
+- **Qué se aleja:** lo marcado con `data-fondo-hoja`: la cabecera del marco (`="borde"`, la que se redondea arriba), el `<main>` y la
+  persiana de Caja cerrada, que se monta aparte (`CajaCerrada.tsx`). Se aleja a 0,92, baja 12 px y la cabecera se redondea 18 px
+  (`FONDO_ALEJADO` y `fondoSegun` en `lib/hoja-gesto.ts`, con su prueba); entra en los 460 ms de la hoja y vuelve en lo que tarda en
+  irse. Mientras el dedo la lleva, vuelve al mismo ritmo (`alMoverse` de `useHojaArrastre`).
+- **Una sola tarjeta aunque la página esté bajada:** la cabecera es `fixed` y hermana del contenido, así que no se puede escalar un
+  envoltorio común. Cada capa se escala por separado alrededor del MISMO punto de la pantalla (el centro de arriba de lo que se ve:
+  `transform-origin` calculado con su `getBoundingClientRect`). Lo que quedaba justo arriba de la pantalla asomaba sobre la cabecera al
+  achicarse: se recorta con `clip-path` en el borde de arriba de lo que se veía.
+- **Lo fijo de adentro:** un `transform` vuelve a la capa contenedora de lo `fixed` que lleva dentro (la barra de abajo de Caja, el
+  aviso de cierre, «sin conexión»), que se correría de lugar. Mientras la hoja está abierta queda escondido (está detrás de ella) y al
+  volver aparece con un fundido de 220 ms. Se busca ANTES de poner `will-change: transform`, que ya cambia el contenedor (así se escapó
+  en la primera prueba). Para encontrarlo sin leer el estilo de cada nodo: un elemento fijo no tiene `offsetParent`.
+- **Una dueña:** la primera hoja que se abre aleja lo de atrás (`fondoDeLaHoja.ts`, `alejarFondo` / `moverFondo` / `devolverFondo`); una
+  hoja abierta encima de otra no aleja nada más. Si la hoja se desmonta sin su salida (una navegación), lo de atrás vuelve de una.
+- **Solo en el celular y sin «reducir movimiento»:** en escritorio, en tablet y con movimiento reducido no se toca nada (medido: la
+  cabecera y el `<main>` sin ningún estilo con la hoja abierta).
+
+**Verificado (2026-10-22, local, 375 × 812 táctil emulado):** Productos con la página bajada a 900 px, Filtros abierta: la cabecera y el
+contenido quedan a 15 px de cada borde y de 345 px de ancho los dos, sin nada asomando arriba; a mitad de arrastre los dos vuelven a la par
+(0,95); al cerrar no queda ningún estilo y la página sigue en 900 px. En Caja, la barra de abajo se esconde con «Gasto» abierto y vuelve al
+cerrarlo. Con el procesador frenado 4 veces, la entrada corre a 17 ms por cuadro, sin cuadros lentos, igual con y sin profundidad (no
+mide la tarjeta gráfica de un teléfono barato: eso se ve en el iPhone). Lo de las actividades 1 y 2, repetido con la profundidad puesta,
+sigue igual. `vitest` completo, `tsc`, `eslint`, `knip` y `knip:produccion` en verde.
