@@ -238,17 +238,59 @@ const TITULOS: Record<ClaveChequeo, string> = {
 };
 
 /**
- * El chequeo en palabras: título y lo que pasa (qué falta, o por qué está bien). `u`, si se pasa, es la unidad del bloque: los
- * chequeos de pendientes por sede (envíos, conteos, sobrantes, facturas) la nombran en la frase («… en LIM»); los demás no la usan.
+ * Cómo se nombra un chequeo cuando lo que falta ES la noticia («Cierras con 2 avisos: …»). `TITULOS` dice el estado BUENO («Mercadería
+ * facturada ya recibida»), que en una lista de avisos se lee al revés; aquí va el estado malo, corto y sin cifras (el modal ya está
+ * dentro de la unidad, y la cifra puede ser plata que esta cuenta no ve). `Record<ClaveChequeo, …>` obliga a escribir uno por cada clave nueva.
  */
-export function textoChequeo(c: Chequeo, mes: string, u?: Pick<Unidad, "alcance" | "nombre" | "tipo"> | null): { titulo: string; detalle: string } {
+const NOMBRE_DE_AVISO: Record<ClaveChequeo, string> = {
+  cajas: "cajas del mes sin cerrar",
+  egresos: "egresos de caja sin clasificar",
+  regularizar: "prendas vendidas sin regularizar",
+  fijos: "gastos fijos del mes sin registrar",
+  conciliacion: "bancos sin conciliar al fin de mes",
+  planilla: "planilla del mes sin leer de Dynamic",
+  sin_costo: "prendas vendidas sin costo",
+  cerrada_sin_prenda: "ventas cerradas sin prenda",
+  envios_con_diferencia: "envíos recibidos con faltantes por resolver",
+  conteos_abiertos: "conteos de inventario sin cerrar",
+  sobrantes_traslado: "prendas de más de traslados sin revisar",
+  facturas_sin_recibir: "mercadería facturada sin recibir",
+  diario: "diario que no cuadra",
+  huella: "diario que ya no coincide con lo congelado",
+};
+
+/** El chequeo, dicho por lo que le falta: «envíos recibidos con faltantes por resolver». */
+const nombreDeAviso = (c: Pick<Chequeo, "clave">): string => NOMBRE_DE_AVISO[c.clave as ClaveChequeo] ?? c.clave;
+
+/** El aviso del modal «Cerrar el mes»: «Cierras con un aviso» / «Cierras con 3 avisos» y la lista de lo que falta, en negativo. */
+export function resumenAvisos(avisos: readonly Pick<Chequeo, "clave">[]): { cuenta: string; lista: string } {
+  return { cuenta: avisos.length === 1 ? "un aviso" : `${avisos.length} avisos`, lista: avisos.map(nombreDeAviso).join(" · ") };
+}
+
+/** La unidad tal como la necesita una frase: dónde está y, si se pasa, en qué estado (de un mes ya cerrado no se dice «puedes cerrar»). */
+type UnidadDeFrase = Pick<Unidad, "alcance" | "nombre" | "tipo"> & { estado?: EstadoPeriodo };
+
+/** Una cifra de plata que la base calla (`null`) a quien no ve la plata de proveedores: se omite de la frase; `numero(null)` daría «S/ 0». */
+const hayCifra = (v: unknown): boolean => v != null && v !== "";
+
+/**
+ * El chequeo en palabras: título y lo que pasa (qué falta, o por qué está bien). `u`, si se pasa, es la unidad del bloque: los
+ * chequeos de pendientes por sede (envíos, conteos, sobrantes, facturas) la nombran en la frase («… en LIM») y, si ya está cerrada,
+ * lo dicen («… junio ya está cerrado»); los demás no la usan.
+ */
+export function textoChequeo(c: Chequeo, mes: string, u?: UnidadDeFrase | null): { titulo: string; detalle: string } {
   const d = c.datos;
   const titulo = TITULOS[c.clave as ClaveChequeo] ?? c.clave;
   const m = nombreMes(mes);
   const sede = enUnidad(u);
-  // Cómo termina la frase de un pendiente: si el chequeo ya frena el cierre, qué hacer para poder cerrar; si todavía solo avisa,
-  // que se puede cerrar igual y que el aviso queda guardado en el cierre.
-  const cola = (accion: string): string => (c.bloquea ? `. ${accion} para poder cerrar ${m}` : `. Puedes cerrar ${m} igual: el aviso queda guardado en el cierre`);
+  // Cómo termina la frase de un pendiente: si la unidad ya se cerró, que no frena nada; si el chequeo frena el cierre, qué hacer para
+  // poder cerrar; si todavía solo avisa, que se puede cerrar igual y que el aviso queda guardado en el cierre.
+  const cola = (accion: string): string =>
+    u?.estado === "cerrado"
+      ? `. ${m.charAt(0).toUpperCase()}${m.slice(1)} ya está cerrado: esto no frena nada`
+      : c.bloquea
+        ? `. ${accion} para poder cerrar ${m}`
+        : `. Puedes cerrar ${m} igual: el aviso queda guardado en el cierre`;
   switch (c.clave) {
     case "cajas": {
       const abiertas = numero(d.abiertas);
@@ -308,9 +350,11 @@ export function textoChequeo(c: Chequeo, mes: string, u?: Pick<Unidad, "alcance"
       // Faltantes que el proveedor nos debe y nadie resolvió (los de «Nos debe»), por la sede que recibió el envío.
       if (c.ok) return { titulo, detalle: "Ningún envío recibido tiene faltantes sin resolver" };
       const n = numero(d.n);
+      // `monto` nulo: esta cuenta no ve lo que el proveedor nos debe. Se dice cuántas prendas y se calla el costo.
+      const costo = hayCifra(d.monto) ? ` (${soles(numero(d.monto))} al costo)` : "";
       return {
         titulo,
-        detalle: `${plural(n, "envío recibido", "envíos recibidos")}${sede} ${n === 1 ? "tiene" : "tienen"} faltantes sin resolver con el proveedor: ${plural(numero(d.unidades), "prenda", "prendas")} (${soles(numero(d.monto))} al costo)${cola("Resuélvelo en «Nos debe», en la ficha del proveedor")}`,
+        detalle: `${plural(n, "envío recibido", "envíos recibidos")}${sede} ${n === 1 ? "tiene" : "tienen"} faltantes sin resolver con el proveedor: ${plural(numero(d.unidades), "prenda", "prendas")}${costo}${cola("Resuélvelo en «Nos debe», en la ficha del proveedor")}`,
       };
     }
     case "conteos_abiertos": {
@@ -332,9 +376,11 @@ export function textoChequeo(c: Chequeo, mes: string, u?: Pick<Unidad, "alcance"
     case "facturas_sin_recibir": {
       if (c.ok) return { titulo, detalle: "Toda la mercadería facturada llegó" };
       const n = numero(d.n);
+      // `monto` nulo: esta cuenta no ve el total de las facturas. Se dice cuántas prendas faltan y se calla la cifra.
+      const total = hayCifra(d.monto) ? ` (${n === 1 ? "factura" : "facturas"} por ${soles(numero(d.monto))})` : "";
       return {
         titulo,
-        detalle: `${plural(n, "factura de mercadería", "facturas de mercadería")}${sede} ${n === 1 ? "tiene" : "tienen"} prendas sin recibir: ${plural(numero(d.unidades), "prenda", "prendas")} por llegar (${n === 1 ? "factura" : "facturas"} por ${soles(numero(d.monto))})${cola("Recíbelas en Recibir mercadería")}`,
+        detalle: `${plural(n, "factura de mercadería", "facturas de mercadería")}${sede} ${n === 1 ? "tiene" : "tienen"} prendas sin recibir: ${plural(numero(d.unidades), "prenda", "prendas")} por llegar${total}${cola("Recíbelas en Recibir mercadería")}`,
       };
     }
     case "diario": {

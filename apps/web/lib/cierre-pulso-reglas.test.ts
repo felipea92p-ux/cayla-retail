@@ -92,3 +92,22 @@ describe("pulsoCierre con los pendientes por sede (envíos, conteos, sobrantes, 
     expect(p.cosas[0]!.detalle).toMatch(/Resuélvelo en «Nos debe», en la ficha del proveedor para poder cerrar noviembre$/);
   });
 });
+
+describe("pulsoCierre para una cuenta que no ve la plata de proveedores (el `monto` llega nulo)", () => {
+  it("las dos frases con plata dicen lo que falta sin ninguna cifra (ni «S/ 0»)", () => {
+    const lim = unidad({
+      clave: "lim", nombre: "Tienda Lima",
+      chequeos: [
+        chequeo("cajas", true),
+        chequeo("envios_con_diferencia", false, false, { n: 1, unidades: 5, monto: null }),
+        chequeo("facturas_sin_recibir", false, false, { n: 1, unidades: 50, monto: null }),
+        chequeo("diario", true),
+      ],
+    });
+    const p = pulsoCierre({ ...PANEL, unidades: [lim] });
+    expect(p.cosas.map((c) => c.clave)).toEqual(["lim:envios_con_diferencia", "lim:facturas_sin_recibir"]);
+    expect(p.cosas[0]!.detalle).toMatch(/^1 envío recibido en Lima tiene faltantes sin resolver con el proveedor: 5 prendas\. Puedes cerrar octubre igual/);
+    expect(p.cosas[1]!.detalle).toMatch(/^1 factura de mercadería en Lima tiene prendas sin recibir: 50 prendas por llegar\. Puedes cerrar octubre igual/);
+    for (const c of p.cosas) expect(c.detalle).not.toMatch(/S\/|\(/);
+  });
+});
