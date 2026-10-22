@@ -170,6 +170,63 @@ describe("cada chequeo en palabras", () => {
     expect(textoChequeo(ch("cerrada_sin_prenda", false, { n: 26, monto: "1170.80" }, false), mes).detalle).toMatch(/^26 ventas sin registrar \(S\/\u00a01,170\.80\) se cerraron/);
     expect(textoChequeo(ch("cerrada_sin_prenda", true, {}, false), mes).detalle).toBe("Ninguna venta se cerró sin prenda");
   });
+  it("envíos con faltantes sin resolver: cuántos, cuántas prendas y cuánto al costo, en qué sede; en octubre avisa y en noviembre frena", () => {
+    const lim = unidad("Tienda Lima");
+    const aviso = ch("envios_con_diferencia", false, { n: 2, unidades: 9, monto: 180 }, false);
+    expect(textoChequeo(aviso, mes, lim)).toEqual({
+      titulo: "Envíos recibidos sin faltantes por resolver",
+      detalle: "2 envíos recibidos en Lima tienen faltantes sin resolver con el proveedor: 9 prendas (S/\u00a0180 al costo). Puedes cerrar agosto igual: el aviso queda guardado en el cierre",
+    });
+    const frena = ch("envios_con_diferencia", false, { n: 1, unidades: 1, monto: "20.50" }, true);
+    expect(textoChequeo(frena, mes, lim).detalle).toBe(
+      "1 envío recibido en Lima tiene faltantes sin resolver con el proveedor: 1 prenda (S/\u00a020.50 al costo). Resuélvelo en «Nos debe», en la ficha del proveedor para poder cerrar agosto"
+    );
+    expect(textoChequeo(ch("envios_con_diferencia", true, { n: 0, unidades: 0, monto: 0 }, false), mes, lim).detalle).toBe("Ningún envío recibido tiene faltantes sin resolver");
+    // Sin unidad (quien llama no la tiene) la frase no inventa una sede.
+    expect(textoChequeo(aviso, mes).detalle).toMatch(/^2 envíos recibidos tienen faltantes/);
+  });
+  it("conteos abiertos: cuál es, desde cuándo y en qué sede", () => {
+    const tal = unidad("Taller");
+    expect(textoChequeo(ch("conteos_abiertos", false, { n: 1, desde: "2026-08-20", numero: 17 }, false), mes, tal)).toEqual({
+      titulo: "Conteos de inventario cerrados",
+      detalle: "El conteo n.º 17 de inventario en el Taller sigue abierto desde el 20 ago. Puedes cerrar agosto igual: el aviso queda guardado en el cierre",
+    });
+    expect(textoChequeo(ch("conteos_abiertos", false, { n: 1, desde: "2026-08-20", numero: 17 }, true), mes, tal).detalle).toMatch(
+      /sigue abierto desde el 20 ago\. Termínalo o anúlalo en Conteo para poder cerrar agosto$/
+    );
+    expect(textoChequeo(ch("conteos_abiertos", false, { n: 2, desde: null, numero: null }, true), mes).detalle).toBe(
+      "2 conteos de inventario siguen abiertos. Termínalo o anúlalo en Conteo para poder cerrar agosto"
+    );
+    expect(textoChequeo(ch("conteos_abiertos", true, { n: 0 }, false), mes).detalle).toBe("Ningún conteo de inventario quedó abierto");
+  });
+  it("prendas de más de un traslado: cuántas esperan que un líder las revise", () => {
+    const lim = unidad("Tienda Lima");
+    expect(textoChequeo(ch("sobrantes_traslado", false, { n: 2, unidades: 5 }, true), mes, lim)).toEqual({
+      titulo: "Prendas de más de traslados revisadas",
+      detalle: "5 prendas de más de 2 traslados en Lima esperan que un líder decida de dónde salieron. Un líder las revisa en Traslados para poder cerrar agosto",
+    });
+    expect(textoChequeo(ch("sobrantes_traslado", false, { n: 1, unidades: 1 }, false), mes, lim).detalle).toMatch(/^1 prenda de más de 1 traslado en Lima espera que un líder/);
+    expect(textoChequeo(ch("sobrantes_traslado", true, { n: 0, unidades: 0 }, false), mes, lim).detalle).toBe("Ninguna prenda de más de un traslado espera revisión");
+  });
+  it("facturas sin recibir: cuántas, cuántas prendas por llegar y por cuánto", () => {
+    const lim = unidad("Tienda Lima");
+    expect(textoChequeo(ch("facturas_sin_recibir", false, { n: 2, unidades: 16, monto: "1770.00" }, false), mes, lim)).toEqual({
+      titulo: "Mercadería facturada ya recibida",
+      detalle: "2 facturas de mercadería en Lima tienen prendas sin recibir: 16 prendas por llegar (facturas por S/\u00a01,770). Puedes cerrar agosto igual: el aviso queda guardado en el cierre",
+    });
+    expect(textoChequeo(ch("facturas_sin_recibir", false, { n: 1, unidades: 6, monto: 590 }, true), mes, lim).detalle).toBe(
+      "1 factura de mercadería en Lima tiene prendas sin recibir: 6 prendas por llegar (factura por S/\u00a0590). Recíbelas en Recibir mercadería para poder cerrar agosto"
+    );
+    expect(textoChequeo(ch("facturas_sin_recibir", true, { n: 0 }, false), mes, lim).detalle).toBe("Toda la mercadería facturada llegó");
+  });
+  it("la sede se nombra según lo que es: tienda sin «Tienda», el Taller con artículo, la empresa; sin unidad, ninguna", () => {
+    const aviso = ch("sobrantes_traslado", false, { n: 1, unidades: 1 }, false);
+    const sede = (u?: Unidad) => textoChequeo(aviso, mes, u).detalle.match(/^1 prenda de más de 1 traslado(.*?) espera/)?.[1] ?? "?";
+    expect(sede(unidad("Tienda Lima"))).toBe(" en Lima");
+    expect(sede(unidad("Taller"))).toBe(" en el Taller");
+    expect(sede(unidad("De la empresa"))).toBe(" en la empresa");
+    expect(sede()).toBe("");
+  });
   it("conciliación: qué banco falta y desde cuándo", () => {
     expect(textoChequeo(unidad("De la empresa").chequeos[0]!, mes).detalle).toBe("BCP · Cta. corriente: nunca se concilió");
     expect(textoChequeo(ch("conciliacion", false, { bancos: 2, faltan: [{ nombre: "Interbank", ultima: "2026-08-29" }] }, false), mes).detalle).toBe("Interbank: la última conciliación es del 29 ago");
@@ -203,6 +260,12 @@ describe("a dónde lleva «Resolver»", () => {
     expect(enlaceChequeo(ch("cerrada_sin_prenda", true, {}, false), lim, "2026-08")).toBeNull();
     expect(enlaceChequeo(ch("fijos", false, {}), emp, "2026-08")).toBe("/finanzas/gastos?tab=fijos&mes=2026-08&ver=empresa");
     expect(enlaceChequeo(ch("conciliacion", false, {}), emp, "2026-08")).toBe("/finanzas/dinero/conciliacion");
+    // Los cuatro pendientes por sede, a la pantalla donde se resuelve cada uno.
+    expect(enlaceChequeo(ch("envios_con_diferencia", false, {}), lim, "2026-08")).toBe("/compras/proveedores");
+    expect(enlaceChequeo(ch("conteos_abiertos", false, {}), lim, "2026-08")).toBe("/inventario/conteo");
+    expect(enlaceChequeo(ch("sobrantes_traslado", false, {}), lim, "2026-08")).toBe("/inventario/traslados");
+    expect(enlaceChequeo(ch("facturas_sin_recibir", false, {}), lim, "2026-08")).toBe("/compras?porrecibir=1");
+    expect(enlaceChequeo(ch("facturas_sin_recibir", true, {}, false), lim, "2026-08")).toBeNull();
     expect(enlaceChequeo(ch("diario", false, {}), lim, "2026-08")).toBe(`/finanzas/reportes?mes=2026-08&ver=${LIM}`);
     expect(enlaceChequeo(ch("sin_costo", false, {}), emp, "2026-08")).toBe("/finanzas/reportes?mes=2026-08");
   });
@@ -239,6 +302,24 @@ describe("estados", () => {
     expect(puedeCerrar(conVentas)).toBe(true);
     expect(estadoTarjeta(conVentas)).toEqual({ texto: "lista para cerrar", tono: "pizarra" });
     expect(avisosPendientes(conVentas).map((c) => c.clave)).toEqual(["cerrada_sin_prenda"]);
+  });
+  it("los cuatro pendientes por sede avisan antes del corte y frenan desde él (la base manda con `bloquea`)", () => {
+    const pendientes = (bloquea: boolean) => [
+      ch("envios_con_diferencia", false, { n: 1, unidades: 2, monto: 40 }, bloquea),
+      ch("conteos_abiertos", false, { n: 1, desde: "2026-08-20", numero: 3 }, bloquea),
+      ch("sobrantes_traslado", true, { n: 0, unidades: 0 }, bloquea),
+      ch("facturas_sin_recibir", true, { n: 0, unidades: 0, monto: 0 }, bloquea),
+    ];
+    // Octubre (antes del corte): avisan, no bloquean. La base cuenta 0 bloqueantes y 2 avisos.
+    const avisando: Unidad = { ...unidad("Taller"), bloqueantes: 0, avisos: 2, chequeos: [...pendientes(false), ...unidad("Taller").chequeos] };
+    expect(puedeCerrar(avisando)).toBe(true);
+    expect(estadoTarjeta(avisando)).toEqual({ texto: "lista para cerrar", tono: "pizarra" });
+    expect(avisosPendientes(avisando).map((c) => c.clave)).toEqual(["envios_con_diferencia", "conteos_abiertos"]);
+    // Noviembre (desde el corte): los mismos dos frenan y ya no son avisos.
+    const frenando: Unidad = { ...unidad("Taller"), bloqueantes: 2, avisos: 0, chequeos: [...pendientes(true), ...unidad("Taller").chequeos] };
+    expect(puedeCerrar(frenando)).toBe(false);
+    expect(estadoTarjeta(frenando)).toEqual({ texto: "2 pendientes", tono: "ambar" });
+    expect(avisosPendientes(frenando)).toEqual([]);
   });
   it("CAYLA entera: faltan N, lista cuando cerraron todas, o cerrada", () => {
     expect(estadoConsolidado(panel)).toEqual({ estado: "faltan", faltan: 3 });

@@ -7,7 +7,22 @@ import { diaLima } from "./fechas-lima";
 
 export type Alcance = "ubicacion" | "empresa" | "consolidado";
 export type EstadoPeriodo = "abierto" | "cerrado" | "reabierto";
-export type ClaveChequeo = "cajas" | "egresos" | "regularizar" | "fijos" | "conciliacion" | "planilla" | "sin_costo" | "cerrada_sin_prenda" | "diario" | "huella";
+export type ClaveChequeo =
+  | "cajas"
+  | "egresos"
+  | "regularizar"
+  | "fijos"
+  | "conciliacion"
+  | "planilla"
+  | "sin_costo"
+  | "cerrada_sin_prenda"
+  // Los cuatro pendientes por sede: avisan hasta el corte de Finanzas (`parametros_finanzas`) y frenan el cierre desde él.
+  | "envios_con_diferencia"
+  | "conteos_abiertos"
+  | "sobrantes_traslado"
+  | "facturas_sin_recibir"
+  | "diario"
+  | "huella";
 
 /** Un chequeo tal como lo mide la base: si pasa, si bloquea el cierre y los datos para decir qué falta. */
 export type Chequeo = { clave: ClaveChequeo | string; ok: boolean; bloquea: boolean; datos: Record<string, unknown> };
@@ -168,6 +183,15 @@ export function deUnidad(u: Pick<Unidad, "alcance" | "nombre" | "tipo">): string
   return `de ${u.nombre.replace(/^Tienda\s+/i, "")}`;
 }
 
+/** Cómo se nombra la unidad dentro de una frase, con su preposición delante: « en LIM», « en el Taller». Sin unidad, nada. */
+function enUnidad(u?: Pick<Unidad, "alcance" | "nombre" | "tipo"> | null): string {
+  if (!u) return "";
+  if (u.alcance === "empresa") return " en la empresa";
+  if (u.alcance === "consolidado") return " en CAYLA entera";
+  if (u.tipo === "taller") return ` en el ${u.nombre}`;
+  return ` en ${u.nombre.replace(/^Tienda\s+/i, "")}`;
+}
+
 /** En el título de una hoja, la unidad con su nombre entero: «de Tienda TRU», «del Taller», «de la empresa». */
 export function deUnidadLarga(u: Pick<Unidad, "alcance" | "nombre" | "tipo">): string {
   if (u.alcance === "ubicacion" && u.tipo !== "taller") return `de ${u.nombre}`;
@@ -205,15 +229,26 @@ const TITULOS: Record<ClaveChequeo, string> = {
   planilla: "Planilla del mes leída de Dynamic",
   sin_costo: "Prendas vendidas con su costo",
   cerrada_sin_prenda: "Ventas cerradas sin prenda",
+  envios_con_diferencia: "Envíos recibidos sin faltantes por resolver",
+  conteos_abiertos: "Conteos de inventario cerrados",
+  sobrantes_traslado: "Prendas de más de traslados revisadas",
+  facturas_sin_recibir: "Mercadería facturada ya recibida",
   diario: "El diario de la unidad cuadra",
   huella: "Lo congelado sigue igual al diario de hoy",
 };
 
-/** El chequeo en palabras: título y lo que pasa (qué falta, o por qué está bien). */
-export function textoChequeo(c: Chequeo, mes: string): { titulo: string; detalle: string } {
+/**
+ * El chequeo en palabras: título y lo que pasa (qué falta, o por qué está bien). `u`, si se pasa, es la unidad del bloque: los
+ * chequeos de pendientes por sede (envíos, conteos, sobrantes, facturas) la nombran en la frase («… en LIM»); los demás no la usan.
+ */
+export function textoChequeo(c: Chequeo, mes: string, u?: Pick<Unidad, "alcance" | "nombre" | "tipo"> | null): { titulo: string; detalle: string } {
   const d = c.datos;
   const titulo = TITULOS[c.clave as ClaveChequeo] ?? c.clave;
   const m = nombreMes(mes);
+  const sede = enUnidad(u);
+  // Cómo termina la frase de un pendiente: si el chequeo ya frena el cierre, qué hacer para poder cerrar; si todavía solo avisa,
+  // que se puede cerrar igual y que el aviso queda guardado en el cierre.
+  const cola = (accion: string): string => (c.bloquea ? `. ${accion} para poder cerrar ${m}` : `. Puedes cerrar ${m} igual: el aviso queda guardado en el cierre`);
   switch (c.clave) {
     case "cajas": {
       const abiertas = numero(d.abiertas);
@@ -269,6 +304,39 @@ export function textoChequeo(c: Chequeo, mes: string): { titulo: string; detalle
         detalle: `${plural(n, "venta sin registrar", "ventas sin registrar")} (${soles(numero(d.monto))}) ${n === 1 ? "se cerró" : "se cerraron"} sin prenda: su costo es desconocido y el margen de ${m} sale más alto de lo real. Puedes cerrar igual`,
       };
     }
+    case "envios_con_diferencia": {
+      // Faltantes que el proveedor nos debe y nadie resolvió (los de «Nos debe»), por la sede que recibió el envío.
+      if (c.ok) return { titulo, detalle: "Ningún envío recibido tiene faltantes sin resolver" };
+      const n = numero(d.n);
+      return {
+        titulo,
+        detalle: `${plural(n, "envío recibido", "envíos recibidos")}${sede} ${n === 1 ? "tiene" : "tienen"} faltantes sin resolver con el proveedor: ${plural(numero(d.unidades), "prenda", "prendas")} (${soles(numero(d.monto))} al costo)${cola("Resuélvelo en «Nos debe», en la ficha del proveedor")}`,
+      };
+    }
+    case "conteos_abiertos": {
+      if (c.ok) return { titulo, detalle: "Ningún conteo de inventario quedó abierto" };
+      const n = numero(d.n);
+      const desde = textoONulo(d.desde);
+      const cual = n === 1 && d.numero != null ? `El conteo n.º ${numero(d.numero)} de inventario${sede} sigue abierto` : `${plural(n, "conteo de inventario sigue abierto", "conteos de inventario siguen abiertos")}${sede}`;
+      return { titulo, detalle: `${cual}${desde ? ` desde el ${fechaCorta(desde)}` : ""}${cola("Termínalo o anúlalo en Conteo")}` };
+    }
+    case "sobrantes_traslado": {
+      if (c.ok) return { titulo, detalle: "Ninguna prenda de más de un traslado espera revisión" };
+      const n = numero(d.n);
+      const prendas = numero(d.unidades);
+      return {
+        titulo,
+        detalle: `${plural(prendas, "prenda de más", "prendas de más")} de ${plural(n, "traslado", "traslados")}${sede} ${prendas === 1 ? "espera" : "esperan"} que un líder decida de dónde salieron${cola("Un líder las revisa en Traslados")}`,
+      };
+    }
+    case "facturas_sin_recibir": {
+      if (c.ok) return { titulo, detalle: "Toda la mercadería facturada llegó" };
+      const n = numero(d.n);
+      return {
+        titulo,
+        detalle: `${plural(n, "factura de mercadería", "facturas de mercadería")}${sede} ${n === 1 ? "tiene" : "tienen"} prendas sin recibir: ${plural(numero(d.unidades), "prenda", "prendas")} por llegar (${n === 1 ? "factura" : "facturas"} por ${soles(numero(d.monto))})${cola("Recíbelas en Recibir mercadería")}`,
+      };
+    }
     case "diario": {
       const asientos = numero(d.asientos);
       const lineas = plural(numero(d.lineas), "línea", "líneas");
@@ -313,6 +381,15 @@ export function enlaceChequeo(c: Chequeo, u: Pick<Unidad, "alcance" | "ubicacion
       return `/finanzas/gastos?tab=fijos&mes=${mes}&ver=${ver}`;
     case "conciliacion":
       return "/finanzas/dinero/conciliacion";
+    // Los cuatro pendientes por sede: cada uno, a la pantalla donde se resuelve («Nos debe» vive en la ficha de cada proveedor).
+    case "envios_con_diferencia":
+      return "/compras/proveedores";
+    case "conteos_abiertos":
+      return "/inventario/conteo";
+    case "sobrantes_traslado":
+      return "/inventario/traslados";
+    case "facturas_sin_recibir":
+      return "/compras?porrecibir=1";
     case "sin_costo":
     case "diario":
       return `/finanzas/reportes?mes=${mes}${u.alcance === "ubicacion" && u.ubicacionId ? `&ver=${u.ubicacionId}` : ""}`;

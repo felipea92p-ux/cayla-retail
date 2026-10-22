@@ -62,3 +62,33 @@ describe("pulsoCierre", () => {
     expect(p.frase).toBe("Te falta 1 cosa para cerrar octubre.");
   });
 });
+
+describe("pulsoCierre con los pendientes por sede (envíos, conteos, sobrantes, facturas)", () => {
+  const con = (bloquea: boolean) =>
+    unidad({
+      clave: "lim", nombre: "Tienda Lima",
+      chequeos: [
+        chequeo("cajas", true), chequeo("egresos", true),
+        chequeo("envios_con_diferencia", false, bloquea, { n: 2, unidades: 9, monto: 180 }),
+        chequeo("conteos_abiertos", true, bloquea, { n: 0 }), chequeo("sobrantes_traslado", true, bloquea, { n: 0 }), chequeo("facturas_sin_recibir", true, bloquea, { n: 0 }),
+        chequeo("diario", true),
+      ],
+    });
+  it("en octubre avisan: no cuentan como lo que falta, pero salen en la lista con la sede en la frase y su enlace", () => {
+    const p = pulsoCierre({ ...PANEL, unidades: [con(false)] });
+    expect(p.faltan).toBe(0);
+    expect(p.frase).toBe("Puedes cerrar octubre.");
+    expect(p.total).toBe(3); // cajas, egresos y diario: los cuatro nuevos todavía no frenan
+    expect(p.cosas.map((c) => [c.clave, c.bloquea, c.href])).toEqual([["lim:envios_con_diferencia", false, "/compras/proveedores"]]);
+    expect(p.cosas[0]!.detalle).toMatch(/^2 envíos recibidos en Lima tienen faltantes sin resolver .* Puedes cerrar octubre igual/);
+  });
+  it("desde noviembre frenan: el que falla cuenta como pendiente y los que pasan suman a lo hecho", () => {
+    const p = pulsoCierre({ ...PANEL, mes: "2026-11", unidades: [con(true)] });
+    expect(p.faltan).toBe(1);
+    expect(p.total).toBe(7); // los 3 de siempre + los 4 nuevos
+    expect(p.hechos).toBe(6);
+    expect(p.frase).toBe("Te falta 1 cosa para cerrar noviembre.");
+    expect(p.cosas[0]).toMatchObject({ clave: "lim:envios_con_diferencia", bloquea: true, href: "/compras/proveedores" });
+    expect(p.cosas[0]!.detalle).toMatch(/Resuélvelo en «Nos debe», en la ficha del proveedor para poder cerrar noviembre$/);
+  });
+});

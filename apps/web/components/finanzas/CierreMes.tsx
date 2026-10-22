@@ -227,7 +227,7 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
       <CabeceraBloque titulo={tituloUnidad(panel.mes, u)} bajada={bajadaUnidad(u)} />
       <ul className="fin-chequeos">
         {u.chequeos.map((c, i) => {
-          const t = textoChequeo(c, panel.mes);
+          const t = textoChequeo(c, panel.mes, u);
           const href = cerrada ? null : enlaceChequeo(c, u, panel.mes);
           return (
             <li key={c.clave} {...entra(i + 1)}>
