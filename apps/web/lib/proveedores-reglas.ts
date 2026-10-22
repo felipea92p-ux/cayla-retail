@@ -65,6 +65,58 @@ export function tieneRubro(p: { rubros: readonly string[] }, clave: string): boo
   return p.rubros.some((r) => claveRubro(r) === clave);
 }
 
+// ---------------------------------------------------------------------------
+// Proveedores de mercadería y proveedores de gastos (ADR-0452, complemento 2026-10-21).
+//
+// CONTRATO
+//   PROMETE: decir si un proveedor existe solo para pagar un servicio (luz, agua, internet, alquiler) y, con eso, la lista de a
+//            quién se le PIDE mercadería sin esos; y qué escribió la persona en el buscador, listo para el formulario de alta.
+//   ASUME:   `rubros` es el de `retail.proveedores.rubros`. Los proveedores de servicios nacen con el rubro «Gastos» (la siembra de
+//            20261018004000 y «¿No está? Súmalo» de Finanzas ▸ Gastos). Sin rubros —casi todo el directorio viejo— es mercadería.
+//   NO HACE: no decide qué es válido. La base acepta cualquier proveedor ACTIVO en una orden de compra; esto solo evita OFRECER
+//            uno que casi seguro es un error. Tampoco oculta a quien ya está elegido en una orden que se edita.
+// ---------------------------------------------------------------------------
+
+/** La clave (sin tildes ni mayúsculas) del rubro con que nacen los proveedores de servicios. */
+export const RUBRO_GASTOS = "gastos";
+
+/**
+ * ¿Existe solo para pagar un servicio? Todos sus rubros son «Gastos» (y tiene al menos uno). Un proveedor que además vende algo
+ * («Telas» y «Gastos») sigue siendo de mercadería: se le pide, y también se le paga un gasto. Sin `rubros` (una lista que no los trae)
+ * cuenta como mercadería. (`esProveedorDeGasto`, de `gasto-fijo-ficha-reglas.ts`, es la otra mitad: «ALGÚN rubro es Gastos», para el combo de Gastos.)
+ */
+export function esSoloDeGastos(p: { rubros?: readonly string[] | null }): boolean {
+  const claves = (p.rubros ?? []).map(claveRubro).filter(Boolean);
+  return claves.length > 0 && claves.every((k) => k === RUBRO_GASTOS);
+}
+
+/**
+ * Los proveedores a quienes se les PIDE o se les RECIBE mercadería: todos menos los que son solo de gastos. `conservar` (el elegido en
+ * una orden que se edita, o todos los que ya traen una marca) se queda aunque sea de gastos: ocultarlo dejaría un campo vacío o una
+ * pareja marca-proveedor a medias con algo que sí existe.
+ */
+export function proveedoresParaPedir<P extends { id: string; rubros?: readonly string[] | null }>(
+  proveedores: readonly P[],
+  conservar?: string | null | Iterable<string | null | undefined>,
+): P[] {
+  const guardados = new Set<string>();
+  if (typeof conservar === "string") guardados.add(conservar);
+  else if (conservar) for (const id of conservar) if (id) guardados.add(id);
+  return proveedores.filter((p) => guardados.has(p.id) || !esSoloDeGastos(p));
+}
+
+/** Los botones de rubro del alta de un proveedor de mercadería: sin «Gastos», que es lo que este formulario no debe sumar por descuido. */
+export function rubrosSinGastos(rubros: readonly string[]): string[] {
+  return rubros.filter((r) => claveRubro(r) !== RUBRO_GASTOS);
+}
+
+/** Lo escrito en el buscador de proveedor, como punto de partida del alta: 11 dígitos son un RUC (el combo busca «nombre, marca o RUC»); lo demás, el nombre. */
+export function borradorDeLoBuscado(texto: string): { nombre: string; ruc: string } {
+  const limpio = texto.trim().replace(/\s+/g, " ");
+  const digitos = limpio.replace(/[\s.-]/g, "");
+  return /^\d{11}$/.test(digitos) ? { nombre: "", ruc: digitos } : { nombre: limpio, ruc: "" };
+}
+
 export type RubroConConteo = { clave: string; etiqueta: string; conteo: number };
 
 /** Rubros distintos con cuántos proveedores venden cada uno, del más numeroso al menos. Un proveedor cuenta en cada uno de sus rubros. */

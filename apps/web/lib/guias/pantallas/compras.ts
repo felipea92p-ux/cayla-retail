@@ -1020,7 +1020,7 @@ export const GUIA_NUEVA_FACTURA: Guia = {
       id: "documento",
       ancla: "nueva.documento",
       titulo: "1 · El documento",
-      texto: "Busca al proveedor por nombre o RUC (si no está, se registra antes en Proveedores) y elige si es factura, boleta o nota de venta. Al elegirlo ves su plazo, lo que ya le debes y si te debe algo a favor.",
+      texto: "Busca al proveedor por nombre o RUC (si no está, «+ Agregar proveedor» lo registra ahí mismo, si tu cuenta puede) y elige si es factura, boleta o nota de venta. Al elegirlo ves su plazo, lo que ya le debes y si te debe algo a favor.",
     },
     {
       id: "serie",
@@ -1469,7 +1469,7 @@ const PASOS_FORMULARIO_ORDEN = {
     id: "datos",
     ancla: "orden-form.datos",
     titulo: "Proveedor y a dónde llega",
-    texto: "El proveedor (búscalo por nombre, marca o RUC) y a qué tienda llega la mercadería; «por repartir» si llega a Lima y se separa después. La entrega estimada va si la sabes, y la nota es para lo que el proveedor debe saber.",
+    texto: "El proveedor (búscalo por nombre, marca o RUC; si no está y tu cuenta puede, «+ Agregar proveedor» lo registra ahí mismo) y a qué tienda llega la mercadería; «por repartir» si llega a Lima y se separa después. La entrega estimada va si la sabes, y la nota es para lo que el proveedor debe saber.",
   },
   // «Nos debe» (ADR-0362, fase 5a): sale al elegir un proveedor que todavía debe prendas por reponer de otra compra.
   nosDebe: {

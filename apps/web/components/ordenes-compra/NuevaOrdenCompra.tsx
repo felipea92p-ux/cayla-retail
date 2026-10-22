@@ -13,6 +13,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { useAltaDeProveedor } from "@/components/useAltaDeProveedor";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { MarcaCampo } from "@/components/alta-producto/guia";
@@ -23,6 +24,7 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { EstadoCampo } from "@/lib/guia-campos";
 import { opcionesDeMarca } from "@/lib/marca-proveedor-reglas";
+import { proveedoresParaPedir } from "@/lib/proveedores-reglas";
 import { sugerirDescripcion } from "@/lib/sugerencias-alta-producto";
 import { soles } from "@/lib/compras-reglas";
 import { TEXTO_AVISO_ORDEN, tituloAvisoOrden } from "@/lib/nos-debe-reglas";
@@ -96,10 +98,14 @@ type Props = {
   hoy: string;
   /** La sede donde se trabaja, si es una tienda o un almacén: «Llega a» arranca ahí (decisión por defecto de la fase 1). */
   destinoInicial: string;
+  /** La cuenta tiene el módulo Proveedores: el combo ofrece «+ Agregar proveedor». Sin él, dice a quién pedírselo. */
+  puedeAgregarProveedor: boolean;
+  /** Los rubros que ya usan los proveedores: los botones del formulario de «Agregar proveedor». */
+  rubrosEnUso: string[];
   editar?: EdicionOrden;
 };
 
-export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: Props) {
+export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, puedeAgregarProveedor, rubrosEnUso, editar }: Props) {
   const router = useRouter();
   const [orden, setOrden] = useState<OrdenBorrador>(
     () => editar?.inicial ?? { proveedorId: "", destino: destinoInicial, entrega: "", nota: "", lineas: [lineaVacia("l1")] },
@@ -118,17 +124,39 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
 
+  // «+ Agregar proveedor» (`useAltaDeProveedor`): los proveedores recién guardados se suman a la lista de la orden, sin esperar a que la
+  // página relea el directorio: sin ellos diría «el proveedor no es válido» sobre uno que acaba de nacer (la base sí lo acepta). La
+  // página NO se refresca: no aporta nada a esta orden y, al editar, un refresco con la orden cambiada por otra persona remonta el
+  // formulario (`key` = versión) y pierde lo escrito.
+  const [agregados, setAgregados] = useState<DatosNuevaOrden["proveedores"]>([]);
+  const proveedores = useMemo(
+    () => [...datos.proveedores, ...agregados.filter((a) => !datos.proveedores.some((p) => p.id === a.id))],
+    [datos.proveedores, agregados],
+  );
+
+  // Sin el directorio leído (`datos.falla`) no se ofrece: el aviso de arriba dice que no se pudo leer, y un alta con la lista vacía no
+  // avisaría de un proveedor repetido (principio 9).
+  const alta = useAltaDeProveedor({
+    habilitado: puedeAgregarProveedor && !datos.falla,
+    rubrosEnUso,
+    existentes: proveedores,
+    alGuardar: (p) => {
+      setAgregados((a) => [...a, { id: p.id, nombre: p.nombre, ruc: p.ruc, rubros: [] }]);
+      elegirProveedor(p.id);
+    },
+  });
+
   const ctx: ContextoValidacion = useMemo(
     () => ({
       hoy,
-      proveedoresActivos: new Set(datos.proveedores.map((p) => p.id)),
+      proveedoresActivos: new Set(proveedores.map((p) => p.id)),
       categoriasActivas: new Set(datos.categorias.map((c) => c.id)),
       marcasActivas: new Set(datos.marcas.map((m) => m.id)),
       destinos: new Set(datos.destinos.map((d) => d.id)),
       entregaOriginal: editar?.entregaOriginal,
       destinoElegido,
     }),
-    [datos, hoy, editar?.entregaOriginal, destinoElegido],
+    [datos, proveedores, hoy, editar?.entregaOriginal, destinoElegido],
   );
   const campos = camposDeLaOrden(orden, ctx, { pide: !esPersona, listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos, { enModal: false });
@@ -153,9 +181,11 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
 
   // ---- opciones de los combos ----
   const nombreMarca = useMemo(() => new Map(datos.marcas.map((m) => [m.id, m.nombre])), [datos.marcas]);
+  // A quién se le PIDE mercadería: sin los proveedores que son solo de gastos (luz, agua, internet: ADR-0452). La base acepta a cualquiera
+  // activo, y el que está elegido —o el que la orden traía al abrirse— se queda, pero ofrecerlos era un error esperando a pasar.
   const opcionesProveedor: OpcionCombo<string>[] = useMemo(
     () =>
-      datos.proveedores.map((p) => {
+      proveedoresParaPedir(proveedores, [orden.proveedorId, editar?.inicial.proveedorId]).map((p) => {
         const suyas = datos.vinculos.filter((v) => v.proveedorId === p.id).map((v) => nombreMarca.get(v.marcaId) ?? "");
         return {
           valor: p.id,
@@ -165,12 +195,12 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           claves: [...suyas, ...(p.ruc ? [p.ruc] : [])],
         };
       }),
-    [datos.proveedores, datos.vinculos, nombreMarca],
+    [proveedores, orden.proveedorId, editar?.inicial.proveedorId, datos.vinculos, nombreMarca],
   );
   // Con el proveedor elegido, sus marcas van primero (la orden acepta cualquiera y no toca el catálogo: decisión por defecto).
   const opcionesMarca: OpcionCombo<string>[] = useMemo(
-    () => opcionesDeMarca(datos.marcas, datos.proveedores, datos.vinculos, orden.proveedorId),
-    [datos.marcas, datos.proveedores, datos.vinculos, orden.proveedorId],
+    () => opcionesDeMarca(datos.marcas, proveedores, datos.vinculos, orden.proveedorId),
+    [datos.marcas, proveedores, datos.vinculos, orden.proveedorId],
   );
   const opcionesCategoria: OpcionCombo<string>[] = useMemo(() => datos.categorias.map((c) => ({ valor: c.id, texto: c.nombre })), [datos.categorias]);
   const opcionesDestino = useMemo(
@@ -213,7 +243,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const problemaEntrega = problemaDeEntrega(orden.entrega, hoy, editar?.entregaOriginal);
   // «Nos debe» (ADR-0362, fase 5a, decisión 14): si el proveedor elegido debe prendas por reponer, se avisa antes de pedirle lo nuevo.
   const deudaDelProveedor = orden.proveedorId ? (datos.nosDebe?.[orden.proveedorId] ?? null) : null;
-  const nombreDelProveedor = datos.proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? deudaDelProveedor?.nombre ?? "Este proveedor";
+  const nombreDelProveedor = proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? deudaDelProveedor?.nombre ?? "Este proveedor";
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -269,7 +299,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
 
   // «Textiles Andina SAC · S/ 1,260.00 · llega a Tienda TRU»: lo guardado, dicho como se ve en la lista.
   function detalleGuardada(): string {
-    const proveedor = datos.proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? "";
+    const proveedor = proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? "";
     const destino = fraseDestino(orden.destino === POR_REPARTIR ? null : (datos.destinos.find((d) => d.id === orden.destino)?.nombre ?? null));
     return [proveedor, soles(total), destino.charAt(0).toLowerCase() + destino.slice(1)].filter(Boolean).join(" · ");
   }
@@ -371,7 +401,10 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
               valor={orden.proveedorId}
               onValor={elegirProveedor}
               opciones={opcionesProveedor}
+              crearArriba
+              crear={alta.crear}
             />
+            {!puedeAgregarProveedor && <p className="mt-1.5 text-xs text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue.</p>}
           </CampoGuiado>
           <CampoGuiado id="destino" guia={guia}>
             <p className={TITULO_FIJO}>{etiqueta("destino", "Llega a")}</p>
@@ -508,6 +541,8 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
         </section>
       </form>
 
+      {/* Fuera del <form> (ADR-0128): un `submit` del alta no debe llegar a «Guardar orden». */}
+      {alta.modal}
       {avisoSalida.aviso}
     </div>
   );

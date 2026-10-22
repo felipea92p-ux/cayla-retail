@@ -62,7 +62,9 @@ export const TAMANO_PAGINA_ORDENES = 50;
 
 /** Lo que «Nueva orden de compra» lee de la base (`getDatosNuevaOrden`). */
 export type DatosNuevaOrden = {
-  proveedores: (ProveedorOpcion & { ruc: string | null })[];
+  /** Todos los proveedores ACTIVOS (lo que la base acepta en una orden), con sus rubros: el combo ofrece solo a quienes se les pide mercadería
+   *  (`proveedoresParaPedir`), pero la validación sigue contra todos. */
+  proveedores: (ProveedorOpcion & { ruc: string | null; rubros: string[] })[];
   marcas: MarcaOpcion[];
   vinculos: Vinculo[];
   categorias: { id: string; nombre: string; prefijo: string | null; familia: string | null }[];

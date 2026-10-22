@@ -1,6 +1,7 @@
 import { FileX } from "lucide-react";
-import { exigirModulo } from "@/lib/persona-actual";
+import { exigirModulo, puede } from "@/lib/persona-actual";
 import { getDatosEditarOrden } from "@/lib/ordenes-compra";
+import { getRubrosEnUso } from "@/lib/proveedores";
 import { numeroOrdenCompra, tieneComprobante } from "@/lib/ordenes-compra-reglas";
 import { borradorDeDetalle } from "@/lib/orden-compra-alta";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -20,7 +21,9 @@ import { NuevaOrdenCompra } from "@/components/ordenes-compra/NuevaOrdenCompra";
 export default async function EditarOrdenCompraPage({ params }: { params: Promise<{ id: string }> }) {
   const persona = await exigirModulo("ordenes_compra");
   const { id } = await params;
-  const { datos, detalle, falla } = await getDatosEditarOrden(id);
+  // «+ Agregar proveedor» también al editar (ver «Nueva orden»): solo si la cuenta tiene el módulo Proveedores.
+  const puedeAgregarProveedor = puede(persona, "editarCuentasProveedor");
+  const [{ datos, detalle, falla }, rubrosEnUso] = await Promise.all([getDatosEditarOrden(id), puedeAgregarProveedor ? getRubrosEnUso() : Promise.resolve([] as string[])]);
   const volver = <Volver href="/compras/ordenes" a="Órdenes de compra" />;
 
   if (falla || !detalle) {
@@ -101,6 +104,8 @@ export default async function EditarOrdenCompraPage({ params }: { params: Promis
       sede={persona.ubicacionEtiqueta}
       hoy={hoyLima()}
       destinoInicial=""
+      puedeAgregarProveedor={puedeAgregarProveedor}
+      rubrosEnUso={rubrosEnUso}
       editar={{
         id: detalle.id,
         numero: detalle.numero,
