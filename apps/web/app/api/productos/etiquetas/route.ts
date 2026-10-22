@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase.from("etiquetas").insert(estilo ? { nombre, estilo } : { nombre }).select("id, nombre, activo, notas, estado").single();
 
   if (error) {
-    return Response.json({ error: traducirError(error, "agregar la etiqueta") }, { status: 400 });
+    return Response.json({ error: traducirError(error, estilo === "campana" ? "agregar la campaña" : "agregar el sello") }, { status: 400 });
   }
 
   return Response.json({ etiqueta: data });
@@ -140,7 +140,7 @@ export async function PATCH(request: Request) {
     if (error.code === "PGRST116") {
       return Response.json({ error: "No existe esa etiqueta." }, { status: 404 });
     }
-    return Response.json({ error: traducirError(error, "guardar la etiqueta") }, { status: 400 });
+    return Response.json({ error: traducirError(error, "guardar los cambios") }, { status: 400 });
   }
 
   return Response.json({ etiqueta: data });

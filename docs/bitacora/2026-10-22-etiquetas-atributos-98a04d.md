@@ -1,0 +1,4 @@
+## 2026-10-22 (Las campañas salen de Atributos a su propia pantalla, y las etiquetas de prenda se llaman «Sellos»)
+Qué hice: Catálogo ▸ Campañas (`/productos/campanas`, módulo `campanas_catalogo`) con las campañas por fecha, y Atributos ▸ Sellos sin ellas; «Sellos y campañas» donde se ofrecen juntos; los enlaces que decían «Catálogo ▸ Etiquetas» llevan a Campañas. Migración `20261022151000` (sin pegar en producción). ADR-0473.
+Por qué así: «Etiquetas» se confundía con las etiquetas de precio que se imprimen, y una campaña dice a cuánto se vende y cuándo, no qué es la prenda. La base no cambia de forma: misma tabla `etiquetas`, cada pantalla filtra por estilo, y Vender, la tienda online y el Plan de campaña siguen leyendo igual.
+Felipe se lleva: el módulo Campañas nace solo para el líder; los roles que hoy configuran campañas con «Etiquetas» (hoy «Sellos») no verán la pantalla Campañas hasta que se la des en Roles y accesos.

@@ -841,6 +841,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`filtrarColores`, `filtrarPorNombre`, `usoDe`) y, para Temporadas, `lib/temporadas-pantalla.ts` (`estacionesDe`,
   `grupoDeTemporada`, `tonoDeTemporada`; dibujo en `MuestraTemporada`, molde `MuestraIcono` de `MuestraEtiqueta`).
   Temporadas abre en `?vista=lista` (la grilla) desde el 2026-09-28. ADR-0261.
+- `/productos/campanas` (Catálogo ▸ Campañas, módulo `campanas_catalogo`, ADR-0473) → `page.tsx` lee con
+  `lib/etiquetas-pantalla-datos.ts` (`cargarEtiquetasPantalla({ modo: "campanas" })`, el mismo cargador de la pestaña Sellos de
+  `/productos/atributos?tipo=etiquetas`) → `EtiquetasLista` con `modo="campanas"`: tramos por fecha (`lib/sellos-campanas.ts`,
+  `campanasPorTramo`), crear (`POST /api/productos/etiquetas` con `estilo: "campana"`), configurar o repetir
+  (`actualizar_campana_etiqueta`), prendas (`PrendasDeEtiquetaModal`), imprimir sus etiquetas de precio y enlace al diseño
+  (`/tienda-web/campanas/[id]`). Una campaña es una fila de `retail.etiquetas` con estilo `campana`; un sello, todo lo demás.
 - `/productos/liquidacion` (Catálogo ▸ Liquidación, módulo `liquidacion`, ADR-0379) → `page.tsx` lee `fn_piezas_liquidacion` y
   `categorias` → `LiquidacionPantalla.tsx` (cifras, buscador que lee una etiqueta LQ con `fn_pieza_liquidacion`, lista) +
   `EtiquetarPiezaModal.tsx` (`crear_pieza_liquidacion`) + `PiezaLiquidacionModal.tsx` (`cambiar_precio_pieza_liquidacion`,
