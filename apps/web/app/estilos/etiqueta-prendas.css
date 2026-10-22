@@ -117,9 +117,11 @@
 /* El mosaico ocupa lo que queda de la tarjeta; la hoja calcula cuántas piezas caben (`useCuantasCaben`). */
 .eqp-mosaico { flex: 1; min-height: 44px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 6px; margin-top: 12px; overflow: hidden; }
 .eqp-pieza { position: relative; aspect-ratio: 5 / 6; border-radius: 7px; }
-.eqp-pieza > * { width: 100%; height: 100%; border-radius: 7px; object-fit: cover; }
+.eqp-pieza > :not(.eqp-veces) { width: 100%; height: 100%; border-radius: 7px; object-fit: cover; }
 .eqp-pieza[data-estado="nueva"]::after { content: ""; position: absolute; inset: -2px; border-radius: 9px; box-shadow: 0 0 0 2px var(--color-verde); pointer-events: none; }
 .eqp-pieza[data-estado="sale"] > * { opacity: 0.32; filter: grayscale(1); }
+/* Cuántas tallas y colores junta la pieza: «×5» en la esquina, sobre la foto. */
+.eqp-veces { position: absolute; right: 3px; bottom: 3px; z-index: 1; min-width: 20px; padding: 1px 5px; border-radius: 999px; background: var(--color-tinta); color: var(--color-crema); font-size: 10.5px; font-weight: 600; line-height: 1.45; text-align: center; font-variant-numeric: tabular-nums; pointer-events: none; }
 .eqp-pieza[data-estado="sale"]::after { content: ""; position: absolute; left: -2px; right: -2px; top: 50%; height: 1.5px; background: var(--color-taupe); transform: rotate(-24deg); }
 .eqp-pieza[data-estado="categoria"]::after { content: ""; position: absolute; inset: 0; border-radius: 7px; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-pizarra) 70%, transparent); pointer-events: none; }
 .eqp-pieza[data-espera] { opacity: 0; }
