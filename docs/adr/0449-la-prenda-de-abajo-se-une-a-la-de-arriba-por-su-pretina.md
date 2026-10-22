@@ -116,3 +116,41 @@ Felipe mostró un chaleco sobre camisa y un corset rojo que «tampoco se adaptan
 
 Queda por hacer: probar la figura quieta en `/looks/guardado/<id>` y en una tarjeta de «Tus looks» con una cuenta real (aquí solo se comprobaron tipos, las 676 pruebas de la tienda y la medida con las
 imágenes reales), y mirar cómo se ven las prendas de arriba con volado o peplum.
+
+## Actualización 2026-10-22 — la prenda de abajo no se ve más ancha que la de arriba en más de 5 %
+
+**Qué pasó.** Una clienta vio el look `CMS-0026.ROS~FAL-0011.MOS~CAR-0010.CRU` con la falda «muy grande». La unión SÍ se aplicó (medido en `tienda.cayla.pe`: la falda
+salió de 151 px en la escena, justo el máximo que permitía la regla, 148 + redondeo). La blusa (un peplum, 125 px de ancho) tiene el bajo con vuelo, así que llevaba la
+pretina al tope de la holgura (+15 % = 41,4 cm) y la falda, que es acampanada (su pretina mide el 70 % de su ancho), se abría hasta 59 cm: 1,2 veces el ancho de la blusa.
+No era un dato faltante ni algo que tuviera que medir una persona: el largo propio (`largo_cm`) no entra en esta cuenta cuando hay una prenda de arriba y las dos medidas están.
+
+**Decisión.** Un tope más en `cajaDeAbajoUnida`: la prenda de abajo no pasa de `ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA` (×1,05) el ancho de la de arriba. La pretina **nunca baja
+de la cintura mínima** (30,6 cm): una falda de mucho vuelo, o un pantalón de pierna ancha, sigue siendo más ancha que su blusa, porque así es la prenda. Solo cambia lo que
+antes llegaba al tope de la holgura por un peplum o una blusa ancha con una falda de pretina ancha; el resto de los looks no se mueve. Sin migración, sin columna, sin
+trabajo para nadie: sigue saliendo de la propia foto.
+
+**Prueba.** `union-prendas.test.ts` (dos casos nuevos: el de este look y el de una falda de mucho vuelo que conserva la cintura mínima). 775 pruebas de la tienda en verde, `tsc` limpio.
+
+**Pendiente.** Verlo en el navegador con la tienda local (no se hizo: la medida y la imagen de comparación salen de las piezas reales de producción, no de la página). La medida
+de los recortes se sigue haciendo en el navegador (primera pintura por largo típico, luego la unión): guardarla al generar el recorte la haría inmediata también para la imagen
+que se comparte; es una migración y espera el OK de Felipe.
+
+## Actualización 2026-10-22 (b) — el momento «Ajustando»: el hilo con su etiqueta (B1)
+
+**Qué pasaba.** Mientras la unión esperaba su medida, la falda se apagaba al 45 % y salía un cartel blanco con una rayita que iba y venía («Ajustando la prenda…»). Felipe: se sentía
+muy básico, como una pantalla de carga, y el cliente no entendía que algo se estaba ajustando ni que tenía que esperar.
+
+**Decisión (Felipe, 2026-10-22, eligió mirando la maqueta `docs/maquetas/probador-ajustando-2026-10/`: 5 propuestas, cuatro variantes del hilo; eligió B1 y pidió atenuar la escena y sacar la etiqueta de las prendas).**
+Mientras se espera la medida:
+- **El hilo:** un hilo cochinilla (`--t-oferta`) cose el borde de abajo de la blusa, con su aguja que va y viene. Al llegar la medida deja un nudo y se desvanece. Su lugar (`hiloDeLaEspera`) es la fila medida de la blusa o, si todavía no se midió, la estimada (0,9 del alto); se achica con la figura.
+- **El velo:** toda la escena se atenúa al 35 % (`.pb-velo`, el color del estudio) y «Sorpréndeme» se apaga (cambiaría lo que se mide); las flechas se atenúan pero siguen sirviendo. Se levanta al llegar la medida.
+- **La etiqueta:** una etiqueta tejida dice «Ajustando tu look…» y, al llegar la medida, «✓ Listo» (`MS_DEL_LISTO` = 1,1 s). Vive en una franja `.pb-estado` **debajo del arco**, con su alto reservado (46 px): con un pantalón largo las prendas llegan casi al piso y dentro del estudio taparía una prenda; con el alto reservado la página no salta.
+- Sigue valiendo la regla de antes: no aparece nada si la medida llega en menos de 180 ms (`ESPERA_ANTES_DE_AVISAR_MS`), para que no parpadee; con movimiento reducido queda el hilo punteado fijo y la etiqueta, sin animación.
+- Se quitó el cartel `pb-ajusta` y la atenuación de la falda sola (`data-ajustando`, `.45`). La figura ahora es `.pb-figura` (estudio + franja); el área de la grilla de escritorio y lo fijo a la vista pasaron de `.pb-escena` a `.pb-figura`, y el esqueleto de carga (`FormaDelEsqueleto`) sigue la misma estructura.
+
+**Descarté** (con la maqueta tocable): la cinta de modista (A), el zigzag que une (B2), la etiqueta colgante (B3: es justo lo que se quita de las fotos), el carrete (B4), el foco de galería (C), los alfileres (D) y el «respiro» (E: limpio pero no dice «espera»).
+
+**Qué cambia en el código.** `lib/union-prendas.ts` (`hiloDeLaEspera`, `siguienteFase`, `FaseDelAjuste`, `MS_DEL_LISTO`; puros y con su prueba), `components/probador/useUnionDeLaFigura.ts` (devuelve `hilo`), `useFaseDelAjuste.ts` (nuevo: la fase y el temporizador del «Listo»), `Figura.tsx`, `FormaDelEsqueleto.tsx` y `app/estilos/probador.css`. Sin migración ni base.
+
+**Verificado.** 781 pruebas de la tienda, `tsc`, `eslint`, `pnpm knip` y `knip:produccion` en verde. El CSS real (las hojas de la tienda, sin tocar) se miró en una página de prueba con el marcado exacto del componente, en la espera y en el «Listo», a 420 px.
+**Falta** verlo en la tienda de verdad con un celular (Safari: la aguja usa `offset-path`; sin él no se dibuja y el hilo corre igual) y confirmar el tiempo real de la medida con la red de una tienda.
