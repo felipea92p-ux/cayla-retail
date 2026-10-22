@@ -5,7 +5,7 @@
   "total": 4,
   "controles": {
     "components/campanas-web/CampanasPantalla.tsx": [
-      "BotonEnlace «Armar una campaña en Etiquetas»",
+      "BotonEnlace «Armar una campaña en Catálogo»",
       "button «{f.texto}»",
       "BotonEditar «{c.estado === \"fin\" ? \"Ver diseño\" : \"Diseñar\"}»",
       "BotonEditar «{c.estado === \"fin\" ? \"Ver diseño\" : \"Diseñar\"}» #2"

@@ -13,7 +13,7 @@ const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 // Tienda web ▸ Campañas ▸ Diseñar la campaña (Felipe 2026-10-21; maqueta docs/maquetas/campanas-tienda-2026-10, pantalla 2). Es una pantalla
 // del módulo `campanas_web` (su layout ya lo exige), no un módulo nuevo (ADR-0306): se llega desde la lista. Las fechas, el descuento y las
-// prendas no se tocan aquí: se arman en Catálogo ▸ Etiquetas (una sola fuente de verdad).
+// prendas no se tocan aquí: se arman en Catálogo ▸ Campañas (ADR-0473; una sola fuente de verdad).
 export default async function DisenarCampanaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
@@ -34,7 +34,7 @@ export default async function DisenarCampanaPage({ params }: { params: Promise<{
         subtitulo={c ? `${c.nombre} · ${pctDicho(c.pct)} · ${vigenciaDicha(c.desde, c.hasta)}` : "Cómo se ve la tienda online durante esta campaña."}
         volver={<Volver href="/tienda-web/campanas" a="las campañas" />}
         acciones={
-          c && veModulo(persona, "etiquetas") ? <EnlaceVer href="/productos/atributos?tipo=etiquetas">Cambiar fechas o prendas en Etiquetas</EnlaceVer> : undefined
+          c && veModulo(persona, "campanas_catalogo") ? <EnlaceVer href="/productos/campanas">Cambiar fechas o prendas en Campañas</EnlaceVer> : undefined
         }
       />
       {ficha ? (

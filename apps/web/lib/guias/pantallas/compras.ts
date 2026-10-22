@@ -1192,7 +1192,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.selector",
       opcional: true,
       titulo: "Qué campaña planificas",
-      texto: "Es el calendario de Etiquetas: las campañas de este año y el que viene. Las que dicen «armar plan» todavía no tienen el suyo; tócala y se arma con sus fechas. Al final, un líder crea una campaña que no está en el calendario, edita o quita la abierta y ve las archivadas.",
+      texto: "Es el calendario de Catálogo ▸ Campañas: las campañas de este año y el que viene. Las que dicen «armar plan» todavía no tienen el suyo; tócala y se arma con sus fechas. Al final, un líder crea una campaña que no está en el calendario, edita o quita la abierta y ve las archivadas.",
     },
     {
       id: "vistas",

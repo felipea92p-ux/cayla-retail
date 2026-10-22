@@ -321,8 +321,8 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "vistas-vuelta",
       ancla: "editar.vistas",
       preparar: [{ tipo: "clic", ancla: "editar.vista-unidades" }],
-      titulo: "Costos y etiquetas",
-      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Etiquetas» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Stock de hoy».",
+      titulo: "Costos, sellos y campañas",
+      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Sellos y campañas» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Stock de hoy».",
     },
     {
       id: "precio-tienda",

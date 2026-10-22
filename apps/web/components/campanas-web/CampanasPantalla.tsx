@@ -45,7 +45,7 @@ const FILTROS: { valor: FiltroCampanas; texto: string }[] = [
  * tienda online con el diseño que tiene cada una y cuáles se verán «como siempre». Esta entrega solo lee: el editor de diseño llega
  * en la actividad siguiente.
  */
-export function CampanasPantalla({ lectura, puedeIrAEtiquetas }: { lectura: LecturaCampanasWeb; puedeIrAEtiquetas: boolean }) {
+export function CampanasPantalla({ lectura, puedeIrACampanas }: { lectura: LecturaCampanasWeb; puedeIrACampanas: boolean }) {
   const [filtro, setFiltro] = useState<FiltroCampanas>("todas");
   const { campanas, hoy } = lectura;
 
@@ -55,8 +55,8 @@ export function CampanasPantalla({ lectura, puedeIrAEtiquetas }: { lectura: Lect
   const cruces = crucesDeCampanas(campanas);
   const tiempo = lineaDeTiempo(campanas, hoy);
   const irAEtiquetas = (
-    <BotonEnlace href="/productos/atributos?tipo=etiquetas" peso="fantasma">
-      Armar una campaña en Etiquetas
+    <BotonEnlace href="/productos/campanas" peso="fantasma">
+      Armar una campaña en Catálogo
     </BotonEnlace>
   );
 
@@ -97,9 +97,9 @@ export function CampanasPantalla({ lectura, puedeIrAEtiquetas }: { lectura: Lect
           <Vacio
             icono={<Palette />}
             titulo="Todavía no hay campañas"
-            acciones={puedeIrAEtiquetas ? irAEtiquetas : undefined}
+            acciones={puedeIrACampanas ? irAEtiquetas : undefined}
           >
-            Una campaña se arma en Catálogo ▸ Etiquetas, con su descuento, sus fechas y sus prendas. Cuando exista, aparece aquí para
+            Una campaña se arma en Catálogo ▸ Campañas, con su descuento, sus fechas y sus prendas. Cuando exista, aparece aquí para
             darle su diseño.
           </Vacio>
         </section>
@@ -114,7 +114,7 @@ export function CampanasPantalla({ lectura, puedeIrAEtiquetas }: { lectura: Lect
                 </button>
               ))}
             </div>
-            {puedeIrAEtiquetas && <div className="ml-auto">{irAEtiquetas}</div>}
+            {puedeIrACampanas && <div className="ml-auto">{irAEtiquetas}</div>}
           </div>
 
           {visibles.length === 0 ? (

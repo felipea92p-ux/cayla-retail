@@ -363,7 +363,7 @@ export const ARBOL: readonly Nodo[] = [
       // Qué modelos se ven en la web, sus looks y quién espera una talla (ADR-0408, actividades 3, 11 y 12). El dato es del Loro.
       { id: "tiendaWeb.vitrina", modulo: "vitrina_web", etiqueta: "Vitrina", estado: "viva", ruta: "/tienda-web/vitrina", icono: "vitrina", pajaro: "02 Loro" },
       // Cómo se ve la tienda online durante cada campaña (Felipe 2026-10-21): ambiente del catálogo o imagen propia, movimiento y textos. Las fechas,
-      // el % y las prendas se siguen armando en Catálogo ▸ Etiquetas; aquí solo el diseño. Justo después de la Vitrina: las dos visten la web.
+      // el % y las prendas se siguen armando en Catálogo ▸ Campañas (ADR-0473); aquí solo el diseño. Justo después de la Vitrina: las dos visten la web.
       { id: "tiendaWeb.campanas", modulo: "campanas_web", etiqueta: "Campañas", estado: "viva", ruta: "/tienda-web/campanas", icono: "paleta", pajaro: "02 Loro" },
       // Lo que los clientes le recomiendan a CAYLA desde la web, con su nombre (ADR-0408, 2026-10-15). Firma con el responsable de la
       // sede donde se está parado: en CAYLA Global no se abre (no es de la vista global).
