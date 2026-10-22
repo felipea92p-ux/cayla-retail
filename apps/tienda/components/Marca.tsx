@@ -1,8 +1,8 @@
 import { Fragment } from "react";
-import { LOGO, PALABRA, partirPorLaMarca, type PiezaDeMarca } from "@/lib/marca";
+import { LOGO, PALABRA, partirPorLaMarca, type PiezaDeMarca } from "@cayla-retail/shared/marca";
 
 /**
- * El logo oficial de CAYLA (`lib/marca.ts`) en SVG, del color del texto que lo rodea (`currentColor`): cada lugar le pone su color y su
+ * El logo oficial de CAYLA (`@cayla-retail/shared/marca`) en SVG, del color del texto que lo rodea (`currentColor`): cada lugar le pone su color y su
  * alto (o su ancho) con CSS, y la otra medida sigue sola. Escondido para el lector de pantalla —el enlace o la tarjeta que lo lleva ya
  * dice «CAYLA»—, salvo que `nombre` diga cómo leerlo (la palabra dentro de un título). El colibrí solo es `<Isotipo>` (`./Isotipo`).
  */

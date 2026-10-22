@@ -20,7 +20,7 @@ import { BotonDemo } from "@/components/guias/BotonDemo";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { BuscadorGlobal } from "@/components/BuscadorGlobal";
-import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
+import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 
@@ -867,16 +867,16 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
         {/* En el cajón del celular la ✕ comparte fila con el logo. `data-pieza-cajon` + `--k`: el orden de la cascada
             al abrir el cajón (globals.css) — logo, cada fila del menú, la firma y la persona. */}
         <div className="flex items-start" data-pieza-cajon style={{ "--k": 0 } as React.CSSProperties}>
-        <Link href="/" className={`group flex min-w-0 flex-1 items-center gap-3 overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-3.5" : "pl-7"}`}>
-          <IsotipoCayla className="h-8 w-auto shrink-0 transition-transform duration-500 ease-cayla group-hover:scale-105" />
-          <span className={`flex min-w-0 flex-col transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
-            <span className="label-cayla text-sm text-tinta transition-colors duration-200 group-hover:text-rojo" style={{ letterSpacing: "0.26em" }}>
-              CAYLA
-            </span>
-            {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo. */}
-            <span className="label-cayla text-[10px] text-taupe-profundo" style={{ letterSpacing: "0.2em" }}>
-              Retail
-            </span>
+        {/* El logo oficial, el mismo dibujo que la tienda (ADR-0446): la palabra CAYLA es el trazo del logo, no una letra. */}
+        <Link href="/" aria-label="CAYLA Retail, ir al inicio" className={`group flex min-w-0 flex-1 flex-col items-start overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-3.5" : "pl-7"}`}>
+          <LogoCayla sinPalabra={compacto} className="h-8 origin-left transition-transform duration-500 ease-cayla group-hover:scale-105" />
+          {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo, alineado con la palabra. */}
+          <span
+            aria-hidden
+            className={`label-cayla -mt-0.5 text-[10px] text-taupe-profundo transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}
+            style={{ letterSpacing: "0.2em", marginLeft: `${INICIO_DE_LA_PALABRA * 2}rem` }}
+          >
+            Retail
           </span>
         </Link>
         <button
@@ -1053,7 +1053,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             mostrarEquipo={persona.ubicacionTipo === "tienda" && !esAparato}
           />
           <Link href="/" className="flex items-center gap-2 sm:hidden">
-            <IsotipoCayla className="h-[26px] w-auto" />
+            <LogoCayla soloColibri className="h-[26px]" />
           </Link>
           {/* Selector de ubicación del líder (Fase 2, ya no pendiente):
               cambia toda la app de perspectiva, no solo Inventario/Recepción

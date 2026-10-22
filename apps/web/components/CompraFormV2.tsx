@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -17,6 +16,7 @@ import { LineasPago, lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type Lin
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { subirAdjuntosCompra } from "@/lib/adjuntos-compra";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { useAltaDeProveedor } from "@/components/useAltaDeProveedor";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { campoEtiqueta } from "@/components/ui/Modal";
@@ -113,7 +113,10 @@ const MS_VISTO_REGISTRADO = 650;
 const sinMovimiento = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
 export function CompraFormV2({
-  proveedores,
+  proveedores: proveedoresIniciales,
+  todosLosProveedores,
+  puedeAgregarProveedor = false,
+  rubrosEnUso = [],
   ubicaciones,
   ubicacionInicialId,
   variantes,
@@ -122,7 +125,14 @@ export function CompraFormV2({
   cabecera,
   repartoDisponible = true,
 }: {
+  /** A quién se le puede registrar una factura de mercadería: sin quien es solo de gastos (`proveedoresParaPedir`, ADR-0452). */
   proveedores: Proveedor[];
+  /** El directorio COMPLETO (con los de gastos): solo para avisar de un RUC o un nombre repetido al agregar un proveedor. Sin esto, `proveedores`. */
+  todosLosProveedores?: { id: string; nombre: string; ruc: string | null }[];
+  /** La cuenta tiene el módulo Proveedores (lo que exige `registrar_proveedor`): el combo ofrece «+ Agregar proveedor». */
+  puedeAgregarProveedor?: boolean;
+  /** Los rubros que ya usa el directorio: los botones del formulario de «Agregar proveedor». */
+  rubrosEnUso?: string[];
   /** Todas las tiendas activas: la gestora se elige entre ellas, sea líder o no (ADR-0387, Felipe 2026-10-12; antes ADR-0184
    *  F5 limitaba a quien no es líder a sus tiendas). */
   ubicaciones: Ubicacion[];
@@ -139,6 +149,24 @@ export function CompraFormV2({
   repartoDisponible?: boolean;
 }) {
   const router = useRouter();
+
+  // «+ Agregar proveedor»: el recién guardado se suma a la lista y queda elegido, sin esperar a que la página relea el directorio. Trae el
+  // plazo y la forma de pago que se acaban de escribir (el vencimiento y el medio de pago se sugieren con ellos); nace sin marcas, sin deuda
+  // y sin datos de cuenta (esos se ven al volver a abrir la pantalla).
+  const [agregados, setAgregados] = useState<Proveedor[]>([]);
+  const proveedores = useMemo(
+    () => [...proveedoresIniciales, ...agregados.filter((a) => !proveedoresIniciales.some((p) => p.id === a.id))],
+    [proveedoresIniciales, agregados],
+  );
+  const alta = useAltaDeProveedor({
+    habilitado: puedeAgregarProveedor,
+    rubrosEnUso,
+    existentes: [...(todosLosProveedores ?? proveedoresIniciales), ...agregados.filter((a) => !(todosLosProveedores ?? proveedoresIniciales).some((p) => p.id === a.id))],
+    alGuardar: (p) => {
+      setAgregados((a) => [...a, { id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: [], plazoCreditoDias: p.plazoCreditoDias, formaPagoPreferida: p.formaPagoPreferida, saldo: 0, saldoFavor: 0 }]);
+      elegirProveedor(p.id);
+    },
+  });
 
   const productos = useMemo(() => {
     const m = new Map<string, { referencia: string; variantes: Variante[] }>();
@@ -353,6 +381,15 @@ export function CompraFormV2({
     }, MS_LINEA_SALE);
   }
 
+  // Elegir al proveedor (de la lista o el recién agregado).
+  function elegirProveedor(id: string) {
+    setProveedorId(id);
+    // El saldo a favor es de UN proveedor: si se cambió de proveedor, una línea «Saldo a favor» ya no
+    // tiene con qué respaldarse (la base la rechazaría). Pasa al medio de siempre, con el mismo monto.
+    setPagos((ps) => (ps.some((l) => l.metodo === METODO_SALDO_A_FAVOR) ? ps.map((l) => (l.metodo === METODO_SALDO_A_FAVOR ? lineaPagoVacia(l.monto) : l)) : ps));
+    void comprobarRepetido(id, serie, numero);
+  }
+
   // Lectura mínima, solo lectura, al salir del campo (o al elegir proveedor): ¿ya hay un comprobante con esta serie y
   // número de este proveedor? Si el usuario no puede leer `compras` (solo líderes ven el dinero, ADR-0126) o la red
   // falla, no hay pista y no pasa nada: el error real lo da la base al registrar.
@@ -509,6 +546,7 @@ export function CompraFormV2({
   }
 
   return (
+    <>
     <form
       onSubmit={onSubmit}
       onKeyDown={(e) => {
@@ -534,25 +572,14 @@ export function CompraFormV2({
           <div className="grid gap-4 sm:grid-cols-2">
             <Campo
               etiqueta="Proveedor"
-              pie={
-                <>
-                  ¿No está en la lista?{" "}
-                  <Link href="/compras/proveedores" className="btn-enlace">
-                    Regístralo en Proveedores
-                  </Link>
-                  .
-                </>
-              }
+              // Con el módulo Proveedores, «+ Agregar proveedor» está en la lista; sin él, el enlace a Proveedores no llevaría a ningún lado.
+              pie={puedeAgregarProveedor ? undefined : <>¿No está? Pídele a quien administra Proveedores que lo agregue.</>}
             >
               <div id="compra-proveedor">
                 <ComboBuscable etiquetaAccesible="Proveedor" valor={proveedorId}
-                  onValor={(id) => {
-                    setProveedorId(id);
-                    // El saldo a favor es de UN proveedor: si se cambió de proveedor, una línea «Saldo a favor» ya no
-                    // tiene con qué respaldarse (la base la rechazaría). Pasa al medio de siempre, con el mismo monto.
-                    setPagos((ps) => (ps.some((l) => l.metodo === METODO_SALDO_A_FAVOR) ? ps.map((l) => (l.metodo === METODO_SALDO_A_FAVOR ? lineaPagoVacia(l.monto) : l)) : ps));
-                    void comprobarRepetido(id, serie, numero);
-                  }}
+                  onValor={elegirProveedor}
+                  crearArriba
+                  crear={alta.crear}
                   opciones={opcionesProveedor} marcador={hayMarcas ? "Busca por nombre, marca o RUC…" : "Busca por nombre o RUC…"} />
                 {proveedor && (proveedor.plazoCreditoDias != null || proveedor.formaPagoPreferida || (proveedor.saldo ?? 0) > 0 || (proveedor.saldoFavor ?? 0) > 0 || faltaCuenta) && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
@@ -965,6 +992,9 @@ export function CompraFormV2({
       </aside>
       {salida.aviso}
     </form>
+    {/* Fuera del <form> (ADR-0128): un `submit` del alta no debe llegar a «Registrar comprobante». */}
+    {alta.modal}
+    </>
   );
 }
 

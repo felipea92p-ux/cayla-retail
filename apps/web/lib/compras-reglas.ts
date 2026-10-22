@@ -152,7 +152,8 @@ export type PagoCompra = {
   noDeducible?: NoDeducible | null;
 };
 
-export type ProveedorResumen = { id: string; nombre: string; ruc: string | null };
+/** `rubros`: para separar a quien es solo de gastos (`proveedoresParaPedir`, ADR-0452): lo usan las pantallas que ELIGEN a quién se le recibe mercadería. */
+export type ProveedorResumen = { id: string; nombre: string; ruc: string | null; rubros: string[] };
 
 export type AdjuntoCompra = {
   id: string;

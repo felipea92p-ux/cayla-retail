@@ -162,6 +162,10 @@ export const HOLGURA_DE_LA_UNION = 0.15;
 /** El largo más corto y el más largo (cm) que se le deja a una prenda de abajo al igualarla con la de arriba: una foto rara no dibuja un pantalón de 20 cm. */
 export const LARGO_MINIMO_DE_ABAJO = 20;
 export const LARGO_MAXIMO_DE_ABAJO = 120;
+/** Cuánto más ancha que la prenda de arriba puede verse la de abajo (×1,05). Una blusa con vuelo abajo (un peplum) lleva la pretina al máximo de
+ *  la holgura, y una falda acampanada se abría hasta verse 20 % más ancha que la blusa (FAL-0011 con CMS-0026, 2026-10-22). La pretina nunca baja de la
+ *  cintura mínima (`HOLGURA_DE_LA_UNION`): una falda de mucho vuelo sigue siendo más ancha que su blusa, como en una persona. */
+export const ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA = 1.05;
 /** Cuánto entra la pretina bajo el borde del torso (px de la escena), para que no quede una línea de aire entre las dos. */
 export const SOLAPE_DE_LA_UNION = 3;
 /** Cuánto puede crecer, a lo más, una prenda de arriba que se dibuja con el bajo demasiado angosto (×1,3). Nunca se encoge: una prenda ancha es ancha a propósito. */
@@ -204,7 +208,10 @@ export function cajaDeAbajoUnida(
   const estandar = ANCHO_ESTANDAR_DE_LA_UNION * PX_POR_CM;
   // El ancho del bajo es el mayor entre el de su última fila y el de toda su zona del bajo (ver `anchoDelBajo`).
   const bordeAncho = Math.max(a.borde, anchoDelBajo(a) ?? 0);
-  const pretinaPx = Math.min(Math.max(arriba.caja.w * bordeAncho, estandar * (1 - HOLGURA_DE_LA_UNION)), estandar * (1 + HOLGURA_DE_LA_UNION));
+  const pretinaMinima = estandar * (1 - HOLGURA_DE_LA_UNION);
+  const pretinaSegunElBorde = Math.min(Math.max(arriba.caja.w * bordeAncho, pretinaMinima), estandar * (1 + HOLGURA_DE_LA_UNION));
+  // Y que toda la prenda de abajo no se vea mucho más ancha que la de arriba (sin bajar de la cintura mínima).
+  const pretinaPx = Math.max(pretinaMinima, Math.min(pretinaSegunElBorde, arriba.caja.w * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA * b.pretina));
   // El bajo de la prenda de arriba no siempre es recto: la pretina arranca donde el bajo está más ALTO dentro de su ancho (sin aire en ese lado)
   // y la parte del bajo que cuelga más abajo la tapa. Sin perfil medido, el punto más bajo de siempre.
   const franja = Math.min(Math.max(pretinaPx / arriba.caja.w, FRANJA_MINIMA_DE_LA_UNION), FRANJA_MAXIMA_DE_LA_UNION);
@@ -217,6 +224,40 @@ export function cajaDeAbajoUnida(
     w: Math.round(w),
     h: Math.round(h),
   };
+}
+
+/* ======================== El hilo de la espera (B1, Felipe 2026-10-22) ======================== */
+
+/** En qué parte del alto de la prenda de arriba se supone su borde de abajo mientras todavía no se midió su recorte. */
+export const FILA_ESTIMADA_DEL_BORDE = 0.9;
+/** Cuánto sobresale el hilo por cada lado de la cintura estándar (px de la escena). */
+export const MARGEN_DEL_HILO = 14;
+
+/** Por dónde corre el hilo mientras se espera la medida: una línea en el borde de abajo de la prenda de arriba, que es donde la unión va a poner la pretina. */
+export type HiloDeLaEspera = { y: number; x0: number; x1: number };
+
+/**
+ * Dónde se «cose» mientras la unión espera su medida (la etiqueta «Ajustando tu look…» y el velo van aparte). La altura es la del borde de abajo de la prenda
+ * de arriba (medido si ya se midió; si no, `FILA_ESTIMADA_DEL_BORDE`) y el largo, el de una cintura estándar con `MARGEN_DEL_HILO` por lado, centrado en la
+ * escena. No es la caja final de la falda —esa todavía no se conoce—: solo dice «aquí se está uniendo».
+ */
+export function hiloDeLaEspera(arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined }): HiloDeLaEspera {
+  const fila = arriba.medida?.filaDelBorde ?? FILA_ESTIMADA_DEL_BORDE;
+  const mitad = (ANCHO_ESTANDAR_DE_LA_UNION * PX_POR_CM) / 2 + MARGEN_DEL_HILO;
+  const centro = ESCENA.ancho / 2;
+  return { y: Math.round(arriba.caja.y + arriba.caja.h * fila), x0: centro - mitad, x1: centro + mitad };
+}
+
+/** Lo que se ve mientras se ajusta: nada, la espera (hilo, velo y «Ajustando tu look…») o el «Listo» con que se cierra. */
+export type FaseDelAjuste = "quieto" | "espera" | "listo";
+
+/** Cuánto dura el «Listo» a la vista (ms): lo justo para leerlo, sin que estorbe. */
+export const MS_DEL_LISTO = 1100;
+
+/** La fase que sigue según si la unión está esperando su medida: quien esperaba pasa a «listo» (un cierre, no un corte); lo demás sigue como estaba. */
+export function siguienteFase(fase: FaseDelAjuste, ajustando: boolean): FaseDelAjuste {
+  if (ajustando) return "espera";
+  return fase === "espera" ? "listo" : fase;
 }
 
 /* ======================== Para medir rápido: qué se baja, y lo que se recuerda entre visitas ======================== */
