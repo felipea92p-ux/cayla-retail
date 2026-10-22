@@ -300,7 +300,9 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             key={claveDeLaRecepcion(persona.ubicacionId)}
             ubicacionId={persona.ubicacionId}
             ubicacionEtiqueta={persona.ubicacionEtiqueta}
-            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, marcas: marcas?.[p.id] ?? [] }))}
+            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, rubros: p.rubros, marcas: marcas?.[p.id] ?? [] }))}
+            rubrosEnUso={rubrosEnUso}
+            puedeAgregarProveedor={puedeAgregarProveedor}
             facturas={facturasDeLaSede}
             hayListaArriba={(deOrdenes?.envios.length ?? 0) + (deOrdenes?.ordenes.length ?? 0) > 0}
           />
@@ -325,7 +327,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             verMontos={verMontos}
             veExistencias={veModulo(persona, "existencias")}
             guiaEnEspera={Boolean(deOrdenes && (deOrdenes.envios.some((e) => !e.creadoPorMi) || deOrdenes.ordenes.some((o) => !o.creadaPorMi)))}
-            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: marcas?.[p.id] ?? [] }))}
+            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, rubros: p.rubros, marcas: marcas?.[p.id] ?? [] }))}
             rubrosEnUso={rubrosEnUso}
             puedeAgregarProveedor={puedeAgregarProveedor}
             facturas={facturasDeLaSede}

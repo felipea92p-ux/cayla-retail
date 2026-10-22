@@ -2,7 +2,7 @@
   "guia": "compras.nueva",
   "ruta": "/compras/nueva",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 53,
+  "total": 52,
   "controles": {
     "app/(app)/compras/nueva/page.tsx": [
       "Volver «/compras»",
@@ -28,7 +28,6 @@
       "Boton «{children}»"
     ],
     "components/CompraFormV2.tsx": [
-      "Link «Regístralo en Proveedores»",
       "ComboBuscable «{proveedorId}»",
       "SegmentoDeslizante «Tipo de documento»",
       "CampoTexto «Serie»",

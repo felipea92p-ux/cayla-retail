@@ -123,7 +123,7 @@ export async function getDestinosOrden(): Promise<{ id: string; nombre: string }
 export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
   const supabase = await createClient();
   const [resProveedores, resMarcas, resVinculos, resCategorias, destinos, resSiguiente, nosDebe, resAfinidad] = await Promise.all([
-    supabase.from("proveedores").select("id, nombre, ruc, contacto, telefono, forma_pago_preferida, plazo_credito_dias").eq("activo", true).order("nombre"),
+    supabase.from("proveedores").select("id, nombre, ruc, rubros, contacto, telefono, forma_pago_preferida, plazo_credito_dias").eq("activo", true).order("nombre"),
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("marca_proveedores").select("marca_id, proveedor_id"),
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
@@ -151,6 +151,7 @@ export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
       id: p.id,
       nombre: p.nombre,
       ruc: p.ruc ?? null,
+      rubros: p.rubros ?? [],
       contacto: p.contacto ?? null,
       telefono: p.telefono ?? null,
       forma_pago_preferida: p.forma_pago_preferida ?? null,
@@ -178,7 +179,7 @@ export async function getDatosEditarOrden(id: string): Promise<{ datos: DatosNue
   if (!detalle) return { datos, detalle: null, falla };
   const proveedores = datos.proveedores.some((p) => p.id === detalle.proveedor.id)
     ? datos.proveedores
-    : [...datos.proveedores, { id: detalle.proveedor.id, nombre: `${detalle.proveedor.nombre} (inactivo)`, ruc: detalle.proveedor.ruc }];
+    : [...datos.proveedores, { id: detalle.proveedor.id, nombre: `${detalle.proveedor.nombre} (inactivo)`, ruc: detalle.proveedor.ruc, rubros: [] }];
   const destinos =
     !detalle.destino || datos.destinos.some((d) => d.id === detalle.destino!.id)
       ? datos.destinos

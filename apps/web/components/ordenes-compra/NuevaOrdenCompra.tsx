@@ -26,6 +26,7 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { EstadoCampo } from "@/lib/guia-campos";
 import { opcionesDeMarca } from "@/lib/marca-proveedor-reglas";
+import { proveedoresParaPedir } from "@/lib/proveedores-reglas";
 import { afinidadDe, lineaNoCalza, prefiltrar, textoDeAfinidad, type AvisoDeLinea } from "@/lib/orden-compra-prefiltro";
 import { sugerirDescripcion } from "@/lib/sugerencias-alta-producto";
 import { soles } from "@/lib/compras-reglas";
@@ -171,9 +172,12 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
 
   // ---- opciones de los combos ----
   const nombreMarca = useMemo(() => new Map(datos.marcas.map((m) => [m.id, m.nombre])), [datos.marcas]);
+  // A quién se le PIDE mercadería: sin los proveedores que son solo de gastos (luz, agua, internet: ADR-0452, act. 2026-10-21). La base acepta
+  // a cualquiera activo, y el que está elegido —o el que la orden traía al abrirse— se queda, pero ofrecerlos era un error esperando a pasar.
+  // «Registrar proveedor» recibe a TODOS (`proveedores`) para avisar de un RUC o un nombre que ya existe, también el de un servicio.
   const opcionesProveedor: OpcionCombo<string>[] = useMemo(
     () =>
-      proveedores.map((p) => {
+      proveedoresParaPedir(proveedores, [orden.proveedorId, editar?.inicial.proveedorId]).map((p) => {
         const suyas = datos.vinculos.filter((v) => v.proveedorId === p.id).map((v) => nombreMarca.get(v.marcaId) ?? "");
         return {
           valor: p.id,
@@ -183,7 +187,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           claves: [...suyas, ...(p.ruc ? [p.ruc] : [])],
         };
       }),
-    [proveedores, datos.vinculos, nombreMarca],
+    [proveedores, orden.proveedorId, editar?.inicial.proveedorId, datos.vinculos, nombreMarca],
   );
   // Con el proveedor elegido, sus marcas van primero (la orden acepta cualquiera y no toca el catálogo: decisión por defecto).
   const opcionesMarca: OpcionCombo<string>[] = useMemo(

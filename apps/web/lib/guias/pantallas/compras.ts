@@ -1020,7 +1020,7 @@ export const GUIA_NUEVA_FACTURA: Guia = {
       id: "documento",
       ancla: "nueva.documento",
       titulo: "1 · El documento",
-      texto: "Busca al proveedor por nombre o RUC (si no está, se registra antes en Proveedores) y elige si es factura, boleta o nota de venta. Al elegirlo ves su plazo, lo que ya le debes y si te debe algo a favor.",
+      texto: "Busca al proveedor por nombre o RUC (si no está, «+ Agregar proveedor» lo registra ahí mismo, si tu cuenta puede) y elige si es factura, boleta o nota de venta. Al elegirlo ves su plazo, lo que ya le debes y si te debe algo a favor.",
     },
     {
       id: "serie",

@@ -129,7 +129,9 @@ export function datosDeLaFicha(l: FichaLeida): FichaFijo {
   return Object.fromEntries(Object.keys(FICHA_VACIA).map((k) => [k, l[k as keyof FichaFijo]])) as FichaFijo;
 }
 
-/** ¿Es un proveedor de gastos (luz, agua, internet…) y no de mercadería? Los que nacen al sumar uno desde Gastos llevan el rubro «Gastos». */
+/** ¿Es un proveedor de gastos (luz, agua, internet…) y no de mercadería? Los que nacen al sumar uno desde Gastos llevan el rubro «Gastos».
+ *  Mira «ALGÚN rubro es Gastos» (el combo de Gastos ofrece a todo el que sirva para pagar un servicio). Lo contrario, para los combos de
+ *  mercadería, es `esSoloDeGastos` de `proveedores-reglas.ts` («TODOS sus rubros son Gastos»): un proveedor con «Telas» y «Gastos» sale en los dos. */
 export function esProveedorDeGasto(p: { rubros?: readonly string[] | null }): boolean {
   return (p.rubros ?? []).some((r) => claveTexto(r) === "gastos");
 }

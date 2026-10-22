@@ -639,6 +639,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   Proveedores (RPC `registrar_proveedor`, que la base ya exige a `fn_puede_gestionar_proveedores`) y deja elegido al recién
   guardado; la página pasa `puedeAgregarProveedor` (`puede(persona, "editarCuentasProveedor")`) y los rubros en uso
   (`getRubrosEnUso`, `lib/proveedores.ts`). Quien no tiene el módulo ve a quién pedírselo.
+  **Solo a quien se le recibe mercadería** (ADR-0452 act. 2026-10-21): `getProveedoresActivos` trae `rubros` y `LlegoMercaderia` y
+  `recepcion-conteo/LlegoSinAviso.tsx` filtran con `lib/proveedores-reglas.ts:proveedoresParaPedir` (sin los «solo de gastos»: luz, agua,
+  internet); `LlegoSinAviso` suma su «¿No está? + Agregar proveedor» con `components/useAltaDeProveedor.tsx` (el modal fuera del `<form>`).
 - **Recibir y el cambio de sede** (ADR-0330 act. 2026-10-11): `recibir/page.tsx` monta `LlegoMercaderia` y `RecepcionEnvio` con
   `key={claveDeLaRecepcion(<sede>)}` dentro de `components/ui/TrabajoPorSede.tsx` (uno por vista, sin la sede en su key), que
   guarda lo contado en la sede que se deja y se lo devuelve a la pantalla al volver (`useTrabajoPorSede`). Lógica pura:
@@ -898,7 +901,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `pnpm pruebas:vitrina-probador`. Desde `/formidable` (2026-10-17): la página deja solo lo que el probador usa (`soloLoQueEntra`, con
   `zonaDelProbador` de `packages/shared/src/categorias-de-la-tienda.ts`, la misma tabla de grupos de la tienda), la pantalla dibuja su
   cabecera con el paso que toca (`siguientePaso`) y cada fila dice «Lista» o lo primero que le falta (`veredictoDelProbador`).
-- `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
+- `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores` (con rubros: «¿Quién la trae?» no
+  ofrece a los solo de gastos, salvo a quien ya trae una marca; los nombres de lo ya vinculado salen de todos),
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +
   píldoras `FiltrosMarcas.tsx`, tarjeta `TarjetaMarca.tsx` con el estado en el monograma y lo peligroso en `MenuAcciones`, 24 por
@@ -1428,6 +1432,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   proveedor por su marca; es una lectura **opcional** (si falla llega `null` y todo se pinta sin marcas). Reglas puras:
   `marcasPorProveedor`, `textoBuscableProveedor`, `detalleProveedorCombo`, `marcasParaMostrar`. **No cubre** los buscadores de
   Comprobantes y Recepciones, que filtran el proveedor dentro de sus RPC (`listar_compras_operativo` y la de recepciones).
+- **Registrar factura (`/compras/nueva`)** (ADR-0452 act. 2026-10-21): `page.tsx` filtra el directorio con `proveedoresParaPedir` (salvo el
+  que llega por `?prov=`) y pasa `puedeAgregarProveedor` y `getRubrosEnUso`; `CompraFormV2` suma «+ Agregar proveedor» al combo
+  (`components/useAltaDeProveedor.tsx`, `ProveedorModal` fuera del `<form>`) y deja elegido al nuevo. `getCatalogoMarcas` (`lib/marcas-datos.ts`:
+  alta y edición de producto, conteo) filtra igual.
 - `/compras` (Facturas), `/compras/nueva`, `/compras/factura/[compraId]`,
   `/compras/recibir`, `/compras/por-pagar` → `lib/compras.ts` →
   `CompraFormV2`, `CompraDetalle` + `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
@@ -1962,7 +1970,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     persona guardó antes) + `lib/orden-compra-alta.ts` (`borradorDeDetalle`, `argsEditarOrden`). Lo de antes queda en
     `orden_compra_versiones`; crear y editar anotan en Actividad (módulo `ordenes_compra`, sin montos).
   - `/compras/ordenes/nueva` («Nueva orden de compra») → `lib/ordenes-compra.ts:getDatosNuevaOrden` (proveedores, marcas, vínculos,
-    categorías, destinos y `fn_ordenes_compra_siguiente`) + `components/ordenes-compra/NuevaOrdenCompra.tsx` →
+    categorías, destinos y `fn_ordenes_compra_siguiente`; con sus rubros, para que el combo no ofrezca a los proveedores solo de gastos:
+    `lib/proveedores-reglas.ts:proveedoresParaPedir`, ADR-0452 act. 2026-10-21) + `components/ordenes-compra/NuevaOrdenCompra.tsx`
+    (su «+ Registrar proveedor» es `RegistrarProveedorOrden`, por el módulo Órdenes de compra: abajo; el filtro de arriba no lo toca, y a esa hoja
+    le pasa TODOS los proveedores para avisar de un repetido) →
     `lib/ordenes-compra-acciones.ts:crearOrdenCompra` (`crear_orden_compra`, firma `orden_compra_crear`: persona sin combo, terminal
     con combo) + `lib/orden-compra-alta.ts` (números como se tipean, cálculo de línea en céntimos, guía de foco, argumentos).
   - `/global/elige-sede` → `components/EligeSede.tsx` (la misma acción del selector). `/global/entrar` (route handler):
