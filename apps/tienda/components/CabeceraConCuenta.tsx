@@ -17,7 +17,7 @@ import { claveDeLaOpcion, type OpcionTienda } from "@/lib/sede-elegida";
 import { vaciarBolsaPorCambioDeTienda } from "@/app/acciones/bolsa";
 import { marcarUbicacionPreguntada, recordarSede, sedeYaRecordada, ubicacionYaPreguntada } from "@/lib/sede-cookie";
 import { claveMasCercana, debePedirUbicacion } from "@/lib/sede-cercana";
-import { ahoraMs, debeCubrir, esperaHastaElTope, esperaParaSalir, VELO_SALE_MS } from "@/lib/sede-velo";
+import { ahoraMs, debeCubrir, esperaHastaElTope, esperaParaSalir, EVENTO_CAMBIAR_TIENDA, VELO_SALE_MS } from "@/lib/sede-velo";
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
 import { NombreQueRueda, VeloDeSede } from "./VeloDeSede";
@@ -405,6 +405,28 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
   useEffect(() => {
     vivo.current = { opciones, prendasEnBolsa, ir };
   });
+  // «Ver lo que hay» de cada tienda (`BotonVerTienda`) pide el mismo cambio que este selector: con velo, cookie y, si la bolsa lleva prendas,
+  // la confirmación. Si la tienda pedida ya es la que se ve, no se atiende (el enlace sigue su camino).
+  useEffect(() => {
+    const alPedir = (e: Event) => {
+      const href = (e as CustomEvent<string>).detail;
+      const { opciones: ahora, prendasEnBolsa: enBolsa, ir: irA } = vivo.current;
+      // La tienda se reconoce por su clave (`?sede=`); se va al enlace que pidió el botón (el Inicio), no al de esta página.
+      const clave = claveDeLaOpcion(href);
+      const tienda = ahora.find((o) => claveDeLaOpcion(o.href) === clave);
+      const actual = ahora.find((o) => o.actual) ?? ahora[0];
+      if (!clave || !tienda || !actual) return;
+      if (!debeCubrir(claveDeLaOpcion(actual.href), clave)) return;
+      e.preventDefault();
+      const destino = { ...tienda, href };
+      if (enBolsa > 0) {
+        setPendiente(destino);
+        setAbierto(true);
+      } else irA(destino, false);
+    };
+    window.addEventListener(EVENTO_CAMBIAR_TIENDA, alPedir);
+    return () => window.removeEventListener(EVENTO_CAMBIAR_TIENDA, alPedir);
+  }, []);
   const pidioUbicacion = useRef(false);
   // La tienda más cercana (Felipe 2026-10-21): al entrar al Inicio por primera vez se pide la ubicación y se pasa a la tienda más cercana, con
   // el mismo velo de cambiar de tienda. La ubicación solo se usa para esto, aquí en el aparato: no se manda ni se guarda; se recuerda la
