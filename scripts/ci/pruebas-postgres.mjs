@@ -1300,6 +1300,11 @@ export const PRUEBAS = [
   // sin IGV, al crédito o al contado, y fuera del Registro de Compras de Impuestos. ROLLBACK siempre.
   "pruebas:ordenes-compra-sin-comprobante",
 
+  // El precio de venta SUGERIDO que viaja con la línea de la orden (ADR-0362, decisión 21): se guarda con sus motivos, las reglas son las mismas al
+  // crear y al editar, editar SOLO el sugerido cuenta como cambio (la huella lo mira), el comprobante lo hereda sin pisar lo que el papel traiga y
+  // quien recibe lo ve aunque no haya papel. ROLLBACK siempre.
+  "pruebas:orden-compra-sugerido",
+
   // Qué categorías maneja cada proveedor, derivado de lo que ya existe (productos, marcas de un solo proveedor, órdenes generadas y
   // comprobantes vigentes), para que Nueva orden ofrezca primero lo suyo: solo con el módulo Órdenes de compra; una orden o un
   // comprobante anulado, un producto rechazado o de prueba, y una marca que traen dos proveedores no cuentan. ROLLBACK siempre.
