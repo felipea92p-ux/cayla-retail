@@ -53,3 +53,10 @@
 @media (prefers-reduced-motion: reduce) {
   .n-enlace { transition: none; }
 }
+
+/* Mientras la cuenta responde (borrar una, las elegidas o todas; o buscar): la lista se apaga un poco y el botón tocado lo dice, para que el
+   toque no parezca perdido. Sin transición larga: se atenúa tras un respiro, así lo instantáneo no parpadea. */
+.n-lista-caja[aria-busy="true"] .n-lista,
+.n-pag:has(.n-buscar [aria-busy="true"]) .n-lista { opacity: .5; transition: opacity .25s var(--ease) .12s; pointer-events: none; }
+.n-acciones .t-btn[aria-busy="true"]:disabled { opacity: 1; cursor: progress; }
+.n-fila > .t-avisos-borrar:disabled { opacity: .5; cursor: progress; }
