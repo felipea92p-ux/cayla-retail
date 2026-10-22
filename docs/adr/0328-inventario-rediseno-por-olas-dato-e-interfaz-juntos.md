@@ -505,3 +505,70 @@ protegía nada, y con la nueva el CI la corre después de todas las de `main`, i
 **SE ROMPE SI** alguien recrea `fn_movimiento_no_ajusta_cuarentena` o el disparador en otra migración sin partir de este archivo, o si
 una función nueva necesita escribir un `ajuste` en la cuarentena a propósito: el disparador la rechaza entera (todo o nada) y
 `pruebas:cuarentena-no-se-ajusta` lo dice.
+
+## Actualización 2026-10-22 — «Completar todo» de una tarjeta cuenta, pero lo dice (decisión 10, segunda mitad)
+
+**El problema, primero.** La decisión 10 le puso la verdad a «Aplicar todos completos» (el atajo de TODO el conteo): lo aplicado sin
+mirar queda como «Sin contar» y no sube la exactitud. Pero cada tarjeta (un modelo y un color, con sus tallas) tiene su propio botón
+«Completar todo» que hace lo mismo de a una tarjeta —anota, en las tallas pendientes, lo que CAYLA esperaba— y la pantalla lo mandaba
+a la base como si la persona hubiera escrito cada número: una llamada a `conteo_contar` por talla, sin rastro de que fue un atajo.
+Eso importa por la actividad 15 (migración `20261004230100`): el primer conteo completo de un lugar es «de arranque» y fija el punto de partida; uno que
+nadie miró deja los errores de la carga inicial para el conteo siguiente, donde entran como merma (cuenta 659) en un libro que no se
+corrige.
+
+**Lo que decidió Felipe (2026-10-05, entre dejarlo, marcarlo «sin contar» o contarlo pero decirlo):** contarlo pero decirlo.
+
+**DECIDÍ:** la tarjeta completada con el atajo SIGUE contando (sube la exactitud, vale para el arranque y puede tener diferencia, porque
+la persona tenía la tarjeta delante y afirmó lo que veía) y queda MARCADA: `conteo_items.completada_con_atajo`. Revisar y Confirmar
+dicen «N de M variantes contadas se completaron con «Completar todo», con lo que CAYLA esperaba». Solo informa: no bloquea ni cambia
+qué se aplica, y si no hubo ninguna no dice nada. La pantalla manda UNA llamada por tarjeta, `conteo_completar_tarjeta(conteo, líneas)`,
+que en una sola transacción llama a `conteo_contar` línea por línea (mismos candados y mismo orden) y marca lo que ella contó.
+Estados que dejan de ser posibles (`conteo_items_atajo_coherente` + un disparador): una marca sin cifra, una línea a la vez «con el
+atajo» y «aplicada sin contar» (son dos historias: una contó, la otra no) y una línea que se volvió a verificar en la base (otra llamada
+a `conteo_contar`) y sigue diciendo «con el atajo».
+**DESCARTÉ:** (1) marcarla `aplicada_sin_contar` (opción B): el atajo perdería su razón de ser —habría que escribir cada talla— y se
+frenaría el conteo en la semana más cargada; (2) deducirla de los datos («contada = esperada»): casi todas las líneas bien contadas
+coinciden con lo esperado, y el atajo quedaría confundido con el conteo honesto; (3) recordarlo solo en el navegador: no viaja entre
+aparatos (se cuenta en el celular y se revisa en la computadora) ni sobrevive a cerrar la pestaña, y es justo en Revisar donde se
+necesita; (4) un parámetro nuevo en `conteo_contar`: recrearla entera arrastra sus parches vivos, así que la función nueva la LLAMA y
+no la toca; (5) que el atajo escriba el stock de ahora, como `conteo_aplicar_completos`: cambiaría lo que el botón ya hace (quien ve 3 y
+confirma 3 tiene una diferencia si entre tanto se vendió una); (6) un respaldo en la web «talla por talla» para el día en que la web
+saliera antes que el SQL: se escribió y se quitó el mismo día, porque el SQL se pegó antes de publicar y dos revisores independientes
+lo marcaron como código muerto con un fallo propio (si fallaba a medias, la pantalla mostraba pendiente lo que la base ya había contado).
+**Esto reemplaza un descarte anterior:** la ADR-0282 (act. 2026-09-29 b) había descartado «una acción de servidor completar producto:
+sería otra puerta que escribe conteos y habría que blindarla igual». La función nueva NO es otra puerta: llama a `conteo_contar` con sus
+mismos permisos y candados (`fn_puede_operar_ubicacion`, `fn_actor_persona_id(true)`) y no escribe stock ni movimientos; lo único nuevo
+que escribe es la marca.
+**SE ROMPE SI** alguien usa «Completar todo» en las 30 tarjetas para terminar rápido y quien cierra no lee la frase: informa, no frena.
+Si pasa en un arranque real, el paso siguiente es pedir confirmación en Confirmar cuando la mayoría de lo contado vino del atajo
+(decisión de Felipe, no se hizo). También se rompe si `conteo_contar` cambia de firma y `conteo_completar_tarjeta` no se rehace con ella.
+Y la marca puede quedar puesta sobre una línea que alguien sí miró: teclear encima el MISMO número que dejó el atajo no llega a la base
+(la pantalla descarta una cifra igual a la anotada), así que no pasa por el disparador. Por eso la frase dice «con lo que CAYLA
+esperaba» y no «nadie escribió su cantidad»: tiene que ser cierta también en ese caso.
+
+**Orden de despliegue.** El SQL va antes que la web (ya está pegado). En una base que no tenga la función (una local atrasada),
+«Completar todo» recibe un error de la base y la pantalla lo avisa; las tallas se cuentan a mano, como siempre. No hay camino de
+respaldo (ver DESCARTÉ 6).
+
+**Conocido y no arreglado aquí** (todo BAJA, sin pérdida ni corrupción de datos; en el backlog): (a) si el lote falla, el aviso es un texto
+que se va solo y la tarjeta reaparece pendiente (lo mismo hace «Aplicar todos completos»: mejorarlo es un pulido conjunto);
+(b) `scripts/purga/restaurar-purga.sql` reinserta respaldos viejos con `jsonb_populate_recordset`, y la columna nueva es `not null`
+(como `aplicada_sin_contar`): un respaldo anterior a ella no trae la clave y la restauración falla con 23502; se arregla en ese script;
+(c) reabrir un conteo cerrado y completar una tarjeta mientras otra persona envía un ajuste de «Ajustar inventario» enlazado a una línea de
+ese conteo puede dar un deadlock (40P01): el atajo toma conteo y luego stock, y `ajustar_inventario` toma el stock (línea 286 de
+`20261001120000`) y luego llama a `registrar_hallazgo_de_conteo`, que toma la línea y el conteo; el orden inverso ya existía con
+`conteo_contar` suelto y el atajo solo alarga la ventana (retiene los candados de toda la tarjeta). Postgres cancela una, no hay
+corrupción y ese ajuste habría fallado igual por `hallazgo_conteo_no_cerrado`; el arreglo va en `registrar_hallazgo_de_conteo` (validar el
+estado antes de tomar candados); (d) la base no comprueba que la cantidad del atajo sea la
+esperada: es informativo y quien puede llamar la función también puede contar a mano esa cifra.
+
+**Estado.** La migración (`20261022145000_conteo_atajo_por_tarjeta.sql`, creada el 5-oct como `20261005233700` y renombrada el 22-oct a su versión
+reservada, sin cambiar una línea de SQL, igual que la de la cuarentena el 14-oct; una sola parte, sin políticas, idempotente) ya la pegó Felipe
+en producción (lo confirmó el 2026-10-22); comprobada ese día por efectos (solo lectura): columna `boolean not null default false`, restricción, disparador y su
+función, `conteo_completar_tarjeta` con `security definer` ejecutable por `authenticated` y no por `anon`, firmas de `conteo_contar` y
+`fn_conteo_lineas_json` idénticas a las que llama, 0 filas marcadas. Prueba SQL de 15 casos con controles por mutación
+(`pnpm pruebas:conteo-atajo-tarjeta`, en el runner de tandas del CI). Verificado en el navegador contra una base propia con las 807
+migraciones de `main`: una sola petición por tarjeta, la marca solo en las líneas del atajo (la escrita a mano no la lleva), la frase en
+Revisar y en Confirmar y 375 px sin desborde. Revisión independiente de solo lectura (tres lentes —SQL, web, integración con `main`— y un
+escéptico por hallazgo): ninguno bloquea ni corrompe; lo confirmado quedó en BAJA y se atendió aquí (respaldo quitado, frase,
+comentarios y referencias) o quedó listado arriba.

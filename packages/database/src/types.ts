@@ -1864,6 +1864,7 @@ export type Database = {
       conteo_items: {
         Row: {
           aplicada_sin_contar: boolean
+          completada_con_atajo: boolean
           cantidad_contada: number | null
           cantidad_foto: number | null
           cantidad_sistema: number
@@ -1878,6 +1879,7 @@ export type Database = {
         }
         Insert: {
           aplicada_sin_contar?: boolean
+          completada_con_atajo?: boolean
           cantidad_contada?: number | null
           cantidad_foto?: number | null
           cantidad_sistema: number
@@ -1892,6 +1894,7 @@ export type Database = {
         }
         Update: {
           aplicada_sin_contar?: boolean
+          completada_con_atajo?: boolean
           cantidad_contada?: number | null
           cantidad_foto?: number | null
           cantidad_sistema?: number
@@ -6593,6 +6596,11 @@ export type Database = {
       // ADR-0328 (20261004230100): «Aplicar todos completos» en una sola llamada; devuelve { aplicadas, lineas }.
       conteo_aplicar_completos: {
         Args: { p_conteo_id: string; p_variantes: string[] }
+        Returns: Json
+      }
+      // ADR-0328 (20261022145000): «Completar todo» de una tarjeta, contado y marcado en una sola llamada; devuelve { completadas, lineas }.
+      conteo_completar_tarjeta: {
+        Args: { p_conteo_id: string; p_lineas: Json }
         Returns: Json
       }
       conteo_recontar: {
