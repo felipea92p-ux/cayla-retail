@@ -5,10 +5,12 @@ import {
   MOVIMIENTO_MINIMO,
   TOPE_GOMA,
   decidirGesto,
+  decidirLado,
   destinoAlSoltar,
   duracionHacia,
   fondoSegun,
   goma,
+  pasoDeLado,
   posicionAlArrastrar,
   progresoDeCierre,
   puntoMedio,
@@ -165,6 +167,32 @@ describe("fondoSegun (lo de atrás se aleja y vuelve con el dedo)", () => {
     expect(medio.bajada).toBeCloseTo(FONDO_ALEJADO.bajada / 2, 5);
     expect(fondoSegun(-0.4)).toEqual(fondoSegun(0));
     expect(fondoSegun(1.7)).toEqual(fondoSegun(1));
+  });
+});
+
+describe("decidirLado y pasoDeLado (pasar de registro en el cajón)", () => {
+  const ambos = { anterior: true, siguiente: true };
+
+  it("decide solo cuando el dedo se movió, y solo si va claramente de lado", () => {
+    expect(decidirLado(4, 2)).toBeNull();
+    expect(decidirLado(-40, 10)).toBe("lado");
+    expect(decidirLado(20, 30)).toBe("otro");
+  });
+
+  it("dedo a la izquierda pasa al siguiente; a la derecha, al anterior", () => {
+    expect(pasoDeLado(-120, 0, 375, ambos)).toBe(1);
+    expect(pasoDeLado(120, 0, 375, ambos)).toBe(-1);
+  });
+
+  it("poco recorrido y sin tirón, vuelve; con un tirón en su sentido, pasa", () => {
+    expect(pasoDeLado(-40, 0, 375, ambos)).toBe(0);
+    expect(pasoDeLado(-40, -0.8, 375, ambos)).toBe(1);
+    expect(pasoDeLado(-40, 0.8, 375, ambos)).toBe(0);
+  });
+
+  it("en la punta de la lista no pasa a ninguna parte", () => {
+    expect(pasoDeLado(-200, -1, 375, { anterior: true, siguiente: false })).toBe(0);
+    expect(pasoDeLado(200, 1, 375, { anterior: false, siguiente: true })).toBe(0);
   });
 });
 

@@ -132,6 +132,29 @@ export function fondoSegun(progreso: number): { escala: number; bajada: number; 
   };
 }
 
+/**
+ * Deslizar a los lados en el detalle de un registro (el cajón en el celular, actividad 5): ¿el gesto es para pasar de
+ * registro? `null` si todavía no se sabe; «otro» si es vertical (de la hoja o del contenido).
+ */
+export function decidirLado(dx: number, dy: number): "lado" | "otro" | null {
+  if (Math.abs(dx) < MOVIMIENTO_MINIMO && Math.abs(dy) < MOVIMIENTO_MINIMO) return null;
+  return Math.abs(dx) > Math.abs(dy) * 1.2 ? "lado" : "otro";
+}
+
+/**
+ * Al soltar un deslizamiento de lado: −1 (el anterior), +1 (el siguiente) o 0 (vuelve). Dedo a la izquierda es el siguiente,
+ * como pasar una página. Pasa quien recorrió una cuarta parte del ancho o fue un tirón (0,45 px/ms) en ese sentido, y solo si
+ * hay a dónde ir.
+ */
+export function pasoDeLado(dx: number, vx: number, ancho: number, hay: { anterior: boolean; siguiente: boolean }): -1 | 0 | 1 {
+  const quiere = dx < 0 ? 1 : -1;
+  const decidido = Math.abs(dx) > ancho / 4 || (Math.abs(vx) > 0.45 && Math.sign(vx) === Math.sign(dx));
+  if (!decidido || dx === 0) return 0;
+  if (quiere === 1 && !hay.siguiente) return 0;
+  if (quiere === -1 && !hay.anterior) return 0;
+  return quiere;
+}
+
 /** Cuánto de la hoja se fue (0 abierta, 1 cerrada): el velo se aclara en esa misma proporción. */
 export function progresoDeCierre(y: number, alto: number): number {
   if (alto <= 0) return 0;

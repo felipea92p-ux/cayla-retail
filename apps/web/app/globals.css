@@ -1839,6 +1839,9 @@ html[data-buscando] [data-resultados] {
   from { transform: none; }
   to { transform: translate3d(0, 100%, 0); }
 }
+@keyframes cayla-entra-de-lado {
+  from { opacity: 0.2; transform: translate3d(var(--desde-x, 0px), 0, 0); }
+}
 @layer components {
   .asa-hoja { display: none; }
   @media (max-width: 639.98px) {
@@ -1873,6 +1876,20 @@ html[data-buscando] [data-resultados] {
     .cascada-modal.anim-modal-sale:not([data-variante="camara"]) {
       animation: cayla-hoja-movil-sale 300ms var(--ease-salida) both;
     }
+    /* El cajón (`<Cajon>`, actividad 5) también es una hoja alta en el celular: llega y se va como ella. */
+    .cajon-hoja.anim-cajon {
+      animation: cayla-hoja-movil-entra 460ms var(--ease-cayla) backwards;
+    }
+    .cajon-hoja.anim-cajon-salida {
+      animation: cayla-hoja-movil-sale 300ms var(--ease-salida) both;
+    }
+    /* Al pasar de registro deslizando (o con ‹ ›), el nuevo entra desde el lado hacia donde fue el dedo: el siguiente desde la
+       derecha, el anterior desde la izquierda. Reemplaza al «se reacomoda» de escritorio (`anim-asentar`). */
+    .cajon-hoja [data-registro][data-lado] {
+      animation: cayla-entra-de-lado 300ms var(--ease-cayla) both;
+    }
+    .cajon-hoja [data-registro][data-lado="1"] { --desde-x: 40px; }
+    .cajon-hoja [data-registro][data-lado="-1"] { --desde-x: -40px; }
   }
   /* Una hoja que quedó fuera de su lugar (a media altura, `data-movida`, la pone useHojaArrastre) sale con su transición: la
      animación de salida, sobre la misma propiedad, la cancelaría y la hoja (y el velo) saltarían abajo de golpe (medido). Lleva el

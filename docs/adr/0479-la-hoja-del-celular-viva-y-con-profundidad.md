@@ -1,8 +1,8 @@
 # ADR-0479 — La hoja del celular: viva y con profundidad
 
 - **Fecha:** 2026-10-22 · **Estado:** aceptado (Felipe eligió «B · Hoja viva con profundidad» mirando la maqueta). En construcción por
-  actividades en la rama `claude/unificar-animaciones-moviles-51e9d0`: **actividades 1 a 4 hechas** (la hoja viva en `<Modal>`, el
-  ticket de Vender, la profundidad y Filtros a media altura).
+  actividades en la rama `claude/unificar-animaciones-moviles-51e9d0`: **actividades 1 a 5 hechas** (la hoja viva en `<Modal>`, el
+  ticket de Vender, la profundidad, Filtros a media altura y el cajón como hoja alta).
 - **Relacionados:** ADR-0136 (regla de movimiento de modales), ADR-0358 (una función, una pieza: `/unificar`), ADR-0185 (la página no
   se encoge bajo el mouse), ADR-0146 (avisos), ADR-0149 (loader único), PL-105 (Vender, Cambios y Devoluciones a 375 px).
 - **Maqueta y auditoría:** `docs/maquetas/hojas-movil-2026-10/index.html` (pestaña «Lo que encontré»).
@@ -46,7 +46,7 @@ Todo vale **solo bajo 640 px**, donde la hoja va pegada abajo. En escritorio y e
 | 2 | El mostrador: el ticket de Vender con el dedo; Vender, Cambios, Devoluciones y Apartados a 375 px | **Hecha** |
 | 3 | La profundidad: lo de atrás se aleja y vuelve con el dedo | **Hecha** |
 | 4 | Filtros a media altura | **Hecha** |
-| 5 | El cajón como hoja alta | Por hacer |
+| 5 | El cajón como hoja alta | **Hecha** |
 | 6 | Registro: familia en `/unificar`, ADR-0136 y `CLAUDE.md`; PR | Por hacer |
 | 7 | Que un toque no deje nada pegado (`:hover` solo con mouse) | Por hacer |
 | 8 | El aviso en el celular | Por hacer |
@@ -159,3 +159,21 @@ lento un poco más de un tercio la devuelve a 406; un tirón desde ahí la cierr
 ms (406 → 574 → 718 → … → 812). Filtros de Existencias (`/inventario`) también abre a la mitad. Lo de las actividades 1 a 3 sigue igual
 (hoja con texto, contenido desplazado, arrastre corto, escritorio, ticket cobrando, barra de Caja). `vitest` completo, `tsc`, `eslint`,
 `knip` y `knip:produccion` en verde.
+
+## Actividad 5 — el cajón como hoja alta
+
+- **En el celular `<Cajon>` es la misma hoja que `<Modal>`:** sube desde abajo hasta el 92 % (clase `cajon-hoja` y `max-sm:` en
+  `Cajon.tsx`; entrada y salida en globals.css), con su asa, se baja con el dedo (`useHojaArrastre`) y aleja lo de atrás
+  (`fondoDeLaHoja.ts`). Los 10 cajones del ERP lo heredan sin tocarlos. En escritorio no cambia nada.
+- **Siempre con velo en el celular:** Movimientos, Equipo, la ficha de una terminal y Recomendaciones abren su cajón sin velo para que
+  la lista de atrás siga viva; en el teléfono la hoja la tapa y tocarla no sirve, así que ahí va con velo y es modal (`useEnCelular`).
+- **Deslizar a los lados para pasar de registro** (donde hay `navegacion`: Por pagar, Notas de crédito, Proveedores): el registro sigue
+  al dedo, resiste en las puntas de la lista y, al soltar, `pasoDeLado` decide (una cuarta parte del ancho o un tirón). El dedo a la
+  izquierda es el siguiente; el registro nuevo entra desde ese lado (`cayla-entra-de-lado`, 300 ms, en vez del «se reacomoda» de
+  escritorio). Las flechas del pie son ‹ › en el celular y ↑ ↓ en escritorio; el teclado sigue con ↑ ↓. El asa queda fuera del registro,
+  así no se desliza con él. No desliza desde un campo, una lista abierta, un deslizador ni algo que corre de lado (una tabla ancha).
+
+**Verificado (2026-10-22, local, 375 × 812 táctil emulado):** el detalle de un movimiento y la ficha de un proveedor abren como hoja
+alta (borde en 65 px, 375 de ancho), con asa y velo, alejan lo de atrás (0,92) y se cierran con el dedo sin dejar estilos; en Por pagar,
+deslizar a la izquierda pasa de «1 de 3» a «2 de 3» y a la derecha vuelve. En escritorio (1440 × 900) el cajón de Movimientos sigue a
+la derecha (456 px), sin asa y sin velo. `vitest` completo, `tsc`, `eslint`, `knip` y `knip:produccion` en verde.
