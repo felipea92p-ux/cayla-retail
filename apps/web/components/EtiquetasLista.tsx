@@ -691,6 +691,92 @@ export function EtiquetasLista({
   );
 }
 
+/**
+ * UNA campaña, con la misma tarjeta, los mismos botones («Prendas», «Configurar» o «Repetir») y las mismas hojas que en
+ * Catálogo ▸ Campañas. La monta la ficha de Tienda web ▸ Campañas (pestaña «Datos y prendas»): Felipe, 2026-10-22, «que se pueda
+ * editar, agregar prendas y demás cosas a las campañas desde ambos módulos» y «mismas piezas dentro» (ADR-0473). Guarda por las
+ * mismas rutas; la base decide quién puede (`fn_puede_campanas`).
+ */
+export function TarjetaDeCampana({
+  campana,
+  categorias,
+  prendasConCosto,
+  variantesManuales,
+}: {
+  campana: Etiqueta;
+  categorias: CategoriaOpcion[];
+  prendasConCosto: PrendaConCosto[];
+  /** Las prendas puestas a mano en ESTA campaña. */
+  variantesManuales: string[];
+}) {
+  const [e, setE] = useState(campana);
+  const [manuales, setManuales] = useState(variantesManuales);
+  const [configurando, setConfigurando] = useState(false);
+  const [etiquetando, setEtiquetando] = useState(false);
+  const hoy = hoyLima();
+  const editable = e.estado === "aprobado" && e.activo;
+  return (
+    <div className="max-w-xs">
+      <TarjetaEtiqueta
+        e={e}
+        vigencia={vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy)}
+        hoy={hoy}
+        apagada={!e.activo}
+        conteo={conteoDeTarjeta(prendasConCosto, new Set(e.categoriaIds), manuales)}
+      >
+        {editable && (
+          <PieTarjeta>
+            <div className="grid w-full gap-1.5">
+              <button type="button" onClick={() => setEtiquetando(true)} data-guia="campana-web.prendas" className="btn-cayla btn-sutil btn-chico w-full whitespace-nowrap">
+                Prendas
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfigurando(true)}
+                title={botonCampana(e, hoy).title}
+                data-guia="campana-web.configurar"
+                className="btn-cayla btn-sutil btn-chico w-full whitespace-nowrap"
+              >
+                {botonCampana(e, hoy).texto}
+              </button>
+            </div>
+          </PieTarjeta>
+        )}
+      </TarjetaEtiqueta>
+      {!editable && (
+        <p className="nota-cayla mt-3 text-xs">Esta campaña está desactivada o pendiente de aprobar: se cambia en Catálogo ▸ Campañas.</p>
+      )}
+      {etiquetando && (
+        <PrendasDeEtiquetaModal
+          etiqueta={e}
+          prendasConCosto={prendasConCosto}
+          marcasManuales={manuales}
+          onClose={() => setEtiquetando(false)}
+          onAplicado={(finales) => {
+            setManuales(finales);
+            setEtiquetando(false);
+          }}
+        />
+      )}
+      {configurando && (
+        <CampanaModal
+          modo="campanas"
+          etiqueta={e}
+          puedeDarDescuento
+          categorias={categorias}
+          prendasConCosto={prendasConCosto}
+          variantesManuales={manuales}
+          onClose={() => setConfigurando(false)}
+          onGuardado={(cambios) => {
+            setE((actual) => ({ ...actual, ...cambios }));
+            setConfigurando(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Configurar campaña: descuento, fechas y categorías, guardados juntos por el
 // RPC `actualizar_campana_etiqueta` (todo o nada). Las categorías son

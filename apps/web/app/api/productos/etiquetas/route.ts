@@ -1,4 +1,4 @@
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 // ADR-0161: cambiar el catálogo es operación de tienda; la firma del combo «Responsable» que manda la pantalla
 // viaja a la base en cada consulta de este cliente (sin firma, igual que antes).
@@ -37,7 +37,9 @@ export async function PATCH(request: Request) {
   // 20260923130000: el líder o un rol con el módulo Etiquetas (`editarEtiquetas`). Lo que lleva descuento sigue siendo del
   // líder: se dice aquí con palabras y la base lo vuelve a exigir (política `etiquetas_update`, `fn_puede_tocar_etiqueta`).
   const persona = await requirePersonaActualV2();
-  if (!puede(persona, "editarEtiquetas")) {
+  // Una campaña también la edita quien ve Campañas o Campañas de la tienda web (Felipe 2026-10-22, ADR-0473); la base decide
+  // fila por fila (`fn_puede_tocar_etiqueta`: una campaña pide `fn_puede_campanas`, un sello `fn_puede_editar_etiquetas`).
+  if (!puede(persona, "editarEtiquetas") && !veModulo(persona, "campanas") && !veModulo(persona, "campanas_web")) {
     return Response.json({ error: "Editar sellos o campañas necesita el módulo Sellos o Campañas en tu rol." }, { status: 403 });
   }
   const esLider = persona.rol === "lider";

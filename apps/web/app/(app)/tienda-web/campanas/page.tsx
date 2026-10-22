@@ -24,7 +24,7 @@ export default async function CampanasWebPage() {
         subtitulo="Cómo se ve la tienda online durante cada campaña. Las fechas, el descuento y las prendas se siguen armando en Catálogo ▸ Campañas."
       />
       {lectura ? (
-        <CampanasPantalla lectura={lectura} puedeIrACampanas={veModulo(persona, "campanas_catalogo")} />
+        <CampanasPantalla lectura={lectura} puedeIrACampanas={veModulo(persona, "campanas")} />
       ) : (
         <Aviso tono="error" titulo="No se pudieron leer las campañas">
           Recarga la página; si sigue, avísale al líder.

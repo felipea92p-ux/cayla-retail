@@ -2,7 +2,7 @@
   "guia": "productos.campanas",
   "ruta": "/productos/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 59,
+  "total": 61,
   "controles": {
     "app/(app)/productos/campanas/page.tsx": [
       "BotonVer «Cómo se ven en la tienda web»"
@@ -26,6 +26,8 @@
       "CampoTexto «Motivo (opcional)»",
       "Boton «Cancelar» #2",
       "Boton «Confirmar rechazo»",
+      "button «campana-web.prendas»",
+      "button «campana-web.configurar»",
       "CampoTexto «{guia.etiqueta(\"descuento\", \"Descuento (%)\")}»",
       "button «Sin descuento»",
       "button «{v}»",

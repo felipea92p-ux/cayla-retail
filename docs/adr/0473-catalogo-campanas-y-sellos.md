@@ -31,11 +31,15 @@ etiquetas: 13 campañas y 13 marcas de prenda (Nuevo, Top ventas, Hecho a mano, 
   el Plan de campaña y el diseño web las siguen leyendo igual. Cada pantalla filtra sus filas con `esDelModo`
   (`apps/web/lib/sellos-campanas.ts`), y las dos usan la misma lista (`EtiquetasLista` con `modo`) y el mismo cargador
   (`lib/etiquetas-pantalla-datos.ts`).
-- **Módulo nuevo `campanas_catalogo`** («Campañas», orden 142), nace sin rol y delegable (ADR-0161). **Consecuencia:** los roles que
-  hoy configuran campañas con «Etiquetas» conservan los Sellos, pero no ven la pantalla Campañas hasta que el líder se la dé en Roles
-  y accesos.
-- **`fn_puede_editar_etiquetas()` acepta también `campanas_catalogo`** (y la web, `editarEtiquetas`), porque una campaña es una fila de
-  `etiquetas`: sin eso, quien recibe Campañas vería la pantalla y la base le rechazaría cada guardado.
+- **El módulo es `campanas`, el que ya existe en producción** (PR #1190, `20261017151000`, nacido en Tienda web y cableado a las 13
+  funciones que crean, configuran y etiquetan una campaña). La migración lo muda a Catálogo (orden 142) con su «incluye» al día; en una
+  base sin #1190 nace sin rol. Terminal Almacén, que ya lo tenía, lo conserva.
+- **Quién guarda una campaña** (Felipe, 2026-10-22, en la sesión que unifica los módulos de campañas: «que se pueda editar, agregar
+  prendas y demás cosas a las campañas desde ambos módulos»): el líder, o quien vea Campañas, Campañas de la tienda web o Sellos
+  (`fn_puede_campanas`, en la migración de esa sesión; esta no toca funciones). La ruta `/api/productos/etiquetas` deja pasar a esos
+  tres módulos y la base decide fila por fila.
+- **Tienda web ▸ Campañas ▸ una campaña** suma la pestaña «Datos y prendas» con la MISMA tarjeta y las mismas hojas de Catálogo
+  (`TarjetaDeCampana` en `components/EtiquetasLista.tsx`): «mismas piezas dentro».
 - Crear desde Campañas manda `estilo: "campana"` al `POST /api/productos/etiquetas`; la política de alta ya lo aceptaba.
 
 ## Descartado
@@ -45,8 +49,9 @@ etiquetas: 13 campañas y 13 marcas de prenda (Nuevo, Top ventas, Hecho a mano, 
   `etiquetas` ya se podía todo eso. La pantalla es la que separa.
 - **Renombrar la tabla o la clave del módulo** a `sellos`: rompe historia, políticas y Actividad sin ganar nada a la vista (como
   `clientas`).
-- **La clave `campanas`**: ya existe en producción, en Tienda web (PR #1190). Los dos módulos de campañas de Tienda web se resuelven
-  en otra sesión.
+- **Un módulo nuevo `campanas_catalogo`** (la primera versión de esta rama): en producción la llave de una campaña ya era `campanas`
+  (`fn_puede_campanas`), así que quien lo recibiera vería la pantalla y la base le rechazaría cada guardado. Felipe eligió reusar
+  `campanas`. `campanas_web` se queda en Tienda web para el diseño.
 - **Poner las campañas en Ventas o unirlas a Tienda web ▸ Campañas:** Felipe eligió Catálogo. Ventas ya está cargado; bajo «Tienda web»
   parecería que una campaña es solo online, y también rige en las tiendas.
 
@@ -58,4 +63,6 @@ guías de Atributos y de Campañas (`guias.test.ts`) y toda la suite de la web.
 
 ## Sin verificar
 
-Producción. El enlace al diseño web de cada campaña: la base local no tiene el módulo `campanas_web` ni campañas con descuento.
+Producción. La pestaña «Datos y prendas» y el enlace al diseño web en Tienda web: la base local no tiene las migraciones de Tienda web ▸
+Campañas (`campanas_web`, `fn_campana_diseno`). Un rol que solo ve `campanas` o `campanas_web` guardando una campaña: depende de
+`fn_puede_campanas`, que llega con la migración de la otra sesión.

@@ -841,7 +841,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`filtrarColores`, `filtrarPorNombre`, `usoDe`) y, para Temporadas, `lib/temporadas-pantalla.ts` (`estacionesDe`,
   `grupoDeTemporada`, `tonoDeTemporada`; dibujo en `MuestraTemporada`, molde `MuestraIcono` de `MuestraEtiqueta`).
   Temporadas abre en `?vista=lista` (la grilla) desde el 2026-09-28. ADR-0261.
-- `/productos/campanas` (Catálogo ▸ Campañas, módulo `campanas_catalogo`, ADR-0473) → `page.tsx` lee con
+- `/productos/campanas` (Catálogo ▸ Campañas, módulo `campanas`, ADR-0473; la misma tarjeta, `TarjetaDeCampana`, vive en la pestaña «Datos y prendas» de `/tienda-web/campanas/[id]`) → `page.tsx` lee con
   `lib/etiquetas-pantalla-datos.ts` (`cargarEtiquetasPantalla({ modo: "campanas" })`, el mismo cargador de la pestaña Sellos de
   `/productos/atributos?tipo=etiquetas`) → `EtiquetasLista` con `modo="campanas"`: tramos por fecha (`lib/sellos-campanas.ts`,
   `campanasPorTramo`), crear (`POST /api/productos/etiquetas` con `estilo: "campana"`), configurar o repetir

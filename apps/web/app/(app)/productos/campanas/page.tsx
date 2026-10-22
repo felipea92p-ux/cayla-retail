@@ -1,4 +1,4 @@
-import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
+import { exigirModulo, veModulo } from "@/lib/persona-actual";
 import { cargarEtiquetasPantalla } from "@/lib/etiquetas-pantalla-datos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonVer } from "@/components/ui/BotonDescargar";
@@ -9,9 +9,10 @@ import { EtiquetasLista } from "@/components/EtiquetasLista";
 // que se imprimen. Son las mismas filas de `etiquetas` (estilo `campana`): Vender, la tienda online y su diseño las leen igual.
 export default async function CampanasPage() {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
-  const persona = await exigirModulo("campanas_catalogo");
-  // Quien ve el módulo hace todo lo que hay en él (ADR-0161): `editarEtiquetas` sale de Sellos o de Campañas, igual que en la base.
-  const puedeEditar = puede(persona, "editarEtiquetas");
+  const persona = await exigirModulo("campanas");
+  // Quien ve el módulo hace todo lo que hay en él (ADR-0161): crear, configurar y poner prendas. La base lo vuelve a exigir
+  // (`fn_puede_campanas`: líder, Campañas, Campañas de la tienda web o Sellos; Felipe 2026-10-22).
+  const puedeEditar = true;
   const datos = await cargarEtiquetasPantalla({ modo: "campanas", puedeEditar, conRotacion: false, esLider: persona.rol === "lider" });
   const veDisenoWeb = veModulo(persona, "campanas_web");
 

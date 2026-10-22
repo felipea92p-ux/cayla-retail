@@ -2,7 +2,7 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 172,
+  "total": 174,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «(sin nombre)»"
@@ -68,6 +68,8 @@
       "CampoTexto «Motivo (opcional)»",
       "Boton «Cancelar» #2",
       "Boton «Confirmar rechazo»",
+      "button «campana-web.prendas»",
+      "button «campana-web.configurar»",
       "CampoTexto «{guia.etiqueta(\"descuento\", \"Descuento (%)\")}»",
       "button «Sin descuento»",
       "button «{v}»",
