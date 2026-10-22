@@ -19,13 +19,19 @@
  * atajo»), así que no depende de los conteos que otras sesiones dejen en el local.
  *
  * USO
- *   pnpm pruebas:conteo-atajo-tarjeta              → contra la base `postgres` del stack local (la del CI)
- *   pnpm pruebas:conteo-atajo-tarjeta --detalle    → además dice qué dio cada control con la función mutada
+ *   pnpm pruebas:conteo-atajo-tarjeta                              → contra la base `postgres` del stack local (la del CI)
+ *   pnpm pruebas:conteo-atajo-tarjeta --contenedor supabase_db_x   → contra otro stack (un banco de pruebas propio)
+ *   pnpm pruebas:conteo-atajo-tarjeta --detalle                    → además dice qué dio cada control con la función mutada
  */
 
 import { execFileSync } from "node:child_process";
 
-const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+// Como las pruebas nuevas: `--contenedor <nombre>` apunta a un banco de pruebas propio y, sin él, corre contra el stack local de siempre.
+const arg = (nombre, porDefecto) => {
+  const i = process.argv.indexOf(nombre);
+  return i > 0 ? process.argv[i + 1] : porDefecto;
+};
+const CONTENEDOR_LOCAL = arg("--contenedor", "supabase_db_cayla-retail");
 const DETALLE = process.argv.includes("--detalle");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y admin (seed)
@@ -309,7 +315,7 @@ function main() {
     }
   }
 
-  console.log(`\n${CASOS.length - fallos}/${CASOS.length} pruebas en verde.`);
+  console.log(`\n${CASOS.length - fallos}/${CASOS.length} pruebas en verde (contenedor: ${CONTENEDOR_LOCAL}).`);
   process.exit(fallos > 0 ? 1 : 0);
 }
 
