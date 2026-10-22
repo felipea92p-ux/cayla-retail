@@ -358,7 +358,7 @@ export function PrendasDeEtiquetaModal({
     const p = leida.lectura.producto;
     vuelo.current = { ids: leida.otras, desde: () => document.querySelector("[data-leida-mini]") };
     setMarcadas((m) => new Set([...m, ...leida.otras]));
-    setLeida({ ...leida, otras: [], estado: "Lleva la etiqueta", tono: "verde", detalle: `Todas sus tallas · ${textoTallas(p, new Set([...marcadas, ...leida.otras]), false)}` });
+    setLeida({ ...leida, otras: [], estado: "Marcada", tono: "verde", detalle: `Todas sus tallas · ${textoTallas(p, new Set([...marcadas, ...leida.otras]), false)}` });
   }
 
   async function aplicar() {
@@ -407,8 +407,8 @@ export function PrendasDeEtiquetaModal({
   const subtitulo = (
     <span className="max-md:hidden">
       {etiqueta.descuentoPct === null
-        ? "Etiqueta informativa: no cambia ningún precio. Marca o escanea las prendas que la llevan."
-        : `${etiqueta.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} % de descuento: en Vender baja solo, a las prendas que lleven la etiqueta. Márcalas o escanéalas.`}
+        ? "No cambia ningún precio. Marca o escanea las prendas que van aquí."
+        : `${etiqueta.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} % de descuento: en Vender baja solo, a las prendas marcadas. Márcalas o escanéalas.`}
     </span>
   );
   const listo = carga.estado === "listo";
@@ -468,8 +468,8 @@ export function PrendasDeEtiquetaModal({
                   valor={modo}
                   onCambio={(c) => setModo(c as ModoLectura)}
                   opciones={[
-                    { clave: "poner", etiqueta: "Poner", ayuda: "Cada prenda que escaneas lleva la etiqueta" },
-                    { clave: "quitar", etiqueta: "Quitar", ayuda: "Cada prenda que escaneas deja de llevarla" },
+                    { clave: "poner", etiqueta: "Poner", ayuda: "Cada prenda que escaneas queda marcada" },
+                    { clave: "quitar", etiqueta: "Quitar", ayuda: "Cada prenda que escaneas se desmarca" },
                   ]}
                 />
               </div>
@@ -512,7 +512,7 @@ export function PrendasDeEtiquetaModal({
                     type="button"
                     disabled={porQuitar === 0 || guardando}
                     onClick={() => setMarcadas(marcarProductos(editables, marcadas, false))}
-                    title="Quita la etiqueta a los productos de la lista. Los que entran por su categoría la siguen llevando."
+                    title="Desmarca los productos de la lista. Los que entran por su categoría siguen marcados."
                     className="btn-cayla btn-sutil btn-chico"
                   >
                     Quitar todos
@@ -532,7 +532,7 @@ export function PrendasDeEtiquetaModal({
                 )}
                 {listo && visibles.length === 0 && (
                   <Vacio tamano="chico" className="py-12" icono={<FunnelX />}>
-                    {marca.filtro === "con" ? "Ninguna prenda de esta búsqueda lleva la etiqueta." : "Ningún producto coincide con ese filtro."}
+                    {marca.filtro === "con" ? "Ninguna prenda de esta búsqueda está marcada." : "Ningún producto coincide con ese filtro."}
                   </Vacio>
                 )}
                 {listo && visibles.length > 0 && (

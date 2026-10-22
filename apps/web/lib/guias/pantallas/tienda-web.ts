@@ -1117,7 +1117,7 @@ export const GUIA_CAMPANAS_WEB: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Las campañas de la tienda web",
-      texto: "Aquí ves las campañas que tiene la tienda online y cuáles ya tienen su propio diseño. Las fechas, el descuento y las prendas se arman en Catálogo ▸ Etiquetas; esta pantalla es para decidir cómo se ve la tienda mientras dura cada una. Es una demo: no se guarda nada.",
+      texto: "Aquí ves las campañas que tiene la tienda online y cuáles ya tienen su propio diseño. Las fechas, el descuento y las prendas se arman en Catálogo ▸ Campañas; esta pantalla es para decidir cómo se ve la tienda mientras dura cada una. Es una demo: no se guarda nada.",
     },
     {
       id: "cifras",
@@ -1180,7 +1180,7 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "El diseño de una campaña",
-      texto: "Aquí decides cómo se ve la tienda online mientras dura esta campaña: su ambiente o tu propia imagen, los colores y el movimiento. El descuento, las fechas y las prendas no se cambian aquí: salen de Etiquetas. Es una demo: no se guarda nada.",
+      texto: "Aquí decides cómo se ve la tienda online mientras dura esta campaña: su ambiente o tu propia imagen, los colores y el movimiento. El descuento, las fechas y las prendas no se cambian aquí: salen de Catálogo ▸ Campañas. Es una demo: no se guarda nada.",
     },
     {
       id: "modo",
@@ -1244,7 +1244,7 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       id: "estado",
       ancla: "campana-editor.estado",
       titulo: "Borrador o programada",
-      texto: "Un diseño nace como borrador: la tienda todavía no lo muestra. Cuando lo programas, la tienda lo muestra mientras dure la campaña, con las fechas que ya tiene en Etiquetas; al terminar, la tienda vuelve sola a verse como siempre.",
+      texto: "Un diseño nace como borrador: la tienda todavía no lo muestra. Cuando lo programas, la tienda lo muestra mientras dure la campaña, con las fechas que ya tiene en Catálogo ▸ Campañas; al terminar, la tienda vuelve sola a verse como siempre.",
     },
     {
       id: "guardar",
@@ -1257,7 +1257,7 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       ancla: "campana-editor.programar",
       opcional: true,
       titulo: "Programar",
-      texto: "«Programar» pone el diseño en la tienda: se ve mientras dure la campaña, con las fechas de Etiquetas. Solo se puede con lo ya guardado, con letras que se lean y con alguna pieza encendida; si algo falta, pasa el mouse y dice qué. Si ya está programada, aquí aparece «Pasar a borrador», que la saca de la tienda.",
+      texto: "«Programar» pone el diseño en la tienda: se ve mientras dure la campaña, con las fechas de Campañas. Solo se puede con lo ya guardado, con letras que se lean y con alguna pieza encendida; si algo falta, pasa el mouse y dice qué. Si ya está programada, aquí aparece «Pasar a borrador», que la saca de la tienda.",
     },
     {
       id: "previa",
@@ -1267,10 +1267,46 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       texto: "Crea un enlace para ver el diseño guardado en la tienda de verdad, con sus prendas, antes de programarlo. Dura 7 días y solo lo ve quien lo tenga; sirve para mostrárselo a alguien o probarlo en el celular. Se muestra una sola vez: si lo pierdes, creas otro.",
     },
     {
+      id: "pestanas",
+      ancla: "campana-web.pestanas",
+      titulo: "Diseño, o datos y prendas",
+      texto: "La campaña tiene dos partes. «Diseño» es lo que acabamos de ver. «Datos y prendas» es su descuento, sus fechas y sus prendas: lo mismo que en Catálogo ▸ Campañas, sin salir de aquí. Te la abrimos.",
+    },
+    {
+      id: "datos",
+      ancla: "campana-web.datos",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "campana-web.pestana-datos" }],
+      titulo: "Su tarjeta, la misma de Catálogo",
+      texto: "Cuándo rige, su descuento y a cuántas prendas llega. Lo que cambies aquí cambia también en Catálogo, en la caja de las tiendas y en la tienda online.",
+    },
+    {
+      id: "prendas",
+      ancla: "campana-web.prendas",
+      opcional: true,
+      titulo: "Sus prendas",
+      texto: "Abre la lista de prendas con su foto: márcalas para ponerlas en la campaña o sacarlas de a varias. Antes de aplicar te dice qué cambia en caja.",
+    },
+    {
+      id: "configurar",
+      ancla: "campana-web.configurar",
+      opcional: true,
+      titulo: "Configurar o repetir",
+      texto: "Su descuento, sus fechas y las categorías donde rige. Si ya pasó, dice «Repetir» y abre con las fechas del año que viene. En la demo no lo tocamos.",
+    },
+    {
+      id: "volver-diseno",
+      ancla: "campana-web.pestana-diseno",
+      opcional: true,
+      titulo: "De vuelta al diseño",
+      texto: "Con «Diseño» vuelves al editor de cómo se ve la tienda online. Te dejamos ahí.",
+    },
+    {
       id: "fin",
       ancla: null,
+      preparar: [{ tipo: "clic", ancla: "campana-web.pestana-diseno" }],
       titulo: "¡Listo!",
-      texto: "Ya sabes diseñar una campaña: elegir, guardar, ver y programar. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Campañas.",
+      texto: "Ya sabes diseñar una campaña y cambiar sus datos y prendas desde aquí. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Campañas.",
     },
   ],
 };

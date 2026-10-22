@@ -120,7 +120,7 @@ export type ClaveIcono =
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
   | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "vitrina" | "pedidosWeb"
-  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta";
+  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender" | "pedidosWebPorConfirmar";
@@ -162,8 +162,8 @@ type Comun = {
    *  como las rutas de prueba) no sale. Existe por CAYLA Global (ADR-0275): una pantalla que no es de ninguna sede no
    *  existía antes de los módulos y no tiene por qué aparecerle a un perfil que no los trae. */
   soloConModulo?: true;
-  /** Otro módulo que TAMBIÉN abre esta fila (ADR-0161, 20260923130000). Existe por UN caso: las etiquetas viven como
-   *  pestaña de «Atributos», así que un rol que ve Etiquetas sin ver Categorías/atributos entra por la misma fila (y la
+  /** Otro módulo que TAMBIÉN abre esta fila (ADR-0161, 20260923130000). Existe por UN caso: los sellos viven como
+   *  pestaña de «Atributos», así que un rol que ve Sellos sin ver Categorías/atributos entra por la misma fila (y la
    *  pantalla le muestra solo esa pestaña). */
   moduloAlterno?: ClaveModulo;
 };
@@ -363,7 +363,7 @@ export const ARBOL: readonly Nodo[] = [
       // Qué modelos se ven en la web, sus looks y quién espera una talla (ADR-0408, actividades 3, 11 y 12). El dato es del Loro.
       { id: "tiendaWeb.vitrina", modulo: "vitrina_web", etiqueta: "Vitrina", estado: "viva", ruta: "/tienda-web/vitrina", icono: "vitrina", pajaro: "02 Loro" },
       // Cómo se ve la tienda online durante cada campaña (Felipe 2026-10-21): ambiente del catálogo o imagen propia, movimiento y textos. Las fechas,
-      // el % y las prendas se siguen armando en Catálogo ▸ Etiquetas; aquí solo el diseño. Justo después de la Vitrina: las dos visten la web.
+      // el % y las prendas se siguen armando en Catálogo ▸ Campañas (ADR-0473); aquí solo el diseño. Justo después de la Vitrina: las dos visten la web.
       { id: "tiendaWeb.campanas", modulo: "campanas_web", etiqueta: "Campañas", estado: "viva", ruta: "/tienda-web/campanas", icono: "paleta", pajaro: "02 Loro" },
       // Lo que los clientes le recomiendan a CAYLA desde la web, con su nombre (ADR-0408, 2026-10-15). Firma con el responsable de la
       // sede donde se está parado: en CAYLA Global no se abre (no es de la vista global).
@@ -396,7 +396,8 @@ export const ARBOL: readonly Nodo[] = [
   },
 
   // Catálogo (2026-09-16/17): qué ES una prenda y el vocabulario del que cuelga. Colores, tallas, tejidos, patrones y
-  // etiquetas viven como pestañas de «Atributos».
+  // sellos viven como pestañas de «Atributos». Las campañas vivían ahí también, como un grupo de etiquetas; desde ADR-0473
+  // (Felipe 2026-10-22) tienen su fila: deciden a cuánto se vende y cuándo, no qué es la prenda.
   // Marcas (2026-09-25): la pantalla existía desde el ADR-0109 pero nunca entró al menú; solo se llegaba por un enlace
   // dentro de Nuevo producto. Felipe vio una marca mal cargada en Proveedores y no tenía por dónde corregirla. Mismo
   // módulo que Categorías: «atributos» ya se llama «Categorías, marcas y atributos» en Roles y accesos.
@@ -409,6 +410,7 @@ export const ARBOL: readonly Nodo[] = [
       { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
       { id: "catalogo.marcas", modulo: "atributos", etiqueta: "Marcas", estado: "viva", ruta: "/productos/marcas", icono: "marcas", pajaro: "02 Loro" },
       { id: "catalogo.atributos", modulo: "atributos", moduloAlterno: "etiquetas", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
+      { id: "catalogo.campanas", modulo: "campanas", etiqueta: "Campañas", estado: "viva", ruta: "/productos/campanas", icono: "calendarioCampana", pajaro: "02 Loro" },
       // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan con su etiqueta, SIN pasar a Productos. Vive en
       // Catálogo porque es la otra cara de «qué se vende y a cuánto» (y el grupo Inventario ya está en su tope). La
       // visibilidad la da su módulo, que nace solo para el líder.
