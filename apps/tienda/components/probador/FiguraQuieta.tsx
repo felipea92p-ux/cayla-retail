@@ -34,7 +34,7 @@ export function FiguraQuieta({
     if (!p) return [];
     const c = colorDeLaPieza(p, pieza);
     // Solo lo que la figura dibuja y la unión lee: viaja al navegador, así que nada de la prenda entera.
-    return [{ z, p: { metida: p.metida }, c: { foto: c.foto }, caja: cajaDe(z, p.largo, c.foto.proporcion) }];
+    return [{ z, p: { metida: p.metida, porTorso: p.porTorso }, c: { foto: c.foto }, caja: cajaDe(z, p.largo, c.foto.proporcion) }];
   });
   return <FiguraQuietaUnida piezas={piezas} ancho={ancho} numeros={numeros} etiqueta={etiqueta} pronto={pronto} />;
 }

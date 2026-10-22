@@ -154,3 +154,24 @@ Mientras se espera la medida:
 
 **Verificado.** 781 pruebas de la tienda, `tsc`, `eslint`, `pnpm knip` y `knip:produccion` en verde. El CSS real (las hojas de la tienda, sin tocar) se miró en una página de prueba con el marcado exacto del componente, en la espera y en el «Listo», a 420 px.
 **Falta** verlo en la tienda de verdad con un celular (Safari: la aguja usa `offset-path`; sin él no se dibuja y el hilo corre igual) y confirmar el tiempo real de la medida con la red de una tienda.
+
+## Actualización 2026-10-22 (c) — la blusa se dibuja por su propio torso
+
+**Qué pasaba.** Cada categoría se dibuja con UN largo típico (un polo, 60 cm; una camisa, 65), igual para todas las blusas del probador. Una blusa corta de verdad (un crop) salía
+dibujada de 65 × 60 cm y una larga, de la misma medida: lo que cambiaba entre prendas era la forma de la foto, no su tamaño. Felipe: «no tengo que ajustar el recorte de cada prenda,
+necesito que el sistema lo haga solo».
+
+**Decisión (Felipe, 2026-10-22).** El tamaño de la blusa sale de su propio torso (`factorDelTorso`, `cajaDeArribaAjustada` con `porTorso`). El ancho del bajo dibujado es
+`largo típico × proporción × fracción del bajo`, y el real es el mismo con el largo real; la razón entre los dos es la razón de los largos. Como se mide del propio recorte en el
+navegador (ya se hacía para la unión), la blusa se escala por `(40 cm / bajo medido) ^ 0,8` —se corrige el 80 % de la diferencia, no el 100 %, porque la forma de la foto también se
+mueve—, entre ×0,75 y ×1,35, sin cambiar nada si el bajo medido queda fuera de 18 a 62 cm (una foto rara) o la corrección es menor a 3 % (lo que ya se ve bien no se mueve). Escala desde
+el centro de los hombros y sin subir. Solo para blusas, camisas, polos, tops y corsés (`PREFIJOS_POR_TORSO`: CMS, BLU, TOP, POL, COR, solo en la zona de arriba); casacas, chalecos, blazers
+y abrigos siguen con la regla de siempre (solo crecen si su bajo es implausiblemente angosto, jamás encogen: son anchos a propósito). La falda se une a la blusa ya escalada.
+
+**Descarté** (a) quitar la sombra suelta de un recorte con código al generarlo: se probó (`quitarSombraSuelta`, una regla de «casi blanco, blando, pegado al borde de abajo») y
+sobre el recorte NUEVO de un pañuelo con flecos blancos (ACC-0001) cortaba 62 filas de flecos, un detalle real del producto; no se pudo separar de la sombra que dejó el recortador
+viejo por ninguna medida simple. Esa sombra vive solo en recortes viejos, y se arregla rehaciendo la foto (13 fotos, con ChatGPT y el OK de Felipe, ver el backlog). (b) guardar la
+medida al generar el recorte (sigue siendo la migración pendiente de arriba) y (c) un campo «largo real» por prenda: es el trabajo manual que Felipe no quiere.
+
+**Prueba.** `union-prendas.test.ts` (10 casos nuevos: topes, banda muerta, monotonía, forma de la caja, lo que no se toca). `tsc` limpio.
+**Pendiente.** Verlo con la tienda local sobre blusas reales (cambian de tamaño ~80 % de las blusas, poco cada una): conviene mirar un par de looks antes de fusionar.

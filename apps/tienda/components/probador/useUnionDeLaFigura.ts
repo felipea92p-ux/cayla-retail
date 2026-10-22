@@ -126,7 +126,7 @@ function medir(foto: Foto): Promise<void> {
 }
 
 /** Lo que la unión lee de cada pieza: su zona, si va metida, su recorte y su caja (la figura interactiva manda más; la quieta, solo esto). */
-export type PiezaDeLaFigura = { z: Zona; p: { metida: boolean }; c: { foto: FotoDelColor }; caja: Caja };
+export type PiezaDeLaFigura = { z: Zona; p: { metida: boolean; porTorso?: boolean }; c: { foto: FotoDelColor }; caja: Caja };
 
 /**
  * Las piezas de la figura con la de abajo unida a la de arriba. Con las dos zonas puestas pide medir sus recortes y, cuando están, devuelve las
@@ -200,7 +200,7 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
 
   const ajustando = pendiente && demoraDe === par;
   // 1. La de arriba, ajustada a su propia forma (solo crece, y solo si su bajo es implausiblemente angosto).
-  const cajaArriba = arriba && urlArriba ? cajaDeArribaAjustada({ caja: arriba.caja, medida: medidas.get(urlArriba), metida: arriba.p.metida }) : null;
+  const cajaArriba = arriba && urlArriba ? cajaDeArribaAjustada({ caja: arriba.caja, medida: medidas.get(urlArriba), metida: arriba.p.metida, porTorso: arriba.p.porTorso }) : null;
   const arribaFinal = arriba && cajaArriba ? { ...arriba, caja: cajaArriba } : arriba;
   // 2. La de abajo, unida a la de arriba ya ajustada.
   const unida =
