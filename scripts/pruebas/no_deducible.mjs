@@ -44,8 +44,9 @@ const MI_FONDO = readFileSync(join(RAIZ, "supabase", "migrations", "202610141950
 // con 'tope_planilla_movilidad' y la regla anual): sobre la función viva, la 002000 ya no encuentra ni su texto nuevo ni su ancla vieja. Como la prueba vuelve a pegarla
 // para ver que es idempotente, antes se DESHACEN, dentro de la misma transacción, los reemplazos de 4b sobre esa función (leídos de su propio archivo: si 4b cambia, esto la sigue).
 const SALDO_IGV = readFileSync(join(RAIZ, "supabase", "migrations", "20261017041000_finanzas_saldo_favor_igv_al_arrancar.sql"), "utf8");
-const DESHACER_SALDO_IGV = [...SALDO_IGV.matchAll(/pg_temp\.anclar\('retail\.guardar_parametro_tributario\(([^)]*)\)',\s*\$v\$(.*?)\$v\$,\s*\$n\$(.*?)\$n\$\)/gs)]
-  .map(([, args, viejo, nuevo]) => `
+const deshacerAnclas = (sql) =>
+  [...sql.matchAll(/pg_temp\.anclar\('retail\.guardar_parametro_tributario\(([^)]*)\)',\s*\$v\$(.*?)\$v\$,\s*\$n\$(.*?)\$n\$\)/gs)]
+    .map(([, args, viejo, nuevo]) => `
 do $deshacer$
 declare v_def text := pg_get_functiondef('retail.guardar_parametro_tributario(${args})'::regprocedure);
 begin
@@ -54,7 +55,15 @@ begin
   end if;
 end
 $deshacer$;`)
-  .join("\n");
+    .join("\n");
+const DESHACER_SALDO_IGV = deshacerAnclas(SALDO_IGV);
+// 20261023161000 (aviso de 250 UIT y composición del IGV) hace lo mismo sobre la misma función, DESPUÉS de 4b, y además trae filas de nombres que la regla vieja de la tabla no conoce
+// (`igv_general`, `igv_ipm`, `aviso_umbral_uit`, `ventas_previas_erp`): se deshace primero (orden inverso) y esas filas se apagan solo dentro de esta transacción, que siempre se deshace.
+const AVISO_250 = readFileSync(join(RAIZ, "supabase", "migrations", "20261023161000_impuestos_aviso_250_uit_y_composicion_del_igv.sql"), "utf8");
+const DESHACER_AVISO_250 = `${deshacerAnclas(AVISO_250)}
+set local session_replication_role = replica;
+delete from retail.parametros_tributarios where nombre in ('igv_general', 'igv_ipm', 'aviso_umbral_uit', 'ventas_previas_erp');
+set local session_replication_role = origin;`;
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
@@ -103,6 +112,7 @@ insert into retail.compra_pagos (compra_id, fecha, monto, metodo, ubicacion_id, 
 const PRELUDIO = `
 begin;
 set local search_path = retail, public, extensions;
+${DESHACER_AVISO_250}
 ${DESHACER_SALDO_IGV}
 ${sinCandadosDePegado(MIGRACION)}
 ${sinCandadosDePegado(MIGRACION)}
