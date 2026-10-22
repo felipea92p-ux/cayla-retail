@@ -1285,7 +1285,7 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       ancla: "campana-web.prendas",
       opcional: true,
       titulo: "Sus prendas",
-      texto: "Abre la lista de prendas con su foto: márcalas para ponerlas en la campaña o sacarlas de a varias. Antes de aplicar te dice qué cambia en caja.",
+      texto: "Abre la lista de prendas con su foto: márcalas para ponerlas en la campaña o sacarlas de a varias. Toca una prenda de la derecha y te lleva a su fila. Antes de aplicar te dice qué cambia en caja.",
     },
     {
       id: "configurar",
