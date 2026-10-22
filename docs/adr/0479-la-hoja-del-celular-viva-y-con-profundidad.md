@@ -1,8 +1,9 @@
 # ADR-0479 — La hoja del celular: viva y con profundidad
 
 - **Fecha:** 2026-10-22 · **Estado:** aceptado (Felipe eligió «B · Hoja viva con profundidad» mirando la maqueta). En construcción por
-  actividades en la rama `claude/unificar-animaciones-moviles-51e9d0`: **actividades 1 a 5 hechas** (la hoja viva en `<Modal>`, el
-  ticket de Vender, la profundidad, Filtros a media altura y el cajón como hoja alta).
+  actividades en la rama `claude/unificar-animaciones-moviles-51e9d0`: **tanda 1 hecha (actividades 1 a 6)**: la hoja viva en
+  `<Modal>`, el ticket de Vender, la profundidad, Filtros a media altura, el cajón como hoja alta y su registro en `/unificar`
+  (familia `hoja-movil`). Faltan las actividades 7 a 12.
 - **Relacionados:** ADR-0136 (regla de movimiento de modales), ADR-0358 (una función, una pieza: `/unificar`), ADR-0185 (la página no
   se encoge bajo el mouse), ADR-0146 (avisos), ADR-0149 (loader único), PL-105 (Vender, Cambios y Devoluciones a 375 px).
 - **Maqueta y auditoría:** `docs/maquetas/hojas-movil-2026-10/index.html` (pestaña «Lo que encontré»).
@@ -47,7 +48,7 @@ Todo vale **solo bajo 640 px**, donde la hoja va pegada abajo. En escritorio y e
 | 3 | La profundidad: lo de atrás se aleja y vuelve con el dedo | **Hecha** |
 | 4 | Filtros a media altura | **Hecha** |
 | 5 | El cajón como hoja alta | **Hecha** |
-| 6 | Registro: familia en `/unificar`, ADR-0136 y `CLAUDE.md`; PR | Por hacer |
+| 6 | Registro: familia en `/unificar`, ADR-0136 y `CLAUDE.md`; PR | **Hecha** (familia `hoja-movil`, `docs/unificar/hoja-movil.md`) |
 | 7 | Que un toque no deje nada pegado (`:hover` solo con mouse) | Por hacer |
 | 8 | El aviso en el celular | Por hacer |
 | 9 | Los márgenes del iPhone (`viewport-fit=cover`) | Por hacer |

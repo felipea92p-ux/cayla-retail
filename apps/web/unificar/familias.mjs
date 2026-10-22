@@ -349,6 +349,14 @@ const BASE = [
     gobierna: ["ADR-0136", "ADR-0128", "ADR-0358"],
   },
   {
+    id: "hoja-movil",
+    grupo: "Hojas",
+    nombre: "La hoja del celular",
+    funcion: "Lo que sube desde abajo en el teléfono (una hoja, el detalle de un registro, los filtros): con asa, se baja con el dedo y aleja lo de atrás.",
+    pieza: "`<Modal>` y `<Cajon>` bajo 640 px (useHojaArrastre, fondoDeLaHoja): «B · Hoja viva con profundidad», decidido el 2026-10-22 (ADR-0479)",
+    gobierna: ["ADR-0479", "ADR-0136", "ADR-0358"],
+  },
+  {
     id: "avatar",
     grupo: "Personas",
     nombre: "Avatares",
@@ -1356,6 +1364,24 @@ export const DECISIONES = {
       "\\bfixed inset-y-0 right-0\\b"
     ],
     "deuda": [],
+    "excepciones": []
+  },
+  "hoja-movil": {
+    "fecha": "2026-10-22",
+    "adr": "docs/adr/0479-la-hoja-del-celular-viva-y-con-profundidad.md",
+    "registro": "docs/unificar/hoja-movil.md",
+    "elegida": "B · Hoja viva con profundidad: bajo 640 px la hoja llega desde el borde, tiene asa, sigue al dedo (se cierra pasado un tercio o de un tirón, sin rebote), respeta antesDeCerrar y bloqueado, aleja lo de atrás a 0,92; Filtros a media altura; el cajón es una hoja alta que se desliza entre registros; elegida tocando la maqueta el 2026-10-22",
+    "pieza": "components/ui/Modal.tsx",
+    "tambien": ["components/ui/Cajon.tsx", "components/ui/ModalRuta.tsx", "components/ui/useHojaArrastre.ts", "components/ui/fondoDeLaHoja.ts"],
+    "firmas": [
+      // Una hoja armada a mano con Radix: no tiene asa, ni dedo, ni lo de atrás que se aleja. Es <Modal> (o <Cajon>).
+      "<Dialog\\.Content(?:\\s|$)",
+      // Un globo que en el teléfono flota sobre la lista en vez de subir como hoja. Si de verdad es solo de escritorio, «unificar-fijo».
+      "<Popover\\.Content(?:\\s|$)",
+      // El lugar de la hoja de <Modal> (pegada abajo en el celular, arriba en escritorio) copiado a mano.
+      "items-end justify-center sm:items-start"
+    ],
+    "deuda": ["components/FiltrosCompras.tsx", "components/FiltrosRecibidas.tsx", "components/ProveedorModal.tsx"],
     "excepciones": []
   },
   "accion.anterior": {
