@@ -1,0 +1,1217 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compras simple — maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Tokens copiados de apps/web/app/globals.css (ADR-0169). Solo claro: la maqueta muestra el camino, no el tema. */
+:root{
+  --rojo:#b8412d;--rojo-profundo:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--taupe:#805c4c;
+  --papel:#fbf8f2;--hueso:#eae1d2;--sombra:#1a1a18;--pizarra:#4c5d6e;--verde:#48603f;--ambar:#74501a;--t60:#5b544c;
+  --serif:"EB Garamond",ui-serif,Georgia,serif;--sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+  --ease:cubic-bezier(0.32,0.72,0.24,1);
+  --transf:#2f6aa3;--yape:#6d3fa3;--efectivo:#d19a12; /* --color-metodo-* de globals.css */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--crema);color:var(--tinta);font-family:var(--sans);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+.oculto{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- Marco de la maqueta ---------- */
+.marco{max-width:1440px;margin:0 auto;padding:28px 32px 80px}
+.kick{display:inline-flex;align-items:center;gap:10px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.kick:before{content:"";width:30px;height:1px;background:var(--taupe)}
+.marco h1{font-family:var(--serif);font-weight:400;font-size:46px;line-height:1.05;margin:6px 0 6px}
+.lead{color:var(--t60);max-width:760px;font-size:15px}
+.ejemplo{display:inline-flex;gap:6px;align-items:center;margin-top:10px;font-size:12px;color:var(--ambar);background:color-mix(in srgb,var(--ambar) 10%,transparent);border-radius:999px;padding:4px 10px}
+.pasos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:26px 0 22px}
+.paso{display:flex;gap:12px;align-items:flex-start;text-align:left;padding:14px 16px;border:1px solid var(--sand);border-radius:16px;background:var(--papel);transition:border-color .25s,transform .35s var(--ease)}
+.paso:hover{border-color:var(--taupe)}
+.paso[aria-current="true"]{border-color:var(--tinta);background:var(--tinta);color:var(--crema)}
+.paso .n{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--serif);font-size:18px;border:1px solid currentColor}
+.paso b{display:block;font-weight:600;font-size:14px}
+.paso small{display:block;font-size:12px;opacity:.75}
+.quien{display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--t60);margin-bottom:14px}
+.quien b{color:var(--tinta)}
+.escena{display:none}.escena.ver{display:block;animation:sube .45s var(--ease) both}
+@keyframes sube{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes dibuja{to{stroke-dashoffset:0}}
+
+/* ---------- Pantalla del ERP (escritorio) ---------- */
+.erp{background:var(--crema);border:1px solid var(--sand);border-radius:20px;overflow:hidden}
+.erp-barra{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--sand);background:var(--papel);font-size:12px;color:var(--t60)}
+.erp-barra i{width:9px;height:9px;border-radius:50%;background:var(--sand)}
+.erp-cuerpo{padding:26px 30px 32px}
+.cab-sede{display:flex;align-items:center;gap:10px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.cab-sede:after{content:"";height:1px;width:40px;background:var(--taupe)}
+.cab{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;flex-wrap:wrap}
+.cab h2{font-family:var(--serif);font-weight:400;font-size:46px;line-height:1.05;margin-top:6px}
+.cab p{color:var(--t60);margin-top:4px;max-width:620px}
+.cifras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:22px 0}
+.cifra{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:14px 16px}
+.cifra .l{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.cifra .v{font-family:var(--serif);font-size:30px;line-height:1.1;margin-top:4px}
+.cifra .d{font-size:12px;color:var(--t60)}
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.tarjeta-cab{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--sand)}
+.tit-sec{font-family:var(--serif);font-size:21px;font-weight:400;display:flex;gap:8px;align-items:center}
+.globito{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--hueso);font-family:var(--sans);font-size:11.5px;font-weight:600;color:var(--t60)}
+.globito.pide{background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe);padding:10px 18px;border-bottom:1px solid var(--sand)}
+td{padding:12px 18px;border-bottom:1px solid var(--sand);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.nota{background:var(--hueso);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--t60);display:flex;gap:10px}
+.nota:before{content:"i";flex:none;width:18px;height:18px;border-radius:50%;border:1px solid var(--taupe);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--taupe);font-family:var(--serif)}
+
+/* Botones (btn-cayla) */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:999px;font-size:13.5px;font-weight:600;transition:transform .25s var(--ease),background .2s,border-color .2s,box-shadow .25s;white-space:nowrap}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:scale(.97)}
+.btn-primario{background:var(--tinta);color:var(--crema)}
+.btn-primario:hover{background:var(--rojo-profundo)}
+.btn-secundario{border:1px solid var(--taupe);background:var(--papel)}
+.btn-sutil{background:var(--hueso)}
+.btn-enlace{height:auto;padding:0;border-radius:0;font-weight:600;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent);text-underline-offset:3px}
+.btn-enlace:hover{transform:none;color:var(--rojo-profundo)}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.voz-cab .btn{font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.btn svg,.ico{width:16px;height:16px;flex:none}
+
+/* Chips de estado */
+.chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;white-space:nowrap}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.verde{color:var(--verde);background:color-mix(in srgb,var(--verde) 12%,transparent)}
+.chip.ambar{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 12%,transparent)}
+.chip.pizarra{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 12%,transparent)}
+.chip.rojo{color:var(--rojo-profundo);background:color-mix(in srgb,var(--rojo) 12%,transparent)}
+.chip.sinpunto:before{display:none}
+
+.avatar{flex:none;display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--sand);font-family:var(--serif);font-size:14px}
+.avatar.g{width:40px;height:40px;font-size:16px}
+.persona{display:flex;gap:10px;align-items:center}
+
+/* Campos */
+.campo{display:flex;flex-direction:column;gap:6px}
+.campo-et{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe);display:flex;gap:6px;align-items:center}
+.campo-et em{font-style:normal;letter-spacing:0;text-transform:none;font-weight:500;color:var(--t60)}
+.caja{height:40px;border-radius:10px;background:var(--hueso);border:1px solid transparent;padding:0 12px;outline:0;width:100%;transition:background .2s,border-color .2s,box-shadow .2s}
+.caja:focus{background:var(--papel);border-color:var(--sand);box-shadow:inset 0 -2px 0 var(--rojo)}
+textarea.caja{height:72px;padding:10px 12px;resize:none}
+.caja-monto{height:48px;font-family:var(--serif);font-size:24px}
+.opciones{display:flex;flex-wrap:wrap;gap:8px}
+.op{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:13px;font-weight:500;transition:border-color .2s,background .2s}
+.op:hover{border-color:var(--taupe)}
+.op[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.op .muestra{width:14px;height:14px;border-radius:50%;border:1px solid color-mix(in srgb,var(--tinta) 20%,transparent)}
+.tile{display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:14px;border-radius:14px;border:1px solid var(--sand);background:var(--papel);text-align:left;transition:border-color .2s,transform .3s var(--ease)}
+.tile:hover{border-color:var(--taupe)}
+.tile[aria-pressed="true"]{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+.encendido{box-shadow:0 0 0 4px color-mix(in srgb,var(--rojo) 14%,transparent);border-radius:14px}
+
+/* Paso de cantidad */
+.cant{display:inline-flex;align-items:center;height:32px;border-radius:10px;background:var(--hueso);overflow:hidden}
+.cant button{width:30px;height:32px;display:grid;place-items:center;color:var(--t60)}
+.cant button:hover{color:var(--tinta);background:var(--sand)}
+.cant span{min-width:28px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
+.cant.cero span{color:color-mix(in srgb,var(--tinta) 40%,transparent)}
+
+/* ---------- Hoja (Modal) ---------- */
+.capa{position:fixed;inset:0;z-index:50;display:none;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto;background:color-mix(in srgb,var(--sombra) 25%,transparent);backdrop-filter:blur(3px)}
+.capa.ver{display:flex;animation:fundir .25s var(--ease) both}
+@keyframes fundir{from{opacity:0}to{opacity:1}}
+.hoja{width:100%;max-width:448px;background:var(--papel);border-radius:20px;padding:24px 24px 0;animation:hoja .4s var(--ease) both}
+.hoja.mediana{max-width:576px}.hoja.ancha{max-width:1040px}
+@keyframes hoja{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+.hoja > *{animation:sube .4s var(--ease) both}
+.hoja > *:nth-child(2){animation-delay:55ms}.hoja > *:nth-child(3){animation-delay:110ms}.hoja > *:nth-child(4){animation-delay:165ms}.hoja > *:nth-child(5){animation-delay:220ms}
+.hoja h3{font-family:var(--serif);font-weight:400;font-size:24px;line-height:1.15;padding-right:36px}
+.hoja .frase{color:var(--taupe);margin-top:4px}
+.hoja .cerrar{position:absolute;top:18px;right:18px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t60)}
+.hoja{position:relative}
+.cuerpo-hoja{display:flex;flex-direction:column;gap:18px;margin-top:20px}
+.pie-acciones{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:10px;padding:16px 0 20px;margin-top:20px;background:var(--papel);border-top:1px solid var(--sand)}
+.pie-acciones .izq{margin-right:auto}
+
+/* ---------- Celular ---------- */
+.escena-tel{display:grid;grid-template-columns:400px minmax(0,1fr);gap:40px;align-items:start}
+.tel{width:375px;height:760px;border-radius:46px;border:10px solid var(--tinta);background:var(--crema);overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 40px 60px -40px color-mix(in srgb,var(--sombra) 60%,transparent)}
+.tel-estado{flex:none;height:34px;display:flex;justify-content:space-between;align-items:center;padding:6px 24px 0;font-size:12px;font-weight:600}
+.tel-isla{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:96px;height:26px;border-radius:20px;background:var(--tinta)}
+.tel-pant{flex:1;overflow:auto;display:flex;flex-direction:column;padding:10px 18px 18px;animation:sube .35s var(--ease) both}
+.tel-pant::-webkit-scrollbar{display:none}
+.tel-pant > *{flex-shrink:0}
+.tel-top{display:flex;align-items:center;gap:10px;margin:4px 0 14px;min-height:40px}
+.volver{width:40px;height:40px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;flex:none}
+.volver:hover{border-color:var(--taupe)}
+.tel h4{font-family:var(--serif);font-weight:400;font-size:28px;line-height:1.1}
+.tel .sub{color:var(--t60);font-size:13.5px;margin-top:4px}
+.saldo{background:var(--tinta);color:var(--crema);border-radius:22px;padding:18px 18px 16px;margin-bottom:14px}
+.saldo .l{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;opacity:.75}
+.saldo .v{font-family:var(--serif);font-size:44px;line-height:1.05;margin:4px 0 6px}
+.saldo .d{font-size:12.5px;opacity:.8}
+.saldo .barra{height:6px;border-radius:999px;background:color-mix(in srgb,var(--crema) 20%,transparent);margin-top:12px;overflow:hidden}
+.saldo .barra i{display:block;height:100%;background:var(--crema);border-radius:999px;transition:width .5s var(--ease)}
+.saldo.debe{background:var(--rojo-profundo)}
+.grandes{display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:16px}
+.grande{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;gap:16px;min-height:104px;padding:14px;border-radius:20px;text-align:left;font-weight:600;font-size:15px;line-height:1.2;transition:transform .25s var(--ease)}
+.grande:active{transform:scale(.97)}
+.grande svg{width:26px;height:26px}
+.grande.uno{background:var(--rojo);color:var(--crema)}
+.grande.dos{background:var(--papel);border:1px solid var(--sand)}
+.lista-tel{display:flex;flex-direction:column;background:var(--papel);border:1px solid var(--sand);border-radius:18px;overflow:hidden}
+.fila-tel{display:flex;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--sand)}
+.fila-tel:last-child{border-bottom:0}
+.fila-tel .mini{flex:none;width:38px;height:46px;border-radius:6px;overflow:hidden;background:var(--hueso);display:grid;place-items:center;color:var(--taupe)}
+.fila-tel .t{flex:1;min-width:0}
+.fila-tel .t b{display:block;font-size:13.5px}
+.fila-tel .t small{display:block;font-size:12px;color:var(--t60)}
+.fila-tel .m{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sec-tel{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe);margin:16px 2px 8px;display:flex;justify-content:space-between}
+.abajo{margin-top:auto;padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.btn-tel{height:52px;border-radius:16px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;transition:transform .2s var(--ease),background .2s}
+.btn-tel:active{transform:scale(.98)}
+.btn-tel.prim{background:var(--tinta);color:var(--crema)}
+.btn-tel.prim:hover{background:var(--rojo-profundo)}
+.btn-tel.sec{background:var(--papel);border:1px solid var(--taupe)}
+.btn-tel[disabled]{opacity:.35;pointer-events:none}
+.papeles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.papeles .tile{min-height:112px;justify-content:space-between;font-weight:600;font-size:15px}
+.papeles .tile small{font-weight:400;font-size:12px;color:var(--t60)}
+.papeles .tile svg{width:24px;height:24px;color:var(--taupe)}
+.visor{flex:1;min-height:420px;border-radius:22px;background:var(--tinta);position:relative;overflow:hidden;display:grid;place-items:center}
+.visor .guia{position:absolute;inset:34px 34px 110px;border:2px dashed color-mix(in srgb,var(--crema) 55%,transparent);border-radius:14px}
+.visor .txt{position:absolute;top:12px;left:0;right:0;text-align:center;color:var(--crema);font-size:13px;opacity:.85}
+.disparo{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);width:70px;height:70px;border-radius:50%;border:4px solid var(--crema);display:grid;place-items:center}
+.disparo i{width:54px;height:54px;border-radius:50%;background:var(--crema);transition:transform .15s}
+.disparo:active i{transform:scale(.88)}
+.foto-hecha{flex:1;display:grid;place-items:center;background:var(--hueso);border-radius:22px;padding:18px;min-height:420px}
+.display-monto{font-family:var(--serif);font-size:56px;line-height:1;text-align:center;margin:18px 0 6px;font-variant-numeric:tabular-nums}
+.display-monto small{font-size:28px;color:var(--t60);margin-right:6px}
+.teclado{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.teclado button{height:54px;border-radius:14px;background:var(--papel);border:1px solid var(--sand);font-size:22px;font-family:var(--serif)}
+.teclado button:active{background:var(--hueso)}
+.marca{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;border:1px solid var(--sand);background:var(--papel);text-align:left;width:100%}
+.marca[aria-pressed="true"]{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+.check{flex:none;width:24px;height:24px;border-radius:7px;border:1.5px solid var(--taupe);display:grid;place-items:center;transition:background .2s}
+.marca[aria-pressed="true"] .check{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.tiendas{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tiendas .tile{align-items:center;text-align:center;padding:14px 6px;font-weight:600}
+.tiendas .tile small{font-weight:400;font-size:11.5px;color:var(--t60)}
+.avance-tel{display:flex;flex-direction:column;gap:6px;margin:-4px 0 12px}
+.avance-tel span{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.avance-tel i{display:block;height:3px;border-radius:999px;background:var(--sand);overflow:hidden}
+.avance-tel i b{display:block;height:100%;background:var(--tinta);border-radius:999px;transition:width .4s var(--ease)}
+.hab{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;align-items:start;width:100%;padding:12px;border-radius:16px;border:1px solid var(--sand);background:var(--papel);text-align:left;transition:border-color .2s,transform .25s var(--ease);animation:sube .35s var(--ease) both}
+.hab:hover{border-color:var(--taupe)}.hab:active{transform:scale(.98)}
+.hab .sw{width:40px;height:48px;border-radius:10px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--tinta) 10%,transparent)}
+.hab b{display:block;font-size:14.5px}.hab .cm{display:block;font-size:12px;color:var(--t60)}
+.hab .vp{display:block;font-size:11.5px;color:var(--t60);margin-top:5px}
+.hab .ya{display:inline-flex;margin-left:6px;vertical-align:middle}
+.hab.nuevo{grid-template-columns:40px 1fr;border:1.5px dashed var(--rojo);color:var(--rojo-profundo);align-items:center}
+.hab.nuevo .sw{background:color-mix(in srgb,var(--rojo) 10%,transparent);border-color:transparent}
+.lista-hab{display:flex;flex-direction:column;gap:8px}
+.lista-hab > *:nth-child(2){animation-delay:40ms}.lista-hab > *:nth-child(3){animation-delay:80ms}.lista-hab > *:nth-child(4){animation-delay:120ms}.lista-hab > *:nth-child(5){animation-delay:160ms}.lista-hab > *:nth-child(6){animation-delay:200ms}.lista-hab > *:nth-child(7){animation-delay:240ms}.lista-hab > *:nth-child(8){animation-delay:280ms}
+.igual{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:14px 16px;border-radius:16px;background:var(--tinta);color:var(--crema);font-weight:600;text-align:left;margin-top:6px}
+.igual small{display:block;font-weight:400;opacity:.75;font-size:12px}
+.igual:hover{background:var(--rojo-profundo)}
+.vez{text-align:center;font-size:12.5px;color:var(--t60);margin-top:2px}
+.fila-tel.recien{animation:respira 1.8s var(--ease) both}
+@keyframes respira{0%{background:color-mix(in srgb,var(--verde) 22%,var(--papel))}100%{background:var(--papel)}}
+.aviso-tel{position:absolute;left:14px;right:14px;top:46px;z-index:5;background:var(--tinta);color:var(--crema);border-radius:16px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:center;animation:baja .4s var(--ease) both}
+@keyframes baja{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+.lado h3{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.1}
+.lado p{color:var(--t60);margin-top:8px;max-width:520px}
+.lado ol{margin:18px 0 0 18px;display:flex;flex-direction:column;gap:10px;max-width:560px}
+.lado li::marker{font-family:var(--serif);color:var(--taupe)}
+.lado .cita{margin-top:22px;border-left:2px solid var(--taupe);padding-left:14px;font-family:var(--serif);font-size:18px;color:var(--t60);max-width:520px}
+
+/* ---------- El papel (foto de un comprobante) ---------- */
+.papel-foto{background:#fffdf7; /* tema-fijo: papel físico de un comprobante */ color:#2a2a2a; /* tema-fijo: tinta de imprenta */ width:100%;max-width:300px;padding:16px 16px 18px;border-radius:4px;box-shadow:0 18px 30px -18px color-mix(in srgb,var(--sombra) 70%,transparent);transform:rotate(-1.2deg);font-size:12px}
+.papel-foto.mano{font-family:"Caveat",cursive;font-size:17px;line-height:1.15}
+.papel-foto .pf-cab{text-align:center;border-bottom:1px dashed #999; /* tema-fijo: línea del papel */ padding-bottom:8px;margin-bottom:8px}
+.papel-foto .pf-cab b{display:block;font-size:14px;letter-spacing:.02em}
+.papel-foto.mano .pf-cab b{font-size:22px}
+.papel-foto .pf-tipo{display:inline-block;margin-top:4px;border:1px solid #2a2a2a; /* tema-fijo: recuadro del papel */ padding:1px 6px;font-size:10px;letter-spacing:.08em}
+.papel-foto.mano .pf-tipo{font-size:14px}
+.papel-foto table td{padding:3px 4px 3px 0;border:0;font-size:inherit}
+.papel-foto .pf-tot{border-top:1px solid #2a2a2a; /* tema-fijo: línea del papel */ margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-weight:700}
+.papel-foto.chico{max-width:none;transform:none;padding:3px;font-size:4px;box-shadow:none;border-radius:2px}
+.papel-foto.chico *{font-size:4px !important}
+.pila{position:relative;width:240px;height:200px}
+.voucher{width:230px;border-radius:14px;overflow:hidden;background:#ffffff; /* tema-fijo: pantalla del banco, foto */ color:#222222; /* tema-fijo: texto de la foto */ box-shadow:0 18px 30px -18px color-mix(in srgb,var(--sombra) 70%,transparent);text-align:left}
+.voucher .vc-cab{background:var(--v);color:#ffffff; /* tema-fijo: foto */ padding:12px 14px;font-weight:700;font-size:14px}
+.voucher .vc-monto{font-size:30px;font-weight:700;padding:14px 14px 2px}
+.voucher .vc-det{padding:4px 14px 14px;font-size:12px;color:#555555; /* tema-fijo: foto */ line-height:1.5}
+.pila i{position:absolute;left:20px;right:20px;height:46px;border-radius:10px;background:var(--c);box-shadow:0 6px 10px -6px color-mix(in srgb,var(--sombra) 60%,transparent)}
+
+/* ---------- Recibir (paso 3) ---------- */
+.recibir{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:18px;align-items:start}
+.visor-papeles{position:sticky;top:12px}
+.pestanas-papel{display:flex;gap:6px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--sand)}
+.pp{display:flex;gap:8px;align-items:center;padding:6px 10px 6px 6px;border-radius:12px;border:1px solid var(--sand);background:var(--crema);font-size:12.5px;text-align:left}
+.pp[aria-current="true"]{border-color:var(--tinta);background:var(--papel);box-shadow:inset 0 0 0 1px var(--tinta)}
+.pp .mini{width:28px;height:34px;overflow:hidden;border-radius:3px;background:var(--hueso)}
+.pp b{display:block;font-size:12.5px}.pp small{display:block;color:var(--t60);font-size:11px}
+.mesa{display:grid;place-items:center;padding:26px 18px;background:var(--hueso);border-radius:0 0 16px 16px;min-height:420px}
+.buscar{position:relative;padding:14px 18px;border-bottom:1px solid var(--sand)}
+.buscar .caja{padding-left:38px;height:44px}
+.buscar svg.lupa{position:absolute;left:30px;top:28px;width:16px;height:16px;color:var(--taupe)}
+.sugerencias{position:absolute;left:18px;right:18px;top:62px;z-index:6;background:var(--papel);border:1px solid var(--sand);border-radius:14px;overflow:hidden;box-shadow:0 22px 34px -24px color-mix(in srgb,var(--sombra) 60%,transparent);animation:sube .24s var(--ease) both}
+.sug{display:flex;gap:12px;align-items:center;width:100%;padding:10px 14px;text-align:left;border-bottom:1px solid var(--sand)}
+.sug:last-child{border-bottom:0}
+.sug:hover{background:var(--crema);box-shadow:inset 2px 0 0 var(--rojo)}
+.sug .mini{width:34px;height:40px;border-radius:6px;display:grid;place-items:center;color:color-mix(in srgb,var(--tinta-f,#1a1a18) 65%,transparent)}
+.sug b{display:block}.sug small{display:block;color:var(--t60);font-size:12px}
+.sug.crear{color:var(--rojo-profundo);font-weight:600}
+.sug > span:last-child{flex:1;text-align:left}
+.lineas{display:flex;flex-direction:column}
+.linea{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--sand);animation:sube .35s var(--ease) both}
+.linea .mini{width:44px;height:52px;border-radius:8px;display:grid;place-items:center}
+.linea b{display:block}.linea small{display:block;color:var(--t60);font-size:12px}
+.linea .u{font-family:var(--serif);font-size:22px;font-variant-numeric:tabular-nums;text-align:right;line-height:1.1}
+.linea .u small{display:block;font-family:var(--sans);font-size:11.5px;color:var(--t60)}
+.vacio{padding:26px 18px;text-align:center;color:var(--t60)}
+.vacio b{display:block;font-family:var(--serif);font-weight:400;font-size:20px;color:var(--tinta);margin-bottom:4px}
+.coincide{padding:16px 18px;border-top:1px solid var(--sand);background:var(--crema);border-radius:0 0 16px 16px;display:flex;flex-direction:column;gap:12px}
+.segmento{display:inline-flex;padding:3px;border-radius:999px;background:var(--sand);gap:2px}
+.segmento button{height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--t60);transition:background .2s,color .2s}
+.segmento button[aria-pressed="true"]{background:var(--papel);color:var(--tinta);box-shadow:0 1px 0 color-mix(in srgb,var(--sombra) 12%,transparent)}
+.dif{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:10px 12px}
+.matriz{border:1px solid var(--sand);border-radius:12px;overflow:hidden}
+.matriz th,.matriz td{padding:8px 10px;text-align:center}
+.matriz td:first-child,.matriz th:first-child{text-align:left}
+.sello{display:flex;gap:14px;align-items:center;padding:16px 18px;border-radius:16px;background:color-mix(in srgb,var(--verde) 10%,var(--papel));border:1px solid color-mix(in srgb,var(--verde) 30%,transparent);animation:sube .45s var(--ease) both}
+.sello svg{width:34px;height:34px;color:var(--verde);flex:none}
+.sello svg path{stroke-dasharray:60;stroke-dashoffset:60;animation:dibuja .6s .15s var(--ease) forwards}
+.sello b{display:block;font-family:var(--serif);font-weight:400;font-size:21px}
+.sello small{color:var(--t60)}
+
+/* Crear prenda (hoja ancha) */
+.crear{display:grid;grid-template-columns:180px minmax(0,1fr) 220px;gap:24px;margin-top:18px}
+.puntos{display:flex;flex-direction:column;gap:4px}
+.punto{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;text-align:left;font-size:13px;color:var(--t60)}
+.punto i{width:22px;height:22px;border-radius:50%;border:1px solid var(--taupe);display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700;flex:none}
+.punto[aria-current="true"]{background:var(--crema);color:var(--tinta);font-weight:600}
+.punto[aria-current="true"] i{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.punto.hecho i{background:var(--verde);border-color:var(--verde);color:var(--crema)}
+.lado-papel{background:var(--hueso);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;align-self:start;position:sticky;top:0}
+.lado-papel small{color:var(--t60);font-size:12px}
+.campos-dos{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fotos-zona{border:1.5px dashed var(--taupe);border-radius:14px;padding:18px;display:flex;gap:12px;align-items:center;color:var(--t60)}
+
+/* Costos (paso 4) */
+.costear{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+.comp{display:grid;grid-template-columns:200px minmax(0,1fr);gap:0;overflow:hidden}
+.comp .mesa-chica{background:var(--hueso);display:grid;place-items:center;padding:12px;border-right:1px solid var(--sand)}
+.comp .mesa-chica button{width:100%}
+.comp .mesa-chica .papel-foto{font-size:10.5px;padding:12px}
+.comp .mesa-chica .papel-foto.mano{font-size:14px}
+.input-costo{width:96px;height:36px;border-radius:10px;background:var(--hueso);border:1px solid transparent;padding:0 10px;text-align:right;font-variant-numeric:tabular-nums;outline:0}
+.input-costo:focus{background:var(--papel);border-color:var(--sand);box-shadow:inset 0 -2px 0 var(--rojo)}
+.veredicto{margin:0 18px 18px;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 8%,var(--papel))}
+.veredicto b{font-family:var(--serif);font-weight:400;font-size:19px}
+.veredicto p{color:var(--t60);font-size:13px}
+.balanza{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;font-size:12.5px}
+.balanza .lado-b{background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:8px 10px}
+.balanza .lado-b span{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.balanza .lado-b strong{font-family:var(--serif);font-size:20px;font-weight:400}
+.casos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+.caso{border:1px solid var(--sand);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--t60);background:var(--papel)}
+.caso b{display:block;color:var(--tinta);font-size:12.5px;margin-bottom:2px}
+.caso.activo{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta);color:var(--tinta)}
+.rendicion .r{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--sand);font-size:13.5px}
+.rendicion .r:last-child{border-bottom:0}
+.rendicion .r.tot{font-family:var(--serif);font-size:20px}
+
+.decisiones{margin-top:36px}
+.decisiones h3{font-family:var(--serif);font-weight:400;font-size:26px}
+.decisiones ul{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;list-style:none}
+.decisiones li{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:12px 14px;font-size:13px;color:var(--t60)}
+.decisiones li b{display:block;color:var(--tinta);margin-bottom:2px}
+
+@media (max-width:1100px){
+  .escena-tel{grid-template-columns:1fr}.tel{margin:0 auto}
+  .recibir,.costear{grid-template-columns:1fr}.visor-papeles{position:static}
+  .crear{grid-template-columns:1fr}.lado-papel{position:static}
+  .casos{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:760px){
+  .marco{padding:20px 16px 60px}.marco h1{font-size:34px}
+  .pasos{grid-template-columns:1fr 1fr}.cifras{grid-template-columns:1fr}
+  .erp-cuerpo{padding:18px 16px}.cab h2{font-size:34px}
+  .tel{width:100%;max-width:375px;height:720px;border-width:8px}
+  td,th{padding:10px 12px}.ocultar-cel{display:none}
+  .campos-dos,.decisiones ul{grid-template-columns:1fr}
+  .comp{grid-template-columns:1fr}.comp .mesa-chica{border-right:0;border-bottom:1px solid var(--sand)}
+  .pie-acciones .btn{flex:1}
+}
+.quieto .hoja,.quieto .hoja>*,.quieto .linea,.quieto .sugerencias,.quieto .tel-pant,.quieto .escena.ver,.quieto .capa.ver,.quieto .sello,.quieto .aviso-tel{animation:none}
+.persona .mini{width:34px;height:40px;border-radius:6px;display:grid;place-items:center;flex:none}
+@media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div class="marco">
+  <span class="kick">Maqueta · Compras · 22-oct-2026</span>
+  <h1>Comprar en cuatro pasos</h1>
+  <p class="lead">Quien compra anota en su celular la plata que le transfirieron y, por cada compra —en persona o con un pedido al proveedor—, solo toma la foto del papel y escribe cuánto pagó. La tienda recibe mirando esa foto: registra las prendas con su costo, sin ir a Catálogo, y el sistema dice si cuadra. Quien tiene Compras confirma la plata y copia el proveedor y el número del papel. Todo se puede tocar.</p>
+  <span class="ejemplo">Todos los nombres, montos y prendas son un ejemplo inventado: no existen en el sistema.</span>
+
+  <nav class="pasos" aria-label="Pasos">
+    <button class="paso" data-a="paso" data-v="1"><span class="n">1</span><span><b>Anotar la plata</b><small>La compradora · celular</small></span></button>
+    <button class="paso" data-a="paso" data-v="2"><span class="n">2</span><span><b>Registrar la compra</b><small>La compradora · celular</small></span></button>
+    <button class="paso" data-a="paso" data-v="3"><span class="n">3</span><span><b>Llega a la tienda</b><small>La encargada · escritorio</small></span></button>
+    <button class="paso" data-a="paso" data-v="4"><span class="n">4</span><span><b>Confirmar y completar</b><small>Compras · escritorio</small></span></button>
+  </nav>
+
+  <section class="escena" id="e1"></section>
+  <section class="escena" id="e2"></section>
+  <section class="escena" id="e3"></section>
+  <section class="escena" id="e4"></section>
+
+  <section class="decisiones">
+    <h3>Lo que decidiste para esta maqueta</h3>
+    <ul>
+      <li><b>Ella anota su plata; Compras la confirma</b>La compradora anota lo que le transfirieron (cómo, cuánto y la foto del voucher) y, solo la primera vez, lo que ya tenía del fondo. Puede comprar con esa plata mientras Compras la confirma. Lo que sobra pasa a la próxima ronda.</li>
+      <li><b>La compradora: proveedor y lo de siempre</b>Elige al proveedor y ve lo que más le compra: un toque arma la prenda con la cantidad, el costo y la venta de la vez pasada. Si es algo nuevo, lo da de alta en cinco preguntas (con aviso si ya existe). Al final, el papel: foto y monto.</li>
+      <li><b>«Otro gasto» aparte</b>Taxi, cargador, comida o envío salen del mismo fondo y nunca se suman al costo de las prendas.</li>
+      <li><b>Ella arma el envío</b>Elige los comprobantes que van en el fardo y a qué tienda. A esa tienda le aparece «Viene un envío».</li>
+      <li><b>La tienda recibe con costo</b>Suma las prendas que ya existen o crea la nueva ahí mismo con la ficha completa, y escribe el costo de cada una leyendo el papel. El stock entra con su costo y el sistema dice al instante si cuadra. Si algo no coincide, lo marca y avisa.</li>
+      <li><b>Compras completa el papel</b>Copia de la foto el proveedor, la serie y el número, y decide quién responde por lo que no cuadró. Ahí el papel se vuelve comprobante.</li>
+      <li><b>La plata sale del fondo al guardar la foto</b>El saldo de la compradora es real al instante. En Finanzas queda como «pagado, papel por completar» hasta el paso 4.</li>
+      <li><b>«Mi ronda de compras» es un módulo</b>Se da en Colaboradores ▸ Roles y accesos, como todo lo demás, y nace solo para el líder. Quien lo tiene lo ve en el menú y como tarjeta en su Inicio.</li>
+    </ul>
+  </section>
+</div>
+
+<div class="capa" id="capa" role="dialog" aria-modal="true"></div>
+
+<script>
+/* ======================= Datos de ejemplo (inventados) ======================= */
+const PERSONAS = { mar:{nombre:"Marisol Rojas",ini:"MR"}, kev:{nombre:"Kevin Huamán",ini:"KH"}, luc:{nombre:"Lucía Paredes",ini:"LP"} };
+const TIENDAS = { TRU:"Tienda TRU", AQP:"Tienda AQP", LIM:"Tienda LIM" };
+const TIPOS = { factura:"Factura", boleta:"Boleta", nota:"Nota de venta", sin:"Sin papel" };
+const COMO = { transf:"Transferencia", yape:"Yape o Plin", efectivo:"Efectivo", yatenia:"Ya la tenía" };
+/* Categorías: el factor sugiere el precio de venta; el ejemplo y los chips siguen a la categoría (ADR-0290) */
+const CATEGORIAS = {
+  Blusas:{ art:"la", factor:2.3, ej:"Blusa cuello bebé", chips:["Blusa manga globo","Blusa cuello bebé","Blusa con lazo"] },
+  Polos:{ art:"el", factor:2.4, ej:"Polo cuello redondo", chips:["Polo básico algodón","Polo oversize","Polo cuello V"] },
+  Jeans:{ art:"el", factor:2.2, ej:"Jean recto tiro alto", chips:["Jean mom tiro alto","Jean recto","Jean wide leg"] },
+  Faldas:{ art:"la", factor:2.1, ej:"Falda midi con pretina", chips:["Falda plisada midi","Falda tableada","Falda short"] },
+  Casacas:{ art:"la", factor:2.1, ej:"Casaca acolchada corta", chips:["Casaca acolchada","Casaca denim","Casaca de cuero sintético"] },
+  Vestidos:{ art:"el", factor:2.2, ej:"Vestido camisero", chips:["Vestido camisero","Vestido midi floreado","Vestido tejido"] },
+  Chompas:{ art:"la", factor:2.3, ej:"Chompa cuello alto", chips:["Chompa trenzada","Chompa cuello alto","Cárdigan corto"] },
+  Shorts:{ art:"el", factor:2.3, ej:"Short de lino", chips:["Short denim","Short de lino","Bermuda"] },
+};
+const PALETA = [["Crudo","#efe6d6"],["Blanco","#f4f2ee"],["Negro","#26231f"],["Arena","#d8c6a5"],["Celeste","#a9c3d6"],["Azul medio","#5b7896"],["Azul oscuro","#2f3e55"],["Verde oliva","#6f7348"]];
+const COLOR = Object.fromEntries(PALETA);
+/* Proveedores: sus marcas y su historial (compras anteriores, inventadas) */
+const PROVS = [
+  { id:"rosa", nombre:"Textiles Rosa E.I.R.L.", marcas:["CAYLA"] },
+  { id:"lupe", nombre:"Confecciones Lupe", marcas:["Lupe Jeans","Denim Co."] },
+  { id:"mayo", nombre:"Inversiones Mayo S.A.C.", marcas:["Mayo","Sin marca"] },
+  { id:"p214", nombre:"Puesto 214 · Gamarra", marcas:[] },
+  { id:"andinos", nombre:"Tejidos Andinos S.A.C.", marcas:[] },
+];
+const L = (nombre, cat, marca, color, cant, costo, venta) => ({ nombre, cat, marca, color: color ? [color, COLOR[color]] : null, cant, costo, venta });
+const HIST = [
+  { prov:"rosa", fecha:"2026-09-24", lineas:[L("Blusa manga globo","Blusas","CAYLA","Crudo",24,17.5,39.9), L("Polo básico algodón","Polos","CAYLA","Negro",30,12,29.9)] },
+  { prov:"rosa", fecha:"2026-10-01", lineas:[L("Blusa manga globo","Blusas","CAYLA","Crudo",18,17.5,39.9), L("Blusa con lazo","Blusas","CAYLA","Celeste",12,21,49.9)] },
+  { prov:"rosa", fecha:"2026-10-08", lineas:[L("Polo básico algodón","Polos","CAYLA","Negro",24,12.5,29.9), L("Polo cuello V","Polos","CAYLA","Arena",12,13,32.9), L("Blusa cuello bebé","Blusas","CAYLA","Crudo",10,19,44.9)] },
+  { prov:"rosa", fecha:"2026-10-16", lineas:[L("Blusa manga globo","Blusas","CAYLA","Crudo",24,17.5,39.9), L("Top tejido","Blusas","CAYLA","Negro",8,22,52.9), L("Polo oversize","Polos","CAYLA","Blanco",12,14,34.9)] },
+  { prov:"lupe", fecha:"2026-09-30", lineas:[L("Jean mom tiro alto","Jeans","Lupe Jeans","Azul medio",12,40,89.9), L("Short denim","Shorts","Denim Co.","Azul medio",10,22,49.9)] },
+  { prov:"lupe", fecha:"2026-10-10", lineas:[L("Jean mom tiro alto","Jeans","Lupe Jeans","Azul medio",12,40,89.9), L("Jean recto","Jeans","Lupe Jeans","Azul oscuro",8,42,94.9)] },
+  { prov:"mayo", fecha:"2026-09-20", lineas:[L("Casaca acolchada","Casacas","Mayo","Negro",6,65,139.9)] },
+  { prov:"mayo", fecha:"2026-10-05", lineas:[L("Casaca acolchada","Casacas","Mayo","Negro",6,65,139.9), L("Chompa trenzada","Chompas","Mayo","Crudo",10,35,79.9)] },
+  { prov:"mayo", fecha:"2026-10-14", lineas:[L("Chompa trenzada","Chompas","Mayo","Crudo",8,35,79.9), L("Casaca denim","Casacas","Mayo","Azul medio",5,70,149.9)] },
+  { prov:"p214", fecha:"2026-10-03", lineas:[L("Falda plisada midi","Faldas","","Verde oliva",10,38,79.9)] },
+  { prov:"p214", fecha:"2026-10-12", lineas:[L("Falda plisada midi","Faldas","","Verde oliva",10,38,79.9), L("Vestido camisero","Vestidos","","Celeste",6,45,99.9)] },
+];
+const CATALOGO = [
+  { id:"p1", nombre:"Blusa manga globo", cat:"Blusas", marca:"CAYLA", tallas:["S","M","L"], colores:[["Crudo","#efe6d6"],["Negro","#26231f"]] },
+  { id:"p2", nombre:"Polo básico algodón", cat:"Polos", marca:"Sin marca", tallas:["S","M","L","XL"], colores:[["Blanco","#f4f2ee"],["Negro","#26231f"],["Arena","#d8c6a5"]] },
+  { id:"p3", nombre:"Blusa Aurora lino", cat:"Blusas", marca:"CAYLA", tallas:["S","M","L"], colores:[["Celeste","#a9c3d6"]] },
+  { id:"p4", nombre:"Casaca denim clásica", cat:"Casacas", marca:"Sin marca", tallas:["S","M","L"], colores:[["Azul medio","#5b7896"]] },
+  { id:"p5", nombre:"Falda plisada midi", cat:"Faldas", marca:"CAYLA", tallas:["S","M","L"], colores:[["Verde oliva","#6f7348"],["Negro","#26231f"]] },
+];
+const S = {
+  paso: 1,
+  salidas: [
+    { id:"s1", persona:"mar", cuando:"Hoy, 9:10", entregado:0, sobrante:140, estado:"abierta" },
+    { id:"s0", persona:"kev", cuando:"Ayer, 8:40", entregado:1500, sobrante:0, estado:"cerrada", gastoFijo:1580 },
+  ],
+  regs: [
+    { id:"i1", salida:"s1", clase:"ingreso", como:"transf", monto:3000, hora:"9:10", estado:"confirmada", foto:true },
+    { id:"c1", salida:"s1", clase:"compra", tipo:"factura", monto:426, hora:"11:20", provId:"rosa", fecha:"2026-10-22", lineas:[L("Blusa manga globo","Blusas","CAYLA","Crudo",12,17.5,39.9), L("Polo básico algodón","Polos","CAYLA","Negro",18,12,29.9)], papel:{ prov:"Textiles Rosa E.I.R.L.", num:"F001-00482", ruc:"RUC 20601234567", lineas:[["Blusa manga globo",12,17.5],["Polo básico algodón",18,12]] } },
+    { id:"c2", salida:"s1", clase:"compra", tipo:"boleta", monto:480, hora:"12:05", provId:"lupe", fecha:"2026-10-22", lineas:[L("Jean mom tiro alto","Jeans","Lupe Jeans","Azul medio",12,40,89.9)], papel:{ prov:"Confecciones Lupe", num:"B002-01177", lineas:[["Jean mom tiro alto",12,40]] } },
+    { id:"g1", salida:"s1", clase:"gasto", tipo:"Taxi", monto:25, hora:"10:05" },
+    { id:"g2", salida:"s1", clase:"gasto", tipo:"Cargador", monto:15, hora:"13:30" },
+    { id:"i2", salida:"s1", clase:"ingreso", como:"yape", monto:500, hora:"13:10", estado:"pendiente", foto:true },
+    { id:"c3", salida:"s1", clase:"compra", tipo:"nota", monto:380, hora:"14:40", provId:"p214", fecha:"2026-10-22", lineas:[L("Falda plisada midi","Faldas","","Verde oliva",10,38,79.9)], papel:{ prov:"Puesto 214 · Gamarra", num:"N° 0358", lineas:[["Falda plisada midi",10,38]] } },
+  ],
+  envios: [ { id:"e1", salida:"s1", tienda:"AQP", bultos:2, comps:["c1","c2"], hora:"15:10", estado:"camino" } ],
+  tel: { p:"erp", quien:"mar" },
+  papel: {},
+  tienda: "AQP",
+  rec: {},          // estado de la recepción por envío
+  modal: null,
+  costos: {},       // costo por línea recibida
+  decision: {},     // qué se decidió con cada diferencia de plata
+  cerradoCostos: false,
+};
+let sec = 10;
+const nuevoId = (p) => p + (++sec);
+
+/* ======================= Utilidades ======================= */
+const soles = (n) => "S/ " + Number(n).toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2});
+const h = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const $ = (s) => document.querySelector(s);
+const ICO = {
+  camara:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+  mas:'<path d="M12 5v14M5 12h14"/>', menos:'<path d="M5 12h14"/>',
+  flecha:'<path d="M5 12h14M13 6l6 6-6 6"/>', atras:'<path d="M19 12H5M11 18l-6-6 6-6"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>', x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  camion:'<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  recibo:'<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 17.5v-11"/>',
+  billete:'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+  caja:'<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/>',
+  lupa:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  percha:'<path d="M12 6a2 2 0 1 1 2 2c-1 0-2 .7-2 1.7V10l9 6.5a1 1 0 0 1-.6 1.8H3.6a1 1 0 0 1-.6-1.8L12 10"/>',
+  hoja:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h6M9 13h6M9 17h4"/>',
+  sinpapel:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="m3 3 18 18"/>',
+  mano:'<path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/>',
+  aviso:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',
+  sello:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+};
+const ic = (n, cls="ico") => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[n]}</svg>`;
+const reg = (id) => S.regs.find((r) => r.id === id);
+const salida = (id) => S.salidas.find((s) => s.id === id);
+const prod = (id) => CATALOGO.find((p) => p.id === id);
+/* ---------- Habituales de un proveedor: su historial agrupado por producto ---------- */
+const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+const HOY = new Date("2026-10-22T12:00:00");
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const diasDesde = (f) => Math.round((HOY - new Date(f + "T12:00:00")) / 86400000);
+const haceTexto = (f) => { const d = diasDesde(f); return d <= 0 ? "hoy" : d === 1 ? "ayer" : `hace ${d} días`; };
+const elDia = (f) => { const d = new Date(f + "T12:00:00"); if (diasDesde(f) <= 0) return "hoy"; if (diasDesde(f) === 1) return "ayer"; return d.getMonth() === HOY.getMonth() ? `el ${d.getDate()}` : `el ${d.getDate()} de ${MESES[d.getMonth()]}`; };
+const provDe = (id) => PROVS.find((p) => p.id === id);
+const corto = (nombre) => nombre.replace(/\s+(E\.I\.R\.L\.|S\.A\.C\.|S\.A\.)$/, "");
+const claveProducto = (l) => norm(l.nombre) + "|" + l.cat + "|" + (l.marca || "");
+function comprasDe(provId) {
+  const guardadas = S.regs.filter((r) => r.clase === "compra" && r.provId === provId && r.lineas?.length).map((r) => ({ prov:provId, fecha:r.fecha || "2026-10-22", lineas:r.lineas }));
+  return HIST.filter((c) => c.prov === provId).concat(guardadas);
+}
+function habitualesDe(provId) {
+  const mapa = new Map();
+  comprasDe(provId).forEach((c) => c.lineas.forEach((l) => {
+    const k = claveProducto(l);
+    const h = mapa.get(k) || { clave:k, nombre:l.nombre, cat:l.cat, marca:l.marca || "", color:null, veces:0, ultima:null };
+    h.veces++;
+    if (!h.ultima || c.fecha >= h.ultima.fecha) h.ultima = { ...l, fecha:c.fecha };
+    if (l.color) h.color = l.color;
+    mapa.set(k, h);
+  }));
+  return [...mapa.values()].sort((a, b) => b.veces - a.veces || b.ultima.fecha.localeCompare(a.ultima.fecha));
+}
+/* ¿Se parece a uno que ya se le compró? (mismo nombre, uno dentro del otro, o casi las mismas palabras) */
+function parecido(nombre, provId) {
+  const n = norm(nombre); if (n.length < 3) return null;
+  const pa = new Set(n.split(" "));
+  return habitualesDe(provId).find((h) => {
+    const m = norm(h.nombre); if (m === n || m.includes(n) || n.includes(m)) return true;
+    const pb = new Set(m.split(" ")); const comunes = [...pa].filter((x) => pb.has(x)).length;
+    return comunes / Math.max(pa.size, pb.size) >= 0.6;
+  }) || null;
+}
+const ventaSugerida = (costo, cat) => Math.max(0, Math.ceil(costo * (CATEGORIAS[cat]?.factor || 2.2)) - 0.1);
+const totalBor = () => (S.bor?.lineas || []).reduce((a, l) => a + l.cant * l.costo, 0);
+const resumenLineas = (ls, max = 2) => !ls?.length ? "" : ls.slice(0, max).map((l) => `${l.cant} · ${l.nombre}`).join(", ") + (ls.length > max ? ` y ${ls.length - max} más` : "");
+/* La ronda abierta de quien tiene el celular (Marisol ya compra; Lucía empieza) */
+const sid = () => S.salidas.find((x) => x.persona === S.tel.quien && x.estado === "abierta")?.id || null;
+const primeraVez = (quien) => !S.salidas.some((x) => x.persona === quien && (x.estado === "cerrada" || x.sobrante)) && !S.regs.some((r) => r.clase === "ingreso" && salida(r.salida)?.persona === quien);
+
+function cuentaSalida(s) {
+  const regs = S.regs.filter((r) => r.salida === s.id);
+  const compras = regs.filter((r) => r.clase === "compra").reduce((a, r) => a + r.monto, 0);
+  const gastos = regs.filter((r) => r.clase === "gasto").reduce((a, r) => a + r.monto, 0);
+  const ingresos = regs.filter((r) => r.clase === "ingreso");
+  const porConfirmar = ingresos.filter((r) => r.estado === "pendiente").reduce((a, r) => a + r.monto, 0);
+  const total = s.entregado + s.sobrante + ingresos.reduce((a, r) => a + r.monto, 0);
+  const gastado = s.gastoFijo ?? compras + gastos;
+  return { compras, gastos, total, gastado, porConfirmar, queda: total - gastado };
+}
+
+/* La foto del voucher: así se ve la pantalla del banco o de Yape */
+function voucherHTML(r, chico) {
+  const col = { transf:"var(--transf)", yape:"var(--yape)", efectivo:"var(--efectivo)" }[r.como] || "var(--taupe)";
+  if (!r.foto) return chico ? ic("billete") : `<div class="vacio"><b>Sin foto</b>${r.como==="yatenia"?"Plata que ya tenía del fondo.":"No subió foto del voucher."}</div>`;
+  if (chico) return `<div style="width:100%;height:100%;background:${col};display:grid;place-items:center;color:#ffffff">${ic("billete")}</div>`; // tema-fijo: foto
+  const per = PERSONAS[salida(r.salida)?.persona] || PERSONAS.mar;
+  return `<div class="voucher" data-papel style="--v:${col}"><div class="vc-cab">${r.como==="yape"?"¡Yapeaste!":r.como==="efectivo"?"Recibo de caja":"Transferencia exitosa"}</div><div class="vc-monto">S/ ${r.monto.toLocaleString("es-PE",{minimumFractionDigits:2})}</div><div class="vc-det">Para: ${per.nombre}<br>22 oct. 2026 · ${r.hora}<br>Operación N° 0048${String(r.monto).slice(0,3)}</div></div>`;
+}
+/* El papel: así se ve la foto que sacó la compradora */
+function papelHTML(r, chico) {
+  if (r.clase === "ingreso") return voucherHTML(r, chico);
+  if (!r.papel) return pilaHTML(chico);
+  const mano = r.tipo !== "factura";
+  const p = r.papel;
+  const filas = p.lineas.map(([d, c, pu]) => `<tr><td>${c}</td><td>${h(d)}</td><td class="num">${(c*pu).toFixed(2)}</td></tr>`).join("");
+  return `<div class="papel-foto ${mano ? "mano" : ""} ${chico ? "chico" : ""}">
+    <div class="pf-cab"><b>${h(p.prov)}</b>${p.ruc ? `<small>${p.ruc}</small><br>` : ""}<span class="pf-tipo">${TIPOS[r.tipo].toUpperCase()} ${h(p.num)}</span></div>
+    <table>${filas || '<tr><td colspan="3">Prendas varias</td></tr>'}</table>
+    <div class="pf-tot"><span>TOTAL</span><span>${r.monto.toFixed(2)}</span></div></div>`;
+}
+function pilaHTML(chico) {
+  const cs = ["#c9b79c","#26231f","#a9c3d6","#efe6d6"];
+  if (chico) return `<div style="display:grid;gap:2px;padding:4px">${cs.map((c)=>`<i style="display:block;height:6px;border-radius:2px;background:${c}"></i>`).join("")}</div>`;
+  return `<div class="pila" data-color-dato>${cs.map((c,i)=>`<i style="--c:${c};top:${20+i*36}px;transform:rotate(${(i%2?2:-2)}deg)"></i>`).join("")}</div>`;
+}
+function miniPrenda(p, color) {
+  const hex = color || p.colores[0][1];
+  const claro = parseInt(hex.slice(1,3),16) > 140;
+  return `<span class="mini" data-color-dato style="background:${hex};color:${claro ? "#1a1a18" : "#f5f0e8"}">${ic("percha")}</span>`; // tema-fijo: color de la prenda es dato
+}
+
+/* ======================= Paso 1 · Anotar la plata ======================= */
+const telHTML = () => `<div class="tel"><span class="tel-isla"></span><div class="tel-estado"><span>15:24</span><span>●●● 5G</span></div>${pantallaTel()}</div>`;
+const verComo = () => `<div class="campo" style="margin-top:24px"><span class="campo-et">Ver el celular de</span><div class="opciones"><button class="op" aria-pressed="${S.tel.quien==="mar"}" data-a="tel-quien" data-v="mar">Marisol · ya compra</button><button class="op" aria-pressed="${S.tel.quien==="luc"}" data-a="tel-quien" data-v="luc">Lucía · su primera vez</button></div></div>`;
+function escena1() {
+  const n = PERSONAS[S.tel.quien].nombre.split(" ")[0];
+  return `<div class="quien">${ic("billete")}<span>La usa <b>la compradora</b>, en su celular. Toca la tarjeta de su Inicio y después «Me dieron plata».</span></div>
+  <div class="escena-tel">${telHTML()}
+  <div class="lado"><span class="kick">Lo que hace ${n}</span><h3>Anota la plata que tiene para comprar</h3>
+    <p>Nadie le «entrega» plata en el sistema: ella anota lo que le transfirieron, y Compras lo confirma desde su escritorio (paso 4).</p>
+    <ol><li><b>Me dieron plata:</b> cómo le llegó (transferencia, Yape o Plin, efectivo), cuánto, y la foto del voucher si la tiene.</li>
+      <li><b>La primera vez:</b> también anota «Ya tenía plata del fondo». Después, lo que sobra de una ronda pasa solo a la siguiente.</li>
+      <li><b>Mientras Compras confirma:</b> ya puede comprar con esa plata; en su ronda sale «por confirmar».</li>
+      <li><b>Quién la ve:</b> quien tenga el módulo «Mi ronda de compras» en Roles y accesos.</li></ol>
+    ${verComo()}</div></div>`;
+}
+
+/* ======================= Paso 2 · La compradora (celular) ======================= */
+function escena2() {
+  return `<div class="quien">${ic("camara")}<span>La usa <b>la compradora</b>, en su celular, cuando paga: en el puesto o por un pedido al proveedor. Empieza en su Inicio: toca «Tu ronda de compras». Después prueba «Registrar una compra», «Otro gasto», «Armar un envío» y «Terminé por hoy».</span></div>
+  <div class="escena-tel">${telHTML()}
+  <div class="lado"><span class="kick">Lo que hace ${PERSONAS[S.tel.quien].nombre.split(" ")[0]}</span><h3>Lo de siempre, en pocos toques</h3>
+    <p>Elige al proveedor y ve lo que más le compra. Un toque arma la prenda con la cantidad, el costo y la venta de la vez pasada.</p>
+    <ol><li><b>Desde su Inicio:</b> la tarjeta «Tu ronda de compras».</li>
+      <li><b>Registrar una compra:</b> el proveedor → «¿Qué le compras hoy?» → cantidad, costo y venta, cada uno aceptable de un toque.</li>
+      <li><b>Algo nuevo:</b> qué es, cómo se llama (con ejemplos de esa categoría), la marca, el color y las tallas (opcionales). Si se parece a uno que ya le compró, avisa.</li>
+      <li><b>El papel al final:</b> qué papel le dieron, la foto y el monto, que ya viene con el total anotado.</li>
+      <li><b>Otro gasto, Armar un envío y Terminé por hoy</b>, como antes.</li></ol>
+    <p class="cita">«Lo más hay que hacer que suban las facturas, o sea las fotos, y ya.» — de la reunión</p>${verComo()}</div></div>`;
+}
+function pantallaTel() {
+  const t = S.tel, per = PERSONAS[t.quien], nombre = per.nombre.split(" ")[0], ronda = sid(), s = ronda ? salida(ronda) : null;
+  const c = s ? cuentaSalida(s) : { total:0, compras:0, gastos:0, porConfirmar:0, queda:0 };
+  const top = (titulo, sub) => `<div class="tel-top"><button class="volver" data-a="${S.bor&&["papel","camara","monto"].includes(t.p)?"ir":"tel"}" data-v="${S.bor&&["papel","camara","monto"].includes(t.p)?"c-revisar":"inicio"}" aria-label="Volver">${ic("atras")}</button></div><h4>${titulo}</h4>${sub?`<p class="sub">${sub}</p>`:""}`;
+  const aviso = t.aviso ? `<div class="aviso-tel">${ic("check")}<span>${t.aviso}</span></div>` : "";
+  if (t.p === "erp") {
+    const pct = c.total ? Math.max(0, Math.min(100, c.queda / c.total * 100)) : 0;
+    const tarjeta = s ? `<button class="saldo" style="width:100%;text-align:left;margin-top:18px" data-a="tel" data-v="inicio"><div class="l">Tu ronda de compras</div><div class="v">${soles(c.queda)}</div><div class="d">Te quedan para comprar${c.porConfirmar?` (${soles(c.porConfirmar)} por confirmar)`:""}. Toca para registrar.</div><div class="barra"><i style="width:${pct}%"></i></div></button>`
+      : `<button class="saldo" style="width:100%;text-align:left;margin-top:18px" data-a="tel" data-v="inicio"><div class="l">Tu ronda de compras</div><div class="v" style="font-size:30px">Anota tu plata</div><div class="d">¿Te dieron plata para comprar o ya tienes del fondo? Toca aquí.</div></button>`;
+    return `<div class="tel-pant"><div class="tel-top"><span class="avatar">${per.ini}</span><span style="font-size:13px;color:var(--t60)">Inicio</span></div>
+      <h4>Buenas tardes, ${nombre}</h4><p class="sub">Miércoles 22 de octubre</p>${tarjeta}
+      <div class="lista-tel" style="opacity:.55"><div class="fila-tel"><span class="t"><b>Tus ventas de hoy</b><small>Lo demás de tu Inicio sigue igual</small></span></div></div></div>`;
+  }
+  if (t.p === "inicio" && !s) {
+    return `<div class="tel-pant"><div class="tel-top"><button class="volver" data-a="tel" data-v="erp" aria-label="Volver a Inicio">${ic("atras")}</button><span style="font-size:13px;color:var(--t60)">Mi ronda de compras</span></div>
+      <h4>Empieza tu ronda</h4><p class="sub">Anota la plata que tienes para comprar. Compras la confirma después.</p>
+      <div class="papeles" style="margin-top:18px;grid-template-columns:1fr">
+        <button class="tile" data-a="tel" data-v="plata-como">${ic("billete")}<span>Me dieron plata<br><small>Transferencia, Yape o Plin, efectivo</small></span></button>
+        <button class="tile" data-a="plata-tipo" data-v="yatenia">${ic("caja")}<span>Ya tenía plata del fondo<br><small>Solo esta primera vez</small></span></button></div></div>`;
+  }
+  if (t.p === "inicio") {
+    const regs = S.regs.filter((r) => r.salida === ronda).slice().reverse();
+    const pct = Math.max(0, Math.min(100, c.queda / c.total * 100));
+    const filas = regs.map((r) => {
+      const env = S.envios.find((e) => e.comps.includes(r.id));
+      if (r.clase === "ingreso") return `<div class="fila-tel"><span class="mini">${voucherHTML(r,true)}</span><span class="t"><b>${COMO[r.como]}</b><small>${r.como==="yatenia"?"Plata del fondo":"Plata que te dieron"} · ${r.hora}</small></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="m" style="color:var(--verde)">+ ${soles(r.monto)}</span><span class="chip ${r.estado==="pendiente"?"ambar":"verde"} sinpunto" style="height:18px;font-size:9.5px">${r.estado==="pendiente"?"Por confirmar":"Confirmada"}</span></span></div>`;
+      const det = r.clase === "gasto" ? `Otro gasto · ${r.hora}` : `${r.lineas?.length ? resumenLineas(r.lineas) : "Compra"} · ${r.hora}`;
+      const chip = r.clase === "gasto" ? "" : env ? `<span class="chip verde sinpunto" style="height:18px;font-size:9.5px">A ${env.tienda}</span>` : `<span class="chip ambar sinpunto" style="height:18px;font-size:9.5px">Sin envío</span>`;
+      return `<div class="fila-tel"><span class="mini">${r.clase==="gasto" ? ic("billete") : `<div style="transform:scale(1);width:100%">${papelHTML(r,true)}</div>`}</span><span class="t"><b>${r.clase==="gasto"?h(r.tipo):TIPOS[r.tipo]}${r.provId?" · "+h(provDe(r.provId).nombre):""}</b><small>${det}</small></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="m">${soles(r.monto)}</span>${chip}</span></div>`;
+    }).join("");
+    const sinEnvio = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && !S.envios.some((e)=>e.comps.includes(r.id))).length;
+    return `${aviso}<div class="tel-pant"><div class="tel-top"><button class="volver" data-a="tel" data-v="erp" aria-label="Volver a Inicio">${ic("atras")}</button><span style="font-size:13px;color:var(--t60)">Mi ronda de compras</span></div>
+      <div class="saldo ${c.queda<0?"debe":""}"><div class="l">${c.queda<0?"Pusiste de tu bolsillo":"Te queda para comprar"}</div><div class="v">${soles(Math.abs(c.queda))}</div>
+        <div class="d">De ${soles(c.total)}${c.porConfirmar?` (${soles(c.porConfirmar)} por confirmar)`:""} · compras ${soles(c.compras)} · otros gastos ${soles(c.gastos)}</div><div class="barra"><i style="width:${pct}%"></i></div></div>
+      <button class="btn-tel sec" style="margin-bottom:12px;height:44px" data-a="tel" data-v="plata-como">${ic("mas")}Me dieron plata</button>
+      <div class="grandes"><button class="grande uno" data-a="c-empezar">${ic("camara")}Registrar una compra</button><button class="grande dos" data-a="tel" data-v="gasto">${ic("billete")}Otro gasto</button></div>
+      <div class="sec-tel"><span>Hoy</span><span>${regs.length}</span></div><div class="lista-tel">${filas}</div>
+      <div class="abajo"><button class="btn-tel sec" data-a="tel" data-v="envio">${ic("camion")}Armar un envío ${sinEnvio?`<span class="globito pide">${sinEnvio}</span>`:""}</button><button class="btn-tel sec" data-a="tel" data-v="fin">Terminé por hoy</button></div></div>`;
+  }
+  /* ---------- Registrar una compra: proveedor → lo de siempre o algo nuevo → cantidad, costo, venta ---------- */
+  const B = S.bor, prov = B ? provDe(B.provId) : null, a = B?.actual;
+  const atras = (v) => `<div class="tel-top"><button class="volver" data-a="ir" data-v="${v}" aria-label="Volver">${ic("atras")}</button><span style="font-size:13px;color:var(--t60)">${prov?"Compra a "+h(prov.nombre):"Registrar una compra"}</span></div>`;
+  const avance = (nombrePaso) => {
+    const pasos = !B || B.camino !== "nuevo" ? ["Proveedor","Producto","Cantidad","Costo","Venta","Revisar","Papel"]
+      : ["Proveedor","Qué es","Nombre"].concat(prov.marcas.length > 1 ? ["Marca"] : []).concat(["Color","Tallas","Cantidad","Costo","Venta","Revisar","Papel"]);
+    const i = Math.max(0, pasos.indexOf(nombrePaso)), n = pasos.length;
+    return `<div class="avance-tel"><span>Paso ${i+1} de ${n} · ${nombrePaso}</span><i><b style="width:${Math.round((i+1)/n*100)}%"></b></i></div>`;
+  };
+  const teclado = `<div class="teclado">${["1","2","3","4","5","6","7","8","9",".","0","←"].map((k)=>`<button data-a="tecla" data-v="${k}">${k}</button>`).join("")}</div>`;
+  if (t.p === "c-prov") {
+    const orden = PROVS.slice().sort((x, y) => (comprasDe(y.id).map(c=>c.fecha).sort().pop()||"").localeCompare(comprasDe(x.id).map(c=>c.fecha).sort().pop()||""));
+    const filas = orden.map((pv) => { const cs = comprasDe(pv.id); const ult = cs.map(c=>c.fecha).sort().pop();
+      return `<button class="hab" data-a="c-prov" data-v="${pv.id}"><span class="sw" style="background:var(--hueso);color:var(--taupe)">${ic("caja")}</span><span><b>${h(pv.nombre)}</b><span class="cm">${cs.length ? `Le compraste ${cs.length} ${cs.length===1?"vez":"veces"} · la última ${haceTexto(ult)}` : "Todavía no le compras"}</span></span></button>`; }).join("");
+    return `${aviso}<div class="tel-pant">${atras("inicio")}${avance("Proveedor")}<h4>¿A quién le compras?</h4><p class="sub">Primero los que más le compras.</p><div class="lista-hab" style="margin-top:14px">${filas}</div></div>`;
+  }
+  if (t.p === "c-hab") {
+    const todos = habitualesDe(B.provId), ver = t.todos ? todos : todos.slice(0, 6);
+    const enCompra = (hb) => B.lineas.some((l) => claveProducto(l) === hb.clave);
+    const tarjetas = ver.map((hb, i) => { const u = hb.ultima; const col = hb.color;
+      return `<button class="hab" data-a="c-hab" data-v="${i}"><span class="sw" data-color-dato style="background:${col?col[1]:"var(--hueso)"};color:${col&&parseInt(col[1].slice(1,3),16)<140?"#f5f0e8":"#1a1a18"}">${ic("percha")}</span><span><b>${h(hb.nombre)}${enCompra(hb)?'<span class="chip verde sinpunto ya" style="height:18px;font-size:9px">Ya va</span>':""}</b><span class="cm">${hb.cat}${hb.marca?" · "+h(hb.marca):" · Sin marca"}${col?" · "+col[0]:""}</span><span class="vp">La vez pasada: ${u.cant} a ${soles(u.costo)} · se vendió a ${soles(u.venta)} · ${haceTexto(u.fecha)}</span></span></button>`; }).join(""); // tema-fijo: texto sobre el color de la prenda (dato)
+    const mas = !t.todos && todos.length > 6 ? `<button class="btn btn-enlace" style="align-self:center;margin:4px 0" data-a="c-todos">Ver todos los suyos (${todos.length})</button>` : "";
+    return `${aviso}<div class="tel-pant">${atras("c-prov")}${avance("Producto")}<h4>¿Qué le compras hoy?</h4><p class="sub">Lo que más le compras a ${h(prov.nombre)}.</p>
+      <div class="lista-hab" style="margin-top:14px">${tarjetas}${mas}<button class="hab nuevo" data-a="c-nuevo"><span class="sw">${ic("mas")}</span><span><b>Algo nuevo de este proveedor</b><span class="cm" style="color:inherit;opacity:.8">Una prenda que todavía no le compraste</span></span></button></div>
+      ${B.lineas.length?`<div class="abajo"><button class="btn-tel sec" data-a="ir" data-v="c-revisar">Revisar la compra <span class="globito">${B.lineas.length}</span></button></div>`:""}</div>`;
+  }
+  if (t.p === "c-cant" || t.p === "c-costo" || t.p === "c-venta") {
+    const v = t.monto || "", prev = a.prev;
+    const cfg = {
+      "c-cant": { paso:"Cantidad", tit:"¿Cuántas?", pre:"", vez: prev ? `La vez pasada: ${prev.cant}` : "", igual:null, ok:"c-cant-ok", atras: B.camino==="nuevo" ? "n-tallas" : "c-hab" },
+      "c-costo": { paso:"Costo", tit:"¿A cuánto cada una?", pre:"S/", vez:"", igual: prev ? ["c-costo-igual", "Igual que la vez pasada", prev.costo] : null, ok:"c-costo-ok", atras:"c-cant" },
+      "c-venta": { paso:"Venta", tit:"¿A cuánto se venderá?", pre:"S/", vez: a.costo ? `Le pagas ${soles(a.costo)} cada una` : "", igual: prev ? ["c-venta-igual", "Igual que la vez pasada", prev.venta] : ["c-venta-sug", `Sugerido para ${a.cat.toLowerCase()}`, ventaSugerida(a.costo, a.cat)], ok:"c-venta-ok", atras:"c-costo" },
+    }[t.p];
+    const valido = Number(v) > 0;
+    return `<div class="tel-pant">${atras(cfg.atras)}${avance(cfg.paso)}<h4>${cfg.tit}</h4><p class="sub">${h(a.nombre)} · ${a.cat}${a.marca?" · "+h(a.marca):""}</p>
+      ${cfg.igual && t.tocado ? "" : cfg.igual ? `<button class="igual" data-a="${cfg.igual[0]}"><span>${cfg.igual[1]}<small>Un toque y sigues</small></span><span style="font-family:var(--serif);font-size:24px;font-weight:400">${soles(cfg.igual[2])}</span></button><p class="vez" style="margin-top:10px">o escribe otro:</p>` : ""}
+      <div class="display-monto" style="margin:${cfg.igual&&!t.tocado?"6px":"18px"} 0 4px">${cfg.pre?`<small>${cfg.pre}</small>`:""}${v||"0"}</div>${cfg.vez?`<p class="vez">${cfg.vez}</p>`:""}
+      ${teclado}
+      <div class="abajo"><button class="btn-tel prim" ${valido?"":"disabled"} data-a="${cfg.ok}">${t.p==="c-cant"?`Seguir con ${v||0}`:t.p==="c-venta"?"Anotar":"Seguir"} ${ic("flecha")}</button></div></div>`;
+  }
+  if (t.p === "c-revisar") {
+    const filas = B.lineas.map((l, i) => `<div class="fila-tel ${B.recien===i?"recien":""}"><button data-a="c-editar" data-v="${i}" style="display:contents;text-align:left"><span class="mini" data-color-dato style="background:${l.color?l.color[1]:"var(--hueso)"}">${ic("percha")}</span><span class="t"><b>${l.cant} · ${h(l.nombre)}</b><small>${soles(l.costo)} c/u · se venderá a ${soles(l.venta)}</small></span></button><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="m">${soles(l.cant*l.costo)}</span><button class="btn btn-enlace" style="font-size:12px" data-a="c-quitar" data-v="${i}">Quitar</button></span></div>`).join("");
+    return `${aviso}<div class="tel-pant">${atras("c-hab")}${avance("Revisar")}<h4>Tu compra a ${h(corto(prov.nombre))}</h4><p class="sub">Toca una prenda para corregirla.</p>
+      <div class="lista-tel" style="margin-top:14px">${filas || `<div class="vacio"><b>Todavía no anotas nada</b>Elige qué le compras.</div>`}</div>
+      <div class="fila-tel" style="border:0;padding:12px 4px"><span class="t"><b>Total</b><small>${B.lineas.reduce((x,l)=>x+l.cant,0)} prendas</small></span><span class="m" style="font-family:var(--serif);font-size:22px">${soles(totalBor())}</span></div>
+      <div class="abajo"><button class="btn-tel sec" data-a="ir" data-v="c-hab">${ic("mas")}Otra prenda de ${h(corto(prov.nombre))}</button><button class="btn-tel prim" ${B.lineas.length?"":"disabled"} data-a="c-al-papel">Seguir: el papel ${ic("flecha")}</button></div></div>`;
+  }
+  /* Producto nuevo, una pregunta a la vez */
+  if (t.p === "n-cat") {
+    const suyas = [...new Set(comprasDe(B.provId).flatMap((c) => c.lineas.map((l) => l.cat)))];
+    const otras = Object.keys(CATEGORIAS).filter((c) => !suyas.includes(c));
+    const tile = (c, ya) => `<button class="tile" data-a="n-cat" data-v="${c}">${ic("percha")}<span>${c}<br><small>${ya?"Ya le compras":"&nbsp;"}</small></span></button>`;
+    const primera = !comprasDe(B.provId).length;
+    return `<div class="tel-pant">${atras(primera ? "c-prov" : "c-hab")}${avance("Qué es")}<h4>${primera ? "Es tu primera compra con él: dinos qué es" : "¿Qué es?"}</h4><p class="sub">Elige la categoría.</p>
+      ${suyas.length?`<div class="sec-tel"><span>Lo que ya le compras</span></div><div class="papeles">${suyas.map((c)=>tile(c,true)).join("")}</div><div class="sec-tel"><span>Otras</span></div>`:'<div style="height:14px"></div>'}
+      <div class="papeles">${otras.map((c)=>tile(c,false)).join("")}</div></div>`;
+  }
+  if (t.p === "n-nombre") {
+    const c = CATEGORIAS[a.cat];
+    return `<div class="tel-pant">${atras("n-cat")}${avance("Nombre")}<h4>¿Cómo se llama?</h4><p class="sub">${a.cat}. Un nombre corto, como lo dicen en la tienda.</p>
+      <input class="caja" style="height:52px;font-size:17px;margin-top:16px" placeholder="Ej. ${h(c.ej)}" value="${h(a.nombre||"")}" data-in="n-nombre" autocomplete="off">
+      <div class="opciones" style="margin-top:12px">${c.chips.map((x)=>`<button class="op" data-a="n-chip" data-v="${h(x)}">${h(x)}</button>`).join("")}</div>
+      <div class="abajo"><button class="btn-tel prim" ${norm(a.nombre).length>=3?"":"disabled"} data-a="n-nombre-ok">Seguir ${ic("flecha")}</button></div></div>`;
+  }
+  if (t.p === "n-dup") {
+    const hb = habitualesDe(B.provId).find((x) => x.clave === t.dup), u = hb.ultima, art = CATEGORIAS[hb.cat]?.art || "la";
+    return `<div class="tel-pant">${atras("n-nombre")}<h4>¿Es ${art} ${h(hb.nombre)} que le compraste ${elDia(u.fecha)}?</h4><p class="sub">Para no anotarla dos veces.</p>
+      <div class="lista-hab" style="margin-top:14px"><div class="hab" style="cursor:default"><span class="sw" data-color-dato style="background:${hb.color?hb.color[1]:"var(--hueso)"}">${ic("percha")}</span><span><b>${h(hb.nombre)}</b><span class="cm">${hb.cat}${hb.marca?" · "+h(hb.marca):""}</span><span class="vp">La vez pasada: ${u.cant} a ${soles(u.costo)} · se vendió a ${soles(u.venta)}</span></span></div></div>
+      <div class="abajo"><button class="btn-tel prim" data-a="n-dup-usar">Usar ${art==="el"?"ese":"esa"}</button><button class="btn-tel sec" data-a="n-dup-no">No, es ${art==="el"?"otro":"otra"}</button></div></div>`;
+  }
+  if (t.p === "n-marca") {
+    const ops = prov.marcas.filter((m) => m !== "Sin marca").concat(["Sin marca"]);
+    return `<div class="tel-pant">${atras("n-nombre")}${avance("Marca")}<h4>¿De qué marca?</h4><p class="sub">${h(a.nombre)}</p>
+      <div class="papeles" style="margin-top:16px">${ops.map((m)=>`<button class="tile" data-a="n-marca" data-v="${h(m)}">${ic("hoja")}<span>${h(m)}</span></button>`).join("")}<button class="tile" data-a="ir" data-v="n-marca-otra">${ic("mas")}<span>Otra marca<br><small>La escribes</small></span></button></div></div>`;
+  }
+  if (t.p === "n-marca-otra") return `<div class="tel-pant">${atras("n-marca")}${avance("Marca")}<h4>¿Qué marca?</h4><p class="sub">Como dice la etiqueta de la prenda.</p>
+      <input class="caja" style="height:52px;font-size:17px;margin-top:16px" placeholder="La marca de la etiqueta" value="${h(t.otra||"")}" data-in="n-marca-otra" autocomplete="off">
+      <div class="abajo"><button class="btn-tel prim" ${norm(t.otra).length>=2?"":"disabled"} data-a="n-marca-otra-ok">Seguir ${ic("flecha")}</button></div></div>`; // sugerir-fijo: una marca nueva no depende de nada elegido antes
+  if (t.p === "n-color") return `<div class="tel-pant">${atras(prov.marcas.length>1?"n-marca":"n-nombre")}${avance("Color")}<h4>¿De qué color?</h4><p class="sub">Opcional. ${h(a.nombre)}</p>
+      <div class="opciones" style="margin-top:16px">${PALETA.map(([n,hex])=>`<button class="op" data-a="n-color" data-v="${n}"><span class="muestra" data-color-dato style="background:${hex}"></span>${n}</button>`).join("")}</div>
+      <div class="abajo"><button class="btn-tel sec" data-a="n-color" data-v="">Lo pongo después</button></div></div>`;
+  if (t.p === "n-tallas") {
+    const tallas = a.cat === "Jeans" ? ["26","28","30","32","34"] : ["XS","S","M","L","XL"];
+    const sel = a.tallas || [];
+    return `<div class="tel-pant">${atras("n-color")}${avance("Tallas")}<h4>¿Qué tallas trae?</h4><p class="sub">Opcional. Ayuda a la tienda al recibir.</p>
+      <div class="opciones" style="margin-top:16px">${tallas.map((x)=>`<button class="op" aria-pressed="${sel.includes(x)}" data-a="n-talla" data-v="${x}">${x}</button>`).join("")}</div>
+      <div class="abajo"><button class="btn-tel prim" ${sel.length?"":"disabled"} data-a="n-tallas-ok">Seguir ${ic("flecha")}</button><button class="btn-tel sec" data-a="n-tallas-ok">Lo pongo después</button></div></div>`;
+  }
+  if (t.p === "plata-como") {
+    const tiles = [["transf","Transferencia","Al banco","billete"],["yape","Yape o Plin","Al celular","billete"],["efectivo","Efectivo","En la mano","mano"]]
+      .concat(primeraVez(t.quien) ? [["yatenia","Ya la tenía","Del fondo, solo esta vez","caja"]] : [])
+      .map(([k,n,d,i]) => `<button class="tile" data-a="plata-tipo" data-v="${k}">${ic(i)}<span>${n}<br><small>${d}</small></span></button>`).join("");
+    return `<div class="tel-pant">${top("¿Cómo te llegó la plata?","Elige uno. Después escribes cuánto.")}<div class="papeles" style="margin-top:18px">${tiles}</div></div>`;
+  }
+  if (t.p === "plata-foto") {
+    const ef = t.como === "efectivo";
+    if (!t.foto) return `<div class="tel-pant">${top(ef?"Foto del recibo, si te dieron uno":"Saca la foto del voucher", "Que se lea el monto. Si no la tienes, igual se guarda.")}
+      <div class="visor"><span class="txt">Encuadra la pantalla o el papel</span><span class="guia"></span><button class="disparo" data-a="tel-foto" aria-label="Sacar la foto"><i></i></button></div>
+      <div class="abajo"><button class="btn-tel sec" data-a="tel-plata-guardar">No tengo foto: guardar así</button></div></div>`;
+    return `<div class="tel-pant">${top("¿Se ve bien?","")}
+      <div class="foto-hecha">${voucherHTML({ clase:"ingreso", como:t.como, monto:Number(t.monto), hora:"15:24", foto:true, salida:ronda })}</div>
+      <div class="abajo"><button class="btn-tel prim" data-a="tel-plata-guardar">Guardar ${soles(t.monto)}</button><button class="btn-tel sec" data-a="tel-repetir">Repetir</button></div></div>`;
+  }
+  if (t.p === "papel") {
+    const tiles = [["factura","Factura","Con RUC","hoja"],["boleta","Boleta","Con número","recibo"],["nota","Nota de venta","Papel simple","hoja"],["sin","Sin papel","No me dieron nada","sinpapel"]]
+      .map(([k,n,s,i]) => `<button class="tile" data-a="tel-tipo" data-v="${k}">${ic(i)}<span>${n}<br><small>${s}</small></span></button>`).join("");
+    return `<div class="tel-pant">${top("¿Qué papel te dieron?","Elige uno. Después le sacas la foto.")}<div class="papeles" style="margin-top:18px">${tiles}</div></div>`;
+  }
+  if (t.p === "camara") {
+    const sin = t.tipo === "sin";
+    if (!t.foto) return `<div class="tel-pant">${top(sin?"Saca una foto de lo que compraste":"Saca la foto del papel", sin?"Las prendas juntas, o la captura del pedido si fue por WhatsApp.":"Que se lea el total.")}
+      <div class="visor"><span class="txt">${sin?"Pon las prendas sobre la mesa":"Encuadra el papel completo"}</span><span class="guia"></span><button class="disparo" data-a="tel-foto" aria-label="Sacar la foto"><i></i></button></div></div>`;
+    return `<div class="tel-pant">${top("¿Se ve bien?","")}
+      <div class="foto-hecha">${sin ? pilaHTML() : papelHTML({tipo:t.tipo,monto:0,papel:{prov:"Proveedor nuevo",num:"0000",lineas:[]}})}</div>
+      <div class="abajo"><button class="btn-tel prim" data-a="tel-usar">Usar esta foto ${ic("flecha")}</button><button class="btn-tel sec" data-a="tel-repetir">Repetir</button></div></div>`;
+  }
+  if (t.p === "monto" || t.p === "gasto-monto" || t.p === "plata-monto") {
+    const esGasto = t.p === "gasto-monto", esPlata = t.p === "plata-monto";
+    const v = t.monto || "";
+    const titulo = esPlata ? (t.como==="yatenia" ? "¿Cuánto tienes del fondo?" : "¿Cuánto te llegó?") : esGasto ? `¿Cuánto fue el ${h(t.gasto).toLowerCase()}?` : "¿Cuánto pagaste?";
+    const sub = esPlata ? (t.como==="yatenia" ? "La plata para compras que ya tenías antes de usar el sistema." : `Por ${COMO[t.como].toLowerCase()}.`) : esGasto ? "" : "Lo que salió de tu plata por este papel.";
+    return `<div class="tel-pant">${top(titulo, sub)}
+      ${t.p==="monto"&&S.bor&&!t.tocado?`<p class="vez" style="margin-top:8px">Lo que anotaste suma ${soles(totalBor())}. Si pagaste eso, solo toca Guardar.</p>`:""}<div class="display-monto"><small>S/</small>${v||"0"}</div><p class="sub" style="text-align:center">${esPlata ? `Tendrás ${soles(c.queda + Number(v||0))} para comprar` : `Te quedan ${soles(c.queda - Number(v||0))}`}</p>
+      <div class="teclado">${["1","2","3","4","5","6","7","8","9",".","0","←"].map((k)=>`<button data-a="tecla" data-v="${k}">${k}</button>`).join("")}</div>
+      <div class="abajo"><button class="btn-tel prim" ${Number(v)>0?"":"disabled"} data-a="${esPlata?(t.como==="yatenia"?"tel-plata-guardar":"tel-plata-foto"):esGasto?"tel-guardar-gasto":"tel-guardar"}">${esPlata&&t.como!=="yatenia"?"Seguir":"Guardar"}</button></div></div>`;
+  }
+  if (t.p === "gasto") {
+    return `<div class="tel-pant">${top("¿En qué gastaste?","No es ropa: no se suma al costo de las prendas.")}
+      <div class="papeles" style="margin-top:18px">${["Taxi","Cargador","Comida","Envío","Bolsas","Otro"].map((g)=>`<button class="tile" data-a="tel-gasto" data-v="${g}">${ic(g==="Comida"?"mano":g==="Envío"?"camion":g==="Bolsas"?"caja":"billete")}<span>${g}</span></button>`).join("")}</div>
+      <p class="sub" style="margin-top:14px">Si te dieron un papel, podrás sacarle foto. Si no, igual se guarda.</p></div>`;
+  }
+  if (t.p === "envio") {
+    const libres = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && !S.envios.some((e)=>e.comps.includes(r.id)));
+    const e = t.envio || (t.envio = { sel: libres.map((r)=>r.id), tienda:null, bultos:1 });
+    if (!libres.length) return `<div class="tel-pant">${top("Armar un envío","")}<div class="vacio" style="margin-top:30px"><b>Todo está en un envío</b>Cuando registres otra compra, aparecerá aquí para mandarla.</div></div>`;
+    const marcas = libres.map((r)=>`<button class="marca" aria-pressed="${e.sel.includes(r.id)}" data-a="env-sel" data-v="${r.id}"><span class="check">${e.sel.includes(r.id)?ic("check"):""}</span><span class="mini" style="width:34px;height:40px;overflow:hidden;border-radius:4px;background:var(--hueso)">${papelHTML(r,true)}</span><span style="flex:1;min-width:0"><b>${TIPOS[r.tipo]}${r.provId?" · "+h(provDe(r.provId).nombre):""}</b><br><small style="color:var(--t60)">${r.lineas?.length?resumenLineas(r.lineas)+" · ":""}${r.hora}</small></span><b>${soles(r.monto)}</b></button>`).join("");
+    const tiendas = Object.keys(TIENDAS).map((k)=>`<button class="tile" aria-pressed="${e.tienda===k}" data-a="env-tienda" data-v="${k}">${k}<small>${TIENDAS[k].replace("Tienda ","")==="LIM"?"Lima":k==="AQP"?"Arequipa":k==="TRU"?"Trujillo":"Lima"}</small></button>`).join("");
+    const listo = e.sel.length && e.tienda;
+    return `<div class="tel-pant">${top("¿Qué va en este fardo?","Marca los papeles de lo que va junto.")}
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">${marcas}</div>
+      <div class="sec-tel"><span>¿A qué tienda va?</span></div><div class="tiendas ${!e.tienda?"encendido":""}">${tiendas}</div>
+      <div class="sec-tel"><span>¿Cuántos bultos?</span><span>opcional</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:8px 12px"><span>Bultos</span><span class="cant"><button data-a="env-bultos" data-v="-1" aria-label="Uno menos">${ic("menos")}</button><span>${e.bultos}</span><button data-a="env-bultos" data-v="1" aria-label="Uno más">${ic("mas")}</button></span></div>
+      <div class="abajo"><button class="btn-tel prim" ${listo?"":"disabled"} data-a="env-mandar">${ic("camion")}Mandar ${e.tienda?"a "+TIENDAS[e.tienda]:""}</button></div></div>`;
+  }
+  if (t.p === "fin") {
+    const sinEnvio = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && !S.envios.some((e)=>e.comps.includes(r.id)));
+    const sobra = c.queda;
+    return `<div class="tel-pant">${top("Tu ronda de hoy","")}
+      <div class="lista-tel" style="margin-top:14px">
+        <div class="fila-tel"><span class="t"><b>Tenías para comprar</b><small>${s.sobrante?`incluye ${soles(s.sobrante)} de la vez pasada`:""}${c.porConfirmar?` · ${soles(c.porConfirmar)} por confirmar`:""}</small></span><span class="m">${soles(c.total)}</span></div>
+        <div class="fila-tel"><span class="t"><b>Compras</b><small>${S.regs.filter(r=>r.salida===ronda&&r.clase==="compra").length} papeles</small></span><span class="m">− ${soles(c.compras)}</span></div>
+        <div class="fila-tel"><span class="t"><b>Otros gastos</b><small>taxi, cargador…</small></span><span class="m">− ${soles(c.gastos)}</span></div>
+        <div class="fila-tel"><span class="t"><b>${sobra<0?"Pusiste de tu bolsillo":"Te sobra"}</b></span><span class="m" style="font-family:var(--serif);font-size:22px">${soles(Math.abs(sobra))}</span></div></div>
+      ${sinEnvio.length?`<button class="nota" style="margin-top:12px;text-align:left;width:100%" data-a="tel" data-v="envio">${sinEnvio.length===1?"Un papel":sinEnvio.length+" papeles"} todavía no ${sinEnvio.length===1?"está":"están"} en un envío. Tócalo para mandarlo.</button>`:""}
+      ${sobra<0?`<p class="sub" style="margin-top:12px">CAYLA te debe ${soles(-sobra)}. Lo ve Compras al revisar tu ronda.</p>`:`<div class="sec-tel"><span>¿Qué haces con lo que sobra?</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px">${[["queda","Me lo quedo para la próxima ronda"],["devuelvo","Lo devuelvo hoy"]].map(([k,n])=>`<button class="marca" aria-pressed="${t.sobra===k}" data-a="fin-sobra" data-v="${k}"><span class="check">${t.sobra===k?ic("check"):""}</span><b>${n}</b></button>`).join("")}</div>`}
+      <div class="abajo"><button class="btn-tel prim" ${(t.sobra||sobra<0)?"":"disabled"} data-a="fin-cerrar">Cerrar mi ronda</button></div></div>`;
+  }
+  if (t.p === "cerrada") return `<div class="tel-pant"><div style="margin:auto;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center"><div class="sello" style="flex-direction:column;text-align:center">${ic("sello")}<b>Ronda cerrada</b><small>${t.sobra==="queda"?"Lo que sobró se suma a tu próxima ronda.":"Entrega lo que sobró en caja."}</small></div><button class="btn btn-enlace" data-a="tel-reabrir">Volver a la maqueta</button></div></div>`;
+  return "";
+}
+
+/* ======================= Paso 3 · La tienda recibe ======================= */
+function recDe(eid) {
+  if (!S.rec[eid]) {
+    const e = S.envios.find((x)=>x.id===eid);
+    S.rec[eid] = { activo:e.comps[0], lineas:[], coincide:{}, difs:{}, cerrada:false, q:"" };
+    if (eid === "e1") S.rec[eid].lineas.push({ id:"l1", comp:"c1", prod:"p1", costo:17.5, cant:{"Crudo|S":2,"Crudo|M":3,"Crudo|L":1,"Negro|S":2,"Negro|M":3,"Negro|L":1} });
+  }
+  return S.rec[eid];
+}
+const sumaCant = (l) => Object.values(l.cant).reduce((a,b)=>a+b,0);
+function escena3() {
+  const env = S.envios.filter((e)=>e.tienda===S.tienda);
+  const sedeSel = `<div class="opciones">${Object.keys(TIENDAS).map((k)=>`<button class="op" aria-pressed="${S.tienda===k}" data-a="sede" data-v="${k}">${TIENDAS[k]}</button>`).join("")}</div>`;
+  const abierto = S.abiertoEnvio && env.find((e)=>e.id===S.abiertoEnvio);
+  let cuerpo;
+  if (!abierto) {
+    const filas = env.map((e)=>{ const s=salida(e.salida), per=PERSONAS[s.persona], tot=e.comps.reduce((a,id)=>a+reg(id).monto,0);
+      const chip = e.estado==="camino"?'<span class="chip pizarra">En camino</span>':'<span class="chip verde">Recibido</span>';
+      return `<tr><td><div class="persona"><span class="avatar">${per.ini}</span><div><b>Envío de ${per.nombre.split(" ")[0]}</b><br><small style="color:var(--t60)">Salió hoy ${e.hora} · ${e.bultos} ${e.bultos===1?"bulto":"bultos"}</small></div></div></td>
+        <td>${e.comps.map((id)=>TIPOS[reg(id).tipo]).join(" · ")}</td><td>${chip}</td>
+        <td class="num">${e.estado==="camino"?`<button class="btn btn-primario" data-a="rec-abrir" data-v="${e.id}">Recibir ${ic("flecha")}</button>`:`<button class="btn btn-secundario" data-a="rec-abrir" data-v="${e.id}">Ver</button>`}</td></tr>`; }).join("");
+    cuerpo = `<div class="tarjeta"><div class="tarjeta-cab"><span class="tit-sec">Viene a tu tienda <span class="globito ${env.some(e=>e.estado==="camino")?"pide":""}">${env.length}</span></span></div>
+      ${env.length?`<table><thead><tr><th>Envío</th><th>Papeles</th><th>Estado</th><th></th></tr></thead><tbody>${filas}</tbody></table>`:`<div class="vacio"><b>No viene nada por ahora</b>Cuando una compradora mande un envío a ${TIENDAS[S.tienda]}, aparece aquí.</div>`}</div>`;
+  } else cuerpo = recepcionHTML(abierto);
+  return `<div class="quien">${ic("caja")}<span>La usa <b>la encargada de la tienda</b>, en el escritorio, con el fardo abierto. Toca «Recibir».</span></div>
+  <div class="erp"><div class="erp-barra"><i></i><i></i><i></i><span>Recibir mercadería</span></div><div class="erp-cuerpo">
+    <div class="cab"><div><span class="cab-sede">${TIENDAS[S.tienda]} · miércoles 22 de octubre</span><h2>Recibir mercadería</h2><p>Abre el fardo, mira la foto del papel y registra lo que llegó.</p></div>${sedeSel}</div>
+    <div style="margin-top:20px">${cuerpo}</div></div></div>`;
+}
+/* Lo que anotó la compradora para este papel: cada prenda por su nombre, con un toque para sumarla o crearla */
+function anotadoHTML(r, R, per) {
+  if (!r.lineas?.length) return "";
+  const yaEsta = (l) => R.lineas.some((x) => x.comp === r.id && norm((x.nuevo || prod(x.prod)).nombre) === norm(l.nombre));
+  const filas = r.lineas.map((l, i) => { const p = CATALOGO.find((c) => norm(c.nombre) === norm(l.nombre));
+    const accion = yaEsta(l) ? '<span class="chip verde sinpunto">Registrada</span>' : R.cerrada ? "" : p ? `<button class="btn btn-secundario" style="height:34px" data-a="rec-elegir" data-v="${p.id}">Sumar</button>` : `<button class="btn btn-secundario" style="height:34px" data-a="rec-crear-de" data-v="${i}">Crear</button>`;
+    return `<div class="dif" style="grid-template-columns:minmax(0,1fr) auto"><span><b>${l.cant} · ${h(l.nombre)}</b><br><small style="color:var(--t60)">${l.cat}${l.marca?" · "+h(l.marca):""} · ${soles(l.costo)} c/u${p?"":" · todavía no está en Catálogo"}</small></span>${accion}</div>`; }).join("");
+  return `<div style="padding:14px 18px;border-bottom:1px solid var(--sand);display:flex;flex-direction:column;gap:8px"><span class="campo-et">Lo que anotó ${per.nombre.split(" ")[0]} al comprar</span>${filas}</div>`;
+}
+function recepcionHTML(e) {
+  const R = recDe(e.id), per = PERSONAS[salida(e.salida).persona];
+  const tabs = e.comps.map((id)=>{ const r=reg(id); const n=R.lineas.filter(l=>l.comp===id).reduce((a,l)=>a+sumaCant(l),0);
+    const est = R.coincide[id]===true?'<span class="chip verde sinpunto" style="height:18px;font-size:9px">Coincide</span>':R.coincide[id]===false?'<span class="chip ambar sinpunto" style="height:18px;font-size:9px">No coincide</span>':"";
+    return `<button class="pp" aria-current="${R.activo===id}" data-a="rec-comp" data-v="${id}"><span class="mini">${papelHTML(r,true)}</span><span><b>${TIPOS[r.tipo]}</b><small>${n} prendas</small></span>${est}</button>`; }).join("");
+  const r = reg(R.activo);
+  const lineas = R.lineas.filter((l)=>l.comp===R.activo);
+  const filas = lineas.map((l)=>{ const p=l.nuevo||prod(l.prod); const det=Object.entries(l.cant).filter(([,v])=>v).map(([k,v])=>`${k.replace("|"," ")} ×${v}`).join(" · ");
+    return `<div class="linea">${miniPrenda(p)}<div><b>${h(p.nombre)} ${l.nuevo?'<span class="chip pizarra sinpunto" style="height:18px;font-size:9px;margin-left:4px">Nueva</span>':""}</b><small>${det}</small></div><span class="u">${sumaCant(l)}<small>× ${soles(l.costo||0)}</small></span>${R.cerrada?"<span></span>":`<button class="btn btn-enlace" data-a="rec-editar" data-v="${l.id}">Cambiar</button>`}</div>`; }).join("");
+  const q = R.q || "";
+  const sugs = q.length >= 2 ? CATALOGO.filter((p)=>p.nombre.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").includes(q.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,""))).slice(0,4) : [];
+  const lista = q.length >= 2 ? `<div class="sugerencias">${sugs.map((p)=>`<button class="sug" data-a="rec-elegir" data-v="${p.id}">${miniPrenda(p)}<span><b>${h(p.nombre)}</b><small>${p.cat} · ${p.colores.length} ${p.colores.length===1?"color":"colores"} · ${p.tallas.join(" ")}</small></span></button>`).join("")}
+    <button class="sug crear" data-a="rec-crear">${ic("mas")}<span><b>No está: crear «${h(q)}» aquí mismo</b><small style="color:var(--t60);font-weight:400">Con la ficha completa, sin ir a Catálogo</small></span></button></div>` : "";
+  const total = R.lineas.reduce((a,l)=>a+sumaCant(l),0);
+  const todos = e.comps.every((id)=>R.coincide[id]!==undefined && R.coincide[id]!==null && (R.coincide[id] || (R.difs[id]||[]).length));
+  const coincide = R.coincide[R.activo];
+  const difs = R.difs[R.activo] || [];
+  const difHTML = difs.map((d,i)=>`<div class="dif"><span><b>${d.que==="falta"?"Faltan":"Sobran"} ${d.n} · ${h(d.prenda)}</b><br><small style="color:var(--t60)">${{novino:"No vino",perdio:"Se perdió en el camino",despues:"Llega después",regalo:"Vino de más"}[d.causa]}</small></span><span></span>${R.cerrada?"":`<button class="btn btn-enlace" data-a="dif-quitar" data-v="${i}">Quitar</button>`}</div>`).join("");
+  const formDif = S.formDif;
+  const prendasLinea = [...new Set(lineas.map((l)=>(l.nuevo||prod(l.prod)).nombre))];
+  const otra = coincide===false && !R.cerrada && difs.length && !S.formDifAbierto ? `<div><button class="btn btn-enlace" data-a="fd-abrir">Anotar otra diferencia</button></div>` : "";
+  const fd = coincide===false && !R.cerrada && (!difs.length || S.formDifAbierto) ? `<div style="display:flex;flex-direction:column;gap:10px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:12px">
+      <div class="segmento" role="group">${[["falta","Falta"],["sobra","Sobra"]].map(([k,n])=>`<button aria-pressed="${formDif.que===k}" data-a="fd-que" data-v="${k}">${n}</button>`).join("")}</div>
+      <div class="opciones">${(prendasLinea.length?prendasLinea:["Una prenda que no registré"]).concat(prendasLinea.length?["Otra prenda"]:[]).map((p)=>`<button class="op" aria-pressed="${formDif.prenda===p}" data-a="fd-prenda" data-v="${h(p)}">${h(p)}</button>`).join("")}</div>
+      <div style="display:flex;gap:10px;align-items:center"><span>¿Cuántas?</span><span class="cant"><button data-a="fd-n" data-v="-1" aria-label="Una menos">${ic("menos")}</button><span>${formDif.n}</span><button data-a="fd-n" data-v="1" aria-label="Una más">${ic("mas")}</button></span></div>
+      <div class="campo"><span class="campo-et">¿Qué crees que pasó?</span><div class="opciones">${(formDif.que==="falta"?[["novino","No vino"],["perdio","Se perdió en el camino"],["despues","Llega después"]]:[["regalo","Vino de más"]]).map(([k,n])=>`<button class="op" aria-pressed="${formDif.causa===k}" data-a="fd-causa" data-v="${k}">${n}</button>`).join("")}</div></div>
+      <div><button class="btn btn-secundario" ${formDif.prenda&&formDif.causa?"":"disabled"} data-a="dif-agregar">Anotar</button></div></div>` : "";
+  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><button class="volver" data-a="rec-cerrar-vista" aria-label="Volver a la lista">${ic("atras")}</button><div><b>Envío de ${per.nombre}</b><br><small style="color:var(--t60)">${e.comps.length} papeles · ${e.bultos} bultos · salió hoy ${e.hora}</small></div></div>
+  ${R.cerrada?`<div class="sello" style="margin-bottom:14px">${ic("sello")}<div><b>Recibido: ${total} prendas entraron a ${TIENDAS[e.tienda]} con su costo</b><small>Ya se pueden vender. Compras completa el proveedor y el número del papel (paso 4).</small></div></div>`:""}
+  <div class="recibir"><div class="tarjeta visor-papeles"><div class="pestanas-papel">${tabs}</div><div class="mesa"><button data-a="foto-grande" data-v="${r.id}" aria-label="Ver la foto en grande" style="width:100%;display:grid;place-items:center">${papelHTML(r)}</button></div></div>
+  <div class="tarjeta"><div class="tarjeta-cab"><span class="tit-sec">Lo que llegó de este papel <span class="globito">${lineas.reduce((a,l)=>a+sumaCant(l),0)}</span></span><small style="color:var(--t60)">${TIPOS[r.tipo]} · ${h(r.papel?.num||"")}</small></div>
+    ${anotadoHTML(r, R, per)}
+    ${R.cerrada?"":`<div class="buscar">${ic("lupa","lupa")}<input class="caja" placeholder="Busca la prenda por nombre o escanea su código" value="${h(q)}" data-in="rec-q" autocomplete="off">${lista}</div>`}
+    <div class="lineas">${filas || `<div class="vacio"><b>Todavía no registras nada de este papel</b>Busca la primera prenda arriba. Si no existe, la creas ahí mismo.</div>`}</div>
+    <div class="coincide"><span class="campo-et">¿Lo que llegó coincide con el papel?</span>
+      <div class="segmento" role="group">${[[true,"Sí, coincide"],[false,"No, falta o sobra algo"]].map(([v,n])=>`<button aria-pressed="${coincide===v}" ${R.cerrada?"disabled":""} data-a="rec-coincide" data-v="${v}">${n}</button>`).join("")}</div>
+      ${difHTML}${otra}${fd}</div>
+    ${!lineas.length ? "" : coincide==null ? avanceHTML(veredictoPapel(R.activo, lineas, difs)) : veredictoHTML(veredictoPapel(R.activo, lineas, difs), "En el paso 4, Compras decide quién responde por lo que no cuadra.")}</div></div>
+  ${R.cerrada?"":`<div class="pie-acciones" style="background:transparent;border-top:0"><span class="izq" style="color:var(--t60);font-size:13px;align-self:center">${todos?"Listo para terminar":"Falta decir si coincide en cada papel"}</span><button class="btn btn-primario" ${todos&&total?"":"disabled"} data-a="rec-terminar">Terminar: sumar ${total} prendas al stock</button></div>`}`;
+}
+function hojaSumar() {
+  const m = S.modal, p = prod(m.prod);
+  const filas = p.colores.map(([c,hex])=>`<tr><td><span style="display:inline-flex;gap:8px;align-items:center"><span class="op" style="padding:0;height:auto;border:0;background:none"><span class="muestra" style="background:${hex}" data-color-dato></span></span>${c}</span></td>${p.tallas.map((t)=>{ const k=`${c}|${t}`, v=m.cant[k]||0; return `<td><span class="cant ${v?"":"cero"}"><button data-a="m-cant" data-v="${k}|-1" aria-label="Una menos">${ic("menos")}</button><span>${v}</span><button data-a="m-cant" data-v="${k}|1" aria-label="Una más">${ic("mas")}</button></span></td>`; }).join("")}</tr>`).join("");
+  const tot = Object.values(m.cant).reduce((a,b)=>a+b,0);
+  return `<div class="hoja mediana"><h3>${h(p.nombre)}</h3><p class="frase">¿Cuántas llegaron de cada color y talla, y cuánto costó cada una?${(()=>{ const l=(reg(S.rec[S.abiertoEnvio].activo).lineas||[]).find((x)=>norm(x.nombre)===norm(p.nombre)); return l?` La compradora anotó <b>${l.cant} a ${soles(l.costo)}</b>.`:""; })()}</p>
+    <div class="cuerpo-hoja"><div class="matriz"><table><thead><tr><th>Color</th>${p.tallas.map((t)=>`<th>${t}</th>`).join("")}</tr></thead><tbody>${filas}</tbody></table></div>
+    <div class="campo ${tot&&!Number(m.costo)?"encendido":""}"><span class="campo-et">Costo de cada una <em>· lo que dice el papel</em></span>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><input class="caja caja-monto" style="max-width:180px" inputmode="decimal" placeholder="0.00" value="${h(m.costo||"")}" data-in="m-costo">${tot&&Number(m.costo)?`<span style="color:var(--t60)">${tot} × ${soles(m.costo)} = <b style="color:var(--tinta)">${soles(tot*m.costo)}</b></span>`:""}</div>
+      ${papelEnTexto(reg(S.rec[S.abiertoEnvio].activo))}</div>
+    <div class="nota">Suma stock en ${TIENDAS[S.tienda]} con este costo. El precio de venta no se toca aquí.</div></div>
+    <div class="pie-acciones">${m.linea?`<button class="btn btn-secundario izq" style="border-color:var(--rojo-profundo);color:var(--rojo-profundo)" data-a="m-quitar">Quitar de la lista</button>`:""}<button class="btn btn-secundario" data-a="cerrar">Cancelar</button><button class="btn btn-primario" ${tot&&Number(m.costo)>0?"":"disabled"} data-a="m-sumar">Sumar ${tot} ${tot===1?"prenda":"prendas"}</button></div></div>`;
+}
+/* Crear prenda nueva con la ficha completa (los 4 pasos de Catálogo ▸ Nuevo producto) */
+function hojaCrear() {
+  const m = S.modal, r = reg(m.comp);
+  const pasos = ["Qué es","Cómo es","Tallas y colores","Precio, costo y unidades"];
+  const ej = Object.fromEntries(Object.entries(CATEGORIAS).map(([k, c]) => [k, "Ej. " + c.ej])); // ADR-0290: el ejemplo sigue a la categoría
+  const tallasDe = m.cat === "Jeans" ? ["26","28","30","32","34"] : ["XS","S","M","L","XL"];
+  const COLS = [["Azul medio","#5b7896"],["Azul oscuro","#2f3e55"],["Negro","#26231f"],["Crudo","#efe6d6"],["Celeste","#a9c3d6"],["Arena","#d8c6a5"]];
+  let cont = "";
+  if (m.p === 0) cont = `<div class="campo encendido-suave"><span class="campo-et">¿Qué prenda es?</span><div class="opciones">${Object.keys(ej).map((c)=>`<button class="op" aria-pressed="${m.cat===c}" data-a="c-cat" data-v="${c}">${c}</button>`).join("")}</div></div>
+    <div class="campo"><span class="campo-et">Temporada <em>· opcional</em></span><div class="opciones">${["Todo el año","Verano 2027","Fiestas"].map((c)=>`<button class="op" aria-pressed="${m.temp===c}" data-a="c-temp" data-v="${c}">${c}</button>`).join("")}</div></div>`;
+  if (m.p === 1) cont = `<div class="campos-dos"><div class="campo"><span class="campo-et">Marca</span><div class="opciones">${["CAYLA","Sin marca","Otra"].map((c)=>`<button class="op" aria-pressed="${m.marca===c}" data-a="c-marca" data-v="${c}">${c}</button>`).join("")}</div></div>
+      <div class="campo"><span class="campo-et">Proveedor</span><input class="caja" value="${h(m.prov||"")}" placeholder="${r.papel?"Como dice el papel: "+h(r.papel.prov):"Escribe el proveedor"}" data-in="c-prov"></div></div>
+    <div class="campo"><span class="campo-et">Nombre</span><input class="caja" value="${h(m.nombre||"")}" placeholder="${ej[m.cat]||"Ej. el nombre corto de la prenda"}" data-in="c-nombre"></div>
+    <div class="campo"><span class="campo-et">Descripción <em>· opcional</em></span><textarea class="caja" placeholder="El corte, el largo, los detalles" data-in="c-desc">${h(m.desc||"")}</textarea></div>
+    <div class="campos-dos"><div class="campo"><span class="campo-et">Tejido</span><div class="opciones">${["Denim","Algodón","Lino","Gasa"].map((c)=>`<button class="op" aria-pressed="${m.tejido===c}" data-a="c-tejido" data-v="${c}">${c}</button>`).join("")}</div></div>
+      <div class="campo"><span class="campo-et">Patrón</span><div class="opciones">${["Liso","Rayas","Estampado"].map((c)=>`<button class="op" aria-pressed="${m.patron===c}" data-a="c-patron" data-v="${c}">${c}</button>`).join("")}</div></div></div>
+    <div class="campo"><span class="campo-et">Fotos <em>· opcional</em></span><div class="fotos-zona">${ic("camara")}<span>Saca o sube fotos de la prenda. Puedes agregarlas después en Catálogo.</span></div></div>`;
+  if (m.p === 2) cont = `<div class="campo"><span class="campo-et">Tallas</span><div class="opciones">${tallasDe.map((t)=>`<button class="op" aria-pressed="${m.tallas.includes(t)}" data-a="c-talla" data-v="${t}">${t}</button>`).join("")}</div></div>
+    <div class="campo"><span class="campo-et">Colores</span><div class="opciones">${COLS.map(([c,hex])=>`<button class="op" aria-pressed="${m.colores.some(x=>x[0]===c)}" data-a="c-color" data-v="${c}|${hex}"><span class="muestra" style="background:${hex}" data-color-dato></span>${c}</button>`).join("")}</div></div>`;
+  if (m.p === 3) {
+    const filas = m.colores.map(([c,hex])=>`<tr><td><span style="display:inline-flex;gap:8px;align-items:center"><span class="muestra" style="width:14px;height:14px;border-radius:50%;background:${hex}" data-color-dato></span>${c}</span></td>${m.tallas.map((t)=>{const k=`${c}|${t}`,v=m.cant[k]||0;return `<td><span class="cant ${v?"":"cero"}"><button data-a="c-cant" data-v="${k}|-1" aria-label="Una menos">${ic("menos")}</button><span>${v}</span><button data-a="c-cant" data-v="${k}|1" aria-label="Una más">${ic("mas")}</button></span></td>`;}).join("")}</tr>`).join("");
+    cont = `<div class="campos-dos"><div class="campo"><span class="campo-et">Precio de venta</span><input class="caja caja-monto" inputmode="decimal" placeholder="0.00" value="${h(m.precio||"")}" data-in="c-precio"></div>
+        <div class="campo"><span class="campo-et">Costo de cada una <em>· lo que dice el papel</em></span><input class="caja caja-monto" inputmode="decimal" placeholder="0.00" value="${h(m.costo||"")}" data-in="c-costo"></div></div>
+      ${Number(m.precio)>0&&Number(m.costo)>0?`<small style="color:var(--t60)">Ganancia por prenda: <b style="color:var(--tinta)">${soles(m.precio-m.costo)}</b> (${Math.round((m.precio-m.costo)/m.precio*100)} % del precio)</small>`:""}
+      <div class="campo"><span class="campo-et">¿Cuántas llegaron?</span><div class="matriz"><table><thead><tr><th>Color</th>${m.tallas.map((t)=>`<th>${t}</th>`).join("")}</tr></thead><tbody>${filas||`<tr><td colspan="9">Elige tallas y colores en el paso anterior.</td></tr>`}</tbody></table></div></div>
+      <div class="campo"><span class="campo-et">Quién lo registra</span><div class="caja" style="display:flex;align-items:center;gap:10px;height:48px"><span class="avatar" style="width:28px;height:28px;font-size:12px">RQ</span>Rosa Quispe · encargada AQP</div></div>`;
+  }
+  const okPaso = [Boolean(m.cat), Boolean(m.nombre && m.tejido && m.patron && m.marca), m.tallas.length>0 && m.colores.length>0, Number(m.precio)>0 && Number(m.costo)>0 && Object.values(m.cant).some(Boolean)];
+  const puntos = pasos.map((n,i)=>`<button class="punto ${i!==m.p&&okPaso[i]&&m.vistos.includes(i)?"hecho":""}" aria-current="${i===m.p}" data-a="c-ir" data-v="${i}"><i>${i!==m.p&&okPaso[i]&&m.vistos.includes(i)?"✓":i+1}</i>${n}</button>`).join("");
+  return `<div class="hoja ancha"><h3>Prenda nueva${m.nombre?": "+h(m.nombre):""}</h3><p class="frase">La misma ficha de Catálogo ▸ Nuevo producto, sin salir de Recibir. Al crearla, sus unidades entran al stock de ${TIENDAS[S.tienda]}.</p>
+    <div class="crear"><nav class="puntos">${puntos}</nav><div class="cuerpo-hoja" style="margin-top:0">${cont}</div>
+      <aside class="lado-papel"><small>Míralo en el papel</small><div style="display:grid;place-items:center">${papelHTML(r)}</div></aside></div>
+    <div class="pie-acciones">${m.p>0?`<button class="volver izq" data-a="c-ir" data-v="${m.p-1}" aria-label="Volver al paso anterior">${ic("atras")}</button>`:""}<button class="btn btn-secundario" data-a="cerrar">Cancelar</button>
+      ${m.p<3?`<button class="btn btn-primario" ${okPaso[m.p]?"":"disabled"} data-a="c-ir" data-v="${m.p+1}">Siguiente ${ic("flecha")}</button>`:`<button class="btn btn-primario" ${okPaso.every(Boolean)?"":"disabled"} data-a="c-crear">Crear y sumar ${Object.values(m.cant).reduce((a,b)=>a+b,0)} prendas</button>`}</div></div>`;
+}
+
+/* ======================= Veredicto (pasos 3 y 4) ======================= */
+function casoDe(pagado, llegadoVal, faltaVal, hayDif, completo) {
+  if (!completo) return { k:"incompleto", c:"var(--taupe)", t:"Falta el costo de alguna prenda", p:"Escribe el costo de cada prenda leyendo el papel." };
+  const esperado = llegadoVal + faltaVal;
+  const plata = Math.abs(esperado - pagado) < 0.5;
+  if (!hayDif && plata) return { k:"ok", c:"var(--verde)", t:"Cuadra todo", p:"Llegó todo lo del papel y la plata coincide con lo que se pagó." };
+  if (!hayDif && !plata) return { k:"plata", c:"var(--ambar)", t:"Llegó todo, pero la plata no cuadra", p:`Con estos costos, el papel vale ${soles(esperado)} y se pagó ${soles(pagado)}: ${esperado<pagado?"se pagó "+soles(pagado-esperado)+" de más":"faltan "+soles(esperado-pagado)}. Revisa los costos o el monto que anotó la compradora.` };
+  if (hayDif && plata) return { k:"cantidad", c:"var(--pizarra)", t:"La plata cuadra, pero faltan prendas", p:`Lo que llegó más lo que falta (${soles(faltaVal)}) suma lo que se pagó.` };
+  return { k:"ninguno", c:"var(--rojo-profundo)", t:"No cuadran ni las prendas ni la plata", p:`Con lo que falta, el papel valdría ${soles(esperado)} y se pagó ${soles(pagado)}. Revisa los costos primero.` };
+}
+function veredictoPapel(id, ls, difs) {
+  const r = reg(id);
+  const costoDe = (nombre) => { const l = ls.find((x)=>(x.nuevo||prod(x.prod)).nombre===nombre); return l ? Number(l.costo||0) : 0; };
+  const llegado = ls.reduce((a,l)=>a+sumaCant(l)*Number(l.costo||0),0);
+  const falta = difs.filter((d)=>d.que==="falta").reduce((a,d)=>a+d.n*costoDe(d.prenda),0) - difs.filter((d)=>d.que==="sobra").reduce((a,d)=>a+d.n*costoDe(d.prenda),0);
+  const completo = ls.length>0 && ls.every((l)=>Number(l.costo)>0);
+  return { r, llegado, falta, completo, caso: casoDe(r.monto, llegado, falta, difs.length>0, completo) };
+}
+function veredictoHTML(v, pie, extra) {
+  const { r, llegado, falta, completo, caso } = v;
+  return `<div class="veredicto" style="--c:${caso.c};margin-top:14px"><b>${caso.t}</b><div class="balanza"><div class="lado-b"><span>Se pagó</span><strong>${soles(r.monto)}</strong></div><span>${caso.k==="ok"?"=":"vs"}</span><div class="lado-b"><span>Llegó${falta?" + falta":""}</span><strong>${completo?soles(llegado+falta):"—"}</strong></div></div><p>${caso.p}${pie&&caso.k!=="ok"&&caso.k!=="incompleto"?" "+pie:""}</p>${extra||""}</div>`;
+}
+/* Mientras registra: cuánto lleva contra lo que se pagó, sin adelantar un veredicto */
+function avanceHTML(v) {
+  const pct = Math.min(100, Math.round(v.llegado / v.r.monto * 100));
+  return `<div class="veredicto" style="--c:var(--taupe);margin-top:14px"><b>Llevas ${soles(v.llegado)} de ${soles(v.r.monto)}</b><div class="saldo" style="background:none;color:inherit;padding:0;margin:0"><div class="barra" style="background:var(--sand)"><i style="width:${pct}%;background:var(--tinta)"></i></div></div><p>Cuando termines de registrar lo de este papel, dime si coincide y te digo si cuadra la plata.</p></div>`;
+}
+/* Lo que dice el papel, en texto, para no tener que cerrar la hoja y mirar la foto */
+function papelEnTexto(r) {
+  if (!r || !r.papel || !r.papel.lineas.length) return "";
+  return `<small style="color:var(--t60)">Lo que dice el papel: ${r.papel.lineas.map(([d,c,pu])=>`${c} ${h(d)} a ${pu.toFixed(2)}`).join(" · ")}</small>`;
+}
+
+/* ======================= Paso 4 · Completar el papel ======================= */
+const PROVEEDORES = PROVS.map((p) => p.nombre);
+const EJEMPLO_RECIBIDO = { lineas:[
+  { id:"x1", comp:"c1", prod:"p1", costo:17.5, cant:{a:12} }, { id:"x2", comp:"c1", prod:"p2", costo:12, cant:{a:16} },
+  { id:"x3", comp:"c2", nuevo:{ nombre:"Jean mom tiro alto", colores:[["Azul medio","#5b7896"]] }, costo:38, cant:{a:12} } ],
+  difs:{ c1:[{que:"falta", n:2, prenda:"Polo básico algodón", causa:"novino"}] } };
+function recibidoParaCostear() {
+  const R = S.rec.e1;
+  return R && R.cerrada ? { ejemplo:false, lineas:R.lineas, difs:R.difs } : { ejemplo:true, ...EJEMPLO_RECIBIDO };
+}
+const DECIDIR = {
+  plata:[["prov","El proveedor nos debe la diferencia"],["error","Se anotó mal el monto: corregir"],["cayla","Lo asume CAYLA"]],
+  cantidad:[["prov","El proveedor nos debe lo que falta"],["perdida","Se perdió: lo asume CAYLA (pérdida)"],["despues","Llega después: dejarlo pendiente"]],
+};
+DECIDIR.ninguno = DECIDIR.cantidad;
+/* La plata que anotaron las compradoras, para confirmar */
+function plataPorConfirmarHTML() {
+  const ings = S.regs.filter((r) => r.clase === "ingreso" && salida(r.salida)?.estado === "abierta").sort((a, b) => (a.estado === "pendiente" ? 0 : 1) - (b.estado === "pendiente" ? 0 : 1));
+  const pend = ings.filter((r) => r.estado === "pendiente").length;
+  const filas = ings.map((r) => {
+    const per = PERSONAS[salida(r.salida).persona];
+    const corrige = S.corrigiendo === r.id;
+    const acciones = r.estado === "pendiente"
+      ? (corrige ? `<span style="display:flex;gap:8px;align-items:center"><input class="caja" style="width:120px" inputmode="decimal" value="${h(S.corrVal)}" data-in="ing-monto"><button class="btn btn-primario" data-a="ing-guardar" data-v="${r.id}">Guardar</button></span>`
+        : `<span style="display:flex;gap:8px"><button class="btn btn-secundario" data-a="ing-corregir" data-v="${r.id}">Corregir</button><button class="btn btn-primario" data-a="ing-confirmar" data-v="${r.id}">${ic("check")}Confirmar</button></span>`)
+      : `<span class="chip verde">${r.montoAnotado ? `Corregida (anotó ${soles(r.montoAnotado)})` : "Confirmada"}</span>`;
+    return `<div class="linea" style="grid-template-columns:64px minmax(0,1fr) auto"><button data-a="foto-grande" data-v="${r.id}" aria-label="Ver la foto" style="width:56px;height:64px;border-radius:8px;overflow:hidden;background:var(--hueso);display:grid;place-items:center;color:var(--taupe)">${voucherHTML(r,true)}</button>
+      <div><b>${per.nombre} anotó ${soles(r.monto)}</b><small>${COMO[r.como]} · hoy ${r.hora}${r.foto?" · con foto":" · sin foto"}</small></div>${acciones}</div>`;
+  }).join("");
+  return `<div class="tarjeta" style="margin:18px 0 26px"><div class="tarjeta-cab"><span class="tit-sec">Plata por confirmar <span class="globito ${pend?"pide":""}">${pend}</span></span><small style="color:var(--t60)">Lo que anotaron las compradoras que les llegó</small></div>
+    <div class="lineas">${filas || `<div class="vacio"><b>Nada por confirmar</b>Cuando una compradora anote plata, aparece aquí con su voucher.</div>`}</div></div>`;
+}
+function escena4() {
+  const D = recibidoParaCostear();
+  const env = S.envios.find((e)=>e.id==="e1");
+  const casosVistos = new Set();
+  let listos = 0;
+  const comps = env.comps.map((id)=>{
+    const ls = D.lineas.filter((l)=>l.comp===id), difs = (D.difs[id]||[]);
+    const v = veredictoPapel(id, ls, difs), r = v.r, caso = v.caso;
+    casosVistos.add(caso.k);
+    const P = S.papel[id] ||= { prov: provDe(r.provId)?.nombre || null, serie:"", numero:"" };
+    const pideNum = r.tipo==="factura" || r.tipo==="boleta";
+    const listo = Boolean(P.prov) && (!pideNum || (P.serie && P.numero)) && (caso.k==="ok" || Boolean(S.decision[id]));
+    if (listo) listos++;
+    const hecho = S.cerradoCostos;
+    const provChips = PROVEEDORES.map((n)=>`<button class="op" aria-pressed="${P.prov===n}" data-a="papel-prov" data-v="${id}|${h(n)}" ${hecho?"disabled":""}>${h(n)}</button>`).join("");
+    const ejSerie = r.tipo==="factura" ? "F001" : "B001"; // sugerir-fijo: la serie de ejemplo sigue al tipo de papel (ADR-0290)
+    const numero = pideNum
+      ? `<div class="campos-dos"><div class="campo"><span class="campo-et">Serie</span><input class="caja" maxlength="8" placeholder="Ej. ${ejSerie}" value="${h(P.serie||"")}" data-in="papel-serie" data-v="${id}" ${hecho?"disabled":""}></div><div class="campo"><span class="campo-et">Número</span><input class="caja" inputmode="numeric" maxlength="12" placeholder="Como dice el papel" value="${h(P.numero||"")}" data-in="papel-numero" data-v="${id}" ${hecho?"disabled":""}></div></div>`
+      : r.tipo==="nota" ? `<div class="campo"><span class="campo-et">Número <em>· si lo tiene</em></span><input class="caja" style="max-width:220px" placeholder="Como dice el papel" value="${h(P.numero||"")}" data-in="papel-numero" data-v="${id}" ${hecho?"disabled":""}></div>`
+      : `<div class="nota">Sin papel: se guarda con un número interno (SC-000124).</div>`;
+    const filas = ls.map((l)=>{ const p=l.nuevo||prod(l.prod), u=sumaCant(l), f=difs.filter(d=>d.prenda===p.nombre&&d.que==="falta").reduce((a,d)=>a+d.n,0);
+      return `<tr><td><div class="persona">${miniPrenda(p)}<div><b>${h(p.nombre)}</b>${l.nuevo?' <span class="chip pizarra sinpunto" style="height:18px;font-size:9px">Nueva</span>':""}</div></div></td>
+        <td class="num">${u}${f?`<br><small style="color:var(--ambar)">faltan ${f}</small>`:""}</td><td class="num">${soles(l.costo||0)}</td><td class="num ocultar-cel">${soles(u*(l.costo||0))}</td></tr>`; }).join("");
+    const opciones = DECIDIR[caso.k] ? `<div class="campo"><span class="campo-et">¿Quién responde?</span><div class="opciones">${DECIDIR[caso.k].map(([k,n])=>`<button class="op" aria-pressed="${S.decision[id]===k}" data-a="decidir" data-v="${id}|${k}" ${hecho?"disabled":""}>${n}</button>`).join("")}</div></div>` : "";
+    const chip = hecho ? '<span class="chip verde">Comprobante</span>' : listo ? '<span class="chip verde">Listo</span>' : '<span class="chip ambar">Por completar</span>';
+    return `<div class="tarjeta" style="margin-bottom:14px"><div class="tarjeta-cab"><span class="tit-sec">${TIPOS[r.tipo]} de ${soles(r.monto)}</span><span style="display:flex;gap:10px;align-items:center;color:var(--t60);font-size:12.5px">Pagado del fondo de Marisol · ${r.hora} ${chip}</span></div>
+      <div class="comp"><div class="mesa-chica"><button data-a="foto-grande" data-v="${id}" aria-label="Ver la foto en grande">${papelHTML(r)}</button></div>
+      <div style="padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+        <div class="campo ${!P.prov&&!hecho?"encendido":""}"><span class="campo-et">Proveedor <em>· ${r.provId?"lo eligió la compradora; corrígelo si la foto dice otro":"míralo en la foto"}</em></span><div class="opciones">${provChips}</div>
+          <input class="caja" style="max-width:340px" placeholder="¿No está? Escribe su nombre para registrarlo" value="${h(P.prov && !PROVEEDORES.includes(P.prov) ? P.prov : "")}" data-in="papel-prov-nuevo" data-v="${id}" ${hecho?"disabled":""}></div>
+        ${numero}
+        <div class="matriz"><table><thead><tr><th>Lo que recibió la tienda</th><th class="num">Llegaron</th><th class="num">Costo c/u</th><th class="num ocultar-cel">Subtotal</th></tr></thead><tbody>${filas}</tbody></table></div>
+        ${veredictoHTML(v, "", opciones).replace('margin-top:14px','margin:0')}</div></div></div>`;
+  }).join("");
+  const s = salida("s1"), c = cuentaSalida(s);
+  const porCompletar = c.compras - (S.cerradoCostos ? env.comps.reduce((a,id)=>a+reg(id).monto,0) : 0);
+  const casos = [["ok","Cuadra todo","Prendas y plata"],["plata","Cuadran las prendas","pero no la plata"],["cantidad","Cuadra la plata","pero faltan prendas"],["ninguno","No cuadra nada","ni prendas ni plata"]].map(([k,t,d])=>`<div class="caso ${casosVistos.has(k)?"activo":""}"><b>${t}</b>${d}</div>`).join("");
+  const resumen = env.comps.map((id)=>{ const d=S.decision[id]; const P=S.papel[id]||{}; return d==="prov"?`lo que no cuadró quedó en «Nos debe» de ${h(P.prov||"ese proveedor")}`:d==="perdida"?"lo que falta quedó como pérdida":d==="despues"?"lo que falta quedó pendiente de llegar":d==="error"?"el monto se corrigió":d==="cayla"?"la diferencia la asume CAYLA":""; }).filter(Boolean);
+  return `<div class="quien">${ic("recibo")}<span>La usa <b>quien tiene el módulo Compras</b>, en el escritorio. Confirma la plata que anotaron las compradoras y, cuando la tienda terminó de recibir, copia de la foto el proveedor y el número (los costos ya los puso la tienda).</span></div>
+  <div class="erp"><div class="erp-barra"><i></i><i></i><i></i><span>Compras ▸ Rondas de compra</span></div><div class="erp-cuerpo">
+    <div class="cab"><div><span class="cab-sede">Compras · miércoles 22 de octubre</span><h2>Confirmar y completar</h2><p>Confirma la plata que anotaron las compradoras y completa los papeles que ya recibió la tienda.</p></div></div>
+    ${plataPorConfirmarHTML()}
+    <div class="tarjeta-cab" style="padding:0;border:0;margin-bottom:6px"><span class="tit-sec">Papeles por completar <span class="globito ${S.cerradoCostos?"":"pide"}">${S.cerradoCostos?0:env.comps.length}</span></span><small style="color:var(--t60)">Envío de Marisol a Tienda AQP</small></div>
+    <p style="color:var(--t60);margin-bottom:6px">La tienda ya recibió con costos. Copia de la foto el proveedor y el número, y decide quién responde por lo que no cuadró. Al guardar, cada papel se vuelve comprobante.</p>
+    ${D.ejemplo?`<div class="nota" style="margin:16px 0">Todavía no terminaste el paso 3 en esta maqueta: esto muestra cómo queda si la tienda recibió todo con sus costos, salvo 2 polos que no vinieron.</div>`:"<div style='height:16px'></div>"}
+    <div class="casos">${casos}</div>
+    <div class="costear"><div>${comps}
+      ${S.cerradoCostos?`<div class="sello">${ic("sello")}<div><b>Listo: ${env.comps.length} comprobantes en Facturas de proveedor</b><small>Pagados desde el fondo de Marisol${resumen.length?"; "+resumen.join("; "):""}. Cada prenda sabe de qué compra viene.</small></div></div>`
+        :`<div class="pie-acciones" style="background:transparent;border-top:0;margin-top:0"><span class="izq" style="color:var(--t60);font-size:13px;align-self:center">${listos} de ${env.comps.length} papeles listos</span><button class="btn btn-primario" ${listos===env.comps.length?"":"disabled"} data-a="papeles-guardar">Guardar como comprobantes</button></div>`}</div>
+    <aside class="tarjeta rendicion" style="padding:16px 18px"><span class="tit-sec">La ronda de Marisol</span>
+      <div style="margin-top:10px"><div class="r"><span>Anotó para comprar</span><b>${soles(c.total)}</b></div>${c.porConfirmar?`<div class="r"><span style="color:var(--ambar)">· por confirmar</span><span style="color:var(--ambar)">${soles(c.porConfirmar)}</span></div>`:""}<div class="r"><span>Compras (${S.regs.filter(r=>r.salida==="s1"&&r.clase==="compra").length} papeles)</span><span>${soles(c.compras)}</span></div>
+      <div class="r"><span>Otros gastos</span><span>${soles(c.gastos)}</span></div><div class="r tot"><span>${c.queda<0?"CAYLA le debe":"Le queda"}</span><span>${soles(Math.abs(c.queda))}</span></div></div>
+      <div class="nota" style="margin-top:12px"><span>En Finanzas: <b style="color:var(--tinta)">${soles(porCompletar)}</b> pagados con papel por completar.</span></div>
+      <p style="color:var(--t60);font-size:12.5px;margin-top:10px">Los otros gastos van a Finanzas como gastos del viaje, no al costo de las prendas.</p></aside></div>
+  </div></div>`;
+}
+
+/* ======================= Foto en grande ======================= */
+function hojaFoto() { const r = reg(S.modal.id); return `<div class="hoja mediana"><button class="cerrar" data-a="cerrar" aria-label="Cerrar">${ic("x")}</button><h3>${r.clase==="ingreso" ? `${COMO[r.como]} de ${soles(r.monto)}` : `${TIPOS[r.tipo]} ${h(r.papel?.num||"")}`}</h3><p class="frase">La foto que sacó la compradora a las ${r.hora}.</p><div class="cuerpo-hoja"><div style="display:grid;place-items:center;background:var(--hueso);border-radius:14px;padding:30px">${papelHTML(r)}</div></div><div style="height:20px"></div></div>`; }
+
+/* Ir a una pantalla de la compra, con el número ya puesto (la vez pasada o lo anotado) */
+function irA(p) {
+  const a = S.bor?.actual, base = { quien:S.tel.quien, p };
+  const pre = { "c-cant":a?.cant, "c-costo":a?.costo, "c-venta":a?.venta }[p];
+  if (p in { "c-cant":1, "c-costo":1, "c-venta":1 }) Object.assign(base, { monto: pre ? String(pre) : "", tocado: !pre });
+  if (p === "c-venta" && a && !a.prev) Object.assign(base, { monto:"", tocado:false });
+  S.tel = base;
+}
+function trasNombre() { irA(provDe(S.bor.provId).marcas.length > 1 ? "n-marca" : "n-color"); const pv = provDe(S.bor.provId); if (pv.marcas.length <= 1) S.bor.actual.marca = pv.marcas[0] || ""; }
+function anotarLinea() {
+  const B = S.bor, { prev, noEsDup, ...l } = B.actual;
+  l.nombre = l.nombre.trim().replace(/^./, (x) => x.toUpperCase());
+  if (B.editIdx != null) B.lineas[B.editIdx] = l; else B.lineas.push(l);
+  B.recien = B.editIdx != null ? B.editIdx : B.lineas.length - 1; B.editIdx = null; B.actual = null;
+  irA("c-revisar");
+}
+/* ======================= Pintar ======================= */
+let ultimaClave = "";
+function pintar() {
+  // Solo se anima lo que aparece por primera vez: otra escena, otra hoja, otro paso, otra pantalla del celular
+  const clave = [S.paso, S.modal?.t, S.modal?.p, S.tel.p, S.abiertoEnvio, S.abiertoEnvio && S.rec[S.abiertoEnvio]?.activo].join("|");
+  document.body.classList.toggle("quieto", clave === ultimaClave);
+  ultimaClave = clave;
+  document.querySelectorAll(".paso").forEach((b)=>b.setAttribute("aria-current", String(Number(b.dataset.v)===S.paso)));
+  [1,2,3,4].forEach((n)=>{ const el = $("#e"+n); el.classList.toggle("ver", n===S.paso); if (n===S.paso) el.innerHTML = [escena1,escena2,escena3,escena4][n-1](); });
+  const capa = $("#capa");
+  if (S.modal) { capa.innerHTML = {sumar:hojaSumar, crear:hojaCrear, foto:hojaFoto}[S.modal.t](); capa.classList.add("ver"); }
+  else { capa.classList.remove("ver"); capa.innerHTML = ""; }
+}
+/* Repintar sin perder el cursor del campo en que se escribe */
+function repintarConFoco() {
+  const a = document.activeElement, clave = a && a.dataset && a.dataset.in, v = a && a.dataset && a.dataset.v, pos = a && a.selectionStart;
+  pintar();
+  if (clave) { const el = document.querySelector(`[data-in="${clave}"]${v?`[data-v="${v}"]`:""}`); if (el) { el.focus(); try { el.setSelectionRange(pos,pos); } catch {} } }
+}
+
+/* ======================= Acciones ======================= */
+function avisoTel(t) { S.tel.aviso = t; setTimeout(()=>{ S.tel.aviso = null; if (S.paso===2) pintar(); }, 2600); }
+const ACC = {
+  "paso": (v) => { S.paso = Number(v); S.modal = null; if (S.paso === 1) S.tel = { quien:S.tel.quien, p:"erp" }; if (S.paso === 2 && String(S.tel.p).startsWith("plata")) S.tel = { quien:S.tel.quien, p:"inicio" }; window.scrollTo({top:0,behavior:"smooth"}); },
+  "tel-quien": (v) => { S.tel = { quien:v, p:"erp" }; },
+  "plata-tipo": (v) => { S.tel = { quien:S.tel.quien, p:"plata-monto", como:v, monto:"" }; },
+  "tel-plata-foto": () => { S.tel.p = "plata-foto"; S.tel.foto = false; },
+  "tel-plata-guardar": () => { let ronda = sid(); if (!ronda) { ronda = nuevoId("s"); S.salidas.unshift({ id:ronda, persona:S.tel.quien, cuando:"Hoy, ahora", entregado:0, sobrante:0, estado:"abierta" }); }
+    S.regs.push({ id:nuevoId("i"), salida:ronda, clase:"ingreso", como:S.tel.como, monto:Number(S.tel.monto), hora:"15:24", estado:"pendiente", foto:Boolean(S.tel.foto) });
+    S.tel = { quien:S.tel.quien, p:"inicio" }; avisoTel("Anotado. Ya puedes usarla; Compras la confirma."); },
+  "ing-confirmar": (v) => { reg(v).estado = "confirmada"; },
+  "ing-corregir": (v) => { S.corrigiendo = v; S.corrVal = String(reg(v).monto); },
+  "ing-guardar": (v) => { const r = reg(v); r.montoAnotado = r.monto; r.monto = Number(S.corrVal) || r.monto; r.estado = "confirmada"; S.corrigiendo = null; },
+  "cerrar": () => { S.modal = null; },
+  "tel": (v) => { S.tel = { quien:S.tel.quien, p:v, aviso:S.tel.aviso, sobra:S.tel.sobra }; },
+  "tel-tipo": (v) => { S.tel = { quien:S.tel.quien, p:"camara", tipo:v, foto:false }; },
+  "tel-foto": () => { S.tel.foto = true; },
+  "tel-usar": () => { S.tel.p = "monto"; S.tel.monto = S.bor ? String(totalBor()) : ""; S.tel.tocado = !S.bor; },
+  "tel-repetir": () => { S.tel.foto = false; },
+  "tecla": (k) => { if (S.tel.tocado === false) { S.tel.monto = ""; S.tel.tocado = true; } let v = S.tel.monto || ""; if (k==="←") v = v.slice(0,-1); else if (k===".") { if (!v.includes(".")) v = (v||"0")+"."; } else if (!(v.includes(".") && v.split(".")[1].length>=2) && v.length<7) v = (v==="0"?"":v)+k; S.tel.monto = v; },
+  "tel-guardar": () => { const n=Number(S.tel.monto), B=S.bor, pv=B?provDe(B.provId):null;
+    S.regs.push({ id:nuevoId("c"), salida:sid(), clase:"compra", tipo:S.tel.tipo, monto:n, hora:"15:24", provId:B?.provId, fecha:"2026-10-22", lineas:B?.lineas||[], papel:S.tel.tipo==="sin"?null:{ prov:pv?pv.nombre:"Proveedor nuevo", num:"(se lee en la foto)", lineas:(B?.lineas||[]).map((l)=>[l.nombre,l.cant,l.costo]) } }); S.bor = null; S.tel = { quien:S.tel.quien, p:"inicio"}; avisoTel(`Guardado. Te quedan ${soles(cuentaSalida(salida("s1")).queda)}`); },
+  /* Registrar una compra */
+  "c-empezar": () => { S.bor = null; S.tel = { quien:S.tel.quien, p:"c-prov" }; },
+  "ir": (v) => irA(v),
+  "c-prov": (v) => { S.bor = { provId:v, lineas:[], actual:null, camino:"hab", editIdx:null }; irA(habitualesDe(v).length ? "c-hab" : "n-cat"); if (!habitualesDe(v).length) S.bor.camino = "nuevo"; },
+  "c-todos": () => { S.tel.todos = true; },
+  "c-hab": (v) => { const B=S.bor, todos=habitualesDe(B.provId), hb=(S.tel.todos?todos:todos.slice(0,6))[Number(v)], u=hb.ultima;
+    const idx = B.lineas.findIndex((l)=>claveProducto(l)===hb.clave);
+    B.camino = "hab"; B.editIdx = idx >= 0 ? idx : null;
+    B.actual = { nombre:hb.nombre, cat:hb.cat, marca:hb.marca, color:hb.color, cant:idx>=0?B.lineas[idx].cant:u.cant, costo:idx>=0?B.lineas[idx].costo:u.costo, venta:idx>=0?B.lineas[idx].venta:u.venta, prev:{ cant:u.cant, costo:u.costo, venta:u.venta } };
+    irA("c-cant"); },
+  "c-cant-ok": () => { S.bor.actual.cant = Number(S.tel.monto); irA("c-costo"); },
+  "c-costo-igual": () => { S.bor.actual.costo = S.bor.actual.prev.costo; irA("c-venta"); },
+  "c-costo-ok": () => { S.bor.actual.costo = Number(S.tel.monto); irA("c-venta"); },
+  "c-venta-igual": () => { S.bor.actual.venta = S.bor.actual.prev.venta; anotarLinea(); },
+  "c-venta-sug": () => { S.bor.actual.venta = ventaSugerida(S.bor.actual.costo, S.bor.actual.cat); anotarLinea(); },
+  "c-venta-ok": () => { S.bor.actual.venta = Number(S.tel.monto); anotarLinea(); },
+  "c-editar": (v) => { const B=S.bor, l=B.lineas[Number(v)]; B.editIdx = Number(v); B.camino = "hab"; B.actual = { ...l, prev:{ cant:l.cant, costo:l.costo, venta:l.venta } }; irA("c-cant"); },
+  "c-quitar": (v) => { S.bor.lineas.splice(Number(v),1); S.bor.recien = null; },
+  "c-al-papel": () => { S.tel = { quien:S.tel.quien, p:"papel" }; },
+  "c-nuevo": () => { S.bor.camino = "nuevo"; S.bor.editIdx = null; S.bor.actual = { nombre:"", cat:null, marca:"", color:null, tallas:[], prev:null }; irA("n-cat"); },
+  "n-cat": (v) => { const B=S.bor; if (!B.actual) B.actual = { nombre:"", marca:"", color:null, tallas:[], prev:null }; B.camino = "nuevo"; B.actual.cat = v; irA("n-nombre"); },
+  "n-chip": (v) => { S.bor.actual.nombre = v; },
+  "n-nombre-ok": () => { const B=S.bor, hb=parecido(B.actual.nombre, B.provId); if (hb && !B.actual.noEsDup) { S.tel = { quien:S.tel.quien, p:"n-dup", dup:hb.clave }; return; } trasNombre(); },
+  "n-dup-usar": () => { const B=S.bor, hb=habitualesDe(B.provId).find((x)=>x.clave===S.tel.dup), u=hb.ultima; const idx=B.lineas.findIndex((l)=>claveProducto(l)===hb.clave);
+    B.camino = "hab"; B.editIdx = idx>=0?idx:null; B.actual = { nombre:hb.nombre, cat:hb.cat, marca:hb.marca, color:hb.color, cant:u.cant, costo:u.costo, venta:u.venta, prev:{ cant:u.cant, costo:u.costo, venta:u.venta } }; irA("c-cant"); },
+  "n-dup-no": () => { S.bor.actual.noEsDup = true; trasNombre(); },
+  "n-marca": (v) => { S.bor.actual.marca = v === "Sin marca" ? "" : v; irA("n-color"); },
+  "n-marca-otra-ok": () => { S.bor.actual.marca = S.tel.otra.trim(); irA("n-color"); },
+  "n-color": (v) => { S.bor.actual.color = v ? [v, COLOR[v]] : null; irA("n-tallas"); },
+  "n-talla": (v) => { const a=S.bor.actual; a.tallas = a.tallas.includes(v) ? a.tallas.filter((x)=>x!==v) : [...a.tallas, v]; },
+  "n-tallas-ok": () => irA("c-cant"),
+  "tel-gasto": (v) => { S.tel = { quien:S.tel.quien, p:"gasto-monto", gasto:v }; },
+  "tel-guardar-gasto": () => { S.regs.push({ id:nuevoId("g"), salida:sid(), clase:"gasto", tipo:S.tel.gasto, monto:Number(S.tel.monto), hora:"15:24" }); S.tel = { quien:S.tel.quien, p:"inicio"}; avisoTel("Gasto guardado"); },
+  "env-sel": (v) => { const s=S.tel.envio.sel; S.tel.envio.sel = s.includes(v)?s.filter(x=>x!==v):[...s,v]; },
+  "env-tienda": (v) => { S.tel.envio.tienda = v; },
+  "env-bultos": (v) => { S.tel.envio.bultos = Math.max(1, S.tel.envio.bultos + Number(v)); },
+  "env-mandar": () => { const e=S.tel.envio; S.envios.push({ id:nuevoId("e"), salida:sid(), tienda:e.tienda, bultos:e.bultos, comps:e.sel, hora:"15:24", estado:"camino" }); S.tel = { quien:S.tel.quien, p:"inicio"}; avisoTel(`Listo: a ${TIENDAS[e.tienda]} le aparece «Viene un envío»`); },
+  "fin-sobra": (v) => { S.tel.sobra = v; },
+  "fin-cerrar": () => { S.tel = { quien:S.tel.quien, p:"cerrada", sobra:S.tel.sobra }; },
+  "tel-reabrir": () => { S.tel = { quien:S.tel.quien, p:"erp" }; },
+  "sede": (v) => { S.tienda = v; S.abiertoEnvio = null; },
+  "rec-abrir": (v) => { S.abiertoEnvio = v; recDe(v); S.formDif = { que:"falta", n:1, prenda:null, causa:null }; },
+  "rec-cerrar-vista": () => { S.abiertoEnvio = null; },
+  "rec-comp": (v) => { S.rec[S.abiertoEnvio].activo = v; S.rec[S.abiertoEnvio].q = ""; S.formDif = { que:"falta", n:1, prenda:null, causa:null }; },
+  "rec-elegir": (v) => { const R=S.rec[S.abiertoEnvio], l=(reg(R.activo).lineas||[]).find((x)=>norm(x.nombre)===norm(prod(v).nombre)); S.modal = { t:"sumar", prod:v, cant:{}, costo:l?String(l.costo):"" }; R.q = ""; },
+  "rec-crear-de": (v) => { const R=S.rec[S.abiertoEnvio], l=reg(R.activo).lineas[Number(v)];
+    S.modal = { t:"crear", comp:R.activo, p:0, vistos:[0], nombre:l.nombre, cat:l.cat, marca:l.marca==="CAYLA"?"CAYLA":l.marca?"Otra":"Sin marca", prov:provDe(reg(R.activo).provId)?.nombre||"", precio:String(l.venta), costo:String(l.costo), tallas:[], colores:l.color?[l.color]:[], cant:{} }; },
+  "rec-editar": (v) => { const R=S.rec[S.abiertoEnvio], l=R.lineas.find(x=>x.id===v); if (l.nuevo) return; S.modal = { t:"sumar", prod:l.prod, cant:{...l.cant}, costo:String(l.costo||""), linea:v }; },
+  "m-cant": (v) => { const [c,t,d] = v.split("|"), k=`${c}|${t}`; S.modal.cant[k] = Math.max(0,(S.modal.cant[k]||0)+Number(d)); },
+  "m-sumar": () => { const R=S.rec[S.abiertoEnvio], m=S.modal; if (m.linea) Object.assign(R.lineas.find(l=>l.id===m.linea), { cant:m.cant, costo:Number(m.costo) }); else R.lineas.push({ id:nuevoId("l"), comp:R.activo, prod:m.prod, costo:Number(m.costo), cant:m.cant }); S.modal=null; },
+  "m-quitar": () => { const R=S.rec[S.abiertoEnvio]; R.lineas = R.lineas.filter(l=>l.id!==S.modal.linea); S.modal=null; },
+  "rec-crear": () => { const R=S.rec[S.abiertoEnvio]; S.modal = { t:"crear", comp:R.activo, p:0, vistos:[0], nombre:R.q.charAt(0).toUpperCase()+R.q.slice(1), cat:null, tallas:[], colores:[], cant:{} }; R.q=""; },
+  "c-ir": (v) => { S.modal.p = Number(v); if (!S.modal.vistos.includes(Number(v))) S.modal.vistos.push(Number(v)); },
+  "c-cat": (v) => { S.modal.cat = v; S.modal.tallas = []; }, "c-temp": (v) => { S.modal.temp = v; }, "c-marca": (v) => { S.modal.marca = v; },
+  "c-tejido": (v) => { S.modal.tejido = v; }, "c-patron": (v) => { S.modal.patron = v; },
+  "c-talla": (v) => { const t=S.modal.tallas; S.modal.tallas = t.includes(v)?t.filter(x=>x!==v):[...t,v]; },
+  "c-color": (v) => { const [c,hex]=v.split("|"), cs=S.modal.colores; S.modal.colores = cs.some(x=>x[0]===c)?cs.filter(x=>x[0]!==c):[...cs,[c,hex]]; },
+  "c-cant": (v) => { const [c,t,d] = v.split("|"), k=`${c}|${t}`; S.modal.cant[k] = Math.max(0,(S.modal.cant[k]||0)+Number(d)); },
+  "c-crear": () => { const R=S.rec[S.abiertoEnvio], m=S.modal; R.lineas.push({ id:nuevoId("l"), comp:m.comp, nuevo:{ nombre:m.nombre, colores:m.colores, cat:m.cat }, costo:Number(m.costo), cant:m.cant }); S.modal=null; },
+  "rec-coincide": (v) => { const R=S.rec[S.abiertoEnvio]; R.coincide[R.activo] = v==="true"; if (v==="true") R.difs[R.activo] = []; },
+  "fd-que": (v) => { S.formDif.que = v; S.formDif.causa = null; }, "fd-prenda": (v) => { S.formDif.prenda = v; },
+  "fd-n": (v) => { S.formDif.n = Math.max(1, S.formDif.n + Number(v)); }, "fd-causa": (v) => { S.formDif.causa = v; },
+  "dif-agregar": () => { const R=S.rec[S.abiertoEnvio]; (R.difs[R.activo] ||= []).push({ ...S.formDif }); S.formDif = { que:"falta", n:1, prenda:null, causa:null }; S.formDifAbierto = false; },
+  "fd-abrir": () => { S.formDifAbierto = true; },
+  "dif-quitar": (v) => { const R=S.rec[S.abiertoEnvio]; R.difs[R.activo].splice(Number(v),1); },
+  "rec-terminar": () => { const R=S.rec[S.abiertoEnvio]; R.cerrada = true; S.envios.find(e=>e.id===S.abiertoEnvio).estado = "recibido"; },
+  "foto-grande": (v) => { S.modal = { t:"foto", id:v }; },
+  "decidir": (v) => { const [id,k]=v.split("|"); S.decision[id] = k; },
+  "papeles-guardar": () => { S.cerradoCostos = true; },
+  "papel-prov": (v) => { const [id, nombre] = v.split("|"); (S.papel[id] ||= {}).prov = nombre; },
+};
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-a]"); if (!b || b.disabled) return;
+  if (ev.target.closest("#capa") && !ev.target.closest(".hoja") && b.id !== "capa") return;
+  const f = ACC[b.dataset.a]; if (f) { f(b.dataset.v); pintar(); }
+});
+$("#capa").addEventListener("click", (ev) => { if (ev.target.id === "capa") { S.modal = null; pintar(); } });
+document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && S.modal) { S.modal = null; pintar(); } });
+document.addEventListener("input", (ev) => {
+  const k = ev.target.dataset.in; if (!k) return; const v = ev.target.value;
+  if (k === "rec-q") S.rec[S.abiertoEnvio].q = v;
+  else if (k === "c-nombre") S.modal.nombre = v; else if (k === "c-prov") S.modal.prov = v; else if (k === "c-desc") { S.modal.desc = v; return; }
+  else if (k === "c-precio") S.modal.precio = v.replace(/[^\d.]/g,"");
+  else if (k === "ing-monto") S.corrVal = v.replace(/[^\d.]/g,"");
+  else if (k === "n-nombre") S.bor.actual.nombre = v;
+  else if (k === "n-marca-otra") S.tel.otra = v;
+  else if (k === "m-costo") S.modal.costo = v.replace(/[^\d.]/g,"");
+  else if (k === "c-costo") S.modal.costo = v.replace(/[^\d.]/g,"");
+  else if (k === "papel-serie") (S.papel[ev.target.dataset.v] ||= {}).serie = v.toUpperCase();
+  else if (k === "papel-numero") (S.papel[ev.target.dataset.v] ||= {}).numero = v.replace(/\D/g,"");
+  else if (k === "papel-prov-nuevo") (S.papel[ev.target.dataset.v] ||= {}).prov = v;
+  repintarConFoco();
+});
+pintar();
+</script>
+</body>
+</html>
