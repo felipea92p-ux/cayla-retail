@@ -10,6 +10,7 @@
 // alquileres». Cada pieza dice dónde se arregla.
 
 import { soles } from "./flujo-caja-reglas";
+import type { ResumenProvision } from "./planilla-provision-reglas";
 
 export type EstadoPieza = "ok" | "parcial" | "falta" | "sin_dato";
 
@@ -22,7 +23,12 @@ export type HechosConfianza = {
   facturas: { lotesSinFactura: number; egresosSinClasificar: number };
   saldos: { registrados: number; bancos: number };
   tarjeta: { porAbonarCuentas: number; directoAlBanco: boolean; cobrosMes: number };
-  planilla: { visible: boolean; mesPagada: boolean };
+  /**
+   * `provision`: lo que corresponde pagar hasta hoy según las boletas de Dynamic, del período sin pagar (ADR-0453). La base de la
+   * confianza no la trae (`fn_planilla_provision` es otra lectura): la suma el cargador. Sin ella (Dynamic no abrió el período,
+   * o la lectura falló), el mes se ve sin sueldos, como antes.
+   */
+  planilla: { visible: boolean; mesPagada: boolean; provision?: ResumenProvision | null };
   conciliacion: { bancos: number; conciliadosMes: number };
 };
 
@@ -82,7 +88,7 @@ export function leerHechosConfianza(data: unknown): HechosConfianza {
     facturas: { lotesSinFactura: num(fa.lotes_sin_factura), egresosSinClasificar: num(fa.egresos_sin_clasificar) },
     saldos: { registrados: num(s.registrados), bancos: num(s.bancos) },
     tarjeta: { porAbonarCuentas: num(t.por_abonar_cuentas), directoAlBanco: bool(t.directo_al_banco), cobrosMes: num(t.cobros_mes) },
-    planilla: { visible: bool(p.visible), mesPagada: bool(p.mes_pagada) },
+    planilla: { visible: bool(p.visible), mesPagada: bool(p.mes_pagada), provision: null },
     conciliacion: { bancos: num(k.bancos), conciliadosMes: num(k.conciliados_mes) },
   };
 }
@@ -189,16 +195,24 @@ export function calcularConfianza(h: HechosConfianza): Confianza {
     }
   }
 
-  // 6. La planilla: solo quien la ve en Dynamic sabe si el mes ya está pagado.
+  // 6. La planilla: solo quien la ve en Dynamic sabe si el mes ya está pagado. Sin pagar, el mes lleva los sueldos PROVISIONADOS con las
+  //    boletas de Dynamic hasta hoy (ADR-0453): no es un dato pagado, así que no es «completo», pero tampoco falta: la boleta de cada
+  //    persona es la misma que Dynamic pagará, y lo único que falta es que Dynamic confirme el pago. De ahí 4/5 del peso, no la mitad.
   {
     const peso = PESOS.planilla;
-    const { visible, mesPagada } = h.planilla;
+    const { visible, mesPagada, provision } = h.planilla;
     piezas.push(
       !visible
         ? { clave: "planilla", titulo: "Sueldos del mes", estado: "sin_dato", detalle: "Solo el líder ve la planilla de Dynamic.", peso, logrado: 0 }
         : mesPagada
           ? { clave: "planilla", titulo: "Sueldos del mes", estado: "ok", detalle: "La planilla del mes ya está pagada en Dynamic y entra a los números.", peso, logrado: peso }
-          : { clave: "planilla", titulo: "Sueldos del mes", estado: "parcial", detalle: "Dynamic todavía no pagó el período: hasta que lo haga, el mes se ve sin sueldos.", peso, logrado: peso / 2 }
+          : provision
+            ? {
+                clave: "planilla", titulo: "Sueldos del mes", estado: "parcial",
+                detalle: `Dynamic todavía no pagó el período: el mes lleva ${soles(provision.devengado)} de sueldos provisionados hasta hoy con las boletas de ${provision.personas} ${plural(provision.personas, "persona", "personas")}${provision.deHoy > 0 ? ` (${soles(provision.deHoy)} son de hoy, y se corrigen cuando cada persona cierra su jornada)` : ""}. Se corrige solo cuando Dynamic pague.`,
+                peso, logrado: Math.round(peso * 0.8 * 100) / 100,
+              }
+            : { clave: "planilla", titulo: "Sueldos del mes", estado: "parcial", detalle: "Dynamic todavía no pagó el período: hasta que lo haga, el mes se ve sin sueldos.", peso, logrado: peso / 2 }
     );
   }
 

@@ -1296,6 +1296,62 @@
    "table_schema": "retail"
   }
  ],
+ "cambio_salidas": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "cambio_salidas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cambio_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "cambio_salidas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "variante_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "cambio_salidas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cantidad",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "cambio_salidas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "precio_unitario",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "cambio_salidas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "cambio_salidas",
+   "table_schema": "retail"
+  }
+ ],
  "cambios": [
   {
    "column_default": "gen_random_uuid()",
@@ -1695,6 +1751,307 @@
    "is_nullable": "NO",
    "ordinal_position": 6,
    "table_name": "campana_efecto_caja",
+   "table_schema": "retail"
+  }
+ ],
+ "campana_web_disenos": [
+  {
+   "column_default": null,
+   "column_name": "etiqueta_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "modo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "plantilla",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 3,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "0",
+   "column_name": "paleta",
+   "data_type": "smallint",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "acento",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'rota'::text",
+   "column_name": "franja",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'telon'::text",
+   "column_name": "entrada",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 7,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'ninguno'::text",
+   "column_name": "efecto",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'poca'::text",
+   "column_name": "intensidad",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 9,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'una'::text",
+   "column_name": "duracion",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 10,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'siempre'::text",
+   "column_name": "cuenta",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 11,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "titular",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 12,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "bajada",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 13,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "boton",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 14,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "imagen_ruta",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 15,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "imagen_vertical_ruta",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 16,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "true",
+   "column_name": "donde_franja",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 17,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "true",
+   "column_name": "donde_portada",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 18,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "true",
+   "column_name": "donde_catalogo",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 19,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "true",
+   "column_name": "donde_sello",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 20,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "true",
+   "column_name": "donde_bolsa",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 21,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'borrador'::text",
+   "column_name": "estado",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 22,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "1",
+   "column_name": "version",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 23,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "creado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 24,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "creado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 25,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "actualizado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 26,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "actualizado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 27,
+   "table_name": "campana_web_disenos",
+   "table_schema": "retail"
+  }
+ ],
+ "campana_web_previas": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "campana_web_previas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "etiqueta_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "campana_web_previas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "huella",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "campana_web_previas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "expira_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "campana_web_previas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "creado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "campana_web_previas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "creado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "campana_web_previas",
    "table_schema": "retail"
   }
  ],

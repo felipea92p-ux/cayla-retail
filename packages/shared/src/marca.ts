@@ -3,9 +3,11 @@
 // original, solo difiere en el suavizado del borde (2,8 % de los píxeles de tinta). La palabra CAYLA NO es una letra: es este dibujo
 // (su A, con la barra al 17 % del alto, no está en ninguna fuente), así que no depende de la licencia de ninguna.
 //
-// Un solo dibujo para todo: `components/Marca.tsx` lo pinta en la página (con `currentColor`: cada lugar pone su color; el rojo del
-// logo es `--t-logo`) y `lib/imagenes-del-look.tsx` lo pone en las imágenes para compartir. Las coordenadas son las del archivo
-// oficial (2000 × 580), por eso cada pieza trae su propio `viewBox`: el colibrí y la palabra se recortan del mismo lienzo.
+// Un solo dibujo para todo, compartido por las dos apps (desde el 2026-10-21 vive aquí, no en la tienda). En la tienda,
+// `components/Marca.tsx` lo pinta en la página (con `currentColor`: cada lugar pone su color; el rojo del logo es `--t-logo`) y
+// `lib/imagenes-del-look.tsx` lo pone en las imágenes para compartir; en el ERP, `components/ui/LogoCayla.tsx` lo pone en el lateral
+// y en la cabecera del celular, en el rojo de marca (`text-rojo`). Las coordenadas son las del archivo oficial (2000 × 580), por eso
+// cada pieza trae su propio `viewBox`: el colibrí y la palabra se recortan del mismo lienzo.
 
 export const COLIBRI = {
   viewBox: "-2 -2 862 582",

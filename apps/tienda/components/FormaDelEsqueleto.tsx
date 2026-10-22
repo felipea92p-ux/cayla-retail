@@ -301,8 +301,12 @@ function Probador() {
         <i className="pb-esq-ceja" />
         <i className="pb-esq-titulo" />
       </div>
-      <div className="pb-escena">
-        <div className="pb-arco pb-esq-arco" />
+      {/* Como la figura de verdad: el estudio y, debajo, la franja de estado con su alto reservado (la etiqueta «Ajustando tu look…»). */}
+      <div className="pb-figura">
+        <div className="pb-escena">
+          <div className="pb-arco pb-esq-arco" />
+        </div>
+        <div className="pb-estado" />
       </div>
       <div className="pb-tira-carril pb-esq-tira">
         {Array.from({ length: 5 }, (_, i) => (

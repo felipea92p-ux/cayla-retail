@@ -164,7 +164,7 @@ export function ProveedorModal({
   onClose: () => void;
   /** `id` del proveedor guardado (el nuevo, o el que se editó): la lista lo marca y lo lleva a la vista. `datos` trae lo
    *  que se guardó, para quien lo necesita en pantalla sin esperar a que la página vuelva a leer el directorio (Recibir). */
-  onGuardado: (id: string | null, datos?: { nombre: string; ruc: string | null }) => void;
+  onGuardado: (id: string | null, datos?: { nombre: string; ruc: string | null; plazoCreditoDias?: number | null; formaPagoPreferida?: string | null }) => void;
 }) {
   const [nombre, setNombre] = useState(inicial.nombre);
   const [ruc, setRuc] = useState(inicial.ruc);
@@ -313,7 +313,8 @@ export function ProveedorModal({
       return;
     }
     const id = editando ? idActual : ((idNuevo as string | null) ?? null);
-    alCerrar.current = () => onGuardado(id, { nombre: nombre.trim(), ruc: ruc || null });
+    alCerrar.current = () =>
+      onGuardado(id, { nombre: nombre.trim(), ruc: ruc || null, plazoCreditoDias: plazoCreditoDias ? Number(plazoCreditoDias) : null, formaPagoPreferida: formaPagoPreferida || null });
 
     // Paso 2: las cuentas, solo si algo de ellas cambió (o es un alta con algo escrito).
     if (id && hayQueGuardarCuentas(cuentasIniciales, cuentas, inicial.id === null)) {

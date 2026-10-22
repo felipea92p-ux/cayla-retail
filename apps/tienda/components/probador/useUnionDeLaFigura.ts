@@ -7,6 +7,8 @@ import {
   cajaDeAbajoUnida,
   cajaDeArribaAjustada,
   direccionParaMedir,
+  hiloDeLaEspera,
+  type HiloDeLaEspera,
   medidasATexto,
   medidasDesdeTexto,
   medirRecorte,
@@ -21,7 +23,7 @@ import {
 // - se mide una copia chica del recorte (la que ya sirve el optimizador, 256 px), no el PNG entero;
 // - lo medido se recuerda entre visitas (`localStorage`), así que una prenda ya vista se une al instante;
 // - mientras se ve la figura, se miden en segundo plano las prendas vecinas (las que se pasan con la flecha o deslizando);
-// - si aun así hay que esperar, la figura lo dice («Ajustando…», `ajustando`) en vez de mover la prenda sin avisar.
+// - si aun así hay que esperar, la figura lo dice (el hilo, el velo y «Ajustando tu look…»; `ajustando` e `hilo`, ADR-0449 act. 2026-10-22) en vez de mover la prenda sin avisar.
 
 /** Cuánto se espera antes de decir «Ajustando…»: si la medida llega antes, no hay nada que avisar (y nada que parpadee). */
 const ESPERA_ANTES_DE_AVISAR_MS = 180;
@@ -135,7 +137,7 @@ export type PiezaDeLaFigura = { z: Zona; p: { metida: boolean }; c: { foto: Foto
 export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
   piezas: readonly T[],
   cercanas: readonly Foto[] = [],
-): { piezas: T[]; ajustando: boolean } {
+): { piezas: T[]; ajustando: boolean; hilo: HiloDeLaEspera | null } {
   useSyncExternalStore(suscribir, () => version, () => 0);
   // El par (arriba + abajo) que ya esperó lo bastante para avisarlo; otro par, o nada pendiente, no arrastra el aviso.
   const [demoraDe, setDemoraDe] = useState<string | null>(null);
@@ -208,8 +210,11 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
           { proporcion: abajo.c.foto.proporcion, medida: medidas.get(urlAbajo) },
         )
       : null;
+  // El hilo de la espera corre por el borde de abajo de la prenda de arriba (con su fila medida si ya se midió); solo hay hilo si hay algo de abajo que unir.
+  const hilo = arribaFinal && abajo ? hiloDeLaEspera({ caja: arribaFinal.caja, medida: urlArriba ? medidas.get(urlArriba) : null }) : null;
   return {
     piezas: piezas.map((x) => (x === arriba && arribaFinal ? arribaFinal : x === abajo && unida ? { ...x, caja: unida } : x)),
     ajustando,
+    hilo,
   };
 }

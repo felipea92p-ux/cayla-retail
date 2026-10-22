@@ -115,6 +115,16 @@
   "tablename": "cajas"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX cambio_salidas_cambio_id_variante_id_key ON retail.cambio_salidas USING btree (cambio_id, variante_id)",
+  "indexname": "cambio_salidas_cambio_id_variante_id_key",
+  "tablename": "cambio_salidas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX cambio_salidas_pkey ON retail.cambio_salidas USING btree (id)",
+  "indexname": "cambio_salidas_pkey",
+  "tablename": "cambio_salidas"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX cambios_pkey ON retail.cambios USING btree (id)",
   "indexname": "cambios_pkey",
   "tablename": "cambios"
@@ -148,6 +158,21 @@
   "indexdef": "CREATE UNIQUE INDEX campana_efecto_caja_pkey ON retail.campana_efecto_caja USING btree (etiqueta_id, ubicacion_id)",
   "indexname": "campana_efecto_caja_pkey",
   "tablename": "campana_efecto_caja"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_web_disenos_pkey ON retail.campana_web_disenos USING btree (etiqueta_id)",
+  "indexname": "campana_web_disenos_pkey",
+  "tablename": "campana_web_disenos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_web_previas_huella_key ON retail.campana_web_previas USING btree (huella)",
+  "indexname": "campana_web_previas_huella_key",
+  "tablename": "campana_web_previas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_web_previas_pkey ON retail.campana_web_previas USING btree (id)",
+  "indexname": "campana_web_previas_pkey",
+  "tablename": "campana_web_previas"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX capacidad_piso_pkey ON retail.capacidad_piso USING btree (ubicacion_id)",

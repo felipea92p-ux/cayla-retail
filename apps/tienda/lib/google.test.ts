@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { siguienteTrasVincular, usuarioDeGoogle, type UsuarioDelProyecto } from "./google";
+import { COOKIE_GOOGLE_CORREO, correoOcultoDeLaCookie, correoOcultoValido, siguienteTrasVincular, usuarioDeGoogle, type UsuarioDelProyecto } from "./google";
+import { googleYaTienesCuentaCon } from "./cuentas-mensajes";
 
 const base: UsuarioDelProyecto = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -59,8 +60,39 @@ describe("qué sigue cuando la base dijo si el correo de Google era de una ficha
     expect(siguienteTrasVincular("no_coincide")).toBe("rechazar");
   });
 
+  it("la ficha ya tiene cuenta con otro correo y el nombre coincide: se le dice con cuál entrar, sin unir ni crear nada", () => {
+    expect(siguienteTrasVincular("otro_correo")).toBe("otro_correo");
+  });
+
   it("el correo no es de ninguna ficha, o la base no contestó (aún sin la función): sigue el registro de siempre", () => {
     expect(siguienteTrasVincular("no_aplica")).toBe("registrar");
     expect(siguienteTrasVincular("sin_respuesta")).toBe("registrar");
+  });
+});
+
+describe("el correo de la cuenta, a medias, que «Entrar» le dice a quien ya tiene cuenta con otro correo (20261021182000)", () => {
+  it("solo se muestra un correo tal como lo arma la base: dos letras, cuatro puntos y el dominio", () => {
+    expect(correoOcultoValido("su••••@gmail.com")).toBe("su••••@gmail.com");
+    expect(correoOcultoValido("a••••@correo.pe")).toBe("a••••@correo.pe");
+  });
+
+  it("lo que no tiene esa forma (un correo entero, un texto cualquiera, algo con espacios o con marcas) no se muestra", () => {
+    for (const malo of ["sub@gmail.com", "su••••@", "su•••@gmail.com", "su •••• @gmail.com", "<b>su••••</b>@x.com", "", null, undefined, 42]) {
+      expect(correoOcultoValido(malo)).toBeNull();
+    }
+  });
+
+  it("se lee de la cookie corta, venga con otras o codificada, y si no está o está mal no devuelve nada", () => {
+    const valor = encodeURIComponent("su••••@gmail.com");
+    expect(correoOcultoDeLaCookie(`a=1; ${COOKIE_GOOGLE_CORREO}=${valor}; b=2`)).toBe("su••••@gmail.com");
+    expect(correoOcultoDeLaCookie("a=1; b=2")).toBeNull();
+    expect(correoOcultoDeLaCookie(`${COOKIE_GOOGLE_CORREO}=sub%40gmail.com`)).toBeNull();
+    expect(correoOcultoDeLaCookie(`${COOKIE_GOOGLE_CORREO}=%E0%A4%A`)).toBeNull();
+  });
+
+  it("el mensaje dice con qué correo entrar y qué hacer para usar Google después", () => {
+    const texto = googleYaTienesCuentaCon("su••••@gmail.com");
+    expect(texto).toContain("su••••@gmail.com");
+    expect(texto).toContain("Mi cuenta");
   });
 });

@@ -777,6 +777,13 @@ export const GUIA_CAMBIOS: Guia = {
       texto: "Eliges por qué la cambia, la prenda nueva (la misma en otra talla o color, u otra prenda: búscala o toca «Escanear» y lee su etiqueta) y cómo vuelve la que trae: impecable va al piso; con defecto, a cuarentena. Si no le gusta nada, desde aquí pasa a devolución.",
     },
     {
+      id: "otras-prendas",
+      ancla: "cambios.otras-prendas",
+      opcional: true,
+      titulo: "Se lleva más de una prenda",
+      texto: "Si por una prenda se lleva varias (el body por dos tops), toca «Se lleva otra prenda más» y elige cada una como la primera. El sistema suma todo, cobra o devuelve solo la diferencia y lo guarda junto: no hace falta registrar una venta aparte.",
+    },
+    {
       id: "validaciones",
       ancla: "cambios.validaciones",
       opcional: true,

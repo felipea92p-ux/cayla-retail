@@ -3,20 +3,26 @@ import {
   ANCHO_ESTANDAR_DE_LA_UNION,
   ANCHO_PARA_MEDIR,
   AJUSTE_MAXIMO_DE_ARRIBA,
+  ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA,
   anchoDelBajo,
   cajaDeArribaAjustada,
   cajaDeAbajoUnida,
   direccionParaMedir,
   filaAltaDelBorde,
+  FILA_ESTIMADA_DEL_BORDE,
   FRANJAS_DEL_BAJO,
+  hiloDeLaEspera,
   HOLGURA_DE_LA_UNION,
   LARGO_MAXIMO_DE_ABAJO,
   LARGO_MINIMO_DE_ABAJO,
+  MARGEN_DEL_HILO,
   MEDIDAS_QUE_SE_RECUERDAN,
+  MS_DEL_LISTO,
   type MedidaDelRecorte,
   medidasATexto,
   medidasDesdeTexto,
   medirRecorte,
+  siguienteFase,
   SIN_MEDIDA,
   SOLAPE_DE_LA_UNION,
 } from "./union-prendas";
@@ -223,6 +229,25 @@ describe("cajaDeAbajoUnida: la pretina sigue al borde del torso, dentro de la ci
     expect(oversize.w * 0.8).toBeCloseTo(ESTANDAR * (1 + HOLGURA_DE_LA_UNION), 0);
   });
 
+  it("una falda acampanada no se ve mucho más ancha que su blusa, aunque la blusa tenga vuelo abajo (FAL-0011 con CMS-0026, 2026-10-22)", () => {
+    // La blusa mide 125 px de ancho y su bajo con vuelo, 120: antes llevaba la pretina al máximo (103,5 px) y la falda salía de 148 px (×1,18).
+    const blusa = { caja: { x: 66, y: 44, w: 125, h: 170 }, medida: { filaDelBorde: 0.9, borde: 0.95, pretina: null, bajo: null, anchoBajo: 0.95 }, metida: false };
+    const acampanada = { proporcion: 1.2824, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.698, bajo: null, anchoBajo: null } };
+    const c = cajaDeAbajoUnida(blusa, acampanada)!;
+    expect(c.w).toBeLessThanOrEqual(Math.ceil(125 * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA));
+    // Su cintura queda en la estándar, no en el máximo de la holgura.
+    expect(c.w * 0.698).toBeGreaterThanOrEqual(ESTANDAR * (1 - HOLGURA_DE_LA_UNION) - 1);
+    expect(c.w * 0.698).toBeLessThan(ESTANDAR * (1 + HOLGURA_DE_LA_UNION) - 5);
+  });
+
+  it("el tope de ancho nunca baja la pretina de la cintura mínima: una falda de mucho vuelo sigue siendo más ancha que su blusa", () => {
+    const blusa = { caja: { x: 66, y: 44, w: 100, h: 150 }, medida: { filaDelBorde: 0.9, borde: 0.9, pretina: null, bajo: null, anchoBajo: null }, metida: false };
+    const vuelo = { proporcion: 0.9, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.5, bajo: null, anchoBajo: null } };
+    const c = cajaDeAbajoUnida(blusa, vuelo)!;
+    expect(c.w * 0.5).toBeCloseTo(ESTANDAR * (1 - HOLGURA_DE_LA_UNION), 0);
+    expect(c.w).toBeGreaterThan(100 * ANCHO_MAXIMO_DE_ABAJO_SOBRE_ARRIBA);
+  });
+
   it("la misma falda varía poco de largo al cambiar de blusa (nunca más de ±15 %)", () => {
     const largos = [30, 60, 90, 120, 160].map((b) => cajaDeAbajoUnida(arribaCon(b), falda)!.h);
     expect(Math.max(...largos) / Math.min(...largos)).toBeLessThanOrEqual((1 + HOLGURA_DE_LA_UNION) / (1 - HOLGURA_DE_LA_UNION) + 0.02);
@@ -334,5 +359,45 @@ describe("las medidas que se recuerdan entre visitas", () => {
     expect(medidasDesdeTexto("{no es json").size).toBe(0);
     expect(medidasDesdeTexto("[1,2]").size).toBe(0);
     expect(medidasDesdeTexto(JSON.stringify({ a: { filaDelBorde: 3, borde: 0.4, pretina: null }, b: 5, c: { borde: 0.4 } })).size).toBe(0);
+  });
+});
+
+describe("hiloDeLaEspera: por dónde corre el hilo mientras se espera la medida (B1)", () => {
+  const caja = { x: 66, y: 44, w: 150, h: 170 };
+  const medida = (filaDelBorde: number): MedidaDelRecorte => ({ filaDelBorde, borde: 0.9, pretina: null, bajo: null, anchoBajo: null });
+
+  it("va en el borde de abajo de la prenda de arriba: en su fila medida", () => {
+    expect(hiloDeLaEspera({ caja, medida: medida(0.86) }).y).toBe(Math.round(44 + 170 * 0.86));
+  });
+
+  it("sin medida (todavía no llegó, o no se pudo leer) usa la fila estimada: el hilo no espera a nadie", () => {
+    const esperado = Math.round(44 + 170 * FILA_ESTIMADA_DEL_BORDE);
+    expect(hiloDeLaEspera({ caja, medida: null }).y).toBe(esperado);
+    expect(hiloDeLaEspera({ caja, medida: undefined }).y).toBe(esperado);
+  });
+
+  it("mide una cintura estándar con su margen por cada lado, centrado en la escena", () => {
+    const h = hiloDeLaEspera({ caja, medida: null });
+    expect(h.x1 - h.x0).toBe(ANCHO_ESTANDAR_DE_LA_UNION * PX_POR_CM + 2 * MARGEN_DEL_HILO);
+    expect((h.x0 + h.x1) / 2).toBe(ESCENA.ancho / 2);
+  });
+});
+
+describe("siguienteFase: del ajuste al «Listo» (B1)", () => {
+  it("mientras la unión espera su medida, se está en la espera", () => {
+    expect(siguienteFase("quieto", true)).toBe("espera");
+    expect(siguienteFase("espera", true)).toBe("espera");
+    expect(siguienteFase("listo", true)).toBe("espera");
+  });
+
+  it("quien esperaba termina con un «listo»; lo demás se queda quieto", () => {
+    expect(siguienteFase("espera", false)).toBe("listo");
+    expect(siguienteFase("quieto", false)).toBe("quieto");
+    expect(siguienteFase("listo", false)).toBe("listo");
+  });
+
+  it("el «Listo» dura lo justo para leerse", () => {
+    expect(MS_DEL_LISTO).toBeGreaterThanOrEqual(800);
+    expect(MS_DEL_LISTO).toBeLessThanOrEqual(1500);
   });
 });

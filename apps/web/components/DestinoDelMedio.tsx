@@ -16,10 +16,12 @@ export function DestinoDelMedio({ destino, enlaceFicha, className = "" }: { dest
   if (!destino) return null;
 
   if (destino.aviso) {
+    // «No puedes verlos» no es una falta del proveedor: sin tono de alerta y sin «Agregar en su ficha» (quien no ve los datos no los agrega).
+    const sinPermiso = destino.sinPermiso === true;
     return (
-      <p role="status" className={`anim-revelar text-xs text-ambar-profundo ${className}`}>
+      <p role="status" className={`anim-revelar text-xs ${sinPermiso ? "text-tinta/70" : "text-ambar-profundo"} ${className}`}>
         {destino.aviso}
-        {enlaceFicha && (
+        {enlaceFicha && !sinPermiso && (
           <>
             {" "}
             <Link href={enlaceFicha} target="_blank" rel="noopener" className="btn-enlace">
@@ -33,15 +35,16 @@ export function DestinoDelMedio({ destino, enlaceFicha, className = "" }: { dest
 
   return (
     <div className={`anim-revelar flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-sand/40 px-3 py-1.5 text-xs text-tinta/70 ${className}`}>
-      {destino.banco && <span className="font-medium text-tinta">{destino.banco}</span>}
-      {destino.filas.map((f) => (
-        <DatoCopiable key={f.etiqueta} fila={f} />
-      ))}
+      {/* El titular va primero (Felipe 2026-10-21): es lo que se compara con el nombre que muestra el banco antes de confirmar. */}
       {destino.titular && (
         <span className="text-tinta/55">
           a nombre de <b className="font-semibold text-tinta/80">{destino.titular}</b>
         </span>
       )}
+      {destino.banco && <span className="font-medium text-tinta">{destino.banco}</span>}
+      {destino.filas.map((f) => (
+        <DatoCopiable key={f.etiqueta} fila={f} />
+      ))}
     </div>
   );
 }

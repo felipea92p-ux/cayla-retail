@@ -345,6 +345,9 @@ select pg_temp.huella(:'va');`);
     // nunca haya movido stock (se puede separar algo que está por conseguir). Las líneas no se borran (pedido_web_lineas_sin_borrar);
     // renglón 25 de `fn_producto_historia` (20261015011000, act. 8): Catálogo dice «tiene pedidos web» y no ofrece «Eliminar».
     "pedido_web_lineas",
+    // ADR-0470: las prendas que se lleva la clienta en un cambio por VARIAS prendas. Es historia de la prenda, como `cambios`; el cambio deja además
+    // un movimiento de salida con su `cambio_id`, que ya frena el borrado, y la llave a `variantes` (sin cascada) lo impediría igual.
+    "cambio_salidas",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.

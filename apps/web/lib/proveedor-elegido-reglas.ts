@@ -27,3 +27,20 @@ export function telefonoDelProveedor(telefono: string | null): { texto: string; 
   const texto = (telefono ?? "").trim();
   return texto ? { texto, whatsapp: urlWhatsApp(texto) } : null;
 }
+
+/** Lo que se leyó de los datos bancarios del proveedor elegido: de cuál proveedor, qué volvió (`null` = ninguna fila) y si la lectura falló. */
+export type LecturaBancarios = { id: string; datos: unknown | null; fallo: boolean };
+
+export type EstadoBancarios = "cargando" | "listo" | "sin_permiso" | "no_se_pudo";
+
+/**
+ * Los cuatro estados de «cómo se le paga» (Felipe 2026-10-21): todavía leyendo, leído, «no puedes verlos» y «no pude leerlos». La base
+ * devuelve CERO filas a quien no tiene permiso (`fn_proveedor_datos_bancarios`) y UNA fila (aunque con todo en blanco) a quien sí: por eso
+ * cero filas sin error es «no puedes verlos» y nunca «no tiene cuenta». Un error de red o de la base es otra cosa: no se sabe, y se dice.
+ * Lo leído de OTRO proveedor (el combo cambió y la respuesta aún no llega) cuenta como «cargando».
+ */
+export function estadoDeLosBancarios(leido: LecturaBancarios | null, idElegido: string): EstadoBancarios {
+  if (!leido || leido.id !== idElegido) return "cargando";
+  if (leido.fallo) return "no_se_pudo";
+  return leido.datos ? "listo" : "sin_permiso";
+}

@@ -98,6 +98,12 @@ const config: KnipConfig = {
         "scripts/**/*.mjs",
       ],
     },
+    "packages/shared": {
+      project: ["src/**/*.{ts,css}!"],
+      // La hoja de los efectos de las campañas es la FUENTE de dos copias (`apps/web/app/estilos` y `apps/tienda/app/estilos`) que una prueba
+      // (`apps/web/lib/campana-efectos.test.ts`) lee como texto y mantiene idénticas: ningún archivo la importa.
+      ignore: ["src/campana-efectos.css"],
+    },
     "packages/*": {
       project: ["src/**/*.{ts,css}!"],
     },

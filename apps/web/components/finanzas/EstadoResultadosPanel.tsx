@@ -294,9 +294,12 @@ function Celda({
   }
   const delta = previa && (k.tipo !== "linea" || k.clave === "ventas") ? deltaTexto(v, k.valor(previa), mesPrevio) : null;
   const neg = k.tipo !== "linea" && v < 0 ? "fin-eerr-neg" : "";
+  // Los sueldos que todavía no pagó Dynamic están provisionados con sus boletas (ADR-0453): se dice en la misma celda.
+  const estimado = k.clave === "g62" && c.planillaEstimada > 0 ? (c.planilla - c.planillaEstimada > 0.5 ? "en parte provisionado" : "provisionado") : null;
   const contenido = (
     <>
       {solesER(v)}
+      {estimado && <span className="fin-delta">{estimado}</span>}
       {delta && <span className="fin-delta">{delta}</span>}
     </>
   );
@@ -364,6 +367,13 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
       <p className="text-[13px] leading-relaxed text-taupe" data-guia="fin-resultados.origen">
         <b className="font-semibold text-tinta">Sale de</b> {fuentes.join("; ")}.
       </p>
+      {k.clave === "g62" && c.planillaEstimada > 0 && (
+        <Aviso tono="info" chico className="mt-3">
+          {solesER(c.planillaEstimada)} de esta cifra están provisionados: lo que corresponde pagar hasta hoy según las boletas de Dynamic ({c.planillaPersonas}{" "}
+          {c.planillaPersonas === 1 ? "persona" : "personas"}). Las horas de hoy son un cálculo con lo que lleva cada persona y se corrigen cuando cierra su jornada.
+          Todavía no está en el diario, por eso estas líneas no lo suman; cuando Dynamic pague el período, entra lo pagado de verdad.
+        </Aviso>
+      )}
       {o && o.porRegla.length > 0 && (
         <ListaDatos
           filas={o.porRegla.map((g) => ({

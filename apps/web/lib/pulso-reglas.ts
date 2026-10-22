@@ -39,6 +39,13 @@ export type Respuesta =
     }
   | { estado: "sin_datos"; motivo: string };
 
+/**
+ * Los gastos de operación SIN los sueldos ni el desgaste. En el Estado de resultados la base los suma TODOS en `gastos` (las cuentas
+ * 62 y 681 son gastos de operación): el Pulso los nombra aparte, así que los otros son lo que queda. Sin esto, «Alquileres, servicios y
+ * otros gastos» repetía los sueldos y el desgaste, y «lo fijo del mes» los contaba dos veces (visto con el fixture real, ADR-0453).
+ */
+const otrosGastos = (f: FilaER): number => Math.max(0, r2(f.gastos - f.planilla - f.depreciacion));
+
 export function respuestaPulso(r: ResumenFinanzas): Respuesta {
   if (r.resultadosMes.estado !== "ok") return { estado: "sin_datos", motivo: motivoAusencia(r.resultadosMes) ?? "El estado de resultados no se pudo leer." };
   const f = filaDeVer(r.resultadosMes.datos, r.ver);
@@ -52,7 +59,7 @@ export function respuestaDeFila(f: FilaER, ctx: { mes: string; vende: boolean; t
   const res = r2(f.resultado);
   const estado = res > 0 ? "gana" : res < 0 ? "pierde" : "empata";
   const vende = ctx.vende;
-  const pagos = [f.costo > 0 ? "la ropa" : null, f.planilla > 0 ? "los sueldos" : null, f.gastos > 0 ? "los alquileres y los servicios" : null, f.depreciacion > 0 ? "el desgaste de máquinas y muebles" : null].filter(Boolean) as string[];
+  const pagos = [f.costo > 0 ? "la ropa" : null, f.planilla > 0 ? "los sueldos" : null, otrosGastos(f) > 0 ? "los alquileres y los servicios" : null, f.depreciacion > 0 ? "el desgaste de máquinas y muebles" : null].filter(Boolean) as string[];
   const lista = pagos.length ? pagos.join(", ").replace(/, ([^,]*)$/, " y $1") : "lo registrado";
   const explica = !vende
     ? `${ctx.taller ? "El Taller" : "La empresa"} no vende: esto es lo que costó este mes (${lista}).`
@@ -123,18 +130,19 @@ export type Ritmo = {
 };
 
 /**
- * Lo fijo del mes: los gastos y el desgaste registrados a la fecha, llevados al mes entero por regla de tres, más la planilla
- * (del mes si ya se asentó; si no, la que el Flujo proyecta para estos días). Es una estimación con lo registrado: el medidor
- * de confianza dice cuánto le falta.
+ * Lo fijo del mes: los otros gastos y el desgaste registrados a la fecha, llevados al mes entero por regla de tres, más la planilla:
+ * la ya asentada (Dynamic la pagó: el mes entero) y la estimada, que cuesta lo que costaría su período entero (`planillaAlCierre`: las
+ * horas al ritmo de lo trabajado y el sueldo fijo completo). Si no hay ni lo uno ni lo otro, la que el Flujo proyecta para el mes. Es
+ * una estimación con lo registrado: el medidor de confianza dice cuánto le falta.
  */
 function fijoDelMes(r: ResumenFinanzas, f: FilaER, dia: number, diasMes: number): number {
   const factor = diasMes / Math.max(1, dia);
-  let planilla = f.planilla;
+  let planilla = Math.max(0, f.planilla - f.planillaEstimada) + (f.planillaEstimada > 0 ? Math.max(f.planillaEstimada, f.planillaAlCierre) : 0);
   if (planilla <= 0 && r.flujo.estado === "ok") {
     const pl = r.flujo.datos.salidas.find((s) => s.tipo === "planilla" && s.fecha.slice(0, 7) === r.mes);
     if (pl) planilla = pl.monto;
   }
-  return r2((f.gastos + f.depreciacion) * factor + planilla);
+  return r2((otrosGastos(f) + f.depreciacion) * factor + planilla);
 }
 
 export function ritmoPulso(r: ResumenFinanzas): Ritmo | null {
@@ -184,13 +192,15 @@ export function cascadaPulso(r: ResumenFinanzas): TramoCascada[] {
 
 /** La cascada de una fila del Estado de resultados: la usan Resumen y Reportes. */
 export function cascadaDeFila(f: FilaER): TramoCascada[] {
-  const gastosTop = [...f.detalleGastos].sort((a, b) => b.monto - a.monto).slice(0, 3).map((g) => `${g.nombre} ${soles(g.monto)}`);
+  // Los sueldos (62) y el desgaste (681) ya tienen su tramo: no se repiten en el detalle de «otros gastos».
+  const gastosTop = f.detalleGastos.filter((g) => g.cuenta !== "62" && g.cuenta !== "681").sort((a, b) => b.monto - a.monto).slice(0, 3).map((g) => `${g.nombre} ${soles(g.monto)}`);
+  const otros = otrosGastos(f);
   const tramos: TramoCascada[] = [{ clave: "ventas", nombre: "Lo que vendiste", monto: f.ventas, tipo: "entra", detalle: "Sin IGV: ese 18 % es de SUNAT." }];
   if (f.costo > 0) tramos.push({ clave: "costo", nombre: "Lo que costó la ropa", monto: f.costo, tipo: "sale", detalle: f.sinCosto > 0 ? `${f.sinCosto} ${f.sinCosto === 1 ? "prenda vendida sin costo" : "prendas vendidas sin costo"}.` : undefined });
   if (f.fletes > 0) tramos.push({ clave: "fletes", nombre: "Fletes de la mercadería", monto: f.fletes, tipo: "sale" });
   if (f.mermas > 0) tramos.push({ clave: "mermas", nombre: "Prendas perdidas o dañadas", monto: f.mermas, tipo: "sale" });
   if (f.planilla > 0) tramos.push({ clave: "planilla", nombre: "Sueldos", monto: f.planilla, tipo: "sale", detalle: f.planillaNota ?? undefined });
-  if (f.gastos > 0) tramos.push({ clave: "gastos", nombre: "Alquileres, servicios y otros gastos", monto: f.gastos, tipo: "sale", detalle: gastosTop.length ? gastosTop.join(" · ") : undefined });
+  if (otros > 0) tramos.push({ clave: "gastos", nombre: "Alquileres, servicios y otros gastos", monto: otros, tipo: "sale", detalle: gastosTop.length ? gastosTop.join(" · ") : undefined });
   if (f.depreciacion > 0) tramos.push({ clave: "depreciacion", nombre: "Desgaste de máquinas y muebles", monto: f.depreciacion, tipo: "sale" });
   // Lo que la cascada no nombra (un gasto devuelto, una nota de crédito, un ajuste) entra en un tramo propio, para que sumar los
   // tramos dé siempre «te queda»: una cuenta que no cuadra es peor que una línea de más.

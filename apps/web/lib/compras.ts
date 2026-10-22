@@ -706,8 +706,9 @@ export async function getRecepcionesRecientes(
 
 export async function getProveedoresActivos(): Promise<ProveedorResumen[]> {
   const supabase = await createClient();
-  return exigir(
-    await supabase.from("proveedores").select("id, nombre, ruc").eq("activo", true).order("nombre"),
+  const filas = exigir(
+    await supabase.from("proveedores").select("id, nombre, ruc, rubros").eq("activo", true).order("nombre"),
     "el directorio de proveedores"
   );
+  return filas.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, rubros: p.rubros ?? [] }));
 }

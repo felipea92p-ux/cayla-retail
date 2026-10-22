@@ -26,6 +26,10 @@ import {
 import { leerBolsaDeLaCookie, leerBolsaEnBase } from "@/lib/bolsa-servidor";
 import { formaDe, fotoOptimizable, hrefDePrenda, hrefLista, soles } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
+import { aplicaA } from "@/lib/diseno-campana";
+import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
+import { leerPortada } from "@/lib/portada-servidor";
+import { pctTexto } from "@/lib/portada";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
 import { promesasDeCompra } from "@/lib/ficha";
 import { detalleDeLaPrenda, nombreTienda } from "@/lib/pedidos";
@@ -39,6 +43,7 @@ import { notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../estilos/catalogo.css";
 import "../estilos/bolsa.css";
+import "../estilos/campana.css";
 
 export const metadata: Metadata = { title: "Tu bolsa · CAYLA", robots: { index: false, follow: false } };
 
@@ -68,6 +73,8 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
     return <Aviso titulo="No pudimos revisar tu sesión" texto="Vuelve a intentarlo en unos minutos." />;
 
   const bolsa = await leerBolsaDeLaCookie();
+  // El diseño de la campaña que anuncia la portada: la línea de cada prenda dice de qué campaña es su descuento, con el color de su sello.
+  const diseno = await leerPortada().then(({ campana }) => leerDisenoDeCampana(campana?.nombre));
   // La tienda en la que se está (ADR-0465, Felipe 2026-10-21: «es importante mostrar la sede»): con prendas, la de la bolsa (cambiar de tienda la
   // vacía); sin ellas, la de la dirección o la que se eligió la última vez. Con ella, el selector de la cabecera y el catálogo de ESA tienda
   // (en Lima, con lo de CLAURE y su empresa en cada tarjeta).
@@ -208,6 +215,12 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                         {linea.nombre}
                       </Link>
                       <small>{detalleDeLaPrenda(linea)}</small>
+                      {/* De qué campaña es el descuento (si el líder dejó la línea de la bolsa encendida), con el color de su sello. */}
+                      {diseno?.donde.bolsa && aplicaA(diseno, linea.campana?.nombre) && linea.campana && (
+                        <span className="t-bolsa-campana" style={{ background: diseno.sello.fondo, color: diseno.sello.texto }}>
+                          {linea.campana.nombre} −{pctTexto(linea.campana.pct)} %
+                        </span>
+                      )}
                       {texto &&
                         (marca.tipo === "hay" ? (
                           <small className="t-ok">
