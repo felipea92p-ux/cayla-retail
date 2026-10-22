@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { exigirModulo, puede } from "@/lib/persona-actual";
-import { getCatalogoConteo, getDetalleConteo } from "@/lib/conteos";
+import { getCatalogoConteo, getCompletadasConAtajo, getDetalleConteo } from "@/lib/conteos";
+import { opcional } from "@/lib/resultado";
+import { textoAtajoEnRevision } from "@/lib/conteo-atajo";
 import { bloqueoDeCierre, notaDeArranque, textoLugar, yaAjustadaSinTocar } from "@/lib/conteo-reglas";
 import { firmaDelPaso } from "@/lib/firma-heredada";
 import { diferenciasEnOrden, unirLineasConPrendas } from "@/lib/conteo-revision";
@@ -19,7 +21,7 @@ import { ConfirmarConteo } from "@/components/conteo/ConfirmarConteo";
 export default async function ConfirmarConteoPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ parcial?: string | string[] }> }) {
   const [{ id }, { parcial: pedidoParcial }] = await Promise.all([params, searchParams]);
   const persona = await exigirModulo("conteos");
-  const [detalle, prendas] = await Promise.all([getDetalleConteo(id), getCatalogoConteo()]);
+  const [detalle, prendas, conAtajo] = await Promise.all([getDetalleConteo(id), getCatalogoConteo(), opcional(getCompletadasConAtajo(id), "lo completado con el atajo")]);
   if (!detalle) notFound();
   const c = detalle.conteo;
   if (c.estado !== "abierto") redirect(`/inventario/conteo/${c.id}`);
@@ -67,6 +69,7 @@ export default async function ConfirmarConteoPage({ params, searchParams }: { pa
         puedeCerrar={puede(persona, "ajustarInventario")}
         firma={firma}
         notaArranque={notaDeArranque(c, parcial, r.sinContar)}
+        notaAtajo={textoAtajoEnRevision(conAtajo ?? 0, r.verificadas - r.sinContar)}
       />
     </div>
   );
