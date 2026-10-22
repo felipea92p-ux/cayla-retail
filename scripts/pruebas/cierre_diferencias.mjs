@@ -26,6 +26,14 @@
  *        huella, sus líneas, su diario congelado ni sus avisos, y no se vuelve a cerrar.
  *   · I  LOS DEMÁS CHEQUEOS, INTACTOS: el orden (cajas, egresos, …, diario, huella), sus marcas de bloqueo, los de «de la empresa»
  *        y el panel (`fn_cierre_panel`) que lee la pantalla. (La batería completa de los viejos sigue en `cierre_mes.mjs`.)
+ *   · J  QUIÉN VE LA CIFRA: una cuenta que solo tiene el módulo «Cierre de mes» ve los pendientes, pero el `monto` de
+ *        `envios_con_diferencia` y de `facturas_sin_recibir` le llega NULO (nunca en cero), por el chequeo vivo y por el panel;
+ *        lo mismo en el aviso GUARDADO al cerrar (la unidad y la historia del mes) y el filtro puro que lo hace
+ *        (`fn_cierre_avisos_sin_plata`); el líder, el módulo Proveedores y un módulo de plata de Compras sí lo ven. Lo que frena
+ *        es igual para todos.
+ *   · K  UNA UNIDAD CERRADA NO SE FRENA: con el corte en el mes, lo que aparece con fecha de ese mes después de cerrarlo (un envío
+ *        abierto el 30 de junio y cerrado el 1 de julio) se sigue mostrando pero con `bloquea = false` y 0 bloqueantes; una
+ *        unidad hermana sin cerrar sí frena; al reabrir la unidad, vuelve a frenar.
  *
  * CÓMO. Cada bloque en su transacción con ROLLBACK (otros agentes prueban a la vez), sesión simulada con
  * `request.jwt.claim.sub` y cada verificación es una línea `select 'caso', <verdadero>`. Las tres sedes (A, B y C) son NUEVAS en cada
@@ -43,6 +51,7 @@ import { execFileSync } from "node:child_process";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
+const INTEGRANTE = "22222222-2222-4222-8222-000000000003"; // rol «integrante»: sin la plata de Compras ni de proveedores
 
 function psql(sql) {
   return execFileSync(
@@ -534,9 +543,10 @@ select pg_temp.envio(:'ua', '2025-06-25 10:00-05') as e2 \\gset
 select pg_temp.dif(:'e2', 'faltante', 'no_vino', 7, 15);
 select pg_temp.sobrante(:'ua', :'ub', 4, '2025-06-26 10:00-05');
 update retail.parametros_finanzas set cierre_pendientes_bloquean_desde = date '2025-06-01' where id;
-select 'H1 los chequeos nuevos se leen en vivo sobre el mes cerrado (ya son 2 envíos y 2 sobrantes) y ahora bloquean',
+select 'H1 los chequeos nuevos se leen en vivo sobre el mes cerrado (ya son 2 envíos y 2 sobrantes) pero, con el mes cerrado, no bloquean',
   ${dato("2025-06-01", "ua", "envios_con_diferencia", "n")}::int = 2 and ${dato("2025-06-01", "ua", "sobrantes_traslado", "n")}::int = 2
-  and ${frena("2025-06-01", "ua", "envios_con_diferencia")} and ${frena("2025-06-01", "ua", "sobrantes_traslado")};
+  and not ${frena("2025-06-01", "ua", "envios_con_diferencia")} and not ${frena("2025-06-01", "ua", "sobrantes_traslado")}
+  and (select bloqueantes = 0 from retail.fn_cierre_mes_estado('2025-06-01') where ubicacion_id = :'ua');
 select 'H2 la huella del diario NO se mueve: sigue coincidiendo con la congelada', ${pasa("2025-06-01", "ua", "huella")};
 select 'H3 el cierre no cambió: mismo cierre, misma huella, mismas líneas, mismos totales, mismos avisos, mismo diario congelado',
   (select c.id = :'c0' and c.huella = :'h0' and c.lineas = :'l0'::int and md5(c.avisos::text) = :'a0' and md5(c.total_debe::text || c.total_haber::text) = :'t0'
@@ -568,6 +578,136 @@ select 'I5 el diario, los asientos y las huellas no leen estas tablas: cerrar co
   (select (x ->> 'ok')::boolean from pg_temp.chq('2025-06-01', :'ua', 'diario') x);
 `;
 
+// ---- J · quién ve la cifra ---------------------------------------------------------------------------------------------------
+// La escena de la revisión del 2026-10-22: el rol «integrante» recibe el módulo «Cierre de mes» (y nada más) y la sede A tiene un
+// faltante del proveedor (5 prendas × S/ 20 = S/ 100) y una factura de mercadería de S/ 9,440 sin recibir (50 prendas). Dentro de la
+// sesión de una cuenta autenticada NO se usan las ayudas temporales (ctx es del dueño): las consultas van directo a la función.
+const JUN = "2025-06-01";
+const COMO = (id) =>
+  `set local request.jwt.claim.sub = '${id}';\nselect set_config('request.jwt.claims', '{"sub":"${id}","role":"authenticated"}', true) \\g /dev/null\nset local role authenticated;\n`;
+const SALIR = `reset role;\nset local request.jwt.claim.sub = '${FELIPE}';\n`;
+// El campo `campo` de los datos del chequeo `clave` de la sede A en junio de 2025, tal como lo lee el chequeo vivo o el panel.
+const vivo = (clave, campo) =>
+  `(select x -> 'datos' -> '${campo}' from retail.fn_cierre_mes_estado('${JUN}') e, jsonb_array_elements(e.chequeos) x where e.ubicacion_id = :'ua' and x ->> 'clave' = '${clave}')`;
+const enPanel = (clave, campo) =>
+  `(select x -> 'datos' -> '${campo}' from jsonb_array_elements(retail.fn_cierre_panel('${JUN}') -> 'unidades') u, jsonb_array_elements(u -> 'chequeos') x where u ->> 'ubicacion_id' = :'ua' and x ->> 'clave' = '${clave}')`;
+// Nulo de verdad: la clave está y vale null (no falta, no es cero), para que la pantalla diga la frase sin cifra.
+const nulo = (lectura) => `(jsonb_typeof(${lectura}) = 'null')`;
+const cifra = (lectura, n) => `((${lectura})::text::numeric = ${n})`;
+const enteroDe = (lectura, n) => `((${lectura})::text::int = ${n})`;
+// Los avisos GUARDADOS al cerrar, tal como los devuelve el panel: los de la unidad (`cierre.avisos`) y los de la historia del mes.
+const guardados = `(select u -> 'cierre' -> 'avisos' from jsonb_array_elements(retail.fn_cierre_panel('${JUN}') -> 'unidades') u where u ->> 'ubicacion_id' = :'ua')`;
+const enHistoria = `(select h -> 'avisos' from jsonb_array_elements(retail.fn_cierre_panel('${JUN}') -> 'historia') h where h ->> 'ubicacion_id' = :'ua')`;
+const deAviso = (avisos, clave, campo) => `(select a -> 'datos' -> '${campo}' from jsonb_array_elements(${avisos}) a where a ->> 'clave' = '${clave}')`;
+
+const CASOS_PLATA = `
+select pg_temp.envio(:'ua', '2025-06-12 10:00-05') as e1 \\gset
+select pg_temp.dif(:'e1', 'faltante', 'no_vino', 5, 20);
+select pg_temp.factura(:'ua', '2025-06-16', 50, 0, 0, 9440);
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'cierre_mes');
+${COMO(INTEGRANTE)}
+select 'J0 la cuenta con solo «Cierre de mes» puede cerrar el mes y NO ve la plata de Compras ni la de proveedores',
+  retail.fn_puede_cerrar_mes() and not retail.fn_puede_ver_dinero_de_compras() and not retail.fn_ve_plata_de_proveedores();
+select 'J1 envios_con_diferencia: ve el pendiente (1 envío, 5 prendas) pero el monto le llega NULO, no en cero',
+  not (select (x ->> 'ok')::boolean from retail.fn_cierre_mes_estado('${JUN}') e, jsonb_array_elements(e.chequeos) x where e.ubicacion_id = :'ua' and x ->> 'clave' = 'envios_con_diferencia')
+  and ${enteroDe(vivo("envios_con_diferencia", "n"), 1)} and ${enteroDe(vivo("envios_con_diferencia", "unidades"), 5)}
+  and ${nulo(vivo("envios_con_diferencia", "monto"))};
+select 'J2 facturas_sin_recibir: ve el pendiente (1 factura, 50 prendas) pero el monto le llega NULO, no en cero',
+  not (select (x ->> 'ok')::boolean from retail.fn_cierre_mes_estado('${JUN}') e, jsonb_array_elements(e.chequeos) x where e.ubicacion_id = :'ua' and x ->> 'clave' = 'facturas_sin_recibir')
+  and ${enteroDe(vivo("facturas_sin_recibir", "n"), 1)} and ${enteroDe(vivo("facturas_sin_recibir", "unidades"), 50)}
+  and ${nulo(vivo("facturas_sin_recibir", "monto"))};
+select 'J3 en el panel (lo que lee la pantalla) los dos montos también llegan nulos',
+  ${nulo(enPanel("envios_con_diferencia", "monto"))} and ${nulo(enPanel("facturas_sin_recibir", "monto"))};
+select 'J4 lo que frena no cambia por no ver la plata: 0 bloqueantes y 2 avisos en la sede (junio avisa)',
+  (select bloqueantes = 0 and avisos = 2 from retail.fn_cierre_mes_estado('${JUN}') where ubicacion_id = :'ua');
+${SALIR}
+select 'J5 el líder ve las dos cifras: S/ 100 de lo que el proveedor nos debe y S/ 9,440 en facturas',
+  ${cifra(vivo("envios_con_diferencia", "monto"), 100)} and ${cifra(vivo("facturas_sin_recibir", "monto"), 9440)};
+${COMO(FELIPE)}
+select 'J5 y también por el panel, como cuenta autenticada',
+  ${cifra(enPanel("envios_con_diferencia", "monto"), 100)} and ${cifra(enPanel("facturas_sin_recibir", "monto"), 9440)};
+select 'J5 y lo que frena es lo mismo que para la otra cuenta: 0 bloqueantes y 2 avisos',
+  (select bloqueantes = 0 and avisos = 2 from retail.fn_cierre_mes_estado('${JUN}') where ubicacion_id = :'ua');
+${SALIR}
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'proveedores');
+${COMO(INTEGRANTE)}
+select 'J6 si el rol tiene además el módulo Proveedores, ve las dos cifras',
+  retail.fn_ve_plata_de_proveedores() and ${cifra(vivo("envios_con_diferencia", "monto"), 100)} and ${cifra(vivo("facturas_sin_recibir", "monto"), 9440)};
+${SALIR}
+delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'proveedores';
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'facturas_compra');
+${COMO(INTEGRANTE)}
+select 'J7 si el rol tiene además una llave de la plata de Compras (Facturas de compra), ve las dos cifras',
+  retail.fn_puede_ver_dinero_de_compras() and ${cifra(vivo("envios_con_diferencia", "monto"), 100)} and ${cifra(vivo("facturas_sin_recibir", "monto"), 9440)};
+${SALIR}
+delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'facturas_compra';
+${COMO(INTEGRANTE)}
+select 'J8 quitada esa llave, vuelve a no ver la plata (nulos otra vez)',
+  not retail.fn_ve_plata_de_proveedores() and ${nulo(vivo("envios_con_diferencia", "monto"))} and ${nulo(vivo("facturas_sin_recibir", "monto"))};
+${SALIR}
+-- El líder cierra junio de la sede A con esos dos avisos: se guardan CON su monto. Después, ¿quién los lee?
+select retail.cerrar_periodo('${JUN}', 'ubicacion', :'ua') as rj \\gset
+select 'J9 el aviso guardado por el líder lleva el monto (S/ 100 y S/ 9,440) y así se lo devuelve el panel a quien ve la plata',
+  (select count(*) = 2 from retail.periodo_cierres c, jsonb_array_elements(c.avisos) a where c.ubicacion_id = :'ua' and a ->> 'clave' in ('envios_con_diferencia', 'facturas_sin_recibir') and (a -> 'datos' ->> 'monto') is not null);
+${COMO(FELIPE)}
+select 'J9 el líder lo lee en el panel: la unidad (cierre.avisos) y la historia del mes',
+  ${cifra(deAviso(guardados, "envios_con_diferencia", "monto"), 100)} and ${cifra(deAviso(guardados, "facturas_sin_recibir", "monto"), 9440)}
+  and ${cifra(deAviso(enHistoria, "envios_con_diferencia", "monto"), 100)} and ${cifra(deAviso(enHistoria, "facturas_sin_recibir", "monto"), 9440)};
+${SALIR}
+${COMO(INTEGRANTE)}
+select 'J10 la cuenta sin plata lee ese mismo aviso guardado en la unidad (cierre.avisos) con el monto NULO, y con su n y sus prendas',
+  ${nulo(deAviso(guardados, "envios_con_diferencia", "monto"))} and ${nulo(deAviso(guardados, "facturas_sin_recibir", "monto"))}
+  and ${enteroDe(deAviso(guardados, "envios_con_diferencia", "n"), 1)} and ${enteroDe(deAviso(guardados, "facturas_sin_recibir", "unidades"), 50)};
+select 'J11 y en la historia del mes (historia[].avisos) también llega nulo',
+  ${nulo(deAviso(enHistoria, "envios_con_diferencia", "monto"))} and ${nulo(deAviso(enHistoria, "facturas_sin_recibir", "monto"))};
+${SALIR}
+`;
+
+// El filtro puro de los avisos guardados, aparte: si la función no existe, solo este bloque cae y los demás casos de J siguen informando.
+const CASOS_FILTRO = `
+select 'J12 el filtro de avisos solo calla las dos claves con plata de Compras: la plata de ventas, el orden y lo que no es un aviso quedan igual',
+  retail.fn_cierre_avisos_sin_plata('[{"clave":"cerrada_sin_prenda","ok":false,"bloquea":false,"datos":{"n":2,"monto":150}},{"clave":"facturas_sin_recibir","ok":false,"bloquea":false,"datos":{"n":1,"monto":9440}},{"clave":"conteos_abiertos","ok":false,"bloquea":false,"datos":{"n":1}},{"clave":"envios_con_diferencia","ok":true,"bloquea":false,"datos":{"n":0}}]'::jsonb)
+  = '[{"clave":"cerrada_sin_prenda","ok":false,"bloquea":false,"datos":{"n":2,"monto":150}},{"clave":"facturas_sin_recibir","ok":false,"bloquea":false,"datos":{"n":1,"monto":null}},{"clave":"conteos_abiertos","ok":false,"bloquea":false,"datos":{"n":1}},{"clave":"envios_con_diferencia","ok":true,"bloquea":false,"datos":{"n":0}}]'::jsonb
+  and retail.fn_cierre_avisos_sin_plata('[]'::jsonb) = '[]'::jsonb and retail.fn_cierre_avisos_sin_plata(null) is null
+  and retail.fn_cierre_avisos_sin_plata('{"clave":"x"}'::jsonb) = '{"clave":"x"}'::jsonb;
+`;
+
+// ---- K · una unidad cerrada no se frena --------------------------------------------------------------------------------------
+// La escena de la revisión del 2026-10-22: con el corte en junio de 2025 (bloquea), junio de la sede A se cierra limpio; después aparece
+// un envío abierto el 30 de junio a las 10 de la noche y cerrado el 1 de julio, con un faltante. Es de junio por su fecha de apertura.
+const CASOS_CERRADO = `
+update retail.parametros_finanzas set cierre_pendientes_bloquean_desde = date '2025-06-01' where id;
+select retail.cerrar_periodo('${JUN}', 'ubicacion', :'ua') as r \\gset
+select pg_temp.envio(:'ua', '2025-06-30 22:00-05') as e2 \\gset
+select pg_temp.dif(:'e2', 'faltante', 'no_vino', 7, 15, true, '2025-07-01 09:00-05');
+select 'K1 el faltante se ve en junio (1 envío, 7 prendas, S/ 105) aunque se grabó en julio, y la unidad sigue cerrada',
+  not ${pasa(JUN, "ua", "envios_con_diferencia")} and ${dato(JUN, "ua", "envios_con_diferencia", "n")}::int = 1
+  and ${dato(JUN, "ua", "envios_con_diferencia", "unidades")}::int = 7 and ${dato(JUN, "ua", "envios_con_diferencia", "monto")}::numeric = 105
+  and (select estado = 'cerrado' from retail.fn_cierre_mes_estado('${JUN}') where ubicacion_id = :'ua');
+select 'K2 pero con el mes cerrado NO bloquea, y la unidad cerrada no queda con un bloqueante',
+  not ${frena(JUN, "ua", "envios_con_diferencia")}
+  and (select bloqueantes = 0 and avisos = 1 from retail.fn_cierre_mes_estado('${JUN}') where ubicacion_id = :'ua');
+select pg_temp.conteo(:'ua', 'abierto', '2025-06-10 09:00-05');
+select pg_temp.sobrante(:'ua', :'ub', 2, '2025-06-14 10:00-05');
+select pg_temp.factura(:'ua', '2025-06-16', 10, 0, 0, 1180);
+select 'K3 los cuatro, en una unidad cerrada, fallan y NINGUNO bloquea (0 bloqueantes)',
+  (select count(*) = 4 from retail.fn_cierre_mes_estado('${JUN}') e, jsonb_array_elements(e.chequeos) x
+    where e.ubicacion_id = :'ua' and x ->> 'clave' in ${CUATRO} and not (x ->> 'ok')::boolean and not (x ->> 'bloquea')::boolean)
+  and (select estado = 'cerrado' and bloqueantes = 0 from retail.fn_cierre_mes_estado('${JUN}') where ubicacion_id = :'ua');
+select 'K4 el panel (lo que lee la pantalla) trae la unidad cerrada con 0 bloqueantes',
+  (select (u ->> 'bloqueantes')::int = 0 and u ->> 'estado' = 'cerrado'
+     from jsonb_array_elements(retail.fn_cierre_panel('${JUN}') -> 'unidades') u where u ->> 'ubicacion_id' = :'ua');
+select pg_temp.envio(:'ub', '2025-06-12 10:00-05') as e3 \\gset
+select pg_temp.dif(:'e3', 'faltante', 'no_vino', 2, 30);
+select 'K5 una sede hermana SIN cerrar con el mismo pendiente sí frena: la regla no se apagó para todos',
+  ${frena(JUN, "ub", "envios_con_diferencia")} and not ${pasa(JUN, "ub", "envios_con_diferencia")}
+  and (select bloqueantes = 1 and estado = 'abierto' from retail.fn_cierre_mes_estado('${JUN}') where ubicacion_id = :'ub');
+select retail.reabrir_periodo('${JUN}', 'ubicacion', :'ua', 'llegó un envío tarde') as rr \\gset
+select 'K6 al reabrir la unidad, los cuatro pendientes vuelven a frenar (4 bloqueantes)',
+  (select estado = 'reabierto' and bloqueantes = 4 and avisos = 0 from retail.fn_cierre_mes_estado('${JUN}') where ubicacion_id = :'ua')
+  and ${frena(JUN, "ua", "envios_con_diferencia")} and ${frena(JUN, "ua", "facturas_sin_recibir")};
+`;
+
 // ---- Correr todo -------------------------------------------------------------------------------------------------------------
 const BLOQUES = [
   ["A · envios_con_diferencia: faltantes del proveedor sin resolver", CASOS_ENVIOS],
@@ -581,6 +721,9 @@ const BLOQUES = [
   ["G3 · el borde del corte", CASOS_CERRAR_BORDE],
   ["H · un mes cerrado conserva su foto", CASOS_FOTO],
   ["I · los demás chequeos, intactos", `${PENDIENTES_DE_JUNIO}\n${CASOS_VIEJOS}`],
+  ["J · quién ve la cifra: sin la plata de proveedores el monto llega nulo", CASOS_PLATA],
+  ["J · el filtro de los avisos guardados", CASOS_FILTRO],
+  ["K · una unidad cerrada no se frena", CASOS_CERRADO],
 ];
 
 for (const [titulo, sql] of BLOQUES) {
