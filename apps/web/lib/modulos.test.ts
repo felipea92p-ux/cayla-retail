@@ -237,7 +237,7 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/liquidacion", "/productos/campanas", "/compras/ordenes", "/compras/plan", "/ordenes-insumos", "/compras/fondos", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web"]
+      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/liquidacion", "/productos/campanas", "/compras/mi-plata", "/compras/plan", "/ordenes-insumos", "/compras/fondos", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web"]
         .filter((h) => deAntes.includes(h))
         .sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);
@@ -317,7 +317,6 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     const con = (...cs: ClaveModulo[]) => permisosDeModulos("integrante", cs.map((clave) => ({ clave, completo: true })));
     expect(con("facturas_compra")).toEqual(["verDineroCompras"]);
     expect(con("por_pagar")).toEqual(["verDineroCompras"]);
-    expect(con("notas_credito")).toEqual(["verDineroCompras"]);
     expect(con("etiquetas")).toEqual(["editarEtiquetas"]);
     expect(con("analisis")).toEqual(["analizar"]);
     expect(con("colaboradores", "roles")).toEqual([]);
@@ -342,10 +341,10 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     const de = (clave: ClaveModulo, completo = true) => [{ clave, completo }];
     expect(accionesDeCompra("integrante", de("facturas_compra"))).toEqual({ facturas: true, pagar: false, notas: false });
     expect(accionesDeCompra("integrante", de("por_pagar"))).toEqual({ facturas: false, pagar: true, notas: false });
-    expect(accionesDeCompra("integrante", de("notas_credito"))).toEqual({ facturas: false, pagar: false, notas: true });
     expect(accionesDeCompra("integrante", de("por_pagar", false))).toEqual({ facturas: false, pagar: false, notas: false });
-    expect(accionesDeCompra("lider", [])).toEqual({ facturas: true, pagar: true, notas: true });
-    for (const clave of ["facturas_compra", "por_pagar", "notas_credito"] as const) {
+    // ADR-0480: las notas de crédito de proveedor no se manejan por ahora; ni el líder las ve en la web.
+    expect(accionesDeCompra("lider", [])).toEqual({ facturas: true, pagar: true, notas: false });
+    for (const clave of ["facturas_compra", "por_pagar"] as const) {
       expect(permisosDeModulos("integrante", de(clave)), clave).toContain("verDineroCompras");
     }
     expect(usaModulo("integrante", de("recibir"), "facturas_compra")).toBe(false);

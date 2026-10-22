@@ -17,7 +17,7 @@ import { estadoPorFondo } from "@/lib/rendicion-reglas";
 import { deudasPorPersona } from "@/lib/deuda-fondo-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 
-// Compras ▸ Fondos por rendir (ADR-0362, fase 6 · actividad 1; decisiones 26, 29, 30, 34, 35 y 65): la plata que CAYLA le entrega a
+// Compras ▸ Revisar compras (antes «Fondos por rendir»; ADR-0480 le cambia el nombre y la pantalla en la actividad 2; ADR-0362, fase 6 · actividad 1; decisiones 26, 29, 30, 34, 35 y 65): la plata que CAYLA le entrega a
 // quien compra, y cuánto tiene cada persona en la mano. Es el control contra el fraude que pidió Felipe: al final tiene que verse cuánto
 // le queda a cada una.
 //
@@ -89,7 +89,7 @@ export default async function FondosPage() {
     <div className="space-y-6">
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
-        titulo="Fondos por rendir"
+        titulo="Revisar compras"
         subtitulo="La plata que le entregas a quien compra, y cuánto tiene cada persona en la mano."
         acciones={falla ? undefined : entregar}
       />

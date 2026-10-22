@@ -17,7 +17,7 @@ import { DIAS_PARA_PREGUNTAR } from "./pedidos-con-cliente-reglas";
 import { DIAS_PARA_ENVIAR } from "./para-enviar-reglas";
 import { hrefPerdidas, type AvisoPerdidas } from "./perdidas-reglas";
 import { montosSinCorte } from "./montos-sin-corte";
-import { DIAS_URGENCIA_NOTA_PROVEEDOR, hrefPrendasSinLlegar, textoNotasPorPedir, textoPrendasSinLlegar } from "./igv-en-espera-reglas";
+import { hrefPrendasSinLlegar, textoPrendasSinLlegar } from "./igv-en-espera-reglas";
 import { soles as solesConCentimos } from "./compras-reglas";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
@@ -37,7 +37,6 @@ export type ClaveAviso =
   | "regularizar"
   | "porPagar"
   | "cuentasBancarias"
-  | "notasPorPedir"
   | "prendasSinLlegar"
   | "recibir"
   | "porTerminar"
@@ -96,7 +95,6 @@ export type FuentesAvisos = {
   cuentasBancarias?: { cambios: number; proveedores: number; ultimoProveedorId: string | null; ultimoProveedor: string | null; ultimoEn?: string | null } | null;
   /** ADR-0362 fase 5b (actividad 4): facturas cuya plata ya volvió con un documento interno y esperan la nota del proveedor (su IGV, en la
    *  cuenta puente). `dias`: lo que lleva esperando la más antigua. Para quien ve Notas de crédito. */
-  notasPorPedir?: { facturas: number; igv: number; dias: number | null } | null;
   /** ADR-0362 fase 5b (actividad 4): prendas de una factura que no llegaron y siguen sin resolver (su IGV, en el crédito fiscal sin la
    *  mercadería). Para quien ve Proveedores. */
   prendasSinLlegar?: { prendas: number; facturas: number; igv: number; proveedores: number; proveedorId: string | null } | null;
@@ -396,24 +394,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
     });
   }
   // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. No se oculta: es crédito
-  // fiscal que no cuadra con la mercadería. Dos avisos porque son dos acciones: pedir la nota del proveedor, o resolver lo que no llegó.
-  if (f.notasPorPedir !== undefined) {
-    const s = f.notasPorPedir;
-    const n = s === null ? null : s.facturas;
-    // El IGV con sus céntimos (no redondeado como las demás cifras del Inicio): es poco y es el que se ve en Notas de crédito.
-    const t = s === null ? null : textoNotasPorPedir(s, solesConCentimos);
-    avisos.push({
-      clave: "notasPorPedir",
-      grupo: "Compras",
-      titulo: "Notas de crédito por pedir",
-      cantidad: n,
-      nivel: nivelDe(n, s && (s.dias ?? 0) > DIAS_URGENCIA_NOTA_PROVEEDOR ? "urgente" : "toca"),
-      ahora: t?.ahora ?? "",
-      detalle: t?.detalle ?? SIN_LEER,
-      href: "/compras/notas-credito",
-      ocultable: false,
-    });
-  }
+  // fiscal que no cuadra con la mercadería. El aviso hermano, «Notas de crédito por pedir», se retiró con su módulo (ADR-0480).
   if (f.prendasSinLlegar !== undefined) {
     const p = f.prendasSinLlegar;
     const n = p === null ? null : p.prendas;

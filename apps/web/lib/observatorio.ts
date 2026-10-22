@@ -8,7 +8,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCuentasBancariasCambiadas } from "@/lib/proveedores";
 import { getIgvEnEspera } from "@/lib/igv-en-espera";
-import { DIAS_URGENCIA_NOTA_PROVEEDOR, diasDeEspera, hrefPrendasSinLlegar } from "@/lib/igv-en-espera-reglas";
+import { diasDeEspera, hrefPrendasSinLlegar } from "@/lib/igv-en-espera-reglas";
 import { exigir } from "@/lib/resultado";
 import { getAperturasPorRevisar } from "@/lib/caja";
 import { getPorRegularizar } from "@/lib/por-regularizar";
@@ -274,23 +274,8 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
     });
   }
   // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. De toda la empresa: el IGV es
-  // uno. Dos avisos porque son dos acciones: pedir la nota del proveedor, o resolver lo que no llegó.
+  // uno. «Notas de crédito por pedir» se retiró con su módulo (ADR-0480); queda resolver lo que no llegó.
   if (igv !== undefined) {
-    const s = igv === null ? null : (igv.sinNota ?? null);
-    const n = s === null ? null : s.facturas;
-    const edad = s ? diasDeEspera(s.desde, hoy) : null;
-    avisos.push({
-      clave: "notasPorPedir",
-      nivel: nivelPorCuenta(n, (edad ?? 0) > DIAS_URGENCIA_NOTA_PROVEEDOR ? "hoy" : "semana"),
-      n,
-      icono: "doc",
-      titulo: "Notas de crédito por pedir",
-      corto: "notas por pedir",
-      porTienda: null,
-      edad,
-      href: "/compras/notas-credito",
-      detalle: null,
-    });
     const f = igv === null ? null : (igv.faltantes ?? null);
     const m = f === null ? null : f.prendas;
     avisos.push({

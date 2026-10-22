@@ -99,7 +99,10 @@ describe("los módulos que ya anotan su actividad", () => {
   });
 
   it("todo módulo que la base anota está en la lista (si no, el panel dice «todavía no anota» y no muestra nada)", () => {
-    expect([...ANOTADOS_EN_LA_BASE].filter((m) => !MODULOS_CON_ACTIVIDAD.includes(m as never)).sort()).toEqual([]);
+    // Un módulo retirado del catálogo (ADR-0480: «Notas de crédito») ya no tiene panel: sus funciones viejas siguen anotándolo, pero
+    // nadie llega a ellas desde la web (y la base ya no tiene su fila en `modulos`).
+    const RETIRADOS = ["notas_credito"];
+    expect([...ANOTADOS_EN_LA_BASE].filter((m) => !MODULOS_CON_ACTIVIDAD.includes(m as never) && !RETIRADOS.includes(m)).sort()).toEqual([]);
   });
 
   it("la receta del ADR-0207 sigue en su migración", () => {

@@ -782,8 +782,10 @@ caso(
      (select count(*) from retail.fn_impuestos_compras(retail.fn_hoy_lima(), retail.fn_hoy_lima()) x
        where x.id = (:'np'::jsonb ->> 'nota_proveedor_id')::uuid and x.origen = 'nota_credito' and x.igv = -10.80 and x.da_credito) || ' en Impuestos',
      :'reg' || ' en el registro', :'diario', :'glosa', :'tablero',
-     (select string_agg(a.modulo || ':' || ${DI("a.descripcion")} || ':' || (a.persona_id = :'felipe_p'), ',') from retail.actividad a
-       where a.accion = 'nota_proveedor_adjunta' and a.detalle ->> 'compra_id' = :'fac'));`,
+     -- ADR-0480 (2026-10-22): el módulo «Notas de crédito» se retiró y la función ya no tiene pantalla (queda solo del líder). Su
+     -- anotación en Actividad nombraba ese módulo: ya no puede escribirse y la función sigue sin ella (avisa con un warning).
+     (select count(*) from retail.actividad a
+       where a.accion = 'nota_proveedor_adjunta' and a.detalle ->> 'compra_id' = :'fac') || ' en Actividad');`,
   [
     "comprobante,documentos,fecha,igv,monto,nota_proveedor_id,serie_numero,subtotal",
     "FC01-000777:60.00:10.80:70.80:DI-N:F001-901",
@@ -797,7 +799,7 @@ caso(
     "4011:0:10.80,4019:10.80:0",
     "Nota de crédito FC01-000777 del proveedor: el IGV sale de por regularizar",
     "true:FC01-000777:true",
-    "notas_credito:adjuntó la nota FC01-000777 de Proveedor Nos Debe Prueba a DI-N (F001-901):true",
+    "0 en Actividad",
   ].join(" / "),
 );
 caso(

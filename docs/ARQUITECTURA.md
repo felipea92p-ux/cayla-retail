@@ -1452,7 +1452,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
-- **Notas de crédito** (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
+- **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en seis entradas: Plan de campaña, `/compras/mi-plata`
+  («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), `/compras/fondos` («Revisar
+  compras», módulo `fondos`), Proveedores, Facturas de proveedor y Por pagar. `/compras/ordenes` sigue en el código sin entrada en el menú.
+- ~~**Notas de crédito**~~ (retirada el 2026-10-22, ADR-0480: la pantalla, sus modales y `lib/notas-credito*.ts` se borraron;
+  `/compras/notas-credito` redirige a `/compras`; las tablas y RPC de abajo siguen en la base). Lo que era (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres
   partes del dinero, filtros y buscador) → `NotasCreditoPanel` (+ `NotaCreditoVistaRapida`, `NotaCreditoDetalle`,
   `RegistrarNotaCreditoModal`) → RPC `notas_credito_tablero()` (notas + notas pendientes en una llamada),

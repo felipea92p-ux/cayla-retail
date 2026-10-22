@@ -94,7 +94,6 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // de «Historial».
   porPagar: "M16 14v2.2l1.6 1 M16 2v4 M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5 M3 10h5 M8 2v4 M10 16a6 6 0 1 0 12 0a6 6 0 1 0 -12 0", // lucide «calendar-clock»
   // Hoja con la flecha que vuelve: el documento por el que el proveedor le devuelve dinero a CAYLA.
-  notasCredito: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M9.25 16L6.5 13.25 9.25 10.5 M6.5 13.25h5.7a3 3 0 010 6H10.35",
   // Billetera: la plata que sale para que el negocio funcione (Finanzas ▸ Gastos, ADR-0195 F2).
   gastos: "M3 7a2 2 0 012-2h13a1 1 0 011 1v2 M3 7v11a2 2 0 002 2h14a1 1 0 001-1v-3 M3 7h16a1 1 0 011 1v3 M20 11h-4a2 2 0 000 4h4v-4z",
   // Monedas: la cabecera «Finanzas» agrupa Resumen, Gastos, Cuentas y dinero, Reportes, Impuestos y Cierre. Antes un
@@ -127,6 +126,9 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   ordenesInsumos: "M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01", // lucide «clipboard-list»
   // Mano con monedas: la plata que se le entrega en la mano a quien viaja a comprar (Fondos por rendir, ADR-0362 fase 6).
   fondos: "M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17M7 21l1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9M2 16l6 6M13.1 9a2.9 2.9 0 1 0 5.8 0a2.9 2.9 0 1 0-5.8 0M3 5a3 3 0 1 0 6 0a3 3 0 1 0-6 0", // lucide «hand-coins»
+  // Tablilla con su visto: la oficina que revisa lo que anotaron las compradoras (Revisar compras, ADR-0480). Distinta de la hoja de
+  // «Facturas de proveedor» (el papel) y de la mano con monedas de «Mi plata para compras» (la plata de quien compra).
+  revisarCompras: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM9 14l2 2 4-4", // lucide «clipboard-check»
   rendimiento: "M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3M4 22h16M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zM6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3", // lucide «trophy»
   // Monitor con su percha: la tienda online, donde el cliente ve la prenda desde su pantalla (Vitrina web, ADR-0408). No la tienda
   // con toldo de «Inicio» (la puerta física) ni la polera de «Productos» (lo que ES la prenda): lo que se MUESTRA en la web.

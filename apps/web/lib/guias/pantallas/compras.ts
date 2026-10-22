@@ -248,13 +248,6 @@ export const GUIA_FACTURA: Guia = {
       texto: "Cada vez que llegó mercadería de esta factura: el día, la guía, la tienda y cuántas unidades. Mientras queden prendas por recibir, «Recibir mercadería» te lleva a anotar lo que acaba de llegar.",
     },
     {
-      id: "notas",
-      ancla: "factura.notas",
-      opcional: true,
-      titulo: "Notas de crédito",
-      texto: "Lo que el proveedor te acredita por un faltante, una devolución o un descuento. Baja lo que se debe y, si ya estaba pagada, queda a tu favor. Se registran en Notas de crédito (el enlace te lleva).",
-    },
-    {
       id: "adjuntos",
       ancla: "factura.adjuntos",
       opcional: true,
@@ -465,173 +458,6 @@ export const GUIA_POR_PAGAR: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "por-pagar.caja" }],
-};
-
-export const GUIA_NOTAS_CREDITO: Guia = {
-  id: "compras.notas-credito",
-  ruta: "/compras/notas-credito",
-  titulo: "Notas de crédito de proveedor",
-  resumen: "Lo que los proveedores te deben devolver por faltantes, devoluciones o descuentos.",
-  pasos: [
-    {
-      id: "bienvenida",
-      ancla: null,
-      titulo: "Lo que el proveedor te acredita",
-      texto: "Una nota de crédito es el papel del proveedor que reconoce que te debe algo: por prendas que no llegaron, que devolviste o por un descuento. Baja lo que le debes o queda a tu favor. Es una demo: no se registra nada.",
-    },
-    {
-      id: "registrar",
-      ancla: "notas-credito.registrar",
-      titulo: "Registrar una nota",
-      texto: "Cuando el proveedor te manda su nota, la anotas aquí contra la factura a la que corresponde. También con la tecla N. Te abrimos la ventana para verla por dentro, sin registrar nada.",
-    },
-    {
-      id: "nc-factura",
-      ancla: "nc-modal.factura",
-      preparar: [{ tipo: "clic", ancla: "notas-credito.registrar" }],
-      titulo: "1 · La factura de origen",
-      texto: "Primero buscas la factura contra la que el proveedor emitió la nota: por su número, el proveedor o el monto (te escribimos un ejemplo). Tocas la que es y queda elegida.",
-      demostrar: [{ tipo: "escribir", ancla: "nc-modal.buscador", texto: { palabraDe: "notas-credito.proveedor" } }],
-    },
-    {
-      id: "nc-motivo",
-      ancla: "nc-modal.motivo",
-      preparar: [{ tipo: "vaciar", ancla: "nc-modal.buscador" }],
-      titulo: "2 · El motivo",
-      texto: "Por qué te acredita: un faltante, una devolución o un descuento. Hasta que eliges la factura, todo esto se ve pero no se puede llenar.",
-    },
-    {
-      id: "nc-datos",
-      ancla: "nc-modal.datos",
-      titulo: "3 · Serie, fecha y monto",
-      texto: "Cópialos del papel de la nota. El monto va con IGV, y el sistema te dice hasta cuánto puede ser para esa factura.",
-    },
-    {
-      id: "nc-dinero",
-      ancla: "nc-modal.dinero",
-      titulo: "Qué pasa con el dinero",
-      texto: "La nota primero baja lo que le debes por esa factura. Lo que sobra lo eliges tú: que el proveedor te lo devuelva ahora o que quede a tu favor para otra compra.",
-    },
-    {
-      id: "nc-cuentas",
-      ancla: "nc-modal.cuentas",
-      titulo: "Cómo quedan tus cuentas",
-      texto: "Antes de registrar, te muestra cómo quedan la deuda de esa factura, tu saldo a favor y el IGV del mes. Si el monto no cuadra, aquí te lo dice.",
-    },
-    {
-      id: "nc-responsable",
-      ancla: "nc-modal.responsable",
-      opcional: true,
-      titulo: "Quién la registra",
-      texto: "Elige quién está haciendo esto. Queda anotado junto a la nota.",
-    },
-    {
-      id: "nc-pie",
-      ancla: "nc-modal.pie",
-      titulo: "Registrar la nota",
-      texto: "El botón la guarda como un registro nuevo: no se edita ni se borra. «Cancelar» cierra sin guardar, que es lo que hacemos en la demo.",
-    },
-    {
-      id: "secciones",
-      ancla: "notas-credito.secciones",
-      preparar: [{ tipo: "escape" }],
-      titulo: "Notas y saldos a favor",
-      texto: "«Notas» es la lista de notas, las esperadas y las que llegaron. «Saldos a favor» es lo que cada proveedor te debe y todavía no usaste (lo vemos al final).",
-    },
-    {
-      id: "cifras",
-      ancla: "notas-credito.cifras",
-      titulo: "Cómo van las notas",
-      texto: "Cuánto falta reclamar a los proveedores, cuánto llegó este mes, el saldo a tu favor y cuánto se usó este mes para bajar deuda.",
-    },
-    {
-      id: "buscador",
-      ancla: "notas-credito.buscador",
-      titulo: "Buscar una nota",
-      texto: "Por proveedor, por número de factura o por número de nota (te escribimos un ejemplo).",
-      demostrar: [{ tipo: "escribir", ancla: "notas-credito.buscador", texto: { palabraDe: "notas-credito.proveedor" } }],
-    },
-    {
-      id: "estados",
-      ancla: "notas-credito.estados",
-      preparar: [{ tipo: "vaciar", ancla: "notas-credito.buscador" }],
-      titulo: "Por reclamar, emitidas, aplicadas",
-      texto: "«Por reclamar»: el proveedor te debe una nota (por un faltante) y todavía no llega; también la de una factura cuya plata ya volvió con un documento interno, y solo falta el papel. «Emitidas»: ya llegaron. «Aplicadas»: ya bajaron deuda o te devolvieron la plata. «Todas» las junta (te la mostramos).",
-    },
-    {
-      id: "estado-todas",
-      ancla: "notas-credito.estados",
-      preparar: [{ tipo: "clic", ancla: "notas-credito.estado-todas" }],
-      titulo: "Todas las notas",
-      texto: "Con «Todas» ves las que esperas y las que ya llegaron, juntas. Volvemos a «Por reclamar», que es lo que más conviene mirar cada semana.",
-    },
-    {
-      id: "agrupar",
-      ancla: "notas-credito.agrupar-proveedor",
-      preparar: [{ tipo: "clic", ancla: "notas-credito.estado-por_reclamar" }],
-      demostrar: [{ tipo: "clic", ancla: "notas-credito.agrupar-proveedor" }],
-      titulo: "Agrupar por proveedor",
-      texto: "Junta las notas de cada proveedor, para reclamarle todo de una vez (te lo mostramos). «Por urgencia» las ordena por cuánto tiempo llevan esperando.",
-    },
-    {
-      id: "lista",
-      ancla: "notas-credito.lista",
-      opcional: true,
-      preparar: [{ tipo: "clic", ancla: "notas-credito.agrupar-urgencia" }],
-      titulo: "Las notas",
-      texto: "Cada una con su proveedor y factura, el motivo, hace cuánto se espera, el monto y su estado. Las que esperan más de dos semanas van primero.",
-    },
-    {
-      id: "monto",
-      ancla: "notas-credito.monto",
-      opcional: true,
-      titulo: "Ver una nota de cerca",
-      texto: "Al tocar una fila se abre su vista rápida (te la abrimos).",
-    },
-    {
-      id: "vista",
-      ancla: "notas-credito.vista-sugerencia",
-      opcional: true,
-      preparar: [{ tipo: "clic", ancla: "notas-credito.monto" }],
-      titulo: "Qué hacer con esta nota",
-      texto: "Cuánto se espera, hace cuánto, y en palabras simples qué conviene: escribirle al proveedor, registrarla o usarla en un pago.",
-    },
-    {
-      id: "vista-acciones",
-      ancla: "notas-credito.vista-acciones",
-      opcional: true,
-      titulo: "Registrar, ver o ir a la factura",
-      texto: "Cuando por fin llega una nota que esperabas, la registras desde aquí y ya viene con su factura elegida; si era de un documento interno, «Llegó su nota de crédito» la adjunta sin mover plata. También ves su detalle o abres la factura de origen. Con las flechas pasas a la siguiente.",
-    },
-    {
-      id: "atajos",
-      ancla: "notas-credito.atajos",
-      preparar: [{ tipo: "escape" }],
-      titulo: "Atajos de teclado",
-      texto: "Para ir rápido con el teclado: / busca, j y k se mueven entre notas, Enter abre la vista rápida y N registra una nota.",
-    },
-    {
-      id: "pestana-saldos",
-      ancla: "notas-credito.tab-saldos",
-      titulo: "Saldos a favor",
-      texto: "Lo que cada proveedor te debe y todavía no usaste (te lo abrimos).",
-    },
-    {
-      id: "saldos",
-      ancla: "notas-credito.saldos",
-      preparar: [{ tipo: "clic", ancla: "notas-credito.tab-saldos" }],
-      titulo: "Cuánto te debe cada proveedor",
-      texto: "Cada proveedor que te debe saldo, de dónde viene, y dos caminos: usarlo al pagarle su próxima factura o pedirle que te devuelva la plata. Si nadie te debe, aquí lo dice. En la demo no movemos nada.",
-    },
-    {
-      id: "fin",
-      ancla: null,
-      preparar: [{ tipo: "clic", ancla: "notas-credito.tab-notas" }],
-      titulo: "¡Listo!",
-      texto: "Ya sabes reclamar y usar las notas de crédito. Para repasarlo: Mi perfil ▸ Demo ▸ Notas de crédito de proveedor.",
-    },
-  ],
-  alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "notas-credito.buscador" }],
 };
 
 export const GUIA_PROVEEDORES: Guia = {
@@ -2101,10 +1927,38 @@ export const GUIA_PLAN_HISTORIAL: Guia = {
 // Es plata: la guía dice con cuidado qué cuenta como entregado, devuelto y en la mano, y nunca entrega, registra ni anula (los
 // botones se EXPLICAN con la pieza encendida). Lo que depende de que alguien ya tenga fondo (las cifras, la lista, los movimientos) es
 // opcional; sin fondos, la guía explica la tarjeta vacía.
+// Compras ▸ Mi plata para compras (ADR-0480, actividad 1): por ahora la pantalla dice qué viene; la guía crece con el flujo.
+export const GUIA_MI_PLATA: Guia = {
+  id: "compras.mi-plata",
+  ruta: "/compras/mi-plata",
+  titulo: "Mi plata para compras",
+  resumen: "Lo que tienes para comprar, lo que compraste y lo que mandas a la tienda.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Tu plata para comprar",
+      texto: "Si sales a comprar para CAYLA, o le haces un pedido a un proveedor, aquí anotas la plata que te dieron, lo que compraste y lo que mandas a cada tienda. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "vacio",
+      ancla: "mi-plata.vacio",
+      titulo: "Muy pronto",
+      texto: "Esta pantalla se está armando. Cuando esté lista, empiezas anotando la plata que te dieron para comprar.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "Eso es todo por ahora",
+      texto: "Cuando la pantalla crezca, esta guía te mostrará cada paso.",
+    },
+  ],
+};
+
 export const GUIA_FONDOS: Guia = {
   id: "compras.fondos",
   ruta: "/compras/fondos",
-  titulo: "Fondos por rendir",
+  titulo: "Revisar compras",
   resumen: "La plata que le entregas a quien compra, y cuánto tiene cada persona en la mano.",
   pasos: [
     {
