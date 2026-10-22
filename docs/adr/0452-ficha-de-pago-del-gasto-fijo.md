@@ -98,3 +98,33 @@ La excepción de catálogo es de fondo: **quien ya trae una marca es de mercader
 **Se dejan como están a propósito** (ahí la luz sí es legítima o el cambio no es de este ADR): Por pagar (la deuda de la luz a crédito es una factura de gasto), Finanzas ▸ Gastos y el gasto rápido de Caja, Gastos fijos, Notas de crédito, los filtros de documentos, el directorio de Proveedores,
 y dos pantallas de mercadería que Felipe NO incluyó: **Recibir contra factura** («Proveedor que la mandó») y el **cierre de un envío** (`CerrarEnvio`: paso obligatorio sin «Agregar proveedor»; filtrar ahí exige sumar la alta primero).
 `getProveedoresActivos` no cambia de contrato.
+
+## Actualización 2026-10-22: la ficha pide y dice lo que le sirve a cada categoría (un alquiler no tiene «recibo» ni «servicio»)
+
+**El caso real (Felipe, 2026-10-22, mirando «Agregar fijo» con «Alquileres»):** «esta parte, si es un alquiler, ¿qué sentido tiene?». La ficha se pensó con la luz y el agua en la cabeza. El
+ADR-0290 había adaptado a la categoría solo el ejemplo en gris de cada caja; los **títulos, las ayudas y qué campos se piden** seguían siendo los de un servicio: «Código del servicio» con la ayuda
+«el que sale en el recibo: suministro, contrato o cliente» y «Cómo llega el recibo» (cuyo ejemplo en gris, ya adaptado, decía «cómo te avisa que toca pagar»: el título y el ejemplo se contradecían). Y
+«Vence el contrato», que en un alquiler es el dato que más vale (renovar, reajustar), tenía el mismo peso que en la luz, donde casi no existe.
+
+**Decisión (una sola tabla):** `SUGERENCIAS_POR_CATEGORIA` (`lib/sugerencias-gasto-fijo.ts`, la misma que ya decidía los ejemplos) decide además, por `categorias_gasto.codigo`:
+el título de la caja del propietario o la empresa, el título y la ayuda del código, el título de «cómo llega el recibo», si se pide la fecha de vencimiento (y cómo se llama:
+«Vence el contrato», «Vence la póliza», «Vence la licencia o el certificado») y si va antes que el código, y qué formas de pago no calzan. Una categoría que un líder crea sin deploy, o ninguna elegida, cae
+a la neutra, que es **exactamente lo que decía la ficha antes** y pide todo.
+
+- **Alquileres:** «Propietario», «N.º de contrato» (ayuda: «solo si hay contrato firmado»), «Vence el contrato» primero y con su porqué, «Cómo te avisa que toca pagar», y la forma «Se paga el recibo»
+  no se ofrece.
+- **No se pide la fecha de vencimiento** donde casi nunca existe: transporte, suministros y comisiones del banco. Se pide, con su nombre, en póliza (seguros, va primero) y en licencia o certificado de
+  Defensa Civil (tributos; los arbitrios no vencen).
+- **Nunca se esconde lo que ya está cargado** (la misma regla de los campos de la cuenta): una fecha guardada en una categoría que no la pide se sigue mostrando, y la forma de pago ya elegida se ofrece
+  aunque no calce. Solo cambia lo que se OFRECE a quien llena de nuevo; no hay migración ni cambio en la base (las columnas `codigo_servicio`, `recibo_llega` y `contrato_vence` siguen siendo las mismas).
+- **Hallazgo de seguridad menor, arreglado:** el ejemplo de «Comisiones y gastos bancarios» pedía «N.º de cuenta o de cliente» en el código, que lo ve cualquiera que vea el fijo, mientras que la cuenta
+  bancaria es solo de líder y admin (decisión 2). Ahora la caja se llama «Código de cliente del banco» y su ayuda dice que no se escriba ahí el número de cuenta. Lo vigila la prueba.
+
+**Lo que se descartó:** (1) un `if (categoria === "alquileres")` en el componente: la regla vive en la tabla y cada categoría nueva es una fila; (2) un solo formulario con títulos genéricos («Código o número de
+contrato»): títulos que no le dicen nada a nadie y «Vence el contrato» sigue saliendo en el arbitrio; (3) esconder las cajas por categoría sin mirar el dato cargado: se perdería de vista información que ya existe.
+
+**Probado:** `lib/sugerencias-gasto-fijo.test.ts` (títulos cortos y que no repiten el ejemplo, alquiler sin «recibo» ni «servicio», lo que no pide fecha y lo que sí, «nunca se esconde un dato cargado», la forma «recibo»,
+sin número de cuenta en el código); toda la suite de la web, `tsc`, `eslint` y `knip`; y en el navegador, con la base local y la sesión de un líder: Alquileres (Propietario, Vence el contrato antes que N.º de contrato,
+«Cómo te avisa que toca pagar», sin «Se paga el recibo»), Transporte (sin fecha de vencimiento, «Cómo llega el cobro») y vuelta a Alquileres. No se guardó nada (0 fijos y 0 fichas antes y después).
+**Sin hacer:** capturas a 375 px y en modo oscuro (solo cambian textos y qué caja aparece, sobre las mismas piezas); «cada cuánto se reajusta el alquiler» pediría una columna nueva y una migración, y queda
+como idea para Felipe; qué cuenta como «falta» en la ficha (hoy solo propietario, forma de pago y cuenta) sigue siendo suyo.
