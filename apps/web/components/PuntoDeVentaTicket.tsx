@@ -335,6 +335,8 @@ export function PuntoDeVentaTicket({
   const cobrando = momentoMostrado === "cobrar";
   const descontando = momentoMostrado === "descuento";
   const enLaEspera = momentoMostrado === "espera";
+  // El chip «En espera · N» de la cabecera: solo cuando hay algo esperando, y no en la hoja del celular (allí ya está la tira).
+  const conChipEspera = enEspera.length > 0 && !enHoja;
   // Resumen de cada ticket en espera, derivado de sus líneas (sin estado, sin hooks).
   const resumenEspera = (t: TicketEnEspera) => ({
     hora: new Date(t.creadoEn).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" }),
@@ -436,15 +438,37 @@ export function PuntoDeVentaTicket({
       {/* Un solo título grande por momento: la sede ya está en la barra de arriba
           («Venta en tienda · sede»), repetirla acá no decía nada. Fuera de «armar», la
           cabecera ofrece la vuelta al ticket y el conteo vivo. */}
-      <div className="flex min-h-[4.5rem] items-center justify-between border-b border-sand px-5 py-3">
+      <div className="@container flex min-h-[4.5rem] items-center justify-between gap-2 border-b border-sand px-5 py-3">
         {momentoMostrado === "armar" ? (
           <>
             <TituloSeccion>
               <span className="inline-flex items-center gap-2.5">
                 <ShoppingBag className="h-5 w-5 text-tinta/70" aria-hidden />
-                Ticket actual
+                {/* Con «Dejar en espera» y el chip «En espera · N» al lado, en un ticket de 320 px el título se partía en dos
+                    líneas: ahí dice solo «Ticket». */}
+                <span className="whitespace-nowrap">
+                  Ticket<span className={conChipEspera ? "@max-[19rem]:hidden" : undefined}> actual</span>
+                </span>
               </span>
             </TituloSeccion>
+            {/* Park, a la altura del título (Felipe 2026-10-22): sacarlo del pie le devuelve una fila a la lista. Guarda el
+                ticket y libera la caja para el siguiente cliente. Con el chip «En espera · N» al lado, o en un ticket angosto,
+                queda solo el ícono (con su nombre para el lector y al pasar el mouse): los dos con texto no caben en 420 px. */}
+            {carrito.length > 0 && (
+              <button
+                type="button"
+                onClick={onDejarEnEspera}
+                disabled={bloqueado}
+                aria-label="Dejar en espera"
+                title="Dejar en espera"
+                className={`btn-cayla btn-secundario anim-revelar ml-auto flex h-8 shrink-0 items-center gap-1.5 text-[12.5px] ${
+                  conChipEspera ? "w-8 justify-center px-0" : "px-2.5 @max-[20rem]:w-8 @max-[20rem]:justify-center @max-[20rem]:px-0"
+                }`}
+              >
+                <CirclePause className={ICONO_CHICO} aria-hidden />
+                {!conChipEspera && <span className="hidden @min-[20rem]:inline">Dejar en espera</span>}
+              </button>
+            )}
             {/* En la hoja del celular, la salida al catálogo (además del velo): la clienta pide otra prenda. */}
             {enHoja && onCerrarHoja && (
               <button
@@ -458,7 +482,7 @@ export function PuntoDeVentaTicket({
             )}
             {/* Solo cuando hay algo esperando: el chip abre la lista completa. En la hoja del celular no hace falta: la
                 tira de arriba ya los muestra y la cabecera no tiene ancho para los dos. */}
-            {enEspera.length > 0 && !enHoja && (
+            {conChipEspera && (
               <button
                 type="button"
                 onClick={onIrAEspera}
@@ -853,7 +877,7 @@ export function PuntoDeVentaTicket({
           )}
         </div>
 
-        <div data-guia="vender.ticket-pie" className="border-t border-sand bg-papel px-5 pt-4 pb-5">
+        <div data-guia="vender.ticket-pie" className="@container border-t border-sand bg-papel px-5 pt-4 pb-5">
           {/* El cupón del Club (programa de puntos): UNA línea de toda la compra, en cualquier momento del ticket mientras esté puesto,
               porque el Total de abajo ya lo descuenta; el reparto por prenda queda en la base y el comprobante. Se puede quitar mientras
               se arma la venta. `key` en el monto: se asienta cuando cambia, como el Total. */}
@@ -890,9 +914,10 @@ export function PuntoDeVentaTicket({
           )}
 
           {/* Fila «Descuento», solo mientras se arma la venta: el descuento cambia cuánto
-              se cobra, así que se decide antes de cobrar (decisión 3-A). */}
+              se cobra, así que se decide antes de cobrar (decisión 3-A). Una sola línea con «Código de cupón»: «Dejar en
+              espera» subió a la cabecera (Felipe 2026-10-22) para darle ese alto a la lista. */}
           {momentoMostrado === "armar" && (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 text-xs">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
               {totalDescuento > 0 ? (
                 <>
                   <span className="text-tinta/60">Descuento</span>
@@ -913,11 +938,16 @@ export function PuntoDeVentaTicket({
                   type="button"
                   onClick={() => onAbrirDescuento(null)}
                   disabled={bloqueado || carrito.length === 0}
+                  aria-label="Aplicar descuento"
                   className="label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   <span className="flex items-center gap-1.5">
                     <Percent className={ICONO_CHICO} aria-hidden />
-                    Aplicar descuento
+                    {/* En un ticket angosto (menos de 336 px de contenido) la fila dice «Descuento · Cupón»: con las dos frases enteras se
+                        partía en dos líneas y le quitaba ese alto a la lista. */}
+                    <span>
+                      <span className="@max-[21rem]:hidden">Aplicar </span>descuento
+                    </span>
                   </span>
                 </button>
               )}
@@ -927,24 +957,15 @@ export function PuntoDeVentaTicket({
                   onClick={onAbrirCodigo}
                   disabled={bloqueado || carrito.length === 0 || vale != null}
                   data-guia="vender.codigo-cupon-boton"
+                  aria-label="Código de cupón"
                   className="label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   <span className="flex items-center gap-1.5">
                     <Ticket className={ICONO_CHICO} aria-hidden />
-                    Código de cupón
+                    <span>
+                      <span className="@max-[21rem]:hidden">Código de </span>cupón
+                    </span>
                   </span>
-                </button>
-              )}
-              {/* Park: guarda el ticket y libera la caja para la siguiente clienta. */}
-              {carrito.length > 0 && (
-                <button
-                  type="button"
-                  onClick={onDejarEnEspera}
-                  disabled={bloqueado}
-                  className="label-cayla flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta"
-                >
-                  <CirclePause className={ICONO_CHICO} aria-hidden />
-                  Dejar en espera
                 </button>
               )}
             </div>
