@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import { objecionVigencia, parsearDescuento, parsearFecha } from "@/lib/etiqueta-campana";
+import { estiloConocido } from "@/lib/etiqueta-grupos";
 
 // POST/PATCH /api/productos/etiquetas → vocabulario cerrado de etiquetas
 // (ADR-0095). Mismo mecanismo que tejidos/patrones. Sin restricción por
@@ -20,8 +21,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Falta el nombre de la etiqueta." }, { status: 400 });
   }
 
+  // Desde Catálogo ▸ Campañas nace con estilo `campana`; desde Sellos, sin estilo (la base pone «neutral»). ADR-0473.
+  const estilo = cuerpo?.estilo === undefined ? undefined : estiloConocido(String(cuerpo.estilo));
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-  const { data, error } = await supabase.from("etiquetas").insert({ nombre }).select("id, nombre, activo, notas, estado").single();
+  const { data, error } = await supabase.from("etiquetas").insert(estilo ? { nombre, estilo } : { nombre }).select("id, nombre, activo, notas, estado").single();
 
   if (error) {
     return Response.json({ error: traducirError(error, "agregar la etiqueta") }, { status: 400 });
@@ -35,7 +38,7 @@ export async function PATCH(request: Request) {
   // líder: se dice aquí con palabras y la base lo vuelve a exigir (política `etiquetas_update`, `fn_puede_tocar_etiqueta`).
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarEtiquetas")) {
-    return Response.json({ error: "Editar etiquetas necesita el módulo Etiquetas en tu rol." }, { status: 403 });
+    return Response.json({ error: "Editar sellos o campañas necesita el módulo Sellos o Campañas en tu rol." }, { status: 403 });
   }
   const esLider = persona.rol === "lider";
 

@@ -256,7 +256,7 @@ export function PrendasDeEtiquetaModal({
   const subtitulo =
     etiqueta.descuentoPct === null
       ? "Etiqueta informativa: no cambia ningún precio."
-      : `${etiqueta.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} % de descuento: en Vender baja solo, a las prendas que lleven la etiqueta.`;
+      : `${etiqueta.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} % de descuento: en Vender baja solo, a las prendas marcadas.`;
 
   return (
     <Modal titulo={`Prendas de «${etiqueta.nombre}»`} subtitulo={subtitulo} tamano="ancha" onClose={onClose}>
@@ -323,7 +323,7 @@ export function PrendasDeEtiquetaModal({
               </div>
             </div>
 
-            <CampoGuiado id="prendas" guia={guia} titulo="Prendas que llevan esta etiqueta" className="space-y-3">
+            <CampoGuiado id="prendas" guia={guia} titulo="Prendas marcadas" className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-tinta/65">
                 <span className="tabular-nums">
                   {carga.estado === "listo"
@@ -344,7 +344,7 @@ export function PrendasDeEtiquetaModal({
                     type="button"
                     disabled={porQuitar === 0 || guardando}
                     onClick={() => setMarcadas(marcarProductos(editables, marcadas, false))}
-                    title="Quita la etiqueta a los productos de la lista. Los que entran por su categoría la siguen llevando."
+                    title="Desmarca los productos de la lista. Los que entran por su categoría siguen marcados."
                     className="btn-cayla btn-sutil btn-chico"
                   >
                     Quitar todos
@@ -385,7 +385,7 @@ export function PrendasDeEtiquetaModal({
                 )}
                 {carga.estado === "listo" && visibles.length === 0 && (
                   <Vacio tamano="chico" className="py-12" icono={<FunnelX />}>
-                    {marca.filtro === "con" ? "Ninguna prenda de esta búsqueda lleva la etiqueta." : "Ningún producto coincide con ese filtro."}
+                    {marca.filtro === "con" ? "Ninguna prenda de esta búsqueda está marcada." : "Ningún producto coincide con ese filtro."}
                   </Vacio>
                 )}
                 {carga.estado === "listo" && visibles.length > 0 && (

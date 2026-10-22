@@ -2,7 +2,7 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 171,
+  "total": 172,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «(sin nombre)»"
@@ -56,6 +56,7 @@
     ],
     "components/EtiquetasLista.tsx": [
       "BotonImprimir «(sin nombre)»",
+      "BotonVer «Diseño en la tienda web»",
       "BotonFiltro «Todas»",
       "BotonFiltro «{ESTILOS[g].grupo}»",
       "BotonFiltro «Vigentes hoy»",
@@ -78,7 +79,7 @@
       "Boton «Cancelar» #3",
       "Boton «{guia.frase ?? undefined}»",
       "button «{c.nombre}»",
-      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la etiqueta\")}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", `Nombre ${delUno}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #4",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
@@ -111,7 +112,7 @@
       "BotonFiltro «Sin ella»",
       "DesplegablePildora «Categoría»",
       "button «Marca todas las tallas de los productos de la lista. Los que entran por su categoría ya la llevan.»",
-      "button «Quita la etiqueta a los productos de la lista. Los que entran por su categoría la siguen llevando.»",
+      "button «Desmarca los productos de la lista. Los que entran por su categoría siguen marcados.»",
       "BotonDeshacer «→() => setQuitarFuera(false)»",
       "button «Quitárselas»",
       "Boton «Reintentar»",
