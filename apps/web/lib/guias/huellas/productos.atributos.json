@@ -2,7 +2,7 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 181,
+  "total": 182,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «(sin nombre)»"
@@ -218,6 +218,9 @@
       "Boton «Rechazar»",
       "button «{cambiando ? \"Desactivando…\" : \"Desactivar\"}»",
       "Boton «Reactivar»"
+    ],
+    "components/etiqueta-prendas/EtiquetaColgada.tsx": [
+      "button «{`${x.producto.referencia}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",
