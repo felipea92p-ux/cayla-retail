@@ -195,7 +195,7 @@ export function calcularConfianza(h: HechosConfianza): Confianza {
     }
   }
 
-  // 6. La planilla: solo quien la ve en Dynamic sabe si el mes ya está pagado. Sin pagar, el mes lleva los sueldos ESTIMADOS con las
+  // 6. La planilla: solo quien la ve en Dynamic sabe si el mes ya está pagado. Sin pagar, el mes lleva los sueldos PROVISIONADOS con las
   //    boletas de Dynamic hasta hoy (ADR-0453): no es un dato pagado, así que no es «completo», pero tampoco falta: la boleta de cada
   //    persona es la misma que Dynamic pagará, y lo único que falta es que Dynamic confirme el pago. De ahí 4/5 del peso, no la mitad.
   {
@@ -209,7 +209,7 @@ export function calcularConfianza(h: HechosConfianza): Confianza {
           : provision
             ? {
                 clave: "planilla", titulo: "Sueldos del mes", estado: "parcial",
-                detalle: `Dynamic todavía no pagó el período: el mes lleva ${soles(provision.devengado)} de sueldos estimados hasta hoy con las boletas de ${provision.personas} ${plural(provision.personas, "persona", "personas")}. Se corrige solo cuando Dynamic pague.`,
+                detalle: `Dynamic todavía no pagó el período: el mes lleva ${soles(provision.devengado)} de sueldos provisionados hasta hoy con las boletas de ${provision.personas} ${plural(provision.personas, "persona", "personas")}${provision.deHoy > 0 ? ` (${soles(provision.deHoy)} son de hoy, y se corrigen cuando cada persona cierra su jornada)` : ""}. Se corrige solo cuando Dynamic pague.`,
                 peso, logrado: Math.round(peso * 0.8 * 100) / 100,
               }
             : { clave: "planilla", titulo: "Sueldos del mes", estado: "parcial", detalle: "Dynamic todavía no pagó el período: hasta que lo haga, el mes se ve sin sueldos.", peso, logrado: peso / 2 }
