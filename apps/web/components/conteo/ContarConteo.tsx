@@ -34,7 +34,6 @@ import {
   type DetalleConteo,
   type PrendaConteo,
 } from "@/lib/conteo-reglas";
-import { funcionNoExiste } from "@/lib/conteo-atajo";
 import { traducirError } from "@/lib/error-escritura";
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { firmar } from "@/lib/responsable-reglas";
@@ -294,30 +293,17 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
 
   /**
    * Lo que sale a la red con «Completar todo»: UNA llamada (`conteo_completar_tarjeta`) que cuenta las tallas con la misma `conteo_contar`
-   * y las marca «completadas con el atajo» (cuentan, pero Revisar lo dice; ADR-0328, opción C de Felipe). Si esta base todavía no tiene la
-   * función (la web salió antes que el SQL), se cuenta como siempre, talla por talla y sin la marca: nadie se queda sin «Completar todo».
+   * y las marca «completadas con el atajo» (cuentan, pero Revisar lo dice; ADR-0328, opción C de Felipe). Un solo camino: la función
+   * está en la base desde antes de publicar esta pantalla, así que no hay respaldo talla por talla (ADR-0328, act. 2026-10-22).
    */
   const enviarCompletar = useCallback(
-    async (lineas: LineaDelAtajo[]) => {
-      const cliente = createClient();
-      const lote = await firmar(
-        cliente
+    async (lineas: LineaDelAtajo[]) =>
+      await firmar(
+        createClient()
           .rpc("conteo_completar_tarjeta", { p_conteo_id: conteo.id, p_lineas: lineas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidad })) })
           .setHeader("x-espera", "no"),
         responsableRef.current.firma()
-      );
-      if (!funcionNoExiste(lote.error, "conteo_completar_tarjeta")) return { data: lote.data, error: lote.error };
-      const dejadas: unknown[] = [];
-      for (const l of lineas) {
-        const una = await firmar(
-          cliente.rpc("conteo_contar", { p_conteo_id: conteo.id, p_variante_id: l.varianteId, p_cantidad_contada: l.cantidad }).setHeader("x-espera", "no"),
-          responsableRef.current.firma()
-        );
-        if (una.error) return { data: null, error: una.error };
-        dejadas.push(una.data);
-      }
-      return { data: { completadas: dejadas.length, lineas: dejadas }, error: null };
-    },
+      ),
     [conteo.id]
   );
 

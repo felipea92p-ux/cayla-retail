@@ -4,10 +4,11 @@ import { alcanceDeRespuesta, arranqueDeRespuesta, type AlcanceConteo, type Arran
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { codigosDeConteo, conteoResumenDesdeFila, detalleDesdeJson, type ConteoResumen, type DetalleConteo, type PrendaConteo } from "@/lib/conteo-reglas";
 
-// Lecturas del Conteo rediseñado (2026-09-29). Este archivo solo LEE, y solo por funciones de la base:
+// Lecturas del Conteo rediseñado (2026-09-29). Este archivo solo LEE, y por funciones de la base (con UNA excepción, la última de la lista):
 //  · `fn_conteo_detalle`  → el detalle de UN conteo (cabecera + resumen + líneas) en un solo jsonb. Un solo renglón:
 //    no lo alcanza el tope de 1.000 filas de PostgREST, que truncaría en silencio un conteo de ~1.200 variantes.
 //  · `fn_conteos_resumen` → el historial de una sede, ya sumado en Postgres.
+//  · `getCompletadasConAtajo` → la excepción: cuenta con un `select` a `conteo_items` (ver su comentario).
 // Nunca lee `stock` (la cifra de «cuánto hay» es de `fn_existencias`, ADR-0270) ni costos: el conteo no habla de plata.
 // Las escrituras (abrir, contar, recontar, confirmar, cerrar, cancelar) las hace el navegador con la firma del responsable.
 
@@ -35,8 +36,12 @@ export async function getDetalleConteo(id: string): Promise<DetalleConteo | null
 /**
  * Cuántas variantes de un conteo se completaron con «Completar todo» de una tarjeta (`conteo_items.completada_con_atajo`; ADR-0328, opción C
  * de Felipe: cuentan para la exactitud y el arranque, pero Revisar y Confirmar lo dicen). Es un dato SECUNDARIO: quien lo pide lo envuelve en
- * `opcional()`, y si falla —por ejemplo, la web antes que el SQL, cuando la columna aún no existe— no se dice nada y el conteo sigue entero.
+ * `opcional()`, y si falla no se dice nada y el conteo sigue entero (la frase informa, no decide).
  * Solo cuenta (`head`): no trae filas. Lanza si la base responde con error: «cero» y «no pude leer» no son lo mismo.
+ *
+ * Es un `select` directo y no una función porque la marca no viaja en `fn_conteo_detalle`, y recrear esa función arrastra sus parches vivos
+ * (ADR-0328, act. 2026-10-22). La lectura la permite RLS (`conteo_items_select` filtra por sede). Cuando `fn_conteo_detalle` se rehaga por
+ * otra razón, sumarle `con_atajo` a su jsonb y quitar este `select`: `datos:comparar` solo vigila llamadas a funciones, no columnas.
  */
 export async function getCompletadasConAtajo(conteoId: string): Promise<number> {
   if (!ES_UUID.test(conteoId)) return 0;
