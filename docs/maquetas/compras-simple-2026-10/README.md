@@ -160,6 +160,8 @@ se corrigió y se volvió a probar una segunda vez. Falta la prueba con Daniel, 
 | Compras: la tira de los 4 casos, todos los proveedores como chips, «¿Quién responde?», textos de Finanzas y de la maqueta | **1 · Plata que anotaron** y **2 · Compras que ya llegaron**; el proveedor ya elegido con «No es este: cambiar»; «¿Qué hacemos?» con «Reclamar al proveedor · Esperar · CAYLA lo asume»; **perder plata se confirma** («CAYLA pierde S/ 24. ¿Seguro?»); «Cambiar el monto» en vez de «Corregir» |
 | El aviso verde de arriba tapaba la flecha de volver | El aviso deja pasar el toque |
 
-**Lo que queda abierto (para Felipe):** Ana dice que fijar el **precio de venta** «no es su trabajo» y le da miedo: hoy se le pide con
-«Igual que la vez pasada» o el sugerido y «Compras lo puede cambiar». ¿Lo pide la compradora, o lo pone Compras? También: si llega un
-solo fardo de dos, la tienda no puede terminar a medias (hoy espera al otro).
+**Precio de venta (decisión de Felipe, 2026-10-22):** lo pone **la compradora** al comprar (con «Igual que la vez pasada» o el
+sugerido por categoría); **al recibir, la tienda lo ve como sugerido** («lo puso Marisol al comprar; cámbialo si quieres») en «Contar» y
+en «Crear y contar», y puede cambiarlo. Lo contado muestra «a la venta S/ 29.90».
+
+**Queda abierto:** si llega un solo fardo de dos, la tienda no puede terminar a medias (hoy espera al otro).

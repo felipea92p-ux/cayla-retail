@@ -756,7 +756,7 @@ function pantallaTel() {
     const cfg = {
       "c-cant": { paso:"Cantidad", tit:"¿Cuántas compraste?", pre:"", vez: (prev ? `La vez pasada compraste ${prev.cant}. ` : "") + "Los colores y tallas los cuenta la tienda cuando llega.", igual:null, ok:"c-cant-ok", atras: B.camino==="nuevo" ? "n-tallas" : "c-hab" },
       "c-costo": { paso:"Costo", tit:"¿Cuánto pagaste por cada una?", pre:"S/", vez:"", igual: prev ? ["c-costo-igual", "Igual que la vez pasada", prev.costo] : null, ok:"c-costo-ok", atras:"c-cant" },
-      "c-venta": { paso:"Venta", tit:"¿A cuánto se venderá en la tienda?", pre:"S/", vez: (a.costo ? `Pagaste ${soles(a.costo)} cada una. ` : "") + "Si no sabes, usa el de arriba: Compras lo puede cambiar.", igual: prev ? ["c-venta-igual", "Igual que la vez pasada", prev.venta] : ["c-venta-sug", `Sugerido para ${a.cat.toLowerCase()}`, ventaSugerida(a.costo, a.cat)], ok:"c-venta-ok", atras:"c-costo" },
+      "c-venta": { paso:"Venta", tit:"¿A cuánto se venderá en la tienda?", pre:"S/", vez: (a.costo ? `Pagaste ${soles(a.costo)} cada una. ` : "") + "Si no sabes, usa el de arriba: la tienda lo puede cambiar al recibir.", igual: prev ? ["c-venta-igual", "Igual que la vez pasada", prev.venta] : ["c-venta-sug", `Sugerido para ${a.cat.toLowerCase()}`, ventaSugerida(a.costo, a.cat)], ok:"c-venta-ok", atras:"c-costo" },
     }[t.p];
     const esperaIgual = cfg.igual && !t.tocado, valido = Number(v) > 0 && !esperaIgual;
     return `<div class="tel-pant">${atras(cfg.atras)}${avance(cfg.paso)}<h4>${cfg.tit}</h4><p class="sub">${h(a.nombre)} · ${a.cat}${a.marca?" · "+h(a.marca):""}</p>
@@ -960,7 +960,7 @@ function recepcionHTML(e) {
     const derecha = x ? `<span class="u">${sumaCant(x)}<small>contadas</small></span>${R.cerrada ? "<span></span>" : `<button class="btn btn-enlace" data-a="rec-editar" data-v="${x.id}">Cambiar</button>`}`
       : R.cerrada ? "<span></span><span></span>" : p ? `<span></span><button class="btn btn-primario" style="height:36px" data-a="rec-elegir" data-v="${p.id}">Contar</button>`
       : `<span></span><button class="btn btn-primario" style="height:36px" data-a="rec-crear-de" data-v="${(r.lineas || []).indexOf(l)}">Crear y contar</button>`;
-    return `<div class="linea">${x ? miniPrenda(x.nuevo || prod(x.prod)) : sw(l.color && l.color[1])}<div><b>${h(l.nombre)}${!x && !p ? ' <span class="chip pizarra sinpunto" style="height:18px;font-size:9px">Prenda nueva</span>' : ""}</b><small>${x ? detalle(x) : `${nom} compró ${l.cant} a ${soles(l.costo)} cada una`}</small></div>${derecha}</div>`; }).join("");
+    return `<div class="linea">${x ? miniPrenda(x.nuevo || prod(x.prod)) : sw(l.color && l.color[1])}<div><b>${h(l.nombre)}${!x && !p ? ' <span class="chip pizarra sinpunto" style="height:18px;font-size:9px">Prenda nueva</span>' : ""}</b><small>${x ? detalle(x) + (x.precio ? ` · a la venta ${soles(x.precio)}` : "") : `${nom} compró ${l.cant} a ${soles(l.costo)} cada una · a la venta ${soles(l.venta)}`}</small></div>${derecha}</div>`; }).join("");
   const extras = lineas.filter((x) => !an.some((l) => norm(l.nombre) === norm((x.nuevo || prod(x.prod)).nombre)));
   const filasExtra = extras.map((x) => { const p = x.nuevo || prod(x.prod);
     return `<div class="linea">${miniPrenda(p)}<div><b>${h(p.nombre)} <span class="chip pizarra sinpunto" style="height:18px;font-size:9px">Llegó además</span></b><small>${detalle(x)}</small></div><span class="u">${sumaCant(x)}<small>contadas</small></span>${R.cerrada ? "<span></span>" : `<button class="btn btn-enlace" data-a="rec-editar" data-v="${x.id}">Cambiar</button>`}</div>`; }).join("");
@@ -1004,7 +1004,8 @@ function hojaSumar() {
     <div class="campo ${tot&&!Number(m.costo)?"encendido":""}"><span class="campo-et">Costo de cada una <em>· lo que dice el papel</em></span>
       <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><input class="caja caja-monto" style="max-width:180px" inputmode="decimal" placeholder="0.00" value="${h(m.costo||"")}" data-in="m-costo">${tot&&Number(m.costo)?`<span style="color:var(--t60)">${tot} × ${soles(m.costo)} = <b style="color:var(--tinta)">${soles(tot*m.costo)}</b></span>`:""}</div>
       ${papelEnTexto(reg(S.rec[S.abiertoEnvio].activo))}</div>
-    <div class="nota">Suma stock en ${TIENDAS[S.tienda]} con este costo. El precio de venta no se toca aquí.</div></div>
+    <div class="campo"><span class="campo-et">Precio de venta <em>· ${m.precioDe ? `lo puso ${m.precioDe} al comprar; cámbialo si quieres` : "opcional"}</em></span><input class="caja caja-monto" style="max-width:180px" inputmode="decimal" placeholder="0.00" value="${h(m.precio||"")}" data-in="m-precio"></div>
+    <div class="nota">Estas prendas entran a ${TIENDAS[S.tienda]} con este costo y este precio.</div></div>
     <div class="pie-acciones">${m.linea?`<button class="btn btn-secundario izq" style="border-color:var(--rojo-profundo);color:var(--rojo-profundo)" data-a="m-quitar">Quitar de la lista</button>`:""}<button class="btn btn-secundario" data-a="cerrar">Cancelar</button><button class="btn btn-primario" ${tot&&Number(m.costo)>0?"":"disabled"} data-a="m-sumar">Listo: ${tot} ${tot===1?"contada":"contadas"}</button></div></div>`;
 }
 /* Crear prenda nueva con la ficha completa (los 4 pasos de Catálogo ▸ Nuevo producto) */
@@ -1028,7 +1029,7 @@ function hojaCrear() {
     <div class="campo"><span class="campo-et">Colores</span><div class="opciones">${COLS.map(([c,hex])=>`<button class="op" aria-pressed="${m.colores.some(x=>x[0]===c)}" data-a="c-color" data-v="${c}|${hex}"><span class="muestra" style="background:${hex}" data-color-dato></span>${c}</button>`).join("")}</div></div>`;
   if (m.p === 3) {
     const filas = m.colores.map(([c,hex])=>`<tr><td><span style="display:inline-flex;gap:8px;align-items:center"><span class="muestra" style="width:14px;height:14px;border-radius:50%;background:${hex}" data-color-dato></span>${c}</span></td>${m.tallas.map((t)=>{const k=`${c}|${t}`,v=m.cant[k]||0;return `<td><span class="cant ${v?"":"cero"}"><button data-a="c-cant" data-v="${k}|-1" aria-label="Una menos">${ic("menos")}</button><span>${v}</span><button data-a="c-cant" data-v="${k}|1" aria-label="Una más">${ic("mas")}</button></span></td>`;}).join("")}</tr>`).join("");
-    cont = `<div class="campos-dos"><div class="campo"><span class="campo-et">Precio de venta</span><input class="caja caja-monto" inputmode="decimal" placeholder="0.00" value="${h(m.precio||"")}" data-in="c-precio"></div>
+    cont = `<div class="campos-dos"><div class="campo"><span class="campo-et">Precio de venta${m.precioDe?` <em>· lo puso ${m.precioDe} al comprar; cámbialo si quieres</em>`:""}</span><input class="caja caja-monto" inputmode="decimal" placeholder="0.00" value="${h(m.precio||"")}" data-in="c-precio"></div>
         <div class="campo"><span class="campo-et">Costo de cada una <em>· lo que dice el papel</em></span><input class="caja caja-monto" inputmode="decimal" placeholder="0.00" value="${h(m.costo||"")}" data-in="c-costo"></div></div>
       ${Number(m.precio)>0&&Number(m.costo)>0?`<small style="color:var(--t60)">Ganancia por prenda: <b style="color:var(--tinta)">${soles(m.precio-m.costo)}</b> (${Math.round((m.precio-m.costo)/m.precio*100)} % del precio)</small>`:""}
       <div class="campo"><span class="campo-et">¿Cuántas llegaron?</span><div class="matriz"><table><thead><tr><th>Color</th>${m.tallas.map((t)=>`<th>${t}</th>`).join("")}</tr></thead><tbody>${filas||`<tr><td colspan="9">Elige tallas y colores en el paso anterior.</td></tr>`}</tbody></table></div></div>
@@ -1291,12 +1292,12 @@ const ACC = {
   "rec-reabrir": () => { S.rec[S.abiertoEnvio].cerrada = false; S.envios.find((x) => x.id === S.abiertoEnvio).estado = "camino"; },
   "rec-buscar": () => { S.rec[S.abiertoEnvio].buscar = true; },
   "rec-comp": (v) => { S.rec[S.abiertoEnvio].activo = v; S.rec[S.abiertoEnvio].q = ""; S.formDif = { que:"falta", n:1, prenda:null, causa:null }; },
-  "rec-elegir": (v) => { const R=S.rec[S.abiertoEnvio], l=(reg(R.activo).lineas||[]).find((x)=>norm(x.nombre)===norm(prod(v).nombre)); S.modal = { t:"sumar", prod:v, cant:{}, costo:l?String(l.costo):"" }; R.q = ""; },
+  "rec-elegir": (v) => { const R=S.rec[S.abiertoEnvio], l=(reg(R.activo).lineas||[]).find((x)=>norm(x.nombre)===norm(prod(v).nombre)); S.modal = { t:"sumar", prod:v, cant:{}, costo:l?l.costo.toFixed(2):"", precio:l?l.venta.toFixed(2):"", precioDe:l?PERSONAS[salida(reg(R.activo).salida).persona].nombre.split(" ")[0]:null }; R.q = ""; },
   "rec-crear-de": (v) => { const R=S.rec[S.abiertoEnvio], l=reg(R.activo).lineas[Number(v)];
-    S.modal = { t:"crear", comp:R.activo, p:0, vistos:[0], nombre:l.nombre, cat:l.cat, marca:l.marca==="CAYLA"?"CAYLA":l.marca?"Otra":"Sin marca", prov:provDe(reg(R.activo).provId)?.nombre||"", precio:String(l.venta), costo:String(l.costo), tallas:[], colores:l.color?[l.color]:[], cant:{} }; },
-  "rec-editar": (v) => { const R=S.rec[S.abiertoEnvio], l=R.lineas.find(x=>x.id===v); if (l.nuevo) return; S.modal = { t:"sumar", prod:l.prod, cant:{...l.cant}, costo:String(l.costo||""), linea:v }; },
+    S.modal = { t:"crear", comp:R.activo, p:0, vistos:[0], nombre:l.nombre, cat:l.cat, marca:l.marca==="CAYLA"?"CAYLA":l.marca?"Otra":"Sin marca", prov:provDe(reg(R.activo).provId)?.nombre||"", precio:l.venta.toFixed(2), precioDe:PERSONAS[salida(reg(R.activo).salida).persona].nombre.split(" ")[0], costo:l.costo.toFixed(2), tallas:[], colores:l.color?[l.color]:[], cant:{} }; },
+  "rec-editar": (v) => { const R=S.rec[S.abiertoEnvio], l=R.lineas.find(x=>x.id===v); if (l.nuevo) return; S.modal = { t:"sumar", prod:l.prod, cant:{...l.cant}, costo:String(l.costo||""), precio:String(l.precio||""), precioDe:l.precioDe||null, linea:v }; },
   "m-cant": (v) => { const [c,t,d] = v.split("|"), k=`${c}|${t}`; S.modal.cant[k] = Math.max(0,(S.modal.cant[k]||0)+Number(d)); },
-  "m-sumar": () => { const R=S.rec[S.abiertoEnvio], m=S.modal; if (m.linea) Object.assign(R.lineas.find(l=>l.id===m.linea), { cant:m.cant, costo:Number(m.costo) }); else R.lineas.push({ id:nuevoId("l"), comp:R.activo, prod:m.prod, costo:Number(m.costo), cant:m.cant }); S.modal=null; },
+  "m-sumar": () => { const R=S.rec[S.abiertoEnvio], m=S.modal; if (m.linea) Object.assign(R.lineas.find(l=>l.id===m.linea), { cant:m.cant, costo:Number(m.costo), precio:Number(m.precio)||null }); else R.lineas.push({ id:nuevoId("l"), comp:R.activo, prod:m.prod, costo:Number(m.costo), precio:Number(m.precio)||null, precioDe:m.precioDe, cant:m.cant }); S.modal=null; },
   "m-quitar": () => { const R=S.rec[S.abiertoEnvio]; R.lineas = R.lineas.filter(l=>l.id!==S.modal.linea); S.modal=null; },
   "rec-crear": () => { const R=S.rec[S.abiertoEnvio]; S.modal = { t:"crear", comp:R.activo, p:0, vistos:[0], nombre:R.q.charAt(0).toUpperCase()+R.q.slice(1), cat:null, tallas:[], colores:[], cant:{} }; R.q=""; },
   "c-ir": (v) => { S.modal.p = Number(v); if (!S.modal.vistos.includes(Number(v))) S.modal.vistos.push(Number(v)); },
@@ -1305,7 +1306,7 @@ const ACC = {
   "c-talla": (v) => { const t=S.modal.tallas; S.modal.tallas = t.includes(v)?t.filter(x=>x!==v):[...t,v]; },
   "c-color": (v) => { const [c,hex]=v.split("|"), cs=S.modal.colores; S.modal.colores = cs.some(x=>x[0]===c)?cs.filter(x=>x[0]!==c):[...cs,[c,hex]]; },
   "c-cant": (v) => { const [c,t,d] = v.split("|"), k=`${c}|${t}`; S.modal.cant[k] = Math.max(0,(S.modal.cant[k]||0)+Number(d)); },
-  "c-crear": () => { const R=S.rec[S.abiertoEnvio], m=S.modal; R.lineas.push({ id:nuevoId("l"), comp:m.comp, nuevo:{ nombre:m.nombre, colores:m.colores, cat:m.cat }, costo:Number(m.costo), cant:m.cant }); S.modal=null; },
+  "c-crear": () => { const R=S.rec[S.abiertoEnvio], m=S.modal; R.lineas.push({ id:nuevoId("l"), comp:m.comp, nuevo:{ nombre:m.nombre, colores:m.colores, cat:m.cat }, costo:Number(m.costo), precio:Number(m.precio)||null, cant:m.cant }); S.modal=null; },
   "rec-coincide": (v) => { const R=S.rec[S.abiertoEnvio]; R.coincide[R.activo] = v==="true"; if (v==="true") R.difs[R.activo] = []; },
   "fd-que": (v) => { S.formDif.que = v; S.formDif.causa = null; }, "fd-prenda": (v) => { S.formDif.prenda = v; },
   "fd-n": (v) => { S.formDif.n = Math.max(1, S.formDif.n + Number(v)); }, "fd-causa": (v) => { S.formDif.causa = v; },
@@ -1341,6 +1342,7 @@ document.addEventListener("input", (ev) => {
   else if (k === "pn-ruc") S.tel.pn.ruc = v.replace(/\D/g, "").slice(0, 11);
   else if (k === "pn-marcas") S.tel.pn.marcas = v;
   else if (k === "n-marca-otra") S.tel.otra = v;
+  else if (k === "m-precio") S.modal.precio = v.replace(/[^\d.]/g,"");
   else if (k === "m-costo") S.modal.costo = v.replace(/[^\d.]/g,"");
   else if (k === "c-costo") S.modal.costo = v.replace(/[^\d.]/g,"");
   else if (k === "papel-serie") (S.papel[ev.target.dataset.v] ||= {}).serie = v.toUpperCase();
