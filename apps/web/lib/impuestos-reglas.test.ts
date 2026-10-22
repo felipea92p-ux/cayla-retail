@@ -3,6 +3,7 @@ import {
   COLUMNAS_COMPRAS,
   COLUMNAS_VENTAS,
   aniosDeRegimen,
+  avisoUmbral,
   csvRegistroCompras,
   csvRegistroVentas,
   csvResumenIgv,
@@ -138,9 +139,107 @@ describe("leer lo que devuelve la base", () => {
     expect(p.revisar.igvPerdido).toEqual({ n: 0, igv: 0 });
   });
 
+  it("el aviso anticipado: las ventas del año, el aviso en soles y lo cargado de antes del sistema", () => {
+    const p = leerPanelImpuestos({
+      mes: "2026-10-01",
+      parametros: {
+        aviso_umbral_uit: { valor: "250.0000", provisional: false },
+        ventas_previas: { valor: "300000.0000", provisional: false, anio: 2026 },
+      },
+      umbral: {
+        anio: 2026, ventas_anio_erp: "1100000.00", ventas_previas: "300000.0000", previas_confirmadas: true, ventas_anio: "1400000.0000",
+        aviso_soles: "1375000.00", anio_avance: "0.8485", aviso_alcanzado: true, anio_cruzado: false,
+      },
+    });
+    expect(p.parametros.avisoUmbralUit).toEqual({ valor: 250, provisional: false });
+    expect(p.parametros.ventasPrevias).toEqual({ valor: 300000, provisional: false, anio: 2026 });
+    expect(p.umbral).toMatchObject({ anio: 2026, ventasAnioErp: 1_100_000, ventasPrevias: 300_000, previasConfirmadas: true, ventasAnio: 1_400_000, avisoSoles: 1_375_000, avisoAlcanzado: true, anioCruzado: false });
+  });
+
+  it("una base más vieja que esta web no trae el aviso: llega como «sin datos» y no se cae", () => {
+    const p = leerPanelImpuestos({ mes: "2026-10-01", umbral: { ventas_12m: 100, umbral_soles: 1650000, avance: 0.0001, cruzado: false } });
+    expect(p.parametros.avisoUmbralUit).toBeNull();
+    expect(p.parametros.ventasPrevias).toBeNull();
+    expect(p.umbral.ventasAnio).toBeNull();
+    expect(avisoUmbral(p)).toMatchObject({ nivel: "sin_datos", titulo: null, quedaCorto: null });
+  });
+
   it("el IGV perdido por pagar sin banco (fase 6 · actividad 8): cuántos pagos y cuánto IGV, ya restado del crédito", () => {
     const p = leerPanelImpuestos({ mes: "2026-10-01", revisar: { igv_perdido: { n: 2, igv: "152.54" } } });
     expect(p.revisar.igvPerdido).toEqual({ n: 2, igv: 152.54 });
+  });
+});
+
+describe("el aviso anticipado del límite (parámetro)", () => {
+  // Lo que arma la base con los parámetros: UIT 5 500, límite 300 UIT (1 650 000) y aviso 250 UIT (1 375 000). Aquí no hay ninguna de esas cifras escrita en el código que se prueba.
+  const panel = (umbral: Record<string, unknown>, parametros: Record<string, unknown> = {}) =>
+    leerPanelImpuestos({
+      mes: "2026-10-01",
+      parametros: { umbral_uit: { valor: 300, provisional: false }, renta: { valor: 0.01, provisional: false }, ...parametros },
+      umbral: {
+        anio: 2026, primer_mes: "2025-10-01", ventas_previas: 0, previas_confirmadas: false, umbral_soles: 1_650_000, aviso_soles: 1_375_000,
+        aviso_alcanzado: false, anio_cruzado: false, ...umbral,
+      },
+    });
+
+  it("lejos del aviso no dice nada", () => {
+    const a = avisoUmbral(panel({ ventas_anio_erp: 900_000, ventas_anio: 900_000 }));
+    expect(a).toMatchObject({ nivel: "lejos", titulo: null, detalle: null, faltaSoles: 750_000 });
+  });
+
+  it("entre el aviso y el límite: lo que llevas, a cuánto estás del límite y que hables con tu contador", () => {
+    const a = avisoUmbral(panel({ ventas_anio_erp: 1_400_000, ventas_anio: 1_400_000, aviso_alcanzado: true }));
+    expect(a.nivel).toBe("aviso");
+    expect(a.faltaSoles).toBe(250_000);
+    expect(a.titulo).toBe("Llevas S/\u00a01,400,000 vendidos este año, a S/\u00a0250,000 de las 300 UIT: habla con tu contador.");
+    // La tasa del pago a cuenta sale del parámetro de la renta; el código no la sabe.
+    expect(a.detalle).toBe("Pasadas las 300 UIT, el pago a cuenta de renta deja de ser el 1 % de lo vendido. Mejor verlo antes de que pase.");
+  });
+
+  it("si cambian los parámetros, cambian las palabras: otro límite, otra tasa, sin tocar el código", () => {
+    const a = avisoUmbral(panel({ ventas_anio_erp: 1_000_000, ventas_anio: 1_000_000, umbral_soles: 1_100_000, aviso_alcanzado: true }, { umbral_uit: { valor: 200, provisional: false }, renta: { valor: 0.015, provisional: false } }));
+    expect(a.titulo).toBe("Llevas S/\u00a01,000,000 vendidos este año, a S/\u00a0100,000 de las 200 UIT: habla con tu contador.");
+    expect(a.detalle).toContain("el 1.5 % de lo vendido");
+  });
+
+  it("sin la tasa del pago a cuenta ni el límite en UIT, igual se entiende", () => {
+    const a = avisoUmbral(panel({ ventas_anio_erp: 1_400_000, ventas_anio: 1_400_000, aviso_alcanzado: true }, { umbral_uit: null, renta: null }));
+    expect(a.titulo).toBe("Llevas S/\u00a01,400,000 vendidos este año, a S/\u00a0250,000 del límite del régimen: habla con tu contador.");
+    expect(a.detalle).toBe("Pasado el límite del régimen, el pago a cuenta de renta deja de ser el de ahora. Mejor verlo antes de que pase.");
+  });
+
+  it("pasado el límite: dice que lo pasaste y que confirme desde qué mes cambia, y ya no hay «a cuánto estás»", () => {
+    const a = avisoUmbral(panel({ ventas_anio_erp: 1_700_000, ventas_anio: 1_700_000, anio_cruzado: true }));
+    expect(a.nivel).toBe("cruzado");
+    expect(a.faltaSoles).toBe(0);
+    expect(a.titulo).toBe("Pasaste las 300 UIT este año: llevas S/\u00a01,700,000 vendidos. Habla con tu contador.");
+    expect(a.detalle).toContain("desde qué mes cambia el pago a cuenta de renta");
+  });
+
+  it("el sistema empezó en septiembre y lo de antes no está cargado: dice que puede quedarse corto, aunque estés lejos", () => {
+    const a = avisoUmbral(panel({ primer_mes: "2026-09-01", ventas_anio_erp: 90_000, ventas_anio: 90_000 }));
+    expect(a.nivel).toBe("lejos");
+    expect(a.quedaCorto).toBe("El sistema tiene ventas desde septiembre 2026 y lo vendido antes no está cargado: este aviso puede quedarse corto. Cárgalo en Configuración ▸ Impuestos.");
+  });
+
+  it("lo de antes confirmado —aunque sea cero— o un sistema que cubre todo el año no advierten nada", () => {
+    expect(avisoUmbral(panel({ primer_mes: "2026-09-01", ventas_anio: 90_000, previas_confirmadas: true })).quedaCorto).toBeNull();
+    expect(avisoUmbral(panel({ primer_mes: "2026-01-01", ventas_anio: 90_000 })).quedaCorto).toBeNull();
+    expect(avisoUmbral(panel({ primer_mes: "2025-03-01", ventas_anio: 90_000 })).quedaCorto).toBeNull();
+  });
+
+  it("sin ninguna venta en el sistema y lo de antes sin cargar, también puede quedarse corto", () => {
+    const a = avisoUmbral(panel({ primer_mes: null, ventas_anio: 0 }));
+    expect(a.quedaCorto).toBe("Todavía no hay ventas de este año en el sistema y lo vendido antes no está cargado: este aviso puede quedarse corto. Cárgalo en Configuración ▸ Impuestos.");
+  });
+
+  it("desglosa de dónde sale lo que llevas: el sistema y lo de antes", () => {
+    const a = avisoUmbral(panel({ ventas_anio_erp: 1_100_000, ventas_previas: 300_000, previas_confirmadas: true, ventas_anio: 1_400_000, aviso_alcanzado: true }));
+    expect(a).toMatchObject({ ventasAnio: 1_400_000, ventasSistema: 1_100_000, ventasPrevias: 300_000 });
+  });
+
+  it("sin el aviso configurado (nadie lo puso) no hay nivel «lejos» inventado", () => {
+    expect(avisoUmbral(panel({ ventas_anio: 100, aviso_soles: null })).nivel).toBe("sin_datos");
   });
 });
 
@@ -154,6 +253,26 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(valorEnCasilla(fila("uit", "2026-01-01", 5500))).toBe("5500");
     expect(valorEnCasilla(fila("tope_planilla_movilidad", "2026-10-01", 45.2))).toBe("45.20");
     expect(valorEnCasilla(fila("saldo_favor_igv", "2026-10-01", 12345.6))).toBe("12345.60"); // soles, con sus céntimos (ADR-0433, act. 4b)
+    expect(valorEnCasilla(fila("ventas_previas_erp", "2026-01-01", 300000))).toBe("300000.00"); // lo vendido antes del sistema, en soles
+    expect(valorEnCasilla(fila("aviso_umbral_uit", "2026-01-01", 250))).toBe("250"); // en UIT, como el límite
+  });
+
+  it("lo vendido antes del sistema: soles sin IGV, con céntimos y miles con coma; el cero vale y se rechaza lo absurdo", () => {
+    expect(parsearParametro("ventas_previas_erp", "S/ 1,234,567.89")).toEqual({ ok: true, valor: 1234567.89 });
+    expect(parsearParametro("ventas_previas_erp", "850000,5")).toEqual({ ok: true, valor: 850000.5 });
+    expect(parsearParametro("ventas_previas_erp", "0")).toEqual({ ok: true, valor: 0 });
+    expect(parsearParametro("ventas_previas_erp", "-1").ok).toBe(false);
+    expect(parsearParametro("ventas_previas_erp", "10000001").ok).toBe(false);
+    expect(parsearParametro("ventas_previas_erp", "").ok).toBe(false);
+    expect(parsearParametro("ventas_previas_erp", "casi un millón").ok).toBe(false);
+  });
+
+  it("el aviso va en UIT, no en soles", () => {
+    expect(parsearParametro("aviso_umbral_uit", "250")).toEqual({ ok: true, valor: 250 });
+    expect(parsearParametro("aviso_umbral_uit", "1375000").ok).toBe(false);
+    expect(parsearParametro("aviso_umbral_uit", "0").ok).toBe(false);
+    const e = parsearParametro("aviso_umbral_uit", "-3");
+    expect(e.ok === false && e.error).toContain("UIT");
   });
 
   it("lo tipeado se guarda como la base lo pide: la tasa como fracción", () => {
@@ -195,6 +314,12 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(aniosDeRegimen(ps, 2026, [2027])).toEqual([2027, 2026]);
     // El tope de la planilla rige desde cualquier fecha: no suma años a la tabla del régimen. El saldo de IGV, tampoco (rige desde el día 1 de un mes).
     expect(aniosDeRegimen([...ps, fila("tope_planilla_movilidad", "2024-05-01", 45.2), fila("saldo_favor_igv", "2023-03-01", 100)], 2026)).toEqual([2026]);
+    // El aviso y lo vendido antes del sistema SÍ rigen por año: suman su año a la tabla del régimen.
+    expect(aniosDeRegimen([...ps, fila("aviso_umbral_uit", "2025-01-01", 250), fila("ventas_previas_erp", "2024-01-01", 0)], 2026)).toEqual([2026, 2025, 2024]);
+    // Lo vendido antes del sistema NO se hereda al año siguiente (el de 2026 no dice nada de 2027); el aviso sí rige hasta que se cambie.
+    const previas = [fila("ventas_previas_erp", "2026-01-01", 300000), fila("aviso_umbral_uit", "2026-01-01", 250)];
+    expect(delAnio(previas, "ventas_previas_erp", 2027)).toBeNull();
+    expect(vigenteEnAnio(previas, "aviso_umbral_uit", 2027)?.valor).toBe(250);
   });
 });
 

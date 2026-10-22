@@ -16,6 +16,7 @@ import { crearZip } from "@/lib/zip-simple";
 import { mesesRecientes, solesRedondo, textoMes } from "@/lib/gastos-reglas";
 import {
   TEXTO_ESTADO_MES,
+  avisoUmbral,
   csvRegistroCompras,
   csvRegistroVentas,
   csvResumenIgv,
@@ -33,6 +34,7 @@ import {
   type PanelImpuestos,
 } from "@/lib/impuestos-reglas";
 import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
 import { Settings2 } from "lucide-react";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { Boton } from "@/components/ui/campos";
@@ -290,6 +292,8 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
   const proyectado = Math.min(1, p.proyectadoDiciembre / umbral.umbralSoles);
   const tono = tonoAvance(umbral.avance);
   const provisional = uit.provisional || parametros.umbralUit?.provisional;
+  // El aviso anticipado (parámetro `aviso_umbral_uit`): mide el AÑO calendario, no los 12 meses de la barra de arriba.
+  const aviso = avisoUmbral(panel);
   return (
     <Superficie pad className="anim-sube" guia="fin-impuestos.limite">
       <CabeceraBloque titulo={titulo} bajada="Al cruzarlo, SUNAT te exige llevar el Libro Diario y el Mayor electrónicos.">
@@ -329,6 +333,18 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
         )}
         .
       </p>
+      {aviso.titulo && (aviso.nivel === "aviso" || aviso.nivel === "cruzado") && (
+        <Aviso tono={aviso.nivel === "cruzado" ? "error" : "atencion"} titulo={aviso.titulo} className="mt-3">
+          {aviso.detalle}
+        </Aviso>
+      )}
+      {aviso.ventasAnio !== null && aviso.nivel !== "sin_datos" && (
+        <p className="fin-tenue mt-3 text-[13px]">
+          Ventas de {umbral.anio}, sin IGV: <b>{solesRedondo(aviso.ventasAnio)}</b>
+          {aviso.ventasPrevias > 0 ? ` (${solesRedondo(aviso.ventasSistema)} en el sistema y ${solesRedondo(aviso.ventasPrevias)} de antes de que empezara).` : " en el sistema."}
+        </p>
+      )}
+      {aviso.quedaCorto && <p className="nota-cayla mt-3">{aviso.quedaCorto}</p>}
     </Superficie>
   );
 }

@@ -1177,11 +1177,18 @@ export const GUIA_CONFIGURACION: Guia = {
       texto: "Eliges el mes en que CAYLA traía ese saldo y su monto. Una corrección es otra fila nueva: la historia guarda las dos.",
     },
     {
+      id: "impuestos-previas",
+      ancla: "config.impuestos-previas",
+      opcional: true,
+      titulo: "Ventas de antes del sistema",
+      texto: "Lo vendido en el año antes de que el sistema empezara a contar, sin IGV. Suma al aviso de ventas del año de Impuestos; sin cargarlo, ese aviso puede quedarse corto. Cada año va aparte: lo de uno no pasa al siguiente.",
+    },
+    {
       id: "impuestos-regimen",
       ancla: "config.impuestos-regimen",
       opcional: true,
       titulo: "El régimen de renta",
-      texto: "En qué régimen tributa CAYLA cada año. Rige desde el 1 de enero; vacío sigue lo del año anterior.",
+      texto: "En qué régimen tributa CAYLA cada año, su límite de ventas y el aviso que salta antes del límite, para hablar con el contador a tiempo. Rige desde el 1 de enero; vacío sigue lo del año anterior.",
     },
     {
       id: "empresa",

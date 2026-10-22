@@ -3,7 +3,7 @@
 // hacer antes de declarar. Lógica pura sobre lo que `fn_impuestos_panel` ya trae; no repite ninguna regla tributaria.
 
 import { soles } from "./flujo-caja-reglas";
-import { nombreMes, sumarMeses, type PanelImpuestos } from "./impuestos-reglas";
+import { avisoUmbral, nombreMes, sumarMeses, type PanelImpuestos } from "./impuestos-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
@@ -61,6 +61,11 @@ export function pulsoImpuestos(p: PanelImpuestos): PulsoImpuestos {
   if (r.sinComprobante.n > 0) porHacer.push({ clave: "sin_comprobante", texto: `${plural(r.sinComprobante.n, "venta sin comprobante", "ventas sin comprobante")} (${soles(r.sinComprobante.total)}).`, href: "/ventas/comprobantes" });
   if (r.boletas.n > 0) porHacer.push({ clave: "boletas", texto: `${plural(r.boletas.n, "compra con boleta", "compras con boleta")} (${soles(r.boletas.total)}): ese IGV no se descuenta. Pide factura a ${r.boletas.proveedores.slice(0, 2).join(" y ") || "esos proveedores"}.`, href: "/finanzas/gastos" });
   if (r.igvPerdido.n > 0) porHacer.push({ clave: "igv_perdido", texto: `${plural(r.igvPerdido.n, "factura de S/\u00a02,000 o más pagada en efectivo", "facturas de S/\u00a02,000 o más pagadas en efectivo")}: se perdieron ${soles(r.igvPerdido.igv)} de IGV. Paga por el banco.`, href: "/finanzas/gastos" });
+  // La alerta anticipada del límite (250 UIT, parámetro): va con lo que hay que hacer antes de declarar, porque cambia el pago a cuenta de renta de lo que viene. Y, si el sistema empezó a
+  // mitad de año y lo de antes no está cargado, se dice que la cifra puede estar corta (con el enlace a donde se carga).
+  const av = avisoUmbral(p);
+  if ((av.nivel === "aviso" || av.nivel === "cruzado") && av.titulo) porHacer.push({ clave: "aviso_umbral", texto: `${av.titulo} ${av.detalle ?? ""}`.trim(), href: null });
+  if (av.quedaCorto) porHacer.push({ clave: "ventas_previas", texto: av.quedaCorto, href: "/configuracion?tab=impuestos" });
   const frase =
     estado === "a_pagar"
       ? `Por lo que vendiste en ${mes}, en ${siguiente} le pagas a SUNAT ${soles(total)}${renta !== null ? ` (${soles(igv)} de IGV y ${soles(renta)} de renta a cuenta)` : ""}. El día exacto depende del último dígito de tu RUC.`

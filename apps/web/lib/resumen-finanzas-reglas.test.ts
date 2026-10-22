@@ -189,6 +189,55 @@ describe("Para decidir hoy", () => {
     expect(g.href).toBe("/finanzas/gastos?mes=2026-09&ver=00000000-0000-4000-8000-000000000002");
   });
 
+  describe("el aviso anticipado del límite (parámetro)", () => {
+    const conAviso = (cambios: Record<string, unknown>) => {
+      const r = todas();
+      if (r.igv.estado !== "ok") throw new Error("el fixture trae Impuestos");
+      Object.assign(r.igv.datos.umbral, { anio: 2026, ventasAnio: 1_400_000, ventasAnioErp: 1_400_000, avisoSoles: 1_375_000, avisoAlcanzado: true, previasConfirmadas: true, ...cambios });
+      return r;
+    };
+
+    it("sin los campos nuevos (una base vieja, o lejos del aviso) el aviso del límite es el de siempre: «Vas al X %»", () => {
+      const u = avisosParaDecidir(todas(), LIDER).find((a) => a.clave === "umbral")!;
+      expect(u.titulo).toMatch(/^Vas al 73[.,]6 % del límite de 300 UIT$/);
+      expect(claves(avisosParaDecidir(todas(), LIDER))).not.toContain("umbral_aviso");
+    });
+
+    it("al llegar al aviso sale «Llevas S/ X vendidos este año, a S/ Y de las 300 UIT: habla con tu contador» y REEMPLAZA al «Vas al X %»", () => {
+      const as = avisosParaDecidir(conAviso({}), LIDER);
+      const a = as.find((x) => x.clave === "umbral_aviso")!;
+      expect(a).toMatchObject({
+        tono: "ambar",
+        titulo: "Llevas S/ 1,400,000 vendidos este año, a S/ 250,000 de las 300 UIT: habla con tu contador.",
+        href: "/finanzas/impuestos",
+        origen: "Impuestos",
+      });
+      expect(claves(as)).not.toContain("umbral");
+    });
+
+    it("si el sistema empezó a mitad de año y lo de antes no está cargado, el mismo aviso dice que puede quedarse corto", () => {
+      const a = avisosParaDecidir(conAviso({ previasConfirmadas: false, primerMes: "2026-09" }), LIDER).find((x) => x.clave === "umbral_aviso")!;
+      expect(a.detalle).toContain("puede quedarse corto");
+    });
+
+    it("el año pasó el límite por lo cargado de antes del sistema aunque los 12 meses no: sale en rojo", () => {
+      const as = avisosParaDecidir(conAviso({ ventasAnio: 1_700_000, avisoAlcanzado: false, anioCruzado: true }), LIDER);
+      expect(as.find((x) => x.clave === "umbral_aviso")).toMatchObject({ tono: "rojo", titulo: expect.stringContaining("Pasaste las 300 UIT este año") });
+      expect(claves(as)).not.toContain("umbral");
+    });
+
+    it("si los 12 meses ya cruzaron el límite, manda el aviso rojo de siempre y no se repite", () => {
+      const as = avisosParaDecidir(conAviso({ ventasAnio: 1_700_000, avisoAlcanzado: false, anioCruzado: true, cruzado: true, avance: 1.02 }), LIDER);
+      expect(as.find((x) => x.clave === "umbral")).toMatchObject({ tono: "rojo", titulo: "Cruzaste el límite de 300 UIT" });
+      expect(claves(as)).not.toContain("umbral_aviso");
+    });
+
+    it("una cuenta sin el módulo Impuestos lo lee igual, sin enlace", () => {
+      const a = avisosParaDecidir(conAviso({}), { lider: false, modulos: ["gastos"] }).find((x) => x.clave === "umbral_aviso")!;
+      expect(a.href).toBeNull();
+    });
+  });
+
   it("el mes anterior sin cerrar: informativo en la primera semana, ámbar después", () => {
     const c = avisosParaDecidir(todas(), LIDER).find((a) => a.clave === "cierre")!;
     expect(c).toMatchObject({ tono: "ambar", titulo: "Agosto sigue abierto", href: "/finanzas/cierre?mes=2026-08" });
