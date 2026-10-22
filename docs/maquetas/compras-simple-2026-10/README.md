@@ -165,3 +165,27 @@ sugerido por categoría); **al recibir, la tienda lo ve como sugerido** («lo pu
 en «Crear y contar», y puede cambiarlo. Lo contado muestra «a la venta S/ 29.90».
 
 **Queda abierto:** si llega un solo fardo de dos, la tienda no puede terminar a medias (hoy espera al otro).
+
+## Cómo queda el menú de Compras al implementar la maqueta (decidido por Felipe, 2026-10-22)
+
+Recibir mercadería **no es de Compras**: vive en Inventario (desde el 2026-10-14) y ahí queda, con su diseño nuevo de tres pasos.
+
+| Hoy (7) | Al implementar (6) |
+|---|---|
+| Plan de campaña | **Plan de campaña** — sin cambios |
+| — | **Mi plata para compras** *(módulo nuevo, nace solo para el líder)* — la compradora, en el celular |
+| Fondos por rendir | **Revisar compras** — la oficina: *Plata por confirmar* · *Compras que llegaron* · *Cierres del día* |
+| Proveedores | **Proveedores** — más los que se registran desde el celular, «para completar» |
+| Facturas de proveedor | **Facturas de proveedor** — el archivo de boletas y facturas, que nacen de «Revisar compras» |
+| Por pagar | **Por pagar** — solo lo comprado al crédito; lo pagado con la plata de la compradora llega pagado |
+| Órdenes de compra | **Se quita del menú** (Felipe) |
+| Notas de crédito de proveedor | **Se quita del menú** (Felipe) |
+
+**Quitar no es borrar** (CLAUDE.md, «nunca borres datos»): los módulos `ordenes_compra` y `notas_credito` se apagan del menú y de Roles y
+accesos, y sus tablas y funciones quedan. En producción, el 2026-10-22, tenían **0 órdenes de compra y 0 notas de crédito**: no se
+esconde ningún dato. Lo que un proveedor debe por lo que no llegó o se cobró de más sigue en **«Nos debe»** (Proveedores y Por pagar),
+que ahora se alimenta de «Revisar compras» («Reclamar al proveedor»).
+
+**Por resolver:** si un proveedor entrega una **nota de crédito** de SUNAT (devuelve plata de una factura), hoy no tendría dónde
+anotarse. Recomendado: una acción dentro de la factura («El proveedor nos dio una nota de crédito»), sin opción en el menú
+(ADR-0306: una acción dentro de una pantalla no es un módulo). Toca comprobantes y SUNAT: la decide Felipe.
