@@ -134,3 +134,32 @@ la compra» cuando ya hay prendas anotadas): la lista corre por detrás y nunca 
 **Ajuste (2026-10-22):** «¿Qué es?» (la categoría de un producto nuevo) tiene **buscador**: filtra mientras se escribe, sin tildes ni
 mayúsculas, y también encuentra por las prendas típicas de cada categoría («cárdigan» → Chompas). Si no hay ninguna, lo dice y sugiere
 otra palabra. Para probarlo: Textiles Rosa → Algo nuevo → escribe «jean», «BLÚSA» o «zapatos».
+
+## Reestructura para quien nunca usó un sistema (2026-10-22, noche)
+
+**Cómo se hizo.** Con capturas de cada pantalla, dos lectoras ciegas leyeron la maqueta sin ver código ni documentos: «Ana» (19 años,
+primer día) y «Rosa» (45, encargada de boutique, nunca usó un sistema). **Son agentes de IA, no personas**: lo que marcaron las dos
+se corrigió y se volvió a probar una segunda vez. Falta la prueba con Daniel, Diego o una encargada de verdad.
+
+**Lo que marcaron las dos y cómo quedó:**
+| Antes | Ahora |
+|---|---|
+| Cinco botones sin orden («Me dieron plata», «Registrar una compra», «Otro gasto», «Armar un envío», «Terminé por hoy») | **«¿Qué hiciste?»** con tres respuestas grandes: **Compré ropa · Me dieron plata · Gasté en otra cosa**, cada una con su ejemplo. Lo pendiente sale aparte como **«Te falta: Mandar a la tienda»** |
+| «Ronda», «Mi ronda de compras» | **«Mi plata para compras»**, «Tu plata para compras» |
+| El saldo con cuatro cifras en una línea | «Tienes para comprar S/ X · Ya gastaste S/ Y de S/ Z»; el detalle, como un cuaderno: «Te quedó de la vez pasada + Te dieron hoy − Compraste − Gastaste en otras cosas = Te queda» |
+| «S/ 500 por confirmar» (¿se puede usar?) | «Compras está revisando S/ 500: ya están en tu plata y puedes usarlos» |
+| El contador de pasos cambiaba de «de 8» a «de 11» | Siempre **3 pasos**: Proveedor → Prendas → Boleta o factura (con el detalle: «Paso 2 de 3 · Prendas · costo») |
+| Costo: el botón «Igual que la vez pasada» y el mismo número ya escrito abajo | El botón negro, o «Otro precio: escríbelo aquí abajo»; el «Seguir» gris dice qué falta |
+| Un punto decimal en la cantidad | La cantidad no tiene punto |
+| Al guardar, solo un aviso que se iba | Pantalla **«Listo, tu compra quedó guardada»** con «¿Y ahora? Anotar otra compra · Mandar a AQP · Ver mi plata» |
+| «Armar un envío» volvía a preguntar la tienda y «Mandar» quedaba gris | **«Mandar a la tienda»**: una tarjeta por tienda con sus compras, «¿Cuántos fardos (paquetes)?» y «Mandar a AQP» |
+| «Terminé»: dos casillas que se podían marcar juntas | Dos opciones de una sola respuesta, y el botón dice qué falta elegir |
+| Botones grises sin explicación | Debajo de cada botón gris, qué falta («Escribe el nombre o toca uno de arriba») |
+| Dibujos: efectivo parecía una muela; transferencia y Yape iguales | Banco, celular y monedas |
+| Tienda: todo a la vez, la misma prenda dos veces, «Sumar», «Terminar: 12 prendas» con 30 en el fardo | **Tres pasos numerados**: **1 · Cuenta lo que llegó** (cada prenda que anotó la compradora con «Contar» o «Crear y contar»; buscar otra es secundario) → **2 · ¿Llegó todo?** → **3 · Ya conté todo** (sin número hasta terminar; «Te falta: 2. Boleta de Confecciones Lupe»). Se puede corregir el conteo después |
+| Compras: la tira de los 4 casos, todos los proveedores como chips, «¿Quién responde?», textos de Finanzas y de la maqueta | **1 · Plata que anotaron** y **2 · Compras que ya llegaron**; el proveedor ya elegido con «No es este: cambiar»; «¿Qué hacemos?» con «Reclamar al proveedor · Esperar · CAYLA lo asume»; **perder plata se confirma** («CAYLA pierde S/ 24. ¿Seguro?»); «Cambiar el monto» en vez de «Corregir» |
+| El aviso verde de arriba tapaba la flecha de volver | El aviso deja pasar el toque |
+
+**Lo que queda abierto (para Felipe):** Ana dice que fijar el **precio de venta** «no es su trabajo» y le da miedo: hoy se le pide con
+«Igual que la vez pasada» o el sugerido y «Compras lo puede cambiar». ¿Lo pide la compradora, o lo pone Compras? También: si llega un
+solo fardo de dos, la tienda no puede terminar a medias (hoy espera al otro).

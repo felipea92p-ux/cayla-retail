@@ -216,6 +216,20 @@ textarea.caja{height:72px;padding:10px 12px;resize:none}
 .hab.nuevo{grid-template-columns:40px 1fr;border:1.5px dashed var(--rojo);color:var(--rojo-profundo);align-items:center}
 .hab.nuevo .sw{background:color-mix(in srgb,var(--rojo) 10%,transparent);border-color:transparent}
 .lista-hab{display:flex;flex-direction:column;gap:8px}
+.accion{display:grid;grid-template-columns:44px minmax(0,1fr) 20px;gap:12px;align-items:center;width:100%;min-height:68px;padding:12px 14px;border-radius:18px;border:1px solid var(--sand);background:var(--papel);text-align:left;transition:transform .2s var(--ease),border-color .2s}
+.accion:hover{border-color:var(--taupe)}.accion:active{transform:scale(.98)}
+.accion .ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--hueso);color:var(--tinta)}
+.accion .ic svg{width:22px;height:22px}
+.accion b{display:block;font-size:16px}.accion small{display:block;font-size:12.5px;color:var(--t60);margin-top:1px}
+.accion > svg{color:var(--taupe)}
+.accion.uno{background:var(--rojo);border-color:var(--rojo);color:var(--crema)}
+.accion.uno .ic{background:color-mix(in srgb,var(--crema) 18%,transparent);color:var(--crema)}
+.accion.uno small,.accion.uno > svg{color:color-mix(in srgb,var(--crema) 80%,transparent)}
+.tarea{display:flex;gap:12px;align-items:center;width:100%;padding:12px 14px;border-radius:16px;background:color-mix(in srgb,var(--ambar) 10%,var(--papel));border:1px solid color-mix(in srgb,var(--ambar) 30%,transparent);text-align:left}
+.tarea b{display:block;font-size:14px}.tarea small{display:block;font-size:12.5px;color:var(--t60)}
+.tarea .ir{margin-left:auto;font-weight:600;font-size:13px;white-space:nowrap;display:flex;gap:4px;align-items:center}
+.porque{display:block;text-align:center;font-size:12.5px;color:var(--t60);margin-top:2px}
+.tarea.info{background:var(--papel);border-color:var(--sand)}
 /* Lo que siempre tiene que estar a mano (proveedor nuevo, algo nuevo, revisar): fijo abajo mientras la lista corre por detrás */
 .fijo-abajo{position:sticky;bottom:-18px;margin:auto -18px -18px;padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px;background:linear-gradient(to bottom,transparent,var(--crema) 22px);z-index:2}
 .fijo-abajo .hab{animation:none;box-shadow:0 10px 24px -14px color-mix(in srgb,var(--sombra) 45%,transparent)}
@@ -232,7 +246,7 @@ textarea.caja{height:72px;padding:10px 12px;resize:none}
 .vez{text-align:center;font-size:12.5px;color:var(--t60);margin-top:2px}
 .fila-tel.recien{animation:respira 1.8s var(--ease) both}
 @keyframes respira{0%{background:color-mix(in srgb,var(--verde) 22%,var(--papel))}100%{background:var(--papel)}}
-.aviso-tel{position:absolute;left:14px;right:14px;top:46px;z-index:5;background:var(--tinta);color:var(--crema);border-radius:16px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:center;animation:baja .4s var(--ease) both}
+.aviso-tel{pointer-events:none;position:absolute;left:14px;right:14px;top:46px;z-index:5;background:var(--tinta);color:var(--crema);border-radius:16px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:center;animation:baja .4s var(--ease) both}
 @keyframes baja{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
 .lado h3{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.1}
 .lado p{color:var(--t60);margin-top:8px;max-width:520px}
@@ -497,6 +511,10 @@ const ICO = {
   mano:'<path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/>',
   aviso:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',
   sello:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  banco:'<path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l8 5H4z"/>',
+  celular:'<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/>',
+  monedas:'<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/>',
+  taza:'<path d="M17 8h1a4 4 0 1 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v3M10 2v3M14 2v3"/>',
   bolsa:'<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/>',
 };
 const ic = (n, cls="ico") => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[n]}</svg>`;
@@ -638,15 +656,15 @@ function pantallaTel() {
   const aviso = t.aviso ? `<div class="aviso-tel">${ic("check")}<span>${t.aviso}</span></div>` : "";
   if (t.p === "erp") {
     const pct = c.total ? Math.max(0, Math.min(100, c.queda / c.total * 100)) : 0;
-    const tarjeta = s ? `<button class="saldo" style="width:100%;text-align:left;margin-top:18px" data-a="tel" data-v="inicio"><div class="l">Tu ronda de compras</div><div class="v">${soles(c.queda)}</div><div class="d">Te quedan para comprar${c.porConfirmar?` (${soles(c.porConfirmar)} por confirmar)`:""}. Toca para registrar.</div><div class="barra"><i style="width:${pct}%"></i></div></button>`
-      : `<button class="saldo" style="width:100%;text-align:left;margin-top:18px" data-a="tel" data-v="inicio"><div class="l">Tu ronda de compras</div><div class="v" style="font-size:30px">Anota tu plata</div><div class="d">¿Te dieron plata para comprar o ya tienes del fondo? Toca aquí.</div></button>`;
+    const tarjeta = s ? `<button class="saldo" style="width:100%;text-align:left;margin-top:18px" data-a="tel" data-v="inicio"><div class="l">Tu plata para compras</div><div class="v">${soles(c.queda)}</div><div class="d">Es lo que tienes para comprar. Toca aquí para anotar una compra o un gasto.</div></button>`
+      : `<button class="saldo" style="width:100%;text-align:left;margin-top:18px" data-a="tel" data-v="inicio"><div class="l">Tu plata para compras</div><div class="v" style="font-size:30px">Anota tu plata</div><div class="d">¿Te dieron plata para comprar o ya tienes del fondo? Toca aquí.</div></button>`;
     return `<div class="tel-pant"><div class="tel-top"><span class="avatar">${per.ini}</span><span style="font-size:13px;color:var(--t60)">Inicio</span></div>
       <h4>Buenas tardes, ${nombre}</h4><p class="sub">Miércoles 22 de octubre</p>${tarjeta}
-      <div class="lista-tel" style="opacity:.55"><div class="fila-tel"><span class="t"><b>Tus ventas de hoy</b><small>Lo demás de tu Inicio sigue igual</small></span></div></div></div>`;
+</div>`;
   }
   if (t.p === "inicio" && !s) {
-    return `<div class="tel-pant"><div class="tel-top"><button class="volver" data-a="tel" data-v="erp" aria-label="Volver a Inicio">${ic("atras")}</button><span style="font-size:13px;color:var(--t60)">Mi ronda de compras</span></div>
-      <h4>Empieza tu ronda</h4><p class="sub">Anota la plata que tienes para comprar. Compras la confirma después.</p>
+    return `<div class="tel-pant"><div class="tel-top"><button class="volver" data-a="tel" data-v="erp" aria-label="Volver a Inicio">${ic("atras")}</button><span style="font-size:13px;color:var(--t60)">Mi plata para compras</span></div>
+      <h4>Anota tu plata para comprar</h4><p class="sub">Primero di cuánta plata tienes. Compras la revisa después.</p>
       <div class="papeles" style="margin-top:18px;grid-template-columns:1fr">
         <button class="tile" data-a="tel" data-v="plata-como">${ic("billete")}<span>Me dieron plata<br><small>Transferencia, Yape o Plin, efectivo</small></span></button>
         <button class="tile" data-a="plata-tipo" data-v="yatenia">${ic("caja")}<span>Ya tenía plata del fondo<br><small>Solo esta primera vez</small></span></button></div></div>`;
@@ -656,30 +674,38 @@ function pantallaTel() {
     const pct = Math.max(0, Math.min(100, c.queda / c.total * 100));
     const filas = regs.map((r) => {
       const enviada = S.envios.filter((e) => e.comps.includes(r.id)).map((e) => e.tienda), falta = r.clase === "compra" ? tiendasPendientes(r).filter((x) => x !== "*") : [];
-      if (r.clase === "ingreso") return `<div class="fila-tel"><span class="mini">${voucherHTML(r,true)}</span><span class="t"><b>${COMO[r.como]}</b><small>${r.como==="yatenia"?"Plata del fondo":"Plata que te dieron"} · ${r.hora}</small></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="m" style="color:var(--verde)">+ ${soles(r.monto)}</span><span class="chip ${r.estado==="pendiente"?"ambar":"verde"} sinpunto" style="height:18px;font-size:9.5px">${r.estado==="pendiente"?"Por confirmar":"Confirmada"}</span></span></div>`;
-      const det = r.clase === "gasto" ? `Otro gasto · ${r.hora}` : `${r.lineas?.length ? resumenLineas(r.lineas) : "Compra"} · ${r.hora}`;
-      const chip = r.clase === "gasto" ? "" : falta.length ? `<span class="chip ambar sinpunto" style="height:18px;font-size:9.5px">Mandar a ${falta.join(", ")}</span>` : enviada.length && !tiendasPendientes(r).length ? `<span class="chip verde sinpunto" style="height:18px;font-size:9.5px">A ${enviada.join(", ")}</span>` : `<span class="chip ambar sinpunto" style="height:18px;font-size:9.5px">Sin envío</span>`;
-      return `<div class="fila-tel"><span class="mini">${r.clase==="gasto" ? ic("billete") : `<div style="transform:scale(1);width:100%">${papelHTML(r,true)}</div>`}</span><span class="t"><b>${r.clase==="gasto"?h(r.tipo):TIPOS[r.tipo]}${r.provId?" · "+h(provDe(r.provId).nombre):""}</b><small>${det}</small></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="m">${soles(r.monto)}</span>${chip}</span></div>`;
+      if (r.clase === "ingreso") return `<div class="fila-tel"><span class="mini">${voucherHTML(r,true)}</span><span class="t"><b>${r.como==="yatenia"?"Plata que ya tenías":"Te dieron plata"}</b><small>${COMO[r.como]} · ${r.hora}</small></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="m" style="color:var(--verde)">+ ${soles(r.monto)}</span><span class="chip ${r.estado==="pendiente"?"ambar":"verde"} sinpunto" style="height:18px;font-size:9.5px">${r.estado==="pendiente"?"Por confirmar":"Confirmada"}</span></span></div>`;
+      const det = r.clase === "gasto" ? `Otro gasto · ${r.hora}` : `${r.lineas?.length ? resumenLineas(r.lineas) : TIPOS[r.tipo]} · ${r.hora}`;
+      const chip = r.clase === "gasto" ? "" : falta.length ? `<span class="chip ambar sinpunto" style="height:18px;font-size:9.5px">Mandar a ${falta.join(", ")}</span>` : enviada.length && !tiendasPendientes(r).length ? `<span class="chip verde sinpunto" style="height:18px;font-size:9.5px">Salió a ${enviada.join(", ")}</span>` : `<span class="chip ambar sinpunto" style="height:18px;font-size:9.5px">Por mandar</span>`;
+      return `<div class="fila-tel"><span class="mini">${r.clase==="gasto" ? ic("billete") : `<div style="transform:scale(1);width:100%">${papelHTML(r,true)}</div>`}</span><span class="t"><b>${r.clase==="gasto"?h(r.tipo):r.provId?"Compra a "+h(corto(provDe(r.provId).nombre)):"Compra"}</b><small>${det}</small></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="m">${soles(r.monto)}</span>${chip}</span></div>`;
     }).join("");
-    const sinEnvio = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && tiendasPendientes(r).length).length;
-    return `${aviso}<div class="tel-pant"><div class="tel-top"><button class="volver" data-a="tel" data-v="erp" aria-label="Volver a Inicio">${ic("atras")}</button><span style="font-size:13px;color:var(--t60)">Mi ronda de compras</span></div>
-      <div class="saldo ${c.queda<0?"debe":""}"><div class="l">${c.queda<0?"Pusiste de tu bolsillo":"Te queda para comprar"}</div><div class="v">${soles(Math.abs(c.queda))}</div>
-        <div class="d">De ${soles(c.total)}${c.porConfirmar?` (${soles(c.porConfirmar)} por confirmar)`:""} · compras ${soles(c.compras)} · otros gastos ${soles(c.gastos)}</div><div class="barra"><i style="width:${pct}%"></i></div></div>
-      <button class="btn-tel sec" style="margin-bottom:12px;height:44px" data-a="tel" data-v="plata-como">${ic("mas")}Me dieron plata</button>
-      <div class="grandes"><button class="grande uno" data-a="c-empezar">${ic("bolsa")}Registrar una compra</button><button class="grande dos" data-a="tel" data-v="gasto">${ic("billete")}Otro gasto</button></div>
-      <div class="sec-tel"><span>Hoy</span><span>${regs.length}</span></div><div class="lista-tel">${filas}</div>
-      <div class="abajo"><button class="btn-tel sec" data-a="tel" data-v="envio">${ic("camion")}Armar un envío ${sinEnvio?`<span class="globito pide">${sinEnvio}</span>`:""}</button><button class="btn-tel sec" data-a="tel" data-v="fin">Terminé por hoy</button></div></div>`;
+    const porMandar = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && tiendasPendientes(r).length);
+    const tiendasPorMandar = [...new Set(porMandar.flatMap((r) => tiendasPendientes(r)).filter((x) => x !== "*"))];
+    const flecha = ic("flecha");
+    const tareas = (porMandar.length ? `<button class="tarea" data-a="tel" data-v="envio">${ic("camion")}<span><b>Mandar a la tienda</b><small>${porMandar.length===1?"1 compra":porMandar.length+" compras"} todavía no ${porMandar.length===1?"sale":"salen"}${tiendasPorMandar.length?" para "+tiendasPorMandar.join(", "):""}</small></span><span class="ir">Mandar ${flecha}</span></button>` : "")
+      + (c.porConfirmar ? `<div class="tarea info">${ic("billete")}<span><b>Compras está revisando ${soles(c.porConfirmar)}</b><small>Ya están en tu plata y puedes usarlos. Solo revisan tu foto del voucher.</small></span></div>` : "");
+    return `${aviso}<div class="tel-pant"><div class="tel-top"><button class="volver" data-a="tel" data-v="erp" aria-label="Volver a Inicio">${ic("atras")}</button><span style="font-size:13px;color:var(--t60)">Mi plata para compras</span></div>
+      <button class="saldo ${c.queda<0?"debe":""}" style="width:100%;text-align:left" data-a="tel" data-v="fin"><div class="l">${c.queda<0?"Pusiste de tu bolsillo":"Tienes para comprar"}</div><div class="v">${soles(Math.abs(c.queda))}</div>
+        <div class="d">Ya gastaste ${soles(c.compras + c.gastos)} de ${soles(c.total)} · Ver el detalle</div><div class="barra"><i style="width:${pct}%"></i></div></button>
+      <h4 style="font-size:24px;margin:6px 0 10px">¿Qué hiciste?</h4>
+      <div class="lista-hab">
+        <button class="accion uno" data-a="c-empezar"><span class="ic">${ic("bolsa")}</span><span><b>Compré ropa</b><small>A quién le compraste y qué</small></span>${flecha}</button>
+        <button class="accion" data-a="tel" data-v="plata-como"><span class="ic">${ic("billete")}</span><span><b>Me dieron plata</b><small>Transferencia, Yape o efectivo</small></span>${flecha}</button>
+        <button class="accion" data-a="tel" data-v="gasto"><span class="ic">${ic("camion")}</span><span><b>Gasté en otra cosa</b><small>Taxi, cargador, comida, encomienda</small></span>${flecha}</button></div>
+      ${tareas ? `<div class="sec-tel"><span>Te falta</span></div><div class="lista-hab">${tareas}</div>` : ""}
+      <div class="sec-tel"><span>Lo que anotaste hoy</span><span>${regs.length}</span></div><div class="lista-tel">${filas}</div>
+      <div class="abajo"><button class="btn-tel sec" data-a="tel" data-v="fin">Terminé de comprar hoy</button></div></div>`;
   }
   /* ---------- Registrar una compra: proveedor → lo de siempre o algo nuevo → cantidad, costo, venta ---------- */
   const B = S.bor, prov = B ? provDe(B.provId) : null, a = B?.actual;
   const atras = (v) => `<div class="tel-top"><button class="volver" data-a="ir" data-v="${v}" aria-label="Volver">${ic("atras")}</button><span style="font-size:13px;color:var(--t60)">${prov?"Compra a "+h(prov.nombre):"Registrar una compra"}</span></div>`;
   const avance = (nombrePaso) => {
-    const pasos = !B || B.camino !== "nuevo" ? ["Proveedor","Producto","Cantidad","Costo","Venta","Tienda","Revisar","Papel"]
-      : ["Proveedor","Qué es","Nombre"].concat(prov.marcas.length > 1 ? ["Marca"] : []).concat(["Color","Tallas","Cantidad","Costo","Venta","Tienda","Revisar","Papel"]);
-    const i = Math.max(0, pasos.indexOf(nombrePaso)), n = pasos.length;
-    return `<div class="avance-tel"><span>Paso ${i+1} de ${n} · ${nombrePaso}</span><i><b style="width:${Math.round((i+1)/n*100)}%"></b></i></div>`;
+    const fase = nombrePaso === "Proveedor" ? 0 : nombrePaso === "Papel" ? 2 : 1, nombres = ["Proveedor","Prendas","Boleta o factura"];
+    const det = fase === 1 && !["Producto","Revisar"].includes(nombrePaso) ? " · " + nombrePaso.toLowerCase() : "";
+    return `<div class="avance-tel"><span>Paso ${fase+1} de 3 · ${nombres[fase]}${det}</span><i style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:none">${nombres.map((_, k) => `<b style="width:auto;background:${k <= fase ? "var(--tinta)" : "var(--sand)"}"></b>`).join("")}</i></div>`;
   };
   const teclado = `<div class="teclado">${["1","2","3","4","5","6","7","8","9",".","0","←"].map((k)=>`<button data-a="tecla" data-v="${k}">${k}</button>`).join("")}</div>`;
+  const tecladoEntero = teclado.replace('<button data-a="tecla" data-v=".">.</button>', "<span></span>");
   if (t.p === "c-prov") {
     const q = norm(t.q), cat = t.cat || "";
     const todasCats = Object.keys(CATEGORIAS).filter((c) => PROVS.some((pv) => catsDe(pv.id).includes(c)));
@@ -704,11 +730,11 @@ function pantallaTel() {
       <div class="campo" style="margin-top:14px"><span class="campo-et">RUC <em>· si tiene</em></span><input class="caja" style="height:48px" inputmode="numeric" maxlength="11" placeholder="11 números" value="${h(n.ruc||"")}" data-in="pn-ruc" ${sinRuc?"disabled":""}>
         <button class="op" style="align-self:flex-start;margin-top:6px" aria-pressed="${!!sinRuc}" data-a="pn-sin-ruc">No tiene RUC</button></div>
       <div class="campo" style="margin-top:14px"><span class="campo-et">Marcas que trae <em>· opcional</em></span><input class="caja" style="height:48px" placeholder="Separadas por coma" value="${h(n.marcas||"")}" data-in="pn-marcas" autocomplete="off"></div>
-      <div class="abajo"><button class="btn-tel prim" ${listo?"":"disabled"} data-a="pn-guardar">Registrar y seguir ${ic("flecha")}</button></div></div>`; // sugerir-fijo: nombre, RUC y marcas de un proveedor nuevo no dependen de nada elegido antes
+      <div class="abajo"><button class="btn-tel prim" ${listo?"":"disabled"} data-a="pn-guardar">Registrar y seguir ${ic("flecha")}</button>${listo?"":`<small class="porque">${norm(n.nombre).length<3?"Escribe el nombre":dup&&!n.noEsDup?"Dinos si es el mismo proveedor":"Escribe los 11 números del RUC o toca «No tiene RUC»"}</small>`}</div></div>`; // sugerir-fijo: nombre, RUC y marcas de un proveedor nuevo no dependen de nada elegido antes
   }
   if (t.p === "c-tienda") {
     const ult = S.bor.ultimaTienda;
-    return `<div class="tel-pant">${atras("c-venta")}${avance("Tienda")}<h4>¿A qué tienda va?</h4><p class="sub">${a.cant} · ${h(a.nombre)}</p>
+    return `<div class="tel-pant">${atras("c-venta")}${avance("Tienda")}<h4>¿A qué tienda va?</h4><p class="sub">${a.cant} · ${h(a.nombre)}. La tienda donde se va a vender.</p>
       <div class="lista-hab" style="margin-top:16px">${Object.keys(TIENDAS).map((k)=>`<button class="hab" data-a="c-tienda" data-v="${k}"><span class="sw" style="background:var(--hueso);color:var(--taupe)">${ic("caja")}</span><span><b>${TIENDAS[k]}${ult===k?'<span class="chip pizarra sinpunto ya" style="height:18px;font-size:9px">Como la anterior</span>':""}</b><span class="cm">${CIUDAD[k]}</span></span></button>`).join("")}</div></div>`;
   }
   if (t.p === "c-hab") {
@@ -718,7 +744,7 @@ function pantallaTel() {
     const chips = cats.length > 1 ? `<div class="filtros-tel">${["", ...cats].map((c) => `<button class="op" aria-pressed="${cat===c}" data-a="c-hab-cat" data-v="${c}">${c || "Todos"}<small>${c ? todos.filter((x)=>x.cat===c).length : todos.length}</small></button>`).join("")}</div>` : "";
     const enCompra = (hb) => B.lineas.some((l) => claveProducto(l) === hb.clave);
     const tarjetas = ver.map((hb, i) => { const u = hb.ultima; const col = hb.color;
-      return `<button class="hab" data-a="c-hab" data-v="${h(hb.clave)}"><span class="sw" data-color-dato style="background:${col?col[1]:"var(--hueso)"};color:${col&&parseInt(col[1].slice(1,3),16)<140?"#f5f0e8":"#1a1a18"}">${ic("percha")}</span><span><b>${h(hb.nombre)}${enCompra(hb)?'<span class="chip verde sinpunto ya" style="height:18px;font-size:9px">Ya va</span>':""}</b><span class="cm">${hb.cat}${hb.marca?" · "+h(hb.marca):" · Sin marca"}${col?" · "+col[0]:""}</span><span class="vp">La vez pasada: ${u.cant} a ${soles(u.costo)} · se vendió a ${soles(u.venta)} · ${haceTexto(u.fecha)}</span></span></button>`; }).join(""); // tema-fijo: texto sobre el color de la prenda (dato)
+      return `<button class="hab" data-a="c-hab" data-v="${h(hb.clave)}"><span class="sw" data-color-dato style="background:${col?col[1]:"var(--hueso)"};color:${col&&parseInt(col[1].slice(1,3),16)<140?"#f5f0e8":"#1a1a18"}">${ic("percha")}</span><span><b>${h(hb.nombre)}${enCompra(hb)?'<span class="chip verde sinpunto ya" style="height:18px;font-size:9px">Ya va</span>':""}</b><span class="cm">${hb.cat}${hb.marca?" · "+h(hb.marca):" · Sin marca"}${col?" · color "+col[0].toLowerCase():""}</span><span class="vp">Última compra, ${haceTexto(u.fecha)}: ${u.cant} a ${soles(u.costo)} cada una · en tienda a ${soles(u.venta)}</span></span></button>`; }).join(""); // tema-fijo: texto sobre el color de la prenda (dato)
     const mas = !t.todos && !cat && todos.length > 6 ? `<button class="btn btn-enlace" style="align-self:center;margin:4px 0" data-a="c-todos">Ver todos los suyos (${todos.length})</button>` : "";
     return `${aviso}<div class="tel-pant">${atras("c-prov")}${avance("Producto")}<h4>¿Qué le compras hoy?</h4><p class="sub">Lo que más le compras a ${h(prov.nombre)}.</p>${chips}
       <div class="lista-hab" style="margin-top:14px">${tarjetas}${mas}</div>
@@ -728,23 +754,23 @@ function pantallaTel() {
   if (t.p === "c-cant" || t.p === "c-costo" || t.p === "c-venta") {
     const v = t.monto || "", prev = a.prev;
     const cfg = {
-      "c-cant": { paso:"Cantidad", tit:"¿Cuántas?", pre:"", vez: prev ? `La vez pasada: ${prev.cant}` : "", igual:null, ok:"c-cant-ok", atras: B.camino==="nuevo" ? "n-tallas" : "c-hab" },
-      "c-costo": { paso:"Costo", tit:"¿A cuánto cada una?", pre:"S/", vez:"", igual: prev ? ["c-costo-igual", "Igual que la vez pasada", prev.costo] : null, ok:"c-costo-ok", atras:"c-cant" },
-      "c-venta": { paso:"Venta", tit:"¿A cuánto se venderá?", pre:"S/", vez: a.costo ? `Le pagas ${soles(a.costo)} cada una` : "", igual: prev ? ["c-venta-igual", "Igual que la vez pasada", prev.venta] : ["c-venta-sug", `Sugerido para ${a.cat.toLowerCase()}`, ventaSugerida(a.costo, a.cat)], ok:"c-venta-ok", atras:"c-costo" },
+      "c-cant": { paso:"Cantidad", tit:"¿Cuántas compraste?", pre:"", vez: (prev ? `La vez pasada compraste ${prev.cant}. ` : "") + "Los colores y tallas los cuenta la tienda cuando llega.", igual:null, ok:"c-cant-ok", atras: B.camino==="nuevo" ? "n-tallas" : "c-hab" },
+      "c-costo": { paso:"Costo", tit:"¿Cuánto pagaste por cada una?", pre:"S/", vez:"", igual: prev ? ["c-costo-igual", "Igual que la vez pasada", prev.costo] : null, ok:"c-costo-ok", atras:"c-cant" },
+      "c-venta": { paso:"Venta", tit:"¿A cuánto se venderá en la tienda?", pre:"S/", vez: (a.costo ? `Pagaste ${soles(a.costo)} cada una. ` : "") + "Si no sabes, usa el de arriba: Compras lo puede cambiar.", igual: prev ? ["c-venta-igual", "Igual que la vez pasada", prev.venta] : ["c-venta-sug", `Sugerido para ${a.cat.toLowerCase()}`, ventaSugerida(a.costo, a.cat)], ok:"c-venta-ok", atras:"c-costo" },
     }[t.p];
-    const valido = Number(v) > 0;
+    const esperaIgual = cfg.igual && !t.tocado, valido = Number(v) > 0 && !esperaIgual;
     return `<div class="tel-pant">${atras(cfg.atras)}${avance(cfg.paso)}<h4>${cfg.tit}</h4><p class="sub">${h(a.nombre)} · ${a.cat}${a.marca?" · "+h(a.marca):""}</p>
-      ${cfg.igual && t.tocado ? "" : cfg.igual ? `<button class="igual" data-a="${cfg.igual[0]}"><span>${cfg.igual[1]}<small>Un toque y sigues</small></span><span style="font-family:var(--serif);font-size:24px;font-weight:400">${soles(cfg.igual[2])}</span></button><p class="vez" style="margin-top:10px">o escribe otro:</p>` : ""}
-      <div class="display-monto" style="margin:${cfg.igual&&!t.tocado?"6px":"18px"} 0 4px">${cfg.pre?`<small>${cfg.pre}</small>`:""}${v||"0"}</div>${cfg.vez?`<p class="vez">${cfg.vez}</p>`:""}
-      ${teclado}
-      <div class="abajo"><button class="btn-tel prim" ${valido?"":"disabled"} data-a="${cfg.ok}">${t.p==="c-cant"?`Seguir con ${v||0}`:t.p==="c-venta"?"Anotar":"Seguir"} ${ic("flecha")}</button></div></div>`;
+      ${cfg.igual && t.tocado ? "" : cfg.igual ? `<button class="igual" data-a="${cfg.igual[0]}"><span>${cfg.igual[1]}<small>Tócalo si es el mismo precio</small></span><span style="font-family:var(--serif);font-size:24px;font-weight:400">${soles(cfg.igual[2])}</span></button>` : ""}
+      <div class="display-monto" style="margin:${esperaIgual?"6px":"18px"} 0 4px">${esperaIgual?`<span style="font-size:22px;color:var(--t60)">Otro precio: escríbelo aquí abajo</span>`:`${cfg.pre?`<small>${cfg.pre}</small>`:""}${v||"0"}`}</div>${cfg.vez?`<p class="vez">${cfg.vez}</p>`:""}
+      ${t.p === "c-cant" ? tecladoEntero : teclado}
+      <div class="abajo"><button class="btn-tel prim" ${valido?"":"disabled"} data-a="${cfg.ok}">${t.p==="c-cant"?`Seguir con ${v||0}`:"Seguir"} ${ic("flecha")}</button>${valido?"":`<small class="porque">${esperaIgual?"Toca el botón negro, o escribe otro precio":t.p==="c-cant"?"Escribe cuántas compraste":"Escribe el precio"}</small>`}</div></div>`;
   }
   if (t.p === "c-revisar") {
     const filas = B.lineas.map((l, i) => `<div class="fila-tel ${B.recien===i?"recien":""}"><button data-a="c-editar" data-v="${i}" style="display:contents;text-align:left"><span class="mini" data-color-dato style="background:${l.color?l.color[1]:"var(--hueso)"}">${ic("percha")}</span><span class="t"><b>${l.cant} · ${h(l.nombre)}</b><small>${soles(l.costo)} c/u · se venderá a ${soles(l.venta)}${l.tienda?` · va a ${l.tienda}`:""}</small></span></button><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="m">${soles(l.cant*l.costo)}</span><button class="btn btn-enlace" style="font-size:12px" data-a="c-quitar" data-v="${i}">Quitar</button></span></div>`).join("");
-    return `${aviso}<div class="tel-pant">${atras("c-hab")}${avance("Revisar")}<h4>Tu compra a ${h(corto(prov.nombre))}</h4><p class="sub">Toca una prenda para corregirla.</p>
+    return `${aviso}<div class="tel-pant">${atras("c-hab")}${avance("Revisar")}<h4>Tu compra a ${h(corto(prov.nombre))}</h4><p class="sub">¿Falta algo? Agrégalo. Toca una prenda para corregirla.</p>
       <div class="lista-tel" style="margin-top:14px">${filas || `<div class="vacio"><b>Todavía no anotas nada</b>Elige qué le compras.</div>`}</div>
       <div class="fila-tel" style="border:0;padding:12px 4px"><span class="t"><b>Total</b><small>${B.lineas.reduce((x,l)=>x+l.cant,0)} prendas</small></span><span class="m" style="font-family:var(--serif);font-size:22px">${soles(totalBor())}</span></div>
-      <div class="abajo"><button class="btn-tel sec" data-a="ir" data-v="c-hab">${ic("mas")}Otra prenda de ${h(corto(prov.nombre))}</button><button class="btn-tel prim" ${B.lineas.length?"":"disabled"} data-a="c-al-papel">Seguir: el papel ${ic("flecha")}</button></div></div>`;
+      <div class="abajo"><button class="btn-tel sec" data-a="ir" data-v="c-hab">${ic("mas")}Otra prenda de ${h(corto(prov.nombre))}</button><button class="btn-tel prim" ${B.lineas.length?"":"disabled"} data-a="c-al-papel">Ya anoté todo: seguir ${ic("flecha")}</button></div></div>`;
   }
   /* Producto nuevo, una pregunta a la vez */
   if (t.p === "n-cat") {
@@ -767,12 +793,12 @@ function pantallaTel() {
     return `<div class="tel-pant">${atras("n-cat")}${avance("Nombre")}<h4>¿Cómo se llama?</h4><p class="sub">${a.cat}. Un nombre corto, como lo dicen en la tienda.</p>
       <input class="caja" style="height:52px;font-size:17px;margin-top:16px" placeholder="Ej. ${h(c.ej)}" value="${h(a.nombre||"")}" data-in="n-nombre" autocomplete="off">
       <div class="opciones" style="margin-top:12px">${c.chips.map((x)=>`<button class="op" data-a="n-chip" data-v="${h(x)}">${h(x)}</button>`).join("")}</div>
-      <div class="abajo"><button class="btn-tel prim" ${norm(a.nombre).length>=3?"":"disabled"} data-a="n-nombre-ok">Seguir ${ic("flecha")}</button></div></div>`;
+      <div class="abajo"><button class="btn-tel prim" ${norm(a.nombre).length>=3?"":"disabled"} data-a="n-nombre-ok">Seguir ${ic("flecha")}</button>${norm(a.nombre).length>=3?"":'<small class="porque">Escribe el nombre o toca uno de arriba</small>'}</div></div>`;
   }
   if (t.p === "n-dup") {
     const hb = habitualesDe(B.provId).find((x) => x.clave === t.dup), u = hb.ultima, art = CATEGORIAS[hb.cat]?.art || "la";
     return `<div class="tel-pant">${atras("n-nombre")}<h4>¿Es ${art} ${h(hb.nombre)} que le compraste ${elDia(u.fecha)}?</h4><p class="sub">Para no anotarla dos veces.</p>
-      <div class="lista-hab" style="margin-top:14px"><div class="hab" style="cursor:default"><span class="sw" data-color-dato style="background:${hb.color?hb.color[1]:"var(--hueso)"}">${ic("percha")}</span><span><b>${h(hb.nombre)}</b><span class="cm">${hb.cat}${hb.marca?" · "+h(hb.marca):""}</span><span class="vp">La vez pasada: ${u.cant} a ${soles(u.costo)} · se vendió a ${soles(u.venta)}</span></span></div></div>
+      <div class="lista-hab" style="margin-top:14px"><div class="hab" style="cursor:default"><span class="sw" data-color-dato style="background:${hb.color?hb.color[1]:"var(--hueso)"}">${ic("percha")}</span><span><b>${h(hb.nombre)}</b><span class="cm">${hb.cat}${hb.marca?" · "+h(hb.marca):""}</span><span class="vp">Última compra: ${u.cant} a ${soles(u.costo)} cada una · en tienda a ${soles(u.venta)}</span></span></div></div>
       <div class="abajo"><button class="btn-tel prim" data-a="n-dup-usar">Usar ${art==="el"?"ese":"esa"}</button><button class="btn-tel sec" data-a="n-dup-no">No, es ${art==="el"?"otro":"otra"}</button></div></div>`;
   }
   if (t.p === "n-marca") {
@@ -791,10 +817,10 @@ function pantallaTel() {
     const sel = a.tallas || [];
     return `<div class="tel-pant">${atras("n-color")}${avance("Tallas")}<h4>¿Qué tallas trae?</h4><p class="sub">Opcional. Ayuda a la tienda al recibir.</p>
       <div class="opciones" style="margin-top:16px">${tallas.map((x)=>`<button class="op" aria-pressed="${sel.includes(x)}" data-a="n-talla" data-v="${x}">${x}</button>`).join("")}</div>
-      <div class="abajo"><button class="btn-tel prim" ${sel.length?"":"disabled"} data-a="n-tallas-ok">Seguir ${ic("flecha")}</button><button class="btn-tel sec" data-a="n-tallas-ok">Lo pongo después</button></div></div>`;
+      <div class="abajo"><button class="btn-tel prim" ${sel.length?"":"disabled"} data-a="n-tallas-ok">Seguir ${ic("flecha")}</button><button class="btn-tel sec" data-a="n-tallas-ok">Lo pongo después</button>${sel.length?"":'<small class="porque">Elige al menos una talla, o toca «Lo pongo después»</small>'}</div></div>`;
   }
   if (t.p === "plata-como") {
-    const tiles = [["transf","Transferencia","Al banco","billete"],["yape","Yape o Plin","Al celular","billete"],["efectivo","Efectivo","En la mano","mano"]]
+    const tiles = [["transf","Transferencia","Al banco","banco"],["yape","Yape o Plin","Al celular","celular"],["efectivo","Efectivo","En la mano","monedas"]]
       .concat(primeraVez(t.quien) ? [["yatenia","Ya la tenía","Del fondo, solo esta vez","caja"]] : [])
       .map(([k,n,d,i]) => `<button class="tile" data-a="plata-tipo" data-v="${k}">${ic(i)}<span>${n}<br><small>${d}</small></span></button>`).join("");
     return `<div class="tel-pant">${top("¿Cómo te llegó la plata?","Elige uno. Después escribes cuánto.")}<div class="papeles" style="margin-top:18px">${tiles}</div></div>`;
@@ -811,7 +837,7 @@ function pantallaTel() {
   if (t.p === "papel") {
     const tiles = [["factura","Factura","Con RUC","hoja"],["boleta","Boleta","Con número","recibo"],["nota","Nota de venta","Papel simple","hoja"],["sin","Sin papel","No me dieron nada","sinpapel"]]
       .map(([k,n,s,i]) => `<button class="tile" data-a="tel-tipo" data-v="${k}">${ic(i)}<span>${n}<br><small>${s}</small></span></button>`).join("");
-    return `<div class="tel-pant">${top("¿Qué papel te dieron?","Elige uno. Después le sacas la foto.")}<div class="papeles" style="margin-top:18px">${tiles}</div></div>`;
+    return `<div class="tel-pant">${top("¿Qué te dio el proveedor?","La boleta, la factura o la nota. Después le sacas una foto.")}${S.bor?avance("Papel"):""}<div class="papeles" style="margin-top:12px">${tiles}</div></div>`;
   }
   if (t.p === "camara") {
     const sin = t.tipo === "sin";
@@ -833,39 +859,47 @@ function pantallaTel() {
   }
   if (t.p === "gasto") {
     return `<div class="tel-pant">${top("¿En qué gastaste?","No es ropa: no se suma al costo de las prendas.")}
-      <div class="papeles" style="margin-top:18px">${["Taxi","Cargador","Comida","Envío","Bolsas","Otro"].map((g)=>`<button class="tile" data-a="tel-gasto" data-v="${g}">${ic(g==="Comida"?"mano":g==="Envío"?"camion":g==="Bolsas"?"caja":"billete")}<span>${g}</span></button>`).join("")}</div>
+      <div class="papeles" style="margin-top:18px">${["Taxi","Cargador","Comida","Envío","Bolsas","Otro"].map((g)=>`<button class="tile" data-a="tel-gasto" data-v="${g}">${ic(g==="Comida"?"taza":g==="Envío"?"camion":g==="Bolsas"?"caja":"billete")}<span>${g}</span></button>`).join("")}</div>
       <p class="sub" style="margin-top:14px">Si te dieron un papel, podrás sacarle foto. Si no, igual se guarda.</p></div>`;
   }
   if (t.p === "envio") {
-    const libresTodas = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && tiendasPendientes(r).length);
-    const libres = t.envio?.tienda ? libresTodas.filter((r) => libreParaTienda(r, t.envio.tienda)) : libresTodas;
-    const e = t.envio || (t.envio = { sel: libres.map((r)=>r.id), tienda:null, bultos:1 });
-    if (!libresTodas.length) return `<div class="tel-pant">${top("Armar un envío","")}<div class="vacio" style="margin-top:30px"><b>Todo está en un envío</b>Cuando registres otra compra, aparecerá aquí para mandarla.</div></div>`;
-    const marcas = libres.map((r)=>`<button class="marca" aria-pressed="${e.sel.includes(r.id)}" data-a="env-sel" data-v="${r.id}"><span class="check">${e.sel.includes(r.id)?ic("check"):""}</span><span class="mini" style="width:34px;height:40px;overflow:hidden;border-radius:4px;background:var(--hueso)">${papelHTML(r,true)}</span><span style="flex:1;min-width:0"><b>${TIPOS[r.tipo]}${r.provId?" · "+h(provDe(r.provId).nombre):""}</b><br><small style="color:var(--t60)">${r.lineas?.length?(e.tienda?resumenLineas(r.lineas.filter((l)=>!l.tienda||l.tienda===e.tienda))||"Nada para "+e.tienda:resumenLineas(r.lineas)+" · "+[...new Set(r.lineas.map((l)=>l.tienda).filter(Boolean))].join(", "))+" · ":""}${r.hora}</small></span><b>${soles(r.monto)}</b></button>`).join("");
-    const tiendas = Object.keys(TIENDAS).map((k)=>`<button class="tile" aria-pressed="${e.tienda===k}" data-a="env-tienda" data-v="${k}">${k}<small>${TIENDAS[k].replace("Tienda ","")==="LIM"?"Lima":k==="AQP"?"Arequipa":k==="TRU"?"Trujillo":"Lima"}</small></button>`).join("");
-    const listo = e.sel.length && e.tienda;
-    return `<div class="tel-pant">${top("¿Qué va en este fardo?","Marca los papeles de lo que va junto.")}
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">${marcas}</div>
-      <div class="sec-tel"><span>¿A qué tienda va?</span></div><div class="tiendas ${!e.tienda?"encendido":""}">${tiendas}</div>
-      <div class="sec-tel"><span>¿Cuántos bultos?</span><span>opcional</span></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:8px 12px"><span>Bultos</span><span class="cant"><button data-a="env-bultos" data-v="-1" aria-label="Uno menos">${ic("menos")}</button><span>${e.bultos}</span><button data-a="env-bultos" data-v="1" aria-label="Uno más">${ic("mas")}</button></span></div>
-      <div class="abajo"><button class="btn-tel prim" ${listo?"":"disabled"} data-a="env-mandar">${ic("camion")}Mandar ${e.tienda?"a "+TIENDAS[e.tienda]:""}</button></div></div>`;
+    const pend = S.regs.filter((r) => r.salida === ronda && r.clase === "compra" && tiendasPendientes(r).length);
+    if (!pend.length) return `<div class="tel-pant">${top("Mandar a la tienda","")}<div class="vacio" style="margin-top:30px"><b>Ya mandaste todo</b>Cuando anotes otra compra, aparece aquí para mandarla.</div></div>`;
+    const tiendas = Object.keys(TIENDAS).filter((k) => pend.some((r) => tiendasPendientes(r).includes(k)));
+    const tarjetas = tiendas.map((k) => { const deEsta = pend.filter((r) => libreParaTienda(r, k)), fardos = (t.fardos || {})[k] || 1;
+      const filas = deEsta.map((r) => `<div class="fila-tel" style="padding:8px 0;border:0"><span class="t"><b>Compra a ${h(corto(provDe(r.provId)?.nombre || "un proveedor"))}</b><small>${resumenLineas((r.lineas||[]).filter((l) => !l.tienda || l.tienda === k), 3)}</small></span></div>`).join("");
+      return `<div class="tarjeta" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><b style="font-family:var(--serif);font-weight:400;font-size:21px">Para ${TIENDAS[k]} <small style="font-family:var(--sans);font-size:12px;color:var(--t60)">${CIUDAD[k]}</small></b>${filas}
+        <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--sand);padding-top:10px"><span>¿Cuántos fardos (paquetes)?</span><span class="cant"><button data-a="env-fardos" data-v="${k}|-1" aria-label="Uno menos">${ic("menos")}</button><span>${fardos}</span><button data-a="env-fardos" data-v="${k}|1" aria-label="Uno más">${ic("mas")}</button></span></div>
+        <button class="btn-tel prim" data-a="env-mandar-t" data-v="${k}">${ic("camion")}Mandar a ${k}</button></div>`; }).join("");
+    return `${aviso}<div class="tel-pant">${top("Mandar a la tienda","Toca «Mandar» cuando entregues el fardo (el paquete) al transporte. La tienda ya sabe que le llega.")}<div class="lista-hab" style="margin-top:14px">${tarjetas}</div></div>`;
+  }
+  if (t.p === "listo") {
+    const r = reg(t.reg), pv = provDe(r.provId), ts = [...new Set((r.lineas||[]).map((l) => l.tienda).filter(Boolean))];
+    return `<div class="tel-pant"><div style="margin:auto 0;display:flex;flex-direction:column;gap:16px">
+      <div class="sello" style="flex-direction:column;align-items:flex-start">${ic("sello")}<div><b>Listo, tu compra quedó guardada</b><small>${pv?h(corto(pv.nombre))+" · ":""}${resumenLineas(r.lineas, 3) || TIPOS[r.tipo]} · ${soles(r.monto)}</small></div></div>
+      <p class="sub" style="font-size:15px">Ahora tienes <b style="color:var(--tinta)">${soles(c.queda)}</b> para comprar.</p>
+      <div class="sec-tel" style="margin:4px 2px 0"><span>¿Y ahora?</span></div>
+      <div class="lista-hab">
+        <button class="accion uno" data-a="c-empezar"><span class="ic">${ic("bolsa")}</span><span><b>Anotar otra compra</b><small>Si sigues comprando</small></span>${ic("flecha")}</button>
+        ${ts.length ? `<button class="accion" data-a="tel" data-v="envio"><span class="ic">${ic("camion")}</span><span><b>Mandar a ${ts.join(" y ")}</b><small>Cuando el fardo ya esté listo</small></span>${ic("flecha")}</button>` : ""}
+        <button class="accion" data-a="tel" data-v="inicio"><span class="ic">${ic("billete")}</span><span><b>Ver mi plata</b><small>Lo que te queda y lo que anotaste</small></span>${ic("flecha")}</button></div></div></div>`;
   }
   if (t.p === "fin") {
     const sinEnvio = S.regs.filter((r) => r.salida===ronda && r.clase==="compra" && tiendasPendientes(r).length);
     const sobra = c.queda;
-    return `<div class="tel-pant">${top("Tu ronda de hoy","")}
+    return `<div class="tel-pant">${top("Terminé de comprar hoy","Revisa tu plata y di qué haces con lo que te queda.")}
       <div class="lista-tel" style="margin-top:14px">
-        <div class="fila-tel"><span class="t"><b>Tenías para comprar</b><small>${s.sobrante?`incluye ${soles(s.sobrante)} de la vez pasada`:""}${c.porConfirmar?` · ${soles(c.porConfirmar)} por confirmar`:""}</small></span><span class="m">${soles(c.total)}</span></div>
-        <div class="fila-tel"><span class="t"><b>Compras</b><small>${S.regs.filter(r=>r.salida===ronda&&r.clase==="compra").length} papeles</small></span><span class="m">− ${soles(c.compras)}</span></div>
-        <div class="fila-tel"><span class="t"><b>Otros gastos</b><small>taxi, cargador…</small></span><span class="m">− ${soles(c.gastos)}</span></div>
-        <div class="fila-tel"><span class="t"><b>${sobra<0?"Pusiste de tu bolsillo":"Te sobra"}</b></span><span class="m" style="font-family:var(--serif);font-size:22px">${soles(Math.abs(sobra))}</span></div></div>
-      ${sinEnvio.length?`<button class="nota" style="margin-top:12px;text-align:left;width:100%" data-a="tel" data-v="envio">${sinEnvio.length===1?"Un papel":sinEnvio.length+" papeles"} todavía no ${sinEnvio.length===1?"está":"están"} en un envío. Tócalo para mandarlo.</button>`:""}
-      ${sobra<0?`<p class="sub" style="margin-top:12px">CAYLA te debe ${soles(-sobra)}. Lo ve Compras al revisar tu ronda.</p>`:`<div class="sec-tel"><span>¿Qué haces con lo que sobra?</span></div>
-      <div style="display:flex;flex-direction:column;gap:8px">${[["queda","Me lo quedo para la próxima ronda"],["devuelvo","Lo devuelvo hoy"]].map(([k,n])=>`<button class="marca" aria-pressed="${t.sobra===k}" data-a="fin-sobra" data-v="${k}"><span class="check">${t.sobra===k?ic("check"):""}</span><b>${n}</b></button>`).join("")}</div>`}
-      <div class="abajo"><button class="btn-tel prim" ${(t.sobra||sobra<0)?"":"disabled"} data-a="fin-cerrar">Cerrar mi ronda</button></div></div>`;
+        ${s.sobrante?`<div class="fila-tel"><span class="t"><b>Te quedó de la vez pasada</b></span><span class="m">${soles(s.sobrante)}</span></div>`:""}
+        <div class="fila-tel"><span class="t"><b>Te dieron hoy</b>${c.porConfirmar?`<small>De esto, ${soles(c.porConfirmar)} todavía los revisa Compras. Igual ya puedes usarlos.</small>`:""}</span><span class="m">+ ${soles(c.total - s.entregado - s.sobrante + s.entregado)}</span></div>
+        <div class="fila-tel"><span class="t"><b>Compraste</b><small>${S.regs.filter(r=>r.salida===ronda&&r.clase==="compra").length} compras</small></span><span class="m">− ${soles(c.compras)}</span></div>
+        <div class="fila-tel"><span class="t"><b>Gastaste en otras cosas</b><small>taxi, cargador…</small></span><span class="m">− ${soles(c.gastos)}</span></div>
+        <div class="fila-tel"><span class="t"><b>${sobra<0?"Pusiste de tu bolsillo":"Te queda"}</b></span><span class="m" style="font-family:var(--serif);font-size:22px">${soles(Math.abs(sobra))}</span></div></div>
+      ${sinEnvio.length?`<button class="tarea" style="margin-top:12px" data-a="tel" data-v="envio">${ic("camion")}<span><b>Antes, manda a la tienda</b><small>${sinEnvio.length===1?"1 compra":sinEnvio.length+" compras"} todavía no ${sinEnvio.length===1?"sale":"salen"}</small></span><span class="ir">Mandar ${ic("flecha")}</span></button>`:""}
+      ${sobra<0?`<p class="sub" style="margin-top:12px">CAYLA te debe ${soles(-sobra)}. Compras lo ve y te lo devuelve.</p>`:`<div class="sec-tel"><span>¿Qué haces con lo que te queda?</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px">${[["queda","Me lo quedo para mi próxima compra","Sigue siendo plata de CAYLA para comprar"],["devuelvo","Lo devuelvo hoy","Lo entregas en caja"]].map(([k,n,d])=>`<button class="marca" role="radio" aria-checked="${t.sobra===k}" aria-pressed="${t.sobra===k}" data-a="fin-sobra" data-v="${k}"><span class="check" style="border-radius:50%">${t.sobra===k?ic("check"):""}</span><span><b>${n}</b><br><small style="color:var(--t60)">${d}</small></span></button>`).join("")}</div>`}
+      <div class="abajo"><button class="btn-tel prim" ${(t.sobra||sobra<0)?"":"disabled"} data-a="fin-cerrar">Terminar por hoy</button>${(t.sobra||sobra<0)?"":'<small class="porque">Elige qué haces con lo que sobra</small>'}</div></div>`;
   }
-  if (t.p === "cerrada") return `<div class="tel-pant"><div style="margin:auto;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center"><div class="sello" style="flex-direction:column;text-align:center">${ic("sello")}<b>Ronda cerrada</b><small>${t.sobra==="queda"?"Lo que sobró se suma a tu próxima ronda.":"Entrega lo que sobró en caja."}</small></div><button class="btn btn-enlace" data-a="tel-reabrir">Volver a la maqueta</button></div></div>`;
+  if (t.p === "cerrada") return `<div class="tel-pant"><div style="margin:auto;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center"><div class="sello" style="flex-direction:column;text-align:center">${ic("sello")}<b>Listo, terminaste por hoy</b><small>${t.sobra==="queda"?"Lo que sobró se suma a tu próxima compra.":"Entrega lo que sobró en caja."}</small></div><button class="btn btn-enlace" data-a="tel-reabrir">Volver a la maqueta</button></div></div>`;
   return "";
 }
 
@@ -881,7 +915,7 @@ function recDe(eid) {
 const sumaCant = (l) => Object.values(l.cant).reduce((a,b)=>a+b,0);
 function escena3() {
   const env = S.envios.filter((e)=>e.tienda===S.tienda);
-  const sedeSel = `<div class="opciones">${Object.keys(TIENDAS).map((k)=>`<button class="op" aria-pressed="${S.tienda===k}" data-a="sede" data-v="${k}">${TIENDAS[k]}</button>`).join("")}</div>`;
+  const sedeSel = `<div class="opciones" style="align-items:center"><span class="campo-et" style="margin-right:4px">Ver como la tienda de</span>${Object.keys(TIENDAS).map((k)=>`<button class="op" aria-pressed="${S.tienda===k}" data-a="sede" data-v="${k}">${TIENDAS[k]}</button>`).join("")}</div>`;
   const abierto = S.abiertoEnvio && env.find((e)=>e.id===S.abiertoEnvio);
   let cuerpo;
   if (!abierto) {
@@ -895,7 +929,7 @@ function escena3() {
   } else cuerpo = recepcionHTML(abierto);
   return `<div class="quien">${ic("caja")}<span>La usa <b>la encargada de la tienda</b>, en el escritorio, con el fardo abierto. Toca «Recibir».</span></div>
   <div class="erp"><div class="erp-barra"><i></i><i></i><i></i><span>Recibir mercadería</span></div><div class="erp-cuerpo">
-    <div class="cab"><div><span class="cab-sede">${TIENDAS[S.tienda]} · miércoles 22 de octubre</span><h2>Recibir mercadería</h2><p>Abre el fardo, mira la foto del papel y registra lo que llegó.</p></div>${sedeSel}</div>
+    <div class="cab"><div><span class="cab-sede">${TIENDAS[S.tienda]} · miércoles 22 de octubre</span><h2>Recibir mercadería</h2><p>Abre el fardo y cuenta lo que llegó, compra por compra.</p></div>${sedeSel}</div>
     <div style="margin-top:20px">${cuerpo}</div></div></div>`;
 }
 /* Lo que anotó la compradora para este papel: cada prenda por su nombre, con un toque para sumarla o crearla */
@@ -910,44 +944,56 @@ function anotadoHTML(r, R, per) {
   return `<div style="padding:14px 18px;border-bottom:1px solid var(--sand);display:flex;flex-direction:column;gap:8px"><span class="campo-et">Lo que anotó ${per.nombre.split(" ")[0]} al comprar para ${tiendaEnvio ? TIENDAS[tiendaEnvio] : "esta tienda"}</span>${filas}${otras.length ? `<small style="color:var(--t60)">Además, de este papel: ${resumenLineas(otras, 3)} va a ${[...new Set(otras.map((l)=>l.tienda))].join(", ")}.</small>` : ""}</div>`;
 }
 function recepcionHTML(e) {
-  const R = recDe(e.id), per = PERSONAS[salida(e.salida).persona];
-  const tabs = e.comps.map((id)=>{ const r=reg(id); const n=R.lineas.filter(l=>l.comp===id).reduce((a,l)=>a+sumaCant(l),0);
-    const est = R.coincide[id]===true?'<span class="chip verde sinpunto" style="height:18px;font-size:9px">Coincide</span>':R.coincide[id]===false?'<span class="chip ambar sinpunto" style="height:18px;font-size:9px">No coincide</span>':"";
-    return `<button class="pp" aria-current="${R.activo===id}" data-a="rec-comp" data-v="${id}"><span class="mini">${papelHTML(r,true)}</span><span><b>${TIPOS[r.tipo]}</b><small>${n} prendas</small></span>${est}</button>`; }).join("");
-  const r = reg(R.activo);
-  const lineas = R.lineas.filter((l)=>l.comp===R.activo);
-  const filas = lineas.map((l)=>{ const p=l.nuevo||prod(l.prod); const det=Object.entries(l.cant).filter(([,v])=>v).map(([k,v])=>`${k.replace("|"," ")} ×${v}`).join(" · ");
-    return `<div class="linea">${miniPrenda(p)}<div><b>${h(p.nombre)} ${l.nuevo?'<span class="chip pizarra sinpunto" style="height:18px;font-size:9px;margin-left:4px">Nueva</span>':""}</b><small>${det}</small></div><span class="u">${sumaCant(l)}<small>× ${soles(l.costo||0)}</small></span>${R.cerrada?"<span></span>":`<button class="btn btn-enlace" data-a="rec-editar" data-v="${l.id}">Cambiar</button>`}</div>`; }).join("");
+  const R = recDe(e.id), per = PERSONAS[salida(e.salida).persona], nom = per.nombre.split(" ")[0];
+  const anotadas = (id) => (reg(id).lineas || []).filter((l) => !l.tienda || l.tienda === e.tienda);
+  const contada = (id, l) => R.lineas.find((x) => x.comp === id && norm((x.nuevo || prod(x.prod)).nombre) === norm(l.nombre));
+  const porContar = (id) => anotadas(id).filter((l) => !contada(id, l)).length;
+  const respondio = (id) => R.coincide[id] === true || (R.coincide[id] === false && (R.difs[id] || []).length > 0);
+  const nombrePapel = (id, i) => { const r = reg(id); return `${i + 1}. ${TIPOS[r.tipo]}${r.provId ? " de " + h(corto(provDe(r.provId).nombre)) : ""}`; };
+  const tabs = e.comps.map((id, i) => { const r = reg(id), pc = porContar(id), n = R.lineas.filter((l) => l.comp === id).reduce((a, l) => a + sumaCant(l), 0);
+    const chip = respondio(id) ? '<span class="chip verde sinpunto" style="height:18px;font-size:9px">Listo</span>' : pc ? `<span class="chip ambar sinpunto" style="height:18px;font-size:9px">${pc===1?"Falta contar 1 prenda":`Faltan contar ${pc} prendas`}</span>` : '<span class="chip ambar sinpunto" style="height:18px;font-size:9px">¿Llegó todo?</span>';
+    return `<button class="pp" aria-current="${R.activo===id}" data-a="rec-comp" data-v="${id}"><span class="mini">${papelHTML(r,true)}</span><span><b>${nombrePapel(id, i)}</b><small>${n} contadas</small></span>${chip}</button>`; }).join("");
+  const r = reg(R.activo), an = anotadas(R.activo), lineas = R.lineas.filter((l) => l.comp === R.activo);
+  const sw = (hex) => `<span class="mini" data-color-dato style="background:${hex || "var(--hueso)"};color:var(--taupe)">${ic("percha")}</span>`;
+  const detalle = (x) => Object.entries(x.cant).filter(([, v]) => v).map(([k, v]) => `${k.replace("|", " ")}: ${v}`).join(" · ");
+  const filasAnotadas = an.map((l) => { const x = contada(R.activo, l), p = CATALOGO.find((c) => norm(c.nombre) === norm(l.nombre));
+    const derecha = x ? `<span class="u">${sumaCant(x)}<small>contadas</small></span>${R.cerrada ? "<span></span>" : `<button class="btn btn-enlace" data-a="rec-editar" data-v="${x.id}">Cambiar</button>`}`
+      : R.cerrada ? "<span></span><span></span>" : p ? `<span></span><button class="btn btn-primario" style="height:36px" data-a="rec-elegir" data-v="${p.id}">Contar</button>`
+      : `<span></span><button class="btn btn-primario" style="height:36px" data-a="rec-crear-de" data-v="${(r.lineas || []).indexOf(l)}">Crear y contar</button>`;
+    return `<div class="linea">${x ? miniPrenda(x.nuevo || prod(x.prod)) : sw(l.color && l.color[1])}<div><b>${h(l.nombre)}${!x && !p ? ' <span class="chip pizarra sinpunto" style="height:18px;font-size:9px">Prenda nueva</span>' : ""}</b><small>${x ? detalle(x) : `${nom} compró ${l.cant} a ${soles(l.costo)} cada una`}</small></div>${derecha}</div>`; }).join("");
+  const extras = lineas.filter((x) => !an.some((l) => norm(l.nombre) === norm((x.nuevo || prod(x.prod)).nombre)));
+  const filasExtra = extras.map((x) => { const p = x.nuevo || prod(x.prod);
+    return `<div class="linea">${miniPrenda(p)}<div><b>${h(p.nombre)} <span class="chip pizarra sinpunto" style="height:18px;font-size:9px">Llegó además</span></b><small>${detalle(x)}</small></div><span class="u">${sumaCant(x)}<small>contadas</small></span>${R.cerrada ? "<span></span>" : `<button class="btn btn-enlace" data-a="rec-editar" data-v="${x.id}">Cambiar</button>`}</div>`; }).join("");
   const q = R.q || "";
-  const sugs = q.length >= 2 ? CATALOGO.filter((p)=>p.nombre.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").includes(q.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,""))).slice(0,4) : [];
-  const lista = q.length >= 2 ? `<div class="sugerencias">${sugs.map((p)=>`<button class="sug" data-a="rec-elegir" data-v="${p.id}">${miniPrenda(p)}<span><b>${h(p.nombre)}</b><small>${p.cat} · ${p.colores.length} ${p.colores.length===1?"color":"colores"} · ${p.tallas.join(" ")}</small></span></button>`).join("")}
+  const sugs = q.length >= 2 ? CATALOGO.filter((p) => norm(p.nombre).includes(norm(q))).slice(0, 4) : [];
+  const lista = q.length >= 2 ? `<div class="sugerencias">${sugs.map((p)=>`<button class="sug" data-a="rec-elegir" data-v="${p.id}">${miniPrenda(p)}<span><b>${h(p.nombre)}</b><small>${p.cat} · ${p.colores.length} ${p.colores.length===1?"color":"colores"} · tallas ${p.tallas.join(", ")}</small></span></button>`).join("")}
     <button class="sug crear" data-a="rec-crear">${ic("mas")}<span><b>No está: crear «${h(q)}» aquí mismo</b><small style="color:var(--t60);font-weight:400">Con la ficha completa, sin ir a Catálogo</small></span></button></div>` : "";
-  const total = R.lineas.reduce((a,l)=>a+sumaCant(l),0);
-  const todos = e.comps.every((id)=>R.coincide[id]!==undefined && R.coincide[id]!==null && (R.coincide[id] || (R.difs[id]||[]).length));
-  const coincide = R.coincide[R.activo];
-  const difs = R.difs[R.activo] || [];
+  const buscar = R.cerrada ? "" : (R.buscar || !an.length) ? `<div class="buscar">${ic("lupa","lupa")}<input class="caja" placeholder="Busca la prenda por su nombre" value="${h(q)}" data-in="rec-q" autocomplete="off">${lista}</div>`
+    : `<div style="padding:12px 18px"><button class="btn btn-enlace" data-a="rec-buscar">¿Llegó una prenda que no está en la lista? Búscala</button></div>`;
+  const listoContar = an.length ? porContar(R.activo) === 0 : lineas.length > 0;
+  const coincide = R.coincide[R.activo], difs = R.difs[R.activo] || [];
   const difHTML = difs.map((d,i)=>`<div class="dif"><span><b>${d.que==="falta"?"Faltan":"Sobran"} ${d.n} · ${h(d.prenda)}</b><br><small style="color:var(--t60)">${{novino:"No vino",perdio:"Se perdió en el camino",despues:"Llega después",regalo:"Vino de más"}[d.causa]}</small></span><span></span>${R.cerrada?"":`<button class="btn btn-enlace" data-a="dif-quitar" data-v="${i}">Quitar</button>`}</div>`).join("");
   const formDif = S.formDif;
-  const prendasLinea = [...new Set(lineas.map((l)=>(l.nuevo||prod(l.prod)).nombre))];
+  const prendasLinea = [...new Set(an.map((l) => l.nombre).concat(lineas.map((l) => (l.nuevo || prod(l.prod)).nombre)))];
   const otra = coincide===false && !R.cerrada && difs.length && !S.formDifAbierto ? `<div><button class="btn btn-enlace" data-a="fd-abrir">Anotar otra diferencia</button></div>` : "";
   const fd = coincide===false && !R.cerrada && (!difs.length || S.formDifAbierto) ? `<div style="display:flex;flex-direction:column;gap:10px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:12px">
-      <div class="segmento" role="group">${[["falta","Falta"],["sobra","Sobra"]].map(([k,n])=>`<button aria-pressed="${formDif.que===k}" data-a="fd-que" data-v="${k}">${n}</button>`).join("")}</div>
-      <div class="opciones">${(prendasLinea.length?prendasLinea:["Una prenda que no registré"]).concat(prendasLinea.length?["Otra prenda"]:[]).map((p)=>`<button class="op" aria-pressed="${formDif.prenda===p}" data-a="fd-prenda" data-v="${h(p)}">${h(p)}</button>`).join("")}</div>
+      <div class="segmento" role="group">${[["falta","Faltan prendas"],["sobra","Sobran prendas"]].map(([k,n])=>`<button aria-pressed="${formDif.que===k}" data-a="fd-que" data-v="${k}">${n}</button>`).join("")}</div>
+      <div class="campo"><span class="campo-et">¿Cuál?</span><div class="opciones">${prendasLinea.concat(["Otra prenda"]).map((p)=>`<button class="op" aria-pressed="${formDif.prenda===p}" data-a="fd-prenda" data-v="${h(p)}">${h(p)}</button>`).join("")}</div></div>
       <div style="display:flex;gap:10px;align-items:center"><span>¿Cuántas?</span><span class="cant"><button data-a="fd-n" data-v="-1" aria-label="Una menos">${ic("menos")}</button><span>${formDif.n}</span><button data-a="fd-n" data-v="1" aria-label="Una más">${ic("mas")}</button></span></div>
       <div class="campo"><span class="campo-et">¿Qué crees que pasó?</span><div class="opciones">${(formDif.que==="falta"?[["novino","No vino"],["perdio","Se perdió en el camino"],["despues","Llega después"]]:[["regalo","Vino de más"]]).map(([k,n])=>`<button class="op" aria-pressed="${formDif.causa===k}" data-a="fd-causa" data-v="${k}">${n}</button>`).join("")}</div></div>
       <div><button class="btn btn-secundario" ${formDif.prenda&&formDif.causa?"":"disabled"} data-a="dif-agregar">Anotar</button></div></div>` : "";
-  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><button class="volver" data-a="rec-cerrar-vista" aria-label="Volver a la lista">${ic("atras")}</button><div><b>Envío de ${per.nombre}</b><br><small style="color:var(--t60)">${e.comps.length} papeles · ${e.bultos} bultos · salió hoy ${e.hora}</small></div></div>
-  ${R.cerrada?`<div class="sello" style="margin-bottom:14px">${ic("sello")}<div><b>Recibido: ${total} prendas entraron a ${TIENDAS[e.tienda]} con su costo</b><small>Ya se pueden vender. Compras completa el proveedor y el número del papel (paso 4).</small></div></div>`:""}
+  const paso2 = !listoContar ? `<div class="vacio" style="padding:16px 18px;text-align:left">Primero cuenta todo lo del paso 1.</div>`
+    : `<div class="coincide" style="border-top:0"><div class="segmento" role="group">${[[true,"Sí, llegó todo"],[false,"No, falta o sobra algo"]].map(([v,n])=>`<button aria-pressed="${coincide===v}" ${R.cerrada?"disabled":""} data-a="rec-coincide" data-v="${v}">${n}</button>`).join("")}</div>${difHTML}${otra}${fd}</div>
+      <div style="padding:0 0 4px">${coincide==null ? avanceHTML(veredictoPapel(R.activo, lineas, difs)) : veredictoHTML(veredictoPapel(R.activo, lineas, difs), "Compras decide quién responde.")}</div>`;
+  const total = R.lineas.reduce((a, l) => a + sumaCant(l), 0), pendientes = e.comps.filter((id) => !respondio(id));
+  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><button class="volver" data-a="rec-cerrar-vista" aria-label="Volver a la lista">${ic("atras")}</button><div><b>Fardo de ${per.nombre}</b><br><small style="color:var(--t60)">${e.comps.length} ${e.comps.length===1?"compra":"compras"} · ${e.bultos} ${e.bultos===1?"fardo":"fardos"} · salió hoy ${e.hora}. Abre todos los fardos: no importa en cuál vino cada prenda.</small></div></div>
+  ${R.cerrada?`<div class="sello" style="margin-bottom:14px">${ic("sello")}<div><b>Listo: ${total} prendas entraron a ${TIENDAS[e.tienda]}</b><small>Ya se pueden vender. Compras revisa la boleta o factura. ¿Te equivocaste? <button class="btn btn-enlace" data-a="rec-reabrir">Corregir el conteo</button></small></div></div>`:""}
   <div class="recibir"><div class="tarjeta visor-papeles"><div class="pestanas-papel">${tabs}</div><div class="mesa"><button data-a="foto-grande" data-v="${r.id}" aria-label="Ver la foto en grande" style="width:100%;display:grid;place-items:center">${papelHTML(r)}</button></div></div>
-  <div class="tarjeta"><div class="tarjeta-cab"><span class="tit-sec">Lo que llegó de este papel <span class="globito">${lineas.reduce((a,l)=>a+sumaCant(l),0)}</span></span><small style="color:var(--t60)">${TIPOS[r.tipo]} · ${h(r.papel?.num||"")}</small></div>
-    ${anotadoHTML(r, R, per)}
-    ${R.cerrada?"":`<div class="buscar">${ic("lupa","lupa")}<input class="caja" placeholder="Busca la prenda por nombre o escanea su código" value="${h(q)}" data-in="rec-q" autocomplete="off">${lista}</div>`}
-    <div class="lineas">${filas || `<div class="vacio"><b>Todavía no registras nada de este papel</b>Busca la primera prenda arriba. Si no existe, la creas ahí mismo.</div>`}</div>
-    <div class="coincide"><span class="campo-et">¿Lo que llegó coincide con el papel?</span>
-      <div class="segmento" role="group">${[[true,"Sí, coincide"],[false,"No, falta o sobra algo"]].map(([v,n])=>`<button aria-pressed="${coincide===v}" ${R.cerrada?"disabled":""} data-a="rec-coincide" data-v="${v}">${n}</button>`).join("")}</div>
-      ${difHTML}${otra}${fd}</div>
-    ${!lineas.length ? "" : coincide==null ? avanceHTML(veredictoPapel(R.activo, lineas, difs)) : veredictoHTML(veredictoPapel(R.activo, lineas, difs), "En el paso 4, Compras decide quién responde por lo que no cuadra.")}</div></div>
-  ${R.cerrada?"":`<div class="pie-acciones" style="background:transparent;border-top:0"><span class="izq" style="color:var(--t60);font-size:13px;align-self:center">${todos?"Listo para terminar":"Falta decir si coincide en cada papel"}</span><button class="btn btn-primario" ${todos&&total?"":"disabled"} data-a="rec-terminar">Terminar: sumar ${total} prendas al stock</button></div>`}`;
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="tarjeta"><div class="tarjeta-cab"><span class="tit-sec">1 · Cuenta lo que llegó</span><small style="color:var(--t60)">${an.length ? `${nom} anotó ${an.length} ${an.length===1?"prenda":"prendas"} para ${TIENDAS[e.tienda]}` : "Busca cada prenda que llegó"}</small></div>
+      <div class="lineas">${filasAnotadas}${filasExtra}${!an.length && !lineas.length ? `<div class="vacio"><b>Todavía no cuentas nada</b>Busca la primera prenda. Si no existe, la creas ahí mismo.</div>` : ""}</div>${buscar}</div>
+    <div class="tarjeta"><div class="tarjeta-cab"><span class="tit-sec">2 · ¿Llegó todo lo de ${TIPOS[r.tipo].toLowerCase() === "sin papel" ? "esta compra" : "la " + TIPOS[r.tipo].toLowerCase()}?</span></div>${paso2}</div></div></div>
+  ${R.cerrada?"":`<div class="pie-acciones" style="background:transparent;border-top:0"><span class="izq" style="color:var(--t60);font-size:13px;align-self:center">${pendientes.length ? `Te falta: ${pendientes.map((id) => nombrePapel(id, e.comps.indexOf(id))).join(" y ")}` : `Contaste ${total} prendas en ${e.comps.length} ${e.comps.length===1?"compra":"compras"}`}</span><button class="btn btn-primario" ${!pendientes.length&&total?"":"disabled"} data-a="rec-terminar">${pendientes.length ? "3 · Ya conté todo" : `3 · Ya conté todo: ${total} prendas a la tienda`}</button></div>`}`;
 }
 function hojaSumar() {
   const m = S.modal, p = prod(m.prod);
@@ -959,7 +1005,7 @@ function hojaSumar() {
       <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><input class="caja caja-monto" style="max-width:180px" inputmode="decimal" placeholder="0.00" value="${h(m.costo||"")}" data-in="m-costo">${tot&&Number(m.costo)?`<span style="color:var(--t60)">${tot} × ${soles(m.costo)} = <b style="color:var(--tinta)">${soles(tot*m.costo)}</b></span>`:""}</div>
       ${papelEnTexto(reg(S.rec[S.abiertoEnvio].activo))}</div>
     <div class="nota">Suma stock en ${TIENDAS[S.tienda]} con este costo. El precio de venta no se toca aquí.</div></div>
-    <div class="pie-acciones">${m.linea?`<button class="btn btn-secundario izq" style="border-color:var(--rojo-profundo);color:var(--rojo-profundo)" data-a="m-quitar">Quitar de la lista</button>`:""}<button class="btn btn-secundario" data-a="cerrar">Cancelar</button><button class="btn btn-primario" ${tot&&Number(m.costo)>0?"":"disabled"} data-a="m-sumar">Sumar ${tot} ${tot===1?"prenda":"prendas"}</button></div></div>`;
+    <div class="pie-acciones">${m.linea?`<button class="btn btn-secundario izq" style="border-color:var(--rojo-profundo);color:var(--rojo-profundo)" data-a="m-quitar">Quitar de la lista</button>`:""}<button class="btn btn-secundario" data-a="cerrar">Cancelar</button><button class="btn btn-primario" ${tot&&Number(m.costo)>0?"":"disabled"} data-a="m-sumar">Listo: ${tot} ${tot===1?"contada":"contadas"}</button></div></div>`;
 }
 /* Crear prenda nueva con la ficha completa (los 4 pasos de Catálogo ▸ Nuevo producto) */
 function hojaCrear() {
@@ -994,7 +1040,7 @@ function hojaCrear() {
     <div class="crear"><nav class="puntos">${puntos}</nav><div class="cuerpo-hoja" style="margin-top:0">${cont}</div>
       <aside class="lado-papel"><small>Míralo en el papel</small><div style="display:grid;place-items:center">${papelHTML(r)}</div></aside></div>
     <div class="pie-acciones">${m.p>0?`<button class="volver izq" data-a="c-ir" data-v="${m.p-1}" aria-label="Volver al paso anterior">${ic("atras")}</button>`:""}<button class="btn btn-secundario" data-a="cerrar">Cancelar</button>
-      ${m.p<3?`<button class="btn btn-primario" ${okPaso[m.p]?"":"disabled"} data-a="c-ir" data-v="${m.p+1}">Siguiente ${ic("flecha")}</button>`:`<button class="btn btn-primario" ${okPaso.every(Boolean)?"":"disabled"} data-a="c-crear">Crear y sumar ${Object.values(m.cant).reduce((a,b)=>a+b,0)} prendas</button>`}</div></div>`;
+      ${m.p<3?`<button class="btn btn-primario" ${okPaso[m.p]?"":"disabled"} data-a="c-ir" data-v="${m.p+1}">Siguiente ${ic("flecha")}</button>`:`<button class="btn btn-primario" ${okPaso.every(Boolean)?"":"disabled"} data-a="c-crear">Crear y contar ${Object.values(m.cant).reduce((a,b)=>a+b,0)} prendas</button>`}</div></div>`;
 }
 
 /* ======================= Veredicto (pasos 3 y 4) ======================= */
@@ -1003,7 +1049,7 @@ function casoDe(pagado, llegadoVal, faltaVal, hayDif, completo) {
   const esperado = llegadoVal + faltaVal;
   const plata = Math.abs(esperado - pagado) < 0.5;
   if (!hayDif && plata) return { k:"ok", c:"var(--verde)", t:"Cuadra todo", p:"Llegó todo lo del papel y la plata coincide con lo que se pagó." };
-  if (!hayDif && !plata) return { k:"plata", c:"var(--ambar)", t:"Llegó todo, pero la plata no cuadra", p:`Con estos costos, el papel vale ${soles(esperado)} y se pagó ${soles(pagado)}: ${esperado<pagado?"se pagó "+soles(pagado-esperado)+" de más":"faltan "+soles(esperado-pagado)}. Revisa los costos o el monto que anotó la compradora.` };
+  if (!hayDif && !plata) return { k:"plata", c:"var(--ambar)", t:"Llegó todo, pero la plata no cuadra", p:`Con estos costos, lo que llegó vale ${soles(esperado)} y se pagaron ${soles(pagado)}: hay ${soles(Math.abs(pagado-esperado))} de diferencia. Revisen juntos los costos y la boleta.` };
   if (hayDif && plata) return { k:"cantidad", c:"var(--pizarra)", t:"La plata cuadra, pero faltan prendas", p:`Lo que llegó más lo que falta (${soles(faltaVal)}) suma lo que se pagó.` };
   return { k:"ninguno", c:"var(--rojo-profundo)", t:"No cuadran ni las prendas ni la plata", p:`Con lo que falta, el papel valdría ${soles(esperado)} y se pagó ${soles(pagado)}. Revisa los costos primero.` };
 }
@@ -1017,12 +1063,12 @@ function veredictoPapel(id, ls, difs) {
 }
 function veredictoHTML(v, pie, extra) {
   const { r, llegado, falta, completo, caso } = v;
-  return `<div class="veredicto" style="--c:${caso.c};margin-top:14px"><b>${caso.t}</b><div class="balanza"><div class="lado-b"><span>Se pagó</span><strong>${soles(r.monto)}</strong></div><span>${caso.k==="ok"?"=":"vs"}</span><div class="lado-b"><span>Llegó${falta?" + falta":""}</span><strong>${completo?soles(llegado+falta):"—"}</strong></div></div><p>${caso.p}${pie&&caso.k!=="ok"&&caso.k!=="incompleto"?" "+pie:""}</p>${extra||""}</div>`;
+  return `<div class="veredicto" style="--c:${caso.c};margin-top:14px"><b>${caso.t}</b><div class="balanza"><div class="lado-b"><span>Se pagó</span><strong>${soles(r.monto)}</strong></div><span>${caso.k==="ok"?"=":"vs"}</span><div class="lado-b"><span>${falta?"Lo que llegó + lo que falta":"Lo que llegó"}</span><strong>${completo?soles(llegado+falta):"—"}</strong></div></div><p>${caso.p}${pie&&caso.k!=="ok"&&caso.k!=="incompleto"?" "+pie:""}</p>${extra||""}</div>`;
 }
 /* Mientras registra: cuánto lleva contra lo que se pagó, sin adelantar un veredicto */
 function avanceHTML(v) {
   const pct = Math.min(100, Math.round(v.llegado / v.r.monto * 100));
-  return `<div class="veredicto" style="--c:var(--taupe);margin-top:14px"><b>Llevas ${soles(v.llegado)} de ${soles(v.r.monto)}</b><div class="saldo" style="background:none;color:inherit;padding:0;margin:0"><div class="barra" style="background:var(--sand)"><i style="width:${pct}%;background:var(--tinta)"></i></div></div><p>Cuando termines de registrar lo de este papel, dime si coincide y te digo si cuadra la plata.</p></div>`;
+  return `<div class="veredicto" style="--c:var(--taupe);margin-top:14px"><b>Llevas ${soles(v.llegado)} de ${soles(v.r.monto)}</b><div class="saldo" style="background:none;color:inherit;padding:0;margin:0"><div class="barra" style="background:var(--sand)"><i style="width:${pct}%;background:var(--tinta)"></i></div></div><p>Cuando termines de contar, di si llegó todo y aquí verás si cuadra la plata.</p></div>`;
 }
 /* Lo que dice el papel, en texto, para no tener que cerrar la hoja y mirar la foto */
 function papelEnTexto(r) {
@@ -1041,8 +1087,8 @@ function recibidoParaCostear() {
   return R && R.cerrada ? { ejemplo:false, lineas:R.lineas, difs:R.difs } : { ejemplo:true, ...EJEMPLO_RECIBIDO };
 }
 const DECIDIR = {
-  plata:[["prov","El proveedor nos debe la diferencia"],["error","Se anotó mal el monto: corregir"],["cayla","Lo asume CAYLA"]],
-  cantidad:[["prov","El proveedor nos debe lo que falta"],["perdida","Se perdió: lo asume CAYLA (pérdida)"],["despues","Llega después: dejarlo pendiente"]],
+  plata:[["prov","Reclamar la diferencia al proveedor"],["error","El monto se anotó mal: corregirlo"],["cayla","CAYLA pone la diferencia"]],
+  cantidad:[["prov","Reclamar al proveedor lo que falta"],["despues","Esperar: llega después"],["perdida","Se perdió: CAYLA lo asume"]],
 };
 DECIDIR.ninguno = DECIDIR.cantidad;
 /* La plata que anotaron las compradoras, para confirmar */
@@ -1054,12 +1100,12 @@ function plataPorConfirmarHTML() {
     const corrige = S.corrigiendo === r.id;
     const acciones = r.estado === "pendiente"
       ? (corrige ? `<span style="display:flex;gap:8px;align-items:center"><input class="caja" style="width:120px" inputmode="decimal" value="${h(S.corrVal)}" data-in="ing-monto"><button class="btn btn-primario" data-a="ing-guardar" data-v="${r.id}">Guardar</button></span>`
-        : `<span style="display:flex;gap:8px"><button class="btn btn-secundario" data-a="ing-corregir" data-v="${r.id}">Corregir</button><button class="btn btn-primario" data-a="ing-confirmar" data-v="${r.id}">${ic("check")}Confirmar</button></span>`)
-      : `<span class="chip verde">${r.montoAnotado ? `Corregida (anotó ${soles(r.montoAnotado)})` : "Confirmada"}</span>`;
+        : `<span style="display:flex;gap:8px"><button class="btn btn-secundario" data-a="ing-corregir" data-v="${r.id}">Cambiar el monto</button><button class="btn btn-primario" data-a="ing-confirmar" data-v="${r.id}">${ic("check")}Confirmar</button></span>`)
+      : `<span class="chip verde">${r.montoAnotado ? `Monto cambiado (anotó ${soles(r.montoAnotado)})` : "Confirmada"}</span>`;
     return `<div class="linea" style="grid-template-columns:64px minmax(0,1fr) auto"><button data-a="foto-grande" data-v="${r.id}" aria-label="Ver la foto" style="width:56px;height:64px;border-radius:8px;overflow:hidden;background:var(--hueso);display:grid;place-items:center;color:var(--taupe)">${voucherHTML(r,true)}</button>
       <div><b>${per.nombre} anotó ${soles(r.monto)}</b><small>${COMO[r.como]} · hoy ${r.hora}${r.foto?" · con foto":" · sin foto"}</small></div>${acciones}</div>`;
   }).join("");
-  return `<div class="tarjeta" style="margin:18px 0 26px"><div class="tarjeta-cab"><span class="tit-sec">Plata por confirmar <span class="globito ${pend?"pide":""}">${pend}</span></span><small style="color:var(--t60)">Lo que anotaron las compradoras que les llegó</small></div>
+  return `<div class="tarjeta" style="margin:18px 0 26px"><div class="tarjeta-cab"><span class="tit-sec">1 · Plata que anotaron las compradoras <span class="globito ${pend?"pide":""}">${pend}</span></span><small style="color:var(--t60)">Mira el voucher y confírmala</small></div>
     <div class="lineas">${filas || `<div class="vacio"><b>Nada por confirmar</b>Cuando una compradora anote plata, aparece aquí con su voucher.</div>`}</div></div>`;
 }
 function escena4() {
@@ -1073,25 +1119,29 @@ function escena4() {
     casosVistos.add(caso.k);
     const P = S.papel[id] ||= { prov: provDe(r.provId)?.nombre || null, serie:"", numero:"" };
     const pideNum = r.tipo==="factura" || r.tipo==="boleta";
-    const listo = Boolean(P.prov) && (!pideNum || (P.serie && P.numero)) && (caso.k==="ok" || Boolean(S.decision[id]));
+    const pierde = caso.k === "plata" ? Math.abs(v.llegado + v.falta - r.monto) : v.falta;
+    const porConfirmarPerdida = S.confirmarPerdida?.[id];
+    const listo = Boolean(P.prov) && (!pideNum || (P.serie && P.numero)) && (caso.k==="ok" || (Boolean(S.decision[id]) && !porConfirmarPerdida));
     if (listo) listos++;
     const hecho = S.cerradoCostos;
     const provChips = PROVEEDORES.map((n)=>`<button class="op" aria-pressed="${P.prov===n}" data-a="papel-prov" data-v="${id}|${h(n)}" ${hecho?"disabled":""}>${h(n)}</button>`).join("");
     const ejSerie = r.tipo==="factura" ? "F001" : "B001"; // sugerir-fijo: la serie de ejemplo sigue al tipo de papel (ADR-0290)
     const numero = pideNum
-      ? `<div class="campos-dos"><div class="campo"><span class="campo-et">Serie</span><input class="caja" maxlength="8" placeholder="Ej. ${ejSerie}" value="${h(P.serie||"")}" data-in="papel-serie" data-v="${id}" ${hecho?"disabled":""}></div><div class="campo"><span class="campo-et">Número</span><input class="caja" inputmode="numeric" maxlength="12" placeholder="Como dice el papel" value="${h(P.numero||"")}" data-in="papel-numero" data-v="${id}" ${hecho?"disabled":""}></div></div>`
+      ? `<div class="campos-dos"><div class="campo"><span class="campo-et">Serie <em>· como sale en la foto</em></span><input class="caja" maxlength="8" placeholder="Ej. ${ejSerie}" value="${h(P.serie||"")}" data-in="papel-serie" data-v="${id}" ${hecho?"disabled":""}></div><div class="campo"><span class="campo-et">Número</span><input class="caja" inputmode="numeric" maxlength="12" placeholder="Como dice el papel" value="${h(P.numero||"")}" data-in="papel-numero" data-v="${id}" ${hecho?"disabled":""}></div></div>`
       : r.tipo==="nota" ? `<div class="campo"><span class="campo-et">Número <em>· si lo tiene</em></span><input class="caja" style="max-width:220px" placeholder="Como dice el papel" value="${h(P.numero||"")}" data-in="papel-numero" data-v="${id}" ${hecho?"disabled":""}></div>`
       : `<div class="nota">Sin papel: se guarda con un número interno (SC-000124).</div>`;
     const filas = ls.map((l)=>{ const p=l.nuevo||prod(l.prod), u=sumaCant(l), f=difs.filter(d=>d.prenda===p.nombre&&d.que==="falta").reduce((a,d)=>a+d.n,0);
-      return `<tr><td><div class="persona">${miniPrenda(p)}<div><b>${h(p.nombre)}</b>${l.nuevo?' <span class="chip pizarra sinpunto" style="height:18px;font-size:9px">Nueva</span>':""}</div></div></td>
+      return `<tr><td><div class="persona">${miniPrenda(p)}<div><b>${h(p.nombre)}</b>${l.nuevo?' <span class="chip pizarra sinpunto" style="height:18px;font-size:9px">Prenda nueva</span>':""}</div></div></td>
         <td class="num">${u}${f?`<br><small style="color:var(--ambar)">faltan ${f}</small>`:""}</td><td class="num">${soles(l.costo||0)}</td><td class="num ocultar-cel">${soles(u*(l.costo||0))}</td></tr>`; }).join("");
-    const opciones = DECIDIR[caso.k] ? `<div class="campo"><span class="campo-et">¿Quién responde?</span><div class="opciones">${DECIDIR[caso.k].map(([k,n])=>`<button class="op" aria-pressed="${S.decision[id]===k}" data-a="decidir" data-v="${id}|${k}" ${hecho?"disabled":""}>${n}</button>`).join("")}</div></div>` : "";
+    const opciones = DECIDIR[caso.k] ? `<div class="campo"><span class="campo-et">¿Qué hacemos?</span><div class="opciones">${DECIDIR[caso.k].map(([k,n])=>`<button class="op" aria-pressed="${S.decision[id]===k}" data-a="decidir" data-v="${id}|${k}" ${hecho?"disabled":""}>${n}</button>`).join("")}</div>
+      ${porConfirmarPerdida ? `<div class="tarea" style="margin-top:6px"><span><b>CAYLA pierde ${soles(pierde)}</b><small>Nadie se lo reclama al proveedor. ¿Seguro?</small></span><span style="display:flex;gap:6px;margin-left:auto"><button class="btn btn-secundario" style="height:34px" data-a="decidir-no" data-v="${id}">No</button><button class="btn btn-primario" style="height:34px" data-a="decidir-ok" data-v="${id}">Sí, CAYLA lo asume</button></span></div>` : ""}</div>` : "";
     const chip = hecho ? '<span class="chip verde">Comprobante</span>' : listo ? '<span class="chip verde">Listo</span>' : '<span class="chip ambar">Por completar</span>';
     return `<div class="tarjeta" style="margin-bottom:14px"><div class="tarjeta-cab"><span class="tit-sec">${TIPOS[r.tipo]} de ${soles(r.monto)}</span><span style="display:flex;gap:10px;align-items:center;color:var(--t60);font-size:12.5px">Pagado del fondo de Marisol · ${r.hora} ${chip}</span></div>
       <div class="comp"><div class="mesa-chica"><button data-a="foto-grande" data-v="${id}" aria-label="Ver la foto en grande">${papelHTML(r)}</button></div>
       <div style="padding:16px 18px;display:flex;flex-direction:column;gap:14px">
-        <div class="campo ${!P.prov&&!hecho?"encendido":""}"><span class="campo-et">Proveedor <em>· ${r.provId?"lo eligió la compradora; corrígelo si la foto dice otro":"míralo en la foto"}</em></span><div class="opciones">${provChips}</div>
-          <input class="caja" style="max-width:340px" placeholder="¿No está? Escribe su nombre para registrarlo" value="${h(P.prov && !PROVEEDORES.includes(P.prov) ? P.prov : "")}" data-in="papel-prov-nuevo" data-v="${id}" ${hecho?"disabled":""}></div>
+        ${P.prov && !P.cambiar ? `<div class="campo"><span class="campo-et">Proveedor</span><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><b>${h(P.prov)}</b>${r.provId?`<small style="color:var(--t60)">lo eligió ${PERSONAS[salida(r.salida).persona].nombre.split(" ")[0]} al comprar</small>`:""}${hecho?"":`<button class="btn btn-enlace" data-a="papel-cambiar" data-v="${id}">No es este: cambiar</button>`}</div></div>`
+          : `<div class="campo ${hecho?"":"encendido"}"><span class="campo-et">Proveedor <em>· míralo en la foto</em></span><div class="opciones">${provChips}</div>
+          <input class="caja" style="max-width:340px" placeholder="¿No está? Escribe su nombre para registrarlo" value="${h(P.prov && !PROVEEDORES.includes(P.prov) ? P.prov : "")}" data-in="papel-prov-nuevo" data-v="${id}" ${hecho?"disabled":""}></div>`}
         ${numero}
         <div class="matriz"><table><thead><tr><th>Lo que recibió la tienda</th><th class="num">Llegaron</th><th class="num">Costo c/u</th><th class="num ocultar-cel">Subtotal</th></tr></thead><tbody>${filas}</tbody></table></div>
         ${veredictoHTML(v, "", opciones).replace('margin-top:14px','margin:0')}</div></div></div>`;
@@ -1100,22 +1150,20 @@ function escena4() {
   const porCompletar = c.compras - (S.cerradoCostos ? env.comps.reduce((a,id)=>a+reg(id).monto,0) : 0);
   const casos = [["ok","Cuadra todo","Prendas y plata"],["plata","Cuadran las prendas","pero no la plata"],["cantidad","Cuadra la plata","pero faltan prendas"],["ninguno","No cuadra nada","ni prendas ni plata"]].map(([k,t,d])=>`<div class="caso ${casosVistos.has(k)?"activo":""}"><b>${t}</b>${d}</div>`).join("");
   const resumen = env.comps.map((id)=>{ const d=S.decision[id]; const P=S.papel[id]||{}; return d==="prov"?`lo que no cuadró quedó en «Nos debe» de ${h(P.prov||"ese proveedor")}`:d==="perdida"?"lo que falta quedó como pérdida":d==="despues"?"lo que falta quedó pendiente de llegar":d==="error"?"el monto se corrigió":d==="cayla"?"la diferencia la asume CAYLA":""; }).filter(Boolean);
-  return `<div class="quien">${ic("recibo")}<span>La usa <b>quien tiene el módulo Compras</b>, en el escritorio. Confirma la plata que anotaron las compradoras y, cuando la tienda terminó de recibir, copia de la foto el proveedor y el número (los costos ya los puso la tienda).</span></div>
-  <div class="erp"><div class="erp-barra"><i></i><i></i><i></i><span>Compras ▸ Rondas de compra</span></div><div class="erp-cuerpo">
+  return `<div class="quien">${ic("recibo")}<span>La usa <b>quien tiene el módulo Compras</b>, en el escritorio. ${recibidoParaCostear().ejemplo ? "Como en esta maqueta todavía no terminaste el paso 3, aquí se ve como si la tienda hubiera recibido todo, salvo 2 polos que no vinieron." : "La tienda ya recibió: falta copiar el número de cada boleta o factura."}</span></div>
+  <div class="erp"><div class="erp-barra"><i></i><i></i><i></i><span>Compras ▸ Plata y compras</span></div><div class="erp-cuerpo">
     <div class="cab"><div><span class="cab-sede">Compras · miércoles 22 de octubre</span><h2>Confirmar y completar</h2><p>Confirma la plata que anotaron las compradoras y completa los papeles que ya recibió la tienda.</p></div></div>
     ${plataPorConfirmarHTML()}
-    <div class="tarjeta-cab" style="padding:0;border:0;margin-bottom:6px"><span class="tit-sec">Papeles por completar <span class="globito ${S.cerradoCostos?"":"pide"}">${S.cerradoCostos?0:env.comps.length}</span></span><small style="color:var(--t60)">Envío de Marisol a Tienda AQP</small></div>
-    <p style="color:var(--t60);margin-bottom:6px">La tienda ya recibió con costos. Copia de la foto el proveedor y el número, y decide quién responde por lo que no cuadró. Al guardar, cada papel se vuelve comprobante.</p>
-    ${D.ejemplo?`<div class="nota" style="margin:16px 0">Todavía no terminaste el paso 3 en esta maqueta: esto muestra cómo queda si la tienda recibió todo con sus costos, salvo 2 polos que no vinieron.</div>`:"<div style='height:16px'></div>"}
-    <div class="casos">${casos}</div>
+    <div class="tarjeta-cab" style="padding:0;border:0;margin-bottom:6px"><span class="tit-sec">2 · Compras que ya llegaron a la tienda <span class="globito ${S.cerradoCostos?"":"pide"}">${S.cerradoCostos?0:env.comps.length}</span></span><small style="color:var(--t60)">Envío de Marisol a Tienda AQP</small></div>
+    <p style="color:var(--t60);margin-bottom:6px">Copia de la foto la serie y el número. Si algo no cuadró, elige qué hacer. Después guarda.</p>
+    <div style="height:12px"></div>
     <div class="costear"><div>${comps}
       ${S.cerradoCostos?`<div class="sello">${ic("sello")}<div><b>Listo: ${env.comps.length} comprobantes en Facturas de proveedor</b><small>Pagados desde el fondo de Marisol${resumen.length?"; "+resumen.join("; "):""}. Cada prenda sabe de qué compra viene.</small></div></div>`
-        :`<div class="pie-acciones" style="background:transparent;border-top:0;margin-top:0"><span class="izq" style="color:var(--t60);font-size:13px;align-self:center">${listos} de ${env.comps.length} papeles listos</span><button class="btn btn-primario" ${listos===env.comps.length?"":"disabled"} data-a="papeles-guardar">Guardar como comprobantes</button></div>`}</div>
-    <aside class="tarjeta rendicion" style="padding:16px 18px"><span class="tit-sec">La ronda de Marisol</span>
+        :`<div class="pie-acciones" style="background:transparent;border-top:0;margin-top:0"><span class="izq" style="color:var(--t60);font-size:13px;align-self:center">${listos} de ${env.comps.length} papeles listos</span><button class="btn btn-primario" ${listos===env.comps.length?"":"disabled"} data-a="papeles-guardar">Guardar las ${env.comps.length} compras</button></div>`}</div>
+    <aside class="tarjeta rendicion" style="padding:16px 18px"><span class="tit-sec">La plata de Marisol</span>
       <div style="margin-top:10px"><div class="r"><span>Anotó para comprar</span><b>${soles(c.total)}</b></div>${c.porConfirmar?`<div class="r"><span style="color:var(--ambar)">· por confirmar</span><span style="color:var(--ambar)">${soles(c.porConfirmar)}</span></div>`:""}<div class="r"><span>Compras (${S.regs.filter(r=>r.salida==="s1"&&r.clase==="compra").length} papeles)</span><span>${soles(c.compras)}</span></div>
       <div class="r"><span>Otros gastos</span><span>${soles(c.gastos)}</span></div><div class="r tot"><span>${c.queda<0?"CAYLA le debe":"Le queda"}</span><span>${soles(Math.abs(c.queda))}</span></div></div>
-      <div class="nota" style="margin-top:12px"><span>En Finanzas: <b style="color:var(--tinta)">${soles(porCompletar)}</b> pagados con papel por completar.</span></div>
-      <p style="color:var(--t60);font-size:12.5px;margin-top:10px">Los otros gastos van a Finanzas como gastos del viaje, no al costo de las prendas.</p></aside></div>
+</aside></div>
   </div></div>`;
 }
 
@@ -1179,7 +1227,9 @@ const ACC = {
   "tel-repetir": () => { S.tel.foto = false; },
   "tecla": (k) => { if (S.tel.tocado === false) { S.tel.monto = ""; S.tel.tocado = true; } let v = S.tel.monto || ""; if (k==="←") v = v.slice(0,-1); else if (k===".") { if (!v.includes(".")) v = (v||"0")+"."; } else if (!(v.includes(".") && v.split(".")[1].length>=2) && v.length<7) v = (v==="0"?"":v)+k; S.tel.monto = v; },
   "tel-guardar": () => { const n=Number(S.tel.monto), B=S.bor, pv=B?provDe(B.provId):null;
-    S.regs.push({ id:nuevoId("c"), salida:sid(), clase:"compra", tipo:S.tel.tipo, monto:n, hora:"15:24", provId:B?.provId, fecha:"2026-10-22", lineas:B?.lineas||[], papel:S.tel.tipo==="sin"?null:{ prov:pv?pv.nombre:"Proveedor nuevo", num:"(se lee en la foto)", lineas:(B?.lineas||[]).map((l)=>[l.nombre,l.cant,l.costo]) } }); S.bor = null; S.tel = { quien:S.tel.quien, p:"inicio"}; avisoTel(`Guardado. Te quedan ${soles(cuentaSalida(salida("s1")).queda)}`); },
+    const id = nuevoId("c");
+    S.regs.push({ id, salida:sid(), clase:"compra", tipo:S.tel.tipo, monto:n, hora:"15:24", provId:B?.provId, fecha:"2026-10-22", lineas:B?.lineas||[], papel:S.tel.tipo==="sin"?null:{ prov:pv?pv.nombre:"Proveedor nuevo", num:"(se lee en la foto)", lineas:(B?.lineas||[]).map((l)=>[l.nombre,l.cant,l.costo]) } }); S.bor = null;
+    S.tel = { quien:S.tel.quien, p:"listo", reg:id }; return; S.tel = { quien:S.tel.quien, p:"inicio"}; avisoTel(`Guardado. Te quedan ${soles(cuentaSalida(salida("s1")).queda)}`); },
   /* Registrar una compra */
   "c-empezar": () => { S.bor = null; S.tel = { quien:S.tel.quien, p:"c-prov" }; },
   "ir": (v) => irA(v),
@@ -1223,6 +1273,11 @@ const ACC = {
   "tel-gasto": (v) => { S.tel = { quien:S.tel.quien, p:"gasto-monto", gasto:v }; },
   "tel-guardar-gasto": () => { S.regs.push({ id:nuevoId("g"), salida:sid(), clase:"gasto", tipo:S.tel.gasto, monto:Number(S.tel.monto), hora:"15:24" }); S.tel = { quien:S.tel.quien, p:"inicio"}; avisoTel("Gasto guardado"); },
   "env-sel": (v) => { const s=S.tel.envio.sel; S.tel.envio.sel = s.includes(v)?s.filter(x=>x!==v):[...s,v]; },
+  "env-fardos": (v) => { const [k, d] = v.split("|"); S.tel.fardos = S.tel.fardos || {}; S.tel.fardos[k] = Math.max(1, (S.tel.fardos[k] || 1) + Number(d)); },
+  "env-mandar-t": (k) => { const ronda = sid(), comps = S.regs.filter((r) => r.salida === ronda && r.clase === "compra" && libreParaTienda(r, k)).map((r) => r.id);
+    S.envios.push({ id:nuevoId("e"), salida:ronda, tienda:k, bultos:(S.tel.fardos || {})[k] || 1, comps, hora:"15:24", estado:"camino" });
+    const quedan = S.regs.some((r) => r.salida === ronda && r.clase === "compra" && tiendasPendientes(r).length);
+    S.tel = { quien:S.tel.quien, p: quedan ? "envio" : "inicio", fardos:S.tel.fardos }; avisoTel(`Listo: ${TIENDAS[k]} ya sabe que le llega tu fardo`); },
   "env-tienda": (v) => { const e = S.tel.envio; e.tienda = v;
     e.sel = S.regs.filter((r) => r.salida === sid() && r.clase === "compra" && libreParaTienda(r, v)).map((r) => r.id); },
   "env-bultos": (v) => { S.tel.envio.bultos = Math.max(1, S.tel.envio.bultos + Number(v)); },
@@ -1233,6 +1288,8 @@ const ACC = {
   "sede": (v) => { S.tienda = v; S.abiertoEnvio = null; },
   "rec-abrir": (v) => { S.abiertoEnvio = v; recDe(v); S.formDif = { que:"falta", n:1, prenda:null, causa:null }; },
   "rec-cerrar-vista": () => { S.abiertoEnvio = null; },
+  "rec-reabrir": () => { S.rec[S.abiertoEnvio].cerrada = false; S.envios.find((x) => x.id === S.abiertoEnvio).estado = "camino"; },
+  "rec-buscar": () => { S.rec[S.abiertoEnvio].buscar = true; },
   "rec-comp": (v) => { S.rec[S.abiertoEnvio].activo = v; S.rec[S.abiertoEnvio].q = ""; S.formDif = { que:"falta", n:1, prenda:null, causa:null }; },
   "rec-elegir": (v) => { const R=S.rec[S.abiertoEnvio], l=(reg(R.activo).lineas||[]).find((x)=>norm(x.nombre)===norm(prod(v).nombre)); S.modal = { t:"sumar", prod:v, cant:{}, costo:l?String(l.costo):"" }; R.q = ""; },
   "rec-crear-de": (v) => { const R=S.rec[S.abiertoEnvio], l=reg(R.activo).lineas[Number(v)];
@@ -1257,9 +1314,12 @@ const ACC = {
   "dif-quitar": (v) => { const R=S.rec[S.abiertoEnvio]; R.difs[R.activo].splice(Number(v),1); },
   "rec-terminar": () => { const R=S.rec[S.abiertoEnvio]; R.cerrada = true; S.envios.find(e=>e.id===S.abiertoEnvio).estado = "recibido"; },
   "foto-grande": (v) => { S.modal = { t:"foto", id:v }; },
-  "decidir": (v) => { const [id,k]=v.split("|"); S.decision[id] = k; },
+  "decidir": (v) => { const [id,k]=v.split("|"); S.decision[id] = k; S.confirmarPerdida = S.confirmarPerdida || {}; S.confirmarPerdida[id] = k === "cayla" || k === "perdida"; },
+  "decidir-ok": (v) => { S.confirmarPerdida[v] = false; },
+  "decidir-no": (v) => { S.confirmarPerdida[v] = false; S.decision[v] = null; },
   "papeles-guardar": () => { S.cerradoCostos = true; },
-  "papel-prov": (v) => { const [id, nombre] = v.split("|"); (S.papel[id] ||= {}).prov = nombre; },
+  "papel-prov": (v) => { const [id, nombre] = v.split("|"); const P = (S.papel[id] ||= {}); P.prov = nombre; P.cambiar = false; },
+  "papel-cambiar": (v) => { (S.papel[v] ||= {}).cambiar = true; },
 };
 document.addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-a]"); if (!b || b.disabled) return;
