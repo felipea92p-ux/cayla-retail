@@ -6,9 +6,9 @@
 - [x] Atributos ▸ Sellos sin las campañas; «Sellos y campañas» en Nuevo producto, la matriz de la ficha, el historial y la hoja de cambios.
 - [x] Enlaces y textos de Tienda web ▸ Campañas, Configuración, Finanzas, Plan de campaña, imprimir etiquetas y guías apuntan a Catálogo ▸ Campañas.
 - [x] Ataque corto: triple clic en «Guardar campaña» crea una sola; un nombre repetido (también de un sello) se rechaza con un mensaje que ya habla de sellos y campañas. Base local restaurada a la foto.
-- [ ] **No está en producción:** pegar `20261022151000` (con tu OK) antes de fusionar la web; sin ella, `campanas` sigue en el grupo Tienda web en Roles y accesos.
+- [x] **En producción desde el 2026-10-22** (Felipe: «Pegas las migraciones necesarias y abre pr»): `20261022151000` pegada con `apply_migration` (versión `20261022204657`) y después `20261022203000` de #1260 (versión `20261022204822`). Verificado: `campanas` en Catálogo con Terminal Almacén, `etiquetas` = «Sellos», y las 10 funciones de #1260 con el mismo md5 que su archivo.
 - [x] `/api/productos/etiquetas`: crear y desactivar una campaña van por `crear_campana` y `activar_campana` (PR #1260, ADR-0476); sin ellas en la base, siguen por el camino de antes (probado en local). Ya no pide ser líder para el descuento: decide la base.
-- [ ] **Sin verificar:** el camino con `crear_campana`/`activar_campana` (no están en la base local). Orden de pegado: `20261022151000` (esta rama) y después `20261022203000` (#1260).
-- [ ] **Depende de la otra sesión:** `fn_puede_campanas` = líder, `campanas`, `campanas_web` o `etiquetas` (su migración). Sin ella, en producción solo el líder y Terminal Almacén guardan una campaña.
+- [ ] **Sin verificar en el navegador:** el camino con `crear_campana`/`activar_campana` (en producción sí están; en la base local, no).
+- [x] `fn_puede_campanas` = líder, `campanas`, `campanas_web` o `etiquetas` (#1260), en producción: Compras, Terminal de ventas y Terminal Almacén vuelven a configurar campañas.
 - [ ] **Sin verificar:** la pestaña «Datos y prendas» y el enlace al diseño web en Tienda web (la base local no tiene las migraciones de Tienda web ▸ Campañas); `guias:recorrer` (Playwright sin su navegador en esta Mac: la guía se recorrió a mano en el navegador del panel).
 - [ ] La llave única (`fn_puede_campanas`) y traer al repo lo que producción ya tiene de #1190: otra sesión (`claude/lucid-germain-95e281`).

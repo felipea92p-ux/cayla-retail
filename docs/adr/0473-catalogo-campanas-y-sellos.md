@@ -1,8 +1,8 @@
 # ADR-0473 — Catálogo ▸ Campañas, y las etiquetas de prenda se llaman «Sellos»
 
 - **Fecha:** 2026-10-22 · **Estado:** aceptado (Felipe eligió las tres respuestas el 2026-10-22). Código en la rama
-  `claude/etiquetas-atributos-98a04d`; la migración `20261022151000_campanas_del_catalogo_y_sellos.sql` está aplicada en local y
-  **no en producción**.
+  `claude/etiquetas-atributos-98a04d`; la migración `20261022151000_campanas_del_catalogo_y_sellos.sql` está **en producción desde el
+  2026-10-22** (versión `20261022204657`), seguida de `20261022203000` de #1260 (ADR-0476, versión `20261022204822`).
 - **Relacionados:** ADR-0095 (taxonomía: etiquetas), ADR-0107/0108 (descuento de campaña), ADR-0161 (módulos y roles), ADR-0293
   (descuento por etiqueta con el módulo), ADR-0306 (un módulo es una entrada del menú), ADR-0379 (Liquidación), ADR-0471 (Tienda web ▸
   Campañas), ADR-0389 (guías).
