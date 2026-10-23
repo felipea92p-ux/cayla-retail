@@ -122,8 +122,9 @@ ${poner}
 `;
 }
 
-/** Los nombres que ve el cliente, en su orden, separados por coma («-» si ninguno). */
-const VISTAS = (sede = "null") => `select coalesce(nullif((select string_agg(x ->> 'nombre', ',' order by o)
+/** Los nombres que ve el cliente como insignia, en su orden, separados por coma («-» si ninguno). Las que llevan descuento vienen marcadas
+ *  (`descuento: true`) y no cuentan: la ficha no las dibuja aparte (su descuento es el chip de la campaña, ADR-0489 y ADR-0490). */
+const VISTAS = (sede = "null") => `select coalesce(nullif((select string_agg(x ->> 'nombre', ',' order by o) filter (where x ->> 'descuento' = 'false')
     from jsonb_array_elements(retail.fn_tienda_insignias(:'pid', ${sede})) with ordinality t (x, o)), ''), '-');`;
 
 function main() {
@@ -210,20 +211,21 @@ ${VISTAS()}\nrollback;`),
     "ZZ Sin descuento",
   );
   {
-    const r = correr(`${PARTIR()}${insignia("a", "ZZ Descuento 10", { estilo: "campana", pct: 10, desde: -1, hasta: 5 })}${insignia("b", "ZZ Descuento 30", { estilo: "campana", pct: 30, desde: -1, hasta: 5 })}${insignia("c", "ZZ Descuento 20", { estilo: "campana", pct: 20, desde: -1, hasta: 5 })}
+    const r = correr(`${PARTIR()}${insignia("a", "ZZ Insignia con descuento 10", { estilo: "campana", pct: 10, desde: -1, hasta: 5 })}${insignia("b", "ZZ Insignia con descuento 30", { estilo: "campana", pct: 30, desde: -1, hasta: 5 })}${insignia("c", "ZZ Insignia con descuento 20", { estilo: "campana", pct: 20, desde: -1, hasta: 5 })}
 select concat_ws('|',
   coalesce(retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'campana' ->> 'nombre', 'sin campaña'),
-  jsonb_array_length(retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias'),
+  (select count(*) from jsonb_array_elements(retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias') x where x ->> 'descuento' = 'false'),
+  (select count(*) from jsonb_array_elements(retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias') x where x ->> 'descuento' = 'true'),
   (select count(*) from jsonb_array_elements(retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'variantes') x
-    where x -> 'campana' ->> 'nombre' = 'ZZ Descuento 30'));
+    where x -> 'campana' ->> 'nombre' = 'ZZ Insignia con descuento 30'));
 rollback;`);
     esperar(
-      "con tres insignias con descuento, la ficha trae la de 30 % —la que baja el precio— y ninguna como insignia aparte",
-      ultimaLinea(r).startsWith("ZZ Descuento 30|0|"),
+      "con tres insignias con descuento, la ficha trae la de 30 % —la que baja el precio—; las tres vienen marcadas (descuento) y ninguna cuenta como insignia aparte",
+      ultimaLinea(r).startsWith("ZZ Insignia con descuento 30|0|3|"),
       r.ok ? r.salida : r.mensaje,
     );
     // Si la campaña de 30 % llega a alguna talla, la tienda la dibuja con su chip; con más de una talla el número exacto no importa aquí.
-    esperar("…y esa campaña de 30 % llega a las tallas del modelo", r.ok && Number(ultimaLinea(r).split("|")[2]) > 0, r.ok ? r.salida : r.mensaje);
+    esperar("…y esa campaña de 30 % llega a las tallas del modelo", r.ok && Number(ultimaLinea(r).split("|")[3]) > 0, r.ok ? r.salida : r.mensaje);
   }
 
   // ---- 5. De ciertas tiendas ----
@@ -250,12 +252,12 @@ rollback;`);
   // ---- 7. La ficha las entrega, y como `tienda_web` (lo único que la llama) funciona ----
   {
     const r = correr(`${PARTIR()}${insignia("a", "ZZ En la ficha", { estilo: "campana" })}
-select jsonb_build_array(jsonb_build_object('id', :'e_a'::uuid, 'nombre', 'ZZ En la ficha')) = (retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias') as igual \\gset
+select jsonb_build_array(jsonb_build_object('id', :'e_a'::uuid, 'nombre', 'ZZ En la ficha', 'icono', null, 'imagen', null, 'descuento', false)) = (retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias') as igual \\gset
 grant tienda_web to current_user with set true;
 set local role tienda_web;
 select concat_ws('|', :'igual', (retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias' -> 0 ->> 'nombre'));
 rollback;`);
-    esperarLinea("la ficha trae {id, nombre} de la insignia, y como tienda_web también", r, "t|ZZ En la ficha");
+    esperarLinea("la ficha trae {id, nombre, icono, imagen, descuento} de la insignia (icono e imagen null: no se eligió dibujo; descuento false, ADR-0490), y como tienda_web también", r, "t|ZZ En la ficha");
   }
   {
     const r = correr(`${PARTIR()}${insignia("a", "ZZ Lo ve la tienda", { estilo: "campana" })}

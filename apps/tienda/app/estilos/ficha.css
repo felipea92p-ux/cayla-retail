@@ -56,6 +56,9 @@
 .t-chip.nuevo, .t-chip.insignia { --ins-hueco: var(--tinta); }
 .t-chip.oferta { --ins-hueco: color-mix(in srgb, var(--rojo) 13%, var(--crema)); }
 .t-chip .t-ins-img { width: 18px; height: 18px; flex: none; margin-left: -2px; }
+/* Una imagen propia (ADR-0490) trae sus colores y puede ser oscura o de fondo transparente: va sobre una baldosa crema para que se lea en las tres
+   caras del chip (la oscura de «Nuevo» y las insignias, la clara de las demás y la rojiza de la oferta). */
+.t-chip .t-ins-foto { object-fit: contain; border-radius: 4px; background: var(--crema); }
 
 .t-bloque { display: flex; flex-direction: column; gap: 10px; }
 .t-bloque-precio { gap: 6px; }

@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Plazos } from "./ayuda";
 import { claveCategoria, conFotoPrimero, soles, type Color, type PrecioTarjeta, type Prenda } from "./catalogo";
 import { grupoDe } from "./grupos";
-import { dibujoDeLaInsignia, leerInsignias, sinLasQueLaTiendaYaDice, type DibujoDeInsignia, type Insignia } from "./insignias";
+import { dibujoDeLaInsignia, leerInsigniasDeLaFicha, sinLasQueLaTiendaYaDice, type DibujoDeInsignia, type InsigniaDeLaFicha } from "./insignias";
 import type { Look } from "./looks";
 import { pctTexto } from "./portada";
 import type { TallaRapida } from "./rapido";
@@ -97,7 +97,7 @@ export type Ficha = {
   desde: boolean;
   campana: Campana | null;
   /** Las insignias de la prenda, por grupo y nombre (ya filtradas por la base: aprobadas, vigentes hoy y de esta tienda). */
-  insignias: Insignia[];
+  insignias: InsigniaDeLaFicha[];
   colores: Color[];
   tallas: Talla[];
   fotos: { url: string; color: string | null }[];
@@ -133,7 +133,7 @@ export function interpretarFicha(dato: unknown): Ficha | "no_esta" | null {
     precioFinal: p.precio_final,
     desde: p.desde,
     campana: p.campana,
-    insignias: leerInsignias(p.insignias),
+    insignias: leerInsigniasDeLaFicha(p.insignias),
     colores: p.colores,
     tallas: p.tallas.map((t) => ({ id: t.id, nombre: t.nombre ?? "Única" })),
     fotos: p.fotos,
@@ -372,9 +372,20 @@ export function campanaDeLaFicha(f: Ficha, talla: Variante | null): Campana | nu
 /** El chip de la campaña: «−12 % · Aniversario CAYLA». */
 export const chipCampana = (c: Campana | null): string | null => (c ? `−${pctTexto(c.pct)} % · ${c.nombre}` : null);
 
+/** El dibujo del chip de una campaña con descuento: el que se eligió para ESA campaña (viene en la lista de insignias de la ficha, que la trae
+ *  marcada) o, si no se eligió, el de su nombre. El mismo que le da el ERP en Catálogo ▸ Insignias (`packages/shared`). */
+export function dibujoDeLaCampana(f: Pick<Ficha, "insignias">, c: Campana): DibujoDeInsignia {
+  return dibujoDeLaInsignia(c.nombre, c.id ? f.insignias.find((i) => i.id === c.id)?.icono : null);
+}
+
+/** La imagen propia de ESA campaña (la ruta en el almacén de insignias), o null: si la tiene, el chip del descuento la dibuja en lugar del dibujo. */
+export function imagenDeLaCampana(f: Pick<Ficha, "insignias">, c: Campana): string | null {
+  return (c.id ? f.insignias.find((i) => i.id === c.id)?.imagen : null) ?? null;
+}
+
 /** Un chip de arriba del nombre: «nuevo» es el de la llegada reciente; «insignia» (la misma cara) es el de una insignia de Catálogo ▸
  *  Insignias, con su dibujo. */
-export type ChipFicha = { texto: string; tono?: "nuevo" | "insignia"; icono?: DibujoDeInsignia };
+export type ChipFicha = { texto: string; tono?: "nuevo" | "insignia"; icono?: DibujoDeInsignia; imagen?: string };
 
 /** Los chips de arriba del nombre (ADR-0408 act. 5 y ADR-0489): «Nuevo · llegó hace 4 días» (o «Nuevo», si está fijado en la Vitrina), las
  *  insignias que se le asignaron a la prenda en Catálogo ▸ Insignias —en el mismo dibujo—, y «N.º 3 en más vendidos». La insignia «Nuevo» no
@@ -382,7 +393,7 @@ export type ChipFicha = { texto: string; tono?: "nuevo" | "insignia"; icono?: Di
  *  dato. Las insignias con descuento no vienen aquí: su descuento es el chip de la campaña (`chipCampana`). */
 export function chipsDelCatalogo(
   p: { nuevo: { dias: number | null } | null; vendidos: number | null } | null,
-  insignias: readonly Pick<Insignia, "nombre">[] = [],
+  insignias: readonly { nombre: string; icono?: DibujoDeInsignia | null; imagen?: string | null; descuento?: boolean }[] = [],
 ): ChipFicha[] {
   const chips: ChipFicha[] = [];
   if (p?.nuevo) {
@@ -390,8 +401,16 @@ export function chipsDelCatalogo(
     const cuando = d === null ? "" : d === 0 ? " · llegó hoy" : ` · llegó hace ${d} ${d === 1 ? "día" : "días"}`;
     chips.push({ texto: `Nuevo${cuando}`, tono: "nuevo", icono: "nuevo" });
   }
-  for (const { nombre } of sinLasQueLaTiendaYaDice(insignias, { nuevo: Boolean(p?.nuevo), masVendido: p !== null && p.vendidos !== null })) {
-    chips.push({ texto: nombre.trim(), tono: "insignia", icono: dibujoDeLaInsignia(nombre) });
+  // Las de descuento no se dibujan aparte: su descuento es el chip de la campaña (`chipCampana`), que de ellas solo toma el dibujo.
+  const sinDescuento = insignias.filter((i) => !i.descuento);
+  for (const insignia of sinLasQueLaTiendaYaDice(sinDescuento, { nuevo: Boolean(p?.nuevo), masVendido: p !== null && p.vendidos !== null })) {
+    // Con imagen propia, el chip la lleva (la ruta); su `icono` queda por si la dirección no se arma (sin origen del almacén): se ve el dibujo.
+    chips.push({
+      texto: insignia.nombre.trim(),
+      tono: "insignia",
+      icono: dibujoDeLaInsignia(insignia.nombre, insignia.icono),
+      ...(insignia.imagen ? { imagen: insignia.imagen } : {}),
+    });
   }
   if (p && p.vendidos !== null) chips.push({ texto: `N.º ${p.vendidos} en más vendidos` });
   return chips;

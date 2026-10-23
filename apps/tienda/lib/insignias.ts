@@ -1,4 +1,5 @@
-import { iconoDeInsignia, type IconoInsignia } from "@cayla-retail/shared/insignias-visual";
+import { dibujoDeInsignia, dibujoElegido, type IconoInsignia } from "@cayla-retail/shared/insignias-visual";
+import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { z } from "zod";
 import { normalizar } from "./buscador";
 
@@ -15,22 +16,42 @@ export const esquemaInsignia = z.object({
 /** Una insignia asignada a la prenda en Catálogo ▸ Insignias, sin descuento (el descuento sale como la campaña) y vigente hoy. */
 export type Insignia = z.infer<typeof esquemaInsignia>;
 
-/** Las insignias que trae la base, sin confiar en ellas: la que no tiene forma de insignia se deja fuera y una repetida se cuenta una vez. */
-export function leerInsignias(dato: readonly unknown[]): Insignia[] {
+// Lo que la FICHA lee de cada insignia, además de su id y su nombre (`fn_tienda_insignias`, ADR-0490): el dibujo que se eligió al crearla (`icono`; una clave que el
+// código no conoce, o ninguna, es «según el nombre»), su imagen propia (`imagen`, la RUTA en el almacén de insignias: una ruta que no tiene la forma que el ERP sube
+// es «sin imagen») y si lleva descuento (esas no se dibujan aparte: su descuento es el chip de la campaña, de la que solo se toma su dibujo). Sin esos datos (la base
+// todavía no tiene 20261023203000, o es una lista del catálogo, que solo trae id y nombre): según el nombre, sin imagen y sin descuento, como antes. La tarjeta del
+// catálogo sigue leyendo `esquemaInsignia`.
+export const esquemaInsigniaDeLaFicha = esquemaInsignia.extend({
+  icono: z.unknown().transform((v) => dibujoElegido(v)),
+  imagen: z.unknown().transform((v) => (esRutaDeImagenDeInsignia(v) ? v : null)),
+  descuento: z.boolean().catch(false),
+});
+
+/** Una insignia tal como la entrega la ficha: con su dibujo elegido, su imagen propia y si lleva descuento. */
+export type InsigniaDeLaFicha = z.infer<typeof esquemaInsigniaDeLaFicha>;
+
+function leerLista<T extends { id: string }>(dato: readonly unknown[], esquema: { safeParse: (x: unknown) => { success: true; data: T } | { success: false } }): T[] {
   const vistas = new Set<string>();
-  return dato.flatMap((x): Insignia[] => {
-    const r = esquemaInsignia.safeParse(x);
+  return dato.flatMap((x): T[] => {
+    const r = esquema.safeParse(x);
     if (!r.success || vistas.has(r.data.id)) return [];
     vistas.add(r.data.id);
     return [r.data];
   });
 }
 
+/** Las insignias que trae la base, sin confiar en ellas: la que no tiene forma de insignia se deja fuera y una repetida se cuenta una vez. */
+export const leerInsignias = (dato: readonly unknown[]): Insignia[] => leerLista(dato, esquemaInsignia);
+
+/** Las insignias de la ficha, con lo que `fn_tienda_insignias` agrega (el dibujo elegido, la imagen y el descuento), leídas con la misma cautela. */
+export const leerInsigniasDeLaFicha = (dato: readonly unknown[]): InsigniaDeLaFicha[] => leerLista(dato, esquemaInsigniaDeLaFicha);
+
 /** El dibujo de una insignia: su familia (la calabaza de Halloween, el pastel de Aniversario…) o, si su nombre no se reconoce, el genérico. */
 export type DibujoDeInsignia = IconoInsignia | "generico";
 
-/** El dibujo que le toca a una insignia o campaña por su NOMBRE: el mismo que le da el ERP en Catálogo ▸ Insignias (`packages/shared`). */
-export const dibujoDeLaInsignia = (nombre: string): DibujoDeInsignia => iconoDeInsignia(nombre) ?? "generico";
+/** El dibujo que le toca a una insignia o campaña: el que se eligió al crearla (`icono`, ADR-0490) o, si no hay, el de su NOMBRE: el mismo que le da el ERP en
+ *  Catálogo ▸ Insignias (`packages/shared`). Una clave que el código ya no conoce cae al nombre. */
+export const dibujoDeLaInsignia = (nombre: string, icono?: DibujoDeInsignia | null): DibujoDeInsignia => dibujoDeInsignia({ nombre, icono });
 
 // Lo que la tienda ya dice por su cuenta, con sus propios números: una insignia que dice lo mismo no se repite al lado.
 const COMO_NUEVO = new Set(["nuevo", "nueva", "nuevos", "nuevas"]);
