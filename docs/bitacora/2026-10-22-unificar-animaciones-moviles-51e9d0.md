@@ -6,3 +6,11 @@ Filtros a media altura y el cajón como hoja alta que se desliza entre registros
 Por qué así: dos piezas le llegan a las 197 hojas y los 10 cajones sin tocar pantallas, y las reglas del dedo quedaron puras y probadas.
 Felipe se lleva: probarlo en su iPhone desde la vista previa del PR; quedan las actividades 7 a 12 (toques pegados, aviso, márgenes del
 iPhone, capas a mano, menú lateral, una sola barra de abajo).
+
+## 2026-10-23 (Tanda 2: nada pegado al tocar, el aviso con el dedo, los bordes del iPhone, las capas a mano, el menú que se desliza)
+Qué hice: actividades 7 a 11 de ADR-0479, una por commit: 210 `:hover` bajo `@media (hover: hover)` con su candado, el aviso con ✕ a la
+vista y que se aparta con el dedo, `viewport-fit=cover` con todo el marco apartado de la isla, la muesca y la barrita, Proveedor y las
+píldoras de fechas como hoja del sistema (`CapaDeFiltro`, deuda de `hoja-movil` en 0) y el menú lateral que se cierra deslizándolo.
+Por qué así: cada arreglo vive en la pieza del sistema (el CSS, `Avisos`, `AppShell`, `Modal`), así ninguna pantalla tuvo que hacer nada.
+Felipe se lleva: la lámina de la actividad 12 para elegir la barra de abajo; Caja se desborda a 375 px (anotado, no es de esta rama).
+
