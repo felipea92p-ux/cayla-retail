@@ -6964,6 +6964,20 @@ export type Database = {
         Args: { p_variante_id: string }
         Returns: string
       }
+      fn_campanas_en_sede: {
+        Args: {
+          p_hoy: string
+          p_tolerancia_dias?: number
+          p_ubicacion_id?: string
+          p_variante_ids?: string[]
+        }
+        Returns: {
+          descuento_pct: number
+          etiqueta_id: string
+          etiqueta_nombre: string
+          variante_id: string
+        }[]
+      }
       fn_campanas_por_variante: {
         Args: {
           p_hoy: string

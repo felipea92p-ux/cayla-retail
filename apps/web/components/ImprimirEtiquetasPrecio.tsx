@@ -128,7 +128,9 @@ export function ImprimirEtiquetasPrecio({
   const fuera = useMemo(() => new Set([...quitadas, ...saliendo]), [quitadas, saliendo]);
   const enLista = useMemo(() => etiquetas.filter((e) => !quitadas.includes(e.varianteId)), [etiquetas, quitadas]);
   const seImprimen = useMemo(() => etiquetas.filter((e) => !fuera.has(e.varianteId)), [etiquetas, fuera]);
-  const numeros = useMemo(() => Object.fromEntries(Object.entries(cantidades).map(([id, t]) => [id, cantidadDeTexto(t)])), [cantidades]);
+  // Una prenda que aparece después de abrir la pantalla (se rehace sola cuando cambia un precio o una campaña, `PreciosEnVivo`) todavía
+  // no tiene número tecleado: sale con el que la base propone, no en cero.
+  const numeros = useMemo(() => Object.fromEntries(etiquetas.map((e) => [e.varianteId, cantidadDeTexto(cantidades[e.varianteId] ?? String(e.cantidad))])), [etiquetas, cantidades]);
   const hoja = useMemo(() => expandir(seImprimen, numeros), [seImprimen, numeros]);
   const total = hoja.length;
   const grupos = useMemo(() => agruparPorPrenda(enLista), [enLista]);
@@ -312,7 +314,7 @@ export function ImprimirEtiquetasPrecio({
                   <FilaEtiqueta
                     key={e.varianteId}
                     e={e}
-                    texto={cantidades[e.varianteId] ?? ""}
+                    texto={cantidades[e.varianteId] ?? String(e.cantidad)}
                     numero={numeros[e.varianteId] ?? 0}
                     columnaCantidad={encabezado.columnaCantidad}
                     saliendo={saliendo.has(e.varianteId)}
