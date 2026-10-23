@@ -13,7 +13,7 @@
 -- asignaciones de rol la usan, y quien hoy ve la pantalla la sigue viendo igual.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN: tal cual en el SQL Editor, cuando quieras (antes o después de publicar la web: solo cambia
--- un texto). Sin políticas ni `alter`: ADR-0195 no aplica. Re-pegable.
+-- un texto). Sin políticas ni `alter`: ADR-0195 no aplica. Re-pegable. EN PRODUCCIÓN desde el 2026-10-23.
 -- ============================================================================
 
 set lock_timeout = '3s';
