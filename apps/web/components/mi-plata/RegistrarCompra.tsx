@@ -641,12 +641,12 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             </div>
           </CampoGuiado>
           {tipo !== "sin_comprobante" && (
-            <CampoGuiado id="foto" guia={guia} titulo="La foto del papel">
+            <CampoGuiado id="foto" guia={guia} titulo="La foto del papel" ayuda="· opcional">
               <TarjetaFoto
                 guia="compra.foto"
                 archivo={archivo}
                 deshabilitada={guardando}
-                ayuda="Que se lea el total y el número"
+                ayuda="Que se lea el total y el número. Sin foto, igual se guarda"
                 onArchivo={(f) => {
                   setRechazo(null);
                   setArchivo(f);

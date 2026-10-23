@@ -158,13 +158,14 @@ describe("la compra", () => {
 describe("el paso del papel: lo que falta es lo que rechaza registrar_compra_rapida", () => {
   const PERSONA = { esPersona: true, listo: true, motivo: null };
   const faltan = (v: Parameters<typeof camposPapel>[0], r = PERSONA) => camposPapel(v, r).filter((c) => c.requerido && !c.hecho).map((c) => c.id);
-  it("sin nada faltan el papel y el monto; con boleta, también la foto", () => {
+  it("sin nada faltan el papel y el monto; la foto es opcional (20261023180000): con boleta se sugiere, nunca frena", () => {
     expect(faltan({ tipo: null, conFoto: false, monto: "" })).toEqual(["tipo", "monto"]);
-    expect(faltan({ tipo: "boleta", conFoto: false, monto: "500" })).toEqual(["foto"]);
-    expect(faltan({ tipo: "boleta", conFoto: true, monto: "500" })).toEqual([]);
+    expect(faltan({ tipo: "boleta", conFoto: false, monto: "500" })).toEqual([]);
+    expect(camposPapel({ tipo: "boleta", conFoto: false, monto: "500" }, PERSONA).find((c) => c.id === "foto")).toMatchObject({ requerido: false, sugerido: true, hecho: false });
   });
-  it("sin papel no pide foto", () => {
+  it("sin papel ni se ofrece la foto", () => {
     expect(faltan({ tipo: "sin_comprobante", conFoto: false, monto: "80" })).toEqual([]);
+    expect(camposPapel({ tipo: "sin_comprobante", conFoto: false, monto: "80" }, PERSONA).some((c) => c.id === "foto")).toBe(false);
   });
   it("desde una terminal, falta quién compró", () => {
     expect(faltan({ tipo: "sin_comprobante", conFoto: false, monto: "80" }, { esPersona: false, listo: false, motivo: null })).toEqual(["responsable"]);

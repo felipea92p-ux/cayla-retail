@@ -322,13 +322,16 @@ export function textoPlataDespues(queda: number): string {
 
 type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null };
 
-/** Los campos del paso del papel. La foto la pide solo un papel (factura, boleta o nota): sin papel, no. */
+/**
+ * Los campos del paso del papel. La foto es opcional (Felipe 2026-10-23, 20261023180000): con un papel (factura, boleta o nota) se SUGIERE —sin
+ * ella, Compras copia la serie y el número del papel en la mano—, nunca frena el guardado. Sin papel, ni se ofrece.
+ */
 export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto: string }, r: Responsable): CampoDeGuia[] {
   const monto = problemaDeMonto(v.monto);
-  const pideFoto = v.tipo !== null && v.tipo !== "sin_comprobante";
+  const conPapel = v.tipo !== null && v.tipo !== "sin_comprobante";
   return [
     { id: "tipo", nombre: "Qué te dieron", requerido: true, hecho: v.tipo !== null, pendiente: "Elige qué papel te dio el proveedor." },
-    { id: "foto", nombre: "La foto", requerido: pideFoto, hecho: v.conFoto, pendiente: "Tómale una foto al papel." },
+    ...(conPapel ? [{ id: "foto", nombre: "La foto", requerido: false, sugerido: true, hecho: v.conFoto, pendiente: "Si puedes, tómale una foto al papel." }] : []),
     { id: "monto", nombre: "Cuánto pagaste", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
     ...(r.esPersona ? [] : [{ id: "responsable", nombre: "Quién compró", requerido: true, hecho: r.listo, pendiente: r.motivo ?? "Elige quién compró." }]),
   ];

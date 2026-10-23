@@ -71,7 +71,15 @@ export function MiniFotoPapel({ papel }: { papel: PapelConFoto }) {
 function FotoPapel({ papel }: { papel: PapelConFoto }) {
   const nombre = `${TIPOS_PAPEL[papel.tipo].nombre} de ${papel.proveedor}`;
   if (!papel.fotoUrl) {
-    return <p className="nota-cayla text-sm">{papel.fotoRuta ? "La foto no se pudo abrir: recarga la pantalla." : "No subió foto: no le dieron papel."}</p>;
+    return (
+      <p className="nota-cayla text-sm">
+        {papel.fotoRuta
+          ? "La foto no se pudo abrir: recarga la pantalla."
+          : papel.tipo === "sin_comprobante"
+            ? "No subió foto: no le dieron papel."
+            : `No subió foto: pídele el papel a ${primerNombre(papel.persona)} y copia de ahí la serie y el número.`}
+      </p>
+    );
   }
   return (
     <a href={papel.fotoUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-2xl bg-hueso p-3" title="Ver la foto en grande">

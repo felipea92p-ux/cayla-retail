@@ -37,6 +37,12 @@ const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261023005
   "",
 );
 
+// La foto del papel opcional (20261023180000) corrige la función de arriba: se carga después, como en la base.
+const MIGRACION_FOTO = readFileSync(join(RAIZ, "supabase", "migrations", "20261023180000_compras_simple_foto_opcional.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
 
@@ -56,6 +62,8 @@ const PRELUDIO = `
 begin;
 ${MIGRACION}
 ${MIGRACION}
+${MIGRACION_FOTO}
+${MIGRACION_FOTO}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_hint text; v_msg text;
@@ -168,15 +176,15 @@ select count(*) from retail.ordenes_compra where papel_id = '${ID}';`,
 );
 
 caso(
-  "validaciones del papel: proveedor, tipo, monto, foto si hay papel; sin papel no pide foto",
+  "validaciones del papel: proveedor, tipo, monto y la ruta de la foto; la foto es opcional, con papel o sin él (20261023180000)",
   `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "compra_rapida")}
 select ${hint(`select retail.registrar_compra_rapida(gen_random_uuid(), null, 'boleta', 10, 'papeles/x.jpg', ${LINEAS})`)},
        ${hint(`select retail.registrar_compra_rapida(gen_random_uuid(), current_setting('t.prov')::uuid, 'recibo', 10, 'papeles/x.jpg', ${LINEAS})`)},
        ${hint(`select retail.registrar_compra_rapida(gen_random_uuid(), current_setting('t.prov')::uuid, 'boleta', 0, 'papeles/x.jpg', ${LINEAS})`)},
-       ${hint(`select retail.registrar_compra_rapida(gen_random_uuid(), current_setting('t.prov')::uuid, 'boleta', 10, null, ${LINEAS})`)},
+       ${intento(`select retail.registrar_compra_rapida(gen_random_uuid(), current_setting('t.prov')::uuid, 'boleta', 10, null, ${LINEAS})`)},
        ${hint(`select retail.registrar_compra_rapida(gen_random_uuid(), current_setting('t.prov')::uuid, 'boleta', 10, 'otra/x.jpg', ${LINEAS})`)},
        ${intento(`select retail.registrar_compra_rapida(gen_random_uuid(), current_setting('t.prov')::uuid, 'sin_comprobante', 10, null, ${LINEAS})`)};`,
-  "orden_compra_proveedor|compra_rapida_tipo|monto_invalido|compra_rapida_sin_foto|compra_rapida_foto|SIN_ERROR",
+  "orden_compra_proveedor|compra_rapida_tipo|monto_invalido|SIN_ERROR|compra_rapida_foto|SIN_ERROR",
 );
 
 caso(

@@ -65,15 +65,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // la plata (cuánto llegó y de qué cuenta), completar el papel (serie y número según el papel; el monto si se anotó mal), revisar un gasto
   // (qué papel; su número y RUC, opcionales) y recibir un cierre (la cuenta y el monto); desde una terminal, quién lo hace—, cada uno con su
   // guía. Lo de los fondos (Entregar plata, Lo que devuelve, Anular) sigue en sus hojas (registro de modales).
-  "/compras/fondos": {
-    estado: "aplicada",
-    evidencia: [
-      "components/mi-plata/PlataPorConfirmar.tsx",
-      "components/mi-plata/PapelesPorCompletar.tsx",
-      "components/mi-plata/GastosPorRevisar.tsx",
-      "components/mi-plata/CierresPorRecibir.tsx",
-    ],
-  },
+  "/compras/fondos": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx", "components/mi-plata/PapelesPorCompletar.tsx", "components/mi-plata/GastosPorRevisar.tsx", "components/mi-plata/CierresPorRecibir.tsx"] },
   "/compras/mi-plata": { estado: "no-aplica", motivo: "ADR-0480: la pantalla no tiene campos propios; los tiene la hoja «Me dieron plata» (declarada en MODALES) y la compra (/compras/mi-plata/compra)." },
   // ADR-0480, actividad 3: «Compré ropa». Una pregunta por pantalla; el paso del papel dice qué falta (qué te dieron, la foto si hay papel, cuánto).
   "/compras/mi-plata/compra": { estado: "aplicada", evidencia: ["components/mi-plata/RegistrarCompra.tsx"] },
