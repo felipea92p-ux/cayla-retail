@@ -1,5 +1,58 @@
 # Formidable · Finanzas ▸ Gastos — la fila de un gasto del viaje   (`/finanzas/gastos`)
 
+## Primera pasada de la PANTALLA ENTERA · 2026-10-22 — por lectura de código y captura (sin medir, sin prueba ciega)
+
+- **Fecha / SHA:** 2026-10-22 · `f26b3b288`   · **Dispositivo que manda:** escritorio (Mac mini); a 375 px la tabla se apila en tarjetas
+- **Pregunta que debería resolver (1 frase):** ¿qué falta confirmar este mes y en qué se fue la plata?   · **Protagonista:** el dinero
+- **Veredicto en una línea:** «Se entiende que es de gastos, pero no a qué se viene: arriba hay cuatro resúmenes antes de la lista y, en Fijos, lo vacío va primero y lo urgente segundo.»
+- **Alcance:** la pantalla completa y sobre todo la pestaña «Fijos del mes» (la captura de Felipe). Las pasadas anteriores solo calificaron la fila de un gasto, su detalle y la tarjeta del IGV (7,8 en el tablero): **ese 7,8 no es de la pantalla entera**.
+- **Qué NO se hizo (y por qué):** no se midió en el navegador (el worktree no tiene `node_modules` ni base local) y no hubo prueba ciega ni colaboradora real. Por eso el oficio visual queda **sin medir** y la ley 1 no pasa de 8. Las notas de abajo son **[Opinión] por lectura**, marcadas provisionales. El escéptico revisó los hallazgos: 8 confirmados, 4 matizados, 0 refutados.
+- **Análisis completo, con las 6 dimensiones y las 12 tareas:** [`docs/pantallas/finanzas-gastos.md`](../pantallas/finanzas-gastos.md).
+
+### Notas (0–10), provisionales
+| Eje | Nota | Evidencia |
+|---|---|---|
+| 1 Sin manual | 5 (tope 8) | [Opinión] por lectura; sin ciega ni real |
+| 2 Una pregunta, una respuesta | 4 | [Medido en código] dos botones primarios con la bandeja llena; cuatro resúmenes antes de la lista; el monto del mes sale dos veces |
+| 3 Simplicidad profunda | 6 | [Medido en código] el IGV perdido ya se traduce a un veredicto; «Faltan» no dice cuánto ni desde cuándo |
+| 4 Lenguaje de tienda | 5 | [Medido en código] «Egresos de caja sin clasificar / por clasificar» y «Salida de caja sin clasificar» para lo mismo; «Unidad»; cuenta contable en cada fila |
+| 5 Contenido primero | 5 | [Opinión] la lista empieza unos 950 px abajo (suma del CSS, no una medida) |
+| 6 Lo difícil, a un toque | 5 | [Medido en código] el «¿Por qué?» y el desglose que la maqueta A prometía no existen |
+| 7 Perdonar antes que preguntar | 6 | [Medido en código] «No es fijo» se documenta reversible y no lo es; un monto mal escrito en una factura pagada no tiene salida |
+| 8 Quitar antes de agregar | 3 | [Medido en código] cuatro capas, monto repetido, columna derecha de Fijos vacía, chip «Pagado» en casi toda fila |
+| 9 De punta a punta | 6 | [Medido en código] siete lecturas devuelven `[]` y tres vacíos afirman lo contrario de lo que pasó; sin 375 px |
+| **Leyes (promedio)** | **5,0** | ninguna ley bajo 3; la ley 8 es la más débil |
+| **Oficio visual** | **sin medir** | plan de medición abajo |
+
+### Los 3 cambios de mayor impacto (esperan el OK de Felipe; nada se tocó)
+1. **Fijos del mes como cola de cierre.** Antes: dos tarjetas, «Para confirmar» (vacía) primero y «Faltan» segunda, con cinco botones iguales, sin fecha ni atraso, y una columna derecha casi vacía. → Después: una sola lista con el mes a la vista, cada fila con su fecha («se esperaba el 15 oct · 7 días») y orden por urgencia y monto, el total que falta arriba, lo vacío plegado y lo registrado que abre su gasto. Leyes 2, 5 y 8. Se verifica midiendo la altura hasta el primer fijo y con la prueba ciega. Esfuerzo M, solo web. **Decide Felipe** (se aparta del spike de dos columnas: lo escribe el ADR).
+2. **Arriba, una sola respuesta.** Antes: cabecera, Pulso, bandeja y cuatro cifras, con el monto del mes dos veces, antes de la lista. → Después: se quita la tarjeta que repite el monto del Pulso, la bajada de la cabecera se acorta y la lista sube. Leyes 5 y 8. Esfuerzo S. **Decide Felipe**: el Pulso y la bandeja los eligió él en el camino A (ADR-0417); quitar o fundir una cifra es suya.
+3. **La lista de gastos: una fila, una frase.** Antes: 8 columnas, chip «Pagado» en casi toda fila, código de cuenta contable repetido y decenas de renglones de «baño» tapando lo grande. → Después: menos columnas, solo se marca lo que no es normal, los repetidos del cajón se agrupan en una fila que se abre (con el total que cuadra al céntimo). Leyes 3, 4 y 8. Esfuerzo M. **Decide Felipe** (se aparta del spike de 8 columnas).
+
+### Lo que sobra (ley 8)
+La tarjeta «Gastado en el mes» (repite el monto del Pulso y su conteo); el chip «Pagado» en las filas sin factura a crédito; el código de la cuenta contable en cada fila; «Ninguno todavía.» como bloque propio cuando no hay nada registrado. Se **propone** esconder o plegar; nada se borra.
+
+### Lo que no pediste y importa más
+Una cifra no es una pantalla: **el 95 % de los gastos entra por Caja**, así que esta pantalla es de *revisar y confirmar*, no de capturar. Agregarle funciones de captura sobre este esqueleto la hace más cargada; lo que le da valor es contar lo que falta confirmar (los fijos) y dejar la lista legible.
+
+### Lista aparte (no se ejecuta)
+«De la empresa» se lee como S/ 0 de toda la empresa (la captura está en esa vista) · «Para confirmar» dice «llegan en los próximos días» aunque falten nueve · la bandeja dice «Registrar» y no «Registrar monto» para un fijo variable · las dos tarjetas acumuladas («Por pagar», «Egresos sin clasificar») no dicen «a hoy» · piezas a mano donde ya hay pieza única (`Vacio`, `Aviso`, `btn-peligro`) · el botón que confirma «Anular gasto» y «No es fijo» es primario (el resto del ERP usa el peligro) · tres nombres para las salidas del cajón.
+
+### Plan de medición (para cuando haya entorno)
+Medir con `referencia/medir-oficio.js` a 1440 × 900 (primero), 1024 × 768 y 375 × 812 sobre una página de prueba con los casos «Todas las tiendas» (24 fijos), «De la empresa» (5), sin fijos y con lectura fallida; repetir con `pnpm focus`, `pnpm sugerir` y `node scripts/rendimiento/ui.mjs --ruta /finanzas/gastos`. Después, prueba ciega con un agente sin contexto sobre las pestañas Fijos y Gastos, y la pasada con una colaboradora real (sin ella, la ley 1 no pasa de 8). **Estas notas se reemplazan por las medidas antes de dar la pantalla por terminada.**
+
+### Antes de decir «listo» (CLAUDE.md global)
+- **Concurrencia:** dos personas sobre el mismo fijo el mismo mes → la base lo impide (`gastos_fijo_mes_uq`), pero el mensaje que ve la segunda es genérico («Vuelve a intentar»).
+- **Caída externa:** escribir un gasto no depende de nada externo; **leer sí falla en silencio** hoy (siete lecturas devuelven vacío). Sin la corrección, el diseño no está listo.
+- **Persona sin contexto:** sin probar (no hubo prueba ciega ni colaboradora real en esta pasada).
+
+### Historial
+| Fecha | SHA | Leyes | Oficio | Cambios cerrados |
+|---|---|---|---|---|
+| 2026-10-22 | `f26b3b288` | 5,0 (provisional, por lectura) | sin medir | — (primera pasada de la pantalla entera; las anteriores eran de la fila del gasto) |
+
+---
+
 ## Segunda vuelta · 2026-10-14, tarde — los 3 cambios aplicados (OK de Felipe) y la tarjeta sin negativos
 
 - **SHA:** `da1941fae` + los 3 cambios   · **Qué cambió:** lo de «Los 3 cambios de mayor impacto» del re-análisis de abajo, tal cual se propuso, y los meses
