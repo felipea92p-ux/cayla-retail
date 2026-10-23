@@ -1,0 +1,6 @@
+## Campañas por sede (ADR-0486) — lo que queda
+- [ ] **Pegar `20261023162000_campanas_por_sede.sql` en producción y publicar la web después** (con OK de Felipe; una sola parte, sin políticas). Después de pegarla: `pnpm datos:generar:produccion` para que `campana_sedes` entre al diccionario.
+- [ ] **Etiquetas de precio impresas, Catálogo «lo que cobra la caja hoy» y el reporte de campañas de Finanzas** (`lib/etiquetas-precio.ts`, `lib/precio-de-hoy.ts`, `finanzas/reportes/campanas`) preguntan por la campaña sin tienda: una campaña limitada a tiendas NO aparece ahí. Hace falta que sepan la tienda (imprimir las etiquetas de una campaña de una sola tienda; decir «solo en Tienda X» junto al precio).
+- [ ] **Dejar en Actividad el cambio de sedes de una campaña** (`actualizar_campana_etiqueta_con_sedes`): cambia el precio en caja y hoy no deja su línea firmada.
+- [ ] **Recorrer Vender y Apartados en el navegador con una campaña de una sola tienda** (caja abierta, 375 px): hoy lo cubren la base y los tipos, no un recorrido.
+- [ ] **El mensaje de `etiquetar_variantes` («Son demasiadas prendas a la vez… Hazlo en tandas»)** puede decir que, para todas las prendas, se usen las categorías («Elegir todas» en Configurar).

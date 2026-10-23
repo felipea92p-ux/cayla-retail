@@ -25,6 +25,15 @@ describe("guía de la campaña de una etiqueta", () => {
     expect(camposDeCampana({ ...base, puedeDarDescuento: false }).map((c) => c.id)).toEqual(["vigencia", "categorias"]);
   });
 
+  it("las sedes (ADR-0486) solo entran a la guía si la hoja las ofrece, y nunca bloquean", () => {
+    expect(camposDeCampana(base).map((c) => c.id)).not.toContain("sedes");
+    const con = camposDeCampana({ ...base, sedes: 0 });
+    expect(con.map((c) => c.id)).toEqual(["descuento", "vigencia", "categorias", "sedes"]);
+    expect(sePuedeConfirmar(con)).toBe(true);
+    expect(estadosDe(con).sedes).toBe("opcional");
+    expect(estadosDe(camposDeCampana({ ...base, sedes: 1 })).sedes).toBe("hecho");
+  });
+
   // La coherencia que importa: «se puede guardar» según la guía ⇔ la regla real de CampanaModal (`campanaValida`, que el modal llama tal cual).
   it("coincide con la validación real en cada combinación", () => {
     const descuentos = ["", "20", "12,5", "20 %", "0", "101", "abc", "%"];
