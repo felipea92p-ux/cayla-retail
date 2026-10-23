@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { apartadoDeFila, estadoVisible, ORDEN_ESTADO, type ClaveEstado } from "@/lib/separaciones-reglas";
-import { getGastosDeUbicacion } from "@/lib/gastos";
+import { getGastosDeCaja } from "@/lib/gastos";
 import { tieneComprobante } from "@/lib/gastos-reglas";
 import { getDevolucionesPendientes } from "@/lib/devoluciones";
 import { getTrasladosPorAtender } from "@/lib/traslados";
@@ -29,13 +29,18 @@ export type ContextoTableroCaja = {
   apartados: { lista: ApartadoCaja[]; porCobrar: number; activos: number } | null;
   /** `total`: lo que salió del cajón. `totalApp`: lo pagado con Yape o Plin, que el cajón no descuenta. */
   gastos: { lista: GastoCaja[]; total: number; totalApp: number } | null;
+  /** ¿«Ver en Finanzas» lleva a algún lado? Registrar un gasto desde la caja no pide el módulo Gastos (ADR-0491); verlos ahí, sí. */
+  gastosEnFinanzas: boolean;
   posventa: { lista: PosventaCaja[]; efectivoDevuelto: number } | null;
   pendientes: PendienteCaja[];
 };
 
 type Permisos = {
   apartados: boolean;
+  /** Registra el gasto de hoy desde la caja: el módulo Caja o el de Gastos (ADR-0491). */
   gastos: boolean;
+  /** Ve Finanzas ▸ Gastos (el módulo Gastos). */
+  gastosEnFinanzas: boolean;
   cambios: boolean;
   devoluciones: boolean;
   traslados: boolean;
@@ -80,7 +85,7 @@ export async function getContextoTableroCaja(args: {
   if (p.gastos) disponibles.push("gastos");
   if (p.cambios || p.devoluciones) disponibles.push("posventa");
 
-  return { disponibles, apartados, gastos, posventa, pendientes };
+  return { disponibles, apartados, gastos, gastosEnFinanzas: p.gastosEnFinanzas, posventa, pendientes };
 }
 
 /** Las separaciones abiertas o por devolver de la tienda, lo urgente primero. */
@@ -118,7 +123,7 @@ async function leerApartados(ubicacionId: string, hoy: string): Promise<Contexto
  * Un gasto con factura dice su medio por su pago (`fn_gastos_lista` ya lo trae así).
  */
 async function leerGastos(ubicacionId: string, hoy: string, movimientos: readonly { id: string; hora: string }[]): Promise<ContextoTableroCaja["gastos"]> {
-  const todos = await getGastosDeUbicacion(ubicacionId, hoy, hoy).catch(() => null);
+  const todos = await getGastosDeCaja(ubicacionId, hoy).catch(() => null);
   if (!todos) return null;
   // La hora es la del egreso del cajón: el gasto solo guarda la fecha.
   const horaDe = new Map(movimientos.map((m) => [m.id, m.hora]));

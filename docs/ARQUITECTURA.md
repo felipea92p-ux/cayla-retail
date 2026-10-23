@@ -1679,7 +1679,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   único camino de escritura al libro diario.
 - `/finanzas/activos`, `/finanzas/patrimonio`, `/finanzas/comparativo` →
   lectura + edición directa (`PatrimonioEditor`, `HistoricosEditor`).
-- `GastoRapidoModal.tsx` (Caja ▸ Registrar gasto, ADR-0368) → `lib/gasto-rapido-reglas.ts` (conceptos, orden por frecuencia; el orden lo calcula `caja/page.tsx` con `getGastosDeUbicacion`) → `validarGasto` → RPC `registrar_gasto`; su enlace «formulario completo» abre `RegistrarGastoModal`.
+- `GastoRapidoModal.tsx` (Caja ▸ Registrar gasto, ADR-0368) → `lib/gasto-rapido-reglas.ts` (conceptos, orden por frecuencia; el orden lo calcula `caja/page.tsx` con `getGastosDeCaja` → `fn_gastos_de_caja`) → `validarGasto` → RPC `registrar_gasto` (su permiso es `fn_puede_registrar_gasto`: el módulo Gastos, o Caja con el gasto de hoy al contado, ADR-0491); su enlace «formulario completo» abre `RegistrarGastoModal` (solo con el módulo Gastos).
 - `IngresoRapidoModal.tsx` (Caja ▸ Registrar ingreso, ADR-0375) → `lib/ingreso-rapido-reglas.ts` (conceptos → motivo de la base, nota con quién/qué sede/qué fue, de qué plata es lo del líder) → RPC `registrar_ingreso_caja` (el ingreso + su contraparte en `movimientos_dinero.caja_ingreso_id`: caja fuerte, por rendir, aporte o el cajón de la otra sede); su enlace «Retiro o depósito» (también en el gasto rápido) abre `MovimientoCajaModal soloSalida`.
 - `RegistrarGastoModal.tsx` (accesible desde varias pantallas) → RPC
   `registrar_gasto`.
@@ -1838,8 +1838,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `guardar_gasto_fijo` / `archivar_gasto_fijo`) es donde se editan los fijos; cada fijo trae su ficha de pago (ADR-0452:
   `components/gasto-fijo/*`, `lib/gasto-fijo-ficha-reglas.ts`, `fn_gasto_fijo_ficha` / `fn_gastos_fijos_fichas`; la cuenta es solo de líder y admin). Caja suma «Al cerrar» con el `esperado` de
   `getTableroCaja` (`lib/caja.ts` → `fn_resumen_caja`, solo a quien puede gestionar la caja; desde ADR-0226 no llama aparte
-  a `fn_esperado_caja`). Desde ADR-0226 Caja es pantalla de trabajo: `lib/caja-tablero.ts` (apartados, gastos del turno,
-  posventa y pendientes, solo lectura) + `components/CajaTablero.tsx` + `lib/caja-tablero-reglas.ts`. Las pantallas de Finanzas se arman con
+  a `fn_esperado_caja`). Desde ADR-0226 Caja es pantalla de trabajo: `lib/caja-tablero.ts` (apartados, gastos del turno —`getGastosDeCaja`, que lee
+  también quien maneja la caja sin el módulo Gastos, ADR-0491—, posventa y pendientes, solo lectura) + `components/CajaTablero.tsx` + `lib/caja-tablero-reglas.ts`. Las pantallas de Finanzas se arman con
   `components/finanzas/kit.tsx` + `app/estilos/finanzas.css`.
 
 - **Finanzas en camino A, «El Pulso», y la Fase 1 de datos** (2026-10-15, ADR-0417): cada pantalla de Finanzas abre con una pregunta y
