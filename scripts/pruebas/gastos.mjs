@@ -12,6 +12,9 @@
  *   · los candados: no se edita ni se borra, se anula (y con pagos no se anula), la factura doble, la naturaleza fija, el
  *     recibo por honorarios solo como gasto, doble clic, y nadie lee las tablas directo;
  *   · Compras sigue igual: la lista, las compras del mes y las métricas del proveedor no cuentan gastos; la deuda sí.
+ *   · Luz, Agua, Internet y Telefonía (ADR-0477, `20261022205000_categorias_gasto_luz_agua_internet_telefonia.sql`): existen en la
+ *     cuenta 636 y en su orden, un fijo las acepta con su ficha, un código inventado se rechaza, y un gasto en cualquiera de ellas
+ *     suma en la MISMA línea del Estado de resultados y del Presupuesto que «Servicios básicos» (el contador no ve cambio).
  *
  * CÓMO. Igual que `configuracion_caja_campanas.mjs`: cada escenario en su transacción con ROLLBACK (nunca se commitea nada
  * en el Postgres local compartido), sesión simulada con `request.jwt.claim.sub`, `pg_temp.intento` para leer el error.
@@ -276,7 +279,8 @@ select count(*) from retail.fn_categorias_gasto();`);
   esperar("nadie lee `gastos` directo (ni el líder)", r.ok && gastosDirecto.includes("permission denied"), r);
   esperar("nadie lee `categorias_gasto` directo", r.ok && catDirecto.includes("permission denied"), r);
   // 13 desde los gastos del viaje (ADR-0362 fase 6 · actividad 3, 20261013221000): «Traer la mercadería» (609) y «Viaje de compra» (631).
-  esperar("las 13 categorías se leen por su función", r.ok && Number(categorias) === 13, r);
+  // 18 desde Luz, Agua, Internet, Telefonía y Software (ADR-0477, 20261022205000): son 5 filas nuevas del catálogo.
+  esperar("las 18 categorías se leen por su función", r.ok && Number(categorias) === 18, r);
 }
 
 // 9. El gasto rápido de Caja pagado con el Yape o el Plin de la tienda (ADR-0368, act. 2026-10-12): lo que manda la hoja (sin caja y
@@ -308,6 +312,85 @@ select count(*) from retail.fn_gastos_lista(retail.fn_hoy_lima(), retail.fn_hoy_
   esperar("el de Yape cae en la cuenta donde entra el Yape de la tienda", r.ok && yape === "yape|t|t", r);
   esperar("el de Plin, en la del Plin", r.ok && plin === "plin|t|t", r);
   esperar("los dos salen en la lista del día con su medio (así los muestra «Gastos del turno»)", r.ok && Number(enLista) === 2, r);
+}
+
+// 10. Luz, Agua, Internet y Telefonía (ADR-0477, 20261022205000): son categorías propias, pero la MISMA cuenta 636 que «Servicios
+//     básicos» (`servicios_basicos`, que conserva su código y su nombre; solo cambian sus ejemplos). Para el contador nada cambia: el Estado de resultados y el Presupuesto
+//     agrupan por cuenta; lo que cambia es que la lista de Gastos y la ficha del fijo ya hablan de «Luz» o de «Agua».
+{
+  const ORIGINALES = "'alquileres','servicios_basicos','transporte','suministros','mantenimiento','publicidad','asesoria','gastos_bancarios','tributos','seguros','atencion_personal','traer_mercaderia','viaje_compra'";
+  const NUEVAS = "'luz','agua','internet','telefonia'";
+  const TODAS_LAS_NUEVAS = "'luz','agua','internet','telefonia','software'";
+  const FICHA = (b, c) => `'{"beneficiario": "${b}", "codigo_servicio": "${c}"}'::jsonb`;
+  const fijo = (cat, desc, b, c, alias) =>
+    `select retail.guardar_gasto_fijo(null, :'tru', '${cat}', '${desc}', null, 'factura', 120, true, 5, 'dia', ${FICHA(b, c)}) as ${alias} \\gset`;
+  const fichaDe = (alias) =>
+    `select (select categoria from retail.gastos_fijos where id = :'${alias}') || '|' || coalesce(codigo_servicio, '-') || '|' || coalesce(beneficiario, '-') from retail.fn_gasto_fijo_ficha(:'${alias}');`;
+  const gasto = (cat, desc, dia, monto) =>
+    `select retail.registrar_gasto(:'tru', '${cat}', '${desc}', '2026-09-${dia}', ${monto}, null, 'yape') as _g_${cat} \\gset`;
+
+  // 10a. El catálogo: las 4 nuevas, en la cuenta 636 y activas; el orden de la lista; lo que ya existía no cambió.
+  const a = correr(`${ESCENA}
+select count(*) from retail.categorias_gasto where codigo in (${NUEVAS}) and cuenta_pcge = '636' and activo;
+select nombre || '|' || ejemplos from retail.categorias_gasto where codigo = 'servicios_basicos';
+select count(distinct orden) from retail.categorias_gasto where codigo in (${ORIGINALES}, ${TODAS_LAS_NUEVAS});
+select string_agg(codigo, ',' order by n) from (select codigo, n from retail.fn_categorias_gasto() with ordinality as t(codigo, nombre, ejemplos, cuenta, cuenta_nombre, n) order by n limit 7) x;
+select count(*) from retail.fn_categorias_gasto() where codigo in (${NUEVAS}) and cuenta = '636' and cuenta_nombre = 'Servicios básicos';
+select string_agg(codigo || '=' || cuenta, ',' order by codigo collate "C") from retail.fn_categorias_gasto() where codigo in (${ORIGINALES});
+select cuenta_pcge || '|' || activo::text from retail.categorias_gasto where codigo = 'software';
+select nombre from retail.cuentas where codigo = '639';
+select count(*) from retail.fn_categorias_gasto() where codigo = 'software' and cuenta = '639' and cuenta_nombre = 'Otros servicios de terceros';`);
+  const [cuatro, otros, ordenes, lista, lasCuatro, cuentas, software, cuenta639, softwareEnLista] = lineas(a);
+  esperar("Luz, Agua, Internet y Telefonía existen, activas y en la cuenta 636", a.ok && Number(cuatro) === 4, a);
+  esperar("«servicios_basicos» conserva su código y su nombre, y sus ejemplos ya no prometen luz, agua, teléfono ni internet", a.ok && otros === "Servicios básicos|Baño, gas, vigilancia u otro servicio del local", a);
+  esperar("las 18 categorías conocidas tienen un orden cada una (ninguno repetido)", a.ok && Number(ordenes) === 18, a);
+  esperar("«Software y suscripciones» existe, activa y en la cuenta 639", a.ok && software === "639|true", a);
+  esperar("la cuenta 639 ya no dice «(bancarios)»: la comparten las comisiones del banco y el software", a.ok && cuenta639 === "Otros servicios de terceros" && Number(softwareEnLista) === 1, a);
+  esperar("la lista abre: Alquileres, Luz, Agua, Internet, Telefonía, Software, Servicios básicos", a.ok && lista === "alquileres,luz,agua,internet,telefonia,software,servicios_basicos", a);
+  esperar("la función de la lista trae las 4 con su cuenta «Servicios básicos»", a.ok && Number(lasCuatro) === 4, a);
+  esperar("las 13 de antes siguen con su código y su cuenta, sin moverse",
+    a.ok && cuentas === "alquileres=635,asesoria=632,atencion_personal=625,gastos_bancarios=639,mantenimiento=634,publicidad=637,seguros=651,servicios_basicos=636,suministros=656,tributos=64,transporte=631,traer_mercaderia=609,viaje_compra=631".split(",").sort().join(","), a);
+
+  // 10b. Un fijo acepta cada una con su ficha (suministro o línea + quién cobra); un código inventado se rechaza en criollo.
+  const b = correr(`${ESCENA}
+${fijo("luz", "Luz de la tienda", "Empresa de luz", "SUM-LUZ-1", "f_luz")}
+${fijo("agua", "Agua de la tienda", "Empresa de agua", "SUM-AGUA-1", "f_agua")}
+${fijo("internet", "Internet de la tienda", "Empresa de internet", "CLI-NET-1", "f_net")}
+${fijo("telefonia", "Celular de la tienda", "Operadora", "LIN-TEL-1", "f_tel")}
+${fichaDe("f_luz")}
+${fichaDe("f_agua")}
+${fichaDe("f_net")}
+${fichaDe("f_tel")}
+select pg_temp.intento(format('select retail.guardar_gasto_fijo(null, %L, ''luzz'', ''Luz'', null, ''factura'', 100, false, 5, ''dia'')', :'tru'));
+select pg_temp.intento(format('select retail.registrar_gasto(%L, ''luzz'', ''Luz'', ''2026-09-10'', 100, null, ''yape'')', :'tru'));`);
+  const [fl, fa, fi, ft, fijoMalo, gastoMalo] = lineas(b);
+  esperar("un fijo de Luz guarda su categoría y su ficha (suministro y empresa)", b.ok && fl === "luz|SUM-LUZ-1|Empresa de luz", b);
+  esperar("un fijo de Agua, igual", b.ok && fa === "agua|SUM-AGUA-1|Empresa de agua", b);
+  esperar("un fijo de Internet, igual", b.ok && fi === "internet|CLI-NET-1|Empresa de internet", b);
+  esperar("un fijo de Telefonía, igual", b.ok && ft === "telefonia|LIN-TEL-1|Operadora", b);
+  esperar("un código de categoría inventado se rechaza en un fijo: «Elige una categoría de la lista.»", b.ok && fijoMalo === "Elige una categoría de la lista.", b);
+  esperar("y también al registrar un gasto", b.ok && gastoMalo === "Elige una categoría de la lista.", b);
+
+  // 10c. Un gasto en cada una suma en la MISMA línea 636 del Estado de resultados y del Presupuesto que «Servicios básicos».
+  //      100.10 + 50.20 + 80 + 40.55 + 25 = 295.85. «servicios_basicos» sigue aceptándose (los botones de Caja siguen ahí, ADR-0477).
+  const c = correr(`${ESCENA}
+select coalesce(sum((x->>'monto')::numeric), 0) as base_636 from retail.fn_estado_resultados('2026-09-01', '2026-09-30', :'tru') e, jsonb_array_elements(e.detalle_gastos) x where e.ubicacion_id = :'tru' and x->>'cuenta' = '636' \\gset
+${gasto("luz", "Luz tienda", "10", "100.10")}
+${gasto("agua", "Agua tienda", "11", "50.20")}
+${gasto("internet", "Internet tienda", "12", "80")}
+${gasto("telefonia", "Celular tienda", "13", "40.55")}
+${gasto("servicios_basicos", "Baño tienda", "14", "25")}
+select count(*) from retail.fn_estado_resultados('2026-09-01', '2026-09-30', :'tru') e, jsonb_array_elements(e.detalle_gastos) x where e.ubicacion_id = :'tru' and x->>'cuenta' = '636' and x->>'nombre' = 'Servicios básicos';
+select sum((x->>'monto')::numeric) - :base_636 from retail.fn_estado_resultados('2026-09-01', '2026-09-30', :'tru') e, jsonb_array_elements(e.detalle_gastos) x where e.ubicacion_id = :'tru' and x->>'cuenta' = '636';
+select count(*), sum((x->>'monto')::numeric) from jsonb_array_elements(retail.fn_gastos_panel('2026-09-01', '2026-09-30', :'tru') -> 'por_categoria') x where x->>'categoria' in (${NUEVAS}, 'servicios_basicos') and x->>'cuenta' = '636';
+select string_agg(x->>'categoria' || '=' || (x->>'nombre'), ',' order by x->>'categoria') from jsonb_array_elements(retail.fn_gastos_panel('2026-09-01', '2026-09-30', :'tru') -> 'por_categoria') x where x->>'cuenta' = '636';
+select count(*) from retail.fn_presupuesto_lineas('2026-09-01') where cuenta = '636';`);
+  const [lineaUnica, sumaER, panel, nombres, presupuesto] = lineas(c);
+  esperar("el Estado de resultados junta las cinco en UNA sola línea, la 636 «Servicios básicos»", c.ok && Number(lineaUnica) === 1, c);
+  esperar("y esa línea sube exactamente 295.85", c.ok && Number(sumaER) === 295.85, c);
+  esperar("la lista de Gastos sí las separa: 5 categorías, todas con cuenta 636, que suman 295.85", c.ok && panel === "5|295.85", c);
+  esperar("cada una con su nombre propio en el panel", c.ok && nombres === "agua=Agua,internet=Internet,luz=Luz,servicios_basicos=Servicios básicos,telefonia=Telefonía", c);
+  esperar("el Presupuesto sigue con UNA sola línea para la cuenta 636", c.ok && Number(presupuesto) === 1, c);
 }
 
 console.log(fallos ? `\n${fallos} caso(s) fallaron` : "\nTodo en orden");
