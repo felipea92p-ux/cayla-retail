@@ -186,10 +186,10 @@
     text-transform: uppercase;
     color: var(--color-taupe);
   }
-  /* El nombre, su línea de arriba y su frase van centrados sobre las prendas (Felipe 2026-10-22: «que quede justo en medio de las prendas»). */
+  /* El nombre y su línea de arriba van centrados sobre las prendas (Felipe 2026-10-22: «que quede justo en medio de las prendas»).
+     Desde el 2026-10-23 no hay frase debajo del título (Felipe: «quitamos ambas»): las prendas suben y quedan a la vista. */
   .sl-titular { overflow: hidden; padding-bottom: 0.06em; text-align: center; text-wrap: balance; font-family: var(--font-serif); font-weight: 400; font-size: clamp(40px, 4vw, 60px); line-height: 0.98; letter-spacing: -0.015em; }
   .sl-titular > span { display: block; animation: sl-ranura 900ms var(--ease-cayla) both; animation-delay: 80ms; }
-  .sl-frase { max-width: 40ch; margin-inline: auto; text-align: center; text-wrap: balance; font-family: var(--font-serif); font-style: italic; font-size: 21px; line-height: 1.3; color: var(--color-tinta-60); }
 
   /* Dos filas como mucho (`lookbookVisible`): cuántas entran por fila sale de `--sl-min` y `--sl-hueco`, que también lee la pantalla
      (useCupoDelLookbook). Con pocas prendas (`data-pocas`, no llenan una fila) se centran bajo el título. En el celular, casillas más
@@ -204,7 +204,6 @@
   .sl-lookbook[data-pocas] { grid-template-columns: repeat(var(--sl-n), minmax(0, 200px)); justify-content: center; }
   @container sellos (max-width: 40rem) {
     .sl-lookbook { --sl-min: 96px; --sl-hueco: 10px; }
-    .sl-frase { font-size: 18px; }
   }
   .sl-lookbook > * { animation: sl-entra 650ms var(--ease-cayla) both; animation-delay: calc(var(--j, 0) * 50ms + 220ms); }
   .sl-prenda { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
