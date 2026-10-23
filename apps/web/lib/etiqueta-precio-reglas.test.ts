@@ -15,6 +15,8 @@ import {
   fechaVigencia,
   iconosDelPapel,
   iconosPorVariante,
+  insigniasDeCampana,
+  insigniasEnLaLista,
   mejorCampanaPorVariante,
   idsDeParam,
   nombreDeFila,
@@ -439,7 +441,7 @@ describe("armarEtiquetas · íconos", () => {
     const campana = new Map([["s", { etiquetaId: "e1", nombre: "Aniversario CAYLA", pct: 20, hasta: null }]]);
     const con = armarEtiquetas(new Map([["s", 1]]), [blusa("s", "S")], [], campana, new Map([["s", [{ icono: "aniversario" as const, rotulo: "Aniversario", nombre: "Aniversario CAYLA" }]]])).etiquetas[0];
     const sin = armarEtiquetas(new Map([["s", 1]]), [blusa("s", "S")], [], campana).etiquetas[0];
-    expect({ ...con, iconos: [] }).toEqual(sin);
+    expect({ ...con, iconos: [], iconosSinDescuento: [] }).toEqual(sin);
   });
 });
 
@@ -480,7 +482,32 @@ describe("imprimir sin el descuento (Felipe, 2026-10-23: el aniversario rebaja t
     expect(sinDescuento(e).iconos.map((i) => i.nombre).sort()).toEqual(["Hecho a mano", "Nuevo"]);
   });
 
-  it("una etiqueta que no traía campaña sale tal cual (misma referencia): no hay nada que esconder", () => {
+  it("sin descuento aquí pero con la insignia de campaña (Aniversario solo en TRU, etiqueta de Lima): también se quita la insignia", () => {
+    // En Lima la campaña no rige (`campanas` vacío): el precio no se rebaja, pero la insignia de la etiqueta sale igual.
+    const d = new Map([["s", ["aniv", "nuevo"]]]);
+    const con = iconosPorVariante(variantes, d, new Map(), catalogo, new Map(), HOY);
+    const sin = iconosPorVariante(variantes, d, new Map(), catalogo, new Map(), HOY, true);
+    const e = armarEtiquetas(new Map([["s", 1]]), [blusa("s", "M", { precio: 100 })], [], new Map(), con, sin).etiquetas[0];
+    expect(e.campana).toBeNull();
+    expect(e.iconos.map((i) => i.nombre)).toEqual(["Aniversario CAYLA", "Nuevo"]);
+    expect(insigniasDeCampana(e).map((i) => i.nombre)).toEqual(["Aniversario CAYLA"]);
+
+    const papel = sinDescuento(e);
+    expect(papel).not.toBe(e);
+    expect(papel.campana).toBeNull();
+    expect(papel.precio).toBe(100);
+    expect(papel.iconos.map((i) => i.nombre)).toEqual(["Nuevo"]);
+  });
+
+  it("insigniasEnLaLista: los nombres de las insignias de campaña de la lista, sin repetir; sin ellas, vacía (no se ofrece)", () => {
+    const conAniv = armar(["aniv"]);
+    const soloNuevo = armar(["nuevo"]);
+    expect(insigniasEnLaLista([conAniv, conAniv, soloNuevo])).toEqual(["Aniversario CAYLA"]);
+    expect(insigniasEnLaLista([soloNuevo])).toEqual([]);
+    expect(insigniasEnLaLista([])).toEqual([]);
+  });
+
+  it("una etiqueta que no traía campaña ni insignia de campaña sale tal cual (misma referencia): no hay nada que esconder", () => {
     const { etiquetas } = armarEtiquetas(new Map([["s", 1]]), [blusa("s", "M")], [], new Map(), new Map([["s", [{ icono: "nuevo" as const, rotulo: "Nuevo", nombre: "Nuevo" }]]]));
     expect(sinDescuento(etiquetas[0])).toBe(etiquetas[0]);
   });
