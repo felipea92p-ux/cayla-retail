@@ -2,7 +2,7 @@
   "guia": "finanzas.cierre",
   "ruta": "/finanzas/cierre",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 15,
+  "total": 20,
   "controles": {
     "components/finanzas/CierreMes.tsx": [
       "button «{x.nombre}»",
@@ -22,6 +22,15 @@
     ],
     "components/finanzas/CierrePulso.tsx": [
       "Link «Resolver»"
+    ],
+    "components/finanzas/telar/MesaDeMando.tsx": [
+      "Pestanas «(sin nombre)»",
+      "BotonEnlace «telar.registrar»",
+      "Link «{h.nombre}»"
+    ],
+    "components/finanzas/telar/TeToca.tsx": [
+      "button «telar.te-toca»",
+      "BotonVer «{p.verbo}»"
     ]
   }
 }

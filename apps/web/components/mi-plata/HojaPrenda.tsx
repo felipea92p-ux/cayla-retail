@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Check } from "lucide-react";
+import { AlertTriangle, Check } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
@@ -15,14 +15,18 @@ import { soles } from "@/lib/compras-reglas";
 import { sugerirNombre } from "@/lib/sugerencias-alta-producto";
 import {
   NOMBRE_NUEVO_MAX,
+  alternarDestino,
   camposPrenda,
   camposPrendaNueva,
+  conCantidad,
   habitualParecido,
   opcionesCategoriaNueva,
   opcionesMarcaNueva,
+  problemaReparto,
   gananciaPorPrenda,
   leerCantidad,
   leerPrecio,
+  nombreCortoTienda,
   textoAgregarPrenda,
   type BorradorNuevo,
   type BorradorPrenda,
@@ -35,6 +39,10 @@ import {
 // tienda va (por prenda: Felipe lo pidió así el mismo día). La cantidad llega vacía con «La vez pasada» a un toque (/formidable,
 // 2026-10-23); el costo y la venta, con su atajo («La vez pasada», «Del catálogo»). La tienda llega marcada con la de la prenda anterior.
 // No guarda nada en la base: agrega la prenda a la compra, que se guarda al final, con el papel.
+//
+// Repartir entre tiendas (Felipe 2026-10-23: «si selecciono más de una, que aparezcan inputs para distribuir el total»): una prenda del
+// catálogo puede ir a varias tiendas; al marcar la segunda aparece «¿Cuántas a cada una?», repartido parejo, y se corrige con − y +. Una
+// prenda NUEVA va a una sola tienda: la crea la tienda al recibirla, y repartida se crearía dos veces en el catálogo.
 //
 // «Algo nuevo de este proveedor» es esta misma hoja (Felipe 2026-10-23: «que se entienda»): arriba, qué es, la marca y cómo se llama; abajo,
 // lo de siempre. Es solo una referencia de la compra: no crea la prenda en el catálogo, la crea la tienda al recibir.
@@ -64,6 +72,7 @@ export function HojaPrenda({
   cambiar,
   tiendas,
   tiendaAnterior,
+  puedeRepartir,
   corrige,
   tocada = false,
   onAgregar,
@@ -78,6 +87,8 @@ export function HojaPrenda({
   tiendas: Tienda[];
   /** La tienda de la prenda anterior, para decir «Como la anterior». */
   tiendaAnterior: string | null;
+  /** Si puede ir a varias tiendas: solo una prenda del catálogo (una nueva se crearía dos veces). */
+  puedeRepartir: boolean;
   /** Corrige una prenda que ya va en la compra: el botón dice «Guardar» y aparece «Quitar». */
   corrige: boolean;
   /** Lo escrito ya no es lo que traía al abrirse: cerrarla con el dedo, Escape o «Cancelar» pregunta antes de perderlo. */
@@ -91,7 +102,13 @@ export function HojaPrenda({
   const n = nueva?.borrador;
   const parecido = nueva && n ? habitualParecido(n.nombre, nueva.habituales, n.descartadas) : null;
   const guia = useGuiaCampos(n ? camposPrendaNueva(n, parecido !== null, b) : camposPrenda(b));
-  const poner = (campo: keyof BorradorPrenda) => (v: string | null) => cambiar({ [campo]: v });
+  const poner = (campo: "costo" | "venta") => (v: string) => cambiar({ [campo]: v });
+  // Cambiar cuántas rehace el reparto parejo entre las tiendas, salvo que se haya repartido a mano.
+  const ponerCantidad = (v: string) => cambiar(conCantidad(b, v));
+  const repartidas = b.destinos.length >= 2;
+  const nombreTienda = new Map(tiendas.map((t) => [t.id, nombreCortoTienda(t.nombre)]));
+  const faltaReparto = problemaReparto(b);
+  const sumaReparto = b.destinos.reduce((s, d) => s + (leerCantidad(b.reparto[d] ?? "") ?? 0), 0);
   const cantidad = leerCantidad(b.cantidad);
   const ganancia = gananciaPorPrenda(b);
   const laVezPasada = h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;
@@ -130,21 +147,21 @@ export function HojaPrenda({
                   <ConMarca estado={guia.estado("cantidad")}>¿Cuántas?</ConMarca>
                 </span>
                 {laVezPasada != null && (
-                  <Atajo elegido={cantidad === laVezPasada} onClick={() => poner("cantidad")(String(laVezPasada))} guia="compra.igual">
+                  <Atajo elegido={cantidad === laVezPasada} onClick={() => ponerCantidad(String(laVezPasada))} guia="compra.igual">
                     La vez pasada: {laVezPasada}
                   </Atajo>
                 )}
               </span>
               <PasoCantidad
                 data-guia="compra.cantidad"
-                menos={{ onClick: () => poner("cantidad")(String(Math.max(1, (cantidad ?? 1) - 1))), deshabilitado: (cantidad ?? 0) <= 1, etiqueta: "Una menos" }}
-                mas={{ onClick: () => poner("cantidad")(String(Math.min(99999, (cantidad ?? 0) + 1))), etiqueta: "Una más" }}
+                menos={{ onClick: () => ponerCantidad(String(Math.max(1, (cantidad ?? 1) - 1))), deshabilitado: (cantidad ?? 0) <= 1, etiqueta: "Una menos" }}
+                mas={{ onClick: () => ponerCantidad(String(Math.min(99999, (cantidad ?? 0) + 1))), etiqueta: "Una más" }}
                 campo={{
                   value: b.cantidad,
                   inputMode: "numeric",
                   autoComplete: "off",
                   "aria-label": "¿Cuántas compraste?",
-                  onChange: (e) => poner("cantidad")(e.target.value),
+                  onChange: (e) => ponerCantidad(e.target.value),
                 }}
               />
             </div>
@@ -196,24 +213,64 @@ export function HojaPrenda({
             </p>
           )}
 
-          <CampoGuiado id="tienda" guia={guia} titulo="¿A qué tienda va?">
-            {/* Con dos tiendas, dos columnas: en tres, «Tienda Lima» se partía en dos líneas y quedaba un hueco al lado. */}
+          <CampoGuiado id="tienda" guia={guia} titulo={puedeRepartir ? "¿A qué tienda va? · una o varias" : "¿A qué tienda va?"}>
+            {/* Con dos tiendas, dos columnas: en tres quedaba un hueco al lado. */}
             <div role="group" aria-label="¿A qué tienda va?" className={`grid gap-2 ${tiendas.length === 2 ? "grid-cols-2" : "grid-cols-3"}`} data-guia="compra.tiendas">
-              {tiendas.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  aria-pressed={b.destinoId === t.id}
-                  title={tiendaAnterior === t.id ? "La de la prenda anterior" : undefined}
-                  onClick={() => poner("destinoId")(t.id)}
-                  className={`card-cayla mov-boton flex min-h-11 items-center justify-center gap-1.5 rounded-[14px] px-2 py-2 text-center ${b.destinoId === t.id ? "border-tinta bg-sand/40" : ""}`}
-                >
-                  {b.destinoId === t.id && <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />}
-                  <span className="text-sm font-medium leading-tight text-tinta">{t.nombre}</span>
-                </button>
-              ))}
+              {tiendas.map((t) => {
+                const elegida = b.destinos.includes(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    aria-pressed={elegida}
+                    title={tiendaAnterior === t.id ? "La de la prenda anterior" : undefined}
+                    onClick={() => cambiar(alternarDestino(b, t.id, puedeRepartir))}
+                    className={`card-cayla mov-boton flex min-h-11 items-center justify-center gap-1.5 rounded-[14px] px-2 py-2 text-center ${elegida ? "border-tinta bg-sand/40" : ""}`}
+                  >
+                    {elegida && <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />}
+                    <span className="text-sm font-medium leading-tight text-tinta">{nombreCortoTienda(t.nombre)}</span>
+                  </button>
+                );
+              })}
             </div>
+            {!puedeRepartir && (
+              <p /* unificar-fijo: una nota bajo las tiendas que dice por qué no se reparte, no un estado vacío */ className="mt-1.5 text-xs text-taupe">
+                Todavía no está en el catálogo: va a una sola tienda.
+              </p>
+            )}
           </CampoGuiado>
+
+          {/* Repartida entre tiendas: cuántas va a cada una, parejo de entrada; abajo, si cuadra con lo comprado. */}
+          {repartidas && (
+            <CampoGuiado id="reparto" guia={guia} titulo="¿Cuántas a cada una?">
+              <ul className="flex flex-col gap-2" data-guia="compra.reparto">
+                {b.destinos.map((d) => {
+                  const n = leerCantidad(b.reparto[d] ?? "") ?? 0;
+                  const ponerParte = (v: string) => cambiar({ reparto: { ...b.reparto, [d]: v }, repartoPropio: true });
+                  return (
+                    <li key={d} className="flex items-center justify-between gap-3">
+                      <span className="min-w-0 truncate text-sm font-medium text-tinta">{nombreTienda.get(d) ?? "Tienda"}</span>
+                      <PasoCantidad
+                        menos={{ onClick: () => ponerParte(String(Math.max(0, n - 1))), deshabilitado: n <= 0, etiqueta: `Una menos a ${nombreTienda.get(d) ?? "la tienda"}` }}
+                        mas={{ onClick: () => ponerParte(String(n + 1)), etiqueta: `Una más a ${nombreTienda.get(d) ?? "la tienda"}` }}
+                        campo={{
+                          value: b.reparto[d] ?? "",
+                          inputMode: "numeric",
+                          autoComplete: "off",
+                          "aria-label": `Cuántas van a ${nombreTienda.get(d) ?? "la tienda"}`,
+                          onChange: (e) => ponerParte(e.target.value),
+                        }}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className={`mt-2 flex items-center gap-1.5 text-[13px] ${faltaReparto ? "text-ambar" : "text-verde"}`}>
+                {faltaReparto ? <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden /> : <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />}
+                {faltaReparto ?? `Cuadra: ${sumaReparto} de ${cantidad ?? sumaReparto}`}
+              </p>
+            </CampoGuiado>
+          )}
 
           <PieGuia guia={guia} listo="Lista para agregar a la compra." conFrase />
           <PieAcciones
