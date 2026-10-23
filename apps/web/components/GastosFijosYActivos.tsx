@@ -27,6 +27,7 @@ import {
   type FichaFijo,
   type ResumenFicha,
 } from "@/lib/gasto-fijo-ficha-reglas";
+import { colaDeFijos, bajadaDeLaCola, textoFechaDeFijo, tituloDeLaCola } from "@/lib/fijos-del-mes-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -42,7 +43,6 @@ import {
   resumenActivosPorSede,
   solesRedondo,
   textoColumnaCuando,
-  textoCuandoLlega,
   textoVidaUtil,
   totalesActivos,
   validarFijo,
@@ -51,11 +51,14 @@ import {
   type CategoriaGasto,
   type FijoSugerido,
   type GastoFijoMes,
+  type GastoFila,
   type MomentoFijo,
   type UbicacionGastos,
 } from "@/lib/gastos-reglas";
 import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { CalendarClock, Laptop } from "lucide-react";
 import { MAX_DESCRIPCION_GASTO } from "@/lib/finanzas-topes";
 import { BotonEditar, LapizEditar } from "@/components/ui/BotonEditar";
@@ -84,7 +87,11 @@ export function FijosDelMes({
   sugeridos,
   verTodas,
   puedeConfigurar,
+  mes,
+  hoy,
+  gastoDe,
   onRegistrar,
+  onAbrirGasto,
   onMarcarFijo,
   onNoEsFijo,
 }: {
@@ -93,20 +100,28 @@ export function FijosDelMes({
   verTodas: boolean;
   /** ¿Ve Configuración, donde se editan los fijos? (ADR-0253: el módulo ya se da a un rol). */
   puedeConfigurar: boolean;
+  /** El mes que se mira («2026-10») y el día de hoy: la lista dice el mes y cuántos días lleva de atraso cada fijo. */
+  mes: string;
+  hoy: string;
+  /** El gasto con el que se registró un fijo, si está entre los que la pantalla ya cargó (la lista de gastos corta en 500). */
+  gastoDe: (gastoId: string) => GastoFila | undefined;
   onRegistrar: (f: GastoFijoMes) => void;
+  onAbrirGasto: (g: GastoFila) => void;
   onMarcarFijo: (s: FijoSugerido) => void;
   onNoEsFijo: (s: FijoSugerido) => void;
 }) {
-  const vienen = fijos.filter((f) => f.estado === "por_llegar");
-  const faltan = fijos.filter((f) => f.estado === "falta");
-  const registrados = fijos.filter((f) => f.estado === "registrado");
+  const [verRegistrados, setVerRegistrados] = useState(false);
+  const cola = colaDeFijos(fijos);
   const nombre = (f: { descripcion: string; ubicacionNombre: string }) => (verTodas ? `${f.descripcion} · ${f.ubicacionNombre}` : f.descripcion);
-  const detalle = (f: GastoFijoMes) => `${f.proveedorNombre ? `${f.proveedorNombre} · ` : ""}${textoCuandoLlega(f.momento, f.diaDelMes)}${f.montoVariable ? " · monto variable" : ""}`;
+  const detalle = (f: GastoFijoMes) => `${f.proveedorNombre ? `${f.proveedorNombre} · ` : ""}${textoFechaDeFijo(f, hoy)}${f.montoVariable ? " · monto variable" : ""}`;
   const monto = (f: GastoFijoMes) => `${f.montoVariable ? "~" : ""}${solesRedondo(f.monto)}`;
+  // `shrink-0`: en el celular el título se parte en dos renglones y el botón se achicaba hasta cortar «Editar fijos».
   const editar = puedeConfigurar ? (
-    <BotonEditar chico href="/configuracion?tab=fijos">
-      Editar fijos
-    </BotonEditar>
+    <span className="shrink-0">
+      <BotonEditar chico href="/configuracion?tab=fijos">
+        Editar fijos
+      </BotonEditar>
+    </span>
   ) : null;
 
   if (fijos.length === 0 && sugeridos.length === 0) {
@@ -133,84 +148,97 @@ export function FijosDelMes({
     );
   }
 
+  const pendiente = (f: GastoFijoMes) => (
+    <FilaFijo key={f.id} titulo={nombre(f)} detalle={detalle(f)} monto={monto(f)}>
+      <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => onRegistrar(f)}>
+        {f.montoVariable ? "Registrar monto" : "Registrar"}
+      </button>
+    </FilaFijo>
+  );
+  const registrado = (f: GastoFijoMes) => {
+    const g = f.gastoId ? gastoDe(f.gastoId) : undefined;
+    return (
+      <FilaFijo key={f.id} titulo={nombre(f)} detalle={detalle(f)} monto={solesRedondo(f.gastoMonto ?? f.monto)}>
+        <span className="flex items-center gap-2.5">
+          <Chip tono="verde">registrado</Chip>
+          {g && (
+            <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => onAbrirGasto(g)}>
+              Ver el gasto
+            </button>
+          )}
+        </span>
+      </FilaFijo>
+    );
+  };
+
   return (
     <>
-      <section className="fin-dos-col" data-guia="fin-gastos.fijos">
-        <Superficie pad className="anim-sube">
-          <CabeceraBloque titulo="Para confirmar" bajada="Llegan en los próximos días. «Registrar» abre el gasto lleno con el monto y los datos de siempre." />
-          <ul className="fin-fijos">
-            {vienen.length === 0 ? (
-              <li className="text-[13px] text-taupe">Nada por confirmar.</li>
-            ) : (
-              vienen.map((f) => (
-                <FilaFijo key={f.id} titulo={nombre(f)} detalle={detalle(f)} monto={monto(f)}>
-                  <button type="button" className={`btn-cayla btn-chico ${f.montoVariable ? "btn-secundario" : "btn-primario"}`} onClick={() => onRegistrar(f)}>
-                    {f.montoVariable ? "Registrar monto" : "Registrar"}
-                  </button>
-                </FilaFijo>
-              ))
-            )}
-          </ul>
-          {faltan.length > 0 && (
-            <>
-              <div className="mt-[18px]">
-                <CabeceraBloque titulo="Faltan" bajada="Deberían haber llegado y no están registrados." />
-              </div>
-              <ul className="fin-fijos">
-                {faltan.map((f) => (
-                  <FilaFijo key={f.id} titulo={nombre(f)} detalle={detalle(f)} monto={monto(f)}>
-                    <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => onRegistrar(f)}>
-                      {f.montoVariable ? "Registrar monto" : "Registrar"}
-                    </button>
-                  </FilaFijo>
-                ))}
-              </ul>
-            </>
-          )}
-        </Superficie>
-
-        <div className="fin-columna">
-          {sugeridos.length > 0 && (
-            <Superficie pad className="anim-sube">
-              <CabeceraBloque titulo="Se repiten. ¿Los marco como fijos?" bajada="El sistema los encontró mirando los gastos de los últimos tres meses." />
-              <ul className="fin-fijos">
-                {sugeridos.map((s) => (
-                  <FilaFijo
-                    key={`${s.ubicacionId}-${s.categoria}-${s.proveedorId}`}
-                    titulo={`${s.proveedorNombre ?? s.descripcion} · ${s.ubicacionNombre}`}
-                    detalle={`${s.categoriaNombre} · ${s.meses} de 3 meses, cerca del día ${s.diaDelMes}`}
-                    monto={solesRedondo(s.monto)}
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => onMarcarFijo(s)}>
-                        Marcar fijo
-                      </button>
-                      <button type="button" className="btn-enlace text-[12.5px]" onClick={() => onNoEsFijo(s)}>
-                        No es fijo
-                      </button>
-                    </span>
-                  </FilaFijo>
-                ))}
-              </ul>
-            </Superficie>
-          )}
+      <section className="space-y-4" data-guia="fin-gastos.fijos">
+        {fijos.length > 0 && (
           <Superficie pad className="anim-sube">
-            <CabeceraBloque titulo="Ya registrados este mes" bajada={`${registrados.length} de ${fijos.length} fijos.`}>
+            <CabeceraBloque titulo={tituloDeLaCola(mes)} bajada={bajadaDeLaCola(cola, mes)}>
               {editar}
             </CabeceraBloque>
+            {cola.faltan.length > 0 && (
+              <div className="fin-fijos-grupo">
+                <TituloGrupo cuenta={cola.faltan.length}>Ya pasaron su fecha</TituloGrupo>
+                <ul className="fin-fijos">{cola.faltan.map(pendiente)}</ul>
+              </div>
+            )}
+            {cola.vienen.length > 0 && (
+              <div className="fin-fijos-grupo">
+                <TituloGrupo cuenta={cola.vienen.length}>Llegan este mes</TituloGrupo>
+                <ul className="fin-fijos">{cola.vienen.map(pendiente)}</ul>
+              </div>
+            )}
+            {cola.registrados.length > 0 && (
+              <div className="fin-fijos-grupo">
+                <TituloGrupo cuenta={cola.registrados.length}>Ya registrados</TituloGrupo>
+                {cola.pendientes === 0 ? (
+                  <ul className="fin-fijos">{cola.registrados.map(registrado)}</ul>
+                ) : (
+                  <>
+                    <FilasDeMas abierto={verRegistrados} id="fin-fijos-registrados">
+                      <ul className="fin-fijos">{cola.registrados.map(registrado)}</ul>
+                    </FilasDeMas>
+                    <BotonVerMas
+                      forma="enlace"
+                      abierto={verRegistrados}
+                      onCambiar={setVerRegistrados}
+                      texto={cola.registrados.length === 1 ? "Ver el registrado" : `Ver los ${cola.registrados.length} registrados`}
+                      controla="fin-fijos-registrados"
+                    />
+                  </>
+                )}
+              </div>
+            )}
+          </Superficie>
+        )}
+
+        {sugeridos.length > 0 && (
+          <Superficie pad className="anim-sube">
+            <CabeceraBloque titulo="Se repiten. ¿Los marco como fijos?" bajada="El sistema los encontró mirando los gastos de los últimos tres meses." />
             <ul className="fin-fijos">
-              {registrados.length === 0 ? (
-                <li className="text-[13px] text-taupe">Ninguno todavía.</li>
-              ) : (
-                registrados.map((f) => (
-                  <FilaFijo key={f.id} titulo={nombre(f)} detalle={detalle(f)} monto={solesRedondo(f.gastoMonto ?? f.monto)}>
-                    <Chip tono="verde">registrado</Chip>
-                  </FilaFijo>
-                ))
-              )}
+              {sugeridos.map((s) => (
+                <FilaFijo
+                  key={`${s.ubicacionId}-${s.categoria}-${s.proveedorId}`}
+                  titulo={`${s.proveedorNombre ?? s.descripcion} · ${s.ubicacionNombre}`}
+                  detalle={`${s.categoriaNombre} · ${s.meses} de 3 meses, cerca del día ${s.diaDelMes}`}
+                  monto={solesRedondo(s.monto)}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => onMarcarFijo(s)}>
+                      Marcar fijo
+                    </button>
+                    <button type="button" className="btn-enlace text-[12.5px]" onClick={() => onNoEsFijo(s)}>
+                      No es fijo
+                    </button>
+                  </span>
+                </FilaFijo>
+              ))}
             </ul>
           </Superficie>
-        </div>
+        )}
       </section>
       <NotaFijos />
     </>

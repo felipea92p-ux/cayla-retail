@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 55,
+  "total": 56,
   "controles": {
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -13,7 +13,8 @@
       "BotonEditar «Editar fijos»",
       "BotonEnlace «Agregar el primero»",
       "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}»",
-      "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}» #2",
+      "button «Ver el gasto»",
+      "BotonVerMas «→setVerRegistrados»",
       "button «Marcar fijo»",
       "button «No es fijo»",
       "ComboResponsable «{responsable}»",

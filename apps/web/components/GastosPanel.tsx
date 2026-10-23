@@ -279,7 +279,11 @@ export function GastosPanel({
           sugeridos={sugeridos}
           verTodas={verTodas}
           puedeConfigurar={puedeConfigurar}
+          mes={mes}
+          hoy={hoy}
+          gastoDe={(id) => gastos.find((g) => g.id === id)}
           onRegistrar={(f) => setRegistrar({ fijo: f })}
+          onAbrirGasto={setDetalle}
           onMarcarFijo={setNuevoFijo}
           onNoEsFijo={setNoEsFijo}
         />

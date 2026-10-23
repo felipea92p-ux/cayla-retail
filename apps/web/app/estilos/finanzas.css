@@ -461,7 +461,8 @@
   }
   .fin-fijo {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    /* La última columna mide lo mismo en todas las filas con botón (7,5 rem): así los montos quedan alineados aunque diga «Registrar» o «Registrar monto». */
+    grid-template-columns: 1fr auto minmax(7.5rem, auto);
     gap: 12px;
     align-items: center;
     padding: 12px 0;
@@ -469,6 +470,9 @@
   }
   .fin-fijos .fin-fijo:first-child {
     border-top: 0;
+  }
+  .fin-fijo > :last-child {
+    justify-self: end;
   }
   .fin-fijo b {
     display: block;
@@ -486,6 +490,19 @@
     font-size: 19px;
     white-space: nowrap;
     color: var(--color-tinta);
+  }
+  /* Fijos del mes como cola (2026-10-22): los grupos se separan con aire, y en el celular el botón baja bajo el nombre en vez de partirlo. */
+  .fin-fijos-grupo {
+    margin-top: 18px;
+  }
+  @media (max-width: 639px) {
+    .fin-fijo {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .fin-fijo > :last-child {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
   }
 
   /* Par de entradas en una celda (Configuración: «% · fondo»). */
