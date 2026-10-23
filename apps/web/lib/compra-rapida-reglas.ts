@@ -21,6 +21,15 @@ export const CARPETA_PAPELES = "papeles/";
 /** Cuántos habituales se ven antes de «Ver todos los suyos» (la maqueta aprobada). */
 export const HABITUALES_A_LA_VISTA = 6;
 
+/** Cuántos proveedores se dibujan de entrada, y cuántos más cada vez que se llega al final de la lista (Felipe 2026-10-23). */
+export const PROVEEDORES_POR_TANDA = 10;
+
+/** Los primeros `cuantos` de la lista, sin pasarse, y si quedan más para la próxima tanda. */
+export function tandaDeLista<T>(lista: readonly T[], cuantos: number): { visibles: T[]; quedan: number } {
+  const n = Math.max(0, Math.min(cuantos, lista.length));
+  return { visibles: lista.slice(0, n), quedan: lista.length - n };
+}
+
 export type TipoPapel = "factura" | "boleta" | "nota_venta" | "sin_comprobante";
 
 /** Qué le dio el proveedor, en palabras de la tienda, con su ayuda. */

@@ -2033,7 +2033,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.proveedores",
       opcional: true,
       titulo: "Tus proveedores",
-      texto: "Primero a los que les compraste hace poco, con cuándo y cuántas veces. Los demás, en «Ver los otros». Tócalo para seguir.",
+      texto: "Primero a los que les compraste hace poco, con cuándo y cuántas veces; después los demás. Se ven de 10 en 10: al bajar aparecen los siguientes. Tócalo para seguir.",
     },
     {
       id: "proveedor-nuevo",
@@ -2054,14 +2054,14 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.habituales",
       opcional: true,
       titulo: "Lo que le compras siempre",
-      texto: "Sus prendas en tarjetas, con lo de la vez pasada. Toca una y se abre su hoja: cuántas, el precio y a qué tienda va. La que ya va en la compra lleva su número.",
+      texto: "Sus prendas en tarjetas, con su foto y lo de la vez pasada. Toca una y se abre su hoja: cuántas, el precio y a qué tienda va. La que ya va en la compra lleva su número.",
     },
     {
       id: "algo-nuevo",
       ancla: "compra.algo-nuevo",
       opcional: true,
-      titulo: "Algo nuevo de este proveedor",
-      texto: "Una prenda que todavía no le compraste. Se abre la misma hoja que las de siempre, con qué es, la marca y cómo se llama arriba. Es solo una referencia: no crea la prenda en el catálogo, la crea la tienda al recibirla.",
+      titulo: "Algo nuevo, o no la encuentras",
+      texto: "Fijo abajo: para una prenda que todavía no le compraste, o si no la encuentras aquí o no sabes cómo la llaman en la tienda. Dices qué es, la marca y cómo la conoces. Es solo una referencia: no crea la prenda en el catálogo, la crea la tienda al recibirla.",
     },
     {
       id: "categoria-nueva",
@@ -2082,7 +2082,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.nombre-nuevo",
       opcional: true,
       titulo: "Cómo se llama",
-      texto: "Un nombre corto, como lo dicen en la tienda. Si se parece a una que ya le compras, te pregunta si es esa, para no anotarla dos veces.",
+      texto: "Un nombre corto, como lo dicen en la tienda o como la conoces tú. Si se parece a una que ya le compras, te pregunta si es esa, para no anotarla dos veces.",
     },
     {
       id: "cantidad",

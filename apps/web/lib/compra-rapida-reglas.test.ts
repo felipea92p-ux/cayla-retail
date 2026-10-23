@@ -11,6 +11,8 @@ import {
   nuevoVacio,
   opcionesCategoriaNueva,
   opcionesMarcaNueva,
+  PROVEEDORES_POR_TANDA,
+  tandaDeLista,
   habitualParecido,
   leerCantidad,
   leerHabituales,
@@ -276,6 +278,17 @@ describe("algo nuevo de este proveedor", () => {
     expect(habitualDeNuevo("x", { ...n, categoriaId: null }, CATS, marcas)).toBeNull();
     expect(habitualDeNuevo("x", { ...n, marcaId: "otra" }, CATS, marcas)).toBeNull();
     expect(habitualDeNuevo("x", { ...n, nombre: "ab" }, CATS, marcas)).toBeNull();
+  });
+});
+
+describe("los proveedores, de 10 en 10", () => {
+  it("dibuja la tanda pedida sin pasarse y dice cuántos quedan", () => {
+    const lista = Array.from({ length: 23 }, (_, i) => i);
+    expect(PROVEEDORES_POR_TANDA).toBe(10);
+    expect(tandaDeLista(lista, 10)).toEqual({ visibles: lista.slice(0, 10), quedan: 13 });
+    expect(tandaDeLista(lista, 30)).toEqual({ visibles: lista, quedan: 0 });
+    expect(tandaDeLista([], 10)).toEqual({ visibles: [], quedan: 0 });
+    expect(tandaDeLista(lista, -1).visibles).toEqual([]);
   });
 });
 

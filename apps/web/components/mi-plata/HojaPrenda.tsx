@@ -262,7 +262,8 @@ function DescribirNueva({
   return (
     <div className="space-y-4 border-b border-sand pb-4">
       <p className="text-[12.5px] leading-snug text-taupe">
-        Solo es una referencia para la compra: no se crea en el catálogo. La tienda la registra cuando la recibe, con su color y sus tallas.
+        Úsala también si no la encuentras entre sus prendas o no sabes cómo la llaman en la tienda: descríbela como la conoces. Es solo una
+        referencia para la compra: no se crea en el catálogo; la tienda la registra cuando la recibe, con su color y sus tallas.
       </p>
       {/* Qué es y la marca, lado a lado desde `sm`; en el celular, uno bajo otro: a media columna, «¿Qué es? · Sigue aquí» se partía. */}
       <div className="grid gap-4 sm:grid-cols-2 sm:gap-3">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight, Check, ChevronRight, Plus, Store, Truck } from "lucide-react";
@@ -13,7 +13,7 @@ import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Volver } from "@/components/ui/Volver";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
+import { BotonVerMas } from "@/components/ui/VerMas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
@@ -31,9 +31,12 @@ import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
 import type { ProveedorRegistrado } from "@/lib/proveedor-de-orden-reglas";
-import { cargarHabituales, registrarCompraRapida, subirFotoPapel } from "@/lib/compra-rapida-acciones";
+import { cargarFotosDeHabituales, cargarHabituales, registrarCompraRapida, subirFotoPapel } from "@/lib/compra-rapida-acciones";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import {
   HABITUALES_A_LA_VISTA,
+  PROVEEDORES_POR_TANDA,
+  tandaDeLista,
   MEDIOS_PAGO_COMPRA,
   PAGO_DE_FABRICA,
   TIPOS_PAPEL,
@@ -136,6 +139,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [registrando, setRegistrando] = useState(false);
   const [proveedor, setProveedor] = useState<ProveedorParaComprar | null>(null);
   const [habituales, setHabituales] = useState<Habitual[] | null | "cargando">("cargando");
+  // La foto de cada prenda del catálogo entre sus habituales, por `producto_id`: llega después de la grilla (sin ella, su categoría).
+  const [fotos, setFotos] = useState<ReadonlyMap<string, string>>(new Map());
   const [catHabitual, setCatHabitual] = useState<string | null>(null);
   const [verTodos, setVerTodos] = useState(false);
   const [enCurso, setEnCurso] = useState<EnCurso | null>(null);
@@ -180,9 +185,11 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     setCatHabitual(null);
     setVerTodos(false);
     setHabituales("cargando");
+    setFotos(new Map());
     setPaso("habituales");
     const leidos = await cargarHabituales(p.id);
     setHabituales(leidos);
+    if (leidos?.length) void cargarFotosDeHabituales(leidos.flatMap((h) => (h.productoId ? [h.productoId] : []))).then(setFotos);
     // Sin nada que se le haya comprado ni prendas suyas en el catálogo: la hoja de «Algo nuevo», de entrada.
     if (leidos !== null && leidos.length === 0) algoNuevo([]);
   }
@@ -412,12 +419,24 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               setVerTodos={setVerTodos}
               alElegir={elegirHabitual}
               alCorregir={corregir}
-              alNuevo={() => algoNuevo()}
+              fotos={fotos}
             />
           )}
-          {/* La barra negra de la maqueta: lo que lleva la compra, y «Seguir». Pegada al pie de la columna, no a la ventana: fija, en
-              escritorio el menú lateral la tapaba. */}
-          <div className="sticky bottom-0 z-10 bg-crema/95 py-3 backdrop-blur">
+          {/* La barra de abajo: «Algo nuevo» y la barra negra de la maqueta (lo que lleva la compra, y «Seguir»). Pegada al pie de la
+              columna, no a la ventana: fija, en escritorio el menú lateral la tapaba. */}
+          <div className="sticky bottom-0 z-10 flex flex-col gap-2 bg-crema/95 py-3 backdrop-blur">
+            {/* «Algo nuevo», fijo abajo junto a lo que lleva la compra (Felipe 2026-10-23): con muchas prendas, la tarjeta del final de la
+                grilla quedaba lejos y en el celular había que bajar hasta ella. */}
+            {Array.isArray(habituales) && (
+              <Boton peso="fantasma" className="w-full" onClick={() => algoNuevo()} data-guia="compra.algo-nuevo">
+                <span className="inline-flex items-center gap-2">
+                  <Plus className="h-4 w-4" aria-hidden />
+                  {/* También es la salida de quien no encuentra la prenda en la grilla o no sabe cómo la llaman en la tienda (Felipe
+                      2026-10-23): la describe como la conoce, y Recibir la registra después. */}
+                  Algo nuevo, o no la encuentras aquí
+                </span>
+              </Boton>
+            )}
             {lineas.length > 0 ? (
               <div className="flex items-center gap-3 rounded-full bg-tinta py-1.5 pl-5 pr-1.5 text-crema" data-guia="compra.carrito">
                 <span className="min-w-0 flex-1">
@@ -455,7 +474,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                 return (
                   <li key={`${l.clave}-${i}`}>
                     <button type="button" onClick={() => corregir(i)} className="grid w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-3 text-left">
-                      <MiniaturaPrenda fotoUrl={null} tamano="md" prefijo={c?.prefijo} familia={c?.familia} categoria={l.categoria} />
+                      <MiniaturaPrenda fotoUrl={(l.productoId && fotos.get(l.productoId)) || null} tamano="md" prefijo={c?.prefijo} familia={c?.familia} categoria={l.categoria} />
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-tinta">
                           {l.cantidad} · {l.nombre}
@@ -755,15 +774,36 @@ function PasoProveedor({
   setCat: (v: string | null) => void;
   alElegir: (p: ProveedorParaComprar) => void;
 }) {
-  const [verTodos, setVerTodos] = useState(false);
   const categorias = categoriasConProveedor(proveedores, datos.categorias);
   const nombreCat = new Map(datos.categorias.map((c) => [c.id, c.nombre]));
   const hoy = hoyLima();
   const buscando = q.trim() !== "" || cat !== null;
-  const lista = filtrarProveedores(proveedores, q, cat);
-  // Sin buscar: primero a quién le compraste hace poco (la maqueta); los demás, a un toque. Sin ninguno reciente, todos.
-  const recientes = proveedoresRecientes(proveedores);
-  const resto = proveedores.filter((p) => !recientes.includes(p));
+  // Sin buscar: primero a quién le compraste hace poco (la maqueta), después los demás. Buscando: lo que coincide.
+  const recientes = buscando ? [] : proveedoresRecientes(proveedores);
+  const lista = buscando ? filtrarProveedores(proveedores, q, cat) : [...recientes, ...proveedores.filter((p) => !recientes.includes(p))];
+  // De 10 en 10 (Felipe 2026-10-23): se dibujan los primeros y, al llegar al final de la lista, la tanda siguiente. Cambiar la búsqueda o la
+  // categoría vuelve a los primeros 10 (la tanda se guarda con la búsqueda a la que pertenece: sin efecto que la reinicie).
+  const claveBusqueda = `${q.trim()}|${cat ?? ""}`;
+  const [tanda, setTanda] = useState({ clave: claveBusqueda, cuantos: PROVEEDORES_POR_TANDA });
+  const cuantos = tanda.clave === claveBusqueda ? tanda.cuantos : PROVEEDORES_POR_TANDA;
+  const { visibles, quedan } = tandaDeLista(lista, cuantos);
+  const verRecientes = visibles.filter((p) => recientes.includes(p));
+  const verResto = visibles.filter((p) => !recientes.includes(p));
+  // El centinela al pie de la lista suma una tanda al asomar (como la grilla de Vender): el `setTanda` vive en el callback del observador.
+  const centinela = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = centinela.current;
+    if (!el || quedan === 0 || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      (entradas) => {
+        if (entradas[0]?.isIntersecting) setTanda({ clave: claveBusqueda, cuantos: cuantos + PROVEEDORES_POR_TANDA });
+      },
+      // Solo cuando el pie de la lista de verdad asoma: con margen, la tanda siguiente llegaba antes de terminar de ver la primera.
+      { rootMargin: "0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [claveBusqueda, cuantos, quedan]);
   const fila = (p: ProveedorParaComprar) => (
     <li key={p.id}>
       <button
@@ -799,42 +839,36 @@ function PasoProveedor({
         placeholder="Nombre del proveedor" // sugerir-fijo: se busca un proveedor por su nombre; no depende de nada elegido antes
         guia="compra.buscador"
       />
-      {buscando ? (
-        lista.length === 0 ? (
-          <Vacio icono={<Store aria-hidden />} titulo="No hay un proveedor así" tamano="chico">
-            Prueba con otra categoría u otro nombre, o regístralo en «Es un proveedor nuevo», aquí abajo.
-          </Vacio>
-        ) : (
-          <ul className="flex flex-col gap-2" data-guia="compra.proveedores">
-            {lista.map(fila)}
-          </ul>
-        )
-      ) : recientes.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <span className="label-cayla text-[11px] text-taupe">Les compraste hace poco</span>
-          <ul className="flex flex-col gap-2" data-guia="compra.proveedores">
-            {recientes.map(fila)}
-          </ul>
-          {resto.length > 0 && (
+      {buscando && lista.length === 0 ? (
+        <Vacio icono={<Store aria-hidden />} titulo="No hay un proveedor así" tamano="chico">
+          Prueba con otra categoría u otro nombre, o regístralo en «Es un proveedor nuevo», aquí abajo.
+        </Vacio>
+      ) : (
+        <div className="flex flex-col gap-2" data-guia="compra.proveedores">
+          {verRecientes.length > 0 && (
             <>
-              <FilasDeMas abierto={verTodos} id="compra-otros-proveedores">
-                <ul className="flex flex-col gap-2 pt-2">{resto.map(fila)}</ul>
-              </FilasDeMas>
-              <BotonVerMas
-                forma="enlace"
-                abierto={verTodos}
-                onCambiar={setVerTodos}
-                controla="compra-otros-proveedores"
-                texto={`Ver los otros ${resto.length}`}
-                className="self-start"
-              />
+              <span className="label-cayla text-[11px] text-taupe">Les compraste hace poco</span>
+              <ul className="flex flex-col gap-2">{verRecientes.map(fila)}</ul>
             </>
           )}
+          {verResto.length > 0 && (
+            <>
+              {verRecientes.length > 0 && <span className="label-cayla pt-2 text-[11px] text-taupe">Los demás</span>}
+              <ul className="flex flex-col gap-2">{verResto.map(fila)}</ul>
+            </>
+          )}
+          {/* Sin IntersectionObserver (navegador viejo), el centinela es un botón que trae la tanda siguiente. */}
+          {quedan > 0 && (
+            <div ref={centinela} className="flex justify-center pt-1">
+              <BotonVerMas
+                forma="enlace"
+                abierto={false}
+                onCambiar={() => setTanda({ clave: claveBusqueda, cuantos: cuantos + PROVEEDORES_POR_TANDA })}
+                texto={quedan <= PROVEEDORES_POR_TANDA ? `Ver ${quedan === 1 ? "el que falta" : `los ${quedan} que faltan`}` : `Ver ${PROVEEDORES_POR_TANDA} más · faltan ${quedan}`}
+              />
+            </div>
+          )}
         </div>
-      ) : (
-        <ul className="flex flex-col gap-2" data-guia="compra.proveedores">
-          {proveedores.map(fila)}
-        </ul>
       )}
       {categorias.length > 1 && (
         <div className="flex flex-col gap-2">
@@ -871,7 +905,7 @@ function ListaHabituales({
   setVerTodos,
   alElegir,
   alCorregir,
-  alNuevo,
+  fotos,
 }: {
   habituales: Habitual[];
   lineas: LineaCompra[];
@@ -883,7 +917,8 @@ function ListaHabituales({
   setVerTodos: (v: boolean) => void;
   alElegir: (h: Habitual) => void;
   alCorregir: (i: number) => void;
-  alNuevo: () => void;
+  /** La foto de cada prenda del catálogo, por `producto_id`. */
+  fotos: ReadonlyMap<string, string>;
 }) {
   const cats = categoriasDeHabituales(habituales);
   const deCat = cat ? habituales.filter((h) => h.categoriaId === cat) : habituales;
@@ -893,8 +928,19 @@ function ListaHabituales({
   const claves = new Set(habituales.map((h) => h.clave));
   // Las prendas nuevas que ya van en la compra también son tarjetas: así se corrigen igual que las de siempre.
   const nuevas = lineas.map((l, i) => ({ l, i })).filter(({ l }) => !claves.has(l.clave));
-  const tarjeta = (clave: string, nombre: string, categoriaId: string, categoria: string, linea: LineaCompra | undefined, abajo: string | null, onClick: () => void) => {
+  const tarjeta = (
+    clave: string,
+    productoId: string | null,
+    nombre: string,
+    categoriaId: string,
+    categoria: string,
+    linea: LineaCompra | undefined,
+    abajo: string | null,
+    onClick: () => void,
+  ) => {
     const c = deCategoria.get(categoriaId);
+    const mosaico = <MosaicoPrenda forma="grilla" prefijo={c?.prefijo} familia={c?.familia as never} categoria={categoria} conNombre={false} className="w-full aspect-[4/3]!" />;
+    const foto = productoId ? fotos.get(productoId) : undefined;
     return (
       <li key={clave}>
         <button
@@ -902,7 +948,14 @@ function ListaHabituales({
           onClick={onClick}
           className={`card-cayla mov-boton relative flex h-full w-full flex-col gap-2 rounded-[18px] p-2.5 text-left ${linea ? "border-tinta ring-1 ring-inset ring-tinta" : ""}`}
         >
-          <MosaicoPrenda forma="grilla" prefijo={c?.prefijo} familia={c?.familia as never} categoria={categoria} conNombre={false} className="w-full aspect-[4/3]!" />
+          {/* La foto de la prenda, servida al tamaño en que se ve; sin foto (o si no carga), su categoría sobre su tono (ADR-0333). */}
+          {foto ? (
+            <span className="relative block aspect-[4/3] w-full overflow-hidden rounded-xl border border-tinta/10 bg-sand/50">
+              <ImagenDePrenda src={foto} alt="" fill sizes="(min-width: 640px) 140px, 45vw" className="object-cover" fallback={mosaico} />
+            </span>
+          ) : (
+            mosaico
+          )}
           {linea && <Globito n={linea.cantidad} esquina etiqueta="en la compra" className="absolute right-4 top-4" />}
           <span className="text-[13.5px] font-medium leading-tight text-tinta">{nombre}</span>
           {(linea || abajo) && (
@@ -929,22 +982,10 @@ function ListaHabituales({
         </div>
       )}
       <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3" data-guia="compra.habituales">
-        {nuevas.map(({ l, i }) => tarjeta(l.clave, l.nombre, l.categoriaId, l.categoria, l, null, () => alCorregir(i)))}
+        {nuevas.map(({ l, i }) => tarjeta(l.clave, l.productoId, l.nombre, l.categoriaId, l.categoria, l, null, () => alCorregir(i)))}
         {ver.map((h) =>
-          tarjeta(h.clave, h.nombre, h.categoriaId, h.categoria, lineas.find((l) => l.clave === h.clave), textoHabitual(h) ?? `${h.categoria}${h.marca ? ` · ${h.marca}` : ""}`, () => alElegir(h)),
+          tarjeta(h.clave, h.productoId, h.nombre, h.categoriaId, h.categoria, lineas.find((l) => l.clave === h.clave), textoHabitual(h) ?? `${h.categoria}${h.marca ? ` · ${h.marca}` : ""}`, () => alElegir(h)),
         )}
-        <li>
-          <button
-            type="button"
-            onClick={alNuevo}
-            data-guia="compra.algo-nuevo"
-            className="mov-boton flex h-full min-h-[170px] w-full flex-col items-center justify-center gap-1 rounded-[18px] border border-dashed border-taupe/60 p-3 text-center text-tinta/75"
-          >
-            <Plus className="h-5 w-5" aria-hidden />
-            <span className="text-[13.5px] font-medium text-tinta">Algo nuevo</span>
-            <span className="text-[11.5px] text-taupe">de este proveedor</span>
-          </button>
-        </li>
       </ul>
       {!verTodos && !cat && habituales.length > HABITUALES_A_LA_VISTA && (
         <BotonVerMas forma="enlace" abierto={false} onCambiar={() => setVerTodos(true)} texto={`Ver todos los suyos (${habituales.length})`} className="self-center" />

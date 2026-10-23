@@ -27,6 +27,7 @@
     "components/mi-plata/RegistrarCompra.tsx": [
       "Volver «→() => setPaso(atras)»",
       "Volver «/compras/mi-plata»",
+      "Boton «compra.algo-nuevo»",
       "Boton «compra.revisar»",
       "button «→() => corregir(i)»",
       "button «Otra prenda de»",
@@ -41,13 +42,12 @@
       "Boton «Anotar otra compra»",
       "Link «Ver mi plata»",
       "button «{inicialesProveedor(p.nombre)}»",
-      "BotonVerMas «{`Ver los otros ${resto.length}»",
+      "BotonVerMas «(sin nombre)»",
       "BotonFiltro «{c.nombre}»",
       "Boton «compra.proveedor-nuevo»",
-      "button «{linea && <Globito n={linea.cantidad}»",
+      "button «→onClick»",
       "BotonFiltro «Todos»",
       "BotonFiltro «{c.nombre}» #2",
-      "button «compra.algo-nuevo»",
       "BotonVerMas «{`Ver todos los suyos (${habituales.length}»"
     ],
     "components/mi-plata/TarjetaFoto.tsx": [
