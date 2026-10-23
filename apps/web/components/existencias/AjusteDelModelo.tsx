@@ -12,10 +12,14 @@ import { Vacio } from "@/components/ui/Vacio";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { Punto } from "@/components/alta-producto/Punto";
+import { TiraDeLoQueEntro, VistoQueSeDibuja } from "@/components/ficha-producto/ImprimirLoQueEntro";
+import { hrefEtiquetasDeSubidas } from "@/lib/matriz-ficha-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { apartadoEn, type VarianteAjuste } from "@/lib/ajuste-reglas";
 import { anchoDeLaPlanilla, claveCelda, motivoCerrado, motivoPlanilla, MOTIVOS_PLANILLA, PLANILLA } from "@/lib/existencias-ajuste-modelo";
-import { nombreDeCelda, type ControlAjuste } from "./useAjusteDelModelo";
+import { nombreDeCelda, type AjusteGuardado, type ControlAjuste, type LineaDelLote } from "./useAjusteDelModelo";
 
 /* ====================================================================
    «Ajustar stock» dentro del modal de la prenda (ADR-0494, Felipe 2026-10-23, ronda 3 de
@@ -28,6 +32,8 @@ import { nombreDeCelda, type ControlAjuste } from "./useAjusteDelModelo";
        con la talla de la que se viene EN FOCO (el resto baja de tono hasta que se toca otra celda o «Ver todo el modelo»).
      · `TalonDelAjuste` — la columna izquierda, bajo la foto que se achica: lo que se va a guardar, talla por talla, y cuánto entra y sale.
      · `PieDelAjuste` — quién firma, el resumen o lo que falta, y Descartar / Guardar.
+     · `ListoDelAjuste` — al guardar, si entraron prendas: «Etiquetas de lo que entró», la misma tira de Editar producto (una etiqueta por
+       cada prenda nueva, no por todo el stock).
    El estado y las llamadas a la base viven en `useAjusteDelModelo`; las reglas, en `lib/existencias-ajuste-modelo.ts`.
    ==================================================================== */
 
@@ -393,13 +399,14 @@ function Celda({
 }
 
 /** El talón: lo que se va a guardar, talla por talla, y cuánto entra y sale. */
-export function TalonDelAjuste({ control }: { control: ControlAjuste }) {
-  const { lineas, resumen } = control;
+export function TalonDelAjuste({ control, guardadas }: { control: ControlAjuste; guardadas?: readonly LineaDelLote[] }) {
+  const lineas = guardadas ?? control.lineas;
+  const resumen = guardadas ? resumenDeLineas(guardadas) : control.resumen;
   return (
     // En el celular el talón no cabe: el pie ya dice cuántos cambios, cuánto entra y cuánto sale.
     <div className="grid content-start gap-2.5 max-sm:hidden">
       <p className="flex items-center gap-2">
-        <span className="label-cayla text-[11px] text-taupe">Lo que vas a guardar</span>
+        <span className="label-cayla text-[11px] text-taupe">{guardadas ? "Lo que se guardó" : "Lo que vas a guardar"}</span>
         <Globito n={lineas.length} pide etiqueta={`${lineas.length} ${lineas.length === 1 ? "talla tocada" : "tallas tocadas"}`} />
       </p>
       {lineas.length === 0 ? (
@@ -486,3 +493,69 @@ export function PieDelAjuste({ control, onCancelar, onGuardar }: { control: Cont
   );
 }
 
+
+function resumenDeLineas(lineas: readonly LineaDelLote[]) {
+  return {
+    tallas: lineas.length,
+    entran: lineas.reduce((s, l) => s + Math.max(0, l.delta), 0),
+    salen: lineas.reduce((s, l) => s + Math.max(0, -l.delta), 0),
+  };
+}
+
+/** «Etiquetas de lo que entró» tras guardar (Felipe 2026-10-03, en la ficha; aquí, ADR-0494): una etiqueta por cada prenda que entró, con
+ *  la tira de la impresora de Editar producto. «Imprimir» lleva a Etiquetas de precio con justo esas unidades. */
+export function ListoDelAjuste({
+  guardado,
+  prenda,
+  hexDe,
+  precioDe,
+  onMasTarde,
+}: {
+  guardado: AjusteGuardado;
+  prenda: string;
+  hexDe: (color: string | null) => string | null;
+  precioDe: (color: string | null) => number | null;
+  onMasTarde: () => void;
+}) {
+  const entraron = guardado.lineas.filter((l) => l.delta > 0);
+  const { tallas, entran, salen } = resumenDeLineas(guardado.lineas);
+  const donde = guardado.lugar === "piso" ? "al piso" : guardado.lugar === "almacen" ? "al almacén" : "a la sede";
+  const subidas = entraron.map((l) => ({ varianteId: l.variante.varianteId, color: l.variante.color, talla: l.variante.talla, unidades: l.delta }));
+  // `?ajuste=1`: la pantalla de etiquetas dice «Existencias · Lo que entró» y su «Volver» lleva aquí.
+  const href = `${hrefEtiquetasDeSubidas(subidas)}&ajuste=1`;
+  return (
+    <div role="status" className="grid justify-items-center gap-3 py-2 text-center">
+      <VistoQueSeDibuja />
+      <TituloSeccion>
+        Stock ajustado en {tallas} {tallas === 1 ? "talla" : "tallas"}
+      </TituloSeccion>
+      <p className="max-w-md text-[13.5px] text-taupe">
+        {[`Entraron ${entran} ${donde}`, salen > 0 && (salen === 1 ? "salió 1" : `salieron ${salen}`)].filter(Boolean).join(" · ")}. Queda en Movimientos como «
+        {motivoPlanilla(guardado.motivo).texto}».
+      </p>
+      <div className="w-full text-left">
+        <TiraDeLoQueEntro
+          prenda={prenda}
+          papeles={entraron.map((l) => ({
+            clave: l.variante.varianteId,
+            color: l.variante.color ?? "Sin color",
+            punto: <Punto hex={hexDe(l.variante.color)} />,
+            talla: l.variante.talla ?? "Única",
+            precio: precioDe(l.variante.color),
+            unidades: l.delta,
+            iconos: [],
+          }))}
+        />
+      </div>
+      <p className="text-[12.5px] text-taupe">Una etiqueta por cada prenda que entró: las que ya estaban en la tienda ya tienen la suya.</p>
+      <PieAcciones className="w-full">
+        <Boton peso="fantasma" onClick={onMasTarde}>
+          Más tarde
+        </Boton>
+        <BotonImprimir peso="primario" href={href}>
+          Imprimir {entran} {entran === 1 ? "etiqueta" : "etiquetas"}
+        </BotonImprimir>
+      </PieAcciones>
+    </div>
+  );
+}

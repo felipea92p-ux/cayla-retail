@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 138,
+  "total": 157,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -113,6 +113,29 @@
     "components/RitmoRecientePopover.tsx": [
       "button «{textoRitmoRecienteCelda(ritmo)}»"
     ],
+    "components/SelectorColor.tsx": [
+      "input «Elegir color con el selector»",
+      "CampoTexto «{etiqueta}»"
+    ],
+    "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «(sin nombre)»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "button «{c.nombre}»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «{control}»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/NuevoColorAlta.tsx": [
+      "CampoTexto «Nombre del color»",
+      "Desplegable «{familia}»",
+      "CampoTexto «Código»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»",
+      "button «Elegir»"
+    ],
     "components/existencias/AjusteDelModelo.tsx": [
       "button «existencias.cajon-ajustar»",
       "Volver «→onVolver»",
@@ -122,7 +145,9 @@
       "button «Reintentar»",
       "ComboResponsable «{control.responsable}»",
       "Boton «{n > 0 ? \"Descartar\" : \"Cancelar\"}»",
-      "Boton «{problema ? (guia.frase ?? undefined) : undefined}»"
+      "Boton «{problema ? (guia.frase ?? undefined) : undefined}»",
+      "Boton «Más tarde»",
+      "BotonImprimir «Imprimir»"
     ],
     "components/existencias/AnilloMision.tsx": [
       "button «existencias.pendientes»"
@@ -181,6 +206,10 @@
       "button «existencias.colgar»",
       "button «existencias.mas»",
       "button «{o.clave === \"ficha\" ? \"existencias.ver-ficha\" : undefined}»"
+    ],
+    "components/ficha-producto/ImprimirLoQueEntro.tsx": [
+      "button «Más tarde»",
+      "BotonImprimir «Imprimir»"
     ]
   }
 }

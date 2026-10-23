@@ -18,8 +18,8 @@ import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { navegacionSinEspera } from "@/components/ui/Espera";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
-import { BandaAjustar, PieDelAjuste, PlanillaDelAjuste, TalonDelAjuste } from "@/components/existencias/AjusteDelModelo";
-import { useAjusteDelModelo } from "@/components/existencias/useAjusteDelModelo";
+import { BandaAjustar, ListoDelAjuste, PieDelAjuste, PlanillaDelAjuste, TalonDelAjuste } from "@/components/existencias/AjusteDelModelo";
+import { useAjusteDelModelo, type AjusteGuardado } from "@/components/existencias/useAjusteDelModelo";
 import { anchoDelModalAlAjustar, lugarInicial } from "@/lib/existencias-ajuste-modelo";
 import { sonarConfirmacion } from "@/lib/sonido-confirmar";
 import { FotoAmpliada } from "@/components/existencias/FotoAmpliada";
@@ -193,6 +193,8 @@ export function PanelTalla({
   const [flujo, setFlujo] = useState<FlujoPedido | null>(flujoInicial);
   // La talla de la que se viene al abrir «Ajustar stock»: queda en foco hasta que se toque otra o «Ver todo el modelo» (ronda 3).
   const [focoAjuste, setFocoAjuste] = useState<string | null>(flujoInicial?.tipo === "ajustar" ? (varianteInicial ?? null) : null);
+  // Lo recién guardado, si entraron prendas: el modal muestra «Etiquetas de lo que entró» antes de volver a la talla.
+  const [listoAjuste, setListoAjuste] = useState<AjusteGuardado | null>(null);
   const [hecho, setHecho] = useState<string | null>(null);
   // «Todas»: ver solo lo del piso o solo lo del almacén (Felipe, 2026-10-09). `null` = las dos mitades de cada celda.
   const [capa, setCapa] = useState<"piso" | "almacen" | null>(null);
@@ -207,6 +209,7 @@ export function PanelTalla({
     setVista("talla");
     setFlujo(flujoInicial);
     setFocoAjuste(flujoInicial?.tipo === "ajustar" ? (varianteInicial ?? null) : null);
+    setListoAjuste(null);
     setHecho(null);
   }
 
@@ -436,6 +439,7 @@ export function PanelTalla({
   // «Ajustar stock» (ADR-0494): el modal se vuelve la planilla del modelo entero, con ESTA talla en foco.
   function abrirAjuste() {
     setHecho(null);
+    setListoAjuste(null);
     setVista("talla");
     setFocoAjuste(fila!.varianteId);
     setFlujo({ tipo: "ajustar" });
@@ -445,6 +449,7 @@ export function PanelTalla({
     pedirAccion(() => {
       setFlujo(null);
       setFocoAjuste(null);
+      setListoAjuste(null);
       raiz.current?.focus({ preventScroll: true });
     });
   async function guardarAjuste() {
@@ -457,12 +462,17 @@ export function PanelTalla({
       sonarConfirmacion();
       avisar.exito(texto, { detalle: `${prenda!.referencia} · ${r.lineas.map((l) => `${l.nombre} ${l.actual} → ${l.resultado}`).join(" · ")}` });
     }
-    setFlujo(null);
-    setFocoAjuste(null);
-    setHecho(texto);
     // La lista de atrás se pone al día sin el loader con el logo (como Colgar y Subir).
     navegacionSinEspera(window.location.href);
     router.refresh();
+    setHecho(texto);
+    // Si entraron prendas, primero sus etiquetas (como en Editar producto); si solo se restó, de vuelta a la talla.
+    if (!r.yaEstaba && r.lineas.some((l) => l.delta > 0)) {
+      setListoAjuste(r);
+      return;
+    }
+    setFlujo(null);
+    setFocoAjuste(null);
     raiz.current?.focus({ preventScroll: true });
   }
 
@@ -681,7 +691,7 @@ export function PanelTalla({
                 </div>
 
                 {modoAjuste ? (
-                  <TalonDelAjuste control={ajuste} />
+                  <TalonDelAjuste control={ajuste} guardadas={listoAjuste?.lineas} />
                 ) : flujo ? (
                   // En un paso, el color y la talla no se cambian: el chip dice sobre cuál se está trabajando.
                   <span className="inline-flex w-fit items-center gap-2 rounded-full bg-hueso px-3 py-1.5 text-[12.5px] text-taupe">
@@ -784,7 +794,20 @@ export function PanelTalla({
 
               {/* ¿Dónde está? ¿Qué hago? ¿Cómo se vende? — o el paso en curso, o «Todas». */}
               <section key={`${vista}-${prenda.clave}-${flujo?.tipo ?? ""}`} className="anim-asentar grid min-w-0 content-start gap-3.5">
-                {flujo?.tipo === "ajustar" ? (
+                {flujo?.tipo === "ajustar" && listoAjuste ? (
+                  <ListoDelAjuste
+                    guardado={listoAjuste}
+                    prenda={prenda.referencia}
+                    hexDe={(c) => ajuste.modelo?.colores.find((x) => x.color === c)?.hex ?? null}
+                    precioDe={(c) => colores.find((x) => x.color === c)?.precio ?? prenda.precio ?? null}
+                    onMasTarde={() => {
+                      setListoAjuste(null);
+                      setFlujo(null);
+                      setFocoAjuste(null);
+                      raiz.current?.focus({ preventScroll: true });
+                    }}
+                  />
+                ) : flujo?.tipo === "ajustar" ? (
                   <PlanillaDelAjuste
                     control={ajuste}
                     foco={focoAjuste}
@@ -1145,7 +1168,7 @@ export function PanelTalla({
                 )}
               </section>
             </div>
-            {modoAjuste && (
+            {modoAjuste && !listoAjuste && (
               <PieDelAjuste control={ajuste} onCancelar={() => (ajuste.lineas.length > 0 ? ajuste.descartar() : volverDeAjuste())} onGuardar={() => void guardarAjuste()} />
             )}
           </div>

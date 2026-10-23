@@ -458,7 +458,7 @@ export type OrigenDeTexto =
   /** Tallas sueltas. `desdeProductos`: se llegó desde la Tabla o la Grilla de Productos (misma regla que «Volver»:
    *  `desdeSeguro`), no desde Existencias. `tallas`: cuántas trae la URL — una sola es la impresora de esa talla, nadie
    *  «marcó» nada. */
-  | { tipo: "variantes"; desdeProductos?: boolean; tallas?: number; entraron?: boolean; desdeTraslado?: boolean }
+  | { tipo: "variantes"; desdeProductos?: boolean; tallas?: number; entraron?: boolean; desdeTraslado?: boolean; desdeAjuste?: boolean }
   | { tipo: "ninguno" };
 
 export type Encabezado = { sobretitulo: string; titulo: string; bajada: string; columnaCantidad: string; vacio: string };
@@ -507,6 +507,16 @@ export function encabezadoDeEtiquetas(o: OrigenDeTexto, n: { unidades: number; m
           bajada: `Entraron ${prendas} de ${modelos}. Sale una etiqueta por prenda; si alguna ya venía etiquetada, baja su número.`,
           columnaCantidad: "Entraron",
           vacio: "Lo que llegó ya no está en tu sede: no hay nada que etiquetar.",
+        };
+      }
+      // `?unidades=` con `?ajuste=`: lo que entró al ajustar el stock de un modelo en Existencias (ADR-0494); «Volver» ya lleva allí.
+      if (o.entraron && o.desdeAjuste) {
+        return {
+          ...base,
+          sobretitulo: "Existencias · Lo que entró",
+          bajada: `Entraron ${prendas} de ${modelos} al ajustar el stock. Sale una etiqueta por cada prenda nueva.`,
+          columnaCantidad: "Entraron",
+          vacio: "Lo que entró ya no está en tu sede: no hay nada que etiquetar.",
         };
       }
       // `?unidades=`: lo que acaba de entrar al guardar la ficha en Editar producto (una por unidad nueva, no todo el stock).
