@@ -89,6 +89,11 @@
   "relkind": "r",
   "rls": true
  },
+ "campana_sedes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "campana_web_disenos": {
   "forzado": false,
   "relkind": "r",
@@ -274,12 +279,27 @@
   "relkind": "r",
   "rls": true
  },
+ "compra_cierres": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_gastos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "compra_item_cierres": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
  "compra_item_destinos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_item_recibido_antes": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -315,6 +335,11 @@
   "rls": true
  },
  "compra_pagos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_papeles": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -600,6 +625,11 @@
   "rls": true
  },
  "favoritos_web": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "fondo_plata_anotada": {
   "forzado": false,
   "relkind": "r",
   "rls": true

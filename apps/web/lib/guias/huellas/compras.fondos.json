@@ -2,8 +2,11 @@
   "guia": "compras.fondos",
   "ruta": "/compras/fondos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 75,
+  "total": 68,
   "controles": {
+    "app/(app)/compras/fondos/page.tsx": [
+      "BotonEnlace «fondos.ir-quien-tiene»"
+    ],
     "components/fondos/AccionesFondos.tsx": [
       "Boton «fondos.entregar»",
       "CampoSelect «¿A quién le entregas?»",
@@ -50,27 +53,25 @@
       "Boton «Devolver para corregir» #2",
       "Boton «{pieListaRevisar(lectura) ?? guia.frase ?? undefined}»"
     ],
+    "components/mi-plata/BandejaRevisar.tsx": [
+      "button «→() => setElegido(fila.id)»"
+    ],
     "components/mi-plata/CierresPorRecibir.tsx": [
-      "Boton «fondos.cierre-recibir»",
-      "CampoSelect «{devuelve ? \"¿A dónde vuelve?\" : \"¿De dónde sale?\"}»",
+      "CampoSelect «{devuelve ? \"¿Dónde entra la plata?\" : \"¿De dónde sale?\"}»",
       "CampoMonto «{devuelve ? \"¿Cuánto trajo?\" : \"¿Cuánto le pagas?\"}»",
       "ComboResponsable «{responsable}»",
-      "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «fondos.cierre-recibir»"
     ],
     "components/mi-plata/GastosPorRevisar.tsx": [
       "a «Ver la foto en grande»",
-      "Boton «fondos.gasto-revisar»",
       "button «{PAPELES_GASTO[k].nombre}»",
       "CampoTexto «Serie y número»",
       "CampoTexto «RUC»",
       "ComboResponsable «{responsable}»",
-      "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «fondos.gasto-revisar»"
     ],
     "components/mi-plata/PapelesPorCompletar.tsx": [
       "a «Ver la foto en grande»",
-      "Boton «fondos.papel-completar»",
       "ComboBuscable «{proveedorId}»",
       "button «No es este: cambiar»",
       "CampoTexto «Serie»",
@@ -79,19 +80,15 @@
       "CampoMonto «Lo que dice el papel»",
       "button «Se anotó mal: cambiar el monto»",
       "ComboResponsable «{responsable}»",
-      "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «Más tarde»",
+      "Boton «fondos.papel-completar»"
     ],
     "components/mi-plata/PlataPorConfirmar.tsx": [
-      "Boton «fondos.plata-cambiar»",
-      "Boton «fondos.plata-confirmar»",
-      "a «Ver el voucher»",
-      "a «(sin nombre)»",
-      "CampoMonto «¿Cuánto llegó?»",
-      "CampoSelect «¿De dónde salió?»",
+      "a «Ver el voucher en grande»",
+      "CampoMonto «fondos.plata-monto»",
+      "CampoSelect «¿De qué cuenta salió?»",
       "ComboResponsable «{responsable}»",
-      "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «fondos.plata-confirmar»"
     ]
   }
 }

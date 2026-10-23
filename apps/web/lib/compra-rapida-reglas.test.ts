@@ -18,6 +18,20 @@ import {
   marcasDeHabituales,
   prendasDeLineas,
   textoAvance,
+  problemaPagado,
+  pagoParaBase,
+  textoLoQueFalta,
+  PAGO_DE_FABRICA,
+  gananciaDeCompra,
+  cuadraElPapel,
+  camposPrenda,
+  gananciaPorPrenda,
+  textoAgregarPrenda,
+  lineaDeBorrador,
+  resumenCarrito,
+  proveedoresRecientes,
+  detalleProveedor,
+  inicialesProveedor,
   textoHabitual,
   textoPlataDespues,
   tiendaAnterior,
@@ -148,13 +162,14 @@ describe("la compra", () => {
 describe("el paso del papel: lo que falta es lo que rechaza registrar_compra_rapida", () => {
   const PERSONA = { esPersona: true, listo: true, motivo: null };
   const faltan = (v: Parameters<typeof camposPapel>[0], r = PERSONA) => camposPapel(v, r).filter((c) => c.requerido && !c.hecho).map((c) => c.id);
-  it("sin nada faltan el papel y el monto; con boleta, también la foto", () => {
+  it("sin nada faltan el papel y el monto; la foto es opcional (20261023180000): con boleta se sugiere, nunca frena", () => {
     expect(faltan({ tipo: null, conFoto: false, monto: "" })).toEqual(["tipo", "monto"]);
-    expect(faltan({ tipo: "boleta", conFoto: false, monto: "500" })).toEqual(["foto"]);
-    expect(faltan({ tipo: "boleta", conFoto: true, monto: "500" })).toEqual([]);
+    expect(faltan({ tipo: "boleta", conFoto: false, monto: "500" })).toEqual([]);
+    expect(camposPapel({ tipo: "boleta", conFoto: false, monto: "500" }, PERSONA).find((c) => c.id === "foto")).toMatchObject({ requerido: false, sugerido: true, hecho: false });
   });
-  it("sin papel no pide foto", () => {
+  it("sin papel ni se ofrece la foto", () => {
     expect(faltan({ tipo: "sin_comprobante", conFoto: false, monto: "80" })).toEqual([]);
+    expect(camposPapel({ tipo: "sin_comprobante", conFoto: false, monto: "80" }, PERSONA).some((c) => c.id === "foto")).toBe(false);
   });
   it("desde una terminal, falta quién compró", () => {
     expect(faltan({ tipo: "sin_comprobante", conFoto: false, monto: "80" }, { esPersona: false, listo: false, motivo: null })).toEqual(["responsable"]);
@@ -171,10 +186,9 @@ describe("lo que queda después de guardar", () => {
 
 describe("la barra de avance: siempre 3 pasos", () => {
   it("dice el paso, su nombre y el detalle dentro de las prendas", () => {
-    expect(textoAvance("proveedor")).toBe("Paso 1 de 3 · Proveedor");
-    expect(textoAvance("habituales")).toBe("Paso 2 de 3 · Prendas");
-    expect(textoAvance("costo")).toBe("Paso 2 de 3 · Prendas · costo");
-    expect(textoAvance("papel")).toBe("Paso 3 de 3 · Boleta o factura");
+    expect(textoAvance("proveedor")).toBe("Paso 1 de 3 · el proveedor");
+    expect(textoAvance("habituales")).toBe("Paso 2 de 3 · las prendas");
+    expect(textoAvance("papel")).toBe("Paso 3 de 3 · el papel");
   });
 });
 
@@ -231,7 +245,110 @@ describe("algo nuevo de este proveedor", () => {
     const h = habitualNuevo("nuevo:1", { nombre: "  Casaca   corta ", categoria: CATS[0], marca: { id: "m1", nombre: "CAYLA" } });
     expect(h).toMatchObject({ clave: "nuevo:1", productoId: null, nombre: "Casaca corta", categoriaId: "blusas", marcaId: "m1", veces: 0, costo: null, venta: null });
     expect(textoHabitual(h)).toBeNull();
-    expect(textoAvance("nuevo-categoria")).toBe("Paso 2 de 3 · Prendas · qué es");
-    expect(textoAvance("nuevo-marca")).toBe("Paso 2 de 3 · Prendas · marca");
+    expect(textoAvance("nuevo-categoria")).toBe("Paso 2 de 3 · las prendas · qué es");
+    expect(textoAvance("nuevo-marca")).toBe("Paso 2 de 3 · las prendas · marca");
+  });
+});
+
+describe("el proveedor, como la maqueta (compras-formidable-2026-10)", () => {
+  const P = (id: string, compras: number, ultima: string | null) => ({ id, nombre: id, ruc: null, categorias: [], compras, ultima });
+  it("los recientes: solo a quienes ya se les compró, el más reciente primero, hasta el máximo", () => {
+    const lista = [P("a", 3, "2026-10-01"), P("b", 0, null), P("c", 1, "2026-10-20"), P("d", 9, "2026-10-20"), P("e", 2, "2026-09-01")];
+    expect(proveedoresRecientes(lista).map((p) => p.id)).toEqual(["d", "c", "a", "e"]);
+    expect(proveedoresRecientes(lista, 2).map((p) => p.id)).toEqual(["d", "c"]);
+  });
+  it("cuándo y cuántas veces, en palabras de tienda", () => {
+    const hoy = "2026-10-23";
+    expect(detalleProveedor(P("a", 4, "2026-10-17"), hoy)).toBe("Le compraste hace 6 días · 4 compras");
+    expect(detalleProveedor(P("a", 1, "2026-10-23"), hoy)).toBe("Le compraste hoy · 1 compra");
+    expect(detalleProveedor(P("a", 2, "2026-10-22"), hoy)).toBe("Le compraste ayer · 2 compras");
+    expect(detalleProveedor(P("a", 2, "2026-10-11"), hoy)).toBe("Le compraste hace una semana · 2 compras");
+    expect(detalleProveedor(P("a", 2, "2026-09-30"), hoy)).toBe("Le compraste hace 3 semanas · 2 compras");
+    expect(detalleProveedor(P("a", 1, "2026-09-10"), hoy)).toBe("Le compraste hace un mes · 1 compra");
+    expect(detalleProveedor(P("a", 1, "2026-06-01"), hoy)).toBe("Le compraste hace 4 meses · 1 compra");
+    expect(detalleProveedor(P("a", 0, null), hoy)).toBe("Todavía no le compras");
+    expect(detalleProveedor(P("a", 3, null), hoy)).toBe("3 compras");
+  });
+  it("las iniciales del cuadro", () => {
+    expect(inicialesProveedor("Textiles Rosa S.A.C.")).toBe("TR");
+    expect(inicialesProveedor("Galería Gamarra 412")).toBe("GG");
+    expect(inicialesProveedor("Lupe")).toBe("LU");
+    expect(inicialesProveedor("  ")).toBe("?");
+    expect(inicialesProveedor("Confecciones Andina EIRL")).toBe("CA");
+  });
+});
+
+describe("la hoja de la prenda (rediseño)", () => {
+  const H = { clave: "p1", productoId: "p1", categoriaId: "c", marcaId: null, nombre: "Blusa Emma", categoria: "Blusas", marca: null };
+  const lleno = { cantidad: "12", costo: "17.50", venta: "39.90", destinoId: "lim" };
+  it("falta lo mismo que antes frenaba cada paso, y la tienda", () => {
+    const falta = (b: Parameters<typeof camposPrenda>[0]) => camposPrenda(b).filter((c) => c.requerido && !c.hecho).map((c) => c.id);
+    expect(falta({ cantidad: "", costo: "", venta: "", destinoId: null })).toEqual(["cantidad", "costo", "venta", "tienda"]);
+    expect(falta({ ...lleno, cantidad: "0" })).toEqual(["cantidad"]);
+    expect(falta({ ...lleno, costo: "17.555" })).toEqual(["costo"]);
+    expect(falta({ ...lleno, destinoId: null })).toEqual(["tienda"]);
+    expect(falta(lleno)).toEqual([]);
+  });
+  it("la guía coincide con la línea: sin faltas hay línea; con una falta, no", () => {
+    expect(lineaDeBorrador(H, lleno)).toMatchObject({ cantidad: 12, costo: 17.5, venta: 39.9, destinoId: "lim", clave: "p1" });
+    for (const roto of [{ cantidad: "" }, { costo: "x" }, { venta: "" }, { destinoId: null }]) {
+      const b = { ...lleno, ...roto };
+      expect(lineaDeBorrador(H, b) === null).toBe(camposPrenda(b).some((c) => c.requerido && !c.hecho));
+    }
+  });
+  it("la ganancia por prenda y el botón que dice lo que hace", () => {
+    expect(gananciaPorPrenda(lleno)).toBe(22.4);
+    expect(gananciaPorPrenda({ costo: "20", venta: "" })).toBeNull();
+    expect(plano(textoAgregarPrenda(lleno, false))).toBe("Agregar 12 · S/ 210.00");
+    expect(plano(textoAgregarPrenda(lleno, true))).toBe("Guardar 12 · S/ 210.00");
+    expect(textoAgregarPrenda({ cantidad: "", costo: "1" }, false)).toBe("Agregar");
+  });
+  it("la barra negra suma prendas, plata y modelos", () => {
+    const r = resumenCarrito([{ cantidad: 12, costo: 17.5 }, { cantidad: 20, costo: 9 }]);
+    expect([plano(r.titulo), r.detalle]).toEqual(["32 prendas · S/ 390.00", "2 modelos"]);
+    expect(resumenCarrito([{ cantidad: 1, costo: 5 }]).detalle).toBe("1 modelo");
+  });
+});
+
+describe("revisar y el papel (rediseño)", () => {
+  it("si se vende todo: lo que se vende y lo que se gana, solo con las prendas que tienen precio de venta", () => {
+    expect(gananciaDeCompra([{ cantidad: 12, costo: 17.5, venta: 39.9 }, { cantidad: 20, costo: 9, venta: 24.9 }])).toEqual({ vendes: 976.8, ganas: 586.8 });
+    expect(gananciaDeCompra([{ cantidad: 2, costo: 10, venta: null }, { cantidad: 1, costo: 5, venta: 8 }])).toEqual({ vendes: 8, ganas: 3 });
+    expect(gananciaDeCompra([{ cantidad: 2, costo: 10, venta: null }])).toBeNull();
+  });
+  it("el papel cuadra o no con lo anotado; si no, manda el papel", () => {
+    expect(cuadraElPapel(525, 525)).toEqual({ cuadra: true, texto: "Cuadra con lo que anotaste" });
+    expect(cuadraElPapel(530, 525)?.cuadra).toBe(false);
+    expect(plano(cuadraElPapel(530, 525)?.texto ?? null)).toBe("Anotaste S/ 525.00. Si el papel dice otro total, deja el del papel: Compras lo revisa.");
+    expect(cuadraElPapel(null, 525)).toBeNull();
+    expect(cuadraElPapel(0, 525)).toBeNull();
+  });
+});
+
+describe("pagar ahora o después (20261023181000)", () => {
+  const PERSONA = { esPersona: true, listo: true, motivo: null };
+  const faltan = (pago: Parameters<typeof camposPapel>[0]["pago"], monto = "300") =>
+    camposPapel({ tipo: "sin_comprobante", conFoto: false, monto, pago }, PERSONA).filter((c) => c.requerido && !c.hecho).map((c) => c.id);
+  it("de fábrica se paga ahora y por Yape; falta cuánto hasta que la pantalla lo llena con el papel", () => {
+    expect(PAGO_DE_FABRICA).toEqual({ forma: "ahora", pagado: "", medio: "yape" });
+    expect(faltan(PAGO_DE_FABRICA)).toEqual(["pagado"]);
+    expect(faltan({ forma: "ahora", pagado: "300", medio: "yape" })).toEqual([]);
+  });
+  it("lo pagado va de más de cero a lo del papel; y hace falta el método", () => {
+    expect(problemaPagado("0", "300")).toBe("Escribe cuánto pagas ahora.");
+    expect(problemaPagado("301", "300")).toBe("No puede ser más que lo que dice el papel.");
+    expect(problemaPagado("10.555", "300")).toBe("Escribe cuánto pagas ahora.");
+    expect(problemaPagado("100", "300")).toBeNull();
+    expect(faltan({ forma: "ahora", pagado: "100", medio: null })).toEqual(["medio"]);
+  });
+  it("pagando después no se pregunta cuánto ni con qué, y a la base va cero sin método", () => {
+    expect(faltan({ forma: "despues", pagado: "", medio: null })).toEqual([]);
+    expect(pagoParaBase({ forma: "despues", pagado: "300", medio: "yape" })).toEqual({ p_pagado: 0, p_medio: null });
+    expect(pagoParaBase({ forma: "ahora", pagado: "100.50", medio: "efectivo" })).toEqual({ p_pagado: 100.5, p_medio: "efectivo" });
+  });
+  it("lo que falta lo paga Compras", () => {
+    expect(textoLoQueFalta(300, 300)).toBeNull();
+    expect(plano(textoLoQueFalta(300, 100))).toBe("Compras le paga al proveedor lo que falta: S/ 200.00.");
+    expect(plano(textoLoQueFalta(300, 0))).toBe("Compras le paga al proveedor los S/ 300.00.");
   });
 });
