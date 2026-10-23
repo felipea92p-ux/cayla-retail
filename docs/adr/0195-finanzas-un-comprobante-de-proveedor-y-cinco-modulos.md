@@ -504,5 +504,5 @@ enteraba de su error al final de un formulario largo. Tampoco agregué una opci�
 de gasto, y quien lo construya debe hacer que la baja se niegue mientras haya fijos activos en ella.
 SE ROMPE SI: alguien arma otra puerta que mande `p_gasto_fijo_id` sin pasar por `guardar()` (hoy no hay otra: la revisión leyó todos los llamadores), o si la
 categoría de un fijo cargado antes de ADR-0477 (todos en `servicios_basicos`) está mal y la persona no tiene el módulo Configuración para corregirla: la ayuda
-le dice dónde, pero no puede hacerlo ella. La base sigue aceptando categoría y mes distintos (migración de Felipe, ver el backlog); esto solo cierra la pantalla.
+le dice dónde, pero no puede hacerlo ella. La base sigue aceptando una categoría distinta (hay un borrador de migración, de Felipe, ver el backlog); el mes no lo puede exigir la base, que lo cuenta por la fecha del gasto (un gasto de septiembre cierra el septiembre de ese fijo): lo exige la pantalla.
 

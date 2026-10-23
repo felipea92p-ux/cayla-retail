@@ -147,8 +147,8 @@ export function fijosQueSeParecen(
 // PROMETE: decir, con una frase lista para mostrar, por qué ESTE gasto no puede cerrar ESTE fijo, o `null` si puede: tiene que ser de la
 // categoría del fijo y del mes del fijo. ASUME: que quien llama pasa lo que el formulario tiene en ese momento (una categoría vacía no
 // es la del fijo). NO PROMETE: ser la única defensa. `registrar_gasto` valida que el fijo exista, esté activo y sea de la misma tienda,
-// y que haya un solo gasto por fijo y mes; la categoría y el mes los guarda hoy solo la pantalla (la base los acepta: es una migración
-// que decide Felipe). Un mototaxi de S/ 12.50 enviado con el fijo del alquiler lo dejó «registrado» y nadie lo vio más como pendiente.
+// y que haya un solo gasto por fijo y mes; la categoría la guarda hoy solo la pantalla (la base la acepta: hay un borrador de migración que
+// decide Felipe) y el mes no lo puede exigir la base, que lo cuenta por la fecha del gasto. Un mototaxi de S/ 12.50 enviado con el fijo del alquiler lo dejó «registrado» y nadie lo vio más como pendiente.
 
 /** Qué dato del formulario hay que cambiar, y lo que se le dice a la persona. */
 export type ChoqueConElFijo = { campo: "categoria" | "fecha"; mensaje: string };
