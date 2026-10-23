@@ -40,9 +40,24 @@
    la elegida queda en hueso. Tres columnas a lo ancho, dos en una hoja angosta o en el celular; las familias chicas comparten fila. */
 .cph-categorias { display: grid; gap: 14px; }
 .cph-buscador { max-width: 22rem; }
-.cph-fam-cab { display: flex; align-items: center; gap: 10px; padding-left: 10px; }
+/* La fila del título de una familia se toca entera, de 32 px (el objetivo con mouse; 44 con el dedo). */
+.cph-fam-cab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 2rem;
+  padding: 0 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .cph-fam-cab:hover { background: color-mix(in srgb, var(--color-hueso) 60%, transparent); }
+}
 .cph-fam-t { flex: 1; min-width: 0; }
-.cph-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 2px 6px; margin-top: 4px; }
+/* 13,5 rem por columna: con 11 rem, a 1024 px entraban tres de 186 px y se cortaban «Pañuelos y Pañoletas» y otras tres (/formidable
+   2026-10-23); así entran dos y ningún nombre se corta. */
+.cph-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: 2px 6px; margin-top: 4px; }
 .cph-cat {
   position: relative;
   display: grid;
@@ -67,7 +82,7 @@
 /* La barra a escala es la del sistema (`BarraAvance` en tinta, grafico.escala); en una lista tan densa, la de una fila no elegida va
    tenue para no pesar, y se enciende entera al elegirla. */
 .cph-cat:not([data-elegida]) .cph-cat-b { opacity: 0.4; transition: opacity 200ms var(--ease-cayla); }
-.cph-chicas { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 14px; }
+.cph-chicas { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: 14px; }
 .cph-chicas .cph-cats { grid-template-columns: 1fr; }
 .cph-sinp { border-top: 1px solid var(--color-sand); padding-top: 10px; }
 .cph-sinp > summary { cursor: pointer; font-size: 12.5px; font-weight: 500; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); } /* contraste: texto sobre papel */
@@ -76,7 +91,9 @@
 @media (max-width: 639.98px) {
   .cph-buscador { max-width: none; }
   .cph-cats, .cph-chicas { grid-template-columns: 1fr 1fr; }
-  .cph-cat { min-height: 2.75rem; }
+  .cph-cat, .cph-fam-cab { min-height: 2.75rem; }
+  /* Dos columnas de 160 px: el nombre baja a una segunda línea en vez de cortarse (la fila de 44 px la tiene). */
+  .cph-cat-n { white-space: normal; overflow-wrap: break-word; line-height: 1.2; padding: 6px 0 8px; }
 }
 
 /* La etiqueta viva (`EtiquetaDeCampana`): lo que no trae la de «Prendas». Las piezas del mosaico son categorías, no prendas: no se tocan

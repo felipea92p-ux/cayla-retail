@@ -509,7 +509,7 @@ export function CampanaModal({
       subtitulo={
         repetir
           ? `Las fechas son las de ${etiqueta.vigenteHasta?.slice(0, 4)}, pasadas a ${repetir.anio}. Revisa el descuento y las categorías, y guarda.`
-          : "Cuánto baja, cuándo rige y en qué categorías. Las prendas sueltas se eligen en «Prendas»."
+          : "Cuánto baja, cuándo rige y en qué categorías."
       }
       ancho="max-w-[69rem]" /* unificar-fijo: la etiqueta viva es de diseño propio, como «Prendas» (la II de la maqueta, elegida por Felipe 2026-10-23, ADR-0488) */
       onClose={onClose}
@@ -690,21 +690,22 @@ export function CampanaModal({
             </div>
 
             <CampoGuiado id="categorias" guia={guia} retiene="fila">
-              <div className="flex items-baseline justify-between gap-3">
+              <div className="flex items-center justify-between gap-3">
                 <p className="label-cayla text-[11px] text-tinta/65">
                   {guia.etiqueta("categorias", "Categorías")}
                   {/* «· opcional» solo cuando la guía también lo dice: con un descuento que no llega a ninguna prenda, Categorías es
                       «sugerido» y las dos señales juntas se contradecían (/formidable 2026-10-23). */}
                   {guia.estado("categorias") === "opcional" && <span className="font-normal normal-case text-tinta/45"> · opcional</span>}
                 </p>
-                <div className="flex items-baseline gap-3">
+                {/* Marcan varias de un toque: el botón chico sutil, no el enlace (ADR-0358, ronda 9). */}
+                <div className="flex items-center gap-2">
                   {elegidas.size < categorias.length && (
-                    <button type="button" onClick={() => setElegidas(new Set(categorias.map((c) => c.id)))} className="btn-cayla btn-enlace text-xs">
+                    <button type="button" onClick={() => setElegidas(new Set(categorias.map((c) => c.id)))} className="btn-cayla btn-sutil btn-chico">
                       Elegir todas
                     </button>
                   )}
                   {elegidas.size > 0 && (
-                    <button type="button" onClick={() => setElegidas(new Set())} className="btn-cayla btn-enlace text-xs">
+                    <button type="button" onClick={() => setElegidas(new Set())} className="btn-cayla btn-sutil btn-chico">
                       Quitar todas
                     </button>
                   )}

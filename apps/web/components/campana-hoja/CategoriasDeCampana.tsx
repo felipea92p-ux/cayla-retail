@@ -40,7 +40,8 @@ export function CategoriasDeCampana({
   const fila = (c: FilaCategoria, i: number) => (
     <label key={c.id} className="cph-cat" style={{ "--i": i } as CSSProperties} data-cat-id={c.id} data-elegida={elegidas.has(c.id) || undefined} title={`${c.nombre} · ${c.prendas} ${c.prendas === 1 ? "prenda" : "prendas"} a la venta`}>
       <Casilla marcada={elegidas.has(c.id)} onCambio={() => onAlternar(c.id)} etiqueta={`${c.nombre}, ${c.prendas} ${c.prendas === 1 ? "prenda" : "prendas"}`} />
-      <span className="cph-cat-n">{c.nombre}</span>
+      {/* Un espacio invisible tras cada «/»: en el celular «Ropa interior/Lencería» baja después de la barra, no a media palabra. */}
+      <span className="cph-cat-n">{c.nombre.replaceAll("/", "/\u200b")}</span>
       <span className="cph-cat-c">{c.prendas.toLocaleString("es-PE")}</span>
       {vista.mayor > 0 && c.prendas > 0 && (
         <BarraAvance pct={Math.max(3, (c.prendas / vista.mayor) * 100)} alto="fina" tono="tinta" decorativa indice={i} className="cph-cat-b" />
@@ -54,7 +55,9 @@ export function CategoriasDeCampana({
     const marcadas = ids.filter((id) => elegidas.has(id)).length;
     return (
       <div key={g.familia} className="cph-fam">
-        <div className="cph-fam-cab">
+        {/* La fila del título se toca entera (como cada categoría): la casilla sola medía 20 px. El teclado usa la casilla, que es el
+            control; su clic no sube hasta aquí (`Casilla` lo detiene). */}
+        <div className="cph-fam-cab" onClick={() => onFamilia(ids, marcadas < ids.length)}>
           <Casilla
             marcada={marcadas === ids.length}
             aMedias={marcadas > 0 && marcadas < ids.length}
@@ -93,8 +96,8 @@ export function CategoriasDeCampana({
         // La llave cambia al abrirse sola: así un <details> que la persona cerró vuelve a abrir cuando hay algo que mostrar.
         <details key={sinPrendasAbierta ? "abierta" : "plegada"} open={sinPrendasAbierta || undefined} className="cph-sinp">
           <summary>
-            Sin prendas todavía · {vista.sinPrendas.length} {vista.sinPrendas.length === 1 ? "categoría" : "categorías"}
-            <span> · se pueden elegir: les llegarán prendas</span>
+            {vista.sinPrendas.length} {vista.sinPrendas.length === 1 ? "categoría" : "categorías"} sin prendas a la venta
+            <span> · elígelas si te van a llegar</span>
           </summary>
           <div className="cph-cats">{vista.sinPrendas.map(fila)}</div>
         </details>
