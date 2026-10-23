@@ -43,6 +43,17 @@ const MIGRACION_FOTO = readFileSync(join(RAIZ, "supabase", "migrations", "202610
   "",
 );
 
+// La ronda de compras (20261023183000): sin una abierta, la base no deja anotar una compra ni un gasto. Se vuelve a pegar después de la
+// migración de este archivo (que deja funciones de antes) y cada persona de la semilla empieza con su ronda abierta.
+const RONDA = readFileSync(join(RAIZ, "supabase", "migrations", "20261023183000_compras_simple_ronda_de_compras.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+const RONDAS_ABIERTAS = `
+insert into retail.compra_rondas (persona_id, abierta_por)
+select distinct c.persona_id, c.persona_id from retail.colaboradores c
+ where not exists (select 1 from retail.compra_rondas r where r.persona_id = c.persona_id and r.cerrada_en is null);`;
+
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
 
@@ -64,6 +75,7 @@ ${MIGRACION}
 ${MIGRACION}
 ${MIGRACION_FOTO}
 ${MIGRACION_FOTO}
+${RONDAS_ABIERTAS}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_hint text; v_msg text;

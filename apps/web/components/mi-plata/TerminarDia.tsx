@@ -2,7 +2,7 @@
 
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Moon } from "lucide-react";
+import { Flag } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
@@ -12,47 +12,46 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import { terminarDia } from "@/lib/mi-plata-acciones";
-import { decisionesCierre, resumenDia, textoCierre, textoPorMandar, type DecisionCierre, type MiPlata } from "@/lib/mi-plata-reglas";
+import { decisionesCierre, detalleRonda, resumenRonda, textoCierre, textoPorMandar, type DecisionCierre, type MiPlata } from "@/lib/mi-plata-reglas";
 
-// Compras simple (ADR-0480, actividad 5): «Terminé de comprar hoy». La cuenta del día como un cuaderno (lo que tenías, lo que te dieron,
-// lo que compraste, lo que gastaste, lo que te queda) y una sola pregunta: qué haces con lo que te queda. Te lo quedas para la próxima
-// compra o lo devuelves en caja; si pusiste de tu bolsillo, no hay nada que elegir: CAYLA te lo devuelve. Lo que tenía lo calcula la base
-// al tocar el botón (`terminar_dia_compras`). Se puede volver a cerrar el mismo día, si siguió comprando, hasta que Compras lo recibe.
+// Compras simple (ADR-0480): «Cerrar mi ronda» (antes «Terminé de comprar hoy», al que reemplaza desde 20261023183000; Felipe 2026-10-23).
+// Arriba, la ronda abierta con su serie y número y lo que lleva. Al tocar, la cuenta de la ronda como un cuaderno (lo que tenías al
+// abrirla, lo que te dieron, lo que compraste, lo que gastaste, lo que te queda) y una sola pregunta: qué haces con lo que te queda. Te lo
+// quedas para la próxima ronda o lo devuelves en caja; si pusiste de tu bolsillo, no hay nada que elegir: CAYLA te lo devuelve. Lo que
+// tenía lo calcula la base al tocar el botón (`terminar_dia_compras`, que conserva su nombre). Cerrada, no se reabre: se abre otra.
 //
 // Si todavía falta mandar algo a una tienda, lo recuerda arriba sin frenar: el fardo puede salir mañana.
 
-type Plata = Pick<MiPlata, "tiene" | "hoy" | "porMandar">;
+type Plata = Pick<MiPlata, "tiene" | "hoy" | "ronda" | "porMandar">;
 
 const OPCIONES: Record<Exclude<DecisionCierre, "le_deben">, { nombre: string; detalle: string }> = {
-  se_queda: { nombre: "Me lo quedo para mi próxima compra", detalle: "Sigue siendo plata de CAYLA para comprar" },
+  se_queda: { nombre: "Me lo quedo para mi próxima ronda", detalle: "Sigue siendo plata de CAYLA para comprar" },
   devuelve: { nombre: "Lo devuelvo hoy", detalle: "Lo entregas en caja y Compras lo recibe" },
 };
 
 export function TerminarDia({ plata }: { plata: Plata }) {
   const [abierta, setAbierta] = useState(false);
   const origen = useRef<HTMLElement | null>(null);
-  const cierre = plata.hoy.cierre;
+  const ronda = plata.ronda.abierta;
+  if (!ronda) return null;
   return (
-    <section className="flex flex-col gap-2">
-      {cierre && (
-        <p className="nota-cayla text-sm">
-          Terminaste por hoy. {textoCierre(cierre)}
-        </p>
-      )}
-      {!cierre?.resuelto && (
-        <Boton
-          peso="fantasma"
-          className="w-full"
-          data-guia="mi-plata.termine"
-          onClick={(e) => {
-            origen.current = e.currentTarget;
-            setAbierta(true);
-          }}
-        >
-          <Moon className="h-4 w-4" aria-hidden />
-          {cierre ? "Volver a terminar por hoy" : "Terminé de comprar hoy"}
-        </Boton>
-      )}
+    <section className="flex flex-col gap-2" aria-label="Tu ronda de compras">
+      <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
+        <span className="font-medium text-tinta">Ronda {ronda.texto}</span>
+        <span className="text-xs text-taupe">{detalleRonda(ronda, plata.hoy.fecha)}</span>
+      </p>
+      <Boton
+        peso="fantasma"
+        className="w-full"
+        data-guia="mi-plata.termine"
+        onClick={(e) => {
+          origen.current = e.currentTarget;
+          setAbierta(true);
+        }}
+      >
+        <Flag className="h-4 w-4" aria-hidden />
+        Cerrar mi ronda
+      </Boton>
       {abierta && <TerminarModal plata={plata} onClose={() => setAbierta(false)} volverA={origen} />}
     </section>
   );
@@ -67,7 +66,8 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
   const [decision, setDecision] = useState<DecisionCierre | null>(sinElegir ? opciones[0] : null);
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
-  const d = resumenDia(plata);
+  const d = resumenRonda(plata);
+  const texto = plata.ronda.abierta?.texto ?? "";
   const falta = textoPorMandar(plata.porMandar);
 
   async function confirmar() {
@@ -80,10 +80,10 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
       return setRechazo(
         esFalloDeRed(error)
           ? { titulo: "Se cortó la conexión", texto: "No sabemos si se guardó. Vuelve a tocar el botón: si ya se guardó, no se repite.", tono: "atencion" }
-          : { titulo: "No se guardó", texto: traducirError(error, "terminar el día"), tono: "error" },
+          : { titulo: "No se guardó", texto: traducirError(error, "cerrar tu ronda"), tono: "error" },
       );
     }
-    avisar.exito("Listo, terminaste por hoy", { detalle: textoCierre({ decision, monto: Math.abs(plata.tiene) }) });
+    avisar.exito(`Cerraste tu ronda ${texto}`, { detalle: textoCierre({ decision, monto: Math.abs(plata.tiene) }) });
     onClose();
     router.refresh();
   }
@@ -101,7 +101,7 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
 
   return (
     <Modal
-      titulo="Terminé de comprar hoy"
+      titulo={`Cerrar la ronda ${texto}`}
       subtitulo="Revisa tu plata y di qué haces con lo que te queda."
       onClose={onClose}
       variante="hoja"
@@ -117,10 +117,10 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
           className="space-y-5"
         >
           <ul className="compra-cuaderno" data-guia="mi-plata.cuaderno">
-            {d.antes > 0 && fila("Te quedó de antes", soles(d.antes))}
+            {d.antes > 0 && fila("Tenías al abrirla", soles(d.antes))}
             {d.antes < 0 && fila("Pusiste de tu bolsillo antes", `− ${soles(-d.antes)}`)}
-            {fila("Te dieron hoy", `+ ${soles(d.dieron)}`)}
-            {fila("Compraste", `− ${soles(d.compraste)}`, plata.hoy.compras === 1 ? "1 compra" : `${plata.hoy.compras} compras`)}
+            {fila("Te dieron", `+ ${soles(d.dieron)}`)}
+            {fila("Compraste", `− ${soles(d.compraste)}`, d.compras === 1 ? "1 compra" : `${d.compras} compras`)}
             {fila("Gastaste en otras cosas", `− ${soles(d.gastaste)}`)}
             <li className="compra-cuaderno-fin">
               <span>{d.queda < 0 ? "Pusiste de tu bolsillo" : "Te queda"}</span>
@@ -130,7 +130,7 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
 
           {falta && (
             <Aviso tono="atencion" titulo="Antes, manda a la tienda" chico>
-              {falta}. Puedes terminar igual y mandarlo después.
+              {falta}. Puedes cerrar igual y mandarlo después.
             </Aviso>
           )}
 
@@ -180,7 +180,7 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Guardando…" disabled={!decision} data-guia="mi-plata.terminar">
-              Terminar por hoy
+              Cerrar la ronda
             </Boton>
           </div>
         </form>

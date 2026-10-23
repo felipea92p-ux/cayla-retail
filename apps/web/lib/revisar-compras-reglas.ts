@@ -53,6 +53,8 @@ export type PapelPorCompletar = {
   medioPago: string | null;
   fotoRuta: string | null;
   fecha: string;
+  /** La ronda de compras en la que se anotó (20261023183000): «RC-000003». Lo de antes de las rondas, sin ronda. */
+  ronda: string | null;
   lineas: LineaPapel[];
   envios: EnvioPapel[];
   llego: boolean;
@@ -64,6 +66,8 @@ export type CierrePorRecibir = {
   persona: string;
   esMia: boolean;
   fecha: string;
+  /** La ronda de compras en la que se anotó (20261023183000): «RC-000003». Lo de antes de las rondas, sin ronda. */
+  ronda: string | null;
   decision: "devuelve" | "le_deben";
   monto: number;
   plataPorConfirmar: number;
@@ -82,6 +86,8 @@ export type GastoPorRevisar = {
   monto: number;
   fotoRuta: string | null;
   fecha: string;
+  /** La ronda de compras en la que se anotó (20261023183000): «RC-000003». Lo de antes de las rondas, sin ronda. */
+  ronda: string | null;
   /** Sin ninguna compra de quien gastó, la base no lo deja pasar: un gasto del viaje va siempre a una compra (decisión 75). */
   tieneCompra: boolean;
 };
@@ -141,6 +147,7 @@ function leerPapel(x: unknown): PapelPorCompletar | null {
     medioPago: texto(o.medio_pago),
     fotoRuta: texto(o.foto_ruta),
     fecha: texto(o.fecha) ?? "",
+    ronda: texto(o.ronda),
     lineas: lista(o.lineas).map(leerLinea).filter((l): l is LineaPapel => l !== null),
     envios: lista(o.envios).flatMap((e) => {
       const eo = objeto(e);
@@ -184,6 +191,7 @@ function leerGasto(x: unknown): GastoPorRevisar | null {
     monto,
     fotoRuta: texto(o.foto_ruta),
     fecha: texto(o.fecha) ?? "",
+    ronda: texto(o.ronda),
     tieneCompra: o.tiene_compra !== false,
   };
 }
@@ -199,6 +207,7 @@ function leerCierre(x: unknown): CierrePorRecibir | null {
     persona: texto(o.persona) ?? "Alguien de Compras",
     esMia: o.es_mia === true,
     fecha: texto(o.fecha) ?? "",
+    ronda: texto(o.ronda),
     decision: o.decision,
     monto,
     plataPorConfirmar: numero(o.plata_por_confirmar) ?? 0,
@@ -436,10 +445,15 @@ export const CIFRA_BANDEJA: Record<TipoBandeja, { nombre: string; detalle: strin
   plata: { nombre: "Plata por confirmar", detalle: "Lo que anotaron las compradoras" },
   papel: { nombre: "Compras por completar", detalle: "Copiar serie y número" },
   gasto: { nombre: "Gastos por revisar", detalle: "Taxis, cargadores, envíos" },
-  cierre: { nombre: "Cierres del día", detalle: "Plata que devuelven" },
+  cierre: { nombre: "Rondas cerradas", detalle: "Plata que devuelven" },
 };
 
 /** Una fila de la bandeja: qué es, de quién y cuándo, cuánto y su estado. */
+/** Cuándo y en qué ronda: «23/10 · RC-000003» (lo de antes de las rondas, solo el día). */
+export function diaYRonda(fecha: string, ronda: string | null): string {
+  return [fecha ? diaMes(fecha) : null, ronda].filter(Boolean).join(" · ");
+}
+
 export type FilaBandeja = { id: string; titulo: string; quien: string; cuando: string; monto: number; chip: { tono: "ambar" | "verde" | "pizarra"; texto: string } };
 
 /** Lo que llegó a la tienda de una compra ya recibida: «35 de 35». Antes de llegar, nada. */
@@ -473,34 +487,34 @@ export function filaPlata(f: Pick<PlataPorConfirmar, "id" | "persona" | "medio" 
   };
 }
 
-export function filaPapel(p: Pick<PapelPorCompletar, "id" | "persona" | "proveedor" | "tipo" | "monto" | "fecha" | "llego" | "lineas" | "envios">): FilaBandeja {
+export function filaPapel(p: Pick<PapelPorCompletar, "id" | "persona" | "proveedor" | "tipo" | "monto" | "fecha" | "ronda" | "llego" | "lineas" | "envios">): FilaBandeja {
   return {
     id: p.id,
     titulo: `${p.proveedor} · ${TIPOS_PAPEL[p.tipo].nombre}`,
     quien: p.persona,
-    cuando: p.fecha ? diaMes(p.fecha) : "",
+    cuando: diaYRonda(p.fecha, p.ronda),
     monto: p.monto,
     chip: chipPapel(p),
   };
 }
 
-export function filaGasto(g: Pick<GastoPorRevisar, "id" | "persona" | "concepto" | "nota" | "monto" | "fecha" | "fotoRuta">): FilaBandeja {
+export function filaGasto(g: Pick<GastoPorRevisar, "id" | "persona" | "concepto" | "nota" | "monto" | "fecha" | "ronda" | "fotoRuta">): FilaBandeja {
   return {
     id: g.id,
     titulo: `${nombreGasto(g)} · ${g.fotoRuta ? "con foto" : "sin papel"}`,
     quien: g.persona,
-    cuando: g.fecha ? diaMes(g.fecha) : "",
+    cuando: diaYRonda(g.fecha, g.ronda),
     monto: g.monto,
     chip: { tono: "ambar", texto: "Por revisar" },
   };
 }
 
-export function filaCierre(c: Pick<CierrePorRecibir, "id" | "persona" | "decision" | "monto" | "fecha">): FilaBandeja {
+export function filaCierre(c: Pick<CierrePorRecibir, "id" | "persona" | "decision" | "monto" | "fecha" | "ronda">): FilaBandeja {
   return {
     id: c.id,
     titulo: c.decision === "devuelve" ? "Devuelve en caja" : "Pagó de su bolsillo",
     quien: c.persona,
-    cuando: c.fecha ? diaMes(c.fecha) : "",
+    cuando: diaYRonda(c.fecha, c.ronda),
     monto: c.monto,
     chip: c.decision === "devuelve" ? { tono: "pizarra", texto: "Lo devuelve" } : { tono: "ambar", texto: "Le debemos" },
   };

@@ -37,7 +37,14 @@ const MIGRACIONES = [
   leer("20261023121000_compras_simple_recibir_con_la_foto.sql"),
   leer("20261023143000_compras_simple_revisar.sql"),
   leer("20261023181000_compras_simple_pagar_ahora_o_despues.sql"),
+  leer("20261023183000_compras_simple_ronda_de_compras.sql"),
 ].join("\n");
+
+// La ronda de compras (20261023183000, en MIGRACIONES): sin una abierta, la base no deja anotar. Cada persona de la semilla empieza con la suya.
+const RONDAS_ABIERTAS = `
+insert into retail.compra_rondas (persona_id, abierta_por)
+select distinct c.persona_id, c.persona_id from retail.colaboradores c
+ where not exists (select 1 from retail.compra_rondas r where r.persona_id = c.persona_id and r.cerrada_en is null);`;
 
 const SANDRA = "22222222-2222-4222-8222-000000000005"; // líder: compra y manda
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo: recibe
@@ -79,6 +86,7 @@ set client_min_messages = warning;
 begin;
 ${MIGRACIONES}
 ${MIGRACIONES}
+${RONDAS_ABIERTAS}
 set local search_path = retail, public, extensions;
 ${ATRAPA}
 select set_config('request.jwt.claim.sub', '${SANDRA}', true) \\g /dev/null
@@ -302,7 +310,7 @@ select retail.anotar_plata_compras('transferencia', 500, null, gen_random_uuid()
 ${como(SANDRA, { clave: "compra_terminar_dia" })}
 select retail.terminar_dia_compras('devuelve') \\g /dev/null
 reset role;
-select id as cierre from retail.compra_cierres where persona_id = current_setting('t.compradora')::uuid \\gset
+select id as cierre from retail.compra_cierres where persona_id = current_setting('t.compradora')::uuid order by cerrado_en desc limit 1 \\gset
 `;
 
 caso(
@@ -336,7 +344,7 @@ caso(
 ${como(SANDRA, { clave: "compra_terminar_dia" })}
 select retail.terminar_dia_compras('se_queda') \\g /dev/null
 reset role;
-select id as cierre, decision, monto from retail.compra_cierres where persona_id = current_setting('t.compradora')::uuid \\gset
+select id as cierre, decision, monto from retail.compra_cierres where persona_id = current_setting('t.compradora')::uuid order by cerrado_en desc limit 1 \\gset
 ${REVISA("compra_cierre_recibir")}
 select :'decision', :'monto', retail.recibir_cierre_compras(:'cierre', current_setting('t.banco')::uuid) ->> 'monto';
 ${REVISA("papel_completar")}

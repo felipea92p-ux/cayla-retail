@@ -2,8 +2,11 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 20,
+  "total": 21,
   "controles": {
+    "components/mi-plata/AbrirRonda.tsx": [
+      "Boton «Abrir mi ronda de compras»"
+    ],
     "components/mi-plata/AccionDelDia.tsx": [
       "Link «{guia}»",
       "button «{guia}»"

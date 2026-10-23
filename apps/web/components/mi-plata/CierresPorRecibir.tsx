@@ -15,11 +15,10 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { diaMes } from "@/lib/fechas-lima";
 import { opcionesDeCuentas, primerNombre, type CuentaOpcion } from "@/lib/fondos-reglas";
 import { cuentaSugerida } from "@/lib/mi-plata-reglas";
 import { recibirCierre } from "@/lib/revisar-compras-acciones";
-import { botonCierre, camposCierre, filaCierre, type CierrePorRecibir } from "@/lib/revisar-compras-reglas";
+import { botonCierre, camposCierre, filaCierre, type CierrePorRecibir, diaYRonda } from "@/lib/revisar-compras-reglas";
 import { PanelDetalle } from "./PanelDetalle";
 
 // Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ los cierres del día que esperan a Compras. Rediseño (2026-10-23): se reciben
@@ -76,14 +75,14 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
   return (
     <PanelDetalle
       guia="fondos.cierre-detalle"
-      sobre={`${cierre.persona} · ${diaMes(cierre.fecha)}`}
-      titulo={devuelve ? `Cerró su día y devuelve ${soles(cierre.monto)}` : `Cerró su día y le debemos ${soles(cierre.monto)}`}
+      sobre={[cierre.persona, diaYRonda(cierre.fecha, cierre.ronda)].filter(Boolean).join(" · ")}
+      titulo={devuelve ? `Cerró su ronda y devuelve ${soles(cierre.monto)}` : `Cerró su ronda y le debemos ${soles(cierre.monto)}`}
       estado={<Chip tono={chip.tono}>{chip.texto}</Chip>}
     >
       {cierre.esMia ? (
         <div className="flex flex-col items-start gap-2">
           <Chip tono="pizarra">Es tuyo</Chip>
-          <p className="text-sm text-taupe">Lo de tu propio día lo recibe otra persona de Compras.</p>
+          <p className="text-sm text-taupe">Lo de tu propia ronda lo recibe otra persona de Compras.</p>
         </div>
       ) : espera ? (
         <p className="nota-cayla text-sm">

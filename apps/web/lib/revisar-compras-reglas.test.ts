@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   textoPagoPapel,
+  diaYRonda,
   PAPELES_GASTO,
   botonCierre,
   camposRevisarGasto,
@@ -226,9 +227,12 @@ describe("la bandeja de Revisar compras (rediseño)", () => {
   it("cada fila dice qué es, de quién y su estado", () => {
     expect(filaPlata({ id: "a", persona: "Marisol", medio: "yape_plin", monto: 500, fecha: "2026-10-23", fotoRuta: "plata/x.jpg" })).toMatchObject({ titulo: "Yape o Plin · con foto", cuando: "23/10", chip: { texto: "Por confirmar" } });
     expect(filaPlata({ id: "a", persona: "M", medio: "ya_tenia", monto: 1, fecha: "", fotoRuta: null }).titulo).toBe("Ya tenía de antes");
-    expect(filaPapel({ id: "p", persona: "M", proveedor: "Textiles Rosa", tipo: "factura", monto: 525, fecha: "2026-10-22", llego: true, lineas: [linea(35)], envios: [] })).toMatchObject({ titulo: "Textiles Rosa · Factura", chip: { tono: "verde" } });
-    expect(filaGasto({ id: "g", persona: "M", concepto: "taxi", nota: null, monto: 12, fecha: "2026-10-23", fotoRuta: null }).titulo).toBe("Taxi · sin papel");
-    expect(filaCierre({ id: "c", persona: "L", decision: "le_deben", monto: 20, fecha: "2026-10-22" }).chip).toEqual({ tono: "ambar", texto: "Le debemos" });
+    expect(filaPapel({ id: "p", persona: "M", proveedor: "Textiles Rosa", tipo: "factura", monto: 525, fecha: "2026-10-22", ronda: "RC-000003", llego: true, lineas: [linea(35)], envios: [] })).toMatchObject({ titulo: "Textiles Rosa · Factura", cuando: "22/10 · RC-000003", chip: { tono: "verde" } });
+    expect(filaGasto({ id: "g", persona: "M", concepto: "taxi", nota: null, monto: 12, fecha: "2026-10-23", ronda: null, fotoRuta: null }).titulo).toBe("Taxi · sin papel");
+    expect(filaCierre({ id: "c", persona: "L", decision: "le_deben", monto: 20, fecha: "2026-10-22", ronda: "RC-000002" }).chip).toEqual({ tono: "ambar", texto: "Le debemos" });
+    // Lo de antes de las rondas, solo el día.
+    expect(diaYRonda("2026-10-22", null)).toBe("22/10");
+    expect(diaYRonda("", "RC-000002")).toBe("RC-000002");
   });
   it("al entrar se abre la primera lista con algo; el detalle es el elegido o el primero, y «Más tarde» pasa al siguiente", () => {
     expect(bandejaInicial({ plata: 0, papel: 2, gasto: 3, cierre: 0 })).toBe("papel");

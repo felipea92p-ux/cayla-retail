@@ -4,7 +4,9 @@ import {
   camposGasto,
   decisionesCierre,
   nombreGasto,
-  resumenDia,
+  resumenRonda,
+  detalleRonda,
+  tituloDeLaLista,
   resumenPrendas,
   estadoParaLaCompradora,
   textoCierre,
@@ -58,7 +60,7 @@ describe("leerMiPlata: lo que tiene para comprar es su fondo más lo por confirm
       compras: [{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, estado: "por_completar", fecha: "2026-10-22", prendas: 16, tiendas: ["Tienda TRU"], por_mandar: ["Tienda TRU", 3] }, { id: "x" }],
     });
     expect(p).toMatchObject({ tiene: 50, comprasPorCompletar: 450 });
-    expect(p?.compras).toEqual([{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, pagado: 450, medioPago: null, porCompletar: true, fecha: "2026-10-22", creadoEn: "", prendas: 16, tiendas: ["Tienda TRU"], porMandar: ["Tienda TRU"] }]);
+    expect(p?.compras).toEqual([{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, pagado: 450, medioPago: null, porCompletar: true, fecha: "2026-10-22", creadoEn: "", rondaId: null, ronda: null, prendas: 16, tiendas: ["Tienda TRU"], porMandar: ["Tienda TRU"] }]);
   });
 
   it("un fondo en negativo (pagó de su bolsillo) resta: tiene lo que queda de verdad", () => {
@@ -215,12 +217,31 @@ describe("el resto del día de compras (actividad 5)", () => {
     expect(resumenPrendas(p!.porMandar[1].prendas, 1)).toBe("Blusa Emma ×6 y 1 más");
   });
 
-  it("el cuaderno del día siempre cierra: lo de antes se despeja de lo que tiene ahora", () => {
-    const p = leerMiPlata({ ...BASE, hoy: { dieron: 200, compraste: 120, compras: 1, gastaste: 0, cierre: null } })!;
-    const d = resumenDia(p);
-    expect(d).toEqual({ antes: 100, dieron: 200, compraste: 120, gastaste: 0, queda: 180 });
+  it("el cuaderno de la ronda siempre cierra: lo de antes se despeja de lo que tiene ahora; sin ronda abierta, todo es de antes", () => {
+    const ronda = { id: "r", texto: "RC-000003", abierta_en: "2026-10-21T10:00:00Z", compras: 1, prendas: 6, dieron: 200, compraste: 120, gastaste: 0 };
+    const p = leerMiPlata({ ...BASE, ronda: { abierta: ronda } })!;
+    const d = resumenRonda(p);
+    expect(d).toEqual({ antes: 100, dieron: 200, compraste: 120, gastaste: 0, compras: 1, queda: 180 });
     expect(d.antes + d.dieron - d.compraste - d.gastaste).toBe(d.queda);
-    expect(p.hoy.cierre).toBeNull();
+    expect(resumenRonda({ tiene: 180, ronda: { abierta: null, ultimaCerrada: null } })).toMatchObject({ antes: 180, compraste: 0, queda: 180 });
+  });
+
+  it("la ronda: su serie y número, lo que lleva y cómo cerró la última; lo ilegible no se inventa", () => {
+    const p = leerMiPlata({
+      ...BASE,
+      ronda: {
+        abierta: { id: "r", texto: "RC-000003", abierta_en: "2026-10-21T10:00:00Z", compras: "2", prendas: 16, dieron: 0, compraste: "300.50", gastaste: 12 },
+        ultima_cerrada: { texto: "RC-000002", cerrada_en: "2026-10-20T20:00:00Z", decision: "devuelve", monto: "80", resuelto: false },
+      },
+    })!;
+    expect(p.ronda.abierta).toMatchObject({ texto: "RC-000003", compras: 2, prendas: 16, compraste: 300.5 });
+    expect(p.ronda.ultimaCerrada).toEqual({ texto: "RC-000002", cerradaEn: "2026-10-20T20:00:00Z", decision: "devuelve", monto: 80, resuelto: false });
+    expect(detalleRonda(p.ronda.abierta!, "2026-10-23")).toBe("Abierta el 21/10 · 2 compras · 16 prendas");
+    expect(detalleRonda({ abiertaEn: "2026-10-23T08:00:00Z", compras: 0, prendas: 0 }, "2026-10-23")).toBe("Abierta hoy · Todavía sin compras");
+    // Las 8 pm de Lima ya son el día siguiente en UTC: sigue siendo «hoy».
+    expect(detalleRonda({ abiertaEn: "2026-10-24T01:00:00Z", compras: 0, prendas: 0 }, "2026-10-23")).toBe("Abierta hoy · Todavía sin compras");
+    expect(leerMiPlata({ ...BASE, ronda: { abierta: { texto: "RC-1" }, ultima_cerrada: { decision: "regala" } } })?.ronda).toEqual({ abierta: null, ultimaCerrada: null });
+    expect(leerMiPlata({ persona: false })?.ronda).toEqual({ abierta: null, ultimaCerrada: null });
   });
 
   it("lee el cierre de hoy y descarta una decisión que no conoce", () => {
@@ -279,40 +300,57 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     compras_por_completar: 0,
     gastos_por_completar: 0,
     anotada: [
-      { id: "a1", medio: "yape_plin", monto: 500, estado: "por_confirmar", fecha: "2026-10-23", creado_en: "2026-10-23T13:10:00Z", con_foto: true },
-      { id: "a0", medio: "efectivo", monto: 300, estado: "confirmada", fecha: "2026-10-21", creado_en: "2026-10-21T09:00:00Z", con_foto: false },
+      { id: "a1", medio: "yape_plin", monto: 500, estado: "por_confirmar", fecha: "2026-10-23", creado_en: "2026-10-23T13:10:00Z", con_foto: true, ronda_id: "r", ronda: "RC-000003" },
+      { id: "a0", medio: "efectivo", monto: 300, estado: "confirmada", fecha: "2026-10-21", creado_en: "2026-10-21T09:00:00Z", con_foto: false, ronda_id: "r0", ronda: "RC-000002" },
     ],
     compras: [
-      { id: "c1", proveedor: "Textiles Rosa", tipo: "factura", monto: 525, estado: "por_completar", fecha: "2026-10-23", creado_en: "2026-10-23T11:20:00Z", prendas: 35, tiendas: ["AQP"], por_mandar: [] },
-      { id: "c2", proveedor: "Andina", tipo: "boleta", monto: 99, estado: "completado", fecha: "2026-10-23", creado_en: "2026-10-23T15:05:00Z", prendas: 1, tiendas: ["LIM"], por_mandar: ["LIM"] },
+      { id: "c1", proveedor: "Textiles Rosa", tipo: "factura", monto: 525, estado: "por_completar", fecha: "2026-10-23", creado_en: "2026-10-23T11:20:00Z", prendas: 35, tiendas: ["AQP"], por_mandar: [], ronda_id: "r" },
+      { id: "c2", proveedor: "Andina", tipo: "boleta", monto: 99, estado: "completado", fecha: "2026-10-23", creado_en: "2026-10-23T15:05:00Z", prendas: 1, tiendas: ["LIM"], por_mandar: ["LIM"], ronda_id: "r" },
     ],
-    gastos: [{ id: "g1", concepto: "taxi", monto: 12, estado: "por_completar", fecha: "2026-10-23", creado_en: "2026-10-23T09:40:00Z", con_foto: false }],
+    gastos: [{ id: "g1", concepto: "taxi", monto: 12, estado: "por_completar", fecha: "2026-10-23", creado_en: "2026-10-23T09:40:00Z", con_foto: false, ronda_id: "r" }],
     hoy: { fecha: "2026-10-23", dieron: 500, compraste: 624, compras: 2, gastaste: 12, cierre: null },
+    ronda: {
+      abierta: { id: "r", texto: "RC-000003", abierta_en: "2026-10-23T08:00:00Z", compras: 2, prendas: 36, dieron: 500, compraste: 624, gastaste: 12 },
+      ultima_cerrada: { texto: "RC-000002", cerrada_en: "2026-10-21T20:00:00Z", decision: "se_queda", monto: 0 },
+    },
   })!;
 
-  it("una sola lista: lo de hoy primero lo más nuevo, y lo de antes aparte", () => {
-    const { hoy, antes } = movimientosDeLaCompradora(p);
-    expect(hoy.map((m) => m.clave)).toEqual(["compra-c2", "plata-a1", "compra-c1", "gasto-g1"]);
-    expect(antes.map((m) => m.clave)).toEqual(["plata-a0"]);
+  it("una sola lista: lo de la ronda abierta primero, lo más nuevo arriba, y lo de rondas anteriores aparte", () => {
+    const { actuales, antes } = movimientosDeLaCompradora(p);
+    expect(actuales.map((m) => m.clave)).toEqual(["compra-c2", "plata-a1", "compra-c1", "gasto-g1"]);
+    expect(antes.map((m) => [m.clave, m.ronda])).toEqual([["plata-a0", "RC-000002"]]);
   });
 
   it("cada fila dice qué fue, con su signo y su estado dicho por quién lo hace", () => {
-    const { hoy } = movimientosDeLaCompradora(p);
-    const [andina, yape, rosa, taxi] = hoy;
+    const { actuales } = movimientosDeLaCompradora(p);
+    const [andina, yape, rosa, taxi] = actuales;
     expect([andina.titulo, andina.detalle, andina.entra]).toEqual(["Compra a Andina", "1 prenda · Boleta · falta mandar a LIM", false]);
     expect([rosa.detalle, rosa.estado.texto, rosa.estado.pendiente]).toEqual(["35 prendas · Factura · AQP", "Compras la revisa", true]);
     expect([yape.titulo, yape.detalle, yape.entra, yape.estado.texto]).toEqual(["Te yapearon", "Yape o Plin · con foto", true, "Compras la confirma"]);
     expect([taxi.titulo, taxi.icono, taxi.detalle, taxi.estado.texto]).toEqual(["Taxi", "taxi", "Sin papel", "Compras lo revisa"]);
   });
 
-  it("sin el día de la base, todo es de hoy (no se esconde nada)", () => {
-    const { hoy, antes } = movimientosDeLaCompradora({ ...p, hoy: { ...p.hoy, fecha: "" } });
-    expect([hoy.length, antes.length]).toEqual([5, 0]);
+  it("sin ronda: lo anotado después del último cierre va arriba; sin ningún cierre, lo de hoy; sin el día de la base, todo", () => {
+    const sinRonda = { ...p, compras: p.compras.map((c) => ({ ...c, rondaId: null })), gastos: p.gastos.map((g) => ({ ...g, rondaId: null })), anotada: p.anotada.map((a) => ({ ...a, rondaId: null })) };
+    const r = (abierta: typeof p.ronda.abierta, cerradaEn: string | null) => ({ abierta, ultimaCerrada: cerradaEn ? { ...p.ronda.ultimaCerrada!, cerradaEn } : null });
+    // La plata que le dieron antes de abrir la ronda, pero después de cerrar la anterior, es de esta vuelta.
+    expect(movimientosDeLaCompradora({ ...sinRonda, ronda: r(p.ronda.abierta, "2026-10-23T12:00:00Z") }).actuales.map((m) => m.clave)).toEqual(["compra-c2", "plata-a1"]);
+    expect(movimientosDeLaCompradora({ ...sinRonda, ronda: r(null, null) }).actuales).toHaveLength(4);
+    // Recién abierta la primera ronda, lo de antes de las rondas baja.
+    expect(movimientosDeLaCompradora({ ...sinRonda, ronda: r(p.ronda.abierta, null) }).actuales).toHaveLength(0);
+    const { actuales, antes } = movimientosDeLaCompradora({ ...sinRonda, ronda: r(null, null), hoy: { ...p.hoy, fecha: "" } });
+    expect([actuales.length, antes.length]).toEqual([5, 0]);
   });
 
-  it("la billetera reparte lo que queda, lo comprado y lo gastado hoy; en negativo no queda nada", () => {
+  it("el título de la lista sigue a la ronda", () => {
+    expect(tituloDeLaLista(p.ronda)).toBe("En esta ronda");
+    expect(tituloDeLaLista({ ...p.ronda, abierta: null })).toBe("Antes de abrir tu ronda");
+    expect(tituloDeLaLista({ abierta: null, ultimaCerrada: null })).toBe("Hoy");
+  });
+
+  it("la billetera reparte lo que queda, lo comprado y lo gastado en la ronda; sin ronda o en negativo, nada que dibujar", () => {
     expect(repartoBilletera(p)).toEqual({ queda: p.tiene, compraste: 624, gastos: 12 });
-    expect(repartoBilletera({ tiene: -40, hoy: { ...p.hoy, compraste: 0, gastaste: 0 } })).toEqual({ queda: 0, compraste: 0, gastos: 0 });
+    expect(repartoBilletera({ tiene: -40, ronda: { abierta: null, ultimaCerrada: null } })).toEqual({ queda: 0, compraste: 0, gastos: 0 });
   });
 
   it("la franja dice cuántas prendas faltan mandar y a dónde", () => {
@@ -351,8 +389,8 @@ describe("compra pagada en parte o después (20261023181000)", () => {
         { id: "b", proveedor: "Lupe", tipo: "boleta", monto: 80, pagado: 0, estado: "por_completar", fecha: "2026-10-23", prendas: 1, tiendas: [], por_mandar: [] },
       ],
     });
-    const { hoy } = movimientosDeLaCompradora(p!);
-    expect(hoy.map((m) => [plano(m.monto), plano(m.detalle)])).toEqual([
+    const { actuales } = movimientosDeLaCompradora(p!);
+    expect(actuales.map((m) => [plano(m.monto), plano(m.detalle)])).toEqual([
       ["S/ 100.00", "2 prendas · Compras paga S/ 200.00 · Boleta"],
       ["S/ 0.00", "1 prenda · Compras paga S/ 80.00 · Boleta"],
     ]);

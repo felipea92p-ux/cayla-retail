@@ -15,7 +15,6 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
-import { diaMes } from "@/lib/fechas-lima";
 import { primerNombre } from "@/lib/fondos-reglas";
 import { nombreGasto } from "@/lib/mi-plata-reglas";
 import { revisarGasto } from "@/lib/revisar-compras-acciones";
@@ -27,6 +26,7 @@ import {
   papelSugerido,
   papelesParaGasto,
   type PapelGasto,
+  diaYRonda,
 } from "@/lib/revisar-compras-reglas";
 import type { GastoConFoto } from "@/lib/revisar-compras";
 import { ICONO_GASTO } from "./iconos";
@@ -125,7 +125,7 @@ export function DetalleGasto({ gasto, alTerminar }: { gasto: GastoConFoto; alTer
   return (
     <PanelDetalle
       guia="fondos.gasto-detalle"
-      sobre={`${gasto.persona}${gasto.fecha ? ` · ${diaMes(gasto.fecha)}` : ""}`}
+      sobre={[gasto.persona, diaYRonda(gasto.fecha, gasto.ronda)].filter(Boolean).join(" · ")}
       titulo={`${nombreGasto(gasto)} · ${soles(gasto.monto)}`}
       estado={<Chip tono="ambar">Por revisar</Chip>}
     >

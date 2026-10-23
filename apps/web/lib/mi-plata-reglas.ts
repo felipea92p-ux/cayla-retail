@@ -1,3 +1,4 @@
+import { diaLima, diaMes } from "./fechas-lima";
 import { soles } from "./compras-reglas";
 import { campoResponsable, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
@@ -16,7 +17,9 @@ export const RPC_CONFIRMAR_PLATA = "confirmar_plata_compras";
 // Actividad 5 (20261023114000): el resto del día de compras.
 export const RPC_GASTO_RAPIDO = "registrar_gasto_rapido";
 export const RPC_MANDAR_A_TIENDA = "mandar_compras_a_tienda";
+// Cerrar la ronda (20261023183000): la función conserva su nombre de «Terminé por hoy», al que reemplaza.
 export const RPC_TERMINAR_DIA = "terminar_dia_compras";
+export const RPC_ABRIR_RONDA = "abrir_ronda_compras";
 
 /** La carpeta de los vouchers dentro del depósito de las fotos de los gastos del viaje (la base exige que la ruta empiece así). */
 export const CARPETA_VOUCHERS = "plata/";
@@ -48,6 +51,9 @@ export type PlataAnotada = {
   confirmada: boolean;
   fecha: string;
   creadoEn: string;
+  /** La ronda en la que se anotó (20261023183000): «RC-000003». Sin ronda, la de antes de las rondas o fuera de una. */
+  rondaId: string | null;
+  ronda: string | null;
   conFoto: boolean;
 };
 
@@ -63,6 +69,8 @@ export type CompraAnotada = {
   porCompletar: boolean;
   fecha: string;
   creadoEn: string;
+  rondaId: string | null;
+  ronda: string | null;
   prendas: number;
   tiendas: string[];
   /** Las tiendas a las que todavía no sale algo de esta compra (actividad 5). */
@@ -90,6 +98,8 @@ export type GastoAnotado = {
   porCompletar: boolean;
   fecha: string;
   creadoEn: string;
+  rondaId: string | null;
+  ronda: string | null;
   conFoto: boolean;
 };
 
@@ -114,6 +124,23 @@ export type Hoy = {
   cierre: { decision: DecisionCierre; monto: number; resuelto: boolean } | null;
 };
 
+/**
+ * La ronda de compras (20261023183000, Felipe 2026-10-23): la compradora la abre, anota sus compras y gastos y la cierra. Se dice por su
+ * serie y número («RC-000003»), nunca «Ronda 3». Lo que lleva lo cuenta la base.
+ */
+export type RondaAbierta = {
+  id: string;
+  texto: string;
+  abiertaEn: string;
+  compras: number;
+  prendas: number;
+  dieron: number;
+  compraste: number;
+  gastaste: number;
+};
+export type RondaCerrada = { texto: string; cerradaEn: string; decision: DecisionCierre; monto: number; resuelto: boolean };
+export type Rondas = { abierta: RondaAbierta | null; ultimaCerrada: RondaCerrada | null };
+
 export type MiPlata = {
   /** Sin cuenta de persona (una terminal), no hay «tu plata». */
   persona: boolean;
@@ -133,6 +160,7 @@ export type MiPlata = {
   gastos: GastoAnotado[];
   porMandar: PorMandar[];
   hoy: Hoy;
+  ronda: Rondas;
 };
 
 function leerAnotada(x: unknown): PlataAnotada | null {
@@ -149,6 +177,8 @@ function leerAnotada(x: unknown): PlataAnotada | null {
     confirmada: o.estado === "confirmada",
     fecha: texto(o.fecha) ?? "",
     creadoEn: texto(o.creado_en) ?? "",
+    rondaId: texto(o.ronda_id),
+    ronda: texto(o.ronda),
     conFoto: o.con_foto === true,
   };
 }
@@ -164,6 +194,8 @@ function leerCompra(x: unknown): CompraAnotada | null {
     proveedor: texto(o.proveedor) ?? "un proveedor",
     tipo: texto(o.tipo) ?? "",
     monto,
+    rondaId: texto(o.ronda_id),
+    ronda: texto(o.ronda),
     pagado: numero(o.pagado) ?? monto,
     medioPago: texto(o.medio_pago),
     porCompletar: o.estado === "por_completar",
@@ -191,6 +223,8 @@ function leerGasto(x: unknown): GastoAnotado | null {
     porCompletar: o.estado === "por_completar",
     fecha: texto(o.fecha) ?? "",
     creadoEn: texto(o.creado_en) ?? "",
+    rondaId: texto(o.ronda_id),
+    ronda: texto(o.ronda),
     conFoto: o.con_foto === true,
   };
 }
@@ -232,6 +266,34 @@ function leerHoy(x: unknown): Hoy {
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
+/** Lo que manda `fn_ronda_compras_de`. Sin el dato (una base de antes de las rondas), ninguna. */
+function leerRondas(x: unknown): Rondas {
+  const o = x && typeof x === "object" ? (x as Record<string, unknown>) : {};
+  const a = o.abierta && typeof o.abierta === "object" ? (o.abierta as Record<string, unknown>) : null;
+  const c = o.ultima_cerrada && typeof o.ultima_cerrada === "object" ? (o.ultima_cerrada as Record<string, unknown>) : null;
+  const id = texto(a?.id);
+  const decision = c && DECISIONES.includes(c.decision as DecisionCierre) ? (c.decision as DecisionCierre) : null;
+  return {
+    abierta:
+      a && id
+        ? {
+            id,
+            texto: texto(a.texto) ?? "Tu ronda",
+            abiertaEn: texto(a.abierta_en) ?? "",
+            compras: Math.max(0, Math.trunc(numero(a.compras) ?? 0)),
+            prendas: Math.max(0, Math.trunc(numero(a.prendas) ?? 0)),
+            dieron: numero(a.dieron) ?? 0,
+            compraste: numero(a.compraste) ?? 0,
+            gastaste: numero(a.gastaste) ?? 0,
+          }
+        : null,
+    ultimaCerrada:
+      c && decision
+        ? { texto: texto(c.texto) ?? "Tu ronda", cerradaEn: texto(c.cerrada_en) ?? "", decision, monto: numero(c.monto) ?? 0, resuelto: c.resuelto === true }
+        : null,
+  };
+}
+
 /** Lo que manda `fn_mi_plata_compras`. Ilegible: sin persona (la pantalla dice que no se pudo leer, no inventa cifras). */
 export function leerMiPlata(data: unknown): MiPlata | null {
   if (!data || typeof data !== "object") return null;
@@ -250,6 +312,7 @@ export function leerMiPlata(data: unknown): MiPlata | null {
       gastos: [],
       porMandar: [],
       hoy: leerHoy(null),
+      ronda: leerRondas(null),
     };
   }
   const saldo = numero(o.saldo) ?? 0;
@@ -270,6 +333,7 @@ export function leerMiPlata(data: unknown): MiPlata | null {
     gastos: (Array.isArray(o.gastos) ? o.gastos : []).map(leerGasto).filter((g): g is GastoAnotado => g !== null),
     porMandar: (Array.isArray(o.por_mandar) ? o.por_mandar : []).map(leerPorMandar).filter((t): t is PorMandar => t !== null),
     hoy: leerHoy(o.hoy),
+    ronda: leerRondas(o.ronda),
   };
 }
 
@@ -421,12 +485,22 @@ export function resumenPrendas(prendas: PorMandar["prendas"], maximo = 3): strin
 }
 
 /**
- * «Terminé de comprar hoy» como un cuaderno: lo que tenía antes de hoy + lo que le dieron − lo que compró − lo que gastó = lo que le queda.
- * Lo de antes no viene de la base: se despeja de lo que tiene ahora, así las cuentas siempre cierran.
+ * «Cerrar mi ronda» como un cuaderno: lo que tenía al abrirla + lo que le dieron en ella − lo que compró − lo que gastó = lo que le queda.
+ * Lo de antes no viene de la base: se despeja de lo que tiene ahora, así las cuentas siempre cierran. Sin ronda abierta, todo es «de antes».
  */
-export function resumenDia(plata: Pick<MiPlata, "tiene" | "hoy">) {
-  const { dieron, compraste, gastaste } = plata.hoy;
-  return { antes: redondear(plata.tiene - dieron + compraste + gastaste), dieron, compraste, gastaste, queda: plata.tiene };
+export function resumenRonda(plata: Pick<MiPlata, "tiene" | "ronda">) {
+  const { dieron = 0, compraste = 0, gastaste = 0, compras = 0 } = plata.ronda.abierta ?? {};
+  return { antes: redondear(plata.tiene - dieron + compraste + gastaste), dieron, compraste, gastaste, compras, queda: plata.tiene };
+}
+
+/** Bajo el número de la ronda abierta: «Abierta el jueves 23 oct · 2 compras · 16 prendas». */
+export function detalleRonda(r: Pick<RondaAbierta, "abiertaEn" | "compras" | "prendas">, hoy: string): string {
+  // El día de Lima, no el de UTC: una ronda abierta a las 8 pm es de hoy.
+  const dia = diaLima(r.abiertaEn) ?? "";
+  const cuando = !dia ? null : dia === hoy ? "Abierta hoy" : `Abierta el ${diaMes(dia)}`;
+  const compras = r.compras === 0 ? "Todavía sin compras" : r.compras === 1 ? "1 compra" : `${r.compras} compras`;
+  const prendas = r.prendas > 0 ? (r.prendas === 1 ? "1 prenda" : `${r.prendas} prendas`) : null;
+  return [cuando, compras, prendas].filter(Boolean).join(" · ");
 }
 
 /** Qué se puede elegir al terminar: con plata, quedársela o devolverla; sin plata, nada; en negativo, CAYLA le debe (sin elegir). */
@@ -467,11 +541,12 @@ export function estadoParaLaCompradora(que: "compra" | "gasto" | "plata", pendie
 // ---------- Rediseño de Mi plata (maqueta docs/maquetas/compras-formidable-2026-10/, Felipe 2026-10-23) ----------
 
 /**
- * Los tres tramos de la billetera: lo que te queda, lo que compraste hoy y lo que gastaste hoy. En negativo no queda nada que dibujar
- * (la cifra grande y su frase ya lo dicen); sin nada hoy, la barra es toda «te queda».
+ * Los tres tramos de la billetera: lo que te queda, lo que compraste y lo que gastaste en la ronda abierta. En negativo no queda nada que
+ * dibujar (la cifra grande y su frase ya lo dicen); sin ronda abierta o sin nada en ella, la barra es toda «te queda».
  */
-export function repartoBilletera(plata: Pick<MiPlata, "tiene" | "hoy">): { queda: number; compraste: number; gastos: number } {
-  return { queda: Math.max(0, plata.tiene), compraste: Math.max(0, plata.hoy.compraste), gastos: Math.max(0, plata.hoy.gastaste) };
+export function repartoBilletera(plata: Pick<MiPlata, "tiene" | "ronda">): { queda: number; compraste: number; gastos: number } {
+  const r = plata.ronda.abierta;
+  return { queda: Math.max(0, plata.tiene), compraste: Math.max(0, r?.compraste ?? 0), gastos: Math.max(0, r?.gastaste ?? 0) };
 }
 
 /** La franja de lo que falta mandar: «Te falta mandar 37 prendas a 2 tiendas» o «… 7 prendas a Tienda LIM». Sin nada, nada. */
@@ -497,6 +572,8 @@ export type MovimientoCompradora = {
   estado: { texto: string; detalle: string; pendiente: boolean };
   fecha: string;
   creadoEn: string;
+  rondaId: string | null;
+  ronda: string | null;
 };
 
 const TITULO_PLATA: Record<MedioPlata, string> = {
@@ -518,11 +595,13 @@ function detalleCompra(c: CompraAnotada): string {
 }
 
 /**
- * Lo que compró, gastó y anotó, en UNA lista (antes eran tres: había que juntarlas en la cabeza). Lo más nuevo primero; «hoy» es lo
- * del día de Lima que dice la base y «antes», lo demás (se abre con «Ver días anteriores»). Sin el día de la base, todo va a «hoy».
+ * Lo que compró, gastó y anotó, en UNA lista (antes eran tres: había que juntarlas en la cabeza). Lo más nuevo primero. Arriba, lo de la
+ * ronda abierta (`actuales`); lo demás, bajo «Ver rondas anteriores». Lo anotado sin ronda (la plata que le dieron antes de abrirla) va
+ * arriba si es de después de la última ronda cerrada. Sin ninguna cerrada todavía, lo sin ronda es de antes de las rondas: arriba solo
+ * mientras no haya una abierta, y si es de hoy (como antes de las rondas).
  */
-export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gastos" | "anotada" | "hoy">): {
-  hoy: MovimientoCompradora[];
+export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gastos" | "anotada" | "hoy" | "ronda">): {
+  actuales: MovimientoCompradora[];
   antes: MovimientoCompradora[];
 } {
   const todos: MovimientoCompradora[] = [
@@ -540,6 +619,8 @@ export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gast
         estado: { ...e, pendiente: c.porCompletar },
         fecha: c.fecha,
         creadoEn: c.creadoEn,
+        rondaId: c.rondaId,
+        ronda: c.ronda,
       };
     }),
     ...plata.gastos.map((g): MovimientoCompradora => {
@@ -555,6 +636,8 @@ export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gast
         estado: { ...e, pendiente: g.porCompletar },
         fecha: g.fecha,
         creadoEn: g.creadoEn,
+        rondaId: g.rondaId,
+        ronda: g.ronda,
       };
     }),
     ...plata.anotada.map((a): MovimientoCompradora => {
@@ -570,14 +653,27 @@ export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gast
         estado: { ...e, pendiente: !a.confirmada },
         fecha: a.fecha,
         creadoEn: a.creadoEn,
+        rondaId: a.rondaId,
+        ronda: a.ronda,
       };
     }),
   ];
   const orden = (m: MovimientoCompradora) => m.creadoEn || m.fecha;
   todos.sort((a, b) => (orden(a) < orden(b) ? 1 : orden(a) > orden(b) ? -1 : 0));
+  const abierta = plata.ronda.abierta?.id ?? null;
+  const desde = plata.ronda.ultimaCerrada?.cerradaEn ?? "";
   const dia = plata.hoy.fecha;
-  if (!dia) return { hoy: todos, antes: [] };
-  return { hoy: todos.filter((m) => m.fecha.slice(0, 10) === dia), antes: todos.filter((m) => m.fecha.slice(0, 10) !== dia) };
+  const despues = (m: MovimientoCompradora) => new Date(m.creadoEn || m.fecha).getTime() > new Date(desde).getTime();
+  // Con una ronda abierta y sin ninguna cerrada antes, lo que no tiene ronda es de antes de las rondas: va abajo.
+  const esActual = (m: MovimientoCompradora) =>
+    m.rondaId ? m.rondaId === abierta : desde ? despues(m) : !abierta && (!dia || m.fecha.slice(0, 10) === dia);
+  return { actuales: todos.filter(esActual), antes: todos.filter((m) => !esActual(m)) };
+}
+
+/** El título de la lista de arriba: lo de la ronda abierta; sin ella, lo anotado después de cerrar la última (o, sin ninguna, lo de hoy). */
+export function tituloDeLaLista(ronda: Rondas): string {
+  if (ronda.abierta) return "En esta ronda";
+  return ronda.ultimaCerrada ? "Antes de abrir tu ronda" : "Hoy";
 }
 
 /** La sigla de una tienda en su cuadro: «Tienda Lima» → «LIM», «Tienda AQP» → «AQP». La última palabra, en tres letras. */

@@ -1,10 +1,11 @@
 import { HandCoins, ShoppingBag } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getMiPlata } from "@/lib/mi-plata";
-import { movimientosDeLaCompradora } from "@/lib/mi-plata-reglas";
+import { movimientosDeLaCompradora, tituloDeLaLista } from "@/lib/mi-plata-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { AbrirRonda } from "@/components/mi-plata/AbrirRonda";
 import { AccionDelDia } from "@/components/mi-plata/AccionDelDia";
 import { AnotarPlata } from "@/components/mi-plata/AnotarPlata";
 import { AnotarGasto } from "@/components/mi-plata/AnotarGasto";
@@ -17,9 +18,10 @@ import { TerminarDia } from "@/components/mi-plata/TerminarDia";
 // Felipe el 2026-10-23: docs/maquetas/compras-formidable-2026-10/.
 //
 // Arriba, la billetera: cuánto tiene para comprar (su fondo más lo que Compras todavía revisa, menos lo comprado y gastado que Compras
-// todavía no completa) y de dónde sale. Después «¿Qué hiciste?»: «Compré ropa» en grande y, a su lado, «Me dieron plata» y «Gasté en
-// otra cosa». Si falta mandar algo, una franja lo dice. Después «Hoy», todo lo del día en una sola lista, y al final «Terminé de comprar
-// hoy». En escritorio, «Hoy» va a la derecha. Si la lectura falla, lo dice (principio 9): nunca «tienes S/ 0» inventado. Una terminal no
+// todavía no completa) y de dónde sale. Todo pasa dentro de una RONDA DE COMPRAS (20261023183000, Felipe 2026-10-23): sin una abierta, la
+// pantalla pide abrirla y solo deja anotar la plata que le dieron. Con la ronda abierta, «¿Qué hiciste?»: «Compré ropa» en grande y, a
+// su lado, «Me dieron plata» y «Gasté en otra cosa». Si falta mandar algo, una franja lo dice. Después «En esta ronda», todo en una sola
+// lista, y al final «Cerrar mi ronda». En escritorio, la lista va a la derecha. Si la lectura falla, lo dice (principio 9): nunca «tienes S/ 0» inventado. Una terminal no
 // tiene «tu plata». `?mandar=1` (desde «Compra guardada») abre «Mandar a la tienda».
 export default async function MiPlataPage({ searchParams }: { searchParams: Promise<{ mandar?: string }> }) {
   const persona = await exigirModulo("ordenes_compra");
@@ -48,25 +50,35 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
           <div className="lg:col-start-1">
             <Billetera plata={plata} />
           </div>
-          <section aria-label="¿Qué hiciste?" className="grid grid-cols-2 gap-2.5 lg:col-start-1">
-            <AccionDelDia
-              grande
-              href="/compras/mi-plata/compra"
-              guia="mi-plata.compre"
-              titulo="Compré ropa"
-              detalle="A un proveedor, en la calle o por pedido"
-              icono={<ShoppingBag className="h-5 w-5" aria-hidden />}
-            />
-            <AnotarPlata puedeYaTenia={plata.puedeYaTenia} />
-            <AnotarGasto />
-          </section>
+          {plata.ronda.abierta ? (
+            <section aria-label="¿Qué hiciste?" className="grid grid-cols-2 gap-2.5 lg:col-start-1">
+              <AccionDelDia
+                grande
+                href="/compras/mi-plata/compra"
+                guia="mi-plata.compre"
+                titulo="Compré ropa"
+                detalle="A un proveedor, en la calle o por pedido"
+                icono={<ShoppingBag className="h-5 w-5" aria-hidden />}
+              />
+              <AnotarPlata puedeYaTenia={plata.puedeYaTenia} />
+              <AnotarGasto />
+            </section>
+          ) : (
+            // Sin ronda: abrirla es lo único que se pide. La plata que le dieron se puede anotar igual (Compras a veces la manda antes).
+            <div className="flex flex-col gap-2.5 lg:col-start-1">
+              <AbrirRonda ultimaCerrada={plata.ronda.ultimaCerrada} />
+              <div className="grid grid-cols-2 gap-2.5">
+                <AnotarPlata puedeYaTenia={plata.puedeYaTenia} />
+              </div>
+            </div>
+          )}
           {plata.porMandar.length > 0 && (
             <div className="lg:col-start-1">
               <MandarATienda porMandar={plata.porMandar} abrirAlCargar={mandar === "1"} />
             </div>
           )}
           <div className="min-w-0 lg:col-start-2 lg:row-span-5 lg:row-start-1">
-            <ListaDelDia {...movimientosDeLaCompradora(plata)} />
+            <ListaDelDia {...movimientosDeLaCompradora(plata)} titulo={tituloDeLaLista(plata.ronda)} />
           </div>
           <div className="lg:col-start-1">
             <TerminarDia plata={plata} />

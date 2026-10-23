@@ -18,7 +18,6 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { diaMes } from "@/lib/fechas-lima";
 import { primerNombre } from "@/lib/fondos-reglas";
 import { TIPOS_PAPEL } from "@/lib/compra-rapida-reglas";
 import { completarPapel } from "@/lib/revisar-compras-acciones";
@@ -36,6 +35,7 @@ import {
   textoPagoPapel,
   veredictoPapel,
   type ProveedorOpcion,
+  diaYRonda,
 } from "@/lib/revisar-compras-reglas";
 import type { PapelConFoto } from "@/lib/revisar-compras";
 import { PanelDetalle } from "./PanelDetalle";
@@ -204,7 +204,7 @@ export function DetallePapel({
   return (
     <PanelDetalle
       guia="fondos.papel-detalle"
-      sobre={`Compró ${papel.persona}${papel.fecha ? ` · ${diaMes(papel.fecha)}` : ""}`}
+      sobre={[`Compró ${papel.persona}`, diaYRonda(papel.fecha, papel.ronda)].filter(Boolean).join(" · ")}
       titulo={`${papel.tipo === "sin_comprobante" ? "Compra sin papel" : tipo} de ${soles(papel.monto)}`}
       estado={<Chip tono={chip.tono}>{papel.llego ? chip.texto : textoLlegada(papel)}</Chip>}
     >
