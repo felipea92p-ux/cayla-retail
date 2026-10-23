@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ARBOL, type Nodo } from "./menu";
 
 // Toda pantalla interna tiene cómo volver (Felipe, 2026-09-26). Una pantalla interna es la que NO está en el lateral:
-// se llega a ella desde otra (Registrar factura desde Facturas de proveedor). Sin una vuelta, la única salida es el
+// se llega a ella desde otra (el detalle de una compra desde el Historial de compras). Sin una vuelta, la única salida es el
 // «atrás» del navegador, que en la tablet de la tienda nadie encuentra. La vuelta es `components/ui/Volver.tsx`.
 //
 // Esta prueba recorre TODAS las `page.tsx` de `app/(app)` y le exige a cada una que no esté en el menú una vuelta: un

@@ -772,7 +772,14 @@ export const GUIA_SELLOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.configurar" }],
       titulo: "Descuento, fechas y categorías",
-      texto: "El descuento (los de siempre a un toque, o escribe otro), desde y hasta cuándo rige y las categorías, cada una con cuántas prendas trae. Abajo dice a cuántas prendas llega antes de guardar.",
+      texto: "El descuento (los de siempre a un toque, o escribe otro), desde y hasta cuándo rige y las categorías, cada una con cuántas prendas trae. «Elegir todas» las marca de un toque: así llega a todas las prendas, sin contarlas una por una. Abajo dice a cuántas llega antes de guardar.",
+    },
+    {
+      id: "campana-sedes",
+      ancla: "atributos.campana-sedes",
+      opcional: true,
+      titulo: "Dónde rige",
+      texto: "«Todas las sedes» cobra el descuento en cada tienda. Si eliges una o más tiendas, solo ahí se cobra: en las demás, el precio normal. Sirve para una promoción de una sola tienda.",
     },
     {
       id: "campana-pie",
