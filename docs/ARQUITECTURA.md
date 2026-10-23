@@ -846,7 +846,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   lectura de Rotación de `lib/etiqueta-rotacion-datos.ts`: `fn_analisis_sede` por tienda, unidades y vendidas en 30 días por talla) →
   `components/sellos/SellosPantalla.tsx`, una billetera de pases: las pestañas Campañas (la primera), Rotación, Artesanal y General
   (`?vista=`, se cambian sin navegar), las pilas y lo que dice cada pase en `lib/sellos-pases.ts` (`pilasDeLaVista`, `marcaDelPase`,
-  `prendasDelSello`, `fraseDelSello`, `loQueTiene`), el sello de tinta en `components/sellos/SelloTinta.tsx` y el movimiento en
+  `prendasDelSello`, `loQueTiene`), el sello de tinta en `components/sellos/SelloTinta.tsx` y el movimiento en
   `app/estilos/sellos.css`. Guarda por las mismas puertas de antes: crear (`POST /api/productos/etiquetas` con el estilo de la vista),
   aprobar, rechazar, desactivar y reactivar (`PATCH`), configurar o repetir (`CampanaModal` → `actualizar_campana_etiqueta`) y
   prendas (`PrendasDeEtiquetaModal`); imprime sus etiquetas de precio y enlaza al diseño (`/tienda-web/campanas/[id]`, para quien ve
