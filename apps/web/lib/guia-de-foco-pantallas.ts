@@ -462,6 +462,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // (cuánto llegó y, salvo «ya tenía», de qué cuenta salió; desde una terminal, quién confirma).
   "components/mi-plata/AnotarPlata.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarPlata.tsx"] },
   "components/mi-plata/AnotarGasto.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarGasto.tsx"] },
+  // La hoja de la prenda de «Compré ropa» (rediseño 2026-10-23): cuántas, costo, venta y tienda; falta lo que antes frenaba cada paso.
+  "components/mi-plata/HojaPrenda.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/HojaPrenda.tsx"] },
   "components/mi-plata/TerminarDia.tsx": { estado: "no-aplica", motivo: "ADR-0480: una sola pregunta (qué haces con lo que te queda), con el botón apagado y su frase hasta elegir; sin plata no hay nada que elegir." },
   "components/mi-plata/PlataPorConfirmar.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx"] },
   // Revisar compras (ADR-0480, actividad 7): completar el papel (serie y número según el papel; el monto, si se anotó mal; desde una

@@ -18,6 +18,11 @@ import {
   marcasDeHabituales,
   prendasDeLineas,
   textoAvance,
+  camposPrenda,
+  gananciaPorPrenda,
+  textoAgregarPrenda,
+  lineaDeBorrador,
+  resumenCarrito,
   proveedoresRecientes,
   detalleProveedor,
   inicialesProveedor,
@@ -176,7 +181,6 @@ describe("la barra de avance: siempre 3 pasos", () => {
   it("dice el paso, su nombre y el detalle dentro de las prendas", () => {
     expect(textoAvance("proveedor")).toBe("Paso 1 de 3 · el proveedor");
     expect(textoAvance("habituales")).toBe("Paso 2 de 3 · las prendas");
-    expect(textoAvance("costo")).toBe("Paso 2 de 3 · las prendas · costo");
     expect(textoAvance("papel")).toBe("Paso 3 de 3 · el papel");
   });
 });
@@ -264,5 +268,37 @@ describe("el proveedor, como la maqueta (compras-formidable-2026-10)", () => {
     expect(inicialesProveedor("Lupe")).toBe("LU");
     expect(inicialesProveedor("  ")).toBe("?");
     expect(inicialesProveedor("Confecciones Andina EIRL")).toBe("CA");
+  });
+});
+
+describe("la hoja de la prenda (rediseño)", () => {
+  const H = { clave: "p1", productoId: "p1", categoriaId: "c", marcaId: null, nombre: "Blusa Emma", categoria: "Blusas", marca: null };
+  const lleno = { cantidad: "12", costo: "17.50", venta: "39.90", destinoId: "lim" };
+  it("falta lo mismo que antes frenaba cada paso, y la tienda", () => {
+    const falta = (b: Parameters<typeof camposPrenda>[0]) => camposPrenda(b).filter((c) => c.requerido && !c.hecho).map((c) => c.id);
+    expect(falta({ cantidad: "", costo: "", venta: "", destinoId: null })).toEqual(["cantidad", "costo", "venta", "tienda"]);
+    expect(falta({ ...lleno, cantidad: "0" })).toEqual(["cantidad"]);
+    expect(falta({ ...lleno, costo: "17.555" })).toEqual(["costo"]);
+    expect(falta({ ...lleno, destinoId: null })).toEqual(["tienda"]);
+    expect(falta(lleno)).toEqual([]);
+  });
+  it("la guía coincide con la línea: sin faltas hay línea; con una falta, no", () => {
+    expect(lineaDeBorrador(H, lleno)).toMatchObject({ cantidad: 12, costo: 17.5, venta: 39.9, destinoId: "lim", clave: "p1" });
+    for (const roto of [{ cantidad: "" }, { costo: "x" }, { venta: "" }, { destinoId: null }]) {
+      const b = { ...lleno, ...roto };
+      expect(lineaDeBorrador(H, b) === null).toBe(camposPrenda(b).some((c) => c.requerido && !c.hecho));
+    }
+  });
+  it("la ganancia por prenda y el botón que dice lo que hace", () => {
+    expect(gananciaPorPrenda(lleno)).toBe(22.4);
+    expect(gananciaPorPrenda({ costo: "20", venta: "" })).toBeNull();
+    expect(plano(textoAgregarPrenda(lleno, false))).toBe("Agregar 12 · S/ 210.00");
+    expect(plano(textoAgregarPrenda(lleno, true))).toBe("Guardar 12 · S/ 210.00");
+    expect(textoAgregarPrenda({ cantidad: "", costo: "1" }, false)).toBe("Agregar");
+  });
+  it("la barra negra suma prendas, plata y modelos", () => {
+    const r = resumenCarrito([{ cantidad: 12, costo: 17.5 }, { cantidad: 20, costo: 9 }]);
+    expect([plano(r.titulo), r.detalle]).toEqual(["32 prendas · S/ 390.00", "2 modelos"]);
+    expect(resumenCarrito([{ cantidad: 1, costo: 5 }]).detalle).toBe("1 modelo");
   });
 });

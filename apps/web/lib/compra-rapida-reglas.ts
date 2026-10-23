@@ -222,6 +222,68 @@ export function faltaEnPaso(paso: "cantidad" | "costo" | "venta", t: string): st
   return leerPrecio(t) == null ? "Escribe el precio" : null;
 }
 
+// ---------- La hoja de la prenda (rediseño, maqueta compras-formidable-2026-10, Felipe 2026-10-23) ----------
+// Al tocar una prenda se abre UNA hoja con lo que antes eran cuatro pantallas seguidas: cuántas, el costo, la venta y la tienda (que se
+// sigue eligiendo por prenda: Felipe, 2026-10-23). Lo que falta es lo mismo que antes frenaba cada paso: la guía no agrega reglas.
+
+/** Lo que se va escribiendo en la hoja de una prenda. `destinoId`: la tienda; llega con la de la prenda anterior. */
+export type BorradorPrenda = { cantidad: string; costo: string; venta: string; destinoId: string | null };
+
+/** Los campos de la hoja, en su orden, para la guía de foco. */
+export function camposPrenda(b: BorradorPrenda): CampoDeGuia[] {
+  return [
+    { id: "cantidad", nombre: "Cuántas", requerido: true, hecho: faltaEnPaso("cantidad", b.cantidad) === null, pendiente: "Escribe cuántas compraste." },
+    { id: "costo", nombre: "Costo", requerido: true, hecho: faltaEnPaso("costo", b.costo) === null, pendiente: "Escribe cuánto te costó cada una." },
+    { id: "venta", nombre: "Venta", requerido: true, hecho: faltaEnPaso("venta", b.venta) === null, pendiente: "Escribe a cuánto se vende." },
+    { id: "tienda", nombre: "Tienda", requerido: true, hecho: b.destinoId !== null, pendiente: "Elige a qué tienda va." },
+  ];
+}
+
+/** «Por cada una ganas S/ 22.40»: la venta menos el costo, si los dos se leen. */
+export function gananciaPorPrenda(b: Pick<BorradorPrenda, "costo" | "venta">): number | null {
+  const costo = leerPrecio(b.costo);
+  const venta = leerPrecio(b.venta);
+  return costo == null || venta == null ? null : Math.round((venta - costo) * 100) / 100;
+}
+
+/** El botón de la hoja dice lo que hace: «Agregar 12 · S/ 210.00» (o «Guardar …» si corrige una que ya va). */
+export function textoAgregarPrenda(b: Pick<BorradorPrenda, "cantidad" | "costo">, corrige: boolean): string {
+  const verbo = corrige ? "Guardar" : "Agregar";
+  const cantidad = leerCantidad(b.cantidad);
+  const costo = leerPrecio(b.costo);
+  return cantidad != null && costo != null ? `${verbo} ${cantidad} · ${soles(Math.round(cantidad * costo * 100) / 100)}` : verbo;
+}
+
+/** La línea que entra a la compra desde la hoja. `null` si falta algo (el botón ya está apagado). */
+export function lineaDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "categoriaId" | "marcaId" | "nombre" | "categoria" | "marca">, b: BorradorPrenda): LineaCompra | null {
+  const cantidad = leerCantidad(b.cantidad);
+  const costo = leerPrecio(b.costo);
+  const venta = leerPrecio(b.venta);
+  if (cantidad == null || costo == null || venta == null || b.destinoId == null) return null;
+  return {
+    clave: h.clave,
+    productoId: h.productoId,
+    categoriaId: h.categoriaId,
+    marcaId: h.marcaId,
+    nombre: h.nombre,
+    categoria: h.categoria,
+    marca: h.marca,
+    cantidad,
+    costo,
+    venta,
+    destinoId: b.destinoId,
+  };
+}
+
+/** La barra negra de abajo: «12 prendas · S/ 210.00» y «2 modelos». */
+export function resumenCarrito(lineas: readonly Pick<LineaCompra, "cantidad" | "costo">[]): { titulo: string; detalle: string } {
+  const n = prendasDeLineas(lineas);
+  return {
+    titulo: `${n === 1 ? "1 prenda" : `${n} prendas`} · ${soles(totalDeLineas(lineas))}`,
+    detalle: lineas.length === 1 ? "1 modelo" : `${lineas.length} modelos`,
+  };
+}
+
 /** La tienda que llega marcada: la de la prenda anterior («Como la anterior»). */
 export function tiendaAnterior(lineas: readonly LineaCompra[]): string | null {
   return lineas.at(-1)?.destinoId ?? null;
@@ -274,10 +336,6 @@ export type PasoCompra =
   | "nuevo-categoria"
   | "nuevo-nombre"
   | "nuevo-marca"
-  | "cantidad"
-  | "costo"
-  | "venta"
-  | "tienda"
   | "revisar"
   | "papel"
   | "listo";
@@ -288,10 +346,6 @@ const DETALLE: Partial<Record<PasoCompra, string>> = {
   "nuevo-categoria": "qué es",
   "nuevo-nombre": "nombre",
   "nuevo-marca": "marca",
-  cantidad: "cantidad",
-  costo: "costo",
-  venta: "venta",
-  tienda: "tienda",
 };
 export function textoAvance(p: PasoCompra): string {
   const fase = faseDePaso(p);

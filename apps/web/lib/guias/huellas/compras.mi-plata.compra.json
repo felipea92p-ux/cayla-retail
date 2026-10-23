@@ -2,12 +2,21 @@
   "guia": "compras.mi-plata.compra",
   "ruta": "/compras/mi-plata/compra",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 32,
+  "total": 35,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
       "BotonBuscar «→buscar»",
       "CampoTexto «{etiqueta.nombre}»"
+    ],
+    "components/mi-plata/HojaPrenda.tsx": [
+      "CampoMonto «compra.costo»",
+      "CampoMonto «compra.venta»",
+      "button «{t.nombre}»",
+      "Boton «Quitar de la compra»",
+      "Boton «Cancelar»",
+      "Boton «compra.agregar»",
+      "button «{guia}»"
     ],
     "components/mi-plata/RegistrarCompra.tsx": [
       "Volver «→() => setPaso(atras)»",
@@ -18,22 +27,18 @@
       "button «{m.nombre}»",
       "button «Otra marca»",
       "button «{m.nombre}» #2",
-      "button «{t.nombre}»",
       "button «{l.cantidad}»",
       "button «Quitar»",
       "Boton «Otra prenda de»",
       "Boton «compra.al-papel»",
       "button «{TIPOS_PAPEL[k].nombre}»",
-      "input «{return ( <button type=\"button\" onClick={onClick}»",
-      "button «{guia}»",
+      "input «filtrarCategoriasNuevo(categorias, q, suyas); const tarjet»",
       "button «{c.nombre}»",
+      "button «{linea && <Globito n={linea.cantidad}»",
       "BotonFiltro «Todos»",
       "BotonFiltro «{c.nombre}»",
-      "button «{h.nombre}»",
-      "button «Ver todos los suyos (»",
-      "button «compra.igual»",
-      "CampoMonto «{titulo}»",
-      "Boton «{falta ?? undefined}»"
+      "button «compra.algo-nuevo»",
+      "BotonVerMas «{`Ver todos los suyos (${habituales.length}»"
     ],
     "components/ordenes-compra/RegistrarProveedorOrden.tsx": [
       "CampoTexto «Nombre del proveedor»",
