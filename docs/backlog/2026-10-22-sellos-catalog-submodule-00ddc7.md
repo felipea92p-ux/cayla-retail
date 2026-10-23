@@ -9,5 +9,5 @@
 - [ ] **Decisión de Felipe: ¿un solo módulo «Insignias»?** Hoy siguen `etiquetas` y `campanas` (la fila abre con cualquiera). Juntarlos pide mover roles por migración.
 - [ ] **`incluye` del módulo Insignias en Roles y accesos** todavía no menciona las campañas («Crear, editar, aprobar y archivar las insignias…»): `20261023142000` lo reescribe sin ellas; sumarlas es otra línea en `retail.modulos`.
 - [x] **«Sellos» se llama «Insignias» en todo el ERP** (Felipe 2026-10-23): pantalla, menú (con una medalla), guía, Nuevo producto, ficha, historial, Tienda web, Finanzas, Actividad y errores.
-- [ ] **Pegar `20261023142000_sellos_se_llaman_insignias.sql` en producción** (una sola parte, idempotente, sin políticas): renombra el módulo en Roles y accesos y diez mensajes de error. Hasta entonces, Roles y esos errores dicen «Sellos». **No está en producción.**
+- [x] **`20261023142000_sellos_se_llaman_insignias.sql` pegada en producción** el 2026-10-23, a pedido de Felipe (`apply_migration`, registrada como `20261023143103`): el módulo `etiquetas` se llama «Insignias» y los diez mensajes dicen «Insignias»; md5 de las siete funciones en el PR #1273.
 

@@ -111,8 +111,7 @@ para lo mismo en cada lugar donde una colaboradora la lee.
   insignia se estampa como un sello de tinta (`SelloTinta`).
 - **En la base** (`20261023142000`): el módulo `etiquetas` se llama «Insignias» en Roles y accesos (con su `incluye`), `campanas_web` deja de
   mandar a armar las fechas «en Etiquetas», y los diez mensajes de error de siete funciones que nombraban el módulo «Sellos» dicen
-  «Insignias» (un reemplazo anclado: solo el texto; ningún permiso ni regla cambia). Hasta que se pegue en producción, Roles y esos errores
-  siguen diciendo «Sellos».
+  «Insignias» (un reemplazo anclado: solo el texto; ningún permiso ni regla cambia). Se pegó en producción el mismo 2026-10-23.
 - **Lo que no cambia:** las claves y los nombres del código (`etiquetas`, `campanas`, `retail.etiquetas`, `components/sellos/`,
   `lib/sellos-pases.ts`, el modo `sellos`, la guía `productos.sellos` y sus anclas `sellos.*`), como cuando «Etiquetas» pasó a decir
   «Sellos»: renombrarlos movería roles, políticas y llamadores por un cambio que es solo de cartel. Tampoco los otros sellos del ERP, que
