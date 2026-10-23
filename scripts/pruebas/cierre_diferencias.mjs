@@ -38,8 +38,8 @@
  * CÓMO. Cada bloque en su transacción con ROLLBACK (otros agentes prueban a la vez), sesión simulada con
  * `request.jwt.claim.sub` y cada verificación es una línea `select 'caso', <verdadero>`. Las tres sedes (A, B y C) son NUEVAS en cada
  * bloque: así ningún dato de siembra mancha los conteos. Lo pendiente se arma insertando las filas directo con los disparadores
- * apagados (`session_replication_role = replica`, solo dentro de las funciones que arman la escena): lo que se prueba es QUÉ LEE el
- * chequeo, no cómo se llegó a esas filas (eso lo prueban las pruebas de cada flujo: `nos_debe`, `conteo_rediseno`,
+ * apagados (`session_replication_role = replica`, solo alrededor de cada llamada que arma la escena: ver `conEscenaArmada`): lo que se
+ * prueba es QUÉ LEE el chequeo, no cómo se llegó a esas filas (eso lo prueban las pruebas de cada flujo: `nos_debe`, `conteo_rediseno`,
  * `traslado_sobrantes`). Los meses son fijos (septiembre a diciembre de 2026 y junio de 2025) y las fechas de cada fila también:
  * la prueba no depende del día en que corre.
  *
@@ -60,9 +60,21 @@ function psql(sql) {
     { input: sql, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }
   );
 }
+/**
+ * Las ayudas que arman lo pendiente (envio, dif, resolver, conteo, sobrante, sobrante_linea, factura) insertan con los disparadores
+ * apagados. El apagado se pide con un `SET` de nivel superior alrededor de CADA llamada, nunca con `set_config()` dentro de la
+ * función: en la base del CI el rol `postgres` puede cambiar `session_replication_role` con la sentencia `SET` (así lo hacen las
+ * demás pruebas, con `set local session_replication_role = replica;` a la vista), pero `set_config()` falla con «permission denied
+ * to set parameter» (visto en el CI del PR #1268). En la base de prueba local, con superusuario real, las dos formas pasan.
+ */
+const conEscenaArmada = (sql) =>
+  sql.replace(
+    /^select pg_temp\.(?:envio|dif|resolver|conteo|sobrante_linea|sobrante|factura)\(.*$/gm,
+    "set local session_replication_role = replica;\n$&\nset local session_replication_role = origin;"
+  );
 function correr(sql) {
   try {
-    return { ok: true, salida: psql(`${sql}\nrollback;\n`).trim() };
+    return { ok: true, salida: psql(`${conEscenaArmada(sql)}\nrollback;\n`).trim() };
   } catch (e) {
     return { ok: false, mensaje: `${e.stderr ?? ""}${e.message ?? ""}` };
   }
@@ -132,18 +144,14 @@ grant execute on function pg_temp.codigo(text) to authenticated;
 -- Los ids que las ayudas necesitan (una función no ve las variables de psql).
 create temp table ctx (n text primary key, id uuid not null);
 create function pg_temp.c(p text) returns uuid language sql as $f$ select id from ctx where n = p $f$;
-create function pg_temp.apagar() returns void language plpgsql as $f$ begin perform set_config('session_replication_role', 'replica', true); end $f$;
-create function pg_temp.prender() returns void language plpgsql as $f$ begin perform set_config('session_replication_role', 'origin', true); end $f$;
 
 -- Un envío ya recibido (cerrado) en la sede, cuya recepción se abrió en p_abierto.
 create function pg_temp.envio(p_ubic uuid, p_abierto timestamptz) returns uuid language plpgsql as $f$
 declare v_id uuid;
 begin
-  perform pg_temp.apagar();
   insert into retail.despachos (ubicacion_destino_id, despachado_por, estado, abierto_por, abierto_en, cerrado_por, cerrado_en)
   values (p_ubic, pg_temp.c('felipe'), 'cerrado', pg_temp.c('felipe'), p_abierto, pg_temp.c('felipe'), p_abierto + interval '1 hour')
   returning id into v_id;
-  perform pg_temp.prender();
   return v_id;
 end $f$;
 -- Una diferencia de ese envío. Cada una trae su propia línea pedida (un faltante es siempre de una línea de la guía). «devuelta»
@@ -152,7 +160,6 @@ create function pg_temp.dif(p_despacho uuid, p_tipo text, p_causa text, p_cant i
                             p_vigente boolean default true, p_creado timestamptz default null) returns uuid language plpgsql as $f$
 declare v_ubic uuid; v_orden uuid; v_oci uuid; v_di uuid; v_pd uuid; v_id uuid;
 begin
-  perform pg_temp.apagar();
   select d.ubicacion_destino_id into v_ubic from retail.despachos d where d.id = p_despacho;
   insert into retail.ordenes_compra (proveedor_id, ubicacion_destino_id, creada_por) values (pg_temp.c('prov'), v_ubic, pg_temp.c('felipe')) returning id into v_orden;
   insert into retail.orden_compra_items (orden_compra_id, posicion, categoria_id, marca_id, cantidad, precio_unitario)
@@ -172,51 +179,42 @@ begin
           pg_temp.c('prov'), pg_temp.c('cat'), pg_temp.c('marca'), p_tipo, p_causa, p_cant, p_costo, pg_temp.c('felipe'),
           coalesce(p_creado, (select d.abierto_en + interval '1 hour' from retail.despachos d where d.id = p_despacho)), p_vigente, v_pd)
   returning id into v_id;
-  perform pg_temp.prender();
   return v_id;
 end $f$;
 -- Compras repone (o resuelve) p_cant prendas de esa deuda.
 create function pg_temp.resolver(p_dif uuid, p_cant integer) returns void language plpgsql as $f$
 begin
-  perform pg_temp.apagar();
   insert into retail.proveedor_deuda_resoluciones (diferencia_id, forma, cantidad, nota, creado_por)
   values (p_dif, 'repuesta', p_cant, 'llegó la reposición', pg_temp.c('felipe'));
-  perform pg_temp.prender();
 end $f$;
 -- Un conteo de inventario de la sede; devuelve su número.
 create function pg_temp.conteo(p_ubic uuid, p_estado text, p_creado timestamptz, p_prueba boolean default false) returns integer language plpgsql as $f$
 declare v_n integer;
 begin
-  perform pg_temp.apagar();
   insert into retail.conteos (ubicacion_id, estado, created_at, es_prueba, abierto_por)
   values (p_ubic, p_estado, p_creado, p_prueba, pg_temp.c('felipe')) returning numero into v_n;
-  perform pg_temp.prender();
   return v_n;
 end $f$;
 -- Una prenda de más al recibir un traslado de p_orig a p_dest.
 create function pg_temp.sobrante(p_dest uuid, p_orig uuid, p_cant integer, p_creado timestamptz, p_estado text default 'por_revisar') returns uuid language plpgsql as $f$
 declare v_t uuid; v_r uuid; v_id uuid;
 begin
-  perform pg_temp.apagar();
   insert into retail.transferencias (ubicacion_origen_id, ubicacion_destino_id) values (p_orig, p_dest) returning id into v_t;
   insert into retail.transferencia_recepciones (transferencia_id, variante_id, cantidad_recibida) values (v_t, pg_temp.c('va'), p_cant) returning id into v_r;
   insert into retail.traslado_sobrantes (transferencia_id, transferencia_recepcion_id, variante_id, ubicacion_id, ubicacion_origen_id, cantidad, estado, creado_en, revisado_en)
   values (v_t, v_r, pg_temp.c('va'), p_dest, p_orig, p_cant, p_estado, p_creado, case when p_estado = 'por_revisar' then null else p_creado + interval '1 day' end)
   returning id into v_id;
-  perform pg_temp.prender();
   return v_id;
 end $f$;
 -- Una SEGUNDA línea de un traslado que ya tiene un sobrante (otra prenda, el mismo traslado): el traslado sigue siendo uno solo.
 create function pg_temp.sobrante_linea(p_sobrante uuid, p_cant integer) returns uuid language plpgsql as $f$
 declare v_s retail.traslado_sobrantes%rowtype; v_r uuid; v_id uuid;
 begin
-  perform pg_temp.apagar();
   select * into v_s from retail.traslado_sobrantes where id = p_sobrante;
   insert into retail.transferencia_recepciones (transferencia_id, variante_id, cantidad_recibida) values (v_s.transferencia_id, pg_temp.c('vb'), p_cant) returning id into v_r;
   insert into retail.traslado_sobrantes (transferencia_id, transferencia_recepcion_id, variante_id, ubicacion_id, ubicacion_origen_id, cantidad, estado, creado_en)
   values (v_s.transferencia_id, v_r, pg_temp.c('vb'), v_s.ubicacion_id, v_s.ubicacion_origen_id, p_cant, 'por_revisar', v_s.creado_en)
   returning id into v_id;
-  perform pg_temp.prender();
   return v_id;
 end $f$;
 -- Una factura de mercadería gestionada por la sede: p_fact prendas facturadas, p_rec recibidas y p_cerr cerradas a propósito.
@@ -224,13 +222,11 @@ create function pg_temp.factura(p_ubic uuid, p_fecha date, p_fact integer, p_rec
                                 p_total numeric default 1180, p_estado text default 'vigente') returns uuid language plpgsql as $f$
 declare v_id uuid; v_sub numeric := round(p_total / 1.18, 2);
 begin
-  perform pg_temp.apagar();
   insert into retail.compras (proveedor_id, serie, numero, condicion, fecha_emision, subtotal, igv, total, ubicacion_gestion_id,
                               facturado_cantidad, recibido_cantidad, cerrado_cantidad, estado)
   values (pg_temp.c('prov'), 'FCD', substr(gen_random_uuid()::text, 1, 8), 'contado', p_fecha, v_sub, p_total - v_sub, p_total, p_ubic,
           p_fact, p_rec, p_cerr, p_estado)
   returning id into v_id;
-  perform pg_temp.prender();
   return v_id;
 end $f$;
 -- Un chequeo de una sede en un mes (jsonb: clave, ok, bloquea, datos).
@@ -505,16 +501,16 @@ select 'G5 no cierra, y dice cada pendiente en palabras de tienda',
 select 'G5 y nunca la clave en crudo', :'m' not like '%envios_con_diferencia%' and :'m' not like '%conteos_abiertos%' and :'m' not like '%sobrantes_traslado%' and :'m' not like '%facturas_sin_recibir%';
 select 'G6 no quedó nada a medias: ni período ni cierre', not exists (select 1 from retail.periodos where mes = '2025-06-01' and ubicacion_id = :'ua');
 select pg_temp.resolver(:'x1', 5);
-select pg_temp.apagar();
+set local session_replication_role = replica;
 update retail.compras set recibido_cantidad = facturado_cantidad where id = :'f1';
 update retail.traslado_sobrantes set estado = 'error_de_conteo', revisado_en = now() where id = :'s1';
-select pg_temp.prender();
+set local session_replication_role = origin;
 select pg_temp.intento(format('select retail.cerrar_periodo(%L, %L, %L)', '2025-06-01', 'ubicacion', :'ua')) as m2 \\gset
 select 'G7 resueltos tres, el mensaje nombra solo el que falta (el conteo abierto)',
   :'m2' like '%cerrar el conteo de inventario abierto%' and :'m2' not like '%sobrantes%' and :'m2' not like '%facturas%' and :'m2' not like '%proveedor%';
-select pg_temp.apagar();
+set local session_replication_role = replica;
 update retail.conteos set estado = 'cerrado', cerrado_en = now() where ubicacion_id = :'ua' and estado = 'abierto';
-select pg_temp.prender();
+set local session_replication_role = origin;
 select retail.cerrar_periodo('2025-06-01', 'ubicacion', :'ua') as r \\gset
 select 'G8 resuelto lo último, cierra; y como nada falló, el cierre no guarda avisos',
   (select estado = 'cerrado' from retail.periodos where mes = '2025-06-01' and ubicacion_id = :'ua')
