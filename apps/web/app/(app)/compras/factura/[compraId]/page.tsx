@@ -35,7 +35,7 @@ export default async function CompraDetallePage({
         <EncabezadoPagina
           sede="Todas las tiendas"
           detalle={`${tipoCompra(compra)} ${compra.documento}`}
-          volver={<Volver href="/compras" a="Facturas de proveedor" />}
+          volver={<Volver href="/compras" a="Historial de compras" />}
           titulo={<span className={compra.estado === "anulada" ? "text-tinta/50 line-through" : undefined}>{compra.proveedorNombre}</span>}
           subtitulo={<DatosComprobante compra={compra} destino={detalle.destino} />}
         />

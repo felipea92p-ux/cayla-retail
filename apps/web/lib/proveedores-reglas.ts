@@ -409,11 +409,6 @@ export function textoBuscableProveedor(p: { nombre: string; ruc: string | null; 
   return [p.nombre, p.ruc, p.contacto, ...marcas].filter(Boolean).join(" ");
 }
 
-/** El «detalle» de cada opción del combo de nueva compra: RUC y marcas, para encontrarlo por cualquiera de los dos. */
-export function detalleProveedorCombo(ruc: string | null, marcas: readonly string[] = []): string | undefined {
-  return [ruc, ...marcas].filter(Boolean).join(" · ") || undefined;
-}
-
 /**
  * Las etiquetas de marca que caben en una fila. Con una búsqueda activa, las que coinciden van primero: si no,
  * la marca que se buscó podría quedar escondida detrás de «+2» y no se vería por qué apareció esa fila.

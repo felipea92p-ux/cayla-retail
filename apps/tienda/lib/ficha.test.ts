@@ -8,6 +8,7 @@ import {
   chipsDelCatalogo,
   colorInicial,
   combinaCon,
+  dibujoDeLaInsignia,
   esIdDePrenda,
   faltaParaTerminar,
   fotosDelColor,
@@ -205,16 +206,80 @@ describe("al elegir color y talla", () => {
 describe("los chips que salen del catálogo (actividad 5)", () => {
   it("«Nuevo» con hace cuántos días llegó (o «llegó hoy»), solo «Nuevo» si está fijado sin días, y su puesto en Más vendidos", () => {
     expect(chipsDelCatalogo({ nuevo: { dias: 4 }, vendidos: 3 })).toEqual([
-      { texto: "Nuevo · llegó hace 4 días", tono: "nuevo" },
+      { texto: "Nuevo · llegó hace 4 días", tono: "nuevo", icono: "nuevo" },
       { texto: "N.º 3 en más vendidos" },
     ]);
-    expect(chipsDelCatalogo({ nuevo: { dias: 1 }, vendidos: null })).toEqual([{ texto: "Nuevo · llegó hace 1 día", tono: "nuevo" }]);
-    expect(chipsDelCatalogo({ nuevo: { dias: 0 }, vendidos: null })).toEqual([{ texto: "Nuevo · llegó hoy", tono: "nuevo" }]);
-    expect(chipsDelCatalogo({ nuevo: { dias: null }, vendidos: null })).toEqual([{ texto: "Nuevo", tono: "nuevo" }]);
+    expect(chipsDelCatalogo({ nuevo: { dias: 1 }, vendidos: null })).toEqual([{ texto: "Nuevo · llegó hace 1 día", tono: "nuevo", icono: "nuevo" }]);
+    expect(chipsDelCatalogo({ nuevo: { dias: 0 }, vendidos: null })).toEqual([{ texto: "Nuevo · llegó hoy", tono: "nuevo", icono: "nuevo" }]);
+    expect(chipsDelCatalogo({ nuevo: { dias: null }, vendidos: null })).toEqual([{ texto: "Nuevo", tono: "nuevo", icono: "nuevo" }]);
     expect(chipsDelCatalogo({ nuevo: null, vendidos: 1 })).toEqual([{ texto: "N.º 1 en más vendidos" }]);
     // Sin la prenda en el catálogo (o sin base), ningún chip: nunca se afirma lo que no se sabe.
     expect(chipsDelCatalogo({ nuevo: null, vendidos: null })).toEqual([]);
     expect(chipsDelCatalogo(null)).toEqual([]);
+  });
+});
+
+describe("las insignias de Catálogo ▸ Insignias en la ficha (ADR-0489)", () => {
+  const HALLOWEEN = { id: "7b7b7b7b-1111-4222-8333-444444444441", nombre: "Halloween" };
+  const REEDICION = { id: "7b7b7b7b-1111-4222-8333-444444444442", nombre: "Reedición" };
+  const conInsignias = (insignias: unknown) => interpretarFicha({ ...BASE, prenda: { ...BASE.prenda, insignias } }) as Ficha;
+
+  it("la ficha las lee en el orden que manda la base; sin el campo, sin insignias y sin error", () => {
+    expect(conInsignias([HALLOWEEN, REEDICION]).insignias).toEqual([HALLOWEEN, REEDICION]);
+    expect(ficha.insignias).toEqual([]);
+    expect(conInsignias(undefined).insignias).toEqual([]);
+    expect(conInsignias("raro").insignias).toEqual([]);
+  });
+
+  it("una insignia con un dato raro o repetida se deja fuera; las demás se ven (y la ficha no se cae)", () => {
+    const f = conInsignias([HALLOWEEN, { id: "no-es-uuid", nombre: "Rota" }, { id: REEDICION.id, nombre: "   " }, 7, null, HALLOWEEN, REEDICION]);
+    expect(f.insignias).toEqual([HALLOWEEN, REEDICION]);
+    expect(f.nombre).toBe("Blusa Emma");
+  });
+
+  it("las insignias van después de «Nuevo» y antes de «N.º … en más vendidos», con la misma cara entre ellas", () => {
+    expect(chipsDelCatalogo({ nuevo: { dias: 3 }, vendidos: 2 }, [HALLOWEEN, REEDICION])).toEqual([
+      { texto: "Nuevo · llegó hace 3 días", tono: "nuevo", icono: "nuevo" },
+      { texto: "Halloween", tono: "insignia", icono: "halloween" },
+      { texto: "Reedición", tono: "insignia", icono: "reedicion" },
+      { texto: "N.º 2 en más vendidos" },
+    ]);
+  });
+
+  it("sin la prenda en el catálogo se ven igual (vienen de su ficha, no del catálogo), pero «Nuevo» y el puesto no se inventan", () => {
+    expect(chipsDelCatalogo(null, [HALLOWEEN])).toEqual([{ texto: "Halloween", tono: "insignia", icono: "halloween" }]);
+    expect(chipsDelCatalogo({ nuevo: null, vendidos: null }, [])).toEqual([]);
+  });
+
+  it("la insignia «Nuevo» no repite a «Nuevo · llegó hace…», pero sí se ve si la tienda no lo dice (llegó hace más de 30 días)", () => {
+    const nuevo = { id: "7b7b7b7b-1111-4222-8333-444444444443", nombre: "Nuevo" };
+    expect(chipsDelCatalogo({ nuevo: { dias: 0 }, vendidos: null }, [nuevo, HALLOWEEN])).toEqual([
+      { texto: "Nuevo · llegó hoy", tono: "nuevo", icono: "nuevo" },
+      { texto: "Halloween", tono: "insignia", icono: "halloween" },
+    ]);
+    expect(chipsDelCatalogo({ nuevo: null, vendidos: null }, [nuevo])).toEqual([{ texto: "Nuevo", tono: "insignia", icono: "nuevo" }]);
+  });
+
+  it("«Top ventas» no repite a «N.º 3 en más vendidos», pero sí se ve si la tienda no dice el puesto; sin tildes ni mayúsculas", () => {
+    const top = { id: "7b7b7b7b-1111-4222-8333-444444444444", nombre: "  TOP  Ventas " };
+    const mas = { id: "7b7b7b7b-1111-4222-8333-444444444445", nombre: "Más vendidos" };
+    expect(chipsDelCatalogo({ nuevo: null, vendidos: 3 }, [top, mas])).toEqual([{ texto: "N.º 3 en más vendidos" }]);
+    expect(chipsDelCatalogo({ nuevo: null, vendidos: null }, [top])).toEqual([{ texto: "TOP  Ventas", tono: "insignia", icono: "top" }]);
+  });
+
+  it("cada insignia lleva su dibujo, el mismo que le da el ERP por su nombre (la calabaza, el pastel…); si no se reconoce, el de una etiqueta", () => {
+    expect(dibujoDeLaInsignia("Halloween")).toBe("halloween");
+    expect(dibujoDeLaInsignia("Aniversario CAYLA")).toBe("aniversario");
+    expect(dibujoDeLaInsignia("Día Internacional del Gato")).toBe("gato");
+    expect(dibujoDeLaInsignia("  HALLOWEEN  ")).toBe("halloween");
+    expect(dibujoDeLaInsignia("Estreno")).toBe("generico");
+    const raras = chipsDelCatalogo(null, [{ nombre: "Estreno" }]);
+    expect(raras).toEqual([{ texto: "Estreno", tono: "insignia", icono: "generico" }]);
+  });
+
+  it("una insignia que solo se parece a «Nuevo» (otro nombre) se ve siempre", () => {
+    const otra = { id: "7b7b7b7b-1111-4222-8333-444444444446", nombre: "Colección nueva" };
+    expect(chipsDelCatalogo({ nuevo: { dias: 1 }, vendidos: null }, [otra]).map((c) => c.texto)).toEqual(["Nuevo · llegó hace 1 día", "Colección nueva"]);
   });
 });
 
