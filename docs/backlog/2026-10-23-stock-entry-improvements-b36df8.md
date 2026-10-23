@@ -1,4 +1,4 @@
-## 📦 El stock se carga en Existencias (2026-10-23) — maqueta para elegir, sin código del ERP; rama `claude/stock-entry-improvements-b36df8`
+## 📦 El stock se carga en Existencias (2026-10-23) — actividad 1 hecha (ADR-0494), sin migración; rama `claude/stock-entry-improvements-b36df8`
 
 - [x] Análisis de los dos caminos (Editar producto vs. Existencias) y maqueta tocable con tres formas: `docs/maquetas/existencias-ajustar-stock-2026-10/` (README con el porqué y las reglas). Revisada en el navegador a 1440, 1024 y 375 px, en claro y oscuro.
 - [x] Decidido por Felipe: Nuevo producto conserva sus unidades del día; Editar producto queda con números y «Ajustar en Existencias»; la tabla arranca en «Conté y hay otro número» (hoy son sobre todo correcciones).
@@ -6,10 +6,14 @@
 - [x] Ronda 2: `ronda-2.html` (tres pesos, planilla o riel, coreografía completa), revisada a 1024 y 375 px, claro y oscuro.
 - [x] Felipe eligió la banda (peso 1) y la planilla; pidió el ancho justo, el foco en la talla elegida y una tabla más estética.
 - [x] Ronda 3: `ronda-3.html`, revisada a 1440, 1024 y 375 px, claro y oscuro, con 1, 4 y 6 tallas.
-- [ ] **Felipe aprueba la ronda 3** (incluido: entrar en el lugar donde esa talla tiene más unidades).
-- [ ] Al construir: sumar la excepción de movimiento de esta vista a ADR-0136 y a la lista de CLAUDE.md, con su prueba de movimiento como las de Insignias y Campañas.
-- [ ] Actividad 1: la tabla en Existencias con la forma elegida, «Ajustar stock» en la cabecera y «Etiquetas de lo que entró». Reemplaza el recorrido de 4 pasos por talla (`FlujoTalla` «ajustar»). Sin migración (`ajustar_inventario`).
+- [x] Felipe aprobó la ronda 3 (incluido: entrar en el lugar donde esa talla tiene más unidades).
+- [x] La excepción de movimiento en ADR-0136 (act. 2026-10-23 (b)) y en CLAUDE.md, con `lib/ajuste-modelo-movimiento.test.ts`.
+- [x] Actividad 1 (ADR-0494): la planilla del modelo en el modal de la prenda, «Ajustar stock» en la cabecera y «Etiquetas de lo que entró»; el recorrido de 4 pasos por talla salió. Sin migración. Guía `inventario` al día (36 pasos).
 - [ ] Actividad 2: Existencias encuentra las prendas que la tienda nunca tuvo (búsqueda y escáner); hoy `getExistencias` solo lista lo que tiene fila de `stock` o viene en camino.
 - [ ] Actividad 3, al final: Editar producto de solo lectura en stock (sin − / + en la matriz ni en el panel del taller) con «Ajustar en Existencias».
 - [ ] Sin medir: cuántos ajustes se hicieron desde la ficha y con qué motivo (la lectura de producción estaba bloqueada en esta sesión).
 - [ ] Sin confirmar en producción: que todo rol que hoy carga stock desde Productos tenga Existencias (ADR-0306 dice que Integrante y los terminales sí).
+- [ ] **Decide Felipe — contar con la tienda abierta (`/chaos` g2, CON-06):** la planilla manda la diferencia contra lo que leyó al abrirse; si mientras se cuenta alguien vende esa talla, el stock guardado no es el contado (6 leídas, 1 vendida, 5 contadas → 4). Lo mismo en la matriz de Editar producto. Toca stock y `ajustar_inventario`.
+- [ ] `/chaos` de la planilla a medias (9 de 23, semilla 494): faltan red, recarga, cambio de sede, sesión y teclado. Se detuvo porque otra sesión escribía en la base local.
+- [ ] Chicos de la planilla (g4): la celda quita la coma sin avisar («1,5» → 15; mejor `limpiarCantidad` y una línea bajo la celda); `TEXTO_AJUSTE_INCIERTO` dice «Confirmar» y el botón dice «Guardar N cambios» (`lib/ajuste-reglas.ts:467`).
+- [ ] `/formidable` de la planilla, antes de abrir el PR.
