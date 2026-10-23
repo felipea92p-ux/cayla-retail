@@ -56,8 +56,8 @@ describe("hijosMenuCompras (Compras es de las tiendas: parado en el Taller no se
   // Compras. Sin módulos (la forma vieja con que esta vista arma el menú) quien no es líder ve esas dos en una tienda o un almacén;
   // con módulos, cada cuenta ve solo las de su rol. Las cinco de plata siguen pidiendo `verDineroCompras`. En el Taller, nada.
   // ADR-0362 fase 6 (decisión 65): Fondos por rendir, igual que esas dos, pide solo su módulo (nace sin rol: con módulos solo la ve el líder).
-  // ADR-0480 (2026-10-22): Órdenes de compra pasa a «Mi plata para compras» y Fondos por rendir a «Revisar compras», con las mismas llaves.
-  it("quien no es líder ve en Compras solo lo que no pide la plata de Compras (Plan de campaña, Mi plata para compras y Revisar compras); en el Taller, nada", () => {
+  // ADR-0480 (2026-10-22): Órdenes de compra pasa a «Mis compras» y Fondos por rendir a «Revisar compras», con las mismas llaves.
+  it("quien no es líder ve en Compras solo lo que no pide la plata de Compras (Plan de campaña, Mis compras y Revisar compras); en el Taller, nada", () => {
     for (const ubicacionTipo of TIPOS) {
       expect(hijosMenuCompras({ esLider: false, ubicacionTipo })).toEqual(ubicacionTipo === "taller" ? [] : ["plan", "miPlata", "fondos"]);
     }

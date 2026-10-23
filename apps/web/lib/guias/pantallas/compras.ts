@@ -24,7 +24,7 @@ export const GUIA_FACTURAS: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "El historial de compras",
-      texto: "Cada compra que CAYLA le hizo a un proveedor, con su papel: factura, boleta, nota de venta o sin comprobante. Aquí ves las de todas las tiendas, con lo que falta pagar y lo que falta llegar. Solo se mira: las compras se anotan en «Mi plata para compras» y se completan en «Revisar compras».",
+      texto: "Cada compra que CAYLA le hizo a un proveedor, con su papel: factura, boleta, nota de venta o sin comprobante. Aquí ves las de todas las tiendas, con lo que falta pagar y lo que falta llegar. Solo se mira: las compras se anotan en «Mis compras» y se completan en «Revisar compras».",
     },
     {
       id: "exportar",
@@ -1796,12 +1796,12 @@ export const GUIA_PLAN_HISTORIAL: Guia = {
 // Es plata: la guía dice con cuidado qué cuenta como entregado, devuelto y en la mano, y nunca entrega, registra ni anula (los
 // botones se EXPLICAN con la pieza encendida). Lo que depende de que alguien ya tenga fondo (las cifras, la lista, los movimientos) es
 // opcional; sin fondos, la guía explica la tarjeta vacía.
-// Compras ▸ Mi plata para compras (ADR-0480): lo que tiene, sus tres respuestas, lo que le falta mandar y el cierre del día. Las hojas se
+// Compras ▸ Mis compras (ADR-0480): lo que tiene, sus tres respuestas, lo que le falta mandar y el cierre del día. Las hojas se
 // abren y se explican; nunca se anota, se manda ni se cierra nada.
 export const GUIA_MI_PLATA: Guia = {
   id: "compras.mi-plata",
   ruta: "/compras/mi-plata",
-  titulo: "Mi plata para compras",
+  titulo: "Mis compras",
   resumen: "Lo que tienes para comprar, lo que compraste y lo que mandas a la tienda.",
   pasos: [
     {
@@ -2254,6 +2254,13 @@ export const GUIA_FONDOS: Guia = {
       texto: "A la izquierda, lo que espera, con su foto, de quién, cuánto y cómo está. Toca uno y su detalle se abre al lado: pasas de uno a otro sin perder el lugar.",
     },
     {
+      id: "rondas-abiertas",
+      ancla: "fondos.rondas-abiertas",
+      opcional: true,
+      titulo: "Rondas abiertas",
+      texto: "Quién está comprando ahora: su ronda, desde cuándo y cuánto lleva.",
+    },
+    {
       id: "papel-detalle",
       ancla: "fondos.papel-detalle",
       opcional: true,
@@ -2336,6 +2343,13 @@ export const GUIA_FONDOS: Guia = {
       opcional: true,
       titulo: "Una ronda cerrada",
       texto: "Cuando una compradora cierra su ronda de compras: «Devuelve» si le sobró, «Le debemos» si pagó de su bolsillo. Si todavía tiene plata por confirmar, primero se confirma.",
+    },
+    {
+      id: "cierre-cuaderno",
+      ancla: "fondos.cierre-cuaderno",
+      opcional: true,
+      titulo: "La cuenta de su ronda",
+      texto: "Lo que le dieron, compró y gastó en su ronda. Abajo, lo que devuelve o lo que le debemos.",
     },
     {
       id: "cierre-recibir",

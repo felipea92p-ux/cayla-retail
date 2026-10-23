@@ -353,7 +353,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const cabecera = paso !== "listo" && (
     <div className="flex flex-col gap-3" data-guia="compra.avance">
       <div className="flex items-center gap-3">
-        {atras ? <Volver onClick={() => setPaso(atras)} a="el paso anterior" /> : <Volver href="/compras/mi-plata" a="Mi plata para compras" />}
+        {atras ? <Volver onClick={() => setPaso(atras)} a="el paso anterior" /> : <Volver href="/compras/mi-plata" a="Mis compras" />}
         {/* «Compré ropa» ya es el título de la pantalla: aquí solo va a quién, una vez elegido. */}
         <span className="min-w-0">
           {proveedor && <span className="block truncate text-sm font-medium text-tinta">{nombreCorto}</span>}
@@ -746,7 +746,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               </span>
             </Boton>
             <Link href="/compras/mi-plata" className="btn-cayla btn-enlace self-center">
-              Ver mi plata
+              Ver mis compras
             </Link>
           </div>
         </section>

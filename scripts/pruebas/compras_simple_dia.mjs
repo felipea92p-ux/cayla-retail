@@ -37,6 +37,7 @@ const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261023114
   "",
 );
 
+const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder: revisa
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
 
 // La ronda de compras (20261023183000): sin una abierta, la base no deja anotar una compra ni un gasto. Se vuelve a pegar después de la
@@ -299,6 +300,24 @@ select (retail.fn_mi_plata_compras() -> 'hoy' -> 'cierre' ->> 'decision') is not
 reset role;
 select count(*) from retail.compra_cierres where persona_id = :'micaela' and fecha = retail.fn_hoy_lima() and ronda_id is not null;`,
   "t| / 2",
+);
+
+caso(
+  "Revisar compras ve la ronda abierta con lo que lleva; cerrada, su cierre trae el cuaderno y la plata dice su ronda (20261023210000)",
+  `${como(MICAELA, "gasto_rapido")}
+${GASTO()} \\g /dev/null
+${como(MICAELA, "plata_anotar")}
+select retail.anotar_plata_compras('efectivo', 40, null, gen_random_uuid()) \\g /dev/null
+${como(FELIPE, null)}
+select (r -> 'cuenta' ->> 'gastos') || '|' || (r -> 'cuenta' ->> 'gastaste') || '|' || (r -> 'cuenta' ->> 'dieron') || '|' || (r ->> 'texto' ~ '^RC-')
+  from jsonb_array_elements(retail.fn_revisar_compras() -> 'rondas_abiertas') r where r ->> 'persona_id' = :'micaela';
+select (p ->> 'ronda') ~ '^RC-' from jsonb_array_elements(retail.fn_plata_por_confirmar()) p where p ->> 'persona_id' = :'micaela' and (p ->> 'monto')::numeric = 40;
+${como(MICAELA, "compra_terminar_dia")}
+select retail.terminar_dia_compras('devuelve') \\g /dev/null
+${como(FELIPE, null)}
+select (k -> 'cuaderno' ->> 'gastaste') || '|' || (k -> 'cuaderno' ->> 'dieron'), (select count(*) from jsonb_array_elements(retail.fn_revisar_compras() -> 'rondas_abiertas') r where r ->> 'persona_id' = :'micaela')
+  from jsonb_array_elements(retail.fn_revisar_compras() -> 'cierres') k where k ->> 'persona_id' = :'micaela';`,
+  "1|18.00|40.00|true / t / 18.00|40.00|0",
 );
 
 caso(
