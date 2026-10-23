@@ -22,7 +22,7 @@ import {
   TEXTO_SIN_CUENTA,
   type Proyeccion,
 } from "./flujo-caja-reglas";
-import { leerPanelImpuestos, nombreMes, proyectarUmbral, sumarMeses, tonoAvance, type PanelImpuestos } from "./impuestos-reglas";
+import { avisoUmbral, leerPanelImpuestos, nombreMes, proyectarUmbral, sumarMeses, tonoAvance, type PanelImpuestos } from "./impuestos-reglas";
 import { chipPpto, leerFilaPpto, type FilaPpto } from "./presupuesto-reglas";
 import {
   extraNecesario,
@@ -852,12 +852,34 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     });
   }
 
+  // El aviso anticipado del límite (250 UIT, parámetro): «Llevas S/ X vendidos este año, a S/ Y de las 300 UIT: habla con tu contador». Mide el año calendario, la misma cifra que la
+  // tarjeta del límite, y dice que cuenta lo registrado en el sistema. Mientras no llegue al límite REEMPLAZA al «Vas al X % del límite» de abajo (mismo tema, menos preciso);
+  // pasado el límite manda el aviso rojo de siempre.
+  const datosIgv = r.igv.estado === "ok" ? r.igv.datos : null;
+  const anticipado = datosIgv ? avisoUmbral(datosIgv) : null;
+  const tituloAnticipado = anticipado?.nivel === "aviso" ? anticipado.titulo : null;
+  const hayAnticipado = tituloAnticipado !== null;
+  if (anticipado && tituloAnticipado) {
+    out.push({
+      clave: "umbral_aviso",
+      orden: CLASE.umbral,
+      tono: "ambar",
+      titulo: tituloAnticipado,
+      detalle: [anticipado.detalle, anticipado.alcance].filter(Boolean).join(" "),
+      impacto: null,
+      href: enlace("impuestos", "/finanzas/impuestos"),
+      boton: "Ver",
+      origen: "Impuestos",
+      peso: 0,
+    });
+  }
+
   // El límite del régimen (F8), desde el ámbar de Impuestos.
   if (r.igv.estado === "ok" && r.igv.datos.umbral.avance !== null) {
     const u = r.igv.datos.umbral;
     const tono = tonoAvance(u.avance);
-    if (tono === "ambar" || tono === "rojo") {
-      const proy = proyectarUmbral(u.ventasMeses, r.hoy, u.umbralSoles, u.primerMes);
+    if (tono === "rojo" || (tono === "ambar" && !hayAnticipado)) {
+      const proy = proyectarUmbral(u.ventasMeses, r.hoy, u.umbralSoles, u.primerMes, u.ajuste);
       const uit = r.igv.datos.parametros.umbralUit?.valor;
       out.push({
         clave: "umbral",
