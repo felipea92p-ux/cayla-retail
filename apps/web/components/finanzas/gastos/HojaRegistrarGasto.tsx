@@ -23,7 +23,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
-import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
+import { medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
 import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
 import { MAX_DESCRIPCION_GASTO } from "@/lib/finanzas-topes";
 import { soles } from "@/lib/compras-reglas";
@@ -38,6 +38,7 @@ import {
   hojaSiguiente,
   hojaVacia,
   proveedorDelRuc,
+  salidaDeLaHoja,
   serieNumeroLegible,
   ticketDeLaHoja,
   validarHoja,
@@ -106,7 +107,9 @@ export function HojaRegistrarGasto({
     [cuentasPago.cuentas, h.sede],
   );
   const conCuentas = cuentasPago.listo && cuentasGasto.length > 0;
-  const cuentaSalida = cuentaDeSalida(cuentasGasto, "pago", cuentaId, medioSinCuentas || undefined);
+  // Al cambiar de sede, lo que ya no sirve queda por elegir (no se reemplaza solo: `salidaDeLaHoja`).
+  const [porElegir, setPorElegir] = useState(false);
+  const cuentaSalida = salidaDeLaHoja(cuentasGasto, h, cuentaId, porElegir);
   const salida = cuentasGasto.find((c) => c.id === cuentaSalida) ?? null;
   const bancoConMedio = salida?.tipo === "banco" ? (mediosDeBanco(papel).includes(medioBanco) ? medioBanco : "transferencia") : null;
   const medioSalida: MedioGasto | "" = salida ? (medioDeCuenta(salida.tipo) ?? bancoConMedio ?? "transferencia") : "";
@@ -135,6 +138,16 @@ export function HojaRegistrarGasto({
   const pagaAhora = papel && !credito && monto.ok;
   const avisoNoDeducible = pagaAhora ? avisoBancarizacion(monto.valor, [{ monto: monto.valor, medio: medioSalida || medioSinCuentas, tipoCuenta: salida?.tipo ?? null }]) : null;
   const guardando = intento.enviando || sumando;
+
+  function elegirSede(id: string) {
+    if (id === h.sede) return;
+    // Lo que se veía en «Salió de» se recuerda: si sirve en la sede nueva (un banco) se queda; si no (el cajón de la otra), queda por elegir.
+    if (h.sede) {
+      setCuentaId(cuentaSalida ?? "");
+      setPorElegir(true);
+    }
+    poner("sede", id);
+  }
 
   function elegirComprobante(t: TipoComprobante) {
     setH((x) => ({ ...x, comprobante: t, pagado: t === "sin_comprobante" ? "si" : x.pagado }));
@@ -213,6 +226,8 @@ export function HojaRegistrarGasto({
   function repetir(p: PlantillaGasto) {
     const nueva = hojaDePlantilla(p, h.fecha);
     setH(nueva);
+    setCuentaId("");
+    setPorElegir(false);
     setFotoAlAbrir(fotoFormulario({ h: nueva, cuentaId, medioSinCuentas, referencia }));
   }
 
@@ -250,7 +265,7 @@ export function HojaRegistrarGasto({
           <CampoGuiado id="sede" guia={guia} titulo="Para qué sede">
             <div className="hoja-gasto-opciones" role="radiogroup" aria-label="Sede">
               {sedes.map((s) => (
-                <button key={s.clave} type="button" role="radio" aria-checked={h.sede === s.clave} className="hoja-gasto-sede" data-color={s.color} onClick={() => poner("sede", s.clave)}>
+                <button key={s.clave} type="button" role="radio" aria-checked={h.sede === s.clave} className="hoja-gasto-sede" data-color={s.color} onClick={() => elegirSede(s.clave)}>
                   <span className="hoja-gasto-punto" aria-hidden />
                   {nombreSede(s)}
                 </button>

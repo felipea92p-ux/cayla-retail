@@ -9,6 +9,7 @@
 // Lógica pura, probada en `hoja-gasto-reglas.test.ts`.
 import { soloDigitos, validarRuc } from "@cayla-retail/shared";
 import type { CampoDeGuia } from "./guia-campos";
+import { cuentaDeSalida, cuentasDeLaClase, usable, type CuentaElegible } from "./cuenta-sellada-reglas";
 import { igvDeFactura, parsearMonto, partirSerieNumero, validarGasto, type BorradorGasto, type MedioGasto, type PayloadGasto, type ProveedorGasto, type TipoComprobante } from "./gastos-reglas";
 import { soles } from "./compras-reglas";
 
@@ -207,4 +208,28 @@ export function plantillasDe(
 /** Una plantilla → la hoja: todo lleno como la última vez, salvo la serie (es otro comprobante) y la fecha (la de la hoja). */
 export function hojaDePlantilla(p: PlantillaGasto, fecha: string): HojaGasto {
   return { ...hojaVacia(fecha, p.sede), descripcion: p.descripcion, categoria: p.categoria, comprobante: p.comprobante, ruc: p.ruc, razonSocial: p.razonSocial, monto: p.monto };
+}
+
+/**
+ * De qué cuenta salió la plata, propuesta por la hoja (Felipe 2026-10-23, tras el /chaos: la hoja proponía «Interbank · transferencia»
+ * para unas bolsas pagadas del cajón, y al cambiar de sede reemplazaba en silencio el cajón elegido por el banco):
+ *   · lo que la persona eligió se queda mientras sirva;
+ *   · después de cambiar de sede (`porElegir`), si lo de antes ya no sirve, queda POR ELEGIR (null): la guía lo pide, nadie lo cambia;
+ *   · sin comprobante y con la caja de esa sede abierta, el cajón de esa sede (lo de todos los días sale de ahí);
+ *   · si no, lo de siempre (`cuentaDeSalida`: la propuesta para una transferencia y, si no hay banco, la de efectivo).
+ */
+export function salidaDeLaHoja(
+  cuentas: readonly CuentaElegible[],
+  h: Pick<HojaGasto, "sede" | "comprobante">,
+  elegida: string,
+  porElegir: boolean,
+): string | null {
+  const sirven = cuentasDeLaClase(cuentas, "pago").filter(usable);
+  if (elegida && sirven.some((c) => c.id === elegida)) return elegida;
+  if (porElegir) return null;
+  if (!conComprobante(h) && h.sede && h.sede !== "empresa") {
+    const cajon = sirven.find((c) => c.tipo === "cajon" && c.ubicacionId === h.sede);
+    if (cajon) return cajon.id;
+  }
+  return cuentaDeSalida(cuentas, "pago", null);
 }

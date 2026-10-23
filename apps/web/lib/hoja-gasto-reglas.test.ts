@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sePuedeConfirmar } from "./guia-campos";
+import type { CuentaElegible } from "./cuenta-sellada-reglas";
 import {
   aCredito,
   borradorDeLaHoja,
@@ -10,6 +11,7 @@ import {
   plantillasDe,
   proveedorDelRuc,
   serieNumeroLegible,
+  salidaDeLaHoja,
   ticketDeLaHoja,
   validarHoja,
   type HojaGasto,
@@ -125,5 +127,32 @@ describe("repetir y registrar otro", () => {
   it("registrar otro conserva la sede y la fecha", () => {
     const s = hojaSiguiente(llena({ fecha: "2026-10-20" }));
     expect(s).toMatchObject({ sede: "lima", fecha: "2026-10-20", monto: "", descripcion: "", comprobante: "" });
+  });
+});
+
+describe("«Salió de» (chaos 2026-10-23, hallazgo 1: proponía un banco y cambiaba en silencio lo elegido)", () => {
+  const c = (id: string, tipo: CuentaElegible["tipo"], ubicacionId: string | null, cajaAbierta = true, propuestaPara: string[] = []): CuentaElegible => ({
+    id, nombre: id, tipo, ubicacionId, ubicacionNombre: ubicacionId, cajaAbierta, propuestaPara,
+  });
+  const CUENTAS = [c("interbank", "banco", null, true, ["transferencia"]), c("fuerte-lima", "caja_fuerte", "lima"), c("cajon-lima", "cajon", "lima"), c("cajon-tru", "cajon", "tru", false)];
+
+  it("sin comprobante y con la caja de esa sede abierta, propone el cajón (no un banco)", () => {
+    expect(salidaDeLaHoja(CUENTAS, { sede: "lima", comprobante: "sin_comprobante" }, "", false)).toBe("cajon-lima");
+    expect(salidaDeLaHoja(CUENTAS, { sede: "lima", comprobante: "" }, "", false)).toBe("cajon-lima");
+  });
+
+  it("con comprobante, o con la caja cerrada, propone lo de siempre", () => {
+    expect(salidaDeLaHoja(CUENTAS, { sede: "lima", comprobante: "factura" }, "", false)).toBe("interbank");
+    expect(salidaDeLaHoja(CUENTAS, { sede: "tru", comprobante: "sin_comprobante" }, "", false)).toBe("interbank");
+  });
+
+  it("lo que la persona eligió se queda mientras sirva", () => {
+    expect(salidaDeLaHoja(CUENTAS, { sede: "lima", comprobante: "sin_comprobante" }, "fuerte-lima", false)).toBe("fuerte-lima");
+  });
+
+  it("al cambiar de sede, si la cuenta ya no sirve, queda por elegir; si sirve (un banco), se queda", () => {
+    const sinCajonDeLima = CUENTAS.filter((x) => x.id !== "cajon-lima");
+    expect(salidaDeLaHoja(sinCajonDeLima, { sede: "tru", comprobante: "sin_comprobante" }, "cajon-lima", true)).toBeNull();
+    expect(salidaDeLaHoja(sinCajonDeLima, { sede: "tru", comprobante: "sin_comprobante" }, "interbank", true)).toBe("interbank");
   });
 });
