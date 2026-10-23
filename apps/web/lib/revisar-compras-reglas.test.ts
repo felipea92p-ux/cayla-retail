@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  PAPELES_GASTO,
   botonCierre,
+  camposRevisarGasto,
+  ejemploSerieNumero,
+  fraseRevisarGasto,
+  papelSugerido,
+  papelesParaGasto,
+  problemaRuc,
   camposCierre,
   camposCompletar,
   ejemploSerie,
@@ -16,6 +23,7 @@ import {
   type LineaPapel,
 } from "./revisar-compras-reglas";
 import { TIPOS_PAPEL, type TipoPapel } from "./compra-rapida-reglas";
+import { CONCEPTOS_GASTO, type ConceptoGasto } from "./mi-plata-reglas";
 
 const linea = (o: Partial<LineaPapel> = {}): LineaPapel => ({
   id: "l1",
@@ -44,6 +52,7 @@ describe("leerRevisarCompras", () => {
         },
         { id: "p2", tipo: "papiro", monto: 1, proveedor_id: "pr" },
       ],
+      gastos: [{ id: "g1", persona: "Marisol", concepto: "taxi", monto: "15", fecha: "2026-10-23", tiene_compra: true }, { id: "g2", concepto: "avion", monto: 1 }],
       cierres: [{ id: "k1", persona: "Marisol", decision: "devuelve", monto: 200, plata_por_confirmar: 0 }, { id: "k2", decision: "se_queda", monto: 1 }],
       proveedores: [{ id: "pr", nombre: "Confecciones Lupe", ruc: null }, { nombre: "sin id" }],
     });
@@ -53,6 +62,7 @@ describe("leerRevisarCompras", () => {
     expect(r?.papeles[0].lineas[0].faltan).toEqual([{ cantidad: 1, causa: "no_vino" }]);
     expect(r?.papeles[0].envios).toEqual([{ id: "e1", numero: 179, estado: "cerrado" }]);
     expect(r?.cierres.map((c) => c.id)).toEqual(["k1"]);
+    expect(r?.gastos.map((g) => `${g.id}:${g.monto}:${g.tieneCompra}`)).toEqual(["g1:15:true"]);
     expect(r?.proveedores).toEqual([{ id: "pr", nombre: "Confecciones Lupe", ruc: null }]);
   });
 
@@ -151,5 +161,45 @@ describe("los cierres del día", () => {
       "Cuánto:true",
     ]);
     expect(camposCierre({ cuentaId: "b", monto: "" }, "le_deben", cuentas, PERSONA)[0].nombre).toBe("De dónde sale");
+  });
+});
+
+describe("los gastos que no son ropa", () => {
+  const conceptos = Object.keys(CONCEPTOS_GASTO) as ConceptoGasto[];
+
+  it("sin papel solo pasan el taxi y el cargador (planilla de movilidad); todos aceptan boleta, factura y ticket", () => {
+    for (const c of conceptos) {
+      const papeles = papelesParaGasto(c);
+      expect(papeles.slice(0, 3)).toEqual(["boleta", "factura", "ticket"]);
+      expect(papeles.includes("planilla_movilidad")).toBe(c === "taxi" || c === "cargador");
+    }
+  });
+
+  it("el papel que llega elegido: sin foto, el taxi y el cargador van en la planilla; con foto o lo demás, lo elige quien revisa", () => {
+    expect(papelSugerido({ concepto: "taxi", fotoRuta: null })).toBe("planilla_movilidad");
+    expect(papelSugerido({ concepto: "cargador", fotoRuta: null })).toBe("planilla_movilidad");
+    expect(papelSugerido({ concepto: "taxi", fotoRuta: "gastos/a.jpg" })).toBeNull();
+    expect(papelSugerido({ concepto: "comida", fotoRuta: null })).toBeNull();
+  });
+
+  it("el ejemplo de la serie sigue al papel, para todos los papeles", () => {
+    expect(ejemploSerieNumero("factura")).toBe("Ej. F001-123");
+    expect(ejemploSerieNumero("boleta")).toBe("Ej. B001-123");
+    for (const p of [null, "ticket", "planilla_movilidad"] as const) expect(ejemploSerieNumero(p)).toBe("Como dice el papel");
+    expect(Object.keys(PAPELES_GASTO)).toHaveLength(4);
+  });
+
+  it("los campos: el papel es obligatorio; serie y RUC opcionales (el RUC, sugerido en factura); sin papel no hay número", () => {
+    const ids = (papel: Parameters<typeof camposRevisarGasto>[0]["papel"], c: ConceptoGasto = "taxi") =>
+      camposRevisarGasto({ papel, serieNumero: "", ruc: "" }, c, PERSONA).map((x) => `${x.id}:${x.requerido}${x.sugerido ? ":sugerido" : ""}`);
+    expect(ids(null)).toEqual(["papel:true"]);
+    expect(ids("planilla_movilidad")).toEqual(["papel:true"]);
+    expect(ids("factura")).toEqual(["papel:true", "serie:false", "ruc:false:sugerido"]);
+    expect(ids("planilla_movilidad", "comida")).toEqual(["papel:true"]);
+    expect(camposRevisarGasto({ papel: "planilla_movilidad", serieNumero: "", ruc: "" }, "comida", PERSONA)[0].hecho).toBe(false);
+    expect(problemaRuc("2060")).toMatch(/11 números/);
+    expect(problemaRuc("20601234567")).toBeNull();
+    expect(problemaRuc("")).toBeNull();
+    expect(fraseRevisarGasto(15)).toMatch(/^Pasar S\/\s15\.00 a los gastos$/);
   });
 });

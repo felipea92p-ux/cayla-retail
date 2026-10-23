@@ -28,8 +28,15 @@
 --      «CAYLA me debe» → `entregar_fondo` desde la cuenta que elige Compras. Las dos con el cierre como marca: un reintento no mueve dos
 --      veces. El cierre queda resuelto (ya no se vuelve a cerrar ese día), y su plata no se anula aparte (`anular_movimiento_fondo` y
 --      el «Anular» de `fn_fondos_movimientos`, REEMPLAZOS ANCLADOS): el cierre quedaría «recibido» sin plata.
---   6. `fn_revisar_compras`: la lectura de la pantalla (papeles por completar con sus prendas, lo que llegó y lo que faltó; cierres por
---      recibir).
+--   6. `revisar_gasto_compra`: el gasto que no es ropa («Gasté en otra cosa») pasa a los libros como un gasto del viaje, con la función de
+--      siempre (`registrar_gasto_viaje`): taxi y comida → del viaje; cargador → cargador, envío → flete y bolsas → embalaje, para traer la
+--      mercadería; «otro» → del viaje, con lo que escribió. Compras dice qué papel le dieron (boleta, factura, ticket o, sin papel, planilla
+--      de movilidad: solo taxi y cargador, decisión 55 de ADR-0362). Se paga desde el fondo de quien gastó y va a sus compras de ese día
+--      (decisión 75: un gasto del viaje va siempre a una compra; si ese día no compró, a su compra anterior más cercana). Dos REEMPLAZOS
+--      ANCLADOS en `registrar_gasto_viaje`, solo para el gasto que se está revisando (`retail.gasto_revisado`): no pide «Mi plata para
+--      compras» a quien revisa, y la sede del gasto es la de quien gastó (decisión 46), no la de quien revisa.
+--   7. `fn_revisar_compras`: la lectura de la pantalla (papeles por completar con sus prendas, lo que llegó y lo que faltó; gastos por
+--      revisar; cierres por recibir).
 --
 -- LO QUE FALTÓ NO SE DECIDE AQUÍ. La tienda ya dijo al recibir por qué faltó cada prenda (`despacho_diferencias`): «No vino» es deuda del
 -- proveedor y está en «Nos debe»; «Se perdió» lo asume CAYLA. Compras lo ve al completar, sin volver a decidirlo.
@@ -44,7 +51,9 @@
 --   · Repartir el ajuste del papel en el costo de las prendas que ya están en la tienda: Felipe eligió que el catálogo quede con lo anotado.
 --   · Recibir la devolución con dos llamadas desde la pantalla (devolver y marcar el cierre): si la segunda falla, el cierre queda abierto
 --     con la plata ya devuelta.
---   · [provisional] El pago del papel sale del fondo «en efectivo»: el papel no guarda cómo se pagó y la mayoría de compras en la calle son
+--   · Escribir el gasto del viaje en esta migración (los `insert` de `gastos`, `gastos_viaje` y su reparto): dos formas de guardar lo
+--     mismo; la primera corrección se olvidaría en una.
+--   · [provisional] El pago del papel y del gasto sale del fondo «en efectivo»: el papel no guarda cómo se pagó y la mayoría de compras en la calle son
 --     así. Si hace falta, el medio se agrega al anotar la compra.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe, después de 20261023121000). Una sola parte: una tabla NUEVA sin políticas (RLS encendido:
@@ -213,7 +222,8 @@ $n$d.estado = 'vigente' and f.persona_id is distinct from v_yo
 -- ---------- 4. Firman con su cuenta, sin combo ----------
 insert into retail.acciones_sin_responsable (clave, descripcion) values
   ('papel_completar', 'Completar el papel de una compra anotada desde el celular (con la cuenta de una persona firma ella, desde una terminal se elige quién)'),
-  ('compra_cierre_recibir', 'Recibir lo que devuelve una compradora al terminar el día, o pagarle lo que puso (con la cuenta de una persona firma ella, desde una terminal se elige quién)')
+  ('compra_cierre_recibir', 'Recibir lo que devuelve una compradora al terminar el día, o pagarle lo que puso (con la cuenta de una persona firma ella, desde una terminal se elige quién)'),
+  ('gasto_revisar', 'Pasar a los gastos lo que una compradora gastó en otra cosa (con la cuenta de una persona firma ella, desde una terminal se elige quién)')
 on conflict (clave) do update set descripcion = excluded.descripcion;
 
 -- ---------- 5. Completar el papel ----------
@@ -534,7 +544,102 @@ begin
   return jsonb_build_object('id', v_k.id, 'movimiento_id', v_mov, 'monto', v_monto, 'ya_estaba', false);
 end $$;
 
--- ---------- 7. La lectura de la pantalla ----------
+-- ---------- 7. Revisar un gasto que no es ropa ----------
+select pg_temp.reemplazar('retail.registrar_gasto_viaje(text,text,numeric,date,text,text,uuid,uuid[],text,text,text,uuid)',
+$v$  if not retail.fn_ve_modulo('ordenes_compra') then$v$,
+$n$  -- ADR-0480 (actividad 7): el gasto que anotó una compradora lo pasa Compras desde «Revisar compras»: `revisar_gasto_compra` marca
+  -- `retail.gasto_revisado` con ese gasto, que llega como `p_token`.
+  if not retail.fn_ve_modulo('ordenes_compra')
+     and not (p_token is not null and coalesce(current_setting('retail.gasto_revisado', true), '') = p_token::text) then$n$,
+1);
+select pg_temp.reemplazar('retail.registrar_gasto_viaje(text,text,numeric,date,text,text,uuid,uuid[],text,text,text,uuid)',
+$v$      where co.persona_id = v_actor and u.activo limit 1),$v$,
+$n$      -- ADR-0480: el gasto de una compradora es de su sede, aunque lo pase Compras.
+      where co.persona_id = coalesce((select g.persona_id from retail.compra_gastos g
+                                       where g.id = p_token and coalesce(current_setting('retail.gasto_revisado', true), '') = p_token::text), v_actor)
+        and u.activo limit 1),$n$,
+1);
+
+create or replace function retail.revisar_gasto_compra(
+  p_gasto_id uuid,
+  p_papel text,
+  p_serie_numero text default null,
+  p_ruc text default null
+) returns jsonb
+language plpgsql security definer set search_path = retail, public, extensions as $$
+declare
+  v_g retail.compra_gastos%rowtype;
+  v_actor uuid;
+  v_tipo text;
+  v_concepto text;
+  v_ordenes uuid[];
+  v_papel_cercano uuid;
+  v_fondo uuid;
+  v_id uuid;
+begin
+  if not retail.fn_ve_modulo('fondos') then
+    raise exception 'Revisar un gasto necesita el módulo Revisar compras en tu rol.' using errcode = '42501';
+  end if;
+  for v_g in select * from retail.compra_gastos g where g.id = p_gasto_id for update loop
+    exit;
+  end loop;
+  if v_g.id is null then
+    raise exception 'Ese gasto no existe: recarga la pantalla.' using errcode = 'P0001';
+  end if;
+  if v_g.estado = 'completado' then
+    return jsonb_build_object('gasto_id', (select x.id from retail.gastos x where x.token_cliente = v_g.id), 'ya_estaba', true);
+  end if;
+  if v_g.estado <> 'por_completar' then
+    raise exception 'Ese gasto se anuló: ya no se revisa.' using errcode = 'P0001';
+  end if;
+  v_actor := retail.fn_actor_persona_id(true);
+  if v_actor is null then
+    raise exception 'Elige quién revisa el gasto.' using errcode = '42501', hint = 'responsable_requerido';
+  end if;
+  perform retail.fn_fondo_exigir_otra_persona(v_g.persona_id, v_actor, 'Nadie revisa sus propios gastos');
+
+  -- Lo que anotó, en las palabras de un gasto del viaje.
+  v_tipo := case when v_g.concepto in ('cargador', 'envio', 'bolsas') then 'mercaderia' else 'viaje' end;
+  v_concepto := case v_g.concepto when 'envio' then 'flete' when 'bolsas' then 'embalaje' else v_g.concepto end;
+
+  -- Sus compras de ese día; si ese día no compró, su compra anterior más cercana (o la siguiente, si no hay anterior).
+  v_ordenes := array(select o.id from retail.compra_papeles cp join retail.ordenes_compra o on o.papel_id = cp.id
+                      where cp.persona_id = v_g.persona_id and cp.fecha = v_g.fecha and cp.estado <> 'anulado' and o.estado <> 'anulada');
+  if cardinality(v_ordenes) = 0 then
+    v_papel_cercano := (select cp.id from retail.compra_papeles cp
+                         where cp.persona_id = v_g.persona_id and cp.estado <> 'anulado'
+                           and exists (select 1 from retail.ordenes_compra o where o.papel_id = cp.id and o.estado <> 'anulada')
+                         order by cp.fecha > v_g.fecha, abs(cp.fecha - v_g.fecha), cp.created_at desc limit 1);
+    v_ordenes := array(select o.id from retail.ordenes_compra o where o.papel_id = v_papel_cercano and o.estado <> 'anulada');
+  end if;
+  if cardinality(v_ordenes) = 0 then
+    raise exception 'Todavía no hay una compra de quien gastó: un gasto del viaje va siempre a una compra. Revísalo cuando anote la primera.'
+      using errcode = 'P0001', hint = 'gasto_sin_compra';
+  end if;
+
+  v_fondo := retail.fn_fondo_de(v_g.persona_id, true);
+  perform set_config('retail.gasto_revisado', v_g.id::text, true);
+  perform set_config('retail.papel_paga_de', v_fondo::text, true);
+  v_id := retail.registrar_gasto_viaje(v_tipo, v_concepto, v_g.monto, v_g.fecha, p_papel, 'efectivo', v_fondo, v_ordenes,
+                                       nullif(btrim(coalesce(p_serie_numero, '')), ''), nullif(btrim(coalesce(p_ruc, '')), ''), v_g.nota, v_g.id);
+  perform set_config('retail.papel_paga_de', '', true);
+  perform set_config('retail.gasto_revisado', '', true);
+
+  update retail.compra_gastos set estado = 'completado' where id = v_g.id;
+
+  begin
+    perform retail.fn_actividad_anotar('fondos', 'gasto_revisado',
+      'pasó a los gastos lo que gastó en otra cosa '
+        || coalesce((select nullif(btrim(concat_ws(' ', pe.nombres, pe.apellidos)), '') from public.personas pe where pe.id = v_g.persona_id), 'una compradora'),
+      v_actor, retail.fn_actividad_terminal_ahora(), null, null, 'compra_gastos', v_g.id::text, now(),
+      jsonb_build_object('concepto', v_g.concepto, 'papel', p_papel), 'vivo');
+  exception when others then
+    raise warning 'actividad: no se anotó el gasto %: %', v_g.id, sqlerrm;
+  end;
+  return jsonb_build_object('gasto_id', v_id, 'ya_estaba', false);
+end $$;
+
+-- ---------- 8. La lectura de la pantalla ----------
 -- Cada papel por completar con sus prendas (lo anotado, a qué tienda, cuánto se mandó, cuánto contó la tienda y por qué faltó lo que
 -- faltó), sus envíos y si ya llegó; y los cierres del día que esperan a Compras. Las fotos las firma la pantalla.
 create or replace function retail.fn_revisar_compras()
@@ -593,6 +698,16 @@ begin
         join public.personas pe on pe.id = cp.persona_id
         join retail.proveedores pr on pr.id = cp.proveedor_id
        where cp.estado = 'por_completar'), '[]'::jsonb),
+    'gastos', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'id', g.id, 'persona_id', g.persona_id, 'persona', nullif(btrim(concat_ws(' ', pe.nombres, pe.apellidos)), ''),
+               'es_mia', v_yo is not null and g.persona_id = v_yo, 'concepto', g.concepto, 'nota', g.nota, 'monto', g.monto,
+               'foto_ruta', g.foto_ruta, 'fecha', g.fecha,
+               'tiene_compra', exists (select 1 from retail.compra_papeles cp join retail.ordenes_compra o on o.papel_id = cp.id
+                                        where cp.persona_id = g.persona_id and cp.estado <> 'anulado' and o.estado <> 'anulada'))
+             order by g.fecha, g.created_at)
+        from retail.compra_gastos g join public.personas pe on pe.id = g.persona_id
+       where g.estado = 'por_completar'), '[]'::jsonb),
     'cierres', coalesce((
       select jsonb_agg(jsonb_build_object(
                'id', k.id, 'persona_id', k.persona_id, 'persona', nullif(btrim(concat_ws(' ', pe.nombres, pe.apellidos)), ''),
@@ -611,7 +726,9 @@ revoke all on function retail.fn_compra_item_recibido_antes_valida() from public
 revoke all on function retail.fn_compra_item_recibido_antes_insertado() from public, anon, authenticated;
 revoke all on function retail.completar_papel_compra(uuid, uuid, text, text, numeric) from public, anon;
 revoke all on function retail.recibir_cierre_compras(uuid, uuid, numeric) from public, anon;
+revoke all on function retail.revisar_gasto_compra(uuid, text, text, text) from public, anon;
 revoke all on function retail.fn_revisar_compras() from public, anon;
 grant execute on function retail.completar_papel_compra(uuid, uuid, text, text, numeric) to authenticated;
 grant execute on function retail.recibir_cierre_compras(uuid, uuid, numeric) to authenticated;
+grant execute on function retail.revisar_gasto_compra(uuid, text, text, text) to authenticated;
 grant execute on function retail.fn_revisar_compras() to authenticated;

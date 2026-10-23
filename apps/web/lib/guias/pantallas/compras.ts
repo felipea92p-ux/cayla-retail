@@ -2400,6 +2400,27 @@ export const GUIA_FONDOS: Guia = {
       texto: "Copias de la foto la serie y el número (o cambias el proveedor o el monto si se anotó mal) y se guarda como factura o boleta pagada con su plata de compras. Nadie completa su propia compra. En la demo no la guardamos.",
     },
     {
+      id: "gastos-seccion",
+      ancla: "fondos.gastos-seccion",
+      opcional: true,
+      titulo: "Gastos por revisar",
+      texto: "Lo que las compradoras pagaron con su plata de compras y no es ropa: taxi, cargador, comida, la encomienda, bolsas.",
+    },
+    {
+      id: "gastos",
+      ancla: "fondos.gastos",
+      opcional: true,
+      titulo: "Cada gasto con su papel",
+      texto: "Qué fue, de quién, qué día y cuánto, con la foto del papel si le dieron uno.",
+    },
+    {
+      id: "gasto-revisar",
+      ancla: "fondos.gasto-revisar",
+      opcional: true,
+      titulo: "Revisar",
+      texto: "Dices qué papel le dieron (sin papel solo pasan el taxi y el cargador) y pasa a los gastos del viaje, pagado con su plata de compras. Nadie revisa sus propios gastos. En la demo no lo guardamos.",
+    },
+    {
       id: "cierres-seccion",
       ancla: "fondos.cierres-seccion",
       opcional: true,

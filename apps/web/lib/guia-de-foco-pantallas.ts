@@ -464,9 +464,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/mi-plata/TerminarDia.tsx": { estado: "no-aplica", motivo: "ADR-0480: una sola pregunta (qué haces con lo que te queda), con el botón apagado y su frase hasta elegir; sin plata no hay nada que elegir." },
   "components/mi-plata/PlataPorConfirmar.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx"] },
   // Revisar compras (ADR-0480, actividad 7): completar el papel (serie y número según el papel; el monto, si se anotó mal; desde una
-  // terminal, quién completa) y recibir lo del cierre del día (la cuenta y el monto).
+  // terminal, quién completa), recibir lo del cierre del día (la cuenta y el monto) y revisar un gasto (qué papel; su número y RUC, opcionales).
   "components/mi-plata/PapelesPorCompletar.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/PapelesPorCompletar.tsx"] },
   "components/mi-plata/CierresPorRecibir.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/CierresPorRecibir.tsx"] },
+  "components/mi-plata/GastosPorRevisar.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/GastosPorRevisar.tsx"] },
   // La rendición (ADR-0362 fase 6 · actividad 5): «Rendir tu fondo» (el efectivo; la explicación, sugerida si falta plata) y «Revisar la
   // rendición» (quién asume lo que falta, cuando hay explicación; la nota; desde una terminal, quién aprueba).
   "components/fondos/RendirFondo.tsx": { estado: "aplicada", evidencia: ["components/fondos/RendirFondo.tsx"] },

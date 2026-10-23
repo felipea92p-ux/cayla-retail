@@ -173,9 +173,17 @@ se toca. Lo que faltó lo decide la tienda al recibir («No vino» → «Nos deb
   «CAYLA me debe» sale de la cuenta que elige (`entregar_fondo`). Con el cierre como marca, un reintento no mueve dos veces; con plata suya
   por confirmar, primero se confirma (todavía no está en su fondo). Esa plata no se anula aparte (el cierre quedaría recibido sin su plata).
   Da igual el orden: devolver antes o después de completar sus papeles deja el fondo en el mismo número.
+- **Los gastos que no son ropa** (`revisar_gasto_compra`): «Gasté en otra cosa» pasa a los gastos del viaje con la función de siempre
+  (`registrar_gasto_viaje`, para no tener dos formas de guardar lo mismo): taxi y comida, del viaje; cargador, envío (flete) y bolsas
+  (embalaje), para traer la mercadería; «otro», del viaje con lo que escribió. Compras dice qué papel le dieron; sin papel solo pasan el taxi
+  y el cargador, en la planilla de movilidad (decisión 55 de ADR-0362). Se paga desde su fondo, va a sus compras de ese día (decisión 75: un
+  gasto del viaje va siempre a una compra; si ese día no compró, a la más cercana) y queda en la sede de quien gastó (decisión 46), no en la
+  de quien revisa. Para eso `registrar_gasto_viaje` lleva dos reemplazos anclados que valen solo para el gasto que se está revisando. La
+  foto del papel queda en el gasto de la compradora (las fotos de un gasto del viaje viven en la carpeta del gasto).
 - **La pantalla:** en Revisar compras, debajo de «Plata que anotaron», «Compras por completar» (una tarjeta por papel: foto, proveedor, prendas
   por tienda, lo que faltó y por qué, si llegó y si cuadra; «Completar» abre la hoja) y «Cierres del día por recibir». Anular un comprobante así
-  no se puede (tiene su pago, como todo comprobante pagado).
+  no se puede (tiene su pago, como todo comprobante pagado). Después, «Gastos por revisar» (cada gasto con su foto; «Revisar» pide el papel)
+  y «Cierres del día por recibir».
 
 Se descartó `registrar_comprobante_orden` (un comprobante por orden, con la llave de la compradora y el IGV aparte; el papel es UN documento),
 escribir `recibido_cantidad` a mano (`recalcular_compras` lo borraría) y repartir el ajuste en el costo de las prendas (Felipe eligió que el
@@ -189,5 +197,4 @@ catálogo quede con lo anotado).
 
 ## Qué queda
 
-Revisar los gastos que anotaron las compradoras (la segunda parte de la actividad 7) y la actividad 8 (el cierre con guías y pruebas). Cada
-una agrega su sección a este ADR.
+La actividad 8 (el cierre con guías y pruebas), que agrega su sección a este ADR.

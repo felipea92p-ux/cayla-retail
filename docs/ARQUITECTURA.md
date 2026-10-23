@@ -1477,7 +1477,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   Actividad 7 (migración `20261023143000`): `/compras/fondos` suma `lib/revisar-compras.ts` (`fn_revisar_compras`, fotos de `papeles/`
   firmadas) + `lib/revisar-compras-reglas.ts` (puro: lectura, si cuadra, qué falta) + `components/mi-plata/PapelesPorCompletar.tsx`
   (`completar_papel_compra`: el comprobante pagado desde el fondo de quien compró; tabla `compra_item_recibido_antes`) y
-  `CierresPorRecibir.tsx` (`recibir_cierre_compras` → `devolver_fondo` o `entregar_fondo`).
+  `CierresPorRecibir.tsx` (`recibir_cierre_compras` → `devolver_fondo` o `entregar_fondo`) y `GastosPorRevisar.tsx`
+  (`revisar_gasto_compra` → `registrar_gasto_viaje`, fotos de `gastos/` firmadas).
 - ~~**Notas de crédito**~~ (retirada el 2026-10-22, ADR-0480: la pantalla, sus modales y `lib/notas-credito*.ts` se borraron;
   `/compras/notas-credito` redirige a `/compras`; las tablas y RPC de abajo siguen en la base). Lo que era (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres

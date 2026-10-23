@@ -6,6 +6,7 @@ import { PlataPorConfirmar } from "@/components/mi-plata/PlataPorConfirmar";
 import { getRevisarCompras } from "@/lib/revisar-compras";
 import { PapelesPorCompletar } from "@/components/mi-plata/PapelesPorCompletar";
 import { CierresPorRecibir } from "@/components/mi-plata/CierresPorRecibir";
+import { GastosPorRevisar } from "@/components/mi-plata/GastosPorRevisar";
 import { TEXTO_MOVIMIENTO_FONDO, cifrasDeFondos, topeDevolucion, type MovimientoFondo } from "@/lib/fondos-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
@@ -123,8 +124,8 @@ export default async function FondosPage() {
         </section>
       )}
 
-      {/* ADR-0480, actividad 7: las compras que anotaron (cada papel con su foto, lo que llegó y si cuadra) y los cierres del día que
-          esperan a Compras. Si su lectura falla, lo dice aparte: el resto de la pantalla sale igual. */}
+      {/* ADR-0480, actividad 7: las compras que anotaron (cada papel con su foto, lo que llegó y si cuadra), los gastos que no son ropa y
+          los cierres del día que esperan a Compras. Si su lectura falla, lo dice aparte: el resto de la pantalla sale igual. */}
       {!falla && (
         <section className="space-y-3" data-guia="fondos.papeles-seccion">
           <TituloSeccion cuenta={revisar?.papeles.length ?? 0}>Compras por completar</TituloSeccion>
@@ -139,6 +140,12 @@ export default async function FondosPage() {
           ) : (
             <PapelesPorCompletar papeles={revisar.papeles} proveedores={revisar.proveedores} />
           )}
+        </section>
+      )}
+      {!falla && revisar && revisar.gastos.length > 0 && (
+        <section className="space-y-3" data-guia="fondos.gastos-seccion">
+          <TituloSeccion cuenta={revisar.gastos.length}>Gastos por revisar</TituloSeccion>
+          <GastosPorRevisar gastos={revisar.gastos} />
         </section>
       )}
       {!falla && revisar && revisar.cierres.length > 0 && (

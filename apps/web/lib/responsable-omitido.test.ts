@@ -32,7 +32,7 @@ describe("acciones sin responsable", () => {
   it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra, las 3 de Avisos del club, las tres de la cola de arranque (cerrar, reabrir e identificar), crear, editar y anular una orden de compra, registrar o anular su comprobante y enviarla a una sede o anular el envío (ADR-0362), crear, editar y anular una orden de insumos del Taller y registrar su comprobante (ADR-0362, fase 7), entregar, devolver y anular la plata de un fondo, registrar un gasto del viaje y sumarle la foto de su papel, rendir el propio fondo y aprobar o devolver una rendición, y pagar o anular el pago de la deuda de un faltante (ADR-0362, fase 6), el recorte de una foto al subirla (ADR-0434) deshacer la unión de una cuenta de Google con un miembro (ADR-0469) anotar o confirmar la plata para compras, registrar una compra desde el celular, anotar un gasto que no es ropa, mandar a la tienda y terminar el día de compras (ADR-0480), menos Editar producto (ADR-0354) y Regularizar prenda", () => {
     expect(clavesBase).toHaveLength(28);
     expect([...DESCRIPCION_VIGENTE.keys()].sort()).toEqual(Object.keys(ACCIONES_SIN_RESPONSABLE).sort());
-    expect(DESCRIPCION_VIGENTE.size).toBe(62);
+    expect(DESCRIPCION_VIGENTE.size).toBe(63);
     expect(DESCRIPCION_VIGENTE.has("producto_confirmar_cambios")).toBe(false);
     expect(DESCRIPCION_VIGENTE.has("regularizar_prenda")).toBe(false);
   });
@@ -47,7 +47,8 @@ describe("acciones sin responsable", () => {
   // Gamarra, lejos de toda tienda, donde nadie puede «marcar su entrada»; con su cuenta firma ella, como las órdenes de compra (decisión 39).
   // La foto de su papel (actividad 5) no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`).
   // Su reemplazo en Compras simple (ADR-0480, actividad 5), «Gasté en otra cosa», se anota en el mismo lugar y no mueve plata en los libros.
-  const SOLTADAS_LEJOS_DEL_KIOSCO = new Set(["gasto_viaje_registrar", "gasto_viaje_foto", "gasto_rapido"]);
+  // Y su revisión (actividad 7, «Revisar compras»): como confirmar la plata o completar el papel, la hace quien tiene el módulo con su cuenta.
+  const SOLTADAS_LEJOS_DEL_KIOSCO = new Set(["gasto_viaje_registrar", "gasto_viaje_foto", "gasto_rapido", "gasto_revisar"]);
   it("ninguna acción de dinero, caja ni venta está soltada (salvo el gasto del viaje, que se anota lejos de la tienda)", () => {
     for (const clave of Object.keys(ACCIONES_SIN_RESPONSABLE)) {
       if (SOLTADAS_LEJOS_DEL_KIOSCO.has(clave)) continue;

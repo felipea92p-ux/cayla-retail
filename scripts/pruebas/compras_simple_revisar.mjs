@@ -8,6 +8,8 @@
  *     (el céntimo que sobra va en una unidad aparte). Nace «recibido» por lo que ya llegó, y lo que no vino sigue faltando.
  *   · Reintentar con lo mismo devuelve lo mismo; con otros datos, no. El envío ya no se reabre; `recalcular_compras` no borra lo recibido.
  *   · El cierre del día: «Lo devuelvo» vuelve a la cuenta que elige Compras y «CAYLA me debe» sale de ella; con plata por confirmar, espera.
+ *   · Un gasto que no es ropa pasa a los gastos del viaje desde su fondo, a su compra del día y en la sede de la compra; sin papel solo el
+ *     taxi y el cargador; nadie revisa los suyos; sin ninguna compra, espera.
  *
  * CÓMO. Sesión simulada con `request.jwt.claim.sub`, las migraciones de las actividades 6 y 7 pegadas dos veces y ROLLBACK siempre.
  * Sandra compra y manda, Micaela (solo Recibir) recibe, Felipe (líder) revisa.
@@ -279,6 +281,47 @@ select retail.completar_papel_compra(:'papel', null, 'F001', '10') \\g /dev/null
 reset role;
 select retail.fn_fondo_saldo(retail.fn_fondo_de(current_setting('t.compradora')::uuid, false));`,
   "le_deben|300.00|300.00 / 0.00",
+);
+
+// Sandra anota un taxi de S/ 15 el día de su compra (sin papel) y una comida de S/ 12 sin papel.
+const GASTOS = `
+${como(SANDRA, { clave: "gasto_rapido" })}
+select retail.registrar_gasto_rapido('aaaaaaaa-0480-4000-8000-0000000007c1', 'taxi', null, 15, null) \\g /dev/null
+select retail.registrar_gasto_rapido('aaaaaaaa-0480-4000-8000-0000000007c2', 'comida', null, 12, null) \\g /dev/null
+reset role;
+`;
+const REVISA_GASTO = (id, papel) => `retail.revisar_gasto_compra('${id}', '${papel}')`;
+
+caso(
+  "el taxi pasa a los gastos del viaje: pagado desde su fondo, a su compra del día y en la sede de la compra; repetir devuelve lo mismo",
+  `${COMPRA}${GASTOS}
+${REVISA("gasto_revisar")}
+select (${REVISA_GASTO("aaaaaaaa-0480-4000-8000-0000000007c1", "planilla_movilidad")} ->> 'gasto_id') as gasto \\gset
+select (${REVISA_GASTO("aaaaaaaa-0480-4000-8000-0000000007c1", "planilla_movilidad")} ->> 'gasto_id') = :'gasto';
+reset role;
+select gv.tipo || ':' || gv.concepto || ':' || gv.papel, g.monto_total, g.categoria, u.nombre,
+       g.cuenta_dinero_id = retail.fn_fondo_de(current_setting('t.compradora')::uuid, false),
+       (select count(*) from retail.gastos_viaje_ordenes x join retail.ordenes_compra o on o.id = x.orden_compra_id where x.gasto_id = g.id and o.papel_id = :'papel'),
+       (select estado from retail.compra_gastos where id = 'aaaaaaaa-0480-4000-8000-0000000007c1'),
+       retail.fn_fondo_saldo(retail.fn_fondo_de(current_setting('t.compradora')::uuid, false))
+  from retail.gastos g join retail.gastos_viaje gv on gv.gasto_id = g.id join retail.ubicaciones u on u.id = g.ubicacion_id
+ where g.id = :'gasto';`,
+  "t / viaje:taxi:planilla_movilidad|15.00|viaje_compra|Tienda Trujillo|t|1|completado|-15.00",
+);
+
+caso(
+  "la comida sin papel no pasa (solo taxi y cargador van con planilla); nadie revisa sus propios gastos; sin ninguna compra, espera",
+  `${COMPRA}${GASTOS}
+${REVISA("gasto_revisar")}
+select split_part(pg_temp.intento($q$select ${REVISA_GASTO("aaaaaaaa-0480-4000-8000-0000000007c2", "planilla_movilidad")}$q$), '|', 1);
+${como(SANDRA, { clave: "gasto_revisar" })}
+select split_part(pg_temp.intento($q$select ${REVISA_GASTO("aaaaaaaa-0480-4000-8000-0000000007c1", "ticket")}$q$), '|', 1);
+reset role;
+insert into retail.compra_gastos (id, persona_id, concepto, monto, fecha, huella, registrado_por)
+values ('aaaaaaaa-0480-4000-8000-0000000007c3', :'micaela_p', 'taxi', 10, retail.fn_hoy_lima(), 'x', :'micaela_p');
+${REVISA("gasto_revisar")}
+select split_part(pg_temp.intento($q$select ${REVISA_GASTO("aaaaaaaa-0480-4000-8000-0000000007c3", "planilla_movilidad")}$q$), '|', 1);`,
+  "gasto_viaje_sin_papel / fondo_propio / gasto_sin_compra",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde`);

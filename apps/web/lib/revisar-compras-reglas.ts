@@ -1,6 +1,7 @@
 import { soles } from "./compras-reglas";
 import { TIPOS_PAPEL, type TipoPapel } from "./compra-rapida-reglas";
 import { campoResponsable, primerNombre, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
+import { CONCEPTOS_GASTO, type ConceptoGasto } from "./mi-plata-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 
 // Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ los papeles que llegaron a la tienda y los cierres del día. Las reglas
@@ -12,6 +13,7 @@ import type { CampoDeGuia } from "./guia-campos";
 export const RPC_REVISAR_COMPRAS = "fn_revisar_compras";
 export const RPC_COMPLETAR_PAPEL = "completar_papel_compra";
 export const RPC_RECIBIR_CIERRE = "recibir_cierre_compras";
+export const RPC_REVISAR_GASTO = "revisar_gasto_compra";
 
 /** Por qué faltó una prenda, como lo dijo la tienda al recibir. Compras lo ve; no lo vuelve a decidir. */
 export type CausaFaltante = "no_vino" | "se_perdio" | "otra_sede" | "devuelta";
@@ -65,7 +67,22 @@ export type CierrePorRecibir = {
 
 export type ProveedorOpcion = { id: string; nombre: string; ruc: string | null };
 
-export type RevisarCompras = { papeles: PapelPorCompletar[]; cierres: CierrePorRecibir[]; proveedores: ProveedorOpcion[] };
+/** Un gasto que no es ropa («Gasté en otra cosa»), esperando que Compras lo pase a los gastos del viaje. */
+export type GastoPorRevisar = {
+  id: string;
+  personaId: string;
+  persona: string;
+  esMia: boolean;
+  concepto: ConceptoGasto;
+  nota: string | null;
+  monto: number;
+  fotoRuta: string | null;
+  fecha: string;
+  /** Sin ninguna compra de quien gastó, la base no lo deja pasar: un gasto del viaje va siempre a una compra (decisión 75). */
+  tieneCompra: boolean;
+};
+
+export type RevisarCompras = { papeles: PapelPorCompletar[]; gastos: GastoPorRevisar[]; cierres: CierrePorRecibir[]; proveedores: ProveedorOpcion[] };
 
 const numero = (v: unknown): number | null => {
   const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
@@ -76,6 +93,7 @@ const objeto = (x: unknown): Record<string, unknown> | null => (x && typeof x ==
 const lista = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const esTipo = (v: unknown): v is TipoPapel => typeof v === "string" && v in TIPOS_PAPEL;
 const esCausa = (v: unknown): v is CausaFaltante => typeof v === "string" && v in CAUSAS_FALTANTE;
+const esConcepto = (v: unknown): v is ConceptoGasto => typeof v === "string" && v in CONCEPTOS_GASTO;
 const ESTADOS_ENVIO = ["en_camino", "abierto", "cerrado"] as const;
 
 function leerLinea(x: unknown): LineaPapel | null {
@@ -129,6 +147,25 @@ function leerPapel(x: unknown): PapelPorCompletar | null {
   };
 }
 
+function leerGasto(x: unknown): GastoPorRevisar | null {
+  const o = objeto(x);
+  const id = texto(o?.id);
+  const monto = numero(o?.monto);
+  if (!o || !id || monto == null || !esConcepto(o.concepto)) return null;
+  return {
+    id,
+    personaId: texto(o.persona_id) ?? "",
+    persona: texto(o.persona) ?? "Alguien de Compras",
+    esMia: o.es_mia === true,
+    concepto: o.concepto,
+    nota: texto(o.nota),
+    monto,
+    fotoRuta: texto(o.foto_ruta),
+    fecha: texto(o.fecha) ?? "",
+    tieneCompra: o.tiene_compra !== false,
+  };
+}
+
 function leerCierre(x: unknown): CierrePorRecibir | null {
   const o = objeto(x);
   const id = texto(o?.id);
@@ -152,6 +189,7 @@ export function leerRevisarCompras(data: unknown): RevisarCompras | null {
   if (!o || !Array.isArray(o.papeles) || !Array.isArray(o.cierres)) return null;
   return {
     papeles: o.papeles.map(leerPapel).filter((p): p is PapelPorCompletar => p !== null),
+    gastos: lista(o.gastos).map(leerGasto).filter((g): g is GastoPorRevisar => g !== null),
     cierres: o.cierres.map(leerCierre).filter((c): c is CierrePorRecibir => c !== null),
     proveedores: lista(o.proveedores).flatMap((p) => {
       const po = objeto(p);
@@ -311,4 +349,62 @@ export function camposCierre(v: { cuentaId: string; monto: string }, decision: C
     { id: "monto", nombre: "Cuánto", requerido: true, hecho: m === null, pendiente: m ?? "" },
     ...campoResponsable({ ...r, quien: decision === "devuelve" ? "Quién recibe" : "Quién paga" }),
   ];
+}
+
+// ---------- Los gastos que no son ropa ----------
+
+/** Qué papel le dieron por un gasto, como lo pide un gasto del viaje. Sin papel, una planilla de movilidad. */
+export type PapelGasto = "boleta" | "factura" | "ticket" | "planilla_movilidad";
+export const PAPELES_GASTO: Record<PapelGasto, { nombre: string; ayuda: string }> = {
+  boleta: { nombre: "Boleta", ayuda: "Con número" },
+  factura: { nombre: "Factura", ayuda: "Con RUC: separa el IGV" },
+  ticket: { nombre: "Ticket", ayuda: "De una máquina" },
+  planilla_movilidad: { nombre: "Sin papel", ayuda: "Va en la planilla de movilidad" },
+};
+
+/** Sin papel solo se acepta el taxi y el cargador (decisión 55 de ADR-0362): lo demás necesita su boleta, factura o ticket. */
+export function papelesParaGasto(concepto: ConceptoGasto): PapelGasto[] {
+  const conPapel: PapelGasto[] = ["boleta", "factura", "ticket"];
+  return concepto === "taxi" || concepto === "cargador" ? [...conPapel, "planilla_movilidad"] : conPapel;
+}
+
+/** El papel que llega elegido: sin foto, un taxi o un cargador van en la planilla; lo demás lo elige quien revisa mirando la foto. */
+export function papelSugerido(g: Pick<GastoPorRevisar, "concepto" | "fotoRuta">): PapelGasto | null {
+  return !g.fotoRuta && papelesParaGasto(g.concepto).includes("planilla_movilidad") ? "planilla_movilidad" : null;
+}
+
+/** El ejemplo de la serie y el número sigue al papel elegido (ADR-0290): «F001-123» en factura, «B001-123» en boleta. */
+export function ejemploSerieNumero(papel: PapelGasto | null): string {
+  return papel === "factura" ? "Ej. F001-123" : papel === "boleta" ? "Ej. B001-123" : "Como dice el papel";
+}
+
+export function problemaRuc(ruc: string): string | null {
+  const r = ruc.trim();
+  return !r || /^[0-9]{11}$/.test(r) ? null : "El RUC tiene 11 números.";
+}
+
+/** Los campos de «Revisar el gasto»: el papel (obligatorio); la serie y el número y el RUC, opcionales (el RUC separa el IGV). */
+export function camposRevisarGasto(
+  v: { papel: PapelGasto | null; serieNumero: string; ruc: string },
+  concepto: ConceptoGasto,
+  r: Responsable,
+): CampoDeGuia[] {
+  const papelOk = v.papel !== null && papelesParaGasto(concepto).includes(v.papel);
+  const conNumero = papelOk && v.papel !== "planilla_movilidad";
+  const ruc = problemaRuc(v.ruc);
+  return [
+    { id: "papel", nombre: "Qué papel le dieron", requerido: true, hecho: papelOk, pendiente: "Elige qué papel le dieron." },
+    ...(conNumero
+      ? [
+          { id: "serie", nombre: "Serie y número", requerido: v.serieNumero.trim().length > 40, hecho: v.serieNumero.trim() !== "" && v.serieNumero.trim().length <= 40, pendiente: "La serie y el número, hasta 40 letras." },
+          { id: "ruc", nombre: "RUC", requerido: ruc !== null, sugerido: v.papel === "factura", hecho: v.ruc.trim() !== "" && ruc === null, pendiente: ruc ?? "Con el RUC de la factura se separa el IGV." },
+        ]
+      : []),
+    ...campoResponsable({ ...r, quien: "Quién revisa" }),
+  ];
+}
+
+/** El botón: «Pasar S/ 15.00 a los gastos». */
+export function fraseRevisarGasto(monto: number): string {
+  return `Pasar ${soles(monto)} a los gastos`;
 }
