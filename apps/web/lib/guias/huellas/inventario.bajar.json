@@ -17,7 +17,7 @@
       "button «→empezarDeNuevo»",
       "input «Escanea o escribe el nombre»",
       "button «bajar.camara»",
-      "button «{nombreDePrenda(p)}»",
+      "button «→() => elegirPorNombre(p)»",
       "button «Comprobar» #2",
       "button «{preguntaDelRack(ofertaVisible).si}»",
       "button «{preguntaDelRack(ofertaVisible).no}»",
