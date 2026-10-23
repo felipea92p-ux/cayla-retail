@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
   type ProveedorGasto,
   conIgvPerdido,
@@ -147,6 +148,38 @@ export async function getGastosDeUbicacion(ubicacionId: string, desde: string, h
   const { data, error } = await leerRpcPorPaginas(supabase, "fn_gastos_lista", { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ubicacionId, p_limite: LIMITE_LISTA_GASTOS }, ORDEN_GASTOS, { enParalelo: 1 });
   if (error) return [];
   return (data ?? []).map(leerGasto).filter((g) => g.estado === "vigente");
+}
+
+/** Lo que Caja necesita de un gasto: la tarjeta «Gastos del turno» y la ★ del mosaico del gasto rápido. */
+export type GastoDeCaja = Pick<GastoFila, "id" | "descripcion" | "categoria" | "categoriaNombre" | "fecha" | "montoTotal" | "medioPago" | "cajaMovimientoId" | "comprobanteTipo" | "creadoEn">;
+
+/**
+ * Los gastos vigentes de la tienda de `desde` a hoy (90 días como mucho), para Caja (ADR-0491, `fn_gastos_de_caja`). Los lee también quien
+ * maneja la caja sin el módulo Gastos: a esa cuenta la base solo le muestra los que pasaron por la caja o por el Yape o el Plin de la tienda.
+ * `null` si no se pudo leer (la tarjeta lo dice; el mosaico sale en su orden de fábrica).
+ */
+export async function getGastosDeCaja(ubicacionId: string, desde: string): Promise<GastoDeCaja[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_gastos_de_caja" as never, { p_ubicacion_id: ubicacionId, p_desde: desde } as never);
+  // La web se publica ANTES de pegar 20261023212000: mientras la función no exista (PGRST202), la lectura de antes, que solo
+  // responde a quien tiene el módulo Gastos.
+  if (error?.code === "PGRST202") return getGastosDeUbicacion(ubicacionId, desde, hoyLima());
+  if (error) return null;
+  return ((data ?? []) as Record<string, unknown>[]).map((g) => {
+    const fila = leerGasto(g);
+    return {
+      id: fila.id,
+      descripcion: fila.descripcion,
+      categoria: fila.categoria,
+      categoriaNombre: fila.categoriaNombre,
+      fecha: fila.fecha,
+      montoTotal: fila.montoTotal,
+      medioPago: fila.medioPago,
+      cajaMovimientoId: fila.cajaMovimientoId,
+      comprobanteTipo: fila.comprobanteTipo,
+      creadoEn: fila.creadoEn,
+    };
+  });
 }
 
 // ---- F2b (20260925000000): activos fijos y gastos fijos del mes ---------------------------------------------------------
