@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto } from "@/components/ui/campos";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { PieAcciones } from "@/components/ui/PieAcciones";
+import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { soles } from "@/lib/compras-reglas";
@@ -40,7 +41,8 @@ export function HojaPrenda({
 }: {
   habitual: Habitual;
   borrador: BorradorPrenda;
-  cambiar: (b: BorradorPrenda) => void;
+  /** Lo que cambió (solo eso): quien guarda el borrador lo aplica sobre lo último, así dos toques seguidos no se pisan. */
+  cambiar: (cambio: Partial<BorradorPrenda>) => void;
   tiendas: Tienda[];
   /** La tienda de la prenda anterior, para decir «Como la anterior». */
   tiendaAnterior: string | null;
@@ -51,7 +53,7 @@ export function HojaPrenda({
   onClose: () => void;
 }) {
   const guia = useGuiaCampos(camposPrenda(b));
-  const poner = (campo: keyof BorradorPrenda) => (v: string | null) => cambiar({ ...b, [campo]: v });
+  const poner = (campo: keyof BorradorPrenda) => (v: string | null) => cambiar({ [campo]: v });
   const cantidad = leerCantidad(b.cantidad);
   const ganancia = gananciaPorPrenda(b);
   const laVezPasada = h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;
@@ -61,7 +63,7 @@ export function HojaPrenda({
     <Modal titulo={h.nombre} subtitulo={detalle} onClose={onClose} variante="hoja">
       {(cerrar) => (
         <form
-          className="space-y-5"
+          className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
             if (guia.puedeConfirmar) onAgregar();
@@ -71,8 +73,20 @@ export function HojaPrenda({
             }
           }}
         >
-          <CampoGuiado id="cantidad" guia={guia} titulo="¿Cuántas?">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Compacta como la maqueta (Felipe 2026-10-23: «aprovecha mejor los espacios»): «¿Cuántas?» y su − y + en la misma fila; el costo
+              y la venta lado a lado, también en el celular; los atajos, píldoras chicas bajo su campo. */}
+          <CampoGuiado id="cantidad" guia={guia}>
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex min-w-0 flex-col items-start gap-1">
+                <span className="text-[13px] font-semibold text-tinta">
+                  <ConMarca estado={guia.estado("cantidad")}>¿Cuántas?</ConMarca>
+                </span>
+                {laVezPasada != null && (
+                  <Atajo elegido={cantidad === laVezPasada} onClick={() => poner("cantidad")(String(laVezPasada))} guia="compra.igual">
+                    La vez pasada: {laVezPasada}
+                  </Atajo>
+                )}
+              </span>
               <PasoCantidad
                 data-guia="compra.cantidad"
                 menos={{ onClick: () => poner("cantidad")(String(Math.max(1, (cantidad ?? 1) - 1))), deshabilitado: (cantidad ?? 0) <= 1, etiqueta: "Una menos" }}
@@ -85,18 +99,11 @@ export function HojaPrenda({
                   onChange: (e) => poner("cantidad")(e.target.value),
                 }}
               />
-              {laVezPasada != null && (
-                <Atajo elegido={cantidad === laVezPasada} onClick={() => poner("cantidad")(String(laVezPasada))} guia="compra.igual" nombre="La vez pasada">
-                  {laVezPasada}
-                </Atajo>
-              )}
             </div>
           </CampoGuiado>
 
-          {/* Lado a lado como la maqueta desde 640 px; en el celular, uno bajo el otro: a media hoja, el título con su «Sigue aquí» no
-              cabía y el bloque crecía mientras se llenaba. */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <CampoGuiado id="costo" guia={guia} titulo="Te costó c/u">
+          <div className="grid grid-cols-2 gap-3">
+            <CampoGuiado id="costo" guia={guia} titulo="Costo c/u">
               <CampoMonto
                 etiqueta="Te costó cada una"
                 etiquetaOculta
@@ -107,8 +114,8 @@ export function HojaPrenda({
                 onChange={(e) => poner("costo")(e.target.value)}
               />
               {h.costo != null && (
-                <Atajo elegido={leerPrecio(b.costo) === h.costo} onClick={() => poner("costo")(h.costo!.toFixed(2))} nombre={h.veces > 0 ? "La vez pasada" : "Del catálogo"}>
-                  {soles(h.costo)}
+                <Atajo elegido={leerPrecio(b.costo) === h.costo} onClick={() => poner("costo")(h.costo!.toFixed(2))} titulo={soles(h.costo)}>
+                  {h.veces > 0 ? "La vez pasada" : "Del catálogo"}
                 </Atajo>
               )}
             </CampoGuiado>
@@ -123,8 +130,8 @@ export function HojaPrenda({
                 onChange={(e) => poner("venta")(e.target.value)}
               />
               {h.venta != null && (
-                <Atajo elegido={leerPrecio(b.venta) === h.venta} onClick={() => poner("venta")(h.venta!.toFixed(2))} nombre="Del catálogo">
-                  {soles(h.venta)}
+                <Atajo elegido={leerPrecio(b.venta) === h.venta} onClick={() => poner("venta")(h.venta!.toFixed(2))} titulo={soles(h.venta)}>
+                  Del catálogo
                 </Atajo>
               )}
             </CampoGuiado>
@@ -132,7 +139,7 @@ export function HojaPrenda({
 
           {ganancia != null && (
             <p
-              /* unificar-fijo: el dato de la ganancia por prenda de la maqueta, no un aviso */ className={`flex items-center justify-between rounded-[14px] px-3.5 py-3 text-sm ${ganancia >= 0 ? "bg-verde/10" : "bg-ambar/10"}`}
+              /* unificar-fijo: el dato de la ganancia por prenda de la maqueta, no un aviso */ className={`flex items-center justify-between rounded-[14px] px-3.5 py-2.5 text-sm ${ganancia >= 0 ? "bg-verde/10" : "bg-ambar/10"}`}
             >
               <span className="text-tinta">{ganancia >= 0 ? "Por cada una ganas" : "Se vende por debajo de lo que costó"}</span>
               <b className={`tabular-nums ${ganancia >= 0 ? "text-verde" : "text-ambar"}`}>{soles(Math.abs(ganancia))}</b>
@@ -146,11 +153,12 @@ export function HojaPrenda({
                   key={t.id}
                   type="button"
                   aria-pressed={b.destinoId === t.id}
+                  title={tiendaAnterior === t.id ? "La de la prenda anterior" : undefined}
                   onClick={() => poner("destinoId")(t.id)}
-                  className={`card-cayla mov-boton flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-[14px] p-2 text-center ${b.destinoId === t.id ? "border-tinta bg-sand/40" : ""}`}
+                  className={`card-cayla mov-boton flex min-h-11 items-center justify-center gap-1.5 rounded-[14px] px-2 py-2 text-center ${b.destinoId === t.id ? "border-tinta bg-sand/40" : ""}`}
                 >
+                  {b.destinoId === t.id && <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />}
                   <span className="text-sm font-medium leading-tight text-tinta">{t.nombre}</span>
-                  {tiendaAnterior === t.id && <span className="text-[11px] text-taupe">Como la anterior</span>}
                 </button>
               ))}
             </div>
@@ -187,22 +195,13 @@ export function HojaPrenda({
   );
 }
 
-/** «La vez pasada / S/ 17.50»: pone lo de antes de un toque; marcado (con su ✓) cuando lo escrito ya es eso. En dos líneas: a 375 px,
- *  media hoja no alcanza para el nombre y el monto juntos. */
-function Atajo({ elegido, onClick, guia, nombre, children }: { elegido: boolean; onClick: () => void; guia?: string; nombre: string; children: ReactNode }) {
+/** «✓ La vez pasada»: pone lo de antes de un toque; marcado (con su ✓) cuando lo escrito ya es eso. Una píldora chica bajo su campo, como
+ *  la maqueta; el monto va en el campo (y en su `title`). */
+function Atajo({ elegido, onClick, guia, titulo, children }: { elegido: boolean; onClick: () => void; guia?: string; titulo?: string; children: ReactNode }) {
   return (
-    <button
-      type="button"
-      aria-pressed={elegido}
-      onClick={onClick}
-      data-guia={guia}
-      className="btn-cayla btn-sutil btn-chico mt-2 h-auto min-h-11 max-w-full flex-col items-start gap-0 py-1.5 text-left leading-tight"
-    >
-      <span className="flex items-center gap-1 text-[11px] text-taupe">
-        {elegido && <Check className="h-3 w-3 text-verde" aria-hidden />}
-        {nombre}
-      </span>
-      <span className="tabular-nums text-tinta">{children}</span>
+    <button type="button" aria-pressed={elegido} onClick={onClick} data-guia={guia} title={titulo} className="btn-cayla btn-sutil btn-chico mt-1.5 max-w-full">
+      {elegido && <Check className="h-3.5 w-3.5 text-verde" aria-hidden />}
+      <span className="truncate">{children}</span>
     </button>
   );
 }

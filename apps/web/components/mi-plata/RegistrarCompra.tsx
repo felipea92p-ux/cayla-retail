@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight, Check, ChevronRight, Plus, SearchX, Shapes, Store, Tag, Truck } from "lucide-react";
@@ -206,10 +206,11 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     setEnCurso({
       habitual: h,
       // La cantidad llega vacía: con la de la vez pasada escrita, un toque rápido compraba 10 en vez de 3 (/formidable 2026-10-23,
-      // OK de Felipe). La de la vez pasada se ofrece al lado, de un toque, como el costo.
+      // OK de Felipe). La de la vez pasada se ofrece al lado, de un toque. El costo y la venta SÍ llegan con lo de la vez pasada y lo del
+      // catálogo (la maqueta: «Toca una prenda: viene con lo de la vez pasada»), con su atajo marcado para volver a ellos.
       cantidad: "",
-      costo: "",
-      venta: "",
+      costo: h.costo != null ? h.costo.toFixed(2) : "",
+      venta: h.venta != null ? h.venta.toFixed(2) : "",
       destinoId: tiendaAnterior(lineas),
       edita: null,
     });
@@ -242,17 +243,23 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     });
   }
 
+  // La hoja que ya se agregó o se quitó: un doble clic (dos clics en el mismo instante, antes de que la hoja se cierre) la metía dos veces
+  // en la compra, o quitaba dos prendas (/chaos 2026-10-23). Cada hoja abierta es un objeto propio: la segunda vez no hace nada.
+  const hojaHecha = useRef<EnCurso | null>(null);
+
   // «Agregar» de la hoja: la prenda entra a la compra (o se corrige) y se vuelve a donde se estaba, la grilla o el resumen.
   function agregarPrenda() {
-    if (!enCurso) return;
+    if (!enCurso || hojaHecha.current === enCurso) return;
     const linea: LineaCompra | null = lineaDeBorrador(enCurso.habitual, enCurso);
     if (!linea) return;
+    hojaHecha.current = enCurso;
     setLineas((ls) => (enCurso.edita != null ? ls.map((x, i) => (i === enCurso.edita ? linea : x)) : [...ls, linea]));
     setEnCurso(null);
   }
 
   function quitarPrenda() {
-    if (enCurso?.edita == null) return;
+    if (enCurso?.edita == null || hojaHecha.current === enCurso) return;
+    hojaHecha.current = enCurso;
     const i = enCurso.edita;
     setLineas((ls) => ls.filter((_, j) => j !== i));
     setEnCurso(null);
@@ -698,7 +705,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
         <HojaPrenda
           habitual={enCurso.habitual}
           borrador={enCurso}
-          cambiar={(b) => setEnCurso({ ...enCurso, ...b })}
+          cambiar={(cambio) => setEnCurso((e) => (e ? { ...e, ...cambio } : e))}
           tiendas={datos.tiendas}
           tiendaAnterior={tiendaAnterior(lineas)}
           corrige={enCurso.edita != null}

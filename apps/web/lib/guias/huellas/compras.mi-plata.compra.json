@@ -12,7 +12,7 @@
     "components/mi-plata/HojaPrenda.tsx": [
       "CampoMonto «compra.costo»",
       "CampoMonto «compra.venta»",
-      "button «{t.nombre}»",
+      "button «{tiendaAnterior === t.id ? \"La de la prenda anterior\" : undefined}»",
       "Boton «Quitar de la compra»",
       "Boton «Cancelar»",
       "Boton «compra.agregar»",
