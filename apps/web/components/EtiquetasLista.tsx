@@ -723,7 +723,7 @@ export function CampanaModal({
           </div>
 
           {/* ---- La etiqueta, a la derecha: dice lo que se va a guardar mientras se llena ---- */}
-          <aside className="eqp-lado" aria-label={`La etiqueta «${etiqueta.nombre}»`}>
+          <aside data-guia="atributos.campana-etiqueta" className="eqp-lado" aria-label={`La etiqueta «${etiqueta.nombre}»`}>
             <EtiquetaDeCampana
               nombre={etiqueta.nombre}
               descuento={pct.ok ? pct.valor : "mal"}
