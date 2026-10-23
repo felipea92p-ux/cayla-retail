@@ -409,7 +409,7 @@ select retail.vitrina_mostrar(array[:'emma']::uuid[], true) \\gset
   // ---------------------------------------------------------------- 7. El catálogo
   // Lo de la actividad 4 tiene que estar; lo único que puede sumarse es `nuevo` y `vendidos` (la actividad 5, pruebas:tienda-inicio), `empresa` (ADR-0465) y `categoria_familia` (20261021163000).
   const CLAVES_A4 = "campana,categoria,codigo,colores,desde,fotos,id,nombre,precio,precio_final,stock";
-  const CLAVES_PERMITIDAS = `${CLAVES_A4},nuevo,vendidos,empresa,categoria_familia`; // `empresa` (ADR-0465): la insignia de la tarjeta; `categoria_familia` (20261021163000): dónde cae una categoría nueva
+  const CLAVES_PERMITIDAS = `${CLAVES_A4},nuevo,vendidos,empresa,categoria_familia,insignias`; // `empresa` (ADR-0465): la insignia de la tarjeta; `categoria_familia` (20261021163000): dónde cae una categoría nueva; `insignias` (ADR-0489 act. c, 20261023205000): las de Catálogo ▸ Insignias que ve el cliente, solo {id, nombre}
   valor(
     "el catálogo suma `stock` (total y sedes) y nada del ERP; la campaña trae su id y su último día",
     `${PREPARAR}insert into retail.etiquetas (nombre, estilo, activo, descuento_pct, vigente_hasta) values ('ZZ Todo', 'campana', true, 10, retail.fn_hoy_lima() + 3) returning id as etq \\gset

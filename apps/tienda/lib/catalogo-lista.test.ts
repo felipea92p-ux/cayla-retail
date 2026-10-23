@@ -11,6 +11,7 @@ const TIENDAS = [AREQUIPA, LIMA, TRUJILLO];
 
 const prenda = (nombre: string, prefijo: string, sedes: Record<string, Nivel> | null): Prenda => ({
   empresa: null,
+  insignias: [],
   id: nombre,
   codigo: null,
   nombre,
