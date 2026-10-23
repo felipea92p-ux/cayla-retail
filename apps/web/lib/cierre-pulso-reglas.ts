@@ -40,7 +40,7 @@ export function pulsoCierre(p: PanelCierre): PulsoCierre {
     .flatMap((u) => u.chequeos.filter((c) => !c.ok && cuentaHuella(c)).map((c) => ({ u, c })))
     .sort((a, b) => Number(b.c.bloquea) - Number(a.c.bloquea))
     .map(({ u, c }) => {
-      const t = textoChequeo(c, p.mes);
+      const t = textoChequeo(c, p.mes, u);
       return { clave: `${u.clave}:${c.clave}`, unidad: u.nombre, titulo: t.titulo, detalle: t.detalle, bloquea: c.bloquea, href: enlaceChequeo(c, u, p.mes) };
     });
   const bloqueantes = (u: Unidad) => u.chequeos.filter((c) => c.bloquea && cuentaHuella(c));
