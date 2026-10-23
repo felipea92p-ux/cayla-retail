@@ -24,7 +24,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Historial de compras (ADR-0035, rediseño ADR-0111; solo lectura desde el 2026-10-23, ADR-0480 act.): la lista de lo que
 // se compró, con su papel —factura, boleta, nota de venta o sin comprobante—. Aquí ya no se registra nada: la compra nace en
-// «Mi plata para compras» y su comprobante, en «Revisar compras». Cada
+// «Mis compras» y su comprobante, en «Revisar compras». Cada
 // fila dice los dos estados que importan —cuánto falta pagar y cuánto falta llegar— con su cifra
 // debajo, no solo con un chip. Filtros, vistas y paginado viven en la URL y se resuelven en
 // Postgres (`listar_compras`): la página nunca recibe más de 50 filas, haya 300 comprobantes o

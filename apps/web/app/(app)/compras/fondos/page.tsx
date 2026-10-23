@@ -3,6 +3,7 @@ import { exigirModulo } from "@/lib/persona-actual";
 import { getDatosFondos } from "@/lib/fondos";
 import { getPlataPorConfirmar } from "@/lib/mi-plata";
 import { getRevisarCompras } from "@/lib/revisar-compras";
+import { porRecibirDe } from "@/lib/revisar-compras-reglas";
 import { BandejaRevisar } from "@/components/mi-plata/BandejaRevisar";
 import {
   TEXTO_MOVIMIENTO_FONDO,
@@ -165,6 +166,9 @@ export default async function FondosPage() {
               const rinde = estado.get(f.cuentaId)?.porAprobar;
               const suDeuda = debe(f.personaId);
               const leDeben = f.saldo < -0.005;
+              // Cerró su ronda y devuelve lo que le sobró: Compras todavía no lo recibe (20261023210000). Lo que le debemos ya lo dice `leDeben`.
+              const porRecibir = porRecibirDe(revisar?.cierres ?? [], f.personaId);
+              const devuelve = porRecibir?.decision === "devuelve" ? porRecibir.monto : 0;
               return (
                 <li
                   key={f.cuentaId}
@@ -187,7 +191,7 @@ export default async function FondosPage() {
                       etiqueta={`${f.persona}: gastó ${soles(t.gasto)}, devolvió ${soles(t.devolvio)} y tiene ${soles(t.tiene)} de ${soles(f.entregado)} entregados`}
                       segmentos={TRAMOS_FONDO.map((x) => ({ clave: x.clave, nombre: x.nombre, clase: x.clase, valor: t[x.clave] }))}
                     />
-                    {(rinde || suDeuda > 0.005 || leDeben) && (
+                    {(rinde || suDeuda > 0.005 || leDeben || devuelve > 0) && (
                       <p className="flex flex-wrap gap-1.5 pt-0.5">
                         {/* Con su rendición por aprobar, lo que ella dijo tener, al lado de lo de los libros (/formidable 2026-10-14, cambio 3). */}
                         {rinde && (
@@ -196,6 +200,11 @@ export default async function FondosPage() {
                           </Chip>
                         )}
                         {suDeuda > 0.005 && <Chip tono="ambar">Debe {soles(suDeuda)}</Chip>}
+                        {devuelve > 0 && (
+                          <Chip tono="ambar" title="Cerró su ronda: recíbelo en la bandeja, en Rondas">
+                            {soles(devuelve)} por recibir
+                          </Chip>
+                        )}
                         {/* Pagó de su bolsillo (decisión 32): el negativo no es plata en la mano, es lo que CAYLA le debe. */}
                         {leDeben && (
                           <Chip tono="ambar">
@@ -349,6 +358,7 @@ export default async function FondosPage() {
           cierres={revisar?.cierres ?? []}
           proveedores={revisar?.proveedores ?? []}
           cuentas={opciones.cuentas}
+          rondasAbiertas={revisar?.rondasAbiertas ?? []}
         />
       )}
 
