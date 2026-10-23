@@ -121,13 +121,14 @@ import { conDesde } from "@/lib/vuelta-productos";
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { avisoReimprimir } from "@/lib/etiqueta-campana";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
-  cambianEnCaja,
+  cambianEnCajaAlGuardar,
   campanasDeLaFicha,
-  cobraPorVariante,
   fraseCajaCobra,
   precioDeHoy,
   type CampanaDelVocabulario,
+  type LadoDeLaFicha,
 } from "@/lib/precio-de-hoy";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
@@ -590,6 +591,8 @@ export function ProductoForm({
   const precioPropioAqui = propioAqui ? { sede: nombreCorto(propioAqui.sede), precio: propioAqui.precio } : null;
   // El precio de esta tienda después del último guardado (o null: el de la prenda), para la vista previa de las etiquetas.
   const precioAquiTras = useRef<number | null>(null);
+  // Los precios propios que siguen después del último guardado (los igualados se van), para ver en qué tiendas cambió el precio en caja.
+  const propiosTras = useRef<ReadonlyMap<string, number>>(new Map());
   const [igualarTiendas, setIgualarTiendas] = useState<ReadonlySet<string>>(new Set());
   // Ya se guardó bien y la pantalla se está yendo: la barra baja y nada más pregunta.
   const [guardado, setGuardado] = useState(false);
@@ -634,13 +637,12 @@ export function ProductoForm({
   // que cobrará al guardar. Con precio propio de esta tienda, su caja cobra desde ese (es uno para toda la prenda, ADR-0370).
   const precioCajaAqui = propioAqui?.precio ?? null;
   const fraseCampana = producto && campanas ? fraseDeLaFicha(campanas, filas, enLaBase.datos.categoriaId, categoriaId, precioCajaAqui, propioAqui ? nombreCorto(propioAqui.sede) : null) : null;
-  // El precio en caja de cada variante guardada al empezar un guardado: al terminar se compara con el de después y, si cambió (una
-  // campaña que entra o sale, otro precio), el aviso ofrece reimprimir sus etiquetas de papel (ADR-0180: el papel dice lo que cobra la
-  // caja el día que se imprime). Se toma una vez y sobrevive a los reintentos de un guardado a medias, como `logrado`.
-  const cobraAntesDeGuardar = useRef<Map<string, number> | null>(null);
-  function cobraHoyPorVariante(lista: readonly { id: string; etiquetaIds: readonly string[]; precio: number }[], categoria: string): Map<string, number> {
-    return cobraPorVariante(lista, campanas ? campanasDeLaFicha(lista, categoria || null, campanas.vocabulario, campanas.hoy) : new Map());
-  }
+  // Lo guardado al empezar un guardado (variantes, categoría y precios propios de cada tienda): al terminar se compara el precio en caja
+  // de antes y de después, tienda por tienda, y si cambió (una campaña que entra o sale, otro precio) el aviso ofrece reimprimir sus
+  // etiquetas de papel (ADR-0180: el papel dice lo que cobra la caja el día que se imprime). Se toma una vez y sobrevive a los reintentos
+  // de un guardado a medias, como `logrado`.
+  const cobraAntesDeGuardar = useRef<LadoDeLaFicha | null>(null);
+  const propiosDeTienda = () => new Map((preciosTienda.precios ?? []).map((p) => [p.ubicacionId, p.precio] as const));
 
   // Lo que impide guardar de las variantes (y un monto escrito en «Cambiar en bloque» sin aplicar): «Revisar y guardar» lo
   // dice con el campo a enfocar. Lo que solo avisa (todas quedan desactivadas) se lee en la hoja, antes de confirmar. La
@@ -803,8 +805,9 @@ export function ProductoForm({
   async function guardar(): Promise<boolean> {
     if (!producto) return true;
     precioAquiTras.current = propioAqui?.precio ?? null;
-    // El precio en caja de cada variante ANTES de tocar nada; si el guardado queda a medias y se reintenta, sigue el primero.
-    cobraAntesDeGuardar.current ??= cobraHoyPorVariante(variantesGuardadas(filas, precioCajaAqui), enLaBase.datos.categoriaId);
+    propiosTras.current = propiosDeTienda();
+    // Lo que cobra la caja ANTES de tocar nada; si el guardado queda a medias y se reintenta, sigue el primero.
+    cobraAntesDeGuardar.current ??= { variantes: variantesGuardadas(filas, null), categoriaId: enLaBase.datos.categoriaId || null, propios: propiosDeTienda() };
     // Solo se tocó el stock: no hay nada de la prenda que mandar (ni versión que subir, ni historial que escribir).
     if (resumen.total === 0) {
       setLoading(true);
@@ -926,10 +929,10 @@ export function ProductoForm({
     setIgualarTiendas(new Set());
     // El precio propio de esta tienda que sigue vigente después del guardado (la vista previa de «Etiquetas de lo que entró» sale con él):
     // ni se igualó a mano ni quedó igual al de la prenda (la base lo quita sola).
-    const quedaIgualAqui = alCambiarPrecio?.conPropio.some(
-      (t) => t.ubicacionId === propioAqui?.ubicacionId && (t.que === "se-iguala" || igualadas.has(t.ubicacionId))
-    );
-    precioAquiTras.current = propioAqui && !quedaIgualAqui ? propioAqui.precio : null;
+    const quedaIgual = (ubicacionId: string) =>
+      alCambiarPrecio?.conPropio.some((t) => t.ubicacionId === ubicacionId && (t.que === "se-iguala" || igualadas.has(t.ubicacionId))) ?? false;
+    precioAquiTras.current = propioAqui && !quedaIgual(propioAqui.ubicacionId) ? propioAqui.precio : null;
+    propiosTras.current = new Map([...propiosDeTienda()].filter(([ubicacionId]) => !quedaIgual(ubicacionId)));
     // La base quita sola el precio propio que quedó igual al de la prenda: el bloque se vuelve a leer.
     if ((preciosTienda.precios?.length ?? 0) > 0) preciosTienda.recargar();
 
@@ -1080,18 +1083,32 @@ export function ProductoForm({
     const preciosAquiTras = precioAqui !== null ? Object.fromEntries(filasFinales.filter((f) => f.id).map((f) => [f.id!, precioAqui])) : {};
     // ADR-0472: si el precio que cobra la caja HOY cambió en alguna variante que ya existía (una campaña que entra o sale, otro precio),
     // sus etiquetas de papel dicen el de antes. Se ofrecen esas (y lo que entró, que también necesita la suya), en vez de la hoja de
-    // «lo que entró», que solo imprimiría las nuevas.
+    // «lo que entró», que solo imprimiría las nuevas. Tienda por tienda (ADR-0486, ADR-0370): si cambió solo en otras tiendas, el aviso las
+    // nombra y el botón no sale, porque la impresión de aquí sale con el precio de aquí, que no cambió.
     const antes = cobraAntesDeGuardar.current;
     cobraAntesDeGuardar.current = null;
-    const cambian = antes ? cambianEnCaja(antes, cobraHoyPorVariante(variantesEnPantalla(filasFinales, precioAqui), categoriaId)) : [];
-    const reimprimir = huboCorrecciones ? null : avisoReimprimir(cambian.length);
-    const idsReimprimir = [...new Set([...cambian, ...subidas.filter((x) => x.unidades > 0).map((x) => x.varianteId)])];
-    const lineas = !huboCorrecciones && !reimprimir && hrefSubidas ? lineasParaImprimir(subidas, filasFinales, nombres, preciosAquiTras) : [];
+    const cambian = antes
+      ? cambianEnCajaAlGuardar(
+          antes,
+          { variantes: variantesEnPantalla(filasFinales, null), categoriaId: categoriaId || null, propios: propiosTras.current },
+          campanas?.vocabulario ?? [],
+          campanas?.hoy ?? hoyLima(),
+          { tiendas: preciosSede?.todas ?? [], aqui: preciosSede?.ubicacionId ?? null }
+        )
+      : null;
+    const reimprimir = huboCorrecciones || !cambian ? null : avisoReimprimir(cambian);
+    const idsReimprimir = [...new Set([...(cambian?.quedan ?? []), ...(cambian?.salen ?? []), ...subidas.filter((x) => x.unidades > 0).map((x) => x.varianteId)])];
+    const lineas = !huboCorrecciones && !reimprimir?.boton && hrefSubidas ? lineasParaImprimir(subidas, filasFinales, nombres, preciosAquiTras) : [];
     // La barra baja y nada más pregunta al salir; el aviso dice qué se guardó (la prueba de que quedó hecho).
     setGuardado(true);
     if (lineas.length > 0 && hrefSubidas) {
       avisar.exito(`${nombrePrenda} guardado`, {
-        detalle: [hechoTodo.length > 0 ? hechoTodo.join(", ") : null, `entraron ${unidadesNuevas} ${unidadesNuevas === 1 ? "unidad" : "unidades"}`]
+        detalle: [
+          hechoTodo.length > 0 ? hechoTodo.join(", ") : null,
+          `entraron ${unidadesNuevas} ${unidadesNuevas === 1 ? "unidad" : "unidades"}`,
+          // Cambió el precio solo en otras tiendas: aquí se imprime lo que entró y el aviso dice dónde cambiar el papel.
+          reimprimir?.detalle ?? null,
+        ]
           .filter(Boolean)
           .join(" · "),
       });
