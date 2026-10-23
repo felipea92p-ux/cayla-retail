@@ -18,7 +18,7 @@
  *   · campañas: la pasada contra sus días normales (y un día con otra campaña no cuenta como normal), la que viene con su
  *     meta y su margen normal;
  *   · volumen: un año de datos sintéticos (≈ 20 mil tickets) y cuánto tarda.
- *   · N — las mermas pasan de la cuenta 659 a la 6951 (`20261023133700_mermas_a_la_cuenta_6951.sql`, sin pegar hasta el OK del
+ *   · N — las mermas pasan de la cuenta 659 a la 6951 (`20261023012000_mermas_a_la_cuenta_6951.sql`, sin pegar hasta el OK del
  *         contador): el Estado de resultados, el Balance y la conciliación dan EXACTAMENTE lo mismo antes y después (las cifras
  *         de mermas calculadas a mano valen en los dos estados), las diferencias de caja (6599) y el redondeo (6598) no se
  *         mueven, y la huella viva de un mes cambia solo en las sedes con mermas (por eso la migración se niega con un mes cerrado).
@@ -518,13 +518,13 @@ select 'cuadra_anio', (select count(*) = 0 from retail.fn_asientos_descuadrados(
 `;
 
 // ============================================================================================================================
-// N · Las mermas pasan de la 659 a la 6951 (`20261023133700_mermas_a_la_cuenta_6951.sql`; versión provisional): el Estado de
+// N · Las mermas pasan de la 659 a la 6951 (`20261023012000_mermas_a_la_cuenta_6951.sql`): el Estado de
 // resultados de septiembre de 2030 da EXACTAMENTE los mismos números antes y después, y lo mismo el Balance y la conciliación.
 //   Como en la prueba de pérdidas (perdidas.mjs, caso M), se usa el ARCHIVO de la migración: el «antes» se arma ejecutando su
 //   bloque «DESHACER (DOWN)» y el «después» volviéndola a pegar, todo en la transacción de la escena (ROLLBACK).
 //   Las cifras de mermas de la escena están calculadas a mano arriba (TRU 280, LIM 90, CAYLA 370) y valen EN LOS DOS estados.
 // ============================================================================================================================
-const MIGRACION_6951 = readFileSync(new URL("../../supabase/migrations/20261023133700_mermas_a_la_cuenta_6951.sql", import.meta.url), "utf8");
+const MIGRACION_6951 = readFileSync(new URL("../../supabase/migrations/20261023012000_mermas_a_la_cuenta_6951.sql", import.meta.url), "utf8");
 const DESHACER_6951 = (() => {
   const l = MIGRACION_6951.split("\n");
   const i = l.findIndex((x) => x.startsWith("-- ----- DESHACER (DOWN) -----"));

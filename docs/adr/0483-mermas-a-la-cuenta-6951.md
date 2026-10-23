@@ -1,8 +1,8 @@
-# ADR-XXXX · Las mermas y pérdidas de inventario pasan de la cuenta 659 a la 6951
+# ADR-0483 · Las mermas y pérdidas de inventario pasan de la cuenta 659 a la 6951
 
 - **Fecha:** 2026-10-22 · **Estado:** construido y probado en local; **SQL SIN PEGAR hasta el OK del contador**. Migración
-  `20261023133700_mermas_a_la_cuenta_6951.sql` (versión provisional: se reserva con `pnpm reservar migracion` antes de abrir el PR).
-  El número de este ADR también es provisional (`pnpm reservar adr`).
+  `20261023012000_mermas_a_la_cuenta_6951.sql` (versión reservada con `pnpm reservar migracion`).
+  ADR-0483, reservado con `pnpm reservar adr`.
 - **Decide:** Felipe, 2026-10-22: sí, antes del primer cierre de mes (octubre). Su contador/a confirma la cuenta antes de pegar.
 - **Toca:** ADR-0120 (`fn_asientos`, las reglas de posteo), ADR-0195 (Estado de resultados), ADR-0198 (el mes cerrado se congela), ADR-0328 act. 14
   (qué es una pérdida).

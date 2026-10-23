@@ -206,7 +206,7 @@ export function conceptosER(columnas: readonly FilaER[]): ConceptoER[] {
     {
       clave: "mermas",
       nombre: "Mermas",
-      // Las pérdidas de inventario van a la 6951 «Desvalorización de inventarios — mercaderías» (migración 20261023133700,
+      // Las pérdidas de inventario van a la 6951 «Desvalorización de inventarios — mercaderías» (migración 20261023012000,
       // provisional hasta el OK del contador). Antes iban a la 659: se sigue leyendo para que «De dónde sale» no quede vacío
       // si la web y la base se publican en distinto orden, y mientras la 659 siga en el plan.
       cuenta: "6951",

@@ -1,7 +1,7 @@
 -- ============================================================================================================
 -- NO PEGAR HASTA EL OK DEL CONTADOR.
--- 20261023133700_mermas_a_la_cuenta_6951.sql — CAYLA V2 · Finanzas · las mermas pasan de la 659 a la 6951
--- (versión PROVISIONAL: se reserva con `pnpm reservar migracion` antes de abrir el PR).
+-- 20261023012000_mermas_a_la_cuenta_6951.sql — CAYLA V2 · Finanzas · las mermas pasan de la 659 a la 6951
+-- (versión reservada con `pnpm reservar migracion`).
 --
 -- EL PROBLEMA PRIMERO. Hoy toda pérdida de inventario (faltante de conteo, resta a mano, dañada botada o donada, lo que
 -- faltó en un traslado, venta anulada cuya prenda no volvió a la venta) se asienta contra la cuenta 659 «Desmedros y otros
@@ -272,7 +272,7 @@ begin
 end
 $verifica_6951$;
 
-select '20261023133700 · las mermas pasan a la cuenta 6951' as parte,
+select '20261023012000 · las mermas pasan a la cuenta 6951' as parte,
        case when exists (select 1 from retail.cuentas where codigo = '6951' and tipo = 'gasto' and seccion_resultados = 'mermas' and activo)
              and position($a$'6951'$a$ in pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure)) > 0
              and position($a$'659'$a$ in pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure)) = 0

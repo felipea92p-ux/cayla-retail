@@ -15,7 +15,7 @@
  *         Lima, exclusiones (stock inicial, conteo de arranque, movimiento interno, venta, liquidada), traslados (lo que faltó
  *         en la sede que envió; lo que llegó de más en la que recibió), venta anulada con prenda no vendible (costo sellado),
  *         «quedaron» para la resta a mano, filtros por prenda y por zona;
- *   · F — UNA respuesta: el total en soles de la pestaña es el 6951 del diario (antes la 659; migración 20261023133700), sede por sede; el diario asienta el faltante de
+ *   · F — UNA respuesta: el total en soles de la pestaña es el 6951 del diario (antes la 659; migración 20261023012000), sede por sede; el diario asienta el faltante de
  *         traslado y el Balance ya no lo lista como causa; una resta «otro» ya no es «otra salida»;
  *   · K — con «Finanzas cuenta desde una fecha» (ADR-0332, `parametros_finanzas.inicio_finanzas`): la rama nueva del diario
  *         (el faltante de traslado) respeta el corte igual que el resto; la pestaña, que es inventario, no se corta; y desde
@@ -24,7 +24,7 @@
  *         nada; `anon` no ejecuta y las piezas internas no son de nadie;
  *   · G — la guarda: con un mes CERRADO que cambiaría, la migración aborta (se re-aplica su bloque sobre una copia) y nombra
  *         SOLO los meses que cambian; G3 cubre su otra mitad: un mes cerrado donde solo un traslado tuvo faltante.
- *   · M — las mermas pasan de la cuenta 659 a la 6951 (`20261023133700_mermas_a_la_cuenta_6951.sql`, sin pegar hasta el OK
+ *   · M — las mermas pasan de la cuenta 659 a la 6951 (`20261023012000_mermas_a_la_cuenta_6951.sql`, sin pegar hasta el OK
  *         del contador): MISMAS líneas del diario salvo el código de esas mermas, los MISMOS totales del Estado de resultados
  *         (y su detalle de mermas suma el total), las diferencias de caja (6599) y el redondeo (6598) donde estaban, el
  *         «deshacer» del encabezado funciona y deja la función como estaba, repetir la migración no daña nada, y con un mes
@@ -598,7 +598,7 @@ function dolar(sql) {
 }
 
 // ============================================================================================================================
-// M · Las mermas pasan de la 659 a la 6951 (`20261023133700_mermas_a_la_cuenta_6951.sql`, versión provisional).
+// M · Las mermas pasan de la 659 a la 6951 (`20261023012000_mermas_a_la_cuenta_6951.sql`).
 //   La prueba lee el ARCHIVO de la migración, no una copia: lo que se pega es lo que se prueba. En el CI la migración ya está
 //   aplicada, así que el «antes» se arma ejecutando su propio bloque «DESHACER (DOWN)» (que así queda probado y no se pudre)
 //   y el «después» volviéndola a pegar. Todo vive en la transacción de la escena, con ROLLBACK.
@@ -606,7 +606,7 @@ function dolar(sql) {
 //   anulada no vendible: las cinco reglas) más una diferencia de caja de S/ 5 (6599) y un redondeo de S/ 0.08 (6598), que
 //   empiezan igual que la 659 y NO son mermas.
 // ============================================================================================================================
-const MIGRACION_6951 = readFileSync(new URL("../../supabase/migrations/20261023133700_mermas_a_la_cuenta_6951.sql", import.meta.url), "utf8");
+const MIGRACION_6951 = readFileSync(new URL("../../supabase/migrations/20261023012000_mermas_a_la_cuenta_6951.sql", import.meta.url), "utf8");
 const DESHACER_6951 = (() => {
   const l = MIGRACION_6951.split("\n");
   const i = l.findIndex((x) => x.startsWith("-- ----- DESHACER (DOWN) -----"));
