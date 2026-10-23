@@ -37,6 +37,36 @@ const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261023005
   "",
 );
 
+// La foto del papel opcional (20261023180000) corrige la función de arriba: se carga después, como en la base.
+const MIGRACION_FOTO = readFileSync(join(RAIZ, "supabase", "migrations", "20261023180000_compras_simple_foto_opcional.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+
+// Pegar 20261023005000 otra vez recrea `registrar_compra_rapida` de seis datos, que desde 20261023181000 es el cuerpo interno
+// `fn_registrar_compra_rapida_base`: se le devuelve ese nombre, como hace aquella migración, para que quede una sola firma pública.
+const UNA_FIRMA = `
+do $$
+begin
+  if to_regprocedure('retail.registrar_compra_rapida(uuid,uuid,text,numeric,text,jsonb)') is not null
+     and to_regprocedure('retail.registrar_compra_rapida(uuid,uuid,text,numeric,text,jsonb,numeric,text)') is not null then
+    drop function if exists retail.fn_registrar_compra_rapida_base(uuid, uuid, text, numeric, text, jsonb);
+    alter function retail.registrar_compra_rapida(uuid, uuid, text, numeric, text, jsonb) rename to fn_registrar_compra_rapida_base;
+  end if;
+end $$;
+revoke all on function retail.fn_registrar_compra_rapida_base(uuid, uuid, text, numeric, text, jsonb) from public, anon, authenticated;`;
+
+// La ronda de compras (20261023183000): sin una abierta, la base no deja anotar una compra ni un gasto. Se vuelve a pegar después de la
+// migración de este archivo (que deja funciones de antes) y cada persona de la semilla empieza con su ronda abierta.
+const RONDA = readFileSync(join(RAIZ, "supabase", "migrations", "20261023183000_compras_simple_ronda_de_compras.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+const RONDAS_ABIERTAS = `
+insert into retail.compra_rondas (persona_id, abierta_por)
+select distinct c.persona_id, c.persona_id from retail.colaboradores c
+ where not exists (select 1 from retail.compra_rondas r where r.persona_id = c.persona_id and r.cerrada_en is null);`;
+
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
 
@@ -56,6 +86,10 @@ const PRELUDIO = `
 begin;
 ${MIGRACION}
 ${MIGRACION}
+${MIGRACION_FOTO}
+${MIGRACION_FOTO}
+${UNA_FIRMA}
+${RONDAS_ABIERTAS}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_hint text; v_msg text;
@@ -168,15 +202,15 @@ select count(*) from retail.ordenes_compra where papel_id = '${ID}';`,
 );
 
 caso(
-  "validaciones del papel: proveedor, tipo, monto, foto si hay papel; sin papel no pide foto",
+  "validaciones del papel: proveedor, tipo, monto y la ruta de la foto; la foto es opcional, con papel o sin él (20261023180000)",
   `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "compra_rapida")}
 select ${hint(`select retail.registrar_compra_rapida(gen_random_uuid(), null, 'boleta', 10, 'papeles/x.jpg', ${LINEAS})`)},
        ${hint(`select retail.registrar_compra_rapida(gen_random_uuid(), current_setting('t.prov')::uuid, 'recibo', 10, 'papeles/x.jpg', ${LINEAS})`)},
        ${hint(`select retail.registrar_compra_rapida(gen_random_uuid(), current_setting('t.prov')::uuid, 'boleta', 0, 'papeles/x.jpg', ${LINEAS})`)},
-       ${hint(`select retail.registrar_compra_rapida(gen_random_uuid(), current_setting('t.prov')::uuid, 'boleta', 10, null, ${LINEAS})`)},
+       ${intento(`select retail.registrar_compra_rapida(gen_random_uuid(), current_setting('t.prov')::uuid, 'boleta', 10, null, ${LINEAS})`)},
        ${hint(`select retail.registrar_compra_rapida(gen_random_uuid(), current_setting('t.prov')::uuid, 'boleta', 10, 'otra/x.jpg', ${LINEAS})`)},
        ${intento(`select retail.registrar_compra_rapida(gen_random_uuid(), current_setting('t.prov')::uuid, 'sin_comprobante', 10, null, ${LINEAS})`)};`,
-  "orden_compra_proveedor|compra_rapida_tipo|monto_invalido|compra_rapida_sin_foto|compra_rapida_foto|SIN_ERROR",
+  "orden_compra_proveedor|compra_rapida_tipo|monto_invalido|SIN_ERROR|compra_rapida_foto|SIN_ERROR",
 );
 
 caso(
@@ -243,13 +277,14 @@ select puede, razon from retail.fn_producto_se_puede_eliminar(current_setting('t
 );
 
 caso(
-  "anon no ejecuta ninguna de las tres; la tabla no se lee directo",
+  "anon no ejecuta ninguna de las tres; el cuerpo interno no lo llama nadie de afuera; la tabla no se lee directo",
   `reset role;
-select has_function_privilege('anon', 'retail.registrar_compra_rapida(uuid, uuid, text, numeric, text, jsonb)', 'execute'),
+select has_function_privilege('anon', 'retail.registrar_compra_rapida(uuid, uuid, text, numeric, text, jsonb, numeric, text)', 'execute'),
        has_function_privilege('anon', 'retail.fn_proveedores_para_comprar()', 'execute'),
        has_function_privilege('anon', 'retail.fn_habituales_proveedor(uuid)', 'execute'),
-       has_table_privilege('authenticated', 'retail.compra_papeles', 'select');`,
-  "f|f|f|f",
+       has_table_privilege('authenticated', 'retail.compra_papeles', 'select'),
+       has_function_privilege('authenticated', 'retail.fn_registrar_compra_rapida_base(uuid, uuid, text, numeric, text, jsonb)', 'execute');`,
+  "f|f|f|f|f",
 );
 
 caso(

@@ -121,7 +121,7 @@ export const MODULOS: readonly Modulo[] = [
   // base la usan como llave (recibir, gastos del viaje, datos bancarios, proveedor nuevo, «Nos debe»); retirarla cambiaría en silencio
   // quién puede qué. Lo que se ve es la compradora en su celular; las pantallas de órdenes salen del menú.
   { clave: "ordenes_compra", grupo: "Compras", nombre: "Mi plata para compras", incluye: "En el celular: anotar la plata que te dieron para comprar, lo que compraste (proveedor, prendas, la boleta con foto) y otros gastos; mandar lo comprado a cada tienda y terminar el día" },
-  { clave: "facturas_compra", grupo: "Compras", nombre: "Facturas de compra", incluye: "Registrar, corregir y anular facturas" },
+  { clave: "facturas_compra", grupo: "Compras", nombre: "Historial de compras", incluye: "Ver todas las compras con su papel (factura, boleta, nota de venta o sin comprobante), lo que falta pagar y lo que falta llegar; adjuntar documentos, anular una compra sin pagos ni recepciones y descargar el mes para el contador" },
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
   // Fondos por rendir (ADR-0362, fase 6; 20261013181000): la plata que se le entrega a quien compra. Nace SIN rol (solo el líder) y
   // delegable: sus funciones piden este módulo, no al líder (decisión 35).

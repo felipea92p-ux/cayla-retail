@@ -418,11 +418,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
                 <Link href="/recibir" className="btn-enlace">recíbela sin factura</Link>.
               </Vacio>
             ) : (
-              <Vacio
-                icono={<Receipt />}
-                titulo="No hay nada pendiente de recibir"
-                acciones={acciones.facturas ? <BotonEnlace href="/compras/nueva" peso="primario">Registrar un comprobante</BotonEnlace> : undefined}
-              >
+              <Vacio icono={<Receipt />} titulo="No hay nada pendiente de recibir">
                 No hay comprobantes con mercadería pendiente de recibir. Si llegó mercadería sin factura,{" "}
                 <Link href="/recibir" className="btn-enlace">recíbela sin factura</Link>.
               </Vacio>

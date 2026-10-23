@@ -4,12 +4,15 @@ import type { FirmaOmitida } from "@/lib/responsable-omitido";
 import type { ErrorDeBase } from "@/lib/ordenes-compra-acciones";
 import { leerErrorStorage, objecionArchivo, tipoDeArchivo } from "@/lib/adjuntos-compra";
 import { BUCKET_FOTOS_GASTO_VIAJE } from "@/lib/rendicion-reglas";
+import { fotoPrincipal } from "@/lib/inventario-reglas";
+import { leerPorTandasDeIds, tolerar } from "@/lib/resultado";
 import {
   CARPETA_PAPELES,
   RPC_HABITUALES_PROVEEDOR,
   RPC_REGISTRAR_COMPRA_RAPIDA,
   leerHabituales,
   type Habitual,
+  type MedioPagoCompra,
   type TipoPapel,
 } from "@/lib/compra-rapida-reglas";
 
@@ -31,6 +34,28 @@ export async function cargarHabituales(proveedorId: string): Promise<Habitual[] 
   return leerHabituales(data);
 }
 
+/**
+ * La foto principal de cada prenda del catálogo entre sus habituales, por `producto_id` (la misma regla que Existencias: `fotoPrincipal`).
+ * Es un dato secundario: si no se puede leer, el mapa vuelve vacío y cada tarjeta dibuja su categoría sobre su tono (ADR-0333).
+ */
+export async function cargarFotosDeHabituales(productoIds: readonly string[]): Promise<Map<string, string>> {
+  if (productoIds.length === 0) return new Map();
+  const { datos } = tolerar(
+    await leerPorTandasDeIds(productoIds, (tanda) =>
+      createClient().from("producto_fotos").select("producto_id, url, orden, es_principal").in("producto_id", tanda),
+    ),
+    "las fotos de las prendas",
+  );
+  const porProducto = new Map<string, { url: string; orden: number; es_principal: boolean }[]>();
+  for (const f of datos ?? []) porProducto.set(f.producto_id, [...(porProducto.get(f.producto_id) ?? []), f]);
+  const fotos = new Map<string, string>();
+  for (const [id, lista] of porProducto) {
+    const url = fotoPrincipal(lista);
+    if (url) fotos.set(id, url);
+  }
+  return fotos;
+}
+
 /** Sube la foto del papel. `motivo` dice, en palabras de tienda, por qué no se subió. */
 export async function subirFotoPapel(archivo: File): Promise<{ ruta: string | null; motivo: string | null }> {
   const objecion = objecionArchivo(archivo);
@@ -44,7 +69,17 @@ export async function subirFotoPapel(archivo: File): Promise<{ ruta: string | nu
 }
 
 export async function registrarCompraRapida(
-  args: { p_id: string; p_proveedor_id: string; p_tipo: TipoPapel; p_monto: number; p_foto_ruta: string | null; p_lineas: unknown[] },
+  args: {
+    p_id: string;
+    p_proveedor_id: string;
+    p_tipo: TipoPapel;
+    p_monto: number;
+    p_foto_ruta: string | null;
+    p_lineas: unknown[];
+    // Pagar ahora o después (20261023181000): cero y sin método si paga Compras desde Por pagar.
+    p_pagado: number;
+    p_medio: MedioPagoCompra | null;
+  },
   firma: Firma | FirmaOmitida | null,
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_REGISTRAR_COMPRA_RAPIDA as never, args as never), firma);

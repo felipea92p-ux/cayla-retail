@@ -34,8 +34,7 @@
     "components/ProveedorAcciones.tsx": [
       "BotonAncla «WhatsApp»",
       "BotonCopiar «el CCI»",
-      "BotonEditar «→() => setEditando(true)»",
-      "BotonEnlace «Registrar factura»"
+      "BotonEditar «→() => setEditando(true)»"
     ],
     "components/ProveedorModal.tsx": [
       "CampoTexto «Contacto»",

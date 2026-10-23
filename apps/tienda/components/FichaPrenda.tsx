@@ -11,6 +11,7 @@ import {
   campanaDeLaFicha,
   chipCampana,
   colorInicial,
+  dibujoDeLaInsignia,
   faltaParaTerminar,
   fotosDelColor,
   lineaAlAgregar,
@@ -19,6 +20,7 @@ import {
   precioDeLaFicha,
   tallaDelPrecio,
   tallasDelColor,
+  type ChipFicha,
   type Ficha,
 } from "@/lib/ficha";
 import { hrefDelProbador } from "@/lib/probador";
@@ -27,6 +29,7 @@ import { textoNivel, tonoNivel } from "@/lib/stock";
 import { AgregarALaBolsa } from "./bolsa/AgregarALaBolsa";
 import { BotonAvisame } from "./club/BotonAvisame";
 import { BotonFavorito } from "./club/BotonFavorito";
+import { IconoInsignia } from "./IconoInsignia";
 import { usePrendaTocada } from "./PrendaTocada";
 import { fotoQueViaja } from "./Vistas";
 import { DibujoPrenda } from "./DibujoPrenda";
@@ -67,8 +70,8 @@ export function FichaPrenda({
   /** `?color=` de la dirección: con qué color abre. */
   colorPedido: string | null;
   origenFotos: string | undefined;
-  /** Los chips de arriba del nombre que vienen del catálogo («Nuevo…», «N.º 3 en más vendidos»). */
-  chips?: { texto: string; tono?: "nuevo" }[];
+  /** Los chips de arriba del nombre: «Nuevo…» y «N.º 3 en más vendidos» (del catálogo) y las insignias de la prenda (de su ficha, ADR-0489). */
+  chips?: ChipFicha[];
   /** «Cambios»: como en tienda, con el plazo de la caja (`lib/ayuda.ts`, el mismo de «Cambios y devoluciones»). */
   /** Lo que la cuenta ya pidió con «Avísame» (`claveEspera`: prenda y tienda). */
   esperas?: readonly string[];
@@ -211,11 +214,16 @@ export function FichaPrenda({
               <div className="t-pdp-chips">
                 {chips.map((c) => (
                   <span key={c.texto} className={`t-chip${c.tono ? ` ${c.tono}` : ""}`}>
-                    {c.tono === "nuevo" && <Icono nombre="chispa" />}
+                    {c.icono && <IconoInsignia icono={c.icono} />}
                     {c.texto}
                   </span>
                 ))}
-                {campana && <span className="t-chip oferta">{campana}</span>}
+                {campana && campanaVista && (
+                  <span className="t-chip oferta">
+                    <IconoInsignia icono={dibujoDeLaInsignia(campanaVista.nombre)} />
+                    {campana}
+                  </span>
+                )}
               </div>
             )}
             <h1>{ficha.nombre}</h1>

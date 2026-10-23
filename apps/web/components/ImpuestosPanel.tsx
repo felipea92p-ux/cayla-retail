@@ -4,6 +4,7 @@ import { useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -16,6 +17,8 @@ import { crearZip } from "@/lib/zip-simple";
 import { mesesRecientes, solesRedondo, textoMes } from "@/lib/gastos-reglas";
 import {
   ALCANCE_DEL_AVISO,
+  ORDEN_REGISTRO_COMPRAS,
+  ORDEN_REGISTRO_VENTAS,
   TEXTO_ESTADO_MES,
   avisoUmbral,
   csvRegistroCompras,
@@ -73,14 +76,15 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
   async function bajar(que: Descarga) {
     setBajando(que);
     const supabase = createClient();
-    const p = { p_mes: `${mes}-01` } as never;
+    const p = { p_mes: `${mes}-01` };
     try {
-      const ventas = que === "compras" ? null : await supabase.rpc("fn_impuestos_registro_ventas" as never, p);
+      // Por páginas: octubre ya pasa de 1.000 comprobantes y PostgREST corta ahí sin error (el archivo del contador salía incompleto).
+      const ventas = que === "compras" ? null : await leerRpcPorPaginas(supabase, "fn_impuestos_registro_ventas", p, ORDEN_REGISTRO_VENTAS, { enParalelo: 1 });
       if (ventas?.error) throw new Error(ventas.error.message);
-      const compras = que === "ventas" ? null : await supabase.rpc("fn_impuestos_registro_compras" as never, p);
+      const compras = que === "ventas" ? null : await leerRpcPorPaginas(supabase, "fn_impuestos_registro_compras", p, ORDEN_REGISTRO_COMPRAS, { enParalelo: 1 });
       if (compras?.error) throw new Error(compras.error.message);
-      const filasV = ((ventas?.data ?? []) as Record<string, unknown>[]).map(leerFilaVentas);
-      const filasC = ((compras?.data ?? []) as Record<string, unknown>[]).map(leerFilaCompras);
+      const filasV = (ventas?.data ?? []).map(leerFilaVentas);
+      const filasC = (compras?.data ?? []).map(leerFilaCompras);
       const cv = csvRegistroVentas(filasV, mes);
       const cc = csvRegistroCompras(filasC, mes);
 
