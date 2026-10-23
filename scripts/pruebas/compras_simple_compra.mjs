@@ -43,6 +43,19 @@ const MIGRACION_FOTO = readFileSync(join(RAIZ, "supabase", "migrations", "202610
   "",
 );
 
+// Pegar 20261023005000 otra vez recrea `registrar_compra_rapida` de seis datos, que desde 20261023181000 es el cuerpo interno
+// `fn_registrar_compra_rapida_base`: se le devuelve ese nombre, como hace aquella migración, para que quede una sola firma pública.
+const UNA_FIRMA = `
+do $$
+begin
+  if to_regprocedure('retail.registrar_compra_rapida(uuid,uuid,text,numeric,text,jsonb)') is not null
+     and to_regprocedure('retail.registrar_compra_rapida(uuid,uuid,text,numeric,text,jsonb,numeric,text)') is not null then
+    drop function if exists retail.fn_registrar_compra_rapida_base(uuid, uuid, text, numeric, text, jsonb);
+    alter function retail.registrar_compra_rapida(uuid, uuid, text, numeric, text, jsonb) rename to fn_registrar_compra_rapida_base;
+  end if;
+end $$;
+revoke all on function retail.fn_registrar_compra_rapida_base(uuid, uuid, text, numeric, text, jsonb) from public, anon, authenticated;`;
+
 // La ronda de compras (20261023183000): sin una abierta, la base no deja anotar una compra ni un gasto. Se vuelve a pegar después de la
 // migración de este archivo (que deja funciones de antes) y cada persona de la semilla empieza con su ronda abierta.
 const RONDA = readFileSync(join(RAIZ, "supabase", "migrations", "20261023183000_compras_simple_ronda_de_compras.sql"), "utf8").replace(
@@ -75,6 +88,7 @@ ${MIGRACION}
 ${MIGRACION}
 ${MIGRACION_FOTO}
 ${MIGRACION_FOTO}
+${UNA_FIRMA}
 ${RONDAS_ABIERTAS}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
@@ -263,13 +277,14 @@ select puede, razon from retail.fn_producto_se_puede_eliminar(current_setting('t
 );
 
 caso(
-  "anon no ejecuta ninguna de las tres; la tabla no se lee directo",
+  "anon no ejecuta ninguna de las tres; el cuerpo interno no lo llama nadie de afuera; la tabla no se lee directo",
   `reset role;
-select has_function_privilege('anon', 'retail.registrar_compra_rapida(uuid, uuid, text, numeric, text, jsonb)', 'execute'),
+select has_function_privilege('anon', 'retail.registrar_compra_rapida(uuid, uuid, text, numeric, text, jsonb, numeric, text)', 'execute'),
        has_function_privilege('anon', 'retail.fn_proveedores_para_comprar()', 'execute'),
        has_function_privilege('anon', 'retail.fn_habituales_proveedor(uuid)', 'execute'),
-       has_table_privilege('authenticated', 'retail.compra_papeles', 'select');`,
-  "f|f|f|f",
+       has_table_privilege('authenticated', 'retail.compra_papeles', 'select'),
+       has_function_privilege('authenticated', 'retail.fn_registrar_compra_rapida_base(uuid, uuid, text, numeric, text, jsonb)', 'execute');`,
+  "f|f|f|f|f",
 );
 
 caso(

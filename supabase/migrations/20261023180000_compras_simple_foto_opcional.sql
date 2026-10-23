@@ -44,7 +44,9 @@ $f$;
 alter table retail.compra_papeles drop constraint if exists compra_papeles_foto_si_hay_papel;
 
 -- ---------- 2. `registrar_compra_rapida` no rechaza un papel sin foto ----------
-select pg_temp.reemplazar('retail.registrar_compra_rapida(uuid,uuid,text,numeric,text,jsonb)',
+-- Pegada otra vez después de 20261023181000, el cuerpo de seis datos se llama `fn_registrar_compra_rapida_base`.
+select pg_temp.reemplazar(coalesce(to_regprocedure('retail.registrar_compra_rapida(uuid,uuid,text,numeric,text,jsonb)'),
+                                   to_regprocedure('retail.fn_registrar_compra_rapida_base(uuid,uuid,text,numeric,text,jsonb)'))::text,
 $v$  if v_tipo <> 'sin_comprobante' and v_foto is null then
     raise exception 'Tómale una foto al papel que te dieron' using errcode = 'P0001', hint = 'compra_rapida_sin_foto';
   end if;

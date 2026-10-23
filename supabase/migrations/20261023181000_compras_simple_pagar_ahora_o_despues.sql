@@ -12,9 +12,10 @@
 -- QUÉ HACE
 --   1. `compra_papeles` guarda `pagado` (de 0 al monto del papel) y `medio_pago` (yape, efectivo o transferencia; sin pago, ninguno). Lo ya
 --      anotado queda como antes: pagado entero, en efectivo. Los dos datos tampoco cambian después (el candado de lo anotado los suma).
---   2. `registrar_compra_rapida(…, p_pagado, p_medio)`: una versión con los dos datos que los valida, los deja en la transacción
---      (`retail.compra_pago`) y llama a la de siempre, sin tocarla: un disparador antes del insert del papel los toma de ahí. La de siempre,
---      llamada sola, deja todo pagado en efectivo, como antes (una pantalla vieja abierta no se rompe).
+--   2. `registrar_compra_rapida` gana `p_pagado` y `p_medio`, OPCIONALES: los valida, los deja en la transacción (`retail.compra_pago`) y
+--      llama al cuerpo de siempre, sin tocarlo, que pasa a llamarse `fn_registrar_compra_rapida_base` (interno: la pantalla no lo llama). Un
+--      disparador antes del insert del papel los toma de ahí. Sin los dos datos (una pantalla vieja abierta), todo pagado en efectivo, como
+--      antes. Una sola firma por nombre (ADR-0009, `pruebas:una-sola-firma`): una sobrecarga dejaría viva la vieja.
 --   3. `fn_mi_plata_tiene` y `fn_mi_plata_compras` restan lo PAGADO, no el monto del papel: lo que no pagó no salió de su plata.
 --   4. `completar_papel_compra` paga solo lo pagado, con su método, desde el fondo de quien compró; si queda algo, el comprobante va a
 --      crédito (vence a los 7 días de la compra: provisional) y aparece en Por pagar. Si Compras corrige el monto del papel hacia abajo, lo
@@ -99,6 +100,17 @@ $v$old.huella, old.registrado_por, old.created_at)$v$,
 $v$old.huella, old.registrado_por, old.created_at, old.pagado, old.medio_pago)$v$, 1);
 
 -- ---------- 2. Registrar la compra con cuánto pagó y cómo ----------
+-- El cuerpo de seis datos pasa a ser interno. Si quedó una versión anterior de la interna (una migración vieja pegada otra vez la recrea
+-- con su nombre de antes), manda la que acaba de llegar.
+do $$
+begin
+  if to_regprocedure('retail.registrar_compra_rapida(uuid,uuid,text,numeric,text,jsonb)') is not null then
+    drop function if exists retail.fn_registrar_compra_rapida_base(uuid, uuid, text, numeric, text, jsonb);
+    alter function retail.registrar_compra_rapida(uuid, uuid, text, numeric, text, jsonb) rename to fn_registrar_compra_rapida_base;
+  end if;
+end $$;
+revoke all on function retail.fn_registrar_compra_rapida_base(uuid, uuid, text, numeric, text, jsonb) from public, anon, authenticated;
+
 create or replace function retail.registrar_compra_rapida(
   p_id uuid,
   p_proveedor_id uuid,
@@ -106,8 +118,8 @@ create or replace function retail.registrar_compra_rapida(
   p_monto numeric,
   p_foto_ruta text,
   p_lineas jsonb,
-  p_pagado numeric,
-  p_medio text
+  p_pagado numeric default null,
+  p_medio text default null
 )
 returns jsonb
 language plpgsql
@@ -120,6 +132,10 @@ declare
   v_monto numeric := round(p_monto, 2);
   v_r jsonb;
 begin
+  -- Sin el pago (una pantalla de antes): como siempre, todo pagado en efectivo (lo pone el disparador).
+  if p_pagado is null and p_medio is null then
+    return retail.fn_registrar_compra_rapida_base(p_id, p_proveedor_id, p_tipo, p_monto, p_foto_ruta, p_lineas);
+  end if;
   if v_pagado is null or v_pagado = 'NaN'::numeric or v_pagado < 0 or (v_monto is not null and v_pagado > v_monto) then
     raise exception 'Lo que pagas ahora va de S/ 0 a lo que dice el papel' using errcode = 'P0001', hint = 'compra_rapida_pagado';
   end if;
@@ -133,7 +149,7 @@ begin
   end if;
 
   perform set_config('retail.compra_pago', jsonb_build_object('pagado', v_pagado, 'medio', v_medio)::text, true);
-  v_r := retail.registrar_compra_rapida(p_id, p_proveedor_id, p_tipo, p_monto, p_foto_ruta, p_lineas);
+  v_r := retail.fn_registrar_compra_rapida_base(p_id, p_proveedor_id, p_tipo, p_monto, p_foto_ruta, p_lineas);
   perform set_config('retail.compra_pago', '', true);
 
   -- Un reintento con el mismo identificador devuelve lo que ya quedó: si quedó con otro pago, lo dice (como con otros datos).
@@ -143,7 +159,7 @@ begin
   return v_r;
 end $$;
 comment on function retail.registrar_compra_rapida(uuid, uuid, text, numeric, text, jsonb, numeric, text) is
-  'ADR-0480: anota la compra con cuánto se pagó ahora (de 0 al monto) y cómo; lo demás, como la de seis datos.';
+  'ADR-0480: anota la compra con cuánto se pagó ahora (de 0 al monto) y cómo; sin esos dos datos, todo pagado en efectivo.';
 revoke all on function retail.registrar_compra_rapida(uuid, uuid, text, numeric, text, jsonb, numeric, text) from public, anon;
 grant execute on function retail.registrar_compra_rapida(uuid, uuid, text, numeric, text, jsonb, numeric, text) to authenticated;
 
