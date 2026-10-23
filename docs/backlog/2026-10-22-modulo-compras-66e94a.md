@@ -1,6 +1,6 @@
 ## 🛒 Compras simple (ADR-0480) — rama `claude/modulo-compras-66e94a`
 
-- [ ] **Ninguna migración pegada en producción.** Van en orden, después de publicar la web y con el OK de Felipe: `20261022225000`, `20261022235000`, `20261023005000`, `20261023114000`, `20261023121000`, `20261023143000`.
+- [ ] **Ninguna migración pegada en producción.** Van en orden, ANTES de fusionar el PR #1274 (el check «SQL pegado» lo exige) y con el OK de Felipe: `20261022225000`, `20261022235000`, `20261023005000`, `20261023114000`, `20261023121000`, `20261023143000`.
 - [x] **Revisar los gastos que anotaron las compradoras** (segunda parte de la actividad 7): pasan a los gastos del viaje desde «Revisar compras».
 - [ ] **Una comida, envío, bolsas u otro sin papel no pasa** (solo taxi y cargador van en la planilla de movilidad, decisión 55 de ADR-0362): queda «por revisar». Falta decidir qué hace Compras con ese gasto (pedir el papel, o que CAYLA no lo reconozca y la compradora lo devuelva).
 - [ ] **La foto de un gasto revisado no pasa al gasto del viaje** (las fotos de un gasto del viaje viven en la carpeta del gasto): queda en el gasto de la compradora. Si Finanzas la necesita, copiarla al revisar.

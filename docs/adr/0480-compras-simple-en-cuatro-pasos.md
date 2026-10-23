@@ -6,7 +6,7 @@
   mandar a la tienda y terminar el día): `20261023114000_compras_simple_gasto_envio_y_cierre.sql`. Actividad 6 (recibir
   mirando la foto): `20261023121000_compras_simple_recibir_con_la_foto.sql`. Actividad 7 (revisar compras):
   `20261023143000_compras_simple_revisar.sql`.
-  **Ninguna pegada en producción** (se pegan después de publicar la web,
+  **Ninguna pegada en producción** (se pegan antes de fusionar el PR, que es lo que pide el check «SQL pegado»: no rompen la web de hoy,
   en orden y con el OK de Felipe).
 - **Maqueta aprobada:** `docs/maquetas/compras-simple-2026-10/` (index.html tocable + README con cada decisión).
 - **Relacionados:** ADR-0362 (Órdenes de compra y Fondos por rendir, fases 1–6: lo que se reemplaza), ADR-0111 y ADR-0362 fase 5b
