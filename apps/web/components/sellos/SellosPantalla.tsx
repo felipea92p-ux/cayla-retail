@@ -76,6 +76,7 @@ export function SellosPantalla({
   etiquetasIniciales,
   categorias,
   tiendas,
+  sedeActualId,
   prendasConCosto,
   variantesManuales,
   prendasVitrina,
@@ -91,6 +92,8 @@ export function SellosPantalla({
   categorias: CategoriaOpcion[];
   /** Las tiendas donde se puede limitar el descuento de una campaña (ADR-0486); vacío = la hoja de Configurar no ofrece sedes. */
   tiendas: TiendaOpcion[];
+  /** La sede de la cabecera: con su precio sale la impresión que ofrece el aviso de reimprimir al guardar una campaña. */
+  sedeActualId: string;
   prendasConCosto: PrendaConCosto[];
   variantesManuales: Record<string, string[]>;
   /** Modelo, color, categoría y foto de cada prenda a la venta; `null` si no se pudieron leer (la vitrina no se dibuja). */
@@ -662,6 +665,8 @@ export function SellosPantalla({
           etiqueta={etiquetando}
           prendasConCosto={prendasConCosto}
           marcasManuales={manuales[etiquetando.id] ?? []}
+          tiendas={tiendas}
+          sedeActualId={sedeActualId}
           onClose={() => setEtiquetando(null)}
           onAplicado={(finales) => {
             setManuales((actual) => ({ ...actual, [etiquetando.id]: finales }));
@@ -677,6 +682,7 @@ export function SellosPantalla({
           puedeDarDescuento={puedeEditar(configurando)}
           categorias={categorias}
           tiendas={tiendas}
+          sedeActualId={sedeActualId}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales[configurando.id] ?? []}
           onClose={() => setConfigurando(null)}

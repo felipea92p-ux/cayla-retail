@@ -38,7 +38,7 @@ export default async function EditarProductoPage({
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, resSedesCampanas] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -68,6 +68,9 @@ export default async function EditarProductoPage({
     supabase.rpc("fn_variantes_estado", { p_producto_id: id }),
     // Precio por tienda (Felipe 2026-10-09): las tiendas abiertas. Tolerante: si falla, el bloque solo se lee.
     supabase.from("ubicaciones").select("id, nombre").eq("tipo", "tienda").eq("activo", true).order("nombre"),
+    // Las tiendas donde rige cada campaña (ADR-0486; sin filas = todas): el aviso de reimprimir dice en cuáles cambió el precio en caja.
+    // Tolerante: si falla (la base sin la migración), todas rigen en todas las sedes, como antes.
+    supabase.rpc("campanas_sedes"),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const filasFamilias = exigir(familias, "las familias del catálogo");
@@ -89,6 +92,10 @@ export default async function EditarProductoPage({
     .filter((e) => (!e.vigente_desde || e.vigente_desde <= hoy) && (!e.vigente_hasta || e.vigente_hasta >= hoy))
     .map((e) => ({ id: e.id, texto: e.nombre, estilo: e.estilo ?? "neutral" }));
   // Las que bajan el precio (ADR-0472): la ficha calcula con ellas lo que cobra la caja, también mientras se cambian etiquetas.
+  const sedesDeCampana = new Map<string, string[]>();
+  for (const f of resSedesCampanas.error ? [] : (resSedesCampanas.data ?? [])) {
+    sedesDeCampana.set(f.etiqueta_id, [...(sedesDeCampana.get(f.etiqueta_id) ?? []), f.ubicacion_id]);
+  }
   const campanas: CampanaDelVocabulario[] = vocabulario
     .filter((e) => e.descuento_pct !== null && Number(e.descuento_pct) > 0)
     .map((e) => ({
@@ -98,6 +105,7 @@ export default async function EditarProductoPage({
       vigenteDesde: e.vigente_desde,
       vigenteHasta: e.vigente_hasta,
       categoriaIds: (e.etiqueta_categorias ?? []).map((c) => c.categoria_id),
+      sedeIds: sedesDeCampana.get(e.id) ?? [],
     }));
 
   if (!producto) notFound();
