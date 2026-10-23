@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { esFuncionAusente } from "./compras-reglas";
-import { esDocumentoInterno } from "./notas-credito-reglas";
+
 
 // Saldo a favor de los proveedores (ADR-0111, corrección 2026-09-18): lo que un proveedor le debe a CAYLA
 // porque una nota de crédito superó lo que se le debía de su comprobante (típico: factura al contado, que
@@ -89,6 +89,10 @@ export const ETIQUETA_MOVIMIENTO_CREDITO: Record<TipoMovimientoCredito, string> 
   aplicacion: "Usado en un pago",
   reembolso: "Reembolso del proveedor",
 };
+
+/** ¿Es un documento interno de CAYLA (ADR-0362 fase 5b: lo que no llegó, pasado a saldo a favor)? La base garantiza que su serie, y solo la
+ *  suya, empieza con «DI-» (candado `compra_notas_credito_interna_serie`). */
+const esDocumentoInterno = (serie: string | null | undefined): boolean => typeof serie === "string" && serie.trim().toUpperCase().startsWith("DI-");
 
 /** Cómo se llama un movimiento del saldo a favor: un documento interno no es una nota de crédito del proveedor. */
 export function etiquetaMovimientoCredito(m: Pick<MovimientoCredito, "tipo" | "notaSerieNumero">): string {

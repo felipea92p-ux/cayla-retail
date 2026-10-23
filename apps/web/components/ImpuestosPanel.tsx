@@ -15,7 +15,9 @@ import { descargarBlob, descargarCsv, textoCsv } from "@/lib/exportar-csv";
 import { crearZip } from "@/lib/zip-simple";
 import { mesesRecientes, solesRedondo, textoMes } from "@/lib/gastos-reglas";
 import {
+  ALCANCE_DEL_AVISO,
   TEXTO_ESTADO_MES,
+  avisoUmbral,
   csvRegistroCompras,
   csvRegistroVentas,
   csvResumenIgv,
@@ -33,6 +35,7 @@ import {
   type PanelImpuestos,
 } from "@/lib/impuestos-reglas";
 import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
 import { Settings2 } from "lucide-react";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { Boton } from "@/components/ui/campos";
@@ -269,30 +272,45 @@ function FilaMes({ m, mesActual, activa, onAbrir }: { m: MesIgv; mesActual: stri
   );
 }
 
-/** El límite del régimen: lo vendido en 12 meses contra el umbral, y lo proyectado a diciembre. */
+/** El límite del régimen: lo vendido en el año calendario contra el umbral, y lo proyectado a diciembre. Es la misma cifra del aviso anticipado. */
 function Limite({ panel }: { panel: PanelImpuestos }) {
   const { umbral, parametros, hoy } = panel;
   const uit = parametros.uit;
   const n = parametros.umbralUit?.valor ?? null;
   const titulo = n !== null ? `El límite de ${n.toLocaleString("es-PE")} UIT` : "El límite de ventas";
+  const bajada = "Al cruzarlo, SUNAT te exige llevar el Libro Diario y el Mayor electrónicos.";
   if (umbral.umbralSoles === null || !uit) {
     return (
       <Superficie pad className="anim-sube" guia="fin-impuestos.limite">
-        <CabeceraBloque titulo={titulo} bajada="Al cruzarlo, SUNAT te exige llevar el Libro Diario y el Mayor electrónicos." />
+        <CabeceraBloque titulo={titulo} bajada={bajada} />
         <Vacio tamano="chico" icono={<Settings2 />} accion={{ texto: "Configúralos en Configuración ▸ Impuestos", href: "/configuracion?tab=impuestos" }}>
           Falta el valor de la UIT o el límite del régimen.
         </Vacio>
       </Superficie>
     );
   }
+  // Una base más vieja que esta pantalla todavía mide 12 meses móviles: no se mezcla esa cifra con el año.
+  if (umbral.ventasAnio === null) {
+    return (
+      <Superficie pad className="anim-sube" guia="fin-impuestos.limite">
+        <CabeceraBloque titulo={titulo} bajada={bajada} />
+        <Vacio tamano="chico" icono={<Settings2 />}>
+          Esta cifra aparece cuando la base de datos esté al día.
+        </Vacio>
+      </Superficie>
+    );
+  }
+  const vendido = umbral.ventasAnio;
   const avance = umbral.avance ?? 0;
-  const p = proyectarUmbral(umbral.ventasMeses, hoy, umbral.umbralSoles, umbral.primerMes);
+  const p = proyectarUmbral(umbral.ventasMeses, hoy, umbral.umbralSoles, umbral.primerMes, umbral.ajuste);
   const proyectado = Math.min(1, p.proyectadoDiciembre / umbral.umbralSoles);
   const tono = tonoAvance(umbral.avance);
   const provisional = uit.provisional || parametros.umbralUit?.provisional;
+  // El aviso anticipado (parámetro `aviso_umbral_uit`): mide el mismo año calendario de la barra de arriba.
+  const aviso = avisoUmbral(panel);
   return (
     <Superficie pad className="anim-sube" guia="fin-impuestos.limite">
-      <CabeceraBloque titulo={titulo} bajada="Al cruzarlo, SUNAT te exige llevar el Libro Diario y el Mayor electrónicos.">
+      <CabeceraBloque titulo={titulo} bajada={bajada}>
         <Chip tono={tono}>{porcentaje(avance)}</Chip>
       </CabeceraBloque>
       <div className="fin-umbral-barra" data-tono={tono} role="img" aria-label={`${porcentaje(avance)} del límite; a diciembre, ${porcentaje(proyectado)}`}>
@@ -302,14 +320,14 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
       <div className="fin-marcas">
         <span>S/&nbsp;0</span>
         <span>
-          Vendido en 12 meses: <b>{solesRedondo(umbral.ventas12m)}</b>
+          Vendido en {umbral.anio ?? "el año"}: <b>{solesRedondo(vendido)}</b>
         </span>
         <span>{solesRedondo(umbral.umbralSoles)}</span>
       </div>
       <p className="nota-cayla mt-3">
-        {p.proyectadoDiciembre > umbral.ventas12m
+        {p.proyectadoDiciembre > vendido
           ? `La franja rayada es lo proyectado a diciembre (${solesRedondo(p.proyectadoDiciembre)}).`
-          : `A diciembre, a este ritmo, los 12 meses quedan en ${solesRedondo(p.proyectadoDiciembre)}.`}{" "}
+          : `A diciembre, a este ritmo, el año queda en ${solesRedondo(p.proyectadoDiciembre)}.`}{" "}
         {p.yaCruzado ? (
           <b>Ya lo cruzaste: habla con el contador sobre los libros y el pago a cuenta.</b>
         ) : p.mesCruce ? (
@@ -317,10 +335,9 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
             A este ritmo lo cruzas en <b>{textoMes(p.mesCruce)}</b>.
           </>
         ) : (
-          "A este ritmo no lo cruzas en los próximos dos años."
+          "A este ritmo no lo cruzas este año."
         )}{" "}
-        {p.mesesConDatos > 0 && p.mesesConDatos < 12 && `El sistema tiene ventas desde ${textoMes(umbral.primerMes!)}: los 12 meses todavía cuentan menos de lo real. `}
-        Sin IGV, de los comprobantes emitidos. UIT {uit.anio} = {solesRedondo(uit.valor)}
+        Sin IGV, de los comprobantes emitidos de enero a hoy. UIT {uit.anio} = {solesRedondo(uit.valor)}
         {provisional && (
           <>
             {" · "}
@@ -328,6 +345,15 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
           </>
         )}
         .
+      </p>
+      {aviso.titulo && (aviso.nivel === "aviso" || aviso.nivel === "cruzado") && (
+        <Aviso tono={aviso.nivel === "cruzado" ? "error" : "atencion"} titulo={aviso.titulo} className="mt-3">
+          {aviso.detalle}
+        </Aviso>
+      )}
+      <p className="fin-tenue mt-3 text-[13px]">
+        {ALCANCE_DEL_AVISO}
+        {aviso.ajuste > 0 && ` Incluye ${solesRedondo(aviso.ajuste)} de ajuste cargado en Configuración (${solesRedondo(aviso.ventasSistema)} en el sistema).`}
       </p>
     </Superficie>
   );

@@ -229,6 +229,18 @@ export type LineaEnvio = {
   compraItemId: string | null;
   /** El precio de venta que puso quien compró (decisión 21): precarga el de la prenda nueva. */
   precioVentaSugerido: number | null;
+  /** La prenda del catálogo que eligió la compradora al comprar desde el celular (ADR-0480): se ofrece de un toque al contar. */
+  prendaElegida: { productoId: string; nombre: string | null; codigo: string | null } | null;
+};
+
+/** El papel de una compra anotada desde el celular que viene en el envío (ADR-0480): la tienda cuenta mirando su foto. Sin montos. */
+export type PapelDelEnvio = {
+  id: string;
+  tipo: string | null;
+  fotoRuta: string | null;
+  fecha: string | null;
+  proveedor: string | null;
+  compradora: string | null;
 };
 
 /** Lo que entró de una línea (o de algo que no estaba en la guía), tal como se cerró: «cómo se cerró». */
@@ -292,6 +304,8 @@ export type DetalleEnvio = {
   /** Lo que los proveedores del envío deben por reponer, por categoría y marca (fase 5a, `deudas_del_proveedor`): con esto se ofrece «Es la
    *  reposición de lo que faltó». `null` = la base todavía no lo dice (la recepción sigue sin esa opción). */
   deudas: DeudaDelEnvio[] | null;
+  /** Los papeles de las compras anotadas desde el celular que vienen en el envío (ADR-0480); vacío en uno armado en el escritorio. */
+  papeles: PapelDelEnvio[];
 };
 
 function leerCategoria(r: Record<string, unknown>): CategoriaDeLinea | null {
@@ -330,6 +344,31 @@ function leerLineaEnvio(f: unknown): LineaEnvio | null {
     costoUnitario: Math.max(0, cifra(r.precio_unitario) ?? cifra(r.costo_unitario) ?? 0),
     compraItemId: texto(r.compra_item_id),
     precioVentaSugerido: cifra(r.precio_venta_sugerido),
+    prendaElegida: leerPrendaElegida(r.producto),
+  };
+}
+
+function leerPrendaElegida(v: unknown): LineaEnvio["prendaElegida"] {
+  const o = objeto(v);
+  const productoId = o ? texto(o.id) : null;
+  return o && productoId ? { productoId, nombre: texto(o.nombre), codigo: texto(o.codigo) } : null;
+}
+
+/** La carpeta de las fotos de los papeles de compra (ADR-0480): una ruta de otra carpeta no se firma. */
+export const CARPETA_PAPELES_COMPRA = "papeles/";
+
+function leerPapel(v: unknown): PapelDelEnvio | null {
+  const o = objeto(v);
+  const id = o ? texto(o.id) : null;
+  if (!o || !id) return null;
+  const ruta = texto(o.foto_ruta);
+  return {
+    id,
+    tipo: texto(o.tipo),
+    fotoRuta: ruta && ruta.startsWith(CARPETA_PAPELES_COMPRA) ? ruta : null,
+    fecha: texto(o.fecha),
+    proveedor: texto(o.proveedor),
+    compradora: texto(o.compradora),
   };
 }
 
@@ -426,6 +465,7 @@ export function leerDetalleEnvio(data: unknown): DetalleEnvio | null {
     recepcion,
     creadoPorMi: booleano(d.creado_por_mi),
     deudas: leerDeudasDelEnvio(d.deudas_del_proveedor ?? d.deudas),
+    papeles: lista(d.papeles).map(leerPapel).filter((x): x is PapelDelEnvio => x !== null),
   };
 }
 
