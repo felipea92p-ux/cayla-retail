@@ -11,7 +11,7 @@ import { proveedoresParaPedir } from "@/lib/proveedores-reglas";
 //   PROMETE: una foto de solo lectura; nunca ofrece una marca o proveedor
 //            desactivado, ni un proveedor que es solo de gastos (luz, agua, internet:
 //            ADR-0452, act. 2026-10-21) salvo que ya traiga una marca.
-//   NO HACE: "más usadas" es una sugerencia sobre los últimos 2.000 productos,
+//   NO HACE: "más usadas" es una sugerencia sobre los últimos 1.000 productos (lo que PostgREST entrega por consulta; un `.limit(2000)` no traía más),
 //            no un dato contable — mismo criterio que los colores más usados.
 
 export type CatalogoMarcas = {
@@ -21,7 +21,7 @@ export type CatalogoMarcas = {
   parejasPorCategoria: Record<string, ParejaUso[]>;
 };
 
-const VENTANA_PRODUCTOS = 2000;
+const VENTANA_PRODUCTOS = 1000;
 
 export async function getCatalogoMarcas(): Promise<CatalogoMarcas> {
   const supabase = await createClient();
