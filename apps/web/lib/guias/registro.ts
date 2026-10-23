@@ -122,6 +122,7 @@ import {
   GUIA_RECOMENDACIONES,
   GUIA_TIENDA_WEB_AJUSTES,
   GUIA_TIENDA_WEB_RESUMEN,
+  GUIA_TRAFICO,
   GUIA_VITRINA,
   GUIA_VITRINA_ESPERAN,
   GUIA_VITRINA_LOOKS,
@@ -247,6 +248,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_CAMPANAS_WEB,
   GUIA_CAMPANAS_EDITOR,
   GUIA_RECOMENDACIONES,
+  GUIA_TRAFICO,
   GUIA_TIENDA_WEB_AJUSTES,
 ];
 
@@ -399,6 +401,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/tienda-web/campanas/[id]": { estado: "aplicada", guia: GUIA_CAMPANAS_EDITOR.id },
   "/tienda-web/pedidos": { estado: "aplicada", guia: GUIA_PEDIDOS_WEB.id },
   "/tienda-web/recomendaciones": { estado: "aplicada", guia: GUIA_RECOMENDACIONES.id },
+  "/tienda-web/trafico": { estado: "aplicada", guia: GUIA_TRAFICO.id },
   "/tienda-web/vitrina": { estado: "aplicada", guia: GUIA_VITRINA.id },
   "/tienda-web/vitrina/esperan": { estado: "aplicada", guia: GUIA_VITRINA_ESPERAN.id },
   "/tienda-web/vitrina/looks": { estado: "aplicada", guia: GUIA_VITRINA_LOOKS.id },

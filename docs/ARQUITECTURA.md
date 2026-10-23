@@ -1343,6 +1343,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `lib/club-avisos.ts:getTextosDeAvisos`) y guarda con `guardar_mensajes_avisos(tienda, …)` (`lib/club-avisos-acciones.ts`) en
   `club_avisos_textos_sede`. Armar, separar y validar un mensaje: `lib/club-avisos-mensajes.ts`
   (la misma regla que `fn_club_aviso_problema` y `fn_club_aviso_componer`).
+- `/tienda-web/trafico` (ADR-0495, Felipe 2026-10-23; módulo **`trafico`**, nace solo para el líder; migraciones `20261023230000` y
+  `20261023231000`, **sin pegar en producción**): cuánta gente entra a la tienda online, qué mira y en qué paso se va, contado por persona
+  anónima (maqueta C «La vitrina», `docs/maquetas/trafico-cero-2026-10/`). Séptima hija de Tienda web (excepción `tiendaWeb: 7` en
+  `menu.test.ts`), `soloConModulo`. `layout.tsx` y `page.tsx` piden `trafico` → RPC `resumen_trafico_web(desde, hasta, camino, ciudad)`
+  (personas por su paso más lejano, desde `fn_trafico_web_personas`; la ciudad de cada departamento, `fn_trafico_web_ciudad`) →
+  `lib/trafico-reglas.ts` (puro: lectura, «de cada 100», el cambio contra los días de antes, dónde se atora con poca gente contraído hacia
+  lo de costumbre, y el aviso de «la tienda no manda visitas») → `components/trafico/` (`CifraTrafico`, `RecorridoTrafico`, `PorQue`). Lo
+  escribe la TIENDA (`apps/tienda`): `POST /api/visita` y las acciones de la bolsa → `retail.tienda_anotar_pasos` → `retail.trafico_web`
+  (solo se agrega). Pruebas en la base: `pnpm pruebas:tienda-trafico` y `pnpm pruebas:tienda-trafico-resumen`.
 - `/tienda-web/recomendaciones` (ADR-0408, Felipe 2026-10-15; módulo **`recomendaciones`**, nace solo para el líder; migraciones
   `20261015134000` y `20261015135000`, **sin pegar en producción**): lo que los clientes le recomiendan a CAYLA desde la tienda online,
   siempre con su nombre. Tercera hija del grupo Clientes (después de Avisos); `app/(app)/clientas/layout.tsx` también la deja pasar y

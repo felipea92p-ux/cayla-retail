@@ -83,6 +83,12 @@ SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_
   `pnpm pruebas:tienda-trafico` sube a 21: «a la bolsa» con solo la talla, y «separó» por la marca, una vez, atado a su pedido.
 - **Actividad 3:** `/privacidad` dice qué se anota al mirar la tienda (punto 2), para qué (punto 3) y cuánto dura la cookie (punto 6), con
   el texto que aprobó Felipe; la versión de los textos subió a `borrador-2026-10-23` (las cuentas que ya existían conservan la que aceptaron).
+- **Actividad 4:** el módulo `trafico` (orden 63, solo para el líder: `pnpm pruebas:roles` «un módulo recién creado lo ve solo el líder»),
+  la séptima hija de Tienda web y `resumen_trafico_web` (`pnpm pruebas:tienda-trafico-resumen`, 18: personas por su paso más lejano, solo
+  quien entró en esos días, camino y ciudad de la primera entrada con los caminos sumando el total, Lima con Lima Metropolitana y el
+  Callao, más de 200 pasos al día no cuenta, una integrante sin el módulo recibe 42501). En el ERP local, como líder, la pantalla muestra
+  las 2 visitas de las pruebas, el recorrido y «Se atora al separar» con su «¿Por qué?»; en claro y en oscuro; a 1440 px. Dónde se atora
+  se decide contraído hacia lo de costumbre (90 días, peso de 30 personas): con 4 personas el veredicto no salta (`lib/trafico-reglas.test.ts`).
 - **Sin probar:** las cabeceras de ubicación reales de Vercel (solo existen publicadas), la tienda con la base caída en vivo (cubierta por la
   prueba de `anotarPasos`) y «separó» en el navegador (en local no hay una cuenta de cliente de prueba; crear una pide consultar un DNI
   real): su función está probada en Postgres y la acción usa el mismo camino que «a la bolsa».

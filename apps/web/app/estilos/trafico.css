@@ -1,0 +1,11 @@
+/* Tienda web ▸ Tráfico (ADR-0495; maqueta C «La vitrina», docs/maquetas/trafico-cero-2026-10/). Solo tokens: el oscuro sale solo. */
+@layer components {
+  /* «Ahora, N mirando»: el punto verde de la cabecera. */
+  .trafico-punto-vivo {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-verde);
+  }
+}

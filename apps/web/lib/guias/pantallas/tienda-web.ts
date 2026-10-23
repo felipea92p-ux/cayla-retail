@@ -1310,3 +1310,61 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
     },
   ],
 };
+
+// Tienda web ▸ Tráfico (ADR-0495; maqueta C «La vitrina», Felipe 2026-10-23): cuánta gente entra a la tienda online, qué mira y dónde se
+// va. Solo mira: la demo no toca nada.
+export const GUIA_TRAFICO: Guia = {
+  id: "tienda-web.trafico",
+  ruta: "/tienda-web/trafico",
+  titulo: "Tráfico",
+  resumen: "Cuánta gente entra a la tienda online, hasta qué paso llega y dónde se va.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "El tráfico de la tienda online",
+      texto: "Aquí ves cuánta gente entra a la tienda online y hasta dónde llega: si mira una prenda, elige talla, la pone en la bolsa, separa y recoge. Se cuenta a cada persona sin saber quién es. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "cifra",
+      ancla: "trafico.cifra",
+      opcional: true,
+      titulo: "Cuánta gente entró",
+      texto: "Las personas que entraron en los últimos días, si son más o menos que en los días de antes, y cuántas están mirando la tienda ahora mismo.",
+    },
+    {
+      id: "recorrido",
+      ancla: "trafico.recorrido",
+      opcional: true,
+      titulo: "El recorrido",
+      texto: "Cada paso dice cuántas personas llegaron hasta ahí y cuántas son de cada 100 que entraron. Lo que baja de un paso a otro es la gente que se fue.",
+    },
+    {
+      id: "veredicto",
+      ancla: "trafico.veredicto",
+      opcional: true,
+      titulo: "Dónde se atora",
+      texto: "El paso donde más gente se va, de la que le llega. Ese es el lugar donde mejorar la tienda: más fotos, la talla más clara, cómo separar.",
+    },
+    {
+      id: "porque",
+      ancla: "trafico.porque",
+      opcional: true,
+      titulo: "¿Por qué?",
+      texto: "Toca «¿Por qué?» y te explica de dónde sale el veredicto. Con poca gente, te avisa que es solo una pista.",
+    },
+    {
+      id: "vacio",
+      ancla: "trafico.vacio",
+      opcional: true,
+      titulo: "Todavía no hay visitas",
+      texto: "La tienda online cuenta a la gente desde que se publicó esta medición. Cuando alguien entre, lo verás aquí.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer el tráfico de la tienda online. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Tráfico.",
+    },
+  ],
+};
