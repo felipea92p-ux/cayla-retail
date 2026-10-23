@@ -26,11 +26,11 @@ export async function POST(request: Request) {
     return Response.json({ error: "Falta el nombre de la etiqueta." }, { status: 400 });
   }
 
-  // Desde Catálogo ▸ Campañas nace con estilo `campana`; desde Sellos, sin estilo (la base pone «neutral»). ADR-0473.
+  // Desde Catálogo ▸ Campañas nace con estilo `campana`; desde Insignias, sin estilo (la base pone «neutral»). ADR-0473.
   const estilo = cuerpo?.estilo === undefined ? undefined : estiloConocido(String(cuerpo.estilo));
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   // Una campaña se crea con `crear_campana` (ADR-0476): corre con permisos propios y pide la llave de los tres módulos (Campañas,
-  // Campañas de la tienda web o Sellos); un alta directa en la tabla la dejaría «por aprobar» para quien no ve Sellos.
+  // Campañas de la tienda web o Insignias); un alta directa en la tabla la dejaría «por aprobar» para quien no ve Insignias.
   if (estilo === "campana") {
     // Sin tipos generados todavía (ADR-0476 no está en el volcado): se nombra a mano.
     const creada = (await supabase.rpc("crear_campana" as never, { p_nombre: nombre } as never)) as unknown as { data: string | null; error: { code?: string; message: string } | null };
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase.from("etiquetas").insert(estilo ? { nombre, estilo } : { nombre }).select(COLUMNAS_FILA).single();
 
   if (error) {
-    return Response.json({ error: traducirError(error, estilo === "campana" ? "agregar la campaña" : "agregar el sello") }, { status: 400 });
+    return Response.json({ error: traducirError(error, estilo === "campana" ? "agregar la campaña" : "agregar la insignia") }, { status: 400 });
   }
 
   return Response.json({ etiqueta: data });
@@ -56,9 +56,9 @@ export async function PATCH(request: Request) {
   // líder: se dice aquí con palabras y la base lo vuelve a exigir (política `etiquetas_update`, `fn_puede_tocar_etiqueta`).
   const persona = await requirePersonaActualV2();
   // Una campaña también la edita quien ve Campañas o Campañas de la tienda web (Felipe 2026-10-22, ADR-0473); la base decide
-  // fila por fila (`fn_puede_tocar_etiqueta`: una campaña pide `fn_puede_campanas`, un sello `fn_puede_editar_etiquetas`).
+  // fila por fila (`fn_puede_tocar_etiqueta`: una campaña pide `fn_puede_campanas`, una insignia `fn_puede_editar_etiquetas`).
   if (!puede(persona, "editarEtiquetas") && !veModulo(persona, "campanas") && !veModulo(persona, "campanas_web")) {
-    return Response.json({ error: "Editar sellos o campañas necesita el módulo Sellos o Campañas en tu rol." }, { status: 403 });
+    return Response.json({ error: "Editar insignias o campañas necesita el módulo Insignias o Campañas en tu rol." }, { status: 403 });
   }
 
   const cuerpo = await request.json().catch(() => null);
@@ -74,7 +74,7 @@ export async function PATCH(request: Request) {
   // Se atiende aparte de los demás cambios para no dejar un PATCH a medias.
   if ("campana" in cuerpoObj) {
     const c = (cuerpoObj.campana ?? {}) as Record<string, unknown>;
-    // Quién pone el descuento lo decide la base (`actualizar_campana_etiqueta`): ADR-0293 lo abrió a Sellos y ADR-0476 a los tres
+    // Quién pone el descuento lo decide la base (`actualizar_campana_etiqueta`): ADR-0293 lo abrió a Insignias y ADR-0476 a los tres
     // módulos de campañas. Aquí ya no se pide ser líder.
     const descuento = parsearDescuento(c.descuentoPct === null || c.descuentoPct === undefined ? "" : String(c.descuentoPct));
     if (!descuento.ok) return Response.json({ error: descuento.error }, { status: 400 });
@@ -152,7 +152,7 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "No hay cambios para guardar." }, { status: 400 });
   }
 
-  // Desactivar o reactivar una CAMPAÑA va por `activar_campana` (ADR-0476): la política de la tabla sigue pidiendo Sellos, y con solo
+  // Desactivar o reactivar una CAMPAÑA va por `activar_campana` (ADR-0476): la política de la tabla sigue pidiendo Insignias, y con solo
   // Campañas o Campañas de la tienda web el cambio directo no encontraría la fila. La función repite el candado de «en uso».
   if (Object.keys(patch).length === 1 && "activo" in patch) {
     const { data: fila } = await supabase.from("etiquetas").select("estilo").eq("id", id).maybeSingle();

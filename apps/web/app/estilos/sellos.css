@@ -1,0 +1,266 @@
+@layer components {
+  /* ====================================================================
+     Catálogo ▸ Insignias · la billetera de pases (Felipe 2026-10-22, maqueta «II · Pases»: docs/maquetas/sellos-2026-10/index.html)
+
+     Cada insignia (y cada campaña) es un pase. Se apilan por pila —rigen hoy, lo que viene, guardadas— y se abre uno a la vez: su
+     cuerpo baja con sus días, su recorrido y sus botones, y al lado el pase abierto se ve en grande con sus prendas como un
+     lookbook. Solo tokens de globals.css (el oscuro sale solo, ADR-0336). Movimiento (excepción de ADR-0136 pedida por Felipe:
+     «sofisticado, elegante y con full animaciones»): la insignia se estampa, el pase se abre y se cierra, el título sube por su
+     ranura, el detalle y las prendas entran en cascada y el visto de «Lo que tiene» se dibuja. Todo UNA vez, con `--ease-cayla`, sin
+     rebote y nada en bucle; todo se apaga con `prefers-reduced-motion`. Lo vigila lib/sellos-movimiento.test.ts.
+     ==================================================================== */
+
+  /* ── El tono de cada grupo (el mismo de la maqueta y del dibujo del sello) ── */
+  [data-sl-grupo="campana"] { --sl-c: var(--color-taupe); }
+  [data-sl-grupo="urgencia"] { --sl-c: var(--color-ambar); }
+  [data-sl-grupo="positivo"] { --sl-c: var(--color-verde); }
+  [data-sl-grupo="neutral"] { --sl-c: var(--color-pizarra); }
+
+  /* ── El sello de tinta ── */
+  .sl-sello {
+    position: relative;
+    display: inline-block;
+    flex: none;
+    color: var(--sl-c);
+    transform: rotate(var(--sl-giro, -6deg));
+    transition: transform 400ms var(--ease-cayla);
+    animation: sl-estampa 700ms var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 60ms + 80ms);
+  }
+  .sl-sello svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .sl-sello::after {
+    content: "";
+    position: absolute;
+    inset: -4%;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    opacity: 0;
+    animation: sl-tinta 900ms var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 60ms + 280ms);
+    pointer-events: none;
+  }
+  .sl-sello-fondo { fill: color-mix(in srgb, var(--sl-c) 9%, var(--color-papel)); stroke: currentColor; }
+  .sl-sello-puntos { fill: none; stroke: currentColor; opacity: 0.8; }
+  .sl-sello-texto { font-family: var(--font-sans); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; fill: currentColor; }
+  .sl-sello-texto-abajo { opacity: 0.8; }
+  .sl-sello-apagado { filter: grayscale(1); opacity: 0.6; }
+  .sl-pase:hover .sl-sello,
+  .sl-pase:focus-within .sl-sello { transform: rotate(0deg) scale(0.95); }
+
+  @keyframes sl-estampa {
+    from { opacity: 0; transform: rotate(calc(var(--sl-giro, -6deg) - 14deg)) scale(1.35); }
+    to { opacity: 1; transform: rotate(var(--sl-giro, -6deg)) scale(1); }
+  }
+  @keyframes sl-tinta {
+    0% { opacity: 0.45; transform: scale(0.85); }
+    100% { opacity: 0; transform: scale(1.45); }
+  }
+
+  /* ── La pantalla: la pila a la izquierda y el pase abierto en grande a la derecha ──
+     Se decide por el ANCHO DE LA PANTALLA DE INSIGNIAS (una consulta de contenedor), no por el de la ventana: con el lateral abierto, una
+     ventana de 1024 px deja ~670 px, donde dos columnas apretaban el lookbook. Con una columna, el pase en grande va justo debajo del
+     pase abierto (`.sl-detalle-en-linea`, SellosPantalla.tsx lo pone ahí cuando cuenta una sola columna). */
+  .sl-marco { container: sellos / inline-size; }
+  .sl-billetera {
+    --sl-columnas: 1; /* lo lee SellosPantalla.tsx (useColumnasDeLaBilletera): una columna, el pase en grande va en línea */
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+  @container sellos (min-width: 56rem) {
+    .sl-billetera { --sl-columnas: 2; grid-template-columns: minmax(360px, 420px) minmax(0, 1fr); gap: 40px; }
+    .sl-detalle { position: sticky; top: 16px; }
+  }
+  .sl-detalle-en-linea { margin: -8px 2px 34px; }
+
+  .sl-pila + .sl-pila { margin-top: 26px; }
+  .sl-pila-titulo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 4px 12px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+
+  /* ── El pase ── */
+  .sl-pase {
+    position: relative;
+    border-radius: 20px;
+    background: var(--color-papel);
+    border: 1px solid var(--color-sand);
+    transition: transform 600ms var(--ease-cayla), margin 700ms var(--ease-cayla), box-shadow 600ms var(--ease-cayla);
+    animation: sl-entra 600ms var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 55ms);
+  }
+  .sl-pase + .sl-pase {
+    margin-top: -22px;
+    box-shadow: 0 -10px 18px -14px color-mix(in srgb, var(--color-sombra) 35%, transparent);
+  }
+  .sl-pase:not(.sl-abierto):hover { transform: translateY(-8px); }
+  .sl-pase.sl-abierto {
+    z-index: 2;
+    margin-top: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 30px 50px -34px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+  }
+  .sl-pila .sl-pase.sl-abierto:first-of-type { margin-top: 0; }
+
+  .sl-cab {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-height: 76px;
+    align-items: center;
+    gap: 14px;
+    padding: 0 20px 8px;
+    border-radius: 20px 20px 0 0;
+    text-align: left;
+    color: var(--color-tinta);
+    background: color-mix(in srgb, var(--sl-c, var(--color-taupe)) 12%, var(--color-papel));
+    transition: background-color 300ms var(--ease-cayla);
+  }
+  .sl-cab:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+  .sl-pase[data-tono="viva"] .sl-cab { background: var(--color-tinta); color: var(--color-crema); }
+  .sl-pase[data-tono="viene"] .sl-cab { background: color-mix(in srgb, var(--color-pizarra) 12%, var(--color-papel)); }
+  .sl-pase[data-tono="guardada"] .sl-cab,
+  .sl-pase[data-tono="apagada"] .sl-cab { background: var(--color-hueso); }
+  .sl-pase:not(.sl-abierto) .sl-cab { border-radius: 20px; }
+
+  .sl-cab-nombre { font-weight: 600; font-size: 15.5px; line-height: 1.2; }
+  .sl-cab-bajada { display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: 11.5px; opacity: 0.8; }
+  /* La cifra de la derecha nunca se parte («8» / «AGO» con un nombre largo): el nombre es el que se corta con sus puntos. */
+  .sl-cab-marca { flex: none; white-space: nowrap; margin-left: auto; text-align: right; font-family: var(--font-serif); font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .sl-cab-marca small { display: block; margin-top: 3px; font-family: var(--font-sans); font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.8; }
+
+  /* El cuerpo baja y sube (0fr → 1fr): lo de adentro no se mide a mano. */
+  .sl-cuerpo { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 700ms var(--ease-cayla); }
+  .sl-abierto .sl-cuerpo { grid-template-rows: 1fr; }
+  .sl-cuerpo > div { overflow: hidden; min-height: 0; }
+  .sl-perfo { position: relative; height: 0; margin: 0 18px; border-top: 1.5px dashed color-mix(in srgb, var(--color-tinta) 30%, transparent); }
+  .sl-perfo::before,
+  .sl-perfo::after {
+    content: "";
+    position: absolute;
+    top: -10px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-crema);
+    border: 1px solid var(--color-sand);
+  }
+  .sl-perfo::before { left: -30px; }
+  .sl-perfo::after { right: -30px; }
+  .sl-dentro { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px 20px; }
+  .sl-dentro > * { opacity: 0; transform: translateY(8px); transition: opacity 500ms var(--ease-cayla), transform 600ms var(--ease-cayla); }
+  .sl-abierto .sl-dentro > * { opacity: 1; transform: none; transition-delay: calc(var(--i, 0) * 60ms + 160ms); }
+
+  .sl-grande { display: flex; align-items: flex-end; gap: 12px; }
+  .sl-grande b { font-family: var(--font-serif); font-weight: 400; font-size: 76px; line-height: 0.8; font-variant-numeric: tabular-nums; }
+  .sl-grande span { padding-bottom: 4px; font-size: 12.5px; color: var(--color-tinta-60); }
+
+  .sl-datos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--color-sand); border-bottom: 1px solid var(--color-sand); }
+  .sl-datos > div { padding: 10px 0; font-size: 11px; line-height: 1.3; color: var(--color-tinta-60); }
+  .sl-datos strong { display: block; font-family: var(--font-serif); font-weight: 400; font-size: 26px; line-height: 1.1; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+
+  /* ── El pase abierto, en grande ── */
+  .sl-detalle > * { animation: sl-entra 700ms var(--ease-cayla) both; animation-delay: calc(var(--i, 0) * 70ms); }
+  .sl-kick {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+    align-items: center;
+    gap: 10px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  /* El nombre, su línea de arriba y su frase van centrados sobre las prendas (Felipe 2026-10-22: «que quede justo en medio de las prendas»). */
+  .sl-titular { overflow: hidden; padding-bottom: 0.06em; text-align: center; text-wrap: balance; font-family: var(--font-serif); font-weight: 400; font-size: clamp(40px, 4vw, 60px); line-height: 0.98; letter-spacing: -0.015em; }
+  .sl-titular > span { display: block; animation: sl-ranura 900ms var(--ease-cayla) both; animation-delay: 80ms; }
+  .sl-frase { max-width: 40ch; margin-inline: auto; text-align: center; text-wrap: balance; font-family: var(--font-serif); font-style: italic; font-size: 21px; line-height: 1.3; color: var(--color-tinta-60); }
+
+  /* Dos filas como mucho (`lookbookVisible`): cuántas entran por fila sale de `--sl-min` y `--sl-hueco`, que también lee la pantalla
+     (useCupoDelLookbook). Con pocas prendas (`data-pocas`, no llenan una fila) se centran bajo el título. En el celular, casillas más
+     chicas para que entren tres por fila. */
+  .sl-lookbook {
+    --sl-min: 132px;
+    --sl-hueco: 14px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--sl-min), 1fr));
+    gap: var(--sl-hueco);
+  }
+  .sl-lookbook[data-pocas] { grid-template-columns: repeat(var(--sl-n), minmax(0, 200px)); justify-content: center; }
+  @container sellos (max-width: 40rem) {
+    .sl-lookbook { --sl-min: 96px; --sl-hueco: 10px; }
+    .sl-frase { font-size: 18px; }
+  }
+  .sl-lookbook > * { animation: sl-entra 650ms var(--ease-cayla) both; animation-delay: calc(var(--j, 0) * 50ms + 220ms); }
+  .sl-prenda { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+  .sl-prenda-foto { transition: transform 500ms var(--ease-cayla); }
+  .sl-prenda:hover .sl-prenda-foto { transform: translateY(-4px); }
+  .sl-prenda-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 500; line-height: 1.25; }
+  .sl-prenda-dato { font-size: 11.5px; color: var(--color-tinta-60); font-variant-numeric: tabular-nums; }
+  .sl-mas {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 3 / 4;
+    border-radius: 12px;
+    background: var(--color-hueso);
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--color-tinta-60);
+    transition: background-color 300ms var(--ease-cayla);
+  }
+  .sl-mas:hover { background: var(--color-sand); }
+  .sl-mas b { display: block; font-family: var(--font-serif); font-weight: 400; font-size: 34px; line-height: 1; color: var(--color-tinta); }
+
+  /* «Lo que tiene»: el visto se dibuja una vez. */
+  .sl-listo { border-top: 1px solid var(--color-sand); }
+  .sl-listo-fila { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--color-sand); font-size: 13.5px; }
+  .sl-listo-marca { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; }
+  .sl-listo-fila[data-estado="hecho"] .sl-listo-marca { background: color-mix(in srgb, var(--color-verde) 15%, transparent); color: var(--color-verde); }
+  .sl-listo-fila[data-estado="falta"] .sl-listo-marca { background: color-mix(in srgb, var(--color-ambar) 15%, transparent); color: var(--color-ambar); }
+  .sl-listo-fila[data-estado="opcional"] .sl-listo-marca { background: var(--color-hueso); color: var(--color-tinta-60); }
+  .sl-listo-fila[data-estado="opcional"] { color: var(--color-tinta-60); }
+  .sl-listo-marca path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: sl-traza 600ms var(--ease-cayla) forwards; animation-delay: calc(var(--i, 0) * 120ms + 300ms); }
+  .sl-listo-detalle { margin-left: auto; font-size: 12.5px; color: var(--color-tinta-60); }
+
+  @keyframes sl-entra {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes sl-ranura {
+    from { transform: translateY(108%); }
+    to { transform: none; }
+  }
+  @keyframes sl-traza {
+    to { stroke-dashoffset: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sl-sello,
+    .sl-sello::after,
+    .sl-pase,
+    .sl-cuerpo,
+    .sl-dentro > *,
+    .sl-detalle > *,
+    .sl-titular > span,
+    .sl-lookbook > *,
+    .sl-prenda-foto,
+    .sl-listo-marca path {
+      animation: none;
+      transition: none;
+    }
+    .sl-sello::after { opacity: 0; }
+    .sl-dentro > * { opacity: 1; transform: none; }
+    .sl-listo-marca path { stroke-dashoffset: 0; }
+  }
+}

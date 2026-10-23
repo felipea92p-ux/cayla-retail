@@ -3,6 +3,7 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Boton } from "@/components/ui/campos";
+import { crearArranqueDemo } from "@/lib/guias/arranque-demo";
 import { GUIAS } from "@/lib/guias/registro";
 import { debeOfrecer, esEntradaDelMenu, guiaDeRuta } from "@/lib/guias/reglas";
 import type { Guia } from "@/lib/guias/tipos";
@@ -53,10 +54,10 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
   );
 
   // `?demo=1`: llegó desde «Demo» de Mi perfil. Se quita de la URL (una recarga no la vuelve a arrancar). El arranque va en
-  // un temporizador que NO se cancela al limpiar la URL (si dependiera de `params`, limpiarla lo cancelaría).
+  // un temporizador que NO se cancela al limpiar la URL (si dependiera de `params`, limpiarla lo cancelaría); si la demo de
+  // esta guía ya corre o arrancó hace poco, solo se limpia la URL (`lib/guias/arranque-demo.ts`).
   const pideDemo = params.get("demo") === "1";
-  const arranquePendiente = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const ultimaDemo = useRef<{ id: string; cuando: number } | null>(null);
+  const [arranque] = useState(crearArranqueDemo);
   const corriendoRef = useRef<string | null>(null);
   useEffect(() => {
     corriendoRef.current = corriendo?.id ?? null;
@@ -65,27 +66,15 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
     if (!pideDemo || !guia) return;
     const limpio = new URLSearchParams(params.toString());
     limpio.delete("demo");
-    // Un enlace de la pantalla que conserva los parámetros de la URL (las píldoras de Facturas) puede traer de vuelta el `demo=1`:
-    // si la demo de esta guía ya está corriendo o arrancó hace menos de un minuto, solo se limpia la URL y no se vuelve a empezar.
-    const repetida = corriendoRef.current === guia.id || (ultimaDemo.current?.id === guia.id && Date.now() - ultimaDemo.current.cuando < 60_000);
-    if (repetida) {
-      window.history.replaceState(window.history.state, "", limpio.size ? `${pathname}?${limpio}` : pathname);
-      return;
-    }
-    ultimaDemo.current = { id: guia.id, cuando: Date.now() };
     // `history.replaceState` y no `router.replace`: en una ruta interceptada (el Historial de un producto, `@modal/(.)[id]`)
     // el router volvía a resolver la intercepción, Next respondía 500 y recargaba la página, y la guía se perdía.
     window.history.replaceState(window.history.state, "", limpio.size ? `${pathname}?${limpio}` : pathname);
-    if (arranquePendiente.current) clearTimeout(arranquePendiente.current);
-    arranquePendiente.current = setTimeout(() => {
-      arranquePendiente.current = null;
+    arranque.pedir(guia.id, corriendoRef.current, () => {
       setOfrecida(null);
       setCorriendo(guia);
-    }, 700);
-  }, [pideDemo, guia, params, pathname]);
-  useEffect(() => () => {
-    if (arranquePendiente.current) clearTimeout(arranquePendiente.current);
-  }, []);
+    });
+  }, [pideDemo, guia, params, pathname, arranque]);
+  useEffect(() => () => arranque.desmontar(), [arranque]);
 
   // «Demo» estando ya en la pantalla.
   useEffect(() => {

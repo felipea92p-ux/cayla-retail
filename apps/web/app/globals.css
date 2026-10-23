@@ -43,6 +43,7 @@
 @import "./estilos/enlaces-paginas-caras.css";
 @import "./estilos/titulos.css";
 @import "./estilos/traslados-pases.css";
+@import "./estilos/sellos.css";
 @import "./estilos/traslados-guia.css";
 /* La orden de compra en papel (ADR-0362, actividad 6): A4 para imprimir o guardar en PDF. */
 @import "./estilos/orden-compra-papel.css";

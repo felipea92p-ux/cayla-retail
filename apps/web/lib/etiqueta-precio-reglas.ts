@@ -374,7 +374,7 @@ export function volverDeEtiquetas(
     case "produccion":
       return { href: `/produccion/ordenes?orden=${origen.id}`, a: "Órdenes" };
     case "campana":
-      return { href: "/productos/campanas", a: "Campañas" };
+      return { href: "/productos/insignias", a: "Insignias" };
     case "producto":
       return { href: "/productos", a: "Productos" };
     case "variantes":

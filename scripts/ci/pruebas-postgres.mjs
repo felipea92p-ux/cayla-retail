@@ -108,6 +108,11 @@ export const PRUEBAS = [
   // cambiar y anular), hoy libre, consolidado, reabrir con motivo, chequeos y solo el líder. ROLLBACK.
   "pruebas:cierre-mes",
 
+  // Cierre de mes, cuatro chequeos de pendientes por sede (envíos con diferencia, conteos abiertos, sobrantes de traslado, facturas
+  // sin recibir): avisan hasta el corte de Finanzas (parámetro, no una línea de la función) y bloquean desde él; `cerrar_periodo`
+  // solo cuenta los que bloquean, guarda los avisos y un mes cerrado conserva su huella. ROLLBACK.
+  "pruebas:cierre-diferencias",
+
   // Balance (ADR-0195 F7): saldos de arranque que se corrigen y no se editan, el Balance cuadra con operaciones de cada
   // tipo, cada cuenta por dos caminos (si no, no se dibuja y dice por qué), lo que es de la tienda y permisos. ROLLBACK.
   "pruebas:balance",
@@ -247,8 +252,8 @@ export const PRUEBAS = [
   // nadie directo y sus CHECK dejan fuera todo lo que la tienda no conoce. ROLLBACK.
   "pruebas:campanas-web",
 
-  // La llave de las campañas (ADR-0476): con «Campañas», «Campañas de la tienda web» o «Sellos» se crea, se guarda, se le ponen
-  // prendas y se desactiva una campaña; sin ninguno, cada puerta la rechaza; un sello que no es campaña sigue siendo de Sellos. ROLLBACK.
+  // La llave de las campañas (ADR-0476): con «Campañas», «Campañas de la tienda web» o «Insignias» se crea, se guarda, se le ponen
+  // prendas y se desactiva una campaña; sin ninguno, cada puerta la rechaza; una insignia que no es campaña sigue siendo de Insignias. ROLLBACK.
   "pruebas:campanas-llave-unica",
 
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
