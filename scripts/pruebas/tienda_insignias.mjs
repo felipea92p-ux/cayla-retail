@@ -17,7 +17,7 @@
  * CÓMO. Cada escenario en su propia transacción con ROLLBACK (como `campanas_por_sede.mjs`): la base compartida queda igual. Los datos
  * del modelo elegido (sus marcas de insignias y las de su categoría) se borran DENTRO de la transacción para partir limpio.
  *
- * DA POR SENTADO: un modelo publicado y publicable con una variante activa, al menos dos tiendas en la web, a Felipe como líder (el seed:
+ * DA POR SENTADO: el seed («Blusa Emma» con sus tallas y precio, Tienda Trujillo y Tienda Lima, y una sede que no es tienda: el Taller), a Felipe como líder (el seed:
  * sus etiquetas nacen aprobadas) y a Micaela como integrante (sus etiquetas nacen pendientes).
  *
  * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=supabase/migrations/20261023182000_tienda_ficha_trae_las_insignias.sql` mete la migración dentro de
@@ -68,20 +68,32 @@ function esperar(nombre, ok, detalle) {
 const ultimaLinea = (r) => (r.ok ? r.salida.split("\n").filter(Boolean).at(-1) ?? "" : "");
 const esperarLinea = (nombre, r, esperado) => esperar(nombre, ultimaLinea(r) === esperado, r.ok ? `dio «${ultimaLinea(r)}», se esperaba «${esperado}»` : r.mensaje);
 
-// Un modelo publicado y publicable, su categoría, una variante activa y las dos primeras tiendas de la web; sin marcas de insignias en él ni
-// en su categoría (dentro de la transacción), para que lo que se mide sea solo lo que cada escenario pone.
+// El punto de partida de cada escenario, como el de `tienda_ficha.mjs`: la vitrina del seed está VACÍA, así que aquí se publica «Blusa Emma» (con
+// Trujillo y Lima en la web, y el resto escondido) y se parte sin marcas de insignias en ella ni en su categoría. Todo dentro de la
+// transacción: se revierte.
 const PARTIR = (quien = FELIPE) => `begin;
 ${APLICAR_ANTES}
-set local request.jwt.claim.sub = '${quien}';
+set local request.jwt.claim.sub = '${FELIPE}';
 select retail.fn_hoy_lima() as hoy \\gset
-select vp.producto_id as pid from retail.vitrina_productos vp
-  where vp.publicado and retail.fn_vitrina_publicable(vp.producto_id) order by vp.producto_id limit 1 \\gset
+update retail.vitrina_productos set publicado = false where publicado;
+update retail.ubicacion_datos_web set mostrar = false where mostrar;
+select id as pid from retail.productos where referencia = 'Blusa Emma' \\gset
 select categoria_id as cat from retail.productos where id = :'pid' \\gset
+select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
+select id as lim from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
+update retail.ubicaciones set whatsapp_numero = '987000001' where id = :'tru';
+update retail.ubicaciones set whatsapp_numero = '987000002' where id = :'lim';
+insert into retail.ubicacion_datos_web (ubicacion_id, nombre_web, direccion, mostrar)
+values (:'tru', 'ZZ Trujillo', 'Av. de prueba 1', true), (:'lim', 'ZZ Lima', 'Av. de prueba 2', true)
+on conflict (ubicacion_id) do update set nombre_web = excluded.nombre_web, direccion = excluded.direccion, mostrar = true;
+select retail.vitrina_mostrar(array[:'pid']::uuid[], true) \\gset
 select id as v from retail.variantes where producto_id = :'pid' and activo order by id limit 1 \\gset
 select (retail.fn_tienda_sedes_web())[1] as s1, (retail.fn_tienda_sedes_web())[2] as s2 \\gset
 select id as fuera from retail.ubicaciones where id <> all (retail.fn_tienda_sedes_web()) order by id limit 1 \\gset
 delete from retail.variante_etiquetas where variante_id in (select id from retail.variantes where producto_id = :'pid');
 delete from retail.etiqueta_categorias where categoria_id = :'cat';
+-- Todo lo anterior lo prepara Felipe (publicar pide el módulo Vitrina web); lo que sigue lo hace quien se pida.
+set local request.jwt.claim.sub = '${quien}';
 `;
 
 const dia = (x) => (x === null ? "null" : `(:'hoy'::date + ${x})`);
@@ -120,7 +132,7 @@ function main() {
   }
   const modelo = correr(`${PARTIR()}select 'ok|' || coalesce(:'pid', '') || coalesce(:'v', '') || coalesce(:'s2', '');\nrollback;`);
   if (!modelo.ok || !ultimaLinea(modelo).startsWith("ok|") || ultimaLinea(modelo) === "ok|") {
-    console.error("La prueba necesita un modelo publicado y publicable con una variante activa y dos tiendas en la web (el seed).");
+    console.error("La prueba necesita el seed: «Blusa Emma» publicable, Tienda Trujillo y Tienda Lima en la web, y una sede fuera de la web.");
     console.error(modelo.ok ? modelo.salida : modelo.mensaje);
     process.exit(2);
   }
