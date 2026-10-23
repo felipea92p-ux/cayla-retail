@@ -34,3 +34,9 @@ Qué hice: cada familia de la grilla de categorías de la etapa «¿En qué pren
 Por qué así: con 31 categorías la grilla ocupaba varias pantallas. Plegar por familia deja ver las 5 de un vistazo sin esconder lo marcado.
 Qué se rompería sin esto: una colaboradora que baja y baja buscando una categoría, o que marca una y no ve que la marcó.
 
+## 2026-10-23 (la migración de las ofertas, pegada en producción — ADR-0496)
+Qué hice: con el OK de Felipe, pegué `20261023232000_campana_reglas_de_precio.sql` en producción para que el check «SQL pegado» del PR #1310 dejara de esperar. Antes la ensayé en producción dentro de una transacción que se revierte a propósito: la función que lee la caja dio exactamente lo mismo que antes (0 diferencias en sus filas), se crearon las 4 tablas con RLS y las 8 funciones, y las 8 huellas (sin comentarios) coincidieron con las de la base local. Después la apliqué en una sola transacción y repetí la verificación.
+Por qué así: `fn_campanas_en_sede` es la función que lee la caja; cambiarla en producción sin ensayo habría sido apostar con las ventas. Sin ofertas activas devuelve lo mismo que antes, así que hasta que alguien active una oferta el cobro no cambia.
+Qué se rompería sin esto: la web nueva publicada sin las tablas (cae a la hoja de siempre, pero nadie podría registrar ofertas) o, peor, una función de la caja cambiada sin haberla probado contra los datos reales.
+Estado: en producción hay 0 ofertas. Falta refrescar el volcado y el diccionario (4 tablas nuevas).
+

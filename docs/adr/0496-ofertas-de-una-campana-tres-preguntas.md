@@ -1,7 +1,7 @@
 # ADR-0496 — Las ofertas de una campaña: «Tres preguntas», un % menos con fechas, días de la semana y categorías
 
-- **Fecha:** 2026-10-23 · **Estado:** construido y probado en local; PR abierto. **La migración `20261023232000_campana_reglas_de_precio.sql` NO está en producción:
-  se pega PRIMERO en el SQL Editor (de una vez, idempotente) y la web se publica DESPUÉS** (con la web nueva y sin la migración, la pantalla cae a la hoja de siempre).
+- **Fecha:** 2026-10-23 · **Estado:** construido, probado en local y **con su migración `20261023232000_campana_reglas_de_precio.sql` ya pegada en producción el 2026-10-23**
+  (ensayada antes con ROLLBACK; la web se publica DESPUÉS: con la web nueva y sin la migración, la pantalla cae a la hoja de siempre).
   El número de este ADR y la versión de la migración están reservados para esta rama (`pnpm reservar`). Nació de lo que pidió Felipe: «implementarlo ya dentro del sistema».
 - **Relacionados:** ADR-0481 (Catálogo ▸ Insignias), ADR-0486 (campañas por sede), ADR-0107/0108/0302 (el descuento de campaña y su cuenta exacta), ADR-0476
   (la llave de las campañas), ADR-0195 (políticas y deadlocks), ADR-0161 (módulos y roles), ADR-0284 (guía de foco), ADR-0389 (guías interactivas).
