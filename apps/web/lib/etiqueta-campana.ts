@@ -184,7 +184,9 @@ export function chipDeTarjeta(v: Vigencia | null, alcance: number | null, hoy: s
 // La etiqueta de papel dice el precio que cobra la caja el día que se imprime, en la tienda donde se imprime (ADR-0180; la sede de
 // quien abre la impresión, `etiquetas-precio.ts`). Si al guardar una campaña cambia ese precio HOY —otro %, fechas que la hacen regir
 // o dejar de regir, categorías que entran o salen, tiendas donde rige (ADR-0486)—, el papel queda mintiendo hasta que alguien lo
-// cambia. Una sola regla para todo: la prenda cuyo descuento de hoy, en una tienda, no es el mismo antes y después.
+// cambia. Una sola regla para todo: la prenda cuyo descuento de hoy, en una tienda, no es el mismo antes y después. La misma regla, tienda
+// por tienda, dice el aviso al marcar prendas en «Prendas» (`prendasQueCambianAlEtiquetar`) y al guardar Editar producto
+// (`cambianEnCajaAlGuardar`): las tres pantallas le pasan a `cambioEnLasTiendas` qué cambia en cada sede.
 
 type CampanaParaImprimir = {
   descuentoPct: number | null;
@@ -197,15 +199,19 @@ type CampanaParaImprimir = {
 
 /** ¿Da su descuento en esa sede? La regla de `fn_campana_rige_en_sede`: sin tiendas elegidas, en todas; con tiendas, solo en ellas;
  *  sin sede (`null`), solo la de todas las sedes. */
-function rigeEnSede(c: CampanaParaImprimir, sede: string | null): boolean {
+export function rigeEnSede(c: { sedeIds: readonly string[] }, sede: string | null): boolean {
   return c.sedeIds.length === 0 || (sede !== null && c.sedeIds.includes(sede));
 }
 
-export type CambioDePrecio = {
-  /** Lo que imprime el botón del aviso: las prendas que cambian en la sede de quien guarda (la impresión sale con el precio de esa
-   *  sede). Las que `quedan` con un descuento de esta campaña (otro %, o entran) y las que `salen` sin él (vuelven a su precio). */
-  quedan: string[];
-  salen: string[];
+/** Las tiendas del ERP y la sede de la cabecera de quien guarda (`persona.ubicacionId`): la impresión sale con el precio de esa sede. */
+export type DondeSeImprime = { tiendas: readonly TiendaOpcion[]; aqui: string | null };
+
+/** Lo que cambia de precio en caja en UNA sede: las prendas que `quedan` con descuento (otro %, o entran) y las que `salen` sin él. */
+type CambioEnSede = { quedan: string[]; salen: string[] };
+
+export type CambioDePrecio = CambioEnSede & {
+  // `quedan` y `salen` son lo que imprime el botón del aviso: las prendas que cambian en la sede de quien guarda (la impresión sale con
+  // el precio de esa sede).
   /** Prendas distintas a las que les cambia el precio en caja en alguna tienda: el número que dice el aviso. */
   total: number;
   /** Las tiendas donde cambia, si no cambia lo mismo en todas: el aviso las nombra, porque su papel se cambia allá (Felipe,
@@ -218,14 +224,14 @@ export type CambioDePrecio = {
 /** A qué prendas a la venta (de `aLaVenta`) guardar la campaña les cambia el precio en caja HOY, tienda por tienda (`donde.tiendas`),
  *  y cuáles de ellas se imprimen desde la sede de quien guarda (`donde.aqui`). Sin fechas rige siempre; una que viene o que ya pasó
  *  no rebaja hoy. No mira otras campañas: si una prenda sigue rebajada por otra mayor, se imprime igual y la etiqueta sale con lo que
- *  cobra la caja (no hace daño). Sin tiendas conocidas (una base sin ADR-0486), mira las que nombra la campaña y una cualquiera. */
+ *  cobra la caja (no hace daño). */
 export function prendasQueCambianDePrecioHoy(
   antes: CampanaParaImprimir,
   despues: CampanaParaImprimir,
   aLaVenta: readonly Pick<PrendaConCosto, "id" | "categoriaId">[],
   manuales: ReadonlySet<string>,
   hoy: string,
-  donde: { tiendas: readonly TiendaOpcion[]; aqui: string | null } = { tiendas: [], aqui: null },
+  donde: DondeSeImprime = { tiendas: [], aqui: null },
 ): CambioDePrecio {
   const pctHoy = (c: CampanaParaImprimir, p: Pick<PrendaConCosto, "id" | "categoriaId">, sede: string | null) => {
     if (c.descuentoPct === null || !rigeEnSede(c, sede)) return 0;
@@ -243,9 +249,19 @@ export function prendasQueCambianDePrecioHoy(
     }
     return { quedan, salen };
   };
+  return cambioEnLasTiendas(enSede, donde, [...antes.sedeIds, ...despues.sedeIds]);
+}
 
-  // Una tienda que ninguna de las dos versiones nombra se comporta como «sin sede»: solo le llega la campaña de todas las sedes.
-  const sedes = donde.tiendas.length > 0 ? donde.tiendas.map((t) => t.id) : [...new Set([...antes.sedeIds, ...despues.sedeIds]), null];
+/** De lo que cambia en cada sede (`enSede`) a lo que dice el aviso: cuántas prendas en total, en qué tiendas si no es lo mismo en todas
+ *  y qué imprime el botón desde la sede de quien guarda. Sin tiendas conocidas (una base sin ADR-0486) mira las sedes que nombran las
+ *  campañas (`sedesNombradas`) y una cualquiera (`null`), sin nombrar ninguna. */
+export function cambioEnLasTiendas(
+  enSede: (sede: string | null) => CambioEnSede,
+  donde: DondeSeImprime,
+  sedesNombradas: readonly string[],
+): CambioDePrecio {
+  // Una tienda que ninguna campaña nombra se comporta como «sin sede»: solo le llega la campaña de todas las sedes.
+  const sedes = donde.tiendas.length > 0 ? donde.tiendas.map((t) => t.id) : [...new Set(sedesNombradas), null];
   const porSede = sedes.map((sede) => ({ sede, ...enSede(sede) }));
   const aqui = enSede(donde.aqui);
   const total = new Set([...porSede.flatMap((s) => [...s.quedan, ...s.salen]), ...aqui.quedan, ...aqui.salen]).size;
@@ -280,22 +296,20 @@ export function destinoReimprimir(cambian: { quedan: readonly string[]; salen: r
  *  impresión saca una etiqueta por UNIDAD en la tienda (14 tallas y colores pueden ser 32 etiquetas), y un «Imprimir las 14»
  *  que abre «Imprimir 32 etiquetas» hace dudar. Si el cambio no es igual en todas las tiendas, el aviso dice en cuáles: la
  *  impresión sale con el precio de la sede de quien la abre, así que el botón solo aparece si esa sede es una de ellas («Imprimir
- *  las de Tienda Arequipa»); si no, el aviso pide imprimirlas allá (Felipe, 2026-10-23). Un número (Prendas, Editar producto, que
- *  todavía no miran las tiendas) es un cambio igual en todas, que se imprime desde aquí. */
-export function avisoReimprimir(cambio: CambioDePrecio | number, conEnlace = true): { detalle: string; boton: string | null } | null {
-  const c = typeof cambio === "number" ? null : cambio;
-  const total = typeof cambio === "number" ? cambio : cambio.total;
-  if (total === 0) return null;
-  const una = total === 1;
-  const donde = c?.dondeCambia ? ` en ${enLista(c.dondeCambia.map((t) => t.nombre))}` : "";
-  const detalle = `Cambió el precio en caja de ${prendas(total)}${donde}: ${una ? "su etiqueta de papel dice" : "sus etiquetas de papel dicen"} el de antes.`;
-  const aqui = c ? c.quedan.length + c.salen.length : total;
+ *  las de Tienda Arequipa»); si no, el aviso pide imprimirlas allá (Felipe, 2026-10-23). Lo dicen igual «Configurar», «Prendas» y
+ *  Editar producto. */
+export function avisoReimprimir(c: CambioDePrecio, conEnlace = true): { detalle: string; boton: string | null } | null {
+  if (c.total === 0) return null;
+  const una = c.total === 1;
+  const donde = c.dondeCambia ? ` en ${enLista(c.dondeCambia.map((t) => t.nombre))}` : "";
+  const detalle = `Cambió el precio en caja de ${prendas(c.total)}${donde}: ${una ? "su etiqueta de papel dice" : "sus etiquetas de papel dicen"} el de antes.`;
+  const aqui = c.quedan.length + c.salen.length;
   if (aqui === 0) {
-    const alla = !c?.dondeCambia ? "cada tienda" : c.dondeCambia.length === 1 ? "esa tienda" : "esas tiendas";
+    const alla = !c.dondeCambia ? "cada tienda" : c.dondeCambia.length === 1 ? "esa tienda" : "esas tiendas";
     return { detalle: `${detalle} ${una ? "Imprímela" : "Imprímelas"} en ${alla}.`, boton: null };
   }
   if (!conEnlace) return { detalle: `${detalle} Son muchas para abrirlas juntas: imprímelas por categoría desde Existencias.`, boton: null };
-  if (c?.aqui) return { detalle, boton: `Imprimir ${aqui === 1 ? "la" : "las"} de ${c.aqui.nombre}` };
+  if (c.aqui) return { detalle, boton: `Imprimir ${aqui === 1 ? "la" : "las"} de ${c.aqui.nombre}` };
   return { detalle, boton: aqui === 1 ? "Imprimir su etiqueta" : "Imprimir sus etiquetas" };
 }
 

@@ -26,7 +26,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { soles } from "@/lib/compras-reglas";
 import { fotoPrincipal } from "@/lib/inventario-reglas";
-import { avisoReimprimir, destinoReimprimir, nombreBajoCosto, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
+import { avisoReimprimir, destinoReimprimir, nombreBajoCosto, prendasBajoCosto, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
 import {
   alternarProducto,
   alternarVariante,
@@ -89,6 +89,8 @@ export type EtiquetaParaPrendas = {
   vigenteDesde: string | null;
   vigenteHasta: string | null;
   categoriaIds: string[];
+  /** Las tiendas donde rige su descuento; vacío = todas las sedes (ADR-0486). */
+  sedeIds: string[];
 };
 
 type Cargado = { productos: ProductoEtiquetable[]; iniciales: Set<string>; fueraDeVentaLeibles: PrendaFueraDeVenta[] };
@@ -114,6 +116,8 @@ export function PrendasDeEtiquetaModal({
   etiqueta,
   prendasConCosto,
   marcasManuales,
+  tiendas = [],
+  sedeActualId = null,
   onClose,
   onAplicado,
 }: {
@@ -122,6 +126,10 @@ export function PrendasDeEtiquetaModal({
   marcasManuales: readonly string[];
   /** Solo un Líder recibe costos; con la lista vacía simplemente no hay aviso de costo. */
   prendasConCosto: PrendaConCosto[];
+  /** Las tiendas del ERP (ADR-0486) y la sede de la cabecera: si la campaña rige solo en algunas, el aviso de reimprimir las nombra y
+   *  ofrece imprimir solo si esta sede es una de ellas (la impresión sale con su precio). */
+  tiendas?: TiendaOpcion[];
+  sedeActualId?: string | null;
   onClose: () => void;
   /** Con el conjunto final de variantes etiquetadas a mano y lo que realmente cambió. */
   onAplicado: (finales: string[], resultado: { agregadas: number; quitadas: number }) => void;
@@ -411,10 +419,11 @@ export function PrendasDeEtiquetaModal({
         r.quitadas > 0 ? `${r.quitadas} ${r.quitadas === 1 ? "prenda liberada" : "prendas liberadas"}` : null,
       ].filter(Boolean);
       // Con descuento que rige hoy, las prendas que ganaron o perdieron la etiqueta cambiaron de precio en caja: su etiqueta de papel
-      // dice el de antes. El aviso lo dice y lleva a imprimir solo esas, como al guardar una campaña (ADR-0441, ADR-0472).
-      const cambian = prendasQueCambianAlEtiquetar(etiqueta, cambio, hoy);
+      // dice el de antes. El aviso lo dice y lleva a imprimir solo esas, como al guardar una campaña (ADR-0441, ADR-0472); si la campaña
+      // rige solo en algunas tiendas, las nombra y el botón sale solo si esta sede es una de ellas (ADR-0486).
+      const cambian = prendasQueCambianAlEtiquetar(etiqueta, cambio, hoy, { tiendas, aqui: sedeActualId });
       const destino = destinoReimprimir(cambian, etiqueta.id);
-      const reimprimir = avisoReimprimir(cambian.quedan.length + cambian.salen.length, destino !== null);
+      const reimprimir = avisoReimprimir(cambian, destino !== null);
       avisar.exito(
         `«${etiqueta.nombre}»: ${partes.join(" y ") || "sin cambios"}`,
         reimprimir
