@@ -471,8 +471,9 @@ ${PENDIENTES("c1")}`),
 
 exito(
   // Decisión 41 (ADR-0387, Felipe 2026-10-12): quien tiene el módulo ve TODAS las tiendas; antes veía solo la suya (ADR-0184).
-  "C · con el módulo Notas de crédito, Micaela (Trujillo) ve el pendiente de su sede Y el de Lima, en el tablero y en la lista",
-  comoFelipe(`${MODULOS_DE_COMPRAS("notas_credito")}${compraCerrada(4, { v: "c1", gestora: "lima" })}${compraCerrada(4, { v: "c2", gestora: "trujillo" })}
+  // ADR-0480 (2026-10-22): el módulo «Notas de crédito» se retiró; la llave de la lista y el tablero es cualquiera de los de dinero de Compras.
+  "C · con el módulo Facturas de proveedor, Micaela (Trujillo) ve el pendiente de su sede Y el de Lima, en el tablero y en la lista",
+  comoFelipe(`${MODULOS_DE_COMPRAS("facturas_compra")}${compraCerrada(4, { v: "c1", gestora: "lima" })}${compraCerrada(4, { v: "c2", gestora: "trujillo" })}
 set local request.jwt.claim.sub = '${MICAELA}';
 set local role authenticated;
 set local request.jwt.claim.role = 'authenticated';

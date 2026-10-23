@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { RPC_DETALLE_ENVIO } from "@/lib/ordenes-compra-reglas";
 import { compararTallas } from "@/lib/tallas";
+import { BUCKET_FOTOS_GASTO_VIAJE } from "@/lib/rendicion-reglas";
 import {
   leerDetalleEnvio,
   leerEnviosPorAbrir,
@@ -13,6 +14,7 @@ import {
   type DetalleEnvio,
   type EnvioPorAbrir,
   type OrdenDirecta,
+  type PapelDelEnvio,
   type TallaDeLaCategoria,
 } from "@/lib/recepcion-envio-reglas";
 
@@ -148,7 +150,21 @@ export type DatosRecepcionEnvio = {
   catalogo: CatalogoParaRecibir | null;
   /** Solo con el envío cerrado: los lotes de la recepción, para imprimir sus etiquetas. */
   lotes: string[];
+  /** Los papeles de las compras anotadas desde el celular (ADR-0480), con el enlace a su foto (10 minutos, firmado con la sesión de quien
+   *  mira: Recibir puede leer la carpeta `papeles/`). Sin foto o sin permiso, `fotoUrl` es `null` y la pantalla lo dice. */
+  papeles: (PapelDelEnvio & { fotoUrl: string | null })[];
 };
+
+async function papelesConFoto(papeles: readonly PapelDelEnvio[]): Promise<DatosRecepcionEnvio["papeles"]> {
+  const rutas = papeles.map((p) => p.fotoRuta).filter((r): r is string => r !== null);
+  const urls = new Map<string, string>();
+  if (rutas.length > 0) {
+    const supabase = await createClient();
+    const firmadas = await supabase.storage.from(BUCKET_FOTOS_GASTO_VIAJE).createSignedUrls(rutas, 600).catch(() => ({ data: null }));
+    for (const f of firmadas.data ?? []) if (f.path && f.signedUrl) urls.set(f.path, f.signedUrl);
+  }
+  return papeles.map((p) => ({ ...p, fotoUrl: p.fotoRuta ? (urls.get(p.fotoRuta) ?? null) : null }));
+}
 
 /** Los lotes de una recepción ya cerrada (`lotes.despacho_id`, fase 4). Un adorno: si la columna o la lectura fallan, sin etiquetas por lote. */
 async function lotesDelEnvio(despachoId: string): Promise<string[]> {
@@ -165,7 +181,7 @@ async function lotesDelEnvio(despachoId: string): Promise<string[]> {
 
 /** Todo lo que necesita `/recibir/envio/[id]`. Lo secundario (quién hizo la orden, el vocabulario, los lotes) no tumba la pantalla. */
 export async function getDatosRecepcionEnvio(id: string): Promise<DatosRecepcionEnvio> {
-  const vacio = { creadoPorMi: false, catalogo: null, lotes: [] };
+  const vacio = { creadoPorMi: false, catalogo: null, lotes: [], papeles: [] };
   if (!/^[0-9a-f-]{36}$/i.test(id)) return { detalle: null, falla: null, ...vacio };
   const res = await rpc(RPC_DETALLE_ENVIO, { p_despacho_id: id }).catch((e: unknown) => ({ data: null, error: { message: String(e) } }));
   if (res.error) {
@@ -176,7 +192,7 @@ export async function getDatosRecepcionEnvio(id: string): Promise<DatosRecepcion
   if (!detalle) return { detalle: null, falla: null, ...vacio };
 
   const porRecibir = detalle.estado === "en_camino" || detalle.estado === "abierto";
-  const [creadoPorMi, catalogo, lotes] = await Promise.all([
+  const [creadoPorMi, catalogo, lotes, papeles] = await Promise.all([
     // Decisión 17: el detalle lo trae (`creado_por_mi`); si la base todavía no lo dice ahí, se mira en la lista de la sede.
     detalle.creadoPorMi !== null || !porRecibir || !detalle.sede
       ? Promise.resolve(detalle.creadoPorMi ?? false)
@@ -186,6 +202,7 @@ export async function getDatosRecepcionEnvio(id: string): Promise<DatosRecepcion
     // También en camino: al «Empezar a recibir», el formulario sale enseguida, sin esperar otra lectura.
     porRecibir ? getCatalogoParaRecibir() : Promise.resolve(null),
     detalle.estado === "cerrado" && detalle.lotes.length === 0 ? lotesDelEnvio(detalle.id) : Promise.resolve(detalle.lotes),
+    papelesConFoto(detalle.papeles),
   ]);
-  return { detalle, falla: null, creadoPorMi, catalogo, lotes };
+  return { detalle, falla: null, creadoPorMi, catalogo, lotes, papeles };
 }
