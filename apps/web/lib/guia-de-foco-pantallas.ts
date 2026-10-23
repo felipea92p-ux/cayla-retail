@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 59;
+export const PENDIENTES_HOY = 58;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -62,7 +62,10 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
   "/compras/factura/[compraId]": PENDIENTE,
   "/compras/fondos": { estado: "no-aplica", motivo: "Lista de fondos por rendir (ADR-0362, fase 6): se mira quién tiene plata y qué se le entregó, no se llena. Lo que se llena (a quién, de dónde, cuánto, para qué) vive en sus hojas «Entregar plata», «Lo que devuelve» y «Anular», con su guía (registro de modales)." },
-  "/compras/notas-credito": PENDIENTE,
+  "/compras/mi-plata": { estado: "no-aplica", motivo: "ADR-0480: la pantalla no tiene campos propios; los tiene la hoja «Me dieron plata» (declarada en MODALES) y la compra (/compras/mi-plata/compra)." },
+  // ADR-0480, actividad 3: «Compré ropa». Una pregunta por pantalla; el paso del papel dice qué falta (qué te dieron, la foto si hay papel, cuánto).
+  "/compras/mi-plata/compra": { estado: "aplicada", evidencia: ["components/mi-plata/RegistrarCompra.tsx"] },
+  "/compras/notas-credito": { estado: "no-aplica", motivo: "Redirige a Facturas de proveedor: Notas de crédito se retiró (ADR-0480)." },
   "/compras/nueva": PENDIENTE,
   "/compras/ordenes": { estado: "no-aplica", motivo: "Lista de órdenes de compra (ADR-0362): se mira y se filtra, no se llena. Lo que se llena (proveedor, destino, líneas) vive en «Nueva orden de compra», con su guía." },
   "/compras/ordenes/comprobante/[id]": { estado: "aplicada", evidencia: ["components/ordenes-compra/RegistrarComprobanteOrden.tsx"] },
@@ -251,7 +254,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17; 52 → 54 ese mismo día, cuando la prueba aprendió a ver el `<Cajon>`: la orden de Producción vuelve —su cajón sigue llevando el cierre y los insumos, sin guía— y entra la ficha de una persona del Equipo, que nació el 2026-10-05 en un cajón hecho a mano que la prueba no veía. Ninguno es un modal nuevo: es deuda que estaba escondida; 54 → 53 ese mismo día, con la guía de la ficha del Equipo.) */
-export const MODALES_PENDIENTES_HOY = 53;
+export const MODALES_PENDIENTES_HOY = 52;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -398,7 +401,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RecepcionEnvio.tsx": PENDIENTE, // 16 controles
   "components/RecibirComprobanteModal.tsx": PENDIENTE, // 7 controles
   "components/RegistrarGastoModal.tsx": PENDIENTE, // 29 controles
-  "components/RegistrarNotaCreditoModal.tsx": PENDIENTE, // 9 controles
   // ADR-0328 act. 10: cuál (color y talla), dónde estaba, cuántas, qué tiene y quién: todo cuenta como «falta» (lo exige la base).
   // ADR-0328 act. 10 («Se arregló»): la guía enciende lo del panel abierto —qué se arregló, o precio y forma de pago al liquidar— y
   // quién decide. La nota de «Se botó» / «Donada» es opcional.
@@ -456,6 +458,17 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/punto-de-venta/RegistrarBajadaModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién atiende, el mismo combo del ticket) antes de registrar desde Vender la bajada al piso que se olvidó (ADR-0321): el texto dice qué prenda entra y dónde queda; el botón se apaga hasta elegir y dice por qué." },
   // ADR-0362 (actividad 5): «Anular orden». Falta lo que la base rechazaría: el motivo y, desde una terminal, quién la anula.
   "components/fondos/AccionesFondos.tsx": { estado: "aplicada", evidencia: ["components/fondos/AccionesFondos.tsx"] },
+  // Compras simple (ADR-0480, actividad 2): «Me dieron plata» (cómo le llegó, cuánto; la foto del voucher, opcional) y «Confirmar la plata»
+  // (cuánto llegó y, salvo «ya tenía», de qué cuenta salió; desde una terminal, quién confirma).
+  "components/mi-plata/AnotarPlata.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarPlata.tsx"] },
+  "components/mi-plata/AnotarGasto.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarGasto.tsx"] },
+  "components/mi-plata/TerminarDia.tsx": { estado: "no-aplica", motivo: "ADR-0480: una sola pregunta (qué haces con lo que te queda), con el botón apagado y su frase hasta elegir; sin plata no hay nada que elegir." },
+  "components/mi-plata/PlataPorConfirmar.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx"] },
+  // Revisar compras (ADR-0480, actividad 7): completar el papel (serie y número según el papel; el monto, si se anotó mal; desde una
+  // terminal, quién completa), recibir lo del cierre del día (la cuenta y el monto) y revisar un gasto (qué papel; su número y RUC, opcionales).
+  "components/mi-plata/PapelesPorCompletar.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/PapelesPorCompletar.tsx"] },
+  "components/mi-plata/CierresPorRecibir.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/CierresPorRecibir.tsx"] },
+  "components/mi-plata/GastosPorRevisar.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/GastosPorRevisar.tsx"] },
   // La rendición (ADR-0362 fase 6 · actividad 5): «Rendir tu fondo» (el efectivo; la explicación, sugerida si falta plata) y «Revisar la
   // rendición» (quién asume lo que falta, cuando hay explicación; la nota; desde una terminal, quién aprueba).
   "components/fondos/RendirFondo.tsx": { estado: "aplicada", evidencia: ["components/fondos/RendirFondo.tsx"] },
@@ -498,7 +511,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   // el medio y la cuenta vienen puestos y son «sugeridos».
   "components/nos-debe/HojaDeposito.tsx": { estado: "aplicada", evidencia: ["components/nos-debe/HojaDeposito.tsx"] },
   // ADR-0362 fase 5b, actividad 3: «Llegó su nota de crédito».
-  "components/NotaDelProveedorModal.tsx": { estado: "aplicada", evidencia: ["components/NotaDelProveedorModal.tsx"] },
   // ADR-0408 (actividad 3): las hojas de la Vitrina web. «Falta» es lo que `vitrina_guardar_modelo` y `vitrina_mostrar` rechazarían: quién
   // lo cambia. La descripción para la web es opcional, y no hay precio que llenar (es el de cada tienda, Felipe 2026-10-14).
   "components/vitrina/VitrinaModeloHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaModeloHoja.tsx"] },

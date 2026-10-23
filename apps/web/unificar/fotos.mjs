@@ -47,7 +47,6 @@ export const RUTAS = [
   { ruta: "/compras", nombre: "Facturas de proveedor" },
   { ruta: "/compras/nueva", nombre: "Registrar factura" },
   { ruta: "/compras/por-pagar", nombre: "Por pagar" },
-  { ruta: "/compras/notas-credito", nombre: "Notas de crédito" },
   { ruta: "/compras/proveedores", nombre: "Proveedores" },
   { ruta: "/recibir", nombre: "Recibir mercadería" },
   { ruta: "/productos", nombre: "Productos" },

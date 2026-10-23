@@ -17,7 +17,6 @@ import { ahoraSinRespuesta, leAvisaSinRespuesta, pedidosSinRespuesta, textoSinRe
 import { resumenParaElInicio } from "@/lib/pedidos-con-cliente-reglas";
 import { getCuentasBancariasCambiadas } from "@/lib/proveedores";
 import { getIgvEnEspera } from "@/lib/igv-en-espera";
-import { diasDeEspera } from "@/lib/igv-en-espera-reglas";
 
 // Lecturas del bloque «Hoy» del Inicio. La líder reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
 // `getVentasMismaHoraSemanaAnterior`, `fn_parametros_caja` — antes `ubicaciones.meta_venta_diaria`) para que las dos pantallas nunca
@@ -125,7 +124,7 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 
 export async function getFuentesAvisos(
   cuenta: { ubicacionId: string; sedePropiaId: string | null; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
-  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar" | "recibidoPorTerminar" | "notasPorPedir" | "prendasSinLlegar">
+  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar" | "recibidoPorTerminar" | "prendasSinLlegar">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
@@ -176,20 +175,15 @@ export async function getFuentesAvisos(
     ve("recibir") ? recibirContandoDisponible(ubicacionId).then((r) => (r.disponible ? r.pendientes : undefined)) : undefined,
     // ADR-0362 fase 5b, actividad 4: el IGV de lo que no llegó. Una lectura para los dos avisos; la base manda nula la parte que no le
     // toca a quien mira. Sin la función (la base sin su migración), los avisos no existen.
-    ve("notas_credito") || ve("proveedores") ? tolerarLectura("el IGV en espera", () => getIgvEnEspera()) : undefined,
+    ve("proveedores") ? tolerarLectura("el IGV en espera", () => getIgvEnEspera()) : undefined,
   ]);
-  const hoy = hoyLima();
-  const notasPorPedir =
-    !ve("notas_credito") || igv === undefined ? undefined
-      : igv === null ? null
-        : igv.sinNota ? { facturas: igv.sinNota.facturas, igv: igv.sinNota.igv, dias: diasDeEspera(igv.sinNota.desde, hoy) } : undefined;
   const prendasSinLlegar =
     !ve("proveedores") || igv === undefined ? undefined
       : igv === null ? null
         : igv.faltantes
           ? { prendas: igv.faltantes.prendas, facturas: igv.faltantes.facturas, igv: igv.faltantes.igv, proveedores: igv.faltantes.proveedores, proveedorId: igv.faltantes.proveedorId }
           : undefined;
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, notasPorPedir, prendasSinLlegar };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, prendasSinLlegar };
 }
 
 /** Quién está hoy en la sede (asistencia de Dynamic) y, si la cuenta ve la actividad (ADR-0207), qué hizo cada una. */

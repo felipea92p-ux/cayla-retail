@@ -34,7 +34,7 @@
       "button «Editar»"
     ],
     "components/EnvioRecibido.tsx": [
-      "Link «Se reclama en Notas de crédito ↗»",
+      "Link «Se reclama en «Nos debe» ↗»",
       "BotonImprimir «Imprimir»",
       "Boton «Recibir otro envío»",
       "BotonVer «Ver recibidas»"
@@ -111,7 +111,7 @@
       "button «Nada llegó» #2",
       "button «Vaciar»",
       "button «Contar»",
-      "Link «Se reclama en Notas de crédito ↗»",
+      "Link «Se reclama en «Nos debe» ↗»",
       "ComboBuscable «{`recibir-extra-${i}»",
       "Desplegable «{ex.varianteId}»",
       "input «Cantidad»",

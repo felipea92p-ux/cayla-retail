@@ -182,7 +182,8 @@ export function HacerAhora({
           categoriaId: categoria.id,
           marcaId: marca.id,
           marcaNombre: marca.nombre,
-          descripcionOrden: item.tipo === "crear" ? item.pendiente.descripcion : (linea.linea?.descripcion ?? null),
+          // Sin descripción al contar, el nombre que anotó la compradora en la línea (ADR-0480: «Usar ese nombre»).
+          descripcionOrden: (item.tipo === "crear" ? item.pendiente.descripcion : null) ?? linea.linea?.descripcion ?? null,
           precioSugerido: linea.linea?.precioVentaSugerido ?? null,
           costoUnitario: linea.conteo?.costoUnitario ?? linea.linea?.costoUnitario ?? null,
           prenda: null,
@@ -238,6 +239,7 @@ export function HacerAhora({
       guardando={guardando}
       error={error}
       onPrendaVista={onPrendaVista}
+      elegida={linea.linea?.prendaElegida ?? null}
       onSeparado={setSeparado}
       onTallas={async (p) => {
         const ya = prendas.get(p.productoId);
@@ -264,6 +266,7 @@ function SepararAhora({
   guardando,
   error,
   onPrendaVista,
+  elegida,
   onSeparado,
   onTallas,
   onGuardar,
@@ -276,6 +279,7 @@ function SepararAhora({
   guardando: boolean;
   error: string | null;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
+  elegida: { productoId: string; nombre: string | null; codigo: string | null } | null;
   onPrendaVista: (p: PrendaRecepcion) => void;
   onSeparado: (s: Separado) => void;
   onTallas: (p: PrendaSeparada) => void;
@@ -312,6 +316,7 @@ function SepararAhora({
               separado={separado}
               tope={item.cantidad}
               enHacerAhora
+              elegida={elegida}
               onSeparado={onSeparado}
               onTallas={onTallas}
               onPrendaVista={onPrendaVista}

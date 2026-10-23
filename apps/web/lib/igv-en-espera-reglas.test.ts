@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diasDeEspera, hrefPrendasSinLlegar, leerIgvEnEspera, textoNotasPorPedir, textoPrendasSinLlegar } from "./igv-en-espera-reglas";
+import { diasDeEspera, hrefPrendasSinLlegar, leerIgvEnEspera, textoPrendasSinLlegar } from "./igv-en-espera-reglas";
 
 // El aviso del IGV (ADR-0362, fase 5b, actividad 4): la lectura de `fn_igv_en_espera` y sus frases.
 
@@ -26,14 +26,6 @@ describe("lo que dice fn_igv_en_espera", () => {
 });
 
 describe("las frases del aviso", () => {
-  it("las notas por pedir: la plata ya volvió, falta el papel", () => {
-    expect(textoNotasPorPedir({ facturas: 2, igv: 18 }, soles)).toEqual({
-      detalle: "La plata ya volvió en 2 facturas, pero falta la nota del proveedor: sus S/\u00a018.00 de IGV esperan.",
-      ahora: "Pide la nota de crédito de 2 facturas",
-    });
-    expect(textoNotasPorPedir({ facturas: 1, igv: 10.8 }, soles).ahora).toBe("Pide la nota de crédito de 1 factura");
-    expect(textoNotasPorPedir({ facturas: 0, igv: 0 }, soles)).toEqual({ detalle: "Ninguna factura espera la nota de su proveedor.", ahora: "" });
-  });
   it("las prendas que no llegaron o se devolvieron por daño: su IGV está en el crédito fiscal sin la mercadería", () => {
     expect(textoPrendasSinLlegar({ prendas: 3, facturas: 2, igv: 10.8 }, soles)).toEqual({
       detalle: "3 prendas de 2 facturas no llegaron o se devolvieron por daño: su IGV (S/\u00a010.80) está en tu crédito fiscal sin la mercadería. Anota que llegaron o pásalas a saldo a favor.",
