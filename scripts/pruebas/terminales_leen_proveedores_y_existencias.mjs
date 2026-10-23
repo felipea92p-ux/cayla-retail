@@ -141,9 +141,10 @@ const como = (auth) => `set local request.jwt.claim.sub = '${auth}';\nset local 
 /** Apaga la terminal / la sede: se hace como postgres, antes de cambiar de sesión. */
 const APAGAR_TERMINAL = `update retail.terminales set activo = false, desactivada_at = now() where auth_user_id = '${T_APAGADA}';\n`;
 const APAGAR_SEDE = `update retail.ubicaciones set activo = false where id = :'sede_prueba';\n`;
-/** Como en producción, el rol «Terminal Almacén» ve los módulos de dinero de Compras (la base local no los siembra). */
+/** Como en producción, el rol «Terminal Almacén» ve los módulos de dinero de Compras (la base local no los siembra; «notas_credito» se
+ *  retiró en ADR-0480). */
 const MODULOS_DE_DINERO = `insert into retail.rol_modulos (rol_id, modulo)
-  select retail.fn_rol_por_clave('terminal_administrativa'), m from unnest(array['facturas_compra', 'por_pagar', 'notas_credito']) m on conflict do nothing;\n`;
+  select retail.fn_rol_por_clave('terminal_administrativa'), m from unnest(array['facturas_compra', 'por_pagar']) m on conflict do nothing;\n`;
 
 /** Para el BARRIDO: una lectura que además de la puerta de retail pide un MÓDULO (`fn_ve_modulo`, ADR-0161: hoy las del Plan del piso, `plan_piso`) le dice 42501
  *  a quien no lo ve, y eso es correcto, no un fallo de la puerta. Lo que el barrido mide es que la puerta conozca a las terminales, así que la terminal

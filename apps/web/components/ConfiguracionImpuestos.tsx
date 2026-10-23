@@ -142,7 +142,9 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
             ? `S/\u00a0${v.valor.toFixed(2)} por persona y día`
             : nombre === "saldo_favor_igv"
               ? `S/\u00a0${v.valor.toFixed(2)} a favor`
-              : `${v.valor} UIT`;
+              : nombre === "ventas_previas_erp"
+                ? `S/\u00a0${v.valor.toFixed(2)} de ajuste`
+                : `${v.valor} UIT`;
     return guardar(nombre, vigenteDesde, v.valor, null, `${que}: ${legible}.`);
   };
   const confirmar = (p: ParametroFila, que: string) => () => void guardar(p.nombre, p.vigenteDesde, p.valor, p.texto, `${que}: confirmado.`);
@@ -150,6 +152,8 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
   const tasas = parametros.filter((p) => p.nombre === "igv").sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
   const topes = parametros.filter((p) => p.nombre === "tope_planilla_movilidad").sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
   const saldos = parametros.filter((p) => p.nombre === "saldo_favor_igv").sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
+  // El ajuste de ventas del año rige por año exacto: se listan los años que ya tienen algo y el año en curso (aunque no se haya cargado).
+  const aniosPrevias = [...new Set([...parametros.filter((p) => p.nombre === "ventas_previas_erp").map((p) => Number(p.vigenteDesde.slice(0, 4))), anioActual])].sort((a, b) => b - a);
   const uits = parametros.filter((p) => p.nombre === "uit");
   const aniosUit = [...new Set([...uits.map((u) => Number(u.vigenteDesde.slice(0, 4))), ...aniosUitExtra])].sort((a, b) => b - a);
   const anios = aniosDeRegimen(parametros, anioActual, aniosRegimenExtra);
@@ -274,6 +278,43 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
             + Saldo de un mes
           </button>
         </Superficie>
+
+        <Superficie pad className="anim-sube" guia="config.impuestos-previas">
+          <CabeceraBloque
+            titulo="Ajuste de ventas del año"
+            bajada="Opcional. El aviso de ventas del año cuenta lo registrado en el sistema; si tu contador te da una cifra distinta, escribe aquí cuánto sumar, sin IGV."
+          />
+          <ul className="fin-vigencias">
+            {aniosPrevias.map((anio) => {
+              const p = delAnio(parametros, "ventas_previas_erp", anio);
+              return (
+                <li key={anio}>
+                  <span>
+                    {anio}
+                    {p && !p.provisional ? (
+                      <Quien p={p} onConfirmar={confirmar(p, `Ajuste de ventas ${anio}`)} />
+                    ) : (
+                      <small>sin ajuste: cuenta solo lo registrado en el sistema</small>
+                    )}
+                  </span>
+                  <span className="fin-con-unidad">
+                    S/
+                    <Casilla
+                      valor={p && !p.provisional ? valorEnCasilla(p) : ""}
+                      placeholder="0.00"
+                      etiqueta={`Ajuste de ventas de ${anio}, en soles sin IGV`}
+                      ancho="w-28"
+                      alGuardar={guardarCasilla("ventas_previas_erp", `${anio}-01-01`, `Ajuste de ventas ${anio}`)}
+                    />
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="fin-tenue mt-3 text-[13px]">
+            Si ese monto ya está registrado en el sistema, déjalo en 0: se contaría dos veces. Cada año va aparte: el de uno no pasa al siguiente.
+          </p>
+        </Superficie>
       </section>
 
       <Superficie className="anim-sube" guia="config.impuestos-regimen">
@@ -283,12 +324,13 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
           </button>
         </TituloDeTarjeta>
         <div className="fin-tabla-wrap">
-          <table className="fin-tabla fin-tabla-apretada" style={{ minWidth: 720 }}>
+          <table className="fin-tabla fin-tabla-apretada" style={{ minWidth: 800 }}>
             <thead>
               <tr>
                 <th>Año</th>
                 <th>Régimen</th>
                 <th className="fin-num">Límite (UIT)</th>
+                <th className="fin-num">Aviso (UIT)</th>
                 <th className="fin-num">Límite en soles</th>
                 <th className="fin-num">Pago a cuenta</th>
                 <th>Estado</th>
@@ -302,7 +344,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
           </table>
         </div>
         <PieTabla>
-          <span>Pasado el límite, SUNAT pide Diario y Mayor completos; el pago a cuenta sale de la venta neta de cada mes. Los valores de arranque (Régimen MYPE, 300 UIT, 1 %) son provisionales: los confirma el contador.</span>
+          <span>Pasado el límite, SUNAT pide Diario y Mayor completos; el pago a cuenta sale de la venta neta de cada mes. Los valores de arranque (Régimen MYPE, 300 UIT, 1 %) son provisionales: los confirma el contador. El aviso salta antes del límite, para hablar con el contador a tiempo.</span>
         </PieTabla>
       </Superficie>
 
@@ -328,12 +370,15 @@ function FilaAnio({
   const regimen = delAnio(parametros, "regimen", anio);
   const umbral = delAnio(parametros, "umbral_uit", anio);
   const renta = delAnio(parametros, "renta_pago_cuenta", anio);
+  const aviso = delAnio(parametros, "aviso_umbral_uit", anio);
+  const avisoVigente = vigenteEnAnio(parametros, "aviso_umbral_uit", anio);
   const regimenVigente = vigenteEnAnio(parametros, "regimen", anio);
   const umbralVigente = vigenteEnAnio(parametros, "umbral_uit", anio);
   const rentaVigente = vigenteEnAnio(parametros, "renta_pago_cuenta", anio);
   const uitVigente = vigenteEnAnio(parametros, "uit", anio);
-  const propios = [regimen, umbral, renta].filter((p): p is ParametroFila => !!p);
+  const propios = [regimen, umbral, renta, aviso].filter((p): p is ParametroFila => !!p);
   const enSoles = uitVigente?.valor && umbralVigente?.valor ? uitVigente.valor * umbralVigente.valor : null;
+  const avisoEnSoles = uitVigente?.valor && avisoVigente?.valor ? uitVigente.valor * avisoVigente.valor : null;
   const estado = !propios.length
     ? { tono: "neutro" as const, texto: regimenVigente || umbralVigente ? "sigue el año anterior" : "sin configurar" }
     : propios.some((p) => p.provisional)
@@ -364,6 +409,16 @@ function FilaAnio({
           ancho="w-20"
           alGuardar={guardarCasilla("umbral_uit", desde, `Límite de ${anio}`)}
         />
+      </td>
+      <td className="fin-num" data-l="Aviso (UIT)">
+        <Casilla
+          valor={aviso ? valorEnCasilla(aviso) : ""}
+          placeholder={avisoVigente ? valorEnCasilla(avisoVigente) : "—"}
+          etiqueta={`Aviso anticipado de ${anio}, en UIT de ventas del año`}
+          ancho="w-20"
+          alGuardar={guardarCasilla("aviso_umbral_uit", desde, `Aviso de ${anio}`)}
+        />
+        {avisoEnSoles !== null && <span className="fin-sub">{solesRedondo(avisoEnSoles)}</span>}
       </td>
       <td className="fin-num" data-l="En soles">
         {enSoles !== null ? solesRedondo(enSoles) : <span className="fin-tenue">—</span>}

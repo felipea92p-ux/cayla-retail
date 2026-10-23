@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { useRouter } from "next/navigation";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
@@ -36,6 +36,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ContarEnvio } from "./ContarEnvio";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
+import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
 import { PasosConteo } from "@/components/conteo/PasosConteo";
 
 // «Recibir ENV-000061» contando primero (ADR-0393, la cara A; maqueta `docs/maquetas/recibir-fardo-2026-10/a-camino.html`). Tres pasos:
@@ -78,6 +79,7 @@ export function RecibirContando({
   veExistencias,
   veDinero,
   proveedoresParaElegir = [],
+  papeles = [],
 }: {
   detalle: DetalleEnvio;
   conteos: ConteosDelEnvio | null;
@@ -90,6 +92,8 @@ export function RecibirContando({
   veDinero: boolean;
   /** Un envío sin aviso que llegó sin saber de quién (Felipe 2026-10-14): los proveedores para elegir al cerrar. */
   proveedoresParaElegir?: readonly { id: string; nombre: string }[];
+  /** Los papeles de lo comprado desde el celular, con su foto (ADR-0480): se cuenta mirándolos. */
+  papeles?: ComponentProps<typeof PapelesDeLaCompra>["papeles"];
 }) {
   const router = useRouter();
   const responsable = useResponsable();
@@ -315,6 +319,8 @@ export function RecibirContando({
           }
         />
       )}
+
+      {(porRecibir || estado === "cerrado") && !otraSede && !noLoRecibe && <PapelesDeLaCompra papeles={papeles} />}
 
       {estado === "en_camino" && !otraSede && !noLoRecibe && (
         <EmpezarARecibir
