@@ -165,13 +165,16 @@ derecha, «INSIGNIA», «INSIGNIA» y «+2»).
   En tarjetas de menos de 380 px la letra de la fila es más chica (consulta de contenedor). Resultado medido: 409 px (escritorio) caben las 3 y el «+N»; 289 px
   (1024 de ancho) y 216 px (tablet) caben casi siempre dos o tres; 165 px (celular) caben «Nuevo» y el «+N», o «Nuevo» y una insignia corta. Antes de medir (el HTML del
   servidor, o sin JavaScript) se ven las 3 del tope y el CSS achica con «…» lo que no cabe.
-- **La base** (`20261023205000`): el catálogo trae `insignias` en cada prenda (`[]` si no tiene). La regla sigue siendo UNA —la de este ADR— pero ahora
-  escrita POR LOTE (`fn_tienda_insignias_de`: una pasada para todo el catálogo) y la de la ficha (`fn_tienda_insignias`) la llama con un solo modelo.
+- **La base** (`20261023205000`): el catálogo trae `insignias` en cada prenda (`[]` si no tiene). La regla es la de este ADR, escrita
+  POR LOTE para el catálogo (`fn_tienda_insignias_de`: una pasada para todas las prendas) y SIN tocar la de la ficha (`fn_tienda_insignias`): en producción
+  ya es la de `20261023203000` (PR #1300: `[{id, nombre, icono, imagen, descuento}]`, con las de descuento marcadas) y reescribirla la desharía.
   El catálogo le pasa las tiendas de la web que ya conoce: una prueba vieja (`20261015215000`) exige que se pregunte por ellas una sola vez por carga.
 
-DECIDÍ: una función por lote que llaman el catálogo y la ficha. DESCARTÉ: llamar la de un modelo por cada prenda del catálogo (N consultas por carga;
-`20261017173000` reescribió el catálogo para que nada se calcule por prenda) y dejar la regla escrita dos veces (el catálogo y la ficha dirían cosas
-distintas de la misma prenda). DESCARTÉ: que la base corte en «3 y +N»: depende de lo que la tarjeta ya dice, que solo sabe la tienda.
+DECIDÍ: una función por lote para el catálogo, aparte de la de la ficha. DESCARTÉ: llamar la de un modelo por cada prenda del catálogo (N consultas por
+carga; `20261017173000` reescribió el catálogo para que nada se calcule por prenda) y que la ficha llame a la de lote (la regla una sola vez, que era la
+primera versión de esta migración): #1300 ya dejó otra forma de la ficha en producción y sus columnas `icono`/`icono_imagen` no existen en una base armada
+desde cero. Costo aceptado: la regla vive en dos funciones y una puede cambiar sin la otra; `pnpm pruebas:tienda-insignias` compara la tarjeta con la ficha
+en 2 prendas × 3 tiendas y falla si difieren. Seguimiento: al fusionarse #1300, una migración chica suma `icono` e `imagen` a la de lote y la ficha la llama. DESCARTÉ: que la base corte en «3 y +N»: depende de lo que la tarjeta ya dice, que solo sabe la tienda.
 SE ROMPE SI: se reescribe `tienda_catalogo` con el texto de antes (el catálogo vuelve a no traer insignias, sin error), si la tarjeta dibuja un tipo
 nuevo de insignia propia y no la cuenta en `insigniasDeTarjeta` (el tope dejaría de ser 3), o si una chip nueva de la fila no lleva la clase `t-insignia` (la
 copia con que se mide no la vería y la fila se pasaría del ancho).

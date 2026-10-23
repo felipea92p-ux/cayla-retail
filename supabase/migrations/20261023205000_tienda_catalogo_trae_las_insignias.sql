@@ -11,21 +11,24 @@
 --   percha se revisa por separado, se recorre el perchero entero cada vez.
 --
 -- QUÉ HACE.
---   1. `retail.fn_tienda_insignias_de(p_producto_ids, p_sede)`: LA regla de qué insignias ve el cliente, escrita UNA vez y por LOTE: una fila por modelo
+--   1. `retail.fn_tienda_insignias_de(p_producto_ids, p_sede)`: la regla de qué insignias ve el cliente en una TARJETA, por LOTE: una fila por modelo
 --      con sus insignias (`[{id, nombre}]`, por grupo y nombre). Interna. El catálogo le pasa las tiendas de la web que ya conoce: la prueba de
 --      `20261015215000` exige que se pregunte por ellas UNA vez por carga, y esta función no lo vuelve a preguntar.
---   2. `retail.fn_tienda_insignias(modelo, sede)` (la de la ficha, 20261023182000) ahora llama a la de lote con un solo modelo: la misma regla, no una copia.
---   3. Tres reemplazos ANCLADOS en `tienda_catalogo` (una CTE, una unión y una llave): cada prenda trae `insignias` (`[]` si no tiene). Si el texto de la
+--   2. Tres reemplazos ANCLADOS en `tienda_catalogo` (una CTE, una unión y una llave): cada prenda trae `insignias` (`[]` si no tiene). Si el texto de la
 --      función no es el revisado, se detiene sin tocar nada.
+--   NO toca `fn_tienda_insignias` (la de la ficha): en producción ya es la de `20261023203000` (PR #1300: `[{id, nombre, icono, imagen, descuento}]`, con las de
+--   descuento marcadas) y reescribirla desharía ese cambio. La ficha y la tarjeta dicen lo mismo porque `pruebas:tienda-insignias` compara las dos.
 --
 -- LA REGLA no cambia (ADR-0489): aprobada y activa; vigente hoy (Lima, sin fechas = siempre, los dos extremos cuentan); alcanza al modelo por una variante
 --   que se ofrece o por su categoría; de esa tienda (con «Todas», de alguna de la web); y SIN descuento (el descuento es el chip rojo y la tarjeta ya lo dice).
 --
--- DECIDÍ: una función POR LOTE, y que la de un modelo la llame. Un solo recorrido para todo el catálogo.
+-- DECIDÍ: una función POR LOTE para el catálogo, sin tocar la de la ficha. Un solo recorrido para todo el catálogo.
 -- DESCARTÉ: llamar `fn_tienda_insignias(m.id, v_sede)` por cada prenda dentro de `tienda_catalogo`. Es N consultas por carga (cada una recorre sus
 --   variantes y las marcas de insignias); `20261017173000` reescribió el catálogo justamente para que nada se calcule por prenda.
--- DESCARTÉ: dejar la regla escrita dos veces (la de la ficha y la del catálogo). Si un día cambia una, el catálogo y la ficha dirían cosas distintas de la
---   misma prenda.
+-- DESCARTÉ: que la de la ficha llame a la de lote (la regla escrita una sola vez, como tenía esta migración antes). Producción ya tiene la ficha de
+--   `20261023203000` (PR #1300, que se fusiona aparte) con otra forma y con las de descuento; reescribirla desharía ese cambio, y sus columnas `icono` e
+--   `icono_imagen` no existen todavía en una base armada desde cero. La regla queda en dos funciones (la de la ficha y la de lote) y el riesgo es que
+--   una cambie y la otra no: `pruebas:tienda-insignias` compara el catálogo con la ficha, prenda por prenda y tienda por tienda, y falla si difieren.
 -- DESCARTÉ: que la base corte en «3 y +N». Ese corte depende de lo que la tarjeta YA dice (Nuevo, descuento, puesto), que solo conoce la tienda: la base
 --   entrega todas, ordenadas, y la tienda decide cuántas caben.
 --
@@ -33,7 +36,9 @@
 --   contra la llave `(variante_id, etiqueta_id)` de `variante_etiquetas`: milisegundos, una vez por carga (el catálogo se comparte 30 s entre visitas).
 --
 -- SE ROMPE SI: alguien reescribe `tienda_catalogo` con el texto de antes de esta migración (el catálogo vuelve a no traer insignias, sin error: la tienda
---   tolera que falten; `pnpm pruebas:tienda-insignias` lo vigila), o si la regla de la ficha y la del catálogo dejan de ser la misma función.
+--   tolera que falten; `pnpm pruebas:tienda-insignias` lo vigila), o si se cambia la regla de la ficha (`fn_tienda_insignias`) sin cambiar la de lote: la
+--   tarjeta y la ficha dirían cosas distintas de la misma prenda (la prueba de comparación falla).
+-- SEGUIMIENTO: cuando se fusione #1300, una migración chica puede sumar `icono` e `imagen` a la de lote y hacer que la ficha la llame (una sola regla).
 --
 -- PRODUCCIÓN. Una sola parte, idempotente (se puede pegar dos veces). Sin políticas, sin `drop trigger` y sin `alter` de tablas en uso (sin riesgo de 40P01,
 --   ADR-0195); `lock_timeout` 3 s. Sin `select … into` dentro de un texto entre comillas (ADR-0288). Va DESPUÉS de 20261023182000. El orden con la publicación
@@ -110,27 +115,11 @@ as $function$
 $function$;
 
 comment on function retail.fn_tienda_insignias_de(uuid[], uuid, uuid[]) is
-  'ADR-0489 (act. c). LA regla de qué insignias de Catálogo ▸ Insignias ve el cliente, por lote: una fila por modelo con [{id, nombre}] por grupo y nombre. Aprobadas, activas, SIN descuento (ese es el chip de la campaña), vigentes hoy (Lima), que alcanzan al modelo por una variante que se ofrece o por su categoría, y que rigen en esa tienda (null = alguna de la web). Los modelos sin insignias no traen fila. p_sedes_web: las tiendas de la web si el llamador ya las conoce (así el catálogo no vuelve a preguntarlas). Interna: la llaman tienda_catalogo y fn_tienda_insignias.';
+  'ADR-0489 (act. c). LA regla de qué insignias de Catálogo ▸ Insignias ve el cliente, por lote: una fila por modelo con [{id, nombre}] por grupo y nombre. Aprobadas, activas, SIN descuento (ese es el chip de la campaña), vigentes hoy (Lima), que alcanzan al modelo por una variante que se ofrece o por su categoría, y que rigen en esa tienda (null = alguna de la web). Los modelos sin insignias no traen fila. p_sedes_web: las tiendas de la web si el llamador ya las conoce (así el catálogo no vuelve a preguntarlas). Interna: la llama tienda_catalogo. La ficha usa fn_tienda_insignias, que dice lo mismo menos las de descuento (las trae marcadas).';
 
 revoke all on function retail.fn_tienda_insignias_de(uuid[], uuid, uuid[]) from public, anon, authenticated;
 
--- 2. La de la ficha llama a la de lote: la misma regla, no una copia ----------------------------------------------------------------------
-
-create or replace function retail.fn_tienda_insignias(p_producto_id uuid, p_sede uuid)
-returns jsonb
-language sql
-stable
-set search_path to 'retail', 'public'
-as $function$
-  select coalesce((select d.insignias from retail.fn_tienda_insignias_de(array[p_producto_id], p_sede) d), '[]'::jsonb)
-$function$;
-
-comment on function retail.fn_tienda_insignias(uuid, uuid) is
-  'ADR-0489. Las insignias que ve el cliente en la ficha de un modelo: [{id, nombre}] por grupo y nombre. La regla vive en fn_tienda_insignias_de (por lote); esta la llama con un solo modelo. Interna: la llama tienda_ficha.';
-
-revoke all on function retail.fn_tienda_insignias(uuid, uuid) from public, anon, authenticated;
-
--- 3. `tienda_catalogo` trae las insignias de cada prenda (tres reemplazos anclados, de una vez) ----------------------------------------------
+-- 2. `tienda_catalogo` trae las insignias de cada prenda (tres reemplazos anclados, de una vez) ----------------------------------------------
 
 create or replace function pg_temp.reemplazar_anclados(p_firma text, p_pares text[], p_ya_aplicado text)
 returns void
@@ -180,18 +169,15 @@ select pg_temp.reemplazar_anclados(
   $v$insignias_de as (select * from retail.fn_tienda_insignias_de(v_ids, v_sede, v_sedes))$v$
 );
 
--- 4. Comprobación: lo interno sigue interno, el catálogo sigue siendo solo de la tienda y trae el campo -------------------------------------
+-- 3. Comprobación: lo interno sigue interno, el catálogo sigue siendo solo de la tienda y trae el campo -------------------------------------
 
 do $$
-declare
-  f text;
 begin
-  foreach f in array array['retail.fn_tienda_insignias_de(uuid[], uuid, uuid[])', 'retail.fn_tienda_insignias(uuid, uuid)'] loop
-    if has_function_privilege('anon', f, 'EXECUTE') or has_function_privilege('authenticated', f, 'EXECUTE')
-       or has_function_privilege('tienda_web', f, 'EXECUTE') then
-      raise exception 'tienda insignias: % es interna y nadie de afuera la llama. No se aplicó nada.', f;
-    end if;
-  end loop;
+  if has_function_privilege('anon', 'retail.fn_tienda_insignias_de(uuid[], uuid, uuid[])', 'EXECUTE')
+     or has_function_privilege('authenticated', 'retail.fn_tienda_insignias_de(uuid[], uuid, uuid[])', 'EXECUTE')
+     or has_function_privilege('tienda_web', 'retail.fn_tienda_insignias_de(uuid[], uuid, uuid[])', 'EXECUTE') then
+    raise exception 'tienda insignias: fn_tienda_insignias_de es interna y nadie de afuera la llama. No se aplicó nada.';
+  end if;
   if has_function_privilege('anon', 'retail.tienda_catalogo(uuid)', 'EXECUTE')
      or has_function_privilege('authenticated', 'retail.tienda_catalogo(uuid)', 'EXECUTE')
      or not has_function_privilege('tienda_web', 'retail.tienda_catalogo(uuid)', 'EXECUTE') then

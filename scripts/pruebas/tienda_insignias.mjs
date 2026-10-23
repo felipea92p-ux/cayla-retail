@@ -14,8 +14,10 @@
  *   · como `tienda_web` (el único que llama a la ficha) todo funciona aunque la función de adentro no sea suya: la puerta no se abrió;
  *   · la migración se puede pegar dos veces y deja la línea una sola vez;
  *   · EL CATÁLOGO (act. c): cada prenda de `tienda_catalogo` trae sus `insignias` (`[]` si no tiene), por tienda y sin las de descuento; el catálogo,
- *     la ficha y el lote (`fn_tienda_insignias_de`) dicen EXACTAMENTE lo mismo de la misma prenda, y el lote da lo que daba la regla de un solo
- *     modelo (ORÁCULO: la regla de antes, copiada aquí, contra la de ahora, con vigencia, tiendas, categoría, descuento y desactivadas).
+ *     la ficha y el lote (`fn_tienda_insignias_de`) dicen lo mismo de la misma prenda (la ficha de producción, la de `20261023203000`, trae además
+ *     `icono`, `imagen` y las de descuento marcadas: se compara id y nombre, sin las de descuento), prenda por prenda y tienda por tienda: es el guardián
+ *     de que las dos reglas no se separen. El lote da lo que daba la regla de un solo modelo (ORÁCULO: la regla de antes, copiada aquí, contra la de
+ *     ahora, con vigencia, tiendas, categoría, descuento y desactivadas).
  *
  * CÓMO. Cada escenario en su propia transacción con ROLLBACK (como `campanas_por_sede.mjs`): la base compartida queda igual. Los datos
  * del modelo elegido (sus marcas de insignias y las de su categoría) se borran DENTRO de la transacción para partir limpio.
@@ -295,7 +297,7 @@ rollback;`);
   }
 
   // ======================================================================================================================================
-  // EL CATÁLOGO y EL LOTE (ADR-0489, act. c): la regla escrita UNA vez, por lote; la ficha y el catálogo la llaman.
+  // EL CATÁLOGO y EL LOTE (ADR-0489, act. c): el catálogo usa la regla por lote; la ficha tiene la suya (`fn_tienda_insignias`) y se comparan.
   // ======================================================================================================================================
   // «Pantalón Carla» publicado también (otra categoría, sin marcas), para ver qué pasa con una prenda que no tiene insignias.
   const CON_CARLA = `select id as carla from retail.productos where referencia = 'Pantalón Carla' \\gset
@@ -350,19 +352,44 @@ rollback;`),
   );
 
   // ---- 11. El catálogo, la ficha y el lote dicen lo mismo ----
+  // La ficha de producción es la de `20261023203000` (#1300): `[{id, nombre, icono, imagen, descuento}]` y con las de descuento marcadas; la de
+  // `20261023182000` es `[{id, nombre}]` sin las de descuento. La tarjeta solo dice id y nombre y nunca las de descuento: se compara lo común.
+  const SIN_EXTRAS = `create function pg_temp.sin_extras(j jsonb) returns jsonb language sql stable as $f$
+  select coalesce(jsonb_agg(jsonb_build_object('id', e -> 'id', 'nombre', e -> 'nombre') order by o), '[]'::jsonb)
+    from jsonb_array_elements(coalesce(j, '[]'::jsonb)) with ordinality t (e, o)
+   where coalesce((e ->> 'descuento')::boolean, false) = false
+$f$;
+`;
   esperarLinea(
     "el catálogo, la ficha, la función de un modelo y la de lote dan exactamente lo mismo de la misma prenda",
-    correr(`${PARTIR()}${insignia("a", "ZZ Rotación", { estilo: "urgencia" })}${insignia("b", "ZZ Artesanal", { estilo: "positivo" })}${insignia("c", "ZZ Campaña", { estilo: "campana", asignar: "categoria" })}${insignia("d", "ZZ General")}
+    correr(`${PARTIR()}${SIN_EXTRAS}${insignia("a", "ZZ Rotación", { estilo: "urgencia" })}${insignia("b", "ZZ Artesanal", { estilo: "positivo" })}${insignia("c", "ZZ Campaña", { estilo: "campana", asignar: "categoria" })}${insignia("d", "ZZ General")}
 select bool_and(x) from unnest(array[
   (select i.x -> 'insignias' from jsonb_array_elements(retail.tienda_catalogo(null) -> 'prendas') i (x) where i.x ->> 'id' = :'pid')
-    = (retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias'),
-  retail.fn_tienda_insignias(:'pid', null) = (retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias'),
-  (select d.insignias from retail.fn_tienda_insignias_de(array[:'pid']::uuid[], null) d) = retail.fn_tienda_insignias(:'pid', null),
-  jsonb_array_length(retail.fn_tienda_insignias(:'pid', null)) = 4
+    = pg_temp.sin_extras(retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias'),
+  pg_temp.sin_extras(retail.fn_tienda_insignias(:'pid', null)) = pg_temp.sin_extras(retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias'),
+  (select d.insignias from retail.fn_tienda_insignias_de(array[:'pid']::uuid[], null) d) = pg_temp.sin_extras(retail.fn_tienda_insignias(:'pid', null)),
+  jsonb_array_length(pg_temp.sin_extras(retail.fn_tienda_insignias(:'pid', null))) = 4
 ]) x;
 rollback;`),
     "t",
   );
+  // El guardián de que la regla no se separe: en 2 prendas × 3 tiendas, con vigencia, tiendas, categoría, descuento y desactivadas, la tarjeta (el
+  // catálogo) dice lo mismo que la ficha (menos lo que la ficha trae de más).
+  {
+    const r = correr(`${PARTIR()}${CON_CARLA}${SIN_EXTRAS}${insignia("a", "ZZ A mano en Emma")}${insignia("b", "ZZ De la categoría", { estilo: "campana", asignar: "categoria" })}${insignia("c", "ZZ Vencida", { hasta: -1 })}${insignia("d", "ZZ Solo tienda 1", { estilo: "urgencia", sedes: ["s1"] })}${insignia("e", "ZZ Con descuento", { pct: 15, desde: -1, hasta: 5 })}${insignia("f", "ZZ Apagada", { activo: false })}${insignia("g", "ZZ En una tienda fuera", { sedes: ["fuera"] })}${insignia("h", "ZZ De Carla", { estilo: "positivo", asignar: "ninguna" })}${insignia("i", "ZZ Mañana", { desde: 1 })}
+insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'v_carla', :'e_h');
+select concat_ws('|',
+  (select bool_and(
+            coalesce((select i.x -> 'insignias' from jsonb_array_elements(retail.tienda_catalogo(x.s) -> 'prendas') i (x) where i.x ->> 'id' = x.p::text), '[]'::jsonb)
+            = pg_temp.sin_extras(retail.fn_tienda_insignias(x.p, x.s)))
+     from (select p, s from unnest(array[:'pid', :'carla']::uuid[]) p, (values (null::uuid), (:'s1'::uuid), (:'s2'::uuid)) q (s)) x),
+  (select count(*) from (select p, s from unnest(array[:'pid', :'carla']::uuid[]) p, (values (null::uuid), (:'s1'::uuid), (:'s2'::uuid)) q (s)) x),
+  -- que el escenario no sea vacío: Emma ve algo y Carla ve la suya
+  jsonb_array_length(pg_temp.sin_extras(retail.fn_tienda_insignias(:'pid', null))),
+  jsonb_array_length(pg_temp.sin_extras(retail.fn_tienda_insignias(:'carla', null))));
+rollback;`);
+    esperarLinea("la tarjeta y la ficha dicen lo mismo en 2 prendas × 3 tiendas (con vigencia, tiendas, categoría, descuento y desactivadas)", r, "t|6|3|1");
+  }
   esperarLinea(
     "el lote solo trae filas de lo que tiene insignias; con una lista vacía o sin lista, ninguna y sin error",
     correr(`${PARTIR()}${CON_CARLA}${insignia("a", "ZZ De Emma")}select concat_ws('|',
