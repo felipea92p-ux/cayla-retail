@@ -226,8 +226,50 @@ export function faltaEnPaso(paso: "cantidad" | "costo" | "venta", t: string): st
 // Al tocar una prenda se abre UNA hoja con lo que antes eran cuatro pantallas seguidas: cuántas, el costo, la venta y la tienda (que se
 // sigue eligiendo por prenda: Felipe, 2026-10-23). Lo que falta es lo mismo que antes frenaba cada paso: la guía no agrega reglas.
 
-/** Lo que se va escribiendo en la hoja de una prenda. `destinoId`: la tienda; llega con la de la prenda anterior. */
-export type BorradorPrenda = { cantidad: string; costo: string; venta: string; destinoId: string | null };
+/**
+ * Lo que se va escribiendo en la hoja de una prenda. `destinos`: las tiendas a las que va (llega con la de la prenda anterior). Con dos o
+ * más, `reparto` dice cuántas va a cada una (Felipe 2026-10-23: «si selecciono más de una, que aparezcan inputs para distribuir el
+ * total»); llega parejo y lo sigue mientras nadie lo toque (`repartoPropio`).
+ */
+export type BorradorPrenda = {
+  cantidad: string;
+  costo: string;
+  venta: string;
+  destinos: string[];
+  reparto: Record<string, string>;
+  repartoPropio?: boolean;
+};
+
+/** El reparto parejo de `total` entre las tiendas: 10 en 3 → 4, 3, 3 (lo que sobra, a las primeras). Sin total, vacío. */
+export function repartoParejo(total: number | null, destinos: readonly string[]): Record<string, string> {
+  if (total == null || destinos.length === 0) return {};
+  const base = Math.floor(total / destinos.length);
+  const sobra = total - base * destinos.length;
+  return Object.fromEntries(destinos.map((d, i) => [d, String(base + (i < sobra ? 1 : 0))]));
+}
+
+/** Prender o apagar una tienda: el reparto vuelve a ser parejo (lo escrito a mano de otras tiendas ya no suma igual). */
+export function alternarDestino(b: BorradorPrenda, tienda: string, varias: boolean): Pick<BorradorPrenda, "destinos" | "reparto" | "repartoPropio"> {
+  const destinos = !varias ? [tienda] : b.destinos.includes(tienda) ? b.destinos.filter((d) => d !== tienda) : [...b.destinos, tienda];
+  return { destinos, reparto: repartoParejo(leerCantidad(b.cantidad), destinos), repartoPropio: false };
+}
+
+/** Cambiar cuántas: el reparto se rehace parejo si nadie lo tocó a mano. */
+export function conCantidad(b: BorradorPrenda, cantidad: string): Pick<BorradorPrenda, "cantidad" | "reparto"> {
+  return { cantidad, reparto: b.repartoPropio ? b.reparto : repartoParejo(leerCantidad(cantidad), b.destinos) };
+}
+
+/** Lo que falta para que el reparto cierre («Reparte las 10: faltan 2»). Con una sola tienda, nada. */
+export function problemaReparto(b: Pick<BorradorPrenda, "cantidad" | "destinos" | "reparto">): string | null {
+  if (b.destinos.length < 2) return null;
+  const total = leerCantidad(b.cantidad);
+  if (total == null) return "Primero escribe cuántas compraste.";
+  const partes = b.destinos.map((d) => leerCantidad(b.reparto[d] ?? ""));
+  if (partes.some((n) => n == null)) return "Cada tienda lleva al menos 1: si no va a una, apágala.";
+  const suma = partes.reduce<number>((s, n) => s + (n ?? 0), 0);
+  if (suma === total) return null;
+  return suma < total ? `Reparte las ${total}: faltan ${total - suma}.` : `Reparte las ${total}: sobran ${suma - total}.`;
+}
 
 /** Los campos de la hoja, en su orden, para la guía de foco. */
 export function camposPrenda(b: BorradorPrenda): CampoDeGuia[] {
@@ -235,7 +277,10 @@ export function camposPrenda(b: BorradorPrenda): CampoDeGuia[] {
     { id: "cantidad", nombre: "Cuántas", requerido: true, hecho: faltaEnPaso("cantidad", b.cantidad) === null, pendiente: "Escribe cuántas compraste." },
     { id: "costo", nombre: "Costo", requerido: true, hecho: faltaEnPaso("costo", b.costo) === null, pendiente: "Escribe cuánto te costó cada una." },
     { id: "venta", nombre: "Venta", requerido: true, hecho: faltaEnPaso("venta", b.venta) === null, pendiente: "Escribe a cuánto se vende." },
-    { id: "tienda", nombre: "Tienda", requerido: true, hecho: b.destinoId !== null, pendiente: "Elige a qué tienda va." },
+    { id: "tienda", nombre: "Tienda", requerido: true, hecho: b.destinos.length > 0, pendiente: "Elige a qué tienda va." },
+    ...(b.destinos.length >= 2
+      ? [{ id: "reparto", nombre: "Reparto", requerido: true, hecho: problemaReparto(b) === null, pendiente: problemaReparto(b) ?? "" }]
+      : []),
   ];
 }
 
@@ -254,25 +299,46 @@ export function textoAgregarPrenda(b: Pick<BorradorPrenda, "cantidad" | "costo">
   return cantidad != null && costo != null ? `${verbo} ${cantidad} · ${soles(Math.round(cantidad * costo * 100) / 100)}` : verbo;
 }
 
-/** La línea que entra a la compra desde la hoja. `null` si falta algo (el botón ya está apagado). */
-export function lineaDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "categoriaId" | "marcaId" | "nombre" | "categoria" | "marca">, b: BorradorPrenda): LineaCompra | null {
+/**
+ * Las líneas que entran a la compra desde la hoja: una por tienda, con su parte (la base arma una orden por tienda). Vacío si falta algo
+ * (el botón ya está apagado).
+ */
+export function lineasDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "categoriaId" | "marcaId" | "nombre" | "categoria" | "marca">, b: BorradorPrenda): LineaCompra[] {
   const cantidad = leerCantidad(b.cantidad);
   const costo = leerPrecio(b.costo);
   const venta = leerPrecio(b.venta);
-  if (cantidad == null || costo == null || venta == null || b.destinoId == null) return null;
+  if (cantidad == null || costo == null || venta == null || b.destinos.length === 0 || problemaReparto(b) !== null) return [];
+  const comun = { clave: h.clave, productoId: h.productoId, categoriaId: h.categoriaId, marcaId: h.marcaId, nombre: h.nombre, categoria: h.categoria, marca: h.marca, costo, venta };
+  if (b.destinos.length === 1) return [{ ...comun, cantidad, destinoId: b.destinos[0] }];
+  return b.destinos.map((d) => ({ ...comun, cantidad: leerCantidad(b.reparto[d] ?? "") ?? 0, destinoId: d }));
+}
+
+/** Corregir una prenda que ya va: junta sus líneas (una por tienda) de vuelta en un borrador. */
+export function borradorDeLineas(lineas: readonly LineaCompra[]): Pick<BorradorPrenda, "cantidad" | "costo" | "venta" | "destinos" | "reparto" | "repartoPropio"> {
+  const primera = lineas[0];
+  const destinos = [...new Set(lineas.map((l) => l.destinoId))];
   return {
-    clave: h.clave,
-    productoId: h.productoId,
-    categoriaId: h.categoriaId,
-    marcaId: h.marcaId,
-    nombre: h.nombre,
-    categoria: h.categoria,
-    marca: h.marca,
-    cantidad,
-    costo,
-    venta,
-    destinoId: b.destinoId,
+    cantidad: String(prendasDeLineas(lineas)),
+    costo: primera ? primera.costo.toFixed(2) : "",
+    venta: primera?.venta != null ? primera.venta.toFixed(2) : "",
+    destinos,
+    reparto: destinos.length > 1 ? Object.fromEntries(lineas.map((l) => [l.destinoId, String(l.cantidad)])) : {},
+    repartoPropio: destinos.length > 1,
   };
+}
+
+/** El nombre de una tienda sin «Tienda» delante (Felipe 2026-10-23: «basta con decir Trujillo, Lima o Arequipa»). */
+export const nombreCortoTienda = (nombre: string): string => nombre.replace(/^Tienda\s+/i, "") || nombre;
+
+/** Lo que dice la tarjeta de una prenda que ya va: «10 × S/ 20.00 · Lima 6, AQP 4». */
+export function textoPrendaEnCompra(lineas: readonly LineaCompra[], nombres: ReadonlyMap<string, string>): string {
+  const primera = lineas[0];
+  if (!primera) return "";
+  const tiendas =
+    lineas.length === 1
+      ? nombreCortoTienda(nombres.get(primera.destinoId) ?? "una tienda")
+      : lineas.map((l) => `${nombreCortoTienda(nombres.get(l.destinoId) ?? "una tienda")} ${l.cantidad}`).join(", ");
+  return `${prendasDeLineas(lineas)} × ${soles(primera.costo)} · ${tiendas}`;
 }
 
 /** La barra negra de abajo: «12 prendas · S/ 210.00» y «2 modelos». */
