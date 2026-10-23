@@ -68,7 +68,7 @@ import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
-import { AgregarBolsaModal, FilaDeBolsas } from "@/components/punto-de-venta/BolsaDelTicket";
+import { AgregarBolsaModal, BotonDeBolsas } from "@/components/punto-de-venta/BolsaDelTicket";
 import { bolsasDeLaCaja } from "@/lib/bolsas-reglas";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
@@ -2199,21 +2199,31 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           arriba={
             <>
               <TiraDeEsperas enEspera={enEspera} onRetomar={retomar} bloqueado={bloqueado} />
-              <ClientaDelTicket
-                clienta={clienta}
-                onElegir={elegirClienta}
-                onQuitar={quitarClienta}
-                bloqueado={bloqueado}
-                puedeBuscar={puedeBuscarClienta}
-                responsable={responsable}
-                onHojaAbierta={setHojaClientaAbierta}
-                clubDeLaClienta={clubDeLaClienta}
-                puntosDelClub={cuponClub}
-                totalDelTicket={conVale.totalSinVale}
-                hayArticulos={carrito.length > 0}
-                onUsarPuntos={() => setHojaPuntos(true)}
-              />
-              <FilaDeBolsas bolsas={bolsas} carrito={carrito} bloqueado={bloqueado} onAbrir={() => setBolsasAbiertas(true)} />
+              {/* Cliente y bolsa en UNA fila (Felipe 2026-10-22): apiladas, las dos franjas le quitaban a la lista de prendas casi
+                  70 px. Con un cliente elegido su caja crece y la bolsa queda en un ícono a su derecha. */}
+              <div className="flex items-start gap-2 px-5 pt-3 empty:hidden">
+                <ClientaDelTicket
+                  clienta={clienta}
+                  onElegir={elegirClienta}
+                  onQuitar={quitarClienta}
+                  bloqueado={bloqueado}
+                  puedeBuscar={puedeBuscarClienta}
+                  responsable={responsable}
+                  onHojaAbierta={setHojaClientaAbierta}
+                  clubDeLaClienta={clubDeLaClienta}
+                  puntosDelClub={cuponClub}
+                  totalDelTicket={conVale.totalSinVale}
+                  hayArticulos={carrito.length > 0}
+                  onUsarPuntos={() => setHojaPuntos(true)}
+                />
+                <BotonDeBolsas
+                  bolsas={bolsas}
+                  carrito={carrito}
+                  bloqueado={bloqueado}
+                  soloIcono={clienta !== null}
+                  onAbrir={() => setBolsasAbiertas(true)}
+                />
+              </div>
             </>
           }
         />
