@@ -2,7 +2,7 @@
 
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { Check, Moon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
@@ -48,6 +48,7 @@ export function TerminarDia({ plata }: { plata: Plata }) {
             setAbierta(true);
           }}
         >
+          <Moon className="h-4 w-4" aria-hidden />
           {cierre ? "Volver a terminar por hoy" : "Terminé de comprar hoy"}
         </Boton>
       )}

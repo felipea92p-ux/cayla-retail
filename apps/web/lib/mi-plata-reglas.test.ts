@@ -19,6 +19,9 @@ import {
   mediosParaAnotar,
   textoMontoAnotado,
   textoPorConfirmar,
+  repartoBilletera,
+  textoFaltaMandar,
+  movimientosDeLaCompradora,
 } from "./mi-plata-reglas";
 import type { CuentaOpcion } from "./fondos-reglas";
 
@@ -53,7 +56,7 @@ describe("leerMiPlata: lo que tiene para comprar es su fondo más lo por confirm
       compras: [{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, estado: "por_completar", fecha: "2026-10-22", prendas: 16, tiendas: ["Tienda TRU"], por_mandar: ["Tienda TRU", 3] }, { id: "x" }],
     });
     expect(p).toMatchObject({ tiene: 50, comprasPorCompletar: 450 });
-    expect(p?.compras).toEqual([{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, porCompletar: true, fecha: "2026-10-22", prendas: 16, tiendas: ["Tienda TRU"], porMandar: ["Tienda TRU"] }]);
+    expect(p?.compras).toEqual([{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, porCompletar: true, fecha: "2026-10-22", creadoEn: "", prendas: 16, tiendas: ["Tienda TRU"], porMandar: ["Tienda TRU"] }]);
   });
 
   it("un fondo en negativo (pagó de su bolsillo) resta: tiene lo que queda de verdad", () => {
@@ -158,7 +161,7 @@ describe("textos", () => {
     expect(plano(fraseAnotar(0))).toBe("Anotar la plata");
   });
   it("lo por confirmar se dice como plata que ya puede usar; sin nada, no se dice", () => {
-    expect(plano(textoPorConfirmar(500))).toBe("Compras está revisando S/ 500.00: ya están en tu plata y puedes usarlos.");
+    expect(plano(textoPorConfirmar(500))).toBe("S/ 500.00 que anotaste · Compras lo revisa, ya lo puedes usar");
     expect(plano(textoPorConfirmar(0))).toBeNull();
   });
   it("si Compras confirmó otro monto, se ven los dos", () => {
@@ -226,7 +229,7 @@ describe("el resto del día de compras (actividad 5)", () => {
     });
     expect(leerMiPlata({ ...BASE, hoy: { cierre: { decision: "regala", monto: 1 } } })?.hoy.cierre).toBeNull();
     expect(leerMiPlata(null)).toBeNull();
-    expect(leerMiPlata({ persona: false })?.hoy).toEqual({ dieron: 0, compraste: 0, compras: 0, gastaste: 0, cierre: null });
+    expect(leerMiPlata({ persona: false })?.hoy).toEqual({ fecha: "", dieron: 0, compraste: 0, compras: 0, gastaste: 0, cierre: null });
   });
 
   it("qué se puede elegir al terminar: lo mismo que acepta terminar_dia_compras", () => {
@@ -263,5 +266,58 @@ describe("el estado de lo anotado, dicho por quién lo hace", () => {
     expect(estadoParaLaCompradora("gasto", false).detalle).toBe("Compras ya lo pasó a los libros");
     expect(estadoParaLaCompradora("plata", true).texto).toBe("Compras la confirma");
     expect(estadoParaLaCompradora("plata", false).texto).toBe("Confirmada");
+  });
+});
+
+describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
+  const p = leerMiPlata({
+    persona: true,
+    saldo: 1000,
+    por_confirmar: 500,
+    compras_por_completar: 0,
+    gastos_por_completar: 0,
+    anotada: [
+      { id: "a1", medio: "yape_plin", monto: 500, estado: "por_confirmar", fecha: "2026-10-23", creado_en: "2026-10-23T13:10:00Z", con_foto: true },
+      { id: "a0", medio: "efectivo", monto: 300, estado: "confirmada", fecha: "2026-10-21", creado_en: "2026-10-21T09:00:00Z", con_foto: false },
+    ],
+    compras: [
+      { id: "c1", proveedor: "Textiles Rosa", tipo: "factura", monto: 525, estado: "por_completar", fecha: "2026-10-23", creado_en: "2026-10-23T11:20:00Z", prendas: 35, tiendas: ["AQP"], por_mandar: [] },
+      { id: "c2", proveedor: "Andina", tipo: "boleta", monto: 99, estado: "completado", fecha: "2026-10-23", creado_en: "2026-10-23T15:05:00Z", prendas: 1, tiendas: ["LIM"], por_mandar: ["LIM"] },
+    ],
+    gastos: [{ id: "g1", concepto: "taxi", monto: 12, estado: "por_completar", fecha: "2026-10-23", creado_en: "2026-10-23T09:40:00Z", con_foto: false }],
+    hoy: { fecha: "2026-10-23", dieron: 500, compraste: 624, compras: 2, gastaste: 12, cierre: null },
+  })!;
+
+  it("una sola lista: lo de hoy primero lo más nuevo, y lo de antes aparte", () => {
+    const { hoy, antes } = movimientosDeLaCompradora(p);
+    expect(hoy.map((m) => m.clave)).toEqual(["compra-c2", "plata-a1", "compra-c1", "gasto-g1"]);
+    expect(antes.map((m) => m.clave)).toEqual(["plata-a0"]);
+  });
+
+  it("cada fila dice qué fue, con su signo y su estado dicho por quién lo hace", () => {
+    const { hoy } = movimientosDeLaCompradora(p);
+    const [andina, yape, rosa, taxi] = hoy;
+    expect([andina.titulo, andina.detalle, andina.entra]).toEqual(["Compra a Andina", "1 prenda · Boleta · falta mandar a LIM", false]);
+    expect([rosa.detalle, rosa.estado.texto, rosa.estado.pendiente]).toEqual(["35 prendas · Factura · AQP", "Compras la revisa", true]);
+    expect([yape.titulo, yape.detalle, yape.entra, yape.estado.texto]).toEqual(["Te yapearon", "Yape o Plin · con foto", true, "Compras la confirma"]);
+    expect([taxi.titulo, taxi.icono, taxi.detalle, taxi.estado.texto]).toEqual(["Taxi", "taxi", "Sin papel", "Compras lo revisa"]);
+  });
+
+  it("sin el día de la base, todo es de hoy (no se esconde nada)", () => {
+    const { hoy, antes } = movimientosDeLaCompradora({ ...p, hoy: { ...p.hoy, fecha: "" } });
+    expect([hoy.length, antes.length]).toEqual([5, 0]);
+  });
+
+  it("la billetera reparte lo que queda, lo comprado y lo gastado hoy; en negativo no queda nada", () => {
+    expect(repartoBilletera(p)).toEqual({ queda: p.tiene, compraste: 624, gastos: 12 });
+    expect(repartoBilletera({ tiene: -40, hoy: { ...p.hoy, compraste: 0, gastaste: 0 } })).toEqual({ queda: 0, compraste: 0, gastos: 0 });
+  });
+
+  it("la franja dice cuántas prendas faltan mandar y a dónde", () => {
+    const una = [{ tiendaId: "t", tienda: "Tienda LIM", unidades: 7, prendas: [] }];
+    expect(textoFaltaMandar(una)?.titulo).toBe("Te falta mandar 7 prendas a Tienda LIM");
+    expect(textoFaltaMandar([...una, { tiendaId: "u", tienda: "Tienda AQP", unidades: 30, prendas: [] }])?.titulo).toBe("Te falta mandar 37 prendas a 2 tiendas");
+    expect(textoFaltaMandar([{ ...una[0], unidades: 1 }])?.titulo).toBe("Te falta mandar 1 prenda a Tienda LIM");
+    expect(textoFaltaMandar([])).toBeNull();
   });
 });

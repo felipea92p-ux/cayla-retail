@@ -1,6 +1,7 @@
 import { soles } from "./compras-reglas";
 import { campoResponsable, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
+import { TIPOS_PAPEL, type TipoPapel } from "./compra-rapida-reglas";
 
 // Compras simple (ADR-0480, actividad 2): la plata que anota la compradora y la que confirma Compras. Las reglas puras: leer lo que manda
 // la base (que puede venir vieja o rota: nunca se cae, descarta lo ilegible), las cifras de «Tu plata para compras», qué falta en cada
@@ -58,6 +59,7 @@ export type CompraAnotada = {
   monto: number;
   porCompletar: boolean;
   fecha: string;
+  creadoEn: string;
   prendas: number;
   tiendas: string[];
   /** Las tiendas a las que todavía no sale algo de esta compra (actividad 5). */
@@ -84,6 +86,7 @@ export type GastoAnotado = {
   monto: number;
   porCompletar: boolean;
   fecha: string;
+  creadoEn: string;
   conFoto: boolean;
 };
 
@@ -99,6 +102,8 @@ export type DecisionCierre = "se_queda" | "devuelve" | "le_deben";
 
 /** Lo de hoy, para «Terminé de comprar hoy». */
 export type Hoy = {
+  /** El día de hoy en Lima, como lo dice la base («2026-10-23»): separa lo de hoy de lo de antes en la lista. */
+  fecha: string;
   dieron: number;
   compraste: number;
   compras: number;
@@ -158,6 +163,7 @@ function leerCompra(x: unknown): CompraAnotada | null {
     monto,
     porCompletar: o.estado === "por_completar",
     fecha: texto(o.fecha) ?? "",
+    creadoEn: texto(o.creado_en) ?? "",
     prendas: Math.max(0, Math.trunc(numero(o.prendas) ?? 0)),
     tiendas: textos(o.tiendas),
     porMandar: textos(o.por_mandar),
@@ -179,6 +185,7 @@ function leerGasto(x: unknown): GastoAnotado | null {
     monto,
     porCompletar: o.estado === "por_completar",
     fecha: texto(o.fecha) ?? "",
+    creadoEn: texto(o.creado_en) ?? "",
     conFoto: o.con_foto === true,
   };
 }
@@ -209,6 +216,7 @@ function leerHoy(x: unknown): Hoy {
   const c = o.cierre && typeof o.cierre === "object" ? (o.cierre as Record<string, unknown>) : null;
   const decision = c && DECISIONES.includes(c.decision as DecisionCierre) ? (c.decision as DecisionCierre) : null;
   return {
+    fecha: texto(o.fecha)?.slice(0, 10) ?? "",
     dieron: numero(o.dieron) ?? 0,
     compraste: numero(o.compraste) ?? 0,
     compras: Math.max(0, Math.trunc(numero(o.compras) ?? 0)),
@@ -353,9 +361,9 @@ export function fraseAnotar(monto: number | null): string {
   return monto != null && monto > 0 ? `Anotar ${soles(monto)}` : "Anotar la plata";
 }
 
-/** «Compras está revisando S/ 500…»: lo que se lee en la tarjeta mientras hay plata por confirmar. */
+/** «S/ 500 que anotaste · Compras lo revisa…»: lo que se lee dentro de la billetera mientras hay plata por confirmar (maqueta 2026-10-23). */
 export function textoPorConfirmar(porConfirmar: number): string | null {
-  return porConfirmar > 0 ? `Compras está revisando ${soles(porConfirmar)}: ya están en tu plata y puedes usarlos.` : null;
+  return porConfirmar > 0 ? `${soles(porConfirmar)} que anotaste · Compras lo revisa, ya lo puedes usar` : null;
 }
 
 /** Lo que dice una fila de «Lo que anotaste»: el monto y, si Compras confirmó otro, los dos. */
@@ -449,4 +457,115 @@ export function estadoParaLaCompradora(que: "compra" | "gasto" | "plata", pendie
   return pendiente
     ? { texto: `Compras ${la} revisa`, detalle: `Ya bajó de tu plata; Compras ${la} pasa a los libros` }
     : { texto: "En los libros", detalle: `Compras ya ${la} pasó a los libros` };
+}
+
+// ---------- Rediseño de Mi plata (maqueta docs/maquetas/compras-formidable-2026-10/, Felipe 2026-10-23) ----------
+
+/**
+ * Los tres tramos de la billetera: lo que te queda, lo que compraste hoy y lo que gastaste hoy. En negativo no queda nada que dibujar
+ * (la cifra grande y su frase ya lo dicen); sin nada hoy, la barra es toda «te queda».
+ */
+export function repartoBilletera(plata: Pick<MiPlata, "tiene" | "hoy">): { queda: number; compraste: number; gastos: number } {
+  return { queda: Math.max(0, plata.tiene), compraste: Math.max(0, plata.hoy.compraste), gastos: Math.max(0, plata.hoy.gastaste) };
+}
+
+/** La franja de lo que falta mandar: «Te falta mandar 37 prendas a 2 tiendas» o «… 7 prendas a Tienda LIM». Sin nada, nada. */
+export function textoFaltaMandar(porMandar: readonly PorMandar[]): { titulo: string; detalle: string } | null {
+  const unidades = porMandar.reduce((s, t) => s + t.unidades, 0);
+  if (porMandar.length === 0 || unidades === 0) return null;
+  const prendas = unidades === 1 ? "1 prenda" : `${unidades} prendas`;
+  const adonde = porMandar.length === 1 ? porMandar[0].tienda : `${porMandar.length} tiendas`;
+  return { titulo: `Te falta mandar ${prendas} a ${adonde}`, detalle: "Arma los paquetes y avisa a la tienda" };
+}
+
+/** Una fila de «Hoy»: una compra, un gasto o una plata que le dieron, con su ícono, su monto con signo y su estado. */
+export type MovimientoCompradora = {
+  clave: string;
+  tipo: "compra" | "gasto" | "plata";
+  /** Qué ícono lleva: la bolsa de una compra, el de cada concepto de gasto, las monedas de la plata. */
+  icono: "compra" | "plata" | ConceptoGasto;
+  titulo: string;
+  detalle: string;
+  /** La plata que entra suma (+, en verde); la que sale resta (−). */
+  entra: boolean;
+  monto: string;
+  estado: { texto: string; detalle: string; pendiente: boolean };
+  fecha: string;
+  creadoEn: string;
+};
+
+const TITULO_PLATA: Record<MedioPlata, string> = {
+  transferencia: "Te transfirieron",
+  yape_plin: "Te yapearon",
+  efectivo: "Te dieron efectivo",
+  ya_tenia: "Plata que ya tenías",
+};
+
+function detalleCompra(c: CompraAnotada): string {
+  const papel = TIPOS_PAPEL[c.tipo as TipoPapel]?.nombre ?? "Papel";
+  const prendas = c.prendas === 1 ? "1 prenda" : `${c.prendas} prendas`;
+  const tiendas = c.porMandar.length ? `falta mandar a ${c.porMandar.join(", ")}` : c.tiendas.length ? c.tiendas.join(", ") : null;
+  return [prendas, papel, tiendas].filter(Boolean).join(" · ");
+}
+
+/**
+ * Lo que compró, gastó y anotó, en UNA lista (antes eran tres: había que juntarlas en la cabeza). Lo más nuevo primero; «hoy» es lo
+ * del día de Lima que dice la base y «antes», lo demás (se abre con «Ver días anteriores»). Sin el día de la base, todo va a «hoy».
+ */
+export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gastos" | "anotada" | "hoy">): {
+  hoy: MovimientoCompradora[];
+  antes: MovimientoCompradora[];
+} {
+  const todos: MovimientoCompradora[] = [
+    ...plata.compras.map((c): MovimientoCompradora => {
+      const e = estadoParaLaCompradora("compra", c.porCompletar);
+      return {
+        clave: `compra-${c.id}`,
+        tipo: "compra",
+        icono: "compra",
+        titulo: `Compra a ${c.proveedor}`,
+        detalle: detalleCompra(c),
+        entra: false,
+        monto: soles(c.monto),
+        estado: { ...e, pendiente: c.porCompletar },
+        fecha: c.fecha,
+        creadoEn: c.creadoEn,
+      };
+    }),
+    ...plata.gastos.map((g): MovimientoCompradora => {
+      const e = estadoParaLaCompradora("gasto", g.porCompletar);
+      return {
+        clave: `gasto-${g.id}`,
+        tipo: "gasto",
+        icono: g.concepto,
+        titulo: nombreGasto(g),
+        detalle: g.conFoto ? "Con foto" : "Sin papel",
+        entra: false,
+        monto: soles(g.monto),
+        estado: { ...e, pendiente: g.porCompletar },
+        fecha: g.fecha,
+        creadoEn: g.creadoEn,
+      };
+    }),
+    ...plata.anotada.map((a): MovimientoCompradora => {
+      const e = estadoParaLaCompradora("plata", !a.confirmada);
+      return {
+        clave: `plata-${a.id}`,
+        tipo: "plata",
+        icono: "plata",
+        titulo: TITULO_PLATA[a.medio],
+        detalle: `${MEDIOS_PLATA[a.medio].nombre}${a.conFoto ? " · con foto" : ""}`,
+        entra: true,
+        monto: textoMontoAnotado(a),
+        estado: { ...e, pendiente: !a.confirmada },
+        fecha: a.fecha,
+        creadoEn: a.creadoEn,
+      };
+    }),
+  ];
+  const orden = (m: MovimientoCompradora) => m.creadoEn || m.fecha;
+  todos.sort((a, b) => (orden(a) < orden(b) ? 1 : orden(a) > orden(b) ? -1 : 0));
+  const dia = plata.hoy.fecha;
+  if (!dia) return { hoy: todos, antes: [] };
+  return { hoy: todos.filter((m) => m.fecha.slice(0, 10) === dia), antes: todos.filter((m) => m.fecha.slice(0, 10) !== dia) };
 }

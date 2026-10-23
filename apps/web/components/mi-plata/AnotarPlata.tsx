@@ -1,5 +1,6 @@
 "use client";
 
+import { AccionDelDia } from "./AccionDelDia";
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, HandCoins } from "lucide-react";
@@ -49,23 +50,16 @@ export function AnotarPlata({ puedeYaTenia }: { puedeYaTenia: boolean }) {
   const origen = useRef<HTMLElement | null>(null);
   return (
     <>
-      <button
-        type="button"
-        data-guia="mi-plata.me-dieron"
-        className="card-cayla mov-boton flex w-full items-center gap-4 p-4 text-left"
+      <AccionDelDia
+        guia="mi-plata.me-dieron"
+        titulo="Me dieron plata"
+        detalle="Yape, transferencia o efectivo"
+        icono={<HandCoins className="h-5 w-5" aria-hidden />}
         onClick={(e) => {
           origen.current = e.currentTarget;
           setAbierta(true);
         }}
-      >
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sand/50 text-tinta">
-          <HandCoins className="h-5 w-5" aria-hidden />
-        </span>
-        <span className="min-w-0">
-          <span className="block font-serif text-xl leading-tight text-tinta">Me dieron plata</span>
-          <span className="block text-sm text-taupe">Te yapearon, te transfirieron o te dieron efectivo para comprar.</span>
-        </span>
-      </button>
+      />
       {abierta && <AnotarPlataModal puedeYaTenia={puedeYaTenia} onClose={() => setAbierta(false)} volverA={origen} />}
     </>
   );

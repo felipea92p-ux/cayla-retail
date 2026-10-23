@@ -1,5 +1,6 @@
 "use client";
 
+import { AccionDelDia } from "./AccionDelDia";
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Check, Receipt } from "lucide-react";
@@ -29,23 +30,16 @@ export function AnotarGasto() {
   const origen = useRef<HTMLElement | null>(null);
   return (
     <>
-      <button
-        type="button"
-        data-guia="mi-plata.gaste"
-        className="card-cayla mov-boton flex w-full items-center gap-4 p-4 text-left"
+      <AccionDelDia
+        guia="mi-plata.gaste"
+        titulo="Gasté en otra cosa"
+        detalle="Taxi, cargador, comida…"
+        icono={<Receipt className="h-5 w-5" aria-hidden />}
         onClick={(e) => {
           origen.current = e.currentTarget;
           setAbierta(true);
         }}
-      >
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sand/50 text-tinta">
-          <Receipt className="h-5 w-5" aria-hidden />
-        </span>
-        <span className="min-w-0">
-          <span className="block font-serif text-xl leading-tight text-tinta">Gasté en otra cosa</span>
-          <span className="block text-sm text-taupe">Taxi, cargador, comida, la encomienda: lo que no es ropa.</span>
-        </span>
-      </button>
+      />
       {abierta && <AnotarGastoModal onClose={() => setAbierta(false)} volverA={origen} />}
     </>
   );

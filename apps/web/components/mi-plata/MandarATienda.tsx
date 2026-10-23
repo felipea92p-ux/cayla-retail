@@ -12,7 +12,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { mandarATienda } from "@/lib/mi-plata-acciones";
-import { resumenPrendas, textoPorMandar, type PorMandar } from "@/lib/mi-plata-reglas";
+import { resumenPrendas, textoFaltaMandar, type PorMandar } from "@/lib/mi-plata-reglas";
 
 // Compras simple (ADR-0480, actividad 5): «Mandar a la tienda». Lo que la compradora compró para cada tienda y todavía no salió, en una
 // tarjeta por tienda: sus prendas, «¿Cuántos paquetes (fardos)?» y «Mandar a …», que se toca al entregar el fardo al transporte. La base
@@ -27,26 +27,24 @@ export function MandarATienda({ porMandar, abrirAlCargar = false }: { porMandar:
   const origen = useRef<HTMLElement | null>(null);
   const router = useRouter();
   const ruta = usePathname();
-  const detalle = textoPorMandar(porMandar);
-  if (!detalle && !abierta) return null;
+  const falta = textoFaltaMandar(porMandar);
+  if (!falta && !abierta) return null;
   return (
     <>
-      {detalle && (
+      {falta && (
         <button
           type="button"
           data-guia="mi-plata.mandar"
-          className="card-cayla mov-boton flex w-full items-center gap-4 border-ambar/60 p-4 text-left"
+          /* unificar-fijo: la franja punteada de la maqueta abre «Mandar a la tienda», es un botón y no un aviso */ className="mov-boton flex w-full items-center gap-3 rounded-2xl border border-dashed border-ambar/60 bg-ambar/[0.07] px-3.5 py-3 text-left"
           onClick={(e) => {
             origen.current = e.currentTarget;
             setAbierta(true);
           }}
         >
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ambar/15 text-tinta">
-            <Truck className="h-5 w-5" aria-hidden />
-          </span>
+          <Truck className="h-5 w-5 shrink-0 text-ambar" aria-hidden />
           <span className="min-w-0 flex-1">
-            <span className="block font-serif text-xl leading-tight text-tinta">Mandar a la tienda</span>
-            <span className="block text-sm text-taupe">{detalle}</span>
+            <span className="block text-sm font-medium text-tinta">{falta.titulo}</span>
+            <span className="block text-xs text-tinta/65">{falta.detalle}</span>
           </span>
           <ArrowRight className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
         </button>
