@@ -2,8 +2,13 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 67,
+  "total": 85,
   "controles": {
+    "components/ConsultaDocumento.tsx": [
+      "CampoTexto «{contador ? ( <> {}»",
+      "BotonBuscar «→buscar»",
+      "CampoTexto «{etiqueta.nombre}»"
+    ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
       "LapizEditar «la cuenta»",
@@ -73,6 +78,23 @@
     ],
     "components/finanzas/gastos/CalendarioGastos.tsx": [
       "button «{`${d.dia}»"
+    ],
+    "components/finanzas/gastos/HojaRegistrarGasto.tsx": [
+      "button «{`${p.descripcion}»",
+      "CampoMonto «Monto»",
+      "button «{nombreSede(s)}»",
+      "CampoSelect «Categoría»",
+      "CampoTexto «Qué fue»",
+      "button «{c.texto}»",
+      "CampoTexto «Serie y número»",
+      "CampoFecha «{papel ? \"Fecha del comprobante\" : \"Fecha\"}»",
+      "button «{t}»",
+      "CampoFecha «Cuándo vence»",
+      "CampoSelect «Cómo»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar y registrar otro (⌘⇧↵)»",
+      "Boton «Registrar (⌘↵)»"
     ],
     "components/finanzas/gastos/RetazoGastos.tsx": [
       "button «{`${p.nombre}»"
