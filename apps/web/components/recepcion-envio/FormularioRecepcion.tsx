@@ -415,7 +415,9 @@ export function FormularioRecepcion({
         {!atipicos && (
           <div
             data-guia="recepcion.recibir"
-            className="sticky bottom-0 z-20 -mx-4 flex flex-wrap items-center justify-end gap-2.5 border-t border-sand bg-crema px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0"
+            // En el celular, la Isla pegada dentro del formulario (ADR-0479, actividad 12); desde `sm`, en su lugar.
+            data-pegada
+            className="barra-abajo z-20 justify-end gap-2.5 px-4 py-3 sm:static sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:animate-none"
           >
             <span className="mr-auto text-[13px] tabular-nums text-taupe" aria-live="polite">
               {totales.contado.toLocaleString("es-PE")} de {totales.enviado.toLocaleString("es-PE")} contadas

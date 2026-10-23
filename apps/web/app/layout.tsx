@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { EB_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Avisos } from "@/components/ui/Avisos";
@@ -24,6 +24,11 @@ export const metadata: Metadata = {
   // con el favicon.ico de plantilla (el triángulo de Vercel) y el navegador elegía
   // el equivocado.
 };
+
+// `viewport-fit=cover` (ADR-0479, actividad 9): la página llega hasta los bordes del iPhone, con el fondo crema bajo la isla, la
+// muesca de lado y la barrita de abajo. Sin esto Safari dejaba esos bordes en blanco y todo `env(safe-area-inset-*)` valía 0. Lo que
+// se toca vive dentro: la cabecera, el lateral, el contenido, las barras fijas y las hojas se apartan solos (AppShell, Modal, Cajon).
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

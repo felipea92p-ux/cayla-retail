@@ -52,3 +52,8 @@ procesador frenado 4 veces la entrada no pierde cuadros.
 3 archivos arman una capa a mano en vez de usar la pieza (firmas en `apps/web/unificar/familias.mjs`): `components/ProveedorModal.tsx`
 (su propia hoja con Radix), `components/FiltrosCompras.tsx` y `components/FiltrosRecibidas.tsx` (un globo que en el teléfono flota sobre
 la lista). Se migran en la actividad 10 de ADR-0479.
+
+**2026-10-23 (actividad 10): deuda 0.** `ProveedorModal` es `<Modal tamano="mediana">` con su pie pegado y una sola salida
+(«Cancelar», sin la ✕). Las dos píldoras de fechas usan `<CapaDeFiltro>` (`components/ui/CapaDeFiltro.tsx`, que acompaña a la
+pieza): en escritorio siguen siendo el globo junto a la píldora; en el celular abren la hoja del sistema («Fecha de emisión»,
+«Fechas de llegada»), con su asa y su ✕. Una lista de opciones de un filtro sigue siendo `DesplegablePildora`.
