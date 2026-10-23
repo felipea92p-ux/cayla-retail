@@ -63,14 +63,3 @@ export function destinoDelMedio(metodo: string, datos: DatosPagoProveedor | null
 
   return null;
 }
-
-/**
- * El chip de «falta cargar» de la fila del proveedor (formulario de comprobante): según su forma de pago
- * preferida, ¿le falta el dato con el que se le va a pagar? Con efectivo, o sin forma preferida, nunca.
- */
-export function faltaDatoDePago(datos: Pick<DatosPagoProveedor, "formaPagoPreferida" | "cci" | "cuentaBancaria" | "celularBilletera">): string | null {
-  const forma = datos.formaPagoPreferida;
-  if (forma === "transferencia" || forma === "deposito") return !datos.cci && !datos.cuentaBancaria?.trim() ? "Sin CCI cargado" : null;
-  if (forma === "yape" || forma === "plin") return !datos.celularBilletera ? "Sin Yape / Plin cargado" : null;
-  return null;
-}
