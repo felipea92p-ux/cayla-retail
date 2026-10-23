@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 181,
+  "total": 182,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -98,6 +98,7 @@
       "button «Descartar»"
     ],
     "components/PuntoDeVentaTicket.tsx": [
+      "button «Dejar en espera»",
       "button «Volver al catálogo»",
       "button «En espera ·»",
       "Volver «→onVolverATicket»",
@@ -117,7 +118,6 @@
       "button «Cambiar»",
       "button «Aplicar descuento»",
       "button «vender.codigo-cupon-boton»",
-      "button «Dejar en espera»",
       "ComboResponsable «{responsable}»",
       "button «Aplicar descuento» #2",
       "button «Quitar descuento»",
@@ -157,7 +157,8 @@
       "ComboResponsable «{responsable}»"
     ],
     "components/punto-de-venta/BolsaDelTicket.tsx": [
-      "Boton «+ Agregar bolsa»",
+      "Boton «{lleva > 0 ? `Agregar bolsa, ya lleva ${lleva}»",
+      "Boton «vender.bolsas»",
       "button «{`Agregar ${nombreDeBolsa(b)}»"
     ],
     "components/punto-de-venta/CajaCerrada.tsx": [
@@ -168,7 +169,7 @@
       "button «{abiertaLaCaja ? \"Ocultar lo del club\" : \"Ver lo del club\"}»",
       "button «Quitar al cliente de esta venta»",
       "button «{ayuda}»",
-      "button «Agregar cliente»",
+      "button «Búscalo por documento, celular o nombre. Es opcional.»",
       "button «{boton.texto}»",
       "Boton «Actualizar»",
       "Boton «Registrarlo»",

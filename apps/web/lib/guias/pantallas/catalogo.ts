@@ -757,7 +757,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.prendas",
       opcional: true,
       titulo: "Sus prendas",
-      texto: "Abre la lista de prendas: márcalas, o escanea su etiqueta con la pistola (en el teléfono, con la cámara). Si baja el precio, antes de aplicar te muestra qué cambia en caja.",
+      texto: "Abre la lista de prendas: márcalas, o escanea su etiqueta con la pistola (en el teléfono, con la cámara), y a la derecha ves llenarse la campaña. Toca una prenda de la campaña y te lleva a su fila. Si baja el precio, antes de aplicar te muestra qué cambia en caja.",
     },
     {
       id: "configurar",
