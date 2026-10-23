@@ -1,16 +1,16 @@
-# ADR-XXXX · Las decisiones contables del primer cierre (octubre 2026)
+# ADR-0485 · Las decisiones contables del primer cierre (octubre 2026)
 
 - **Fecha:** 2026-10-22 · **Estado:** BORRADOR, puesto al día con las respuestas de Felipe del 22-oct a las decisiones 5, 15 y 16. Las 16 decisiones son de Felipe
   (22-oct-2026); este documento las deja por escrito con lo que se descartó y lo que las rompería. **Este ADR no trae código ni migración**, y nada de lo que sigue se
   pega en producción sin su OK. Quedan **dos preguntas abiertas** (decisiones 12 y 13): ver «Preguntas abiertas».
-- **Número provisional:** `XXXX`. Se reserva al abrir el PR con `pnpm reservar adr` (ADR-0381); los enlaces entre ADR se completan entonces.
+- **Número:** ADR-0485, reservado con `pnpm reservar adr` (ADR-0381). Hermanos: ADR-0482 (chequeos del cierre), ADR-0483 (mermas a la 6951) y ADR-0484 (Impuestos).
   Rama `claude/adr-decisiones-cierre-octubre`.
 - **Decide:** Felipe, 2026-10-22. **Lo tributario y lo contable lo confirma el contador** (sección «Pendiente de contador»): aquí se decide qué hace
   el sistema, no qué dice la norma.
 - **Complementa:** ADR-0332 (Finanzas cuenta desde una fecha), ADR-0198 (diario derivado que se congela al cerrar), ADR-0120 (`fn_asientos`),
   ADR-0417 (que el número diga la verdad), ADR-0433 (auditoría del 16-oct), ADR-0474 (costo de planilla real), ADR-0335 (activos),
-  ADR-0330 / ADR-0393 / ADR-0362 (recepción y órdenes de compra), ADR-0164 (nota de venta), ADR-0368 (gasto rápido de Caja). Las decisiones 2, 9, 15 y 16 tienen su propio
-  ADR provisional en una rama aparte (Impuestos, mermas a la 6951 y chequeos del cierre); este los resume y no los contradice.
+  ADR-0330 / ADR-0393 / ADR-0362 (recepción y órdenes de compra), ADR-0164 (nota de venta), ADR-0368 (gasto rápido de Caja). Las decisiones 2, 9, 15 y 16 tienen sus propios
+  ADR-0482 (chequeos del cierre), ADR-0483 (mermas a la 6951) y ADR-0484 (Impuestos), en ramas aparte; este los resume y no los contradice.
 - **Lo que este ADR NO contiene:** cifras de ventas ni datos de personas (el repo es público). Los montos que aparecen son umbrales de la norma o medidas ya publicadas en otros ADR.
 
 ## Contexto
@@ -263,7 +263,7 @@ de 2026 (S/ 5 500). Es el 83 % del límite de 300 UIT y deja tiempo para hablar 
 desde el 60 %, que no cambia. **La alerta suma lo registrado en el sistema** (los comprobantes del ERP) y la pantalla lo dice: «El aviso cuenta lo registrado en el sistema: puede quedar
 por debajo de la cifra real.» No se exige cargar nada más (Felipe, 22-oct). **La tarjeta del límite de 300 UIT de Impuestos pasa de 12 meses móviles al año calendario** (la norma mide el
 ejercicio), para que la tarjeta y la alerta hablen de lo mismo; en enero las dos vuelven a cero solas. El aviso es un parámetro (`aviso_umbral_uit`, por año), no una cifra en el código.
-Está construido en la rama de Impuestos (SQL por pegar, con su propio ADR provisional).
+Está construido en la rama de Impuestos (SQL por pegar, con su propio ADR-0484).
 
 **DESCARTÉ:**
 - *Dejar la tarjeta en 12 meses móviles y solo el aviso en año:* dos cifras para una norma en la misma pantalla, y en enero la tarjeta arrastraría diciembre.

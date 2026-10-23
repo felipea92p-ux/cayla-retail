@@ -1,6 +1,6 @@
-## Decisiones contables del primer cierre (2026-10-22, ADR-XXXX provisional) — solo documentos; rama `claude/adr-decisiones-cierre-octubre`
+## Decisiones contables del primer cierre (2026-10-22, ADR-0485) — solo documentos; rama `claude/adr-decisiones-cierre-octubre`
 
-- [x] **ADR borrador** `docs/adr/ADR-XXXX-decisiones-contables-del-primer-cierre.md` con las 16 decisiones (DECIDÍ / DESCARTÉ / SE ROMPE SI), «Pendiente de contador» y «Qué no cambia». Sin código ni migración. Al abrir el PR: `pnpm reservar adr` para el número y `/abrir-pr`.
+- [x] **ADR borrador** `docs/adr/0485-decisiones-contables-del-primer-cierre.md` con las 16 decisiones (DECIDÍ / DESCARTÉ / SE ROMPE SI), «Pendiente de contador» y «Qué no cambia». Sin código ni migración. Número reservado: ADR-0485.
 - [x] **Contestadas por Felipe el 22-oct:** (a) decisión 16: los chequeos se miden por el MES que se cierra (octubre solo avisa aunque se cierre el 2-nov) y una factura de compra con mercadería en camino SÍ frena desde noviembre; (c) decisión 5: toda diferencia de monto y de cantidad se registra y SE AVISA a la encargada de sede, incluso centavos, y nunca bloquea recibir; decisión 15: la alerta suma el año calendario de lo registrado en el sistema y la tarjeta de 300 UIT pasa al año calendario.
 - [ ] **Preguntas abiertas para Felipe** antes de construir: (b) decisión 12: ¿la aprobación del líder del gasto rápido de S/ 100 o más es DESPUÉS de sacar la plata (el ADR lo asume, como ADR-0433 punto 7) o ANTES?; decisión 13: ¿la bonificación extraordinaria del 9 % entra como concepto aparte? ADR-0474 dice que `provision_total` ya la trae y podría contarse dos veces.
 
