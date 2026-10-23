@@ -1,6 +1,6 @@
 # Maqueta · El stock se carga en Existencias (2026-10-23)
 
-**Estado: propuesta para que Felipe elija mirando. Nada construido todavía.** Abrir `index.html` con doble clic.
+**Estado: ronda 2 para que Felipe elija mirando. Nada construido todavía.** Ronda 1: `index.html`. Ronda 2: `ronda-2.html` (doble clic).
 
 ## El pedido
 
@@ -57,3 +57,29 @@ de lugar primero se guarda o se descarta.
 
 La prenda «Blusa Emma BLU-0142», sus cuatro colores y todas las cantidades son inventados. Colores: los tokens de `apps/web/app/globals.css`
 y `apps/web/app/estilos/tema.css`.
+
+## Ronda 2 (2026-10-23): dentro del modal de la prenda, con movimiento rico
+
+Felipe, sobre la ronda 1 y una captura del modal real («Aretes Grandes»): «me gusta el modal actual, tal vez darle más peso a ajustar
+stock y al mandarnos a esa vista mejorarla bastante, que sea sofisticada, elegante y full animaciones». O sea: la forma A, sobre el
+modal de ADR-0391 tal como está.
+
+`ronda-2.html` reproduce ese modal y deja elegir, con los controles de arriba:
+
+- **El peso de «Ajustar stock»:** 1 · una banda bajo «Dónde está» («¿No es lo que ves en la tienda?», recomendada, sale de la lista);
+  2 · primera de la lista y en tinta; 3 · un botón junto a «Dónde está» y un lápiz en «En piso» / «En almacén».
+- **La vista de ajuste:** *Planilla* (números grandes en serif, − y + que se encienden al pasar) o *Riel de etiquetas* (cada talla es
+  una etiqueta colgada del riel de su color, como en la tarjeta de Existencias).
+- Dos prendas: Blusa Emma (4 colores × 4 tallas) y Aretes Grandes (2 colores, talla única), para ver el caso chico.
+
+**Movimiento, «rico, una vez, sin rebote ni bucle»** (el mismo contrato que Insignias y la hoja de campaña, ADR-0136): al entrar, lo
+de la talla se va, la foto se achica con «Ajustando», el modal se ensancha (62 → 74 rem), el hilo de la cabecera se dibuja y los
+números llegan en ola (o las etiquetas se cuelgan); al contar, el número rueda, la celda se enmarca en ámbar y entra su talón a la
+izquierda con la balanza entran/salen; al guardar, el hilo del botón corre mientras la base responde, cada talla se sella en verde,
+el talón recibe «Guardado» y las etiquetas salen por la ranura; al volver, las cifras de «Dónde está» cuentan hasta el número nuevo.
+«Cámara lenta» lo muestra a un tercio. Con `prefers-reduced-motion`, quieto.
+
+Revisada en el navegador a 1024 y 375 px, en claro y oscuro, con las tres formas de peso y las dos vistas: sin desborde (la tabla se
+desliza dentro de su caja en el celular) y sin errores en la consola.
+
+**Al construir esto, el ADR de movimiento (ADR-0136) suma la excepción de esta vista**, como las demás de la lista de CLAUDE.md.
