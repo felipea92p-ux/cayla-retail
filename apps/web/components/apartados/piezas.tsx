@@ -197,7 +197,7 @@ export function BarraMovil({
   return (
     <EnCuerpo>
     <div
-      className="anim-revelar fixed inset-x-0 z-20 flex items-center justify-between gap-3 border-t border-tinta bg-tinta px-5 py-3 text-crema sm:left-lateral lg:hidden"
+      className="anim-revelar fixed inset-x-0 z-20 flex items-center justify-between gap-3 border-t border-tinta bg-tinta px-5 py-3 text-crema sm:left-lateral sm:pr-[max(1.25rem,env(safe-area-inset-right))] lg:hidden"
       style={{ bottom: `calc(${ALTO_PESTANAS_MOVIL} + env(safe-area-inset-bottom))` }}
     >
       <div className="min-w-0">

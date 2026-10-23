@@ -48,7 +48,7 @@ export function BarraFija({
       inert={animada && !visible ? true : undefined}
       // `left` NO se anima al plegar el menú (ADR-0130, 2026-10-10): salta a su lugar junto con el contenido, que
       // tampoco se anima — ver la nota v3.6 de `AppShell`. Animarlo recalculaba la pantalla en cada cuadro.
-      className={`fixed inset-x-0 bottom-0 z-20 border-t border-sand bg-crema/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-crema/80 sm:left-lateral ${
+      className={`fixed inset-x-0 bottom-0 z-20 border-t border-sand bg-crema/95 pb-[env(safe-area-inset-bottom)] sm:pr-[env(safe-area-inset-right)] backdrop-blur supports-[backdrop-filter]:bg-crema/80 sm:left-lateral ${
         animada
           ? `${visible ? "translate-y-0 transition-transform duration-[420ms] ease-cayla" : "pointer-events-none translate-y-[110%] transition-transform duration-[240ms] ease-salida"}`
           : ""

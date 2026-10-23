@@ -300,7 +300,7 @@ export function Cajon({
           onInteractOutside={conVelo ? undefined : (e) => e.preventDefault()}
           onOpenAutoFocus={sinFocoInicial ? (e) => e.preventDefault() : undefined}
           // En el celular: una hoja alta que llega desde abajo (`cajon-hoja`, globals.css «HOJA DEL CELULAR»).
-          className={`cajon-hoja fixed inset-y-0 right-0 z-50 flex w-full ${ancho === "ancho" ? "max-w-[34rem]" : "max-w-[28.5rem]"} flex-col border-l border-sand bg-papel outline-none max-sm:inset-x-0 max-sm:top-auto max-sm:h-[min(92dvh,92%)] max-sm:max-w-none max-sm:rounded-t-2xl max-sm:border-l-0 max-sm:border-t ${
+          className={`cajon-hoja fixed inset-y-0 right-0 z-50 flex w-full ${ancho === "ancho" ? "max-w-[34rem]" : "max-w-[28.5rem]"} flex-col border-l border-sand bg-papel outline-none max-sm:inset-x-0 max-sm:top-auto max-sm:h-[min(92dvh,92%)] max-sm:pb-[env(safe-area-inset-bottom)] max-sm:max-w-none max-sm:rounded-t-2xl max-sm:border-l-0 max-sm:border-t ${
             cerrando ? (salidaPropia ? "" : "anim-cajon-salida") : "anim-cajon"
           }`}
         >

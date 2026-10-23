@@ -222,7 +222,8 @@
      `ml-56`) más un cuarto desalineado en el panel "+ Nuevo" (`left-60`),
      y por eso el panel abría 16px corrido del borde del lateral.
      Subió de 14rem a 17rem el 2026-09-09 (ADR-0014). */
-  --spacing-lateral: 17rem;
+  /* Con el iPhone de lado, la muesca queda a la izquierda: el lateral la incluye en su ancho y aparta su contenido (ADR-0479). */
+  --spacing-lateral: calc(17rem + env(safe-area-inset-left, 0px));
 
   /* Movimiento estándar del sistema — todo `transition-colors`/`transition-transform`
      sin `ease-*` explícito (la inmensa mayoría de los ~260 hover del sistema) usa esto.
@@ -258,7 +259,7 @@
    12 (aire) + 16 (relleno de fila) + 20 (ícono) + 16 + 12: el ícono queda EXACTO donde estaba, solo
    se apagan las etiquetas. `AppShell` pone `data-lateral="plegado"` en su contenedor. */
 [data-lateral="plegado"] {
-  --spacing-lateral: 4.75rem;
+  --spacing-lateral: calc(4.75rem + env(safe-area-inset-left, 0px));
 }
 
 /* ==================================================================
@@ -1844,12 +1845,13 @@ html[data-buscando] [data-resultados] {
      scroll más cercano. */
   .pie-hoja-fijo {
     position: sticky;
-    bottom: -1.5rem;
+    /* `--borde-abajo`: la barrita del iPhone bajo la hoja del celular (ADR-0479, actividad 9; 0 en todo lo demás). */
+    bottom: calc(-1.5rem - var(--borde-abajo, 0px));
     z-index: 1;
     margin-inline: -1.5rem;
-    margin-bottom: -1.5rem;
+    margin-bottom: calc(-1.5rem - var(--borde-abajo, 0px));
     padding-inline: 1.5rem;
-    padding-bottom: 1.5rem;
+    padding-bottom: calc(1.5rem + var(--borde-abajo, 0px));
     background: var(--fondo-hoja, var(--color-papel));
   }
   .pie-hoja-fijo::before {

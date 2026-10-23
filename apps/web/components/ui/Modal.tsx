@@ -220,7 +220,7 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
         <div
           ref={contenedor}
           className={`pointer-events-none fixed inset-0 z-50 flex ${
-            variante === "camara" ? "" : variante === "ticket" ? "items-end justify-center" : "items-end justify-center sm:items-start sm:p-6 sm:pt-[8vh]"
+            variante === "camara" ? "" : variante === "ticket" ? "items-end justify-center" : "items-end justify-center sm:items-start sm:p-6 sm:px-[max(1.5rem,env(safe-area-inset-left),env(safe-area-inset-right))] sm:pt-[8vh]"
           }`}
         >
           <Dialog.Content
@@ -231,11 +231,13 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
                 ? "flex h-dvh flex-col overflow-hidden bg-tinta-fija" // la cámara es negra en los dos temas: lo que va encima (`papel-fijo`) conserva sus tokens claros
                 : variante === "ticket"
                   ? // El panel de adentro (el `<aside>` del ticket) llena la hoja: cabecera y pie fijos, el medio scrollea.
-                    `flex h-[min(92dvh,92%)] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
+                    `flex h-[min(92dvh,92%)] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel max-sm:pb-[env(safe-area-inset-bottom)] [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
                   : // `--fondo-hoja` lo lee `.pie-hoja-fijo` (globals.css) para que el pie pegado pinte el mismo fondo que la hoja.
                     // En el celular el alto se mide en `dvh` (con la barra de Safari a la vista, `vh` cortaba la hoja) y lo
-                    // que corre no arrastra a la página de atrás al llegar al final (`overscroll-contain`, ADR-0479).
-                    `scroll-cayla max-h-[min(90dvh,90%)] overflow-y-auto rounded-t-2xl border border-sand bg-papel p-6 [--fondo-hoja:var(--color-papel)] max-sm:overscroll-contain sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
+                    // que corre no arrastra a la página de atrás al llegar al final (`overscroll-contain`, ADR-0479). Con
+                    // `viewport-fit=cover` la hoja llega a la barrita del iPhone: suma ese margen abajo y el pie pegado
+                    // (`.pie-hoja-fijo`, que lee `--borde-abajo`) lo absorbe igual que absorbe el `p-6` (ADR-0479, actividad 9).
+                    `scroll-cayla max-h-[min(90dvh,90%)] overflow-y-auto rounded-t-2xl border border-sand bg-papel p-6 [--fondo-hoja:var(--color-papel)] max-sm:overscroll-contain max-sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-sm:[--borde-abajo:env(safe-area-inset-bottom)] sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
             } ${
               cerrando ? (salidaPropia ? "" : "anim-modal-sale") : "anim-modal-entra"
             } cascada-modal${lateral ? " hoja-con-lateral" : ""}`}
