@@ -1,0 +1,15 @@
+/* =====================================================================================================
+   LA HOJA «CONFIGURACIÓN» DE UNA CAMPAÑA — la II de docs/maquetas/campana-configuracion-2026-10/ (Felipe la eligió el 2026-10-23,
+   ADR-0488). Es el armado de «Prendas» (`.eqp-hoja`, etiqueta-prendas.css): la etiqueta y el pie a la derecha, siempre a la vista, y a
+   la izquierda el formulario en vez de la lista. Lo único propio está aquí: el formulario corre por dentro.
+
+   El relleno con su margen negativo es el aire del halo de la guía de foco y del foco de cada campo: sin él, `overflow` los cortaba
+   contra el borde de la columna.
+   ===================================================================================================== */
+.cph-form {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  gap: 20px;
+  padding: 8px 12px 20px 8px;
+  margin: -8px -12px 0 -8px;
+}

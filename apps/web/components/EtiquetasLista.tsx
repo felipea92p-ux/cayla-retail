@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -45,6 +45,7 @@ import type { EstiloEtiqueta } from "@/lib/etiqueta-grupos";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
 import { TEXTOS_MODO, type ModoEtiquetas } from "@/lib/sellos-campanas";
 
 /**
@@ -361,6 +362,30 @@ export function CampanaModal({
   const ofreceSedes = tiendas.length > 1;
   const [guardando, setGuardando] = useState(false);
   const router = useRouter();
+  const [hoy] = useState(hoyLima);
+
+  // La hoja mide del alto de la pantalla, como «Prendas» (`.eqp-hoja`, etiqueta-prendas.css): lo que ocupan su título y su frase se
+  // descuenta del alto, y solo el formulario corre por dentro. Ref de función (no efecto) y `offsetTop` (no getBoundingClientRect): el
+  // contenido de `<Modal>` llega por el portal un render después y entra con un `transform` que movería la medida.
+  const hoja = useCallback((el: HTMLDivElement | null) => {
+    if (!el) return;
+    let cuadro = 0;
+    const medir = () => {
+      const panel = el.offsetParent as HTMLElement | null;
+      if (!panel) {
+        cuadro = requestAnimationFrame(medir);
+        return;
+      }
+      const abajo = parseFloat(getComputedStyle(panel).paddingBottom) || 0;
+      el.style.setProperty("--eqp-encima", `${el.offsetTop + abajo + 2}px`);
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    return () => {
+      cancelAnimationFrame(cuadro);
+      window.removeEventListener("resize", medir);
+    };
+  }, []);
 
   // Guía de foco: sale de la misma regla que apaga «Guardar» (`campanaValida`, y su prueba exige que coincidan); todo es opcional,
   // así que solo «sigue» lo mal escrito.
@@ -451,14 +476,15 @@ export function CampanaModal({
           ? `Las fechas son las de ${etiqueta.vigenteHasta?.slice(0, 4)}, pasadas a ${repetir.anio}. Revisa el descuento y las categorías, y guarda.`
           : "Cuánto baja, cuándo rige y en qué categorías. Las prendas sueltas se eligen en «Prendas»."
       }
-      tamano="ancha"
+      ancho="max-w-[69rem]" /* unificar-fijo: la etiqueta viva es de diseño propio, como «Prendas» (la II de la maqueta, elegida por Felipe 2026-10-23, ADR-0488) */
       onClose={onClose}
     >
       {(cerrar) => (
-        <div data-guia="atributos.campana-form" className="mt-5 space-y-5">
-          {/* Dos columnas desde tablet: a la izquierda cuánto y cuándo, a la derecha las categorías completas. En una hoja angosta
-              Desde y Hasta no cabían juntos y las categorías vivían en una caja con su propio scroll dentro de la hoja. */}
-          <div className="grid gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+        <div ref={hoja} className="eqp-hoja mt-4">
+          {/* ---- El formulario, a la izquierda: lo único que corre ---- */}
+          <div data-guia="atributos.campana-form" className="eqp-lista cph-form scroll-cayla">
+          {/* Una columna: cuánto, cuándo, dónde y las categorías, de arriba abajo (al lado va la etiqueta). */}
+          <div className="space-y-6">
             <div className="space-y-5">
               <CampoGuiado id="descuento" guia={guia}>
                 <CampoTexto
@@ -630,15 +656,30 @@ export function CampanaModal({
               ? `En Vender, las prendas con est${T.o === "o" ? "e" : "a"} ${T.uno} llevan el descuento solas, dentro de las fechas. Si una prenda tiene varias campañas, se aplica solo la de mayor descuento.`
               : "Esto guarda la configuración. Todavía no cambia el precio en Vender."}
           </p>
+          </div>
 
-          <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div data-guia="atributos.campana-pie" className="pie-acciones pt-1">
-            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
-              Cancelar
-            </Boton>
-            <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!valido} title={guia.frase ?? undefined}>
-              Guardar
-            </Boton>
+          {/* ---- La etiqueta, a la derecha: dice lo que se va a guardar mientras se llena ---- */}
+          <aside className="eqp-lado" aria-label={`La etiqueta «${etiqueta.nombre}»`}>
+            <EtiquetaDeCampana
+              nombre={etiqueta.nombre}
+              descuento={pct.ok ? pct.valor : "mal"}
+              rango={!fDesde.ok || !fHasta.ok || objecion ? "Revisa las fechas" : (textoRango(fDesde.valor, fHasta.valor) ?? "Sin fechas: rige siempre")}
+              chip={fDesde.ok && fHasta.ok && !objecion ? chipDeTarjeta(vigenciaDe(fDesde.valor, fHasta.valor, hoy), alcance.total, hoy) : null}
+              total={alcance.total}
+            />
+          </aside>
+
+          {/* ---- Lo que falta y los dos botones, siempre a la vista bajo la etiqueta (mitad y mitad: Felipe 2026-10-23) ---- */}
+          <div className="eqp-pie space-y-2.5">
+            <PieGuia guia={guia} listo="Todo listo para guardar." />
+            <div data-guia="atributos.campana-pie" className="pie-acciones pie-parejo">
+              <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
+                Cancelar
+              </Boton>
+              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!valido} title={guia.frase ?? undefined}>
+                Guardar
+              </Boton>
+            </div>
           </div>
         </div>
       )}
