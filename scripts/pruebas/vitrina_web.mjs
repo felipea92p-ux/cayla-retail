@@ -602,12 +602,12 @@ function main() {
   );
   esperarValor(
     // `stock` son niveles por tienda («hay», 3, 2, 1, 0), no cifras: llegó con la actividad 4 (pruebas:tienda-ficha). `nuevo` y
-    // `vendidos` (el puesto, nunca las unidades), con la 5 (pruebas:tienda-inicio).
+    // `vendidos` (el puesto, nunca las unidades), con la 5 (pruebas:tienda-inicio). `insignias` son {id, nombre} de Catálogo ▸ Insignias (ADR-0489).
     "nada del ERP en lo que ve la tienda: sin costo, cifras de stock ni de ventas, versión ni quién lo cambió",
     correr(`${PREPARAR}${guardar("emma")} \\gset
       select string_agg(k, ',' order by k) from ${EN_CATALOGO("emma")} t(x), jsonb_object_keys(x) k;
       rollback;`),
-    "campana,categoria,categoria_familia,codigo,colores,desde,empresa,fotos,id,nombre,nuevo,precio,precio_final,stock,vendidos",
+    "campana,categoria,categoria_familia,codigo,colores,desde,empresa,fotos,id,insignias,nombre,nuevo,precio,precio_final,stock,vendidos",
   );
   esperarValor(
     "como tienda_web: el catálogo responde (con «Todas» y con una tienda) y la tabla se niega",

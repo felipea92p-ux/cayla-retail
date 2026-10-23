@@ -13,6 +13,7 @@
     "migraciones:verificar": "node scripts/migraciones/verificar.mjs",
     "migraciones:versiones": "node scripts/migraciones/versiones.mjs",
     "migraciones:sin-drop-trigger": "node scripts/migraciones/sin-drop-trigger.mjs",
+    "migraciones:pg-temp": "node scripts/migraciones/pg-temp-sin-choque.mjs",
     "migraciones:deriva": "node scripts/migraciones/deriva.mjs",
     "adr:numeros": "node scripts/adr/numeros.mjs",
     "reservar": "node scripts/reservar/reservar.mjs",

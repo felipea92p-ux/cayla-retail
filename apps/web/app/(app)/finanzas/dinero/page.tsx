@@ -7,15 +7,16 @@ import { alcanzaPulso, debesPulso, tienesPulso } from "@/lib/dinero-pulso-reglas
 import { getProyeccion } from "@/lib/flujo-caja";
 import { getPorPagarConsolidado } from "@/lib/por-pagar-consolidado";
 import { verDeLaVista } from "@/lib/vista-global";
+import { sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 
 // Finanzas ▸ Cuentas y dinero ▸ Cuentas (ADR-0195 F3). Lee en el servidor y deja a una pieza cliente operar. `?ver=` (solo el
 // líder) elige qué sede mirar: por defecto la sede donde trabaja, o «todas» (ahí aparecen la plata del dueño y a qué
 // cuenta entra cada cobro). Con el módulo, una cuenta ve su cajón y su caja fuerte, y registra sus depósitos al banco.
-export default async function CuentasDineroPage({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
+export default async function CuentasDineroPage({ searchParams }: { searchParams: Promise<{ ver?: string; sede?: string; }> }) {
   const persona = await exigirModulo("cuentas_dinero");
   const sp = await searchParams;
   const hoy = hoyLima();
-  const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, sp.ver));
+  const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, sedeDeLaUrl(sp)));
   // Camino A: arriba, «tienes», «¿me alcanza?» (el flujo de 6 semanas, solo el líder) y «¿qué debes?» (Por pagar de lo que se mira).
   const [movimientos, medios, sinCuenta, proyeccion, porPagar, alertas] = await Promise.all([
     getMovimientos(ctx.ver.ubicacionId),
