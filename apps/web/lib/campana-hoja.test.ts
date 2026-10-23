@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoriasDeLaHoja, ejemplosDeCaja, nombreSinSku, pasoDeDescuento, piezasDelMosaico, textoDuracion } from "./campana-hoja";
+import { categoriasDeLaHoja, ejemplosDeCaja, nombreSinSku, pasoDeDescuento, piezasDelMosaico, textoDuracion, unSoloEnvio } from "./campana-hoja";
 import { parsearDescuento } from "./etiqueta-campana";
 
 describe("pasoDeDescuento (− y + de la hoja de campaña)", () => {
@@ -192,5 +192,38 @@ describe("nombreSinSku", () => {
     expect(nombreSinSku("Polo (manga corta) Lucía (POL-0002)")).toBe("Polo (manga corta) Lucía");
     expect(nombreSinSku("Vestido Aurora")).toBe("Vestido Aurora");
     expect(nombreSinSku("(SKU)")).toBe("(SKU)");
+  });
+});
+
+// /chaos del 2026-10-23 (DC-01): tres clics en «Guardar» en el mismo instante mandaban tres PATCH iguales.
+describe("unSoloEnvio (el candado de «Guardar»)", () => {
+  it("mientras un envío viaja, los clics de más no mandan otro", async () => {
+    const envio = unSoloEnvio();
+    let llamadas = 0;
+    let soltar: () => void = () => {};
+    const enviar = () => {
+      llamadas++;
+      return new Promise<void>((listo) => (soltar = listo));
+    };
+    const a = envio(enviar);
+    void envio(enviar);
+    void envio(enviar);
+    expect(llamadas).toBe(1);
+    soltar();
+    await a;
+    await envio(async () => {
+      llamadas++;
+    });
+    expect(llamadas).toBe(2);
+  });
+
+  it("si el envío falla, el candado se suelta y se puede reintentar", async () => {
+    const envio = unSoloEnvio();
+    await expect(envio(async () => Promise.reject(new Error("red")))).rejects.toThrow("red");
+    let reintento = false;
+    await envio(async () => {
+      reintento = true;
+    });
+    expect(reintento).toBe(true);
   });
 });

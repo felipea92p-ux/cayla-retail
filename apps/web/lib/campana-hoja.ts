@@ -158,3 +158,23 @@ export function ejemplosDeCaja(
 /** El nombre de una prenda en la etiqueta, sin su SKU: «Blusa Emma (BLU-0001-CAM-M)» → «Blusa Emma» (`PrendaConCosto.nombre` lo trae
  *  entre paréntesis al final; en una etiqueta angosta solo estorba). */
 export const nombreSinSku = (nombre: string) => nombre.replace(/\s*\([^()]*\)\s*$/, "") || nombre;
+
+// ---- «Guardar» una sola vez -------------------------------------------------------------------------------------------------------
+
+/**
+ * Un candado de un solo envío: mientras uno viaja, los clics de más (o un Enter) no mandan otro. Lo pidió /chaos (2026-10-23, DC-01):
+ * tres clics en el mismo instante mandaban tres pedidos iguales, porque `guardando` de React todavía no había apagado el botón. Si el
+ * envío falla, el candado se suelta y se puede reintentar.
+ */
+export function unSoloEnvio(): (enviar: () => Promise<void>) => Promise<void> {
+  let enCurso = false;
+  return async (enviar) => {
+    if (enCurso) return;
+    enCurso = true;
+    try {
+      await enviar();
+    } finally {
+      enCurso = false;
+    }
+  };
+}

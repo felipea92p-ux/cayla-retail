@@ -48,7 +48,7 @@ import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
 import { CategoriasDeCampana } from "@/components/campana-hoja/CategoriasDeCampana";
-import { PASO_DESCUENTO as PASO, ejemplosDeCaja, pasoDeDescuento, piezasDelMosaico, textoDuracion } from "@/lib/campana-hoja";
+import { PASO_DESCUENTO as PASO, ejemplosDeCaja, pasoDeDescuento, piezasDelMosaico, textoDuracion, unSoloEnvio } from "@/lib/campana-hoja";
 import { sinMovimiento } from "@/components/etiqueta-prendas/vuelo";
 import { avanceDeCampana } from "@/lib/sellos-pases";
 import { BarraAvance } from "@/components/ui/BarraAvance";
@@ -374,6 +374,8 @@ export function CampanaModal({
   const [sedesElegidas, setSedesElegidas] = useState(() => new Set(etiqueta.sedeIds));
   const ofreceSedes = tiendas.length > 1;
   const [guardando, setGuardando] = useState(false);
+  // Tres clics en el mismo instante mandaban tres pedidos iguales (/chaos 2026-10-23): el candado deja pasar solo el primero.
+  const [unaVez] = useState(unSoloEnvio);
   // Al guardar, el sello de la campaña se estampa en la etiqueta y la hoja se cierra cuando terminó de estamparse.
   const [sellada, setSellada] = useState(false);
   const router = useRouter();
@@ -749,7 +751,7 @@ export function CampanaModal({
               <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                 Cancelar
               </Boton>
-              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!valido} title={guia.frase ?? undefined}>
+              <Boton peso="primario" onClick={() => unaVez(guardar)} cargando={guardando} disabled={!valido} title={guia.frase ?? undefined}>
                 Guardar
               </Boton>
             </div>
