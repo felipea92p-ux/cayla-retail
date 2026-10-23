@@ -308,6 +308,8 @@ export function TarjetaDeCampana({
           etiqueta={e}
           prendasConCosto={prendasConCosto}
           marcasManuales={manuales}
+          tiendas={tiendas}
+          sedeActualId={sedeActualId}
           onClose={() => setEtiquetando(false)}
           onAplicado={(finales) => {
             setManuales(finales);
