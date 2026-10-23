@@ -110,6 +110,8 @@ export function CajaCerrada({ cerrada, ubicacionEtiqueta, cierreAnterior, onAbri
   return createPortal(
     <section
       data-guia="vender.caja-cerrada"
+      // Con una hoja abierta en el celular (Abrir caja), se aleja junto con la cabecera (ADR-0479).
+      data-fondo-hoja
       aria-labelledby="caja-cerrada-titulo"
       // `por-abrir` se ve como `cerrada` (el cartel todavía dice «Cerrado»), pero ya no se toca.
       data-fase={fase === "por-abrir" ? "cerrada" : fase}

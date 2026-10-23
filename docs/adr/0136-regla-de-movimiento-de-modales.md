@@ -449,3 +449,15 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
 - **Dónde vive:** `apps/web/components/ui/Aventurero.tsx`, `apps/web/app/estilos/aventurero.css` (que también importa `global-error.tsx`,
   pintada sin globals.css) y la foto en `apps/web/public/aventurero.webp` (recortada para que el texto no tape al gato; la pantalla del
   monitor y el teléfono no se leen a ese tamaño).
+
+## Actualización 2026-10-22 — la hoja del celular: llega desde el borde, se baja con el dedo y aleja lo de atrás (ADR-0479)
+
+- **Qué cambia, solo bajo 640 px:** el paso 2 de la tabla («en móvil sube desde el borde») ahora es literal: la hoja de `<Modal>` y de
+  `<Cajon>` llega desde el borde de abajo (`cayla-hoja-movil-entra`, 460 ms) y se va entera (`cayla-hoja-movil-sale`, 300 ms). Antes subía
+  24 px con un fundido. Tiene asa, sigue al dedo y, al soltarla, va a su punto en 180–420 ms según la velocidad del dedo.
+- **Lo de atrás se aleja** (la «B» que eligió Felipe): la cabecera, el contenido y la persiana de Caja cerrada se alejan a 0,92 mientras la
+  hoja está abierta y vuelven al ritmo del dedo. Es parte del movimiento de la hoja, no adorno suelto: dice que la pantalla sigue ahí.
+- **Lo que no cambia:** el velo, la cascada del contenido (los mismos 55 ms), la salida corta, el escritorio entero y la cámara. Sin rebote:
+  tirada más arriba de abierta, la hoja resiste y se frena, nunca vuelve pasándose. Sin bucle. Con `prefers-reduced-motion` la hoja aparece
+  y se va de una y lo de atrás no se mueve; el dedo la sigue igual (es el dedo, no una animación).
+- **Detalle, números y verificación:** `docs/adr/0479-la-hoja-del-celular-viva-y-con-profundidad.md` y `docs/unificar/hoja-movil.md`.
