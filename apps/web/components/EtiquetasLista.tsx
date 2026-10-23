@@ -403,10 +403,14 @@ export function CampanaModal({
     };
   }, []);
 
+  // Cada categoría dice cuántas prendas a la venta trae, y la hoja dice a cuántas llega la campaña antes de guardar.
+  const prendasDe = prendasPorCategoria(prendasConCosto);
+  const alcance = alcanceCampana(prendasConCosto, elegidas, new Set(variantesManuales));
+
   // Guía de foco: sale de la misma regla que apaga «Guardar» (`campanaValida`, y su prueba exige que coincidan); todo es opcional,
   // así que solo «sigue» lo mal escrito.
   const guia = useGuiaCampos(
-    camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento, sedes: ofreceSedes ? sedesElegidas.size : undefined }),
+    camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento, sedes: ofreceSedes ? sedesElegidas.size : undefined, alcance: alcance.total }),
   );
 
   const pct = parsearDescuento(descuento);
@@ -423,10 +427,6 @@ export function CampanaModal({
   // pero quien la configura se entera: número en rojo y cuántas prendas serían.
   const bajoCosto = prendasBajoCosto(pct.ok ? pct.valor : null, prendasConCosto, elegidas, new Set(variantesManuales));
 
-  // Cada categoría dice cuántas prendas a la venta trae, y la hoja dice a cuántas llega la campaña antes de guardar (la grilla de
-  // casillas por familia, con las categorías sin prendas plegadas al final: `CategoriasDeCampana`).
-  const prendasDe = prendasPorCategoria(prendasConCosto);
-  const alcance = alcanceCampana(prendasConCosto, elegidas, new Set(variantesManuales));
   // La etiqueta viva: sus categorías en el mosaico y lo que cobra la caja por prendas reales que alcanzaría.
   const mosaico = piezasDelMosaico(categorias, elegidas, prendasDe);
   const ejemplos = ejemplosDeCaja(prendasConCosto, elegidas, new Set(variantesManuales), prendasDe, pct.ok ? pct.valor : null);
