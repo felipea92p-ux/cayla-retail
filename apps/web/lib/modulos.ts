@@ -74,7 +74,7 @@ export const MODULOS: readonly Modulo[] = [
   // Campañas de la tienda web (Felipe 2026-10-21; 20261021161000): cómo se ve la tienda online durante cada campaña (ambiente del catálogo o
   // imagen propia, colores, movimiento, textos y dónde se muestra). El diseño cuelga de la campaña de Etiquetas; fechas, % y prendas no se
   // tocan aquí. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo.
-  { clave: "campanas_web", grupo: "Tienda web", nombre: "Campañas de la tienda web", incluye: "Elegir cómo se ve la tienda online durante cada campaña (el ambiente, los colores, el movimiento, los textos o una imagen propia y dónde se muestra), programarlo y verlo antes con un enlace privado. Las fechas, el descuento y las prendas se siguen armando en Etiquetas" },
+  { clave: "campanas_web", grupo: "Tienda web", nombre: "Campañas de la tienda web", incluye: "Elegir cómo se ve la tienda online durante cada campaña (el ambiente, los colores, el movimiento, los textos o una imagen propia y dónde se muestra), programarlo y verlo antes con un enlace privado. Las fechas, el descuento y las prendas se siguen armando en Catálogo ▸ Insignias" },
   // Recomendaciones (ADR-0408, Felipe 2026-10-15; 20261015135000): lo que los clientes recomiendan desde la tienda online, SIEMPRE con
   // su nombre. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las de TODAS las tiendas y
   // las de CAYLA en general, con el nombre del cliente aunque no tenga «Clientes» (la ficha, solo si la ve).
@@ -103,11 +103,13 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "recibir", grupo: "Inventario", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
   { clave: "productos", grupo: "Catálogo", nombre: "Productos", incluye: "Crear, editar y archivar prendas; precios, fotos y códigos" },
   { clave: "atributos", grupo: "Catálogo", nombre: "Categorías, marcas y atributos", incluye: "Crear, editar, desactivar y aprobar propuestas" },
-  // ADR-0473 (Felipe 2026-10-22): en pantalla se llaman «Sellos» («etiqueta» queda para el papel con el precio); la clave no cambia.
-  { clave: "etiquetas", grupo: "Catálogo", nombre: "Sellos", incluye: "Crear, editar, aprobar y archivar los sellos de las prendas (Nuevo, Top ventas, Hecho a mano…), con descuento o sin él, y ponérselos a las prendas" },
+  // ADR-0473 (Felipe 2026-10-22): en pantalla se llamaron «Sellos» («etiqueta» queda para el papel con el precio) y desde el
+  // 2026-10-23 se llaman «Insignias» (ADR-0481, 20261023142000); la clave no cambia.
+  { clave: "etiquetas", grupo: "Catálogo", nombre: "Insignias", incluye: "Crear, editar, aprobar y archivar las insignias de las prendas (Nuevo, Top ventas, Hecho a mano…), con descuento o sin él, y ponérselas a las prendas" },
   // ADR-0473: las campañas salen de Atributos a su propia entrada. La clave `campanas` nació en Tienda web (PR #1190) y se muda
   // aquí (20261022151000, Felipe 2026-10-22: «reusar `campanas`»). Guarda una campaña quien ve Campañas, Campañas de la tienda web
-  // o Sellos (`fn_puede_campanas`).
+  // o Insignias (`fn_puede_campanas`). Desde esa misma tarde no tiene fila propia: abre Catálogo ▸ Insignias, donde las campañas son
+  // la primera vista (la fila Insignias la declara como `moduloAlterno`). Sigue siendo un módulo aparte en Roles y accesos.
   { clave: "campanas", grupo: "Catálogo", nombre: "Campañas", incluye: "Crear y archivar campañas (San Valentín, Halloween, Navidad…), elegir sus fechas, su descuento, sus prendas y las categorías donde rige, repetirlas el año siguiente e imprimir sus etiquetas de precio" },
   // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan sin entrar al catálogo. Nace sin rol (20261010195000);
   // el líder se lo da después a las terminales de almacén y caja.
@@ -270,7 +272,7 @@ export function modulosDeHoy(
  *  - verDineroCompras       ← ve Facturas de compra, Por pagar o Notas de crédito, completo
  *                             (`fn_puede_ver_dinero_de_compras`, 20260923130000). Solo VER: qué ESCRIBE cada uno lo dice
  *                             `accionesDeCompra` (P1, 20260923140000)
- *  - editarEtiquetas        ← ve Sellos (`etiquetas`), completo (`fn_puede_editar_etiquetas`; también las etiquetas CON descuento, ADR-0293, ADR-0473)
+ *  - editarEtiquetas        ← ve Insignias (`etiquetas`), completo (`fn_puede_editar_etiquetas`; también las etiquetas CON descuento, ADR-0293, ADR-0473)
  *  - analizar               ← ve Análisis, completo (`fn_puede_analizar`)
  *  - registrarGastos        ← ve Gastos, completo (`fn_gastos_ubicaciones`, ADR-0195 F2): los de SU tienda
  *  - verCuentasDinero       ← ve Cuentas y dinero, completo (ADR-0195 F3): las cuentas y el efectivo de SU tienda

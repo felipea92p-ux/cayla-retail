@@ -4,11 +4,11 @@
  *
  * QUÉ PRUEBA. `20261022203000_campanas_llave_de_los_tres_modulos.sql` (Felipe 2026-10-22: «quiero que se pueda editar, agregar
  * prendas y demás cosas a las campañas desde ambos módulos»):
- *   1. Con CUALQUIERA de los tres módulos —«Campañas» (`campanas`), «Campañas de la tienda web» (`campanas_web`) o «Sellos»
+ *   1. Con CUALQUIERA de los tres módulos —«Campañas» (`campanas`), «Campañas de la tienda web» (`campanas_web`) o «Insignias»
  *      (`etiquetas`)— una integrante crea una campaña (nace aprobada), la lee, le guarda nombre, descuento, fechas y categorías, le
  *      pone y le quita prendas, y la desactiva.
  *   2. Sin ninguno de los tres, cada una de esas puertas la rechaza con un mensaje que nombra los tres módulos.
- *   3. Un sello que NO es campaña sigue siendo solo de Sellos: con un módulo de Campañas no se le ponen prendas ni descuento.
+ *   3. Una insignia que NO es campaña sigue siendo solo de Insignias: con un módulo de Campañas no se le ponen prendas ni descuento.
  *   4. La migración se puede volver a correr, y lo que #1190 dejó para su editor de diseño (si existe) queda sin permiso de ejecutar.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Micaela (integrante de Trujillo): nunca se commitea nada en el
@@ -18,7 +18,7 @@
  * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=supabase/migrations/20261022203000_campanas_llave_de_los_tres_modulos.sql` mete la
  * migración dentro de cada transacción. Sin la variable, prueba lo que la base ya tiene (lo que hace el CI).
  *
- * DA POR SENTADO: el seed (Felipe líder, Micaela integrante sin Sellos ni Campañas, «Blusa Emma» con varias tallas).
+ * DA POR SENTADO: el seed (Felipe líder, Micaela integrante sin Insignias ni Campañas, «Blusa Emma» con varias tallas).
  *
  * USO
  *   pnpm pruebas:campanas-llave-unica    → necesita el stack local (`npx supabase start`)
@@ -89,7 +89,7 @@ const MODULO_A_INTEGRANTE = (clave) =>
   `${clave === "etiquetas" ? "" : CREAR_MODULO(clave)}insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), '${clave}');\n`;
 const PONER = (etq) => `select retail.etiquetar_variantes(jsonb_build_array(jsonb_build_object('etiqueta_id', :'${etq}', 'agregar', jsonb_build_array(:'talla'))))`;
 const QUITAR = (etq) => `select retail.etiquetar_variantes(jsonb_build_array(jsonb_build_object('etiqueta_id', :'${etq}', 'quitar', jsonb_build_array(:'talla'))))`;
-const TRES = "«Campañas», «Campañas de la tienda web» o «Sellos»";
+const TRES = "«Campañas», «Campañas de la tienda web» o «Insignias»";
 
 async function main() {
   const base = correr("select 1;");
@@ -163,7 +163,7 @@ async function main() {
   esperarError(
     "no le pone prendas",
     correr(`${PREPARAR}${COMO_MICAELA}${PONER("camp")};\nrollback;`),
-    "Poner o quitar prendas necesita el módulo «Sellos», «Campañas» o «Campañas de la tienda web»",
+    "Poner o quitar prendas necesita el módulo «Insignias», «Campañas» o «Campañas de la tienda web»",
   );
   esperarError(
     "no la desactiva",
@@ -176,18 +176,18 @@ async function main() {
     "pendiente",
   );
 
-  // ---------------------------------------------------------------- 3. Un sello que no es campaña sigue siendo de Sellos
+  // ---------------------------------------------------------------- 3. Una insignia que no es campaña sigue siendo de Insignias
   console.log("\n— Un sello que no es campaña —");
   for (const clave of ["campanas", "campanas_web"]) {
     esperarError(
       `con «${clave}» no se le ponen prendas`,
       correr(`${PREPARAR}${MODULO_A_INTEGRANTE(clave)}${COMO_MICAELA}${PONER("sello")};\nrollback;`),
-      "las de otro sello, con «Sellos»",
+      "las de otra insignia, con «Insignias»",
     );
     esperarError(
       `con «${clave}» no se le pone descuento`,
       correr(`${PREPARAR}${MODULO_A_INTEGRANTE(clave)}${COMO_MICAELA}select retail.actualizar_campana_etiqueta(:'sello', 10, null, null, '{}');\nrollback;`),
-      "otro sello con descuento, con «Sellos»",
+      "otra insignia con descuento, con «Insignias»",
     );
     esperarValor(
       `con «${clave}», un sello que crea nace por aprobar`,
