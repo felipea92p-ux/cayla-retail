@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
-import { avisoCajaFuerte, detalleCajon, nivelFrasco, orilloDeDinero, repisaDe, repisasDeDinero, ultimoDepositoDe, verDeLaUrl } from "./dinero-telar-reglas";
+import { avisoCajaFuerte, colorDeSede, detalleCajon, nivelFrasco, orilloDeDinero, repisaDe, repisasDeDinero, ultimoDepositoDe, verDeLaUrl } from "./dinero-telar-reglas";
 
 const cuenta = (p: Partial<CuentaDinero> & Pick<CuentaDinero, "id" | "nombre" | "tipo">): CuentaDinero => ({
   cuentaContable: "104", ubicacionId: null, ubicacionNombre: null, numero: null, saldo: 0, archivada: false, soloDestino: false,
@@ -152,5 +152,17 @@ describe("detalleCajon", () => {
     expect(detalleCajon({ ...ABIERTA, abierta: false, cerradaEn: "2026-10-14T23:30:00Z" }, false)).toBe("Caja cerrada desde el miércoles 14");
     expect(detalleCajon(undefined, true)).toBe("Fondo fijo para gastos chicos");
     expect(detalleCajon(undefined, false)).toBeNull();
+  });
+});
+
+describe("colorDeSede", () => {
+  it("cada sede, un token por su lugar; la empresa (o sin sede) y lo en camino, a media voz", () => {
+    expect(colorDeSede("tru", SEDES)).toBe("var(--color-pizarra)");
+    expect(colorDeSede("aqp", SEDES)).toBe("var(--color-verde)");
+    expect(colorDeSede("tal", SEDES)).toBe("var(--color-taupe)");
+    expect(colorDeSede(null, SEDES)).toContain("var(--color-tinta) 55%");
+    expect(colorDeSede("empresa", SEDES)).toBe(colorDeSede(null, SEDES));
+    expect(colorDeSede("camino", SEDES)).toContain("var(--color-pizarra) 55%");
+    expect(colorDeSede("otra", SEDES)).toMatch(/^var\(--color-/);
   });
 });

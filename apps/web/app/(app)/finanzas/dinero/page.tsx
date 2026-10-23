@@ -3,9 +3,8 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { getAlertasPos, getCierresConDiferencia, getContextoDinero, getEfectivo, getMediosDeCobro, getMovimientos, getSinCuenta, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { CuentasPanel, PantallaDinero } from "@/components/finanzas/CuentasDinero";
 import { DineroPulso } from "@/components/finanzas/DineroPulso";
-import { alcanzaPulso, debesPulso, tienesPulso } from "@/lib/dinero-pulso-reglas";
+import { alcanzaPulso, tienesPulso } from "@/lib/dinero-pulso-reglas";
 import { getProyeccion } from "@/lib/flujo-caja";
-import { getPorPagarConsolidado } from "@/lib/por-pagar-consolidado";
 import { verDeLaVista } from "@/lib/vista-global";
 import { explicacionCuenta } from "@/lib/cuentas-dinero-reglas";
 import { avisoCajaFuerte, detalleCajon, repisaDe, repisasDeDinero, verDeLaUrl } from "@/lib/dinero-telar-reglas";
@@ -21,14 +20,14 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   const sp = await searchParams;
   const hoy = hoyLima();
   const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, verDeLaUrl(sp)));
-  // Camino A: arriba, «tienes», «¿me alcanza?» (el flujo de 6 semanas, solo el líder) y «¿qué debes?» (Por pagar de lo que se mira).
+  // El telar: arriba, «tienes»; luego los frascos de cada sede y «¿me alcanza?» (el flujo de 6 semanas, solo el líder). Lo que se
+  // debe es su propia cara, «Qué debes» (/finanzas/dinero/por-pagar).
   // El efectivo de hoy (la misma cuenta del cierre) y los cierres con diferencia viven aquí desde que se retiró la pestaña Efectivo.
-  const [movimientos, medios, sinCuenta, proyeccion, porPagar, alertas, efectivo, cierres] = await Promise.all([
+  const [movimientos, medios, sinCuenta, proyeccion, alertas, efectivo, cierres] = await Promise.all([
     getMovimientos(ctx.ver.ubicacionId),
     ctx.esLider ? getMediosDeCobro() : Promise.resolve({ datos: [], falla: null }),
     ctx.esLider && !ctx.ver.ubicacionId ? getSinCuenta() : Promise.resolve([]),
     ctx.esLider ? getProyeccion(6) : Promise.resolve({ datos: null, falla: null }),
-    getPorPagarConsolidado(ctx.ver),
     // Las máquinas que se atrasaron con su depósito (ADR-0429, act. 4): solo el líder; vacío si la base no lo sabe todavía.
     ctx.esLider ? getAlertasPos() : Promise.resolve([]),
     getEfectivo(ctx.ver.ubicacionId),
@@ -54,13 +53,11 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
       cuentas={ctx.cuentas.datos}
       deuda={ctx.deuda}
       hoy={hoy}
-      fallas={[ctx.cuentas.falla, movimientos.falla, medios.falla, porPagar.falla, efectivo.falla].filter((f): f is string => !!f)}
+      fallas={[ctx.cuentas.falla, movimientos.falla, medios.falla, efectivo.falla].filter((f): f is string => !!f)}
     >
       <DineroPulso
         tienes={tienes}
         alcanza={alcanzaPulso(proyeccion.datos, tienes.guardado)}
-        debes={debesPulso(porPagar.datos, hoy)}
-        verPorPagar={`/finanzas/dinero/por-pagar${ctx.esLider && ctx.ver.ubicacionId ? `?ver=${ctx.ver.ubicacionId}` : ""}`}
         deCaylaEntera={!!sedeId}
         frascos={
           <>

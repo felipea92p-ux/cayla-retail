@@ -427,13 +427,6 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "La primera semana de las próximas seis en que la plata bajaría de tu mínimo de caja, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo que está guardado en las cajas fuertes. Si falta cargar saldos o historia, dice «provisional» y qué falta.",
     },
     {
-      id: "debes",
-      ancla: "fin-dinero.debes",
-      opcional: true,
-      titulo: "¿Qué debes?",
-      texto: "Lo vencido primero y lo próximo que vence, de todas las facturas por pagar. Si hay una factura sin anotar, no está aquí: por eso el medidor de confianza del Resumen las cuenta.",
-    },
-    {
       id: "aviso-maquina",
       ancla: "fin-dinero.aviso-maquina",
       opcional: true,
@@ -545,7 +538,21 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       id: "cifras",
       ancla: "fin-por-pagar.cifras",
       titulo: "Cuándo vence la deuda",
-      texto: "Lo que ya venció (se paga primero), lo que vence esta semana, la próxima y más adelante, con cuántas facturas hay en cada tramo.",
+      texto: "Lo que ya venció (se paga primero), lo que vence esta semana, la próxima y más adelante, con cuántas facturas hay en cada tramo. Toca una cifra para ver solo esas facturas; tócala otra vez para verlas todas.",
+    },
+    {
+      id: "burbujas",
+      ancla: "fin-por-pagar.burbujas",
+      opcional: true,
+      titulo: "Las deudas en el calendario",
+      texto: "Cada círculo es una factura, del color de su sede y del tamaño de lo que falta pagar, sobre los próximos 30 días. Lo vencido va a la izquierda con borde rojo. Tocar un círculo abre su pago.",
+    },
+    {
+      id: "filtros",
+      ancla: "fin-por-pagar.filtros",
+      opcional: true,
+      titulo: "Buscar y filtrar",
+      texto: "Escribe un proveedor o el número de la factura, o elige el tipo. Cada filtro puesto aparece debajo con su ✕ para quitarlo, y «Limpiar todo» los quita juntos.",
     },
     {
       id: "lista",

@@ -5,7 +5,7 @@ import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { FaltanProyeccion } from "@/components/finanzas/FaltanProyeccion";
 import { soles } from "@/lib/flujo-caja-reglas";
-import type { Alcanza, Debes, Tienes } from "@/lib/dinero-pulso-reglas";
+import type { Alcanza, Tienes } from "@/lib/dinero-pulso-reglas";
 
 // Cuentas y dinero en camino A (Felipe 2026-10-15): arriba de la lista de cuentas, la respuesta grande «Tienes S/ X» y, al
 // lado, «¿Me alcanza?» (la semana que baja del mínimo y qué pasa si depositas lo guardado) y «¿Qué debes?» (lo vencido y lo
@@ -17,15 +17,11 @@ const entra = (clase: string, i: number) => ({ className: `${clase} anim-entra`,
 export function DineroPulso({
   tienes,
   alcanza,
-  debes,
-  verPorPagar,
   deCaylaEntera,
   frascos,
 }: {
   tienes: Tienes;
   alcanza: Alcanza;
-  debes: Debes;
-  verPorPagar: string;
   /** Se mira una sede: la proyección de «¿Me alcanza?» es de toda la empresa y lo dice (no se parte por sede, ADR-0433). */
   deCaylaEntera: boolean;
   /** Las repisas de frascos (El telar), entre la respuesta y las preguntas. */
@@ -64,7 +60,7 @@ export function DineroPulso({
 
       {frascos}
 
-      <section className="fin-dos-col">
+      <section>
         <div {...entra("", 5)}>
           <Superficie pad guia="fin-dinero.alcanza">
             <CabeceraBloque
@@ -101,23 +97,6 @@ export function DineroPulso({
                 </p>
               </div>
             )}
-          </Superficie>
-        </div>
-        <div {...entra("", 6)}>
-          <Superficie pad guia="fin-dinero.debes">
-            <CabeceraBloque titulo="¿Qué debes?" bajada={debes.frase} />
-            <div className="fin-dinero-alcanza">
-              <Chip tono={debes.tono} vivo={debes.tono === "rojo" || debes.tono === "ambar"}>
-                {debes.n === 0 ? "Sin deudas registradas" : `${soles(debes.total)} en ${debes.n} ${debes.n === 1 ? "factura" : "facturas"}`}
-              </Chip>
-              {debes.n > 0 && (
-                <p className="fin-dinero-ver">
-                  <Link href={verPorPagar} className="btn-cayla btn-enlace">
-                    Ver todo lo que debes
-                  </Link>
-                </p>
-              )}
-            </div>
           </Superficie>
         </div>
       </section>

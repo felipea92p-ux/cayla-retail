@@ -52,6 +52,19 @@ export function nivelFrasco(saldo: number | null, maximo: number): number | null
   return r2(0.07 + 0.86 * Math.sqrt(Math.min(saldo, maximo) / maximo));
 }
 
+/**
+ * El color de una sede (su hilo en El telar), hasta que la barra común traiga sus tokens (`--color-sede-*`, contrato de la barra):
+ * cada sede toma un token por su lugar en la lista; CAYLA entera y lo que viene en camino, la tinta y la pizarra a media voz. Siempre
+ * un token, nunca un hex (ADR-0169).
+ */
+const COLORES_SEDE = ["var(--color-pizarra)", "var(--color-verde)", "var(--color-ambar)", "var(--color-taupe)"];
+export function colorDeSede(clave: string | null, ubicaciones: readonly { id: string }[]): string {
+  if (clave === null || clave === REPISA_EMPRESA) return "color-mix(in srgb, var(--color-tinta) 55%, transparent)";
+  if (clave === REPISA_CAMINO) return "color-mix(in srgb, var(--color-pizarra) 55%, transparent)";
+  const i = ubicaciones.findIndex((u) => u.id === clave);
+  return COLORES_SEDE[(i < 0 ? 0 : i) % COLORES_SEDE.length];
+}
+
 /** En cada repisa, de lo que está más a la mano a lo que está más lejos: el cajón, la caja fuerte, lo del líder, el banco. */
 const ORDEN_TIPO: Record<CuentaDinero["tipo"], number> = { cajon: 0, caja_fuerte: 1, por_rendir: 2, banco: 3, por_abonar: 4, tarjeta_credito: 5 };
 

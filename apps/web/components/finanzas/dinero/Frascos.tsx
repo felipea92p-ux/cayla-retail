@@ -4,21 +4,12 @@ import { Chip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Superficie } from "@/components/finanzas/kit";
 import { solesRedondo } from "@/lib/gastos-reglas";
-import { REPISA_CAMINO, REPISA_EMPRESA, type Frasco, type Repisa } from "@/lib/dinero-telar-reglas";
+import { colorDeSede, type Frasco, type Repisa } from "@/lib/dinero-telar-reglas";
 
 // Cuentas y dinero ▸ Dónde está (El telar, Felipe 2026-10-23): cada cuenta es un frasco que se llena hasta su nivel, en la repisa
 // de su sede. El nivel y los grupos los decide `lib/dinero-telar-reglas.ts`; aquí solo se dibuja. Sin estado: sirve en el servidor.
 // El líquido sube una sola vez al llegar, sin rebote (ADR-0136, excepción de Finanzas, D7), y no se mueve con
 // `prefers-reduced-motion` (`app/estilos/finanzas-dinero.css`).
-
-/** El color de cada repisa, hasta que la barra común traiga los tokens de sede (`--color-sede-*`, contrato de la barra). */
-const COLORES_SEDE = ["var(--color-pizarra)", "var(--color-verde)", "var(--color-ambar)", "var(--color-taupe)"];
-export function colorDeRepisa(clave: string, ubicaciones: readonly { id: string }[]): string {
-  if (clave === REPISA_EMPRESA) return "color-mix(in srgb, var(--color-tinta) 55%, transparent)";
-  if (clave === REPISA_CAMINO) return "color-mix(in srgb, var(--color-pizarra) 55%, transparent)";
-  const i = ubicaciones.findIndex((u) => u.id === clave);
-  return COLORES_SEDE[(i < 0 ? 0 : i) % COLORES_SEDE.length];
-}
 
 const JARRA = "M24 4h24v8c0 4 14 6 14 18v58a6 6 0 0 1-6 6H16a6 6 0 0 1-6-6V30c0-12 14-14 14-18z";
 
@@ -75,7 +66,7 @@ export function Frascos({ repisas, ubicaciones }: { repisas: Repisa[]; ubicacion
         <article
           key={r.clave}
           className="din-repisa anim-entra"
-          style={{ ["--i" as string]: i + 1, ["--c" as string]: colorDeRepisa(r.clave, ubicaciones) } as CSSProperties}
+          style={{ ["--i" as string]: i + 1, ["--c" as string]: colorDeSede(r.clave, ubicaciones) } as CSSProperties}
           aria-label={`${r.titulo}: ${solesRedondo(r.total)}`}
         >
           <header className="din-repisa-cab">
