@@ -57,9 +57,9 @@ tablas en uso: se pega de una vez.
 
 ## Lo que NO cubre (y queda en el backlog)
 
-- **Etiquetas de precio impresas, Catálogo «lo que cobra la caja hoy» y el reporte de campañas de Finanzas** preguntan por la campaña sin
-  tienda: una campaña limitada a tiendas NO aparece ahí (nunca dicen un descuento que no rige en todas). Para imprimir las etiquetas de una
-  campaña de una sola tienda hace falta una pantalla que sepa la tienda.
+- **Catálogo «lo que cobra la caja hoy» y el reporte de campañas de Finanzas** preguntan por la campaña sin tienda: una campaña limitada a
+  tiendas NO aparece ahí (nunca dicen un descuento que no rige en todas). ~~Etiquetas de precio impresas~~: desde el mismo día leen las
+  campañas de la tienda donde se imprime (`fn_campanas_en_sede`, commit `1f0ca4cc0`).
 - **El cambio de sedes no queda en Actividad.** Cambiar dónde rige un descuento cambia el precio en caja: debería dejar su línea firmada.
 - **Quién cambia las sedes** es quien configura la campaña (`fn_puede_tocar_etiqueta`); no hay un permiso aparte.
 
@@ -104,3 +104,31 @@ veía. La base estaba bien; el error era de lectura (la causa que ADR-0192 y `le
   Apartados, `usePreciosEnVivo` y `<PreciosEnVivo />`. Descartado: subir `max_rows` del proyecto (es de TODO el proyecto, compartido con Dynamic) y tocar la función de la base.
 - **Candado:** `lib/campanas-vigentes.test.ts` falla si un archivo de `app/`, `components/` o `lib/` llama `.rpc("campanas_vigentes")` fuera del lector.
 - **Lo que enseña:** toda lectura que crece con una decisión del negocio (una campaña «a todas las prendas») pasa por `leerTodas`, no por un `.rpc()` suelto.
+
+## Actualización 2026-10-23 (noche) — el aviso «Imprimir sus etiquetas» sabe de tiendas
+
+**El problema.** Al guardar una campaña, el aviso de reimprimir (ADR-0180, actividad 5 de ADR-0441) salía de `prendasQueCambianDePrecioHoy`,
+que no conocía las tiendas. Cambiar solo «Dónde rige» (de todas las sedes a solo Tienda Trujillo) no lo hacía salir, aunque las etiquetas de
+papel con descuento de las otras tiendas ya no valían. Y la impresión sale con el precio de la sede de quien la abre (la de la cabecera): un
+botón «Imprimir» desde Trujillo habría sacado las mismas etiquetas de siempre.
+
+**Lo que decidió Felipe (2026-10-23):** el aviso **nombra las tiendas** donde el papel quedó viejo. Si la sede de quien guarda es una de
+ellas, el botón imprime las suyas («Imprimir las de Tienda Lima»); si no, no hay botón y el aviso pide imprimirlas allá («Imprímelas en esa
+tienda»). Descartadas: mirar solo la tienda de quien guarda (el papel viejo de las demás pasaba sin aviso) y dejar una tarea en el Inicio de
+cada tienda afectada (necesita una tabla nueva; queda como idea).
+
+**Cómo.** `prendasQueCambianDePrecioHoy` (`apps/web/lib/etiqueta-campana.ts`) compara el descuento de hoy **tienda por tienda**, con la regla
+de `fn_campana_rige_en_sede` escrita igual en TypeScript (`rigeEnSede`: sin tiendas, todas; sin sede, solo la de todas). Devuelve cuántas
+prendas cambian en alguna tienda, en cuáles (solo si el cambio no es el mismo en todas: otro % de una campaña de todas las sedes sigue sin
+lista) y lo que se imprime desde la sede de la cabecera. `avisoReimprimir` arma la frase. `CampanaModal` recibe `sedeActualId`
+(`persona.ubicacionId`, la misma sede con la que imprime `/etiquetas-de-precio`) desde Insignias y desde Tienda web ▸ Campañas. Sin la
+migración (sin tiendas conocidas) todo es como antes. Sin cambios en la base.
+
+**Verificado.** 12 casos nuevos en `etiqueta-campana.test.ts` (solo cambian las tiendas, se suma una tienda, sin tiendas = todas, otro % de
+una campaña limitada, cambio distinto en cada tienda, sin tiendas conocidas). En el navegador, en local con 20261023162000 y 170000 aplicadas
+(con el OK de Felipe), Halloween al 20 % en Faldas: de todas a solo Trujillo guardando desde Tienda Lima, «Cambió el precio en caja de 8
+prendas en Tienda Lima… Imprimir las de Tienda Lima», que abre las etiquetas de Lima a S/ 74.90 (precio normal); de vuelta a todas guardando
+desde Tienda Trujillo, «… en Tienda Lima… Imprímelas en esa tienda», sin botón. Los datos de la prueba se restauraron (`estado.mjs`).
+
+**Lo que no cubre.** «Prendas» (marcar a mano, `prendasQueCambianAlEtiquetar`) y Editar producto siguen sin mirar las tiendas: con una campaña
+limitada, su aviso puede ofrecer imprimir en una tienda donde el precio no cambió.
