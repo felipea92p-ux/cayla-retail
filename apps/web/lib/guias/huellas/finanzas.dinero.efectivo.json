@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero.efectivo",
   "ruta": "/finanzas/dinero/efectivo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 24,
+  "total": 26,
   "controles": {
     "components/finanzas/CuentasDinero.tsx": [
       "Boton «fin-dinero.registrar»",
@@ -31,6 +31,10 @@
     "components/finanzas/PagosSinCuenta.tsx": [
       "Boton «Guardar»",
       "ComboResponsable «{responsable}»"
+    ],
+    "components/finanzas/telar/MesaDeMando.tsx": [
+      "Pestanas «(sin nombre)»",
+      "Link «{h.nombre}»"
     ]
   }
 }

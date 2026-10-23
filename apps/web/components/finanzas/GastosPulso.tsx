@@ -1,11 +1,10 @@
 import type { CSSProperties } from "react";
 import { Chip } from "@/components/ui/Chip";
-import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { soles } from "@/lib/flujo-caja-reglas";
 import { montoBandeja, type Bandeja, type CosaPorRevisar, type Gastaste } from "@/lib/gastos-pulso-reglas";
 
-// Gastos en camino A (Felipe 2026-10-15): «¿En qué se fue la plata?» con lo gastado en el mes y su frase en tienda, y la
+// Gastos en camino A (Felipe 2026-10-15): «¿En qué se fue la plata?» con su frase en tienda y lo que más pesó, y la
 // bandeja: lo que falta revisar, de a UNA cosa, con el botón que la resuelve (clasificar la salida de caja o registrar el fijo).
 // Los modales que resuelven ya existen en el panel: aquí solo se eligen. Sin estado propio.
 
@@ -33,13 +32,8 @@ export function GastosPulso({
         </p>
         {gastaste ? (
           <>
-            <p {...entra("fin-pulso-respuesta", 2)}>
-              <span className="fin-pulso-verbo">este mes gastaste</span>
-              <span className="fin-pulso-monto">
-                <CifraAnimada valor={Math.round(gastaste.total)} formato="soles" />
-              </span>
-            </p>
-            <p {...entra("fin-pulso-explica", 3)}>
+            {/* El total del mes ya lo dice la cabecera del telar (`RespuestaTelar`): aquí, solo en qué se fue. */}
+            <p {...entra("fin-pulso-explica", 2)}>
               {gastaste.frase} {gastaste.n > 0 ? `${gastaste.n} ${gastaste.n === 1 ? "gasto" : "gastos"} de ${nombreCorto}, con IGV.` : ""}
             </p>
             {gastaste.mayores.length > 1 && (

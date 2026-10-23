@@ -3,15 +3,16 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { getCierresConDiferencia, getContextoDinero, getEfectivo, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { EfectivoPanel, PantallaDinero } from "@/components/finanzas/CuentasDinero";
 import { verDeLaVista } from "@/lib/vista-global";
+import { sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 
 // Finanzas ▸ Cuentas y dinero ▸ Efectivo por tienda (ADR-0195 F3, pieza 5): lo que debería haber en cada cajón ahora. La
 // cuenta es la MISMA del cierre de caja (`fn_calcular_esperado_caja`, ADR-0186) y con el mismo candado: el monto esperado
 // solo lo ve quien puede cerrar la caja. La pantalla no recalcula nada.
-export default async function EfectivoPorTiendaPage({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
+export default async function EfectivoPorTiendaPage({ searchParams }: { searchParams: Promise<{ ver?: string; sede?: string; }> }) {
   const persona = await exigirModulo("cuentas_dinero");
   const sp = await searchParams;
   const hoy = hoyLima();
-  const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, sp.ver));
+  const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, sedeDeLaUrl(sp)));
   const [efectivo, cierres] = await Promise.all([getEfectivo(ctx.ver.ubicacionId), getCierresConDiferencia(ctx.ver.ubicacionId)]);
 
   return (

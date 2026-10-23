@@ -10,6 +10,29 @@
 
 import type { Guia, PasoGuia } from "../tipos";
 
+/** La mesa de mando del telar (Felipe 2026-10-23): la barra que comparten los seis submódulos de Finanzas. Se explica en cada guía
+ *  porque es lo primero que se ve; el piloto no la toca (cambiar de submódulo o de sede es cambiar de pantalla). */
+const TELAR: PasoGuia[] = [
+  {
+    id: "telar-submodulos",
+    ancla: "telar.submodulos",
+    titulo: "Las partes de Finanzas",
+    texto: "Arriba están todas las partes de Finanzas: Resumen, Gastos, Cuentas y dinero, Reportes, Impuestos y Cierre de mes. Pasas de una a otra sin perder la sede ni el mes que elegiste. Solo ves las que tu rol tiene.",
+  },
+  {
+    id: "telar-sedes",
+    ancla: "telar.sedes",
+    titulo: "Qué sede mirar",
+    texto: "Cada sede tiene su hilo de color. Tocas una y todo Finanzas muestra solo esa sede; «Todas las sedes» las junta. «Empresa» es lo que no es de ninguna tienda, como el contador. Si tu rol no ve todas, aquí sale solo la tuya.",
+  },
+  {
+    id: "telar-mes",
+    ancla: "telar.mes",
+    titulo: "Qué mes mirar",
+    texto: "Las flechas pasan al mes anterior o al siguiente; tocando el nombre eliges cualquier mes. Vale para todo Finanzas, como la sede.",
+  },
+];
+
 /** «Ver»: el mismo combo en casi todas las pantallas de Finanzas (lo elige quien ve todas las tiendas —el líder y, donde la pantalla lo permite, quien tiene Configuración, Cierre de mes o CAYLA Global—; los demás ven su tienda). */
 const VER: PasoGuia = {
   id: "ver",
@@ -61,6 +84,7 @@ export const GUIA_FIN_RESUMEN: Guia = {
       titulo: "El tablero de la plata",
       texto: "Aquí ves de un vistazo cómo está CAYLA: si alcanza la plata, si las tiendas cubren sus costos y qué conviene decidir hoy. Nada se escribe aquí: todo sale de lo que ya registran Ventas, Caja, Compras y Producción. Es una demo.",
     },
+    ...TELAR,
     VER,
     {
       id: "respuesta",
@@ -165,7 +189,20 @@ export const GUIA_FIN_GASTOS: Guia = {
       titulo: "Los gastos del negocio",
       texto: "Aquí va lo que se paga para que la tienda funcione y no es mercadería: alquiler, luz, el contador, un mototaxi. La mercadería va por Compras y la planilla la trae Dynamic. Es una demo: no se registra ni se anula nada.",
     },
-    VER,
+    ...TELAR,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "Cuánto se gastó",
+      texto: "La cifra grande es todo lo gastado en el mes por la sede que elegiste arriba, con IGV. Debajo dice cuántos gastos son y cuántos no tienen boleta ni factura: sin comprobante no recuperas su IGV.",
+    },
+    {
+      id: "orillo",
+      ancla: "telar.orillo",
+      opcional: true,
+      titulo: "Cuánto puso cada sede",
+      texto: "Esta tira de colores reparte lo gastado entre las sedes: cada color es una sede, del tamaño de lo que gastó. Tocas un color y ves solo esa sede; lo tocas otra vez y vuelves a todas.",
+    },
     {
       id: "registrar",
       ancla: "fin-gastos.registrar",
@@ -364,6 +401,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       titulo: "¿Dónde está la plata?",
       texto: "Cada lugar donde CAYLA tiene dinero: los bancos, la tarjeta que todavía no abona, los cajones y las cajas fuertes. Un saldo nunca se escribe a mano: se suma de las ventas, los gastos y los movimientos. Es una demo.",
     },
+    ...TELAR,
     VER,
     {
       ...REGISTRAR_MOVIMIENTO,
@@ -532,6 +570,7 @@ export const GUIA_FIN_EFECTIVO: Guia = {
       titulo: "El efectivo de cada cajón",
       texto: "Lo que debería haber en el cajón de cada tienda en este momento. Es la misma cuenta que hace Caja al cerrar: Finanzas solo la junta para verlas todas. Es una demo.",
     },
+    ...TELAR,
     VER,
     PESTANAS_DINERO,
     {
@@ -569,6 +608,7 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       titulo: "Todo lo que se debe",
       texto: "Las facturas de mercadería, de gastos, de activos y de los insumos del Taller que todavía tienen saldo, juntas y ordenadas por cuándo vencen. La planilla no está porque la paga Dynamic. Es una demo: no se paga nada.",
     },
+    ...TELAR,
     VER,
     PESTANAS_DINERO,
     {
@@ -618,6 +658,7 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       titulo: "¿Coincide con el banco?",
       texto: "Cada viernes, el líder anota el saldo que muestra la banca por internet y el sistema dice si coincide con lo que él suma. Así se encuentra a tiempo un depósito que no se registró. Es una demo: no se anota nada.",
     },
+    ...TELAR,
     PESTANAS_DINERO,
     {
       id: "vacia",
@@ -682,6 +723,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       titulo: "¿Ganamos?",
       texto: "Lo que se vendió en el mes, menos lo que costaron esas prendas y los gastos, tienda por tienda. Sale solo de cada venta, compra, gasto y movimiento de caja: nadie lo escribe. Es una demo.",
     },
+    ...TELAR,
     PESTANAS_REPORTES,
     VER,
     EXCEL,
@@ -763,6 +805,7 @@ export const GUIA_FIN_PRESUPUESTO: Guia = {
       titulo: "¿Vamos según lo planeado?",
       texto: "Lo que pusiste como meta de ventas y como tope de gasto, contra lo que va pasando en el mes. No frena nada: nadie queda bloqueado por pasarse. Sirve para ver a tiempo en qué se va la plata. Es una demo.",
     },
+    ...TELAR,
     PESTANAS_REPORTES,
     VER,
     EXCEL,
@@ -820,6 +863,7 @@ export const GUIA_FIN_CAMPANAS: Guia = {
       titulo: "¿Valen la pena las campañas?",
       texto: "Cada campaña (Aniversario, Black Friday…) contra lo que la tienda vende en días normales: cuánto más vendió, cuánto se descontó y si al final dejó más o menos margen. El sistema no decide por ti. Es una demo.",
     },
+    ...TELAR,
     PESTANAS_REPORTES,
     EXCEL,
     {
@@ -867,6 +911,7 @@ export const GUIA_FIN_ESCENARIOS: Guia = {
       titulo: "¿Qué pasa si…?",
       texto: "Aquí pruebas una decisión antes de tomarla: vender más, bajar un alquiler, pasar un pago, contratar a alguien. Ves qué pasa con la utilidad de cada tienda y con tu caja. Nada se guarda: es para pensar.",
     },
+    ...TELAR,
     PESTANAS_REPORTES,
     EXCEL,
     {
@@ -995,6 +1040,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       titulo: "¿Vendí bien y no hay plata?",
       texto: "Vender no es lo mismo que tener plata: una factura grande, un depósito o una diferencia de caja se la llevan. Aquí ves lo que ya entró y salió de las cuentas, y lo que viene en las próximas semanas. Es una demo.",
     },
+    ...TELAR,
     PESTANAS_REPORTES,
     EXCEL,
     {
@@ -1083,6 +1129,7 @@ export const GUIA_FIN_BALANCE: Guia = {
       titulo: "¿Cuánto vale CAYLA?",
       texto: "Lo que CAYLA tiene (plata, mercadería, muebles), contra lo que debe (proveedores, impuestos) y lo que es tuyo. Mirando una tienda, ves cuánta plata tiene metida y cuánto le rinde. Es una demo.",
     },
+    ...TELAR,
     PESTANAS_REPORTES,
     VER,
     {
@@ -1208,6 +1255,7 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       titulo: "El IGV del mes",
       texto: "Lo que cobraste de IGV al vender, menos lo que pagaste de IGV al comprar con factura. El contador presenta los libros a SUNAT con lo que sale de aquí. Es una demo: no se declara ni se paga nada.",
     },
+    ...TELAR,
     {
       id: "pulso",
       ancla: "fin-impuestos.pulso",
@@ -1313,6 +1361,7 @@ export const GUIA_FIN_CIERRE: Guia = {
       titulo: "Cerrar el mes",
       texto: "Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y sus números ya no se mueven. Se cierra cada tienda, el Taller y lo de la empresa; al final, CAYLA entera. Es una demo: no se cierra nada.",
     },
+    ...TELAR,
     {
       id: "pulso",
       ancla: "fin-cierre.pulso",

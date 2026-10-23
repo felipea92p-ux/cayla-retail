@@ -9,7 +9,11 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Orillo } from "@/components/finanzas/telar/Orillo";
+import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
+import { porSedeDe, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { chipsDeGastos, preguntaDeGastos, sedeDeLaCabecera as sedeDeLaCabeceraDe } from "@/lib/gastos-telar-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { RegistrarGastoModal, type ProveedorGasto } from "@/components/RegistrarGastoModal";
 import { ActivoDetalleModal, FijosDelMes, GastoFijoModal, NoEsFijoModal, ResumenActivosPorSede, TablaActivos } from "@/components/GastosFijosYActivos";
@@ -90,6 +94,7 @@ export function GastosPanel({
   ver,
   mes,
   hoy,
+  sedesTelar,
   fallas,
   pestanaInicial = "gastos",
   destinosDeposito = [],
@@ -119,6 +124,8 @@ export function GastosPanel({
   /** Los bancos a los que se deposita (Cuentas y dinero, F3). Vacío si la cuenta no tiene ese módulo: entonces un depósito
    *  se marca «no es gasto» como antes, y quien tenga Cuentas y dinero dice después a qué banco llegó. */
   destinosDeposito?: { id: string; nombre: string }[];
+  /** Los hilos de sede del telar, para el orillo (`getSedesDelTelar`). */
+  sedesTelar: SedeTelar[];
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -140,48 +147,31 @@ export function GastosPanel({
   };
   const verTodas = !ver.ubicacionId && !ver.soloEmpresa;
   const nombreCorto = ver.soloEmpresa ? "la empresa" : ver.ubicacionId ? (ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "la tienda") : "todas las tiendas";
-  const titulo = ver.soloEmpresa ? "Gastos de la empresa" : ver.ubicacionId ? `Gastos de ${nombreCorto}` : `Gastos de ${textoMes(mes).split(" ")[0]}`;
   const ubicacionParaRegistrar = ver.soloEmpresa ? "empresa" : (ver.ubicacionId ?? ubicaciones[0]?.id ?? "empresa");
   const enUso = activos.filter((a) => a.estado === "activo").length;
+  const sedeDeLaCabecera = sedeDeLaCabeceraDe(ver, ubicaciones);
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Finanzas · Gastos"
-        titulo={titulo}
-        accionesAbajo
-        bajada="Lo que se paga para que el negocio funcione y no es mercadería. Si llegó con comprobante de un proveedor, comparte la factura con Compras: un solo Por pagar y un solo IGV."
+      <EncabezadoPagina
+        sede={sedeDeLaCabecera}
+        titulo="Gastos"
+        subtitulo="Lo que se paga para que el negocio funcione y no es mercadería. Si llegó con factura de un proveedor, compártela con Compras: un solo Por pagar y un solo IGV."
         acciones={
-          <>
-            {esLider ? (
-              <label className="fin-ver" data-guia="fin-ver.combo">
-                <span className="label-cayla text-[11px] text-taupe">Ver</span>
-                <SelectFin
-                  etiqueta="Qué mirar"
-                  valor={ver.clave}
-                  onValor={(v) => ir({ ver: v })}
-                  opciones={[
-                    { valor: "todas", texto: "Todas las tiendas" },
-                    ...ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre })),
-                    { valor: "empresa", texto: "De la empresa" },
-                  ]}
-                />
-              </label>
-            ) : (
-              <Chip versalitas={false}>{nombreCorto}</Chip>
-            )}
-            {pestana === "activos" ? (
-              <Boton type="button" peso="primario" onClick={() => setRegistrar({ clase: "activo" })} aria-haspopup="dialog" data-guia="fin-gastos.registrar">
-                + Registrar activo
-              </Boton>
-            ) : (
-              <Boton type="button" peso="primario" onClick={() => setRegistrar({})} aria-haspopup="dialog" data-guia="fin-gastos.registrar">
-                + Registrar gasto
-              </Boton>
-            )}
-          </>
+          pestana === "activos" ? (
+            <Boton type="button" peso="primario" onClick={() => setRegistrar({ clase: "activo" })} aria-haspopup="dialog" data-guia="fin-gastos.registrar">
+              + Registrar activo
+            </Boton>
+          ) : (
+            <Boton type="button" peso="primario" onClick={() => setRegistrar({})} aria-haspopup="dialog" data-guia="fin-gastos.registrar">
+              + Registrar gasto
+            </Boton>
+          )
         }
-      />
+      >
+        <RespuestaTelar pregunta={preguntaDeGastos(ver, ubicaciones, mes)} valor={panel ? panel.total : null} chips={panel ? chipsDeGastos(panel) : []} />
+      </EncabezadoPagina>
+      <Orillo porSede={porSedeDe(panel?.porUbicacion ?? [])} sedes={sedesTelar} que="gastado" hoy={hoy} />
 
       {fallas.map((f) => (
         <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
@@ -200,15 +190,12 @@ export function GastosPanel({
 
       <section className="fin-cifras" data-guia="fin-gastos.cifras">
         {/* Sin `panel` es porque la lectura falló (la falla se dice arriba): «no se pudo leer», no «sin dato» (ADR-0358). */}
-        <TarjetaCifra etiqueta="Gastado en el mes" valor={panel ? solesRedondo(panel.total) : null} noSePudoLeer={!panel} {...entra(1)}>
-          {panel ? `${panel.n} ${panel.n === 1 ? "gasto vigente" : "gastos vigentes"} · ${nombreCorto}` : "Sin datos"}
-        </TarjetaCifra>
         {/* ADR-0362, fase 6 (decisión 76): lo perdido por pagar sin banco se resta en el mes del pago, como Impuestos; la tarjeta nunca dice
             un negativo y la bajada explica lo que se pierde en otro mes. */}
-        <TarjetaCifra etiqueta="IGV que puedes descontar" valor={panel ? solesRedondo(igvParaLaTarjeta(panel)) : null} noSePudoLeer={!panel} {...entra(2)}>
+        <TarjetaCifra etiqueta="IGV que puedes descontar" valor={panel ? solesRedondo(igvParaLaTarjeta(panel)) : null} noSePudoLeer={!panel} {...entra(1)}>
           {panel ? bajadaIgvDelMes({ ...panel, mes }, perdidoEnOtroMes(gastos, mes)) : ""}
         </TarjetaCifra>
-        <TarjetaCifra etiqueta="Por pagar de gastos" tono={panel?.porPagar ? "text-ambar" : undefined} valor={panel ? solesRedondo(panel.porPagar) : null} noSePudoLeer={!panel} {...entra(3)}>
+        <TarjetaCifra etiqueta="Por pagar de gastos" tono={panel?.porPagar ? "text-ambar" : undefined} valor={panel ? solesRedondo(panel.porPagar) : null} noSePudoLeer={!panel} {...entra(2)}>
           {panel ? (panel.nPorPagar ? `${panel.nPorPagar} con factura a crédito` : "Nada a crédito") : ""}
         </TarjetaCifra>
         <TarjetaCifra
@@ -217,7 +204,7 @@ export function GastosPanel({
           valor={panel ? String(panel.egresosSinClasificar) : null}
           noSePudoLeer={!panel}
           onClick={() => setPestana("egresos")}
-          {...entra(4)}
+          {...entra(3)}
         >
           {panel?.egresosSinClasificar ? "No cuentan en ningún número hasta clasificarlos" : "Todo clasificado"}
         </TarjetaCifra>
