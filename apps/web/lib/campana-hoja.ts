@@ -37,7 +37,14 @@ export function textoDuracion(desde: string | null, hasta: string | null): strin
 // ---- «Categorías»: la grilla de casillas por familia ----------------------------------------------------------------------------
 
 export type FilaCategoria = { id: string; nombre: string; prendas: number };
-export type GrupoCategorias = { familia: string; total: number; categorias: FilaCategoria[] };
+export type GrupoCategorias = {
+  familia: string;
+  total: number;
+  /** Las que se dibujan en el grupo: las que traen prendas y coinciden con lo buscado. */
+  categorias: FilaCategoria[];
+  /** TODAS las categorías de la familia, con prendas o sin ellas y coincidan o no con lo buscado: lo que marca «Toda la familia». */
+  todas: string[];
+};
 export type CategoriasDeLaHoja = {
   /** Las familias con más de `FAMILIA_CHICA` categorías con prendas: cada una a lo ancho. */
   grandes: GrupoCategorias[];
@@ -59,7 +66,8 @@ const porPrendas = (a: FilaCategoria, b: FilaCategoria) => b.prendas - a.prendas
 /**
  * Las categorías como las muestra la hoja: por familia, de la que más prendas trae a la que menos, y dentro de cada una de la
  * categoría que más trae a la que menos. Lo buscado filtra sin tildes ni mayúsculas por el nombre de la categoría o el de su familia
- * («accesorios» trae la familia entera). Solo ordena y filtra: qué se puede elegir no cambia.
+ * («accesorios» trae la familia entera). Solo ordena y filtra: qué se puede elegir no cambia, y «Toda la familia» (`todas`) sigue siendo
+ * toda aunque se busque o aunque alguna de sus categorías no tenga prendas todavía.
  */
 export function categoriasDeLaHoja(
   categorias: readonly { id: string; nombre: string; familia: string }[],
@@ -69,6 +77,8 @@ export function categoriasDeLaHoja(
   const q = sinTildes(busqueda.trim());
   const coincide = (c: { nombre: string; familia: string }) => !q || sinTildes(c.nombre).includes(q) || sinTildes(c.familia).includes(q);
   const mayor = Math.max(0, ...categorias.map((c) => prendasDe.get(c.id) ?? 0));
+  const todasDe = new Map<string, string[]>();
+  for (const c of categorias) todasDe.set(c.familia, [...(todasDe.get(c.familia) ?? []), c.id]);
   const familias = new Map<string, FilaCategoria[]>();
   const sinPrendas: FilaCategoria[] = [];
   let coinciden = 0;
@@ -80,7 +90,12 @@ export function categoriasDeLaHoja(
     else familias.set(c.familia, [...(familias.get(c.familia) ?? []), fila]);
   }
   const grupos = [...familias.entries()]
-    .map(([familia, filas]) => ({ familia, total: filas.reduce((s, f) => s + f.prendas, 0), categorias: filas.sort(porPrendas) }))
+    .map(([familia, filas]) => ({
+      familia,
+      total: filas.reduce((s, f) => s + f.prendas, 0),
+      categorias: filas.sort(porPrendas),
+      todas: todasDe.get(familia) ?? [],
+    }))
     .sort((a, b) => b.total - a.total || a.familia.localeCompare(b.familia, "es"));
   return {
     grandes: grupos.filter((g) => g.categorias.length > FAMILIA_CHICA),

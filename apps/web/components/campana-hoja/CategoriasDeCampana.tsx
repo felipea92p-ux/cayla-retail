@@ -49,7 +49,8 @@ export function CategoriasDeCampana({
   );
 
   const grupo = (g: GrupoCategorias, chica: boolean) => {
-    const ids = g.categorias.map((c) => c.id);
+    // «Toda la familia» es toda: también las categorías sin prendas (plegadas abajo) y las que no coinciden con lo buscado.
+    const ids = g.todas;
     const marcadas = ids.filter((id) => elegidas.has(id)).length;
     return (
       <div key={g.familia} className="cph-fam">
@@ -58,7 +59,7 @@ export function CategoriasDeCampana({
             marcada={marcadas === ids.length}
             aMedias={marcadas > 0 && marcadas < ids.length}
             onCambio={() => onFamilia(ids, marcadas < ids.length)}
-            etiqueta={`Toda la familia ${g.familia}`}
+            etiqueta={`Toda la familia ${g.familia}, ${ids.length} ${ids.length === 1 ? "categoría" : "categorías"}`}
           />
           <TituloGrupo nota={`${g.total.toLocaleString("es-PE")}${chica ? "" : " prendas"}`} className="cph-fam-t">
             {g.familia}

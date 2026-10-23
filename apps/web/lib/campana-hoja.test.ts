@@ -112,6 +112,19 @@ describe("categoriasDeLaHoja (la grilla de casillas)", () => {
     expect(bisu.chicas[0].categorias).toHaveLength(2);
   });
 
+  // /chaos y /formidable del 2026-10-23: la casilla «Toda la familia Indumentaria» marcaba solo las categorías con prendas (13 de 18
+  // en local) y Poleras quedaba sin descuento sin que nada lo dijera.
+  it("«Toda la familia» es toda: también sus categorías sin prendas y las que no coinciden con lo buscado", () => {
+    const conPoleras = [...categorias, cat("pole", "Poleras", "Indumentaria")];
+    const r = categoriasDeLaHoja(conPoleras, prendas);
+    expect([...r.grandes[0].todas].sort()).toEqual(["abri", "blus", "falda", "pole", "polo", "vest"]);
+    expect(r.sinPrendas.map((c) => c.nombre)).toEqual(["Poleras", "Zapatillas"]);
+    const buscado = categoriasDeLaHoja(conPoleras, prendas, "faldas");
+    const indumentaria = [...buscado.grandes, ...buscado.chicas].find((g) => g.familia === "Indumentaria");
+    expect(indumentaria?.categorias.map((c) => c.nombre)).toEqual(["Faldas"]);
+    expect(indumentaria?.todas).toHaveLength(6);
+  });
+
   it("sin coincidencias no deja nada", () => {
     const r = categoriasDeLaHoja(categorias, prendas, "zzz");
     expect(r.coinciden).toBe(0);
