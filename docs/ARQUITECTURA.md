@@ -2048,6 +2048,10 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   sesión) para el buscador «Por prenda» de «Abrir un conteo». Una fila por variante con nombre, códigos, foto y *dónde*
   hay stock (piso/almacén/ubicación), **sin cantidades**. Se llama al tocar la opción, no al abrir el inicio. Si la base
   no responde devuelve 500 y el buscador ofrece «Reintentar»; «Todo» y «Una categoría» no dependen de ella.
+- `/api/finanzas/te-toca` → `GET ?sede=`, solo lectura: los pendientes de Finanzas de la sede elegida para «Te toca» de la mesa de mando del
+  telar (ADR-0493; `components/finanzas/telar/TeToca.tsx`, reglas en `lib/finanzas-te-toca-reglas.ts`). Cada submódulo que la cuenta ve aporta
+  los suyos desde las lecturas que ya tiene (hoy Gastos: `fn_gastos_panel`); si uno falla, `incompleto`; si ninguno responde, 503. La sede y el
+  mes de Finanzas viven en la URL (`?sede=`, `?mes=`, `lib/finanzas-telar-reglas.ts`), los lee cada página con `sedeDeLaUrl`.
 - `/api/caja/recordatorio` → `GET`, solo lectura: la hora de cierre de la sede de quien pregunta (`ubicaciones.hora_cierre`) y
   su caja abierta; con `?cifras=1`, además el efectivo esperado (`fn_esperado_caja`) y las ventas del turno. La sondea cada
   minuto el «Marcador» —la cápsula del centro de la cabecera, ADR-0359; antes la «Isla»— (`components/RecordatorioCierreCaja.tsx`, montada una vez en `app/(app)/layout.tsx`; reglas puras en

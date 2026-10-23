@@ -61,6 +61,13 @@
     --color-metodo-plin: #5fc4a4;
     --color-metodo-transferencia: #78b0e6;
 
+    /* Hilos de sede del telar de Finanzas: los mismos tonos, aclarados para leerse sobre el fondo oscuro. */
+    --color-sede-tru: #4f8ad0;
+    --color-sede-aqp: #d27b3c;
+    --color-sede-lim: #2fa585;
+    --color-sede-tal: #a26cc6;
+    --color-sede-emp: #8a7d70;
+
     /* Sombras: en oscuro la tinta no se ve sobre la tinta; son de negro y más abiertas, solo para lo que flota. */
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
     --shadow: 0 2px 8px -2px rgb(0 0 0 / 0.35);
@@ -123,6 +130,11 @@
     --color-metodo-transferencia: #2f6aa3;
     --color-metodo-qr: var(--color-tinta);
     --color-metodo-anticipo: var(--color-taupe);
+    --color-sede-tru: #2f6aa3;
+    --color-sede-aqp: #c26a2e;
+    --color-sede-lim: #1d8a72;
+    --color-sede-tal: #8a4fa8;
+    --color-sede-emp: #9a8b7b;
     --color-metodo-redondeo: var(--color-taupe);
 
     --color-background: var(--color-crema);
