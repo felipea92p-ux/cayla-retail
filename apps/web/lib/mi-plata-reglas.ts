@@ -12,9 +12,15 @@ export const RPC_MI_PLATA = "fn_mi_plata_compras";
 export const RPC_PLATA_POR_CONFIRMAR = "fn_plata_por_confirmar";
 export const RPC_ANOTAR_PLATA = "anotar_plata_compras";
 export const RPC_CONFIRMAR_PLATA = "confirmar_plata_compras";
+// Actividad 5 (20261023114000): el resto del día de compras.
+export const RPC_GASTO_RAPIDO = "registrar_gasto_rapido";
+export const RPC_MANDAR_A_TIENDA = "mandar_compras_a_tienda";
+export const RPC_TERMINAR_DIA = "terminar_dia_compras";
 
 /** La carpeta de los vouchers dentro del depósito de las fotos de los gastos del viaje (la base exige que la ruta empiece así). */
 export const CARPETA_VOUCHERS = "plata/";
+/** La carpeta de las fotos de los gastos que no son ropa (la base exige que la ruta empiece así). */
+export const CARPETA_GASTOS = "gastos/";
 
 export type MedioPlata = "transferencia" | "yape_plin" | "efectivo" | "ya_tenia";
 
@@ -54,6 +60,50 @@ export type CompraAnotada = {
   fecha: string;
   prendas: number;
   tiendas: string[];
+  /** Las tiendas a las que todavía no sale algo de esta compra (actividad 5). */
+  porMandar: string[];
+};
+
+/** En qué gastó, cuando no es ropa (actividad 5). Caben en los conceptos de un gasto del viaje: Compras lo pasa sin preguntar. */
+export type ConceptoGasto = "taxi" | "cargador" | "comida" | "envio" | "bolsas" | "otro";
+
+export const CONCEPTOS_GASTO: Record<ConceptoGasto, { nombre: string; ejemplo: string }> = {
+  taxi: { nombre: "Taxi", ejemplo: "O mototaxi, o colectivo" },
+  cargador: { nombre: "Cargador", ejemplo: "Quien te ayudó a cargar los fardos" },
+  comida: { nombre: "Comida", ejemplo: "Tu almuerzo o un refresco" },
+  envio: { nombre: "Envío", ejemplo: "La agencia o la encomienda" },
+  bolsas: { nombre: "Bolsas", ejemplo: "Bolsas, cinta o rafia para el fardo" },
+  otro: { nombre: "Otro", ejemplo: "Escribe en qué gastaste" },
+};
+const esConcepto = (v: unknown): v is ConceptoGasto => typeof v === "string" && v in CONCEPTOS_GASTO;
+
+export type GastoAnotado = {
+  id: string;
+  concepto: ConceptoGasto;
+  nota: string | null;
+  monto: number;
+  porCompletar: boolean;
+  fecha: string;
+  conFoto: boolean;
+};
+
+/** Lo que falta mandar a una tienda: cuántas prendas y de qué compras (actividad 5). */
+export type PorMandar = {
+  tiendaId: string;
+  tienda: string;
+  unidades: number;
+  prendas: { papelId: string; proveedor: string; nombre: string; cantidad: number }[];
+};
+
+export type DecisionCierre = "se_queda" | "devuelve" | "le_deben";
+
+/** Lo de hoy, para «Terminé de comprar hoy». */
+export type Hoy = {
+  dieron: number;
+  compraste: number;
+  compras: number;
+  gastaste: number;
+  cierre: { decision: DecisionCierre; monto: number; resuelto: boolean } | null;
 };
 
 export type MiPlata = {
@@ -65,11 +115,16 @@ export type MiPlata = {
   porConfirmar: number;
   /** Lo que compró con un papel que Compras todavía no completa: ya bajó de su plata (los libros lo mueven al completarlo). */
   comprasPorCompletar: number;
-  /** Lo que tiene para comprar: su fondo más lo por confirmar, menos lo comprado por completar. */
+  /** Lo que gastó en otras cosas y Compras todavía no revisa: también ya bajó. */
+  gastosPorCompletar: number;
+  /** Lo que tiene para comprar: su fondo más lo por confirmar, menos lo comprado y lo gastado por completar. */
   tiene: number;
   puedeYaTenia: boolean;
   anotada: PlataAnotada[];
   compras: CompraAnotada[];
+  gastos: GastoAnotado[];
+  porMandar: PorMandar[];
+  hoy: Hoy;
 };
 
 function leerAnotada(x: unknown): PlataAnotada | null {
@@ -104,27 +159,104 @@ function leerCompra(x: unknown): CompraAnotada | null {
     porCompletar: o.estado === "por_completar",
     fecha: texto(o.fecha) ?? "",
     prendas: Math.max(0, Math.trunc(numero(o.prendas) ?? 0)),
-    tiendas: Array.isArray(o.tiendas) ? o.tiendas.filter((t): t is string => typeof t === "string") : [],
+    tiendas: textos(o.tiendas),
+    porMandar: textos(o.por_mandar),
   };
 }
+
+const textos = (v: unknown): string[] => (Array.isArray(v) ? v.filter((t): t is string => typeof t === "string") : []);
+
+function leerGasto(x: unknown): GastoAnotado | null {
+  if (!x || typeof x !== "object") return null;
+  const o = x as Record<string, unknown>;
+  const id = texto(o.id);
+  const monto = numero(o.monto);
+  if (!id || !esConcepto(o.concepto) || monto == null) return null;
+  return {
+    id,
+    concepto: o.concepto,
+    nota: texto(o.nota),
+    monto,
+    porCompletar: o.estado === "por_completar",
+    fecha: texto(o.fecha) ?? "",
+    conFoto: o.con_foto === true,
+  };
+}
+
+function leerPorMandar(x: unknown): PorMandar | null {
+  if (!x || typeof x !== "object") return null;
+  const o = x as Record<string, unknown>;
+  const tiendaId = texto(o.tienda_id);
+  if (!tiendaId) return null;
+  const prendas = (Array.isArray(o.compras) ? o.compras : [])
+    .map((c): PorMandar["prendas"][number] | null => {
+      if (!c || typeof c !== "object") return null;
+      const k = c as Record<string, unknown>;
+      const papelId = texto(k.papel_id);
+      const cantidad = numero(k.cantidad);
+      if (!papelId || cantidad == null || cantidad <= 0) return null;
+      return { papelId, proveedor: texto(k.proveedor) ?? "un proveedor", nombre: texto(k.nombre) ?? "Prenda", cantidad: Math.trunc(cantidad) };
+    })
+    .filter((c): c is PorMandar["prendas"][number] => c !== null);
+  if (prendas.length === 0) return null;
+  return { tiendaId, tienda: texto(o.tienda) ?? "la tienda", unidades: prendas.reduce((s, p) => s + p.cantidad, 0), prendas };
+}
+
+const DECISIONES: readonly DecisionCierre[] = ["se_queda", "devuelve", "le_deben"];
+
+function leerHoy(x: unknown): Hoy {
+  const o = x && typeof x === "object" ? (x as Record<string, unknown>) : {};
+  const c = o.cierre && typeof o.cierre === "object" ? (o.cierre as Record<string, unknown>) : null;
+  const decision = c && DECISIONES.includes(c.decision as DecisionCierre) ? (c.decision as DecisionCierre) : null;
+  return {
+    dieron: numero(o.dieron) ?? 0,
+    compraste: numero(o.compraste) ?? 0,
+    compras: Math.max(0, Math.trunc(numero(o.compras) ?? 0)),
+    gastaste: numero(o.gastaste) ?? 0,
+    cierre: c && decision ? { decision, monto: numero(c.monto) ?? 0, resuelto: c.resuelto === true } : null,
+  };
+}
+
+const redondear = (n: number) => Math.round(n * 100) / 100;
 
 /** Lo que manda `fn_mi_plata_compras`. Ilegible: sin persona (la pantalla dice que no se pudo leer, no inventa cifras). */
 export function leerMiPlata(data: unknown): MiPlata | null {
   if (!data || typeof data !== "object") return null;
   const o = data as Record<string, unknown>;
-  if (o.persona !== true) return { persona: false, saldo: 0, porConfirmar: 0, comprasPorCompletar: 0, tiene: 0, puedeYaTenia: false, anotada: [], compras: [] };
+  if (o.persona !== true) {
+    return {
+      persona: false,
+      saldo: 0,
+      porConfirmar: 0,
+      comprasPorCompletar: 0,
+      gastosPorCompletar: 0,
+      tiene: 0,
+      puedeYaTenia: false,
+      anotada: [],
+      compras: [],
+      gastos: [],
+      porMandar: [],
+      hoy: leerHoy(null),
+    };
+  }
   const saldo = numero(o.saldo) ?? 0;
   const porConfirmar = numero(o.por_confirmar) ?? 0;
   const comprasPorCompletar = numero(o.compras_por_completar) ?? 0;
+  const gastosPorCompletar = numero(o.gastos_por_completar) ?? 0;
   return {
     persona: true,
     saldo,
     porConfirmar,
     comprasPorCompletar,
-    tiene: Math.round((saldo + porConfirmar - comprasPorCompletar) * 100) / 100,
+    gastosPorCompletar,
+    // La misma cuenta que `fn_mi_plata_tiene` en la base (la que guarda el cierre del día).
+    tiene: redondear(saldo + porConfirmar - comprasPorCompletar - gastosPorCompletar),
     puedeYaTenia: o.puede_ya_tenia === true,
     anotada: (Array.isArray(o.anotada) ? o.anotada : []).map(leerAnotada).filter((a): a is PlataAnotada => a !== null),
     compras: (Array.isArray(o.compras) ? o.compras : []).map(leerCompra).filter((c): c is CompraAnotada => c !== null),
+    gastos: (Array.isArray(o.gastos) ? o.gastos : []).map(leerGasto).filter((g): g is GastoAnotado => g !== null),
+    porMandar: (Array.isArray(o.por_mandar) ? o.por_mandar : []).map(leerPorMandar).filter((t): t is PorMandar => t !== null),
+    hoy: leerHoy(o.hoy),
   };
 }
 
@@ -232,4 +364,68 @@ export function textoMontoAnotado(a: Pick<PlataAnotada, "monto" | "montoConfirma
     return `${soles(a.montoConfirmado)} (anotaste ${soles(a.monto)})`;
   }
   return soles(a.monto);
+}
+
+// ---------- Actividad 5: el resto del día de compras ----------
+
+/** Los campos de «Gasté en otra cosa», en el orden de la hoja: qué fue (con «Otro», escrito), cuánto y la foto (opcional). */
+export function camposGasto(v: { concepto: ConceptoGasto | null; nota: string; monto: string; conFoto?: boolean }): CampoDeGuia[] {
+  const monto = problemaDeMonto(v.monto);
+  const nota = v.nota.trim();
+  return [
+    { id: "concepto", nombre: "En qué gastaste", requerido: true, hecho: v.concepto !== null, pendiente: "Elige en qué gastaste." },
+    ...(v.concepto === "otro"
+      ? [{ id: "nota", nombre: "Qué fue", requerido: true, hecho: nota.length > 0 && nota.length <= 120, pendiente: nota.length > 120 ? "Escríbelo más corto: hasta 120 letras." : "Escribe en qué gastaste." }]
+      : []),
+    { id: "monto", nombre: "Cuánto", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
+    { id: "foto", nombre: "Foto del papel", requerido: false, hecho: Boolean(v.conFoto), pendiente: "Si te dieron un papel, súmale su foto." },
+  ];
+}
+
+/** Cómo se lee un gasto en la lista: «Taxi», o lo que escribió con «Otro». */
+export function nombreGasto(g: Pick<GastoAnotado, "concepto" | "nota">): string {
+  return g.concepto === "otro" ? (g.nota ?? CONCEPTOS_GASTO.otro.nombre) : CONCEPTOS_GASTO[g.concepto].nombre;
+}
+
+/** El botón de la hoja dice lo que va a pasar: «Anotar S/ 18.00». */
+export function fraseGasto(monto: number | null): string {
+  return monto != null && monto > 0 ? `Anotar ${soles(monto)}` : "Anotar el gasto";
+}
+
+/** Lo que la tarjeta «Mandar a la tienda» dice debajo: «1 compra todavía no sale para Tienda Trujillo». */
+export function textoPorMandar(porMandar: readonly PorMandar[]): string | null {
+  if (porMandar.length === 0) return null;
+  const compras = new Set(porMandar.flatMap((t) => t.prendas.map((p) => p.papelId))).size;
+  const tiendas = porMandar.map((t) => t.tienda);
+  const cuantas = compras === 1 ? "1 compra todavía no sale" : `${compras} compras todavía no salen`;
+  return `${cuantas} para ${tiendas.length === 1 ? tiendas[0] : `${tiendas.slice(0, -1).join(", ")} y ${tiendas[tiendas.length - 1]}`}`;
+}
+
+/** Las prendas de una tienda, juntas por compra: «Blusa Emma ×6 · Polo Tito ×4». */
+export function resumenPrendas(prendas: PorMandar["prendas"], maximo = 3): string {
+  const partes = prendas.slice(0, maximo).map((p) => `${p.nombre} ×${p.cantidad}`);
+  return prendas.length > maximo ? `${partes.join(" · ")} y ${prendas.length - maximo} más` : partes.join(" · ");
+}
+
+/**
+ * «Terminé de comprar hoy» como un cuaderno: lo que tenía antes de hoy + lo que le dieron − lo que compró − lo que gastó = lo que le queda.
+ * Lo de antes no viene de la base: se despeja de lo que tiene ahora, así las cuentas siempre cierran.
+ */
+export function resumenDia(plata: Pick<MiPlata, "tiene" | "hoy">) {
+  const { dieron, compraste, gastaste } = plata.hoy;
+  return { antes: redondear(plata.tiene - dieron + compraste + gastaste), dieron, compraste, gastaste, queda: plata.tiene };
+}
+
+/** Qué se puede elegir al terminar: con plata, quedársela o devolverla; sin plata, nada; en negativo, CAYLA le debe (sin elegir). */
+export function decisionesCierre(tiene: number): DecisionCierre[] {
+  if (tiene < 0) return ["le_deben"];
+  if (tiene === 0) return ["se_queda"];
+  return ["se_queda", "devuelve"];
+}
+
+/** Lo que dice el sello después de terminar el día. */
+export function textoCierre(cierre: { decision: DecisionCierre; monto: number }): string {
+  if (cierre.decision === "devuelve") return `Entrega ${soles(cierre.monto)} en caja: Compras lo recibe.`;
+  if (cierre.decision === "le_deben") return `Pusiste ${soles(cierre.monto)} de tu bolsillo: CAYLA te lo devuelve.`;
+  return cierre.monto > 0 ? `Te quedas ${soles(cierre.monto)} para tu próxima compra.` : "No te quedó plata.";
 }

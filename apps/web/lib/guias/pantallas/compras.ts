@@ -1927,7 +1927,8 @@ export const GUIA_PLAN_HISTORIAL: Guia = {
 // Es plata: la guía dice con cuidado qué cuenta como entregado, devuelto y en la mano, y nunca entrega, registra ni anula (los
 // botones se EXPLICAN con la pieza encendida). Lo que depende de que alguien ya tenga fondo (las cifras, la lista, los movimientos) es
 // opcional; sin fondos, la guía explica la tarjeta vacía.
-// Compras ▸ Mi plata para compras (ADR-0480, actividad 1): por ahora la pantalla dice qué viene; la guía crece con el flujo.
+// Compras ▸ Mi plata para compras (ADR-0480): lo que tiene, sus tres respuestas, lo que le falta mandar y el cierre del día. Las hojas se
+// abren y se explican; nunca se anota, se manda ni se cierra nada.
 export const GUIA_MI_PLATA: Guia = {
   id: "compras.mi-plata",
   ruta: "/compras/mi-plata",
@@ -2008,12 +2009,101 @@ export const GUIA_MI_PLATA: Guia = {
       texto: "Si tienes el voucher, tómale una foto: Compras la mira para confirmar. Si no la tienes, igual puedes anotar la plata. En la demo no anotamos nada.",
     },
     {
+      id: "gaste",
+      ancla: "mi-plata.gaste",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Gasté en otra cosa",
+      texto: "El taxi, el cargador, tu almuerzo o la encomienda que pagaste con la plata de compras: no es ropa, pero también baja de tu plata (te lo abrimos).",
+    },
+    {
+      id: "concepto",
+      ancla: "mi-plata.concepto",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "mi-plata.gaste" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "¿En qué gastaste?",
+      texto: "Toca lo que fue. Con «Otro», escribe qué fue.",
+      demostrar: [{ tipo: "clic", ancla: "mi-plata.concepto" }],
+    },
+    {
+      id: "monto-gasto",
+      ancla: "mi-plata.monto-gasto",
+      opcional: true,
+      titulo: "¿Cuánto fue?",
+      texto: "Lo que pagaste. Si te dieron un papel, tómale foto; si no, igual se guarda. En la demo no anotamos nada.",
+      demostrar: [{ tipo: "escribir", ancla: "mi-plata.monto-gasto", texto: "15" }],
+    },
+    {
+      id: "mandar",
+      ancla: "mi-plata.mandar",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Mandar a la tienda",
+      texto: "Lo que compraste para una tienda y todavía no sale. Tócalo cuando entregues el fardo al transporte (te lo abrimos).",
+    },
+    {
+      id: "fardos",
+      ancla: "mi-plata.fardos",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "mi-plata.mandar" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "¿Cuántos fardos?",
+      texto: "Cuántos paquetes entregas para esa tienda, así la tienda sabe cuántos abrir al recibir.",
+    },
+    {
+      id: "mandar-uno",
+      ancla: "mi-plata.mandar-uno",
+      opcional: true,
+      titulo: "Mandar a la tienda",
+      texto: "Al tocarlo, sale todo lo que compraste para esa tienda y la tienda ve que le llega. En la demo no mandamos nada.",
+    },
+    {
+      id: "termine",
+      ancla: "mi-plata.termine",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Terminé de comprar hoy",
+      texto: "Al final del día, revisa tu plata y di qué haces con lo que te sobró (te lo abrimos).",
+    },
+    {
+      id: "cuaderno",
+      ancla: "mi-plata.cuaderno",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "mi-plata.termine" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "La cuenta del día",
+      texto: "Lo que tenías, lo que te dieron, lo que compraste y lo que gastaste: abajo, lo que te queda.",
+    },
+    {
+      id: "decision",
+      ancla: "mi-plata.decision",
+      opcional: true,
+      titulo: "¿Qué haces con lo que te queda?",
+      texto: "Te lo quedas para tu próxima compra o lo devuelves en caja. Si pusiste de tu bolsillo, no eliges nada: CAYLA te lo devuelve.",
+    },
+    {
+      id: "terminar",
+      ancla: "mi-plata.terminar",
+      opcional: true,
+      titulo: "Terminar por hoy",
+      texto: "Guarda tu cierre y Compras lo ve. Si sigues comprando, puedes volver a terminar más tarde. En la demo no guardamos nada.",
+    },
+    {
       id: "compras",
       ancla: "mi-plata.compras",
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Lo que compraste",
       texto: "Cada compra con su proveedor, cuántas prendas y a qué tiendas van. «Por completar» mientras Compras copia la serie y el número de tu papel.",
+    },
+    {
+      id: "gastos",
+      ancla: "mi-plata.gastos",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo que gastaste en otras cosas",
+      texto: "Cada gasto que no es ropa, con su estado: «Por revisar» mientras Compras lo mira. Ya bajó de tu plata.",
     },
     {
       id: "lista",
@@ -2027,7 +2117,7 @@ export const GUIA_MI_PLATA: Guia = {
       id: "fin",
       ancla: null,
       titulo: "Listo",
-      texto: "Cada vez que te den plata para comprar o compres algo, anótalo aquí.",
+      texto: "Cada vez que te den plata, compres o gastes algo, anótalo aquí. Al final del día, «Terminé de comprar hoy».",
     },
   ],
 };
@@ -2224,6 +2314,13 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       opcional: true,
       titulo: "Listo",
       texto: "Cuánto te queda, y anotar otra compra o volver a tu plata.",
+    },
+    {
+      id: "mandar",
+      ancla: "compra.mandar",
+      opcional: true,
+      titulo: "Mandar a la tienda",
+      texto: "Cuando el fardo esté listo para salir, desde aquí lo mandas a la tienda de cada prenda.",
     },
     {
       id: "fin",

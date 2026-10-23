@@ -460,6 +460,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Compras simple (ADR-0480, actividad 2): «Me dieron plata» (cómo le llegó, cuánto; la foto del voucher, opcional) y «Confirmar la plata»
   // (cuánto llegó y, salvo «ya tenía», de qué cuenta salió; desde una terminal, quién confirma).
   "components/mi-plata/AnotarPlata.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarPlata.tsx"] },
+  "components/mi-plata/AnotarGasto.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarGasto.tsx"] },
+  "components/mi-plata/TerminarDia.tsx": { estado: "no-aplica", motivo: "ADR-0480: una sola pregunta (qué haces con lo que te queda), con el botón apagado y su frase hasta elegir; sin plata no hay nada que elegir." },
   "components/mi-plata/PlataPorConfirmar.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx"] },
   // La rendición (ADR-0362 fase 6 · actividad 5): «Rendir tu fondo» (el efectivo; la explicación, sugerida si falta plata) y «Revisar la
   // rendición» (quién asume lo que falta, cuando hay explicación; la nota; desde una terminal, quién aprueba).

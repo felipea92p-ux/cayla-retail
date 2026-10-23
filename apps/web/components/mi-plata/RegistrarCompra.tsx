@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Camera, Check, Plus, SearchX, Shapes, Store, Tag } from "lucide-react";
+import { ArrowRight, Camera, Check, Plus, SearchX, Shapes, Store, Tag, Truck } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Boton, BotonEnlace, CampoMonto, CampoTexto } from "@/components/ui/campos";
@@ -701,6 +701,14 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               Anotar otra compra
             </span>
           </Boton>
+          {guardada.tiendas.length > 0 && (
+            <BotonEnlace href="/compras/mi-plata?mandar=1" data-guia="compra.mandar">
+              <span className="inline-flex items-center gap-2">
+                <Truck className="h-4 w-4" aria-hidden />
+                Mandar a {guardada.tiendas.join(" y ")}
+              </span>
+            </BotonEnlace>
+          )}
           <BotonEnlace href="/compras/mi-plata">Ver mi plata</BotonEnlace>
         </section>
       )}

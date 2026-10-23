@@ -262,6 +262,7 @@
     "pruebas:fondos-entradas": "node scripts/pruebas/fondos_entradas.mjs",
     "pruebas:compras-simple-plata": "node scripts/pruebas/compras_simple_plata.mjs",
     "pruebas:compras-simple-compra": "node scripts/pruebas/compras_simple_compra.mjs",
+    "pruebas:compras-simple-dia": "node scripts/pruebas/compras_simple_dia.mjs",
     "pruebas:plan-compra-historia": "node scripts/pruebas/plan_compra_historia.mjs",
     "pruebas:plan-compra-minimo": "node scripts/pruebas/plan_compra_minimo_con_modulo.mjs",
     "pruebas:roles": "node scripts/pruebas/roles_por_modulo.mjs",

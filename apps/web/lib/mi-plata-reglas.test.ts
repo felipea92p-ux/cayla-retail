@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   camposAnotar,
+  camposGasto,
+  decisionesCierre,
+  nombreGasto,
+  resumenDia,
+  resumenPrendas,
+  textoCierre,
+  textoPorMandar,
+  fraseGasto,
   camposConfirmar,
   cuentaSugerida,
   detalleTienes,
@@ -41,10 +49,10 @@ describe("leerMiPlata: lo que tiene para comprar es su fondo más lo por confirm
   it("lo comprado con un papel por completar ya bajó de su plata; lee sus compras", () => {
     const p = leerMiPlata({
       persona: true, saldo: 300, por_confirmar: 200, compras_por_completar: 450, anotada: [],
-      compras: [{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, estado: "por_completar", fecha: "2026-10-22", prendas: 16, tiendas: ["Tienda TRU"] }, { id: "x" }],
+      compras: [{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, estado: "por_completar", fecha: "2026-10-22", prendas: 16, tiendas: ["Tienda TRU"], por_mandar: ["Tienda TRU", 3] }, { id: "x" }],
     });
     expect(p).toMatchObject({ tiene: 50, comprasPorCompletar: 450 });
-    expect(p?.compras).toEqual([{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, porCompletar: true, fecha: "2026-10-22", prendas: 16, tiendas: ["Tienda TRU"] }]);
+    expect(p?.compras).toEqual([{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, porCompletar: true, fecha: "2026-10-22", prendas: 16, tiendas: ["Tienda TRU"], porMandar: ["Tienda TRU"] }]);
   });
 
   it("un fondo en negativo (pagó de su bolsillo) resta: tiene lo que queda de verdad", () => {
@@ -156,5 +164,89 @@ describe("textos", () => {
     expect(plano(textoMontoAnotado({ monto: 300, montoConfirmado: 280, confirmada: true }))).toBe("S/ 280.00 (anotaste S/ 300.00)");
     expect(plano(textoMontoAnotado({ monto: 300, montoConfirmado: 300, confirmada: true }))).toBe("S/ 300.00");
     expect(plano(textoMontoAnotado({ monto: 300, montoConfirmado: null, confirmada: false }))).toBe("S/ 300.00");
+  });
+});
+
+describe("el resto del día de compras (actividad 5)", () => {
+  const BASE = { persona: true, saldo: 300, por_confirmar: 0, compras_por_completar: 120, anotada: [], compras: [] };
+
+  it("lo gastado en otras cosas también bajó: tiene = fondo + por confirmar − compras − gastos (como fn_mi_plata_tiene)", () => {
+    const p = leerMiPlata({
+      ...BASE,
+      gastos_por_completar: 30,
+      gastos: [
+        { id: "g", concepto: "taxi", monto: 18, estado: "por_completar", fecha: "2026-10-23", con_foto: false },
+        { id: "o", concepto: "otro", nota: "Candado", monto: 12, estado: "completado", fecha: "2026-10-23", con_foto: true },
+        { id: "z", concepto: "pasaje", monto: 5 },
+      ],
+    });
+    expect(p).toMatchObject({ tiene: 150, gastosPorCompletar: 30 });
+    expect(p?.gastos.map((g) => [g.id, nombreGasto(g), g.porCompletar, g.conFoto])).toEqual([
+      ["g", "Taxi", true, false],
+      ["o", "Candado", false, true],
+    ]);
+  });
+
+  it("lo que falta mandar: una tarjeta por tienda con sus prendas; descarta lo ilegible y una tienda sin prendas", () => {
+    const p = leerMiPlata({
+      ...BASE,
+      por_mandar: [
+        { tienda_id: "t1", tienda: "Tienda Lima", compras: [{ papel_id: "a", proveedor: "Rosa", nombre: "Polo Tito", cantidad: 4 }, { papel_id: "b", cantidad: 0 }] },
+        { tienda_id: "t2", tienda: "Tienda Trujillo", compras: [{ papel_id: "a", proveedor: "Rosa", nombre: "Blusa Emma", cantidad: 6 }, { papel_id: "c", proveedor: "Lupe", nombre: "Jean", cantidad: 2 }] },
+        { tienda_id: "t3", tienda: "Vacía", compras: [] },
+        { tienda: "sin id", compras: [{ papel_id: "a", cantidad: 1 }] },
+      ],
+    });
+    expect(p?.porMandar.map((t) => [t.tienda, t.unidades, t.prendas.length])).toEqual([
+      ["Tienda Lima", 4, 1],
+      ["Tienda Trujillo", 8, 2],
+    ]);
+    // Dos compras distintas (a y c) en dos tiendas.
+    expect(textoPorMandar(p!.porMandar)).toBe("2 compras todavía no salen para Tienda Lima y Tienda Trujillo");
+    expect(textoPorMandar(p!.porMandar.slice(0, 1))).toBe("1 compra todavía no sale para Tienda Lima");
+    expect(textoPorMandar([])).toBeNull();
+    expect(resumenPrendas(p!.porMandar[1].prendas)).toBe("Blusa Emma ×6 · Jean ×2");
+    expect(resumenPrendas(p!.porMandar[1].prendas, 1)).toBe("Blusa Emma ×6 y 1 más");
+  });
+
+  it("el cuaderno del día siempre cierra: lo de antes se despeja de lo que tiene ahora", () => {
+    const p = leerMiPlata({ ...BASE, hoy: { dieron: 200, compraste: 120, compras: 1, gastaste: 0, cierre: null } })!;
+    const d = resumenDia(p);
+    expect(d).toEqual({ antes: 100, dieron: 200, compraste: 120, gastaste: 0, queda: 180 });
+    expect(d.antes + d.dieron - d.compraste - d.gastaste).toBe(d.queda);
+    expect(p.hoy.cierre).toBeNull();
+  });
+
+  it("lee el cierre de hoy y descarta una decisión que no conoce", () => {
+    expect(leerMiPlata({ ...BASE, hoy: { cierre: { decision: "devuelve", monto: "80.00", resuelto: false } } })?.hoy.cierre).toEqual({
+      decision: "devuelve",
+      monto: 80,
+      resuelto: false,
+    });
+    expect(leerMiPlata({ ...BASE, hoy: { cierre: { decision: "regala", monto: 1 } } })?.hoy.cierre).toBeNull();
+    expect(leerMiPlata(null)).toBeNull();
+    expect(leerMiPlata({ persona: false })?.hoy).toEqual({ dieron: 0, compraste: 0, compras: 0, gastaste: 0, cierre: null });
+  });
+
+  it("qué se puede elegir al terminar: lo mismo que acepta terminar_dia_compras", () => {
+    expect(decisionesCierre(80)).toEqual(["se_queda", "devuelve"]);
+    expect(decisionesCierre(0)).toEqual(["se_queda"]);
+    expect(decisionesCierre(-20)).toEqual(["le_deben"]);
+    expect(plano(textoCierre({ decision: "devuelve", monto: 80 }))).toBe("Entrega S/ 80.00 en caja: Compras lo recibe.");
+    expect(plano(textoCierre({ decision: "le_deben", monto: 20 }))).toBe("Pusiste S/ 20.00 de tu bolsillo: CAYLA te lo devuelve.");
+    expect(plano(textoCierre({ decision: "se_queda", monto: 80 }))).toBe("Te quedas S/ 80.00 para tu próxima compra.");
+    expect(textoCierre({ decision: "se_queda", monto: 0 })).toBe("No te quedó plata.");
+  });
+
+  it("«Gasté en otra cosa» pide lo mismo que registrar_gasto_rapido: en qué, «Otro» escrito, el monto; la foto es opcional", () => {
+    const faltan = (v: Parameters<typeof camposGasto>[0]) => camposGasto(v).filter((c) => c.requerido && !c.hecho).map((c) => c.id);
+    expect(faltan({ concepto: null, nota: "", monto: "" })).toEqual(["concepto", "monto"]);
+    expect(faltan({ concepto: "taxi", nota: "", monto: "15" })).toEqual([]);
+    expect(faltan({ concepto: "otro", nota: "  ", monto: "15" })).toEqual(["nota"]);
+    expect(faltan({ concepto: "otro", nota: "x".repeat(121), monto: "15" })).toEqual(["nota"]);
+    expect(faltan({ concepto: "otro", nota: "Candado", monto: "0" })).toEqual(["monto"]);
+    expect(camposGasto({ concepto: "taxi", nota: "", monto: "15" }).find((c) => c.id === "foto")?.requerido).toBe(false);
+    expect(plano(fraseGasto(15))).toBe("Anotar S/ 15.00");
+    expect(fraseGasto(null)).toBe("Anotar el gasto");
   });
 });

@@ -2,7 +2,8 @@
 
 - **Fecha:** 2026-10-22 · **Estado:** en construcción en la rama `claude/modulo-compras-66e94a`, actividad por actividad
   (`/construir`). Actividad 1 (menú y módulos): migración `20261022225000_compras_simple_modulos.sql`. Actividad 2 (anotar y confirmar
-  la plata): `20261022235000_compras_simple_plata_anotada.sql`. Actividad 3 (registrar una compra): `20261023005000_compras_simple_compra_rapida.sql`.
+  la plata): `20261022235000_compras_simple_plata_anotada.sql`. Actividad 3 (registrar una compra): `20261023005000_compras_simple_compra_rapida.sql`. Actividad 5 (otro gasto,
+  mandar a la tienda y terminar el día): `20261023114000_compras_simple_gasto_envio_y_cierre.sql`.
   **Ninguna pegada en producción** (se pegan después de publicar la web,
   en orden y con el OK de Felipe).
 - **Maqueta aprobada:** `docs/maquetas/compras-simple-2026-10/` (index.html tocable + README con cada decisión).
@@ -110,6 +111,22 @@ con lo básico sin duplicarlo.
 - **Las barras de abajo** («Nuevo proveedor», «Algo nuevo de este proveedor», «Revisar la compra») quedan pegadas al pie de la columna, no
   fijas a la ventana: fijas, en escritorio el menú lateral las tapaba.
 
+## Actividad 5: otro gasto, mandar a la tienda y terminar el día (2026-10-23)
+
+- **«Gasté en otra cosa»** (`compra_gastos`, `registrar_gasto_rapido`): taxi, cargador, comida, envío, bolsas u otro (con «Otro», escrito),
+  el monto y la foto si le dieron papel (carpeta `gastos/`, opcional). Sigue la regla de la compra: en su celular baja al instante, los libros
+  lo ven cuando Compras lo revisa (actividad 7). Los conceptos caben en los de un gasto del viaje (taxi y comida → viaje; cargador, envío y
+  bolsas → traer la mercadería), así Compras lo pasa sin preguntar. Se descartó `registrar_gasto_viaje` al toque: mueve plata y exige una orden.
+- **«Mandar a la tienda»** (`mandar_compras_a_tienda`): una tarjeta por tienda con lo que compró para ella y no salió, «¿Cuántos fardos?» y
+  «Mandar a …». La base arma las líneas (todo lo pendiente de esa tienda, con la misma cuenta que `crear_envio` usa para no mandar de más) y
+  llama a `crear_envio`: el envío que Recibir ya entiende, en camino, con su marca para que un reintento no arme otro. Los fardos van en
+  `despachos.bultos` (nulo en los envíos de antes), para que la tienda sepa cuántos paquetes abrir.
+- **«Terminé de comprar hoy»** (`compra_cierres`, `terminar_dia_compras`): la cuenta del día como un cuaderno y una sola pregunta, qué hace con lo
+  que le queda: se lo queda para la próxima compra o lo devuelve en caja; si pagó de su bolsillo, no elige: CAYLA le debe. Lo que tenía lo calcula
+  la base (`fn_mi_plata_tiene`, la única cuenta de «tienes para comprar»). Uno por persona y día; volver a cerrar el mismo día lo reemplaza
+  hasta que Compras lo recibe (actividad 7). Si falta mandar algo, lo recuerda sin frenar. Se descartó `rendir_fondo`: rinde con los números
+  de los libros, que todavía no ven las compras por completar.
+
 ## Cómo se ve mal hecho
 
 - Retirar `ordenes_compra` y crear una clave nueva: el rol «Compras» perdería en silencio recibir, gastos y proveedores.
@@ -118,5 +135,5 @@ con lo básico sin duplicarlo.
 
 ## Qué queda
 
-Actividades 5 a 8 de la construcción (otro gasto y
-cierre del día, recibir con costo y precio, revisar compras, cierre con guías y pruebas). Cada una agrega su sección a este ADR.
+Actividades 6 a 8 de la construcción (recibir con costo y precio, revisar compras —que también recibe la devolución del cierre del
+día y revisa los gastos—, cierre con guías y pruebas). Cada una agrega su sección a este ADR.

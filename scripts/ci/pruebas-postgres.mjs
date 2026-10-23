@@ -1408,6 +1408,9 @@ export const PRUEBAS = [
   // Compras simple (ADR-0480, actividad 3): «Compré ropa» es un papel por completar y una orden por tienda, sin mover plata en los libros;
   // los habituales del proveedor (lo comprado aquí y su catálogo) y el reintento que no duplica.
   "pruebas:compras-simple-compra",
+  // Compras simple (ADR-0480, actividad 5): «Gasté en otra cosa» por completar y sin mover plata; «Mandar a la tienda» arma el envío de
+  // todo lo que va a esa tienda, con sus fardos y sin repetirse; «Terminé de comprar hoy» guarda lo que tenía y qué hace con eso.
+  "pruebas:compras-simple-dia",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,

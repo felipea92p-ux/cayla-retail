@@ -101,6 +101,10 @@ export const ACCIONES_SIN_RESPONSABLE = {
   plata_confirmar: "Confirmar la plata que anotó una compradora (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // La compra desde el celular (ADR-0480, actividad 3; migración 20261023005000), como crear una orden de compra.
   compra_rapida: "Registrar una compra desde el celular (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // El resto del día de compras (ADR-0480, actividad 5; migración 20261023114000).
+  gasto_rapido: "Anotar un gasto que no es ropa desde el celular (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  compra_mandar: "Mandar a una tienda lo que compraste para ella (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  compra_terminar_dia: "Terminar el día de compras (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_rendir: "Rendir el propio fondo (solo con la cuenta de su dueña: desde una terminal no se rinde)",
   fondo_rendicion_aprobar: "Aprobar la rendición de un fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_rendicion_devolver: "Devolver para corregir la rendición de un fondo, o retirar la propia (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
