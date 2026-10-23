@@ -72,7 +72,7 @@ import { Boton } from "@/components/ui/campos";
 export type { ProveedorGasto };
 
 // El campo del formulario al que lleva el foco un choque con el fijo (`choqueConElFijo`).
-const IDS_DE_CAMPO = { fecha: "gasto-fecha" } as const;
+const IDS_DE_CAMPO = { categoria: "gasto-categoria", fecha: "gasto-fecha" } as const;
 
 export function RegistrarGastoModal({
   categorias,
@@ -251,8 +251,9 @@ export function RegistrarGastoModal({
       ? validarActivo({ ...conCaja, tipo: activo.tipo, nombre: b.descripcion, serie: "", vidaUtilMeses: String(tipoActivo?.vidaUtilMeses ?? "") }, hoy)
       : validarGasto({ ...conCaja, gastoFijoId: fijoDelGasto?.id }, hoy);
     if (!v.ok) return avisar.error(v.error);
-    // Lo que cierra un fijo tiene que ser de ese fijo (su mes): si no, lo cerraría equivocado y nadie lo vería como pendiente.
-    const choque = fijoDelGasto ? choqueConElFijo(fijoDelGasto, { fecha: b.fecha }) : null;
+    // Lo que cierra un fijo tiene que ser de ese fijo (su categoría y su mes): si no, lo cerraría equivocado y nadie lo vería como pendiente.
+    // Con la hoja abierta desde un fijo la categoría ya va fija; esto cubre cualquier otro camino por el que llegue distinta.
+    const choque = fijoDelGasto ? choqueConElFijo(fijoDelGasto, { categoria: b.categoria, fecha: b.fecha }) : null;
     if (choque) return avisar.error(choque.mensaje, { enfocar: IDS_DE_CAMPO[choque.campo] });
     // Registrar sin contestar si es uno de los fijos que faltan es justo lo que duplica un gasto: no se registra.
     if (fijosPorPreguntar.length > 0) return avisar.error("Antes de registrar, dinos si es uno de los gastos fijos de arriba.", { enfocar: "gasto-fijo-parecido" });
@@ -491,10 +492,22 @@ export function RegistrarGastoModal({
           </div>
         ) : (
           <div className="fin-dos-campos" data-guia="fin-gastos.form-categoria">
-            <CampoFin etiqueta="Categoría" htmlFor="gasto-categoria" ayuda={categoria ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.` : "Sin «Otros»: si no calza en ninguna, avisa al líder."}>
+            <CampoFin
+              etiqueta="Categoría"
+              htmlFor="gasto-categoria"
+              ayuda={
+                fijo
+                  ? `${categoria ? `Va a la cuenta ${categoria.cuenta}. ` : ""}Viene del fijo «${fijo.descripcion}»: si es otro gasto, regístralo aparte; si la categoría del fijo está mal, se corrige en Configuración ▸ Gastos fijos.`
+                  : categoria
+                    ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.`
+                    : "Sin «Otros»: si no calza en ninguna, avisa al líder."
+              }
+            >
               <SelectFin
                 id="gasto-categoria"
                 valor={b.categoria}
+                // Como la tienda: la hoja que nace de un fijo cierra ESE fijo, y un fijo es de una categoría (`choqueConElFijo`).
+                deshabilitado={!!fijo}
                 onValor={(v) => poner("categoria", v)}
                 marcador="Elige…"
                 opciones={categorias.map((c) => ({ valor: c.codigo, texto: `${c.nombre} — ${c.ejemplos}` }))}

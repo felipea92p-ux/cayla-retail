@@ -144,15 +144,23 @@ export function fijosQueSeParecen(
 
 // ---- Lo que impide que un gasto cierre un fijo (/chaos del 22-oct, hallazgo 1) -----------------------------------------------
 //
-// PROMETE: decir, con una frase lista para mostrar, por qué ESTE gasto no puede cerrar ESTE fijo, o `null` si puede. ASUME: que el
-// gasto ya pasó `validarGasto` (fecha y categoría con valor). NO PROMETE: ser la única defensa. `registrar_gasto` valida que el fijo
-// exista, esté activo y sea de la misma tienda, y que haya un solo gasto por fijo y mes; el mes y la categoría los guarda hoy solo la
-// pantalla (la base los acepta: es una migración que decide Felipe). Por eso este chequeo vale para CUALQUIER ruta que arme el gasto.
+// PROMETE: decir, con una frase lista para mostrar, por qué ESTE gasto no puede cerrar ESTE fijo, o `null` si puede: tiene que ser de la
+// categoría del fijo y del mes del fijo. ASUME: que quien llama pasa lo que el formulario tiene en ese momento (una categoría vacía no
+// es la del fijo). NO PROMETE: ser la única defensa. `registrar_gasto` valida que el fijo exista, esté activo y sea de la misma tienda,
+// y que haya un solo gasto por fijo y mes; la categoría y el mes los guarda hoy solo la pantalla (la base los acepta: es una migración
+// que decide Felipe). Un mototaxi de S/ 12.50 enviado con el fijo del alquiler lo dejó «registrado» y nadie lo vio más como pendiente.
 
 /** Qué dato del formulario hay que cambiar, y lo que se le dice a la persona. */
-export type ChoqueConElFijo = { campo: "fecha"; mensaje: string };
+export type ChoqueConElFijo = { campo: "categoria" | "fecha"; mensaje: string };
 
-export function choqueConElFijo(fijo: Pick<GastoFijoMes, "descripcion" | "fechaEsperada">, gasto: { fecha: string }): ChoqueConElFijo | null {
+export function choqueConElFijo(
+  fijo: Pick<GastoFijoMes, "descripcion" | "fechaEsperada" | "categoria" | "categoriaNombre">,
+  gasto: { categoria: string; fecha: string },
+): ChoqueConElFijo | null {
+  // Primero la categoría: si no es de ese fijo, corregir solo la fecha no lo dejaría cerrarlo.
+  if (gasto.categoria !== fijo.categoria) {
+    return { campo: "categoria", mensaje: `«${fijo.descripcion}» es de la categoría ${fijo.categoriaNombre}: un gasto de otra categoría no puede cerrarlo. Registra el gasto aparte.` };
+  }
   // Un gasto cierra el fijo de UN mes (el de su fecha): con otra fecha cerraría el mes equivocado y dejaría el verdadero en «Ya pasaron su fecha».
   if (gasto.fecha.slice(0, 7) !== mesDelFijo(fijo)) {
     return { campo: "fecha", mensaje: `La fecha tiene que ser de ${textoMes(mesDelFijo(fijo))} para cerrar «${fijo.descripcion}». Cámbiala, o registra el gasto aparte.` };

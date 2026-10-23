@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { GastoFijoMes } from "./gastos-reglas";
 import { bajadaDeLaCola, choqueConElFijo, claveDeFijo, colaDeFijos, fijosQueSeParecen, mesDelFijo, sinRepetidos, textoFechaDeFijo, tituloDeLaCola } from "./fijos-del-mes-reglas";
@@ -167,21 +168,70 @@ describe("fijosQueSeParecen: un gasto suelto que parece un fijo pendiente", () =
 
 describe("choqueConElFijo: por qué un gasto no puede cerrar un fijo", () => {
   const alquiler = F({ id: "alquiler", descripcion: "Alquiler Lima", estado: "falta", fechaEsperada: "2026-10-31", categoria: "alquileres", categoriaNombre: "Alquileres" });
+  const gasto = (fecha: string, categoria = alquiler.categoria) => ({ fecha, categoria });
 
-  it("un gasto del mismo mes puede cerrarlo, cualquiera sea el día", () => {
-    for (const fecha of ["2026-10-01", "2026-10-15", "2026-10-31"]) expect(choqueConElFijo(alquiler, { fecha })).toBeNull();
+  it("un gasto de su categoría y de su mes puede cerrarlo, cualquiera sea el día", () => {
+    for (const fecha of ["2026-10-01", "2026-10-15", "2026-10-31"]) expect(choqueConElFijo(alquiler, gasto(fecha))).toBeNull();
   });
-  it("un gasto de otro mes cerraría el mes equivocado: dice de qué mes tiene que ser y cuál fijo es", () => {
-    const c = choqueConElFijo(alquiler, { fecha: "2026-09-30" });
-    expect(c?.campo).toBe("fecha");
-    expect(c?.mensaje).toBe("La fecha tiene que ser de octubre 2026 para cerrar «Alquiler Lima». Cámbiala, o registra el gasto aparte.");
+
+  describe("el mes", () => {
+    it("un gasto de otro mes cerraría el mes equivocado: dice de qué mes tiene que ser y cuál fijo es", () => {
+      const c = choqueConElFijo(alquiler, gasto("2026-09-30"));
+      expect(c?.campo).toBe("fecha");
+      expect(c?.mensaje).toBe("La fecha tiene que ser de octubre 2026 para cerrar «Alquiler Lima». Cámbiala, o registra el gasto aparte.");
+    });
+    it("el mes se mira por la fecha esperada del fijo, no por el mes de hoy: un fijo de septiembre pide septiembre", () => {
+      const sept = F({ id: "luz", descripcion: "Luz Lima", estado: "falta", fechaEsperada: "2026-09-30" });
+      expect(choqueConElFijo(sept, { fecha: "2026-09-12", categoria: sept.categoria })).toBeNull();
+      expect(choqueConElFijo(sept, { fecha: "2026-10-01", categoria: sept.categoria })?.campo).toBe("fecha");
+    });
+    it("el mismo mes de otro año tampoco vale", () => {
+      expect(choqueConElFijo(alquiler, gasto("2025-10-15"))?.campo).toBe("fecha");
+    });
   });
-  it("el mes se mira por la fecha esperada del fijo, no por el mes de hoy: un fijo de septiembre pide septiembre", () => {
-    const sept = F({ id: "luz", descripcion: "Luz Lima", estado: "falta", fechaEsperada: "2026-09-30" });
-    expect(choqueConElFijo(sept, { fecha: "2026-09-12" })).toBeNull();
-    expect(choqueConElFijo(sept, { fecha: "2026-10-01" })?.campo).toBe("fecha");
+
+  // /chaos del 22-oct (semilla 1023, FIJO-03): un mototaxi de S/ 12.50 enviado con el fijo del alquiler lo dejó «registrado» y nadie lo vio
+  // más como pendiente. Se llega desde la pantalla: se abre la hoja con «Registrar» de la fila del fijo y se cambia la categoría.
+  describe("la categoría", () => {
+    it("un gasto de otra categoría no es ese fijo: dice cuál es la del fijo y que se registre aparte", () => {
+      const c = choqueConElFijo(alquiler, gasto("2026-10-12", "transporte"));
+      expect(c?.campo).toBe("categoria");
+      expect(c?.mensaje).toBe("«Alquiler Lima» es de la categoría Alquileres: un gasto de otra categoría no puede cerrarlo. Registra el gasto aparte.");
+    });
+    it("sin categoría elegida tampoco es ese fijo", () => {
+      expect(choqueConElFijo(alquiler, gasto("2026-10-12", ""))?.campo).toBe("categoria");
+    });
+    it("con la categoría mal y el mes mal, lo primero es la categoría: corregir solo la fecha no lo dejaría cerrar nada", () => {
+      expect(choqueConElFijo(alquiler, gasto("2026-09-12", "transporte"))?.campo).toBe("categoria");
+    });
+    it("recorre todas las parejas de categorías: solo la misma categoría pasa", () => {
+      const codigos = ["alquileres", "servicios_basicos", "software", "transporte", "suministros"];
+      for (const delFijo of codigos) {
+        const fijo = F({ id: `f-${delFijo}`, estado: "falta", fechaEsperada: "2026-10-31", categoria: delFijo, categoriaNombre: delFijo });
+        for (const delGasto of codigos) {
+          const c = choqueConElFijo(fijo, gasto("2026-10-12", delGasto));
+          expect(c === null, `fijo ${delFijo} con gasto ${delGasto}`).toBe(delFijo === delGasto);
+        }
+      }
+    });
   });
-  it("el mismo mes de otro año tampoco vale", () => {
-    expect(choqueConElFijo(alquiler, { fecha: "2025-10-15" })?.campo).toBe("fecha");
+});
+
+// El formulario tiene que usar el chequeo y no dejar elegir otra categoría cuando la hoja nace de un fijo (como ya hace con la tienda). Sin
+// esta prueba, alguien puede quitar la llamada en una limpieza y la función sigue verde mientras la pantalla vuelve a dejar pasar el error.
+// Se lee el código sin comentarios: una llamada comentada no cuenta.
+describe("RegistrarGastoModal usa el chequeo con el fijo", () => {
+  const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const fuente = sinComentarios(readFileSync(new URL("../components/RegistrarGastoModal.tsx", import.meta.url), "utf8"));
+  const cuerpo = fuente.slice(fuente.indexOf("async function guardar()"));
+
+  it("guardar() mira el gasto contra su fijo (categoría y fecha del formulario) y se detiene antes de mandarlo", () => {
+    expect(cuerpo).toMatch(/const choque = fijoDelGasto \? choqueConElFijo\(fijoDelGasto, \{ categoria: b\.categoria, fecha: b\.fecha \}\) : null;\s*if \(choque\) return avisar\.error\(choque\.mensaje/);
+    expect(cuerpo.indexOf("choqueConElFijo(")).toBeLessThan(cuerpo.indexOf("intento.enviar("));
+  });
+  it("la categoría queda fija cuando la hoja nace de un fijo, igual que la tienda", () => {
+    const desde = fuente.indexOf('id="gasto-categoria"');
+    expect(desde).toBeGreaterThan(0);
+    expect(fuente.slice(desde, desde + 400)).toMatch(/deshabilitado=\{!!fijo\}/);
   });
 });

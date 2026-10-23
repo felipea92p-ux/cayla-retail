@@ -490,3 +490,19 @@ son migraciones sobre una función que usa el gasto rápido de las tres tiendas.
 `docs/pantallas/finanzas-gastos.md`. Verificado con 40 casos nuevos de lógica pura y, en el navegador con datos inventados, la lista, el aviso, el
 mes pasado, 375 px y el envío (sin contestar: ninguna llamada a `registrar_gasto`; «Sí»: con `p_gasto_fijo_id`; «No»: sin él). **Sin `/chaos`, sin
 prueba ciega y sin colaboradora real todavía.**
+
+### Lo que encontró `/chaos` y cómo se cerró en la pantalla (2026-10-22, noche)
+
+`/chaos` (semilla 1023) mostró que un gasto de OTRA categoría cerraba un fijo: se abría la hoja con «Registrar» de la fila del alquiler, se cambiaba la
+categoría y el enlace al fijo se conservaba; el alquiler quedaba «registrado» y nadie lo veía más como pendiente.
+
+DECIDÍ: la hoja que nace de un fijo deja la categoría **fija**, igual que ya hacía con la tienda (con una ayuda que dice por qué y dónde se corrige un fijo mal
+categorizado, en Configuración ▸ Gastos fijos), y `guardar()` vuelve a mirar el gasto contra su fijo con `choqueConElFijo` (categoría y mes, lógica pura en
+`lib/fijos-del-mes-reglas.ts`) antes de mandarlo, por si llega distinto por otro camino.
+DESCARTÉ: dejar el combo libre y avisar al guardar. Con la tienda ya fija, la categoría libre eran dos reglas para el mismo problema, y la persona se
+enteraba de su error al final de un formulario largo. Tampoco agregué una opción para una categoría desactivada: nada en el producto desactiva una categoría
+de gasto, y quien lo construya debe hacer que la baja se niegue mientras haya fijos activos en ella.
+SE ROMPE SI: alguien arma otra puerta que mande `p_gasto_fijo_id` sin pasar por `guardar()` (hoy no hay otra: la revisión leyó todos los llamadores), o si la
+categoría de un fijo cargado antes de ADR-0477 (todos en `servicios_basicos`) está mal y la persona no tiene el módulo Configuración para corregirla: la ayuda
+le dice dónde, pero no puede hacerlo ella. La base sigue aceptando categoría y mes distintos (migración de Felipe, ver el backlog); esto solo cierra la pantalla.
+
