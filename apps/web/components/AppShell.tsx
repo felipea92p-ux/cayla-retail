@@ -23,6 +23,7 @@ import { BuscadorGlobal } from "@/components/BuscadorGlobal";
 import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
+import { useLateralConElDedo } from "@/components/useLateralConElDedo";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
 // escritorio = lateral con "+ Nuevo" global; celular = 4 pestañas + botón + central.
@@ -682,6 +683,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
     if (devolverFoco) botonMenuMovil.current?.focus();
   }, []);
   const asideRef = useRef<HTMLElement | null>(null);
+  const veloRef = useRef<HTMLDivElement | null>(null);
+  // En el celular el cajón se cierra también deslizándolo hacia la izquierda (ADR-0479, actividad 11).
+  useLateralConElDedo(asideRef, veloRef, movilAbierto, cerrarMovil);
   // Etiqueta flotante de una fila plegada y cajón de un grupo: uno a la vez, ambos siempre pegados
   // al borde derecho del lateral.
   const [etiqueta, setEtiqueta] = useState<{ texto: string; top: number; left: number } | null>(null);
@@ -841,6 +845,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       {/* Velo del cajón (celular): tocarlo cierra. Siempre montado para que también se APAGUE al cerrar (`.velo-cajon`,
           globals.css); cerrado no recibe toques. */}
       <div
+        ref={veloRef}
         aria-hidden
         data-abierto={movilAbierto}
         onClick={() => cerrarMovil()}
