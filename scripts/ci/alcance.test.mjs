@@ -1,10 +1,12 @@
 // Pruebas de «qué toca el PR», de «qué corre en un push a main» (ADR-0345) y de «qué pruebas leen la web» (ADR-0259). `node --test scripts/ci/alcance.test.mjs`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, mkdtempSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { clasificar, clasificarPush, compilaLaTienda, compilaLaWeb, vieneDeUnPr } from "./alcance.mjs";
+import { clasificar, clasificarPush, compilaLaTienda, compilaLaWeb, vieneDeUnPr, yaProbado } from "./alcance.mjs";
 import { leeLaWeb, pruebasQueLeenLaWeb } from "./pruebas-web.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -184,4 +186,45 @@ test("ci.yml: `Compila la tienda` espera a «Qué toca el PR», compila apps/tie
   assert.match(job, /needs: alcance/);
   assert.match(job, /needs\.alcance\.outputs\.compilar_tienda != 'no'/);
   assert.match(job, /pnpm --filter tienda build/);
+});
+
+// EL MISMO ÁRBOL YA PASÓ (ADR-0492): «Update branch» con `main` quieto no repite ~7 min de pruebas sobre los mismos archivos.
+
+test("ya probado: solo un PR con la marca exacta (`true`) se salta; todo lo demás corre", () => {
+  assert.equal(yaProbado("pull_request", "true"), true);
+  for (const marca of [undefined, "", "false", "TRUE", "si"]) assert.equal(yaProbado("pull_request", marca), false, String(marca));
+  // Un push a main tiene su propia regla (ADR-0345): la marca no lo toca.
+  assert.equal(yaProbado("push", "true"), false);
+});
+
+function correrAlcance(env) {
+  const salida = join(mkdtempSync(join(tmpdir(), "alcance-")), "salida");
+  execFileSync(process.execPath, [join(RAIZ, "scripts", "ci", "alcance.mjs")], {
+    cwd: RAIZ,
+    env: { ...process.env, GITHUB_OUTPUT: salida, ...env },
+    stdio: "pipe",
+  });
+  return Object.fromEntries(readFileSync(salida, "utf8").trim().split("\n").map((l) => l.split("=")));
+}
+
+test("con la marca, el script escribe nada/no en las cuatro salidas; sin ella, `verificar` sigue en `si`", () => {
+  const conMarca = correrAlcance({ GITHUB_EVENT_NAME: "pull_request", YA_PROBADO: "true", ARBOL: "abc" });
+  assert.deepEqual(conMarca, { alcance: "nada", verificar: "no", compilar: "no", compilar_tienda: "no" });
+  const sinMarca = correrAlcance({ GITHUB_EVENT_NAME: "pull_request", YA_PROBADO: "" });
+  assert.equal(sinMarca.verificar, "si");
+});
+
+test("ci.yml: la marca se busca y se guarda con la misma ruta y la misma llave, y solo tras una corrida verde de verdad", () => {
+  const ci = readFileSync(join(RAIZ, ".github", "workflows", "ci.yml"), "utf8");
+  const alcance = ci.slice(ci.indexOf("\n  alcance:"), ci.indexOf("\n  verificar:\n"));
+  // La ruta entra en la «versión» de la caché: si difieren, la marca nunca se encuentra.
+  assert.match(alcance, /actions\/cache\/restore@v4[\s\S]*path: \.ci-verde[\s\S]*key: ci-verde-\$\{\{ steps\.arbol\.outputs\.arbol \}\}[\s\S]*lookup-only: true/);
+  assert.match(alcance, /YA_PROBADO: \$\{\{ steps\.ya-probado\.outputs\.cache-hit \}\}/);
+  const marcar = ci.slice(ci.indexOf("  marcar-verde:"));
+  assert.ok(marcar.includes("name: Anotar el árbol en verde"), "falta el job que deja la marca");
+  assert.match(marcar, /actions\/cache\/save@v4[\s\S]*path: \.ci-verde[\s\S]*key: ci-verde-\$\{\{ needs\.alcance\.outputs\.arbol \}\}/);
+  // Una corrida que se saltó por la marca no vuelve a marcar; una con un check rojo, tampoco.
+  assert.match(marcar, /needs\.alcance\.outputs\.ya_probado != 'true'/);
+  for (const job of ["verificar", "pruebas-postgres"]) assert.match(marcar, new RegExp(`needs\\.${job}\\.result == 'success'`), job);
+  for (const job of ["compilar-web", "compilar-tienda"]) assert.match(marcar, new RegExp(`needs\\.${job}\\.result == 'skipped'`), job);
 });

@@ -1,0 +1,4 @@
+## 2026-10-23 («Update branch» no repite las pruebas si el árbol es el mismo, ADR-0492)
+Qué hice: una corrida verde de un PR deja la marca `ci-verde-<árbol>` en la caché de Actions; la corrida siguiente del mismo PR, si su árbol es idéntico (el «Update branch» con `main` quieto, un commit vacío), se salta todo y los dos checks obligatorios salen en verde en segundos.
+Por qué así: el CI del PR ya prueba el merge sobre el `main` de ese momento; repetirlo sobre los mismos archivos no trae señal. Apagar «rama al día» deja pasar choques entre PR, y la cola de fusión de GitHub no existe para un repositorio de cuenta personal.
+Felipe se lleva: menos esperas cuando nadie fusionó entretanto. Si `main` sí se movió, corre todo, como debe. 20 pruebas de `alcance` en verde; el salto de verdad se comprueba en el propio PR.

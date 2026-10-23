@@ -68,11 +68,29 @@ jobs:
       verificar: ${{ steps.medir.outputs.verificar }}
       compilar: ${{ steps.medir.outputs.compilar }}
       compilar_tienda: ${{ steps.medir.outputs.compilar_tienda }}
+      arbol: ${{ steps.arbol.outputs.arbol }}
+      ya_probado: ${{ steps.ya-probado.outputs.cache-hit }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
+      # EL MISMO ÁRBOL NO SE PRUEBA DOS VECES (ADR-0492). «Update branch» con `main` quieto deja un commit nuevo con el mismo
+      # árbol que la corrida anterior ya probó entero: si «Anotar el árbol en verde» dejó su marca, todo se salta. Solo busca
+      # (`lookup-only`), no baja nada; si la caché no responde, no hay marca y corre todo, como siempre.
+      - id: arbol
+        if: ${{ github.event_name == 'pull_request' }}
+        run: echo "arbol=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+      - id: ya-probado
+        if: ${{ github.event_name == 'pull_request' && steps.arbol.outputs.arbol != '' }}
+        uses: actions/cache/restore@v4
+        with:
+          path: .ci-verde
+          key: ci-verde-${{ steps.arbol.outputs.arbol }}
+          lookup-only: true
       - id: medir
+        env:
+          ARBOL: ${{ steps.arbol.outputs.arbol }}
+          YA_PROBADO: ${{ steps.ya-probado.outputs.cache-hit }}
         run: node scripts/ci/alcance.mjs
 
   verificar:
@@ -430,7 +448,28 @@ jobs:
           TANDAS: ${{ needs.pruebas-postgres-tandas.result }}
         run: |
           echo "alcance=$ALCANCE · tandas=$TANDAS"
-          if [ "$ALCANCE" = "nada" ] && [ "$TANDAS" = "skipped" ]; then echo "✓ Nada que correr: solo documentos, o ya corrió en su PR."; exit 0; fi
+          if [ "$ALCANCE" = "nada" ] && [ "$TANDAS" = "skipped" ]; then echo "✓ Nada que correr: solo documentos, ya corrió en su PR o este mismo árbol ya pasó (ADR-0492)."; exit 0; fi
           if [ "$TANDAS" = "success" ]; then echo "✓ Todas las tandas pasaron."; exit 0; fi
           echo "::error::Las pruebas de Postgres no pasaron (tandas: $TANDAS). Mira la tanda en rojo y su resumen."
           exit 1
+
+  # La marca de «este árbol pasó todo» (ADR-0492): solo en un PR, solo si corrió de verdad (no si se saltó por la marca) y solo
+  # si los cuatro checks salieron bien o no tenían que correr. La lee «Qué toca el PR» en la próxima corrida del MISMO PR (la
+  # caché de un PR solo la ven sus propias corridas). Si falla al guardar, no pasa nada: la próxima vez corre todo.
+  marcar-verde:
+    name: Anotar el árbol en verde
+    needs: [alcance, verificar, compilar-web, compilar-tienda, pruebas-postgres]
+    if: >-
+      ${{ !cancelled() && github.event_name == 'pull_request'
+      && needs.alcance.outputs.arbol != '' && needs.alcance.outputs.ya_probado != 'true'
+      && needs.verificar.result == 'success' && needs.pruebas-postgres.result == 'success'
+      && (needs.compilar-web.result == 'success' || needs.compilar-web.result == 'skipped')
+      && (needs.compilar-tienda.result == 'success' || needs.compilar-tienda.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: echo "${{ needs.alcance.outputs.arbol }} pasó la corrida ${{ github.run_id }}" > .ci-verde
+      - uses: actions/cache/save@v4
+        with:
+          path: .ci-verde
+          key: ci-verde-${{ needs.alcance.outputs.arbol }}

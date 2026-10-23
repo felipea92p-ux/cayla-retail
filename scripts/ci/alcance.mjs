@@ -37,6 +37,12 @@
  * `compilar_tienda=si|no` (ADR-0408): lo mismo para la tienda online (`apps/tienda`), la app aparte de los clientes. Un PR que
  * solo toca el ERP no la compila, y uno que solo toca la tienda no compila el ERP. En un push a `main` es `no`: el PR ya la
  * compiló sobre el mismo árbol (strict). Ante la duda, `si`.
+ *
+ * EL MISMO ÁRBOL YA PASÓ (ADR-0492). En un PR el CI prueba el merge del PR sobre el `main` de ese momento. Si después se aprieta
+ * «Update branch» y `main` no se movió entretanto, el commit nuevo deja EXACTAMENTE el mismo árbol (mismos archivos, byte a
+ * byte) que ya pasó: repetirlo son ~7 min de espera sin señal nueva. El job «Qué toca el PR» busca en la caché de Actions la
+ * marca `ci-verde-<árbol>` (la deja «Anotar el árbol en verde» al final de una corrida verde del mismo PR) y, si está, avisa
+ * con `YA_PROBADO=true`: todo queda en `nada`/`no`. Si `main` sí se movió, el árbol es otro y corre todo, como siempre.
  */
 import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
@@ -106,6 +112,14 @@ export function clasificarPush(asunto, archivos) {
   };
 }
 
+/**
+ * Un PR cuyo árbol ya pasó entero en una corrida anterior del mismo PR (ADR-0492): no corre nada. Solo con `"true"` exacto, que
+ * es lo que escribe `actions/cache` al encontrar la marca; cualquier otra cosa (vacío, `false`, un error) deja todo como estaba.
+ */
+export function yaProbado(evento, cacheHit) {
+  return evento === "pull_request" && cacheHit === "true";
+}
+
 function archivosDelPr() {
   const salida = execFileSync("git", ["diff", "--name-only", "HEAD^1", "HEAD"], { encoding: "utf8" });
   return salida.split("\n").filter(Boolean);
@@ -130,6 +144,13 @@ function main() {
     if (alcance === "completo") {
       const motivo = archivos.find((a) => !SOLO_DOCUMENTOS.some((r) => r.test(a)) && !WEB.test(a));
       console.log(`  corre todo por: ${motivo}`);
+    }
+    if (yaProbado(process.env.GITHUB_EVENT_NAME, process.env.YA_PROBADO)) {
+      alcance = "nada";
+      verificar = "no";
+      compilar = "no";
+      compilarTienda = "no";
+      console.log(`  este mismo árbol (${process.env.ARBOL ?? "?"}) ya pasó todo en una corrida anterior de este PR: no se repite nada (ADR-0492)`);
     }
   } else if (process.env.GITHUB_EVENT_NAME === "push") {
     // Si algo falla al leer git (clon corto, sin padre), se queda en `completo` + `si`: nunca se salta por no saber.
