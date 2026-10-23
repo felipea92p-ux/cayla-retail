@@ -277,5 +277,7 @@ el 2026-10-23, mirando** las propuestas «Isla» y «Vidrio» fotografiadas dent
 botones dentro de la isla clara; Vender, Apartados (sobre sus pestañas), Temporadas y las marcadas de Productos: la isla oscura; Por pagar:
 isla clara de 12 / 12 / 12 en el celular y, en 1440, la barra de siempre (lateral 272, abajo 0, línea arriba); escondida no asoma (848 > 812);
 Nuevo producto y Bajar al piso: isla pegada. Las marcadas de Existencias no se fotografiaron (no se pudo armar ese estado desde afuera); su
-cambio es el mismo que el de Productos.
+cambio es el mismo que el de Productos. **Modo oscuro** (`tema:auditar` a 375 px con escenarios en Existencias, Cambios, Devoluciones,
+Vender, Apartados, Por pagar, Nuevo producto y Bajar al piso): **0 hallazgos solo en oscuro** en 45 visitas (33 heredados del claro); 8
+escenarios de escritorio no abrieron a 375 px («Todo de la prenda» de Vender y los pasos de Nuevo producto), sin relación con la barra.
 
