@@ -258,6 +258,11 @@ export const PRUEBAS = [
   // prendas y se desactiva una campaña; sin ninguno, cada puerta la rechaza; una insignia que no es campaña sigue siendo de Insignias. ROLLBACK.
   "pruebas:campanas-llave-unica",
 
+  // Campañas por sede (ADR-0486): una campaña rige en todas las tiendas (sin filas) o solo en las que se elijan; la caja DEBE dar el descuento
+  // en su tienda y no lo acepta en otra (`registrar_venta`), el apartado nace con él solo ahí, la tienda web lo muestra desde su tienda y
+  // sin sede nunca aparece una campaña limitada; el guardián falla si una de las cinco funciones deja de preguntar por la sede. ROLLBACK.
+  "pruebas:campanas-por-sede",
+
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el
   // umbral de Configuración y NUNCA deja salir la cifra de 4 o más; la ficha de un oculto es null; precio por talla. Y UN SOLO

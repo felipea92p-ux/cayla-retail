@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 75,
+  "total": 78,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -27,6 +27,9 @@
       "CampoFecha «Hasta»",
       "button «{avisoDia.boton}»",
       "BotonDeshacer «(sin nombre)»",
+      "button «Todas las sedes»",
+      "button «{t.nombre}»",
+      "button «Elegir todas»",
       "button «Quitar todas»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
