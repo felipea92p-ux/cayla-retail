@@ -813,7 +813,9 @@ function StockDeVariante({ stock, varianteId }: { stock: StockDeModelo; variante
 /* ─────────────────────────── Lo marcado ─────────────────────────── */
 
 /** Sube desde abajo cuando hay algo marcado. En el celular ocupa el ancho y los botones van en columnas iguales (con
- *  su palabra: un ícono solo no le dice nada a quien lo ve por primera vez). */
+ *  su palabra: un ícono solo no le dice nada a quien lo ve por primera vez). Con `px-3` en cada botón la barra medía 397 px en 351 y la
+ *  ✕ de «Quitar la marca» quedaba fuera de la pantalla (auditoría del celular, 2026-10-23, hallazgo 7): el relleno lateral baja a `px-1`
+ *  bajo `sm`, y en un teléfono de menos de ~340 px la barra pasa a una segunda fila (`flex-wrap`) en vez de salirse. */
 function BarraMarcadas({
   seleccion,
   puedeEditar,
@@ -839,7 +841,7 @@ function BarraMarcadas({
   const hayDescontinuadas = seleccion.some((p) => p.estado !== "activo");
   const hrefRotulos = n > 0 ? urlRotulos(seleccion.map((p) => p.productoId), { productos: pantalla }) : null;
   const forma =
-    "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-3 text-[11.5px] text-crema transition-colors disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:text-[13px]";
+    "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[11.5px] text-crema transition-colors disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:px-3 sm:text-[13px]";
   const boton = `${forma} hover:bg-crema/10`;
   return (
     <div
@@ -848,11 +850,11 @@ function BarraMarcadas({
       aria-hidden={n === 0}
       // La isla oscura de lo que llevas elegido (ADR-0479, actividad 12, `barra-abajo`).
       data-tono="tinta"
-      className={`barra-abajo z-40 flex-nowrap gap-1 p-1.5 transition-[opacity,transform] duration-300 ease-cayla sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:pl-4 ${
+      className={`barra-abajo z-40 flex-nowrap gap-1 p-1.5 max-sm:flex-wrap transition-[opacity,transform] duration-300 ease-cayla sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:pl-4 ${
         n > 0 ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
       }`}
     >
-      <span className="flex shrink-0 items-baseline gap-1.5 px-2 sm:mr-2 sm:px-0">
+      <span className="flex shrink-0 items-baseline gap-1.5 px-1 sm:mr-2 sm:px-0">
         <span className="font-display text-xl tabular-nums">{n}</span>
         <span className="hidden text-[12px] text-crema/70 sm:inline">{n === 1 ? "marcada" : "marcadas"}</span>
       </span>
@@ -898,7 +900,7 @@ function BarraMarcadas({
         onClick={onLimpiar}
         aria-label="Quitar la marca"
         tabIndex={n > 0 ? 0 : -1}
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-crema/60 dark:text-crema/75 transition-colors hover:bg-crema/10 hover:text-crema"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-crema/60 transition-colors hover:bg-crema/10 hover:text-crema max-sm:ml-auto dark:text-crema/75"
       >
         <X aria-hidden className="h-4 w-4" />
       </button>

@@ -29,4 +29,8 @@
   .pie-acciones:not(.pie-hoja-fijo) { width: 100%; margin-left: 0; }
   .pie-acciones > :is(button, a):not([data-pieza="volver"]) { flex: 1 1 0; min-width: 0; }
   .pie-acciones > :is(.pie-acciones-izq, .mr-auto) { order: 1; flex-basis: 100%; margin-right: 0; }
+  /* Un botón de etiqueta larga («Registrar pago de S/ 5,133.60») no cabe en media fila y quedaba de 34 px: `pie-acciones-ancho` lo deja
+     en su propia fila a todo el ancho, y «Cancelar» (que va antes) queda arriba, también a todo el ancho. Va después de la regla de las
+     mitades y con su misma especificidad para ganarle. Una nota al lado de los botones lleva `max-sm:basis-full`, para tener su fila. */
+  .pie-acciones > :is(button, a).pie-acciones-ancho { flex-basis: 100%; }
 }
