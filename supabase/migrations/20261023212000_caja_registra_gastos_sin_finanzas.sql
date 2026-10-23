@@ -103,7 +103,7 @@ revoke all on function retail.fn_puede_registrar_gasto(uuid, date, jsonb, text, 
 -- 3. `registrar_gasto` pregunta la regla entera.
 -- ----------------------------------------------------------------------------
 -- Reemplaza `p_ancla`, que tiene que aparecer exactamente una vez, por `p_nuevo`. Si `p_marca` ya está en la función, no hace nada.
-create or replace function pg_temp.reemplazar_una_vez(p_firma text, p_ancla text, p_nuevo text, p_marca text)
+create or replace function pg_temp.reemplazar_una_vez_ancla(p_firma text, p_ancla text, p_nuevo text, p_marca text)
 returns void
 language plpgsql
 as $f$
@@ -124,7 +124,7 @@ begin
 end;
 $f$;
 
-select pg_temp.reemplazar_una_vez(
+select pg_temp.reemplazar_una_vez_ancla(
   'retail.registrar_gasto(uuid, text, text, date, numeric, jsonb, text, uuid, uuid, text, uuid, uuid, uuid)',
   $v$  if not retail.fn_gastos_puede(p_ubicacion_id) then$v$,
   $v$  -- Con el módulo Gastos, los de su tienda; sin él, desde Caja, el gasto de hoy al contado (ADR-0491, `fn_puede_registrar_gasto`).
