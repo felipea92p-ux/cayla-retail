@@ -46,3 +46,17 @@ Qué se rompería sin esto: la hoja no decía que una campaña vigente no llegab
 prometía 71,91 y la caja cobra 71,90 (una prueba lo detectó).
 Cómo se verifica: cada actividad en el navegador local (guardar de verdad y deshacer, 1024/1440/375, oscuro); suite web 594 archivos en verde,
 `tsc`, ESLint y Knip. Falta la actividad 8 y correr `guias:recorrer` y `tema:auditar` (esta Mac no tiene Chromium de Playwright).
+
+## 2026-10-23 (Configurar campaña: actividad 8 — /formidable y /chaos, y lo que Felipe aprobó de ellos)
+Qué hice: `/chaos` (semilla 488, 17 ataques en la hoja y en la base) y `/formidable` (medición, prueba ciega y escéptico); con el OK de
+Felipe: «Toda la familia» marca toda la familia, «Guardar» manda un solo pedido (`unSoloEnvio`), la guía dice una sola cosa, «prendas»
+cuenta modelo y color en la hoja, su grilla, la tarjeta de Tienda web y el pase («8 prendas de Vestidos y Faldas»), y las categorías van
+sin la bajada a «Prendas», sin nombres cortados y con la fila de la familia tocable.
+Por qué así: el escéptico encontró que la casilla de la familia dejaba afuera las categorías sin prendas (Poleras quedaba sin descuento sin
+aviso), y el ciego vio tres números distintos para «prendas» (23 tallas, 8 modelos, 114 unidades). Cada arreglo, con su prueba primero.
+Qué se rompería sin esto: una temporada «para toda Indumentaria» que no baja Poleras; tres pedidos por un triple clic; un «· opcional» junto
+a «Sigue aquí»; y una hoja que dice 23 cuando su pase dice 8.
+Cómo se verifica: `vitest` web (594 archivos), `tsc` y ESLint en verde; `guias:recorrer` de productos.sellos pasa en 15 pasos a 1440 y 375;
+`tema:auditar` con la hoja vacía y llena: 0 hallazgos; en el navegador, un PATCH por triple clic, 18 de 18 categorías con «Toda la familia
+Indumentaria», 0 nombres cortados a 1024, 1440 y 375; base local restaurada e idéntica a su foto (22 invariantes en verde).
+

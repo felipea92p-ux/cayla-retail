@@ -55,6 +55,18 @@ son los que ya eran señal: las rayas del círculo de un campo opcional (guía d
 - Las fechas se escriben o se eligen en `CampoFecha` (el campo del ERP), no en un calendario nuevo.
 - La línea de temporada es la barra del pase de Insignias (punto 5).
 
-## Pendiente
+## Actualización 2026-10-23 — lo que dejaron `/chaos` y `/formidable` (con el OK de Felipe)
 
-- «Sugerido» en «Categorías» cuando hay descuento y no llega a ninguna prenda (Felipe dijo sí el 2026-10-23): llega con la guía de foco.
+- **Una prenda es un modelo en un color** en la hoja, en su grilla de categorías y en la tarjeta de Tienda web (`PrendaConCosto.modelo`, la
+  misma clave que `prendasDelSello` del pase): la hoja decía «23 prendas» (tallas) y el pase de la misma campaña «8». Y el pase ya no suma
+  dos veces: «8 prendas de Vestidos y Faldas» (antes «8 prendas y toda Vestidos, Faldas», y eran las mismas).
+- **«Toda la familia» es toda:** también sus categorías sin prendas y las que no coinciden con lo buscado (`GrupoCategorias.todas`). Antes
+  marcaba 13 de 18 en Indumentaria. La fila de su título se toca entera.
+- **«Guardar» manda un solo pedido** (`unSoloEnvio`): tres clics en el mismo instante mandaban tres PATCH iguales.
+- **La guía dice una sola cosa:** «· opcional» solo cuando la guía lo marca opcional, la ayuda de las fechas solo con las fechas vacías, y el
+  porqué de lo que falta a la vista en el pie (`PieGuia conFrase`).
+- Columnas de 13,5 rem (a 1024 px no se corta ningún nombre), sin la bajada que mandaba a «Prendas», y «Elegir / Quitar todas» como botón
+  chico sutil (ADR-0358, marcan varias de un toque).
+
+Queda, de Felipe: dos equipos con la misma hoja (gana el último, sin aviso: la función no tiene versión) y si una campaña puede ser del
+100 %. Informe: `docs/formidable/catalogo-configurar-campana.md` y la fila de `docs/chaos/README.md`.

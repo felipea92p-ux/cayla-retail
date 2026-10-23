@@ -2,9 +2,11 @@
 
 - **Fecha / SHA:** 2026-10-23 · `a47267541` (rama `claude/campaign-config-modal-mockups-f1b900`, ADR-0488) · **Dispositivo que manda:** escritorio (Mac mini); 375 px se adapta.
 - **Pregunta que debería resolver (1 frase):** «¿Cuánto baja esta campaña, cuándo y en qué prendas, y a cuántas llega de verdad?» · **Protagonista:** la campaña (la etiqueta viva).
-- **Veredicto en una línea:** se completa sola y sin retrocesos, pero la guía dice dos cosas a la vez en «Categorías», «prendas» cuenta distinto en la hoja y en el pase, y «Toda la familia» no marca toda la familia.
+- **Veredicto en una línea:** se completa sola y sin retrocesos; tras los 3 cambios y el arreglo de «Toda la familia» (con el OK de Felipe, 2026-10-23), la guía dice una sola cosa, «prendas» cuenta igual en la hoja y en el pase y ningún nombre se corta. Falta repetir la ciega.
 
 ## Notas (0–10)
+
+Las notas de la primera medición; la columna de después está al final de la tabla («Después»).
 
 | Ley | Nota | Evidencia |
 |---|---|---|
@@ -19,6 +21,12 @@
 | 9 · De punta a punta | 6 | **Medido:** «Toda la familia» deja afuera las categorías sin prendas (13 de 18 en Indumentaria); «· opcional» junto a «Sigue aquí»; «Opcional: sin fechas, rige siempre» con las fechas puestas; a 1024 px se cortan 4 nombres |
 | **Total leyes** | **7,3** | promedio simple |
 | **Oficio** | **8** | contraste 0 fallas, 1 primario, sin scroll horizontal; propios: casilla de familia de 20 px sin fila, «Elegir/Quitar todas» de 23 px, 4 nombres cortados a 1024 |
+
+**Después de los cambios (provisional, sin repetir la ciega):** ley 3: 8 (un solo número de prendas en la hoja, su grilla y el pase) · ley 4: 9
+(«elígelas si te van a llegar») · ley 6: 8 (el porqué del «sugerido» a la vista) · ley 8: 8 (sin la bajada a «Prendas») · ley 9: 8 («Toda la
+familia» es toda; sin «· opcional» junto a «Sigue aquí»; 0 nombres cortados) → **8,2**. **Oficio: 9** — **[Medido]** a 1440: 0 blancos chicos propios
+(la fila de la familia mide 32 px; «Elegir / Quitar todas», 44), 0 nombres cortados a 1024, 1440 y 375, 1 primario; queda el botón de
+calendario de `CampoFecha` (20 px), pieza del sistema.
 
 ## Oficio visual — lo medido
 **[Medido]** con `medir-oficio.js` limitado a la hoja (`[role=dialog]`), con 10 % y dos categorías elegidas:
@@ -47,7 +55,7 @@ También: **[Medido]** `guias:recorrer` de Insignias pasa en 15 pasos a 1440 y 3
 
 **Escéptico (Opus, solo código y base):** de 9 hallazgos, 5 confirmados (H1 las dos señales, H2 «prendas», H4 la bajada, H6 los cortes a 1024, H7 la ayuda de fechas) y 4 matizados (H3 la línea sin prendas sirve, el problema es la redacción; H5 la casilla chica cumple WCAG por espaciado, no la regla del repo; H8 «En caja» se equivoca solo con precio por tienda o campaña por tienda; H9 el elegido en tinta es opinión). Lo que se nos escapó: «Toda la familia» no marca toda la familia, y el aviso de reimprimir no mira las tiendas (de antes de esta rama).
 
-## Los 3 cambios de mayor impacto (esperan el OK de Felipe)
+## Los 3 cambios de mayor impacto (hechos con el OK de Felipe, 2026-10-23)
 
 1. **La guía dice una sola cosa** (leyes 1, 6 y 9). Antes: «CATEGORÍAS · opcional» junto a «SIGUE AQUÍ», el porqué escondido en el hover, y
    «Opcional: sin fechas, rige siempre» con las fechas puestas. Después: «· opcional» solo cuando la guía lo marca opcional; el porqué
@@ -85,3 +93,4 @@ familia, también las sin prendas, con su prueba en `campana-hoja.test.ts`.
 | Fecha | Qué | Leyes | Oficio |
 |---|---|---|---|
 | 2026-10-23 | primera medición, ciega y escéptico; 3 cambios propuestos | 7,3 | 8 |
+| 2026-10-23 | los 3 cambios, «Toda la familia» y el candado de «Guardar», con el OK de Felipe; medido en el navegador (falta la ciega) | 8,2 (provisional) | 9 |
