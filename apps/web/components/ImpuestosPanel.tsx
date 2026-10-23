@@ -8,10 +8,13 @@ import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
-import { CabeceraBloque, Herramientas, SelectFin, Superficie } from "@/components/finanzas/kit";
+import { CabeceraBloque, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { ImpuestosPulso } from "@/components/finanzas/ImpuestosPulso";
 import { BalanzaIgv } from "@/components/finanzas/BalanzaIgv";
 import { AntesDeDeclarar } from "@/components/finanzas/AntesDeDeclarar";
+import { SobresIgv } from "@/components/finanzas/SobresIgv";
+import { Volver } from "@/components/ui/Volver";
+import { mesADeclarar, sobresIgv } from "@/lib/impuestos-sobres-reglas";
 import { antesDeDeclarar } from "@/lib/impuestos-antes-reglas";
 import { balanzaIgv } from "@/lib/impuestos-balanza-reglas";
 import { pulsoImpuestos } from "@/lib/impuestos-pulso-reglas";
@@ -22,21 +25,17 @@ import {
   ALCANCE_DEL_AVISO,
   ORDEN_REGISTRO_COMPRAS,
   ORDEN_REGISTRO_VENTAS,
-  TEXTO_ESTADO_MES,
   avisoUmbral,
   csvRegistroCompras,
   csvRegistroVentas,
   csvResumenIgv,
-  estadoMes,
   leerFilaCompras,
   leerFilaVentas,
-  mesCorto,
   nombreArchivo,
   nombreMes,
   porcentaje,
   proyectarUmbral,
   tonoAvance,
-  type MesIgv,
   type PanelImpuestos,
 } from "@/lib/impuestos-reglas";
 import { Vacio } from "@/components/ui/Vacio";
@@ -71,7 +70,9 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
   const { mes, mesActual } = panel;
   const anio = Number(mes.slice(0, 4));
   const titulo = `IGV de ${nombreMes(mes)}${anio !== Number(mesActual.slice(0, 4)) ? ` ${anio}` : ""}`;
-  const irA = (m: string) => router.push(`/finanzas/impuestos?mes=${m}`, { scroll: false });
+  // Cambiar de mes sube a la balanza: la respuesta cambia arriba y tiene que verse (antes quedaba fuera de la vista).
+  const irA = (m: string) => router.push(`/finanzas/impuestos?mes=${m}`);
+  const otroMes = mes !== mesADeclarar(mesActual);
 
   async function bajar(que: Descarga) {
     setBajando(que);
@@ -133,7 +134,15 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
             </Boton>
           </>
         }
-      />
+      >
+        {/* La vuelta de una vista interna: mirar otro mes es salir del que se declara ahora (hallazgo 9 de la auditoría v3). */}
+        {otroMes && (
+          <p className="mt-3 flex items-center gap-2 text-[13px] text-taupe">
+            <Volver onClick={() => irA(mesADeclarar(mesActual))} a={`Volver a ${textoMes(mesADeclarar(mesActual))}, el mes que se declara`} />
+            Estás viendo {textoMes(mes)}. El que se declara ahora es {textoMes(mesADeclarar(mesActual))}.
+          </p>
+        )}
+      </CabeceraPantalla>
 
       {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
 
@@ -149,41 +158,19 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
 
       <Limite panel={panel} />
 
-      <Superficie className="anim-sube" guia="fin-impuestos.historial">
-        <Herramientas>
-          <b className="text-sm font-semibold text-tinta">Últimos 6 meses</b>
-          <span className="text-[12.5px] text-taupe">{mesCorto(mesActual)} (*) va a la fecha y todavía puede cambiar. Toca un mes para verlo.</span>
-          <label className="ml-auto flex items-center gap-2 whitespace-nowrap text-[12.5px] text-taupe" data-guia="fin-impuestos.otro-mes">
-            Otro mes
-            <SelectFin
-              etiqueta="Mes que se mira"
-              className="w-fit"
-              valor={mes}
-              onValor={irA}
-              opciones={mesesRecientes(`${mesActual}-01`, 24).map((m) => ({ valor: m, texto: textoMes(m) }))}
-            />
-          </label>
-        </Herramientas>
-        <div className="fin-tabla-wrap">
-          {/* El ancho mínimo solo en escritorio: bajo 860 px la tabla pasa a fichas y un ancho fijo la cortaba (375 px). */}
-          <table className="fin-tabla min-[861px]:min-w-[560px]">
-            <thead>
-              <tr>
-                <th>Mes</th>
-                <th className="fin-num">IGV cobrado</th>
-                <th className="fin-num">IGV descontado</th>
-                <th className="fin-num">A pagar</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {panel.historial.map((m) => (
-                <FilaMes key={m.mes} m={m} mesActual={mesActual} activa={m.mes === mes} onAbrir={() => irA(m.mes)} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Superficie>
+      <SobresIgv sobres={sobresIgv(panel.historial, mesActual, mes)} onElegir={irA} mesEnCurso={mesActual} aDeclarar={mesADeclarar(mesActual)} guia="fin-impuestos.historial">
+        {/* Para un mes más viejo que los seis sobres (hasta que la mesa de mando del telar traiga el mes). */}
+        <label className="flex items-center gap-2 whitespace-nowrap text-[12.5px] text-taupe" data-guia="fin-impuestos.otro-mes">
+          Otro mes
+          <SelectFin
+            etiqueta="Mes que se mira"
+            className="w-fit"
+            valor={mes}
+            onValor={irA}
+            opciones={mesesRecientes(`${mesActual}-01`, 24).map((m) => ({ valor: m, texto: textoMes(m) }))}
+          />
+        </label>
+      </SobresIgv>
 
       <p className="nota-cayla" data-guia="fin-impuestos.nota">
         El pago a SUNAT se registra en Cuentas y dinero («Pagar a SUNAT (el IGV)», sale de un banco): baja lo que debes de IGV y el banco. El 1 % de renta a cuenta va como gasto de «Tributos». Mientras no se registre, «sin pago registrado» solo dice que el sistema no lo sabe.{" "}
@@ -192,52 +179,6 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
         </Link>
       </p>
     </div>
-  );
-}
-
-/** «2026-10» → «2026-09»: el mes que se declara ahora (la pantalla abre en él). */
-function mesAnteriorA(mes: string): string {
-  const [a, m] = mes.split("-").map(Number) as [number, number];
-  return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`;
-}
-
-function FilaMes({ m, mesActual, activa, onAbrir }: { m: MesIgv; mesActual: string; activa: boolean; onAbrir: () => void }) {
-  const e = TEXTO_ESTADO_MES[estadoMes(m, mesActual)];
-  return (
-    <tr
-      data-clic
-      tabIndex={0}
-      aria-current={activa ? "true" : undefined}
-      className={activa ? "fin-fila-activa" : undefined}
-      // Guía interactiva (ADR-0389): el mes en curso y el que se declara ahora, para pasar de uno al otro y volver.
-      data-guia={m.mes === mesActual ? "fin-impuestos.mes-en-curso" : m.mes === mesAnteriorA(mesActual) ? "fin-impuestos.mes-a-declarar" : undefined}
-      onClick={onAbrir}
-      onKeyDown={(ev) => {
-        if (ev.key === "Enter" || ev.key === " ") {
-          ev.preventDefault();
-          onAbrir();
-        }
-      }}
-    >
-      <td data-l="Mes">
-        {mesCorto(m.mes)}
-        {m.mes === mesActual ? "*" : ""}
-        {m.mes.slice(0, 4) !== mesActual.slice(0, 4) ? ` ${m.mes.slice(0, 4)}` : ""}
-      </td>
-      <td className="fin-num" data-l="Cobrado">
-        {solesRedondo(m.debito)}
-      </td>
-      <td className="fin-num" data-l="Descontado">
-        {solesRedondo(m.credito)}
-      </td>
-      <td className="fin-num" data-l="A pagar">
-        <b>{solesRedondo(m.aPagar)}</b>
-        {m.aPagar === 0 && m.saldoAFavor > 0 && <span className="fin-sub">a favor {solesRedondo(m.saldoAFavor)}</span>}
-      </td>
-      <td data-l="Estado">
-        <Chip tono={e.tono}>{e.texto}</Chip>
-      </td>
-    </tr>
   );
 }
 

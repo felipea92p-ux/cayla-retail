@@ -853,6 +853,124 @@
   }
 }
 
+/* ---- Finanzas ▸ Impuestos en «El telar»: un sobre por mes (abierto si falta algo, punteado si corre, apagado si no hubo nada).
+   La tapa se entreabre al pasar el mouse (con mouse de verdad: ADR-0136). Sin lacre todavía: el «pagado» espera a Felipe. */
+@layer components {
+  .fin-sobres {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    /* Fila con aire: la tapa abierta sube por encima de su sobre y no debe pisar la fila de arriba. */
+    gap: 40px 12px;
+    margin-top: 28px;
+  }
+  /* En pantallas angostas, «Otro mes» baja bajo el título en vez de apretarlo. */
+  .fin-sobres-bloque .fin-bloque-cab {
+    flex-wrap: wrap;
+  }
+  @media (max-width: 900px) {
+    .fin-sobres {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 480px) {
+    .fin-sobres {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .fin-sobre {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+    padding: 8px;
+    margin: -8px;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+  }
+  .fin-sobre[aria-current="true"] {
+    background: var(--color-hueso);
+  }
+  .fin-sobre:focus-visible {
+    outline: 2px solid var(--color-rojo);
+    outline-offset: 2px;
+  }
+  .fin-sobre-cuerpo {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1.45;
+    border-radius: 10px;
+    background: var(--color-hueso);
+    perspective: 500px;
+  }
+  .fin-sobre[aria-current="true"] .fin-sobre-cuerpo {
+    background: var(--color-papel);
+  }
+  /* Los pliegues del sobre: dos diagonales finas. */
+  .fin-sobre-cuerpo::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background:
+      linear-gradient(155deg, transparent 49.5%, color-mix(in srgb, var(--color-tinta) 10%, transparent) 50%, transparent 51%),
+      linear-gradient(25deg, transparent 49.5%, color-mix(in srgb, var(--color-tinta) 10%, transparent) 50%, transparent 51%);
+  }
+  .fin-sobre-tapa {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 58%;
+    border-radius: 10px 10px 0 0;
+    background: color-mix(in srgb, var(--color-sand) 85%, var(--color-hueso));
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: top;
+    transition: transform 0.6s var(--ease-cayla);
+  }
+  /* Abierta, la tapa sube por encima del sobre; más corta, para no tapar la cabecera del bloque. */
+  .fin-sobre[data-forma="abierto"] .fin-sobre-tapa {
+    transform: rotateX(180deg) scaleY(0.6);
+  }
+  @media (hover: hover) {
+    .fin-sobre[data-forma="cerrado"]:hover .fin-sobre-tapa,
+    .fin-sobre[data-forma="vacio"]:hover .fin-sobre-tapa {
+      transform: rotateX(35deg);
+    }
+  }
+  .fin-sobre[data-forma="curso"] .fin-sobre-cuerpo {
+    background: transparent;
+    border: 1.5px dashed var(--color-sand);
+  }
+  .fin-sobre[data-forma="curso"] .fin-sobre-tapa {
+    background: transparent;
+  }
+  .fin-sobre[data-forma="vacio"] .fin-sobre-cuerpo,
+  .fin-sobre[data-forma="vacio"] .fin-sobre-monto {
+    opacity: 0.55;
+  }
+  .fin-sobre-mes {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .fin-sobre-monto {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-sobre-monto small {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-verde);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fin-sobre-tapa {
+      transition: none;
+    }
+  }
+}
+
 /* ---- F3 · Cuentas y dinero (ADR-0195; spike `vista-dinero.js` y `vista-config.js` «Cuentas y cobros») ---- */
 @layer components {
   /* Sobretítulo de un grupo de cuentas («BANCOS · CUENTA 104»). */

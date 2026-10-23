@@ -1248,8 +1248,8 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
     {
       id: "historial",
       ancla: "fin-impuestos.historial",
-      titulo: "Los últimos 6 meses",
-      texto: "Mes por mes: IGV cobrado, descontado, lo que tocó pagar y su estado. Al tocar un mes, toda la pantalla pasa a ese mes. El mes con asterisco va a la fecha y todavía puede cambiar (te lo mostramos).",
+      titulo: "Cada mes, su sobre",
+      texto: "Un sobre por mes con lo que tocó pagar o lo que quedó a favor. Abierto si falta algo (el mes que se declara, o un pago que no se registró); punteado si el mes todavía corre. Al tocar un sobre, la pantalla sube y pasa a ese mes (te lo mostramos).",
     },
     {
       id: "mes-en-curso",
@@ -1264,7 +1264,7 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       ancla: "fin-impuestos.mes-a-declarar",
       opcional: true,
       titulo: "Volver al mes que se declara",
-      texto: "Al tocar el mes anterior, la pantalla vuelve al mes que le toca declarar al contador (te lo dejamos como estaba).",
+      texto: "Su sobre te devuelve al mes que le toca declarar al contador; arriba, la flecha hace lo mismo cuando miras otro mes (te lo dejamos como estaba).",
       demostrar: [{ tipo: "clic", ancla: "fin-impuestos.mes-a-declarar" }],
     },
     {
