@@ -800,7 +800,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.detalle",
       preparar: [{ tipo: "escape" }],
       titulo: "El pase, en grande",
-      texto: "Al lado, el pase abierto en grande: su nombre, una frase que dice cómo está y sus prendas, con su foto o, si no tiene, su categoría sobre su color.",
+      texto: "Al lado, el pase abierto en grande: su estado, su nombre y sus prendas, con su foto o, si no tiene, su categoría sobre su color.",
     },
     {
       id: "lookbook",

@@ -94,7 +94,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
     if (vigencia?.estado === "proxima") return { etiquetas: [], sinCodigo: [], ...extra };
     const stock = await stockEnTienda(supabase, origen.ubicacionId, null);
     // Qué prendas de la tienda alcanza (o alcanzó, si ya terminó: para volver al precio normal).
-    const alcance = await campanasDe(supabase, fechaDeAlcance(e.vigente_desde, e.vigente_hasta, hoy), [...stock.keys()]);
+    const alcance = await campanasDe(supabase, fechaDeAlcance(e.vigente_desde, e.vigente_hasta, hoy), [...stock.keys()], origen.ubicacionId);
     const suyas = new Set(alcance.filter((f) => f.etiqueta_id === e.id).map((f) => f.variante_id));
     entradas = new Map([...stock].filter(([id]) => suyas.has(id)));
   }
@@ -123,7 +123,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
   // La campaña de HOY de cada prenda: la etiqueta dice lo que la caja cobra hoy, venga de donde venga.
   // Y el precio de ESTA tienda (precio propio, Felipe 2026-10-09): la etiqueta que se imprime aquí dice lo que cobra la caja de aquí.
   const [campanas, preciosSede, empresas] = await Promise.all([
-    campanasQueCobra(supabase, hoy, [...entradas.keys()]),
+    campanasQueCobra(supabase, hoy, [...entradas.keys()], origen.ubicacionId),
     getPreciosPorSede([origen.ubicacionId]),
     getEmpresasDelPapel(supabase),
   ]);
@@ -216,11 +216,14 @@ async function stockEnTienda(supabase: Cliente, ubicacionId: string, varianteIds
   return sumarEntradas(filas);
 }
 
-/** La campaña que cobra la caja en `fecha` por prenda, con hasta cuándo rige: de las que alcanzan a cada una (`fn_campanas_por_variante`,
- *  la MISMA función de la caja), la de mayor %; a igual %, por nombre. La leen la etiqueta de papel y Catálogo (ADR-0472). Lanza si la
- *  base no responde: el papel no se imprime con un precio dudoso, y Catálogo la tolera mostrando el precio de lista. */
-export async function campanasQueCobra(supabase: Cliente, fecha: string, varianteIds: string[]): Promise<Map<string, CampanaDeVariante>> {
-  const filas = await campanasDe(supabase, fecha, varianteIds);
+/** La campaña que cobra la caja en `fecha` por prenda, con hasta cuándo rige: de las que alcanzan a cada una (la MISMA función de la
+ *  caja), la de mayor %; a igual %, por nombre. La leen la etiqueta de papel y Catálogo (ADR-0472). Lanza si la base no responde: el
+ *  papel no se imprime con un precio dudoso, y Catálogo la tolera mostrando el precio de lista.
+ *  Con `ubicacionId` (la etiqueta de papel: se imprime EN una tienda) rigen también las campañas limitadas a esa tienda (ADR-0486,
+ *  `fn_campanas_en_sede`): sin ella, la etiqueta de Tienda TRU no veía el Aniversario de solo-TRU y la caja sí lo cobraba (Felipe,
+ *  2026-10-23). Sin `ubicacionId` (Catálogo, que no sabe de qué tienda habla) solo rigen las de todas las sedes. */
+export async function campanasQueCobra(supabase: Cliente, fecha: string, varianteIds: string[], ubicacionId?: string): Promise<Map<string, CampanaDeVariante>> {
+  const filas = await campanasDe(supabase, fecha, varianteIds, ubicacionId);
   const etiquetaIds = [...new Set(filas.map((f) => f.etiqueta_id))];
   const hastas = new Map(
     etiquetaIds.length === 0
@@ -230,13 +233,16 @@ export async function campanasQueCobra(supabase: Cliente, fecha: string, variant
   return mejorCampanaPorVariante(filas, hastas);
 }
 
-/** Las campañas que rigen en `fecha` sobre esas prendas: la MISMA función que usa la caja (`fn_campanas_por_variante`). */
-async function campanasDe(supabase: Cliente, fecha: string, varianteIds: string[]) {
+/** Las campañas que rigen en `fecha` sobre esas prendas: la MISMA función que usa la caja. Con `ubicacionId`, las de esa tienda
+ *  (`fn_campanas_en_sede`); sin ella, solo las de todas las sedes (`fn_campanas_por_variante`, que delega con sede nula). */
+async function campanasDe(supabase: Cliente, fecha: string, varianteIds: string[], ubicacionId?: string) {
   if (varianteIds.length === 0) return [];
   return exigir(
     await leerTodas((desde, hasta) =>
-      supabase
-        .rpc("fn_campanas_por_variante", { p_hoy: fecha, p_tolerancia_dias: 0, p_variante_ids: varianteIds })
+      (ubicacionId
+        ? supabase.rpc("fn_campanas_en_sede", { p_hoy: fecha, p_tolerancia_dias: 0, p_variante_ids: varianteIds, p_ubicacion_id: ubicacionId })
+        : supabase.rpc("fn_campanas_por_variante", { p_hoy: fecha, p_tolerancia_dias: 0, p_variante_ids: varianteIds })
+      )
         .order("variante_id")
         .order("etiqueta_id")
         .range(desde, hasta),

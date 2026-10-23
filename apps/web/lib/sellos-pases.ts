@@ -30,14 +30,11 @@ export function vistaDeEstilo(estilo: EstiloEtiqueta): VistaSellos {
   return estilo === "campana" ? "campanas" : estilo === "urgencia" ? "rotacion" : estilo === "positivo" ? "artesanal" : "general";
 }
 
-export const TEXTOS_VISTA: Record<VistaSellos, { nombre: string; frase: string }> = {
-  campanas: {
-    nombre: "Campañas",
-    frase: "Las fechas del año en que se vende distinto: cuándo rige cada una, su descuento y en qué prendas. Valen en todas las tiendas y en la tienda online, o solo en las tiendas que elijas.",
-  },
-  rotacion: { nombre: "Rotación", frase: "Cómo se mueve la prenda: lo nuevo, lo que más se vende, lo que se acaba y lo que hay que sacar." },
-  artesanal: { nombre: "Artesanal", frase: "Cómo se hizo la prenda: a mano, pieza única o la reedición de un modelo que ya tuvimos." },
-  general: { nombre: "General", frase: "Las insignias que no son de un grupo, como Estreno o Sorteo, y las que vayas creando." },
+export const TEXTOS_VISTA: Record<VistaSellos, { nombre: string }> = {
+  campanas: { nombre: "Campañas" },
+  rotacion: { nombre: "Rotación" },
+  artesanal: { nombre: "Artesanal" },
+  general: { nombre: "General" },
 };
 
 /** La vista que se abre: la pedida en `?vista=` si la cuenta la ve; si no, la primera que ve. `null` si no ve ninguna. */
@@ -287,25 +284,6 @@ function prendasYDeDonde(prendas: number, aMano: number, categorias: readonly st
   if (aMano === 0) return `${n} de ${cats}`;
   if (aMano >= prendas) return `${n} ${aMano === 1 ? "marcada" : "marcadas"} a mano; ${cats}, todavía sin prendas a la venta`;
   return `${n}: ${prendas - aMano} de ${cats} y ${marcadas}`;
-}
-
-/** La frase bajo el título, en lenguaje de tienda y sacada de los datos: nunca promete algo que la base no diga. */
-export function fraseDelSello(f: FilaSello, p: Pick<PrendasDelSello, "modelos" | "unidades" | "aMano">, categorias: readonly string[], hoy: string): string {
-  const prendas = p.modelos.length;
-  const hay = prendas > 0 || categorias.length > 0;
-  if (f.estilo !== "campana") {
-    if (!hay) return "Ninguna prenda la lleva todavía.";
-    return `${prendasYDeDonde(prendas, p.aMano, categorias)}${p.unidades !== null ? ` · ${plural(p.unidades, "unidad", "unidades")} en las tiendas` : ""}.`;
-  }
-  const t = tramoDeCampana(f.vigenteDesde, f.vigenteHasta, hoy);
-  if (t === "ahora") {
-    if (!hay) return f.descuentoPct !== null ? `Un ${pct(f.descuentoPct)} que todavía no llega a ninguna prenda.` : "Rige hoy, pero todavía no está en ninguna prenda.";
-    if (prendas === 0) return `${f.descuentoPct !== null ? `Un ${pct(f.descuentoPct)} para` : "Rige para"} ${enLista(categorias)}, que todavía no tienen prendas a la venta.`;
-    return `${prendasYDeDonde(prendas, p.aMano, categorias)}${f.descuentoPct !== null ? `, con ${pct(f.descuentoPct)} menos.` : ", a su precio de siempre."}`;
-  }
-  if (t === "proximas") return hay ? `${prendasYDeDonde(prendas, p.aMano, categorias, "prenda lista", "prendas listas")}.` : "Todavía sin prendas: prepárala antes de que empiece.";
-  if (t === "pasaron" && f.vigenteHasta) return `Pasó el ${fechaCorta(f.vigenteHasta)}. «Repetir» la vuelve a armar con las fechas del próximo año.`;
-  return "Todavía sin fechas: ponle cuándo rige en «Configurar».";
 }
 
 export type ItemListo = { clave: "fechas" | "prendas" | "descuento"; nombre: string; hecho: boolean; opcional: boolean; detalle: string };

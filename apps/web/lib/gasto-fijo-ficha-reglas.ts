@@ -136,6 +136,12 @@ export function esProveedorDeGasto(p: { rubros?: readonly string[] | null }): bo
   return (p.rubros ?? []).some((r) => claveTexto(r) === "gastos");
 }
 
+/** Los que ofrece el combo «Proveedor» al registrar un gasto: solo los de servicios (luz, agua, internet…), no la mercadería. El ya elegido
+ *  se queda aunque no sea de Gastos (un gasto que viene de un fijo o de una orden con ese proveedor), para que el combo no lo esconda. */
+export function proveedoresParaElegirEnGasto<T extends { id: string; rubros?: readonly string[] | null }>(proveedores: readonly T[], elegidoId: string): T[] {
+  return proveedores.filter((p) => esProveedorDeGasto(p) || p.id === elegidoId);
+}
+
 /** Lo que cada fila de `fn_gastos_fijos_fichas` dice de un fijo (sin cuentas): para la lista y su «qué falta». */
 export type ResumenFicha = { beneficiario: string; formaDePago: FormaDePago | ""; codigoServicio: string; contratoVence: string; tieneCuenta: boolean | null };
 

@@ -7,7 +7,6 @@ import {
   columnasQueCaben,
   diasEntre,
   fechaLarga,
-  fraseDelSello,
   loQueTiene,
   lookbookVisible,
   marcaDelPase,
@@ -164,22 +163,6 @@ describe("las prendas de una insignia, por modelo y color", () => {
 });
 
 describe("lo que dice el pase abierto", () => {
-  const una = { modelos: [{}, {}] as never[], aMano: 0, unidades: 12 };
-  const ninguna = { modelos: [] as never[], aMano: 0, unidades: null };
-  it("la frase sale de los datos", () => {
-    expect(fraseDelSello(FILAS[0]!, ninguna, [], HOY)).toBe("Un 10 % que todavía no llega a ninguna prenda.");
-    // Las prendas de sus categorías no se suman otra vez: «2 prendas de Maquillaje», no «2 prendas y toda Maquillaje» (/formidable, ADR-0488).
-    expect(fraseDelSello(FILAS[1]!, una, ["Maquillaje"], HOY)).toBe("2 prendas de Maquillaje, a su precio de siempre.");
-    expect(fraseDelSello(FILAS[1]!, { ...una, aMano: 1 }, ["Maquillaje", "Bolsos"], HOY)).toBe("2 prendas: 1 de Maquillaje y Bolsos y 1 marcada a mano, a su precio de siempre.");
-    expect(fraseDelSello(FILAS[1]!, ninguna, ["Poleras"], HOY)).toBe("Rige para Poleras, que todavía no tienen prendas a la venta.");
-    expect(fraseDelSello(FILAS[0]!, ninguna, ["Poleras"], HOY)).toBe("Un 10 % para Poleras, que todavía no tienen prendas a la venta.");
-    expect(fraseDelSello(FILAS[2]!, una, [], HOY)).toBe("2 prendas listas.");
-    expect(fraseDelSello(FILAS[3]!, ninguna, [], HOY)).toBe("Todavía sin prendas: prepárala antes de que empiece.");
-    expect(fraseDelSello(FILAS[6]!, ninguna, [], HOY)).toContain("Pasó el 14 feb");
-    expect(fraseDelSello(FILAS[5]!, ninguna, [], HOY)).toContain("sin fechas");
-    expect(fraseDelSello(FILAS[9]!, una, [], HOY)).toBe("2 prendas · 12 unidades en las tiendas.");
-    expect(fraseDelSello(FILAS[11]!, ninguna, [], HOY)).toBe("Ninguna prenda la lleva todavía.");
-  });
   it("lo que tiene una campaña: fechas y prendas la hacen funcionar; el descuento es opcional", () => {
     expect(loQueTiene(FILAS[0]!, 0, [], HOY).map((x) => [x.clave, x.hecho, x.opcional])).toEqual([
       ["fechas", true, false],
