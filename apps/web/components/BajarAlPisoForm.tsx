@@ -918,9 +918,14 @@ export function BajarAlPisoForm({
                     className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-hueso/70 focus-visible:bg-hueso/70"
                   >
                     <MiniaturaPrenda fotoUrl={p.fotoUrl} {...categoriaDe(p)} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm text-tinta">{nombreDePrenda(p)}</span>
-                      {p.sku && <span className="block truncate font-mono text-[11px] text-tinta/60">{p.sku}</span>}
+                    {/* El modelo arriba y «talla · color» debajo, con el código al final de esa línea: lo que distingue una fila de otra
+                        es la talla y el color, y en una sola línea («Vestido Sofía · L · Azul…») era justo lo que se cortaba en el celular. */}
+                    <span className="min-w-0 flex-1" title={nombreDePrenda(p)}>
+                      <span className="block truncate text-sm text-tinta">{p.referencia}</span>
+                      <span className="block truncate text-xs text-tinta/70">
+                        {[p.talla, p.color].map((t) => (t ?? "").trim()).filter(Boolean).join(" · ")}
+                        {p.sku && <span className="ml-2 font-mono text-[11px] text-tinta/60">{p.sku}</span>}
+                      </span>
                     </span>
                     <span className="shrink-0 text-right text-xs tabular-nums text-taupe">{textoDeExistencia(p)}</span>
                   </button>
