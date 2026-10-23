@@ -33,7 +33,7 @@ const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const iBase = process.argv.indexOf("--base");
 const BASE = iBase > 0 ? process.argv[iBase + 1] : "postgres";
-const MIGRACION = "supabase/migrations/20261023162000_campanas_por_sede.sql";
+const CORRECTIVA = "supabase/migrations/20261023170000_campanas_vigentes_una_sola_firma.sql";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualquier ubicación
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed): no es líder
 
@@ -291,11 +291,20 @@ rollback;`);
     );
   }
 
-  // ---- 10. La migración se puede pegar dos veces ----
+  // ---- 10. `campanas_vigentes` tiene UNA firma (con la sede opcional) y se puede llamar de las dos formas ----
   {
-    const migracion = readFileSync(MIGRACION, "utf8");
-    const r = correr(`begin;\n${migracion}\n${migracion}\nselect 'ok';\nrollback;`);
-    esperar("la migración es re-ejecutable (dos veces seguidas)", r.ok && ultimaLinea(r) === "ok", r.ok ? r.salida : r.mensaje);
+    const r = correr(`select concat_ws('|',
+  (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'campanas_vigentes'),
+  (select pronargs from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'campanas_vigentes'),
+  (select pronargdefaults from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'campanas_vigentes'));`);
+    esperar("campanas_vigentes tiene una sola firma, con la sede opcional (ADR-0486, una-sola-firma)", ultimaLinea(r) === "1|1|1", r.ok ? r.salida : r.mensaje);
+  }
+
+  // ---- 11. La corrección se puede pegar dos veces (la original solo va ANTES de ella: su guarda pide `campanas_vigentes()` sin argumentos) ----
+  {
+    const correctiva = readFileSync(CORRECTIVA, "utf8");
+    const r = correr(`begin;\n${correctiva}\n${correctiva}\nselect 'ok';\nrollback;`);
+    esperar("la corrección (una sola firma) es re-ejecutable (dos veces seguidas)", r.ok && ultimaLinea(r) === "ok", r.ok ? r.salida : r.mensaje);
   }
 
   console.log(`\n${total - fallos} de ${total} bien${fallos ? ` · ${fallos} FALLARON` : ""}.`);

@@ -36,8 +36,8 @@ Tienda Trujillo, en todas sus prendas. Dos cosas se lo impedían:
 - **Una sola regla:** `fn_campana_rige_en_sede(etiqueta, sede)`. **Sin sede (null) solo rigen las campañas de todas las sedes**: quien no
   sabe en qué tienda está nunca da un descuento que no le toca (falla hacia «precio normal», no hacia «regalo»).
 - **`fn_campanas_en_sede(hoy, tolerancia, variantes, sede)`** es la consulta de siempre más la regla; `fn_campanas_por_variante` (tres
-  argumentos) conserva su firma y la llama con sede null. `campanas_vigentes(sede)` es lo que lee la caja de cada tienda; `campanas_vigentes()`
-  delega con null.
+  argumentos) conserva su firma y la llama con sede null. `campanas_vigentes(sede)` es lo que lee la caja de cada tienda (una sola función, con la sede
+  opcional: ver la actualización de abajo).
 - **Reemplazos anclados de una llamada** (el patrón de ADR-0370) en lo que cobra o muestra el descuento: `registrar_venta` (2),
   `separar_prendas` (2), `editar_separacion` (1), `fn_tienda_precio_talla` (1) y `fn_club_avisos_pendientes` (1). Cada uno aborta sin tocar
   nada si el texto vivo no es el esperado. Descartado reescribir `registrar_venta` entera (42 mil caracteres con 40 parches encima).
@@ -76,3 +76,19 @@ funciones que se reescriben coincide con el que espera la guarda y cada ancla ap
 
 Producción (la migración no está pegada). Vender y Apartados en el navegador (cubiertos por la base y por tipos, no recorridos con una caja
 abierta). La hoja a 375 px.
+
+## Actualización 2026-10-23 (tarde) — `campanas_vigentes` con una sola firma, y las pruebas que deshacen parches
+
+El CI del PR salió rojo en tres pruebas, las tres por esta obra y ninguna por la lógica de ventas:
+
+- **`pruebas:una-sola-firma`** (ADR-0009): 20261023162000 dejó `campanas_vigentes()` y `campanas_vigentes(uuid)`, dos firmas con el mismo nombre; el repo no
+  admite sobrecargas en `retail` (PostgREST puede no saber a cuál llamar). Corrección: **20261023170000** deja UNA, `campanas_vigentes(p_ubicacion_id uuid
+  default null)`, y borra la de cero argumentos. La web nueva la llama con `{ p_ubicacion_id }` y la vieja sin argumentos: las dos resuelven, y sin sede sigue
+  dando solo las campañas de todas las sedes. Se pegó en producción (verificado: una firma, 340 prendas con campaña igual que antes). La migración original no
+  se editó: ya estaba pegada; su guarda pide `campanas_vigentes()` sin argumentos, así que solo va ANTES de la corrección.
+- **`pruebas:redondeo-efectivo` y `pruebas:club-registro-cartel`**: comparan el texto de `registrar_venta` y de `fn_club_avisos_pendientes` con el de una migración
+  vieja después de DESHACER los parches posteriores. Mis tres reemplazos anclados no estaban en esas listas. Se suman a `registrar-venta-antes-de-precio-sede.mjs`
+  (`DESHACER_CAMPANAS_SEDE` / `REHACER_CAMPANAS_SEDE`, los más nuevos de `DESHACER_POSTERIORES` / `REHACER_POSTERIORES`) y a `ANCLADOS_AVISOS_SEDE` de
+  `club_registro_cartel.mjs`. Lo que pide `/abrir-pr` en su paso 3 y yo no hice antes de abrir el PR.
+- **Lo que enseña:** una migración que parcha una función de esa cadena se corre contra `pruebas:redondeo-efectivo`, `pruebas:club-registro-cartel` y
+  `pruebas:una-sola-firma` ANTES de abrir el PR, no después.
