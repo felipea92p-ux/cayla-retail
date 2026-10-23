@@ -13,6 +13,7 @@ import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Volver } from "@/components/ui/Volver";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { BotonVerMas } from "@/components/ui/VerMas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -123,6 +124,11 @@ const EN_BLANCO: Habitual = {
   venta: null,
 };
 
+/** Lo que se escribió en una hoja de prenda: si cambia desde que se abrió, cerrarla pregunta. */
+function firmaHoja(e: EnCurso): string {
+  return JSON.stringify({ c: e.cantidad, k: e.costo, v: e.venta, d: e.destinoId, n: e.nueva ? { ...e.nueva, descartadas: [...e.nueva.descartadas] } : null });
+}
+
 const ANTERIOR: Partial<Record<PasoCompra, PasoCompra>> = {
   habituales: "proveedor",
   revisar: "habituales",
@@ -144,6 +150,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [catHabitual, setCatHabitual] = useState<string | null>(null);
   const [verTodos, setVerTodos] = useState(false);
   const [enCurso, setEnCurso] = useState<EnCurso | null>(null);
+  // Cómo llegó la hoja abierta: si lo escrito ya no es eso, cerrarla (o salir de la pantalla) pregunta antes de perderlo.
+  const [hojaInicial, setHojaInicial] = useState<string | null>(null);
   const [lineas, setLineas] = useState<LineaCompra[]>([]);
   const [tipo, setTipo] = useState<TipoPapel | null>(null);
   const [archivo, setArchivo] = useState<File | null>(null);
@@ -159,6 +167,21 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [guardada, setGuardada] = useState<{ monto: number; pagado: number; prendas: number; tiendas: string[]; tieneAntes: number | null } | null>(null);
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
+  const hojaTocada = enCurso !== null && firmaHoja(enCurso) !== hojaInicial;
+  // En el celular, el gesto «atrás» (o un toque en el menú) sacaba de la pantalla y la compra a medias se perdía sin aviso: los pasos no
+  // cambian la dirección. Con una prenda anotada (o la hoja de una a medio llenar), salir pregunta: la misma guardia de todo el ERP.
+  // Guardada, ya no hay nada que perder.
+  const salida = useSalidaSinGuardar(
+    paso !== "listo" && (lineas.length > 0 || hojaTocada),
+    lineas.length > 0
+      ? `Llevas ${prendasDeLineas(lineas) === 1 ? "1 prenda anotada" : `${prendasDeLineas(lineas)} prendas anotadas`} en esta compra y todavía no se guarda. Si sales ahora, se pierde lo que anotaste.`
+      : "Empezaste a anotar una prenda y la compra todavía no se guarda. Si sales ahora, se pierde lo que anotaste.",
+  );
+
+  function abrirHoja(e: EnCurso) {
+    setHojaInicial(firmaHoja(e));
+    setEnCurso(e);
+  }
 
   // Cada paso empieza arriba: una pregunta nueva no se abre a media página (en el celular, la anterior dejaba el scroll abajo). Es otra
   // vista sin cambiar de URL: se suelta la reserva de <PaginaEstable> antes de pintar, o devolvía la vista adonde estaba el clic.
@@ -180,7 +203,12 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const cuadra = cuadraElPapel(montoLeido, totalDeLineas(lineas));
   const nombreCorto = proveedor ? proveedor.nombre.replace(/\s+(s\.?a\.?c\.?|e\.?i\.?r\.?l\.?|s\.?r\.?l\.?)$/i, "") : "";
 
+  // El último proveedor elegido: con el internet lento del celular, quien elegía uno, volvía y elegía otro recibía las prendas del PRIMERO
+  // si su respuesta llegaba después (y hasta su hoja de «Algo nuevo»). Solo cuenta la respuesta del último.
+  const proveedorPedido = useRef<string | null>(null);
+
   async function elegirProveedor(p: ProveedorParaComprar) {
+    proveedorPedido.current = p.id;
     setProveedor(p);
     setCatHabitual(null);
     setVerTodos(false);
@@ -188,8 +216,12 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     setFotos(new Map());
     setPaso("habituales");
     const leidos = await cargarHabituales(p.id);
+    if (proveedorPedido.current !== p.id) return;
     setHabituales(leidos);
-    if (leidos?.length) void cargarFotosDeHabituales(leidos.flatMap((h) => (h.productoId ? [h.productoId] : []))).then(setFotos);
+    if (leidos?.length)
+      void cargarFotosDeHabituales(leidos.flatMap((h) => (h.productoId ? [h.productoId] : []))).then((f) => {
+        if (proveedorPedido.current === p.id) setFotos(f);
+      });
     // Sin nada que se le haya comprado ni prendas suyas en el catálogo: la hoja de «Algo nuevo», de entrada.
     if (leidos !== null && leidos.length === 0) algoNuevo([]);
   }
@@ -207,14 +239,14 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   // «Algo nuevo»: la misma hoja, con qué es, la marca y el nombre arriba. `suyos`: los habituales recién leídos (al elegir un proveedor
   // sin prendas, el estado todavía no los tiene).
   function algoNuevo(suyos: Habitual[] = habitualesLeidos) {
-    setEnCurso({ habitual: EN_BLANCO, cantidad: "", costo: "", venta: "", destinoId: tiendaAnterior(lineas), edita: null, nueva: nuevoVacio(marcasDeHabituales(suyos)) });
+    abrirHoja({ habitual: EN_BLANCO, cantidad: "", costo: "", venta: "", destinoId: tiendaAnterior(lineas), edita: null, nueva: nuevoVacio(marcasDeHabituales(suyos)) });
   }
 
   function elegirHabitual(h: Habitual) {
     // Si ya va en la compra, la hoja se abre con lo anotado para corregirla.
     const ya = lineas.findIndex((l) => l.clave === h.clave);
     if (ya >= 0) return corregir(ya);
-    setEnCurso({
+    abrirHoja({
       habitual: h,
       // La cantidad llega vacía: con la de la vez pasada escrita, un toque rápido compraba 10 en vez de 3 (/formidable 2026-10-23,
       // OK de Felipe). La de la vez pasada se ofrece al lado, de un toque. El costo y la venta SÍ llegan con lo de la vez pasada y lo del
@@ -244,7 +276,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       costo: null,
       venta: null,
     };
-    setEnCurso({
+    abrirHoja({
       habitual: h,
       cantidad: String(l.cantidad),
       costo: l.costo.toFixed(2),
@@ -328,7 +360,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     }
     setGuardada({ monto: montoLeido ?? 0, pagado: pagadoLeido ?? 0, prendas: prendasDeLineas(lineas), tiendas: tiendasDeLineas(lineas, nombresTienda), tieneAntes: datos.tiene });
     setPaso("listo");
-    router.refresh();
+    // La guardia del «atrás» se retira antes de refrescar: los dos a la vez pueden recargar la página entera (useSalidaSinGuardar).
+    void salida.retirarYa().then(() => router.refresh());
   }
 
   function otraCompra() {
@@ -496,7 +529,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           </button>
           {lineas.length > 0 && (
             <div className="flex items-baseline justify-between border-t border-sand pt-3">
-              <span className="text-sm text-tinta/65">Pagaste · {prendasDeLineas(lineas)} prendas</span>
+              {/* «Total», no «Pagaste»: todavía no se eligió cómo pagar (puede ser «Pagar después», y paga Compras). */}
+              <span className="text-sm text-tinta/65">Total · {prendasDeLineas(lineas) === 1 ? "1 prenda" : `${prendasDeLineas(lineas)} prendas`}</span>
               <span className="font-serif text-3xl tabular-nums text-tinta">{soles(total)}</span>
             </div>
           )}
@@ -686,6 +720,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           tiendas={datos.tiendas}
           tiendaAnterior={tiendaAnterior(lineas)}
           corrige={enCurso.edita != null}
+          tocada={hojaTocada}
           onAgregar={agregarPrenda}
           onQuitar={quitarPrenda}
           onClose={() => setEnCurso(null)}
@@ -715,7 +750,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           </span>
           <h2 className="compra-pregunta">Compra guardada</h2>
           <p className="-mt-2 text-sm text-tinta/70">
-            {guardada.prendas} prendas a {nombreCorto} por {soles(guardada.monto)}.
+            {guardada.prendas === 1 ? "1 prenda" : `${guardada.prendas} prendas`} a {nombreCorto} por {soles(guardada.monto)}.
             {guardada.tieneAntes != null && (
               <>
                 <br />
@@ -751,6 +786,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           </div>
         </section>
       )}
+      {salida.aviso}
     </div>
   );
 }

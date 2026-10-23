@@ -8,6 +8,7 @@ import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { soles } from "@/lib/compras-reglas";
@@ -64,6 +65,7 @@ export function HojaPrenda({
   tiendas,
   tiendaAnterior,
   corrige,
+  tocada = false,
   onAgregar,
   onQuitar,
   onClose,
@@ -78,6 +80,8 @@ export function HojaPrenda({
   tiendaAnterior: string | null;
   /** Corrige una prenda que ya va en la compra: el botón dice «Guardar» y aparece «Quitar». */
   corrige: boolean;
+  /** Lo escrito ya no es lo que traía al abrirse: cerrarla con el dedo, Escape o «Cancelar» pregunta antes de perderlo. */
+  tocada?: boolean;
   onAgregar: () => void;
   onQuitar?: () => void;
   onClose: () => void;
@@ -92,9 +96,17 @@ export function HojaPrenda({
   const ganancia = gananciaPorPrenda(b);
   const laVezPasada = h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;
   const detalle = [h.categoria, h.marca].filter(Boolean).join(" · ");
+  // Solo al cerrar la hoja: el «atrás» y los enlaces ya los cuida la guardia de «Compré ropa», que la contiene.
+  const salida = useSalidaSinGuardar(
+    tocada,
+    corrige
+      ? "Cambiaste esta prenda y todavía no guardas el cambio. Si cierras ahora, queda como estaba."
+      : "Empezaste a anotar esta prenda y todavía no la agregas a la compra. Si cierras ahora, se pierde lo que llenaste.",
+    { soloAlCerrar: true },
+  );
 
   return (
-    <Modal titulo={nueva ? "Algo nuevo" : h.nombre} subtitulo={nueva ? `De ${nueva.proveedor} · solo una referencia` : detalle} onClose={onClose} variante="hoja">
+    <Modal titulo={nueva ? "Algo nuevo" : h.nombre} subtitulo={nueva ? `De ${nueva.proveedor} · solo una referencia` : detalle} onClose={onClose} variante="hoja" antesDeCerrar={salida.pedirAccion}>
       {(cerrar) => (
         <form
           className="space-y-4"
@@ -185,7 +197,8 @@ export function HojaPrenda({
           )}
 
           <CampoGuiado id="tienda" guia={guia} titulo="¿A qué tienda va?">
-            <div role="group" aria-label="¿A qué tienda va?" className="grid grid-cols-3 gap-2" data-guia="compra.tiendas">
+            {/* Con dos tiendas, dos columnas: en tres, «Tienda Lima» se partía en dos líneas y quedaba un hueco al lado. */}
+            <div role="group" aria-label="¿A qué tienda va?" className={`grid gap-2 ${tiendas.length === 2 ? "grid-cols-2" : "grid-cols-3"}`} data-guia="compra.tiendas">
               {tiendas.map((t) => (
                 <button
                   key={t.id}
@@ -213,7 +226,7 @@ export function HojaPrenda({
               ) : undefined
             }
           >
-            <Boton type="button" peso="fantasma" onClick={cerrar}>
+            <Boton type="button" peso="fantasma" onClick={() => salida.pedirAccion(cerrar)}>
               Cancelar
             </Boton>
             <Boton
@@ -227,6 +240,7 @@ export function HojaPrenda({
               {textoAgregarPrenda(b, corrige)}
             </Boton>
           </PieAcciones>
+          {salida.aviso}
         </form>
       )}
     </Modal>
