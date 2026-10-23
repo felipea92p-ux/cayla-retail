@@ -58,8 +58,9 @@ son los que ya eran señal: las rayas del círculo de un campo opcional (guía d
 ## Actualización 2026-10-23 — lo que dejaron `/chaos` y `/formidable` (con el OK de Felipe)
 
 - **Una prenda es un modelo en un color** en la hoja, en su grilla de categorías y en la tarjeta de Tienda web (`PrendaConCosto.modelo`, la
-  misma clave que `prendasDelSello` del pase): la hoja decía «23 prendas» (tallas) y el pase de la misma campaña «8». Y el pase ya no suma
-  dos veces: «8 prendas de Vestidos y Faldas» (antes «8 prendas y toda Vestidos, Faldas», y eran las mismas).
+  misma clave que `prendasDelSello` del pase): la hoja decía «23 prendas» (tallas) y el pase de la misma campaña «8». Y «Lo que ya tiene»
+  del pase ya no suma dos veces: «8 prendas de Vestidos y Faldas» (antes «8 prendas + toda Vestidos, Faldas», y eran las mismas). La
+  frase bajo el título del pase, que decía lo mismo, la quitó main el mismo día (sin cursivas en Insignias).
 - **«Toda la familia» es toda:** también sus categorías sin prendas y las que no coinciden con lo buscado (`GrupoCategorias.todas`). Antes
   marcaba 13 de 18 en Indumentaria. La fila de su título se toca entera.
 - **«Guardar» manda un solo pedido** (`unSoloEnvio`): tres clics en el mismo instante mandaban tres PATCH iguales.

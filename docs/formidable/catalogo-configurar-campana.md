@@ -63,7 +63,7 @@ También: **[Medido]** `guias:recorrer` de Insignias pasa en 15 pasos a 1440 y 3
    vacías; «Del jue 17 oct al sáb 31 oct · bórralas y rige siempre» si no). **Se verifica:** `etiqueta-campana-guia.test.ts` + Halloween (con fechas) y una campaña vacía en el navegador.
 2. **«Prendas» cuenta lo mismo en la hoja y en el pase** (leyes 3 y 4). Antes: 23 (tallas) en la hoja, «8 prendas y toda Vestidos, Faldas» en
    el pase. Después: la hoja cuenta por modelo y color, como el pase («8 prendas»), y el pase deja de sumar: «8 prendas, por Vestidos y
-   Faldas» (o «3 marcadas a mano y 5 por Vestidos»). **Se verifica:** `sellos-pases.test.ts` con la frase nueva, y la hoja y el pase lado a lado con el mismo número.
+   Faldas» (o «3 marcadas a mano y 5 por Vestidos»). Hecho en «Lo que ya tiene»: la frase bajo el título del pase la quitó main el mismo día. **Se verifica:** `sellos-pases.test.ts` con la frase nueva, y la hoja y el pase lado a lado con el mismo número.
 3. **Categorías sin ruido ni cortes** (ley 8 y oficio). Antes: la bajada que nombra «Prendas», «les llegarán prendas», 4 nombres cortados a
    1024, la casilla de familia de 20 px. Después: sin esa bajada; «29 sin prendas a la venta · elígelas si te van a llegar»; columnas de 13,5 rem
    (a 1024 entran 2 y no se corta ninguno); la casilla de la familia y su título en una fila tocable de 32 px; «Elegir / Quitar todas» de 32 px.
