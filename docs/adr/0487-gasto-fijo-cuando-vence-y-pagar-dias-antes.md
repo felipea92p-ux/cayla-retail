@@ -1,7 +1,7 @@
 # ADR-0487 · El gasto fijo dice cuándo VENCE y cuántos días antes se paga (no cuándo «llega»)
 
 - **Fecha:** 2026-10-23 · **Estado:** paso 1 (los textos) construido, sin base de por medio; paso 2 (`dias_antes`) construido y probado en una base privada
-  (`activos_y_gastos_fijos` 76 ✓, `flujo_caja` 82 ✓ y las pruebas vecinas en verde); **la migración `20261023173000` está sin pegar en producción**.
+  (`activos_y_gastos_fijos` 76 ✓, `flujo_caja` 82 ✓ y las pruebas vecinas en verde); **la migración `20261023173000` está en producción desde el 2026-10-23** (la pegó Felipe; comprobada por sus efectos: columna y candado, `guardar_gasto_fijo` de 12 argumentos, `fn_gastos_fijos_mes` con las tres columnas, Flujo con `fecha_pago`, permisos; los 25 fijos quedaron en 0 días y `fn_flujo_caja_proyeccion(6)` corre sin error).
   ADR-0487 y la migración reservados con `pnpm reservar`. Rama `claude/missing-expiration-date-0cee47`.
 - **Decide:** Felipe, 2026-10-23, mirando «Nuevo gasto fijo»: «No hay una fecha de vencimiento»; y al ofrecerle opciones: «los recibos son mensuales por lo
   general, entender cuándo llega no sé si tiene sentido, más que todo la fecha de vencimiento y pagar unos días antes».
@@ -55,7 +55,7 @@ El vencimiento real se corre de mes a mes (los ciclos de facturación de una ope
 Por eso la fecha real de cada recibo se anota al registrarlo (en Por pagar, a crédito, ya se pide el «vence»). Que el fijo aprenda del último recibo queda para una segunda vuelta.
 Y si los 14 «la quincena» de hoy no se corrigen con los días reales de los recibos, la pantalla queda precisa sobre datos inventados.
 
-## Cómo se pega en producción
+## Cómo se pegó en producción (2026-10-23)
 
 `20261023173000_gasto_fijo_pagar_dias_antes.sql`, una sola parte, tal cual: sin políticas ni `drop trigger` (ADR-0195), `set lock_timeout = '3s'`, idempotente. Aborta con un mensaje si
 `fn_gastos_fijos_mes`, `guardar_gasto_fijo` o el texto ancla del Flujo no son los que conoce (producción el 2026-10-23 coincide con el repo: huellas `md5` de `fn_gastos_fijos_mes`,
