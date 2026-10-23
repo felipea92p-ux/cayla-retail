@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent as KeyboardEventReact } from "react";
-import { PencilLine } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as KeyboardEventReact } from "react";
+import { Check, PencilLine } from "lucide-react";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Boton, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { Volver } from "@/components/ui/Volver";
@@ -69,6 +69,7 @@ export function PlanillaDelAjuste({
   onVolver,
   onAbrirConteo,
   sedeNombre,
+  sellados,
 }: {
   control: ControlAjuste;
   /** La celda de la que se viene (su variante), en foco; `null` = todo el modelo encendido. */
@@ -78,6 +79,8 @@ export function PlanillaDelAjuste({
   /** Esa talla faltó en un conteo cerrado: se suma en la ventana completa de Ajustar, que la enlaza (ADR-0291). */
   onAbrirConteo: (varianteId: string) => void;
   sedeNombre: string;
+  /** Lo recién guardado, por variante y en orden: cada talla se sella en verde, una tras otra, antes de «listo». */
+  sellados?: readonly string[];
 }) {
   const { modelo, guia } = control;
   // El último «por qué no» de un toque: bajo la planilla, hasta el siguiente toque que sí se pudo.
@@ -225,31 +228,31 @@ export function PlanillaDelAjuste({
             </colgroup>
             <thead>
               <tr>
-                <th scope="col" className="ajuste-col-color">
+                <th scope="col" className="ajuste-col-color" style={indice(0)}>
                   <span className="label-cayla text-[11px] text-taupe">{DONDE[control.lugar].replace(/^en /, "En ")}</span>
                 </th>
-                {modelo.tallas.map((t) => (
-                  <th key={t ?? "unica"} scope="col">
+                {modelo.tallas.map((t, i) => (
+                  <th key={t ?? "unica"} scope="col" style={indice(i + 1)}>
                     <span className="ajuste-talla" data-foco={varianteFoco && varianteFoco.talla === t ? "si" : undefined}>
                       {t ?? "Única"}
                     </span>
                   </th>
                 ))}
                 {conTotal && (
-                  <th scope="col">
+                  <th scope="col" style={indice(nTallas + 1)}>
                     <span className="label-cayla text-[11px] text-taupe">Total</span>
                   </th>
                 )}
               </tr>
             </thead>
             <tbody>
-              {modelo.colores.map((c) => {
+              {modelo.colores.map((c, f) => {
                 const enFila = modelo.tallas.map((t) => modelo.celdas.get(claveCelda(c.color, t)));
                 const total = enFila.reduce((s, v) => s + (v ? control.numero(v) : 0), 0);
                 const otroLugar = control.lugar === "piso" ? "almacén" : "piso";
                 const otro = enFila.reduce((s, v) => s + (v ? (control.lugar === "piso" ? v.stockAlmacen : v.stockPiso) : 0), 0);
                 return (
-                  <tr key={c.color ?? "sin-color"}>
+                  <tr key={c.color ?? "sin-color"} style={indice(f)}>
                     <th scope="row" className="ajuste-col-color">
                       <span className="ajuste-color" data-foco={varianteFoco && varianteFoco.color === c.color ? "si" : undefined}>
                         <span aria-hidden data-color-dato className="ajuste-muestra" style={{ background: c.hex ?? "var(--color-hueso)" }} />
@@ -266,6 +269,8 @@ export function PlanillaDelAjuste({
                             v={v}
                             control={control}
                             enFoco={v.varianteId === varianteFoco?.varianteId}
+                            ola={{ f, c: i }}
+                            sello={sellados ? sellados.indexOf(v.varianteId) : -1}
                             onRazon={setRazon}
                             onAbrirConteo={onAbrirConteo}
                           />
@@ -324,12 +329,18 @@ function Celda({
   v,
   control,
   enFoco,
+  ola,
+  sello,
   onRazon,
   onAbrirConteo,
 }: {
   v: VarianteAjuste;
   control: ControlAjuste;
   enFoco: boolean;
+  /** Su fila y su columna: la ola llega en diagonal, y el anillo del foco se cierra cuando la ola terminó. */
+  ola: { f: number; c: number };
+  /** Su turno en el sellado tras guardar (`-1`: no se guardó). */
+  sello: number;
   onRazon: (r: string | null) => void;
   onAbrirConteo: (varianteId: string) => void;
 }) {
@@ -337,6 +348,18 @@ function Celda({
   const [borrador, setBorrador] = useState<string | null>(null);
   const nombre = nombreDeCelda(v, control.modelo);
   const n = control.numero(v);
+  // El número rueda al cambiar (ADR-0136, excepción de esta planilla): sube al sumar, baja al restar. Una vez por cambio.
+  const caja = useRef<HTMLInputElement>(null);
+  const previo = useRef(n);
+  useEffect(() => {
+    const antes = previo.current;
+    previo.current = n;
+    const el = caja.current;
+    if (!el || antes === n) return;
+    el.classList.remove("ajuste-sube", "ajuste-baja");
+    void el.offsetWidth;
+    el.classList.add(n > antes ? "ajuste-sube" : "ajuste-baja");
+  }, [n]);
   const hoy = control.hoy(v);
   const cambio = n !== hoy;
   const noSube = control.porQueNoSube(v);
@@ -366,7 +389,14 @@ function Celda({
   else bajo = null;
 
   return (
-    <div className="ajuste-celda" data-variante={v.varianteId} data-foco={enFoco ? "si" : undefined} data-cambio={cambio ? "si" : undefined}>
+    <div
+      className="ajuste-celda"
+      data-variante={v.varianteId}
+      data-foco={enFoco ? "si" : undefined}
+      data-cambio={cambio ? "si" : undefined}
+      data-sellada={sello >= 0 ? "si" : undefined}
+      style={{ "--f": ola.f, "--c": ola.c, "--espera-foco": `${(ola.f + ola.c) * 38 + 640}ms` } as CSSProperties}
+    >
       <PasoCantidad
         tamano="planilla"
         tono={cambio ? "atencion" : undefined}
@@ -374,6 +404,7 @@ function Celda({
         menos={{ onClick: () => tocar(-1), bloqueado: noBaja !== null, etiqueta: `Una menos de ${nombre}`, title: noBaja || undefined }}
         mas={{ onClick: () => tocar(1), bloqueado: noSube !== null, etiqueta: `Una más de ${nombre}`, title: noSube ?? undefined }}
         campo={{
+          ref: caja,
           value: borrador ?? String(n),
           inputMode: "numeric",
           "aria-label": `${nombre}, ${DONDE[control.lugar]}`,
@@ -394,12 +425,17 @@ function Celda({
       <span className="ajuste-bajo" data-tono={bajo?.tono}>
         {bajo?.texto ?? " "}
       </span>
+      {sello >= 0 && (
+        <span aria-hidden className="ajuste-visto" style={{ "--n": sello } as CSSProperties}>
+          <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden className="h-3 w-3" strokeWidth={3} />
+        </span>
+      )}
     </div>
   );
 }
 
 /** El talón: lo que se va a guardar, talla por talla, y cuánto entra y sale. */
-export function TalonDelAjuste({ control, guardadas }: { control: ControlAjuste; guardadas?: readonly LineaDelLote[] }) {
+export function TalonDelAjuste({ control, guardadas, sellado = false }: { control: ControlAjuste; guardadas?: readonly LineaDelLote[]; sellado?: boolean }) {
   const lineas = guardadas ?? control.lineas;
   const resumen = guardadas ? resumenDeLineas(guardadas) : control.resumen;
   return (
@@ -407,7 +443,7 @@ export function TalonDelAjuste({ control, guardadas }: { control: ControlAjuste;
     <div className="grid content-start gap-2.5 max-sm:hidden">
       <p className="flex items-center gap-2">
         <span className="label-cayla text-[11px] text-taupe">{guardadas ? "Lo que se guardó" : "Lo que vas a guardar"}</span>
-        <Globito n={lineas.length} pide etiqueta={`${lineas.length} ${lineas.length === 1 ? "talla tocada" : "tallas tocadas"}`} />
+        <Globito n={lineas.length} pide late etiqueta={`${lineas.length} ${lineas.length === 1 ? "talla tocada" : "tallas tocadas"}`} />
       </p>
       {lineas.length === 0 ? (
         <Vacio tamano="chico" alinear="izquierda" icono={<PencilLine aria-hidden className="h-5 w-5" />}>
@@ -415,7 +451,12 @@ export function TalonDelAjuste({ control, guardadas }: { control: ControlAjuste;
         </Vacio>
       ) : (
         <>
-          <ul className="grid gap-1.5">
+          <ul className="ajuste-talon-tickets grid gap-1.5">
+            {sellado && (
+              <li aria-hidden className="ajuste-sello">
+                Guardado
+              </li>
+            )}
             {lineas.map((l) => {
               const hex = control.modelo?.colores.find((c) => c.color === l.variante.color)?.hex ?? null;
               return (
@@ -424,7 +465,7 @@ export function TalonDelAjuste({ control, guardadas }: { control: ControlAjuste;
                   <span className="min-w-0 truncate">
                     <b className="font-semibold text-tinta">{l.nombre}</b> <span className="tabular-nums text-taupe">{`${l.actual} → ${l.resultado}`}</span>
                   </span>
-                  <span className="ajuste-ticket-delta tabular-nums" data-tono={l.delta > 0 ? "entra" : "sale"}>
+                  <span key={l.delta} className="ajuste-ticket-delta tabular-nums" data-tono={l.delta > 0 ? "entra" : "sale"}>
                     {l.delta > 0 ? `+${l.delta}` : `−${-l.delta}`}
                   </span>
                 </li>
@@ -559,3 +600,6 @@ export function ListoDelAjuste({
     </div>
   );
 }
+
+/** El índice de una pieza en la cascada (`--i` en la hoja de estilos). */
+const indice = (i: number) => ({ "--i": i }) as CSSProperties;
