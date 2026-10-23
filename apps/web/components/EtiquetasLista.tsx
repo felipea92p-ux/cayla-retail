@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useId, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -8,7 +8,8 @@ import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -46,6 +47,7 @@ import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
+import { PASO_DESCUENTO as PASO, pasoDeDescuento } from "@/lib/campana-hoja";
 import { TEXTOS_MODO, type ModoEtiquetas } from "@/lib/sellos-campanas";
 
 /**
@@ -363,6 +365,7 @@ export function CampanaModal({
   const [guardando, setGuardando] = useState(false);
   const router = useRouter();
   const [hoy] = useState(hoyLima);
+  const idDescuento = useId();
 
   // La hoja mide del alto de la pantalla, como «Prendas» (`.eqp-hoja`, etiqueta-prendas.css): lo que ocupan su título y su frase se
   // descuenta del alto, y solo el formulario corre por dentro. Ref de función (no efecto) y `offsetTop` (no getBoundingClientRect): el
@@ -487,48 +490,76 @@ export function CampanaModal({
           <div className="space-y-6">
             <div className="space-y-5">
               <CampoGuiado id="descuento" guia={guia}>
-                <CampoTexto
-                  etiqueta={guia.etiqueta("descuento", "Descuento (%)")}
-                  mono
-                  inputMode="decimal"
-                  value={descuento}
-                  onChange={(e) => setDescuento(e.target.value)}
-                  disabled={!puedeDarDescuento}
-                  placeholder={puedeDarDescuento ? "Escribe otro %" : "Tu rol no pone descuento"}
-                  tono={!pct.ok || bajoCosto.length > 0 ? "error" : undefined}
-                  className={bajoCosto.length > 0 ? "!text-rojo-profundo" : ""}
+                <Campo
+                  etiqueta={guia.etiqueta("descuento", "Cuánto baja")}
+                  htmlFor={idDescuento}
+                  tono={!pct.ok || bajoCosto.length > 0 ? "error" : "neutro"}
                   pie={
-                    !pct.ok
-                      ? pct.error
-                      : bajoCosto.length > 0
-                        ? `Por debajo del costo: ${bajoCosto.length} prenda${bajoCosto.length === 1 ? "" : "s"} (${bajoCosto
-                            .slice(0, 2)
-                            .map(nombreBajoCosto)
-                            .join(", ")}${bajoCosto.length > 2 ? "…" : ""}). Se puede guardar igual.`
-                        : pct.valor === null
-                          ? `Vacío: ${T.la} ${T.uno} solo marca prendas y no cambia precios.`
-                          : `Baja ${textoPct(pct.valor)} % el precio en Vender, sin pedir código.`
+                    !puedeDarDescuento
+                      ? "Tu rol no pone descuento: la campaña se configura con sus fechas y sus categorías."
+                      : !pct.ok
+                        ? pct.error
+                        : bajoCosto.length > 0
+                          ? `Por debajo del costo: ${bajoCosto.length} prenda${bajoCosto.length === 1 ? "" : "s"} (${bajoCosto
+                              .slice(0, 2)
+                              .map(nombreBajoCosto)
+                              .join(", ")}${bajoCosto.length > 2 ? "…" : ""}). Se puede guardar igual.`
+                          : pct.valor === null
+                            ? `Vacío: ${T.la} ${T.uno} solo marca prendas y no cambia precios.`
+                            : `Baja ${textoPct(pct.valor)} % el precio en Vender, sin pedir código.`
                   }
-                  autoComplete="off"
-                />
-                {puedeDarDescuento && (
-                  <div role="group" aria-label="Descuentos de siempre" className="mt-1 flex flex-wrap gap-1.5">
-                    <button type="button" className="pildora-cayla" aria-pressed={pct.ok && pct.valor === null} onClick={() => setDescuento("")}>
-                      Sin descuento
-                    </button>
-                    {DESCUENTOS_RAPIDOS.map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        className="pildora-cayla tabular-nums"
-                        aria-pressed={pct.ok && pct.valor === v}
-                        onClick={() => setDescuento(String(v))}
-                      >
-                        {v} %
-                      </button>
-                    ))}
+                >
+                  {/* La caja con − y + adentro y, a su lado, los descuentos de siempre en dos filas del MISMO alto (Felipe 2026-10-23):
+                      un solo bloque, sin espacio libre a la derecha. En el celular las opciones bajan enteras bajo la caja. */}
+                  <div className="cph-paso-fila">
+                    <PasoCantidad
+                      tamano="grande"
+                      sufijo="%"
+                      className="cph-paso"
+                      tono={!pct.ok || bajoCosto.length > 0 ? "error" : undefined}
+                      menos={{
+                        onClick: () => setDescuento((d) => pasoDeDescuento(d, -PASO)),
+                        deshabilitado: !puedeDarDescuento || !(pct.ok && pct.valor),
+                        etiqueta: `Bajar ${PASO} % el descuento`,
+                      }}
+                      mas={{
+                        onClick: () => setDescuento((d) => pasoDeDescuento(d, PASO)),
+                        deshabilitado: !puedeDarDescuento || (pct.ok && (pct.valor ?? 0) >= 100),
+                        etiqueta: `Subir ${PASO} % el descuento`,
+                      }}
+                      campo={{
+                        id: idDescuento,
+                        inputMode: "decimal",
+                        value: descuento,
+                        onChange: (e) => setDescuento(e.target.value),
+                        disabled: !puedeDarDescuento,
+                        placeholder: "0", // sugerir-fijo: el cero es «sin descuento», no un ejemplo que dependa de lo elegido
+                        "aria-label": "Descuento en porcentaje",
+                        autoComplete: "off",
+                        // El ancho de lo escrito: así el número y su «%» quedan al centro de la caja.
+                        style: { width: `${Math.max(1, (descuento || "0").length)}ch` },
+                      }}
+                    />
+                    {puedeDarDescuento && (
+                      <div role="group" aria-label="Descuentos de siempre" className="cph-rapidos">
+                        <button type="button" className="pildora-cayla" aria-pressed={pct.ok && pct.valor === null} onClick={() => setDescuento("")}>
+                          Sin descuento
+                        </button>
+                        {DESCUENTOS_RAPIDOS.map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            className="pildora-cayla tabular-nums"
+                            aria-pressed={pct.ok && pct.valor === v}
+                            onClick={() => setDescuento(String(v))}
+                          >
+                            {v} %
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                </Campo>
               </CampoGuiado>
 
               {/* El título del grupo va FUERA de la grilla: dentro, ocupaba la primera celda y partía Desde y Hasta en dos filas. */}

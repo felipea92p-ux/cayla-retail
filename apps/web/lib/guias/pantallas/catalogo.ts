@@ -772,7 +772,7 @@ export const GUIA_SELLOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.configurar" }],
       titulo: "Descuento, fechas y categorías",
-      texto: "El descuento (los de siempre a un toque, o escribe otro), desde y hasta cuándo rige y las categorías, cada una con cuántas prendas trae. «Elegir todas» las marca de un toque: así llega a todas las prendas, sin contarlas una por una. Abajo dice a cuántas llega antes de guardar.",
+      texto: "El descuento: − y + lo mueven de 5 en 5, los de siempre van a un toque, o escribe otro. Luego desde y hasta cuándo rige y las categorías, cada una con cuántas prendas trae («Elegir todas» las marca de un toque). A la derecha, la etiqueta dice cómo queda y a cuántas prendas llega.",
     },
     {
       id: "campana-sedes",
