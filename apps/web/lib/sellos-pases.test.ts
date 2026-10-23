@@ -169,6 +169,10 @@ describe("lo que dice el pase abierto", () => {
     ]);
     expect(loQueTiene(FILAS[1]!, 47, ["Maquillaje"], HOY)[1]!.detalle).toBe("47 prendas + toda Maquillaje");
     expect(loQueTiene(FILAS[5]!, 0, [], HOY)[0]).toMatchObject({ hecho: false, detalle: "sin fechas" });
+    // Sin ofertas conocidas la lista es la de siempre; con ellas suma una fila opcional.
+    expect(loQueTiene(FILAS[0]!, 0, [], HOY)).toHaveLength(3);
+    expect(loQueTiene(FILAS[0]!, 0, [], HOY, { total: 0, borradores: 0 })[3]).toMatchObject({ clave: "ofertas", hecho: false, opcional: true, detalle: "ninguna todavía" });
+    expect(loQueTiene(FILAS[0]!, 0, [], HOY, { total: 3, borradores: 1 })[3]).toMatchObject({ hecho: true, detalle: "3 ofertas · 1 en borrador" });
   });
 });
 

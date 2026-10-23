@@ -145,6 +145,7 @@
     "pruebas:campanas-web": "node scripts/pruebas/campanas_web.mjs",
     "pruebas:campanas-llave-unica": "node scripts/pruebas/campanas_llave_unica.mjs",
     "pruebas:campanas-por-sede": "node scripts/pruebas/campanas_por_sede.mjs",
+    "pruebas:campana-reglas": "node scripts/pruebas/campana_reglas.mjs",
     "pruebas:tienda-ficha": "node scripts/pruebas/tienda_ficha.mjs",
     "pruebas:tienda-separadas": "node scripts/pruebas/tienda_separadas.mjs",
     "pruebas:tienda-lugares": "node scripts/pruebas/tienda_lugares.mjs",

@@ -699,7 +699,9 @@ export const GUIA_ATRIBUTOS: Guia = {
 
 /** Catálogo ▸ Insignias (Felipe 2026-10-22): la billetera de pases que junta los sellos de Atributos (desde el
  *  2026-10-23, «insignias») y Catálogo ▸ Campañas. La hoja
- *  «Configurar» es la misma de antes (`CampanaModal`). */
+ *  «Configurar» abre las ofertas de la campaña («Tres preguntas», 2026-10-23); sus fechas se cambian en la franja de arriba y todo lo demás
+ *  (cuánto baja, qué prendas, qué tiendas, cuándo) es de cada oferta. Los pasos de «campana-*» son de la hoja de siempre (`CampanaModal`),
+ *  que solo se abre si la base todavía no tiene las ofertas: en las demás bases se saltan solos. */
 export const GUIA_SELLOS: Guia = {
   id: "productos.sellos",
   ruta: "/productos/insignias",
@@ -764,7 +766,95 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.configurar",
       opcional: true,
       titulo: "Configurar o repetir",
-      texto: "Le pone su descuento, sus fechas y las categorías donde rige (te la abrimos). Si ya pasó, el botón dice «Repetir»: abre con las fechas del año que viene.",
+      texto: "Abre la hoja de la campaña: sus ofertas y, arriba, sus fechas (te la abrimos). Si ya pasó, el botón dice «Repetir»: abre con las fechas del año que viene puestas.",
+    },
+    {
+      id: "ofertas",
+      ancla: "sellos.ofertas",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.configurar" }],
+      titulo: "Las ofertas de la campaña",
+      texto: "Aquí se registran las ofertas y promociones: un porcentaje menos, con sus fechas, sus días de la semana y, si quieres, solo algunas categorías. Se arma respondiendo tres preguntas, una por pantalla.",
+    },
+    {
+      id: "ofertas-registradas",
+      ancla: "sellos.ofertas-registradas",
+      opcional: true,
+      titulo: "Las que ya están",
+      texto: "Cada oferta dice su estado: Borrador espera a un líder, Programada empieza después, Vigente ya baja el precio. Toca una para editarla: vale desde ese momento, lo que ya se vendió no cambia y queda su historial. El «descuento de siempre» de una campaña antigua sale aquí con «Retirar».",
+    },
+    {
+      id: "oferta-pasos",
+      ancla: "sellos.oferta-pasos",
+      opcional: true,
+      titulo: "Tres preguntas",
+      texto: "Qué le das al cliente, en qué prendas y dónde, y cuándo. La segunda y la tercera ya vienen contestadas con lo más común: si te sirve, solo sigues.",
+    },
+    {
+      id: "oferta-rebaja",
+      ancla: "sellos.oferta-rebaja",
+      opcional: true,
+      titulo: "Qué le das al cliente",
+      texto: "Hoy se puede dar un porcentaje menos. Las otras formas (llevar varias, gastar un monto, un regalo, algo para el Club) llegan pronto y se ven apagadas.",
+    },
+    {
+      id: "oferta-pct",
+      ancla: "sellos.oferta-pct",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-rebaja" }],
+      titulo: "Cuánto menos",
+      texto: "Sube o baja de 5 en 5, o toca uno de los de siempre. No pasa de 70 %. La etiqueta de la derecha cambia al instante.",
+    },
+    {
+      id: "oferta-etiqueta",
+      ancla: "sellos.oferta-etiqueta",
+      opcional: true,
+      titulo: "Lo que verá el cliente",
+      texto: "Se arma con cada respuesta: el descuento, un ejemplo con el precio real de una prenda de la campaña y, abajo, lo que va quedando. «De fábrica» es lo que todavía no tocaste.",
+    },
+    {
+      id: "oferta-atajo",
+      ancla: "sellos.oferta-atajo",
+      opcional: true,
+      titulo: "El atajo",
+      texto: "Si lo de fábrica te sirve (toda la campaña, hasta que termine) y ya marcaste las tiendas, esto la guarda como borrador sin pasar por la pregunta del cuándo. En la demo no lo tocamos.",
+    },
+    {
+      id: "oferta-tiendas",
+      ancla: "sellos.oferta-tiendas",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-2" }],
+      titulo: "En qué tiendas",
+      texto: "Marca las tiendas donde rige la oferta; si quieres todas, márcalas todas. En las que no marques se cobra el precio normal. Es lo único que no viene puesto, y nunca puede salirse de las tiendas de su campaña.",
+    },
+    {
+      id: "oferta-dias",
+      ancla: "sellos.oferta-dias",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "sellos.oferta-paso-3" }],
+      titulo: "Qué días de la semana",
+      texto: "Todos los días, o solo algunos: por ejemplo, solo martes y jueves. Un día que no cae entre las fechas se ve apagado, porque tocarlo no serviría; si ninguno cae, no deja guardar.",
+    },
+    {
+      id: "oferta-revision",
+      ancla: "sellos.oferta-revision",
+      opcional: true,
+      titulo: "Revisa y guarda",
+      texto: "La oferta dicha en una frase. Solo si hace falta salen avisos: si deja una prenda bajo su costo, si se cruza con otra oferta (gana la que deja el mejor precio) o si el papel colgado no puede cambiar cada día.",
+    },
+    {
+      id: "oferta-activar",
+      ancla: "sellos.oferta-activar",
+      opcional: true,
+      titulo: "Guardar o activar",
+      texto: "Quien no es líder la deja como borrador. Un líder también puede activarla: desde ese momento la caja y la tienda web bajan el precio. En la demo no lo tocamos.",
+    },
+    {
+      id: "ofertas-campana",
+      ancla: "sellos.ofertas-campana",
+      opcional: true,
+      titulo: "Las fechas de la campaña",
+      texto: "La franja de arriba dice cuándo rige la campaña y cuántas prendas tiene. «Cambiar fechas» las mueve aquí mismo, y las ofertas tienen que caber dentro. Una campaña que ya pasó se repite con un toque: «Repetir».",
     },
     {
       id: "campana-form",
