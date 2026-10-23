@@ -85,22 +85,59 @@ export function textoFechaDeFijo(f: Pick<GastoFijoMes, "estado" | "fechaEsperada
 // es uno de los fijos pendientes; si es, el gasto lleva su `gasto_fijo_id` y lo cierra. Qué cuenta como «se parece» lo decide esta
 // función (el formulario solo pregunta): misma tienda, misma categoría, el mismo mes (`gastos_fijo_mes_uq` es un gasto por fijo y por
 // mes, contado por la fecha del gasto) y que el fijo siga sin registrar. El monto NO filtra, solo ordena: en un fijo de monto variable
-// (el recibo de la luz) el monto de siempre es una referencia y filtrar por él dejaría pasar justo los que más duplican.
+// (el recibo de la luz) el monto de siempre es una referencia y filtrar por él dejaría pasar justo los que más duplican. El proveedor sí
+// descarta cuando los dos lo tienen y son distintos (Hidrandina no es Sedalib), y sube al que coincide.
+//
+// El mes de un fijo es el de su fecha esperada (la base la calcula dentro del mes que se le pidió): así la pregunta funciona con los
+// fijos de VARIOS meses y de todas las tiendas, no solo con los de la vista (la revisión del 22-oct encontró que con la vista de una
+// tienda o de otro mes, el fijo de mayor monto no se preguntaba).
+
+/** El mes («2026-10») al que pertenece la fila de un fijo. */
+export function mesDelFijo(f: Pick<GastoFijoMes, "fechaEsperada">): string {
+  return f.fechaEsperada.slice(0, 7);
+}
+
+/** Un fijo y su mes: el mismo `id` sale en cada mes que se lee, y «No, es otro gasto» se contesta por mes. */
+export function claveDeFijo(f: Pick<GastoFijoMes, "id" | "fechaEsperada">): string {
+  return `${f.id}|${mesDelFijo(f)}`;
+}
+
+/** Une listas de fijos de meses distintos sin repetir la fila de un mismo fijo en un mismo mes. */
+export function sinRepetidos(fijos: readonly GastoFijoMes[]): GastoFijoMes[] {
+  const vistos = new Set<string>();
+  return fijos.filter((f) => {
+    const clave = claveDeFijo(f);
+    if (vistos.has(clave)) return false;
+    vistos.add(clave);
+    return true;
+  });
+}
 
 /**
- * Los fijos pendientes del `mes` que se parecen a este gasto, los más probables primero (con monto, el más cercano; sin él, el que
- * se esperaba antes). `ubicacion` es la del formulario: el id de la tienda o «empresa».
+ * Los fijos pendientes que se parecen a este gasto, los más probables primero (el del mismo proveedor, luego el de monto más cercano y
+ * sin monto el que se esperaba antes). `ubicacion` es la del formulario: el id de la tienda o «empresa». `descartados` son las
+ * `claveDeFijo` a las que ya se contestó «No, es otro gasto»: se quitan ANTES de ordenar, para que un cuarto fijo no quede escondido.
  */
 export function fijosQueSeParecen(
   fijos: readonly GastoFijoMes[],
-  gasto: { ubicacion: string; categoria: string; fecha: string; monto: number | null },
-  mes: string,
-  max = 3,
+  gasto: { ubicacion: string; categoria: string; fecha: string; monto: number | null; proveedorId?: string },
+  descartados: ReadonlySet<string> = new Set(),
 ): GastoFijoMes[] {
-  if (!gasto.categoria || gasto.fecha.slice(0, 7) !== mes) return [];
+  if (!gasto.categoria) return [];
+  const mes = gasto.fecha.slice(0, 7);
+  const proveedor = gasto.proveedorId ?? "";
+  const distintoProveedor = (f: GastoFijoMes) => !!proveedor && !!f.proveedorId && f.proveedorId !== proveedor;
+  const mismoProveedor = (f: GastoFijoMes) => !!proveedor && f.proveedorId === proveedor;
   const distancia = (f: GastoFijoMes) => (gasto.monto === null ? 0 : Math.abs(f.monto - gasto.monto));
   return fijos
-    .filter((f) => f.estado !== "registrado" && f.categoria === gasto.categoria && (f.ubicacionId ?? "empresa") === gasto.ubicacion)
-    .sort((a, b) => distancia(a) - distancia(b) || porFecha(a, b) || porMontoLuegoNombre(a, b))
-    .slice(0, max);
+    .filter(
+      (f) =>
+        f.estado !== "registrado" &&
+        mesDelFijo(f) === mes &&
+        f.categoria === gasto.categoria &&
+        (f.ubicacionId ?? "empresa") === gasto.ubicacion &&
+        !distintoProveedor(f) &&
+        !descartados.has(claveDeFijo(f)),
+    )
+    .sort((a, b) => Number(mismoProveedor(b)) - Number(mismoProveedor(a)) || distancia(a) - distancia(b) || porFecha(a, b) || porMontoLuegoNombre(a, b));
 }

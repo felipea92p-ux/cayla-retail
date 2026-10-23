@@ -206,7 +206,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.form-fijo-parecido",
       opcional: true,
       titulo: "¿Es uno de tus fijos?",
-      texto: "Si la categoría y la tienda son las de un gasto fijo que este mes todavía no está registrado, te pregunta si es ese. «Sí» lo cierra como fijo y ya no sale en «Faltan»; «No» lo deja aparte. Sin contestar no se registra: así nadie lo paga dos veces.",
+      texto: "Si la categoría y la tienda son las de un gasto fijo que todavía no está registrado ese mes, te pregunta si es ese. «Sí, es este» lo cierra como fijo y deja de salir pendiente; «No» lo deja aparte. Sin contestar no se registra: así nadie lo paga dos veces.",
     },
     {
       id: "form-monto",

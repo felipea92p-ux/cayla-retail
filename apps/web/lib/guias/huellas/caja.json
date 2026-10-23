@@ -141,7 +141,7 @@
       "button «¿No está? Súmalo»",
       "button «Cancelar»",
       "button «Sumar proveedor»",
-      "button «Quitar»",
+      "button «{`Quitar «${fijoElegido.descripcion}»",
       "ComboResponsable «{responsable}»",
       "button «Cancelar» #2",
       "Boton «→guardar»"

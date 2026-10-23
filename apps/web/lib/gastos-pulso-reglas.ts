@@ -48,7 +48,7 @@ export function gastastePulso(panel: PanelGastos | null, cuando?: { mes: string;
 /** Lo que el titular todavía no cuenta: los gastos fijos del mes que nadie ha registrado (los que ya pasaron y los que aún no llegan). */
 export type FijosPorConfirmar = {
   n: number;
-  /** De esos, los que ya pasaron su fecha («Faltan»). */
+  /** De esos, los que ya pasaron su fecha («Ya pasaron su fecha» en la pestaña). */
   vencidos: number;
   /** Lo que suman con el monto de siempre. */
   monto: number;
@@ -84,10 +84,23 @@ export type CosaPorRevisar =
   | { clave: string; tipo: "egreso"; titulo: string; detalle: string; monto: number; accion: "Clasificar"; egreso: EgresoPorClasificar }
   | { clave: string; tipo: "fijo"; titulo: string; detalle: string; monto: number; accion: "Registrar"; fijo: GastoFijoMes };
 
-export type Bandeja = { cosas: CosaPorRevisar[]; n: number; frase: string };
+export type Bandeja = {
+  cosas: CosaPorRevisar[];
+  n: number;
+  frase: string;
+  /** Lo que dice la bajada cuando no hay nada atrasado: sin prometer lo que no se miró (los cajones en «De la empresa», los fijos que aún no llegan). */
+  bajadaVacia: string;
+  /** «Al día» solo si de verdad no queda nada; con fijos por llegar o sin haber leído los cajones, «Sin atrasos». */
+  chip: string;
+};
 
-/** Primero las salidas de caja (la más vieja primero), después los fijos del mes que ya pasaron sin registrarse. */
-export function bandejaPulso(egresos: readonly EgresoPorClasificar[], fijos: readonly GastoFijoMes[]): Bandeja {
+/**
+ * Primero las salidas de caja (la más vieja primero), después los fijos del mes que ya pasaron sin registrarse.
+ * `egresosLeidos` = false en «De la empresa»: esa vista no lee ningún cajón y no puede decir que todo está clasificado (revisión del
+ * 22-oct). Los fijos que aún no llegan no son «atrasados», pero tampoco están «registrados»: la bajada lo dice.
+ */
+export function bandejaPulso(egresos: readonly EgresoPorClasificar[], fijos: readonly GastoFijoMes[], opciones: { egresosLeidos?: boolean } = {}): Bandeja {
+  const egresosLeidos = opciones.egresosLeidos ?? true;
   const deEgresos: CosaPorRevisar[] = [...egresos]
     .sort((a, b) => a.creadoEn.localeCompare(b.creadoEn))
     .map((e) => ({
@@ -115,7 +128,26 @@ export function bandejaPulso(egresos: readonly EgresoPorClasificar[], fijos: rea
   const cosas = [...deEgresos, ...deFijos];
   const n = cosas.length;
   const frase = n === 0 ? "Listo, no te falta nada por revisar." : n === 1 ? "Te falta 1 cosa por revisar." : `Te faltan ${n} cosas por revisar.`;
-  return { cosas, n, frase };
+
+  const porLlegar = fijos.filter((f) => f.estado === "por_llegar").length;
+  const quedan = porLlegar === 1 ? "Queda 1 gasto fijo por llegar" : `Quedan ${porLlegar} gastos fijos por llegar`;
+  const sinAtrasos = porLlegar > 0 || !egresosLeidos;
+  const bajadaVacia = egresosLeidos
+    ? porLlegar > 0
+      ? `Cada salida de caja ya dice qué fue. ${quedan} este mes.`
+      : fijos.length > 0
+        ? "Cada salida de caja ya dice qué fue y los fijos del mes están registrados."
+        : "Cada salida de caja ya dice qué fue."
+    : porLlegar > 0
+      ? `Aquí no se leen las salidas de caja: míralas en «Todas las tiendas». ${quedan} este mes.`
+      : "No hay fijos atrasados. Las salidas de caja son de cada tienda: míralas en «Todas las tiendas».";
+  return {
+    cosas,
+    n,
+    frase: n === 0 && sinAtrasos ? "No hay nada atrasado por revisar." : frase,
+    bajadaVacia,
+    chip: n > 0 ? `${n} por revisar` : sinAtrasos ? "Sin atrasos" : "Al día",
+  };
 }
 
 /** Lo que suma lo pendiente, en palabras («S/ 1,230 entre 4 cosas»). */

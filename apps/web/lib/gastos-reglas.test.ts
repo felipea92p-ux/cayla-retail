@@ -107,7 +107,7 @@ describe("«Ver»: qué mira la pantalla", () => {
   });
   it("«De la empresa» se dice «sin tienda»: no es toda la empresa y no puede leerse como «la empresa no gastó nada»", () => {
     expect(alcanceDeLaVista(leerVer("empresa", ubics, true, "lim"), ubics)).toBe("sin tienda");
-    expect(alcanceDeLaVista(leerVer("todas", ubics, true, "lim"), ubics)).toBe("de todas las tiendas");
+    expect(alcanceDeLaVista(leerVer("todas", ubics, true, "lim"), ubics)).toBe("de toda CAYLA");
     expect(alcanceDeLaVista(leerVer("tru", ubics, true, "lim"), ubics)).toBe("de Tienda Trujillo");
     expect(alcanceDeLaVista({ clave: "x", ubicacionId: "borrada", soloEmpresa: false }, ubics)).toBe("de la tienda");
   });

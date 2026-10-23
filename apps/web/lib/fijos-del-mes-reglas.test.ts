@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GastoFijoMes } from "./gastos-reglas";
-import { bajadaDeLaCola, colaDeFijos, fijosQueSeParecen, textoFechaDeFijo, tituloDeLaCola } from "./fijos-del-mes-reglas";
+import { bajadaDeLaCola, claveDeFijo, colaDeFijos, fijosQueSeParecen, mesDelFijo, sinRepetidos, textoFechaDeFijo, tituloDeLaCola } from "./fijos-del-mes-reglas";
 
 const F = (p: Partial<GastoFijoMes> & Pick<GastoFijoMes, "id" | "estado" | "fechaEsperada">): GastoFijoMes => ({
   ubicacionId: null, ubicacionNombre: "De la empresa", categoria: "software", categoriaNombre: "Software", descripcion: p.id, proveedorId: null, proveedorNombre: null,
@@ -89,31 +89,78 @@ describe("fijosQueSeParecen: un gasto suelto que parece un fijo pendiente", () =
     F({ id: "sw", estado: "falta", fechaEsperada: "2026-10-15", categoria: "software", ubicacionId: null, monto: 37 }),
     F({ id: "luz-ya", estado: "registrado", fechaEsperada: "2026-10-15", categoria: "luz", ubicacionId: "tru", monto: 280 }),
   ];
-  const g = (p: Partial<{ ubicacion: string; categoria: string; fecha: string; monto: number | null }> = {}) => ({ ubicacion: "tru", categoria: "alquileres", fecha: "2026-10-22", monto: null, ...p });
+  const g = (p: Partial<{ ubicacion: string; categoria: string; fecha: string; monto: number | null; proveedorId: string }> = {}) => ({ ubicacion: "tru", categoria: "alquileres", fecha: "2026-10-22", monto: null, ...p });
+  const ids = (l: readonly GastoFijoMes[]) => l.map((f) => f.id);
 
   it("misma tienda, misma categoría y mismo mes: los fijos que aún no están registrados", () => {
-    expect(fijosQueSeParecen(fijos, g(), "2026-10").map((f) => f.id).sort()).toEqual(["alq-alm", "alq-tru"]);
+    expect(ids(fijosQueSeParecen(fijos, g())).sort()).toEqual(["alq-alm", "alq-tru"]);
   });
   it("con el monto, el más cercano primero; el monto no descarta a ninguno (un fijo variable es solo una referencia)", () => {
-    expect(fijosQueSeParecen(fijos, g({ monto: 1250 }), "2026-10").map((f) => f.id)).toEqual(["alq-alm", "alq-tru"]);
-    expect(fijosQueSeParecen(fijos, g({ monto: 4000 }), "2026-10").map((f) => f.id)).toEqual(["alq-tru", "alq-alm"]);
-    expect(fijosQueSeParecen(fijos, g({ monto: 9 }), "2026-10")).toHaveLength(2);
+    expect(ids(fijosQueSeParecen(fijos, g({ monto: 1250 })))).toEqual(["alq-alm", "alq-tru"]);
+    expect(ids(fijosQueSeParecen(fijos, g({ monto: 4000 })))).toEqual(["alq-tru", "alq-alm"]);
+    expect(fijosQueSeParecen(fijos, g({ monto: 9 }))).toHaveLength(2);
   });
   it("otra tienda, otra categoría o un fijo ya registrado no se parecen", () => {
-    expect(fijosQueSeParecen(fijos, g({ ubicacion: "lim" }), "2026-10")).toEqual([]);
-    expect(fijosQueSeParecen(fijos, g({ categoria: "internet" }), "2026-10")).toEqual([]);
-    expect(fijosQueSeParecen(fijos, g({ categoria: "luz" }), "2026-10")).toEqual([]);
+    expect(fijosQueSeParecen(fijos, g({ ubicacion: "lim" }))).toEqual([]);
+    expect(fijosQueSeParecen(fijos, g({ categoria: "internet" }))).toEqual([]);
+    expect(fijosQueSeParecen(fijos, g({ categoria: "luz" }))).toEqual([]);
   });
   it("un fijo de la empresa se parece a un gasto «de la empresa», no al de una tienda", () => {
-    expect(fijosQueSeParecen(fijos, g({ ubicacion: "empresa", categoria: "software" }), "2026-10").map((f) => f.id)).toEqual(["sw"]);
-    expect(fijosQueSeParecen(fijos, g({ ubicacion: "tru", categoria: "software" }), "2026-10")).toEqual([]);
+    expect(ids(fijosQueSeParecen(fijos, g({ ubicacion: "empresa", categoria: "software" })))).toEqual(["sw"]);
+    expect(fijosQueSeParecen(fijos, g({ ubicacion: "tru", categoria: "software" }))).toEqual([]);
   });
-  it("un gasto de otro mes no cierra los fijos de este (la base cuenta un gasto por fijo y por mes de la fecha del gasto)", () => {
-    expect(fijosQueSeParecen(fijos, g({ fecha: "2026-09-30" }), "2026-10")).toEqual([]);
-    expect(fijosQueSeParecen(fijos, g({ fecha: "2026-11-02" }), "2026-10")).toEqual([]);
+  it("sin categoría todavía no hay nada que preguntar", () => {
+    expect(fijosQueSeParecen(fijos, g({ categoria: "" }))).toEqual([]);
   });
-  it("sin categoría todavía no hay nada que preguntar; y se muestran pocos", () => {
-    expect(fijosQueSeParecen(fijos, g({ categoria: "" }), "2026-10")).toEqual([]);
-    expect(fijosQueSeParecen(fijos, g(), "2026-10", 1)).toHaveLength(1);
+
+  describe("el mes es el de CADA fijo, no el de la vista", () => {
+    const dosMeses = [
+      F({ id: "alq", estado: "falta", fechaEsperada: "2026-09-30", categoria: "alquileres", ubicacionId: "tru", monto: 4200 }),
+      F({ id: "alq", estado: "por_llegar", fechaEsperada: "2026-10-31", categoria: "alquileres", ubicacionId: "tru", monto: 4200 }),
+    ];
+    it("un gasto de octubre solo se parece al fijo de octubre, y uno de septiembre al de septiembre (la base cuenta un gasto por fijo y por mes de la fecha del gasto)", () => {
+      expect(fijosQueSeParecen(dosMeses, g({ fecha: "2026-10-22" })).map(mesDelFijo)).toEqual(["2026-10"]);
+      expect(fijosQueSeParecen(dosMeses, g({ fecha: "2026-09-30" })).map(mesDelFijo)).toEqual(["2026-09"]);
+      expect(fijosQueSeParecen(dosMeses, g({ fecha: "2026-11-02" }))).toEqual([]);
+    });
+    it("«No, es otro gasto» se contesta por mes: descartar octubre no descarta septiembre", () => {
+      const sept = dosMeses[0]!;
+      const oct = dosMeses[1]!;
+      expect(fijosQueSeParecen(dosMeses, g({ fecha: "2026-10-22" }), new Set([claveDeFijo(oct)]))).toEqual([]);
+      expect(fijosQueSeParecen(dosMeses, g({ fecha: "2026-09-30" }), new Set([claveDeFijo(oct)])).map(mesDelFijo)).toEqual(["2026-09"]);
+      expect(claveDeFijo(sept)).not.toBe(claveDeFijo(oct));
+    });
+    it("sinRepetidos une dos lecturas sin repetir la fila de un fijo en un mismo mes", () => {
+      const unidos = sinRepetidos([...dosMeses, ...dosMeses, F({ id: "otro", estado: "falta", fechaEsperada: "2026-10-15" })]);
+      expect(unidos.map(claveDeFijo)).toEqual(["alq|2026-09", "alq|2026-10", "otro|2026-10"]);
+    });
+  });
+
+  describe("quitar los descartados ANTES de recortar: ningún fijo queda escondido", () => {
+    const cuatro = ["luz", "agua", "internet", "telefonia"].map((n, i) =>
+      F({ id: n, estado: "por_llegar", fechaEsperada: "2026-10-31", categoria: "servicios_basicos", ubicacionId: "lim", monto: [300, 80, 120, 60][i]!, montoVariable: n === "luz" || n === "agua" }),
+    );
+    const sb = { ubicacion: "lim", categoria: "servicios_basicos", fecha: "2026-10-22" };
+    it("con cuatro candidatos salen los cuatro; el de monto lejano (la luz variable) no se esconde", () => {
+      expect(fijosQueSeParecen(cuatro, { ...sb, monto: 95 })).toHaveLength(4);
+      expect(ids(fijosQueSeParecen(cuatro, { ...sb, monto: 95 }))).toContain("luz");
+    });
+    it("contestar «No» a algunos deja ver los demás", () => {
+      const sin = new Set([claveDeFijo(cuatro[1]!), claveDeFijo(cuatro[2]!), claveDeFijo(cuatro[3]!)]);
+      expect(ids(fijosQueSeParecen(cuatro, { ...sb, monto: 95 }, sin))).toEqual(["luz"]);
+    });
+  });
+
+  describe("el proveedor", () => {
+    const hidr = F({ id: "luz-h", estado: "por_llegar", fechaEsperada: "2026-10-31", categoria: "luz", ubicacionId: "tru", monto: 280, proveedorId: "hidrandina" });
+    const sed = F({ id: "agua-s", estado: "por_llegar", fechaEsperada: "2026-10-31", categoria: "luz", ubicacionId: "tru", monto: 90, proveedorId: "sedalib" });
+    const sinProv = F({ id: "luz-x", estado: "por_llegar", fechaEsperada: "2026-10-31", categoria: "luz", ubicacionId: "tru", monto: 100 });
+    const base = { ubicacion: "tru", categoria: "luz", fecha: "2026-10-22", monto: null };
+    it("un fijo con otro proveedor no se parece; el del mismo proveedor sube", () => {
+      expect(ids(fijosQueSeParecen([hidr, sed, sinProv], { ...base, proveedorId: "hidrandina" }))).toEqual(["luz-h", "luz-x"]);
+    });
+    it("sin proveedor elegido todavía, no descarta a nadie", () => {
+      expect(fijosQueSeParecen([hidr, sed, sinProv], base)).toHaveLength(3);
+    });
   });
 });

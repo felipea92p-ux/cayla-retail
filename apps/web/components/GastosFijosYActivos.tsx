@@ -43,6 +43,7 @@ import {
   resumenActivosPorSede,
   solesRedondo,
   textoColumnaCuando,
+  textoMes,
   textoVidaUtil,
   totalesActivos,
   validarFijo,
@@ -89,6 +90,7 @@ export function FijosDelMes({
   puedeConfigurar,
   mes,
   hoy,
+  desdeFinanzas,
   gastoDe,
   onRegistrar,
   onAbrirGasto,
@@ -103,6 +105,8 @@ export function FijosDelMes({
   /** El mes que se mira («2026-10») y el día de hoy: la lista dice el mes y cuántos días lleva de atraso cada fijo. */
   mes: string;
   hoy: string;
+  /** Si el mes que se mira es anterior al inicio de Finanzas: desde cuándo cuenta («octubre 2026»). Entonces no hay fijos que confirmar. */
+  desdeFinanzas?: string;
   /** El gasto con el que se registró un fijo, si está entre los que la pantalla ya cargó (la lista de gastos corta en 500). */
   gastoDe: (gastoId: string) => GastoFila | undefined;
   onRegistrar: (f: GastoFijoMes) => void;
@@ -123,6 +127,19 @@ export function FijosDelMes({
       </BotonEditar>
     </span>
   ) : null;
+
+  if (desdeFinanzas) {
+    return (
+      <>
+        <Superficie>
+          <Vacio guia="fin-gastos.fijos" icono={<CalendarClock />} titulo={`Los fijos de ${textoMes(mes)} no se confirman`}>
+            Finanzas cuenta desde {desdeFinanzas}: un gasto de antes de esa fecha no se puede registrar, así que aquí no hay nada que confirmar.
+          </Vacio>
+        </Superficie>
+        <NotaFijos />
+      </>
+    );
+  }
 
   if (fijos.length === 0 && sugeridos.length === 0) {
     return (
@@ -162,7 +179,7 @@ export function FijosDelMes({
         <span className="flex items-center gap-2.5">
           <Chip tono="verde">registrado</Chip>
           {g && (
-            <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => onAbrirGasto(g)}>
+            <button type="button" className="btn-cayla btn-enlace min-h-6 text-[12.5px]" aria-label={`Ver el gasto de ${nombre(f)}`} onClick={() => onAbrirGasto(g)}>
               Ver el gasto
             </button>
           )}
@@ -248,7 +265,7 @@ export function FijosDelMes({
 function NotaFijos() {
   return (
     <p className="nota-cayla">
-      Un gasto fijo es un recordatorio, no un gasto: <b>solo cuenta cuando se registra</b> con lo que llegó de verdad. Si su día pasó y no hay gasto, sale en «Faltan».
+      Un gasto fijo es un recordatorio, no un gasto: <b>solo cuenta cuando se registra</b> con lo que llegó de verdad. Si su día pasó y no hay gasto, sale en «Ya pasaron su fecha».
     </p>
   );
 }

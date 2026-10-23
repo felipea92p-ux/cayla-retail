@@ -1,6 +1,8 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
-import { esMes, leerVer, mesDe, rangoMes } from "@/lib/gastos-reglas";
+import { esMes, leerVer, mesDe, rangoMes, type Ver } from "@/lib/gastos-reglas";
+import { sinRepetidos } from "@/lib/fijos-del-mes-reglas";
+import { getParametrosFinanzas } from "@/lib/configuracion";
 import {
   getActivos,
   getCategoriasGasto,
@@ -19,6 +21,7 @@ import { GastosPanel, type PestanaGastos } from "@/components/GastosPanel";
 import { verDeLaVista } from "@/lib/vista-global";
 
 const PESTANAS: PestanaGastos[] = ["gastos", "fijos", "activos", "egresos"];
+const TODAS: Ver = { clave: "todas", ubicacionId: null, soloEmpresa: false };
 
 // Finanzas ▸ Gastos (ADR-0195 F2). Lee en el servidor y deja a una sola pieza cliente operar. `?mes=2026-09` elige el mes;
 // `?ver=` (solo el líder) elige qué tienda mirar: por defecto la sede donde trabaja, o «todas», o «empresa». `?tab=` abre en una
@@ -40,6 +43,7 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
     getDestinosDeposito(),
   ]);
   const ver = leerVer(verDeLaVista(persona.vista, sp.ver), contexto.ubicaciones, esLider, persona.ubicacionId);
+  const mesDeHoy = mesDe(hoy);
   const [panel, gastos, egresos, marcas, activos, fijos, sugeridos] = await Promise.all([
     getPanelGastos(desde, hasta, ver),
     getGastos(desde, hasta, ver),
@@ -48,6 +52,14 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
     getActivos(ver),
     getFijosMes(desde, ver),
     getFijosSugeridos(ver),
+  ]);
+  // Para «¿es uno de tus fijos?» del formulario de gasto: los fijos de TODAS las tiendas (el formulario puede ser de otra tienda que la que se
+  // mira) del mes que se mira y del mes de hoy (un gasto de hoy, con otro mes en pantalla). Si una lectura falla, ese mes no pregunta.
+  // Y el inicio de Finanzas: antes de esa fecha los fijos no se confirman (la base rechaza un gasto anterior al inicio).
+  const [fijosDeTodas, fijosDeHoy, parametros] = await Promise.all([
+    ver.clave === "todas" ? Promise.resolve(fijos) : getFijosMes(desde, TODAS),
+    mes === mesDeHoy ? Promise.resolve(null) : getFijosMes(rangoMes(mesDeHoy).desde, TODAS),
+    getParametrosFinanzas(),
   ]);
 
   return (
@@ -58,6 +70,8 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
       marcas={marcas}
       activos={activos.datos}
       fijos={fijos.datos}
+      fijosParaPreguntar={sinRepetidos([...fijosDeTodas.datos, ...(fijosDeHoy?.datos ?? [])])}
+      inicioFinanzas={parametros?.inicioFinanzas ?? null}
       sugeridos={sugeridos}
       tiposActivo={tiposActivo}
       categorias={categorias}

@@ -153,7 +153,8 @@ export function leerVer(param: string | undefined, ubicaciones: readonly Ubicaci
 export function alcanceDeLaVista(ver: Ver, ubicaciones: readonly UbicacionGastos[]): string {
   if (ver.soloEmpresa) return "sin tienda";
   if (ver.ubicacionId) return `de ${ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "la tienda"}`;
-  return "de todas las tiendas";
+  // «Todas» incluye también lo que no es de una tienda: decir «de todas las tiendas» dejaba fuera esos gastos.
+  return "de toda CAYLA";
 }
 
 /**

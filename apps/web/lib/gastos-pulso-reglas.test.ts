@@ -64,6 +64,27 @@ describe("bandejaPulso", () => {
     const b = bandejaPulso([], [fijo({ id: "f1", descripcion: "Suscripción", estado: "falta", fechaEsperada: "2026-10-15", ubicacionId: null, ubicacionNombre: "De la empresa", categoriaNombre: "Software" })]);
     expect(b.cosas[0]!.detalle).toBe("Software de la empresa: se esperaba el 15 oct y todavía no está registrado.");
   });
+  it("no dice «Al día» ni «los fijos del mes están registrados» si todavía quedan fijos por llegar", () => {
+    const b = bandejaPulso([], [fijo({ id: "a", descripcion: "Alquiler", estado: "por_llegar", fechaEsperada: "2026-10-31" }), fijo({ id: "b", descripcion: "Luz", estado: "por_llegar", fechaEsperada: "2026-10-31" })]);
+    expect(b.n).toBe(0);
+    expect(b.chip).toBe("Sin atrasos");
+    expect(b.frase).toBe("No hay nada atrasado por revisar.");
+    expect(b.bajadaVacia).toBe("Cada salida de caja ya dice qué fue. Quedan 2 gastos fijos por llegar este mes.");
+    expect(bandejaPulso([], [fijo({ id: "a", descripcion: "Alquiler", estado: "por_llegar", fechaEsperada: "2026-10-31" })]).bajadaVacia).toContain("Queda 1 gasto fijo por llegar");
+  });
+  it("en «De la empresa» no se leyó ningún cajón: no afirma que todo está clasificado", () => {
+    const b = bandejaPulso([], [], { egresosLeidos: false });
+    expect(b.chip).toBe("Sin atrasos");
+    expect(b.bajadaVacia).not.toContain("ya dice qué fue");
+    expect(b.bajadaVacia).toContain("Todas las tiendas");
+    expect(bandejaPulso([], [fijo({ id: "a", descripcion: "Suscripción", estado: "por_llegar", fechaEsperada: "2026-10-31" })], { egresosLeidos: false }).bajadaVacia).toContain("Queda 1 gasto fijo por llegar");
+  });
+  it("sin ningún fijo en el mes no dice que «los fijos están registrados»", () => {
+    expect(bandejaPulso([], []).bajadaVacia).toBe("Cada salida de caja ya dice qué fue.");
+  });
+  it("con todo al día y los cajones leídos, sigue diciendo «Al día»", () => {
+    expect(bandejaPulso([], [fijo({ id: "a", descripcion: "Luz", estado: "registrado", fechaEsperada: "2026-10-15" })])).toMatchObject({ chip: "Al día", frase: "Listo, no te falta nada por revisar." });
+  });
   it("una sola cosa, en singular", () => {
     expect(bandejaPulso([egreso({ id: "e1", motivo: "Taxi", monto: 18, creadoEn: "2026-10-10T20:00:00Z" })], []).frase).toBe("Te falta 1 cosa por revisar.");
   });

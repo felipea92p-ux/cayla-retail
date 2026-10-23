@@ -60,6 +60,7 @@ import {
 import { Boton } from "@/components/ui/campos";
 import { GastosPulso } from "@/components/finanzas/GastosPulso";
 import { bandejaPulso, fijosPorConfirmar, gastastePulso } from "@/lib/gastos-pulso-reglas";
+import { mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { Check, FunnelX, Receipt, SearchX, Store } from "lucide-react";
@@ -81,6 +82,8 @@ export function GastosPanel({
   marcas,
   activos,
   fijos,
+  fijosParaPreguntar,
+  inicioFinanzas = null,
   sugeridos,
   tiposActivo,
   categorias,
@@ -103,6 +106,10 @@ export function GastosPanel({
   marcas: MarcaNoGasto[];
   activos: ActivoFila[];
   fijos: GastoFijoMes[];
+  /** Los fijos de TODAS las tiendas del mes que se mira y del mes de hoy: con ellos, un gasto suelto pregunta si es uno de los que faltan. */
+  fijosParaPreguntar: GastoFijoMes[];
+  /** El día desde el que Finanzas cuenta (`parametros_finanzas`): antes de ese mes, los fijos no se confirman. `null` si no hay corte. */
+  inicioFinanzas?: string | null;
   sugeridos: FijoSugerido[];
   tiposActivo: TipoActivo[];
   categorias: CategoriaGasto[];
@@ -133,23 +140,37 @@ export function GastosPanel({
   const [nuevoFijo, setNuevoFijo] = useState<FijoSugerido | null>(null);
   const [noEsFijo, setNoEsFijo] = useState<FijoSugerido | null>(null);
   const [clasificar, setClasificar] = useState<EgresoPorClasificar | null>(null);
-  const rf = resumenFijos(fijos);
+  // Antes del inicio de Finanzas no hay fijos que confirmar: la base los marcaría todos «falta» y la base rechaza un gasto anterior a esa fecha.
+  const antesDelCorte = !!inicioFinanzas && mesAntesDelCorte(mes, inicioFinanzas);
+  const fijosDelMes = antesDelCorte ? [] : fijos;
+  const rf = resumenFijos(fijosDelMes);
 
   const ir = (cambios: Record<string, string>) => {
     const p = new URLSearchParams(params.toString());
     for (const [k, v] of Object.entries(cambios)) p.set(k, v);
-    p.set("tab", pestana);
+    // La pestaña que se pide gana; si no se pide ninguna, sigue la de ahora (antes pisaba siempre con la de ahora y un «Ver todas» caía en otra).
+    if (!("tab" in cambios)) p.set("tab", pestana);
     router.push(`${ruta}?${p.toString()}`, { scroll: false });
+  };
+  // Las pestañas empiezan más abajo del primer pliegue: «Ver los fijos» y «Ver todas» cambian de pestaña y llevan la vista hasta ellas.
+  const irALasPestanas = (p: PestanaGastos) => {
+    setPestana(p);
+    requestAnimationFrame(() => {
+      const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.getElementById("fin-gastos-secciones")?.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" });
+    });
   };
   const verTodas = !ver.ubicacionId && !ver.soloEmpresa;
   const nombreCorto = ver.soloEmpresa ? "la empresa" : ver.ubicacionId ? (ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "la tienda") : "todas las tiendas";
-  const titulo = ver.soloEmpresa ? "Gastos de la empresa" : ver.ubicacionId ? `Gastos de ${nombreCorto}` : `Gastos de ${textoMes(mes).split(" ")[0]}`;
+  const titulo = ver.soloEmpresa ? "Gastos sin tienda" : ver.ubicacionId ? `Gastos de ${nombreCorto}` : `Gastos de ${textoMes(mes).split(" ")[0]}`;
   const ubicacionParaRegistrar = ver.soloEmpresa ? "empresa" : (ver.ubicacionId ?? ubicaciones[0]?.id ?? "empresa");
   const enUso = activos.filter((a) => a.estado === "activo").length;
   // «De la empresa» es solo lo que no es de una tienda: en los conteos se dice «sin tienda» (nombreCorto sigue para el título y el chip).
   const alcance = alcanceDeLaVista(ver, ubicaciones);
   const aHoy = prefijoALaFecha(mes, hoy);
   const verTodasLasTiendas = () => ir({ ver: "todas" });
+  // En «De la empresa» no se lee ningún cajón: la bandeja no puede decir que todo está clasificado.
+  const bandeja = bandejaPulso(egresos, fijosDelMes, { egresosLeidos: !ver.soloEmpresa });
 
   return (
     <div className="space-y-6">
@@ -216,12 +237,12 @@ export function GastosPanel({
       {/* Camino A (Felipe 2026-10-15): primero la respuesta y la bandeja; las cifras, después. */}
       <GastosPulso
         gastaste={gastastePulso(panel, { mes, hoy })}
-        bandeja={bandejaPulso(egresos, fijos)}
+        bandeja={bandeja}
         alcance={alcance}
-        porConfirmar={fijosPorConfirmar(fijos)}
+        porConfirmar={fijosPorConfirmar(fijosDelMes)}
         onResolver={(cosa) => (cosa.tipo === "egreso" ? setClasificar(cosa.egreso) : setRegistrar({ fijo: cosa.fijo }))}
-        onVerTodas={() => setPestana(bandejaPulso(egresos, fijos).cosas[0]?.tipo === "fijo" ? "fijos" : "egresos")}
-        onVerFijos={() => setPestana("fijos")}
+        onVerTodas={() => irALasPestanas(bandeja.cosas[0]?.tipo === "fijo" ? "fijos" : "egresos")}
+        onVerFijos={() => irALasPestanas("fijos")}
       />
 
       <section className="fin-cifras" data-guia="fin-gastos.cifras">
@@ -243,7 +264,11 @@ export function GastosPanel({
           tono={panel && !ver.soloEmpresa && panel.egresosSinClasificar ? "text-ambar" : undefined}
           valor={panel && !ver.soloEmpresa ? String(panel.egresosSinClasificar) : null}
           noSePudoLeer={!panel}
-          onClick={() => (ver.soloEmpresa ? verTodasLasTiendas() : setPestana("egresos"))}
+          onClick={() => {
+            if (!ver.soloEmpresa) return setPestana("egresos");
+            setPestana("egresos");
+            ir({ ver: "todas", tab: "egresos" });
+          }}
           {...entra(4)}
         >
           {!panel
@@ -254,7 +279,7 @@ export function GastosPanel({
         </TarjetaCifra>
       </section>
 
-      <div {...entra(5)}>
+      <div {...entra(5)} id="fin-gastos-secciones">
         <PestanasFin
           etiqueta="Secciones de Gastos"
           guia="fin-gastos.pestanas"
@@ -275,7 +300,8 @@ export function GastosPanel({
 
       {pestana === "fijos" && (
         <FijosDelMes
-          fijos={fijos}
+          fijos={fijosDelMes}
+          desdeFinanzas={antesDelCorte && inicioFinanzas ? textoMes(inicioFinanzas.slice(0, 7)) : undefined}
           sugeridos={sugeridos}
           verTodas={verTodas}
           puedeConfigurar={puedeConfigurar}
@@ -375,8 +401,7 @@ export function GastosPanel({
           fijo={registrar.fijo}
           clase={registrar.clase}
           tiposActivo={tiposActivo}
-          fijosDelMes={fijos}
-          mes={mes}
+          fijosDelMes={fijosParaPreguntar}
           hoy={hoy}
           onCerrar={() => setRegistrar(null)}
         />

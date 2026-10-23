@@ -65,7 +65,7 @@
       "BotonEditar «Editar fijos»",
       "BotonEnlace «Agregar el primero»",
       "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}»",
-      "button «Ver el gasto»",
+      "button «{`Ver el gasto de ${nombre(f)}»",
       "BotonVerMas «→setVerRegistrados»",
       "button «Marcar fijo»",
       "button «No es fijo»",
