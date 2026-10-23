@@ -201,6 +201,64 @@ catálogo quede con lo anotado).
   una compra ya completada; `reabrir_envio` ahora lo frena y completar bloquea sus envíos mientras guarda.
 - **El diccionario** (`docs/datos/generado/`) se refresca cuando las migraciones estén en producción (se reescribe desde el volcado de producción).
 
+## Rediseño visual, pago y ronda de compras (2026-10-23, PR aparte, tres migraciones)
+
+Felipe aprobó la maqueta `docs/maquetas/compras-formidable-2026-10/` «tal cual», con sus cambios de recorrido, y pidió una corrección: **la tienda se
+sigue eligiendo por prenda**, no una vez por compra. Se construyó en 8 actividades sobre la rama `claude/compras-simple-rediseno`:
+
+- **Mi plata** (`/compras/mi-plata`): la «billetera» (la cifra grande y `<BarraApilada>` con lo que queda, lo comprado hoy y lo gastado hoy),
+  «Compré ropa» como tarjeta grande y las otras dos a su lado, la franja punteada de lo que falta mandar, y **una sola lista «Hoy»** en vez de tres
+  (`movimientosDeLaCompradora`, `lib/mi-plata-reglas.ts`), con «Ver días anteriores».
+- **Compré ropa:** la pregunta en grande (`.compra-pregunta`), la barra de **3 tramos** (proveedor · prendas · papel); el proveedor con «Les compraste
+  hace poco» («Le compraste hace 6 días · 4 compras», de lo que ya traía `fn_proveedores_para_comprar`); las prendas en grilla con su miniatura de
+  categoría (ADR-0333) y **una hoja por prenda** (`HojaPrenda.tsx`) que reemplaza las cuatro pantallas seguidas: cuántas (vacía, con «La vez pasada»
+  de un toque, por /formidable), el costo y la venta (llegan con lo de la vez pasada y lo del catálogo, como dice la maqueta), «Por cada una ganas» y
+  **la tienda de esa prenda** (marcada con la anterior). La barra negra suma prendas, plata y modelos. Revisar con «Si se vende todo, ganas», el papel
+  con «Cuadra con lo que anotaste» (o, en ámbar, que deje el del papel) y «Compra guardada» con el visto que se dibuja.
+- **Las hojas del celular:** la foto como una tarjeta de un toque (`TarjetaFoto.tsx`, la misma en las tres), los gastos de a tres con su ícono, la
+  sigla de cada tienda al mandar y el cuaderno rayado de «Terminé de comprar hoy».
+- **Revisar compras** (`/compras/fondos`): **una bandeja** (`BandejaRevisar.tsx`): cuatro `TarjetaCifra` que filtran, la lista a la izquierda y el detalle
+  al lado (`PanelDetalle.tsx`), sin hoja. Los cuatro detalles son lo que eran sus hojas (lo que se guarda no cambió). Lo de los fondos pasa abajo y la
+  cabecera lleva a ello con «Quién tiene plata». Esos detalles dejan el registro de modales de la guía de foco y entran como evidencia de la pantalla.
+- **Recibir** (`/recibir/envio/[id]`): con papeles, el papel va en una columna fija a la izquierda (la foto se abre en grande en una hoja, no en otra
+  pestaña) con «Lo que anotó X» y su estado; a la derecha, «Llevas contadas N de M» y **«La compradora anotó X × N. ¿Son estas?»**
+  (`PreguntaDeLaCompra.tsx`): «Son estas» pone el número en la línea igual que escribirlo; «Es otra prenda» la abre en el contador.
+
+Decisiones en el camino: la cabecera de cada pantalla sigue siendo `<EncabezadoPagina>` (la maqueta, sin el marco del ERP, no la tenía). «Quién tiene
+plata» baja a su sección en vez de abrir otra pantalla. Los paneles de Revisar compras no llevan «Cancelar» (no hay hoja que cerrar); la compra tiene
+«Más tarde», que pasa a la siguiente. Felipe pidió compactar la hoja de la prenda mirándola: el costo y la venta lado a lado también en el celular, y
+`CampoMonto` acepta `sinPie` para no reservar el renglón del error cuando la hoja dice lo que falta en su «Falta: …».
+
+/chaos en el navegador encontró un hueco que ya tenía el recorrido viejo: dos clics en el mismo instante en «Agregar» metían la prenda dos veces (y
+«Quitar» quitaba dos); cerrado con una marca por hoja (`hojaHecha`). /formidable: falta repetir la prueba ciega con el recorrido nuevo.
+
+### Lo que Felipe pidió mirando, en el mismo PR (tres migraciones, en este orden)
+
+1. **La foto del papel es opcional** (`20261023180000`): se suelta el candado `compra_papeles_foto_si_hay_papel` y `registrar_compra_rapida` deja de
+   exigirla. Sin foto, Compras copia la serie y el número del papel en la mano (Revisar compras lo dice); la tienda cuenta sin ver el papel.
+2. **Pagar ahora o después, y con qué** (`20261023181000`): `compra_papeles.pagado` y `medio_pago` (yape · efectivo · transferencia; sin pago, sin
+   método). De fábrica «Pagar ahora» con todo lo del papel y por Yape. Se puede pagar una parte (Felipe: «sí, el monto se puede bajar»); lo que falta,
+   o todo con «Pagar después», lo paga **Compras desde Por pagar**: al completar el papel, el comprobante queda **a crédito** por la diferencia, con
+   vencimiento a **7 días (provisional, nadie lo decidió)**. Los tres métodos salen de su plata para compras (el método solo dice cómo le pagó).
+   `registrar_compra_rapida` gana una sobrecarga con `p_pagado` y `p_medio`, que pasa el pago a la de siempre por una variable de la transacción
+   (`retail.compra_pago`) y un disparador lo pone en la fila: la función vieja no se reescribe. Mi plata baja solo lo pagado y dice «Compras paga
+   S/ X»; Revisar compras dice cuánto pagó, con qué y qué falta.
+3. **La ronda de compras** (`20261023183000`). Felipe pidió «abrir una orden de compra, hacer varias compras y cerrarla; para otra ronda, otra». Se llama
+   **«Ronda de compras»** (decisión suya: «orden de compra» ya es el pedido a un proveedor, ADR-0362) y lleva **serie y número, como las órdenes:
+   RC-000001** («que no diga Ronda 3»). La **abre la compradora** desde su celular (`abrir_ronda_compras`, idempotente: dos toques no abren dos) y
+   **cerrarla reemplaza a «Terminé por hoy»**: `terminar_dia_compras` conserva su nombre —la web publicada antes que la migración la sigue llamando—
+   pero cierra la ronda abierta, y se suelta el candado de un cierre por día (una ronda dura lo que dure el viaje). Un disparador pone la ronda en cada
+   compra y gasto nuevo (sin ronda abierta, «Abre tu ronda de compras»); la plata que le dieron se anota igual, con ronda si la hay (Compras a veces
+   la manda antes de salir). Lo anotado antes queda sin ronda: no se inventan rondas viejas. La plata sigue siendo de la persona: lo que sobra pasa a
+   la próxima ronda, como antes. En pantalla: sin ronda, «¿Sales a comprar?» con «Abrir mi ronda de compras»; abierta, su número en la billetera,
+   «En esta ronda», «Rondas anteriores» (cada fila con su número) y «Cerrar mi ronda» con la cuenta de la ronda; Revisar compras dice la ronda de cada
+   cosa («23/10 · RC-000249») y «Cierres del día» pasa a «Rondas cerradas».
+
+DESCARTÉ: llamarla «Orden de compra» y renombrar la de ADR-0362 a «Pedido al proveedor» (dos palabras para lo mismo en pantallas que ya están en
+producción); que Compras abra la ronda al entregar la plata (Felipe prefirió que la abra ella); una función nueva `cerrar_ronda_compras` (la web
+vieja, entre la migración y la publicación, llamaría a una que ya no cierra nada); exigir la ronda también para la plata anotada (Compras la manda
+antes de que salga).
+
 ## Cómo se ve mal hecho
 
 - Retirar `ordenes_compra` y crear una clave nueva: el rol «Compras» perdería en silencio recibir, gastos y proveedores.
