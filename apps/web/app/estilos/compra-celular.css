@@ -50,3 +50,15 @@
   font-family: var(--font-serif);
   font-size: 22px;
 }
+
+/* «Revisar compras» (rediseño): el título del detalle que se abre al lado de la lista, en la serif de 28 px de la maqueta. No es una
+   hoja (esa tiene su título en <Modal>) ni una sección: es lo que se está revisando. */
+.revisar-titulo {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 400;
+  color: var(--color-tinta);
+  margin: 0;
+  text-wrap: balance;
+}

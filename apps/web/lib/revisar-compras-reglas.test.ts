@@ -12,11 +12,19 @@ import {
   camposCompletar,
   ejemploSerie,
   fraseCompletar,
+  bandejaInicial,
+  chipPapel,
+  elegidoDeBandeja,
+  filaCierre,
+  filaGasto,
+  filaPapel,
+  filaPlata,
+  llegadaDePapel,
+  siguienteDeBandeja,
   fraseVeredicto,
   leerRevisarCompras,
   problemaNumero,
   problemaSerie,
-  textoCierrePorRecibir,
   textoFaltan,
   textoLlegada,
   veredictoPapel,
@@ -141,15 +149,12 @@ describe("completar el papel: lo mismo que rechaza la base", () => {
   });
 
   it("el botón dice qué se guarda", () => {
-    expect(fraseCompletar("boleta", 330)).toMatch(/^Guardar la boleta de S\/\s330\.00$/);
-    expect(fraseCompletar("sin_comprobante", null)).toBe("Guardar la compra");
+    expect(fraseCompletar()).toBe("Completar y pasar a los libros");
   });
 });
 
 describe("los cierres del día", () => {
   it("lo que espera a Compras y su botón", () => {
-    expect(textoCierrePorRecibir({ decision: "devuelve", monto: 200 })).toMatch(/^Devuelve S\/\s200\.00$/);
-    expect(textoCierrePorRecibir({ decision: "le_deben", monto: 50 })).toMatch(/^Le debemos S\/\s50\.00$/);
     expect(botonCierre({ decision: "devuelve", persona: "Marisol Quispe" }, 200)).toMatch(/^Recibir S\/\s200\.00$/);
     expect(botonCierre({ decision: "le_deben", persona: "Marisol Quispe" }, 50)).toMatch(/^Pagarle S\/\s50\.00 a Marisol$/);
   });
@@ -201,5 +206,38 @@ describe("los gastos que no son ropa", () => {
     expect(problemaRuc("20601234567")).toBeNull();
     expect(problemaRuc("")).toBeNull();
     expect(fraseRevisarGasto(15)).toMatch(/^Pasar S\/\s15\.00 a los gastos$/);
+  });
+});
+
+describe("la bandeja de Revisar compras (rediseño)", () => {
+  const linea = (cantidad: number, faltan = 0) => ({ id: "l", nombre: "x", cantidad, costo: 1, subtotal: cantidad, destino: "AQP", mandadas: cantidad, faltan: faltan ? [{ cantidad: faltan, causa: "no_vino" as const }] : [], sobran: 0 });
+  it("lo que llegó: todo, o cuántos faltaron; antes de llegar, dónde está", () => {
+    expect(llegadaDePapel({ llego: true, lineas: [linea(20), linea(15)] })).toEqual({ llegaron: 35, total: 35, completa: true });
+    expect(llegadaDePapel({ llego: true, lineas: [linea(14, 2)] })).toEqual({ llegaron: 12, total: 14, completa: false });
+    expect(llegadaDePapel({ llego: false, lineas: [linea(14)] })).toBeNull();
+    expect(chipPapel({ llego: true, lineas: [linea(14, 2)], envios: [] })).toEqual({ tono: "ambar", texto: "Faltaron 2" });
+    expect(chipPapel({ llego: true, lineas: [linea(3, 1)], envios: [] })).toEqual({ tono: "ambar", texto: "Faltó 1" });
+    expect(chipPapel({ llego: true, lineas: [linea(3)], envios: [] })).toEqual({ tono: "verde", texto: "Llegó todo" });
+    expect(chipPapel({ llego: false, lineas: [linea(3)], envios: [{ id: "e", numero: 1, estado: "en_camino" }] })).toEqual({ tono: "pizarra", texto: "En camino" });
+    expect(chipPapel({ llego: false, lineas: [{ ...linea(3), mandadas: 1 }], envios: [] }).texto).toBe("Sin mandar");
+    expect(chipPapel({ llego: false, lineas: [linea(3)], envios: [{ id: "e", numero: 1, estado: "abierto" }] }).texto).toBe("La tienda cuenta");
+  });
+  it("cada fila dice qué es, de quién y su estado", () => {
+    expect(filaPlata({ id: "a", persona: "Marisol", medio: "yape_plin", monto: 500, fecha: "2026-10-23", fotoRuta: "plata/x.jpg" })).toMatchObject({ titulo: "Yape o Plin · con foto", cuando: "23/10", chip: { texto: "Por confirmar" } });
+    expect(filaPlata({ id: "a", persona: "M", medio: "ya_tenia", monto: 1, fecha: "", fotoRuta: null }).titulo).toBe("Ya tenía de antes");
+    expect(filaPapel({ id: "p", persona: "M", proveedor: "Textiles Rosa", tipo: "factura", monto: 525, fecha: "2026-10-22", llego: true, lineas: [linea(35)], envios: [] })).toMatchObject({ titulo: "Textiles Rosa · Factura", chip: { tono: "verde" } });
+    expect(filaGasto({ id: "g", persona: "M", concepto: "taxi", nota: null, monto: 12, fecha: "2026-10-23", fotoRuta: null }).titulo).toBe("Taxi · sin papel");
+    expect(filaCierre({ id: "c", persona: "L", decision: "le_deben", monto: 20, fecha: "2026-10-22" }).chip).toEqual({ tono: "ambar", texto: "Le debemos" });
+  });
+  it("al entrar se abre la primera lista con algo; el detalle es el elegido o el primero, y «Más tarde» pasa al siguiente", () => {
+    expect(bandejaInicial({ plata: 0, papel: 2, gasto: 3, cierre: 0 })).toBe("papel");
+    expect(bandejaInicial({ plata: 0, papel: 0, gasto: 0, cierre: 0 })).toBe("plata");
+    const l = [{ id: "a" }, { id: "b" }, { id: "c" }];
+    expect(elegidoDeBandeja(l, "b")?.id).toBe("b");
+    expect(elegidoDeBandeja(l, "z")?.id).toBe("a");
+    expect(elegidoDeBandeja([], "a")).toBeNull();
+    expect(siguienteDeBandeja(l, "b")).toBe("c");
+    expect(siguienteDeBandeja(l, "c")).toBe("a");
+    expect(siguienteDeBandeja([], "a")).toBeNull();
   });
 });
