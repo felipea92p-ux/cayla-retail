@@ -431,7 +431,8 @@ export const ARBOL: readonly Nodo[] = [
   // Mismo orden que ya tenía: proveedor → factura → recepción → pago → notas de crédito.
   // PL-50 (Felipe, 2026-09-23): «Comprobantes» y «Notas de crédito» son palabras SOLO de Ventas (lo que CAYLA le emite a la
   // clienta ante SUNAT). Acá se dice «Facturas de proveedor» y «Notas de crédito de proveedor»; en el Taller, «Facturas de
-  // insumos». Solo cambió el texto visible: ids, rutas y claves de módulo siguen iguales.
+  // insumos». Solo cambió el texto visible: ids, rutas y claves de módulo siguen iguales. Desde el 2026-10-23 (ADR-0480 act.)
+  // «Facturas de proveedor» es «Historial de compras»: solo lectura, y el papel puede ser factura, boleta, nota de venta o ninguno.
   {
     id: "compras", etiqueta: "Compras", estado: "viva", icono: "compras", raiz: "/compras", pajaro: "09 Pelícano", ubicaciones: ["tienda", "almacen"],
     hijos: [
@@ -445,7 +446,7 @@ export const ARBOL: readonly Nodo[] = [
       { id: "compras.miPlata", modulo: "ordenes_compra", etiqueta: "Mi plata para compras", estado: "viva", ruta: "/compras/mi-plata", icono: "fondos", pajaro: "09 Pelícano" },
       { id: "compras.fondos", modulo: "fondos", etiqueta: "Revisar compras", estado: "viva", ruta: "/compras/fondos", icono: "revisarCompras", pajaro: "09 Pelícano" },
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
-      { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Facturas de proveedor", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Historial de compras", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
       // «Recibir mercadería» ya no vive aquí: desde el 2026-10-14 es una sola fila, en Inventario (ver allí).
       { id: "compras.porPagar", modulo: "por_pagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDineroCompras" },
     ],
