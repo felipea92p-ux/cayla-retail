@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, X } from "lucide-react";
 import { alejarFondo, devolverFondo, moverFondo } from "@/components/ui/fondoDeLaHoja";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
+import { CELULAR, useEnCelular } from "@/components/ui/useEnCelular";
 import { decidirLado, goma, pasoDeLado, velocidad, type Muestra } from "@/lib/hoja-gesto";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
@@ -14,7 +15,6 @@ const MS_SALIDA = 240;
 /** En el celular el cajón es una hoja alta que llega desde abajo (ADR-0479): lo mismo que `cayla-hoja-movil-entra/-sale`. */
 const MS_SALIDA_CELULAR = 300;
 const MS_ENTRADA_CELULAR = 460;
-const CELULAR = "(max-width: 639.98px)";
 
 /* ====================================================================
    Cajon · la hoja que entra por la derecha con el detalle de algo (ADR-0358, ronda 17: Felipe la eligió mirando el 2026-10-17)
@@ -39,18 +39,6 @@ const CELULAR = "(max-width: 639.98px)";
    ==================================================================== */
 
 /** ¿Celular? En el servidor «no»; el cajón se abre después de un toque, así que ya en el navegador responde de verdad. */
-function useEnCelular(): boolean {
-  return useSyncExternalStore(
-    (avisar) => {
-      const m = window.matchMedia(CELULAR);
-      m.addEventListener("change", avisar);
-      return () => m.removeEventListener("change", avisar);
-    },
-    () => window.matchMedia(CELULAR).matches,
-    () => false,
-  );
-}
-
 /** Lo que no desliza de lado aunque el dedo vaya de lado: escribir, una lista abierta, un deslizador. */
 const NO_DESLIZA = 'input, textarea, select, [contenteditable="true"], [role="slider"], [data-capa-flotante] > *';
 

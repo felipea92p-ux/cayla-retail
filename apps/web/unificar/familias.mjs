@@ -1372,7 +1372,7 @@ export const DECISIONES = {
     "registro": "docs/unificar/hoja-movil.md",
     "elegida": "B · Hoja viva con profundidad: bajo 640 px la hoja llega desde el borde, tiene asa, sigue al dedo (se cierra pasado un tercio o de un tirón, sin rebote), respeta antesDeCerrar y bloqueado, aleja lo de atrás a 0,92; Filtros a media altura; el cajón es una hoja alta que se desliza entre registros; elegida tocando la maqueta el 2026-10-22",
     "pieza": "components/ui/Modal.tsx",
-    "tambien": ["components/ui/Cajon.tsx", "components/ui/ModalRuta.tsx", "components/ui/useHojaArrastre.ts", "components/ui/fondoDeLaHoja.ts"],
+    "tambien": ["components/ui/Cajon.tsx", "components/ui/ModalRuta.tsx", "components/ui/useHojaArrastre.ts", "components/ui/fondoDeLaHoja.ts", "components/ui/CapaDeFiltro.tsx"],
     "firmas": [
       // Una hoja armada a mano con Radix: no tiene asa, ni dedo, ni lo de atrás que se aleja. Es <Modal> (o <Cajon>).
       "<Dialog\\.Content(?:\\s|$)",
@@ -1381,7 +1381,7 @@ export const DECISIONES = {
       // El lugar de la hoja de <Modal> (pegada abajo en el celular, arriba en escritorio) copiado a mano.
       "items-end justify-center sm:items-start"
     ],
-    "deuda": ["components/FiltrosCompras.tsx", "components/FiltrosRecibidas.tsx", "components/ProveedorModal.tsx"],
+    "deuda": [],
     "excepciones": []
   },
   "accion.anterior": {
