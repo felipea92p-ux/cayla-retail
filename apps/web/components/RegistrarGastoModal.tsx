@@ -24,6 +24,7 @@ import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
 import { ProveedorElegido } from "@/components/ProveedorElegido";
+import { proveedoresParaElegirEnGasto } from "@/lib/gasto-fijo-ficha-reglas";
 import { FichaDePagoTarjeta } from "@/components/gasto-fijo/FichaDePagoTarjeta";
 import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import {
@@ -233,7 +234,7 @@ export function RegistrarGastoModal({
     const { data, error } = await createClient().rpc("registrar_proveedor_de_gasto" as never, { p_nombre: nuevoProveedor.nombre, p_ruc: nuevoProveedor.ruc || null } as never);
     if (error) return avisar.error(traducirError(error, "sumar el proveedor"));
     const id = String(data);
-    if (!proveedores.some((p) => p.id === id)) setProveedores((ps) => [...ps, { id, nombre: nuevoProveedor.nombre.trim(), ruc: nuevoProveedor.ruc || null }].sort((x, y) => x.nombre.localeCompare(y.nombre)));
+    if (!proveedores.some((p) => p.id === id)) setProveedores((ps) => [...ps, { id, nombre: nuevoProveedor.nombre.trim(), ruc: nuevoProveedor.ruc || null, rubros: ["Gastos"] }].sort((x, y) => x.nombre.localeCompare(y.nombre)));
     elegirProveedor(id);
   }
 
@@ -368,7 +369,7 @@ export function RegistrarGastoModal({
                   valor={b.proveedorId}
                   onValor={(v) => poner("proveedorId", v)}
                   marcador="Elige…"
-                  opciones={proveedores.map((p) => ({ valor: p.id, texto: `${p.nombre}${p.ruc ? ` · ${p.ruc}` : ""}` }))}
+                  opciones={proveedoresParaElegirEnGasto(proveedores, b.proveedorId).map((p) => ({ valor: p.id, texto: `${p.nombre}${p.ruc ? ` · ${p.ruc}` : ""}` }))}
                 />
               </CampoFin>
               <CampoFin etiqueta="Serie y número" htmlFor="gasto-documento" tono={documento && !b.numero ? "aviso" : undefined} ayuda={documento && !b.numero ? "Como está en el comprobante: serie, guion y número (F001-00140)." : undefined}>
