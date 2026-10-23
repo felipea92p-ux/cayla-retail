@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { SearchX } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Buscador } from "@/components/ui/Buscador";
@@ -38,7 +38,7 @@ export function CategoriasDeCampana({
   const sinPrendasAbierta = vista.sinPrendas.some((c) => elegidas.has(c.id)) || (busqueda.trim() !== "" && vista.sinPrendas.length > 0);
 
   const fila = (c: FilaCategoria, i: number) => (
-    <label key={c.id} className="cph-cat" data-cat-id={c.id} data-elegida={elegidas.has(c.id) || undefined} title={`${c.nombre} · ${c.prendas} ${c.prendas === 1 ? "prenda" : "prendas"} a la venta`}>
+    <label key={c.id} className="cph-cat" style={{ "--i": i } as CSSProperties} data-cat-id={c.id} data-elegida={elegidas.has(c.id) || undefined} title={`${c.nombre} · ${c.prendas} ${c.prendas === 1 ? "prenda" : "prendas"} a la venta`}>
       <Casilla marcada={elegidas.has(c.id)} onCambio={() => onAlternar(c.id)} etiqueta={`${c.nombre}, ${c.prendas} ${c.prendas === 1 ? "prenda" : "prendas"}`} />
       <span className="cph-cat-n">{c.nombre}</span>
       <span className="cph-cat-c">{c.prendas.toLocaleString("es-PE")}</span>

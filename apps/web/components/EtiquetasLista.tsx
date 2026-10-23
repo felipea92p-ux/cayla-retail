@@ -513,7 +513,7 @@ export function CampanaModal({
       onClose={onClose}
     >
       {(cerrar) => (
-        <div ref={hoja} className="eqp-hoja mt-4">
+        <div ref={hoja} className="eqp-hoja cph-hoja mt-4">
           {/* ---- El formulario, a la izquierda: lo único que corre ---- */}
           <div data-guia="atributos.campana-form" className="eqp-lista cph-form scroll-cayla">
           {/* Una columna: cuánto, cuándo, dónde y las categorías, de arriba abajo (al lado va la etiqueta). */}

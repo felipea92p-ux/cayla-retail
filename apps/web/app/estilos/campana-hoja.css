@@ -96,3 +96,36 @@
 @media (max-width: 767.98px) {
   .cph-sello { display: none; }
 }
+
+/* ---- El movimiento de la hoja (ADR-0136, excepción del 2026-10-23, ADR-0488: Felipe pidió «full animaciones») ----------------------
+   Todo UNA vez y con la curva del sistema, sin rebote ni bucle: el hilo de la etiqueta se dibuja, la etiqueta baja y se asienta, el
+   descuento entra subiendo cada vez que cambia, las casillas de las categorías entran en cascada y cada pieza del mosaico aparece. La
+   categoría que vuela de su casilla a su pieza (`vuelo.ts`) y el sello que se estampa al guardar (`SelloTinta`) traen su propio
+   movimiento. Con «reducir movimiento», nada se mueve: todo aparece en su lugar. Lo vigila lib/campana-hoja-movimiento.test.ts. */
+.cph-hoja .eqp-hilo { stroke-dasharray: 80; stroke-dashoffset: 80; animation: cph-hilo 900ms var(--ease-cayla) 250ms both; }
+.cph-hoja .eqp-punta { transform-box: fill-box; transform-origin: center; animation: cph-punta 450ms var(--ease-cayla) 150ms both; }
+.cph-hoja .eqp-tarjeta { animation: cph-baja 1100ms var(--ease-cayla) 450ms both; }
+.cph-hoja .eqp-tarjeta.eqp-se-asienta { animation: eqp-asienta 420ms var(--ease-cayla) 1; }
+.cph-rueda { animation: cph-rueda 450ms var(--ease-cayla) both; }
+.cph-cat { animation: cph-asoma 500ms var(--ease-cayla) both; animation-delay: calc(var(--i, 0) * 18ms + 150ms); }
+.cph-pieza { animation: cph-pieza 420ms var(--ease-cayla) both; }
+@keyframes cph-hilo { to { stroke-dashoffset: 0; } }
+@keyframes cph-punta { from { transform: scale(0); } }
+@keyframes cph-baja { from { opacity: 0; transform: translateY(-28px) rotate(5deg); } }
+@keyframes cph-rueda { from { opacity: 0; transform: translateY(35%); } }
+@keyframes cph-asoma { from { opacity: 0; transform: translateY(6px); } }
+@keyframes cph-pieza { from { opacity: 0; transform: scale(0.7); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cph-hoja .eqp-hilo,
+  .cph-hoja .eqp-punta,
+  .cph-hoja .eqp-tarjeta,
+  .cph-hoja .eqp-tarjeta.eqp-se-asienta,
+  .cph-rueda,
+  .cph-cat,
+  .cph-pieza { animation: none; }
+  .cph-hoja .eqp-hilo { stroke-dashoffset: 0; }
+  .cph-cat,
+  .cph-cat:not([data-elegida]) .cph-cat-b,
+  .cph-ej-b { transition: none; }
+}

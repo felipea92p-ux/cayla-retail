@@ -98,7 +98,10 @@ export function EtiquetaDeCampana({
         <span className="eqp-solo-ancho eqp-alto label-cayla block text-center text-[10.5px] text-taupe">Etiqueta de campaña</span>
         <h3 className="eqp-nombre mt-1">{nombre}</h3>
         {typeof descuento === "number" ? (
-          <p className="eqp-pct">−{textoPct(descuento)} %</p>
+          // La llave cambia con el descuento: cada número nuevo entra subiendo (`cph-rueda`, una vez).
+          <p key={textoPct(descuento)} className="eqp-pct cph-rueda">
+            −{textoPct(descuento)} %
+          </p>
         ) : (
           <p className="eqp-pct-info">{descuento === "mal" ? "Revisa el descuento" : "Informativa · no cambia el precio"}</p>
         )}
