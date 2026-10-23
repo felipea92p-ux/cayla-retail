@@ -2387,6 +2387,7 @@ export type Database = {
           descuento_pct: number | null
           estado: string
           estilo: string
+          icono: string | null
           id: string
           nombre: string
           notas: string | null
@@ -2403,6 +2404,7 @@ export type Database = {
           descuento_pct?: number | null
           estado?: string
           estilo?: string
+          icono?: string | null
           id?: string
           nombre: string
           notas?: string | null
@@ -2419,6 +2421,7 @@ export type Database = {
           descuento_pct?: number | null
           estado?: string
           estilo?: string
+          icono?: string | null
           id?: string
           nombre?: string
           notas?: string | null
@@ -5288,6 +5291,13 @@ export type Database = {
           p_variantes: Json
         }
         Returns: string
+      }
+      fijar_icono_etiqueta: {
+        Args: {
+          p_etiqueta_id: string
+          p_icono: string | null
+        }
+        Returns: undefined
       }
       actualizar_campana_etiqueta: {
         Args: {
