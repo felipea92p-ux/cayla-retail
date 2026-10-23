@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
-import { avisoCajaFuerte, colorDeSede, detalleCajon, nivelFrasco, orilloDeDinero, repisaDe, repisasDeDinero, ultimoDepositoDe } from "./dinero-telar-reglas";
+import { avisoCajaFuerte, chipsDondeEsta, chipsQueDebes, colorDeRepisa, detalleCajon, preguntaDeDinero, respuestaCuadrar, nivelFrasco, orilloDeDinero, repisaDe, repisasDeDinero, ultimoDepositoDe } from "./dinero-telar-reglas";
 
 const cuenta = (p: Partial<CuentaDinero> & Pick<CuentaDinero, "id" | "nombre" | "tipo">): CuentaDinero => ({
   cuentaContable: "104", ubicacionId: null, ubicacionNombre: null, numero: null, saldo: 0, archivada: false, soloDestino: false,
@@ -27,6 +27,7 @@ const SEDES = [
   { id: "tal", nombre: "Taller" },
 ];
 const HOY = "2026-10-15";
+const plano = (t: string) => t.replace(/\s/g, " ");
 
 describe("repisaDe", () => {
   it("el cajón y la caja fuerte van a su sede; bancos y lo del líder, a CAYLA entera; las máquinas, en camino; la tarjeta no es frasco", () => {
@@ -146,14 +147,53 @@ describe("detalleCajon", () => {
   });
 });
 
-describe("colorDeSede", () => {
-  it("cada sede, un token por su lugar; la empresa (o sin sede) y lo en camino, a media voz", () => {
-    expect(colorDeSede("tru", SEDES)).toBe("var(--color-pizarra)");
-    expect(colorDeSede("aqp", SEDES)).toBe("var(--color-verde)");
-    expect(colorDeSede("tal", SEDES)).toBe("var(--color-taupe)");
-    expect(colorDeSede(null, SEDES)).toContain("var(--color-tinta) 55%");
-    expect(colorDeSede("empresa", SEDES)).toBe(colorDeSede(null, SEDES));
-    expect(colorDeSede("camino", SEDES)).toContain("var(--color-pizarra) 55%");
-    expect(colorDeSede("otra", SEDES)).toMatch(/^var\(--color-/);
+describe("colorDeRepisa", () => {
+  const TELAR = [
+    { clave: "tru", color: "tru" as const },
+    { clave: "tal", color: "tal" as const },
+    { clave: "alm", color: "otra" as const },
+  ];
+  it("el hilo de la sede en la barra; la empresa (o sin sede), el de la empresa; lo en camino y lo desconocido, a media voz", () => {
+    expect(colorDeRepisa("tru", TELAR)).toBe("var(--color-sede-tru)");
+    expect(colorDeRepisa("tal", TELAR)).toBe("var(--color-sede-tal)");
+    expect(colorDeRepisa(null, TELAR)).toBe("var(--color-sede-emp)");
+    expect(colorDeRepisa("empresa", TELAR)).toBe("var(--color-sede-emp)");
+    expect(colorDeRepisa("camino", TELAR)).toContain("var(--color-pizarra) 55%");
+    expect(colorDeRepisa("alm", TELAR)).toBe("var(--color-taupe)");
+    expect(colorDeRepisa("nadie", TELAR)).toBe("var(--color-taupe)");
+  });
+});
+
+describe("la respuesta de cada cara", () => {
+  it("la pregunta nombra la sede, y Cuadrar es siempre de CAYLA entera", () => {
+    expect(preguntaDeDinero("donde", null)).toBe("¿Cuánta plata tienes hoy?");
+    expect(preguntaDeDinero("donde", "Trujillo")).toBe("¿Cuánta plata tiene Trujillo hoy?");
+    expect(preguntaDeDinero("debes", null)).toBe("¿Cuánto debes?");
+    expect(preguntaDeDinero("debes", "Taller")).toBe("¿Cuánto debe Taller?");
+    expect(preguntaDeDinero("cuadrar", "Trujillo")).toBe("¿Cuánto dicen tus bancos?");
+  });
+  it("Dónde está: dónde está la plata, la tarjeta aparte y si algo no se ve", () => {
+    const chips = chipsDondeEsta({ partes: [{ clave: "bancos", titulo: "En los bancos", monto: 28130 }, { clave: "camino", titulo: "En camino (tarjeta por abonar)", monto: 2140 }], tarjeta: 2300, ocultas: true });
+    expect(chips.map((c) => [plano(c.texto), c.tono])).toEqual([
+      ["En los bancos S/ 28,130", "pizarra"],
+      ["En camino S/ 2,140", "pizarra"],
+      ["Debes S/ 2,300 en la tarjeta", "ambar"],
+      ["El cajón abierto lo ve quien cierra la caja", "apagado"],
+    ]);
+  });
+  it("Qué debes: cuántas, lo vencido en rojo, lo de esta semana en ámbar; nada, en verde", () => {
+    const chips = chipsQueDebes([{ vence: "2026-10-10", saldo: 5133.6 }, { vence: "2026-10-19", saldo: 6800 }, { vence: "2026-11-30", saldo: 3200 }], HOY);
+    expect(chips.map((c) => [plano(c.texto), c.tono])).toEqual([
+      ["3 facturas", "pizarra"],
+      ["S/ 5,134 ya vencido", "rojo"],
+      ["S/ 6,800 vence esta semana", "ambar"],
+    ]);
+    expect(chipsQueDebes([], HOY)).toEqual([{ texto: "Nada por pagar", tono: "verde" }]);
+  });
+  it("Cuadrar: lo que suman los bancos y lo que falta revisar; sin bancos, no hay cifra", () => {
+    const c = (tipo: "banco" | "por_abonar", saldoHoy: number, pendientes: number) => ({ tipo, saldoHoy, pendientes });
+    expect(respuestaCuadrar([c("banco", 18300, 1), c("banco", 9830, 4), c("por_abonar", 2140, 2)])).toEqual({ valor: 28130, chips: [{ texto: "7 líneas por revisar", tono: "ambar" }] });
+    expect(respuestaCuadrar([c("banco", 100, 0)]).chips).toEqual([{ texto: "Todo revisado", tono: "verde" }]);
+    expect(respuestaCuadrar([c("por_abonar", 50, 0)])).toEqual({ valor: null, chips: [] });
   });
 });

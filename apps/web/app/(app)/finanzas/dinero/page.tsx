@@ -7,7 +7,9 @@ import { alcanzaPulso, tienesPulso } from "@/lib/dinero-pulso-reglas";
 import { getProyeccion } from "@/lib/flujo-caja";
 import { verDeLaVista } from "@/lib/vista-global";
 import { explicacionCuenta } from "@/lib/cuentas-dinero-reglas";
-import { avisoCajaFuerte, detalleCajon, repisaDe, repisasDeDinero } from "@/lib/dinero-telar-reglas";
+import { avisoCajaFuerte, chipsDondeEsta, detalleCajon, orilloDeDinero, preguntaDeDinero, repisaDe, repisasDeDinero } from "@/lib/dinero-telar-reglas";
+import { getSedesDelTelar } from "@/lib/finanzas-telar";
+import { sedeDeLaCabecera } from "@/lib/gastos-telar-reglas";
 import { SEDE_EMPRESA, SEDE_TODAS, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 import { Frascos } from "@/components/finanzas/dinero/Frascos";
 import { CierresConDiferencia } from "@/components/finanzas/dinero/CierresConDiferencia";
@@ -27,7 +29,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   // El telar: arriba, «tienes»; luego los frascos de cada sede y «¿me alcanza?» (el flujo de 6 semanas, solo el líder). Lo que se
   // debe es su propia cara, «Qué debes» (/finanzas/dinero/por-pagar).
   // El efectivo de hoy (la misma cuenta del cierre) y los cierres con diferencia viven aquí desde que se retiró la pestaña Efectivo.
-  const [movimientos, medios, sinCuenta, proyeccion, alertas, efectivo, cierres] = await Promise.all([
+  const [movimientos, medios, sinCuenta, proyeccion, alertas, efectivo, cierres, telar] = await Promise.all([
     getMovimientos(ctx.ver.ubicacionId),
     ctx.esLider ? getMediosDeCobro() : Promise.resolve({ datos: [], falla: null }),
     ctx.esLider && !ctx.ver.ubicacionId ? getSinCuenta() : Promise.resolve([]),
@@ -36,6 +38,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
     ctx.esLider ? getAlertasPos() : Promise.resolve([]),
     getEfectivo(ctx.ver.ubicacionId),
     getCierresConDiferencia(ctx.ver.ubicacionId),
+    getSedesDelTelar(),
   ]);
   // Con una sede elegida, «tienes» es SOLO lo suyo (su cajón y su caja fuerte): los bancos son de CAYLA entera y no se le suman.
   const sedeId = ctx.ver.ubicacionId;
@@ -47,12 +50,21 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
     avisar: (c) => avisoCajaFuerte(c, movimientos.datos, hoy),
   });
 
+  const sede = sedeDeLaCabecera(ctx.ver, ctx.ubicaciones);
+
   return (
     <PantallaDinero
       pestana="cuentas"
       esLider={ctx.esLider}
       conteos={{ conciliacion: pendientesDeConciliar(ctx.conciliacion.datos) }}
-      ubicaciones={ctx.ubicaciones}
+      sede={sede}
+      respuesta={{
+        pregunta: preguntaDeDinero("donde", sedeId ? sede : null),
+        valor: ctx.cuentas.falla ? null : tienes.total,
+        chips: chipsDondeEsta(tienes),
+      }}
+      orillo={{ porSede: orilloDeDinero(ctx.cuentas.datos), que: "en plata" }}
+      sedes={telar.sedes}
       ver={ctx.ver}
       cuentas={ctx.cuentas.datos}
       deuda={ctx.deuda}
@@ -60,12 +72,11 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
       fallas={[ctx.cuentas.falla, movimientos.falla, medios.falla, efectivo.falla].filter((f): f is string => !!f)}
     >
       <DineroPulso
-        tienes={tienes}
         alcanza={alcanzaPulso(proyeccion.datos, tienes.guardado)}
         deCaylaEntera={!!sedeId}
         frascos={
           <>
-            <Frascos repisas={repisas} ubicaciones={ctx.ubicaciones} />
+            <Frascos repisas={repisas} sedes={telar.sedes} />
             <CierresConDiferencia cierres={cierres} />
           </>
         }

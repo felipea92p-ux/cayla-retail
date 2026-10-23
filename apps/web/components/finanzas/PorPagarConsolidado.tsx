@@ -11,10 +11,11 @@ import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { Vacio } from "@/components/ui/Vacio";
 import { CabeceraDinero } from "@/components/finanzas/CabeceraDinero";
 import { PieTabla, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
-import { VerPorPagar } from "@/components/finanzas/PorPagarAcciones";
 import { soles } from "@/lib/compras-reglas";
 import { fechaCorta, solesRedondo, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
-import { colorDeSede } from "@/lib/dinero-telar-reglas";
+import { chipsQueDebes, colorDeRepisa, preguntaDeDinero } from "@/lib/dinero-telar-reglas";
+import { porSedeDe, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { sedeDeLaCabecera } from "@/lib/gastos-telar-reglas";
 import { debesPulso } from "@/lib/dinero-pulso-reglas";
 import { TEXTO_NATURALEZA, TONO_NATURALEZA, diasHasta, puedePagar, resumenTramos, textoUnidad, textoVence, totalPorPagar, type FilaPorPagar, type NaturalezaDeuda } from "@/lib/por-pagar-consolidado-reglas";
 import { DIAS_CALENDARIO, burbujasDeDeudas, filtrarDeudas, filtrosPuestosDeuda, leerFiltrosDeuda, type FiltrosDeuda } from "@/lib/que-debes-reglas";
@@ -52,6 +53,7 @@ export function PorPagarConsolidado({
   pagaCompras,
   hoy,
   falla,
+  sedes,
 }: {
   filas: FilaPorPagar[];
   ver: Ver;
@@ -61,6 +63,8 @@ export function PorPagarConsolidado({
   pagaCompras: boolean;
   hoy: string;
   falla: string | null;
+  /** Los hilos de sede de la barra (`getSedesDelTelar`): el color de cada burbuja y el orillo. */
+  sedes: SedeTelar[];
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -109,7 +113,20 @@ export function PorPagarConsolidado({
 
   return (
     <div className="space-y-6">
-      <CabeceraDinero pestana="porpagar" esLider={esLider} conteos={{ porpagar: filas.length }} acciones={<VerPorPagar ver={ver} unidades={unidades} esLider={esLider} />} />
+      <CabeceraDinero
+        pestana="porpagar"
+        esLider={esLider}
+        conteos={{ porpagar: filas.length }}
+        sede={sedeDeLaCabecera(ver, unidades)}
+        respuesta={{
+          pregunta: preguntaDeDinero("debes", ver.ubicacionId || ver.soloEmpresa ? sedeDeLaCabecera(ver, unidades) : null),
+          valor: falla ? null : totalPorPagar(filas).saldo,
+          chips: falla ? [] : chipsQueDebes(filas, hoy),
+        }}
+        orillo={falla ? null : { porSede: porSedeDe(filas.map((f) => ({ ubicacionId: f.ubicacionId, monto: f.saldo }))), que: "por pagar" }}
+        sedes={sedes}
+        hoy={hoy}
+      />
 
       {falla ? (
         <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>
@@ -182,7 +199,7 @@ export function PorPagarConsolidado({
                           key={b.id}
                           className="din-burbuja"
                           data-vencida={b.columna < 0 ? "" : undefined}
-                          style={{ ["--i" as string]: i, ["--c" as string]: colorDeSede(x.ubicacionId, unidades) } as CSSProperties}
+                          style={{ ["--i" as string]: i, ["--c" as string]: colorDeRepisa(x.ubicacionId, sedes) } as CSSProperties}
                           {...(pagable
                             ? {
                                 role: "link",
@@ -208,7 +225,7 @@ export function PorPagarConsolidado({
                 {sedesEnBurbujas.length > 0 && (
                   <ul className="din-agenda-leyenda" aria-label="De qué sede es cada color">
                     {sedesEnBurbujas.map((id) => (
-                      <li key={id ?? "empresa"} style={{ ["--c" as string]: colorDeSede(id, unidades) } as CSSProperties}>
+                      <li key={id ?? "empresa"} style={{ ["--c" as string]: colorDeRepisa(id, sedes) } as CSSProperties}>
                         <i aria-hidden="true" />
                         {id ? (unidades.find((u) => u.id === id)?.nombre ?? "Tienda") : "De la empresa"}
                       </li>
@@ -304,7 +321,7 @@ export function PorPagarConsolidado({
                               </td>
                               {verTodas && (
                                 <td data-l="Sede">
-                                  <span className="din-sede-chip" style={{ ["--c" as string]: colorDeSede(x.ubicacionId, unidades) } as CSSProperties}>
+                                  <span className="din-sede-chip" style={{ ["--c" as string]: colorDeRepisa(x.ubicacionId, sedes) } as CSSProperties}>
                                     <i aria-hidden="true" />
                                     {textoUnidad(x)}
                                   </span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ComponentProps, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -10,12 +10,13 @@ import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraDinero, type PestanaDinero } from "@/components/finanzas/CabeceraDinero";
+import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { PagosSinCuentaModal } from "@/components/finanzas/PagosSinCuenta";
 import { CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesFin, PieTabla, RadiosFin, SalidaFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { fechaCorta, solesRedondo, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
+import { fechaCorta, solesRedondo, type Ver } from "@/lib/gastos-reglas";
 import { leerMontoPlata, MONTO_ILEGIBLE } from "@/lib/monto-plata-reglas";
 import {
   MEDIOS_COBRO,
@@ -85,9 +86,11 @@ export function PantallaDinero({
   pestana,
   esLider,
   conteos,
-  ubicaciones,
+  sede,
+  respuesta,
+  orillo,
+  sedes,
   ver,
-  deCaylaEntera = false,
   cuentas,
   deuda,
   hoy,
@@ -97,10 +100,14 @@ export function PantallaDinero({
   pestana: PestanaDinero;
   esLider: boolean;
   conteos?: Partial<Record<PestanaDinero, number>>;
-  ubicaciones: UbicacionGastos[];
+  /** La sede que se mira, como la dice la cabecera («Todas las sedes», «Trujillo»). */
+  sede: string;
+  /** La respuesta grande de esta cara (El telar). */
+  respuesta: ComponentProps<typeof CabeceraDinero>["respuesta"];
+  /** Cuánto pone cada sede en esta cara; `null` si la cara es de CAYLA entera. */
+  orillo: ComponentProps<typeof CabeceraDinero>["orillo"];
+  sedes: SedeTelar[];
   ver: Ver;
-  /** Conciliación es de CAYLA entera: en lugar de «Ver», lo dice. */
-  deCaylaEntera?: boolean;
   /** Las cuentas que el modal ofrece (con su saldo si la cuenta lo ve). */
   cuentas: CuentaDinero[];
   /** Lo que CAYLA le debe al dueño (tope de una devolución). */
@@ -109,17 +116,20 @@ export function PantallaDinero({
   fallas: string[];
   children: ReactNode;
 }) {
-  const router = useRouter();
-  const ruta = usePathname();
   const params = useSearchParams();
+  const ruta = usePathname();
   const [modal, setModal] = useState<{ que: QuePaso; origenId?: string } | null>(null);
-  const nombreSede = ver.ubicacionId ? (ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "tu tienda") : "Todas las tiendas";
-
-  const irA = (v: string) => {
-    const p = new URLSearchParams(params.toString());
-    p.set("ver", v);
-    router.push(`${ruta}?${p.toString()}`, { scroll: false });
-  };
+  // El dock de las otras caras lleva aquí con `?registrar=1`: la hoja abre sola, como si se hubiera tocado el botón, y el parámetro
+  // sale de la dirección (recargar no la vuelve a abrir).
+  const pideRegistrar = params.get("registrar") === "1";
+  useEffect(() => {
+    if (!pideRegistrar) return;
+    const p = new URLSearchParams(window.location.search);
+    p.delete("registrar");
+    window.history.replaceState(null, "", p.size ? `${ruta}?${p}` : ruta);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- la hoja abierta desde el primer pintado no dejaba hidratar la página (medido 2026-10-23): se abre al montar, como el #fotos de ProductoForm
+    setModal({ que: "deposito" });
+  }, [pideRegistrar, ruta]);
 
   return (
     <ContextoMovimiento.Provider value={(que, origenId) => setModal({ que: que ?? "deposito", origenId })}>
@@ -128,29 +138,16 @@ export function PantallaDinero({
           pestana={pestana}
           esLider={esLider}
           conteos={conteos}
+          sede={sede}
+          respuesta={respuesta}
+          orillo={orillo}
+          sedes={sedes}
+          hoy={hoy}
+          onRegistrar={() => setModal({ que: "deposito" })}
           acciones={
-            <>
-              {deCaylaEntera ? (
-                <Chip tono="neutro" versalitas={false}>
-                  CAYLA entera
-                </Chip>
-              ) : esLider ? (
-                <label className="fin-ver" data-guia="fin-ver.combo">
-                  <span className="label-cayla text-[11px] text-taupe">Ver</span>
-                  <SelectFin
-                    etiqueta="Qué mirar"
-                    valor={ver.clave}
-                    onValor={irA}
-                    opciones={[{ valor: "todas", texto: "Todas las tiendas" }, ...ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))]}
-                  />
-                </label>
-              ) : (
-                <Chip versalitas={false}>{nombreSede}</Chip>
-              )}
-              <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
-                + Registrar movimiento
-              </Boton>
-            </>
+            <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
+              + Registrar movimiento
+            </Boton>
           }
         />
         {fallas.map((f) => (

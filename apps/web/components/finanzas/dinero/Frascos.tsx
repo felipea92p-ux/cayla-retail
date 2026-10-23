@@ -4,7 +4,8 @@ import { Chip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Superficie } from "@/components/finanzas/kit";
 import { solesRedondo } from "@/lib/gastos-reglas";
-import { colorDeSede, type Frasco, type Repisa } from "@/lib/dinero-telar-reglas";
+import { colorDeRepisa, type Frasco, type Repisa } from "@/lib/dinero-telar-reglas";
+import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 
 // Cuentas y dinero ▸ Dónde está (El telar, Felipe 2026-10-23): cada cuenta es un frasco que se llena hasta su nivel, en la repisa
 // de su sede. El nivel y los grupos los decide `lib/dinero-telar-reglas.ts`; aquí solo se dibuja. Sin estado: sirve en el servidor.
@@ -49,7 +50,7 @@ function DibujoFrasco({ f, i }: { f: Frasco; i: number }) {
   );
 }
 
-export function Frascos({ repisas, ubicaciones }: { repisas: Repisa[]; ubicaciones: readonly { id: string }[] }) {
+export function Frascos({ repisas, sedes }: { repisas: Repisa[]; sedes: readonly SedeTelar[] }) {
   if (repisas.length === 0) {
     return (
       <Superficie>
@@ -66,7 +67,7 @@ export function Frascos({ repisas, ubicaciones }: { repisas: Repisa[]; ubicacion
         <article
           key={r.clave}
           className="din-repisa anim-entra"
-          style={{ ["--i" as string]: i + 1, ["--c" as string]: colorDeSede(r.clave, ubicaciones) } as CSSProperties}
+          style={{ ["--i" as string]: i + 1, ["--c" as string]: colorDeRepisa(r.clave, sedes) } as CSSProperties}
           aria-label={`${r.titulo}: ${solesRedondo(r.total)}`}
         >
           <header className="din-repisa-cab">

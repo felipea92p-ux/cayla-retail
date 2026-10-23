@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero.conciliacion",
   "ruta": "/finanzas/dinero/conciliacion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 30,
+  "total": 33,
   "controles": {
     "components/finanzas/CuentasDinero.tsx": [
       "Boton «fin-dinero.registrar»",
@@ -33,10 +33,17 @@
       "Boton «Guardar»",
       "ComboResponsable «{responsable}»"
     ],
+    "components/finanzas/telar/DockTelar.tsx": [
+      "Link «{`${a.texto}»",
+      "button «{`${a.texto}»"
+    ],
     "components/finanzas/telar/MesaDeMando.tsx": [
       "Pestanas «(sin nombre)»",
       "BotonEnlace «telar.registrar»",
       "Link «{h.nombre}»"
+    ],
+    "components/finanzas/telar/Orillo.tsx": [
+      "Link «{`${t.nombre}»"
     ],
     "components/finanzas/telar/TeToca.tsx": [
       "button «telar.te-toca»",

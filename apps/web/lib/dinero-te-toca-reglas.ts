@@ -1,21 +1,28 @@
-// «Te toca» de Cuentas y dinero (El telar, actividad 6): lo pendiente de Dinero para el cajón de la mesa de mando. Tiene la forma
-// `PendienteTelar` de `lib/finanzas-te-toca-reglas.ts` (la barra común, PR #1305); se escribe aparte porque esa barra todavía no
-// está en main. Al llegar, se importa su tipo y se llama desde `app/api/finanzas/te-toca/route.ts`. Lógica pura: cada pendiente
-// sale de una cifra que su cara ya muestra (lo que vence, la caja fuerte sin depositar, las líneas sin revisar).
+// «Te toca» de Cuentas y dinero (El telar, actividad 6): lo pendiente de Dinero para el cajón de la mesa de mando, con la forma
+// `PendienteTelar` de la barra común; lo llama `app/api/finanzas/te-toca/route.ts`. Lógica pura: cada pendiente sale de una cifra
+// que su cara ya muestra (lo que vence, la caja fuerte sin depositar, las líneas sin revisar).
 
 import { soles } from "./flujo-caja-reglas";
 import { diasHasta, type FilaPorPagar } from "./por-pagar-consolidado-reglas";
+import { avisoCajaFuerte, ultimoDepositoDe } from "./dinero-telar-reglas";
+import { diasEntreFechas } from "./fechas-lima";
+import type { CuentaDinero, MovimientoDinero } from "./cuentas-dinero-reglas";
+import type { PendienteTelar } from "./finanzas-te-toca-reglas";
 
-/** Lo mismo que `PendienteTelar` de la barra común (se reemplaza por su tipo cuando esté en main). */
-type Pendiente = {
-  submodulo: "finanzas.dinero";
-  id: string;
-  estado: "frena" | "avisa";
-  titulo: string;
-  detalle: string;
-  verbo: string;
-  href: string;
-};
+type Pendiente = PendienteTelar;
+
+/** Las cajas fuertes con plata que ya avisan en ámbar (más de 3 días sin depositar), de la sede que se mira o de todas. */
+export function cajasSinDepositar(
+  cuentas: readonly CuentaDinero[],
+  movimientos: readonly Pick<MovimientoDinero, "tipo" | "origenId" | "estado" | "fecha">[],
+  hoy: string,
+  ubicacionId: string | null,
+): { nombre: string; saldo: number; dias: number }[] {
+  return cuentas
+    .filter((c) => c.tipo === "caja_fuerte" && !c.archivada && (!ubicacionId || c.ubicacionId === ubicacionId))
+    .filter((c) => avisoCajaFuerte(c, movimientos, hoy)?.tono === "ambar")
+    .map((c) => ({ nombre: c.nombre, saldo: c.saldo ?? 0, dias: diasEntreFechas(ultimoDepositoDe(c.id, movimientos)!, hoy) }));
+}
 
 const facturas = (n: number) => `${n} ${n === 1 ? "factura" : "facturas"}`;
 
@@ -25,7 +32,6 @@ const facturas = (n: number) => `${n} ${n === 1 ? "factura" : "facturas"}`;
  * - cada caja fuerte con plata que lleva más de 3 días sin depositar, que **avisa** y lleva a «Dónde está»;
  * - las líneas de los bancos sin revisar, que **avisa** y lleva a «Cuadrar con el banco» (solo el líder la ve).
  * `consulta` es lo que viaja en la dirección (`sede=…`).
- * Sin uso hasta que «Te toca» de la barra común (PR #1305) llegue a main: está en `ignoreFiles` de `knip.ts` hasta conectarlo.
  */
 export function pendientesDeDinero(
   datos: {

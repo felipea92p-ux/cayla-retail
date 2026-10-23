@@ -9,6 +9,12 @@
 import { cuentasVisibles, diaYNumero, insigniaCuenta, type CuentaDinero, type EfectivoFila, type Insignia, type MovimientoDinero } from "./cuentas-dinero-reglas";
 import { diaLima, diasEntreFechas, horaLima } from "./fechas-lima";
 import { solesRedondo } from "./gastos-reglas";
+import { soles } from "./flujo-caja-reglas";
+import { diasHasta, type FilaPorPagar } from "./por-pagar-consolidado-reglas";
+import type { SedeTelar } from "./finanzas-telar-reglas";
+import type { TonoChip } from "@/components/ui/Chip";
+import type { Tienes } from "./dinero-pulso-reglas";
+import type { ConciliacionCuenta } from "./cuentas-dinero-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -53,16 +59,15 @@ export function nivelFrasco(saldo: number | null, maximo: number): number | null
 }
 
 /**
- * El color de una sede (su hilo en El telar), hasta que la barra común traiga sus tokens (`--color-sede-*`, contrato de la barra):
- * cada sede toma un token por su lugar en la lista; CAYLA entera y lo que viene en camino, la tinta y la pizarra a media voz. Siempre
- * un token, nunca un hex (ADR-0169).
+ * El color de una sede: el de su hilo en la barra común (`--color-sede-*`, `colorDeSede` de `finanzas-telar-reglas.ts`). CAYLA
+ * entera (o una fila sin sede) toma el de la empresa; lo que viene en camino, la pizarra a media voz; una sede que el telar no
+ * reconoce, el taupe (como «otra» en la barra). Siempre un token (ADR-0169).
  */
-const COLORES_SEDE = ["var(--color-pizarra)", "var(--color-verde)", "var(--color-ambar)", "var(--color-taupe)"];
-export function colorDeSede(clave: string | null, ubicaciones: readonly { id: string }[]): string {
-  if (clave === null || clave === REPISA_EMPRESA) return "color-mix(in srgb, var(--color-tinta) 55%, transparent)";
+export function colorDeRepisa(clave: string | null, sedes: readonly Pick<SedeTelar, "clave" | "color">[]): string {
+  if (clave === null || clave === REPISA_EMPRESA) return "var(--color-sede-emp)";
   if (clave === REPISA_CAMINO) return "color-mix(in srgb, var(--color-pizarra) 55%, transparent)";
-  const i = ubicaciones.findIndex((u) => u.id === clave);
-  return COLORES_SEDE[(i < 0 ? 0 : i) % COLORES_SEDE.length];
+  const color = sedes.find((s) => s.clave === clave)?.color;
+  return color && color !== "otra" ? `var(--color-sede-${color})` : "var(--color-taupe)";
 }
 
 /** En cada repisa, de lo que está más a la mano a lo que está más lejos: el cajón, la caja fuerte, lo del líder, el banco. */
@@ -123,7 +128,6 @@ export function repisasDeDinero(
 /**
  * Lo que pone cada sede en «Dónde está», para el orillo de la barra común (`{ [ubicacionId | "empresa"]: monto }`, contrato de
  * `telar-barra-comun.md`). Lo en camino se cuenta en «empresa» hasta que tenga sede (D1).
- * @public Sin uso hasta que el `<Orillo>` de la barra común llegue a main (actividad 6 de docs/maquetas/finanzas-v3-2026-10/dinero/CONSTRUIR.md).
  */
 export function orilloDeDinero(cuentas: readonly CuentaDinero[]): Record<string, number> {
   const porSede: Record<string, number> = {};
@@ -183,4 +187,50 @@ export function detalleCajon(f: Pick<EfectivoFila, "abierta" | "abiertaEn" | "ve
   return [`Abierta${hora ? ` desde las ${hora}` : ""}`, `vendió ${solesRedondo(f.ventasEfectivo)} en efectivo`, salio > 0 ? `salieron ${solesRedondo(salio)}` : null]
     .filter(Boolean)
     .join(" · ");
+}
+
+// ---- La respuesta de la cabecera (El telar): una pregunta y su cifra por cara, con sus chips -------------------------------
+
+export type CaraDinero = "donde" | "debes" | "cuadrar";
+export type ChipRespuesta = { texto: string; tono: TonoChip };
+
+/** La pregunta de cada cara, con la sede que se mira («Trujillo»), o sin ella con todas. Cuadrar es siempre de CAYLA entera. */
+export function preguntaDeDinero(cara: CaraDinero, sede: string | null): string {
+  if (cara === "cuadrar") return "¿Cuánto dicen tus bancos?";
+  if (cara === "debes") return sede ? `¿Cuánto debe ${sede}?` : "¿Cuánto debes?";
+  return sede ? `¿Cuánta plata tiene ${sede} hoy?` : "¿Cuánta plata tienes hoy?";
+}
+
+/** Bajo «¿Cuánta plata tienes?»: dónde está (bancos, en camino, efectivo) y, aparte, lo que se debe en la tarjeta. */
+export function chipsDondeEsta(t: Pick<Tienes, "partes" | "tarjeta" | "ocultas">): ChipRespuesta[] {
+  const chips: ChipRespuesta[] = t.partes.map((p) => ({ texto: `${p.titulo.replace(/ \(.*\)$/, "")} ${soles(p.monto)}`, tono: "pizarra" }));
+  if (t.tarjeta > 0) chips.push({ texto: `Debes ${soles(t.tarjeta)} en la tarjeta`, tono: "ambar" });
+  if (t.ocultas) chips.push({ texto: "El cajón abierto lo ve quien cierra la caja", tono: "apagado" });
+  return chips;
+}
+
+/** Bajo «¿Cuánto debes?»: cuántas facturas, cuánto ya venció (rojo) y cuánto vence esta semana (ámbar). */
+export function chipsQueDebes(filas: readonly Pick<FilaPorPagar, "vence" | "saldo">[], hoy: string): ChipRespuesta[] {
+  if (filas.length === 0) return [{ texto: "Nada por pagar", tono: "verde" }];
+  const vencido = filas.filter((f) => diasHasta(f.vence, hoy) < 0);
+  const semana = filas.filter((f) => {
+    const d = diasHasta(f.vence, hoy);
+    return d >= 0 && d <= 7;
+  });
+  const suma = (fs: typeof filas) => fs.reduce((a, f) => a + f.saldo, 0);
+  const chips: ChipRespuesta[] = [{ texto: `${filas.length} ${filas.length === 1 ? "factura" : "facturas"}`, tono: "pizarra" }];
+  if (vencido.length) chips.push({ texto: `${soles(suma(vencido))} ya vencido`, tono: "rojo" });
+  if (semana.length) chips.push({ texto: `${soles(suma(semana))} vence esta semana`, tono: "ambar" });
+  return chips;
+}
+
+/** «¿Cuánto dicen tus bancos?»: lo que suma el sistema en los bancos (nulo si no hay bancos) y cuántas líneas faltan revisar. */
+export function respuestaCuadrar(cuentas: readonly Pick<ConciliacionCuenta, "tipo" | "saldoHoy" | "pendientes">[]): { valor: number | null; chips: ChipRespuesta[] } {
+  const bancos = cuentas.filter((c) => c.tipo === "banco");
+  if (!bancos.length) return { valor: null, chips: [] };
+  const pendientes = cuentas.reduce((a, c) => a + c.pendientes, 0);
+  return {
+    valor: Math.round(bancos.reduce((a, c) => a + c.saldoHoy, 0) * 100) / 100,
+    chips: [pendientes ? { texto: `${pendientes} ${pendientes === 1 ? "línea" : "líneas"} por revisar`, tono: "ambar" } : { texto: "Todo revisado", tono: "verde" }],
+  };
 }

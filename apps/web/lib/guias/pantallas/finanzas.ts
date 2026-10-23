@@ -87,6 +87,22 @@ const PESTANAS_DINERO: PasoGuia = {
   texto: "Cuentas: dónde está la plata, cada lugar como un frasco, con el efectivo de hoy. Por pagar: lo que se debe. Conciliación (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
 };
 
+/** El orillo y el dock de Cuentas y dinero (El telar): lo mismo en sus tres caras. */
+const ORILLO_DINERO: PasoGuia = {
+  id: "orillo",
+  ancla: "telar.orillo",
+  opcional: true,
+  titulo: "Cuánto pone cada sede",
+  texto: "Esta tira de colores reparte la cifra de arriba entre las sedes: cada color es una sede, del tamaño de lo suyo. Tocas un color y ves solo esa sede; lo tocas otra vez y vuelves a todas.",
+};
+const DOCK_DINERO: PasoGuia = {
+  id: "dock",
+  ancla: "telar.dock",
+  opcional: true,
+  titulo: "Lo que más se usa, a una tecla",
+  texto: "Abajo: registrar un movimiento entre cuentas (M), dónde está la plata (D), qué debes (P) y, si eres líder, cuadrar con el banco (C). Las tocas o apretas su letra cuando no estás escribiendo.",
+};
+
 const REGISTRAR_MOVIMIENTO: PasoGuia = {
   id: "registrar",
   ancla: "fin-dinero.registrar",
@@ -446,7 +462,13 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "Cada lugar donde CAYLA tiene dinero: los bancos, la tarjeta que todavía no abona, los cajones y las cajas fuertes. Un saldo nunca se escribe a mano: se suma de las ventas, los gastos y los movimientos. Es una demo.",
     },
     ...TELAR,
-    VER,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "¿Cuánta plata tienes hoy?",
+      texto: "La cifra grande es lo que tiene la sede que elegiste arriba: bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. Con una sede, solo su efectivo: los bancos son de CAYLA entera. Debajo dice dónde está y lo que debes en la tarjeta.",
+    },
+    ORILLO_DINERO,
     {
       ...REGISTRAR_MOVIMIENTO,
       texto: "Cuando la plata cambia de lugar —depositas el cajón en el banco, llega el abono de la tarjeta, pasas de una cuenta a otra— lo anotas aquí. No es venta ni gasto: la plata solo se mueve. Te abrimos la ventana; no registramos nada.",
@@ -495,12 +517,6 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "Arriba eliges quién lo hace. «Registrar» baja una cuenta y sube la otra en el mismo instante. En la demo no registramos: cerramos la ventana.",
     },
     { ...PESTANAS_DINERO, preparar: [{ tipo: "escape" }] },
-    {
-      id: "pulso",
-      ancla: "fin-dinero.pulso",
-      titulo: "¿Dónde está mi plata?",
-      texto: "La respuesta grande: todo lo que tienes, sumado de los bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. La tarjeta de crédito va aparte, porque es deuda. Nada se escribe a mano: sale de los movimientos.",
-    },
     {
       id: "alcanza",
       ancla: "fin-dinero.alcanza",
@@ -591,6 +607,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       titulo: "El detalle de un movimiento",
       texto: "De dónde salió, a dónde llegó, cuánto, su estado y quién lo registró. Nada se borra: si fue un error, «Anular…» pide el motivo y lo deja a la vista. En la demo cerramos sin anular.",
     },
+    DOCK_DINERO,
     {
       id: "fin",
       ancla: null,
@@ -615,7 +632,13 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       texto: "Las facturas de mercadería, de gastos, de activos y de los insumos del Taller que todavía tienen saldo, juntas y ordenadas por cuándo vencen. La planilla no está porque la paga Dynamic. Es una demo: no se paga nada.",
     },
     ...TELAR,
-    VER,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "¿Cuánto debes?",
+      texto: "La cifra grande es todo lo que se debe de la sede que elegiste arriba. Debajo, cuántas facturas son, cuánto ya venció (en rojo) y cuánto vence esta semana.",
+    },
+    ORILLO_DINERO,
     PESTANAS_DINERO,
     {
       id: "cifras",
@@ -657,6 +680,7 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       titulo: "Pagar varias de un proveedor",
       texto: "Te lleva a Compras ▸ Por pagar, donde juntas varias facturas del mismo proveedor en un solo pago. En la demo no salimos de aquí.",
     },
+    DOCK_DINERO,
     {
       id: "fin",
       ancla: null,
@@ -679,6 +703,12 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       texto: "Cada viernes, el líder anota el saldo que muestra la banca por internet y el sistema dice si coincide con lo que él suma. Así se encuentra a tiempo un depósito que no se registró. Es una demo: no se anota nada.",
     },
     ...TELAR,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "¿Cuánto dicen tus bancos?",
+      texto: "Lo que suma el sistema en los bancos de CAYLA, y cuántas líneas faltan revisar. Los bancos son de CAYLA entera: la sede de arriba no los cambia.",
+    },
     PESTANAS_DINERO,
     {
       id: "vacia",
@@ -722,6 +752,7 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       titulo: "Qué banco cuadrar",
       texto: "Arriba eliges el banco o la cuenta que vas a cuadrar; el número dice cuántas líneas le faltan revisar. Los bancos son de CAYLA entera, no de una sede.",
     },
+    DOCK_DINERO,
     {
       id: "fin",
       ancla: null,
