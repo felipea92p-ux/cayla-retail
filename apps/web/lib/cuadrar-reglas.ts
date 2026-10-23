@@ -7,6 +7,8 @@
 import { cuadra, type Conciliacion, type ConciliacionCuenta, type LineaConciliacion } from "./cuentas-dinero-reglas";
 import { soles } from "./compras-reglas";
 import { fechaCorta } from "./gastos-reglas";
+import { leerMontoPlata } from "./monto-plata-reglas";
+import type { CampoDeGuia } from "./guia-campos";
 
 export type EstadoPar = "revisada" | "cambio" | "pendiente";
 
@@ -49,4 +51,19 @@ export function respuestaCuadre(actual: Pick<Conciliacion, "cuenta" | "hasta" | 
   return faltan === 0
     ? { texto: `Todo revisado ${enFecha}: anota el saldo del banco para saber si cuadra.`, tono: "pizarra" }
     : { texto: `Faltan revisar ${faltan} ${faltan === 1 ? "línea" : "líneas"} y anotar el saldo del banco.`, tono: "pizarra" };
+}
+
+// ---- La guía de foco de «¿Qué saldo dice el banco?» (ADR-0284) ---------------------------------------------------------------
+
+/**
+ * Los campos del formulario de anotar el saldo, en el orden en que se llenan, para la guía de foco. No agrega reglas: «falta» es
+ * lo mismo que hoy bloquea `anotar()` (`CuentasDinero.tsx`): quién lo hace, un saldo que se pueda leer y una fecha que no sea futura.
+ */
+export function camposDeAnotarSaldo(d: { responsableListo: boolean; saldo: string; fecha: string; hoy: string }): CampoDeGuia[] {
+  const saldoLegible = d.saldo.trim() !== "" && leerMontoPlata(d.saldo) !== null;
+  return [
+    { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: d.responsableListo, pendiente: "Elige quién está anotando el saldo." },
+    { id: "saldo", nombre: "Saldo del banco", requerido: true, hecho: saldoLegible, pendiente: "Escribe el saldo que muestra la banca por internet." },
+    { id: "fecha", nombre: "Fecha", requerido: true, hecho: d.fecha !== "" && d.fecha <= d.hoy, pendiente: "Elige el día del saldo (hoy o antes)." },
+  ];
 }

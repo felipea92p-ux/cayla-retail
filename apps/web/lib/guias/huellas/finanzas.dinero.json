@@ -18,7 +18,7 @@
       "button «{`Desmarcar ${l.detalle}»",
       "button «Sí, está»",
       "button «Anular este saldo…»",
-      "Boton «Anotar»",
+      "Boton «{guia.frase ?? undefined}»",
       "button «{fechaCorta(h.fecha, true)}»",
       "Casilla «{`${textoLote(l)}»",
       "ComboResponsable «{responsable}» #2",

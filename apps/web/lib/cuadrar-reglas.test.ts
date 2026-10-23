@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { ConciliacionCuenta, LineaConciliacion } from "./cuentas-dinero-reglas";
-import { bancosParaCuadrar, estadoPar, respuestaCuadre, textoLadoBanco } from "./cuadrar-reglas";
+import { bancosParaCuadrar, camposDeAnotarSaldo, estadoPar, respuestaCuadre, textoLadoBanco } from "./cuadrar-reglas";
+import { sePuedeConfirmar } from "./guia-campos";
+import { leerMontoPlata } from "./monto-plata-reglas";
 
 const linea = (p: Partial<LineaConciliacion>): LineaConciliacion => ({ clave: "k", fecha: "2026-10-13", detalle: "Depósito", monto: 100, revisado: false, montoRevisado: null, revisadoPor: null, ...p });
 const plano = (t: string) => t.replace(/\s/g, " ");
@@ -47,5 +49,30 @@ describe("respuestaCuadre", () => {
   it("sin saldo anotado: qué falta", () => {
     expect(respuestaCuadre({ ...base, conciliacion: null, lineas: [linea({})] }).texto).toBe("Faltan revisar 1 línea y anotar el saldo del banco.");
     expect(respuestaCuadre({ ...base, conciliacion: null, lineas: [] }).texto).toBe("Todo revisado al 14 oct: anota el saldo del banco para saber si cuadra.");
+  });
+});
+
+describe("camposDeAnotarSaldo (guía de foco)", () => {
+  const HOY = "2026-10-23";
+  const base = { responsableListo: true, saldo: "9,650.00", fecha: HOY, hoy: HOY };
+  // Lo que bloquea `anotar()`: sin responsable, saldo vacío o ilegible, fecha futura. La guía dice lo mismo, ni más ni menos.
+  const bloqueaAnotar = (d: typeof base) => !d.responsableListo || d.saldo.trim() === "" || leerMontoPlata(d.saldo) === null || d.fecha === "" || d.fecha > d.hoy;
+  const ESCENARIOS: (typeof base)[] = [
+    base,
+    { ...base, responsableListo: false },
+    { ...base, saldo: "" },
+    { ...base, saldo: "   " },
+    { ...base, saldo: "abc" },
+    { ...base, saldo: "1.550,00" },
+    { ...base, saldo: "-180" },
+    { ...base, fecha: "2026-10-24" },
+    { ...base, fecha: "" },
+    { ...base, fecha: "2026-10-01" },
+  ];
+  it.each(ESCENARIOS.map((e, i) => [i, e] as const))("escenario %i: la guía deja confirmar si y solo si anotar() lo acepta", (_, e) => {
+    expect(sePuedeConfirmar(camposDeAnotarSaldo(e))).toBe(!bloqueaAnotar(e));
+  });
+  it("en orden: quién, el saldo y la fecha; todos requeridos", () => {
+    expect(camposDeAnotarSaldo(base).map((c) => [c.id, c.requerido])).toEqual([["responsable", true], ["saldo", true], ["fecha", true]]);
   });
 });

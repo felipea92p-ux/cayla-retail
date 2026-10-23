@@ -65,7 +65,9 @@ import { Vacio } from "@/components/ui/Vacio";
 import { ArrowLeftRight, Landmark } from "lucide-react";
 import { Globito } from "@/components/ui/Globito";
 import { Volver } from "@/components/ui/Volver";
-import { bancosParaCuadrar, estadoPar, respuestaCuadre, textoLadoBanco } from "@/lib/cuadrar-reglas";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { bancosParaCuadrar, camposDeAnotarSaldo, estadoPar, respuestaCuadre, textoLadoBanco } from "@/lib/cuadrar-reglas";
 import { MAX_REFERENCIA_MOVIMIENTO } from "@/lib/finanzas-topes";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
@@ -434,6 +436,8 @@ export function ConciliacionPanel({
   const [fecha, setFecha] = useState(actual?.hasta ?? hoy);
   const [guardando, setGuardando] = useState(false);
   const [anulando, setAnulando] = useState(false);
+  // La guía de foco de «¿Qué saldo dice el banco?» (ADR-0284): enciende lo que sigue; «falta» es lo mismo que bloquea `anotar()`.
+  const guia = useGuiaCampos(camposDeAnotarSaldo({ responsableListo: responsable.listo, saldo, fecha, hoy }), { enModal: false });
 
   if (!actual) {
     return (
@@ -506,7 +510,9 @@ export function ConciliacionPanel({
           ))}
         </div>
         <div className="w-full max-w-xs" data-guia="fin-conciliacion.responsable">
-          <ComboResponsable control={responsable} deshabilitado={guardando} />
+          <CampoGuiado id="responsable" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={guardando} />
+          </CampoGuiado>
         </div>
       </div>
 
@@ -599,9 +605,12 @@ export function ConciliacionPanel({
         <Superficie pad className="anim-sube" guia="fin-conciliacion.anotar">
           <CabeceraBloque titulo="¿Qué saldo dice el banco?" bajada={`Lo que muestra la banca por internet al cierre del día. Se compara con los ${soles(actual.saldoSistema)} que suma el sistema.`} />
           <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <CampoGuiado id="saldo" guia={guia}>
             <CampoFin etiqueta="Saldo del banco" htmlFor="conc-saldo" className="!mb-0">
               <InputFin id="conc-saldo" inputMode="decimal" value={saldo} onChange={(e) => setSaldo(e.target.value)} placeholder="38,420.00" />
             </CampoFin>
+            </CampoGuiado>
+            <CampoGuiado id="fecha" guia={guia}>
             <CampoFin etiqueta="Al" htmlFor="conc-fecha" className="!mb-0">
               <InputFin
                 id="conc-fecha"
@@ -614,10 +623,12 @@ export function ConciliacionPanel({
                 }}
               />
             </CampoFin>
-            <Boton peso="primario" cargando={guardando} type="button" disabled={guardando || !responsable.listo} onClick={anotar}>
+            </CampoGuiado>
+            <Boton peso="primario" cargando={guardando} type="button" disabled={guardando || !responsable.listo} onClick={anotar} className={guia.claseConfirmar} title={guia.frase ?? undefined}>
               Anotar
             </Boton>
           </div>
+          <PieGuia guia={guia} listo="Todo listo para anotar el saldo." />
         </Superficie>
       )}
 
