@@ -1,6 +1,6 @@
 import type { createClient as crearCliente } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
-import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
+import { exigir, exigirOpcional, leerPorTandasDeIds, leerTodas } from "@/lib/resultado";
 import {
   armarEtiquetas,
   empresaDeEtiqueta,
@@ -100,22 +100,32 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
   }
   if (entradas.size === 0) return { etiquetas: [], sinCodigo: [], ...extra };
 
+  // Por tandas de ids: las etiquetas de una campaña grande piden ~1.100 prendas de una tienda (el Aniversario en TRU) y mil ids en la dirección
+  // (43 KB) no caben: o el API la rechaza y la hoja no sale, o la responde cortada y faltan prendas sin avisar (`leerPorTandasDeIds`).
   const variantes = exigir(
-    await supabase
-      .from("variantes")
-      .select(
-        "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex, familia_color, tipo ), producto:productos ( referencia, categoria_id, empresa_id, marca:marcas ( nombre ) ), variante_etiquetas ( etiqueta_id )",
-      )
-      .in("id", [...entradas.keys()]),
+    await leerPorTandasDeIds([...entradas.keys()], (tanda) =>
+      supabase
+        .from("variantes")
+        .select(
+          "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex, familia_color, tipo ), producto:productos ( referencia, categoria_id, empresa_id, marca:marcas ( nombre ) ), variante_etiquetas ( etiqueta_id )",
+        )
+        .in("id", tanda),
+    ),
     "las prendas a etiquetar",
   );
 
   // Las otras tallas de esos modelos, para la fila «Tallas del modelo». Un envío grande (50 modelos × 20 variantes)
   // pasa las 1.000 filas: cortada, la etiqueta saldría con tallas de menos sin que nadie lo note.
   const productoIds = [...new Set(variantes.map((v) => v.producto_id))];
+  // Tandas de 50 modelos (cada uno trae varias tallas, así que cada tanda pagina por dentro): 267 modelos en una dirección pesan 10 KB.
   const hermanas = exigir(
-    await leerTodas((desde, hasta) =>
-      supabase.from("variantes").select("id, producto_id, color_codigo, activo, talla:tallas ( valor )").in("producto_id", productoIds).order("id").range(desde, hasta),
+    await leerPorTandasDeIds(
+      productoIds,
+      (tanda) =>
+        leerTodas((desde, hasta) =>
+          supabase.from("variantes").select("id, producto_id, color_codigo, activo, talla:tallas ( valor )").in("producto_id", tanda).order("id").range(desde, hasta),
+        ),
+      50,
     ),
     "las tallas de esos modelos",
   );
