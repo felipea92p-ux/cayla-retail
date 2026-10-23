@@ -2276,13 +2276,13 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.lineas",
       opcional: true,
       titulo: "Tu compra",
-      texto: "Cada prenda con su costo, su venta y su tienda. Tócala para corregirla, o quítala.",
+      texto: "Cada prenda con cuántas, su costo y su tienda. Tócala y se abre su hoja para corregirla o quitarla. Abajo, el total y lo que ganas si se vende todo.",
     },
     {
       id: "al-papel",
       ancla: "compra.al-papel",
       opcional: true,
-      titulo: "Ya anoté todo",
+      titulo: "Sigue: el papel",
       texto: "Cuando está todo, sigues al papel que te dieron.",
     },
     {
@@ -2303,8 +2303,8 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       id: "monto",
       ancla: "compra.monto",
       opcional: true,
-      titulo: "Cuánto pagaste",
-      texto: "Viene con lo que suma tu compra. Si pagaste otra cosa, cámbialo.",
+      titulo: "Cuánto dice el papel",
+      texto: "Viene con lo que suma tu compra. Si el papel dice otro total, deja el del papel: te avisa que no cuadra y Compras lo revisa.",
     },
     {
       id: "guardar",
@@ -2318,7 +2318,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.listo",
       opcional: true,
       titulo: "Listo",
-      texto: "Cuánto te queda, y anotar otra compra o volver a tu plata.",
+      texto: "Cuánto te queda y lo que sigue: mandarla a la tienda, anotar otra compra o volver a tu plata.",
     },
     {
       id: "mandar",

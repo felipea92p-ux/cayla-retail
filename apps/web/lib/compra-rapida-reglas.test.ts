@@ -18,6 +18,8 @@ import {
   marcasDeHabituales,
   prendasDeLineas,
   textoAvance,
+  gananciaDeCompra,
+  cuadraElPapel,
   camposPrenda,
   gananciaPorPrenda,
   textoAgregarPrenda,
@@ -300,5 +302,20 @@ describe("la hoja de la prenda (rediseño)", () => {
     const r = resumenCarrito([{ cantidad: 12, costo: 17.5 }, { cantidad: 20, costo: 9 }]);
     expect([plano(r.titulo), r.detalle]).toEqual(["32 prendas · S/ 390.00", "2 modelos"]);
     expect(resumenCarrito([{ cantidad: 1, costo: 5 }]).detalle).toBe("1 modelo");
+  });
+});
+
+describe("revisar y el papel (rediseño)", () => {
+  it("si se vende todo: lo que se vende y lo que se gana, solo con las prendas que tienen precio de venta", () => {
+    expect(gananciaDeCompra([{ cantidad: 12, costo: 17.5, venta: 39.9 }, { cantidad: 20, costo: 9, venta: 24.9 }])).toEqual({ vendes: 976.8, ganas: 586.8 });
+    expect(gananciaDeCompra([{ cantidad: 2, costo: 10, venta: null }, { cantidad: 1, costo: 5, venta: 8 }])).toEqual({ vendes: 8, ganas: 3 });
+    expect(gananciaDeCompra([{ cantidad: 2, costo: 10, venta: null }])).toBeNull();
+  });
+  it("el papel cuadra o no con lo anotado; si no, manda el papel", () => {
+    expect(cuadraElPapel(525, 525)).toEqual({ cuadra: true, texto: "Cuadra con lo que anotaste" });
+    expect(cuadraElPapel(530, 525)?.cuadra).toBe(false);
+    expect(plano(cuadraElPapel(530, 525)?.texto ?? null)).toBe("Anotaste S/ 525.00. Si el papel dice otro total, deja el del papel: Compras lo revisa.");
+    expect(cuadraElPapel(null, 525)).toBeNull();
+    expect(cuadraElPapel(0, 525)).toBeNull();
   });
 });

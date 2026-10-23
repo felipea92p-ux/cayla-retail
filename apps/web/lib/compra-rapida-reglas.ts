@@ -284,6 +284,25 @@ export function resumenCarrito(lineas: readonly Pick<LineaCompra, "cantidad" | "
   };
 }
 
+/** «Si se vende todo, ganas S/ X» (y cuánto se vende): con el precio de venta de cada prenda. Sin precios de venta, null. */
+export function gananciaDeCompra(lineas: readonly Pick<LineaCompra, "cantidad" | "costo" | "venta">[]): { vendes: number; ganas: number } | null {
+  const conVenta = lineas.filter((l) => l.venta != null);
+  if (conVenta.length === 0) return null;
+  const vendes = Math.round(conVenta.reduce((s, l) => s + l.cantidad * (l.venta ?? 0), 0) * 100) / 100;
+  return { vendes, ganas: Math.round((vendes - totalDeLineas(conVenta)) * 100) / 100 };
+}
+
+/**
+ * Lo que dice bajo «¿Cuánto dice el papel?»: si cuadra con lo anotado, en verde; si no, en ámbar, que deje el del papel (Felipe
+ * 2026-10-23: «manda el papel», ADR-0480). Sin un monto legible, nada.
+ */
+export function cuadraElPapel(monto: number | null, total: number): { cuadra: boolean; texto: string } | null {
+  if (monto == null || monto <= 0) return null;
+  return Math.abs(monto - total) < 0.005
+    ? { cuadra: true, texto: "Cuadra con lo que anotaste" }
+    : { cuadra: false, texto: `Anotaste ${soles(total)}. Si el papel dice otro total, deja el del papel: Compras lo revisa.` };
+}
+
 /** La tienda que llega marcada: la de la prenda anterior («Como la anterior»). */
 export function tiendaAnterior(lineas: readonly LineaCompra[]): string | null {
   return lineas.at(-1)?.destinoId ?? null;
