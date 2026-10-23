@@ -8,9 +8,11 @@
 @import "./estilos/avisos.css";
 @import "./estilos/finanzas.css";
 @import "./estilos/finanzas-recorrido.css";
+@import "./estilos/telar.css";
 @import "./estilos/alta-guia.css";
 @import "./estilos/campana-efectos.css";
 @import "./estilos/etiqueta-prendas.css";
+@import "./estilos/campana-hoja.css";
 @import "./estilos/guias.css";
 @import "./estilos/alta-parecidas.css";
 @import "./estilos/lista-compra.css";
@@ -32,6 +34,7 @@
 @import "./estilos/ficha-taller.css";
 @import "./estilos/orden-pagina.css";
 @import "./estilos/ordenes-lista.css";
+@import "./estilos/compra-celular.css";
 @import "./estilos/vista-rapida.css";
 @import "./estilos/historial-prenda.css";
 @import "./estilos/vender-grilla.css";
@@ -190,6 +193,15 @@
   /* El anticipo de un apartado entregado (ADR-0196) no es un medio del mostrador: ya se cobró antes. Va en taupe, el color
      de lo guardado para una clienta, para que en «Cómo se pagó» no salga sin punto (Historial, ADR-0230). */
   --color-metodo-anticipo: var(--color-taupe);
+
+  /* Los hilos de sede del telar de Finanzas (Felipe 2026-10-23, docs/maquetas/finanzas-telar-2026-10/): color de DATO, como los
+     métodos de pago. Cada sede se lee con el mismo color en la barra, el orillo y cada gráfico de Finanzas; Empresa va rayada
+     (es de todos). Son relleno y filo, no texto: el nombre de la sede va siempre escrito al lado. */
+  --color-sede-tru: #2f6aa3;
+  --color-sede-aqp: #c26a2e;
+  --color-sede-lim: #1d8a72;
+  --color-sede-tal: #8a4fa8;
+  --color-sede-emp: #9a8b7b;
   /* El redondeo del efectivo (ADR-0311) tampoco es un medio ni dinero que entró: es lo que no se cobró por llegar a la moneda
      de S/ 0.10. En «Cómo se pagó» (Historial) va en taupe, como el anticipo, para que no salga sin punto. */
   --color-metodo-redondeo: var(--color-taupe);

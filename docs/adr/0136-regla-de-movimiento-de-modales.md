@@ -472,3 +472,26 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
 - **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote, solo tokens del tema, y con `prefers-reduced-motion` todo queda quieto.
   **Nada en bucle:** el punto que respiraba junto a «rige hoy» en la maqueta no entró; un bucle nuevo es otra decisión de Felipe.
 - **Dónde vive:** `apps/web/app/estilos/sellos.css`, `components/sellos/` y lo vigila `lib/sellos-movimiento.test.ts`.
+
+## Actualización 2026-10-23 — la hoja «Configuración» de una campaña, la etiqueta viva (ADR-0488), pedido por Felipe
+
+- **Qué:** el hilo de la etiqueta se dibuja y la etiqueta baja y se asienta al abrir la hoja, el descuento de la etiqueta entra subiendo cada
+  vez que cambia, las casillas de las categorías entran en cascada, cada pieza del mosaico aparece, la categoría que se marca vuela de su
+  casilla a su pieza (el vuelo de «Prendas») y, al guardar, el sello de la campaña se estampa sobre la etiqueta (`SelloTinta`, el de Insignias)
+  antes de que la hoja se cierre.
+- **Por qué se admite:** Felipe pidió «elegante, sofisticado y con full animaciones» y eligió la «II · La etiqueta» mirándola
+  (docs/maquetas/campana-configuracion-2026-10/), con «ricas, una vez, sin bucle».
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote, cada pieza en 1,2 s o menos, solo tokens del tema, y con
+  `prefers-reduced-motion` todo queda quieto (la hoja se cierra al instante al guardar). **Nada en bucle.**
+- **Dónde vive:** `apps/web/app/estilos/campana-hoja.css`, `components/campana-hoja/` y lo vigila `lib/campana-hoja-movimiento.test.ts`.
+
+## Actualización 2026-10-23 (b) — El telar de Finanzas (ADR-0493), aprobado por Felipe
+
+- **Qué:** en la barra común de Finanzas, los hilos de sede que crecen bajo la sede elegida, el orillo que se teje al entrar y se reacomoda al
+  cambiar de sede, la cifra de la respuesta que cuenta y el dock que sube. En cada submódulo, su gráfico propio entra una vez: el retazo y el
+  calendario de Gastos, los frascos de Cuentas y dinero, la biblioteca de Reportes, la balanza de Impuestos y el mapa del Cierre.
+- **Por qué se admite:** Felipe eligió «El telar de Finanzas» mirando la maqueta (docs/maquetas/finanzas-telar-2026-10/), que pedía «muchas
+  animaciones», y aprobó la excepción acotada a lo que la maqueta muestra (decisión b, 2026-10-23).
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote y solo con tokens del tema; con `prefers-reduced-motion`, todo queda
+  quieto. **Nada en bucle**, salvo las señales que esta regla ya admite.
+- **Dónde vive:** `apps/web/app/estilos/telar.css` y `components/finanzas/telar/`.

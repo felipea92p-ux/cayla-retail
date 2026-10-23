@@ -85,6 +85,10 @@ export const AVIARIO = [
       // Refresco del 2026-10-21: los diseños y las vistas previas de la campaña de la tienda web (migraciones de otra sesión): son del
       // mismo cuaderno de campañas que `campana_disenos`.
       "campana_web_disenos", "campana_web_previas",
+      // ADR-0486 (campañas por sede, 2026-10-23): las tiendas donde rige el descuento de una campaña (una fila de `etiquetas`). Sin filas
+      // rige en todas. Se edita desde la pantalla de Campañas, junto a la etiqueta y su diseño, que son de Loro; la caja solo la lee por
+      // `campanas_vigentes(sede)`, como lee `etiquetas`. Asignada en el refresco del volcado del 2026-10-23.
+      "campana_sedes",
       // ADR-0463: la empresa a la que pertenece cada prenda (CAYLA o CLAURE) y en qué sedes opera cada una. La empresa es un dato del producto,
       // no de la marca ni de la factura (que sale siempre con el RUC de CAYLA): lo maneja quien responde por el catálogo. En producción desde
       // el 2026-10-20; las asignó el refresco del volcado del 2026-10-21.
@@ -272,7 +276,14 @@ export const AVIARIO = [
       "compra_notas_proveedor", "compra_notas_proveedor_documentos",
       // Cada cambio del CCI, la cuenta, el Yape o el titular de un proveedor (20261013161000): antes, después, quién y cuándo.
       // Refresco del volcado del 2026-10-16.
-      "proveedores_cambios_bancarios"] },
+      "proveedores_cambios_bancarios",
+      // ADR-0480 (Compras simple, 2026-10-22 y 23): lo que la compradora anota desde el celular y Compras revisa. La compra rápida (`compra_papeles`:
+      // boleta, factura o nota con su foto), el gasto de envío (`compra_gastos`), el cierre de lo que quedó sin resolver (`compra_cierres`), lo
+      // que ya se había recibido antes de registrar la factura (`compra_item_recibido_antes`) y la plata que le dieron para comprar
+      // (`fondo_plata_anotada`: nace «por confirmar» y Compras la confirma en «Revisar compras»). Todas se leen y escriben desde las pantallas de
+      // Compras. Al confirmar una plata, la entrega al fondo pasa por `entregar_fondo` y escribe en los libros de Garza, pero escribir allí no
+      // hace a Compras dueño de ellos (como escribir en `movimientos`). Asignadas en el refresco del volcado del 2026-10-23.
+      "compra_papeles", "compra_gastos", "compra_cierres", "compra_item_recibido_antes", "fondo_plata_anotada"] },
   { n: "10", pajaro: "Gallito", modulo: "Producción del Taller",
     tablas: ["producciones", "produccion_lineas", "insumos", "insumo_lotes", "movimientos_insumo", "v_insumo_saldos",
       // ADR-0133 (Producción, D-H): su propio directorio de proveedores y sus comprobantes de tela/avíos/maquila, aparte de los de

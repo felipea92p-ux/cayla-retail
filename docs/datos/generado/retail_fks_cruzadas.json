@@ -200,9 +200,39 @@
   "src_table": "compra_adjuntos"
  },
  {
+  "conname": "compra_cierres_cerrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_cierres"
+ },
+ {
+  "conname": "compra_cierres_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_cierres"
+ },
+ {
+  "conname": "compra_cierres_resuelto_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_cierres"
+ },
+ {
+  "conname": "compra_gastos_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_gastos"
+ },
+ {
+  "conname": "compra_gastos_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_gastos"
+ },
+ {
   "conname": "compra_item_cierres_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "compra_item_cierres"
+ },
+ {
+  "conname": "compra_item_recibido_antes_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_item_recibido_antes"
  },
  {
   "conname": "compra_notas_credito_usuario_id_fkey",
@@ -218,6 +248,16 @@
   "conname": "compra_pagos_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "compra_pagos"
+ },
+ {
+  "conname": "compra_papeles_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_papeles"
+ },
+ {
+  "conname": "compra_papeles_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_papeles"
  },
  {
   "conname": "compra_reasignaciones_usuario_id_fkey",
@@ -453,6 +493,21 @@
   "conname": "etiquetas_propuesto_por_fkey",
   "ref_table": "public.personas",
   "src_table": "etiquetas"
+ },
+ {
+  "conname": "fondo_plata_anotada_anotada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "fondo_plata_anotada"
+ },
+ {
+  "conname": "fondo_plata_anotada_confirmada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "fondo_plata_anotada"
+ },
+ {
+  "conname": "fondo_plata_anotada_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "fondo_plata_anotada"
  },
  {
   "conname": "foto_recortes_actualizado_por_fkey",

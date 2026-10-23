@@ -507,18 +507,18 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
   });
 
   // ADR-0480 (Compras simple, Felipe 2026-10-22): Compras queda en 6. Sin «Órdenes de compra» ni «Notas de crédito».
-  it("Compras tiene 6 opciones: Plan de campaña, Mi plata para compras, Revisar compras, Proveedores, Facturas de proveedor y Por pagar", () => {
+  it("Compras tiene 6 opciones: Plan de campaña, Mis compras, Revisar compras, Proveedores, Historial de compras y Por pagar", () => {
     const { riel } = menuPara({ permisos: LIDER, ubicacionTipo: "tienda" });
     const compras = riel.find((f) => f.id === "compras");
     const hijos = compras && esGrupoMenu(compras) ? compras.hijos : [];
-    expect(hijos.map((h) => h.etiqueta)).toEqual(["Plan de campaña", "Mi plata para compras", "Revisar compras", "Proveedores", "Facturas de proveedor", "Por pagar"]);
+    expect(hijos.map((h) => h.etiqueta)).toEqual(["Plan de campaña", "Mis compras", "Revisar compras", "Proveedores", "Historial de compras", "Por pagar"]);
     expect(hijos.find((h) => h.id === "compras.miPlata")).toMatchObject({ href: "/compras/mi-plata" });
   });
 
   // Hasta el 2026-10-10 decía «sin `verDineroCompras` no ve Compras». La decisión 34 de ADR-0362 (el módulo es la llave) lo cambió a
   // propósito: Órdenes de compra trae sus precios y no pide el dinero de las facturas. Lo que sigue en pie: sin ese permiso no se ve
   // NINGUNA pantalla de dinero de Compras, y con los módulos de hoy (sin Órdenes de compra) Compras no aparece.
-  it("sin `verDineroCompras` no ve el dinero de Compras, esté donde esté; con el módulo de quien compra ve solo «Mi plata para compras» (ADR-0362, ADR-0480)", () => {
+  it("sin `verDineroCompras` no ve el dinero de Compras, esté donde esté; con el módulo de quien compra ve solo «Mis compras» (ADR-0362, ADR-0480)", () => {
     const deHoy = MODULOS_DE_HOY.integrante.map((m) => m.clave);
     for (const ubicacionTipo of TIPOS_UBICACION) {
       expect(menuPara({ permisos: INTEGRANTE, ubicacionTipo, modulos: deHoy }).riel.some((f) => f.id === "compras"), ubicacionTipo).toBe(false);

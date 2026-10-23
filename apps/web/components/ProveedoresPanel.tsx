@@ -596,15 +596,8 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
         {haceCuanto(dias)}
       </span>
       <span className="hidden items-center justify-end gap-2 overflow-visible @3xl:flex">
-        {p.activo ? (
-          <Link
-            href={`/compras/nueva?prov=${p.id}`}
-            data-guia="proveedores.comprobante"
-            className="btn-cayla btn-secundario relative whitespace-nowrap"
-          >
-            + Comprobante
-          </Link>
-        ) : (
+        {/* «+ Comprobante» se fue con el registro a mano (2026-10-23): la compra nace en «Mis compras». */}
+        {!p.activo && (
           <Boton textoCargando="Reactivando…" type="button" peso="discreto" cargando={cambiando} onClick={onReactivar} className="relative px-2.5 py-1.5 text-[11px]">
             Reactivar
           </Boton>

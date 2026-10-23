@@ -358,10 +358,10 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
     avisos.push({
       clave: "porPagar",
       grupo: "Compras",
-      titulo: p && p.vencidas > 0 ? "Facturas de proveedor vencidas" : "Facturas que vencen esta semana",
+      titulo: p && p.vencidas > 0 ? "Compras por pagar vencidas" : "Compras que vencen esta semana",
       cantidad: n,
       nivel: p === null ? "sinleer" : p.vencidas > 0 ? "urgente" : nivelDe(p.semana, "toca"),
-      ahora: !n ? "" : p && p.vencidas > 0 ? `Paga ${n} ${plural(n, "factura vencida", "facturas vencidas")}` : `Revisa ${n} ${plural(n, "factura que vence", "facturas que vencen")} esta semana`,
+      ahora: !n ? "" : p && p.vencidas > 0 ? `Paga ${n} ${plural(n, "compra vencida", "compras vencidas")}` : `Revisa ${n} ${plural(n, "compra que vence", "compras que vencen")} esta semana`,
       detalle:
         p === null ? SIN_LEER
           : p.vencidas > 0 ? `${soles(p.montoVencido)} ya vencido${p.semana > 0 ? ` · y ${p.semana} más vencen esta semana` : ""}.`

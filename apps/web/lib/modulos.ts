@@ -54,7 +54,8 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "vender", grupo: "Ventas", nombre: "Punto de venta", incluye: "Registrar ventas, descuento hasta su tope, dejar en espera, monto manual" },
   // Apartados (ADR-0196): se separó del Punto de venta a pedido de Felipe (2026-09-24). Nace sin rol: solo lo ve el líder.
   { clave: "apartados", grupo: "Ventas", nombre: "Apartados", incluye: "Apartar prendas con adelanto, entregar cobrando el saldo, extender, liberar y devolver el adelanto" },
-  { clave: "caja", grupo: "Ventas", nombre: "Caja", incluye: "Abrir y cerrar caja, ingresos y egresos, ajustes de caja" },
+  // Registrar el gasto de hoy desde la caja es de Caja, sin el módulo Gastos (ADR-0491, 20261023212000).
+  { clave: "caja", grupo: "Ventas", nombre: "Caja", incluye: "Abrir y cerrar caja, ingresos y egresos, ajustes de caja, y registrar los gastos de hoy que se pagan del cajón o con el Yape o el Plin de la tienda" },
   { clave: "cambios", grupo: "Ventas", nombre: "Cambios", incluye: "Registrar cambios de prenda" },
   { clave: "devoluciones", grupo: "Ventas", nombre: "Devoluciones", incluye: "Solicitar devoluciones" },
   { clave: "historial", grupo: "Ventas", nombre: "Historial de ventas", incluye: "Consultar, reimprimir, exportar y corregir el pago mientras la caja siga abierta" },
@@ -117,16 +118,16 @@ export const MODULOS: readonly Modulo[] = [
   // Órdenes de compra (ADR-0362, 20261010214500): lo que se le pide a cada proveedor antes de la factura. Nace SIN rol (solo el
   // líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las órdenes de TODAS las sedes con sus precios
   // (decisiones 34 y 37): no pasa por la regla de Compras por tienda (ADR-0184).
-  // ADR-0480 (Compras simple, 20261022225000): la clave `ordenes_compra` se REUSA como «Mi plata para compras». Unas 40 funciones de la
+  // ADR-0480 (Compras simple, 20261022225000): la clave `ordenes_compra` se REUSA como «Mis compras». Unas 40 funciones de la
   // base la usan como llave (recibir, gastos del viaje, datos bancarios, proveedor nuevo, «Nos debe»); retirarla cambiaría en silencio
   // quién puede qué. Lo que se ve es la compradora en su celular; las pantallas de órdenes salen del menú.
-  { clave: "ordenes_compra", grupo: "Compras", nombre: "Mi plata para compras", incluye: "En el celular: anotar la plata que te dieron para comprar, lo que compraste (proveedor, prendas, la boleta con foto) y otros gastos; mandar lo comprado a cada tienda y terminar el día" },
-  { clave: "facturas_compra", grupo: "Compras", nombre: "Facturas de compra", incluye: "Registrar, corregir y anular facturas" },
+  { clave: "ordenes_compra", grupo: "Compras", nombre: "Mis compras", incluye: "En el celular: abrir y cerrar tu ronda de compras, anotar la plata que te dieron, lo que compraste (proveedor, prendas y el papel) y otros gastos, y mandar lo comprado a cada tienda" },
+  { clave: "facturas_compra", grupo: "Compras", nombre: "Historial de compras", incluye: "Ver todas las compras con su papel (factura, boleta, nota de venta o sin comprobante), lo que falta pagar y lo que falta llegar; adjuntar documentos, anular una compra sin pagos ni recepciones y descargar el mes para el contador" },
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
   // Fondos por rendir (ADR-0362, fase 6; 20261013181000): la plata que se le entrega a quien compra. Nace SIN rol (solo el líder) y
   // delegable: sus funciones piden este módulo, no al líder (decisión 35).
   // ADR-0480: «Revisar compras», la oficina. Misma clave y mismas funciones; cambia lo que se ve.
-  { clave: "fondos", grupo: "Compras", nombre: "Revisar compras", incluye: "Confirmar la plata que anotaron las compradoras, completar las compras que llegaron a la tienda (serie y número de la boleta o factura, y qué hacer si algo no cuadró) y ver los cierres del día" },
+  { clave: "fondos", grupo: "Compras", nombre: "Revisar compras", incluye: "Confirmar la plata que anotaron las compradoras, completar las compras que llegaron a la tienda (serie y número del papel, y qué hacer si algo no cuadró), revisar sus gastos y recibir sus rondas cerradas" },
   { clave: "proveedores", grupo: "Compras", nombre: "Proveedores", incluye: "Crear, editar y archivar; cuentas bancarias, Yape y Plin" },
   // «Notas de crédito» se retiró (ADR-0480, 20261022225000): «por ahora no manejaremos notas de crédito» (Felipe, 2026-10-22).
   // Plan de campaña (ADR-0349, 20261005220000): cuánto comprar por categoría para una campaña (diciembre 2026 primero), con tres
@@ -265,7 +266,8 @@ export function modulosDeHoy(
  * De los módulos que ve la cuenta a los permisos que preguntan las pantallas (`puede(persona, …)`). ESPEJA las
  * capacidades de la base (`fn_puede_*()` = líder o `fn_capacidad_por_modulos`), así pantalla y candado dicen lo mismo:
  *  - facturar               ← ve Facturación
- *  - gestionarCaja          ← ve Caja, completo
+ *  - gestionarCaja          ← ve Caja, completo (también registrar el gasto de hoy desde la caja sin el módulo Gastos:
+ *                             `fn_puede_registrar_gasto`, ADR-0491)
  *  - ajustarInventario      ← ve Existencias, Conteos o Traslados, completo (cerrar conteo/traslado con diferencia;
  *                             sigue así desde antes de ADR-0250, a propósito: no es el botón «Ajustar»)
  *  - ajustarStock           ← lo mismo que ajustarInventario (`fn_puede_ajustar_stock`, ADR-0306): el botón «Ajustar» de

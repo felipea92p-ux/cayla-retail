@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState, type RefObject } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImageOff } from "lucide-react";
-import { Modal } from "@/components/ui/Modal";
+import { CameraOff, Check, ImageOff, Wallet, ZoomIn } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
-import { Boton, CampoMonto, CampoSelect } from "@/components/ui/campos";
+import { Boton, CampoMonto } from "@/components/ui/campos";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -18,147 +18,91 @@ import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
-import { opcionesDeCuentas, primerNombre, type CuentaOpcion } from "@/lib/fondos-reglas";
+import { primerNombre, type CuentaOpcion } from "@/lib/fondos-reglas";
 import { confirmarPlata } from "@/lib/mi-plata-acciones";
 import { MEDIOS_PLATA, camposConfirmar, cuentaSugerida } from "@/lib/mi-plata-reglas";
 import type { PlataPorConfirmarConFoto } from "@/lib/mi-plata";
+import { FichasCuenta } from "@/components/fondos/FichasCuenta";
+import { PanelDetalle } from "./PanelDetalle";
 
-// Compras simple (ADR-0480, actividad 2): «Revisar compras» ▸ la plata que anotaron las compradoras. Cada fila muestra a quién, cómo le
-// llegó, cuánto y su voucher; «Confirmar» la confirma de un toque con lo anotado y la cuenta sugerida (el BCP: Felipe 2026-10-22), y
-// «Cambiar» abre la hoja para corregir el monto o la cuenta. «Ya tenía plata» no sale de ninguna cuenta: es el saldo de apertura de su
-// fondo. La fila de quien mira no se confirma (nadie confirma su propia plata; la base tampoco lo deja).
+// Compras simple (ADR-0480, actividad 2): «Revisar compras» ▸ la plata que anotaron las compradoras. Rediseño (2026-10-23): se revisa en
+// el detalle de la bandeja, al lado de la lista: el voucher en grande, el monto, la cuenta sugerida (el BCP: Felipe 2026-10-22) y
+// «Confirmar S/ X». «Ya tenía plata» no sale de ninguna cuenta: es el saldo de apertura de su fondo. La de quien mira no se confirma
+// (nadie confirma su propia plata; la base tampoco lo deja).
 //
 // Confirmar no lleva token: volver a confirmar lo mismo devuelve lo que ya quedó (un doble clic o un corte no duplican), y con otros datos
-// la base dice que ya se confirmó. Desde una terminal no hay toque directo: la hoja pide quién confirma (decisión 39).
+// la base dice que ya se confirmó. Desde una terminal, pide quién confirma (decisión 39).
+//
+// Sigue el diseño «A · Bandeja serena» que Felipe eligió el 2026-10-23 mirando las capturas: arriba la persona con su avatar y el medio
+// y el día en un chip; abajo, el voucher grande a la izquierda y, a la derecha, «¿Cuánto llegó?» y la cuenta en fichas de un toque.
+// Sin párrafos: lo que antes decía una nota es ahora un dato (✓ igual a lo que anotó, el bloque del saldo de apertura).
 
 type Fila = PlataPorConfirmarConFoto;
+type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 
-export function PlataPorConfirmar({ filas, cuentas }: { filas: Fila[]; cuentas: CuentaOpcion[] }) {
-  const sugerida = cuentaSugerida(cuentas);
-  const nombreCuenta = (id: string | null) => cuentas.find((c) => c.id === id)?.nombre ?? null;
-  return (
-    // La fila se acomoda por el ancho de SU tarjeta (`@container`), no por el de la ventana: con el lateral abierto la tarjeta es mucho más
-    // angosta. Angosta, el monto va bajo el nombre y los botones en su propia línea; ancha, todo en una fila.
-    <ul className="card-cayla @container divide-y divide-sand" data-guia="fondos.plata-anotada">
-      {filas.map((f) => (
-        <FilaPlata key={f.id} fila={f} cuentas={cuentas} sugerida={sugerida} nombreSugerida={nombreCuenta(sugerida)} />
-      ))}
-    </ul>
-  );
-}
-
-function FilaPlata({ fila, cuentas, sugerida, nombreSugerida }: { fila: Fila; cuentas: CuentaOpcion[]; sugerida: string | null; nombreSugerida: string | null }) {
-  const router = useRouter();
-  const [abierta, setAbierta] = useState(false);
-  const [confirmando, setConfirmando] = useState(false);
-  const origen = useRef<HTMLElement | null>(null);
-  const esPersona = Boolean(useSedeActiva()?.personaSesionId);
-  const yaTenia = fila.medio === "ya_tenia";
-  // Un toque basta si firma la persona y hay de dónde sale (o no hace falta: «ya tenía»).
-  const deUnToque = esPersona && (yaTenia || sugerida !== null);
-
-  async function confirmarDeUnToque() {
-    if (confirmando) return;
-    setConfirmando(true);
-    const { error } = await confirmarPlata({ p_id: fila.id, p_monto: fila.monto, p_cuenta_origen_id: yaTenia ? null : sugerida }, firmaOmitida("plata_confirmar"));
-    setConfirmando(false);
-    if (error) {
-      return avisar.error(esFalloDeRed(error) ? "Se cortó la conexión" : "No se confirmó", {
-        detalle: esFalloDeRed(error) ? "Vuelve a tocar «Confirmar»: si ya se guardó, no se repite." : traducirError(error, "confirmar la plata"),
-      });
-    }
-    avisar.exito(`Confirmaste ${soles(fila.monto)} de ${primerNombre(fila.persona)}`, { detalle: "Ya está en su fondo." });
-    router.refresh();
-  }
-
-  return (
-    <li className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-3 @min-[40rem]:grid-cols-[3.5rem_minmax(0,1fr)_auto_auto]">
-      <Voucher fila={fila} />
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-medium text-tinta">{fila.persona}</span>
-        <span className="block text-xs text-taupe">
-          {yaTenia ? "Ya tenía de antes · saldo de apertura" : MEDIOS_PLATA[fila.medio].nombre}
-          {fila.fecha ? ` · ${diaMes(fila.fecha)}` : ""}
-          {!yaTenia && nombreSugerida ? ` · sale de ${nombreSugerida}` : ""}
-        </span>
-        <span className="mt-0.5 block whitespace-nowrap font-serif text-lg tabular-nums text-tinta @min-[40rem]:hidden">{soles(fila.monto)}</span>
-      </span>
-      <span className="hidden whitespace-nowrap font-serif text-lg tabular-nums text-tinta @min-[40rem]:block">{soles(fila.monto)}</span>
-      {fila.esMia ? (
-        <span className="col-span-2 flex justify-end @min-[40rem]:col-span-1">
-          <Chip tono="pizarra" title="Nadie confirma su propia plata: que la confirme otra persona de Compras.">
-            Es tuya
-          </Chip>
-        </span>
-      ) : (
-        <span className="col-span-2 flex justify-end gap-2 @min-[40rem]:col-span-1">
-          <Boton
-            peso="fantasma"
-            data-guia="fondos.plata-cambiar"
-            disabled={confirmando}
-            onClick={(e) => {
-              origen.current = e.currentTarget;
-              setAbierta(true);
-            }}
-          >
-            Cambiar
-          </Boton>
-          <Boton
-            peso="primario"
-            data-guia="fondos.plata-confirmar"
-            cargando={confirmando}
-            textoCargando="Confirmando…"
-            onClick={(e) => {
-              if (deUnToque) return void confirmarDeUnToque();
-              origen.current = e.currentTarget;
-              setAbierta(true);
-            }}
-          >
-            Confirmar
-          </Boton>
-        </span>
-      )}
-      {abierta && <ConfirmarPlataModal fila={fila} cuentas={cuentas} sugerida={sugerida} onClose={() => setAbierta(false)} volverA={origen} />}
-    </li>
-  );
-}
-
-function Voucher({ fila }: { fila: Fila }) {
+/** La miniatura del voucher en la fila de la bandeja. */
+export function MiniVoucher({ fila }: { fila: Fila }) {
   if (!fila.fotoUrl) {
     return (
-      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-hueso text-taupe" title={fila.medio === "ya_tenia" ? "Plata que ya tenía" : "No subió foto del voucher"}>
+      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-hueso text-taupe" title={fila.medio === "ya_tenia" ? "Plata que ya tenía" : "Sin foto del voucher"}>
         <ImageOff className="h-5 w-5" aria-hidden />
-        <span className="sr-only">Sin foto del voucher</span>
       </span>
     );
   }
   return (
-    <a href={fila.fotoUrl} target="_blank" rel="noopener noreferrer" className="block h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-hueso" title="Ver el voucher">
+    <span className="block h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-hueso">
       {/* El voucher es un enlace firmado de 10 minutos del depósito privado: no pasa por la optimización de imágenes. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={fila.fotoUrl} alt={`Voucher de ${fila.persona}`} className="h-full w-full object-cover" />
+      <img src={fila.fotoUrl} alt="" className="h-full w-full object-cover" />
+    </span>
+  );
+}
+
+/** El voucher en grande, a la izquierda del detalle: la foto (se abre entera al tocarla) o, sin foto, un dibujo con su chip. */
+function VoucherGrande({ fila }: { fila: Fila }) {
+  const yaTenia = fila.medio === "ya_tenia";
+  if (!fila.fotoUrl) {
+    const Icono = yaTenia ? Wallet : ImageOff;
+    return (
+      <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl bg-hueso p-4 text-taupe">
+        <Icono /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ className="h-14 w-14" strokeWidth={1.5} aria-hidden />
+        <Chip tono="neutro" versalitas={false}>
+          {yaTenia ? (
+            <>
+              <Wallet className="h-3 w-3" aria-hidden />
+              Ya la tenía
+            </>
+          ) : (
+            <>
+              <CameraOff className="h-3 w-3" aria-hidden />
+              Sin foto
+            </>
+          )}
+        </Chip>
+      </div>
+    );
+  }
+  return (
+    <a
+      href={fila.fotoUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="relative flex min-h-64 items-center justify-center overflow-hidden rounded-2xl bg-hueso p-3"
+      title="Ver el voucher en grande"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={fila.fotoUrl} alt={`Voucher de ${fila.persona}`} className="max-h-80 w-full rounded-xl object-contain" />
+      <span aria-hidden className="absolute bottom-3 right-3 grid h-8 w-8 place-items-center rounded-full bg-papel text-tinta">
+        <ZoomIn className="h-4 w-4" />
+      </span>
     </a>
   );
 }
 
-type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
-
-function ConfirmarPlataModal({
-  fila,
-  cuentas,
-  sugerida,
-  onClose,
-  volverA,
-}: {
-  fila: Fila;
-  cuentas: CuentaOpcion[];
-  sugerida: string | null;
-  onClose: () => void;
-  volverA: RefObject<HTMLElement | null>;
-}) {
+export function DetallePlata({ fila, cuentas, alTerminar }: { fila: Fila; cuentas: CuentaOpcion[]; alTerminar: () => void }) {
   const router = useRouter();
   const [monto, setMonto] = useState(fila.monto.toFixed(2));
-  const [cuentaId, setCuentaId] = useState(sugerida ?? "");
+  const [cuentaId, setCuentaId] = useState(cuentaSugerida(cuentas) ?? "");
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
   const [guardando, setGuardando] = useState(false);
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
@@ -167,6 +111,7 @@ function ConfirmarPlataModal({
   const guia = useGuiaCampos(camposConfirmar({ monto, cuentaId }, fila.medio, cuentas, { esPersona, listo: responsable.listo, motivo: responsable.motivo }));
   const montoLeido = leerMontoPlata(monto);
   const otroMonto = montoLeido != null && Math.abs(montoLeido - fila.monto) >= 0.005;
+  const nombre = primerNombre(fila.persona);
 
   async function confirmar() {
     if (guardando) return;
@@ -188,98 +133,116 @@ function ConfirmarPlataModal({
           : { titulo: "No se confirmó", texto: traducirError(error, "confirmar la plata"), tono: "error" },
       );
     }
-    avisar.exito(`Confirmaste ${soles(montoLeido ?? 0)} de ${primerNombre(fila.persona)}`, {
+    avisar.exito(`Confirmaste ${soles(montoLeido ?? 0)} de ${nombre}`, {
       detalle: otroMonto ? `Se anotó ${soles(fila.monto)}: en su plata se ven los dos montos.` : "Ya está en su fondo.",
     });
-    onClose();
+    alTerminar();
     router.refresh();
   }
 
   return (
-    <Modal
-      titulo="Confirmar la plata"
-      subtitulo={`${fila.persona} anotó ${soles(fila.monto)} (${yaTenia ? "plata que ya tenía" : MEDIOS_PLATA[fila.medio].nombre}).`}
-      onClose={onClose}
-      variante="hoja"
-      alCerrarEnfocar={volverA}
-      bloqueado={guardando}
+    <PanelDetalle
+      guia="fondos.plata-detalle"
+      avatar={<AvatarPersona personaId={fila.personaId} nombre={fila.persona} tamano={40} />}
+      sobre={["Plata por confirmar", fila.ronda].filter(Boolean).join(" · ")}
+      titulo={fila.persona}
+      estado={<Chip tono="pizarra">{[MEDIOS_PLATA[fila.medio].nombre, fila.fecha ? diaMes(fila.fecha) : null].filter(Boolean).join(" · ")}</Chip>}
     >
-      {(cerrar) => (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void confirmar();
-          }}
-          className="space-y-5"
-        >
-          {fila.fotoUrl && (
-            <a href={fila.fotoUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl bg-hueso">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={fila.fotoUrl} alt={`Voucher de ${fila.persona}`} className="max-h-72 w-full object-contain" />
-            </a>
-          )}
-          <CampoGuiado id="monto" guia={guia} titulo="¿Cuánto llegó?">
-            <CampoMonto
-              etiqueta="¿Cuánto llegó?"
-              etiquetaOculta
-              inputMode="decimal"
-              autoComplete="off"
-              value={monto}
-              disabled={guardando}
-              onChange={(e) => {
-                setRechazo(null);
-                setMonto(e.target.value);
-              }}
-            />
-            {otroMonto && <p className="mt-1.5 text-xs text-taupe">Se anotó {soles(fila.monto)}: en su plata se verán los dos montos.</p>}
-          </CampoGuiado>
-          {yaTenia ? (
-            <p className="nota-cayla text-sm">Es la plata que ya tenía antes de usar el sistema: entra como el saldo de apertura de su fondo y no sale de ningún banco.</p>
-          ) : (
-            <CampoGuiado id="cuenta" guia={guia} titulo="¿De dónde salió?">
-              <CampoSelect
-                etiqueta="¿De dónde salió?"
-                caja
-                valor={cuentaId}
-                onValor={(v) => {
-                  setRechazo(null);
-                  setCuentaId(v);
-                }}
-                opciones={opcionesDeCuentas(cuentas)}
-                marcador={cuentas.length === 0 ? "No hay un banco ni una caja fuerte activos" : "Elige el banco o la caja fuerte"}
-                deshabilitado={guardando || cuentas.length === 0}
-              />
-            </CampoGuiado>
-          )}
-          {!esPersona && (
-            <CampoGuiado id="responsable" guia={guia} titulo="Quién confirma">
-              <ComboResponsable control={responsable} deshabilitado={guardando} />
-            </CampoGuiado>
-          )}
-          {rechazo && (
-            <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
-              {rechazo.texto}
-            </Aviso>
-          )}
-          <PieGuia guia={guia} listo="Todo listo para confirmar." conFrase />
-          <div className="pie-hoja-fijo pie-acciones pt-1">
-            <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
-              Cancelar
-            </Boton>
-            <Boton
-              textoCargando="Confirmando…"
-              type="submit"
-              peso="primario"
-              cargando={guardando}
-              disabled={!guia.puedeConfirmar}
-              title={guia.frase ?? undefined}
-              className={guia.claseConfirmar}
-            >
-              {montoLeido != null && montoLeido > 0 ? `Confirmar ${soles(montoLeido)}` : "Confirmar"}
-            </Boton>
+      <div className="grid gap-6 @min-[38rem]:grid-cols-[13rem_minmax(0,1fr)]">
+        <VoucherGrande fila={fila} />
+        {fila.esMia ? (
+          <div className="flex flex-col items-start gap-2">
+            <Chip tono="pizarra">Es tuya</Chip>
+            <p className="text-sm text-taupe">Que la confirme otra persona de Compras.</p>
           </div>
-        </form>
-      )}
-    </Modal>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void confirmar();
+            }}
+            className="flex min-w-0 flex-col gap-5"
+          >
+            <CampoGuiado id="monto" guia={guia} titulo="¿Cuánto llegó?">
+              <CampoMonto
+                etiqueta="¿Cuánto llegó?"
+                etiquetaOculta
+                inputMode="decimal"
+                autoComplete="off"
+                value={monto}
+                disabled={guardando}
+                data-guia="fondos.plata-monto"
+                onChange={(e) => {
+                  setRechazo(null);
+                  setMonto(e.target.value);
+                }}
+              />
+              {otroMonto ? (
+                <p className="mt-1.5 text-xs text-taupe">Anotó {soles(fila.monto)}: en su plata se verán los dos montos.</p>
+              ) : (
+                montoLeido != null && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-verde">
+                    <Check className="h-3.5 w-3.5" aria-hidden />
+                    Igual a lo que anotó
+                  </p>
+                )
+              )}
+            </CampoGuiado>
+            {yaTenia ? (
+              <div className="flex items-center gap-3 rounded-2xl bg-hueso p-3">
+                <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-papel text-taupe">
+                  <Wallet className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-tinta">Saldo de apertura</span>
+                  <span className="block text-xs text-taupe">No sale de ningún banco.</span>
+                </span>
+              </div>
+            ) : (
+              <CampoGuiado id="cuenta" guia={guia} titulo="¿De qué cuenta salió?">
+                <FichasCuenta
+                  etiqueta="¿De qué cuenta salió?"
+                  cuentas={cuentas}
+                  valor={cuentaId}
+                  onValor={(v) => {
+                    setRechazo(null);
+                    setCuentaId(v);
+                  }}
+                  deshabilitado={guardando}
+                />
+              </CampoGuiado>
+            )}
+            {!esPersona && (
+              <CampoGuiado id="responsable" guia={guia} titulo="Quién confirma">
+                <ComboResponsable control={responsable} deshabilitado={guardando} />
+              </CampoGuiado>
+            )}
+            {rechazo && (
+              <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
+                {rechazo.texto}
+              </Aviso>
+            )}
+            <PieGuia guia={guia} listo="Todo listo para confirmar." conFrase />
+            <div className="pie-acciones border-t border-sand pt-4">
+              <Boton
+                textoCargando="Confirmando…"
+                type="submit"
+                peso="primario"
+                cargando={guardando}
+                disabled={!guia.puedeConfirmar}
+                title={guia.frase ?? undefined}
+                className={guia.claseConfirmar}
+                data-guia="fondos.plata-confirmar"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Check className="h-4 w-4" aria-hidden />
+                  {montoLeido != null && montoLeido > 0 ? `Confirmar ${soles(montoLeido)}` : "Confirmar"}
+                </span>
+              </Boton>
+            </div>
+          </form>
+        )}
+      </div>
+    </PanelDetalle>
   );
 }

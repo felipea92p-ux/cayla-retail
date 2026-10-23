@@ -17,6 +17,7 @@
 
 import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
 import { mejorCampanaPorVariante, type CampanaDeVariante } from "./etiqueta-precio-reglas";
+import { cambioEnLasTiendas, rigeEnSede, type CambioDePrecio, type DondeSeImprime } from "./etiqueta-campana";
 import { fechaCorta, vigenciaDe } from "./etiqueta-vigencia";
 
 export type { CampanaDeVariante };
@@ -70,7 +71,8 @@ export function precioDeHoy(
   return { lista: rangoDe(conPrecio.map((v) => v.precio)), cobra: rangoDe(cobra), campana, otras: campanas.size - 1, rebajadas, total: conPrecio.length };
 }
 
-/** Una campaña del vocabulario como la lee la ficha: su %, su temporada y las categorías donde rige sola. */
+/** Una campaña del vocabulario como la lee la ficha: su %, su temporada, las categorías donde rige sola y las tiendas donde da su
+ *  descuento (vacío = todas las sedes, ADR-0486). */
 export type CampanaDelVocabulario = {
   id: string;
   nombre: string;
@@ -78,6 +80,7 @@ export type CampanaDelVocabulario = {
   vigenteDesde: string | null;
   vigenteHasta: string | null;
   categoriaIds: readonly string[];
+  sedeIds: readonly string[];
 };
 
 /**
@@ -161,14 +164,49 @@ export function fraseCajaCobra(
   };
 }
 
-/** Las variantes cuyo precio en caja de HOY cambia al guardar (otro precio, una campaña que entra, sale o cambia): su etiqueta de papel
- *  dice el de antes. Solo las que están en los dos lados: una que nace o deja de venderse no tenía o ya no necesita papel. */
-export function cambianEnCaja(antes: ReadonlyMap<string, number>, despues: ReadonlyMap<string, number>): string[] {
-  return [...despues].filter(([id, precio]) => antes.has(id) && Math.abs((antes.get(id) as number) - precio) >= 0.005).map(([id]) => id);
+// ---- Reimprimir al guardar Editar producto ----------------------------------------------------------------------------------------
+
+/** Un lado del guardado de la ficha (lo guardado, o lo que queda al guardar): las variantes que se venden, con el precio de la prenda, su
+ *  categoría y el precio propio de cada tienda que lo tiene (ADR-0370: uno para toda la prenda, manda sobre el de cada talla). */
+export type LadoDeLaFicha = {
+  variantes: readonly { id: string; etiquetaIds: readonly string[]; precio: number }[];
+  categoriaId: string | null;
+  propios: ReadonlyMap<string, number>;
+};
+
+/**
+ * Las variantes cuyo precio en caja de HOY cambia al guardar (otro precio, una campaña que entra, sale o cambia): su etiqueta de papel
+ * dice el de antes. Tienda por tienda, porque una campaña puede regir solo en algunas (ADR-0486) y una tienda con precio propio no ve
+ * el precio nuevo de la prenda (ADR-0370); lo dice como al guardar una campaña (`cambioEnLasTiendas`): en qué tiendas si no es lo mismo
+ * en todas, y qué imprime el botón desde la sede de quien guarda (`donde.aqui`). Solo las variantes que están en los dos lados: una que
+ * nace o deja de venderse no tenía o ya no necesita papel.
+ */
+export function cambianEnCajaAlGuardar(
+  antes: LadoDeLaFicha,
+  despues: LadoDeLaFicha,
+  vocabulario: readonly CampanaDelVocabulario[],
+  hoy: string,
+  donde: DondeSeImprime,
+): CambioDePrecio {
+  const enSede = (sede: string | null) => {
+    const rigen = vocabulario.filter((c) => rigeEnSede(c, sede));
+    const cobra = (lado: LadoDeLaFicha) => {
+      const propio = sede === null ? undefined : lado.propios.get(sede);
+      const variantes = propio === undefined ? lado.variantes : lado.variantes.map((v) => ({ ...v, precio: propio }));
+      const campanas = campanasDeLaFicha(variantes, lado.categoriaId, rigen, hoy);
+      return { precios: cobraPorVariante(variantes, campanas), campanas };
+    };
+    const a = cobra(antes);
+    const d = cobra(despues);
+    const cambian = [...d.precios].filter(([id, precio]) => a.precios.has(id) && Math.abs((a.precios.get(id) as number) - precio) >= 0.005).map(([id]) => id);
+    // Las que quedan con una campaña (entra, o cambia su %) y las que se cobran sin ninguna (sale, o cambió solo el precio).
+    return { quedan: cambian.filter((id) => d.campanas.has(id)), salen: cambian.filter((id) => !d.campanas.has(id)) };
+  };
+  return cambioEnLasTiendas(enSede, donde, vocabulario.flatMap((c) => c.sedeIds));
 }
 
 /** El precio que cobra la caja hoy por variante, con la campaña de cada una (o sin ella). */
-export function cobraPorVariante(
+function cobraPorVariante(
   variantes: readonly { id: string; precio: number }[],
   campanas: ReadonlyMap<string, CampanaDeVariante>,
 ): Map<string, number> {

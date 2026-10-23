@@ -3,7 +3,7 @@ import { leerMontoPlata } from "./monto-plata-reglas";
 import { problemaDeMonto } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import { nombresParecidos } from "./nombres-parecidos";
-import { FICHAS_POR_CATEGORIA } from "./sugerencias-alta-producto";
+import { diasEntreFechas } from "./fechas-lima";
 
 // Compras simple (ADR-0480, actividad 3): «Compré ropa» desde el celular. Las reglas puras: leer lo que manda la base (vieja o rota: nunca
 // se cae), buscar proveedores por nombre y por lo que venden, los habituales de uno, lo que se dice en cada paso, lo que falta en el paso del
@@ -20,6 +20,15 @@ export const CARPETA_PAPELES = "papeles/";
 
 /** Cuántos habituales se ven antes de «Ver todos los suyos» (la maqueta aprobada). */
 export const HABITUALES_A_LA_VISTA = 6;
+
+/** Cuántos proveedores se dibujan de entrada, y cuántos más cada vez que se llega al final de la lista (Felipe 2026-10-23). */
+export const PROVEEDORES_POR_TANDA = 10;
+
+/** Los primeros `cuantos` de la lista, sin pasarse, y si quedan más para la próxima tanda. */
+export function tandaDeLista<T>(lista: readonly T[], cuantos: number): { visibles: T[]; quedan: number } {
+  const n = Math.max(0, Math.min(cuantos, lista.length));
+  return { visibles: lista.slice(0, n), quedan: lista.length - n };
+}
 
 export type TipoPapel = "factura" | "boleta" | "nota_venta" | "sin_comprobante";
 
@@ -66,6 +75,46 @@ export function leerProveedoresParaComprar(data: unknown): ProveedorParaComprar[
 export function filtrarProveedores(lista: readonly ProveedorParaComprar[], q: string, categoriaId: string | null): ProveedorParaComprar[] {
   const n = normalizar(q);
   return lista.filter((p) => (!n || normalizar(p.nombre).includes(n)) && (!categoriaId || p.categorias.includes(categoriaId)));
+}
+
+/**
+ * «Les compraste hace poco» (maqueta compras-formidable-2026-10): los proveedores a los que ya se les compró, el más reciente primero.
+ * Los demás se encuentran buscando o por lo que venden.
+ */
+export function proveedoresRecientes(lista: readonly ProveedorParaComprar[], maximo = 5): ProveedorParaComprar[] {
+  return lista
+    .filter((p) => p.compras > 0 && p.ultima)
+    .sort((a, b) => (a.ultima! < b.ultima! ? 1 : a.ultima! > b.ultima! ? -1 : b.compras - a.compras))
+    .slice(0, maximo);
+}
+
+function haceCuanto(dias: number): string {
+  if (dias <= 0) return "hoy";
+  if (dias === 1) return "ayer";
+  if (dias < 7) return `hace ${dias} días`;
+  if (dias < 14) return "hace una semana";
+  if (dias < 30) return `hace ${Math.floor(dias / 7)} semanas`;
+  if (dias < 60) return "hace un mes";
+  return `hace ${Math.floor(dias / 30)} meses`;
+}
+
+/** Lo que se lee bajo cada proveedor: «Le compraste hace 6 días · 4 compras», o «Todavía no le compras». `hoy` es el día de Lima. */
+export function detalleProveedor(p: Pick<ProveedorParaComprar, "compras" | "ultima">, hoy: string): string {
+  if (p.compras === 0) return "Todavía no le compras";
+  const veces = p.compras === 1 ? "1 compra" : `${p.compras} compras`;
+  return p.ultima ? `Le compraste ${haceCuanto(diasEntreFechas(p.ultima, hoy))} · ${veces}` : veces;
+}
+
+/** Las iniciales del cuadro de cada proveedor: «Textiles Rosa S.A.C.» → «TR»; una sola palabra, sus dos primeras letras. */
+export function inicialesProveedor(nombre: string): string {
+  const palabras = nombre
+    .replace(/\s+(s\.?a\.?c\.?|e\.?i\.?r\.?l\.?|s\.?r\.?l\.?|s\.?a\.?)$/i, "")
+    .split(/\s+/)
+    .map((w) => w.replace(/[^\p{L}\p{N}]/gu, ""))
+    .filter(Boolean);
+  if (palabras.length === 0) return "?";
+  if (palabras.length === 1) return palabras[0].slice(0, 2).toUpperCase();
+  return (palabras[0][0] + palabras[1][0]).toUpperCase();
 }
 
 /** Las categorías que vende al menos un proveedor (las píldoras de «¿A quién le compras?»), en el orden del catálogo que se pase. */
@@ -181,6 +230,153 @@ export function faltaEnPaso(paso: "cantidad" | "costo" | "venta", t: string): st
   return leerPrecio(t) == null ? "Escribe el precio" : null;
 }
 
+// ---------- La hoja de la prenda (rediseño, maqueta compras-formidable-2026-10, Felipe 2026-10-23) ----------
+// Al tocar una prenda se abre UNA hoja con lo que antes eran cuatro pantallas seguidas: cuántas, el costo, la venta y la tienda (que se
+// sigue eligiendo por prenda: Felipe, 2026-10-23). Lo que falta es lo mismo que antes frenaba cada paso: la guía no agrega reglas.
+
+/**
+ * Lo que se va escribiendo en la hoja de una prenda. `destinos`: las tiendas a las que va (llega con la de la prenda anterior). Con dos o
+ * más, `reparto` dice cuántas va a cada una (Felipe 2026-10-23: «si selecciono más de una, que aparezcan inputs para distribuir el
+ * total»); llega parejo y lo sigue mientras nadie lo toque (`repartoPropio`).
+ */
+export type BorradorPrenda = {
+  cantidad: string;
+  costo: string;
+  venta: string;
+  destinos: string[];
+  reparto: Record<string, string>;
+  repartoPropio?: boolean;
+};
+
+/** El reparto parejo de `total` entre las tiendas: 10 en 3 → 4, 3, 3 (lo que sobra, a las primeras). Sin total, vacío. */
+export function repartoParejo(total: number | null, destinos: readonly string[]): Record<string, string> {
+  if (total == null || destinos.length === 0) return {};
+  const base = Math.floor(total / destinos.length);
+  const sobra = total - base * destinos.length;
+  return Object.fromEntries(destinos.map((d, i) => [d, String(base + (i < sobra ? 1 : 0))]));
+}
+
+/** Prender o apagar una tienda: el reparto vuelve a ser parejo (lo escrito a mano de otras tiendas ya no suma igual). */
+export function alternarDestino(b: BorradorPrenda, tienda: string, varias: boolean): Pick<BorradorPrenda, "destinos" | "reparto" | "repartoPropio"> {
+  const destinos = !varias ? [tienda] : b.destinos.includes(tienda) ? b.destinos.filter((d) => d !== tienda) : [...b.destinos, tienda];
+  return { destinos, reparto: repartoParejo(leerCantidad(b.cantidad), destinos), repartoPropio: false };
+}
+
+/** Cambiar cuántas: el reparto se rehace parejo si nadie lo tocó a mano. */
+export function conCantidad(b: BorradorPrenda, cantidad: string): Pick<BorradorPrenda, "cantidad" | "reparto"> {
+  return { cantidad, reparto: b.repartoPropio ? b.reparto : repartoParejo(leerCantidad(cantidad), b.destinos) };
+}
+
+/** Lo que falta para que el reparto cierre («Reparte las 10: faltan 2»). Con una sola tienda, nada. */
+export function problemaReparto(b: Pick<BorradorPrenda, "cantidad" | "destinos" | "reparto">): string | null {
+  if (b.destinos.length < 2) return null;
+  const total = leerCantidad(b.cantidad);
+  if (total == null) return "Primero escribe cuántas compraste.";
+  const partes = b.destinos.map((d) => leerCantidad(b.reparto[d] ?? ""));
+  if (partes.some((n) => n == null)) return "Cada tienda lleva al menos 1: si no va a una, apágala.";
+  const suma = partes.reduce<number>((s, n) => s + (n ?? 0), 0);
+  if (suma === total) return null;
+  return suma < total ? `Reparte las ${total}: faltan ${total - suma}.` : `Reparte las ${total}: sobran ${suma - total}.`;
+}
+
+/** Los campos de la hoja, en su orden, para la guía de foco. */
+export function camposPrenda(b: BorradorPrenda): CampoDeGuia[] {
+  return [
+    { id: "cantidad", nombre: "Cuántas", requerido: true, hecho: faltaEnPaso("cantidad", b.cantidad) === null, pendiente: "Escribe cuántas compraste." },
+    { id: "costo", nombre: "Costo", requerido: true, hecho: faltaEnPaso("costo", b.costo) === null, pendiente: "Escribe cuánto te costó cada una." },
+    { id: "venta", nombre: "Venta", requerido: true, hecho: faltaEnPaso("venta", b.venta) === null, pendiente: "Escribe a cuánto se vende." },
+    { id: "tienda", nombre: "Tienda", requerido: true, hecho: b.destinos.length > 0, pendiente: "Elige a qué tienda va." },
+    ...(b.destinos.length >= 2
+      ? [{ id: "reparto", nombre: "Reparto", requerido: true, hecho: problemaReparto(b) === null, pendiente: problemaReparto(b) ?? "" }]
+      : []),
+  ];
+}
+
+/** «Por cada una ganas S/ 22.40»: la venta menos el costo, si los dos se leen. */
+export function gananciaPorPrenda(b: Pick<BorradorPrenda, "costo" | "venta">): number | null {
+  const costo = leerPrecio(b.costo);
+  const venta = leerPrecio(b.venta);
+  return costo == null || venta == null ? null : Math.round((venta - costo) * 100) / 100;
+}
+
+/** El botón de la hoja dice lo que hace: «Agregar 12 · S/ 210.00» (o «Guardar …» si corrige una que ya va). */
+export function textoAgregarPrenda(b: Pick<BorradorPrenda, "cantidad" | "costo">, corrige: boolean): string {
+  const verbo = corrige ? "Guardar" : "Agregar";
+  const cantidad = leerCantidad(b.cantidad);
+  const costo = leerPrecio(b.costo);
+  return cantidad != null && costo != null ? `${verbo} ${cantidad} · ${soles(Math.round(cantidad * costo * 100) / 100)}` : verbo;
+}
+
+/**
+ * Las líneas que entran a la compra desde la hoja: una por tienda, con su parte (la base arma una orden por tienda). Vacío si falta algo
+ * (el botón ya está apagado).
+ */
+export function lineasDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "categoriaId" | "marcaId" | "nombre" | "categoria" | "marca">, b: BorradorPrenda): LineaCompra[] {
+  const cantidad = leerCantidad(b.cantidad);
+  const costo = leerPrecio(b.costo);
+  const venta = leerPrecio(b.venta);
+  if (cantidad == null || costo == null || venta == null || b.destinos.length === 0 || problemaReparto(b) !== null) return [];
+  const comun = { clave: h.clave, productoId: h.productoId, categoriaId: h.categoriaId, marcaId: h.marcaId, nombre: h.nombre, categoria: h.categoria, marca: h.marca, costo, venta };
+  if (b.destinos.length === 1) return [{ ...comun, cantidad, destinoId: b.destinos[0] }];
+  return b.destinos.map((d) => ({ ...comun, cantidad: leerCantidad(b.reparto[d] ?? "") ?? 0, destinoId: d }));
+}
+
+/** Corregir una prenda que ya va: junta sus líneas (una por tienda) de vuelta en un borrador. */
+export function borradorDeLineas(lineas: readonly LineaCompra[]): Pick<BorradorPrenda, "cantidad" | "costo" | "venta" | "destinos" | "reparto" | "repartoPropio"> {
+  const primera = lineas[0];
+  const destinos = [...new Set(lineas.map((l) => l.destinoId))];
+  return {
+    cantidad: String(prendasDeLineas(lineas)),
+    costo: primera ? primera.costo.toFixed(2) : "",
+    venta: primera?.venta != null ? primera.venta.toFixed(2) : "",
+    destinos,
+    reparto: destinos.length > 1 ? Object.fromEntries(lineas.map((l) => [l.destinoId, String(l.cantidad)])) : {},
+    repartoPropio: destinos.length > 1,
+  };
+}
+
+/** El nombre de una tienda sin «Tienda» delante (Felipe 2026-10-23: «basta con decir Trujillo, Lima o Arequipa»). */
+export const nombreCortoTienda = (nombre: string): string => nombre.replace(/^Tienda\s+/i, "") || nombre;
+
+/** Lo que dice la tarjeta de una prenda que ya va: «10 × S/ 20.00 · Lima 6, AQP 4». */
+export function textoPrendaEnCompra(lineas: readonly LineaCompra[], nombres: ReadonlyMap<string, string>): string {
+  const primera = lineas[0];
+  if (!primera) return "";
+  const tiendas =
+    lineas.length === 1
+      ? nombreCortoTienda(nombres.get(primera.destinoId) ?? "una tienda")
+      : lineas.map((l) => `${nombreCortoTienda(nombres.get(l.destinoId) ?? "una tienda")} ${l.cantidad}`).join(", ");
+  return `${prendasDeLineas(lineas)} × ${soles(primera.costo)} · ${tiendas}`;
+}
+
+/** La barra negra de abajo: «12 prendas · S/ 210.00» y «2 modelos». */
+export function resumenCarrito(lineas: readonly Pick<LineaCompra, "cantidad" | "costo">[]): { titulo: string; detalle: string } {
+  const n = prendasDeLineas(lineas);
+  return {
+    titulo: `${n === 1 ? "1 prenda" : `${n} prendas`} · ${soles(totalDeLineas(lineas))}`,
+    detalle: lineas.length === 1 ? "1 modelo" : `${lineas.length} modelos`,
+  };
+}
+
+/** «Si se vende todo, ganas S/ X» (y cuánto se vende): con el precio de venta de cada prenda. Sin precios de venta, null. */
+export function gananciaDeCompra(lineas: readonly Pick<LineaCompra, "cantidad" | "costo" | "venta">[]): { vendes: number; ganas: number } | null {
+  const conVenta = lineas.filter((l) => l.venta != null);
+  if (conVenta.length === 0) return null;
+  const vendes = Math.round(conVenta.reduce((s, l) => s + l.cantidad * (l.venta ?? 0), 0) * 100) / 100;
+  return { vendes, ganas: Math.round((vendes - totalDeLineas(conVenta)) * 100) / 100 };
+}
+
+/**
+ * Lo que dice bajo «¿Cuánto dice el papel?»: si cuadra con lo anotado, en verde; si no, en ámbar, que deje el del papel (Felipe
+ * 2026-10-23: «manda el papel», ADR-0480). Sin un monto legible, nada.
+ */
+export function cuadraElPapel(monto: number | null, total: number): { cuadra: boolean; texto: string } | null {
+  if (monto == null || monto <= 0) return null;
+  return Math.abs(monto - total) < 0.005
+    ? { cuadra: true, texto: "Cuadra con lo que anotaste" }
+    : { cuadra: false, texto: `Anotaste ${soles(total)}. Si el papel dice otro total, deja el del papel: Compras lo revisa.` };
+}
+
 /** La tienda que llega marcada: la de la prenda anterior («Como la anterior»). */
 export function tiendaAnterior(lineas: readonly LineaCompra[]): string | null {
   return lineas.at(-1)?.destinoId ?? null;
@@ -200,16 +396,68 @@ export function textoPlataDespues(queda: number): string {
 
 type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null };
 
-/** Los campos del paso del papel. La foto la pide solo un papel (factura, boleta o nota): sin papel, no. */
-export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto: string }, r: Responsable): CampoDeGuia[] {
+/**
+ * Los campos del paso del papel. La foto es opcional (Felipe 2026-10-23, 20261023180000): con un papel (factura, boleta o nota) se SUGIERE —sin
+ * ella, Compras copia la serie y el número del papel en la mano—, nunca frena el guardado. Sin papel, ni se ofrece.
+ */
+export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto: string; pago?: PagoCompra }, r: Responsable): CampoDeGuia[] {
   const monto = problemaDeMonto(v.monto);
-  const pideFoto = v.tipo !== null && v.tipo !== "sin_comprobante";
+  const conPapel = v.tipo !== null && v.tipo !== "sin_comprobante";
+  // Sin `pago` (las pantallas que no lo preguntan) no entran sus campos.
+  const pago = v.pago;
+  const pagado = pago?.forma === "ahora" ? problemaPagado(pago.pagado, v.monto) : null;
   return [
     { id: "tipo", nombre: "Qué te dieron", requerido: true, hecho: v.tipo !== null, pendiente: "Elige qué papel te dio el proveedor." },
-    { id: "foto", nombre: "La foto", requerido: pideFoto, hecho: v.conFoto, pendiente: "Tómale una foto al papel." },
-    { id: "monto", nombre: "Cuánto pagaste", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
+    ...(conPapel ? [{ id: "foto", nombre: "La foto", requerido: false, sugerido: true, hecho: v.conFoto, pendiente: "Si puedes, tómale una foto al papel." }] : []),
+    { id: "monto", nombre: "Cuánto dice el papel", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
+    ...(pago?.forma === "ahora"
+      ? [
+          { id: "pagado", nombre: "Cuánto pagas ahora", requerido: true, hecho: pagado === null, pendiente: pagado ?? "" },
+          { id: "medio", nombre: "Con qué pagaste", requerido: true, hecho: pago.medio !== null, pendiente: "Elige con qué pagaste." },
+        ]
+      : []),
     ...(r.esPersona ? [] : [{ id: "responsable", nombre: "Quién compró", requerido: true, hecho: r.listo, pendiente: r.motivo ?? "Elige quién compró." }]),
   ];
+}
+
+// ---------- Pagar ahora o después (20261023181000; Felipe 2026-10-23) ----------
+// «Pagar ahora» (de fábrica, con todo lo del papel y por Yape) baja lo pagado de su plata para compras; se puede bajar el monto y lo que
+// falta queda en Por pagar. «Pagar después»: no baja nada y Compras le paga al proveedor desde Por pagar. Los tres métodos salen de su
+// plata para compras: el método solo dice cómo le pagó.
+
+export type MedioPagoCompra = "yape" | "efectivo" | "transferencia";
+export type PagoCompra = { forma: "ahora" | "despues"; pagado: string; medio: MedioPagoCompra | null };
+
+/** Las fichas, en el orden de la pantalla: Yape primero, que es lo de fábrica. Las mismas fichas de color de Vender. */
+export const MEDIOS_PAGO_COMPRA: readonly { clave: MedioPagoCompra; etiqueta: string; corta?: string }[] = [
+  { clave: "yape", etiqueta: "Yape" },
+  { clave: "efectivo", etiqueta: "Efectivo" },
+  { clave: "transferencia", etiqueta: "Transferencia", corta: "Transf." },
+];
+
+/** Cómo llega el paso: pagar ahora, por Yape; lo pagado lo pone la pantalla con lo que dice el papel. */
+export const PAGO_DE_FABRICA: PagoCompra = { forma: "ahora", pagado: "", medio: "yape" };
+
+/** Lo que pagas ahora: más que cero y no más que lo que dice el papel (lo mismo que rechaza la base con `compra_rapida_pagado`). */
+export function problemaPagado(pagado: string, monto: string): string | null {
+  const p = leerMontoPlata(pagado);
+  // Más de 2 decimales ya no se lee (`leerMontoPlata`): cae aquí.
+  if (p == null || p <= 0) return "Escribe cuánto pagas ahora.";
+  const m = leerMontoPlata(monto);
+  if (m != null && p > m + 1e-9) return "No puede ser más que lo que dice el papel.";
+  return null;
+}
+
+/** Lo que se manda a la base: pagando después, cero y sin método. */
+export function pagoParaBase(pago: PagoCompra): { p_pagado: number; p_medio: MedioPagoCompra | null } {
+  if (pago.forma === "despues") return { p_pagado: 0, p_medio: null };
+  return { p_pagado: leerMontoPlata(pago.pagado) ?? 0, p_medio: pago.medio };
+}
+
+/** Lo que dice bajo «Pagas ahora» cuando no es todo, y en «Compra guardada»: quién paga lo que falta. */
+export function textoLoQueFalta(monto: number | null, pagado: number | null): string | null {
+  if (monto == null || pagado == null || pagado >= monto - 0.005) return null;
+  return pagado <= 0 ? `Compras le paga al proveedor los ${soles(monto)}.` : `Compras le paga al proveedor lo que falta: ${soles(Math.round((monto - pagado) * 100) / 100)}.`;
 }
 
 /** Las prendas como las recibe `registrar_compra_rapida`. */
@@ -227,60 +475,54 @@ export function lineasParaBase(lineas: readonly LineaCompra[]) {
 }
 
 /** El paso de la barra de avance (siempre 3, la maqueta): 1 Proveedor · 2 Prendas · 3 Boleta o factura. */
-export type PasoCompra =
-  | "proveedor"
-  | "habituales"
-  | "nuevo-categoria"
-  | "nuevo-nombre"
-  | "nuevo-marca"
-  | "cantidad"
-  | "costo"
-  | "venta"
-  | "tienda"
-  | "revisar"
-  | "papel"
-  | "listo";
+export type PasoCompra = "proveedor" | "habituales" | "revisar" | "papel" | "listo";
 export function faseDePaso(p: PasoCompra): 1 | 2 | 3 {
   return p === "proveedor" ? 1 : p === "papel" || p === "listo" ? 3 : 2;
 }
-const DETALLE: Partial<Record<PasoCompra, string>> = {
-  "nuevo-categoria": "qué es",
-  "nuevo-nombre": "nombre",
-  "nuevo-marca": "marca",
-  cantidad: "cantidad",
-  costo: "costo",
-  venta: "venta",
-  tienda: "tienda",
-};
 export function textoAvance(p: PasoCompra): string {
   const fase = faseDePaso(p);
-  const nombre = fase === 1 ? "Proveedor" : fase === 2 ? "Prendas" : "Boleta o factura";
-  return `Paso ${fase} de 3 · ${nombre}${DETALLE[p] ? ` · ${DETALLE[p]}` : ""}`;
+  return `Paso ${fase} de 3 · ${fase === 1 ? "el proveedor" : fase === 2 ? "las prendas" : "el papel"}`;
 }
 
-
 // ---------------------------------------------------------------------------------------------------------------------
-// «Algo nuevo de este proveedor» (actividad 4): una prenda que todavía no le compraste, en tres preguntas —qué es, cómo se llama y de
-// qué marca— antes de la cantidad, el costo y la venta. La base ya la acepta (una línea sin `producto_id`, con categoría, marca y
-// descripción) y la próxima vez sale entre sus habituales por su nombre. Color y tallas los cuenta la tienda al recibir.
+// «Algo nuevo de este proveedor»: una prenda que todavía no le compraste, en UNA hoja, la misma de las de siempre (Felipe 2026-10-23):
+// qué es, de qué marca y cómo se llama, y después cuántas, el costo, la venta y a qué tienda va. Es SOLO UNA REFERENCIA de la compra: no
+// crea nada en el catálogo. La línea de la orden va sin `producto_id`, con la categoría, la marca y el nombre escrito; la prenda nace
+// cuando la tienda la recibe (Recibir), que es donde se cuentan el color y las tallas. La próxima vez sale entre sus habituales por su nombre.
 // ---------------------------------------------------------------------------------------------------------------------
 
 export type CategoriaParaComprar = { id: string; nombre: string; prefijo: string | null; familia: string | null };
 
-/**
- * «¿Qué es?»: primero las categorías que ya se le compran a este proveedor, después las demás. Se busca por el nombre de la categoría
- * y por la prenda de su ficha («polera» encuentra Sudaderas), sin tildes ni mayúsculas.
- */
-export function filtrarCategoriasNuevo(
-  categorias: readonly CategoriaParaComprar[],
-  q: string,
-  suyas: ReadonlySet<string>,
-): { suyas: CategoriaParaComprar[]; otras: CategoriaParaComprar[] } {
-  const n = normalizar(q);
-  const coincide = (c: CategoriaParaComprar) =>
-    !n || normalizar(c.nombre).includes(n) || normalizar(FICHAS_POR_CATEGORIA[c.prefijo ?? ""]?.prenda ?? "").includes(n);
-  const lista = categorias.filter(coincide);
-  return { suyas: lista.filter((c) => suyas.has(c.id)), otras: lista.filter((c) => !suyas.has(c.id)) };
+/** Una opción del combo, con su grupo (la `Opcion` de `Desplegable`). */
+type OpcionConGrupo = { valor: string; texto: string; grupo?: string };
+
+/** Dos grupos solo si los dos tienen algo: «Ya le compras» sobre una lista vacía de «Otras» no dice nada. */
+function enDosGrupos<T extends { id: string; nombre: string }>(lista: readonly T[], primero: (x: T) => boolean, titulos: [string, string]): OpcionConGrupo[] {
+  const arriba = lista.filter(primero);
+  const abajo = lista.filter((x) => !primero(x));
+  const opcion = (grupo: string | undefined) => (x: T) => ({ valor: x.id, texto: x.nombre, ...(grupo ? { grupo } : {}) });
+  if (arriba.length === 0 || abajo.length === 0) return lista.map(opcion(undefined));
+  return [...arriba.map(opcion(titulos[0])), ...abajo.map(opcion(titulos[1]))];
+}
+
+/** «¿Qué es?»: primero las categorías que ya se le compran a este proveedor, después las demás. El combo las busca sin tildes. */
+export function opcionesCategoriaNueva(categorias: readonly CategoriaParaComprar[], suyas: ReadonlySet<string>): OpcionConGrupo[] {
+  return enDosGrupos(categorias, (c) => suyas.has(c.id), ["Ya le compras", "Otras"]);
+}
+
+/** «¿De qué marca?»: primero las que trae este proveedor, después todas las del catálogo. */
+export function opcionesMarcaNueva(marcas: readonly { id: string; nombre: string }[], delProveedor: readonly { id: string }[]): OpcionConGrupo[] {
+  const suyas = new Set(delProveedor.map((m) => m.id));
+  const orden = [...delProveedor.map((m) => marcas.find((x) => x.id === m.id)).filter((m) => m !== undefined), ...marcas.filter((m) => !suyas.has(m.id))];
+  return enDosGrupos(orden, (m) => suyas.has(m.id), ["Las que trae", "Otras marcas"]);
+}
+
+/** Lo que se va contestando de la prenda nueva en su hoja. `descartadas`: los habituales parecidos que ya contestó con «No, es otra». */
+export type BorradorNuevo = { categoriaId: string | null; marcaId: string | null; nombre: string; descartadas: ReadonlySet<string> };
+
+/** Cómo llega la hoja: si el proveedor trae una sola marca, ya puesta (antes se saltaba la pregunta; ahora se ve y se cambia). */
+export function nuevoVacio(marcasDelProveedor: readonly { id: string }[]): BorradorNuevo {
+  return { categoriaId: null, marcaId: marcasDelProveedor.length === 1 ? marcasDelProveedor[0].id : null, nombre: "", descartadas: new Set() };
 }
 
 /** Lo más corto y lo más largo que se acepta como nombre de una prenda nueva (lo que la tienda reconoce al recibir). */
@@ -317,14 +559,8 @@ export function marcasDeHabituales(habituales: readonly Habitual[]): { id: strin
   return [...porId.values()].sort((a, b) => b.n - a.n || a.nombre.localeCompare(b.nombre, "es")).map(({ id, nombre }) => ({ id, nombre }));
 }
 
-/** «Otra marca»: buscar entre todas las del catálogo, sin tildes ni mayúsculas. */
-export function filtrarMarcas(marcas: readonly { id: string; nombre: string }[], q: string): { id: string; nombre: string }[] {
-  const n = normalizar(q);
-  return n ? marcas.filter((m) => normalizar(m.nombre).includes(n)) : [...marcas];
-}
-
 /** La prenda nueva, con la forma de un habitual (sin compras ni precios de antes): así sigue por los mismos pasos que las de siempre. */
-export function habitualNuevo(
+function habitualNuevo(
   clave: string,
   v: { nombre: string; categoria: CategoriaParaComprar; marca: { id: string; nombre: string } },
 ): Habitual {
@@ -342,4 +578,28 @@ export function habitualNuevo(
     costo: null,
     venta: null,
   };
+}
+
+/** Los campos de la hoja de una prenda nueva, en su orden: lo que la describe y después lo de siempre. */
+export function camposPrendaNueva(n: BorradorNuevo, hayParecido: boolean, b: BorradorPrenda): CampoDeGuia[] {
+  const nombre = faltaNombreNuevo(n.nombre);
+  return [
+    { id: "categoria", nombre: "Qué es", requerido: true, hecho: n.categoriaId !== null, pendiente: "Elige qué es." },
+    { id: "marca", nombre: "Marca", requerido: true, hecho: n.marcaId !== null, pendiente: "Elige la marca, como dice su etiqueta." },
+    { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre === null && !hayParecido, pendiente: nombre ? "Escribe cómo se llama." : "Dinos si es la misma prenda." },
+    ...camposPrenda(b),
+  ];
+}
+
+/** La prenda nueva ya descrita, con la forma de un habitual; `null` si falta qué es, la marca o el nombre. */
+export function habitualDeNuevo(
+  clave: string,
+  n: BorradorNuevo,
+  categorias: readonly CategoriaParaComprar[],
+  marcas: readonly { id: string; nombre: string }[],
+): Habitual | null {
+  const categoria = categorias.find((c) => c.id === n.categoriaId);
+  const marca = marcas.find((m) => m.id === n.marcaId);
+  if (!categoria || !marca || faltaNombreNuevo(n.nombre)) return null;
+  return habitualNuevo(clave, { nombre: n.nombre, categoria, marca });
 }
