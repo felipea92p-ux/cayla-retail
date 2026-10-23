@@ -237,6 +237,7 @@ export function TarjetaDeCampana({
   campana,
   categorias,
   tiendas = [],
+  sedeActualId = null,
   prendasConCosto,
   variantesManuales,
 }: {
@@ -244,6 +245,8 @@ export function TarjetaDeCampana({
   categorias: CategoriaOpcion[];
   /** Las tiendas del ERP (ADR-0486). Vacío: la hoja de Configurar no ofrece elegir sedes. */
   tiendas?: TiendaOpcion[];
+  /** La sede de la cabecera: con su precio sale la impresión que ofrece el aviso de reimprimir. */
+  sedeActualId?: string | null;
   prendasConCosto: PrendaConCosto[];
   /** Las prendas puestas a mano en ESTA campaña. */
   variantesManuales: string[];
@@ -305,6 +308,7 @@ export function TarjetaDeCampana({
           puedeDarDescuento
           categorias={categorias}
           tiendas={tiendas}
+          sedeActualId={sedeActualId}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales}
           onClose={() => setConfigurando(false)}
@@ -331,6 +335,7 @@ export function CampanaModal({
   puedeDarDescuento,
   categorias,
   tiendas = [],
+  sedeActualId = null,
   prendasConCosto,
   variantesManuales,
   onClose,
@@ -343,6 +348,9 @@ export function CampanaModal({
   categorias: CategoriaOpcion[];
   /** Las tiendas donde se puede limitar el descuento (ADR-0486). Con menos de dos (o la base sin la migración) no hay nada que elegir. */
   tiendas?: TiendaOpcion[];
+  /** La sede de la cabecera (`persona.ubicacionId`): la impresión de etiquetas sale con su precio, así que el aviso de reimprimir
+   *  ofrece el botón solo si el papel de ESTA sede quedó viejo. */
+  sedeActualId?: string | null;
   prendasConCosto: PrendaConCosto[];
   variantesManuales: string[];
   onClose: () => void;
@@ -418,24 +426,27 @@ export function CampanaModal({
         avisar.error(datos.error ?? "No se pudo guardar la campaña.");
         return;
       }
-      // Si guardar cambió HOY el precio en caja de alguna prenda (otro %, fechas que la hacen regir o dejar de regir, categorías
-      // que entran o salen), su etiqueta de papel quedó vieja: el aviso lo dice y lleva a imprimir solo esas (ADR-0180).
+      const sedeIdsGuardadas = ofreceSedes ? sedeIds : etiqueta.sedeIds;
+      // Si guardar cambió HOY el precio en caja de alguna prenda en alguna tienda (otro %, fechas que la hacen regir o dejar de
+      // regir, categorías o tiendas que entran o salen), su etiqueta de papel quedó vieja: el aviso lo dice, nombra las tiendas si no
+      // es en todas, y lleva a imprimir las de esta sede, que es con cuyo precio sale la impresión (ADR-0180, ADR-0486).
       const cambian = prendasQueCambianDePrecioHoy(
         etiqueta,
-        { descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds },
+        { descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds, sedeIds: sedeIdsGuardadas },
         prendasConCosto,
         new Set(variantesManuales),
         hoyLima(),
+        { tiendas, aqui: sedeActualId },
       );
       const destino = destinoReimprimir(cambian, etiqueta.id);
-      const reimprimir = avisoReimprimir(cambian.quedan.length + cambian.salen.length, destino !== null);
+      const reimprimir = avisoReimprimir(cambian, destino !== null);
       avisar.exito(
         `${etiqueta.nombre} actualizad${T.o}`,
         reimprimir
           ? { detalle: reimprimir.detalle, accion: destino && reimprimir.boton ? { texto: reimprimir.boton, onClick: () => router.push(destino) } : undefined }
           : undefined,
       );
-      onGuardado({ descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds, sedeIds: ofreceSedes ? sedeIds : etiqueta.sedeIds });
+      onGuardado({ descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds, sedeIds: sedeIdsGuardadas });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
