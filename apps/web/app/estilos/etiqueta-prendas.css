@@ -123,7 +123,9 @@
 .eqp-pieza { position: relative; display: block; aspect-ratio: 5 / 6; padding: 0; border: 0; background: none; border-radius: 7px; cursor: pointer; }
 .eqp-foto { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: 7px; }
 .eqp-foto > * { width: 100%; height: 100%; border-radius: 7px; object-fit: cover; transition: transform 240ms var(--ease-cayla); }
-.eqp-pieza:hover .eqp-foto > * { transform: scale(1.06); }
+@media (hover: hover) {
+  .eqp-pieza:hover .eqp-foto > * { transform: scale(1.06); }
+}
 .eqp-pieza:focus-visible { outline: none; }
 .eqp-pieza:focus-visible::before { content: ""; position: absolute; inset: -3.5px; border-radius: 10px; box-shadow: 0 0 0 1.5px var(--color-tinta); pointer-events: none; }
 
@@ -170,5 +172,7 @@
   .eqp-fila-leida, .eqp-tarjeta.eqp-se-asienta { animation: none; }
   .eqp-pieza[data-espera] { opacity: 1; }
   .eqp-foto > * { transition: none; }
-  .eqp-pieza:hover .eqp-foto > * { transform: none; }
+  @media (hover: hover) {
+    .eqp-pieza:hover .eqp-foto > * { transform: none; }
+  }
 }

@@ -23,6 +23,7 @@ import { BuscadorGlobal } from "@/components/BuscadorGlobal";
 import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
+import { useLateralConElDedo } from "@/components/useLateralConElDedo";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
 // escritorio = lateral con "+ Nuevo" global; celular = 4 pestañas + botón + central.
@@ -682,6 +683,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
     if (devolverFoco) botonMenuMovil.current?.focus();
   }, []);
   const asideRef = useRef<HTMLElement | null>(null);
+  const veloRef = useRef<HTMLDivElement | null>(null);
+  // En el celular el cajón se cierra también deslizándolo hacia la izquierda (ADR-0479, actividad 11).
+  useLateralConElDedo(asideRef, veloRef, movilAbierto, cerrarMovil);
   // Etiqueta flotante de una fila plegada y cajón de un grupo: uno a la vez, ambos siempre pegados
   // al borde derecho del lateral.
   const [etiqueta, setEtiqueta] = useState<{ texto: string; top: number; left: number } | null>(null);
@@ -841,6 +845,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       {/* Velo del cajón (celular): tocarlo cierra. Siempre montado para que también se APAGUE al cerrar (`.velo-cajon`,
           globals.css); cerrado no recibe toques. */}
       <div
+        ref={veloRef}
         aria-hidden
         data-abierto={movilAbierto}
         onClick={() => cerrarMovil()}
@@ -861,7 +866,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
         // Cerrado en celular queda fuera de pantalla y fuera del tabulador.
         inert={esCelular && !movilAbierto}
         data-cajon={movilAbierto ? "abierto" : undefined}
-        className={`cajon-lateral fixed inset-y-0 left-0 z-50 flex w-[18rem] max-w-[85vw] flex-col overflow-hidden border-r border-tinta/10 bg-crema pb-[env(safe-area-inset-bottom)] sm:z-40 sm:transition-[width] sm:duration-300 sm:ease-cayla sm:w-lateral sm:max-w-none sm:pb-0 ${movilAbierto ? "max-sm:shadow-xl" : ""}`}
+        className={`cajon-lateral fixed inset-y-0 left-0 z-50 flex w-[18rem] max-w-[85vw] flex-col overflow-hidden border-r border-tinta/10 bg-crema pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] sm:z-40 sm:pl-[env(safe-area-inset-left)] sm:transition-[width] sm:duration-300 sm:ease-cayla sm:w-lateral sm:max-w-none sm:pb-0 ${movilAbierto ? "max-sm:shadow-xl" : ""}`}
       >
         {/* Plegado el isotipo queda centrado en la columna (76 px): el padding se anima con el ancho. */}
         {/* En el cajón del celular la ✕ comparte fila con el logo. `data-pieza-cajon` + `--k`: el orden de la cascada
@@ -1014,8 +1019,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           arriba en vez de que el texto se corte contra una banda opaca. */}
       {/* `data-fondo-hoja`: con una hoja abierta en el celular, la cabecera y el contenido se alejan juntos y la cabecera se
           redondea arriba (ADR-0479, components/ui/fondoDeLaHoja.ts). */}
-      <header data-cabecera-app data-fondo-hoja="borde" className="fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 backdrop-blur-md sm:left-lateral">
-        <div className="flex items-center gap-3 px-4 py-2.5 sm:px-8 sm:py-3">
+      <header data-cabecera-app data-fondo-hoja="borde" className="fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 pt-[env(safe-area-inset-top)] backdrop-blur-md sm:left-lateral">
+        <div className="flex items-center gap-3 px-4 pr-[max(1rem,env(safe-area-inset-right))] py-2.5 sm:px-8 sm:pr-[max(2rem,env(safe-area-inset-right))] sm:py-3">
           {/* Celular: abre el cajón con el menú completo (v4), a la izquierda del logo. */}
           <button
             type="button"
@@ -1036,7 +1041,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             aria-expanded={!plegado}
             aria-controls="lateral"
             title={`${plegado ? "Expandir" : "Contraer"} el menú  ( [ )`}
-            className="-ml-2 hidden h-9 w-9 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:grid"
+            className="-ml-2 hidden h-9 w-9 shrink-0 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:grid"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
               <rect x="3" y="4" width="18" height="16" rx="2.5" />
@@ -1100,7 +1105,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
 
       {/* ==================== Contenido ==================== */}
       {/* Toda pantalla va a lo ancho (ADR-0462); solo las de `CON_TOPE_DE_ANCHO` y el Inicio siguen centradas en 64 rem. */}
-      <main data-fondo-hoja className="px-4 pb-10 pt-20 sm:ml-lateral sm:pl-5 sm:pr-10 sm:pb-12 sm:pt-24">
+      <main
+        data-fondo-hoja
+        className="px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(5rem+env(safe-area-inset-top))] sm:ml-lateral sm:pl-5 sm:pr-[max(2.5rem,env(safe-area-inset-right))] sm:pb-[calc(3rem+env(safe-area-inset-bottom))] sm:pt-[calc(6rem+env(safe-area-inset-top))]"
+      >
         {/* `has-[[data-ancho-completo]]`: una pantalla con tope que necesita todo el ancho lo pide con ese atributo (el Inicio de almacén,
             Felipe 2026-09-30) sin quitarle el tope a todas las cuentas de «/». */}
         <div className={conTopeDeAncho(pathname) ? "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none" : ""}>{children}</div>

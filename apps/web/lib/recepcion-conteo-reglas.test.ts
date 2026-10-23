@@ -84,6 +84,7 @@ const linea = (id: string, enviado: number, extra: Partial<LineaEnvio> = {}): Li
   costoUnitario: 30,
   compraItemId: null,
   precioVentaSugerido: null,
+  prendaElegida: null,
   ...extra,
 });
 
@@ -395,6 +396,7 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
 
   it("por qué no se reabre, en palabras de tienda", () => {
     expect(textoNoSeReabre("reabrir_deuda_resuelta")).toMatch(/Compras ya resolvió/);
+    expect(textoNoSeReabre("reabrir_papel_completado")).toMatch(/Compras ya completó el papel/);
     expect(textoNoSeReabre("reabrir_reposicion_saldo")).toMatch(/saldó/);
     expect(textoNoSeReabre(null)).toBe("Ya no se puede reabrir");
   });

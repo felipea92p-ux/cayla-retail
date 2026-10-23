@@ -1410,8 +1410,8 @@ export function RecepcionEnvio({
                                   : "ya tiene un faltante cerrado esperando el documento del proveedor."}
                               </p>
                             </div>
-                            <Link href="/compras/notas-credito" className="shrink-0 rounded-full transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo">
-                              <Chip tono="ambar">Se reclama en Notas de crédito ↗</Chip>
+                            <Link href="/compras/proveedores" className="shrink-0 rounded-full transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo">
+                              <Chip tono="ambar">Se reclama en «Nos debe» ↗</Chip>
                             </Link>
                           </div>
                         ))}

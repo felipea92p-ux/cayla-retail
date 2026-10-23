@@ -1409,6 +1409,19 @@ export const PRUEBAS = [
   // tablas de plata), más de 2 decimales, diez mil millones, fechas de antes del 13/10/2026, textos invisibles, y el token que sigue al
   // contenido en las cinco funciones del fondo con su revisión en fn_resolver_intento. ROLLBACK siempre.
   "pruebas:fondos-entradas",
+  // Compras simple (ADR-0480, actividad 2): la compradora anota su plata (por confirmar, sin mover plata; «ya tenía» solo la primera
+  // vez; el token sigue al contenido) y Compras la confirma (entrega al fondo desde la cuenta elegida, o el saldo inicial del fondo).
+  "pruebas:compras-simple-plata",
+  // Compras simple (ADR-0480, actividad 3): «Compré ropa» es un papel por completar y una orden por tienda, sin mover plata en los libros;
+  // los habituales del proveedor (lo comprado aquí y su catálogo) y el reintento que no duplica.
+  "pruebas:compras-simple-compra",
+  // Compras simple (ADR-0480, actividad 5): «Gasté en otra cosa» por completar y sin mover plata; «Mandar a la tienda» arma el envío de
+  // todo lo que va a esa tienda, con sus fardos y sin repetirse; «Terminé de comprar hoy» guarda lo que tenía y qué hace con eso.
+  "pruebas:compras-simple-dia",
+  // Compras simple (ADR-0480, actividad 6): la tienda recibe mirando el papel de la compra (sin montos) y con la prenda que eligió la
+  // compradora; Recibir lee las fotos de papeles/ y nada más del depósito.
+  "pruebas:compras-simple-recibir",
+  "pruebas:compras-simple-revisar",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,

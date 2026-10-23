@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 122,
+  "total": 121,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «/recibir»",
@@ -34,7 +34,7 @@
       "button «Editar»"
     ],
     "components/EnvioRecibido.tsx": [
-      "Link «Se reclama en Notas de crédito ↗»",
+      "Link «Se reclama en «Nos debe» ↗»",
       "BotonImprimir «Imprimir»",
       "Boton «Recibir otro envío»",
       "BotonVer «Ver recibidas»"
@@ -72,7 +72,6 @@
       "Link «Siguiente página»"
     ],
     "components/ProveedorModal.tsx": [
-      "button «Cerrar»",
       "CampoTexto «Contacto»",
       "CampoTexto «Teléfono»",
       "button «{r}»",
@@ -112,7 +111,7 @@
       "button «Nada llegó» #2",
       "button «Vaciar»",
       "button «Contar»",
-      "Link «Se reclama en Notas de crédito ↗»",
+      "Link «Se reclama en «Nos debe» ↗»",
       "ComboBuscable «{`recibir-extra-${i}»",
       "Desplegable «{ex.varianteId}»",
       "input «Cantidad»",

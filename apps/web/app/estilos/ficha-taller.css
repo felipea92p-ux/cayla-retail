@@ -130,10 +130,12 @@
     border-color 160ms var(--ease-cayla),
     background-color 160ms var(--ease-cayla);
 }
-.taller-agregar-color:hover:not(:disabled) {
-  border-style: solid;
-  border-color: var(--color-tinta);
-  background: var(--color-hueso);
+@media (hover: hover) {
+  .taller-agregar-color:hover:not(:disabled) {
+    border-style: solid;
+    border-color: var(--color-tinta);
+    background: var(--color-hueso);
+  }
 }
 .taller-agregar-color:focus-visible {
   outline: 2px solid var(--color-tinta);
@@ -279,9 +281,11 @@
   backdrop-filter: blur(2px);
   transition: background-color 150ms var(--ease-cayla), transform 150ms var(--ease-cayla);
 }
-.taller-btn-foto:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-tinta) 90%, transparent);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .taller-btn-foto:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-tinta) 90%, transparent);
+    transform: translateY(-1px);
+  }
 }
 .taller-btn-foto[data-sin-foto="true"] {
   background: var(--color-ambar);
@@ -301,8 +305,10 @@
   box-shadow: 0 0 0 1.5px var(--color-sand);
   transition: box-shadow 180ms var(--ease-cayla), transform 180ms var(--ease-cayla);
 }
-.taller-swatch:hover {
-  transform: translateY(-2px);
+@media (hover: hover) {
+  .taller-swatch:hover {
+    transform: translateY(-2px);
+  }
 }
 .taller-swatch[aria-pressed="true"] {
   box-shadow: 0 0 0 2px var(--color-tinta);

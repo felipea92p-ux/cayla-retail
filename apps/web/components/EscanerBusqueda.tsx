@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Search, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { crearLector } from "@/components/EscanerCamara";
-import { esLecturaRepetida, normalizarLectura } from "@/lib/escaner-reglas";
+import { esLecturaRepetida, normalizarLectura, sonidoDeLecturaCamara, type TonoLectura } from "@/lib/escaner-reglas";
+import { avisarLectura } from "@/lib/sonido-conteo";
 
 /* ====================================================================
    EscanerBusqueda · leer UNA etiqueta o boleta con la cámara y buscarla (Cambios, spike 2026-09-26)
@@ -16,13 +17,21 @@ import { esLecturaRepetida, normalizarLectura } from "@/lib/escaner-reglas";
 
    `continuo` (Prendas de una etiqueta, 2026-10-22): la cámara NO se cierra al leer. Lee una etiqueta tras otra, se salta la
    misma durante `PAUSA_MISMO_CODIGO_MS` (como Vender) y abajo dice qué pasó con la última, con «Listo» para volver.
+
+   Cada lectura SUENA y vibra (2026-10-23, el bip de Conteo): agudo si la pantalla reconoció la prenda o solo va a buscarla, grave
+   si responde en ámbar (no la encontró, no entró). Quien escanea no tiene que volver a mirar para saber que se leyó.
    ==================================================================== */
 
 /** Lo que la pantalla dice de la última lectura, en el modo continuo. `clave` cambia con cada lectura (también si se repite el
  *  mismo texto), para que la tarjeta entre de nuevo. */
-export type RespuestaLectura = { clave: number; tono: "verde" | "taupe" | "ambar" | "pizarra"; estado: string; titulo: string; detalle: string };
+export type RespuestaLectura = { clave: number; tono: TonoLectura; estado: string; titulo: string; detalle: string };
 
 type Estado = "abriendo" | "leyendo" | "sin-permiso" | "sin-camara";
+
+/** El bip de la lectura, con el tono que respondió la pantalla (o el de «leído», si solo busca). */
+function sonarLectura(respuesta: { tono: TonoLectura } | void): void {
+  avisarLectura(sonidoDeLecturaCamara(respuesta ? respuesta.tono : undefined));
+}
 
 export function EscanerBusqueda({
   onCodigo,
@@ -38,8 +47,9 @@ export function EscanerBusqueda({
   titulo?: string;
   /** La indicación bajo el cuadro. */
   pista?: string;
-  /** El código tal como se leyó; quien lo recibe decide qué buscar (`busquedaDesdeLectura`). */
-  onCodigo: (codigo: string) => void;
+  /** El código tal como se leyó; quien lo recibe decide qué buscar (`busquedaDesdeLectura`). Si ya sabe qué pasó, devuelve su tono
+   *  y el bip lo dice (`ambar`: grave); si solo busca, no devuelve nada y suena el agudo de «leído». */
+  onCodigo: (codigo: string) => { tono: TonoLectura } | void;
   /** Sin cámara: cerrar y dejar el campo de búsqueda listo. */
   onEscribir: () => void;
   onClose: () => void;
@@ -89,15 +99,13 @@ export function EscanerBusqueda({
             const ahora = performance.now();
             if (!esLecturaRepetida(codigo, ultima, ahora)) {
               ultima = { codigo, en: ahora };
-              navigator.vibrate?.(35);
-              onCodigoRef.current(codigo);
+              sonarLectura(onCodigoRef.current(codigo));
             }
           } else if (codigo && vivo) {
             // Una lectura basta: se apaga la cámara antes de buscar, así no lee dos veces la misma boleta.
             vivo = false;
-            navigator.vibrate?.(35);
             flujo?.getTracks().forEach((t) => t.stop());
-            onCodigoRef.current(codigo);
+            sonarLectura(onCodigoRef.current(codigo));
             return;
           }
         } catch {

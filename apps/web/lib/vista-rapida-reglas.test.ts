@@ -84,7 +84,7 @@ const HOJAS = ["components", "app"].flatMap((raiz) => {
     .map((f) => ({ ruta: `${raiz}/${f}`, fuente: readFileSync(new URL(f, dir), "utf8") }));
 }).filter(({ fuente }) => fuente.includes("<Dialog.Content"));
 
-const VISTAS_RAPIDAS = ["PorPagarVistaRapida", "ProveedorVistaRapida", "RecepcionVistaRapida", "NotaCreditoVistaRapida"].map((n) => `components/${n}.tsx`);
+const VISTAS_RAPIDAS = ["PorPagarVistaRapida", "ProveedorVistaRapida", "RecepcionVistaRapida"].map((n) => `components/${n}.tsx`);
 
 describe("los cajones pasan sus flechas por useFlechasDelCajon", () => {
   it("la pieza del cajón usa el hook en su Dialog.Content", () => {

@@ -61,6 +61,7 @@ import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/in
 // importar un valor de ahí rompe el build de Vercel (Turbopack lo rechaza aunque `tsc` y vitest pasen).
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 const TODAS = "__todas__";
 
@@ -1434,7 +1435,8 @@ export function InventarioPanel({
           pista="Centra la etiqueta de la prenda en el cuadro"
           onCodigo={(codigo) => {
             setCamara(false);
-            abrirPorCodigo(codigo);
+            // El bip dice si la encontró (abre su talla) o no (queda buscada en la lista): grave = «mira la pantalla».
+            return { tono: abrirPorCodigo(codigo) ? "verde" : "ambar" };
           }}
           onEscribir={() => {
             setCamara(false);
@@ -1449,10 +1451,11 @@ export function InventarioPanel({
       {/* Lo marcado que SIGUE en la lista, no el conjunto crudo: tras eliminar un producto marcado (ADR-0252) sus tallas
           ya no están, y la barra quedaba en «0 prendas · 0 tallas» sin botones. */}
       {filasMarcadas.length > 0 && (
-        <div
+        <BarraDeAbajo
+          tono="tinta"
           role="region"
           aria-label="Prendas marcadas"
-          className="anim-revelar fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 rounded-2xl bg-tinta p-2 text-crema shadow-lg sm:inset-x-auto sm:left-1/2 sm:w-max sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2"
+          className="block p-2 sm:inset-x-auto sm:left-1/2 sm:w-max sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2"
         >
           <div className="flex flex-wrap items-center gap-1">
             {/* Celular: la cuenta y la ✕ arriba, los botones debajo a todo el ancho. Escritorio: todo en una fila. */}
@@ -1501,23 +1504,18 @@ export function InventarioPanel({
               <X aria-hidden className="h-4 w-4" />
             </button>
           </div>
-        </div>
+        </BarraDeAbajo>
       )}
 
       {/* Celular: la consulta más frecuente del piso («¿hay en M?») a un toque, fijo al alcance del pulgar — como en Cambios.
           Es una acción de esta pantalla, no navegación (ADR-0206). Con prendas marcadas, su lugar lo toma la barra. */}
       {stock.length > 0 && filasMarcadas.length === 0 && !camara && (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
-          <button
-            type="button"
-            data-guia="existencias.escanear-celular"
-            onClick={() => setCamara(true)}
-            className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
-          >
+        <BarraDeAbajo sola className="sm:hidden">
+          <button type="button" data-guia="existencias.escanear-celular" onClick={() => setCamara(true)} className="btn-cayla btn-primario gap-2.5">
             <ScanLine size={20} aria-hidden />
             Escanear prenda
           </button>
-        </div>
+        </BarraDeAbajo>
       )}
     </div>
   );

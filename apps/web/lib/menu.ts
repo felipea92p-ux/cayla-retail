@@ -117,9 +117,9 @@ export function esMostrador(perfil: { terminal?: boolean; modulos?: readonly Cla
 export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "existencias" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
-  | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
+  | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
-  | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "vitrina" | "pedidosWeb"
+  | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "revisarCompras" | "vitrina" | "pedidosWeb"
   | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana" | "insignias";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
@@ -438,22 +438,16 @@ export const ARBOL: readonly Nodo[] = [
       // Plan de campaña (ADR-0349): cuánto comprar para una campaña, por categoría. Va primero: se planifica antes de comprar. Muestra
       // costos e inversión, así que pide ver el dinero de Compras como sus hermanas (ADR-0126).
       { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "campana", pajaro: "09 Pelícano" },
+      // ADR-0480 (Compras simple, Felipe 2026-10-22): la compra nace en el celular de quien compra. «Mi plata para compras» reusa la
+      // clave `ordenes_compra` (unas 40 funciones la usan como llave: recibir, gastos del viaje, datos bancarios, proveedor nuevo,
+      // «Nos debe»); las pantallas de órdenes salen del menú. «Revisar compras» es la oficina (la clave `fondos`). «Notas de crédito»
+      // se retiró: «por ahora no manejaremos notas de crédito». Compras queda en 6, dentro del tope.
+      { id: "compras.miPlata", modulo: "ordenes_compra", etiqueta: "Mi plata para compras", estado: "viva", ruta: "/compras/mi-plata", icono: "fondos", pajaro: "09 Pelícano" },
+      { id: "compras.fondos", modulo: "fondos", etiqueta: "Revisar compras", estado: "viva", ruta: "/compras/fondos", icono: "revisarCompras", pajaro: "09 Pelícano" },
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
-      // Órdenes de compra (ADR-0362): lo que se le pide al proveedor, antes de su factura; por eso va entre las dos. Sin `exige`: el
-      // módulo es la llave y trae sus precios (decisión 34). Fue la 7.ª hija de Compras mientras «Recibir mercadería» vivía aquí
-      // (decisión 38); desde el 2026-10-14 Recibir está en Inventario y Compras queda en 7 con «Fondos por rendir» (decisión 65). El id termina en «Compra» a propósito: Producción ya tiene `produccion.ordenes` (sus órdenes de producción) y ninguna pantalla
-      // puede llamarse igual en los dos módulos.
-      { id: "compras.ordenesCompra", modulo: "ordenes_compra", etiqueta: "Órdenes de compra", estado: "viva", ruta: "/compras/ordenes", icono: "ordenes", pajaro: "09 Pelícano" },
       { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Facturas de proveedor", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
       // «Recibir mercadería» ya no vive aquí: desde el 2026-10-14 es una sola fila, en Inventario (ver allí).
       { id: "compras.porPagar", modulo: "por_pagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDineroCompras" },
-      // Fondos por rendir (ADR-0362, fase 6; Felipe 2026-10-13, decisión 65: «Compras, directo», como octava entrada). Solo pide su módulo.
-      { id: "compras.fondos", modulo: "fondos", etiqueta: "Fondos por rendir", estado: "viva", ruta: "/compras/fondos", icono: "fondos", pajaro: "09 Pelícano" },
-      // Notas de crédito (2026-09-19): lo que el proveedor le acredita a CAYLA. Va pegada a «Por pagar» y al final: las dos
-      // responden a la misma pregunta —cuánto dinero hay entre CAYLA y ese proveedor—, una de cada lado. Sin insignia a
-      // propósito: el contador de «por reclamar» saldría de `notas_credito_tablero()`, y pagarlo en CADA pantalla de la app
-      // por un número que ya se ve como primera cifra del módulo no vale la pena (principio 5).
-      { id: "compras.notasCredito", modulo: "notas_credito", etiqueta: "Notas de crédito de proveedor", estado: "viva", ruta: "/compras/notas-credito", icono: "notasCredito", pajaro: "09 Pelícano", exige: "verDineroCompras" },
     ],
   },
 

@@ -15,8 +15,10 @@ import {
   keyframesVuelo,
   mensajeEscaneo,
   normalizarLectura,
+  sonidoDeLecturaCamara,
   type ResultadoEscaneo,
 } from "@/lib/escaner-reglas";
+import { avisarLectura } from "@/lib/sonido-conteo";
 
 /* ====================================================================
    EscanerCamara · leer el QR de la etiqueta con la cámara del teléfono (2026-09-25)
@@ -34,7 +36,8 @@ import {
        el ticket cambia cuando la prenda «llega», no antes. Lo que no entra (agotada, en el almacén, apartada para una
        clienta, no es de la tienda) aparece en ámbar y se apaga en su lugar: no viaja al ticket porque no entró. Lo
        del almacén dice «No entró · en almacén» y lo apartado «No entró · apartada» (`estadoCorto`): aquí no sale el
-       aviso largo de arriba, que lo dice UNA vez al cerrar la cámara (`cerrarCamara` en `PuntoDeVenta`).
+       aviso largo de arriba, que lo dice UNA vez al cerrar la cámara (`cerrarCamara` en `PuntoDeVenta`);
+     · y cada lectura SUENA (2026-10-23): el bip agudo de Conteo si entró, el grave si no (`sonidoDeLecturaCamara`).
    Es una hoja de `<Modal variante="camara">`: hereda el velo, la entrada, la cascada y el foco atrapado (ADR-0136).
 
    Cómo lee: con el `BarcodeDetector` del navegador cuando existe (Chrome en Android: rápido, y lee también el Code 128
@@ -188,7 +191,8 @@ export function EscanerCamara({
       const tono = mensajeEscaneo(r).tono;
       setHistorial((h) => [lectura, ...h].slice(0, 3));
       setDestello({ id: n, tono });
-      navigator.vibrate?.(tono === "verde" ? 35 : [30, 70, 30]);
+      // Suena y vibra en cada lectura (el bip de Conteo): quien vende mira la prenda y al cliente, no la pantalla.
+      avisarLectura(sonidoDeLecturaCamara(tono));
       if (moverse()) {
         setVuelo(lectura);
         if (r.estado === "agregada") setEnVuelo(true);

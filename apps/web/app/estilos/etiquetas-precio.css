@@ -65,8 +65,10 @@
   .etq-franja {
     transition: width 220ms var(--ease-cayla);
   }
-  .etq-fila:hover .etq-franja {
-    width: 8px;
+  @media (hover: hover) {
+    .etq-fila:hover .etq-franja {
+      width: 8px;
+    }
   }
 
   /* El nombre del modelo sobre sus filas (con dos modelos o más). */
@@ -113,12 +115,14 @@
     transform-origin: 70% 30%;
     transition: transform 260ms var(--ease-cayla);
   }
-  .etq-tacho:hover {
-    border-color: var(--color-rojo-profundo);
-    background: color-mix(in oklab, var(--color-rojo-profundo) 8%, var(--color-papel));
-  }
-  .etq-tacho:hover > svg {
-    transform: rotate(-14deg) translateY(-1px);
+  @media (hover: hover) {
+    .etq-tacho:hover {
+      border-color: var(--color-rojo-profundo);
+      background: color-mix(in oklab, var(--color-rojo-profundo) 8%, var(--color-papel));
+    }
+    .etq-tacho:hover > svg {
+      transform: rotate(-14deg) translateY(-1px);
+    }
   }
   .etq-tacho:active {
     transform: scale(0.9);
@@ -182,9 +186,11 @@
   .etq-tarjeta > div {
     transition: transform 260ms var(--ease-cayla), box-shadow 260ms var(--ease-cayla);
   }
-  .etq-tarjeta:hover > div {
-    transform: translateY(-3px) rotate(-0.6deg);
-    box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  @media (hover: hover) {
+    .etq-tarjeta:hover > div {
+      transform: translateY(-3px) rotate(-0.6deg);
+      box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+    }
   }
   .etq-tarjeta[data-saliendo] {
     animation: etq-tarjeta-sale 300ms var(--ease-cayla) forwards;
@@ -224,9 +230,11 @@
     .etq-tarjeta > div {
       transition: none;
     }
-    .etq-tacho:hover > svg,
-    .etq-tarjeta:hover > div {
-      transform: none;
+    @media (hover: hover) {
+      .etq-tacho:hover > svg,
+      .etq-tarjeta:hover > div {
+        transform: none;
+      }
     }
   }
 }
