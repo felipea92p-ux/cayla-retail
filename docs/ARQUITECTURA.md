@@ -1490,6 +1490,16 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `compra_item_cierres`, `proveedor_creditos` (libro del saldo a favor, append-only) y `compra_adjuntos.nota_credito_id`.
   **Recepción ya no registra notas** (ADR-0142): solo avisa con un chip al módulo; `recibir_envio` sigue aceptando
   `p_notas_credito` pero la pantalla lo manda vacío.
+  Rediseño (2026-10-23, sin migración; maqueta `docs/maquetas/compras-formidable-2026-10/`): `/compras/mi-plata` suma `Billetera.tsx`,
+  `AccionDelDia.tsx` y `ListaDelDia.tsx` (`movimientosDeLaCompradora`); «Compré ropa» abre `HojaPrenda.tsx` por prenda (`camposPrenda`,
+  `lineaDeBorrador` en `lib/compra-rapida-reglas.ts`) y comparte `TarjetaFoto.tsx` con las hojas de Mi plata; `/compras/fondos` es una bandeja
+  (`BandejaRevisar.tsx` + `PanelDetalle.tsx`; filas en `lib/revisar-compras-reglas.ts`) y sus cuatro detalles (`DetallePlata`, `DetallePapel`,
+  `DetalleGasto`, `DetalleCierre`) son las hojas de antes; `/recibir/envio/[id]` suma `PreguntaDeLaCompra.tsx` (`lib/recibir-papel-reglas.ts`)
+  y `PapelesDeLaCompra.tsx` pasa a columna fija con la foto en grande. En el mismo PR, tres migraciones: la foto del papel opcional
+  (`20261023180000`); pagar ahora o después y con qué (`20261023181000`: `registrar_compra_rapida` con `p_pagado`/`p_medio`, `compra_papeles.pagado`
+  y `medio_pago`, lo que falta queda a crédito al completar); y la **ronda de compras** (`20261023183000`: `compra_rondas`, serie RC; RPC
+  `abrir_ronda_compras` desde `AbrirRonda.tsx` vía `lib/mi-plata-acciones.ts`; `terminar_dia_compras` cierra la ronda; `fn_ronda_compras_de` dentro de
+  `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres).
 - **Recibir mercadería: «Llegó mercadería» (ADR-0330, 2026-10-04)** — `/recibir` abre en la puerta única: `LlegoMercaderia.tsx`
   (lógica pura en `lib/llegada-reglas.ts`, con prueba) → RPC `recibir_lote` sin cambios (entra al almacén de la sede de la
   cabecera, token y cola sin conexión). Lee en el servidor el catálogo, los proveedores con sus marcas (`getMarcasPorProveedor`),
@@ -2158,9 +2168,9 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   precio en la tienda elegida y su nivel en cada tienda (lo libre de `fn_existencias_base`: piso + almacén, sin Cuarentena ni lo apartado,
   que incluye las reservas de los pedidos web; sin el Taller ni las tiendas escondidas). `null` si el modelo no se ve en la web (la página
   responde «Esta prenda ya no está»). `lib/ficha.ts` decide qué se ve al elegir color y talla, y `components/FichaPrenda.tsx` dibuja las
-  fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las piezas
+  fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las insignias de Catálogo ▸ Insignias que alcanzan al modelo (a mano o por categoría, aprobadas, vigentes hoy y de esa tienda; sin descuento: ese es el chip rojo) llegan en `prenda.insignias` (`fn_tienda_insignias`, `20261023182000`, ADR-0489) y `chipsDelCatalogo` las pone entre «Nuevo» y «N.º … en más vendidos». Cada chip lleva el dibujo de su insignia (la calabaza de Halloween…): los dibujos y el reconocimiento por nombre viven en `packages/shared/src/insignias-visual.ts` (datos; el ERP los pinta en `components/MuestraEtiqueta.tsx` y la tienda en `components/IconoInsignia.tsx`). Las piezas
   internas de las dos lecturas (`fn_tienda_nivel`, `fn_tienda_umbral`, `fn_tienda_sedes_web`, `fn_tienda_sede_elegida`,
-  `fn_tienda_disponible`, `fn_tienda_libre`, `fn_tienda_precio_talla`, `fn_tienda_precios`) no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones
+  `fn_tienda_disponible`, `fn_tienda_libre`, `fn_tienda_precio_talla`, `fn_tienda_precios`, `fn_tienda_insignias`) no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones
   rotas a propósito).
 - La ficha y las tarjetas conectadas (integración de las actividades 4, 5, 7, 11 y 12): en la ficha, `lib/ficha.ts` `botonDeLaFicha` decide
   el botón principal («Elige tu talla»; `components/bolsa/AgregarALaBolsa.tsx` si esa talla hay en alguna tienda de la web;

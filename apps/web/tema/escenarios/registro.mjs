@@ -513,6 +513,11 @@ ESCENARIOS.push(
 // Cambios y Devoluciones NO son modales: son un flujo de 4 pasos dentro de la página (FlujoGuiado). Los escenarios avanzan paso a paso
 // hasta la confirmación, sin confirmar: «Confirmar cambio» o «Registrar devolución» escribirían en la base.
 const POSVENTA = ["admin", "integrante", "terminal-ventas"];
+/** Un clic en la pieza anclada por su `data-guia` (las guías interactivas, ADR-0389): no depende de su texto. */
+const clicGuia = (guia) => async (pagina) => {
+  await pagina.locator(`[data-guia="${guia}"]`).first().click({ timeout: 8000 });
+  await esperar(pagina, 1100);
+};
 const clicRol = (rol, nombre, opts = {}) => async (pagina) => {
   await pagina.getByRole(rol, { name: nombre, ...opts }).first().click({ timeout: 8000 });
   await esperar(pagina, 1100);
@@ -750,6 +755,15 @@ ESCENARIOS.push(
   { id: "sellos.agregar", ruta: "/productos/insignias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Insignias · «Nueva campaña»", preparar: clicRol("button", /Nueva campaña/i) },
   { id: "sellos.prendas", ruta: "/productos/insignias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Insignias · las prendas del pase abierto", preparar: clicRol("button", /^Prendas$/i) },
   { id: "sellos.campana", ruta: "/productos/insignias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Insignias · «Configurar» el pase abierto", preparar: clicRol("button", /^(Configurar|Repetir)$/i) },
+  // La etiqueta viva (ADR-0488): con un descuento y dos categorías elegidas, el mosaico, «En caja» y la grilla de casillas a la vista.
+  {
+    id: "sellos.campana.llena",
+    ruta: "/productos/insignias",
+    cuentas: ["admin"],
+    abre: "[role=dialog] .cph-cat[data-elegida]",
+    nombre: "Insignias · «Configurar» con descuento y categorías (la etiqueta viva)",
+    preparar: secuencia(clicRol("button", /^(Configurar|Repetir)$/i), clicRol("button", /^20 %$/), clicRol("checkbox", /^Camisas y Blusas,/), clicRol("checkbox", /^Vestidos,/)),
+  },
   { id: "marcas.nueva", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "button:has-text('Registrar')", nombre: "Marcas · «Nueva marca» (el formulario se abre en la página)", preparar: clicRol("button", /Nueva marca/i) },
   { id: "marcas.editar", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Marcas · «Editar» una marca", preparar: clicRol("button", /^Editar/i) },
   // ADR-0373: los estados que no se ven al cargar. El resumen cerrado es lo de siempre; abierto trae las cuatro tarjetas de cifra.
@@ -1150,7 +1164,15 @@ ESCENARIOS.push(
   { id: "fondos.entregar", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Entregar plata»", preparar: clicRol("button", /Entregar plata/i) },
   // Compras simple (ADR-0480, actividad 2): «Me dieron plata» (la compradora) y «Confirmar la plata» (necesita una plata anotada de otra persona).
   { id: "mi-plata.anotar", ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mi plata para compras · «Me dieron plata»", preparar: clicRol("button", /Me dieron plata/i) },
-  { id: "fondos.plata-confirmar", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Revisar compras · «Cambiar» una plata anotada (necesita una de otra persona)", preparar: clicRol("button", /^Cambiar$/) },
+  // Revisar compras como bandeja (rediseño, maqueta compras-formidable-2026-10): cada cifra filtra la lista y abre su detalle al lado, sin
+  // hoja. Los de gastos y cierres necesitan uno pendiente en la base: se corren por su id.
+  { id: "fondos.plata-confirmar", ruta: "/compras/fondos", cuentas: ["admin"], abre: '[data-guia="fondos.plata-detalle"]', nombre: "Revisar compras · la plata por confirmar, con su detalle al lado", preparar: clicGuia("fondos.cifra-plata") },
+  { id: "fondos.bandeja-papel", ruta: "/compras/fondos", cuentas: ["admin"], abre: '[data-guia="fondos.papel-detalle"]', nombre: "Revisar compras · una compra por completar, con su detalle al lado", preparar: clicGuia("fondos.cifra-papel") },
+  { id: "fondos.bandeja-gasto", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: '[data-guia="fondos.gasto-detalle"]', nombre: "Revisar compras · un gasto por revisar (necesita uno)", preparar: clicGuia("fondos.cifra-gasto") },
+  { id: "fondos.bandeja-cierre", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: '[data-guia="fondos.cierre-detalle"]', nombre: "Revisar compras · un cierre del día por recibir (necesita uno)", preparar: clicGuia("fondos.cifra-cierre") },
+  // Las hojas del celular de Mi plata (rediseño): «Gasté en otra cosa» y «Mandar a la tienda» (necesita algo por mandar).
+  { id: "mi-plata.gasto", ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mi plata para compras · «Gasté en otra cosa»", preparar: clicRol("button", /Gasté en otra cosa/i) },
+  { id: "mi-plata.mandar", soloPorId: true, ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mi plata para compras · «Mandar a la tienda» (necesita algo por mandar)", preparar: clicRol("button", /Te falta mandar/i) },
   { id: "fondos.devolver", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Registrar devolución»", preparar: clicRol("button", /^Registrar devolución/i) },
   { id: "fondos.pagar-deuda", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Registrar su pago» (la deuda de un faltante)", preparar: clicRol("button", /^Registrar su pago/i) },
   { id: "fondos.anular", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Anular» un movimiento", preparar: clicRol("button", /^Anular$/) },

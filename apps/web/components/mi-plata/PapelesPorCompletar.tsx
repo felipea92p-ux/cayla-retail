@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef, useState, type RefObject } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, ImageOff } from "lucide-react";
-import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { avisar } from "@/components/ui/Avisos";
@@ -18,155 +18,126 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { diaMes } from "@/lib/fechas-lima";
 import { primerNombre } from "@/lib/fondos-reglas";
 import { TIPOS_PAPEL } from "@/lib/compra-rapida-reglas";
 import { completarPapel } from "@/lib/revisar-compras-acciones";
 import {
   TITULO_CASO,
   camposCompletar,
+  chipPapel,
   ejemploSerie,
   fraseCompletar,
   fraseVeredicto,
+  llegadaDePapel,
   pideSerie,
   textoFaltan,
   textoLlegada,
+  textoPagoPapel,
   veredictoPapel,
   type ProveedorOpcion,
+  diaYRonda,
 } from "@/lib/revisar-compras-reglas";
 import type { PapelConFoto } from "@/lib/revisar-compras";
+import { PanelDetalle } from "./PanelDetalle";
 
-// Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ las compras que anotaron las compradoras. Cada tarjeta es UN papel: su
-// foto, de quién, qué prendas anotó y a qué tienda, lo que contó la tienda y si cuadra. Cuando la tienda ya cerró el conteo, «Completar»
-// abre la hoja para copiar la serie y el número de la foto; al guardar, el papel se vuelve un comprobante pagado desde el fondo de quien
-// compró (Facturas de proveedor). Antes de llegar, la tarjeta dice dónde está y no se completa. La de quien mira no se completa (nadie
-// completa su propia compra; la base tampoco lo deja).
+// Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ las compras que anotaron las compradoras. Rediseño (2026-10-23): cada papel
+// se revisa en el detalle de la bandeja, al lado de la lista: la foto en grande junto a los campos que se copian de ella (la guía enciende
+// el que sigue), «Dice el papel / Anotó X» con su estado, lo que llegó a la tienda y «Completar y pasar a los libros». Al guardar, el papel
+// se vuelve un comprobante pagado desde el fondo de quien compró (Historial de compras), o a crédito por lo que no pagó. Antes de llegar, dice dónde está y no se completa.
+// La de quien mira no se completa (nadie completa su propia compra; la base tampoco lo deja).
 //
-// Manda el papel (Felipe 2026-10-23): si el papel dice otra cosa que lo anotado, el comprobante queda por lo del papel y la hoja lo dice
+// Manda el papel (Felipe 2026-10-23): si el papel dice otra cosa que lo anotado, el comprobante queda por lo del papel y el detalle lo dice
 // antes de guardar. Lo que faltó ya lo dijo la tienda al recibir: aquí se ve, no se vuelve a decidir.
 
-export function PapelesPorCompletar({ papeles, proveedores }: { papeles: PapelConFoto[]; proveedores: ProveedorOpcion[] }) {
-  return (
-    <ul className="space-y-3" data-guia="fondos.papeles">
-      {papeles.map((p) => (
-        <TarjetaPapel key={p.id} papel={p} proveedores={proveedores} />
-      ))}
-    </ul>
-  );
-}
+type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 
-function FotoPapel({ papel, grande = false }: { papel: PapelConFoto; grande?: boolean }) {
-  const nombre = `${TIPOS_PAPEL[papel.tipo].nombre} de ${papel.proveedor}`;
-  const caja = grande ? "block overflow-hidden rounded-xl bg-hueso" : "grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-lg bg-hueso text-taupe";
-  if (!papel.fotoUrl) {
+/** La miniatura del papel en la fila de la bandeja. */
+export function MiniFotoPapel({ papel }: { papel: PapelConFoto }) {
+  if (!papel.fotoUrl || papel.fotoRuta?.toLowerCase().endsWith(".pdf")) {
     return (
-      <span className={grande ? "nota-cayla block text-sm" : caja} title={papel.fotoRuta ? "La foto no se pudo abrir" : "Sin foto"}>
-        {grande ? (papel.fotoRuta ? "La foto no se pudo abrir: recarga la pantalla." : "No subió foto: no le dieron papel.") : <ImageOff className="h-5 w-5" aria-hidden />}
-        {!grande && <span className="sr-only">Sin foto</span>}
+      <span className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-xl bg-hueso text-taupe" title={papel.fotoUrl ? "Un PDF" : "Sin foto"}>
+        {papel.fotoUrl ? <FileText className="h-5 w-5" aria-hidden /> : <ImageOff className="h-5 w-5" aria-hidden />}
       </span>
     );
   }
   return (
-    <a href={papel.fotoUrl} target="_blank" rel="noopener noreferrer" className={caja} title="Ver la foto en grande">
+    <span className="block h-[54px] w-[54px] shrink-0 overflow-hidden rounded-xl bg-hueso">
+      {/* La foto es un enlace firmado de 10 minutos del depósito privado: no pasa por la optimización de imágenes. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={papel.fotoUrl} alt="" className="h-full w-full object-cover" />
+    </span>
+  );
+}
+
+function FotoPapel({ papel }: { papel: PapelConFoto }) {
+  const nombre = `${TIPOS_PAPEL[papel.tipo].nombre} de ${papel.proveedor}`;
+  if (!papel.fotoUrl) {
+    return (
+      <p className="nota-cayla text-sm">
+        {papel.fotoRuta
+          ? "La foto no se pudo abrir: recarga la pantalla."
+          : papel.tipo === "sin_comprobante"
+            ? "No subió foto: no le dieron papel."
+            : `No subió foto: pídele el papel a ${primerNombre(papel.persona)} y copia de ahí la serie y el número.`}
+      </p>
+    );
+  }
+  return (
+    <a href={papel.fotoUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-2xl bg-hueso p-3" title="Ver la foto en grande">
       {papel.fotoRuta?.toLowerCase().endsWith(".pdf") ? (
-        <FileText className="h-6 w-6" aria-hidden />
+        <span className="flex items-center gap-2 text-sm text-tinta">
+          <FileText className="h-5 w-5" aria-hidden />
+          Abrir el PDF de {nombre}
+        </span>
       ) : (
-        // La foto es un enlace firmado de 10 minutos del depósito privado: no pasa por la optimización de imágenes.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={papel.fotoUrl} alt={`Foto: ${nombre}`} className={grande ? "max-h-80 w-full object-contain" : "h-full w-full object-cover"} />
+        <img src={papel.fotoUrl} alt={`Foto: ${nombre}`} className="max-h-96 w-full object-contain" />
       )}
     </a>
   );
 }
 
-function TarjetaPapel({ papel, proveedores }: { papel: PapelConFoto; proveedores: ProveedorOpcion[] }) {
-  const [abierta, setAbierta] = useState(false);
-  const origen = useRef<HTMLElement | null>(null);
-  const v = veredictoPapel(papel);
-  const tipo = TIPOS_PAPEL[papel.tipo].nombre;
+/** Lo que llegó a la tienda: la barra de lo contado y, por prenda, lo que dijo la tienda de lo que faltó. */
+function LlegoALaTienda({ papel }: { papel: PapelConFoto }) {
+  const l = llegadaDePapel(papel);
   return (
-    <li className="card-cayla @container overflow-hidden">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-sand px-4 py-3">
-        <span className="font-serif text-lg text-tinta">
-          {papel.tipo === "sin_comprobante" ? "Compra sin papel" : tipo} de <span className="whitespace-nowrap">{soles(papel.monto)}</span>
-        </span>
-        <span className="flex flex-wrap items-center gap-2 text-xs text-taupe">
-          Lo pagó {primerNombre(papel.persona)} con su plata de compras
-          {papel.fecha ? ` · ${diaMes(papel.fecha)}` : ""}
-          <Chip tono={papel.llego ? "verde" : "pizarra"}>{textoLlegada(papel)}</Chip>
-        </span>
-      </div>
-      <div className="grid gap-4 p-4 @min-[44rem]:grid-cols-[5rem_minmax(0,1fr)_minmax(0,18rem)]">
-        <FotoPapel papel={papel} />
-        <div className="min-w-0 space-y-2">
-          <p className="text-sm text-tinta">
-            <span className="font-medium">{papel.proveedor}</span>
-            <span className="text-taupe"> · lo eligió {primerNombre(papel.persona)} al comprar</span>
-          </p>
-          <ul className="divide-y divide-sand text-sm">
-            {papel.lineas.map((l) => (
-              <li key={l.id} className="flex items-baseline justify-between gap-3 py-1.5">
-                <span className="min-w-0">
-                  <span className="block truncate text-tinta">
-                    {l.cantidad} {l.nombre}
-                  </span>
-                  <span className="block text-xs text-taupe">
-                    a {l.destino} · {soles(l.costo)} c/u
-                    {textoFaltan(l) ? <span className="text-ambar-profundo"> · {textoFaltan(l)}</span> : null}
-                  </span>
-                </span>
-                <span className="whitespace-nowrap tabular-nums text-tinta">{soles(l.subtotal)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="flex flex-col gap-3">
-          {papel.llego && (
-            <div className={v.caso === "cuadra" ? "nota-cayla text-sm" : "nota-cayla sin-i text-sm"} data-guia="fondos.papel-veredicto">
-              <span className="block font-medium text-tinta">{TITULO_CASO[v.caso]}</span>
-              <span className="block text-taupe">{fraseVeredicto(v, papel.tipo)}</span>
-            </div>
-          )}
-          {papel.esMia ? (
-            <span className="flex justify-end">
-              <Chip tono="pizarra" title="Nadie completa su propia compra: que la complete otra persona de Compras.">
-                Es tuya
-              </Chip>
+    <div className="flex flex-col gap-2" data-guia="fondos.papel-llegada">
+      <p className="campo-etiqueta flex justify-between gap-2">
+        <span>Llegó a la tienda</span>
+        {l && <span className={`normal-case tracking-normal ${l.completa ? "text-verde" : "text-ambar-profundo"}`}>{l.completa ? `✓ ${l.llegaron} de ${l.total}` : `${l.llegaron} de ${l.total}`}</span>}
+      </p>
+      {l && <BarraAvance pct={(l.llegaron / Math.max(1, l.total)) * 100} tono={l.completa ? "verde" : "ambar"} etiqueta="Lo que llegó a la tienda" texto={`${l.llegaron} de ${l.total}`} />}
+      <ul className="divide-y divide-sand text-sm">
+        {papel.lineas.map((x) => (
+          <li key={x.id} className="flex items-baseline justify-between gap-3 py-1.5">
+            <span className="min-w-0">
+              <span className="block truncate text-tinta">
+                {x.cantidad} · {x.nombre}
+              </span>
+              <span className="block text-xs text-taupe">
+                {x.cantidad} × {soles(x.costo)} · va a {x.destino}
+                {textoFaltan(x) ? <span className="text-ambar-profundo"> · {textoFaltan(x)}</span> : null}
+              </span>
             </span>
-          ) : papel.llego ? (
-            <Boton
-              peso="primario"
-              className="self-end"
-              data-guia="fondos.papel-completar"
-              onClick={(e) => {
-                origen.current = e.currentTarget;
-                setAbierta(true);
-              }}
-            >
-              Completar
-            </Boton>
-          ) : (
-            <p className="text-xs text-taupe">Se completa cuando la tienda la reciba y cierre el conteo.</p>
-          )}
-        </div>
-      </div>
-      {abierta && <CompletarPapelModal papel={papel} proveedores={proveedores} onClose={() => setAbierta(false)} volverA={origen} />}
-    </li>
+            <span className="whitespace-nowrap tabular-nums text-tinta">{soles(x.subtotal)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
-type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
-
-function CompletarPapelModal({
+export function DetallePapel({
   papel,
   proveedores,
-  onClose,
-  volverA,
+  alTerminar,
+  alSaltar,
 }: {
   papel: PapelConFoto;
   proveedores: ProveedorOpcion[];
-  onClose: () => void;
-  volverA: RefObject<HTMLElement | null>;
+  alTerminar: () => void;
+  /** «Más tarde»: pasa a la siguiente sin guardar. Sin ella (la única de la lista), no se dibuja. */
+  alSaltar?: () => void;
 }) {
   const router = useRouter();
   const [proveedorId, setProveedorId] = useState(papel.proveedorId);
@@ -184,6 +155,9 @@ function CompletarPapelModal({
   const v = veredictoPapel(papel, montoLeido ?? papel.monto);
   const proveedor = proveedores.find((p) => p.id === proveedorId)?.nombre ?? papel.proveedor;
   const tipo = TIPOS_PAPEL[papel.tipo].nombre;
+  const nombre = primerNombre(papel.persona);
+  const chip = chipPapel(papel);
+  const cuadraPlata = Math.abs(v.pagado - v.anotado) < 0.005;
 
   const limpiar = <T,>(f: (x: T) => void) => (x: T) => {
     setRechazo(null);
@@ -221,157 +195,186 @@ function CompletarPapelModal({
     }
     const documento = (data as { documento?: string } | null)?.documento;
     avisar.exito(documento ? `Guardaste ${documento}` : "Guardaste la compra", {
-      detalle: `Ya está en el Historial de compras, pagada del fondo de ${primerNombre(papel.persona)}.`,
+      // Pagada entera del fondo, o con lo que falta en Por pagar (20261023181000).
+      detalle:
+        papel.pagado >= papel.monto - 0.005
+          ? `Ya está en el Historial de compras, pagada del fondo de ${nombre}.`
+          : `Ya está en el Historial de compras; lo que falta pagar queda en Por pagar.`,
     });
-    onClose();
+    alTerminar();
     router.refresh();
   }
 
   return (
-    <Modal
-      titulo={`Completar ${papel.tipo === "sin_comprobante" ? "la compra" : `la ${tipo.toLowerCase()}`}`}
-      subtitulo={`${papel.persona} pagó ${soles(papel.monto)} a ${papel.proveedor}. Copia de la foto lo que falta.`}
-      onClose={onClose}
-      variante="hoja"
-      tamano="mediana"
-      alCerrarEnfocar={volverA}
-      bloqueado={guardando}
+    <PanelDetalle
+      guia="fondos.papel-detalle"
+      sobre={[`Compró ${papel.persona}`, diaYRonda(papel.fecha, papel.ronda)].filter(Boolean).join(" · ")}
+      titulo={`${papel.tipo === "sin_comprobante" ? "Compra sin papel" : tipo} de ${soles(papel.monto)}`}
+      estado={<Chip tono={chip.tono}>{papel.llego ? chip.texto : textoLlegada(papel)}</Chip>}
     >
-      {(cerrar) => (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void confirmar();
-          }}
-          className="space-y-5"
-        >
-          {/* Sin papel y sin foto, el aviso del número interno ya lo dice: no se repite. */}
-          {(papel.fotoRuta || papel.tipo !== "sin_comprobante") && <FotoPapel papel={papel} grande />}
-
-          <div className="space-y-1.5">
-            <p className="campo-etiqueta">Proveedor</p>
-            {cambiaProveedor ? (
-              <ComboBuscable
-                etiquetaAccesible="Proveedor"
-                caja
-                valor={proveedorId}
-                onValor={limpiar(setProveedorId)}
-                opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre, detalle: p.ruc ? `RUC ${p.ruc}` : undefined, claves: p.ruc ? [p.ruc] : undefined }))}
-                marcador="Busca por nombre o RUC"
-              />
-            ) : (
-              <p className="flex flex-wrap items-baseline gap-x-3 text-sm">
-                <span className="font-medium text-tinta">{proveedor}</span>
-                <span className="text-xs text-taupe">lo eligió {primerNombre(papel.persona)} al comprar</span>
-                <button type="button" className="btn-enlace text-sm" disabled={guardando} onClick={() => setCambiaProveedor(true)}>
-                  No es este: cambiar
-                </button>
-              </p>
-            )}
-          </div>
-
-          {pideSerie(papel.tipo) ? (
-            <div className="grid grid-cols-2 gap-3">
-              <CampoGuiado id="serie" guia={guia} titulo="Serie">
-                <CampoTexto
-                  etiqueta="Serie"
-                  caja
-                  autoComplete="off"
-                  maxLength={8}
-                  placeholder={ejemploSerie(papel.tipo)}
-                  value={serie}
-                  disabled={guardando}
-                  onChange={(e) => limpiar(setSerie)(e.target.value.toUpperCase())}
-                />
-              </CampoGuiado>
-              <CampoGuiado id="numero" guia={guia} titulo="Número">
-                <CampoTexto
-                  etiqueta="Número"
-                  caja
-                  autoComplete="off"
-                  inputMode="numeric"
-                  maxLength={12}
-                  placeholder="Como dice el papel" // sugerir-fijo: el número de un papel no depende de nada elegido antes
-                  value={numero}
-                  disabled={guardando}
-                  onChange={(e) => limpiar(setNumero)(e.target.value)}
-                />
-              </CampoGuiado>
+      <div className="grid gap-5 @min-[38rem]:grid-cols-[18.75rem_minmax(0,1fr)]">
+        <FotoPapel papel={papel} />
+        <div className="flex min-w-0 flex-col gap-5">
+          <p className="text-sm text-tinta" data-guia="fondos.papel-pago">
+            {textoPagoPapel(papel)}
+          </p>
+          {papel.esMia ? (
+            <div className="flex flex-col items-start gap-2">
+              <Chip tono="pizarra">Es tuya</Chip>
+              <p className="text-sm text-taupe">Nadie completa su propia compra: que la complete otra persona de Compras.</p>
             </div>
-          ) : papel.tipo === "nota_venta" ? (
-            <CampoGuiado id="numero" guia={guia} titulo="Número · si lo tiene">
-              <CampoTexto
-                etiqueta="Número"
-                caja
-                autoComplete="off"
-                maxLength={20}
-                placeholder="Como dice el papel" // sugerir-fijo: el número de un papel no depende de nada elegido antes
-                value={numero}
-                disabled={guardando}
-                onChange={(e) => limpiar(setNumero)(e.target.value)}
-              />
-            </CampoGuiado>
+          ) : !papel.llego ? (
+            <p className="nota-cayla text-sm">Se completa cuando la tienda la reciba y cierre el conteo.</p>
           ) : (
-            <p className="nota-cayla text-sm">No le dieron papel: se guarda con un número interno (SC-…).</p>
-          )}
-
-          {cambiaMonto ? (
-            <CampoGuiado id="monto" guia={guia} titulo="Lo que dice el papel">
-              <CampoMonto
-                etiqueta="Lo que dice el papel"
-                etiquetaOculta
-                inputMode="decimal"
-                autoComplete="off"
-                value={monto}
-                disabled={guardando}
-                onChange={(e) => limpiar(setMonto)(e.target.value)}
-              />
-              <p className="mt-1.5 text-xs text-taupe">{primerNombre(papel.persona)} anotó {soles(papel.monto)}: el comprobante y su plata quedan por este monto.</p>
-            </CampoGuiado>
-          ) : (
-            <p className="flex flex-wrap items-baseline gap-x-3 text-sm">
-              <span className="text-taupe">El papel dice</span>
-              <span className="font-serif text-lg tabular-nums text-tinta">{soles(papel.monto)}</span>
-              <button type="button" className="btn-enlace text-sm" disabled={guardando} onClick={() => setCambiaMonto(true)}>
-                Se anotó mal: cambiar el monto
-              </button>
-            </p>
-          )}
-
-          <div className="nota-cayla sin-i text-sm">
-            <span className="block font-medium text-tinta">{TITULO_CASO[v.caso]}</span>
-            <span className="block text-taupe">{fraseVeredicto(v, papel.tipo)}</span>
-          </div>
-
-          {!esPersona && (
-            <CampoGuiado id="responsable" guia={guia} titulo="Quién completa">
-              <ComboResponsable control={responsable} deshabilitado={guardando} />
-            </CampoGuiado>
-          )}
-          {rechazo && (
-            <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
-              {rechazo.texto}
-            </Aviso>
-          )}
-          <PieGuia guia={guia} listo="Todo listo para guardar." conFrase />
-          <div className="pie-hoja-fijo pie-acciones pt-1">
-            <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
-              Cancelar
-            </Boton>
-            <Boton
-              type="submit"
-              peso="primario"
-              cargando={guardando}
-              textoCargando="Guardando…"
-              disabled={!guia.puedeConfirmar}
-              title={guia.frase ?? undefined}
-              className={guia.claseConfirmar}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void confirmar();
+              }}
+              className="flex min-w-0 flex-col gap-5"
             >
-              {fraseCompletar(papel.tipo, montoLeido)}
-            </Boton>
-          </div>
-        </form>
-      )}
-    </Modal>
+              <div className="space-y-1.5">
+                <p className="campo-etiqueta">Proveedor</p>
+                {cambiaProveedor ? (
+                  <ComboBuscable
+                    etiquetaAccesible="Proveedor"
+                    caja
+                    valor={proveedorId}
+                    onValor={limpiar(setProveedorId)}
+                    opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre, detalle: p.ruc ? `RUC ${p.ruc}` : undefined, claves: p.ruc ? [p.ruc] : undefined }))}
+                    marcador="Busca por nombre o RUC"
+                  />
+                ) : (
+                  <p className="flex flex-wrap items-baseline gap-x-3 text-sm">
+                    <span className="font-medium text-tinta">{proveedor}</span>
+                    <span className="text-xs text-taupe">lo eligió {nombre} al comprar</span>
+                    <button type="button" className="btn-enlace text-sm" disabled={guardando} onClick={() => setCambiaProveedor(true)}>
+                      No es este: cambiar
+                    </button>
+                  </p>
+                )}
+              </div>
+
+              {pideSerie(papel.tipo) ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <CampoGuiado id="serie" guia={guia} titulo="Serie">
+                    <CampoTexto
+                      etiqueta="Serie"
+                      caja
+                      autoComplete="off"
+                      maxLength={8}
+                      placeholder={ejemploSerie(papel.tipo)}
+                      value={serie}
+                      disabled={guardando}
+                      onChange={(e) => limpiar(setSerie)(e.target.value.toUpperCase())}
+                    />
+                  </CampoGuiado>
+                  <CampoGuiado id="numero" guia={guia} titulo="Número">
+                    <CampoTexto
+                      etiqueta="Número"
+                      caja
+                      autoComplete="off"
+                      inputMode="numeric"
+                      maxLength={12}
+                      placeholder="Como dice el papel" // sugerir-fijo: el número de un papel no depende de nada elegido antes
+                      value={numero}
+                      disabled={guardando}
+                      onChange={(e) => limpiar(setNumero)(e.target.value)}
+                    />
+                  </CampoGuiado>
+                </div>
+              ) : papel.tipo === "nota_venta" ? (
+                <CampoGuiado id="numero" guia={guia} titulo="Número · si lo tiene">
+                  <CampoTexto
+                    etiqueta="Número"
+                    caja
+                    autoComplete="off"
+                    maxLength={20}
+                    placeholder="Como dice el papel" // sugerir-fijo: el número de un papel no depende de nada elegido antes
+                    value={numero}
+                    disabled={guardando}
+                    onChange={(e) => limpiar(setNumero)(e.target.value)}
+                  />
+                </CampoGuiado>
+              ) : (
+                <p className="nota-cayla text-sm">No le dieron papel: se guarda con un número interno (SC-…).</p>
+              )}
+
+              {/* «Dice el papel / Anotó X» con su estado, como la maqueta. «Se anotó mal» corrige el monto del papel. */}
+              {cambiaMonto ? (
+                <CampoGuiado id="monto" guia={guia} titulo="Lo que dice el papel">
+                  <CampoMonto
+                    etiqueta="Lo que dice el papel"
+                    etiquetaOculta
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={monto}
+                    disabled={guardando}
+                    onChange={(e) => limpiar(setMonto)(e.target.value)}
+                  />
+                  <p className="mt-1.5 text-xs text-taupe">{nombre} anotó {soles(papel.monto)}: el comprobante y su plata quedan por este monto.</p>
+                </CampoGuiado>
+              ) : null}
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border border-sand bg-crema px-4 py-3" data-guia="fondos.papel-veredicto">
+                <span className="min-w-0">
+                  <span className="block text-xs text-taupe">Dice el papel</span>
+                  <span className="block font-serif text-2xl tabular-nums text-tinta">{soles(v.pagado)}</span>
+                </span>
+                <Chip tono={cuadraPlata ? "verde" : "ambar"}>{cuadraPlata ? "Cuadra" : "No cuadra"}</Chip>
+                <span className="min-w-0 text-right">
+                  <span className="block text-xs text-taupe">Anotó {nombre}</span>
+                  <span className="block font-serif text-2xl tabular-nums text-tinta">{soles(v.anotado)}</span>
+                </span>
+              </div>
+              {v.caso !== "cuadra" && (
+                <div className="nota-cayla sin-i text-sm">
+                  <span className="block font-medium text-tinta">{TITULO_CASO[v.caso]}</span>
+                  <span className="block text-taupe">{fraseVeredicto(v, papel.tipo)}</span>
+                </div>
+              )}
+              {!cambiaMonto && (
+                <button type="button" className="btn-enlace self-start text-sm" disabled={guardando} onClick={() => setCambiaMonto(true)}>
+                  Se anotó mal: cambiar el monto
+                </button>
+              )}
+
+              <LlegoALaTienda papel={papel} />
+
+              {!esPersona && (
+                <CampoGuiado id="responsable" guia={guia} titulo="Quién completa">
+                  <ComboResponsable control={responsable} deshabilitado={guardando} />
+                </CampoGuiado>
+              )}
+              {rechazo && (
+                <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
+                  {rechazo.texto}
+                </Aviso>
+              )}
+              <PieGuia guia={guia} listo="Todo listo para pasarla a los libros." conFrase />
+              <div className="pie-acciones border-t border-sand pt-4">
+                {alSaltar && (
+                  <Boton type="button" peso="fantasma" onClick={alSaltar} disabled={guardando}>
+                    Más tarde
+                  </Boton>
+                )}
+                <Boton
+                  type="submit"
+                  peso="primario"
+                  cargando={guardando}
+                  textoCargando="Guardando…"
+                  disabled={!guia.puedeConfirmar}
+                  title={guia.frase ?? undefined}
+                  className={guia.claseConfirmar}
+                  data-guia="fondos.papel-completar"
+                >
+                  {fraseCompletar()}
+                </Boton>
+              </div>
+            </form>
+          )}
+          {(papel.esMia || !papel.llego) && <LlegoALaTienda papel={papel} />}
+        </div>
+      </div>
+    </PanelDetalle>
   );
 }

@@ -10,6 +10,7 @@ import {
   RPC_REGISTRAR_COMPRA_RAPIDA,
   leerHabituales,
   type Habitual,
+  type MedioPagoCompra,
   type TipoPapel,
 } from "@/lib/compra-rapida-reglas";
 
@@ -44,7 +45,17 @@ export async function subirFotoPapel(archivo: File): Promise<{ ruta: string | nu
 }
 
 export async function registrarCompraRapida(
-  args: { p_id: string; p_proveedor_id: string; p_tipo: TipoPapel; p_monto: number; p_foto_ruta: string | null; p_lineas: unknown[] },
+  args: {
+    p_id: string;
+    p_proveedor_id: string;
+    p_tipo: TipoPapel;
+    p_monto: number;
+    p_foto_ruta: string | null;
+    p_lineas: unknown[];
+    // Pagar ahora o después (20261023181000): cero y sin método si paga Compras desde Por pagar.
+    p_pagado: number;
+    p_medio: MedioPagoCompra | null;
+  },
   firma: Firma | FirmaOmitida | null,
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_REGISTRAR_COMPRA_RAPIDA as never, args as never), firma);

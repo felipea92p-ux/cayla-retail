@@ -1557,7 +1557,42 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.papeles",
       opcional: true,
       titulo: "El papel de la compra",
-      texto: "Si lo compraron desde el celular, aquí está la boleta, la factura o la nota que le dieron a la compradora, con quién compró. Toca la foto para verla en grande y cuenta mirándola.",
+      texto: "Si lo compraron desde el celular, aquí está la boleta, la factura o la nota que le dieron a la compradora, con quién compró. Se queda a la vista mientras cuentas.",
+    },
+    {
+      id: "papel-foto",
+      ancla: "recepcion.papel-foto",
+      opcional: true,
+      titulo: "La foto en grande",
+      texto: "Tócala y se abre en grande sobre la pantalla, sin perder lo que estás contando.",
+    },
+    {
+      id: "anotado",
+      ancla: "recepcion.anotado",
+      opcional: true,
+      titulo: "Lo que anotó la compradora",
+      texto: "Cada prenda que anotó al comprar, con cuántas: «Ahora» es la que sigue, «Contada» la que ya llegó completa.",
+    },
+    {
+      id: "pregunta",
+      ancla: "recepcion.pregunta",
+      opcional: true,
+      titulo: "¿Son estas?",
+      texto: "Arriba, cuánto llevas contado de lo que anotó. Debajo, la prenda que sigue: si es la que tienes en la mano, un toque y queda contada.",
+    },
+    {
+      id: "son-estas",
+      ancla: "recepcion.son-estas",
+      opcional: true,
+      titulo: "Son estas",
+      texto: "Pone en la prenda lo que anotó la compradora, igual que escribirlo en el contador. Se guarda solo. En la demo no lo tocamos.",
+    },
+    {
+      id: "es-otra",
+      ancla: "recepcion.es-otra",
+      opcional: true,
+      titulo: "Es otra prenda",
+      texto: "Si no coincide, la deja para después y la abre en el contador para que la cuentes a mano.",
     },
     // ---- En camino: se lee lo que trae y se abre ----
     {

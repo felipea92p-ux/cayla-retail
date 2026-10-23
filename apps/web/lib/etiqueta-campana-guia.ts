@@ -21,6 +21,9 @@ export type EntradaCampana = {
   sedes?: number;
   /** Sin él (un rol que no es líder) el descuento no se escribe: la campaña se configura solo con fechas y categorías. */
   puedeDarDescuento: boolean;
+  /** A cuántas prendas a la venta llega con lo elegido (`alcanceCampana`). Con un descuento y en cero, «Categorías» queda «sugerido»
+   *  (ADR-0488, Felipe 2026-10-23): un descuento que no llega a ninguna prenda no baja ningún precio. Sugerido nunca bloquea. */
+  alcance?: number;
 };
 
 /** Lo que apaga «Guardar» en `CampanaModal` (`components/EtiquetasLista.tsx`, que la llama tal cual): el descuento, las dos
@@ -40,6 +43,8 @@ export function camposDeCampana(e: EntradaCampana): CampoDeGuia[] {
     const h = parsearFecha(e.hasta);
     return d.ok && h.ok && !objecionVigencia(d.valor, h.valor);
   })();
+  const pct = parsearDescuento(e.descuento);
+  const conDescuentoValido = e.puedeDarDescuento && pct.ok && pct.valor !== null;
   return [
     ...(e.puedeDarDescuento
       ? [
@@ -59,7 +64,14 @@ export function camposDeCampana(e: EntradaCampana): CampoDeGuia[] {
       hecho: conFechas && fechasBien,
       pendiente: "Corrige las fechas: «Hasta» no puede ser antes que «Desde».",
     },
-    { id: "categorias", nombre: "Categorías", requerido: false, hecho: e.categorias > 0, pendiente: "" },
+    {
+      id: "categorias",
+      nombre: "Categorías",
+      requerido: false,
+      sugerido: conDescuentoValido && e.alcance === 0,
+      hecho: e.categorias > 0,
+      pendiente: "Elige categorías: con descuento y sin prendas, la campaña no baja ningún precio.",
+    },
     ...(e.sedes === undefined ? [] : [{ id: "sedes", nombre: "Sedes", requerido: false, hecho: e.sedes > 0, pendiente: "" }]),
   ];
 }

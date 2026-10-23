@@ -1,8 +1,10 @@
 "use client";
 
+import { AccionDelDia } from "./AccionDelDia";
+import { TarjetaFoto } from "./TarjetaFoto";
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, HandCoins } from "lucide-react";
+import { HandCoins } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoMonto } from "@/components/ui/campos";
@@ -49,23 +51,16 @@ export function AnotarPlata({ puedeYaTenia }: { puedeYaTenia: boolean }) {
   const origen = useRef<HTMLElement | null>(null);
   return (
     <>
-      <button
-        type="button"
-        data-guia="mi-plata.me-dieron"
-        className="card-cayla mov-boton flex w-full items-center gap-4 p-4 text-left"
+      <AccionDelDia
+        guia="mi-plata.me-dieron"
+        titulo="Me dieron plata"
+        detalle="Yape, transferencia o efectivo"
+        icono={<HandCoins className="h-5 w-5" aria-hidden />}
         onClick={(e) => {
           origen.current = e.currentTarget;
           setAbierta(true);
         }}
-      >
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sand/50 text-tinta">
-          <HandCoins className="h-5 w-5" aria-hidden />
-        </span>
-        <span className="min-w-0">
-          <span className="block font-serif text-xl leading-tight text-tinta">Me dieron plata</span>
-          <span className="block text-sm text-taupe">Te yapearon, te transfirieron o te dieron efectivo para comprar.</span>
-        </span>
-      </button>
+      />
       {abierta && <AnotarPlataModal puedeYaTenia={puedeYaTenia} onClose={() => setAbierta(false)} volverA={origen} />}
     </>
   );
@@ -213,25 +208,17 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
             </CampoGuiado>
             {!yaTenia && (
               <CampoGuiado id="foto" guia={guia} titulo="Foto del voucher">
-                <label
-                  data-guia="mi-plata.foto"
-                  className={`btn-cayla btn-secundario mov-boton w-full cursor-pointer justify-center ${guardando ? "pointer-events-none opacity-60" : ""}`}
-                >
-                  <Camera className="h-4 w-4" aria-hidden />
-                  {archivo ? "Cambiar la foto" : "Tomar o elegir la foto"}
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    capture="environment"
-                    className="sr-only"
-                    onChange={(e) => {
-                      setRechazo(null);
-                      setArchivo(e.target.files?.[0] ?? null);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-                <p className="mt-1.5 text-xs text-taupe">{archivo ? `Lista: ${archivo.name}` : "Si no la tienes, igual puedes anotar la plata."}</p>
+                <TarjetaFoto
+                  guia="mi-plata.foto"
+                  titulo="Foto del voucher"
+                  ayuda="Ayuda a Compras a confirmarla rápido. Sin foto, igual se anota."
+                  archivo={archivo}
+                  deshabilitada={guardando}
+                  onArchivo={(f) => {
+                    setRechazo(null);
+                    setArchivo(f);
+                  }}
+                />
               </CampoGuiado>
             )}
             {!esPersona && (
