@@ -96,7 +96,9 @@
 .tp-pila { display: flex; flex-direction: column; padding-bottom: 8px; }
 .tp-mini { position: relative; display: block; border-radius: 18px; background: var(--color-papel); box-shadow: 0 -1px 0 color-mix(in srgb, var(--color-tinta) 6%, transparent), 0 14px 28px -18px color-mix(in srgb, var(--color-sombra) 55%, transparent); overflow: hidden; transition: transform 0.35s var(--ease-cayla), margin 0.45s var(--ease-cayla), box-shadow 0.3s; }
 .tp-mini + .tp-mini { margin-top: -58px; }
-.tp-mini:hover { transform: translateY(-8px); }
+@media (hover: hover) {
+  .tp-mini:hover { transform: translateY(-8px); }
+}
 .tp-mini[aria-current="page"] { margin-bottom: 58px; transform: translateX(8px); box-shadow: 0 0 0 2px var(--tp-c), 0 18px 34px -18px color-mix(in srgb, var(--color-sombra) 55%, transparent); }
 @media (max-width: 1023px) { .tp-mini[aria-current="page"] { transform: none; margin-bottom: 0; } }
 .tp-mini-banda { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px 0 10px; background: var(--tp-md); color: var(--tp-c); }
@@ -180,7 +182,9 @@
 .tp-prenda-nombre [data-tarde] { color: var(--color-ambar); font-weight: 600; }
 .tp-aviso-prenda { display: block; margin-top: 2px; font-size: 12px; color: var(--color-ambar); }
 .tp-boton svg { transition: transform 0.3s var(--ease-cayla); }
-.tp-boton:hover svg { transform: translateX(4px); }
+@media (hover: hover) {
+  .tp-boton:hover svg { transform: translateX(4px); }
+}
 
 /* El sello de goma: cae una vez y se queda */
 .tp-estampa { position: absolute; left: 112px; top: 262px; transform: rotate(-9deg); border: 3px double var(--tp-c); color: var(--tp-c); border-radius: 12px; padding: 7px 16px 6px; font-weight: 800; letter-spacing: 0.18em; font-size: 21px; text-align: center; opacity: 0.9; pointer-events: none; background: color-mix(in srgb, var(--color-papel) 55%, transparent); }
@@ -193,7 +197,9 @@
 /* Pasar de caja */
 .tp-paginas { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 99px; padding: 4px; }
 .tp-paginas a, .tp-paginas span[aria-disabled] { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--color-tinta); }
-.tp-paginas a:hover { background: var(--color-hueso); }
+@media (hover: hover) {
+  .tp-paginas a:hover { background: var(--color-hueso); }
+}
 .tp-paginas span[aria-disabled] { opacity: 0.3; }
 .tp-paginas p { min-width: 56px; text-align: center; font-size: 12.5px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); font-variant-numeric: tabular-nums; }
 @media (max-width: 1023px) { .tp-paginas { display: none; } }
@@ -227,7 +233,9 @@
 .tp-derecha { display: inline-flex; flex-direction: column; align-items: flex-end; }
 .tp-contador { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: var(--color-hueso); }
 .tp-contador button { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); transition: background 0.2s; }
-.tp-contador button:hover:not(:disabled) { background: var(--color-papel); }
+@media (hover: hover) {
+  .tp-contador button:hover:not(:disabled) { background: var(--color-papel); }
+}
 .tp-contador button:disabled { opacity: 0.45; }
 .tp-contador input { width: 40px; background: transparent; text-align: center; font-family: var(--font-serif); font-size: 20px; line-height: 1; color: var(--color-tinta); outline: none; font-variant-numeric: tabular-nums; }
 .tp-contador input::placeholder { color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre hueso */
@@ -304,6 +312,8 @@
 .tp-decision button { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--color-sand); transition: border-color 0.2s, background 0.2s; }
 .tp-decision button b { font-size: 13.5px; font-weight: 600; color: var(--color-tinta); }
 .tp-decision button small { font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
-.tp-decision button:hover:not(:disabled) { border-color: var(--color-taupe); }
+@media (hover: hover) {
+  .tp-decision button:hover:not(:disabled) { border-color: var(--color-taupe); }
+}
 .tp-decision button[aria-pressed="true"] { border-color: var(--color-tinta); background: var(--color-hueso); }
 .tp-decision button:disabled { cursor: not-allowed; opacity: 0.6; }

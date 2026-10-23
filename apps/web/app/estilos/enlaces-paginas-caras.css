@@ -46,9 +46,11 @@
     color: color-mix(in srgb, var(--color-tinta) 75%, transparent);
     transition: color 200ms var(--ease-cayla), background-color 150ms;
   }
-  .paginas-n:hover:not([aria-current="page"]):not([aria-disabled="true"]):not(:disabled) {
-    background: color-mix(in srgb, var(--color-tinta) 6%, transparent);
-    color: var(--color-tinta);
+  @media (hover: hover) {
+    .paginas-n:hover:not([aria-current="page"]):not([aria-disabled="true"]):not(:disabled) {
+      background: color-mix(in srgb, var(--color-tinta) 6%, transparent);
+      color: var(--color-tinta);
+    }
   }
   .paginas-n[aria-current="page"] { color: var(--color-crema); }
   /* Antes de medir la píldora (el HTML del servidor, sin JavaScript), el número actual se pinta él mismo. */
@@ -58,8 +60,10 @@
     pointer-events: none;
   }
   .paginas-n svg { width: 16px; height: 16px; flex-shrink: 0; transition: translate 200ms var(--ease-cayla); }
-  .paginas-n.atras:hover svg { translate: -2px 0; }
-  .paginas-n.adelante:hover svg { translate: 2px 0; }
+  @media (hover: hover) {
+    .paginas-n.atras:hover svg { translate: -2px 0; }
+    .paginas-n.adelante:hover svg { translate: 2px 0; }
+  }
   .paginas-corte { width: 20px; text-align: center; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); } /* contraste: gráfico sobre papel, crema */
   .paginas-grande .paginas-n { min-width: 36px; height: 36px; border-radius: 10px; }
   .paginas-grande .paginas-pista { border-radius: 10px; }
@@ -118,7 +122,9 @@
   .pila-personas { display: inline-flex; align-items: center; }
   .pila-personas > .avatar { box-shadow: 0 0 0 2px var(--color-papel); transition: margin-left 240ms var(--ease-cayla); }
   .pila-personas > .avatar + .avatar { margin-left: -6px; }
-  .pila-personas:hover > .avatar + .avatar { margin-left: 2px; }
+  @media (hover: hover) {
+    .pila-personas:hover > .avatar + .avatar { margin-left: 2px; }
+  }
   .pila-personas-mas { margin-left: 6px; font-size: 12.5px; color: var(--color-taupe); font-variant-numeric: tabular-nums; }
 }
 
@@ -149,8 +155,10 @@
     transition: color 200ms var(--ease-cayla);
   }
   .enlace-ver svg { width: 12px; height: 12px; flex-shrink: 0; transition: translate 220ms var(--ease-cayla); }
-  .enlace-ver:hover:not(:disabled) { color: var(--color-rojo-profundo); }
-  .enlace-ver:hover:not(:disabled) svg { translate: 3px 0; }
+  @media (hover: hover) {
+    .enlace-ver:hover:not(:disabled) { color: var(--color-rojo-profundo); }
+    .enlace-ver:hover:not(:disabled) svg { translate: 3px 0; }
+  }
   .enlace-ver:active:not(:disabled) svg { translate: 5px 0; }
   .enlace-ver:disabled { cursor: not-allowed; opacity: 0.5; }
 }
