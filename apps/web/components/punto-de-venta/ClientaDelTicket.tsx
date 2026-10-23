@@ -165,7 +165,8 @@ export function ClientaDelTicket({
   ].filter((p) => p !== null);
 
   return (
-    <div data-guia="vender.cliente" className="px-5 pt-3">
+    // En la fila de «Agregar bolsa» (`PuntoDeVenta`): toma el ancho que la bolsa deja. `@container`: «opcional» sale solo si cabe.
+    <div data-guia="vender.cliente" className="@container min-w-0 flex-1">
       {clienta && linea ? (
         // Una sola caja: nombre, documento y estado arriba; lo del club, dentro de la misma caja (spike, `tarjeta-club`).
         <div className="overflow-hidden rounded-xl border border-sand bg-crema">
@@ -259,11 +260,12 @@ export function ClientaDelTicket({
           type="button"
           onClick={() => setAbierto(true)}
           disabled={bloqueado}
-          className="flex w-full items-center gap-2 rounded-xl border border-dashed border-tinta/25 px-3 py-2.5 text-left text-[13px] text-tinta/65 transition-colors hover:border-taupe hover:text-tinta"
+          title="Búscalo por documento, celular o nombre. Es opcional."
+          className="flex h-11 w-full items-center gap-2 rounded-md border border-dashed border-tinta/25 px-3 text-left text-[13px] text-tinta/65 transition-colors hover:border-taupe hover:text-tinta sm:h-9"
         >
           <UserRound className="h-4 w-4 shrink-0" aria-hidden />
-          Agregar cliente
-          <span className="ml-auto text-[11.5px] text-tinta/50">Documento, celular o nombre · opcional</span>
+          <span className="truncate">Agregar cliente</span>
+          <span className="ml-auto hidden text-[11.5px] text-tinta/50 @min-[13.5rem]:inline">opcional</span>
         </button>
       )}
 
