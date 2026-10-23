@@ -1277,7 +1277,12 @@
     }
    },
    "umbral": {
-    "ventas_12m": 1214000,
+    "anio": 2026,
+    "ventas_anio": 1214000,
+    "ventas_anio_erp": 1214000,
+    "ajuste": 0,
+    "aviso_soles": null,
+    "aviso_alcanzado": false,
     "umbral_soles": 1650000,
     "avance": 0.7358,
     "cruzado": false,
