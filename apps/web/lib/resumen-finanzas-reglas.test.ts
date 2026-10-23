@@ -13,9 +13,12 @@ import {
   deUnidad,
   diasDelMes,
   equilibrio,
+  explicarFallaLectura,
   leerResumen,
   leerVerResumen,
   miniPresupuesto,
+  motivoSinCamino,
+  motivoSinEquilibrio,
   noRevisado,
   notaUnidad,
   ordenarAvisos,
@@ -85,8 +88,11 @@ describe("punto de equilibrio (la regla de F5) y el día en que se cubre", () =>
     expect(equilibrio({ ventas: 0, margen: 0, gastos: 100 }, 30)).toBeNull();
     expect(equilibrio({ ventas: 1000, margen: -10, gastos: 100 }, 30)).toBeNull();
     expect(equilibrio(undefined, 30)).toBeNull();
-    // Gastos cero o negativos (un sobrante de caja): cubre desde el día 1.
-    expect(equilibrio({ ventas: 1000, margen: 500, gastos: -20 }, 30)?.dia).toBe(1);
+    // Gastos en cero, o solo un sobrante de caja: no hay con qué medir (antes decía «cubre desde el día 1»; auditoría v3, hallazgo 1).
+    expect(equilibrio({ ventas: 1000, margen: 500, gastos: -20 }, 30)).toBeNull();
+    expect(equilibrio({ ventas: 1000, margen: 500, gastos: -20, detalleGastos: [{ cuenta: "6599", nombre: "Diferencias de caja", monto: -20 }] }, 30)).toBeNull();
+    // Un sobrante sobre gastos reales sigue contando: cubre desde el día 1.
+    expect(equilibrio({ ventas: 1000, margen: 500, gastos: -20, detalleGastos: [{ cuenta: "63", nombre: "Alquiler", monto: 100 }, { cuenta: "6599", nombre: "Diferencias de caja", monto: -120 }] }, 30)?.dia).toBe(1);
   });
 
   it("los días de cada mes", () => {
@@ -418,7 +424,7 @@ describe("Finanzas cuenta desde una fecha", () => {
 
   it("el gráfico de cobertura queda sin barras y sin 'sin ventas' inventados", () => {
     const r = conCorte(fixture.todas, "2026-09-01", "2026-08");
-    expect(coberturaTiendas(r)).toEqual({ barras: [], sinDatos: [] });
+    expect(coberturaTiendas(r)).toEqual({ barras: [], sinDatos: [], sinGastos: [] });
   });
 
   it("LO QUE NO SE CORTA: los días de caja y la planilla que viene siguen como antes (la caja de las próximas semanas es real)", () => {
@@ -453,3 +459,46 @@ describe("Finanzas cuenta desde una fecha", () => {
   });
 });
 
+
+describe("que el número diga la verdad (auditoría v3 del Resumen, 2026-10-23)", () => {
+  // El mes anterior con los gastos de una tienda en 0: lo que se veía en local con Lima y Trujillo («100 % = cubre justo»).
+  const sinGastosEn = (indice: number) => {
+    const r = todas();
+    if (r.resultadosAnterior.estado !== "ok") throw new Error("fixture");
+    const tiendas = r.resultadosAnterior.datos.filter((f) => f.unidad === "tienda");
+    tiendas[indice]!.gastos = 0;
+    return { r, nombre: tiendas[indice]!.nombre };
+  };
+
+  it("sin gastos registrados no hay punto de equilibrio: ni 100 % ni «sin ventas»", () => {
+    const { r } = sinGastosEn(0);
+    const { barras, sinDatos, sinGastos } = coberturaTiendas(r);
+    expect(barras.map((b) => b.nombre)).toEqual(["AQP", "LIM"]);
+    expect(sinGastos).toEqual(["TRU"]);
+    expect(sinDatos).toEqual([]);
+    expect(equilibrio({ ventas: 1000, margen: 400, gastos: 0 }, 30)).toBeNull();
+  });
+
+  it("cada motivo por su nombre", () => {
+    expect(motivoSinEquilibrio({ ventas: 0, margen: 0, gastos: 500 })).toBe("sin_ventas");
+    expect(motivoSinEquilibrio({ ventas: 500, margen: -10, gastos: 500 })).toBe("sin_margen");
+    expect(motivoSinEquilibrio({ ventas: 500, margen: 200, gastos: 0 })).toBe("sin_gastos");
+    expect(motivoSinEquilibrio({ ventas: 500, margen: 200, gastos: 100 })).toBeNull();
+  });
+
+  it("el camino de una tienda sin gastos dice que faltan los gastos, no las ventas", () => {
+    const { r } = sinGastosEn(0);
+    r.ver = { ubicacionId: "00000000-0000-4000-8000-000000000001", soloEmpresa: false, todas: false, tipo: "tienda", nombre: "Tienda TRU" };
+    expect(caminoEquilibrio(r)).toBeNull();
+    expect(motivoSinCamino(r)).toBe("Agosto no tiene gastos registrados en esta tienda (alquiler, sueldos, servicios): sin ellos no se sabe cuánto necesita vender.");
+  });
+
+  it("una lectura que falla se explica sin el texto crudo de la base", () => {
+    const sinFuncion = explicarFallaLectura({ code: "PGRST202", message: "Could not find the function retail.fn_finanzas_confianza(p_mes, p_ubicacion_id) in the schema cache" }, "medir qué tan seguro es este número");
+    expect(sinFuncion).toBe("No se pudo medir qué tan seguro es este número: esta parte todavía no está instalada en la base. Lo demás del Resumen sigue al día. Avisa a Felipe.");
+    expect(sinFuncion).not.toMatch(/schema|function|retail\./i);
+    expect(explicarFallaLectura({ code: "42501", message: "permission denied" }, "leer el resumen")).toMatch(/permiso/);
+    expect(explicarFallaLectura({ message: "TypeError: fetch failed" }, "leer el resumen")).toMatch(/conexión/);
+    expect(explicarFallaLectura({ code: "XX000", message: "boom" }, "leer el resumen")).toBe("No se pudo leer el resumen. Vuelve a cargar la página; si sigue igual, avisa a Felipe.");
+  });
+});

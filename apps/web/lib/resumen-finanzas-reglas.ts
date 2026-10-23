@@ -228,6 +228,22 @@ function leerResumenBruto(data: unknown): ResumenFinanzas {
   };
 }
 
+// ---- Cuando una lectura falla ----------------------------------------------------------------------------------------------
+
+/**
+ * Lo que la pantalla dice cuando una lectura del Resumen falla: qué no se pudo, qué significa y qué hacer, sin el texto crudo de
+ * la base («Could not find the function … in the schema cache» salía tal cual: auditoría v3, hallazgo 4; ley 9 de Formidable).
+ * El detalle técnico va al aviso de errores (`capturarError`), no a la colaboradora.
+ */
+export function explicarFallaLectura(error: { message?: string | null; code?: string | null } | null, que: string): string {
+  const m = (error?.message ?? "").toLowerCase();
+  if (error?.code === "PGRST202" || error?.code === "42883" || m.includes("schema cache") || m.includes("does not exist"))
+    return `No se pudo ${que}: esta parte todavía no está instalada en la base. Lo demás del Resumen sigue al día. Avisa a Felipe.`;
+  if (error?.code === "42501") return `No se pudo ${que}: tu cuenta no tiene permiso para verlo. Si lo necesitas, pídeselo a tu líder.`;
+  if (m.includes("fetch") || m.includes("network")) return `No se pudo ${que}: se cortó la conexión. Revisa el internet y vuelve a cargar la página.`;
+  return `No se pudo ${que}. Vuelve a cargar la página; si sigue igual, avisa a Felipe.`;
+}
+
 // ---- «Ver» ------------------------------------------------------------------------------------------------------------------
 
 /**
@@ -289,13 +305,31 @@ export type Equilibrio = {
  * El punto de equilibrio de F5 (`puntoDeEquilibrio`: gastos ÷ margen %) y el día del mes en que se cubre, vendiendo cada día
  * lo mismo (lo del spike: pe ÷ lo vendido por día). `null` si no hubo ventas o el margen no es positivo.
  */
-export function equilibrio(f: Pick<FilaER, "ventas" | "margen" | "gastos"> | undefined, diasMes: number): Equilibrio | null {
-  if (!f) return null;
+export function equilibrio(f: (Pick<FilaER, "ventas" | "margen" | "gastos"> & { detalleGastos?: FilaER["detalleGastos"] }) | undefined, diasMes: number): Equilibrio | null {
+  if (!f || motivoSinEquilibrio(f)) return null;
   const eq = puntoDeEquilibrio(f);
   if (!eq) return null;
   const porDia = f.ventas / diasMes;
   const dia = eq.cubre >= 1 ? Math.min(diasMes, Math.max(1, Math.ceil(eq.ventas / porDia - 1e-9))) : null;
   return { pe: eq.ventas, ventas: f.ventas, cubre: eq.cubre, dia, diasMes, margenPct: f.margen / f.ventas };
+}
+
+/** La cuenta de las diferencias de caja (faltantes y sobrantes): no es un gasto que la tienda cause. */
+const CUENTA_DIFERENCIAS_CAJA = "6599";
+
+/**
+ * Por qué no hay punto de equilibrio: sin ventas, sin margen o SIN GASTOS registrados. Sin gastos, `puntoDeEquilibrio` da 0 (o
+ * menos, con un sobrante de caja) y «cubre» salía 100 % o «desde el día 1»: en local, Trujillo sin alquiler ni sueldos cargados,
+ * solo con un sobrante de S/ 139.90, parecía sana (auditoría v3 del Resumen, hallazgo 1). Lo que cuenta es lo registrado SIN las
+ * diferencias de caja; si eso es 0, no se sabe si cubre y se dice eso, no un número. Un sobrante sobre gastos reales sigue
+ * contando como antes.
+ */
+export function motivoSinEquilibrio(f: Pick<FilaER, "ventas" | "margen" | "gastos"> & { detalleGastos?: FilaER["detalleGastos"] }): "sin_ventas" | "sin_margen" | "sin_gastos" | null {
+  if (f.ventas <= 0) return "sin_ventas";
+  if (f.margen <= 0) return "sin_margen";
+  const caja = (f.detalleGastos ?? []).filter((g) => g.cuenta === CUENTA_DIFERENCIAS_CAJA).reduce((s, g) => s + g.monto, 0);
+  if (f.gastos - caja <= 0) return "sin_gastos";
+  return null;
 }
 
 // ---- Qué fila es de qué -----------------------------------------------------------------------------------------------------
@@ -923,15 +957,16 @@ export function noRevisado(r: ResumenFinanzas): string[] {
 export type BarraResumen = { nombre: string; valor: number; mala: boolean; malaTexto: string; titulo: string; lineas: string[] };
 
 /** «¿Cada tienda cubre sus costos?»: lo vendido el último mes contra lo que necesitaba vender (100 %). */
-export function coberturaTiendas(r: ResumenFinanzas): { barras: BarraResumen[]; sinDatos: string[] } {
-  if (r.resultadosAnterior.estado !== "ok") return { barras: [], sinDatos: [] };
+export function coberturaTiendas(r: ResumenFinanzas): { barras: BarraResumen[]; sinDatos: string[]; sinGastos: string[] } {
+  if (r.resultadosAnterior.estado !== "ok") return { barras: [], sinDatos: [], sinGastos: [] };
   const dias = diasDelMes(r.mesAnterior);
   const barras: BarraResumen[] = [];
   const sinDatos: string[] = [];
+  const sinGastos: string[] = [];
   for (const f of r.resultadosAnterior.datos.filter((x) => x.unidad === "tienda")) {
     const eq = equilibrio(f, dias);
     if (!eq) {
-      sinDatos.push(nombreCorto(f));
+      (motivoSinEquilibrio(f) === "sin_gastos" ? sinGastos : sinDatos).push(nombreCorto(f));
       continue;
     }
     barras.push({
@@ -943,7 +978,7 @@ export function coberturaTiendas(r: ResumenFinanzas): { barras: BarraResumen[]; 
       lineas: [`Necesita ${soles(eq.pe)} · vendió ${soles(eq.ventas)}`, eq.dia !== null ? `Cubre sus costos el día ${eq.dia}` : `Le faltan ${soles(eq.pe - eq.ventas)} al mes`],
     });
   }
-  return { barras, sinDatos };
+  return { barras, sinDatos, sinGastos };
 }
 
 /** «Saldo de las próximas 6 semanas» (F6): lo que queda cada semana contra el mínimo de caja. */
@@ -960,6 +995,16 @@ export function barrasSemanas(p: Proyeccion): BarraResumen[] {
 }
 
 /** «Camino al punto de equilibrio» de una tienda: lo vendido este mes contra lo que necesita (según el último mes). */
+/** Por qué una tienda no tiene «camino al punto de equilibrio», dicho con la causa real (no siempre son las ventas). */
+export function motivoSinCamino(r: ResumenFinanzas): string {
+  const mes = mesNombre(r.mesAnterior);
+  const f = r.resultadosAnterior.estado === "ok" ? filaDeVer(r.resultadosAnterior.datos, r.ver) : undefined;
+  const m = f ? motivoSinEquilibrio(f) : "sin_ventas";
+  if (m === "sin_gastos") return `${mayuscula(mes)} no tiene gastos registrados en esta tienda (alquiler, sueldos, servicios): sin ellos no se sabe cuánto necesita vender.`;
+  if (m === "sin_margen") return `En ${mes} lo vendido no dejó margen sobre lo que costó la ropa: no hay punto de equilibrio que alcanzar.`;
+  return `Sin ventas con margen en ${mes} para calcular cuánto necesita vender.`;
+}
+
 export function caminoEquilibrio(r: ResumenFinanzas): { vendido: number; pe: number; ancho: number; texto: string } | null {
   if (r.resultadosMes.estado !== "ok" || r.resultadosAnterior.estado !== "ok") return null;
   const eq = equilibrio(filaDeVer(r.resultadosAnterior.datos, r.ver), diasDelMes(r.mesAnterior));

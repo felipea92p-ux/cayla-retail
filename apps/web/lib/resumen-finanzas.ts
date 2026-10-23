@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { leerResumen, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
+import { explicarFallaLectura, leerResumen, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
+import { capturarError } from "@/lib/errores";
 import { calcularConfianza, leerHechosConfianza, type Confianza } from "@/lib/finanzas-confianza";
 import { aplicarProvision, delMes, resumenDeProvision } from "@/lib/planilla-provision-reglas";
 import { getProvisionPlanilla } from "@/lib/planilla-provision";
@@ -18,7 +19,10 @@ export async function getResumenFinanzas(pedido: { ubicacionId: string | null; s
     "fn_resumen_finanzas" as never,
     { p_ubicacion_id: pedido.ubicacionId, p_solo_empresa: pedido.soloEmpresa } as never
   );
-  if (error) return { datos: null, falla: `No se pudo leer el resumen: ${error.message}` };
+  if (error) {
+    capturarError("finanzas.resumen", error);
+    return { datos: null, falla: explicarFallaLectura(error, "leer el resumen") };
+  }
   return { datos: await conSueldosEstimados(leerResumen(data), pedido.ubicacionId), falla: null };
 }
 
@@ -45,7 +49,10 @@ async function conSueldosEstimados(r: ResumenFinanzas, ubicacionId: string | nul
 export async function getConfianzaFinanzas(pedido: { ubicacionId: string | null }): Promise<Lectura<Confianza | null>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_finanzas_confianza" as never, { p_mes: null, p_ubicacion_id: pedido.ubicacionId } as never);
-  if (error) return { datos: null, falla: `No se pudo medir la confianza: ${error.message}` };
+  if (error) {
+    capturarError("finanzas.resumen.confianza", error);
+    return { datos: null, falla: explicarFallaLectura(error, "medir qué tan seguro es este número") };
+  }
   const hechos = leerHechosConfianza(data);
   // Con la planilla del mes sin pagar, la confianza cuenta los sueldos estimados con las boletas de Dynamic (ADR-0453).
   if (hechos.planilla.visible && !hechos.planilla.mesPagada && /^\d{4}-\d{2}-\d{2}$/.test(hechos.mes)) {

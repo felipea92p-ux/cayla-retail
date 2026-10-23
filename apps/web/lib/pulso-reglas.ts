@@ -181,7 +181,8 @@ export function ritmoPulso(r: ResumenFinanzas): Ritmo | null {
 
 // ---- 3. Por qué ese número: la cascada ---------------------------------------------------------------------------------------
 
-export type TramoCascada = { clave: string; nombre: string; monto: number; tipo: "entra" | "sale" | "queda"; detalle?: string };
+/** `negativo`: solo en «queda», cuando el resultado es una pérdida (`monto` va siempre en positivo; el color sale de aquí). */
+export type TramoCascada = { clave: string; nombre: string; monto: number; tipo: "entra" | "sale" | "queda"; detalle?: string; negativo?: boolean };
 
 export function cascadaPulso(r: ResumenFinanzas): TramoCascada[] {
   if (r.resultadosMes.estado !== "ok") return [];
@@ -207,7 +208,7 @@ export function cascadaDeFila(f: FilaER): TramoCascada[] {
   const explicado = tramos.reduce((s, t) => s + (t.tipo === "entra" ? t.monto : -t.monto), 0);
   const ajuste = r2(f.resultado - explicado);
   if (Math.abs(ajuste) >= 0.5) tramos.push({ clave: "ajustes", nombre: ajuste > 0 ? "Otros ajustes a favor" : "Otros ajustes", monto: Math.abs(ajuste), tipo: ajuste > 0 ? "entra" : "sale", detalle: "Devoluciones, notas de crédito o correcciones del mes." });
-  tramos.push({ clave: "queda", nombre: f.resultado >= 0 ? "Te queda" : "Te falta", monto: Math.abs(r2(f.resultado)), tipo: "queda" });
+  tramos.push({ clave: "queda", nombre: f.resultado >= 0 ? "Te queda" : "Te falta", monto: Math.abs(r2(f.resultado)), tipo: "queda", ...(f.resultado < 0 ? { negativo: true } : {}) });
   return tramos;
 }
 

@@ -28,6 +28,7 @@ import {
   coberturaTiendas,
   miniPresupuesto,
   motivoAusencia,
+  motivoSinCamino,
   notaUnidad,
   noRevisado,
   tituloResumen,
@@ -177,7 +178,7 @@ function Respuesta({ r, nivel }: { r: ResumenFinanzas; nivel: ConfianzaDatos["ni
             <span className="fin-pulso-verbo">{resp.verbo}</span>
             <span className="fin-pulso-monto" data-estado={resp.estado} data-provisional={m.provisional || undefined}>
               {m.aprox}
-              <CifraAnimada valor={Math.round(resp.monto)} formato="soles" />
+              <CifraAnimada valor={Math.round(resp.monto)} formato="soles-redondo" />
             </span>
           </p>
           <p {...entraEn("fin-pulso-explica", 4)}>
@@ -285,7 +286,7 @@ function Lugares({ lugares }: { lugares: NonNullable<ReturnType<typeof lugaresPu
 }
 
 function Cobertura({ r }: { r: ResumenFinanzas }) {
-  const { barras, sinDatos } = coberturaTiendas(r);
+  const { barras, sinDatos, sinGastos } = coberturaTiendas(r);
   // Si el último mes completo quedó antes del corte de Finanzas (ADR-0332), el primero que se mide es el del corte.
   const mes = mesNombre(r.antesDelCorte ? mesDelCorte(r.antesDelCorte) : r.mesAnterior);
   return (
@@ -312,12 +313,20 @@ function Cobertura({ r }: { r: ResumenFinanzas }) {
           />
         ) : (
           <Vacio tamano="chico" icono={<ChartColumn />}>
-            Todavía no hay un mes completo con ventas para calcularlo.
+            {sinGastos.length
+              ? `Sin gastos registrados en ${mes}: ${sinGastos.join(", ")}. Sin su alquiler, sueldos y servicios no se sabe si cubre sus costos.`
+              : "Todavía no hay un mes completo con ventas para calcularlo."}
           </Vacio>
         )}
         {barras.length > 0 && sinDatos.length > 0 && (
           <p className="nota-cayla mt-3">
             Sin ventas en {mes}: {sinDatos.join(", ")}.
+          </p>
+        )}
+        {/* Sin gastos registrados no se sabe si cubre: se dice, en vez de un 100 % que parece sano (auditoría v3, hallazgo 1). */}
+        {barras.length > 0 && sinGastos.length > 0 && (
+          <p className="nota-cayla mt-3">
+            Sin gastos registrados en {mes}: {sinGastos.join(", ")}. Sin su alquiler, sueldos y servicios no se sabe si cubre sus costos.
           </p>
         )}
       </Superficie>
@@ -372,9 +381,7 @@ function Camino({ r }: { r: ResumenFinanzas }) {
           </>
         ) : (
           <Vacio tamano="chico" icono={<Target />}>
-            {r.resultadosAnterior.estado !== "ok"
-              ? (motivoAusencia(r.resultadosAnterior) ?? "")
-              : `Sin ventas con margen en ${mesNombre(r.mesAnterior)} para calcular cuánto necesita vender.`}
+            {r.resultadosAnterior.estado !== "ok" ? (motivoAusencia(r.resultadosAnterior) ?? "") : motivoSinCamino(r)}
           </Vacio>
         )}
       </Superficie>

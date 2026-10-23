@@ -144,11 +144,13 @@ describe("cascadaPulso", () => {
     expect(suma).toBe(272);
     // Y cuando todo está nombrado, no aparece.
     expect(cascadaPulso(conMes([{ ventas: 100, costo: 40, margen: 60, gastos: 20, resultado: 40 }])).map((t) => t.clave)).toEqual(["ventas", "costo", "gastos", "queda"]);
+    // Lo que queda a favor no se marca negativo: el color de la pérdida sale de esta marca (auditoría v3, hallazgo 3).
+    expect(cascadaPulso(conMes([{ ventas: 100, costo: 40, margen: 60, gastos: 20, resultado: 40 }])).at(-1)!.negativo).toBeUndefined();
   });
 
   it("si falta plata, el último tramo dice «Te falta» en positivo, y las prendas sin costo se avisan", () => {
     const c = cascadaPulso(conMes([{ ventas: 10000, costo: 6000, margen: 4000, gastos: 7000, resultado: -3000, sinCosto: 12 }]));
-    expect(c.at(-1)).toMatchObject({ nombre: "Te falta", monto: 3000 });
+    expect(c.at(-1)).toMatchObject({ nombre: "Te falta", monto: 3000, negativo: true });
     expect(c.find((t) => t.clave === "costo")!.detalle).toBe("12 prendas vendidas sin costo.");
   });
 });
