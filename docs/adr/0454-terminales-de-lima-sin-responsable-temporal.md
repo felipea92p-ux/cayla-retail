@@ -1,6 +1,6 @@
 # ADR-0454 — Las terminales de Lima no piden responsable, de forma temporal y por dato: «firma de respaldo»
 
-- **Fecha:** 2026-10-19 · **Estado:** propuesto (código y pruebas en la rama; **las dos migraciones están en producción desde el 2026-10-19 con el OK de Felipe**, pegadas en orden y verificadas: solo Caja Lima y Almacén Lima tienen respaldo)
+- **Fecha:** 2026-10-19 · **Estado:** propuesto (código y pruebas en la rama; **las dos migraciones están en producción desde el 2026-10-19 con el OK de Felipe**, pegadas en orden y verificadas: solo Caja Lima y Almacén Lima tienen respaldo). **Desde el 2026-10-23 el respaldo es Claudia Pereyra, no Felipe** (ver «Actualización 2026-10-23»).
 - **Relacionados:** ADR-0161 y ADR-0162 (el combo «Responsable» y las terminales sin persona), ADR-0280 (las 30 acciones que Felipe soltó del combo),
   ADR-0178 (el Admin firma sin asistencia, el modelo de este cambio), ADR-0195 (políticas y deadlocks en el SQL Editor), CLAUDE.md principios 2, 4 y 9.
 
@@ -81,6 +81,27 @@ publicada antes de pegar la migración) o la base no responde, la terminal sigue
 3. **Quien tenga abierta la pantalla antes del `update`** sigue viendo el combo hasta recargar; si la base la rechaza, el mensaje la manda a elegir
    responsable. Basta recargar.
 4. **Cuando Lima se integre con Dynamic:** correr el `update` de arriba. Las pantallas vuelven a pedir el combo en la siguiente carga.
+
+## Actualización 2026-10-23 — la firma de Lima pasa a Claudia Pereyra (Felipe)
+
+Felipe: *«Caja Lima y Almacén Lima salen a nombre de Felipe, pero deben salir a nombre de Claudia (su hermana)».* Claudia Pereyra
+(`079e4764-…`) es la única Claudia activa con acceso a retail (supervisora en Dynamic, asignada al Taller de Lima); la otra Claudia de
+Dynamic está inactiva y sin fila en `colaboradores`, así que la base no la aceptaría como respaldo (punto 4).
+
+- **Producción, 2026-10-23:** el `update` de `20261023223000_terminales_de_lima_firman_claudia.sql`, verificado: las dos terminales de Lima
+  firman como Claudia (`fn_terminal_firma_respaldo_id`) y la pantalla dice «Claudia P.»; Trujillo y Arequipa siguen sin respaldo. La web no
+  cambia: el nombre de la línea «Lo que guardes queda a nombre de …» sale de la base.
+- **Esa migración solo cambia de quién es una firma que ya existe:** no enciende el respaldo si Lima ya volvió a pedir responsable. Va
+  DESPUÉS de `20261019190000`; si alguien vuelve a pegar esa (pone a Felipe), hay que pegar esta otra vez.
+- **Metas y comisiones no cambian:** Rendimiento y metas cuentan por quien ATENDIÓ (`asesora_id`), no por quien firma (`usuario_id`), así
+  que Claudia no se lleva las ventas de Lima en sus metas (verificado en `fn_rendimiento_equipo` y `fn_metas_equipo`). Donde sí sale su
+  nombre es en «quién atendió» de las ventas del día y del Observatorio (`coalesce(asesora_id, usuario_id)`), que es lo que se pidió.
+- **La historia no se reescribe:** lo que las terminales de Lima firmaron a nombre de Felipe entre el 19 y el 23 de octubre queda así
+  (`movimientos` es append-only; esas filas se distinguen por `terminal_id`). Corregirlas es decisión de Felipe.
+- **Regularizar en Lima (punto 1 de arriba) sigue igual, con otro nombre:** una venta hecha desde Caja Lima y su regularización desde
+  Almacén Lima firman las dos como Claudia, y la regla «es tu propia venta» la bloquea igual que antes bloqueaba a Felipe.
+- Prueba: `pnpm pruebas:terminal-sin-responsable` suma 5 casos (27 en total): pasa a Claudia, no toca otra tienda, no enciende nada, no
+  hace nada en una base sin Claudia, re-ejecutable.
 
 ## Cómo se verifica
 
