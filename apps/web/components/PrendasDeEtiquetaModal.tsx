@@ -736,7 +736,8 @@ export function PrendasDeEtiquetaModal({
               titulo={`Escanear para «${etiqueta.nombre}»`}
               pista={modo === "poner" ? "Centra la etiqueta de la prenda: se marca sola" : "Centra la etiqueta: se le quita la etiqueta de campaña"}
               continuo={{ respuesta: leida, resumen: `${colgada.total} ${colgada.total === 1 ? "la lleva" : "la llevan"}` }}
-              onCodigo={(codigo) => leerAhora.current(codigo)}
+              // Sin respuesta (estaba guardando o confirmando), la lectura no se tomó: suena grave.
+              onCodigo={(codigo) => leerAhora.current(codigo) ?? { tono: "ambar" }}
               onEscribir={() => {
                 setCamara(false);
                 buscador.current?.focus();
