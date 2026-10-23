@@ -3,7 +3,8 @@
 > Modo: completo · Fecha: 2026-10-22 · Rol/sede: Admin (líder), vista CAYLA Global → «De la empresa» (la que muestra la captura) · Datos: real (SELECT de solo lectura a producción)
 > SHA analizado: `f26b3b288` — si `GastosPanel.tsx`, `GastosFijosYActivos.tsx`, `RegistrarGastoModal.tsx` o `lib/gastos*.ts` cambian después, este análisis está vencido
 > Archivos: `app/(app)/finanzas/gastos/page.tsx` · `components/GastosPanel.tsx` · `components/GastosFijosYActivos.tsx` · `components/RegistrarGastoModal.tsx` · `components/finanzas/GastosPulso.tsx` · `lib/gastos.ts` · `lib/gastos-reglas.ts` · `lib/gastos-pulso-reglas.ts` · RPC `registrar_gasto`, `anular_gasto`, `fn_gastos_panel`, `fn_gastos_lista`, `fn_gastos_fijos_mes`, `guardar_gasto_fijo` · tablas `gastos`, `gastos_fijos`, `gastos_fijos_ficha`, `activos_fijos`, `egresos_no_gasto`
-> Otra sesión tocándola: sí — `claude/finanzas-auditoria-arreglos` (ADR-0433: la actividad 12 «revisión desde S/ 100» es de esa sesión) y el PR #1263 (ADR-0477, categorías de los gastos fijos, sin fusionar). Congelamiento de código del mié 28-oct 18:00 al lun 2-nov 12:00.
+> Otra sesión tocándola: sí — `claude/finanzas-auditoria-arreglos` (ADR-0433: la actividad 12 «revisión desde S/ 100» es de esa sesión) y el PR #1263 (ADR-0477, categorías de luz, agua, internet y telefonía; ya fusionado a main el 22-oct). Congelamiento de código del mié 28-oct 18:00 al lun 2-nov 12:00.
+> **Actualización 2026-10-22 (noche):** con el OK de Felipe se hicieron las tareas **#1, #2 y #3** (solo web, commits `b057e6fb6`, `16b82f162`, `e6b2227aa` y el arreglo `bfa5a89f6`; decisión en ADR-0195, actualización de esa fecha). Este análisis queda **vencido** en lo que esas tres tocaron (`GastosPanel`, `FijosDelMes`, `RegistrarGastoModal`, `gastos-pulso-reglas`); las tareas #4 a #12 siguen vigentes, pero la #4 ya se apoya en la lista y la pregunta nuevas. Una revisión adversaria de lo hecho encontró y arregló varios fallos; lo que exige migración (el choque 23505 de `registrar_gasto` y que valide la categoría del fijo) quedó para Felipe.
 > **Privacidad:** el repo es público. Aquí van conteos y proporciones, no montos en soles por sede, alquiler, planilla ni faltante de caja. Esas cifras las tiene Felipe en el chat.
 > **Límites de esta pasada:** sin medición en navegador, sin prueba ciega, sin `/chaos`, sin 375 px, sin correr la pantalla como no líder (el worktree no tiene `node_modules` ni base local). Estética y Formidable salen de leer código y captura.
 
@@ -70,19 +71,19 @@ Relevancia = (2·8 + 7 + 6 + 6) / 5 = **7,0** → Soporte.
 ## 7 · Las 12 tareas, por importancia
 *El orden pone arriba lo que puede dañar dinero y lo que cabe antes del congelamiento (28-oct 18:00). Las seis primeras son solo web (sin pegar SQL).*
 
-### #1 · [Eliminar/fusionar/conectar] Que un gasto «suelto» no duplique un fijo
+### #1 · [Eliminar/fusionar/conectar] Que un gasto «suelto» no duplique un fijo — ✔ **hecha 2026-10-22**
 - **Dónde:** `RegistrarGastoModal.tsx` (+ `PreguntaParecido` de `components/ui`), `gastos-reglas.ts:758` (`borradorDesdeFijo`), `registrar_gasto` con `p_gasto_fijo_id`. El candado de base (misma sede y categoría en `fn_gastos_validar`) va aparte, M.
 - **Por qué en este puesto:** el único riesgo de dinero doble: quien registra el alquiler con «+ Registrar gasto» no cierra el fijo; la pestaña sigue diciendo «Faltan» y otra persona lo vuelve a pagar. Un fijo «sin comprobante» no tiene candado de duplicado. Hoy es latente (los fijos son de esta semana); desde noviembre es real.
 - **Cómo lo verificas tú:** registra un gasto suelto de la categoría y sede de un fijo del mes y confirma que el sistema pregunta «¿Es el alquiler de octubre?»; al aceptar, el fijo pasa a «registrado» y no se puede registrar de nuevo.
 - **Esfuerzo / dependencias:** S (web) + M (candado de base, después del cierre). Cruzar por sede + categoría + fecha dentro del mes, no solo por monto (los fijos variables no calzan ±20 %). El enlace es irreversible: la pregunta debe ser clara. No antes de nada; **antes de la #4**.
 
-### #2 · [Mejorar] Tarjetas y titular honestos
+### #2 · [Mejorar] Tarjetas y titular honestos — ✔ **hecha 2026-10-22**
 - **Dónde:** `GastosPanel.tsx:141-143, 203-223`, `gastos-pulso-reglas.ts`, rótulos de `fn_gastos_panel`.
 - **Por qué en este puesto:** el número que Felipe lee dice «este mes gastaste X» como si estuviera completo; el 1-nov será falso si los fijos no se confirman. Con la vista «De la empresa» muestra S/ 0 y «Todo clasificado» sin mirar tiendas. «Por pagar» y «Egresos sin clasificar» son acumulados a hoy aunque haya selector de mes. Dinero de lectura que decide.
 - **Cómo lo verificas tú:** con fijos por confirmar, el titular dice «+ ~S/ … que falta confirmar» (con «~» en los variables); en «De la empresa» el rótulo dice «solo lo que no es de una tienda» y ofrece «Ver todas las tiendas»; las dos tarjetas acumuladas dicen «a hoy».
 - **Esfuerzo / dependencias:** S, solo web. No quitar `not p_solo_empresa` de la base (mezclaría alcances). «De la empresa» es vocabulario compartido con Resumen y Cierre: cambiar el rótulo, no el nombre.
 
-### #3 · [Reconstruir] Fijos del mes como cola de cierre
+### #3 · [Reconstruir] Fijos del mes como cola de cierre — ✔ **hecha 2026-10-22**
 - **Dónde:** `GastosFijosYActivos.tsx:136-218` (`FijosDelMes`), `finanzas.css:436-489`, `gastos-pulso-reglas.ts:67-75`.
 - **Por qué en este puesto:** es la pestaña de la captura y el trabajo que más pesa. Hoy: lo vacío («Nada por confirmar») va primero, lo urgente no dice cuánto se atrasó, no hay total, la columna derecha es aire y lo ya registrado no abre su gasto. «Para confirmar» dice «llegan en los próximos días» aunque falten nueve.
 - **Cómo lo verificas tú:** abre Fijos: se ve el mes, cada fila con su fecha («se esperaba el 15 oct · 7 días») y orden por urgencia y monto, el total que falta arriba, lo vacío plegado y «Ya registrados» abre su gasto. A 375 px la fila no se parte en tres líneas.
@@ -206,3 +207,4 @@ Relevancia = (2·8 + 7 + 6 + 6) / 5 = **7,0** → Soporte.
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
 | 2026-10-22 | completo | 5/10 | 7,0 — Soporte | — (primer análisis de la pantalla entera) |
+| 2026-10-22 (noche) | sin re-análisis | — | — | **#1, #2 y #3** hechas (solo web); el resto sigue abierto |
