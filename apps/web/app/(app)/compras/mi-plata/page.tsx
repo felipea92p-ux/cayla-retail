@@ -1,7 +1,7 @@
 import { HandCoins, Receipt, ShoppingBag } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getMiPlata } from "@/lib/mi-plata";
-import { MEDIOS_PLATA, detalleTienes, nombreGasto, textoMontoAnotado, textoPorConfirmar } from "@/lib/mi-plata-reglas";
+import { MEDIOS_PLATA, detalleTienes, estadoParaLaCompradora, nombreGasto, textoMontoAnotado, textoPorConfirmar } from "@/lib/mi-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -101,8 +101,8 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
                     </span>
                     <span className="flex shrink-0 flex-col items-end gap-1">
                       <span className="whitespace-nowrap text-sm tabular-nums text-tinta">− {soles(c.monto)}</span>
-                      <Chip tono={c.porCompletar ? "ambar" : "verde"} title={c.porCompletar ? "Compras copia su serie y número" : "Compras ya la completó"}>
-                        {c.porCompletar ? "Por completar" : "Completa"}
+                      <Chip tono={c.porCompletar ? "ambar" : "verde"} title={estadoParaLaCompradora("compra", c.porCompletar).detalle}>
+                        {estadoParaLaCompradora("compra", c.porCompletar).texto}
                       </Chip>
                     </span>
                   </li>
@@ -126,8 +126,8 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
                     </span>
                     <span className="flex shrink-0 flex-col items-end gap-1">
                       <span className="whitespace-nowrap text-sm tabular-nums text-tinta">− {soles(g.monto)}</span>
-                      <Chip tono={g.porCompletar ? "ambar" : "verde"} title={g.porCompletar ? "Ya bajó de tu plata; Compras lo revisa" : "Compras ya lo revisó"}>
-                        {g.porCompletar ? "Por revisar" : "Revisado"}
+                      <Chip tono={g.porCompletar ? "ambar" : "verde"} title={estadoParaLaCompradora("gasto", g.porCompletar).detalle}>
+                        {estadoParaLaCompradora("gasto", g.porCompletar).texto}
                       </Chip>
                     </span>
                   </li>
@@ -157,8 +157,8 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
                     </span>
                     <span className="flex shrink-0 flex-col items-end gap-1">
                       <span className="whitespace-nowrap text-sm tabular-nums text-tinta">+ {textoMontoAnotado(a)}</span>
-                      <Chip tono={a.confirmada ? "verde" : "ambar"} title={a.confirmada ? "Compras ya la revisó" : "Ya la puedes usar; Compras la revisa"}>
-                        {a.confirmada ? "Confirmada" : "Por confirmar"}
+                      <Chip tono={a.confirmada ? "verde" : "ambar"} title={estadoParaLaCompradora("plata", !a.confirmada).detalle}>
+                        {estadoParaLaCompradora("plata", !a.confirmada).texto}
                       </Chip>
                     </span>
                   </li>

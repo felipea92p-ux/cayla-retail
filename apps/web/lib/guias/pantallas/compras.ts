@@ -2040,7 +2040,7 @@ export const GUIA_MI_PLATA: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Mandar a la tienda",
-      texto: "Lo que compraste para una tienda y todavía no sale. Tócalo cuando entregues el fardo al transporte (te lo abrimos).",
+      texto: "Lo que compraste para una tienda y todavía no sale. Tócalo cuando entregues el paquete al transporte (te lo abrimos).",
     },
     {
       id: "fardos",
@@ -2048,7 +2048,7 @@ export const GUIA_MI_PLATA: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "mi-plata.mandar" }],
       prepararSoloAlAvanzar: true,
-      titulo: "¿Cuántos fardos?",
+      titulo: "¿Cuántos paquetes?",
       texto: "Cuántos paquetes entregas para esa tienda, así la tienda sabe cuántos abrir al recibir.",
     },
     {
@@ -2236,7 +2236,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.igual",
       opcional: true,
       titulo: "Igual que la vez pasada",
-      texto: "Si el precio es el mismo de la vez pasada, tócalo y sigues. Si no, escribe el nuevo abajo.",
+      texto: "Si es lo mismo de la vez pasada (cuántas, o el precio), tócalo y sigues. Si no, escribe lo nuevo abajo.",
     },
     {
       id: "costo",
@@ -2320,7 +2320,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.mandar",
       opcional: true,
       titulo: "Mandar a la tienda",
-      texto: "Cuando el fardo esté listo para salir, desde aquí lo mandas a la tienda de cada prenda.",
+      texto: "Cuando el paquete esté listo para salir, desde aquí lo mandas a la tienda de cada prenda.",
     },
     {
       id: "fin",

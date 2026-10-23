@@ -434,3 +434,19 @@ export function textoCierre(cierre: { decision: DecisionCierre; monto: number; r
   }
   return cierre.monto > 0 ? `Te quedas ${soles(cierre.monto)} para tu próxima compra.` : "No te quedó plata.";
 }
+
+/**
+ * El estado de lo que anotó la compradora, dicho por quién lo hace (/formidable 2026-10-23, OK de Felipe): «Por completar», «Revisado» o
+ * «Por confirmar» no decían quién ni qué faltaba. Pendiente, lo hace Compras; hecho, ya está en los libros.
+ */
+export function estadoParaLaCompradora(que: "compra" | "gasto" | "plata", pendiente: boolean): { texto: string; detalle: string } {
+  if (que === "plata") {
+    return pendiente
+      ? { texto: "Compras la confirma", detalle: "Ya la puedes usar; Compras mira el voucher y la confirma" }
+      : { texto: "Confirmada", detalle: "Compras ya la confirmó: está en tu fondo" };
+  }
+  const la = que === "compra" ? "la" : "lo";
+  return pendiente
+    ? { texto: `Compras ${la} revisa`, detalle: `Ya bajó de tu plata; Compras ${la} pasa a los libros` }
+    : { texto: "En los libros", detalle: `Compras ya ${la} pasó a los libros` };
+}

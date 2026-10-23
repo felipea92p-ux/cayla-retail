@@ -40,7 +40,7 @@ Revisar compras no tuvo prueba ciega: **ciega: sin probar** (la usa la oficina d
 | **Leyes** | **7,2** | |
 | **Oficio** | **8** | [Medido] a 511 px: 0 controles bajo 44 px, 0 contrastes bajo 4,5:1, sin desborde; letra de 10,5–11 px solo en piezas del sistema (versalitas, globitos). `tema:auditar` claro y oscuro: 0 hallazgos. Revisar compras a 1440 px: 0 contrastes, lo marcado es del marco del ERP |
 
-## Los 3 cambios de mayor impacto (esperan el OK de Felipe)
+## Los 3 cambios de mayor impacto (hechos con el OK de Felipe, 2026-10-23)
 
 1. **La cantidad llega vacía, con «La vez pasada: 10» como sugerencia de un toque** (ley 7, ley 1). Antes: el 10 escrito; «Seguir con 10» a un toque. Después: la caja vacía y
    la sugerencia al lado, como el costo. Ojo: la maqueta aprobada llenaba la cantidad con la de la vez pasada; es una decisión tuya. Se verifica repitiendo la ciega:
@@ -62,3 +62,14 @@ para decidir si sigue comprando.
 
 - «La lista decía “salió a Trujillo” antes de mandar» (ciega): **NO VERIFICABLE**. El código dice «falta mandar a …» mientras queda algo por mandar
   (`app/(app)/compras/mi-plata/page.tsx:95`); la ciega miró la lista recién después de mandar.
+
+## El después (2026-10-23, con el OK de Felipe)
+
+| Cambio | Antes | Después [Medido / visto a 375 px] |
+|---|---|---|
+| 1 · La cantidad | el 10 de la vez pasada escrito y «Seguir con 10» a un toque | la caja vacía; arriba, «La vez pasada compraste 10 · Tócalo si compraste lo mismo» (la misma tarjeta del costo); «Seguir» apagado con «Toca la de arriba, o escribe cuántas»; al escribir 3, «Seguir con 3» |
+| 2 · Los estados | «Por completar» / «Completa», «Por revisar» / «Revisado», «Por confirmar» / «Confirmada» | «Compras la revisa» / «En los libros», «Compras lo revisa» / «En los libros», «Compras la confirma» / «Confirmada», con el detalle al pasar el mouse (`estadoParaLaCompradora`, `lib/mi-plata-reglas.ts`); caben a 375 px sin desborde |
+| 3 · Los paquetes | «¿Cuántos fardos (paquetes)?» | «¿Cuántos paquetes (fardos)?» y «Si todo va junto, es 1»; el aviso y la guía dicen «paquete» |
+
+**Notas provisionales** (sin repetir la ciega): ley 4 de 6 a 8, ley 7 de 6 a 8 → **leyes 7,7**; oficio sin cambio (8). Falta repetir la prueba ciega para
+confirmarlas, la ciega de Revisar compras y la pasada con una compradora real.

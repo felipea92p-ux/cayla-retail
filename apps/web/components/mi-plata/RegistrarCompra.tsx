@@ -186,7 +186,9 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   function elegirHabitual(h: Habitual) {
     setEnCurso({
       habitual: h,
-      cantidad: h.ultimaCantidad != null ? String(h.ultimaCantidad) : "",
+      // La cantidad llega vacía: con la de la vez pasada escrita, un toque rápido compraba 10 en vez de 3 (/formidable 2026-10-23,
+      // OK de Felipe). La de la vez pasada se ofrece arriba, de un toque, como el costo.
+      cantidad: "",
       costo: "",
       venta: "",
       edita: null,
@@ -953,12 +955,13 @@ function PasoNumero({
   const poner = (v: string) => setEnCurso({ ...enCurso, [paso]: v });
   const falta = faltaEnPaso(paso, valor);
   const costo = leerPrecio(enCurso.costo);
-  // «Igual que la vez pasada»: el costo y la venta de su habitual (lo de la última compra o lo del catálogo), de un toque.
-  const igual = paso === "costo" ? h.costo : paso === "venta" ? h.venta : null;
+  // «Igual que la vez pasada»: la cantidad, el costo y la venta de su habitual (lo de la última compra o lo del catálogo), de un toque.
+  const igual =
+    paso === "cantidad" ? (h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null) : paso === "costo" ? h.costo : h.venta;
   const titulo = paso === "cantidad" ? "¿Cuántas compraste?" : paso === "costo" ? "¿Cuánto pagaste por cada una?" : "¿A cuánto se venderá en la tienda?";
   const nota =
     paso === "cantidad"
-      ? `${h.veces > 0 && h.ultimaCantidad != null ? `La vez pasada compraste ${h.ultimaCantidad}. ` : ""}Los colores y tallas los cuenta la tienda cuando llega.`
+      ? "Los colores y tallas los cuenta la tienda cuando llega."
       : paso === "venta"
         ? `${costo != null ? `Pagaste ${soles(costo)} cada una. ` : ""}La tienda lo puede cambiar al recibir.`
         : null;
@@ -980,16 +983,18 @@ function PasoNumero({
           type="button"
           data-guia="compra.igual"
           onClick={() => {
-            setEnCurso({ ...enCurso, [paso]: igual.toFixed(2) });
+            setEnCurso({ ...enCurso, [paso]: paso === "cantidad" ? String(igual) : igual.toFixed(2) });
             alSeguir();
           }}
           className="card-cayla mov-boton flex w-full items-center justify-between gap-3 p-4 text-left"
         >
           <span>
-            <span className="block font-medium text-tinta">{h.veces > 0 ? "Igual que la vez pasada" : "Igual que en el catálogo"}</span>
-            <span className="block text-xs text-taupe">Tócalo si es el mismo precio</span>
+            <span className="block font-medium text-tinta">
+              {paso === "cantidad" ? "La vez pasada compraste" : h.veces > 0 ? "Igual que la vez pasada" : "Igual que en el catálogo"}
+            </span>
+            <span className="block text-xs text-taupe">{paso === "cantidad" ? "Tócalo si compraste lo mismo" : "Tócalo si es el mismo precio"}</span>
           </span>
-          <span className="font-serif text-2xl tabular-nums text-tinta">{soles(igual)}</span>
+          <span className="font-serif text-2xl tabular-nums text-tinta">{paso === "cantidad" ? igual : soles(igual)}</span>
         </button>
       )}
       <CampoMonto
@@ -1006,11 +1011,11 @@ function PasoNumero({
       {nota && <p className="text-xs text-taupe">{nota}</p>}
       <Boton type="submit" peso="primario" disabled={falta !== null} title={falta ?? undefined}>
         <span className="inline-flex items-center gap-2">
-          {paso === "cantidad" ? `Seguir con ${leerCantidad(valor) ?? 0}` : "Seguir"}
+          {paso === "cantidad" && leerCantidad(valor) ? `Seguir con ${leerCantidad(valor)}` : "Seguir"}
           <ArrowRight className="h-4 w-4" aria-hidden />
         </span>
       </Boton>
-      {falta && <p className="-mt-2 text-center text-xs text-taupe">{igual != null && !valor ? "Toca el precio de arriba, o escribe otro" : falta}</p>}
+      {falta && <p className="-mt-2 text-center text-xs text-taupe">{igual != null && !valor ? (paso === "cantidad" ? "Toca la de arriba, o escribe cuántas" : "Toca el precio de arriba, o escribe otro") : falta}</p>}
     </form>
   );
 }

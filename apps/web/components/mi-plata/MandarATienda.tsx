@@ -15,7 +15,7 @@ import { mandarATienda } from "@/lib/mi-plata-acciones";
 import { resumenPrendas, textoPorMandar, type PorMandar } from "@/lib/mi-plata-reglas";
 
 // Compras simple (ADR-0480, actividad 5): «Mandar a la tienda». Lo que la compradora compró para cada tienda y todavía no salió, en una
-// tarjeta por tienda: sus prendas, «¿Cuántos fardos (paquetes)?» y «Mandar a …», que se toca al entregar el fardo al transporte. La base
+// tarjeta por tienda: sus prendas, «¿Cuántos paquetes (fardos)?» y «Mandar a …», que se toca al entregar el fardo al transporte. La base
 // arma el envío con todo lo pendiente de esa tienda (`mandar_compras_a_tienda`): el mismo envío que Recibir ya entiende, y la tienda ve
 // que le llega.
 //
@@ -92,7 +92,7 @@ function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; 
     }
     // Ya salió: si más tarde se compra otra cosa para esta tienda, ese será otro envío, con otra marca.
     delete marcas.current[t.tiendaId];
-    avisar.exito(`Listo: ${t.tienda} ya sabe que le llega tu fardo`, { detalle: "Cuando llegue, la tienda lo cuenta en Recibir." });
+    avisar.exito(`Listo: ${t.tienda} ya sabe que le llega tu paquete`, { detalle: "Cuando llegue, la tienda lo cuenta en Recibir." });
     if (porMandar.length <= 1) onClose();
     router.refresh();
   }
@@ -100,7 +100,7 @@ function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; 
   return (
     <Modal
       titulo="Mandar a la tienda"
-      subtitulo="Toca «Mandar» cuando entregues el fardo (el paquete) al transporte. La tienda ya sabe que le llega."
+      subtitulo="Toca «Mandar» cuando entregues el paquete (el fardo) al transporte. La tienda ya sabe que le llega."
       onClose={onClose}
       variante="hoja"
       alCerrarEnfocar={volverA}
@@ -124,11 +124,14 @@ function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; 
                   </p>
                 </div>
                 <div className="flex items-center justify-between gap-3 border-t border-sand pt-3">
-                  <span className="text-sm text-tinta">¿Cuántos fardos (paquetes)?</span>
+                  <span className="min-w-0">
+                    <span className="block text-sm text-tinta">¿Cuántos paquetes (fardos)?</span>
+                    <span className="block text-xs text-taupe">Si todo va junto, es 1</span>
+                  </span>
                   <PasoCantidad
                     data-guia={t === porMandar[0] ? "mi-plata.fardos" : undefined}
-                    menos={{ onClick: () => setFardos((f) => ({ ...f, [t.tiendaId]: Math.max(1, n - 1) })), deshabilitado: n <= 1 || mandando !== null, etiqueta: "Un fardo menos" }}
-                    mas={{ onClick: () => setFardos((f) => ({ ...f, [t.tiendaId]: Math.min(99, n + 1) })), deshabilitado: n >= 99 || mandando !== null, etiqueta: "Un fardo más" }}
+                    menos={{ onClick: () => setFardos((f) => ({ ...f, [t.tiendaId]: Math.max(1, n - 1) })), deshabilitado: n <= 1 || mandando !== null, etiqueta: "Un paquete menos" }}
+                    mas={{ onClick: () => setFardos((f) => ({ ...f, [t.tiendaId]: Math.min(99, n + 1) })), deshabilitado: n >= 99 || mandando !== null, etiqueta: "Un paquete más" }}
                   >
                     {n}
                   </PasoCantidad>

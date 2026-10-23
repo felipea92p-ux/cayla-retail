@@ -6,6 +6,7 @@ import {
   nombreGasto,
   resumenDia,
   resumenPrendas,
+  estadoParaLaCompradora,
   textoCierre,
   textoPorMandar,
   fraseGasto,
@@ -251,5 +252,16 @@ describe("el resto del día de compras (actividad 5)", () => {
     expect(camposGasto({ concepto: "taxi", nota: "", monto: "15" }).find((c) => c.id === "foto")?.requerido).toBe(false);
     expect(plano(fraseGasto(15))).toBe("Anotar S/ 15.00");
     expect(fraseGasto(null)).toBe("Anotar el gasto");
+  });
+});
+
+describe("el estado de lo anotado, dicho por quién lo hace", () => {
+  it("pendiente lo hace Compras; hecho, está en los libros (o confirmada, la plata)", () => {
+    expect(estadoParaLaCompradora("compra", true).texto).toBe("Compras la revisa");
+    expect(estadoParaLaCompradora("compra", false).texto).toBe("En los libros");
+    expect(estadoParaLaCompradora("gasto", true).texto).toBe("Compras lo revisa");
+    expect(estadoParaLaCompradora("gasto", false).detalle).toBe("Compras ya lo pasó a los libros");
+    expect(estadoParaLaCompradora("plata", true).texto).toBe("Compras la confirma");
+    expect(estadoParaLaCompradora("plata", false).texto).toBe("Confirmada");
   });
 });
