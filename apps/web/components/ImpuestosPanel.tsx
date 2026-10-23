@@ -11,6 +11,8 @@ import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { CabeceraBloque, Herramientas, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { ImpuestosPulso } from "@/components/finanzas/ImpuestosPulso";
 import { BalanzaIgv } from "@/components/finanzas/BalanzaIgv";
+import { AntesDeDeclarar } from "@/components/finanzas/AntesDeDeclarar";
+import { antesDeDeclarar } from "@/lib/impuestos-antes-reglas";
 import { balanzaIgv } from "@/lib/impuestos-balanza-reglas";
 import { pulsoImpuestos } from "@/lib/impuestos-pulso-reglas";
 import { descargarBlob, descargarCsv, textoCsv } from "@/lib/exportar-csv";
@@ -40,7 +42,6 @@ import {
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { Settings2 } from "lucide-react";
-import { BotonVer } from "@/components/ui/BotonDescargar";
 import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Impuestos (ADR-0195 F8), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, `vista-impuestos.js`):
@@ -140,16 +141,13 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
       {panel.foco && pulso.estado !== "sin_mes" ? (
         <section className="fin-balanza-cols">
           <BalanzaIgv balanza={balanzaIgv(panel.foco, panel.renta.monto)} mesTexto={textoMes(mes)} guia="fin-impuestos.balanza" anioSinRenta={panel.renta.tasa === null ? anio : null} />
-          <ImpuestosPulso pulso={pulso} soloPorHacer />
+          <AntesDeDeclarar pendientes={antesDeDeclarar(panel)} guia="fin-impuestos.por-hacer" />
         </section>
       ) : (
         <ImpuestosPulso pulso={pulso} />
       )}
 
-      <section className="fin-dos-col fin-dos-col-izq">
-        <Limite panel={panel} />
-        <ParaRevisar panel={panel} />
-      </section>
+      <Limite panel={panel} />
 
       <Superficie className="anim-sube" guia="fin-impuestos.historial">
         <Herramientas>
@@ -326,82 +324,6 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
         {ALCANCE_DEL_AVISO}
         {aviso.ajuste > 0 && ` Incluye ${solesRedondo(aviso.ajuste)} de ajuste cargado en Configuración (${solesRedondo(aviso.ventasSistema)} en el sistema).`}
       </p>
-    </Superficie>
-  );
-}
-
-type Punto = { tono: "ambar" | "pizarra" | "rojo" | "verde"; titulo: string; detalle: string; accion?: { texto: string; href: string } };
-
-/** Lo que puede hacer que se pague de más (o que falte IGV en el cálculo), del mes que se mira. */
-function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
-  const { revisar: r, mes } = panel;
-  const nombre = nombreMes(mes);
-  const puntos: Punto[] = [];
-  if (r.boletas.n > 0) {
-    puntos.push({
-      tono: "ambar",
-      titulo: `${plural(r.boletas.n, "compra", "compras")} con boleta este mes`,
-      detalle: `Una boleta no da IGV descontable. Si el proveedor emite factura, pídela${r.boletas.proveedores.length ? `: ${r.boletas.proveedores.join(", ")}` : ""}.`,
-      accion: r.boletas.gastos > 0 ? { texto: "Ver gastos", href: `/finanzas/gastos?mes=${mes}&ver=todas` } : undefined,
-    });
-  }
-  // ADR-0362, fase 6 · actividad 8 (decisión 72): el IGV que se perdió en el mes del pago. La base ya lo restó; aquí se dice y se dice qué hacer.
-  if (r.igvPerdido.igv > 0) {
-    puntos.push({
-      tono: "ambar",
-      titulo: `${solesRedondo(r.igvPerdido.igv)} de IGV que no se descuenta`,
-      detalle: `${plural(r.igvPerdido.n, "pago", "pagos")} en efectivo o desde un fondo de facturas de S/\u00a02,000 o más. SUNAT pide pagarlas por el banco: ese IGV ya está restado de lo que descuentas.`,
-    });
-  }
-  if (r.rechazados.n > 0) {
-    puntos.push({
-      tono: "rojo",
-      titulo: `${plural(r.rechazados.n, "comprobante rechazado", "comprobantes rechazados")} por SUNAT`,
-      detalle: `Suman ${solesRedondo(r.rechazados.total)} y no entran al IGV hasta que se vuelvan a emitir.`,
-      accion: { texto: "Ver en Facturación", href: "/vender/comprobantes" },
-    });
-  }
-  if (r.sinAceptar.n > 0) {
-    puntos.push({
-      tono: "pizarra",
-      titulo: `${plural(r.sinAceptar.n, "venta", "ventas")} de ${nombre} sin comprobante aceptado`,
-      detalle: "El IGV se reconoce al vender, pero SUNAT debe tenerlos. Siguen reintentándose solos.",
-      accion: { texto: "Ver en Facturación", href: "/vender/comprobantes" },
-    });
-  }
-  if (r.sinComprobante.n > 0) {
-    puntos.push({
-      tono: "ambar",
-      titulo: `${plural(r.sinComprobante.n, "venta", "ventas")} sin boleta ni factura (${solesRedondo(r.sinComprobante.total)})`,
-      detalle: `Notas de venta o ventas sin comprobante${r.sinComprobante.alegra ? `; ${r.sinComprobante.alegra} las emitió Alegra` : ""}. Su IGV no está en este cálculo: díselo al contador.`,
-    });
-  }
-  puntos.push({
-    tono: "pizarra",
-    titulo: "Recibos por honorarios: retención del 8 %",
-    detalle: `${r.honorarios.n > 0 ? `${plural(r.honorarios.n, "recibo", "recibos")} este mes${r.honorarios.mayores ? `, ${r.honorarios.mayores} de más de S/\u00a01,500` : ""}. ` : ""}El contador define si CAYLA debe retener. Mientras tanto, se paga el total.`,
-  });
-  return (
-    <Superficie pad className="anim-sube" guia="fin-impuestos.revisar">
-      <CabeceraBloque titulo="Para revisar antes de declarar" bajada="Lo que puede hacer que pagues de más." />
-      <ul className="fin-decidir">
-        {puntos.map((p) => (
-          <li key={p.titulo}>
-            <span className="fin-punto" data-tono={p.tono} aria-hidden />
-            <div>
-              <b>{p.titulo}</b>
-              <p>{p.detalle}</p>
-            </div>
-            {p.accion ? (
-              <BotonVer href={p.accion.href} chico>
-                {p.accion.texto}
-              </BotonVer>
-            ) : (
-              <span />
-            )}
-          </li>
-        ))}
-      </ul>
     </Superficie>
   );
 }

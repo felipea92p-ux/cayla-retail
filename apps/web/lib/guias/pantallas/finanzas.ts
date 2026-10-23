@@ -1219,7 +1219,7 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       ancla: "fin-impuestos.por-hacer",
       opcional: true,
       titulo: "Antes de declarar",
-      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe: comprobantes rechazados o sin aceptar, ventas sin comprobante, compras con boleta (ese IGV no se descuenta) y facturas grandes pagadas en efectivo.",
+      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe: comprobantes rechazados o sin aceptar, ventas sin comprobante, compras con boleta (ese IGV no se descuenta) y facturas grandes pagadas en efectivo. Cada cosa lleva a donde se arregla.",
     },
     {
       id: "registro-ventas",
@@ -1244,12 +1244,6 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       ancla: "fin-impuestos.limite",
       titulo: "El límite de ventas",
       texto: "Lo vendido en el año, de enero a hoy, contra el límite del régimen (y el aviso que salta antes, para hablar con el contador). Al cruzarlo, SUNAT pide llevar más libros. La franja rayada es a dónde llegarías a diciembre a este ritmo. Cuenta lo registrado en el sistema: puede quedar por debajo de la cifra real.",
-    },
-    {
-      id: "revisar",
-      ancla: "fin-impuestos.revisar",
-      titulo: "Antes de declarar",
-      texto: "Lo que puede hacer que pagues de más: compras con boleta (no dan IGV), comprobantes que SUNAT rechazó o no aceptó todavía, ventas sin comprobante. Cada punto lleva a donde se arregla.",
     },
     {
       id: "historial",
