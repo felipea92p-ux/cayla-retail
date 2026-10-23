@@ -1,12 +1,9 @@
 {
-  "guia": "productos.campanas",
-  "ruta": "/productos/campanas",
+  "guia": "productos.sellos",
+  "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 69,
+  "total": 75,
   "controles": {
-    "app/(app)/productos/campanas/page.tsx": [
-      "BotonVer «Cómo se ven en la tienda web»"
-    ],
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
       "Boton «Cancelar»",
@@ -21,17 +18,6 @@
     "components/EtiquetasLista.tsx": [
       "BotonImprimir «(sin nombre)»",
       "BotonVer «Diseño en la tienda web»",
-      "BotonFiltro «Todas»",
-      "BotonFiltro «{ESTILOS[g].grupo}»",
-      "BotonFiltro «Vigentes hoy»",
-      "button «atributos.prendas»",
-      "button «atributos.campana»",
-      "CampoTexto «Comentario (obligatorio)»",
-      "Boton «Cancelar»",
-      "Boton «→() => aprobar(aprobandoEtiqueta)»",
-      "CampoTexto «Motivo (opcional)»",
-      "Boton «Cancelar» #2",
-      "Boton «Confirmar rechazo»",
       "button «campana-web.prendas»",
       "button «campana-web.configurar»",
       "CampoTexto «{guia.etiqueta(\"descuento\", \"Descuento (%)\")}»",
@@ -42,12 +28,12 @@
       "button «{avisoDia.boton}»",
       "BotonDeshacer «(sin nombre)»",
       "button «Quitar todas»",
-      "Boton «Cancelar» #3",
+      "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
       "button «{c.nombre}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", `Nombre ${delUno}»",
       "ComboResponsable «{responsable}»",
-      "Boton «Cancelar» #4",
+      "Boton «Cancelar» #2",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/PrendasDeEtiquetaModal.tsx": [
@@ -88,6 +74,26 @@
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
+    ],
+    "components/sellos/SellosPantalla.tsx": [
+      "button «{e.nombre}»",
+      "button «{conGuia ? \"sellos.prendas\" : undefined}»",
+      "button «{conGuia ? \"sellos.configurar\" : undefined}»",
+      "BotonImprimir «(sin nombre)»",
+      "BotonVer «Diseño web»",
+      "button «{cambiandoId === e.id ? \"Desactivando…\" : \"Desactivar\"}»",
+      "button «→() => setEtiquetando(e)»",
+      "Boton «+ Elegir prendas»",
+      "BotonVer «Cómo se ven en la web»",
+      "Boton «sellos.nuevo»",
+      "Pestanas «→cambiarVista»",
+      "Boton «{`+ ${T.nuevo}»",
+      "CampoTexto «Comentario (obligatorio)»",
+      "Boton «Cancelar»",
+      "Boton «→() => aprobar(aprobandoEtiqueta)»",
+      "CampoTexto «Motivo (opcional)»",
+      "Boton «Cancelar» #2",
+      "Boton «Confirmar rechazo»"
     ]
   }
 }

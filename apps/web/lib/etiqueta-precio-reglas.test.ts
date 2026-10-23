@@ -526,7 +526,7 @@ describe("encabezadoDeEtiquetas — lo que dice la pantalla según el origen", (
 describe("volverDeEtiquetas — la vuelta a la pantalla que abrió las etiquetas", () => {
   it("cada origen vuelve a su pantalla, con el nombre del menú", () => {
     expect(volverDeEtiquetas({ tipo: "lotes" })).toEqual({ href: "/recibir", a: "Recibir mercadería" });
-    expect(volverDeEtiquetas({ tipo: "campana" })).toEqual({ href: "/productos/campanas", a: "Campañas" });
+    expect(volverDeEtiquetas({ tipo: "campana" })).toEqual({ href: "/productos/insignias", a: "Insignias" });
     expect(volverDeEtiquetas({ tipo: "producto" })).toEqual({ href: "/productos", a: "Productos" });
     expect(volverDeEtiquetas({ tipo: "variantes" })).toEqual({ href: "/inventario", a: "Existencias" });
   });

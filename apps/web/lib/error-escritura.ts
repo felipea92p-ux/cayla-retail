@@ -449,8 +449,8 @@ const HUELLAS: Huella[] = [
     // lista de la pantalla (solo aprobadas y activas) no muestre ninguna igual — por eso la frase lo dice.
     marca: "etiquetas_clave_unica",
     frase:
-      // Sellos y campañas son la misma tabla (ADR-0473): el nombre no se repite entre los dos.
-      "Ya existe un sello o una campaña con ese nombre (aunque esté escrito distinto, pendiente de aprobar o desactivado). Búscalo en Catálogo ▸ Atributos ▸ Sellos o en Catálogo ▸ Campañas en vez de crearlo otra vez.",
+      // Insignias y campañas son la misma tabla (ADR-0473): el nombre no se repite entre los dos.
+      "Ya existe una insignia o una campaña con ese nombre (aunque esté escrita distinto, pendiente de aprobar o desactivada). Búscala en Catálogo ▸ Insignias en vez de crearla otra vez.",
   },
   {
     // 20260915160000_categorias_editar_desactivar.sql — el candado real:
