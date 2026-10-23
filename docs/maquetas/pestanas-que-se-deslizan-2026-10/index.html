@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pestañas que se deslizan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* Maqueta para /unificar (ADR-0358): «¿cómo se avisa que una fila de pestañas o de píldoras se desliza y que hay más?». Hallazgo 14 de la
+   auditoría del celular (2026-10-23). Los colores son los tokens de apps/web/app/globals.css y estilos/tema.css; el movimiento, el de
+   ADR-0136 (--ease-cayla, sin rebote, sin bucle). Se ve mejor a 375 px: en escritorio, la maqueta se queda en una columna angosta.
+   Desliza las filas con el dedo (o con la rueda del mouse, de lado) y toca una pestaña: los avisos reaccionan solos. */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0;
+  --tinta: #1a1a18; --taupe: #805c4c; --rojo: #b8412d; --rojo-profundo: #8b2a1f;
+  --crema-fija: #f5f0e8;
+  --ease-cayla: cubic-bezier(0.32, 0.72, 0.24, 1);
+  --serif: "EB Garamond", Georgia, serif;
+  --sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --crema: #1a1a18; --papel: #242422; --hueso: #31302d; --sand: #3d3c38;
+    --tinta: #f5f0e8; --taupe: #c4a898; --rojo: #e8806a; --rojo-profundo: #f29a86;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] { --crema: #1a1a18; --papel: #242422; --hueso: #31302d; --sand: #3d3c38; --tinta: #f5f0e8; --taupe: #c4a898; --rojo: #e8806a; --rojo-profundo: #f29a86; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { margin: 0 auto; max-width: 440px; padding: 20px 16px 64px; background: var(--crema); color: var(--tinta); font: 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+h1 { font: 400 28px/1.15 var(--serif); margin: 0 0 6px; letter-spacing: -0.01em; }
+.sub { color: color-mix(in srgb, var(--tinta) 72%, transparent); margin: 0 0 18px; font-size: 14px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+
+.bloque { background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 14px 14px 16px; margin: 0 0 16px; }
+.bloque h2 { font: 600 11px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; margin: 0 0 4px; color: var(--taupe); }
+.bloque h3 { font: 400 20px/1.2 var(--serif); margin: 0 0 4px; }
+.bloque p.d { margin: 0 0 12px; font-size: 13px; color: color-mix(in srgb, var(--tinta) 72%, transparent); }
+.rotulo { font: 600 10.5px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: color-mix(in srgb, var(--tinta) 64%, transparent); margin: 14px 0 6px; }
+
+/* ───── La pieza de hoy (apps/web/app/estilos/pestanas-y-segmentos.css, resumida) ───── */
+.tira { position: relative; }
+.pestanas {
+  position: relative; display: inline-flex; gap: 2px; max-width: 100%; padding: 4px; border-radius: 14px; overflow-x: auto; scrollbar-width: none;
+  background: color-mix(in srgb, var(--papel) 45%, var(--hueso)); border: 1px solid color-mix(in srgb, var(--tinta) 9%, transparent);
+}
+.pestanas::-webkit-scrollbar { display: none; }
+.pestana {
+  flex: none; min-height: 36px; padding: 0 15px; border: 0; border-radius: 10px; background: none; font: 600 12px/20px var(--sans);
+  letter-spacing: .13em; text-transform: uppercase; white-space: nowrap; transition: color 200ms, background-color 200ms var(--ease-cayla);
+}
+.pestana[aria-selected="true"] { background: var(--tinta); color: var(--crema); }
+.pildoras { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+.pildoras::-webkit-scrollbar { display: none; }
+.pildora { flex: none; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--sand); background: none; font-size: 13.5px; white-space: nowrap; }
+.pildora[aria-pressed="true"] { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+
+/* ───── A · Degradado en el borde: la fila se desvanece del lado donde hay más ───── */
+.va .pestanas, .va .pildoras {
+  --izq: 0px; --der: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--izq), #000 calc(100% - var(--der)), transparent 100%);
+          mask-image: linear-gradient(to right, transparent 0, #000 var(--izq), #000 calc(100% - var(--der)), transparent 100%);
+}
+.va[data-mas-izq] .pestanas, .va[data-mas-izq] .pildoras { --izq: 30px; }
+.va[data-mas-der] .pestanas, .va[data-mas-der] .pildoras { --der: 30px; }
+
+/* ───── B · Flecha en el borde: un botón redondo que aparece del lado con más y desliza la fila al tocarlo ───── */
+.vb .flecha {
+  position: absolute; top: 50%; z-index: 3; width: 30px; height: 30px; margin-top: -15px; display: grid; place-items: center; padding: 0;
+  border-radius: 50%; border: 1px solid color-mix(in srgb, var(--tinta) 22%, transparent); background: var(--papel); font-size: 16px; line-height: 1;
+  opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease-cayla);
+}
+.vb .flecha.izq { left: 4px; } .vb .flecha.der { right: 4px; }
+.vb[data-mas-izq] .flecha.izq, .vb[data-mas-der] .flecha.der { opacity: 1; pointer-events: auto; }
+
+/* ───── C · Posición: una barrita fina debajo que dice cuánto se ve y dónde estás ───── */
+.vc .pos { margin-top: 6px; height: 3px; border-radius: 3px; background: color-mix(in srgb, var(--tinta) 12%, transparent); position: relative; overflow: hidden; }
+.vc .pos i { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; border-radius: 3px; background: color-mix(in srgb, var(--tinta) 62%, transparent); transition: left 120ms linear, width 200ms var(--ease-cayla); }
+.vc:not([data-mas-izq]):not([data-mas-der]) .pos { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) { * { transition-duration: 1ms !important; } }
+.nota { font-size: 13px; color: color-mix(in srgb, var(--tinta) 72%, transparent); border-top: 1px solid var(--sand); padding-top: 14px; margin-top: 8px; }
+.nota b { color: var(--tinta); }
+</style>
+
+<h1>Pestañas que se deslizan</h1>
+<p class="sub" style="color:var(--rojo-profundo);font-weight:600">Elegida por Felipe el 2026-10-23: la opción A (degradado en el borde). Ya está aplicada; la maqueta queda como registro.</p>
+<p class="sub">Hoy la fila corta la primera o la última pestaña en el borde, y nada dice que se puede deslizar. Cuatro formas para elegir <b>mirando</b>. Desliza cada fila con el dedo y toca una pestaña.</p>
+
+<div id="bloques"></div>
+
+<p class="nota"><b>Qué cambiaría en el código</b> si eliges una: <code>components/ui/Pestanas.tsx</code> y la clase <code>pildoras-desliza</code> reciben el aviso en un solo lugar y valen para todas las pantallas (Configuración, Análisis, Finanzas ▸ Gastos y Reportes, Devoluciones, Marcas, Insignias, Historial, Movimientos y la vista rápida de producto). Con <code>prefers-reduced-motion</code> el aviso aparece sin transición. No cambia qué hace ninguna pestaña.</p>
+
+<script>
+const PESTANAS = ["Empresa", "Tiendas y caja", "Cuentas y cobros", "Caja y avisos", "Gastos fijos", "Presupuesto"];
+const PILDORAS = ["Hoy", "7 días", "30 días", "90 días", "Personalizado", "Mis ventas", "Por enviar"];
+const VARIANTES = [
+  { clase: "", id: "H", titulo: "Como es hoy", d: "La fila corta la pestaña del borde. Nada avisa que se desliza." },
+  { clase: "va", id: "A", titulo: "Degradado en el borde", d: "La fila se desvanece del lado donde hay más y se apaga sola al llegar al final. Sin botones nuevos." },
+  { clase: "vb", id: "B", titulo: "Flecha en el borde", d: "Un botón redondo aparece del lado con más; al tocarlo desliza la fila. Para quien no deslizaría solo." },
+  { clase: "vc", id: "C", titulo: "Barra de posición", d: "Una línea fina debajo dice cuánto se ve y en qué parte estás, como la barra de un celular." },
+];
+const cont = document.getElementById("bloques");
+for (const v of VARIANTES) {
+  const b = document.createElement("section"); b.className = "bloque";
+  b.innerHTML = `<h2>${v.id === "H" ? "Hoy" : "Opción " + v.id}</h2><h3>${v.titulo}</h3><p class="d">${v.d}</p>
+    <div class="rotulo">Pestaña de vista (Configuración)</div>
+    <div class="tira ${v.clase}" data-tira>${v.clase === "vb" ? '<button class="flecha izq" aria-label="Ver las anteriores">‹</button><button class="flecha der" aria-label="Ver las siguientes">›</button>' : ""}
+      <div class="pestanas" role="tablist" data-fila>${PESTANAS.map((t, i) => `<button class="pestana" role="tab" aria-selected="${i === 0}">${t}</button>`).join("")}</div>${v.clase === "vc" ? '<div class="pos"><i></i></div>' : ""}</div>
+    <div class="rotulo">Píldoras de filtro (Historial)</div>
+    <div class="tira ${v.clase}" data-tira>${v.clase === "vb" ? '<button class="flecha izq" aria-label="Ver las anteriores">‹</button><button class="flecha der" aria-label="Ver las siguientes">›</button>' : ""}
+      <div class="pildoras" data-fila>${PILDORAS.map((t, i) => `<button class="pildora" aria-pressed="${i === 2}">${t}</button>`).join("")}</div>${v.clase === "vc" ? '<div class="pos"><i></i></div>' : ""}</div>`;
+  cont.appendChild(b);
+}
+document.querySelectorAll("[data-tira]").forEach((tira) => {
+  const fila = tira.querySelector("[data-fila]");
+  const pos = tira.querySelector(".pos i");
+  const mide = () => {
+    const max = fila.scrollWidth - fila.clientWidth;
+    tira.toggleAttribute("data-mas-izq", fila.scrollLeft > 4);
+    tira.toggleAttribute("data-mas-der", fila.scrollLeft < max - 4);
+    if (pos) { const frac = fila.clientWidth / fila.scrollWidth; pos.style.width = frac * 100 + "%"; pos.style.left = (max > 0 ? (fila.scrollLeft / max) * (1 - frac) * 100 : 0) + "%"; }
+  };
+  fila.addEventListener("scroll", mide, { passive: true });
+  addEventListener("resize", mide); mide();
+  tira.querySelectorAll(".flecha").forEach((f) => f.addEventListener("click", () => fila.scrollBy({ left: (f.classList.contains("der") ? 1 : -1) * 150, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })));
+  fila.addEventListener("click", (e) => {
+    const t = e.target.closest("button"); if (!t) return;
+    if (t.matches("[role=tab]")) { fila.querySelectorAll("[role=tab]").forEach((x) => x.setAttribute("aria-selected", x === t)); }
+    else if (t.matches(".pildora")) { fila.querySelectorAll(".pildora").forEach((x) => x.setAttribute("aria-pressed", x === t)); }
+    // como hace la pieza real: la elegida se centra
+    const caja = fila.getBoundingClientRect(), tb = t.getBoundingClientRect();
+    fila.scrollBy({ left: tb.left + tb.width / 2 - (caja.left + caja.width / 2), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  });
+});
+</script>
+</html>
