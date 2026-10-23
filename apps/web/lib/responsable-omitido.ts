@@ -96,6 +96,9 @@ export const ACCIONES_SIN_RESPONSABLE = {
   // viaje (evidencia, como el adjunto de una factura), rendir el propio fondo (solo con la cuenta de su dueña) y aprobar o devolver una
   // rendición (quien la revisa firma con su cuenta; una terminal elige quién).
   gasto_viaje_foto: "Sumar o quitar la foto del papel de un gasto del viaje (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Compras simple (ADR-0480, actividad 2; migración 20261022235000): la compradora anota su plata y Compras la confirma.
+  plata_anotar: "Anotar la plata que te dieron para comprar (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  plata_confirmar: "Confirmar la plata que anotó una compradora (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_rendir: "Rendir el propio fondo (solo con la cuenta de su dueña: desde una terminal no se rinde)",
   fondo_rendicion_aprobar: "Aprobar la rendición de un fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_rendicion_devolver: "Devolver para corregir la rendición de un fondo, o retirar la propia (con la cuenta de una persona firma ella, desde una terminal se elige quién)",

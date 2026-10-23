@@ -1455,6 +1455,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en seis entradas: Plan de campaña, `/compras/mi-plata`
   («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), `/compras/fondos` («Revisar
   compras», módulo `fondos`), Proveedores, Facturas de proveedor y Por pagar. `/compras/ordenes` sigue en el código sin entrada en el menú.
+  Actividad 2: `/compras/mi-plata` → `lib/mi-plata.ts` (`fn_mi_plata_compras`) + `lib/mi-plata-reglas.ts` (puro: lectura, cifras, qué falta,
+  la cuenta sugerida) + `components/mi-plata/AnotarPlata.tsx` (`anotar_plata_compras`, la foto al depósito `retail-gastos-viaje/plata/`);
+  `/compras/fondos` suma `getPlataPorConfirmar` (`fn_plata_por_confirmar`, vouchers firmados) + `components/mi-plata/PlataPorConfirmar.tsx`
+  (`confirmar_plata_compras`). Tabla `fondo_plata_anotada`.
 - ~~**Notas de crédito**~~ (retirada el 2026-10-22, ADR-0480: la pantalla, sus modales y `lib/notas-credito*.ts` se borraron;
   `/compras/notas-credito` redirige a `/compras`; las tablas y RPC de abajo siguen en la base). Lo que era (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres

@@ -260,6 +260,7 @@
     "pruebas:gastos-lista-viaje": "node scripts/pruebas/gastos_lista_viaje.mjs",
     "pruebas:gastos-igv-perdido": "node scripts/pruebas/gastos_igv_perdido.mjs",
     "pruebas:fondos-entradas": "node scripts/pruebas/fondos_entradas.mjs",
+    "pruebas:compras-simple-plata": "node scripts/pruebas/compras_simple_plata.mjs",
     "pruebas:plan-compra-historia": "node scripts/pruebas/plan_compra_historia.mjs",
     "pruebas:plan-compra-minimo": "node scripts/pruebas/plan_compra_minimo_con_modulo.mjs",
     "pruebas:roles": "node scripts/pruebas/roles_por_modulo.mjs",

@@ -1,6 +1,8 @@
-import { Wallet } from "lucide-react";
+import { HandCoins, Wallet } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getDatosFondos } from "@/lib/fondos";
+import { getPlataPorConfirmar } from "@/lib/mi-plata";
+import { PlataPorConfirmar } from "@/components/mi-plata/PlataPorConfirmar";
 import { TEXTO_MOVIMIENTO_FONDO, cifrasDeFondos, topeDevolucion, type MovimientoFondo } from "@/lib/fondos-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
@@ -73,7 +75,10 @@ const montoEnFrase = (n: number) => <span className="whitespace-nowrap">{soles(n
 
 export default async function FondosPage() {
   const persona = await exigirModulo("fondos");
-  const { fondos, movimientos, opciones, rendiciones, rendicionesFalla, deudas: filasDeuda, deudasFalla, falla } = await getDatosFondos();
+  const [{ fondos, movimientos, opciones, rendiciones, rendicionesFalla, deudas: filasDeuda, deudasFalla, falla }, plataAnotada] = await Promise.all([
+    getDatosFondos(),
+    getPlataPorConfirmar(),
+  ]);
   const porAprobar = rendiciones.filter((r) => r.estado === "por_aprobar");
   const estado = estadoPorFondo(rendiciones);
   const deudas = deudasPorPersona(filasDeuda);
@@ -93,6 +98,25 @@ export default async function FondosPage() {
         subtitulo="La plata que le entregas a quien compra, y cuánto tiene cada persona en la mano."
         acciones={falla ? undefined : entregar}
       />
+
+      {/* ADR-0480, actividad 2: la plata que anotaron las compradoras, la más vieja primero. Si su lectura falla (la base sin la
+          migración, o caída), lo dice aparte: el resto de la pantalla sale igual. */}
+      {!falla && (
+        <section className="space-y-3" data-guia="fondos.plata-seccion">
+          <TituloSeccion cuenta={plataAnotada?.length ?? 0}>Plata que anotaron las compradoras</TituloSeccion>
+          {plataAnotada === null ? (
+            <Aviso tono="atencion" titulo="No se pudo leer la plata anotada" chico>
+              Vuelve a intentarlo en un momento.
+            </Aviso>
+          ) : plataAnotada.length === 0 ? (
+            <Vacio icono={<HandCoins />} titulo="Nada por confirmar" tamano="chico">
+              Cuando una compradora anote plata, aparece aquí con su voucher.
+            </Vacio>
+          ) : (
+            <PlataPorConfirmar filas={plataAnotada} cuentas={opciones.cuentas} />
+          )}
+        </section>
+      )}
 
       {falla ? (
         <Aviso tono="error" titulo="No se pudieron leer los fondos">

@@ -455,6 +455,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/punto-de-venta/RegistrarBajadaModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién atiende, el mismo combo del ticket) antes de registrar desde Vender la bajada al piso que se olvidó (ADR-0321): el texto dice qué prenda entra y dónde queda; el botón se apaga hasta elegir y dice por qué." },
   // ADR-0362 (actividad 5): «Anular orden». Falta lo que la base rechazaría: el motivo y, desde una terminal, quién la anula.
   "components/fondos/AccionesFondos.tsx": { estado: "aplicada", evidencia: ["components/fondos/AccionesFondos.tsx"] },
+  // Compras simple (ADR-0480, actividad 2): «Me dieron plata» (cómo le llegó, cuánto; la foto del voucher, opcional) y «Confirmar la plata»
+  // (cuánto llegó y, salvo «ya tenía», de qué cuenta salió; desde una terminal, quién confirma).
+  "components/mi-plata/AnotarPlata.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarPlata.tsx"] },
+  "components/mi-plata/PlataPorConfirmar.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx"] },
   // La rendición (ADR-0362 fase 6 · actividad 5): «Rendir tu fondo» (el efectivo; la explicación, sugerida si falta plata) y «Revisar la
   // rendición» (quién asume lo que falta, cuando hay explicación; la nota; desde una terminal, quién aprueba).
   "components/fondos/RendirFondo.tsx": { estado: "aplicada", evidencia: ["components/fondos/RendirFondo.tsx"] },

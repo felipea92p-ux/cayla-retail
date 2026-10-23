@@ -20,6 +20,8 @@ const ANOTAN: ReadonlySet<ClaveModulo> = new Set<ClaveModulo>([
   "existencias", "conteos", "traslados", "productos", "liquidacion", "rendimiento", "recibir", "colaboradores", "roles", "configuracion",
   // Órdenes de compra (ADR-0362, 20261010235000 y 20261010235500): crear, editar y anular anotan su línea, sin montos.
   "ordenes_compra",
+  // Revisar compras (ADR-0480, actividad 2, 20261022235000): confirmar la plata que anotó una compradora anota su línea, sin montos.
+  "fondos",
   // Proveedores (ADR-0362, fase 5a, 20261013015000): «Llegó la reposición» a mano anota quién marcó lo que repuso el proveedor.
   "proveedores",
   // Órdenes de insumos del Taller (ADR-0362, fase 7, 20261013040000): crear, editar y anular anotan su línea, sin montos ni cantidades.

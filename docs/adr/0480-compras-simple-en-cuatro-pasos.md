@@ -1,8 +1,9 @@
 # ADR-0480 — Compras simple: la compra nace en el celular de quien compra
 
 - **Fecha:** 2026-10-22 · **Estado:** en construcción en la rama `claude/modulo-compras-66e94a`, actividad por actividad
-  (`/construir`). Actividad 1 (menú y módulos): migración `20261022225000_compras_simple_modulos.sql`, **sin pegar en producción**
-  (se pega después de publicar la web, con el OK de Felipe).
+  (`/construir`). Actividad 1 (menú y módulos): migración `20261022225000_compras_simple_modulos.sql`. Actividad 2 (anotar y confirmar
+  la plata): `20261022235000_compras_simple_plata_anotada.sql`. **Ninguna pegada en producción** (se pegan después de publicar la web,
+  en orden y con el OK de Felipe).
 - **Maqueta aprobada:** `docs/maquetas/compras-simple-2026-10/` (index.html tocable + README con cada decisión).
 - **Relacionados:** ADR-0362 (Órdenes de compra y Fondos por rendir, fases 1–6: lo que se reemplaza), ADR-0111 y ADR-0362 fase 5b
   (notas de crédito y documento interno), ADR-0161 y ADR-0306 (módulos y roles; un módulo es una entrada del menú), ADR-0387 («el
@@ -47,6 +48,29 @@ o al proveedor (sin formación técnica, con el celular en la mano) que llenara 
   ellas usaban (Knip). `/compras/notas-credito` redirige a `/compras`. En Recibir, «lo que no llegó» se reclama en «Nos debe» del
   proveedor.
 
+## Actividad 2: la compradora anota su plata y Compras la confirma (2026-10-22)
+
+**Lo que decidió Felipe al construirla:** al confirmar se dice de qué cuenta salió, con el **BCP sugerido** (se puede cambiar); la plata
+que «ya tenía» entra como **saldo de apertura**.
+
+- **`fondo_plata_anotada`**: cada plata anotada (cómo llegó, cuánto, la foto del voucher). Nace «por confirmar» y pasa una sola vez a
+  «confirmada», con el monto que confirmó Compras; nunca se borra ni se edita después. RLS sin políticas: solo la tocan sus funciones.
+- **Anotar no mueve plata** (`anotar_plata_compras`, módulo `ordenes_compra`): un voucher falso no le resta al banco. «Tienes para
+  comprar» suma el fondo más lo por confirmar, porque Felipe quiso que la plata se pueda usar de una vez. Si se gasta antes de que se
+  confirme, el fondo queda en negativo («CAYLA te debe», decisión 32) y la confirmación lo compensa.
+- **Confirmar** (`confirmar_plata_compras`, módulo `fondos`, nunca la propia): la plata que le llegó pasa por `entregar_fondo` desde la
+  cuenta elegida, así todo lo de los fondos (rendición, Diario, Balance) la ve como cualquier entrega. «Ya tenía» es el **saldo inicial del
+  fondo**, con su fecha: es lo que la base ya llama «una cuenta que empieza con su saldo después del arranque», y el Balance lo explica
+  solo. Para eso se afloja `cuentas_dinero_fondo_sin_saldo` (un fondo puede empezar con saldo, solo con su fecha) y `fn_fondos` suma ese
+  saldo inicial al saldo y a «le entregaste». Se descartó un tipo de movimiento nuevo (Debe 1413 / Haber 591): obligaba a parchar ocho
+  funciones que distinguen tipos.
+- **La foto** va al depósito de los gastos del viaje (carpeta `plata/`), que ya leen quien compra y quien revisa: sin políticas nuevas.
+- **Reintentos:** la marca de cada envío sigue a su contenido (`fn_intento_con_huella`) y «Revisar si se guardó» conoce la operación
+  (`fn_resolver_intento`, reemplazo anclado; las anclas se comprobaron en producción, en solo lectura). Confirmar es idempotente por su id.
+- **Pantallas:** «Mi plata para compras» (celular primero) con «Tienes para comprar», «Me dieron plata» (`FichasMedio`, la pieza de
+  «¿cómo se pagó?», y la casilla «Ya tenía plata de antes» solo la primera vez) y «Lo que anotaste». En «Revisar compras», arriba, «Plata
+  que anotaron las compradoras»: el voucher, la cuenta sugerida, «Confirmar» de un toque y «Cambiar» para corregir el monto o la cuenta.
+
 ## Cómo se ve mal hecho
 
 - Retirar `ordenes_compra` y crear una clave nueva: el rol «Compras» perdería en silencio recibir, gastos y proveedores.
@@ -55,5 +79,5 @@ o al proveedor (sin formación técnica, con el celular en la mano) que llenara 
 
 ## Qué queda
 
-Actividades 2 a 8 de la construcción (anotar y confirmar la plata, registrar la compra, algo nuevo y proveedor nuevo, otro gasto y
+Actividades 3 a 8 de la construcción (registrar la compra, algo nuevo y proveedor nuevo, otro gasto y
 cierre del día, recibir con costo y precio, revisar compras, cierre con guías y pruebas). Cada una agrega su sección a este ADR.
