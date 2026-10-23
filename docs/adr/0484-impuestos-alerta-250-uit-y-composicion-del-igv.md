@@ -1,7 +1,7 @@
-# ADR (sin número aún) · Impuestos: el aviso de 250 UIT, la tarjeta del límite en año calendario y la composición del IGV
+# ADR-0484 · Impuestos: el aviso de 250 UIT, la tarjeta del límite en año calendario y la composición del IGV
 
 - **Fecha:** 2026-10-22 · **Estado:** construido y probado en local (`pnpm pruebas:impuestos`, 123 verificaciones); SQL por pegar en producción.
-  Migración `20261023161000_impuestos_aviso_250_uit_y_composicion_del_igv.sql` (versión provisional: se reserva con `pnpm reservar migracion` y este archivo toma su número con `pnpm reservar adr`).
+  Migración `20261023013000_impuestos_aviso_250_uit_y_composicion_del_igv.sql` (versión reservada con `pnpm reservar migracion`; ADR-0484 reservado con `pnpm reservar adr`).
 - **Decide:** Felipe, 2026-10-22 (régimen RMT; avisar al llegar a 250 UIT de ventas del año; la alerta cuenta lo registrado en el sistema; la tarjeta de 300 UIT pasa al año calendario).
 - **Toca:** ADR-0195 (F8 Impuestos: el límite del régimen) y ADR-0433 (parámetros tributarios que se guardan desde Configuración).
 

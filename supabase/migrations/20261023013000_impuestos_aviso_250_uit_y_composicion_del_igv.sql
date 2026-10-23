@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261023161000_impuestos_aviso_250_uit_y_composicion_del_igv.sql — CAYLA V2 (Finanzas ▸ Impuestos; ADR sin número aún, ver docs/adr/SIN-NUMERO-impuestos-alerta-250-uit-y-composicion-del-igv.md)
+-- 20261023013000_impuestos_aviso_250_uit_y_composicion_del_igv.sql — CAYLA V2 (Finanzas ▸ Impuestos; ADR-0484, ver docs/adr/0484-impuestos-alerta-250-uit-y-composicion-del-igv.md)
 --
 -- EL PROBLEMA PRIMERO. Tres cosas, del primer cierre de mes (octubre 2026):
 --

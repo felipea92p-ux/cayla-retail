@@ -16,7 +16,7 @@
  *   · los registros de ventas y de compras para el contador, con sus columnas;
  *   · el saldo a favor de IGV con que CAYLA arrancó (ADR-0433, act. 4b; lo declara el contador): el IGV mensual parte de él, un saldo declarado a mitad de
  *     la cadena la reemplaza, uno anterior a los primeros datos la alarga hacia atrás, una corrección es una fila nueva, y se valida.
- *   · el límite y el aviso anticipado (`20261023161000`, ADR sin número aún) miden la MISMA cifra, el AÑO calendario: los comprobantes de enero a hoy (sin IGV, menos notas de crédito, sin
+ *   · el límite y el aviso anticipado (`20261023013000`, ADR sin número aún) miden la MISMA cifra, el AÑO calendario: los comprobantes de enero a hoy (sin IGV, menos notas de crédito, sin
  *     anulados ni pruebas) más el ajuste opcional del año; se miden contra `aviso_umbral_uit` y `umbral_uit` × UIT. En enero la cuenta vuelve a cero sola (con el reloj puesto en enero, lo de
  *     diciembre y el ajuste del año anterior no suman), el ajuste rige por año exacto (no se hereda), no se siembra (sin fila vale 0), una corrección es una fila nueva, y se valida (en UIT,
  *     el aviso antes del límite, soles de 0 a 10 millones, desde el 1 de enero). Ninguna cifra tributaria está en el código: los umbrales de la prueba salen de los parámetros.
@@ -38,7 +38,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const MIGRACION_AVISO = readFileSync(join(RAIZ, "supabase", "migrations", "20261023161000_impuestos_aviso_250_uit_y_composicion_del_igv.sql"), "utf8");
+const MIGRACION_AVISO = readFileSync(join(RAIZ, "supabase", "migrations", "20261023013000_impuestos_aviso_250_uit_y_composicion_del_igv.sql"), "utf8");
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder

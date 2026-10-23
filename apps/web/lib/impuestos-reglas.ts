@@ -141,7 +141,7 @@ export function leerPanelImpuestos(data: unknown): PanelImpuestos {
       avisoUmbralUit: vigente(p.aviso_umbral_uit),
     },
     umbral: {
-      // Los campos del año llegan con 20261023161000; una base más vieja no los trae (`ventasAnio` null) y la tarjeta y el aviso callan (no se cae).
+      // Los campos del año llegan con 20261023013000; una base más vieja no los trae (`ventasAnio` null) y la tarjeta y el aviso callan (no se cae).
       anio: numONull(u.anio),
       ventasAnio: numONull(u.ventas_anio),
       ventasAnioErp: num(u.ventas_anio_erp),

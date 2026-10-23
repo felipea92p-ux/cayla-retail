@@ -1,10 +1,10 @@
-## 🧾 Impuestos: aviso de 250 UIT, tarjeta del límite en año calendario y composición del IGV (2026-10-22, ADR sin número aún) — migración `20261023161000` sin pegar; rama `claude/impuestos-alerta-250-uit`
+## 🧾 Impuestos: aviso de 250 UIT, tarjeta del límite en año calendario y composición del IGV (2026-10-22, ADR sin número aún) — migración `20261023013000` sin pegar; rama `claude/impuestos-alerta-250-uit`
 
 - [x] Parámetros `aviso_umbral_uit` (250, por año, se hereda), `ventas_previas_erp` (ajuste opcional por año exacto; no se siembra, sin fila vale 0) e `igv_general` / `igv_ipm` (Ley 32387: 16+2 hasta 2025, 15,5+2,5 en 2026, 15+3, 14,5+3,5, 14+4). La nota falsa del IGV se corrige con una fila nueva.
 - [x] `fn_impuestos_panel` mide el AÑO calendario (comprobantes de enero a hoy + el ajuste del año) para la tarjeta de 300 UIT y para el aviso de 250 UIT: la misma cifra, reinicia sola en enero. `guardar_parametro_tributario` valida los dos nombres nuevos.
 - [x] Web: frase única en `avisoUmbral` (Impuestos ▸ límite, «Antes de declarar», Resumen ▸ Para decidir hoy) que dice qué cuenta («lo registrado en el sistema»); `proyectarUmbral` proyecta el año; columna «Aviso (UIT)» y bloque «Ajuste de ventas del año» en Configuración; guías de Configuración e Impuestos al día.
 - [x] Pruebas: `pnpm pruebas:impuestos` (123, con el reloj en enero y en junio), vitest completo (586 archivos), 7 mutaciones del SQL y 1 de la web atrapadas; `no_deducible.mjs` adaptado a re-pegar su migración sobre esta.
-- [ ] **Falta pegar el SQL en producción** (dos partes, en orden; reservar antes la versión con `pnpm reservar migracion` y renombrar el archivo y el ADR). Antes de la parte 2, comprobar las huellas md5 vivas del encabezado (`fn_impuestos_panel` y `guardar_parametro_tributario`).
+- [ ] **Falta pegar el SQL en producción** (dos partes, en orden). Antes de la parte 2, comprobar las huellas md5 vivas del encabezado (`fn_impuestos_panel` y `guardar_parametro_tributario`).
 - [ ] **Sin probar en el navegador:** las pantallas de Impuestos, Resumen y Configuración con la base nueva (a 1440 y 375 px, claro y oscuro) y `pnpm --filter web guias:recorrer` de las guías de Configuración e Impuestos.
 - [ ] Orden de publicación: con el SQL antes que la web, la tarjeta vieja muestra S/ 0 hasta publicarse; con la web antes, la tarjeta dice que falta actualizar la base. Conviene pegar el SQL y publicar la web seguidos.
 - [ ] Tras pegar en producción: refrescar el diccionario (`pnpm datos:generar:produccion`).
