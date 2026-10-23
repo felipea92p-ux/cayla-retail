@@ -1,0 +1,5 @@
+## Caja Lima y Almacén Lima firman a nombre de Claudia (ADR-0454, actualización 2026-10-23)
+- **En producción desde el 2026-10-23:** `firma_respaldo_id` de Caja Lima y Almacén Lima = Claudia Pereyra (verificado con `fn_terminal_firma_respaldo_id`; Trujillo y Arequipa en null). El archivo `20261023223000_terminales_de_lima_firman_claudia.sql` deja escrito ese `update`, que se hizo por el MCP y no queda en `schema_migrations`.
+- **Por decidir (Felipe):** lo que las terminales de Lima firmaron a nombre de Felipe entre el 19 y el 23 de octubre. Lo normal es dejarlo así porque es historia (`movimientos` es append-only y esas filas tienen su `terminal_id`).
+- **Si alguien vuelve a pegar `20261019190000`**, pone otra vez a Felipe: hay que pegar `20261023223000` después.
+- **Por probar con la terminal real:** recargar Caja Lima y Almacén Lima y ver que la línea del responsable diga «Lo que guardes queda a nombre de Claudia P.». La pantalla no se revisó en el navegador porque no hay cuenta de terminal de Lima en local.

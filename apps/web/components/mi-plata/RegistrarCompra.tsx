@@ -52,7 +52,10 @@ import {
   filtrarProveedores,
   habitualDeNuevo,
   nuevoVacio,
-  lineaDeBorrador,
+  borradorDeLineas,
+  lineasDeBorrador,
+  textoPrendaEnCompra,
+  nombreCortoTienda,
   lineasParaBase,
   marcasDeHabituales,
   prendasDeLineas,
@@ -104,8 +107,11 @@ type Datos = {
   tiene: number | null;
 };
 
-/** La prenda de la hoja abierta: el habitual del que sale y lo escrito. `edita`: la posición en la compra, si se corrige. */
-type EnCurso = BorradorPrenda & { habitual: Habitual; edita: number | null; nueva?: BorradorNuevo };
+/**
+ * La prenda de la hoja abierta: el habitual del que sale y lo escrito. `edita`: su clave, si ya va en la compra y se corrige (una prenda
+ * repartida entre tiendas son varias líneas con la misma clave: se corrigen y se quitan juntas).
+ */
+type EnCurso = BorradorPrenda & { habitual: Habitual; edita: string | null; nueva?: BorradorNuevo };
 
 /** El habitual de una hoja «Algo nuevo» mientras se describe: sin nada de antes. Al agregarla, se arma con lo elegido. */
 const EN_BLANCO: Habitual = {
@@ -167,7 +173,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [paso]);
 
-  const nombresTienda = useMemo(() => new Map(datos.tiendas.map((t) => [t.id, t.nombre])), [datos.tiendas]);
+  // Sin «Tienda» delante: «va a Lima», «Mandarla a Trujillo» (Felipe 2026-10-23).
+  const nombresTienda = useMemo(() => new Map(datos.tiendas.map((t) => [t.id, nombreCortoTienda(t.nombre)])), [datos.tiendas]);
   const deCategoria = useMemo(() => new Map(datos.categorias.map((c) => [c.id, c])), [datos.categorias]);
   const total = totalDeLineas(lineas);
   const ganancia = gananciaDeCompra(lineas);
@@ -207,7 +214,13 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   // «Algo nuevo»: la misma hoja, con qué es, la marca y el nombre arriba. `suyos`: los habituales recién leídos (al elegir un proveedor
   // sin prendas, el estado todavía no los tiene).
   function algoNuevo(suyos: Habitual[] = habitualesLeidos) {
-    setEnCurso({ habitual: EN_BLANCO, cantidad: "", costo: "", venta: "", destinoId: tiendaAnterior(lineas), edita: null, nueva: nuevoVacio(marcasDeHabituales(suyos)) });
+    setEnCurso({ habitual: EN_BLANCO, cantidad: "", costo: "", venta: "", ...destinosDeEntrada(), edita: null, nueva: nuevoVacio(marcasDeHabituales(suyos)) });
+  }
+
+  // La tienda llega marcada con la de la prenda anterior; el reparto, vacío hasta que se marque otra.
+  function destinosDeEntrada(): Pick<BorradorPrenda, "destinos" | "reparto"> {
+    const anterior = tiendaAnterior(lineas);
+    return { destinos: anterior ? [anterior] : [], reparto: {} };
   }
 
   function elegirHabitual(h: Habitual) {
@@ -222,7 +235,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       cantidad: "",
       costo: h.costo != null ? h.costo.toFixed(2) : "",
       venta: h.venta != null ? h.venta.toFixed(2) : "",
-      destinoId: tiendaAnterior(lineas),
+      ...destinosDeEntrada(),
       edita: null,
     });
     if (paso !== "habituales") setPaso("habituales");
@@ -244,14 +257,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       costo: null,
       venta: null,
     };
-    setEnCurso({
-      habitual: h,
-      cantidad: String(l.cantidad),
-      costo: l.costo.toFixed(2),
-      venta: l.venta != null ? l.venta.toFixed(2) : "",
-      destinoId: l.destinoId,
-      edita: i,
-    });
+    // Repartida entre tiendas, son varias líneas: se juntan de vuelta en la hoja.
+    setEnCurso({ habitual: h, ...borradorDeLineas(lineas.filter((x) => x.clave === l.clave)), edita: l.clave });
   }
 
   // La hoja que ya se agregó o se quitó: un doble clic (dos clics en el mismo instante, antes de que la hoja se cierre) la metía dos veces
@@ -262,18 +269,25 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   function agregarPrenda() {
     if (!enCurso || hojaHecha.current === enCurso) return;
     const h = enCurso.nueva ? habitualDeNuevo(`nuevo:${crypto.randomUUID()}`, enCurso.nueva, datos.categorias, datos.marcas) : enCurso.habitual;
-    const linea: LineaCompra | null = h && lineaDeBorrador(h, enCurso);
-    if (!linea) return;
+    const nuevas: LineaCompra[] = h ? lineasDeBorrador(h, enCurso) : [];
+    if (nuevas.length === 0) return;
     hojaHecha.current = enCurso;
-    setLineas((ls) => (enCurso.edita != null ? ls.map((x, i) => (i === enCurso.edita ? linea : x)) : [...ls, linea]));
+    const clave = enCurso.edita;
+    setLineas((ls) => {
+      if (clave == null) return [...ls, ...nuevas];
+      // Corrige: las líneas de esa prenda se reemplazan en su lugar (pueden ser más o menos que antes, si cambió el reparto).
+      const desde = ls.findIndex((x) => x.clave === clave);
+      const resto = ls.filter((x) => x.clave !== clave);
+      return [...resto.slice(0, desde), ...nuevas, ...resto.slice(desde)];
+    });
     setEnCurso(null);
   }
 
   function quitarPrenda() {
     if (enCurso?.edita == null || hojaHecha.current === enCurso) return;
     hojaHecha.current = enCurso;
-    const i = enCurso.edita;
-    setLineas((ls) => ls.filter((_, j) => j !== i));
+    const clave = enCurso.edita;
+    setLineas((ls) => ls.filter((x) => x.clave !== clave));
     setEnCurso(null);
   }
 
@@ -353,7 +367,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const cabecera = paso !== "listo" && (
     <div className="flex flex-col gap-3" data-guia="compra.avance">
       <div className="flex items-center gap-3">
-        {atras ? <Volver onClick={() => setPaso(atras)} a="el paso anterior" /> : <Volver href="/compras/mi-plata" a="Mi plata para compras" />}
+        {atras ? <Volver onClick={() => setPaso(atras)} a="el paso anterior" /> : <Volver href="/compras/mi-plata" a="Mis compras" />}
         {/* «Compré ropa» ya es el título de la pantalla: aquí solo va a quién, una vez elegido. */}
         <span className="min-w-0">
           {proveedor && <span className="block truncate text-sm font-medium text-tinta">{nombreCorto}</span>}
@@ -685,6 +699,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           cambiar={(cambio) => setEnCurso((e) => (e ? { ...e, ...cambio } : e))}
           tiendas={datos.tiendas}
           tiendaAnterior={tiendaAnterior(lineas)}
+          puedeRepartir={enCurso.habitual.productoId != null}
           corrige={enCurso.edita != null}
           onAgregar={agregarPrenda}
           onQuitar={quitarPrenda}
@@ -746,7 +761,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               </span>
             </Boton>
             <Link href="/compras/mi-plata" className="btn-cayla btn-enlace self-center">
-              Ver mi plata
+              Ver mis compras
             </Link>
           </div>
         </section>
@@ -839,9 +854,38 @@ function PasoProveedor({
         placeholder="Nombre del proveedor" // sugerir-fijo: se busca un proveedor por su nombre; no depende de nada elegido antes
         guia="compra.buscador"
       />
+      {/* Registrar un proveedor nuevo, a la vista bajo el buscador (Felipe 2026-10-23: «no se nota que tiene esa opción»; antes era un
+          botón gris pegado al pie). */}
+      <button
+        type="button"
+        onClick={alNuevo}
+        data-guia="compra.proveedor-nuevo"
+        className="card-cayla mov-boton grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] border-dashed border-tinta/40 px-3.5 py-3 text-left"
+      >
+        <span aria-hidden className="grid h-10 w-10 place-items-center rounded-full bg-tinta text-crema">
+          <Plus className="h-5 w-5" />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-medium text-tinta">Es un proveedor nuevo</span>
+          <span className="block text-xs text-taupe">¿Primera vez que le compras? Regístralo aquí</span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-taupe" aria-hidden />
+      </button>
       {buscando && lista.length === 0 ? (
-        <Vacio icono={<Store aria-hidden />} titulo="No hay un proveedor así" tamano="chico">
-          Prueba con otra categoría u otro nombre, o regístralo en «Es un proveedor nuevo», aquí abajo.
+        <Vacio
+          icono={<Store aria-hidden />}
+          titulo="No hay un proveedor así"
+          tamano="chico"
+          acciones={
+            <Boton peso="primario" onClick={alNuevo}>
+              <span className="inline-flex items-center gap-2">
+                <Plus className="h-4 w-4" aria-hidden />
+                {q.trim() ? `Registrar «${q.trim()}»` : "Registrar un proveedor nuevo"}
+              </span>
+            </Boton>
+          }
+        >
+          Si es la primera vez que le compras, regístralo.
         </Vacio>
       ) : (
         <div className="flex flex-col gap-2" data-guia="compra.proveedores">
@@ -882,14 +926,6 @@ function PasoProveedor({
           </div>
         </div>
       )}
-      <div className="sticky bottom-0 z-10 bg-crema/95 py-3 backdrop-blur">
-        <Boton peso="fantasma" className="w-full" onClick={alNuevo} data-guia="compra.proveedor-nuevo">
-          <span className="inline-flex items-center gap-2">
-            <Plus className="h-4 w-4" aria-hidden />
-            Es un proveedor nuevo
-          </span>
-        </Boton>
-      </div>
     </section>
   );
 }
@@ -926,21 +962,15 @@ function ListaHabituales({
   // La miniatura sin foto es el ícono de su categoría sobre su tono (ADR-0333): el prefijo y la familia salen de la categoría.
   const deCategoria = new Map(categorias.map((c) => [c.id, c]));
   const claves = new Set(habituales.map((h) => h.clave));
-  // Las prendas nuevas que ya van en la compra también son tarjetas: así se corrigen igual que las de siempre.
-  const nuevas = lineas.map((l, i) => ({ l, i })).filter(({ l }) => !claves.has(l.clave));
-  const tarjeta = (
-    clave: string,
-    productoId: string | null,
-    nombre: string,
-    categoriaId: string,
-    categoria: string,
-    linea: LineaCompra | undefined,
-    abajo: string | null,
-    onClick: () => void,
-  ) => {
+  // Las prendas nuevas que ya van en la compra también son tarjetas: así se corrigen igual que las de siempre (una por prenda).
+  const nuevas = lineas.map((l, i) => ({ l, i })).filter(({ l, i }) => !claves.has(l.clave) && lineas.findIndex((x) => x.clave === l.clave) === i);
+  const tarjeta = (clave: string, productoId: string | null, nombre: string, categoriaId: string, categoria: string, abajo: string | null, onClick: () => void) => {
     const c = deCategoria.get(categoriaId);
     const mosaico = <MosaicoPrenda forma="grilla" prefijo={c?.prefijo} familia={c?.familia as never} categoria={categoria} conNombre={false} className="w-full aspect-[4/3]!" />;
     const foto = productoId ? fotos.get(productoId) : undefined;
+    // Repartida entre tiendas, una prenda son varias líneas: la tarjeta suma todas.
+    const suyas = lineas.filter((l) => l.clave === clave);
+    const linea = suyas.length > 0;
     return (
       <li key={clave}>
         <button
@@ -956,11 +986,11 @@ function ListaHabituales({
           ) : (
             mosaico
           )}
-          {linea && <Globito n={linea.cantidad} esquina etiqueta="en la compra" className="absolute right-4 top-4" />}
+          {linea && <Globito n={prendasDeLineas(suyas)} esquina etiqueta="en la compra" className="absolute right-4 top-4" />}
           <span className="text-[13.5px] font-medium leading-tight text-tinta">{nombre}</span>
           {(linea || abajo) && (
             <span className="text-[11.5px] leading-snug text-taupe">
-              {linea ? `${linea.cantidad} × ${soles(linea.costo)} · ${nombresTienda.get(linea.destinoId) ?? "una tienda"}` : abajo}
+              {linea ? textoPrendaEnCompra(suyas, nombresTienda) : abajo}
             </span>
           )}
         </button>
@@ -982,9 +1012,9 @@ function ListaHabituales({
         </div>
       )}
       <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3" data-guia="compra.habituales">
-        {nuevas.map(({ l, i }) => tarjeta(l.clave, l.productoId, l.nombre, l.categoriaId, l.categoria, l, null, () => alCorregir(i)))}
+        {nuevas.map(({ l, i }) => tarjeta(l.clave, l.productoId, l.nombre, l.categoriaId, l.categoria, null, () => alCorregir(i)))}
         {ver.map((h) =>
-          tarjeta(h.clave, h.productoId, h.nombre, h.categoriaId, h.categoria, lineas.find((l) => l.clave === h.clave), textoHabitual(h) ?? `${h.categoria}${h.marca ? ` · ${h.marca}` : ""}`, () => alElegir(h)),
+          tarjeta(h.clave, h.productoId, h.nombre, h.categoriaId, h.categoria, textoHabitual(h) ?? `${h.categoria}${h.marca ? ` · ${h.marca}` : ""}`, () => alElegir(h)),
         )}
       </ul>
       {!verTodos && !cat && habituales.length > HABITUALES_A_LA_VISTA && (

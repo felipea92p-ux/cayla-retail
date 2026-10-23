@@ -133,7 +133,7 @@ export type AccesoAnalisis = {
   traslados: boolean;
   /** «Pedir a otra tienda»: lo acepta la base con Traslados o con Análisis. */
   pedir: boolean;
-  /** «Mi plata para compras» (clave `ordenes_compra`, ADR-0480): donde se anota lo comprado. */
+  /** «Mis compras» (clave `ordenes_compra`, ADR-0480): donde se anota lo comprado. */
   compras: boolean;
   produccion: boolean;
   etiquetas: boolean;

@@ -254,15 +254,15 @@ export function ComparativaCaja({ hoy, ayer, ahoraMin, horaCierreMin, cajon, mov
   return (
     <div className="space-y-3">
       <VeredictoCaja hoy={hoy} ayer={ayer} ahoraMin={ahoraMin} />
-      <div className="grid gap-3 @[900px]:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 @[900px]:grid-cols-2">
         {cajon}
         <ClientesYTicket hoy={hoy} ayer={ayer} ahoraMin={ahoraMin} />
       </div>
-      <div className="grid gap-3 @[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-3 @[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <GraficoAcumulado hoy={hoy} ayer={ayer} ahoraMin={ahoraMin} horaCierreMin={horaCierreMin} />
         <ComoTePagaron hoy={hoy} ayer={ayer} />
       </div>
-      <div className="grid gap-3 @[900px]:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-3 @[900px]:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <DondeGanasYPierdes hoy={hoy} ayer={ayer} ahoraMin={ahoraMin} />
         {movimientos}
       </div>
