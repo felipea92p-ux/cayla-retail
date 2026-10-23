@@ -6,3 +6,4 @@
 - [ ] Decisión de Felipe: hoy el interruptor empieza apagado y no se recuerda. Si durante toda una campaña lo prefiere recordado por computadora (como la forma A/B de la hoja), es un `localStorage` más.
 - [x] Etiquetas de precio lee las campañas de la tienda donde se imprime (`fn_campanas_en_sede`, ADR-0486): arregla «no hay prendas de esta campaña» y las etiquetas de TRU sin el descuento. Tipos de `fn_campanas_en_sede` agregados a `packages/database`.
 - [ ] Catálogo («lo que cobra la caja hoy», ADR-0472) sigue leyendo sin sede: no muestra una campaña limitada a tiendas. Decisión de Felipe si debe mostrarla según la tienda activa.
+- [x] «Imprimir sin el descuento» también quita la insignia de campaña aunque esa etiqueta no traiga descuento (Aniversario en Lima, donde no rige): `insigniasDeCampana`, `insigniasEnLaLista`, `sinDescuento` ampliado.

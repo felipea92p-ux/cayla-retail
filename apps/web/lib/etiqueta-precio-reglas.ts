@@ -205,26 +205,39 @@ export function campanaSaleEnLaFila(e: Pick<EtiquetaPrecio, "campana" | "iconos"
   return campana !== null && e.iconos.some((i) => i.nombre === campana.nombre);
 }
 
+/** Las insignias de campaña que lleva el papel: los íconos de etiquetas que rebajan el precio (`iconos` menos `iconosSinDescuento`),
+ *  rija o no esa campaña en la tienda donde se imprime. Aniversario solo en Tienda TRU: en Lima su insignia sale igual, sin descuento. */
+export function insigniasDeCampana(e: Pick<EtiquetaPrecio, "iconos" | "iconosSinDescuento">): IconoDePapel[] {
+  return e.iconos.filter((i) => !e.iconosSinDescuento.some((s) => s.nombre === i.nombre));
+}
+
 /**
  * La etiqueta tal como sale cuando se imprime «sin el descuento» (Felipe, 2026-10-23: en el aniversario de CAYLA todo rebaja 10 %,
  * pero el papel tiene que servir también mañana, cuando la campaña ya no esté).
  *
  * PROMETE: precio de lista a secas —sin el precio tachado, sin el «−10 %», sin el «Válido hasta» ni el nombre de la campaña—, y
- *          los íconos que quedan al no contar las etiquetas que rebajan el precio (`iconosSinDescuento`). Lo demás (código, QR,
- *          tallas, marca, empresa, cantidad) no cambia.
+ *          sin la insignia de campaña, haya o no rebajado el precio aquí: se muestran los íconos que quedan al no contar las
+ *          etiquetas que rebajan (`iconosSinDescuento`). Lo demás (código, QR, tallas, marca, empresa, cantidad) no cambia.
  * NO HACE: no toca la caja. Ella sigue cobrando la campaña (ADR-0302): el papel dice el precio normal y la caja rebaja al cobrar.
- *          Una etiqueta que no traía campaña se devuelve tal cual (misma referencia): no hay nada que esconder.
+ *          Una etiqueta sin campaña ni insignia de campaña se devuelve tal cual (misma referencia): no hay nada que esconder.
  */
 export function sinDescuento(e: EtiquetaPrecio): EtiquetaPrecio {
-  return e.campana === null ? e : { ...e, campana: null, iconos: e.iconosSinDescuento };
+  return e.campana === null && insigniasDeCampana(e).length === 0 ? e : { ...e, campana: null, iconos: e.iconosSinDescuento };
 }
 
 /** Las campañas que hoy rebajan las etiquetas de la lista (una por nombre, la de mayor % primero): lo que la pantalla le dice a
- *  la colaboradora para que sepa QUÉ descuento está a punto de esconder. Vacía = no hay nada que esconder, no se ofrece. */
+ *  la colaboradora para que sepa QUÉ descuento está a punto de esconder. Vacía = ningún precio rebajado en la lista. */
 export function campanasEnLaLista(etiquetas: readonly Pick<EtiquetaPrecio, "campana">[]): { nombre: string; pct: number }[] {
   const porNombre = new Map<string, number>();
   for (const { campana } of etiquetas) if (campana) porNombre.set(campana.nombre, Math.max(porNombre.get(campana.nombre) ?? 0, campana.pct));
   return [...porNombre].map(([nombre, pct]) => ({ nombre, pct })).sort((a, b) => b.pct - a.pct || a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Los nombres de las insignias de campaña que salen en el papel de la lista (una por nombre, por orden alfabético), rebajen o no el
+ *  precio aquí. Con `campanasEnLaLista` decide si «Imprimir sin el descuento» se ofrece: hay algo que quitar si cualquiera de las dos
+ *  trae algo. */
+export function insigniasEnLaLista(etiquetas: readonly Pick<EtiquetaPrecio, "iconos" | "iconosSinDescuento">[]): string[] {
+  return [...new Set(etiquetas.flatMap((e) => insigniasDeCampana(e).map((i) => i.nombre)))].sort((a, b) => a.localeCompare(b, "es"));
 }
 
 /** Qué día mirar para saber qué prendas alcanza una campaña: hoy si rige (o no tiene fechas), su último día si ya
@@ -271,7 +284,8 @@ export function armarEtiquetas(
   hermanas: HermanaEtiqueta[],
   campanas: ReadonlyMap<string, CampanaDeVariante> = new Map(),
   iconos: ReadonlyMap<string, IconoDePapel[]> = new Map(),
-  iconosSinDescuento: ReadonlyMap<string, IconoDePapel[]> = new Map(),
+  /** Sin él, se asume que ningún ícono es de campaña (los mismos `iconos`): no hay insignia que quitar. */
+  iconosSinDescuento: ReadonlyMap<string, IconoDePapel[]> = iconos,
 ): { etiquetas: EtiquetaPrecio[]; sinCodigo: string[] } {
   const etiquetas: EtiquetaPrecio[] = [];
   const sinCodigo: string[] = [];
@@ -300,7 +314,7 @@ export function armarEtiquetas(
       precio: v.precio,
       campana: c && descuento > 0 ? { nombre: c.nombre, pct: c.pct, hasta: c.hasta, descuento } : null,
       iconos: iconos.get(v.id) ?? [],
-      iconosSinDescuento: iconosSinDescuento.get(v.id) ?? [],
+      iconosSinDescuento: iconosSinDescuento.get(v.id) ?? iconos.get(v.id) ?? [],
       cantidad,
     });
   }

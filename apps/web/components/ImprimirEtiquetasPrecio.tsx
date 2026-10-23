@@ -21,6 +21,7 @@ import {
   agruparPorPrenda,
   campanasEnLaLista,
   cantidadDeTexto,
+  insigniasEnLaLista,
   expandir,
   MAX_POR_PRENDA,
   nombreDeFila,
@@ -58,6 +59,20 @@ const modoGuardado = (): "girada" | "derecha" => {
   }
 };
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+/** Lo que dice el interruptor de «sin el descuento»: qué rebaja hoy la caja (si algo) y qué insignia de campaña lleva el papel (rebaje
+ *  o no aquí), para que se sepa QUÉ se está quitando. */
+const pieDelInterruptor = (activo: boolean, campanas: { nombre: string; pct: number }[], insignias: string[]) => {
+  const conPrecio = campanas.length > 0;
+  const nombres = insignias.join(" y ");
+  if (activo) {
+    return conPrecio
+      ? `Salen con el precio normal y sin la insignia de campaña. La caja sigue cobrando ${textoDeCampanas(campanas)}.`
+      : "Salen sin la insignia de campaña. El precio no cambia: aquí no hay descuento.";
+  }
+  return conPrecio
+    ? `Hoy la caja cobra ${textoDeCampanas(campanas)} y las etiquetas lo muestran. Préndelo para que salgan con el precio normal y sin la insignia de campaña.`
+    : `Estas etiquetas llevan la insignia ${nombres}, aunque aquí no rebaja el precio. Préndelo para que salgan sin ella.`;
+};
 /** «Aniversario CAYLA (−10 %)», o dos unidas con «y»: la campaña que el interruptor de «sin el descuento» esconde del papel. */
 const textoDeCampanas = (campanas: { nombre: string; pct: number }[]) =>
   campanas.map((c) => `${c.nombre} (−${c.pct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %)`).join(" y ");
@@ -97,6 +112,8 @@ export function ImprimirEtiquetasPrecio({
   // papel: la caja sigue cobrando la campaña.
   const [sinElDescuento, setSinElDescuento] = useState(false);
   const campanas = useMemo(() => campanasEnLaLista(delServidor), [delServidor]);
+  // Las insignias de campaña del papel, rebajen o no el precio aquí (Aniversario solo en TRU: en Lima sale su insignia, sin descuento).
+  const insignias = useMemo(() => insigniasEnLaLista(delServidor), [delServidor]);
   const etiquetas = useMemo(() => (sinElDescuento ? delServidor.map(sinDescuento) : delServidor), [delServidor, sinElDescuento]);
   const columnas = useMemo(() => columnasDe(sinElDescuento), [sinElDescuento]);
   // Las filas sacadas con el tacho, en el orden en que salieron (el «Deshacer» del aviso devuelve la suya). `saliendo`: las que
@@ -273,17 +290,13 @@ export function ImprimirEtiquetasPrecio({
           {sinCodigo.length > 0 && <AvisoSinCodigo prendas={sinCodigo} />}
           {avisoMac && <AvisoAyudanteMac {...avisoMac} instalar={instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome: la etiqueta sale, pero con papel de sobra." />}
 
-          {campanas.length > 0 && (
+          {(campanas.length > 0 || insignias.length > 0) && (
             <div className="rounded-xl border border-sand bg-papel px-5 py-3.5">
               <Interruptor
                 activo={sinElDescuento}
                 onActivo={setSinElDescuento}
                 etiqueta={<b className="font-semibold text-tinta">Imprimir sin el descuento</b>}
-                pie={
-                  sinElDescuento
-                    ? `Salen con el precio normal, sin rebaja ni campaña. La caja sigue cobrando ${textoDeCampanas(campanas)}.`
-                    : `Hoy la caja cobra ${textoDeCampanas(campanas)} y las etiquetas lo muestran. Préndelo para que salgan con el precio normal.`
-                }
+                pie={pieDelInterruptor(sinElDescuento, campanas, insignias)}
               />
             </div>
           )}
