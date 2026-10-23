@@ -11,7 +11,6 @@ import {
   campanaDeLaFicha,
   chipCampana,
   colorInicial,
-  dibujoDeLaInsignia,
   faltaParaTerminar,
   fotosDelColor,
   lineaAlAgregar,
@@ -23,6 +22,7 @@ import {
   type ChipFicha,
   type Ficha,
 } from "@/lib/ficha";
+import { dibujoDeLaInsignia } from "@/lib/insignias";
 import { hrefDelProbador } from "@/lib/probador";
 import { esLaMismaFoto } from "@/lib/prenda-tocada";
 import { textoNivel, tonoNivel } from "@/lib/stock";
