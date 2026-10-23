@@ -81,6 +81,10 @@ const config: KnipConfig = {
               // puras nacen antes que su pantalla, que las importa en la actividad 4 (`components/ordenes-compra/NuevaOrdenCompra.tsx`).
               // SE SACA DE AQUÍ al conectarla: este candado es justo para que «lo uso después» no se quede.
               "lib/orden-compra-precio-ayuda.ts",
+              // Los pendientes de Cuentas y dinero para «Te toca» (El telar, actividad 6 de docs/maquetas/finanzas-v3-2026-10/dinero/CONSTRUIR.md):
+              // nacen antes que la barra común (PR #1305), que los llama desde `app/api/finanzas/te-toca/route.ts` cuando esté en main.
+              // SE SACA DE AQUÍ al conectarlos.
+              "lib/dinero-te-toca-reglas.ts",
             ],
           }
         : {}),
