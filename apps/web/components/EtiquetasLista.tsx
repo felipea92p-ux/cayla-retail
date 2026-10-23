@@ -595,7 +595,8 @@ export function CampanaModal({
               </CampoGuiado>
 
               {/* El título del grupo va FUERA de la grilla: dentro, ocupaba la primera celda y partía Desde y Hasta en dos filas. */}
-              <CampoGuiado id="vigencia" guia={guia} titulo="Cuándo rige" ayuda="Opcional: sin fechas, rige siempre.">
+              {/* «Opcional: sin fechas…» solo con las fechas vacías: con fechas puestas, junto al ✓ invitaba a borrarlas (/formidable 2026-10-23). */}
+              <CampoGuiado id="vigencia" guia={guia} titulo="Cuándo rige" ayuda={desde.trim() || hasta.trim() ? undefined : "Opcional: sin fechas, rige siempre."}>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {/* Cada calendario pinta la temporada entera: se elige una punta viendo dónde está la otra. */}
                   <CampoFecha etiqueta="Desde" valor={desde} onValor={setDesde} tono={fDesde.ok ? undefined : "error"} rango={rangoElegido} />
@@ -691,7 +692,10 @@ export function CampanaModal({
             <CampoGuiado id="categorias" guia={guia} retiene="fila">
               <div className="flex items-baseline justify-between gap-3">
                 <p className="label-cayla text-[11px] text-tinta/65">
-                  {guia.etiqueta("categorias", "Categorías")} <span className="font-normal normal-case text-tinta/45">· opcional</span>
+                  {guia.etiqueta("categorias", "Categorías")}
+                  {/* «· opcional» solo cuando la guía también lo dice: con un descuento que no llega a ninguna prenda, Categorías es
+                      «sugerido» y las dos señales juntas se contradecían (/formidable 2026-10-23). */}
+                  {guia.estado("categorias") === "opcional" && <span className="font-normal normal-case text-tinta/45"> · opcional</span>}
                 </p>
                 <div className="flex items-baseline gap-3">
                   {elegidas.size < categorias.length && (
@@ -746,7 +750,8 @@ export function CampanaModal({
 
           {/* ---- Lo que falta y los dos botones, siempre a la vista bajo la etiqueta (mitad y mitad: Felipe 2026-10-23) ---- */}
           <div className="eqp-pie space-y-2.5">
-            <PieGuia guia={guia} listo="Todo listo para guardar." />
+            {/* Con su frase a la vista: el porqué de lo que falta o se sugiere no puede vivir solo al pasar el mouse (ley 6). */}
+            <PieGuia guia={guia} listo="Todo listo para guardar." conFrase />
             <div data-guia="atributos.campana-pie" className="pie-acciones pie-parejo">
               <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                 Cancelar
