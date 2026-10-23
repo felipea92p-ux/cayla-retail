@@ -1450,10 +1450,11 @@ export function InventarioPanel({
       {/* Lo marcado que SIGUE en la lista, no el conjunto crudo: tras eliminar un producto marcado (ADR-0252) sus tallas
           ya no están, y la barra quedaba en «0 prendas · 0 tallas» sin botones. */}
       {filasMarcadas.length > 0 && (
-        <div
+        <BarraDeAbajo
+          tono="tinta"
           role="region"
           aria-label="Prendas marcadas"
-          className="anim-revelar fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 rounded-2xl bg-tinta p-2 text-crema shadow-lg sm:inset-x-auto sm:left-1/2 sm:w-max sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2"
+          className="block p-2 sm:inset-x-auto sm:left-1/2 sm:w-max sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2"
         >
           <div className="flex flex-wrap items-center gap-1">
             {/* Celular: la cuenta y la ✕ arriba, los botones debajo a todo el ancho. Escritorio: todo en una fila. */}
@@ -1502,7 +1503,7 @@ export function InventarioPanel({
               <X aria-hidden className="h-4 w-4" />
             </button>
           </div>
-        </div>
+        </BarraDeAbajo>
       )}
 
       {/* Celular: la consulta más frecuente del piso («¿hay en M?») a un toque, fijo al alcance del pulgar — como en Cambios.

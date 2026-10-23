@@ -46,6 +46,15 @@
   /* Para el dedo (ADR-0350): los botones del sistema de la isla miden 44 px. En la oscura, el principal va en crema. */
   .barra-abajo .btn-cayla:not(.btn-enlace) { min-height: 2.75rem; }
   .barra-abajo[data-tono="tinta"] .btn-primario { background: var(--color-crema); color: var(--color-tinta); }
+  .barra-abajo[data-tono="tinta"] .btn-enlace {
+    color: var(--color-crema);
+    background-image:
+      linear-gradient(var(--color-crema), var(--color-crema)),
+      linear-gradient(color-mix(in srgb, var(--color-crema) 45%, transparent), color-mix(in srgb, var(--color-crema) 45%, transparent));
+  }
+  @media (hover: hover) {
+    .barra-abajo[data-tono="tinta"] .btn-enlace:hover:not(:disabled) { color: var(--color-crema); }
+  }
 
   /* Una sola acción: el botón es la isla, de 52 px (va después de la regla de 44 px, con su misma fuerza, para ganarle). */
   .barra-abajo[data-sola] { padding: 0; border: 0; background: none; box-shadow: none; }
