@@ -216,6 +216,7 @@ describe("leer un envío por dentro (fn_envio_detalle)", () => {
       costoUnitario: 25,
       compraItemId: null,
       precioVentaSugerido: 59.9,
+      prendaElegida: null,
     });
     // El precio llega como texto desde numeric: se lee igual.
     expect(detalle.lineas[1]!.costoUnitario).toBe(12.5);
@@ -1073,5 +1074,35 @@ describe("la reposición de lo que faltó en la recepción", () => {
     const args = argsRecibirDespacho(conDeudas, b, ctx, { version: 1, token: "t" });
     const rechazo = rechazoDeLaBase(conDeudas, args, ctx.proveedores) ?? rechazoPorReposicion(conDeudas, args, ctx.proveedores);
     expect(guiaDejaPasar, `${_}: la guía y la base no dicen lo mismo (${rechazo ?? "la base acepta"})`).toBe(rechazo === null);
+  });
+});
+
+describe("lo comprado desde el celular (ADR-0480, actividad 6): el papel con su foto y la prenda que eligió la compradora", () => {
+  it("lee la prenda elegida de cada línea; sin ella, null", () => {
+    const d = leerDetalleEnvio({
+      ...DETALLE_FASE4,
+      lineas: [{ ...DETALLE_FASE4.lineas[0], producto: { id: "p-emma", nombre: "Blusa Emma", codigo: "BLU-EMMA" } }, { ...DETALLE_FASE4.lineas[1], producto: null }],
+    })!;
+    expect(d.lineas.map((l) => l.prendaElegida)).toEqual([{ productoId: "p-emma", nombre: "Blusa Emma", codigo: "BLU-EMMA" }, null]);
+  });
+
+  it("lee los papeles; una foto fuera de papeles/ no se firma y uno sin id se descarta", () => {
+    const d = leerDetalleEnvio({
+      ...DETALLE_FASE4,
+      papeles: [
+        { id: "pa-1", tipo: "boleta", foto_ruta: "papeles/a.jpg", fecha: "2026-10-22", proveedor: "Textiles Andina", compradora: "Marisol Ruiz" },
+        { id: "pa-2", tipo: "sin_comprobante", foto_ruta: "plata/voucher.jpg" },
+        { tipo: "factura" },
+      ],
+    })!;
+    expect(d.papeles).toEqual([
+      { id: "pa-1", tipo: "boleta", fotoRuta: "papeles/a.jpg", fecha: "2026-10-22", proveedor: "Textiles Andina", compradora: "Marisol Ruiz" },
+      { id: "pa-2", tipo: "sin_comprobante", fotoRuta: null, fecha: null, proveedor: null, compradora: null },
+    ]);
+  });
+
+  it("un envío del escritorio (la base sin papeles) se lee igual: sin papeles ni prenda elegida", () => {
+    expect(detalle.papeles).toEqual([]);
+    expect(detalle.lineas.every((l) => l.prendaElegida === null)).toBe(true);
   });
 });

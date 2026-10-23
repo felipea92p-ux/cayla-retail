@@ -1051,6 +1051,8 @@ export function textoResuelto(r: { entraron: number; quedaronPendientes: number 
 export function textoNoSeReabre(porQueNo: string | null): string {
   if (porQueNo === "reabrir_deuda_resuelta") return "Compras ya resolvió parte de lo que faltó: la corrección la hace Compras";
   if (porQueNo === "reabrir_reposicion_saldo") return "Lo de más de este envío ya saldó lo que el proveedor debía: la corrección la hace Compras";
+  // ADR-0480 (actividad 7): lo recibido ya es del comprobante de la compra.
+  if (porQueNo === "reabrir_papel_completado") return "Compras ya completó el papel de esta compra: la corrección la hace Compras";
   return "Ya no se puede reabrir";
 }
 

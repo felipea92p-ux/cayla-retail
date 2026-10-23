@@ -83,14 +83,14 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
           {ok.cierres} {ok.cierres === 1 ? "faltante cerrado" : "faltantes cerrados"}. Quedan en el historial del comprobante.
         </p>
       )}
-      {/* El documento del proveedor no se registra acá: se reclama en su módulo (solo líder — `porReclamar` llega en 0 para el resto). */}
+      {/* Lo que el proveedor debe se reclama en «Nos debe» de Proveedores (ADR-0480: las notas de crédito no se manejan por ahora). */}
       {ok.porReclamar > 0 && (
         <p className="flex max-w-lg flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-tinta/70">
           <span>
-            El proveedor te debe <b className="font-semibold tabular-nums text-ambar-profundo">{soles(ok.porReclamar)}</b> en notas de crédito.
+            El proveedor te debe <b className="font-semibold tabular-nums text-ambar-profundo">{soles(ok.porReclamar)}</b> por lo que no llegó.
           </span>
-          <Link href="/compras/notas-credito" className="rounded-full transition-opacity hover:opacity-80">
-            <Chip tono="ambar">Se reclama en Notas de crédito ↗</Chip>
+          <Link href="/compras/proveedores" className="rounded-full transition-opacity hover:opacity-80">
+            <Chip tono="ambar">Se reclama en «Nos debe» ↗</Chip>
           </Link>
         </p>
       )}

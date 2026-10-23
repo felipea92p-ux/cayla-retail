@@ -154,7 +154,8 @@ caso(
 );
 
 // R. LOS COSTOS AL RECIBIR (y D: la regla general no se abrió) ----------------------------------------------------------
-for (const [modulo, esperado] of [["recibir", "t"], ["facturas_compra", "t"], ["por_pagar", "t"], ["notas_credito", "t"],
+// «notas_credito» ya no es un módulo (ADR-0480, 2026-10-22): se retiró del catálogo y no se le puede dar a un rol.
+for (const [modulo, esperado] of [["recibir", "t"], ["facturas_compra", "t"], ["por_pagar", "t"],
   ["proveedores", "f"], ["plan_compra", "f"], ["ordenes_compra", "f"], ["existencias", "f"]]) {
   caso(
     `R con «${modulo}» solo, sin ser líder, ${esperado === "t" ? "ve" : "NO ve"} los costos al recibir`,

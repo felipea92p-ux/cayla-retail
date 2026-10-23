@@ -51,6 +51,7 @@ export function RegistrarProveedorOrden({
   responsable,
   onRegistrado,
   onClose,
+  sinResponsable = "Antes elige quién hace la orden: está al final del formulario.",
 }: {
   /** Los proveedores que ya hay (para preguntar «¿no será…?» y no repetir un RUC). */
   proveedores: readonly ProveedorDeLista[];
@@ -63,6 +64,8 @@ export function RegistrarProveedorOrden({
    *  (si hace falta) y lo elige. */
   onRegistrado: (proveedor: ProveedorRegistrado, telefono: string | null) => void;
   onClose: () => void;
+  /** Lo que se le dice a una terminal que todavía no eligió quién (la base no deja registrar sin una persona). */
+  sinResponsable?: string;
 }) {
   const [b, setB] = useState(() => borradorDesdeLoTipeado(tipeado));
   const [guardando, setGuardando] = useState(false);
@@ -172,7 +175,7 @@ export function RegistrarProveedorOrden({
           {repetido && (
             <PreguntaParecido
               titulo={`«${repetido.nombre}» ya tiene ese RUC`}
-              bajada="Un RUC no se repite: elígelo y la orden sigue con él."
+              bajada="Un RUC no se repite: elígelo y sigues con él."
               opciones={[{ id: repetido.id, nombre: repetido.nombre }]}
               si={(o) => ({ texto: `Usar ${o.nombre}`, onClick: () => usar(repetido) })}
               deshabilitado={guardando}
@@ -181,7 +184,7 @@ export function RegistrarProveedorOrden({
           {pregunta.igual && (
             <PreguntaParecido
               titulo={`«${pregunta.igual.nombre}» ya está registrado`}
-              bajada="Con el mismo nombre no se registra otro: elígelo y la orden sigue con él."
+              bajada="Con el mismo nombre no se registra otro: elígelo y sigues con él."
               opciones={[{ id: pregunta.igual.id, nombre: pregunta.igual.nombre }]}
               si={() => ({ texto: `Usar ${pregunta.igual!.nombre}`, onClick: () => usar(pregunta.igual!) })}
               deshabilitado={guardando}
@@ -215,7 +218,7 @@ export function RegistrarProveedorOrden({
             />
           </CampoGuiado>
 
-          {faltaResponsable && <Aviso tono="info">Antes elige quién hace la orden: está al final del formulario.</Aviso>}
+          {faltaResponsable && <Aviso tono="info">{sinResponsable}</Aviso>}
           {error && <Aviso tono="error">{error}</Aviso>}
 
           <PieGuia guia={guia} listo="Todo listo para registrar." />

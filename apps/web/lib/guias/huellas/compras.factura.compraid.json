@@ -2,7 +2,7 @@
   "guia": "compras.factura.compraid",
   "ruta": "/compras/factura/[compraId]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 53,
+  "total": 52,
   "controles": {
     "app/(app)/compras/factura/[compraId]/page.tsx": [
       "Volver «/compras»"
@@ -46,9 +46,6 @@
       "ComboResponsable «{responsable}» #2",
       "button «Volver»",
       "Boton «{responsable.motivo ?? undefined}»"
-    ],
-    "components/NotasCreditoCompra.tsx": [
-      "Link «Notas de crédito»"
     ],
     "components/PagoPiezas.tsx": [
       "BotonCopiar «{que}»",
