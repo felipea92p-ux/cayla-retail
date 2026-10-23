@@ -1,8 +1,11 @@
 "use client";
 
+import { AccionDelDia } from "./AccionDelDia";
+import { ICONO_GASTO } from "./iconos";
+import { TarjetaFoto } from "./TarjetaFoto";
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Check, Receipt } from "lucide-react";
+import { Receipt } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
@@ -29,23 +32,16 @@ export function AnotarGasto() {
   const origen = useRef<HTMLElement | null>(null);
   return (
     <>
-      <button
-        type="button"
-        data-guia="mi-plata.gaste"
-        className="card-cayla mov-boton flex w-full items-center gap-4 p-4 text-left"
+      <AccionDelDia
+        guia="mi-plata.gaste"
+        titulo="Gasté en otra cosa"
+        detalle="Taxi, cargador, comida…"
+        icono={<Receipt className="h-5 w-5" aria-hidden />}
         onClick={(e) => {
           origen.current = e.currentTarget;
           setAbierta(true);
         }}
-      >
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sand/50 text-tinta">
-          <Receipt className="h-5 w-5" aria-hidden />
-        </span>
-        <span className="min-w-0">
-          <span className="block font-serif text-xl leading-tight text-tinta">Gasté en otra cosa</span>
-          <span className="block text-sm text-taupe">Taxi, cargador, comida, la encomienda: lo que no es ropa.</span>
-        </span>
-      </button>
+      />
       {abierta && <AnotarGastoModal onClose={() => setAbierta(false)} volverA={origen} />}
     </>
   );
@@ -129,23 +125,24 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
           className="space-y-5"
         >
           <CampoGuiado id="concepto" guia={guia} titulo="¿En qué gastaste?">
-            <div role="group" aria-label="¿En qué gastaste?" className="grid grid-cols-2 gap-2" data-guia="mi-plata.concepto">
-              {(Object.keys(CONCEPTOS_GASTO) as ConceptoGasto[]).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  aria-pressed={concepto === k}
-                  disabled={guardando}
-                  onClick={() => limpiar(setConcepto)(k)}
-                  className={`card-cayla mov-boton flex flex-col items-start gap-0.5 p-3 text-left ${concepto === k ? "border-tinta bg-sand/40" : ""}`}
-                >
-                  <span className="flex w-full items-center justify-between font-medium text-tinta">
+            <div role="group" aria-label="¿En qué gastaste?" className="grid grid-cols-3 gap-2" data-guia="mi-plata.concepto">
+              {(Object.keys(CONCEPTOS_GASTO) as ConceptoGasto[]).map((k) => {
+                const Icono = ICONO_GASTO[k];
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    aria-pressed={concepto === k}
+                    title={CONCEPTOS_GASTO[k].ejemplo}
+                    disabled={guardando}
+                    onClick={() => limpiar(setConcepto)(k)}
+                    className={`card-cayla mov-boton flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-[14px] p-2 text-center text-sm text-tinta ${concepto === k ? "border-tinta bg-sand/40" : ""}`}
+                  >
+                    <Icono className="h-5 w-5" aria-hidden />
                     {CONCEPTOS_GASTO[k].nombre}
-                    {concepto === k && <Check className="h-4 w-4" aria-hidden />}
-                  </span>
-                  <span className="text-xs text-taupe">{CONCEPTOS_GASTO[k].ejemplo}</span>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </CampoGuiado>
           {concepto === "otro" && (
@@ -174,24 +171,16 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
             />
           </CampoGuiado>
           <CampoGuiado id="foto" guia={guia} titulo="Foto del papel">
-            <label
-              className={`btn-cayla btn-secundario mov-boton w-full cursor-pointer justify-center ${guardando ? "pointer-events-none opacity-60" : ""}`}
-            >
-              <Camera className="h-4 w-4" aria-hidden />
-              {archivo ? "Cambiar la foto" : "Tomar o elegir la foto"}
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                capture="environment"
-                className="sr-only"
-                onChange={(e) => {
-                  setRechazo(null);
-                  setArchivo(e.target.files?.[0] ?? null);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-            <p className="mt-1.5 text-xs text-taupe">{archivo ? `Lista: ${archivo.name}` : "Si no te dieron papel, igual se guarda."}</p>
+            <TarjetaFoto
+              titulo="Foto del papel, si te dieron"
+              ayuda="Un taxi o un cargador pueden ir sin papel"
+              archivo={archivo}
+              deshabilitada={guardando}
+              onArchivo={(f) => {
+                setRechazo(null);
+                setArchivo(f);
+              }}
+            />
           </CampoGuiado>
           {rechazo && (
             <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>

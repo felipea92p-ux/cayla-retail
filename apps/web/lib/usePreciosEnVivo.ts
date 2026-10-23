@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { leerTodas } from "@/lib/resultado";
+import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
 import { mismosPrecios, type PreciosReleidos } from "@/lib/precios-en-vivo-reglas";
 import { registrarPreciosPropios } from "@/lib/precios-en-vivo-registro";
 import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
@@ -34,9 +35,8 @@ async function leerPrecios(conocidos: Set<string>): Promise<Map<string, number> 
 }
 
 async function leerCampanas(ubicacionId: string): Promise<Map<string, CampanaLinea> | null> {
-  const supabase = createClient();
-  // Las campañas de ESTA tienda: una campaña puede regir solo en algunas (ADR-0486).
-  const { data, error } = await supabase.rpc("campanas_vigentes", { p_ubicacion_id: ubicacionId });
+  // Las campañas de ESTA tienda (una campaña puede regir solo en algunas, ADR-0486), por páginas: pasan de las 1.000 filas.
+  const { data, error } = await leerCampanasVigentes(createClient(), ubicacionId);
   // Igual que al cargar la pantalla: si la función no existe en esa base (PGRST202) no hay campañas que aplicar.
   if (error) return error.code === "PGRST202" ? new Map() : null;
   return new Map((data ?? []).map((c) => [c.variante_id, { etiquetaId: c.etiqueta_id, nombre: c.etiqueta_nombre, pct: Number(c.descuento_pct) }]));
