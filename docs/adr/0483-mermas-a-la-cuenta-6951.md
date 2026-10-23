@@ -110,7 +110,7 @@ Consecuencia: **base y web están desfasadas hasta fusionar el PR de la web.** L
 sección, no por código). El orden que se dio fue el que el PR ya tolera: la web nueva lee la 6951 y también la 659. Mientras tanto, nadie ha mirado la pantalla.
 
 Lo que queda, en orden: (a) el OK del contador (abajo); (b) «Update branch», CI, «Ready for review» y fusionar el PR de la web; (c) mirar Finanzas ▸ Estado de resultados, fila
-«Mermas»; (d) actualizar el manual contable y los dos documentos que dicen «659 = mermas»; (e) recién entonces cerrar octubre. Si el contador pide otro código, se repite la migración
+«Mermas»; (d) el manual contable y los dos documentos que decían «659 = mermas» (`docs/MANUAL-CONTABLE-CAYLA.md`, `docs/finanzas/fases/F5.md`, `docs/datos/modulos/12-contabilidad.md`) ya se actualizaron en este mismo PR, con la 6951 como provisional; (e) recién entonces cerrar octubre. Si el contador pide otro código, se repite la migración
 con ese código **antes** de cerrar octubre: un mes cerrado ya no se puede cambiar.
 
 ## Pendiente del contador
