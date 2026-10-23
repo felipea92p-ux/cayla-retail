@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Calendar, ChevronDown, Truck } from "lucide-react";
-import { Popover } from "radix-ui";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
@@ -21,6 +20,7 @@ import {
 } from "@/lib/recibidas-filtros-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
+import { CapaDeFiltro } from "@/components/ui/CapaDeFiltro";
 
 // Filtros de «Recibidas recientemente» tal como los dibuja la maqueta 06: el buscador y, en la
 // misma línea, dos pastillas —«Proveedor: Todos ⌄» y «Fechas»— sin el botón «Filtros» ni su
@@ -181,29 +181,34 @@ function PastillaFechas({ desde, hasta, hoy, onCambiar }: { desde: string; hasta
   }
 
   return (
-    <Popover.Root open={abierta} onOpenChange={setAbierta}>
-      {/* La cara de la píldora de filtro del sistema (ADR-0358, ronda 6), para verse igual que su vecina «Proveedor». */}
-      <div className="pildora-filtro shrink-0" data-puesta={activa || undefined} data-abierta={abierta || undefined}>
-        <Popover.Trigger asChild>
-          <button type="button" className="pildora-filtro-boton" aria-label={activa ? `Fechas: ${textoFechas(desde || undefined, hasta || undefined, hoy)}` : "Fechas"}>
-            <Calendar aria-hidden className="pildora-filtro-icono" />
-            <span className="pildora-filtro-nombre">Fechas{activa && ":"}</span>
-            {activa && (
-              <span className="pildora-filtro-valor">
-                <span className="truncate">{textoFechas(desde || undefined, hasta || undefined, hoy)}</span>
-              </span>
-            )}
-            <ChevronDown aria-hidden className="pildora-filtro-flecha" />
-          </button>
-        </Popover.Trigger>
-      </div>
-      <Popover.Portal>
-        <Popover.Content
-          align="end"
-          sideOffset={6}
-          collisionPadding={16}
-          className="anim-revelar z-50 w-[19rem] max-w-[calc(100vw-2rem)] rounded-lg border border-sand bg-papel shadow-md"
-        >
+    // En escritorio, el globo junto a la píldora; en el celular, la hoja del sistema (CapaDeFiltro, ADR-0479).
+    <CapaDeFiltro
+      abierta={abierta}
+      onAbierta={setAbierta}
+      titulo="Fechas de llegada"
+      ancho="w-[19rem]"
+      alinear="end"
+      // La cara de la píldora de filtro del sistema (ADR-0358, ronda 6), para verse igual que su vecina «Proveedor».
+      envolver={(boton) => (
+        <div className="pildora-filtro shrink-0" data-puesta={activa || undefined} data-abierta={abierta || undefined}>
+          {boton}
+        </div>
+      )}
+      disparador={
+        <button type="button" className="pildora-filtro-boton" aria-label={activa ? `Fechas: ${textoFechas(desde || undefined, hasta || undefined, hoy)}` : "Fechas"}>
+          <Calendar aria-hidden className="pildora-filtro-icono" />
+          <span className="pildora-filtro-nombre">Fechas{activa && ":"}</span>
+          {activa && (
+            <span className="pildora-filtro-valor">
+              <span className="truncate">{textoFechas(desde || undefined, hasta || undefined, hoy)}</span>
+            </span>
+          )}
+          <ChevronDown aria-hidden className="pildora-filtro-flecha" />
+        </button>
+      }
+    >
+      {(cerrar) => (
+        <>
           <div className="p-1">
             {PERIODOS_RECIBIDAS.map((p) => (
               <button
@@ -213,7 +218,7 @@ function PastillaFechas({ desde, hasta, hoy, onCambiar }: { desde: string; hasta
                 onClick={() => {
                   const r = rangoDePeriodo(p.clave, hoy);
                   onCambiar(r.desde, r.hasta);
-                  setAbierta(false);
+                  cerrar();
                 }}
                 className={`flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-tinta outline-none transition-colors hover:bg-rojo/8 focus-visible:bg-rojo/8 ${
                   periodo === p.clave ? "font-semibold" : ""
@@ -232,7 +237,7 @@ function PastillaFechas({ desde, hasta, hoy, onCambiar }: { desde: string; hasta
                 type="button"
                 onClick={() => {
                   onCambiar("", "");
-                  setAbierta(false);
+                  cerrar();
                 }}
                 className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo"
               >
@@ -240,8 +245,8 @@ function PastillaFechas({ desde, hasta, hoy, onCambiar }: { desde: string; hasta
               </button>
             )}
           </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+        </>
+      )}
+    </CapaDeFiltro>
   );
 }

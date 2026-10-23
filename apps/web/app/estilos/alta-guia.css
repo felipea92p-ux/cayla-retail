@@ -143,9 +143,11 @@
   color: var(--color-tinta);
   transition: border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
 }
-.hilo-chip:hover {
-  border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent);
-  background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+@media (hover: hover) {
+  .hilo-chip:hover {
+    border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent);
+    background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+  }
 }
 .hilo-chip .hilo-marca {
   width: 14px;

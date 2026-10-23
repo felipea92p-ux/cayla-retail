@@ -22,6 +22,7 @@ import { abrirDesdeLectura, busquedaDesdeLectura, type SedeConId } from "@/lib/c
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { CambioArmado } from "@/lib/cambios-cambio-de-sede";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 type Filtro = "todas" | "con_cambio" | "sin_comprobante";
 
@@ -309,16 +310,12 @@ export function CambiosPanel({
 
       {/* Celular (spike 2026-09-26, opción A): lo primero que hace la colaboradora es escanear, así que va fijo abajo, al
           alcance del pulgar. Es una acción de esta pantalla, no navegación (ADR-0206). */}
-      <div data-guia="cambios.barra-movil" className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
-        <button
-          type="button"
-          onClick={() => setCamara(true)}
-          className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
-        >
+      <BarraDeAbajo data-guia="cambios.barra-movil" sola className="sm:hidden">
+        <button type="button" onClick={() => setCamara(true)} className="btn-cayla btn-primario gap-2.5">
           <ScanLine size={20} aria-hidden />
           Escanear prenda o boleta
         </button>
-      </div>
+      </BarraDeAbajo>
 
       {camara && (
         <EscanerBusqueda

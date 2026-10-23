@@ -44,8 +44,10 @@
   .sl-sello-texto { font-family: var(--font-sans); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; fill: currentColor; }
   .sl-sello-texto-abajo { opacity: 0.8; }
   .sl-sello-apagado { filter: grayscale(1); opacity: 0.6; }
-  .sl-pase:hover .sl-sello,
   .sl-pase:focus-within .sl-sello { transform: rotate(0deg) scale(0.95); }
+  @media (hover: hover) {
+    .sl-pase:hover .sl-sello { transform: rotate(0deg) scale(0.95); }
+  }
 
   @keyframes sl-estampa {
     from { opacity: 0; transform: rotate(calc(var(--sl-giro, -6deg) - 14deg)) scale(1.35); }
@@ -101,7 +103,9 @@
     margin-top: -22px;
     box-shadow: 0 -10px 18px -14px color-mix(in srgb, var(--color-sombra) 35%, transparent);
   }
-  .sl-pase:not(.sl-abierto):hover { transform: translateY(-8px); }
+  @media (hover: hover) {
+    .sl-pase:not(.sl-abierto):hover { transform: translateY(-8px); }
+  }
   .sl-pase.sl-abierto {
     z-index: 2;
     margin-top: 12px;
@@ -205,7 +209,9 @@
   .sl-lookbook > * { animation: sl-entra 650ms var(--ease-cayla) both; animation-delay: calc(var(--j, 0) * 50ms + 220ms); }
   .sl-prenda { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
   .sl-prenda-foto { transition: transform 500ms var(--ease-cayla); }
-  .sl-prenda:hover .sl-prenda-foto { transform: translateY(-4px); }
+  @media (hover: hover) {
+    .sl-prenda:hover .sl-prenda-foto { transform: translateY(-4px); }
+  }
   .sl-prenda-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 500; line-height: 1.25; }
   .sl-prenda-dato { font-size: 11.5px; color: var(--color-tinta-60); font-variant-numeric: tabular-nums; }
   .sl-mas {
@@ -219,7 +225,9 @@
     color: var(--color-tinta-60);
     transition: background-color 300ms var(--ease-cayla);
   }
-  .sl-mas:hover { background: var(--color-sand); }
+  @media (hover: hover) {
+    .sl-mas:hover { background: var(--color-sand); }
+  }
   .sl-mas b { display: block; font-family: var(--font-serif); font-weight: 400; font-size: 34px; line-height: 1; color: var(--color-tinta); }
 
   /* «Lo que tiene»: el visto se dibuja una vez. */

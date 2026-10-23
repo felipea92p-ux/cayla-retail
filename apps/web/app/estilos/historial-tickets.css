@@ -74,7 +74,9 @@
   mask: radial-gradient(circle 5px at 50% 100%, transparent 98%, var(--color-tinta)) 0 0 / 12px 100% repeat-x;
   transition: background-color 200ms var(--ease-cayla);
 }
-.ht-ticket:hover::before { background: color-mix(in srgb, var(--color-sand) 55%, var(--color-papel)); }
+@media (hover: hover) {
+  .ht-ticket:hover::before { background: color-mix(in srgb, var(--color-sand) 55%, var(--color-papel)); }
+}
 
 .ht-linea { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 12.5px; }
 .ht-corte { display: block; height: 0; border-top: 1.5px dashed var(--color-sand); margin: 8px 0 6px; }
