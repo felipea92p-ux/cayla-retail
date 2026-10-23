@@ -14,7 +14,7 @@ import { ListaDelDia } from "@/components/mi-plata/ListaDelDia";
 import { MandarATienda } from "@/components/mi-plata/MandarATienda";
 import { TerminarDia } from "@/components/mi-plata/TerminarDia";
 
-// Compras ▸ Mi plata para compras (ADR-0480, Compras simple): la pantalla de quien compra, hecha para el celular. Rediseño aprobado por
+// Compras ▸ Mis compras (ADR-0480, Compras simple): la pantalla de quien compra, hecha para el celular. Rediseño aprobado por
 // Felipe el 2026-10-23: docs/maquetas/compras-formidable-2026-10/.
 //
 // Arriba, la billetera: cuánto tiene para comprar (su fondo más lo que Compras todavía revisa, menos lo comprado y gastado que Compras
@@ -31,7 +31,7 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
     <div className="flex flex-col gap-6">
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
-        titulo="Mi plata para compras"
+        titulo="Mis compras"
         subtitulo="Lo que tienes para comprar, lo que compraste y lo que mandas a la tienda."
       />
 

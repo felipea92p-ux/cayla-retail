@@ -24,7 +24,7 @@ export type PlataPorConfirmarConFoto = PlataPorConfirmar & { fotoUrl: string | n
 
 /**
  * La plata que falta confirmar, con el enlace a cada voucher (10 minutos, firmado en el servidor con la sesión de quien mira: el depósito
- * deja leer `plata/` a quien tiene «Mi plata para compras» o «Revisar compras»). `null` si no se pudo leer.
+ * deja leer `plata/` a quien tiene «Mis compras» o «Revisar compras»). `null` si no se pudo leer.
  */
 export async function getPlataPorConfirmar(): Promise<PlataPorConfirmarConFoto[] | null> {
   const supabase = await createClient();

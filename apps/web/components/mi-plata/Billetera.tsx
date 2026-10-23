@@ -3,7 +3,7 @@ import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { soles } from "@/lib/compras-reglas";
 import { detalleTienes, repartoBilletera, textoPorConfirmar, type MiPlata } from "@/lib/mi-plata-reglas";
 
-// La billetera de Mi plata para compras (maqueta docs/maquetas/compras-formidable-2026-10/, Felipe 2026-10-23): la plata se lee como en
+// La billetera de Mis compras (maqueta docs/maquetas/compras-formidable-2026-10/, Felipe 2026-10-23): la plata se lee como en
 // una billetera —una cifra grande y de dónde sale— y no como una tarjeta de reporte. La barra es la de todo el ERP (`<BarraApilada>`):
 // lo que te queda, lo que compraste y lo que gastaste en la ronda abierta, cuyo número va arriba a la derecha («RC-000003»). Tinta sobre
 // crema: en modo oscuro se invierte sola, como todo token.

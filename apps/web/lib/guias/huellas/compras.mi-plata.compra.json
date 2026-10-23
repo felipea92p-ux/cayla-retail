@@ -41,7 +41,7 @@
       "Boton «compra.guardar»",
       "BotonEnlace «compra.mandar»",
       "Boton «Anotar otra compra»",
-      "Link «Ver mi plata»",
+      "Link «Ver mis compras»",
       "button «{inicialesProveedor(p.nombre)}»",
       "BotonVerMas «{`Ver los otros ${resto.length}»",
       "BotonFiltro «{c.nombre}»",
