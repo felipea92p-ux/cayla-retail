@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 77,
+  "total": 78,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -32,7 +32,6 @@
       "button «Quitar todas»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
-      "button «{c.nombre}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", `Nombre ${delUno}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #2",
@@ -69,6 +68,10 @@
       "Boton «Rechazar»",
       "button «{cambiando ? \"Desactivando…\" : \"Desactivar\"}»",
       "Boton «Reactivar»"
+    ],
+    "components/campana-hoja/CategoriasDeCampana.tsx": [
+      "Casilla «{`${c.nombre}»",
+      "Casilla «{`Toda la familia ${g.familia}»"
     ],
     "components/etiqueta-prendas/EtiquetaColgada.tsx": [
       "button «{`${x.producto.referencia}»"

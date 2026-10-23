@@ -35,3 +35,46 @@
   .cph-paso { flex: none; width: 100%; }
   .cph-rapidos { flex: none; height: calc(2 * 44px + 4px); }
 }
+
+/* «Categorías»: la grilla de casillas por familia (`CategoriasDeCampana`). Cada fila se toca entera (es un <label> con su <Casilla>);
+   la elegida queda en hueso. Tres columnas a lo ancho, dos en una hoja angosta o en el celular; las familias chicas comparten fila. */
+.cph-categorias { display: grid; gap: 14px; }
+.cph-buscador { max-width: 22rem; }
+.cph-fam-cab { display: flex; align-items: center; gap: 10px; padding-left: 10px; }
+.cph-fam-t { flex: 1; min-width: 0; }
+.cph-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 2px 6px; margin-top: 4px; }
+.cph-cat {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 2.375rem;
+  padding: 0 10px 2px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent); /* contraste: texto sobre papel, hueso */
+  cursor: pointer;
+  transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .cph-cat:hover { background: color-mix(in srgb, var(--color-hueso) 60%, transparent); }
+}
+.cph-cat[data-elegida] { background: var(--color-hueso); color: var(--color-tinta); font-weight: 600; }
+.cph-cat-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cph-cat-c { font-size: 11.5px; font-weight: 500; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre papel, hueso */
+.cph-cat-b { position: absolute; left: 40px; right: 10px; bottom: 5px; width: auto; }
+/* La barra a escala es la del sistema (`BarraAvance` en tinta, grafico.escala); en una lista tan densa, la de una fila no elegida va
+   tenue para no pesar, y se enciende entera al elegirla. */
+.cph-cat:not([data-elegida]) .cph-cat-b { opacity: 0.4; transition: opacity 200ms var(--ease-cayla); }
+.cph-chicas { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 14px; }
+.cph-chicas .cph-cats { grid-template-columns: 1fr; }
+.cph-sinp { border-top: 1px solid var(--color-sand); padding-top: 10px; }
+.cph-sinp > summary { cursor: pointer; font-size: 12.5px; font-weight: 500; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); } /* contraste: texto sobre papel */
+.cph-sinp > summary > span { font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre papel */
+.cph-sinp > .cph-cats { margin-top: 8px; }
+@media (max-width: 639.98px) {
+  .cph-buscador { max-width: none; }
+  .cph-cats, .cph-chicas { grid-template-columns: 1fr 1fr; }
+  .cph-cat { min-height: 2.75rem; }
+}

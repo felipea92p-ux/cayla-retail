@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pasoDeDescuento, textoDuracion } from "./campana-hoja";
+import { categoriasDeLaHoja, pasoDeDescuento, textoDuracion } from "./campana-hoja";
 import { parsearDescuento } from "./etiqueta-campana";
 
 describe("pasoDeDescuento (− y + de la hoja de campaña)", () => {
@@ -55,5 +55,66 @@ describe("textoDuracion (la temporada en una frase)", () => {
     expect(textoDuracion(null, "2026-10-25")).toBeNull();
     expect(textoDuracion("2026-10-01", null)).toBeNull();
     expect(textoDuracion("2026-10-25", "2026-10-01")).toBeNull();
+  });
+});
+
+describe("categoriasDeLaHoja (la grilla de casillas)", () => {
+  const cat = (id: string, nombre: string, familia: string) => ({ id, nombre, familia });
+  const categorias = [
+    cat("vest", "Vestidos", "Indumentaria"),
+    cat("blus", "Camisas y Blusas", "Indumentaria"),
+    cat("polo", "Polos", "Indumentaria"),
+    cat("falda", "Faldas", "Indumentaria"),
+    cat("abri", "Abrigos", "Indumentaria"),
+    cat("bols", "Bolsos y Carteras", "Accesorios y Complementos"),
+    cat("ani", "Anillos", "Bisutería"),
+    cat("are", "Aretes", "Bisutería"),
+    cat("bolsa", "Bolsas", "Empaque"),
+    cat("zap", "Zapatillas", "Calzado"),
+  ];
+  const prendas = new Map([
+    ["vest", 169],
+    ["blus", 430],
+    ["polo", 339],
+    ["falda", 143],
+    ["abri", 6],
+    ["bols", 38],
+    ["ani", 6],
+    ["are", 4],
+    ["bolsa", 5],
+  ]);
+
+  it("familias de la que más trae a la que menos, y sus categorías igual", () => {
+    const r = categoriasDeLaHoja(categorias, prendas);
+    expect(r.grandes.map((g) => g.familia)).toEqual(["Indumentaria"]);
+    expect(r.grandes[0].categorias.map((c) => c.nombre)).toEqual(["Camisas y Blusas", "Polos", "Vestidos", "Faldas", "Abrigos"]);
+    expect(r.grandes[0].total).toBe(1087);
+  });
+
+  it("las familias chicas comparten fila, y las categorías sin prendas van aparte", () => {
+    const r = categoriasDeLaHoja(categorias, prendas);
+    expect(r.chicas.map((g) => g.familia)).toEqual(["Accesorios y Complementos", "Bisutería", "Empaque"]);
+    expect(r.sinPrendas.map((c) => c.nombre)).toEqual(["Zapatillas"]);
+    expect(r.coinciden).toBe(10);
+  });
+
+  it("la barra se mide contra la categoría más grande de todas, aunque se busque", () => {
+    expect(categoriasDeLaHoja(categorias, prendas).mayor).toBe(430);
+    expect(categoriasDeLaHoja(categorias, prendas, "bol").mayor).toBe(430);
+  });
+
+  it("busca sin tildes ni mayúsculas, por la categoría o por su familia", () => {
+    const bol = categoriasDeLaHoja(categorias, prendas, "BOL");
+    expect([...bol.chicas, ...bol.grandes].flatMap((g) => g.categorias.map((c) => c.nombre))).toEqual(["Bolsos y Carteras", "Bolsas"]);
+    expect(bol.coinciden).toBe(2);
+    const bisu = categoriasDeLaHoja(categorias, prendas, "bisuteria");
+    expect(bisu.chicas.map((g) => g.familia)).toEqual(["Bisutería"]);
+    expect(bisu.chicas[0].categorias).toHaveLength(2);
+  });
+
+  it("sin coincidencias no deja nada", () => {
+    const r = categoriasDeLaHoja(categorias, prendas, "zzz");
+    expect(r.coinciden).toBe(0);
+    expect([...r.grandes, ...r.chicas, ...r.sinPrendas]).toHaveLength(0);
   });
 });

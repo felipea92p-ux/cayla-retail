@@ -47,6 +47,7 @@ import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
+import { CategoriasDeCampana } from "@/components/campana-hoja/CategoriasDeCampana";
 import { PASO_DESCUENTO as PASO, pasoDeDescuento, textoDuracion } from "@/lib/campana-hoja";
 import { avanceDeCampana } from "@/lib/sellos-pases";
 import { BarraAvance } from "@/components/ui/BarraAvance";
@@ -412,24 +413,26 @@ export function CampanaModal({
   // pero quien la configura se entera: número en rojo y cuántas prendas serían.
   const bajoCosto = prendasBajoCosto(pct.ok ? pct.valor : null, prendasConCosto, elegidas, new Set(variantesManuales));
 
-  // Cada categoría dice cuántas prendas a la venta trae, y la hoja dice a cuántas llega la campaña antes de guardar. Las categorías
-  // sin prendas van juntas al final: se pueden elegir (pueden recibir prendas después), pero no compiten con las que sí venden.
+  // Cada categoría dice cuántas prendas a la venta trae, y la hoja dice a cuántas llega la campaña antes de guardar (la grilla de
+  // casillas por familia, con las categorías sin prendas plegadas al final: `CategoriasDeCampana`).
   const prendasDe = prendasPorCategoria(prendasConCosto);
   const alcance = alcanceCampana(prendasConCosto, elegidas, new Set(variantesManuales));
-  const porFamilia = new Map<string, CategoriaOpcion[]>();
-  const sinPrendas: CategoriaOpcion[] = [];
-  for (const c of categorias) {
-    if (!prendasDe.get(c.id)) sinPrendas.push(c);
-    else porFamilia.set(c.familia, [...(porFamilia.get(c.familia) ?? []), c]);
-  }
-  // Plegadas por defecto: son muchas y hoy no mueven ninguna prenda. Se abren solas si ya hay una elegida ahí, para que no quede escondida.
-  const sinPrendasElegida = sinPrendas.some((c) => elegidas.has(c.id));
 
   const alternar = (id: string) =>
     setElegidas((actual) => {
       const nuevo = new Set(actual);
       if (nuevo.has(id)) nuevo.delete(id);
       else nuevo.add(id);
+      return nuevo;
+    });
+  // La casilla de «toda la familia»: marca o quita sus categorías de un toque.
+  const alternarFamilia = (ids: string[], marcar: boolean) =>
+    setElegidas((actual) => {
+      const nuevo = new Set(actual);
+      for (const id of ids) {
+        if (marcar) nuevo.add(id);
+        else nuevo.delete(id);
+      }
       return nuevo;
     });
 
@@ -686,21 +689,8 @@ export function CampanaModal({
                   ? `Sin categorías, la campaña solo alcanza a las prendas marcadas a mano${alcance.aMano ? ` (${alcance.aMano})` : ": hoy ninguna"}.`
                   : `Alcanza a ${alcance.total} prenda${alcance.total === 1 ? "" : "s"} a la venta: ${alcance.porCategoria} de ${elegidas.size} categoría${elegidas.size === 1 ? "" : "s"}${alcance.aMano ? ` y ${alcance.aMano} marcada${alcance.aMano === 1 ? "" : "s"} a mano` : ""}.`}
               </p>
-              <div className="mt-3 space-y-3">
-                {[...porFamilia.entries()].map(([familia, lista]) => (
-                  <div key={familia}>
-                    <p className="text-[11px] text-tinta/60">{familia}</p>
-                    <ChipsCategorias lista={lista} elegidas={elegidas} prendasDe={prendasDe} onAlternar={alternar} />
-                  </div>
-                ))}
-                {sinPrendas.length > 0 && (
-                  <details open={sinPrendasElegida || undefined} className="border-t border-sand pt-2">
-                    <summary className="cursor-pointer text-[11px] text-tinta/60">
-                      Sin prendas todavía · {sinPrendas.length} categoría{sinPrendas.length === 1 ? "" : "s"}
-                    </summary>
-                    <ChipsCategorias lista={sinPrendas} elegidas={elegidas} prendasDe={prendasDe} onAlternar={alternar} />
-                  </details>
-                )}
+              <div className="mt-3">
+                <CategoriasDeCampana categorias={categorias} prendasDe={prendasDe} elegidas={elegidas} onAlternar={alternar} onFamilia={alternarFamilia} />
               </div>
             </CampoGuiado>
           </div>
@@ -738,30 +728,6 @@ export function CampanaModal({
         </div>
       )}
     </Modal>
-  );
-}
-
-/** Las categorías de un grupo como píldoras que se eligen, cada una con cuántas prendas a la venta trae. */
-function ChipsCategorias({
-  lista,
-  elegidas,
-  prendasDe,
-  onAlternar,
-}: {
-  lista: CategoriaOpcion[];
-  elegidas: ReadonlySet<string>;
-  prendasDe: ReadonlyMap<string, number>;
-  onAlternar: (id: string) => void;
-}) {
-  return (
-    <div className="mt-1.5 flex flex-wrap gap-1.5">
-      {lista.map((c) => (
-        <button key={c.id} type="button" aria-pressed={elegidas.has(c.id)} onClick={() => onAlternar(c.id)} className="pildora-cayla">
-          {c.nombre}
-          <span className="text-[11px] font-normal tabular-nums opacity-70">{prendasDe.get(c.id) ?? 0}</span>
-        </button>
-      ))}
-    </div>
   );
 }
 

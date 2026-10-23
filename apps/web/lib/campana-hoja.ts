@@ -3,6 +3,7 @@
 
 import { parsearDescuento } from "./etiqueta-campana";
 import { diasEntreFechas } from "./fechas-lima";
+import { sinTildes } from "./marcas";
 
 /** Cuánto sube o baja el descuento cada toque de − o + en la hoja. */
 export const PASO_DESCUENTO = 5;
@@ -30,4 +31,61 @@ export function textoDuracion(desde: string | null, hasta: string | null): strin
   if (!desde || !hasta || desde > hasta) return null;
   const dias = diasEntreFechas(desde, hasta) + 1;
   return dias === 1 ? `1 día, el ${diaDeSemana(desde)}` : `${dias} días, de ${diaDeSemana(desde)} a ${diaDeSemana(hasta)}`;
+}
+
+// ---- «Categorías»: la grilla de casillas por familia ----------------------------------------------------------------------------
+
+export type FilaCategoria = { id: string; nombre: string; prendas: number };
+export type GrupoCategorias = { familia: string; total: number; categorias: FilaCategoria[] };
+export type CategoriasDeLaHoja = {
+  /** Las familias con más de `FAMILIA_CHICA` categorías con prendas: cada una a lo ancho. */
+  grandes: GrupoCategorias[];
+  /** Las familias chicas (Bisutería, Empaque, Belleza): comparten una fila, una columna cada una. */
+  chicas: GrupoCategorias[];
+  /** Las categorías sin prendas a la venta, de todas las familias: se pueden elegir (les llegarán prendas), pero van plegadas. */
+  sinPrendas: FilaCategoria[];
+  /** La categoría con más prendas de TODAS (no solo de lo buscado): la barra de cada fila se mide contra ella y no cambia al buscar. */
+  mayor: number;
+  /** Cuántas categorías coinciden con lo buscado (todas, sin búsqueda). */
+  coinciden: number;
+};
+
+/** Hasta cuántas categorías una familia es «chica» y comparte su fila con las otras chicas. */
+export const FAMILIA_CHICA = 3;
+
+const porPrendas = (a: FilaCategoria, b: FilaCategoria) => b.prendas - a.prendas || a.nombre.localeCompare(b.nombre, "es");
+
+/**
+ * Las categorías como las muestra la hoja: por familia, de la que más prendas trae a la que menos, y dentro de cada una de la
+ * categoría que más trae a la que menos. Lo buscado filtra sin tildes ni mayúsculas por el nombre de la categoría o el de su familia
+ * («accesorios» trae la familia entera). Solo ordena y filtra: qué se puede elegir no cambia.
+ */
+export function categoriasDeLaHoja(
+  categorias: readonly { id: string; nombre: string; familia: string }[],
+  prendasDe: ReadonlyMap<string, number>,
+  busqueda = "",
+): CategoriasDeLaHoja {
+  const q = sinTildes(busqueda.trim());
+  const coincide = (c: { nombre: string; familia: string }) => !q || sinTildes(c.nombre).includes(q) || sinTildes(c.familia).includes(q);
+  const mayor = Math.max(0, ...categorias.map((c) => prendasDe.get(c.id) ?? 0));
+  const familias = new Map<string, FilaCategoria[]>();
+  const sinPrendas: FilaCategoria[] = [];
+  let coinciden = 0;
+  for (const c of categorias) {
+    if (!coincide(c)) continue;
+    coinciden++;
+    const fila = { id: c.id, nombre: c.nombre, prendas: prendasDe.get(c.id) ?? 0 };
+    if (fila.prendas === 0) sinPrendas.push(fila);
+    else familias.set(c.familia, [...(familias.get(c.familia) ?? []), fila]);
+  }
+  const grupos = [...familias.entries()]
+    .map(([familia, filas]) => ({ familia, total: filas.reduce((s, f) => s + f.prendas, 0), categorias: filas.sort(porPrendas) }))
+    .sort((a, b) => b.total - a.total || a.familia.localeCompare(b.familia, "es"));
+  return {
+    grandes: grupos.filter((g) => g.categorias.length > FAMILIA_CHICA),
+    chicas: grupos.filter((g) => g.categorias.length <= FAMILIA_CHICA),
+    sinPrendas: sinPrendas.sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    mayor,
+    coinciden,
+  };
 }
