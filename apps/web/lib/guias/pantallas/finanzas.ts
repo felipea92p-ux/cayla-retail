@@ -297,6 +297,13 @@ export const GUIA_FIN_GASTOS: Guia = {
       texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes que ya pasó sin registrarse. Aparece una cosa a la vez, con su botón: Clasificar o Registrar. Cuando no queda nada, lo dice.",
     },
     {
+      id: "sin-comprobante",
+      ancla: "fin-gastos.sin-comprobante",
+      opcional: true,
+      titulo: "Los gastos sin comprobante",
+      texto: "Dice cuántos gastos del mes no tienen boleta ni factura: sin comprobante no recuperas su IGV. «Ver cuáles» deja en la lista solo esos, para ir pidiendo sus comprobantes.",
+    },
+    {
       id: "resolver",
       ancla: "fin-gastos.resolver",
       opcional: true,
@@ -320,7 +327,14 @@ export const GUIA_FIN_GASTOS: Guia = {
       id: "filtros",
       ancla: "fin-gastos.filtros",
       titulo: "Buscar y filtrar",
-      texto: "Busca por descripción, proveedor o número de comprobante, deja una sola categoría o cambia de mes para ver los gastos de otro mes.",
+      texto: "Busca por lo que fue, el proveedor o el número del comprobante (sin preocuparte por las tildes). Deja una sola categoría, o solo lo que tiene o no tiene comprobante. El mes se elige arriba, en la barra.",
+    },
+    {
+      id: "puestos",
+      ancla: "fin-gastos.puestos",
+      opcional: true,
+      titulo: "Los filtros puestos",
+      texto: "Cada filtro que pusiste —aquí, en el retazo o en el calendario— aparece como una píldora. La tocas y se quita; «Limpiar todo» quita todos de una vez.",
     },
     {
       id: "lista",

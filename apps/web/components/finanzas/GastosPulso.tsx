@@ -14,10 +14,15 @@ export function GastosPulso({
   bandeja,
   onResolver,
   onVerTodas,
+  sinComprobante,
+  onVerSinComprobante,
 }: {
   bandeja: Bandeja;
   onResolver: (cosa: CosaPorRevisar) => void;
   onVerTodas: () => void;
+  /** Gastos del mes sin boleta ni factura (`fn_gastos_panel`): no se resuelven de a uno, se filtran en la lista. */
+  sinComprobante: number;
+  onVerSinComprobante: () => void;
 }) {
   const primera = bandeja.cosas[0];
   return (
@@ -43,6 +48,14 @@ export function GastosPulso({
                 </button>
               </div>
             </div>
+          )}
+          {sinComprobante > 0 && (
+            <p className="fin-gastos-cosa-mas" data-guia="fin-gastos.sin-comprobante">
+              {sinComprobante} {sinComprobante === 1 ? "gasto no tiene" : "gastos no tienen"} boleta ni factura: sin comprobante no recuperas su IGV.{" "}
+              <button type="button" className="btn-cayla btn-enlace" onClick={onVerSinComprobante}>
+                Ver {sinComprobante === 1 ? "cuál" : "cuáles"}
+              </button>
+            </p>
           )}
           {bandeja.n > 1 && (
             <p className="fin-gastos-cosa-mas">

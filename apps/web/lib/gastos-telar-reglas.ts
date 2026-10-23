@@ -1,6 +1,7 @@
 // Gastos en el telar de Finanzas (Felipe 2026-10-23): la pregunta que responde su cabecera, sus chips y la sede que se nombra
 // arriba. Lógica pura, probada en `gastos-telar-reglas.test.ts`; el total sale de `fn_gastos_panel` y no se recalcula aquí.
 import { nombreCortoSede } from "./finanzas-telar-reglas";
+import { sinTildes } from "./marcas";
 import { textoMes, type PanelGastos, type UbicacionGastos, type Ver } from "./gastos-reglas";
 import type { TonoChip } from "@/components/ui/Chip";
 
@@ -151,4 +152,54 @@ export function calendarioDelMes(gastos: readonly { fecha: string; montoTotal: n
     return { dia, total: t.total, n: t.n, intensidad: mayor > 0 ? Math.sqrt(t.total / mayor) : 0, futuro: fecha > hoy };
   });
   return { huecos, dias };
+}
+
+// ---- La lista: los filtros a la vista y la búsqueda que no mira tildes ----------------------------------------------------------
+
+export type FiltroComprobante = "todos" | "sin" | "con";
+export type FiltrosLista = { q: string; categoria: string; dia: number | null; comprobante: FiltroComprobante };
+
+type GastoParaFiltrar = {
+  categoria: string;
+  fecha: string;
+  descripcion: string;
+  proveedorNombre: string | null;
+  comprobante: string | null;
+  categoriaNombre: string;
+  comprobanteTipo: string;
+};
+
+/** Lo que calza con los filtros. La búsqueda va sin tildes ni mayúsculas («bano» encuentra «Baño») sobre lo que se lee en la fila. */
+export function filtrarGastos<T extends GastoParaFiltrar>(gastos: readonly T[], f: FiltrosLista, mes: string): T[] {
+  const q = sinTildes(f.q.trim());
+  const fechaDia = f.dia ? `${mes}-${String(f.dia).padStart(2, "0")}` : null;
+  return gastos.filter(
+    (g) =>
+      (!f.categoria || g.categoria === f.categoria) &&
+      (!fechaDia || g.fecha === fechaDia) &&
+      (f.comprobante === "todos" || (f.comprobante === "sin") === (g.comprobanteTipo === "sin_comprobante")) &&
+      (!q || [g.descripcion, g.proveedorNombre ?? "", g.comprobante ?? "", g.categoriaNombre].some((t) => sinTildes(t).includes(q))),
+  );
+}
+
+export type FiltroPuestoGastos = { clave: keyof FiltrosLista; texto: string };
+
+/** Los filtros puestos, como se leen en sus píldoras (cada una se quita sola). */
+export function filtrosPuestosDeGastos(f: FiltrosLista, nombreCategoria: (c: string) => string, mesNombre: string): FiltroPuestoGastos[] {
+  const r: FiltroPuestoGastos[] = [];
+  if (f.categoria) r.push({ clave: "categoria", texto: nombreCategoria(f.categoria) });
+  if (f.dia) r.push({ clave: "dia", texto: `El ${f.dia} de ${mesNombre}` });
+  if (f.comprobante !== "todos") r.push({ clave: "comprobante", texto: f.comprobante === "sin" ? "Sin comprobante" : "Con comprobante" });
+  if (f.q.trim()) r.push({ clave: "q", texto: `«${f.q.trim()}»` });
+  return r;
+}
+
+/**
+ * Lo que la pantalla dice cuando una lectura falla: «No se pudo leer el IGV perdido.», sin el texto técnico de la base que venía
+ * detrás de los dos puntos (en inglés, con nombres de funciones). El detalle técnico sigue en la consola del servidor.
+ */
+export function fallaLegible(falla: string): string {
+  const i = falla.indexOf(":");
+  const corta = (i > 0 ? falla.slice(0, i) : falla).trim();
+  return /[.!?]$/.test(corta) ? corta : `${corta}.`;
 }
