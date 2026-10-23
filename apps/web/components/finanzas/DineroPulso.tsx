@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
@@ -14,7 +14,23 @@ import type { Alcanza, Debes, Tienes } from "@/lib/dinero-pulso-reglas";
 
 const entra = (clase: string, i: number) => ({ className: `${clase} anim-entra`, style: { ["--i" as string]: i } as CSSProperties });
 
-export function DineroPulso({ tienes, alcanza, debes, verPorPagar }: { tienes: Tienes; alcanza: Alcanza; debes: Debes; verPorPagar: string }) {
+export function DineroPulso({
+  tienes,
+  alcanza,
+  debes,
+  verPorPagar,
+  deCaylaEntera,
+  frascos,
+}: {
+  tienes: Tienes;
+  alcanza: Alcanza;
+  debes: Debes;
+  verPorPagar: string;
+  /** Se mira una sede: la proyección de «¿Me alcanza?» es de toda la empresa y lo dice (no se parte por sede, ADR-0433). */
+  deCaylaEntera: boolean;
+  /** Las repisas de frascos (El telar), entre la respuesta y las preguntas. */
+  frascos: ReactNode;
+}) {
   return (
     <>
       <section className="fin-pulso-hero" aria-labelledby="fin-dinero-pregunta" data-guia="fin-dinero.pulso">
@@ -46,10 +62,24 @@ export function DineroPulso({ tienes, alcanza, debes, verPorPagar }: { tienes: T
         )}
       </section>
 
+      {frascos}
+
       <section className="fin-dos-col">
         <div {...entra("", 5)}>
           <Superficie pad guia="fin-dinero.alcanza">
-            <CabeceraBloque titulo="¿Me alcanza?" bajada={alcanza.frase} />
+            <CabeceraBloque
+              titulo={
+                <span className="din-alcanza-cab">
+                  ¿Me alcanza?
+                  {deCaylaEntera && (
+                    <Chip tono="pizarra" versalitas={false} title="Los sueldos, los alquileres y los proveedores salen de los bancos, que son de CAYLA entera">
+                      de CAYLA entera
+                    </Chip>
+                  )}
+                </span>
+              }
+              bajada={alcanza.frase}
+            />
             {alcanza.estado !== "sin_dato" && (
               <div className="fin-dinero-alcanza">
                 <Chip tono={alcanza.estado === "baja" ? "ambar" : alcanza.provisional ? "pizarra" : "verde"}>

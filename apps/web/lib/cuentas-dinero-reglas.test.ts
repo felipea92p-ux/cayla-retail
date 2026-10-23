@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  agruparCuentas,
   agruparMaquinas,
   avisosDeMaquinas,
   cuadra,
@@ -99,16 +98,6 @@ describe("qué cuentas se ven y cómo se agrupan (spike `vistaCuentas`)", () => 
   });
   it("una cuenta que solo es destino (el banco para quien solo deposita) no se dibuja como tarjeta", () => {
     expect(cuentasVisibles([{ ...bcp, soloDestino: true, saldo: null }, cajonTru], TRU).map((c) => c.id)).toEqual(["cTRU"]);
-  });
-  it("los grupos del spike, en su orden, con su cuenta contable; los vacíos no salen", () => {
-    expect(agruparCuentas(cuentasVisibles(TODAS, TRU)).map((g) => `${g.titulo} ${g.cuenta}: ${g.cuentas.map((c) => c.id).join(",")}`)).toEqual([
-      "Bancos 104: bcp,ibk",
-      "Por depositar 105: pos",
-      "Cajones y fondo fijo 101: cTRU",
-      "Cajas fuertes y efectivo por rendir 101: fTRU,rend",
-      "Tarjetas de crédito de CAYLA · lo que se debe 451: visa",
-    ]);
-    expect(agruparCuentas([bcp]).map((g) => g.clave)).toEqual(["bancos"]);
   });
 });
 

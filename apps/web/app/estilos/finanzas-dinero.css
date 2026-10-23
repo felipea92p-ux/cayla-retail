@@ -1,0 +1,152 @@
+/* Finanzas ▸ Cuentas y dinero en «El telar» (Felipe 2026-10-23, docs/maquetas/finanzas-telar-2026-10/).
+   Solo tokens (ADR-0169 / ADR-0336). El color de cada repisa llega en --c (lo pone el componente: un token, nunca un hex).
+   Movimiento: el líquido sube una sola vez al llegar, sin rebote ni bucle (ADR-0136, excepción de Finanzas, D7); se apaga
+   con prefers-reduced-motion. Un :hover va dentro de @media (hover: hover). */
+
+@layer components {
+  /* ---- Dónde está: las repisas con sus frascos ---- */
+  .din-estante {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  }
+  .din-repisa {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+    padding: 16px 18px;
+    border: 1px solid var(--color-sand);
+    border-radius: 16px;
+    background: var(--color-papel);
+  }
+  .din-repisa-cab {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .din-repisa-sede {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .din-repisa-sede i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+  .din-repisa-total {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-tinta);
+  }
+  .din-repisa-mas {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--color-taupe);
+  }
+  .din-repisa-nota {
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  .din-frascos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 10px;
+    align-items: flex-end;
+  }
+  .din-frasco {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 96px;
+    text-align: center;
+  }
+  .din-frasco svg {
+    width: 64px;
+    height: 86px;
+    overflow: visible;
+  }
+  .din-vidrio {
+    fill: color-mix(in srgb, var(--color-hueso) 40%, transparent);
+    stroke: color-mix(in srgb, var(--color-tinta) 35%, transparent);
+    stroke-width: 1.5;
+  }
+  .din-brillo {
+    fill: none;
+    stroke: color-mix(in srgb, var(--color-papel) 70%, transparent);
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+  .din-liquido rect {
+    fill: color-mix(in srgb, var(--c) 72%, transparent);
+  }
+  .din-liquido path {
+    fill: none;
+    stroke: var(--c);
+    stroke-width: 2;
+  }
+  .din-frasco-saldo {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-tinta);
+  }
+  .din-frasco[data-oculto] .din-frasco-saldo {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .din-frasco-nombre {
+    font-size: 12px;
+    line-height: 1.3;
+    color: var(--color-tinta);
+  }
+  .din-frasco-nombre small {
+    display: block;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+
+  /* El líquido sube desde el fondo, una vez, en cascada (90 ms entre frascos). */
+  .din-liquido {
+    animation: din-llena 1.3s var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 90ms + 300ms);
+  }
+  @keyframes din-llena {
+    from {
+      transform: translateY(100%);
+    }
+  }
+
+  /* ---- ¿Me alcanza?: el chip que dice que la proyección es de toda la empresa ---- */
+  .din-alcanza-cab {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+
+  @media (max-width: 480px) {
+    .din-frasco {
+      width: 84px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .din-liquido {
+      animation: none;
+    }
+  }
+}

@@ -24,18 +24,14 @@ import {
   TEXTO_MEDIO_COBRO,
   TEXTO_MOVIMIENTO,
   TEXTO_SIN_CUENTA,
-  agruparCuentas,
   avisosDeMaquinas,
   cuadra,
   cuentasPara,
-  cuentasVisibles,
   deudaConDueno,
   diaYNumero,
   ejemploMontoDeposito,
   ejemploReferenciaDeposito,
-  explicacionCuenta,
   hoyEnPalabras,
-  insigniaCuenta,
   leerEgresoParaMovimiento,
   leerLotePendiente,
   lotesPorDefecto,
@@ -193,11 +189,8 @@ export function CuentasPanel({
   plata,
   sinCuenta,
   alertas,
-  ubicaciones,
-  talleres,
   ver,
   esLider,
-  hoy,
 }: {
   cuentas: CuentaDinero[];
   movimientos: MovimientoDinero[];
@@ -206,12 +199,8 @@ export function CuentasPanel({
   sinCuenta: SinCuenta[];
   /** Por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4; solo el líder). */
   alertas?: AlertaPos[];
-  ubicaciones: UbicacionGastos[];
-  /** Las sedes que son el Taller (su cajón es un fondo fijo). */
-  talleres: string[];
   ver: Ver;
   esLider: boolean;
-  hoy: string;
 }) {
   const abrir = useContext(ContextoMovimiento);
   const avisosMaquinas = avisosDeMaquinas(alertas ?? []);
@@ -219,19 +208,11 @@ export function CuentasPanel({
   // F3b: lo pasado que no dice su cuenta se completa una vez, desde el aviso.
   const [decirCuenta, setDecirCuenta] = useState(false);
   const verTodas = !ver.ubicacionId;
-  const visibles = cuentasVisibles(cuentas, ver.ubicacionId);
-  const grupos = agruparCuentas(visibles);
-  const nombreSede = ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "tu tienda";
   const dueno = deudaConDueno(plata);
   const totalSinCuenta = sinCuenta.reduce((a, s) => a + s.monto, 0);
 
   return (
     <>
-      {esLider && !verTodas && (
-        <p className="nota-cayla anim-sube">
-          Los bancos son de CAYLA entera: se ven igual en cualquier tienda. El cajón y la caja fuerte son los de {nombreSede}.
-        </p>
-      )}
       {/* La máquina que no depositó a tiempo (ADR-0429, act. 4): se dice arriba de las cuentas, con el camino para registrarlo. */}
       {avisosMaquinas.map((a) => (
         <Aviso
@@ -248,45 +229,6 @@ export function CuentasPanel({
           {a.detalle}
         </Aviso>
       ))}
-
-      {grupos.length === 0 ? (
-        <Superficie>
-          <Vacio icono={<Landmark />} titulo="Todavía no hay cuentas: agrega los bancos de CAYLA">
-            Los cajones y las cajas fuertes nacen con cada tienda. Los bancos, las billeteras, el POS y la tarjeta se agregan en Configuración ▸ Cuentas y cobros.
-          </Vacio>
-        </Superficie>
-      ) : (
-        grupos.map((g, i) => (
-          <section key={g.clave} {...entra(i + 1)} data-guia="fin-dinero.cuentas">
-            <p className="fin-etq">
-              {g.titulo} · cuenta {g.cuenta}
-            </p>
-            <div className="fin-cuentas">
-              {g.cuentas.map((c) => {
-                const insignia = insigniaCuenta(c, hoy);
-                return (
-                  <article key={c.id} className="fin-cuenta">
-                    <div className="fin-cuenta-cab">
-                      <b>{c.nombre}</b>
-                      {insignia && <Chip tono={insignia.tono}>{insignia.texto}</Chip>}
-                    </div>
-                    {c.saldo === null ? (
-                      <div className="fin-cuenta-saldo" data-oculto>
-                        Lo ve quien cierra la caja
-                      </div>
-                    ) : (
-                      <div className="fin-cuenta-saldo" data-debe={c.saldo < 0 ? "" : undefined}>
-                        {c.saldo < 0 ? `−${verSaldo(c, -c.saldo)}` : verSaldo(c, c.saldo)}
-                      </div>
-                    )}
-                    <p>{explicacionCuenta(c, medios, c.ubicacionId !== null && talleres.includes(c.ubicacionId))}</p>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        ))
-      )}
 
       {esLider && verTodas && (
         <Superficie pad className="anim-sube" guia="fin-dinero.dueno">
