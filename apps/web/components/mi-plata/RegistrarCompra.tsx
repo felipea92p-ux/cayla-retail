@@ -2,17 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Camera, Check, Plus, Store } from "lucide-react";
+import { ArrowRight, Camera, Check, Plus, SearchX, Shapes, Store, Tag } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { Boton, BotonEnlace, CampoMonto } from "@/components/ui/campos";
+import { Boton, BotonEnlace, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Buscador } from "@/components/ui/Buscador";
 import { Chip } from "@/components/ui/Chip";
-import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
+import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { Vacio } from "@/components/ui/Vacio";
 import { Volver } from "@/components/ui/Volver";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { RegistrarProveedorOrden } from "@/components/ordenes-compra/RegistrarProveedorOrden";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -21,6 +23,8 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
+import { sugerirNombre } from "@/lib/sugerencias-alta-producto";
+import type { ProveedorRegistrado } from "@/lib/proveedor-de-orden-reglas";
 import { cargarHabituales, registrarCompraRapida, subirFotoPapel } from "@/lib/compra-rapida-acciones";
 import {
   HABITUALES_A_LA_VISTA,
@@ -29,11 +33,18 @@ import {
   categoriasConProveedor,
   categoriasDeHabituales,
   faltaEnPaso,
+  faltaNombreNuevo,
   faseDePaso,
+  filtrarCategoriasNuevo,
+  filtrarMarcas,
   filtrarProveedores,
+  habitualNuevo,
+  habitualParecido,
   leerCantidad,
   leerPrecio,
   lineasParaBase,
+  marcasDeHabituales,
+  NOMBRE_NUEVO_MAX,
   prendasDeLineas,
   textoAvance,
   textoHabitual,
@@ -41,6 +52,7 @@ import {
   tiendaAnterior,
   tiendasDeLineas,
   totalDeLineas,
+  type CategoriaParaComprar,
   type Habitual,
   type LineaCompra,
   type PasoCompra,
@@ -58,14 +70,22 @@ import {
 // abre la pantalla: un doble clic o un reintento tras un corte no la duplican. Quién firma (decisión 39): con la cuenta de una persona, ella;
 // desde una terminal, el combo «Responsable».
 //
-// «Algo nuevo de este proveedor» y «Nuevo proveedor» llegan en la actividad 4.
+// Actividad 4: «Algo nuevo de este proveedor» (qué es → cómo se llama, con aviso si ya se la compraste → la marca, que se salta si el
+// proveedor trae una sola) arma la prenda y sigue por los mismos pasos que las de siempre; un proveedor sin prendas va directo ahí.
+// «Nuevo proveedor» es la misma hoja de Nueva orden de compra (`registrar_proveedor_de_orden`: lo básico, no duplica) y sigue con su
+// primera compra.
 
 type Datos = {
   proveedores: ProveedorParaComprar[];
-  categorias: { id: string; nombre: string }[];
+  categorias: CategoriaParaComprar[];
+  marcas: { id: string; nombre: string }[];
   tiendas: { id: string; nombre: string }[];
   tiene: number | null;
 };
+
+/** Lo que se va contestando de una prenda nueva. `descartadas`: los habituales parecidos que ya contestó con «No, es otra». */
+type Nuevo = { q: string; categoria: CategoriaParaComprar | null; nombre: string; descartadas: ReadonlySet<string>; qMarca: string; otraMarca: boolean };
+const NUEVO_VACIO: Nuevo = { q: "", categoria: null, nombre: "", descartadas: new Set(), qMarca: "", otraMarca: false };
 
 /** La prenda que se está anotando: el habitual del que sale y lo escrito en cada paso. `edita`: la posición en la compra, si se corrige. */
 type EnCurso = { habitual: Habitual; cantidad: string; costo: string; venta: string; edita: number | null };
@@ -76,6 +96,8 @@ const ANTERIOR: Partial<Record<PasoCompra, PasoCompra>> = {
   costo: "cantidad",
   venta: "costo",
   tienda: "venta",
+  "nuevo-nombre": "nuevo-categoria",
+  "nuevo-marca": "nuevo-nombre",
   revisar: "habituales",
   papel: "revisar",
 };
@@ -86,7 +108,10 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [paso, setPaso] = useState<PasoCompra>("proveedor");
   const [q, setQ] = useState("");
   const [catProveedor, setCatProveedor] = useState<string | null>(null);
+  const [proveedores, setProveedores] = useState(datos.proveedores);
+  const [registrando, setRegistrando] = useState(false);
   const [proveedor, setProveedor] = useState<ProveedorParaComprar | null>(null);
+  const [nuevo, setNuevo] = useState<Nuevo>(NUEVO_VACIO);
   const [habituales, setHabituales] = useState<Habitual[] | null | "cargando">("cargando");
   const [catHabitual, setCatHabitual] = useState<string | null>(null);
   const [verTodos, setVerTodos] = useState(false);
@@ -119,7 +144,41 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     setVerTodos(false);
     setHabituales("cargando");
     setPaso("habituales");
-    setHabituales(await cargarHabituales(p.id));
+    const leidos = await cargarHabituales(p.id);
+    setHabituales(leidos);
+    // Sin nada que se le haya comprado ni prendas suyas en el catálogo: directo a «dinos qué es».
+    if (leidos !== null && leidos.length === 0) algoNuevo();
+  }
+
+  function alRegistrarProveedor(p: ProveedorRegistrado) {
+    const elegido: ProveedorParaComprar = proveedores.find((x) => x.id === p.id) ?? { id: p.id, nombre: p.nombre, ruc: p.ruc, categorias: [], compras: 0, ultima: null };
+    setProveedores((ps) => (ps.some((x) => x.id === p.id) ? ps : [...ps, elegido]));
+    setRegistrando(false);
+    void elegirProveedor(elegido);
+  }
+
+  function algoNuevo() {
+    setNuevo(NUEVO_VACIO);
+    setPaso("nuevo-categoria");
+  }
+
+  const habitualesLeidos = Array.isArray(habituales) ? habituales : [];
+  const marcasDelProveedor = marcasDeHabituales(habitualesLeidos);
+  const parecido = paso === "nuevo-nombre" ? habitualParecido(nuevo.nombre, habitualesLeidos, nuevo.descartadas) : null;
+
+  function seguirNombre() {
+    if (faltaNombreNuevo(nuevo.nombre) || parecido) return;
+    // Si el proveedor trae una sola marca, se pone sola y no se pregunta (la maqueta aprobada).
+    if (marcasDelProveedor.length === 1) return armarNuevo(marcasDelProveedor[0]);
+    setNuevo((n) => ({ ...n, qMarca: "", otraMarca: marcasDelProveedor.length === 0 }));
+    setPaso("nuevo-marca");
+  }
+
+  function armarNuevo(marca: { id: string; nombre: string }) {
+    if (!nuevo.categoria) return;
+    const h = habitualNuevo(`nuevo:${crypto.randomUUID()}`, { nombre: nuevo.nombre, categoria: nuevo.categoria, marca });
+    setEnCurso({ habitual: h, cantidad: "", costo: "", venta: "", edita: null });
+    setPaso("cantidad");
   }
 
   function elegirHabitual(h: Habitual) {
@@ -142,7 +201,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       categoriaId: l.categoriaId,
       categoria: l.categoria,
       marcaId: l.marcaId,
-      marca: null,
+      marca: l.marca,
       veces: 0,
       ultimaFecha: null,
       ultimaCantidad: null,
@@ -163,6 +222,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       marcaId: h.marcaId,
       nombre: h.nombre,
       categoria: h.categoria,
+      marca: h.marca,
       cantidad: leerCantidad(enCurso.cantidad) ?? 1,
       costo: leerPrecio(enCurso.costo) ?? 0,
       venta: leerPrecio(enCurso.venta),
@@ -232,7 +292,19 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     setPaso("proveedor");
   }
 
-  const atras = ANTERIOR[paso];
+  // La vuelta de los pasos que dependen de por dónde se llegó: una prenda nueva vuelve a su marca (o a su nombre, si la marca se puso
+  // sola), y «dinos qué es» de un proveedor sin prendas vuelve al proveedor.
+  const esNueva = enCurso?.habitual.clave.startsWith("nuevo:") ?? false;
+  const atras: PasoCompra | undefined =
+    paso === "cantidad" && esNueva && enCurso?.edita == null
+      ? marcasDelProveedor.length === 1
+        ? "nuevo-nombre"
+        : "nuevo-marca"
+      : paso === "nuevo-categoria" && habitualesLeidos.length === 0
+        ? "proveedor"
+        : paso === "nuevo-categoria"
+          ? "habituales"
+          : ANTERIOR[paso];
   const cabecera = paso !== "listo" && (
     <div className="flex flex-col gap-2" data-guia="compra.avance">
       <div className="flex items-center gap-3">
@@ -245,16 +317,29 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-5 pb-28">
+    <div className="mx-auto flex w-full max-w-md flex-col gap-5 pb-8">
       {cabecera}
       {paso === "proveedor" && (
         <PasoProveedor
           datos={datos}
+          proveedores={proveedores}
+          alNuevo={() => setRegistrando(true)}
           q={q}
           setQ={setQ}
           cat={catProveedor}
           setCat={setCatProveedor}
           alElegir={(p) => void elegirProveedor(p)}
+        />
+      )}
+      {registrando && (
+        <RegistrarProveedorOrden
+          proveedores={proveedores}
+          tipeado={q}
+          esPersona={esPersona}
+          responsable={responsable}
+          sinResponsable="Desde una terminal no se registra un proveedor aquí: entra con tu cuenta, o pídele a tu líder que lo registre en Compras ▸ Proveedores."
+          onRegistrado={alRegistrarProveedor}
+          onClose={() => setRegistrando(false)}
         />
       )}
 
@@ -271,8 +356,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               Vuelve atrás y elige otra vez al proveedor.
             </Aviso>
           ) : habituales.length === 0 ? (
-            <Vacio icono={<Store aria-hidden />} titulo="Todavía no hay prendas de este proveedor" tamano="chico">
-              Muy pronto vas a poder anotar algo nuevo. Por ahora, elige otro proveedor.
+            <Vacio icono={<Store aria-hidden />} tamano="chico">
+              Todavía no le compras nada. Anótalo en «Algo nuevo de este proveedor», aquí abajo.
             </Vacio>
           ) : (
             <ListaHabituales
@@ -285,12 +370,135 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               alElegir={elegirHabitual}
             />
           )}
-          {lineas.length > 0 && (
-            <div className="fixed inset-x-0 bottom-0 z-10 border-t border-sand bg-crema/95 p-4 backdrop-blur">
-              <Boton peso="primario" className="mx-auto w-full max-w-md" onClick={() => setPaso("revisar")} data-guia="compra.revisar">
-                Revisar la compra ({prendasDeLineas(lineas)} prendas)
-              </Boton>
+          {/* Lo que siempre tiene que estar a mano: pegado al pie de la columna mientras la lista corre por detrás (la maqueta aprobada).
+              Pegado y no fijo a la ventana: fijo, en escritorio el menú lateral lo tapaba. */}
+          <div className="sticky bottom-0 z-10 border-t border-sand bg-crema/95 py-3 backdrop-blur">
+            <div className="mx-auto flex w-full max-w-md flex-col gap-2">
+              <TarjetaAccion
+                guia="compra.algo-nuevo"
+                titulo="Algo nuevo de este proveedor"
+                detalle="Una prenda que todavía no le compraste"
+                onClick={algoNuevo}
+              />
+              {lineas.length > 0 && (
+                <Boton peso="primario" className="w-full" onClick={() => setPaso("revisar")} data-guia="compra.revisar">
+                  Revisar la compra ({prendasDeLineas(lineas)} prendas)
+                </Boton>
+              )}
             </div>
+          </div>
+        </section>
+      )}
+
+      {paso === "nuevo-categoria" && (
+        <PasoCategoriaNueva
+          categorias={datos.categorias}
+          suyas={new Set(habitualesLeidos.map((h) => h.categoriaId))}
+          primera={habitualesLeidos.length === 0}
+          q={nuevo.q}
+          setQ={(v) => setNuevo((n) => ({ ...n, q: v }))}
+          alElegir={(c) => {
+            setNuevo((n) => ({ ...n, categoria: c, descartadas: new Set() }));
+            setPaso("nuevo-nombre");
+          }}
+        />
+      )}
+
+      {paso === "nuevo-nombre" && nuevo.categoria && (
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            seguirNombre();
+          }}
+        >
+          <TituloSeccion>¿Cómo se llama?</TituloSeccion>
+          <p className="-mt-3 text-sm text-taupe">{nuevo.categoria.nombre}. Un nombre corto, como lo dicen en la tienda.</p>
+          <CampoTexto
+            caja
+            etiqueta="Nombre de la prenda"
+            autoFocus
+            maxLength={NOMBRE_NUEVO_MAX}
+            value={nuevo.nombre}
+            placeholder={sugerirNombre(nuevo.categoria).origen === "categoria" ? `Ej. ${sugerirNombre(nuevo.categoria).texto}` : sugerirNombre(nuevo.categoria).texto}
+            data-guia="compra.nombre-nuevo"
+            onChange={(e) => setNuevo((n) => ({ ...n, nombre: e.target.value }))}
+          />
+          {parecido && (
+            <PreguntaParecido
+              titulo={`¿Es «${parecido.nombre}»?`}
+              bajada={parecido.veces > 0 ? "Ya se la compraste: para no anotarla dos veces, úsala." : "Ya está en el catálogo con este proveedor: si es esa, úsala."}
+              opciones={[{ id: parecido.clave, nombre: parecido.nombre, detalle: `${parecido.categoria}${parecido.marca ? ` · ${parecido.marca}` : ""}` }]}
+              si={() => ({ texto: "Usar esa", onClick: () => elegirHabitual(parecido) })}
+              no={{ texto: "No, es otra", onClick: () => setNuevo((n) => ({ ...n, descartadas: new Set([...n.descartadas, parecido.clave]) })) }}
+            />
+          )}
+          <Boton type="submit" peso="primario" disabled={faltaNombreNuevo(nuevo.nombre) !== null || parecido !== null}>
+            <span className="inline-flex items-center gap-2">
+              Seguir
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </span>
+          </Boton>
+          {(faltaNombreNuevo(nuevo.nombre) || parecido) && (
+            <p className="-mt-2 text-center text-xs text-taupe">{faltaNombreNuevo(nuevo.nombre) ?? "Dinos si es la misma prenda"}</p>
+          )}
+        </form>
+      )}
+
+      {paso === "nuevo-marca" && (
+        <section className="flex flex-col gap-3">
+          <TituloSeccion>¿De qué marca?</TituloSeccion>
+          <p className="-mt-2 text-sm text-taupe">{nuevo.nombre.trim()}. Como dice la etiqueta de la prenda.</p>
+          {!nuevo.otraMarca ? (
+            <ul className="grid grid-cols-2 gap-2" data-guia="compra.marcas">
+              {marcasDelProveedor.map((m) => (
+                <li key={m.id}>
+                  <button type="button" onClick={() => armarNuevo(m)} className="card-cayla mov-boton flex h-full w-full items-center gap-2 p-3 text-left">
+                    <Tag className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
+                    <span className="min-w-0 font-medium text-tinta">{m.nombre}</span>
+                  </button>
+                </li>
+              ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setNuevo((n) => ({ ...n, otraMarca: true }))}
+                  className="card-cayla mov-boton flex h-full w-full items-center gap-2 p-3 text-left"
+                >
+                  <Plus className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
+                  <span className="min-w-0">
+                    <span className="block font-medium text-tinta">Otra marca</span>
+                    <span className="block text-xs text-taupe">La buscas</span>
+                  </span>
+                </button>
+              </li>
+            </ul>
+          ) : (
+            <>
+              <Buscador
+                valor={nuevo.qMarca}
+                onCambio={(v) => setNuevo((n) => ({ ...n, qMarca: v }))}
+                etiqueta="Busca la marca"
+                placeholder="Busca la marca" // sugerir-fijo: se busca una marca del catálogo por su nombre; no depende de nada elegido antes
+                guia="compra.buscar-marca"
+              />
+              {filtrarMarcas(datos.marcas, nuevo.qMarca).length === 0 ? (
+                <Vacio icono={<SearchX aria-hidden />} tamano="chico" accion={{ texto: "Borrar la búsqueda", onClick: () => setNuevo((n) => ({ ...n, qMarca: "" })) }}>
+                  No hay una marca «{nuevo.qMarca.trim()}». Si de verdad falta, Compras la crea en Catálogo ▸ Marcas.
+                </Vacio>
+              ) : (
+                <ul className="card-cayla divide-y divide-sand">
+                  {filtrarMarcas(datos.marcas, nuevo.qMarca).map((m) => (
+                    <li key={m.id}>
+                      <button type="button" onClick={() => armarNuevo(m)} className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-tinta hover:bg-sand/30">
+                        <Tag className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
+                        {m.nombre}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </section>
       )}
@@ -502,6 +710,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
 
 function PasoProveedor({
   datos,
+  proveedores,
+  alNuevo,
   q,
   setQ,
   cat,
@@ -509,15 +719,17 @@ function PasoProveedor({
   alElegir,
 }: {
   datos: Datos;
+  proveedores: ProveedorParaComprar[];
+  alNuevo: () => void;
   q: string;
   setQ: (v: string) => void;
   cat: string | null;
   setCat: (v: string | null) => void;
   alElegir: (p: ProveedorParaComprar) => void;
 }) {
-  const categorias = categoriasConProveedor(datos.proveedores, datos.categorias);
+  const categorias = categoriasConProveedor(proveedores, datos.categorias);
   const nombreCat = new Map(datos.categorias.map((c) => [c.id, c.nombre]));
-  const lista = filtrarProveedores(datos.proveedores, q, cat);
+  const lista = filtrarProveedores(proveedores, q, cat);
   return (
     <section className="flex flex-col gap-3">
       <TituloSeccion>¿A quién le compras?</TituloSeccion>
@@ -531,11 +743,11 @@ function PasoProveedor({
       />
       {categorias.length > 1 && (
         <div className="flex flex-wrap gap-2" data-guia="compra.categorias">
-          <BotonFiltro activo={cat === null} onClick={() => setCat(null)} cuenta={datos.proveedores.length}>
+          <BotonFiltro activo={cat === null} onClick={() => setCat(null)} cuenta={proveedores.length}>
             Todos
           </BotonFiltro>
           {categorias.map((c) => (
-            <BotonFiltro key={c.id} activo={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)} cuenta={datos.proveedores.filter((p) => p.categorias.includes(c.id)).length}>
+            <BotonFiltro key={c.id} activo={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)} cuenta={proveedores.filter((p) => p.categorias.includes(c.id)).length}>
               {c.nombre}
             </BotonFiltro>
           ))}
@@ -543,7 +755,7 @@ function PasoProveedor({
       )}
       {lista.length === 0 ? (
         <Vacio icono={<Store aria-hidden />} titulo="No hay un proveedor así" tamano="chico">
-          Prueba con otra categoría u otro nombre.
+          Prueba con otra categoría u otro nombre, o regístralo en «Nuevo proveedor», aquí abajo.
         </Vacio>
       ) : (
         <ul className="flex flex-col gap-2" data-guia="compra.proveedores">
@@ -563,6 +775,89 @@ function PasoProveedor({
             </li>
           ))}
         </ul>
+      )}
+      <div className="sticky bottom-0 z-10 border-t border-sand bg-crema/95 py-3 backdrop-blur">
+        <div className="mx-auto w-full max-w-md">
+          <TarjetaAccion guia="compra.proveedor-nuevo" titulo="Nuevo proveedor" detalle="Alguien a quien todavía no le compras" onClick={alNuevo} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Lo que siempre está a mano al pie («Nuevo proveedor», «Algo nuevo de este proveedor»): una tarjeta con su «+». */
+function TarjetaAccion({ titulo, detalle, guia, onClick }: { titulo: string; detalle: string; guia: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} data-guia={guia} className="card-cayla mov-boton flex w-full items-center gap-3 p-3 text-left">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-tinta text-crema">
+        <Plus className="h-4 w-4" aria-hidden />
+      </span>
+      <span className="min-w-0">
+        <span className="block font-medium text-tinta">{titulo}</span>
+        <span className="block text-xs text-taupe">{detalle}</span>
+      </span>
+    </button>
+  );
+}
+
+function PasoCategoriaNueva({
+  categorias,
+  suyas,
+  primera,
+  q,
+  setQ,
+  alElegir,
+}: {
+  categorias: CategoriaParaComprar[];
+  suyas: ReadonlySet<string>;
+  /** El proveedor no tiene ninguna prenda todavía: es la primera compra. */
+  primera: boolean;
+  q: string;
+  setQ: (v: string) => void;
+  alElegir: (c: CategoriaParaComprar) => void;
+}) {
+  const grupos = filtrarCategoriasNuevo(categorias, q, suyas);
+  const tarjeta = (c: CategoriaParaComprar, ya: boolean) => (
+    <li key={c.id}>
+      <button type="button" onClick={() => alElegir(c)} className="card-cayla mov-boton flex h-full w-full items-center gap-2 p-3 text-left">
+        <Shapes className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
+        <span className="min-w-0">
+          <span className="block font-medium text-tinta">{c.nombre}</span>
+          {ya && <span className="block text-xs text-taupe">Ya le compras</span>}
+        </span>
+      </button>
+    </li>
+  );
+  return (
+    <section className="flex flex-col gap-3">
+      <TituloSeccion>{primera ? "Es tu primera compra a este proveedor: dinos qué es" : "¿Qué es?"}</TituloSeccion>
+      <p className="-mt-2 text-sm text-taupe">Busca o elige la categoría.</p>
+      <Buscador
+        valor={q}
+        onCambio={setQ}
+        etiqueta="Busca la categoría"
+        placeholder="Busca la categoría" // sugerir-fijo: se busca una categoría del catálogo por su nombre; no depende de nada elegido antes
+        guia="compra.buscar-categoria"
+      />
+      {grupos.suyas.length === 0 && grupos.otras.length === 0 ? (
+        <Vacio icono={<SearchX aria-hidden />} tamano="chico" accion={{ texto: "Borrar la búsqueda", onClick: () => setQ("") }}>
+          No hay una categoría «{q.trim()}». Prueba con otra palabra, como «blusa» o «jean».
+        </Vacio>
+      ) : (
+        <div className="flex flex-col gap-3" data-guia="compra.categorias-nuevo">
+          {grupos.suyas.length > 0 && (
+            <>
+              <TituloGrupo>Lo que ya le compras</TituloGrupo>
+              <ul className="grid grid-cols-2 gap-2">{grupos.suyas.map((c) => tarjeta(c, true))}</ul>
+            </>
+          )}
+          {grupos.otras.length > 0 && (
+            <>
+              {grupos.suyas.length > 0 && <TituloGrupo>Otras</TituloGrupo>}
+              <ul className="grid grid-cols-2 gap-2">{grupos.otras.map((c) => tarjeta(c, false))}</ul>
+            </>
+          )}
+        </div>
       )}
     </section>
   );

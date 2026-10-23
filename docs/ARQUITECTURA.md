@@ -1463,6 +1463,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `getMiPlata`) + `lib/compra-rapida-reglas.ts` (puro) + `components/mi-plata/RegistrarCompra.tsx` (`fn_habituales_proveedor` al elegir el
   proveedor; `registrar_compra_rapida`, la foto a `retail-gastos-viaje/papeles/`). Tabla `compra_papeles`; columnas `ordenes_compra.papel_id`
   y `orden_compra_items.producto_id`.
+  Actividad 4 (sin migración): la misma pantalla suma «Algo nuevo de este proveedor» (categorías con `prefijo`/`familia` y `marcas` leídas
+  en `lib/compra-rapida.ts`; la línea va sin `producto_id`) y «Nuevo proveedor», que reusa `components/ordenes-compra/RegistrarProveedorOrden.tsx`
+  (`registrar_proveedor_de_orden`).
 - ~~**Notas de crédito**~~ (retirada el 2026-10-22, ADR-0480: la pantalla, sus modales y `lib/notas-credito*.ts` se borraron;
   `/compras/notas-credito` redirige a `/compras`; las tablas y RPC de abajo siguen en la base). Lo que era (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres

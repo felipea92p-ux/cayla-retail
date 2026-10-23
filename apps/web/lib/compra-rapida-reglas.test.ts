@@ -4,12 +4,18 @@ import {
   categoriasConProveedor,
   categoriasDeHabituales,
   faltaEnPaso,
+  faltaNombreNuevo,
+  filtrarCategoriasNuevo,
+  filtrarMarcas,
   filtrarProveedores,
+  habitualNuevo,
+  habitualParecido,
   leerCantidad,
   leerHabituales,
   leerPrecio,
   leerProveedoresParaComprar,
   lineasParaBase,
+  marcasDeHabituales,
   prendasDeLineas,
   textoAvance,
   textoHabitual,
@@ -112,6 +118,7 @@ const L = (o: Partial<LineaCompra>): LineaCompra => ({
   marcaId: "m",
   nombre: "Blusa manga globo",
   categoria: "Blusas",
+  marca: "CAYLA",
   cantidad: 12,
   costo: 17.5,
   venta: 39.9,
@@ -168,5 +175,63 @@ describe("la barra de avance: siempre 3 pasos", () => {
     expect(textoAvance("habituales")).toBe("Paso 2 de 3 · Prendas");
     expect(textoAvance("costo")).toBe("Paso 2 de 3 · Prendas · costo");
     expect(textoAvance("papel")).toBe("Paso 3 de 3 · Boleta o factura");
+  });
+});
+
+describe("algo nuevo de este proveedor", () => {
+  const CATS = [
+    { id: "blusas", nombre: "Camisas y Blusas", prefijo: "CMS", familia: "indumentaria" },
+    { id: "sud", nombre: "Sudaderas", prefijo: "SUD", familia: "indumentaria" },
+    { id: "jeans", nombre: "Jeans", prefijo: "JEA", familia: "indumentaria" },
+    { id: "nueva", nombre: "Ponchos", prefijo: null, familia: null },
+  ];
+  it("«¿Qué es?»: primero lo que ya le compras; se busca sin tildes y por la prenda de la ficha", () => {
+    const todo = filtrarCategoriasNuevo(CATS, "", new Set(["jeans"]));
+    expect(todo.suyas.map((c) => c.id)).toEqual(["jeans"]);
+    expect(todo.otras.map((c) => c.id)).toEqual(["blusas", "sud", "nueva"]);
+    expect(filtrarCategoriasNuevo(CATS, "BLÚSA", new Set()).otras.map((c) => c.id)).toEqual(["blusas"]);
+    expect(filtrarCategoriasNuevo(CATS, "polera", new Set()).otras.map((c) => c.id)).toEqual(["sud"]);
+    expect(filtrarCategoriasNuevo(CATS, "zapatos", new Set(["jeans"]))).toEqual({ suyas: [], otras: [] });
+  });
+  it("el nombre: de 3 a 80 letras, sin contar los espacios de más", () => {
+    expect(faltaNombreNuevo("")).toBe("Escribe el nombre de la prenda");
+    expect(faltaNombreNuevo("  ab  ")).toBe("Escribe el nombre de la prenda");
+    expect(faltaNombreNuevo("Casaca corta")).toBeNull();
+    expect(faltaNombreNuevo("x".repeat(81))).toBe("El nombre va hasta 80 letras");
+  });
+  it("avisa si se llama igual o casi igual que uno de sus habituales, y deja de preguntar si dijo «No, es otra»", () => {
+    expect(habitualParecido("blusa MANGA globo", HABITUALES, new Set())?.clave).toBe("a");
+    expect(habitualParecido("Blusa manga globos", HABITUALES, new Set())?.clave).toBe("a");
+    expect(habitualParecido("blusa manga globo", HABITUALES, new Set(["a"]))).toBeNull();
+    expect(habitualParecido("Casaca corta acolchada", HABITUALES, new Set())).toBeNull();
+    expect(habitualParecido("", HABITUALES, new Set())).toBeNull();
+  });
+  it("las marcas del proveedor, la que más prendas tiene primero; sin marca no cuenta", () => {
+    const hs = leerHabituales([
+      { clave: "1", nombre: "A", categoria_id: "c", marca_id: "m2", marca: "Mias" },
+      { clave: "2", nombre: "B", categoria_id: "c", marca_id: "m1", marca: "CAYLA" },
+      { clave: "3", nombre: "C", categoria_id: "c", marca_id: "m1", marca: "CAYLA" },
+      { clave: "4", nombre: "D", categoria_id: "c" },
+    ]);
+    expect(marcasDeHabituales(hs)).toEqual([
+      { id: "m1", nombre: "CAYLA" },
+      { id: "m2", nombre: "Mias" },
+    ]);
+    expect(marcasDeHabituales([])).toEqual([]);
+  });
+  it("«Otra marca» busca entre todas sin tildes ni mayúsculas", () => {
+    const marcas = [
+      { id: "1", nombre: "Ángelys" },
+      { id: "2", nombre: "CAYLA" },
+    ];
+    expect(filtrarMarcas(marcas, "angel").map((m) => m.id)).toEqual(["1"]);
+    expect(filtrarMarcas(marcas, "")).toHaveLength(2);
+  });
+  it("la prenda nueva sigue como un habitual sin compras: sin producto del catálogo y sin precios de antes", () => {
+    const h = habitualNuevo("nuevo:1", { nombre: "  Casaca   corta ", categoria: CATS[0], marca: { id: "m1", nombre: "CAYLA" } });
+    expect(h).toMatchObject({ clave: "nuevo:1", productoId: null, nombre: "Casaca corta", categoriaId: "blusas", marcaId: "m1", veces: 0, costo: null, venta: null });
+    expect(textoHabitual(h)).toBeNull();
+    expect(textoAvance("nuevo-categoria")).toBe("Paso 2 de 3 · Prendas · qué es");
+    expect(textoAvance("nuevo-marca")).toBe("Paso 2 de 3 · Prendas · marca");
   });
 });

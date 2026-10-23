@@ -2,6 +2,8 @@ import { soles } from "./compras-reglas";
 import { leerMontoPlata } from "./monto-plata-reglas";
 import { problemaDeMonto } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
+import { nombresParecidos } from "./nombres-parecidos";
+import { FICHAS_POR_CATEGORIA } from "./sugerencias-alta-producto";
 
 // Compras simple (ADR-0480, actividad 3): «Compré ropa» desde el celular. Las reglas puras: leer lo que manda la base (vieja o rota: nunca
 // se cae), buscar proveedores por nombre y por lo que venden, los habituales de uno, lo que se dice en cada paso, lo que falta en el paso del
@@ -145,6 +147,7 @@ export type LineaCompra = {
   marcaId: string | null;
   nombre: string;
   categoria: string;
+  marca: string | null;
   cantidad: number;
   costo: number;
   venta: number | null;
@@ -224,14 +227,119 @@ export function lineasParaBase(lineas: readonly LineaCompra[]) {
 }
 
 /** El paso de la barra de avance (siempre 3, la maqueta): 1 Proveedor · 2 Prendas · 3 Boleta o factura. */
-export type PasoCompra = "proveedor" | "habituales" | "cantidad" | "costo" | "venta" | "tienda" | "revisar" | "papel" | "listo";
+export type PasoCompra =
+  | "proveedor"
+  | "habituales"
+  | "nuevo-categoria"
+  | "nuevo-nombre"
+  | "nuevo-marca"
+  | "cantidad"
+  | "costo"
+  | "venta"
+  | "tienda"
+  | "revisar"
+  | "papel"
+  | "listo";
 export function faseDePaso(p: PasoCompra): 1 | 2 | 3 {
   return p === "proveedor" ? 1 : p === "papel" || p === "listo" ? 3 : 2;
 }
-const DETALLE: Partial<Record<PasoCompra, string>> = { cantidad: "cantidad", costo: "costo", venta: "venta", tienda: "tienda" };
+const DETALLE: Partial<Record<PasoCompra, string>> = {
+  "nuevo-categoria": "qué es",
+  "nuevo-nombre": "nombre",
+  "nuevo-marca": "marca",
+  cantidad: "cantidad",
+  costo: "costo",
+  venta: "venta",
+  tienda: "tienda",
+};
 export function textoAvance(p: PasoCompra): string {
   const fase = faseDePaso(p);
   const nombre = fase === 1 ? "Proveedor" : fase === 2 ? "Prendas" : "Boleta o factura";
   return `Paso ${fase} de 3 · ${nombre}${DETALLE[p] ? ` · ${DETALLE[p]}` : ""}`;
 }
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// «Algo nuevo de este proveedor» (actividad 4): una prenda que todavía no le compraste, en tres preguntas —qué es, cómo se llama y de
+// qué marca— antes de la cantidad, el costo y la venta. La base ya la acepta (una línea sin `producto_id`, con categoría, marca y
+// descripción) y la próxima vez sale entre sus habituales por su nombre. Color y tallas los cuenta la tienda al recibir.
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type CategoriaParaComprar = { id: string; nombre: string; prefijo: string | null; familia: string | null };
+
+/**
+ * «¿Qué es?»: primero las categorías que ya se le compran a este proveedor, después las demás. Se busca por el nombre de la categoría
+ * y por la prenda de su ficha («polera» encuentra Sudaderas), sin tildes ni mayúsculas.
+ */
+export function filtrarCategoriasNuevo(
+  categorias: readonly CategoriaParaComprar[],
+  q: string,
+  suyas: ReadonlySet<string>,
+): { suyas: CategoriaParaComprar[]; otras: CategoriaParaComprar[] } {
+  const n = normalizar(q);
+  const coincide = (c: CategoriaParaComprar) =>
+    !n || normalizar(c.nombre).includes(n) || normalizar(FICHAS_POR_CATEGORIA[c.prefijo ?? ""]?.prenda ?? "").includes(n);
+  const lista = categorias.filter(coincide);
+  return { suyas: lista.filter((c) => suyas.has(c.id)), otras: lista.filter((c) => !suyas.has(c.id)) };
+}
+
+/** Lo más corto y lo más largo que se acepta como nombre de una prenda nueva (lo que la tienda reconoce al recibir). */
+export const NOMBRE_NUEVO_MIN = 3;
+export const NOMBRE_NUEVO_MAX = 80;
+
+/** Lo que dice bajo el botón gris de «¿Cómo se llama?». */
+export function faltaNombreNuevo(nombre: string): string | null {
+  const limpio = nombre.trim().replace(/\s+/g, " ");
+  if (limpio.length < NOMBRE_NUEVO_MIN) return "Escribe el nombre de la prenda";
+  if (limpio.length > NOMBRE_NUEVO_MAX) return `El nombre va hasta ${NOMBRE_NUEVO_MAX} letras`;
+  return null;
+}
+
+/**
+ * «¿Es la Blusa manga globo que le compraste?»: la prenda de sus habituales que se llama igual o casi igual (la misma regla de
+ * «¿no será uno que ya existe?» de marcas y proveedores), salvo las que ya contestó con «No, es otra». Solo se pregunta, no se bloquea.
+ */
+export function habitualParecido(nombre: string, habituales: readonly Habitual[], descartadas: ReadonlySet<string>): Habitual | null {
+  const vivos = habituales.filter((h) => !descartadas.has(h.clave));
+  const { igual, parecidos } = nombresParecidos(nombre, vivos, { max: 1 });
+  return igual ?? parecidos[0]?.item ?? null;
+}
+
+/** Las marcas que trae este proveedor (las de sus habituales), de la que más prendas tiene a la que menos. */
+export function marcasDeHabituales(habituales: readonly Habitual[]): { id: string; nombre: string }[] {
+  const porId = new Map<string, { id: string; nombre: string; n: number }>();
+  for (const h of habituales) {
+    if (!h.marcaId || !h.marca) continue;
+    const m = porId.get(h.marcaId) ?? { id: h.marcaId, nombre: h.marca, n: 0 };
+    m.n += 1;
+    porId.set(h.marcaId, m);
+  }
+  return [...porId.values()].sort((a, b) => b.n - a.n || a.nombre.localeCompare(b.nombre, "es")).map(({ id, nombre }) => ({ id, nombre }));
+}
+
+/** «Otra marca»: buscar entre todas las del catálogo, sin tildes ni mayúsculas. */
+export function filtrarMarcas(marcas: readonly { id: string; nombre: string }[], q: string): { id: string; nombre: string }[] {
+  const n = normalizar(q);
+  return n ? marcas.filter((m) => normalizar(m.nombre).includes(n)) : [...marcas];
+}
+
+/** La prenda nueva, con la forma de un habitual (sin compras ni precios de antes): así sigue por los mismos pasos que las de siempre. */
+export function habitualNuevo(
+  clave: string,
+  v: { nombre: string; categoria: CategoriaParaComprar; marca: { id: string; nombre: string } },
+): Habitual {
+  return {
+    clave,
+    productoId: null,
+    nombre: v.nombre.trim().replace(/\s+/g, " "),
+    categoriaId: v.categoria.id,
+    categoria: v.categoria.nombre,
+    marcaId: v.marca.id,
+    marca: v.marca.nombre,
+    veces: 0,
+    ultimaFecha: null,
+    ultimaCantidad: null,
+    costo: null,
+    venta: null,
+  };
+}

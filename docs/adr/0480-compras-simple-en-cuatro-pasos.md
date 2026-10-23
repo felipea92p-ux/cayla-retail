@@ -89,7 +89,26 @@ recién al completar el papel** (paso 4): nada que Compras no revisó toca las c
   órdenes darían una lista vacía). Sin una tabla de «productos por proveedor» que se desincronice.
 - **La pantalla** (`/compras/mi-plata/compra`) es una pregunta a la vez, como la maqueta: el proveedor (por nombre o por lo que vende) →
   sus habituales → cuántas, el costo y la venta («Igual que la vez pasada» o «Igual que en el catálogo» de un toque) → a qué tienda →
-  revisar → el papel (qué te dieron, la foto, cuánto: viene con el total). «Algo nuevo» y «Nuevo proveedor» llegan en la actividad 4.
+  revisar → el papel (qué te dieron, la foto, cuánto: viene con el total).
+
+## Actividad 4: «Algo nuevo» y «Nuevo proveedor» (2026-10-22)
+
+Sin migración: la base ya aceptaba una prenda sin catálogo (categoría, marca y nombre, sin `producto_id`) y la próxima vez la devuelve entre
+los habituales del proveedor por su nombre; y `registrar_proveedor_de_orden` (en producción desde el 2026-10-21) ya registraba un proveedor
+con lo básico sin duplicarlo.
+
+- **Algo nuevo, tres preguntas:** qué es (primero las categorías que ya se le compran; se busca por el nombre y por la prenda de su ficha:
+  «polera» encuentra Poleras) → cómo se llama (el ejemplo sigue a la categoría, ADR-0290; si se llama igual o casi igual que una que ya se
+  le compró, pregunta «¿Es …?» con «Usar esa» y «No, es otra», con la misma regla de parecidos de marcas y proveedores) → la marca (si el
+  proveedor trae una sola, se pone sola; si trae varias, se elige o se busca entre todas con «Otra marca»). Después sigue igual que las de
+  siempre: cantidad, costo, venta y tienda. Un proveedor sin ninguna prenda salta directo a «dinos qué es».
+- **Lo que no entró de la maqueta, a propósito:** «Sin marca» (toda línea de una orden lleva marca: la base la exige) y el color y las tallas
+  (no hay dónde guardarlos en la línea; la tienda los cuenta al recibir, como ya dice el paso de la cantidad). Crear una marca nueva tampoco:
+  se busca entre las que hay (105 en producción) y, si falta, la crea Compras en Catálogo ▸ Marcas.
+- **Nuevo proveedor** es la misma hoja de Nueva orden de compra (con el padrón del RUC y la pregunta «¿no será…?»), no una pantalla nueva:
+  una función, una pieza (ADR-0358). Sus textos dejaron de nombrar «la orden». Al registrarlo sigue directo a su primera compra.
+- **Las barras de abajo** («Nuevo proveedor», «Algo nuevo de este proveedor», «Revisar la compra») quedan pegadas al pie de la columna, no
+  fijas a la ventana: fijas, en escritorio el menú lateral las tapaba.
 
 ## Cómo se ve mal hecho
 
@@ -99,5 +118,5 @@ recién al completar el papel** (paso 4): nada que Compras no revisó toca las c
 
 ## Qué queda
 
-Actividades 4 a 8 de la construcción ( algo nuevo y proveedor nuevo, otro gasto y
+Actividades 5 a 8 de la construcción (otro gasto y
 cierre del día, recibir con costo y precio, revisar compras, cierre con guías y pruebas). Cada una agrega su sección a este ADR.
