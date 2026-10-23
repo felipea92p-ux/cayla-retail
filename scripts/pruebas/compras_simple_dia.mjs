@@ -39,6 +39,17 @@ const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261023114
 
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
 
+// La ronda de compras (20261023183000): sin una abierta, la base no deja anotar una compra ni un gasto. Se vuelve a pegar después de la
+// migración de este archivo (que deja funciones de antes) y cada persona de la semilla empieza con su ronda abierta.
+const RONDA = readFileSync(join(RAIZ, "supabase", "migrations", "20261023183000_compras_simple_ronda_de_compras.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+const RONDAS_ABIERTAS = `
+insert into retail.compra_rondas (persona_id, abierta_por)
+select distinct c.persona_id, c.persona_id from retail.colaboradores c
+ where not exists (select 1 from retail.compra_rondas r where r.persona_id = c.persona_id and r.cerrada_en is null);`;
+
 function psql(sql) {
   return execFileSync(
     "docker",
@@ -55,6 +66,9 @@ const PRELUDIO = `
 begin;
 ${MIGRACION}
 ${MIGRACION}
+${RONDA}
+${RONDA}
+${RONDAS_ABIERTAS}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_hint text; v_msg text;
@@ -204,7 +218,7 @@ select count(*) from retail.despachos where despachado_por = :'micaela' and toke
 );
 
 caso(
-  "terminar el día con plata pide elegir; «devuelve» guarda lo que tenía; cerrar otra vez lo reemplaza (uno por día)",
+  "cerrar la ronda con plata pide elegir; «devuelve» guarda lo que tenía y cierra la ronda; sin ronda abierta no se cierra otra vez",
   `reset role;
 -- Le damos plata por confirmar, para que tenga.
 insert into retail.fondo_plata_anotada (persona_id, medio, monto, fecha, anotada_por)
@@ -213,26 +227,78 @@ select retail.fn_mi_plata_tiene(:'micaela') as tiene \\gset
 ${como(MICAELA, "compra_terminar_dia")}
 select ${hint("select retail.terminar_dia_compras(null)")};
 select (retail.terminar_dia_compras('devuelve') ->> 'monto')::numeric = :'tiene'::numeric;
-select retail.terminar_dia_compras('se_queda') ->> 'decision';
-select retail.fn_mi_plata_compras() -> 'hoy' -> 'cierre' ->> 'decision';
+select ${hint("select retail.terminar_dia_compras('se_queda')")};
+select retail.fn_mi_plata_compras() -> 'ronda' -> 'ultima_cerrada' ->> 'decision', retail.fn_mi_plata_compras() -> 'ronda' ->> 'abierta';
 reset role;
-select count(*) from retail.compra_cierres where persona_id = :'micaela';`,
-  "compra_cierre_decision / t / se_queda / se_queda / 1",
+select count(*), count(*) filter (where k.ronda_id is not null and r.cierre_id = k.id) from retail.compra_cierres k
+  left join retail.compra_rondas r on r.id = k.ronda_id where k.persona_id = :'micaela';`,
+  "compra_cierre_decision / t / compra_ronda_sin_abrir / devuelve| / 1|1",
 );
 
 caso(
-  "en negativo, CAYLA le debe (sin elegir); ya resuelto por Compras, no se vuelve a cerrar",
+  "en negativo, CAYLA le debe (sin elegir); después abre otra ronda, con otro número, y abrir otra vez devuelve la misma",
   `reset role;
 select greatest(retail.fn_mi_plata_tiene(:'micaela'), 0) + 50 as gasto \\gset
 ${como(MICAELA, "gasto_rapido")}
 select retail.registrar_gasto_rapido(gen_random_uuid(), 'otro', 'Más de lo que tenía', :'gasto', null) \\g /dev/null
 ${como(MICAELA, "compra_terminar_dia")}
 select retail.terminar_dia_compras(null) ->> 'decision';
+${como(MICAELA, "compra_ronda_abrir")}
+select retail.abrir_ronda_compras() as r1 \\gset
+select (:'r1'::jsonb ->> 'ya_estaba'), (:'r1'::jsonb ->> 'texto') ~ '^RC-[0-9]{6}$',
+       (retail.abrir_ronda_compras() ->> 'id') = (:'r1'::jsonb ->> 'id');
 reset role;
-update retail.compra_cierres set resuelto_en = now() where persona_id = :'micaela';
+select count(*) from retail.compra_rondas where persona_id = :'micaela' and cerrada_en is null;`,
+  "le_deben / false|t|t / 1",
+);
+
+caso(
+  "sin ronda abierta no se anota un gasto (compra_ronda_sin_abrir) pero sí la plata, que queda sin ronda; con ronda, el gasto queda en ella",
+  `reset role;
 ${como(MICAELA, "compra_terminar_dia")}
-select ${hint("select retail.terminar_dia_compras('se_queda')")};`,
-  "le_deben / compra_cierre_resuelto",
+select retail.terminar_dia_compras('se_queda') \\g /dev/null
+${como(MICAELA, "gasto_rapido")}
+select ${hint(GASTO())};
+${como(MICAELA, "plata_anotar")}
+select retail.anotar_plata_compras('efectivo', 20, null, gen_random_uuid()) \\g /dev/null
+${como(MICAELA, "compra_ronda_abrir")}
+select retail.abrir_ronda_compras() ->> 'id' as ronda \\gset
+${como(MICAELA, "gasto_rapido")}
+${GASTO("aaaaaaaa-0480-4000-8000-0000000000e9")} \\g /dev/null
+reset role;
+select (select count(*) from retail.fondo_plata_anotada where persona_id = :'micaela' and ronda_id is null and monto = 20),
+       (select ronda_id::text = :'ronda' from retail.compra_gastos where id = 'aaaaaaaa-0480-4000-8000-0000000000e9');`,
+  "compra_ronda_sin_abrir / 1|t",
+);
+
+caso(
+  "una sola ronda abierta por persona; cerrada dice su número RC y no cambia ni se borra; la ronda de un gasto no cambia",
+  `reset role;
+select split_part(pg_temp.intento(format($q$insert into retail.compra_rondas (persona_id, abierta_por) values (%L, %L)$q$, :'micaela', :'micaela')), '|', 1);
+${como(MICAELA, "gasto_rapido")}
+${GASTO()} \\g /dev/null
+${como(MICAELA, "compra_terminar_dia")}
+select (retail.terminar_dia_compras('se_queda') ->> 'ronda') ~ '^RC-[0-9]{6}$';
+reset role;
+select id as cerrada from retail.compra_rondas where persona_id = :'micaela' and cerrada_en is not null order by cerrada_en desc limit 1 \\gset
+select split_part(pg_temp.intento(format($q$update retail.compra_rondas set cerrada_en = now() where id = %L$q$, :'cerrada')), '|', 2),
+       split_part(pg_temp.intento(format($q$delete from retail.compra_rondas where id = %L$q$, :'cerrada')), '|', 1),
+       split_part(pg_temp.intento(format($q$update retail.compra_gastos set ronda_id = null where id = %L$q$, '${GID}')), '|', 1);`,
+  "23505 / t / compra_ronda_cerrada|P0001|P0001",
+);
+
+caso(
+  "dos rondas cerradas el mismo día: cada una con su cierre, y Mi plata se sigue leyendo (lee el último)",
+  `${como(MICAELA, "compra_terminar_dia")}
+select retail.terminar_dia_compras('se_queda') \\g /dev/null
+${como(MICAELA, "compra_ronda_abrir")}
+select retail.abrir_ronda_compras() \\g /dev/null
+${como(MICAELA, "compra_terminar_dia")}
+select retail.terminar_dia_compras('se_queda') \\g /dev/null
+select (retail.fn_mi_plata_compras() -> 'hoy' -> 'cierre' ->> 'decision') is not null, retail.fn_mi_plata_compras() -> 'ronda' ->> 'abierta';
+reset role;
+select count(*) from retail.compra_cierres where persona_id = :'micaela' and fecha = retail.fn_hoy_lima() and ronda_id is not null;`,
+  "t| / 2",
 );
 
 caso(
