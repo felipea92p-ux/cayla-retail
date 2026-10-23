@@ -237,7 +237,7 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/liquidacion", "/productos/campanas", "/compras/ordenes", "/compras/plan", "/ordenes-insumos", "/compras/fondos", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web"]
+      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/liquidacion", "/productos/insignias", "/compras/ordenes", "/compras/plan", "/ordenes-insumos", "/compras/fondos", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web"]
         .filter((h) => deAntes.includes(h))
         .sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);
@@ -327,13 +327,16 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(permisosDeModulos("integrante", [{ clave: "por_pagar", completo: false }])).toEqual([]);
   });
 
-  it("«Por pagar» solo: Compras sale con una sola pantalla, Por pagar; Etiquetas solo: entra por la fila «Atributos»", () => {
+  it("«Por pagar» solo: Compras sale con una sola pantalla, Por pagar; Insignias o Campañas solos: entran por la fila «Insignias»", () => {
     const soloPagos = ahora({ nombre: "pagos", rol: "integrante" }, "tienda", [{ clave: "por_pagar", completo: true }]);
     const riel = menuPara(soloPagos).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Compras"]);
     expect(riel.find((f) => f.etiqueta === "Compras")).toMatchObject({ href: "/compras/por-pagar" });
     const soloEtiquetas = ahora({ nombre: "etiquetas", rol: "integrante" }, "tienda", [{ clave: "etiquetas", completo: true }]);
-    expect(menuPara(soloEtiquetas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/atributos" });
+    expect(menuPara(soloEtiquetas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/insignias" });
+    // Campañas no tiene fila propia desde el 2026-10-22: abre la de Insignias, su `moduloAlterno` (la pantalla le muestra solo esa vista).
+    const soloCampanas = ahora({ nombre: "campanas", rol: "integrante" }, "tienda", [{ clave: "campanas", completo: true }]);
+    expect(menuPara(soloCampanas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/insignias" });
   });
 
   // ADR-0161 P1 (20260923140000): en Compras cada módulo escribe solo lo suyo, aunque los tres vean los montos. Espeja

@@ -844,7 +844,7 @@ export const GUIA_FIN_CAMPANAS: Guia = {
       id: "nota",
       ancla: "fin-campanas.nota",
       titulo: "Dónde se cambian",
-      texto: "Una campaña también puede valer por otras cosas, como clientes nuevos. Las fechas y el descuento se cambian en Catálogo ▸ Campañas; la meta y el fondo, en Configuración ▸ Tiendas y caja.",
+      texto: "Una campaña también puede valer por otras cosas, como clientes nuevos. Las fechas y el descuento se cambian en Catálogo ▸ Insignias; la meta y el fondo, en Configuración ▸ Tiendas y caja.",
     },
     {
       id: "fin",

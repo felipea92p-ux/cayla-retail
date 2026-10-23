@@ -17,7 +17,7 @@ const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // Tienda web ▸ Campañas ▸ Diseñar la campaña (Felipe 2026-10-21; maqueta docs/maquetas/campanas-tienda-2026-10, pantalla 2). Es una pantalla
 // del módulo `campanas_web` (su layout ya lo exige), no un módulo nuevo (ADR-0306): se llega desde la lista. Desde ADR-0473 (Felipe
 // 2026-10-22: «que se pueda editar desde ambos módulos», «mismas piezas dentro») tiene una segunda pestaña, «Datos y prendas», con la
-// MISMA tarjeta y las mismas hojas de Catálogo ▸ Campañas (`TarjetaDeCampana`): una sola fuente de verdad, dos puertas.
+// MISMA tarjeta y las mismas hojas de Catálogo ▸ Insignias (`TarjetaDeCampana`): una sola fuente de verdad, dos puertas.
 export default async function DisenarCampanaPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ pestana?: string }> }) {
   const { id } = await params;
   const pestana = (await searchParams).pestana === "datos" ? "datos" : "diseno";
@@ -29,7 +29,7 @@ export default async function DisenarCampanaPage({ params, searchParams }: { par
   const ficha = error ? null : leerFichaCampana(data);
   const noExiste = !ficha && (!ES_UUID.test(id) || `${error?.message ?? ""}${error?.hint ?? ""}`.includes("campana_no_existe"));
   const c = ficha?.campana;
-  // «Datos y prendas» se lee solo al abrir esa pestaña, con el mismo cargador de Catálogo ▸ Campañas.
+  // «Datos y prendas» se lee solo al abrir esa pestaña, con el mismo cargador de Catálogo ▸ Insignias.
   // Si la lectura falla, la pestaña lo dice y el resto de la ficha sigue en pie.
   const datos =
     ficha && pestana === "datos"
@@ -49,7 +49,7 @@ export default async function DisenarCampanaPage({ params, searchParams }: { par
         subtitulo={c ? `${c.nombre} · ${pctDicho(c.pct)} · ${vigenciaDicha(c.desde, c.hasta)}` : "Cómo se ve la tienda online durante esta campaña."}
         volver={<Volver href="/tienda-web/campanas" a="las campañas" />}
         acciones={
-          c && veModulo(persona, "campanas") ? <EnlaceVer href="/productos/campanas">Cambiar fechas o prendas en Campañas</EnlaceVer> : undefined
+          c && veModulo(persona, "campanas") ? <EnlaceVer href="/productos/insignias">Cambiar fechas o prendas en Insignias</EnlaceVer> : undefined
         }
       />
       {ficha && (
@@ -68,7 +68,7 @@ export default async function DisenarCampanaPage({ params, searchParams }: { par
         datos && campanaDatos ? (
           <div className="space-y-3" data-guia="campana-web.datos">
             <p className="max-w-prose text-[13px] text-taupe">
-              Su descuento, sus fechas, las categorías donde rige y sus prendas. Es lo mismo que en Catálogo ▸ Campañas: lo que cambies aquí
+              Su descuento, sus fechas, las categorías donde rige y sus prendas. Es lo mismo que en Catálogo ▸ Insignias: lo que cambies aquí
               cambia allá, en la caja de las tiendas y en la tienda online.
             </p>
             <TarjetaDeCampana
@@ -87,7 +87,7 @@ export default async function DisenarCampanaPage({ params, searchParams }: { par
         <EditorCampana key={`${ficha.campana.id}-${ficha.diseno?.version ?? 0}`} ficha={ficha} tiendaUrl={process.env.TIENDA_URL || DIRECCION_TIENDA_ONLINE} />
       ) : noExiste ? (
         <Aviso tono="atencion" titulo="Esa campaña ya no existe">
-          Puede que se haya archivado en Catálogo ▸ Campañas o que el enlace esté viejo. Vuelve a la lista de campañas.
+          Puede que se haya archivado en Catálogo ▸ Insignias o que el enlace esté viejo. Vuelve a la lista de campañas.
         </Aviso>
       ) : (
         <Aviso tono="error" titulo="No se pudo abrir la campaña">

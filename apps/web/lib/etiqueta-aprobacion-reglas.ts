@@ -36,7 +36,7 @@ export function verboAprobacion(estado: EstadoEtiqueta): "Aprobar" | "Reactivar"
 export const AYUDA_COMENTARIO_APROBAR =
   "Una línea para quien etiquete después: para qué sirve y en qué se distingue de lo que ya existe. Se muestra como ayuda junto al nombre.";
 
-/** El aviso al agregar un sello o una campaña (ADR-0473). Una propuesta (pendiente) dice la verdad: hasta que un Líder la
+/** El aviso al agregar una insignia o una campaña (ADR-0473). Una propuesta (pendiente) dice la verdad: hasta que un Líder la
  *  apruebe, no se puede usar. */
 export function avisoEtiquetaAgregada(nombre: string, estado: EstadoEtiqueta, modo: ModoEtiquetas = "sellos"): { titulo: string; detalle?: string } {
   const T = TEXTOS_MODO[modo];

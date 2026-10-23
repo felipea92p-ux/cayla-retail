@@ -1012,7 +1012,7 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.tiendas-campanas",
       opcional: true,
       titulo: "Campañas",
-      texto: "En una campaña (Día de la Madre, Navidad) cuánto sube la meta de cada tienda y qué fondo dejar en el cajón. Vacío es lo normal. Las campañas y sus fechas se crean en Catálogo ▸ Campañas: el botón de arriba te lleva allá.",
+      texto: "En una campaña (Día de la Madre, Navidad) cuánto sube la meta de cada tienda y qué fondo dejar en el cajón. Vacío es lo normal. Las campañas y sus fechas se crean en Catálogo ▸ Insignias: el botón de arriba te lleva allá.",
     },
     {
       id: "tiendas-nota",

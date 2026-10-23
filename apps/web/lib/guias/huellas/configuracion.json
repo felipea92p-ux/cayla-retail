@@ -55,7 +55,7 @@
       "Casilla «{`Fondo de caja en ${campana.nombre}»",
       "ComboResponsable «{responsable}»",
       "BotonVer «Ver el cartel del club»",
-      "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Campañas)»",
+      "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Insignias)»",
       "Link «Ver cómo se ve en Caja»"
     ],
     "components/CuentasProveedor.tsx": [
