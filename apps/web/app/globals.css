@@ -72,6 +72,8 @@
 @import "./estilos/historial-tickets.css";
 /* Tienda web (ADR-0430): la ventana del navegador, el mosaico de prendas, el camino del pedido y su movimiento. */
 @import "./estilos/tienda-web.css";
+/* La barra de abajo: la Isla (ADR-0479, actividad 12; /unificar familia `barra-movil`). */
+@import "./estilos/barra-abajo.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 

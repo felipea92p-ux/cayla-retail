@@ -357,6 +357,14 @@ const BASE = [
     gobierna: ["ADR-0479", "ADR-0136", "ADR-0358"],
   },
   {
+    id: "barra-movil",
+    grupo: "Hojas",
+    nombre: "La barra de abajo del celular",
+    funcion: "Lo que queda pegado abajo en el teléfono: la acción de la pantalla (escanear, pagar lo marcado, crear) y lo que llevas elegido (el ticket, las prendas marcadas).",
+    pieza: "La Isla, `barra-abajo` / `<BarraDeAbajo>` (components/ui/BarraDeAbajo.tsx): clara para lo que toca hacer, oscura para lo elegido; decidido el 2026-10-23 (ADR-0479)",
+    gobierna: ["ADR-0479", "ADR-0358", "ADR-0136"],
+  },
+  {
     id: "avatar",
     grupo: "Personas",
     nombre: "Avatares",
@@ -1382,6 +1390,32 @@ export const DECISIONES = {
       "items-end justify-center sm:items-start"
     ],
     "deuda": [],
+    "excepciones": []
+  },
+  "barra-movil": {
+    "fecha": "2026-10-23",
+    "adr": "docs/adr/0479-la-hoja-del-celular-viva-y-con-profundidad.md",
+    "registro": "docs/unificar/barra-movil.md",
+    "elegida": "La Isla para las dos preguntas: la barra con lo que toca hacer flota a 12 px de los bordes, clara (papel) y con una sola acción la isla es el botón; lo que llevas elegido, la isla oscura (tinta). Esquinas de 18 px, sombra suave, botones de 44 px, entra subiendo 12 px una vez; elegida mirando las fotos en las pantallas reales el 2026-10-23",
+    "pieza": "components/ui/BarraDeAbajo.tsx",
+    "tambien": ["app/estilos/barra-abajo.css"],
+    "firmas": [
+      // El degradado crema con un botón negro encima (la barra de Existencias, Cambios, Devoluciones, Caja e Inicio de almacén).
+      "fixed inset-x-0 bottom-0[^\"`]*bg-gradient-to-t",
+      // Una píldora flotante dibujada a mano (`fixed inset-x-3 bottom-…`): es la isla, `barra-abajo`.
+      "fixed inset-x-3 bottom-",
+      // El pie de un formulario de borde a borde con su línea arriba (Nuevo producto, Bajar al piso, Recibir).
+      "sticky bottom-0 z-20 -mx-4[^\"`]*border-t",
+      // La tarjeta que flota sobre la lista al marcar (Temporadas).
+      "card-cayla[^\"`]*sticky bottom-3",
+      // La franja oscura de borde a borde (Apartados).
+      "fixed inset-x-0 z-20[^\"`]*bg-tinta",
+      // El vidrio de borde a borde de BarraFija, también en el celular.
+      "fixed inset-x-0 bottom-0 z-20 border-t border-sand bg-crema",
+      // El pie de una tarjeta que se pega abajo en una pantalla angosta (Abrir conteo).
+      "sticky bottom-0 z-10 grid"
+    ],
+    "deuda": ["app/(app)/page.tsx", "components/AbrirConteo.tsx", "components/alta-producto/FichaPrevia.tsx", "components/apartados/piezas.tsx", "components/BajarAlPisoForm.tsx", "components/CajaTablero.tsx", "components/CambiosPanel.tsx", "components/DevolucionesPanel.tsx", "components/InventarioPanel.tsx", "components/ProductosTabla.tsx", "components/PuntoDeVenta.tsx", "components/recepcion-envio/FormularioRecepcion.tsx", "components/TemporadasLista.tsx", "components/ui/BarraFija.tsx"],
     "excepciones": []
   },
   "accion.anterior": {
