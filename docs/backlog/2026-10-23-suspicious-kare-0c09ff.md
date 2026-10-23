@@ -8,5 +8,5 @@
 - [x] En el navegador (1440, 1024, 768 y 375 px): 0, 1, 2 y 5 insignias, con descuento, Nuevo, CAYLA (Lima) y un nombre largo.
 - [ ] **Pegar `supabase/migrations/20261023205000_tienda_catalogo_trae_las_insignias.sql` en producción** (después de `20261023182000`, que ya está) y comprobar
       `select retail.tienda_catalogo(null) -> 'prendas' -> 0 ? 'insignias'`.
-- [ ] **Confirmar con Felipe** que el tope de 3 cuenta también el descuento, «Nuevo» y el puesto (la empresa no): así lo leí de su imagen.
+- [x] Felipe confirmó (2026-10-23) que el tope de 3 cuenta también el descuento, «Nuevo» y el puesto (la empresa no): se queda así.
 - [ ] Sin probar en un teléfono real. En el celular (tarjeta de 165 px) caben «Nuevo» y el «+N», o «Nuevo» y una insignia corta: el resto va al «+N». Si Felipe prefiere ver más nombres ahí, hay que ceder espacio al corazón o achicar más la letra.
