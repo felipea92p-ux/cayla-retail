@@ -424,15 +424,19 @@ export function PagoJuntosModal({
 
           <ComboResponsable control={responsable} deshabilitado={loading} />
 
-          {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
-          <div className="pie-acciones -mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
-            <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
-            <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
-              Cancelar
-            </button>
-            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman}>
-              {credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
-            </Boton>
+          {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. El sangrado va en la caja de
+              afuera y `pie-acciones` adentro (ver el mismo pie en `CompraDetallePanel`): en el celular la nota va en su fila y los
+              dos botones, uno bajo el otro, porque la etiqueta lleva el monto y no cabe en media fila. */}
+          <div className="-mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
+            <div className="pie-acciones">
+              <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55 max-sm:basis-full">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
+              <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
+                Cancelar
+              </button>
+              <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman} className="pie-acciones-ancho">
+                {credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
+              </Boton>
+            </div>
           </div>
         </form>
         )
