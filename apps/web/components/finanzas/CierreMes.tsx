@@ -32,6 +32,7 @@ import {
   nombreMes,
   primerNombre,
   puedeCerrar,
+  resumenAvisos,
   textoBotonCerrar,
   textoChequeo,
   textoOpcionMes,
@@ -227,7 +228,7 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
       <CabeceraBloque titulo={tituloUnidad(panel.mes, u)} bajada={bajadaUnidad(u)} />
       <ul className="fin-chequeos">
         {u.chequeos.map((c, i) => {
-          const t = textoChequeo(c, panel.mes);
+          const t = textoChequeo(c, panel.mes, u);
           const href = cerrada ? null : enlaceChequeo(c, u, panel.mes);
           return (
             <li key={c.clave} {...entra(i + 1)}>
@@ -298,7 +299,9 @@ function useEjecutar() {
 
 function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad: Unidad; onCerrar: () => void; alCerrar: () => void }) {
   const { responsable, guardando, ejecutar } = useEjecutar();
+  // Lo que falta, dicho por lo que falta («conteos de inventario sin cerrar»), no por el título del chequeo, que dice el estado bueno.
   const avisos = avisosPendientes(unidad);
+  const resumen = resumenAvisos(avisos);
   const titulo = `Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} ${deUnidadLarga(unidad)}`;
   async function cerrar() {
     const ok = await ejecutar(
@@ -322,8 +325,7 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
     >
       {avisos.length > 0 && (
         <div className="nota-cayla mb-4">
-          <b>Cierras con {avisos.length === 1 ? "un aviso" : `${avisos.length} avisos`}:</b>{" "}
-          {avisos.map((c) => textoChequeo(c, mes).titulo.toLowerCase()).join(" · ")}. Quedan guardados en la historia del cierre.
+          <b>Cierras con {resumen.cuenta}:</b> {resumen.lista}. Quedan guardados en la historia del cierre.
         </div>
       )}
       <ComboResponsable control={responsable} deshabilitado={guardando} />

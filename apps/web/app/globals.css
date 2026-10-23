@@ -1825,6 +1825,81 @@ html[data-buscando] [data-resultados] {
   }
 }
 
+/* ---- HOJA DEL CELULAR (ADR-0479, Felipe eligió «B · Hoja viva con profundidad» el 2026-10-22) ----
+   Bajo 640 px la hoja de `<Modal>` es una hoja de verdad: LLEGA desde el borde de abajo (no aparece subiendo 24 px con un
+   fundido, que en escritorio está bien y en el teléfono no se lee como algo que se puede devolver), tiene asa y se baja
+   con el dedo (`useHojaArrastre`, reglas en lib/hoja-gesto.ts). Entra en 460 ms con --ease-cayla, sin rebote, y su
+   contenido sigue entrando en cascada; sale entera en 300 ms con --ease-salida (MS_SALIDA_CELULAR en Modal.tsx).
+   Solo la hoja de `<Modal>` (`.cascada-modal`): el loader (`Espera`) usa las mismas clases y sigue igual, y la cámara es
+   pantalla completa. Con «reducir movimiento» rige la regla de siempre: todo aparece de una. ---- */
+@keyframes cayla-hoja-movil-entra {
+  from { transform: translate3d(0, 100%, 0); }
+}
+@keyframes cayla-hoja-movil-sale {
+  from { transform: none; }
+  to { transform: translate3d(0, 100%, 0); }
+}
+@keyframes cayla-entra-de-lado {
+  from { opacity: 0.2; transform: translate3d(var(--desde-x, 0px), 0, 0); }
+}
+@layer components {
+  .asa-hoja { display: none; }
+  @media (max-width: 639.98px) {
+    /* Arriba de la hoja, en el relleno: corre con el contenido (si la hoja está desplazada, bajar el dedo desplaza). No
+       recibe toques: el dedo lo escucha la hoja entera, y así la franja no le quita la punta a la ✕ ni a la cabecera del ticket. */
+    .asa-hoja {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 1.5rem;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+    .asa-hoja::before {
+      content: "";
+      width: 2.25rem;
+      height: 5px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-tinta) 20%, transparent);
+      transition: width 260ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
+    }
+    /* Mientras el dedo la lleva, el asa se estira un poco y se oscurece: la hoja «se agarró». */
+    [data-arrastrando] > .asa-hoja::before {
+      width: 2.75rem;
+      background: color-mix(in srgb, var(--color-tinta) 38%, transparent);
+    }
+  }
+  @media (max-width: 639.98px) and (prefers-reduced-motion: no-preference) {
+    .cascada-modal.anim-modal-entra:not([data-variante="camara"]) {
+      animation: cayla-hoja-movil-entra 460ms var(--ease-cayla) backwards;
+    }
+    .cascada-modal.anim-modal-sale:not([data-variante="camara"]) {
+      animation: cayla-hoja-movil-sale 300ms var(--ease-salida) both;
+    }
+    /* El cajón (`<Cajon>`, actividad 5) también es una hoja alta en el celular: llega y se va como ella. */
+    .cajon-hoja.anim-cajon {
+      animation: cayla-hoja-movil-entra 460ms var(--ease-cayla) backwards;
+    }
+    .cajon-hoja.anim-cajon-salida {
+      animation: cayla-hoja-movil-sale 300ms var(--ease-salida) both;
+    }
+    /* Al pasar de registro deslizando (o con ‹ ›), el nuevo entra desde el lado hacia donde fue el dedo: el siguiente desde la
+       derecha, el anterior desde la izquierda. Reemplaza al «se reacomoda» de escritorio (`anim-asentar`). */
+    .cajon-hoja [data-registro][data-lado] {
+      animation: cayla-entra-de-lado 300ms var(--ease-cayla) both;
+    }
+    .cajon-hoja [data-registro][data-lado="1"] { --desde-x: 40px; }
+    .cajon-hoja [data-registro][data-lado="-1"] { --desde-x: -40px; }
+  }
+  /* Una hoja que quedó fuera de su lugar (a media altura, `data-movida`, la pone useHojaArrastre) sale con su transición: la
+     animación de salida, sobre la misma propiedad, la cancelaría y la hoja (y el velo) saltarían abajo de golpe (medido). Lleva el
+     `:not(...)` de la regla de salida de arriba para pesar más que ella. */
+  .cascada-modal[data-movida].anim-modal-sale:not([data-variante="camara"]),
+  [data-movida].anim-velo-salida {
+    animation: none;
+  }
+}
+
 /* ---- HOJA CON EL TECLADO ARRIBA (2026-10-08) — `useHojaSobreElTeclado` (components/ui/) ----
    Con el teclado del celular abierto, el contenedor de `<Modal>` lleva `data-teclado` y `--teclado` (lo que el teclado tapa,
    en px), empieza en el borde de arriba de lo visible y llega al fondo de la pantalla, detrás del teclado. La hoja sigue pegada

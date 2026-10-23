@@ -173,7 +173,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       opcional: true,
       ...CAJA_ABIERTA,
       titulo: "Las bolsas",
-      texto: "«Agregar bolsa» abre las bolsas de la tienda (papel chica o grande, TNT, de regalo): toca una y entra al ticket con su precio, como cualquier prenda. Aquí ves cuántas lleva.",
+      texto: "«Agregar bolsa», al lado del cliente, abre las bolsas de la tienda (papel chica o grande, TNT, de regalo): toca una y entra al ticket con su precio, como cualquier prenda. El número del botón dice cuántas lleva; con un cliente elegido queda solo la bolsa.",
     },
     {
       id: "ticket-pie",

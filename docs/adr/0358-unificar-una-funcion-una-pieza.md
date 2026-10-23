@@ -218,6 +218,10 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   herramientas: el escáner de las guías nombra una pieza que se cierra sola por sus datos (`texto`, `href`, `id`, `valor`, `control`…) y no
   por el código que le sigue (92 huellas aceptadas), y el censo ve un `<aside>` dentro de la pantalla (el ticket de Vender). Con esto quedan
   sin decisión solo `grafico` (repartida en sus familias) y `accion.anterior` (nada que decidir).
+- **2026-10-22 · la hoja del celular (`hoja-movil`), tocando la maqueta con el dedo.** Felipe eligió **«B · Hoja viva con profundidad»**
+  entre «Hoy», «A» y «B» (`docs/maquetas/hojas-movil-2026-10/`): bajo 640 px la hoja de `<Modal>` y de `<Cajon>` llega desde el borde con
+  asa, se baja con el dedo y aleja lo de atrás; Filtros a media altura; el cajón se desliza entre registros. Su propio ADR (0479), porque
+  cambia el movimiento de todas las hojas del teléfono. Deuda: 3 capas a mano. Registro: `docs/unificar/hoja-movil.md`.
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en
