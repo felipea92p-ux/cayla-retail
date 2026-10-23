@@ -2297,7 +2297,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.foto",
       opcional: true,
       titulo: "La foto del papel",
-      texto: "Que se lea el total. Sin papel, no hace falta.",
+      texto: "Es opcional: que se lea el total y el número. Sin foto, Compras copia el número del papel.",
     },
     {
       id: "monto",
@@ -2305,6 +2305,27 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       opcional: true,
       titulo: "Cuánto dice el papel",
       texto: "Viene con lo que suma tu compra. Si el papel dice otro total, deja el del papel: te avisa que no cuadra y Compras lo revisa.",
+    },
+    {
+      id: "pago",
+      ancla: "compra.pago",
+      opcional: true,
+      titulo: "¿Cuándo le pagas?",
+      texto: "Viene en «Pagar ahora»: sale de tu plata para compras. Si el proveedor te da crédito, «Pagar después»: Compras le paga.",
+    },
+    {
+      id: "pagado",
+      ancla: "compra.pagado",
+      opcional: true,
+      titulo: "Cuánto le pagas ahora",
+      texto: "Viene con todo lo del papel. Si le pagas una parte, bájalo: lo que falta se lo paga Compras.",
+    },
+    {
+      id: "medio",
+      ancla: "compra.medio",
+      opcional: true,
+      titulo: "Con qué le pagaste",
+      texto: "Viene en Yape. Si fue en efectivo o por transferencia, tócalo. Igual sale de tu plata para compras.",
     },
     {
       id: "guardar",
@@ -2369,6 +2390,13 @@ export const GUIA_FONDOS: Guia = {
       opcional: true,
       titulo: "Una compra por completar",
       texto: "La foto del papel al lado de lo que se copia de ella: la serie y el número (la guía enciende el que sigue). Si el proveedor o el monto se anotaron mal, se cambian aquí.",
+    },
+    {
+      id: "papel-pago",
+      ancla: "fondos.papel-pago",
+      opcional: true,
+      titulo: "Cómo se le pagó",
+      texto: "Cuánto le pagó la compradora al proveedor y con qué. Si pagó una parte o nada, lo que falta queda en Por pagar al completarla.",
     },
     {
       id: "papel-veredicto",

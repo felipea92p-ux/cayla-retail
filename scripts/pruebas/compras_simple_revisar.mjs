@@ -32,7 +32,12 @@ const arg = (nombre, porDefecto) => {
 const CONTENEDOR = arg("--contenedor", process.env.RETAIL_CONTENEDOR_PG ?? "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
 const leer = (f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8").replace(/^set lock_timeout.*$/gm, "");
-const MIGRACIONES = [leer("20261023121000_compras_simple_recibir_con_la_foto.sql"), leer("20261023143000_compras_simple_revisar.sql")].join("\n");
+// «Pagar ahora o después» (20261023181000) corrige funciones que la de Revisar vuelve a crear: va después, como en la base.
+const MIGRACIONES = [
+  leer("20261023121000_compras_simple_recibir_con_la_foto.sql"),
+  leer("20261023143000_compras_simple_revisar.sql"),
+  leer("20261023181000_compras_simple_pagar_ahora_o_despues.sql"),
+].join("\n");
 
 const SANDRA = "22222222-2222-4222-8222-000000000005"; // líder: compra y manda
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo: recibe
@@ -193,6 +198,60 @@ select c.documento, c.tipo, c.total, c.subtotal, c.igv, c.pagado, c.estado_pago,
        retail.fn_fondo_saldo(retail.fn_fondo_de(current_setting('t.compradora')::uuid, false))
   from retail.compras c where c.id = :'compra';`,
   "F001-123|factura|300.00|254.24|45.76|300.00|pagada|7/8|254.24|1x39.13,5x39.11,2x9.78|completado|-300.00",
+);
+
+// «Pagar ahora o después» (20261023181000): la misma compra de S/ 300, anotada con lo que pagó y cómo.
+const CON_PAGO = (pagado, medio) =>
+  COMPRA.replace(
+    "'papeles/factura-prueba.jpg', jsonb_build_array(",
+    `'papeles/factura-prueba.jpg', p_pagado => ${pagado}, p_medio => ${medio === null ? "null" : `'${medio}'`}, p_lineas => jsonb_build_array(`,
+  ).replace(
+    "select retail.registrar_compra_rapida('aaaaaaaa-0480-4000-8000-0000000007a1', current_setting('t.prov')::uuid, 'factura', 300,",
+    "select retail.registrar_compra_rapida(p_id => 'aaaaaaaa-0480-4000-8000-0000000007a1', p_proveedor_id => current_setting('t.prov')::uuid, p_tipo => 'factura', p_monto => 300, p_foto_ruta =>",
+  );
+
+caso(
+  "pagar después: no baja de su plata; al completar, el comprobante queda a crédito y entero por pagar",
+  `${CON_PAGO(0, null)}
+select pagado || '|' || coalesce(medio_pago, '-') from retail.compra_papeles where id = :'papel';
+select (retail.fn_mi_plata_tiene(current_setting('t.compradora')::uuid) - retail.fn_fondo_saldo(retail.fn_fondo_de(current_setting('t.compradora')::uuid, false)))::numeric(12,2);
+${MANDA}${RECIBE}
+${REVISA("papel_completar")}
+select (retail.completar_papel_compra(:'papel', null, 'F001', '301') ->> 'compra_id') as compra \\gset
+reset role;
+select c.condicion, c.fecha_vencimiento - c.fecha_emision, c.pagado, c.saldo, (select count(*) from retail.compra_pagos p where p.compra_id = c.id),
+       retail.fn_fondo_saldo(retail.fn_fondo_de(current_setting('t.compradora')::uuid, false))
+  from retail.compras c where c.id = :'compra';`,
+  // Lo que tiene para comprar es su fondo: la compra sin pagar no le restó nada.
+  "0.00|- / 0.00 / credito|7|0.00|300.00|0|0.00",
+);
+
+caso(
+  "pagar a cuenta con Yape: baja lo pagado; al completar, se paga eso con Yape y el resto queda por pagar",
+  `${CON_PAGO(100, "yape")}
+select pagado || '|' || medio_pago from retail.compra_papeles where id = :'papel';
+${MANDA}${RECIBE}
+${REVISA("papel_completar")}
+select (retail.completar_papel_compra(:'papel', null, 'F001', '302') ->> 'compra_id') as compra \\gset
+reset role;
+select c.condicion, c.pagado, c.saldo, (select string_agg(p.metodo || ':' || p.monto, ',') from retail.compra_pagos p where p.compra_id = c.id),
+       retail.fn_fondo_saldo(retail.fn_fondo_de(current_setting('t.compradora')::uuid, false))
+  from retail.compras c where c.id = :'compra';`,
+  "100.00|yape / credito|100.00|200.00|yape:100.00|-100.00",
+);
+
+caso(
+  "pagar ahora: de 0 al total, con 2 decimales y un método de los tres; sin pago no lleva método; un reintento con otro pago se rechaza",
+  `${COMPRA.replace(/\$\{como\(SANDRA[\s\S]*$/, "")}
+${como(SANDRA, { clave: "compra_rapida" })}
+select split_part(pg_temp.intento(format($q$select retail.registrar_compra_rapida(gen_random_uuid(), %L::uuid, 'boleta', 50, null, jsonb_build_array(jsonb_build_object('producto_id', %L::uuid, 'cantidad', 1, 'costo', 50, 'destino_id', %L::uuid)), 60, 'yape')$q$, current_setting('t.prov'), current_setting('t.polo'), current_setting('t.tru'))), '|', 1),
+       split_part(pg_temp.intento(format($q$select retail.registrar_compra_rapida(gen_random_uuid(), %L::uuid, 'boleta', 50, null, jsonb_build_array(jsonb_build_object('producto_id', %L::uuid, 'cantidad', 1, 'costo', 50, 'destino_id', %L::uuid)), 10.555, 'yape')$q$, current_setting('t.prov'), current_setting('t.polo'), current_setting('t.tru'))), '|', 1),
+       split_part(pg_temp.intento(format($q$select retail.registrar_compra_rapida(gen_random_uuid(), %L::uuid, 'boleta', 50, null, jsonb_build_array(jsonb_build_object('producto_id', %L::uuid, 'cantidad', 1, 'costo', 50, 'destino_id', %L::uuid)), 50, 'tarjeta')$q$, current_setting('t.prov'), current_setting('t.polo'), current_setting('t.tru'))), '|', 1),
+       split_part(pg_temp.intento(format($q$select retail.registrar_compra_rapida('aaaaaaaa-0480-4000-8000-0000000007c1', %L::uuid, 'boleta', 50, null, jsonb_build_array(jsonb_build_object('producto_id', %L::uuid, 'cantidad', 1, 'costo', 50, 'destino_id', %L::uuid)), 0, 'yape')$q$, current_setting('t.prov'), current_setting('t.polo'), current_setting('t.tru'))), '|', 1),
+       split_part(pg_temp.intento(format($q$select retail.registrar_compra_rapida('aaaaaaaa-0480-4000-8000-0000000007c1', %L::uuid, 'boleta', 50, null, jsonb_build_array(jsonb_build_object('producto_id', %L::uuid, 'cantidad', 1, 'costo', 50, 'destino_id', %L::uuid)), 20, 'yape')$q$, current_setting('t.prov'), current_setting('t.polo'), current_setting('t.tru'))), '|', 1);
+reset role;
+select coalesce(medio_pago, '-') from retail.compra_papeles where id = 'aaaaaaaa-0480-4000-8000-0000000007c1';`,
+  "compra_rapida_pagado|compra_rapida_pagado|compra_rapida_medio|OK|compra_rapida_otros_datos / -",
 );
 
 caso(

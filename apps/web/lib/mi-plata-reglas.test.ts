@@ -58,7 +58,7 @@ describe("leerMiPlata: lo que tiene para comprar es su fondo más lo por confirm
       compras: [{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, estado: "por_completar", fecha: "2026-10-22", prendas: 16, tiendas: ["Tienda TRU"], por_mandar: ["Tienda TRU", 3] }, { id: "x" }],
     });
     expect(p).toMatchObject({ tiene: 50, comprasPorCompletar: 450 });
-    expect(p?.compras).toEqual([{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, porCompletar: true, fecha: "2026-10-22", creadoEn: "", prendas: 16, tiendas: ["Tienda TRU"], porMandar: ["Tienda TRU"] }]);
+    expect(p?.compras).toEqual([{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, pagado: 450, medioPago: null, porCompletar: true, fecha: "2026-10-22", creadoEn: "", prendas: 16, tiendas: ["Tienda TRU"], porMandar: ["Tienda TRU"] }]);
   });
 
   it("un fondo en negativo (pagó de su bolsillo) resta: tiene lo que queda de verdad", () => {
@@ -335,5 +335,26 @@ describe("la tarjeta de cada tienda en «Mandar a la tienda»", () => {
     const p = (papelId: string) => ({ papelId, proveedor: "x", nombre: "y", cantidad: 1 });
     expect(detalleEnvio({ unidades: 30, prendas: [p("a"), p("b"), p("a")] })).toBe("30 prendas de 2 compras");
     expect(detalleEnvio({ unidades: 1, prendas: [p("a")] })).toBe("1 prenda de 1 compra");
+  });
+});
+
+describe("compra pagada en parte o después (20261023181000)", () => {
+  it("baja solo lo que pagó y dice lo que paga Compras", () => {
+    const p = leerMiPlata({
+      persona: true,
+      saldo: 100,
+      por_confirmar: 0,
+      compras_por_completar: 0,
+      anotada: [],
+      compras: [
+        { id: "a", proveedor: "Rosa", tipo: "boleta", monto: 300, pagado: 100, medio_pago: "yape", estado: "por_completar", fecha: "2026-10-23", prendas: 2, tiendas: [], por_mandar: [] },
+        { id: "b", proveedor: "Lupe", tipo: "boleta", monto: 80, pagado: 0, estado: "por_completar", fecha: "2026-10-23", prendas: 1, tiendas: [], por_mandar: [] },
+      ],
+    });
+    const { hoy } = movimientosDeLaCompradora(p!);
+    expect(hoy.map((m) => [plano(m.monto), plano(m.detalle)])).toEqual([
+      ["S/ 100.00", "2 prendas · Compras paga S/ 200.00 · Boleta"],
+      ["S/ 0.00", "1 prenda · Compras paga S/ 80.00 · Boleta"],
+    ]);
   });
 });

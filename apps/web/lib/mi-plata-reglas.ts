@@ -57,6 +57,9 @@ export type CompraAnotada = {
   proveedor: string;
   tipo: string;
   monto: number;
+  /** Lo que pagó de su plata (20261023181000): todo, una parte o nada si se lo dejó a Compras. Sin el dato, todo. */
+  pagado: number;
+  medioPago: string | null;
   porCompletar: boolean;
   fecha: string;
   creadoEn: string;
@@ -161,6 +164,8 @@ function leerCompra(x: unknown): CompraAnotada | null {
     proveedor: texto(o.proveedor) ?? "un proveedor",
     tipo: texto(o.tipo) ?? "",
     monto,
+    pagado: numero(o.pagado) ?? monto,
+    medioPago: texto(o.medio_pago),
     porCompletar: o.estado === "por_completar",
     fecha: texto(o.fecha) ?? "",
     creadoEn: texto(o.creado_en) ?? "",
@@ -505,7 +510,11 @@ function detalleCompra(c: CompraAnotada): string {
   const papel = TIPOS_PAPEL[c.tipo as TipoPapel]?.nombre ?? "Papel";
   const prendas = c.prendas === 1 ? "1 prenda" : `${c.prendas} prendas`;
   const tiendas = c.porMandar.length ? `falta mandar a ${c.porMandar.join(", ")}` : c.tiendas.length ? c.tiendas.join(", ") : null;
-  return [prendas, papel, tiendas].filter(Boolean).join(" · ");
+  // Lo que no pagó ella lo paga Compras desde Por pagar: se dice, para que no crea que le falta plata. Va pegado a las prendas: en el
+  // celular la línea se corta al final.
+  const falta = Math.round((c.monto - c.pagado) * 100) / 100;
+  const compras = falta >= 0.005 ? `Compras paga ${soles(falta)}` : null;
+  return [prendas, compras, papel, tiendas].filter(Boolean).join(" · ");
 }
 
 /**
@@ -526,7 +535,8 @@ export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gast
         titulo: `Compra a ${c.proveedor}`,
         detalle: detalleCompra(c),
         entra: false,
-        monto: soles(c.monto),
+        // Baja de su plata solo lo que pagó: «− S/ 0.00» si se la dejó toda a Compras.
+        monto: soles(c.pagado),
         estado: { ...e, pendiente: c.porCompletar },
         fecha: c.fecha,
         creadoEn: c.creadoEn,

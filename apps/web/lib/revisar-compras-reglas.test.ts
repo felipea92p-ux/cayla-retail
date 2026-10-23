@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  textoPagoPapel,
   PAPELES_GASTO,
   botonCierre,
   camposRevisarGasto,
@@ -239,5 +240,15 @@ describe("la bandeja de Revisar compras (rediseño)", () => {
     expect(siguienteDeBandeja(l, "b")).toBe("c");
     expect(siguienteDeBandeja(l, "c")).toBe("a");
     expect(siguienteDeBandeja([], "a")).toBeNull();
+  });
+});
+
+describe("cómo se le pagó al proveedor (20261023181000)", () => {
+  const P = { monto: 300, persona: "Sandra Ríos" };
+  const plano = (x: string) => x.replace(/\u00a0/g, " ");
+  it("todo, una parte o nada", () => {
+    expect(textoPagoPapel({ ...P, pagado: 300, medioPago: "yape" })).toBe("Sandra le pagó todo con Yape.");
+    expect(plano(textoPagoPapel({ ...P, pagado: 100, medioPago: "efectivo" }))).toBe("Sandra le pagó S/ 100.00 con efectivo. Compras le paga lo que falta, S/ 200.00, desde Por pagar.");
+    expect(plano(textoPagoPapel({ ...P, pagado: 0, medioPago: null }))).toBe("Sandra no le pagó al proveedor: Compras le paga los S/ 300.00 desde Por pagar.");
   });
 });

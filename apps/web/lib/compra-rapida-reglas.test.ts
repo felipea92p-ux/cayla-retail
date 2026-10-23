@@ -18,6 +18,10 @@ import {
   marcasDeHabituales,
   prendasDeLineas,
   textoAvance,
+  problemaPagado,
+  pagoParaBase,
+  textoLoQueFalta,
+  PAGO_DE_FABRICA,
   gananciaDeCompra,
   cuadraElPapel,
   camposPrenda,
@@ -318,5 +322,33 @@ describe("revisar y el papel (rediseño)", () => {
     expect(plano(cuadraElPapel(530, 525)?.texto ?? null)).toBe("Anotaste S/ 525.00. Si el papel dice otro total, deja el del papel: Compras lo revisa.");
     expect(cuadraElPapel(null, 525)).toBeNull();
     expect(cuadraElPapel(0, 525)).toBeNull();
+  });
+});
+
+describe("pagar ahora o después (20261023181000)", () => {
+  const PERSONA = { esPersona: true, listo: true, motivo: null };
+  const faltan = (pago: Parameters<typeof camposPapel>[0]["pago"], monto = "300") =>
+    camposPapel({ tipo: "sin_comprobante", conFoto: false, monto, pago }, PERSONA).filter((c) => c.requerido && !c.hecho).map((c) => c.id);
+  it("de fábrica se paga ahora y por Yape; falta cuánto hasta que la pantalla lo llena con el papel", () => {
+    expect(PAGO_DE_FABRICA).toEqual({ forma: "ahora", pagado: "", medio: "yape" });
+    expect(faltan(PAGO_DE_FABRICA)).toEqual(["pagado"]);
+    expect(faltan({ forma: "ahora", pagado: "300", medio: "yape" })).toEqual([]);
+  });
+  it("lo pagado va de más de cero a lo del papel; y hace falta el método", () => {
+    expect(problemaPagado("0", "300")).toBe("Escribe cuánto pagas ahora.");
+    expect(problemaPagado("301", "300")).toBe("No puede ser más que lo que dice el papel.");
+    expect(problemaPagado("10.555", "300")).toBe("Escribe cuánto pagas ahora.");
+    expect(problemaPagado("100", "300")).toBeNull();
+    expect(faltan({ forma: "ahora", pagado: "100", medio: null })).toEqual(["medio"]);
+  });
+  it("pagando después no se pregunta cuánto ni con qué, y a la base va cero sin método", () => {
+    expect(faltan({ forma: "despues", pagado: "", medio: null })).toEqual([]);
+    expect(pagoParaBase({ forma: "despues", pagado: "300", medio: "yape" })).toEqual({ p_pagado: 0, p_medio: null });
+    expect(pagoParaBase({ forma: "ahora", pagado: "100.50", medio: "efectivo" })).toEqual({ p_pagado: 100.5, p_medio: "efectivo" });
+  });
+  it("lo que falta lo paga Compras", () => {
+    expect(textoLoQueFalta(300, 300)).toBeNull();
+    expect(plano(textoLoQueFalta(300, 100))).toBe("Compras le paga al proveedor lo que falta: S/ 200.00.");
+    expect(plano(textoLoQueFalta(300, 0))).toBe("Compras le paga al proveedor los S/ 300.00.");
   });
 });

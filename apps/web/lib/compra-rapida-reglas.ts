@@ -326,15 +326,64 @@ type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null }
  * Los campos del paso del papel. La foto es opcional (Felipe 2026-10-23, 20261023180000): con un papel (factura, boleta o nota) se SUGIERE —sin
  * ella, Compras copia la serie y el número del papel en la mano—, nunca frena el guardado. Sin papel, ni se ofrece.
  */
-export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto: string }, r: Responsable): CampoDeGuia[] {
+export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto: string; pago?: PagoCompra }, r: Responsable): CampoDeGuia[] {
   const monto = problemaDeMonto(v.monto);
   const conPapel = v.tipo !== null && v.tipo !== "sin_comprobante";
+  // Sin `pago` (las pantallas que no lo preguntan) no entran sus campos.
+  const pago = v.pago;
+  const pagado = pago?.forma === "ahora" ? problemaPagado(pago.pagado, v.monto) : null;
   return [
     { id: "tipo", nombre: "Qué te dieron", requerido: true, hecho: v.tipo !== null, pendiente: "Elige qué papel te dio el proveedor." },
     ...(conPapel ? [{ id: "foto", nombre: "La foto", requerido: false, sugerido: true, hecho: v.conFoto, pendiente: "Si puedes, tómale una foto al papel." }] : []),
-    { id: "monto", nombre: "Cuánto pagaste", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
+    { id: "monto", nombre: "Cuánto dice el papel", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
+    ...(pago?.forma === "ahora"
+      ? [
+          { id: "pagado", nombre: "Cuánto pagas ahora", requerido: true, hecho: pagado === null, pendiente: pagado ?? "" },
+          { id: "medio", nombre: "Con qué pagaste", requerido: true, hecho: pago.medio !== null, pendiente: "Elige con qué pagaste." },
+        ]
+      : []),
     ...(r.esPersona ? [] : [{ id: "responsable", nombre: "Quién compró", requerido: true, hecho: r.listo, pendiente: r.motivo ?? "Elige quién compró." }]),
   ];
+}
+
+// ---------- Pagar ahora o después (20261023181000; Felipe 2026-10-23) ----------
+// «Pagar ahora» (de fábrica, con todo lo del papel y por Yape) baja lo pagado de su plata para compras; se puede bajar el monto y lo que
+// falta queda en Por pagar. «Pagar después»: no baja nada y Compras le paga al proveedor desde Por pagar. Los tres métodos salen de su
+// plata para compras: el método solo dice cómo le pagó.
+
+export type MedioPagoCompra = "yape" | "efectivo" | "transferencia";
+export type PagoCompra = { forma: "ahora" | "despues"; pagado: string; medio: MedioPagoCompra | null };
+
+/** Las fichas, en el orden de la pantalla: Yape primero, que es lo de fábrica. Las mismas fichas de color de Vender. */
+export const MEDIOS_PAGO_COMPRA: readonly { clave: MedioPagoCompra; etiqueta: string; corta?: string }[] = [
+  { clave: "yape", etiqueta: "Yape" },
+  { clave: "efectivo", etiqueta: "Efectivo" },
+  { clave: "transferencia", etiqueta: "Transferencia", corta: "Transf." },
+];
+
+/** Cómo llega el paso: pagar ahora, por Yape; lo pagado lo pone la pantalla con lo que dice el papel. */
+export const PAGO_DE_FABRICA: PagoCompra = { forma: "ahora", pagado: "", medio: "yape" };
+
+/** Lo que pagas ahora: más que cero y no más que lo que dice el papel (lo mismo que rechaza la base con `compra_rapida_pagado`). */
+export function problemaPagado(pagado: string, monto: string): string | null {
+  const p = leerMontoPlata(pagado);
+  // Más de 2 decimales ya no se lee (`leerMontoPlata`): cae aquí.
+  if (p == null || p <= 0) return "Escribe cuánto pagas ahora.";
+  const m = leerMontoPlata(monto);
+  if (m != null && p > m + 1e-9) return "No puede ser más que lo que dice el papel.";
+  return null;
+}
+
+/** Lo que se manda a la base: pagando después, cero y sin método. */
+export function pagoParaBase(pago: PagoCompra): { p_pagado: number; p_medio: MedioPagoCompra | null } {
+  if (pago.forma === "despues") return { p_pagado: 0, p_medio: null };
+  return { p_pagado: leerMontoPlata(pago.pagado) ?? 0, p_medio: pago.medio };
+}
+
+/** Lo que dice bajo «Pagas ahora» cuando no es todo, y en «Compra guardada»: quién paga lo que falta. */
+export function textoLoQueFalta(monto: number | null, pagado: number | null): string | null {
+  if (monto == null || pagado == null || pagado >= monto - 0.005) return null;
+  return pagado <= 0 ? `Compras le paga al proveedor los ${soles(monto)}.` : `Compras le paga al proveedor lo que falta: ${soles(Math.round((monto - pagado) * 100) / 100)}.`;
 }
 
 /** Las prendas como las recibe `registrar_compra_rapida`. */

@@ -1,5 +1,5 @@
 import { soles } from "./compras-reglas";
-import { TIPOS_PAPEL, type TipoPapel } from "./compra-rapida-reglas";
+import { TIPOS_PAPEL, type MedioPagoCompra, type TipoPapel } from "./compra-rapida-reglas";
 import { campoResponsable, primerNombre, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
 import { CONCEPTOS_GASTO, MEDIOS_PLATA, nombreGasto, type ConceptoGasto, type PlataPorConfirmar } from "./mi-plata-reglas";
 import { diaMes } from "./fechas-lima";
@@ -48,6 +48,9 @@ export type PapelPorCompletar = {
   proveedor: string;
   tipo: TipoPapel;
   monto: number;
+  /** Lo que la compradora le pagó al proveedor de su plata (20261023181000) y con qué; lo que falta lo paga Compras desde Por pagar. */
+  pagado: number;
+  medioPago: string | null;
   fotoRuta: string | null;
   fecha: string;
   lineas: LineaPapel[];
@@ -134,6 +137,8 @@ function leerPapel(x: unknown): PapelPorCompletar | null {
     proveedor: texto(o.proveedor) ?? "Proveedor",
     tipo: o.tipo,
     monto,
+    pagado: numero(o.pagado) ?? monto,
+    medioPago: texto(o.medio_pago),
     fotoRuta: texto(o.foto_ruta),
     fecha: texto(o.fecha) ?? "",
     lineas: lista(o.lineas).map(leerLinea).filter((l): l is LineaPapel => l !== null),
@@ -146,6 +151,22 @@ function leerPapel(x: unknown): PapelPorCompletar | null {
     }),
     llego: o.llego === true,
   };
+}
+
+const MEDIO_EN_FRASE: Record<MedioPagoCompra, string> = { yape: "Yape", efectivo: "efectivo", transferencia: "transferencia" };
+
+/**
+ * Cómo se le pagó al proveedor (20261023181000): lo que pagó la compradora y con qué, y lo que le toca a Compras. Al completar el papel,
+ * lo que falta queda como deuda en Por pagar (con vencimiento a 7 días, provisional).
+ */
+export function textoPagoPapel(p: Pick<PapelPorCompletar, "monto" | "pagado" | "medioPago" | "persona">): string {
+  const quien = primerNombre(p.persona);
+  const medio = p.medioPago && p.medioPago in MEDIO_EN_FRASE ? MEDIO_EN_FRASE[p.medioPago as MedioPagoCompra] : null;
+  const conMedio = medio ? ` con ${medio}` : "";
+  const falta = Math.round((p.monto - p.pagado) * 100) / 100;
+  if (p.pagado <= 0) return `${quien} no le pagó al proveedor: Compras le paga los ${soles(p.monto)} desde Por pagar.`;
+  if (falta < 0.005) return `${quien} le pagó todo${conMedio}.`;
+  return `${quien} le pagó ${soles(p.pagado)}${conMedio}. Compras le paga lo que falta, ${soles(falta)}, desde Por pagar.`;
 }
 
 function leerGasto(x: unknown): GastoPorRevisar | null {

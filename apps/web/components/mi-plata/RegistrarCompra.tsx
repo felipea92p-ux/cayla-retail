@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight, Check, ChevronRight, Plus, SearchX, Shapes, Store, Tag, Truck } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
+import { FichasMedio } from "@/components/ui/FichasMedio";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Boton, BotonEnlace, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
@@ -36,6 +37,8 @@ import type { ProveedorRegistrado } from "@/lib/proveedor-de-orden-reglas";
 import { cargarHabituales, registrarCompraRapida, subirFotoPapel } from "@/lib/compra-rapida-acciones";
 import {
   HABITUALES_A_LA_VISTA,
+  MEDIOS_PAGO_COMPRA,
+  PAGO_DE_FABRICA,
   TIPOS_PAPEL,
   camposPapel,
   categoriasConProveedor,
@@ -60,6 +63,8 @@ import {
   resumenCarrito,
   textoAvance,
   textoHabitual,
+  pagoParaBase,
+  textoLoQueFalta,
   textoPlataDespues,
   tiendaAnterior,
   tiendasDeLineas,
@@ -68,6 +73,7 @@ import {
   type CategoriaParaComprar,
   type Habitual,
   type LineaCompra,
+  type PagoCompra,
   type PasoCompra,
   type ProveedorParaComprar,
   type TipoPapel,
@@ -78,6 +84,9 @@ import {
 // lo que vende) → 2 · las prendas (sus habituales en una grilla; al tocar una se abre UNA hoja con cuántas, el costo, la venta y a qué
 // tienda va —la tienda, por prenda—; la barra negra de abajo suma; al final, revisar) → 3 · el papel (qué le dieron, la foto y cuánto
 // pagó, que viene con el total anotado).
+//
+// Pagar ahora o después (Felipe 2026-10-23, 20261023181000): de fábrica paga ahora todo lo del papel, por Yape. Puede bajar el monto (lo
+// que falta queda en Por pagar) o dejarle todo a Compras («Pagar después»). Los tres métodos salen de su plata para compras.
 //
 // Guardar no mueve plata en los libros (Felipe 2026-10-22): en su plata baja al instante, y los libros la mueven cuando Compras completa
 // el papel. Lo que falta en el paso del papel es lo mismo que rechaza la base (`camposPapel`). La compra lleva su identificador desde que se
@@ -131,11 +140,14 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [archivo, setArchivo] = useState<File | null>(null);
   const [subida, setSubida] = useState<{ archivo: File; ruta: string } | null>(null);
   const [monto, setMonto] = useState("");
+  const [pago, setPago] = useState<PagoCompra>(PAGO_DE_FABRICA);
+  // Lo pagado sigue a lo que dice el papel hasta que la persona lo cambia: así «Pagar ahora» de fábrica es todo.
+  const [pagadoPropio, setPagadoPropio] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<{ titulo: string; texto: string; tono: "error" | "atencion" } | null>(null);
   // `tieneAntes`: lo que tenía al guardar. Después de guardar, la pantalla se refresca y `datos.tiene` ya trae esta compra descontada:
   // restarla otra vez decía «Ahora tienes S/ 340» con S/ 400 (prueba ciega de /formidable, 2026-10-23).
-  const [guardada, setGuardada] = useState<{ monto: number; prendas: number; tiendas: string[]; tieneAntes: number | null } | null>(null);
+  const [guardada, setGuardada] = useState<{ monto: number; pagado: number; prendas: number; tiendas: string[]; tieneAntes: number | null } | null>(null);
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
 
@@ -150,8 +162,12 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const deCategoria = useMemo(() => new Map(datos.categorias.map((c) => [c.id, c])), [datos.categorias]);
   const total = totalDeLineas(lineas);
   const ganancia = gananciaDeCompra(lineas);
-  const guia = useGuiaCampos(camposPapel({ tipo, conFoto: archivo !== null, monto }, { esPersona, listo: responsable.listo, motivo: responsable.motivo }));
+  const pagoAhora: PagoCompra = { ...pago, pagado: pagadoPropio ? pago.pagado : monto };
+  const guia = useGuiaCampos(
+    camposPapel({ tipo, conFoto: archivo !== null, monto, pago: pagoAhora }, { esPersona, listo: responsable.listo, motivo: responsable.motivo }),
+  );
   const montoLeido = leerMontoPlata(monto);
+  const pagadoLeido = pago.forma === "despues" ? 0 : leerMontoPlata(pagoAhora.pagado);
   const cuadra = cuadraElPapel(montoLeido, totalDeLineas(lineas));
   const nombreCorto = proveedor ? proveedor.nombre.replace(/\s+(s\.?a\.?c\.?|e\.?i\.?r\.?l\.?|s\.?r\.?l\.?)$/i, "") : "";
 
@@ -294,7 +310,15 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     }
     const firma = esPersona ? firmaOmitida("compra_rapida") : responsable.firma();
     const { error } = await registrarCompraRapida(
-      { p_id: id, p_proveedor_id: proveedor.id, p_tipo: tipo!, p_monto: montoLeido ?? 0, p_foto_ruta: ruta, p_lineas: lineasParaBase(lineas) },
+      {
+        p_id: id,
+        p_proveedor_id: proveedor.id,
+        p_tipo: tipo!,
+        p_monto: montoLeido ?? 0,
+        p_foto_ruta: ruta,
+        p_lineas: lineasParaBase(lineas),
+        ...pagoParaBase(pagoAhora),
+      },
       firma,
     );
     setGuardando(false);
@@ -306,7 +330,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           : { titulo: "No se guardó", texto: traducirError(error, "guardar la compra"), tono: "error" },
       );
     }
-    setGuardada({ monto: montoLeido ?? 0, prendas: prendasDeLineas(lineas), tiendas: tiendasDeLineas(lineas, nombresTienda), tieneAntes: datos.tiene });
+    setGuardada({ monto: montoLeido ?? 0, pagado: pagadoLeido ?? 0, prendas: prendasDeLineas(lineas), tiendas: tiendasDeLineas(lineas, nombresTienda), tieneAntes: datos.tiene });
     setPaso("listo");
     router.refresh();
   }
@@ -319,6 +343,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     setArchivo(null);
     setSubida(null);
     setMonto("");
+    setPago(PAGO_DE_FABRICA);
+    setPagadoPropio(false);
     setGuardada(null);
     setRechazo(null);
     setPaso("proveedor");
@@ -675,6 +701,69 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               </p>
             )}
           </CampoGuiado>
+          <div className="flex flex-col gap-2" data-guia="compra.pago">
+            <span className="campo-etiqueta">¿Cuándo le pagas?</span>
+            <div role="group" aria-label="¿Cuándo le pagas?" className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  { forma: "ahora", nombre: "Pagar ahora", ayuda: "Sale de tu plata para compras" },
+                  { forma: "despues", nombre: "Pagar después", ayuda: "Compras le paga al proveedor" },
+                ] as const
+              ).map((o) => (
+                <button
+                  key={o.forma}
+                  type="button"
+                  aria-pressed={pago.forma === o.forma}
+                  disabled={guardando}
+                  onClick={() => {
+                    setRechazo(null);
+                    setPago((p) => ({ ...p, forma: o.forma }));
+                  }}
+                  className={`card-cayla mov-boton flex flex-col items-start gap-0.5 p-3 text-left ${pago.forma === o.forma ? "border-tinta bg-sand/40" : ""}`}
+                >
+                  <span className="flex w-full items-center justify-between font-medium text-tinta">
+                    {o.nombre}
+                    {pago.forma === o.forma && <Check className="h-4 w-4" aria-hidden />}
+                  </span>
+                  <span className="text-xs text-taupe">{o.ayuda}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          {pago.forma === "ahora" && (
+            <>
+              <CampoGuiado id="pagado" guia={guia} titulo="¿Cuánto le pagas ahora?">
+                <CampoMonto
+                  etiqueta="¿Cuánto le pagas ahora?"
+                  etiquetaOculta
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={pagoAhora.pagado}
+                  disabled={guardando}
+                  data-guia="compra.pagado"
+                  onChange={(e) => {
+                    setRechazo(null);
+                    setPagadoPropio(true);
+                    setPago((p) => ({ ...p, pagado: e.target.value }));
+                  }}
+                />
+                {textoLoQueFalta(montoLeido, pagadoLeido) && <p className="mt-2 text-[13px] text-taupe">{textoLoQueFalta(montoLeido, pagadoLeido)}</p>}
+              </CampoGuiado>
+              <CampoGuiado id="medio" guia={guia} titulo="¿Con qué le pagaste?">
+                <FichasMedio
+                  etiqueta="¿Con qué le pagaste?"
+                  opciones={MEDIOS_PAGO_COMPRA}
+                  valor={pago.medio}
+                  onValor={(m) => {
+                    setRechazo(null);
+                    setPago((p) => ({ ...p, medio: m }));
+                  }}
+                  guia={(m) => (m === "yape" ? "compra.medio" : undefined)}
+                  deshabilitado={guardando}
+                />
+              </CampoGuiado>
+            </>
+          )}
           {!esPersona && (
             <CampoGuiado id="responsable" guia={guia} titulo="Quién compró">
               <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -727,7 +816,13 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             {guardada.tieneAntes != null && (
               <>
                 <br />
-                {textoPlataDespues(guardada.tieneAntes - guardada.monto)}
+                {textoPlataDespues(guardada.tieneAntes - guardada.pagado)}
+              </>
+            )}
+            {textoLoQueFalta(guardada.monto, guardada.pagado) && (
+              <>
+                <br />
+                {textoLoQueFalta(guardada.monto, guardada.pagado)}
               </>
             )}
           </p>

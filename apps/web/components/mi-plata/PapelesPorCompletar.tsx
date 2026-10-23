@@ -33,6 +33,7 @@ import {
   pideSerie,
   textoFaltan,
   textoLlegada,
+  textoPagoPapel,
   veredictoPapel,
   type ProveedorOpcion,
 } from "@/lib/revisar-compras-reglas";
@@ -210,6 +211,9 @@ export function DetallePapel({
       <div className="grid gap-5 @min-[38rem]:grid-cols-[18.75rem_minmax(0,1fr)]">
         <FotoPapel papel={papel} />
         <div className="flex min-w-0 flex-col gap-5">
+          <p className="text-sm text-tinta" data-guia="fondos.papel-pago">
+            {textoPagoPapel(papel)}
+          </p>
           {papel.esMia ? (
             <div className="flex flex-col items-start gap-2">
               <Chip tono="pizarra">Es tuya</Chip>
