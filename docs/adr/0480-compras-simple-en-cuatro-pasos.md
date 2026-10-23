@@ -6,8 +6,8 @@
   mandar a la tienda y terminar el día): `20261023114000_compras_simple_gasto_envio_y_cierre.sql`. Actividad 6 (recibir
   mirando la foto): `20261023121000_compras_simple_recibir_con_la_foto.sql`. Actividad 7 (revisar compras):
   `20261023143000_compras_simple_revisar.sql`.
-  **Ninguna pegada en producción** (se pegan antes de fusionar el PR, que es lo que pide el check «SQL pegado»: no rompen la web de hoy,
-  en orden y con el OK de Felipe).
+  **Las seis, en producción desde el 2026-10-23** (pegadas en orden con el OK de Felipe, antes de fusionar el PR #1274, y verificadas
+  función por función contra una base con los archivos).
 - **Maqueta aprobada:** `docs/maquetas/compras-simple-2026-10/` (index.html tocable + README con cada decisión).
 - **Relacionados:** ADR-0362 (Órdenes de compra y Fondos por rendir, fases 1–6: lo que se reemplaza), ADR-0111 y ADR-0362 fase 5b
   (notas de crédito y documento interno), ADR-0161 y ADR-0306 (módulos y roles; un módulo es una entrada del menú), ADR-0387 («el
@@ -209,5 +209,4 @@ catálogo quede con lo anotado).
 
 ## Qué queda
 
-Pegar las seis migraciones en producción (en orden, con el OK de Felipe) y refrescar el diccionario; los tres cambios de /formidable; lo
-anotado en `docs/backlog/2026-10-22-modulo-compras-66e94a.md`.
+Refrescar el diccionario desde el volcado de producción y lo anotado en `docs/backlog/2026-10-22-modulo-compras-66e94a.md`.
