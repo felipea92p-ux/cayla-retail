@@ -8,6 +8,7 @@
 //            o rechaza igual: el precio que vale lo decide la base, no esta lectura.
 import { createClient } from "./supabase/server";
 import { leerPreciosEnSede } from "./precio-sede-reglas";
+import { leerPreciosPropiosDeSede } from "./precios-propios-de-sede";
 
 export async function getPreciosPorSede(ubicacionIds: readonly string[]): Promise<Record<string, Record<string, number>>> {
   const sedes = [...new Set(ubicacionIds.filter(Boolean))];
@@ -16,7 +17,7 @@ export async function getPreciosPorSede(ubicacionIds: readonly string[]): Promis
   const lecturas = await Promise.all(
     sedes.map(async (sede) => {
       try {
-        const { data, error } = await supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: sede });
+        const { data, error } = await leerPreciosPropiosDeSede(supabase, sede);
         if (error) return null;
         return [sede, Object.fromEntries(leerPreciosEnSede(data))] as const;
       } catch {

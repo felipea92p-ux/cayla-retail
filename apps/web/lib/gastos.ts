@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import {
   type ProveedorGasto,
   conIgvPerdido,
@@ -63,6 +64,12 @@ export async function getContextoGastos(): Promise<{ ubicaciones: UbicacionGasto
   };
 }
 
+/** `fn_gastos_lista` corta en `p_limite` (la función no tiene tope propio): alto a propósito, y la lista se lee por páginas (`rpc-por-paginas.ts`: PostgREST
+ *  corta en 1.000). Con 500 de antes, un mes de más de 500 gastos perdía los más viejos y la lista no cuadraba con el total del panel. */
+const LIMITE_LISTA_GASTOS = 50_000;
+/** El orden de la lista (`fecha desc, created_at desc`) con `id` al final, para que dos gastos nunca empaten entre una página y la siguiente. */
+const ORDEN_GASTOS = ["fecha desc", "creado_en desc", "id"] as const;
+
 export async function getPanelGastos(desde: string, hasta: string, ver: Ver): Promise<Lectura<PanelGastos | null>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_gastos_panel" as never, { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ver.ubicacionId, p_solo_empresa: ver.soloEmpresa } as never);
@@ -74,12 +81,13 @@ export async function getGastos(desde: string, hasta: string, ver: Ver): Promise
   const supabase = await createClient();
   const rango = { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ver.ubicacionId, p_solo_empresa: ver.soloEmpresa };
   const [lista, perdido] = await Promise.all([
-    supabase.rpc("fn_gastos_lista" as never, { ...rango, p_limite: 500 } as never),
+    // Por páginas y sin el tope de 500 de antes: la lista del mes y el panel (`fn_gastos_panel`, que suma todo) deben cuadrar (~280 gastos al mes hoy).
+    leerRpcPorPaginas(supabase, "fn_gastos_lista", { ...rango, p_limite: LIMITE_LISTA_GASTOS }, ORDEN_GASTOS, { enParalelo: 1 }),
     // ADR-0362, fase 6 (decisión 76): qué gasto perdió IGV por pagarse sin banco. Si no se puede leer, la lista sale igual y lo dice.
     supabase.rpc("fn_gastos_igv_perdido" as never, rango as never),
   ]);
   if (lista.error) return { datos: [], falla: falla("los gastos", lista.error) };
-  const gastos = ((lista.data ?? []) as Record<string, unknown>[]).map(leerGasto);
+  const gastos = (lista.data ?? []).map(leerGasto);
   if (perdido.error) return { datos: gastos, falla: falla("el IGV perdido por pagar sin banco", perdido.error) };
   return { datos: conIgvPerdido(gastos, (perdido.data ?? []) as Record<string, unknown>[]), falla: null };
 }
@@ -136,9 +144,9 @@ export async function getFichasDeFijos(): Promise<{ porFijo: Record<string, Resu
 /** Los gastos de una ubicación en un rango (Producción ▸ Eficiencia lee los del Taller). Vacío si la cuenta no los ve. */
 export async function getGastosDeUbicacion(ubicacionId: string, desde: string, hasta: string): Promise<GastoFila[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_gastos_lista" as never, { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ubicacionId, p_limite: 500 } as never);
+  const { data, error } = await leerRpcPorPaginas(supabase, "fn_gastos_lista", { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ubicacionId, p_limite: LIMITE_LISTA_GASTOS }, ORDEN_GASTOS, { enParalelo: 1 });
   if (error) return [];
-  return ((data ?? []) as Record<string, unknown>[]).map(leerGasto).filter((g) => g.estado === "vigente");
+  return (data ?? []).map(leerGasto).filter((g) => g.estado === "vigente");
 }
 
 // ---- F2b (20260925000000): activos fijos y gastos fijos del mes ---------------------------------------------------------

@@ -24,9 +24,10 @@ import { getCatalogoMarcas, type CatalogoMarcas } from "@/lib/marcas-datos";
 //            antes (colores más usados y último costo por categoría).
 //   ASUME:   quien llama ya verificó que es Líder; esto no decide permisos.
 //   NO HACE: no escribe, y "último costo"/"más usados" son SUGERENCIAS sobre
-//            las últimas 2.000 variantes creadas — no un dato contable.
+//            las últimas 1.000 variantes creadas — no un dato contable.
 //
-// POR QUÉ 2.000 Y NO TODO: hoy hay ~150 variantes; en 3 años, unas 10.000.
+// POR QUÉ 1.000 Y NO TODO: hoy hay ~2.500 variantes; en 3 años, unas 10.000. 1.000 es lo que PostgREST entrega por consulta (un `.limit(2000)`
+// traía lo mismo, sin avisar: el comentario y la ventana no coincidían).
 // Traerlas todas en cada apertura del formulario para contar colores sería
 // trabajo tirado, y lo reciente pesa más que lo viejo (un color que se usó
 // hace dos años no debería competir con el de esta temporada).
@@ -84,7 +85,7 @@ async function getEmpresasAlta(sedeId: string): Promise<EmpresaAlta[] | null> {
   return data.map((t) => ({ id: t.id, clave: t.clave, nombre: t.nombre }));
 }
 
-const VENTANA_VARIANTES = 2000;
+const VENTANA_VARIANTES = 1000;
 
 export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
   const supabase = await createClient();

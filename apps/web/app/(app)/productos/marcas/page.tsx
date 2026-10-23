@@ -1,6 +1,6 @@
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, leerTodas } from "@/lib/resultado";
 import { proveedoresParaPedir } from "@/lib/proveedores-reglas";
 import { MarcasLista, type MarcaFila } from "@/components/MarcasLista";
 
@@ -17,7 +17,8 @@ export default async function MarcasPage() {
     supabase.from("marcas").select("id, nombre, activo").order("nombre"),
     supabase.from("proveedores").select("id, nombre, rubros").eq("activo", true).order("nombre"),
     supabase.from("marca_proveedores").select("marca_id, proveedor_id"),
-    supabase.from("productos").select("marca_id, proveedor_id, estado"),
+    // Por páginas: los contadores «N productos» por marca salen de TODOS los productos y PostgREST corta en 1.000 sin avisar (hoy ~450).
+    leerTodas((desde, hasta) => supabase.from("productos").select("marca_id, proveedor_id, estado").order("id").range(desde, hasta), { enParalelo: 1 }),
   ]);
   const marcas = exigir(resMarcas, "las marcas");
   const activos = exigir(resProveedores, "los proveedores");
