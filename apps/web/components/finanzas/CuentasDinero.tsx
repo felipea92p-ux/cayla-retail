@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -16,7 +16,6 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { fechaCorta, solesRedondo, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
-import { horaLima } from "@/lib/fechas-lima";
 import { leerMontoPlata, MONTO_ILEGIBLE } from "@/lib/monto-plata-reglas";
 import {
   MEDIOS_COBRO,
@@ -28,10 +27,8 @@ import {
   cuadra,
   cuentasPara,
   deudaConDueno,
-  diaYNumero,
   ejemploMontoDeposito,
   ejemploReferenciaDeposito,
-  hoyEnPalabras,
   leerEgresoParaMovimiento,
   leerLotePendiente,
   lotesPorDefecto,
@@ -40,7 +37,6 @@ import {
   saldoConCentimos,
   tituloDelMovimiento,
   opcionQuePaso,
-  otrosDelCajon,
   resumenAbono,
   resumenConciliacion,
   textoLote,
@@ -50,11 +46,9 @@ import {
   validarMovimiento,
   type AlertaPos,
   type BorradorMovimiento,
-  type CierreConDiferencia,
   type Conciliacion,
   type ConciliacionCuenta,
   type CuentaDinero,
-  type EfectivoFila,
   type EgresoParaMovimiento,
   type FilaMedio,
   type LotePendiente,
@@ -67,7 +61,7 @@ import { Boton } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
-import { ArrowLeftRight, Landmark, Store } from "lucide-react";
+import { ArrowLeftRight, Landmark } from "lucide-react";
 import { MAX_REFERENCIA_MOVIMIENTO } from "@/lib/finanzas-topes";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
@@ -77,7 +71,6 @@ import { MAX_REFERENCIA_MOVIMIENTO } from "@/lib/finanzas-topes";
 
 /** Una consulta a la base SIN ejecutar: `firmar` le agrega el responsable antes de mandarla. */
 type Consulta = PromiseLike<{ error: unknown }>;
-const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 
 // ---- La pantalla: cabecera, «Ver» y el modal de registrar, compartidos por las tres pestañas ------------------------------
 
@@ -418,127 +411,6 @@ function filasMedios(medios: readonly FilaMedio[]) {
     porTienda.set(m.ubicacionId, f);
   }
   return [...porTienda.values()];
-}
-
-// ---- Pestaña «Efectivo por tienda» -------------------------------------------------------------------------------------
-
-export function EfectivoPanel({ filas, cierres, hoy }: { filas: EfectivoFila[]; cierres: CierreConDiferencia[]; hoy: string }) {
-  const hayOtros = filas.some((f) => f.abierta && otrosDelCajon(f) !== 0);
-  const ocultos = filas.some((f) => f.abierta && f.esperado === null);
-  return (
-    <>
-      <Superficie className="anim-sube" guia="fin-dinero.efectivo">
-        <Herramientas className="justify-between">
-          <div className="fin-herramientas-titulo min-w-0">
-            <b>{hoyEnPalabras(hoy)}</b>
-            <p>Lo que debería haber en cada cajón ahora mismo. El conteo lo hace cada tienda al cerrar su caja.</p>
-          </div>
-        </Herramientas>
-        {filas.length === 0 ? (
-          <Vacio tamano="chico" icono={<Store />}>
-            No hay tiendas que mirar.
-          </Vacio>
-        ) : (
-          <div className="fin-tabla-wrap">
-            <table className="fin-tabla">
-              <thead>
-                <tr>
-                  <th>Tienda</th>
-                  <th>Caja</th>
-                  <th className="fin-num">Apertura</th>
-                  <th className="fin-num">+ Ventas en efectivo</th>
-                  {hayOtros && <th className="fin-num">± Otros</th>}
-                  <th className="fin-num">− Egresos</th>
-                  <th className="fin-num">− Depósitos</th>
-                  <th className="fin-num">Debería haber</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map((f) => (
-                  <tr key={f.ubicacionId} className={f.abierta ? undefined : "fin-suave"}>
-                    <td className="fin-ancha" data-l="Tienda">
-                      <b>{f.ubicacionNombre}</b>
-                    </td>
-                    <td data-l="Caja">
-                      {f.abierta ? (
-                        <>
-                          <Chip tono="verde">abierta {f.abiertaEn ? horaLima(f.abiertaEn) : ""}</Chip>
-                          {f.abiertaPor && <span className="fin-sub">{f.abiertaPor}</span>}
-                        </>
-                      ) : (
-                        <>
-                          <Chip tono="neutro">cerrada</Chip>
-                          {f.cerradaEn && <span className="fin-sub">desde el {diaYNumero(f.cerradaEn)}</span>}
-                        </>
-                      )}
-                    </td>
-                    <td className="fin-num" data-l="Apertura">
-                      {f.abierta ? solesRedondo(f.apertura) : "—"}
-                    </td>
-                    <td className="fin-num" data-l="Ventas en efectivo">
-                      {f.abierta ? solesRedondo(f.ventasEfectivo) : "—"}
-                    </td>
-                    {hayOtros && (
-                      <td className="fin-num" data-l="Otros">
-                        {f.abierta ? solesRedondo(otrosDelCajon(f)) : "—"}
-                      </td>
-                    )}
-                    <td className="fin-num" data-l="Egresos">
-                      {f.abierta ? solesRedondo(f.egresos) : "—"}
-                    </td>
-                    <td className="fin-num" data-l="Depósitos">
-                      {f.abierta ? solesRedondo(f.depositos) : "—"}
-                    </td>
-                    <td className="fin-num" data-l={f.abierta ? "Debería haber" : "Quedó en el cajón"}>
-                      {f.abierta ? (
-                        f.esperado === null ? (
-                          <span className="fin-tenue">lo ve quien cierra</span>
-                        ) : (
-                          <b className="font-display text-[19px]">{solesRedondo(f.esperado)}</b>
-                        )
-                      ) : (
-                        <span className="font-display text-[19px]">{f.fondo === null ? "—" : solesRedondo(f.fondo)}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {(hayOtros || ocultos) && (
-          <PieTabla>
-            <span>
-              {hayOtros ? "«± Otros» son los ingresos al cajón, las devoluciones y los cambios pagados en efectivo. " : ""}
-              {ocultos ? "Lo que debería haber lo ve solo quien puede cerrar la caja (el mismo candado que el cierre)." : ""}
-            </span>
-          </PieTabla>
-        )}
-      </Superficie>
-
-      {cierres.length > 0 && (
-        <Superficie className="anim-sube" guia="fin-dinero.diferencias">
-          <Herramientas>
-            <b className="text-sm font-semibold text-tinta">Últimos cierres con diferencia</b>
-          </Herramientas>
-          <ul className="fin-lista-mov px-[14px] pb-1.5">
-            {cierres.map((c) => (
-              <li key={c.cajaId}>
-                <span>
-                  {c.ubicacionNombre} · {diaYNumero(c.cerradaEn)} · {c.diferencia < 0 ? "faltaron" : "sobraron"} {soles(Math.abs(c.diferencia))}
-                </span>
-                <span>{c.cerradaPor ? `Lo cerró ${c.cerradaPor}.` : ""}</span>
-              </li>
-            ))}
-          </ul>
-        </Superficie>
-      )}
-
-      <p className="nota-cayla anim-sube">
-        Esto ya lo calcula Caja, tienda por tienda: es la misma cuenta del cierre. Finanzas solo lo junta. Los gastos pagados con plata del cajón y los depósitos al banco bajan este número el mismo día.
-      </p>
-    </>
-  );
 }
 
 // ---- Pestaña «Conciliación» (solo el líder) ----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
-import { nivelFrasco, orilloDeDinero, repisaDe, repisasDeDinero, verDeLaUrl } from "./dinero-telar-reglas";
+import { avisoCajaFuerte, detalleCajon, nivelFrasco, orilloDeDinero, repisaDe, repisasDeDinero, ultimoDepositoDe, verDeLaUrl } from "./dinero-telar-reglas";
 
 const cuenta = (p: Partial<CuentaDinero> & Pick<CuentaDinero, "id" | "nombre" | "tipo">): CuentaDinero => ({
   cuentaContable: "104", ubicacionId: null, ubicacionNombre: null, numero: null, saldo: 0, archivada: false, soloDestino: false,
@@ -89,7 +89,7 @@ describe("repisasDeDinero", () => {
 
 describe("repisasDeDinero · el detalle", () => {
   it("cada frasco lleva lo que dice quien llama, y nada si no dice", () => {
-    const r = repisasDeDinero(CUENTAS, SEDES, "tru", HOY, (c) => (c.tipo === "cajon" ? "Caja abierta hoy" : null))[0];
+    const r = repisasDeDinero(CUENTAS, SEDES, "tru", HOY, { explicar: (c) => (c.tipo === "cajon" ? "Caja abierta hoy" : null) })[0];
     expect(r.frascos.map((f) => f.detalle)).toEqual(["Caja abierta hoy", null]);
     expect(repisasDeDinero(CUENTAS, SEDES, "tru", HOY)[0].frascos.every((f) => f.detalle === null)).toBe(true);
   });
@@ -111,5 +111,46 @@ describe("verDeLaUrl", () => {
     expect(verDeLaUrl({ ver: "aqp" })).toBe("aqp");
     expect(verDeLaUrl({ sede: "empresa" })).toBe("todas");
     expect(verDeLaUrl({})).toBeUndefined();
+  });
+});
+
+const dep = (origenId: string, fecha: string, estado: "vigente" | "anulado" = "vigente") => ({ tipo: "deposito" as const, origenId, fecha, estado });
+
+describe("ultimoDepositoDe y avisoCajaFuerte", () => {
+  const MOVS = [dep("fTRU", "2026-10-13"), dep("fTRU", "2026-10-09"), dep("fAQP", "2026-10-09"), dep("fAQP", "2026-10-14", "anulado"), { ...dep("fAQP", "2026-10-15"), tipo: "entre_cuentas" as const }];
+  it("toma el depósito vigente más reciente que salió de esa cuenta; ni el anulado ni otro tipo cuentan", () => {
+    expect(ultimoDepositoDe("fTRU", MOVS)).toBe("2026-10-13");
+    expect(ultimoDepositoDe("fAQP", MOVS)).toBe("2026-10-09");
+    expect(ultimoDepositoDe("nada", MOVS)).toBeNull();
+  });
+  it("avisa en ámbar pasados 3 días; antes, en verde; sin depósitos, lo dice", () => {
+    expect(avisoCajaFuerte({ id: "fAQP", tipo: "caja_fuerte", saldo: 3900 }, MOVS, HOY)).toEqual({ texto: "6 días sin depositar", tono: "ambar" });
+    expect(avisoCajaFuerte({ id: "fTRU", tipo: "caja_fuerte", saldo: 6200 }, MOVS, HOY)).toEqual({ texto: "depositada hace 2 días", tono: "verde" });
+    expect(avisoCajaFuerte({ id: "fTRU", tipo: "caja_fuerte", saldo: 6200 }, MOVS, "2026-10-13")).toEqual({ texto: "depositada hoy", tono: "verde" });
+    expect(avisoCajaFuerte({ id: "fLIM", tipo: "caja_fuerte", saldo: 50 }, MOVS, HOY)).toEqual({ texto: "sin depósitos registrados", tono: "pizarra" });
+  });
+  it("una caja fuerte vacía u oculta, o un cajón, no avisa", () => {
+    expect(avisoCajaFuerte({ id: "fAQP", tipo: "caja_fuerte", saldo: 0 }, MOVS, HOY)).toBeNull();
+    expect(avisoCajaFuerte({ id: "fAQP", tipo: "caja_fuerte", saldo: null }, MOVS, HOY)).toBeNull();
+    expect(avisoCajaFuerte({ id: "cTRU", tipo: "cajon", saldo: 500 }, MOVS, HOY)).toBeNull();
+  });
+  it("el aviso llega al frasco cuando la cuenta no trae insignia propia", () => {
+    const tru = repisasDeDinero(CUENTAS, SEDES, "tru", HOY, { avisar: (c) => avisoCajaFuerte(c, MOVS, HOY) })[0];
+    expect(tru.frascos.find((f) => f.id === "fTRU")!.insignia).toEqual({ texto: "depositada hace 2 días", tono: "verde" });
+  });
+});
+
+describe("detalleCajon", () => {
+  // Los montos llevan un espacio duro tras «S/» (no se parten en dos líneas): se comparan con espacios comunes.
+  const plano = (t: string | null) => t?.replace(/\s/g, " ") ?? null;
+  const ABIERTA = { abierta: true, abiertaEn: "2026-10-15T14:58:00Z", ventasEfectivo: 1180, egresos: 40, depositos: 0, cerradaEn: null };
+  it("abierta: desde qué hora (en Lima), cuánto vendió en efectivo y cuánto salió", () => {
+    expect(plano(detalleCajon(ABIERTA, false))).toBe("Abierta desde las 09:58 · vendió S/ 1,180 en efectivo · salieron S/ 40");
+    expect(plano(detalleCajon({ ...ABIERTA, egresos: 0 }, false))).toBe("Abierta desde las 09:58 · vendió S/ 1,180 en efectivo");
+  });
+  it("cerrada: desde cuándo; el Taller: fondo fijo; sin fila: nada", () => {
+    expect(detalleCajon({ ...ABIERTA, abierta: false, cerradaEn: "2026-10-14T23:30:00Z" }, false)).toBe("Caja cerrada desde el miércoles 14");
+    expect(detalleCajon(undefined, true)).toBe("Fondo fijo para gastos chicos");
+    expect(detalleCajon(undefined, false)).toBeNull();
   });
 });

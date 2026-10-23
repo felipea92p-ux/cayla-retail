@@ -13,7 +13,6 @@ import {
   saldoConCentimos,
   tituloDelMovimiento,
   explicacionCuenta,
-  hoyEnPalabras,
   insigniaCuenta,
   leerConciliacion,
   leerCuenta,
@@ -21,7 +20,6 @@ import {
   leerLotePendiente,
   lotesPorDefecto,
   mediosDeMaquina,
-  otrosDelCajon,
   resumenAbono,
   resumenConciliacion,
   textoLote,
@@ -324,11 +322,7 @@ describe("conciliación", () => {
 });
 
 describe("efectivo por tienda y fechas", () => {
-  it("«± Otros» junta ingresos, devoluciones y cambios en efectivo", () => {
-    expect(otrosDelCajon({ ingresos: 50, reembolsos: 80, cambios: 10.5 })).toBe(-19.5);
-  });
-  it("«Hoy, jueves 24» y el día de un cierre en hora de Lima", () => {
-    expect(hoyEnPalabras("2026-09-24")).toBe("Hoy, jueves 24");
+  it("el día de un cierre en hora de Lima", () => {
     // 02:00 UTC del 23 = 21:00 del martes 22 en Lima.
     expect(diaYNumero("2026-09-23T02:00:00Z")).toBe("martes 22");
   });

@@ -6,7 +6,9 @@
 // bancos, lo entregado al líder (`por_rendir`) y la tarjeta de crédito son de CAYLA entera; lo «por depositar» de las máquinas
 // va aparte, «En camino», porque todavía no tiene sede.
 
-import { cuentasVisibles, insigniaCuenta, type CuentaDinero, type Insignia } from "./cuentas-dinero-reglas";
+import { cuentasVisibles, diaYNumero, insigniaCuenta, type CuentaDinero, type EfectivoFila, type Insignia, type MovimientoDinero } from "./cuentas-dinero-reglas";
+import { diaLima, diasEntreFechas, horaLima } from "./fechas-lima";
+import { solesRedondo } from "./gastos-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -71,8 +73,11 @@ export function repisasDeDinero(
   ubicaciones: readonly { id: string; nombre: string }[],
   ubicacionId: string | null,
   hoy: string,
-  explicar: (c: CuentaDinero) => string | null = () => null,
+  /** Lo que dice cada frasco bajo su nombre y el aviso propio de la pantalla (la caja fuerte que no se deposita). */
+  extra: { explicar?: (c: CuentaDinero) => string | null; avisar?: (c: CuentaDinero) => Insignia | null } = {},
 ): Repisa[] {
+  const explicar = extra.explicar ?? (() => null);
+  const avisar = extra.avisar ?? (() => null);
   const vis = cuentasVisibles(cuentas, null).filter((c) => repisaDe(c) !== null);
   const maximo = Math.max(0, ...vis.map((c) => c.saldo ?? 0));
   const claves = ubicacionId ? [ubicacionId] : [...ubicaciones.map((u) => u.id), REPISA_EMPRESA, REPISA_CAMINO];
@@ -95,7 +100,7 @@ export function repisasDeDinero(
       titulo,
       total: r2(suyas.reduce((a, c) => a + (c.saldo ?? 0), 0)),
       ocultos: suyas.some((c) => c.saldo === null),
-      frascos: suyas.map((c) => ({ id: c.id, nombre: c.nombre, tipo: c.tipo, saldo: c.saldo, nivel: nivelFrasco(c.saldo, maximo), insignia: insigniaCuenta(c, hoy), detalle: explicar(c) })),
+      frascos: suyas.map((c) => ({ id: c.id, nombre: c.nombre, tipo: c.tipo, saldo: c.saldo, nivel: nivelFrasco(c.saldo, maximo), insignia: insigniaCuenta(c, hoy) ?? avisar(c), detalle: explicar(c) })),
       nota,
     });
   }
@@ -126,4 +131,53 @@ export function orilloDeDinero(cuentas: readonly CuentaDinero[]): Record<string,
 export function verDeLaUrl(sp: { sede?: string; ver?: string }): string | undefined {
   const v = sp.sede ?? sp.ver;
   return v === REPISA_EMPRESA ? "todas" : v;
+}
+
+// ---- El efectivo de hoy (actividad 2): el cajón y la caja fuerte dicen cómo van ---------------------------------------------
+
+/** Desde cuántos días una caja fuerte con plata espera su depósito: avisa en ámbar pasados 3 días. */
+export const DIAS_PARA_AVISAR_DEPOSITO = 3;
+
+/** El día (de Lima) del último depósito vigente que salió de una cuenta, o nulo si nunca se depositó desde ella. */
+export function ultimoDepositoDe(cuentaId: string, movimientos: readonly Pick<MovimientoDinero, "tipo" | "origenId" | "estado" | "fecha">[]): string | null {
+  let ultimo: string | null = null;
+  for (const m of movimientos) {
+    if (m.tipo !== "deposito" || m.origenId !== cuentaId || m.estado !== "vigente") continue;
+    const dia = diaLima(m.fecha);
+    if (dia && (!ultimo || dia > ultimo)) ultimo = dia;
+  }
+  return ultimo;
+}
+
+/**
+ * El aviso de una caja fuerte con plata: hace cuánto se depositó por última vez. Vacía, o cualquier otra cuenta, no avisa nada.
+ * Sin depósitos en la lista que se leyó, lo dice sin inventar fecha.
+ */
+export function avisoCajaFuerte(
+  c: Pick<CuentaDinero, "id" | "tipo" | "saldo">,
+  movimientos: readonly Pick<MovimientoDinero, "tipo" | "origenId" | "estado" | "fecha">[],
+  hoy: string,
+): Insignia | null {
+  if (c.tipo !== "caja_fuerte" || c.saldo === null || c.saldo <= 0) return null;
+  const ultimo = ultimoDepositoDe(c.id, movimientos);
+  if (!ultimo) return { texto: "sin depósitos registrados", tono: "pizarra" };
+  const d = diasEntreFechas(ultimo, hoy);
+  if (d <= 0) return { texto: "depositada hoy", tono: "verde" };
+  if (d <= DIAS_PARA_AVISAR_DEPOSITO) return { texto: `depositada hace ${d} ${d === 1 ? "día" : "días"}`, tono: "verde" };
+  return { texto: `${d} días sin depositar`, tono: "ambar" };
+}
+
+/**
+ * Lo que dice el frasco del cajón bajo su nombre: abierta, desde qué hora y cuánto se vendió en efectivo (la misma cuenta del cierre,
+ * `fn_efectivo_por_tienda`); cerrada, desde cuándo. El Taller no tiene caja: tiene un fondo fijo.
+ */
+export function detalleCajon(f: Pick<EfectivoFila, "abierta" | "abiertaEn" | "ventasEfectivo" | "egresos" | "depositos" | "cerradaEn"> | undefined, esTaller: boolean): string | null {
+  if (esTaller) return "Fondo fijo para gastos chicos";
+  if (!f) return null;
+  if (!f.abierta) return f.cerradaEn ? `Caja cerrada desde el ${diaYNumero(f.cerradaEn)}` : "Caja cerrada";
+  const hora = horaLima(f.abiertaEn);
+  const salio = Math.round((f.egresos + f.depositos) * 100) / 100;
+  return [`Abierta${hora ? ` desde las ${hora}` : ""}`, `vendió ${solesRedondo(f.ventasEfectivo)} en efectivo`, salio > 0 ? `salieron ${solesRedondo(salio)}` : null]
+    .filter(Boolean)
+    .join(" · ");
 }

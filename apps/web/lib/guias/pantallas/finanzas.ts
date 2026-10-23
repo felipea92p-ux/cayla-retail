@@ -38,8 +38,8 @@ const EXCEL: PasoGuia = {
 const PESTANAS_DINERO: PasoGuia = {
   id: "pestanas",
   ancla: "fin-dinero.pestanas",
-  titulo: "Las cuatro partes",
-  texto: "Cuentas: cuánta plata hay en cada lugar. Efectivo por tienda: lo que debería haber en cada cajón. Por pagar: lo que se debe. Conciliación (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
+  titulo: "Las tres partes",
+  texto: "Cuentas: dónde está la plata, cada lugar como un frasco, con el efectivo de hoy. Por pagar: lo que se debe. Conciliación (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
 };
 
 const REGISTRAR_MOVIMIENTO: PasoGuia = {
@@ -452,8 +452,15 @@ export const GUIA_FIN_CUENTAS: Guia = {
       id: "cuentas",
       ancla: "fin-dinero.cuentas",
       preparar: [{ tipo: "escape" }],
-      titulo: "Cada lugar con su saldo",
-      texto: "Una tarjeta por lugar: cuánto hay y de dónde sale. Los cajones suben con las ventas en efectivo y bajan con los egresos y depósitos. El saldo del cajón solo lo ve quien puede cerrar la caja.",
+      titulo: "Cada lugar, un frasco",
+      texto: "Cada cajón, caja fuerte y banco es un frasco que se llena hasta su saldo, en la fila de su sede. El cajón dice desde qué hora está abierto y cuánto se vendió en efectivo; la caja fuerte, hace cuánto se depositó. El saldo del cajón solo lo ve quien puede cerrar la caja.",
+    },
+    {
+      id: "diferencias",
+      ancla: "fin-dinero.diferencias",
+      opcional: true,
+      titulo: "Cierres con diferencia",
+      texto: "Los últimos cierres de caja donde lo contado no coincidió con lo que debía haber: si faltó o sobró plata, cuánto y quién cerró. Sirve para conversarlo a tiempo con la tienda.",
     },
     {
       id: "dueno",
@@ -518,43 +525,6 @@ export const GUIA_FIN_CUENTAS: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }],
-};
-
-export const GUIA_FIN_EFECTIVO: Guia = {
-  id: "finanzas.dinero.efectivo",
-  ruta: "/finanzas/dinero/efectivo",
-  titulo: "Efectivo por tienda",
-  resumen: "Lo que debería haber ahora mismo en el cajón de cada tienda.",
-  pasos: [
-    {
-      id: "bienvenida",
-      ancla: null,
-      titulo: "El efectivo de cada cajón",
-      texto: "Lo que debería haber en el cajón de cada tienda en este momento. Es la misma cuenta que hace Caja al cerrar: Finanzas solo la junta para verlas todas. Es una demo.",
-    },
-    VER,
-    PESTANAS_DINERO,
-    {
-      id: "efectivo",
-      ancla: "fin-dinero.efectivo",
-      titulo: "Lo que debería haber",
-      texto: "Por tienda: si la caja está abierta, con cuánto abrió, más las ventas en efectivo, menos los egresos y los depósitos al banco. El resultado es lo que debería haber. El monto lo ve solo quien puede cerrar la caja.",
-    },
-    {
-      id: "diferencias",
-      ancla: "fin-dinero.diferencias",
-      opcional: true,
-      titulo: "Cierres con diferencia",
-      texto: "Los últimos cierres de caja donde lo contado no coincidió con lo que debía haber: si faltó o sobró plata, cuánto y quién cerró. Sirve para conversarlo a tiempo con la tienda.",
-    },
-    REGISTRAR_MOVIMIENTO,
-    {
-      id: "fin",
-      ancla: null,
-      titulo: "¡Listo!",
-      texto: "Ya sabes cuánto efectivo debería haber en cada tienda. Para repasarlo: Mi perfil ▸ Demo ▸ Efectivo por tienda.",
-    },
-  ],
 };
 
 export const GUIA_FIN_POR_PAGAR: Guia = {

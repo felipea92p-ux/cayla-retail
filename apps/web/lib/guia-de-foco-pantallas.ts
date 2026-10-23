@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 57;
+export const PENDIENTES_HOY = 56;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -98,7 +98,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/cierre": PENDIENTE,
   "/finanzas/dinero": PENDIENTE,
   "/finanzas/dinero/conciliacion": PENDIENTE,
-  "/finanzas/dinero/efectivo": PENDIENTE,
+  "/finanzas/dinero/efectivo": { estado: "no-aplica", motivo: "Solo redirige a Cuentas y dinero ▸ Dónde está (Efectivo por tienda se retiró: los frascos dicen el efectivo de hoy)." },
   "/finanzas/dinero/por-pagar": PENDIENTE,
   "/finanzas/gastos": PENDIENTE,
   "/finanzas/impuestos": PENDIENTE,

@@ -335,10 +335,6 @@ export function leerEfectivo(f: Fila): EfectivoFila {
     fondo: numONull(f.fondo),
   };
 }
-/** Lo que entra y sale del cajón que no es venta ni egreso: ingresos, devoluciones y cambios en efectivo. */
-export function otrosDelCajon(f: Pick<EfectivoFila, "ingresos" | "reembolsos" | "cambios">): number {
-  return Math.round((f.ingresos - f.reembolsos + f.cambios) * 100) / 100;
-}
 
 export type CierreConDiferencia = { cajaId: string; ubicacionNombre: string; cerradaEn: string; diferencia: number; cerradaPor: string | null };
 export function leerCierre(c: Fila): CierreConDiferencia {
@@ -787,13 +783,6 @@ export function cuentaParaConciliar(cuentas: readonly ConciliacionCuenta[], pedi
   const bancos = cuentas.filter((c) => c.tipo === "banco");
   const lista = bancos.length ? bancos : [...cuentas];
   return [...lista].sort((a, b) => (a.ultimaFecha ?? "0000").localeCompare(b.ultimaFecha ?? "0000"))[0] ?? null;
-}
-
-/** «Hoy, jueves 24»: el título de Efectivo por tienda. */
-export function hoyEnPalabras(hoy: string): string {
-  const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-  const d = new Date(`${hoy}T12:00:00Z`);
-  return `Hoy, ${dias[d.getUTCDay()]} ${d.getUTCDate()}`;
 }
 
 /** «martes 22»: el día de un cierre, en hora de Lima (cinco horas detrás de UTC todo el año, como `diaYHoraLima`). */

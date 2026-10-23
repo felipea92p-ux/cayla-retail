@@ -6,11 +6,10 @@ import { PestanasFin } from "@/components/finanzas/kit";
 // páginas. Cada pestaña es una ruta propia bajo /finanzas/dinero, así cada fase agrega su página sin tocar las demás.
 // `lista` = la pestaña ya tiene página; las que no, no se muestran (sin pestañas vacías).
 
-export type PestanaDinero = "cuentas" | "efectivo" | "porpagar" | "conciliacion";
+export type PestanaDinero = "cuentas" | "porpagar" | "conciliacion";
 
 const PESTANAS: { clave: PestanaDinero; etiqueta: string; href: string; soloLider?: boolean; lista: boolean }[] = [
   { clave: "cuentas", etiqueta: "Cuentas", href: "/finanzas/dinero", lista: true },
-  { clave: "efectivo", etiqueta: "Efectivo por tienda", href: "/finanzas/dinero/efectivo", lista: true },
   { clave: "porpagar", etiqueta: "Por pagar", href: "/finanzas/dinero/por-pagar", lista: true },
   { clave: "conciliacion", etiqueta: "Conciliación", href: "/finanzas/dinero/conciliacion", soloLider: true, lista: true },
 ];

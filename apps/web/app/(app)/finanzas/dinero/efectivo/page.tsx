@@ -1,32 +1,14 @@
-import { exigirModulo } from "@/lib/persona-actual";
-import { hoyLima } from "@/lib/fechas-lima";
-import { getCierresConDiferencia, getContextoDinero, getEfectivo, pendientesDeConciliar } from "@/lib/cuentas-dinero";
-import { EfectivoPanel, PantallaDinero } from "@/components/finanzas/CuentasDinero";
-import { verDeLaVista } from "@/lib/vista-global";
+import { redirect } from "next/navigation";
 
-// Finanzas ▸ Cuentas y dinero ▸ Efectivo por tienda (ADR-0195 F3, pieza 5): lo que debería haber en cada cajón ahora. La
-// cuenta es la MISMA del cierre de caja (`fn_calcular_esperado_caja`, ADR-0186) y con el mismo candado: el monto esperado
-// solo lo ve quien puede cerrar la caja. La pantalla no recalcula nada.
-export default async function EfectivoPorTiendaPage({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
-  const persona = await exigirModulo("cuentas_dinero");
+// Finanzas ▸ Cuentas y dinero ▸ Efectivo por tienda se retiró (El telar, actividad 2, Felipe 2026-10-23): el efectivo de hoy lo
+// dicen los frascos del cajón y de la caja fuerte en «Dónde está», con los cierres con diferencia debajo. La dirección vieja lleva
+// ahí, con la sede que traía.
+export default async function EfectivoPorTiendaPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
-  const hoy = hoyLima();
-  const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, sp.ver));
-  const [efectivo, cierres] = await Promise.all([getEfectivo(ctx.ver.ubicacionId), getCierresConDiferencia(ctx.ver.ubicacionId)]);
-
-  return (
-    <PantallaDinero
-      pestana="efectivo"
-      esLider={ctx.esLider}
-      conteos={{ conciliacion: pendientesDeConciliar(ctx.conciliacion.datos) }}
-      ubicaciones={ctx.ubicaciones}
-      ver={ctx.ver}
-      cuentas={ctx.cuentas.datos}
-      deuda={ctx.deuda}
-      hoy={hoy}
-      fallas={[ctx.cuentas.falla, efectivo.falla].filter((f): f is string => !!f)}
-    >
-      <EfectivoPanel filas={efectivo.datos} cierres={cierres} hoy={hoy} />
-    </PantallaDinero>
-  );
+  const q = new URLSearchParams();
+  for (const k of ["sede", "ver"]) {
+    const v = sp[k];
+    if (typeof v === "string") q.set(k, v);
+  }
+  redirect(`/finanzas/dinero${q.size ? `?${q}` : ""}`);
 }
