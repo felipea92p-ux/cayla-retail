@@ -534,13 +534,16 @@ export function GastoRapidoModal({
                       />
                     </CampoGuiado>
                   </div>
-                  {onFormularioCompleto && (
+                  {onFormularioCompleto ? (
                     <p className="text-[12.5px] text-taupe">
                       ¿Proveedor nuevo, o se paga a crédito?{" "}
                       <button type="button" className="btn-enlace" onClick={onFormularioCompleto}>
                         Usa el formulario completo
                       </button>
                     </p>
+                  ) : (
+                    // Sin el módulo Gastos (ADR-0491): desde Caja va lo de hoy, al contado; lo demás se registra en Finanzas.
+                    <p className="text-[12.5px] text-taupe">¿Proveedor nuevo, o se paga a crédito? Eso se registra en Finanzas ▸ Gastos: pídeselo a tu líder.</p>
                   )}
                 </div>
               </div>

@@ -348,6 +348,8 @@ export type PlataPorConfirmar = {
   fotoRuta: string | null;
   /** Es la plata de quien mira: no la puede confirmar (la base tampoco lo deja). */
   esMia: boolean;
+  /** La ronda en la que la anotó (20261023210000): «RC-000012». Sin ronda abierta al anotarla, ninguna. */
+  ronda: string | null;
 };
 
 /** Lo que manda `fn_plata_por_confirmar`, la más vieja primero. */
@@ -372,6 +374,7 @@ export function leerPlataPorConfirmar(data: unknown): PlataPorConfirmar[] {
         creadoEn: texto(o.creado_en) ?? "",
         fotoRuta: ruta && ruta.startsWith(CARPETA_VOUCHERS) ? ruta : null,
         esMia: o.es_mia === true,
+        ronda: texto(o.ronda),
       };
     })
     .filter((x): x is PlataPorConfirmar => x !== null);
