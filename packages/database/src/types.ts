@@ -2388,6 +2388,7 @@ export type Database = {
           estado: string
           estilo: string
           icono: string | null
+          icono_imagen: string | null
           id: string
           nombre: string
           notas: string | null
@@ -2405,6 +2406,7 @@ export type Database = {
           estado?: string
           estilo?: string
           icono?: string | null
+          icono_imagen?: string | null
           id?: string
           nombre: string
           notas?: string | null
@@ -2422,6 +2424,7 @@ export type Database = {
           estado?: string
           estilo?: string
           icono?: string | null
+          icono_imagen?: string | null
           id?: string
           nombre?: string
           notas?: string | null
@@ -5296,6 +5299,7 @@ export type Database = {
         Args: {
           p_etiqueta_id: string
           p_icono: string | null
+          p_imagen?: string | null
         }
         Returns: undefined
       }

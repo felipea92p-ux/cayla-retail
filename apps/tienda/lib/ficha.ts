@@ -1,4 +1,5 @@
 import { dibujoDeInsignia, dibujoElegido, type DibujoDeInsignia } from "@cayla-retail/shared/insignias-visual";
+import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { z } from "zod";
 import type { Plazos } from "./ayuda";
 import { normalizar } from "./buscador";
@@ -31,13 +32,15 @@ const esquemaCampana = z.object({
 });
 
 // Una insignia de Catálogo ▸ Insignias que la base le entrega a la ficha (`fn_tienda_insignias`, ADR-0489 y ADR-0490): su id, su nombre, el
-// dibujo que se eligió al crearla (`icono`; una clave que el código no conoce, o ninguna, es «según el nombre») y si lleva descuento (esas no se
-// dibujan aparte: su descuento es el chip de la campaña, de la que solo se toma su dibujo). Una con un dato raro se deja fuera; las demás se ven.
-// Sin `icono` ni `descuento` (la base todavía no tiene 20261023203000): según el nombre y sin descuento, como antes.
+// dibujo que se eligió al crearla (`icono`; una clave que el código no conoce, o ninguna, es «según el nombre»), su imagen propia (`imagen`, la
+// RUTA en el almacén de insignias: una ruta que no tiene la forma que el ERP sube es «sin imagen») y si lleva descuento (esas no se dibujan
+// aparte: su descuento es el chip de la campaña, de la que solo se toma su dibujo). Una con un dato raro se deja fuera; las demás se ven.
+// Sin `icono`, `imagen` ni `descuento` (la base todavía no tiene 20261023203000): según el nombre y sin descuento, como antes.
 const esquemaInsignia = z.object({
   id: z.string().uuid(),
   nombre: z.string().trim().min(1),
   icono: z.unknown().transform((v) => dibujoElegido(v)),
+  imagen: z.unknown().transform((v) => (esRutaDeImagenDeInsignia(v) ? v : null)),
   descuento: z.boolean().catch(false),
 });
 
@@ -403,9 +406,14 @@ export function dibujoDeLaCampana(f: Pick<Ficha, "insignias">, c: Campana): Dibu
   return dibujoDeInsignia({ nombre: c.nombre, icono: c.id ? f.insignias.find((i) => i.id === c.id)?.icono : null });
 }
 
+/** La imagen propia de ESA campaña (la ruta en el almacén de insignias), o null: si la tiene, el chip del descuento la dibuja en lugar del dibujo. */
+export function imagenDeLaCampana(f: Pick<Ficha, "insignias">, c: Campana): string | null {
+  return (c.id ? f.insignias.find((i) => i.id === c.id)?.imagen : null) ?? null;
+}
+
 /** Un chip de arriba del nombre: «nuevo» es el de la llegada reciente; «insignia» (la misma cara) es el de una insignia de Catálogo ▸
  *  Insignias, con su dibujo. */
-export type ChipFicha = { texto: string; tono?: "nuevo" | "insignia"; icono?: DibujoDeInsignia };
+export type ChipFicha = { texto: string; tono?: "nuevo" | "insignia"; icono?: DibujoDeInsignia; imagen?: string };
 
 // Lo que la tienda ya dice por su cuenta, con sus propios números: una insignia que dice lo mismo no se repite al lado.
 const COMO_NUEVO = new Set(["nuevo", "nueva", "nuevos", "nuevas"]);
@@ -417,7 +425,7 @@ const COMO_MAS_VENDIDO = new Set(["top ventas", "mas vendido", "mas vendidos"]);
  *  dato. Las insignias con descuento no vienen aquí: su descuento es el chip de la campaña (`chipCampana`). */
 export function chipsDelCatalogo(
   p: { nuevo: { dias: number | null } | null; vendidos: number | null } | null,
-  insignias: readonly { nombre: string; icono?: DibujoDeInsignia | null; descuento?: boolean }[] = [],
+  insignias: readonly { nombre: string; icono?: DibujoDeInsignia | null; imagen?: string | null; descuento?: boolean }[] = [],
 ): ChipFicha[] {
   const chips: ChipFicha[] = [];
   if (p?.nuevo) {
@@ -432,7 +440,8 @@ export function chipsDelCatalogo(
     const clave = normalizar(nombre).replace(/\s+/g, " ").trim();
     if (p?.nuevo && COMO_NUEVO.has(clave)) continue;
     if (p && p.vendidos !== null && COMO_MAS_VENDIDO.has(clave)) continue;
-    chips.push({ texto: nombre.trim(), tono: "insignia", icono: dibujoDeInsignia(insignia) });
+    // Con imagen propia, el chip la lleva (la ruta); su `icono` queda por si la dirección no se arma (sin origen del almacén): se ve el dibujo.
+    chips.push({ texto: nombre.trim(), tono: "insignia", icono: dibujoDeInsignia(insignia), ...(insignia.imagen ? { imagen: insignia.imagen } : {}) });
   }
   if (p && p.vendidos !== null) chips.push({ texto: `N.º ${p.vendidos} en más vendidos` });
   return chips;

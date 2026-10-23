@@ -8,6 +8,14 @@ import {
   iconoDeInsignia,
   type PiezaDeInsignia,
 } from "@cayla-retail/shared/insignias-visual";
+import {
+  BUCKET_DE_INSIGNIAS,
+  dibujoResuelto,
+  esRutaDeImagenDeInsignia,
+  imagenEsDeLaInsignia,
+  rutaDeImagenDeInsignia,
+  urlDeImagenDeInsignia,
+} from "@cayla-retail/shared/insignia-imagen";
 
 // Los dibujos de las insignias (ADR-0489) son DATOS compartidos con el ERP (`packages/shared/src/insignias-visual.ts`); la tienda los
 // pinta con los colores de la tienda. Aquí se cuida lo que haría que se vieran mal en un chip: un color suelto (no cambiaría con el
@@ -70,5 +78,56 @@ describe("el dibujo de una insignia: lo elegido manda, si no el nombre (ADR-0490
     // El reconocimiento por nombre sigue siendo el de siempre.
     expect(iconoDeInsignia("Galentine's Day")).toBe("galentine");
     expect(iconoDeInsignia("San Valentín")).toBe("valentin");
+  });
+});
+
+describe("la imagen propia de una insignia (ADR-0490)", () => {
+  const INS = "0e962052-ade9-4dd2-8ef9-6fe6ff5681fb";
+  const OTRA = "128219af-1c43-4527-8c73-8654c0227457";
+  const ARCHIVO = "5a5a5a5a-1111-4222-8333-444444444444";
+  const RUTA = `insignias/${INS}/${ARCHIVO}.webp`;
+
+  it("la ruta que sube el ERP es la única que se reconoce: nada de direcciones, de «..», de otro tipo ni de otra carpeta", () => {
+    expect(rutaDeImagenDeInsignia(INS.toUpperCase(), ARCHIVO.toUpperCase())).toBe(RUTA);
+    expect(esRutaDeImagenDeInsignia(RUTA)).toBe(true);
+    for (const raro of [
+      null,
+      undefined,
+      7,
+      "",
+      `https://x.test/${RUTA}`,
+      `insignias/${INS}/../${ARCHIVO}.webp`,
+      `insignias/${INS}/${ARCHIVO}.png`,
+      `insignias/${INS}/foto.webp`,
+      `campanas/${INS}/${ARCHIVO}.webp`,
+      `/insignias/${INS}/${ARCHIVO}.webp`,
+      `${RUTA}?x=1`,
+    ]) {
+      expect(esRutaDeImagenDeInsignia(raro)).toBe(false);
+    }
+  });
+
+  it("una insignia solo es dueña de lo que está en su carpeta", () => {
+    expect(imagenEsDeLaInsignia(RUTA, INS)).toBe(true);
+    expect(imagenEsDeLaInsignia(RUTA, INS.toUpperCase())).toBe(true);
+    expect(imagenEsDeLaInsignia(RUTA, OTRA)).toBe(false);
+    expect(imagenEsDeLaInsignia("insignias/x/y.webp", INS)).toBe(false);
+  });
+
+  it("la dirección pública sale del origen del almacén; sin origen o con una ruta rara, nada", () => {
+    expect(urlDeImagenDeInsignia("https://abc.supabase.co", RUTA)).toBe(`https://abc.supabase.co/storage/v1/object/public/${BUCKET_DE_INSIGNIAS}/${RUTA}`);
+    expect(urlDeImagenDeInsignia("https://abc.supabase.co/rest/v1?x=1", RUTA)).toBe(`https://abc.supabase.co/storage/v1/object/public/${BUCKET_DE_INSIGNIAS}/${RUTA}`);
+    expect(urlDeImagenDeInsignia(undefined, RUTA)).toBeNull();
+    expect(urlDeImagenDeInsignia("no es una dirección", RUTA)).toBeNull();
+    expect(urlDeImagenDeInsignia("https://abc.supabase.co", "insignias/../x.webp")).toBeNull();
+  });
+
+  it("qué manda: la imagen propia, después el dibujo elegido, después el del nombre, después la etiqueta", () => {
+    expect(dibujoResuelto({ nombre: "Halloween", icono: "gato", imagen: RUTA })).toEqual({ tipo: "imagen", ruta: RUTA });
+    expect(dibujoResuelto({ nombre: "Halloween", icono: "gato", imagen: null })).toEqual({ tipo: "dibujo", clave: "gato" });
+    expect(dibujoResuelto({ nombre: "Halloween" })).toEqual({ tipo: "dibujo", clave: "halloween" });
+    expect(dibujoResuelto({ nombre: "Estreno" })).toEqual({ tipo: "dibujo", clave: "generico" });
+    // Una ruta rara no se dibuja: cae al dibujo.
+    expect(dibujoResuelto({ nombre: "Halloween", imagen: "https://x.test/a.webp" })).toEqual({ tipo: "dibujo", clave: "halloween" });
   });
 });

@@ -7,13 +7,14 @@ import { traducirError } from "@/lib/error-escritura";
 import { objecionVigencia, parsearDescuento, parsearFecha } from "@/lib/etiqueta-campana";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
 import { dibujoElegido } from "@cayla-retail/shared/insignias-visual";
+import { esRutaDeImagenDeInsignia, imagenEsDeLaInsignia } from "@cayla-retail/shared/insignia-imagen";
 
 // POST/PATCH /api/productos/etiquetas → vocabulario cerrado de etiquetas
 // (ADR-0095). Mismo mecanismo que tejidos/patrones. Sin restricción por
 // sede a propósito (Felipe, 2026-09-18: "empresa uniforme") — la columna
 // `sedes_permitidas` sigue en el esquema, dormida, pero este endpoint ya
 // no la lee ni la escribe.
-const COLUMNAS_FILA = "id, nombre, activo, notas, estado, icono";
+const COLUMNAS_FILA = "id, nombre, activo, notas, estado, icono, icono_imagen";
 
 /** La función todavía no está en esta base (PostgREST no la encuentra): se sigue por el camino de antes. */
 const faltaLaFuncion = (e: { code?: string }) => e.code === "PGRST202" || e.code === "42883";
@@ -131,15 +132,21 @@ export async function PATCH(request: Request) {
   }
 
   // El dibujo (ADR-0490) se cambia por su función (`fijar_icono_etiqueta`): la llave es la de cada etiqueta (una campaña, la de las
-  // campañas; otra insignia, Insignias) y la fila se toma primero. Solo ese cambio: nada más viaja en el mismo pedido.
-  if ("icono" in cuerpoObj) {
-    const pedido = cuerpoObj.icono;
-    const nuevo = pedido === null ? null : dibujoElegido(pedido);
-    if (pedido !== null && nuevo === null) return Response.json({ error: "Ese dibujo no existe. Elige uno de la lista." }, { status: 400 });
+  // campañas; otra insignia, Insignias) y la fila se toma primero. Un dibujo de la lista (`icono`) o una imagen propia ya subida al almacén
+  // (`imagen`, su ruta); nunca los dos, y fijar uno borra el otro. Solo ese cambio: nada más viaja en el mismo pedido.
+  if ("icono" in cuerpoObj || "imagen" in cuerpoObj) {
+    const pedidoIcono = cuerpoObj.icono ?? null;
+    const pedidoImagen = cuerpoObj.imagen ?? null;
+    const icono = pedidoIcono === null ? null : dibujoElegido(pedidoIcono);
+    if (pedidoIcono !== null && icono === null) return Response.json({ error: "Ese dibujo no existe. Elige uno de la lista." }, { status: 400 });
+    // La imagen tiene que ser una ruta que el ERP pudo subir y de ESTA insignia: nunca una dirección ni la de otra.
+    const imagen = pedidoImagen === null ? null : esRutaDeImagenDeInsignia(pedidoImagen) && imagenEsDeLaInsignia(pedidoImagen, id) ? pedidoImagen : undefined;
+    if (imagen === undefined) return Response.json({ error: "Esa imagen no es válida para esta insignia." }, { status: 400 });
+    if (icono !== null && imagen !== null) return Response.json({ error: "Elige un dibujo de la lista o una imagen propia, no los dos." }, { status: 400 });
     const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-    const { error } = await supabase.rpc("fijar_icono_etiqueta", { p_etiqueta_id: id, p_icono: nuevo });
+    const { error } = await supabase.rpc("fijar_icono_etiqueta", { p_etiqueta_id: id, p_icono: icono, p_imagen: imagen });
     if (error) return Response.json({ error: traducirError(error, "cambiar el dibujo") }, { status: 400 });
-    return Response.json({ ok: true, icono: nuevo });
+    return Response.json({ ok: true, icono, imagen });
   }
 
   const patch: { nombre?: string; activo?: boolean; notas?: string | null; estado?: string } = {};

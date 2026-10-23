@@ -730,7 +730,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.nuevo",
       opcional: true,
       titulo: "Una nueva",
-      texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo; nace en la pestaña donde estás. Después le pones sus fechas, su descuento y sus prendas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
+      texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo o tu propia imagen; nace en la pestaña donde estás. Después le pones sus fechas, su descuento y sus prendas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
     },
     {
       id: "pestanas",
@@ -771,7 +771,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.dibujo",
       opcional: true,
       titulo: "Su dibujo",
-      texto: "Cambia el dibujo de su sello: la calabaza, el pastel, el gato… Sin elegir uno sale del nombre: «Halloween» lleva la calabaza. Quien compra ve el mismo dibujo en la ficha de la prenda, en la tienda online. En la demo no lo tocamos.",
+      texto: "Cambia el dibujo de su sello: la calabaza, el pastel, el gato… o sube tu propia imagen. Las que ya existían siguen con el dibujo de su nombre: «Halloween» lleva la calabaza. Quien compra ve lo mismo en la ficha de la prenda, en la tienda online. En la demo no lo tocamos.",
     },
     {
       id: "campana-form",

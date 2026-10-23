@@ -1,23 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import type { DibujoDeInsignia } from "@cayla-retail/shared/insignias-visual";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, Campo } from "@/components/ui/campos";
 import { ElegirDibujoDeInsignia } from "@/components/sellos/ElegirDibujoDeInsignia";
+import { cambioDeDibujo, type EleccionDeDibujo } from "@/lib/eleccion-de-dibujo";
 import type { ControlResponsable } from "@/lib/useResponsable";
 
 /**
- * «Dibujo» en el pase de una insignia o campaña que ya existe (ADR-0490): cambia el dibujo que eligió al crearla —o que salió de su
- * nombre— sin tocar nada más. Guardar es UNA escritura (`fijar_icono_etiqueta`) y la firma el combo «Responsable», como crear una
- * insignia (ADR-0161). Su guía de foco sale de lo que ya apaga el botón: otro dibujo y alguien que firma.
+ * «Dibujo» en el pase de una insignia o campaña que ya existe (ADR-0490): cambia el dibujo o la imagen que lleva sin tocar nada más. Guardar es UNA
+ * escritura (`fijar_icono_etiqueta`; si es una imagen nueva, antes se sube al almacén) y la firma el combo «Responsable», como crear una insignia
+ * (ADR-0161). Su guía de foco sale de lo que ya apaga el botón: otro dibujo y alguien que firma.
  */
 export function CambiarDibujoModal({
   nombre,
   actual,
+  esDelNombre,
   esCampana,
   responsable,
   guardando,
@@ -25,18 +26,21 @@ export function CambiarDibujoModal({
   onClose,
 }: {
   nombre: string;
-  /** Lo elegido hasta hoy (`null` = según el nombre). */
-  actual: DibujoDeInsignia | null;
+  /** Lo que lleva hoy: su imagen propia, el dibujo que eligió o el de su nombre (`eleccionDeLoGuardado`). */
+  actual: EleccionDeDibujo;
+  /** `true` si nunca eligió: lo que lleva sale de su nombre. */
+  esDelNombre: boolean;
   esCampana: boolean;
   responsable: ControlResponsable;
   guardando: boolean;
-  onGuardar: (icono: DibujoDeInsignia | null) => void;
+  onGuardar: (eleccion: EleccionDeDibujo) => void;
   onClose: () => void;
 }) {
-  const [icono, setIcono] = useState<DibujoDeInsignia | null>(actual);
-  const cambio = icono !== actual;
+  const [eleccion, setEleccion] = useState<EleccionDeDibujo | null>(null);
+  const valor = eleccion ?? actual;
+  const cambio = eleccion !== null && cambioDeDibujo(actual, eleccion);
   const guia = useGuiaCampos([
-    { id: "dibujo", nombre: "Dibujo", requerido: true, hecho: cambio, pendiente: "Elige otro dibujo." },
+    { id: "dibujo", nombre: "Dibujo", requerido: true, hecho: cambio, pendiente: "Elige otro dibujo o sube tu imagen." },
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
@@ -45,7 +49,7 @@ export function CambiarDibujoModal({
         <div className="mt-5 space-y-4">
           <CampoGuiado id="dibujo" guia={guia}>
             <Campo etiqueta={guia.etiqueta("dibujo", "Dibujo")} idEtiqueta="dibujo-cambiar" sinPie>
-              <ElegirDibujoDeInsignia valor={icono} onValor={setIcono} nombre={nombre} idEtiqueta="dibujo-cambiar" deshabilitado={guardando} />
+              <ElegirDibujoDeInsignia valor={valor} yaElegido={eleccion !== null || !esDelNombre} onValor={setEleccion} idEtiqueta="dibujo-cambiar" deshabilitado={guardando} />
             </Campo>
           </CampoGuiado>
           <CampoGuiado id="responsable" guia={guia}>
@@ -58,7 +62,7 @@ export function CambiarDibujoModal({
             </Boton>
             <Boton
               peso="primario"
-              onClick={() => onGuardar(icono)}
+              onClick={() => eleccion && onGuardar(eleccion)}
               cargando={guardando}
               disabled={!cambio || !responsable.listo}
               title={responsable.motivo ?? guia.frase ?? undefined}

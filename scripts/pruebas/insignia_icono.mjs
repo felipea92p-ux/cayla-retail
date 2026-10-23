@@ -12,6 +12,10 @@
  *     campaña, no una insignia suelta. `tienda_web` y `anon` no la llaman.
  *   · Crear una insignia CON su dibujo (el alta directa de siempre) funciona y no cambia cómo nace (aprobada para quien tiene la llave).
  *   · La tienda lo recibe: `tienda_ficha` trae `{id, nombre, icono}` de cada insignia (icono null = según el nombre), y como `tienda_web`.
+ *   · La imagen propia (`icono_imagen`, la ruta de su archivo en `retail-insignias`): se fija y se quita con la misma función, no convive con un
+ *     dibujo de la lista (fijar uno borra la otra), solo acepta la ruta de ESTA insignia con la forma que sube el ERP (nunca la de otra, un `..` o
+ *     una dirección), y la tienda la recibe en `{id, nombre, icono, imagen, descuento}`.
+ *   · El almacén: solo quien configura una insignia o una campaña puede SUBIR al bucket `retail-insignias` (si este Postgres tiene Storage).
  *   · La migración se puede pegar dos veces y deja UNA sola firma de `fijar_icono_etiqueta`.
  *
  * CÓMO. Cada escenario en su propia transacción con ROLLBACK (como `campanas_llave_unica.mjs`): la base compartida queda igual. Los
@@ -91,7 +95,7 @@ function main() {
     process.exit(2);
   }
   if (!APLICAR_ANTES) {
-    const hay = correr("select to_regprocedure('retail.fijar_icono_etiqueta(uuid, text)') is not null;");
+    const hay = correr("select to_regprocedure('retail.fijar_icono_etiqueta(uuid, text, text)') is not null;");
     if (!hay.ok || hay.salida !== "t") {
       console.error(`Falta retail.fijar_icono_etiqueta: aplica ${MIGRACION} o corre con APLICAR_ANTES=${MIGRACION}`);
       process.exit(2);
@@ -190,7 +194,7 @@ select concat_ws('|', ${ICONO("ins")}, ${ICONO("camp")});\nrollback;`),
   esperar(
     "tienda_web y anon no llaman a fijar_icono_etiqueta",
     (() => {
-      const r = correr(`${PREPARAR}select concat_ws('|', has_function_privilege('tienda_web', 'retail.fijar_icono_etiqueta(uuid, text)', 'EXECUTE'), has_function_privilege('anon', 'retail.fijar_icono_etiqueta(uuid, text)', 'EXECUTE'), has_function_privilege('authenticated', 'retail.fijar_icono_etiqueta(uuid, text)', 'EXECUTE'));\nrollback;`);
+      const r = correr(`${PREPARAR}select concat_ws('|', has_function_privilege('tienda_web', 'retail.fijar_icono_etiqueta(uuid, text, text)', 'EXECUTE'), has_function_privilege('anon', 'retail.fijar_icono_etiqueta(uuid, text, text)', 'EXECUTE'), has_function_privilege('authenticated', 'retail.fijar_icono_etiqueta(uuid, text, text)', 'EXECUTE'));\nrollback;`);
       return ultimaLinea(r) === "f|f|t";
     })(),
   );
@@ -248,12 +252,80 @@ select retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias' -> 0 ->> 'ic
     "gato",
   );
 
+  // ---- 5b. La imagen propia: su ruta, que es de ESTA insignia, y que no convive con un dibujo de la lista ----
+  const RUTA = (id = "ins") => `'insignias/' || :'${id}' || '/aaaaaaaa-1111-4222-8333-444444444444.webp'`;
+  esperarLinea(
+    "fija la imagen propia (su ruta) y la quita con null",
+    correr(`${PREPARAR}select retail.fijar_icono_etiqueta(:'ins', null, ${RUTA()});
+select coalesce(icono_imagen, '-') as a from retail.etiquetas where id = :'ins' \\gset
+select retail.fijar_icono_etiqueta(:'ins', null, null);
+select concat_ws('|', :'a' = 'insignias/' || :'ins' || '/aaaaaaaa-1111-4222-8333-444444444444.webp', (select coalesce(icono_imagen, '-') from retail.etiquetas where id = :'ins'));\nrollback;`),
+    "t|-",
+  );
+  esperarLinea(
+    "una imagen y un dibujo de la lista no conviven: fijar uno borra el otro",
+    correr(`${PREPARAR}select retail.fijar_icono_etiqueta(:'ins', 'gato');
+select retail.fijar_icono_etiqueta(:'ins', null, ${RUTA()});
+select concat_ws('|', coalesce(icono, '-'), (icono_imagen is not null)::text) as con_imagen from retail.etiquetas where id = :'ins' \\gset
+select retail.fijar_icono_etiqueta(:'ins', 'tierra');
+select concat_ws('|', :'con_imagen', coalesce(icono, '-'), coalesce(icono_imagen, '-')) from retail.etiquetas where id = :'ins';\nrollback;`),
+    "-|true|tierra|-",
+  );
+  esperarError("pedir las dos a la vez se rechaza (icono_o_imagen)", correr(`${PREPARAR}select retail.fijar_icono_etiqueta(:'ins', 'gato', ${RUTA()});\nrollback;`), "icono_o_imagen");
+  esperarError(
+    "la imagen de OTRA insignia se rechaza (imagen_no_valida)",
+    correr(`${PREPARAR}select retail.fijar_icono_etiqueta(:'ins', null, 'insignias/' || :'camp' || '/aaaaaaaa-1111-4222-8333-444444444444.webp');\nrollback;`),
+    "imagen_no_valida",
+  );
+  for (const [nombre, ruta, contiene] of [
+    ["una ruta que no es .webp", "'insignias/' || :'ins' || '/aaaaaaaa-1111-4222-8333-444444444444.png'", "imagen_no_valida"],
+    ["una dirección completa", "'https://x.test/insignias/' || :'ins' || '/aaaaaaaa-1111-4222-8333-444444444444.webp'", "imagen_no_valida"],
+    ["un «..» en la ruta", "'insignias/' || :'ins' || '/../aaaaaaaa-1111-4222-8333-444444444444.webp'", "etiquetas_icono_imagen_forma"],
+    ["un archivo con nombre que no es de la carpeta", "'insignias/' || :'ins' || '/foto.webp'", "etiquetas_icono_imagen_forma"],
+  ]) {
+    esperarError(`${nombre} se rechaza`, correr(`${PREPARAR}select retail.fijar_icono_etiqueta(:'ins', null, ${ruta});\nrollback;`), contiene);
+  }
+  esperarError(
+    "el candado de la tabla también: dos columnas a la vez, o la imagen de otra, no se guardan por un UPDATE directo",
+    correr(`${PREPARAR}update retail.etiquetas set icono = 'gato', icono_imagen = ${RUTA()} where id = :'ins';\nrollback;`),
+    "etiquetas_icono_o_imagen",
+  );
+  esperarError(
+    "…ni la ruta de otra insignia por UPDATE directo",
+    correr(`${PREPARAR}update retail.etiquetas set icono_imagen = 'insignias/' || :'camp' || '/aaaaaaaa-1111-4222-8333-444444444444.webp' where id = :'ins';\nrollback;`),
+    "etiquetas_icono_imagen_es_suya",
+  );
+  esperarLinea(
+    "la ficha trae la imagen (su ruta) de la insignia, y null si no tiene",
+    correr(`${PUBLICAR}select ((retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias' -> 0) ? 'imagen' and (retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias' -> 0 ->> 'imagen') is null) as sin \\gset
+select retail.fijar_icono_etiqueta(:'ins', null, ${RUTA()});
+select concat_ws('|', :'sin', retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias' -> 0 ->> 'imagen' = 'insignias/' || :'ins' || '/aaaaaaaa-1111-4222-8333-444444444444.webp');\nrollback;`),
+    "t|t",
+  );
+
+  // ---- 5c. El almacén: solo quien configura una insignia o una campaña puede SUBIR (si este Postgres tiene Storage) ----
+  const conStorage = correr("select to_regclass('storage.objects') is not null and exists (select 1 from storage.buckets where id = 'retail-insignias');");
+  if (conStorage.ok && conStorage.salida === "t") {
+    const SUBIR = (id = "ins") => `set local role authenticated;\ninsert into storage.objects (bucket_id, name) values ('retail-insignias', 'insignias/' || :'${id}' || '/aaaaaaaa-1111-4222-8333-444444444444.webp');\nselect 'subido';`;
+    esperarLinea("el líder sube una imagen de insignia", correr(`${PREPARAR}${SUBIR()}\nrollback;`), "subido");
+    esperarError("una integrante sin ningún módulo no puede subir", correr(`${PREPARAR}${COMO_MICAELA}${SUBIR()}\nrollback;`), "row-level security");
+    esperarLinea("con Insignias, sí", correr(`${PREPARAR}${MODULO_A_INTEGRANTE("etiquetas")}${COMO_MICAELA}${SUBIR()}\nrollback;`), "subido");
+    esperarLinea("con Campañas, sí (una campaña también lleva su imagen)", correr(`${PREPARAR}${MODULO_A_INTEGRANTE("campanas")}${COMO_MICAELA}${SUBIR("camp")}\nrollback;`), "subido");
+    esperarError(
+      "en otro almacén esta política no sirve: subir a retail-campanas sigue pidiendo su propio módulo",
+      correr(`${PREPARAR}${MODULO_A_INTEGRANTE("etiquetas")}${COMO_MICAELA}set local role authenticated;\ninsert into storage.objects (bucket_id, name) values ('retail-campanas', 'campanas/x/y.webp');\nrollback;`),
+      "row-level security",
+    );
+  } else {
+    console.log("— (sin Storage en este Postgres: la política de subida de retail-insignias no se prueba aquí) —");
+  }
+
   // ---- 6. La migración se puede pegar dos veces, y queda UNA firma ----
   {
     const sql = readFileSync(MIGRACION, "utf8");
     const r = correr(`begin;\n${sql}\n${sql}\nselect (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'fijar_icono_etiqueta')::text || '|' ||
-  (select count(*) from pg_constraint where conname = 'etiquetas_icono_forma' and conrelid = 'retail.etiquetas'::regclass)::text;\nrollback;`);
-    esperarLinea("la migración se puede pegar dos veces: una sola firma de fijar_icono_etiqueta y un solo candado de forma", r, "1|1");
+  (select count(*) from pg_constraint where conname like 'etiquetas_icono%' and conrelid = 'retail.etiquetas'::regclass)::text;\nrollback;`);
+    esperarLinea("la migración se puede pegar dos veces: una sola firma de fijar_icono_etiqueta y cuatro candados (forma, forma de la imagen, la imagen es suya, o dibujo o imagen)", r, "1|4");
   }
 
   console.log(`\n${total - fallos}/${total} pruebas pasaron`);

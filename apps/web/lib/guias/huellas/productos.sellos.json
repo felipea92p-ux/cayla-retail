@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 84,
+  "total": 85,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -84,8 +84,9 @@
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/sellos/ElegirDibujoDeInsignia.tsx": [
-      "button «Según el nombre»",
-      "button «{NOMBRE_DEL_DIBUJO[clave]}»"
+      "button «{o.tipo === \"dibujo\" ? NOMBRE_DEL_DIBUJO[o.clave] : \"Tu imagen\"}»",
+      "input «→alElegirArchivo»",
+      "button «→() => archivo.current?.click()»"
     ],
     "components/sellos/SellosPantalla.tsx": [
       "button «{e.nombre}»",

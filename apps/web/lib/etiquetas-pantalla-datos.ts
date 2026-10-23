@@ -16,6 +16,7 @@ import { getLecturaRotacion } from "@/lib/etiqueta-rotacion-datos";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { precioMasBajoEnTiendas } from "@/lib/precio-sede-reglas";
 import { dibujoElegido } from "@cayla-retail/shared/insignias-visual";
+import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
 import { esDelModo, type ModoEtiquetas } from "@/lib/sellos-campanas";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
@@ -59,7 +60,7 @@ export async function cargarEtiquetasPantalla({
   const cargaTiendas = getUbicaciones().then((u) => u.filter((x) => x.tipo === "tienda").map((x) => ({ id: x.id, nombre: x.nombre })));
 
   const [resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, preciosTiendas, resSedes, tiendas] = await Promise.all([
-    supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, icono, vigente_desde, vigente_hasta, descuento_pct").order("nombre"),
+    supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, icono, icono_imagen, vigente_desde, vigente_hasta, descuento_pct").order("nombre"),
     supabase.from("categorias").select("id, nombre, familia").eq("activo", true).order("nombre"),
     supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id"),
     supabase.from("familias").select("codigo, nombre"),
@@ -104,6 +105,7 @@ export async function cargarEtiquetasPantalla({
       estado: e.estado as "pendiente" | "aprobado" | "rechazado",
       estilo: estiloConocido(e.estilo),
       icono: dibujoElegido(e.icono),
+      imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null,
       vigenteDesde: e.vigente_desde,
       vigenteHasta: e.vigente_hasta,
       descuentoPct: e.descuento_pct,

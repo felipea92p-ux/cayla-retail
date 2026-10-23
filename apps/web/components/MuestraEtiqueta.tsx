@@ -1,5 +1,6 @@
 import { createElement, type ReactElement } from "react";
 import { DIBUJOS_DE_INSIGNIA, dibujoDeInsignia, type ColorDeInsignia, type DibujoDeInsignia, type PiezaDeInsignia } from "@cayla-retail/shared/insignias-visual";
+import { urlDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 
 /**
  * La imagen de una etiqueta comercial en la grilla de Atributos → Etiquetas.
@@ -61,9 +62,13 @@ const ICONOS = Object.fromEntries(
 ) as Record<DibujoDeInsignia, DibujoIcono>;
 
 /** El dibujo de una etiqueta (el mismo de su tarjeta), para quien lo pone en otro marco: el centro del sello de tinta de Catálogo ▸
- *  Insignias (`components/sellos/SelloTinta.tsx`). El que se eligió al crearla (`icono`, ADR-0490) o, si no hay, el de su nombre.
- *  Centrado en (0,0) dentro de ±14; `a` es el color de su trazo. */
-export function dibujoDeEtiqueta(nombre: string, icono?: DibujoDeInsignia | null): DibujoIcono {
+ *  Insignias (`components/sellos/SelloTinta.tsx`). Manda su imagen propia (`imagen`, la ruta en el almacén), luego el dibujo que se eligió
+ *  (`icono`, ADR-0490) y, si no hay ninguno, el de su nombre. Centrado en (0,0) dentro de ±14; `a` es el color de su trazo (una imagen propia
+ *  lleva sus propios colores: no lo usa). */
+export function dibujoDeEtiqueta(nombre: string, icono?: DibujoDeInsignia | null, imagen?: string | null): DibujoIcono {
+  const url = urlDeImagenDeInsignia(process.env.NEXT_PUBLIC_SUPABASE_URL, imagen);
+  // Un poco más chica que el cuadrado de ±14 de los dibujos: la imagen es un cuadrado lleno y sus esquinas no deben pasar del anillo del sello.
+  if (url) return function ImagenPropia() { return <image href={url} x={-13} y={-13} width={26} height={26} preserveAspectRatio="xMidYMid meet" />; };
   return ICONOS[dibujoDeInsignia({ nombre, icono })];
 }
 
@@ -80,19 +85,22 @@ export const MOV = "transition-transform duration-500 ease-cayla [transform-box:
 export function MuestraEtiqueta({
   nombre,
   icono,
+  imagen,
   estilo,
   className = "aspect-[3/1] w-full",
 }: {
   nombre: string;
   /** El dibujo elegido al crearla (ADR-0490); sin él, el de su nombre. */
   icono?: DibujoDeInsignia | null;
+  /** Su imagen propia (la ruta en el almacén de insignias); manda sobre `icono`. */
+  imagen?: string | null;
   estilo: Estilo;
   className?: string;
 }) {
   const { fondo, acento } = TONOS[estilo];
   return (
     <MuestraIcono
-      dibujo={ICONOS[dibujoDeInsignia({ nombre, icono })]}
+      dibujo={dibujoDeEtiqueta(nombre, icono, imagen)}
       fondo={fondo}
       acento={acento}
       etiqueta={`Ilustración de la etiqueta ${nombre}`}

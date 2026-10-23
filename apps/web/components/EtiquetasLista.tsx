@@ -16,6 +16,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { campanaValida, camposDeCampana } from "@/lib/etiqueta-campana-guia";
 import { PieTarjeta, TarjetaAtributo } from "@/components/atributos/kit";
 import type { DibujoDeInsignia } from "@cayla-retail/shared/insignias-visual";
+import { eleccionEfectiva, type EleccionDeDibujo } from "@/lib/eleccion-de-dibujo";
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import {
@@ -94,8 +95,10 @@ export type Etiqueta = {
   notas: string | null;
   estado: "pendiente" | "aprobado" | "rechazado";
   estilo: Estilo;
-  /** El dibujo que se eligió al crearla (ADR-0490); `null` = el de su nombre. */
+  /** El dibujo de la lista que se eligió al crearla (ADR-0490); `null` = el de su nombre (o su imagen propia, si tiene). */
   icono: DibujoDeInsignia | null;
+  /** La ruta de su imagen propia en el almacén `retail-insignias` (ADR-0490); `null` = no tiene. No convive con `icono`. */
+  imagen: string | null;
   vigenteDesde: string | null;
   vigenteHasta: string | null;
   descuentoPct: number | null;
@@ -163,7 +166,7 @@ function TarjetaEtiqueta({
     <TarjetaAtributo
       // Con la tarjeta a todo lo ancho (una columna en el celular) la franja 3:1 llegaba a ~115 px de alto: se topa en 80 y el
       // dibujo se recorta arriba y abajo (`slice`), sin deformarse.
-      muestra={<MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} className="aspect-[3/1] max-h-20 w-full" />}
+      muestra={<MuestraEtiqueta nombre={e.nombre} icono={e.icono} imagen={e.imagen} estilo={e.estilo} className="aspect-[3/1] max-h-20 w-full" />}
       nombre={e.nombre}
       notas={e.estado !== "rechazado" ? e.notas : null}
       insignia={e.estado === "pendiente" ? "Pendiente" : e.estado === "rechazado" ? "Rechazada" : null}
@@ -682,8 +685,8 @@ export function NuevaEtiquetaModal({
   modo,
   nombre,
   onNombre,
-  icono,
-  onIcono,
+  eleccion,
+  onEleccion,
   responsable,
   guardando,
   onGuardar,
@@ -692,9 +695,9 @@ export function NuevaEtiquetaModal({
   modo: ModoEtiquetas;
   nombre: string;
   onNombre: (v: string) => void;
-  /** El dibujo elegido (ADR-0490); `null` = el de su nombre. Opcional: nunca bloquea guardar. */
-  icono: DibujoDeInsignia | null;
-  onIcono: (v: DibujoDeInsignia | null) => void;
+  /** Lo que eligió como dibujo (ADR-0490: uno de la lista o su imagen propia); `null` = todavía nada: se ve marcado el que sugiere el nombre. Nunca bloquea guardar. */
+  eleccion: EleccionDeDibujo | null;
+  onEleccion: (v: EleccionDeDibujo) => void;
   responsable: ControlResponsable;
   guardando: boolean;
   onGuardar: () => void;
@@ -704,8 +707,8 @@ export function NuevaEtiquetaModal({
   const delUno = `${T.la === "el" ? "del" : "de la"} ${T.uno}`;
   const guia = useGuiaCampos([
     { id: "nombre", nombre: `Nombre ${delUno}`, requerido: true, hecho: nombre.trim() !== "", pendiente: `Escribe el nombre ${delUno}.` },
-    // Opcional de verdad: sin elegir, el dibujo sale del nombre. Se cuenta como hecho cuando se eligió uno.
-    { id: "dibujo", nombre: "Dibujo", requerido: false, hecho: icono !== null, pendiente: "Elige un dibujo, o déjalo según el nombre." },
+    // Opcional de verdad: sin elegir, se queda el dibujo que sugiere el nombre. Se cuenta como hecho cuando se eligió uno.
+    { id: "dibujo", nombre: "Dibujo", requerido: false, hecho: eleccion !== null, pendiente: "Elige un dibujo o sube tu imagen, o deja el que sugiere el nombre." },
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
@@ -717,7 +720,7 @@ export function NuevaEtiquetaModal({
           </CampoGuiado>
           <CampoGuiado id="dibujo" guia={guia}>
             <Campo etiqueta={guia.etiqueta("dibujo", "Dibujo")} idEtiqueta="dibujo-nuevo" sinPie>
-              <ElegirDibujoDeInsignia valor={icono} onValor={onIcono} nombre={nombre} idEtiqueta="dibujo-nuevo" deshabilitado={guardando} />
+              <ElegirDibujoDeInsignia valor={eleccionEfectiva(eleccion, nombre)} yaElegido={eleccion !== null} onValor={onEleccion} idEtiqueta="dibujo-nuevo" deshabilitado={guardando} />
             </Campo>
           </CampoGuiado>
           <CampoGuiado id="responsable" guia={guia}>
