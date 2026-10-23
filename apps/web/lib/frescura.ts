@@ -19,6 +19,7 @@ import { leerRespaldoCayla } from "@/lib/frescura-vara-cayla";
 import { avisoDatosDeHoy, META_CON_PRENDA, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
 import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
+import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
 import { pisoAnterior, type Familia, type PuertaPiso } from "@/lib/frescura-piso";
 import { resumenDeTienda, type ResumenTienda } from "@/lib/frescura-red";
 import { pisoFrescuraParaElInicio, type LecturaParaElInicio, type PisoFrescuraInicio } from "@/lib/inicio-piso-reglas";
@@ -174,7 +175,7 @@ async function preciosDelPiso(supabase: Supabase, sedeId: string, lectura: Datos
     for (let i = 0; i < ids.length; i += IDS_POR_CONSULTA) trozos.push(ids.slice(i, i + IDS_POR_CONSULTA));
     const [lecturas, propios] = await Promise.all([
       Promise.all(trozos.map((t) => supabase.from("variantes").select("id, precio").in("id", t))),
-      supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: sedeId }),
+      leerPreciosPropiosDeSede(supabase, sedeId),
     ]);
     if (lecturas.some((l) => l.error)) return {};
     const generales = new Map<string, number>();

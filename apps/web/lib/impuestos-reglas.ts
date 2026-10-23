@@ -485,6 +485,13 @@ export type FilaRegistroVentas = {
   observacion: string | null;
 };
 
+/** El orden con que se pagina `fn_impuestos_registro_ventas` (`rpc-por-paginas.ts`: PostgREST corta en 1.000 filas y octubre ya tiene 1.090
+ *  comprobantes). Desempata por completo: sin un orden único, dos páginas pueden repetir una fila o saltarse otra. */
+export const ORDEN_REGISTRO_VENTAS = ["fecha", "tipo", "serie", "numero", "anulado", "total", "base", "igv"] as const;
+
+/** Lo mismo para `fn_impuestos_registro_compras`: la serie y el número solos no son únicos entre proveedores, por eso entra el RUC. */
+export const ORDEN_REGISTRO_COMPRAS = ["fecha", "tipo", "serie", "numero", "proveedor_ruc", "origen", "naturaleza", "total", "base", "igv"] as const;
+
 export function leerFilaVentas(f: Fila): FilaRegistroVentas {
   return {
     fecha: texto(f.fecha).slice(0, 10),
