@@ -446,7 +446,7 @@ a la pantalla no le faltaban botones: no contaba lo que pesa. Los 24 gastos fijo
 leía como el mes completo sin ellos. Se hicieron las tres primeras tareas, **solo web: no cambia la base, ninguna RPC ni Caja**.
 
 - **El titular dice lo que todavía no cuenta (ADR-0417, camino A).** Bajo «este mes gastaste» sale «Todavía no cuenta: 5 gastos fijos por confirmar
-  (~S/ 1,482)» con el enlace «Ver los fijos»; el «~» aparece si algún monto es una referencia (fijo de monto variable). Si se mira otro mes, el
+  (~S/ 1,200)» con el enlace «Ver los fijos»; el «~» aparece si algún monto es una referencia (fijo de monto variable). Si se mira otro mes, el
   titular lo dice («en septiembre 2026 gastaste»). «Por pagar» y «Egresos sin clasificar» son de hoy aunque se mire otro mes (así lo calcula
   `fn_gastos_panel`): en otro mes su bajada empieza por «A hoy ·».
 - **«De la empresa» no es toda la empresa.** Esa vista trae solo lo que no es de ninguna tienda; con 144 gastos de tienda al lado decía «0 gastos · la
@@ -506,3 +506,29 @@ SE ROMPE SI: alguien arma otra puerta que mande `p_gasto_fijo_id` sin pasar por 
 categoría de un fijo cargado antes de ADR-0477 (todos en `servicios_basicos`) está mal y la persona no tiene el módulo Configuración para corregirla: la ayuda
 le dice dónde, pero no puede hacerlo ella. La base sigue aceptando una categoría distinta (hay un borrador de migración, de Felipe, ver el backlog); el mes no lo puede exigir la base, que lo cuenta por la fecha del gasto (un gasto de septiembre cierra el septiembre de ese fijo): lo exige la pantalla.
 
+
+### Dónde quedó lo de arriba tras «El telar de Finanzas» (2026-10-23, al fusionar con ADR-0493)
+
+El telar (ADR-0493, PR #1305) retiró el titular («este mes gastaste S/ X») y la tarjeta «Gastado en el mes»: la cifra del mes es ahora la de la cabecera (`<RespuestaTelar>`),
+y la sede vive en `?sede=`. De lo que decidió la actualización del 22-oct, **se conserva todo menos el sitio**:
+- «Todavía no cuenta: N fijos por confirmar» pasó a ser **un chip bajo la cifra grande** («Sin contar 5 fijos por confirmar (~S/ 1,200)», en ámbar,
+  junto a «N gastos» y «N sin comprobante»): la cifra sigue sin incluir los fijos que nadie registró, y lo dice. Pierde el enlace «Ver los fijos»
+  (la pestaña, el dock con la tecla F y la tarjeta de egresos ya llevan a ellos: cambian de pestaña y bajan hasta ellas, con `scroll-mt-44` para no quedar bajo la mesa de mando). El mes lo dice la pregunta de la cabecera, así que el verbo «en septiembre gastaste» se retiró.
+- El aviso de «solo lo que no es de una tienda» (y su «Ver todas las tiendas», que ahora escribe `?sede=todas`), el «A hoy ·» de las tarjetas de hoy y el
+  recorte de los fijos antes del inicio de Finanzas siguen. Los conteos «sin tienda» y el título «Gastos sin tienda» se retiraron con el titular (la pantalla vuelve a titularse «Gastos»; la sede la dice la
+  cabecera): el chip dice «N gastos» y el aviso explica por qué puede ser cero. Los textos que citan la barra usan sus nombres: «Todas las sedes» y «Empresa». La pregunta de la cabecera dice «¿Cuánto gastó la empresa…?» (redacción de ADR-0493): si Felipe quiere que diga «sin tienda»,
+  es un cambio de `quien()` en `lib/gastos-telar-reglas.ts`.
+- Fijos del mes como una sola lista y la pregunta «¿es ese fijo?» no dependen del telar y no cambiaron.
+
+## Actualización 2026-10-23 — El telar de Finanzas reemplaza el diseño del spike (ADR-0493)
+
+Felipe eligió «El telar de Finanzas» (docs/maquetas/finanzas-telar-2026-10/) para los seis submódulos. Desde ese día:
+
+- **La barra común** (mesa de mando, en `app/(app)/finanzas/layout.tsx`) lleva la sede y el mes de todo Finanzas en la URL (`?sede=`, `?mes=`).
+  Reemplaza al combo «Ver» de cada pantalla, que cada sesión saca al rediseñar su submódulo.
+- **La cabecera** de una pantalla de Finanzas rediseñada es `<EncabezadoPagina>` con `<RespuestaTelar>`, como en el resto del ERP. Deja de
+  ser `<CabeceraPantalla>`.
+- **Lo propio de cada submódulo** (el retazo de Gastos, los frascos, la biblioteca, la balanza, el mapa del cierre) se dibuja como en la
+  maqueta, y la comparación de capturas se hace contra esa maqueta, no contra el spike de 2026-09.
+- **El kit** (`components/finanzas/kit.tsx`, `finanzas.css`) sigue vivo en lo que todavía no se rediseñó y se retira pantalla por pantalla.
+  No se reemplaza de golpe.

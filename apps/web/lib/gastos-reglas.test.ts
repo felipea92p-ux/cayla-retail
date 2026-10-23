@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  alcanceDeLaVista,
   prefijoALaFecha,
   borradorDesdeFijo,
   estadoGasto,
@@ -104,12 +103,6 @@ describe("«Ver»: qué mira la pantalla", () => {
   });
   it("quien no es líder ve solo su tienda, aunque la URL pida otra cosa", () => {
     expect(leerVer("empresa", [ubics[0]!], false, "lim")).toEqual({ clave: "tru", ubicacionId: "tru", soloEmpresa: false });
-  });
-  it("«De la empresa» se dice «sin tienda»: no es toda la empresa y no puede leerse como «la empresa no gastó nada»", () => {
-    expect(alcanceDeLaVista(leerVer("empresa", ubics, true, "lim"), ubics)).toBe("sin tienda");
-    expect(alcanceDeLaVista(leerVer("todas", ubics, true, "lim"), ubics)).toBe("de toda CAYLA");
-    expect(alcanceDeLaVista(leerVer("tru", ubics, true, "lim"), ubics)).toBe("de Tienda Trujillo");
-    expect(alcanceDeLaVista({ clave: "x", ubicacionId: "borrada", soloEmpresa: false }, ubics)).toBe("de la tienda");
   });
   it("«Por pagar» y «Egresos sin clasificar» son de hoy: con otro mes, la bajada lo dice", () => {
     expect(prefijoALaFecha("2026-10", "2026-10-22")).toBe("");

@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 57,
+  "total": 71,
   "controles": {
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -38,8 +38,12 @@
       "button «Ver todas las tiendas»",
       "Boton «Ver todas las tiendas»",
       "button «fin-gastos.clasificar»",
+      "DesplegablePildora «Categoría»",
+      "DesplegablePildora «Comprobante»",
+      "FiltroPuesto «{`Quitar el filtro ${f.texto}»",
+      "BotonLimpiar «Limpiar todo»",
       "ComboResponsable «{responsable}»",
-      "button «Volver»",
+      "Volver «→() => setAnulando(false)»",
       "Boton «Anular gasto»",
       "Link «Impuestos»",
       "button «Anular…»",
@@ -67,9 +71,31 @@
       "CampoSelect «{etiqueta}»"
     ],
     "components/finanzas/GastosPulso.tsx": [
-      "button «Ver los fijos»",
       "button «fin-gastos.resolver»",
+      "button «Ver»",
       "button «Ver todas»"
+    ],
+    "components/finanzas/gastos/CalendarioGastos.tsx": [
+      "button «{`${d.dia}»"
+    ],
+    "components/finanzas/gastos/RetazoGastos.tsx": [
+      "button «{`${p.nombre}»"
+    ],
+    "components/finanzas/telar/DockTelar.tsx": [
+      "Link «{`${a.texto}»",
+      "button «{`${a.texto}»"
+    ],
+    "components/finanzas/telar/MesaDeMando.tsx": [
+      "Pestanas «(sin nombre)»",
+      "BotonEnlace «telar.registrar»",
+      "Link «{h.nombre}»"
+    ],
+    "components/finanzas/telar/Orillo.tsx": [
+      "Link «{`${t.nombre}»"
+    ],
+    "components/finanzas/telar/TeToca.tsx": [
+      "button «telar.te-toca»",
+      "BotonVer «{p.verbo}»"
     ],
     "components/gasto-fijo/FichaDePagoCampos.tsx": [
       "Casilla «{TEXTO_BILLETERA[b]}»",

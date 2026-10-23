@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EgresoPorClasificar, GastoFijoMes, PanelGastos } from "./gastos-reglas";
-import { bandejaPulso, fijosPorConfirmar, gastastePulso, montoBandeja, textoFijosPorConfirmar } from "./gastos-pulso-reglas";
+import { bandejaPulso, chipDeFijosPorConfirmar, fijosPorConfirmar, gastastePulso, montoBandeja } from "./gastos-pulso-reglas";
 
 const PANEL: PanelGastos = {
   total: 17750, igv: 2700, igvPerdido: { n: 0, igv: 0, deOtrosMeses: 0 }, igvDescontable: 2700, n: 17, boletas: 2, sinComprobante: 5,
@@ -76,7 +76,7 @@ describe("bandejaPulso", () => {
     const b = bandejaPulso([], [], { egresosLeidos: false });
     expect(b.chip).toBe("Sin atrasos");
     expect(b.bajadaVacia).not.toContain("ya dice qué fue");
-    expect(b.bajadaVacia).toContain("Todas las tiendas");
+    expect(b.bajadaVacia).toContain("Todas las sedes");
     expect(bandejaPulso([], [fijo({ id: "a", descripcion: "Suscripción", estado: "por_llegar", fechaEsperada: "2026-10-31" })], { egresosLeidos: false }).bajadaVacia).toContain("Queda 1 gasto fijo por llegar");
   });
   it("sin ningún fijo en el mes no dice que «los fijos están registrados»", () => {
@@ -90,20 +90,18 @@ describe("bandejaPulso", () => {
   });
 });
 
-describe("el titular dice de qué mes habla (tarea #2 de /pantalla, 2026-10-22)", () => {
+describe("la frase dice de qué mes habla (tarea #2 de /pantalla, 2026-10-22)", () => {
+  const vacia = { ...PANEL, total: 0, n: 0, porCategoria: [] };
   it("con el mes de hoy, o sin decir el mes, es «este mes»", () => {
-    expect(gastastePulso(PANEL)!.verbo).toBe("este mes gastaste");
-    expect(gastastePulso(PANEL, { mes: "2026-10", hoy: "2026-10-22" })!.verbo).toBe("este mes gastaste");
+    expect(gastastePulso(vacia)!.frase).toBe("Todavía no hay gastos registrados este mes.");
+    expect(gastastePulso(vacia, { mes: "2026-10", hoy: "2026-10-22" })!.frase).toBe("Todavía no hay gastos registrados este mes.");
   });
   it("con otro mes dice cuál: antes decía «este mes» sobre septiembre", () => {
-    const g = gastastePulso(PANEL, { mes: "2026-09", hoy: "2026-10-22" })!;
-    expect(g.verbo).toBe("en septiembre 2026 gastaste");
-    const vacio = gastastePulso({ ...PANEL, total: 0, n: 0, porCategoria: [] }, { mes: "2026-09", hoy: "2026-10-22" })!;
-    expect(vacio.frase).toBe("Todavía no hay gastos registrados en septiembre 2026.");
+    expect(gastastePulso(vacia, { mes: "2026-09", hoy: "2026-10-22" })!.frase).toBe("Todavía no hay gastos registrados en septiembre 2026.");
   });
 });
 
-describe("fijosPorConfirmar: lo que «este mes gastaste» todavía no cuenta", () => {
+describe("fijosPorConfirmar: lo que la cifra grande todavía no cuenta", () => {
   const F = (p: Partial<GastoFijoMes> & Pick<GastoFijoMes, "id" | "estado">) => fijo({ descripcion: "Fijo", fechaEsperada: "2026-10-28", ...p });
 
   it("suma los que faltan y los que aún no llegan; los registrados no", () => {
@@ -112,16 +110,21 @@ describe("fijosPorConfirmar: lo que «este mes gastaste» todavía no cuenta", (
       F({ id: "b", estado: "por_llegar", monto: 250.5 }),
       F({ id: "c", estado: "registrado", monto: 9999 }),
     ])!;
-    expect(p).toEqual({ n: 2, vencidos: 1, monto: 1250.5, aproximado: false });
-    expect(textoFijosPorConfirmar(p)).toBe("Todavía no cuenta: 2 gastos fijos por confirmar (S/ 1,251).");
+    expect(p).toEqual({ n: 2, monto: 1250.5, aproximado: false });
+    expect(chipDeFijosPorConfirmar(p)).toEqual([{ texto: "Sin contar 2 fijos por confirmar (S/ 1,251)", tono: "ambar" }]);
   });
   it("si alguno es de monto variable, la cifra lleva «~» (es una referencia, no lo que llegó)", () => {
     const p = fijosPorConfirmar([F({ id: "a", estado: "falta", monto: 30, montoVariable: true }), F({ id: "b", estado: "falta", monto: 37 })])!;
     expect(p.aproximado).toBe(true);
-    expect(textoFijosPorConfirmar(p)).toBe("Todavía no cuenta: 2 gastos fijos por confirmar (~S/ 67).");
+    expect(chipDeFijosPorConfirmar(p)[0]!.texto).toBe("Sin contar 2 fijos por confirmar (~S/ 67)");
+  });
+  it("un fijo ya registrado de monto variable no vuelve aproximada la suma de los que faltan", () => {
+    const p = fijosPorConfirmar([F({ id: "a", estado: "registrado", monto: 30, montoVariable: true }), F({ id: "b", estado: "falta", monto: 100 })])!;
+    expect(p.aproximado).toBe(false);
+    expect(chipDeFijosPorConfirmar(p)[0]!.texto).not.toContain("~");
   });
   it("uno solo, en singular", () => {
-    expect(textoFijosPorConfirmar(fijosPorConfirmar([F({ id: "a", estado: "por_llegar", monto: 4200 })])!)).toBe("Todavía no cuenta: 1 gasto fijo por confirmar (S/ 4,200).");
+    expect(chipDeFijosPorConfirmar(fijosPorConfirmar([F({ id: "a", estado: "por_llegar", monto: 4200 })]))[0]!.texto).toBe("Sin contar 1 fijo por confirmar (S/ 4,200)");
   });
   it("sin fijos, o con todos registrados, no hay nada que decir", () => {
     expect(fijosPorConfirmar([])).toBeNull();

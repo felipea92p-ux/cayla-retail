@@ -6,6 +6,7 @@
 // PROMETE: ordenar y describir lo que `fn_gastos_fijos_mes` ya devuelve (estado y fecha esperada vienen de la base, ADR-0440); no decide
 // qué falta ni cuándo. Lógica pura: sin fecha de hoy propia (se la pasan) y sin red.
 
+import { mesAntesDelCorte } from "./finanzas-arranque-reglas";
 import { fechaCorta, solesRedondo, textoCuandoLlega, textoMes, type GastoFijoMes } from "./gastos-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -166,4 +167,13 @@ export function choqueConElFijo(
     return { campo: "fecha", mensaje: `La fecha tiene que ser de ${textoMes(mesDelFijo(fijo))} para cerrar «${fijo.descripcion}». Cámbiala, o registra el gasto aparte.` };
   }
   return null;
+}
+
+/**
+ * Los fijos que se muestran de un mes. Antes del inicio de Finanzas (`parametros_finanzas.inicio_finanzas`) no hay fijos que confirmar:
+ * la base los marcaría todos «falta» y rechaza un gasto anterior a esa fecha. Sin inicio elegido, se muestran todos.
+ * Lo usan la pestaña, su conteo, la bandeja y el chip de «sin contar»: una sola lista, para que no se contradigan.
+ */
+export function fijosDelMesVisibles(fijos: readonly GastoFijoMes[], mes: string, inicioFinanzas: string | null): GastoFijoMes[] {
+  return inicioFinanzas && mesAntesDelCorte(mes, inicioFinanzas) ? [] : [...fijos];
 }

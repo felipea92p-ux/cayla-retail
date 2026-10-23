@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { GastoFijoMes } from "./gastos-reglas";
-import { bajadaDeLaCola, choqueConElFijo, claveDeFijo, colaDeFijos, fijosQueSeParecen, mesDelFijo, sinRepetidos, textoFechaDeFijo, tituloDeLaCola } from "./fijos-del-mes-reglas";
+import { bajadaDeLaCola, choqueConElFijo, claveDeFijo, colaDeFijos, fijosDelMesVisibles, fijosQueSeParecen, mesDelFijo, sinRepetidos, textoFechaDeFijo, tituloDeLaCola } from "./fijos-del-mes-reglas";
 
 const F = (p: Partial<GastoFijoMes> & Pick<GastoFijoMes, "id" | "estado" | "fechaEsperada">): GastoFijoMes => ({
   ubicacionId: null, ubicacionNombre: "De la empresa", categoria: "software", categoriaNombre: "Software", descripcion: p.id, proveedorId: null, proveedorNombre: null,
@@ -233,5 +233,19 @@ describe("RegistrarGastoModal usa el chequeo con el fijo", () => {
     const desde = fuente.indexOf('id="gasto-categoria"');
     expect(desde).toBeGreaterThan(0);
     expect(fuente.slice(desde, desde + 400)).toMatch(/deshabilitado=\{!!fijo\}/);
+  });
+});
+
+describe("fijosDelMesVisibles: antes del inicio de Finanzas no hay fijos que confirmar", () => {
+  const fijos = [F({ id: "a", estado: "falta", fechaEsperada: "2026-09-15" }), F({ id: "b", estado: "por_llegar", fechaEsperada: "2026-09-30" })];
+  it("un mes anterior al inicio no muestra ninguno", () => {
+    expect(fijosDelMesVisibles(fijos, "2026-09", "2026-10-01")).toEqual([]);
+  });
+  it("el mes del inicio, y los posteriores, los muestran todos", () => {
+    expect(fijosDelMesVisibles(fijos, "2026-10", "2026-10-01")).toHaveLength(2);
+    expect(fijosDelMesVisibles(fijos, "2026-11", "2026-10-01")).toHaveLength(2);
+  });
+  it("sin inicio elegido se muestran todos, aun en un mes viejo", () => {
+    expect(fijosDelMesVisibles(fijos, "2025-01", null)).toHaveLength(2);
   });
 });

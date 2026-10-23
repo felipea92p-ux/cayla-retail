@@ -3,6 +3,7 @@
 // de a una cosa (una salida de caja que nadie dijo qué fue, un gasto fijo del mes que todavía no está registrado).
 // Lógica pura sobre lo que `fn_gastos_panel`, `fn_egresos_sin_clasificar` y `fn_gastos_fijos_mes` ya traen.
 
+import type { TonoChip } from "@/components/ui/Chip";
 import { diaLima } from "./fechas-lima";
 import { soles } from "./flujo-caja-reglas";
 import { mesDe, solesRedondo, textoMes, type EgresoPorClasificar, type GastoFijoMes, type PanelGastos } from "./gastos-reglas";
@@ -14,15 +15,13 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export type Gastaste = {
   total: number;
   n: number;
-  /** «este mes gastaste» con el mes de hoy; «en septiembre 2026 gastaste» si se mira otro mes (antes siempre decía «este mes»). */
-  verbo: string;
   /** «7 de cada 10 soles fueron alquiler» o «lo que más pesó: …». */
   frase: string;
   /** Las tres categorías que más pesaron, con su parte. */
   mayores: { nombre: string; monto: number; parte: number }[];
 };
 
-/** `cuando` = el mes que se mira y el día de hoy; sin él, se asume el mes de hoy. */
+/** `cuando` = el mes que se mira y el día de hoy; sin él, se asume el mes de hoy. La frase dice de qué mes habla («en septiembre 2026»). */
 export function gastastePulso(panel: PanelGastos | null, cuando?: { mes: string; hoy: string }): Gastaste | null {
   if (!panel) return null;
   const dichoElMes = !cuando || cuando.mes === mesDe(cuando.hoy) ? "este mes" : `en ${textoMes(cuando.mes)}`;
@@ -42,14 +41,12 @@ export function gastastePulso(panel: PanelGastos | null, cuando?: { mes: string;
         ? `${de10} de cada 10 soles ${de10 === 1 ? "fue" : "fueron"} ${top.nombre.toLowerCase()}.`
         : `Lo que más pesó: ${mayores.map((m) => `${m.nombre.toLowerCase()} (${Math.round(m.parte * 100)} %)`).join(", ")}.`;
   }
-  return { total, n: panel.n, verbo: `${dichoElMes} gastaste`, frase, mayores };
+  return { total, n: panel.n, frase, mayores };
 }
 
-/** Lo que el titular todavía no cuenta: los gastos fijos del mes que nadie ha registrado (los que ya pasaron y los que aún no llegan). */
+/** Lo que la cifra grande todavía no cuenta: los gastos fijos del mes que nadie ha registrado (los que ya pasaron y los que aún no llegan). */
 export type FijosPorConfirmar = {
   n: number;
-  /** De esos, los que ya pasaron su fecha («Ya pasaron su fecha» en la pestaña). */
-  vencidos: number;
   /** Lo que suman con el monto de siempre. */
   monto: number;
   /** Algún monto es una referencia (un fijo de monto variable): se escribe con «~». */
@@ -57,8 +54,9 @@ export type FijosPorConfirmar = {
 };
 
 /**
- * Un fijo solo cuenta cuando alguien registra lo que llegó de verdad, así que «este mes gastaste S/ X» no incluye el alquiler ni la luz
- * hasta entonces. El titular lo dice en vez de dejar que S/ X se lea como el mes completo (Felipe, /pantalla 2026-10-22, tarea #2).
+ * Un fijo solo cuenta cuando alguien registra lo que llegó de verdad, así que la cifra de la cabecera no incluye el alquiler ni la luz
+ * hasta entonces. Un chip bajo la cifra lo dice en vez de dejar que S/ X se lea como el mes completo (Felipe, /pantalla 2026-10-22, tarea #2;
+ * desde ADR-0493 vive en la respuesta del telar, no en el titular que ese ADR retiró).
  * `null` si no queda ninguno por confirmar.
  */
 export function fijosPorConfirmar(fijos: readonly GastoFijoMes[]): FijosPorConfirmar | null {
@@ -66,16 +64,16 @@ export function fijosPorConfirmar(fijos: readonly GastoFijoMes[]): FijosPorConfi
   if (pendientes.length === 0) return null;
   return {
     n: pendientes.length,
-    vencidos: pendientes.filter((f) => f.estado === "falta").length,
     monto: r2(pendientes.reduce((s, f) => s + f.monto, 0)),
     aproximado: pendientes.some((f) => f.montoVariable),
   };
 }
 
-/** «Todavía no cuenta: 5 gastos fijos por confirmar (~S/ 1,476).» */
-export function textoFijosPorConfirmar(p: FijosPorConfirmar): string {
-  const cuantos = p.n === 1 ? "1 gasto fijo por confirmar" : `${p.n} gastos fijos por confirmar`;
-  return `Todavía no cuenta: ${cuantos} (${p.aproximado ? "~" : ""}${solesRedondo(p.monto)}).`;
+/** El chip bajo la cifra grande: «Sin contar 5 fijos por confirmar (~S/ 1,476)». Vacío si no queda ninguno. */
+export function chipDeFijosPorConfirmar(p: FijosPorConfirmar | null): { texto: string; tono: TonoChip }[] {
+  if (!p) return [];
+  const cuantos = p.n === 1 ? "1 fijo por confirmar" : `${p.n} fijos por confirmar`;
+  return [{ texto: `Sin contar ${cuantos} (${p.aproximado ? "~" : ""}${solesRedondo(p.monto)})`, tono: "ambar" }];
 }
 
 // ---- 2. La bandeja: lo que falta revisar, de a uno -------------------------------------------------------------------------
@@ -139,8 +137,8 @@ export function bandejaPulso(egresos: readonly EgresoPorClasificar[], fijos: rea
         ? "Cada salida de caja ya dice qué fue y los fijos del mes están registrados."
         : "Cada salida de caja ya dice qué fue."
     : porLlegar > 0
-      ? `Aquí no se leen las salidas de caja: míralas en «Todas las tiendas». ${quedan} este mes.`
-      : "No hay fijos atrasados. Las salidas de caja son de cada tienda: míralas en «Todas las tiendas».";
+      ? `Aquí no se leen las salidas de caja: míralas en «Todas las sedes». ${quedan} este mes.`
+      : "No hay fijos atrasados. Las salidas de caja son de cada tienda: míralas en «Todas las sedes».";
   return {
     cosas,
     n,
