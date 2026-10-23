@@ -1415,7 +1415,7 @@ export const DECISIONES = {
       // El pie de una tarjeta que se pega abajo en una pantalla angosta (Abrir conteo).
       "sticky bottom-0 z-10 grid"
     ],
-    "deuda": ["components/AbrirConteo.tsx", "components/alta-producto/FichaPrevia.tsx", "components/BajarAlPisoForm.tsx", "components/recepcion-envio/FormularioRecepcion.tsx", "components/ui/BarraFija.tsx"],
+    "deuda": ["components/AbrirConteo.tsx", "components/alta-producto/FichaPrevia.tsx", "components/BajarAlPisoForm.tsx", "components/recepcion-envio/FormularioRecepcion.tsx"],
     "excepciones": []
   },
   "accion.anterior": {
