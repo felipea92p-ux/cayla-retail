@@ -15,11 +15,12 @@ import { FileX } from "lucide-react";
 
 const entra = (clase: string, i: number) => ({ className: `${clase} anim-entra`, style: { ["--i" as string]: i } as CSSProperties });
 
-export function ImpuestosPulso({ pulso }: { pulso: PulsoImpuestos }) {
+/** `soloPorHacer`: solo «Antes de declarar» (El telar: la respuesta la dice la balanza, al lado). */
+export function ImpuestosPulso({ pulso, soloPorHacer = false }: { pulso: PulsoImpuestos; soloPorHacer?: boolean }) {
   const [porque, setPorque] = useState(false);
   if (pulso.estado === "sin_mes") {
     return (
-      <section className="fin-pulso-hero" data-guia="fin-impuestos.pulso">
+      <section className="fin-pulso-hero">
         <p {...entra("fin-pulso-pregunta", 1)}>¿Cuánto le debo a SUNAT?</p>
         <Vacio tamano="chico" icono={<FileX />}>
           {pulso.frase}
@@ -30,7 +31,8 @@ export function ImpuestosPulso({ pulso }: { pulso: PulsoImpuestos }) {
   const mayor = Math.max(1, ...pulso.cuenta.map((t) => t.monto));
   return (
     <>
-      <section className="fin-pulso-hero" aria-labelledby="fin-impuestos-pregunta" data-guia="fin-impuestos.pulso">
+      {!soloPorHacer && (
+      <section className="fin-pulso-hero" aria-labelledby="fin-impuestos-pregunta">
         <p id="fin-impuestos-pregunta" {...entra("fin-pulso-pregunta", 1)}>
           ¿Cuánto le debo a SUNAT?
         </p>
@@ -67,8 +69,9 @@ export function ImpuestosPulso({ pulso }: { pulso: PulsoImpuestos }) {
           )}
         </div>
       </section>
+      )}
 
-      <div {...entra("", 6)}>
+      <div {...entra("", soloPorHacer ? 2 : 6)}>
         <Superficie pad guia="fin-impuestos.por-hacer">
           <CabeceraBloque titulo="Antes de declarar" bajada={pulso.porHacer.length ? "Lo que puede hacer que pagues de más o que SUNAT te observe." : "Nada pendiente: los comprobantes están aceptados y las compras, con factura."}>
             <Chip tono={pulso.porHacer.length ? "ambar" : "verde"}>{pulso.porHacer.length ? `${pulso.porHacer.length} por hacer` : "Al día"}</Chip>

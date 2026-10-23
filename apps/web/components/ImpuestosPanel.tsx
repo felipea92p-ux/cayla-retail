@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { CabeceraBloque, Herramientas, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { ImpuestosPulso } from "@/components/finanzas/ImpuestosPulso";
+import { BalanzaIgv } from "@/components/finanzas/BalanzaIgv";
+import { balanzaIgv } from "@/lib/impuestos-balanza-reglas";
 import { pulsoImpuestos } from "@/lib/impuestos-pulso-reglas";
 import { descargarBlob, descargarCsv, textoCsv } from "@/lib/exportar-csv";
 import { crearZip } from "@/lib/zip-simple";
@@ -32,7 +33,6 @@ import {
   nombreMes,
   porcentaje,
   proyectarUmbral,
-  sumarMeses,
   tonoAvance,
   type MesIgv,
   type PanelImpuestos,
@@ -48,7 +48,6 @@ import { Boton } from "@/components/ui/campos";
 // últimos 6 meses. Es de CAYLA entera («Ver» fijo): la ve quien tiene el módulo (ADR-0253). La pantalla solo lee: el IGV, el saldo a favor y el
 // límite los calcula la base; los registros se arman aquí, en el navegador, con lo que devuelve la base.
 
-const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 type Descarga = "ventas" | "compras" | "paquete";
@@ -68,7 +67,7 @@ export function ImpuestosPanel({ panel, falla }: { panel: PanelImpuestos | null;
 function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | null }) {
   const router = useRouter();
   const [bajando, setBajando] = useState<Descarga | null>(null);
-  const { mes, mesActual, foco, parametros } = panel;
+  const { mes, mesActual } = panel;
   const anio = Number(mes.slice(0, 4));
   const titulo = `IGV de ${nombreMes(mes)}${anio !== Number(mesActual.slice(0, 4)) ? ` ${anio}` : ""}`;
   const irA = (m: string) => router.push(`/finanzas/impuestos?mes=${m}`, { scroll: false });
@@ -110,9 +109,7 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
     setBajando(null);
   }
 
-  const siguiente = nombreMes(sumarMeses(mes, 1));
-  const aFavor = !!foco && foco.aPagar === 0 && foco.saldoAFavor > 0;
-  const tasaIgv = parametros.igv ? Math.round(parametros.igv.valor * 100) : 18;
+  const pulso = pulsoImpuestos(panel);
 
   return (
     <div className="space-y-6">
@@ -139,46 +136,15 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
 
       {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
 
-      {/* Camino A (Felipe 2026-10-15): primero la respuesta, después las cifras. */}
-      <ImpuestosPulso pulso={pulsoImpuestos(panel)} />
-
-      <section className="fin-cifras" data-guia="fin-impuestos.cifras">
-        <TarjetaCifra etiqueta="IGV cobrado al vender" valor={foco ? solesRedondo(foco.debito) : null} {...entra(1)}>
-          {foco
-            ? `${tasaIgv} % de las ventas del mes, de ${plural(foco.comprobantes, "comprobante emitido", "comprobantes emitidos")}${foco.igvNotasCredito > 0 ? `. Ya resta ${solesRedondo(foco.igvNotasCredito)} de notas de crédito` : ""}`
-            : "Sin datos"}
-        </TarjetaCifra>
-        <TarjetaCifra etiqueta="IGV que descuentas" valor={foco ? solesRedondo(foco.credito) : null} {...entra(2)}>
-          {`Facturas de mercadería, gastos, activos e insumos${foco && foco.creditoNotas > 0 ? `, menos ${solesRedondo(foco.creditoNotas)} de notas de crédito` : ""}${
-            panel.revisar.igvPerdido.igv > 0 ? `, menos ${solesRedondo(panel.revisar.igvPerdido.igv)} que se pierde por pagar sin banco` : ""
-          }`}
-        </TarjetaCifra>
-        <TarjetaCifra
-          etiqueta={aFavor ? `Saldo a favor para ${siguiente}` : `IGV a pagar en ${siguiente}`}
-          tono={aFavor ? "text-verde" : undefined}
-          valor={foco ? solesRedondo(aFavor ? foco.saldoAFavor : foco.aPagar) : null}
-          {...entra(3)}
-        >
-          {aFavor
-            ? "Descontaste más IGV del que cobraste: se descuenta el mes siguiente"
-            : `Vence según el último dígito de tu RUC${foco && foco.saldoAnterior > 0 ? `. Ya descuenta ${solesRedondo(foco.saldoAnterior)} a favor del mes anterior` : ""}`}
-        </TarjetaCifra>
-        <TarjetaCifra etiqueta="Pago a cuenta de renta" valor={panel.renta.monto !== null ? solesRedondo(panel.renta.monto) : null} {...entra(4)}>
-          {panel.renta.tasa !== null ? (
-            <>
-              {porcentaje(panel.renta.tasa, panel.renta.tasa * 100 % 1 === 0 ? 0 : 1)} de la venta neta.{" "}
-              {(parametros.renta?.provisional || parametros.regimen?.provisional) && <b className="font-semibold text-tinta">Confirmar régimen con el contador</b>}
-            </>
-          ) : (
-            <>
-              Falta la tasa del régimen para {anio}.{" "}
-              <Link href="/configuracion?tab=impuestos" className="btn-enlace">
-                Configurarla
-              </Link>
-            </>
-          )}
-        </TarjetaCifra>
-      </section>
+      {/* El telar (Felipe 2026-10-23): la balanza del IGV y, al lado, lo que falta antes de declarar. */}
+      {panel.foco && pulso.estado !== "sin_mes" ? (
+        <section className="fin-balanza-cols">
+          <BalanzaIgv balanza={balanzaIgv(panel.foco, panel.renta.monto)} mesTexto={textoMes(mes)} guia="fin-impuestos.balanza" anioSinRenta={panel.renta.tasa === null ? anio : null} />
+          <ImpuestosPulso pulso={pulso} soloPorHacer />
+        </section>
+      ) : (
+        <ImpuestosPulso pulso={pulso} />
+      )}
 
       <section className="fin-dos-col fin-dos-col-izq">
         <Limite panel={panel} />

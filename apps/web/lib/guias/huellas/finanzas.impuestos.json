@@ -8,9 +8,11 @@
       "Boton «fin-impuestos.registro-ventas»",
       "Boton «fin-impuestos.registro-compras»",
       "Boton «fin-impuestos.paquete»",
-      "Link «Configurarla»",
       "Link «Registrar el pago»",
       "BotonVer «{p.accion.texto}»"
+    ],
+    "components/finanzas/BalanzaIgv.tsx": [
+      "Link «Configurarla»"
     ],
     "components/finanzas/ImpuestosPulso.tsx": [
       "button «{porque ? \"Cerrar\" : \"¿Por qué?\"}»",

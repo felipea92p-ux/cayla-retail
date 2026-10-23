@@ -1209,10 +1209,10 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       texto: "Lo que cobraste de IGV al vender, menos lo que pagaste de IGV al comprar con factura. El contador presenta los libros a SUNAT con lo que sale de aquí. Es una demo: no se declara ni se paga nada.",
     },
     {
-      id: "pulso",
-      ancla: "fin-impuestos.pulso",
-      titulo: "¿Cuánto le debo a SUNAT?",
-      texto: "La respuesta grande: lo que le pagas a SUNAT por el mes que se declara, IGV más la renta a cuenta. «¿Por qué?» abre la cuenta: el IGV que cobraste al vender, menos el que descuentas por tus compras con factura. El día exacto depende del último dígito de tu RUC.",
+      id: "balanza",
+      ancla: "fin-impuestos.balanza",
+      titulo: "La balanza del IGV",
+      texto: "En un plato, el IGV que cobraste al vender; en el otro, el de tus compras con factura. La balanza se inclina hacia el que pesa más y abajo queda la cuenta: cobraste, menos tus compras, más la renta a cuenta, es lo que pagas. Si pesan más las compras, el IGV queda a favor para el mes que viene.",
     },
     {
       id: "por-hacer",
@@ -1240,12 +1240,6 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       texto: "Los dos registros y el resumen del mes juntos, listos para mandarle al contador. En la demo no descargamos nada.",
     },
     {
-      id: "cifras",
-      ancla: "fin-impuestos.cifras",
-      titulo: "El IGV en cuatro cifras",
-      texto: "El IGV que cobraste al vender, el que descuentas por tus facturas de compra, lo que queda a pagar (o a tu favor para el mes siguiente) y el pago a cuenta del impuesto a la renta.",
-    },
-    {
       id: "limite",
       ancla: "fin-impuestos.limite",
       titulo: "El límite de ventas",
@@ -1265,11 +1259,11 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
     },
     {
       id: "mes-en-curso",
-      ancla: "fin-impuestos.cifras",
+      ancla: "fin-impuestos.balanza",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-impuestos.mes-en-curso" }],
       titulo: "El mes en curso",
-      texto: "Ahora todas las cifras son de este mes, a la fecha: sirve para ver venir el IGV antes de que termine. El que se declara ahora es el mes anterior.",
+      texto: "Ahora la balanza es de este mes, a la fecha: sirve para ver venir el IGV antes de que termine. El que se declara ahora es el mes anterior.",
     },
     {
       id: "mes-a-declarar",
