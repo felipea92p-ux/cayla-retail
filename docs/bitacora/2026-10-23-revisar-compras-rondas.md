@@ -20,4 +20,4 @@ Estado:
 - `pruebas:compras-simple-dia` 15/15, con el caso nuevo de rondas abiertas, cuaderno y ronda de la plata.
 - `roles-cobertura` 32/32.
 - Guías `compras.fondos` (17 pasos) y `compras.mi-plata` (14) recorridas; auditor del tema en 0, con capturas revisadas.
-- La migración no está en producción.
+- La migración está en producción desde el 2026-10-23 (verificada por md5).
