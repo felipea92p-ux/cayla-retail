@@ -1,5 +1,34 @@
 # Formidable · Finanzas ▸ Gastos — la fila de un gasto del viaje   (`/finanzas/gastos`)
 
+## Después de las tareas #1 a #3 · 2026-10-22, noche — la lista de Fijos y el titular, medidos (`rapido` + el código nuevo)
+
+- **SHA:** `e6b2227aa` (tres commits sobre `3b63baf00`)   · **Qué cambió:** el cambio 1 de la pasada de arriba (**Fijos del mes como una sola lista**, con el mes,
+  la suma, los días de atraso y los registrados plegados), el titular que dice «Todavía no cuenta: N gastos fijos por confirmar», el aviso de «De la
+  empresa» y la pregunta «¿Es uno de tus fijos?» del formulario. **No** se hicieron el cambio 2 (una sola respuesta arriba, que decide Felipe) ni el 3
+  (la lista de gastos).
+- **Entorno:** una página de prueba con datos inventados (12 fijos, 144 gastos), a 1440 × 900, 1024 × 768 y 375 × 812, con `medir-oficio.js`. Sin
+  prueba ciega y sin colaboradora real: **las leyes no se recalifican** (siguen en 5,0 provisional).
+
+### Medido (antes → después)
+| Comprobación | Antes (captura de Felipe y código) | Después (medido) |
+|---|---|---|
+| Orden de la pestaña | «Para confirmar» (vacía) primero, «Faltan» segunda, columna derecha casi vacía [visto] | una sola lista: «Ya pasaron su fecha» y «Llegan este mes», con los registrados plegados |
+| Lo que dice cada fila | «la quincena · monto variable», sin fecha ni atraso [visto] | «se esperaba el 15 oct · hace 7 días» / «se espera el 31 oct · en 9 días» |
+| Lo que falta, sumado | no se decía fuera de la bandeja | en la cabecera de la lista y bajo el titular: «11 por confirmar (~S/ 12,762)» |
+| Desborde horizontal | 0 px | 0 px a 1440, 1024 y 375 |
+| Texto bajo 4,5 : 1 | — | ninguno, en los tres anchos |
+| Rojos visibles | — | 2 (el límite del sistema) |
+| Fila de un fijo a 375 px | sin regla de celular: el nombre se partía en tres renglones [inferido del CSS] | 136–140 px; el botón baja bajo el nombre; «Editar fijos» ya no se corta (112 px) |
+| Montos alineados | cada fila con su ancho de botón | una última columna de 7,5 rem: los montos quedan en línea |
+| Blancos de puntero bajo 24 px | — | **2, nuevos:** «Ver el gasto» (69 × 19) y «Ver el registrado» (126 × 20); son las piezas del sistema `btn-enlace` y `ver-mas-enlace` |
+| Dónde empieza la lista de fijos (1440 × 900) | ≈ 1 145 px del tope (bajo el pliegue) | **igual:** 1 145 px; es el cambio 2 que no se hizo |
+| Oficio, a 1440 y a 1024 | sin medir | **5 de 8 fallan, casi todo heredado de la página:** versalitas de 11 px del sistema, 7 radios, bordes casi alineados, un hueco de 4,5 px; lo propio son los dos enlaces de 19–20 px |
+
+### Lo que sigue (no se ejecuta sin Felipe)
+- **El cambio 2 (una sola respuesta arriba).** Es lo que subiría la lista de Fijos de esos 1 145 px (cuánto, sin medir todavía): quitar la tarjeta que repite el monto del Pulso y acortar la bajada. Lo decide Felipe.
+- **Los dos enlaces de 19–20 px** son la altura de la pieza `btn-enlace` (y `ver-mas-enlace`): arreglarlos en la pieza sería para todo el ERP (`/unificar`), no solo aquí.
+- **La prueba ciega con las pestañas Fijos y Gastos**, y `/chaos` sobre el formulario de gasto (guarda y ahora lleva `p_gasto_fijo_id`): sin hacer.
+
 ## Primera pasada de la PANTALLA ENTERA · 2026-10-22 — por lectura de código y captura (sin medir, sin prueba ciega)
 
 - **Fecha / SHA:** 2026-10-22 · `f26b3b288`   · **Dispositivo que manda:** escritorio (Mac mini); a 375 px la tabla se apila en tarjetas
