@@ -1,5 +1,8 @@
 ## Compras simple: rediseño, pago y ronda (rama `claude/compras-simple-rediseno`, ADR-0480)
 
+**POR PEGAR (2026-10-23), después de fusionar el PR #1286 y con el OK de Felipe:** `20261023180000`, `20261023181000` y `20261023183000`, en ese orden.
+Pegar la ronda antes rompería la web de hoy: «Compré ropa» pediría una ronda que la pantalla vieja no sabe abrir.
+
 **No está en producción:** las migraciones `20261023180000` (foto opcional), `20261023181000` (pagar ahora o después) y `20261023183000` (ronda de compras). Se pegan en ese orden, con el OK de Felipe. La ronda conviene pegarla junto con la publicación de la web: con la base nueva y la web vieja, «Compré ropa» pide abrir una ronda que la pantalla vieja no sabe abrir.
 
 Pendiente:
