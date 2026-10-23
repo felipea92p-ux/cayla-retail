@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GastoFijoMes } from "./gastos-reglas";
-import { bajadaDeLaCola, claveDeFijo, colaDeFijos, fijosQueSeParecen, mesDelFijo, sinRepetidos, textoFechaDeFijo, tituloDeLaCola } from "./fijos-del-mes-reglas";
+import { bajadaDeLaCola, choqueConElFijo, claveDeFijo, colaDeFijos, fijosQueSeParecen, mesDelFijo, sinRepetidos, textoFechaDeFijo, tituloDeLaCola } from "./fijos-del-mes-reglas";
 
 const F = (p: Partial<GastoFijoMes> & Pick<GastoFijoMes, "id" | "estado" | "fechaEsperada">): GastoFijoMes => ({
   ubicacionId: null, ubicacionNombre: "De la empresa", categoria: "software", categoriaNombre: "Software", descripcion: p.id, proveedorId: null, proveedorNombre: null,
@@ -162,5 +162,26 @@ describe("fijosQueSeParecen: un gasto suelto que parece un fijo pendiente", () =
     it("sin proveedor elegido todavía, no descarta a nadie", () => {
       expect(fijosQueSeParecen([hidr, sed, sinProv], base)).toHaveLength(3);
     });
+  });
+});
+
+describe("choqueConElFijo: por qué un gasto no puede cerrar un fijo", () => {
+  const alquiler = F({ id: "alquiler", descripcion: "Alquiler Lima", estado: "falta", fechaEsperada: "2026-10-31", categoria: "alquileres", categoriaNombre: "Alquileres" });
+
+  it("un gasto del mismo mes puede cerrarlo, cualquiera sea el día", () => {
+    for (const fecha of ["2026-10-01", "2026-10-15", "2026-10-31"]) expect(choqueConElFijo(alquiler, { fecha })).toBeNull();
+  });
+  it("un gasto de otro mes cerraría el mes equivocado: dice de qué mes tiene que ser y cuál fijo es", () => {
+    const c = choqueConElFijo(alquiler, { fecha: "2026-09-30" });
+    expect(c?.campo).toBe("fecha");
+    expect(c?.mensaje).toBe("La fecha tiene que ser de octubre 2026 para cerrar «Alquiler Lima». Cámbiala, o registra el gasto aparte.");
+  });
+  it("el mes se mira por la fecha esperada del fijo, no por el mes de hoy: un fijo de septiembre pide septiembre", () => {
+    const sept = F({ id: "luz", descripcion: "Luz Lima", estado: "falta", fechaEsperada: "2026-09-30" });
+    expect(choqueConElFijo(sept, { fecha: "2026-09-12" })).toBeNull();
+    expect(choqueConElFijo(sept, { fecha: "2026-10-01" })?.campo).toBe("fecha");
+  });
+  it("el mismo mes de otro año tampoco vale", () => {
+    expect(choqueConElFijo(alquiler, { fecha: "2025-10-15" })?.campo).toBe("fecha");
   });
 });

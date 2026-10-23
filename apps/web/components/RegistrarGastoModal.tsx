@@ -14,7 +14,7 @@ import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { Aviso } from "@/components/ui/Aviso";
 import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
-import { claveDeFijo, fijosQueSeParecen, mesDelFijo, textoFechaDeFijo } from "@/lib/fijos-del-mes-reglas";
+import { choqueConElFijo, claveDeFijo, fijosQueSeParecen, mesDelFijo, textoFechaDeFijo } from "@/lib/fijos-del-mes-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -70,6 +70,9 @@ import { Boton } from "@/components/ui/campos";
 // no los pasa y no pregunta. Un gasto que cierra un fijo tiene que ser de ESE mes: la base cuenta un gasto por fijo y por mes de la fecha.
 
 export type { ProveedorGasto };
+
+// El campo del formulario al que lleva el foco un choque con el fijo (`choqueConElFijo`).
+const IDS_DE_CAMPO = { fecha: "gasto-fecha" } as const;
 
 export function RegistrarGastoModal({
   categorias,
@@ -248,10 +251,9 @@ export function RegistrarGastoModal({
       ? validarActivo({ ...conCaja, tipo: activo.tipo, nombre: b.descripcion, serie: "", vidaUtilMeses: String(tipoActivo?.vidaUtilMeses ?? "") }, hoy)
       : validarGasto({ ...conCaja, gastoFijoId: fijoDelGasto?.id }, hoy);
     if (!v.ok) return avisar.error(v.error);
-    // Un gasto cierra el fijo de UN mes (el de su fecha): con otra fecha cerraría el mes equivocado y dejaría el verdadero en «Ya pasaron su fecha».
-    if (fijoDelGasto && b.fecha.slice(0, 7) !== mesDelFijo(fijoDelGasto)) {
-      return avisar.error(`La fecha tiene que ser de ${textoMes(mesDelFijo(fijoDelGasto))} para cerrar «${fijoDelGasto.descripcion}». Cámbiala, o registra el gasto aparte.`, { enfocar: "gasto-fecha" });
-    }
+    // Lo que cierra un fijo tiene que ser de ese fijo (su mes): si no, lo cerraría equivocado y nadie lo vería como pendiente.
+    const choque = fijoDelGasto ? choqueConElFijo(fijoDelGasto, { fecha: b.fecha }) : null;
+    if (choque) return avisar.error(choque.mensaje, { enfocar: IDS_DE_CAMPO[choque.campo] });
     // Registrar sin contestar si es uno de los fijos que faltan es justo lo que duplica un gasto: no se registra.
     if (fijosPorPreguntar.length > 0) return avisar.error("Antes de registrar, dinos si es uno de los gastos fijos de arriba.", { enfocar: "gasto-fijo-parecido" });
     if (!responsable.listo) {

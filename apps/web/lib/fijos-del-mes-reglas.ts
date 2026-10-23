@@ -141,3 +141,21 @@ export function fijosQueSeParecen(
     )
     .sort((a, b) => Number(mismoProveedor(b)) - Number(mismoProveedor(a)) || distancia(a) - distancia(b) || porFecha(a, b) || porMontoLuegoNombre(a, b));
 }
+
+// ---- Lo que impide que un gasto cierre un fijo (/chaos del 22-oct, hallazgo 1) -----------------------------------------------
+//
+// PROMETE: decir, con una frase lista para mostrar, por qué ESTE gasto no puede cerrar ESTE fijo, o `null` si puede. ASUME: que el
+// gasto ya pasó `validarGasto` (fecha y categoría con valor). NO PROMETE: ser la única defensa. `registrar_gasto` valida que el fijo
+// exista, esté activo y sea de la misma tienda, y que haya un solo gasto por fijo y mes; el mes y la categoría los guarda hoy solo la
+// pantalla (la base los acepta: es una migración que decide Felipe). Por eso este chequeo vale para CUALQUIER ruta que arme el gasto.
+
+/** Qué dato del formulario hay que cambiar, y lo que se le dice a la persona. */
+export type ChoqueConElFijo = { campo: "fecha"; mensaje: string };
+
+export function choqueConElFijo(fijo: Pick<GastoFijoMes, "descripcion" | "fechaEsperada">, gasto: { fecha: string }): ChoqueConElFijo | null {
+  // Un gasto cierra el fijo de UN mes (el de su fecha): con otra fecha cerraría el mes equivocado y dejaría el verdadero en «Ya pasaron su fecha».
+  if (gasto.fecha.slice(0, 7) !== mesDelFijo(fijo)) {
+    return { campo: "fecha", mensaje: `La fecha tiene que ser de ${textoMes(mesDelFijo(fijo))} para cerrar «${fijo.descripcion}». Cámbiala, o registra el gasto aparte.` };
+  }
+  return null;
+}
