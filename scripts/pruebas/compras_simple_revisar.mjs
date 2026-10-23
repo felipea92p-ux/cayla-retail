@@ -206,15 +206,19 @@ ${intento(COMPLETA("F001", "124"))}`,
 );
 
 caso(
-  "un papel que dice otro monto que lo anotado manda el papel; el envío ya no se reabre y recalcular no borra lo recibido",
+  "un papel que dice otro monto que lo anotado manda el papel; el envío ya no se reabre (ni llamando a reabrir) y recalcular no borra lo recibido",
   `${COMPRA}${MANDA}${RECIBE}
 ${REVISA("papel_completar")}
 select (retail.completar_papel_compra(:'papel', null, 'F001', '77', 250) ->> 'ajustado') as aj \\gset
 reset role;
 select retail.recalcular_compras();
 select :'aj', c.total, c.recibido_cantidad, retail.fn_envio_reabrir_bloqueo(:'envio')
-  from retail.compras c where c.token_cliente = :'papel';`,
-  (o) => o.split(" / ").pop() === "true|250.00|7|reabrir_papel_completado",
+  from retail.compras c where c.token_cliente = :'papel';
+select version as v_envio from retail.despachos where id = :'envio' \\gset
+${como(MICAELA, { combo: "micaela_p" })}
+select split_part(pg_temp.intento(format($q$select retail.reabrir_envio(%L, %s, 'quiero recontar', gen_random_uuid())$q$, :'envio', :v_envio)), '|', 1);`,
+  // /chaos 2026-10-23: `reabrir_envio` no frenaba con este motivo y el envío se reabría.
+  (o) => o.split(" / ").slice(-2).join(" / ") === "true|250.00|7|reabrir_papel_completado / reabrir_papel_completado",
 );
 
 caso(

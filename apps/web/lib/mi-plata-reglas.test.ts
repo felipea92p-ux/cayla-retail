@@ -236,6 +236,9 @@ describe("el resto del día de compras (actividad 5)", () => {
     expect(plano(textoCierre({ decision: "le_deben", monto: 20 }))).toBe("Pusiste S/ 20.00 de tu bolsillo: CAYLA te lo devuelve.");
     expect(plano(textoCierre({ decision: "se_queda", monto: 80 }))).toBe("Te quedas S/ 80.00 para tu próxima compra.");
     expect(textoCierre({ decision: "se_queda", monto: 0 })).toBe("No te quedó plata.");
+    // Recibido por Compras (actividad 7), en pasado.
+    expect(plano(textoCierre({ decision: "devuelve", monto: 80, resuelto: true }))).toBe("Entregaste S/ 80.00: Compras ya lo recibió.");
+    expect(plano(textoCierre({ decision: "le_deben", monto: 20, resuelto: true }))).toBe("CAYLA ya te devolvió los S/ 20.00 que pusiste.");
   });
 
   it("«Gasté en otra cosa» pide lo mismo que registrar_gasto_rapido: en qué, «Otro» escrito, el monto; la foto es opcional", () => {

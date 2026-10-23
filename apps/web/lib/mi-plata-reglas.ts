@@ -424,8 +424,13 @@ export function decisionesCierre(tiene: number): DecisionCierre[] {
 }
 
 /** Lo que dice el sello después de terminar el día. */
-export function textoCierre(cierre: { decision: DecisionCierre; monto: number }): string {
-  if (cierre.decision === "devuelve") return `Entrega ${soles(cierre.monto)} en caja: Compras lo recibe.`;
-  if (cierre.decision === "le_deben") return `Pusiste ${soles(cierre.monto)} de tu bolsillo: CAYLA te lo devuelve.`;
+export function textoCierre(cierre: { decision: DecisionCierre; monto: number; resuelto?: boolean }): string {
+  // Ya recibido por Compras (actividad 7): lo dice en pasado.
+  if (cierre.decision === "devuelve") {
+    return cierre.resuelto ? `Entregaste ${soles(cierre.monto)}: Compras ya lo recibió.` : `Entrega ${soles(cierre.monto)} en caja: Compras lo recibe.`;
+  }
+  if (cierre.decision === "le_deben") {
+    return cierre.resuelto ? `CAYLA ya te devolvió los ${soles(cierre.monto)} que pusiste.` : `Pusiste ${soles(cierre.monto)} de tu bolsillo: CAYLA te lo devuelve.`;
+  }
   return cierre.monto > 0 ? `Te quedas ${soles(cierre.monto)} para tu próxima compra.` : "No te quedó plata.";
 }

@@ -22,8 +22,9 @@
 --      proveedor (`fn_deuda_papel`), `recalcular_compras` y la explicación del Balance (`fn_bal_causas_mercaderia`).
 --   3. `fn_fondo_para_pagar` (REEMPLAZO ANCLADO): desde un fondo paga solo su dueña, salvo el pago que arma `completar_papel_compra` para ese
 --      fondo, dentro de su transacción (`retail.papel_paga_de`). Es la plata que la compradora ya gastó: Compras solo la pasa a los libros.
---   4. `fn_envio_reabrir_bloqueo` (REEMPLAZO ANCLADO): un envío cuya compra ya se completó no se reabre (`reabrir_papel_completado`), como no
---      se reabre uno cuya deuda Compras ya resolvió (decisión 5 de ADR-0393).
+--   4. `fn_envio_reabrir_bloqueo` y `reabrir_envio` (REEMPLAZOS ANCLADOS): un envío cuya compra ya se completó no se reabre
+--      (`reabrir_papel_completado`), como no se reabre uno cuya deuda Compras ya resolvió (decisión 5 de ADR-0393). Completar bloquea sus
+--      envíos mientras guarda, así no se cruza con una reapertura.
 --   5. `recibir_cierre_compras`: el cierre del día que espera a Compras. «Lo devuelvo» → `devolver_fondo` a la cuenta que elige Compras;
 --      «CAYLA me debe» → `entregar_fondo` desde la cuenta que elige Compras. Las dos con el cierre como marca: un reintento no mueve dos
 --      veces. El cierre queda resuelto (ya no se vuelve a cerrar ese día), y su plata no se anula aparte (`anular_movimiento_fondo` y
@@ -202,6 +203,14 @@ $n$                  where x.despacho_id = p_despacho_id) then 'reabrir_reposici
                    join retail.compra_papeles cp on cp.id = o.papel_id
                   where di.despacho_id = p_despacho_id and cp.estado = 'completado') then 'reabrir_papel_completado'$n$,
 1);
+-- Y `reabrir_envio` lo respeta (solo frenaba con los dos motivos que conocía; /chaos 2026-10-23 lo reabrió).
+select pg_temp.reemplazar('retail.reabrir_envio(uuid,integer,text,uuid)',
+$v$  if v_bloqueo = 'reabrir_reposicion_saldo' then$v$,
+$n$  if v_bloqueo = 'reabrir_papel_completado' then
+    raise exception 'Compras ya completó el papel de una compra de %: ya no se reabre', v_envio using hint = v_bloqueo;
+  end if;
+  if v_bloqueo = 'reabrir_reposicion_saldo' then$n$,
+1);
 
 -- Lo que se recibe o se paga de un cierre del día no se anula aparte: el cierre quedaría «recibido» sin su plata. La pantalla no ofrece
 -- «Anular» y la función lo rechaza.
@@ -294,6 +303,13 @@ begin
     raise exception 'Elige quién completa el papel.' using errcode = '42501', hint = 'responsable_requerido';
   end if;
   perform retail.fn_fondo_exigir_otra_persona(v_p.persona_id, v_actor, 'Nadie completa el papel de su propia compra');
+
+  -- Sus envíos se bloquean mientras se completa (como los bloquea `reabrir_envio`): nadie los reabre a mitad de camino, y si alguien ya
+  -- los está reabriendo, esto espera y después ve el envío abierto (/chaos 2026-10-23).
+  perform 1 from retail.despachos d
+   where d.id in (select di.despacho_id from retail.ordenes_compra o join retail.orden_compra_items i on i.orden_compra_id = o.id
+                    join retail.despacho_items di on di.orden_compra_item_id = i.id where o.papel_id = v_p.id)
+   order by d.id for share;
 
   -- ¿Ya llegó a la tienda? Todo mandado y todos sus envíos cerrados: recién ahí se sabe qué llegó.
   if exists (select 1 from retail.ordenes_compra o join retail.orden_compra_items i on i.orden_compra_id = o.id

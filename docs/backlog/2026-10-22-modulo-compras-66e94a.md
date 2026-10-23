@@ -10,3 +10,6 @@
 - [ ] **Un comprobante completado con «manda el papel» y su costo ajustado** deja una diferencia de unos soles entre el costo con que entró la prenda y el de la factura; el Balance la muestra como «subtotal distinto» o redondeo. Decidido por Felipe (2026-10-23): el catálogo queda con lo anotado.
 - [ ] **Corregir la serie o el número de un comprobante completado:** no hay cómo (no se anula porque tiene su pago). Si pasa, se decide con Felipe.
 - [ ] **Retirar las pantallas viejas de Órdenes de compra** (siguen en el código sin entrada en el menú).
+- [ ] **/formidable: los 3 cambios esperan el OK de Felipe** (`docs/formidable/compras-simple.md`): la cantidad vacía con «La vez pasada» como sugerencia (cambia lo de la maqueta), los estados de la compradora en palabras de tienda, «¿Cuántos paquetes (fardos)?». Falta la prueba ciega de Revisar compras y la pasada con una compradora real.
+- [ ] **Refrescar el diccionario** (`pnpm datos:generar:produccion`) cuando las migraciones estén en producción.
+- [ ] **La guía de «Recibir un envío» no se recorrió en el navegador:** el recorredor busca sus ejemplos en la base local compartida, que no tiene envíos.

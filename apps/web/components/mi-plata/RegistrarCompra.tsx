@@ -123,7 +123,9 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [monto, setMonto] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<{ titulo: string; texto: string; tono: "error" | "atencion" } | null>(null);
-  const [guardada, setGuardada] = useState<{ monto: number; prendas: number; tiendas: string[] } | null>(null);
+  // `tieneAntes`: lo que tenía al guardar. Después de guardar, la pantalla se refresca y `datos.tiene` ya trae esta compra descontada:
+  // restarla otra vez decía «Ahora tienes S/ 340» con S/ 400 (prueba ciega de /formidable, 2026-10-23).
+  const [guardada, setGuardada] = useState<{ monto: number; prendas: number; tiendas: string[]; tieneAntes: number | null } | null>(null);
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
 
@@ -274,7 +276,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           : { titulo: "No se guardó", texto: traducirError(error, "guardar la compra"), tono: "error" },
       );
     }
-    setGuardada({ monto: montoLeido ?? 0, prendas: prendasDeLineas(lineas), tiendas: tiendasDeLineas(lineas, nombresTienda) });
+    setGuardada({ monto: montoLeido ?? 0, prendas: prendasDeLineas(lineas), tiendas: tiendasDeLineas(lineas, nombresTienda), tieneAntes: datos.tiene });
     setPaso("listo");
     router.refresh();
   }
@@ -691,8 +693,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             {nombreCorto} · {guardada.prendas} prendas · {soles(guardada.monto)}
             {guardada.tiendas.length > 0 ? ` · va a ${guardada.tiendas.join(", ")}` : ""}
           </Aviso>
-          {datos.tiene != null && (
-            <p className="text-sm text-taupe">{textoPlataDespues(datos.tiene - guardada.monto)}</p>
+          {guardada.tieneAntes != null && (
+            <p className="text-sm text-taupe">{textoPlataDespues(guardada.tieneAntes - guardada.monto)}</p>
           )}
           <TituloSeccion nivel={3}>¿Y ahora?</TituloSeccion>
           <Boton peso="primario" onClick={otraCompra}>

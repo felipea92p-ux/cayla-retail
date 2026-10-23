@@ -189,6 +189,18 @@ Se descartó `registrar_comprobante_orden` (un comprobante por orden, con la lla
 escribir `recibido_cantidad` a mano (`recalcular_compras` lo borraría) y repartir el ajuste en el costo de las prendas (Felipe eligió que el
 catálogo quede con lo anotado).
 
+## Actividad 8: el cierre (2026-10-23)
+
+- **Guía de foco, sugerencias y guías interactivas:** las hojas nuevas tienen su guía de foco; los ejemplos siguen al papel elegido; las guías de Mi plata,
+  Compré ropa y Revisar compras se recorren enteras sin escribir nada (escritorio, 375 px y oscuro). La de recibir un envío no se recorrió: el recorredor
+  busca sus ejemplos en la base local compartida, que no tiene envíos.
+- **Modo oscuro:** `tema:auditar` en las cuatro pantallas, claro y oscuro: 0 hallazgos.
+- **/formidable** (`docs/formidable/compras-simple.md`): la compradora, ciega, hizo su día entero a la primera (22 toques). Encontró un error real, arreglado:
+  la pantalla «Listo» restaba la compra dos veces del saldo. Tres cambios de lenguaje y de la cantidad esperan el OK de Felipe.
+- **/chaos** (tablero `docs/chaos/README.md`): 18 ataques en la base, 17 resistieron. El que no: la tienda podía reabrir llamando a la función el envío de
+  una compra ya completada; `reabrir_envio` ahora lo frena y completar bloquea sus envíos mientras guarda.
+- **El diccionario** (`docs/datos/generado/`) se refresca cuando las migraciones estén en producción (se reescribe desde el volcado de producción).
+
 ## Cómo se ve mal hecho
 
 - Retirar `ordenes_compra` y crear una clave nueva: el rol «Compras» perdería en silencio recibir, gastos y proveedores.
@@ -197,4 +209,5 @@ catálogo quede con lo anotado).
 
 ## Qué queda
 
-La actividad 8 (el cierre con guías y pruebas), que agrega su sección a este ADR.
+Pegar las seis migraciones en producción (en orden, con el OK de Felipe) y refrescar el diccionario; los tres cambios de /formidable; lo
+anotado en `docs/backlog/2026-10-22-modulo-compras-66e94a.md`.
