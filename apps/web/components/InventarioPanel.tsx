@@ -61,6 +61,7 @@ import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/in
 // importar un valor de ahí rompe el build de Vercel (Turbopack lo rechaza aunque `tsc` y vitest pasen).
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 const TODAS = "__todas__";
 
@@ -1507,17 +1508,12 @@ export function InventarioPanel({
       {/* Celular: la consulta más frecuente del piso («¿hay en M?») a un toque, fijo al alcance del pulgar — como en Cambios.
           Es una acción de esta pantalla, no navegación (ADR-0206). Con prendas marcadas, su lugar lo toma la barra. */}
       {stock.length > 0 && filasMarcadas.length === 0 && !camara && (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
-          <button
-            type="button"
-            data-guia="existencias.escanear-celular"
-            onClick={() => setCamara(true)}
-            className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
-          >
+        <BarraDeAbajo sola className="sm:hidden">
+          <button type="button" data-guia="existencias.escanear-celular" onClick={() => setCamara(true)} className="btn-cayla btn-primario gap-2.5">
             <ScanLine size={20} aria-hidden />
             Escanear prenda
           </button>
-        </div>
+        </BarraDeAbajo>
       )}
     </div>
   );
