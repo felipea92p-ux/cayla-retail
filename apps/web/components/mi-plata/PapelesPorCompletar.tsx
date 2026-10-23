@@ -43,7 +43,7 @@ import { PanelDetalle } from "./PanelDetalle";
 // Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ las compras que anotaron las compradoras. Rediseño (2026-10-23): cada papel
 // se revisa en el detalle de la bandeja, al lado de la lista: la foto en grande junto a los campos que se copian de ella (la guía enciende
 // el que sigue), «Dice el papel / Anotó X» con su estado, lo que llegó a la tienda y «Completar y pasar a los libros». Al guardar, el papel
-// se vuelve un comprobante pagado desde el fondo de quien compró (Facturas de proveedor). Antes de llegar, dice dónde está y no se completa.
+// se vuelve un comprobante pagado desde el fondo de quien compró (Historial de compras), o a crédito por lo que no pagó. Antes de llegar, dice dónde está y no se completa.
 // La de quien mira no se completa (nadie completa su propia compra; la base tampoco lo deja).
 //
 // Manda el papel (Felipe 2026-10-23): si el papel dice otra cosa que lo anotado, el comprobante queda por lo del papel y el detalle lo dice
@@ -195,7 +195,11 @@ export function DetallePapel({
     }
     const documento = (data as { documento?: string } | null)?.documento;
     avisar.exito(documento ? `Guardaste ${documento}` : "Guardaste la compra", {
-      detalle: `Ya está en Facturas de proveedor, pagada del fondo de ${nombre}.`,
+      // Pagada entera del fondo, o con lo que falta en Por pagar (20261023181000).
+      detalle:
+        papel.pagado >= papel.monto - 0.005
+          ? `Ya está en el Historial de compras, pagada del fondo de ${nombre}.`
+          : `Ya está en el Historial de compras; lo que falta pagar queda en Por pagar.`,
     });
     alTerminar();
     router.refresh();

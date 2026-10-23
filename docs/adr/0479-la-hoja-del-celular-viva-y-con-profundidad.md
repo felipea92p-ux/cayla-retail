@@ -49,12 +49,12 @@ Todo vale **solo bajo 640 px**, donde la hoja va pegada abajo. En escritorio y e
 | 4 | Filtros a media altura | **Hecha** |
 | 5 | El cajón como hoja alta | **Hecha** |
 | 6 | Registro: familia en `/unificar`, ADR-0136 y `CLAUDE.md`; PR | **Hecha** (familia `hoja-movil`, `docs/unificar/hoja-movil.md`) |
-| 7 | Que un toque no deje nada pegado (`:hover` solo con mouse) | Por hacer |
-| 8 | El aviso en el celular | Por hacer |
-| 9 | Los márgenes del iPhone (`viewport-fit=cover`) | Por hacer |
-| 10 | Las tres capas hechas a mano pasan a `<Modal>` | Por hacer |
-| 11 | El menú lateral se cierra deslizando | Por hacer |
-| 12 | Una sola barra de abajo (pasa por `/unificar`: Felipe elige mirando) | Por hacer |
+| 7 | Que un toque no deje nada pegado (`:hover` solo con mouse) | **Hecha** (2026-10-23) |
+| 8 | El aviso en el celular | **Hecha** (2026-10-23) |
+| 9 | Los márgenes del iPhone (`viewport-fit=cover`) | **Hecha** (2026-10-23) |
+| 10 | Las tres capas hechas a mano pasan a `<Modal>` | **Hecha** (2026-10-23; deuda de `hoja-movil` en 0) |
+| 11 | El menú lateral se cierra deslizando | **Hecha** (2026-10-23) |
+| 12 | Una sola barra de abajo (pasa por `/unificar`: Felipe elige mirando) | **Hecha** (2026-10-23: la Isla; deuda de `barra-movil` en 0) |
 
 ## Actividad 1 — la hoja viva en `<Modal>`
 
@@ -178,3 +178,106 @@ ms (406 → 574 → 718 → … → 812). Filtros de Existencias (`/inventario`)
 alta (borde en 65 px, 375 de ancho), con asa y velo, alejan lo de atrás (0,92) y se cierran con el dedo sin dejar estilos; en Por pagar,
 deslizar a la izquierda pasa de «1 de 3» a «2 de 3» y a la derecha vuelve. En escritorio (1440 × 900) el cajón de Movimientos sigue a
 la derecha (456 px), sin asa y sin velo. `vitest` completo, `tsc`, `eslint`, `knip` y `knip:produccion` en verde.
+
+## Actividad 7 — que un toque no deje nada pegado
+
+- **El problema:** en el teléfono el navegador da por puesto el `:hover` en lo último que se tocó y lo deja así hasta tocar otra cosa: un
+  botón quedaba levantado con su sombra, una fila teñida, los demás tramos de un gráfico apagados. De 222 reglas `:hover` del CSS propio,
+  212 estaban fuera de `@media (hover: hover)`; el `hover:` de Tailwind v4 ya lo hace solo.
+- **Lo hecho:** las 210 reglas que eran adorno pasan a vivir bajo `@media (hover: hover)` (39 archivos, un script de una vez). Lo que
+  compartía regla con el foco del teclado o con lo marcado (`:focus-visible`, `aria-current`) se separó y queda afuera: vale con el dedo
+  también (la fila marcada de una tabla sigue con su hilo). Dos globitos que son la lectura de un dato (la barra de `BarrasTiempo` y el
+  nombre de un color en las parecidas) siguen respondiendo al toque, marcados `/* hover-tactil: <por qué> */`.
+- **El candado:** `lib/hover-con-mouse.test.ts` lee todo el CSS de `app/` y `components/` y falla si un `:hover` queda fuera; la regla
+  está escrita en «EL MOUSE ENCIMA, SOLO CON MOUSE» de `globals.css`.
+
+**Verificado:** con un `:hover` forzado por CDP (lo que deja un toque), en 375 × 812 táctil no cambia nada en `.btn-primario`,
+`.btn-secundario`, `.pildora-cayla`, `.fila-cayla` ni `.alza-cayla`; en 1440 × 900 con mouse siguen cambiando como antes. `vitest`
+completo (161 661) en verde.
+
+## Actividad 8 — el aviso en el celular
+
+- **El ✕ siempre a la vista con el dedo** (`@media (hover: none)`), crecido a 30 px sin mover el texto. Con el mouse sigue apareciendo al
+  pasar por encima.
+- **Se aparta con el dedo** de lado (a cualquiera de los dos) o hacia arriba, como una notificación; hacia abajo resiste y vuelve. Se va
+  pasado un tercio del ancho (o la mitad del alto hacia arriba) o de un tirón (0,45 px/ms), y la pila se cierra detrás con la salida de
+  siempre. Un arrastre no dispara el botón de adentro. Solo toque y lápiz: el mouse no arrastra.
+- **El reloj se detiene mientras el dedo lo toca** (`data-tocando`), como con el mouse encima.
+- **Bajo la isla:** la pila va en `max(1rem, env(safe-area-inset-top))`.
+- Reglas puras en `lib/avisos-reglas.ts` (`ejeDelAviso`, `posicionDelAviso`, `salidaDelAviso`, `opacidadDelAviso`), con su prueba. ADR-0146
+  se respeta: la pila sigue siendo rama de toda capa de Radix y los tiempos de cada tono no cambian.
+
+**Verificado (375 × 812 táctil):** el ✕ se ve (30 × 30); tocar y mantener pausa el reloj y soltar lo reanuda; 50 px de lado vuelve,
+120 px hacia abajo resiste (24 px) y vuelve, 170 px de lado y 45 px hacia arriba lo apartan, el ✕ de un toque lo cierra. En escritorio el
+✕ sigue escondido en reposo y arrastrar con el mouse no hace nada.
+
+## Actividad 9 — los márgenes del iPhone
+
+- **`viewport-fit=cover`** (`export const viewport` en `app/layout.tsx`): la página llega a los bordes, con el fondo crema bajo la isla, la
+  muesca y la barrita, y `env(safe-area-inset-*)` deja de valer 0 (los 25 usos que ya existían empiezan a funcionar).
+- **Lo que se aparta:** la cabecera (arriba y a la derecha), el lateral (arriba; de lado, `--spacing-lateral` incluye la muesca de la
+  izquierda y el lateral la aparta de su contenido, así la cabecera, el contenido y las barras que leen ese token se corren solos), el
+  contenido (`<main>`: arriba, a la derecha y abajo), las barras fijas que se ven de lado (`BarraFija`, las pestañas de Comprobantes y
+  Apartados, la franja de Apartados), la hoja del celular (su pie pegado absorbe la barrita igual que absorbe el `p-6`, con
+  `--borde-abajo`), el ticket de Vender, el cajón y la hoja de escritorio cuando el teléfono está de lado.
+- **La cabecera con el teléfono de lado no cabía** junto al lateral más la muesca (la sede quedaba bajo la muesca): con el dedo ya no
+  muestra «Ctrl K» (`pointer-coarse:hidden`) y el buscador se puede achicar.
+- **Lo que queda sin cubrir:** los `sticky` con un alto de cabecera escrito a mano (`top-[61px]`, `top-[3.625rem]`) no suman la isla.
+  En Safari la isla de arriba vale 0 (la barra del navegador está encima), así que hoy no se nota; se notaría si el ERP se instalara
+  como app de pantalla completa.
+
+**Verificado (CDP `Emulation.setSafeAreaInsetsOverride`):** en escritorio y en un celular sin bordes no cambia ni un píxel (lateral 272,
+contenido 96 / 40 / 48 px); con la isla (47 / 34) la cabecera baja 47, el contenido empieza en 127 y termina 74 sobre el borde, la hoja
+de Filtros suma 34 abajo y su pie llega al borde; el cajón aparta su pie 34 px; de lado (47 / 47 / 21) el lateral mide 319 con 47 de
+margen y la cabecera y el contenido dejan 47 a la derecha.
+
+## Actividad 10 — las tres capas hechas a mano
+
+- **`ProveedorModal`** deja su hoja armada con Radix y es `<Modal tamano="mediana">`: con su pie pegado (`pie-hoja-fijo`), una sola salida
+  («Cancelar», sin la ✕, ADR-0358) y, mientras guarda, ni Escape, ni el velo, ni el dedo la cierran (`bloqueado`). Guarda igual: los dos
+  pasos, la ✓ y el cierre animado después.
+- **Las píldoras de fechas de Compras y de Recibidas** usan `<CapaDeFiltro>` (`components/ui/CapaDeFiltro.tsx`, que acompaña a la pieza):
+  en escritorio, el globo de siempre junto a la píldora; en el celular, la hoja del sistema («Fecha de emisión», «Fechas de llegada»), con
+  su asa y su ✕, en vez de un globo que flotaba sobre la lista. `useEnCelular` pasó a su propio archivo.
+- La deuda de la familia `hoja-movil` queda en 0 (`unificar/familias.mjs`).
+
+**Verificado:** a 375 px, «Registrar proveedor» sube como hoja con asa y solo «Cancelar», y se cierra con el dedo; «Fechas» de Recibidas
+abre la hoja y «Este mes» filtra (`?desde=2026-10-01&hasta=2026-10-31`) y la cierra; «Emisión» de Compras abre la hoja con sus dos
+fechas. En 1440 × 900 Proveedor es una hoja de 576 px y las dos píldoras siguen abriendo el globo. Se aceptó la huella de las guías de
+Recibir, Proveedores y la ficha de un proveedor: solo se fue el botón «Cerrar» (la ✕).
+
+## Actividad 11 — el menú lateral se cierra deslizando
+
+- El cajón del menú del celular sigue al dedo hacia la izquierda, el velo se aclara en la misma proporción y, al soltar, se va (pasado un
+  tercio de su ancho o de un tirón) o vuelve con la transición de siempre (260 ms al irse, 420 ms al volver). Hacia la derecha resiste;
+  un dedo que va de arriba abajo sigue desplazando el menú. `components/useLateralConElDedo.ts`; reglas puras en `lib/hoja-gesto.ts`
+  (`cierraElLateral`, `posicionDelLateral`).
+
+**Verificado (375 × 812 táctil):** 50 px a la izquierda vuelve (el velo baja a 0,83 y vuelve a 1); un dedo vertical no lo mueve; 140 px lo
+cierran; un tirón de 90 px (menos de un tercio) también.
+
+## Actividad 12 — una sola barra de abajo: la Isla
+
+Había 8 formas de barra de abajo a 375 px, que son dos funciones: la barra con lo que toca hacer en la pantalla (A degradado con un
+botón negro, 5 pantallas; B vidrio con línea, `BarraFija`, 10; C pie pegado del formulario, 4) y lo que llevas elegido (D píldora oscura,
+3; E tarjeta clara, 1; F franja oscura, 1). Las pestañas de abajo ya eran una sola forma. **Felipe eligió la Isla para las dos preguntas
+el 2026-10-23, mirando** las propuestas «Isla» y «Vidrio» fotografiadas dentro de las pantallas reales (`docs/unificar/propuestas/barra-movil.html`).
+
+- **La pieza:** `barra-abajo` (`app/estilos/barra-abajo.css`) y `<BarraDeAbajo>` / `<BarraDeAbajoResumen>`. Flota a 12 px de los bordes y de
+  la barrita del iPhone, esquinas de 18 px, sombra suave; clara para lo que toca hacer (con una acción, `data-sola`: la isla es el botón, de
+  52 px) y oscura (`data-tono="tinta"`) para lo elegido; `data-pegada` dentro de un formulario; `--sobre` sobre unas pestañas. Botones de
+  44 px. Entra una vez subiendo 12 px (260 ms). Es la forma: lo de adentro y lo que hace cada botón no cambió.
+- **En escritorio no cambia:** `BarraFija` sigue de borde a borde (sus utilidades `sm:` le ganan a la capa de la pieza); las barras de
+  marcadas siguen centradas; los pies de formulario, como estaban.
+- **Registrada** como familia `barra-movil` de `/unificar` (firmas: el degradado, la píldora `fixed inset-x-3`, el pie `sticky -mx-4 border-t`,
+  la tarjeta flotante, la franja oscura, el vidrio de `BarraFija` en el celular), con su deuda de 14 archivos llevada a 0 en cuatro commits.
+- De paso: el «Siguiente: …» de Nuevo producto subraya cada línea cuando la frase se parte (el subrayado iba en el botón, no en el texto).
+
+**Verificado (375 × 812 y 1440 × 900):** Existencias y Cambios: la isla es el botón (52 px, a 12 px de los bordes); Devoluciones y Caja: los
+botones dentro de la isla clara; Vender, Apartados (sobre sus pestañas), Temporadas y las marcadas de Productos: la isla oscura; Por pagar:
+isla clara de 12 / 12 / 12 en el celular y, en 1440, la barra de siempre (lateral 272, abajo 0, línea arriba); escondida no asoma (848 > 812);
+Nuevo producto y Bajar al piso: isla pegada. Las marcadas de Existencias no se fotografiaron (no se pudo armar ese estado desde afuera); su
+cambio es el mismo que el de Productos. **Modo oscuro** (`tema:auditar` a 375 px con escenarios en Existencias, Cambios, Devoluciones,
+Vender, Apartados, Por pagar, Nuevo producto y Bajar al piso): **0 hallazgos solo en oscuro** en 45 visitas (33 heredados del claro); 8
+escenarios de escritorio no abrieron a 375 px («Todo de la prenda» de Vender y los pasos de Nuevo producto), sin relación con la barra.
+

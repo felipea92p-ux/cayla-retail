@@ -396,7 +396,9 @@ export function AbrirConteo({
         <aside
           data-guia="conteo.tu-conteo"
           aria-label="Resumen del conteo"
-          className="sticky bottom-0 z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-b-[inherit] border-t border-sand bg-papel px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-b-none @[46rem]:rounded-r-[inherit] @[46rem]:border-l @[46rem]:border-t-0 @[46rem]:bg-hueso/50 @[46rem]:p-7"
+          // En una tarjeta angosta, la Isla pegada abajo (ADR-0479, actividad 12); en una ancha, la columna de la derecha de siempre.
+          data-pegada
+          className="barra-abajo z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-none @[46rem]:rounded-r-[inherit] @[46rem]:border-0 @[46rem]:border-l @[46rem]:border-sand @[46rem]:bg-hueso/50 @[46rem]:p-7 @[46rem]:shadow-none @[46rem]:animate-none"
         >
           <p className="eyebrow-cayla hidden !text-taupe @[46rem]:block">Tu conteo</p>
 

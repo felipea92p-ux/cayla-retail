@@ -8,7 +8,8 @@
 // ADR-0403 act. 2026-10-15), dos reemplazos anclados en la cuenta del club; y la máquina de cobro (20261016182000, ADR-0429), un
 // reemplazo anclado en el insert de `venta_pagos` (le suma `cuenta_dinero_id`); y el programa de puntos del Club (20261019202000,
 // 204000, 221000 y 224000, ADR-0459), diez reemplazos anclados: los puntos al final, el cupón, el rechazo del 10 % y del vale, y el
-// cupón reservado. El candado de huella de la migración vieja los rechaza, y está bien que lo haga.
+// cupón reservado; y las campañas por sede (20261023162000, ADR-0486), dos reemplazos anclados en las llamadas a la regla de las campañas.
+// El candado de huella de la migración vieja los rechaza, y está bien que lo haga.
 //
 // Para probar la migración vieja sobre SU punto de partida, este texto devuelve la función a como estaba antes de esos parches
 // (se deshacen del más nuevo al más viejo). SOLO va dentro de una transacción que se deshace, o seguido de `REHACER_POSTERIORES`
@@ -227,7 +228,47 @@ ${CLUB_PUNTOS.map(
 end $rehacer$;
 `;
 
+/** Los dos reemplazos anclados de las campañas por sede (20261023162000, ADR-0486) sobre `registrar_venta`: la regla de las campañas pasa a
+ *  preguntar por la sede de la venta. Escritos aquí y no leídos del archivo porque la migración busca la función por su nombre
+ *  (`(select p.oid::regprocedure::text …)`), no por una firma escrita, y no los reconoce el patrón de los demás. [viejo, nuevo]. */
+const CAMPANAS_SEDE = [
+  [
+    "fn_campanas_por_variante(v_hoy, 0, array[(v_item ->> 'variante_id')::uuid])",
+    "fn_campanas_en_sede(v_hoy, 0, array[(v_item ->> 'variante_id')::uuid], p_ubicacion_id)",
+  ],
+  [
+    "fn_campanas_por_variante(v_hoy, c_tolerancia_campana, array[(v_item ->> 'variante_id')::uuid])",
+    "fn_campanas_en_sede(v_hoy, c_tolerancia_campana, array[(v_item ->> 'variante_id')::uuid], p_ubicacion_id)",
+  ],
+];
+/** Inverso de 20261023162000: la venta vuelve a preguntar por las campañas sin sede. Si la base no lo tiene, `replace` no cambia nada. */
+export const DESHACER_CAMPANAS_SEDE = `do $deshacer$
+declare
+  v_firma text := ${FIRMA};
+begin
+${[...CAMPANAS_SEDE].reverse().map(([viejo, nuevo]) => `  execute replace(pg_get_functiondef(v_firma::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
+end $deshacer$;
+`;
+/** Rehecho SOLO sobre `registrar_venta` (volver a pegar la migración entera recrearía la tabla y una docena de funciones que aquí no se
+ *  miden). Cada texto viejo tiene que aparecer exactamente una vez; si ya está el nuevo, no hace nada. */
+export const REHACER_CAMPANAS_SEDE = `do $rehacer$
+declare
+  v_firma text := ${FIRMA};
+  v_def text;
+begin
+${CAMPANAS_SEDE.map(
+  ([viejo, nuevo]) => `  v_def := pg_get_functiondef(v_firma::regprocedure);
+  if position($q$${nuevo}$q$ in v_def) = 0 then
+    if (length(v_def) - length(replace(v_def, $q$${viejo}$q$, ''))) / length($q$${viejo}$q$) <> 1 then
+      raise exception 'registrar_venta cambió: no puedo rehacer un reemplazo de las campañas por sede';
+    end if;
+    execute replace(v_def, $q$${viejo}$q$, $q$${nuevo}$q$);
+  end if;`,
+).join("\n")}
+end $rehacer$;
+`;
+
 /** Todos los parches posteriores al redondeo, deshechos del más nuevo al más viejo. */
-export const DESHACER_POSTERIORES = `${DESHACER_CLUB_PUNTOS}\n${DESHACER_MAQUINA}\n${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
+export const DESHACER_POSTERIORES = `${DESHACER_CAMPANAS_SEDE}\n${DESHACER_CLUB_PUNTOS}\n${DESHACER_MAQUINA}\n${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
 /** Y rehechos en su orden. */
-export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}\n${REHACER_PRECIO_CERO}\n${REHACER_TOKEN}\n${REHACER_DESCUENTO_SIN_CENTIMOS}\n${REHACER_CUMPLE_SIN_CENTIMOS}\n${REHACER_MAQUINA}\n${REHACER_CLUB_PUNTOS}`;
+export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}\n${REHACER_PRECIO_CERO}\n${REHACER_TOKEN}\n${REHACER_DESCUENTO_SIN_CENTIMOS}\n${REHACER_CUMPLE_SIN_CENTIMOS}\n${REHACER_MAQUINA}\n${REHACER_CLUB_PUNTOS}\n${REHACER_CAMPANAS_SEDE}`;

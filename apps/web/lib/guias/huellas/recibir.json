@@ -2,13 +2,12 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 122,
+  "total": 121,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «/recibir»",
       "BotonEnlace «Limpiar filtros»",
       "Link «recíbela sin factura»",
-      "BotonEnlace «Registrar un comprobante»",
       "Link «recíbela sin factura» #2"
     ],
     "components/AvisoCostoAtipico.tsx": [
@@ -72,7 +71,6 @@
       "Link «Siguiente página»"
     ],
     "components/ProveedorModal.tsx": [
-      "button «Cerrar»",
       "CampoTexto «Contacto»",
       "CampoTexto «Teléfono»",
       "button «{r}»",

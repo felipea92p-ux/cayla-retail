@@ -25,7 +25,7 @@ import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalog
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { useResponsable } from "@/lib/useResponsable";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
-import { chipDeTarjeta, type PrendaConCosto } from "@/lib/etiqueta-campana";
+import { chipDeTarjeta, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
 import { vigenciaDe } from "@/lib/etiqueta-vigencia";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { notaSinRegistrar, type LecturaRotacion } from "@/lib/etiqueta-rotacion";
@@ -39,7 +39,6 @@ import {
   diasEntre,
   fechaCorta,
   fechaLarga,
-  fraseDelSello,
   loQueTiene,
   lookbookVisible,
   marcaDelPase,
@@ -76,6 +75,7 @@ export function SellosPantalla({
   sede,
   etiquetasIniciales,
   categorias,
+  tiendas,
   prendasConCosto,
   variantesManuales,
   prendasVitrina,
@@ -89,6 +89,8 @@ export function SellosPantalla({
   sede: string;
   etiquetasIniciales: Etiqueta[];
   categorias: CategoriaOpcion[];
+  /** Las tiendas donde se puede limitar el descuento de una campaña (ADR-0486); vacío = la hoja de Configurar no ofrece sedes. */
+  tiendas: TiendaOpcion[];
   prendasConCosto: PrendaConCosto[];
   variantesManuales: Record<string, string[]>;
   /** Modelo, color, categoría y foto de cada prenda a la venta; `null` si no se pudieron leer (la vitrina no se dibuja). */
@@ -182,6 +184,7 @@ export function SellosPantalla({
         vigenteHasta: null,
         descuentoPct: null,
         categoriaIds: [],
+        sedeIds: [],
       };
       setEtiquetas((actual) => ordenarEtiquetas([...actual, nueva]));
       abrir(nueva.id);
@@ -288,6 +291,7 @@ export function SellosPantalla({
     const tramo = tramoDeCampana(e.vigenteDesde, e.vigenteHasta, hoy);
     const vigencia = vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy);
     const chip = e.activo && e.estado === "aprobado" ? chipDeTarjeta(vigencia, p.modelos.length + e.categoriaIds.length, hoy) : null;
+    const dondeRige = e.descuentoPct !== null ? textoSedesDeCampana(e.sedeIds, tiendas) : null;
     const anio = e.vigenteDesde ? e.vigenteDesde.slice(0, 4) : null;
     return (
       <article
@@ -352,6 +356,13 @@ export function SellosPantalla({
                   <strong>{e.descuentoPct !== null ? `${e.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %` : "—"}</strong>descuento
                 </div>
               </div>
+              {dondeRige && (
+                <div style={{ "--i": 3 } as CSSProperties}>
+                  <Chip tono="pizarra" versalitas={false} title="Solo en esa tienda se cobra el descuento; en las demás, el precio normal.">
+                    {dondeRige}
+                  </Chip>
+                </div>
+              )}
               <div className="flex flex-wrap items-center gap-1.5" style={{ "--i": 4 } as CSSProperties}>
                 {accionesDelPase(e, esAbierto)}
               </div>
@@ -457,9 +468,6 @@ export function SellosPantalla({
         <h2 className="sl-titular mt-3" style={{ "--i": 1 } as CSSProperties}>
           <span>{e.nombre}</span>
         </h2>
-        <p className="sl-frase mt-2.5" style={{ "--i": 2 } as CSSProperties}>
-          {fraseDelSello(e, p, cats, hoy)}
-        </p>
         {prendasVitrina &&
           (p.modelos.length > 0 ? (
             <div
@@ -468,7 +476,7 @@ export function SellosPantalla({
               data-guia="sellos.lookbook"
               // Pocas prendas (no llenan una fila): se centran bajo el título en vez de quedar pegadas a la izquierda.
               data-pocas={p.modelos.length < columnasLookbook ? "" : undefined}
-              style={{ "--i": 3, "--sl-n": p.modelos.length } as CSSProperties}
+              style={{ "--i": 2, "--sl-n": p.modelos.length } as CSSProperties}
             >
               {visibles.map((m, j) => (
                 <div key={m.clave} className="sl-prenda" style={{ "--j": j } as CSSProperties}>
@@ -499,7 +507,7 @@ export function SellosPantalla({
                 ))}
             </div>
           ) : cats.length === 0 ? (
-            <div className="mt-6" style={{ "--i": 3 } as CSSProperties}>
+            <div className="mt-6" style={{ "--i": 2 } as CSSProperties}>
               <Vacio
                 icono={<Shirt />}
                 titulo={e.estilo === "campana" ? "Esta campaña todavía no tiene prendas" : "Ninguna prenda lleva esta insignia"}
@@ -518,7 +526,7 @@ export function SellosPantalla({
             </div>
           ) : null)}
         {e.estilo === "campana" && tramo !== "pasaron" && (
-          <div className="sl-listo mt-6" data-guia="sellos.listo" style={{ "--i": 4 } as CSSProperties}>
+          <div className="sl-listo mt-6" data-guia="sellos.listo" style={{ "--i": 3 } as CSSProperties}>
             <p className="label-cayla pb-1.5 pt-3.5 text-[10px] text-tinta/65">Lo que ya tiene</p>
             {loQueTiene(e, p.modelos.length, cats, hoy).map((x, i) => (
               <div key={x.clave} className="sl-listo-fila" data-estado={x.hecho ? "hecho" : x.opcional ? "opcional" : "falta"} style={{ "--i": i } as CSSProperties}>
@@ -589,7 +597,6 @@ export function SellosPantalla({
         />
       )}
 
-      <p className="max-w-[60ch] font-serif text-[19px] italic leading-snug text-tinta/65">{TEXTOS_VISTA[vista].frase}</p>
       {nota && <p className="nota-cayla max-w-3xl text-xs">{nota}</p>}
 
       {pilas.length === 0 ? (
@@ -669,6 +676,7 @@ export function SellosPantalla({
           etiqueta={configurando}
           puedeDarDescuento={puedeEditar(configurando)}
           categorias={categorias}
+          tiendas={tiendas}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales[configurando.id] ?? []}
           onClose={() => setConfigurando(null)}
