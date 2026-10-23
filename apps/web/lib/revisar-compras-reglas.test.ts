@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
-  textoPagoPapel,
+  pagoPapel,
+  notaNoCuadra,
+  sobrePapel,
+  subtituloPapel,
+  destinosDePapel,
+  totalBandeja,
+  CIFRA_BANDEJA,
+  TIPOS_BANDEJA,
+  type PagoPapel,
   diaYRonda,
   PAPELES_GASTO,
   botonCierre,
   camposRevisarGasto,
   ejemploSerieNumero,
-  fraseRevisarGasto,
   papelSugerido,
   papelesParaGasto,
   problemaRuc,
@@ -23,7 +30,6 @@ import {
   filaPlata,
   llegadaDePapel,
   siguienteDeBandeja,
-  fraseVeredicto,
   leerRevisarCompras,
   problemaNumero,
   problemaSerie,
@@ -106,9 +112,15 @@ describe("veredictoPapel: los cuatro casos", () => {
 
 describe("textos del veredicto y de la llegada", () => {
   it("manda el papel: dice qué queda en el comprobante, con IGV en factura", () => {
-    const v = veredictoPapel({ monto: 250, lineas: [linea({ cantidad: 1, costo: 260, subtotal: 260 })] });
-    expect(fraseVeredicto(v, "boleta")).toMatch(/El papel dice S\/\s250\.00 y las prendas anotadas suman S\/\s260\.00: el comprobante queda por lo del papel\./);
-    expect(fraseVeredicto(v, "factura")).toMatch(/\(con su IGV\)/);
+    expect(notaNoCuadra("boleta")).toBe("Queda por lo del papel");
+    expect(notaNoCuadra("factura")).toBe("Queda por lo del papel, con su IGV");
+  });
+  it("la cabecera del detalle: el papel y su ronda; quién, cuándo y cuántas prendas; a qué tiendas iban", () => {
+    expect(sobrePapel({ tipo: "boleta", ronda: "RC-000012" })).toBe("Boleta · RC-000012");
+    expect(sobrePapel({ tipo: "sin_comprobante", ronda: null })).toBe("Sin papel");
+    expect(subtituloPapel({ persona: "Marisol Rojas", fecha: "2026-10-23", lineas: [linea({ cantidad: 7 }), linea({ cantidad: 5 })] })).toBe("Marisol Rojas · 23/10 · 12 prendas");
+    expect(subtituloPapel({ persona: "Rosa", fecha: "", lineas: [linea({ cantidad: 1 })] })).toBe("Rosa · 1 prenda");
+    expect(destinosDePapel({ lineas: [linea({ destino: "Tienda Lima" }), linea({ destino: "Tienda AQP" }), linea({ destino: "Tienda Lima" })] })).toBe("Tienda Lima · Tienda AQP");
   });
   it("lo que faltó lo dijo la tienda", () => {
     const l = linea({ faltan: [{ cantidad: 2, causa: "no_vino" }, { cantidad: 1, causa: "se_perdio" }] });
@@ -151,7 +163,7 @@ describe("completar el papel: lo mismo que rechaza la base", () => {
   });
 
   it("el botón dice qué se guarda", () => {
-    expect(fraseCompletar()).toBe("Completar y pasar a los libros");
+    expect(fraseCompletar()).toBe("Completar");
   });
 });
 
@@ -207,7 +219,6 @@ describe("los gastos que no son ropa", () => {
     expect(problemaRuc("2060")).toMatch(/11 números/);
     expect(problemaRuc("20601234567")).toBeNull();
     expect(problemaRuc("")).toBeNull();
-    expect(fraseRevisarGasto(15)).toMatch(/^Pasar S\/\s15\.00 a los gastos$/);
   });
 });
 
@@ -248,11 +259,21 @@ describe("la bandeja de Revisar compras (rediseño)", () => {
 });
 
 describe("cómo se le pagó al proveedor (20261023181000)", () => {
-  const P = { monto: 300, persona: "Sandra Ríos" };
-  const plano = (x: string) => x.replace(/\u00a0/g, " ");
+  const P = { monto: 300 };
+  const plano = (x: PagoPapel) => ({ ...x, titulo: x.titulo.replace(/\u00a0/g, " "), detalle: x.detalle.replace(/\u00a0/g, " ") });
   it("todo, una parte o nada", () => {
-    expect(textoPagoPapel({ ...P, pagado: 300, medioPago: "yape" })).toBe("Sandra le pagó todo con Yape.");
-    expect(plano(textoPagoPapel({ ...P, pagado: 100, medioPago: "efectivo" }))).toBe("Sandra le pagó S/ 100.00 con efectivo. Compras le paga lo que falta, S/ 200.00, desde Por pagar.");
-    expect(plano(textoPagoPapel({ ...P, pagado: 0, medioPago: null }))).toBe("Sandra no le pagó al proveedor: Compras le paga los S/ 300.00 desde Por pagar.");
+    expect(pagoPapel({ ...P, pagado: 300, medioPago: "yape" })).toEqual({ titulo: "Pagó todo con Yape", detalle: "Compras no paga nada", fraccion: 1 });
+    expect(plano(pagoPapel({ ...P, pagado: 100, medioPago: "efectivo" }))).toEqual({ titulo: "Pagó S/ 100.00 en efectivo", detalle: "Compras paga S/ 200.00 desde Por pagar", fraccion: 1 / 3 });
+    expect(plano(pagoPapel({ ...P, pagado: 0, medioPago: null }))).toEqual({ titulo: "No le pagó al proveedor", detalle: "Compras paga S/ 300.00 desde Por pagar", fraccion: 0 });
+    expect(pagoPapel({ ...P, pagado: 300, medioPago: "otro" }).titulo).toBe("Pagó todo");
+  });
+});
+
+describe("las cifras de la bandeja (diseño A)", () => {
+  it("cada una con su nombre corto y su cabecera, y el total en soles sin decimales sueltos", () => {
+    expect(TIPOS_BANDEJA.map((t) => CIFRA_BANDEJA[t].corto)).toEqual(["Plata", "Compras", "Gastos", "Rondas"]);
+    expect(TIPOS_BANDEJA.every((t) => CIFRA_BANDEJA[t].cabecera.length > 0)).toBe(true);
+    expect(totalBandeja([{ monto: 0.1 }, { monto: 0.2 }])).toBe(0.3);
+    expect(totalBandeja([])).toBe(0);
   });
 });
