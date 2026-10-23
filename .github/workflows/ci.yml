@@ -175,6 +175,17 @@ jobs:
           node --test scripts/migraciones/sin-drop-trigger.test.mjs
           node scripts/migraciones/sin-drop-trigger.mjs
 
+      # Ningún ayudante `pg_temp.<nombre>` cambia el nombre de sus parámetros respecto de uno anterior con la misma firma:
+      # el CLI de Supabase aplica todas las migraciones en UNA sesión y `pg_temp` se arrastra, así que el segundo
+      # `create or replace` falla con 42P13 y la base no se arma (2026-10-23, `20261023212000`; #1300 y #1301 en rojo).
+      # En producción cada pegada es su propia sesión y no lo ve; el CI de la migración nueva tampoco, porque se aparta.
+      # Solo lee archivos; no necesita node_modules.
+      - name: Ayudantes pg_temp sin choque
+        if: ${{ !cancelled() }}
+        run: |
+          node --test scripts/migraciones/pg-temp-sin-choque.test.mjs
+          node scripts/migraciones/pg-temp-sin-choque.mjs
+
       # Las pruebas del check «SQL pegado» (el check en sí corre en `sql-pegado.yml`, también al editar el cuerpo del
       # PR). Aquí porque una de ellas lee la plantilla del formulario, y ese workflow solo baja scripts/migraciones.
       # deriva-diaria.test.mjs simula `deriva-diaria.yml` paso a paso (bash, jq y curl, que el runner trae).
