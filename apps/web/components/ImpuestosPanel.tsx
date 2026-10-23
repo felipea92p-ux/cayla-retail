@@ -2,25 +2,28 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
-import { CabeceraBloque, SelectFin, Superficie } from "@/components/finanzas/kit";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
+import { DockTelar } from "@/components/finanzas/telar/DockTelar";
+import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { ImpuestosPulso } from "@/components/finanzas/ImpuestosPulso";
 import { BalanzaIgv } from "@/components/finanzas/BalanzaIgv";
 import { AntesDeDeclarar } from "@/components/finanzas/AntesDeDeclarar";
 import { SobresIgv } from "@/components/finanzas/SobresIgv";
-import { Volver } from "@/components/ui/Volver";
 import { mesADeclarar, sobresIgv } from "@/lib/impuestos-sobres-reglas";
 import { antesDeDeclarar } from "@/lib/impuestos-antes-reglas";
 import { balanzaIgv } from "@/lib/impuestos-balanza-reglas";
 import { pulsoImpuestos } from "@/lib/impuestos-pulso-reglas";
+import { respuestaImpuestos, sedeDeLaCabecera } from "@/lib/impuestos-telar-reglas";
+import { SEDE_TODAS, hrefTelar, type ClaveSede, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { descargarBlob, descargarCsv, textoCsv } from "@/lib/exportar-csv";
 import { crearZip } from "@/lib/zip-simple";
-import { mesesRecientes, solesRedondo, textoMes } from "@/lib/gastos-reglas";
+import { solesRedondo, textoMes } from "@/lib/gastos-reglas";
 import {
   ALCANCE_DEL_AVISO,
   ORDEN_REGISTRO_COMPRAS,
@@ -40,39 +43,44 @@ import {
 } from "@/lib/impuestos-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
-import { Settings2 } from "lucide-react";
-import { Boton } from "@/components/ui/campos";
+import { Download, FileText, Receipt, Settings2 } from "lucide-react";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { MenuAcciones } from "@/components/ui/MenuAcciones";
 
-// Finanzas ▸ Impuestos (ADR-0195 F8), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, `vista-impuestos.js`):
-// cabecera con «CAYLA entera» y las descargas → cuatro cifras → el límite del régimen y lo que conviene revisar → los
-// últimos 6 meses. Es de CAYLA entera («Ver» fijo): la ve quien tiene el módulo (ADR-0253). La pantalla solo lee: el IGV, el saldo a favor y el
+// Finanzas ▸ Impuestos (ADR-0195 F8) en «El telar» (ADR-0493, Felipe 2026-10-23): la cabecera con la respuesta y el dock de la barra
+// común → la balanza del IGV y «Antes de declarar» → el límite del régimen → un sobre por mes. Es de CAYLA entera («Ver» fijo): la ve quien tiene el módulo (ADR-0253). La pantalla solo lee: el IGV, el saldo a favor y el
 // límite los calcula la base; los registros se arman aquí, en el navegador, con lo que devuelve la base.
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 type Descarga = "ventas" | "compras" | "paquete";
 
-export function ImpuestosPanel({ panel, falla }: { panel: PanelImpuestos | null; falla: string | null }) {
+type Contexto = { sede: ClaveSede; sedes: SedeTelar[] };
+
+export function ImpuestosPanel({ panel, falla, sede, sedes }: { panel: PanelImpuestos | null; falla: string | null } & Contexto) {
   if (!panel) {
     return (
       <div className="space-y-6">
-        <CabeceraPantalla sobretitulo="Finanzas · Impuestos" titulo="Impuestos" />
-        <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla ?? "No se pudo leer el IGV."}</p>
+        <EncabezadoPagina sede={sedeDeLaCabecera(sede, sedes)} titulo="Impuestos">
+          <RespuestaTelar pregunta="¿Cuánto le pagas a SUNAT?" valor={null} motivo={falla ?? "No se pudo leer el IGV. Vuelve a intentarlo en un rato."} />
+        </EncabezadoPagina>
       </div>
     );
   }
-  return <Pantalla panel={panel} falla={falla} />;
+  return <Pantalla panel={panel} falla={falla} sede={sede} sedes={sedes} />;
 }
 
-function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | null }) {
+function Pantalla({ panel, falla, sede, sedes }: { panel: PanelImpuestos; falla: string | null } & Contexto) {
   const router = useRouter();
+  const sp = useSearchParams();
   const [bajando, setBajando] = useState<Descarga | null>(null);
   const { mes, mesActual } = panel;
   const anio = Number(mes.slice(0, 4));
-  const titulo = `IGV de ${nombreMes(mes)}${anio !== Number(mesActual.slice(0, 4)) ? ` ${anio}` : ""}`;
-  // Cambiar de mes sube a la balanza: la respuesta cambia arriba y tiene que verse (antes quedaba fuera de la vista).
-  const irA = (m: string) => router.push(`/finanzas/impuestos?mes=${m}`);
-  const otroMes = mes !== mesADeclarar(mesActual);
+  // Cambiar de mes sube a la balanza (la respuesta cambia arriba y tiene que verse) y conserva la sede de la mesa de mando.
+  const irA = (m: string) => router.push(hrefTelar("/finanzas/impuestos", sp.entries(), { mes: m }, { mismaPantalla: true, mesDeHoy: mesActual }));
+  const aDeclarar = mesADeclarar(mesActual);
+  const sobres = sobresIgv(panel.historial, mesActual, mes);
+  const sobreADeclarar = sobres.find((x) => x.mes === aDeclarar);
 
   async function bajar(que: Descarga) {
     setBajando(que);
@@ -112,45 +120,68 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
   }
 
   const pulso = pulsoImpuestos(panel);
+  const pendientes = antesDeDeclarar(panel);
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Finanzas · Impuestos"
-        titulo={titulo}
-        accionesAbajo
-        bajada="Lo que cobraste de IGV al vender, menos lo que pagaste de IGV al comprar con factura. Los libros electrónicos los presenta el contador con el reporte de aquí."
+      <EncabezadoPagina
+        sede={sedeDeLaCabecera(sede, sedes)}
+        titulo="Impuestos"
+        subtitulo="Lo que cobraste de IGV al vender, menos lo que pagaste de IGV al comprar con factura. El contador presenta los libros con lo que sale de aquí."
         acciones={
           <>
-            <Chip versalitas={false}>CAYLA entera</Chip>
-            <Boton cargando={bajando === "ventas"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("ventas")} data-guia="fin-impuestos.registro-ventas">
-              Registro de ventas
-            </Boton>
-            <Boton cargando={bajando === "compras"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("compras")} data-guia="fin-impuestos.registro-compras">
-              Registro de compras
-            </Boton>
-            <Boton peso="primario" cargando={bajando === "paquete"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("paquete")} data-guia="fin-impuestos.paquete">
-              Paquete para el contador
-            </Boton>
+            {/* Los dos registros van en «Más»: en la cabecera manda la respuesta (a la derecha) y el paso es el paquete. */}
+            <span data-guia="fin-impuestos.registros">
+              <MenuAcciones
+                texto="Más"
+                etiqueta="Más descargas para el contador"
+                deshabilitado={bajando !== null}
+                items={[
+                  { clave: "ventas", etiqueta: "Descargar registro de ventas", onSelect: () => bajar("ventas") },
+                  { clave: "compras", etiqueta: "Descargar registro de compras", onSelect: () => bajar("compras") },
+                ]}
+              />
+            </span>
+            <BotonDescargar peso="primario" cargando={bajando === "paquete"} disabled={bajando !== null} onClick={() => bajar("paquete")} guia="fin-impuestos.paquete">
+              Descargar paquete del contador
+            </BotonDescargar>
           </>
         }
       >
-        {/* La vuelta de una vista interna: mirar otro mes es salir del que se declara ahora (hallazgo 9 de la auditoría v3). */}
-        {otroMes && (
-          <p className="mt-3 flex items-center gap-2 text-[13px] text-taupe">
-            <Volver onClick={() => irA(mesADeclarar(mesActual))} a={`Volver a ${textoMes(mesADeclarar(mesActual))}, el mes que se declara`} />
-            Estás viendo {textoMes(mes)}. El que se declara ahora es {textoMes(mesADeclarar(mesActual))}.
-          </p>
-        )}
-      </CabeceraPantalla>
+        <RespuestaTelar {...respuestaImpuestos(pulso, { enCurso: mes === mesActual, pendientes: pendientes.length })} />
+      </EncabezadoPagina>
+      <DockTelar
+        acciones={[
+          { texto: "Paquete del contador", tecla: "d", icono: <Download aria-hidden />, principal: true, onClick: () => bajar("paquete") }, // unificar-fijo: el ícono del dock del telar (DockTelar pide uno por acción), no un botón de descarga dibujado a mano
+          { texto: "Registro de ventas", tecla: "v", icono: <FileText aria-hidden />, onClick: () => bajar("ventas") },
+          { texto: "Registro de compras", tecla: "c", icono: <FileText aria-hidden />, onClick: () => bajar("compras") },
+          { texto: "Factura de compra", tecla: "f", icono: <Receipt aria-hidden />, href: "/finanzas/gastos?registrar=1" },
+        ]}
+      />
+
+      {/* El mes en curso todavía corre: lo urgente es el que se declara ahora, a un toque (la vuelta, hallazgo 9 de la auditoría v3). */}
+      {mes !== aDeclarar && sobreADeclarar && (
+        <Aviso
+          tono={sobreADeclarar.estado === "por_declarar" ? "atencion" : "info"}
+          chico
+          titulo={`${textoMes(aDeclarar).charAt(0).toUpperCase()}${textoMes(aDeclarar).slice(1)} se declara ahora`}
+          accion={
+            <button type="button" className="btn-cayla btn-enlace" onClick={() => irA(aDeclarar)} data-guia="fin-impuestos.ir-a-declarar">
+              Ver {nombreMes(aDeclarar)}
+            </button>
+          }
+        >
+          {sobreADeclarar.aFavor ? `Quedó ${solesRedondo(sobreADeclarar.monto)} de IGV a favor.` : `Su IGV es ${solesRedondo(sobreADeclarar.monto)}, más la renta a cuenta.`} El día exacto depende del último dígito de tu RUC.
+        </Aviso>
+      )}
 
       {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
 
       {/* El telar (Felipe 2026-10-23): la balanza del IGV y, al lado, lo que falta antes de declarar. */}
       {panel.foco && pulso.estado !== "sin_mes" ? (
         <section className="fin-balanza-cols">
-          <BalanzaIgv balanza={balanzaIgv(panel.foco, panel.renta.monto)} mesTexto={textoMes(mes)} guia="fin-impuestos.balanza" anioSinRenta={panel.renta.tasa === null ? anio : null} />
-          <AntesDeDeclarar pendientes={antesDeDeclarar(panel)} guia="fin-impuestos.por-hacer" />
+          <BalanzaIgv balanza={balanzaIgv(panel.foco, panel.renta.monto, { sede: sede === SEDE_TODAS ? null : sede })} mesTexto={textoMes(mes)} guia="fin-impuestos.balanza" anioSinRenta={panel.renta.tasa === null ? anio : null} />
+          <AntesDeDeclarar pendientes={pendientes} guia="fin-impuestos.por-hacer" />
         </section>
       ) : (
         <ImpuestosPulso pulso={pulso} />
@@ -158,19 +189,7 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
 
       <Limite panel={panel} />
 
-      <SobresIgv sobres={sobresIgv(panel.historial, mesActual, mes)} onElegir={irA} mesEnCurso={mesActual} aDeclarar={mesADeclarar(mesActual)} guia="fin-impuestos.historial">
-        {/* Para un mes más viejo que los seis sobres (hasta que la mesa de mando del telar traiga el mes). */}
-        <label className="flex items-center gap-2 whitespace-nowrap text-[12.5px] text-taupe" data-guia="fin-impuestos.otro-mes">
-          Otro mes
-          <SelectFin
-            etiqueta="Mes que se mira"
-            className="w-fit"
-            valor={mes}
-            onValor={irA}
-            opciones={mesesRecientes(`${mesActual}-01`, 24).map((m) => ({ valor: m, texto: textoMes(m) }))}
-          />
-        </label>
-      </SobresIgv>
+      <SobresIgv sobres={sobres} onElegir={irA} mesEnCurso={mesActual} aDeclarar={aDeclarar} guia="fin-impuestos.historial" />
 
       <p className="nota-cayla" data-guia="fin-impuestos.nota">
         El pago a SUNAT se registra en Cuentas y dinero («Pagar a SUNAT (el IGV)», sale de un banco): baja lo que debes de IGV y el banco. El 1 % de renta a cuenta va como gasto de «Tributos». Mientras no se registre, «sin pago registrado» solo dice que el sistema no lo sabe.{" "}

@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { solesRedondo } from "@/lib/gastos-reglas";
@@ -8,12 +8,10 @@ import type { Sobre } from "@/lib/impuestos-sobres-reglas";
 // sobre lleva a ese mes. La tapa se entreabre al pasar el mouse; el lacre de «pagado» espera a que el sistema sepa qué mes pagó
 // cada pago a SUNAT (decisión de Felipe).
 
-export function SobresIgv({ sobres, onElegir, mesEnCurso, aDeclarar, guia, children }: { sobres: Sobre[]; onElegir: (mes: string) => void; mesEnCurso: string; aDeclarar: string; guia?: string; children?: ReactNode }) {
+export function SobresIgv({ sobres, onElegir, mesEnCurso, aDeclarar, guia }: { sobres: Sobre[]; onElegir: (mes: string) => void; mesEnCurso: string; aDeclarar: string; guia?: string }) {
   return (
     <Superficie pad className="fin-sobres-bloque anim-sube" guia={guia}>
-      <CabeceraBloque titulo="Cada mes, su sobre" bajada="Abierto si falta algo; punteado si el mes todavía corre. Toca un mes para verlo arriba.">
-        {children}
-      </CabeceraBloque>
+      <CabeceraBloque titulo="Cada mes, su sobre" bajada="Abierto si falta algo; punteado si el mes todavía corre. Toca un mes para verlo arriba." />
       <div className="fin-sobres">
         {sobres.map((s, i) => (
           <button

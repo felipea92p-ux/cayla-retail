@@ -1301,6 +1301,13 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
     },
     ...TELAR,
     {
+      id: "ir-a-declarar",
+      ancla: "fin-impuestos.ir-a-declarar",
+      opcional: true,
+      titulo: "El mes que se declara",
+      texto: "Mientras miras el mes en curso, este aviso te recuerda el mes anterior, el que se declara ahora, con lo que quedó. «Ver» te lleva a él.",
+    },
+    {
       id: "balanza",
       ancla: "fin-impuestos.balanza",
       titulo: "La balanza del IGV",
@@ -1314,16 +1321,10 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       texto: "Lo que puede hacer que pagues de más o que SUNAT te observe: comprobantes rechazados o sin aceptar, ventas sin comprobante, compras con boleta (ese IGV no se descuenta) y facturas grandes pagadas en efectivo. Cada cosa lleva a donde se arregla.",
     },
     {
-      id: "registro-ventas",
-      ancla: "fin-impuestos.registro-ventas",
-      titulo: "Registro de ventas",
-      texto: "Baja en Excel todas las boletas y facturas del mes, como las pide el contador.",
-    },
-    {
-      id: "registro-compras",
-      ancla: "fin-impuestos.registro-compras",
-      titulo: "Registro de compras",
-      texto: "Baja en Excel todas las facturas de compras y gastos del mes, con su IGV.",
+      id: "registros",
+      ancla: "fin-impuestos.registros",
+      titulo: "Los registros, en «Más»",
+      texto: "El registro de ventas (todas las boletas y facturas del mes) y el de compras (las facturas de compras y gastos, con su IGV), en Excel, como los pide el contador.",
     },
     {
       id: "paquete",
@@ -1356,14 +1357,8 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       ancla: "fin-impuestos.mes-a-declarar",
       opcional: true,
       titulo: "Volver al mes que se declara",
-      texto: "Su sobre te devuelve al mes que le toca declarar al contador; arriba, la flecha hace lo mismo cuando miras otro mes (te lo dejamos como estaba).",
+      texto: "Su sobre te devuelve al mes que le toca declarar al contador (te lo dejamos como estaba). Un mes más viejo se elige con el mes de la barra de arriba.",
       demostrar: [{ tipo: "clic", ancla: "fin-impuestos.mes-a-declarar" }],
-    },
-    {
-      id: "otro-mes",
-      ancla: "fin-impuestos.otro-mes",
-      titulo: "Otro mes",
-      texto: "Para mirar un mes más antiguo que los seis de la lista.",
     },
     {
       id: "nota",

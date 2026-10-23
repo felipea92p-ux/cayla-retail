@@ -5,10 +5,8 @@
   "total": 14,
   "controles": {
     "components/ImpuestosPanel.tsx": [
-      "Boton «fin-impuestos.registro-ventas»",
-      "Boton «fin-impuestos.registro-compras»",
-      "Boton «fin-impuestos.paquete»",
-      "Volver «→() => irA(mesADeclarar(mesActual))»",
+      "BotonDescargar «Descargar paquete del contador»",
+      "button «fin-impuestos.ir-a-declarar»",
       "Link «Registrar el pago»"
     ],
     "components/finanzas/AntesDeDeclarar.tsx": [
@@ -22,6 +20,10 @@
     ],
     "components/finanzas/SobresIgv.tsx": [
       "button «{`${s.nombre}»"
+    ],
+    "components/finanzas/telar/DockTelar.tsx": [
+      "Link «{`${a.texto}»",
+      "button «{`${a.texto}»"
     ],
     "components/finanzas/telar/MesaDeMando.tsx": [
       "Pestanas «(sin nombre)»",
