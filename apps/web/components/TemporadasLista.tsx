@@ -7,6 +7,7 @@ import { FunnelX, SearchX, Shirt } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { BarraAtributos, GRILLA_ATRIBUTOS, TarjetaAtributo, TituloGrupo } from "@/components/atributos/kit";
 import { MuestraTemporada } from "@/components/MuestraTemporada";
@@ -1065,16 +1066,17 @@ function VistaPorCompletar({
 
       {puedeEditar && elegidas.length > 0 && (
         // Flota sobre la lista (por eso lleva sombra: ADR-0012) y sube desde abajo UNA vez, al marcar la primera.
-        <div className="card-cayla anim-entrada sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 px-4 py-3 shadow-md" role="region" aria-label="Asignar a las marcadas">
-          <p className="text-sm text-tinta">
+        // La isla oscura de lo que llevas elegido (ADR-0479, actividad 12, `barra-abajo`): se pega abajo dentro de la lista.
+        <BarraDeAbajo tono="tinta" pegada className="z-10 justify-between gap-3 px-4 py-3" role="region" aria-label="Asignar a las marcadas">
+          <p className="text-sm">
             <b className="font-semibold">
               {elegidas.length} {elegidas.length === 1 ? "prenda marcada" : "prendas marcadas"}
             </b>
-            <span className="text-taupe">
+            <span className="text-crema/80">
               : la temporada se {elegidas.length === 1 ? "le pone solo a ella" : "les pone solo a ellas"}, no a su categoría.
             </span>
             {marcadasOcultas > 0 && (
-              <span className="block text-xs text-taupe">
+              <span className="block text-xs text-crema/80">
                 {marcadasOcultas} {marcadasOcultas === 1 ? "marcada no se ve" : "marcadas no se ven"} con esta búsqueda: no se{" "}
                 {marcadasOcultas === 1 ? "asigna" : "asignan"}.
               </span>
@@ -1091,7 +1093,7 @@ function VistaPorCompletar({
               Desmarcar
             </button>
           </div>
-        </div>
+        </BarraDeAbajo>
       )}
 
       <p className="nota-cayla">

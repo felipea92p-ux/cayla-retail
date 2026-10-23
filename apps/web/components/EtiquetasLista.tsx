@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useCallback, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -8,7 +8,8 @@ import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -18,6 +19,7 @@ import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import {
   alcanceCampana,
+  alternarSede,
   avisoReimprimir,
   chipDeTarjeta,
   destinoReimprimir,
@@ -31,10 +33,12 @@ import {
   prendasPorCategoria,
   prendasQueCambianDePrecioHoy,
   textoConteoTarjeta,
+  textoSedesDeCampana,
   type ConteoTarjeta,
   type PrendaConCosto,
+  type TiendaOpcion,
 } from "@/lib/etiqueta-campana";
-import { avisoDiaDeSemana, repetirTemporada, textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
+import { avisoDiaDeSemana, fechaCorta, repetirTemporada, textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { hoyLima } from "@/lib/fechas-lima";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
@@ -42,6 +46,12 @@ import type { EstiloEtiqueta } from "@/lib/etiqueta-grupos";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
+import { CategoriasDeCampana } from "@/components/campana-hoja/CategoriasDeCampana";
+import { PASO_DESCUENTO as PASO, ejemplosDeCaja, pasoDeDescuento, piezasDelMosaico, textoDuracion, unSoloEnvio } from "@/lib/campana-hoja";
+import { sinMovimiento } from "@/components/etiqueta-prendas/vuelo";
+import { avanceDeCampana } from "@/lib/sellos-pases";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { TEXTOS_MODO, type ModoEtiquetas } from "@/lib/sellos-campanas";
 
 /**
@@ -93,9 +103,18 @@ export type Etiqueta = {
   vigenteHasta: string | null;
   descuentoPct: number | null;
   categoriaIds: string[];
+  /** Las tiendas donde rige el descuento (ADR-0486). Vacío = todas las sedes. */
+  sedeIds: string[];
 };
 
-export type CategoriaOpcion = { id: string; nombre: string; familia: string };
+export type CategoriaOpcion = {
+  id: string;
+  nombre: string;
+  familia: string;
+  /** Para el ícono de la categoría en la etiqueta de la hoja (`SinFoto`, ADR-0333): su prefijo y el código de su familia. */
+  prefijo?: string | null;
+  familiaCodigo?: string | null;
+};
 
 // `true` desde que `registrar_venta` lee `etiquetas.descuento_pct`
 // (20260918170000_venta_aplica_descuento_de_campana.sql, paso 3 de ADR-0107). Vuelve a
@@ -128,6 +147,7 @@ function TarjetaEtiqueta({
   conteo = null,
   rotacion = null,
   disenoHref = null,
+  tiendas = [],
   children,
 }: {
   e: Etiqueta;
@@ -140,9 +160,12 @@ function TarjetaEtiqueta({
   rotacion?: string | null;
   /** Su diseño en la tienda online (Tienda web ▸ Campañas, ADR-0471), para quien ve ese módulo; `null`, sin el enlace. */
   disenoHref?: string | null;
+  /** Las tiendas del ERP, para decir en cuáles rige una campaña limitada (ADR-0486). */
+  tiendas?: TiendaOpcion[];
   children?: ReactNode;
 }) {
   const rango = textoRango(e.vigenteDesde, e.vigenteHasta);
+  const dondeRige = e.descuentoPct !== null ? textoSedesDeCampana(e.sedeIds, tiendas) : null;
   // Lo que dice su temporada (un chip que se lee sin abrir nada) y, si se ve el conteo, si de verdad llega a alguna prenda.
   const chip = chipDeTarjeta(vigencia, conteo?.total ?? null, hoy);
   const textos = conteo ? textoConteoTarjeta(conteo) : null;
@@ -180,6 +203,13 @@ function TarjetaEtiqueta({
                 ? "solo en las prendas etiquetadas"
                 : `${e.categoriaIds.length} categoría${e.categoriaIds.length === 1 ? "" : "s"}`}
             </p>
+          )}
+          {dondeRige && (
+            <div>
+              <Chip tono="pizarra" versalitas={false} title="Solo en esa tienda se cobra el descuento; en las demás, el precio normal.">
+                {dondeRige}
+              </Chip>
+            </div>
           )}
           {textos && (
             <p className="text-[11px] tabular-nums text-tinta/60">
@@ -220,11 +250,17 @@ function TarjetaEtiqueta({
 export function TarjetaDeCampana({
   campana,
   categorias,
+  tiendas = [],
+  sedeActualId = null,
   prendasConCosto,
   variantesManuales,
 }: {
   campana: Etiqueta;
   categorias: CategoriaOpcion[];
+  /** Las tiendas del ERP (ADR-0486). Vacío: la hoja de Configurar no ofrece elegir sedes. */
+  tiendas?: TiendaOpcion[];
+  /** La sede de la cabecera: con su precio sale la impresión que ofrece el aviso de reimprimir. */
+  sedeActualId?: string | null;
   prendasConCosto: PrendaConCosto[];
   /** Las prendas puestas a mano en ESTA campaña. */
   variantesManuales: string[];
@@ -243,6 +279,7 @@ export function TarjetaDeCampana({
         hoy={hoy}
         apagada={!e.activo}
         conteo={conteoDeTarjeta(prendasConCosto, new Set(e.categoriaIds), manuales)}
+        tiendas={tiendas}
       >
         {editable && (
           <PieTarjeta>
@@ -284,6 +321,8 @@ export function TarjetaDeCampana({
           etiqueta={e}
           puedeDarDescuento
           categorias={categorias}
+          tiendas={tiendas}
+          sedeActualId={sedeActualId}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales}
           onClose={() => setConfigurando(false)}
@@ -309,6 +348,8 @@ export function CampanaModal({
   etiqueta,
   puedeDarDescuento,
   categorias,
+  tiendas = [],
+  sedeActualId = null,
   prendasConCosto,
   variantesManuales,
   onClose,
@@ -319,10 +360,15 @@ export function CampanaModal({
   /** Sin esto (un rol con Etiquetas que no es líder), la campaña se configura SIN descuento: fechas y categorías. */
   puedeDarDescuento: boolean;
   categorias: CategoriaOpcion[];
+  /** Las tiendas donde se puede limitar el descuento (ADR-0486). Con menos de dos (o la base sin la migración) no hay nada que elegir. */
+  tiendas?: TiendaOpcion[];
+  /** La sede de la cabecera (`persona.ubicacionId`): la impresión de etiquetas sale con su precio, así que el aviso de reimprimir
+   *  ofrece el botón solo si el papel de ESTA sede quedó viejo. */
+  sedeActualId?: string | null;
   prendasConCosto: PrendaConCosto[];
   variantesManuales: string[];
   onClose: () => void;
-  onGuardado: (cambios: Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "categoriaIds">) => void;
+  onGuardado: (cambios: Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "categoriaIds" | "sedeIds">) => void;
 }) {
   // Si su temporada ya pasó, la hoja abre para repetirla: las mismas fechas, un año después (se guardan solo con «Guardar»).
   const T = TEXTOS_MODO[modo];
@@ -332,40 +378,88 @@ export function CampanaModal({
   const [hasta, setHasta] = useState((repetir ? repetir.hasta : etiqueta.vigenteHasta) ?? "");
   const avisoDia = repetir ? avisoDiaDeSemana(repetir, { desde, hasta }) : null;
   const [elegidas, setElegidas] = useState(() => new Set(etiqueta.categoriaIds));
+  // Dónde rige el descuento (ADR-0486): vacío = todas las sedes. Solo se ofrece con dos tiendas o más.
+  const [sedesElegidas, setSedesElegidas] = useState(() => new Set(etiqueta.sedeIds));
+  const ofreceSedes = tiendas.length > 1;
   const [guardando, setGuardando] = useState(false);
+  // Tres clics en el mismo instante mandaban tres pedidos iguales (/chaos 2026-10-23): el candado deja pasar solo el primero.
+  const [unaVez] = useState(unSoloEnvio);
+  // Al guardar, el sello de la campaña se estampa en la etiqueta y la hoja se cierra cuando terminó de estamparse.
+  const [sellada, setSellada] = useState(false);
   const router = useRouter();
+  const [hoy] = useState(hoyLima);
+  const idDescuento = useId();
+
+  // La hoja mide del alto de la pantalla, como «Prendas» (`.eqp-hoja`, etiqueta-prendas.css): lo que ocupan su título y su frase se
+  // descuenta del alto, y solo el formulario corre por dentro. Ref de función (no efecto) y `offsetTop` (no getBoundingClientRect): el
+  // contenido de `<Modal>` llega por el portal un render después y entra con un `transform` que movería la medida.
+  const hoja = useCallback((el: HTMLDivElement | null) => {
+    if (!el) return;
+    let cuadro = 0;
+    const medir = () => {
+      const panel = el.offsetParent as HTMLElement | null;
+      if (!panel) {
+        cuadro = requestAnimationFrame(medir);
+        return;
+      }
+      const abajo = parseFloat(getComputedStyle(panel).paddingBottom) || 0;
+      el.style.setProperty("--eqp-encima", `${el.offsetTop + abajo + 2}px`);
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    return () => {
+      cancelAnimationFrame(cuadro);
+      window.removeEventListener("resize", medir);
+    };
+  }, []);
+
+  // Cada categoría dice cuántas prendas a la venta trae, y la hoja dice a cuántas llega la campaña antes de guardar.
+  const prendasDe = prendasPorCategoria(prendasConCosto);
+  const alcance = alcanceCampana(prendasConCosto, elegidas, new Set(variantesManuales));
 
   // Guía de foco: sale de la misma regla que apaga «Guardar» (`campanaValida`, y su prueba exige que coincidan); todo es opcional,
   // así que solo «sigue» lo mal escrito.
-  const guia = useGuiaCampos(camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento }));
+  const guia = useGuiaCampos(
+    camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento, sedes: ofreceSedes ? sedesElegidas.size : undefined, alcance: alcance.total }),
+  );
 
   const pct = parsearDescuento(descuento);
   const fDesde = parsearFecha(desde);
   const fHasta = parsearFecha(hasta);
   const objecion = fDesde.ok && fHasta.ok ? objecionVigencia(fDesde.valor, fHasta.valor) : null;
   const valido = campanaValida({ descuento, desde, hasta });
+  // La temporada como la dice su pase en Insignias (cuánto lleva, si rige hoy) y su duración en una frase.
+  const fechasBien = fDesde.ok && fHasta.ok && !objecion;
+  const rangoElegido = { desde: fDesde.ok ? fDesde.valor : null, hasta: fHasta.ok ? fHasta.valor : null };
+  const avance = fechasBien ? avanceDeCampana(rangoElegido.desde, rangoElegido.hasta, hoy) : null;
+  const duracion = fechasBien ? textoDuracion(rangoElegido.desde, rangoElegido.hasta) : null;
   // La campaña no se bloquea por bajar del costo (puede ser una liquidación a propósito),
   // pero quien la configura se entera: número en rojo y cuántas prendas serían.
   const bajoCosto = prendasBajoCosto(pct.ok ? pct.valor : null, prendasConCosto, elegidas, new Set(variantesManuales));
 
-  // Cada categoría dice cuántas prendas a la venta trae, y la hoja dice a cuántas llega la campaña antes de guardar. Las categorías
-  // sin prendas van juntas al final: se pueden elegir (pueden recibir prendas después), pero no compiten con las que sí venden.
-  const prendasDe = prendasPorCategoria(prendasConCosto);
-  const alcance = alcanceCampana(prendasConCosto, elegidas, new Set(variantesManuales));
-  const porFamilia = new Map<string, CategoriaOpcion[]>();
-  const sinPrendas: CategoriaOpcion[] = [];
-  for (const c of categorias) {
-    if (!prendasDe.get(c.id)) sinPrendas.push(c);
-    else porFamilia.set(c.familia, [...(porFamilia.get(c.familia) ?? []), c]);
-  }
-  // Plegadas por defecto: son muchas y hoy no mueven ninguna prenda. Se abren solas si ya hay una elegida ahí, para que no quede escondida.
-  const sinPrendasElegida = sinPrendas.some((c) => elegidas.has(c.id));
+  // La etiqueta viva: sus categorías en el mosaico y lo que cobra la caja por prendas reales que alcanzaría.
+  const mosaico = piezasDelMosaico(categorias, elegidas, prendasDe);
+  const ejemplos = ejemplosDeCaja(prendasConCosto, elegidas, new Set(variantesManuales), prendasDe, pct.ok ? pct.valor : null);
 
-  const alternar = (id: string) =>
+  // La categoría recién marcada vuela de su casilla a su pieza en la etiqueta (`EtiquetaDeCampana`).
+  const vuelo = useRef<string | null>(null);
+  const alternar = (id: string) => {
+    if (!elegidas.has(id)) vuelo.current = id;
     setElegidas((actual) => {
       const nuevo = new Set(actual);
       if (nuevo.has(id)) nuevo.delete(id);
       else nuevo.add(id);
+      return nuevo;
+    });
+  };
+  // La casilla de «toda la familia»: marca o quita sus categorías de un toque.
+  const alternarFamilia = (ids: string[], marcar: boolean) =>
+    setElegidas((actual) => {
+      const nuevo = new Set(actual);
+      for (const id of ids) {
+        if (marcar) nuevo.add(id);
+        else nuevo.delete(id);
+      }
       return nuevo;
     });
 
@@ -374,12 +468,14 @@ export function CampanaModal({
     setGuardando(true);
     try {
       const categoriaIds = [...elegidas];
+      const sedeIds = [...sedesElegidas];
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...encabezadosOmitidos("etiqueta_campana") },
         body: JSON.stringify({
           id: etiqueta.id,
-          campana: { descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds },
+          // Sin la hoja de sedes (una sola tienda, o la base sin la migración) no se manda nada: no se toca lo que no se vio.
+          campana: { descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds, ...(ofreceSedes ? { sedeIds } : {}) },
         }),
       });
       const datos = await res.json();
@@ -387,24 +483,30 @@ export function CampanaModal({
         avisar.error(datos.error ?? "No se pudo guardar la campaña.");
         return;
       }
-      // Si guardar cambió HOY el precio en caja de alguna prenda (otro %, fechas que la hacen regir o dejar de regir, categorías
-      // que entran o salen), su etiqueta de papel quedó vieja: el aviso lo dice y lleva a imprimir solo esas (ADR-0180).
+      const sedeIdsGuardadas = ofreceSedes ? sedeIds : etiqueta.sedeIds;
+      // Si guardar cambió HOY el precio en caja de alguna prenda en alguna tienda (otro %, fechas que la hacen regir o dejar de
+      // regir, categorías o tiendas que entran o salen), su etiqueta de papel quedó vieja: el aviso lo dice, nombra las tiendas si no
+      // es en todas, y lleva a imprimir las de esta sede, que es con cuyo precio sale la impresión (ADR-0180, ADR-0486).
       const cambian = prendasQueCambianDePrecioHoy(
         etiqueta,
-        { descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds },
+        { descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds, sedeIds: sedeIdsGuardadas },
         prendasConCosto,
         new Set(variantesManuales),
         hoyLima(),
+        { tiendas, aqui: sedeActualId },
       );
       const destino = destinoReimprimir(cambian, etiqueta.id);
-      const reimprimir = avisoReimprimir(cambian.quedan.length + cambian.salen.length, destino !== null);
+      const reimprimir = avisoReimprimir(cambian, destino !== null);
+      // Ya guardó: el sello se estampa (700 ms, una vez) y recién entonces la hoja se cierra y sale el aviso. Sin movimiento, al instante.
+      setSellada(true);
+      if (!sinMovimiento()) await new Promise((listo) => setTimeout(listo, 750));
       avisar.exito(
         `${etiqueta.nombre} actualizad${T.o}`,
         reimprimir
           ? { detalle: reimprimir.detalle, accion: destino && reimprimir.boton ? { texto: reimprimir.boton, onClick: () => router.push(destino) } : undefined }
           : undefined,
       );
-      onGuardado({ descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds });
+      onGuardado({ descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds, sedeIds: sedeIdsGuardadas });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -418,74 +520,120 @@ export function CampanaModal({
       subtitulo={
         repetir
           ? `Las fechas son las de ${etiqueta.vigenteHasta?.slice(0, 4)}, pasadas a ${repetir.anio}. Revisa el descuento y las categorías, y guarda.`
-          : "Cuánto baja, cuándo rige y en qué categorías. Las prendas sueltas se eligen en «Prendas»."
+          : "Cuánto baja, cuándo rige y en qué categorías."
       }
-      tamano="ancha"
+      ancho="max-w-[69rem]" /* unificar-fijo: la etiqueta viva es de diseño propio, como «Prendas» (la II de la maqueta, elegida por Felipe 2026-10-23, ADR-0488) */
       onClose={onClose}
     >
       {(cerrar) => (
-        <div data-guia="atributos.campana-form" className="mt-5 space-y-5">
-          {/* Dos columnas desde tablet: a la izquierda cuánto y cuándo, a la derecha las categorías completas. En una hoja angosta
-              Desde y Hasta no cabían juntos y las categorías vivían en una caja con su propio scroll dentro de la hoja. */}
-          <div className="grid gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+        <div ref={hoja} className="eqp-hoja cph-hoja mt-4">
+          {/* ---- El formulario, a la izquierda: lo único que corre ---- */}
+          <div data-guia="atributos.campana-form" className="eqp-lista cph-form scroll-cayla">
+          {/* Una columna: cuánto, cuándo, dónde y las categorías, de arriba abajo (al lado va la etiqueta). */}
+          <div className="space-y-6">
             <div className="space-y-5">
               <CampoGuiado id="descuento" guia={guia}>
-                <CampoTexto
-                  etiqueta={guia.etiqueta("descuento", "Descuento (%)")}
-                  mono
-                  inputMode="decimal"
-                  value={descuento}
-                  onChange={(e) => setDescuento(e.target.value)}
-                  disabled={!puedeDarDescuento}
-                  placeholder={puedeDarDescuento ? "Escribe otro %" : "Tu rol no pone descuento"}
-                  tono={!pct.ok || bajoCosto.length > 0 ? "error" : undefined}
-                  className={bajoCosto.length > 0 ? "!text-rojo-profundo" : ""}
+                <Campo
+                  etiqueta={guia.etiqueta("descuento", "Cuánto baja")}
+                  htmlFor={idDescuento}
+                  tono={!pct.ok || bajoCosto.length > 0 ? "error" : "neutro"}
                   pie={
-                    !pct.ok
-                      ? pct.error
-                      : bajoCosto.length > 0
-                        ? `Por debajo del costo: ${bajoCosto.length} prenda${bajoCosto.length === 1 ? "" : "s"} (${bajoCosto
-                            .slice(0, 2)
-                            .map(nombreBajoCosto)
-                            .join(", ")}${bajoCosto.length > 2 ? "…" : ""}). Se puede guardar igual.`
-                        : pct.valor === null
-                          ? `Vacío: ${T.la} ${T.uno} solo marca prendas y no cambia precios.`
-                          : `Baja ${textoPct(pct.valor)} % el precio en Vender, sin pedir código.`
+                    !puedeDarDescuento
+                      ? "Tu rol no pone descuento: la campaña se configura con sus fechas y sus categorías."
+                      : !pct.ok
+                        ? pct.error
+                        : bajoCosto.length > 0
+                          ? `Por debajo del costo: ${bajoCosto.length} prenda${bajoCosto.length === 1 ? "" : "s"} (${bajoCosto
+                              .slice(0, 2)
+                              .map(nombreBajoCosto)
+                              .join(", ")}${bajoCosto.length > 2 ? "…" : ""}). Se puede guardar igual.`
+                          : pct.valor === null
+                            ? `Vacío: ${T.la} ${T.uno} solo marca prendas y no cambia precios.`
+                            : `Baja ${textoPct(pct.valor)} % el precio en Vender, sin pedir código.`
                   }
-                  autoComplete="off"
-                />
-                {puedeDarDescuento && (
-                  <div role="group" aria-label="Descuentos de siempre" className="mt-1 flex flex-wrap gap-1.5">
-                    <button type="button" className="pildora-cayla" aria-pressed={pct.ok && pct.valor === null} onClick={() => setDescuento("")}>
-                      Sin descuento
-                    </button>
-                    {DESCUENTOS_RAPIDOS.map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        className="pildora-cayla tabular-nums"
-                        aria-pressed={pct.ok && pct.valor === v}
-                        onClick={() => setDescuento(String(v))}
-                      >
-                        {v} %
-                      </button>
-                    ))}
+                >
+                  {/* La caja con − y + adentro y, a su lado, los descuentos de siempre en dos filas del MISMO alto (Felipe 2026-10-23):
+                      un solo bloque, sin espacio libre a la derecha. En el celular las opciones bajan enteras bajo la caja. */}
+                  <div className="cph-paso-fila">
+                    <PasoCantidad
+                      tamano="grande"
+                      sufijo="%"
+                      className="cph-paso"
+                      tono={!pct.ok || bajoCosto.length > 0 ? "error" : undefined}
+                      menos={{
+                        onClick: () => setDescuento((d) => pasoDeDescuento(d, -PASO)),
+                        deshabilitado: !puedeDarDescuento || !(pct.ok && pct.valor),
+                        etiqueta: `Bajar ${PASO} % el descuento`,
+                      }}
+                      mas={{
+                        onClick: () => setDescuento((d) => pasoDeDescuento(d, PASO)),
+                        deshabilitado: !puedeDarDescuento || (pct.ok && (pct.valor ?? 0) >= 100),
+                        etiqueta: `Subir ${PASO} % el descuento`,
+                      }}
+                      campo={{
+                        id: idDescuento,
+                        inputMode: "decimal",
+                        value: descuento,
+                        onChange: (e) => setDescuento(e.target.value),
+                        disabled: !puedeDarDescuento,
+                        placeholder: "0", // sugerir-fijo: el cero es «sin descuento», no un ejemplo que dependa de lo elegido
+                        "aria-label": "Descuento en porcentaje",
+                        autoComplete: "off",
+                        // El ancho de lo escrito: así el número y su «%» quedan al centro de la caja.
+                        style: { width: `${Math.max(1, (descuento || "0").length)}ch` },
+                      }}
+                    />
+                    {puedeDarDescuento && (
+                      <div role="group" aria-label="Descuentos de siempre" className="cph-rapidos">
+                        <button type="button" className="pildora-cayla" aria-pressed={pct.ok && pct.valor === null} onClick={() => setDescuento("")}>
+                          Sin descuento
+                        </button>
+                        {DESCUENTOS_RAPIDOS.map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            className="pildora-cayla tabular-nums"
+                            aria-pressed={pct.ok && pct.valor === v}
+                            onClick={() => setDescuento(String(v))}
+                          >
+                            {v} %
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                </Campo>
               </CampoGuiado>
 
               {/* El título del grupo va FUERA de la grilla: dentro, ocupaba la primera celda y partía Desde y Hasta en dos filas. */}
-              <CampoGuiado id="vigencia" guia={guia} titulo="Cuándo rige" ayuda="Opcional: sin fechas, rige siempre.">
+              {/* «Opcional: sin fechas…» solo con las fechas vacías: con fechas puestas, junto al ✓ invitaba a borrarlas (/formidable 2026-10-23). */}
+              <CampoGuiado id="vigencia" guia={guia} titulo="Cuándo rige" ayuda={desde.trim() || hasta.trim() ? undefined : "Opcional: sin fechas, rige siempre."}>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <CampoFecha etiqueta="Desde" valor={desde} onValor={setDesde} tono={fDesde.ok ? undefined : "error"} />
+                  {/* Cada calendario pinta la temporada entera: se elige una punta viendo dónde está la otra. */}
+                  <CampoFecha etiqueta="Desde" valor={desde} onValor={setDesde} tono={fDesde.ok ? undefined : "error"} rango={rangoElegido} />
                   <CampoFecha
                     etiqueta="Hasta"
                     valor={hasta}
                     onValor={setHasta}
                     tono={fHasta.ok && !objecion ? undefined : "error"}
                     pie={objecion ?? undefined}
+                    rango={rangoElegido}
                   />
                 </div>
+                {/* Si rige hoy, cuánto lleva (la misma barra de su pase en Insignias); y siempre que haya dos fechas, cuánto dura. */}
+                {avance && rangoElegido.desde && rangoElegido.hasta && (
+                  <div className="mt-3">
+                    <BarraAvance pct={avance.pct} alto="fina" tono="tinta" etiqueta={`Lo que lleva ${etiqueta.nombre}`} texto={`Día ${avance.dia} de ${avance.total}`} />
+                    <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-tinta/65">
+                      <span>{fechaCorta(rangoElegido.desde)}</span>
+                      <span>
+                        hoy, día {avance.dia} de {avance.total}
+                      </span>
+                      <span>{fechaCorta(rangoElegido.hasta)}</span>
+                    </div>
+                  </div>
+                )}
+                {duracion && <p className="mt-2 text-xs text-tinta/65">{duracion}</p>}
                 {/* Al repetir: sumar un año cambia el día de la semana. Si la fiesta va por día (el 2.º domingo de mayo), un toque
                     corre la temporada entera; si va por fecha (el 25 de diciembre), se deja como está. */}
                 {avisoDia && repetir?.mismoDia && (
@@ -515,39 +663,72 @@ export function CampanaModal({
                   </Aviso>
                 )}
               </CampoGuiado>
+
+              {/* ADR-0486: dónde rige el descuento. «Todas las sedes» es lo de siempre; elegir una o más tiendas limita el descuento
+                  a ellas (en las demás se cobra el precio normal). Marcar todas las tiendas vuelve a «Todas las sedes». */}
+              {ofreceSedes && (
+                <CampoGuiado
+                  id="sedes"
+                  guia={guia}
+                  titulo="Dónde rige"
+                  ayuda="Opcional: sin elegir, rige en todas las sedes."
+                  retiene="fila"
+                  className="mt-0"
+                >
+                  <div data-guia="atributos.campana-sedes" role="group" aria-label="Sedes donde rige el descuento" className="flex flex-wrap gap-1.5">
+                    <button type="button" className="pildora-cayla" aria-pressed={sedesElegidas.size === 0} onClick={() => setSedesElegidas(new Set())}>
+                      Todas las sedes
+                    </button>
+                    {tiendas.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className="pildora-cayla"
+                        aria-pressed={sedesElegidas.has(t.id)}
+                        onClick={() => setSedesElegidas((actual) => alternarSede(actual, t.id, tiendas))}
+                      >
+                        {t.nombre}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-xs text-tinta/65" aria-live="polite">
+                    {sedesElegidas.size === 0
+                      ? "El descuento se cobra en todas las tiendas."
+                      : `${textoSedesDeCampana([...sedesElegidas], tiendas)}: en las demás tiendas se cobra el precio normal.`}
+                  </p>
+                </CampoGuiado>
+              )}
             </div>
 
             <CampoGuiado id="categorias" guia={guia} retiene="fila">
-              <div className="flex items-baseline justify-between gap-3">
+              <div className="flex items-center justify-between gap-3">
                 <p className="label-cayla text-[11px] text-tinta/65">
-                  {guia.etiqueta("categorias", "Categorías")} <span className="font-normal normal-case text-tinta/45">· opcional</span>
+                  {guia.etiqueta("categorias", "Categorías")}
+                  {/* «· opcional» solo cuando la guía también lo dice: con un descuento que no llega a ninguna prenda, Categorías es
+                      «sugerido» y las dos señales juntas se contradecían (/formidable 2026-10-23). */}
+                  {guia.estado("categorias") === "opcional" && <span className="font-normal normal-case text-tinta/45"> · opcional</span>}
                 </p>
-                {elegidas.size > 0 && (
-                  <button type="button" onClick={() => setElegidas(new Set())} className="btn-cayla btn-enlace text-xs">
-                    Quitar todas
-                  </button>
-                )}
+                {/* Marcan varias de un toque: el botón chico sutil, no el enlace (ADR-0358, ronda 9). */}
+                <div className="flex items-center gap-2">
+                  {elegidas.size < categorias.length && (
+                    <button type="button" onClick={() => setElegidas(new Set(categorias.map((c) => c.id)))} className="btn-cayla btn-sutil btn-chico">
+                      Elegir todas
+                    </button>
+                  )}
+                  {elegidas.size > 0 && (
+                    <button type="button" onClick={() => setElegidas(new Set())} className="btn-cayla btn-sutil btn-chico">
+                      Quitar todas
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="mt-1 text-xs text-tinta/65" aria-live="polite">
                 {elegidas.size === 0
                   ? `Sin categorías, la campaña solo alcanza a las prendas marcadas a mano${alcance.aMano ? ` (${alcance.aMano})` : ": hoy ninguna"}.`
                   : `Alcanza a ${alcance.total} prenda${alcance.total === 1 ? "" : "s"} a la venta: ${alcance.porCategoria} de ${elegidas.size} categoría${elegidas.size === 1 ? "" : "s"}${alcance.aMano ? ` y ${alcance.aMano} marcada${alcance.aMano === 1 ? "" : "s"} a mano` : ""}.`}
               </p>
-              <div className="mt-3 space-y-3">
-                {[...porFamilia.entries()].map(([familia, lista]) => (
-                  <div key={familia}>
-                    <p className="text-[11px] text-tinta/60">{familia}</p>
-                    <ChipsCategorias lista={lista} elegidas={elegidas} prendasDe={prendasDe} onAlternar={alternar} />
-                  </div>
-                ))}
-                {sinPrendas.length > 0 && (
-                  <details open={sinPrendasElegida || undefined} className="border-t border-sand pt-2">
-                    <summary className="cursor-pointer text-[11px] text-tinta/60">
-                      Sin prendas todavía · {sinPrendas.length} categoría{sinPrendas.length === 1 ? "" : "s"}
-                    </summary>
-                    <ChipsCategorias lista={sinPrendas} elegidas={elegidas} prendasDe={prendasDe} onAlternar={alternar} />
-                  </details>
-                )}
+              <div className="mt-3">
+                <CategoriasDeCampana categorias={categorias} prendasDe={prendasDe} elegidas={elegidas} onAlternar={alternar} onFamilia={alternarFamilia} />
               </div>
             </CampoGuiado>
           </div>
@@ -557,43 +738,44 @@ export function CampanaModal({
               ? `En Vender, las prendas con est${T.o === "o" ? "e" : "a"} ${T.uno} llevan el descuento solas, dentro de las fechas. Si una prenda tiene varias campañas, se aplica solo la de mayor descuento.`
               : "Esto guarda la configuración. Todavía no cambia el precio en Vender."}
           </p>
+          </div>
 
-          <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div data-guia="atributos.campana-pie" className="pie-acciones pt-1">
-            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
-              Cancelar
-            </Boton>
-            <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!valido} title={guia.frase ?? undefined}>
-              Guardar
-            </Boton>
+          {/* ---- La etiqueta, a la derecha: dice lo que se va a guardar mientras se llena ---- */}
+          <aside data-guia="atributos.campana-etiqueta" className="eqp-lado" aria-label={`La etiqueta «${etiqueta.nombre}»`}>
+            <EtiquetaDeCampana
+              nombre={etiqueta.nombre}
+              descuento={pct.ok ? pct.valor : "mal"}
+              rango={!fDesde.ok || !fHasta.ok || objecion ? "Revisa las fechas" : (textoRango(fDesde.valor, fHasta.valor) ?? "Sin fechas: rige siempre")}
+              chip={fDesde.ok && fHasta.ok && !objecion ? chipDeTarjeta(vigenciaDe(fDesde.valor, fHasta.valor, hoy), alcance.total, hoy) : null}
+              total={alcance.total}
+              piezas={mosaico.piezas.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, familiaCodigo: c.familiaCodigo, prendas: c.prendas }))}
+              mas={mosaico.mas}
+              ejemplos={ejemplos}
+              categoriaDe={(id) => {
+                const c = id ? categorias.find((x) => x.id === id) : undefined;
+                return c && { id: c.id, nombre: c.nombre, prefijo: c.prefijo, familiaCodigo: c.familiaCodigo, prendas: prendasDe.get(c.id) ?? 0 };
+              }}
+              vueloRef={vuelo}
+              sello={sellada ? { estilo: etiqueta.estilo, anio: (rangoElegido.desde ?? rangoElegido.hasta)?.slice(0, 4) ?? null } : null}
+            />
+          </aside>
+
+          {/* ---- Lo que falta y los dos botones, siempre a la vista bajo la etiqueta (mitad y mitad: Felipe 2026-10-23) ---- */}
+          <div className="eqp-pie space-y-2.5">
+            {/* Con su frase a la vista: el porqué de lo que falta o se sugiere no puede vivir solo al pasar el mouse (ley 6). */}
+            <PieGuia guia={guia} listo="Todo listo para guardar." conFrase />
+            <div data-guia="atributos.campana-pie" className="pie-acciones pie-parejo">
+              <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
+                Cancelar
+              </Boton>
+              <Boton peso="primario" onClick={() => unaVez(guardar)} cargando={guardando} disabled={!valido} title={guia.frase ?? undefined}>
+                Guardar
+              </Boton>
+            </div>
           </div>
         </div>
       )}
     </Modal>
-  );
-}
-
-/** Las categorías de un grupo como píldoras que se eligen, cada una con cuántas prendas a la venta trae. */
-function ChipsCategorias({
-  lista,
-  elegidas,
-  prendasDe,
-  onAlternar,
-}: {
-  lista: CategoriaOpcion[];
-  elegidas: ReadonlySet<string>;
-  prendasDe: ReadonlyMap<string, number>;
-  onAlternar: (id: string) => void;
-}) {
-  return (
-    <div className="mt-1.5 flex flex-wrap gap-1.5">
-      {lista.map((c) => (
-        <button key={c.id} type="button" aria-pressed={elegidas.has(c.id)} onClick={() => onAlternar(c.id)} className="pildora-cayla">
-          {c.nombre}
-          <span className="text-[11px] font-normal tabular-nums opacity-70">{prendasDe.get(c.id) ?? 0}</span>
-        </button>
-      ))}
-    </div>
   );
 }
 

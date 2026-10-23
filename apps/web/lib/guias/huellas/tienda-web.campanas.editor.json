@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.editor",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 87,
+  "total": 92,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»",
@@ -19,17 +19,18 @@
       "BotonVer «Diseño en la tienda web»",
       "button «campana-web.prendas»",
       "button «campana-web.configurar»",
-      "CampoTexto «{guia.etiqueta(\"descuento\", \"Descuento (%)\")}»",
       "button «Sin descuento»",
       "button «{v}»",
       "CampoFecha «Desde»",
       "CampoFecha «Hasta»",
       "button «{avisoDia.boton}»",
       "BotonDeshacer «(sin nombre)»",
+      "button «Todas las sedes»",
+      "button «{t.nombre}»",
+      "button «Elegir todas»",
       "button «Quitar todas»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
-      "button «{c.nombre}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", `Nombre ${delUno}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #2",
@@ -66,6 +67,14 @@
       "Boton «Rechazar»",
       "button «{cambiando ? \"Desactivando…\" : \"Desactivar\"}»",
       "Boton «Reactivar»"
+    ],
+    "components/campana-hoja/CategoriasDeCampana.tsx": [
+      "Casilla «{`${c.nombre}»",
+      "Casilla «{`Toda la familia ${g.familia}»"
+    ],
+    "components/campana-hoja/EtiquetaDeCampana.tsx": [
+      "button «Prenda anterior»",
+      "button «Prenda siguiente»"
     ],
     "components/campanas-web/EditorCampana.tsx": [
       "button «{nombre}»",

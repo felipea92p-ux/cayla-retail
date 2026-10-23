@@ -90,3 +90,21 @@
 ## Actualización 2026-09-29 (ADR-0282)
 
 Se conservan la cámara en ráfaga y el bip (`EscanerConteo`, `debeContarLectura`, `sonido-conteo`). **Se reemplazan** «No se encontraron» / «No está → 0» / «Dejar como está» (una variante sin contar es «Pendiente», nunca 0; el cierre parcial se llama «Cerrar como conteo parcial» y deja las pendientes intactas), el recontar a ciegas (ahora se ve «CAYLA dice» y «Contaste») y las marcas locales `a-mano`/`recontar` en `localStorage` (el estado de reconteo vive en la base). También se retiran «Imprimir etiquetas · N» y «Lo que sigue» del detalle.
+
+## Actualización 2026-10-23 — toda lectura con la cámara suena
+
+Felipe: «al escanear con el teléfono y que reconozca una prenda, que siempre emita sonido, así como en Bajar en tandas». El bip de
+este ADR (`sonido-conteo.ts`, `PATRON_SONIDO`) deja de ser solo del conteo: suena en **toda** lectura con la cámara del teléfono.
+
+- **Dónde vive:** dentro de los escáneres que leen solos (`EscanerCamara` en Vender y Apartados, `EscanerBusqueda` en Existencias,
+  Cambios, Movimientos y Prendas de una etiqueta), no en cada pantalla, para que una pantalla nueva no pueda nacer muda. La pantalla
+  que ya sabe qué pasó devuelve su tono (`sonidoDeLecturaCamara`, `lib/escaner-reglas.ts`): agudo si reconoció la prenda o solo va a
+  buscarla, grave si responde en ámbar. `EscanerConteo` sigue dejando el sonido a la pantalla (es el camino de la pistola, con sus
+  matices de «nueva» y «suma»); Recibir traslado era la única pantalla que lo dibujaba sin sonar y ahora suena como Conteo.
+- **El iPhone:** solo deja arrancar el audio dentro de un toque, y la cámara lee sin que nadie toque. Por eso el contexto de audio se
+  crea y se despierta en el primer toque o tecla de la pantalla (el que abre la cámara), y no en la primera lectura.
+- **No se apaga** con «Sonido al confirmar» (ADR-0344): como el bip del conteo, es la confirmación de una lectura, no un adorno.
+- **Lo hace cumplir** `lib/escaner-sonido.test.ts`: todo archivo que abre el lector (`crearLector`) es uno de los tres escáneres;
+  los dos que suenan solos llaman a `avisarLectura` y no vibran a mano; y cada pantalla que dibuja `EscanerConteo` declara dónde suena.
+- **Descarté** `navigator.audioSession.type = "playback"` para sonar con el interruptor de silencio del iPhone: corta la música que
+  esté sonando en ese teléfono, y en una boutique con música eso es peor que un bip que no se oye.

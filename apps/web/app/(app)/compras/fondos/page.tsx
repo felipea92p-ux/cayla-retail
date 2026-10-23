@@ -1,6 +1,9 @@
 import { Wallet } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getDatosFondos } from "@/lib/fondos";
+import { getPlataPorConfirmar } from "@/lib/mi-plata";
+import { getRevisarCompras } from "@/lib/revisar-compras";
+import { BandejaRevisar } from "@/components/mi-plata/BandejaRevisar";
 import { TEXTO_MOVIMIENTO_FONDO, cifrasDeFondos, topeDevolucion, type MovimientoFondo } from "@/lib/fondos-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
@@ -11,13 +14,19 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonEnlace } from "@/components/ui/campos";
 import { AnularMovimientoFondo, DevolverFondo, EntregarFondo, PagarDeudaFondo } from "@/components/fondos/AccionesFondos";
 import { RevisarRendicion } from "@/components/fondos/RevisarRendicion";
 import { estadoPorFondo } from "@/lib/rendicion-reglas";
 import { deudasPorPersona } from "@/lib/deuda-fondo-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 
-// Compras ▸ Fondos por rendir (ADR-0362, fase 6 · actividad 1; decisiones 26, 29, 30, 34, 35 y 65): la plata que CAYLA le entrega a
+// Rediseño (maqueta docs/maquetas/compras-formidable-2026-10/, Felipe 2026-10-23): arriba, la BANDEJA de lo que anotaron las compradoras
+// (cuatro cifras que filtran, la lista y su detalle al lado: <BandejaRevisar>); lo de los fondos («Quién tiene plata», las rendiciones, las
+// entregas y devoluciones) pasa abajo y deja de ocupar media página: la cabecera lleva a ello con «Quién tiene plata».
+//
+// Compras ▸ Revisar compras (antes «Fondos por rendir»; ADR-0480 le cambia el nombre y la pantalla en la actividad 2, y en la 7 le suma las
+// compras por completar y los cierres del día; ADR-0362, fase 6 · actividad 1; decisiones 26, 29, 30, 34, 35 y 65): la plata que CAYLA le entrega a
 // quien compra, y cuánto tiene cada persona en la mano. Es el control contra el fraude que pidió Felipe: al final tiene que verse cuánto
 // le queda a cada una.
 //
@@ -73,7 +82,11 @@ const montoEnFrase = (n: number) => <span className="whitespace-nowrap">{soles(n
 
 export default async function FondosPage() {
   const persona = await exigirModulo("fondos");
-  const { fondos, movimientos, opciones, rendiciones, rendicionesFalla, deudas: filasDeuda, deudasFalla, falla } = await getDatosFondos();
+  const [{ fondos, movimientos, opciones, rendiciones, rendicionesFalla, deudas: filasDeuda, deudasFalla, falla }, plataAnotada, revisar] = await Promise.all([
+    getDatosFondos(),
+    getPlataPorConfirmar(),
+    getRevisarCompras(),
+  ]);
   const porAprobar = rendiciones.filter((r) => r.estado === "por_aprobar");
   const estado = estadoPorFondo(rendiciones);
   const deudas = deudasPorPersona(filasDeuda);
@@ -84,15 +97,41 @@ export default async function FondosPage() {
   const conDeuda = cifras.teDebe > 0;
   const plantillaFondos = conGasto ? PLANTILLA_FONDOS_GASTO : PLANTILLA_FONDOS_BASE;
   const entregar = <EntregarFondo opciones={opciones} />;
+  const acciones = (
+    <>
+      <BotonEnlace href="#quien-tiene-plata" peso="fantasma" data-guia="fondos.ir-quien-tiene">
+        Quién tiene plata
+      </BotonEnlace>
+      {entregar}
+    </>
+  );
 
   return (
     <div className="space-y-6">
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
-        titulo="Fondos por rendir"
-        subtitulo="La plata que le entregas a quien compra, y cuánto tiene cada persona en la mano."
-        acciones={falla ? undefined : entregar}
+        titulo="Revisar compras"
+        subtitulo="Lo que anotaron las compradoras desde el celular. Confírmalo y pásalo a los libros."
+        acciones={falla ? undefined : acciones}
       />
+
+      {/* La bandeja (ADR-0480, actividades 2 y 7; rediseño 2026-10-23). Si una de sus dos lecturas falla (la base sin la migración, o
+          caída), lo dice aparte y la bandeja muestra lo que sí se leyó: el resto de la pantalla sale igual. */}
+      {!falla && (plataAnotada === null || revisar === null) && (
+        <Aviso tono="atencion" titulo={plataAnotada === null ? "No se pudo leer la plata anotada" : "No se pudieron leer las compras por completar"} chico>
+          Vuelve a intentarlo en un momento.
+        </Aviso>
+      )}
+      {!falla && (
+        <BandejaRevisar
+          plata={plataAnotada ?? []}
+          papeles={revisar?.papeles ?? []}
+          gastos={revisar?.gastos ?? []}
+          cierres={revisar?.cierres ?? []}
+          proveedores={revisar?.proveedores ?? []}
+          cuentas={opciones.cuentas}
+        />
+      )}
 
       {falla ? (
         <Aviso tono="error" titulo="No se pudieron leer los fondos">
@@ -106,7 +145,8 @@ export default async function FondosPage() {
         </div>
       ) : (
         <>
-          <div className="@container" data-guia="fondos.cifras">
+          {/* Lo de los fondos empieza aquí: «Quién tiene plata» de la cabecera trae la vista hasta este punto. */}
+          <div className="@container scroll-mt-6 border-t border-sand pt-6" id="quien-tiene-plata" data-guia="fondos.cifras">
             <div className={`grid grid-cols-2 gap-3 ${conDeuda ? "@min-[48rem]:grid-cols-4" : "@min-[40rem]:grid-cols-3"}`}>
               <TarjetaCifra
                 etiqueta="Tienen en la mano"

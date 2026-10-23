@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 112,
+  "total": 117,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -97,6 +97,14 @@
       "Boton «Dejar para después»",
       "Boton «{guia.frase ?? undefined}»"
     ],
+    "components/recepcion-conteo/PapelesDeLaCompra.tsx": [
+      "a «Abrir el PDF del papel»",
+      "button «recepcion.papel-foto»"
+    ],
+    "components/recepcion-conteo/PreguntaDeLaCompra.tsx": [
+      "Boton «recepcion.son-estas»",
+      "Boton «recepcion.es-otra»"
+    ],
     "components/recepcion-conteo/ReabrirEnvio.tsx": [
       "CampoTexto «{guia.etiqueta(\"reabrir-motivo\", \"¿Por qué lo reabres?\")}»",
       "ComboResponsable «{responsable}»",
@@ -108,6 +116,7 @@
     ],
     "components/recepcion-conteo/SepararPrendas.tsx": [
       "button «{`Quitar ${etiqueta}»",
+      "button «Son estas (»",
       "button «Cambiar»",
       "Boton «Tallas y colores ahora»",
       "BotonEditar «Describir ahora»",

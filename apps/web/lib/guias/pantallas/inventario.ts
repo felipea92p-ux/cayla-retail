@@ -1552,6 +1552,48 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       titulo: "Tú hiciste la orden",
       texto: "Hiciste una de las órdenes de este envío: ves lo que trae, pero lo recibe otra persona de la tienda. Es la regla para todos, también para un líder: nadie da por recibido lo que él mismo pidió.",
     },
+    {
+      id: "papeles",
+      ancla: "recepcion.papeles",
+      opcional: true,
+      titulo: "El papel de la compra",
+      texto: "Si lo compraron desde el celular, aquí está la boleta, la factura o la nota que le dieron a la compradora, con quién compró. Se queda a la vista mientras cuentas.",
+    },
+    {
+      id: "papel-foto",
+      ancla: "recepcion.papel-foto",
+      opcional: true,
+      titulo: "La foto en grande",
+      texto: "Tócala y se abre en grande sobre la pantalla, sin perder lo que estás contando.",
+    },
+    {
+      id: "anotado",
+      ancla: "recepcion.anotado",
+      opcional: true,
+      titulo: "Lo que anotó la compradora",
+      texto: "Cada prenda que anotó al comprar, con cuántas: «Ahora» es la que sigue, «Contada» la que ya llegó completa.",
+    },
+    {
+      id: "pregunta",
+      ancla: "recepcion.pregunta",
+      opcional: true,
+      titulo: "¿Son estas?",
+      texto: "Arriba, cuánto llevas contado de lo que anotó. Debajo, la prenda que sigue: si es la que tienes en la mano, un toque y queda contada.",
+    },
+    {
+      id: "son-estas",
+      ancla: "recepcion.son-estas",
+      opcional: true,
+      titulo: "Son estas",
+      texto: "Pone en la prenda lo que anotó la compradora, igual que escribirlo en el contador. Se guarda solo. En la demo no lo tocamos.",
+    },
+    {
+      id: "es-otra",
+      ancla: "recepcion.es-otra",
+      opcional: true,
+      titulo: "Es otra prenda",
+      texto: "Si no coincide, la deja para después y la abre en el contador para que la cuentes a mano.",
+    },
     // ---- En camino: se lee lo que trae y se abre ----
     {
       id: "trae",
@@ -1605,6 +1647,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       titulo: "¿Qué prendas son? (opcional)",
       texto: "Si te da tiempo: busca una prenda del catálogo y pon cuántas eran; con sus tallas y colores entra al stock al cerrar. De lo nuevo dices cuántas y, si quieres, qué son con «Describir ahora». Lo que no separes queda para después.",
+    },
+    {
+      id: "elegida",
+      ancla: "recepcion.elegida",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "La que anotó la compradora",
+      texto: "Si la compradora eligió la prenda al comprar, aquí te la dice. Si es la que llegó, toca «Son estas» y queda separada sin buscarla. Tú confirmas: lo que cuentas es lo que vale.",
     },
     {
       id: "agregar",

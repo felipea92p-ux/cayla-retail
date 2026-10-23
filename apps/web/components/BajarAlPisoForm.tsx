@@ -1129,8 +1129,9 @@ export function BajarAlPisoForm({
             <Aviso tono="atencion">Este navegador no puede guardar tu lista: confirma antes de salir de la pantalla.</Aviso>
           )}
 
-          {/* Pie pegajoso al fondo: desde ADR-0206 el celular no tiene barra abajo (mismo patrón que FichaPrevia). */}
-          <div className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 sm:bottom-4 sm:mx-0 sm:rounded-xl sm:border sm:px-5 sm:py-3">
+          {/* Pie pegajoso al fondo: en el celular es la Isla pegada dentro del formulario (ADR-0479, actividad 12); desde `sm`, la
+              tarjeta de siempre a 16 px del borde. */}
+          <div data-pegada className="barra-abajo z-20 block px-4 py-3 sm:bottom-4 sm:rounded-xl sm:px-5 sm:py-3 sm:shadow-none sm:animate-none">
             <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
               <div data-guia="bajar.resumen" className="min-w-0">
                 <p className="font-display text-xl tabular-nums text-tinta">{textoDeResumen(resumen)}</p>

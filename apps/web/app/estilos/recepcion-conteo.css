@@ -14,7 +14,9 @@
 .rc-riel-linea { position: absolute; left: calc(16.67% + 18px); right: calc(16.67% + 18px); top: 24px; height: 2px; border-radius: 2px; background: var(--color-sand); overflow: hidden; }
 .rc-riel-linea > i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: var(--color-tinta); transition: width 450ms var(--ease-cayla); }
 .rc-parada { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 2px 6px 8px; border-radius: 14px; color: color-mix(in srgb, var(--color-tinta) 72%, transparent); transition: color 240ms var(--ease-cayla); }
-button.rc-parada:hover:not(:disabled) { color: var(--color-tinta); }
+@media (hover: hover) {
+  button.rc-parada:hover:not(:disabled) { color: var(--color-tinta); }
+}
 button.rc-parada:disabled { cursor: default; }
 .rc-punto { position: relative; z-index: 1; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--color-sand); background: var(--color-crema); font-size: 14px; font-weight: 700; transition: background-color 300ms var(--ease-cayla), border-color 300ms var(--ease-cayla), color 300ms var(--ease-cayla); }
 .rc-parada[data-estado="hecho"] .rc-punto { border-color: var(--color-verde); background: var(--color-verde); color: var(--color-crema-fija); }
@@ -45,11 +47,15 @@ button.rc-parada:disabled { cursor: default; }
 
 /* ---- La lista de categorías del envío ---- */
 .rc-cat-item { position: relative; display: flex; width: 100%; align-items: center; gap: 10px; padding: 10px 12px 10px 14px; border: 1px solid transparent; border-radius: 16px; text-align: left; transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla); }
-.rc-cat-item:hover { border-color: var(--color-sand); background: var(--color-papel); }
+@media (hover: hover) {
+  .rc-cat-item:hover { border-color: var(--color-sand); background: var(--color-papel); }
+}
 .rc-cat-item[aria-current="true"] { border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); background: var(--color-papel); translate: 4px 0; }
 .rc-cat-item .rc-cat-marca { position: absolute; left: -9px; }
 .rc-cat-agregar { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; padding: 11px 12px; border: 1px dashed color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 16px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); transition: color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
-.rc-cat-agregar:hover { border-color: color-mix(in srgb, var(--color-tinta) 45%, transparent); color: var(--color-tinta); }
+@media (hover: hover) {
+  .rc-cat-agregar:hover { border-color: color-mix(in srgb, var(--color-tinta) 45%, transparent); color: var(--color-tinta); }
+}
 
 /* ---- El contador ---- */
 /* La tarjeta de la categoría que se cuenta: encendida, como el campo que sigue en la guía de foco (ADR-0284). */
@@ -59,12 +65,16 @@ button.rc-parada:disabled { cursor: default; }
 .rc-numero input { width: 170px; border: 0; background: transparent; color: var(--color-tinta); outline: 0; text-align: center; font-family: var(--font-serif); font-size: 84px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
 .rc-numero input:focus-visible { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); text-decoration-thickness: 2px; text-underline-offset: 10px; }
 .rc-paso-btn { display: grid; place-items: center; width: 56px; height: 56px; border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 50%; background: var(--color-papel); color: var(--color-tinta); transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla), scale 120ms var(--ease-cayla); }
-.rc-paso-btn:hover:not(:disabled) { border-color: var(--color-tinta); background: var(--color-hueso); translate: 0 -2px; }
+@media (hover: hover) {
+  .rc-paso-btn:hover:not(:disabled) { border-color: var(--color-tinta); background: var(--color-hueso); translate: 0 -2px; }
+}
 .rc-paso-btn:active:not(:disabled) { scale: 0.94; translate: 0 0; }
 .rc-paso-btn:disabled { opacity: 0.3; }
 .rc-rapidos { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .rc-rapidos button { padding: 5px 14px; border: 1px solid var(--color-sand); border-radius: 999px; color: var(--color-taupe); font-size: 13px; font-weight: 600; transition: background-color 150ms var(--ease-cayla), border-color 150ms var(--ease-cayla), color 150ms var(--ease-cayla); }
-.rc-rapidos button:hover { border-color: color-mix(in srgb, var(--color-tinta) 45%, transparent); color: var(--color-tinta); }
+@media (hover: hover) {
+  .rc-rapidos button:hover { border-color: color-mix(in srgb, var(--color-tinta) 45%, transparent); color: var(--color-tinta); }
+}
 @media (max-width: 639px) { .rc-numero input { width: 130px; font-size: 64px; } }
 
 /* ---- Lo separado: una fila por prenda ---- */

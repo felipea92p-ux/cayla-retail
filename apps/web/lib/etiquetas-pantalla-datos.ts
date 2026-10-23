@@ -11,6 +11,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { getCostosVariantes } from "@/lib/catalogo-v2";
+import { getUbicaciones } from "@/lib/ubicaciones";
 import { getLecturaRotacion } from "@/lib/etiqueta-rotacion-datos";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { precioMasBajoEnTiendas } from "@/lib/precio-sede-reglas";
@@ -51,9 +52,14 @@ export async function cargarEtiquetasPantalla({
   const cargaRotacion = modo !== "campanas" && conRotacion ? getLecturaRotacion(esLider) : Promise.resolve(null);
   const cargaVitrina = conVitrina && puedeEditar ? leerVitrina(supabase) : Promise.resolve(null);
 
-  const [resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, preciosTiendas] = await Promise.all([
+  // Las tiendas donde rige cada campaña (ADR-0486; sin filas = todas) y las tiendas para elegir. Si la función aún no existe en esa base
+  // (PGRST202, la migración sin pegar), ninguna campaña está limitada y la hoja de Configurar no ofrece sedes.
+  const cargaSedes = supabase.rpc("campanas_sedes");
+  const cargaTiendas = getUbicaciones().then((u) => u.filter((x) => x.tipo === "tienda").map((x) => ({ id: x.id, nombre: x.nombre })));
+
+  const [resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, preciosTiendas, resSedes, tiendas] = await Promise.all([
     supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, vigente_desde, vigente_hasta, descuento_pct").order("nombre"),
-    supabase.from("categorias").select("id, nombre, familia").eq("activo", true).order("nombre"),
+    supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
     supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id"),
     supabase.from("familias").select("codigo, nombre"),
     puedeEditar
@@ -73,7 +79,16 @@ export async function cargarEtiquetasPantalla({
         )
       : Promise.resolve({ data: [], error: null }),
     cargaPreciosTiendas,
+    cargaSedes,
+    cargaTiendas,
   ]);
+
+  const sedesDeCampana = new Map<string, string[]>();
+  // Una lectura que falla deja todas las campañas «en todas las sedes»: lo que se ve es lo de siempre, y guardar no pisa nada que no se vio.
+  for (const f of resSedes.error ? [] : (resSedes.data ?? [])) {
+    sedesDeCampana.set(f.etiqueta_id, [...(sedesDeCampana.get(f.etiqueta_id) ?? []), f.ubicacion_id]);
+  }
+  const sedesDisponibles = !resSedes.error;
 
   const etiquetaCategorias = new Map<string, string[]>();
   for (const f of exigir(resEtiquetaCategorias, "las categorías de cada etiqueta")) {
@@ -91,6 +106,7 @@ export async function cargarEtiquetasPantalla({
       vigenteHasta: e.vigente_hasta,
       descuentoPct: e.descuento_pct,
       categoriaIds: (etiquetaCategorias.get(e.id) ?? []) as string[],
+      sedeIds: sedesDeCampana.get(e.id) ?? [],
     }))
     .filter((e) => modo === "todas" || esDelModo(e.estilo, modo));
   const costos = await cargaCostos;
@@ -104,6 +120,8 @@ export async function cargarEtiquetasPantalla({
       enSede: bajo.sede,
       costo: costos?.get(v.id) ?? 0,
       nombre: `${v.producto?.referencia ?? "Prenda"} (${v.sku})`,
+      // Una prenda es un modelo en un color, con la misma clave que el pase de Insignias (`prendasDelSello`): la hoja y el pase cuentan igual.
+      modelo: `${v.producto?.id ?? v.id}·${v.color_codigo ?? ""}`,
     };
   });
   const variantesManuales: Record<string, string[]> = {};
@@ -115,6 +133,9 @@ export async function cargarEtiquetasPantalla({
     id: c.id,
     nombre: c.nombre,
     familia: (c.familia && nombreFamilia.get(c.familia)) || "Sin familia",
+    // El ícono de la categoría en la etiqueta de la hoja «Configuración» (ADR-0488): `SinFoto` lo decide por el prefijo y el código de familia.
+    prefijo: c.prefijo,
+    familiaCodigo: c.familia,
   }));
   const vitrina = await cargaVitrina;
   const prendasVitrina: TallaVitrina[] | null = vitrina
@@ -134,7 +155,7 @@ export async function cargarEtiquetasPantalla({
         };
       })
     : null;
-  return { etiquetas, categorias, prendasConCosto, variantesManuales, rotacion: await cargaRotacion, prendasVitrina };
+  return { etiquetas, categorias, prendasConCosto, variantesManuales, rotacion: await cargaRotacion, prendasVitrina, tiendas: sedesDisponibles ? tiendas : [] };
 }
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;

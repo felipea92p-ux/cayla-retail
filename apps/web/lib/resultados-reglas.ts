@@ -206,9 +206,12 @@ export function conceptosER(columnas: readonly FilaER[]): ConceptoER[] {
     {
       clave: "mermas",
       nombre: "Mermas",
-      cuenta: "659",
+      // Las pérdidas de inventario van a la 6951 «Desvalorización de inventarios — mercaderías» (migración 20261023012000,
+      // provisional hasta el OK del contador). Antes iban a la 659: se sigue leyendo para que «De dónde sale» no quede vacío
+      // si la web y la base se publican en distinto orden, y mientras la 659 siga en el plan.
+      cuenta: "6951",
       tipo: "linea",
-      cuentas: ["659"],
+      cuentas: ["6951", "659"],
       valor: (f) => -f.mermas,
     },
     {
@@ -343,6 +346,10 @@ export type LineaDiario = {
   origenId: string;
   glosa: string;
 };
+
+/** El orden con que se pagina `fn_diario` (`rpc-por-paginas.ts`): un mes de ventas pasa de 5.000 líneas y PostgREST corta en 1.000. Entran todas las
+ *  columnas que distinguen una línea de otra: sin un orden único, dos páginas pueden repetir una línea o saltarse otra y la suma sale distinta. */
+export const ORDEN_DIARIO = ["fecha", "asiento", "cuenta", "debe", "haber", "origen_id", "regla", "ubicacion_id", "glosa"] as const;
 
 export function leerLineaDiario(r: Fila): LineaDiario {
   return {

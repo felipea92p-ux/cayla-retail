@@ -772,7 +772,21 @@ export const GUIA_SELLOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.configurar" }],
       titulo: "Descuento, fechas y categorías",
-      texto: "El descuento (los de siempre a un toque, o escribe otro), desde y hasta cuándo rige y las categorías, cada una con cuántas prendas trae. Abajo dice a cuántas prendas llega antes de guardar.",
+      texto: "El descuento: − y + lo mueven de 5 en 5, los de siempre van a un toque, o escribe otro. Luego cuándo rige (el calendario pinta la temporada entera) y las categorías por familia: la casilla de la familia las marca todas y el buscador encuentra una.",
+    },
+    {
+      id: "campana-etiqueta",
+      ancla: "atributos.campana-etiqueta",
+      opcional: true,
+      titulo: "La etiqueta, viva",
+      texto: "Mientras eliges, la etiqueta dice cómo queda: el descuento, las fechas y a cuántas prendas llega. En una pantalla ancha, además, sus categorías y cuánto cobra la caja por una prenda de verdad (con ‹ › ves otras).",
+    },
+    {
+      id: "campana-sedes",
+      ancla: "atributos.campana-sedes",
+      opcional: true,
+      titulo: "Dónde rige",
+      texto: "«Todas las sedes» cobra el descuento en cada tienda. Si eliges una o más tiendas, solo ahí se cobra: en las demás, el precio normal. Sirve para una promoción de una sola tienda.",
     },
     {
       id: "campana-pie",
@@ -786,7 +800,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.detalle",
       preparar: [{ tipo: "escape" }],
       titulo: "El pase, en grande",
-      texto: "Al lado, el pase abierto en grande: su nombre, una frase que dice cómo está y sus prendas, con su foto o, si no tiene, su categoría sobre su color.",
+      texto: "Al lado, el pase abierto en grande: su estado, su nombre y sus prendas, con su foto o, si no tiene, su categoría sobre su color.",
     },
     {
       id: "lookbook",

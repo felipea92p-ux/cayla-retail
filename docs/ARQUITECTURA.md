@@ -598,7 +598,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `coincideBusqueda`; las cifras de la maqueta como constantes: 2 semanas para «se acaba», 30 días para vigilar, 90 en rojo, «Liquidar desde»
   de 1 a 999 con 60 de fábrica —sin tope desde el 2026-10-07, `20261007100000`—). «Nunca salió al piso»: `lib/analisis-piso.ts` (tipos, cifras,
   dónde está lo que tienes, eje); «¿Para cuánto te alcanza?» contra Navidad: `alcancePorTipo` en `lib/analisis-pedir.ts`. A dónde lleva cada
-  botón: `lib/analisis-acciones.ts` (`hrefComprar` → `/produccion/ordenes?nueva=<producto>` o `/compras/nueva?prov=`; `hrefEnviar` →
+  botón: `lib/analisis-acciones.ts` (`hrefComprar` → `/produccion/ordenes?nueva=<producto>` o `/compras/mi-plata` (desde 2026-10-23, ADR-0480 act.); `hrefEnviar` →
   `/inventario/traslados/nuevo?lineas=&destino=&desde=analisis`; `hrefLiquidar` → `/etiquetas-de-precio?variantes=`; `hrefReponerPiso` →
   `/inventario/bajar?lineas=`; `hrefExistencias`, `hrefMovimientos`; `lineasParaPedir` → `PedirAOtraSedeModal` → RPC `pedir_a_otra_sede`,
   ADR-0242 D-7). Cada una devuelve null si la cuenta no ve el destino, y el botón no se dibuja. Análisis no escribe nada, salvo «Liquidar desde»:
@@ -846,7 +846,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   lectura de Rotación de `lib/etiqueta-rotacion-datos.ts`: `fn_analisis_sede` por tienda, unidades y vendidas en 30 días por talla) →
   `components/sellos/SellosPantalla.tsx`, una billetera de pases: las pestañas Campañas (la primera), Rotación, Artesanal y General
   (`?vista=`, se cambian sin navegar), las pilas y lo que dice cada pase en `lib/sellos-pases.ts` (`pilasDeLaVista`, `marcaDelPase`,
-  `prendasDelSello`, `fraseDelSello`, `loQueTiene`), el sello de tinta en `components/sellos/SelloTinta.tsx` y el movimiento en
+  `prendasDelSello`, `loQueTiene`), el sello de tinta en `components/sellos/SelloTinta.tsx` y el movimiento en
   `app/estilos/sellos.css`. Guarda por las mismas puertas de antes: crear (`POST /api/productos/etiquetas` con el estilo de la vista),
   aprobar, rechazar, desactivar y reactivar (`PATCH`), configurar o repetir (`CampanaModal` → `actualizar_campana_etiqueta`) y
   prendas (`PrendasDeEtiquetaModal`); imprime sus etiquetas de precio y enlaza al diseño (`/tienda-web/campanas/[id]`, para quien ve
@@ -1444,17 +1444,43 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   proveedor por su marca; es una lectura **opcional** (si falla llega `null` y todo se pinta sin marcas). Reglas puras:
   `marcasPorProveedor`, `textoBuscableProveedor`, `detalleProveedorCombo`, `marcasParaMostrar`. **No cubre** los buscadores de
   Comprobantes y Recepciones, que filtran el proveedor dentro de sus RPC (`listar_compras_operativo` y la de recepciones).
-- **Registrar factura (`/compras/nueva`)** (ADR-0452 act. 2026-10-21): `page.tsx` filtra el directorio con `proveedoresParaPedir` (salvo el
-  que llega por `?prov=`) y pasa `puedeAgregarProveedor` y `getRubrosEnUso`; `CompraFormV2` suma «+ Agregar proveedor» al combo
-  (`components/useAltaDeProveedor.tsx`, `ProveedorModal` fuera del `<form>`) y deja elegido al nuevo. `getCatalogoMarcas` (`lib/marcas-datos.ts`:
-  alta y edición de producto, conteo) filtra igual.
-- `/compras` (Facturas), `/compras/nueva`, `/compras/factura/[compraId]`,
+- **Registrar factura (`/compras/nueva`) se retiró el 2026-10-23** (ADR-0480 act.): la compra nace en «Mi plata para compras». `getCatalogoMarcas`
+  (`lib/marcas-datos.ts`: alta y edición de producto, conteo) sigue filtrando con `proveedoresParaPedir`.
+- `/compras` (Historial de compras, solo lectura), `/compras/factura/[compraId]`,
   `/compras/recibir`, `/compras/por-pagar` → `lib/compras.ts` →
-  `CompraFormV2`, `CompraDetalle` + `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
+  `CompraDetalle` + `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
-- **Notas de crédito** (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
+- **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en seis entradas: Plan de campaña, `/compras/mi-plata`
+  («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), `/compras/fondos` («Revisar
+  compras», módulo `fondos`), Proveedores, Facturas de proveedor y Por pagar. `/compras/ordenes` sigue en el código sin entrada en el menú.
+  Actividad 2: `/compras/mi-plata` → `lib/mi-plata.ts` (`fn_mi_plata_compras`) + `lib/mi-plata-reglas.ts` (puro: lectura, cifras, qué falta,
+  la cuenta sugerida) + `components/mi-plata/AnotarPlata.tsx` (`anotar_plata_compras`, la foto al depósito `retail-gastos-viaje/plata/`);
+  `/compras/fondos` suma `getPlataPorConfirmar` (`fn_plata_por_confirmar`, vouchers firmados) + `components/mi-plata/PlataPorConfirmar.tsx`
+  (`confirmar_plata_compras`). Tabla `fondo_plata_anotada`.
+  Actividad 3: `/compras/mi-plata/compra` → `lib/compra-rapida.ts` (`fn_proveedores_para_comprar`, categorías, `getDestinosOrden`,
+  `getMiPlata`) + `lib/compra-rapida-reglas.ts` (puro) + `components/mi-plata/RegistrarCompra.tsx` (`fn_habituales_proveedor` al elegir el
+  proveedor; `registrar_compra_rapida`, la foto a `retail-gastos-viaje/papeles/`). Tabla `compra_papeles`; columnas `ordenes_compra.papel_id`
+  y `orden_compra_items.producto_id`.
+  Actividad 4 (sin migración): la misma pantalla suma «Algo nuevo de este proveedor» (categorías con `prefijo`/`familia` y `marcas` leídas
+  en `lib/compra-rapida.ts`; la línea va sin `producto_id`) y «Nuevo proveedor», que reusa `components/ordenes-compra/RegistrarProveedorOrden.tsx`
+  (`registrar_proveedor_de_orden`).
+  Actividad 5 (migración `20261023114000`): `/compras/mi-plata` suma tres hojas en `components/mi-plata/`: «Gasté en otra cosa»
+  (`AnotarGasto.tsx` → `registrar_gasto_rapido`, foto en `gastos/`), «Mandar a la tienda» (`MandarATienda.tsx` → `mandar_compras_a_tienda`,
+  que arma las líneas pendientes de esa tienda y llama a `crear_envio`; `despachos.bultos`) y «Terminé de comprar hoy» (`TerminarDia.tsx` →
+  `terminar_dia_compras`). `fn_mi_plata_compras` lee también `gastos`, `por_mandar` y `hoy`; `fn_mi_plata_tiene` es la única cuenta de lo
+  que tiene. `?mandar=1` (desde «Listo» de la compra) abre «Mandar a la tienda».
+  Actividad 6 (migración `20261023121000`): `/recibir/envio/[id]` muestra los papeles de lo comprado desde el celular
+  (`components/recepcion-conteo/PapelesDeLaCompra.tsx`; `fn_envio_detalle` → `papeles`, foto firmada en `lib/recepcion-envio.ts`) y
+  `SepararPrendas` ofrece la prenda que eligió la compradora (`lineas[].producto`).
+  Actividad 7 (migración `20261023143000`): `/compras/fondos` suma `lib/revisar-compras.ts` (`fn_revisar_compras`, fotos de `papeles/`
+  firmadas) + `lib/revisar-compras-reglas.ts` (puro: lectura, si cuadra, qué falta) + `components/mi-plata/PapelesPorCompletar.tsx`
+  (`completar_papel_compra`: el comprobante pagado desde el fondo de quien compró; tabla `compra_item_recibido_antes`) y
+  `CierresPorRecibir.tsx` (`recibir_cierre_compras` → `devolver_fondo` o `entregar_fondo`) y `GastosPorRevisar.tsx`
+  (`revisar_gasto_compra` → `registrar_gasto_viaje`, fotos de `gastos/` firmadas).
+- ~~**Notas de crédito**~~ (retirada el 2026-10-22, ADR-0480: la pantalla, sus modales y `lib/notas-credito*.ts` se borraron;
+  `/compras/notas-credito` redirige a `/compras`; las tablas y RPC de abajo siguen en la base). Lo que era (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres
   partes del dinero, filtros y buscador) → `NotasCreditoPanel` (+ `NotaCreditoVistaRapida`, `NotaCreditoDetalle`,
   `RegistrarNotaCreditoModal`) → RPC `notas_credito_tablero()` (notas + notas pendientes en una llamada),
@@ -1464,6 +1490,16 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `compra_item_cierres`, `proveedor_creditos` (libro del saldo a favor, append-only) y `compra_adjuntos.nota_credito_id`.
   **Recepción ya no registra notas** (ADR-0142): solo avisa con un chip al módulo; `recibir_envio` sigue aceptando
   `p_notas_credito` pero la pantalla lo manda vacío.
+  Rediseño (2026-10-23, sin migración; maqueta `docs/maquetas/compras-formidable-2026-10/`): `/compras/mi-plata` suma `Billetera.tsx`,
+  `AccionDelDia.tsx` y `ListaDelDia.tsx` (`movimientosDeLaCompradora`); «Compré ropa» abre `HojaPrenda.tsx` por prenda (`camposPrenda`,
+  `lineaDeBorrador` en `lib/compra-rapida-reglas.ts`) y comparte `TarjetaFoto.tsx` con las hojas de Mi plata; `/compras/fondos` es una bandeja
+  (`BandejaRevisar.tsx` + `PanelDetalle.tsx`; filas en `lib/revisar-compras-reglas.ts`) y sus cuatro detalles (`DetallePlata`, `DetallePapel`,
+  `DetalleGasto`, `DetalleCierre`) son las hojas de antes; `/recibir/envio/[id]` suma `PreguntaDeLaCompra.tsx` (`lib/recibir-papel-reglas.ts`)
+  y `PapelesDeLaCompra.tsx` pasa a columna fija con la foto en grande. En el mismo PR, tres migraciones: la foto del papel opcional
+  (`20261023180000`); pagar ahora o después y con qué (`20261023181000`: `registrar_compra_rapida` con `p_pagado`/`p_medio`, `compra_papeles.pagado`
+  y `medio_pago`, lo que falta queda a crédito al completar); y la **ronda de compras** (`20261023183000`: `compra_rondas`, serie RC; RPC
+  `abrir_ronda_compras` desde `AbrirRonda.tsx` vía `lib/mi-plata-acciones.ts`; `terminar_dia_compras` cierra la ronda; `fn_ronda_compras_de` dentro de
+  `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres).
 - **Recibir mercadería: «Llegó mercadería» (ADR-0330, 2026-10-04)** — `/recibir` abre en la puerta única: `LlegoMercaderia.tsx`
   (lógica pura en `lib/llegada-reglas.ts`, con prueba) → RPC `recibir_lote` sin cambios (entra al almacén de la sede de la
   cabecera, token y cola sin conexión). Lee en el servidor el catálogo, los proveedores con sus marcas (`getMarcasPorProveedor`),
@@ -1618,7 +1654,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   de error en componentes.
 - Adjuntos de factura (ADR-0046, `20260914180000_compras_adjuntos.sql`):
   tabla `compra_adjuntos` + bucket privado `retail-compras-adjuntos`.
-  `AdjuntosCompra.tsx` (selector en `/compras/nueva`, lista en el detalle) →
+  `AdjuntosCompra.tsx` (lista en el detalle; el selector del alta se fue con `/compras/nueva`) →
   `lib/adjuntos-compra.ts` sube del navegador al bucket y registra la fila
   con `registrar_adjunto_compra`; `archivar_adjunto_compra` quita de la
   vista (nunca borra). URL firmada de 1 h en `lib/compras.ts`.
@@ -2132,9 +2168,9 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   precio en la tienda elegida y su nivel en cada tienda (lo libre de `fn_existencias_base`: piso + almacén, sin Cuarentena ni lo apartado,
   que incluye las reservas de los pedidos web; sin el Taller ni las tiendas escondidas). `null` si el modelo no se ve en la web (la página
   responde «Esta prenda ya no está»). `lib/ficha.ts` decide qué se ve al elegir color y talla, y `components/FichaPrenda.tsx` dibuja las
-  fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las piezas
+  fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las insignias de Catálogo ▸ Insignias que alcanzan al modelo (a mano o por categoría, aprobadas, vigentes hoy y de esa tienda; sin descuento: ese es el chip rojo) llegan en `prenda.insignias` (`fn_tienda_insignias`, `20261023182000`, ADR-0489) y `chipsDelCatalogo` las pone entre «Nuevo» y «N.º … en más vendidos». Cada chip lleva el dibujo de su insignia (la calabaza de Halloween…): los dibujos y el reconocimiento por nombre viven en `packages/shared/src/insignias-visual.ts` (datos; el ERP los pinta en `components/MuestraEtiqueta.tsx` y la tienda en `components/IconoInsignia.tsx`). Las piezas
   internas de las dos lecturas (`fn_tienda_nivel`, `fn_tienda_umbral`, `fn_tienda_sedes_web`, `fn_tienda_sede_elegida`,
-  `fn_tienda_disponible`, `fn_tienda_libre`, `fn_tienda_precio_talla`, `fn_tienda_precios`) no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones
+  `fn_tienda_disponible`, `fn_tienda_libre`, `fn_tienda_precio_talla`, `fn_tienda_precios`, `fn_tienda_insignias`) no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones
   rotas a propósito).
 - La ficha y las tarjetas conectadas (integración de las actividades 4, 5, 7, 11 y 12): en la ficha, `lib/ficha.ts` `botonDeLaFicha` decide
   el botón principal («Elige tu talla»; `components/bolsa/AgregarALaBolsa.tsx` si esa talla hay en alguna tienda de la web;

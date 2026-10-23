@@ -2,8 +2,18 @@
 
 import { DismissableLayer } from "radix-ui/internal";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { conVisto, duracionDe, retirarLoVisto, type TonoAviso } from "@/lib/avisos-reglas";
+import {
+  conVisto,
+  duracionDe,
+  ejeDelAviso,
+  opacidadDelAviso,
+  posicionDelAviso,
+  retirarLoVisto,
+  salidaDelAviso,
+  type TonoAviso,
+} from "@/lib/avisos-reglas";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
+import { velocidad, type Muestra } from "@/lib/hoja-gesto";
 
 /* ====================================================================
    Avisos · una sola voz, arriba a la derecha (2026-09-14)
@@ -76,6 +86,11 @@ import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
      una vez en el layout raíz.
    · Lo que es de un campo puntual ("Supera el saldo" bajo el monto)
      NO pasa por acá: eso es el campo hablando, no una notificación.
+   · En el celular (ADR-0479, actividad 8) no hay mouse que pause ni ✕ que
+     aparezca al pasar por encima: el ✕ está siempre a la vista, el aviso se
+     aparta con el dedo de lado o hacia arriba (como una notificación) y,
+     mientras el dedo lo toca, su reloj se detiene. La pila queda bajo la
+     isla del iPhone (`env(safe-area-inset-top)`). Reglas: lib/avisos-reglas.ts.
    ==================================================================== */
 
 export type { TonoAviso };
@@ -285,7 +300,7 @@ export function Avisos() {
       data-avisos
       aria-live="polite"
       aria-relevant="additions"
-      className="pointer-events-none fixed right-4 top-4 z-[100] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2"
+      className="pointer-events-none fixed right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-[100] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2"
     >
       {lista.length >= 3 && (
         <button type="button" onClick={() => cerrables.forEach((a) => cerrar(a.id))} className="aviso-cerrar-todos label-cayla text-[11px]">
@@ -322,6 +337,94 @@ function Glifo({ tono }: { tono: TonoAviso }) {
   );
 }
 
+/**
+ * Apartar el aviso con el dedo (ADR-0479, actividad 8): de lado o hacia arriba, como una notificación del celular. Solo
+ * toque y lápiz; con el mouse siguen el ✕ y la pausa al pasar por encima. Mientras el dedo la toca, el reloj se detiene
+ * (`data-tocando`, avisos.css). La posición va en línea con `important`: la entrada (`cayla-aviso-entra … both`) y la
+ * salida son animaciones, y una animación le gana a un estilo en línea normal. Reglas puras: lib/avisos-reglas.ts.
+ */
+function useApartarConElDedo(ref: React.RefObject<HTMLDivElement | null>, apartar: () => void) {
+  const alApartar = useRef(apartar);
+  useEffect(() => {
+    alApartar.current = apartar;
+  });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let gesto: { id: number; x0: number; y0: number; eje: "x" | "y" | null; muestras: Muestra[] } | null = null;
+    let arrastro = false;
+    let devolver = 0;
+    const pintar = (x: number, y: number, opacidad: number, ms = 0) => {
+      el.style.setProperty("transition", ms ? `transform ${ms}ms var(--ease-cayla), opacity ${ms}ms var(--ease-cayla)` : "none", "important");
+      el.style.setProperty("transform", `translate3d(${x}px, ${y}px, 0)`, "important");
+      el.style.setProperty("opacity", String(opacidad), "important");
+    };
+    function bajar(e: PointerEvent) {
+      if (e.pointerType === "mouse" || !e.isPrimary || el!.hasAttribute("data-saliendo")) return;
+      window.clearTimeout(devolver);
+      gesto = { id: e.pointerId, x0: e.clientX, y0: e.clientY, eje: null, muestras: [{ t: e.timeStamp, y: 0 }] };
+      arrastro = false;
+      el!.setAttribute("data-tocando", "");
+    }
+    function mover(e: PointerEvent) {
+      if (!gesto || e.pointerId !== gesto.id) return;
+      const dx = e.clientX - gesto.x0;
+      const dy = e.clientY - gesto.y0;
+      if (!gesto.eje) {
+        gesto.eje = ejeDelAviso(dx, dy);
+        if (!gesto.eje) return;
+        arrastro = true;
+        el!.setPointerCapture(e.pointerId);
+      }
+      const d = gesto.eje === "x" ? dx : dy;
+      gesto.muestras.push({ t: e.timeStamp, y: d });
+      const p = posicionDelAviso(gesto.eje, d);
+      const tamano = gesto.eje === "x" ? el!.offsetWidth : el!.offsetHeight;
+      pintar(gesto.eje === "x" ? p : 0, gesto.eje === "y" ? p : 0, opacidadDelAviso(gesto.eje, p, tamano));
+    }
+    function soltar(e: PointerEvent) {
+      if (!gesto || e.pointerId !== gesto.id) return;
+      const { eje, muestras } = gesto;
+      gesto = null;
+      el!.removeAttribute("data-tocando");
+      if (!eje) return;
+      const d = muestras[muestras.length - 1].y;
+      const tamano = eje === "x" ? el!.offsetWidth : el!.offsetHeight;
+      const salida = e.type === "pointercancel" ? null : salidaDelAviso(eje, d, velocidad(muestras), tamano);
+      const ms = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 220;
+      if (salida) {
+        // Sigue de largo hacia donde iba y la pila se cierra detrás (la salida de siempre colapsa su alto).
+        if (salida === "arriba") pintar(0, -(el!.offsetHeight + 32), 0, ms);
+        else pintar((salida === "derecha" ? 1 : -1) * (el!.offsetWidth + 32), 0, 0, ms);
+        alApartar.current();
+        return;
+      }
+      pintar(0, 0, 1, ms);
+      devolver = window.setTimeout(() => ["transition", "transform", "opacity"].forEach((p) => el!.style.removeProperty(p)), ms);
+    }
+    // Un arrastre no es un toque: al soltarlo no se dispara el botón de adentro («Deshacer», ✕).
+    function clic(e: MouseEvent) {
+      if (!arrastro) return;
+      arrastro = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    el.addEventListener("pointerdown", bajar);
+    el.addEventListener("pointermove", mover);
+    el.addEventListener("pointerup", soltar);
+    el.addEventListener("pointercancel", soltar);
+    el.addEventListener("click", clic, true);
+    return () => {
+      window.clearTimeout(devolver);
+      el.removeEventListener("pointerdown", bajar);
+      el.removeEventListener("pointermove", mover);
+      el.removeEventListener("pointerup", soltar);
+      el.removeEventListener("pointercancel", soltar);
+      el.removeEventListener("click", clic, true);
+    };
+  }, [ref]);
+}
+
 function Tarjeta({ aviso }: { aviso: Aviso }) {
   const [saliendo, setSaliendo] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -332,6 +435,7 @@ function Tarjeta({ aviso }: { aviso: Aviso }) {
     setSaliendo(true);
     setTimeout(() => cerrar(aviso.id), SALIDA_MS);
   }
+  useApartarConElDedo(ref, quitar);
   useEffect(() => {
     if (aviso.tono !== "error") return;
     function esc(e: KeyboardEvent) {

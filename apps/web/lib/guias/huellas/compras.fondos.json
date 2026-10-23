@@ -2,8 +2,11 @@
   "guia": "compras.fondos",
   "ruta": "/compras/fondos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 40,
+  "total": 68,
   "controles": {
+    "app/(app)/compras/fondos/page.tsx": [
+      "BotonEnlace «fondos.ir-quien-tiene»"
+    ],
     "components/fondos/AccionesFondos.tsx": [
       "Boton «fondos.entregar»",
       "CampoSelect «¿A quién le entregas?»",
@@ -49,6 +52,43 @@
       "Boton «Devolver para corregir»",
       "Boton «Devolver para corregir» #2",
       "Boton «{pieListaRevisar(lectura) ?? guia.frase ?? undefined}»"
+    ],
+    "components/mi-plata/BandejaRevisar.tsx": [
+      "button «→() => setElegido(fila.id)»"
+    ],
+    "components/mi-plata/CierresPorRecibir.tsx": [
+      "CampoSelect «{devuelve ? \"¿Dónde entra la plata?\" : \"¿De dónde sale?\"}»",
+      "CampoMonto «{devuelve ? \"¿Cuánto trajo?\" : \"¿Cuánto le pagas?\"}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «fondos.cierre-recibir»"
+    ],
+    "components/mi-plata/GastosPorRevisar.tsx": [
+      "a «Ver la foto en grande»",
+      "button «{PAPELES_GASTO[k].nombre}»",
+      "CampoTexto «Serie y número»",
+      "CampoTexto «RUC»",
+      "ComboResponsable «{responsable}»",
+      "Boton «fondos.gasto-revisar»"
+    ],
+    "components/mi-plata/PapelesPorCompletar.tsx": [
+      "a «Ver la foto en grande»",
+      "ComboBuscable «{proveedorId}»",
+      "button «No es este: cambiar»",
+      "CampoTexto «Serie»",
+      "CampoTexto «Número»",
+      "CampoTexto «Número» #2",
+      "CampoMonto «Lo que dice el papel»",
+      "button «Se anotó mal: cambiar el monto»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Más tarde»",
+      "Boton «fondos.papel-completar»"
+    ],
+    "components/mi-plata/PlataPorConfirmar.tsx": [
+      "a «Ver el voucher en grande»",
+      "CampoMonto «fondos.plata-monto»",
+      "CampoSelect «¿De qué cuenta salió?»",
+      "ComboResponsable «{responsable}»",
+      "Boton «fondos.plata-confirmar»"
     ]
   }
 }

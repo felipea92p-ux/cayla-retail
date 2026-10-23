@@ -50,7 +50,17 @@ export function objecionVigencia(desde: string | null, hasta: string | null): st
 /** `precio` es el MÁS BAJO al que se cobra la prenda en cualquier tienda (la campaña vale en todas: el peor caso es el que importa):
  *  el de la prenda o el propio de una tienda (`precioMasBajoEnTiendas`, Felipe 2026-10-10). `enSede` dice cuál tienda lo fija
  *  («Trujillo»), o `null` si es el de la prenda: el aviso nombra la tienda para que quien configura sepa dónde está el precio. */
-export type PrendaConCosto = { id: string; categoriaId: string | null; precio: number; costo: number; nombre: string; enSede?: string | null };
+export type PrendaConCosto = {
+  id: string;
+  categoriaId: string | null;
+  precio: number;
+  costo: number;
+  nombre: string;
+  enSede?: string | null;
+  /** El modelo en su color (`producto·color`, la clave del pase de Insignias): una prenda, con todas sus tallas. Sin él, cada talla
+   *  cuenta sola. Lo usan los conteos de la hoja y de la tarjeta (ADR-0488): «8 prendas» dicen lo mismo que el pase. */
+  modelo?: string;
+};
 
 /** Cómo se nombra una prenda en el aviso: «Falda Emma (FAL-0008-NEG-M) · precio más bajo: S/ 69.90 en Trujillo» si el precio más bajo
  *  al que se cobra es el propio de una tienda; el nombre tal cual si es el de la prenda. Dice un HECHO (el precio más bajo y dónde), no
@@ -58,6 +68,32 @@ export type PrendaConCosto = { id: string; categoriaId: string | null; precio: n
  *  (Un separador, no un paréntesis: el nombre ya lleva uno.) */
 export function nombreBajoCosto(p: Pick<PrendaConCosto, "nombre" | "enSede" | "precio">): string {
   return p.enSede ? `${p.nombre} · precio más bajo: S/\u00a0${p.precio.toFixed(2)} en ${p.enSede}` : p.nombre;
+}
+
+// ---- En qué tiendas rige una campaña (ADR-0486) ------------------------------------------------------------------------
+// Sin tiendas elegidas, rige en todas las sedes (como siempre). La base lo guarda en `campana_sedes` (sin filas = todas).
+
+export type TiendaOpcion = { id: string; nombre: string };
+
+/** Marcar o desmarcar una tienda. Si quedan marcadas TODAS, es «todas las sedes» (lista vacía): una tienda que se abra después no
+ *  se quedaría fuera de una campaña que la persona quería en todas. */
+export function alternarSede(elegidas: ReadonlySet<string>, tiendaId: string, tiendas: readonly TiendaOpcion[]): Set<string> {
+  const nuevo = new Set(elegidas);
+  if (nuevo.has(tiendaId)) nuevo.delete(tiendaId);
+  else nuevo.add(tiendaId);
+  return tiendas.length > 0 && tiendas.every((t) => nuevo.has(t.id)) ? new Set() : nuevo;
+}
+
+/** «Tienda Lima», «Tienda Lima y Tienda Trujillo», «Tienda Arequipa, Tienda Lima y Tienda Trujillo». */
+const enLista = (nombres: readonly string[]) =>
+  nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+
+/** Lo que dice la tarjeta de una campaña limitada a tiendas; `null` si rige en todas. */
+export function textoSedesDeCampana(sedeIds: readonly string[], tiendas: readonly TiendaOpcion[]): string | null {
+  if (sedeIds.length === 0) return null;
+  const nombres = sedeIds.map((id) => tiendas.find((t) => t.id === id)?.nombre).filter((n): n is string => Boolean(n));
+  if (nombres.length !== sedeIds.length) return sedeIds.length === 1 ? "Solo en una tienda" : `Solo en ${sedeIds.length} tiendas`;
+  return `Solo ${enLista(nombres)}`;
 }
 
 // ---- Cuánto alcanza una campaña, dicho ANTES de guardar --------------------------------
@@ -68,28 +104,38 @@ export function nombreBajoCosto(p: Pick<PrendaConCosto, "nombre" | "enSede" | "p
 export const DESCUENTOS_RAPIDOS = [10, 15, 20, 25, 30, 50] as const;
 
 /** Cuántas prendas a la venta trae cada categoría: lo que dice cada chip de la hoja de campaña. */
-export function prendasPorCategoria(prendas: readonly Pick<PrendaConCosto, "categoriaId">[]): Map<string, number> {
-  const cuenta = new Map<string, number>();
-  for (const p of prendas) if (p.categoriaId !== null) cuenta.set(p.categoriaId, (cuenta.get(p.categoriaId) ?? 0) + 1);
-  return cuenta;
+export function prendasPorCategoria(prendas: readonly Pick<PrendaConCosto, "id" | "categoriaId" | "modelo">[]): Map<string, number> {
+  // Una prenda es un modelo en un color: sus tallas cuentan una vez (como el pase de Insignias, ADR-0488).
+  const modelos = new Map<string, Set<string>>();
+  for (const p of prendas) {
+    if (p.categoriaId === null) continue;
+    const set = modelos.get(p.categoriaId) ?? new Set<string>();
+    set.add(p.modelo ?? p.id);
+    modelos.set(p.categoriaId, set);
+  }
+  return new Map([...modelos].map(([id, set]) => [id, set.size]));
 }
 
 export type AlcanceCampana = { porCategoria: number; aMano: number; total: number };
 
 /** A cuántas prendas a la venta llega una campaña: las de sus categorías, más las marcadas a mano que no entran ya por su
- *  categoría. Una marcada a mano que ya no está a la venta (una talla desactivada) no cuenta: en caja no se puede cobrar. */
+ *  categoría. Una marcada a mano que ya no está a la venta (una talla desactivada) no cuenta: en caja no se puede cobrar. Una prenda
+ *  es un modelo en un color (`modelo`), como en el pase: sus tallas cuentan una vez, y si una talla entra por su categoría el modelo
+ *  ya no cuenta como «marcado a mano». */
 export function alcanceCampana(
-  prendas: readonly Pick<PrendaConCosto, "id" | "categoriaId">[],
+  prendas: readonly Pick<PrendaConCosto, "id" | "categoriaId" | "modelo">[],
   categoriaIds: ReadonlySet<string>,
   varianteIdsManuales: ReadonlySet<string>,
 ): AlcanceCampana {
-  let porCategoria = 0;
-  let aMano = 0;
+  const porCategoria = new Set<string>();
+  const aMano = new Set<string>();
   for (const p of prendas) {
-    if (p.categoriaId !== null && categoriaIds.has(p.categoriaId)) porCategoria++;
-    else if (varianteIdsManuales.has(p.id)) aMano++;
+    const modelo = p.modelo ?? p.id;
+    if (p.categoriaId !== null && categoriaIds.has(p.categoriaId)) porCategoria.add(modelo);
+    else if (varianteIdsManuales.has(p.id)) aMano.add(modelo);
   }
-  return { porCategoria, aMano, total: porCategoria + aMano };
+  const soloAMano = [...aMano].filter((m) => !porCategoria.has(m)).length;
+  return { porCategoria: porCategoria.size, aMano: soloAMano, total: porCategoria.size + soloAMano };
 }
 
 // ---- Lo que dice la tarjeta de una etiqueta -------------------------------------------------------------------------------
@@ -103,7 +149,7 @@ export type ConteoTarjeta = AlcanceCampana & {
 };
 
 export function conteoDeTarjeta(
-  prendas: readonly Pick<PrendaConCosto, "id" | "categoriaId">[],
+  prendas: readonly Pick<PrendaConCosto, "id" | "categoriaId" | "modelo">[],
   categoriaIds: ReadonlySet<string>,
   manuales: readonly string[],
 ): ConteoTarjeta {
@@ -155,37 +201,85 @@ export function chipDeTarjeta(v: Vigencia | null, alcance: number | null, hoy: s
 }
 
 // ---- Reimprimir al guardar una campaña (actividad 5, ADR-0441) ---------------------------------------------------------------
-// La etiqueta de papel dice el precio que cobra la caja el día que se imprime (ADR-0180). Si al guardar una campaña cambia ese
-// precio HOY —otro %, fechas que la hacen regir o dejar de regir, categorías que entran o salen—, el papel queda mintiendo hasta
-// que alguien lo cambia. Una sola regla para las tres cosas: la prenda cuyo descuento de hoy no es el mismo antes y después.
+// La etiqueta de papel dice el precio que cobra la caja el día que se imprime, en la tienda donde se imprime (ADR-0180; la sede de
+// quien abre la impresión, `etiquetas-precio.ts`). Si al guardar una campaña cambia ese precio HOY —otro %, fechas que la hacen regir
+// o dejar de regir, categorías que entran o salen, tiendas donde rige (ADR-0486)—, el papel queda mintiendo hasta que alguien lo
+// cambia. Una sola regla para todo: la prenda cuyo descuento de hoy, en una tienda, no es el mismo antes y después.
 
-type CampanaParaImprimir = { descuentoPct: number | null; vigenteDesde: string | null; vigenteHasta: string | null; categoriaIds: readonly string[] };
+type CampanaParaImprimir = {
+  descuentoPct: number | null;
+  vigenteDesde: string | null;
+  vigenteHasta: string | null;
+  categoriaIds: readonly string[];
+  /** Las tiendas donde rige el descuento; vacío = todas las sedes (ADR-0486). */
+  sedeIds: readonly string[];
+};
 
-/** Las prendas a la venta (de `aLaVenta`) a las que guardar la campaña les cambia el precio en caja HOY: las que `quedan` con un
- *  descuento de esta campaña (otro %, o entran) y las que `salen` sin él (vuelven a su precio). Sin fechas rige siempre; una que
- *  viene o que ya pasó no rebaja hoy. No mira otras campañas: si una prenda sigue rebajada por otra mayor, se imprime igual y la
- *  etiqueta sale con lo que cobra la caja (no hace daño). */
+/** ¿Da su descuento en esa sede? La regla de `fn_campana_rige_en_sede`: sin tiendas elegidas, en todas; con tiendas, solo en ellas;
+ *  sin sede (`null`), solo la de todas las sedes. */
+function rigeEnSede(c: CampanaParaImprimir, sede: string | null): boolean {
+  return c.sedeIds.length === 0 || (sede !== null && c.sedeIds.includes(sede));
+}
+
+export type CambioDePrecio = {
+  /** Lo que imprime el botón del aviso: las prendas que cambian en la sede de quien guarda (la impresión sale con el precio de esa
+   *  sede). Las que `quedan` con un descuento de esta campaña (otro %, o entran) y las que `salen` sin él (vuelven a su precio). */
+  quedan: string[];
+  salen: string[];
+  /** Prendas distintas a las que les cambia el precio en caja en alguna tienda: el número que dice el aviso. */
+  total: number;
+  /** Las tiendas donde cambia, si no cambia lo mismo en todas: el aviso las nombra, porque su papel se cambia allá (Felipe,
+   *  2026-10-23). `null` si cambia igual en todas, o si no se conocen las tiendas. */
+  dondeCambia: TiendaOpcion[] | null;
+  /** La tienda de quien guarda, cuando el aviso nombra tiendas y ella es una: el botón imprime las suyas. */
+  aqui: TiendaOpcion | null;
+};
+
+/** A qué prendas a la venta (de `aLaVenta`) guardar la campaña les cambia el precio en caja HOY, tienda por tienda (`donde.tiendas`),
+ *  y cuáles de ellas se imprimen desde la sede de quien guarda (`donde.aqui`). Sin fechas rige siempre; una que viene o que ya pasó
+ *  no rebaja hoy. No mira otras campañas: si una prenda sigue rebajada por otra mayor, se imprime igual y la etiqueta sale con lo que
+ *  cobra la caja (no hace daño). Sin tiendas conocidas (una base sin ADR-0486), mira las que nombra la campaña y una cualquiera. */
 export function prendasQueCambianDePrecioHoy(
   antes: CampanaParaImprimir,
   despues: CampanaParaImprimir,
   aLaVenta: readonly Pick<PrendaConCosto, "id" | "categoriaId">[],
   manuales: ReadonlySet<string>,
   hoy: string,
-): { quedan: string[]; salen: string[] } {
-  const pctHoy = (c: CampanaParaImprimir, p: Pick<PrendaConCosto, "id" | "categoriaId">) => {
-    if (c.descuentoPct === null) return 0;
+  donde: { tiendas: readonly TiendaOpcion[]; aqui: string | null } = { tiendas: [], aqui: null },
+): CambioDePrecio {
+  const pctHoy = (c: CampanaParaImprimir, p: Pick<PrendaConCosto, "id" | "categoriaId">, sede: string | null) => {
+    if (c.descuentoPct === null || !rigeEnSede(c, sede)) return 0;
     const v = vigenciaDe(c.vigenteDesde, c.vigenteHasta, hoy);
     if (v && v.estado !== "vigente") return 0;
     const alcanzada = manuales.has(p.id) || (p.categoriaId !== null && c.categoriaIds.includes(p.categoriaId));
     return alcanzada ? c.descuentoPct : 0;
   };
-  const quedan: string[] = [];
-  const salen: string[] = [];
-  for (const p of aLaVenta) {
-    const ahora = pctHoy(despues, p);
-    if (pctHoy(antes, p) !== ahora) (ahora > 0 ? quedan : salen).push(p.id);
-  }
-  return { quedan, salen };
+  const enSede = (sede: string | null) => {
+    const quedan: string[] = [];
+    const salen: string[] = [];
+    for (const p of aLaVenta) {
+      const ahora = pctHoy(despues, p, sede);
+      if (pctHoy(antes, p, sede) !== ahora) (ahora > 0 ? quedan : salen).push(p.id);
+    }
+    return { quedan, salen };
+  };
+
+  // Una tienda que ninguna de las dos versiones nombra se comporta como «sin sede»: solo le llega la campaña de todas las sedes.
+  const sedes = donde.tiendas.length > 0 ? donde.tiendas.map((t) => t.id) : [...new Set([...antes.sedeIds, ...despues.sedeIds]), null];
+  const porSede = sedes.map((sede) => ({ sede, ...enSede(sede) }));
+  const aqui = enSede(donde.aqui);
+  const total = new Set([...porSede.flatMap((s) => [...s.quedan, ...s.salen]), ...aqui.quedan, ...aqui.salen]).size;
+
+  // Se nombran las tiendas solo si el cambio no es el mismo en todas: otro % de una campaña de todas las sedes se imprime en cada una
+  // igual que antes, sin lista.
+  const huella = (s: { quedan: string[]; salen: string[] }) => [...s.quedan, ...s.salen].sort().join(",");
+  const tiendasConCambio = donde.tiendas.filter((_, i) => porSede[i].quedan.length + porSede[i].salen.length > 0);
+  const parejo = tiendasConCambio.length === donde.tiendas.length && porSede.every((s) => huella(s) === huella(porSede[0]));
+  if (tiendasConCambio.length === 0 || parejo) return { ...aqui, total, dondeCambia: null, aqui: null };
+
+  // Con tiendas nombradas, el botón imprime solo si quien guarda está en una de ellas; si no, su papel no cambió.
+  const tiendaAqui = tiendasConCambio.find((t) => t.id === donde.aqui) ?? null;
+  return { ...(tiendaAqui ? aqui : { quedan: [], salen: [] }), total, dondeCambia: tiendasConCambio, aqui: tiendaAqui };
 }
 
 // Cuántas tallas caben en un enlace a la impresión: cada id son 37 letras, y la pantalla vuelve a pedirlas a la base en otra URL.
@@ -204,15 +298,25 @@ export function destinoReimprimir(cambian: { quedan: readonly string[]; salen: r
 
 /** El aviso de éxito al guardar, con un botón para imprimir si el papel quedó viejo. El botón no lleva número: la pantalla de
  *  impresión saca una etiqueta por UNIDAD en la tienda (14 tallas y colores pueden ser 32 etiquetas), y un «Imprimir las 14»
- *  que abre «Imprimir 32 etiquetas» hace dudar. */
-export function avisoReimprimir(cambian: number, conEnlace = true): { detalle: string; boton: string | null } | null {
-  if (cambian === 0) return null;
-  const detalle =
-    cambian === 1
-      ? "Cambió el precio en caja de 1 prenda: su etiqueta de papel dice el de antes."
-      : `Cambió el precio en caja de ${prendas(cambian)}: sus etiquetas de papel dicen el de antes.`;
+ *  que abre «Imprimir 32 etiquetas» hace dudar. Si el cambio no es igual en todas las tiendas, el aviso dice en cuáles: la
+ *  impresión sale con el precio de la sede de quien la abre, así que el botón solo aparece si esa sede es una de ellas («Imprimir
+ *  las de Tienda Arequipa»); si no, el aviso pide imprimirlas allá (Felipe, 2026-10-23). Un número (Prendas, Editar producto, que
+ *  todavía no miran las tiendas) es un cambio igual en todas, que se imprime desde aquí. */
+export function avisoReimprimir(cambio: CambioDePrecio | number, conEnlace = true): { detalle: string; boton: string | null } | null {
+  const c = typeof cambio === "number" ? null : cambio;
+  const total = typeof cambio === "number" ? cambio : cambio.total;
+  if (total === 0) return null;
+  const una = total === 1;
+  const donde = c?.dondeCambia ? ` en ${enLista(c.dondeCambia.map((t) => t.nombre))}` : "";
+  const detalle = `Cambió el precio en caja de ${prendas(total)}${donde}: ${una ? "su etiqueta de papel dice" : "sus etiquetas de papel dicen"} el de antes.`;
+  const aqui = c ? c.quedan.length + c.salen.length : total;
+  if (aqui === 0) {
+    const alla = !c?.dondeCambia ? "cada tienda" : c.dondeCambia.length === 1 ? "esa tienda" : "esas tiendas";
+    return { detalle: `${detalle} ${una ? "Imprímela" : "Imprímelas"} en ${alla}.`, boton: null };
+  }
   if (!conEnlace) return { detalle: `${detalle} Son muchas para abrirlas juntas: imprímelas por categoría desde Existencias.`, boton: null };
-  return { detalle, boton: cambian === 1 ? "Imprimir su etiqueta" : "Imprimir sus etiquetas" };
+  if (c?.aqui) return { detalle, boton: `Imprimir ${aqui === 1 ? "la" : "las"} de ${c.aqui.nombre}` };
+  return { detalle, boton: aqui === 1 ? "Imprimir su etiqueta" : "Imprimir sus etiquetas" };
 }
 
 /** Las prendas del alcance de una campaña que quedarían con precio menor que su costo.

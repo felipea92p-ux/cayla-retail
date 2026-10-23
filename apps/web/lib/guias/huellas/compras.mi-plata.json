@@ -1,0 +1,45 @@
+{
+  "guia": "compras.mi-plata",
+  "ruta": "/compras/mi-plata",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 21,
+  "controles": {
+    "components/mi-plata/AbrirRonda.tsx": [
+      "Boton «Abrir mi ronda de compras»"
+    ],
+    "components/mi-plata/AccionDelDia.tsx": [
+      "Link «{guia}»",
+      "button «{guia}»"
+    ],
+    "components/mi-plata/AnotarGasto.tsx": [
+      "button «{CONCEPTOS_GASTO[k].ejemplo}»",
+      "CampoTexto «¿Qué fue?»",
+      "CampoMonto «mi-plata.monto-gasto»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/mi-plata/AnotarPlata.tsx": [
+      "Casilla «{`${MEDIOS_PLATA.ya_tenia.nombre}»",
+      "CampoMonto «mi-plata.monto»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/mi-plata/ListaDelDia.tsx": [
+      "BotonVerMas «mi-plata.antes»"
+    ],
+    "components/mi-plata/MandarATienda.tsx": [
+      "button «mi-plata.mandar»",
+      "Boton «{t === porMandar[0] ? \"mi-plata.mandar-uno\" : undefined}»"
+    ],
+    "components/mi-plata/TarjetaFoto.tsx": [
+      "input «(sin nombre)»"
+    ],
+    "components/mi-plata/TerminarDia.tsx": [
+      "Boton «mi-plata.termine»",
+      "button «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «mi-plata.terminar»"
+    ]
+  }
+}

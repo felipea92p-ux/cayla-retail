@@ -6,10 +6,11 @@
 //            sin apartadas, sin cuarentena, sin tallas retiradas, sin pruebas). Solo trae las prendas con al menos una unidad: una
 //            prenda que no está en el mapa tiene 0. Una tienda cuya lectura falló NO aparece (la pantalla dice «no pudimos leer el
 //            stock» en vez de dibujar ceros que parecerían ciertos).
-//   ASUME:   que quien llama ve Existencias (la puerta de `fn_existencias` es `fn_tiene_acceso_retail`) y que cada tienda tiene menos de
-//            1.000 prendas con stock: PostgREST corta ahí sin avisar (hoy son 160 filas en toda la red; se revisa si crece).
+//   ASUME:   que quien llama ve Existencias (la puerta de `fn_existencias` es `fn_tiene_acceso_retail`). Se lee por páginas: PostgREST corta en
+//            1.000 filas sin avisar y TRU ya da 1.489 (2026-10-23; cuenta también las prendas con stock 0).
 //   SE DEGRADA: nunca lanza. Es lo accesorio: sin stock la pantalla sigue entera (se puede regularizar igual; la base es la que decide).
 import { createClient } from "./supabase/server";
+import { leerRpcPorPaginas, ORDEN_FN_EXISTENCIAS } from "./rpc-por-paginas";
 
 type FilaExistencias = { variante_id: string; disponible: number };
 
@@ -20,13 +21,10 @@ export async function getDisponiblePorSede(ubicacionIds: readonly string[]): Pro
   const lecturas = await Promise.all(
     sedes.map(async (sede) => {
       try {
-        // `fn_existencias` todavía no está en los tipos generados: se llama con la forma de su resultado escrita aquí (como Traslados).
-        const { data, error } = (await supabase.rpc("fn_existencias" as never, { p_ubicacion_id: sede } as never)) as unknown as {
-          data: FilaExistencias[] | null;
-          error: { message: string } | null;
-        };
+        const { data, error } = await leerRpcPorPaginas(supabase, "fn_existencias", { p_ubicacion_id: sede }, ORDEN_FN_EXISTENCIAS, { enParalelo: 1 });
         if (error || !data) return null;
-        return [sede, Object.fromEntries(data.filter((f) => Number(f.disponible) > 0).map((f) => [f.variante_id, Number(f.disponible)]))] as const;
+        const filas = data as unknown as FilaExistencias[];
+        return [sede, Object.fromEntries(filas.filter((f) => Number(f.disponible) > 0).map((f) => [f.variante_id, Number(f.disponible)]))] as const;
       } catch {
         return null;
       }

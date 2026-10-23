@@ -74,6 +74,8 @@ export default async function DisenarCampanaPage({ params, searchParams }: { par
             <TarjetaDeCampana
               campana={campanaDatos}
               categorias={datos.categorias}
+              tiendas={datos.tiendas}
+              sedeActualId={persona.ubicacionId}
               prendasConCosto={datos.prendasConCosto}
               variantesManuales={datos.variantesManuales[id] ?? []}
             />

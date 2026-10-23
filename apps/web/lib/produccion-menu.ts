@@ -32,7 +32,7 @@ export type PerfilMenu = {
  *  solo le queda ella ahí, se disuelve a `ordenesInsumos`. */
 export type ClaveMenuProduccion = "resumenProduccion" | "ordenes" | "insumos" | "abastecimiento" | "recibirProduccion" | "ordenesInsumos";
 
-export type ClaveMenuCompras = "plan" | "proveedores" | "ordenesCompra" | "comprobantes" | "recibir" | "porPagar" | "notasCredito";
+export type ClaveMenuCompras = "plan" | "miPlata" | "fondos" | "proveedores" | "comprobantes" | "porPagar";
 
 /** Compras es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra (decisión de Felipe, 2026-09-21), del
  *  mismo modo que Producción no se muestra parado en una tienda. Se decide por el TIPO de la ubicación activa, no por su
@@ -54,7 +54,7 @@ export function hijosMenuProduccion(perfil: PerfilMenu): ClaveMenuProduccion[] {
 }
 
 /** Compras es solo de quien ve el dinero (su layout redirige al resto) y solo en tiendas y almacenes (`puedeVerCompras`).
- *  Proveedor → factura → recepción → pago → notas de crédito. El «Recibir mercadería» de quien no es líder vive en
+ *  Plan → mi plata → revisar → proveedor → factura → pago (ADR-0480). El «Recibir mercadería» de quien no es líder vive en
  *  Inventario, donde está el stock. */
 export function hijosMenuCompras(perfil: PerfilMenu): ClaveMenuCompras[] {
   return hijosDe("compras", perfil) as ClaveMenuCompras[];

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { Proveedor } from "@/lib/proveedores";
 import { soles } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -77,14 +76,6 @@ export function ProveedorVistaRapida({
       navegacion={{ indice: posicion.indice, total: posicion.total, onNavegar, que: "Proveedor", circular: true }}
       pie={
         <>
-          {p.activo && (
-            <Link
-              href={`/compras/nueva?prov=${p.id}`}
-              className="btn-cayla btn-secundario"
-            >
-              + Comprobante
-            </Link>
-          )}
           {/* Desactivar es lo peligroso (rojo desde el principio, ADR-0358 ronda 7, como en la vista rápida de un producto); reactivar, no. */}
           <Boton textoCargando={p.activo ? "Desactivando…" : "Reactivando…"} type="button" peso={p.activo ? "peligro" : "discreto"} cargando={cambiando} onClick={onCambiarEstado} className="px-3 py-2">
             {p.activo ? "Desactivar" : "Reactivar"}

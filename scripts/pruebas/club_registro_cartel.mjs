@@ -102,6 +102,14 @@ if (ANCLADOS_AVISOS_SEDE.length !== 1) {
   console.error(`✗ Esperaba 1 reemplazo anclado de fn_club_avisos_pendientes en 20261020151000 y encontré ${ANCLADOS_AVISOS_SEDE.length}.`);
   process.exit(1);
 }
+// Campañas por sede (20261023162000, ADR-0486): otro reemplazo anclado en fn_club_avisos_pendientes (la rebaja que avisa es la de esa tienda).
+// La migración busca la función por su nombre y no lo reconoce el patrón de arriba: se escribe aquí. Se deshace igual, para medir la lista de
+// avisos contra el «después» de su archivo de puntos.
+ANCLADOS_AVISOS_SEDE.push({
+  firma: "retail.fn_club_avisos_pendientes(uuid)",
+  viejo: "retail.campanas_vigentes() cv",
+  nuevo: "retail.campanas_vigentes(p_ubicacion_id) cv",
+});
 const DESHACER_PUNTOS = `do $deshacer_puntos$
 begin
 ${[...ANCLADOS_PUNTOS, ...ANCLADOS_AVISOS_SEDE].map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}

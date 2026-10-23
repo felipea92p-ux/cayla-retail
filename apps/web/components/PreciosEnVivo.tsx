@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
 import { navegacionSinEspera } from "@/components/ui/Espera";
 import { cambioLaFirma, escribiendoEn, firmaDePrecios, type FilaCampana } from "@/lib/precios-en-vivo-firma";
 import { hayPreciosPropios } from "@/lib/precios-en-vivo-registro";
@@ -24,7 +25,7 @@ const CADA_MS = 10_000;
  *   sondea (`hayPreciosPropios`).
  * Sondeo y no Supabase Realtime por la razón de ADR-0018 (la publicación vive en el proyecto compartido con Dynamic).
  */
-export function PreciosEnVivo() {
+export function PreciosEnVivo({ ubicacionId }: { ubicacionId: string }) {
   const router = useRouter();
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export function PreciosEnVivo() {
       enCurso = true;
       try {
         const supabase = createClient();
-        const [resVersion, resCampanas] = await Promise.all([supabase.rpc("fn_catalogo_version"), supabase.rpc("campanas_vigentes")]);
+        const [resVersion, resCampanas] = await Promise.all([supabase.rpc("fn_catalogo_version"), leerCampanasVigentes(supabase, ubicacionId)]);
         if (cancelado) return;
         const version = resVersion.error || resVersion.data === null ? null : Number(resVersion.data);
         // Sin la función de campañas en esa base (PGRST202) no hay campañas: lista vacía, como al cargar Vender.
@@ -91,7 +92,7 @@ export function PreciosEnVivo() {
       window.removeEventListener("online", alVolver);
       document.removeEventListener("focusout", alSalirDeCampo);
     };
-  }, [router]);
+  }, [router, ubicacionId]);
 
   return null;
 }

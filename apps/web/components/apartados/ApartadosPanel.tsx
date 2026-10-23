@@ -190,7 +190,7 @@ export function ApartadosPanel(props: Props) {
       <EnCuerpo>
       <nav
         aria-label="Apartados"
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral sm:pr-[env(safe-area-inset-right)] lg:hidden"
       >
         {pestañas.map((p) => (
           <button
