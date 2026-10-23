@@ -9,6 +9,7 @@ import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
+import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
 import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
 import { TicketPorSede } from "@/components/punto-de-venta/TicketPorSede";
@@ -71,7 +72,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // a verificar `registrar_venta`. Es un dato secundario: si no carga, se vende sin
     // ella y se AVISA (abajo), en vez de tumbar la caja. Mientras la función no exista en
     // producción (PGRST202) no hay campañas que aplicar: sin aviso.
-    supabase.rpc("campanas_vigentes", { p_ubicacion_id: persona.ubicacionId }),
+    // Por páginas: una campaña de todas las categorías pasa de las 1.000 filas que PostgREST entrega (2.518 en TRU el 2026-10-23).
+    leerCampanasVigentes(supabase, persona.ubicacionId),
     // Listas cerradas del modal «Prenda sin registrar» (ADR-0179), las mismas que usa Ventas sin registrar al corregir (ADR-0369).
     // Si alguna no carga, la caja sigue vendiendo: esa lista sale vacía y el modal no deja agregar la prenda.
     leerListasPrendaLibre(),
