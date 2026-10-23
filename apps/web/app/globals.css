@@ -1975,7 +1975,8 @@ html[data-buscando] [data-resultados] {
   [data-teclado] > .cascada-modal {
     max-height: 100%;
     padding-bottom: calc(var(--teclado, 0px) + 1.5rem);
-    scroll-padding-bottom: calc(var(--teclado, 0px) + 1rem);
+    /* `--alto-pie`: el pie fijo (Cancelar / Agregar) también tapa; sin él, el campo enfocado quedaba debajo del pie (2026-10-23). */
+    scroll-padding-bottom: calc(var(--teclado, 0px) + var(--alto-pie, 0px) + 1rem);
   }
   /* Bajo el pie fijo no asoma nada: si el navegador reportó corto lo visible, entre el pie y el teclado quedaría a la vista
      el contenido que pasa por detrás. Este paño del color de la hoja lo tapa (detrás del teclado no se ve). */
