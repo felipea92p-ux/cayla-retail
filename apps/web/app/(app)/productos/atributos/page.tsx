@@ -108,7 +108,7 @@ async function leerTemporadas(supabase: Supabase): Promise<{ datos: DatosPestana
 // Las rutas viejas siguen funcionando vía `redirects()` en next.config.ts.
 export default async function AtributosPage({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
   const { tipo: tipoParam } = await searchParams;
-  // `?tipo=etiquetas` (los sellos, la primera pestaña hasta el 2026-10-22) lo redirige next.config.ts a Catálogo ▸ Sellos.
+  // `?tipo=etiquetas` (los sellos, la primera pestaña hasta el 2026-10-22) lo redirige next.config.ts a Catálogo ▸ Insignias.
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("atributos");
   const supabase = await createClient();
@@ -195,8 +195,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
                   talla, tejido, patrón y temporada. En los cuatro primeros, cualquiera con sesión
                   propone un valor nuevo y lo puede usar de inmediato; un Líder lo aprueba o lo
                   rechaza después. La temporada es una lista fija de nueve: en su pestaña se ve el
-                  calendario y se completan las prendas que todavía no la tienen. Los sellos (Nuevo,
-                  Top ventas, las campañas) viven en Catálogo ▸ Sellos.
+                  calendario y se completan las prendas que todavía no la tienen. Las insignias (Nuevo,
+                  Top ventas, las campañas) viven en Catálogo ▸ Insignias.
                 </Ayuda>
               </span>
             </>

@@ -124,9 +124,10 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // Calendario con corazón: las fechas del año en que se vende distinto (el módulo Campañas, ADR-0473). Distinto del megáfono
   // de Plan de campaña, que es cuánto comprar para una. Desde el 2026-10-22 no tiene fila propia: es el ícono del módulo en Roles.
   calendarioCampana: "M12 22H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4H3M8 2v4M16 2v4M21.29 14.7a2.43 2.43 0 0 0-2.65-.52c-.3.12-.57.3-.8.53l-.34.34-.35-.34a2.43 2.43 0 0 0-2.65-.53c-.3.12-.56.3-.79.53-.95.94-1 2.53.2 3.74L17.5 22l3.6-3.55c1.2-1.21 1.14-2.8.19-3.74z", // lucide «calendar-heart»
-  // Un sello de goma: Catálogo ▸ Sellos (Felipe 2026-10-22), lo que se le marca a una prenda, con las campañas dentro. No la etiqueta
+  // Una medalla: Catálogo ▸ Insignias (Felipe 2026-10-22; se llamó «Sellos», con un sello de goma, hasta el 2026-10-23), lo que se le
+  // marca a una prenda, con las campañas dentro. No la insignia dentada con «%» de Liquidación, que va justo debajo, ni la etiqueta
   // colgante de Categorías ni la cinta de Atributos.
-  sellos: "M5 22h14 M19.27 13.73A2.5 2.5 0 0 0 17.5 13h-11A2.5 2.5 0 0 0 4 15.5V17a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1.5c0-.66-.26-1.3-.73-1.77Z M14 13V8.5C14 7 15 7 15 5a3 3 0 0 0-6 0c0 2 1 2 1 3.5V13", // lucide «stamp»
+  insignias: "M15.477 12.89l1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526 M6 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0", // lucide «award»
   ordenesInsumos: "M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01", // lucide «clipboard-list»
   // Mano con monedas: la plata que se le entrega en la mano a quien viaja a comprar (Fondos por rendir, ADR-0362 fase 6).
   fondos: "M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17M7 21l1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9M2 16l6 6M13.1 9a2.9 2.9 0 1 0 5.8 0a2.9 2.9 0 1 0-5.8 0M3 5a3 3 0 1 0 6 0a3 3 0 1 0-6 0", // lucide «hand-coins»
@@ -181,8 +182,8 @@ const APARTE: Partial<Record<ClaveModulo, ClaveIcono | null>> = {
   atributos: "atributos",
   // Resumen y Reportes de Finanzas son dos filas del mismo módulo; en Roles se dibuja como los reportes.
   reportes_financieros: "reportes",
-  // Campañas (`campanas`) no tiene fila propia desde el 2026-10-22: abre la de Sellos (su `moduloAlterno`). En Roles lleva su
-  // calendario con corazón, para no confundirse con el sello de goma del módulo Sellos (`etiquetas`).
+  // Campañas (`campanas`) no tiene fila propia desde el 2026-10-22: abre la de Insignias (su `moduloAlterno`). En Roles lleva su
+  // calendario con corazón, para no confundirse con la medalla del módulo Insignias (`etiquetas`).
   campanas: "calendarioCampana",
   colaboradores: "colaboradores",
   // Actividad no es una fila: es el botón de la cabecera (ADR-0207), que dibuja el reloj con flecha del Historial (`BotonActividad`).

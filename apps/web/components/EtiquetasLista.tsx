@@ -79,7 +79,7 @@ import { TEXTOS_MODO, type ModoEtiquetas } from "@/lib/sellos-campanas";
 // Los grupos (nombre, color del punto y orden) los comparte el campo «Etiquetas» de Nuevo producto: `lib/etiqueta-grupos.ts`.
 type Estilo = EstiloEtiqueta;
 
-// Desde el 2026-10-22 la lista de tarjetas ya no vive aquí: Catálogo ▸ Sellos es una billetera de pases
+// Desde el 2026-10-22 la lista de tarjetas ya no vive aquí: Catálogo ▸ Insignias es una billetera de pases
 // (`components/sellos/SellosPantalla.tsx`). Este archivo guarda lo que esa pantalla y Tienda web ▸ Campañas comparten: la fila, la
 // tarjeta de UNA campaña (`TarjetaDeCampana`) y las hojas que guardan (`CampanaModal`, `NuevaEtiquetaModal`).
 export type Etiqueta = {
@@ -213,7 +213,7 @@ function TarjetaEtiqueta({
 
 /**
  * UNA campaña, con la misma tarjeta, los mismos botones («Prendas», «Configurar» o «Repetir») y las mismas hojas que en
- * Catálogo ▸ Sellos. La monta la ficha de Tienda web ▸ Campañas (pestaña «Datos y prendas»): Felipe, 2026-10-22, «que se pueda
+ * Catálogo ▸ Insignias. La monta la ficha de Tienda web ▸ Campañas (pestaña «Datos y prendas»): Felipe, 2026-10-22, «que se pueda
  * editar, agregar prendas y demás cosas a las campañas desde ambos módulos» y «mismas piezas dentro» (ADR-0473). Guarda por las
  * mismas rutas; la base decide quién puede (`fn_puede_campanas`).
  */
@@ -264,7 +264,7 @@ export function TarjetaDeCampana({
         )}
       </TarjetaEtiqueta>
       {!editable && (
-        <p className="nota-cayla mt-3 text-xs">Esta campaña está desactivada o pendiente de aprobar: se cambia en Catálogo ▸ Sellos.</p>
+        <p className="nota-cayla mt-3 text-xs">Esta campaña está desactivada o pendiente de aprobar: se cambia en Catálogo ▸ Insignias.</p>
       )}
       {etiquetando && (
         <PrendasDeEtiquetaModal

@@ -247,8 +247,8 @@ export const PRUEBAS = [
   // nadie directo y sus CHECK dejan fuera todo lo que la tienda no conoce. ROLLBACK.
   "pruebas:campanas-web",
 
-  // La llave de las campañas (ADR-0476): con «Campañas», «Campañas de la tienda web» o «Sellos» se crea, se guarda, se le ponen
-  // prendas y se desactiva una campaña; sin ninguno, cada puerta la rechaza; un sello que no es campaña sigue siendo de Sellos. ROLLBACK.
+  // La llave de las campañas (ADR-0476): con «Campañas», «Campañas de la tienda web» o «Insignias» se crea, se guarda, se le ponen
+  // prendas y se desactiva una campaña; sin ninguno, cada puerta la rechaza; una insignia que no es campaña sigue siendo de Insignias. ROLLBACK.
   "pruebas:campanas-llave-unica",
 
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Candado de los límites de ADR-0136 para Catálogo ▸ Sellos (excepción del 2026-10-22): Felipe pidió «sofisticado, elegante y con full
+// Candado de los límites de ADR-0136 para Catálogo ▸ Insignias (excepción del 2026-10-22): Felipe pidió «sofisticado, elegante y con full
 // animaciones» y eligió la billetera de pases. El sello se estampa, el pase se abre, el título sube por su ranura, el detalle y las prendas
 // entran en cascada y el visto se dibuja: UNA vez, con la curva del sistema, solo colores del tema y apagado con «reducir movimiento».
 // El punto que respiraba junto a «rige hoy» en la maqueta quedó fuera: un bucle nuevo lo decide Felipe aparte.
@@ -11,7 +11,7 @@ const hoja = readFileSync(join(__dirname, "../app/estilos/sellos.css"), "utf8");
 const css = hoja.replace(/\/\*[\s\S]*?\*\//g, "");
 const antesDeReducir = css.slice(0, css.indexOf("@media (prefers-reduced-motion: reduce)"));
 
-describe("sellos.css — los límites del movimiento (ADR-0136, excepción de Sellos)", () => {
+describe("sellos.css — los límites del movimiento (ADR-0136, excepción de Insignias)", () => {
   it("ninguna animación se repite: nada en bucle", () => {
     expect(css).not.toMatch(/\binfinite\b/);
     for (const m of css.matchAll(/animation-iteration-count\s*:\s*([^;]+);/g)) expect(m[1]!.trim()).toBe("1");
@@ -50,9 +50,9 @@ describe("sellos.css — los límites del movimiento (ADR-0136, excepción de Se
   });
 });
 
-// Nada de Sellos late por su cuenta: un `repeatCount="indefinite"` o un `animate-*` de Tailwind que se repite sería un bucle nuevo
+// Nada de Insignias late por su cuenta: un `repeatCount="indefinite"` o un `animate-*` de Tailwind que se repite sería un bucle nuevo
 // sin decisión de Felipe.
-describe("Sellos — sin bucles en los componentes", () => {
+describe("Insignias — sin bucles en los componentes", () => {
   const carpeta = join(__dirname, "../components/sellos");
   const tsx = readdirSync(carpeta).filter((f) => f.endsWith(".tsx"));
   it("existen las piezas", () => {

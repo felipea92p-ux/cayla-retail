@@ -1,6 +1,6 @@
 {
   "guia": "productos.sellos",
-  "ruta": "/productos/sellos",
+  "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 74,
   "controles": {

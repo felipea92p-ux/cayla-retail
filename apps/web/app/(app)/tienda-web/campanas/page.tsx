@@ -7,7 +7,7 @@ import { CampanasPantalla } from "@/components/campanas-web/CampanasPantalla";
 
 // Tienda web ▸ Campañas (Felipe 2026-10-21; maqueta docs/maquetas/campanas-tienda-2026-10): cómo se ve la tienda online durante cada
 // campaña. Esta primera entrega solo LEE: las campañas de Etiquetas con el diseño que ya tengan. Las fechas, el % y las prendas no se
-// tocan aquí: se arman en Catálogo ▸ Sellos (ADR-0473; una sola fuente de verdad, así la tienda nunca dice un precio distinto al de la caja).
+// tocan aquí: se arman en Catálogo ▸ Insignias (ADR-0473; una sola fuente de verdad, así la tienda nunca dice un precio distinto al de la caja).
 export default async function CampanasWebPage() {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("campanas_web");
@@ -21,7 +21,7 @@ export default async function CampanasWebPage() {
         sede={persona.ubicacionEtiqueta}
         detalle="Tienda web"
         titulo="Campañas"
-        subtitulo="Cómo se ve la tienda online durante cada campaña. Las fechas, el descuento y las prendas se siguen armando en Catálogo ▸ Sellos."
+        subtitulo="Cómo se ve la tienda online durante cada campaña. Las fechas, el descuento y las prendas se siguen armando en Catálogo ▸ Insignias."
       />
       {lectura ? (
         <CampanasPantalla lectura={lectura} puedeIrACampanas={veModulo(persona, "campanas")} />

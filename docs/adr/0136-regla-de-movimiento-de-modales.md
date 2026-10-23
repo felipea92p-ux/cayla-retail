@@ -450,7 +450,7 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   pintada sin globals.css) y la foto en `apps/web/public/aventurero.webp` (recortada para que el texto no tape al gato; la pantalla del
   monitor y el teléfono no se leen a ese tamaño).
 
-## Actualización 2026-10-22 — Catálogo ▸ Sellos, la billetera de pases (ADR-0481), pedido por Felipe
+## Actualización 2026-10-22 — Catálogo ▸ Insignias (se llamó «Sellos» hasta el 2026-10-23), la billetera de pases (ADR-0481), pedido por Felipe
 
 - **Qué:** el sello de tinta se estampa al aparecer (baja, gira a su lugar y deja un anillo de tinta que se abre), el pase se abre y se cierra
   (su cuerpo baja de 0fr a 1fr y lo de adentro entra en cascada), el pase cerrado sube 8 px al pasar el mouse, el título del pase abierto sube

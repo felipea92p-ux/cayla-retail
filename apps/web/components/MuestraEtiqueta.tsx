@@ -248,7 +248,7 @@ const ICONOS: Record<IconoEtiqueta | "generico", DibujoIcono> = {
 };
 
 /** El dibujo de una etiqueta por su nombre (el mismo de su tarjeta), para quien lo pone en otro marco: el centro del sello de tinta de
- *  Catálogo ▸ Sellos (`components/sellos/SelloTinta.tsx`). Centrado en (0,0) dentro de ±14; `a` es el color de su trazo. */
+ *  Catálogo ▸ Insignias (`components/sellos/SelloTinta.tsx`). Centrado en (0,0) dentro de ±14; `a` es el color de su trazo. */
 export function dibujoDeEtiqueta(nombre: string): DibujoIcono {
   return ICONOS[iconoDeEtiqueta(nombre) ?? "generico"];
 }

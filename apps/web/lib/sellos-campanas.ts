@@ -1,9 +1,10 @@
-// Sellos y campañas: dos pantallas sobre la misma tabla `etiquetas` (ADR-0473, Felipe 2026-10-22).
+// Insignias y campañas: dos modos sobre la misma tabla `etiquetas` (ADR-0473, Felipe 2026-10-22; se llamaron «Sellos» hasta el
+// 2026-10-23, ADR-0481, y en el código siguen llamándose `sellos`: la clave no se renombra).
 //
-// PROMETE: qué filas ve cada pantalla (una campaña es la que tiene estilo `campana`; todo lo demás es un sello), cómo se
-//   nombra cada una en pantalla (con su género: «el sello», «la campaña») y en qué tramo cae una campaña por su fecha. Las pilas de
-//   Catálogo ▸ Sellos (la billetera de pases, 2026-10-22) salen de aquí: `lib/sellos-pases.ts`.
-// ASUME: que `estilo` ya llegó pasado por `estiloConocido` (lib/etiqueta-grupos.ts): un valor raro es un sello, nunca se pierde.
+// PROMETE: qué filas ve cada pantalla (una campaña es la que tiene estilo `campana`; todo lo demás es una insignia), cómo
+//   se nombra cada una en pantalla (con su género: «la insignia», «la campaña») y en qué tramo cae una campaña por su fecha. Las pilas de
+//   Catálogo ▸ Insignias (la billetera de pases, 2026-10-22) salen de aquí: `lib/sellos-pases.ts`.
+// ASUME: que `estilo` ya llegó pasado por `estiloConocido` (lib/etiqueta-grupos.ts): un valor raro es una insignia, nunca se pierde.
 // Lógica pura, sin red: se importa desde el servidor y desde el cliente, y se prueba con `sellos-campanas.test.ts`.
 
 import { vigenciaDe } from "./etiqueta-vigencia";
@@ -11,7 +12,7 @@ import type { EstiloEtiqueta } from "./etiqueta-grupos";
 
 export type ModoEtiquetas = "sellos" | "campanas";
 
-/** ¿Esta fila es de esta pantalla? Una campaña es SOLO la de estilo `campana`; un sello, todo lo demás. */
+/** ¿Esta fila es de esta pantalla? Una campaña es SOLO la de estilo `campana`; una insignia, todo lo demás. */
 export function esDelModo(estilo: EstiloEtiqueta, modo: ModoEtiquetas): boolean {
   return modo === "campanas" ? estilo === "campana" : estilo !== "campana";
 }
@@ -22,13 +23,13 @@ export const TEXTOS_MODO: Record<
   { uno: string; varios: string; la: string; o: string; nuevo: string; ejemplo: string; filtrar: string; agregarDetalle: string }
 > = {
   sellos: {
-    uno: "sello",
-    varios: "sellos",
-    la: "el",
-    o: "o",
-    nuevo: "Nuevo sello",
-    ejemplo: "Ej. Edición limitada, Básico", // sugerir-fijo: un sello nuevo no depende de nada elegido antes en la hoja
-    filtrar: "Filtrar sellos",
+    uno: "insignia",
+    varios: "insignias",
+    la: "la",
+    o: "a",
+    nuevo: "Nueva insignia",
+    ejemplo: "Ej. Edición limitada, Básico", // sugerir-fijo: una insignia nueva no depende de nada elegido antes en la hoja
+    filtrar: "Filtrar insignias",
     agregarDetalle: "Queda disponible de inmediato para cualquier prenda.",
   },
   campanas: {

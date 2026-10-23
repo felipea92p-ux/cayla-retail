@@ -21,7 +21,7 @@ import {
   type TallaVitrina,
 } from "./sellos-pases";
 
-// Las fechas y los sellos de producción del 2026-10-22, el día en que Felipe eligió la billetera de pases.
+// Las fechas y las insignias de producción del 2026-10-22, el día en que Felipe eligió la billetera de pases.
 const HOY = "2026-10-22";
 const fila = (id: string, estilo: FilaSello["estilo"], desde: string | null, hasta: string | null, extra: Partial<FilaSello> = {}): FilaSello => ({
   id,
@@ -51,7 +51,7 @@ const FILAS: FilaSello[] = [
   fila("Para liquidar — Taller", "neutral", null, null, { activo: false }),
 ];
 
-describe("las vistas son los cuatro grupos de sellos", () => {
+describe("las vistas son los cuatro grupos de insignias", () => {
   it("cada estilo va a una sola vista, y crear desde una vista nace con su estilo", () => {
     for (const v of VISTAS_SELLOS) expect(vistaDeEstilo(ESTILO_DE_VISTA[v])).toBe(v);
   });
@@ -75,7 +75,7 @@ describe("las pilas de pases", () => {
     ]);
     expect(paseInicial(pilas)?.id).toBe("Aniversario CAYLA");
   });
-  it("un sello no cae en Campañas aunque tenga fechas, y una pila vacía no sale", () => {
+  it("una insignia no cae en Campañas aunque tenga fechas, y una pila vacía no sale", () => {
     expect(pilasDeLaVista(FILAS, "rotacion", HOY).map((p) => [p.clave, p.pases.map((f) => f.id)])).toEqual([["activos", ["Nuevo", "Últimas unidades"]]]);
     expect(pilasDeLaVista(FILAS, "general", HOY).map((p) => p.clave)).toEqual(["activos", "apagadas"]);
     expect(pilasDeLaVista([], "artesanal", HOY)).toEqual([]);
@@ -117,7 +117,7 @@ describe("la cabecera de un pase", () => {
   });
 });
 
-describe("las prendas de un sello, por modelo y color", () => {
+describe("las prendas de una insignia, por modelo y color", () => {
   const talla = (id: string, productoId: string, color: string, categoriaId: string | null = "cat-acc"): TallaVitrina => ({
     id,
     categoriaId,
@@ -172,7 +172,7 @@ describe("lo que dice el pase abierto", () => {
     expect(fraseDelSello(FILAS[6]!, ninguna, [], HOY)).toContain("Pasó el 14 feb");
     expect(fraseDelSello(FILAS[5]!, ninguna, [], HOY)).toContain("sin fechas");
     expect(fraseDelSello(FILAS[9]!, una, [], HOY)).toBe("2 prendas · 12 unidades en las tiendas.");
-    expect(fraseDelSello(FILAS[11]!, ninguna, [], HOY)).toBe("Ninguna prenda lo lleva todavía.");
+    expect(fraseDelSello(FILAS[11]!, ninguna, [], HOY)).toBe("Ninguna prenda la lleva todavía.");
   });
   it("lo que tiene una campaña: fechas y prendas la hacen funcionar; el descuento es opcional", () => {
     expect(loQueTiene(FILAS[0]!, 0, [], HOY).map((x) => [x.clave, x.hecho, x.opcional])).toEqual([

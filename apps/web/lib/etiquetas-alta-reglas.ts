@@ -82,7 +82,7 @@ export function agruparEtiquetas(etiquetas: readonly EtiquetaAlta[]): GrupoDeEti
 }
 
 /** «20 % dto», «12.5 % dto»: lo que la campaña descuenta, tal cual (no se redondea: 12.5 no es 13), si descuenta. Mismo formato
- *  que Catálogo ▸ Sellos (`es-PE`). */
+ *  que Catálogo ▸ Insignias (`es-PE`). */
 export function textoDeDescuento(et: Pick<EtiquetaAlta, "descuentoPct">): string | null {
   if (et.descuentoPct === null) return null;
   return `${et.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} % dto`;
@@ -128,7 +128,7 @@ export function significadoDelTexto(
 }
 
 /** Lo que se dice cuando lo escrito no se puede crear como etiqueta (hoy: trae comas). */
-export const FRASE_ETIQUETA_INVALIDA = "Las etiquetas se agregan de a una: escribe una y da Enter, sin comas.";
+export const FRASE_ETIQUETA_INVALIDA = "Las insignias se agregan de a una: escribe una y da Enter, sin comas.";
 
 /** La frase de una etiqueta que existe pero no se agrega como nueva (el «por qué» que reemplaza a un botón muerto). */
 export function fraseDeExistente(motivo: Extract<SignificadoTexto, { tipo: "existe" }>["motivo"]): string {
@@ -140,7 +140,7 @@ export function fraseDeExistente(motivo: Extract<SignificadoTexto, { tipo: "exis
     case "campana":
       return "Esa campaña ya aplica sola a esta categoría: no hace falta agregarla.";
     case "propuesta":
-      return "Ya la propusiste: falta que un líder la apruebe en Catálogo → Atributos.";
+      return "Ya la propusiste: falta que un líder la apruebe en Catálogo ▸ Insignias.";
   }
 }
 

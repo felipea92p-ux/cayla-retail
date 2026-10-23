@@ -31,7 +31,7 @@ type Tipo = "colores" | "tallas" | "tejidos" | "patrones" | "temporadas";
 
 // EL ORDEN ES DE RELEVANCIA, no cronológico ni alfabético:
 //   (Sellos —Nuevo, Top ventas, Para liquidar— fue la primera pestaña hasta el 2026-10-22: desde ese día es su propia
-//   entrada de Catálogo, Catálogo ▸ Sellos, con las campañas dentro. Felipe lo pidió.)
+//   entrada de Catálogo, Catálogo ▸ Insignias, con las campañas dentro. Felipe lo pidió.)
 //   1. Colores y 2. Tallas — obligatorios: no existe una variante sin las dos, y
 //      un colaborador las necesita al recibir mercadería. Colores va primero
 //      porque es el que más se propone (35 vs 22).

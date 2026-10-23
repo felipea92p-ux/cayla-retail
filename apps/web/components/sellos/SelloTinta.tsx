@@ -3,9 +3,9 @@ import { dibujoDeEtiqueta } from "@/components/MuestraEtiqueta";
 import type { EstiloEtiqueta } from "@/lib/etiqueta-grupos";
 
 /* ====================================================================
-   El sello de tinta (Catálogo ▸ Sellos, maqueta «II · Pases» de docs/maquetas/sellos-2026-10/, Felipe 2026-10-22)
+   El sello de tinta (Catálogo ▸ Insignias, maqueta «II · Pases» de docs/maquetas/sellos-2026-10/, Felipe 2026-10-22)
 
-   Un sello se dibuja como un sello: redondo, con doble anillo, su nombre en el borde de arriba, su grupo (o el año de la campaña) en
+   Una insignia se dibuja como un sello de tinta: redondo, con doble anillo, su nombre en el borde de arriba, su grupo (o el año de la campaña) en
    el de abajo y, al centro, el mismo dibujo de su tarjeta (`dibujoDeEtiqueta`). El tono es el de su grupo y sale de los tokens: taupe
    campaña, ámbar rotación, verde artesanal, pizarra general (sellos.css, `data-sl-grupo`). Chico (menos de 56 px) va sin texto en el
    borde: no se leería. Al aparecer se ESTAMPA una vez (baja, gira a su lugar y deja un anillo de tinta que se abre); al pasar el

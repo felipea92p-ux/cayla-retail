@@ -1,4 +1,4 @@
-// Mientras se leen los sellos: el loader general (ADR-0149) y la silueta de la pantalla —cabecera, las pestañas, la pila de pases y
+// Mientras se leen las insignias: el loader general (ADR-0149) y la silueta de la pantalla —cabecera, las pestañas, la pila de pases y
 // el pase abierto en grande—, para que no salte de «vacía» a «todo de golpe».
 import { EsperaPantalla } from "@/components/ui/Espera";
 
@@ -6,7 +6,7 @@ export default function LoadingSellos() {
   return (
     <>
       <EsperaPantalla />
-      <div className="animate-pulse space-y-6" aria-busy="true" aria-label="Cargando los sellos">
+      <div className="animate-pulse space-y-6" aria-busy="true" aria-label="Cargando las insignias">
         <div>
           <div className="h-3 w-64 max-w-full rounded bg-sand" />
           <div className="mt-3 h-9 w-40 max-w-full rounded bg-sand sm:h-[46px]" />

@@ -1,10 +1,10 @@
-// Catálogo ▸ Sellos como una billetera de pases (Felipe 2026-10-22: eligió la «II · Pases» de docs/maquetas/sellos-2026-10/).
-// Sellos deja de ser una pestaña de Atributos y es su propia entrada de Catálogo; Campañas deja de ser una fila aparte y es la
-// primera vista de Sellos. Las cuatro vistas son los cuatro grupos de `lib/etiqueta-grupos.ts`: Campañas, Rotación, Artesanal y
+// Catálogo ▸ Insignias como una billetera de pases (Felipe 2026-10-22: eligió la «II · Pases» de docs/maquetas/sellos-2026-10/).
+// Los sellos dejan de ser una pestaña de Atributos y son su propia entrada de Catálogo; Campañas deja de ser una fila aparte y es la
+// primera vista. Desde el 2026-10-23 se llaman «Insignias» en pantalla (el código sigue diciendo `sellos`: la clave no se renombra). Las cuatro vistas son los cuatro grupos de `lib/etiqueta-grupos.ts`: Campañas, Rotación, Artesanal y
 // General. Todo sigue siendo la misma tabla `etiquetas`: esto solo decide en qué pila va cada pase y qué dice.
 //
 // PROMETE: a qué vista va cada fila (por su estilo), en qué pilas se ordenan (rigen hoy, lo que viene, guardadas, desactivadas),
-//   qué dice la cabecera de cada pase (la cifra grande y su bajada), qué prendas lleva un sello agrupadas por modelo y color (con
+//   qué dice la cabecera de cada pase (la cifra grande y su bajada), qué prendas lleva una insignia agrupadas por modelo y color (con
 //   sus unidades si hay lectura) y qué tiene ya listo una campaña. Sin red: lógica pura, se prueba en `sellos-pases.test.ts`.
 // ASUME: que el estilo ya pasó por `estiloConocido` y que las fechas son «AAAA-MM-DD» de Lima.
 // NO HACE: no lee la base ni decide permisos (eso es de la página: `exigirModulo`, `veModulo`).
@@ -18,7 +18,7 @@ export type VistaSellos = "campanas" | "rotacion" | "artesanal" | "general";
 /** El orden de las pestañas: la primera (Campañas) es la que abre sin `?vista=`. */
 export const VISTAS_SELLOS: readonly VistaSellos[] = ["campanas", "rotacion", "artesanal", "general"];
 
-/** El estilo con que nace una fila creada desde cada vista: desde Rotación nace un sello de Rotación, no uno «General». */
+/** El estilo con que nace una fila creada desde cada vista: desde Rotación nace una insignia de Rotación, no una «General». */
 export const ESTILO_DE_VISTA: Record<VistaSellos, EstiloEtiqueta> = {
   campanas: "campana",
   rotacion: "urgencia",
@@ -37,7 +37,7 @@ export const TEXTOS_VISTA: Record<VistaSellos, { nombre: string; frase: string }
   },
   rotacion: { nombre: "Rotación", frase: "Cómo se mueve la prenda: lo nuevo, lo que más se vende, lo que se acaba y lo que hay que sacar." },
   artesanal: { nombre: "Artesanal", frase: "Cómo se hizo la prenda: a mano, pieza única o la reedición de un modelo que ya tuvimos." },
-  general: { nombre: "General", frase: "Los sellos que no son de un grupo, como Estreno o Sorteo, y los que vayas creando." },
+  general: { nombre: "General", frase: "Las insignias que no son de un grupo, como Estreno o Sorteo, y las que vayas creando." },
 };
 
 /** La vista que se abre: la pedida en `?vista=` si la cuenta la ve; si no, la primera que ve. `null` si no ve ninguna. */
@@ -95,8 +95,8 @@ const porNombre = <T extends FilaSello>(a: T, b: T) => a.nombre.localeCompare(b.
 
 /**
  * Las pilas de una vista, en el orden en que se leen. Campañas: lo que rige hoy (la que termina antes, arriba), lo que viene (la
- * más cercana primero), las guardadas (sin fechas, después las que ya pasaron en el orden del año) y las desactivadas. Un sello:
- * los activos por nombre y los desactivados. Una pila vacía no sale.
+ * más cercana primero), las guardadas (sin fechas, después las que ya pasaron en el orden del año) y las desactivadas. Una
+ * insignia: las activas por nombre y las desactivadas. Una pila vacía no sale.
  */
 export function pilasDeLaVista<T extends FilaSello>(filas: readonly T[], vista: VistaSellos, hoy: string): PilaDePases<T>[] {
   const deLaVista = filas.filter((f) => vistaDeEstilo(f.estilo) === vista);
@@ -117,7 +117,7 @@ export function pilasDeLaVista<T extends FilaSello>(filas: readonly T[], vista: 
   } else {
     pilas = [
       { clave: "activos", titulo: TEXTOS_VISTA[vista].nombre, tono: "sello", pases: [...activas].sort(porNombre) },
-      { clave: "apagadas", titulo: "Desactivados", tono: "apagada", pases: apagadas },
+      { clave: "apagadas", titulo: "Desactivadas", tono: "apagada", pases: apagadas },
     ];
   }
   return pilas.filter((p) => p.pases.length > 0);
@@ -166,7 +166,7 @@ export function avanceDeCampana(desde: string | null, hasta: string | null, hoy:
   return { dia, total, pct: Math.round((dia / total) * 100) };
 }
 
-// ---- Las prendas de un sello, agrupadas por modelo y color -----------------------------------------------------------------
+// ---- Las prendas de una insignia, agrupadas por modelo y color -----------------------------------------------------------------
 
 /** Lo que la vitrina necesita de una talla (una variante a la venta). */
 export type TallaVitrina = {
@@ -203,8 +203,8 @@ export type PrendasDelSello = {
 };
 
 /**
- * Las prendas a la venta que lleva un sello —marcadas a mano o por su categoría: la regla de la base (`fn_campanas_por_variante`)—,
- * juntadas por modelo y color. Con lectura, cada una dice sus unidades y el sello suma lo que queda y lo vendido en 30 días;
+ * Las prendas a la venta que lleva una insignia —marcadas a mano o por su categoría: la regla de la base (`fn_campanas_por_variante`)—,
+ * juntadas por modelo y color. Con lectura, cada una dice sus unidades y la insignia suma lo que queda y lo vendido en 30 días;
  * primero las que tienen más unidades. Sin lectura, por nombre.
  */
 export function prendasDelSello(
@@ -270,7 +270,7 @@ export function fraseDelSello(f: FilaSello, p: Pick<PrendasDelSello, "modelos" |
   const toda = categorias.length ? ` y toda ${categorias.join(", ")}` : "";
   const hay = prendas > 0 || categorias.length > 0;
   if (f.estilo !== "campana") {
-    if (!hay) return "Ninguna prenda lo lleva todavía.";
+    if (!hay) return "Ninguna prenda la lleva todavía.";
     return `${plural(prendas, "prenda", "prendas")}${toda}${p.unidades !== null ? ` · ${plural(p.unidades, "unidad", "unidades")} en las tiendas` : ""}.`;
   }
   const t = tramoDeCampana(f.vigenteDesde, f.vigenteHasta, hoy);

@@ -378,7 +378,7 @@ export function textoPonerPrecio(libres: readonly { nombre: string }[], hayPreci
 }
 
 /** Lo que dice la hoja (y la base: «Ese precio queda por debajo de lo que cuesta la prenda») cuando el precio no llega al costo. */
-export const FRASE_BAJO_COSTO = "Ese precio queda por debajo de lo que cuesta la prenda. Para liquidar usa una campaña o el sello «Para liquidar» (los dos en Catálogo ▸ Sellos).";
+export const FRASE_BAJO_COSTO = "Ese precio queda por debajo de lo que cuesta la prenda. Para liquidar usa una campaña o la insignia «Para liquidar» (las dos en Catálogo ▸ Insignias).";
 
 /** ¿El precio queda por debajo de lo que cuesta la talla que MÁS cuesta? Es el piso de la base (Felipe 2026-10-11, como la caja): justo
  *  en el costo se puede. `costoMaximo` null = no se sabe (quien no ve costos): no se avisa aquí y la base igual lo rechaza. Se compara en

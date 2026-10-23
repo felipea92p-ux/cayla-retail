@@ -73,3 +73,9 @@ Esa misma tarde Felipe pidió sacar los sellos de Atributos y que «Sellos» fue
 vista («campañas ya no sería un submódulo, sellos la debería reemplazar»). `/productos/campanas` redirige a `/productos/sellos`, la pestaña
 «Sellos» de Atributos se fue y la pantalla es una billetera de pases. Lo de la base que se decidió aquí sigue igual: una campaña es una fila de
 `etiquetas` con estilo `campana`, el módulo `campanas` sigue existiendo (ahora abre la fila Sellos) y `fn_puede_campanas` no cambia.
+
+## Actualización 2026-10-23 — «Sellos» se llama «Insignias» (ADR-0481)
+
+Antes de abrir el PR, Felipe pidió otro nombre: lo que esta decisión llamó «Sellos» se llama **«Insignias»** en todo el ERP, Roles y
+accesos y los mensajes de la base incluidos (`20261023142000`). La ruta es `/productos/insignias`. Las claves siguen igual (`etiquetas`,
+`campanas`, la tabla `retail.etiquetas`), como cuando «Etiquetas» pasó a decir «Sellos».

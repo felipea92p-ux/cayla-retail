@@ -10,3 +10,9 @@ Por qué así: las columnas las decide el CSS (`auto-fill` y una consulta de con
 Qué se rompería sin esto: con muchas prendas, lo que va debajo (lo que ya tiene la campaña) quedaba fuera de la vista; en el teléfono, el detalle quedaba al final de toda la pila, lejos del pase que tocaste.
 Estado: medido en local a diez anchos, de 1920 a 320 px, con muchas, pocas y ninguna prenda; suite de la web y knip en verde. Sin producción.
 
+## 2026-10-23 («Sellos» se llama «Insignias» en todo el ERP — ADR-0481, actualización)
+Qué hice: a pedido de Felipe, antes de abrir el PR, la palabra «sello» (lo que se le marca a una prenda) pasó a «insignia» en todo lo que se lee: el menú y su pantalla (`/productos/insignias`, con una medalla), la guía, Nuevo producto, la ficha y el historial de la prenda, Tienda web, Finanzas, Actividad y los errores, con su género («la insignia», «desactivada»). La migración `20261023142000` renombra el módulo en Roles y accesos y corrige diez mensajes de error de siete funciones con un reemplazo anclado.
+Por qué así: Felipe eligió «todo el ERP» para que una colaboradora no vea dos palabras para lo mismo; las claves del código y de la base no se renombran (como cuando «Etiquetas» pasó a «Sellos»), porque moverlas tocaría roles y políticas por un cambio que es solo de cartel. Los otros sellos (Movimientos, Traslados, caja, el descuento sobre la foto de la tienda online) son otra cosa y se quedaron.
+Qué se rompería sin esto: el menú diría «Insignias» mientras Nuevo producto, Roles y los errores seguirían diciendo «Sellos».
+Estado: la migración corrió dos veces en la base local dentro de una transacción deshecha (idempotente, sin ningún «Sellos» al final); suite de la web, tipos, knip y la pantalla en el navegador, en local. Sin producción: Roles y esos errores dirán «Sellos» hasta que Felipe pegue `20261023142000`.
+

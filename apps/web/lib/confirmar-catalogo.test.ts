@@ -32,7 +32,7 @@ describe("confirmacionCatalogo — la ventana de los botones de un clic del Cat�
 // botones de un clic abren `ConfirmarConResponsable`. Si una lista vuelve a poner un combo suelto, esto avisa.
 describe("las 9 listas del Catálogo no llevan combo arriba", () => {
   // Temporadas (ADR-0246) no aprueba ni desactiva, pero cambiar la de una categoría y asignar en lote confirman igual.
-  // Los sellos dejaron de ser una lista el 2026-10-22: son la billetera de pases de Catálogo ▸ Sellos, que confirma igual.
+  // Los sellos dejaron de ser una lista el 2026-10-22: son la billetera de pases de Catálogo ▸ Insignias, que confirma igual.
   const LISTAS = ["Categorias", "Familias", "Colores", "Tallas", "Tejidos", "Patrones", "Marcas", "Temporadas"].map((n) => [`${n}Lista`, `${n}Lista.tsx`]);
   for (const [nombre, archivo] of [...LISTAS, ["SellosPantalla", "sellos/SellosPantalla.tsx"]]) {
     const fuente = readFileSync(new URL(`../components/${archivo}`, import.meta.url), "utf8");

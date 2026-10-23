@@ -1,11 +1,11 @@
 @layer components {
   /* ====================================================================
-     Catálogo ▸ Sellos · la billetera de pases (Felipe 2026-10-22, maqueta «II · Pases»: docs/maquetas/sellos-2026-10/index.html)
+     Catálogo ▸ Insignias · la billetera de pases (Felipe 2026-10-22, maqueta «II · Pases»: docs/maquetas/sellos-2026-10/index.html)
 
-     Cada sello (y cada campaña) es un pase. Se apilan por pila —rigen hoy, lo que viene, guardadas— y se abre uno a la vez: su
+     Cada insignia (y cada campaña) es un pase. Se apilan por pila —rigen hoy, lo que viene, guardadas— y se abre uno a la vez: su
      cuerpo baja con sus días, su recorrido y sus botones, y al lado el pase abierto se ve en grande con sus prendas como un
      lookbook. Solo tokens de globals.css (el oscuro sale solo, ADR-0336). Movimiento (excepción de ADR-0136 pedida por Felipe:
-     «sofisticado, elegante y con full animaciones»): el sello se estampa, el pase se abre y se cierra, el título sube por su
+     «sofisticado, elegante y con full animaciones»): la insignia se estampa, el pase se abre y se cierra, el título sube por su
      ranura, el detalle y las prendas entran en cascada y el visto de «Lo que tiene» se dibuja. Todo UNA vez, con `--ease-cayla`, sin
      rebote y nada en bucle; todo se apaga con `prefers-reduced-motion`. Lo vigila lib/sellos-movimiento.test.ts.
      ==================================================================== */
@@ -57,7 +57,7 @@
   }
 
   /* ── La pantalla: la pila a la izquierda y el pase abierto en grande a la derecha ──
-     Se decide por el ANCHO DE LA PANTALLA DE SELLOS (una consulta de contenedor), no por el de la ventana: con el lateral abierto, una
+     Se decide por el ANCHO DE LA PANTALLA DE INSIGNIAS (una consulta de contenedor), no por el de la ventana: con el lateral abierto, una
      ventana de 1024 px deja ~670 px, donde dos columnas apretaban el lookbook. Con una columna, el pase en grande va justo debajo del
      pase abierto (`.sl-detalle-en-linea`, SellosPantalla.tsx lo pone ahí cuando cuenta una sola columna). */
   .sl-marco { container: sellos / inline-size; }

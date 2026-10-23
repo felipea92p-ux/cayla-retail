@@ -944,7 +944,7 @@ export function problemasDeLaCampana(b: BorradorCampana, etiquetas: readonly Eti
     // Una sin fechas no se puede elegir en el selector (sale apagada): se le dice dónde ponérselas.
     p.nombre = e.desde
       ? `«${e.nombre}» ya está en el calendario: elígela en el selector.`
-      : `«${e.nombre}» ya está en Catálogo ▸ Sellos, sin fechas: pónselas ahí («Configurar») y saldrá en el calendario.`;
+      : `«${e.nombre}» ya está en Catálogo ▸ Insignias, sin fechas: pónselas ahí («Configurar») y saldrá en el calendario.`;
   } else if (anio !== null && enUso(nombreDelPlanNuevo(b))) {
     p.nombre = `Ya hay un plan «${nombreDelPlanNuevo(b)}»: ponle otro nombre a la campaña.`;
   }

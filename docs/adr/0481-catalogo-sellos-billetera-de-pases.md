@@ -1,4 +1,4 @@
-# ADR-0481 — Catálogo ▸ Sellos: los sellos salen de Atributos, las campañas entran como su primera vista, y la pantalla es una billetera de pases
+# ADR-0481 — Catálogo ▸ Insignias (nació como «Sellos»): salen de Atributos, las campañas entran como su primera vista, y la pantalla es una billetera de pases
 
 - **Fecha:** 2026-10-22 · **Estado:** aceptado (Felipe eligió la maqueta «II · Pases» el 2026-10-22). Rama `claude/sellos-catalog-submodule-00ddc7`.
 - **Relacionados:** ADR-0473 (Catálogo ▸ Campañas y los sellos, del mismo día, que esta decisión reemplaza en lo visual y en el menú),
@@ -95,4 +95,27 @@ en medio de las prendas, y verifica que todo sea lo más responsive posible, tam
 Verificado en local a 1920, 1440, 1280, 1024, 768, 414, 390, 375, 360 y 320 px: dos filas, el «+N» en la última casilla, el título centrado
 exacto sobre las prendas, sin nada que se salga de la pantalla; pocas prendas centradas, una campaña sin prendas y una vista vacía (General).
 Con prendas marcadas solo para la prueba en la base local (119 filas), borradas al terminar.
+
+## Actualización 2026-10-23 — «Sellos» se llama «Insignias», en todo el ERP
+
+Antes de abrir el PR, Felipe: «quiero cambiar el nombre de sellos a Insignias». Preguntado hasta dónde, eligió **todo el ERP**: una sola palabra
+para lo mismo en cada lugar donde una colaboradora la lee.
+
+- **En pantalla:** la fila del menú y su pantalla (Catálogo ▸ Insignias, en `/productos/insignias`), la guía, «Nueva insignia», las pilas
+  («Desactivadas»), los avisos y los vacíos; Nuevo producto («Insignias y campañas», «Elige insignias y campañas», «Nueva insignia»), la ficha
+  y el historial de la prenda, los cambios de la ficha, Actividad, Tienda web, Finanzas, Plan de campaña, Atributos y los errores. Con el
+  género que pide la palabra: «la insignia», «desactivada», «Ninguna prenda la lleva». En el elector de Nuevo producto también dejaron de
+  decir «etiqueta» («+ Nueva etiqueta», «Crear la etiqueta») y de mandar a aprobar a «Catálogo → Atributos», que ya no era el lugar.
+- **El ícono del menú** pasa del sello de goma a una medalla (lucide «award»): con «Insignias» al lado, un sello decía otra cosa. No es la
+  insignia dentada porque Liquidación, justo debajo, ya usa una con «%». El dibujo de cada pase sigue siendo el de la maqueta elegida: la
+  insignia se estampa como un sello de tinta (`SelloTinta`).
+- **En la base** (`20261023142000`): el módulo `etiquetas` se llama «Insignias» en Roles y accesos (con su `incluye`), `campanas_web` deja de
+  mandar a armar las fechas «en Etiquetas», y los diez mensajes de error de siete funciones que nombraban el módulo «Sellos» dicen
+  «Insignias» (un reemplazo anclado: solo el texto; ningún permiso ni regla cambia). Hasta que se pegue en producción, Roles y esos errores
+  siguen diciendo «Sellos».
+- **Lo que no cambia:** las claves y los nombres del código (`etiquetas`, `campanas`, `retail.etiquetas`, `components/sellos/`,
+  `lib/sellos-pases.ts`, el modo `sellos`, la guía `productos.sellos` y sus anclas `sellos.*`), como cuando «Etiquetas» pasó a decir
+  «Sellos»: renombrarlos movería roles, políticas y llamadores por un cambio que es solo de cartel. Tampoco los otros sellos del ERP, que
+  son otra cosa: los de Movimientos y Traslados, el de la caja y el del descuento sobre la foto en la tienda online. La ruta
+  `/productos/sellos` no estuvo nunca en producción, así que no lleva redirección.
 

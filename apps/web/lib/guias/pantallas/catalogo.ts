@@ -1,5 +1,5 @@
 // Guías de Catálogo (ADR-0389): Productos (con su vista rápida y su Historial), Editar producto, Historial de una prenda,
-// Atributos, Sellos, Categorías, Familias, Marcas y Nuevo producto. Cada paso se ancla a un `data-guia` del código y le habla a quien
+// Atributos, Insignias, Categorías, Familias, Marcas y Nuevo producto. Cada paso se ancla a un `data-guia` del código y le habla a quien
 // trabaja en la tienda («tú»). La demo abre la vista rápida, cambia de Grilla a Tabla, abre fichas y formularios y escribe
 // ejemplos sacados de la pantalla, pero nunca crea, guarda, desactiva ni elimina: eso se explica con la pieza encendida.
 // Nuevo producto y Editar producto ya tienen su guía de foco (ADR-0284: «Sigue aquí», «Falta: …»): esta demo la PRESENTA.
@@ -321,8 +321,8 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "vistas-vuelta",
       ancla: "editar.vistas",
       preparar: [{ tipo: "clic", ancla: "editar.vista-unidades" }],
-      titulo: "Costos, sellos y campañas",
-      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Sellos y campañas» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Stock de hoy».",
+      titulo: "Costos, insignias y campañas",
+      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Insignias y campañas» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Stock de hoy».",
     },
     {
       id: "precio-tienda",
@@ -501,7 +501,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       id: "pestanas",
       ancla: "atributos.pestanas",
       titulo: "Una pestaña por lista",
-      texto: "Colores, Tallas, Tejidos, Patrones y Temporadas. Cada una tiene sus tarjetas y sus acciones. Empezamos por Colores y después pasamos por todas. Los sellos y las campañas viven en Catálogo ▸ Sellos.",
+      texto: "Colores, Tallas, Tejidos, Patrones y Temporadas. Cada una tiene sus tarjetas y sus acciones. Empezamos por Colores y después pasamos por todas. Las insignias y las campañas viven en Catálogo ▸ Insignias.",
     },
     {
       id: "ayuda",
@@ -697,25 +697,26 @@ export const GUIA_ATRIBUTOS: Guia = {
   ],
 };
 
-/** Catálogo ▸ Sellos (Felipe 2026-10-22): la billetera de pases que junta los sellos de Atributos y Catálogo ▸ Campañas. La hoja
+/** Catálogo ▸ Insignias (Felipe 2026-10-22): la billetera de pases que junta los sellos de Atributos (desde el
+ *  2026-10-23, «insignias») y Catálogo ▸ Campañas. La hoja
  *  «Configurar» es la misma de antes (`CampanaModal`). */
 export const GUIA_SELLOS: Guia = {
   id: "productos.sellos",
-  ruta: "/productos/sellos",
-  titulo: "Sellos",
-  resumen: "Lo que se le marca a una prenda: las campañas del año, como San Valentín o Navidad, y los sellos como Nuevo o Hecho a mano.",
+  ruta: "/productos/insignias",
+  titulo: "Insignias",
+  resumen: "Lo que se le marca a una prenda: las campañas del año, como San Valentín o Navidad, y las insignias como Nuevo o Hecho a mano.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "Lo que se le marca a una prenda",
-      texto: "Un sello dice algo de la prenda: Nuevo, Hecho a mano, Sorteo. Una campaña es un sello con fechas: San Valentín, Halloween, Navidad. Aquí se arman los dos. Es una demo: no se crea ni se cambia nada.",
+      texto: "Una insignia dice algo de la prenda: Nuevo, Hecho a mano, Sorteo. Una campaña es una insignia con fechas: San Valentín, Halloween, Navidad. Aquí se arman los dos. Es una demo: no se crea ni se cambia nada.",
     },
     {
       id: "cabecera",
       ancla: "sellos.cabecera",
       titulo: "Vale en todas partes",
-      texto: "Un sello o una campaña rige igual en las tres tiendas y en la tienda online. Su descuento lo pone la caja sola en Vender, dentro de sus fechas.",
+      texto: "Una insignia o una campaña rige igual en las tres tiendas y en la tienda online. Su descuento lo pone la caja sola en Vender, dentro de sus fechas.",
     },
     {
       id: "diseno-web",
@@ -728,15 +729,15 @@ export const GUIA_SELLOS: Guia = {
       id: "nuevo",
       ancla: "sellos.nuevo",
       opcional: true,
-      titulo: "Uno nuevo",
-      texto: "Abre una ventana para crearlo con su nombre; nace en la pestaña donde estás. Después le pones sus fechas, su descuento y sus prendas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
+      titulo: "Una nueva",
+      texto: "Abre una ventana para crearla con su nombre; nace en la pestaña donde estás. Después le pones sus fechas, su descuento y sus prendas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
     },
     {
       id: "pestanas",
       ancla: "sellos.pestanas",
       opcional: true,
       titulo: "Cuatro grupos",
-      texto: "Campañas, las fechas del año. Rotación: lo nuevo, lo que más se vende, lo que se acaba. Artesanal: cómo se hizo la prenda. General: lo demás. Cada pestaña dice cuántos tiene activos.",
+      texto: "Campañas, las fechas del año. Rotación: lo nuevo, lo que más se vende, lo que se acaba. Artesanal: cómo se hizo la prenda. General: lo demás. Cada pestaña dice cuántas tiene activas.",
     },
     {
       id: "pila",
@@ -806,15 +807,15 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.pila",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.pestana-rotacion" }],
-      titulo: "Los demás sellos",
-      texto: "En Rotación, Artesanal y General los pases son iguales: el sello, sus prendas y lo vendido en 30 días. Desde cada pestaña, «Nuevo sello» lo crea en ese grupo.",
+      titulo: "Las demás insignias",
+      texto: "En Rotación, Artesanal y General los pases son iguales: la insignia, sus prendas y lo vendido en 30 días. Desde cada pestaña, «Nueva insignia» la crea en ese grupo.",
     },
     {
       id: "fin",
       ancla: null,
       preparar: [{ tipo: "clic", ancla: "sellos.pestana-campanas" }],
       titulo: "¡Listo!",
-      texto: "Ya sabes armar una campaña, revisar un sello y ver sus prendas. Te dejamos de nuevo en Campañas. Para repasarlo: Mi perfil ▸ Demo ▸ Sellos.",
+      texto: "Ya sabes armar una campaña, revisar una insignia y ver sus prendas. Te dejamos de nuevo en Campañas. Para repasarlo: Mi perfil ▸ Demo ▸ Insignias.",
     },
   ],
   alSalir: [{ tipo: "escape" }, { tipo: "clic", ancla: "sellos.pestana-campanas" }],
@@ -1163,7 +1164,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-4",
       ancla: "nuevo.punto-4",
       titulo: "4 · Precio y cantidad",
-      texto: "El precio de venta y el costo (con el costo sugerido de la categoría), las etiquetas, y cuántas unidades llegaron de cada variante. Ahí mismo está «Crear producto». Para ver estos pasos de verdad hay que elegir una categoría, y la demo no empieza ninguna prenda.",
+      texto: "El precio de venta y el costo (con el costo sugerido de la categoría), las insignias y campañas, y cuántas unidades llegaron de cada variante. Ahí mismo está «Crear producto». Para ver estos pasos de verdad hay que elegir una categoría, y la demo no empieza ninguna prenda.",
     },
     {
       id: "quien",

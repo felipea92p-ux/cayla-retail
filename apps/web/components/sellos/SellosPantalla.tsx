@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { CalendarHeart, HandHeart, RefreshCw, Shirt, Stamp } from "lucide-react";
+import { Award, CalendarHeart, HandHeart, RefreshCw, Shirt } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
@@ -54,10 +54,11 @@ import {
 } from "@/lib/sellos-pases";
 
 /* ====================================================================
-   Catálogo ▸ Sellos · la billetera de pases (Felipe 2026-10-22: eligió la «II · Pases» de docs/maquetas/sellos-2026-10/)
+   Catálogo ▸ Insignias · la billetera de pases (Felipe 2026-10-22: eligió la «II · Pases» de docs/maquetas/sellos-2026-10/)
 
-   Sellos dejó de ser una pestaña de Atributos y Campañas dejó de ser una fila aparte: es la primera vista de Sellos, y las pestañas
-   (las de vidrio, que Felipe eligió de la «A») pasan a Rotación, Artesanal y General. Cada sello es un pase; se apilan por pila y se
+   Los sellos dejaron de ser una pestaña de Atributos y Campañas dejó de ser una fila aparte: es la primera vista, y las pestañas
+   (las de vidrio, que Felipe eligió de la «A») pasan a Rotación, Artesanal y General. Desde el 2026-10-23 se llaman «Insignias» en
+   pantalla (en el código siguen siendo `sellos`/`etiquetas`: la clave no se renombra). Cada insignia es un pase; se apilan por pila y se
    abre uno a la vez, y al lado se ve en grande con sus prendas reales (su foto o, sin foto, su categoría sobre su color).
    Lo que guarda es lo mismo de siempre y por las mismas puertas (`/api/productos/etiquetas` y las hojas de `EtiquetasLista.tsx`):
    crear (desde cada vista nace con su grupo), aprobar, rechazar, configurar o repetir, poner prendas, desactivar y reactivar.
@@ -67,7 +68,7 @@ const ICONO_VISTA: Record<VistaSellos, ReactNode> = {
   campanas: <CalendarHeart aria-hidden className="h-4 w-4" />,
   rotacion: <RefreshCw aria-hidden className="h-4 w-4" />,
   artesanal: <HandHeart aria-hidden className="h-4 w-4" />,
-  general: <Stamp aria-hidden className="h-4 w-4" />,
+  general: <Award aria-hidden className="h-4 w-4" />,
 };
 
 
@@ -94,12 +95,12 @@ export function SellosPantalla({
   prendasVitrina: TallaVitrina[] | null;
   /** Unidades y ventas de 30 días por talla: solo quien puede analizar; `null`, sin esas cifras. */
   rotacion: LecturaRotacion | null;
-  /** Las vistas que la cuenta ve (Campañas con Sellos o Campañas; las otras tres, con Sellos). */
+  /** Las vistas que la cuenta ve (Campañas con Insignias o Campañas; las otras tres, con Insignias). */
   vistas: VistaSellos[];
   vistaInicial: VistaSellos;
-  /** Crear, configurar y poner prendas a un sello (líder o un rol con Sellos; la base lo vuelve a exigir). */
+  /** Crear, configurar y poner prendas a una insignia (líder o un rol con Insignias; la base lo vuelve a exigir). */
   puedeEditarSellos: boolean;
-  /** Lo mismo con una campaña: líder, Sellos, Campañas o Campañas de la tienda web (`fn_puede_campanas`). */
+  /** Lo mismo con una campaña: líder, Insignias, Campañas o Campañas de la tienda web (`fn_puede_campanas`). */
   puedeEditarCampanas: boolean;
   /** La cuenta ve Tienda web ▸ Campañas: el pase de una campaña con descuento lleva a su diseño en la tienda online. */
   disenoWeb: boolean;
@@ -213,7 +214,7 @@ export function SellosPantalla({
         return;
       }
       setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === e.id ? { ...x, estado: "aprobado" as const, activo: true, notas: datos.etiqueta.notas } : x))));
-      const o = e.estilo === "campana" ? "a" : "o";
+      const { o } = TEXTOS_MODO[e.estilo === "campana" ? "campanas" : "sellos"];
       avisar.exito(e.estado === "rechazado" ? `${e.nombre} reactivad${o}` : `${e.nombre} aprobad${o}`);
       setAprobandoAbierto(null);
       setComentarioAprobar("");
@@ -238,7 +239,7 @@ export function SellosPantalla({
         return;
       }
       setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === e.id ? { ...x, activo: false, estado: "rechazado" as const } : x))));
-      avisar.exito(`${e.nombre} rechazad${e.estilo === "campana" ? "a" : "o"}`, { detalle: "Pasa a la pila de desactivados. Se puede reactivar después." });
+      avisar.exito(`${e.nombre} rechazad${TEXTOS_MODO[e.estilo === "campana" ? "campanas" : "sellos"].o}`, { detalle: "Pasa a la pila de desactivadas. Se puede reactivar después." });
       setRechazandoAbierto(null);
       setMotivoRechazo("");
     } catch {
@@ -251,7 +252,7 @@ export function SellosPantalla({
   // Activar o desactivar una aprobada no cambia su estado: no lleva comentario. Una RECHAZADA se reactiva aprobándola.
   async function cambiarActivo(e: Etiqueta, activo: boolean) {
     setCambiandoId(e.id);
-    const o = e.estilo === "campana" ? "a" : "o";
+    const { o } = TEXTOS_MODO[e.estilo === "campana" ? "campanas" : "sellos"];
     try {
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
@@ -260,13 +261,13 @@ export function SellosPantalla({
       });
       const datos = await res.json();
       if (!res.ok) {
-        avisar.error(datos.error ?? `No se pudo ${activo ? "reactivar" : "desactivar"} ${e.estilo === "campana" ? "la campaña" : "el sello"}.`);
+        avisar.error(datos.error ?? `No se pudo ${activo ? "reactivar" : "desactivar"} ${e.estilo === "campana" ? "la campaña" : "la insignia"}.`);
         return;
       }
       setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === e.id ? { ...x, activo, ...(activo ? { estado: "aprobado" as const } : {}) } : x))));
       avisar.exito(
         `${e.nombre} ${activo ? "reactivad" : "desactivad"}${o}`,
-        activo ? { detalle: "Vuelve a aparecer al elegir los sellos de una prenda." } : { detalle: "Deja de aparecer al elegir los sellos de una prenda nueva; el historial se conserva." },
+        activo ? { detalle: "Vuelve a aparecer al elegir las insignias de una prenda." } : { detalle: "Deja de aparecer al elegir las insignias de una prenda nueva; el historial se conserva." },
       );
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -363,7 +364,7 @@ export function SellosPantalla({
 
   // `conGuia`: solo el pase abierto lleva las anclas de la guía (los cerrados tienen los mismos botones, escondidos e inertes).
   function accionesDelPase(e: Etiqueta, conGuia: boolean) {
-    if (!puedeEditar(e)) return <p className="text-xs text-tinta/65">Solo lo cambia quien tiene el módulo {e.estilo === "campana" ? "Campañas o Sellos" : "Sellos"}.</p>;
+    if (!puedeEditar(e)) return <p className="text-xs text-tinta/65">Solo lo cambia quien tiene el módulo {e.estilo === "campana" ? "Campañas o Insignias" : "Insignias"}.</p>;
     if (!e.activo) {
       return (
         <div className="w-40">
@@ -501,7 +502,7 @@ export function SellosPantalla({
             <div className="mt-6" style={{ "--i": 3 } as CSSProperties}>
               <Vacio
                 icono={<Shirt />}
-                titulo={e.estilo === "campana" ? "Esta campaña todavía no tiene prendas" : "Ninguna prenda lleva este sello"}
+                titulo={e.estilo === "campana" ? "Esta campaña todavía no tiene prendas" : "Ninguna prenda lleva esta insignia"}
                 acciones={
                   editable ? (
                     <Boton peso="primario" onClick={() => setEtiquetando(e)}>
@@ -550,8 +551,8 @@ export function SellosPantalla({
       <div data-guia="sellos.cabecera">
         <EncabezadoPagina
           sede={sede}
-          titulo="Sellos"
-          subtitulo="Lo que se le marca a una prenda. Primero las campañas; con las pestañas, los demás sellos."
+          titulo="Insignias"
+          subtitulo="Lo que se le marca a una prenda. Primero las campañas; con las pestañas, las demás insignias."
           acciones={
             <>
               {esCampanas && disenoWeb && (
@@ -571,7 +572,7 @@ export function SellosPantalla({
 
       {vistas.length > 1 && (
         <Pestanas
-          etiquetaAccesible="Qué sellos ver"
+          etiquetaAccesible="Qué insignias ver"
           activa={vista}
           onCambio={cambiarVista}
           guia="sellos.pestanas"
@@ -593,8 +594,8 @@ export function SellosPantalla({
 
       {pilas.length === 0 ? (
         <Vacio
-          icono={<Stamp />}
-          titulo={esCampanas ? "Todavía no hay campañas" : `Todavía no hay sellos de ${TEXTOS_VISTA[vista].nombre}`}
+          icono={<Award />}
+          titulo={esCampanas ? "Todavía no hay campañas" : `Todavía no hay insignias de ${TEXTOS_VISTA[vista].nombre}`}
           acciones={
             puedeCrear ? (
               <Boton peso="primario" onClick={() => setAgregando(true)}>

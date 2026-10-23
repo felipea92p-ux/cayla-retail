@@ -378,7 +378,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/productos/categorias": { estado: "aplicada", guia: GUIA_CATEGORIAS.id },
   "/productos/familias": { estado: "aplicada", guia: GUIA_FAMILIAS.id },
   "/productos/liquidacion": { estado: "aplicada", guia: GUIA_LIQUIDACION.id },
-  "/productos/sellos": { estado: "aplicada", guia: GUIA_SELLOS.id },
+  "/productos/insignias": { estado: "aplicada", guia: GUIA_SELLOS.id },
   "/productos/marcas": { estado: "aplicada", guia: GUIA_MARCAS.id },
   "/productos/nuevo": { estado: "aplicada", guia: GUIA_NUEVO_PRODUCTO.id },
   "/productos/por-revisar": { estado: "aplicada", guia: GUIA_POR_REVISAR.id },

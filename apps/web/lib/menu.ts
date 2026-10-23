@@ -120,7 +120,7 @@ export type ClaveIcono =
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
   | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "vitrina" | "pedidosWeb"
-  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana" | "sellos";
+  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana" | "insignias";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender" | "pedidosWebPorConfirmar";
@@ -162,8 +162,8 @@ type Comun = {
    *  como las rutas de prueba) no sale. Existe por CAYLA Global (ADR-0275): una pantalla que no es de ninguna sede no
    *  existía antes de los módulos y no tiene por qué aparecerle a un perfil que no los trae. */
   soloConModulo?: true;
-  /** Otro módulo que TAMBIÉN abre esta fila (ADR-0161, 20260923130000). Existe por UN caso: Catálogo ▸ Sellos junta lo
-   *  que eran dos filas, Sellos (`etiquetas`) y Campañas (`campanas`; Felipe 2026-10-22), así que un rol que solo ve Campañas
+  /** Otro módulo que TAMBIÉN abre esta fila (ADR-0161, 20260923130000). Existe por UN caso: Catálogo ▸ Insignias junta lo
+   *  que eran dos filas, Sellos (`etiquetas`, hoy «Insignias») y Campañas (`campanas`; Felipe 2026-10-22), así que un rol que solo ve Campañas
    *  entra por la misma fila (y la pantalla le muestra solo esa vista). Hasta ese día era Atributos con los sellos en una pestaña. */
   moduloAlterno?: ClaveModulo;
 };
@@ -397,8 +397,8 @@ export const ARBOL: readonly Nodo[] = [
 
   // Catálogo (2026-09-16/17): qué ES una prenda y el vocabulario del que cuelga. Colores, tallas, tejidos, patrones y
   // temporadas viven como pestañas de «Atributos». Los sellos vivieron ahí también hasta el 2026-10-22 y las campañas tuvieron su
-  // fila ese mismo día (ADR-0473); esa tarde Felipe pidió juntarlos en «Sellos», con las campañas como su primera vista: deciden a
-  // cuánto se vende y cuándo, no qué es la prenda.
+  // fila ese mismo día (ADR-0473); esa tarde Felipe pidió juntarlos en «Sellos», con las campañas como su primera vista, y el 2026-10-23 que se
+  // llamaran «Insignias» (ADR-0481): deciden a cuánto se vende y cuándo, no qué es la prenda.
   // Marcas (2026-09-25): la pantalla existía desde el ADR-0109 pero nunca entró al menú; solo se llegaba por un enlace
   // dentro de Nuevo producto. Felipe vio una marca mal cargada en Proveedores y no tenía por dónde corregirla. Mismo
   // módulo que Categorías: «atributos» ya se llama «Categorías, marcas y atributos» en Roles y accesos.
@@ -411,7 +411,7 @@ export const ARBOL: readonly Nodo[] = [
       { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
       { id: "catalogo.marcas", modulo: "atributos", etiqueta: "Marcas", estado: "viva", ruta: "/productos/marcas", icono: "marcas", pajaro: "02 Loro" },
       { id: "catalogo.atributos", modulo: "atributos", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
-      { id: "catalogo.sellos", modulo: "etiquetas", moduloAlterno: "campanas", etiqueta: "Sellos", estado: "viva", ruta: "/productos/sellos", icono: "sellos", pajaro: "02 Loro" },
+      { id: "catalogo.insignias", modulo: "etiquetas", moduloAlterno: "campanas", etiqueta: "Insignias", estado: "viva", ruta: "/productos/insignias", icono: "insignias", pajaro: "02 Loro" },
       // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan con su etiqueta, SIN pasar a Productos. Vive en
       // Catálogo porque es la otra cara de «qué se vende y a cuánto» (y el grupo Inventario ya está en su tope). La
       // visibilidad la da su módulo, que nace solo para el líder.

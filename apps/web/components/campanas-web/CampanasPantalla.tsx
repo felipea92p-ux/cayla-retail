@@ -55,7 +55,7 @@ export function CampanasPantalla({ lectura, puedeIrACampanas }: { lectura: Lectu
   const cruces = crucesDeCampanas(campanas);
   const tiempo = lineaDeTiempo(campanas, hoy);
   const irAEtiquetas = (
-    <BotonEnlace href="/productos/sellos" peso="fantasma">
+    <BotonEnlace href="/productos/insignias" peso="fantasma">
       Armar una campaña en Catálogo
     </BotonEnlace>
   );
@@ -99,7 +99,7 @@ export function CampanasPantalla({ lectura, puedeIrACampanas }: { lectura: Lectu
             titulo="Todavía no hay campañas"
             acciones={puedeIrACampanas ? irAEtiquetas : undefined}
           >
-            Una campaña se arma en Catálogo ▸ Sellos, con su descuento, sus fechas y sus prendas. Cuando exista, aparece aquí para
+            Una campaña se arma en Catálogo ▸ Insignias, con su descuento, sus fechas y sus prendas. Cuando exista, aparece aquí para
             darle su diseño.
           </Vacio>
         </section>

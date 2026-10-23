@@ -1,4 +1,4 @@
-// Lo que leen las pantallas de `etiquetas`: Catálogo ▸ Sellos (con sus campañas, la billetera de pases) y la ficha de una campaña en
+// Lo que leen las pantallas de `etiquetas`: Catálogo ▸ Insignias (con sus campañas, la billetera de pases) y la ficha de una campaña en
 // Tienda web ▸ Campañas (ADR-0473). Vivía dentro de `productos/atributos/page.tsx`; se sacó aquí para que todas lean igual.
 //
 // PROMETE: las filas de la pantalla (las de su modo, por `esDelModo`, o todas), las categorías para elegir dónde rige, las prendas
@@ -29,14 +29,14 @@ export async function cargarEtiquetasPantalla({
   esLider,
   conVitrina = false,
 }: {
-  /** Las filas de una pantalla (`esDelModo`) o, en Catálogo ▸ Sellos, todas. */
+  /** Las filas de una pantalla (`esDelModo`) o, en Catálogo ▸ Insignias, todas. */
   modo: ModoEtiquetas | "todas";
   /** Crear, editar y configurar (con o sin descuento, ADR-0293): lee las prendas, las puestas a mano y el costo. */
   puedeEditar: boolean;
   /** Unidades y ventas de 30 días de cada talla (ADR-0441): solo quien puede analizar (la puerta de `fn_analisis_sede`). */
   conRotacion: boolean;
   esLider: boolean;
-  /** Modelo, color, categoría y foto de cada prenda a la venta (la vitrina de cada pase de Catálogo ▸ Sellos). */
+  /** Modelo, color, categoría y foto de cada prenda a la venta (la vitrina de cada pase de Catálogo ▸ Insignias). */
   conVitrina?: boolean;
 }) {
   const supabase = await createClient();
@@ -150,7 +150,7 @@ async function leerVitrina(supabase: Supabase) {
   const colores = new Map(exigir(resColores, "los colores").map((c) => [c.codigo, { nombre: c.nombre, hex: c.hex }]));
   const categorias = new Map(exigir(resCategorias, "las categorías de las prendas").map((c) => [c.id, { nombre: c.nombre, prefijo: c.prefijo, familia: c.familia }]));
   const fotos = new Map<string, FotoCruda[]>();
-  if (resFotos.error) console.error("fotos de la vitrina de Sellos:", resFotos.error.message);
+  if (resFotos.error) console.error("fotos de la vitrina de Insignias:", resFotos.error.message);
   for (const f of resFotos.data ?? []) {
     const lista = fotos.get(f.producto_id) ?? [];
     lista.push({ url: f.url, orden: f.orden, es_principal: f.es_principal, color_codigo: f.color_codigo });
