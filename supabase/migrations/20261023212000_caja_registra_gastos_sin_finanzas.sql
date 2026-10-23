@@ -29,8 +29,8 @@
 --            cualquier otro gasto se le rechaza con `gasto_fuera_de_caja` sin escribir nada; con la caja cerrada, `caja_cerrada`.
 --            `fn_gastos_de_caja` devuelve a quien tiene Gastos lo mismo que `fn_gastos_lista` (vigentes de la tienda) y desde Caja solo lo
 --            que pasó por la caja o por el Yape o el Plin; a nadie más.
---   ASUME:   `registrar_gasto` con la línea `if not retail.fn_gastos_puede(p_ubicacion_id) then` una sola vez (verificado en local el
---            2026-10-23; en producción NO se pudo leer: si el ancla no aparece una vez, el reemplazo se detiene y no se aplica nada);
+--   ASUME:   `registrar_gasto` con la línea `if not retail.fn_gastos_puede(p_ubicacion_id) then` una sola vez (verificado en local y en
+--            producción el 2026-10-23, antes de pegarla; si el ancla no aparece una vez, el reemplazo se detiene y no se aplica nada);
 --            `fn_puede_gestionar_caja`, `fn_puede_operar_ubicacion`, `fn_gastos_puede` y `gastos_viaje.papel` (ADR-0362) vivos.
 --   NO HACE: no toca filas de gastos, cajas ni roles (ningún rol gana ni pierde un módulo); no cambia `fn_gastos_lista` ni las demás
 --            funciones de Finanzas ▸ Gastos; no toca políticas.

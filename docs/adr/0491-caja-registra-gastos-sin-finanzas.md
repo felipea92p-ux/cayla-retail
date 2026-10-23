@@ -2,8 +2,8 @@
 
 - **Fecha:** 2026-10-23 · **Estado:** aceptado (Felipe lo pidió el 2026-10-23: «que en caja se puedan registrar gastos sin tener que darle
   visibilidad al módulo de finanzas»). Código en la rama `claude/caja-gastos-sin-finanzas-105a5b`.
-  **La migración `20261023212000_caja_registra_gastos_sin_finanzas.sql` NO está en producción** hasta que Felipe la apruebe y se pegue; la
-  web se puede publicar antes (ver «Orden»).
+  **La migración `20261023212000_caja_registra_gastos_sin_finanzas.sql` está en producción desde el 2026-10-23** (Felipe la aprobó; pegada
+  con `apply_migration`, que la registró como `20261023213359`; las tres funciones nuevas tienen el mismo md5 que en local).
 - **Relacionados:** ADR-0306 (lo que hace un botón es del módulo donde vive su botón), ADR-0368 (el gasto rápido de Caja), ADR-0195 F2
   (Finanzas ▸ Gastos y su módulo), ADR-0161 (módulos y roles), ADR-0412 (reemplazos anclados en `registrar_gasto`).
 
@@ -60,14 +60,10 @@ no se escribe nada. Con la migración pegada, guarda.
   «Movilidad · S/ 5» del cajón, el cajón baja de S/ 294.90 a S/ 289.90, la fila dice «Gasto · Movilidad» y al reabrir la hoja la ★ ya marca
   Movilidad. El líder sigue viendo «Usa el formulario completo».
 
-## Antes de pegar en producción
+## El pegado en producción (2026-10-23)
 
-El reemplazo en `registrar_gasto` es anclado: si la línea `if not retail.fn_gastos_puede(p_ubicacion_id) then` no aparece exactamente una
-vez en la función viva, el pegado se detiene con un error que lo dice y no se aplica nada (todo va en una transacción). El ancla se verificó en
-local; en producción no se pudo leer desde esta sesión. Para mirarla antes, de solo lectura:
-
-```sql
-select (length(d) - length(replace(d, '  if not retail.fn_gastos_puede(p_ubicacion_id) then', '')))
-       / length('  if not retail.fn_gastos_puede(p_ubicacion_id) then') as veces  -- debe ser 1
-  from (select pg_get_functiondef('retail.registrar_gasto(uuid, text, text, date, numeric, jsonb, text, uuid, uuid, text, uuid, uuid, uuid)'::regprocedure) d) x;
-```
+Antes de pegar se miró en producción, de solo lectura, que la línea `if not retail.fn_gastos_puede(p_ubicacion_id) then` estuviera una sola
+vez en `registrar_gasto` (estaba), que las funciones nuevas no existieran y que `gastos_viaje.papel` sí. Después del pegado: `registrar_gasto`
+pregunta `fn_puede_registrar_gasto` y ya no la línea vieja; `fn_gastos_de_caja` la puede llamar `authenticated` (no `anon`); la regla no se
+llama desde el navegador; el «incluye» de Caja dice lo nuevo. Huellas (md5 de `pg_get_functiondef`, iguales a local):
+`fn_gastos_de_caja` 37776cf8…, `fn_gastos_desde_caja_puede` ebf16510…, `fn_puede_registrar_gasto` e3706e6c….
