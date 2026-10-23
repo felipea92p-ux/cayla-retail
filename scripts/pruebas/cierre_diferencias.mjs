@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de los cuatro chequeos de pendientes del Cierre de mes (`20261023121500_cierre_mes_chequeos_de_pendientes.sql`;
+ * Prueba de los cuatro chequeos de pendientes del Cierre de mes (`20261023011000_cierre_mes_chequeos_de_pendientes.sql`;
  * Felipe 2026-10-22: AVISAN en octubre de 2026 y BLOQUEAN desde noviembre de 2026).
  *
  * QUÉ CUBRE

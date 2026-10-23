@@ -1,6 +1,6 @@
 -- ============================================================================
--- 20261023121500_cierre_mes_chequeos_de_pendientes.sql — CAYLA V2 (ADR provisional «Cierre de mes: cuatro chequeos de pendientes»,
--- Felipe 2026-10-22). VERSIÓN PROVISIONAL: se reserva con `pnpm reservar migracion` antes de abrir el PR.
+-- 20261023011000_cierre_mes_chequeos_de_pendientes.sql — CAYLA V2 (ADR-0482 «Cierre de mes: cuatro chequeos de pendientes»,
+-- Felipe 2026-10-22). Versión reservada con `pnpm reservar migracion`.
 -- Finanzas ▸ Cierre de mes: cuatro chequeos nuevos, por sede, que AVISAN en octubre de 2026 y BLOQUEAN desde noviembre de 2026.
 --
 -- EL PROBLEMA PRIMERO. Un mes cerrado no debe reabrirse (es lo que el contador recibe; regla de Felipe, 2026-10-22) y el cierre solo miraba el

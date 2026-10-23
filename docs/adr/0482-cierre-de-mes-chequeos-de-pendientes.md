@@ -1,9 +1,8 @@
-# ADR-XXXX · Cierre de mes: cuatro chequeos de pendientes por sede (avisan en octubre, frenan desde noviembre)
+# ADR-0482 · Cierre de mes: cuatro chequeos de pendientes por sede (avisan en octubre, frenan desde noviembre)
 
 - **Fecha:** 2026-10-22 · **Estado:** CONSTRUIDO en la rama `claude/cierre-chequeos-diferencias`, sin subir. Decidido por Felipe el 2026-10-22.
-- **Número provisional.** El nombre del archivo lleva `XXXX` a propósito: el número se reserva con `pnpm reservar adr` al abrir el PR (ADR-0381)
-  y se renombra con `git mv`; el texto no se refiere a sí mismo por número.
-- **Migración provisional:** `20261023121500_cierre_mes_chequeos_de_pendientes.sql` (se reserva con `pnpm reservar migracion`).
+- **Número:** ADR-0482, reservado con `pnpm reservar adr` (ADR-0381).
+- **Migración:** `20261023011000_cierre_mes_chequeos_de_pendientes.sql` (versión reservada con `pnpm reservar migracion`).
 - **Prueba:** `pnpm pruebas:cierre-diferencias` (100 casos) y `apps/web/lib/cierre-reglas.test.ts` + `cierre-pulso-reglas.test.ts` (los textos de la pantalla).
 - **Revisión del 2026-10-22:** un revisor independiente pidió cuatro cambios (quién ve la cifra, el modal de cierre, el mes cerrado, pruebas que no mordían); están aplicados y descritos abajo.
 
