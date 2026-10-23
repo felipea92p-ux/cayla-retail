@@ -11,7 +11,7 @@ import {
   campanaDeLaFicha,
   chipCampana,
   colorInicial,
-  dibujoDeLaInsignia,
+  dibujoDeLaCampana,
   faltaParaTerminar,
   fotosDelColor,
   lineaAlAgregar,
@@ -220,7 +220,7 @@ export function FichaPrenda({
                 ))}
                 {campana && campanaVista && (
                   <span className="t-chip oferta">
-                    <IconoInsignia icono={dibujoDeLaInsignia(campanaVista.nombre)} />
+                    <IconoInsignia icono={dibujoDeLaCampana(ficha, campanaVista)} />
                     {campana}
                   </span>
                 )}

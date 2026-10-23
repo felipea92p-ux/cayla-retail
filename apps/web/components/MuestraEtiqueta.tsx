@@ -1,6 +1,5 @@
 import { createElement, type ReactElement } from "react";
-import { DIBUJOS_DE_INSIGNIA, type ColorDeInsignia, type PiezaDeInsignia } from "@cayla-retail/shared/insignias-visual";
-import { iconoDeEtiqueta, type IconoEtiqueta } from "@/lib/etiqueta-visual";
+import { DIBUJOS_DE_INSIGNIA, dibujoDeInsignia, type ColorDeInsignia, type DibujoDeInsignia, type PiezaDeInsignia } from "@cayla-retail/shared/insignias-visual";
 
 /**
  * La imagen de una etiqueta comercial en la grilla de Atributos → Etiquetas.
@@ -44,27 +43,28 @@ export type DibujoIcono = (a: string) => ReactElement;
 // Los dibujos viven en `packages/shared/src/insignias-visual.ts` (ADR-0489), compartidos con la tienda online: aquí solo se pintan. Cada
 // uno se dibuja centrado en (0,0) dentro de ±14 unidades; `a` es el color de acento del grupo, CREMA lo «recortado» (la cara de la
 // calabaza) y TINTA el negro fijo del Black Friday.
-function pintar(piezas: readonly PiezaDeInsignia[], colores: Record<ColorDeInsignia, string>): ReactElement[] {
+export function pintarDibujo(piezas: readonly PiezaDeInsignia[], colores: Record<ColorDeInsignia, string>): ReactElement[] {
   return piezas.map((pieza, i) => {
     // Un valor que empieza con «$» es un color con nombre; todo lo demás (números, «none», «round») pasa tal cual y en su orden.
     const props = Object.fromEntries(
       Object.entries(pieza.props).map(([k, v]) => [k, typeof v === "string" && v.startsWith("$") ? colores[v as ColorDeInsignia] : v]),
     );
-    return createElement(pieza.tag, { key: i, ...props }, ...(pieza.hijos ? pintar(pieza.hijos, colores) : []));
+    return createElement(pieza.tag, { key: i, ...props }, ...(pieza.hijos ? pintarDibujo(pieza.hijos, colores) : []));
   });
 }
 
 const ICONOS = Object.fromEntries(
   Object.entries(DIBUJOS_DE_INSIGNIA).map(([icono, piezas]) => [
     icono,
-    ((a) => <>{pintar(piezas, { $acento: a, $hueco: CREMA, $tinta: TINTA })}</>) satisfies DibujoIcono,
+    ((a) => <>{pintarDibujo(piezas, { $acento: a, $hueco: CREMA, $tinta: TINTA })}</>) satisfies DibujoIcono,
   ]),
-) as Record<IconoEtiqueta | "generico", DibujoIcono>;
+) as Record<DibujoDeInsignia, DibujoIcono>;
 
-/** El dibujo de una etiqueta por su nombre (el mismo de su tarjeta), para quien lo pone en otro marco: el centro del sello de tinta de
- *  Catálogo ▸ Insignias (`components/sellos/SelloTinta.tsx`). Centrado en (0,0) dentro de ±14; `a` es el color de su trazo. */
-export function dibujoDeEtiqueta(nombre: string): DibujoIcono {
-  return ICONOS[iconoDeEtiqueta(nombre) ?? "generico"];
+/** El dibujo de una etiqueta (el mismo de su tarjeta), para quien lo pone en otro marco: el centro del sello de tinta de Catálogo ▸
+ *  Insignias (`components/sellos/SelloTinta.tsx`). El que se eligió al crearla (`icono`, ADR-0490) o, si no hay, el de su nombre.
+ *  Centrado en (0,0) dentro de ±14; `a` es el color de su trazo. */
+export function dibujoDeEtiqueta(nombre: string, icono?: DibujoDeInsignia | null): DibujoIcono {
+  return ICONOS[dibujoDeInsignia({ nombre, icono })];
 }
 
 /**
@@ -79,17 +79,20 @@ export const MOV = "transition-transform duration-500 ease-cayla [transform-box:
 
 export function MuestraEtiqueta({
   nombre,
+  icono,
   estilo,
   className = "aspect-[3/1] w-full",
 }: {
   nombre: string;
+  /** El dibujo elegido al crearla (ADR-0490); sin él, el de su nombre. */
+  icono?: DibujoDeInsignia | null;
   estilo: Estilo;
   className?: string;
 }) {
   const { fondo, acento } = TONOS[estilo];
   return (
     <MuestraIcono
-      dibujo={ICONOS[iconoDeEtiqueta(nombre) ?? "generico"]}
+      dibujo={ICONOS[dibujoDeInsignia({ nombre, icono })]}
       fondo={fondo}
       acento={acento}
       etiqueta={`Ilustración de la etiqueta ${nombre}`}

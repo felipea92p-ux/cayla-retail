@@ -1,3 +1,4 @@
+import { dibujoElegido, type DibujoDeInsignia } from "@cayla-retail/shared/insignias-visual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import {
@@ -38,6 +39,8 @@ export type EtiquetaAlta = {
   id: string;
   nombre: string;
   estilo: string;
+  /** El dibujo que se eligió al crearla (ADR-0490); null = el de su nombre. */
+  icono: DibujoDeInsignia | null;
   /** Descuento de campaña en % (20260918160000). Null = etiqueta informativa. */
   descuentoPct: number | null;
   /** Categorías donde la campaña rige SOLA sobre todas las prendas, sin etiquetarlas una por una. Vacío = solo las etiquetadas a mano. */
@@ -99,7 +102,7 @@ export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
       supabase.from("codigos_correlativos").select("prefijo, ultimo"),
       supabase
         .from("etiquetas")
-        .select("id, nombre, estilo, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
+        .select("id, nombre, estilo, icono, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
         .eq("activo", true)
         .eq("estado", "aprobado")
         .order("nombre"),
@@ -148,6 +151,7 @@ export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
       estilo: e.estilo,
       descuentoPct: e.descuento_pct === null ? null : Number(e.descuento_pct),
       categoriaIds: (e.etiqueta_categorias ?? []).map((c) => c.categoria_id),
+      icono: dibujoElegido(e.icono),
       vigenteDesde: e.vigente_desde,
       vigenteHasta: e.vigente_hasta,
     }));

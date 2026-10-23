@@ -8,12 +8,14 @@ import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
+import { ElegirDibujoDeInsignia } from "@/components/sellos/ElegirDibujoDeInsignia";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { campanaValida, camposDeCampana } from "@/lib/etiqueta-campana-guia";
 import { PieTarjeta, TarjetaAtributo } from "@/components/atributos/kit";
+import type { DibujoDeInsignia } from "@cayla-retail/shared/insignias-visual";
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import {
@@ -92,6 +94,8 @@ export type Etiqueta = {
   notas: string | null;
   estado: "pendiente" | "aprobado" | "rechazado";
   estilo: Estilo;
+  /** El dibujo que se eligió al crearla (ADR-0490); `null` = el de su nombre. */
+  icono: DibujoDeInsignia | null;
   vigenteDesde: string | null;
   vigenteHasta: string | null;
   descuentoPct: number | null;
@@ -678,6 +682,8 @@ export function NuevaEtiquetaModal({
   modo,
   nombre,
   onNombre,
+  icono,
+  onIcono,
   responsable,
   guardando,
   onGuardar,
@@ -686,6 +692,9 @@ export function NuevaEtiquetaModal({
   modo: ModoEtiquetas;
   nombre: string;
   onNombre: (v: string) => void;
+  /** El dibujo elegido (ADR-0490); `null` = el de su nombre. Opcional: nunca bloquea guardar. */
+  icono: DibujoDeInsignia | null;
+  onIcono: (v: DibujoDeInsignia | null) => void;
   responsable: ControlResponsable;
   guardando: boolean;
   onGuardar: () => void;
@@ -695,6 +704,8 @@ export function NuevaEtiquetaModal({
   const delUno = `${T.la === "el" ? "del" : "de la"} ${T.uno}`;
   const guia = useGuiaCampos([
     { id: "nombre", nombre: `Nombre ${delUno}`, requerido: true, hecho: nombre.trim() !== "", pendiente: `Escribe el nombre ${delUno}.` },
+    // Opcional de verdad: sin elegir, el dibujo sale del nombre. Se cuenta como hecho cuando se eligió uno.
+    { id: "dibujo", nombre: "Dibujo", requerido: false, hecho: icono !== null, pendiente: "Elige un dibujo, o déjalo según el nombre." },
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
@@ -703,6 +714,11 @@ export function NuevaEtiquetaModal({
         <div className="mt-5 space-y-4">
           <CampoGuiado id="nombre" guia={guia}>
             <CampoTexto etiqueta={guia.etiqueta("nombre", `Nombre ${delUno}`)} value={nombre} onChange={(e) => onNombre(e.target.value)} placeholder={T.ejemplo} autoFocus />
+          </CampoGuiado>
+          <CampoGuiado id="dibujo" guia={guia}>
+            <Campo etiqueta={guia.etiqueta("dibujo", "Dibujo")} idEtiqueta="dibujo-nuevo" sinPie>
+              <ElegirDibujoDeInsignia valor={icono} onValor={onIcono} nombre={nombre} idEtiqueta="dibujo-nuevo" deshabilitado={guardando} />
+            </Campo>
           </CampoGuiado>
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />

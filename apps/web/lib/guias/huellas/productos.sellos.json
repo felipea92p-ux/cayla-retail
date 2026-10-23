@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 78,
+  "total": 84,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -78,10 +78,20 @@
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
+    "components/sellos/CambiarDibujoModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/sellos/ElegirDibujoDeInsignia.tsx": [
+      "button «Según el nombre»",
+      "button «{NOMBRE_DEL_DIBUJO[clave]}»"
+    ],
     "components/sellos/SellosPantalla.tsx": [
       "button «{e.nombre}»",
       "button «{conGuia ? \"sellos.prendas\" : undefined}»",
       "button «{conGuia ? \"sellos.configurar\" : undefined}»",
+      "button «{conGuia ? \"sellos.dibujo\" : undefined}»",
       "BotonImprimir «(sin nombre)»",
       "BotonVer «Diseño web»",
       "button «{cambiandoId === e.id ? \"Desactivando…\" : \"Desactivar\"}»",

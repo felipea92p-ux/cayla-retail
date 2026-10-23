@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.editor",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 90,
+  "total": 92,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»",
@@ -109,6 +109,10 @@
     ],
     "components/etiqueta-prendas/EtiquetaColgada.tsx": [
       "button «{`${x.producto.referencia}»"
+    ],
+    "components/sellos/ElegirDibujoDeInsignia.tsx": [
+      "button «Según el nombre»",
+      "button «{NOMBRE_DEL_DIBUJO[clave]}»"
     ]
   }
 }
