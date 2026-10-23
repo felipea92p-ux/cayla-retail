@@ -1012,7 +1012,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       {/* Translúcida + desenfoque: el contenido pasa POR DEBAJO al hacer scroll.
           No es decoración, es la única forma de que se note que hay más página
           arriba en vez de que el texto se corte contra una banda opaca. */}
-      <header data-cabecera-app className="fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 backdrop-blur-md sm:left-lateral">
+      {/* `data-fondo-hoja`: con una hoja abierta en el celular, la cabecera y el contenido se alejan juntos y la cabecera se
+          redondea arriba (ADR-0479, components/ui/fondoDeLaHoja.ts). */}
+      <header data-cabecera-app data-fondo-hoja="borde" className="fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 backdrop-blur-md sm:left-lateral">
         <div className="flex items-center gap-3 px-4 py-2.5 sm:px-8 sm:py-3">
           {/* Celular: abre el cajón con el menú completo (v4), a la izquierda del logo. */}
           <button
@@ -1098,7 +1100,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
 
       {/* ==================== Contenido ==================== */}
       {/* Toda pantalla va a lo ancho (ADR-0462); solo las de `CON_TOPE_DE_ANCHO` y el Inicio siguen centradas en 64 rem. */}
-      <main className="px-4 pb-10 pt-20 sm:ml-lateral sm:pl-5 sm:pr-10 sm:pb-12 sm:pt-24">
+      <main data-fondo-hoja className="px-4 pb-10 pt-20 sm:ml-lateral sm:pl-5 sm:pr-10 sm:pb-12 sm:pt-24">
         {/* `has-[[data-ancho-completo]]`: una pantalla con tope que necesita todo el ancho lo pide con ese atributo (el Inicio de almacén,
             Felipe 2026-09-30) sin quitarle el tope a todas las cuentas de «/». */}
         <div className={conTopeDeAncho(pathname) ? "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none" : ""}>{children}</div>

@@ -2441,7 +2441,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
       {apilado && hojaTicket && (
-        <Modal titulo="Ticket actual" variante="ticket" tamano="mediana" onClose={() => setHojaTicket(false)} alCerrarEnfocar={buscador}>
+        // Mientras la venta se envía, la hoja no se cierra (ni con el dedo, ni con el velo, ni con Escape): ADR-0479.
+        <Modal titulo="Ticket actual" variante="ticket" tamano="mediana" onClose={() => setHojaTicket(false)} alCerrarEnfocar={buscador} bloqueado={envio.enviando}>
           {ticketNodo(true)}
         </Modal>
       )}
