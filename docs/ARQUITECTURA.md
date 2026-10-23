@@ -2158,9 +2158,9 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   precio en la tienda elegida y su nivel en cada tienda (lo libre de `fn_existencias_base`: piso + almacén, sin Cuarentena ni lo apartado,
   que incluye las reservas de los pedidos web; sin el Taller ni las tiendas escondidas). `null` si el modelo no se ve en la web (la página
   responde «Esta prenda ya no está»). `lib/ficha.ts` decide qué se ve al elegir color y talla, y `components/FichaPrenda.tsx` dibuja las
-  fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las piezas
+  fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las insignias de Catálogo ▸ Insignias que alcanzan al modelo (a mano o por categoría, aprobadas, vigentes hoy y de esa tienda; sin descuento: ese es el chip rojo) llegan en `prenda.insignias` (`fn_tienda_insignias`, `20261023182000`, ADR-0489) y `chipsDelCatalogo` las pone entre «Nuevo» y «N.º … en más vendidos». Cada chip lleva el dibujo de su insignia (la calabaza de Halloween…): los dibujos y el reconocimiento por nombre viven en `packages/shared/src/insignias-visual.ts` (datos; el ERP los pinta en `components/MuestraEtiqueta.tsx` y la tienda en `components/IconoInsignia.tsx`). Las piezas
   internas de las dos lecturas (`fn_tienda_nivel`, `fn_tienda_umbral`, `fn_tienda_sedes_web`, `fn_tienda_sede_elegida`,
-  `fn_tienda_disponible`, `fn_tienda_libre`, `fn_tienda_precio_talla`, `fn_tienda_precios`) no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones
+  `fn_tienda_disponible`, `fn_tienda_libre`, `fn_tienda_precio_talla`, `fn_tienda_precios`, `fn_tienda_insignias`) no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones
   rotas a propósito).
 - La ficha y las tarjetas conectadas (integración de las actividades 4, 5, 7, 11 y 12): en la ficha, `lib/ficha.ts` `botonDeLaFicha` decide
   el botón principal («Elige tu talla»; `components/bolsa/AgregarALaBolsa.tsx` si esa talla hay en alguna tienda de la web;
