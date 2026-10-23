@@ -81,6 +81,8 @@ SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_
 - **Actividad 2:** en la tienda local, abrir la ficha de la Blusa Emma, elegir la talla M y agregarla a la bolsa deja «vio prenda»,
   «eligió talla» (con su hora real, aunque salen juntas al ocultarse la pestaña) y «a la bolsa» (talla M, Negro), del mismo visitante.
   `pnpm pruebas:tienda-trafico` sube a 21: «a la bolsa» con solo la talla, y «separó» por la marca, una vez, atado a su pedido.
+- **Actividad 3:** `/privacidad` dice qué se anota al mirar la tienda (punto 2), para qué (punto 3) y cuánto dura la cookie (punto 6), con
+  el texto que aprobó Felipe; la versión de los textos subió a `borrador-2026-10-23` (las cuentas que ya existían conservan la que aceptaron).
 - **Sin probar:** las cabeceras de ubicación reales de Vercel (solo existen publicadas), la tienda con la base caída en vivo (cubierta por la
   prueba de `anotarPasos`) y «separó» en el navegador (en local no hay una cuenta de cliente de prueba; crear una pide consultar un DNI
   real): su función está probada en Postgres y la acción usa el mismo camino que «a la bolsa».

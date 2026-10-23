@@ -103,7 +103,7 @@
 .ay-legal-sec { display: flex; flex-direction: column; gap: 12px; padding-top: 30px; border-top: 1px solid var(--sand); scroll-margin-top: 20px; }
 .ay-legal-h2 { margin: 0 0 4px; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 18px; line-height: 1.12;  text-wrap: balance; }
 .ay-legal-n { color: var(--taupe); font-variant-numeric: lining-nums; }
-/* La versión del texto («borrador-2026-10-14») no se parte en dos líneas por sus guiones. */
+/* La versión del texto («borrador-2026-10-23») no se parte en dos líneas por sus guiones. */
 .ay-sin-corte { white-space: nowrap; }
 .ay-legal-sec p, .ay-legal-sec li { margin: 0; font-size: 16px; line-height: 1.7; text-wrap: pretty; }
 .ay-legal-sec b { font-weight: 600; }
