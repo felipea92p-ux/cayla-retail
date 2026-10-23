@@ -19,3 +19,8 @@
       imágenes viejas (cada cambio deja una de ≤ 100 KB sin dueño en el almacén) y el modo oscuro de una imagen propia.
 - [ ] **Para la sesión de las tarjetas del catálogo** (migración `20261023205000`): cuando muestren insignias, que usen `dibujoResuelto` de `packages/shared/src/insignia-imagen.ts`
       (imagen propia → dibujo elegido → nombre) y no `iconoDeInsignia` a secas.
+- [x] **Silueta (act. b del ADR-0490):** casilla «Pintar con el color del sello» al subir una imagen; `lib/silueta-de-imagen.ts`; columna `icono_imagen_silueta`; el sello, las tarjetas, el selector y el chip de la tienda
+      la pintan con el color del lugar. `pnpm pruebas:insignia-icono` 47/47.
+- [ ] **Pegar `supabase/migrations/20261023221000_insignia_imagen_como_silueta.sql` en producción ANTES de publicar la web** (una parte, idempotente; sin ella la pantalla de Insignias no carga). Verificar con
+      las consultas del ADR-0490 («Orden al desplegar»).
+- [ ] **Sin probar:** el chip rojo del descuento con silueta en el navegador (probado con datos) y la silueta con una foto de un teléfono real.

@@ -60,7 +60,7 @@ export async function cargarEtiquetasPantalla({
   const cargaTiendas = getUbicaciones().then((u) => u.filter((x) => x.tipo === "tienda").map((x) => ({ id: x.id, nombre: x.nombre })));
 
   const [resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, preciosTiendas, resSedes, tiendas] = await Promise.all([
-    supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, icono, icono_imagen, vigente_desde, vigente_hasta, descuento_pct").order("nombre"),
+    supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct").order("nombre"),
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
     supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id"),
     supabase.from("familias").select("codigo, nombre"),
@@ -106,6 +106,7 @@ export async function cargarEtiquetasPantalla({
       estilo: estiloConocido(e.estilo),
       icono: dibujoElegido(e.icono),
       imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null,
+      imagenSilueta: esRutaDeImagenDeInsignia(e.icono_imagen) && e.icono_imagen_silueta === true,
       vigenteDesde: e.vigente_desde,
       vigenteHasta: e.vigente_hasta,
       descuentoPct: e.descuento_pct,

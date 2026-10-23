@@ -243,7 +243,7 @@ rollback;`);
   // ---- 7. La ficha las entrega, y como `tienda_web` (lo único que la llama) funciona ----
   {
     const r = correr(`${PARTIR()}${insignia("a", "ZZ En la ficha", { estilo: "campana" })}
-select jsonb_build_array(jsonb_build_object('id', :'e_a'::uuid, 'nombre', 'ZZ En la ficha', 'icono', null, 'imagen', null, 'descuento', false)) = (retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias') as igual \\gset
+select jsonb_build_array(jsonb_build_object('id', :'e_a'::uuid, 'nombre', 'ZZ En la ficha', 'icono', null, 'imagen', null, 'silueta', false, 'descuento', false)) = (retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias') as igual \\gset
 grant tienda_web to current_user with set true;
 set local role tienda_web;
 select concat_ws('|', :'igual', (retail.tienda_ficha(:'pid', null) -> 'prenda' -> 'insignias' -> 0 ->> 'nombre'));
