@@ -2419,7 +2419,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           onClick={() => setHojaTicket(true)}
           data-guia="vender.barra-ticket"
           aria-haspopup="dialog"
-          className="anim-revelar fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-20 flex items-center gap-3 rounded-2xl bg-tinta py-2.5 pl-3 pr-2.5 text-left text-crema shadow-lg sm:left-[calc(var(--ancho-lateral,0px)+0.75rem)] lg:hidden"
+          // La isla oscura de lo que llevas elegido (ADR-0479, actividad 12, `barra-abajo`).
+          data-tono="tinta"
+          className="barra-abajo z-20 flex-nowrap gap-3 py-2.5 pl-3 pr-2.5 text-left sm:left-[calc(var(--ancho-lateral,0px)+0.75rem)] lg:hidden"
         >
           <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-crema/10">
             <ShoppingBag className="h-5 w-5" aria-hidden />

@@ -17,7 +17,7 @@ export const CLAVES_MODULO = [
   "clientas", "avisos_club", "beneficios_club",
   "existencias", "conteos", "traslados", "movimientos", "recibir",
   "productos", "atributos", "etiquetas", "campanas", "liquidacion",
-  "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "notas_credito", "plan_compra",
+  "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "plan_compra",
   "produccion", "ordenes_insumos",
   "analisis", "frescura", "plan_piso", "colaboradores", "roles",
   "configuracion",
@@ -117,14 +117,18 @@ export const MODULOS: readonly Modulo[] = [
   // Órdenes de compra (ADR-0362, 20261010214500): lo que se le pide a cada proveedor antes de la factura. Nace SIN rol (solo el
   // líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las órdenes de TODAS las sedes con sus precios
   // (decisiones 34 y 37): no pasa por la regla de Compras por tienda (ADR-0184).
-  { clave: "ordenes_compra", grupo: "Compras", nombre: "Órdenes de compra", incluye: "Crear, ver, editar y anular las órdenes de compra a proveedores de todas las sedes, con sus precios, descargar su PDF y ver cómo se le paga a cada proveedor (cuenta, CCI, Yape, Plin y titular)" },
-  { clave: "facturas_compra", grupo: "Compras", nombre: "Facturas de compra", incluye: "Registrar, corregir y anular facturas" },
+  // ADR-0480 (Compras simple, 20261022225000): la clave `ordenes_compra` se REUSA como «Mi plata para compras». Unas 40 funciones de la
+  // base la usan como llave (recibir, gastos del viaje, datos bancarios, proveedor nuevo, «Nos debe»); retirarla cambiaría en silencio
+  // quién puede qué. Lo que se ve es la compradora en su celular; las pantallas de órdenes salen del menú.
+  { clave: "ordenes_compra", grupo: "Compras", nombre: "Mi plata para compras", incluye: "En el celular: anotar la plata que te dieron para comprar, lo que compraste (proveedor, prendas, la boleta con foto) y otros gastos; mandar lo comprado a cada tienda y terminar el día" },
+  { clave: "facturas_compra", grupo: "Compras", nombre: "Historial de compras", incluye: "Ver todas las compras con su papel (factura, boleta, nota de venta o sin comprobante), lo que falta pagar y lo que falta llegar; adjuntar documentos, anular una compra sin pagos ni recepciones y descargar el mes para el contador" },
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
   // Fondos por rendir (ADR-0362, fase 6; 20261013181000): la plata que se le entrega a quien compra. Nace SIN rol (solo el líder) y
   // delegable: sus funciones piden este módulo, no al líder (decisión 35).
-  { clave: "fondos", grupo: "Compras", nombre: "Fondos por rendir", incluye: "Entregar plata a una persona para que compre, registrar lo que devuelve y ver cuánto tiene cada una en la mano" },
+  // ADR-0480: «Revisar compras», la oficina. Misma clave y mismas funciones; cambia lo que se ve.
+  { clave: "fondos", grupo: "Compras", nombre: "Revisar compras", incluye: "Confirmar la plata que anotaron las compradoras, completar las compras que llegaron a la tienda (serie y número de la boleta o factura, y qué hacer si algo no cuadró) y ver los cierres del día" },
   { clave: "proveedores", grupo: "Compras", nombre: "Proveedores", incluye: "Crear, editar y archivar; cuentas bancarias, Yape y Plin" },
-  { clave: "notas_credito", grupo: "Compras", nombre: "Notas de crédito", incluye: "Registrar y anular notas" },
+  // «Notas de crédito» se retiró (ADR-0480, 20261022225000): «por ahora no manejaremos notas de crédito» (Felipe, 2026-10-22).
   // Plan de campaña (ADR-0349, 20261005220000): cuánto comprar por categoría para una campaña (diciembre 2026 primero), con tres
   // escenarios, y compararlo después con lo vendido. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo.
   { clave: "plan_compra", grupo: "Compras", nombre: "Plan de campaña", incluye: "Armar por categoría cuánto comprar para una campaña (tres escenarios, precio, costo, curva de tallas) y compararlo después con lo que se vendió" },
@@ -302,7 +306,7 @@ export function permisosDeModulos(rol: "lider" | "integrante", modulos: readonly
   if (completo("existencias", "conteos", "traslados")) permisos.push("ajustarStock");
   if (completo("productos", "atributos")) permisos.push("editarCatalogo");
   if (completo("proveedores")) permisos.push("editarCuentasProveedor");
-  if (completo("facturas_compra", "por_pagar", "notas_credito")) permisos.push("verDineroCompras");
+  if (completo("facturas_compra", "por_pagar")) permisos.push("verDineroCompras");
   if (completo("etiquetas")) permisos.push("editarEtiquetas");
   if (completo("gastos")) permisos.push("registrarGastos");
   if (completo("cuentas_dinero")) permisos.push("verCuentasDinero");
@@ -349,7 +353,7 @@ export function accionesDeCompra(rol: "lider" | "integrante", modulos: readonly 
   return {
     facturas: usaModulo(rol, modulos, "facturas_compra"), // fn_puede_registrar_facturas_compra: registrar, anular, reparto, adjuntos
     pagar: usaModulo(rol, modulos, "por_pagar"), // fn_puede_pagar_compras: pagos y reembolsos
-    notas: usaModulo(rol, modulos, "notas_credito"), // fn_puede_registrar_notas_credito
+    notas: false, // ADR-0480: las notas de crédito de proveedor no se manejan por ahora (fn_puede_registrar_notas_credito, solo el líder)
   };
 }
 

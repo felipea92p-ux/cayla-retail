@@ -25,7 +25,7 @@ import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalog
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { useResponsable } from "@/lib/useResponsable";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
-import { chipDeTarjeta, type PrendaConCosto } from "@/lib/etiqueta-campana";
+import { chipDeTarjeta, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
 import { vigenciaDe } from "@/lib/etiqueta-vigencia";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { notaSinRegistrar, type LecturaRotacion } from "@/lib/etiqueta-rotacion";
@@ -76,6 +76,7 @@ export function SellosPantalla({
   sede,
   etiquetasIniciales,
   categorias,
+  tiendas,
   prendasConCosto,
   variantesManuales,
   prendasVitrina,
@@ -89,6 +90,8 @@ export function SellosPantalla({
   sede: string;
   etiquetasIniciales: Etiqueta[];
   categorias: CategoriaOpcion[];
+  /** Las tiendas donde se puede limitar el descuento de una campaña (ADR-0486); vacío = la hoja de Configurar no ofrece sedes. */
+  tiendas: TiendaOpcion[];
   prendasConCosto: PrendaConCosto[];
   variantesManuales: Record<string, string[]>;
   /** Modelo, color, categoría y foto de cada prenda a la venta; `null` si no se pudieron leer (la vitrina no se dibuja). */
@@ -182,6 +185,7 @@ export function SellosPantalla({
         vigenteHasta: null,
         descuentoPct: null,
         categoriaIds: [],
+        sedeIds: [],
       };
       setEtiquetas((actual) => ordenarEtiquetas([...actual, nueva]));
       abrir(nueva.id);
@@ -288,6 +292,7 @@ export function SellosPantalla({
     const tramo = tramoDeCampana(e.vigenteDesde, e.vigenteHasta, hoy);
     const vigencia = vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy);
     const chip = e.activo && e.estado === "aprobado" ? chipDeTarjeta(vigencia, p.modelos.length + e.categoriaIds.length, hoy) : null;
+    const dondeRige = e.descuentoPct !== null ? textoSedesDeCampana(e.sedeIds, tiendas) : null;
     const anio = e.vigenteDesde ? e.vigenteDesde.slice(0, 4) : null;
     return (
       <article
@@ -352,6 +357,13 @@ export function SellosPantalla({
                   <strong>{e.descuentoPct !== null ? `${e.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %` : "—"}</strong>descuento
                 </div>
               </div>
+              {dondeRige && (
+                <div style={{ "--i": 3 } as CSSProperties}>
+                  <Chip tono="pizarra" versalitas={false} title="Solo en esa tienda se cobra el descuento; en las demás, el precio normal.">
+                    {dondeRige}
+                  </Chip>
+                </div>
+              )}
               <div className="flex flex-wrap items-center gap-1.5" style={{ "--i": 4 } as CSSProperties}>
                 {accionesDelPase(e, esAbierto)}
               </div>
@@ -669,6 +681,7 @@ export function SellosPantalla({
           etiqueta={configurando}
           puedeDarDescuento={puedeEditar(configurando)}
           categorias={categorias}
+          tiendas={tiendas}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales[configurando.id] ?? []}
           onClose={() => setConfigurando(null)}

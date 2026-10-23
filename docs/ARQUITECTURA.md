@@ -598,7 +598,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `coincideBusqueda`; las cifras de la maqueta como constantes: 2 semanas para «se acaba», 30 días para vigilar, 90 en rojo, «Liquidar desde»
   de 1 a 999 con 60 de fábrica —sin tope desde el 2026-10-07, `20261007100000`—). «Nunca salió al piso»: `lib/analisis-piso.ts` (tipos, cifras,
   dónde está lo que tienes, eje); «¿Para cuánto te alcanza?» contra Navidad: `alcancePorTipo` en `lib/analisis-pedir.ts`. A dónde lleva cada
-  botón: `lib/analisis-acciones.ts` (`hrefComprar` → `/produccion/ordenes?nueva=<producto>` o `/compras/nueva?prov=`; `hrefEnviar` →
+  botón: `lib/analisis-acciones.ts` (`hrefComprar` → `/produccion/ordenes?nueva=<producto>` o `/compras/mi-plata` (desde 2026-10-23, ADR-0480 act.); `hrefEnviar` →
   `/inventario/traslados/nuevo?lineas=&destino=&desde=analisis`; `hrefLiquidar` → `/etiquetas-de-precio?variantes=`; `hrefReponerPiso` →
   `/inventario/bajar?lineas=`; `hrefExistencias`, `hrefMovimientos`; `lineasParaPedir` → `PedirAOtraSedeModal` → RPC `pedir_a_otra_sede`,
   ADR-0242 D-7). Cada una devuelve null si la cuenta no ve el destino, y el botón no se dibuja. Análisis no escribe nada, salvo «Liquidar desde»:
@@ -1444,17 +1444,43 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   proveedor por su marca; es una lectura **opcional** (si falla llega `null` y todo se pinta sin marcas). Reglas puras:
   `marcasPorProveedor`, `textoBuscableProveedor`, `detalleProveedorCombo`, `marcasParaMostrar`. **No cubre** los buscadores de
   Comprobantes y Recepciones, que filtran el proveedor dentro de sus RPC (`listar_compras_operativo` y la de recepciones).
-- **Registrar factura (`/compras/nueva`)** (ADR-0452 act. 2026-10-21): `page.tsx` filtra el directorio con `proveedoresParaPedir` (salvo el
-  que llega por `?prov=`) y pasa `puedeAgregarProveedor` y `getRubrosEnUso`; `CompraFormV2` suma «+ Agregar proveedor» al combo
-  (`components/useAltaDeProveedor.tsx`, `ProveedorModal` fuera del `<form>`) y deja elegido al nuevo. `getCatalogoMarcas` (`lib/marcas-datos.ts`:
-  alta y edición de producto, conteo) filtra igual.
-- `/compras` (Facturas), `/compras/nueva`, `/compras/factura/[compraId]`,
+- **Registrar factura (`/compras/nueva`) se retiró el 2026-10-23** (ADR-0480 act.): la compra nace en «Mi plata para compras». `getCatalogoMarcas`
+  (`lib/marcas-datos.ts`: alta y edición de producto, conteo) sigue filtrando con `proveedoresParaPedir`.
+- `/compras` (Historial de compras, solo lectura), `/compras/factura/[compraId]`,
   `/compras/recibir`, `/compras/por-pagar` → `lib/compras.ts` →
-  `CompraFormV2`, `CompraDetalle` + `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
+  `CompraDetalle` + `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
-- **Notas de crédito** (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
+- **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en seis entradas: Plan de campaña, `/compras/mi-plata`
+  («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), `/compras/fondos` («Revisar
+  compras», módulo `fondos`), Proveedores, Facturas de proveedor y Por pagar. `/compras/ordenes` sigue en el código sin entrada en el menú.
+  Actividad 2: `/compras/mi-plata` → `lib/mi-plata.ts` (`fn_mi_plata_compras`) + `lib/mi-plata-reglas.ts` (puro: lectura, cifras, qué falta,
+  la cuenta sugerida) + `components/mi-plata/AnotarPlata.tsx` (`anotar_plata_compras`, la foto al depósito `retail-gastos-viaje/plata/`);
+  `/compras/fondos` suma `getPlataPorConfirmar` (`fn_plata_por_confirmar`, vouchers firmados) + `components/mi-plata/PlataPorConfirmar.tsx`
+  (`confirmar_plata_compras`). Tabla `fondo_plata_anotada`.
+  Actividad 3: `/compras/mi-plata/compra` → `lib/compra-rapida.ts` (`fn_proveedores_para_comprar`, categorías, `getDestinosOrden`,
+  `getMiPlata`) + `lib/compra-rapida-reglas.ts` (puro) + `components/mi-plata/RegistrarCompra.tsx` (`fn_habituales_proveedor` al elegir el
+  proveedor; `registrar_compra_rapida`, la foto a `retail-gastos-viaje/papeles/`). Tabla `compra_papeles`; columnas `ordenes_compra.papel_id`
+  y `orden_compra_items.producto_id`.
+  Actividad 4 (sin migración): la misma pantalla suma «Algo nuevo de este proveedor» (categorías con `prefijo`/`familia` y `marcas` leídas
+  en `lib/compra-rapida.ts`; la línea va sin `producto_id`) y «Nuevo proveedor», que reusa `components/ordenes-compra/RegistrarProveedorOrden.tsx`
+  (`registrar_proveedor_de_orden`).
+  Actividad 5 (migración `20261023114000`): `/compras/mi-plata` suma tres hojas en `components/mi-plata/`: «Gasté en otra cosa»
+  (`AnotarGasto.tsx` → `registrar_gasto_rapido`, foto en `gastos/`), «Mandar a la tienda» (`MandarATienda.tsx` → `mandar_compras_a_tienda`,
+  que arma las líneas pendientes de esa tienda y llama a `crear_envio`; `despachos.bultos`) y «Terminé de comprar hoy» (`TerminarDia.tsx` →
+  `terminar_dia_compras`). `fn_mi_plata_compras` lee también `gastos`, `por_mandar` y `hoy`; `fn_mi_plata_tiene` es la única cuenta de lo
+  que tiene. `?mandar=1` (desde «Listo» de la compra) abre «Mandar a la tienda».
+  Actividad 6 (migración `20261023121000`): `/recibir/envio/[id]` muestra los papeles de lo comprado desde el celular
+  (`components/recepcion-conteo/PapelesDeLaCompra.tsx`; `fn_envio_detalle` → `papeles`, foto firmada en `lib/recepcion-envio.ts`) y
+  `SepararPrendas` ofrece la prenda que eligió la compradora (`lineas[].producto`).
+  Actividad 7 (migración `20261023143000`): `/compras/fondos` suma `lib/revisar-compras.ts` (`fn_revisar_compras`, fotos de `papeles/`
+  firmadas) + `lib/revisar-compras-reglas.ts` (puro: lectura, si cuadra, qué falta) + `components/mi-plata/PapelesPorCompletar.tsx`
+  (`completar_papel_compra`: el comprobante pagado desde el fondo de quien compró; tabla `compra_item_recibido_antes`) y
+  `CierresPorRecibir.tsx` (`recibir_cierre_compras` → `devolver_fondo` o `entregar_fondo`) y `GastosPorRevisar.tsx`
+  (`revisar_gasto_compra` → `registrar_gasto_viaje`, fotos de `gastos/` firmadas).
+- ~~**Notas de crédito**~~ (retirada el 2026-10-22, ADR-0480: la pantalla, sus modales y `lib/notas-credito*.ts` se borraron;
+  `/compras/notas-credito` redirige a `/compras`; las tablas y RPC de abajo siguen en la base). Lo que era (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres
   partes del dinero, filtros y buscador) → `NotasCreditoPanel` (+ `NotaCreditoVistaRapida`, `NotaCreditoDetalle`,
   `RegistrarNotaCreditoModal`) → RPC `notas_credito_tablero()` (notas + notas pendientes en una llamada),
@@ -1618,7 +1644,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   de error en componentes.
 - Adjuntos de factura (ADR-0046, `20260914180000_compras_adjuntos.sql`):
   tabla `compra_adjuntos` + bucket privado `retail-compras-adjuntos`.
-  `AdjuntosCompra.tsx` (selector en `/compras/nueva`, lista en el detalle) →
+  `AdjuntosCompra.tsx` (lista en el detalle; el selector del alta se fue con `/compras/nueva`) →
   `lib/adjuntos-compra.ts` sube del navegador al bucket y registra la fila
   con `registrar_adjunto_compra`; `archivar_adjunto_compra` quita de la
   vista (nunca borra). URL firmada de 1 h en `lib/compras.ts`.

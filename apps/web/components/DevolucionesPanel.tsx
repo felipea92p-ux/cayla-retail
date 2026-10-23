@@ -20,6 +20,7 @@ import { estadoPrendaDevolucion } from "@/lib/devoluciones-reglas";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { DevolucionArmada } from "@/lib/devoluciones-cambio-de-sede";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 type Filtro = "todas" | "con_devolucion" | "sin_comprobante";
 
@@ -389,14 +390,15 @@ export function DevolucionesPanel({
       )}
 
       {/* Celular: la prenda en la mano es la entrada más rápida, al alcance del pulgar (spike 2026-09-26). */}
-      <div data-guia="devoluciones.barra-movil" className="fixed inset-x-0 bottom-0 z-30 flex gap-2 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
+      {/* La barra de abajo del celular es la Isla (ADR-0479, actividad 12): escanear y buscar, dentro de la isla clara. */}
+      <BarraDeAbajo data-guia="devoluciones.barra-movil" className="flex-nowrap gap-2 p-2 sm:hidden">
         <button
           type="button"
           onClick={() => {
             subirAlBuscador();
             escanear.current?.();
           }}
-          className="flex h-14 flex-1 items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.98]"
+          className="btn-cayla btn-primario min-h-12 flex-1 gap-2.5 text-[15px]"
         >
           <ScanLine size={20} aria-hidden />
           Escanear prenda
@@ -408,11 +410,11 @@ export function DevolucionesPanel({
             campoBusqueda.current?.focus({ preventScroll: true });
           }}
           aria-label="Buscar la venta"
-          className="flex h-14 w-[58px] shrink-0 items-center justify-center rounded-2xl border border-sand bg-papel text-tinta active:scale-[0.97]"
+          className="btn-cayla btn-secundario h-12 w-12 shrink-0 px-0"
         >
           <Search size={20} aria-hidden />
         </button>
-      </div>
+      </BarraDeAbajo>
 
       {viendoVenta && (
         <DetalleVentaModal ventaId={viendoVenta.ventaId} vendedor={viendoVenta.vendedorNombre} ubicacionNombre={viendoVenta.sedeVenta ?? sede} onClose={() => setViendoVenta(null)} />

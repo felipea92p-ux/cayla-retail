@@ -33,7 +33,7 @@ export function vistaDeEstilo(estilo: EstiloEtiqueta): VistaSellos {
 export const TEXTOS_VISTA: Record<VistaSellos, { nombre: string; frase: string }> = {
   campanas: {
     nombre: "Campañas",
-    frase: "Las fechas del año en que se vende distinto: cuándo rige cada una, su descuento y en qué prendas. Valen en todas las tiendas y en la tienda online.",
+    frase: "Las fechas del año en que se vende distinto: cuándo rige cada una, su descuento y en qué prendas. Valen en todas las tiendas y en la tienda online, o solo en las tiendas que elijas.",
   },
   rotacion: { nombre: "Rotación", frase: "Cómo se mueve la prenda: lo nuevo, lo que más se vende, lo que se acaba y lo que hay que sacar." },
   artesanal: { nombre: "Artesanal", frase: "Cómo se hizo la prenda: a mano, pieza única o la reedición de un modelo que ya tuvimos." },

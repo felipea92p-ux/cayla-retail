@@ -58,8 +58,14 @@
   .barra-t-relleno[data-rayada] {
     background-image: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--color-papel) 55%, transparent) 3px 6px);
   }
-  .barra-t:not([data-tono]):hover .barra-t-relleno, .barra-t:not([data-tono]):focus-visible .barra-t-relleno { background-color: color-mix(in srgb, var(--color-tinta) 70%, var(--color-grafico-neutro)); }
-  .barra-t[data-tono]:hover .barra-t-relleno, .barra-t[data-tono]:focus-visible .barra-t-relleno { filter: brightness(.92); }
+  .barra-t:not([data-tono]):focus-visible .barra-t-relleno { background-color: color-mix(in srgb, var(--color-tinta) 70%, var(--color-grafico-neutro)); }
+  @media (hover: hover) {
+    .barra-t:not([data-tono]):hover .barra-t-relleno { background-color: color-mix(in srgb, var(--color-tinta) 70%, var(--color-grafico-neutro)); }
+  }
+  .barra-t[data-tono]:focus-visible .barra-t-relleno { filter: brightness(.92); }
+  @media (hover: hover) {
+    .barra-t[data-tono]:hover .barra-t-relleno { filter: brightness(.92); }
+  }
   .barra-t-meta { position: absolute; left: 50%; z-index: 1; width: min(100%, 34px); height: 2px; border-radius: 1px; translate: -50% 0; background: var(--color-taupe); }
   .barra-t-encima { position: absolute; left: 50%; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 3px; white-space: nowrap;
     animation: cayla-linea-aparece 300ms var(--ease-cayla) 600ms backwards; }
@@ -67,6 +73,7 @@
   .barra-t-globo { left: 50%; translate: -50% 0; opacity: 0; transition: opacity 160ms var(--ease-cayla); }
   .barra-t-globo[data-lado="izq"] { left: 0; translate: 0 0; }
   .barra-t-globo[data-lado="der"] { left: auto; right: 0; translate: 0 0; }
+  /* hover-tactil: el globito es la lectura de la barra; con el dedo, tocarla lo muestra (ADR-0479). */
   .barra-t:hover .barra-t-globo, .barra-t:focus-visible .barra-t-globo { opacity: 1; }
   .barras-tiempo-eje { display: grid; margin-top: 6px; }
   .barras-tiempo-eje > span { min-width: 0; overflow: visible; white-space: nowrap; text-align: center; font-size: 10.5px; color: var(--color-taupe-profundo); }

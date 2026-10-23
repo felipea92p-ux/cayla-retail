@@ -846,7 +846,9 @@ function BarraMarcadas({
       role="toolbar"
       aria-label="Acciones sobre las prendas marcadas"
       aria-hidden={n === 0}
-      className={`fixed inset-x-3 bottom-3 z-40 flex items-center gap-1 rounded-2xl bg-tinta p-1.5 text-crema shadow-[0_24px_48px_-16px_color-mix(in_srgb,var(--color-sombra)_50%,transparent)] transition-[opacity,transform] duration-300 ease-cayla sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:pl-4 ${
+      // La isla oscura de lo que llevas elegido (ADR-0479, actividad 12, `barra-abajo`).
+      data-tono="tinta"
+      className={`barra-abajo z-40 flex-nowrap gap-1 p-1.5 transition-[opacity,transform] duration-300 ease-cayla sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:pl-4 ${
         n > 0 ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
       }`}
     >

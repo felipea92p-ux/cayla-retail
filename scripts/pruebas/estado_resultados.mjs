@@ -18,6 +18,10 @@
  *   · campañas: la pasada contra sus días normales (y un día con otra campaña no cuenta como normal), la que viene con su
  *     meta y su margen normal;
  *   · volumen: un año de datos sintéticos (≈ 20 mil tickets) y cuánto tarda.
+ *   · N — las mermas pasan de la cuenta 659 a la 6951 (`20261023012000_mermas_a_la_cuenta_6951.sql`, sin pegar hasta el OK del
+ *         contador): el Estado de resultados, el Balance y la conciliación dan EXACTAMENTE lo mismo antes y después (las cifras
+ *         de mermas calculadas a mano valen en los dos estados), las diferencias de caja (6599) y el redondeo (6598) no se
+ *         mueven, y la huella viva de un mes cambia solo en las sedes con mermas (por eso la migración se niega con un mes cerrado).
  *
  * LOS NÚMEROS ESPERADOS ESTÁN CALCULADOS A MANO (comentarios de cada escena), no salen de las funciones.
  *
@@ -30,6 +34,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
@@ -325,7 +330,7 @@ select 'E5 la nota de crédito baja el 421 y el alquiler (635) y el IGV', (selec
 select 'E5 el alta de la laptop: 336 = 590 contra el banco; no es gasto', (select sum(debe) filter (where cuenta = '336') = 590 and sum(haber) filter (where cuenta = '104') = 590 from dia where origen_id = pg_temp.k('A3') and regla = 'activo');
 select 'E5 la baja: 391 = 600 + 655 = 600 contra 333 = 1,200', (select sum(debe) filter (where cuenta = '391') = 600 and sum(debe) filter (where cuenta = '655') = 600 and sum(haber) filter (where cuenta = '333') = 1200 from dia where regla = 'baja_activo');
 select 'E5 la planilla: 62 contra 41, fechada al cierre del período', (select count(*) = 3 and bool_and(fecha = '2030-09-28') from dia where regla = 'planilla' and cuenta = '41');
-select 'E5 la anulación con prenda no vendible pasa su costo a merma (659 = 40)', (select sum(debe) filter (where cuenta = '659') = 40 and sum(haber) filter (where cuenta = '691') = 40 from dia where origen_id = pg_temp.k('S8') and regla = 'anulacion');
+select 'E5 la anulación con prenda no vendible pasa su costo a merma (6951 = 40; antes iba a la 659)', (select sum(debe) filter (where cuenta = '6951') = 40 and sum(haber) filter (where cuenta = '691') = 40 from dia where origen_id = pg_temp.k('S8') and regla = 'anulacion');
 select 'E5 pedir una tienda devuelve solo esa tienda', (select count(*) > 0 and bool_and(ubicacion_id = :'tru') from retail.fn_asientos('2030-09-01', '2030-09-30', :'tru'));
 select 'E6 agosto: la depreciación del estante (16.66), la planilla de agosto y sus ventas (S9, anulada en septiembre, y la de las 23:50 del 31)', (select depreciacion = 16.66 and planilla = 12000 and ventas_netas = 169.50 from retail.fn_estado_resultados('2030-08-01', '2030-08-31') where ubicacion_id = :'tru');
 `;
@@ -512,6 +517,108 @@ select 'lineas_anio', (select count(*) from retail.fn_asientos('2031-01-01', '20
 select 'cuadra_anio', (select count(*) = 0 from retail.fn_asientos_descuadrados('2031-01-01', '2031-12-31'));
 `;
 
+// ============================================================================================================================
+// N · Las mermas pasan de la 659 a la 6951 (`20261023012000_mermas_a_la_cuenta_6951.sql`): el Estado de
+// resultados de septiembre de 2030 da EXACTAMENTE los mismos números antes y después, y lo mismo el Balance y la conciliación.
+//   Como en la prueba de pérdidas (perdidas.mjs, caso M), se usa el ARCHIVO de la migración: el «antes» se arma ejecutando su
+//   bloque «DESHACER (DOWN)» y el «después» volviéndola a pegar, todo en la transacción de la escena (ROLLBACK).
+//   Las cifras de mermas de la escena están calculadas a mano arriba (TRU 280, LIM 90, CAYLA 370) y valen EN LOS DOS estados.
+// ============================================================================================================================
+const MIGRACION_6951 = readFileSync(new URL("../../supabase/migrations/20261023012000_mermas_a_la_cuenta_6951.sql", import.meta.url), "utf8");
+const DESHACER_6951 = (() => {
+  const l = MIGRACION_6951.split("\n");
+  const i = l.findIndex((x) => x.startsWith("-- ----- DESHACER (DOWN) -----"));
+  const f = l.findIndex((x) => x.startsWith("-- ----- FIN DE DESHACER -----"));
+  return i >= 0 && f > i ? l.slice(i + 1, f).map((x) => x.replace(/^-- ?/, "")).join("\n") : "";
+})();
+const GUARDA_SESION_6951 = `select current_setting('search_path') as sp, current_setting('lock_timeout') as lt \\gset\n`;
+const DEVUELVE_SESION_6951 = `select set_config('search_path', :'sp', true), set_config('lock_timeout', :'lt', true);\n`;
+/** Una foto de lo que lee la cuenta de mermas: el Estado de resultados y el diario; con `completa`, también el Balance, la conciliación y la huella viva de Cierre de mes. */
+const FOTO_6951 = (n, completa = true) => `
+create temp table er_${n} as select * from retail.fn_estado_resultados('2030-09-01', '2030-09-30');
+create temp table dia_${n} as select * from retail.fn_asientos('2030-09-01', '2030-09-30');
+${completa ? `create temp table bal_${n} as select * from retail.fn_balance_general('2030-09-30');
+create temp table con_${n} as select * from retail.fn_conciliacion_contable('2030-09-30');
+create temp table cie_${n} as select alcance, ubicacion_id, huella_viva from retail.fn_cierre_mes_estado('2030-09-01');` : ""}
+`;
+const IGUALES_6951 = (tabla, a, b) =>
+  `(select count(*) = 0 from (select * from ${tabla}_${a} except select * from ${tabla}_${b}) x) and (select count(*) = 0 from (select * from ${tabla}_${b} except select * from ${tabla}_${a}) x) and (select count(*) = (select count(*) from ${tabla}_${b}) from ${tabla}_${a})`;
+/** Las cifras de mermas de la escena, calculadas a mano (ver arriba), para un estado dado. */
+const CIFRAS_6951 = (n) => `
+  (select mermas = 280 and margen_bruto = -23.57 and resultado = -15649.62 and jsonb_array_length(detalle_mermas) = 3 from er_${n} where ubicacion_id = :'tru')
+  and (select mermas = 90 and resultado = 37.12 and jsonb_array_length(detalle_mermas) = 2 from er_${n} where ubicacion_id = :'lim')
+  and (select mermas = 370 and margen_bruto = 13.55 and gastos_operacion = 29140.80 and resultado = -29127.25 from er_${n} where unidad = 'consolidado')`;
+const CASOS_6951_ER = `
+select set_config('prueba.planilla', 'si', true);
+${GUARDA_SESION_6951}
+-- El Balance necesita un punto de partida: 1,000 en caja contra el capital, el 1-sep-2030 (no toca ninguna cifra del Estado de resultados).
+-- Directo en la tabla: registrar_saldo_inicial no acepta un arranque más de un mes en el futuro y esta escena vive en 2030.
+insert into retail.saldos_iniciales (fecha, cuenta, debe, haber, origen, nota) values
+  ('2030-09-01', '101', 1000, 0, 'manual', 'prueba mermas 6951'), ('2030-09-01', '50', 0, 1000, 'manual', 'prueba mermas 6951');
+${FOTO_6951("hoy")}
+${DESHACER_6951}
+${FOTO_6951("antes")}
+${MIGRACION_6951}
+${FOTO_6951("despues")}
+${DEVUELVE_SESION_6951}
+select 'N1 las mermas de la escena valen lo calculado a mano con la migración aplicada: TRU 280, LIM 90, CAYLA 370 (margen 13.55, resultado −29,127.25)',
+  ${CIFRAS_6951("hoy")};
+select 'N1 y valen EXACTAMENTE lo mismo antes de la migración (con la cuenta 659): ni un centavo se movió',
+  ${CIFRAS_6951("antes")};
+select 'N2 el Estado de resultados completo es idéntico antes, hoy y después de volver a pegar: todas las filas y todas las columnas',
+  ${IGUALES_6951("er", "antes", "hoy")} and ${IGUALES_6951("er", "hoy", "despues")} and (select count(*) >= 5 from er_hoy);
+select 'N3 el diario suma lo mismo por cuenta antes y después, salvo que lo que estaba en la 659 está en la 6951 (misma cifra, mismas reglas)',
+  (select count(*) = 0 from (select case when cuenta in ('659', '6951') then 'MERMA' else cuenta end as c, regla, sum(debe) as d, sum(haber) as h from dia_antes group by 1, 2
+                              except select case when cuenta in ('659', '6951') then 'MERMA' else cuenta end, regla, sum(debe), sum(haber) from dia_hoy group by 1, 2) x)
+  and (select count(*) = 0 from (select case when cuenta in ('659', '6951') then 'MERMA' else cuenta end as c, regla, sum(debe) as d, sum(haber) as h from dia_hoy group by 1, 2
+                              except select case when cuenta in ('659', '6951') then 'MERMA' else cuenta end, regla, sum(debe), sum(haber) from dia_antes group by 1, 2) x)
+  and (select sum(debe) filter (where cuenta = '659') = sum(debe) filter (where cuenta = '6951') from (select cuenta, debe from dia_antes union all select cuenta, debe from dia_hoy) z where cuenta in ('659', '6951'))
+  and (select count(*) = 0 from dia_hoy where cuenta = '659') and (select count(*) = 0 from dia_antes where cuenta = '6951');
+select 'N3 y la anulación con prenda no vendible (S8 de LIM) ahora pasa su costo a la 6951 = 40 contra el costo de ventas 691',
+  (select sum(debe) filter (where cuenta = '6951') = 40 and sum(haber) filter (where cuenta = '691') = 40 from dia_hoy where origen_id = pg_temp.k('S8') and regla = 'anulacion');
+select 'N4 el Balance es idéntico antes y después (la cuenta 6951 pesa en el resultado del mes lo mismo que la 659), y la ecuación sigue cuadrando',
+  ${IGUALES_6951("bal", "antes", "hoy")} and ${IGUALES_6951("bal", "hoy", "despues")} and (select count(*) > 0 from bal_hoy)
+  and (select sum(monto) filter (where seccion = 'activo') = sum(monto) filter (where seccion in ('pasivo', 'patrimonio')) from bal_hoy)
+  and (select sum(monto) filter (where seccion = 'activo') = sum(monto) filter (where seccion in ('pasivo', 'patrimonio')) from bal_antes);
+select 'N5 la conciliación contable es idéntica antes y después, y el diario y la ecuación (lo que tiene = lo que debe + lo tuyo) siguen cuadrando',
+  ${IGUALES_6951("con", "antes", "hoy")} and ${IGUALES_6951("con", "hoy", "despues")} and (select count(*) >= 8 from con_hoy)
+  and (select bool_and(estado = 'ok') from con_hoy where clave in ('diario', 'ecuacion')) and (select bool_and(estado = 'ok') from con_antes where clave in ('diario', 'ecuacion'));
+select 'N6 la huella viva de Cierre de mes SÍ cambia en las sedes con mermas (TRU y LIM) y no en las que no tienen: por eso la migración se niega con un mes cerrado',
+  (select count(*) = 2 and bool_and(h.huella_viva is distinct from a.huella_viva)
+     from cie_hoy h join cie_antes a on a.alcance = h.alcance and a.ubicacion_id is not distinct from h.ubicacion_id
+    where h.ubicacion_id in (:'tru', :'lim'))
+  and (select count(*) >= 1 and bool_and(h.huella_viva is not distinct from a.huella_viva)
+         from cie_hoy h join cie_antes a on a.alcance = h.alcance and a.ubicacion_id is not distinct from h.ubicacion_id
+        where h.ubicacion_id = :'tal')
+  and (select count(*) = 0 from (select * from cie_hoy except select * from cie_despues) x);
+`;
+
+// Las cuentas que SE PARECEN a la 659 pero no son mermas, en la misma escena: una caja de TRU que faltó S/ 5 al cerrar (6599) y
+// una venta de S/ 10 con S/ 0.08 de redondeo de efectivo (6598). Con ellas, el Estado de resultados de TRU suma 5.08 más de
+// gastos, y la cifra de mermas no se entera. Aquí no se calcula a mano nada nuevo: se compara antes con después.
+const CASOS_6951_ER_PARECIDAS = `
+select set_config('prueba.planilla', 'si', true);
+${GUARDA_SESION_6951}
+insert into retail.cajas (id, ubicacion_id, estado, monto_apertura, monto_apertura_esperado, abierta_en, cerrada_en, monto_cierre_sistema, monto_cierre_real, diferencia, monto_fondo)
+values (pg_temp.k('CJ'), :'tru', 'cerrada', 100, 100, '2030-09-27 09:00-05', '2030-09-27 20:00-05', 500, 495, -5, 100);
+select pg_temp.vender('RD', :'tru', '2030-09-27 12:00-05', '22222222-2222-4222-8222-222222222222', 1, 10, 0, 0, '[{"m":"efectivo","v":9.92},{"m":"redondeo","v":0.08}]');
+${FOTO_6951("hoy", false)}
+${DESHACER_6951}
+${FOTO_6951("antes", false)}
+${MIGRACION_6951}
+${FOTO_6951("despues", false)}
+${DEVUELVE_SESION_6951}
+select 'N7 la diferencia de caja (6599 = 5) y el redondeo (6598 = 0.08) se asientan en las mismas cuentas antes y después, y nunca como merma',
+  (select sum(debe) = 5 from dia_antes where cuenta = '6599') and (select sum(debe) = 5 from dia_hoy where cuenta = '6599') and (select sum(debe) = 5 from dia_despues where cuenta = '6599')
+  and (select sum(debe) = 0.08 from dia_antes where cuenta = '6598') and (select sum(debe) = 0.08 from dia_hoy where cuenta = '6598') and (select sum(debe) = 0.08 from dia_despues where cuenta = '6598')
+  and (select count(*) = 0 from dia_hoy where cuenta in ('6598', '6599') and regla like 'merma%');
+select 'N7 y el Estado de resultados de TRU las suma a sus gastos (5.08 más que sin ellas) y su cifra de mermas sigue en 280',
+  (select mermas = 280 and gastos_operacion = 15626.05 + 5.08 from er_hoy where ubicacion_id = :'tru')
+  and (select mermas = 280 and gastos_operacion = 15626.05 + 5.08 from er_antes where ubicacion_id = :'tru');
+select 'N7 todo el Estado de resultados es idéntico antes, hoy y después también con estas cuentas en el mes',
+  ${IGUALES_6951("er", "antes", "hoy")} and ${IGUALES_6951("er", "hoy", "despues")};
+`;
+
 // ---------------------------------------------------------------------------------------------------------------------------
 verificar("Estado de resultados", correr(`${ESCENA}${CASOS_ER}`), casosDe(CASOS_ER));
 verificar("Descuadre", correr(`${ESCENA}${CASOS_DESCUADRE}`), casosDe(CASOS_DESCUADRE));
@@ -520,6 +627,10 @@ verificar("Permisos", correr(`${ESCENA}${CASOS_PERMISOS}`), casosDe(CASOS_PERMIS
 verificar("Tasa", correr(`${ESCENA}${CASOS_TASA}`), casosDe(CASOS_TASA));
 verificar("Comisión del POS", correr(`${ESCENA}${CASOS_COMISION}`), casosDe(CASOS_COMISION));
 verificar("Campañas", correr(CAMPANAS), casosDe(CAMPANAS));
+// N · las mermas pasan a la 6951: hoy → deshacer → pegar, sobre la misma escena de septiembre.
+esperar("N0 el archivo de la migración se encontró y trae su bloque DESHACER (la prueba lo ejecuta)", DESHACER_6951.length > 200, { deshacer: DESHACER_6951.length });
+verificar("Mermas a la 6951", correr(`${ESCENA}${CASOS_6951_ER}`), casosDe(CASOS_6951_ER));
+verificar("Mermas a la 6951 · cuentas que se parecen (6599 y 6598)", correr(`${ESCENA}${CASOS_6951_ER_PARECIDAS}`), casosDe(CASOS_6951_ER_PARECIDAS));
 
 {
   const r = correr(VOLUMEN);

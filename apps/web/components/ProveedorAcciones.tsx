@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle, Plus } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { ProveedorModal, borradorDe } from "@/components/ProveedorModal";
-import { BotonAncla, BotonEnlace } from "@/components/ui/campos";
+import { BotonAncla } from "@/components/ui/campos";
 import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { avisar } from "@/components/ui/Avisos";
 import { formatoCci, urlWhatsApp } from "@/lib/proveedores-reglas";
@@ -46,11 +46,6 @@ export function ProveedorAcciones({ proveedor, rubros }: { proveedor: ProveedorF
           </BotonCopiar>
         )}
         <BotonEditar onClick={() => setEditando(true)} guia="proveedor-ficha.editar" />
-        {proveedor.activo && (
-          <BotonEnlace href={`/compras/nueva?prov=${proveedor.id}`} peso="primario">
-            <Plus aria-hidden className="h-3.5 w-3.5" /> Registrar factura
-          </BotonEnlace>
-        )}
       </div>
 
       {editando && (

@@ -1,6 +1,4 @@
 import { diaMes, diasHastaLima, sumarDias } from "./fechas-lima";
-import type { CompraResumen } from "./compras-reglas";
-import type { NotaCreditoCompra } from "./compras-faltantes";
 
 // Reglas puras de Recibir mercadería (D1 y D2 de ADR-0111). Sin I/O: se prueban sin base ni
 // navegador. Las fechas son de Lima (`fechas-lima`), nunca el reloj del servidor.
@@ -190,64 +188,4 @@ export function notasPorReclamar(
     });
   }
   return salida;
-}
-
-/**
- * Una sola nota por faltante por comprobante, que cubre todo lo que se cerró sin llegar: lo cerrado a su costo
- * más IGV, con hasta S/ 1 de margen para redondeos y prorrateos (el mismo que exige la base). Lo usa el módulo de
- * notas de crédito (`notas-credito-reglas.ts`).
- */
-export const MARGEN_NOTA = 1;
-
-// ---------------------------------------------------------------------------
-// ¿Se puede registrar la nota por faltante YA? (espejo de las reglas de la base)
-// ---------------------------------------------------------------------------
-
-export type DisponibilidadNota =
-  | { estado: "ya_registrada" }
-  | { estado: "sin_cierres" }
-  | { estado: "bloqueada"; quedan: number }
-  | { estado: "disponible" };
-
-/**
- * La base rechaza una nota por faltante si el comprobante no está resuelto al 100 % (recibido +
- * cerrado = facturado), si no hay ningún cierre, o si ya tiene una. Acá se anticipa para que la pantalla
- * diga POR QUÉ todavía no, en lugar de dejar que el error llegue después de llenar el formulario.
- * `quedan` = unidades que después de esta guía todavía no se recibieron ni se cerraron.
- */
-export function disponibilidadNota(p: { pendiente: number; llegando: number; cerrandoAhora: number; cerradoAntes: number; yaTieneNotaFaltante: boolean }): DisponibilidadNota {
-  if (p.yaTieneNotaFaltante) return { estado: "ya_registrada" };
-  if (p.cerradoAntes + p.cerrandoAhora <= 0) return { estado: "sin_cierres" };
-  const quedan = p.pendiente - p.llegando - p.cerrandoAhora;
-  return quedan > 0 ? { estado: "bloqueada", quedan } : { estado: "disponible" };
-}
-
-/**
- * Lo que dice la base sobre una nota por faltante de este comprobante, para decidir qué ofrecer.
- *
- * Vive acá (módulo puro) y NO en `AccionesFaltantes.tsx`: ese archivo es `"use client"` y el detalle del
- * comprobante (`NotasCreditoCompra`, componente de servidor) la llama en el servidor — Next lo prohíbe
- * («Attempted to call estadoNotaFaltante() from the server but … is on the client») y la pantalla se caía
- * al abrir cualquier factura.
- */
-export function estadoNotaFaltante(compra: CompraResumen, notas: NotaCreditoCompra[]): DisponibilidadNota {
-  return disponibilidadNota({
-    pendiente: compra.facturadoCantidad - compra.recibidoCantidad - compra.cerradoCantidad,
-    llegando: 0,
-    cerrandoAhora: 0,
-    cerradoAntes: compra.cerradoCantidad,
-    yaTieneNotaFaltante: notas.some((n) => n.motivo === "faltante"),
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Qué le hace la nota a las cuentas: baja la deuda y/o deja saldo a favor
-// ---------------------------------------------------------------------------
-
-export type ReparteNota = { baja: number; aFavor: number; deudaDespues: number };
-
-/** La nota primero baja lo que se debe de SU comprobante; lo que sobre queda a favor del proveedor. */
-export function reparteNota(monto: number, saldo: number): ReparteNota {
-  const baja = centavos(Math.min(monto, Math.max(saldo, 0)));
-  return { baja, aFavor: centavos(monto - baja), deudaDespues: centavos(Math.max(saldo, 0) - baja) };
 }

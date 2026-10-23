@@ -99,6 +99,10 @@ export type EtiquetaPrecio = {
    *  sumo `MAX_ICONOS_EN_PAPEL`. Van al lado del nombre y no cambian el precio: el descuento es siempre uno solo,
    *  el de `campana`. */
   iconos: IconoDePapel[];
+  /** Los mismos íconos, pero SIN las etiquetas que rebajan el precio (`iconosPorVariante(…, sinDescuento)`): los que salen cuando
+   *  se imprime «sin el descuento» (`sinDescuento`). No es `iconos` filtrado: con el tope de `MAX_ICONOS_EN_PAPEL`, las que no
+   *  rebajan (Nuevo, Hecho a mano…) ocupan el lugar que dejan las que sí. */
+  iconosSinDescuento: IconoDePapel[];
   /** Unidades que entraron (o que hay en la tienda): cuántas etiquetas se proponen. */
   cantidad: number;
 };
@@ -167,7 +171,9 @@ export function iconosDelPapel(
 
 /** Los íconos de cada prenda: une las etiquetas que tiene a mano (`directas`) con las que la alcanzan por su categoría
  *  (`porCategoria`) —los dos caminos que reconoce `fn_campanas_por_variante`, y nunca chocan: es la misma etiqueta— y
- *  deja a `iconosDelPapel` elegir. `catalogo` trae solo las etiquetas aprobadas y activas. */
+ *  deja a `iconosDelPapel` elegir. `catalogo` trae solo las etiquetas aprobadas y activas.
+ *  Con `sinDescuento` (Felipe, 2026-10-23), las que rebajan el precio ni compiten por un lugar: salen las demás, como si la
+ *  campaña no existiera. */
 export function iconosPorVariante(
   variantes: readonly { id: string; categoriaId: string | null }[],
   directas: ReadonlyMap<string, readonly string[]>,
@@ -175,6 +181,7 @@ export function iconosPorVariante(
   catalogo: ReadonlyMap<string, Omit<EtiquetaDeLaPrenda, "etiquetaId">>,
   campanas: ReadonlyMap<string, CampanaDeVariante>,
   hoy: string,
+  sinDescuento = false,
 ): Map<string, IconoDePapel[]> {
   const iconos = new Map<string, IconoDePapel[]>();
   for (const v of variantes) {
@@ -182,9 +189,9 @@ export function iconosPorVariante(
     const suyas: EtiquetaDeLaPrenda[] = [];
     for (const etiquetaId of ids) {
       const e = catalogo.get(etiquetaId);
-      if (e) suyas.push({ etiquetaId, ...e });
+      if (e && !(sinDescuento && e.pct !== null)) suyas.push({ etiquetaId, ...e });
     }
-    iconos.set(v.id, iconosDelPapel(suyas, hoy, campanas.get(v.id)?.etiquetaId ?? null));
+    iconos.set(v.id, iconosDelPapel(suyas, hoy, sinDescuento ? null : (campanas.get(v.id)?.etiquetaId ?? null)));
   }
   return iconos;
 }
@@ -196,6 +203,28 @@ export function iconosPorVariante(
 export function campanaSaleEnLaFila(e: Pick<EtiquetaPrecio, "campana" | "iconos">): boolean {
   const campana = e.campana;
   return campana !== null && e.iconos.some((i) => i.nombre === campana.nombre);
+}
+
+/**
+ * La etiqueta tal como sale cuando se imprime «sin el descuento» (Felipe, 2026-10-23: en el aniversario de CAYLA todo rebaja 10 %,
+ * pero el papel tiene que servir también mañana, cuando la campaña ya no esté).
+ *
+ * PROMETE: precio de lista a secas —sin el precio tachado, sin el «−10 %», sin el «Válido hasta» ni el nombre de la campaña—, y
+ *          los íconos que quedan al no contar las etiquetas que rebajan el precio (`iconosSinDescuento`). Lo demás (código, QR,
+ *          tallas, marca, empresa, cantidad) no cambia.
+ * NO HACE: no toca la caja. Ella sigue cobrando la campaña (ADR-0302): el papel dice el precio normal y la caja rebaja al cobrar.
+ *          Una etiqueta que no traía campaña se devuelve tal cual (misma referencia): no hay nada que esconder.
+ */
+export function sinDescuento(e: EtiquetaPrecio): EtiquetaPrecio {
+  return e.campana === null ? e : { ...e, campana: null, iconos: e.iconosSinDescuento };
+}
+
+/** Las campañas que hoy rebajan las etiquetas de la lista (una por nombre, la de mayor % primero): lo que la pantalla le dice a
+ *  la colaboradora para que sepa QUÉ descuento está a punto de esconder. Vacía = no hay nada que esconder, no se ofrece. */
+export function campanasEnLaLista(etiquetas: readonly Pick<EtiquetaPrecio, "campana">[]): { nombre: string; pct: number }[] {
+  const porNombre = new Map<string, number>();
+  for (const { campana } of etiquetas) if (campana) porNombre.set(campana.nombre, Math.max(porNombre.get(campana.nombre) ?? 0, campana.pct));
+  return [...porNombre].map(([nombre, pct]) => ({ nombre, pct })).sort((a, b) => b.pct - a.pct || a.nombre.localeCompare(b.nombre, "es"));
 }
 
 /** Qué día mirar para saber qué prendas alcanza una campaña: hoy si rige (o no tiene fechas), su último día si ya
@@ -242,6 +271,7 @@ export function armarEtiquetas(
   hermanas: HermanaEtiqueta[],
   campanas: ReadonlyMap<string, CampanaDeVariante> = new Map(),
   iconos: ReadonlyMap<string, IconoDePapel[]> = new Map(),
+  iconosSinDescuento: ReadonlyMap<string, IconoDePapel[]> = new Map(),
 ): { etiquetas: EtiquetaPrecio[]; sinCodigo: string[] } {
   const etiquetas: EtiquetaPrecio[] = [];
   const sinCodigo: string[] = [];
@@ -270,6 +300,7 @@ export function armarEtiquetas(
       precio: v.precio,
       campana: c && descuento > 0 ? { nombre: c.nombre, pct: c.pct, hasta: c.hasta, descuento } : null,
       iconos: iconos.get(v.id) ?? [],
+      iconosSinDescuento: iconosSinDescuento.get(v.id) ?? [],
       cantidad,
     });
   }
