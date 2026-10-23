@@ -1,4 +1,4 @@
-## 🎨 El dibujo de una insignia, elegible o propio (2026-10-23, ADR-0490) — migraciones `20261023203000` y `20261023213000` SIN pegar en producción; rama `claude/insignia-icono-elegible-6dc77a`
+## 🎨 El dibujo de una insignia, elegible o propio (2026-10-23, ADR-0490) — migraciones `20261023203000` y `20261023213000` PEGADAS en producción el 2026-10-23; PR #1300 (sin fusionar); rama `claude/insignia-icono-elegible-6dc77a`
 
 - [x] Columnas `retail.etiquetas.icono` (clave de un dibujo) e `icono_imagen` (ruta de una imagen propia), excluyentes y con candados; `fijar_icono_etiqueta` con la llave de cada
       etiqueta (ADR-0476) y `fn_tienda_insignias` con `{id, nombre, icono, imagen, descuento}`; bucket público `retail-insignias` (WebP, 100 KB) con política por
@@ -8,10 +8,11 @@
       `icono` o `imagen`). Guía de foco del modal nuevo, paso «Su dibujo» de la guía de Insignias y sus dos huellas aceptadas.
 - [x] Tienda: la ficha lee `icono`, `imagen` y `descuento`; el chip del descuento toma el dibujo o la imagen de su campaña. En el navegador, de punta a punta con la subida real al
       almacén local, a 1440 y a 375 px, claro y oscuro.
-- [ ] **Pegar en producción ANTES de publicar la web, en este orden:** (1) `supabase/migrations/20261023203000_insignia_con_dibujo_elegido.sql` (una parte); (2)
+- [x] **Pegadas en producción el 2026-10-23, ANTES de publicar la web, en este orden:** (1) `supabase/migrations/20261023203000_insignia_con_dibujo_elegido.sql` (una parte); (2)
       `supabase/migrations/20261023213000_insignias_almacen_de_imagenes.sql` en DOS pegados, uno por PARTE (la segunda lleva la política, ADR-0195). Verificar con
-      `retail.fn_tienda_insignias(<modelo con Halloween>, null)` y `select id from storage.buckets where id = 'retail-insignias'`. Después refrescar el volcado de
-      `docs/datos/generado/` si se pide (columnas nuevas).
+      `retail.fn_tienda_insignias(<modelo con Halloween>, null)` y `select id from storage.buckets where id = 'retail-insignias'` (verificado, con `md5(prosrc)` igual al archivo).
+      Pendiente: refrescar el volcado de `docs/datos/generado/` si se pide (columnas nuevas).
+- [ ] **Fusionar el PR #1300** (publica la web): lo decide Felipe.
 - [ ] **Sin probar:** `guias:recorrer` (esta Mac no tiene el navegador de Playwright), `/chaos` sobre las dos hojas que guardan, la subida desde un teléfono real, el chip rojo del descuento con
       imagen mirado en el navegador (probado solo con datos).
 - [ ] **No cubierto a propósito:** el papel de la etiqueta de precio (sigue por el nombre), la insignia que se propone al vuelo dentro de Nuevo producto (nace por el nombre), el borrado de

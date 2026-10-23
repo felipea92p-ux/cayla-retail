@@ -1,9 +1,9 @@
 # ADR-0490 — Una insignia puede llevar el dibujo que se elija, o una imagen propia (al crearla y después)
 
 - **Fecha:** 2026-10-23 · **Estado:** aceptado (Felipe lo pidió el 2026-10-23, al cerrar ADR-0489; el mismo día pidió quitar «Según el nombre» y permitir
-  subir una imagen propia). Código en la rama `claude/insignia-icono-elegible-6dc77a`. **Las dos migraciones —`20261023203000_insignia_con_dibujo_elegido.sql`
-  y `20261023213000_insignias_almacen_de_imagenes.sql`— NO están en producción** hasta que Felipe las apruebe y se peguen: **van ANTES de publicar la web**
-  (la pantalla de Insignias lee las columnas nuevas y sube al almacén nuevo).
+  subir una imagen propia). Código en la rama `claude/insignia-icono-elegible-6dc77a` (PR #1300). **Las dos migraciones —`20261023203000_insignia_con_dibujo_elegido.sql`
+  y `20261023213000_insignias_almacen_de_imagenes.sql`— están en producción desde el 2026-10-23** (pegadas a pedido de Felipe y verificadas, ver «Orden al
+  desplegar»): iban ANTES de publicar la web porque la pantalla de Insignias lee las columnas nuevas y sube al almacén nuevo.
 - **Relacionados:** ADR-0489 (la ficha de la tienda muestra las insignias y su dibujo), ADR-0481 (Catálogo ▸ Insignias), ADR-0476 (la llave de las
   campañas), ADR-0161 (módulos y roles; el combo «Responsable»), ADR-0284 (guía de foco), ADR-0389 (guías interactivas), ADR-0195 (políticas y
   deadlocks), ADR-0446 (el logo en `packages/shared`: el patrón de dibujos compartidos), el camino de las imágenes de las campañas (`campana-imagen.ts`).
@@ -118,7 +118,7 @@ fusionar); o el proyecto de producción no tiene el Storage activo (la política
 
 ## Sin verificar
 
-Producción (las migraciones no están pegadas). `guias:recorrer` (esta Mac no tiene el navegador de Playwright) y `/chaos` sobre las dos hojas que guardan; un
+La web nueva en producción (el PR no está fusionado). `guias:recorrer` (esta Mac no tiene el navegador de Playwright) y `/chaos` sobre las dos hojas que guardan; un
 teléfono real (la subida desde la galería de un iPhone: HEIC se pide convertir). El chip rojo del descuento con imagen en el navegador (cubierto por prueba de
 datos, no mirado). `pruebas:tienda-ficha`, `vitrina-looks` y `vitrina-web` ya tenían fallos por datos de la base local compartida (ADR-0489); no cambian con esto.
 
@@ -129,6 +129,12 @@ datos, no mirado). `pruebas:tienda-ficha`, `vitrina-looks` y `vitrina-web` ya te
 3. Verificar: `select icono, icono_imagen from retail.etiquetas limit 1;` (las columnas existen), `select id from storage.buckets where id = 'retail-insignias';` y
    `select retail.fn_tienda_insignias('<un modelo con Halloween>'::uuid, null);` (trae `icono`, `imagen` y `descuento` en cada insignia).
 4. **Recién entonces** publicar la web (fusionar el PR). Con la web nueva y sin las columnas, Catálogo ▸ Insignias, Nuevo producto y Editar producto no cargan.
+
+**Hecho el 2026-10-23** (los pasos 1 a 3, a pedido de Felipe): la 1.ª de una vez y la 2.ª en dos pegados, por `execute_sql` con el texto del archivo. Verificado contra
+producción: columnas `icono` e `icono_imagen`; los 4 candados `etiquetas_icono%`; `fijar_icono_etiqueta(uuid, text, text)` con una sola firma, solo para `authenticated`;
+`md5(prosrc)` de `fijar_icono_etiqueta` = `f62b1c0576bf0a48229a3f73bd734d9f` y de `fn_tienda_insignias` = `861f74e4e39ff08c59e02cb36ef070a6` (iguales a los del archivo, calculados
+sobre la base local); `fn_tienda_insignias` sigue cerrada a `anon`, `authenticated` y `tienda_web`; bucket `retail-insignias` (público, 102400 bytes, `image/webp`) y la política
+`retail_insignias_insert` (INSERT, `authenticated`, `fn_puede_campanas()`), una sola. Ninguna insignia tiene todavía dibujo elegido. Solo falta el paso 4.
 
 ## Lo que queda abierto
 
