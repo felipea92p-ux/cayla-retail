@@ -93,6 +93,18 @@ El CI del PR salió rojo en tres pruebas, las tres por esta obra y ninguna por l
 - **Lo que enseña:** una migración que parcha una función de esa cadena se corre contra `pruebas:redondeo-efectivo`, `pruebas:club-registro-cartel` y
   `pruebas:una-sola-firma` ANTES de abrir el PR, no después.
 
+## Actualización 2026-10-23 (tarde, urgente) — la caja leía solo las primeras 1.000 campañas
+
+Con «Elegir todas» las categorías el Aniversario alcanzó **2.518 prendas en Tienda TRU** (antes de hoy, 340). La caja leía `campanas_vigentes(sede)` de una vez y
+PostgREST corta cada respuesta en 1.000 filas sin error: **1.518 prendas llegaban a la caja sin campaña**. Síntoma en tienda: al escanear (también el QR de la
+prenda), el ticket salía a precio de etiqueta, y el descuento a mano rebotaba con «ya tiene una campaña con igual o más descuento» porque `registrar_venta` sí la
+veía. La base estaba bien; el error era de lectura (la causa que ADR-0192 y `leerTodas` ya documentaban para el catálogo y el stock).
+
+- **Arreglo:** `lib/campanas-vigentes.ts` (`leerCampanasVigentes`) lee por páginas, en serie (`enParalelo: 1`, ~22 ms por página en producción), y lo usan Vender,
+  Apartados, `usePreciosEnVivo` y `<PreciosEnVivo />`. Descartado: subir `max_rows` del proyecto (es de TODO el proyecto, compartido con Dynamic) y tocar la función de la base.
+- **Candado:** `lib/campanas-vigentes.test.ts` falla si un archivo de `app/`, `components/` o `lib/` llama `.rpc("campanas_vigentes")` fuera del lector.
+- **Lo que enseña:** toda lectura que crece con una decisión del negocio (una campaña «a todas las prendas») pasa por `leerTodas`, no por un `.rpc()` suelto.
+
 ## Actualización 2026-10-23 (noche) — el aviso «Imprimir sus etiquetas» sabe de tiendas
 
 **El problema.** Al guardar una campaña, el aviso de reimprimir (ADR-0180, actividad 5 de ADR-0441) salía de `prendasQueCambianDePrecioHoy`,

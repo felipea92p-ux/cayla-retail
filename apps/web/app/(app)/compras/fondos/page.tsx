@@ -1,12 +1,9 @@
-import { HandCoins, Receipt, Wallet } from "lucide-react";
+import { Wallet } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getDatosFondos } from "@/lib/fondos";
 import { getPlataPorConfirmar } from "@/lib/mi-plata";
-import { PlataPorConfirmar } from "@/components/mi-plata/PlataPorConfirmar";
 import { getRevisarCompras } from "@/lib/revisar-compras";
-import { PapelesPorCompletar } from "@/components/mi-plata/PapelesPorCompletar";
-import { CierresPorRecibir } from "@/components/mi-plata/CierresPorRecibir";
-import { GastosPorRevisar } from "@/components/mi-plata/GastosPorRevisar";
+import { BandejaRevisar } from "@/components/mi-plata/BandejaRevisar";
 import { TEXTO_MOVIMIENTO_FONDO, cifrasDeFondos, topeDevolucion, type MovimientoFondo } from "@/lib/fondos-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
@@ -17,12 +14,17 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonEnlace } from "@/components/ui/campos";
 import { AnularMovimientoFondo, DevolverFondo, EntregarFondo, PagarDeudaFondo } from "@/components/fondos/AccionesFondos";
 import { RevisarRendicion } from "@/components/fondos/RevisarRendicion";
 import { estadoPorFondo } from "@/lib/rendicion-reglas";
 import { deudasPorPersona } from "@/lib/deuda-fondo-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 
+// Rediseño (maqueta docs/maquetas/compras-formidable-2026-10/, Felipe 2026-10-23): arriba, la BANDEJA de lo que anotaron las compradoras
+// (cuatro cifras que filtran, la lista y su detalle al lado: <BandejaRevisar>); lo de los fondos («Quién tiene plata», las rendiciones, las
+// entregas y devoluciones) pasa abajo y deja de ocupar media página: la cabecera lleva a ello con «Quién tiene plata».
+//
 // Compras ▸ Revisar compras (antes «Fondos por rendir»; ADR-0480 le cambia el nombre y la pantalla en la actividad 2, y en la 7 le suma las
 // compras por completar y los cierres del día; ADR-0362, fase 6 · actividad 1; decisiones 26, 29, 30, 34, 35 y 65): la plata que CAYLA le entrega a
 // quien compra, y cuánto tiene cada persona en la mano. Es el control contra el fraude que pidió Felipe: al final tiene que verse cuánto
@@ -95,64 +97,40 @@ export default async function FondosPage() {
   const conDeuda = cifras.teDebe > 0;
   const plantillaFondos = conGasto ? PLANTILLA_FONDOS_GASTO : PLANTILLA_FONDOS_BASE;
   const entregar = <EntregarFondo opciones={opciones} />;
+  const acciones = (
+    <>
+      <BotonEnlace href="#quien-tiene-plata" peso="fantasma" data-guia="fondos.ir-quien-tiene">
+        Quién tiene plata
+      </BotonEnlace>
+      {entregar}
+    </>
+  );
 
   return (
     <div className="space-y-6">
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
         titulo="Revisar compras"
-        subtitulo="La plata que le entregas a quien compra, y cuánto tiene cada persona en la mano."
-        acciones={falla ? undefined : entregar}
+        subtitulo="Lo que anotaron las compradoras desde el celular. Confírmalo y pásalo a los libros."
+        acciones={falla ? undefined : acciones}
       />
 
-      {/* ADR-0480, actividad 2: la plata que anotaron las compradoras, la más vieja primero. Si su lectura falla (la base sin la
-          migración, o caída), lo dice aparte: el resto de la pantalla sale igual. */}
+      {/* La bandeja (ADR-0480, actividades 2 y 7; rediseño 2026-10-23). Si una de sus dos lecturas falla (la base sin la migración, o
+          caída), lo dice aparte y la bandeja muestra lo que sí se leyó: el resto de la pantalla sale igual. */}
+      {!falla && (plataAnotada === null || revisar === null) && (
+        <Aviso tono="atencion" titulo={plataAnotada === null ? "No se pudo leer la plata anotada" : "No se pudieron leer las compras por completar"} chico>
+          Vuelve a intentarlo en un momento.
+        </Aviso>
+      )}
       {!falla && (
-        <section className="space-y-3" data-guia="fondos.plata-seccion">
-          <TituloSeccion cuenta={plataAnotada?.length ?? 0}>Plata que anotaron las compradoras</TituloSeccion>
-          {plataAnotada === null ? (
-            <Aviso tono="atencion" titulo="No se pudo leer la plata anotada" chico>
-              Vuelve a intentarlo en un momento.
-            </Aviso>
-          ) : plataAnotada.length === 0 ? (
-            <Vacio icono={<HandCoins />} titulo="Nada por confirmar" tamano="chico">
-              Cuando una compradora anote plata, aparece aquí con su voucher.
-            </Vacio>
-          ) : (
-            <PlataPorConfirmar filas={plataAnotada} cuentas={opciones.cuentas} />
-          )}
-        </section>
-      )}
-
-      {/* ADR-0480, actividad 7: las compras que anotaron (cada papel con su foto, lo que llegó y si cuadra), los gastos que no son ropa y
-          los cierres del día que esperan a Compras. Si su lectura falla, lo dice aparte: el resto de la pantalla sale igual. */}
-      {!falla && (
-        <section className="space-y-3" data-guia="fondos.papeles-seccion">
-          <TituloSeccion cuenta={revisar?.papeles.length ?? 0}>Compras por completar</TituloSeccion>
-          {revisar === null ? (
-            <Aviso tono="atencion" titulo="No se pudieron leer las compras por completar" chico>
-              Vuelve a intentarlo en un momento.
-            </Aviso>
-          ) : revisar.papeles.length === 0 ? (
-            <Vacio icono={<Receipt />} titulo="Nada por completar" tamano="chico">
-              Cuando una compradora anote una compra, aparece aquí con la foto de su papel.
-            </Vacio>
-          ) : (
-            <PapelesPorCompletar papeles={revisar.papeles} proveedores={revisar.proveedores} />
-          )}
-        </section>
-      )}
-      {!falla && revisar && revisar.gastos.length > 0 && (
-        <section className="space-y-3" data-guia="fondos.gastos-seccion">
-          <TituloSeccion cuenta={revisar.gastos.length}>Gastos por revisar</TituloSeccion>
-          <GastosPorRevisar gastos={revisar.gastos} />
-        </section>
-      )}
-      {!falla && revisar && revisar.cierres.length > 0 && (
-        <section className="space-y-3" data-guia="fondos.cierres-seccion">
-          <TituloSeccion cuenta={revisar.cierres.length}>Cierres del día por recibir</TituloSeccion>
-          <CierresPorRecibir cierres={revisar.cierres} cuentas={opciones.cuentas} />
-        </section>
+        <BandejaRevisar
+          plata={plataAnotada ?? []}
+          papeles={revisar?.papeles ?? []}
+          gastos={revisar?.gastos ?? []}
+          cierres={revisar?.cierres ?? []}
+          proveedores={revisar?.proveedores ?? []}
+          cuentas={opciones.cuentas}
+        />
       )}
 
       {falla ? (
@@ -167,7 +145,8 @@ export default async function FondosPage() {
         </div>
       ) : (
         <>
-          <div className="@container" data-guia="fondos.cifras">
+          {/* Lo de los fondos empieza aquí: «Quién tiene plata» de la cabecera trae la vista hasta este punto. */}
+          <div className="@container scroll-mt-6 border-t border-sand pt-6" id="quien-tiene-plata" data-guia="fondos.cifras">
             <div className={`grid grid-cols-2 gap-3 ${conDeuda ? "@min-[48rem]:grid-cols-4" : "@min-[40rem]:grid-cols-3"}`}>
               <TarjetaCifra
                 etiqueta="Tienen en la mano"

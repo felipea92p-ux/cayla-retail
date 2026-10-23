@@ -1490,6 +1490,16 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `compra_item_cierres`, `proveedor_creditos` (libro del saldo a favor, append-only) y `compra_adjuntos.nota_credito_id`.
   **Recepción ya no registra notas** (ADR-0142): solo avisa con un chip al módulo; `recibir_envio` sigue aceptando
   `p_notas_credito` pero la pantalla lo manda vacío.
+  Rediseño (2026-10-23, sin migración; maqueta `docs/maquetas/compras-formidable-2026-10/`): `/compras/mi-plata` suma `Billetera.tsx`,
+  `AccionDelDia.tsx` y `ListaDelDia.tsx` (`movimientosDeLaCompradora`); «Compré ropa» abre `HojaPrenda.tsx` por prenda (`camposPrenda`,
+  `lineaDeBorrador` en `lib/compra-rapida-reglas.ts`) y comparte `TarjetaFoto.tsx` con las hojas de Mi plata; `/compras/fondos` es una bandeja
+  (`BandejaRevisar.tsx` + `PanelDetalle.tsx`; filas en `lib/revisar-compras-reglas.ts`) y sus cuatro detalles (`DetallePlata`, `DetallePapel`,
+  `DetalleGasto`, `DetalleCierre`) son las hojas de antes; `/recibir/envio/[id]` suma `PreguntaDeLaCompra.tsx` (`lib/recibir-papel-reglas.ts`)
+  y `PapelesDeLaCompra.tsx` pasa a columna fija con la foto en grande. En el mismo PR, tres migraciones: la foto del papel opcional
+  (`20261023180000`); pagar ahora o después y con qué (`20261023181000`: `registrar_compra_rapida` con `p_pagado`/`p_medio`, `compra_papeles.pagado`
+  y `medio_pago`, lo que falta queda a crédito al completar); y la **ronda de compras** (`20261023183000`: `compra_rondas`, serie RC; RPC
+  `abrir_ronda_compras` desde `AbrirRonda.tsx` vía `lib/mi-plata-acciones.ts`; `terminar_dia_compras` cierra la ronda; `fn_ronda_compras_de` dentro de
+  `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres).
 - **Recibir mercadería: «Llegó mercadería» (ADR-0330, 2026-10-04)** — `/recibir` abre en la puerta única: `LlegoMercaderia.tsx`
   (lógica pura en `lib/llegada-reglas.ts`, con prueba) → RPC `recibir_lote` sin cambios (entra al almacén de la sede de la
   cabecera, token y cola sin conexión). Lee en el servidor el catálogo, los proveedores con sus marcas (`getMarcasPorProveedor`),

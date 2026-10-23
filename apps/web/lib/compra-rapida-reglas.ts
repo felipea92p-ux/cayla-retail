@@ -3,6 +3,7 @@ import { leerMontoPlata } from "./monto-plata-reglas";
 import { problemaDeMonto } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import { nombresParecidos } from "./nombres-parecidos";
+import { diasEntreFechas } from "./fechas-lima";
 import { FICHAS_POR_CATEGORIA } from "./sugerencias-alta-producto";
 
 // Compras simple (ADR-0480, actividad 3): «Compré ropa» desde el celular. Las reglas puras: leer lo que manda la base (vieja o rota: nunca
@@ -66,6 +67,46 @@ export function leerProveedoresParaComprar(data: unknown): ProveedorParaComprar[
 export function filtrarProveedores(lista: readonly ProveedorParaComprar[], q: string, categoriaId: string | null): ProveedorParaComprar[] {
   const n = normalizar(q);
   return lista.filter((p) => (!n || normalizar(p.nombre).includes(n)) && (!categoriaId || p.categorias.includes(categoriaId)));
+}
+
+/**
+ * «Les compraste hace poco» (maqueta compras-formidable-2026-10): los proveedores a los que ya se les compró, el más reciente primero.
+ * Los demás se encuentran buscando o por lo que venden.
+ */
+export function proveedoresRecientes(lista: readonly ProveedorParaComprar[], maximo = 5): ProveedorParaComprar[] {
+  return lista
+    .filter((p) => p.compras > 0 && p.ultima)
+    .sort((a, b) => (a.ultima! < b.ultima! ? 1 : a.ultima! > b.ultima! ? -1 : b.compras - a.compras))
+    .slice(0, maximo);
+}
+
+function haceCuanto(dias: number): string {
+  if (dias <= 0) return "hoy";
+  if (dias === 1) return "ayer";
+  if (dias < 7) return `hace ${dias} días`;
+  if (dias < 14) return "hace una semana";
+  if (dias < 30) return `hace ${Math.floor(dias / 7)} semanas`;
+  if (dias < 60) return "hace un mes";
+  return `hace ${Math.floor(dias / 30)} meses`;
+}
+
+/** Lo que se lee bajo cada proveedor: «Le compraste hace 6 días · 4 compras», o «Todavía no le compras». `hoy` es el día de Lima. */
+export function detalleProveedor(p: Pick<ProveedorParaComprar, "compras" | "ultima">, hoy: string): string {
+  if (p.compras === 0) return "Todavía no le compras";
+  const veces = p.compras === 1 ? "1 compra" : `${p.compras} compras`;
+  return p.ultima ? `Le compraste ${haceCuanto(diasEntreFechas(p.ultima, hoy))} · ${veces}` : veces;
+}
+
+/** Las iniciales del cuadro de cada proveedor: «Textiles Rosa S.A.C.» → «TR»; una sola palabra, sus dos primeras letras. */
+export function inicialesProveedor(nombre: string): string {
+  const palabras = nombre
+    .replace(/\s+(s\.?a\.?c\.?|e\.?i\.?r\.?l\.?|s\.?r\.?l\.?|s\.?a\.?)$/i, "")
+    .split(/\s+/)
+    .map((w) => w.replace(/[^\p{L}\p{N}]/gu, ""))
+    .filter(Boolean);
+  if (palabras.length === 0) return "?";
+  if (palabras.length === 1) return palabras[0].slice(0, 2).toUpperCase();
+  return (palabras[0][0] + palabras[1][0]).toUpperCase();
 }
 
 /** Las categorías que vende al menos un proveedor (las píldoras de «¿A quién le compras?»), en el orden del catálogo que se pase. */
@@ -181,6 +222,87 @@ export function faltaEnPaso(paso: "cantidad" | "costo" | "venta", t: string): st
   return leerPrecio(t) == null ? "Escribe el precio" : null;
 }
 
+// ---------- La hoja de la prenda (rediseño, maqueta compras-formidable-2026-10, Felipe 2026-10-23) ----------
+// Al tocar una prenda se abre UNA hoja con lo que antes eran cuatro pantallas seguidas: cuántas, el costo, la venta y la tienda (que se
+// sigue eligiendo por prenda: Felipe, 2026-10-23). Lo que falta es lo mismo que antes frenaba cada paso: la guía no agrega reglas.
+
+/** Lo que se va escribiendo en la hoja de una prenda. `destinoId`: la tienda; llega con la de la prenda anterior. */
+export type BorradorPrenda = { cantidad: string; costo: string; venta: string; destinoId: string | null };
+
+/** Los campos de la hoja, en su orden, para la guía de foco. */
+export function camposPrenda(b: BorradorPrenda): CampoDeGuia[] {
+  return [
+    { id: "cantidad", nombre: "Cuántas", requerido: true, hecho: faltaEnPaso("cantidad", b.cantidad) === null, pendiente: "Escribe cuántas compraste." },
+    { id: "costo", nombre: "Costo", requerido: true, hecho: faltaEnPaso("costo", b.costo) === null, pendiente: "Escribe cuánto te costó cada una." },
+    { id: "venta", nombre: "Venta", requerido: true, hecho: faltaEnPaso("venta", b.venta) === null, pendiente: "Escribe a cuánto se vende." },
+    { id: "tienda", nombre: "Tienda", requerido: true, hecho: b.destinoId !== null, pendiente: "Elige a qué tienda va." },
+  ];
+}
+
+/** «Por cada una ganas S/ 22.40»: la venta menos el costo, si los dos se leen. */
+export function gananciaPorPrenda(b: Pick<BorradorPrenda, "costo" | "venta">): number | null {
+  const costo = leerPrecio(b.costo);
+  const venta = leerPrecio(b.venta);
+  return costo == null || venta == null ? null : Math.round((venta - costo) * 100) / 100;
+}
+
+/** El botón de la hoja dice lo que hace: «Agregar 12 · S/ 210.00» (o «Guardar …» si corrige una que ya va). */
+export function textoAgregarPrenda(b: Pick<BorradorPrenda, "cantidad" | "costo">, corrige: boolean): string {
+  const verbo = corrige ? "Guardar" : "Agregar";
+  const cantidad = leerCantidad(b.cantidad);
+  const costo = leerPrecio(b.costo);
+  return cantidad != null && costo != null ? `${verbo} ${cantidad} · ${soles(Math.round(cantidad * costo * 100) / 100)}` : verbo;
+}
+
+/** La línea que entra a la compra desde la hoja. `null` si falta algo (el botón ya está apagado). */
+export function lineaDeBorrador(h: Pick<Habitual, "clave" | "productoId" | "categoriaId" | "marcaId" | "nombre" | "categoria" | "marca">, b: BorradorPrenda): LineaCompra | null {
+  const cantidad = leerCantidad(b.cantidad);
+  const costo = leerPrecio(b.costo);
+  const venta = leerPrecio(b.venta);
+  if (cantidad == null || costo == null || venta == null || b.destinoId == null) return null;
+  return {
+    clave: h.clave,
+    productoId: h.productoId,
+    categoriaId: h.categoriaId,
+    marcaId: h.marcaId,
+    nombre: h.nombre,
+    categoria: h.categoria,
+    marca: h.marca,
+    cantidad,
+    costo,
+    venta,
+    destinoId: b.destinoId,
+  };
+}
+
+/** La barra negra de abajo: «12 prendas · S/ 210.00» y «2 modelos». */
+export function resumenCarrito(lineas: readonly Pick<LineaCompra, "cantidad" | "costo">[]): { titulo: string; detalle: string } {
+  const n = prendasDeLineas(lineas);
+  return {
+    titulo: `${n === 1 ? "1 prenda" : `${n} prendas`} · ${soles(totalDeLineas(lineas))}`,
+    detalle: lineas.length === 1 ? "1 modelo" : `${lineas.length} modelos`,
+  };
+}
+
+/** «Si se vende todo, ganas S/ X» (y cuánto se vende): con el precio de venta de cada prenda. Sin precios de venta, null. */
+export function gananciaDeCompra(lineas: readonly Pick<LineaCompra, "cantidad" | "costo" | "venta">[]): { vendes: number; ganas: number } | null {
+  const conVenta = lineas.filter((l) => l.venta != null);
+  if (conVenta.length === 0) return null;
+  const vendes = Math.round(conVenta.reduce((s, l) => s + l.cantidad * (l.venta ?? 0), 0) * 100) / 100;
+  return { vendes, ganas: Math.round((vendes - totalDeLineas(conVenta)) * 100) / 100 };
+}
+
+/**
+ * Lo que dice bajo «¿Cuánto dice el papel?»: si cuadra con lo anotado, en verde; si no, en ámbar, que deje el del papel (Felipe
+ * 2026-10-23: «manda el papel», ADR-0480). Sin un monto legible, nada.
+ */
+export function cuadraElPapel(monto: number | null, total: number): { cuadra: boolean; texto: string } | null {
+  if (monto == null || monto <= 0) return null;
+  return Math.abs(monto - total) < 0.005
+    ? { cuadra: true, texto: "Cuadra con lo que anotaste" }
+    : { cuadra: false, texto: `Anotaste ${soles(total)}. Si el papel dice otro total, deja el del papel: Compras lo revisa.` };
+}
+
 /** La tienda que llega marcada: la de la prenda anterior («Como la anterior»). */
 export function tiendaAnterior(lineas: readonly LineaCompra[]): string | null {
   return lineas.at(-1)?.destinoId ?? null;
@@ -200,16 +322,68 @@ export function textoPlataDespues(queda: number): string {
 
 type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null };
 
-/** Los campos del paso del papel. La foto la pide solo un papel (factura, boleta o nota): sin papel, no. */
-export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto: string }, r: Responsable): CampoDeGuia[] {
+/**
+ * Los campos del paso del papel. La foto es opcional (Felipe 2026-10-23, 20261023180000): con un papel (factura, boleta o nota) se SUGIERE —sin
+ * ella, Compras copia la serie y el número del papel en la mano—, nunca frena el guardado. Sin papel, ni se ofrece.
+ */
+export function camposPapel(v: { tipo: TipoPapel | null; conFoto: boolean; monto: string; pago?: PagoCompra }, r: Responsable): CampoDeGuia[] {
   const monto = problemaDeMonto(v.monto);
-  const pideFoto = v.tipo !== null && v.tipo !== "sin_comprobante";
+  const conPapel = v.tipo !== null && v.tipo !== "sin_comprobante";
+  // Sin `pago` (las pantallas que no lo preguntan) no entran sus campos.
+  const pago = v.pago;
+  const pagado = pago?.forma === "ahora" ? problemaPagado(pago.pagado, v.monto) : null;
   return [
     { id: "tipo", nombre: "Qué te dieron", requerido: true, hecho: v.tipo !== null, pendiente: "Elige qué papel te dio el proveedor." },
-    { id: "foto", nombre: "La foto", requerido: pideFoto, hecho: v.conFoto, pendiente: "Tómale una foto al papel." },
-    { id: "monto", nombre: "Cuánto pagaste", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
+    ...(conPapel ? [{ id: "foto", nombre: "La foto", requerido: false, sugerido: true, hecho: v.conFoto, pendiente: "Si puedes, tómale una foto al papel." }] : []),
+    { id: "monto", nombre: "Cuánto dice el papel", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
+    ...(pago?.forma === "ahora"
+      ? [
+          { id: "pagado", nombre: "Cuánto pagas ahora", requerido: true, hecho: pagado === null, pendiente: pagado ?? "" },
+          { id: "medio", nombre: "Con qué pagaste", requerido: true, hecho: pago.medio !== null, pendiente: "Elige con qué pagaste." },
+        ]
+      : []),
     ...(r.esPersona ? [] : [{ id: "responsable", nombre: "Quién compró", requerido: true, hecho: r.listo, pendiente: r.motivo ?? "Elige quién compró." }]),
   ];
+}
+
+// ---------- Pagar ahora o después (20261023181000; Felipe 2026-10-23) ----------
+// «Pagar ahora» (de fábrica, con todo lo del papel y por Yape) baja lo pagado de su plata para compras; se puede bajar el monto y lo que
+// falta queda en Por pagar. «Pagar después»: no baja nada y Compras le paga al proveedor desde Por pagar. Los tres métodos salen de su
+// plata para compras: el método solo dice cómo le pagó.
+
+export type MedioPagoCompra = "yape" | "efectivo" | "transferencia";
+export type PagoCompra = { forma: "ahora" | "despues"; pagado: string; medio: MedioPagoCompra | null };
+
+/** Las fichas, en el orden de la pantalla: Yape primero, que es lo de fábrica. Las mismas fichas de color de Vender. */
+export const MEDIOS_PAGO_COMPRA: readonly { clave: MedioPagoCompra; etiqueta: string; corta?: string }[] = [
+  { clave: "yape", etiqueta: "Yape" },
+  { clave: "efectivo", etiqueta: "Efectivo" },
+  { clave: "transferencia", etiqueta: "Transferencia", corta: "Transf." },
+];
+
+/** Cómo llega el paso: pagar ahora, por Yape; lo pagado lo pone la pantalla con lo que dice el papel. */
+export const PAGO_DE_FABRICA: PagoCompra = { forma: "ahora", pagado: "", medio: "yape" };
+
+/** Lo que pagas ahora: más que cero y no más que lo que dice el papel (lo mismo que rechaza la base con `compra_rapida_pagado`). */
+export function problemaPagado(pagado: string, monto: string): string | null {
+  const p = leerMontoPlata(pagado);
+  // Más de 2 decimales ya no se lee (`leerMontoPlata`): cae aquí.
+  if (p == null || p <= 0) return "Escribe cuánto pagas ahora.";
+  const m = leerMontoPlata(monto);
+  if (m != null && p > m + 1e-9) return "No puede ser más que lo que dice el papel.";
+  return null;
+}
+
+/** Lo que se manda a la base: pagando después, cero y sin método. */
+export function pagoParaBase(pago: PagoCompra): { p_pagado: number; p_medio: MedioPagoCompra | null } {
+  if (pago.forma === "despues") return { p_pagado: 0, p_medio: null };
+  return { p_pagado: leerMontoPlata(pago.pagado) ?? 0, p_medio: pago.medio };
+}
+
+/** Lo que dice bajo «Pagas ahora» cuando no es todo, y en «Compra guardada»: quién paga lo que falta. */
+export function textoLoQueFalta(monto: number | null, pagado: number | null): string | null {
+  if (monto == null || pagado == null || pagado >= monto - 0.005) return null;
+  return pagado <= 0 ? `Compras le paga al proveedor los ${soles(monto)}.` : `Compras le paga al proveedor lo que falta: ${soles(Math.round((monto - pagado) * 100) / 100)}.`;
 }
 
 /** Las prendas como las recibe `registrar_compra_rapida`. */
@@ -233,10 +407,6 @@ export type PasoCompra =
   | "nuevo-categoria"
   | "nuevo-nombre"
   | "nuevo-marca"
-  | "cantidad"
-  | "costo"
-  | "venta"
-  | "tienda"
   | "revisar"
   | "papel"
   | "listo";
@@ -247,14 +417,10 @@ const DETALLE: Partial<Record<PasoCompra, string>> = {
   "nuevo-categoria": "qué es",
   "nuevo-nombre": "nombre",
   "nuevo-marca": "marca",
-  cantidad: "cantidad",
-  costo: "costo",
-  venta: "venta",
-  tienda: "tienda",
 };
 export function textoAvance(p: PasoCompra): string {
   const fase = faseDePaso(p);
-  const nombre = fase === 1 ? "Proveedor" : fase === 2 ? "Prendas" : "Boleta o factura";
+  const nombre = fase === 1 ? "el proveedor" : fase === 2 ? "las prendas" : "el papel";
   return `Paso ${fase} de 3 · ${nombre}${DETALLE[p] ? ` · ${DETALLE[p]}` : ""}`;
 }
 
