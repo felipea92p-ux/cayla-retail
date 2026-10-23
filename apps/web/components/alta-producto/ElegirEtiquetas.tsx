@@ -222,7 +222,7 @@ function TarjetaEtiqueta({
           // `TooltipTrigger` (2026-10-02), se abre de verdad; los dos juntos se encimarían.
         >
           <div className="relative">
-            <MuestraEtiqueta nombre={et.nombre} estilo={estiloConocido(et.estilo)} className="h-10 w-full" />
+            <MuestraEtiqueta nombre={et.nombre} icono={et.icono} imagen={et.imagen} estilo={estiloConocido(et.estilo)} className="h-10 w-full" />
             {dto && (
               <span
                 aria-hidden
@@ -371,7 +371,7 @@ function HojaEtiquetas({
             nombre={creando}
             puedeAprobar={puedeAprobar}
             onAprobada={(valor) => {
-              onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", descuentoPct: null, categoriaIds: [], vigenteDesde: null, vigenteHasta: null });
+              onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", icono: null, imagen: null, descuentoPct: null, categoriaIds: [], vigenteDesde: null, vigenteHasta: null });
               onAlternar(valor.id);
               avisar.exito(`Insignia «${valor.texto}» creada y agregada`);
               setCreando(null);
@@ -478,7 +478,7 @@ function NuevaEtiquetaModal({
               nombre={significado.nombre}
               puedeAprobar={puedeAprobar}
               onAprobada={(valor) => {
-                onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", descuentoPct: null, categoriaIds: [], vigenteDesde: null, vigenteHasta: null });
+                onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", icono: null, imagen: null, descuentoPct: null, categoriaIds: [], vigenteDesde: null, vigenteHasta: null });
                 avisar.exito(`Insignia «${valor.texto}» creada y agregada`);
                 cerrar();
               }}
