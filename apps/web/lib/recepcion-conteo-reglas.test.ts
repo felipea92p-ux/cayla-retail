@@ -84,6 +84,7 @@ const linea = (id: string, enviado: number, extra: Partial<LineaEnvio> = {}): Li
   costoUnitario: 30,
   compraItemId: null,
   precioVentaSugerido: null,
+  prendaElegida: null,
   ...extra,
 });
 

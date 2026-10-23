@@ -1239,9 +1239,10 @@ caso(
      (:'det'::jsonb -> 'lineas' -> 0 ->> 'deuda_pendiente') || ':' || (:'det'::jsonb ->> 'deudas_del_proveedor'));`,
   [
     "abierto_en,abierto_por,anulado_en,anulado_por,cerrado_en,cerrado_por,creado_por_mi,despachado_en,despachado_por,deudas_del_proveedor," +
-      "diferencias,estado,id,lineas,motivo_anulacion,nota,nota_recepcion,numero,numero_guia,proveedores,recepcion,recibidos,sede,unidades,version",
+      // `papeles` y `producto` (por línea): ADR-0480, actividad 6 (20261023121000), lo comprado desde el celular.
+      "diferencias,estado,id,lineas,motivo_anulacion,nota,nota_recepcion,numero,numero_guia,papeles,proveedores,recepcion,recibidos,sede,unidades,version",
     "cantidad,categoria,categoria_id,compra_item_id,descripcion,deuda_pendiente,id,marca,marca_id,orden,orden_compra_id,orden_compra_item_id," +
-      "posicion,precio_unitario,precio_venta_sugerido,proveedor",
+      "posicion,precio_unitario,precio_venta_sugerido,producto,proveedor",
     "0:[]",
   ].join(" / "),
 );

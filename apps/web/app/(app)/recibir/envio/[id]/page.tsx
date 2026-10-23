@@ -90,6 +90,7 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
         veExistencias={veModulo(persona, "existencias")}
         veDinero={puede(persona, "verDineroCompras")}
         proveedoresParaElegir={proveedoresParaElegir}
+        papeles={datos.papeles}
       />
     );
   }

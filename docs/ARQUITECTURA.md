@@ -1471,6 +1471,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   que arma las líneas pendientes de esa tienda y llama a `crear_envio`; `despachos.bultos`) y «Terminé de comprar hoy» (`TerminarDia.tsx` →
   `terminar_dia_compras`). `fn_mi_plata_compras` lee también `gastos`, `por_mandar` y `hoy`; `fn_mi_plata_tiene` es la única cuenta de lo
   que tiene. `?mandar=1` (desde «Listo» de la compra) abre «Mandar a la tienda».
+  Actividad 6 (migración `20261023121000`): `/recibir/envio/[id]` muestra los papeles de lo comprado desde el celular
+  (`components/recepcion-conteo/PapelesDeLaCompra.tsx`; `fn_envio_detalle` → `papeles`, foto firmada en `lib/recepcion-envio.ts`) y
+  `SepararPrendas` ofrece la prenda que eligió la compradora (`lineas[].producto`).
 - ~~**Notas de crédito**~~ (retirada el 2026-10-22, ADR-0480: la pantalla, sus modales y `lib/notas-credito*.ts` se borraron;
   `/compras/notas-credito` redirige a `/compras`; las tablas y RPC de abajo siguen en la base). Lo que era (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres

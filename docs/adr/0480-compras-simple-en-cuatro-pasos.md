@@ -3,7 +3,8 @@
 - **Fecha:** 2026-10-22 · **Estado:** en construcción en la rama `claude/modulo-compras-66e94a`, actividad por actividad
   (`/construir`). Actividad 1 (menú y módulos): migración `20261022225000_compras_simple_modulos.sql`. Actividad 2 (anotar y confirmar
   la plata): `20261022235000_compras_simple_plata_anotada.sql`. Actividad 3 (registrar una compra): `20261023005000_compras_simple_compra_rapida.sql`. Actividad 5 (otro gasto,
-  mandar a la tienda y terminar el día): `20261023114000_compras_simple_gasto_envio_y_cierre.sql`.
+  mandar a la tienda y terminar el día): `20261023114000_compras_simple_gasto_envio_y_cierre.sql`. Actividad 6 (recibir
+  mirando la foto): `20261023121000_compras_simple_recibir_con_la_foto.sql`.
   **Ninguna pegada en producción** (se pegan después de publicar la web,
   en orden y con el OK de Felipe).
 - **Maqueta aprobada:** `docs/maquetas/compras-simple-2026-10/` (index.html tocable + README con cada decisión).
@@ -127,6 +128,25 @@ con lo básico sin duplicarlo.
   hasta que Compras lo recibe (actividad 7). Si falta mandar algo, lo recuerda sin frenar. Se descartó `rendir_fondo`: rinde con los números
   de los libros, que todavía no ven las compras por completar.
 
+## Actividad 6: la tienda recibe mirando la foto (2026-10-23)
+
+**Una sola recepción** (ADR-0393): lo comprado desde el celular sale como un envío y se recibe con la de siempre, que ya tiene «¿Qué llegó? →
+Contar → Cerrar». Esa recepción ya cumplía casi todo el paso 3: el costo sale de la línea y entra junto con el stock al cerrar, y al crear la
+prenda nueva viene el precio que sugirió la compradora («Lo sugirió quien hizo la compra. Corrígelo si hace falta», decisión 21 de ADR-0362).
+Se le sumó lo que faltaba:
+
+- **El papel con su foto** («Lo que anotó Marisol al comprar»): de quién es, qué papel y quién compró, y la foto, que se abre en grande. Sin
+  montos: la tienda no ve el dinero de Compras por tener Recibir. `fn_envio_detalle` trae `papeles`, y la regla del depósito
+  (`fn_puede_ver_foto_gasto_viaje`) deja leer la carpeta `papeles/` a quien tiene Recibir; los vouchers y los gastos siguen siendo de Compras.
+- **La prenda que eligió la compradora** (`orden_compra_items.producto_id`): cada línea la trae, y al contar «¿Qué … son?» la ofrece de un
+  toque («La compradora anotó Blusa Emma. ¿Son estas? · Son estas (6)»), también en «Hacer ahora». No se separa sola: lo que llegó lo
+  certifica quien cuenta (decisión 17 de ADR-0362).
+- **El nombre que anotó** pasa a la hoja de la prenda nueva («En la orden dice «Polera capucha oversize». Usar ese nombre») también cuando lo
+  nuevo no se describió al contar.
+
+Se descartó dibujar otra recepción con los tres pasos de la maqueta (ADR-0393 decidió una sola) y una política nueva en `storage.objects`
+(toma en exclusiva `auth` y `storage`, ADR-0195): la regla vive en la función que la política ya llama.
+
 ## Cómo se ve mal hecho
 
 - Retirar `ordenes_compra` y crear una clave nueva: el rol «Compras» perdería en silencio recibir, gastos y proveedores.
@@ -135,5 +155,5 @@ con lo básico sin duplicarlo.
 
 ## Qué queda
 
-Actividades 6 a 8 de la construcción (recibir con costo y precio, revisar compras —que también recibe la devolución del cierre del
-día y revisa los gastos—, cierre con guías y pruebas). Cada una agrega su sección a este ADR.
+Actividades 7 y 8 de la construcción (revisar compras —que también recibe la devolución del cierre del día y revisa los gastos—, y el
+cierre con guías y pruebas). Cada una agrega su sección a este ADR.
