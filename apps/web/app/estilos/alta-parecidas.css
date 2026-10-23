@@ -161,8 +161,10 @@
     padding-block: 4px;
   }
 }
-.parecidas-fila:hover {
-  background: color-mix(in srgb, var(--color-tinta) 5%, transparent);
+@media (hover: hover) {
+  .parecidas-fila:hover {
+    background: color-mix(in srgb, var(--color-tinta) 5%, transparent);
+  }
 }
 .parecidas-fila[data-destacada] {
   background: var(--color-hueso);
@@ -613,8 +615,10 @@
 .parecidas-punto[data-varios] {
   background: conic-gradient(from 20deg, var(--color-rojo), var(--color-ambar), var(--color-verde), var(--color-pizarra), var(--color-taupe), var(--color-rojo));
 }
-.parecidas-punto:hover {
-  box-shadow: 0 0 0 2px var(--color-papel), 0 0 0 3.5px var(--color-tinta);
+@media (hover: hover) {
+  .parecidas-punto:hover {
+    box-shadow: 0 0 0 2px var(--color-papel), 0 0 0 3.5px var(--color-tinta);
+  }
 }
 .parecidas-punto::after {
   content: attr(data-nombre);
@@ -634,6 +638,7 @@
   pointer-events: none;
   transition: opacity 150ms var(--ease-cayla);
 }
+/* hover-tactil: el nombre del color solo se lee así; con el dedo, tocar el punto lo muestra (ADR-0479). */
 .parecidas-punto:hover::after {
   opacity: 1;
 }
@@ -693,8 +698,10 @@
   color: var(--color-taupe-profundo);
   cursor: pointer;
 }
-.parecidas-que-pasa:hover {
-  color: var(--color-tinta);
+@media (hover: hover) {
+  .parecidas-que-pasa:hover {
+    color: var(--color-tinta);
+  }
 }
 .parecidas-q {
   display: inline-grid;

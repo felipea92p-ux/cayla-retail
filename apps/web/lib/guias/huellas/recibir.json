@@ -71,7 +71,6 @@
       "Link «Siguiente página»"
     ],
     "components/ProveedorModal.tsx": [
-      "button «Cerrar»",
       "CampoTexto «Contacto»",
       "CampoTexto «Teléfono»",
       "button «{r}»",

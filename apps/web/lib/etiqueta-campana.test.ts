@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   alcanceCampana,
+  alternarSede,
   avisoReimprimir,
   chipDeTarjeta,
   conteoDeTarjeta,
@@ -14,7 +15,9 @@ import {
   prendasPorCategoria,
   prendasQueCambianDePrecioHoy,
   textoConteoTarjeta,
+  textoSedesDeCampana,
   type PrendaConCosto,
+  type TiendaOpcion,
 } from "./etiqueta-campana";
 import { descuentoDeCampana } from "./vender-reglas";
 
@@ -291,5 +294,62 @@ describe("avisoReimprimir", () => {
   it("dice cuántas prendas y ofrece imprimir sus etiquetas, sin prometer un número de etiquetas", () => {
     expect(avisoReimprimir(12)).toEqual({ detalle: "Cambió el precio en caja de 12 prendas: sus etiquetas de papel dicen el de antes.", boton: "Imprimir sus etiquetas" });
     expect(avisoReimprimir(1)).toEqual({ detalle: "Cambió el precio en caja de 1 prenda: su etiqueta de papel dice el de antes.", boton: "Imprimir su etiqueta" });
+  });
+});
+
+// ---- En qué tiendas rige una campaña (ADR-0486) ---------------------------------------------------------------------------
+
+const TRU: TiendaOpcion = { id: "tru", nombre: "Tienda Trujillo" };
+const AQP: TiendaOpcion = { id: "aqp", nombre: "Tienda Arequipa" };
+const LIM: TiendaOpcion = { id: "lim", nombre: "Tienda Lima" };
+const TRES = [AQP, LIM, TRU];
+
+describe("alternarSede", () => {
+  it("marca una tienda y la desmarca", () => {
+    const una = alternarSede(new Set(), "tru", TRES);
+    expect([...una]).toEqual(["tru"]);
+    expect([...alternarSede(una, "tru", TRES)]).toEqual([]);
+  });
+
+  it("marcar dos deja dos", () => {
+    expect([...alternarSede(new Set(["tru"]), "aqp", TRES)].sort()).toEqual(["aqp", "tru"]);
+  });
+
+  it("marcar TODAS las tiendas es «todas las sedes»: lista vacía, para que una tienda nueva no quede fuera", () => {
+    expect(alternarSede(new Set(["tru", "aqp"]), "lim", TRES).size).toBe(0);
+  });
+
+  it("no cambia el conjunto que recibe", () => {
+    const antes = new Set(["tru"]);
+    alternarSede(antes, "aqp", TRES);
+    expect([...antes]).toEqual(["tru"]);
+  });
+
+  it("con una sola tienda en el ERP, marcarla es «todas»: no hay nada que limitar", () => {
+    expect(alternarSede(new Set(), "tru", [TRU]).size).toBe(0);
+  });
+});
+
+describe("textoSedesDeCampana", () => {
+  it("una campaña de todas las sedes no dice nada", () => {
+    expect(textoSedesDeCampana([], TRES)).toBeNull();
+  });
+
+  it("una tienda: «Solo Tienda Trujillo»", () => {
+    expect(textoSedesDeCampana(["tru"], TRES)).toBe("Solo Tienda Trujillo");
+  });
+
+  it("dos tiendas: en el orden en que se eligieron, unidas con «y»", () => {
+    expect(textoSedesDeCampana(["lim", "tru"], TRES)).toBe("Solo Tienda Lima y Tienda Trujillo");
+  });
+
+  it("tres: con comas y «y»", () => {
+    expect(textoSedesDeCampana(["aqp", "lim", "tru"], TRES)).toBe("Solo Tienda Arequipa, Tienda Lima y Tienda Trujillo");
+  });
+
+  it("una tienda que ya no se conoce no inventa un nombre", () => {
+    expect(textoSedesDeCampana(["x"], TRES)).toBe("Solo en una tienda");
+    expect(textoSedesDeCampana(["tru", "x"], TRES)).toBe("Solo en 2 tiendas");
+    expect(textoSedesDeCampana(["tru"], [])).toBe("Solo en una tienda");
   });
 });

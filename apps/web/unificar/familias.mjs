@@ -357,6 +357,14 @@ const BASE = [
     gobierna: ["ADR-0479", "ADR-0136", "ADR-0358"],
   },
   {
+    id: "barra-movil",
+    grupo: "Hojas",
+    nombre: "La barra de abajo del celular",
+    funcion: "Lo que queda pegado abajo en el teléfono: la acción de la pantalla (escanear, pagar lo marcado, crear) y lo que llevas elegido (el ticket, las prendas marcadas).",
+    pieza: "La Isla, `barra-abajo` / `<BarraDeAbajo>` (components/ui/BarraDeAbajo.tsx): clara para lo que toca hacer, oscura para lo elegido; decidido el 2026-10-23 (ADR-0479)",
+    gobierna: ["ADR-0479", "ADR-0358", "ADR-0136"],
+  },
+  {
     id: "avatar",
     grupo: "Personas",
     nombre: "Avatares",
@@ -1372,7 +1380,7 @@ export const DECISIONES = {
     "registro": "docs/unificar/hoja-movil.md",
     "elegida": "B · Hoja viva con profundidad: bajo 640 px la hoja llega desde el borde, tiene asa, sigue al dedo (se cierra pasado un tercio o de un tirón, sin rebote), respeta antesDeCerrar y bloqueado, aleja lo de atrás a 0,92; Filtros a media altura; el cajón es una hoja alta que se desliza entre registros; elegida tocando la maqueta el 2026-10-22",
     "pieza": "components/ui/Modal.tsx",
-    "tambien": ["components/ui/Cajon.tsx", "components/ui/ModalRuta.tsx", "components/ui/useHojaArrastre.ts", "components/ui/fondoDeLaHoja.ts"],
+    "tambien": ["components/ui/Cajon.tsx", "components/ui/ModalRuta.tsx", "components/ui/useHojaArrastre.ts", "components/ui/fondoDeLaHoja.ts", "components/ui/CapaDeFiltro.tsx"],
     "firmas": [
       // Una hoja armada a mano con Radix: no tiene asa, ni dedo, ni lo de atrás que se aleja. Es <Modal> (o <Cajon>).
       "<Dialog\\.Content(?:\\s|$)",
@@ -1381,7 +1389,33 @@ export const DECISIONES = {
       // El lugar de la hoja de <Modal> (pegada abajo en el celular, arriba en escritorio) copiado a mano.
       "items-end justify-center sm:items-start"
     ],
-    "deuda": ["components/FiltrosCompras.tsx", "components/FiltrosRecibidas.tsx", "components/ProveedorModal.tsx"],
+    "deuda": [],
+    "excepciones": []
+  },
+  "barra-movil": {
+    "fecha": "2026-10-23",
+    "adr": "docs/adr/0479-la-hoja-del-celular-viva-y-con-profundidad.md",
+    "registro": "docs/unificar/barra-movil.md",
+    "elegida": "La Isla para las dos preguntas: la barra con lo que toca hacer flota a 12 px de los bordes, clara (papel) y con una sola acción la isla es el botón; lo que llevas elegido, la isla oscura (tinta). Esquinas de 18 px, sombra suave, botones de 44 px, entra subiendo 12 px una vez; elegida mirando las fotos en las pantallas reales el 2026-10-23",
+    "pieza": "components/ui/BarraDeAbajo.tsx",
+    "tambien": ["app/estilos/barra-abajo.css"],
+    "firmas": [
+      // El degradado crema con un botón negro encima (la barra de Existencias, Cambios, Devoluciones, Caja e Inicio de almacén).
+      "fixed inset-x-0 bottom-0[^\"`]*bg-gradient-to-t",
+      // Una píldora flotante dibujada a mano (`fixed inset-x-3 bottom-…`): es la isla, `barra-abajo`.
+      "fixed inset-x-3 bottom-",
+      // El pie de un formulario de borde a borde con su línea arriba (Nuevo producto, Bajar al piso, Recibir).
+      "sticky bottom-0 z-20 -mx-4[^\"`]*border-t",
+      // La tarjeta que flota sobre la lista al marcar (Temporadas).
+      "card-cayla[^\"`]*sticky bottom-3",
+      // La franja oscura de borde a borde (Apartados).
+      "fixed inset-x-0 z-20[^\"`]*bg-tinta",
+      // El vidrio de borde a borde de BarraFija, también en el celular.
+      "fixed inset-x-0 bottom-0 z-20 border-t border-sand bg-crema",
+      // El pie de una tarjeta que se pega abajo en una pantalla angosta (Abrir conteo).
+      "sticky bottom-0 z-10 grid"
+    ],
+    "deuda": [],
     "excepciones": []
   },
   "accion.anterior": {

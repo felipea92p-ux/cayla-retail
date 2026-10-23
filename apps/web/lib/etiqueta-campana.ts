@@ -60,6 +60,28 @@ export function nombreBajoCosto(p: Pick<PrendaConCosto, "nombre" | "enSede" | "p
   return p.enSede ? `${p.nombre} · precio más bajo: S/\u00a0${p.precio.toFixed(2)} en ${p.enSede}` : p.nombre;
 }
 
+// ---- En qué tiendas rige una campaña (ADR-0486) ------------------------------------------------------------------------
+// Sin tiendas elegidas, rige en todas las sedes (como siempre). La base lo guarda en `campana_sedes` (sin filas = todas).
+
+export type TiendaOpcion = { id: string; nombre: string };
+
+/** Marcar o desmarcar una tienda. Si quedan marcadas TODAS, es «todas las sedes» (lista vacía): una tienda que se abra después no
+ *  se quedaría fuera de una campaña que la persona quería en todas. */
+export function alternarSede(elegidas: ReadonlySet<string>, tiendaId: string, tiendas: readonly TiendaOpcion[]): Set<string> {
+  const nuevo = new Set(elegidas);
+  if (nuevo.has(tiendaId)) nuevo.delete(tiendaId);
+  else nuevo.add(tiendaId);
+  return tiendas.length > 0 && tiendas.every((t) => nuevo.has(t.id)) ? new Set() : nuevo;
+}
+
+/** Lo que dice la tarjeta de una campaña limitada a tiendas; `null` si rige en todas. */
+export function textoSedesDeCampana(sedeIds: readonly string[], tiendas: readonly TiendaOpcion[]): string | null {
+  if (sedeIds.length === 0) return null;
+  const nombres = sedeIds.map((id) => tiendas.find((t) => t.id === id)?.nombre).filter((n): n is string => Boolean(n));
+  if (nombres.length !== sedeIds.length) return sedeIds.length === 1 ? "Solo en una tienda" : `Solo en ${sedeIds.length} tiendas`;
+  return nombres.length === 1 ? `Solo ${nombres[0]}` : `Solo ${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+}
+
 // ---- Cuánto alcanza una campaña, dicho ANTES de guardar --------------------------------
 // La regla es la de la base (`fn_campanas_por_variante`): una prenda entra si está marcada a mano o si su categoría está
 // elegida. Aquí solo se cuenta, con las prendas a la venta (variantes activas) que ya trae la página: sin ir a la base.

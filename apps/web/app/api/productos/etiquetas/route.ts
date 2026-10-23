@@ -89,14 +89,25 @@ export async function PATCH(request: Request) {
       return Response.json({ error: "Las categorías elegidas no son válidas." }, { status: 400 });
     }
 
+    // ADR-0486: dónde rige el descuento. Si la hoja no manda `sedeIds` (no las ofreció), no se toca lo que tiene la campaña; si manda
+    // una lista, la base la guarda junto con lo demás (vacía = todas las sedes).
+    const sedeIds = "sedeIds" in c ? c.sedeIds : undefined;
+    if (sedeIds !== undefined && (!Array.isArray(sedeIds) || !sedeIds.every((x) => typeof x === "string"))) {
+      return Response.json({ error: "Las sedes elegidas no son válidas." }, { status: 400 });
+    }
+
     const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-    const { error } = await supabase.rpc("actualizar_campana_etiqueta", {
+    const argumentos = {
       p_etiqueta_id: id,
       p_descuento_pct: descuento.valor as number,
       p_vigente_desde: desde.valor as string,
       p_vigente_hasta: hasta.valor as string,
       p_categoria_ids: categoriaIds as string[],
-    });
+    };
+    const { error } =
+      sedeIds === undefined
+        ? await supabase.rpc("actualizar_campana_etiqueta", argumentos)
+        : await supabase.rpc("actualizar_campana_etiqueta_con_sedes", { ...argumentos, p_sede_ids: sedeIds as string[] });
     if (error) return Response.json({ error: traducirError(error, "guardar la campaña") }, { status: 400 });
     return Response.json({ ok: true });
   }

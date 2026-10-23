@@ -160,3 +160,17 @@ export function progresoDeCierre(y: number, alto: number): number {
   if (alto <= 0) return 0;
   return Math.min(1, Math.max(0, y / alto));
 }
+
+/**
+ * El menú lateral del celular se cierra con el dedo hacia la izquierda (ADR-0479, actividad 11): pasado un tercio de su ancho o
+ * de un tirón (0,45 px/ms) hacia la izquierda. Hacia la derecha ya está abierto del todo: no se cierra.
+ */
+export function cierraElLateral(dx: number, vx: number, ancho: number): boolean {
+  if (dx >= 0) return false;
+  return -dx > ancho * FRACCION_PARA_PASAR || vx < -0.45;
+}
+
+/** Dónde queda el menú mientras el dedo lo lleva: a la izquierda, 1 a 1; a la derecha (ya abierto), resiste y se frena. */
+export function posicionDelLateral(dx: number): number {
+  return dx <= 0 ? dx : goma(dx, 16);
+}

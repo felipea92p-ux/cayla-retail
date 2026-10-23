@@ -56,7 +56,9 @@
       background-color 220ms var(--ease-cayla),
       opacity 220ms var(--ease-cayla);
   }
-  .nc-opc:hover:not([aria-disabled="true"]) { border-color: var(--color-rojo); }
+  @media (hover: hover) {
+    .nc-opc:hover:not([aria-disabled="true"]) { border-color: var(--color-rojo); }
+  }
   .nc-opc[aria-checked="true"] {
     border-color: var(--color-tinta);
     background: color-mix(in srgb, var(--color-tinta) 3.5%, transparent);

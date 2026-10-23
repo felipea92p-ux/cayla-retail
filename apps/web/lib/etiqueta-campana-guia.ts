@@ -16,6 +16,9 @@ export type EntradaCampana = {
   hasta: string;
   /** Cuántas categorías eligió la persona (opcional). */
   categorias: number;
+  /** Cuántas tiendas eligió la persona (opcional; ninguna = todas las sedes). `undefined` = la hoja no ofrece sedes (una sola tienda, o
+   *  la base sin la migración): el campo no existe. */
+  sedes?: number;
   /** Sin él (un rol que no es líder) el descuento no se escribe: la campaña se configura solo con fechas y categorías. */
   puedeDarDescuento: boolean;
 };
@@ -57,5 +60,6 @@ export function camposDeCampana(e: EntradaCampana): CampoDeGuia[] {
       pendiente: "Corrige las fechas: «Hasta» no puede ser antes que «Desde».",
     },
     { id: "categorias", nombre: "Categorías", requerido: false, hecho: e.categorias > 0, pendiente: "" },
+    ...(e.sedes === undefined ? [] : [{ id: "sedes", nombre: "Sedes", requerido: false, hecho: e.sedes > 0, pendiente: "" }]),
   ];
 }

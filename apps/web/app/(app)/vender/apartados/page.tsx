@@ -48,7 +48,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     getDisponibleEnSede(persona.ubicacionId),
-    supabase.rpc("campanas_vigentes"),
+    supabase.rpc("campanas_vigentes", { p_ubicacion_id: persona.ubicacionId }),
     // «¿Dónde más hay?» para lo que aquí no tiene disponible (misma lectura que el Punto de venta). Es secundario:
     // si falla, el buscador sigue funcionando sin esa línea.
     leerStockDeLasSedes(),
