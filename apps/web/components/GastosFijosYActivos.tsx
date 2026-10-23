@@ -27,6 +27,7 @@ import {
   type FichaFijo,
   type ResumenFicha,
 } from "@/lib/gasto-fijo-ficha-reglas";
+import { diasAntesSugeridos } from "@/lib/sugerencias-gasto-fijo";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -43,6 +44,8 @@ import {
   solesRedondo,
   textoColumnaCuando,
   textoCuandoVence,
+  textoDiasAntes,
+  textoPagarDesde,
   textoVidaUtil,
   totalesActivos,
   validarFijo,
@@ -101,7 +104,8 @@ export function FijosDelMes({
   const faltan = fijos.filter((f) => f.estado === "falta");
   const registrados = fijos.filter((f) => f.estado === "registrado");
   const nombre = (f: { descripcion: string; ubicacionNombre: string }) => (verTodas ? `${f.descripcion} · ${f.ubicacionNombre}` : f.descripcion);
-  const detalle = (f: GastoFijoMes) => `${f.proveedorNombre ? `${f.proveedorNombre} · ` : ""}vence ${textoCuandoVence(f.momento, f.diaDelMes)}${f.montoVariable ? " · monto variable" : ""}`;
+  const detalle = (f: GastoFijoMes) =>
+    `${f.proveedorNombre ? `${f.proveedorNombre} · ` : ""}vence ${textoCuandoVence(f.momento, f.diaDelMes)}${f.diasAntes && f.fechaPago ? ` · pagar desde el ${fechaCorta(f.fechaPago)}` : ""}${f.montoVariable ? " · monto variable" : ""}`;
   const monto = (f: GastoFijoMes) => `${f.montoVariable ? "~" : ""}${solesRedondo(f.monto)}`;
   const editar = puedeConfigurar ? (
     <BotonEditar chico href="/configuracion?tab=fijos">
@@ -144,9 +148,12 @@ export function FijosDelMes({
             ) : (
               vienen.map((f) => (
                 <FilaFijo key={f.id} titulo={nombre(f)} detalle={detalle(f)} monto={monto(f)}>
-                  <button type="button" className={`btn-cayla btn-chico ${f.montoVariable ? "btn-secundario" : "btn-primario"}`} onClick={() => onRegistrar(f)}>
-                    {f.montoVariable ? "Registrar monto" : "Registrar"}
-                  </button>
+                  <span className="flex items-center gap-2.5">
+                    {f.tocaPagar && <Chip tono="ambar">Toca pagar</Chip>}
+                    <button type="button" className={`btn-cayla btn-chico ${f.montoVariable ? "btn-secundario" : "btn-primario"}`} onClick={() => onRegistrar(f)}>
+                      {f.montoVariable ? "Registrar monto" : "Registrar"}
+                    </button>
+                  </span>
                 </FilaFijo>
               ))
             )}
@@ -348,6 +355,7 @@ export function TablaGastosFijos({
                     </td>
                     <td className="fin-num" data-l="Vence">
                       {textoColumnaCuando(f.momento, f.diaDelMes)}
+                      {f.diasAntes ? <span className="fin-sub">se paga {textoDiasAntes(f.diasAntes)}</span> : null}
                     </td>
                     <td className="fin-num">
                       <LapizEditar que={f.descripcion} onClick={() => setEditar({ fijo: f })} className="ml-auto" />
@@ -372,6 +380,7 @@ export function TablaGastosFijos({
           ubicaciones={ubicaciones}
           proveedores={proveedores}
           esLider
+          conDiasAntes={fijos.some((f) => f.diasAntes !== null)}
           ubicacionInicial={ubicaciones[0]?.id ?? "empresa"}
           onCerrar={() => setEditar(null)}
         />
@@ -407,6 +416,7 @@ export function GastoFijoModal({
   ubicaciones,
   proveedores,
   esLider,
+  conDiasAntes,
   ubicacionInicial,
   onCerrar,
 }: {
@@ -418,6 +428,8 @@ export function GastoFijoModal({
   ubicaciones: UbicacionGastos[];
   proveedores: ProveedorGasto[];
   esLider: boolean;
+  /** La base ya trae «pagar antes» (ADR-0487): se sabe porque algún fijo de la lista lo devolvió. Sin él, el campo ni se pide ni se manda. */
+  conDiasAntes: boolean;
   ubicacionInicial: string;
   onCerrar: () => void;
 }) {
@@ -425,6 +437,9 @@ export function GastoFijoModal({
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
   const base = fijo ?? inicial;
+  // Un fijo nuevo parte de lo que la categoría sugiere (3 días en un recibo) mientras la persona no escriba su propio número.
+  const pideDiasAntes = fijo ? fijo.diasAntes !== null : conDiasAntes;
+  const [diasAntesTocado, setDiasAntesTocado] = useState(false);
   const [b, setB] = useState<BorradorFijo>(() => ({
     ubicacion: base ? (base.ubicacionId ?? "empresa") : ubicacionInicial,
     categoria: base?.categoria ?? "",
@@ -435,9 +450,16 @@ export function GastoFijoModal({
     variable: fijo?.montoVariable ?? false,
     dia: base ? String(base.diaDelMes) : "",
     momento: fijo?.momento ?? "dia",
+    diasAntes: !pideDiasAntes ? null : fijo ? String(fijo.diasAntes ?? 0) : String(diasAntesSugeridos(base?.categoria ?? "")),
   }));
   const poner = <K extends keyof BorradorFijo>(k: K, v: BorradorFijo[K]) => setB((x) => ({ ...x, [k]: v }));
   const cat = categorias.find((c) => c.codigo === b.categoria) ?? null;
+  // «Se paga desde el día 12» con lo que va escrito: así quien lo llena ve de qué fecha se habla sin hacer la cuenta (ADR-0487).
+  const nDiasAntes = b.diasAntes === null || b.diasAntes.trim() === "" ? 0 : Number(b.diasAntes);
+  const pagarDesde = textoPagarDesde(b.momento, Number(b.dia), nDiasAntes);
+  const ayudaDiasAntes = pagarDesde
+    ? `Se paga ${pagarDesde}; desde ahí sale «Toca pagar». Pon 0 si lo pagas el día que vence.`
+    : "0 = se paga el día que vence. Con 3, «Toca pagar» sale 3 días antes.";
 
   // La ficha de pago (ADR-0452): a quién y cómo se paga, para que otra persona pueda pagarlo sin quien lo cargó. La hoja pregunta
   // una vez si la base ya la tiene (antes de pegar la migración, el modal es el de siempre) y si la cuenta es de un líder o admin
@@ -527,7 +549,7 @@ export function GastoFijoModal({
           <SelectFin
             id="fijo-categoria"
             valor={b.categoria}
-            onValor={(v) => poner("categoria", v)}
+            onValor={(v) => setB((x) => ({ ...x, categoria: v, diasAntes: x.diasAntes !== null && !fijo && !diasAntesTocado ? String(diasAntesSugeridos(v)) : x.diasAntes }))}
             marcador="Elige…"
             opciones={categorias.map((c) => ({ valor: c.codigo, texto: c.nombre }))}
           />
@@ -555,10 +577,28 @@ export function GastoFijoModal({
           />
         </CampoFin>
       </div>
-      {b.momento === "dia" && (
-        <CampoFin etiqueta="Día del mes en que vence" htmlFor="fijo-dia" ayuda="Del 1 al 28. Para el 29, 30 o 31, elige «A fin de mes».">
-          <InputFin id="fijo-dia" inputMode="numeric" value={b.dia} onChange={(e) => poner("dia", e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="10" />
-        </CampoFin>
+      {(b.momento === "dia" || b.diasAntes !== null) && (
+        <div className="fin-dos-campos">
+          {b.momento === "dia" && (
+            <CampoFin etiqueta="Día del mes en que vence" htmlFor="fijo-dia" ayuda="Del 1 al 28. Para el 29, 30 o 31, elige «A fin de mes».">
+              <InputFin id="fijo-dia" inputMode="numeric" value={b.dia} onChange={(e) => poner("dia", e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="10" />
+            </CampoFin>
+          )}
+          {b.diasAntes !== null && (
+            <CampoFin etiqueta="¿Cuántos días antes lo pagas?" htmlFor="fijo-dias-antes" ayuda={ayudaDiasAntes}>
+              <InputFin
+                id="fijo-dias-antes"
+                inputMode="numeric"
+                value={b.diasAntes}
+                onChange={(e) => {
+                  setDiasAntesTocado(true);
+                  poner("diasAntes", e.target.value.replace(/\D/g, "").slice(0, 2));
+                }}
+                placeholder={String(diasAntesSugeridos(b.categoria))}
+              />
+            </CampoFin>
+          )}
+        </div>
       )}
       <CampoFin etiqueta="¿El monto cambia cada mes?" ayuda={b.variable ? "Como la luz o el agua: se muestra con «~» y se escribe el del recibo al registrarlo." : undefined}>
         <RadiosFin

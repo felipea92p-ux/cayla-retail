@@ -956,6 +956,25 @@ export function textoCuandoVence(momento: MomentoFijo, dia: number): string {
   return `el día ${dia}`;
 }
 
+/** «el mismo día», «1 día antes», «3 días antes»: cuánto antes de que venza se paga un fijo (ADR-0487). */
+export function textoDiasAntes(n: number): string {
+  if (n <= 0) return "el mismo día";
+  return n === 1 ? "1 día antes" : `${n} días antes`;
+}
+
+/**
+ * Desde cuándo se paga, para la ayuda del modal, sin saber todavía el mes: «desde el día 12», «3 días antes de fin de mes» o «desde fines del
+ * mes anterior» (un vencimiento a inicios de mes con unos días de anticipo). `null` con 0 días: se paga el día que vence.
+ */
+export function textoPagarDesde(momento: MomentoFijo, dia: number, diasAntes: number): string | null {
+  if (!Number.isInteger(diasAntes) || diasAntes <= 0) return null;
+  if (momento === "fin_de_mes") return `${textoDiasAntes(diasAntes)} de fin de mes`;
+  const vence = momento === "primera_semana" ? 7 : momento === "quincena" ? 15 : dia;
+  if (!Number.isInteger(vence) || vence < 1) return null;
+  const desde = vence - diasAntes;
+  return desde >= 1 ? `desde el día ${desde}` : "desde fines del mes anterior";
+}
+
 /** Lo que va en la columna «Día» de la lista de fijos: el número o la palabra. */
 export function textoColumnaCuando(momento: MomentoFijo, dia: number): string {
   if (momento === "primera_semana") return "1.ª semana";
@@ -979,10 +998,17 @@ export type GastoFijoMes = {
   diaDelMes: number;
   /** Cuándo vence (ADR-0440, ADR-0487). Una base sin la migración no lo trae: se lee como «dia». */
   momento: MomentoFijo;
+  /** El vencimiento de este mes (`AAAA-MM-DD`). */
   fechaEsperada: string;
   estado: EstadoFijo;
   gastoId: string | null;
   gastoMonto: number | null;
+  /** Cuántos días antes de que venza se paga (ADR-0487). `null`: la base todavía no tiene la migración, y el campo ni se pide ni se manda. */
+  diasAntes: number | null;
+  /** El vencimiento menos `diasAntes` (`AAAA-MM-DD`); `null` si la base no lo trae. */
+  fechaPago: string | null;
+  /** Sin registrar, sin vencer y ya llegó su fecha de pago: «Toca pagar». */
+  tocaPagar: boolean;
 };
 
 export type FijoSugerido = {
@@ -1018,6 +1044,9 @@ export function leerFijoMes(f: Fila): GastoFijoMes {
     estado: (String(f.estado) as EstadoFijo) ?? "por_llegar",
     gastoId: txt(f.gasto_id),
     gastoMonto: numONull(f.gasto_monto),
+    diasAntes: f.dias_antes == null ? null : num(f.dias_antes),
+    fechaPago: txt(f.fecha_pago),
+    tocaPagar: f.toca_pagar === true,
   };
 }
 
@@ -1048,9 +1077,24 @@ export function resumenFijos(fijos: readonly GastoFijoMes[]): { faltan: number; 
   };
 }
 
-export type BorradorFijo = { ubicacion: string; categoria: string; descripcion: string; proveedorId: string; comprobante: TipoComprobante; monto: string; variable: boolean; dia: string; momento: MomentoFijo };
+export type BorradorFijo = {
+  ubicacion: string;
+  categoria: string;
+  descripcion: string;
+  proveedorId: string;
+  comprobante: TipoComprobante;
+  monto: string;
+  variable: boolean;
+  dia: string;
+  momento: MomentoFijo;
+  /** Días antes de que venza en que se paga (ADR-0487). `null`: la base no tiene la columna, no se pide ni se manda. */
+  diasAntes: string | null;
+};
 
-export type ParamsFijo = { p_ubicacion_id: string | null; p_categoria: string; p_descripcion: string; p_proveedor_id: string | null; p_comprobante_tipo: TipoComprobante; p_monto: number; p_monto_variable: boolean; p_dia_del_mes: number; p_momento?: MomentoFijo };
+export type ParamsFijo = { p_ubicacion_id: string | null; p_categoria: string; p_descripcion: string; p_proveedor_id: string | null; p_comprobante_tipo: TipoComprobante; p_monto: number; p_monto_variable: boolean; p_dia_del_mes: number; p_momento?: MomentoFijo; p_dias_antes?: number };
+
+/** Lo mismo que el candado de la base (`gastos_fijos_dias_antes_valido`): una persona que escribe «45» casi seguro quiso decir otra cosa. */
+const MAX_DIAS_ANTES = 30;
 
 /** El día que respalda a cada momento (el mismo que exige la base: 7, 15 y 28 son solo el orden). */
 const DIA_DE_RESPALDO: Record<Exclude<MomentoFijo, "dia">, number> = { primera_semana: 7, quincena: 15, fin_de_mes: 28 };
@@ -1068,6 +1112,13 @@ export function validarFijo(b: BorradorFijo): Resultado<ParamsFijo> {
   } else {
     dia = DIA_DE_RESPALDO[b.momento];
   }
+  let diasAntes: number | undefined;
+  if (b.diasAntes !== null) {
+    diasAntes = b.diasAntes.trim() === "" ? 0 : Number(b.diasAntes);
+    if (!Number.isInteger(diasAntes) || diasAntes < 0 || diasAntes > MAX_DIAS_ANTES) {
+      return { ok: false, error: `Pagar antes va de 0 a ${MAX_DIAS_ANTES} días. Con 0 se paga el mismo día que vence.` };
+    }
+  }
   return {
     ok: true,
     valor: {
@@ -1081,6 +1132,8 @@ export function validarFijo(b: BorradorFijo): Resultado<ParamsFijo> {
       p_dia_del_mes: dia,
       // Solo si no es «un día fijo»: así la web sirve también antes de que la base tenga la migración (ADR-0440).
       ...(b.momento === "dia" ? {} : { p_momento: b.momento }),
+      // Solo si la base ya tiene la columna (ADR-0487): siempre explícito, así un 0 también borra un «3» anterior.
+      ...(diasAntes === undefined ? {} : { p_dias_antes: diasAntes }),
     },
   };
 }
