@@ -547,7 +547,7 @@ export function FiltrosProductos({
       {panelAbierto && !hojaAbierta && <div data-guia="productos.panel" className="hidden md:block">{panel}</div>}
 
       {hojaAbierta && (
-        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana">
+        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana" mediaAltura>
           {panel}
           <div className="pie-hoja-fijo pie-acciones mt-4">
             {activos > 0 && (
