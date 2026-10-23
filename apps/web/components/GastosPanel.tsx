@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -11,6 +11,7 @@ import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Orillo } from "@/components/finanzas/telar/Orillo";
+import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
 import { porSedeDe, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { chipsDeGastos, preguntaDeGastos, sedeDeLaCabecera as sedeDeLaCabeceraDe } from "@/lib/gastos-telar-reglas";
@@ -63,7 +64,7 @@ import { Boton } from "@/components/ui/campos";
 import { GastosPulso } from "@/components/finanzas/GastosPulso";
 import { bandejaPulso, gastastePulso } from "@/lib/gastos-pulso-reglas";
 import { Vacio } from "@/components/ui/Vacio";
-import { Check, FunnelX, Receipt, SearchX } from "lucide-react";
+import { Armchair, Check, FunnelX, Plus, Receipt, Repeat, SearchX, Wallet } from "lucide-react";
 import { MAX_MOTIVO_ANULAR_GASTO } from "@/lib/finanzas-topes";
 
 // Finanzas ▸ Gastos (ADR-0195 F2), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, vista «Gastos»):
@@ -131,12 +132,22 @@ export function GastosPanel({
   const ruta = usePathname();
   const params = useSearchParams();
   const [pestana, setPestana] = useState<PestanaGastos>(pestanaInicial);
-  const [registrar, setRegistrar] = useState<{ egreso?: EgresoPorClasificar; fijo?: GastoFijoMes; clase?: "gasto" | "activo" } | null>(null);
+  // «Registrar gasto» de la mesa de mando del telar llega con `?registrar=1` desde otro submódulo: Gastos nace con la hoja abierta.
+  const [registrar, setRegistrar] = useState<{ egreso?: EgresoPorClasificar; fijo?: GastoFijoMes; clase?: "gasto" | "activo" } | null>(() =>
+    params.get("registrar") === "1" ? {} : null,
+  );
   const [detalle, setDetalle] = useState<GastoFila | null>(null);
   const [activo, setActivo] = useState<ActivoFila | null>(null);
   const [nuevoFijo, setNuevoFijo] = useState<FijoSugerido | null>(null);
   const [noEsFijo, setNoEsFijo] = useState<FijoSugerido | null>(null);
   const [clasificar, setClasificar] = useState<EgresoPorClasificar | null>(null);
+  // El `?registrar=1` se quita apenas se abrió la hoja, para que recargar o volver atrás no la abra otra vez.
+  useEffect(() => {
+    if (params.get("registrar") !== "1") return;
+    const p = new URLSearchParams(params.toString());
+    p.delete("registrar");
+    router.replace(p.size ? `${ruta}?${p.toString()}` : ruta, { scroll: false });
+  }, [params, ruta, router]);
   const rf = resumenFijos(fijos);
 
   const ir = (cambios: Record<string, string>) => {
@@ -172,6 +183,14 @@ export function GastosPanel({
         <RespuestaTelar pregunta={preguntaDeGastos(ver, ubicaciones, mes)} valor={panel ? panel.total : null} chips={panel ? chipsDeGastos(panel) : []} />
       </EncabezadoPagina>
       <Orillo porSede={porSedeDe(panel?.porUbicacion ?? [])} sedes={sedesTelar} que="gastado" hoy={hoy} />
+      <DockTelar
+        acciones={[
+          { texto: "Registrar gasto", tecla: "g", icono: <Plus aria-hidden />, principal: true, onClick: () => setRegistrar({}) },
+          { texto: "Fijos del mes", tecla: "f", icono: <Repeat aria-hidden />, onClick: () => setPestana("fijos") },
+          { texto: "Salidas de caja", tecla: "e", icono: <Wallet aria-hidden />, onClick: () => setPestana("egresos") },
+          { texto: "Activos fijos", tecla: "a", icono: <Armchair aria-hidden />, onClick: () => setPestana("activos") },
+        ]}
+      />
 
       {fallas.map((f) => (
         <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">

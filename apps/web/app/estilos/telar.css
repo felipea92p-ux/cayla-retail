@@ -110,6 +110,99 @@
   background: linear-gradient(90deg, var(--color-sede-tru) 0 22%, var(--color-sede-aqp) 0 44%, var(--color-sede-lim) 0 64%, var(--color-sede-tal) 0 82%, var(--color-sede-emp) 0);
 }
 
+.mesa-telar-espacio { flex: 1 1 auto; }
+.mesa-telar-registrar { flex: none; }
+
+/* ---- «Te toca»: cuántas cosas te tocan en Finanzas, y su cajón ---- */
+.te-toca-telar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  flex: none;
+  border: 1px solid var(--color-sand);
+  border-radius: 999px;
+  background: var(--color-papel);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-tinta);
+  transition: border-color 0.2s var(--ease-cayla), transform 0.2s var(--ease-cayla);
+}
+@media (hover: hover) {
+  .te-toca-telar:hover { border-color: var(--color-taupe); transform: translateY(-1px); }
+}
+.te-toca-telar:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.te-toca-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-sand);
+  border-left: 3px solid var(--color-ambar);
+  border-radius: 12px;
+  background: var(--color-papel);
+}
+.te-toca-item[data-estado="frena"] { border-left-color: var(--color-rojo-profundo); }
+
+/* ---- El dock: lo que más se hace en este submódulo, abajo y al centro (solo escritorio) ---- */
+.dock-telar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 25;
+  display: none;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--color-sand);
+  border-radius: 18px;
+  background: var(--color-papel);
+  box-shadow: 0 12px 32px -14px color-mix(in srgb, var(--color-sombra) 35%, transparent);
+  transform: translateX(-50%);
+  animation: dock-sube 0.45s var(--ease-cayla) backwards;
+}
+@media (min-width: 1024px) {
+  .dock-telar { display: flex; }
+  /* Que el dock no tape lo último de la pantalla. */
+  main:has(.dock-telar) { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+}
+@keyframes dock-sube {
+  from { transform: translate(-50%, 12px); opacity: 0; }
+}
+.dock-telar-accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--color-tinta);
+  white-space: nowrap;
+  transition: background-color 0.2s var(--ease-cayla);
+}
+.dock-telar-accion svg { width: 16px; height: 16px; }
+@media (hover: hover) {
+  .dock-telar-accion:hover { background: var(--color-hueso); }
+  .dock-telar-accion.es-principal:hover { background: var(--color-rojo-profundo); }
+}
+.dock-telar-accion:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.dock-telar-accion.es-principal { background: var(--color-tinta); color: var(--color-crema); }
+.dock-telar-tecla {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border: 1px solid var(--color-sand);
+  border-radius: 6px;
+  color: var(--color-taupe-profundo);
+}
+.dock-telar-accion.es-principal .dock-telar-tecla {
+  border-color: color-mix(in srgb, var(--color-crema) 40%, transparent);
+  color: var(--color-crema);
+}
+
 /* ---- El orillo: cuánto pone cada sede en esta pantalla ---- */
 .orillo-telar {
   display: flex;
@@ -203,6 +296,19 @@
 }
 
 /* ---- Celular: líneas cortas (pestañas · hilos que se deslizan · mes), para que la barra fija no se coma la pantalla ---- */
+@media (max-width: 1100px) {
+  /* Solo el ícono a la vista; el texto queda para el lector de pantalla (es el nombre del botón). */
+  .te-toca-telar-texto,
+  .mesa-telar-registrar-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .te-toca-telar { padding: 0 12px; }
+}
 @media (max-width: 639px) {
   .mesa-telar-palabra,
   .mesa-telar-dice {
@@ -235,7 +341,10 @@
 @media (prefers-reduced-motion: reduce) {
   .hilo-telar,
   .hilo-telar::after,
-  .orillo-tramo {
+  .orillo-tramo,
+  .te-toca-telar,
+  .dock-telar,
+  .dock-telar-accion {
     transition: none;
     animation: none;
   }

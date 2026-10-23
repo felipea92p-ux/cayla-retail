@@ -31,7 +31,29 @@ const TELAR: PasoGuia[] = [
     titulo: "Qué mes mirar",
     texto: "Las flechas pasan al mes anterior o al siguiente; tocando el nombre eliges cualquier mes. Vale para todo Finanzas, como la sede.",
   },
+  {
+    id: "telar-te-toca",
+    ancla: "telar.te-toca",
+    titulo: "Lo que te toca",
+    texto: "El número dice cuántas cosas te tocan en Finanzas para la sede elegida: salidas de caja por clasificar, gastos sin comprobante, facturas por pagar. Al tocarlo se abre la lista, y cada cosa te lleva a resolverla. En la demo no lo abrimos.",
+  },
+  {
+    id: "telar-registrar",
+    ancla: "telar.registrar",
+    opcional: true,
+    titulo: "Registrar un gasto desde aquí",
+    texto: "Desde cualquier parte de Finanzas abres la hoja para anotar un gasto, con la sede y el mes que elegiste. Te lleva a Gastos con la hoja abierta. En la demo no lo tocamos.",
+  },
 ];
+
+/** El dock de Gastos: lo que más se hace, abajo, cada cosa con su tecla (solo en escritorio). */
+const DOCK_GASTOS: PasoGuia = {
+  id: "dock",
+  ancla: "telar.dock",
+  opcional: true,
+  titulo: "Lo que más se usa, a una tecla",
+  texto: "Abajo están las cuatro cosas que más se hacen en Gastos: registrar un gasto (G), los fijos del mes (F), las salidas de caja (E) y los activos fijos (A). Las tocas o apretas su letra cuando no estás escribiendo.",
+};
 
 /** «Ver»: el mismo combo en casi todas las pantallas de Finanzas (lo elige quien ve todas las tiendas —el líder y, donde la pantalla lo permite, quien tiene Configuración, Cierre de mes o CAYLA Global—; los demás ven su tienda). */
 const VER: PasoGuia = {
@@ -203,6 +225,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       titulo: "Cuánto puso cada sede",
       texto: "Esta tira de colores reparte lo gastado entre las sedes: cada color es una sede, del tamaño de lo que gastó. Tocas un color y ves solo esa sede; lo tocas otra vez y vuelves a todas.",
     },
+    DOCK_GASTOS,
     {
       id: "registrar",
       ancla: "fin-gastos.registrar",

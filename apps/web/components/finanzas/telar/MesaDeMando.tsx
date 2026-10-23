@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Pestanas } from "@/components/ui/Pestanas";
+import { BotonEnlace } from "@/components/ui/campos";
+import { TeToca } from "@/components/finanzas/telar/TeToca";
 import { SelectorMes } from "@/components/ui/SelectorMes";
 import { rutaActiva } from "@/lib/menu";
 import {
@@ -16,6 +19,8 @@ import {
   type ClaveSede,
   type SedeTelar,
 } from "@/lib/finanzas-telar-reglas";
+
+const conRegistrar = (href: string) => `${href}${href.includes("?") ? "&" : "?"}registrar=1`;
 
 export type SubmoduloTelar = { clave: string; etiqueta: string; ruta: string };
 
@@ -31,6 +36,7 @@ export function MesaDeMando({
   veTodo,
   sedePropia,
   mesDeHoy,
+  puedeRegistrarGasto,
 }: {
   submodulos: SubmoduloTelar[];
   /** Los hilos que la cuenta puede elegir (quien no ve todo: solo el suyo). */
@@ -39,6 +45,8 @@ export function MesaDeMando({
   sedePropia: ClaveSede | null;
   /** «2026-10»: el último mes que se puede elegir. */
   mesDeHoy: string;
+  /** La cuenta ve Gastos: «Registrar gasto» queda a mano desde los seis submódulos. */
+  puedeRegistrarGasto: boolean;
 }) {
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -70,6 +78,16 @@ export function MesaDeMando({
             href: hrefTelar(s.ruta, actuales, {}, { mismaPantalla: false, mesDeHoy }),
           }))}
         />
+        <span className="mesa-telar-espacio" />
+        <TeToca submodulos={submodulos} />
+        {/* En Gastos no: su cabecera ya trae «Registrar gasto» (y «Registrar activo» en su pestaña). */}
+        {puedeRegistrarGasto && !rutaActiva(pathname, "/finanzas/gastos") && (
+          // Abre la hoja de Gastos desde cualquier submódulo, con la sede y el mes elegidos (Gastos la abre al llegar con `?registrar=1`).
+          <BotonEnlace href={conRegistrar(hrefTelar("/finanzas/gastos", actuales, {}, { mismaPantalla: false, mesDeHoy }))} peso="primario" className="mesa-telar-registrar" data-guia="telar.registrar">
+            <Plus aria-hidden className="h-4 w-4" />
+            <span className="mesa-telar-registrar-texto">Registrar gasto</span>
+          </BotonEnlace>
+        )}
       </div>
       <div className="mesa-telar-fila mesa-telar-fila-2">
         <nav className="hilos-telar" aria-label="Sede" data-guia="telar.sedes">

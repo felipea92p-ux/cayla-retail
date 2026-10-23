@@ -2,7 +2,7 @@
   "guia": "finanzas.reportes.campanas",
   "ruta": "/finanzas/reportes/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 4,
+  "total": 7,
   "controles": {
     "components/finanzas/CampanasPanel.tsx": [
       "BotonDescargar «Descargar Excel»",
@@ -10,7 +10,12 @@
     ],
     "components/finanzas/telar/MesaDeMando.tsx": [
       "Pestanas «(sin nombre)»",
+      "BotonEnlace «telar.registrar»",
       "Link «{h.nombre}»"
+    ],
+    "components/finanzas/telar/TeToca.tsx": [
+      "button «telar.te-toca»",
+      "BotonVer «{p.verbo}»"
     ]
   }
 }
