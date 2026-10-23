@@ -69,7 +69,7 @@ export function bandejaPulso(egresos: readonly EgresoPorClasificar[], fijos: rea
       clave: `fijo:${f.id}`,
       tipo: "fijo",
       titulo: f.descripcion,
-      detalle: `${f.categoriaNombre} de ${f.ubicacionNombre}${f.proveedorNombre ? ` · ${f.proveedorNombre}` : ""}: se esperaba el ${fechaCorta(f.fechaEsperada)} y todavía no está registrado.`,
+      detalle: `${f.categoriaNombre} de ${f.ubicacionNombre}${f.proveedorNombre ? ` · ${f.proveedorNombre}` : ""}: venció el ${fechaCorta(f.fechaEsperada)} y todavía no está registrado.`,
       monto: f.monto,
       accion: "Registrar",
       fijo: f,

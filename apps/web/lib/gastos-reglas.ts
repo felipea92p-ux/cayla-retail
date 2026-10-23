@@ -906,7 +906,6 @@ export function puedeAnularActivo(a: Pick<ActivoFila, "estado" | "compraId" | "t
 
 export type EstadoFijo = "registrado" | "por_llegar" | "falta";
 
-/** Cuándo llega un gasto fijo cada mes (ADR-0440): un día fijo (1 al 28), la primera semana, la quincena o fin de mes. */
 /** Un proveedor para elegir en un gasto, con cómo contactarlo (ADR-0440). Lo bancario no va aquí: se pide al elegir. */
 export type ProveedorGasto = {
   id: string;
@@ -920,6 +919,11 @@ export type ProveedorGasto = {
   rubros?: string[];
 };
 
+/**
+ * Cuándo vence un gasto fijo cada mes (ADR-0487; nació como «cuándo llega», ADR-0440): un día fijo (1 al 28), la primera semana,
+ * la quincena o fin de mes. En un recibo es el «vence» que trae; en un alquiler, el día en que se paga; en una suscripción, el día
+ * en que se cobra la tarjeta. La columna sigue llamándose `momento` en la base: cambió lo que dice la pantalla, no el dato.
+ */
 export type MomentoFijo = "dia" | "primera_semana" | "quincena" | "fin_de_mes";
 
 export const MOMENTOS_FIJO: readonly MomentoFijo[] = ["dia", "primera_semana", "quincena", "fin_de_mes"];
@@ -931,12 +935,12 @@ export const TEXTO_MOMENTO_FIJO: Record<MomentoFijo, string> = {
   fin_de_mes: "A fin de mes",
 };
 
-/** La ayuda bajo «Cuándo llega»: qué día se espera en cada opción (ADR-0440). */
+/** La ayuda bajo «Cuándo vence»: qué día vence en cada opción (ADR-0440, ADR-0487). */
 export const AYUDA_MOMENTO_FIJO: Record<MomentoFijo, string | undefined> = {
-  dia: undefined,
-  primera_semana: "Se espera el 7 de cada mes; recién falta si pasa el 7.",
-  quincena: "Se espera el 15 de cada mes.",
-  fin_de_mes: "Se espera el último día de cada mes (28, 29, 30 o 31). Recién falta al día siguiente.",
+  dia: "Mira el «vence» del recibo. En una suscripción, el día que se cobra.",
+  primera_semana: "Vence el 7 de cada mes; recién falta si pasa el 7.",
+  quincena: "Vence el 15 de cada mes. Elígela solo si el recibo dice eso, no si no sabes el día.",
+  fin_de_mes: "Vence el último día de cada mes (28, 29, 30 o 31). Recién falta al día siguiente.",
 };
 
 /** Lee el momento que trae la base; una base sin la migración (o un valor raro) cuenta como «un día fijo». */
@@ -944,8 +948,8 @@ export function leerMomentoFijo(v: unknown): MomentoFijo {
   return MOMENTOS_FIJO.includes(v as MomentoFijo) ? (v as MomentoFijo) : "dia";
 }
 
-/** «el día 10», «la primera semana», «la quincena», «a fin de mes»: cuándo llega un fijo, para leerlo en una frase. */
-export function textoCuandoLlega(momento: MomentoFijo, dia: number): string {
+/** «el día 10», «la primera semana», «la quincena», «a fin de mes»: cuándo vence un fijo, para leerlo tras «vence». */
+export function textoCuandoVence(momento: MomentoFijo, dia: number): string {
   if (momento === "primera_semana") return "la primera semana";
   if (momento === "quincena") return "la quincena";
   if (momento === "fin_de_mes") return "a fin de mes";
@@ -973,7 +977,7 @@ export type GastoFijoMes = {
   monto: number;
   montoVariable: boolean;
   diaDelMes: number;
-  /** Cuándo llega (ADR-0440). Una base sin la migración no lo trae: se lee como «dia». */
+  /** Cuándo vence (ADR-0440, ADR-0487). Una base sin la migración no lo trae: se lee como «dia». */
   momento: MomentoFijo;
   fechaEsperada: string;
   estado: EstadoFijo;
@@ -1060,7 +1064,7 @@ export function validarFijo(b: BorradorFijo): Resultado<ParamsFijo> {
   let dia: number;
   if (b.momento === "dia") {
     dia = Number(b.dia);
-    if (!Number.isInteger(dia) || dia < 1 || dia > 28) return { ok: false, error: "El día va del 1 al 28. Si llega el 29, 30 o 31, elige «A fin de mes»." };
+    if (!Number.isInteger(dia) || dia < 1 || dia > 28) return { ok: false, error: "El día va del 1 al 28. Si vence el 29, 30 o 31, elige «A fin de mes»." };
   } else {
     dia = DIA_DE_RESPALDO[b.momento];
   }

@@ -28,7 +28,7 @@ import {
   AYUDA_MOMENTO_FIJO,
   MOMENTOS_FIJO,
   TEXTO_MOMENTO_FIJO,
-  textoCuandoLlega,
+  textoCuandoVence,
   textoColumnaCuando,
   validarGasto,
   leerGasto,
@@ -358,8 +358,9 @@ describe("F2b: gastos fijos", () => {
   });
   it("cada momento tiene su texto y su ayuda", () => {
     for (const m of MOMENTOS_FIJO) expect(TEXTO_MOMENTO_FIJO[m]).toBeTruthy();
-    expect(AYUDA_MOMENTO_FIJO.dia).toBeUndefined();
+    for (const m of MOMENTOS_FIJO) expect(AYUDA_MOMENTO_FIJO[m]).toMatch(/vence|Vence/);
     expect(AYUDA_MOMENTO_FIJO.fin_de_mes).toContain("28, 29, 30 o 31");
+    expect(AYUDA_MOMENTO_FIJO.quincena).toContain("no si no sabes el día");
   });
   it("lee el momento de la base y, sin la columna o con un valor raro, cuenta como un día fijo", () => {
     const fila = { id: "f1", categoria: "alquileres", categoria_nombre: "Alquileres", descripcion: "Alquiler", comprobante_tipo: "factura", monto: "2500", dia_del_mes: 28, fecha_esperada: "2026-09-30", estado: "por_llegar" };
@@ -367,11 +368,11 @@ describe("F2b: gastos fijos", () => {
     expect(leerFijoMes(fila).momento).toBe("dia");
     expect(leerFijoMes({ ...fila, momento: "el_30" }).momento).toBe("dia");
   });
-  it("dice cuándo llega con palabras de tienda", () => {
-    expect(textoCuandoLlega("dia", 10)).toBe("el día 10");
-    expect(textoCuandoLlega("primera_semana", 7)).toBe("la primera semana");
-    expect(textoCuandoLlega("quincena", 15)).toBe("la quincena");
-    expect(textoCuandoLlega("fin_de_mes", 28)).toBe("a fin de mes");
+  it("dice cuándo vence con palabras de tienda", () => {
+    expect(textoCuandoVence("dia", 10)).toBe("el día 10");
+    expect(textoCuandoVence("primera_semana", 7)).toBe("la primera semana");
+    expect(textoCuandoVence("quincena", 15)).toBe("la quincena");
+    expect(textoCuandoVence("fin_de_mes", 28)).toBe("a fin de mes");
     expect(textoColumnaCuando("dia", 10)).toBe("10");
     expect(textoColumnaCuando("fin_de_mes", 28)).toBe("Fin de mes");
   });

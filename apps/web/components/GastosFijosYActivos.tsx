@@ -42,7 +42,7 @@ import {
   resumenActivosPorSede,
   solesRedondo,
   textoColumnaCuando,
-  textoCuandoLlega,
+  textoCuandoVence,
   textoVidaUtil,
   totalesActivos,
   validarFijo,
@@ -101,7 +101,7 @@ export function FijosDelMes({
   const faltan = fijos.filter((f) => f.estado === "falta");
   const registrados = fijos.filter((f) => f.estado === "registrado");
   const nombre = (f: { descripcion: string; ubicacionNombre: string }) => (verTodas ? `${f.descripcion} · ${f.ubicacionNombre}` : f.descripcion);
-  const detalle = (f: GastoFijoMes) => `${f.proveedorNombre ? `${f.proveedorNombre} · ` : ""}${textoCuandoLlega(f.momento, f.diaDelMes)}${f.montoVariable ? " · monto variable" : ""}`;
+  const detalle = (f: GastoFijoMes) => `${f.proveedorNombre ? `${f.proveedorNombre} · ` : ""}vence ${textoCuandoVence(f.momento, f.diaDelMes)}${f.montoVariable ? " · monto variable" : ""}`;
   const monto = (f: GastoFijoMes) => `${f.montoVariable ? "~" : ""}${solesRedondo(f.monto)}`;
   const editar = puedeConfigurar ? (
     <BotonEditar chico href="/configuracion?tab=fijos">
@@ -125,7 +125,7 @@ export function FijosDelMes({
               ) : null
             }
           >
-            El alquiler, la luz o el contador: se guardan una vez {puedeConfigurar ? "en Configuración ▸ Gastos fijos" : "(lo hace quien tiene Configuración)"} y cada mes el sistema dice cuáles llegaron y cuáles faltan.
+            El alquiler, la luz o el contador: se guardan una vez {puedeConfigurar ? "en Configuración ▸ Gastos fijos" : "(lo hace quien tiene Configuración)"} y cada mes el sistema dice cuáles ya están registrados y cuáles faltan.
           </Vacio>
         </Superficie>
         <NotaFijos />
@@ -137,7 +137,7 @@ export function FijosDelMes({
     <>
       <section className="fin-dos-col" data-guia="fin-gastos.fijos">
         <Superficie pad className="anim-sube">
-          <CabeceraBloque titulo="Para confirmar" bajada="Llegan en los próximos días. «Registrar» abre el gasto lleno con el monto y los datos de siempre." />
+          <CabeceraBloque titulo="Para confirmar" bajada="Vencen este mes. «Registrar» abre el gasto lleno con el monto y los datos de siempre." />
           <ul className="fin-fijos">
             {vienen.length === 0 ? (
               <li className="text-[13px] text-taupe">Nada por confirmar.</li>
@@ -154,7 +154,7 @@ export function FijosDelMes({
           {faltan.length > 0 && (
             <>
               <div className="mt-[18px]">
-                <CabeceraBloque titulo="Faltan" bajada="Deberían haber llegado y no están registrados." />
+                <CabeceraBloque titulo="Faltan" bajada="Ya vencieron y no están registrados." />
               </div>
               <ul className="fin-fijos">
                 {faltan.map((f) => (
@@ -220,7 +220,7 @@ export function FijosDelMes({
 function NotaFijos() {
   return (
     <p className="nota-cayla">
-      Un gasto fijo es un recordatorio, no un gasto: <b>solo cuenta cuando se registra</b> con lo que llegó de verdad. Si su día pasó y no hay gasto, sale en «Faltan».
+      Un gasto fijo es un recordatorio, no un gasto: <b>solo cuenta cuando se registra</b> con lo que llegó de verdad. Si ya venció y no hay gasto, sale en «Faltan».
     </p>
   );
 }
@@ -319,7 +319,7 @@ export function TablaGastosFijos({
                   <th>{fichaDisponible ? "Se le paga a" : "Proveedor"}</th>
                   <th>Llega con</th>
                   <th className="fin-num">Monto</th>
-                  <th className="fin-num">Llega</th>
+                  <th className="fin-num">Vence</th>
                   <th />
                 </tr>
               </thead>
@@ -346,7 +346,7 @@ export function TablaGastosFijos({
                       {f.montoVariable ? "~" : ""}
                       {solesRedondo(f.monto)}
                     </td>
-                    <td className="fin-num" data-l="Llega">
+                    <td className="fin-num" data-l="Vence">
                       {textoColumnaCuando(f.momento, f.diaDelMes)}
                     </td>
                     <td className="fin-num">
@@ -546,7 +546,7 @@ export function GastoFijoModal({
         <CampoFin etiqueta="Monto de siempre (con IGV)" htmlFor="fijo-monto">
           <InputFin id="fijo-monto" inputMode="decimal" value={b.monto} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
         </CampoFin>
-        <CampoFin etiqueta="Cuándo llega" htmlFor="fijo-momento" ayuda={AYUDA_MOMENTO_FIJO[b.momento]}>
+        <CampoFin etiqueta="Cuándo vence" htmlFor="fijo-momento" ayuda={AYUDA_MOMENTO_FIJO[b.momento]}>
           <SelectFin<MomentoFijo>
             id="fijo-momento"
             valor={b.momento}
@@ -556,7 +556,7 @@ export function GastoFijoModal({
         </CampoFin>
       </div>
       {b.momento === "dia" && (
-        <CampoFin etiqueta="Día del mes en que llega" htmlFor="fijo-dia" ayuda="Del 1 al 28. Para el 29, 30 o 31, elige «A fin de mes».">
+        <CampoFin etiqueta="Día del mes en que vence" htmlFor="fijo-dia" ayuda="Del 1 al 28. Para el 29, 30 o 31, elige «A fin de mes».">
           <InputFin id="fijo-dia" inputMode="numeric" value={b.dia} onChange={(e) => poner("dia", e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="10" />
         </CampoFin>
       )}
