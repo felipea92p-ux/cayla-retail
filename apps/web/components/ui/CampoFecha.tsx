@@ -122,6 +122,7 @@ export function CampoFecha({
   diasMarcados,
   descripcionMarcado = "con datos",
   caja = false,
+  rango,
 }: {
   etiqueta: ReactNode;
   ayuda?: ReactNode;
@@ -144,6 +145,10 @@ export function CampoFecha({
   diasMarcados?: readonly string[];
   /** Cómo se dice un día marcado al lector de pantalla: «… de setiembre de 2026, con conteos». */
   descripcionMarcado?: string;
+  /** Un rango que el calendario pinta (opt-in; la hoja «Configuración» de una campaña, ADR-0488): la franja de los días entre `desde`
+   *  y `hasta` (ISO) y un anillo en el otro extremo, para elegir «Desde» viendo dónde termina y al revés. El día elegido sigue en rojo.
+   *  Sin esta propiedad el calendario es el de siempre. */
+  rango?: { desde: string | null; hasta: string | null };
   /** Guía oficial para barras de filtros (como `CampoTexto caja`): caja hundida en hueso, sin hilo y con la etiqueta solo para
    *  lectores de pantalla — quien lo usa dice en pantalla qué es (Conteo: «Otra fecha» junto a las píldoras). */
   caja?: boolean;
@@ -393,6 +398,9 @@ export function CampoFecha({
                 const esHoy = mismoDia(dia, elHoy);
                 const conCursor = mismoDia(dia, cursor);
                 const marcado = !!marcados?.has(aIso(dia));
+                const iso = aIso(dia);
+                const enRango = !!(rango?.desde && rango.hasta && rango.desde < rango.hasta && iso >= rango.desde && iso <= rango.hasta);
+                const extremo = !!rango && (iso === rango.desde || iso === rango.hasta);
                 return (
                   <button
                     key={aIso(dia)}
@@ -401,12 +409,14 @@ export function CampoFecha({
                     role="gridcell"
                     tabIndex={-1}
                     aria-selected={esElegido}
-                    aria-label={`${dia.d} de ${MESES[dia.m].toLowerCase()} de ${dia.a}${marcado ? `, ${descripcionMarcado}` : ""}`}
+                    aria-label={`${dia.d} de ${MESES[dia.m].toLowerCase()} de ${dia.a}${marcado ? `, ${descripcionMarcado}` : ""}${enRango ? ", dentro del rango" : ""}`}
                     // El cursor también decide qué mes se dibuja: moverlo a un día gris del mes vecino
                     // cambiaba de mes solo al pasar el mouse. Fuera del mes, el hover queda en CSS.
                     onMouseEnter={() => delMes && setCursor(dia)}
                     onClick={() => elegir(dia)}
                     className={`relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums transition-colors ${
+                      extremo && !esElegido ? "ring-1 ring-inset ring-tinta/40 " : ""
+                    }${
                       esElegido
                         ? "bg-rojo text-crema"
                         : conCursor
@@ -416,6 +426,13 @@ export function CampoFecha({
                             : "text-tinta/30 hover:bg-rojo/10 dark:text-tinta/55"
                     }`}
                   >
+                    {/* La franja del rango, detrás del día: llega hasta la celda vecina para que no se corte; en un extremo, solo media. */}
+                    {enRango && (
+                      <span
+                        aria-hidden
+                        className={`absolute inset-y-0 -z-10 bg-hueso ${iso === rango?.desde ? "-right-1 left-1/2" : iso === rango?.hasta ? "-left-1 right-1/2" : "-left-1 -right-1"}`}
+                      />
+                    )}
                     {dia.d}
                     {esHoy && !esElegido && <span aria-hidden className="absolute bottom-1 h-1 w-1 rounded-full bg-rojo" />}
                     {marcado && !(esHoy && !esElegido) && <span aria-hidden className={`absolute bottom-1 h-1 w-1 rounded-full ${esElegido ? "bg-crema" : "bg-taupe"}`} />}

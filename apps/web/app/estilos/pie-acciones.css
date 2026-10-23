@@ -20,6 +20,9 @@
    (`data-pieza="volver"`) conserva su círculo. Lo que borra va a la izquierda en `pie-acciones-izq` o, si es un solo botón, con `mr-auto`. */
 .pie-acciones > :is(button, a):not([data-pieza="volver"]) { flex: 0 0 auto; }
 .pie-acciones > .pie-acciones-izq { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-right: auto; }
+/* «Parejo» (la hoja «Configuración» de una campaña, ADR-0488, Felipe 2026-10-23: «más uniformes»): un pie que vive en un panel angosto,
+   bajo una etiqueta, reparte sus dos botones en mitades iguales también en escritorio, como en el celular. */
+.pie-acciones.pie-parejo > :is(button, a):not([data-pieza="volver"]) { flex: 1 1 0; min-width: 0; }
 @media (max-width: 639.98px) {
   /* Un pie que comparte la fila con otra cosa (`ml-auto`, al lado de «Falta: …») baja a ocupar la suya: si no, sus mitades serían del
      ancho de sus palabras. El pie fijo (`pie-hoja-fijo`) ya es de bloque y se estira con sus márgenes negativos: no se toca. */
