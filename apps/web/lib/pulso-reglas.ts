@@ -12,7 +12,7 @@
 
 import { diasDelMes, filaDeVer, motivoAusencia, type ResumenFinanzas } from "./resumen-finanzas-reglas";
 import { soles } from "./flujo-caja-reglas";
-import { mesNombre, nombreCorto, type FilaER } from "./resultados-reglas";
+import { mesNombre, type FilaER } from "./resultados-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
@@ -214,32 +214,3 @@ export function cascadaDeFila(f: FilaER): TramoCascada[] {
 
 // ---- 4. Qué deja cada lugar -----------------------------------------------------------------------------------------------
 
-export type Lugar = { id: string; nombre: string; tipo: FilaER["unidad"]; vendio: number; deja: number; nota: string | null };
-
-/** Cada tienda, el Taller y lo de toda la empresa, con lo que deja después de lo que él mismo causa; solo mirando CAYLA entera. */
-export function lugaresPulso(r: ResumenFinanzas): { lugares: Lugar[]; total: number; mayor: number } | null {
-  if (!r.ver.todas || r.resultadosMes.estado !== "ok") return null;
-  const filas = r.resultadosMes.datos;
-  const lugares: Lugar[] = filas
-    .filter((f) => f.unidad !== "consolidado")
-    .sort((a, b) => (a.unidad === b.unidad ? a.orden - b.orden : ORDEN[a.unidad] - ORDEN[b.unidad]))
-    .map((f) => ({
-      id: f.ubicacionId ?? f.unidad,
-      nombre: f.unidad === "empresa" ? "Lo de toda la empresa" : nombreCorto(f),
-      tipo: f.unidad,
-      vendio: f.ventas,
-      deja: r2(f.resultado),
-      nota:
-        f.unidad === "empresa"
-          ? "Contador, publicidad, oficina: no se reparte entre las tiendas."
-          : f.unidad === "taller"
-            ? "El Taller no vende: se mide por lo que cuesta."
-            : f.ventas <= 0
-              ? "Sin ventas este mes."
-              : null,
-    }));
-  const total = r2(filas.find((f) => f.unidad === "consolidado")?.resultado ?? lugares.reduce((s, l) => s + l.deja, 0));
-  const mayor = Math.max(1, ...lugares.map((l) => Math.abs(l.deja)));
-  return { lugares, total, mayor };
-}
-const ORDEN: Record<FilaER["unidad"], number> = { tienda: 0, taller: 1, empresa: 2, consolidado: 3 };

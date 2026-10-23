@@ -17,7 +17,9 @@ import type { Lectura } from "@/lib/resumen-finanzas";
 import { soles } from "@/lib/flujo-caja-reglas";
 import { avisoAntesDelCorte, mesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import { mesNombre } from "@/lib/resultados-reglas";
-import { cascadaPulso, lugaresPulso, matizarRespuesta, respuestaPulso, ritmoPulso } from "@/lib/pulso-reglas";
+import { cascadaPulso, matizarRespuesta, respuestaPulso, ritmoPulso } from "@/lib/pulso-reglas";
+import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
+import { RecorridoPlata } from "@/components/finanzas/RecorridoPlata";
 import {
   avisosParaDecidir,
   bajadaResumen,
@@ -66,7 +68,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, acceso }: { re
   const faltan = noRevisado(r);
   const ver = { clave: claveVer(r.ver), ubicacionId: r.ver.ubicacionId, soloEmpresa: r.ver.soloEmpresa };
   const unidades = r.lider ? r.unidades.map((u) => ({ id: u.id, nombre: u.nombre })) : [{ id: r.ver.ubicacionId ?? "", nombre: r.ver.nombre }];
-  const lugares = lugaresPulso(r);
+  const recorrido = r.resultadosMes.estado === "ok" ? recorridoPlata(r.resultadosMes.datos, r.ver) : null;
 
   return (
     <div className="space-y-6">
@@ -96,7 +98,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, acceso }: { re
         )}
       </section>
 
-      {lugares && <Lugares lugares={lugares} />}
+      {recorrido && <Recorrido r={r} recorrido={recorrido} />}
 
       <section className="fin-cifras fin-cinco" aria-label="Los números del mes" data-guia="fin-resumen.cifras">
         {cifras.map((c, i) => (
@@ -243,43 +245,19 @@ function RitmoBarra({ porDia, necesario, tono }: { porDia: number; necesario: nu
   );
 }
 
-/** Qué deja cada lugar después de lo que él mismo causa; lo de la empresa va aparte y no se reparte (ADR-0417). */
-function Lugares({ lugares }: { lugares: NonNullable<ReturnType<typeof lugaresPulso>> }) {
-  const { lugares: ls, total, mayor } = lugares;
-  const positivos = ls.filter((l) => l.deja > 0).map((l) => l.nombre);
+/**
+ * El recorrido de la plata (El telar, 2026-10-23): reemplaza a «Qué deja cada lugar». Tocar el hilo de una sede la elige; mientras la
+ * barra común del telar no esté, la sede viaja en `?ver=` (solo el líder elige otra).
+ */
+function Recorrido({ r, recorrido }: { r: ResumenFinanzas; recorrido: NonNullable<ReturnType<typeof recorridoPlata>> }) {
+  const hrefDeSede = r.lider
+    ? Object.fromEntries([...r.unidades.map((u) => [u.id, `/finanzas/resumen?ver=${u.id}`]), ["empresa", "/finanzas/resumen?ver=empresa"]])
+    : {};
   return (
     <div {...entra(6)}>
       <Superficie pad guia="fin-resumen.lugares">
-        <CabeceraBloque
-          titulo="Qué deja cada lugar"
-          bajada={positivos.length ? `${positivos.join(" y ")} ${positivos.length === 1 ? "carga" : "cargan"} el mes. Cada lugar, después de pagar lo que él mismo causa.` : "Cada lugar, después de pagar lo que él mismo causa."}
-        />
-        <ul className="fin-pulso-lugares" aria-label="Qué deja cada lugar">
-          {ls.map((l, i) => (
-            <li key={l.id} className="fin-pulso-lugar anim-entra" style={{ ["--i" as string]: i } as CSSProperties}>
-              <span className="fin-pulso-lugar-nombre">
-                <b>{l.nombre}</b>
-                <small>{l.nota ?? (l.vendio > 0 ? `Vendió ${soles(l.vendio)}` : "")}</small>
-              </span>
-              <span className="fin-pulso-lugar-eje" aria-hidden="true">
-                <i data-signo={l.deja >= 0 ? "mas" : "menos"} style={{ ["--w" as string]: `${Math.round((Math.abs(l.deja) / mayor) * 50)}%` } as CSSProperties} />
-              </span>
-              <span className="fin-pulso-lugar-monto num" data-signo={l.deja >= 0 ? "mas" : "menos"}>
-                {l.deja >= 0 ? "+" : "−"}
-                {soles(Math.abs(l.deja))}
-              </span>
-            </li>
-          ))}
-          <li className="fin-pulso-lugar fin-pulso-lugar-total">
-            <span className="fin-pulso-lugar-nombre">
-              <b>{total >= 0 ? "Te quedan" : "Te faltan"}</b>
-            </span>
-            <span />
-            <span className="fin-pulso-lugar-monto num" data-signo={total >= 0 ? "mas" : "menos"}>
-              {soles(Math.abs(total))}
-            </span>
-          </li>
-        </ul>
+        <CabeceraBloque titulo="Por dónde pasa la plata" bajada={`${recorrido.nota}${r.lider ? " Toca una sede para seguirla." : ""}`} />
+        <RecorridoPlata recorrido={recorrido} hrefDeSede={hrefDeSede} />
       </Superficie>
     </div>
   );

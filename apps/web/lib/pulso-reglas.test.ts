@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { filaDeVer, leerResumen, type ResumenFinanzas } from "./resumen-finanzas-reglas";
 import type { FilaER } from "./resultados-reglas";
-import { cascadaDeFila, cascadaPulso, lugaresPulso, matizarRespuesta, nombreDia, respuestaDeFila, respuestaPulso, ritmoPulso } from "./pulso-reglas";
+import { cascadaDeFila, cascadaPulso, matizarRespuesta, nombreDia, respuestaDeFila, respuestaPulso, ritmoPulso } from "./pulso-reglas";
 
 const todas = leerResumen(fixture.todas);
 const tru = leerResumen(fixture.tru);
@@ -152,21 +152,6 @@ describe("cascadaPulso", () => {
     const c = cascadaPulso(conMes([{ ventas: 10000, costo: 6000, margen: 4000, gastos: 7000, resultado: -3000, sinCosto: 12 }]));
     expect(c.at(-1)).toMatchObject({ nombre: "Te falta", monto: 3000, negativo: true });
     expect(c.find((t) => t.clave === "costo")!.detalle).toBe("12 prendas vendidas sin costo.");
-  });
-});
-
-describe("lugaresPulso", () => {
-  it("cada tienda, el Taller y lo de toda la empresa, sin repartir, y el total es el de CAYLA", () => {
-    const l = lugaresPulso(todas)!;
-    expect(l.lugares.map((x) => x.tipo)).toEqual(["tienda", "tienda", "tienda", "taller", "empresa"]);
-    expect(l.lugares.at(-1)!.nombre).toBe("Lo de toda la empresa");
-    const consolidado = (todas.resultadosMes.estado === "ok" ? todas.resultadosMes.datos : []).find((f) => f.unidad === "consolidado")!;
-    expect(l.total).toBe(Math.round(consolidado.resultado * 100) / 100);
-    expect(l.mayor).toBeGreaterThan(0);
-  });
-
-  it("solo mirando CAYLA entera", () => {
-    expect(lugaresPulso(tru)).toBeNull();
   });
 });
 

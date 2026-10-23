@@ -86,8 +86,8 @@ export const GUIA_FIN_RESUMEN: Guia = {
       id: "lugares",
       ancla: "fin-resumen.lugares",
       opcional: true,
-      titulo: "Qué deja cada lugar",
-      texto: "Cada tienda y el Taller, después de pagar lo que ellos mismos causan. «Lo de toda la empresa» (contador, publicidad, oficina) va aparte y no se reparte entre las tiendas: así una tienda que deja plata no parece perder por cargar gastos que no son suyos.",
+      titulo: "Por dónde pasa la plata",
+      texto: "Lo que vende cada tienda entra a «Vendiste» y de ahí se va: a lo que costaron las prendas, a los gastos de las tiendas, a lo que faltó en caja, al Taller y a la Empresa. Lo que queda es lo que te deja el mes. Cada hilo es del grosor de su plata; toca el de una sede para ver solo lo suyo.",
     },
     {
       id: "cifras",
