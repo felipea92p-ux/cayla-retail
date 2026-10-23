@@ -33,6 +33,11 @@ que ya viven en la base.
 5. **La lectura** (actividad 4) es una función de solo lectura del ERP con el candado del módulo «trafico» (solo el líder): cuenta personas por
    el paso más lejano al que llegó cada una (el recorrido nunca crece hacia abajo), con el camino y el departamento de su primera entrada del
    período (los caminos suman exactamente el total).
+6. **Cada prenda** (actividad 5) se cuenta igual: hasta dónde llegó cada persona CON ELLA (la miró, eligió su talla, la puso en la bolsa,
+   la separó o la recogió); quien la separó sin abrir la ficha cuenta como que la miró. Separar y recoger salen de las líneas del pedido
+   que esa persona separó (recoger: el pedido entregado y la prenda ni quitada ni liberada). La vitrina dibuja las 24 más miradas en un
+   mosaico donde el área es lo que la miraron (squarified); las demás, en un hueco «y N prendas más». Dónde se atora una prenda se dice
+   solo con 30 personas o más en el paso de antes: con menos, una prenda no tiene un paso «malo», tiene pocas personas.
 
 ```
 DECIDÍ:     una tabla propia de pasos anónimos (retail.trafico_web), escrita solo por retail.tienda_anotar_pasos desde el servidor de la
@@ -89,6 +94,15 @@ SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_
   Callao, más de 200 pasos al día no cuenta, una integrante sin el módulo recibe 42501). En el ERP local, como líder, la pantalla muestra
   las 2 visitas de las pruebas, el recorrido y «Se atora al separar» con su «¿Por qué?»; en claro y en oscuro; a 1440 px. Dónde se atora
   se decide contraído hacia lo de costumbre (90 días, peso de 30 personas): con 4 personas el veredicto no salta (`lib/trafico-reglas.test.ts`).
+- **Actividad 5:** `fn_trafico_web_prendas` y las prendas de `resumen_trafico_web` (`pnpm pruebas:tienda-trafico-resumen`, ahora 27:
+  solo salen las prendas de la gente del período, su recorrido por persona —quien solo la separó también la miró—, el filtro de camino,
+  tallas y colores elegidos, caminos que suman los que la miraron, «antes», y nadie llama directo a la lista). El mosaico y la lectura,
+  en `lib/trafico-mosaico.test.ts` (13: áreas proporcionales, sin salirse ni pisarse, casi cuadradas, ceros y vacíos) y
+  `lib/trafico-reglas.test.ts` (27). En el ERP local, como líder y con 360 visitas de prueba: la vitrina a 1440 y a 375 px, en claro y
+  en oscuro (en oscuro toda baldosa lleva un filo claro, o una prenda negra se pierde contra la tarjeta); el cajón abre desde la baldosa
+  con el mouse y con Enter, pasa de prenda con ↓, cierra con Escape y el foco vuelve a la baldosa de la última prenda vista (Radix lo
+  dejaba en el `body`). La guía suma la vitrina, la más mirada y el cajón (que el piloto abre y cierra): `guias:recorrer` 9 pasos a
+  1440 px en claro y a 375 px en oscuro. La lectura completa tarda ~80 ms con 1.240 pasos en local.
 - **Sin probar:** las cabeceras de ubicación reales de Vercel (solo existen publicadas), la tienda con la base caída en vivo (cubierta por la
   prueba de `anotarPasos`) y «separó» en el navegador (en local no hay una cuenta de cliente de prueba; crear una pide consultar un DNI
   real): su función está probada en Postgres y la acción usa el mismo camino que «a la bolsa».

@@ -8,6 +8,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Vacio } from "@/components/ui/Vacio";
 import { CifraTrafico } from "@/components/trafico/CifraTrafico";
 import { RecorridoTrafico } from "@/components/trafico/RecorridoTrafico";
+import { VitrinaTrafico } from "@/components/trafico/VitrinaTrafico";
 
 // Tienda web ▸ Tráfico (ADR-0495; maqueta C «La vitrina», Felipe 2026-10-23): cuánta gente entra a la tienda online, qué mira y en qué
 // paso se va, contado por persona anónima (`retail.resumen_trafico_web`, que pide el módulo «trafico»). Es de toda la tienda online: la
@@ -39,7 +40,12 @@ export default async function TraficoPage() {
             </Aviso>
           )}
           {total > 0 ? (
-            <RecorridoTrafico r={r} />
+            <>
+              <RecorridoTrafico r={r} />
+              {r.prendas.length > 0 && (
+                <VitrinaTrafico prendas={r.prendas} vieron={r.pasos[1]} base={r.base} periodo="Últimos 7 días" antes="Los 7 días anteriores" />
+              )}
+            </>
           ) : (
             <Vacio
               icono={<Footprints />}

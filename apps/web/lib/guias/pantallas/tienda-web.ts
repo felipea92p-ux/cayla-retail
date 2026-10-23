@@ -1354,6 +1354,29 @@ export const GUIA_TRAFICO: Guia = {
       texto: "Toca «¿Por qué?» y te explica de dónde sale el veredicto. Con poca gente, te avisa que es solo una pista.",
     },
     {
+      id: "vitrina",
+      ancla: "trafico.vitrina",
+      opcional: true,
+      titulo: "La vitrina, por miradas",
+      texto: "Cada cuadro es una prenda: mientras más grande, más gente la miró. Sus franjas son los colores que eligieron. Así ves de un vistazo qué prenda llama más.",
+    },
+    {
+      id: "prenda",
+      ancla: "trafico.prenda",
+      opcional: true,
+      titulo: "La más mirada",
+      texto: "Toca cualquier prenda para ver su detalle. Ahora abrimos la más mirada.",
+    },
+    {
+      id: "cajon",
+      ancla: "trafico.cajon",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "trafico.prenda" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "Una prenda por dentro",
+      texto: "Cuánta gente la miró, hasta qué paso llegó con ella, qué tallas y colores eligieron y por dónde llegaron. Con las flechas pasas a la siguiente, y «Ver en la vitrina» te lleva a decidir qué modelos se ven en la tienda online.",
+    },
+    {
       id: "vacio",
       ancla: "trafico.vacio",
       opcional: true,
@@ -1363,8 +1386,10 @@ export const GUIA_TRAFICO: Guia = {
     {
       id: "fin",
       ancla: null,
+      preparar: [{ tipo: "escape" }],
       titulo: "¡Listo!",
       texto: "Ya sabes leer el tráfico de la tienda online. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Tráfico.",
     },
   ],
+  alSalir: [{ tipo: "escape" }],
 };

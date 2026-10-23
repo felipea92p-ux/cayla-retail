@@ -27,7 +27,75 @@ export type ResumenTrafico = {
   base: number[];
   ahora: number;
   ultimoDato: string | null;
+  /** Las prendas que alguien miró en el período, de la más mirada a la menos (actividad 5). */
+  prendas: PrendaTrafico[];
 };
+
+/** Cómo se dice cada camino en pantalla (la base guarda la clave: `retail.trafico_web.camino`). */
+export const CAMINOS = {
+  instagram: "Instagram",
+  directo: "Directo",
+  whatsapp: "WhatsApp",
+  tiktok: "TikTok",
+  google: "Google",
+  qr: "El QR de la tienda",
+  otros: "Otros",
+} as const;
+export type Camino = keyof typeof CAMINOS;
+const esCamino = (v: unknown): v is Camino => typeof v === "string" && Object.hasOwn(CAMINOS, v);
+
+export type ColorTrafico = { codigo: string; nombre: string; hex: string | null };
+
+/** Una prenda del período: hasta dónde llegó con ella cada persona (5 cifras que nunca crecen), lo que eligieron y de dónde vinieron. */
+export type PrendaTrafico = {
+  id: string;
+  nombre: string;
+  codigo: string | null;
+  categoria: string | null;
+  prefijo: string | null;
+  familia: string | null;
+  precio: number | null;
+  foto: string | null;
+  coloresCatalogo: ColorTrafico[];
+  /** La miraron · eligieron talla · a la bolsa · la separaron · la recogieron. */
+  recorrido: [number, number, number, number, number];
+  /** Cuántas personas la miraron en los días de antes, del mismo largo. */
+  anterior: number;
+  tallas: { talla: string; n: number }[];
+  colores: (ColorTrafico & { n: number })[];
+  caminos: { camino: Camino; n: number }[];
+};
+
+const texto = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
+const lista = (v: unknown) => (Array.isArray(v) ? (v as Record<string, unknown>[]).filter((x) => x && typeof x === "object") : []);
+const leerColor = (c: Record<string, unknown>): ColorTrafico | null =>
+  texto(c.codigo) && texto(c.nombre) ? { codigo: c.codigo as string, nombre: c.nombre as string, hex: texto(c.hex) } : null;
+
+/** Una prenda de lo que devuelve la base, o `null` si no tiene la forma esperada (se salta esa prenda, no se cae la vitrina). */
+function leerPrenda(p: Record<string, unknown>): PrendaTrafico | null {
+  const recorrido = [p.miraron, p.talla, p.bolsa, p.separaron, p.recogieron];
+  if (!texto(p.id) || !texto(p.nombre) || !recorrido.every(esCifra) || !esCifra(p.anterior)) return null;
+  const precio = typeof p.precio === "number" ? p.precio : typeof p.precio === "string" && p.precio.trim() !== "" ? Number(p.precio) : null;
+  return {
+    id: p.id as string,
+    nombre: p.nombre as string,
+    codigo: texto(p.codigo),
+    categoria: texto(p.categoria),
+    prefijo: texto(p.prefijo),
+    familia: texto(p.familia),
+    precio: precio !== null && Number.isFinite(precio) ? precio : null,
+    foto: texto(p.foto),
+    coloresCatalogo: lista(p.colores_catalogo).map(leerColor).filter((c): c is ColorTrafico => c !== null),
+    recorrido: recorrido as PrendaTrafico["recorrido"],
+    anterior: p.anterior as number,
+    tallas: lista(p.tallas).flatMap((t) => (texto(t.talla) && esCifra(t.n) ? [{ talla: t.talla as string, n: t.n }] : [])),
+    colores: lista(p.colores).flatMap((c) => {
+      const color = leerColor(c);
+      return color && esCifra(c.n) ? [{ ...color, n: c.n }] : [];
+    }),
+    caminos: lista(p.caminos).flatMap((c) => (esCamino(c.camino) && esCifra(c.n) ? [{ camino: c.camino, n: c.n }] : [])),
+  };
+}
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const esCifra = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
@@ -51,6 +119,8 @@ export function leerResumen(datos: unknown): ResumenTrafico | null {
     base: d.base,
     ahora: d.ahora,
     ultimoDato: ultimo,
+    // Una base de antes de la actividad 5 no trae prendas: la vitrina sale vacía, no rota.
+    prendas: lista(d.prendas).map(leerPrenda).filter((p): p is PrendaTrafico => p !== null),
   };
 }
 
@@ -93,7 +163,7 @@ export type Atora = {
 export function dondeSeAtora(pasos: readonly number[], base: readonly number[]): Atora | null {
   if (!pasos[0]) return null;
   let mejor: { i: number; pasa: number } | null = null;
-  for (let i = 1; i < 6; i++) {
+  for (let i = 1; i < pasos.length; i++) {
     const llegaron = pasos[i - 1];
     const costumbre = base[i - 1] > 0 ? base[i] / base[i - 1] : null;
     if (llegaron === 0 && costumbre === null) continue;
@@ -123,6 +193,35 @@ export function explicaAtora(a: Atora): string {
   const siguieron = a.siguieron === 1 ? `1 ${paso.fraseUna}` : `${miles(a.siguieron)} ${paso.frase}`;
   const base = `Es el paso que deja pasar a menos gente de la que le llega: ${quienes}, ${siguieron}. Los demás pasos pierden menos gente de la que les llega.`;
   return a.pocas ? `${base} Con tan poca gente, tómalo como una pista: se compara con lo de costumbre de toda la tienda.` : base;
+}
+
+/** Los pasos del recorrido de UNA prenda: desde que la miraron (el paso «Vieron una prenda» de toda la tienda). */
+export const PASOS_DE_LA_PRENDA = [
+  { nombre: "La miraron", seFueron: "" },
+  { nombre: "Eligieron talla", seFueron: "sin elegir talla" },
+  { nombre: "La pusieron en la bolsa", seFueron: "sin ponerla en la bolsa" },
+  { nombre: "La separaron", seFueron: "sin separarla" },
+  { nombre: "La recogieron", seFueron: "sin recogerla" },
+] as const;
+
+/**
+ * Dónde se atora UNA prenda: la misma cuenta que el recorrido de la tienda, contraída hacia lo de costumbre de toda la tienda desde
+ * «vieron una prenda». Con pocas personas no se dice (una prenda que miraron 4 personas no tiene un paso «malo»: tiene 4 personas).
+ */
+export function dondeSeAtoraLaPrenda(p: PrendaTrafico, base: readonly number[]): Atora | null {
+  const a = dondeSeAtora(p.recorrido, base.slice(1));
+  return a && !a.pocas ? a : null;
+}
+
+/** «De cada 100 que vieron una prenda, cuántos miraron esta». */
+export const de100QueVieron = (p: PrendaTrafico, vieron: number) => de100(p.recorrido[0], vieron);
+
+/** «12 % más que antes», «Igual que antes» o «Sin comparación» (con menos de 20 antes, un porcentaje engaña). */
+export function cambioDeLaPrenda(p: PrendaTrafico): { tono: "verde" | "ambar" | "neutro"; texto: string; sube: number | null } {
+  const c = cambio(p.recorrido[0], p.anterior);
+  if (c === null) return { tono: "neutro", texto: "Pocas personas para comparar", sube: null };
+  if (c === 0) return { tono: "neutro", texto: "Igual que antes", sube: 0 };
+  return { tono: c > 0 ? "verde" : "ambar", texto: `${Math.abs(c)} % ${c > 0 ? "más" : "menos"} que antes`, sube: c };
 }
 
 export const miles = (n: number) => n.toLocaleString("es-PE");

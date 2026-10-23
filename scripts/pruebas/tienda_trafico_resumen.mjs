@@ -10,8 +10,10 @@
  *   4. El camino y la ciudad son los de la primera entrada del período: los caminos suman el total y filtrar por uno da su fila.
  *   5. «Antes» son los días de atrás del mismo largo; quien manda más de 200 pasos en un día no se cuenta.
  *   6. La ciudad de cada departamento (Lima, Lima Metropolitana y Callao son Lima; otro del Perú, «otras»; fuera, «fuera»).
- *   7. «Ahora» y «último dato».
- *   8. La migración se puede pegar dos veces.
+ *   7. Las prendas: por cada una, hasta dónde llegó cada persona con ella (también quien solo la separó), sus tallas, sus colores,
+ *      sus caminos y cuántas la miraron antes (actividad 5).
+ *   8. «Ahora» y «último dato».
+ *   9. La migración se puede pegar dos veces.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK y escribe sus pasos en enero de 2025, lejos de lo que haya en la base local.
  *
@@ -89,6 +91,11 @@ select '${PEDIDO_ENTREGADO}', (select id from retail.clientas order by id limit 
   'entregado', 100, 100, now(), :'felipe_p', now(), now(), :'felipe_p', ${lima("2025-01-10 15:10")};
 insert into retail.pedidos_web (id, clienta_id, ubicacion_id, creado_en)
 select '${PEDIDO_SEPARADO}', (select id from retail.clientas order by id limit 1), (select id from retail.ubicaciones order by id limit 1), ${lima("2025-01-10 16:10")};
+-- Los dos pedidos llevan la prenda: quien los separó la separó (y quien recogió el entregado, la recogió). Las reglas de un pedido no
+-- dejan sumarle una prenda a uno ya entregado: aquí se apagan solo para armar la escena (todo se deshace con el rollback).
+set local session_replication_role = replica;
+insert into retail.pedido_web_lineas (pedido_id, posicion, variante_id, precio_lista) values ('${PEDIDO_ENTREGADO}', 1, :'talla', 100), ('${PEDIDO_SEPARADO}', 1, :'talla', 100);
+set local session_replication_role = origin;
 -- 1: entra por Instagram desde La Libertad y llega hasta recoger.
 ${paso(1, "2025-01-10 15:00", 0, { camino: "instagram", region: "PE-LAL" })}
 ${paso(1, "2025-01-10 15:01", 1, { prenda: true })}
@@ -104,6 +111,7 @@ ${paso(3, "2025-01-10 21:00", 0, { camino: "directo" })}
 ${paso(4, "2025-01-10 10:00", 1, { prenda: true })}
 -- 5: entró la noche anterior (por WhatsApp, desde Cusco) y miró hoy: es de ayer, no de hoy.
 ${paso(5, "2025-01-09 23:50", 0, { camino: "whatsapp", region: "PE-CUS" })}
+${paso(5, "2025-01-09 23:55", 1, { prenda: true })}
 ${paso(5, "2025-01-10 00:05", 1, { prenda: true })}
 -- 6: entra dos veces: primero por Google desde el Callao, después por el QR. Cuenta una vez, por Google, en Lima; y separa sin recoger.
 ${paso(6, "2025-01-10 09:00", 0, { camino: "google", region: "PE-CAL" })}
@@ -151,14 +159,37 @@ esperarValor("«antes» son los días de atrás del mismo largo (la persona que 
 esperarValor("quien manda más de 200 pasos en un día no cuenta (ni por «Otros»)", escenario(`${resumen("'otros'")} -> 'pasos' -> 0;`), "0");
 esperarValor("una semana: del 10 al 16, contra del 3 al 9", escenario(`${resumen("null", "null", "2025-01-10", "2025-01-16")} ->> 'anterior_desde';`), "2025-01-03");
 
-// ---- 6. La ciudad de cada departamento ----
+// ---- 6. Las prendas (actividad 5) ----
+// Lee las prendas como el líder y las mira como postgres: `P` es la lista.
+const prendas = (expr, camino = "null") => escenario(`${resumen(camino)} -> 'prendas' as p \\gset
+${COMO_POSTGRES}select ${expr.replaceAll("P", "(:'p'::jsonb)")};`);
+esperarValor("solo sale la prenda que miró la gente del período", prendas("jsonb_array_length(P)"), "1");
+esperarValor(
+  "su recorrido cuenta personas: 3 la miraron (una solo al separar), 3 eligieron talla y la pusieron en la bolsa, 2 la separaron, 1 la recogió",
+  prendas("jsonb_build_array(P -> 0 -> 'miraron', P -> 0 -> 'talla', P -> 0 -> 'bolsa', P -> 0 -> 'separaron', P -> 0 -> 'recogieron')"),
+  "[3, 3, 3, 2, 1]",
+);
+esperarValor("con el filtro de Instagram, la miró 1", prendas("P -> 0 -> 'miraron'", "'instagram'"), "1");
+esperarValor("la talla elegida la eligieron 2 personas", prendas("P -> 0 -> 'tallas' -> 0 -> 'n'"), "2");
+esperarValor("el color elegido, también 2", prendas("P -> 0 -> 'colores' -> 0 -> 'n'"), "2");
+esperarValor("sus caminos suman los que la miraron", prendas("(select sum((c ->> 'n')::int) from jsonb_array_elements(P -> 0 -> 'caminos') c)"), "3");
+esperarValor("«antes» la miró quien la vio el día anterior", prendas("P -> 0 -> 'anterior'"), "1");
+esperarValor(
+  "trae su nombre, su código, su precio y los colores del catálogo",
+  prendas("(P -> 0 ? 'nombre') and (P -> 0 ->> 'codigo') is not null and (P -> 0 ->> 'precio') is not null and jsonb_array_length(P -> 0 -> 'colores_catalogo') >= 1 and (P -> 0 ? 'foto') and (P -> 0 ? 'prefijo')"),
+  "t",
+);
+const directoPrendas = escenario(`${COMO(FELIPE)}select count(*) from retail.fn_trafico_web_prendas('2025-01-10', '2025-01-10');`);
+esperar("nadie llama directo a las prendas", !directoPrendas.ok && /permission denied/.test(directoPrendas.mensaje), directoPrendas.ok ? "se pudo" : directoPrendas.mensaje);
+
+// ---- 7. La ciudad de cada departamento ----
 esperarValor(
   "la ciudad de cada departamento",
   escenario(`select string_agg(retail.fn_trafico_web_ciudad(r), ',' order by n) from unnest(array['PE-LAL','PE-LIM','PE-LMA','PE-CAL','PE-ARE','PE-LAM','PE-PIU','PE-CUS','PE-AMA','PE','US',null]) with ordinality as t(r, n);`),
   "trujillo,lima,lima,lima,arequipa,chiclayo,piura,cusco,otras,otras,fuera,sin_dato",
 );
 
-// ---- 7. Ahora y último dato ----
+// ---- 8. Ahora y último dato ----
 esperarValor(
   "«ahora» cuenta a quien dio un paso hace menos de 5 minutos, y «último dato» es el último paso que llegó",
   escenario(`${paso(8, "2025-01-10 12:00", 0, { camino: "directo" }).replace(lima("2025-01-10 12:00"), "now()")}
@@ -169,7 +200,7 @@ esperarValor(
 esperarValor("la base del veredicto son 6 cifras que nunca crecen", escenario(`${resumen()} as r \\gset
   ${COMO_POSTGRES}select bool_and(a >= b) from (select (e.v)::int a, lead((e.v)::int) over (order by e.n) b from jsonb_array_elements_text(:'r'::jsonb -> 'base') with ordinality as e(v, n)) x where b is not null;`), "t");
 
-// ---- 8. Se puede pegar dos veces ----
+// ---- 9. Se puede pegar dos veces ----
 const dosVeces = correr(`begin;\n${MIGRACION}\n${MIGRACION}\nrollback;`);
 esperar("la migración se puede pegar dos veces", dosVeces.ok, dosVeces.mensaje);
 

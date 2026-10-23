@@ -15,7 +15,9 @@
 --      la ciudad de su PRIMERA entrada del período y el paso más lejano al que llegó (0 entró … 4 separó, 5 recogió). Contar así hace que
 --      el recorrido nunca crezca hacia abajo (quien agrega desde la tarjeta del catálogo cuenta como que vio la prenda y eligió talla) y que
 --      los caminos sumen exactamente el total. Quien manda más de 200 pasos en un día no es una persona: no se cuenta.
---   4. `retail.resumen_trafico_web(desde, hasta, camino, ciudad)`: lo que dibuja la pantalla. Pide el módulo.
+--   4. `retail.fn_trafico_web_prendas(desde, hasta, camino, ciudad)`: por prenda, hasta dónde llegó cada persona con ella, sus tallas,
+--      sus colores y sus caminos (actividad 5).
+--   5. `retail.resumen_trafico_web(desde, hasta, camino, ciudad)`: lo que dibuja la pantalla. Pide el módulo.
 --
 -- SE PEGA ENTERA en el SQL Editor de producción: funciones y un `insert` en `modulos`, sin políticas ni `alter` de tablas en uso. Se
 -- puede pegar dos veces. Va DESPUÉS de 20261023230000 (lee su tabla).
@@ -97,12 +99,91 @@ $fn$;
 -- Solo la usa `resumen_trafico_web` (security definer): nadie la llama directo.
 revoke all on function retail.fn_trafico_web_personas(date, date, text, text) from public, anon, authenticated;
 
--- ---------- 4. Lo que dibuja la pantalla ----------
+-- ---------- 4. Las prendas de un período ----------
+-- Por cada prenda, hasta dónde llegó CADA PERSONA con ella: la vio (1), eligió su talla (2), la puso en la bolsa (3), estaba en el pedido
+-- que separó (4) o ese pedido se entregó (5). Contado así, el recorrido de una prenda tampoco crece hacia abajo. Las tallas y los colores
+-- son los que eligieron (pasos 2 y 3); los caminos, los de la primera entrada de cada persona. Solo de la gente del período (y del filtro).
+create or replace function retail.fn_trafico_web_prendas(p_desde date, p_hasta date, p_camino text default null, p_ciudad text default null)
+returns table (producto_id uuid, miraron integer, talla integer, bolsa integer, separaron integer, recogieron integer, tallas jsonb, colores jsonb, caminos jsonb)
+language sql
+stable
+security definer
+set search_path = retail, public
+as $fn$
+  with gente as (
+    select g.visitante, g.camino from retail.fn_trafico_web_personas(p_desde, p_hasta, p_camino, p_ciudad) g
+  ),
+  filas as (
+    select t.visitante, t.paso, t.producto_id, t.variante_id, t.pedido_web_id
+    from retail.trafico_web t
+    join gente g on g.visitante = t.visitante
+    where t.ocurrio_en >= (p_desde::timestamp at time zone 'America/Lima')
+      and t.ocurrio_en < ((p_hasta + 1)::timestamp at time zone 'America/Lima')
+      and t.paso between 1 and 4
+  ),
+  con_prenda as (
+    select f.producto_id, f.visitante, f.paso::int as hasta from filas f where f.paso between 1 and 3
+    union all
+    -- Separó la prenda si estaba en su pedido; la recogió si el pedido se entregó y esa prenda no se quitó (no había) ni se liberó.
+    select x.producto_id, f.visitante, case when w.entregado_en is not null and l.estado not in ('quitada', 'liberada') then 5 else 4 end
+    from filas f
+    join retail.pedidos_web w on w.id = f.pedido_web_id
+    join retail.pedido_web_lineas l on l.pedido_id = w.id
+    join retail.variantes x on x.id = l.variante_id
+    where f.paso = 4
+  ),
+  por_persona as (
+    select c.producto_id, c.visitante, max(c.hasta) as hasta from con_prenda c group by c.producto_id, c.visitante
+  ),
+  conteo as (
+    select p.producto_id,
+      count(*)::int as miraron,
+      (count(*) filter (where p.hasta >= 2))::int as talla,
+      (count(*) filter (where p.hasta >= 3))::int as bolsa,
+      (count(*) filter (where p.hasta >= 4))::int as separaron,
+      (count(*) filter (where p.hasta >= 5))::int as recogieron
+    from por_persona p
+    group by p.producto_id
+  ),
+  tallas as (
+    select x.producto_id, ta.valor, count(distinct f.visitante)::int as n
+    from filas f
+    join retail.variantes x on x.id = f.variante_id
+    join retail.tallas ta on ta.id = x.talla_id
+    where f.paso in (2, 3)
+    group by x.producto_id, ta.valor
+  ),
+  colores as (
+    select x.producto_id, co.codigo, co.nombre, co.hex, count(distinct f.visitante)::int as n
+    from filas f
+    join retail.variantes x on x.id = f.variante_id
+    join retail.colores co on co.codigo = x.color_codigo
+    where f.paso in (2, 3)
+    group by x.producto_id, co.codigo, co.nombre, co.hex
+  ),
+  caminos as (
+    select p.producto_id, g.camino, count(*)::int as n
+    from por_persona p
+    join gente g on g.visitante = p.visitante
+    group by p.producto_id, g.camino
+  )
+  select c.producto_id, c.miraron, c.talla, c.bolsa, c.separaron, c.recogieron,
+    coalesce((select jsonb_agg(jsonb_build_object('talla', t.valor, 'n', t.n) order by t.n desc, t.valor) from tallas t where t.producto_id = c.producto_id), '[]'::jsonb),
+    coalesce((select jsonb_agg(jsonb_build_object('codigo', k.codigo, 'nombre', k.nombre, 'hex', k.hex, 'n', k.n) order by k.n desc, k.nombre) from colores k where k.producto_id = c.producto_id), '[]'::jsonb),
+    coalesce((select jsonb_agg(jsonb_build_object('camino', m.camino, 'n', m.n) order by m.n desc, m.camino) from caminos m where m.producto_id = c.producto_id), '[]'::jsonb)
+  from conteo c;
+$fn$;
+-- Solo la usa `resumen_trafico_web` (security definer): nadie la llama directo.
+revoke all on function retail.fn_trafico_web_prendas(date, date, text, text) from public, anon, authenticated;
+
+-- ---------- 5. Lo que dibuja la pantalla ----------
 -- `pasos`: cuántas personas llegaron AL MENOS hasta cada paso: [entraron, vieron una prenda, eligieron talla, a la bolsa, separaron,
 -- recogieron]. `anterior`: cuántas entraron en los días de antes, del mismo largo. `base`: los mismos `pasos` de los últimos 90 días de
 -- toda la tienda (sin filtro): con eso la pantalla decide dónde se atora sin que dos personas muevan el veredicto (ADR-0495).
 -- `ahora`: personas con un paso en los últimos 5 minutos. `ultimo_dato`: el último paso que llegó (por su id, que crece con el tiempo:
--- usa la llave primaria y no recorre la tabla).
+-- usa la llave primaria y no recorre la tabla). `prendas`: las que alguien miró, de la más mirada a la menos, con su recorrido, sus tallas,
+-- sus colores (los elegidos y los del catálogo, para dibujarla aunque nadie haya elegido color), sus caminos, su foto principal y cuántas
+-- personas la miraron en los días de antes (calculado UNA vez para todas, no una vez por prenda).
 create or replace function retail.resumen_trafico_web(p_desde date, p_hasta date, p_camino text default null, p_ciudad text default null)
 returns jsonb
 language plpgsql
@@ -115,6 +196,7 @@ declare
   v_ant_desde date;
   v_ant_hasta date;
   v_hoy date := retail.fn_hoy_lima();
+  v_antes jsonb;
 begin
   if not retail.fn_ve_modulo('trafico') then
     raise exception 'Tu rol no ve «Tráfico de la tienda web».' using errcode = '42501';
@@ -125,6 +207,10 @@ begin
   v_dias := p_hasta - p_desde + 1;
   v_ant_hasta := p_desde - 1;
   v_ant_desde := p_desde - v_dias;
+  v_antes := (
+    select coalesce(jsonb_object_agg(a.producto_id, a.miraron), '{}'::jsonb)
+    from retail.fn_trafico_web_prendas(v_ant_desde, v_ant_hasta, p_camino, p_ciudad) a
+  );
 
   return jsonb_build_object(
     'desde', p_desde,
@@ -151,6 +237,38 @@ begin
         count(*) filter (where p.hasta >= 4),
         count(*) filter (where p.hasta >= 5))
       from retail.fn_trafico_web_personas(v_hoy - 89, v_hoy) p
+    ),
+    'prendas', (
+      select coalesce(jsonb_agg(x.prenda order by x.miraron desc, x.nombre), '[]'::jsonb)
+      from (
+        select q.miraron, p.referencia as nombre, jsonb_build_object(
+          'id', p.id,
+          'nombre', p.referencia,
+          'codigo', p.codigo,
+          'categoria', c.nombre,
+          'prefijo', c.prefijo,
+          'familia', c.familia,
+          'precio', (select min(v.precio) from retail.variantes v where v.producto_id = p.id and v.activo),
+          'foto', (select f.url from retail.producto_fotos f where f.producto_id = p.id order by f.es_principal desc, f.orden, f.id limit 1),
+          'colores_catalogo', (
+            select coalesce(jsonb_agg(distinct jsonb_build_object('codigo', co.codigo, 'nombre', co.nombre, 'hex', co.hex)), '[]'::jsonb)
+            from retail.variantes v join retail.colores co on co.codigo = v.color_codigo
+            where v.producto_id = p.id and v.activo
+          ),
+          'miraron', q.miraron,
+          'talla', q.talla,
+          'bolsa', q.bolsa,
+          'separaron', q.separaron,
+          'recogieron', q.recogieron,
+          'anterior', coalesce((v_antes ->> p.id::text)::int, 0),
+          'tallas', q.tallas,
+          'colores', q.colores,
+          'caminos', q.caminos
+        ) as prenda
+        from retail.fn_trafico_web_prendas(p_desde, p_hasta, p_camino, p_ciudad) q
+        join retail.productos p on p.id = q.producto_id
+        left join retail.categorias c on c.id = p.categoria_id
+      ) x
     ),
     'ahora', (select count(distinct t.visitante) from retail.trafico_web t where t.ocurrio_en > now() - interval '5 minutes'),
     'ultimo_dato', (select t.ocurrio_en from retail.trafico_web t order by t.id desc limit 1)

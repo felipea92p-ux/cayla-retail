@@ -2,10 +2,16 @@
   "guia": "tienda-web.trafico",
   "ruta": "/tienda-web/trafico",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 1,
+  "total": 3,
   "controles": {
+    "components/trafico/CajonPrendaTrafico.tsx": [
+      "BotonVer «Ver en la vitrina»"
+    ],
     "components/trafico/PorQue.tsx": [
       "button «{guia}»"
+    ],
+    "components/trafico/VitrinaTrafico.tsx": [
+      "button «{k === 0 ? \"trafico.prenda\" : undefined}»"
     ]
   }
 }

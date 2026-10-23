@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   cambio,
+  cambioDeLaPrenda,
   de100,
+  de100QueVieron,
   dondeSeAtora,
+  dondeSeAtoraLaPrenda,
   explicaAtora,
   fraseAtora,
   horaCorta,
@@ -36,6 +39,7 @@ describe("leerResumen: lo que devuelve la base", () => {
       base: [7700, 5100, 2480, 1530, 690, 540],
       ahora: 9,
       ultimoDato: "2026-10-23T21:40:00+00:00",
+      prendas: [],
     });
   });
   it("sin ningún paso todavía, el último dato es null", () => {
@@ -117,4 +121,90 @@ describe("sinNoticias: la tienda dejó de mandar visitas", () => {
     expect(sinNoticias("2026-10-22T20:00:00Z", new Date("2026-10-23T16:00:00Z"))).toEqual({ desde: "el 22 de octubre, 3:00 p. m." });
   });
   it("sin ningún paso nunca, no es un corte: es que todavía no empezó", () => expect(sinNoticias(null, new Date())).toBeNull());
+});
+
+const PRENDA_DE_LA_BASE = {
+  id: "9b0c7d10-0689-4780-9493-79093027a3dc",
+  nombre: "Blazer Camila",
+  codigo: "BLZ-0001",
+  categoria: "Blazers",
+  prefijo: "BLZ",
+  familia: "SUP",
+  precio: 189.9,
+  foto: null,
+  colores_catalogo: [{ codigo: "NEG", nombre: "Negro", hex: "#1a1a18" }],
+  miraron: 120,
+  talla: 70,
+  bolsa: 40,
+  separaron: 12,
+  recogieron: 9,
+  anterior: 100,
+  tallas: [{ talla: "M", n: 40 }, { talla: "S", n: 30 }],
+  colores: [{ codigo: "NEG", nombre: "Negro", hex: "#1a1a18", n: 70 }],
+  caminos: [{ camino: "instagram", n: 80 }, { camino: "directo", n: 40 }],
+};
+
+describe("las prendas del período", () => {
+  it("lee cada prenda con su recorrido, lo que eligieron y de dónde vinieron", () => {
+    const r = leerResumen({ ...DE_LA_BASE, prendas: [PRENDA_DE_LA_BASE] });
+    expect(r?.prendas[0]).toEqual({
+      id: "9b0c7d10-0689-4780-9493-79093027a3dc",
+      nombre: "Blazer Camila",
+      codigo: "BLZ-0001",
+      categoria: "Blazers",
+      prefijo: "BLZ",
+      familia: "SUP",
+      precio: 189.9,
+      foto: null,
+      coloresCatalogo: [{ codigo: "NEG", nombre: "Negro", hex: "#1a1a18" }],
+      recorrido: [120, 70, 40, 12, 9],
+      anterior: 100,
+      tallas: [{ talla: "M", n: 40 }, { talla: "S", n: 30 }],
+      colores: [{ codigo: "NEG", nombre: "Negro", hex: "#1a1a18", n: 70 }],
+      caminos: [{ camino: "instagram", n: 80 }, { camino: "directo", n: 40 }],
+    });
+  });
+
+  it("una prenda con otra forma se salta; las demás quedan", () => {
+    const r = leerResumen({ ...DE_LA_BASE, prendas: [{ ...PRENDA_DE_LA_BASE, miraron: -1 }, PRENDA_DE_LA_BASE, "basura"] });
+    expect(r?.prendas).toHaveLength(1);
+  });
+
+  it("un camino que la pantalla no conoce no se dibuja", () => {
+    const r = leerResumen({ ...DE_LA_BASE, prendas: [{ ...PRENDA_DE_LA_BASE, caminos: [{ camino: "fax", n: 3 }] }] });
+    expect(r?.prendas[0].caminos).toEqual([]);
+  });
+
+  it("el precio llega como texto (numeric de Postgres) y se lee como número", () => {
+    const r = leerResumen({ ...DE_LA_BASE, prendas: [{ ...PRENDA_DE_LA_BASE, precio: "89.90" }] });
+    expect(r?.prendas[0].precio).toBe(89.9);
+  });
+
+  it("una base de antes, sin prendas, da la vitrina vacía", () => {
+    expect(leerResumen(DE_LA_BASE)?.prendas).toEqual([]);
+  });
+
+  it("de cada 100 que vieron una prenda, cuántos miraron esta", () => {
+    const p = leerResumen({ ...DE_LA_BASE, prendas: [PRENDA_DE_LA_BASE] })!.prendas[0];
+    expect(de100QueVieron(p, 1274)).toBe(9);
+  });
+
+  it("dónde se atora la prenda: el paso que pierde más gente, contra lo de costumbre", () => {
+    const p = leerResumen({ ...DE_LA_BASE, prendas: [PRENDA_DE_LA_BASE] })!.prendas[0];
+    // De 40 en la bolsa, 12 la separaron: pierde más que lo de costumbre (690 de 1530).
+    expect(dondeSeAtoraLaPrenda(p, DE_LA_BASE.base)?.i).toBe(3);
+  });
+
+  it("con pocas personas, la prenda no tiene un paso «malo»", () => {
+    const p = leerResumen({ ...DE_LA_BASE, prendas: [{ ...PRENDA_DE_LA_BASE, miraron: 6, talla: 4, bolsa: 2, separaron: 0, recogieron: 0 }] })!.prendas[0];
+    expect(dondeSeAtoraLaPrenda(p, DE_LA_BASE.base)).toBeNull();
+  });
+
+  it("el cambio contra antes, en palabras", () => {
+    const p = leerResumen({ ...DE_LA_BASE, prendas: [PRENDA_DE_LA_BASE] })!.prendas[0];
+    expect(cambioDeLaPrenda(p)).toEqual({ tono: "verde", texto: "20 % más que antes", sube: 20 });
+    expect(cambioDeLaPrenda({ ...p, anterior: 120 }).texto).toBe("Igual que antes");
+    expect(cambioDeLaPrenda({ ...p, anterior: 5 }).texto).toBe("Pocas personas para comparar");
+    expect(cambioDeLaPrenda({ ...p, anterior: 150 })).toEqual({ tono: "ambar", texto: "20 % menos que antes", sube: -20 });
+  });
 });
