@@ -49,8 +49,10 @@
     white-space: nowrap;
     transition: color 150ms, border-color 150ms;
   }
-  .fin-pestana:hover {
-    color: var(--color-tinta);
+  @media (hover: hover) {
+    .fin-pestana:hover {
+      color: var(--color-tinta);
+    }
   }
   .fin-pestana[aria-selected="true"],
   .fin-pestana[aria-current="page"] {
@@ -374,8 +376,10 @@
   .fin-tabla tbody tr:nth-child(even) {
     background: color-mix(in oklab, var(--color-hueso) 50%, transparent);
   }
-  .fin-tabla tbody tr:hover {
-    background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+  @media (hover: hover) {
+    .fin-tabla tbody tr:hover {
+      background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+    }
   }
   .fin-tabla tbody tr[data-clic] {
     cursor: pointer;
@@ -919,8 +923,10 @@
     cursor: pointer;
     border-radius: 4px;
   }
-  .fin-eerr td:has(> button.fin-eerr-celda):hover {
-    background: var(--color-hueso);
+  @media (hover: hover) {
+    .fin-eerr td:has(> button.fin-eerr-celda):hover {
+      background: var(--color-hueso);
+    }
   }
   .fin-eerr button.fin-eerr-celda:focus-visible {
     outline: 2px solid var(--color-rojo);
@@ -1006,9 +1012,13 @@
   .fin-grafico-barra.fin-grafico-mala path {
     fill: var(--color-rojo);
   }
-  .fin-grafico-barra:hover path,
   .fin-grafico-barra:focus path {
     opacity: 0.8;
+  }
+  @media (hover: hover) {
+    .fin-grafico-barra:hover path {
+      opacity: 0.8;
+    }
   }
   .fin-grafico-barra:focus {
     outline: none;
@@ -1157,8 +1167,10 @@
     color: inherit;
     cursor: pointer;
   }
-  .fin-etq-select:hover {
-    color: var(--color-tinta);
+  @media (hover: hover) {
+    .fin-etq-select:hover {
+      color: var(--color-tinta);
+    }
   }
   /* «Entró S/ 80,600» y su lista: concepto a la izquierda, monto en negrita a la derecha. */
   .fin-h-flujo {
@@ -1402,8 +1414,10 @@
   button.fin-unidad {
     transition: border-color 150ms;
   }
-  button.fin-unidad:hover {
-    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  @media (hover: hover) {
+    button.fin-unidad:hover {
+      border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+    }
   }
   button.fin-unidad[aria-pressed="true"] {
     border-color: var(--color-tinta);

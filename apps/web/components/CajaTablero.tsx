@@ -51,6 +51,7 @@ import { diaLima } from "@/lib/fechas-lima";
 import { Vacio } from "@/components/ui/Vacio";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { BarraApilada } from "@/components/ui/BarraApilada";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const soles0 = (n: number) => `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
@@ -245,9 +246,10 @@ export function BarraCajaMovil({
 }) {
   const cuadrado = "flex h-14 w-[58px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl border border-sand bg-papel text-[10px] font-semibold text-tinta/80 active:scale-[0.97]";
   return (
-    <div data-guia="caja.barra-movil" className="fixed inset-x-0 bottom-0 z-30 flex gap-2 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
+    // La barra de abajo del celular es la Isla (ADR-0479, actividad 12): Vender y los cuadrados, dentro de la isla clara.
+    <BarraDeAbajo data-guia="caja.barra-movil" className="flex-nowrap gap-2 p-2 sm:hidden">
       {vender && (
-        <Link href="/vender" className="flex h-14 flex-1 items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema">
+        <Link href="/vender" className="btn-cayla btn-primario min-h-14 flex-1 gap-2.5 text-[15px]">
           <ShoppingBag size={16} aria-hidden /> Vender
         </Link>
       )}
@@ -268,7 +270,7 @@ export function BarraCajaMovil({
           Cerrar
         </button>
       )}
-    </div>
+    </BarraDeAbajo>
   );
 }
 

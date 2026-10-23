@@ -58,9 +58,11 @@
     cursor: pointer;
     transition: color 200ms, background-color 200ms;
   }
-  .pestana-cayla:hover {
-    color: var(--color-tinta);
-    background: color-mix(in srgb, var(--color-tinta) 6%, transparent);
+  @media (hover: hover) {
+    .pestana-cayla:hover {
+      color: var(--color-tinta);
+      background: color-mix(in srgb, var(--color-tinta) 6%, transparent);
+    }
   }
   .pestana-cayla[aria-selected="true"],
   .pestana-cayla[aria-current="page"] {
@@ -68,11 +70,13 @@
     background: var(--color-tinta);
   }
   /* En cuanto la píldora que viaja se coloca, el fondo estático de la elegida se apaga: si no, se vería saltar y, además, viajar. */
-  [data-indicador] > .pestana-cayla[aria-selected="true"],
-  [data-indicador] > .pestana-cayla[aria-current="page"],
-  [data-indicador] > .pestana-cayla[aria-selected="true"]:hover,
-  [data-indicador] > .pestana-cayla[aria-current="page"]:hover {
+  [data-indicador] > .pestana-cayla[aria-selected="true"], [data-indicador] > .pestana-cayla[aria-current="page"] {
     background: transparent;
+  }
+  @media (hover: hover) {
+    [data-indicador] > .pestana-cayla[aria-selected="true"]:hover, [data-indicador] > .pestana-cayla[aria-current="page"]:hover {
+      background: transparent;
+    }
   }
   .pestanas-cayla > .cmp-ind-pildora {
     z-index: 0;
@@ -221,8 +225,10 @@
     cursor: pointer;
     transition: color 150ms, background-color 150ms;
   }
-  .segmento-cayla__opcion:hover {
-    color: var(--color-tinta);
+  @media (hover: hover) {
+    .segmento-cayla__opcion:hover {
+      color: var(--color-tinta);
+    }
   }
   .segmento-cayla__opcion[aria-checked="true"],
   .segmento-cayla__opcion[aria-current="page"],

@@ -26,7 +26,9 @@
     color: var(--color-tinta);
     transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla);
   }
-  .caja-campo:hover { border-color: color-mix(in srgb, var(--color-taupe) 60%, transparent); }
+  @media (hover: hover) {
+    .caja-campo:hover { border-color: color-mix(in srgb, var(--color-taupe) 60%, transparent); }
+  }
   /* Encendida: con el cursor adentro o la lista abierta. */
   .caja-campo:has(:is(input, textarea):focus),
   .caja-campo[aria-expanded="true"],
@@ -83,7 +85,9 @@
   button.caja-campo:disabled { cursor: not-allowed; }
   /* La flecha de un combo: chevron de 16 px; con el mouse se oscurece; abierta gira media vuelta y se pone roja. */
   .caja-campo .combo-flecha { width: 16px; height: 16px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); transition: transform 320ms var(--ease-cayla), color 200ms; } /* contraste: gráfico sobre hueso, papel */
-  .caja-campo:hover .combo-flecha { color: var(--color-tinta); }
+  @media (hover: hover) {
+    .caja-campo:hover .combo-flecha { color: var(--color-tinta); }
+  }
   .caja-campo[aria-expanded="true"] .combo-flecha,
   .caja-campo:has([aria-expanded="true"]) .combo-flecha { transform: rotate(-180deg); color: var(--color-rojo); }
   /* Un <input> o <textarea> suelto que ES la caja (sin contenedor: `campoTexto` de Modal.tsx y las celdas de una fila): la misma caja,
@@ -104,7 +108,9 @@
     color: var(--color-tinta);
     transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla), background-size 320ms var(--ease-cayla);
   }
-  .caja-campo-input:hover { border-color: color-mix(in srgb, var(--color-taupe) 60%, transparent); }
+  @media (hover: hover) {
+    .caja-campo-input:hover { border-color: color-mix(in srgb, var(--color-taupe) 60%, transparent); }
+  }
   .caja-campo-input:focus {
     background-color: var(--color-papel);
     border-color: color-mix(in srgb, var(--color-tinta) 38%, transparent);
@@ -140,7 +146,9 @@
   .paso-cantidad[data-tam="celda"] .paso-cantidad-b { height: calc(100% - 4px); border-radius: 5px; }
   .paso-cantidad-b svg { width: 14px; height: 14px; }
   .paso-cantidad[data-tam="celda"] .paso-cantidad-b svg { width: 12px; height: 12px; }
-  .paso-cantidad-b:hover { background: color-mix(in srgb, var(--color-sand) 60%, transparent); color: var(--color-tinta); }
+  @media (hover: hover) {
+    .paso-cantidad-b:hover { background: color-mix(in srgb, var(--color-sand) 60%, transparent); color: var(--color-tinta); }
+  }
   .paso-cantidad-b:active { transform: scale(0.9); }
   .paso-cantidad-b:disabled { opacity: 0.3; pointer-events: none; }
   /* `.paso-cantidad` delante: le gana a la regla de todo control dentro de una caja (`.caja-campo :is(input)`, ancho completo). */
@@ -209,7 +217,9 @@
     color: color-mix(in srgb, var(--color-tinta) 78%, transparent);
     transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla), color 220ms var(--ease-cayla);
   }
-  .pildora-filtro:hover { border-color: color-mix(in srgb, var(--color-taupe) 70%, transparent); color: var(--color-tinta); }
+  @media (hover: hover) {
+    .pildora-filtro:hover { border-color: color-mix(in srgb, var(--color-taupe) 70%, transparent); color: var(--color-tinta); }
+  }
   .pildora-filtro[data-abierta] { border-color: var(--color-tinta); color: var(--color-tinta); }
   .pildora-filtro[data-puesta] { background: var(--color-tinta); border-color: var(--color-tinta); color: var(--color-crema); }
   .pildora-filtro-boton {
@@ -230,8 +240,10 @@
   }
   .pildora-filtro[data-quitable] .pildora-filtro-boton { padding-right: 4px; }
   .pildora-filtro-icono { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.6; transition: opacity 220ms; }
-  .pildora-filtro:hover .pildora-filtro-icono,
   .pildora-filtro[data-puesta] .pildora-filtro-icono { opacity: 0.8; }
+  @media (hover: hover) {
+    .pildora-filtro:hover .pildora-filtro-icono { opacity: 0.8; }
+  }
   .pildora-filtro[data-puesta] .pildora-filtro-nombre { opacity: 0.75; }
   .pildora-filtro-valor { display: flex; min-width: 0; max-width: 16rem; align-items: center; gap: 6px; font-weight: 600; }
   .pildora-filtro-flecha { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.55; transition: transform 320ms var(--ease-cayla), color 200ms, opacity 200ms; }
@@ -251,7 +263,9 @@
     transition: background-color 150ms, color 150ms;
   }
   .pildora-filtro-quitar svg { width: 12px; height: 12px; }
-  .pildora-filtro-quitar:hover { background: color-mix(in srgb, var(--color-crema) 18%, transparent); color: var(--color-crema); }
+  @media (hover: hover) {
+    .pildora-filtro-quitar:hover { background: color-mix(in srgb, var(--color-crema) 18%, transparent); color: var(--color-crema); }
+  }
   /* «Filtros» (BotonFiltros, ronda 10): cuántos hay puestos, en el globito de los títulos, pegado al nombre. */
   .pildora-filtro .pildora-filtro-cuenta { margin-left: -2px; }
   .pildora-filtro-punto { position: absolute; right: 6px; top: 6px; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
@@ -298,7 +312,9 @@
     background: var(--color-papel);
     transition: border-color 150ms, scale 120ms var(--ease-cayla);
   }
-  .casilla-input:hover:not(:disabled) { border-color: var(--color-tinta); }
+  @media (hover: hover) {
+    .casilla-input:hover:not(:disabled) { border-color: var(--color-tinta); }
+  }
   .casilla-input:active:not(:disabled) { scale: 0.92; }
   .casilla-input:disabled { cursor: not-allowed; opacity: 0.5; }
   /* El fondo de tinta crece desde el centro al marcar. */
@@ -387,7 +403,9 @@
     animation: cayla-entrada 360ms var(--ease-cayla) backwards;
     animation-delay: calc(var(--i, 0) * 30ms);
   }
-  .sugerencia:hover { background: color-mix(in srgb, var(--color-tinta) 4%, transparent); color: var(--color-tinta); }
+  @media (hover: hover) {
+    .sugerencia:hover { background: color-mix(in srgb, var(--color-tinta) 4%, transparent); color: var(--color-tinta); }
+  }
   .sugerencia[data-activa] { background: color-mix(in srgb, var(--color-rojo) 10%, var(--color-papel)); color: var(--color-tinta); }
   .sugerencia-canto {
     position: absolute;

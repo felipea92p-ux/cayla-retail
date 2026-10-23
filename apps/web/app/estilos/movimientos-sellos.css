@@ -146,8 +146,14 @@
   transform: scaleY(0.3);
   transition: opacity 0.25s var(--ease-cayla), transform 0.35s var(--ease-cayla);
 }
-.mv-fila:hover, .mv-fila:focus-within { background: color-mix(in srgb, var(--mv-c) 7%, var(--color-papel)); }
-.mv-fila:hover::before, .mv-fila:focus-within::before, .mv-fila[data-sel]::before { opacity: 1; transform: none; }
+.mv-fila:focus-within { background: color-mix(in srgb, var(--mv-c) 7%, var(--color-papel)); }
+@media (hover: hover) {
+  .mv-fila:hover { background: color-mix(in srgb, var(--mv-c) 7%, var(--color-papel)); }
+}
+.mv-fila:focus-within::before, .mv-fila[data-sel]::before { opacity: 1; transform: none; }
+@media (hover: hover) {
+  .mv-fila:hover::before { opacity: 1; transform: none; }
+}
 .mv-fila[data-sel] { background: color-mix(in srgb, var(--mv-c) 7%, var(--color-papel)); }
 .mv-rotulo { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mv-c); }
 .mv-cant {
@@ -187,16 +193,24 @@
   transition: background-color 0.25s var(--ease-cayla), border-color 0.25s var(--ease-cayla), opacity 0.3s var(--ease-cayla), transform 0.3s var(--ease-cayla);
 }
 @media (min-width: 1024px) { .mv-tipo { min-width: 0; } }
-.mv-tipo:hover { background: color-mix(in srgb, var(--mv-c) 7%, var(--color-papel)); border-color: color-mix(in srgb, var(--mv-c) 30%, var(--color-sand)); }
+@media (hover: hover) {
+  .mv-tipo:hover { background: color-mix(in srgb, var(--mv-c) 7%, var(--color-papel)); border-color: color-mix(in srgb, var(--mv-c) 30%, var(--color-sand)); }
+}
 .mv-tipo[aria-current] { background: color-mix(in srgb, var(--mv-c) 15%, var(--color-papel)); border-color: var(--mv-c); }
 @media (min-width: 1024px) {
-  .mv-tipo:hover { transform: translateX(-3px); }
+  @media (hover: hover) {
+    .mv-tipo:hover { transform: translateX(-3px); }
+  }
   .mv-tipo[aria-current] { transform: translateX(-6px); }
 }
 ul[data-hay] .mv-tipo:not([aria-current]) { opacity: 0.6; }
-ul[data-hay] .mv-tipo:not([aria-current]):hover { opacity: 1; }
+@media (hover: hover) {
+  ul[data-hay] .mv-tipo:not([aria-current]):hover { opacity: 1; }
+}
 .mv-tipo[data-vacio] { opacity: 0.45; cursor: default; }
-.mv-tipo[data-vacio]:hover { background: var(--color-papel); border-color: var(--color-sand); transform: none; }
+@media (hover: hover) {
+  .mv-tipo[data-vacio]:hover { background: var(--color-papel); border-color: var(--color-sand); transform: none; }
+}
 .mv-tipo:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
 .mv-tipo .mv-sello { grid-area: s; }
 .mv-tipo-nombre { grid-area: n; align-self: end; font-size: 13px; font-weight: 600; line-height: 1.2; }
@@ -235,7 +249,10 @@ ul[data-hay] .mv-tipo:not([aria-current]):hover { opacity: 1; }
 .mv-dia-nombre b { font-family: var(--font-serif); font-size: 1.375rem; font-weight: 500; letter-spacing: 0.02em; color: var(--color-tinta); }
 .mv-codigo { display: flex; min-width: 0; flex: 1 1 8rem; align-items: flex-end; gap: 3px; height: 12px; }
 .mv-codigo button { height: 100%; min-width: 3px; max-width: 22px; flex: 1 1 0; border-radius: 3px; background: var(--mv-c); opacity: 0.9; transform: scaleY(0); transform-origin: bottom; animation: mv-franja 0.5s var(--ease-cayla) both; animation-delay: calc(var(--k, 0) * 22ms + 200ms); transition: opacity 0.2s, height 0.2s; }
-.mv-codigo button:hover, .mv-codigo button:focus-visible { height: 150%; opacity: 1; }
+.mv-codigo button:focus-visible { height: 150%; opacity: 1; }
+@media (hover: hover) {
+  .mv-codigo button:hover { height: 150%; opacity: 1; }
+}
 @keyframes mv-franja { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @media (max-width: 639px) { .mv-codigo { flex-basis: 100%; order: 3; } }
 
