@@ -107,6 +107,7 @@ export function HojaPrenda({
               <CampoMonto
                 etiqueta="Te costó cada una"
                 etiquetaOculta
+                sinPie
                 inputMode="decimal"
                 autoComplete="off"
                 value={b.costo}
@@ -123,6 +124,7 @@ export function HojaPrenda({
               <CampoMonto
                 etiqueta="Se vende a"
                 etiquetaOculta
+                sinPie
                 inputMode="decimal"
                 autoComplete="off"
                 value={b.venta}
@@ -199,7 +201,7 @@ export function HojaPrenda({
  *  la maqueta; el monto va en el campo (y en su `title`). */
 function Atajo({ elegido, onClick, guia, titulo, children }: { elegido: boolean; onClick: () => void; guia?: string; titulo?: string; children: ReactNode }) {
   return (
-    <button type="button" aria-pressed={elegido} onClick={onClick} data-guia={guia} title={titulo} className="btn-cayla btn-sutil btn-chico mt-1.5 max-w-full">
+    <button type="button" aria-pressed={elegido} onClick={onClick} data-guia={guia} title={titulo} className="btn-cayla btn-sutil compra-atajo mt-1.5 max-w-full">
       {elegido && <Check className="h-3.5 w-3.5 text-verde" aria-hidden />}
       <span className="truncate">{children}</span>
     </button>

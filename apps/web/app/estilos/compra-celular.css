@@ -62,3 +62,17 @@
   margin: 0;
   text-wrap: balance;
 }
+
+/* Los atajos de la hoja de la prenda («La vez pasada», «Del catálogo»): píldoras chicas bajo su campo, como la maqueta. 32 px con el
+   mouse y 40 con el dedo (Felipe 2026-10-23: «aprovecha mejor los espacios»; `btn-chico` mide 44 siempre y engordaba la hoja). */
+.compra-atajo {
+  min-height: 2rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 12.5px;
+  border-radius: 999px;
+}
+@media (pointer: coarse) {
+  .compra-atajo {
+    min-height: 2.5rem;
+  }
+}
