@@ -772,7 +772,14 @@ export const GUIA_SELLOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "sellos.configurar" }],
       titulo: "Descuento, fechas y categorías",
-      texto: "El descuento (los de siempre a un toque, o escribe otro), desde y hasta cuándo rige y las categorías, cada una con cuántas prendas trae. «Elegir todas» las marca de un toque: así llega a todas las prendas, sin contarlas una por una. Abajo dice a cuántas llega antes de guardar.",
+      texto: "El descuento: − y + lo mueven de 5 en 5, los de siempre van a un toque, o escribe otro. Luego cuándo rige (el calendario pinta la temporada entera) y las categorías por familia: la casilla de la familia las marca todas y el buscador encuentra una.",
+    },
+    {
+      id: "campana-etiqueta",
+      ancla: "atributos.campana-etiqueta",
+      opcional: true,
+      titulo: "La etiqueta, viva",
+      texto: "Mientras eliges, la etiqueta dice cómo queda: el descuento, las fechas y a cuántas prendas llega. En una pantalla ancha, además, sus categorías y cuánto cobra la caja por una prenda de verdad (con ‹ › ves otras).",
     },
     {
       id: "campana-sedes",

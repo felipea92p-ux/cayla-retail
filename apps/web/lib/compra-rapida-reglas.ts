@@ -4,7 +4,6 @@ import { problemaDeMonto } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import { nombresParecidos } from "./nombres-parecidos";
 import { diasEntreFechas } from "./fechas-lima";
-import { FICHAS_POR_CATEGORIA } from "./sugerencias-alta-producto";
 
 // Compras simple (ADR-0480, actividad 3): «Compré ropa» desde el celular. Las reglas puras: leer lo que manda la base (vieja o rota: nunca
 // se cae), buscar proveedores por nombre y por lo que venden, los habituales de uno, lo que se dice en cada paso, lo que falta en el paso del
@@ -21,6 +20,15 @@ export const CARPETA_PAPELES = "papeles/";
 
 /** Cuántos habituales se ven antes de «Ver todos los suyos» (la maqueta aprobada). */
 export const HABITUALES_A_LA_VISTA = 6;
+
+/** Cuántos proveedores se dibujan de entrada, y cuántos más cada vez que se llega al final de la lista (Felipe 2026-10-23). */
+export const PROVEEDORES_POR_TANDA = 10;
+
+/** Los primeros `cuantos` de la lista, sin pasarse, y si quedan más para la próxima tanda. */
+export function tandaDeLista<T>(lista: readonly T[], cuantos: number): { visibles: T[]; quedan: number } {
+  const n = Math.max(0, Math.min(cuantos, lista.length));
+  return { visibles: lista.slice(0, n), quedan: lista.length - n };
+}
 
 export type TipoPapel = "factura" | "boleta" | "nota_venta" | "sin_comprobante";
 
@@ -401,52 +409,54 @@ export function lineasParaBase(lineas: readonly LineaCompra[]) {
 }
 
 /** El paso de la barra de avance (siempre 3, la maqueta): 1 Proveedor · 2 Prendas · 3 Boleta o factura. */
-export type PasoCompra =
-  | "proveedor"
-  | "habituales"
-  | "nuevo-categoria"
-  | "nuevo-nombre"
-  | "nuevo-marca"
-  | "revisar"
-  | "papel"
-  | "listo";
+export type PasoCompra = "proveedor" | "habituales" | "revisar" | "papel" | "listo";
 export function faseDePaso(p: PasoCompra): 1 | 2 | 3 {
   return p === "proveedor" ? 1 : p === "papel" || p === "listo" ? 3 : 2;
 }
-const DETALLE: Partial<Record<PasoCompra, string>> = {
-  "nuevo-categoria": "qué es",
-  "nuevo-nombre": "nombre",
-  "nuevo-marca": "marca",
-};
 export function textoAvance(p: PasoCompra): string {
   const fase = faseDePaso(p);
-  const nombre = fase === 1 ? "el proveedor" : fase === 2 ? "las prendas" : "el papel";
-  return `Paso ${fase} de 3 · ${nombre}${DETALLE[p] ? ` · ${DETALLE[p]}` : ""}`;
+  return `Paso ${fase} de 3 · ${fase === 1 ? "el proveedor" : fase === 2 ? "las prendas" : "el papel"}`;
 }
 
-
 // ---------------------------------------------------------------------------------------------------------------------
-// «Algo nuevo de este proveedor» (actividad 4): una prenda que todavía no le compraste, en tres preguntas —qué es, cómo se llama y de
-// qué marca— antes de la cantidad, el costo y la venta. La base ya la acepta (una línea sin `producto_id`, con categoría, marca y
-// descripción) y la próxima vez sale entre sus habituales por su nombre. Color y tallas los cuenta la tienda al recibir.
+// «Algo nuevo de este proveedor»: una prenda que todavía no le compraste, en UNA hoja, la misma de las de siempre (Felipe 2026-10-23):
+// qué es, de qué marca y cómo se llama, y después cuántas, el costo, la venta y a qué tienda va. Es SOLO UNA REFERENCIA de la compra: no
+// crea nada en el catálogo. La línea de la orden va sin `producto_id`, con la categoría, la marca y el nombre escrito; la prenda nace
+// cuando la tienda la recibe (Recibir), que es donde se cuentan el color y las tallas. La próxima vez sale entre sus habituales por su nombre.
 // ---------------------------------------------------------------------------------------------------------------------
 
 export type CategoriaParaComprar = { id: string; nombre: string; prefijo: string | null; familia: string | null };
 
-/**
- * «¿Qué es?»: primero las categorías que ya se le compran a este proveedor, después las demás. Se busca por el nombre de la categoría
- * y por la prenda de su ficha («polera» encuentra Sudaderas), sin tildes ni mayúsculas.
- */
-export function filtrarCategoriasNuevo(
-  categorias: readonly CategoriaParaComprar[],
-  q: string,
-  suyas: ReadonlySet<string>,
-): { suyas: CategoriaParaComprar[]; otras: CategoriaParaComprar[] } {
-  const n = normalizar(q);
-  const coincide = (c: CategoriaParaComprar) =>
-    !n || normalizar(c.nombre).includes(n) || normalizar(FICHAS_POR_CATEGORIA[c.prefijo ?? ""]?.prenda ?? "").includes(n);
-  const lista = categorias.filter(coincide);
-  return { suyas: lista.filter((c) => suyas.has(c.id)), otras: lista.filter((c) => !suyas.has(c.id)) };
+/** Una opción del combo, con su grupo (la `Opcion` de `Desplegable`). */
+type OpcionConGrupo = { valor: string; texto: string; grupo?: string };
+
+/** Dos grupos solo si los dos tienen algo: «Ya le compras» sobre una lista vacía de «Otras» no dice nada. */
+function enDosGrupos<T extends { id: string; nombre: string }>(lista: readonly T[], primero: (x: T) => boolean, titulos: [string, string]): OpcionConGrupo[] {
+  const arriba = lista.filter(primero);
+  const abajo = lista.filter((x) => !primero(x));
+  const opcion = (grupo: string | undefined) => (x: T) => ({ valor: x.id, texto: x.nombre, ...(grupo ? { grupo } : {}) });
+  if (arriba.length === 0 || abajo.length === 0) return lista.map(opcion(undefined));
+  return [...arriba.map(opcion(titulos[0])), ...abajo.map(opcion(titulos[1]))];
+}
+
+/** «¿Qué es?»: primero las categorías que ya se le compran a este proveedor, después las demás. El combo las busca sin tildes. */
+export function opcionesCategoriaNueva(categorias: readonly CategoriaParaComprar[], suyas: ReadonlySet<string>): OpcionConGrupo[] {
+  return enDosGrupos(categorias, (c) => suyas.has(c.id), ["Ya le compras", "Otras"]);
+}
+
+/** «¿De qué marca?»: primero las que trae este proveedor, después todas las del catálogo. */
+export function opcionesMarcaNueva(marcas: readonly { id: string; nombre: string }[], delProveedor: readonly { id: string }[]): OpcionConGrupo[] {
+  const suyas = new Set(delProveedor.map((m) => m.id));
+  const orden = [...delProveedor.map((m) => marcas.find((x) => x.id === m.id)).filter((m) => m !== undefined), ...marcas.filter((m) => !suyas.has(m.id))];
+  return enDosGrupos(orden, (m) => suyas.has(m.id), ["Las que trae", "Otras marcas"]);
+}
+
+/** Lo que se va contestando de la prenda nueva en su hoja. `descartadas`: los habituales parecidos que ya contestó con «No, es otra». */
+export type BorradorNuevo = { categoriaId: string | null; marcaId: string | null; nombre: string; descartadas: ReadonlySet<string> };
+
+/** Cómo llega la hoja: si el proveedor trae una sola marca, ya puesta (antes se saltaba la pregunta; ahora se ve y se cambia). */
+export function nuevoVacio(marcasDelProveedor: readonly { id: string }[]): BorradorNuevo {
+  return { categoriaId: null, marcaId: marcasDelProveedor.length === 1 ? marcasDelProveedor[0].id : null, nombre: "", descartadas: new Set() };
 }
 
 /** Lo más corto y lo más largo que se acepta como nombre de una prenda nueva (lo que la tienda reconoce al recibir). */
@@ -483,14 +493,8 @@ export function marcasDeHabituales(habituales: readonly Habitual[]): { id: strin
   return [...porId.values()].sort((a, b) => b.n - a.n || a.nombre.localeCompare(b.nombre, "es")).map(({ id, nombre }) => ({ id, nombre }));
 }
 
-/** «Otra marca»: buscar entre todas las del catálogo, sin tildes ni mayúsculas. */
-export function filtrarMarcas(marcas: readonly { id: string; nombre: string }[], q: string): { id: string; nombre: string }[] {
-  const n = normalizar(q);
-  return n ? marcas.filter((m) => normalizar(m.nombre).includes(n)) : [...marcas];
-}
-
 /** La prenda nueva, con la forma de un habitual (sin compras ni precios de antes): así sigue por los mismos pasos que las de siempre. */
-export function habitualNuevo(
+function habitualNuevo(
   clave: string,
   v: { nombre: string; categoria: CategoriaParaComprar; marca: { id: string; nombre: string } },
 ): Habitual {
@@ -508,4 +512,28 @@ export function habitualNuevo(
     costo: null,
     venta: null,
   };
+}
+
+/** Los campos de la hoja de una prenda nueva, en su orden: lo que la describe y después lo de siempre. */
+export function camposPrendaNueva(n: BorradorNuevo, hayParecido: boolean, b: BorradorPrenda): CampoDeGuia[] {
+  const nombre = faltaNombreNuevo(n.nombre);
+  return [
+    { id: "categoria", nombre: "Qué es", requerido: true, hecho: n.categoriaId !== null, pendiente: "Elige qué es." },
+    { id: "marca", nombre: "Marca", requerido: true, hecho: n.marcaId !== null, pendiente: "Elige la marca, como dice su etiqueta." },
+    { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre === null && !hayParecido, pendiente: nombre ? "Escribe cómo se llama." : "Dinos si es la misma prenda." },
+    ...camposPrenda(b),
+  ];
+}
+
+/** La prenda nueva ya descrita, con la forma de un habitual; `null` si falta qué es, la marca o el nombre. */
+export function habitualDeNuevo(
+  clave: string,
+  n: BorradorNuevo,
+  categorias: readonly CategoriaParaComprar[],
+  marcas: readonly { id: string; nombre: string }[],
+): Habitual | null {
+  const categoria = categorias.find((c) => c.id === n.categoriaId);
+  const marca = marcas.find((m) => m.id === n.marcaId);
+  if (!categoria || !marca || faltaNombreNuevo(n.nombre)) return null;
+  return habitualNuevo(clave, { nombre: n.nombre, categoria, marca });
 }

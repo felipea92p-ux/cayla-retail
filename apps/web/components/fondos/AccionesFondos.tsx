@@ -2,7 +2,11 @@
 
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowDownLeft, ArrowUpRight, Check } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
+import { PieAcciones } from "@/components/ui/PieAcciones";
+import { FichasCuenta } from "@/components/fondos/FichasCuenta";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
@@ -21,12 +25,14 @@ import { soles } from "@/lib/compras-reglas";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import {
   ARTICULO_MOVIMIENTO_FONDO,
+  MAX_FICHAS_PERSONA,
   MAX_TEXTO_FONDO,
   TEXTO_MOVIMIENTO_FONDO,
   camposDevolver,
   camposEntregar,
   fraseDevolver,
   fraseEntregar,
+  nombresDeFichas,
   opcionesDeCuentas,
   opcionesDePersonas,
   primerNombre,
@@ -69,7 +75,8 @@ function rechazoDe(error: Parameters<typeof traducirError>[0], que: string): Rec
 
 // ---------- Entregar plata ----------
 
-export function EntregarFondo({ opciones }: { opciones: OpcionesFondos }) {
+// `tiene`: lo que tiene en la mano cada persona con fondo (por su id), para que la ficha de «¿A quién?» lo diga. Sin el dato, no se dice.
+export function EntregarFondo({ opciones, tiene = {} }: { opciones: OpcionesFondos; tiene?: Record<string, number> }) {
   const [abierta, setAbierta] = useState(false);
   const origen = useRef<HTMLElement | null>(null);
   return (
@@ -84,12 +91,26 @@ export function EntregarFondo({ opciones }: { opciones: OpcionesFondos }) {
       >
         + Entregar plata
       </Boton>
-      {abierta && <EntregarFondoModal opciones={opciones} onClose={() => setAbierta(false)} volverA={origen} />}
+      {abierta && <EntregarFondoModal opciones={opciones} tiene={tiene} onClose={() => setAbierta(false)} volverA={origen} />}
     </>
   );
 }
 
-function EntregarFondoModal({ opciones, onClose, volverA }: { opciones: OpcionesFondos; onClose: () => void; volverA: RefObject<HTMLElement | null> }) {
+// La hoja con el diseño «A · Bandeja serena» (Felipe 2026-10-23, «sin tanto texto»): cuatro preguntas cortas, una debajo de la otra.
+// «¿A quién?» son fichas con la cara, el primer nombre y lo que ya tiene en la mano (con más de seis personas, el combo de siempre);
+// «¿De dónde sale?», las fichas de las cuentas (`FichasCuenta`); «¿Cuánto?», el monto grande; «¿Para qué?», una línea. La guía de foco
+// es la misma (los mismos ids de campo, `camposEntregar`) y lo que se manda a la base no cambia.
+function EntregarFondoModal({
+  opciones,
+  tiene,
+  onClose,
+  volverA,
+}: {
+  opciones: OpcionesFondos;
+  tiene: Record<string, number>;
+  onClose: () => void;
+  volverA: RefObject<HTMLElement | null>;
+}) {
   const router = useRouter();
   const [personaId, setPersonaId] = useState("");
   const [cuentaId, setCuentaId] = useState("");
@@ -113,7 +134,8 @@ function EntregarFondoModal({ opciones, onClose, volverA }: { opciones: Opciones
   const guia = useGuiaCampos(campos);
   const persona = opciones.personas.find((p) => p.id === personaId) ?? null;
   const montoLeido = leerMontoPlata(monto);
-  const sinCuentas = opciones.cuentas.length === 0;
+  const conFichas = opciones.personas.length > 0 && opciones.personas.length <= MAX_FICHAS_PERSONA;
+  const nombres = nombresDeFichas(opciones.personas);
 
   const limpiar = <T,>(f: (v: T) => void) => (v: T) => {
     setRechazo(null);
@@ -159,7 +181,15 @@ function EntregarFondoModal({ opciones, onClose, volverA }: { opciones: Opciones
   }
 
   return (
-    <Modal titulo="Entregar plata" subtitulo="Para que compre: queda en su fondo hasta que la rinda." onClose={onClose} variante="hoja" alCerrarEnfocar={volverA} bloqueado={guardando || congelada}>
+    <Modal
+      titulo="Entregar plata"
+      subtitulo="Para que salga a comprar."
+      onClose={onClose}
+      variante="hoja"
+      tamano={conFichas ? "mediana" : "angosta"}
+      alCerrarEnfocar={volverA}
+      bloqueado={guardando || congelada}
+    >
       {(cerrar) => (
         <form
           onSubmit={(e) => {
@@ -169,27 +199,56 @@ function EntregarFondoModal({ opciones, onClose, volverA }: { opciones: Opciones
           className="space-y-5"
         >
           <fieldset disabled={congelada} className="campos-congelables min-w-0 space-y-5">
-          <CampoGuiado id="persona" guia={guia} titulo="¿A quién le entregas?">
-            <CampoSelect
-              etiqueta="¿A quién le entregas?"
-              caja
-              valor={personaId}
-              onValor={limpiar(setPersonaId)}
-              opciones={opcionesDePersonas(opciones)}
-              marcador="Elige a la persona"
-              deshabilitado={guardando}
-            />
+          <CampoGuiado id="persona" guia={guia} titulo="¿A quién?">
+            {conFichas ? (
+              <div role="group" aria-label="¿A quién le entregas?" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {opciones.personas.map((p) => {
+                  const elegida = p.id === personaId;
+                  // Nadie se entrega plata a sí mismo: quien entra se ve, pero no se elige (como en el combo).
+                  const soyYo = p.id === opciones.yo;
+                  const suPlata = tiene[p.id];
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      aria-pressed={elegida}
+                      disabled={guardando || soyYo}
+                      title={soyYo ? "Tu fondo: que te la entregue otra persona" : p.sede ? `${p.nombre} · ${p.sede}` : p.nombre}
+                      onClick={() => limpiar(setPersonaId)(p.id)}
+                      className={`card-cayla mov-boton relative flex min-w-0 flex-col items-center gap-1 rounded-[14px] px-2 py-3 text-center disabled:cursor-not-allowed disabled:opacity-55 ${
+                        elegida ? "border-tinta" : ""
+                      }`}
+                    >
+                      {elegida && (
+                        <span aria-hidden className="absolute right-2 top-2 grid h-[18px] w-[18px] place-items-center rounded-full bg-tinta text-crema">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      )}
+                      <AvatarPersona personaId={p.id} nombre={p.nombre} tamano={40} />
+                      <span className="mt-0.5 w-full truncate text-sm font-medium leading-tight text-tinta">{nombres[p.id]}</span>
+                      {soyYo ? (
+                        <span className="text-xs text-taupe">Tú</span>
+                      ) : (
+                        suPlata !== undefined && <span className="whitespace-nowrap text-xs text-taupe">Tiene {soles(suPlata)}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <CampoSelect
+                etiqueta="¿A quién le entregas?"
+                caja
+                valor={personaId}
+                onValor={limpiar(setPersonaId)}
+                opciones={opcionesDePersonas(opciones)}
+                marcador="Elige a la persona"
+                deshabilitado={guardando}
+              />
+            )}
           </CampoGuiado>
-          <CampoGuiado id="cuenta" guia={guia} titulo="¿De dónde sale la plata?">
-            <CampoSelect
-              etiqueta="¿De dónde sale la plata?"
-              caja
-              valor={cuentaId}
-              onValor={limpiar(setCuentaId)}
-              opciones={opcionesDeCuentas(opciones.cuentas)}
-              marcador={sinCuentas ? "No hay un banco ni una caja fuerte activos" : "Elige el banco o la caja fuerte"}
-              deshabilitado={guardando || sinCuentas}
-            />
+          <CampoGuiado id="cuenta" guia={guia} titulo="¿De dónde sale?">
+            <FichasCuenta etiqueta="¿De dónde sale la plata?" cuentas={opciones.cuentas} valor={cuentaId} onValor={limpiar(setCuentaId)} deshabilitado={guardando} />
           </CampoGuiado>
           <CampoGuiado id="monto" guia={guia} titulo="¿Cuánto?">
             <CampoMonto
@@ -202,18 +261,17 @@ function EntregarFondoModal({ opciones, onClose, volverA }: { opciones: Opciones
               onChange={(e) => limpiar(setMonto)(e.target.value)}
             />
           </CampoGuiado>
-          <CampoGuiado id="motivo" guia={guia} titulo="¿Para qué es?">
+          <CampoGuiado id="motivo" guia={guia} titulo="¿Para qué?">
             <CampoTexto
               etiqueta="¿Para qué es?"
               caja
               maxLength={MAX_TEXTO_FONDO}
               // sugerir-fijo: el «para qué» es la compra o el viaje; no depende de a quién ni de qué cuenta se eligió.
-              placeholder="Ej. Compras en Gamarra de esta semana"
+              placeholder="Ej. Compras en Gamarra"
               value={motivo}
               disabled={guardando}
               onChange={(e) => limpiar(setMotivo)(e.target.value)}
             />
-            <p className="mt-1.5 text-xs text-taupe">Lo verá quien revise el fondo y quien lo rinda.</p>
           </CampoGuiado>
           {!esPersona && (
             <CampoGuiado id="responsable" guia={guia} titulo="Quién entrega">
@@ -231,14 +289,21 @@ function EntregarFondoModal({ opciones, onClose, volverA }: { opciones: Opciones
             )
           )}
           <PieGuia guia={guia} listo="Todo listo para entregar." conFrase />
-          <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
-            <Boton type="button" onClick={cerrar} disabled={guardando || congelada}>
+          <PieAcciones className="pie-hoja-fijo pt-1">
+            <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando || congelada}>
               Cancelar
             </Boton>
             <Boton textoCargando="Entregando…" type="submit" peso="primario" cargando={guardando} disabled={!congelada && !guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {congelada ? "Volver a intentar" : fraseEntregar(montoLeido, persona?.nombre ?? null)}
+              {congelada ? (
+                "Volver a intentar"
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <ArrowUpRight className="h-4 w-4" aria-hidden />
+                  {fraseEntregar(montoLeido, persona?.nombre ?? null)}
+                </span>
+              )}
             </Boton>
-          </div>
+          </PieAcciones>
         </form>
       )}
     </Modal>
@@ -261,7 +326,10 @@ export function DevolverFondo({ fondo, cuentas, porAprobar = 0 }: { fondo: Fondo
           setAbierta(true);
         }}
       >
-        Registrar devolución
+        <span className="inline-flex items-center gap-2">
+          <ArrowDownLeft className="h-4 w-4" aria-hidden />
+          Registrar devolución
+        </span>
       </Boton>
       {abierta && <DevolverFondoModal fondo={fondo} cuentas={cuentas} porAprobar={porAprobar} onClose={() => setAbierta(false)} volverA={origen} />}
     </>

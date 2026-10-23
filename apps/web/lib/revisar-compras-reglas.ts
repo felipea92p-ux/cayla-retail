@@ -71,7 +71,17 @@ export type CierrePorRecibir = {
   decision: "devuelve" | "le_deben";
   monto: number;
   plataPorConfirmar: number;
+  /** La tienda de quien compró (su ficha de colaborador, 20261023210000); un líder sin tienda, ninguna. */
+  tienda: string | null;
+  /** Lo que pasó en su ronda (20261023210000). Un cierre de antes de las rondas no lo trae. */
+  cuaderno: CuadernoRonda | null;
 };
+
+/** Lo que pasó en una ronda de compras (`fn_ronda_compras_cuenta`): le dieron, compró (lo pagado de su plata), gastó. */
+export type CuadernoRonda = { dieron: number; compras: number; compraste: number; gastos: number; gastaste: number; prendas: number };
+
+/** Una ronda que sigue abierta: quién está comprando ahora, desde cuándo y cuánto lleva (diseño A, «Rondas abiertas»). */
+export type RondaAbiertaRevisar = { id: string; texto: string; personaId: string; persona: string; tienda: string | null; abiertaEn: string; cuenta: CuadernoRonda };
 
 export type ProveedorOpcion = { id: string; nombre: string; ruc: string | null };
 
@@ -92,7 +102,13 @@ export type GastoPorRevisar = {
   tieneCompra: boolean;
 };
 
-export type RevisarCompras = { papeles: PapelPorCompletar[]; gastos: GastoPorRevisar[]; cierres: CierrePorRecibir[]; proveedores: ProveedorOpcion[] };
+export type RevisarCompras = {
+  papeles: PapelPorCompletar[];
+  gastos: GastoPorRevisar[];
+  cierres: CierrePorRecibir[];
+  proveedores: ProveedorOpcion[];
+  rondasAbiertas: RondaAbiertaRevisar[];
+};
 
 const numero = (v: unknown): number | null => {
   const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
@@ -160,20 +176,22 @@ function leerPapel(x: unknown): PapelPorCompletar | null {
   };
 }
 
-const MEDIO_EN_FRASE: Record<MedioPagoCompra, string> = { yape: "Yape", efectivo: "efectivo", transferencia: "transferencia" };
+// Con qué le pagó, como se dice en la tienda: «con Yape», «en efectivo», «con transferencia».
+const MEDIO_EN_FRASE: Record<MedioPagoCompra, string> = { yape: "con Yape", efectivo: "en efectivo", transferencia: "con transferencia" };
+
+/** El bloque «Pagó» del detalle (diseño A, 2026-10-23): qué pagó la compradora, qué le toca a Compras y qué parte del papel ya está pagada. */
+export type PagoPapel = { titulo: string; detalle: string; fraccion: number };
 
 /**
  * Cómo se le pagó al proveedor (20261023181000): lo que pagó la compradora y con qué, y lo que le toca a Compras. Al completar el papel,
  * lo que falta queda como deuda en Por pagar (con vencimiento a 7 días, provisional).
  */
-export function textoPagoPapel(p: Pick<PapelPorCompletar, "monto" | "pagado" | "medioPago" | "persona">): string {
-  const quien = primerNombre(p.persona);
-  const medio = p.medioPago && p.medioPago in MEDIO_EN_FRASE ? MEDIO_EN_FRASE[p.medioPago as MedioPagoCompra] : null;
-  const conMedio = medio ? ` con ${medio}` : "";
+export function pagoPapel(p: Pick<PapelPorCompletar, "monto" | "pagado" | "medioPago">): PagoPapel {
+  const medio = p.medioPago && p.medioPago in MEDIO_EN_FRASE ? ` ${MEDIO_EN_FRASE[p.medioPago as MedioPagoCompra]}` : "";
   const falta = Math.round((p.monto - p.pagado) * 100) / 100;
-  if (p.pagado <= 0) return `${quien} no le pagó al proveedor: Compras le paga los ${soles(p.monto)} desde Por pagar.`;
-  if (falta < 0.005) return `${quien} le pagó todo${conMedio}.`;
-  return `${quien} le pagó ${soles(p.pagado)}${conMedio}. Compras le paga lo que falta, ${soles(falta)}, desde Por pagar.`;
+  if (p.pagado <= 0) return { titulo: "No le pagó al proveedor", detalle: `Compras paga ${soles(p.monto)} desde Por pagar`, fraccion: 0 };
+  if (falta < 0.005) return { titulo: `Pagó todo${medio}`, detalle: "Compras no paga nada", fraccion: 1 };
+  return { titulo: `Pagó ${soles(p.pagado)}${medio}`, detalle: `Compras paga ${soles(falta)} desde Por pagar`, fraccion: p.monto > 0 ? p.pagado / p.monto : 0 };
 }
 
 function leerGasto(x: unknown): GastoPorRevisar | null {
@@ -211,7 +229,69 @@ function leerCierre(x: unknown): CierrePorRecibir | null {
     decision: o.decision,
     monto,
     plataPorConfirmar: numero(o.plata_por_confirmar) ?? 0,
+    tienda: texto(o.tienda),
+    cuaderno: leerCuaderno(o.cuaderno),
   };
+}
+
+function leerCuaderno(x: unknown): CuadernoRonda | null {
+  const o = objeto(x);
+  if (!o) return null;
+  const n = (v: unknown) => numero(v) ?? 0;
+  const entero = (v: unknown) => Math.max(0, Math.trunc(n(v)));
+  return { dieron: n(o.dieron), compras: entero(o.compras), compraste: n(o.compraste), gastos: entero(o.gastos), gastaste: n(o.gastaste), prendas: entero(o.prendas) };
+}
+
+function leerRondaAbierta(x: unknown): RondaAbiertaRevisar | null {
+  const o = objeto(x);
+  const id = texto(o?.id);
+  if (!o || !id) return null;
+  return {
+    id,
+    texto: texto(o.texto) ?? "Ronda",
+    personaId: texto(o.persona_id) ?? "",
+    persona: texto(o.persona) ?? "Alguien de Compras",
+    tienda: texto(o.tienda),
+    abiertaEn: texto(o.abierta_en) ?? "",
+    cuenta: leerCuaderno(o.cuenta) ?? { dieron: 0, compras: 0, compraste: 0, gastos: 0, gastaste: 0, prendas: 0 },
+  };
+}
+
+/** Un renglón del cuaderno de una ronda cerrada. */
+export type RenglonCuaderno = { clave: "antes" | "dieron" | "compro" | "gasto"; titulo: string; detalle: string | null; monto: number; signo: "+" | "-" };
+
+/**
+ * El cuaderno de una ronda cerrada: lo que tenía al abrirla (se despeja del final, así la cuenta siempre cierra), le dieron, compró y gastó.
+ * El renglón final (devuelve o le debemos) lo dibuja la pantalla aparte, en grande. Sin cuaderno, ninguno.
+ */
+export function renglonesCuaderno(c: Pick<CierrePorRecibir, "cuaderno" | "decision" | "monto">): RenglonCuaderno[] {
+  const k = c.cuaderno;
+  if (!k) return [];
+  const final = c.decision === "devuelve" ? c.monto : -c.monto;
+  const antes = Math.round((final - k.dieron + k.compraste + k.gastaste) * 100) / 100;
+  const plural = (n: number, uno: string, varios: string) => (n === 1 ? `1 ${uno}` : `${n} ${varios}`);
+  const r: RenglonCuaderno[] = [];
+  if (Math.abs(antes) >= 0.005) r.push({ clave: "antes", titulo: antes > 0 ? "Tenía al abrirla" : "Debía al abrirla", detalle: null, monto: Math.abs(antes), signo: antes > 0 ? "+" : "-" });
+  r.push({ clave: "dieron", titulo: "Le dieron", detalle: null, monto: k.dieron, signo: "+" });
+  r.push({ clave: "compro", titulo: "Compró", detalle: k.compras > 0 ? plural(k.compras, "compra", "compras") : null, monto: k.compraste, signo: "-" });
+  r.push({ clave: "gasto", titulo: "Gastó", detalle: k.gastos > 0 ? plural(k.gastos, "gasto", "gastos") : null, monto: k.gastaste, signo: "-" });
+  return r;
+}
+
+/** Bajo una ronda abierta: «3 compras · 47 prendas» (o «Todavía sin compras»). */
+export function detalleRondaAbierta(c: Pick<CuadernoRonda, "compras" | "prendas">): string {
+  if (c.compras === 0) return "Todavía sin compras";
+  const compras = c.compras === 1 ? "1 compra" : `${c.compras} compras`;
+  return c.prendas > 0 ? `${compras} · ${c.prendas === 1 ? "1 prenda" : `${c.prendas} prendas`}` : compras;
+}
+
+/** Lo que tiene por cerrar cada persona en «Quién tiene plata»: lo que devuelve o lo que le debemos al cerrar su ronda. */
+export function porRecibirDe(cierres: readonly Pick<CierrePorRecibir, "personaId" | "decision" | "monto">[], personaId: string): { decision: "devuelve" | "le_deben"; monto: number } | null {
+  const suyos = cierres.filter((c) => c.personaId === personaId);
+  if (suyos.length === 0) return null;
+  const neto = suyos.reduce((s, c) => s + (c.decision === "devuelve" ? c.monto : -c.monto), 0);
+  if (Math.abs(neto) < 0.005) return null;
+  return { decision: neto > 0 ? "devuelve" : "le_deben", monto: Math.round(Math.abs(neto) * 100) / 100 };
 }
 
 /** Lo que manda `fn_revisar_compras`. `null` si no es lo que se espera (la base vieja, una respuesta rota). */
@@ -228,6 +308,7 @@ export function leerRevisarCompras(data: unknown): RevisarCompras | null {
       const nombre = texto(po?.nombre);
       return pid && nombre ? [{ id: pid, nombre, ruc: texto(po?.ruc) }] : [];
     }),
+    rondasAbiertas: lista(o.rondas_abiertas).map(leerRondaAbierta).filter((r): r is RondaAbiertaRevisar => r !== null),
   };
 }
 
@@ -260,27 +341,25 @@ export function veredictoPapel(p: Pick<PapelPorCompletar, "monto" | "lineas">, m
   return { caso, anotado, pagado: monto, unidades, faltan };
 }
 
-/** El título del veredicto, en palabras de tienda. */
-export const TITULO_CASO: Record<CasoPapel, string> = {
-  cuadra: "Cuadra todo",
-  plata: "Cuadran las prendas, no la plata",
-  faltan: "Cuadra la plata, faltan prendas",
-  nada: "No cuadra ni la plata ni las prendas",
-};
+/** Si la plata no cuadra, manda el papel (Felipe 2026-10-23): el comprobante queda por lo que dice, y una factura con su IGV. */
+export function notaNoCuadra(tipo: TipoPapel): string {
+  return `Queda por lo del papel${tipo === "factura" ? ", con su IGV" : ""}`;
+}
 
-/** Qué pasa con lo que no cuadra al completar: manda el papel (Felipe 2026-10-23) y lo que faltó ya lo dijo la tienda. */
-export function fraseVeredicto(v: Veredicto, tipo: TipoPapel): string {
-  const partes: string[] = [];
-  if (v.caso === "cuadra") return "Las prendas y la plata dicen lo mismo.";
-  if (v.caso === "plata" || v.caso === "nada") {
-    partes.push(
-      `El papel dice ${soles(v.pagado)} y las prendas anotadas suman ${soles(v.anotado)}: el comprobante queda por lo del papel` +
-        (tipo === "factura" ? " (con su IGV)" : "") +
-        ". Si se anotó mal, cambia el monto.",
-    );
-  }
-  if (v.faltan > 0) partes.push(`${v.faltan === 1 ? "Faltó 1 prenda" : `Faltaron ${v.faltan} prendas`}: abajo dice qué dijo la tienda.`);
-  return partes.join(" ");
+/** Arriba del detalle, en versalitas: el papel y su ronda («Boleta · RC-000012»). */
+export function sobrePapel(p: Pick<PapelPorCompletar, "tipo" | "ronda">): string {
+  return [TIPOS_PAPEL[p.tipo].nombre, p.ronda].filter(Boolean).join(" · ");
+}
+
+/** Bajo el proveedor: quién, cuándo y cuántas prendas («Marisol Rojas · 23/10 · 12 prendas»). */
+export function subtituloPapel(p: Pick<PapelPorCompletar, "persona" | "fecha" | "lineas">): string {
+  const prendas = p.lineas.reduce((a, l) => a + l.cantidad, 0);
+  return [p.persona, p.fecha ? diaMes(p.fecha) : null, prendas === 1 ? "1 prenda" : `${prendas} prendas`].filter(Boolean).join(" · ");
+}
+
+/** A qué tienda iban las prendas, sin repetir: «Tienda Lima», «Tienda Lima · Tienda AQP». */
+export function destinosDePapel(p: Pick<PapelPorCompletar, "lineas">): string {
+  return [...new Set(p.lineas.map((l) => l.destino))].join(" · ");
 }
 
 /** Dónde está una compra que todavía no se completa: falta mandarla, va en camino o la tienda la está contando. */
@@ -347,9 +426,9 @@ export function camposCompletar(
   return [...campos, ...campoResponsable({ ...r, quien: "Quién completa" })];
 }
 
-/** El botón dice lo que va a pasar (maqueta compras-formidable-2026-10): el papel queda completo y pasa a los libros. */
+/** El botón del detalle (diseño A, Felipe 2026-10-23): una palabra. Que pasa a los libros lo dice el aviso al guardar. */
 export function fraseCompletar(): string {
-  return "Completar y pasar a los libros";
+  return "Completar";
 }
 
 // ---------- Los cierres del día ----------
@@ -429,11 +508,6 @@ export function camposRevisarGasto(
   ];
 }
 
-/** El botón: «Pasar S/ 15.00 a los gastos». */
-export function fraseRevisarGasto(monto: number): string {
-  return `Pasar ${soles(monto)} a los gastos`;
-}
-
 // ---------- La bandeja de «Revisar compras» (rediseño, maqueta compras-formidable-2026-10, Felipe 2026-10-23) ----------
 // Cuatro cifras arriba que filtran y, debajo, la lista de lo que espera (a la izquierda) con el detalle al lado. Lo que dice cada fila y
 // cada cifra sale de aquí; qué se guarda sigue siendo lo de cada hoja de antes.
@@ -441,12 +515,18 @@ export function fraseRevisarGasto(monto: number): string {
 export type TipoBandeja = "plata" | "papel" | "gasto" | "cierre";
 export const TIPOS_BANDEJA: readonly TipoBandeja[] = ["plata", "papel", "gasto", "cierre"];
 
-export const CIFRA_BANDEJA: Record<TipoBandeja, { nombre: string; detalle: string }> = {
-  plata: { nombre: "Plata por confirmar", detalle: "Lo que anotaron las compradoras" },
-  papel: { nombre: "Compras por completar", detalle: "Copiar serie y número" },
-  gasto: { nombre: "Gastos por revisar", detalle: "Taxis, cargadores, envíos" },
-  cierre: { nombre: "Rondas cerradas", detalle: "Plata que devuelven" },
+/** Cada cifra: su nombre largo (el de la lista para el lector), el corto de la tarjeta y la cabecera de su lista (diseño A, 2026-10-23). */
+export const CIFRA_BANDEJA: Record<TipoBandeja, { nombre: string; corto: string; cabecera: string }> = {
+  plata: { nombre: "Plata por confirmar", corto: "Plata", cabecera: "Por confirmar" },
+  papel: { nombre: "Compras por completar", corto: "Compras", cabecera: "Por completar" },
+  gasto: { nombre: "Gastos por revisar", corto: "Gastos", cabecera: "Por revisar" },
+  cierre: { nombre: "Rondas cerradas", corto: "Rondas", cabecera: "Por recibir" },
 };
+
+/** El total en soles de una lista de la bandeja (la plata, los papeles, los gastos o lo que devuelven o se les debe en las rondas). */
+export function totalBandeja(lista: readonly { monto: number }[]): number {
+  return Math.round(lista.reduce((a, x) => a + x.monto, 0) * 100) / 100;
+}
 
 /** Una fila de la bandeja: qué es, de quién y cuándo, cuánto y su estado. */
 /** Cuándo y en qué ronda: «23/10 · RC-000003» (lo de antes de las rondas, solo el día). */

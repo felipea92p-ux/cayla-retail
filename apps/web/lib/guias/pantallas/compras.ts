@@ -24,7 +24,7 @@ export const GUIA_FACTURAS: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "El historial de compras",
-      texto: "Cada compra que CAYLA le hizo a un proveedor, con su papel: factura, boleta, nota de venta o sin comprobante. Aquí ves las de todas las tiendas, con lo que falta pagar y lo que falta llegar. Solo se mira: las compras se anotan en «Mi plata para compras» y se completan en «Revisar compras».",
+      texto: "Cada compra que CAYLA le hizo a un proveedor, con su papel: factura, boleta, nota de venta o sin comprobante. Aquí ves las de todas las tiendas, con lo que falta pagar y lo que falta llegar. Solo se mira: las compras se anotan en «Mis compras» y se completan en «Revisar compras».",
     },
     {
       id: "exportar",
@@ -1796,12 +1796,12 @@ export const GUIA_PLAN_HISTORIAL: Guia = {
 // Es plata: la guía dice con cuidado qué cuenta como entregado, devuelto y en la mano, y nunca entrega, registra ni anula (los
 // botones se EXPLICAN con la pieza encendida). Lo que depende de que alguien ya tenga fondo (las cifras, la lista, los movimientos) es
 // opcional; sin fondos, la guía explica la tarjeta vacía.
-// Compras ▸ Mi plata para compras (ADR-0480): lo que tiene, sus tres respuestas, lo que le falta mandar y el cierre del día. Las hojas se
+// Compras ▸ Mis compras (ADR-0480): lo que tiene, sus tres respuestas, lo que le falta mandar y el cierre del día. Las hojas se
 // abren y se explican; nunca se anota, se manda ni se cierra nada.
 export const GUIA_MI_PLATA: Guia = {
   id: "compras.mi-plata",
   ruta: "/compras/mi-plata",
-  titulo: "Mi plata para compras",
+  titulo: "Mis compras",
   resumen: "Lo que tienes para comprar, lo que compraste y lo que mandas a la tienda.",
   pasos: [
     {
@@ -2033,7 +2033,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.proveedores",
       opcional: true,
       titulo: "Tus proveedores",
-      texto: "Primero a los que les compraste hace poco, con cuándo y cuántas veces. Los demás, en «Ver los otros». Tócalo para seguir.",
+      texto: "Primero a los que les compraste hace poco, con cuándo y cuántas veces; después los demás. Se ven de 10 en 10: al bajar aparecen los siguientes. Tócalo para seguir.",
     },
     {
       id: "proveedor-nuevo",
@@ -2054,49 +2054,35 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.habituales",
       opcional: true,
       titulo: "Lo que le compras siempre",
-      texto: "Sus prendas en tarjetas, con lo de la vez pasada. Toca una y se abre su hoja: cuántas, el precio y a qué tienda va. La que ya va en la compra lleva su número.",
+      texto: "Sus prendas en tarjetas, con su foto y lo de la vez pasada. Toca una y se abre su hoja: cuántas, el precio y a qué tienda va. La que ya va en la compra lleva su número.",
     },
     {
       id: "algo-nuevo",
       ancla: "compra.algo-nuevo",
       opcional: true,
-      titulo: "Algo nuevo de este proveedor",
-      texto: "Una prenda que todavía no le compraste: dices qué es, cómo se llama y su marca, y sigue igual que las de siempre.",
+      titulo: "Algo nuevo, o no la encuentras",
+      texto: "Fijo abajo: para una prenda que todavía no le compraste, o si no la encuentras aquí o no sabes cómo la llaman en la tienda. Dices qué es, la marca y cómo la conoces. Es solo una referencia: no crea la prenda en el catálogo, la crea la tienda al recibirla.",
     },
     {
-      id: "buscar-categoria",
-      ancla: "compra.buscar-categoria",
+      id: "categoria-nueva",
+      ancla: "compra.categoria-nueva",
       opcional: true,
       titulo: "Qué es",
-      texto: "Busca la categoría: «blusa», «jean», «polera». Sin tildes ni mayúsculas.",
+      texto: "La categoría de la prenda. Arriba, las que ya le compras a este proveedor; abajo, las demás.",
     },
     {
-      id: "categorias-nuevo",
-      ancla: "compra.categorias-nuevo",
+      id: "marca-nueva",
+      ancla: "compra.marca-nueva",
       opcional: true,
-      titulo: "Elige la categoría",
-      texto: "Arriba, las que ya le compras a este proveedor; abajo, las demás.",
+      titulo: "La marca",
+      texto: "Como dice la etiqueta. Primero las que trae este proveedor; si trae una sola, ya viene puesta. Si falta una marca, Compras la crea en Catálogo ▸ Marcas.",
     },
     {
       id: "nombre-nuevo",
       ancla: "compra.nombre-nuevo",
       opcional: true,
       titulo: "Cómo se llama",
-      texto: "Un nombre corto, como lo dicen en la tienda. Si se parece a una que ya le compraste, te pregunta si es esa, para no anotarla dos veces.",
-    },
-    {
-      id: "marcas",
-      ancla: "compra.marcas",
-      opcional: true,
-      titulo: "La marca",
-      texto: "Las marcas que trae este proveedor. Si trae una sola, se pone sola. Con «Otra marca» buscas entre todas.",
-    },
-    {
-      id: "buscar-marca",
-      ancla: "compra.buscar-marca",
-      opcional: true,
-      titulo: "Busca la marca",
-      texto: "Como dice la etiqueta de la prenda. Si no está, Compras la crea en Catálogo ▸ Marcas.",
+      texto: "Un nombre corto, como lo dicen en la tienda o como la conoces tú. Si se parece a una que ya le compras, te pregunta si es esa, para no anotarla dos veces.",
     },
     {
       id: "cantidad",
@@ -2268,6 +2254,13 @@ export const GUIA_FONDOS: Guia = {
       texto: "A la izquierda, lo que espera, con su foto, de quién, cuánto y cómo está. Toca uno y su detalle se abre al lado: pasas de uno a otro sin perder el lugar.",
     },
     {
+      id: "rondas-abiertas",
+      ancla: "fondos.rondas-abiertas",
+      opcional: true,
+      titulo: "Rondas abiertas",
+      texto: "Quién está comprando ahora: su ronda, desde cuándo y cuánto lleva.",
+    },
+    {
       id: "papel-detalle",
       ancla: "fondos.papel-detalle",
       opcional: true,
@@ -2352,6 +2345,13 @@ export const GUIA_FONDOS: Guia = {
       texto: "Cuando una compradora cierra su ronda de compras: «Devuelve» si le sobró, «Le debemos» si pagó de su bolsillo. Si todavía tiene plata por confirmar, primero se confirma.",
     },
     {
+      id: "cierre-cuaderno",
+      ancla: "fondos.cierre-cuaderno",
+      opcional: true,
+      titulo: "La cuenta de su ronda",
+      texto: "Lo que le dieron, compró y gastó en su ronda. Abajo, lo que devuelve o lo que le debemos.",
+    },
+    {
       id: "cierre-recibir",
       ancla: "fondos.cierre-recibir",
       opcional: true,
@@ -2359,23 +2359,10 @@ export const GUIA_FONDOS: Guia = {
       texto: "Eliges dónde entra la plata (o de dónde sale) y cuánto trajo. Lo que no trajo sigue en su plata de compras. En la demo no lo guardamos.",
     },
     {
-      id: "ir-quien-tiene",
-      ancla: "fondos.ir-quien-tiene",
-      titulo: "Quién tiene plata",
-      texto: "Te lleva a lo de los fondos, más abajo: cuánto tiene cada persona en la mano, las rendiciones y las entregas y devoluciones.",
-    },
-    {
       id: "entregar",
       ancla: "fondos.entregar",
       titulo: "Entregar plata",
       texto: "Eliges a quién, de qué banco o caja fuerte sale y para qué es («compras en Gamarra»). No es un gasto: la plata sigue siendo de CAYLA mientras la persona la tiene. Nadie se entrega plata a sí mismo.",
-    },
-    {
-      id: "vacio",
-      ancla: "fondos.vacio",
-      opcional: true,
-      titulo: "Todavía nadie tiene fondo",
-      texto: "Cuando entregues la primera plata, aquí vas a ver a esa persona: cuánto le diste, cuánto devolvió y cuánto tiene en la mano.",
     },
     {
       id: "rendiciones",
@@ -2392,9 +2379,24 @@ export const GUIA_FONDOS: Guia = {
       texto: "Abre cada pago y gasto con su foto. Si falta plata y explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda, y la hoja dice en cuánto queda la suya. Quien le entregó la plata no la aprueba: puede revisarla y devolverla para que la corrija. En la demo no la aprobamos.",
     },
     {
+      id: "quien-tiene",
+      ancla: "fondos.quien-tiene",
+      titulo: "Quién tiene plata",
+      texto: "Abre una hoja con cuánto tienen en la mano todas las personas juntas y, por persona, cuánto se le entregó, cuánto devolvió y cuánto tiene (te la abrimos).",
+    },
+    {
+      id: "vacio",
+      ancla: "fondos.vacio",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fondos.quien-tiene" }],
+      titulo: "Todavía nadie tiene fondo",
+      texto: "Cuando entregues la primera plata, aquí vas a ver a esa persona: cuánto le diste, cuánto devolvió y cuánto tiene en la mano.",
+    },
+    {
       id: "cifras",
       ancla: "fondos.cifras",
       opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fondos.quien-tiene" }],
       titulo: "Toda la empresa",
       texto: "Cuánto tienen en la mano todas las personas juntas, cuánto se entregó desde el primer fondo y cuánto devolvieron.",
     },
@@ -2420,9 +2422,18 @@ export const GUIA_FONDOS: Guia = {
       texto: "Si alguien debe por un faltante y te devuelve la plata, aquí lo registras: cuánto pagó y a qué banco o caja fuerte entró. La deuda baja apenas se guarda. No lo registra quien debe, y no se paga más de lo que debe.",
     },
     {
+      id: "entregas",
+      ancla: "fondos.entregas",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Entregas y devoluciones",
+      texto: "Abre la hoja con cada entrega, devolución y pago de deuda (te la abrimos).",
+    },
+    {
       id: "movimientos",
       ancla: "fondos.movimientos",
       opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fondos.entregas" }],
       titulo: "Entregas, devoluciones y pagos de deuda",
       texto: "Cada entrega, devolución y pago de deuda, lo más nuevo arriba: de dónde salió o a dónde llegó la plata y para qué. Lo anulado queda a la vista, tachado, con quién lo anuló y por qué.",
     },
@@ -2436,6 +2447,7 @@ export const GUIA_FONDOS: Guia = {
     {
       id: "fin",
       ancla: null,
+      preparar: [{ tipo: "escape" }],
       titulo: "¡Listo!",
       texto: "Ya sabes entregar plata, ver cuánto tiene cada persona y revisar sus rendiciones. Para repasarlo: Mi perfil ▸ Demo ▸ Fondos por rendir.",
     },
