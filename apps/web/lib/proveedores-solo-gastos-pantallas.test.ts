@@ -16,7 +16,6 @@ const codigo = (ruta: string) => leer(ruta).replace(/\/\*[\s\S]*?\*\//g, "").rep
 
 const PANTALLAS_DE_MERCADERIA = [
   "components/ordenes-compra/NuevaOrdenCompra.tsx", // Nueva y Editar orden de compra
-  "app/(app)/compras/nueva/page.tsx", // Registrar factura de proveedor
   "components/LlegoMercaderia.tsx", // Recibir ▸ Llegó mercadería
   "components/recepcion-conteo/LlegoSinAviso.tsx", // Recibir ▸ Llegó sin aviso
   "lib/marcas-datos.ts", // alta de producto, editar producto y conteo al vuelo (ElegirMarcaProveedor)
@@ -34,7 +33,6 @@ describe("los proveedores solo de gastos no se ofrecen para comprar ni recibir m
     expect(codigo("components/ordenes-compra/NuevaOrdenCompra.tsx")).toMatch(/proveedoresParaPedir\(proveedores,\s*\[/);
     expect(codigo("components/LlegoMercaderia.tsx")).toMatch(/proveedoresParaPedir\(directorioCompleto,\s*proveedorId\)/);
     expect(codigo("components/recepcion-conteo/LlegoSinAviso.tsx")).toMatch(/proveedoresParaPedir\(todos,\s*proveedorId\)/);
-    expect(codigo("app/(app)/compras/nueva/page.tsx")).toMatch(/proveedoresParaPedir\(activos,\s*proveedorDeLaUrl\)/);
     expect(codigo("lib/marcas-datos.ts")).toMatch(/proveedoresParaPedir\(activos,\s*enUso\)/);
     expect(codigo("app/(app)/productos/marcas/page.tsx")).toMatch(/proveedoresParaPedir\(activos,\s*enUso\)/);
   });
@@ -59,7 +57,7 @@ describe("los proveedores solo de gastos no se ofrecen para comprar ni recibir m
 
 describe("«+ Agregar proveedor» se dibuja fuera del <form>", () => {
   // Quien usa `useAltaDeProveedor` dibuja `alta.modal` DESPUÉS de cerrar su <form> (o fuera de él).
-  for (const ruta of ["components/CompraFormV2.tsx", "components/recepcion-conteo/LlegoSinAviso.tsx"]) {
+  for (const ruta of ["components/recepcion-conteo/LlegoSinAviso.tsx"]) {
     it(`${ruta}: alta.modal va después del </form>`, () => {
       const fuente = leer(ruta);
       expect(fuente).toMatch(/\{alta\.modal\}/);

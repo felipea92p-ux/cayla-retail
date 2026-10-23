@@ -1,5 +1,5 @@
-// Guías de Compras (ADR-0389): Facturas de proveedor, su detalle, Por pagar, Notas de crédito, Proveedores y su ficha, Registrar
-// factura, la parte de tu tienda y el Plan de campaña. Es dinero: cada guía dice con cuidado QUÉ registra cada cosa (la factura es
+// Guías de Compras (ADR-0389): el Historial de compras, su detalle, Por pagar, Notas de crédito, Proveedores y su ficha, la parte
+// de tu tienda y el Plan de campaña. Es dinero: cada guía dice con cuidado QUÉ registra cada cosa (la factura es
 // la deuda con el proveedor; el pago la baja; la nota de crédito la baja o queda a tu favor) y nunca toca lo que guarda. El piloto
 // solo abre vistas rápidas, la ventana de editar un proveedor o la de una categoría del plan, cambia de pestaña o de agrupación y
 // escribe un ejemplo sacado de la pantalla. Registrar, Pagar, Anular, Guardar, Reembolsar: se EXPLICAN con la pieza encendida.
@@ -17,38 +17,32 @@ const BOTON_FILTROS: PasoGuia = {
 export const GUIA_FACTURAS: Guia = {
   id: "compras",
   ruta: "/compras",
-  titulo: "Facturas de proveedor",
-  resumen: "Todo lo que se le compró a los proveedores: cuánto falta pagar y cuánto falta llegar.",
+  titulo: "Historial de compras",
+  resumen: "Todo lo que se le compró a los proveedores, con su papel: cuánto falta pagar y cuánto falta llegar.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
-      titulo: "Las facturas de proveedor",
-      texto: "Cada factura que registras es lo que CAYLA le compró a un proveedor y, mientras no se pague, lo que le debe. Aquí ves las de todas las tiendas, con lo que falta pagar y lo que falta llegar. Es una demo: no se registra ni se paga nada.",
-    },
-    {
-      id: "registrar",
-      ancla: "compras.registrar",
-      titulo: "Registrar una factura",
-      texto: "Cuando llega la factura de un proveedor, empiezas aquí: copias el documento, lo que se compró y cómo se paga. Te lleva a otra pantalla, así que en la demo no lo tocamos.",
+      titulo: "El historial de compras",
+      texto: "Cada compra que CAYLA le hizo a un proveedor, con su papel: factura, boleta, nota de venta o sin comprobante. Aquí ves las de todas las tiendas, con lo que falta pagar y lo que falta llegar. Solo se mira: las compras se anotan en «Mi plata para compras» y se completan en «Revisar compras».",
     },
     {
       id: "exportar",
       ancla: "compras.exportar",
       titulo: "Descargar el mes",
-      texto: "Descarga un archivo con las facturas del mes, que se abre en Excel, para mandárselo al contador. No cambia nada en el sistema.",
+      texto: "Descarga un archivo con las compras del mes, que se abre en Excel, para mandárselo al contador. No cambia nada en el sistema.",
     },
     {
       id: "cifras",
       ancla: "compras.cifras",
       titulo: "Cómo están las compras",
-      texto: "Lo que se debe a proveedores (y cuánto ya venció), las facturas cuya mercadería todavía no llega, lo comprado este mes y el IGV de las facturas del mes. Las que tienen flecha te llevan a donde se actúa.",
+      texto: "Lo que se debe a proveedores (y cuánto ya venció), las compras cuya mercadería todavía no llega, lo comprado este mes y el IGV de las facturas del mes. Las que tienen flecha te llevan a donde se actúa.",
     },
     {
       id: "vistas",
       ancla: "compras.vistas",
       titulo: "Por pagar, por recibir, vencidas",
-      texto: "Deja en la lista solo las facturas que te interesan: las que tienen saldo, las que esperan mercadería, las vencidas o las ya pagadas. El número dice cuántas hay en cada una (te mostramos «Vencidos»).",
+      texto: "Deja en la lista solo las compras que te interesan: las que tienen saldo, las que esperan mercadería, las vencidas o las ya pagadas. El número dice cuántas hay en cada una (te mostramos «Vencidos»).",
     },
     {
       id: "vista-vencidos",
@@ -56,19 +50,19 @@ export const GUIA_FACTURAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "compras.vista-vencidos" }],
       titulo: "Solo lo vencido",
-      texto: "Ahora la lista tiene solo las facturas cuya fecha de pago ya pasó y todavía se deben: son las primeras que hay que pagar. Las otras píldoras funcionan igual.",
+      texto: "Ahora la lista tiene solo las compras cuya fecha de pago ya pasó y todavía se deben: son las primeras que hay que pagar. Las otras píldoras funcionan igual.",
     },
     {
       id: "vista-todos",
       ancla: "compras.vista-todos",
       preparar: [{ tipo: "clic", ancla: "compras.vista-todos" }],
       titulo: "Volver a verlas todas",
-      texto: "«Todos» quita ese filtro y vuelve a mostrar todas las facturas.",
+      texto: "«Todos» quita ese filtro y vuelve a mostrar todas las compras.",
     },
     {
       id: "buscador",
       ancla: "filtros-compras.buscador",
-      titulo: "Buscar una factura",
+      titulo: "Buscar una compra",
       texto: "Escribe el nombre del proveedor, su RUC o el número del documento. La lista se queda solo con lo que coincide (te escribimos un ejemplo).",
       demostrar: [{ tipo: "escribir", ancla: "filtros-compras.buscador", texto: { palabraDe: "compras.proveedor" } }],
     },
@@ -97,8 +91,8 @@ export const GUIA_FACTURAS: Guia = {
     {
       id: "lista",
       ancla: "compras.lista",
-      titulo: "Todas las facturas",
-      texto: "Una por fila: la fecha, el proveedor, el número y el total. Al tocar una se abre su detalle con las líneas, los pagos y las recepciones. Una factura no se borra: si se registró por error, se anula y queda anotada.",
+      titulo: "Todas las compras",
+      texto: "Una por fila: la fecha, el proveedor, el número y tipo de papel, y el total. Al tocar una se abre su detalle con las líneas, los pagos y las recepciones. Una compra no se borra: si se registró por error, se anula y queda anotada.",
     },
     {
       id: "recepcion",
@@ -118,7 +112,7 @@ export const GUIA_FACTURAS: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes revisar las facturas de proveedor. Para repasarlo: Mi perfil ▸ Demo ▸ Facturas de proveedor.",
+      texto: "Ya sabes revisar el historial de compras. Para repasarlo: Mi perfil ▸ Demo ▸ Historial de compras.",
     },
   ],
   alSalir: [{ tipo: "vaciar", ancla: "filtros-compras.buscador" }],
@@ -580,13 +574,6 @@ export const GUIA_PROVEEDORES: Guia = {
       texto: "El saldo con ese proveedor; en rojo si algo ya venció. Tócalo para ir a pagarle en Por pagar.",
     },
     {
-      id: "comprobante",
-      ancla: "proveedores.comprobante",
-      opcional: true,
-      titulo: "Registrar su factura",
-      texto: "Atajo para registrar una factura de este proveedor, con su nombre ya elegido.",
-    },
-    {
       id: "vista",
       ancla: "proveedor-vista.resumen",
       opcional: true,
@@ -806,7 +793,7 @@ export const GUIA_PROVEEDOR: Guia = {
       ancla: "proveedor-ficha.ultimos",
       opcional: true,
       titulo: "Sus últimas facturas",
-      texto: "Las facturas más recientes de este proveedor, con lo más urgente de cada una. Si ves Facturas de proveedor, tocas una para abrirla y abajo hay un enlace a todas; si no, solo se leen.",
+      texto: "Las facturas más recientes de este proveedor, con lo más urgente de cada una. Si ves el Historial de compras, tocas una para abrirla y abajo hay un enlace a todas; si no, solo se leen.",
     },
     {
       id: "otros",
@@ -822,124 +809,6 @@ export const GUIA_PROVEEDOR: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }],
-};
-
-export const GUIA_NUEVA_FACTURA: Guia = {
-  id: "compras.nueva",
-  ruta: "/compras/nueva",
-  titulo: "Registrar factura de proveedor",
-  resumen: "Anotar la factura de un proveedor tal como llegó: lo comprado, cómo se paga y adónde va.",
-  pasos: [
-    {
-      id: "bienvenida",
-      ancla: null,
-      titulo: "Registrar una factura",
-      texto: "Aquí copias la factura del proveedor tal como llegó. Al registrarla queda la deuda con el proveedor (o su pago, si es al contado) y la mercadería por recibir. Es una demo: no se registra nada.",
-    },
-    {
-      id: "progreso",
-      ancla: "nueva.progreso",
-      titulo: "Cuánto te falta",
-      texto: "Son cuatro cosas: el proveedor, el número del documento, al menos una prenda con su costo y el pago. Esta barra se llena a medida que las completas.",
-    },
-    {
-      id: "documento",
-      ancla: "nueva.documento",
-      titulo: "1 · El documento",
-      texto: "Busca al proveedor por nombre o RUC (si no está, «+ Agregar proveedor» lo registra ahí mismo, si tu cuenta puede) y elige si es factura, boleta o nota de venta. Al elegirlo ves su plazo, lo que ya le debes y si te debe algo a favor.",
-    },
-    {
-      id: "serie",
-      ancla: "nueva.serie",
-      titulo: "Serie, número y fecha",
-      texto: "Cópialos tal como están en el papel (te escribimos una serie de ejemplo). Si ese número de ese proveedor ya se registró, te avisa debajo para que no lo cargues dos veces.",
-      demostrar: [{ tipo: "escribir", ancla: "nueva.serie", texto: "F001" }],
-    },
-    {
-      id: "condicion",
-      ancla: "nueva.condicion",
-      preparar: [{ tipo: "vaciar", ancla: "nueva.serie" }],
-      titulo: "Contado o crédito",
-      texto: "Al contado se paga ya, y el pago se registra junto con la factura. A crédito queda en Por pagar hasta su vencimiento (te lo mostramos).",
-    },
-    {
-      id: "credito",
-      ancla: "nueva.condicion",
-      preparar: [{ tipo: "clic", ancla: "nueva.credito" }],
-      titulo: "A crédito",
-      texto: "Se enciende «Vence el», calculado con el plazo del proveedor; puedes cambiarlo. La fecha de llegada dice cuándo debe llegar la mercadería: si no llega, aparece como atrasada.",
-    },
-    {
-      id: "destino",
-      ancla: "nueva.destino",
-      opcional: true,
-      titulo: "A qué tienda va",
-      texto: "La tienda que va a recibir la mercadería: puedes elegir cualquiera. Si una sola factura trae prendas para varias, elige «Repartir entre tiendas» (tiene que quedar al menos una) y en cada línea dices cuántas van a cada una.",
-    },
-    {
-      id: "lineas",
-      ancla: "nueva.lineas",
-      preparar: [{ tipo: "clic", ancla: "nueva.contado" }],
-      titulo: "2 · Lo que se compró",
-      texto: "Una línea por prenda: búscala, elige talla y color, cuántas y el costo. Si no separó por talla, elige «Sin desglose» y se reparte al recibir. El interruptor dice si el precio ya trae IGV. «+ Agregar línea» suma otra.",
-    },
-    {
-      id: "pago",
-      ancla: "nueva.pago",
-      titulo: "3 · El pago",
-      texto: "Al contado tienes que anotar cómo se pagó: el medio, el monto y de qué cuenta sale. Puedes pagar con varios medios. A crédito es opcional.",
-    },
-    {
-      id: "total",
-      ancla: "nueva.total",
-      titulo: "El total",
-      texto: "Subtotal, IGV y total, que se calculan solos con las líneas. Compáralo con el papel antes de registrar: tiene que dar lo mismo.",
-    },
-    {
-      id: "donde-cae",
-      ancla: "nueva.donde-cae",
-      titulo: "Adónde va todo",
-      texto: "Antes de registrar, te dice si queda en Por pagar, cuándo se espera la mercadería y a qué tienda va.",
-    },
-    {
-      id: "adjuntos",
-      ancla: "nueva.adjuntos",
-      titulo: "La foto de la factura",
-      texto: "Adjunta el PDF o una foto del documento y de la guía. Se suben al registrar.",
-    },
-    {
-      id: "nota",
-      ancla: "nueva.nota",
-      titulo: "Una nota, si hace falta",
-      texto: "Algo que conviene recordar de esta factura: un acuerdo con el proveedor, un descuento prometido. Es opcional y se ve en el detalle de la factura.",
-    },
-    {
-      id: "pendientes",
-      ancla: "nueva.pendientes",
-      titulo: "Lo que falta",
-      texto: "La lista de lo que falta para poder registrar. Cuando todo tiene su ✓, el botón se enciende.",
-    },
-    {
-      id: "responsable",
-      ancla: "nueva.responsable",
-      opcional: true,
-      titulo: "Quién la registra",
-      texto: "Elige quién está registrando la factura: queda anotado en ella. Sin elegirlo, no se puede registrar.",
-    },
-    {
-      id: "registrar",
-      ancla: "nueva.registrar",
-      titulo: "Registrar",
-      texto: "Guarda la factura: crea la deuda con el proveedor (o su pago) y deja la mercadería esperando en Recibir. En la demo no lo tocamos. «Cancelar» vuelve a la lista.",
-    },
-    {
-      id: "fin",
-      ancla: null,
-      titulo: "¡Listo!",
-      texto: "Ya sabes registrar una factura de proveedor. Para repasarlo: Mi perfil ▸ Demo ▸ Registrar factura de proveedor.",
-    },
-  ],
-  alSalir: [{ tipo: "vaciar", ancla: "nueva.serie" }],
 };
 
 export const GUIA_MI_PARTE: Guia = {

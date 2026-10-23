@@ -201,6 +201,25 @@ catálogo quede con lo anotado).
   una compra ya completada; `reabrir_envio` ahora lo frena y completar bloquea sus envíos mientras guarda.
 - **El diccionario** (`docs/datos/generado/`) se refresca cuando las migraciones estén en producción (se reescribe desde el volcado de producción).
 
+## Actualización 2026-10-23: «Historial de compras», sin registro a mano
+
+**El problema.** Con la compra naciendo en «Mi plata para compras» y completándose en «Revisar compras», `/compras` seguía llamándose «Facturas
+de proveedor» y tenía su «+ Registrar factura» (el formulario de ADR-0035, `/compras/nueva`), con atajos desde la ficha y la lista de Proveedores,
+el vacío de Recibir y «Comprar» de Análisis. Dos puertas para el mismo papel, y un nombre que mentía: lo comprado puede venir con factura, boleta,
+nota de venta o sin comprobante.
+
+**La decisión (Felipe, preguntado con las dos opciones):** la pantalla es solo el historial, y el registro a mano **se retira de todo el ERP**.
+- `/compras` se llama **«Historial de compras»** (menú, cabecera, guía, «Volver a…»); en Roles y accesos también, por
+  `20261023164000_compras_historial_de_compras.sql` (solo `nombre` e `incluye`: la clave `facturas_compra` no cambia, la usan los permisos).
+- Se borran `/compras/nueva`, `CompraFormV2`, `CompraFormProgreso`, `RepartoEnRegistro`, el selector de adjuntos del alta y las reglas puras que solo
+  ellos usaban (las marcó `knip --production`). Se quitan sus entradas: «+ Comprobante» de Proveedores (lista y vista rápida), «Registrar factura»
+  de la ficha del proveedor y «Registrar un comprobante» del vacío de Recibir. «Comprar» de Análisis, para una prenda de terceros, lleva a
+  «Mi plata para compras» (y se muestra a quien tiene ese módulo).
+- **Lo que se paga, a sabiendas:** «Revisar compras» crea comprobantes al contado, así que **ya no hay cómo registrar una compra a crédito**:
+  «Por pagar» seguirá con las deudas que ya existen y no recibirá nuevas hasta que Compras simple aprenda el crédito. `registrar_compra` queda en la
+  base sin pantalla que la llame (no se retira: hacerlo es un cambio de esquema en producción y no hace falta para cerrar la puerta).
+- Lo que sigue en el detalle de una compra: recibir, pagar, adjuntar y anular (una compra sin pagos ni recepciones). No es registrar.
+
 ## Cómo se ve mal hecho
 
 - Retirar `ordenes_compra` y crear una clave nueva: el rol «Compras» perdería en silencio recibir, gastos y proveedores.

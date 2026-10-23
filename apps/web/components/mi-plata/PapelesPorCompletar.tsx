@@ -221,7 +221,7 @@ function CompletarPapelModal({
     }
     const documento = (data as { documento?: string } | null)?.documento;
     avisar.exito(documento ? `Guardaste ${documento}` : "Guardaste la compra", {
-      detalle: `Ya está en Facturas de proveedor, pagada del fondo de ${primerNombre(papel.persona)}.`,
+      detalle: `Ya está en el Historial de compras, pagada del fondo de ${primerNombre(papel.persona)}.`,
     });
     onClose();
     router.refresh();
