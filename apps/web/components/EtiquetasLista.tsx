@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useState, type ReactNode } from "react";
+import { useCallback, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -48,7 +48,8 @@ import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
 import { CategoriasDeCampana } from "@/components/campana-hoja/CategoriasDeCampana";
-import { PASO_DESCUENTO as PASO, pasoDeDescuento, textoDuracion } from "@/lib/campana-hoja";
+import { PASO_DESCUENTO as PASO, ejemplosDeCaja, pasoDeDescuento, piezasDelMosaico, textoDuracion } from "@/lib/campana-hoja";
+import { sinMovimiento } from "@/components/etiqueta-prendas/vuelo";
 import { avanceDeCampana } from "@/lib/sellos-pases";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { TEXTOS_MODO, type ModoEtiquetas } from "@/lib/sellos-campanas";
@@ -106,7 +107,14 @@ export type Etiqueta = {
   sedeIds: string[];
 };
 
-export type CategoriaOpcion = { id: string; nombre: string; familia: string };
+export type CategoriaOpcion = {
+  id: string;
+  nombre: string;
+  familia: string;
+  /** Para el ícono de la categoría en la etiqueta de la hoja (`SinFoto`, ADR-0333): su prefijo y el código de su familia. */
+  prefijo?: string | null;
+  familiaCodigo?: string | null;
+};
 
 // `true` desde que `registrar_venta` lee `etiquetas.descuento_pct`
 // (20260918170000_venta_aplica_descuento_de_campana.sql, paso 3 de ADR-0107). Vuelve a
@@ -366,6 +374,8 @@ export function CampanaModal({
   const [sedesElegidas, setSedesElegidas] = useState(() => new Set(etiqueta.sedeIds));
   const ofreceSedes = tiendas.length > 1;
   const [guardando, setGuardando] = useState(false);
+  // Al guardar, el sello de la campaña se estampa en la etiqueta y la hoja se cierra cuando terminó de estamparse.
+  const [sellada, setSellada] = useState(false);
   const router = useRouter();
   const [hoy] = useState(hoyLima);
   const idDescuento = useId();
@@ -417,14 +427,21 @@ export function CampanaModal({
   // casillas por familia, con las categorías sin prendas plegadas al final: `CategoriasDeCampana`).
   const prendasDe = prendasPorCategoria(prendasConCosto);
   const alcance = alcanceCampana(prendasConCosto, elegidas, new Set(variantesManuales));
+  // La etiqueta viva: sus categorías en el mosaico y lo que cobra la caja por prendas reales que alcanzaría.
+  const mosaico = piezasDelMosaico(categorias, elegidas, prendasDe);
+  const ejemplos = ejemplosDeCaja(prendasConCosto, elegidas, new Set(variantesManuales), prendasDe, pct.ok ? pct.valor : null);
 
-  const alternar = (id: string) =>
+  // La categoría recién marcada vuela de su casilla a su pieza en la etiqueta (`EtiquetaDeCampana`).
+  const vuelo = useRef<string | null>(null);
+  const alternar = (id: string) => {
+    if (!elegidas.has(id)) vuelo.current = id;
     setElegidas((actual) => {
       const nuevo = new Set(actual);
       if (nuevo.has(id)) nuevo.delete(id);
       else nuevo.add(id);
       return nuevo;
     });
+  };
   // La casilla de «toda la familia»: marca o quita sus categorías de un toque.
   const alternarFamilia = (ids: string[], marcar: boolean) =>
     setElegidas((actual) => {
@@ -467,6 +484,9 @@ export function CampanaModal({
       );
       const destino = destinoReimprimir(cambian, etiqueta.id);
       const reimprimir = avisoReimprimir(cambian.quedan.length + cambian.salen.length, destino !== null);
+      // Ya guardó: el sello se estampa (700 ms, una vez) y recién entonces la hoja se cierra y sale el aviso. Sin movimiento, al instante.
+      setSellada(true);
+      if (!sinMovimiento()) await new Promise((listo) => setTimeout(listo, 750));
       avisar.exito(
         `${etiqueta.nombre} actualizad${T.o}`,
         reimprimir
@@ -710,6 +730,15 @@ export function CampanaModal({
               rango={!fDesde.ok || !fHasta.ok || objecion ? "Revisa las fechas" : (textoRango(fDesde.valor, fHasta.valor) ?? "Sin fechas: rige siempre")}
               chip={fDesde.ok && fHasta.ok && !objecion ? chipDeTarjeta(vigenciaDe(fDesde.valor, fHasta.valor, hoy), alcance.total, hoy) : null}
               total={alcance.total}
+              piezas={mosaico.piezas.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, familiaCodigo: c.familiaCodigo, prendas: c.prendas }))}
+              mas={mosaico.mas}
+              ejemplos={ejemplos}
+              categoriaDe={(id) => {
+                const c = id ? categorias.find((x) => x.id === id) : undefined;
+                return c && { id: c.id, nombre: c.nombre, prefijo: c.prefijo, familiaCodigo: c.familiaCodigo, prendas: prendasDe.get(c.id) ?? 0 };
+              }}
+              vueloRef={vuelo}
+              sello={sellada ? { estilo: etiqueta.estilo, anio: (rangoElegido.desde ?? rangoElegido.hasta)?.slice(0, 4) ?? null } : null}
             />
           </aside>
 

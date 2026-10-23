@@ -1,7 +1,8 @@
 // La hoja «Configuración» de una campaña (ADR-0488): lo que su formulario calcula para mostrarse, sin React ni red. Las reglas de
 // lo que se acepta guardar NO viven aquí: son las de `etiqueta-campana.ts` (`parsearDescuento`) y las cierra la base.
 
-import { parsearDescuento } from "./etiqueta-campana";
+import { parsearDescuento, type PrendaConCosto } from "./etiqueta-campana";
+import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
 import { diasEntreFechas } from "./fechas-lima";
 import { sinTildes } from "./marcas";
 
@@ -89,3 +90,56 @@ export function categoriasDeLaHoja(
     coinciden,
   };
 }
+
+// ---- La etiqueta viva: el mosaico y «En caja» ----------------------------------------------------------------------------------
+
+/** Cuántas piezas entran en el mosaico de la etiqueta: dos filas de seis. Con más, la última es «+N». */
+export const CUPO_MOSAICO = 12;
+
+/**
+ * Las categorías elegidas como piezas del mosaico de la etiqueta: de la que más prendas trae a la que menos. Si no caben todas, la
+ * última pieza dice «+N» (las que faltan), así el mosaico nunca necesita su propio scroll.
+ */
+export function piezasDelMosaico<C extends { id: string; nombre: string }>(
+  categorias: readonly C[],
+  elegidas: ReadonlySet<string>,
+  prendasDe: ReadonlyMap<string, number>,
+  cupo = CUPO_MOSAICO,
+): { piezas: (C & { prendas: number })[]; mas: number } {
+  const todas = categorias
+    .filter((c) => elegidas.has(c.id))
+    .map((c) => ({ ...c, prendas: prendasDe.get(c.id) ?? 0 }))
+    .sort((a, b) => b.prendas - a.prendas || a.nombre.localeCompare(b.nombre, "es"));
+  if (todas.length <= cupo) return { piezas: todas, mas: 0 };
+  return { piezas: todas.slice(0, cupo - 1), mas: todas.length - (cupo - 1) };
+}
+
+export type EjemploDeCaja = { id: string; nombre: string; categoriaId: string | null; enSede: string | null; antes: number; despues: number };
+
+/**
+ * Prendas reales que la campaña alcanzaría, para ver en la etiqueta cuánto cobra la caja: una por categoría elegida (de la que más
+ * prendas trae a la que menos) y, si no hay categorías, las marcadas a mano. El precio es el más bajo al que se cobra en las tiendas
+ * (`PrendaConCosto.precio`) y el rebajado sale de la misma cuenta que la caja (`descuentoDeCampana`, en céntimos exactos).
+ */
+export function ejemplosDeCaja(
+  prendas: readonly PrendaConCosto[],
+  elegidas: ReadonlySet<string>,
+  manuales: ReadonlySet<string>,
+  prendasDe: ReadonlyMap<string, number>,
+  pct: number | null,
+  cupo = 6,
+): EjemploDeCaja[] {
+  const precioCon = (precio: number) => (pct ? totalDeLineas([{ cantidad: 1, precioUnitario: precio, descuentoUnitario: descuentoDeCampana(precio, pct) }]) : precio);
+  const ejemplo = (p: PrendaConCosto): EjemploDeCaja => ({ id: p.id, nombre: p.nombre, categoriaId: p.categoriaId, enSede: p.enSede ?? null, antes: p.precio, despues: precioCon(p.precio) });
+  const categorias = [...elegidas].sort((a, b) => (prendasDe.get(b) ?? 0) - (prendasDe.get(a) ?? 0));
+  const porCategoria = categorias.flatMap((id) => {
+    const p = prendas.find((x) => x.categoriaId === id);
+    return p ? [ejemplo(p)] : [];
+  });
+  if (porCategoria.length) return porCategoria.slice(0, cupo);
+  return prendas.filter((p) => manuales.has(p.id)).slice(0, cupo).map(ejemplo);
+}
+
+/** El nombre de una prenda en la etiqueta, sin su SKU: «Blusa Emma (BLU-0001-CAM-M)» → «Blusa Emma» (`PrendaConCosto.nombre` lo trae
+ *  entre paréntesis al final; en una etiqueta angosta solo estorba). */
+export const nombreSinSku = (nombre: string) => nombre.replace(/\s*\([^()]*\)\s*$/, "") || nombre;

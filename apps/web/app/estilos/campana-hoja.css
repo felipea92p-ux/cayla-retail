@@ -78,3 +78,21 @@
   .cph-cats, .cph-chicas { grid-template-columns: 1fr 1fr; }
   .cph-cat { min-height: 2.75rem; }
 }
+
+/* La etiqueta viva (`EtiquetaDeCampana`): lo que no trae la de «Prendas». Las piezas del mosaico son categorías, no prendas: no se tocan
+   (no llevan a ninguna fila). «En caja» va al pie de la tarjeta, con ‹ › para recorrer las prendas de ejemplo. */
+.cph-pieza { cursor: default; }
+.cph-ej-b { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); transition: background-color 200ms var(--ease-cayla); } /* contraste: gráfico sobre papel */
+.cph-ej-b svg { width: 16px; height: 16px; }
+@media (hover: hover) {
+  .cph-ej-b:hover { background: var(--color-hueso); color: var(--color-tinta); }
+}
+.cph-caja { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-top: 6px; }
+.cph-caja > :first-child { border-radius: 8px; }
+.cph-caja-precio { display: block; font-family: var(--font-serif); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* El sello de la campaña, estampado al guardar sobre la esquina de la etiqueta (`SelloTinta` trae su propio estampado, una vez). */
+.cph-sello { position: absolute; right: 10px; top: 46px; pointer-events: none; }
+/* En el celular la etiqueta es una franja baja: el sello la taparía entera (el aviso de después ya dice que se guardó). */
+@media (max-width: 767.98px) {
+  .cph-sello { display: none; }
+}

@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.editor",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 90,
+  "total": 92,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»",
@@ -71,6 +71,10 @@
     "components/campana-hoja/CategoriasDeCampana.tsx": [
       "Casilla «{`${c.nombre}»",
       "Casilla «{`Toda la familia ${g.familia}»"
+    ],
+    "components/campana-hoja/EtiquetaDeCampana.tsx": [
+      "button «Prenda anterior»",
+      "button «Prenda siguiente»"
     ],
     "components/campanas-web/EditorCampana.tsx": [
       "button «{nombre}»",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoriasDeLaHoja, pasoDeDescuento, textoDuracion } from "./campana-hoja";
+import { categoriasDeLaHoja, ejemplosDeCaja, nombreSinSku, pasoDeDescuento, piezasDelMosaico, textoDuracion } from "./campana-hoja";
 import { parsearDescuento } from "./etiqueta-campana";
 
 describe("pasoDeDescuento (− y + de la hoja de campaña)", () => {
@@ -116,5 +116,68 @@ describe("categoriasDeLaHoja (la grilla de casillas)", () => {
     const r = categoriasDeLaHoja(categorias, prendas, "zzz");
     expect(r.coinciden).toBe(0);
     expect([...r.grandes, ...r.chicas, ...r.sinPrendas]).toHaveLength(0);
+  });
+});
+
+describe("piezasDelMosaico (las categorías en la etiqueta)", () => {
+  const cats = Array.from({ length: 14 }, (_, i) => ({ id: `c${i}`, nombre: `Cat ${String(i).padStart(2, "0")}` }));
+  const prendas = new Map(cats.map((c, i) => [c.id, i * 10]));
+
+  it("solo las elegidas, de la que más trae a la que menos", () => {
+    const r = piezasDelMosaico(cats, new Set(["c1", "c5", "c3"]), prendas);
+    expect(r.piezas.map((p) => p.id)).toEqual(["c5", "c3", "c1"]);
+    expect(r.piezas[0].prendas).toBe(50);
+    expect(r.mas).toBe(0);
+  });
+
+  it("si no caben, la última es «+N»", () => {
+    const r = piezasDelMosaico(cats, new Set(cats.map((c) => c.id)), prendas);
+    expect(r.piezas).toHaveLength(11);
+    expect(r.mas).toBe(3);
+  });
+
+  it("con justo el cupo, sin «+N»", () => {
+    const r = piezasDelMosaico(cats, new Set(cats.slice(0, 12).map((c) => c.id)), prendas);
+    expect(r.piezas).toHaveLength(12);
+    expect(r.mas).toBe(0);
+  });
+});
+
+describe("ejemplosDeCaja (cuánto cobra la caja)", () => {
+  const prenda = (id: string, categoriaId: string | null, precio: number, enSede: string | null = null) => ({ id, categoriaId, precio, costo: 1, nombre: `Prenda ${id}`, enSede });
+  const prendas = [prenda("v1", "vest", 219.9), prenda("b1", "blus", 79.9), prenda("b2", "blus", 69.9), prenda("m1", null, 49.9, "Trujillo")];
+  const cuantas = new Map([
+    ["vest", 169],
+    ["blus", 430],
+  ]);
+
+  it("una prenda por categoría elegida, la de más prendas primero, con el precio que cobra la caja", () => {
+    const r = ejemplosDeCaja(prendas, new Set(["vest", "blus"]), new Set(), cuantas, 10);
+    expect(r.map((e) => e.id)).toEqual(["b1", "v1"]);
+    // La caja baja el precio final al múltiplo de 10 céntimos (descuentoUnitarioPorPorcentaje): 79.90 − 10 % = 71.91 → 71.90.
+    expect(r[0]).toMatchObject({ antes: 79.9, despues: 71.9 });
+    expect(r[1].despues).toBe(197.9);
+  });
+
+  it("sin descuento, el precio no cambia", () => {
+    expect(ejemplosDeCaja(prendas, new Set(["blus"]), new Set(), cuantas, null)[0]).toMatchObject({ antes: 79.9, despues: 79.9 });
+  });
+
+  it("sin categorías, las marcadas a mano, con su tienda", () => {
+    const r = ejemplosDeCaja(prendas, new Set(), new Set(["m1"]), cuantas, 20);
+    expect(r).toEqual([{ id: "m1", nombre: "Prenda m1", categoriaId: null, enSede: "Trujillo", antes: 49.9, despues: 39.9 }]);
+  });
+
+  it("sin nada elegido, ningún ejemplo", () => {
+    expect(ejemplosDeCaja(prendas, new Set(), new Set(), cuantas, 10)).toEqual([]);
+  });
+});
+
+describe("nombreSinSku", () => {
+  it("quita el SKU del final y deja lo demás", () => {
+    expect(nombreSinSku("Blusa Emma (BLU-0001-CAM-M)")).toBe("Blusa Emma");
+    expect(nombreSinSku("Polo (manga corta) Lucía (POL-0002)")).toBe("Polo (manga corta) Lucía");
+    expect(nombreSinSku("Vestido Aurora")).toBe("Vestido Aurora");
+    expect(nombreSinSku("(SKU)")).toBe("(SKU)");
   });
 });

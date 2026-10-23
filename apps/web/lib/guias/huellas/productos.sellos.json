@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 78,
+  "total": 80,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -72,6 +72,10 @@
     "components/campana-hoja/CategoriasDeCampana.tsx": [
       "Casilla «{`${c.nombre}»",
       "Casilla «{`Toda la familia ${g.familia}»"
+    ],
+    "components/campana-hoja/EtiquetaDeCampana.tsx": [
+      "button «Prenda anterior»",
+      "button «Prenda siguiente»"
     ],
     "components/etiqueta-prendas/EtiquetaColgada.tsx": [
       "button «{`${x.producto.referencia}»"

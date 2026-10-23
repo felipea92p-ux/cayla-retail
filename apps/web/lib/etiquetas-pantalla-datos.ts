@@ -59,7 +59,7 @@ export async function cargarEtiquetasPantalla({
 
   const [resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, preciosTiendas, resSedes, tiendas] = await Promise.all([
     supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, vigente_desde, vigente_hasta, descuento_pct").order("nombre"),
-    supabase.from("categorias").select("id, nombre, familia").eq("activo", true).order("nombre"),
+    supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
     supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id"),
     supabase.from("familias").select("codigo, nombre"),
     puedeEditar
@@ -131,6 +131,9 @@ export async function cargarEtiquetasPantalla({
     id: c.id,
     nombre: c.nombre,
     familia: (c.familia && nombreFamilia.get(c.familia)) || "Sin familia",
+    // El ícono de la categoría en la etiqueta de la hoja «Configuración» (ADR-0488): `SinFoto` lo decide por el prefijo y el código de familia.
+    prefijo: c.prefijo,
+    familiaCodigo: c.familia,
   }));
   const vitrina = await cargaVitrina;
   const prendasVitrina: TallaVitrina[] | null = vitrina
