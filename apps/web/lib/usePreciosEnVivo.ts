@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { leerTodas } from "@/lib/resultado";
 import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
+import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
 import { mismosPrecios, type PreciosReleidos } from "@/lib/precios-en-vivo-reglas";
 import { registrarPreciosPropios } from "@/lib/precios-en-vivo-registro";
 import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
@@ -46,7 +47,7 @@ async function leerCampanas(ubicacionId: string): Promise<Map<string, CampanaLin
 // que no sube la versión del catálogo; la lista es corta (solo las excepciones). Si la función aún no existe (PGRST202), no
 // hay precios propios; si la lectura falla, `null`: se conservan los últimos.
 async function leerPropios(ubicacionId: string): Promise<Map<string, number> | null> {
-  const { data, error } = await createClient().rpc("fn_precios_en_sede", { p_ubicacion_id: ubicacionId });
+  const { data, error } = await leerPreciosPropiosDeSede(createClient(), ubicacionId);
   if (error) return error.code === "PGRST202" ? new Map() : null;
   return leerPreciosEnSede(data);
 }

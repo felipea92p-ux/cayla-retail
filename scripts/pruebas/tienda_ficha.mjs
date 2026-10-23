@@ -402,7 +402,8 @@ select retail.vitrina_mostrar(array[:'emma']::uuid[], true) \\gset
           (select string_agg(k, ',' order by k) from jsonb_object_keys(${FICHA()} -> 'prenda') k),
           (select string_agg(k, ',' order by k) from jsonb_object_keys(${FICHA()} -> 'prenda' -> 'variantes' -> 0) k));
       rollback;`,
-    "prenda,sede,sedes,umbral|campana,categoria,codigo,colores,descripcion,desde,fotos,id,nombre,precio,precio_final,tallas,variantes|campana,color,id,precio,precio_final,stock,talla,total",
+    // `insignias` (ADR-0489, 20261023182000): las de Catálogo ▸ Insignias que ve el cliente, solo {id, nombre}; sus reglas las prueba `pruebas:tienda-insignias`.
+    "prenda,sede,sedes,umbral|campana,categoria,codigo,colores,descripcion,desde,fotos,id,insignias,nombre,precio,precio_final,tallas,variantes|campana,color,id,precio,precio_final,stock,talla,total",
   );
 
   // ---------------------------------------------------------------- 7. El catálogo

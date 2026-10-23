@@ -139,6 +139,8 @@ describe("las prendas de una insignia, por modelo y color", () => {
     ]);
     expect(r.unidades).toBeNull();
     expect(r.vendidas).toBeNull();
+    // Chaleco blanco y negro entran solo a mano; Polvo, por su categoría: la frase lo dice sin sumar dos veces.
+    expect(r.aMano).toBe(2);
     expect(r.modelos.every((m) => m.unidades === null)).toBe(true);
   });
   it("con lectura: suma lo que queda y lo vendido, y ordena por unidades", () => {
@@ -156,7 +158,7 @@ describe("las prendas de una insignia, por modelo y color", () => {
     expect(r).toMatchObject({ unidades: 14, vendidas: 5 });
   });
   it("sin prendas, nada", () => {
-    expect(prendasDelSello(TALLAS, new Set(), new Set(), new Map())).toEqual({ modelos: [], unidades: 0, vendidas: 0 });
+    expect(prendasDelSello(TALLAS, new Set(), new Set(), new Map())).toEqual({ modelos: [], aMano: 0, unidades: 0, vendidas: 0 });
   });
 });
 
@@ -167,7 +169,9 @@ describe("lo que dice el pase abierto", () => {
       ["prendas", false, false],
       ["descuento", true, true],
     ]);
-    expect(loQueTiene(FILAS[1]!, 47, ["Maquillaje"], HOY)[1]!.detalle).toBe("47 prendas + toda Maquillaje");
+    expect(loQueTiene(FILAS[1]!, 47, ["Maquillaje"], HOY)[1]!.detalle).toBe("47 prendas de Maquillaje");
+    expect(loQueTiene(FILAS[1]!, 47, ["Maquillaje"], HOY, 7)[1]!.detalle).toBe("47 prendas: 40 de Maquillaje y 7 marcadas a mano");
+    expect(loQueTiene(FILAS[1]!, 0, ["Poleras"], HOY)[1]!.detalle).toBe("Poleras, todavía sin prendas a la venta");
     expect(loQueTiene(FILAS[5]!, 0, [], HOY)[0]).toMatchObject({ hecho: false, detalle: "sin fechas" });
   });
 });

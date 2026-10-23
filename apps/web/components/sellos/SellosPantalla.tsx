@@ -142,7 +142,7 @@ export function SellosPantalla({
   const porTalla = useMemo(() => (rotacion ? new Map(Object.entries(rotacion.porTalla)) : null), [rotacion]);
   const nombreCategoria = useMemo(() => new Map(categorias.map((c) => [c.id, c.nombre])), [categorias]);
   const prendasDe = (e: Etiqueta): PrendasDelSello =>
-    prendasVitrina ? prendasDelSello(prendasVitrina, new Set(e.categoriaIds), new Set(manuales[e.id] ?? []), porTalla) : { modelos: [], unidades: null, vendidas: null };
+    prendasVitrina ? prendasDelSello(prendasVitrina, new Set(e.categoriaIds), new Set(manuales[e.id] ?? []), porTalla) : { modelos: [], aMano: 0, unidades: null, vendidas: null };
   const categoriasDe = (e: Etiqueta) => e.categoriaIds.map((id) => nombreCategoria.get(id)).filter((n): n is string => Boolean(n));
 
   const pilas = pilasDeLaVista(etiquetas, vista, hoy);
@@ -531,7 +531,7 @@ export function SellosPantalla({
         {e.estilo === "campana" && tramo !== "pasaron" && (
           <div className="sl-listo mt-6" data-guia="sellos.listo" style={{ "--i": 3 } as CSSProperties}>
             <p className="label-cayla pb-1.5 pt-3.5 text-[10px] text-tinta/65">Lo que ya tiene</p>
-            {loQueTiene(e, p.modelos.length, cats, hoy).map((x, i) => (
+            {loQueTiene(e, p.modelos.length, cats, hoy, p.aMano).map((x, i) => (
               <div key={x.clave} className="sl-listo-fila" data-estado={x.hecho ? "hecho" : x.opcional ? "opcional" : "falta"} style={{ "--i": i } as CSSProperties}>
                 <span className="sl-listo-marca" aria-hidden>
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
