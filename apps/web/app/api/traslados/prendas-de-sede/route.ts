@@ -2,6 +2,7 @@ import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { getEtiquetasDeVariantes } from "@/lib/traslados";
+import { leerRpcPorPaginas, ORDEN_FN_EXISTENCIAS } from "@/lib/rpc-por-paginas";
 import { filasEnviables, prendasPedibles, sedesParaPedir, type FilaExistenciasDeSede } from "@/lib/pedidos-entre-sedes-reglas";
 
 // GET /api/traslados/prendas-de-sede?sede=<id> → lo que esa TIENDA puede ENVIAR ahora, prenda por prenda, para «Pedir a otra sede»
@@ -31,13 +32,11 @@ export async function GET(request: Request) {
       return Response.json({ error: "Esa sede no es una tienda a la que se pueda pedir." }, { status: 400 });
     }
     const supabase = await createClient();
-    // `fn_existencias` todavía no está en los tipos generados: se llama con la forma de su resultado escrita aquí.
-    const { data, error } = (await supabase.rpc("fn_existencias" as never, { p_ubicacion_id: sede } as never)) as unknown as {
-      data: FilaExistenciasDeSede[] | null;
-      error: { message: string } | null;
-    };
+    // Por páginas: TRU ya da 1.489 filas (cuenta también las prendas con stock 0) y PostgREST corta en 1.000 sin avisar: «Pedir a otra sede» decía
+    // que TRU no tenía prendas que sí tenía.
+    const { data, error } = await leerRpcPorPaginas(supabase, "fn_existencias", { p_ubicacion_id: sede }, ORDEN_FN_EXISTENCIAS, { enParalelo: 1 });
     if (error || !data) throw new Error(error?.message ?? "sin datos");
-    const filas = filasEnviables(data).filter((f) => f.cantidad > 0);
+    const filas = filasEnviables(data as unknown as FilaExistenciasDeSede[]).filter((f) => f.cantidad > 0);
     const etiquetas = await getEtiquetasDeVariantes(filas.map((f) => f.variante_id));
     return Response.json({ prendas: prendasPedibles(filas, sede, etiquetas) }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {

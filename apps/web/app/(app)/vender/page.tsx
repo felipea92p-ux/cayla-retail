@@ -10,6 +10,7 @@ import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
+import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
 import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
 import { TicketPorSede } from "@/components/punto-de-venta/TicketPorSede";
@@ -97,7 +98,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     getPedidosConCliente(persona.ubicacionId),
     // Precio propio de esta tienda (Felipe 2026-10-09): las prendas que aquí se venden a otro precio. Si la lectura falla, se
     // muestra el general y `registrar_venta` rechaza el cobro («el precio cambió») antes de cobrar mal: nunca un cobro equivocado.
-    supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: persona.ubicacionId }),
+    leerPreciosPropiosDeSede(supabase, persona.ubicacionId),
     // La ficha de cada color (ADR-0316; Felipe 2026-10-10): qué transmite y con qué se combina, para «Todo de la prenda». Secundario y
     // chico (~90 filas): si falla, la hoja no dice nada del color y se vende igual. La lee cualquier sesión (`colores_select`).
     supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true),
