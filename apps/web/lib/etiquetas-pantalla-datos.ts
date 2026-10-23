@@ -120,6 +120,8 @@ export async function cargarEtiquetasPantalla({
       enSede: bajo.sede,
       costo: costos?.get(v.id) ?? 0,
       nombre: `${v.producto?.referencia ?? "Prenda"} (${v.sku})`,
+      // Una prenda es un modelo en un color, con la misma clave que el pase de Insignias (`prendasDelSello`): la hoja y el pase cuentan igual.
+      modelo: `${v.producto?.id ?? v.id}·${v.color_codigo ?? ""}`,
     };
   });
   const variantesManuales: Record<string, string[]> = {};

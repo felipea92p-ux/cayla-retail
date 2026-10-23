@@ -140,6 +140,8 @@ describe("las prendas de una insignia, por modelo y color", () => {
     ]);
     expect(r.unidades).toBeNull();
     expect(r.vendidas).toBeNull();
+    // Chaleco blanco y negro entran solo a mano; Polvo, por su categoría: la frase lo dice sin sumar dos veces.
+    expect(r.aMano).toBe(2);
     expect(r.modelos.every((m) => m.unidades === null)).toBe(true);
   });
   it("con lectura: suma lo que queda y lo vendido, y ordena por unidades", () => {
@@ -157,16 +159,20 @@ describe("las prendas de una insignia, por modelo y color", () => {
     expect(r).toMatchObject({ unidades: 14, vendidas: 5 });
   });
   it("sin prendas, nada", () => {
-    expect(prendasDelSello(TALLAS, new Set(), new Set(), new Map())).toEqual({ modelos: [], unidades: 0, vendidas: 0 });
+    expect(prendasDelSello(TALLAS, new Set(), new Set(), new Map())).toEqual({ modelos: [], aMano: 0, unidades: 0, vendidas: 0 });
   });
 });
 
 describe("lo que dice el pase abierto", () => {
-  const una = { modelos: [{}, {}] as never[], unidades: 12 };
-  const ninguna = { modelos: [] as never[], unidades: null };
+  const una = { modelos: [{}, {}] as never[], aMano: 0, unidades: 12 };
+  const ninguna = { modelos: [] as never[], aMano: 0, unidades: null };
   it("la frase sale de los datos", () => {
     expect(fraseDelSello(FILAS[0]!, ninguna, [], HOY)).toBe("Un 10 % que todavía no llega a ninguna prenda.");
-    expect(fraseDelSello(FILAS[1]!, una, ["Maquillaje"], HOY)).toBe("2 prendas y toda Maquillaje, a su precio de siempre.");
+    // Las prendas de sus categorías no se suman otra vez: «2 prendas de Maquillaje», no «2 prendas y toda Maquillaje» (/formidable, ADR-0488).
+    expect(fraseDelSello(FILAS[1]!, una, ["Maquillaje"], HOY)).toBe("2 prendas de Maquillaje, a su precio de siempre.");
+    expect(fraseDelSello(FILAS[1]!, { ...una, aMano: 1 }, ["Maquillaje", "Bolsos"], HOY)).toBe("2 prendas: 1 de Maquillaje y Bolsos y 1 marcada a mano, a su precio de siempre.");
+    expect(fraseDelSello(FILAS[1]!, ninguna, ["Poleras"], HOY)).toBe("Rige para Poleras, que todavía no tienen prendas a la venta.");
+    expect(fraseDelSello(FILAS[0]!, ninguna, ["Poleras"], HOY)).toBe("Un 10 % para Poleras, que todavía no tienen prendas a la venta.");
     expect(fraseDelSello(FILAS[2]!, una, [], HOY)).toBe("2 prendas listas.");
     expect(fraseDelSello(FILAS[3]!, ninguna, [], HOY)).toBe("Todavía sin prendas: prepárala antes de que empiece.");
     expect(fraseDelSello(FILAS[6]!, ninguna, [], HOY)).toContain("Pasó el 14 feb");
@@ -180,7 +186,9 @@ describe("lo que dice el pase abierto", () => {
       ["prendas", false, false],
       ["descuento", true, true],
     ]);
-    expect(loQueTiene(FILAS[1]!, 47, ["Maquillaje"], HOY)[1]!.detalle).toBe("47 prendas + toda Maquillaje");
+    expect(loQueTiene(FILAS[1]!, 47, ["Maquillaje"], HOY)[1]!.detalle).toBe("47 prendas de Maquillaje");
+    expect(loQueTiene(FILAS[1]!, 47, ["Maquillaje"], HOY, 7)[1]!.detalle).toBe("47 prendas: 40 de Maquillaje y 7 marcadas a mano");
+    expect(loQueTiene(FILAS[1]!, 0, ["Poleras"], HOY)[1]!.detalle).toBe("Poleras, todavía sin prendas a la venta");
     expect(loQueTiene(FILAS[5]!, 0, [], HOY)[0]).toMatchObject({ hecho: false, detalle: "sin fechas" });
   });
 });

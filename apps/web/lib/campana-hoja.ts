@@ -152,7 +152,12 @@ export function ejemplosDeCaja(
     return p ? [ejemplo(p)] : [];
   });
   if (porCategoria.length) return porCategoria.slice(0, cupo);
-  return prendas.filter((p) => manuales.has(p.id)).slice(0, cupo).map(ejemplo);
+  // Las marcadas a mano, una por modelo y color: dos tallas de la misma falda serían el mismo ejemplo dos veces.
+  const vistos = new Set<string>();
+  return prendas
+    .filter((p) => manuales.has(p.id) && !vistos.has(p.modelo ?? p.id) && vistos.add(p.modelo ?? p.id))
+    .slice(0, cupo)
+    .map(ejemplo);
 }
 
 /** El nombre de una prenda en la etiqueta, sin su SKU: «Blusa Emma (BLU-0001-CAM-M)» → «Blusa Emma» (`PrendaConCosto.nombre` lo trae

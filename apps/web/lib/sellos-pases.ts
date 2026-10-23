@@ -197,6 +197,8 @@ export type ModeloColor = {
 
 export type PrendasDelSello = {
   modelos: ModeloColor[];
+  /** De esas, cuántas entran SOLO porque se marcaron a mano (ninguna de sus tallas entra por una categoría elegida). */
+  aMano: number;
   /** `null` si no hay lectura de Rotación (quien mira no puede analizar, o una tienda no respondió). */
   unidades: number | null;
   vendidas: number | null;
@@ -214,11 +216,13 @@ export function prendasDelSello(
   porTalla: ReadonlyMap<string, { stock: number; vendidas: number }> | null,
 ): PrendasDelSello {
   const grupos = new Map<string, ModeloColor>();
+  const porCategoria = new Set<string>();
   let unidades = 0;
   let vendidas = 0;
   for (const t of aLaVenta) {
     if (!manuales.has(t.id) && !(t.categoriaId !== null && categoriaIds.has(t.categoriaId))) continue;
     const clave = `${t.productoId}·${t.colorCodigo ?? ""}`;
+    if (t.categoriaId !== null && categoriaIds.has(t.categoriaId)) porCategoria.add(clave);
     const lectura = porTalla?.get(t.id) ?? { stock: 0, vendidas: 0 };
     const g = grupos.get(clave) ?? {
       clave,
@@ -241,7 +245,12 @@ export function prendasDelSello(
   const modelos = [...grupos.values()].sort(
     (a, b) => (b.unidades ?? 0) - (a.unidades ?? 0) || a.referencia.localeCompare(b.referencia, "es") || (a.colorNombre ?? "").localeCompare(b.colorNombre ?? "", "es"),
   );
-  return { modelos, unidades: porTalla ? unidades : null, vendidas: porTalla ? vendidas : null };
+  return {
+    modelos,
+    aMano: modelos.filter((m) => !porCategoria.has(m.clave)).length,
+    unidades: porTalla ? unidades : null,
+    vendidas: porTalla ? vendidas : null,
+  };
 }
 
 /** Cuántas columnas pone una grilla `repeat(auto-fill, minmax(<minimo>, 1fr))` con `gap: <hueco>` en `ancho` px: la cuenta del navegador
@@ -263,22 +272,38 @@ export function lookbookVisible(total: number, columnas: number, filas = 2): { v
 // ---- Lo que dice el pase abierto ------------------------------------------------------------------------------------------
 
 const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? uno : varios}`;
+const enLista = (nombres: readonly string[]) => new Intl.ListFormat("es", { type: "conjunction" }).format(nombres);
+
+/**
+ * Cuántas prendas y de dónde vienen, dicho UNA vez. Las prendas de sus categorías ya están contadas en el número: antes decía «8 prendas
+ * y toda Vestidos, Faldas», que se leía como una suma y eran las mismas (/formidable de la hoja de campaña, ADR-0488).
+ */
+function prendasYDeDonde(prendas: number, aMano: number, categorias: readonly string[], uno = "prenda", varios = "prendas"): string {
+  const n = plural(prendas, uno, varios);
+  if (!categorias.length) return n;
+  const cats = enLista(categorias);
+  if (prendas === 0) return `${cats}, todavía sin prendas a la venta`;
+  const marcadas = `${aMano} ${aMano === 1 ? "marcada" : "marcadas"} a mano`;
+  if (aMano === 0) return `${n} de ${cats}`;
+  if (aMano >= prendas) return `${n} ${aMano === 1 ? "marcada" : "marcadas"} a mano; ${cats}, todavía sin prendas a la venta`;
+  return `${n}: ${prendas - aMano} de ${cats} y ${marcadas}`;
+}
 
 /** La frase bajo el título, en lenguaje de tienda y sacada de los datos: nunca promete algo que la base no diga. */
-export function fraseDelSello(f: FilaSello, p: Pick<PrendasDelSello, "modelos" | "unidades">, categorias: readonly string[], hoy: string): string {
+export function fraseDelSello(f: FilaSello, p: Pick<PrendasDelSello, "modelos" | "unidades" | "aMano">, categorias: readonly string[], hoy: string): string {
   const prendas = p.modelos.length;
-  const toda = categorias.length ? ` y toda ${categorias.join(", ")}` : "";
   const hay = prendas > 0 || categorias.length > 0;
   if (f.estilo !== "campana") {
     if (!hay) return "Ninguna prenda la lleva todavía.";
-    return `${plural(prendas, "prenda", "prendas")}${toda}${p.unidades !== null ? ` · ${plural(p.unidades, "unidad", "unidades")} en las tiendas` : ""}.`;
+    return `${prendasYDeDonde(prendas, p.aMano, categorias)}${p.unidades !== null ? ` · ${plural(p.unidades, "unidad", "unidades")} en las tiendas` : ""}.`;
   }
   const t = tramoDeCampana(f.vigenteDesde, f.vigenteHasta, hoy);
   if (t === "ahora") {
     if (!hay) return f.descuentoPct !== null ? `Un ${pct(f.descuentoPct)} que todavía no llega a ninguna prenda.` : "Rige hoy, pero todavía no está en ninguna prenda.";
-    return `${plural(prendas, "prenda", "prendas")}${toda}${f.descuentoPct !== null ? `, con ${pct(f.descuentoPct)} menos.` : ", a su precio de siempre."}`;
+    if (prendas === 0) return `${f.descuentoPct !== null ? `Un ${pct(f.descuentoPct)} para` : "Rige para"} ${enLista(categorias)}, que todavía no tienen prendas a la venta.`;
+    return `${prendasYDeDonde(prendas, p.aMano, categorias)}${f.descuentoPct !== null ? `, con ${pct(f.descuentoPct)} menos.` : ", a su precio de siempre."}`;
   }
-  if (t === "proximas") return hay ? `${plural(prendas, "prenda lista", "prendas listas")}${toda}.` : "Todavía sin prendas: prepárala antes de que empiece.";
+  if (t === "proximas") return hay ? `${prendasYDeDonde(prendas, p.aMano, categorias, "prenda lista", "prendas listas")}.` : "Todavía sin prendas: prepárala antes de que empiece.";
   if (t === "pasaron" && f.vigenteHasta) return `Pasó el ${fechaCorta(f.vigenteHasta)}. «Repetir» la vuelve a armar con las fechas del próximo año.`;
   return "Todavía sin fechas: ponle cuándo rige en «Configurar».";
 }
@@ -287,7 +312,7 @@ export type ItemListo = { clave: "fechas" | "prendas" | "descuento"; nombre: str
 
 /** Lo que ya tiene una campaña. Fechas y prendas son lo que la hace funcionar; el descuento es opcional (una campaña puede ser solo
  *  de vitrina). Sale de lo mismo que ya decide la pantalla («Sin prendas», «Sin preparar»): no agrega reglas. */
-export function loQueTiene(f: FilaSello, prendas: number, categorias: readonly string[], hoy: string): ItemListo[] {
+export function loQueTiene(f: FilaSello, prendas: number, categorias: readonly string[], hoy: string, aMano = 0): ItemListo[] {
   const llega = prendas > 0 || categorias.length > 0;
   return [
     { clave: "fechas", nombre: "Fechas", hecho: Boolean(f.vigenteDesde && f.vigenteHasta), opcional: false, detalle: rangoCorto(f.vigenteDesde, f.vigenteHasta, hoy) ?? "sin fechas" },
@@ -296,7 +321,7 @@ export function loQueTiene(f: FilaSello, prendas: number, categorias: readonly s
       nombre: "Prendas",
       hecho: llega,
       opcional: false,
-      detalle: llega ? [prendas ? plural(prendas, "prenda", "prendas") : "", categorias.length ? `toda ${categorias.join(", ")}` : ""].filter(Boolean).join(" + ") : "ninguna todavía",
+      detalle: llega ? prendasYDeDonde(prendas, aMano, categorias) : "ninguna todavía",
     },
     { clave: "descuento", nombre: "Descuento", hecho: f.descuentoPct !== null, opcional: true, detalle: f.descuentoPct !== null ? pct(f.descuentoPct) : "sin descuento" },
   ];
