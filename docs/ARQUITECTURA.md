@@ -1896,7 +1896,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
-  - `/finanzas/resumen` → el tablero que junta lo anterior (F10).
+  - `/finanzas/resumen` → el tablero que junta lo anterior (F10). Desde El telar (2026-10-23, ADR-0493) lee, además de
+    `fn_resumen_finanzas` (los avisos de hoy) y `fn_finanzas_confianza` (del mes elegido), `fn_estado_resultados` del mes de la barra
+    y del tramo con que se compara (`lib/resultados.ts`), y `fn_rendimiento_serie` por tienda si la cuenta ve Rendimiento
+    (`lib/resumen-telar.ts`). Lo dibujan `lib/resumen-telar-reglas.ts` (la respuesta, el orillo y la línea de ventas contra la
+    meta) y `lib/recorrido-plata-reglas.ts` → `components/finanzas/RecorridoPlata.tsx` (el recorrido de la plata).
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
     Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
   - `/tienda-web/ajustes` (ADR-0408, actividad 6; fue la pestaña `/configuracion?tab=tienda-web` hasta ADR-0430; módulo `ajustes_web` «Datos y plazos de la tienda web» desde 20261016223000, antes `configuracion`) → `lib/configuracion.ts`
