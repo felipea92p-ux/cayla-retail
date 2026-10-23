@@ -38,7 +38,7 @@ import {
   type PrendaConCosto,
   type TiendaOpcion,
 } from "@/lib/etiqueta-campana";
-import { avisoDiaDeSemana, repetirTemporada, textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
+import { avisoDiaDeSemana, fechaCorta, repetirTemporada, textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { hoyLima } from "@/lib/fechas-lima";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
@@ -47,7 +47,9 @@ import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
-import { PASO_DESCUENTO as PASO, pasoDeDescuento } from "@/lib/campana-hoja";
+import { PASO_DESCUENTO as PASO, pasoDeDescuento, textoDuracion } from "@/lib/campana-hoja";
+import { avanceDeCampana } from "@/lib/sellos-pases";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { TEXTOS_MODO, type ModoEtiquetas } from "@/lib/sellos-campanas";
 
 /**
@@ -401,6 +403,11 @@ export function CampanaModal({
   const fHasta = parsearFecha(hasta);
   const objecion = fDesde.ok && fHasta.ok ? objecionVigencia(fDesde.valor, fHasta.valor) : null;
   const valido = campanaValida({ descuento, desde, hasta });
+  // La temporada como la dice su pase en Insignias (cuánto lleva, si rige hoy) y su duración en una frase.
+  const fechasBien = fDesde.ok && fHasta.ok && !objecion;
+  const rangoElegido = { desde: fDesde.ok ? fDesde.valor : null, hasta: fHasta.ok ? fHasta.valor : null };
+  const avance = fechasBien ? avanceDeCampana(rangoElegido.desde, rangoElegido.hasta, hoy) : null;
+  const duracion = fechasBien ? textoDuracion(rangoElegido.desde, rangoElegido.hasta) : null;
   // La campaña no se bloquea por bajar del costo (puede ser una liquidación a propósito),
   // pero quien la configura se entera: número en rojo y cuántas prendas serían.
   const bajoCosto = prendasBajoCosto(pct.ok ? pct.valor : null, prendasConCosto, elegidas, new Set(variantesManuales));
@@ -565,15 +572,31 @@ export function CampanaModal({
               {/* El título del grupo va FUERA de la grilla: dentro, ocupaba la primera celda y partía Desde y Hasta en dos filas. */}
               <CampoGuiado id="vigencia" guia={guia} titulo="Cuándo rige" ayuda="Opcional: sin fechas, rige siempre.">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <CampoFecha etiqueta="Desde" valor={desde} onValor={setDesde} tono={fDesde.ok ? undefined : "error"} />
+                  {/* Cada calendario pinta la temporada entera: se elige una punta viendo dónde está la otra. */}
+                  <CampoFecha etiqueta="Desde" valor={desde} onValor={setDesde} tono={fDesde.ok ? undefined : "error"} rango={rangoElegido} />
                   <CampoFecha
                     etiqueta="Hasta"
                     valor={hasta}
                     onValor={setHasta}
                     tono={fHasta.ok && !objecion ? undefined : "error"}
                     pie={objecion ?? undefined}
+                    rango={rangoElegido}
                   />
                 </div>
+                {/* Si rige hoy, cuánto lleva (la misma barra de su pase en Insignias); y siempre que haya dos fechas, cuánto dura. */}
+                {avance && rangoElegido.desde && rangoElegido.hasta && (
+                  <div className="mt-3">
+                    <BarraAvance pct={avance.pct} alto="fina" tono="tinta" etiqueta={`Lo que lleva ${etiqueta.nombre}`} texto={`Día ${avance.dia} de ${avance.total}`} />
+                    <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-tinta/65">
+                      <span>{fechaCorta(rangoElegido.desde)}</span>
+                      <span>
+                        hoy, día {avance.dia} de {avance.total}
+                      </span>
+                      <span>{fechaCorta(rangoElegido.hasta)}</span>
+                    </div>
+                  </div>
+                )}
+                {duracion && <p className="mt-2 text-xs text-tinta/65">{duracion}</p>}
                 {/* Al repetir: sumar un año cambia el día de la semana. Si la fiesta va por día (el 2.º domingo de mayo), un toque
                     corre la temporada entera; si va por fecha (el 25 de diciembre), se deja como está. */}
                 {avisoDia && repetir?.mismoDia && (

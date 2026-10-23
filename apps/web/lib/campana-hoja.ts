@@ -2,6 +2,7 @@
 // lo que se acepta guardar NO viven aquí: son las de `etiqueta-campana.ts` (`parsearDescuento`) y las cierra la base.
 
 import { parsearDescuento } from "./etiqueta-campana";
+import { diasEntreFechas } from "./fechas-lima";
 
 /** Cuánto sube o baja el descuento cada toque de − o + en la hoja. */
 export const PASO_DESCUENTO = 5;
@@ -16,4 +17,17 @@ export function pasoDeDescuento(texto: string, delta: number): string {
   const v = actual.ok && actual.valor !== null ? actual.valor : 0;
   const n = Math.max(0, Math.min(100, Math.round((v + delta) / PASO_DESCUENTO) * PASO_DESCUENTO));
   return n === 0 ? "" : String(n);
+}
+
+const DIAS_SEMANA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+const diaDeSemana = (iso: string) => DIAS_SEMANA[new Date(`${iso}T00:00:00Z`).getUTCDay()];
+
+/**
+ * Cuánto dura la temporada, dicho como se dice en tienda: «25 días, de jueves a domingo» (las dos puntas cuentan; un solo día es
+ * «1 día, el sábado»). `null` si falta una fecha o están al revés: eso ya lo dice el pie de «Hasta».
+ */
+export function textoDuracion(desde: string | null, hasta: string | null): string | null {
+  if (!desde || !hasta || desde > hasta) return null;
+  const dias = diasEntreFechas(desde, hasta) + 1;
+  return dias === 1 ? `1 día, el ${diaDeSemana(desde)}` : `${dias} días, de ${diaDeSemana(desde)} a ${diaDeSemana(hasta)}`;
 }
