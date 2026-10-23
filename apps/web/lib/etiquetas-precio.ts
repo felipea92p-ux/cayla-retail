@@ -131,7 +131,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
 
   // Los íconos de las etiquetas comerciales de cada prenda (Felipe, 2026-09-29): las elegidas a mano y las que la alcanzan
   // por su categoría, con o sin descuento. La ganadora del precio sigue siendo la de `campanas`, la misma de la caja.
-  const iconos = await iconosDeLasPrendas(supabase, variantes, campanas, hoy);
+  const { conDescuento: iconos, sinDescuento: iconosSinDescuento } = await iconosDeLasPrendas(supabase, variantes, campanas, hoy);
 
   return {
     ...armarEtiquetas(
@@ -153,6 +153,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
       hermanas.map((h) => ({ productoId: h.producto_id, colorCodigo: h.color_codigo, talla: h.talla?.valor ?? null, activo: h.activo })),
       campanas,
       iconos,
+      iconosSinDescuento,
     ),
     ...extra,
   };
@@ -193,14 +194,12 @@ async function iconosDeLasPrendas(
           "las etiquetas de las prendas",
         ).map((e) => [e.id, { nombre: e.nombre, pct: e.descuento_pct === null ? null : Number(e.descuento_pct), desde: e.vigente_desde, hasta: e.vigente_hasta }] as const),
   );
-  return iconosPorVariante(
-    variantes.map((v) => ({ id: v.id, categoriaId: v.producto?.categoria_id ?? null })),
-    directas,
-    porCategoria,
-    catalogo,
-    campanas,
-    hoy,
-  );
+  const prendas = variantes.map((v) => ({ id: v.id, categoriaId: v.producto?.categoria_id ?? null }));
+  // Las dos versiones salen de las mismas lecturas: la de siempre y la que se imprime «sin el descuento» (`sinDescuento`).
+  return {
+    conDescuento: iconosPorVariante(prendas, directas, porCategoria, catalogo, campanas, hoy),
+    sinDescuento: iconosPorVariante(prendas, directas, porCategoria, catalogo, campanas, hoy, true),
+  };
 }
 
 /** Unidades en la tienda por prenda (todas sus sububicaciones: piso y almacén). `cantidad` es lo físico: lo apartado

@@ -102,7 +102,7 @@ describe("avisosInicio", () => {
   it("una factura vencida es urgente; una que vence en la semana, por hacer", () => {
     const vencida = avisosInicio({ porPagar: { vencidas: 2, montoVencido: 3480, semana: 1, montoSemana: 500 } })[0]!;
     expect(vencida.nivel).toBe("urgente");
-    expect(vencida.titulo).toBe("Facturas de proveedor vencidas");
+    expect(vencida.titulo).toBe("Compras por pagar vencidas");
     expect(avisosInicio({ porPagar: { vencidas: 0, montoVencido: 0, semana: 1, montoSemana: 500 } })[0]!.nivel).toBe("toca");
   });
 

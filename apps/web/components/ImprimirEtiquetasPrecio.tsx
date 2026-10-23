@@ -8,6 +8,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Encabezado, Tabla, TABLA, type Columna } from "@/components/ui/Tabla";
 import { CapsulaColor, VARIOS_COLORES } from "@/components/ui/MuestraColor";
 import { Aviso } from "@/components/ui/Aviso";
+import { Interruptor } from "@/components/ui/campos";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Vacio } from "@/components/ui/Vacio";
 import { avisar } from "@/components/ui/Avisos";
@@ -18,10 +19,12 @@ import { soles } from "@/lib/compras-reglas";
 import { useContar } from "@/lib/useContar";
 import {
   agruparPorPrenda,
+  campanasEnLaLista,
   cantidadDeTexto,
   expandir,
   MAX_POR_PRENDA,
   nombreDeFila,
+  sinDescuento,
   type Encabezado as TextosPantalla,
   type EtiquetaPrecio as DatosEtiqueta,
 } from "@/lib/etiqueta-precio-reglas";
@@ -34,10 +37,14 @@ import { BotonImprimir } from "@/components/ui/BotonImprimir";
 const PLANTILLA = "@min-[37rem]:grid-cols-[minmax(0,1fr)_4.5rem_6.5rem_12.75rem]";
 /** El encabezado solo tiene sentido con la tabla ancha: angosta, cada fila va en dos líneas y se lee sola. */
 const PLANTILLA_ENCABEZADO = `${PLANTILLA} @max-[37rem]:hidden!`;
-const columnas: Columna[] = [
+const columnasDe = (sinElDescuento: boolean): Columna[] => [
   { titulo: "Color y código" },
   { titulo: "Talla", alinear: "centro" },
-  { titulo: "Precio", alinear: "centro", ayuda: "Lo que dice la etiqueta: lo que la caja cobra hoy (con la campaña, si hay una)." },
+  {
+    titulo: "Precio",
+    alinear: "centro",
+    ayuda: sinElDescuento ? "Lo que dice la etiqueta: el precio normal, sin la campaña. La caja sí la cobra." : "Lo que dice la etiqueta: lo que la caja cobra hoy (con la campaña, si hay una).",
+  },
   { titulo: "Imprimir", alinear: "der", ayuda: "Cuántas etiquetas de esta prenda. Si alguna ya tiene la suya, baja el número; el tacho la saca de la lista." },
 ];
 /** Lo que dura la fila en irse (`.etq-fila[data-saliendo]`, etiquetas-precio.css): después se quita de verdad. */
@@ -51,6 +58,9 @@ const modoGuardado = (): "girada" | "derecha" => {
   }
 };
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+/** «Aniversario CAYLA (−10 %)», o dos unidas con «y»: la campaña que el interruptor de «sin el descuento» esconde del papel. */
+const textoDeCampanas = (campanas: { nombre: string; pct: number }[]) =>
+  campanas.map((c) => `${c.nombre} (−${c.pct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %)`).join(" y ");
 
 /**
  * Etiquetas de precio (ADR-0180): las prendas juntas por modelo, cada color y talla con cuántas imprimir (− n +) y su tacho, la
@@ -65,7 +75,7 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
  */
 export function ImprimirEtiquetasPrecio({
   encabezado,
-  etiquetas,
+  etiquetas: delServidor,
   sinCodigo,
   impreso,
   volver,
@@ -80,7 +90,15 @@ export function ImprimirEtiquetasPrecio({
   /** La sede de la línea de arriba de la cabecera (donde se imprime). */
   sede: string;
 }) {
-  const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(etiquetas.map((e) => [e.varianteId, String(e.cantidad)])));
+  const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(delServidor.map((e) => [e.varianteId, String(e.cantidad)])));
+  // «Imprimir sin el descuento» (Felipe, 2026-10-23): en una campaña de todo el catálogo (el aniversario) el papel que sale hoy tiene
+  // que servir mañana. Siempre empieza apagado —por defecto el papel dice lo que la caja cobra— y no se recuerda: una campaña de
+  // liquidación SÍ tiene que verse en el papel, y un interruptor olvidado de ayer la escondería sin que nadie lo note. Es solo del
+  // papel: la caja sigue cobrando la campaña.
+  const [sinElDescuento, setSinElDescuento] = useState(false);
+  const campanas = useMemo(() => campanasEnLaLista(delServidor), [delServidor]);
+  const etiquetas = useMemo(() => (sinElDescuento ? delServidor.map(sinDescuento) : delServidor), [delServidor, sinElDescuento]);
+  const columnas = useMemo(() => columnasDe(sinElDescuento), [sinElDescuento]);
   // Las filas sacadas con el tacho, en el orden en que salieron (el «Deshacer» del aviso devuelve la suya). `saliendo`: las que
   // están haciendo su animación de salida; durante esos 320 ms siguen en la tabla, pero ya no se imprimen.
   const [quitadas, setQuitadas] = useState<string[]>([]);
@@ -253,6 +271,21 @@ export function ImprimirEtiquetasPrecio({
           {sinCodigo.length > 0 && <AvisoSinCodigo prendas={sinCodigo} />}
           {avisoMac && <AvisoAyudanteMac {...avisoMac} instalar={instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome: la etiqueta sale, pero con papel de sobra." />}
 
+          {campanas.length > 0 && (
+            <div className="rounded-xl border border-sand bg-papel px-5 py-3.5">
+              <Interruptor
+                activo={sinElDescuento}
+                onActivo={setSinElDescuento}
+                etiqueta={<b className="font-semibold text-tinta">Imprimir sin el descuento</b>}
+                pie={
+                  sinElDescuento
+                    ? `Salen con el precio normal, sin rebaja ni campaña. La caja sigue cobrando ${textoDeCampanas(campanas)}.`
+                    : `Hoy la caja cobra ${textoDeCampanas(campanas)} y las etiquetas lo muestran. Préndelo para que salgan con el precio normal.`
+                }
+              />
+            </div>
+          )}
+
           <Tabla className="etq-tabla @container">
             <Encabezado columnas={columnas} plantilla={PLANTILLA_ENCABEZADO} />
             {grupos.length === 0 && (
@@ -328,8 +361,10 @@ export function ImprimirEtiquetasPrecio({
             )}
           </div>
           <p className="px-1 text-xs leading-relaxed text-taupe">
-            Sale lo que la caja cobra hoy, con la campaña si hay una; cuando termine, reimprímelas desde la campaña. Si la vista previa no
-            dice «Impreso {impreso}», recarga antes de imprimir.
+            {sinElDescuento
+              ? "Salen con el precio normal, sin la campaña: no hace falta reimprimirlas cuando termine."
+              : "Sale lo que la caja cobra hoy, con la campaña si hay una; cuando termine, reimprímelas desde la campaña."}{" "}
+            Si la vista previa no dice «Impreso {impreso}», recarga antes de imprimir.
           </p>
         </div>
         {vistaPrevia && <div className="hidden xl:block">{vistaPrevia}</div>}

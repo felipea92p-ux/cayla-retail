@@ -27,6 +27,7 @@ import {
 } from "@/components/FlujoGuiado";
 import { CambioReemplazo } from "@/components/CambioReemplazo";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
+import type { TonoLectura } from "@/lib/escaner-reglas";
 import { usePistola } from "@/components/ui/usePistola";
 import type { TonoAvisoLinea } from "@/components/ui/Aviso";
 import { CambioTicketHoja, type TicketCambio } from "@/components/CambioTicket";
@@ -278,19 +279,20 @@ export function CambiosFlujo({
   // Escanear la prenda que se lleva (Felipe 2026-10-09: «que se escanee y se seleccione automáticamente»). La pistola
   // escucha todo el paso 3, dentro del combo de prenda o con el foco en cualquier botón (`fuera: "leer"`, sin robar
   // teclas a «¿Cuántas cambia?»); en el celular, la cámara. Lo leído elige prenda, talla y color de una vez.
-  function alLeerPrenda(codigo: string) {
+  // Devuelve el tono para el bip de la cámara (`EscanerBusqueda`): agudo si la eligió, grave si no la encontró.
+  function alLeerPrenda(codigo: string): { tono: TonoLectura } {
     setCamara(false);
     setEsperandoPistola(false);
     const r = seleccionDesdeLectura(codigo, catalogo);
     if (r.tipo === "no-encontrada") {
       setLectura({ tono: "atencion", texto: `No encontramos «${r.codigo}» en el catálogo. Revisa la etiqueta o búscala por su nombre.` });
-      return;
+      return { tono: "ambar" };
     }
-    navigator.vibrate?.(35);
     setAvisoContinuar(null);
     setSeleccion((actual) => (actual ? { ...actual, ...r.cambio } : actual));
     const detalle = varianteLegible(r.variante);
     setLectura({ tono: "exito", texto: `Escaneada: ${r.variante.referencia}${detalle ? ` · ${detalle}` : ""}` });
+    return { tono: "verde" };
   }
   usePistola(campoPrenda, {
     activa: paso === 3 && !camara,

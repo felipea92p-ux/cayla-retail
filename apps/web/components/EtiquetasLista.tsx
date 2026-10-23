@@ -18,6 +18,7 @@ import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import {
   alcanceCampana,
+  alternarSede,
   avisoReimprimir,
   chipDeTarjeta,
   destinoReimprimir,
@@ -31,8 +32,10 @@ import {
   prendasPorCategoria,
   prendasQueCambianDePrecioHoy,
   textoConteoTarjeta,
+  textoSedesDeCampana,
   type ConteoTarjeta,
   type PrendaConCosto,
+  type TiendaOpcion,
 } from "@/lib/etiqueta-campana";
 import { avisoDiaDeSemana, repetirTemporada, textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -93,6 +96,8 @@ export type Etiqueta = {
   vigenteHasta: string | null;
   descuentoPct: number | null;
   categoriaIds: string[];
+  /** Las tiendas donde rige el descuento (ADR-0486). Vacío = todas las sedes. */
+  sedeIds: string[];
 };
 
 export type CategoriaOpcion = { id: string; nombre: string; familia: string };
@@ -128,6 +133,7 @@ function TarjetaEtiqueta({
   conteo = null,
   rotacion = null,
   disenoHref = null,
+  tiendas = [],
   children,
 }: {
   e: Etiqueta;
@@ -140,9 +146,12 @@ function TarjetaEtiqueta({
   rotacion?: string | null;
   /** Su diseño en la tienda online (Tienda web ▸ Campañas, ADR-0471), para quien ve ese módulo; `null`, sin el enlace. */
   disenoHref?: string | null;
+  /** Las tiendas del ERP, para decir en cuáles rige una campaña limitada (ADR-0486). */
+  tiendas?: TiendaOpcion[];
   children?: ReactNode;
 }) {
   const rango = textoRango(e.vigenteDesde, e.vigenteHasta);
+  const dondeRige = e.descuentoPct !== null ? textoSedesDeCampana(e.sedeIds, tiendas) : null;
   // Lo que dice su temporada (un chip que se lee sin abrir nada) y, si se ve el conteo, si de verdad llega a alguna prenda.
   const chip = chipDeTarjeta(vigencia, conteo?.total ?? null, hoy);
   const textos = conteo ? textoConteoTarjeta(conteo) : null;
@@ -180,6 +189,13 @@ function TarjetaEtiqueta({
                 ? "solo en las prendas etiquetadas"
                 : `${e.categoriaIds.length} categoría${e.categoriaIds.length === 1 ? "" : "s"}`}
             </p>
+          )}
+          {dondeRige && (
+            <div>
+              <Chip tono="pizarra" versalitas={false} title="Solo en esa tienda se cobra el descuento; en las demás, el precio normal.">
+                {dondeRige}
+              </Chip>
+            </div>
           )}
           {textos && (
             <p className="text-[11px] tabular-nums text-tinta/60">
@@ -220,11 +236,14 @@ function TarjetaEtiqueta({
 export function TarjetaDeCampana({
   campana,
   categorias,
+  tiendas = [],
   prendasConCosto,
   variantesManuales,
 }: {
   campana: Etiqueta;
   categorias: CategoriaOpcion[];
+  /** Las tiendas del ERP (ADR-0486). Vacío: la hoja de Configurar no ofrece elegir sedes. */
+  tiendas?: TiendaOpcion[];
   prendasConCosto: PrendaConCosto[];
   /** Las prendas puestas a mano en ESTA campaña. */
   variantesManuales: string[];
@@ -243,6 +262,7 @@ export function TarjetaDeCampana({
         hoy={hoy}
         apagada={!e.activo}
         conteo={conteoDeTarjeta(prendasConCosto, new Set(e.categoriaIds), manuales)}
+        tiendas={tiendas}
       >
         {editable && (
           <PieTarjeta>
@@ -284,6 +304,7 @@ export function TarjetaDeCampana({
           etiqueta={e}
           puedeDarDescuento
           categorias={categorias}
+          tiendas={tiendas}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales}
           onClose={() => setConfigurando(false)}
@@ -309,6 +330,7 @@ export function CampanaModal({
   etiqueta,
   puedeDarDescuento,
   categorias,
+  tiendas = [],
   prendasConCosto,
   variantesManuales,
   onClose,
@@ -319,10 +341,12 @@ export function CampanaModal({
   /** Sin esto (un rol con Etiquetas que no es líder), la campaña se configura SIN descuento: fechas y categorías. */
   puedeDarDescuento: boolean;
   categorias: CategoriaOpcion[];
+  /** Las tiendas donde se puede limitar el descuento (ADR-0486). Con menos de dos (o la base sin la migración) no hay nada que elegir. */
+  tiendas?: TiendaOpcion[];
   prendasConCosto: PrendaConCosto[];
   variantesManuales: string[];
   onClose: () => void;
-  onGuardado: (cambios: Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "categoriaIds">) => void;
+  onGuardado: (cambios: Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "categoriaIds" | "sedeIds">) => void;
 }) {
   // Si su temporada ya pasó, la hoja abre para repetirla: las mismas fechas, un año después (se guardan solo con «Guardar»).
   const T = TEXTOS_MODO[modo];
@@ -332,12 +356,17 @@ export function CampanaModal({
   const [hasta, setHasta] = useState((repetir ? repetir.hasta : etiqueta.vigenteHasta) ?? "");
   const avisoDia = repetir ? avisoDiaDeSemana(repetir, { desde, hasta }) : null;
   const [elegidas, setElegidas] = useState(() => new Set(etiqueta.categoriaIds));
+  // Dónde rige el descuento (ADR-0486): vacío = todas las sedes. Solo se ofrece con dos tiendas o más.
+  const [sedesElegidas, setSedesElegidas] = useState(() => new Set(etiqueta.sedeIds));
+  const ofreceSedes = tiendas.length > 1;
   const [guardando, setGuardando] = useState(false);
   const router = useRouter();
 
   // Guía de foco: sale de la misma regla que apaga «Guardar» (`campanaValida`, y su prueba exige que coincidan); todo es opcional,
   // así que solo «sigue» lo mal escrito.
-  const guia = useGuiaCampos(camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento }));
+  const guia = useGuiaCampos(
+    camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento, sedes: ofreceSedes ? sedesElegidas.size : undefined }),
+  );
 
   const pct = parsearDescuento(descuento);
   const fDesde = parsearFecha(desde);
@@ -374,12 +403,14 @@ export function CampanaModal({
     setGuardando(true);
     try {
       const categoriaIds = [...elegidas];
+      const sedeIds = [...sedesElegidas];
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...encabezadosOmitidos("etiqueta_campana") },
         body: JSON.stringify({
           id: etiqueta.id,
-          campana: { descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds },
+          // Sin la hoja de sedes (una sola tienda, o la base sin la migración) no se manda nada: no se toca lo que no se vio.
+          campana: { descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds, ...(ofreceSedes ? { sedeIds } : {}) },
         }),
       });
       const datos = await res.json();
@@ -404,7 +435,7 @@ export function CampanaModal({
           ? { detalle: reimprimir.detalle, accion: destino && reimprimir.boton ? { texto: reimprimir.boton, onClick: () => router.push(destino) } : undefined }
           : undefined,
       );
-      onGuardado({ descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds });
+      onGuardado({ descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds, sedeIds: ofreceSedes ? sedeIds : etiqueta.sedeIds });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -515,6 +546,41 @@ export function CampanaModal({
                   </Aviso>
                 )}
               </CampoGuiado>
+
+              {/* ADR-0486: dónde rige el descuento. «Todas las sedes» es lo de siempre; elegir una o más tiendas limita el descuento
+                  a ellas (en las demás se cobra el precio normal). Marcar todas las tiendas vuelve a «Todas las sedes». */}
+              {ofreceSedes && (
+                <CampoGuiado
+                  id="sedes"
+                  guia={guia}
+                  titulo="Dónde rige"
+                  ayuda="Opcional: sin elegir, rige en todas las sedes."
+                  retiene="fila"
+                  className="mt-0"
+                >
+                  <div data-guia="atributos.campana-sedes" role="group" aria-label="Sedes donde rige el descuento" className="flex flex-wrap gap-1.5">
+                    <button type="button" className="pildora-cayla" aria-pressed={sedesElegidas.size === 0} onClick={() => setSedesElegidas(new Set())}>
+                      Todas las sedes
+                    </button>
+                    {tiendas.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className="pildora-cayla"
+                        aria-pressed={sedesElegidas.has(t.id)}
+                        onClick={() => setSedesElegidas((actual) => alternarSede(actual, t.id, tiendas))}
+                      >
+                        {t.nombre}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-xs text-tinta/65" aria-live="polite">
+                    {sedesElegidas.size === 0
+                      ? "El descuento se cobra en todas las tiendas."
+                      : `${textoSedesDeCampana([...sedesElegidas], tiendas)}: en las demás tiendas se cobra el precio normal.`}
+                  </p>
+                </CampoGuiado>
+              )}
             </div>
 
             <CampoGuiado id="categorias" guia={guia} retiene="fila">
@@ -522,11 +588,18 @@ export function CampanaModal({
                 <p className="label-cayla text-[11px] text-tinta/65">
                   {guia.etiqueta("categorias", "Categorías")} <span className="font-normal normal-case text-tinta/45">· opcional</span>
                 </p>
-                {elegidas.size > 0 && (
-                  <button type="button" onClick={() => setElegidas(new Set())} className="btn-cayla btn-enlace text-xs">
-                    Quitar todas
-                  </button>
-                )}
+                <div className="flex items-baseline gap-3">
+                  {elegidas.size < categorias.length && (
+                    <button type="button" onClick={() => setElegidas(new Set(categorias.map((c) => c.id)))} className="btn-cayla btn-enlace text-xs">
+                      Elegir todas
+                    </button>
+                  )}
+                  {elegidas.size > 0 && (
+                    <button type="button" onClick={() => setElegidas(new Set())} className="btn-cayla btn-enlace text-xs">
+                      Quitar todas
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="mt-1 text-xs text-tinta/65" aria-live="polite">
                 {elegidas.size === 0

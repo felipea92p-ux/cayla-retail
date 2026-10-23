@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { destinoDelMedio, faltaDatoDePago } from "./destino-de-pago";
+import { destinoDelMedio } from "./destino-de-pago";
 import type { DatosPagoProveedor } from "./proveedores-reglas";
 
 const base: DatosPagoProveedor = {
@@ -99,23 +99,5 @@ describe("destinoDelMedio: solo lo del medio elegido", () => {
     const soloPlin = { ...base, celularBilletera: "987654321", billeteras: ["plin"] };
     expect(destinoDelMedio("yape", soloPlin)?.aviso).toBe("Este proveedor recibe Plin, no Yape.");
     expect(destinoDelMedio("plin", soloPlin)?.aviso).toBeNull();
-  });
-});
-
-describe("faltaDatoDePago", () => {
-  it("transferencia o depósito preferidos sin cuenta ni CCI", () => {
-    expect(faltaDatoDePago({ formaPagoPreferida: "transferencia", cci: null, cuentaBancaria: null, celularBilletera: "987654321" })).toBe("Sin CCI cargado");
-    expect(faltaDatoDePago({ formaPagoPreferida: "deposito", cci: null, cuentaBancaria: "  ", celularBilletera: null })).toBe("Sin CCI cargado");
-  });
-  it("con CCI o con cuenta local no falta nada", () => {
-    expect(faltaDatoDePago({ formaPagoPreferida: "transferencia", cci: "00219300214567804558", cuentaBancaria: null, celularBilletera: null })).toBeNull();
-    expect(faltaDatoDePago({ formaPagoPreferida: "transferencia", cci: null, cuentaBancaria: "193-1", celularBilletera: null })).toBeNull();
-  });
-  it("yape/plin preferido sin celular", () => {
-    expect(faltaDatoDePago({ formaPagoPreferida: "yape", cci: null, cuentaBancaria: null, celularBilletera: null })).toBe("Sin Yape / Plin cargado");
-    expect(faltaDatoDePago({ formaPagoPreferida: "plin", cci: null, cuentaBancaria: null, celularBilletera: "987654321" })).toBeNull();
-  });
-  it("efectivo, otro o sin preferida: nunca", () => {
-    for (const f of ["efectivo", "otro", null]) expect(faltaDatoDePago({ formaPagoPreferida: f, cci: null, cuentaBancaria: null, celularBilletera: null })).toBeNull();
   });
 });

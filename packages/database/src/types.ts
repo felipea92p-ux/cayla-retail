@@ -5299,6 +5299,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      actualizar_campana_etiqueta_con_sedes: {
+        Args: {
+          p_categoria_ids: string[]
+          p_descuento_pct: number
+          p_etiqueta_id: string
+          p_sede_ids: string[]
+          p_vigente_desde: string
+          p_vigente_hasta: string
+        }
+        Returns: undefined
+      }
       actualizar_categoria: {
         Args: {
           p_categoria_id: string
@@ -6435,8 +6446,15 @@ export type Database = {
           similitud: number
         }[]
       }
-      campanas_vigentes: {
+      campanas_sedes: {
         Args: never
+        Returns: {
+          etiqueta_id: string
+          ubicacion_id: string
+        }[]
+      }
+      campanas_vigentes: {
+        Args: { p_ubicacion_id?: string }
         Returns: {
           descuento_pct: number
           etiqueta_id: string

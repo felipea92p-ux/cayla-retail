@@ -9,6 +9,8 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import type { LecturaConteo as LecturaCamara } from "@/components/EscanerConteo";
 import { crearColaEnSerie } from "@/lib/conteo-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { sonidoDeLectura } from "@/lib/conteo-conectado";
+import { avisarLectura } from "@/lib/sonido-conteo";
 import {
   MS_AGRUPAR_GUARDADO,
   avisoRecepcion,
@@ -249,8 +251,14 @@ export function useRecepcion({
     if (r.tipo !== "varias") setEscaneo("");
   }
 
-  /** Lo que la cámara leyó (`EscanerConteo`): el mismo camino que la pistola, y le cuenta a la hoja cómo quedó. */
+  /** Lo que la cámara leyó (`EscanerConteo`): el mismo camino que la pistola, y le cuenta a la hoja cómo quedó. Suena como en
+   *  Conteo (2026-10-23): doble la primera de una prenda, agudo la siguiente y grave lo que no se sumó. */
   function leerConCamara(codigo: string): LecturaCamara {
+    const lectura = leerConCamaraSinSonido(codigo);
+    avisarLectura(lectura.encontrada && !lectura.atencion ? sonidoDeLectura({ encontrada: true, yaContada: lectura.cantidad > 1 }) : "desconocida");
+    return lectura;
+  }
+  function leerConCamaraSinSonido(codigo: string): LecturaCamara {
     const r = resolverEscaneo(codigo, t.lineas, catalogo);
     const l = r.tipo === "linea" || r.tipo === "fuera" ? t.lineas.find((x) => x.varianteId === r.varianteId) : undefined;
     if (r.tipo === "linea" && l && !l.ingresado) {
