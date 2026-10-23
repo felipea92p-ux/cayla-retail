@@ -438,3 +438,16 @@ cajón con la caja cerrada). El spike no podía definir esa lista: en él la pin
 `SelectEnLineaFin` (el combo dentro del sobretítulo). Las reglas de ancho de `finanzas.css` que apuntaban a
 `select.fin-control` ahora apuntan a `.fin-desplegable-caja` (la caja que ocupa lugar en la fila) y `.fin-desplegable`
 (el botón); `className` ubica el combo (`w-fit`, `fin-mes-chico`, `fin-compacto`), no lo pinta.
+
+## Actualización 2026-10-23 — El telar de Finanzas reemplaza el diseño del spike (ADR-0493)
+
+Felipe eligió «El telar de Finanzas» (docs/maquetas/finanzas-telar-2026-10/) para los seis submódulos. Desde ese día:
+
+- **La barra común** (mesa de mando, en `app/(app)/finanzas/layout.tsx`) lleva la sede y el mes de todo Finanzas en la URL (`?sede=`, `?mes=`).
+  Reemplaza al combo «Ver» de cada pantalla, que cada sesión saca al rediseñar su submódulo.
+- **La cabecera** de una pantalla de Finanzas rediseñada es `<EncabezadoPagina>` con `<RespuestaTelar>`, como en el resto del ERP. Deja de
+  ser `<CabeceraPantalla>`.
+- **Lo propio de cada submódulo** (el retazo de Gastos, los frascos, la biblioteca, la balanza, el mapa del cierre) se dibuja como en la
+  maqueta, y la comparación de capturas se hace contra esa maqueta, no contra el spike de 2026-09.
+- **El kit** (`components/finanzas/kit.tsx`, `finanzas.css`) sigue vivo en lo que todavía no se rediseñó y se retira pantalla por pantalla.
+  No se reemplaza de golpe.

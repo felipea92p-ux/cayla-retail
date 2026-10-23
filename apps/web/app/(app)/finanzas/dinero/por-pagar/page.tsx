@@ -11,13 +11,14 @@ import { PorPagarConsolidado } from "@/components/finanzas/PorPagarConsolidado";
 import { PagoTallerDesdeUrl } from "@/components/finanzas/PorPagarAcciones";
 import { PagoDesdeUrl } from "@/components/CompraDetallePanel";
 import { verDeLaVista } from "@/lib/vista-global";
+import { sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 
 // Finanzas ▸ Cuentas y dinero ▸ Por pagar (ADR-0195 F4). La puerta es el módulo Cuentas y dinero (el candado real está en la
 // base, `fn_por_pagar_consolidado`: el líder, todo; con el módulo, su tienda, es decir, las facturas que ella pidió, enteras:
 // decisión 45 de ADR-0387, la deuda de una factura es toda de la tienda que la pidió). `?ver=` (solo el líder) elige qué mirar: la
 // sede donde trabaja por defecto, «todas», una unidad o «empresa». `?pagar=<id>` abre el pago de esa fila con el modal de
 // su libro —el de Compras o el de Producción—, sin lógica de pago nueva; solo si la cuenta puede pagarla.
-export default async function PorPagarFinanzasPage({ searchParams }: { searchParams: Promise<{ ver?: string; pagar?: string }> }) {
+export default async function PorPagarFinanzasPage({ searchParams }: { searchParams: Promise<{ ver?: string; sede?: string; pagar?: string }> }) {
   const persona = await exigirModulo("cuentas_dinero");
   const sp = await searchParams;
   const hoy = hoyLima();
@@ -25,7 +26,7 @@ export default async function PorPagarFinanzasPage({ searchParams }: { searchPar
   const pagaCompras = accionesDeCompraDe(persona).pagar;
 
   const unidades = await getUnidadesPorPagar(persona);
-  const ver = leerVer(verDeLaVista(persona.vista, sp.ver), unidades, esLider, persona.ubicacionId);
+  const ver = leerVer(verDeLaVista(persona.vista, sedeDeLaUrl(sp)), unidades, esLider, persona.ubicacionId);
   const { datos: filas, falla } = await getPorPagarConsolidado(ver);
 
   // El pago que pide la URL, si la fila está en la lista, todavía se debe y esta cuenta la puede pagar.
