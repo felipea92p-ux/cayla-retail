@@ -5,10 +5,14 @@ import {
   categoriasDeHabituales,
   faltaEnPaso,
   faltaNombreNuevo,
-  filtrarCategoriasNuevo,
-  filtrarMarcas,
   filtrarProveedores,
-  habitualNuevo,
+  camposPrendaNueva,
+  habitualDeNuevo,
+  nuevoVacio,
+  opcionesCategoriaNueva,
+  opcionesMarcaNueva,
+  PROVEEDORES_POR_TANDA,
+  tandaDeLista,
   habitualParecido,
   leerCantidad,
   leerHabituales,
@@ -199,13 +203,19 @@ describe("algo nuevo de este proveedor", () => {
     { id: "jeans", nombre: "Jeans", prefijo: "JEA", familia: "indumentaria" },
     { id: "nueva", nombre: "Ponchos", prefijo: null, familia: null },
   ];
-  it("«¿Qué es?»: primero lo que ya le compras; se busca sin tildes y por la prenda de la ficha", () => {
-    const todo = filtrarCategoriasNuevo(CATS, "", new Set(["jeans"]));
-    expect(todo.suyas.map((c) => c.id)).toEqual(["jeans"]);
-    expect(todo.otras.map((c) => c.id)).toEqual(["blusas", "sud", "nueva"]);
-    expect(filtrarCategoriasNuevo(CATS, "BLÚSA", new Set()).otras.map((c) => c.id)).toEqual(["blusas"]);
-    expect(filtrarCategoriasNuevo(CATS, "polera", new Set()).otras.map((c) => c.id)).toEqual(["sud"]);
-    expect(filtrarCategoriasNuevo(CATS, "zapatos", new Set(["jeans"]))).toEqual({ suyas: [], otras: [] });
+  it("«¿Qué es?»: primero lo que ya le compras, en su grupo; sin nada suyo, una sola lista", () => {
+    expect(opcionesCategoriaNueva(CATS, new Set(["jeans"]))).toEqual([
+      { valor: "jeans", texto: "Jeans", grupo: "Ya le compras" },
+      { valor: "blusas", texto: "Camisas y Blusas", grupo: "Otras" },
+      { valor: "sud", texto: "Sudaderas", grupo: "Otras" },
+      { valor: "nueva", texto: "Ponchos", grupo: "Otras" },
+    ]);
+    expect(opcionesCategoriaNueva(CATS, new Set()).map((o) => [o.valor, o.grupo])).toEqual([
+      ["blusas", undefined],
+      ["sud", undefined],
+      ["jeans", undefined],
+      ["nueva", undefined],
+    ]);
   });
   it("el nombre: de 3 a 80 letras, sin contar los espacios de más", () => {
     expect(faltaNombreNuevo("")).toBe("Escribe el nombre de la prenda");
@@ -233,20 +243,52 @@ describe("algo nuevo de este proveedor", () => {
     ]);
     expect(marcasDeHabituales([])).toEqual([]);
   });
-  it("«Otra marca» busca entre todas sin tildes ni mayúsculas", () => {
+  it("la marca: primero las que trae el proveedor; si trae una sola, la hoja llega con ella puesta", () => {
     const marcas = [
       { id: "1", nombre: "Ángelys" },
       { id: "2", nombre: "CAYLA" },
+      { id: "3", nombre: "Mias" },
     ];
-    expect(filtrarMarcas(marcas, "angel").map((m) => m.id)).toEqual(["1"]);
-    expect(filtrarMarcas(marcas, "")).toHaveLength(2);
+    expect(opcionesMarcaNueva(marcas, [{ id: "3" }]).map((o) => `${o.grupo}:${o.texto}`)).toEqual([
+      "Las que trae:Mias",
+      "Otras marcas:Ángelys",
+      "Otras marcas:CAYLA",
+    ]);
+    expect(opcionesMarcaNueva(marcas, []).map((o) => o.grupo)).toEqual([undefined, undefined, undefined]);
+    expect(nuevoVacio([{ id: "3" }]).marcaId).toBe("3");
+    expect(nuevoVacio([{ id: "1" }, { id: "3" }]).marcaId).toBeNull();
   });
-  it("la prenda nueva sigue como un habitual sin compras: sin producto del catálogo y sin precios de antes", () => {
-    const h = habitualNuevo("nuevo:1", { nombre: "  Casaca   corta ", categoria: CATS[0], marca: { id: "m1", nombre: "CAYLA" } });
+  it("la hoja de una prenda nueva pide qué es, la marca y el nombre antes que lo de siempre; un parecido sin contestar frena el nombre", () => {
+    const b = { cantidad: "", costo: "", venta: "", destinoId: null };
+    const vacio = camposPrendaNueva(nuevoVacio([]), false, b);
+    expect(vacio.map((c) => c.id)).toEqual(["categoria", "marca", "nombre", "cantidad", "costo", "venta", "tienda"]);
+    expect(vacio.slice(0, 3).every((c) => !c.hecho && c.requerido)).toBe(true);
+    const n = { categoriaId: "jeans", marcaId: "m1", nombre: "Jean mom", descartadas: new Set<string>() };
+    expect(camposPrendaNueva(n, false, b).slice(0, 3).every((c) => c.hecho)).toBe(true);
+    const conParecido = camposPrendaNueva(n, true, b)[2];
+    expect(conParecido).toMatchObject({ hecho: false, pendiente: "Dinos si es la misma prenda." });
+  });
+  it("la prenda nueva es solo una referencia: un habitual sin producto del catálogo y sin precios de antes", () => {
+    const marcas = [{ id: "m1", nombre: "CAYLA" }];
+    const n = { categoriaId: "blusas", marcaId: "m1", nombre: "  Casaca   corta ", descartadas: new Set<string>() };
+    const h = habitualDeNuevo("nuevo:1", n, CATS, marcas);
     expect(h).toMatchObject({ clave: "nuevo:1", productoId: null, nombre: "Casaca corta", categoriaId: "blusas", marcaId: "m1", veces: 0, costo: null, venta: null });
-    expect(textoHabitual(h)).toBeNull();
-    expect(textoAvance("nuevo-categoria")).toBe("Paso 2 de 3 · las prendas · qué es");
-    expect(textoAvance("nuevo-marca")).toBe("Paso 2 de 3 · las prendas · marca");
+    expect(textoHabitual(h!)).toBeNull();
+    // Sin qué es, sin marca o sin nombre no se arma.
+    expect(habitualDeNuevo("x", { ...n, categoriaId: null }, CATS, marcas)).toBeNull();
+    expect(habitualDeNuevo("x", { ...n, marcaId: "otra" }, CATS, marcas)).toBeNull();
+    expect(habitualDeNuevo("x", { ...n, nombre: "ab" }, CATS, marcas)).toBeNull();
+  });
+});
+
+describe("los proveedores, de 10 en 10", () => {
+  it("dibuja la tanda pedida sin pasarse y dice cuántos quedan", () => {
+    const lista = Array.from({ length: 23 }, (_, i) => i);
+    expect(PROVEEDORES_POR_TANDA).toBe(10);
+    expect(tandaDeLista(lista, 10)).toEqual({ visibles: lista.slice(0, 10), quedan: 13 });
+    expect(tandaDeLista(lista, 30)).toEqual({ visibles: lista, quedan: 0 });
+    expect(tandaDeLista([], 10)).toEqual({ visibles: [], quedan: 0 });
+    expect(tandaDeLista(lista, -1).visibles).toEqual([]);
   });
 });
 

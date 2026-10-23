@@ -457,15 +457,27 @@ export function RegistrarPagoModal({
             <div className="space-y-5" data-guia="pago-modal.pie">
               <ComboResponsable control={responsable} deshabilitado={loading} />
 
-              {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
-              <div className="pie-acciones -mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
-                <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
-                <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
-                  Cancelar
-                </button>
-                <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
-                  {`Registrar pago de ${soles(suma)}`}
-                </Boton>
+              {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. El sangrado va en la caja de
+                  afuera y `pie-acciones` adentro: en el celular `pie-acciones` se pone `margin-left: 0` y, junto al sangrado, dejaba el pie
+                  24 px adentro. En el celular la nota va en su fila y los dos botones, uno bajo el otro (la etiqueta lleva el monto y no
+                  cabe en media fila). */}
+              <div className="-mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
+                <div className="pie-acciones">
+                  <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55 max-sm:basis-full">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
+                  <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
+                    Cancelar
+                  </button>
+                  <Boton
+                    textoCargando="Registrando…"
+                    type="submit"
+                    peso="primario"
+                    cargando={loading}
+                    disabled={loading || excede || favorExcedido || suma <= 0}
+                    className="pie-acciones-ancho"
+                  >
+                    {`Registrar pago de ${soles(suma)}`}
+                  </Boton>
+                </div>
               </div>
             </div>
           </form>
