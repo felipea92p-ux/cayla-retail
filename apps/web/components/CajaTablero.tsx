@@ -456,9 +456,7 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
                 ? `Del cajón ${soles(g.total)} · con Yape o Plin ${soles(g.totalApp)}`
                 : `Salieron del cajón · ${soles(g.total)}`
           }
-          derecha={
-            <EnlaceVer href="/finanzas/gastos">Ver en Finanzas</EnlaceVer>
-          }
+          derecha={contexto.gastosEnFinanzas ? <EnlaceVer href="/finanzas/gastos">Ver en Finanzas</EnlaceVer> : undefined}
         />
         {!g ? (
           <SinLectura />
