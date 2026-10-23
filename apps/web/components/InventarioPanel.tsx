@@ -1434,7 +1434,8 @@ export function InventarioPanel({
           pista="Centra la etiqueta de la prenda en el cuadro"
           onCodigo={(codigo) => {
             setCamara(false);
-            abrirPorCodigo(codigo);
+            // El bip dice si la encontró (abre su talla) o no (queda buscada en la lista): grave = «mira la pantalla».
+            return { tono: abrirPorCodigo(codigo) ? "verde" : "ambar" };
           }}
           onEscribir={() => {
             setCamara(false);
