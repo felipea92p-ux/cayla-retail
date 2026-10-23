@@ -2,10 +2,11 @@
 
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Moon } from "lucide-react";
+import { Moon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { avisar } from "@/components/ui/Avisos";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
@@ -87,13 +88,14 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
     router.refresh();
   }
 
+  // Un renglón del cuaderno: lo que fue (con su detalle entre paréntesis, en el mismo renglón) y su monto.
   const fila = (titulo: string, monto: string, detalle?: string) => (
-    <li className="flex items-baseline justify-between gap-3 py-2.5">
-      <span className="min-w-0">
-        <span className="block text-sm text-tinta">{titulo}</span>
-        {detalle && <span className="block text-xs text-taupe">{detalle}</span>}
+    <li>
+      <span className="min-w-0 truncate">
+        {titulo}
+        {detalle && <span className="text-taupe"> ({detalle})</span>}
       </span>
-      <span className="whitespace-nowrap text-sm tabular-nums text-tinta">{monto}</span>
+      <span className="whitespace-nowrap tabular-nums">{monto}</span>
     </li>
   );
 
@@ -114,15 +116,15 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
           }}
           className="space-y-5"
         >
-          <ul className="divide-y divide-sand" data-guia="mi-plata.cuaderno">
+          <ul className="compra-cuaderno" data-guia="mi-plata.cuaderno">
             {d.antes > 0 && fila("Te quedó de antes", soles(d.antes))}
-            {d.antes < 0 && fila("Pusiste de tu bolsillo antes", `− ${soles(-d.antes)}`, "CAYLA te lo debe")}
+            {d.antes < 0 && fila("Pusiste de tu bolsillo antes", `− ${soles(-d.antes)}`)}
             {fila("Te dieron hoy", `+ ${soles(d.dieron)}`)}
             {fila("Compraste", `− ${soles(d.compraste)}`, plata.hoy.compras === 1 ? "1 compra" : `${plata.hoy.compras} compras`)}
-            {fila("Gastaste en otras cosas", `− ${soles(d.gastaste)}`, "Taxi, cargador, comida…")}
-            <li className="flex items-baseline justify-between gap-3 pt-3">
-              <span className="text-sm font-medium text-tinta">{d.queda < 0 ? "Pusiste de tu bolsillo" : "Te queda"}</span>
-              <span className="whitespace-nowrap font-serif text-2xl tabular-nums text-tinta">{soles(Math.abs(d.queda))}</span>
+            {fila("Gastaste en otras cosas", `− ${soles(d.gastaste)}`)}
+            <li className="compra-cuaderno-fin">
+              <span>{d.queda < 0 ? "Pusiste de tu bolsillo" : "Te queda"}</span>
+              <span className="whitespace-nowrap tabular-nums">{soles(Math.abs(d.queda))}</span>
             </li>
           </ul>
 
@@ -138,7 +140,7 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
             <p className="nota-cayla text-sm">No te quedó plata: no hay nada que devolver.</p>
           ) : (
             <div className="flex flex-col gap-2" data-guia="mi-plata.decision">
-              <p className="campo-etiqueta">¿Qué haces con lo que te queda?</p>
+              <TituloSeccion nivel={3}>¿Qué haces con lo que te queda?</TituloSeccion>
               <div role="group" aria-label="¿Qué haces con lo que te queda?" className="flex flex-col gap-2">
                 {(["se_queda", "devuelve"] as const).map((k) => (
                   <button
@@ -150,13 +152,17 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
                       setRechazo(null);
                       setDecision(k);
                     }}
-                    className={`card-cayla mov-boton flex flex-col items-start gap-0.5 p-3 text-left ${decision === k ? "border-tinta bg-sand/40" : ""}`}
+                    className={`card-cayla mov-boton grid grid-cols-[22px_minmax(0,1fr)] gap-3 rounded-2xl p-3.5 text-left ${decision === k ? "border-tinta ring-1 ring-inset ring-tinta" : ""}`}
                   >
-                    <span className="flex w-full items-center justify-between font-medium text-tinta">
-                      {OPCIONES[k].nombre}
-                      {decision === k && <Check className="h-4 w-4" aria-hidden />}
+                    {/* El círculo de una respuesta de radio (la maqueta): se llena de tinta al elegirla. */}
+                    <span
+                      aria-hidden
+                      className={`mt-0.5 h-[22px] w-[22px] rounded-full border-taupe transition-[border-width] duration-200 ${decision === k ? "border-[7px] border-tinta" : "border-[1.5px]"}`}
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-medium text-tinta">{OPCIONES[k].nombre}</span>
+                      <span className="block text-[12.5px] text-taupe">{OPCIONES[k].detalle}</span>
                     </span>
-                    <span className="text-xs text-taupe">{OPCIONES[k].detalle}</span>
                   </button>
                 ))}
               </div>

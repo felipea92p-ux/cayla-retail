@@ -3,7 +3,7 @@
 import { useLayoutEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowRight, Camera, Check, ChevronRight, Plus, SearchX, Shapes, Store, Tag, Truck } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, ChevronRight, Plus, SearchX, Shapes, Store, Tag, Truck } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Boton, BotonEnlace, CampoMonto, CampoTexto } from "@/components/ui/campos";
@@ -21,6 +21,7 @@ import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Globito } from "@/components/ui/Globito";
 import { HojaPrenda } from "@/components/mi-plata/HojaPrenda";
+import { TarjetaFoto } from "@/components/mi-plata/TarjetaFoto";
 import { RegistrarProveedorOrden } from "@/components/ordenes-compra/RegistrarProveedorOrden";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -634,32 +635,16 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           </CampoGuiado>
           {tipo !== "sin_comprobante" && (
             <CampoGuiado id="foto" guia={guia} titulo="La foto del papel">
-              {/* La foto como una tarjeta punteada de un toque (la maqueta); lista, con su borde verde. */}
-              <label
-                data-guia="compra.foto"
-                className={`mov-boton flex w-full cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] p-3.5 text-left ${
-                  archivo ? "border-solid border-verde" : "border-dashed border-taupe/55"
-                } ${guardando ? "pointer-events-none opacity-60" : ""}`}
-              >
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-hueso text-tinta">
-                  {archivo ? <Check className="h-5 w-5 text-verde" aria-hidden /> : <Camera className="h-5 w-5" aria-hidden />}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate font-medium text-tinta">{archivo ? `Lista: ${archivo.name}` : "Tomar la foto"}</span>
-                  <span className="block text-xs text-taupe">{archivo ? "Toca para cambiarla" : "Que se lea el total y el número"}</span>
-                </span>
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  capture="environment"
-                  className="sr-only"
-                  onChange={(e) => {
-                    setRechazo(null);
-                    setArchivo(e.target.files?.[0] ?? null);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
+              <TarjetaFoto
+                guia="compra.foto"
+                archivo={archivo}
+                deshabilitada={guardando}
+                ayuda="Que se lea el total y el número"
+                onArchivo={(f) => {
+                  setRechazo(null);
+                  setArchivo(f);
+                }}
+              />
             </CampoGuiado>
           )}
           <CampoGuiado id="monto" guia={guia} titulo="¿Cuánto dice el papel?">

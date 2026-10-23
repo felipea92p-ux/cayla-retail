@@ -24,3 +24,29 @@
   font-size: 17px;
   color: var(--color-tinta);
 }
+
+/* «Terminé de comprar hoy»: la cuenta del día como un cuaderno rayado (la maqueta). Cada renglón mide 44 px y la raya de arena cae
+   bajo cada uno; el último, «Te queda», es más alto y va en la serif. */
+.compra-cuaderno {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px;
+  border: 1px solid var(--color-sand);
+  border-radius: 18px;
+  background-color: var(--color-papel);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 43px, var(--color-sand) 43px 44px);
+}
+.compra-cuaderno > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 44px;
+  font-size: 14.5px;
+  color: var(--color-tinta);
+}
+.compra-cuaderno > li.compra-cuaderno-fin {
+  height: 52px;
+  font-family: var(--font-serif);
+  font-size: 22px;
+}

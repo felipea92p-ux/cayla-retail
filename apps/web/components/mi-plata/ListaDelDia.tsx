@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Car, HandCoins, Package, Shapes, ShoppingBag, Truck, User, UtensilsCrossed } from "lucide-react";
+import { HandCoins, ShoppingBag, type LucideIcon } from "lucide-react";
+import { ICONO_GASTO } from "./iconos";
 import { Chip } from "@/components/ui/Chip";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
@@ -12,16 +13,7 @@ import type { MovimientoCompradora } from "@/lib/mi-plata-reglas";
 // «Hoy» de Mi plata para compras (maqueta docs/maquetas/compras-formidable-2026-10/): lo que compró, gastó y anotó en UNA lista, en orden,
 // con su ícono, su monto (− lo que sale, + en verde lo que entra) y su estado dicho por quién lo hace. Antes eran tres listas que había
 // que juntar en la cabeza. Lo de días anteriores espera bajo «Ver días anteriores». El orden y el corte por día: `movimientosDeLaCompradora`.
-const ICONO: Record<MovimientoCompradora["icono"], typeof Car> = {
-  compra: ShoppingBag,
-  plata: HandCoins,
-  taxi: Car,
-  cargador: User,
-  comida: UtensilsCrossed,
-  envio: Truck,
-  bolsas: Package,
-  otro: Shapes,
-};
+const ICONO: Record<MovimientoCompradora["icono"], LucideIcon> = { compra: ShoppingBag, plata: HandCoins, ...ICONO_GASTO };
 
 function Fila({ m, conDia }: { m: MovimientoCompradora; conDia: boolean }) {
   const Icono = ICONO[m.icono];

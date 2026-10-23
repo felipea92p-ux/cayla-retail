@@ -12,7 +12,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { mandarATienda } from "@/lib/mi-plata-acciones";
-import { resumenPrendas, textoFaltaMandar, type PorMandar } from "@/lib/mi-plata-reglas";
+import { detalleEnvio, resumenPrendas, siglaTienda, textoFaltaMandar, type PorMandar } from "@/lib/mi-plata-reglas";
 
 // Compras simple (ADR-0480, actividad 5): «Mandar a la tienda». Lo que la compradora compró para cada tienda y todavía no salió, en una
 // tarjeta por tienda: sus prendas, «¿Cuántos paquetes (fardos)?» y «Mandar a …», que se toca al entregar el fardo al transporte. La base
@@ -115,12 +115,16 @@ function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; 
             const n = fardos[t.tiendaId] ?? 1;
             return (
               <li key={t.tiendaId} className="card-cayla flex flex-col gap-3 p-4">
-                <div>
-                  <p className="font-serif text-xl leading-tight text-tinta">Para {t.tienda}</p>
-                  <p className="text-sm text-taupe">
-                    {t.unidades === 1 ? "1 prenda" : `${t.unidades} prendas`}: {resumenPrendas(t.prendas)}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <span className="compra-iniciales text-lg" aria-hidden>
+                    {siglaTienda(t.tienda)}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-medium text-tinta">{t.tienda}</span>
+                    <span className="block text-xs text-taupe">{detalleEnvio(t)}</span>
+                  </span>
                 </div>
+                <p className="text-sm text-tinta/75">{resumenPrendas(t.prendas)}</p>
                 <div className="flex items-center justify-between gap-3 border-t border-sand pt-3">
                   <span className="min-w-0">
                     <span className="block text-sm text-tinta">¿Cuántos paquetes (fardos)?</span>

@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata.compra",
   "ruta": "/compras/mi-plata/compra",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 41,
+  "total": 44,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -31,7 +31,9 @@
       "button «Otra prenda de»",
       "Boton «compra.al-papel»",
       "button «{TIPOS_PAPEL[k].nombre}»",
-      "input «Compra guardada»",
+      "CampoMonto «compra.monto»",
+      "ComboResponsable «{responsable}»",
+      "Boton «compra.guardar»",
       "BotonEnlace «compra.mandar»",
       "Boton «Anotar otra compra»",
       "Link «Ver mi plata»",
@@ -45,6 +47,9 @@
       "BotonFiltro «{c.nombre}» #2",
       "button «compra.algo-nuevo»",
       "BotonVerMas «{`Ver todos los suyos (${habituales.length}»"
+    ],
+    "components/mi-plata/TarjetaFoto.tsx": [
+      "input «(sin nombre)»"
     ],
     "components/ordenes-compra/RegistrarProveedorOrden.tsx": [
       "CampoTexto «Nombre del proveedor»",

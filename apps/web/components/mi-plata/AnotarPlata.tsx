@@ -1,9 +1,10 @@
 "use client";
 
 import { AccionDelDia } from "./AccionDelDia";
+import { TarjetaFoto } from "./TarjetaFoto";
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, HandCoins } from "lucide-react";
+import { HandCoins } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoMonto } from "@/components/ui/campos";
@@ -207,25 +208,17 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
             </CampoGuiado>
             {!yaTenia && (
               <CampoGuiado id="foto" guia={guia} titulo="Foto del voucher">
-                <label
-                  data-guia="mi-plata.foto"
-                  className={`btn-cayla btn-secundario mov-boton w-full cursor-pointer justify-center ${guardando ? "pointer-events-none opacity-60" : ""}`}
-                >
-                  <Camera className="h-4 w-4" aria-hidden />
-                  {archivo ? "Cambiar la foto" : "Tomar o elegir la foto"}
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    capture="environment"
-                    className="sr-only"
-                    onChange={(e) => {
-                      setRechazo(null);
-                      setArchivo(e.target.files?.[0] ?? null);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-                <p className="mt-1.5 text-xs text-taupe">{archivo ? `Lista: ${archivo.name}` : "Si no la tienes, igual puedes anotar la plata."}</p>
+                <TarjetaFoto
+                  guia="mi-plata.foto"
+                  titulo="Foto del voucher"
+                  ayuda="Ayuda a Compras a confirmarla rápido. Sin foto, igual se anota."
+                  archivo={archivo}
+                  deshabilitada={guardando}
+                  onArchivo={(f) => {
+                    setRechazo(null);
+                    setArchivo(f);
+                  }}
+                />
               </CampoGuiado>
             )}
             {!esPersona && (

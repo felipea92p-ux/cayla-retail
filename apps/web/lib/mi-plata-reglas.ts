@@ -569,3 +569,15 @@ export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gast
   if (!dia) return { hoy: todos, antes: [] };
   return { hoy: todos.filter((m) => m.fecha.slice(0, 10) === dia), antes: todos.filter((m) => m.fecha.slice(0, 10) !== dia) };
 }
+
+/** La sigla de una tienda en su cuadro: «Tienda Lima» → «LIM», «Tienda AQP» → «AQP». La última palabra, en tres letras. */
+export function siglaTienda(nombre: string): string {
+  const palabras = nombre.trim().split(/\s+/).filter(Boolean);
+  return (palabras.at(-1) ?? "?").slice(0, 3).toUpperCase();
+}
+
+/** Bajo el nombre de la tienda: «30 prendas de 2 compras». */
+export function detalleEnvio(t: Pick<PorMandar, "unidades" | "prendas">): string {
+  const compras = new Set(t.prendas.map((p) => p.papelId)).size;
+  return `${t.unidades === 1 ? "1 prenda" : `${t.unidades} prendas`} de ${compras === 1 ? "1 compra" : `${compras} compras`}`;
+}

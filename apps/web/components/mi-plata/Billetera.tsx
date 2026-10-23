@@ -29,9 +29,10 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
       <BarraApilada segmentos={tramos} unidad="soles" alto={8} decorativa />
       <dl className="grid grid-cols-3 gap-2 text-xs">
         {tramos.map((t) => (
-          <div key={t.clave} className="flex min-w-0 flex-col gap-0.5">
-            <dt className="flex items-center gap-1.5 text-crema/75">
-              <MuestraTramo color={t.color} />
+          // Los montos quedan alineados abajo aunque un nombre ocupe dos líneas a 375 px.
+          <div key={t.clave} className="flex min-w-0 flex-col justify-between gap-0.5">
+            <dt className="flex items-start gap-1.5 text-crema/75">
+              <MuestraTramo color={t.color} className="mt-[3px] shrink-0" />
               {t.nombre}
             </dt>
             <dd className="text-[13px] font-medium tabular-nums">{soles(t.valor)}</dd>

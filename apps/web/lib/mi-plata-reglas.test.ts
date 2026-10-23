@@ -22,6 +22,8 @@ import {
   repartoBilletera,
   textoFaltaMandar,
   movimientosDeLaCompradora,
+  siglaTienda,
+  detalleEnvio,
 } from "./mi-plata-reglas";
 import type { CuentaOpcion } from "./fondos-reglas";
 
@@ -319,5 +321,19 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     expect(textoFaltaMandar([...una, { tiendaId: "u", tienda: "Tienda AQP", unidades: 30, prendas: [] }])?.titulo).toBe("Te falta mandar 37 prendas a 2 tiendas");
     expect(textoFaltaMandar([{ ...una[0], unidades: 1 }])?.titulo).toBe("Te falta mandar 1 prenda a Tienda LIM");
     expect(textoFaltaMandar([])).toBeNull();
+  });
+});
+
+describe("la tarjeta de cada tienda en «Mandar a la tienda»", () => {
+  it("la sigla es la última palabra en tres letras", () => {
+    expect(siglaTienda("Tienda Lima")).toBe("LIM");
+    expect(siglaTienda("Tienda AQP")).toBe("AQP");
+    expect(siglaTienda("Trujillo")).toBe("TRU");
+    expect(siglaTienda("")).toBe("?");
+  });
+  it("cuántas prendas y de cuántas compras", () => {
+    const p = (papelId: string) => ({ papelId, proveedor: "x", nombre: "y", cantidad: 1 });
+    expect(detalleEnvio({ unidades: 30, prendas: [p("a"), p("b"), p("a")] })).toBe("30 prendas de 2 compras");
+    expect(detalleEnvio({ unidades: 1, prendas: [p("a")] })).toBe("1 prenda de 1 compra");
   });
 });
