@@ -3,6 +3,7 @@ import { leerMontoPlata } from "./monto-plata-reglas";
 import { problemaDeMonto } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import { nombresParecidos } from "./nombres-parecidos";
+import { diasEntreFechas } from "./fechas-lima";
 import { FICHAS_POR_CATEGORIA } from "./sugerencias-alta-producto";
 
 // Compras simple (ADR-0480, actividad 3): «Compré ropa» desde el celular. Las reglas puras: leer lo que manda la base (vieja o rota: nunca
@@ -66,6 +67,46 @@ export function leerProveedoresParaComprar(data: unknown): ProveedorParaComprar[
 export function filtrarProveedores(lista: readonly ProveedorParaComprar[], q: string, categoriaId: string | null): ProveedorParaComprar[] {
   const n = normalizar(q);
   return lista.filter((p) => (!n || normalizar(p.nombre).includes(n)) && (!categoriaId || p.categorias.includes(categoriaId)));
+}
+
+/**
+ * «Les compraste hace poco» (maqueta compras-formidable-2026-10): los proveedores a los que ya se les compró, el más reciente primero.
+ * Los demás se encuentran buscando o por lo que venden.
+ */
+export function proveedoresRecientes(lista: readonly ProveedorParaComprar[], maximo = 5): ProveedorParaComprar[] {
+  return lista
+    .filter((p) => p.compras > 0 && p.ultima)
+    .sort((a, b) => (a.ultima! < b.ultima! ? 1 : a.ultima! > b.ultima! ? -1 : b.compras - a.compras))
+    .slice(0, maximo);
+}
+
+function haceCuanto(dias: number): string {
+  if (dias <= 0) return "hoy";
+  if (dias === 1) return "ayer";
+  if (dias < 7) return `hace ${dias} días`;
+  if (dias < 14) return "hace una semana";
+  if (dias < 30) return `hace ${Math.floor(dias / 7)} semanas`;
+  if (dias < 60) return "hace un mes";
+  return `hace ${Math.floor(dias / 30)} meses`;
+}
+
+/** Lo que se lee bajo cada proveedor: «Le compraste hace 6 días · 4 compras», o «Todavía no le compras». `hoy` es el día de Lima. */
+export function detalleProveedor(p: Pick<ProveedorParaComprar, "compras" | "ultima">, hoy: string): string {
+  if (p.compras === 0) return "Todavía no le compras";
+  const veces = p.compras === 1 ? "1 compra" : `${p.compras} compras`;
+  return p.ultima ? `Le compraste ${haceCuanto(diasEntreFechas(p.ultima, hoy))} · ${veces}` : veces;
+}
+
+/** Las iniciales del cuadro de cada proveedor: «Textiles Rosa S.A.C.» → «TR»; una sola palabra, sus dos primeras letras. */
+export function inicialesProveedor(nombre: string): string {
+  const palabras = nombre
+    .replace(/\s+(s\.?a\.?c\.?|e\.?i\.?r\.?l\.?|s\.?r\.?l\.?|s\.?a\.?)$/i, "")
+    .split(/\s+/)
+    .map((w) => w.replace(/[^\p{L}\p{N}]/gu, ""))
+    .filter(Boolean);
+  if (palabras.length === 0) return "?";
+  if (palabras.length === 1) return palabras[0].slice(0, 2).toUpperCase();
+  return (palabras[0][0] + palabras[1][0]).toUpperCase();
 }
 
 /** Las categorías que vende al menos un proveedor (las píldoras de «¿A quién le compras?»), en el orden del catálogo que se pase. */
@@ -254,7 +295,7 @@ const DETALLE: Partial<Record<PasoCompra, string>> = {
 };
 export function textoAvance(p: PasoCompra): string {
   const fase = faseDePaso(p);
-  const nombre = fase === 1 ? "Proveedor" : fase === 2 ? "Prendas" : "Boleta o factura";
+  const nombre = fase === 1 ? "el proveedor" : fase === 2 ? "las prendas" : "el papel";
   return `Paso ${fase} de 3 · ${nombre}${DETALLE[p] ? ` · ${DETALLE[p]}` : ""}`;
 }
 

@@ -18,6 +18,9 @@ import {
   marcasDeHabituales,
   prendasDeLineas,
   textoAvance,
+  proveedoresRecientes,
+  detalleProveedor,
+  inicialesProveedor,
   textoHabitual,
   textoPlataDespues,
   tiendaAnterior,
@@ -171,10 +174,10 @@ describe("lo que queda después de guardar", () => {
 
 describe("la barra de avance: siempre 3 pasos", () => {
   it("dice el paso, su nombre y el detalle dentro de las prendas", () => {
-    expect(textoAvance("proveedor")).toBe("Paso 1 de 3 · Proveedor");
-    expect(textoAvance("habituales")).toBe("Paso 2 de 3 · Prendas");
-    expect(textoAvance("costo")).toBe("Paso 2 de 3 · Prendas · costo");
-    expect(textoAvance("papel")).toBe("Paso 3 de 3 · Boleta o factura");
+    expect(textoAvance("proveedor")).toBe("Paso 1 de 3 · el proveedor");
+    expect(textoAvance("habituales")).toBe("Paso 2 de 3 · las prendas");
+    expect(textoAvance("costo")).toBe("Paso 2 de 3 · las prendas · costo");
+    expect(textoAvance("papel")).toBe("Paso 3 de 3 · el papel");
   });
 });
 
@@ -231,7 +234,35 @@ describe("algo nuevo de este proveedor", () => {
     const h = habitualNuevo("nuevo:1", { nombre: "  Casaca   corta ", categoria: CATS[0], marca: { id: "m1", nombre: "CAYLA" } });
     expect(h).toMatchObject({ clave: "nuevo:1", productoId: null, nombre: "Casaca corta", categoriaId: "blusas", marcaId: "m1", veces: 0, costo: null, venta: null });
     expect(textoHabitual(h)).toBeNull();
-    expect(textoAvance("nuevo-categoria")).toBe("Paso 2 de 3 · Prendas · qué es");
-    expect(textoAvance("nuevo-marca")).toBe("Paso 2 de 3 · Prendas · marca");
+    expect(textoAvance("nuevo-categoria")).toBe("Paso 2 de 3 · las prendas · qué es");
+    expect(textoAvance("nuevo-marca")).toBe("Paso 2 de 3 · las prendas · marca");
+  });
+});
+
+describe("el proveedor, como la maqueta (compras-formidable-2026-10)", () => {
+  const P = (id: string, compras: number, ultima: string | null) => ({ id, nombre: id, ruc: null, categorias: [], compras, ultima });
+  it("los recientes: solo a quienes ya se les compró, el más reciente primero, hasta el máximo", () => {
+    const lista = [P("a", 3, "2026-10-01"), P("b", 0, null), P("c", 1, "2026-10-20"), P("d", 9, "2026-10-20"), P("e", 2, "2026-09-01")];
+    expect(proveedoresRecientes(lista).map((p) => p.id)).toEqual(["d", "c", "a", "e"]);
+    expect(proveedoresRecientes(lista, 2).map((p) => p.id)).toEqual(["d", "c"]);
+  });
+  it("cuándo y cuántas veces, en palabras de tienda", () => {
+    const hoy = "2026-10-23";
+    expect(detalleProveedor(P("a", 4, "2026-10-17"), hoy)).toBe("Le compraste hace 6 días · 4 compras");
+    expect(detalleProveedor(P("a", 1, "2026-10-23"), hoy)).toBe("Le compraste hoy · 1 compra");
+    expect(detalleProveedor(P("a", 2, "2026-10-22"), hoy)).toBe("Le compraste ayer · 2 compras");
+    expect(detalleProveedor(P("a", 2, "2026-10-11"), hoy)).toBe("Le compraste hace una semana · 2 compras");
+    expect(detalleProveedor(P("a", 2, "2026-09-30"), hoy)).toBe("Le compraste hace 3 semanas · 2 compras");
+    expect(detalleProveedor(P("a", 1, "2026-09-10"), hoy)).toBe("Le compraste hace un mes · 1 compra");
+    expect(detalleProveedor(P("a", 1, "2026-06-01"), hoy)).toBe("Le compraste hace 4 meses · 1 compra");
+    expect(detalleProveedor(P("a", 0, null), hoy)).toBe("Todavía no le compras");
+    expect(detalleProveedor(P("a", 3, null), hoy)).toBe("3 compras");
+  });
+  it("las iniciales del cuadro", () => {
+    expect(inicialesProveedor("Textiles Rosa S.A.C.")).toBe("TR");
+    expect(inicialesProveedor("Galería Gamarra 412")).toBe("GG");
+    expect(inicialesProveedor("Lupe")).toBe("LU");
+    expect(inicialesProveedor("  ")).toBe("?");
+    expect(inicialesProveedor("Confecciones Andina EIRL")).toBe("CA");
   });
 });

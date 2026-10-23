@@ -2129,7 +2129,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       id: "avance",
       ancla: "compra.avance",
       titulo: "En qué paso vas",
-      texto: "Arriba ves el paso y la flecha para volver al anterior. Nada se guarda hasta el final.",
+      texto: "Arriba ves en qué paso vas (la barra tiene tres: proveedor, prendas y papel) y la flecha para volver. Nada se guarda hasta el final.",
     },
     {
       id: "buscador",
@@ -2150,7 +2150,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.proveedores",
       opcional: true,
       titulo: "Tus proveedores",
-      texto: "Primero a los que más les compras. Cada uno dice qué vende. Tócalo para seguir.",
+      texto: "Primero a los que les compraste hace poco, con cuándo y cuántas veces. Los demás, en «Ver los otros». Tócalo para seguir.",
     },
     {
       id: "proveedor-nuevo",

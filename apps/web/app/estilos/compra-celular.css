@@ -1,0 +1,26 @@
+/* «Compré ropa» (Compras simple, ADR-0480), rediseño de la maqueta docs/maquetas/compras-formidable-2026-10/ (Felipe 2026-10-23).
+   Cada paso hace UNA pregunta y la pregunta es lo más grande de la pantalla: la serif de 29 px, como en la maqueta. No es el título de
+   una sección (ese es <TituloSeccion>, de 21 px): es la pregunta que la compradora contesta. */
+.compra-pregunta {
+  font-family: var(--font-serif);
+  font-size: 29px;
+  line-height: 1.1;
+  font-weight: 400;
+  color: var(--color-tinta);
+  text-wrap: balance;
+  margin: 0;
+}
+
+/* Las iniciales de un proveedor, en su cuadro de arena (la maqueta): no es una persona, así que no es un avatar. */
+.compra-iniciales {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--color-sand);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  color: var(--color-tinta);
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Camera, Check, Plus, SearchX, Shapes, Store, Tag, Truck } from "lucide-react";
+import { ArrowRight, Camera, Check, ChevronRight, Plus, SearchX, Shapes, Store, Tag, Truck } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Boton, BotonEnlace, CampoMonto, CampoTexto } from "@/components/ui/campos";
@@ -13,6 +13,8 @@ import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { Vacio } from "@/components/ui/Vacio";
 import { Volver } from "@/components/ui/Volver";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { RegistrarProveedorOrden } from "@/components/ordenes-compra/RegistrarProveedorOrden";
 import { useSedeActiva } from "@/components/SedeActiva";
@@ -32,6 +34,9 @@ import {
   camposPapel,
   categoriasConProveedor,
   categoriasDeHabituales,
+  detalleProveedor,
+  inicialesProveedor,
+  proveedoresRecientes,
   faltaEnPaso,
   faltaNombreNuevo,
   faseDePaso,
@@ -309,14 +314,24 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
         : paso === "nuevo-categoria"
           ? "habituales"
           : ANTERIOR[paso];
+  // Arriba, como la maqueta: la flecha, a quién le compras y en qué paso vas, y la barra de 3 tramos (proveedor · prendas · papel): los
+  // hechos en tinta y el de ahora en rojo. Cada tramo es una barra de avance del sistema, llena o vacía.
+  const fase = faseDePaso(paso);
   const cabecera = paso !== "listo" && (
-    <div className="flex flex-col gap-2" data-guia="compra.avance">
+    <div className="flex flex-col gap-3" data-guia="compra.avance">
       <div className="flex items-center gap-3">
         {atras ? <Volver onClick={() => setPaso(atras)} a="el paso anterior" /> : <Volver href="/compras/mi-plata" a="Mi plata para compras" />}
-        <span className="truncate text-sm text-taupe">{proveedor ? `Compra a ${nombreCorto}` : "Registrar una compra"}</span>
+        {/* «Compré ropa» ya es el título de la pantalla: aquí solo va a quién, una vez elegido. */}
+        <span className="min-w-0">
+          {proveedor && <span className="block truncate text-sm font-medium text-tinta">{nombreCorto}</span>}
+          <span className="block truncate text-xs text-taupe">{textoAvance(paso)}</span>
+        </span>
       </div>
-      <span className="label-cayla text-taupe">{textoAvance(paso)}</span>
-      <BarraAvance pct={(faseDePaso(paso) / 3) * 100} alto="fina" tono="tinta" decorativa />
+      <div className="grid grid-cols-3 gap-1" role="img" aria-label={textoAvance(paso)}>
+        {[1, 2, 3].map((i) => (
+          <BarraAvance key={i} pct={i <= fase ? 100 : 0} tono={i === fase ? "rojo" : "tinta"} alto="fina" decorativa />
+        ))}
+      </div>
     </div>
   );
 
@@ -739,59 +754,106 @@ function PasoProveedor({
   setCat: (v: string | null) => void;
   alElegir: (p: ProveedorParaComprar) => void;
 }) {
+  const [verTodos, setVerTodos] = useState(false);
   const categorias = categoriasConProveedor(proveedores, datos.categorias);
   const nombreCat = new Map(datos.categorias.map((c) => [c.id, c.nombre]));
+  const hoy = hoyLima();
+  const buscando = q.trim() !== "" || cat !== null;
   const lista = filtrarProveedores(proveedores, q, cat);
+  // Sin buscar: primero a quién le compraste hace poco (la maqueta); los demás, a un toque. Sin ninguno reciente, todos.
+  const recientes = proveedoresRecientes(proveedores);
+  const resto = proveedores.filter((p) => !recientes.includes(p));
+  const fila = (p: ProveedorParaComprar) => (
+    <li key={p.id}>
+      <button
+        type="button"
+        onClick={() => alElegir(p)}
+        className="card-cayla mov-boton grid w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl p-3 text-left"
+      >
+        <span className="compra-iniciales" aria-hidden>
+          {inicialesProveedor(p.nombre)}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate font-medium text-tinta">{p.nombre}</span>
+          <span className="block truncate text-xs text-taupe">
+            {p.compras > 0
+              ? detalleProveedor(p, hoy)
+              : p.categorias.length
+                ? `Vende ${p.categorias.map((c) => nombreCat.get(c) ?? "").filter(Boolean).slice(0, 3).join(", ").toLowerCase()}`
+                : "Todavía no le compras"}
+          </span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-taupe" aria-hidden />
+      </button>
+    </li>
+  );
   return (
-    <section className="flex flex-col gap-3">
-      <TituloSeccion>¿A quién le compras?</TituloSeccion>
-      <p className="-mt-2 text-sm text-taupe">Busca por nombre o por lo que vende.</p>
+    <section className="flex flex-col gap-4">
+      <h2 className="compra-pregunta">¿A quién le compras?</h2>
       <Buscador
         valor={q}
         onCambio={setQ}
+        tamano="mostrador"
         etiqueta="Busca el proveedor"
-        placeholder="Busca el proveedor" // sugerir-fijo: se busca un proveedor por su nombre; no depende de nada elegido antes
+        placeholder="Nombre del proveedor" // sugerir-fijo: se busca un proveedor por su nombre; no depende de nada elegido antes
         guia="compra.buscador"
       />
-      {categorias.length > 1 && (
-        <div className="flex flex-wrap gap-2" data-guia="compra.categorias">
-          <BotonFiltro activo={cat === null} onClick={() => setCat(null)} cuenta={proveedores.length}>
-            Todos
-          </BotonFiltro>
-          {categorias.map((c) => (
-            <BotonFiltro key={c.id} activo={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)} cuenta={proveedores.filter((p) => p.categorias.includes(c.id)).length}>
-              {c.nombre}
-            </BotonFiltro>
-          ))}
+      {buscando ? (
+        lista.length === 0 ? (
+          <Vacio icono={<Store aria-hidden />} titulo="No hay un proveedor así" tamano="chico">
+            Prueba con otra categoría u otro nombre, o regístralo en «Es un proveedor nuevo», aquí abajo.
+          </Vacio>
+        ) : (
+          <ul className="flex flex-col gap-2" data-guia="compra.proveedores">
+            {lista.map(fila)}
+          </ul>
+        )
+      ) : recientes.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <span className="label-cayla text-[11px] text-taupe">Les compraste hace poco</span>
+          <ul className="flex flex-col gap-2" data-guia="compra.proveedores">
+            {recientes.map(fila)}
+          </ul>
+          {resto.length > 0 && (
+            <>
+              <FilasDeMas abierto={verTodos} id="compra-otros-proveedores">
+                <ul className="flex flex-col gap-2 pt-2">{resto.map(fila)}</ul>
+              </FilasDeMas>
+              <BotonVerMas
+                forma="enlace"
+                abierto={verTodos}
+                onCambiar={setVerTodos}
+                controla="compra-otros-proveedores"
+                texto={`Ver los otros ${resto.length}`}
+                className="self-start"
+              />
+            </>
+          )}
         </div>
-      )}
-      {lista.length === 0 ? (
-        <Vacio icono={<Store aria-hidden />} titulo="No hay un proveedor así" tamano="chico">
-          Prueba con otra categoría u otro nombre, o regístralo en «Nuevo proveedor», aquí abajo.
-        </Vacio>
       ) : (
         <ul className="flex flex-col gap-2" data-guia="compra.proveedores">
-          {lista.map((p) => (
-            <li key={p.id}>
-              <button type="button" onClick={() => alElegir(p)} className="card-cayla mov-boton flex w-full flex-col items-start gap-0.5 p-4 text-left">
-                <span className="font-medium text-tinta">{p.nombre}</span>
-                <span className="text-xs text-taupe">
-                  {p.categorias.length ? p.categorias.map((c) => nombreCat.get(c) ?? "").filter(Boolean).slice(0, 4).join(" · ") : "Todavía no le compras"}
-                </span>
-                {p.compras > 0 && (
-                  <span className="text-xs text-taupe">
-                    Le compraste {p.compras} {p.compras === 1 ? "vez" : "veces"}
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
+          {proveedores.map(fila)}
         </ul>
       )}
-      <div className="sticky bottom-0 z-10 border-t border-sand bg-crema/95 py-3 backdrop-blur">
-        <div className="mx-auto w-full max-w-md">
-          <TarjetaAccion guia="compra.proveedor-nuevo" titulo="Nuevo proveedor" detalle="Alguien a quien todavía no le compras" onClick={alNuevo} />
+      {categorias.length > 1 && (
+        <div className="flex flex-col gap-2">
+          <span className="label-cayla text-[11px] text-taupe">O busca por lo que vende</span>
+          <div className="flex flex-wrap gap-2" data-guia="compra.categorias">
+            {categorias.map((c) => (
+              <BotonFiltro key={c.id} activo={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)} cuenta={proveedores.filter((p) => p.categorias.includes(c.id)).length}>
+                {c.nombre}
+              </BotonFiltro>
+            ))}
+          </div>
         </div>
+      )}
+      <div className="sticky bottom-0 z-10 bg-crema/95 py-3 backdrop-blur">
+        <Boton peso="fantasma" className="w-full" onClick={alNuevo} data-guia="compra.proveedor-nuevo">
+          <span className="inline-flex items-center gap-2">
+            <Plus className="h-4 w-4" aria-hidden />
+            Es un proveedor nuevo
+          </span>
+        </Boton>
       </div>
     </section>
   );
