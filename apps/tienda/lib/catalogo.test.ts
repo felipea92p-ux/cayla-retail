@@ -13,6 +13,7 @@ import {
   hrefDePrenda,
   hrefLista,
   insigniaOferta,
+  insigniasAsignadasDeTarjeta,
   insigniasDeTarjeta,
   interpretarCatalogo,
   leerCampana,
@@ -445,5 +446,55 @@ describe("la familia de la categoría (20261021163000)", () => {
     expect(leer(EMMA).categoria?.familia ?? null).toBeNull();
     expect(leer({ ...EMMA, categoria_familia: 7 }).categoria?.familia ?? null).toBeNull();
     expect(leer({ ...EMMA, categoria: null, categoria_familia: "calzado" }).categoria).toBeNull();
+  });
+});
+
+describe("las insignias de Catálogo ▸ Insignias en la tarjeta (ADR-0489, act. c)", () => {
+  const I = (n: number, nombre: string) => ({ id: `7b7b7b7b-1111-4222-8333-44444444444${n}`, nombre });
+  const CINCO = [I(1, "Halloween"), I(2, "Reedición"), I(3, "Hecho a mano"), I(4, "Navidad"), I(5, "Estreno")];
+  const CAYLA = { clave: "cayla", nombre: "CAYLA" };
+  const con = (extra: object) => leer({ ...EMMA, ...extra });
+  const dicen = (p: Prenda, o?: { puesto?: number | null; sinNuevo?: boolean }) => {
+    const r = insigniasAsignadasDeTarjeta(p, o);
+    return `${r.visibles.map((i) => i.nombre).join(",") || "-"}|+${r.mas}`;
+  };
+
+  it("la lee de la base; sin el campo (una base que aún no lo manda) o raro, la prenda se ve igual y sin insignias", () => {
+    expect(con({ insignias: CINCO.slice(0, 2) }).insignias.map((i) => i.nombre)).toEqual(["Halloween", "Reedición"]);
+    expect(emma.insignias).toEqual([]);
+    expect(con({ insignias: "Halloween" }).insignias).toEqual([]);
+    expect(con({ insignias: [CINCO[0], { id: "x", nombre: "Rota" }, 7] }).insignias.map((i) => i.nombre)).toEqual(["Halloween"]);
+    expect(con({ insignias: "raro" }).nombre).toBe("Blusa Emma");
+  });
+
+  it("sin nada propio caben 3 y el resto es «+2»", () => {
+    expect(dicen(con({ insignias: CINCO }))).toBe("Halloween,Reedición,Hecho a mano|+2");
+  });
+
+  it("«Nuevo» cuenta contra el tope (como el descuento y el puesto): caben 2 y quedan «+3»", () => {
+    expect(dicen(con({ insignias: CINCO, nuevo: { dias: 3 } }))).toBe("Halloween,Reedición|+3");
+    const oferta = con({ insignias: CINCO, nuevo: { dias: 3 }, precio_final: 63.9, campana: { nombre: "Aniversario", pct: 20 } });
+    expect(dicen(oferta)).toBe("Halloween|+4");
+    expect(dicen(oferta, { puesto: 1 })).toBe("-|+5");
+  });
+
+  it("la empresa (CAYLA o CLAURE) NO cuenta contra el tope", () => {
+    expect(dicen(con({ insignias: CINCO, empresa: CAYLA }))).toBe("Halloween,Reedición,Hecho a mano|+2");
+    expect(dicen(con({ insignias: CINCO, empresa: CAYLA, nuevo: { dias: 3 } }))).toBe("Halloween,Reedición|+3");
+  });
+
+  it("en «Lo nuevo» (sin «Nuevo» en la tarjeta) no cuenta el que no se dibuja; y la insignia «Nuevo» tampoco se repite ahí", () => {
+    expect(dicen(con({ insignias: CINCO, nuevo: { dias: 3 } }), { sinNuevo: true })).toBe("Halloween,Reedición,Hecho a mano|+2");
+    expect(dicen(con({ insignias: [I(6, "Nuevo"), ...CINCO.slice(0, 2)], nuevo: { dias: 3 } }), { sinNuevo: true })).toBe("Halloween,Reedición|+0");
+  });
+
+  it("«Top ventas» no se repite si la tarjeta ya dice su puesto; sin puesto, se ve", () => {
+    const p = con({ insignias: [I(7, "Top ventas"), CINCO[0]] });
+    expect(dicen(p, { puesto: 2 })).toBe("Halloween|+0");
+    expect(dicen(p)).toBe("Top ventas,Halloween|+0");
+  });
+
+  it("una prenda sin insignias no dice nada", () => {
+    expect(dicen(emma)).toBe("-|+0");
   });
 });

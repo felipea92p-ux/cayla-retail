@@ -2048,6 +2048,10 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   sesión) para el buscador «Por prenda» de «Abrir un conteo». Una fila por variante con nombre, códigos, foto y *dónde*
   hay stock (piso/almacén/ubicación), **sin cantidades**. Se llama al tocar la opción, no al abrir el inicio. Si la base
   no responde devuelve 500 y el buscador ofrece «Reintentar»; «Todo» y «Una categoría» no dependen de ella.
+- `/api/finanzas/te-toca` → `GET ?sede=`, solo lectura: los pendientes de Finanzas de la sede elegida para «Te toca» de la mesa de mando del
+  telar (ADR-0493; `components/finanzas/telar/TeToca.tsx`, reglas en `lib/finanzas-te-toca-reglas.ts`). Cada submódulo que la cuenta ve aporta
+  los suyos desde las lecturas que ya tiene (hoy Gastos: `fn_gastos_panel`); si uno falla, `incompleto`; si ninguno responde, 503. La sede y el
+  mes de Finanzas viven en la URL (`?sede=`, `?mes=`, `lib/finanzas-telar-reglas.ts`), los lee cada página con `sedeDeLaUrl`.
 - `/api/caja/recordatorio` → `GET`, solo lectura: la hora de cierre de la sede de quien pregunta (`ubicaciones.hora_cierre`) y
   su caja abierta; con `?cifras=1`, además el efectivo esperado (`fn_esperado_caja`) y las ventas del turno. La sondea cada
   minuto el «Marcador» —la cápsula del centro de la cabecera, ADR-0359; antes la «Isla»— (`components/RecordatorioCierreCaja.tsx`, montada una vez en `app/(app)/layout.tsx`; reglas puras en
@@ -2158,7 +2162,7 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   que hay en», `?sede=` con el nombre web de la tienda: `lib/sede-elegida.ts`) y `lib/catalogo-servidor.ts` `leerCatalogo(sede)` →
   `retail.tienda_catalogo(p_sede)`: lo publicado en la Vitrina web al precio de esa tienda (`fn_precio_en_sede`) o, con «Todas», al
   mayor entre las tiendas de la web, con la campaña encima (la regla de la caja, ADR-0403), sus colores y hasta dos fotos del almacén
-  público; `lib/catalogo.ts` filtra por categoría y ordena, y `components/TarjetaPrenda.tsx` dibuja la tarjeta. Si la base no
+  público; `lib/catalogo.ts` filtra por categoría y ordena, y `components/TarjetaPrenda.tsx` dibuja la tarjeta. La tarjeta suma las insignias de Catálogo ▸ Insignias (`prenda.insignias`, `fn_tienda_insignias_de` por lote, `20261023205000`, ADR-0489 act. c): hasta 3 EN TOTAL con lo que la foto ya dice (descuento, «Nuevo», puesto; la empresa no cuenta) y un «+N»; todo en UNA fila (`components/FilaDeInsignias.tsx`: muestra las que caben enteras en el ancho de la tarjeta y cuenta el resto en el «+N») y la empresa sola debajo; la lógica pura es `lib/insignias.ts` (`cuantasCaben`) + `insigniasAsignadasDeTarjeta` (`lib/catalogo.ts`). Si la base no
   responde, la página dice que no se pudo cargar. Desde la actividad 4 (`20261015012000`) cada prenda trae también su NIVEL en cada
   tienda de la web y en todas (`stock`: «hay», 3, 2, 1 o 0, nunca la cifra de 4 o más; `fn_tienda_nivel` con el umbral de
   `configuracion_tienda_web`): con una tienda elegida, la lista deja solo lo que hay en ella («N más en otras tiendas») y cada tarjeta

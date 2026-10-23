@@ -1,0 +1,575 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gastos por sede</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="base.css"><style>
+/* Finanzas v3 · Gastos (2026-10-23). Parte del camino A de la v2 (Felipe, 15-oct) y le suma lo que pidió el 23-oct:
+   separar por sede, filtros que se ven puestos y se quitan, y la vuelta en toda vista interna. Solo tokens de base.css.
+   El color de cada sede es un DATO (como el de un medio de pago): sale de tokens, no cambia de significado entre pantallas. */
+:root{--s-tru:var(--tinta);--s-aqp:var(--taupe);--s-lim:var(--pizarra);--s-tal:var(--m-qr);--s-emp:color-mix(in srgb,var(--ambar) 70%,var(--hueso))}
+.pagina{max-width:1560px}
+.ico{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* Cabecera (EncabezadoPagina de Finanzas): línea de sede con la flecha de vuelta, título, frase; acciones a la derecha */
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.cab .linea{display:flex;align-items:center;gap:10px;min-height:32px}
+.cab .linea::after{content:"";width:72px;height:1px;background:var(--taupe);opacity:.55}
+.cab h1{font-size:clamp(34px,5vw,46px);line-height:1.02;margin-top:4px}
+.cab .frase{font-size:15px;max-width:62ch;margin-top:6px}
+.volver{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);cursor:pointer;color:var(--tinta);
+  transition:transform .22s var(--ease-cayla),border-color .2s;animation:aparece .3s var(--ease-cayla)}
+@media (hover:hover){.volver:hover{transform:translateX(-3px);border-color:var(--taupe)}}
+@keyframes aparece{from{opacity:0;transform:translateX(6px)}}
+.acciones{display:flex;gap:10px;flex-wrap:wrap}
+
+/* El selector de sede: la misma fila en los tres caminos (propuesta compartida con Cierre de mes) */
+.sedes{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sedes .rotulo{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe);margin-right:4px}
+.sede{display:inline-flex;align-items:center;gap:9px;height:40px;padding:0 14px 0 12px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);cursor:pointer;
+  font-size:13.5px;color:var(--tinta);transition:background .25s var(--ease-cayla),color .25s,border-color .2s,transform .2s var(--ease-cayla)}
+@media (hover:hover){.sede:hover{border-color:var(--taupe);transform:translateY(-1px)}}
+.sede .punto{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
+.sede .cuanto{font-variant-numeric:tabular-nums;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 64%,transparent)}
+.sede[aria-checked="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.sede[aria-checked="true"] .cuanto{color:color-mix(in srgb,var(--crema) 78%,transparent)}
+.sede[aria-checked="true"] .punto{box-shadow:0 0 0 2px var(--crema)}
+@media (max-width:640px){.sedes .rotulo{width:100%}.sede{height:36px;padding:0 11px 0 10px;font-size:13px;gap:7px}.sede .cuanto{display:none}}
+
+/* La respuesta (camino A) */
+.respuesta{background:var(--papel);border:1px solid var(--sand);border-radius:24px;padding:clamp(20px,3.6vw,44px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(20px,3.5vw,48px);align-items:center}
+@media (max-width:900px){.respuesta{grid-template-columns:1fr}}
+.respuesta .pregunta{font-family:var(--serif);font-style:italic;font-size:20px;color:var(--taupe)}
+.respuesta .total{font-family:var(--serif);font-size:clamp(48px,7vw,84px);line-height:1;margin:8px 0 10px;font-variant-numeric:tabular-nums}
+.respuesta .total small{display:block;font-family:var(--sans);font-size:15px;color:color-mix(in srgb,var(--tinta) 70%,transparent);margin-bottom:6px}
+.respuesta .explica{font-size:15.5px;max-width:52ch}
+.reparto{display:flex;flex-direction:column;gap:14px}
+.reparto .titulo{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+/* BarraApilada: pista arena, tramos que entran, el apuntado se estira y los demás bajan */
+.barra{display:flex;gap:3px;height:16px;border-radius:999px;background:var(--hueso);overflow:hidden}
+.barra button{border:0;padding:0;cursor:pointer;height:100%;background:var(--c);min-width:4px;transition:opacity .25s,transform .25s var(--ease-cayla);transform-origin:center}
+.barra:hover button{opacity:.45}.barra button:hover,.barra button:focus-visible{opacity:1;transform:scaleY(1.2)}
+.barra button.apagado{opacity:.22}
+.barra button{animation:tramo .7s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 60ms)}
+@keyframes tramo{from{flex-grow:0}}
+.barrita i{animation:barrita .7s var(--ease-cayla) backwards}
+@keyframes barrita{from{width:0}}
+.leyenda{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 14px}
+.leyenda button>span:nth-child(2){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.leyenda button{display:grid;grid-template-columns:10px 1fr auto;gap:8px;align-items:center;text-align:left;border:0;background:none;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13.5px;color:var(--tinta)}
+@media (hover:hover){.leyenda button:hover{background:var(--hueso)}}
+.leyenda button[aria-pressed="true"]{background:var(--hueso);font-weight:600}
+.leyenda .muestra{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.leyenda .pct{font-size:12px;color:color-mix(in srgb,var(--tinta) 64%,transparent);font-weight:400}
+.leyenda b{font-variant-numeric:tabular-nums;font-weight:600}
+
+/* TarjetaCifra */
+.cifras{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+.cifra{cursor:default}
+.cifra[data-ir]{cursor:pointer}
+.cifra .et{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe);display:flex;justify-content:space-between;gap:8px}
+.cifra .et .flecha{opacity:.6;transition:transform .2s var(--ease-cayla)}
+@media (hover:hover){.cifra[data-ir]:hover .flecha{transform:translateX(3px);opacity:1}}
+.t-ambar{color:var(--ambar)}.t-verde{color:var(--verde)}
+
+/* Pestañas de sección (el vidrio en mayúsculas) */
+.pestanas{display:inline-flex;gap:2px;padding:4px;border-radius:999px;background:var(--vidrio);border:1px solid var(--sand);backdrop-filter:blur(10px);flex-wrap:wrap}
+.pestanas button{border:0;background:transparent;border-radius:999px;padding:8px 14px;cursor:pointer;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:color-mix(in srgb,var(--tinta) 72%,transparent);display:inline-flex;gap:7px;align-items:center}
+.pestanas button[aria-selected="true"]{background:var(--tinta);color:var(--crema)}
+.globito{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;font-size:11px;letter-spacing:0;background:var(--hueso);color:var(--tinta)}
+.globito.pide{background:color-mix(in srgb,var(--ambar) 22%,var(--papel));color:var(--ambar)}
+[aria-selected="true"] .globito{background:color-mix(in srgb,var(--crema) 22%,transparent);color:var(--crema)}
+
+/* Tarjeta de la tabla: herramientas → filtros puestos → tabla → pie */
+.caja-tabla{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);min-width:0}
+.herr{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--sand)}
+.buscador{flex:1 1 260px;min-width:0;display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:12px;background:var(--hueso);transition:background .2s,box-shadow .2s}
+.buscador:focus-within{background:var(--papel);box-shadow:inset 0 -2px 0 var(--rojo)}
+.buscador input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:14px;color:var(--tinta);outline:none}
+.buscador input::placeholder{color:color-mix(in srgb,var(--tinta) 55%,transparent)}
+.buscador .borrar{border:0;background:none;cursor:pointer;padding:4px;border-radius:50%;color:var(--taupe);display:none}
+.buscador.con .borrar{display:inline-flex}
+.buscador kbd{font:600 11px var(--mono);border:1px solid var(--sand);border-radius:5px;padding:1px 6px;color:var(--taupe)}
+.buscador.con kbd{display:none}
+.pild{position:relative}
+.pild>button{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);cursor:pointer;font-size:13.5px;color:var(--tinta)}
+.pild>button.puesta{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.pild>button .ico{width:14px;height:14px}
+.menu{position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:230px;max-height:340px;overflow:auto;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:6px;
+  display:flex;flex-direction:column;gap:2px;animation:revelar .24s var(--ease-cayla) backwards;box-shadow:0 18px 40px -22px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.menu.derecha{left:auto;right:0}
+@keyframes revelar{from{opacity:0;transform:translateY(-4px)}}
+.menu button{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;border:0;background:transparent;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13.5px;color:var(--tinta)}
+.menu button:hover,.menu button:focus-visible{background:var(--hueso)}
+.menu button[aria-selected="true"]{font-weight:600}
+.menu button[aria-selected="true"]::after{content:"✓";color:var(--verde)}
+.menu .gris{font-size:12px;color:color-mix(in srgb,var(--tinta) 60%,transparent);font-variant-numeric:tabular-nums}
+.mes{display:inline-flex;align-items:center;gap:2px;height:40px;border:1px solid var(--sand);border-radius:999px;background:var(--papel);padding:0 4px}
+.mes button{border:0;background:none;cursor:pointer;width:32px;height:32px;border-radius:50%;display:inline-grid;place-items:center;color:var(--tinta)}
+.mes button:disabled{opacity:.3;cursor:default}
+.mes span{font-size:13.5px;min-width:112px;text-align:center}
+.interruptor{display:inline-flex;align-items:center;gap:9px;font-size:13.5px;cursor:pointer;border:0;background:none;padding:0 4px;color:var(--tinta)}
+.interruptor i{position:relative;width:36px;height:20px;border-radius:999px;background:var(--sand);transition:background .25s var(--ease-cayla)}
+.interruptor i::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--papel);transition:transform .3s var(--ease-cayla)}
+.interruptor[aria-checked="true"] i{background:var(--tinta)}
+.interruptor[aria-checked="true"] i::after{transform:translateX(16px)}
+.puestos{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--sand);background:color-mix(in srgb,var(--hueso) 40%,transparent)}
+.puestos:empty{display:none}
+.puesto{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 12px;border-radius:999px;background:var(--tinta);color:var(--crema);font-size:12.5px;border:0;cursor:pointer;animation:revelar .24s var(--ease-cayla)}
+.puesto .x{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:color-mix(in srgb,var(--crema) 18%,transparent);font-size:12px}
+.limpiar{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;border:1px dashed var(--taupe);background:transparent;color:var(--tinta);font-size:12.5px;cursor:pointer}
+.puestos .cuantos{margin-left:auto;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.tabla-g{width:100%;border-collapse:collapse;font-size:13.5px}
+.tabla-g th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;text-align:left;padding:10px 14px;border-bottom:1px solid var(--sand);white-space:nowrap}
+.tabla-g td{padding:11px 14px;border-bottom:1px solid var(--sand);vertical-align:middle}
+.tabla-g tbody tr.fila{cursor:pointer;transition:background .2s;position:relative}
+@media (hover:hover){.tabla-g tbody tr.fila:hover{background:color-mix(in srgb,var(--hueso) 55%,transparent)}.tabla-g tbody tr.fila:hover td:first-child{box-shadow:inset 3px 0 0 var(--rojo)}}
+.tabla-g .m{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tabla-g .sub{display:block;font-size:12px;color:color-mix(in srgb,var(--tinta) 64%,transparent)}
+.tabla-g .anulada td{color:color-mix(in srgb,var(--tinta) 55%,transparent)}
+.tabla-g .anulada b{text-decoration:line-through}
+.tabla-g tr.grupo td{background:var(--hueso);padding:9px 14px;font-weight:600;font-size:13px;border-bottom:0}
+.tabla-g tr.grupo .sp{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.tabla-g tr.grupo .sp span:first-child{display:inline-flex;align-items:center;gap:8px}
+.tabla-g tr.grupo .punto{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.sede-txt{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.sede-txt::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.chip{font-size:11.5px}
+.pie-t{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.pie-t b{color:var(--tinta);font-variant-numeric:tabular-nums}
+.vacio{padding:42px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
+.vacio h3{font-size:22px}
+@media (max-width:760px){
+  .tabla-g thead{display:none}
+  .tabla-g tbody tr.fila{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 0;padding:12px 16px;border-bottom:1px solid var(--sand)}
+  .tabla-g tbody tr.fila td{padding:0;border:0}
+  .tabla-g td[data-l="Gasto"]{order:1;flex:1 1 0;min-width:0;padding-right:12px!important}
+  .tabla-g td[data-l="Monto"]{order:2}
+  .tabla-g td[data-l="Fecha"],.tabla-g td[data-l="Sede"],.tabla-g td[data-l="Categoría"]{order:3;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+  .tabla-g td[data-l="Fecha"]{flex-basis:auto}
+  .tabla-g td[data-l="Fecha"]::before{content:"";flex-basis:100%}
+  .tabla-g td[data-l="Sede"]::before,.tabla-g td[data-l="Categoría"]::before{content:"·";margin:0 6px}
+  .tabla-g td[data-l="Comprobante"],.tabla-g td[data-l="Pago"]{display:none}
+  .tabla-g td[data-l="Estado"]{order:4;margin-left:auto}
+  .tabla-g tbody tr.fila::after{content:"";order:2;flex-basis:100%;height:0}
+  .tabla-g tr.grupo{display:block}.tabla-g tr.grupo td{display:block}
+  .herr .pild,.herr .mes{flex:1 1 auto}
+  .pild>button{width:100%;justify-content:center}
+}
+.solo-movil{display:none}
+@media (max-width:760px){.solo-movil{display:inline}.solo-escritorio{display:none}}
+
+/* Bandeja de a una (camino A) */
+.bandeja{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px 24px;align-items:center}
+.bandeja .cosa{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--hueso);border-radius:14px;padding:14px 16px;grid-column:1 / -1;animation:revelar .3s var(--ease-cayla)}
+.bandeja .cosa b{font-family:var(--serif);font-size:20px;font-weight:500;display:block}
+.bandeja .monto{font-family:var(--serif);font-size:26px;font-variant-numeric:tabular-nums}
+.nota-c{background:var(--hueso);border-radius:12px;padding:14px 16px 14px 44px;font-size:14px;position:relative;max-width:110ch}
+.nota-c::before{content:"i";position:absolute;left:16px;top:14px;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--taupe);color:var(--taupe);font:italic 600 12px var(--serif);display:grid;place-items:center}
+
+/* Dos columnas a lo ancho (ADR-0462): la tabla y, al costado, el resumen de la sede */
+.dos{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+@media (max-width:1100px){.dos{grid-template-columns:1fr}}
+.lado{display:flex;flex-direction:column;gap:14px}
+.lado .fila-l{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:7px 0;border-bottom:1px solid var(--sand)}
+.lado .fila-l:last-child{border-bottom:0}
+.barrita{display:block;height:6px;border-radius:999px;background:var(--hueso);overflow:hidden;margin-top:4px}
+.barrita i{display:block;height:100%;background:var(--c,var(--tinta));border-radius:999px;transition:width .7s var(--ease-cayla)}
+
+/* B · la matriz categoría × sede */
+.matriz{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px;min-width:760px}
+.matriz th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;padding:10px 12px;text-align:right;border-bottom:1px solid var(--sand);white-space:nowrap}
+.matriz th:first-child{text-align:left}
+.matriz th button{border:0;background:none;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px}
+.matriz th button::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.matriz th button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.matriz td{padding:0;border-bottom:1px solid var(--sand);text-align:right}
+.matriz td:first-child{text-align:left;padding:10px 12px;white-space:nowrap}
+.matriz td:first-child button{border:0;background:none;font:inherit;color:var(--tinta);cursor:pointer;padding:0}
+.matriz td:first-child button[aria-pressed="true"]{font-weight:600;text-decoration:underline;text-decoration-color:var(--rojo);text-underline-offset:4px}
+.celda{display:block;width:100%;border:0;cursor:pointer;padding:10px 12px;text-align:right;font:inherit;font-variant-numeric:tabular-nums;color:var(--tinta);
+  background:color-mix(in srgb,var(--tinta) var(--a,0%),transparent);transition:box-shadow .2s,background .3s}
+.celda.cero{color:color-mix(in srgb,var(--tinta) 30%,transparent);cursor:default}
+.celda[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--rojo)}
+@media (hover:hover){.celda:not(.cero):hover{box-shadow:inset 0 0 0 1.5px var(--taupe)}}
+.matriz tfoot td{font-weight:600;border-bottom:0}
+.matriz .tot{font-weight:600}
+.matriz .dif{display:block;font-size:11.5px;font-weight:400;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+
+/* C · una tarjeta por sede */
+.tarjetas{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))}
+.tsede{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;cursor:pointer;text-align:left;font:inherit;color:var(--tinta);position:relative;overflow:hidden;
+  transition:transform .26s var(--ease-cayla),border-color .2s}
+.tsede::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+@media (hover:hover){.tsede:hover{transform:translateY(-3px);border-color:var(--taupe)}.tsede:hover .ir{transform:translateX(4px)}}
+.tsede .nom{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.tsede .nom b{font-family:var(--serif);font-size:24px;font-weight:500}
+.tsede .ir{transition:transform .2s var(--ease-cayla);color:var(--taupe)}
+.tsede .val{font-family:var(--serif);font-size:38px;line-height:1;font-variant-numeric:tabular-nums}
+.tsede .linea-c{display:flex;justify-content:space-between;gap:8px;font-size:12.5px}
+.tsede ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.tsede li{display:grid;grid-template-columns:1fr auto;gap:2px 10px}
+.tsede li .barrita{grid-column:1 / -1;margin:0;height:4px}
+.tsede .pies{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Hoja (Modal de una cara: papel, sin sombra fuerte, título serif 24, la × arriba) */
+.velo{position:fixed;inset:0;z-index:80;background:color-mix(in srgb,var(--sombra) 28%,transparent);backdrop-filter:blur(6px);display:grid;place-items:start center;padding:8vh 16px 16px;animation:aparece2 .25s var(--ease-cayla)}
+@keyframes aparece2{from{opacity:0}}
+.hoja{width:min(576px,100%);background:var(--papel);border:1px solid var(--sand);border-radius:20px;padding:24px;position:relative;animation:hoja .42s var(--ease-cayla)}
+@keyframes hoja{from{opacity:0;transform:translateY(18px) scale(.98)}}
+.hoja>*{animation:mq-entra .5s var(--ease-cayla) backwards}
+.hoja>*:nth-child(2){animation-delay:55ms}.hoja>*:nth-child(3){animation-delay:110ms}.hoja>*:nth-child(4){animation-delay:165ms}.hoja>*:nth-child(5){animation-delay:220ms}
+.hoja h2{font-size:24px;padding-right:40px}
+.hoja .x{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);cursor:pointer;display:grid;place-items:center}
+.hoja dl{display:grid;grid-template-columns:auto 1fr;gap:0;margin:16px 0}
+.hoja dt,.hoja dd{padding:9px 0;border-bottom:1px solid var(--sand);margin:0;font-size:13.5px}
+.hoja dd{text-align:right;font-weight:500}
+.btn.peligro{border-color:var(--rojo-p);color:var(--rojo-p)}
+@media (hover:hover){.btn.peligro:hover{background:var(--rojo-p);color:var(--crema)}}
+@media (max-width:640px){.velo{place-items:end center;padding:0}.hoja{border-radius:20px 20px 0 0;width:100%;animation:hoja-movil .42s var(--ease-cayla)}
+  .hoja::before{content:"";display:block;width:40px;height:4px;border-radius:999px;background:var(--sand);margin:-12px auto 14px}}
+@keyframes hoja-movil{from{transform:translateY(100%)}}
+
+/* Vista interna del gasto (camino B) */
+.ficha{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
+@media (max-width:1000px){.ficha{grid-template-columns:1fr}}
+.ficha dl{display:grid;grid-template-columns:auto 1fr;margin:0}
+.ficha dt,.ficha dd{padding:11px 0;border-bottom:1px solid var(--sand);margin:0;font-size:14px}
+.ficha dd{text-align:right;font-weight:500}
+
+.contenido{display:flex;flex-direction:column;gap:22px}
+.oculto{display:none!important}
+</style></head><body>
+<header class="mq-barra">
+<div class="mq-titulo"><span class="versalita">Finanzas v3 · maquetas · 23 de octubre</span><b>Gastos, separado por sede</b></div><span class="mq-espacio"></span>
+<div class="mq-selector" role="group" aria-label="Camino"><button data-ver="a">A · La respuesta</button><button data-ver="b">B · La mesa</button><button data-ver="c">C · Las sedes</button></div>
+<span class="mq-ejemplo">Cifras de ejemplo</span><button class="mq-tema" type="button">Oscuro</button></header>
+<main class="pagina">
+
+<section class="variante" data-variante="a">
+  <div class="variante-cab"><span class="versalita">Camino A · La respuesta, ahora por sede</span>
+    <p class="idea tenue">El camino que elegiste el 15-oct, con la sede a la vista: la fila de sedes arriba, el total partido en una barra que se toca, y la misma sede filtrando la bandeja, las cifras y la tabla. Elegir una sede pone la flecha de vuelta.</p></div>
+  <div class="contenido" id="A"></div>
+</section>
+
+<section class="variante" data-variante="b" hidden>
+  <div class="variante-cab"><span class="versalita">Camino B · La mesa: categoría × sede</span>
+    <p class="idea tenue">Para comparar sedes de un vistazo: una tabla de doble entrada (qué categoría, en qué sede) con su total y la diferencia contra septiembre. Tocas una celda y la lista de abajo queda filtrada por las dos cosas. Abrir un gasto es una vista propia, con su vuelta.</p></div>
+  <div class="contenido" id="B"></div>
+</section>
+
+<section class="variante" data-variante="c" hidden>
+  <div class="variante-cab"><span class="versalita">Camino C · Una tarjeta por sede</span>
+    <p class="idea tenue">Primero las sedes, después los gastos: cada lugar en su tarjeta (cuánto, en qué, contra septiembre y qué le falta). Tocas una y entras a sus gastos con la flecha de vuelta. El interruptor «Sin alquileres» compara lo que sí se controla día a día.</p></div>
+  <div class="contenido" id="C"></div>
+</section>
+
+<p class="mq-nota tenue" style="max-width:1560px">Maqueta: nada se guarda. Las cifras cuentan la historia de octubre de la v2 (jueves 15, día 15 de 31), repartida por sede; los totales se calculan solos, así que siempre cuadran. La sede elegida se escribe en la URL (<code>#a?sede=tru</code> en la maqueta, <code>?sede=tru</code> en el ERP).</p>
+</main>
+
+<script src="base.js"></script>
+<script>
+(function(){
+// ---------------------------------------------------------------- Datos de ejemplo (una sola historia)
+const SEDES=[{k:"tru",n:"Trujillo",c:"TRU",de:"de Trujillo"},{k:"aqp",n:"Arequipa",c:"AQP",de:"de Arequipa"},{k:"lim",n:"Lima",c:"LIM",de:"de Lima"},{k:"tal",n:"Taller",c:"Taller",de:"del Taller"},{k:"emp",n:"De la empresa",c:"Empresa",de:"de la empresa"}];
+const SEDE=Object.fromEntries(SEDES.map(s=>[s.k,s]));
+const CATS={alq:"Alquileres",luz:"Luz y agua",int:"Internet y teléfono",cont:"Contador",pub:"Publicidad",mov:"Movilidad",uti:"Útiles y limpieza",bol:"Bolsas y empaque",man:"Mantenimiento"};
+const COMPS={factura:"Factura",boleta:"Boleta",recibo:"Recibo",rh:"Recibo por honorarios",sin:"Sin comprobante"};
+let n=0;const g=(f,s,c,d,p,tipo,num,pago,m,est="pagado",extra={})=>({id:"g"+(++n),f,s,c,d,p,tipo,num,pago,m,est,...extra});
+const OCT=[
+ g(1,"tru","alq","Alquiler del local","Inmobiliaria Larco SAC","factura","F001-2231","Transferencia · BCP",4000),
+ g(8,"tru","luz","Luz de octubre","Hidrandina","factura","F120-88412","Vence el 25 oct",410,"porpagar"),
+ g(9,"tru","luz","Agua","Sedalib","boleta","B050-11203","Cajón · Trujillo",60),
+ g(3,"tru","int","Internet de fibra","Claro","factura","F302-55110","Débito · BCP",120),
+ g(6,"tru","mov","Mototaxi a la agencia",null,"sin",null,"Cajón · Trujillo",35),
+ g(13,"tru","mov","Taxi al banco",null,"sin",null,"Cajón · Trujillo",55),
+ g(4,"tru","uti","Útiles de limpieza","Bodega El Sol","boleta","B001-0932","Cajón · Trujillo",70),
+ g(15,"tru","uti","Bolsas de basura","Bodega El Sol","sin",null,"Cajón · Trujillo",50),
+ g(14,"tru","uti","Bolsas de basura","Bodega El Sol","sin",null,"Cajón · Trujillo",50,"anulado",{motivo:"Se registró dos veces"}),
+ g(2,"tru","bol","Bolsas con logo","Grafinort EIRL","factura","F001-4410","Transferencia · BCP",230),
+ g(1,"aqp","alq","Alquiler del local","Inversiones Mercaderes SAC","factura","F002-1180","Transferencia · BCP",3200,"pagado",{detraccion:320}),
+ g(7,"aqp","luz","Luz de octubre","SEAL","factura","F210-30981","Débito · Interbank",240),
+ g(3,"aqp","int","Internet","Movistar","factura","F410-77215","Débito · Interbank",120),
+ g(10,"aqp","mov","Taxi a Cerro Colorado",null,"sin",null,"Cajón · Arequipa",18),
+ g(12,"aqp","mov","Movilidad del envío",null,"sin",null,"Cajón · Arequipa",52),
+ g(5,"aqp","uti","Útiles de oficina","Tai Loy","boleta","B031-20811","Cajón · Arequipa",90),
+ g(9,"aqp","bol","Cajas de cartón","Empaques del Sur","boleta","B002-0417","Yape",150),
+ g(1,"lim","alq","Alquiler del local","Galerías Miraflores SAC","factura","F001-0912","Transferencia · BCP",2800),
+ g(3,"lim","int","Internet","Win","factura","F005-33012","Débito · BCP",90),
+ g(14,"lim","mov","Movilidad para la instalación",null,"sin",null,"Yape",40),
+ g(11,"lim","uti","Limpieza de apertura","Limpieza Total EIRL","boleta","B001-0288","Transferencia · BCP",60),
+ g(1,"tal","alq","Alquiler del taller","Familia Rojas","recibo","Recibo 10","Transferencia · BCP",2500),
+ g(8,"tal","luz","Luz del taller","Luz del Sur","factura","F650-12007","Débito · BCP",150),
+ g(3,"tal","int","Internet","Claro","factura","F302-55111","Débito · BCP",120),
+ g(7,"tal","mov","Flete de la tela",null,"sin",null,"Fondo del Taller",110),
+ g(9,"tal","uti","Útiles de limpieza","Bodega Lucero","boleta","B004-1182","Fondo del Taller",60),
+ g(12,"tal","man","Mantenimiento de la recta","Técnico Máquinas Perú","rh","E001-118","Fondo del Taller",220),
+ g(5,"emp","cont","Contador de octubre","Estudio Contable Paredes","rh","E001-402","Transferencia · BCP",1200),
+ g(2,"emp","pub","Publicidad en Instagram","Meta","factura","Del exterior · sin IGV","Tarjeta de crédito",900,"pagado",{sinIgv:true}),
+ g(12,"emp","pub","Publicidad en Instagram (2.ª)","Meta","factura","Del exterior · sin IGV","Tarjeta de crédito",600,"pagado",{sinIgv:true}),
+];
+// Septiembre: el mismo esqueleto, con lo variable movido y Lima solo con su alquiler (abrió el 20 de octubre).
+const FACT={luz:.94,mov:.82,uti:1.12,bol:.7,man:0,pub:.8};
+const SEP=OCT.filter(x=>x.est!=="anulado"&&!(x.s==="lim"&&x.c!=="alq")&&!(x.c==="man")).map((x,i)=>({...x,id:"s"+i,est:"pagado",pago:x.est==="porpagar"?"Transferencia · BCP":x.pago,m:Math.round(x.m*(FACT[x.c]??1)/5)*5}));
+const MESES={"2026-10":{nombre:"Octubre 2026",corto:"octubre",filas:OCT},"2026-09":{nombre:"Septiembre 2026",corto:"septiembre",filas:SEP}};
+const BANDEJA=[
+ {s:"tru",tipo:"Salida de caja sin clasificar",t:"«Pago varios»",d:"Salió del cajón de Trujillo hoy a las 11:40 · lo anotó Micaela. ¿De qué fue?",m:25,acc:"Clasificar"},
+ {s:"aqp",tipo:"Salida de caja sin clasificar",t:"«Movilidad»",d:"Salió del cajón de Arequipa el 14 oct · parece Movilidad. ¿Lo confirmas?",m:12,acc:"Sí, es movilidad"},
+ {s:"tal",tipo:"Gasto fijo que no llegó",t:"Agua del taller · Sedapal",d:"Llegaba el 10 de cada mes y este mes todavía no está.",m:45,acc:"Registrarlo"},
+ {s:"emp",tipo:"Factura que SUNAT ya trae",t:"Grafinort EIRL · etiquetas",d:"Llegó a tu RUC el 13 oct y no está en ningún gasto ni compra.",m:650,acc:"Registrarla"},
+ {s:"emp",tipo:"Movimiento del banco sin explicar",t:"Interbank · «COM MANT»",d:"Salió el 12 oct. Parece la comisión de mantenimiento de la cuenta.",m:180,acc:"Sí, es comisión"},
+];
+const FIJOS=[["tru","Alquiler",4000,"ok"],["tru","Luz · Hidrandina",410,"ok"],["tru","Internet · Claro",120,"ok"],["aqp","Alquiler",3200,"ok"],["aqp","Luz · SEAL",240,"ok"],["aqp","Internet · Movistar",120,"ok"],
+ ["lim","Alquiler",2800,"ok"],["lim","Internet · Win",90,"ok"],["lim","Luz · Luz del Sur",180,"viene","llega el 20 oct"],["tal","Alquiler",2500,"ok"],["tal","Luz · Luz del Sur",150,"ok"],["tal","Internet · Claro",120,"ok"],
+ ["tal","Agua · Sedapal",45,"falta","llegaba el 10 oct"],["emp","Contador",1200,"ok"]].map(([s,d,m,est,cuando])=>({s,d,m,est,cuando}));
+const ACTIVOS=[["tru","Mostrador de madera",3200,2930],["aqp","Laptop de la caja",2600,2240],["lim","Vitrinas y percheros",5400,5400],["tal","Remalladora industrial",4800,3920]].map(([s,d,costo,vale])=>({s,d,costo,vale}));
+
+// ---------------------------------------------------------------- Utilidades
+const S=(v,dec=0)=>"S/ "+v.toLocaleString("es-PE",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+const sinTilde=t=>t.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const suma=a=>a.reduce((t,x)=>t+x.m,0);
+const vig=a=>a.filter(x=>x.est!=="anulado");
+const igvDe=a=>Math.round(vig(a).filter(x=>x.tipo==="factura"&&!x.sinIgv).reduce((t,x)=>t+x.m*18/118,0));
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+const fecha=d=>`${d} ${"oct"}`;
+const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const I={
+ lupa:'<svg class="ico" viewBox="0 0 20 20"><circle cx="9" cy="9" r="5.5"/><path d="m13.2 13.2 3.6 3.6"/></svg>',
+ x:'<svg class="ico" viewBox="0 0 20 20"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>',
+ izq:'<svg class="ico" viewBox="0 0 20 20"><path d="M12.5 4.5 7 10l5.5 5.5"/></svg>',
+ der:'<svg class="ico" viewBox="0 0 20 20"><path d="M7.5 4.5 13 10l-5.5 5.5"/></svg>',
+ flecha:'<svg class="ico" viewBox="0 0 20 20"><path d="M4 10h11M11 6l4 4-4 4"/></svg>',
+ abajo:'<svg class="ico" viewBox="0 0 20 20"><path d="m5.5 8 4.5 4.5L14.5 8"/></svg>',
+ cat:'<svg class="ico" viewBox="0 0 20 20"><path d="M3.5 5.5h13M3.5 10h13M3.5 14.5h8"/></svg>',
+ papel:'<svg class="ico" viewBox="0 0 20 20"><path d="M5.5 2.5h9v15l-2-1.3-2.5 1.3-2.5-1.3-2 1.3z"/><path d="M8 7h4M8 10h4"/></svg>',
+ lugar:'<svg class="ico" viewBox="0 0 20 20"><path d="M10 17.5s5.5-5 5.5-9a5.5 5.5 0 0 0-11 0c0 4 5.5 9 5.5 9z"/><circle cx="10" cy="8.5" r="2"/></svg>',
+ embudo:'<svg class="ico" viewBox="0 0 20 20"><path d="M3 4.5h14l-5.5 6.5v5l-3 1.5V11z"/><path d="M3 17 17 3"/></svg>',
+ mas:'<svg class="ico" viewBox="0 0 20 20"><path d="M10 4.5v11M4.5 10h11"/></svg>',
+ cam:'<svg class="ico" viewBox="0 0 20 20"><path d="M3 7h2.8l1.5-2h5.4l1.5 2H17v9H3z"/><circle cx="10" cy="11.2" r="2.8"/></svg>',
+ ok:'<svg class="ico" viewBox="0 0 20 20" style="color:var(--verde)"><path d="M4.5 10.5 8 14l7.5-8"/></svg>',
+};
+const estadoChip=x=>x.est==="anulado"?'<span class="chip c-taupe">Anulado</span>':x.est==="porpagar"?'<span class="chip c-ambar">Por pagar</span>':'<span class="chip c-verde">Pagado</span>';
+const sedeTxt=k=>`<span class="sede-txt" style="--c:var(--s-${k})">${SEDE[k].c}</span>`;
+
+// Estado en la URL: #a?sede=tru&cat=mov&q=taxi
+function leerHash(){const [v,qs]=(location.hash.slice(1)||"a").split("?");return {v,p:new URLSearchParams(qs||"")}}
+function escribirHash(v,st){const p=new URLSearchParams();if(st.sede!=="todas")p.set("sede",st.sede);if(st.cat)p.set("cat",st.cat);if(st.comp)p.set("comp",st.comp);if(st.q)p.set("q",st.q);if(st.mes!=="2026-10")p.set("mes",st.mes);
+  const h="#"+v+(p.toString()?"?"+p:"");try{history.replaceState(null,"",h)}catch(_){}}
+
+function nuevoEstado(v){const {v:actual,p}=leerHash();const st={sede:"todas",cat:"",comp:"",q:"",mes:"2026-10",agrupar:true,sinAlq:false,vista:null,tab:"gastos"};
+  if(actual===v){if(SEDE[p.get("sede")])st.sede=p.get("sede");if(CATS[p.get("cat")])st.cat=p.get("cat");if(COMPS[p.get("comp")])st.comp=p.get("comp");st.q=p.get("q")||"";if(MESES[p.get("mes")])st.mes=p.get("mes")}
+  return st}
+
+function delMes(st){return MESES[st.mes].filas}
+function deSede(a,s){return s==="todas"?a:a.filter(x=>x.s===s)}
+function filtrar(st,{sinSede=false}={}){const q=sinTilde(st.q.trim());
+  return delMes(st).filter(x=>(sinSede||st.sede==="todas"||x.s===st.sede)&&(!st.cat||x.c===st.cat)&&(!st.comp||x.tipo===st.comp)&&(!st.sinAlq||x.c!=="alq")
+   &&(!q||sinTilde([x.d,x.p||"",x.num||"",CATS[x.c],SEDE[x.s].n,SEDE[x.s].c].join(" ")).includes(q)))
+   .sort((a,b)=>b.f-a.f||a.s.localeCompare(b.s))}
+
+// ---------------------------------------------------------------- Piezas
+function cabecera(st,{titulo,frase,acciones,vuelta}){
+  const donde=st.sede==="todas"?"CAYLA · todas las sedes":SEDE[st.sede].n;
+  return `<header class="cab" data-entra style="--i:0"><div>
+    <div class="linea">${vuelta?`<button class="volver" type="button" data-volver aria-label="${esc(vuelta)}" title="${esc(vuelta)}">${I.izq}</button>`:""}<span class="versalita">${esc(donde)} · jueves 15 de octubre</span></div>
+    <h1>${esc(titulo)}</h1><p class="frase tenue">${frase}</p></div>
+    <div class="acciones">${acciones??`<button class="btn sutil" type="button">${I.cam} Foto del recibo</button><button class="btn primario" type="button">${I.mas} Registrar gasto</button>`}</div></header>`}
+
+function filaSedes(st,{cifra}={}){const filas=vig(filtrar({...st,sede:"todas",cat:"",comp:"",q:""}));
+  const cuanto=k=>cifra?cifra(k):S(suma(deSede(filas,k)));
+  return `<div class="sedes" role="radiogroup" aria-label="Sede" data-entra style="--i:1"><span class="rotulo">Sede</span>
+   <button class="sede" role="radio" aria-checked="${st.sede==="todas"}" data-sede="todas" style="--c:var(--hueso)"><span>Todas las sedes</span><span class="cuanto">${cuanto("todas")}</span></button>
+   ${SEDES.map(s=>`<button class="sede" role="radio" aria-checked="${st.sede===s.k}" data-sede="${s.k}" style="--c:var(--s-${s.k})"><span class="punto"></span><span><span class="solo-escritorio">${s.n}</span><span class="solo-movil">${s.c}</span></span><span class="cuanto">${cuanto(s.k)}</span></button>`).join("")}</div>`}
+
+function barraSedes(st,filas){const tot=suma(filas)||1;
+  return `<div class="barra" role="group" aria-label="Reparto del gasto por sede">${SEDES.map(s=>{const m=suma(deSede(filas,s.k));return m?`<button type="button" data-sede="${s.k}" class="${st.sede!=="todas"&&st.sede!==s.k?"apagado":""}" style="--c:var(--s-${s.k});flex:${m} 1 0;--i:${SEDES.indexOf(s)}" aria-label="${s.n}: ${S(m)}, ${pct(m,tot)} %" title="${s.n} · ${S(m)} · ${pct(m,tot)} %"></button>`:""}).join("")}</div>
+  <div class="leyenda">${SEDES.map(s=>{const m=suma(deSede(filas,s.k));return `<button type="button" data-sede="${s.k}" aria-pressed="${st.sede===s.k}" style="--c:var(--s-${s.k})"><span class="muestra"></span><span>${s.n} <span class="pct">${pct(m,tot)} %</span></span><b>${S(m)}</b></button>`}).join("")}</div>`}
+
+function cifras(st,{conTotal=false}={}){const filas=vig(filtrar({...st,cat:"",comp:"",q:""}));const band=deSede(BANDEJA,st.sede);const fij=deSede(FIJOS,st.sede);
+  const ok=fij.filter(f=>f.est==="ok").length;const pp=filas.filter(x=>x.est==="porpagar");const donde=st.sede==="todas"?"todas las sedes":SEDE[st.sede].n;
+  const t=[];
+  if(conTotal)t.push(`<div class="cifra" data-entra style="--i:2"><span class="et">Gastado en ${MESES[st.mes].corto}</span><span class="valor" data-cuenta="${suma(filas)}" data-pre="S/ ">${S(suma(filas))}</span><span class="pie">${filas.length} gastos · ${donde}</span></div>`);
+  t.push(`<div class="cifra" data-entra style="--i:3"><span class="et">IGV que vuelve a ti</span><span class="valor" data-cuenta="${igvDe(filas)}" data-pre="S/ ">${S(igvDe(filas))}</span><span class="pie">Sale de ${filas.filter(x=>x.tipo==="factura"&&!x.sinIgv).length} facturas. Lo restas de lo que pagas a SUNAT.</span></div>`);
+  t.push(`<div class="cifra" data-entra style="--i:4"><span class="et">Por pagar</span><span class="valor ${pp.length?"t-ambar":""}" data-cuenta="${suma(pp)}" data-pre="S/ ">${S(suma(pp))}</span><span class="pie">${pp.length?pp.map(x=>`${x.p} · ${x.pago.toLowerCase()}`).join(" · "):"Nada pendiente de pagar"}</span></div>`);
+  t.push(`<div class="cifra" data-entra style="--i:5" data-ir="bandeja"><span class="et">Por revisar <span class="flecha">→</span></span><span class="valor ${band.length?"t-ambar":"t-verde"}">${band.length||"Al día"}</span><span class="pie">${band.length?`${S(suma(band))} que todavía no cuentan en ningún número`:"Nada por revisar en "+donde}</span></div>`);
+  if(!conTotal)t.push(`<div class="cifra" data-entra style="--i:6" data-ir="fijos"><span class="et">Fijos del mes <span class="flecha">→</span></span><span class="valor">${ok} de ${fij.length}</span><span class="pie">${fij.filter(f=>f.est!=="ok").map(f=>`${f.d} ${f.cuando}`).join(" · ")||"Todos los que se repiten ya llegaron"}</span></div>`);
+  return `<section class="cifras">${t.join("")}</section>`}
+
+function pildora(id,ico,etiqueta,valor,opciones,{derecha=false}={}){const elegida=opciones.find(o=>o.v===valor&&o.v);
+  return `<div class="pild" data-pild="${id}"><button type="button" class="${elegida?"puesta":""}" aria-haspopup="listbox" aria-expanded="false">${ico}<span>${elegida?esc(elegida.t):etiqueta}</span>${I.abajo}</button>
+   <div class="menu ${derecha?"derecha":""} oculto" role="listbox">${opciones.map(o=>`<button type="button" role="option" data-v="${o.v}" aria-selected="${o.v===valor}"><span>${esc(o.t)}</span>${o.g?`<span class="gris">${o.g}</span>`:""}</button>`).join("")}</div></div>`}
+
+function herramientas(st,{sinSede=false,agrupar=true,sinAlq=false}={}){const base=vig(filtrar({...st,cat:"",comp:"",q:""}));
+  const cats=Object.entries(CATS).map(([k,t])=>({v:k,t,g:S(suma(base.filter(x=>x.c===k)))})).filter(o=>o.g!=="S/ 0");
+  const meses=Object.keys(MESES).sort();const i=meses.indexOf(st.mes);
+  return `<div class="herr">
+   <label class="buscador ${st.q?"con":""}">${I.lupa}<input type="search" data-q placeholder="Buscar un gasto, un proveedor o un número" value="${esc(st.q)}" aria-label="Buscar gastos"><kbd>/</kbd><button type="button" class="borrar" data-borrar aria-label="Borrar la búsqueda">${I.x}</button></label>
+   ${sinSede?"":pildora("sede",I.lugar,"Sede",st.sede==="todas"?"":st.sede,[{v:"",t:"Todas las sedes"},...SEDES.map(s=>({v:s.k,t:s.n,g:S(suma(vig(filtrar({...st,sede:s.k,cat:"",comp:"",q:""}))))}))])}
+   ${pildora("cat",I.cat,"Categoría",st.cat,[{v:"",t:"Todas las categorías"},...cats])}
+   ${pildora("comp",I.papel,"Comprobante",st.comp,[{v:"",t:"Todos"},...Object.entries(COMPS).map(([v,t])=>({v,t}))])}
+   <div class="mes" role="group" aria-label="Mes"><button type="button" data-mes="${meses[i-1]||""}" ${i>0?"":"disabled"} aria-label="Mes anterior">${I.izq}</button><span>${MESES[st.mes].nombre}</span><button type="button" data-mes="${meses[i+1]||""}" ${i<meses.length-1?"":"disabled"} aria-label="Mes siguiente">${I.der}</button></div>
+   ${sinAlq?`<button type="button" class="interruptor" role="switch" aria-checked="${st.sinAlq}" data-sinalq><i></i>Sin alquileres</button>`:""}
+   ${agrupar&&st.sede==="todas"&&!sinSede?`<button type="button" class="interruptor" role="switch" aria-checked="${st.agrupar}" data-agrupar><i></i>Separar por sede</button>`:""}
+  </div><div class="puestos" data-puestos></div><div data-tabla></div>`}
+
+function puestos(st,{sinSede=false}={}){const p=[];
+  if(st.sede!=="todas"&&!sinSede)p.push(["sede",`Sede: ${SEDE[st.sede].n}`]);
+  if(st.cat)p.push(["cat",`Categoría: ${CATS[st.cat]}`]);
+  if(st.comp)p.push(["comp",`Comprobante: ${COMPS[st.comp]}`]);
+  if(st.sinAlq)p.push(["sinAlq","Sin alquileres"]);
+  if(st.q.trim())p.push(["q",`«${st.q.trim()}»`]);
+  if(!p.length)return "";
+  const f=filtrar(st);
+  return p.map(([k,t])=>`<button type="button" class="puesto" data-quitar="${k}" aria-label="Quitar ${esc(t)}">${esc(t)}<span class="x">✕</span></button>`).join("")
+   +(p.length>1?`<button type="button" class="limpiar" data-limpiar>${I.embudo} Limpiar todo</button>`:"")
+   +`<span class="cuantos">${vig(f).length} ${vig(f).length===1?"gasto":"gastos"} · ${S(suma(vig(f)))}</span>`}
+
+function fila(x,{conSede}){return `<tr class="fila ${x.est==="anulado"?"anulada":""}" data-abrir="${x.id}" tabindex="0">
+  <td data-l="Fecha">${x.f} ${st_mesCorto}</td>
+  <td data-l="Gasto"><b>${esc(x.d)}</b><span class="sub">${esc(x.p||"Sin proveedor")}</span></td>
+  ${conSede?`<td data-l="Sede">${sedeTxt(x.s)}</td>`:""}
+  <td data-l="Categoría">${CATS[x.c]}</td>
+  <td data-l="Comprobante">${COMPS[x.tipo]}${x.num?`<span class="sub">${esc(x.num)}</span>`:""}</td>
+  <td data-l="Pago">${esc(x.pago)}</td>
+  <td data-l="Monto" class="m"><b>${S(x.m,2)}</b>${x.tipo==="factura"&&!x.sinIgv?`<span class="sub">IGV ${S(x.m*18/118,2)}</span>`:""}</td>
+  <td data-l="Estado">${estadoChip(x)}</td></tr>`}
+let st_mesCorto="oct";
+
+function tabla(st,{sinSede=false,agrupar=true}={}){const f=filtrar(st);st_mesCorto=st.mes==="2026-10"?"oct":"set";
+  if(!f.length){const hay=puestos(st,{sinSede});return `<div class="vacio">${I.lupa.replace('class="ico"','class="ico" style="width:28px;height:28px;color:var(--taupe)"')}<h3>Ningún gasto con eso</h3><p class="tenue">${st.q.trim()?`No hay gastos que digan «${esc(st.q.trim())}»`:"Ningún gasto calza con los filtros puestos"}${st.sede!=="todas"?` en ${SEDE[st.sede].n}`:""}.</p>${hay?`<button class="btn sutil chico" type="button" data-limpiar>${st.q.trim()&&!st.cat&&!st.comp&&!st.sinAlq?"Borrar la búsqueda":"Limpiar los filtros"}</button>`:""}</div>`}
+  const conSede=st.sede==="todas"&&!sinSede;
+  const cabeza=`<thead><tr><th>Fecha</th><th>Gasto</th>${conSede?"<th>Sede</th>":""}<th>Categoría</th><th>Comprobante</th><th>Cómo se pagó</th><th class="m">Monto</th><th>Estado</th></tr></thead>`;
+  let cuerpo="";
+  if(conSede&&agrupar&&st.agrupar){for(const s of SEDES){const de=f.filter(x=>x.s===s.k);if(!de.length)continue;
+     cuerpo+=`<tr class="grupo"><td colspan="8"><div class="sp"><span><i class="punto" style="--c:var(--s-${s.k})"></i>${s.n} <span class="globito">${vig(de).length}</span></span><span class="num">${S(suma(vig(de)))}</span></div></td></tr>`+de.map(x=>fila(x,{conSede:true})).join("")}}
+  else cuerpo=f.map(x=>fila(x,{conSede})).join("");
+  const v=vig(f);
+  return `<div class="desliza"><table class="tabla-g">${cabeza}<tbody>${cuerpo}</tbody></table></div>
+   <div class="pie-t"><span><b>${v.length}</b> ${v.length===1?"gasto":"gastos"} · <b>${S(suma(v))}</b>${f.length>v.length?` · ${f.length-v.length} anulado a la vista, nunca se borra`:""}</span><span>Toca un gasto para ver su detalle</span></div>`}
+
+function hoja(x,cerrar){const v=document.createElement("div");v.className="velo";
+  v.innerHTML=`<div class="hoja" role="dialog" aria-modal="true" aria-labelledby="h-t"><button class="x" type="button" aria-label="Cerrar">${I.x}</button>
+   <span class="versalita">${CATS[x.c]} · ${SEDE[x.s].n}</span>
+   <h2 id="h-t">${esc(x.d)}</h2>
+   <dl><dt>Total</dt><dd class="num">${S(x.m,2)}</dd><dt>IGV que vuelve</dt><dd class="num">${x.tipo==="factura"&&!x.sinIgv?S(x.m*18/118,2):"S/ 0.00 · "+(x.sinIgv?"factura del exterior":"no es factura")}</dd>
+   <dt>Proveedor</dt><dd>${esc(x.p||"Sin proveedor")}</dd><dt>Comprobante</dt><dd>${COMPS[x.tipo]}${x.num?" · "+esc(x.num):""}</dd><dt>Pago</dt><dd>${esc(x.pago)}</dd><dt>Estado</dt><dd>${estadoChip(x)}</dd>${x.detraccion?`<dt>Detracción</dt><dd>${S(x.detraccion)} al Banco de la Nación · pendiente</dd>`:""}${x.motivo?`<dt>Por qué se anuló</dt><dd>${esc(x.motivo)}</dd>`:""}</dl>
+   <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">${x.est==="porpagar"||(x.est==="pagado"&&x.tipo!=="factura")?`<button class="btn peligro" type="button">Anular gasto</button>`:x.est==="anulado"?`<span class="tenue" style="font-size:13px">Anulado: queda a la vista con su motivo.</span>`:`<span class="tenue" style="font-size:13px">Su factura ya tiene pagos: no se anula (como en Compras).</span>`}</div></div>`;
+  const fuera=()=>{document.removeEventListener("keydown",tecla);v.remove();cerrar&&cerrar()};
+  const tecla=e=>{if(e.key==="Escape")fuera()};
+  v.addEventListener("click",e=>{if(e.target===v||e.target.closest(".x"))fuera()});document.addEventListener("keydown",tecla);
+  document.body.appendChild(v);v.querySelector(".x").focus()}
+
+// Crece la barra apilada (tramo a tramo) cada vez que se pinta: «se reacomoda al cambiar la cifra».
+function crecer(){}
+
+// ---------------------------------------------------------------- Un camino = un panel con su estado
+function panel(id,dibujar){const raiz=document.getElementById(id);const v=id.toLowerCase();const st=nuevoEstado(v);
+  let listo=false;const pintar=()=>{raiz.innerHTML=dibujar(st);pintarTabla();crecer(raiz);if(listo)escribirHash(v,st);listo=true};
+  const pintarTabla=()=>{const t=raiz.querySelector("[data-tabla]");if(!t)return;const o=JSON.parse(t.closest("[data-opc]")?.dataset.opc||"{}");t.innerHTML=tabla(st,o);const p=raiz.querySelector("[data-puestos]");if(p)p.innerHTML=puestos(st,o);};
+  const cerrarMenus=()=>raiz.querySelectorAll(".menu:not(.oculto)").forEach(m=>{m.classList.add("oculto");m.previousElementSibling.setAttribute("aria-expanded","false")});
+  raiz.addEventListener("click",e=>{const t=e.target;
+    const pb=t.closest(".pild>button");if(pb){const m=pb.nextElementSibling;const abrir=m.classList.contains("oculto");cerrarMenus();if(abrir){m.classList.remove("oculto");pb.setAttribute("aria-expanded","true");m.querySelector('[aria-selected="true"]')?.focus()}return}
+    const op=t.closest(".menu button");if(op){const k=op.closest(".pild").dataset.pild;st[k]=op.dataset.v||(k==="sede"?"todas":"");pintar();return}
+    const sd=t.closest("[data-sede]");if(sd){st.sede=sd.dataset.sede===st.sede&&!sd.classList.contains("sede")?"todas":sd.dataset.sede;st.vista=null;pintar();return}
+    if(t.closest("[data-volver]")){if(st.vista&&st.vista.tipo==="gasto"){st.vista=null}else{st.sede="todas";st.vista=null}pintar();return}
+    const q=t.closest("[data-quitar]");if(q){const k=q.dataset.quitar;if(k==="sede")st.sede="todas";else if(k==="sinAlq")st.sinAlq=false;else st[k]="";pintar();return}
+    if(t.closest("[data-limpiar]")){st.cat="";st.comp="";st.q="";st.sinAlq=false;if(!raiz.querySelector('[data-opc*="sinSede"]'))st.sede="todas";pintar();return}
+    if(t.closest("[data-borrar]")){st.q="";const i=raiz.querySelector("[data-q]");i.value="";i.closest(".buscador").classList.remove("con");pintarTabla();escribirHash(v,st);i.focus();return}
+    const ms=t.closest("[data-mes]");if(ms&&ms.dataset.mes){st.mes=ms.dataset.mes;pintar();return}
+    if(t.closest("[data-agrupar]")){st.agrupar=!st.agrupar;pintar();return}
+    if(t.closest("[data-sinalq]")){st.sinAlq=!st.sinAlq;pintar();return}
+    const tab=t.closest("[data-tab]");if(tab){st.tab=tab.dataset.tab;pintar();return}
+    const ir=t.closest("[data-ir]");if(ir){if(ir.dataset.ir==="fijos"){st.tab="fijos";pintar();raiz.querySelector(".pestanas")?.scrollIntoView({block:"center"})}else raiz.querySelector("[data-bandeja]")?.scrollIntoView({block:"center",behavior:"smooth"});return}
+    const ab=t.closest("[data-abrir]");if(ab){const x=delMes(st).find(r=>r.id===ab.dataset.abrir);if(raiz.dataset.ficha){st.vista={tipo:"gasto",x};pintar();scrollTo({top:0})}else hoja(x,()=>ab.focus());return}
+    const rs=t.closest("[data-resolver]");if(rs){const c=rs.closest(".cosa");c.style.transition="opacity .3s, transform .3s";c.style.opacity="0";c.style.transform="translateX(24px)";
+      setTimeout(()=>{st.resueltas=(st.resueltas||0)+1;pintar()},300);return}
+    const cel=t.closest("[data-celda]");if(cel){const [s,c]=cel.dataset.celda.split("|");const igual=st.sede===s&&st.cat===c;st.sede=igual?"todas":s;st.cat=igual?"":c;pintar();raiz.querySelector("[data-tabla]")?.scrollIntoView({block:"start",behavior:"smooth"});return}
+    const cc=t.closest("[data-cat]");if(cc){st.cat=st.cat===cc.dataset.cat?"":cc.dataset.cat;pintar();return}
+    if(!t.closest(".pild"))cerrarMenus();
+  });
+  raiz.addEventListener("input",e=>{if(!e.target.matches("[data-q]"))return;st.q=e.target.value;e.target.closest(".buscador").classList.toggle("con",!!st.q);pintarTabla();escribirHash(v,st)});
+  raiz.addEventListener("keydown",e=>{const f=e.target.closest("tr[data-abrir]");if(f&&(e.key==="Enter"||e.key===" ")){e.preventDefault();f.click()}
+    if(e.key==="Escape"&&e.target.closest(".pild")){cerrarMenus();e.stopPropagation()}});
+  document.addEventListener("click",e=>{if(!raiz.contains(e.target))cerrarMenus()});
+  document.addEventListener("keydown",e=>{if(e.key==="/"&&!e.target.closest("input")&&!raiz.closest("[hidden]")){const i=raiz.querySelector("[data-q]");if(i){e.preventDefault();i.focus()}}});
+  pintar();return {st,pintar}}
+
+// ---------------------------------------------------------------- A · La respuesta, por sede
+panel("A",st=>{const todas=vig(filtrar({...st,sede:"todas",cat:"",comp:"",q:""}));const filas=deSede(todas,st.sede);const tot=suma(filas);const totC=suma(todas);
+  const nom=st.sede==="todas"?null:SEDE[st.sede];
+  const alq=suma(filas.filter(x=>x.c==="alq"));const porCat=Object.keys(CATS).map(k=>({k,m:suma(filas.filter(x=>x.c===k))})).filter(c=>c.m).sort((a,b)=>b.m-a.m);
+  const mayor=porCat[0];const sep=suma(deSede(SEP,st.sede));
+  const frase=mayor?`${mayor.k==="alq"?`<b>${Math.round(alq/tot*10)} de cada 10 soles fueron alquiler.</b>`:`Lo que más pesó: <b>${CATS[mayor.k].toLowerCase()}</b>, ${S(mayor.m)}.`} ${porCat.length>1?`Lo demás se repartió en ${porCat.length-1} cosas${porCat[1]?`; la más grande, ${CATS[porCat[1].k].toLowerCase()} (${S(porCat[1].m)})`:""}.`:""} ${st.mes==="2026-10"?`En septiembre, todo el mes, fueron ${S(sep)}.`:""}`:"Sin gastos.";
+  const band=deSede(BANDEJA,st.sede).slice(st.resueltas||0);const prim=band[0];
+  const tabs=[["gastos","Gastos",null],["fijos","Fijos del mes",deSede(FIJOS,st.sede).filter(f=>f.est!=="ok").length],["activos","Activos fijos",deSede(ACTIVOS,st.sede).length],["egresos","Salidas de caja por clasificar",deSede(BANDEJA,st.sede).filter(b=>b.tipo.startsWith("Salida")).length]];
+  return cabecera(st,{titulo:nom?`Gastos ${nom.de}`:"Gastos",frase:nom?`Lo que ${nom.k==="emp"?"se paga para toda la empresa (contador, publicidad) y no es de una sede":"costó tener abierta esta sede"} en ${MESES[st.mes].corto}.`:"En qué se fue la plata este mes, sede por sede, y lo poco que te falta revisar.",vuelta:nom?"Volver a todas las sedes":null})
+  +filaSedes(st)
+  +`<article class="respuesta" data-sube style="--i:2"><div>
+     <span class="pregunta">¿En qué se fue la plata${nom?` en ${nom.n}`:""}?</span>
+     <h2 class="total"><small>${st.mes==="2026-10"?"Este mes":"En septiembre"} ${nom?(nom.k==="emp"?"la empresa gastó":"gastó"):"gastaste"}</small><span data-cuenta="${tot}" data-pre="S/ ">${S(tot)}</span></h2>
+     <p class="explica">${frase}</p></div>
+    <div class="reparto"><div class="titulo"><span class="versalita">${nom?`${nom.n} es el ${pct(tot,totC)} % de CAYLA`:"Cómo se reparte entre las sedes"}</span><span class="tenue" style="font-size:12.5px">Toca una sede</span></div>${barraSedes(st,todas)}</div></article>`
+  +cifras(st)
+  +(st.mes==="2026-10"?`<article class="tarjeta" data-bandeja data-sube style="--i:7"><div class="bandeja"><div><span class="versalita">¿Qué te falta revisar${nom?` en ${nom.n}`:""}?</span><h2 style="font-size:26px;margin-top:4px">${band.length?`Te ${band.length===1?"falta 1 cosa":`faltan ${band.length} cosas`}`:"Nada por revisar"}</h2></div>
+     <span class="chip ${band.length?"c-ambar late":"c-verde"}">${band.length?`${band.length} por revisar · ${S(suma(band))}`:"Al día"}</span>
+     ${prim?`<div class="cosa"><div style="min-width:0"><span class="versalita">${prim.tipo} · ${SEDE[prim.s].c}</span><b>${esc(prim.t)}</b><p class="tenue" style="font-size:13.5px">${esc(prim.d)}</p></div><div style="display:flex;gap:14px;align-items:center"><span class="monto">${S(prim.m)}</span><button class="btn primario" type="button" data-resolver>${prim.acc}</button></div></div>`:`<p class="tenue" style="grid-column:1/-1">Cada salida de caja ya dice qué fue y los fijos del mes llegaron.</p>`}</div></article>`:"")
+  +`<div data-entra style="--i:8"><div class="pestanas" role="tablist" aria-label="Secciones de Gastos">${tabs.map(([k,t,c])=>`<button type="button" role="tab" data-tab="${k}" aria-selected="${st.tab===k}">${t}${c?`<span class="globito ${k==="fijos"||k==="egresos"?"pide":""}">${c}</span>`:""}</button>`).join("")}</div></div>`
+  +(st.tab==="gastos"?`<div class="dos"><div class="caja-tabla" data-opc='{"agrupar":true}' data-sube style="--i:9">${herramientas(st)}</div>${ladoA(st,filas)}</div>`
+   :st.tab==="fijos"?fijosA(st):st.tab==="activos"?activosA(st):egresosA(st))
+  +`<p class="nota-c">El gasto de cada sede es lo que se pagó <b>para esa sede</b>: su alquiler, su luz, su movilidad. Lo que es de toda la empresa (contador, publicidad) va en <b>De la empresa</b> y no se reparte aquí: el Resumen dice qué deja cada lugar. La planilla no se registra aquí: se lee de Dynamic.</p>`});
+
+function ladoA(st,filas){const tot=suma(filas)||1;const porCat=Object.keys(CATS).map(k=>({k,m:suma(filas.filter(x=>x.c===k))})).filter(c=>c.m).sort((a,b)=>b.m-a.m);
+  return `<aside class="lado" data-sube style="--i:10"><div class="tarjeta"><span class="versalita">En qué${st.sede==="todas"?"":" · "+SEDE[st.sede].n}</span>
+   <div style="margin-top:10px">${porCat.map(c=>`<button type="button" data-cat="${c.k}" style="display:block;width:100%;border:0;background:${st.cat===c.k?"var(--hueso)":"none"};text-align:left;padding:7px 8px;border-radius:8px;cursor:pointer;color:var(--tinta);font:inherit"><span style="display:flex;justify-content:space-between;gap:8px;font-size:13.5px"><span>${CATS[c.k]}</span><b class="num">${S(c.m)}</b></span><span class="barrita"><i style="width:${(c.m/tot*100).toFixed(1)}%"></i></span></button>`).join("")}</div>
+   <p class="tenue" style="font-size:12.5px;margin-top:8px">Toca una categoría y la tabla se filtra.</p></div></aside>`}
+function fijosA(st){const f=deSede(FIJOS,st.sede);
+  return `<div class="caja-tabla" data-sube style="--i:9"><div class="desliza"><table class="tabla-g"><thead><tr><th>Sede</th><th>Lo que se repite</th><th class="m">Monto</th><th>Este mes</th></tr></thead><tbody>${f.map(x=>`<tr><td>${sedeTxt(x.s)}</td><td><b>${x.d}</b></td><td class="m">${S(x.m)}</td><td>${x.est==="ok"?'<span class="chip c-verde">Registrado</span>':x.est==="viene"?`<span class="chip c-pizarra">Viene · ${x.cuando}</span>`:`<span class="chip c-ambar late">Falta · ${x.cuando}</span>`}</td></tr>`).join("")}</tbody></table></div>
+   <div class="pie-t"><span><b>${f.filter(x=>x.est==="ok").length} de ${f.length}</b> ya llegaron</span><button class="btn sutil chico" type="button">Editar fijos</button></div></div>`}
+function activosA(st){const a=deSede(ACTIVOS,st.sede);
+  return `<div class="caja-tabla" data-sube style="--i:9"><div class="desliza"><table class="tabla-g"><thead><tr><th>Sede</th><th>Activo</th><th class="m">Costó</th><th class="m">Vale hoy</th></tr></thead><tbody>${a.map(x=>`<tr><td>${sedeTxt(x.s)}</td><td><b>${x.d}</b></td><td class="m">${S(x.costo)}</td><td class="m">${S(x.vale)}</td></tr>`).join("")||`<tr><td colspan="4" class="tenue">${SEDE[st.sede]?.n??""} no tiene activos: lo de la empresa no tiene un lugar.</td></tr>`}</tbody></table></div></div>`}
+function egresosA(st){const e=deSede(BANDEJA,st.sede).filter(b=>b.tipo.startsWith("Salida"));
+  return `<div class="caja-tabla" data-sube style="--i:9"><div class="desliza"><table class="tabla-g"><thead><tr><th>Sede</th><th>Lo que escribió la tienda</th><th class="m">Monto</th><th></th></tr></thead><tbody>${e.map(x=>`<tr><td>${sedeTxt(x.s)}</td><td><b>${x.t}</b><span class="sub">${x.d}</span></td><td class="m">${S(x.m)}</td><td class="m"><button class="btn sutil chico" type="button">Clasificar</button></td></tr>`).join("")||`<tr><td colspan="4" class="tenue">Todo en orden: cada salida de los cajones ya dice qué fue.</td></tr>`}</tbody></table></div></div>`}
+
+// ---------------------------------------------------------------- B · La mesa: categoría × sede
+document.getElementById("B").dataset.ficha="1";
+panel("B",st=>{
+  if(st.vista?.tipo==="gasto"){const x=st.vista.x;const otros=vig(delMes(st)).filter(r=>r.p&&r.p===x.p&&r.id!==x.id);
+    return cabecera(st,{titulo:x.d,frase:`${CATS[x.c]} · ${SEDE[x.s].n} · ${x.f} de ${MESES[st.mes].corto}`,vuelta:"Volver a Gastos",acciones:x.est==="anulado"?"":`<button class="btn sutil" type="button">Editar</button>`})
+     +`<div class="ficha"><div class="tarjeta" data-sube style="--i:1"><dl><dt>Total</dt><dd class="num">${S(x.m,2)}</dd><dt>IGV que vuelve</dt><dd class="num">${x.tipo==="factura"&&!x.sinIgv?S(x.m*18/118,2):"S/ 0.00"}</dd><dt>Sede</dt><dd>${sedeTxt(x.s)}</dd><dt>Proveedor</dt><dd>${esc(x.p||"Sin proveedor")}</dd><dt>Comprobante</dt><dd>${COMPS[x.tipo]}${x.num?" · "+esc(x.num):""}</dd><dt>Pago</dt><dd>${esc(x.pago)}</dd><dt>Estado</dt><dd>${estadoChip(x)}</dd><dt>Lo registró</dt><dd>Felipe Alvarez · ${x.f} oct</dd></dl>
+      <div style="display:flex;margin-top:16px">${x.est==="anulado"?"":`<button class="btn peligro" type="button">Anular gasto</button>`}</div></div>
+      <aside class="tarjeta hundida" data-sube style="--i:2"><span class="versalita">Otros gastos de ${esc(x.p||"este tipo")}</span>${otros.length?otros.map(o=>`<div class="lado"><div class="fila-l"><span>${esc(o.d)} · ${SEDE[o.s].c}</span><b class="num">${S(o.m)}</b></div></div>`).join(""):'<p class="tenue" style="font-size:13.5px;margin-top:8px">Es el único este mes.</p>'}</aside></div>`}
+  const base=vig(filtrar({...st,sede:"todas",cat:"",comp:"",q:""}));const sepB=vig(SEP).filter(x=>!st.sinAlq||x.c!=="alq");
+  const cats=Object.keys(CATS).filter(k=>suma(base.filter(x=>x.c===k)));
+  const max=Math.max(...cats.flatMap(k=>SEDES.map(s=>suma(base.filter(x=>x.c===k&&x.s===s.k)))),1);
+  const dif=(a,b)=>{if(st.mes!=="2026-10")return "";const d=a-b;return `<span class="dif">${d===0?"igual que sept.":(d>0?"+":"−")+S(Math.abs(d)).replace("S/ ","S/ ")+" vs sept."}</span>`};
+  return cabecera(st,{titulo:st.sede==="todas"?"Gastos":`Gastos ${SEDE[st.sede].de}`,frase:"Qué se pagó, en qué sede y contra septiembre. Toca una celda para ver esos gastos.",vuelta:st.sede!=="todas"?"Volver a todas las sedes":null})
+  +filaSedes(st)
+  +cifras(st,{conTotal:true})
+  +`<div class="caja-tabla" data-sube style="--i:7"><div class="herr" style="justify-content:space-between"><div><span class="versalita">Categoría × sede · ${MESES[st.mes].nombre}</span><p class="tenue" style="font-size:13px">Más oscura la celda, más plata. Las cifras de cada sede no incluyen lo de la empresa.</p></div>
+    <button type="button" class="interruptor" role="switch" aria-checked="${st.sinAlq}" data-sinalq><i></i>Sin alquileres</button></div>
+   <div class="desliza"><table class="matriz"><thead><tr><th>Categoría</th>${SEDES.map(s=>`<th><button type="button" data-sede="${s.k}" aria-pressed="${st.sede===s.k}" style="--c:var(--s-${s.k})">${s.c}</button></th>`).join("")}<th>Total</th></tr></thead>
+   <tbody>${cats.map(k=>`<tr><td><button type="button" data-cat="${k}" aria-pressed="${st.cat===k}">${CATS[k]}</button></td>${SEDES.map(s=>{const m=suma(base.filter(x=>x.c===k&&x.s===s.k));return `<td><button type="button" class="celda ${m?"":"cero"}" ${m?`data-celda="${s.k}|${k}"`:"disabled"} aria-pressed="${st.sede===s.k&&st.cat===k}" style="--a:${m?Math.round(4+26*Math.sqrt(m/max)):0}%" aria-label="${CATS[k]} en ${s.n}: ${S(m)}">${m?S(m):"—"}</button></td>`}).join("")}<td class="tot" style="padding:10px 12px">${S(suma(base.filter(x=>x.c===k)))}${dif(suma(base.filter(x=>x.c===k)),suma(sepB.filter(x=>x.c===k)))}</td></tr>`).join("")}</tbody>
+   <tfoot><tr><td>Total</td>${SEDES.map(s=>`<td style="padding:10px 12px">${S(suma(base.filter(x=>x.s===s.k)))}${dif(suma(base.filter(x=>x.s===s.k)),suma(sepB.filter(x=>x.s===s.k)))}</td>`).join("")}<td style="padding:10px 12px">${S(suma(base))}${dif(suma(base),suma(sepB))}</td></tr></tfoot></table></div></div>`
+  +`<div class="caja-tabla" data-opc='{"agrupar":true}' data-sube style="--i:8">${herramientas(st)}</div>`
+  +`<p class="nota-c">«vs sept.» compara contra todo septiembre, porque los gastos grandes (alquiler, internet, contador) se pagan a inicio de mes. Lima no tenía gastos de operación en septiembre: abrió el 20 de octubre.</p>`});
+
+// ---------------------------------------------------------------- C · Una tarjeta por sede
+panel("C",st=>{const base=vig(filtrar({...st,sede:"todas",cat:"",comp:"",q:""}));const tot=suma(base)||1;
+  if(st.sede!=="todas"){const s=SEDE[st.sede];const filas=deSede(base,s.k);const sep=vig(deSede(SEP,s.k)).filter(x=>!st.sinAlq||x.c!=="alq");
+    return cabecera(st,{titulo:`Gastos ${s.de}`,frase:`${S(suma(filas))} en ${MESES[st.mes].corto}${st.sinAlq?" sin contar el alquiler":""}: el ${pct(suma(filas),tot)} % de lo que gastó CAYLA. En septiembre fueron ${S(suma(sep))}.`,vuelta:"Volver a todas las sedes"})
+     +filaSedes(st)+cifras(st,{conTotal:true})
+     +`<div class="dos"><div class="caja-tabla" data-opc='{"sinSede":true}' data-sube style="--i:7">${herramientas(st,{sinSede:true,sinAlq:true})}</div>${ladoA(st,filas)}</div>`}
+  return cabecera(st,{titulo:"Gastos",frase:`${S(suma(base))} en ${MESES[st.mes].corto}${st.sinAlq?" sin los alquileres":""}, en ${SEDES.length} lugares. Toca uno para ver sus gastos.`})
+   +filaSedes(st)
+   +`<div class="tarjeta" data-sube style="--i:2;display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center"><span class="versalita">Cómo se reparte ${MESES[st.mes].corto}</span><button type="button" class="interruptor" role="switch" aria-checked="${st.sinAlq}" data-sinalq><i></i>Sin alquileres</button></div>${barraSedes(st,base)}</div>`
+   +`<section class="tarjetas">${SEDES.map((s,i)=>{const f=deSede(base,s.k);const m=suma(f);const sep=suma(vig(deSede(SEP,s.k)).filter(x=>!st.sinAlq||x.c!=="alq"));const band=deSede(BANDEJA,s.k);
+     const top=Object.keys(CATS).map(k=>({k,m:suma(f.filter(x=>x.c===k))})).filter(c=>c.m).sort((a,b)=>b.m-a.m).slice(0,3);const d=m-sep;
+     return `<button type="button" class="tsede" data-sede="${s.k}" style="--c:var(--s-${s.k});--i:${3+i}" data-sube aria-label="Ver los gastos de ${s.n}">
+      <span class="nom"><b>${s.n}</b><span class="ir">${I.flecha}</span></span>
+      <span class="val" data-cuenta="${m}" data-pre="S/ ">${S(m)}</span>
+      <span class="linea-c tenue"><span>${pct(m,tot)} % de CAYLA · ${f.length} gastos</span><span>${st.mes==="2026-10"?(sep?`${d>=0?"+":"−"}${S(Math.abs(d))} vs sept.`:"sin gastos en sept."):""}</span></span>
+      <ul>${top.map(c=>`<li><span>${CATS[c.k]}</span><b class="num">${S(c.m)}</b><span class="barrita"><i style="width:${(c.m/(m||1)*100).toFixed(1)}%;--c:var(--s-${s.k})"></i></span></li>`).join("")||'<li class="tenue">Sin gastos</li>'}</ul>
+      <span class="pies">${band.length?`<span class="chip c-ambar">${band.length} por revisar</span>`:'<span class="chip c-verde">Al día</span>'}${deSede(FIJOS,s.k).some(x=>x.est!=="ok")?'<span class="chip c-pizarra">Falta un fijo</span>':""}</span></button>`}).join("")}</section>`
+   +`<p class="nota-c">Con los alquileres, Trujillo siempre parece la sede que más gasta porque su local es el más caro. <b>Sin alquileres</b> muestra lo que sí se decide día a día: movilidad, útiles, bolsas, mantenimiento.</p>`});
+})();
+</script>
+</body></html>

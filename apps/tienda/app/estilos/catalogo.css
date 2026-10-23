@@ -118,7 +118,7 @@
 .t-card { position: relative; display: flex; flex-direction: column; gap: 0; min-width: 0; }
 /* La foto con lo que va encima: el enlace a la ficha, «Agregar» con la talla (abajo, al pasar el mouse) y el corazón (arriba a la
    derecha). Recorta lo que asoma: «Agregar» espera escondido debajo del borde. */
-.t-card-media { position: relative; display: block; overflow: hidden; border-radius: 0; }
+.t-card-media { position: relative; display: block; overflow: hidden; border-radius: 0; container: tarjeta / inline-size; }
 .t-card-enlace { display: block; }
 .t-rapido-ancla { display: contents; }
 .t-card-foto { position: relative; display: block; width: 100%; aspect-ratio: 4 / 5; background: var(--t-foto); border-radius: 0; overflow: hidden; }
@@ -142,7 +142,24 @@
 .pz-cuerpo .pz-linea { fill: none; }
 .pz-suelo { fill: var(--suelo); }
 
-.t-insignias { position: absolute; left: 8px; top: 8px; z-index: 2; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+/* Arriba de la foto: UNA sola fila con todo lo que la tarjeta dice (descuento, «Nuevo», puesto, las insignias asignadas en Catálogo ▸ Insignias y el «+N»,
+   ADR-0489) y, solo cuando hay empresa (Lima: CAYLA o Claurè), su nombre debajo de la fila. A la derecha se deja el lugar del corazón (36 px a 6 px del
+   borde). Lo que no cabe se achica con «…», empezando por los nombres de las asignadas; las propias y el «+N» no se achican. */
+.t-insignias { position: absolute; left: 8px; top: 8px; right: 46px; z-index: 2; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+/* `position: relative`: la copia invisible con la que `FilaDeInsignias` mide cuántas caben vive dentro y no ocupa lugar. */
+.t-insignias-fila { position: relative; display: flex; flex-wrap: nowrap; gap: 4px; align-items: flex-start; max-width: 100%; min-width: 0; }
+.t-insignias-medida { position: absolute; left: 0; top: 0; display: flex; gap: inherit; width: max-content; visibility: hidden; pointer-events: none; }
+.t-insignias-medida .t-insignia { flex: none; }
+.t-insignias-fila .t-insignia { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-insignias-fila .t-insignia:is(.propia, .mas) { flex: none; }
+.t-insignia.asignada { max-width: 16em; } /* un nombre larguísimo se corta con «…» aunque vaya solo */
+/* La tarjeta que no es ancha (menos de 380 px: la de 3 columnas a 1024 px, la de la tablet y la de 2 columnas del celular): todo en la fila va más chico, para
+   que los nombres quepan enteros en vez de cortarse a la mitad. */
+@container tarjeta (max-width: 379px) {
+  .t-insignias { right: 38px; }
+  .t-insignias-fila { gap: 3px; }
+  .t-insignias .t-insignia { font-size: 8.5px; letter-spacing: .05em; padding: 3px 4px 2px; line-height: 1.25; }
+}
 .t-insignia { font-size: 9.5px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; padding: 4px 7px 3px; border-radius: 0; background: var(--t-papel-fijo); color: var(--t-tinta-fija); }
 .t-insignia.oferta { background: var(--t-oferta); color: var(--t-oferta-tinta); }
 .t-insignia.nuevo { background: var(--t-tinta-fija); color: var(--t-papel-fijo); }

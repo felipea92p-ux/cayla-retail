@@ -26,6 +26,7 @@ import {
   tallasRapidas,
   type Ficha,
 } from "./ficha";
+import { dibujoDeLaInsignia } from "./insignias";
 import type { Look } from "./looks";
 import { PLAZOS_SIN_DATOS } from "./ayuda";
 

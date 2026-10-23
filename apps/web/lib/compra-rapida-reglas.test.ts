@@ -31,7 +31,14 @@ import {
   camposPrenda,
   gananciaPorPrenda,
   textoAgregarPrenda,
-  lineaDeBorrador,
+  lineasDeBorrador,
+  repartoParejo,
+  alternarDestino,
+  conCantidad,
+  problemaReparto,
+  borradorDeLineas,
+  textoPrendaEnCompra,
+  nombreCortoTienda,
   resumenCarrito,
   proveedoresRecientes,
   detalleProveedor,
@@ -259,7 +266,7 @@ describe("algo nuevo de este proveedor", () => {
     expect(nuevoVacio([{ id: "1" }, { id: "3" }]).marcaId).toBeNull();
   });
   it("la hoja de una prenda nueva pide qué es, la marca y el nombre antes que lo de siempre; un parecido sin contestar frena el nombre", () => {
-    const b = { cantidad: "", costo: "", venta: "", destinoId: null };
+    const b = { cantidad: "", costo: "", venta: "", destinos: [], reparto: {} };
     const vacio = camposPrendaNueva(nuevoVacio([]), false, b);
     expect(vacio.map((c) => c.id)).toEqual(["categoria", "marca", "nombre", "cantidad", "costo", "venta", "tienda"]);
     expect(vacio.slice(0, 3).every((c) => !c.hecho && c.requerido)).toBe(true);
@@ -322,20 +329,21 @@ describe("el proveedor, como la maqueta (compras-formidable-2026-10)", () => {
 
 describe("la hoja de la prenda (rediseño)", () => {
   const H = { clave: "p1", productoId: "p1", categoriaId: "c", marcaId: null, nombre: "Blusa Emma", categoria: "Blusas", marca: null };
-  const lleno = { cantidad: "12", costo: "17.50", venta: "39.90", destinoId: "lim" };
+  const lleno = { cantidad: "12", costo: "17.50", venta: "39.90", destinos: ["lim"], reparto: {} as Record<string, string> };
   it("falta lo mismo que antes frenaba cada paso, y la tienda", () => {
     const falta = (b: Parameters<typeof camposPrenda>[0]) => camposPrenda(b).filter((c) => c.requerido && !c.hecho).map((c) => c.id);
-    expect(falta({ cantidad: "", costo: "", venta: "", destinoId: null })).toEqual(["cantidad", "costo", "venta", "tienda"]);
+    expect(falta({ cantidad: "", costo: "", venta: "", destinos: [], reparto: {} })).toEqual(["cantidad", "costo", "venta", "tienda"]);
     expect(falta({ ...lleno, cantidad: "0" })).toEqual(["cantidad"]);
     expect(falta({ ...lleno, costo: "17.555" })).toEqual(["costo"]);
-    expect(falta({ ...lleno, destinoId: null })).toEqual(["tienda"]);
+    expect(falta({ ...lleno, destinos: [] })).toEqual(["tienda"]);
     expect(falta(lleno)).toEqual([]);
   });
   it("la guía coincide con la línea: sin faltas hay línea; con una falta, no", () => {
-    expect(lineaDeBorrador(H, lleno)).toMatchObject({ cantidad: 12, costo: 17.5, venta: 39.9, destinoId: "lim", clave: "p1" });
-    for (const roto of [{ cantidad: "" }, { costo: "x" }, { venta: "" }, { destinoId: null }]) {
-      const b = { ...lleno, ...roto };
-      expect(lineaDeBorrador(H, b) === null).toBe(camposPrenda(b).some((c) => c.requerido && !c.hecho));
+    expect(lineasDeBorrador(H, lleno)).toEqual([expect.objectContaining({ cantidad: 12, costo: 17.5, venta: 39.9, destinoId: "lim", clave: "p1" })]);
+    const repartido = { ...lleno, destinos: ["lim", "aqp"], reparto: { lim: "7", aqp: "5" } };
+    for (const roto of [{ cantidad: "" }, { costo: "x" }, { venta: "" }, { destinos: [] }, { reparto: { lim: "7", aqp: "4" } }]) {
+      const b = { ...repartido, ...roto };
+      expect(lineasDeBorrador(H, b).length === 0).toBe(camposPrenda(b).some((c) => c.requerido && !c.hecho));
     }
   });
   it("la ganancia por prenda y el botón que dice lo que hace", () => {
@@ -392,5 +400,47 @@ describe("pagar ahora o después (20261023181000)", () => {
     expect(textoLoQueFalta(300, 300)).toBeNull();
     expect(plano(textoLoQueFalta(300, 100))).toBe("Compras le paga al proveedor lo que falta: S/ 200.00.");
     expect(plano(textoLoQueFalta(300, 0))).toBe("Compras le paga al proveedor los S/ 300.00.");
+  });
+});
+
+describe("repartir una prenda entre varias tiendas (Felipe 2026-10-23)", () => {
+  const H = { clave: "p1", productoId: "p1", categoriaId: "c", marcaId: null, nombre: "Blusa Emma", categoria: "Blusas", marca: null };
+  const base = { cantidad: "10", costo: "20", venta: "59.90", destinos: ["lim"], reparto: {} as Record<string, string> };
+  it("el reparto llega parejo: lo que sobra va a las primeras", () => {
+    expect(repartoParejo(10, ["a", "b", "c"])).toEqual({ a: "4", b: "3", c: "3" });
+    expect(repartoParejo(2, ["a", "b", "c"])).toEqual({ a: "1", b: "1", c: "0" });
+    expect(repartoParejo(null, ["a", "b"])).toEqual({});
+  });
+  it("prender una segunda tienda reparte parejo; apagarla vuelve a una; sin varias, cambia de tienda", () => {
+    const dos = { ...base, ...alternarDestino(base, "aqp", true) };
+    expect(dos).toMatchObject({ destinos: ["lim", "aqp"], reparto: { lim: "5", aqp: "5" } });
+    expect(alternarDestino(dos, "aqp", true).destinos).toEqual(["lim"]);
+    expect(alternarDestino(dos, "tru", false).destinos).toEqual(["tru"]);
+  });
+  it("cambiar cuántas rehace el reparto, salvo que se haya tocado a mano", () => {
+    const dos = { ...base, destinos: ["lim", "aqp"], reparto: { lim: "5", aqp: "5" } };
+    expect(conCantidad(dos, "12").reparto).toEqual({ lim: "6", aqp: "6" });
+    expect(conCantidad({ ...dos, repartoPropio: true, reparto: { lim: "8", aqp: "2" } }, "12").reparto).toEqual({ lim: "8", aqp: "2" });
+  });
+  it("el reparto tiene que sumar lo comprado, y cada tienda llevar al menos 1", () => {
+    const dos = { ...base, destinos: ["lim", "aqp"] };
+    expect(problemaReparto({ ...dos, reparto: { lim: "6", aqp: "4" } })).toBeNull();
+    expect(problemaReparto({ ...dos, reparto: { lim: "6", aqp: "2" } })).toBe("Reparte las 10: faltan 2.");
+    expect(problemaReparto({ ...dos, reparto: { lim: "9", aqp: "3" } })).toBe("Reparte las 10: sobran 2.");
+    expect(problemaReparto({ ...dos, reparto: { lim: "10", aqp: "0" } })).toBe("Cada tienda lleva al menos 1: si no va a una, apágala.");
+    expect(problemaReparto(base)).toBeNull();
+  });
+  it("una línea por tienda, y se vuelven a juntar para corregir", () => {
+    const lineas = lineasDeBorrador(H, { ...base, destinos: ["lim", "aqp"], reparto: { lim: "6", aqp: "4" } });
+    expect(lineas.map((l) => [l.destinoId, l.cantidad, l.costo])).toEqual([
+      ["lim", 6, 20],
+      ["aqp", 4, 20],
+    ]);
+    expect(borradorDeLineas(lineas)).toMatchObject({ cantidad: "10", costo: "20.00", destinos: ["lim", "aqp"], reparto: { lim: "6", aqp: "4" }, repartoPropio: true });
+    const nombres = new Map([["lim", "Tienda Lima"], ["aqp", "Tienda AQP"]]);
+    expect(plano(textoPrendaEnCompra(lineas, nombres))).toBe("10 × S/ 20.00 · Lima 6, AQP 4");
+    expect(plano(textoPrendaEnCompra(lineas.slice(0, 1), nombres))).toBe("6 × S/ 20.00 · Lima");
+    expect(nombreCortoTienda("Tienda Arequipa")).toBe("Arequipa");
+    expect(nombreCortoTienda("Taller")).toBe("Taller");
   });
 });
