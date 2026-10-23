@@ -54,7 +54,7 @@ Todo vale **solo bajo 640 px**, donde la hoja va pegada abajo. En escritorio y e
 | 9 | Los márgenes del iPhone (`viewport-fit=cover`) | **Hecha** (2026-10-23) |
 | 10 | Las tres capas hechas a mano pasan a `<Modal>` | **Hecha** (2026-10-23; deuda de `hoja-movil` en 0) |
 | 11 | El menú lateral se cierra deslizando | **Hecha** (2026-10-23) |
-| 12 | Una sola barra de abajo (pasa por `/unificar`: Felipe elige mirando) | **Esperando la elección de Felipe** (lámina del 2026-10-23) |
+| 12 | Una sola barra de abajo (pasa por `/unificar`: Felipe elige mirando) | **Hecha** (2026-10-23: la Isla; deuda de `barra-movil` en 0) |
 
 ## Actividad 1 — la hoja viva en `<Modal>`
 
@@ -256,11 +256,26 @@ Recibir, Proveedores y la ficha de un proveedor: solo se fue el botón «Cerrar�
 **Verificado (375 × 812 táctil):** 50 px a la izquierda vuelve (el velo baja a 0,83 y vuelve a 1); un dedo vertical no lo mueve; 140 px lo
 cierran; un tirón de 90 px (menos de un tercio) también.
 
-## Actividad 12 — una sola barra de abajo (en elección)
+## Actividad 12 — una sola barra de abajo: la Isla
 
-Hoy hay 8 formas de barra de abajo a 375 px, que son dos funciones: la barra con lo que toca hacer en la pantalla (A degradado con un
+Había 8 formas de barra de abajo a 375 px, que son dos funciones: la barra con lo que toca hacer en la pantalla (A degradado con un
 botón negro, 5 pantallas; B vidrio con línea, `BarraFija`, 10; C pie pegado del formulario, 4) y lo que llevas elegido (D píldora oscura,
-3; E tarjeta clara, 1; F franja oscura, 1). Las pestañas de abajo ya son una sola forma. La lámina para elegir mirando, con las
-propuestas «Isla» y «Vidrio» fotografiadas dentro de las pantallas reales en claro y oscuro, salió el 2026-10-23
-(`docs/unificar/propuestas/barra-movil.html`). Se registra y se migra cuando Felipe elija.
+3; E tarjeta clara, 1; F franja oscura, 1). Las pestañas de abajo ya eran una sola forma. **Felipe eligió la Isla para las dos preguntas
+el 2026-10-23, mirando** las propuestas «Isla» y «Vidrio» fotografiadas dentro de las pantallas reales (`docs/unificar/propuestas/barra-movil.html`).
+
+- **La pieza:** `barra-abajo` (`app/estilos/barra-abajo.css`) y `<BarraDeAbajo>` / `<BarraDeAbajoResumen>`. Flota a 12 px de los bordes y de
+  la barrita del iPhone, esquinas de 18 px, sombra suave; clara para lo que toca hacer (con una acción, `data-sola`: la isla es el botón, de
+  52 px) y oscura (`data-tono="tinta"`) para lo elegido; `data-pegada` dentro de un formulario; `--sobre` sobre unas pestañas. Botones de
+  44 px. Entra una vez subiendo 12 px (260 ms). Es la forma: lo de adentro y lo que hace cada botón no cambió.
+- **En escritorio no cambia:** `BarraFija` sigue de borde a borde (sus utilidades `sm:` le ganan a la capa de la pieza); las barras de
+  marcadas siguen centradas; los pies de formulario, como estaban.
+- **Registrada** como familia `barra-movil` de `/unificar` (firmas: el degradado, la píldora `fixed inset-x-3`, el pie `sticky -mx-4 border-t`,
+  la tarjeta flotante, la franja oscura, el vidrio de `BarraFija` en el celular), con su deuda de 14 archivos llevada a 0 en cuatro commits.
+- De paso: el «Siguiente: …» de Nuevo producto subraya cada línea cuando la frase se parte (el subrayado iba en el botón, no en el texto).
+
+**Verificado (375 × 812 y 1440 × 900):** Existencias y Cambios: la isla es el botón (52 px, a 12 px de los bordes); Devoluciones y Caja: los
+botones dentro de la isla clara; Vender, Apartados (sobre sus pestañas), Temporadas y las marcadas de Productos: la isla oscura; Por pagar:
+isla clara de 12 / 12 / 12 en el celular y, en 1440, la barra de siempre (lateral 272, abajo 0, línea arriba); escondida no asoma (848 > 812);
+Nuevo producto y Bajar al piso: isla pegada. Las marcadas de Existencias no se fotografiaron (no se pudo armar ese estado desde afuera); su
+cambio es el mismo que el de Productos.
 

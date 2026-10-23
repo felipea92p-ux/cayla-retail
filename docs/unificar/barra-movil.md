@@ -51,3 +51,7 @@ dice dos cosas sin texto: la clara es lo que toca hacer; la oscura, lo que lleva
 
 14 archivos la dibujan a mano (firmas en `apps/web/unificar/familias.mjs`): los cinco del degradado, las tres píldoras, la tarjeta de
 Temporadas, la franja de Apartados, `BarraFija` y los cuatro pies de formulario. Se migran en el mismo PR, módulo por módulo.
+
+**2026-10-23: deuda 0**, en cuatro commits: el degradado (Existencias, Cambios, Devoluciones, Caja, Inicio de almacén), lo elegido (Vender,
+Existencias, Productos, Apartados, Temporadas), `BarraFija` (isla en el celular, borde a borde desde `sm`) y los pies de formulario (Nuevo
+producto, Bajar al piso, Recibir, Abrir conteo, como isla pegada). Mismos botones, mismas acciones, mismas anclas de las guías.
