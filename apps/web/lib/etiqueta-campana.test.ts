@@ -319,10 +319,6 @@ describe("avisoReimprimir", () => {
     expect(avisoReimprimir(parejo(12))).toEqual({ detalle: "Cambió el precio en caja de 12 prendas: sus etiquetas de papel dicen el de antes.", boton: "Imprimir sus etiquetas" });
     expect(avisoReimprimir(parejo(1))).toEqual({ detalle: "Cambió el precio en caja de 1 prenda: su etiqueta de papel dice el de antes.", boton: "Imprimir su etiqueta" });
   });
-  it("un número (Prendas, Editar producto) es lo mismo que un cambio igual en todas las tiendas", () => {
-    for (const n of [0, 1, 12]) expect(avisoReimprimir(n)).toEqual(avisoReimprimir(parejo(n)));
-    expect(avisoReimprimir(354, false)).toEqual(avisoReimprimir(parejo(354), false));
-  });
 });
 
 // ---- En qué tiendas rige una campaña (ADR-0486) ---------------------------------------------------------------------------

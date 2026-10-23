@@ -130,5 +130,39 @@ una campaña limitada, cambio distinto en cada tienda, sin tiendas conocidas). E
 prendas en Tienda Lima… Imprimir las de Tienda Lima», que abre las etiquetas de Lima a S/ 74.90 (precio normal); de vuelta a todas guardando
 desde Tienda Trujillo, «… en Tienda Lima… Imprímelas en esa tienda», sin botón. Los datos de la prueba se restauraron (`estado.mjs`).
 
-**Lo que no cubre.** «Prendas» (marcar a mano, `prendasQueCambianAlEtiquetar`) y Editar producto siguen sin mirar las tiendas: con una campaña
-limitada, su aviso puede ofrecer imprimir en una tienda donde el precio no cambió.
+**Lo que no cubre.** ~~«Prendas» (marcar a mano, `prendasQueCambianAlEtiquetar`) y Editar producto siguen sin mirar las tiendas: con una campaña
+limitada, su aviso puede ofrecer imprimir en una tienda donde el precio no cambió.~~ Cubierto en la actualización siguiente.
+
+## Actualización 2026-10-23 (noche, b) — «Prendas» y Editar producto, con la misma regla
+
+**El problema.** Los otros dos avisos de reimprimir seguían sin saber de tiendas. Marcar prendas en una campaña de solo Trujillo desde Tienda
+Lima ofrecía «Imprimir sus etiquetas», que sacaba en Lima el precio de Lima (sin descuento): las mismas etiquetas que ya colgaban, mientras el
+papel de Trujillo seguía viejo. Editar producto calculaba el precio en caja con todas las campañas, sin mirar dónde rige cada una.
+
+**Cómo.** La parte «tienda por tienda → qué dice el aviso» salió de `prendasQueCambianDePrecioHoy` a una pieza propia,
+`cambioEnLasTiendas` (`lib/etiqueta-campana.ts`): recibe qué cambia en cada sede y devuelve el mismo `CambioDePrecio` (cuántas prendas, en qué
+tiendas si no es lo mismo en todas, y qué se imprime desde la sede de la cabecera). Las tres pantallas le pasan lo suyo:
+- **Configurar** (`prendasQueCambianDePrecioHoy`): el descuento de hoy antes y después, como hasta ahora.
+- **Prendas** (`prendasQueCambianAlEtiquetar`, `lib/etiquetar-prendas.ts`): si la campaña rebaja hoy y rige en esa sede (`rigeEnSede`), cambian
+  las que se marcaron y las que se quitaron; si no, ninguna. `PrendasDeEtiquetaModal` recibe `tiendas` y `sedeActualId` desde Insignias y
+  Tienda web ▸ Campañas.
+- **Editar producto** (`cambianEnCajaAlGuardar`, `lib/precio-de-hoy.ts`): el precio en caja de cada variante en cada tienda, antes y después,
+  con las campañas que rigen en ella y **su precio propio si lo tiene** (ADR-0370: una tienda con precio propio no ve el precio nuevo de la
+  prenda, así que su papel no queda viejo; si se iguala al guardar, sí). La página lee `campanas_sedes()` (tolerante: sin la migración, todas
+  rigen en todas las sedes) y la ficha guarda, al empezar el guardado, las variantes, la categoría y los precios propios.
+
+`avisoReimprimir` ya no acepta un número: las tres pantallas le pasan un `CambioDePrecio`. En Editar producto, si el precio cambió solo en otras
+tiendas y entraron unidades, se abre igual la hoja «Etiquetas de lo que entró» y el aviso dice dónde cambiar el papel.
+
+**Verificado.** Casos nuevos en `etiquetar-prendas.test.ts` (campaña de solo Trujillo: marcar desde Lima nombra Trujillo sin botón; desde
+Trujillo, «Imprimir las de Tienda Trujillo»; dos tiendas; fuera de temporada; todas las sedes; sin tiendas conocidas) y en
+`precio-de-hoy.test.ts` (los mismos con una etiqueta puesta en la ficha, y otro precio con Trujillo con precio propio: desde Lima nombra
+Arequipa y Lima con botón; desde Trujillo, sin botón; igualada, en las tres sin lista). En el navegador, en local, Halloween al 20 % solo en
+Trujillo: «Prendas» desde Tienda Lima, «Cambió el precio en caja de 6 prendas en Tienda Trujillo… Imprímelas en esa tienda», sin botón; desde
+Tienda Trujillo, «Imprimir las de Tienda Trujillo». Editar producto (Blusa Emma, una talla) desde Trujillo, «Imprimir la de Tienda Trujillo»;
+desde Lima, «… en Tienda Trujillo… Imprímela en esa tienda», sin botón. La campaña y las marcas de la prueba se devolvieron como estaban.
+
+**Lo que no cubre.** Dos frases de «lo que cobra la caja» todavía no saben de tiendas: la de «Precio de la prenda» en Editar producto
+(`fraseDeLaFicha`, que en Lima dice «Con Halloween (−20 %) la caja cobra…» aunque Halloween rija solo en Trujillo; contradice lo que este ADR
+promete de Catálogo) y el «Antes de aplicar» de «Prendas» (`vistaPrevia`, «Hoy en caja → con la etiqueta»). Cuál tienda deben mirar (la de la
+cabecera, o solo lo que rige en todas) es decisión de Felipe.
