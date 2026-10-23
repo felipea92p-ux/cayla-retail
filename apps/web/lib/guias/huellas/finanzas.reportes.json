@@ -2,7 +2,7 @@
   "guia": "finanzas.reportes",
   "ruta": "/finanzas/reportes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 4,
+  "total": 9,
   "controles": {
     "components/finanzas/EstadoResultadosPanel.tsx": [
       "BotonDescargar «Descargar Excel»",
@@ -11,6 +11,15 @@
     ],
     "components/finanzas/ResultadoPulso.tsx": [
       "button «{porque ? \"Cerrar\" : `¿Por qué ${soles(resp.monto)}»"
+    ],
+    "components/finanzas/telar/MesaDeMando.tsx": [
+      "Pestanas «(sin nombre)»",
+      "BotonEnlace «telar.registrar»",
+      "Link «{h.nombre}»"
+    ],
+    "components/finanzas/telar/TeToca.tsx": [
+      "button «telar.te-toca»",
+      "BotonVer «{p.verbo}»"
     ]
   }
 }

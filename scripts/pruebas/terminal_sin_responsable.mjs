@@ -13,7 +13,8 @@
  *   · `fn_terminal_firma_respaldo()` le dice a la web quién es (y cero filas a una persona o a una terminal sin respaldo);
  *   · la persona sigue igual (con el interruptor encendido pide responsable);
  *   · «volver»: vaciar `firma_respaldo_id` devuelve el candado;
- *   · la activación solo toca las terminales de «Tienda LIM», y en una base sin la persona de respaldo no hace nada.
+ *   · la activación solo toca las terminales de «Tienda LIM», y en una base sin la persona de respaldo no hace nada;
+ *   · el cambio a Claudia (`20261023223000`) solo cambia de quién es una firma que ya existe: no enciende ninguna.
  *
  * CÓMO. Mismo patrón que `responsable_omitido.mjs`: cada caso en su transacción con ROLLBACK; las terminales, las personas y
  * la asistencia de Dynamic se crean dentro. El encabezado HTTP se simula con `request.headers`, como hace PostgREST.
@@ -37,6 +38,7 @@ const EN_SECO = process.argv.includes("--en-seco");
 const leer = (nombre) => readFileSync(join(RAIZ, "supabase", "migrations", nombre), "utf8");
 const MECANISMO = leer("20261019185000_terminal_firma_de_respaldo.sql");
 const ACTIVACION = leer("20261019190000_terminales_de_lima_sin_responsable.sql");
+const A_CLAUDIA = leer("20261023223000_terminales_de_lima_firman_claudia.sql");
 
 const MICAELA_AUTH = "22222222-2222-4222-8222-000000000003"; // colaboradora de Trujillo (seed), no es admin
 const T_VENTAS_AUTH = "33333333-3333-4333-8333-0000000000a1"; // terminal de ventas de Trujillo (la que lleva respaldo)
@@ -45,6 +47,7 @@ const ROSA = "33333333-3333-4333-8333-0000000000b1"; // integrante de Trujillo, 
 const LIA = "33333333-3333-4333-8333-0000000000b2"; // LÍDER de retail, sin cuenta: otro respaldo (para probar que no da poderes)
 const OTRA = "33333333-3333-4333-8333-0000000000b3"; // integrante que se elige en el combo
 const FELIPE = "13ef8ea3-7bd4-4522-bae0-264c087ece5f"; // la persona que nombra la activación (producción)
+const CLAUDIA = "079e4764-6056-4fca-abb9-eaabd297e1ca"; // a quien pasa la firma el 2026-10-23 (producción)
 
 function psql(sql) {
   return execFileSync(
@@ -222,6 +225,37 @@ caso(
 caso(
   "ACTIVACIÓN: se puede pegar dos veces (re-ejecutable)",
   ACTIVAR + ACTIVACION + `select count(*) from retail.terminales where firma_respaldo_id = '${FELIPE}';`,
+  "1"
+);
+
+// ---------------- La firma pasa a Claudia (2026-10-23) ----------------
+const CON_CLAUDIA = `
+insert into public.personas (id, nombres, apellidos, estado, sede_base_id) select '${CLAUDIA}', 'Claudia', 'Pereyra', 'activo', sede_tru from ids;
+insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id) select '${CLAUDIA}', 'colaborador', tru from ids;
+`;
+caso(
+  "A CLAUDIA: la terminal de Lima pasa de Felipe a Claudia, y firma a su nombre sin responsable ni asistencia",
+  ACTIVAR + CON_CLAUDIA + A_CLAUDIA + como(T_VENTAS_AUTH) + `select persona_id || '|' || nombre from retail.fn_terminal_firma_respaldo();`,
+  `${CLAUDIA}|Claudia P.`
+);
+caso(
+  "A CLAUDIA: la terminal de OTRA tienda sigue sin respaldo",
+  ACTIVAR + CON_CLAUDIA + A_CLAUDIA + `select coalesce(firma_respaldo_id::text, 'NULL') from retail.terminales where auth_user_id = '${T_OTRA_AUTH}';`,
+  "NULL"
+);
+caso(
+  "A CLAUDIA: no enciende nada — si Lima ya volvió a pedir responsable, sigue pidiéndolo",
+  ACTIVAR + CON_CLAUDIA + `update retail.terminales set firma_respaldo_id = null where firma_respaldo_id is not null;\n` + A_CLAUDIA + como(T_VENTAS_AUTH) + actor,
+  "42501|responsable_requerido"
+);
+caso(
+  "A CLAUDIA: en una base SIN Claudia no cambia nada (Lima sigue con Felipe)",
+  ACTIVAR + A_CLAUDIA + `select firma_respaldo_id::text from retail.terminales where auth_user_id = '${T_VENTAS_AUTH}';`,
+  FELIPE
+);
+caso(
+  "A CLAUDIA: se puede pegar dos veces (re-ejecutable)",
+  ACTIVAR + CON_CLAUDIA + A_CLAUDIA + A_CLAUDIA + `select count(*) from retail.terminales where firma_respaldo_id = '${CLAUDIA}';`,
   "1"
 );
 
