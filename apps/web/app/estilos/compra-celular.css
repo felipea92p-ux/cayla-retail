@@ -1,0 +1,78 @@
+/* «Compré ropa» (Compras simple, ADR-0480), rediseño de la maqueta docs/maquetas/compras-formidable-2026-10/ (Felipe 2026-10-23).
+   Cada paso hace UNA pregunta y la pregunta es lo más grande de la pantalla: la serif de 29 px, como en la maqueta. No es el título de
+   una sección (ese es <TituloSeccion>, de 21 px): es la pregunta que la compradora contesta. */
+.compra-pregunta {
+  font-family: var(--font-serif);
+  font-size: 29px;
+  line-height: 1.1;
+  font-weight: 400;
+  color: var(--color-tinta);
+  text-wrap: balance;
+  margin: 0;
+}
+
+/* Las iniciales de un proveedor, en su cuadro de arena (la maqueta): no es una persona, así que no es un avatar. */
+.compra-iniciales {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--color-sand);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  color: var(--color-tinta);
+}
+
+/* «Terminé de comprar hoy»: la cuenta del día como un cuaderno rayado (la maqueta). Cada renglón mide 44 px y la raya de arena cae
+   bajo cada uno; el último, «Te queda», es más alto y va en la serif. */
+.compra-cuaderno {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px;
+  border: 1px solid var(--color-sand);
+  border-radius: 18px;
+  background-color: var(--color-papel);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 43px, var(--color-sand) 43px 44px);
+}
+.compra-cuaderno > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 44px;
+  font-size: 14.5px;
+  color: var(--color-tinta);
+}
+.compra-cuaderno > li.compra-cuaderno-fin {
+  height: 52px;
+  font-family: var(--font-serif);
+  font-size: 22px;
+}
+
+/* «Revisar compras» (rediseño): el título del detalle que se abre al lado de la lista, en la serif de 28 px de la maqueta. No es una
+   hoja (esa tiene su título en <Modal>) ni una sección: es lo que se está revisando. */
+.revisar-titulo {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 400;
+  color: var(--color-tinta);
+  margin: 0;
+  text-wrap: balance;
+}
+
+/* Los atajos de la hoja de la prenda («La vez pasada», «Del catálogo»): píldoras chicas bajo su campo, como la maqueta. 32 px con el
+   mouse y 40 con el dedo (Felipe 2026-10-23: «aprovecha mejor los espacios»; `btn-chico` mide 44 siempre y engordaba la hoja). */
+.compra-atajo {
+  min-height: 2rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 12.5px;
+  border-radius: 999px;
+}
+@media (pointer: coarse) {
+  .compra-atajo {
+    min-height: 2.5rem;
+  }
+}
