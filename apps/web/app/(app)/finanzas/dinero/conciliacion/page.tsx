@@ -31,7 +31,7 @@ export default async function ConciliacionPage({ searchParams }: { searchParams:
       hoy={hoy}
       fallas={[ctx.cuentas.falla, ctx.conciliacion.falla, actual.falla].filter((f): f is string => !!f)}
     >
-      <ConciliacionPanel key={`${elegida?.id}-${hasta ?? ""}`} cuentas={ctx.conciliacion.datos} actual={actual.datos} hoy={hoy} />
+      <ConciliacionPanel key={`${elegida?.id}-${hasta ?? ""}`} cuentas={ctx.conciliacion.datos} actual={actual.datos} hoy={hoy} deUnaFecha={hasta !== null} />
     </PantallaDinero>
   );
 }

@@ -256,6 +256,102 @@
     padding: 0 18px 12px;
   }
 
+  /* ---- Cuadrar con el banco: lo que anotó CAYLA y el extracto, unidos por un hilo ---- */
+  .din-cuadrar-cab {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px 24px;
+  }
+  .din-cuadrar-bancos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .din-pares {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 14px 14px;
+  }
+  .din-par {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border: 1px solid var(--color-sand);
+    border-radius: 12px;
+    background: var(--color-papel);
+  }
+  .din-par[data-estado="revisada"] {
+    background: color-mix(in srgb, var(--color-verde) 7%, var(--color-papel));
+    border-color: color-mix(in srgb, var(--color-verde) 30%, var(--color-sand));
+  }
+  .din-par[data-estado="cambio"] {
+    border-color: color-mix(in srgb, var(--color-ambar) 45%, var(--color-sand));
+  }
+  .din-par-lado {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--color-taupe);
+  }
+  .din-par-monto {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-tinta);
+  }
+  .din-par-banco {
+    color: var(--color-tinta);
+  }
+  .din-par[data-estado="cambio"] .din-par-banco {
+    color: var(--color-ambar);
+  }
+  .din-par-hilo {
+    width: 90px;
+    height: 24px;
+    overflow: visible;
+  }
+  .din-par-hilo path {
+    fill: none;
+    stroke: var(--color-sand);
+    stroke-width: 2;
+    stroke-dasharray: 0.04 0.04;
+  }
+  /* Al revisarla, el hilo se vuelve verde y se dibuja entero, una vez. */
+  .din-par[data-estado="revisada"] .din-par-hilo path {
+    stroke: var(--color-verde);
+    stroke-dasharray: 1;
+    animation: din-hilo 0.6s var(--ease-cayla) backwards;
+  }
+  @keyframes din-hilo {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
+  .din-par-accion {
+    display: flex;
+    justify-content: flex-end;
+  }
+  @media (max-width: 640px) {
+    .din-par {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .din-par-hilo {
+      display: none;
+    }
+    .din-par-lado:nth-of-type(2) {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+
   /* En el celular, las cuatro cifras de un tramo van de a dos (una por fila dejaba la lista a 520 px de distancia). */
   @media (max-width: 640px) {
     .fin-cifras.din-cifras-dos {
@@ -270,7 +366,8 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .din-liquido,
-    .din-burbuja {
+    .din-burbuja,
+    .din-par[data-estado="revisada"] .din-par-hilo path {
       animation: none;
     }
     .din-burbuja circle {

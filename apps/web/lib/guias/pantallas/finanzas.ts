@@ -614,8 +614,8 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       id: "lineas",
       ancla: "fin-conciliacion.lineas",
       opcional: true,
-      titulo: "Lo que registró el sistema",
-      texto: "Cada entrada y salida de esa cuenta en el período. Con el extracto del banco al lado, marcas «Revisada» cada línea que aparece en los dos. Lo que no encuentres en el banco es lo que hay que aclarar.",
+      titulo: "Lo anotado y el extracto, en pares",
+      texto: "A la izquierda, cada entrada y salida que anotó CAYLA en el período; a la derecha, si está en el extracto del banco. Con «Sí, está» el hilo que los une se vuelve verde. Lo que no encuentres en el banco es lo que hay que aclarar.",
     },
     {
       id: "anotar",
@@ -635,8 +635,8 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       id: "otras",
       ancla: "fin-conciliacion.otras",
       opcional: true,
-      titulo: "Las otras cuentas",
-      texto: "Los demás bancos, con cuándo se conciliaron por última vez y cuántas líneas faltan revisar. «Conciliar» abre esa cuenta.",
+      titulo: "Qué banco cuadrar",
+      texto: "Arriba eliges el banco o la cuenta que vas a cuadrar; el número dice cuántas líneas le faltan revisar. Los bancos son de CAYLA entera, no de una sede.",
     },
     {
       id: "fin",
