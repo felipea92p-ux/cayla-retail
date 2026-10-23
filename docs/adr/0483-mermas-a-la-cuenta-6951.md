@@ -1,9 +1,11 @@
 # ADR-0483 · Las mermas y pérdidas de inventario pasan de la cuenta 659 a la 6951
 
-- **Fecha:** 2026-10-22 · **Estado:** construido y probado en local; **SQL SIN PEGAR hasta el OK del contador**. Migración
+- **Fecha:** 2026-10-22 · **Estado:** construido y probado; **SQL PEGADO en producción el 2026-10-22**; **faltan el OK del contador y fusionar la web**
+  (ver «Actualización 2026-10-22, noche», más abajo). Migración
   `20261023012000_mermas_a_la_cuenta_6951.sql` (versión reservada con `pnpm reservar migracion`).
   ADR-0483, reservado con `pnpm reservar adr`.
-- **Decide:** Felipe, 2026-10-22: sí, antes del primer cierre de mes (octubre). Su contador/a confirma la cuenta antes de pegar.
+- **Decide:** Felipe, 2026-10-22: sí, antes del primer cierre de mes (octubre). Su contador/a confirma la cuenta antes de cerrar octubre (el SQL ya se pegó; si
+  pide otro código, se repite la migración con ese código mientras no haya un mes cerrado).
 - **Toca:** ADR-0120 (`fn_asientos`, las reglas de posteo), ADR-0195 (Estado de resultados), ADR-0198 (el mes cerrado se congela), ADR-0328 act. 14
   (qué es una pérdida).
 
@@ -90,7 +92,28 @@ pega de nuevo; (4) pegar tal cual; (5) las dos consultas de «CÓMO VERIFICAR DE
 (reglas 11 y de resultados), `docs/finanzas/fases/F5.md` y `docs/datos/modulos/12-contabilidad.md`, que dicen «659 = mermas»; (8) recién entonces cerrar octubre. El «down» está en
 el encabezado de la migración, ejecutable (la prueba lo corre).
 
+## Actualización 2026-10-22, noche: el SQL ya está pegado
+
+El paso (4) de arriba se hizo el 22-oct, **antes** del paso (1) (el OK del contador); el encabezado de la migración y las primeras versiones de este ADR todavía decían «no pegar».
+Verificado ese mismo día, en solo lectura, contra producción:
+
+| Qué | Resultado |
+|---|---|
+| `md5` de `fn_asientos(date, date, uuid)` | `b3ad9021b0c01eb2fc74ec548da0cadd` (el esperado «después de pegar») |
+| `md5` de `fn_estado_resultados(date, date, uuid)` | `b6420d8102fb4f09ad536659534a8198` (el esperado «después de pegar») |
+| literales `'659'` en `fn_asientos` | 0 |
+| cuenta 6951 en `retail.cuentas` | presente |
+| períodos `cerrado` | 0 (el candado no tuvo nada que impedir) |
+
+Consecuencia: **base y web están desfasadas hasta fusionar el PR de la web.** La base ya asienta las mermas nuevas en la 6951; la web publicada en `main` todavía rotula la fila
+«Mermas» con la 659 y su «De dónde sale» solo busca la 659, así que ese detalle sale vacío para las mermas nuevas. Los totales no se mueven (el Estado de resultados suma por
+sección, no por código). El orden que se dio fue el que el PR ya tolera: la web nueva lee la 6951 y también la 659. Mientras tanto, nadie ha mirado la pantalla.
+
+Lo que queda, en orden: (a) el OK del contador (abajo); (b) «Update branch», CI, «Ready for review» y fusionar el PR de la web; (c) mirar Finanzas ▸ Estado de resultados, fila
+«Mermas»; (d) actualizar el manual contable y los dos documentos que dicen «659 = mermas»; (e) recién entonces cerrar octubre. Si el contador pide otro código, se repite la migración
+con ese código **antes** de cerrar octubre: un mes cerrado ya no se puede cambiar.
+
 ## Pendiente del contador
 
 Confirmar el código 6951 y su nombre; decidir si la 659 se retira del plan o se le devuelve su nombre del PCGE; y si la 6951 se presenta dentro del costo de ventas en vez
-de en el renglón «Mermas» (cambio de presentación, no de cifras).
+de en el renglón «Mermas» (cambio de presentación, no de cifras). **Es lo único que gobierna la fusión de la web y el cierre de octubre**: el SQL ya está en producción.
