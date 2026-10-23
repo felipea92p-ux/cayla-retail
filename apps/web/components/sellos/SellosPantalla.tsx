@@ -2,6 +2,8 @@
 
 import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { Award, CalendarHeart, HandHeart, RefreshCw, Shirt } from "lucide-react";
+import { NOMBRE_DEL_DIBUJO, dibujoElegido } from "@cayla-retail/shared/insignias-visual";
+import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
@@ -19,12 +21,16 @@ import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { BotonesPendiente, BotonReactivar } from "@/components/atributos/kit";
 import { CampanaModal, NuevaEtiquetaModal, botonCampana, ordenarEtiquetas, type CategoriaOpcion, type Etiqueta } from "@/components/EtiquetasLista";
+import { CambiarDibujoModal } from "@/components/sellos/CambiarDibujoModal";
 import { SelloTinta } from "@/components/sellos/SelloTinta";
 import { OfertasHoja } from "@/components/sellos/OfertasHoja";
 import { useColumnasDeLaBilletera, useCupoDelLookbook } from "@/components/sellos/useMedidasDeSellos";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { useResponsable } from "@/lib/useResponsable";
+import { createClient } from "@/lib/supabase/client";
+import { subirImagenDeInsignia } from "@/lib/imagen-de-insignia";
+import { eleccionDeLoGuardado, type EleccionDeDibujo } from "@/lib/eleccion-de-dibujo";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
 import { chipDeTarjeta, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
 import { vigenciaDe } from "@/lib/etiqueta-vigencia";
@@ -129,6 +135,11 @@ export function SellosPantalla({
   const [abiertoPorVista, setAbiertoPorVista] = useState<Partial<Record<VistaSellos, string>>>({});
   const [agregando, setAgregando] = useState(false);
   const [nombre, setNombre] = useState("");
+  // El dibujo (o la imagen propia) elegido al crear (ADR-0490); `null` = todavía nada: se queda el que sugiere el nombre. Y el de una que ya
+  // existe: su hoja y si está guardando.
+  const [eleccion, setEleccion] = useState<EleccionDeDibujo | null>(null);
+  const [cambiandoDibujo, setCambiandoDibujo] = useState<Etiqueta | null>(null);
+  const [guardandoDibujo, setGuardandoDibujo] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [aprobandoAbierto, setAprobandoAbierto] = useState<string | null>(null);
   const [comentarioAprobar, setComentarioAprobar] = useState("");
@@ -183,7 +194,7 @@ export function SellosPantalla({
       const res = await fetch("/api/productos/etiquetas", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ nombre, estilo }),
+        body: JSON.stringify({ nombre, estilo, ...(eleccion?.tipo === "dibujo" ? { icono: eleccion.clave } : {}) }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -197,19 +208,33 @@ export function SellosPantalla({
         notas: datos.etiqueta.notas,
         estado: datos.etiqueta.estado,
         estilo,
+        icono: dibujoElegido(datos.etiqueta.icono),
+        imagen: null,
         vigenteDesde: null,
         vigenteHasta: null,
         descuentoPct: null,
         categoriaIds: [],
         sedeIds: [],
       };
+      // Una imagen propia se sube DESPUÉS de crearla: su ruta lleva el id de la insignia, que antes no existía. Si esa subida falla, la insignia
+      // quedó y se ve por su nombre; se dice, y se puede subir desde «Dibujo» en su pase.
+      let avisoImagen: string | null = null;
+      if (eleccion?.tipo === "imagen") {
+        const puesta = await subirYFijarImagen(nueva.id, eleccion.archivo);
+        if ("imagen" in puesta) nueva.imagen = puesta.imagen;
+        else avisoImagen = puesta.error;
+      }
       setEtiquetas((actual) => ordenarEtiquetas([...actual, nueva]));
       abrir(nueva.id);
       responsable.despues(null);
       const { titulo, detalle } = avisoEtiquetaAgregada(datos.etiqueta.nombre, datos.etiqueta.estado, esCampanas ? "campanas" : "sellos");
       avisar.exito(titulo, detalle ? { detalle } : undefined);
+      // Una campaña se crea y su dibujo se fija después: si esa segunda escritura falló, la campaña quedó y se dice (se ve por su nombre).
+      if (datos.avisoDibujo) avisar.aviso("El dibujo no se guardó", { detalle: `${datos.avisoDibujo} Elígelo desde «Dibujo» en su pase.` });
+      if (avisoImagen) avisar.aviso("La imagen no se guardó", { detalle: `${avisoImagen} Sube otra desde «Dibujo» en su pase.` });
       setAgregando(false);
       setNombre("");
+      setEleccion(null);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -269,6 +294,64 @@ export function SellosPantalla({
     }
   }
 
+  // La imagen propia: se sube al almacén (el navegador ya la dejó en 256 px y WebP) y SU RUTA se fija por la función de la base, con la firma del
+  // combo. La subida va primero: si falla, la base no se toca; si la base rechaza la ruta, el archivo queda sin dueño (se acepta: pesa ≤ 100 KB).
+  async function subirYFijarImagen(etiquetaId: string, archivo: File): Promise<{ imagen: string } | { error: string }> {
+    const subida = await subirImagenDeInsignia(createClient(), etiquetaId, archivo);
+    if ("error" in subida) return { error: subida.error };
+    const res = await fetch("/api/productos/etiquetas", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+      body: JSON.stringify({ id: etiquetaId, imagen: subida.ruta }),
+    });
+    const datos = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: datos.error ?? "No se pudo guardar la imagen." };
+    return { imagen: subida.ruta };
+  }
+
+  // Cambiar el dibujo de una que ya existe: un dibujo de la lista es UNA escritura por la función de la base (`fijar_icono_etiqueta`); una imagen
+  // propia, la subida y esa misma escritura. Siempre con la firma del combo.
+  async function guardarDibujo(e: Etiqueta, nuevo: EleccionDeDibujo) {
+    setGuardandoDibujo(true);
+    try {
+      let icono = e.icono;
+      let imagen = e.imagen;
+      if (nuevo.tipo === "imagen") {
+        const puesta = await subirYFijarImagen(e.id, nuevo.archivo);
+        if ("error" in puesta) {
+          avisar.error(puesta.error);
+          return;
+        }
+        icono = null;
+        imagen = puesta.imagen;
+      } else if (nuevo.tipo === "dibujo") {
+        const res = await fetch("/api/productos/etiquetas", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+          body: JSON.stringify({ id: e.id, icono: nuevo.clave }),
+        });
+        const datos = await res.json();
+        if (!res.ok) {
+          avisar.error(datos.error ?? `No se pudo cambiar el dibujo ${e.estilo === "campana" ? "de la campaña" : "de la insignia"}.`);
+          return;
+        }
+        icono = nuevo.clave;
+        imagen = null;
+      } else {
+        setCambiandoDibujo(null);
+        return;
+      }
+      setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, icono, imagen } : x)));
+      responsable.despues(null);
+      avisar.exito(`Dibujo de ${e.nombre} cambiado`, { detalle: nuevo.tipo === "dibujo" ? `Ahora lleva: ${NOMBRE_DEL_DIBUJO[nuevo.clave]}.` : "Ahora lleva tu imagen." });
+      setCambiandoDibujo(null);
+    } catch {
+      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
+    } finally {
+      setGuardandoDibujo(false);
+    }
+  }
+
   // Activar o desactivar una aprobada no cambia su estado: no lleva comentario. Una RECHAZADA se reactiva aprobándola.
   async function cambiarActivo(e: Etiqueta, activo: boolean) {
     setCambiandoId(e.id);
@@ -323,7 +406,7 @@ export function SellosPantalla({
         style={{ "--i": indice } as CSSProperties}
       >
         <button type="button" className="sl-cab" aria-expanded={esAbierto} aria-controls={`pase-${e.id}`} onClick={() => abrir(e.id)}>
-          <SelloTinta nombre={e.nombre} estilo={e.estilo} anio={anio} tamano={44} giro={0} indice={indice} apagado={!e.activo} />
+          <SelloTinta nombre={e.nombre} icono={e.icono} imagen={e.imagen} estilo={e.estilo} anio={anio} tamano={44} giro={0} indice={indice} apagado={!e.activo} />
           <span className="min-w-0">
             <span className="sl-cab-nombre block truncate">{e.nombre}</span>
             <span className="sl-cab-bajada">
@@ -447,6 +530,9 @@ export function SellosPantalla({
           className="btn-cayla btn-sutil btn-chico"
         >
           {boton.texto}
+        </button>
+        <button type="button" onClick={() => setCambiandoDibujo(e)} data-guia={conGuia ? "sellos.dibujo" : undefined} className="btn-cayla btn-sutil btn-chico">
+          Dibujo
         </button>
         {imprimir && (
           <BotonImprimir href={urlEtiquetasDePrecio({ campana: e.id })} chico>
@@ -697,10 +783,28 @@ export function SellosPantalla({
           modo={esCampanas ? "campanas" : "sellos"}
           nombre={nombre}
           onNombre={setNombre}
+          eleccion={eleccion}
+          onEleccion={setEleccion}
           responsable={responsable}
           guardando={guardando}
           onGuardar={guardar}
-          onClose={() => setAgregando(false)}
+          onClose={() => {
+            setAgregando(false);
+            setEleccion(null);
+          }}
+        />
+      )}
+
+      {cambiandoDibujo && (
+        <CambiarDibujoModal
+          nombre={cambiandoDibujo.nombre}
+          actual={eleccionDeLoGuardado(cambiandoDibujo)}
+          esDelNombre={!cambiandoDibujo.icono && !esRutaDeImagenDeInsignia(cambiandoDibujo.imagen)}
+          esCampana={cambiandoDibujo.estilo === "campana"}
+          responsable={responsable}
+          guardando={guardandoDibujo}
+          onGuardar={(nuevo) => guardarDibujo(cambiandoDibujo, nuevo)}
+          onClose={() => setCambiandoDibujo(null)}
         />
       )}
 

@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 130,
+  "total": 137,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -85,6 +85,16 @@
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
+    "components/sellos/CambiarDibujoModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/sellos/ElegirDibujoDeInsignia.tsx": [
+      "button «{o.tipo === \"dibujo\" ? NOMBRE_DEL_DIBUJO[o.clave] : \"Tu imagen\"}»",
+      "input «→alElegirArchivo»",
+      "button «→() => archivo.current?.click()»"
+    ],
     "components/sellos/OfertasHoja.tsx": [
       "button «{g.activo ? \"sellos.oferta-rebaja\" : undefined}»",
       "button «{g.activo ? undefined : \"Llega pronto\"}»",
@@ -140,6 +150,7 @@
       "button «{e.nombre}»",
       "button «{conGuia ? \"sellos.prendas\" : undefined}»",
       "button «{conGuia ? \"sellos.configurar\" : undefined}»",
+      "button «{conGuia ? \"sellos.dibujo\" : undefined}»",
       "BotonImprimir «(sin nombre)»",
       "BotonVer «Diseño web»",
       "button «{cambiandoId === e.id ? \"Desactivando…\" : \"Desactivar\"}»",
