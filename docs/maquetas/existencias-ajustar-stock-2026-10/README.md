@@ -1,6 +1,6 @@
 # Maqueta · El stock se carga en Existencias (2026-10-23)
 
-**Estado: ronda 2 para que Felipe elija mirando. Nada construido todavía.** Ronda 1: `index.html`. Ronda 2: `ronda-2.html` (doble clic).
+**Estado: ronda 3, la que se construye si Felipe la aprueba. Nada construido todavía.** Ronda 1: `index.html`. Ronda 2: `ronda-2.html`. Ronda 3: `ronda-3.html` (doble clic).
 
 ## El pedido
 
@@ -83,3 +83,27 @@ Revisada en el navegador a 1024 y 375 px, en claro y oscuro, con las tres formas
 desliza dentro de su caja en el celular) y sin errores en la consola.
 
 **Al construir esto, el ADR de movimiento (ADR-0136) suma la excepción de esta vista**, como las demás de la lista de CLAUDE.md.
+
+## Ronda 3 (2026-10-23): banda + planilla, la talla en foco y el ancho justo
+
+Felipe eligió en la ronda 2 **la banda bajo «Dónde está» y la planilla**, y pidió tres cosas más: que el modal **no se ensanche
+innecesariamente**; que, al entrar desde un color y una talla, **la vista se enfoque en ese número** («un highlight, o oscurecer el resto
+de números y variaciones»), y que la tabla sea **más estética**. `ronda-3.html` deja solo lo elegido (sin los pesos 2 y 3 ni el riel) y suma:
+
+- **El foco.** Al terminar de armarse la tabla, el resto baja de tono (28 %) y la talla elegida queda encendida: borde de tinta, una sombra
+  suave, un anillo que se cierra una vez, su color marcado en la fila y su talla en la píldora oscura de la columna; en la compu, con el
+  cursor listo y el número seleccionado para escribir encima (en el celular no, porque abriría el teclado sin pedirlo). La cabecera dice
+  «Empiezas por Dorado · Única · Ver todo el modelo». **Tocar otra celda, «Ver todo el modelo» o Escape enciende todo**; un segundo
+  Escape vuelve a la prenda. Lo que ya cambiaste nunca se oscurece. Si la tabla se desliza (celular, muchas tallas), se lleva sola hasta la
+  talla en foco.
+- **El ancho justo.** El modal se queda en 62 rem si la tabla cabe (1 a 4 tallas) y, si no, crece lo necesario y nada más (6 tallas:
+  de 62 a unos 74 rem); al volver, regresa. En el celular nunca crece: la tabla se desliza dentro de su caja.
+- **La tabla.** Más aire: la talla en su píldora, el color con el mismo círculo del modal y su nombre en la serif, con una línea debajo
+  (lo que hay en el otro lugar), números de 28 px, − y + discretos que se encienden al pasar el mouse, y lo secundario («2 en piso») solo
+  al pasar o con el foco. Sin cebra, con líneas finas. Con una sola talla no hay columna «Total» (repetiría el número).
+- **Una propuesta de la maqueta, que Felipe confirma al aprobar:** entra en el lugar donde esa talla tiene más unidades (Dorado: 3 en
+  piso y 0 en almacén → «En piso»); con empate, en almacén, como hoy.
+
+Revisada en el navegador: Aretes a 1440 (el modal se queda en 992 px), Blusa a 1024 (foco y simulación), Vestido Lía a 1440 (crece a
+1182 px y la tabla entra sin deslizarse) y a 375 px (se desliza hasta la talla en foco), la blusa a 375 px en oscuro, y el guardado
+completo. Sin errores en la consola.

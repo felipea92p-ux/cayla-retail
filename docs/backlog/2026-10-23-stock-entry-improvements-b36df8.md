@@ -4,7 +4,9 @@
 - [x] Decidido por Felipe: Nuevo producto conserva sus unidades del día; Editar producto queda con números y «Ajustar en Existencias»; la tabla arranca en «Conté y hay otro número» (hoy son sobre todo correcciones).
 - [x] Felipe eligió la forma A sobre el modal actual, con más peso para «Ajustar stock» y una vista «sofisticada, elegante y full animaciones».
 - [x] Ronda 2: `ronda-2.html` (tres pesos, planilla o riel, coreografía completa), revisada a 1024 y 375 px, claro y oscuro.
-- [ ] **Felipe elige el peso (1, 2 o 3) y la vista (planilla o riel).**
+- [x] Felipe eligió la banda (peso 1) y la planilla; pidió el ancho justo, el foco en la talla elegida y una tabla más estética.
+- [x] Ronda 3: `ronda-3.html`, revisada a 1440, 1024 y 375 px, claro y oscuro, con 1, 4 y 6 tallas.
+- [ ] **Felipe aprueba la ronda 3** (incluido: entrar en el lugar donde esa talla tiene más unidades).
 - [ ] Al construir: sumar la excepción de movimiento de esta vista a ADR-0136 y a la lista de CLAUDE.md, con su prueba de movimiento como las de Insignias y Campañas.
 - [ ] Actividad 1: la tabla en Existencias con la forma elegida, «Ajustar stock» en la cabecera y «Etiquetas de lo que entró». Reemplaza el recorrido de 4 pasos por talla (`FlujoTalla` «ajustar»). Sin migración (`ajustar_inventario`).
 - [ ] Actividad 2: Existencias encuentra las prendas que la tienda nunca tuvo (búsqueda y escáner); hoy `getExistencias` solo lista lo que tiene fila de `stock` o viene en camino.
