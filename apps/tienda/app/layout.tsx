@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
 import { Medicion } from "@/components/Medicion";
+import { Visita } from "@/components/Visita";
 import { VigiaDelCamino } from "@/components/EnCamino";
 import { RecordarPrendaTocada } from "@/components/PrendaTocada";
 import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
@@ -62,6 +63,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </Suspense>
         {/* Cuánto tarda la tienda en el aparato del cliente, en 1 de cada 2 visitas (ADR-0447). No dibuja nada. */}
         <Medicion />
+        {/* «Entró», una vez por visita, para Tienda web ▸ Tráfico (ADR-0495). No dibuja nada; lee la ruta: va en su Suspense. */}
+        <Suspense fallback={null}>
+          <Visita />
+        </Suspense>
       </body>
     </html>
   );

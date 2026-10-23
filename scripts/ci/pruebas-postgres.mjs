@@ -279,6 +279,10 @@ export const PRUEBAS = [
   // confirmar de OTROS clientes que recogen en esa tienda (y no vencieron) cubren lo libre de esa talla ahí (la pieza de la ficha);
   // lo propio, otra tienda, lo vencido y lo confirmado no cuentan; nunca una cifra ni quién; solo tienda_web. ROLLBACK.
   "pruebas:tienda-separadas",
+  // Tienda web ▸ Tráfico (ADR-0495): los pasos anónimos se anotan solo por tienda_anotar_pasos — camino y departamento solo al entrar,
+  // prendas y tallas que existen, «separó» de un pedido recién creado y una sola vez, máximo 20 por envío, la basura se descarta sin
+  // error; la tienda no lee ni escribe la tabla directo; no se edita, no se borra ni se vacía; la migración se pega dos veces. ROLLBACK.
+  "pruebas:tienda-trafico",
 
   // Una tienda solo tiene piso, almacén y Cuarentena (ADR-0408, integración; Felipe 2026-10-15): así la web («hay») y la confirmación
   // de un pedido web cuentan lo mismo. Un rack, un lugar sin tipo o un rack traído del Taller se niegan; el Taller sigue con sus racks;
