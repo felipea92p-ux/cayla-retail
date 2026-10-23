@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bandage, PencilLine, Truck, Warehouse, Store } from "lucide-react";
+import { ArrowRight, Bandage, Truck, Warehouse, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { avisarDestacado } from "@/components/ui/AvisoDestacado";
@@ -21,7 +21,6 @@ import { argumentosDeBajada, formatearHoraLima, interpretarErrorDeBajada, itemsP
 import { argumentosDeRetiro, interpretarErrorDeRetiro, leerRespuestaDeRetiro, MAX_NOTA_RETIRO, respuestaResuelveLaMarcaDeRetiro, RPC_RETIRO, textoDelBloqueSubir, textoMarcaSinResolverDeRetiro, tituloDeExitoRetiro } from "@/lib/retiro-reglas";
 import { RPC_SUBIR_PARA_ENVIAR } from "@/lib/para-enviar-reglas";
 import { argumentosDeReporte, cantidadAjustada, desdeInicial, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, puedeEnviarReporte, quePasaAlReportar, recordatorioAlReportar, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA, tallasReportables, textoBotonReportar, tituloExitoReporte } from "@/lib/danadas-reglas";
-import { argumentosDeAjuste, faltantesDesdeJson } from "@/lib/ajuste-reglas";
 import { cantidadesDeLoQueFalta, coloresParaMover, detalleDeLoMovido, leerCantidadTecleada, lineasDeMoverModelo, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
 import { celdaColgarVarias, celdaSubirVarias, llenarTodasCon, totalesColgar } from "@/lib/colgar-varias-tabla";
 import { lineasEnUrl, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -35,12 +34,8 @@ import {
   faltanHasta,
   asiQueda,
   maxCantidad,
-  motivoParaLaBase,
-  motivoPideNotaFlujo,
-  motivosDeAjuste,
   pasoCompleto,
   pasosDe,
-  quedaTrasAjuste,
   resumenDeFlujo,
   textoHecho,
   totalVarias,
@@ -72,7 +67,6 @@ const ICONO_FINAL: Record<TipoFlujo, ComponentType<{ className?: string; strokeW
   subirVarias: Warehouse,
   enviar: Truck,
   pedir: ArrowRight,
-  ajustar: PencilLine,
   danada: Bandage,
 };
 
@@ -223,12 +217,9 @@ export function FlujoTalla({
   destinos,
   origenes,
   puedePedirParaCliente,
-  sububicacionPisoId,
-  sububicacionAlmacenId,
   onHecho,
   onSalir,
   onCambiar,
-  onAjustarCompleto,
   onCambios,
 }: {
   tipo: TipoFlujo;
@@ -247,17 +238,13 @@ export function FlujoTalla({
   destinos: readonly { id: string; nombre: string }[];
   origenes: readonly SedeConCantidad[];
   puedePedirParaCliente: boolean;
-  sububicacionPisoId: string | null;
-  sububicacionAlmacenId: string | null;
   /** Terminó bien: el panel vuelve a la talla con el aviso «hecho». */
   /** `cerrar`: lo hecho se confirmó con el aviso destacado y el panel entero se cierra (hoy, bajar al piso). */
   onHecho: (texto: string, opciones?: { cerrar?: boolean }) => void;
   /** Cancelar (o Escape): vuelve a la talla sin guardar. */
   onSalir: () => void;
-  /** Pasar a otra acción con lo que ya se eligió («Se dañó» en Ajustar lleva a Reportar dañada). */
+  /** Pasar a otra acción con lo que ya se eligió. */
   onCambiar: (tipo: TipoFlujo, datos: DatosFlujo) => void;
-  /** Abrir la ventana completa de Ajustar (una talla que faltó en un conteo se enlaza ahí). */
-  onAjustarCompleto: () => void;
   /** Avisa al panel si hay algo que perder: la persona cambió un dato o avanzó de paso, o hay un guardado en camino. */
   onCambios?: (sucio: boolean) => void;
 }) {
@@ -292,8 +279,6 @@ export function FlujoTalla({
   useEffect(() => {
     onCambios?.(sucio);
   }, [sucio, onCambios]);
-  // Una talla que faltó en un conteo cerrado: la suma se enlaza al conteo en la ventana completa (no se adivina aquí).
-  const [faltoEnConteo, setFaltoEnConteo] = useState(false);
   const enVuelo = useRef(false);
   const enviadoEn = useRef<string | null>(null);
   // La marca de cada intento: la misma mientras no cambie lo que se manda (la huella), nueva si cambia.
@@ -302,19 +287,6 @@ export function FlujoTalla({
     if (!intento.current || intento.current.huella !== huella) intento.current = { huella, token: crypto.randomUUID() };
     return intento.current.token;
   };
-
-  useEffect(() => {
-    if (tipo !== "ajustar") return;
-    let vigente = true;
-    createClient()
-      .rpc("fn_faltantes_de_conteo" as never, { p_ubicacion_id: ubicacionId, p_variante_ids: [fila.varianteId] } as never)
-      .then(({ data, error: e }) => {
-        if (vigente && !e) setFaltoEnConteo(faltantesDesdeJson(data).has(fila.varianteId));
-      });
-    return () => {
-      vigente = false;
-    };
-  }, [tipo, ubicacionId, fila.varianteId]);
 
   const almacenPorTalla = Object.fromEntries(colores.flatMap((c) => c.tallas.map((t) => [t.varianteId, Math.max(0, t.almacenDisponible ?? 0)])));
   const pisoPorTalla = Object.fromEntries(colores.flatMap((c) => c.tallas.map((t) => [t.varianteId, Math.max(0, t.pisoDisponible ?? 0)])));
@@ -332,10 +304,9 @@ export function FlujoTalla({
   const pasos = pasosDe(tipo, d, ctx);
   const paso = pasos[Math.min(i, pasos.length - 1)];
   const ultimo = i >= pasos.length - 1;
-  const bloqueoConteo = tipo === "ajustar" && paso === "motivo" && d.signo === "sumar" && faltoEnConteo;
   // Con un envío en duda solo falta quién lo hace: se reenvía EXACTAMENTE lo enviado, aunque las cifras releídas ya no lo validen
   // (si se guardó, lo libre ya bajó; apagar el botón dejaría sin saber qué pasó). La misma regla que tenía «Reportar dañada».
-  const completo = puedeEnviarReporte(incierto, pasoCompleto(paso, tipo, d, ctx) && !bloqueoConteo, responsable.listo);
+  const completo = puedeEnviarReporte(incierto, pasoCompleto(paso, tipo, d, ctx), responsable.listo);
   const nombreSede = (id: string | undefined) => [...destinos, ...origenes].find((s) => s.id === id)?.nombre ?? null;
   const nombreTalla = (varianteId: string) => {
     for (const c of colores) {
@@ -545,27 +516,6 @@ export function FlujoTalla({
           args: { p_ubicacion_id: ubicacionId, p_origen_id: d.origenId, p_lineas: lineas, p_token: tokenPara(JSON.stringify(["pedir", d.origenId, lineas])) },
           error: (e) => traducirError(e, "pedir las prendas", { confirmarAntesDeRepetir: true }),
           yaEstaba: () => false,
-        };
-      }
-      case "ajustar": {
-        if (!d.motivo) return null;
-        const base = motivoParaLaBase(d.motivo, d.nota ?? "");
-        const delta = d.signo === "sumar" ? n : -n;
-        const sububicacionId = separa ? (d.lugar === "almacen" ? sububicacionAlmacenId : sububicacionPisoId) : null;
-        return {
-          rpc: "ajustar_inventario",
-          args: argumentosDeAjuste({
-            ubicacionId,
-            sububicacionId,
-            ajustes: [{ variante: { varianteId: fila.varianteId }, delta }],
-            cargaInicial: [],
-            motivo: base.motivo,
-            alPiso: false,
-            nota: base.nota,
-            token: tokenPara(JSON.stringify(["ajustar", fila.varianteId, sububicacionId, delta, base])),
-          }),
-          error: (e) => traducirError(e, "ajustar el inventario"),
-          yaEstaba: (x) => typeof x === "object" && x !== null && (x as { ya_registrado?: boolean }).ya_registrado === true,
         };
       }
       case "danada": {
@@ -917,85 +867,15 @@ export function FlujoTalla({
           </>
         );
       case "lugar": {
-        const verbo = tipo === "danada" ? "¿Dónde está la prenda dañada?" : "¿Dónde está el número mal?";
+        // Solo lo pregunta «Reportar dañada» (el «Dónde» de Ajustar se fue con su paso guiado, ADR-0494).
+        const verbo = "¿Dónde está la prenda dañada?";
         return (
           <>
             <Pregunta>{verbo}</Pregunta>
             <div className="grid gap-2 sm:grid-cols-2">
-              <Opcion marcada={d.lugar === "piso"} titulo="En piso" sub={tipo === "danada" ? `${ctx.piso} libres colgadas` : `El sistema dice ${ctx.piso}`} onClick={() => poner({ lugar: "piso", motivo: undefined, n: tipo === "danada" ? cantidadAjustada(d.n ?? 1, ctx.piso) : d.n })} deshabilitada={tipo === "danada" && ctx.piso === 0} />
-              <Opcion marcada={d.lugar === "almacen"} titulo="En almacén" sub={tipo === "danada" ? `${ctx.almacen} libres guardadas` : `El sistema dice ${ctx.almacen}`} onClick={() => poner({ lugar: "almacen", motivo: undefined, n: tipo === "danada" ? cantidadAjustada(d.n ?? 1, ctx.almacen) : d.n })} deshabilitada={tipo === "danada" && ctx.almacen === 0} />
+              <Opcion marcada={d.lugar === "piso"} titulo="En piso" sub={`${ctx.piso} libres colgadas`} onClick={() => poner({ lugar: "piso", n: cantidadAjustada(d.n ?? 1, ctx.piso) })} deshabilitada={ctx.piso === 0} />
+              <Opcion marcada={d.lugar === "almacen"} titulo="En almacén" sub={`${ctx.almacen} libres guardadas`} onClick={() => poner({ lugar: "almacen", n: cantidadAjustada(d.n ?? 1, ctx.almacen) })} deshabilitada={ctx.almacen === 0} />
             </div>
-          </>
-        );
-      }
-      case "cambio": {
-        const queda = quedaTrasAjuste(d, ctx);
-        const lugarTxt = !separa ? "en la sede" : d.lugar === "almacen" ? "en almacén" : "en piso";
-        const antes = !separa ? ctx.piso + ctx.almacen : d.lugar === "almacen" ? ctx.almacen : ctx.piso;
-        return (
-          <>
-            <Pregunta>¿Sobran o faltan?</Pregunta>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Opcion marcada={d.signo === "quitar"} titulo="Faltan · quitar" sub="Hay menos de las que dice" onClick={() => poner({ signo: "quitar", n: 0, motivo: undefined })} />
-              <Opcion marcada={d.signo === "sumar"} titulo="Sobran · sumar" sub="Encontré unidades" onClick={() => poner({ signo: "sumar", n: 0, motivo: undefined })} />
-            </div>
-            {d.signo && (
-              <div className="mt-3 flex flex-wrap items-center gap-4">
-                <Stepper id="flujo-cambio" valor={d.n ?? 0} max={d.signo === "quitar" ? antes : null} etiqueta="Cuántas" onValor={(n) => poner({ n })} />
-                <span className="text-[13px] text-taupe">
-                  Queda en <b className="font-display text-[22px] font-medium text-tinta">{queda}</b> {lugarTxt}
-                </span>
-              </div>
-            )}
-          </>
-        );
-      }
-      case "motivo": {
-        const lista = motivosDeAjuste(d.signo, d.lugar, separa);
-        return (
-          <>
-            <Pregunta>¿Por qué?</Pregunta>
-            {bloqueoConteo ? (
-              <div className="grid gap-2 rounded-2xl bg-hueso p-3 text-sm text-tinta">
-                <span>Esta talla faltó en un conteo cerrado. Lo que encontraste se enlaza con ese conteo en la ventana completa de Ajustar, para que no quede contado dos veces.</span>
-                <button type="button" onClick={onAjustarCompleto} className="btn-cayla btn-primario justify-self-start">
-                  Abrir Ajustar stock
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {lista.map((m) => (
-                    <Opcion key={m.clave} marcada={d.motivo === m.clave} titulo={m.texto} sub={m.ayuda} onClick={() => poner({ motivo: m.clave })} />
-                  ))}
-                </div>
-                {d.motivo === "se_dano" && (
-                  <div className="mt-3 grid gap-2 rounded-2xl bg-hueso p-3 text-sm text-tinta">
-                    <span>Una unidad dañada no se resta: se reporta y el líder decide si se arregla, se liquida o sale. Así no se pierde de vista.</span>
-                    <button type="button" onClick={() => onCambiar("danada", { lugar: d.lugar, n: d.n })} className="btn-cayla btn-primario justify-self-start">
-                      Reportar dañada
-                    </button>
-                  </div>
-                )}
-                {motivoPideNotaFlujo(d.motivo) && (
-                  <>
-                    <label htmlFor="flujo-nota" className="campo-etiqueta mb-1.5 mt-3">
-                      {d.motivo === "encontre" ? "¿Dónde estaban?" : "Cuéntalo en una línea"}
-                    </label>
-                    <textarea
-                      id="flujo-nota"
-                      rows={2}
-                      maxLength={200}
-                      // sugerir-fijo: el ejemplo sigue al motivo elegido (las dos únicas notas que pide Ajustar)
-                      placeholder={d.motivo === "encontre" ? "Ej. en la caja de la repisa alta" : "Ej. se usó para el maniquí de la vitrina"}
-                      value={d.nota ?? ""}
-                      onChange={(e) => poner({ nota: e.target.value })}
-                      className={CLASE_TEXTO}
-                    />
-                  </>
-                )}
-              </>
-            )}
           </>
         );
       }

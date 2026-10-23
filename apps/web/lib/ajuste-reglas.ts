@@ -25,7 +25,10 @@ export type FilaAjuste = {
   /** El código de la etiqueta: es el que casi todas las variantes tienen (el `sku` es NULL, ADR-0058). */
   codigo?: string | null;
   talla: { valor: string } | null;
-  color: { nombre: string | null } | null;
+  /** El #hex lo usa la planilla de Existencias (el círculo de un color que la tienda nunca tuvo); el modal y la ficha, no. */
+  color: { nombre: string | null; hex?: string | null } | null;
+  /** `false`: ya no se vende (se desactivó). La planilla de Existencias la muestra solo si todavía tiene algo en la sede. */
+  activo?: boolean;
   /** `cantidad_apartada` es opcional solo para las pruebas: el modal siempre la pide. */
   stock: { cantidad: number; cantidad_apartada?: number; sububicacion_id: string | null }[] | null;
 };

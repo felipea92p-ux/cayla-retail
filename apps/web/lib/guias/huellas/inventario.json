@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 132,
+  "total": 138,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -113,6 +113,17 @@
     "components/RitmoRecientePopover.tsx": [
       "button «{textoRitmoRecienteCelda(ritmo)}»"
     ],
+    "components/existencias/AjusteDelModelo.tsx": [
+      "button «existencias.cajon-ajustar»",
+      "Volver «→onVolver»",
+      "button «Ver todo el modelo»",
+      "button «{cerrado ?? undefined}»",
+      "CampoTexto «{m.nota.etiqueta}»",
+      "button «Reintentar»",
+      "ComboResponsable «{control.responsable}»",
+      "Boton «{n > 0 ? \"Descartar\" : \"Cancelar\"}»",
+      "Boton «{problema ? (guia.frase ?? undefined) : undefined}»"
+    ],
     "components/existencias/AnilloMision.tsx": [
       "button «existencias.pendientes»"
     ],
@@ -135,9 +146,6 @@
       "input «Nombres»",
       "input «Apellidos»",
       "input «Celular»",
-      "button «Abrir Ajustar stock»",
-      "button «Reportar dañada»",
-      "textarea «flujo-nota»",
       "button «{x}»",
       "textarea «O escríbelo aquí»",
       "ComboResponsable «{responsable}»",

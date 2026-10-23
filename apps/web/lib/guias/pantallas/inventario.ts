@@ -234,11 +234,18 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "El veredicto de esta talla (todo bien, cuelga una, se acabó…) y sus cuatro números: en piso, en almacén, apartadas y dañadas. Toca «En piso» o «En almacén» y pasas a «Todas» con ese filtro puesto. Debajo, cuántas vienen en camino y qué tienen las otras sedes.",
     },
     {
+      id: "cajon-ajustar",
+      ancla: "existencias.cajon-ajustar",
+      opcional: true,
+      titulo: "¿No es lo que ves? Ajusta el stock",
+      texto: "Si contaste y el número no cuadra, toca aquí: el modal se vuelve una tabla con todos los colores y tallas, con esta talla encendida. Escribes lo que contaste, eliges qué pasó y guardas todo de una vez. En la demo no lo abrimos.",
+    },
+    {
       id: "cajon-acciones",
       ancla: "existencias.cajon-acciones",
       opcional: true,
       titulo: "Lo que puedes hacer con ella",
-      texto: "Solo lo que hoy se puede con esta talla: colgar, subir, enviar, apartar, pedir, reportar una dañada o ajustar. La que más se necesita va primero y pintada. Cada una se confirma antes de mover el stock; en la demo no se toca.",
+      texto: "Solo lo que hoy se puede con esta talla: colgar, subir, enviar, apartar, pedir o reportar una dañada. La que más se necesita va primero y pintada. Cada una se confirma antes de mover el stock; en la demo no se toca.",
     },
     {
       id: "cajon-no-ahora",
