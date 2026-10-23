@@ -8,7 +8,6 @@
       "Volver «/recibir»",
       "BotonEnlace «Limpiar filtros»",
       "Link «recíbela sin factura»",
-      "BotonEnlace «Registrar un comprobante»",
       "Link «recíbela sin factura» #2"
     ],
     "components/AvisoCostoAtipico.tsx": [

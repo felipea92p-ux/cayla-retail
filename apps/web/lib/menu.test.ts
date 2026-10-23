@@ -507,11 +507,11 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
   });
 
   // ADR-0480 (Compras simple, Felipe 2026-10-22): Compras queda en 6. Sin «Órdenes de compra» ni «Notas de crédito».
-  it("Compras tiene 6 opciones: Plan de campaña, Mi plata para compras, Revisar compras, Proveedores, Facturas de proveedor y Por pagar", () => {
+  it("Compras tiene 6 opciones: Plan de campaña, Mi plata para compras, Revisar compras, Proveedores, Historial de compras y Por pagar", () => {
     const { riel } = menuPara({ permisos: LIDER, ubicacionTipo: "tienda" });
     const compras = riel.find((f) => f.id === "compras");
     const hijos = compras && esGrupoMenu(compras) ? compras.hijos : [];
-    expect(hijos.map((h) => h.etiqueta)).toEqual(["Plan de campaña", "Mi plata para compras", "Revisar compras", "Proveedores", "Facturas de proveedor", "Por pagar"]);
+    expect(hijos.map((h) => h.etiqueta)).toEqual(["Plan de campaña", "Mi plata para compras", "Revisar compras", "Proveedores", "Historial de compras", "Por pagar"]);
     expect(hijos.find((h) => h.id === "compras.miPlata")).toMatchObject({ href: "/compras/mi-plata" });
   });
 
