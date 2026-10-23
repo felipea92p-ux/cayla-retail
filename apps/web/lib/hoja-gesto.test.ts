@@ -4,6 +4,7 @@ import {
   FRACCION_PARA_PASAR,
   MOVIMIENTO_MINIMO,
   TOPE_GOMA,
+  cierraElLateral,
   decidirGesto,
   decidirLado,
   destinoAlSoltar,
@@ -12,6 +13,7 @@ import {
   goma,
   pasoDeLado,
   posicionAlArrastrar,
+  posicionDelLateral,
   progresoDeCierre,
   puntoMedio,
   velocidad,
@@ -210,5 +212,27 @@ describe("duracionHacia y progresoDeCierre", () => {
     expect(progresoDeCierre(-20, ALTO)).toBe(0);
     expect(progresoDeCierre(ALTO * 2, ALTO)).toBe(1);
     expect(progresoDeCierre(10, 0)).toBe(0);
+  });
+});
+
+describe("el menú lateral del celular se cierra con el dedo (actividad 11)", () => {
+  const ANCHO = 288;
+  it("se cierra pasado un tercio de su ancho hacia la izquierda, o de un tirón", () => {
+    expect(cierraElLateral(-100, 0, ANCHO)).toBe(true);
+    expect(cierraElLateral(-90, 0, ANCHO)).toBe(false);
+    expect(cierraElLateral(-30, -0.6, ANCHO)).toBe(true);
+    expect(cierraElLateral(-30, -0.2, ANCHO)).toBe(false);
+  });
+
+  it("hacia la derecha nunca se cierra, aunque sea un tirón", () => {
+    expect(cierraElLateral(0, -1, ANCHO)).toBe(false);
+    expect(cierraElLateral(80, 2, ANCHO)).toBe(false);
+  });
+
+  it("a la izquierda sigue al dedo; a la derecha resiste y no pasa de 16 px", () => {
+    expect(posicionDelLateral(-120)).toBe(-120);
+    expect(posicionDelLateral(0)).toBe(0);
+    expect(posicionDelLateral(10)).toBeLessThan(10);
+    expect(posicionDelLateral(500)).toBeLessThan(16);
   });
 });

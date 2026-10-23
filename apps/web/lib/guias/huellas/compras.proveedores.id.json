@@ -2,7 +2,7 @@
   "guia": "compras.proveedores.id",
   "ruta": "/compras/proveedores/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 74,
+  "total": 73,
   "controles": {
     "app/(app)/compras/proveedores/[id]/page.tsx": [
       "Volver «/compras/proveedores»",
@@ -34,11 +34,9 @@
     "components/ProveedorAcciones.tsx": [
       "BotonAncla «WhatsApp»",
       "BotonCopiar «el CCI»",
-      "BotonEditar «→() => setEditando(true)»",
-      "BotonEnlace «Registrar factura»"
+      "BotonEditar «→() => setEditando(true)»"
     ],
     "components/ProveedorModal.tsx": [
-      "button «Cerrar»",
       "CampoTexto «Contacto»",
       "CampoTexto «Teléfono»",
       "button «{r}»",

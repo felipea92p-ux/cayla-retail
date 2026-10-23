@@ -462,16 +462,15 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 });
 
 describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21, PR #219)", () => {
-  it("con `verDineroCompras` y los siete módulos ve las siete pantallas desde una tienda o un almacén, en el orden plan → proveedor → orden de compra → factura → pago → fondos → notas de crédito (Recibir vive en Inventario desde el 2026-10-14)", () => {
+  it("con `verDineroCompras` y los seis módulos ve las seis pantallas desde una tienda o un almacén, en el orden plan → mi plata → revisar → proveedores → facturas → por pagar (ADR-0480; Recibir vive en Inventario desde el 2026-10-14)", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toEqual([
         "compras.plan",
+        "compras.miPlata",
+        "compras.fondos",
         "compras.proveedores",
-        "compras.ordenesCompra",
         "compras.comprobantes",
         "compras.porPagar",
-        "compras.fondos",
-        "compras.notasCredito",
       ]);
     }
   });
@@ -507,25 +506,26 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
     expect(enElTaller(INTEGRANTE).map((f) => f.href)).toContain("/recibir");
   });
 
-  it("«Notas de crédito» va al final y sin insignia (a propósito: el número ya es la primera cifra del módulo)", () => {
-    const { riel } = menuPara({ permisos: LIDER, ubicacionTipo: "tienda", contadores: { trasladosPorAtender: 5 } });
+  // ADR-0480 (Compras simple, Felipe 2026-10-22): Compras queda en 6. Sin «Órdenes de compra» ni «Notas de crédito».
+  it("Compras tiene 6 opciones: Plan de campaña, Mi plata para compras, Revisar compras, Proveedores, Historial de compras y Por pagar", () => {
+    const { riel } = menuPara({ permisos: LIDER, ubicacionTipo: "tienda" });
     const compras = riel.find((f) => f.id === "compras");
-    const notas = compras && esGrupoMenu(compras) ? compras.hijos.at(-1) : undefined;
-    expect(notas).toMatchObject({ id: "compras.notasCredito", href: "/compras/notas-credito" });
-    expect(notas && !esGrupoMenu(notas) ? notas.contador : undefined).toBeUndefined();
+    const hijos = compras && esGrupoMenu(compras) ? compras.hijos : [];
+    expect(hijos.map((h) => h.etiqueta)).toEqual(["Plan de campaña", "Mi plata para compras", "Revisar compras", "Proveedores", "Historial de compras", "Por pagar"]);
+    expect(hijos.find((h) => h.id === "compras.miPlata")).toMatchObject({ href: "/compras/mi-plata" });
   });
 
   // Hasta el 2026-10-10 decía «sin `verDineroCompras` no ve Compras». La decisión 34 de ADR-0362 (el módulo es la llave) lo cambió a
   // propósito: Órdenes de compra trae sus precios y no pide el dinero de las facturas. Lo que sigue en pie: sin ese permiso no se ve
   // NINGUNA pantalla de dinero de Compras, y con los módulos de hoy (sin Órdenes de compra) Compras no aparece.
-  it("sin `verDineroCompras` no ve el dinero de Compras, esté donde esté; con el módulo Órdenes de compra ve solo esa pantalla (ADR-0362)", () => {
+  it("sin `verDineroCompras` no ve el dinero de Compras, esté donde esté; con el módulo de quien compra ve solo «Mi plata para compras» (ADR-0362, ADR-0480)", () => {
     const deHoy = MODULOS_DE_HOY.integrante.map((m) => m.clave);
     for (const ubicacionTipo of TIPOS_UBICACION) {
       expect(menuPara({ permisos: INTEGRANTE, ubicacionTipo, modulos: deHoy }).riel.some((f) => f.id === "compras"), ubicacionTipo).toBe(false);
       const compras = menuPara({ permisos: INTEGRANTE, ubicacionTipo, modulos: [...deHoy, "ordenes_compra"] }).riel.find((f) => f.id === "compras");
       const rutas = compras ? (esGrupoMenu(compras) ? hojasDe(compras).map((h) => h.href) : [compras.href]) : [];
       // En el Taller, Compras no se muestra (es de las tiendas), tenga el módulo que tenga.
-      expect(rutas, ubicacionTipo).toEqual(ubicacionTipo === "taller" ? [] : ["/compras/ordenes"]);
+      expect(rutas, ubicacionTipo).toEqual(ubicacionTipo === "taller" ? [] : ["/compras/mi-plata"]);
     }
   });
 

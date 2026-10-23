@@ -30,14 +30,11 @@ export function vistaDeEstilo(estilo: EstiloEtiqueta): VistaSellos {
   return estilo === "campana" ? "campanas" : estilo === "urgencia" ? "rotacion" : estilo === "positivo" ? "artesanal" : "general";
 }
 
-export const TEXTOS_VISTA: Record<VistaSellos, { nombre: string; frase: string }> = {
-  campanas: {
-    nombre: "Campañas",
-    frase: "Las fechas del año en que se vende distinto: cuándo rige cada una, su descuento y en qué prendas. Valen en todas las tiendas y en la tienda online.",
-  },
-  rotacion: { nombre: "Rotación", frase: "Cómo se mueve la prenda: lo nuevo, lo que más se vende, lo que se acaba y lo que hay que sacar." },
-  artesanal: { nombre: "Artesanal", frase: "Cómo se hizo la prenda: a mano, pieza única o la reedición de un modelo que ya tuvimos." },
-  general: { nombre: "General", frase: "Las insignias que no son de un grupo, como Estreno o Sorteo, y las que vayas creando." },
+export const TEXTOS_VISTA: Record<VistaSellos, { nombre: string }> = {
+  campanas: { nombre: "Campañas" },
+  rotacion: { nombre: "Rotación" },
+  artesanal: { nombre: "Artesanal" },
+  general: { nombre: "General" },
 };
 
 /** La vista que se abre: la pedida en `?vista=` si la cuenta la ve; si no, la primera que ve. `null` si no ve ninguna. */
@@ -263,25 +260,6 @@ export function lookbookVisible(total: number, columnas: number, filas = 2): { v
 // ---- Lo que dice el pase abierto ------------------------------------------------------------------------------------------
 
 const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? uno : varios}`;
-
-/** La frase bajo el título, en lenguaje de tienda y sacada de los datos: nunca promete algo que la base no diga. */
-export function fraseDelSello(f: FilaSello, p: Pick<PrendasDelSello, "modelos" | "unidades">, categorias: readonly string[], hoy: string): string {
-  const prendas = p.modelos.length;
-  const toda = categorias.length ? ` y toda ${categorias.join(", ")}` : "";
-  const hay = prendas > 0 || categorias.length > 0;
-  if (f.estilo !== "campana") {
-    if (!hay) return "Ninguna prenda la lleva todavía.";
-    return `${plural(prendas, "prenda", "prendas")}${toda}${p.unidades !== null ? ` · ${plural(p.unidades, "unidad", "unidades")} en las tiendas` : ""}.`;
-  }
-  const t = tramoDeCampana(f.vigenteDesde, f.vigenteHasta, hoy);
-  if (t === "ahora") {
-    if (!hay) return f.descuentoPct !== null ? `Un ${pct(f.descuentoPct)} que todavía no llega a ninguna prenda.` : "Rige hoy, pero todavía no está en ninguna prenda.";
-    return `${plural(prendas, "prenda", "prendas")}${toda}${f.descuentoPct !== null ? `, con ${pct(f.descuentoPct)} menos.` : ", a su precio de siempre."}`;
-  }
-  if (t === "proximas") return hay ? `${plural(prendas, "prenda lista", "prendas listas")}${toda}.` : "Todavía sin prendas: prepárala antes de que empiece.";
-  if (t === "pasaron" && f.vigenteHasta) return `Pasó el ${fechaCorta(f.vigenteHasta)}. «Repetir» la vuelve a armar con las fechas del próximo año.`;
-  return "Todavía sin fechas: ponle cuándo rige en «Configurar».";
-}
 
 export type ItemListo = { clave: "fechas" | "prendas" | "descuento"; nombre: string; hecho: boolean; opcional: boolean; detalle: string };
 

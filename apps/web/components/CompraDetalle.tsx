@@ -24,7 +24,6 @@ import {
 } from "@/lib/compras";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getCierresCompra, getNotasCreditoCompra, type CierreLinea, type NotaCreditoCompra } from "@/lib/compras-faltantes";
-import { NotasCreditoCompra } from "@/components/NotasCreditoCompra";
 import { BotonCerrarFaltante } from "@/components/AccionesFaltantes";
 import { CompraAcciones } from "@/components/CompraDetallePanel";
 import { BarraAvance } from "@/components/ui/BarraAvance";
@@ -176,7 +175,7 @@ export function DatosComprobante({ compra, destino }: Pick<DetalleCompra, "compr
 }
 
 export function CompraDetalle({
-  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones, acciones: permite },
+  detalle: { compra, lineas, pagos, recepciones, adjuntos, datosPago, reparto, ubicaciones, acciones: permite },
   adjuntosFallidos = [],
   acciones = true,
 }: {
@@ -374,8 +373,6 @@ export function CompraDetalle({
               </Tabla>
             )}
           </section>
-
-          <NotasCreditoCompra compra={compra} notas={notasCredito} cerrados={lineas.filter((l) => l.cerrado > 0).map((l) => ({ faltan: l.cerrado, costoUnitario: l.costoUnitario }))} />
 
           {/* Quién puede adjuntar lo decide la RPC (`fn_puede_registrar_facturas_compra`, ADR-0161 P1). Acá solo se esconde
               a quien no tiene Facturas de compra y en una factura anulada, que la RPC también rechaza. */}

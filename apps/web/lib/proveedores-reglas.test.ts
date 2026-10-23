@@ -9,7 +9,6 @@ import {
   claveRubro,
   cuentaLocalVisible,
   datosPagoDe,
-  detalleProveedorCombo,
   enmascararCci,
   enmascararCelular,
   enmascararCuenta,
@@ -433,17 +432,6 @@ describe("textoBuscableProveedor", () => {
   });
   it("sin marcas, RUC ni contacto no deja separadores sueltos", () => {
     expect(textoBuscableProveedor({ nombre: "Taller Sin Marca", ruc: null, contacto: null })).toBe("Taller Sin Marca");
-  });
-});
-
-describe("detalleProveedorCombo", () => {
-  it("junta RUC y marcas con un punto medio", () => {
-    expect(detalleProveedorCombo("20111111111", ["Kero"])).toBe("20111111111 · Kero");
-    expect(detalleProveedorCombo(null, ["Kero", "Kero Kids"])).toBe("Kero · Kero Kids");
-  });
-  it("sin RUC ni marcas no hay detalle (undefined, no cadena vacía)", () => {
-    expect(detalleProveedorCombo(null, [])).toBeUndefined();
-    expect(detalleProveedorCombo(null)).toBeUndefined();
   });
 });
 

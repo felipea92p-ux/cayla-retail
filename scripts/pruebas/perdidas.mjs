@@ -15,7 +15,7 @@
  *         Lima, exclusiones (stock inicial, conteo de arranque, movimiento interno, venta, liquidada), traslados (lo que faltó
  *         en la sede que envió; lo que llegó de más en la que recibió), venta anulada con prenda no vendible (costo sellado),
  *         «quedaron» para la resta a mano, filtros por prenda y por zona;
- *   · F — UNA respuesta: el total en soles de la pestaña es el 659 del diario, sede por sede; el diario asienta el faltante de
+ *   · F — UNA respuesta: el total en soles de la pestaña es el 6951 del diario (antes la 659; migración 20261023012000), sede por sede; el diario asienta el faltante de
  *         traslado y el Balance ya no lo lista como causa; una resta «otro» ya no es «otra salida»;
  *   · K — con «Finanzas cuenta desde una fecha» (ADR-0332, `parametros_finanzas.inicio_finanzas`): la rama nueva del diario
  *         (el faltante de traslado) respeta el corte igual que el resto; la pestaña, que es inventario, no se corta; y desde
@@ -24,6 +24,15 @@
  *         nada; `anon` no ejecuta y las piezas internas no son de nadie;
  *   · G — la guarda: con un mes CERRADO que cambiaría, la migración aborta (se re-aplica su bloque sobre una copia) y nombra
  *         SOLO los meses que cambian; G3 cubre su otra mitad: un mes cerrado donde solo un traslado tuvo faltante.
+ *   · M — las mermas pasan de la cuenta 659 a la 6951 (`20261023012000_mermas_a_la_cuenta_6951.sql`, sin pegar hasta el OK
+ *         del contador): MISMAS líneas del diario salvo el código de esas mermas, los MISMOS totales del Estado de resultados
+ *         (y su detalle de mermas suma el total), las diferencias de caja (6599) y el redondeo (6598) donde estaban, el
+ *         «deshacer» del encabezado funciona y deja la función como estaba, repetir la migración no daña nada, y con un mes
+ *         CERRADO aborta nombrándolo sin dejar nada hecho (con uno solo reabierto, o ya aplicada, no); y un mes cerrado ANTES
+ *         con la 659 en su foto se sigue leyendo (el detalle de mermas sigue a la sección, no a un código).
+ *   · MC — el candado de un mes EN CURSO: con DOS sesiones reales, una que simula un cierre a medias (escribió su diario
+ *         congelado y todavía no toca `periodos`, como hace `cerrar_periodo`), la guarda de la migración y el «deshacer»
+ *         ESPERAN a que ese cierre termine; con el candado solo sobre `periodos` pasaban de largo sin esperar.
  *
  * LOS NÚMEROS ESPERADOS ESTÁN CALCULADOS A MANO (comentario de la escena), no salen de las funciones.
  *
@@ -34,7 +43,7 @@
  *   pnpm pruebas:perdidas    → con las migraciones ya aplicadas en el local
  */
 
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
@@ -54,6 +63,18 @@ function correr(sql) {
   } catch (e) {
     return { ok: false, mensaje: `${e.stderr ?? ""}${e.message ?? ""}` };
   }
+}
+/** Lo mismo que `correr`, pero sin bloquear: dos sesiones a la vez (la prueba MC). El SQL ya trae su propio final. */
+function correrAparte(sql) {
+  return new Promise((resolve) => {
+    const hijo = execFile(
+      "docker",
+      ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
+      { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+      (error, salida, stderr) => resolve(error ? { ok: false, mensaje: `${stderr ?? ""}${error.message ?? ""}` } : { ok: true, salida: salida.trim() })
+    );
+    hijo.stdin.end(sql);
+  });
 }
 const cambiaA = (id) => `set local request.jwt.claim.sub = '${id}';\n`;
 
@@ -435,16 +456,16 @@ select 'R9 un rango al revés o de más de un año se rechaza',
 
 const CASOS_FINANZAS = `
 create temp table dia as select * from retail.fn_asientos('2031-03-01', '2031-03-31');
-select 'F1 UNA respuesta: el 659 del diario de T es el total de la pestaña (S/ 250)',
-  (select coalesce(sum(debe), 0) from dia where ubicacion_id = :'t' and cuenta = '659') = (select (j #>> '{perdido,soles}')::numeric from r);
+select 'F1 UNA respuesta: el 6951 del diario de T es el total de la pestaña (S/ 250)',
+  (select coalesce(sum(debe), 0) from dia where ubicacion_id = :'t' and cuenta = '6951') = (select (j #>> '{perdido,soles}')::numeric from r);
 select 'F1 y en O también (S/ 80, el faltante del traslado que envió)',
-  (select coalesce(sum(debe), 0) from dia where ubicacion_id = :'o' and cuenta = '659') = (select (j #>> '{perdido,soles}')::numeric from ro)
+  (select coalesce(sum(debe), 0) from dia where ubicacion_id = :'o' and cuenta = '6951') = (select (j #>> '{perdido,soles}')::numeric from ro)
   and (select (j #>> '{perdido,soles}')::numeric = 80 from ro);
-select 'F2 el diario asienta lo que faltó en el traslado: 659 contra 201, en la sede que lo envió',
-  (select sum(debe) filter (where cuenta = '659') = 25 and sum(haber) filter (where cuenta = '201') = 25 and bool_and(ubicacion_id = :'t')
+select 'F2 el diario asienta lo que faltó en el traslado: 6951 contra 201, en la sede que lo envió',
+  (select sum(debe) filter (where cuenta = '6951') = 25 and sum(haber) filter (where cuenta = '201') = 25 and bool_and(ubicacion_id = :'t')
      from dia where regla = 'merma_traslado' and origen_id = pg_temp.k('TTi'));
 select 'F2 la resta «otro» es merma a mano (merma_merma), ya no «conteo»',
-  (select bool_and(regla = 'merma_merma') and sum(debe) = 75 from dia where origen_id = pg_temp.k('M3') and cuenta = '659');
+  (select bool_and(regla = 'merma_merma') and sum(debe) = 75 from dia where origen_id = pg_temp.k('M3') and cuenta = '6951');
 select 'F2 cada asiento cuadra', (select count(*) = 0 from retail.fn_asientos_descuadrados('2031-03-01', '2031-03-31'));
 select 'F3 el Balance ya no lista el faltante de traslado como causa (lo explica el diario)',
   (select count(*) = 0 from retail.fn_bal_causas_mercaderia('2031-03-01', '2031-03-31') where clave = 'faltante_traslado');
@@ -467,16 +488,16 @@ create temp table dia_corte as select * from retail.fn_asientos('2031-03-01', '2
 select 'K1 con Finanzas desde abril, el diario de marzo a abril no asienta el faltante del traslado de marzo (ni en T ni en O)',
   (select count(*) = 0 from dia_corte where regla = 'merma_traslado' and ubicacion_id in (:'t', :'o'));
 select 'K1 y de T solo queda la merma del 1-abr 00:10 Lima (S/ 40): lo de marzo no entra',
-  (select coalesce(sum(debe), 0) = 40 from dia_corte where ubicacion_id = :'t' and cuenta = '659');
+  (select coalesce(sum(debe), 0) = 40 from dia_corte where ubicacion_id = :'t' and cuenta = '6951');
 select 'K2 un rango que termina antes del corte no devuelve nada, y el Estado de resultados de marzo de T dice mermas 0',
   (select count(*) = 0 from retail.fn_asientos('2031-03-01', '2031-03-31') where ubicacion_id in (:'t', :'o'))
   and (select coalesce(sum(mermas), 0) = 0 from retail.fn_estado_resultados('2031-03-01', '2031-03-31', :'t'));
 select 'K3 la pestaña Pérdidas es inventario, no Finanzas: marzo de T sigue en S/ 250 (el corte no la toca)',
   (select (j #>> '{perdido,soles}')::numeric = 250 from (select retail.fn_perdidas_resumen(:'t', '2031-03-01', '2031-03-31') as j) q);
 update retail.parametros_finanzas set inicio_finanzas = '2031-03-01' where id;
-select 'K4 con Finanzas desde marzo, UNA respuesta otra vez: el 659 de marzo de T es la pestaña (S/ 250), traslado incluido (S/ 25)',
-  (select coalesce(sum(debe), 0) = 250 from retail.fn_asientos('2031-03-01', '2031-03-31') where ubicacion_id = :'t' and cuenta = '659')
-  and (select coalesce(sum(debe), 0) = 25 from retail.fn_asientos('2031-03-01', '2031-03-31') where ubicacion_id = :'t' and cuenta = '659' and regla = 'merma_traslado');
+select 'K4 con Finanzas desde marzo, UNA respuesta otra vez: el 6951 de marzo de T es la pestaña (S/ 250), traslado incluido (S/ 25)',
+  (select coalesce(sum(debe), 0) = 250 from retail.fn_asientos('2031-03-01', '2031-03-31') where ubicacion_id = :'t' and cuenta = '6951')
+  and (select coalesce(sum(debe), 0) = 25 from retail.fn_asientos('2031-03-01', '2031-03-31') where ubicacion_id = :'t' and cuenta = '6951' and regla = 'merma_traslado');
 `;
 
 const CASOS_PERMISOS = `
@@ -576,6 +597,249 @@ function dolar(sql) {
   return `$GUARDA$${sql}$GUARDA$`;
 }
 
+// ============================================================================================================================
+// M · Las mermas pasan de la 659 a la 6951 (`20261023012000_mermas_a_la_cuenta_6951.sql`).
+//   La prueba lee el ARCHIVO de la migración, no una copia: lo que se pega es lo que se prueba. En el CI la migración ya está
+//   aplicada, así que el «antes» se arma ejecutando su propio bloque «DESHACER (DOWN)» (que así queda probado y no se pudre)
+//   y el «después» volviéndola a pegar. Todo vive en la transacción de la escena, con ROLLBACK.
+//   Datos: las pérdidas de la escena de marzo de 2031 (conteo, resta a mano, dañada botada, traslado con faltante y venta
+//   anulada no vendible: las cinco reglas) más una diferencia de caja de S/ 5 (6599) y un redondeo de S/ 0.08 (6598), que
+//   empiezan igual que la 659 y NO son mermas.
+// ============================================================================================================================
+const MIGRACION_6951 = readFileSync(new URL("../../supabase/migrations/20261023012000_mermas_a_la_cuenta_6951.sql", import.meta.url), "utf8");
+const DESHACER_6951 = (() => {
+  const l = MIGRACION_6951.split("\n");
+  const i = l.findIndex((x) => x.startsWith("-- ----- DESHACER (DOWN) -----"));
+  const f = l.findIndex((x) => x.startsWith("-- ----- FIN DE DESHACER -----"));
+  return i >= 0 && f > i ? l.slice(i + 1, f).map((x) => x.replace(/^-- ?/, "")).join("\n") : "";
+})();
+/** Un bloque `do $etiqueta$ … $etiqueta$` de un texto, sin el «;» final (para pasarlo a `pg_temp.intento`). */
+const bloqueDo = (texto, etiqueta) => {
+  const a = texto.indexOf(`do $${etiqueta}$`);
+  const b = texto.indexOf(`$${etiqueta}$;`);
+  return a >= 0 && b > a ? texto.slice(a, b + etiqueta.length + 2) : "";
+};
+const entre = (sql, etiqueta) => `$${etiqueta}$${sql}$${etiqueta}$`;
+const ASIENTOS_6951 = `pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure)`;
+const ER_6951 = `pg_get_functiondef('retail.fn_estado_resultados(date, date, uuid)'::regprocedure)`;
+/** Una foto del diario y del Estado de resultados de marzo, y de cómo están escritas las dos funciones. */
+const FOTO_6951 = (n) => `
+create temp table dia_${n} as select * from retail.fn_asientos('2031-03-01', '2031-03-31');
+create temp table er_${n} as select to_jsonb(e) as j from retail.fn_estado_resultados('2031-03-01', '2031-03-31') e;
+insert into huellas select '${n}', md5(${ASIENTOS_6951}), md5(${ER_6951});
+`;
+// Lo que la migración cambia en la sesión (`search_path`, `lock_timeout`): se devuelve para que lo que sigue corra como siempre.
+const GUARDA_SESION_6951 = `select current_setting('search_path') as sp, current_setting('lock_timeout') as lt \\gset\n`;
+const DEVUELVE_SESION_6951 = `select set_config('search_path', :'sp', true), set_config('lock_timeout', :'lt', true);\n`;
+const OTRAS_659 = `
+-- Una dañada botada con costo (merma_cuarentena: la de la escena no tiene costo y no asienta), para que estén las cinco reglas.
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, created_at)
+values (:'v1', :'t', :'cua', 'salida', 1, 'cuarentena_se_boto', '2031-03-27 12:00-05');
+-- Cuentas que empiezan igual que la 659 y no son mermas: una caja que faltó S/ 5 al cerrar (6599) y una venta con S/ 0.08 de redondeo (6598).
+insert into retail.cajas (id, ubicacion_id, estado, monto_apertura, monto_apertura_esperado, abierta_en, cerrada_en, monto_cierre_sistema, monto_cierre_real, diferencia, monto_fondo)
+values (pg_temp.k('CJ'), :'t', 'cerrada', 100, 100, '2031-03-25 09:00-05', '2031-03-25 20:00-05', 500, 495, -5, 100);
+insert into retail.ventas (id, ubicacion_id, estado, created_at) values (pg_temp.k('RV'), :'t', 'completada', '2031-03-26 12:00-05');
+insert into retail.venta_items (id, venta_id, variante_id, cantidad, precio_unitario, costo_unitario) values (pg_temp.k('RVi'), pg_temp.k('RV'), :'v1', 1, 100, 40);
+insert into retail.venta_pagos (venta_id, metodo, monto) values (pg_temp.k('RV'), 'efectivo', 99.92), (pg_temp.k('RV'), 'redondeo', 0.08);
+`;
+// Las líneas de una foto sin el código de las mermas: «MERMA» en vez de 659 o 6951. Lo demás, tal cual.
+const SIN_CODIGO_MERMA = (n) =>
+  `select fecha, ubicacion_id, asiento, regla, case when cuenta in ('659', '6951') then 'MERMA' else cuenta end as cuenta, debe, haber, origen_tabla, origen_id, glosa from dia_${n}`;
+
+// En T, con lo que suma esta escena: conteo 40 + a mano 155 (80 + 75) + dañada botada 40 + traslado 25 + anulada no vendible 30 = 290.
+const CASOS_6951 = `
+select 'M1 hoy (migración aplicada) el diario no tiene ni una línea en la 659 y las pérdidas de inventario están en la 6951',
+  (select count(*) = 0 from dia_hoy where cuenta = '659') and (select count(*) > 0 from dia_hoy where cuenta = '6951');
+select 'M1 y son las CINCO reglas de pérdida: conteo, resta a mano, dañada botada, faltante de traslado y venta anulada no vendible',
+  (select array_agg(distinct regla order by regla) = array['anulacion', 'merma_conteo', 'merma_cuarentena', 'merma_merma', 'merma_traslado'] from dia_hoy where cuenta = '6951');
+select 'M2 al DESHACER (el bloque del encabezado), todo vuelve a la 659 y ninguna línea queda en la 6951',
+  (select count(*) = 0 from dia_antes where cuenta = '6951')
+  and (select count(*) = (select count(*) from dia_hoy where cuenta = '6951') and sum(debe) = (select sum(debe) from dia_hoy where cuenta = '6951') from dia_antes where cuenta = '659');
+select 'M3 MISMO diario antes y después: las mismas líneas (fecha, sede, asiento, regla, monto, glosa); solo cambia el código de las mermas',
+  (select count(*) = 0 from (${SIN_CODIGO_MERMA("antes")} except ${SIN_CODIGO_MERMA("hoy")}) x)
+  and (select count(*) = 0 from (${SIN_CODIGO_MERMA("hoy")} except ${SIN_CODIGO_MERMA("antes")}) x)
+  and (select count(*) from dia_antes) = (select count(*) from dia_hoy) and (select count(*) > 20 from dia_hoy);
+select 'M3 y pegar la migración otra vez deja el diario LÍNEA POR LÍNEA como estaba hoy (sin una sola cuenta distinta)',
+  (select count(*) = 0 from (select * from dia_hoy except select * from dia_despues) x)
+  and (select count(*) = 0 from (select * from dia_despues except select * from dia_hoy) x)
+  and (select count(*) from dia_despues) = (select count(*) from dia_hoy);
+select 'M4 las diferencias de caja (6599: S/ 5) y el redondeo (6598: S/ 0.08) no se mueven: están donde estaban, con los mismos montos',
+  (select sum(debe) = 5 from dia_hoy where cuenta = '6599') and (select sum(debe) = 5 from dia_antes where cuenta = '6599') and (select sum(debe) = 5 from dia_despues where cuenta = '6599')
+  and (select sum(debe) = 0.08 from dia_hoy where cuenta = '6598') and (select sum(debe) = 0.08 from dia_antes where cuenta = '6598') and (select sum(debe) = 0.08 from dia_despues where cuenta = '6598')
+  and (select count(*) = 0 from dia_hoy where cuenta in ('6598', '6599') and regla in ('merma_merma', 'merma_conteo', 'merma_cuarentena', 'merma_traslado', 'anulacion'));
+select 'M5 el Estado de resultados da EXACTAMENTE los mismos números antes y después (todas las columnas, el detalle de gastos y el de mermas)',
+  (select count(*) = 0 from (select j from er_antes except select j from er_hoy) x)
+  and (select count(*) = 0 from (select j from er_hoy except select j from er_antes) x)
+  and (select count(*) = (select count(*) from er_hoy) and count(*) >= 5 from er_antes)
+  and (select count(*) = 0 from (select j from er_hoy except select j from er_despues) x);
+select 'M5 y en T las mermas valen S/ 290 con sus cinco orígenes (conteo 40, a mano 155, dañada 40, traslado 25, anulada 30), y el margen las resta',
+  (select (j ->> 'mermas')::numeric = 290
+          and (j ->> 'margen_bruto')::numeric = (j ->> 'ventas_netas')::numeric - (j ->> 'costo_ventas')::numeric - (j ->> 'fletes')::numeric - 290
+     from er_hoy where j ->> 'ubicacion_id' = :'t')
+  and (select count(*) = 5 and bool_and(case x ->> 'regla' when 'merma_conteo' then (x ->> 'monto')::numeric = 40 when 'merma_merma' then (x ->> 'monto')::numeric = 155
+                                                         when 'merma_cuarentena' then (x ->> 'monto')::numeric = 40 when 'merma_traslado' then (x ->> 'monto')::numeric = 25
+                                                         when 'anulacion' then (x ->> 'monto')::numeric = 30 end)
+         from er_hoy, jsonb_array_elements(j -> 'detalle_mermas') x where j ->> 'ubicacion_id' = :'t');
+select 'M6 el detalle de mermas SIEMPRE suma el total de mermas, en cada fila (T, O, Taller, empresa y CAYLA)',
+  (select count(*) > 0 and bool_and((select coalesce(sum((x ->> 'monto')::numeric), 0) from jsonb_array_elements(j -> 'detalle_mermas') x) = (j ->> 'mermas')::numeric) from er_hoy)
+  and (select bool_and((select coalesce(sum((x ->> 'monto')::numeric), 0) from jsonb_array_elements(j -> 'detalle_mermas') x) = (j ->> 'mermas')::numeric) from er_antes);
+select 'M7 la cuenta 6951 está en el plan como gasto de la sección «mermas», y la 659 sigue como estaba (no se renombra ni se desactiva)',
+  (select tipo = 'gasto' and seccion_resultados = 'mermas' and activo from retail.cuentas where codigo = '6951')
+  and (select tipo = 'gasto' and seccion_resultados = 'mermas' and activo and nombre = 'Desmedros y otros (mermas)' from retail.cuentas where codigo = '659');
+select 'M8 el DESHACER dejó las dos funciones TAL COMO ESTABAN antes: distintas de las de hoy, y las de hoy vuelven idénticas al pegar otra vez',
+  (select h.asientos <> o.asientos and h.er <> o.er from huellas h, huellas o where h.paso = 'antes' and o.paso = 'hoy');
+select 'M8 y pegar de nuevo la migración deja las funciones IDÉNTICAS a las de hoy (ida y vuelta), también la segunda vez (idempotente)',
+  (select count(distinct asientos) = 1 and count(distinct er) = 1 and count(*) = 3 from huellas where paso in ('hoy', 'despues', 'otra_vez'));
+select 'M9 la migración trae su bloque DESHACER, su guarda y el aviso en mayúsculas para el contador',
+  ${JSON.stringify(DESHACER_6951.includes("mermas_reemplazar") && bloqueDo(MIGRACION_6951, "guarda_6951") !== "" && bloqueDo(DESHACER_6951, "deshacer_6951") !== "" && MIGRACION_6951.startsWith("-- ====") && MIGRACION_6951.includes("NO PEGAR HASTA EL OK DEL CONTADOR"))}::boolean;
+`;
+
+const ESCENA_6951 = (cuerpo) => `${ESCENA}
+${GUARDA_SESION_6951}
+${OTRAS_659}
+create temp table huellas (paso text, asientos text, er text);
+${cuerpo}`;
+const CORRIDA_6951 = `
+${FOTO_6951("hoy")}
+${DESHACER_6951}
+${FOTO_6951("antes")}
+${MIGRACION_6951}
+${FOTO_6951("despues")}
+${MIGRACION_6951}
+insert into huellas select 'otra_vez', md5(${ASIENTOS_6951}), md5(${ER_6951});
+${DEVUELVE_SESION_6951}`;
+
+// MG · el candado de mes cerrado. Un mes cerrado nunca cambia: con uno cerrado, la migración aborta sin tocar nada.
+const cierreDe = (clave, mes, alcance, ubic) => `
+insert into retail.periodos (id, mes, alcance, ubicacion_id, estado, cierre_id) values (pg_temp.k('PER${clave}'), '${mes}', '${alcance}', ${ubic}, 'cerrado', pg_temp.k('PC${clave}'));
+insert into retail.periodo_cierres (id, periodo_id, mes, alcance, ubicacion_id, version, cerrado_por, huella, lineas, total_debe, total_haber)
+select pg_temp.k('PC${clave}'), pg_temp.k('PER${clave}'), '${mes}', '${alcance}', ${ubic}, 1, (select id from public.personas where auth_user_id = '${FELIPE}'), repeat('0', 64), 0, 0, 0;
+`;
+const CASOS_6951_GUARDA_A = `
+-- [A] Así llega al CI: la migración YA aplicada. Después se cierra marzo de T (con la 6951 en su foto).
+${cierreDe("6A", "2031-03-01", "ubicacion", ":'t'")}
+create temp table g_repegar as select pg_temp.intento(${entre(MIGRACION_6951, "MIGRA")}) as msg;
+create temp table g_deshacer as select pg_temp.intento(${entre(DESHACER_6951, "ABAJO")}) as msg;
+${DEVUELVE_SESION_6951}
+select 'MG1 con la migración ya aplicada y un mes cerrado, pegarla otra vez NO aborta ni cambia nada (el mes cerrado no se vuelve a preguntar)',
+  (select msg = 'SIN_ERROR' from g_repegar)
+  and position($q$'6951'$q$ in ${ASIENTOS_6951}) > 0 and position($q$'659'$q$ in ${ASIENTOS_6951}) = 0;
+select 'MG2 y DESHACERLA con un mes cerrado se niega (su foto guarda la 6951) y dice por qué',
+  (select msg like 'Hay meses ya CERRADOS%' and msg like '%6951%' from g_deshacer)
+  and position($q$'6951'$q$ in ${ASIENTOS_6951}) > 0;
+`;
+const CASOS_6951_GUARDA_B = `
+-- [B] Como está HOY en producción: sin la migración (se deshace y se borra la cuenta). Un mes de T y de la empresa, cerrados.
+${DESHACER_6951}
+delete from retail.cuentas where codigo = '6951';
+${cierreDe("6B", "2031-03-01", "ubicacion", ":'t'")}
+${cierreDe("6C", "2031-02-01", "empresa", "null")}
+create temp table g_aborta as select pg_temp.intento(${entre(MIGRACION_6951, "MIGRA")}) as msg;
+${DEVUELVE_SESION_6951}
+select 'MG3 con meses CERRADOS la migración ABORTA y nombra cada uno (la sede y la empresa)',
+  (select msg like 'Hay meses ya CERRADOS (%' and msg like '%2031-03 Tienda Pérdidas T%' and msg like '%2031-02 de la empresa%' from g_aborta);
+select 'MG4 y no deja NADA hecho: la 6951 no entró al plan y fn_asientos y el Estado de resultados siguen en la 659',
+  not exists (select 1 from retail.cuentas where codigo = '6951')
+  and position($q$'659'$q$ in ${ASIENTOS_6951}) > 0 and position($q$'6951'$q$ in ${ASIENTOS_6951}) = 0
+  and position($q$a.cuenta = '659'$q$ in ${ER_6951}) > 0;
+`;
+const CASOS_6951_GUARDA_C = `
+-- [C] Sin la migración y con un mes que se REABRIÓ (ya no está cerrado): no hay nada congelado que proteger; pega.
+${DESHACER_6951}
+delete from retail.cuentas where codigo = '6951';
+insert into retail.periodos (id, mes, alcance, ubicacion_id, estado, cierre_id) values (pg_temp.k('PER6D'), '2031-03-01', 'ubicacion', :'t', 'reabierto', null);
+create temp table g_reabierto as select pg_temp.intento(${entre(MIGRACION_6951, "MIGRA")}) as msg;
+${DEVUELVE_SESION_6951}
+select 'MG5 con un mes REABIERTO (no cerrado) la migración pega sin problema y deja la 6951 en el plan',
+  (select msg = 'SIN_ERROR' from g_reabierto)
+  and exists (select 1 from retail.cuentas where codigo = '6951' and tipo = 'gasto' and seccion_resultados = 'mermas')
+  and position($q$'6951'$q$ in ${ASIENTOS_6951}) > 0 and position($q$'659'$q$ in ${ASIENTOS_6951}) = 0;
+select 'MG6 si el texto de fn_asientos cambió y ya no trae lo esperado, el reemplazo se detiene SIN tocar nada (el ancla no existe)',
+  (select pg_temp.intento($x$ select pg_temp.mermas_reemplazar('retail.fn_asientos(date, date, uuid)', $v$'659', texto_que_no_existe$v$, $n$'6951', x$n$, 1) $x$) like '%cambió desde que se escribió esta migración%')
+  and position($q$'6951'$q$ in ${ASIENTOS_6951}) > 0;
+`;
+// [D] La lectura de un mes cerrado ANTES con la 659 en su foto (hoy no existe ninguno, pero el día que alguien reabra y pegue
+// al revés, o la foto de un cierre viejo se mire): el Estado de resultados la cuenta como merma y el detalle suma el total,
+// porque manda la SECCIÓN «mermas» y no un código escrito a mano.
+const CASOS_6951_LECTURA = `
+${cierreDe("6E", "2031-02-01", "ubicacion", ":'t'")}
+insert into retail.diario_cerrado (cierre_id, n, fecha, ubicacion_id, asiento, regla, cuenta, debe, haber, origen_tabla, origen_id, glosa) values
+  (pg_temp.k('PC6E'), 1, '2031-02-10', :'t', 'merma:viejo', 'merma_merma', '659', 12, 0, 'movimientos', gen_random_uuid(), 'Merma al costo de ese día'),
+  (pg_temp.k('PC6E'), 2, '2031-02-10', :'t', 'merma:viejo', 'merma_merma', '201', 0, 12, 'movimientos', gen_random_uuid(), 'Sale la mercadería');
+create temp table er_feb as select * from retail.fn_estado_resultados('2031-02-01', '2031-02-28', :'t');
+select 'MG7 un mes cerrado con la 659 congelada se sigue leyendo: sus mermas cuentan (S/ 12) y el detalle por regla las suma',
+  (select mermas = 12 and (select coalesce(sum((x ->> 'monto')::numeric), 0) from jsonb_array_elements(detalle_mermas) x) = 12 from er_feb)
+  and (select (detalle_mermas -> 0 ->> 'regla') = 'merma_merma' from er_feb);
+`;
+
+// MC · el candado de un mes EN CURSO. `cerrar_periodo` escribe en `diario_cerrado` (el diario congelado) ANTES que en `periodos`
+// y en `periodo_cierres`; si la guarda solo candara `periodos`, una guarda que corre en medio de un cierre pasaba de largo, sin
+// esperar, y el mes se cerraba con la 659 en su foto mientras el diario de hoy ya decía 6951. Aquí son DOS sesiones de verdad:
+//   · la 1 hace lo primero que hace un cierre (escribe una línea en `diario_cerrado`) y la sostiene mientras alguien espere por
+//     ella (a lo más 8 s: si nadie espera, la prueba MC falla por su cuenta); después un segundo más y la deshace;
+//   · la 2 espera a que la 1 haya escrito, mide, y corre la guarda (MC1) o el «deshacer» (MC2). Con el candado sobre las tres
+//     tablas, la 2 queda en cola hasta que la 1 termina (≥ 1 s); con el de antes (solo `periodos`) terminaba en milisegundos.
+const CIERRE_A_MEDIAS = `
+begin;
+insert into retail.diario_cerrado (cierre_id, n, fecha, asiento, regla, cuenta, debe, haber)
+values (gen_random_uuid(), 1, '2031-03-05', 'cierre:a_medias', 'venta', (select codigo from retail.cuentas order by codigo limit 1), 1, 0);
+do $sostiene$
+declare
+  i integer := 0;
+begin
+  while i < 160 and not exists (
+    select 1 from pg_locks l join pg_class c on c.oid = l.relation
+     where not l.granted and l.pid <> pg_backend_pid() and c.relnamespace = 'retail'::regnamespace
+       and c.relname in ('diario_cerrado', 'periodos', 'periodo_cierres')
+  ) loop
+    perform pg_sleep(0.05);
+    i := i + 1;
+  end loop;
+  perform pg_sleep(1);
+end
+$sostiene$;
+rollback;
+`;
+const MC_ESPERA = `
+do $espera$
+declare
+  i integer := 0;
+begin
+  while not exists (
+    select 1 from pg_locks l join pg_class c on c.oid = l.relation
+     where l.granted and l.mode = 'RowExclusiveLock' and l.pid <> pg_backend_pid()
+       and c.relnamespace = 'retail'::regnamespace and c.relname = 'diario_cerrado'
+  ) loop
+    i := i + 1;
+    if i > 200 then
+      raise exception 'MC: la sesión del cierre a medias no llegó a escribir en diario_cerrado';
+    end if;
+    perform pg_sleep(0.05);
+  end loop;
+end
+$espera$;
+create temp table mc_ini as select clock_timestamp() as t;
+`;
+// El «deshacer» tal cual, menos su candado: deja la base como está HOY en producción sin tomar ningún candado, para que la
+// prueba de la guarda mida SOLO el candado de la guarda.
+const DESHACER_SIN_CANDADO = DESHACER_6951.replace(/^[ \t]*lock table .*$/gm, "-- (sin candado)");
+const CANDADO_TRES_TABLAS = /lock table retail\.diario_cerrado, retail\.periodos, retail\.periodo_cierres in share row exclusive mode;/;
+const CASOS_MC1 = `
+select 'MC1 con un cierre a medias (ya escribió su diario congelado, aún no toca periodos) la guarda ESPERA a que termine y recién entonces pega',
+  (select clock_timestamp() - t from mc_ini) >= interval '800 milliseconds'
+  and position($q$'6951'$q$ in ${ASIENTOS_6951}) > 0 and position($q$'659'$q$ in ${ASIENTOS_6951}) = 0;
+`;
+const CASOS_MC2 = `
+select 'MC2 con un cierre a medias el DESHACER también ESPERA a que termine, y recién entonces vuelve a la 659',
+  (select clock_timestamp() - t from mc_ini) >= interval '800 milliseconds'
+  and position($q$'659'$q$ in ${ASIENTOS_6951}) > 0;
+`;
+/** Corre una sesión 2 (la que mide) a la vez que la sesión 1 del cierre a medias. Devuelve la de la 2 y si la 1 terminó bien. */
+async function conCierreAMedias(sesion2) {
+  const [cierre, medida] = await Promise.all([correrAparte(CIERRE_A_MEDIAS), correrAparte(sesion2)]);
+  return { cierre, medida };
+}
+
 // ---------------------------------------------------------------------------------------------------------------------------
 verificar("Clasificación", correr(CLASIFICACION), casosDe(CLASIFICACION));
 verificar("Totalidad", correr(TOTALIDAD), casosDe(TOTALIDAD));
@@ -595,6 +859,40 @@ verificar("Permisos", correr(`${ESCENA}${CASOS_PERMISOS}`), casosDe(CASOS_PERMIS
 verificar("Resumen de Inventario", correr(RESUMEN_INVENTARIO), casosDe(RESUMEN_INVENTARIO));
 verificar("Guarda", correr(`${ESCENA}${CASOS_GUARDA}`), casosDe(CASOS_GUARDA));
 verificar("Guarda (solo un traslado)", correr(`${ESCENA}${CASOS_GUARDA_TRASLADO}`), casosDe(CASOS_GUARDA_TRASLADO));
+
+// M · las mermas pasan a la 6951: la corrida «hoy → deshacer → pegar → pegar» y el candado de mes cerrado.
+esperar("M0 el archivo de la migración se encontró y trae su bloque DESHACER y su guarda (la prueba los ejecuta)", DESHACER_6951.length > 200 && bloqueDo(MIGRACION_6951, "guarda_6951").length > 100, { deshacer: DESHACER_6951.length });
+verificar("Mermas a la 6951", correr(ESCENA_6951(`${CORRIDA_6951}${CASOS_6951}`)), casosDe(CASOS_6951));
+verificar("Mermas a la 6951 · candado A (ya aplicada)", correr(ESCENA_6951(CASOS_6951_GUARDA_A)), casosDe(CASOS_6951_GUARDA_A));
+verificar("Mermas a la 6951 · candado B (mes cerrado)", correr(ESCENA_6951(CASOS_6951_GUARDA_B)), casosDe(CASOS_6951_GUARDA_B));
+verificar("Mermas a la 6951 · candado C (mes reabierto)", correr(ESCENA_6951(CASOS_6951_GUARDA_C)), casosDe(CASOS_6951_GUARDA_C));
+verificar("Mermas a la 6951 · un mes cerrado con la 659 se sigue leyendo", correr(ESCENA_6951(CASOS_6951_LECTURA)), casosDe(CASOS_6951_LECTURA));
+
+// M10/M11 · lo que el encabezado promete y que el texto debe seguir trayendo.
+esperar(
+  "M10 el encabezado trae las huellas md5 de las definiciones vivas de producción (fn_asientos y fn_estado_resultados) y la consulta para compararlas antes de pegar",
+  MIGRACION_6951.includes("CÓMO VERIFICAR ANTES DE PEGAR") &&
+    MIGRACION_6951.includes("49f364de2b5c43a02a0f386cbac28d50") &&
+    MIGRACION_6951.includes("aac084b0a829d2e8f4dcf7bf365f091c") &&
+    MIGRACION_6951.includes("md5(pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure))") &&
+    MIGRACION_6951.includes("md5(pg_get_functiondef('retail.fn_estado_resultados(date, date, uuid)'::regprocedure))")
+);
+esperar(
+  "M11 la guarda y el DESHACER candan las TRES tablas donde escribe un cierre (diario_cerrado, periodos y periodo_cierres), no solo periodos",
+  CANDADO_TRES_TABLAS.test(bloqueDo(MIGRACION_6951, "guarda_6951")) && CANDADO_TRES_TABLAS.test(bloqueDo(DESHACER_6951, "deshacer_6951")),
+  { guarda: bloqueDo(MIGRACION_6951, "guarda_6951").match(/lock table.*/)?.[0], deshacer: bloqueDo(DESHACER_6951, "deshacer_6951").match(/lock table.*/)?.[0] }
+);
+
+// MC · con un cierre a medias en otra sesión, la guarda y el «deshacer» esperan (dos sesiones reales; ver arriba).
+esperar("MC0 el «deshacer» sin candado se armó quitando exactamente la línea del candado (la prueba de la guarda mide solo el de la guarda)", DESHACER_SIN_CANDADO !== DESHACER_6951 && !CANDADO_TRES_TABLAS.test(DESHACER_SIN_CANDADO) && DESHACER_SIN_CANDADO.includes("mermas_reemplazar"));
+{
+  const guarda = await conCierreAMedias(`begin;\n${DESHACER_SIN_CANDADO}\n${MC_ESPERA}\n${MIGRACION_6951}\n${CASOS_MC1}\nrollback;\n`);
+  esperar("MC0 la sesión del cierre a medias (de la guarda) corrió sin error", guarda.cierre.ok, guarda.cierre);
+  verificar("Mermas a la 6951 · candado de un mes en curso (la guarda espera)", guarda.medida, casosDe(CASOS_MC1));
+  const deshacer = await conCierreAMedias(`begin;\n${MC_ESPERA}\n${DESHACER_6951}\n${CASOS_MC2}\nrollback;\n`);
+  esperar("MC0 la sesión del cierre a medias (del deshacer) corrió sin error", deshacer.cierre.ok, deshacer.cierre);
+  verificar("Mermas a la 6951 · candado de un mes en curso (el deshacer espera)", deshacer.medida, casosDe(CASOS_MC2));
+}
 
 console.log(fallos ? `\n${fallos} de ${casos} verificaciones fallaron` : `\nLas ${casos} verificaciones pasaron`);
 process.exit(fallos ? 1 : 0);

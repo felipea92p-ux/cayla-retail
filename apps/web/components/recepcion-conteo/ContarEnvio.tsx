@@ -241,6 +241,7 @@ export function ContarEnvio({
                     onSeparado={(s) => onEscribir(linea, { separado: s, contadas: Math.max(contadasDe(linea), (linea.conteo?.enStock ?? 0) + totalSeparado(s)) })}
                     onTallas={(p) => void abrirTallas(linea, p)}
                     onPrendaVista={onPrendaVista}
+                    elegida={linea.linea?.prendaElegida ?? null}
                   />
                 )}
                 {errorHoja && (

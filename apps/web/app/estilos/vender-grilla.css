@@ -36,7 +36,9 @@
   transition: opacity 250ms var(--ease-cayla), transform 250ms var(--ease-cayla);
 }
 .vg-punto[aria-checked="true"]::after { opacity: 1; transform: none; }
-.vg-punto:hover > i { transform: scale(1.12); }
+@media (hover: hover) {
+  .vg-punto:hover > i { transform: scale(1.12); }
+}
 .vg-punto:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-rojo) 35%, transparent); }
 /* Solo en el almacén de esta sede (D-40): anillo punteado ámbar siempre a la vista, el color atenuado. */
 .vg-punto[data-estado="almacen"]::after { border-style: dashed; border-color: var(--color-ambar); opacity: 1; transform: none; }

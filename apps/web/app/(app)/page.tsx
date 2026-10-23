@@ -43,6 +43,7 @@ import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/in
 import { TuFondoConRendir } from "@/components/fondos/TuFondoConRendir";
 import { getResumenMiFondo } from "@/lib/fondos";
 import { hrefTuFondo, mostrarTuFondo } from "@/lib/fondos-reglas";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 // Inicio por rol, computadora y celular (spike docs/maquetas/inicio-movil-roles-2026-09/, decisiones de Felipe del
 // 2026-09-26, con 5 referentes: Shopify, Square, Toast, Dynamics 365 y Zebra). UN solo orden en todos los tamaños:
@@ -251,11 +252,12 @@ export default async function InicioPage() {
       </div>
 
       {fijo && (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
-          <Link href={fijo.href} className="flex h-13 items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema" data-guia="inicio.fijo">
+        // La barra de abajo del celular es la Isla (ADR-0479, actividad 12): con una sola acción, la isla es el botón.
+        <BarraDeAbajo sola className="sm:hidden">
+          <Link href={fijo.href} className="btn-cayla btn-primario gap-2.5" data-guia="inicio.fijo">
             <Icono clave={fijo.icono} /> {fijo.etiqueta}
           </Link>
-        </div>
+        </BarraDeAbajo>
       )}
     </div>
   );
