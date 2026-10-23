@@ -17,7 +17,13 @@ describe("respuestaResumen", () => {
     const resp = respuestaResumen(r, conResultado(filas(r), 1200), false);
     expect(resp.pregunta).toBe("¿Cuánto te deja septiembre?");
     expect(resp.valor).toBe(cons.resultado);
-    expect(resp.chips).toContainEqual({ texto: "+S/ 1,200 que agosto a esta fecha", tono: "verde" });
+    expect(resp.chips).toContainEqual({ texto: "S/ 1,200 más que agosto a esta fecha", tono: "verde" });
+  });
+
+  it("un mes que ya cerró se compara con el mes pasado entero, sin «a esta fecha»", () => {
+    const r = todas();
+    const resp = respuestaResumen(r, conResultado(filas(r), -500), false, false);
+    expect(resp.chips.some((c) => /^S\/.500 menos que agosto$/.test(c.texto))).toBe(true);
   });
 
   it("sin el mes pasado no se inventa la comparación; provisional lo dice un chip", () => {
@@ -97,6 +103,11 @@ describe("lineaVentasMeta", () => {
     expect(sin.referencia).toBeNull();
     expect(sin.serie).toHaveLength(5);
     expect(fraseLineaVentas(lineaVentasMeta([], "2026-10", "2026-10-05", null), "2026-10")).toBe("Llevas S/ 0 vendidos en octubre. No hay meta puesta para comparar.");
+  });
+
+  it("un mes que ya cerró: «vendiste», contra la meta del mes entero", () => {
+    const l = lineaVentasMeta([[dia(1, 1000, 900), dia(2, 1000, 900)]], "2026-10", "2026-11-05", null);
+    expect(fraseLineaVentas(l, "2026-10", false)).toMatch(/^Vendiste S\/.2,000 en octubre: S\/.200 arriba de la meta de S\/.1,800\.$/);
   });
 
   it("un mes pasado se dibuja entero; uno que no llegó, vacío", () => {

@@ -46,9 +46,10 @@ async function conSueldosEstimados(r: ResumenFinanzas, ubicacionId: string | nul
 // El medidor de confianza (ADR-0417): los hechos salen de `fn_finanzas_confianza` (20261015235000) y la calificación la pone
 // `lib/finanzas-confianza.ts`. Si la base no responde o la cuenta no ve el diario, la pantalla sigue sin el medidor: nunca
 // muestra un 0 % como si fuera una medida.
-export async function getConfianzaFinanzas(pedido: { ubicacionId: string | null }): Promise<Lectura<Confianza | null>> {
+export async function getConfianzaFinanzas(pedido: { ubicacionId: string | null }, mes?: string): Promise<Lectura<Confianza | null>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_finanzas_confianza" as never, { p_mes: null, p_ubicacion_id: pedido.ubicacionId } as never);
+  // `mes` («2026-09»): la confianza del mes que se mira en la barra del telar; sin él, la base usa el mes en curso.
+  const { data, error } = await supabase.rpc("fn_finanzas_confianza" as never, { p_mes: mes ? `${mes}-01` : null, p_ubicacion_id: pedido.ubicacionId } as never);
   if (error) {
     capturarError("finanzas.resumen.confianza", error);
     return { datos: null, falla: explicarFallaLectura(error, "medir qué tan seguro es este número") };

@@ -1,14 +1,8 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import {
-  alDia,
   avisosParaDecidir,
-  bajadaResumen,
-  barrasSemanas,
-  caminoEquilibrio,
-  cifrasResumen,
   claveVer,
-  coberturaTiendas,
   debesPronto,
   deUnidad,
   diasDelMes,
@@ -16,13 +10,9 @@ import {
   explicarFallaLectura,
   leerResumen,
   leerVerResumen,
-  miniPresupuesto,
-  motivoSinCamino,
   motivoSinEquilibrio,
   noRevisado,
-  notaUnidad,
   ordenarAvisos,
-  tituloResumen,
   type Acceso,
   type Aviso,
 } from "./resumen-finanzas-reglas";
@@ -50,13 +40,6 @@ describe("leer lo que manda la base", () => {
     expect(c.cuentas).toEqual({ estado: "sin_permiso", mensaje: expect.stringContaining("Cuentas y dinero") });
     expect(c.flujo).toEqual({ estado: "no_aplica" });
     expect(c.lider).toBe(false);
-  });
-
-  it("una parte que no llegó o que falló es una falla, nunca un cero", () => {
-    const r = leerResumen({ hoy: "2026-09-24", mes: "2026-09-01", flujo: { falla: "no existe la función" } });
-    expect(r.flujo).toEqual({ estado: "falla", mensaje: "no existe la función" });
-    expect(r.porPagar.estado).toBe("falla");
-    expect(cifrasResumen(r).find((x) => x.clave === "debes")?.valor).toBe("—");
   });
 
   it("«Ver»: el líder mira CAYLA entera por defecto; quien no es líder no elige", () => {
@@ -106,39 +89,6 @@ describe("punto de equilibrio (la regla de F5) y el día en que se cubre", () =>
 // (ADR-0417, 2026-10-15): lo que decían lo dice ahora El Pulso (`pulso-reglas.ts`), con su propia prueba.
 
 describe("las cinco cifras", () => {
-  it("CAYLA entera, con los números del spike", () => {
-    const cs = cifrasResumen(todas());
-    expect(cs.map((c) => c.etiqueta)).toEqual(["Vendido en el mes", "Plata disponible", "Debes en 7 días", "Utilidad de agosto", "IGV estimado de sept."]);
-    expect(cs.map((c) => c.valor)).toEqual(["S/\u00a080,851", "S/\u00a060,410", "S/\u00a043,012", "S/\u00a03,060", "S/\u00a05,400"]);
-    expect(cs[0]!.detalle).toBe("TRU S/\u00a035,280 · AQP S/\u00a026,880 · LIM S/\u00a018,691");
-    expect(cs[1]!.detalle).toBe("Bancos S/\u00a051,300 · cajones y cajas fuertes S/\u00a06,800 · tarjeta por abonar S/\u00a02,310");
-    expect(cs[2]).toMatchObject({ rojo: true, detalle: "Incluye la planilla del 30. 1 vencida" });
-    expect(cs[3]!.detalle).toBe("Margen bruto 52,3 %");
-    expect(cs[4]!.detalle).toBe("Se declara en octubre · agosto: S/\u00a06,840 por declarar");
-    for (const c of cs) expect(c.origen).not.toBe("");
-  });
-
-  it("una tienda: su efectivo, su parte de lo que se debe (sin planilla) y su meta", () => {
-    const cs = cifrasResumen(tru());
-    expect(cs.map((c) => c.valor)).toEqual(["S/\u00a035,280", "S/\u00a02,830", "S/\u00a07,012", "S/\u00a010,163", "95,8 %"]);
-    expect(cs.map((c) => c.etiqueta)).toEqual(["Vendido en el mes", "Efectivo en la tienda", "Debes en 7 días", "Utilidad de agosto", "Meta de ventas"]);
-    expect(cs[4]!.detalle).toBe("Proyección al cierre S/\u00a044,100 de S/\u00a046,017");
-  });
-
-  it("el Taller no vende; la empresa suma sus bancos sin la tarjeta de crédito", () => {
-    const t = cifrasResumen(leerResumen(fixture.taller));
-    expect(t.map((c) => c.valor)).toEqual(["—", "S/\u00a0630", "S/\u00a00", "−S/\u00a01,170", "S/\u00a01,170"]);
-    expect(t[0]!.detalle).toBe("El Taller no vende");
-    const e = cifrasResumen(leerResumen(fixture.empresa));
-    expect(e[1]).toMatchObject({ etiqueta: "Bancos y cuentas", valor: "S/\u00a053,610" });
-  });
-
-  it("lo que la cuenta no ve se explica en la cifra, no se esconde ni se vuelve cero", () => {
-    const cs = cifrasResumen(leerResumen(fixture.colaboradora));
-    expect(cs.find((c) => c.clave === "plata")).toMatchObject({ valor: "—", detalle: "Lo ve quien tiene Cuentas y dinero" });
-    expect(cs.find((c) => c.clave === "debes")).toMatchObject({ valor: "—", detalle: "Lo ve quien tiene Cuentas y dinero" });
-    expect(cs.find((c) => c.clave === "utilidad")?.detalle).toBe("Sin ventas en agosto");
-  });
 
   it("«Debes en 7 días»: lo vencido, lo que vence en los días de Configuración y la planilla de esos días", () => {
     const d = debesPronto(todas())!;
@@ -331,57 +281,8 @@ describe("Para decidir hoy", () => {
   });
 });
 
-describe("la columna derecha", () => {
-  it("¿cada tienda cubre sus costos? (spike: 175 %, 155 %, LIM no cubre)", () => {
-    const { barras, sinDatos } = coberturaTiendas(todas());
-    expect(barras.map((b) => [b.nombre, b.valor, b.mala])).toEqual([
-      ["TRU", 175, false],
-      ["AQP", 155, false],
-      ["LIM", 80, true],
-    ]);
-    expect(barras[2]!.lineas).toEqual(["Necesita S/\u00a024,763 · vendió S/\u00a019,800", "Le faltan S/\u00a04,963 al mes"]);
-    expect(sinDatos).toEqual([]);
-  });
-
-  it("el saldo de las próximas 6 semanas contra el mínimo (F6)", () => {
-    const r = todas();
-    if (r.flujo.estado !== "ok") throw new Error("fixture");
-    const bs = barrasSemanas(r.flujo.datos);
-    expect(bs.map((b) => b.valor)).toEqual([26410, 33510, 14510, 26710, 17510, 24910]);
-    expect(bs.map((b) => b.mala)).toEqual([false, false, true, false, false, false]);
-    expect(bs.map((b) => b.nombre)).toEqual(["28 sep", "5 oct", "12", "19", "26", "2 nov"]);
-    expect(bs[0]!.titulo).toBe("28 sep – 4 oct");
-  });
-
-  it("una tienda: el camino a su punto de equilibrio y su presupuesto", () => {
-    expect(caminoEquilibrio(tru())).toMatchObject({ vendido: 35280, ancho: 100, texto: "Ya cubrió los costos del mes: desde aquí, cada sol de margen es ganancia." });
-    const lim = leerResumen(fixture.todas);
-    // Mirando LIM (con sus filas): le falta, y dice cuánto por día.
-    lim.ver = { ubicacionId: "00000000-0000-4000-8000-000000000003", soloEmpresa: false, todas: false, tipo: "tienda", nombre: "Tienda LIM" };
-    expect(caminoEquilibrio(lim)!.texto).toBe("Le faltan S/\u00a06,072 en 6 días: unos S/\u00a01,012 diarios. Hoy vende S/\u00a0779 al día.");
-    expect(miniPresupuesto(tru()).map((f) => [f.nombre, f.pct, f.tono])).toEqual([
-      ["Alquileres", "100,0 %", "verde"],
-      ["Servicios básicos", "95,4 %", "verde"],
-      ["Suministros y útiles", "118,8 %", "rojo"],
-      ["Transporte y movilidad", "80,0 %", "verde"],
-    ]);
-  });
-});
 
 describe("la cabecera", () => {
-  it("el título dice qué se mira y a qué día (spike)", () => {
-    expect(tituloResumen(todas())).toBe("CAYLA, al jueves 24 de septiembre");
-    expect(tituloResumen(tru())).toBe("Tienda TRU, al jueves 24");
-    expect(alDia("2026-09-28", false)).toBe("al lunes 28");
-    expect(bajadaResumen(tru())).toBe("Solo Tienda TRU. Para ver el negocio entero, elige «Todas las tiendas».");
-    expect(bajadaResumen(leerResumen(fixture.colaboradora))).toBe("Lo de Tienda Trujillo: sus ventas, sus gastos y lo que conviene decidir hoy.");
-  });
-
-  it("la nota del Taller y de la empresa; una tienda no lleva nota", () => {
-    expect(notaUnidad(leerResumen(fixture.taller))).toContain("El Taller no vende");
-    expect(notaUnidad(leerResumen(fixture.empresa))).toContain("no es de ninguna tienda");
-    expect(notaUnidad(tru())).toBeNull();
-  });
 
   it("el nombre de una unidad dentro de una frase", () => {
     expect(deUnidad("Tienda Trujillo")).toBe("de Trujillo");
@@ -400,13 +301,6 @@ describe("Finanzas cuenta desde una fecha", () => {
     return leerResumen({ ...b, mes_anterior: `${mesAnt}-01`, parametros: { ...(b.parametros as object), inicio_finanzas: inicio } });
   };
 
-  it("sin corte nada cambia: el último mes completo se mide como siempre", () => {
-    const r = conCorte(fixture.todas, null, "2026-08");
-    expect(r.antesDelCorte).toBeNull();
-    expect(r.resultadosAnterior.estado).toBe("ok");
-    expect(cifrasResumen(r).find((c) => c.clave === "utilidad")?.etiqueta).toBe("Utilidad de agosto");
-  });
-
   it("con el corte DESPUÉS del último mes completo, ese mes no se mide ni se pide cerrar", () => {
     const r = conCorte(fixture.todas, "2026-09-01", "2026-08");
     expect(r.antesDelCorte).toBe("2026-09-01");
@@ -416,39 +310,12 @@ describe("Finanzas cuenta desde una fecha", () => {
     expect(claves(avisosParaDecidir(r, LIDER))).not.toContain("pierde");
   });
 
-  it("la utilidad habla del primer mes que cuenta y dice cuándo se mide, no un cero", () => {
-    const r = conCorte(fixture.todas, "2026-09-01", "2026-08");
-    const u = cifrasResumen(r).find((c) => c.clave === "utilidad")!;
-    expect(u).toMatchObject({ etiqueta: "Utilidad de septiembre", valor: "—", detalle: "Se mide cuando el mes termine", rojo: false });
-  });
-
-  it("el gráfico de cobertura queda sin barras y sin 'sin ventas' inventados", () => {
-    const r = conCorte(fixture.todas, "2026-09-01", "2026-08");
-    expect(coberturaTiendas(r)).toEqual({ barras: [], sinDatos: [], sinGastos: [] });
-  });
-
-  it("LO QUE NO SE CORTA: los días de caja y la planilla que viene siguen como antes (la caja de las próximas semanas es real)", () => {
-    const sin = conCorte(fixture.todas, null, "2026-08");
-    const con = conCorte(fixture.todas, "2026-09-01", "2026-08");
-    expect(con.flujo).toEqual(sin.flujo);
-    expect(debesPronto(con)).toEqual(debesPronto(sin));
-    expect(cifrasResumen(con).find((c) => c.clave === "debes")).toEqual(cifrasResumen(sin).find((c) => c.clave === "debes"));
-    expect(cifrasResumen(con).find((c) => c.clave === "igv")).toEqual(cifrasResumen(sin).find((c) => c.clave === "igv"));
-  });
-
   it("un corte que NO es posterior al último mes completo no cambia nada (el mes anterior ya cuenta)", () => {
     const r = conCorte(fixture.todas, "2026-08-01", "2026-08");
     expect(r.antesDelCorte).toBeNull();
     expect(r.resultadosAnterior.estado).toBe("ok");
     const r2 = conCorte(fixture.todas, "2026-01-01", "2026-08");
     expect(r2.antesDelCorte).toBeNull();
-  });
-
-  it("también en una tienda, el Taller y la empresa: la cifra dice el mes que cuenta y no inventa un gasto", () => {
-    const t = cifrasResumen(conCorte(fixture.taller, "2026-09-01", "2026-08"));
-    expect(t.find((c) => c.clave === "utilidad")).toMatchObject({ etiqueta: "Utilidad de septiembre", valor: "—" });
-    const e = cifrasResumen(conCorte(fixture.empresa, "2026-09-01", "2026-08"));
-    expect(e.find((c) => c.clave === "gastos")).toMatchObject({ etiqueta: "Gastos de septiembre", valor: "—" });
   });
 
   it("una base sin la migración (sin la clave) se lee como sin corte", () => {
@@ -461,36 +328,11 @@ describe("Finanzas cuenta desde una fecha", () => {
 
 
 describe("que el número diga la verdad (auditoría v3 del Resumen, 2026-10-23)", () => {
-  // El mes anterior con los gastos de una tienda en 0: lo que se veía en local con Lima y Trujillo («100 % = cubre justo»).
-  const sinGastosEn = (indice: number) => {
-    const r = todas();
-    if (r.resultadosAnterior.estado !== "ok") throw new Error("fixture");
-    const tiendas = r.resultadosAnterior.datos.filter((f) => f.unidad === "tienda");
-    tiendas[indice]!.gastos = 0;
-    return { r, nombre: tiendas[indice]!.nombre };
-  };
-
-  it("sin gastos registrados no hay punto de equilibrio: ni 100 % ni «sin ventas»", () => {
-    const { r } = sinGastosEn(0);
-    const { barras, sinDatos, sinGastos } = coberturaTiendas(r);
-    expect(barras.map((b) => b.nombre)).toEqual(["AQP", "LIM"]);
-    expect(sinGastos).toEqual(["TRU"]);
-    expect(sinDatos).toEqual([]);
-    expect(equilibrio({ ventas: 1000, margen: 400, gastos: 0 }, 30)).toBeNull();
-  });
-
   it("cada motivo por su nombre", () => {
     expect(motivoSinEquilibrio({ ventas: 0, margen: 0, gastos: 500 })).toBe("sin_ventas");
     expect(motivoSinEquilibrio({ ventas: 500, margen: -10, gastos: 500 })).toBe("sin_margen");
     expect(motivoSinEquilibrio({ ventas: 500, margen: 200, gastos: 0 })).toBe("sin_gastos");
     expect(motivoSinEquilibrio({ ventas: 500, margen: 200, gastos: 100 })).toBeNull();
-  });
-
-  it("el camino de una tienda sin gastos dice que faltan los gastos, no las ventas", () => {
-    const { r } = sinGastosEn(0);
-    r.ver = { ubicacionId: "00000000-0000-4000-8000-000000000001", soloEmpresa: false, todas: false, tipo: "tienda", nombre: "Tienda TRU" };
-    expect(caminoEquilibrio(r)).toBeNull();
-    expect(motivoSinCamino(r)).toBe("Agosto no tiene gastos registrados en esta tienda (alquiler, sueldos, servicios): sin ellos no se sabe cuánto necesita vender.");
   });
 
   it("una lectura que falla se explica sin el texto crudo de la base", () => {

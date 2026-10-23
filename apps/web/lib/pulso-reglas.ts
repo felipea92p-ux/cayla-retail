@@ -1,27 +1,13 @@
-// El Pulso: Finanzas ▸ Resumen en camino A («La respuesta», maquetas finanzas-v2-2026-10, Felipe 2026-10-15). Lógica pura
-// sobre lo que `fn_resumen_finanzas` ya trae (`ResumenFinanzas`): ninguna cifra se calcula aquí de nuevo, solo se decide
-// cómo se dice.
-//
-// Cuatro preguntas, en este orden: ¿estoy ganando plata? (la respuesta grande: lo que queda a la fecha), ¿a qué ritmo voy?
-// (lo vendido por día contra lo que hace falta por día para cubrir el mes, y con qué cerrarías si sigues así), ¿por qué ese
-// número? (la cascada: vendiste → costó → sueldos → gastos → desgaste → queda) y ¿qué deja cada lugar? (cada tienda, el
-// Taller y «lo de toda la empresa», sin repartir: ADR-0417, decisión de diseño «los gastos de empresa no se reparten»).
-//
-// Lenguaje de tienda: «te quedan», «lo que costó la ropa», «sueldos», «desgaste de máquinas». Lo que no está registrado no se
-// inventa: el medidor de confianza (lib/finanzas-confianza.ts) dice cuánto creerle.
+// El Pulso: la respuesta («te quedan» / «te faltan») y la cascada de una fila del Estado de resultados, en lenguaje de tienda
+// (camino A de las maquetas finanzas-v2-2026-10, Felipe 2026-10-15). Las usa Reportes (`ResultadoPulso`). El Resumen ya no: desde El
+// telar (2026-10-23) su respuesta va en la cabecera común (`resumen-telar-reglas.ts`) y el «por qué» es el recorrido de la plata
+// (`recorrido-plata-reglas.ts`). Ninguna cifra se calcula aquí de nuevo: solo se decide cómo se dice; lo que no está registrado no se
+// inventa (el medidor de confianza, `lib/finanzas-confianza.ts`, dice cuánto creerle).
 
-import { diasDelMes, filaDeVer, motivoAusencia, type ResumenFinanzas } from "./resumen-finanzas-reglas";
 import { soles } from "./flujo-caja-reglas";
 import { mesNombre, type FilaER } from "./resultados-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
-const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-
-/** «el martes 27»: el día del mes con su nombre, a partir de `mes` («2026-10») y el número de día. */
-export function nombreDia(mes: string, dia: number): string {
-  const [a, m] = mes.split("-").map(Number) as [number, number];
-  return `el ${DIAS[new Date(Date.UTC(a, m - 1, dia)).getUTCDay()]} ${dia}`;
-}
 
 // ---- 1. La respuesta ----------------------------------------------------------------------------------------------------------
 
@@ -45,13 +31,6 @@ export type Respuesta =
  * otros gastos» repetía los sueldos y el desgaste, y «lo fijo del mes» los contaba dos veces (visto con el fixture real, ADR-0453).
  */
 const otrosGastos = (f: FilaER): number => Math.max(0, r2(f.gastos - f.planilla - f.depreciacion));
-
-export function respuestaPulso(r: ResumenFinanzas): Respuesta {
-  if (r.resultadosMes.estado !== "ok") return { estado: "sin_datos", motivo: motivoAusencia(r.resultadosMes) ?? "El estado de resultados no se pudo leer." };
-  const f = filaDeVer(r.resultadosMes.datos, r.ver);
-  if (!f) return { estado: "sin_datos", motivo: "Todavía no hay nada registrado este mes." };
-  return respuestaDeFila(f, { mes: r.mes, vende: r.ver.todas || r.ver.tipo === "tienda", taller: r.ver.tipo === "taller" });
-}
 
 /** La misma respuesta a partir de una fila del Estado de resultados: la usan Resumen y Reportes (una función, una pieza). */
 export function respuestaDeFila(f: FilaER, ctx: { mes: string; vende: boolean; taller: boolean }): Respuesta {
@@ -80,116 +59,10 @@ export function respuestaDeFila(f: FilaER, ctx: { mes: string; vende: boolean; t
   };
 }
 
-/**
- * Cuánto se atreve a afirmar el titular según la confianza del número (ADR-0417): el «Sí» o el «No» pelado solo sale con
- * confianza alta. Con media dice «por ahora»; con baja, «Con lo que hay registrado, …» y la cifra va con «≈» y su chip
- * «Provisional». Sin medida (`null`: la base no respondió) tampoco se afirma: lo que no se pudo medir no es «alta» (principio 9).
- * No cambia ninguna cifra: solo cómo se dice. Pasa el «¿Por qué?» tal cual.
- */
-export type Matiz = {
-  /** Lo que dice el chip: «Sí», «Sí, por ahora», «Provisional». */
-  chip: string;
-  /** El tono del chip: el del resultado si es firme; `pizarra` si es provisional. */
-  tono: "verde" | "rojo" | "ambar" | "pizarra";
-  /** La frase que precede a «te quedan»: «En lo que va de octubre,» o «Con lo que hay registrado,». */
-  intro: string;
-  /** `≈` si la cifra es provisional. */
-  aprox: string;
-  provisional: boolean;
-  /** Lo que se agrega a la explicación cuando no es firme; vacío si lo es. */
-  aviso: string;
-};
-
-export function matizarRespuesta(resp: Exclude<Respuesta, { estado: "sin_datos" }>, mes: string, nivel: "alto" | "medio" | "bajo" | null): Matiz {
-  const tonoFirme = resp.estado === "gana" ? "verde" : resp.estado === "pierde" ? "rojo" : "ambar";
-  const enElMes = `En lo que va de ${mesNombre(mes)},`;
-  if (nivel === "alto") return { chip: resp.corto, tono: tonoFirme, intro: enElMes, aprox: "", provisional: false, aviso: "" };
-  const aviso = nivel === null ? "Es provisional: no se pudo medir qué tan seguro es este número." : "Es provisional: mira «Qué tan seguro es este número» para ver qué falta cargar.";
-  if (nivel === "medio") return { chip: `${resp.corto}, por ahora`, tono: tonoFirme, intro: enElMes, aprox: "", provisional: false, aviso };
-  return { chip: "Provisional", tono: "pizarra", intro: "Con lo que hay registrado,", aprox: "≈ ", provisional: true, aviso };
-}
-
-// ---- 2. El ritmo ----------------------------------------------------------------------------------------------------------
-
-export type Ritmo = {
-  /** Lo vendido por día, a la fecha (sin IGV). */
-  porDia: number;
-  /** Lo que hace falta vender por día para cubrir lo fijo del mes; `null` si no hay margen con que calcularlo. */
-  necesarioPorDia: number | null;
-  /** Con qué cerrarías el mes si sigues así; `null` sin margen. */
-  cierre: number | null;
-  /** El día del mes en que, a este ritmo, lo vendido ya cubre lo fijo; `null` si no llega. */
-  diaCubre: number | null;
-  /** Lo fijo del mes con lo que se calculó (sueldos, gastos y desgaste, llevados al mes entero). */
-  fijoMes: number;
-  dia: number;
-  diasMes: number;
-  tono: "verde" | "ambar" | "rojo" | "pizarra";
-  frase: string;
-  cierreFrase: string;
-};
-
-/**
- * Lo fijo del mes: los otros gastos y el desgaste registrados a la fecha, llevados al mes entero por regla de tres, más la planilla:
- * la ya asentada (Dynamic la pagó: el mes entero) y la estimada, que cuesta lo que costaría su período entero (`planillaAlCierre`: las
- * horas al ritmo de lo trabajado y el sueldo fijo completo). Si no hay ni lo uno ni lo otro, la que el Flujo proyecta para el mes. Es
- * una estimación con lo registrado: el medidor de confianza dice cuánto le falta.
- */
-function fijoDelMes(r: ResumenFinanzas, f: FilaER, dia: number, diasMes: number): number {
-  const factor = diasMes / Math.max(1, dia);
-  let planilla = Math.max(0, f.planilla - f.planillaEstimada) + (f.planillaEstimada > 0 ? Math.max(f.planillaEstimada, f.planillaAlCierre) : 0);
-  if (planilla <= 0 && r.flujo.estado === "ok") {
-    const pl = r.flujo.datos.salidas.find((s) => s.tipo === "planilla" && s.fecha.slice(0, 7) === r.mes);
-    if (pl) planilla = pl.monto;
-  }
-  return r2((otrosGastos(f) + f.depreciacion) * factor + planilla);
-}
-
-export function ritmoPulso(r: ResumenFinanzas): Ritmo | null {
-  if (r.resultadosMes.estado !== "ok") return null;
-  const f = filaDeVer(r.resultadosMes.datos, r.ver);
-  if (!f || !(r.ver.todas || r.ver.tipo === "tienda")) return null;
-  const dia = Number(r.hoy.slice(8, 10));
-  const diasMes = diasDelMes(r.mes);
-  const porDia = r2(f.ventas / Math.max(1, dia));
-  const fijoMes = fijoDelMes(r, f, dia, diasMes);
-  const mes = mesNombre(r.mes);
-  if (f.ventas <= 0 || f.margen <= 0) {
-    return {
-      porDia, necesarioPorDia: null, cierre: null, diaCubre: null, fijoMes, dia, diasMes, tono: "pizarra",
-      frase: f.ventas <= 0 ? `Todavía no hay ventas en ${mes}.` : `Vendiste ${soles(f.ventas)} sin margen: vender más no cubre nada.`,
-      cierreFrase: fijoMes > 0 ? `Lo fijo de ${mes} ronda ${soles(fijoMes)}.` : "",
-    };
-  }
-  const margenPct = f.margen / f.ventas;
-  const necesarioMes = fijoMes / margenPct;
-  const necesarioPorDia = r2(necesarioMes / diasMes);
-  const cierre = r2(porDia * diasMes * margenPct - fijoMes);
-  const diaCubre = porDia > 0 ? Math.ceil(necesarioMes / porDia - 1e-9) : null;
-  const llega = diaCubre !== null && diaCubre <= diasMes;
-  const tono: Ritmo["tono"] = necesarioPorDia <= 0 ? "verde" : porDia >= necesarioPorDia * 1.05 ? "verde" : porDia >= necesarioPorDia * 0.95 ? "ambar" : "rojo";
-  const frase = necesarioPorDia <= 0
-    ? `Vas en ${soles(porDia)} al día y este mes no hay nada fijo registrado que cubrir.`
-    : porDia >= necesarioPorDia
-      ? `Vas en ${soles(porDia)} al día; necesitas ${soles(necesarioPorDia)} para cubrir ${mes}. Te sobran ${soles(porDia - necesarioPorDia)} al día.`
-      : `Vas en ${soles(porDia)} al día; necesitas ${soles(necesarioPorDia)} para cubrir ${mes}. Te faltan ${soles(necesarioPorDia - porDia)} al día.`;
-  const cierreFrase = llega
-    ? `Si sigues así, cierras ${mes} con ≈ ${soles(cierre)}. ${diaCubre! <= dia ? "Ya cubriste" : `${nombreDia(r.mes, diaCubre!)[0].toUpperCase()}${nombreDia(r.mes, diaCubre!).slice(1)} habrás cubierto`} todo lo fijo de ${mes}; desde ahí, casi todo lo que vendes es tuyo.`
-    : `Si sigues así, cierras ${mes} con ≈ ${soles(cierre)}: a este ritmo no llegas a cubrir lo fijo del mes.`;
-  return { porDia, necesarioPorDia, cierre, diaCubre: llega ? diaCubre : null, fijoMes, dia, diasMes, tono, frase, cierreFrase };
-}
-
 // ---- 3. Por qué ese número: la cascada ---------------------------------------------------------------------------------------
 
 /** `negativo`: solo en «queda», cuando el resultado es una pérdida (`monto` va siempre en positivo; el color sale de aquí). */
 export type TramoCascada = { clave: string; nombre: string; monto: number; tipo: "entra" | "sale" | "queda"; detalle?: string; negativo?: boolean };
-
-export function cascadaPulso(r: ResumenFinanzas): TramoCascada[] {
-  if (r.resultadosMes.estado !== "ok") return [];
-  const f = filaDeVer(r.resultadosMes.datos, r.ver);
-  if (!f) return [];
-  return cascadaDeFila(f);
-}
 
 /** La cascada de una fila del Estado de resultados: la usan Resumen y Reportes. */
 export function cascadaDeFila(f: FilaER): TramoCascada[] {

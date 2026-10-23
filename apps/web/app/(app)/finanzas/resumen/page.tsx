@@ -1,18 +1,54 @@
-import { exigirModulo } from "@/lib/persona-actual";
+import { exigirModulo, veFinanzasDeTodoDe, veModulo } from "@/lib/persona-actual";
+import { hoyLima } from "@/lib/fechas-lima";
 import { getConfianzaFinanzas, getResumenFinanzas } from "@/lib/resumen-finanzas";
 import { leerVerResumen } from "@/lib/resumen-finanzas-reglas";
+import { getEstadoResultados } from "@/lib/resultados";
+import { getSedesDelTelar } from "@/lib/finanzas-telar";
+import { getVentasPorDia } from "@/lib/resumen-telar";
+import { esMesTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
+import { tiendasDeLaLinea, tramoDeComparacion, tramoDelMes } from "@/lib/resumen-telar-reglas";
 import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
-import { sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 
-// Finanzas ▸ Resumen (ADR-0195 F10; spike `vista-resumen.js`): el tablero del lunes. Una sola lectura
-// (`fn_resumen_finanzas`) que junta lo que ya calcula cada fase. `?ver=` (solo el líder): «todas» (por defecto: el Resumen
-// es de CAYLA entera), una ubicación o «empresa». Con el módulo sin ser líder, su sede: lo decide la base.
-export default async function ResumenFinanzasPage({ searchParams }: { searchParams: Promise<{ ver?: string; sede?: string; }> }) {
+// Finanzas ▸ Resumen en El telar (ADR-0195 F10; ADR-0493, Felipe 2026-10-23). La sede y el mes los elige la barra común (`?sede=`,
+// `?mes=`; mientras dure el cambio, `?ver=` gana). Lecturas, todas de solo lectura y a la vez cuando no dependen una de otra:
+//   - `fn_resumen_finanzas`: los avisos de «Hoy te toca», la confianza y las unidades (de HOY: es lo que toca decidir ahora);
+//   - `fn_estado_resultados` del mes elegido (al día de hoy si es el mes en curso) y del tramo con que se compara: la respuesta de
+//     la cabecera, el orillo y el recorrido salen de aquí, así que el mes de la barra filtra de verdad (auditoría v3);
+//   - `fn_rendimiento_serie` de cada tienda, si la cuenta ve Rendimiento: la línea de ventas contra la meta.
+// Quien no ve las finanzas de todo mira su sede: lo decide la base.
+export default async function ResumenFinanzasPage({ searchParams }: { searchParams: Promise<{ ver?: string; sede?: string; mes?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
   const sp = await searchParams;
-  const esLider = persona.rol === "lider";
-  const pedido = leerVerResumen(sedeDeLaUrl(sp), esLider);
-  // Las dos lecturas van a la vez: el resumen y el medidor de confianza (ADR-0417) no dependen una de la otra.
-  const [{ datos, falla }, confianza] = await Promise.all([getResumenFinanzas(pedido), getConfianzaFinanzas(pedido)]);
-  return <ResumenFinanzasPanel resumen={datos} falla={falla} confianza={confianza} acceso={{ lider: esLider, modulos: persona.modulos.map((m) => m.clave) }} />;
+  const hoy = hoyLima();
+  const mesDeHoy = mesDelDia(hoy);
+  const mes = esMesTelar(sp.mes) && sp.mes <= mesDeHoy ? sp.mes : mesDeHoy;
+  const veTodo = veFinanzasDeTodoDe(persona);
+  const pedido = leerVerResumen(sedeDeLaUrl(sp), veTodo);
+  const tramo = tramoDelMes(mes, hoy)!;
+  const comparar = tramoDeComparacion(mes, hoy);
+
+  const [{ datos, falla }, confianza, erMes, erAntes, telar] = await Promise.all([
+    getResumenFinanzas(pedido),
+    getConfianzaFinanzas(pedido, mes),
+    getEstadoResultados(tramo.desde, tramo.hasta),
+    getEstadoResultados(comparar.desde, comparar.hasta),
+    getSedesDelTelar(),
+  ]);
+  const tiendas = datos ? tiendasDeLaLinea(datos) : [];
+  const ventas = veModulo(persona, "rendimiento") ? await getVentasPorDia(tiendas, tramo.desde, tramo.hasta) : null;
+
+  return (
+    <ResumenFinanzasPanel
+      resumen={datos}
+      falla={falla}
+      confianza={confianza}
+      mes={mes}
+      hoy={hoy}
+      estadoMes={erMes}
+      estadoAntes={erAntes.falla ? null : erAntes.datos}
+      ventasPorDia={ventas}
+      sedes={telar.sedes}
+      acceso={{ lider: veTodo, modulos: persona.modulos.map((m) => m.clave) }}
+    />
+  );
 }

@@ -20,10 +20,11 @@ function quien(r: ResumenFinanzas): string {
 /**
  * La pregunta del Resumen y su cifra. CAYLA o una tienda: «¿Cuánto te deja octubre?» con lo que queda a la fecha (negativo = pérdida,
  * y lo dice un chip). El Taller o la empresa: «¿Cuánto cuesta el Taller en octubre?», porque no venden. `anterior` es el mismo tramo
- * del mes pasado (del 1 al mismo día): con él va el chip «+S/ 1,200 que septiembre a esta fecha»; sin él, no se inventa. `provisional`
+ * del mes pasado (del 1 al mismo día; si el mes ya cerró, el mes pasado entero, `enCurso = false`): con él va el chip «S/ 1,200 más
+ * que septiembre a esta fecha»; sin él, no se inventa. `provisional`
  * (la confianza del número es baja, ADR-0417): el chip lo dice, como en la respuesta del Pulso.
  */
-export function respuestaResumen(r: ResumenFinanzas, anterior: readonly FilaER[] | null, provisional: boolean): RespuestaResumen {
+export function respuestaResumen(r: ResumenFinanzas, anterior: readonly FilaER[] | null, provisional: boolean, enCurso = true): RespuestaResumen {
   const mes = mesNombre(r.mes);
   const vende = r.ver.todas || r.ver.tipo === "tienda";
   const pregunta = vende
@@ -44,13 +45,13 @@ export function respuestaResumen(r: ResumenFinanzas, anterior: readonly FilaER[]
     chips.push({ texto: "No vende: se sostiene con lo que dejan las tiendas", tono: "pizarra" });
     return { pregunta, valor: Math.max(0, -f.resultado), chips };
   }
-  if (f.resultado < 0) chips.push({ texto: "Este mes vas perdiendo plata", tono: "ambar" });
+  if (f.resultado < 0) chips.push({ texto: enCurso ? "Este mes vas perdiendo plata" : "Este mes perdió plata", tono: "ambar" });
   const antes = anterior ? filaDeVer(anterior, r.ver) : undefined;
   if (antes) {
     const dif = Math.round(f.resultado - antes.resultado);
-    const mesAnt = mesNombre(r.mesAnterior);
-    if (Math.abs(dif) >= 1) chips.push({ texto: `${dif > 0 ? "+" : "−"}${soles(Math.abs(dif))} que ${mesAnt} a esta fecha`, tono: dif > 0 ? "verde" : "ambar" });
-    else chips.push({ texto: `Igual que ${mesAnt} a esta fecha`, tono: "pizarra" });
+    const contra = `${mesNombre(r.mesAnterior)}${enCurso ? " a esta fecha" : ""}`;
+    if (Math.abs(dif) >= 1) chips.push({ texto: `${soles(Math.abs(dif))} ${dif > 0 ? "más" : "menos"} que ${contra}`, tono: dif > 0 ? "verde" : "ambar" });
+    else chips.push({ texto: `Igual que ${contra}`, tono: "pizarra" });
   }
   return { pregunta, valor: f.resultado, chips };
 }
@@ -137,9 +138,15 @@ export function lineaVentasMeta(series: readonly (readonly DiaVenta[])[], mes: s
 }
 
 /** La frase de la línea, en lenguaje de tienda: cuánto vas contra lo que la meta pedía a esta fecha. */
-export function fraseLineaVentas(l: LineaVentas, mes: string): string {
+export function fraseLineaVentas(l: LineaVentas, mes: string, enCurso = true): string {
   if (!l.serie.length) return `Todavía no hay ventas en ${mesNombre(mes)}.`;
-  if (l.meta === null || !l.referencia) return `Llevas ${soles(l.vendido)} vendidos en ${mesNombre(mes)}. No hay meta puesta para comparar.`;
+  const llevas = enCurso ? `Llevas ${soles(l.vendido)} vendidos en ${mesNombre(mes)}` : `Vendiste ${soles(l.vendido)} en ${mesNombre(mes)}`;
+  if (l.meta === null || !l.referencia) return `${llevas}. No hay meta puesta para comparar.`;
+  if (!enCurso) {
+    const dif = Math.round(l.vendido - l.meta);
+    if (Math.abs(dif) < 1) return `${llevas}: justo la meta.`;
+    return `${llevas}: ${soles(Math.abs(dif))} ${dif > 0 ? "arriba" : "abajo"} de la meta de ${soles(l.meta)}.`;
+  }
   const dia = l.serie.at(-1)!.x;
   const pedia = l.origenMeta === "sedes" ? (l.referencia[dia]?.y ?? 0) : (l.meta * dia) / l.diasMes;
   const dif = Math.round(l.vendido - pedia);
@@ -148,4 +155,44 @@ export function fraseLineaVentas(l: LineaVentas, mes: string): string {
   return dif > 0
     ? `Vas ${soles(dif)} arriba de lo que la meta pedía a esta fecha${deDonde}: ${soles(l.vendido)} de ${soles(l.meta)}.`
     : `Vas ${soles(-dif)} abajo de lo que la meta pedía a esta fecha${deDonde}: ${soles(l.vendido)} de ${soles(l.meta)}.`;
+}
+
+// ---- El mes que se mira (el `?mes=` de la barra) ------------------------------------------------------------------------------
+
+/** Del 1 del mes elegido a hoy (si es el mes en curso) o a su último día (si ya pasó). `null` si el mes todavía no llega. */
+export function tramoDelMes(mes: string, hoy: string): { desde: string; hasta: string } | null {
+  if (mes > hoy.slice(0, 7)) return null;
+  const [a, m] = mes.split("-").map(Number) as [number, number];
+  const ultimo = `${mes}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`;
+  return { desde: `${mes}-01`, hasta: mes === hoy.slice(0, 7) ? hoy : ultimo };
+}
+
+/** El mes anterior a «AAAA-MM». */
+export function mesAnteriorDe(mes: string): string {
+  const [a, m] = mes.split("-").map(Number) as [number, number];
+  return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`;
+}
+
+/**
+ * Con qué se compara la respuesta: en el mes en curso, el mes pasado del 1 al mismo día; en un mes que ya cerró, el mes pasado
+ * entero (mes completo contra mes completo).
+ */
+export function tramoDeComparacion(mes: string, hoy: string): { desde: string; hasta: string } {
+  const ant = mesAnteriorDe(mes);
+  if (mes === hoy.slice(0, 7)) return tramoAnteriorALaFecha(hoy, ant);
+  return tramoDelMes(ant, hoy)!;
+}
+
+/** Las tiendas cuyo ritmo de ventas entra a la línea: todas las que se ven, o la elegida. El Taller y la Empresa no venden. */
+export function tiendasDeLaLinea(r: ResumenFinanzas): string[] {
+  if (r.ver.todas) return r.unidades.filter((u) => u.tipo === "tienda").map((u) => u.id);
+  return r.ver.tipo === "tienda" && r.ver.ubicacionId ? [r.ver.ubicacionId] : [];
+}
+
+/** La meta de ventas del mes del presupuesto, de lo que se mira (con IGV, como la meta de Caja). `null` si no hay. */
+export function metaVentasPresupuesto(r: ResumenFinanzas): number | null {
+  if (r.presupuesto.estado !== "ok") return null;
+  const ventas = r.presupuesto.datos.filter((f) => f.linea === "ventas");
+  const fila = r.ver.todas ? ventas.find((f) => f.unidad === "consolidado") : ventas.find((f) => f.ubicacionId === r.ver.ubicacionId);
+  return fila?.presupuesto ?? null;
 }

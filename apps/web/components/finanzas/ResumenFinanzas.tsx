@@ -1,118 +1,146 @@
 "use client";
 
-import Link from "next/link";
-import { useState, type CSSProperties } from "react";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
-import { Chip } from "@/components/ui/Chip";
-import { CifraAnimada } from "@/components/ui/CifraAnimada";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { useSearchParams } from "next/navigation";
+import type { CSSProperties } from "react";
+import { BookOpen, CalendarCheck, ChartColumn, Percent, Wallet } from "lucide-react";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Aviso } from "@/components/ui/Aviso";
+import { Linea } from "@/components/ui/Linea";
+import { Vacio } from "@/components/ui/Vacio";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
-import { CascadaPulso } from "@/components/finanzas/CascadaPulso";
 import { Confianza } from "@/components/finanzas/Confianza";
-import { GraficoSemanas } from "@/components/finanzas/GraficoSemanas";
-import { VerPorPagar } from "@/components/finanzas/PorPagarAcciones";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
+import { RecorridoPlata } from "@/components/finanzas/RecorridoPlata";
+import { DockTelar } from "@/components/finanzas/telar/DockTelar";
+import { Orillo } from "@/components/finanzas/telar/Orillo";
+import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
 import { soles } from "@/lib/flujo-caja-reglas";
-import { avisoAntesDelCorte, mesDelCorte } from "@/lib/finanzas-arranque-reglas";
-import { mesNombre } from "@/lib/resultados-reglas";
-import { cascadaPulso, matizarRespuesta, respuestaPulso, ritmoPulso } from "@/lib/pulso-reglas";
+import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
+import { hrefTelar, mesDelDia, porSedeDe, SEDE_EMPRESA, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
-import { RecorridoPlata } from "@/components/finanzas/RecorridoPlata";
+import { avisosParaDecidir, noRevisado, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
 import {
-  avisosParaDecidir,
-  bajadaResumen,
-  barrasSemanas,
-  caminoEquilibrio,
-  cifrasResumen,
-  claveVer,
-  coberturaTiendas,
-  miniPresupuesto,
-  motivoAusencia,
-  motivoSinCamino,
-  notaUnidad,
-  noRevisado,
-  tituloResumen,
-  type Acceso,
-  type ResumenFinanzas,
-} from "@/lib/resumen-finanzas-reglas";
-import { Vacio } from "@/components/ui/Vacio";
-import { CalendarX, ChartColumn, Target, Wallet } from "lucide-react";
+  fraseLineaVentas,
+  lineaVentasMeta,
+  mesAnteriorDe,
+  metaVentasPresupuesto,
+  respuestaResumen,
+  vendidoPorSede,
+  type DiaVenta,
+} from "@/lib/resumen-telar-reglas";
 
-// Finanzas ▸ Resumen, «El Pulso» (camino A de las maquetas finanzas-v2-2026-10, elegido por Felipe el 2026-10-15): una
-// pregunta —¿estoy ganando plata?— y una respuesta grande, lo que queda a la fecha. Debajo, en capas: ¿por qué ese número?
-// (la cascada, a un toque), el ritmo (lo vendido por día contra lo que hace falta, y con qué cerrarías), qué tan seguro es el
-// número (ADR-0417, el medidor de confianza), qué deja cada lugar (sin repartir lo de la empresa) y, recién entonces, las
-// cifras del mes, «para decidir hoy» y los gráficos de siempre. No calcula plata: todo viene de `fn_resumen_finanzas` y de
-// `lib/pulso-reglas.ts` + `lib/resumen-finanzas-reglas.ts`, que deciden qué se dice. Es cliente por el «¿Por qué?» y por
-// los gráficos, que reciben cómo escribir cada valor (una función).
+// Finanzas ▸ Resumen en El telar (Felipe 2026-10-23, ADR-0493): la cabecera común con la respuesta («¿Cuánto te deja octubre?»), el
+// orillo con lo que vendió cada sede, el recorrido de la plata al lado de «Hoy te toca», la línea de ventas contra la meta y, al
+// final, qué tan seguro es el número (ADR-0417). La sede y el mes los pone la barra común; esta pantalla no tiene selector propio.
+// No calcula plata: lo arman `recorrido-plata-reglas`, `resumen-telar-reglas` y `resumen-finanzas-reglas` con lo que lee la página.
 
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
-// Lo mismo, para una pieza que ya tiene su clase.
-const entraEn = (clase: string, i: number) => ({ className: `${clase} anim-entra`, style: { ["--i" as string]: i } as CSSProperties });
-const mayuscula = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, acceso }: { resumen: ResumenFinanzas | null; falla: string | null; confianza: Lectura<ConfianzaDatos | null>; acceso: Acceso }) {
+type Props = {
+  resumen: ResumenFinanzas | null;
+  falla: string | null;
+  confianza: Lectura<ConfianzaDatos | null>;
+  /** El mes que se mira («2026-10») y hoy («2026-10-23»). */
+  mes: string;
+  hoy: string;
+  /** El Estado de resultados del mes elegido (al día de hoy si es el mes en curso), de todas las sedes que la cuenta ve. */
+  estadoMes: Lectura<FilaER[]>;
+  /** El tramo con que se compara (el mes pasado a la misma fecha); `null` si no se pudo leer. */
+  estadoAntes: FilaER[] | null;
+  /** Lo vendido por día de cada tienda; `null` si la cuenta no ve Rendimiento. */
+  ventasPorDia: { series: DiaVenta[][]; incompleta: boolean } | null;
+  sedes: SedeTelar[];
+  acceso: Acceso;
+};
+
+const FRASE = "Por dónde pasa la plata del mes: de lo que vende cada tienda a lo que te queda.";
+
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, acceso }: Props) {
+  const sp = useSearchParams();
+  const mesDeHoy = mesDelDia(hoy);
+  const enCurso = mes === mesDeHoy;
+  // Las acciones del dock llevan la sede y el mes que se miran (`hrefTelar`).
+  const ir = (ruta: string) => hrefTelar(ruta, sp.entries(), {}, { mismaPantalla: false, mesDeHoy });
+  const dock = (
+    <DockTelar
+      acciones={[
+        { texto: "Pagar facturas", tecla: "p", icono: <Wallet aria-hidden />, principal: true, href: ir("/finanzas/dinero/por-pagar") },
+        { texto: "IGV del mes", tecla: "i", icono: <Percent aria-hidden />, href: ir("/finanzas/impuestos") },
+        { texto: "Cierre de mes", tecla: "m", icono: <CalendarCheck aria-hidden />, href: ir("/finanzas/cierre") },
+        { texto: "Reportes", tecla: "r", icono: <BookOpen aria-hidden />, href: ir("/finanzas/reportes") },
+      ]}
+    />
+  );
+
   if (!resumen) {
     return (
       <div className="space-y-6">
-        <CabeceraPantalla sobretitulo="Finanzas · Resumen" titulo="Resumen" bajada="Cómo está el negocio y qué conviene decidir hoy." accionesAbajo />
-        <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla ?? "No se pudo leer el resumen."}</p>
+        <EncabezadoPagina sede="Finanzas" titulo="Resumen" subtitulo={FRASE} />
+        <Aviso tono="error" titulo="El Resumen no respondió">
+          {falla ?? "No se pudo leer el resumen. Vuelve a cargar la página; si sigue igual, avisa a Felipe."}
+        </Aviso>
+        {dock}
       </div>
     );
   }
-  const r = resumen;
-  const cifras = cifrasResumen(r);
-  const avisos = avisosParaDecidir(r, acceso);
-  const faltan = noRevisado(r);
-  const ver = { clave: claveVer(r.ver), ubicacionId: r.ver.ubicacionId, soloEmpresa: r.ver.soloEmpresa };
-  const unidades = r.lider ? r.unidades.map((u) => ({ id: u.id, nombre: u.nombre })) : [{ id: r.ver.ubicacionId ?? "", nombre: r.ver.nombre }];
-  const recorrido = r.resultadosMes.estado === "ok" ? recorridoPlata(r.resultadosMes.datos, r.ver) : null;
+
+  // El Resumen del mes elegido: los avisos son de hoy, pero la respuesta, el orillo y el recorrido salen del mes de la barra.
+  const r: ResumenFinanzas = {
+    ...resumen,
+    mes,
+    mesAnterior: mesAnteriorDe(mes),
+    resultadosMes: estadoMes.falla
+      ? { estado: "falla", mensaje: "No se pudo leer el estado de resultados de este mes. Vuelve a cargar la página en un rato." }
+      : { estado: "ok", datos: estadoMes.datos },
+  };
+  const provisional = !confianza.datos || confianza.datos.nivel === "bajo";
+  const resp = respuestaResumen(r, estadoAntes, provisional, enCurso);
+  const filas = estadoMes.falla ? [] : estadoMes.datos;
+  const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
+  const avisos = avisosParaDecidir(resumen, acceso);
+  const faltan = noRevisado(resumen);
+  const sede = r.ver.todas ? "Todas las sedes" : r.ver.soloEmpresa ? "Empresa" : r.ver.nombre.replace(/^Tienda\s+/i, "");
+  const hrefDeSede = acceso.lider
+    ? Object.fromEntries(sedes.map((s) => [s.clave, hrefTelar("/finanzas/resumen", sp.entries(), { sede: s.clave }, { mismaPantalla: true, mesDeHoy })]))
+    : {};
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Finanzas · Resumen"
-        titulo={tituloResumen(r)}
-        bajada={bajadaResumen(r)}
-        accionesAbajo
-        acciones={<VerPorPagar ver={ver} unidades={unidades} esLider={r.lider} />}
-      />
+      <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE}>
+        <RespuestaTelar pregunta={resp.pregunta} valor={resp.valor} chips={resp.chips} motivo={resp.motivo} />
+      </EncabezadoPagina>
+      <Orillo porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} que="vendido" hoy={hoy} />
+      {dock}
 
-      <Respuesta r={r} nivel={confianza.datos?.nivel ?? null} />
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(18rem,1fr)]">
+        <div {...entra(2)}>
+          <Superficie pad guia="fin-resumen.recorrido">
+            <CabeceraBloque
+              titulo="Por dónde pasa la plata"
+              bajada={recorrido ? `${recorrido.nota}${acceso.lider ? " Toca una sede para seguirla." : ""}` : `${mesNombre(mes).replace(/^./, (c) => c.toUpperCase())} sin movimientos para dibujar.`}
+            />
+            {recorrido ? (
+              <RecorridoPlata recorrido={recorrido} hrefDeSede={hrefDeSede} colorDeSede={coloresDeSede(sedes)} />
+            ) : (
+              <Vacio tamano="chico" icono={<ChartColumn />}>
+                {estadoMes.falla
+                  ? "No se pudo leer el estado de resultados de este mes. Vuelve a cargar la página en un rato."
+                  : r.ver.todas || r.ver.tipo === "tienda"
+                    ? "Todavía no hay ventas ni gastos registrados este mes."
+                    : "Para ver cómo se sostiene, elige «Todas las sedes» o una tienda: este mes no hay tiendas con qué compararlo."}
+              </Vacio>
+            )}
+          </Superficie>
+        </div>
 
-      <section className="fin-dos-col">
-        <Ritmo r={r} />
-        {/* ADR-0417: qué tan cierto es el número del mes y qué falta para que lo sea. Si no se pudo medir, no se dibuja (nunca un 0 % falso). */}
-        {confianza.datos ? (
-          <div {...entra(5)}>
-            <Confianza confianza={confianza.datos} guia="fin-resumen.confianza" />
-          </div>
-        ) : (
-          <div {...entra(5)}>
-            <Superficie pad>
-              <CabeceraBloque titulo="Qué tan seguro es este número" bajada={confianza.falla ?? "No se pudo medir."} />
-            </Superficie>
-          </div>
-        )}
-      </section>
-
-      {recorrido && <Recorrido r={r} recorrido={recorrido} />}
-
-      <section className="fin-cifras fin-cinco" aria-label="Los números del mes" data-guia="fin-resumen.cifras">
-        {cifras.map((c, i) => (
-          // `cifrasResumen` dice «—» cuando no hay dato: la pieza lo dibuja como «sin dato», con su detalle de motivo (ADR-0358).
-          <TarjetaCifra key={c.clave} etiqueta={c.etiqueta} valor={c.valor === "—" ? null : c.valor} tono={c.rojo ? "text-rojo" : undefined} {...entra(i + 7)}>
-            <span title={`Sale de ${c.origen}`}>{c.detalle}</span>
-          </TarjetaCifra>
-        ))}
-      </section>
-
-      <section className="fin-dos-col fin-dos-col-izq">
-        <div {...entra(12)} data-guia="fin-resumen.decidir">
+        <div {...entra(3)} data-guia="fin-resumen.decidir">
           <Superficie pad>
-            <CabeceraBloque titulo="Para decidir hoy" bajada="Primero lo que más cuesta si se deja pasar. Cada aviso dice cuánto está en juego." />
+            <CabeceraBloque
+              titulo="Hoy te toca"
+              bajada={enCurso ? "Primero lo que más cuesta si se deja pasar." : `Es de hoy, aunque mires ${mesNombre(mes)}. Primero lo que más cuesta si se deja pasar.`}
+            />
             <ResumenDecidir avisos={avisos} parcial={faltan.length > 0} />
             {faltan.length > 0 && (
               <ul className="fin-no-revisado">
@@ -123,287 +151,82 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, acceso }: { re
             )}
           </Superficie>
         </div>
-
-        <div className="fin-columna">
-          {r.ver.todas ? (
-            <>
-              <Cobertura r={r} />
-              <Semanas r={r} />
-            </>
-          ) : r.ver.tipo === "tienda" ? (
-            <>
-              <Camino r={r} />
-              <MiniPresupuesto r={r} acceso={acceso} />
-            </>
-          ) : (
-            notaUnidad(r) && (
-              <div className="nota-cayla anim-entra" style={{ ["--i" as string]: 13 } as CSSProperties}>
-                {notaUnidad(r)}
-              </div>
-            )
-          )}
-        </div>
       </section>
+
+      <div {...entra(4)}>
+        <VentasContraMeta r={r} hoy={hoy} enCurso={enCurso} ventasPorDia={ventasPorDia} />
+      </div>
+
+      {/* ADR-0417: qué tan cierto es el número del mes y qué falta para que lo sea. Si no se pudo medir, se dice (nunca un 0 % falso). */}
+      <div {...entra(5)}>
+        {confianza.datos ? (
+          <Confianza confianza={confianza.datos} guia="fin-resumen.confianza" />
+        ) : (
+          <Superficie pad guia="fin-resumen.confianza">
+            <CabeceraBloque titulo="Qué tan seguro es este número" bajada={confianza.falla ?? "No se pudo medir."} />
+          </Superficie>
+        )}
+      </div>
     </div>
   );
 }
 
-/** La pregunta y la respuesta grande, con «¿Por qué?» que abre la cascada (vendiste → costó → sueldos → gastos → queda). */
-function Respuesta({ r, nivel }: { r: ResumenFinanzas; nivel: ConfianzaDatos["nivel"] | null }) {
-  const [porque, setPorque] = useState(false);
-  const resp = respuestaPulso(r);
-  // ADR-0417: el «Sí» pelado solo con confianza alta; con baja, «Con lo que hay registrado…» y la cifra provisional.
-  const m = resp.estado === "sin_datos" ? null : matizarRespuesta(resp, r.mes, nivel);
-  const cascada = cascadaPulso(r);
+/** Los colores de sede del telar (`--color-sede-*`) para los hilos del recorrido; «otra» toma el de respaldo. */
+function coloresDeSede(sedes: readonly SedeTelar[]): Record<string, string> {
+  return Object.fromEntries(
+    sedes.filter((s) => s.color !== "otra").map((s) => [s.clave === SEDE_EMPRESA ? "empresa" : s.clave, `var(--color-sede-${s.color})`]),
+  );
+}
+
+/** Ventas del mes contra la meta (con IGV, como Caja): lo vendido acumulado en tinta y la meta en taupe punteado. */
+function VentasContraMeta({ r, hoy, enCurso, ventasPorDia }: { r: ResumenFinanzas; hoy: string; enCurso: boolean; ventasPorDia: Props["ventasPorDia"] }) {
+  const titulo = `Ventas de ${mesNombre(r.mes)} contra la meta`;
   const vende = r.ver.todas || r.ver.tipo === "tienda";
-  const pregunta = vende ? "¿Estoy ganando plata?" : r.ver.tipo === "taller" ? "¿Cuánto cuesta el Taller?" : "¿Cuánto cuesta lo de la empresa?";
-  return (
-    <section className="fin-pulso-hero" aria-labelledby="fin-pulso-pregunta" data-guia="fin-resumen.respuesta">
-      <p id="fin-pulso-pregunta" {...entraEn("fin-pulso-pregunta", 1)}>
-        {pregunta}
-      </p>
-      {resp.estado === "sin_datos" || m === null ? (
-        <div {...entra(2)}>
-          <Vacio tamano="chico" icono={<ChartColumn />}>
-            {resp.estado === "sin_datos" ? resp.motivo : ""}
-          </Vacio>
-        </div>
-      ) : (
-        <>
-          {vende && (
-            <p {...entraEn("fin-pulso-si", 2)}>
-              <Chip tono={m.tono}>{m.chip}</Chip>
-              <span>{m.intro}</span>
-            </p>
-          )}
-          <p {...entraEn("fin-pulso-respuesta", 3)}>
-            <span className="fin-pulso-verbo">{resp.verbo}</span>
-            <span className="fin-pulso-monto" data-estado={resp.estado} data-provisional={m.provisional || undefined}>
-              {m.aprox}
-              <CifraAnimada valor={Math.round(resp.monto)} formato="soles-redondo" />
-            </span>
-          </p>
-          <p {...entraEn("fin-pulso-explica", 4)}>
-            {resp.explica}
-            {m.aviso && ` ${m.aviso}`}
-          </p>
-          {cascada.length > 0 && (
-            <div {...entraEn("fin-pulso-porque", 5)}>
-              <button type="button" className="btn-cayla btn-enlace" aria-expanded={porque} aria-controls="fin-pulso-cascada" onClick={() => setPorque((v) => !v)}>
-                {porque ? "Cerrar" : `¿Por qué ${soles(resp.monto)}?`}
-              </button>
-              {porque && <CascadaPulso id="fin-pulso-cascada" tramos={cascada} etiqueta="De dónde sale el número" />}
-            </div>
-          )}
-        </>
-      )}
-    </section>
-  );
-}
-
-/** El ritmo: lo vendido por día contra lo que hace falta por día para cubrir lo fijo del mes, y con qué cerrarías si sigues así. */
-function Ritmo({ r }: { r: ResumenFinanzas }) {
-  const ritmo = ritmoPulso(r);
-  const nota = notaUnidad(r);
-  return (
-    <div {...entra(4)}>
-      <Superficie pad guia="fin-resumen.ritmo">
-        <CabeceraBloque titulo="Tu ritmo" bajada={ritmo ? ritmo.frase : (nota ?? "Mirando el Taller o la empresa no hay ritmo de venta.")} />
-        {ritmo && ritmo.necesarioPorDia !== null && ritmo.necesarioPorDia > 0 && (
-          <>
-            <RitmoBarra porDia={ritmo.porDia} necesario={ritmo.necesarioPorDia} tono={ritmo.tono} />
-            <p className="fin-pulso-cierre">{ritmo.cierreFrase}</p>
-            <p className="nota-cayla mt-3">
-              Lo fijo de {mesNombre(r.mes)} ronda {soles(ritmo.fijoMes)}: sueldos, alquileres, servicios y desgaste, con lo registrado hasta hoy. Lo que falta registrar lo dice «Qué tan seguro es este número».
-            </p>
-          </>
-        )}
-        {ritmo && (ritmo.necesarioPorDia === null || ritmo.necesarioPorDia <= 0) && ritmo.cierreFrase && <p className="nota-cayla mt-3">{ritmo.cierreFrase}</p>}
+  if (!vende)
+    return (
+      <Superficie pad guia="fin-resumen.ventas">
+        <CabeceraBloque titulo={titulo} bajada={r.ver.tipo === "taller" ? "El Taller no vende: no hay línea de ventas." : "La empresa no vende: no hay línea de ventas."} />
       </Superficie>
-    </div>
-  );
-}
-
-function RitmoBarra({ porDia, necesario, tono }: { porDia: number; necesario: number; tono: "verde" | "ambar" | "rojo" | "pizarra" }) {
-  const tope = Math.max(porDia, necesario, 1) * 1.25;
-  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / tope) * 100))}%`;
-  return (
-    <div className="fin-pulso-ritmo" data-tono={tono} role="img" aria-label={`Vas en ${soles(porDia)} al día; necesitas ${soles(necesario)} al día`}>
-      <div className="fin-pulso-ritmo-pista">
-        <i className="fin-pulso-ritmo-relleno" style={{ ["--w" as string]: pct(porDia) } as CSSProperties} />
-        <span className="fin-pulso-ritmo-marca" style={{ left: pct(necesario) }}>
-          <span>Necesitas {soles(necesario)}</span>
-        </span>
-      </div>
-      <div className="fin-pulso-ritmo-escala">
-        <span>S/&nbsp;0</span>
-        <span>
-          Tú: {soles(porDia)} al día
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/**
- * El recorrido de la plata (El telar, 2026-10-23): reemplaza a «Qué deja cada lugar». Tocar el hilo de una sede la elige; mientras la
- * barra común del telar no esté, la sede viaja en `?ver=` (solo el líder elige otra).
- */
-function Recorrido({ r, recorrido }: { r: ResumenFinanzas; recorrido: NonNullable<ReturnType<typeof recorridoPlata>> }) {
-  const hrefDeSede = r.lider
-    ? Object.fromEntries([...r.unidades.map((u) => [u.id, `/finanzas/resumen?ver=${u.id}`]), ["empresa", "/finanzas/resumen?ver=empresa"]])
-    : {};
-  return (
-    <div {...entra(6)}>
-      <Superficie pad guia="fin-resumen.lugares">
-        <CabeceraBloque titulo="Por dónde pasa la plata" bajada={`${recorrido.nota}${r.lider ? " Toca una sede para seguirla." : ""}`} />
-        <RecorridoPlata recorrido={recorrido} hrefDeSede={hrefDeSede} />
+    );
+  if (!ventasPorDia)
+    return (
+      <Superficie pad guia="fin-resumen.ventas">
+        <CabeceraBloque titulo={titulo} bajada="La venta día por día sale de Rendimiento, y tu cuenta no lo ve. Pídeselo a tu líder si lo necesitas." />
       </Superficie>
-    </div>
-  );
-}
-
-function Cobertura({ r }: { r: ResumenFinanzas }) {
-  const { barras, sinDatos, sinGastos } = coberturaTiendas(r);
-  // Si el último mes completo quedó antes del corte de Finanzas (ADR-0332), el primero que se mide es el del corte.
-  const mes = mesNombre(r.antesDelCorte ? mesDelCorte(r.antesDelCorte) : r.mesAnterior);
+    );
+  // La meta del presupuesto es la del mes en curso: para un mes pasado solo vale la de cada sede.
+  const l = lineaVentasMeta(ventasPorDia.series, r.mes, hoy, enCurso ? metaVentasPresupuesto(r) : null);
+  const dia = Number(hoy.slice(8, 10));
+  const frase = `${fraseLineaVentas(l, r.mes, enCurso)}${ventasPorDia.incompleta ? " Falta una tienda que no respondió: la suma está incompleta." : ""}`;
   return (
-    <div {...entra(13)}>
-      <Superficie pad guia="fin-resumen.cobertura">
-        <CabeceraBloque titulo="¿Cada tienda cubre sus costos?" bajada={`${mayuscula(mes)}: lo que vendió contra lo que necesitaba vender (100 %).`} />
-        {r.antesDelCorte ? (
-          <Vacio tamano="chico" icono={<CalendarX />}>
-            {avisoAntesDelCorte(r.antesDelCorte)}
-          </Vacio>
-        ) : r.resultadosAnterior.estado !== "ok" ? (
-          <Vacio tamano="chico" icono={<ChartColumn />}>
-            {motivoAusencia(r.resultadosAnterior) ?? "El estado de resultados no se pudo leer."}
-          </Vacio>
-        ) : barras.length ? (
-          <GraficoSemanas
-            etiqueta={`Lo que vendió cada tienda en ${mes} contra su punto de equilibrio`}
-            barras={barras}
-            alto={190}
-            ancho={560}
-            umbral={100}
-            umbralTexto="100 % = cubre sus costos justos"
-            etiquetaValor={(v) => `${v} %`}
-          />
-        ) : (
-          <Vacio tamano="chico" icono={<ChartColumn />}>
-            {sinGastos.length
-              ? `Sin gastos registrados en ${mes}: ${sinGastos.join(", ")}. Sin su alquiler, sueldos y servicios no se sabe si cubre sus costos.`
-              : "Todavía no hay un mes completo con ventas para calcularlo."}
-          </Vacio>
-        )}
-        {barras.length > 0 && sinDatos.length > 0 && (
-          <p className="nota-cayla mt-3">
-            Sin ventas en {mes}: {sinDatos.join(", ")}.
-          </p>
-        )}
-        {/* Sin gastos registrados no se sabe si cubre: se dice, en vez de un 100 % que parece sano (auditoría v3, hallazgo 1). */}
-        {barras.length > 0 && sinGastos.length > 0 && (
-          <p className="nota-cayla mt-3">
-            Sin gastos registrados en {mes}: {sinGastos.join(", ")}. Sin su alquiler, sueldos y servicios no se sabe si cubre sus costos.
-          </p>
-        )}
-      </Superficie>
-    </div>
-  );
-}
-
-function Semanas({ r }: { r: ResumenFinanzas }) {
-  return (
-    <div {...entra(14)}>
-      <Superficie pad guia="fin-resumen.semanas">
-        <CabeceraBloque titulo="Saldo de las próximas 6 semanas" bajada="Lo que hay hoy + lo que entra − lo que vence." />
-        {r.flujo.estado === "ok" ? (
-          <GraficoSemanas
-            etiqueta={`Lo que queda cada semana, contra tu mínimo de caja de ${soles(r.flujo.datos.minimoCaja)}`}
-            barras={barrasSemanas(r.flujo.datos)}
-            alto={200}
-            ancho={560}
-            umbral={r.flujo.datos.minimoCaja}
-            umbralTexto={`tu mínimo de caja: ${soles(r.flujo.datos.minimoCaja)} (se cambia en Configuración)`}
-            etiquetaValor={soles}
-          />
-        ) : (
-          <Vacio tamano="chico" icono={<ChartColumn />}>
-            {motivoAusencia(r.flujo, "el líder") ?? "El flujo de caja no se pudo leer."}
-          </Vacio>
-        )}
-      </Superficie>
-    </div>
-  );
-}
-
-function Camino({ r }: { r: ResumenFinanzas }) {
-  const c = caminoEquilibrio(r);
-  return (
-    <div {...entra(13)}>
-      <Superficie pad guia="fin-resumen.camino">
-        <CabeceraBloque
-          titulo="Camino al punto de equilibrio"
-          bajada={`${mayuscula(mesNombre(r.mes))} al día ${Number(r.hoy.slice(8, 10))} contra lo que necesita vender en el mes (según ${mesNombre(r.mesAnterior)}).`}
-        />
-        {c ? (
-          <>
-            <div className="fin-umbral-barra fin-alto" role="img" aria-label={`Vendido ${soles(c.vendido)} de ${soles(c.pe)}`}>
-              <i style={{ width: `${c.ancho}%` }} />
-            </div>
-            <div className="fin-marcas">
-              <span>Vendido {soles(c.vendido)}</span>
-              <span>Necesita {soles(c.pe)}</span>
-            </div>
-            <p className="nota-cayla mt-3">{c.texto}</p>
-          </>
-        ) : (
-          <Vacio tamano="chico" icono={<Target />}>
-            {r.resultadosAnterior.estado !== "ok" ? (motivoAusencia(r.resultadosAnterior) ?? "") : motivoSinCamino(r)}
-          </Vacio>
-        )}
-      </Superficie>
-    </div>
-  );
-}
-
-function MiniPresupuesto({ r, acceso }: { r: ResumenFinanzas; acceso: Acceso }) {
-  const filas = miniPresupuesto(r);
-  const href = `/finanzas/reportes/presupuesto${r.lider && r.ver.ubicacionId ? `?ver=${r.ver.ubicacionId}` : ""}`;
-  return (
-    <div {...entra(14)}>
-      <Superficie pad guia="fin-resumen.presupuesto">
-        <CabeceraBloque titulo="Presupuesto del mes" bajada="Gastado a la fecha contra su tope; el % es la proyección al cierre.">
-          {(acceso.lider || acceso.modulos.includes("reportes_financieros")) && (
-            <Link href={href} className="btn-cayla btn-sutil btn-chico shrink-0">
-              Ver todo
-            </Link>
-          )}
-        </CabeceraBloque>
-        {r.presupuesto.estado !== "ok" ? (
-          <Vacio tamano="chico" icono={<Wallet />}>
-            {motivoAusencia(r.presupuesto) ?? ""}
-          </Vacio>
-        ) : filas.length ? (
-          <ul className="fin-lista-mov">
-            {filas.map((f) => (
-              <li key={f.nombre}>
-                <span>{f.nombre}</span>
-                <span>
-                  {soles(f.real)} de {soles(f.tope)} ·{" "}
-                  <b className="fin-pct" data-tono={f.tono}>
-                    {f.pct}
-                  </b>
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Vacio tamano="chico" icono={<Wallet />}>
-            Este mes no tiene topes. Se ponen en Configuración ▸ Presupuesto.
-          </Vacio>
-        )}
-      </Superficie>
-    </div>
+    <Superficie pad guia="fin-resumen.ventas">
+      <CabeceraBloque titulo={titulo} bajada={`${frase} Con IGV, como en Caja.`} />
+      <Linea
+        etiqueta={`${titulo}. ${frase}`}
+        serie={l.serie}
+        referencia={l.referencia}
+        desde={0}
+        hasta={l.diasMes}
+        marcasX={[1, 8, 15, 22, l.diasMes].map((x) => ({ x, texto: String(x), fuerte: enCurso && x === dia }))}
+        ahora={enCurso ? { x: dia, texto: "hoy" } : null}
+        cifra={l.serie.length ? soles(l.vendido) : null}
+        cifraReferencia={l.meta !== null ? { valor: soles(l.meta), texto: "meta" } : null}
+        leer={(x) => {
+          const v = l.serie.find((p) => p.x === Math.round(x));
+          const m = l.referencia ? (l.origenMeta === "sedes" ? l.referencia[Math.round(x)]?.y : ((l.meta ?? 0) * Math.round(x)) / l.diasMes) : null;
+          return (
+            <>
+              <b>
+                {Math.round(x)} de {mesNombre(r.mes)}
+              </b>
+              {v && <span>Vendido: {soles(v.y)}</span>}
+              {m != null && <span>La meta pedía: {soles(m)}</span>}
+            </>
+          );
+        }}
+        vacio={`Todavía no hay ventas en ${mesNombre(r.mes)}.`}
+        alto={220}
+      />
+    </Superficie>
   );
 }
