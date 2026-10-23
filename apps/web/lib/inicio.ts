@@ -186,6 +186,10 @@ export async function getFuentesAvisos(
   return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar, prendasSinLlegar };
 }
 
+/** Lo que entrega `fn_actividad` por llamada (su tope duro) y cuántas llamadas como máximo se hacen para recorrer el día (2.000 filas). */
+const FILAS_DE_ACTIVIDAD = 200;
+const PAGINAS_DE_ACTIVIDAD = 10;
+
 /** Quién está hoy en la sede (asistencia de Dynamic) y, si la cuenta ve la actividad (ADR-0207), qué hizo cada una. */
 export async function getEquipoDeHoy(ubicacionId: string, veActividad: boolean): Promise<MiembroEquipo[] | null> {
   const supabase: Supabase = await createClient();
@@ -199,9 +203,22 @@ export async function getEquipoDeHoy(ubicacionId: string, veActividad: boolean):
       ? tolerarLectura("la actividad de hoy", async () => {
           // Desde la medianoche de Lima (UTC−5 fijo, como `nombreDiaLima`).
           const desde = new Date(`${hoyLima()}T05:00:00Z`).toISOString();
-          const res = await supabase.rpc("fn_actividad" as never, { p_ubicacion_id: ubicacionId, p_desde: desde, p_limite: 200 } as never);
-          if ((res as { error: { message: string } | null }).error) throw new Error((res as { error: { message: string } }).error.message);
-          return ((res as { data: unknown }).data ?? []) as Parameters<typeof armarEquipo>[1] & object;
+          // `fn_actividad` entrega 200 filas como máximo por llamada y TRU ya tuvo días de 245: con una sola, las ventas y el monto de cada
+          // asesora salían de menos en un día intenso (se perdía lo de la mañana). Se recorre el día con su cursor (`p_antes_at`, `p_antes_id`).
+          const filas: (Parameters<typeof armarEquipo>[1] & object)[number][] = [];
+          let antes: { ocurrio_at: string; id: number } | null = null;
+          for (let pagina = 0; pagina < PAGINAS_DE_ACTIVIDAD; pagina++) {
+            const res = (await supabase.rpc(
+              "fn_actividad" as never,
+              { p_ubicacion_id: ubicacionId, p_desde: desde, p_limite: FILAS_DE_ACTIVIDAD, p_antes_at: antes?.ocurrio_at ?? null, p_antes_id: antes?.id ?? null } as never,
+            )) as unknown as { data: { ocurrio_at: string; id: number }[] | null; error: { message: string } | null };
+            if (res.error) throw new Error(res.error.message);
+            const lote = res.data ?? [];
+            filas.push(...(lote as unknown as typeof filas));
+            if (lote.length < FILAS_DE_ACTIVIDAD) break;
+            antes = lote[lote.length - 1];
+          }
+          return filas as Parameters<typeof armarEquipo>[1] & object;
         })
       : Promise.resolve(null),
   ]);

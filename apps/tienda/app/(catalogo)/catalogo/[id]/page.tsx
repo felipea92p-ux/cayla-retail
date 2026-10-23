@@ -76,8 +76,9 @@ export default async function FichaDePrenda(props: Props) {
   const combina = ficha ? combinaCon(looks?.looks ?? [], ficha.id, catalogo?.prendas ?? []) : null;
   // Las de su categoría y, si no llenan la fila, las de su grupo y su menú (sin repetir las de «Combínalo con»), de lo que hay en la tienda.
   const parecidas = ficha ? parecidasA(ficha, enLaTienda, { fuera: combina?.prendas.map((p) => p.id) ?? [] }) : null;
-  // «Nuevo · llegó hace 4 días» y «N.º 3 en más vendidos» salen del catálogo, que ya los trae.
-  const chips = chipsDelCatalogo(catalogo?.prendas.find((p) => p.id === id) ?? null);
+  // «Nuevo · llegó hace 4 días» y «N.º 3 en más vendidos» salen del catálogo, que ya los trae; entre los dos van las insignias que se le
+  // asignaron a la prenda en Catálogo ▸ Insignias (ADR-0489), que trae su propia ficha.
+  const chips = chipsDelCatalogo(catalogo?.prendas.find((p) => p.id === id) ?? null, ficha?.insignias ?? []);
   // «Arma un look con esta prenda», solo si el probador de esta tienda la tiene (con su recorte y su largo, y algo en la tienda): las
   // mismas reglas que arman el probador, así el botón nunca abre un probador sin ella.
   const enElProbador = lecturaProbador

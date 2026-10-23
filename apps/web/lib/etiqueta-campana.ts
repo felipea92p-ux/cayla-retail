@@ -50,7 +50,17 @@ export function objecionVigencia(desde: string | null, hasta: string | null): st
 /** `precio` es el MÁS BAJO al que se cobra la prenda en cualquier tienda (la campaña vale en todas: el peor caso es el que importa):
  *  el de la prenda o el propio de una tienda (`precioMasBajoEnTiendas`, Felipe 2026-10-10). `enSede` dice cuál tienda lo fija
  *  («Trujillo»), o `null` si es el de la prenda: el aviso nombra la tienda para que quien configura sepa dónde está el precio. */
-export type PrendaConCosto = { id: string; categoriaId: string | null; precio: number; costo: number; nombre: string; enSede?: string | null };
+export type PrendaConCosto = {
+  id: string;
+  categoriaId: string | null;
+  precio: number;
+  costo: number;
+  nombre: string;
+  enSede?: string | null;
+  /** El modelo en su color (`producto·color`, la clave del pase de Insignias): una prenda, con todas sus tallas. Sin él, cada talla
+   *  cuenta sola. Lo usan los conteos de la hoja y de la tarjeta (ADR-0488): «8 prendas» dicen lo mismo que el pase. */
+  modelo?: string;
+};
 
 /** Cómo se nombra una prenda en el aviso: «Falda Emma (FAL-0008-NEG-M) · precio más bajo: S/ 69.90 en Trujillo» si el precio más bajo
  *  al que se cobra es el propio de una tienda; el nombre tal cual si es el de la prenda. Dice un HECHO (el precio más bajo y dónde), no
@@ -94,28 +104,38 @@ export function textoSedesDeCampana(sedeIds: readonly string[], tiendas: readonl
 export const DESCUENTOS_RAPIDOS = [10, 15, 20, 25, 30, 50] as const;
 
 /** Cuántas prendas a la venta trae cada categoría: lo que dice cada chip de la hoja de campaña. */
-export function prendasPorCategoria(prendas: readonly Pick<PrendaConCosto, "categoriaId">[]): Map<string, number> {
-  const cuenta = new Map<string, number>();
-  for (const p of prendas) if (p.categoriaId !== null) cuenta.set(p.categoriaId, (cuenta.get(p.categoriaId) ?? 0) + 1);
-  return cuenta;
+export function prendasPorCategoria(prendas: readonly Pick<PrendaConCosto, "id" | "categoriaId" | "modelo">[]): Map<string, number> {
+  // Una prenda es un modelo en un color: sus tallas cuentan una vez (como el pase de Insignias, ADR-0488).
+  const modelos = new Map<string, Set<string>>();
+  for (const p of prendas) {
+    if (p.categoriaId === null) continue;
+    const set = modelos.get(p.categoriaId) ?? new Set<string>();
+    set.add(p.modelo ?? p.id);
+    modelos.set(p.categoriaId, set);
+  }
+  return new Map([...modelos].map(([id, set]) => [id, set.size]));
 }
 
 export type AlcanceCampana = { porCategoria: number; aMano: number; total: number };
 
 /** A cuántas prendas a la venta llega una campaña: las de sus categorías, más las marcadas a mano que no entran ya por su
- *  categoría. Una marcada a mano que ya no está a la venta (una talla desactivada) no cuenta: en caja no se puede cobrar. */
+ *  categoría. Una marcada a mano que ya no está a la venta (una talla desactivada) no cuenta: en caja no se puede cobrar. Una prenda
+ *  es un modelo en un color (`modelo`), como en el pase: sus tallas cuentan una vez, y si una talla entra por su categoría el modelo
+ *  ya no cuenta como «marcado a mano». */
 export function alcanceCampana(
-  prendas: readonly Pick<PrendaConCosto, "id" | "categoriaId">[],
+  prendas: readonly Pick<PrendaConCosto, "id" | "categoriaId" | "modelo">[],
   categoriaIds: ReadonlySet<string>,
   varianteIdsManuales: ReadonlySet<string>,
 ): AlcanceCampana {
-  let porCategoria = 0;
-  let aMano = 0;
+  const porCategoria = new Set<string>();
+  const aMano = new Set<string>();
   for (const p of prendas) {
-    if (p.categoriaId !== null && categoriaIds.has(p.categoriaId)) porCategoria++;
-    else if (varianteIdsManuales.has(p.id)) aMano++;
+    const modelo = p.modelo ?? p.id;
+    if (p.categoriaId !== null && categoriaIds.has(p.categoriaId)) porCategoria.add(modelo);
+    else if (varianteIdsManuales.has(p.id)) aMano.add(modelo);
   }
-  return { porCategoria, aMano, total: porCategoria + aMano };
+  const soloAMano = [...aMano].filter((m) => !porCategoria.has(m)).length;
+  return { porCategoria: porCategoria.size, aMano: soloAMano, total: porCategoria.size + soloAMano };
 }
 
 // ---- Lo que dice la tarjeta de una etiqueta -------------------------------------------------------------------------------
@@ -129,7 +149,7 @@ export type ConteoTarjeta = AlcanceCampana & {
 };
 
 export function conteoDeTarjeta(
-  prendas: readonly Pick<PrendaConCosto, "id" | "categoriaId">[],
+  prendas: readonly Pick<PrendaConCosto, "id" | "categoriaId" | "modelo">[],
   categoriaIds: ReadonlySet<string>,
   manuales: readonly string[],
 ): ConteoTarjeta {

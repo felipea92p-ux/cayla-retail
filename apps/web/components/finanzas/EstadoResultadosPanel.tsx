@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { CabeceraReportes } from "@/components/finanzas/CabeceraReportes";
@@ -24,6 +25,7 @@ import {
   NOTA_MES_CERRADO,
   montoNatural,
   nombreCorto,
+  ORDEN_DIARIO,
   origenDeCifra,
   porcentaje,
   solesER,
@@ -330,20 +332,12 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
   useEffect(() => {
     let vivo = true;
     const { desde, hasta } = rangoMes(mes);
-    createClient()
-      .rpc(
-        "fn_diario" as never,
-        {
-          p_desde: desde,
-          p_hasta: hasta,
-          p_ubicacion_id: c.ubicacionId,
-        } as never,
-      )
-      .then(({ data, error: e }) => {
-        if (!vivo) return;
-        if (e) setError(e.message);
-        else setLineas(((data ?? []) as Record<string, unknown>[]).map(leerLineaDiario));
-      });
+    // Por páginas: un mes de ventas da unas 5.400 líneas de diario y PostgREST corta en 1.000 sin error; «De dónde sale» sumaba solo los primeros días.
+    leerRpcPorPaginas(createClient(), "fn_diario", { p_desde: desde, p_hasta: hasta, p_ubicacion_id: c.ubicacionId }, ORDEN_DIARIO).then(({ data, error: e }) => {
+      if (!vivo) return;
+      if (e) setError(e.message);
+      else setLineas((data ?? []).map(leerLineaDiario));
+    });
     return () => {
       vivo = false;
     };

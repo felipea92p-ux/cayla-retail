@@ -169,6 +169,28 @@ describe("cuánto alcanza una campaña, antes de guardar", () => {
   });
 });
 
+// /formidable 2026-10-23 (ADR-0488): la hoja decía «23 prendas» (tallas) y el pase de la misma campaña «8 prendas» (modelo y color).
+// Una prenda es un modelo en un color, como en el pase: sus tallas cuentan una vez.
+describe("una prenda es un modelo en un color, como en el pase de Insignias", () => {
+  const conModelo = [
+    { id: "jean-28", categoriaId: "jeans", modelo: "jean·AZU" },
+    { id: "jean-30", categoriaId: "jeans", modelo: "jean·AZU" },
+    { id: "jean-28n", categoriaId: "jeans", modelo: "jean·NEG" },
+    { id: "polo-s", categoriaId: "polos", modelo: "polo·BLA" },
+    { id: "polo-m", categoriaId: "polos", modelo: "polo·BLA" },
+  ];
+
+  it("las tallas de un mismo modelo y color cuentan una vez, por categoría y en total", () => {
+    expect(prendasPorCategoria(conModelo).get("jeans")).toBe(2);
+    expect(prendasPorCategoria(conModelo).get("polos")).toBe(1);
+    expect(alcanceCampana(conModelo, new Set(["jeans"]), new Set(["polo-s", "polo-m", "jean-30"]))).toEqual({ porCategoria: 2, aMano: 1, total: 3 });
+  });
+
+  it("un modelo que entra por su categoría no cuenta además como marcado a mano", () => {
+    expect(alcanceCampana(conModelo, new Set(["polos"]), new Set(["polo-s"]))).toEqual({ porCategoria: 1, aMano: 0, total: 1 });
+  });
+});
+
 describe("la tarjeta cuenta lo mismo que su hoja", () => {
   const aLaVenta = [
     { id: "jean-28", categoriaId: "jeans" },
