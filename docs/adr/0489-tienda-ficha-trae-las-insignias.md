@@ -143,3 +143,55 @@ con su cara recortada); Casaca Ximena con «−30 % · ZZ Aniversario prueba» c
 - **Una insignia nueva no tiene dibujo propio:** las familias están escritas en `shared` (20 + la genérica). Que un Líder pueda elegir el dibujo
   de una insignia al crearla sería una columna en `retail.etiquetas` y un selector en «Nueva insignia»: no se hizo (Felipe no lo pidió y toca el
   modelo de datos). Mientras, para que «Día del Padre» tenga su dibujo hay que agregar la familia en `insignias-visual.ts`.
+
+## Actualización 2026-10-23 (c) — las tarjetas del catálogo también las muestran: hasta 3 y un «+N»
+
+Felipe, con la ficha ya publicada: «ahora también quiero implementarlo en las tarjetas del catálogo, pero para no llenarlas, como máximo 3 insignias (todas
+en la parte superior) y, si tienen más, un cuadro que diga cuántas más, por ejemplo +2; en Lima, las insignias de CAYLA y Claurè no cuentan para el
+máximo. El resultado es el de la imagen, ajustando el diseño al de las demás insignias» (la imagen: la columna NUEVO / CAYLA a la izquierda y, a su
+derecha, «INSIGNIA», «INSIGNIA» y «+2»).
+
+- **Qué se ve.** Arriba de la foto, UNA sola fila con todo: el descuento, «Nuevo», el puesto en Más vendidos, las insignias asignadas en Catálogo ▸ Insignias
+  (con la misma cara de las demás: versalitas chicas sobre papel, sin ícono) y al final el «+N» con las que no caben (al pasar el mouse dice cuáles). **Solo la
+  empresa (CAYLA o Claurè, en Lima) baja: va sola, debajo de la fila.** El nombre de la prenda las dice todas para el lector de pantalla.
+- **El tope es 3 EN TOTAL, y solo la empresa queda fuera.** El descuento, «Nuevo» y el puesto cuentan igual que las asignadas: así la imagen de Felipe
+  (NUEVO + 2 insignias + «+2») es exactamente 3 contadas. Si lo propio de la tarjeta ya llena el tope, ninguna asignada se dibuja y todas van al «+N».
+  Lo que la tienda ya dice por sí sola no ocupa lugar (la insignia «Nuevo» si la prenda ya es nueva; «Top ventas» si la tarjeta ya dice su puesto).
+  El tope vive en un solo número (`TOPE_DE_INSIGNIAS_EN_LA_TARJETA`).
+- **Una sola fila, y solo lo que cabe entero.** Felipe pidió «todas las insignias ajustadas a una sola fila» (la primera versión las dejaba envolver en dos
+  filas y, en el celular, bajar debajo de la columna propia). Sobre una foto de 165 px (el celular a 2 columnas) no caben tres nombres, y una insignia cortada a
+  la mitad («P…») no dice nada; por eso cada tarjeta muestra las insignias que caben ENTERAS en su ancho y cuenta el resto en el «+N» (`FilaDeInsignias`: mide en el
+  navegador una copia invisible de la fila y se vuelve a medir si la tarjeta cambia de ancho; `cuantasCaben`, `lib/insignias.ts`, es la parte pura con su prueba).
+  En tarjetas de menos de 380 px la letra de la fila es más chica (consulta de contenedor). Resultado medido: 409 px (escritorio) caben las 3 y el «+N»; 289 px
+  (1024 de ancho) y 216 px (tablet) caben casi siempre dos o tres; 165 px (celular) caben «Nuevo» y el «+N», o «Nuevo» y una insignia corta. Antes de medir (el HTML del
+  servidor, o sin JavaScript) se ven las 3 del tope y el CSS achica con «…» lo que no cabe.
+- **La base** (`20261023205000`): el catálogo trae `insignias` en cada prenda (`[]` si no tiene). La regla es la de este ADR, escrita
+  POR LOTE para el catálogo (`fn_tienda_insignias_de`: una pasada para todas las prendas) y SIN tocar la de la ficha (`fn_tienda_insignias`): en producción
+  ya es la de `20261023203000` (PR #1300: `[{id, nombre, icono, imagen, descuento}]`, con las de descuento marcadas) y reescribirla la desharía.
+  El catálogo le pasa las tiendas de la web que ya conoce: una prueba vieja (`20261015215000`) exige que se pregunte por ellas una sola vez por carga.
+
+DECIDÍ: una función por lote para el catálogo, aparte de la de la ficha. DESCARTÉ: llamar la de un modelo por cada prenda del catálogo (N consultas por
+carga; `20261017173000` reescribió el catálogo para que nada se calcule por prenda) y que la ficha llame a la de lote (la regla una sola vez, que era la
+primera versión de esta migración): #1300 ya dejó otra forma de la ficha en producción y sus columnas `icono`/`icono_imagen` no existen en una base armada
+desde cero. Costo aceptado: la regla vive en dos funciones y una puede cambiar sin la otra; `pnpm pruebas:tienda-insignias` compara la tarjeta con la ficha
+en 2 prendas × 3 tiendas y falla si difieren. Seguimiento: al fusionarse #1300, una migración chica suma `icono` e `imagen` a la de lote y la ficha la llama. DESCARTÉ: que la base corte en «3 y +N»: depende de lo que la tarjeta ya dice, que solo sabe la tienda.
+SE ROMPE SI: se reescribe `tienda_catalogo` con el texto de antes (el catálogo vuelve a no traer insignias, sin error), si la tarjeta dibuja un tipo
+nuevo de insignia propia y no la cuenta en `insigniasDeTarjeta` (el tope dejaría de ser 3), o si una chip nueva de la fila no lleva la clase `t-insignia` (la
+copia con que se mide no la vería y la fila se pasaría del ancho).
+
+**Interpretación a confirmar.** «Máximo 3 insignias» lo leí como 3 de TODO lo que dice la foto salvo la empresa (descuento, Nuevo, puesto y asignadas), que
+es lo que muestra la imagen y lo que evita llenar la tarjeta. Si Felipe quiso 3 solo de las asignadas, es cambiar `propias` a 0 en
+`insigniasAsignadasDeTarjeta`.
+
+Cuatro pruebas vecinas de base se actualizaron porque el catálogo ganó una clave y una unión: `tienda-inicio` (la lista de claves y la cuenta de
+«tiendas de la web, una vez por carga») y `tienda-rapida` (el JSON «de antes» ya no cuenta `insignias`, y el segundo pegado de `20261017173000` parte
+de la función sin esta pieza). Verificado: `pnpm pruebas:tienda-insignias` 34/34 (con el lote contra la regla de antes copiada como ORÁCULO, en
+2 prendas × 3 tiendas), `tienda-inicio` 21/21, `tienda-rapida` 15/15, `tienda-puerta`, `tienda-club`, `tienda-empresas`, `tienda-bolsa` y
+`una-sola-firma`; la tienda: 868 pruebas, `tsc`, `eslint` y `knip`. En el navegador (local, 1440, 1024, 768 y 375 px; Lima y Trujillo): prendas con 0, 1, 2 y 5 insignias,
+con descuento, con «Nuevo», con CAYLA (Lima) y un nombre largo: en todos una sola fila, ninguna cortada a la mitad y la empresa sola debajo. Sin mirar: un teléfono real, y la lista «Más vendidos» con puesto (cubierta por prueba
+unitaria).
+
+### Orden al desplegar (la migración del catálogo)
+
+Pegar `20261023205000_tienda_catalogo_trae_las_insignias.sql` en producción DESPUÉS de `20261023182000` (ya está); una sola parte, idempotente. La tienda
+funciona antes o después. Comprobación: `select retail.tienda_catalogo(null) -> 'prendas' -> 0 ? 'insignias'` (debe dar `true`) y abrir el catálogo.

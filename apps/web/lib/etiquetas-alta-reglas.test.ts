@@ -19,6 +19,8 @@ const et = (id: string, nombre: string, extra: Partial<EtiquetaAlta> = {}): Etiq
   id,
   nombre,
   estilo: "neutral",
+  icono: null,
+  imagen: null,
   descuentoPct: null,
   categoriaIds: [],
   vigenteDesde: null,
