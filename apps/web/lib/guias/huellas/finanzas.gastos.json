@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 60,
+  "total": 62,
   "controles": {
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -65,6 +65,12 @@
     "components/finanzas/GastosPulso.tsx": [
       "button «fin-gastos.resolver»",
       "button «Ver todas»"
+    ],
+    "components/finanzas/gastos/CalendarioGastos.tsx": [
+      "button «{`${d.dia}»"
+    ],
+    "components/finanzas/gastos/RetazoGastos.tsx": [
+      "button «{`${p.nombre}»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [
       "Link «{`${a.texto}»",

@@ -14,7 +14,10 @@ import { Orillo } from "@/components/finanzas/telar/Orillo";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
 import { porSedeDe, type SedeTelar } from "@/lib/finanzas-telar-reglas";
-import { chipsDeGastos, preguntaDeGastos, sedeDeLaCabecera as sedeDeLaCabeceraDe } from "@/lib/gastos-telar-reglas";
+import { calendarioDelMes, chipsDeGastos, preguntaDeGastos, retazoDeGastos, sedeDeLaCabecera as sedeDeLaCabeceraDe } from "@/lib/gastos-telar-reglas";
+import { RetazoGastos } from "@/components/finanzas/gastos/RetazoGastos";
+import { CalendarioGastos } from "@/components/finanzas/gastos/CalendarioGastos";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { RegistrarGastoModal, type ProveedorGasto } from "@/components/RegistrarGastoModal";
 import { ActivoDetalleModal, FijosDelMes, GastoFijoModal, NoEsFijoModal, ResumenActivosPorSede, TablaActivos } from "@/components/GastosFijosYActivos";
@@ -141,6 +144,16 @@ export function GastosPanel({
   const [nuevoFijo, setNuevoFijo] = useState<FijoSugerido | null>(null);
   const [noEsFijo, setNoEsFijo] = useState<FijoSugerido | null>(null);
   const [clasificar, setClasificar] = useState<EgresoPorClasificar | null>(null);
+  // Los filtros de la lista que también ponen el retazo (una categoría) y el calendario (un día).
+  const [filtroCategoria, setFiltroCategoria] = useState("");
+  const [filtroDia, setFiltroDia] = useState<number | null>(null);
+  const elegirFiltro = (f: { categoria?: string; dia?: number | null }) => {
+    if (f.categoria !== undefined) setFiltroCategoria(f.categoria);
+    if (f.dia !== undefined) setFiltroDia(f.dia);
+    setPestana("gastos");
+  };
+  const retazo = useMemo(() => retazoDeGastos(gastos), [gastos]);
+  const calendario = useMemo(() => calendarioDelMes(gastos, mes, hoy), [gastos, mes, hoy]);
   // El `?registrar=1` se quita apenas se abrió la hoja, para que recargar o volver atrás no la abra otra vez.
   useEffect(() => {
     if (params.get("registrar") !== "1") return;
@@ -157,7 +170,6 @@ export function GastosPanel({
     router.push(`${ruta}?${p.toString()}`, { scroll: false });
   };
   const verTodas = !ver.ubicacionId && !ver.soloEmpresa;
-  const nombreCorto = ver.soloEmpresa ? "la empresa" : ver.ubicacionId ? (ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "la tienda") : "todas las tiendas";
   const ubicacionParaRegistrar = ver.soloEmpresa ? "empresa" : (ver.ubicacionId ?? ubicaciones[0]?.id ?? "empresa");
   const enUso = activos.filter((a) => a.estado === "activo").length;
   const sedeDeLaCabecera = sedeDeLaCabeceraDe(ver, ubicaciones);
@@ -198,11 +210,30 @@ export function GastosPanel({
         </p>
       ))}
 
-      {/* Camino A (Felipe 2026-10-15): primero la respuesta y la bandeja; las cifras, después. */}
+      {/* El telar (ADR-0493): en qué se va la plata (el retazo) y cuándo (el calendario); tocar uno filtra la lista. Después, la bandeja. */}
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">
+        <Superficie pad className="anim-entra min-w-0">
+          <TituloSeccion dato={gastastePulso(panel)?.frase}>En qué se va</TituloSeccion>
+          {retazo.length ? (
+            <div className="mt-3">
+              <RetazoGastos piezas={retazo} sedes={sedesTelar} elegida={filtroCategoria} onElegir={(c) => elegirFiltro({ categoria: c })} />
+            </div>
+          ) : (
+            <Vacio tamano="chico" icono={<Receipt />}>
+              Sin gastos en {textoMes(mes)} todavía.
+            </Vacio>
+          )}
+        </Superficie>
+        <Superficie pad className="anim-entra min-w-0">
+          <TituloSeccion dato="más oscuro, más gasto">Cuándo</TituloSeccion>
+          <div className="mt-3">
+            <CalendarioGastos huecos={calendario.huecos} dias={calendario.dias} mesNombre={textoMes(mes).split(" ")[0]!} elegido={filtroDia} onElegir={(d) => elegirFiltro({ dia: d })} />
+          </div>
+        </Superficie>
+      </section>
+
       <GastosPulso
-        gastaste={gastastePulso(panel)}
         bandeja={bandejaPulso(egresos, fijos)}
-        nombreCorto={nombreCorto}
         onResolver={(cosa) => (cosa.tipo === "egreso" ? setClasificar(cosa.egreso) : setRegistrar({ fijo: cosa.fijo }))}
         onVerTodas={() => setPestana(bandejaPulso(egresos, fijos).cosas[0]?.tipo === "fijo" ? "fijos" : "egresos")}
       />
@@ -245,7 +276,19 @@ export function GastosPanel({
       </div>
 
       {pestana === "gastos" && (
-        <TablaGastos gastos={gastos} categorias={categorias} verTodas={verTodas} mes={mes} hoy={hoy} onMes={(m) => ir({ mes: m })} onAbrir={setDetalle} />
+        <TablaGastos
+          gastos={gastos}
+          categorias={categorias}
+          verTodas={verTodas}
+          mes={mes}
+          hoy={hoy}
+          onMes={(m) => ir({ mes: m })}
+          onAbrir={setDetalle}
+          categoria={filtroCategoria}
+          onCategoria={setFiltroCategoria}
+          dia={filtroDia}
+          onDia={setFiltroDia}
+        />
       )}
 
       {pestana === "fijos" && (
@@ -369,6 +412,10 @@ function TablaGastos({
   hoy,
   onMes,
   onAbrir,
+  categoria,
+  onCategoria: setCategoria,
+  dia,
+  onDia,
 }: {
   gastos: GastoFila[];
   categorias: CategoriaGasto[];
@@ -377,17 +424,23 @@ function TablaGastos({
   hoy: string;
   onMes: (mes: string) => void;
   onAbrir: (g: GastoFila) => void;
+  /** La categoría y el día los comparte con el retazo y el calendario de arriba. */
+  categoria: string;
+  onCategoria: (c: string) => void;
+  dia: number | null;
+  onDia: (d: number | null) => void;
 }) {
   const [busqueda, setBusqueda] = useState("");
-  const [categoria, setCategoria] = useState("");
+  const fechaDia = dia ? `${mes}-${String(dia).padStart(2, "0")}` : null;
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     return gastos.filter(
       (g) =>
         (!categoria || g.categoria === categoria) &&
+        (!fechaDia || g.fecha === fechaDia) &&
         (!q || [g.descripcion, g.proveedorNombre ?? "", g.comprobante ?? ""].some((t) => t.toLowerCase().includes(q))),
     );
-  }, [gastos, busqueda, categoria]);
+  }, [gastos, busqueda, categoria, fechaDia]);
 
   return (
     <>
@@ -416,6 +469,7 @@ function TablaGastos({
                 onClick: () => {
                   setBusqueda("");
                   setCategoria("");
+                  onDia(null);
                 },
               }}
             >

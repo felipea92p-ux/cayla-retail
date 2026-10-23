@@ -203,6 +203,120 @@
   color: var(--color-crema);
 }
 
+/* ---- Gastos · el retazo: cada categoría es un pedazo del tamaño de su gasto ---- */
+.retazo-gastos {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 100 / 46;
+}
+.retazo-gastos[data-alto] { aspect-ratio: 100 / 110; }
+.retazo-pieza {
+  position: absolute;
+  padding: 3px;
+  animation: retazo-despliega 0.6s var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+@keyframes retazo-despliega {
+  from { opacity: 0; transform: scale(0.96); }
+}
+.retazo-pieza > button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 12px 12px 0;
+  overflow: hidden;
+  text-align: left;
+  border: 1px solid var(--color-sand);
+  border-radius: 12px;
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  transition: transform 0.3s var(--ease-cayla), border-color 0.2s var(--ease-cayla), background-color 0.3s var(--ease-cayla), color 0.3s var(--ease-cayla);
+}
+@media (hover: hover) {
+  .retazo-pieza > button:hover { transform: translateY(-2px); border-color: var(--color-taupe); }
+}
+.retazo-pieza > button:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.retazo-pieza > button[aria-pressed="true"] { background: var(--color-tinta); color: var(--color-crema); border-color: var(--color-tinta); }
+.retazo-nombre { font-size: 13px; font-weight: 500; line-height: 1.25; }
+.retazo-monto { font-family: var(--font-serif); font-size: clamp(18px, 2vw, 28px); line-height: 1.05; font-variant-numeric: tabular-nums; }
+/* contraste: texto sobre papel y tinta (tinta y crema al 70 %, sobre el piso del 64 %) */
+.retazo-pct { font-size: 11.5px; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
+.retazo-pieza > button[aria-pressed="true"] .retazo-pct { color: color-mix(in srgb, var(--color-crema) 70%, transparent); }
+.retazo-pieza[data-chica] .retazo-monto,
+.retazo-pieza[data-chica] .retazo-pct { display: none; }
+.retazo-trama {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 1px;
+  height: 8px;
+}
+.retazo-trama i {
+  --c: var(--color-taupe);
+  flex: 1 1 0;
+  background: var(--c);
+  transform-origin: left;
+  animation: orillo-teje 0.8s var(--ease-cayla) backwards;
+  animation-delay: calc(200ms + var(--i, 0) * 55ms);
+}
+.retazo-trama i[data-color="tru"] { --c: var(--color-sede-tru); }
+.retazo-trama i[data-color="aqp"] { --c: var(--color-sede-aqp); }
+.retazo-trama i[data-color="lim"] { --c: var(--color-sede-lim); }
+.retazo-trama i[data-color="tal"] { --c: var(--color-sede-tal); }
+.retazo-trama i[data-color="emp"] {
+  background: repeating-linear-gradient(45deg, var(--color-sede-emp) 0 3px, color-mix(in srgb, var(--color-sede-emp) 45%, transparent) 3px 6px);
+}
+
+/* ---- Gastos · el calendario: más oscuro, más gasto ---- */
+.calendario-gastos {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.calendario-dia-semana {
+  padding-bottom: 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--color-taupe-profundo);
+}
+.calendario-dia {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-height: 28px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--color-tinta) calc(var(--a, 0) * 1%), var(--color-hueso));
+  color: var(--color-tinta);
+  transition: transform 0.2s var(--ease-cayla), box-shadow 0.2s var(--ease-cayla);
+  animation: calendario-entra 0.4s var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 12ms);
+}
+@keyframes calendario-entra {
+  from { opacity: 0; }
+}
+.calendario-dia[data-oscuro] { color: var(--color-crema); }
+@media (hover: hover) {
+  .calendario-dia:hover:not(:disabled) { transform: scale(1.08); }
+}
+.calendario-dia:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.calendario-dia[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--color-rojo); }
+.calendario-dia:disabled {
+  background: transparent;
+  border: 1px dashed var(--color-sand);
+  /* contraste: texto sobre crema y papel (tinta al 64 %, el piso) */
+  color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
+  cursor: default;
+}
+
 /* ---- El orillo: cuánto pone cada sede en esta pantalla ---- */
 .orillo-telar {
   display: flex;
@@ -342,6 +456,10 @@
   .hilo-telar,
   .hilo-telar::after,
   .orillo-tramo,
+  .retazo-pieza,
+  .retazo-pieza > button,
+  .retazo-trama i,
+  .calendario-dia,
   .te-toca-telar,
   .dock-telar,
   .dock-telar-accion {

@@ -276,11 +276,18 @@ export const GUIA_FIN_GASTOS: Guia = {
       texto: "Arriba de los botones eliges quién lo está registrando. «Registrar gasto» lo guarda y ya suma en las cifras del mes. En la demo no registramos: cerramos la ventana.",
     },
     {
-      id: "pulso",
-      ancla: "fin-gastos.pulso",
+      id: "retazo",
+      ancla: "fin-gastos.retazo",
       preparar: [{ tipo: "escape" }],
-      titulo: "¿En qué se fue la plata?",
-      texto: "Lo gastado en el mes y, en una frase, qué pesó más: «7 de cada 10 soles fueron alquileres». Debajo, las tres categorías que más pesaron.",
+      opcional: true,
+      titulo: "¿En qué se va la plata?",
+      texto: "Cada pedazo es una categoría, del tamaño de lo que se gastó en ella; la raya de colores de abajo dice qué sede lo gastó. Tocas un pedazo y la lista de abajo muestra solo esa categoría; lo tocas otra vez y vuelve todo.",
+    },
+    {
+      id: "calendario",
+      ancla: "fin-gastos.calendario",
+      titulo: "¿Cuándo se gastó?",
+      texto: "Cada día del mes, más oscuro cuanto más se gastó. Tocas un día y la lista muestra solo lo de ese día. Los días que todavía no llegan no se tocan.",
     },
     {
       id: "bandeja",
