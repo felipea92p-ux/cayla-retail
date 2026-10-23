@@ -136,16 +136,6 @@ export function orilloDeDinero(cuentas: readonly CuentaDinero[]): Record<string,
   return porSede;
 }
 
-/**
- * La sede que se mira, leída de la URL: la barra común usa `?sede=` (`todas | empresa | <id>`) y hasta que llegue a main las
- * pantallas usan `?ver=`. `sede` manda; «Dónde está» no tiene «empresa» propia (la empresa no tiene cajón), así que la lee como
- * todas.
- */
-export function verDeLaUrl(sp: { sede?: string; ver?: string }): string | undefined {
-  const v = sp.sede ?? sp.ver;
-  return v === REPISA_EMPRESA ? "todas" : v;
-}
-
 // ---- El efectivo de hoy (actividad 2): el cajón y la caja fuerte dicen cómo van ---------------------------------------------
 
 /** Desde cuántos días una caja fuerte con plata espera su depósito: avisa en ámbar pasados 3 días. */

@@ -5,7 +5,7 @@ import { hrefComprar, hrefComprarTodas, hrefEnviar, hrefLiquidar, hrefReponerPis
 const todo = { produccion: true, compras: true, traslados: true, etiquetas: true, existencias: true };
 
 describe("a dónde lleva cada botón (ADR-0245: abre el flujo que ya existe)", () => {
-  it("Comprar: del Taller, una orden con el modelo; de terceros, Mi plata para compras (ADR-0480)", () => {
+  it("Comprar: del Taller, una orden con el modelo; de terceros, Mis compras (ADR-0480)", () => {
     expect(hrefComprar({ origen: "taller", productoId: "p 1", proveedorId: null }, todo)).toBe("/produccion/ordenes?nueva=p%201");
     expect(hrefComprar({ origen: "terceros", productoId: "p1", proveedorId: "prov" }, todo)).toBe("/compras/mi-plata");
     expect(hrefComprar({ origen: null, productoId: "p1", proveedorId: null }, todo)).toBe("/compras/mi-plata");

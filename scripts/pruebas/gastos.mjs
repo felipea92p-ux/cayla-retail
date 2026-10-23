@@ -228,7 +228,8 @@ select array_length(retail.fn_gastos_ubicaciones(), 1), (retail.fn_gastos_ubicac
 select retail.registrar_proveedor_de_gasto('Contadora Ríos (prueba F2)', '10999888771') = retail.registrar_proveedor_de_gasto('  contadora ríos (prueba f2) ', null);
 select count(*) from retail.fn_gastos_lista(${MES}) where ubicacion_id is distinct from :'tru';`);
   const [sinModulo, sinModuloLee, suTienda, otraTienda, empresa, ubics, proveedorUnico, ajenos] = lineas(r);
-  esperar("sin el módulo Gastos no registra", r.ok && sinModulo.includes("módulo Gastos"), r);
+  // Micaela maneja la caja de Trujillo (abierta en la escena): sin Gastos registra desde Caja solo el gasto de hoy (caso 11, ADR-0491).
+  esperar("sin el módulo Gastos no registra un gasto de otra fecha", r.ok && sinModulo.includes("gasto de hoy"), r);
   esperar("sin el módulo Gastos no ve el panel", r.ok && sinModuloLee.includes("módulo Gastos"), r);
   esperar("con el módulo, registra en su tienda", r.ok && suTienda === "SIN_ERROR", r);
   esperar("con el módulo, no en otra tienda", r.ok && otraTienda.includes("solo de tu tienda"), r);
@@ -391,6 +392,66 @@ select count(*) from retail.fn_presupuesto_lineas('2026-09-01') where cuenta = '
   esperar("la lista de Gastos sí las separa: 5 categorías, todas con cuenta 636, que suman 295.85", c.ok && panel === "5|295.85", c);
   esperar("cada una con su nombre propio en el panel", c.ok && nombres === "agua=Agua,internet=Internet,luz=Luz,servicios_basicos=Servicios básicos,telefonia=Telefonía", c);
   esperar("el Presupuesto sigue con UNA sola línea para la cuenta 636", c.ok && Number(presupuesto) === 1, c);
+}
+
+// 11. Desde Caja, sin el módulo Gastos (ADR-0491, 20261023212000): quien maneja la caja abierta de su tienda registra el gasto de HOY
+//     al contado (del cajón, Yape o Plin; con boleta de un proveedor que ya existe). Otra fecha, a crédito, clasificar un egreso, otro
+//     medio u otra tienda, no. Lee de los gastos de su tienda solo lo que pasó por la caja o por el Yape o el Plin.
+{
+  const sinCajaDeGastos = (sql) => `select pg_temp.intento(format(${sql}));`;
+  const r = correr(`${ESCENA}
+select retail.registrar_gasto(:'tru', 'alquileres', 'Alquiler (prueba Caja)', retail.fn_hoy_lima(), 2500, null, 'transferencia') as alquiler \\gset
+${cambiaA(MICAELA)}
+select retail.registrar_gasto(:'tru', 'transporte', 'Movilidad (prueba Caja)', retail.fn_hoy_lima(), 6, null, 'yape') as y \\gset
+select retail.registrar_gasto(:'tru', 'suministros', 'Bolsas (prueba Caja)', retail.fn_hoy_lima(), 15, null, 'efectivo', :'caja') as e \\gset
+select retail.registrar_gasto(:'tru', 'mantenimiento', 'Arreglo (prueba Caja)', retail.fn_hoy_lima(), 30, jsonb_build_object('tipo','boleta','proveedor_id',:'prov','serie','B31','numero','1','condicion','contado'), 'plin') as b \\gset
+select m.monto, m.motivo from retail.gastos g join retail.caja_movimientos m on m.id = g.caja_movimiento_id where g.id = :'e';
+${sinCajaDeGastos(`'select retail.registrar_gasto(%L, ''transporte'', ''x'', retail.fn_hoy_lima() - 1, 6, null, ''yape'')', :'tru'`)}
+${sinCajaDeGastos(`'select retail.registrar_gasto(%L, ''mantenimiento'', ''x'', retail.fn_hoy_lima(), 30, jsonb_build_object(''tipo'',''boleta'',''proveedor_id'',%L,''serie'',''B31'',''numero'',''2'',''condicion'',''credito'',''fecha_vencimiento'', retail.fn_hoy_lima() + 9))', :'tru', :'prov'`)}
+${sinCajaDeGastos(`'select retail.registrar_gasto(%L, ''transporte'', ''x'', retail.fn_hoy_lima(), 12.50, null, ''efectivo'', null, %L)', :'tru', :'egreso'`)}
+${sinCajaDeGastos(`'select retail.registrar_gasto(%L, ''transporte'', ''x'', retail.fn_hoy_lima(), 6, null, ''transferencia'')', :'tru'`)}
+${sinCajaDeGastos(`'select retail.registrar_gasto(%L, ''transporte'', ''x'', retail.fn_hoy_lima(), 6, null, ''yape'')', :'lim'`)}
+select string_agg(descripcion, ',' order by descripcion) from retail.fn_gastos_de_caja(:'tru', retail.fn_hoy_lima()) where descripcion like '%(prueba Caja)';
+${sinCajaDeGastos(`'select count(*) from retail.fn_gastos_de_caja(%L, retail.fn_hoy_lima())', :'lim'`)}
+${sinCajaDeGastos(`'select retail.anular_gasto(%L, ''me equivoqué de monto'')', :'y'`)}
+${cambiaA(FELIPE)}
+select count(*) from retail.fn_gastos_de_caja(:'tru', retail.fn_hoy_lima()) where descripcion like '%(prueba Caja)';
+select medio_pago from retail.fn_gastos_de_caja(:'tru', retail.fn_hoy_lima()) where id = :'b';
+select count(*) from retail.fn_gastos_lista(retail.fn_hoy_lima(), retail.fn_hoy_lima(), :'tru') where descripcion like '%(prueba Caja)';
+set local role authenticated;
+${sinCajaDeGastos(`'select retail.fn_puede_registrar_gasto(%L, retail.fn_hoy_lima(), null, ''yape'', null, null, null)', :'tru'`)}`);
+  const [cajon, otraFecha, credito, clasificar, transferencia, otraTienda, lee, leeOtra, anular, leeLider, medioBoleta, enFinanzas, directo] = lineas(r);
+  esperar("Caja sin Gastos: el efectivo sale del cajón abierto como su egreso «Otro»", r.ok && cajon === "15.00|Otro", r);
+  esperar("…un gasto de otra fecha, no (gasto_fuera_de_caja)", r.ok && otraFecha.startsWith("Desde Caja se registra el gasto de hoy"), r);
+  esperar("…a crédito, no", r.ok && credito.startsWith("Desde Caja se registra el gasto de hoy"), r);
+  esperar("…clasificar un egreso ya hecho, no (es de Finanzas ▸ Gastos)", r.ok && clasificar.startsWith("Desde Caja se registra el gasto de hoy"), r);
+  esperar("…por transferencia, no (solo cajón, Yape o Plin)", r.ok && transferencia.startsWith("Desde Caja se registra el gasto de hoy"), r);
+  esperar("…en otra tienda, no", r.ok && otraTienda.includes("módulo Gastos"), r);
+  esperar("lee los tres suyos y no el alquiler pagado por transferencia", r.ok && lee === "Arreglo (prueba Caja),Bolsas (prueba Caja),Movilidad (prueba Caja)", r);
+  esperar("no lee los gastos de otra tienda", r.ok && leeOtra.includes("módulo Gastos"), r);
+  esperar("anular sigue siendo de Finanzas ▸ Gastos", r.ok && anular !== "SIN_ERROR", r);
+  esperar("con Gastos (el líder) la misma lectura trae también el alquiler", r.ok && Number(leeLider) === 4, r);
+  esperar("la boleta dice su medio por su pago (plin)", r.ok && medioBoleta === "plin", r);
+  esperar("los tres de Caja quedan en Finanzas ▸ Gastos, como cualquier gasto", r.ok && Number(enFinanzas) === 4, r);
+  esperar("la regla no se llama desde el navegador", r.ok && directo.includes("permission denied"), r);
+}
+
+// 11b. Con la caja cerrada, o sin el módulo Caja, no se registra desde Caja.
+{
+  const r = correr(`${ESCENA}
+select retail.cerrar_caja(:'caja', 87.50) as _c \\gset
+${cambiaA(MICAELA)}
+select pg_temp.intento(format('select retail.registrar_gasto(%L, ''transporte'', ''x'', retail.fn_hoy_lima(), 6, null, ''yape'')', :'tru'));
+select pg_temp.intento(format('select count(*) from retail.fn_gastos_de_caja(%L, retail.fn_hoy_lima())', :'tru'));
+${cambiaA(FELIPE)}
+select retail.abrir_caja(:'tru', 100.00, 'prueba automatizada') as _a \\gset
+delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'caja';
+${cambiaA(MICAELA)}
+select pg_temp.intento(format('select retail.registrar_gasto(%L, ''transporte'', ''x'', retail.fn_hoy_lima(), 6, null, ''yape'')', :'tru'));`);
+  const [cerrada, leeCerrada, sinCaja] = lineas(r);
+  esperar("con la caja cerrada lo dice (caja_cerrada)", r.ok && cerrada.includes("está cerrada"), r);
+  esperar("con la caja cerrada no lee los gastos de la tienda", r.ok && leeCerrada.includes("caja abierta"), r);
+  esperar("sin el módulo Caja (ni Gastos), no registra", r.ok && sinCaja.includes("módulo Gastos"), r);
 }
 
 console.log(fallos ? `\n${fallos} caso(s) fallaron` : "\nTodo en orden");

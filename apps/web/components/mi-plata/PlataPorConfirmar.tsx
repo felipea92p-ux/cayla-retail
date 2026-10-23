@@ -144,7 +144,7 @@ export function DetallePlata({ fila, cuentas, alTerminar }: { fila: Fila; cuenta
     <PanelDetalle
       guia="fondos.plata-detalle"
       avatar={<AvatarPersona personaId={fila.personaId} nombre={fila.persona} tamano={40} />}
-      sobre="Plata por confirmar"
+      sobre={["Plata por confirmar", fila.ronda].filter(Boolean).join(" · ")}
       titulo={fila.persona}
       estado={<Chip tono="pizarra">{[MEDIOS_PLATA[fila.medio].nombre, fila.fecha ? diaMes(fila.fecha) : null].filter(Boolean).join(" · ")}</Chip>}
     >

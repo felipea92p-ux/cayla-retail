@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDownLeft, ArrowUpRight, HandCoins, Undo2 } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, HandCoins, Receipt, ShoppingBag, Undo2, Wallet } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton, CampoMonto } from "@/components/ui/campos";
@@ -22,7 +22,7 @@ import { diaMes } from "@/lib/fechas-lima";
 import { primerNombre, type CuentaOpcion } from "@/lib/fondos-reglas";
 import { cuentaSugerida } from "@/lib/mi-plata-reglas";
 import { recibirCierre } from "@/lib/revisar-compras-acciones";
-import { botonCierre, camposCierre, type CierrePorRecibir } from "@/lib/revisar-compras-reglas";
+import { botonCierre, camposCierre, renglonesCuaderno, type CierrePorRecibir } from "@/lib/revisar-compras-reglas";
 import { PanelDetalle } from "./PanelDetalle";
 
 // Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ los cierres del día que esperan a Compras. Rediseño (2026-10-23): se reciben
@@ -33,8 +33,8 @@ import { PanelDetalle } from "./PanelDetalle";
 //
 // Sigue el diseño «A · Bandeja serena» que Felipe eligió el 2026-10-23 mirando las capturas: arriba la persona con su avatar («Lucía
 // cerró su ronda») y el día del cierre en un chip; abajo, el cuaderno de la ronda en una tarjeta hueso y la cuenta en fichas de un toque.
-// El cierre solo trae lo que devuelve o lo que le debemos (no lo que le dieron, compró y gastó): el cuaderno muestra ese renglón final,
-// en grande, sin inventar los demás.
+// El cuaderno trae lo que le dieron, compró y gastó en su ronda (20261023210000; lo que tenía al abrirla se despeja del final, así cierra);
+// un cierre de antes de las rondas no lo trae y queda solo el renglón final, en grande, sin inventar los demás.
 
 type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 
@@ -87,13 +87,36 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
     <PanelDetalle
       guia="fondos.cierre-detalle"
       avatar={<AvatarPersona personaId={cierre.personaId} nombre={cierre.persona} tamano={40} />}
-      sobre={[cierre.ronda, "Ronda cerrada"].filter(Boolean).join(" · ")}
+      sobre={[cierre.ronda, cierre.tienda ?? "Ronda cerrada"].filter(Boolean).join(" · ")}
       titulo={`${nombre} cerró su ronda`}
       estado={<Chip tono="verde">{cierre.fecha ? `Cerrada ${diaMes(cierre.fecha)}` : "Cerrada"}</Chip>}
     >
-      {/* El cuaderno de la ronda: hoy solo su renglón final (lo que devuelve o lo que le debemos), que es lo que trae el cierre. */}
+      {/* El cuaderno de la ronda (20261023210000): lo que tenía al abrirla, le dieron, compró y gastó, y el renglón final. Un cierre de antes
+          de las rondas no trae cuaderno: queda solo el renglón final. */}
       <div className="rounded-[20px] bg-hueso p-2">
-        <div className="flex items-center gap-4 rounded-2xl bg-papel px-5 py-4">
+        {cierre.cuaderno && (
+          <ul className="flex flex-col rounded-t-2xl bg-papel px-5 pt-2" data-guia="fondos.cierre-cuaderno">
+            {renglonesCuaderno(cierre).map((r) => {
+              const Icono = { antes: Wallet, dieron: ArrowDownLeft, compro: ShoppingBag, gasto: Receipt }[r.clave];
+              return (
+                <li key={r.clave} className="flex items-center gap-4 border-b border-sand py-3">
+                  <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-hueso text-taupe">
+                    <Icono className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-sm text-tinta">
+                    {r.titulo}
+                    {r.detalle && <span className="text-taupe"> · {r.detalle}</span>}
+                  </span>
+                  <span className={`whitespace-nowrap text-sm font-medium tabular-nums ${r.signo === "-" ? "text-taupe" : "text-tinta"}`}>
+                    {r.signo === "-" ? "− " : ""}
+                    {soles(r.monto)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <div className={`flex items-center gap-4 bg-papel px-5 py-4 ${cierre.cuaderno ? "rounded-b-2xl" : "rounded-2xl"}`}>
           <span aria-hidden className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${devuelve ? "bg-verde/10 text-verde" : "bg-ambar/10 text-ambar-profundo"}`}>
             <IconoFinal className="h-4 w-4" />
           </span>

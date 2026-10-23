@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  renglonesCuaderno,
+  porRecibirDe,
+  detalleRondaAbierta,
   pagoPapel,
   notaNoCuadra,
   sobrePapel,
@@ -275,5 +278,47 @@ describe("las cifras de la bandeja (diseño A)", () => {
     expect(TIPOS_BANDEJA.every((t) => CIFRA_BANDEJA[t].cabecera.length > 0)).toBe(true);
     expect(totalBandeja([{ monto: 0.1 }, { monto: 0.2 }])).toBe(0.3);
     expect(totalBandeja([])).toBe(0);
+  });
+});
+
+describe("las rondas en Revisar compras (20261023210000)", () => {
+  const cuaderno = { dieron: 500, compras: 2, compraste: 380, gastos: 2, gastaste: 35, prendas: 20 };
+  it("el cuaderno de una ronda cerrada cierra: lo de antes se despeja del final", () => {
+    const r = renglonesCuaderno({ cuaderno, decision: "devuelve", monto: 85 });
+    expect(r.map((x) => [x.clave, x.titulo, x.detalle, x.monto, x.signo])).toEqual([
+      ["dieron", "Le dieron", null, 500, "+"],
+      ["compro", "Compró", "2 compras", 380, "-"],
+      ["gasto", "Gastó", "2 gastos", 35, "-"],
+    ]);
+    // Si tenía plata al abrirla, aparece su renglón para que la cuenta cierre.
+    expect(renglonesCuaderno({ cuaderno, decision: "devuelve", monto: 185 })[0]).toMatchObject({ clave: "antes", titulo: "Tenía al abrirla", monto: 100, signo: "+" });
+    // Le debemos: el final es negativo.
+    expect(renglonesCuaderno({ cuaderno: { ...cuaderno, dieron: 0 }, decision: "le_deben", monto: 415 }).map((x) => x.clave)).toEqual(["dieron", "compro", "gasto"]);
+    expect(renglonesCuaderno({ cuaderno: null, decision: "devuelve", monto: 85 })).toEqual([]);
+  });
+  it("lo que tiene por recibir cada persona: lo que devuelve menos lo que le debemos", () => {
+    const cierres = [
+      { personaId: "a", decision: "devuelve" as const, monto: 85 },
+      { personaId: "b", decision: "le_deben" as const, monto: 20 },
+    ];
+    expect(porRecibirDe(cierres, "a")).toEqual({ decision: "devuelve", monto: 85 });
+    expect(porRecibirDe(cierres, "b")).toEqual({ decision: "le_deben", monto: 20 });
+    expect(porRecibirDe(cierres, "c")).toBeNull();
+  });
+  it("una ronda abierta dice cuánto lleva", () => {
+    expect(detalleRondaAbierta({ compras: 3, prendas: 47 })).toBe("3 compras · 47 prendas");
+    expect(detalleRondaAbierta({ compras: 1, prendas: 0 })).toBe("1 compra");
+    expect(detalleRondaAbierta({ compras: 0, prendas: 0 })).toBe("Todavía sin compras");
+  });
+  it("lee las rondas abiertas, la tienda y el cuaderno de cada cierre; sin el dato, nada", () => {
+    const d = leerRevisarCompras({
+      papeles: [],
+      cierres: [{ id: "k", persona_id: "p", persona: "Lucía Paredes", decision: "devuelve", monto: 85, tienda: "Tienda Trujillo", cuaderno: { dieron: "500", compras: 2, compraste: 380, gastos: 1, gastaste: 35, prendas: 20 } }],
+      rondas_abiertas: [{ id: "r", texto: "RC-000012", persona_id: "m", persona: "Marisol Rojas", tienda: null, abierta_en: "2026-10-21T10:00:00Z", cuenta: { compras: 3, prendas: 47 } }, { texto: "sin id" }],
+    })!;
+    expect(d.cierres[0]).toMatchObject({ tienda: "Tienda Trujillo", cuaderno: { dieron: 500, compras: 2 } });
+    expect(d.rondasAbiertas).toHaveLength(1);
+    expect(d.rondasAbiertas[0]).toMatchObject({ texto: "RC-000012", cuenta: { compras: 3, prendas: 47, compraste: 0 } });
+    expect(leerRevisarCompras({ papeles: [], cierres: [{ id: "k", decision: "devuelve", monto: 1 }] })?.cierres[0]).toMatchObject({ tienda: null, cuaderno: null });
   });
 });

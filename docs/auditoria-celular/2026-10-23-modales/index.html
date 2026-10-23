@@ -1,0 +1,221 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditoría de modales en celular</title>
+<style>
+:root{--f:#f6f1e8;--t:#1d1c1a;--m:#6b6558;--l:#d9d1c0;--c:#fffdf8;--a:#b3261e;--o:#a15c00;--g:#4a5a6a}
+@media (prefers-color-scheme:dark){:root{--f:#1a1a18;--t:#f5f0e8;--m:#a39d90;--l:#3a3833;--c:#232320;--a:#ff8a80;--o:#f0b04d;--g:#9db2c6}}
+body{margin:0;background:var(--f);color:var(--t);font:15px/1.55 system-ui,sans-serif;padding:28px 16px 80px;max-width:1100px;margin-inline:auto}
+h1{font:600 32px/1.15 Georgia,serif;margin:0 0 6px}h2{font:600 22px Georgia,serif;margin:44px 0 6px;border-top:1px solid var(--l);padding-top:22px}
+.nota{color:var(--m);margin:4px 0 14px}.resumen{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.resumen div{background:var(--c);border:1px solid var(--l);border-radius:12px;padding:10px 16px;min-width:110px}.resumen b{font:600 26px Georgia,serif;display:block}
+.card{background:var(--c);border:1px solid var(--l);border-left:5px solid var(--l);border-radius:14px;padding:16px 18px;margin:16px 0}.g-alta{border-left-color:var(--a)}.g-media{border-left-color:var(--o)}
+.card header{display:flex;gap:14px;align-items:flex-start}.n{font:600 22px Georgia,serif;color:var(--m);min-width:28px}.card h3{margin:0;font:600 18px/1.3 Georgia,serif}.meta{margin:2px 0 0;color:var(--m);font-size:13px}
+.hecho.pend{background:color-mix(in srgb,var(--o) 16%,transparent)}.hecho{margin:12px 0 0;padding:8px 12px;border-radius:10px;background:color-mix(in srgb,#2e7d32 14%,transparent)}.b-alta{color:var(--a)}.b-media{color:var(--o)}code{font-size:12px;background:color-mix(in srgb,var(--t) 8%,transparent);padding:1px 5px;border-radius:5px}
+dl{display:grid;grid-template-columns:78px 1fr;gap:6px 14px;margin:12px 0 0}dt{color:var(--m);font-size:12px;text-transform:uppercase;letter-spacing:.06em;padding-top:2px}dd{margin:0}
+.fotos{display:flex;gap:12px;overflow-x:auto;padding:12px 0 2px}.fotos img{height:480px;width:auto;border:1px solid var(--l);border-radius:10px;display:block}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px solid var(--l);padding:6px 8px;text-align:left;vertical-align:top}
+details{background:var(--c);border:1px solid var(--l);border-radius:12px;padding:10px 14px;margin:10px 0}summary{cursor:pointer;font-weight:600}
+@media (max-width:640px){dl{grid-template-columns:1fr}.fotos img{height:380px}}
+</style>
+<h1>Auditoría de modales en celular</h1>
+<p class="nota">375 × 812 px, táctil, modo oscuro, contra el ERP local de la rama <code>claude/mobile-modals-audit-1e4c5b</code>, el 23 de octubre de 2026. Cada hoja, lista o menú se abre <b>sin guardar nada</b>, se mide el DOM y se captura; además se revisaron a ojo las 112 capas abiertas.</p>
+<div class="resumen">
+<div><b>206</b>pantallas y hojas abiertas</div>
+<div><b>112</b>hojas, listas y menús vistos</div>
+<div><b style="color:var(--a)">8</b>fallas altas</div>
+<div><b style="color:var(--o)">6</b>fallas medias</div>
+<div><b>79</b>no se pudieron abrir</div>
+</div>
+<p><b>Alta</b>: algo no se ve, no se puede tocar o queda ilegible. <b>Media</b>: se ve mal o se esconde, pero se entiende. Las capturas son del navegador al 100 %; en las marcadas, el recuadro magenta señala lo que la medición encontró fuera de lugar.</p>
+<h2>Por dónde empezar</h2>
+<ol>
+<li><b>Hallazgo 1</b> (campos a 16 px): una regla global que quita el zoom del iPhone en todos los formularios.</li>
+<li><b>Hallazgo 2</b> (pie de «Registrar pago»): una clase; el botón que guarda hoy es ilegible.</li>
+<li><b>Hallazgo 3</b> (Filtros de Existencias, el de tu captura) y <b>4</b> (Colgar varias).</li>
+<li><b>Hallazgo 8</b> (Caja a 459 px): decide si Caja entra al celular obligatorio y arregla las dos tarjetas que la ensanchan.</li>
+<li>Después 5, 6 y 7, y las medias.</li>
+</ol>
+<article class="card g-alta" id="h1">
+<header><span class="n">1</span><div><h3>Los campos de texto tienen letra de 13 a 15 px: el iPhone hace zoom al tocarlos</h3><p class="meta"><b class="b-alta">ALTA</b> · transversal</p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Casi todas las hojas con campos (91 de las 206 pantallas medidas): Registrar gasto, Nueva proforma, Cambios, Devoluciones, Historial, buscadores…</dd>
+<dt>Qué se ve</dt><dd>Safari de iPhone amplía la pantalla sola al enfocar un campo con letra menor a 16 px y no vuelve a su tamaño al salir. La hoja queda cortada de un lado hasta que la persona pellizca para alejar. Es la causa más probable de «el modal no se ve bien» en un teléfono.</dd>
+<dt>Causa</dt><dd>Los campos usan <code>text-sm</code> (14 px), 13,5 px y 15 px, y heredan los 14 px de <code>.caja-campo</code>. Medido a 375 px en 205 pantallas: 324 de 343 campos miden menos de 16 px (194 a 14, 90 a 13,5, 25 a 15, 15 a 13). El <code>viewport</code> NO es parte del problema: Next ya emite <code>width=device-width, initial-scale=1</code>.</dd>
+<dt>Arreglo</dt><dd>Una regla sin capa en <code>app/estilos/campos-y-casillas.css</code>, bajo 640 px y en pantallas táctiles, que sube a 16 px los campos y deja los grandes a propósito. Evitar <code>maximum-scale=1</code>: bloquea el zoom de accesibilidad.</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: <code>@media (max-width: 639.98px), (pointer: coarse)</code> (también el teléfono girado) sube a 16 px los campos, sin tocar los grandes a propósito (montos de 36, 24 y 22 px, el conteo de 64 px), y deja el ejemplo (placeholder) en 14 px para que los topes de largo de ADR-0290 sigan valiendo. Medido a 375 px en las 96 pantallas con campos: 334 campos a 16 px, 0 por debajo de 16 (antes 324 de 343); ningún escenario empeora en desborde, textos pisados o botones cortados. En escritorio con mouse no cambia (13 a 15 px). El <code>viewport</code> no se declara en esta rama: <code>main</code> ya lo trae con <code>viewportFit: "cover"</code> (ADR-0479, actividad 9). No poner <code>maximumScale</code>: el zoom de la persona es accesibilidad. Sin probar en un iPhone real: el zoom es comportamiento de iOS.</p>
+
+
+</article>
+<article class="card g-alta" id="h2">
+<header><span class="n">2</span><div><h3>Compras ▸ Por pagar ▸ «Registrar pago»: los dos botones del pie quedan aplastados</h3><p class="meta"><b class="b-alta">ALTA</b> · escenario <code>porpagar.pagar</code></p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Hoja «Pagar a proveedor» (Por pagar, y las que pagan desde una factura).</dd>
+<dt>Qué se ve</dt><dd>«Cancelar» se lee «ancel» y «Registrar pago de S/ 5,133.60» se lee «go de»: el botón que guarda queda ilegible y casi sin superficie para el dedo.</dd>
+<dt>Causa</dt><dd><code>components/CompraDetallePanel.tsx:461-470</code>: la nota «Todo o nada…» (<code>flex-1 basis-48</code>) comparte la fila con los dos botones. En celular <code>app/estilos/pie-acciones.css</code> (bloque <code>@media (max-width: 639.98px)</code>) les da <code>flex: 1 1 0; min-width: 0</code>, así que la nota se queda con el ancho y los botones se encogen a 34 y ~60 px.</dd>
+<dt>Arreglo</dt><dd>Que la nota ocupe su propia línea en celular (<code>max-sm:basis-full</code>), como ya hacen <code>.pie-acciones-izq</code> y <code>.mr-auto</code> en ese mismo CSS (<code>flex-basis: 100%</code>). Revisar los demás pies de hoja que llevan una nota al lado de los botones.</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: la nota queda en su fila y «Cancelar» y «Registrar pago de S/ …» ocupan cada uno el ancho completo; el pie vuelve a sangrar hasta el borde. Mismo arreglo en «Pagar juntos» (<code>components/PagoJuntosModal.tsx</code>, que tenía el mismo pie). Clase nueva <code>pie-acciones-ancho</code> en <code>app/estilos/pie-acciones.css</code>. Medido a 375 px: los dos botones pasaron de 34 px a 325 px; en escritorio sigue en una fila.</p>
+<div class="fotos"><a href="capturas/119-porpagar-pagar.marcado.jpg" target="_blank"><img loading="lazy" src="capturas/119-porpagar-pagar.marcado.jpg" alt="Compras ▸ Por pagar ▸ «Registrar pago»: los dos botones del pie quedan aplastados"></a></div>
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-2-porpagar.pagar.abajo.jpg" target="_blank"><img loading="lazy" src="capturas/despues-2-porpagar.pagar.abajo.jpg" alt="Después: Compras ▸ Por pagar ▸ «Registrar pago»: los dos botones del pie quedan aplastados"></a></div>
+</article>
+<article class="card g-alta" id="h3">
+<header><span class="n">3</span><div><h3>Existencias ▸ Filtros: «Ver como» es más ancho que la hoja y «Por talla» se corta</h3><p class="meta"><b class="b-alta">ALTA</b> · escenario <code>existencias.filtros</code></p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Hoja «Filtros» (la de tu captura) y también al abrirla desde «Ver detalle».</dd>
+<dt>Qué se ve</dt><dd>«VER COMO: TARJETAS · TABLA · POR T…»: el tercer botón queda a medias y toda la hoja puede deslizarse de lado. El contenido mide 433 px dentro de una hoja de 375.</dd>
+<dt>Causa</dt><dd><code>components/FiltrosExistencias.tsx:278</code>: el grupo es <code>flex h-9 shrink-0</code> sin permitir salto de línea; la etiqueta y los tres botones con texto suman más de los 327 px útiles.</dd>
+<dt>Arreglo</dt><dd><code>flex-wrap</code>, <code>h-auto min-h-9</code> y la etiqueta «Ver como:» en su propia línea bajo 640 px (o botones solo con ícono). Nota: en este build la hoja abre a media altura (ADR-0479, por diseño) y lo de abajo —«Ordenar por», «Sonido»— queda bajo el pliegue hasta estirarla; tu captura parece de un build anterior a ese cambio (la hoja se ve completa).</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: el grupo puede partirse en dos líneas, los botones no parten su texto y, a 380 px o menos, quedan solo con texto. Medido de 320 a 430 px: la hoja ya no se desliza de lado (373 de 373 a 375 px; antes 433 de 373). En escritorio y 1024 px queda idéntico (403×36 en una línea).</p>
+<div class="fotos"><a href="capturas/065-existencias-filtros.marcado.jpg" target="_blank"><img loading="lazy" src="capturas/065-existencias-filtros.marcado.jpg" alt="Existencias ▸ Filtros: «Ver como» es más ancho que la hoja y «Por talla» se corta"></a><a href="capturas/066-existencias-detalle.marcado.jpg" target="_blank"><img loading="lazy" src="capturas/066-existencias-detalle.marcado.jpg" alt="Existencias ▸ Filtros: «Ver como» es más ancho que la hoja y «Por talla» se corta"></a></div>
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-3-existencias.filtros.jpg" target="_blank"><img loading="lazy" src="capturas/despues-3-existencias.filtros.jpg" alt="Después: Existencias ▸ Filtros: «Ver como» es más ancho que la hoja y «Por talla» se corta"></a></div>
+</article>
+<article class="card g-alta" id="h4">
+<header><span class="n">4</span><div><h3>Existencias ▸ «Colgar varias»: la tabla de cantidades y el botón «Continuar →» se salen de la hoja</h3><p class="meta"><b class="b-alta">ALTA</b> · escenario <code>existencias.acciones</code></p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Hoja «Colgar varias · 2 colores · todas las tallas», paso «Cuántas de cada una».</dd>
+<dt>Qué se ve</dt><dd>Se ven las tallas S, M, L y el resto queda a la derecha, escondido; «Continuar →» queda cortado en el borde. La hoja entera se desliza de lado (contenido de 434 px en 375).</dd>
+<dt>Causa</dt><dd>Confirmado midiendo la cadena de contenedores: la tabla SÍ tenía su <code>overflow-auto</code>, pero la raíz de <code>components/existencias/FlujoTalla.tsx</code> (<code>flex min-h-0 flex-1 flex-col</code>) es hija de una grilla de una columna <code>auto</code> (<code>PanelTalla.tsx:722</code>) y no declaraba <code>min-w-0</code>: su ancho mínimo pasaba a ser el de la tabla (372 px) y todo el flujo medía 410 px en una hoja de 325. A 320 px, además, el encabezado «Colgar varias · 2 colores · todas las tallas» era otra grilla <code>auto</code> que no dejaba cortar su texto.</dd>
+<dt>Arreglo</dt><dd><code>min-w-0</code> en la raíz del flujo y <code>grid-cols-1</code> en su encabezado.</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: la hoja ya no se desliza de lado (373 de 373 a 375 px; antes 434 de 373) y «Cancelar» y «Continuar →» se ven completos (141 px cada uno). La tabla scrollea dentro de su tarjeta (372 px de contenido en 287) con «Color» fija a la izquierda y llega hasta «Total». Medido de 320 a 430 px y a 1440 px (igual que antes). Mismo arreglo vale para «Subir varias» y los demás pasos del flujo.</p>
+<div class="fotos"><a href="capturas/069-existencias-acciones.marcado.jpg" target="_blank"><img loading="lazy" src="capturas/069-existencias-acciones.marcado.jpg" alt="Existencias ▸ «Colgar varias»: la tabla de cantidades y el botón «Continuar →» se salen de la hoja"></a><a href="capturas/069-existencias-acciones.abajo.jpg" target="_blank"><img loading="lazy" src="capturas/069-existencias-acciones.abajo.jpg" alt="Existencias ▸ «Colgar varias»: la tabla de cantidades y el botón «Continuar →» se salen de la hoja"></a></div>
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-4-colgar-g375-abajo.jpg" target="_blank"><img loading="lazy" src="capturas/despues-4-colgar-g375-abajo.jpg" alt="Después: Existencias ▸ «Colgar varias»: la tabla de cantidades y el botón «Continuar →» se salen de la hoja"></a></div>
+</article>
+<article class="card g-alta" id="h5">
+<header><span class="n">5</span><div><h3>Análisis ▸ «Datos incompletos»: los tres anillos se encima y sus títulos quedan cortados</h3><p class="meta"><b class="b-alta">ALTA</b> · escenario <code>analisis.confianza</code></p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Hoja «Datos incompletos» (se abre desde la píldora de Análisis).</dd>
+<dt>Qué se ve</dt><dd>«Vendes con su prenda», «Piso cuadrado» y «Almacén contado» se pisan: el anillo de 100 % tapa su propia etiqueta y los otros dos quedan con medias palabras («Pi… adrado», «Alm… contado»). No es cosa del celular: pasa también en escritorio y en todos los sitios donde Análisis dibuja sus anillos.</dd>
+<dt>Causa</dt><dd>Choque de nombres de clase. La pieza única del anillo del sistema (<code>app/estilos/avance-anillo-copiar.css</code>, ADR-0358, ronda 13) define <code>.anillo &gt; svg { position: absolute; inset: 0 }</code> para todo el ERP, y el anillo propio de Análisis (<code>components/analisis/piezas.tsx:117</code>, estilos en <code>app/estilos/analisis.css:300</code>) también se llama <code>anillo</code>: su SVG de 96 px pasó a flotar sobre su título y su botón (medido: la caja del anillo mide 79 px aunque su SVG mide 96).</dd>
+<dt>Arreglo</dt><dd><code>.anillo svg{position:static;inset:auto;…}</code> en el CSS de Análisis, y filas centradas bajo 460 px de contenedor.</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: el SVG vuelve al flujo y cada anillo queda con su título, su dato y su botón debajo, sin pisarse, a 320, 375, 430 y 1440 px (en escritorio las posiciones son las mismas de antes de la regresión de diseño: tres en una fila). En el teléfono caben dos por fila, así que las filas se centran. Candado nuevo: <code>lib/analisis-anillo-colision.test.ts</code> (falla sin la regla). Los otros dos sitios donde Análisis dibuja sus anillos («El conteo coincidió» y el vacío de «Todavía no») no se pudieron fotografiar con los datos locales; usan el mismo componente y el mismo CSS.</p>
+<div class="fotos"><a href="capturas/110-analisis-confianza.arriba.jpg" target="_blank"><img loading="lazy" src="capturas/110-analisis-confianza.arriba.jpg" alt="Análisis ▸ «Datos incompletos»: los tres anillos se encima y sus títulos quedan cortados"></a></div>
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-5-anillos-final-375.jpg" target="_blank"><img loading="lazy" src="capturas/despues-5-anillos-final-375.jpg" alt="Después: Análisis ▸ «Datos incompletos»: los tres anillos se encima y sus títulos quedan cortados"></a></div>
+</article>
+<article class="card g-alta" id="h6">
+<header><span class="n">6</span><div><h3>Producción ▸ «Nueva factura de insumos»: la línea de la factura no cabe en una fila</h3><p class="meta"><b class="b-alta">ALTA</b> · escenario <code>produccion.factura-nueva</code></p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Hoja «Nueva factura de insumos», sección «Qué se compró · costo unitario sin IGV».</dd>
+<dt>Qué se ve</dt><dd>Cuatro controles en una sola fila: el combo dice «Otro c…», el texto «Qué se com…» está cortado y «Cant.» y «S/ c/u» son cajas minúsculas con la ✕ al lado.</dd>
+<dt>Causa</dt><dd><code>components/ComprobanteProduccionForm.tsx:233</code>: cada línea es una grilla de cuatro columnas (<code>minmax(0,1fr) 5rem 5rem auto</code>) en una sola fila; en una hoja de 325 px útiles la descripción se quedaba con ~105 px. Medido a 375 px: la hoja mide 373 y la línea 325, pero el combo y el texto de la descripción quedaban en 105 px.</dd>
+<dt>Arreglo</dt><dd>Bajo 640 px la línea ocupa dos filas: la descripción a todo el ancho y debajo cantidad, costo y ✕, con una raya entre una línea y la siguiente.</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: a 375 px la descripción mide 325 px («Otro concepto (flete, maquila…)» y «Qué se compró» se leen completos), cantidad y costo miden 137 px cada uno y la ✕ queda al lado; sin controles cortados a 375 ni a 320 px. En escritorio la línea sigue en una sola fila, igual que antes (descripción, 88 px, 88 px y ✕).</p>
+<div class="fotos"><a href="capturas/217-produccion-factura-nueva.abajo.jpg" target="_blank"><img loading="lazy" src="capturas/217-produccion-factura-nueva.abajo.jpg" alt="Producción ▸ «Nueva factura de insumos»: la línea de la factura no cabe en una fila"></a></div>
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-6-factura-final-375.jpg" target="_blank"><img loading="lazy" src="capturas/despues-6-factura-final-375.jpg" alt="Después: Producción ▸ «Nueva factura de insumos»: la línea de la factura no cabe en una fila"></a></div>
+</article>
+<article class="card g-alta" id="h7">
+<header><span class="n">7</span><div><h3>Catálogo ▸ Productos: la barra flotante de acciones masivas deja el último botón fuera de la pantalla</h3><p class="meta"><b class="b-alta">ALTA</b> · no es una hoja, pero rompe el celular · escenario <code>productos.tabla-seleccion</code></p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Barra que aparece al marcar productos en la lista (no es una hoja, pero se comporta como una).</dd>
+<dt>Qué se ve</dt><dd>«Descontinuar · Reactivar · Etiquetas · Rótulo» ocupan todo el ancho y «Quitar la marca» (✕) queda cortada en el borde derecho: no se puede soltar la selección.</dd>
+<dt>Causa</dt><dd><code>components/ProductosTabla.tsx:849</code> (<code>BarraMarcadas</code>): los cuatro botones traían <code>px-3</code> (12 px por lado) y <code>flex-1</code>, pero su ancho mínimo es el de su palabra (Descontinuar 71 px de texto). Medido a 375 px: la barra mide 351 px y su contenido 397; la ✕ quedaba en x=365..409, fuera de la pantalla de 375.</dd>
+<dt>Arreglo</dt><dd><code>px-1</code> en los botones bajo <code>sm</code> (vuelve a <code>px-3</code> desde <code>sm</code>), cuenta de marcadas más angosta y <code>flex-wrap</code> bajo <code>sm</code> para que, en un teléfono de menos de ~340 px, la barra pase a dos filas en vez de salirse; la ✕ se va a la derecha (<code>ml-auto</code>).</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: a 360, 375, 390 y 430 px la barra cabe en una fila de 56 px con la ✕ dentro (contenido de 351 en 351 a 375 px; antes 397 en 351). A 320 px pasa a dos filas con la ✕ a la derecha. En escritorio no cambia (una fila de 595×56).</p>
+<div class="fotos"><a href="capturas/041-productos-tabla-seleccion.marcado.jpg" target="_blank"><img loading="lazy" src="capturas/041-productos-tabla-seleccion.marcado.jpg" alt="Catálogo ▸ Productos: la barra flotante de acciones masivas deja el último botón fuera de la pantalla"></a></div>
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-7-barra-e375.jpg" target="_blank"><img loading="lazy" src="capturas/despues-7-barra-e375.jpg" alt="Después: Catálogo ▸ Productos: la barra flotante de acciones masivas deja el último botón fuera de la pantalla"></a></div>
+</article>
+<article class="card g-alta" id="h8">
+<header><span class="n">8</span><div><h3>Caja: la página mide 459 px en un teléfono de 375 y el navegador la achica; sus hojas se ven cortadas</h3><p class="meta"><b class="b-alta">ALTA</b> · no es una hoja, pero rompe el celular · escenario <code>caja.m-cerrar</code></p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Pantalla Caja y las tres hojas que abre: «Registrar gasto», «Registrar ingreso» y «Cerrar caja».</dd>
+<dt>Qué se ve</dt><dd>Al abrir Caja el navegador reduce toda la página para que quepa (el ancho de la ventana pasa a 459 px). La barra de abajo «Vender · Gasto · Ingreso · Cerrar» queda bajo el borde de la pantalla y las hojas se ven recortadas a la derecha («Internet y ce…», «Continuar» sin su borde). Las capturas muestran lo que ve el navegador al 100 %.</dd>
+<dt>Causa</dt><dd>Cinco grillas de Caja (<code>components/CajaComparativa.tsx:257,261,265</code> y <code>components/CajaAbiertaPanel.tsx:429,441</code>) eran <code>grid gap-3 @[900px]:grid-cols-…</code>: bajo 900 px de contenedor su única columna era <code>auto</code>, y su ancho mínimo era el del contenido más ancho (las tarjetas «Dónde ganas y dónde pierdes» y «Movimientos del turno», de 443 px). Medido en <code>/caja</code>: <code>scrollWidth</code> 459 con la pantalla en 375; <code>/inventario</code> y <code>/vender</code> miden 375. El navegador achicaba toda la página para que cupiera.</dd>
+<dt>Arreglo</dt><dd><code>grid-cols-1</code> (columna <code>minmax(0,1fr)</code>) en las cinco grillas; desde 900 px de contenedor siguen con sus columnas de siempre. Queda abierta la decisión de Felipe: CLAUDE.md dice que Caja sigue siendo de escritorio (¿entra al celular obligatorio, PL-105?).</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: a 320, 375 y 430 px la página mide lo que la pantalla (antes 459 en 375), todas las tarjetas caben, la barra «Vender · Gasto · Ingreso · Cerrar» queda dentro de la pantalla (termina en y=798 de 812) y las hojas «Registrar gasto», «Registrar ingreso» y «Cerrar caja» abren con un clic real y caben sin desborde (antes se abrían solo por el DOM y salían cortadas a la derecha). En escritorio y tablet las grillas conservan sus columnas (548/548, 674/421 y 619/476 a 1440 px).</p>
+<div class="fotos"><a href="capturas/003-caja-m-cerrar.arriba.jpg" target="_blank"><img loading="lazy" src="capturas/003-caja-m-cerrar.arriba.jpg" alt="Caja: la página mide 459 px en un teléfono de 375 y el navegador la achica; sus hojas se ven cortadas"></a><a href="capturas/001-caja-m-gasto.arriba.jpg" target="_blank"><img loading="lazy" src="capturas/001-caja-m-gasto.arriba.jpg" alt="Caja: la página mide 459 px en un teléfono de 375 y el navegador la achica; sus hojas se ven cortadas"></a><a href="capturas/002-caja-m-ingreso.arriba.jpg" target="_blank"><img loading="lazy" src="capturas/002-caja-m-ingreso.arriba.jpg" alt="Caja: la página mide 459 px en un teléfono de 375 y el navegador la achica; sus hojas se ven cortadas"></a></div>
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-8-caja-tira-375.jpg" target="_blank"><img loading="lazy" src="capturas/despues-8-caja-tira-375.jpg" alt="Después: Caja: la página mide 459 px en un teléfono de 375 y el navegador la achica; sus hojas se ven cortadas"></a><a href="capturas/despues-8-caja-hojas-375.jpg" target="_blank"><img loading="lazy" src="capturas/despues-8-caja-hojas-375.jpg" alt="Después: Caja: la página mide 459 px en un teléfono de 375 y el navegador la achica; sus hojas se ven cortadas"></a></div>
+</article>
+<article class="card g-media" id="h9">
+<header><span class="n">9</span><div><h3>Análisis ▸ Ficha de una prenda: la tabla color × talla se corta a la derecha</h3><p class="meta"><b class="b-media">MEDIA</b> · escenario <code>analisis.ficha</code></p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Hoja «Casaca Ximena» (ficha de Análisis).</dd>
+<dt>Qué se ve</dt><dd>La columna L aparece a medias («sin ver…», «queda…») y las demás tallas no se ven sin deslizar; nada avisa que hay más.</dd>
+<dt>Causa</dt><dd><code>components/analisis/FichaPrenda.tsx:124</code> y <code>app/estilos/analisis.css</code>: la tabla (color + una columna por talla + «Vendiste») mide 423 px en una caja de 325 y se desliza dentro de <code>.m-tabla</code>, con celdas de 82 px mínimas y sin ninguna pista visual.</dd>
+<dt>Arreglo</dt><dd>Bajo 460 px de contenedor: celdas de 72 px, la columna del color fija a la izquierda y una sombra en el borde que se apaga al llegar al final (<code>background-attachment: local</code>, sin JavaScript).</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: a 375 px caben S, M y L completas («sin ventas / quedan 6» en dos líneas, como antes) y la columna «Vendiste» asoma con la sombra del borde. A 320 y 430 px se desliza con el color fijo; a 1440 px no cambia (sin scroll, columnas de 103 px).</p>
+<div class="fotos"><a href="capturas/112-analisis-ficha.arriba.jpg" target="_blank"><img loading="lazy" src="capturas/112-analisis-ficha.arriba.jpg" alt="Análisis ▸ Ficha de una prenda: la tabla color × talla se corta a la derecha"></a></div>
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-9-analisis.ficha-despues2.jpg" target="_blank"><img loading="lazy" src="capturas/despues-9-analisis.ficha-despues2.jpg" alt="Después: Análisis ▸ Ficha de una prenda: la tabla color × talla se corta a la derecha"></a></div>
+</article>
+<article class="card g-media" id="h10">
+<header><span class="n">10</span><div><h3>Punto de Venta ▸ Ticket: el nombre de la prenda se parte en dos líneas por palabra</h3><p class="meta"><b class="b-media">MEDIA</b> · escenario <code>vender.m-ticket</code></p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Hoja «Ticket actual» (Vender en celular).</dd>
+<dt>Qué se ve</dt><dd>«Blusa / Emma» y «Beige · Talla / M» ocupan dos líneas cada uno porque el stepper, el «%», el precio y la papelera se quedan con casi todo el ancho de la fila.</dd>
+<dt>Causa</dt><dd>El nombre comparte la fila con el stepper, el «%», el precio y la papelera, y queda en una columna de ~100 px (medido en la captura).</dd>
+<dt>Arreglo</dt><dd>Bajo <code>sm</code> la fila ocupa dos: arriba el nombre (a todo el ancho menos la papelera) y abajo la cantidad y el importe.</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: <code>components/punto-de-venta/LineaDelTicket.tsx</code>. «Blusa Emma» queda en una línea con su detalle («Beige · Talla M ● Stock: 20»), la papelera arriba a la derecha y cantidad e importe en la fila de abajo; sin desbordes a 320 y 430 px. Desde <code>sm</code> la fila no cambia. Se actualizó <code>components/PuntoDeVentaTicket.responsive.test.ts</code>, que exigía la clase exacta del bloque del nombre.</p>
+<div class="fotos"><a href="capturas/009-vender-m-ticket.arriba.jpg" target="_blank"><img loading="lazy" src="capturas/009-vender-m-ticket.arriba.jpg" alt="Punto de Venta ▸ Ticket: el nombre de la prenda se parte en dos líneas por palabra"></a></div>
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-10-vender.m-ticket-despues.jpg" target="_blank"><img loading="lazy" src="capturas/despues-10-vender.m-ticket-despues.jpg" alt="Después: Punto de Venta ▸ Ticket: el nombre de la prenda se parte en dos líneas por palabra"></a></div>
+</article>
+<article class="card g-media" id="h11">
+<header><span class="n">11</span><div><h3>Bajar prendas al piso: en la lista de sugerencias se corta justo lo que distingue una prenda de otra</h3><p class="meta"><b class="b-media">MEDIA</b> · no es una hoja, pero rompe el celular · escenario <code>bajar.buscar</code></p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Lista «Toca la prenda que tienes en la mano».</dd>
+<dt>Qué se ve</dt><dd>«Vestido Sofía · L · Azul…» y «Vestido Sofía · L · Neg…»: la talla y el color son lo único que cambia entre filas y es lo que se trunca.</dd>
+<dt>Causa</dt><dd><code>components/BajarAlPisoForm.tsx:922</code>: el título de cada sugerencia era <code>nombreDePrenda(p)</code> («modelo · talla · color») en UNA línea <code>truncate</code>, con «Almacén 6» a la derecha.</dd>
+<dt>Arreglo</dt><dd>El modelo en la primera línea y «talla · color» en la segunda, con el código al final de esa línea (lo primero que se corta).</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: cada fila dice «Vestido Sofía» y debajo «L · Azul marino», completos, con el código recortado al final cuando no cabe. Se aceptó la huella de la guía «inventario.bajar» tras revisarla (la lista ya estaba explicada; solo cambió cómo el escáner identifica el botón).</p>
+<div class="fotos"><a href="capturas/095-bajar-buscar.marcado.jpg" target="_blank"><img loading="lazy" src="capturas/095-bajar-buscar.marcado.jpg" alt="Bajar prendas al piso: en la lista de sugerencias se corta justo lo que distingue una prenda de otra"></a></div>
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-11-bajar.buscar-despues.jpg" target="_blank"><img loading="lazy" src="capturas/despues-11-bajar.buscar-despues.jpg" alt="Después: Bajar prendas al piso: en la lista de sugerencias se corta justo lo que distingue una prenda de otra"></a></div>
+</article>
+<article class="card g-media" id="h12">
+<header><span class="n">12</span><div><h3>Historial ▸ Detalle de la venta: letra muy chica y «Imprimir boleta A4» pegado al borde</h3><p class="meta"><b class="b-media">MEDIA</b> · escenario <code>historial.venta</code></p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Hoja «Detalle de la venta».</dd>
+<dt>Qué se ve</dt><dd>El botón «Imprimir boleta A4» no cabe en media fila y su texto sale cortado (9 px de más). Corrección del informe: en esta hoja no hay texto por debajo de 11 px; la letra de 11 a 12 px es la densidad normal del sistema y no se tocó.</dd>
+<dt>Causa</dt><dd><code>components/DetalleVentaModal.tsx:309</code>: «Imprimir ticket» e «Imprimir boleta A4» comparten fila con <code>flex-1</code> y <code>flex-wrap</code>, pero sin ancho mínimo: en 325 px cada uno recibe ~158 y el segundo necesita ~167.</dd>
+<dt>Arreglo</dt><dd><code>min-w-[11rem]</code> en los dos botones: si no caben juntos se apilan, cada uno a todo el ancho.</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: a 375 y 320 px los dos botones se apilan (325 y 270 px de ancho) y el texto cabe; a 430 px van lado a lado con 185 px cada uno; en escritorio, en una fila. Sigue pendiente, y no es de esta hoja, que la × de cerrar de <code>&lt;Modal&gt;</code> mide 28 px (por debajo de 44 para el dedo): es de la hoja del celular de ADR-0479, de otra sesión.</p>
+<div class="fotos"><a href="capturas/024-historial-venta.arriba.jpg" target="_blank"><img loading="lazy" src="capturas/024-historial-venta.arriba.jpg" alt="Historial ▸ Detalle de la venta: letra muy chica y «Imprimir boleta A4» pegado al borde"></a></div>
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-12-historial.venta-d375.jpg" target="_blank"><img loading="lazy" src="capturas/despues-12-historial.venta-d375.jpg" alt="Después: Historial ▸ Detalle de la venta: letra muy chica y «Imprimir boleta A4» pegado al borde"></a></div>
+</article>
+<article class="card g-media" id="h13">
+<header><span class="n">13</span><div><h3>Compras ▸ Orden de compra: los botones de acciones se reparten en cuatro filas desparejas</h3><p class="meta"><b class="b-media">MEDIA</b> · escenario <code>ordenes.ventana</code></p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Hoja «OC-001298».</dd>
+<dt>Qué se ve</dt><dd>«Anular orden», «Imprimir la orden», «Gasto del viaje + Editar» y «Enviar a una sede» caen en filas de largos distintos y «Editar» queda suelto: se ve desordenado y cuesta saber cuál es el principal.</dd>
+<dt>Causa</dt><dd><code>components/ordenes-compra/AccionesOrden.tsx</code> (<code>lugar=«pie»</code>): seis acciones de largos distintos en un <code>flex-wrap</code> dentro de otro <code>flex-wrap</code>.</dd>
+<dt>Arreglo</dt><dd>Bajo <code>sm</code>, una columna a todo el ancho: imprimir, gasto del viaje, editar, enviar y registrar (la principal, al final), y «Anular orden» aparte, debajo. La cabecera de la página completa (<code>lugar=«cabecera»</code>) no cambia.</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama: a 320, 375 y 430 px las seis acciones quedan en columna a todo el ancho (325 px a 375); en escritorio y en la cabecera de la página, igual que antes.</p>
+<div class="fotos"><a href="capturas/132-ordenes-ventana.arriba.jpg" target="_blank"><img loading="lazy" src="capturas/132-ordenes-ventana.arriba.jpg" alt="Compras ▸ Orden de compra: los botones de acciones se reparten en cuatro filas desparejas"></a></div>
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-13-ordenes.ventana-d375b.jpg" target="_blank"><img loading="lazy" src="capturas/despues-13-ordenes.ventana-d375b.jpg" alt="Después: Compras ▸ Orden de compra: los botones de acciones se reparten en cuatro filas desparejas"></a></div>
+</article>
+<article class="card g-media" id="h14">
+<header><span class="n">14</span><div><h3>Pestañas y filas de píldoras que se deslizan: el borde las corta sin avisar que hay más</h3><p class="meta"><b class="b-media">MEDIA</b> · transversal</p></div></header>
+<dl>
+<dt>Dónde</dt><dd>Configuración (6 pestañas), Análisis, Finanzas ▸ Gastos y Reportes, Devoluciones, Marcas, Insignias, Historial, Movimientos y Vista rápida de producto.</dd>
+<dt>Qué se ve</dt><dd>La primera o la última pestaña queda a medias en el borde («…operaciones», «Sin ella 21», «C…»). Quien no sabe que se desliza no se entera de que existen más.</dd>
+<dt>Causa</dt><dd>Patrón común (<code>&lt;Pestanas&gt;</code>, <code>pildoras-desliza</code>, <code>pestanas-cayla</code>): scroll horizontal sin degradado de borde ni desplazamiento al activo.</dd>
+<dt>Arreglo</dt><dd>Es una pieza única del sistema (<code>/unificar</code>, ADR-0358): se arregla en un solo lugar para todas.</dd>
+</dl>
+<p class="hecho"><b>Estado:</b> ARREGLADO en esta rama, con la opción A que elegiste mirando la maqueta: la fila se desvanece 28 px del lado donde falta por ver y se apaga sola al llegar al final. <code>components/ui/FilasQueSeDeslizan.tsx</code> (montado una vez en <code>app/layout.tsx</code>) mide cada fila <code>.pestanas-cayla</code> o <code>.pildoras-desliza</code> y le pone <code>data-mas-izq</code> / <code>data-mas-der</code>; <code>app/estilos/pestanas-y-segmentos.css</code> dibuja la máscara; la regla pura es <code>lib/fila-desliza-reglas.ts</code> (con su prueba). Verificado en la app real a 320, 375, 430, 1024 y 1440 px, en claro y en oscuro: en escritorio no aparece nada, y las filas que caben enteras tampoco. Pendiente: probarlo en Safari de iPhone (el vidrio de las pestañas usa <code>backdrop-filter</code>; si Safari no lo combinara con la máscara, lo peor sería perder el desenfoque del vidrio, no las pestañas).</p>
+
+<p class="meta"><b>Después del arreglo</b></p><div class="fotos"><a href="capturas/despues-14-filas-aviso.jpg" target="_blank"><img loading="lazy" src="capturas/despues-14-filas-aviso.jpg" alt="Después: Pestañas y filas de píldoras que se deslizan: el borde las corta sin avisar que hay más"></a></div>
+</article>
+<h2>No se pudieron abrir <small>(79)</small></h2>
+<p class="nota">«No se abrió» no es «está bien»: estas hojas quedan sin auditar. La mayoría necesita datos que la base local no tiene; para auditarlas hace falta una base sembrada con órdenes del Taller, fondos, traslados por recibir e insumos.</p>
+<details><summary>12 · Escenario de escritorio; en celular Vender tiene otro flujo (`vender.m-*`, que sí se auditó).</summary><p><code>vender.ver-opciones-porque</code> <code>vender.ver-opciones-en-ticket</code> <code>vender.m-cobro-tarjeta-maquina</code> <code>vender.ticket</code> <code>vender.cobrar</code> <code>vender.cobro-efectivo</code> <code>vender.cobro-tarjeta</code> <code>vender.cobro-yape</code> <code>vender.cobro-dos-medios</code> <code>vender.cobro-factura</code> <code>vender.ver-opciones</code> <code>vender.cobro-tarjeta-maquina</code></p></details>
+<details><summary>56 · La base local no tiene el dato que el escenario necesita (no hay órdenes en el Taller, fondos, traslados por recibir, insumos o tarifas…) o el botón es de escritorio.</summary><p><code>comprobantes.reintentar</code> <code>existencias.ordenar</code> <code>traslados.contar</code> <code>traslados.pedido</code> <code>traslados.guia</code> <code>traslados.guia-a4</code> <code>recibir.proveedor</code> <code>recibir.prenda</code> <code>regularizar.vendio</code> <code>regularizar.hoja</code> <code>ordenes.anular</code> <code>fondos.devolver</code> <code>fondos.pagar-deuda</code> <code>fondos.anular</code> <code>ordenes.rendir</code> <code>proveedores.reposicion</code> <code>ordenes.nos-debe</code> <code>cierre.pendientes</code> <code>clientas.ficha-historial</code> <code>avisos.beneficios</code> <code>avisos.cumpleanos</code> <code>colaboradores.terminal</code> <code>actividad.modulo</code> <code>actividad.persona</code> <code>etiquetas.previa</code> <code>produccion.resumen-porque</code> <code>produccion.insumo-ingresar</code> <code>produccion.insumo-ficha</code> <code>produccion.tarifa-nueva</code> <code>produccion.tarifa-cambiar</code> <code>produccion.eficiencia-mes</code> <code>produccion.orden-pagina</code> <code>produccion.orden-terminar</code> <code>produccion.orden-salida</code> <code>produccion.orden-vuelta</code> <code>produccion.orden-anular</code> <code>produccion.orden-tela-usada</code> <code>produccion.orden-stock</code> <code>produccion.orden-anular-orden</code> <code>produccion.orden-marcar</code> <code>produccion.orden-desmarcar</code> <code>produccion.orden-cambiar-quien</code> <code>oi.ventana</code> <code>oi.anular</code> <code>oi.recibir</code> <code>traslados.qr-del-pase</code> <code>inicio.obs-toda-cayla</code> <code>rendimiento.mes</code> <code>productos.filtro-categoria</code> <code>productos.tabla-variantes</code> <code>existencias.decidir</code> <code>movimientos.calendario</code> <code>traslados.reverso</code> <code>regularizar.puente</code> <code>porpagar.vencidas</code> <code>inicio.ajustar</code></p></details>
+<details><summary>5 · Nuevo producto es una pantalla por pasos, no una hoja.</summary><p><code>nuevo.familia</code> <code>nuevo.como-es</code> <code>nuevo.tallas</code> <code>nuevo.tallas-color</code> <code>nuevo.precio</code></p></details>
+<details><summary>2 · Es el lateral de escritorio; en celular es el menú de hamburguesa (`estructura.menu-celular`, auditado).</summary><p><code>estructura.lateral-plegado</code> <code>estructura.grupo</code></p></details>
+<details><summary>4 · Caja ensancha la página: la barra «Gasto · Ingreso · Cerrar» queda fuera de pantalla (hallazgo 8). Las tres hojas se abrieron aparte.</summary><p><code>caja.gasto</code> <code>caja.deposito</code> <code>caja.cerrar</code> <code>caja.venta</code></p></details>
+<h2>Cómo se hizo y qué no cubre</h2>
+<ul>
+<li>Se reutilizaron los 310 escenarios de la auditoría de modo oscuro (<code>apps/web/tema/escenarios/registro.mjs</code>), que ya saben abrir cada hoja sin guardar. Se corrieron en celular 242 (más 40 pensados para escritorio, abiertos igual) y 3 propios de Caja.</li>
+<li>La medición busca: contenido más ancho que la hoja, elementos cortados o fuera de pantalla, textos que se pisan (solo los que están a la vista de verdad), botones cuyo texto no cabe, campos con letra menor a 16 px y controles menores a 28 px. Un hallazgo medido solo cuenta si se confirmó mirando la captura; los falsos positivos (dígitos que ruedan del Observatorio, texto que pasa bajo un pie fijo, «…» a propósito) se descartaron.</li>
+<li><b>No es Safari real.</b> Es Chrome con emulación de teléfono. El zoom al enfocar campos (hallazgo 1) es comportamiento conocido de iOS, no algo que se haya podido reproducir aquí.</li>
+<li>En este build las hojas de «Filtros» abren a media altura (ADR-0479, por diseño); lo que queda bajo el pliegue no es un fallo, pero conviene comprobar que el asa se entienda.</li>
+<li>Las hojas de Caja se vieron con la página ensanchada (hallazgo 8), así que se ven más grandes de lo que se verían en un celular real, que achica la página.</li>
+<li>Solo se probó con la cuenta Admin (más Taller para Producción). Una cuenta con menos módulos no cambia el ancho de las hojas, pero sí qué botones salen.</li>
+<li>94 de las pantallas medidas son páginas, no hojas; no se revisaron a ojo una por una. Los hallazgos 7, 8 y 11 son páginas que se rompen en el celular y se dejaron porque afectan igual.</li>
+</ul>
+</html>

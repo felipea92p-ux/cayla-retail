@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
-import { avisoCajaFuerte, colorDeSede, detalleCajon, nivelFrasco, orilloDeDinero, repisaDe, repisasDeDinero, ultimoDepositoDe, verDeLaUrl } from "./dinero-telar-reglas";
+import { avisoCajaFuerte, colorDeSede, detalleCajon, nivelFrasco, orilloDeDinero, repisaDe, repisasDeDinero, ultimoDepositoDe } from "./dinero-telar-reglas";
 
 const cuenta = (p: Partial<CuentaDinero> & Pick<CuentaDinero, "id" | "nombre" | "tipo">): CuentaDinero => ({
   cuentaContable: "104", ubicacionId: null, ubicacionNombre: null, numero: null, saldo: 0, archivada: false, soloDestino: false,
@@ -102,15 +102,6 @@ describe("orilloDeDinero", () => {
   it("la suma del orillo es todo lo que tiene CAYLA, sin la tarjeta", () => {
     const total = Object.values(orilloDeDinero(CUENTAS)).reduce((a, b) => a + b, 0);
     expect(total).toBe(18300 + 9830 + 2140 + 500 + 6200 + 3900 + 150);
-  });
-});
-
-describe("verDeLaUrl", () => {
-  it("`sede` (la barra común) manda sobre `ver`; «empresa» se lee como todas", () => {
-    expect(verDeLaUrl({ sede: "tru", ver: "aqp" })).toBe("tru");
-    expect(verDeLaUrl({ ver: "aqp" })).toBe("aqp");
-    expect(verDeLaUrl({ sede: "empresa" })).toBe("todas");
-    expect(verDeLaUrl({})).toBeUndefined();
   });
 });
 

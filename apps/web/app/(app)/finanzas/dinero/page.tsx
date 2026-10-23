@@ -7,19 +7,23 @@ import { alcanzaPulso, tienesPulso } from "@/lib/dinero-pulso-reglas";
 import { getProyeccion } from "@/lib/flujo-caja";
 import { verDeLaVista } from "@/lib/vista-global";
 import { explicacionCuenta } from "@/lib/cuentas-dinero-reglas";
-import { avisoCajaFuerte, detalleCajon, repisaDe, repisasDeDinero, verDeLaUrl } from "@/lib/dinero-telar-reglas";
+import { avisoCajaFuerte, detalleCajon, repisaDe, repisasDeDinero } from "@/lib/dinero-telar-reglas";
+import { SEDE_EMPRESA, SEDE_TODAS, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 import { Frascos } from "@/components/finanzas/dinero/Frascos";
 import { CierresConDiferencia } from "@/components/finanzas/dinero/CierresConDiferencia";
 
 // Finanzas ▸ Cuentas y dinero ▸ Dónde está (ADR-0195 F3; El telar, Felipe 2026-10-23). Lee en el servidor y deja a una pieza
-// cliente operar. `?sede=` (la barra común; mientras llega, `?ver=`; solo el líder) elige qué sede mirar: por defecto la sede
+// cliente operar. `?sede=` (la barra común; `?ver=` mientras dure el cambio; solo el líder) elige qué sede mirar: por defecto la sede
 // donde trabaja, o «todas» (ahí aparecen la plata del dueño y a qué cuenta entra cada cobro). Con el módulo, una cuenta ve su
 // cajón y su caja fuerte, y registra sus depósitos al banco. Cada cuenta es un frasco en la repisa de su sede.
 export default async function CuentasDineroPage({ searchParams }: { searchParams: Promise<{ ver?: string; sede?: string }> }) {
   const persona = await exigirModulo("cuentas_dinero");
   const sp = await searchParams;
   const hoy = hoyLima();
-  const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, verDeLaUrl(sp)));
+  // La sede sale de la barra común (`?sede=`, o `?ver=` mientras dure el cambio). «Dónde está» no tiene «empresa» propia (la empresa
+  // no tiene cajón): se lee como todas, y los bancos se ven en la repisa de CAYLA entera.
+  const pedida = sedeDeLaUrl(sp);
+  const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, pedida === SEDE_EMPRESA ? SEDE_TODAS : pedida));
   // El telar: arriba, «tienes»; luego los frascos de cada sede y «¿me alcanza?» (el flujo de 6 semanas, solo el líder). Lo que se
   // debe es su propia cara, «Qué debes» (/finanzas/dinero/por-pagar).
   // El efectivo de hoy (la misma cuenta del cierre) y los cierres con diferencia viven aquí desde que se retiró la pestaña Efectivo.
