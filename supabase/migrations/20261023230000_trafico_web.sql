@@ -82,12 +82,16 @@ alter table retail.trafico_web enable row level security;
 revoke all on retail.trafico_web from public, anon, authenticated;
 
 -- ---------- 2. Anotar pasos: la puerta de la tienda ----------
--- `p_pasos`: [{ "paso": 0..4, "hace_ms": 0..21600000, "camino": "...", "producto": uuid, "variante": uuid, "pedido": uuid }, …]
+-- `p_pasos`: [{ "paso": 0..4, "hace_ms": 0..21600000, "camino": "...", "producto": uuid, "variante": uuid, "marca": uuid }, …]
 --   · hace_ms: cuánto antes de este envío ocurrió (la tienda junta varios pasos y los manda al salir de la página); la hora la pone
 --     la base (now() − hace_ms), nunca el aparato.
+--   · eligió talla y a la bolsa: basta la talla (`variante`); la prenda sale de ella (si viene, tiene que ser la suya).
+--   · separó: la `marca` del pedido (`pedidos_web.token_cliente`), la que solo conoce el servidor de la tienda de esa persona (vive en su
+--     cookie `httpOnly`); el código del pedido no sirve, porque se ve en la dirección.
 -- `p_region`: el departamento de quien envía; solo se guarda en «entró».
 -- Devuelve cuántos pasos quedaron anotados. Lo que no calza (más de 20, un paso desconocido, un camino fuera de la lista, una prenda o
--- una talla que no existe, una talla de otra prenda, un pedido de hace más de 15 minutos o ya contado) se descarta sin error.
+-- una talla que no existe, una talla de otra prenda, una marca sin pedido, un pedido de hace más de 15 minutos o ya contado) se
+-- descarta sin error.
 create or replace function retail.tienda_anotar_pasos(p_visitante uuid, p_pasos jsonb, p_region text default null)
 returns integer
 language plpgsql
@@ -127,19 +131,24 @@ begin
     if v_paso = 0 then
       v_camino := v_item ->> 'camino';
       continue when v_camino is null or v_camino not in ('instagram', 'directo', 'whatsapp', 'tiktok', 'google', 'qr', 'otros');
-    elsif v_paso in (1, 2, 3) then
+    elsif v_paso = 1 then
       v_producto := case when v_item ->> 'producto' ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then (v_item ->> 'producto')::uuid end;
       continue when v_producto is null or not exists (select 1 from retail.productos p where p.id = v_producto);
-      if v_paso in (2, 3) then
-        v_variante := case when v_item ->> 'variante' ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then (v_item ->> 'variante')::uuid end;
-        continue when v_variante is null
-          or not exists (select 1 from retail.variantes v where v.id = v_variante and v.producto_id = v_producto);
-      end if;
+    elsif v_paso in (2, 3) then
+      -- La prenda sale de la talla; si el envío trae una prenda, tiene que ser la de esa talla.
+      v_variante := case when v_item ->> 'variante' ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then (v_item ->> 'variante')::uuid end;
+      continue when v_variante is null;
+      v_producto := (select v.producto_id from retail.variantes v where v.id = v_variante);
+      continue when v_producto is null or (v_item ? 'producto' and v_item ->> 'producto' is distinct from v_producto::text);
     else
-      -- Separó: el pedido existe y se creó hace poco (nadie puede atribuirse un pedido viejo ni ajeno: su id no se publica).
-      v_pedido := case when v_item ->> 'pedido' ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then (v_item ->> 'pedido')::uuid end;
-      continue when v_pedido is null
-        or not exists (select 1 from retail.pedidos_web w where w.id = v_pedido and w.creado_en > v_ahora - interval '15 minutes');
+      -- Separó: el pedido de esa marca, creado hace poco (nadie puede atribuirse un pedido viejo ni ajeno: la marca no se publica).
+      if v_item ->> 'marca' ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+        v_pedido := (
+          select w.id from retail.pedidos_web w
+          where w.token_cliente = (v_item ->> 'marca')::uuid and w.creado_en > v_ahora - interval '15 minutes'
+        );
+      end if;
+      continue when v_pedido is null;
     end if;
 
     insert into retail.trafico_web (ocurrio_en, visitante, paso, camino, region, producto_id, variante_id, pedido_web_id)

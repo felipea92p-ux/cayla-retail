@@ -64,6 +64,15 @@ describe("leerPasos: lo que acepta la ruta", () => {
       leerPasos({ pasos: [{ paso: 0, camino: "facebook" }, "hola", null, { paso: 0, camino: "directo", hace_ms: -5 }, { paso: 0, camino: "google" }] }),
     ).toEqual([{ paso: 0, camino: "google", hace_ms: 0 }]);
   });
+  it("acepta «vio prenda» y «eligió talla» con sus ids de la base", () => {
+    const prenda = "11111111-1111-4111-8111-111111111111";
+    const talla = "22222222-2222-4222-8222-222222222222";
+    expect(leerPasos({ pasos: [{ paso: 1, producto: prenda, hace_ms: 20 }, { paso: 2, producto: prenda, variante: talla }] })).toEqual([
+      { paso: 1, producto: prenda, hace_ms: 20 },
+      { paso: 2, producto: prenda, variante: talla, hace_ms: 0 },
+    ]);
+    expect(leerPasos({ pasos: [{ paso: 1, producto: "BLZ-0001" }, { paso: 2, producto: prenda }] })).toEqual([]);
+  });
   it("lo que anota el servidor («a la bolsa», «separó») no entra por aquí", () => {
     expect(leerPasos({ pasos: [{ paso: 3 }, { paso: 4, pedido: "x" }] })).toEqual([]);
   });

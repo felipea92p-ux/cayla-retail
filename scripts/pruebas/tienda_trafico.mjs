@@ -4,8 +4,9 @@
  *
  * QUÉ PRUEBA. `20261023230000_trafico_web.sql`:
  *   1. «Entró» guarda el camino y el departamento; un camino fuera de la lista no se anota y un departamento raro queda vacío.
- *   2. «Vio prenda», «eligió talla» y «a la bolsa» solo de una prenda que existe, y la talla tiene que ser de esa prenda.
- *   3. «Separó» solo de un pedido recién creado, y cada pedido una sola vez (un «Separar» reintentado no cuenta dos).
+ *   2. «Vio prenda», «eligió talla» y «a la bolsa» solo de una prenda que existe; la talla tiene que ser de esa prenda (si solo viene
+ *      la talla, la prenda sale de ella).
+ *   3. «Separó» por la marca secreta de un pedido recién creado, y cada pedido una sola vez (un «Separar» reintentado no cuenta dos).
  *   4. La hora la pone la base (ahora − hace_ms); un paso de hace más de 6 horas no se anota.
  *   5. Como mucho 20 pasos por envío; lo que no calza (basura, un paso 7, un id mal formado) se descarta sin error.
  *   6. La tienda (`tienda_web`) no puede leer ni escribir la tabla directo; un visitante del ERP no puede llamar a la función.
@@ -135,6 +136,14 @@ esperarValor(
   "2",
 );
 esperarValor(
+  "«a la bolsa» con solo la talla se anota y la prenda sale de ella",
+  escenario({
+    antes: `${COMO_TIENDA} ${anotar(pasosJson(`jsonb_build_object('paso', 3, 'variante', current_setting('t.talla'))`))} ${COMO_ADMIN}`,
+    consulta: `select (producto_id::text = current_setting('t.prenda'))::text from retail.trafico_web where visitante = '${VISITANTE}' and paso = 3;`,
+  }),
+  "true",
+);
+esperarValor(
   "«a la bolsa» sin talla no se anota",
   escenario({
     consulta: `${COMO_TIENDA} ${anotar(pasosJson(`jsonb_build_object('paso', 3, 'producto', current_setting('t.prenda'))`))}`,
@@ -144,21 +153,31 @@ esperarValor(
 
 // ---- 3. Separó ----
 const PEDIDO_NUEVO = `
-insert into retail.pedidos_web (id, clienta_id, ubicacion_id, creado_en)
-select '0b0b0b0b-0000-4000-8000-0000000000aa', (select id from retail.clientas order by id limit 1), (select id from retail.ubicaciones order by id limit 1), now();
-insert into retail.pedidos_web (id, clienta_id, ubicacion_id, creado_en)
-select '0b0b0b0b-0000-4000-8000-0000000000bb', (select id from retail.clientas order by id limit 1), (select id from retail.ubicaciones order by id limit 1), now() - interval '1 hour';
+insert into retail.pedidos_web (id, clienta_id, ubicacion_id, token_cliente, creado_en)
+select '0b0b0b0b-0000-4000-8000-0000000000aa', (select id from retail.clientas order by id limit 1), (select id from retail.ubicaciones order by id limit 1), '0b0b0b0b-0000-4000-8000-00000000a0a0', now();
+insert into retail.pedidos_web (id, clienta_id, ubicacion_id, token_cliente, creado_en)
+select '0b0b0b0b-0000-4000-8000-0000000000bb', (select id from retail.clientas order by id limit 1), (select id from retail.ubicaciones order by id limit 1), '0b0b0b0b-0000-4000-8000-00000000b0b0', now() - interval '1 hour';
 `;
 esperarValor(
-  "«separó» de un pedido recién creado se anota una sola vez; uno de hace una hora, no",
+  "«separó» por la marca de un pedido recién creado se anota una sola vez; uno de hace una hora, una marca sin pedido o el id del pedido, no",
   escenario({
     antes: PEDIDO_NUEVO,
     consulta: `${COMO_TIENDA}
-      select retail.tienda_anotar_pasos('${VISITANTE}', '[{"paso":4,"pedido":"0b0b0b0b-0000-4000-8000-0000000000aa"}]'::jsonb)
-        || ',' || retail.tienda_anotar_pasos('${VISITANTE}', '[{"paso":4,"pedido":"0b0b0b0b-0000-4000-8000-0000000000aa"}]'::jsonb)
-        || ',' || retail.tienda_anotar_pasos('${VISITANTE}', '[{"paso":4,"pedido":"0b0b0b0b-0000-4000-8000-0000000000bb"}]'::jsonb);`,
+      select retail.tienda_anotar_pasos('${VISITANTE}', '[{"paso":4,"marca":"0b0b0b0b-0000-4000-8000-00000000a0a0"}]'::jsonb)
+        || ',' || retail.tienda_anotar_pasos('${VISITANTE}', '[{"paso":4,"marca":"0b0b0b0b-0000-4000-8000-00000000a0a0"}]'::jsonb)
+        || ',' || retail.tienda_anotar_pasos('${VISITANTE}', '[{"paso":4,"marca":"0b0b0b0b-0000-4000-8000-00000000b0b0"}]'::jsonb)
+        || ',' || retail.tienda_anotar_pasos('${VISITANTE}', '[{"paso":4,"marca":"0b0b0b0b-0000-4000-8000-00000000c0c0"}]'::jsonb)
+        || ',' || retail.tienda_anotar_pasos('${VISITANTE}', '[{"paso":4,"marca":"0b0b0b0b-0000-4000-8000-0000000000aa"}]'::jsonb);`,
   }),
-  "1,0,0",
+  "1,0,0,0,0",
+);
+esperarValor(
+  "«separó» queda atado a su pedido (para leer después si lo recogieron)",
+  escenario({
+    antes: `${PEDIDO_NUEVO} ${COMO_TIENDA} select retail.tienda_anotar_pasos('${VISITANTE}', '[{"paso":4,"marca":"0b0b0b0b-0000-4000-8000-00000000a0a0"}]'::jsonb); ${COMO_ADMIN}`,
+    consulta: `select pedido_web_id from retail.trafico_web where visitante = '${VISITANTE}' and paso = 4;`,
+  }),
+  "0b0b0b0b-0000-4000-8000-0000000000aa",
 );
 
 // ---- 4. La hora ----

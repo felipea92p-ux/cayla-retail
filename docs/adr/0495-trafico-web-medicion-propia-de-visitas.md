@@ -25,7 +25,10 @@ que ya viven en la base.
    no se anota nada.
 3. **La puerta de la tienda.** El navegador nunca habla con la base: manda los pasos a `POST /api/visita`, que valida (máximo 20 pasos y 4 KB) y
    llama a `retail.tienda_anotar_pasos`, una función más de la puerta angosta (solo el rol `tienda_web`). La base vuelve a revisar todo y
-   descarta lo que no calza sin error. «A la bolsa» y «separó» los anota el servidor, dentro de sus acciones, después de responder.
+   descarta lo que no calza sin error. «Vio una prenda» y «eligió talla» se juntan en el navegador y salen en un solo envío al ocultarse la
+   pestaña (`lib/visita-cola.ts`). «A la bolsa» y «separó» los anota el servidor, dentro de sus acciones, después de responder (`after`):
+   «a la bolsa» con la talla (la base saca la prenda de ella) y «separó» con la **marca secreta del pedido** (`pedidos_web.token_cliente`,
+   que vive en la cookie `httpOnly` de la bolsa), nunca con su código, que se ve en la dirección.
 4. **Una visita** dura mientras la persona vuelve a tocar algo antes de 30 minutos: «entró» sale una vez por visita.
 5. **La lectura** (actividad 4) es una función de solo lectura del ERP con el candado del módulo «trafico» (solo el líder): cuenta personas por
    el paso más lejano al que llegó cada una (el recorrido nunca crece hacia abajo), con el camino y el departamento de su primera entrada del
@@ -75,5 +78,9 @@ SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_
 - En la tienda local: abrir `/?utm_source=qr` deja una fila «entró» con camino `qr` (antes del arreglo de la portada quedaba «Directo»); pasar
   al catálogo no abre otra visita; `Sec-GPC: 1` o un robot no anotan nada ni dejan cookie; un cuerpo malo da 400 y uno de más de 4 KB, 413; con
   las cabeceras de Vercel queda `PE-LAL` y la cookie de 90 días.
-- **Sin probar:** las cabeceras de ubicación reales de Vercel (solo existen publicadas) y la tienda con la base caída en vivo (cubierta por la
-  prueba de `anotarPasos`).
+- **Actividad 2:** en la tienda local, abrir la ficha de la Blusa Emma, elegir la talla M y agregarla a la bolsa deja «vio prenda»,
+  «eligió talla» (con su hora real, aunque salen juntas al ocultarse la pestaña) y «a la bolsa» (talla M, Negro), del mismo visitante.
+  `pnpm pruebas:tienda-trafico` sube a 21: «a la bolsa» con solo la talla, y «separó» por la marca, una vez, atado a su pedido.
+- **Sin probar:** las cabeceras de ubicación reales de Vercel (solo existen publicadas), la tienda con la base caída en vivo (cubierta por la
+  prueba de `anotarPasos`) y «separó» en el navegador (en local no hay una cuenta de cliente de prueba; crear una pide consultar un DNI
+  real): su función está probada en Postgres y la acción usa el mismo camino que «a la bolsa».

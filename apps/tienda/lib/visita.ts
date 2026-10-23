@@ -62,9 +62,14 @@ export function regionDe(pais: string | null, region: string | null): string | n
   return /^[A-Z0-9]{1,3}$/.test(r) ? `PE-${r}` : "PE";
 }
 
-/** Un paso que manda el navegador. «A la bolsa» y «separó» los anota el servidor, no viajan por aquí. */
-export type PasoDelNavegador = { paso: 0; camino: Camino; hace_ms: number };
+/** Un paso que manda el navegador: entró, vio una prenda, eligió talla. «A la bolsa» y «separó» los anota el servidor, no viajan por aquí. */
+export type PasoDelNavegador =
+  | { paso: 0; camino: Camino; hace_ms: number }
+  | { paso: 1; producto: string; hace_ms: number }
+  | { paso: 2; producto: string; variante: string; hace_ms: number };
 
+const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const esIdDeLaBase = (v: unknown): v is string => typeof v === "string" && ID.test(v);
 const esCamino = (v: unknown): v is Camino => typeof v === "string" && (CAMINOS as readonly string[]).includes(v);
 const esHace = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 6 * 60 * 60 * 1000;
 
@@ -79,9 +84,12 @@ export function leerPasos(cuerpo: unknown): PasoDelNavegador[] | null {
   const pasos: PasoDelNavegador[] = [];
   for (const item of lista) {
     if (!item || typeof item !== "object") continue;
-    const { paso, camino, hace_ms } = item as Record<string, unknown>;
+    const { paso, camino, producto, variante, hace_ms } = item as Record<string, unknown>;
     const hace = hace_ms === undefined ? 0 : hace_ms;
-    if (paso === 0 && esCamino(camino) && esHace(hace)) pasos.push({ paso: 0, camino, hace_ms: hace });
+    if (!esHace(hace)) continue;
+    if (paso === 0 && esCamino(camino)) pasos.push({ paso: 0, camino, hace_ms: hace });
+    else if (paso === 1 && esIdDeLaBase(producto)) pasos.push({ paso: 1, producto, hace_ms: hace });
+    else if (paso === 2 && esIdDeLaBase(producto) && esIdDeLaBase(variante)) pasos.push({ paso: 2, producto, variante, hace_ms: hace });
   }
   return pasos;
 }
