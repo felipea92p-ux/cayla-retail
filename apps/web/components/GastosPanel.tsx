@@ -21,6 +21,7 @@ import { diaLima } from "@/lib/fechas-lima";
 import {
   TEXTO_ESTADO_GASTO,
   TEXTO_NO_GASTO,
+  alcanceDeLaVista,
   bajadaIgvDelMes,
   estadoGasto,
   fechaCorta,
@@ -33,6 +34,7 @@ import {
   papelDelGasto,
   papelEnUnaLinea,
   perdidoEnOtroMes,
+  prefijoALaFecha,
   puedeAnular,
   resumenActivosPorSede,
   resumenFijos,
@@ -57,9 +59,10 @@ import {
 } from "@/lib/gastos-reglas";
 import { Boton } from "@/components/ui/campos";
 import { GastosPulso } from "@/components/finanzas/GastosPulso";
-import { bandejaPulso, gastastePulso } from "@/lib/gastos-pulso-reglas";
+import { bandejaPulso, fijosPorConfirmar, gastastePulso } from "@/lib/gastos-pulso-reglas";
 import { Vacio } from "@/components/ui/Vacio";
-import { Check, FunnelX, Receipt, SearchX } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
+import { Check, FunnelX, Receipt, SearchX, Store } from "lucide-react";
 import { MAX_MOTIVO_ANULAR_GASTO } from "@/lib/finanzas-topes";
 
 // Finanzas ▸ Gastos (ADR-0195 F2), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, vista «Gastos»):
@@ -143,6 +146,10 @@ export function GastosPanel({
   const titulo = ver.soloEmpresa ? "Gastos de la empresa" : ver.ubicacionId ? `Gastos de ${nombreCorto}` : `Gastos de ${textoMes(mes).split(" ")[0]}`;
   const ubicacionParaRegistrar = ver.soloEmpresa ? "empresa" : (ver.ubicacionId ?? ubicaciones[0]?.id ?? "empresa");
   const enUso = activos.filter((a) => a.estado === "activo").length;
+  // «De la empresa» es solo lo que no es de una tienda: en los conteos se dice «sin tienda» (nombreCorto sigue para el título y el chip).
+  const alcance = alcanceDeLaVista(ver, ubicaciones);
+  const aHoy = prefijoALaFecha(mes, hoy);
+  const verTodasLasTiendas = () => ir({ ver: "todas" });
 
   return (
     <div className="space-y-6">
@@ -189,19 +196,38 @@ export function GastosPanel({
         </p>
       ))}
 
+      {/* «De la empresa» no es toda la empresa: sin este aviso la pantalla dice «S/ 0» y «Todo clasificado» con cientos de gastos de tienda al lado
+          (tarea #2 de /pantalla, 2026-10-22). Solo el líder llega a esa vista. */}
+      {ver.soloEmpresa && (
+        <Aviso
+          tono="info"
+          titulo="Estás viendo solo lo que no es de una tienda"
+          guia="fin-gastos.alcance"
+          accion={
+            <button type="button" className="btn-cayla btn-enlace" onClick={verTodasLasTiendas}>
+              Ver todas las tiendas
+            </button>
+          }
+        >
+          Los gastos y las salidas de caja de cada tienda no entran aquí: por eso puede mostrar cero.
+        </Aviso>
+      )}
+
       {/* Camino A (Felipe 2026-10-15): primero la respuesta y la bandeja; las cifras, después. */}
       <GastosPulso
-        gastaste={gastastePulso(panel)}
+        gastaste={gastastePulso(panel, { mes, hoy })}
         bandeja={bandejaPulso(egresos, fijos)}
-        nombreCorto={nombreCorto}
+        alcance={alcance}
+        porConfirmar={fijosPorConfirmar(fijos)}
         onResolver={(cosa) => (cosa.tipo === "egreso" ? setClasificar(cosa.egreso) : setRegistrar({ fijo: cosa.fijo }))}
         onVerTodas={() => setPestana(bandejaPulso(egresos, fijos).cosas[0]?.tipo === "fijo" ? "fijos" : "egresos")}
+        onVerFijos={() => setPestana("fijos")}
       />
 
       <section className="fin-cifras" data-guia="fin-gastos.cifras">
         {/* Sin `panel` es porque la lectura falló (la falla se dice arriba): «no se pudo leer», no «sin dato» (ADR-0358). */}
         <TarjetaCifra etiqueta="Gastado en el mes" valor={panel ? solesRedondo(panel.total) : null} noSePudoLeer={!panel} {...entra(1)}>
-          {panel ? `${panel.n} ${panel.n === 1 ? "gasto vigente" : "gastos vigentes"} · ${nombreCorto}` : "Sin datos"}
+          {panel ? `${panel.n} ${panel.n === 1 ? "gasto vigente" : "gastos vigentes"} · ${alcance}` : "Sin datos"}
         </TarjetaCifra>
         {/* ADR-0362, fase 6 (decisión 76): lo perdido por pagar sin banco se resta en el mes del pago, como Impuestos; la tarjeta nunca dice
             un negativo y la bajada explica lo que se pierde en otro mes. */}
@@ -209,17 +235,22 @@ export function GastosPanel({
           {panel ? bajadaIgvDelMes({ ...panel, mes }, perdidoEnOtroMes(gastos, mes)) : ""}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Por pagar de gastos" tono={panel?.porPagar ? "text-ambar" : undefined} valor={panel ? solesRedondo(panel.porPagar) : null} noSePudoLeer={!panel} {...entra(3)}>
-          {panel ? (panel.nPorPagar ? `${panel.nPorPagar} con factura a crédito` : "Nada a crédito") : ""}
+          {panel ? `${aHoy}${panel.nPorPagar ? `${panel.nPorPagar} con factura a crédito` : "Nada a crédito"}` : ""}
         </TarjetaCifra>
+        {/* En «De la empresa» la base devuelve 0 egresos porque los cajones son de las tiendas: decir «Todo clasificado» sería afirmar lo que no se miró. */}
         <TarjetaCifra
           etiqueta="Egresos de caja sin clasificar"
-          tono={panel?.egresosSinClasificar ? "text-ambar" : undefined}
-          valor={panel ? String(panel.egresosSinClasificar) : null}
+          tono={panel && !ver.soloEmpresa && panel.egresosSinClasificar ? "text-ambar" : undefined}
+          valor={panel && !ver.soloEmpresa ? String(panel.egresosSinClasificar) : null}
           noSePudoLeer={!panel}
-          onClick={() => setPestana("egresos")}
+          onClick={() => (ver.soloEmpresa ? verTodasLasTiendas() : setPestana("egresos"))}
           {...entra(4)}
         >
-          {panel?.egresosSinClasificar ? "No cuentan en ningún número hasta clasificarlos" : "Todo clasificado"}
+          {!panel
+            ? "Sin datos"
+            : ver.soloEmpresa
+              ? "Las salidas de caja son de cada tienda: míralas en «Todas las tiendas»"
+              : `${aHoy}${panel.egresosSinClasificar ? "No cuentan en ningún número hasta clasificarlos" : "Todo clasificado"}`}
         </TarjetaCifra>
       </section>
 
@@ -263,7 +294,22 @@ export function GastosPanel({
 
       {pestana === "egresos" && (
         <>
-          {egresos.length === 0 ? (
+          {ver.soloEmpresa ? (
+            // Los cajones son de las tiendas: en «De la empresa» la lista sale vacía por diseño, no porque todo esté clasificado.
+            <Superficie>
+              <Vacio
+                icono={<Store />}
+                titulo="Las salidas de caja son de cada tienda"
+                acciones={
+                  <Boton type="button" peso="primario" onClick={verTodasLasTiendas}>
+                    Ver todas las tiendas
+                  </Boton>
+                }
+              >
+                En «De la empresa» no se leen los cajones. Mira «Todas las tiendas» o una tienda para clasificar sus salidas.
+              </Vacio>
+            </Superficie>
+          ) : egresos.length === 0 ? (
             <Superficie>
               <Vacio icono={<Check />} titulo="Todo en orden: no hay egresos de caja por clasificar">
                 Cada salida de plata de los cajones ya dice si fue gasto, depósito o retiro.

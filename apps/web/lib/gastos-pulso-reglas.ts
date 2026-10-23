@@ -5,7 +5,7 @@
 
 import { diaLima } from "./fechas-lima";
 import { soles } from "./flujo-caja-reglas";
-import type { EgresoPorClasificar, GastoFijoMes, PanelGastos } from "./gastos-reglas";
+import { mesDe, solesRedondo, textoMes, type EgresoPorClasificar, type GastoFijoMes, type PanelGastos } from "./gastos-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -14,14 +14,18 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export type Gastaste = {
   total: number;
   n: number;
+  /** «este mes gastaste» con el mes de hoy; «en septiembre 2026 gastaste» si se mira otro mes (antes siempre decía «este mes»). */
+  verbo: string;
   /** «7 de cada 10 soles fueron alquiler» o «lo que más pesó: …». */
   frase: string;
   /** Las tres categorías que más pesaron, con su parte. */
   mayores: { nombre: string; monto: number; parte: number }[];
 };
 
-export function gastastePulso(panel: PanelGastos | null): Gastaste | null {
+/** `cuando` = el mes que se mira y el día de hoy; sin él, se asume el mes de hoy. */
+export function gastastePulso(panel: PanelGastos | null, cuando?: { mes: string; hoy: string }): Gastaste | null {
   if (!panel) return null;
+  const dichoElMes = !cuando || cuando.mes === mesDe(cuando.hoy) ? "este mes" : `en ${textoMes(cuando.mes)}`;
   const total = r2(panel.total);
   const mayores = [...panel.porCategoria]
     .filter((c) => c.monto > 0)
@@ -29,7 +33,7 @@ export function gastastePulso(panel: PanelGastos | null): Gastaste | null {
     .slice(0, 3)
     .map((c) => ({ nombre: c.nombre, monto: r2(c.monto), parte: total > 0 ? c.monto / total : 0 }));
   let frase: string;
-  if (total <= 0 || mayores.length === 0) frase = "Todavía no hay gastos registrados este mes.";
+  if (total <= 0 || mayores.length === 0) frase = `Todavía no hay gastos registrados ${dichoElMes}.`;
   else {
     const top = mayores[0]!;
     const de10 = Math.round(top.parte * 10);
@@ -38,7 +42,40 @@ export function gastastePulso(panel: PanelGastos | null): Gastaste | null {
         ? `${de10} de cada 10 soles ${de10 === 1 ? "fue" : "fueron"} ${top.nombre.toLowerCase()}.`
         : `Lo que más pesó: ${mayores.map((m) => `${m.nombre.toLowerCase()} (${Math.round(m.parte * 100)} %)`).join(", ")}.`;
   }
-  return { total, n: panel.n, frase, mayores };
+  return { total, n: panel.n, verbo: `${dichoElMes} gastaste`, frase, mayores };
+}
+
+/** Lo que el titular todavía no cuenta: los gastos fijos del mes que nadie ha registrado (los que ya pasaron y los que aún no llegan). */
+export type FijosPorConfirmar = {
+  n: number;
+  /** De esos, los que ya pasaron su fecha («Faltan»). */
+  vencidos: number;
+  /** Lo que suman con el monto de siempre. */
+  monto: number;
+  /** Algún monto es una referencia (un fijo de monto variable): se escribe con «~». */
+  aproximado: boolean;
+};
+
+/**
+ * Un fijo solo cuenta cuando alguien registra lo que llegó de verdad, así que «este mes gastaste S/ X» no incluye el alquiler ni la luz
+ * hasta entonces. El titular lo dice en vez de dejar que S/ X se lea como el mes completo (Felipe, /pantalla 2026-10-22, tarea #2).
+ * `null` si no queda ninguno por confirmar.
+ */
+export function fijosPorConfirmar(fijos: readonly GastoFijoMes[]): FijosPorConfirmar | null {
+  const pendientes = fijos.filter((f) => f.estado !== "registrado");
+  if (pendientes.length === 0) return null;
+  return {
+    n: pendientes.length,
+    vencidos: pendientes.filter((f) => f.estado === "falta").length,
+    monto: r2(pendientes.reduce((s, f) => s + f.monto, 0)),
+    aproximado: pendientes.some((f) => f.montoVariable),
+  };
+}
+
+/** «Todavía no cuenta: 5 gastos fijos por confirmar (~S/ 1,476).» */
+export function textoFijosPorConfirmar(p: FijosPorConfirmar): string {
+  const cuantos = p.n === 1 ? "1 gasto fijo por confirmar" : `${p.n} gastos fijos por confirmar`;
+  return `Todavía no cuenta: ${cuantos} (${p.aproximado ? "~" : ""}${solesRedondo(p.monto)}).`;
 }
 
 // ---- 2. La bandeja: lo que falta revisar, de a uno -------------------------------------------------------------------------
@@ -69,7 +106,8 @@ export function bandejaPulso(egresos: readonly EgresoPorClasificar[], fijos: rea
       clave: `fijo:${f.id}`,
       tipo: "fijo",
       titulo: f.descripcion,
-      detalle: `${f.categoriaNombre} de ${f.ubicacionNombre}${f.proveedorNombre ? ` · ${f.proveedorNombre}` : ""}: se esperaba el ${fechaCorta(f.fechaEsperada)} y todavía no está registrado.`,
+      // Un fijo sin tienda trae «De la empresa» como nombre: «de De la empresa» se leía mal.
+      detalle: `${f.categoriaNombre} de ${f.ubicacionId ? f.ubicacionNombre : "la empresa"}${f.proveedorNombre ? ` · ${f.proveedorNombre}` : ""}: se esperaba el ${fechaCorta(f.fechaEsperada)} y todavía no está registrado.`,
       monto: f.monto,
       accion: "Registrar",
       fijo: f,

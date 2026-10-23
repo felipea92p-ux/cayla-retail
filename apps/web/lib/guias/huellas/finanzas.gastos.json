@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 52,
+  "total": 55,
   "controles": {
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -34,6 +34,8 @@
     "components/GastosPanel.tsx": [
       "Boton «fin-gastos.registrar»",
       "Boton «fin-gastos.registrar» #2",
+      "button «Ver todas las tiendas»",
+      "Boton «Ver todas las tiendas»",
       "button «fin-gastos.clasificar»",
       "ComboResponsable «{responsable}»",
       "button «Volver»",
@@ -63,6 +65,7 @@
       "CampoSelect «{etiqueta}»"
     ],
     "components/finanzas/GastosPulso.tsx": [
+      "button «Ver los fijos»",
       "button «fin-gastos.resolver»",
       "button «Ver todas»"
     ],

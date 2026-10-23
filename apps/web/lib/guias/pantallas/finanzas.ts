@@ -167,6 +167,13 @@ export const GUIA_FIN_GASTOS: Guia = {
     },
     VER,
     {
+      id: "alcance",
+      ancla: "fin-gastos.alcance",
+      opcional: true,
+      titulo: "Cuando miras solo la empresa",
+      texto: "Con «De la empresa» ves solo lo que no es de una tienda, y por eso puede decir cero aunque las tiendas hayan gastado. Este aviso lo recuerda; «Ver todas las tiendas» te devuelve a la vista completa.",
+    },
+    {
       id: "registrar",
       ancla: "fin-gastos.registrar",
       titulo: "Registrar un gasto",
@@ -220,7 +227,14 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.pulso",
       preparar: [{ tipo: "escape" }],
       titulo: "¿En qué se fue la plata?",
-      texto: "Lo gastado en el mes y, en una frase, qué pesó más: «7 de cada 10 soles fueron alquileres». Debajo, las tres categorías que más pesaron.",
+      texto: "Lo gastado en el mes y, en una frase, qué pesó más: «7 de cada 10 soles fueron alquileres». Debajo, las tres categorías que más pesaron. Si miras otro mes, dice cuál.",
+    },
+    {
+      id: "por-confirmar",
+      ancla: "fin-gastos.por-confirmar",
+      opcional: true,
+      titulo: "Lo que todavía no cuenta",
+      texto: "Un gasto fijo solo suma cuando alguien registra lo que llegó de verdad. Esta línea dice cuántos faltan y cuánto suman (con «~» si alguno cambia cada mes). «Ver los fijos» te lleva a ellos.",
     },
     {
       id: "bandeja",
@@ -241,7 +255,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.cifras",
       preparar: [{ tipo: "escape" }],
       titulo: "Los gastos en cifras",
-      texto: "Lo gastado en el mes, el IGV que puedes descontar (solo de facturas, menos el que se pierde por pagar sin banco; una boleta no da IGV), lo que falta pagar de gastos a crédito y los egresos de caja que nadie dijo qué fueron. Esa última tarjeta te lleva a su lista.",
+      texto: "Lo gastado en el mes, el IGV que puedes descontar (solo de facturas, menos el que se pierde por pagar sin banco; una boleta no da IGV), lo que falta pagar a crédito y los egresos de caja sin clasificar. Estas dos últimas son de hoy aunque mires otro mes; la última te lleva a su lista.",
     },
     {
       id: "pestanas",

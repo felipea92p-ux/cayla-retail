@@ -145,6 +145,25 @@ export function leerVer(param: string | undefined, ubicaciones: readonly Ubicaci
   return { clave: "todas", ubicacionId: null, soloEmpresa: false };
 }
 
+/**
+ * Qué se mira, en una frase corta para pegar a un conteo («17 gastos sin tienda», «3 gastos de Tienda AQP»). «De la empresa» es lo que
+ * NO es de ninguna tienda, no toda la empresa: con 144 gastos de tienda en octubre esa vista decía «0 gastos · la empresa» y se leía
+ * como «la empresa no gastó nada» (Felipe, /pantalla 2026-10-22, tarea #2). Por eso aquí se dice «sin tienda».
+ */
+export function alcanceDeLaVista(ver: Ver, ubicaciones: readonly UbicacionGastos[]): string {
+  if (ver.soloEmpresa) return "sin tienda";
+  if (ver.ubicacionId) return `de ${ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "la tienda"}`;
+  return "de todas las tiendas";
+}
+
+/**
+ * «Por pagar» y «Egresos sin clasificar» cuentan lo que hay HOY, no lo del mes elegido (así lo dice `fn_gastos_panel`: una deuda de
+ * septiembre sigue siendo deuda en octubre). Con el mes de hoy no hace falta decirlo; con otro mes, la bajada empieza por «A hoy ·».
+ */
+export function prefijoALaFecha(mes: string, hoy: string): string {
+  return mes === mesDe(hoy) ? "" : "A hoy · ";
+}
+
 // ---- Lo que devuelve la base → tipos de la pantalla ---------------------------------------------------------------------
 
 export type CategoriaGasto = { codigo: string; nombre: string; ejemplos: string; cuenta: string; cuentaNombre: string };
