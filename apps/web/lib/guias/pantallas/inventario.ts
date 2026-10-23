@@ -25,6 +25,13 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Cuántas prendas hay colgadas en el piso, cuántas guardadas en el almacén y cuántas vienen en camino desde otra sede. Toca «Colgadas» o «Guardadas» y la lista deja solo las prendas que tienen algo ahí; tócala otra vez y vuelve todo. Si dice «por cuadrar», el piso todavía no se contó.",
     },
     {
+      id: "ajustar-stock",
+      ancla: "existencias.ajustar-stock",
+      opcional: true,
+      titulo: "Ajustar stock",
+      texto: "Si contaste y el número no cuadra, empieza aquí: te pregunta qué prenda es (por nombre, código o escaneando la etiqueta) y abre su planilla con todos sus colores y tallas. En la demo no lo abrimos.",
+    },
+    {
       id: "buscador",
       ancla: "existencias.buscador",
       opcional: true,

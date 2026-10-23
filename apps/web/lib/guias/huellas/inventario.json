@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 157,
+  "total": 158,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -151,6 +151,9 @@
     ],
     "components/existencias/AnilloMision.tsx": [
       "button «existencias.pendientes»"
+    ],
+    "components/existencias/BotonAjustarStock.tsx": [
+      "BotonEditar «Ajustar stock»"
     ],
     "components/existencias/FiltrosRapidos.tsx": [
       "button «{rotulo}»"
