@@ -57,7 +57,7 @@ export async function cargarEtiquetasPantalla({
   // Las tiendas donde rige cada campaña (ADR-0486; sin filas = todas) y las tiendas para elegir. Si la función aún no existe en esa base
   // (PGRST202, la migración sin pegar), ninguna campaña está limitada y la hoja de Configurar no ofrece sedes.
   const cargaSedes = supabase.rpc("campanas_sedes");
-  // Las ofertas de cada campaña («Tres preguntas», migración 20261023190000). Sin la función en esa base (PGRST202) o sin la llave, la
+  // Las ofertas de cada campaña («Tres preguntas», migración 20261023232000). Sin la función en esa base (PGRST202) o sin la llave, la
   // lista queda vacía y la hoja de Configurar no ofrece ofertas: la campaña sigue con su descuento de siempre.
   // De qué empresa es cada prenda (ADR-0463): para que el conteo de una oferta no cuente las de Claurè, que ninguna oferta alcanza salvo a propósito.
   // Sin la función (una base vieja) nadie es de Claurè: el conteo es el de antes.

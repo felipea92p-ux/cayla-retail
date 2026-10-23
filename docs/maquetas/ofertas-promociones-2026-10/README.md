@@ -8,7 +8,7 @@
 > `formulario/opcion-3-tres-preguntas.html` (y las otras cuatro, más la comparación, en `formulario/index.html`). **`index.html` todavía trae el formulario largo de la mañana**: el de «Tres preguntas» lo reemplaza
 > cuando Felipe apruebe esta versión. La hoja y la pantalla de Insignias de `index.html` no cambian.
 
-> **Actualización (2026-10-23, noche): «Tres preguntas» ya está construido en el ERP, solo en local** (ADR-0490): `components/sellos/OfertasHoja.tsx`. Hoy cubre «un % menos» con fechas, días de la semana y categorías; las otras formas de la maqueta están apagadas con «Pronto».
+> **Actualización (2026-10-23, noche): «Tres preguntas» ya está construido en el ERP, solo en local** (ADR-0496): `components/sellos/OfertasHoja.tsx`. Hoy cubre «un % menos» con fechas, días de la semana y categorías; las otras formas de la maqueta están apagadas con «Pronto».
 
 `index.html`: un solo archivo, se abre con doble clic. La barra negra cambia **escritorio / celular** y **claro / oscuro**; la fila de pasos recorre la historia:
 1 Catálogo ▸ Insignias (las campañas, como hoy) → 2 La hoja «Configuración» de una campaña (donde se registran las ofertas y promociones) → 3 Liquidación → 4 En la caja → 5 En la tienda web → 6 Finanzas ▸ Campañas (el resultado).

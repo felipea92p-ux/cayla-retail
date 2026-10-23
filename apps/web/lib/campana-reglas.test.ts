@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   contarPorCategoria,
+  categoriasDichas,
+  contarPrendas,
   prendasQueAlcanza,
   nombresDeTiendas,
   algunDiaCae,
@@ -162,6 +164,15 @@ describe("el nombre y la frase", () => {
     expect(nombreAutomatico({ porcentaje: 30, dias: [2, 4], categoriasSolo: [] }, nombreCat)).toBe("Toda la campaña · −30 % · mar y jue");
     expect(nombreAutomatico({ porcentaje: 15, dias: [6, 7], categoriasSolo: [BLUSAS, FALDAS] }, nombreCat)).toBe("Blusas y Faldas · −15 % · fin de semana");
   });
+  it("con muchas categorías dice cuántas son, no las nombra todas", () => {
+    const ids = ["a", "b", "c", "d"];
+    const nom = (id: string) => ({ a: "Blusas", b: "Faldas", c: "Polos", d: "Tops" })[id] ?? "";
+    expect(categoriasDichas(["b", "a"], nom)).toBe("Blusas y Faldas");
+    expect(categoriasDichas(["a", "b", "c"], nom)).toBe("Blusas, Faldas y Polos");
+    expect(categoriasDichas(ids, nom)).toBe("4 categorías");
+    expect(nombreAutomatico({ porcentaje: 20, dias: [1, 2, 3, 4, 5, 6, 7], categoriasSolo: ids }, nom)).toBe("4 categorías · −20 %");
+    expect(fraseDeOferta({ ...ofertaNueva("2026-10-26", "2026-10-31"), categoriasSolo: ids }, nom)).toContain("solo en 4 categorías");
+  });
   it("nunca pasa de 80 letras (lo que pide la base)", () => {
     const largo = Array.from({ length: 30 }, () => BLUSAS);
     expect(nombreAutomatico({ porcentaje: 20, dias: [2], categoriasSolo: largo }, nombreCat).length).toBeLessThanOrEqual(80);
@@ -278,7 +289,7 @@ describe("el cuerpo que manda la hoja a la API", () => {
 });
 
 describe("ata con la migración", () => {
-  const migracion = readFileSync(join(__dirname, "../../../supabase/migrations/20261023190000_campana_reglas_de_precio.sql"), "utf8");
+  const migracion = readFileSync(join(__dirname, "../../../supabase/migrations/20261023232000_campana_reglas_de_precio.sql"), "utf8");
   it("el tope del % es el de la tabla", () => {
     expect(migracion).toContain(`porcentaje > 0 and porcentaje <= ${PORCENTAJE_MAX}`);
     expect(migracion).toContain(`de 1 a ${PORCENTAJE_MAX} %%`);
@@ -415,13 +426,35 @@ describe("cuántas prendas alcanza una oferta", () => {
     expect(contarPorCategoria([{ id: "x", categoriaId: "c", deClaure: true }], false).get("c")).toBe(0);
   });
   it("las alcanzadas siguen «solo», «dejar fuera» y Claurè", () => {
-    expect(prendasQueAlcanza(prendas, todas).map((p) => p.id)).toEqual(["1", "3", "4"]);
-    expect(prendasQueAlcanza(prendas, { ...todas, incluyeClaure: true }).map((p) => p.id)).toEqual(["1", "2", "3", "4"]);
-    expect(prendasQueAlcanza(prendas, { ...todas, categoriasSolo: ["blusas"] }).map((p) => p.id)).toEqual(["1"]);
-    expect(prendasQueAlcanza(prendas, { ...todas, categoriasFuera: ["faldas"] }).map((p) => p.id)).toEqual(["1", "4"]);
+    expect(prendasQueAlcanza(prendas, prendas, todas).map((p) => p.id)).toEqual(["1", "3", "4"]);
+    expect(prendasQueAlcanza(prendas, prendas, { ...todas, incluyeClaure: true }).map((p) => p.id)).toEqual(["1", "2", "3", "4"]);
+    expect(prendasQueAlcanza(prendas, prendas, { ...todas, categoriasSolo: ["blusas"] }).map((p) => p.id)).toEqual(["1"]);
+    expect(prendasQueAlcanza(prendas, prendas, { ...todas, categoriasFuera: ["faldas"] }).map((p) => p.id)).toEqual(["1", "4"]);
+  });
+  it("con «solo estas categorías» rige en ellas aunque la campaña no las tenga; sin ellas, solo en la campaña", () => {
+    const campana = [{ id: "1", categoriaId: "blusas" }];
+    const catalogo = [...campana, { id: "9", categoriaId: "casacas" }, { id: "10", categoriaId: "casacas" }];
+    expect(prendasQueAlcanza(campana, catalogo, todas).map((p) => p.id)).toEqual(["1"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...todas, categoriasSolo: ["casacas"] }).map((p) => p.id)).toEqual(["9", "10"]);
+    expect(prendasQueAlcanza(campana, catalogo, { ...todas, categoriasSolo: ["casacas", "blusas"] }).map((p) => p.id)).toEqual(["1", "9", "10"]);
   });
   it("el conteo de cada categoría y el de «solo esa categoría» dicen lo mismo", () => {
     const cuenta = contarPorCategoria(prendas, false);
-    for (const [cat, n] of cuenta) expect(prendasQueAlcanza(prendas, { ...todas, categoriasSolo: [cat] })).toHaveLength(n);
+    for (const [cat, n] of cuenta) expect(contarPrendas(prendasQueAlcanza(prendas, prendas, { ...todas, categoriasSolo: [cat] }))).toBe(n);
+  });
+  it("una prenda es un modelo en su color: sus tallas cuentan una vez, como en el pase de la campaña", () => {
+    const tallas = [
+      { id: "s", categoriaId: "blusas", modelo: "emma-rojo" },
+      { id: "m", categoriaId: "blusas", modelo: "emma-rojo" },
+      { id: "l", categoriaId: "blusas", modelo: "emma-rojo" },
+      { id: "u", categoriaId: "blusas", modelo: "emma-azul" },
+      { id: "c", categoriaId: "faldas", modelo: "lola-negro", deClaure: true },
+    ];
+    expect(contarPrendas(tallas)).toBe(3);
+    expect(contarPrendas([])).toBe(0);
+    // Sin `modelo`, cada fila es una prenda (una base que no lo trae no se rompe).
+    expect(contarPrendas([{ id: "a" }, { id: "b" }])).toBe(2);
+    expect(Object.fromEntries(contarPorCategoria(tallas, false))).toEqual({ blusas: 2, faldas: 0 });
+    expect(Object.fromEntries(contarPorCategoria(tallas, true))).toEqual({ blusas: 2, faldas: 1 });
   });
 });

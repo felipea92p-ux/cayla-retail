@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * Pruebas de las ofertas de una campaña (`20261023190000_campana_reglas_de_precio.sql`, «Tres preguntas», Felipe 2026-10-23) contra el
+ * Pruebas de las ofertas de una campaña (`20261023232000_campana_reglas_de_precio.sql`, «Tres preguntas», Felipe 2026-10-23) contra el
  * Postgres local.
  *
  * QUÉ PRUEBA. Una campaña tiene varias ofertas (`retail.campana_reglas`): un % menos con fechas propias, días de la semana y, si se
  * quiere, solo algunas categorías de la campaña. La caja las lee por `fn_campanas_en_sede`.
  *   · la regla: una oferta rige solo si está ACTIVA, hoy cae en sus fechas y en uno de sus días, la prenda es de la campaña (marcada o
- *     por categoría), respeta «solo estas / dejar fuera» y no es de Claurè (salvo que se incluya); y hereda la sede de la campaña;
+ *     por categoría) —o, con «solo estas categorías», de esas categorías aunque la campaña no las tenga— sin lo que «deja fuera» y no es
+ *     de Claurè (salvo que se incluya); y hereda la sede de la campaña;
  *   · UNA fila por prenda y campaña, con el mayor % entre el descuento de siempre de la campaña y sus ofertas;
  *   · la tolerancia de las ventas sin conexión (3 días) también cuenta los días de la semana;
  *   · `registrar_venta` de punta a punta: exige el descuento de la oferta (`venta_campana_omitida`), lo acepta con su monto, rechaza un
@@ -21,7 +22,7 @@
  *
  * USO
  *   pnpm pruebas:campana-reglas                       → con las migraciones ya aplicadas en la base `postgres` del local
- *   APLICAR_ANTES=supabase/migrations/20261023190000_campana_reglas_de_precio.sql pnpm pruebas:campana-reglas   → la ensaya dentro de cada escenario
+ *   APLICAR_ANTES=supabase/migrations/20261023232000_campana_reglas_de_precio.sql pnpm pruebas:campana-reglas   → la ensaya dentro de cada escenario
  *   pnpm pruebas:campana-reglas -- --contenedor supabase_db_<mi-pila>
  */
 
@@ -32,7 +33,7 @@ const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const iBase = process.argv.indexOf("--base");
 const BASE = iBase > 0 ? process.argv[iBase + 1] : "postgres";
-const MIGRACION = "supabase/migrations/20261023190000_campana_reglas_de_precio.sql";
+const MIGRACION = "supabase/migrations/20261023232000_campana_reglas_de_precio.sql";
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualquier ubicación
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed): no es líder
@@ -207,6 +208,15 @@ rollback;`),
   );
   esperarValor("«solo estas categorías» con la categoría de la prenda: rige", correr(`${PREPARAR}${OFERTA({ solo: "array[:'cat']::uuid[]" })}select ${VE()};\nrollback;`), "1|30.00");
   esperarValor("«solo estas categorías» con OTRA categoría: no rige", correr(`${PREPARAR}${OFERTA({ solo: "array[:'cat_otra']::uuid[]" })}select ${VE()};\nrollback;`), "0|0");
+  // La hoja de la oferta lista TODAS las categorías (como la de la campaña): «solo estas» rige donde la oferta dice, esté o no en la campaña.
+  const CAT_DE_V2 = "array[(select p.categoria_id from retail.productos p join retail.variantes v on v.producto_id = p.id where v.id = :'v2')]::uuid[]";
+  esperarValor("«solo estas categorías» con una que la campaña NO tiene: rige igual (la oferta dice dónde)", correr(`${PREPARAR}${OFERTA({ solo: CAT_DE_V2 })}select ${VE(HOY, 0, ":'v2'")};\nrollback;`), "1|30.00");
+  esperarValor("…pero como borrador no cobra", correr(`${PREPARAR}${OFERTA({ solo: CAT_DE_V2, activar: "false" })}select ${VE(HOY, 0, ":'v2'")};\nrollback;`), "0|0");
+  esperarValor(
+    "…y no suma esa categoría a la campaña: otra oferta «de toda la campaña» no llega a esa prenda y la campaña sigue sin esa categoría",
+    correr(`${PREPARAR}${OFERTA({ solo: CAT_DE_V2 })}${OFERTA({ pct: 50, nombre: "ZZ toda la campaña", var: "r2" })}select ${VE(HOY, 0, ":'v2'")} || '|' || (select count(*) from retail.etiqueta_categorias where etiqueta_id = :'camp');\nrollback;`),
+    "1|30.00|0",
+  );
   esperarValor("«dejar fuera» la categoría de la prenda: no rige", correr(`${PREPARAR}${OFERTA({ fuera: "array[:'cat']::uuid[]" })}select ${VE()};\nrollback;`), "0|0");
   esperarValor("«dejar fuera» otra categoría: rige", correr(`${PREPARAR}${OFERTA({ fuera: "array[:'cat_otra']::uuid[]" })}select ${VE()};\nrollback;`), "1|30.00");
   esperarValor(

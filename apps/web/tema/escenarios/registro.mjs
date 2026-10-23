@@ -755,14 +755,40 @@ ESCENARIOS.push(
   { id: "sellos.agregar", ruta: "/productos/insignias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Insignias · «Nueva campaña»", preparar: clicRol("button", /Nueva campaña/i) },
   { id: "sellos.prendas", ruta: "/productos/insignias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Insignias · las prendas del pase abierto", preparar: clicRol("button", /^Prendas$/i) },
   { id: "sellos.campana", ruta: "/productos/insignias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Insignias · «Configurar» el pase abierto", preparar: clicRol("button", /^(Configurar|Repetir)$/i) },
-  // La etiqueta viva (ADR-0488): con un descuento y dos categorías elegidas, el mosaico, «En caja» y la grilla de casillas a la vista.
+  // «Configurar» es la hoja de ofertas de la campaña (ADR-0496: «Tres preguntas»), con la etiqueta de la campaña a la derecha (ADR-0488).
+  // Cada etapa es un estado que no se ve al cargar: la rebaja elegida (etiqueta con su descuento), el cuándo y, al final, las categorías
+  // marcadas en la grilla con sus casillas y su mosaico.
+  {
+    id: "sellos.oferta.rebaja",
+    ruta: "/productos/insignias",
+    cuentas: ["admin"],
+    abre: "[role=dialog] .eqp-pct",
+    nombre: "Insignias · «Configurar» con «Una rebaja» elegida (la etiqueta con su descuento)",
+    preparar: secuencia(clicRol("button", /^(Configurar|Repetir)$/i), clicRol("button", /Una rebaja/i), clicRol("button", /^50 %$/)),
+  },
+  {
+    id: "sellos.oferta.cuando",
+    ruta: "/productos/insignias",
+    cuentas: ["admin"],
+    abre: "[role=dialog] [data-guia='sellos.oferta-dias'] .of-dia",
+    nombre: "Insignias · «Configurar» · ¿Cuándo y dónde? (fechas, días de la semana y tiendas)",
+    preparar: secuencia(clicRol("button", /^(Configurar|Repetir)$/i), clicRol("button", /Una rebaja/i), clicRol("button", /^Siguiente/), clicRol("button", /^Solo algunos días$/i)),
+  },
   {
     id: "sellos.campana.llena",
     ruta: "/productos/insignias",
     cuentas: ["admin"],
     abre: "[role=dialog] .cph-cat[data-elegida]",
-    nombre: "Insignias · «Configurar» con descuento y categorías (la etiqueta viva)",
-    preparar: secuencia(clicRol("button", /^(Configurar|Repetir)$/i), clicRol("button", /^20 %$/), clicRol("checkbox", /^Camisas y Blusas,/), clicRol("checkbox", /^Vestidos,/)),
+    nombre: "Insignias · «Configurar» · prendas con categorías marcadas (la grilla y el mosaico)",
+    preparar: secuencia(
+      clicRol("button", /^(Configurar|Repetir)$/i),
+      clicRol("button", /Una rebaja/i),
+      clicRol("button", /^Siguiente/),
+      clicRol("button", /^Tienda Lima$/),
+      clicRol("button", /^Siguiente/),
+      clicRol("checkbox", /^Camisas y Blusas,/),
+      clicRol("checkbox", /^Casacas,/),
+    ),
   },
   { id: "marcas.nueva", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "button:has-text('Registrar')", nombre: "Marcas · «Nueva marca» (el formulario se abre en la página)", preparar: clicRol("button", /Nueva marca/i) },
   { id: "marcas.editar", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Marcas · «Editar» una marca", preparar: clicRol("button", /^Editar/i) },

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261023190000 — Ofertas dentro de una campaña: las reglas de precio por campaña (Felipe 2026-10-23, «Tres preguntas»)
+-- 20261023232000 — Ofertas dentro de una campaña: las reglas de precio por campaña (Felipe 2026-10-23, «Tres preguntas»)
 --
 -- EL PROBLEMA. Una campaña (una fila de `retail.etiquetas` con estilo `campana`) guarda UN solo descuento (`descuento_pct`), con las
 --   fechas, las categorías y las tiendas de la campaña entera. Felipe quiere registrar varias ofertas dentro de una campaña, cada una
@@ -13,8 +13,9 @@
 --      oferta guarda cómo estaba en `retail.campana_regla_historial` (solo se agrega, nunca se edita).
 --   2. `fn_campanas_en_sede` (LA función que lee la caja, los apartados, la tienda web, el club y las etiquetas de precio) lee TAMBIÉN
 --      las reglas activas. Una oferta rige si la campaña está aprobada, activa y vigente, rige en la sede (ADR-0486), y si hoy cae
---      dentro de las fechas de la regla en uno de sus días. Alcanza a las prendas de la campaña (marcadas ∪ sus categorías), acotadas
---      por «solo estas categorías» / «dejar fuera» y sin las prendas de Claurè, salvo que la regla las incluya a propósito.
+--      dentro de las fechas de la regla en uno de sus días. Alcanza a las prendas de la campaña (marcadas ∪ sus categorías) sin «dejar fuera»;
+--      pero si la oferta elige «solo estas categorías», alcanza a las prendas de ESAS categorías, estén o no en la campaña (la oferta
+--      dice dónde rige, Felipe 2026-10-23). Siempre sin las prendas de Claurè, salvo que la regla las incluya a propósito.
 --      Devuelve UNA fila por prenda y campaña (la de mayor %), así que `registrar_venta` y los demás verifican igual que siempre. La
 --      línea de venta sigue apuntando a la campaña (`descuento_etiqueta_id`).
 --   3. `campana_reglas()` (la lee la pantalla), `guardar_campana_regla`, `activar_campana_regla` y `retirar_campana_regla`
@@ -29,7 +30,11 @@
 --   campaña (prenda, campaña, %), basta con que LA función que ya lee todo el mundo la conozca.
 -- DESCARTÉ: guardar las reglas como filas de `etiquetas` o como columnas de la campaña: una campaña tiene VARIAS ofertas y cada una
 --   cambia sola.
--- DESCARTÉ: dejar que una oferta apunte a prendas que su campaña no tiene: el pase, la vitrina y la web leen las prendas de la campaña.
+-- DESCARTÉ: que una oferta solo pueda bajar prendas que su campaña ya tiene (la primera versión): la hoja de la oferta lista TODAS las categorías,
+--   como la hoja de la campaña, y una categoría que no estaba no podía elegirse. Costo asumido: esas prendas bajan de precio en la caja y en
+--   la tienda sin entrar a la vitrina ni al pase de la campaña (leen las prendas de la campaña); quien las quiera ahí las marca en «Prendas».
+-- DESCARTÉ: que elegir la categoría la sume a la campaña (`etiqueta_categorias`): ensancharía en silencio el descuento de siempre y las
+--   demás ofertas «todas las de la campaña», y un borrador (que no cobra) cambiaría precios antes de que un líder lo active.
 --
 -- ESTADOS QUE NUNCA DEBEN EXISTIR (los cierra el esquema, no la pantalla): un % fuera de 1–70; una oferta que termina antes de empezar;
 --   días vacíos, repetidos o fuera de 1–7; una oferta activa sin quién y cuándo la activó; una categoría a la vez «solo» y «fuera»;
@@ -219,16 +224,19 @@ as $function$
     join retail.productos p on p.id = v.producto_id
     where r.estado = 'activa' and r.tipo = 'pct'
       and retail.fn_regla_rige_en(r.desde, r.hasta, r.dias_semana, p_hoy, p_tolerancia_dias)
-      -- Las prendas de la campaña: marcadas a mano o por una de sus categorías.
+      -- Las prendas de la oferta: con «solo estas categorías», las de esas categorías (estén o no en la campaña: la oferta dice dónde rige);
+      -- sin ninguna, las de la campaña (marcadas a mano o por una de sus categorías).
       and (
-        exists (select 1 from retail.variante_etiquetas ve where ve.variante_id = v.id and ve.etiqueta_id = e.id)
-        or exists (select 1 from retail.etiqueta_categorias ec where ec.etiqueta_id = e.id and ec.categoria_id = p.categoria_id)
+        exists (select 1 from retail.campana_regla_categorias rc where rc.regla_id = r.id and rc.modo = 'solo' and rc.categoria_id = p.categoria_id)
+        or (
+          not exists (select 1 from retail.campana_regla_categorias rc where rc.regla_id = r.id and rc.modo = 'solo')
+          and (
+            exists (select 1 from retail.variante_etiquetas ve where ve.variante_id = v.id and ve.etiqueta_id = e.id)
+            or exists (select 1 from retail.etiqueta_categorias ec where ec.etiqueta_id = e.id and ec.categoria_id = p.categoria_id)
+          )
+        )
       )
-      -- Acotadas por la oferta: «solo estas categorías» y «dejar fuera».
-      and (
-        not exists (select 1 from retail.campana_regla_categorias rc where rc.regla_id = r.id and rc.modo = 'solo')
-        or exists (select 1 from retail.campana_regla_categorias rc where rc.regla_id = r.id and rc.modo = 'solo' and rc.categoria_id = p.categoria_id)
-      )
+      -- «Dejar fuera» estas categorías.
       and not exists (select 1 from retail.campana_regla_categorias rc where rc.regla_id = r.id and rc.modo = 'fuera' and rc.categoria_id = p.categoria_id)
       -- Las tiendas de la oferta (dentro de las de su campaña, que ya se exigieron arriba): sin filas, todas; con filas, solo esas. Sin sede, solo las sin filas.
       and (
@@ -242,7 +250,7 @@ as $function$
 $function$;
 
 comment on function retail.fn_campanas_en_sede(date, integer, uuid[], uuid) is
-  'Las campañas (aprobadas, activas, vigentes) que alcanzan a cada variante EN esa sede, con su mayor %: el descuento de siempre de la campaña (por etiqueta manual o por categoría) o una de sus ofertas activas (fechas, días de la semana, solo/fuera de categorías). UNA fila por prenda y campaña. Fuente única de la regla; la caja, registrar_venta, los apartados, la tienda web, el club y las etiquetas de precio la leen.';
+  'Las campañas (aprobadas, activas, vigentes) que alcanzan a cada variante EN esa sede, con su mayor %: el descuento de siempre de la campaña (por etiqueta manual o por categoría) o una de sus ofertas activas (fechas, días de la semana; con «solo estas categorías» rige en ellas aunque la campaña no las tenga; sin ellas, en las prendas de la campaña menos las que deja fuera). UNA fila por prenda y campaña. Fuente única de la regla; la caja, registrar_venta, los apartados, la tienda web, el club y las etiquetas de precio la leen.';
 
 -- 4. Para la pantalla: leer las ofertas de todas las campañas ---------------------------------------------------------------------
 

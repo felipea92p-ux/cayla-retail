@@ -73,7 +73,9 @@
   .of-paso[data-hecho] i, .of-paso[aria-current="step"][data-hecho] i { background: var(--color-verde); color: var(--color-crema); }
   .of-paso[aria-disabled="true"] { cursor: default; opacity: 0.7; }
 
-  .of-cols { display: grid; grid-template-columns: minmax(0, 1fr) 14.75rem; gap: 1.375rem; align-items: start; }
+  /* La etiqueta de la campaña (la de producción) ocupa la columna de la derecha: 17,5 rem en una hoja angosta y 19,5 desde 1280 px. */
+  .of-cols { display: grid; grid-template-columns: minmax(0, 1fr) 17.5rem; gap: 1.375rem; align-items: start; }
+  @media (min-width: 1280px) { .of-cols { grid-template-columns: minmax(0, 1fr) 19.5rem; } }
   .of-q { min-width: 0; }
   .of-q[data-entra] > * { animation: of-sube 300ms var(--ease-cayla) both; }
   @keyframes of-sube { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -104,31 +106,19 @@
   .of-sub { margin-top: 0.625rem; }
   .of-lbl { display: block; margin-bottom: 0.25rem; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
   .of-opciones { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-  .of-ctl { margin-top: 0.75rem; display: grid; gap: 0.5rem; max-width: 22rem; }
+  .of-ctl { display: grid; gap: 0.5rem; max-width: 22rem; }
   .of-ayuda { display: flex; gap: 0.5rem; margin-top: 0.625rem; font-size: 0.8125rem; line-height: 1.4; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
   .of-ayuda svg { width: 0.875rem; height: 0.875rem; margin-top: 0.1875rem; color: var(--color-taupe); flex: none; }
 
-  /* Pregunta 2 */
-  .of-filas { display: grid; gap: 0.5rem; margin-top: 0.875rem; }
-  .of-fila {
-    display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); column-gap: 0.75rem; align-items: start;
-    padding: 0.625rem 0.875rem; border: 1px solid var(--color-sand); border-radius: 0.875rem; background: var(--color-papel);
-  }
-  .of-fila .of-ico { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background: var(--color-hueso); color: var(--color-taupe); }
-  .of-fila .of-ico svg { width: 1.25rem; height: 1.25rem; }
-  /* El texto de la fila va en UNA caja: así la fila siempre tiene dos hijos (el ícono y esto) y no depende de cuántas líneas lleve. */
-  .of-fila-cuerpo { display: grid; gap: 0.125rem; min-width: 0; }
-  .of-fila-cuerpo .of-lbl { margin: 0; }
-  .of-fila b { font-size: 0.94rem; font-weight: 600; line-height: 1.3; }
-  .of-fila small { font-size: 0.8125rem; line-height: 1.3; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
-  .of-grande { display: grid; grid-template-columns: 1.5fr 1fr; gap: 0.625rem; margin-top: 1rem; }
-  .of-panel { display: grid; gap: 0.75rem; margin-top: 0.75rem; }
+  /* Pregunta 3 · prendas y tiendas */
+  .of-panel { display: grid; gap: 1rem; margin-top: 0.75rem; }
   .of-panel .of-lbl { margin-bottom: 0.375rem; }
   .of-sublbl { margin: 0.625rem 0 0.375rem; font-size: 0.78rem; font-weight: 600; }
   .of-sublbl span { font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
-  .of-enlaces { display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem 0.875rem; }
+  /* «Dónde rige» va bajo los días, en la pregunta del cuándo. */
+  .of-donde { margin-top: 1.125rem; }
 
-  /* Pregunta 3: los días de la semana */
+  /* Pregunta 2 · cuándo: los días de la semana */
   .of-sem { margin-top: 0.75rem; }
   .of-semf { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem 0.5rem; }
   .of-dias { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.5rem; }
@@ -150,34 +140,18 @@
   .of-mas { display: grid; gap: 0.75rem; margin-top: 0.625rem; padding: 0.75rem 0.875rem; border: 1px dashed var(--color-taupe); border-radius: 0.75rem; }
   .of-avisos { display: grid; gap: 0.375rem; margin-top: 0.5rem; }
 
-  /* La etiqueta (lo que verá el cliente) */
-  .of-etq {
-    position: sticky; top: 0; display: flex; flex-direction: column; gap: 0.3125rem; min-width: 0;
-    padding: 0.75rem 0.9375rem 0.625rem; border: 1.5px solid var(--color-tinta); border-radius: 0.875rem; background: var(--color-papel);
+  /* La etiqueta de la campaña (`EtiquetaDeCampana`, la de producción) con el resumen de la oferta. En escritorio cuelga sobre su panel hundido,
+     como en la hoja de la campaña; en el celular es la franja baja de siempre (`.eqp-tarjeta`, etiqueta-prendas.css) y el resumen se vuelve
+     una línea. `cph-hoja` solo le da su movimiento (el hilo, la caída): no trae más reglas. */
+  .of-lado { position: sticky; top: 0; min-width: 0; }
+  @media (min-width: 768px) {
+    .of-lado { display: flex; flex-direction: column; padding: 0 1.125rem 0.875rem; border-radius: 1rem; background: var(--color-hueso); }
   }
-  .of-etq::after {
-    content: ""; position: absolute; top: 0.625rem; right: 0.75rem; width: 0.6875rem; height: 0.6875rem;
-    border-radius: 50%; border: 1.5px solid var(--color-tinta); background: var(--color-crema);
-  }
-  .of-etq-top { display: flex; align-items: center; gap: 0.5rem; padding-right: 1.25rem; }
-  .of-marca { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.16em; color: var(--color-rojo); }
-  .of-gran { margin-top: 0.125rem; font-family: var(--font-serif); font-weight: 500; line-height: 1.02; overflow-wrap: anywhere; }
-  .of-etq[data-vacia] .of-gran { color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
-  .of-ej {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; padding: 0.375rem 0.5625rem;
-    border-radius: 0.5625rem; background: var(--color-hueso); font-size: 0.78rem;
-  }
-  .of-ej b { font-weight: 500; }
-  .of-ej span { white-space: nowrap; font-weight: 600; }
-  .of-ej s { margin-right: 0.1875rem; font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
-  .of-etq[data-vacia] .of-ej { display: block; background: transparent; border: 1px dashed var(--color-taupe); color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
-  .of-perf { height: 0; margin: 0.3125rem -0.9375rem 0.125rem; border-top: 1.5px dashed color-mix(in srgb, var(--color-tinta) 40%, transparent); }
   .of-ef { display: grid; grid-template-columns: 3.375rem 1fr; gap: 0.5rem; align-items: baseline; padding: 0.1875rem 0; font-size: 0.78rem; }
   .of-ef .of-n { font-size: 0.625rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
   .of-ef .of-v { font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
-  .of-ef .of-v i { margin-left: 0.375rem; font-style: normal; font-weight: 400; font-size: 0.6875rem; color: var(--color-taupe); white-space: nowrap; }
-  .of-ef .of-v i.of-pend { margin: 0; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
-  .of-corta { display: none; flex-basis: 100%; font-size: 0.78rem; }
+  .of-ef .of-v i.of-pend { margin: 0; font-style: normal; font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
+  .of-res-corto { display: none; }
 
   /* El pie: vuelta · cancelar · lo que falta · guardar */
   .of-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.625rem; padding-top: 0.75rem; border-top: 1px solid var(--color-sand); }
@@ -190,8 +164,8 @@
     .of-reg, .of-fam, .of-paso, .of-dia { transition: none; }
   }
 
-  /* ── Celular y hoja angosta: la lista pasa a un desplegable y la etiqueta, a una franja arriba de la pregunta ── */
-  @media (max-width: 62rem) {
+  /* ── Hasta 1200 px y celular: la lista pasa a un desplegable y la etiqueta, a una franja arriba de la pregunta ── */
+  @media (max-width: 75rem) {
     .of-hoja { grid-template-columns: minmax(0, 1fr); }
     .of-tog { display: flex; }
     .of-rl { display: none; margin-top: 0.5rem; }
@@ -202,12 +176,8 @@
     .of-cols { display: flex; flex-direction: column; gap: 0.75rem; }
     .of-q { order: 2; }
     .of-q h2 { font-size: 1.5rem; }
-    .of-etq { position: relative; order: 1; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.625rem; padding: 0.5625rem 2.5rem 0.5625rem 0.75rem; }
-    .of-etq > .of-lbl, .of-etq .of-ej, .of-etq .of-perf, .of-etq .of-ef { display: none; }
-    .of-corta { display: block; }
-    .of-etq-top { padding: 0; }
-    .of-gran { margin: 0; font-size: 1.625rem !important; }
-    .of-grande { grid-template-columns: 1fr; }
+    .of-lado { position: relative; order: 1; }
+    .of-res-corto { display: block; grid-column: 1 / -1; font-size: 0.78rem; color: color-mix(in srgb, var(--color-tinta) 68%, transparent); }
     .of-fechas { grid-template-columns: 1fr; }
     .of-dia { width: 2.375rem; height: 2.25rem; font-size: 0.75rem; }
     .of-paso:not([aria-current="step"]) span { display: none; }

@@ -432,7 +432,7 @@ export function SellosPantalla({
     const vigencia = vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy);
     const imprimir = e.descuentoPct !== null && vigencia?.estado !== "proxima";
     const boton = botonCampana(e, hoy);
-    // Una campaña se configura con sus ofertas («Tres preguntas», ADR-0490); la hoja de siempre (`CampanaModal`) solo queda si la base aún no las tiene.
+    // Una campaña se configura con sus ofertas («Tres preguntas», ADR-0496); la hoja de siempre (`CampanaModal`) solo queda si la base aún no las tiene.
     const conOfertas = e.estilo === "campana" && reglasDisponibles;
     return (
       <>

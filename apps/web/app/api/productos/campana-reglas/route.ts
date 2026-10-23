@@ -18,7 +18,7 @@ import { leerCuerpoOferta, reglaDeFila, type FilaRegla } from "@/lib/campana-reg
 type ErrorRpc = { code?: string; message: string };
 type Llamada = { data: unknown; error: ErrorRpc | null };
 
-/** Las funciones nuevas todavía no están en los tipos generados (viven en la migración 20261023190000): se nombran a mano. */
+/** Las funciones nuevas todavía no están en los tipos generados (viven en la migración 20261023232000): se nombran a mano. */
 async function llamar(supabase: Awaited<ReturnType<typeof createClient>>, funcion: string, args?: Record<string, unknown>): Promise<Llamada> {
   return (await supabase.rpc(funcion as never, (args ?? {}) as never)) as unknown as Llamada;
 }

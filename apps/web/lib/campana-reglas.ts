@@ -7,7 +7,7 @@
 //   cuerpo que manda la hoja a la API.
 // ASUME: fechas «AAAA-MM-DD» de Lima; días de la semana como ISO (1 = lunes … 7 = domingo), igual que la base (`isodow`).
 // NO HACE: no habla con la base ni decide permisos (eso es de la base: `fn_puede_campanas`, `fn_es_lider`).
-// La regla de verdad vive en `supabase/migrations/20261023190000_campana_reglas_de_precio.sql`; una prueba la ata (`campana-reglas.test.ts`).
+// La regla de verdad vive en `supabase/migrations/20261023232000_campana_reglas_de_precio.sql`; una prueba la ata (`campana-reglas.test.ts`).
 
 import { fechaCorta } from "./etiqueta-vigencia";
 import { sumarDias } from "./fechas-lima";
@@ -249,13 +249,22 @@ export const nombresOrdenados = (ids: readonly string[], nombreCategoria: (id: s
 export const nombresDeTiendas = (ids: readonly string[], nombreSede: (id: string) => string): string[] =>
   ids.map((id) => nombreSede(id).replace(/^tienda\s+/i, "")).filter(Boolean).sort((a, b) => a.localeCompare(b, "es"));
 
+/** Hasta cuántas categorías se nombran en una frase o en el nombre de una oferta; con más, se dice cuántas son («12 categorías»). */
+export const MAX_CATEGORIAS_NOMBRADAS = 3;
+
+/** Las categorías de una oferta dichas en una frase: «Blusas y Faldas» o, si son muchas, «12 categorías». */
+export function categoriasDichas(ids: readonly string[], nombreCategoria: (id: string) => string): string {
+  const nombres = nombresOrdenados(ids, nombreCategoria);
+  return nombres.length > MAX_CATEGORIAS_NOMBRADAS ? `${nombres.length} categorías` : lista(nombres);
+}
+
 /** «Toda la campaña · −20 % · mar y jue» · «Blusas y Faldas · −20 % · Trujillo». */
 export function nombreAutomatico(
   o: Pick<OfertaEnEdicion, "porcentaje" | "dias" | "categoriasSolo"> & { sedeIds?: readonly string[] },
   nombreCategoria: (id: string) => string,
   nombreSede: (id: string) => string = () => "",
 ): string {
-  const donde = o.categoriasSolo.length ? lista(nombresOrdenados(o.categoriasSolo, nombreCategoria)) : "Toda la campaña";
+  const donde = o.categoriasSolo.length ? categoriasDichas(o.categoriasSolo, nombreCategoria) : "Toda la campaña";
   const dias = textoDiasCorto(o.dias);
   const tiendas = lista(nombresDeTiendas(o.sedeIds ?? [], nombreSede));
   const t = `${donde} · −${String(o.porcentaje).replace(".", ",")} %${dias ? ` · ${dias}` : ""}${tiendas ? ` · ${tiendas}` : ""}`;
@@ -277,7 +286,7 @@ export const textoFechas = (desde: string, hasta: string): string => {
 
 /** «20 % menos en todas las prendas de la campaña, los martes y jueves, del 26 oct al 31 oct.» */
 export function fraseDeOferta(o: OfertaEnEdicion, nombreCategoria: (id: string) => string, nombreSede: (id: string) => string = () => ""): string {
-  const donde = o.categoriasSolo.length ? `solo en ${lista(nombresOrdenados(o.categoriasSolo, nombreCategoria))}` : "en todas las prendas de la campaña";
+  const donde = o.categoriasSolo.length ? `solo en ${categoriasDichas(o.categoriasSolo, nombreCategoria)}` : "en todas las prendas de la campaña";
   const fuera = o.categoriasFuera.length ? ` (menos ${lista(nombresOrdenados(o.categoriasFuera, nombreCategoria).map((n) => n.toLowerCase()))})` : "";
   const dias = textoDias(o.dias);
   const tiendas = lista(nombresDeTiendas(o.sedeIds, nombreSede));
@@ -447,12 +456,23 @@ export function resumenAntes(antes: Record<string, unknown> | null): string {
 
 // ---- Cuántas prendas alcanza una oferta (lo que dicen los conteos de la hoja) -------------------------------------------------------
 
-export type PrendaDeCampana = { id: string; categoriaId: string | null; deClaure?: boolean };
+export type PrendaDeCampana = { id: string; categoriaId: string | null; deClaure?: boolean; modelo?: string };
 
-/** Las prendas de la campaña que la oferta alcanzaría: solo las de sus categorías si eligió «solo estas», sin las que dejó fuera y sin las de
- *  Claurè (otra empresa) salvo que las incluya a propósito. Es lo que la base cobra: `fn_campanas_en_sede`. */
-export function prendasQueAlcanza<P extends PrendaDeCampana>(prendasDeLaCampana: readonly P[], o: Pick<OfertaEnEdicion, "categoriasSolo" | "categoriasFuera" | "incluyeClaure">): P[] {
-  return prendasDeLaCampana.filter((p) => {
+/** Cuántas prendas son estas. Una prenda es un modelo en su color: sus tallas cuentan una vez, como en el pase de Insignias y en la etiqueta
+ *  de la campaña (ADR-0488). Sin `modelo`, cada fila cuenta como una. */
+export function contarPrendas(prendas: readonly Pick<PrendaDeCampana, "id" | "modelo">[]): number {
+  return new Set(prendas.map((p) => p.modelo ?? p.id)).size;
+}
+
+/** Las prendas que la oferta alcanzaría. Con «solo estas categorías», las de esas categorías, estén o no en la campaña (la oferta dice dónde
+ *  rige); sin ninguna, las de la campaña. Siempre sin las que dejó fuera y sin las de Claurè (otra empresa) salvo que las incluya a propósito.
+ *  Es lo que la base cobra: `fn_campanas_en_sede`. */
+export function prendasQueAlcanza<P extends PrendaDeCampana>(
+  prendasDeLaCampana: readonly P[],
+  prendasDelCatalogo: readonly P[],
+  o: Pick<OfertaEnEdicion, "categoriasSolo" | "categoriasFuera" | "incluyeClaure">,
+): P[] {
+  return (o.categoriasSolo.length > 0 ? prendasDelCatalogo : prendasDeLaCampana).filter((p) => {
     if (!o.incluyeClaure && p.deClaure) return false;
     const c = p.categoriaId;
     if (o.categoriasSolo.length > 0 && !(c && o.categoriasSolo.includes(c))) return false;
@@ -460,13 +480,15 @@ export function prendasQueAlcanza<P extends PrendaDeCampana>(prendasDeLaCampana:
   });
 }
 
-/** Cuántas prendas DE LA CAMPAÑA (no de toda la categoría) tiene cada categoría; las de Claurè no cuentan salvo que se incluyan. Una categoría
- *  cuyas prendas son todas de Claurè sigue en el mapa, con 0. */
+/** Cuántas prendas DE LA CAMPAÑA (no de toda la categoría) tiene cada categoría, contadas como `contarPrendas` (un modelo en su color, no sus
+ *  tallas); las de Claurè no cuentan salvo que se incluyan. Una categoría cuyas prendas son todas de Claurè sigue en el mapa, con 0. */
 export function contarPorCategoria(prendasDeLaCampana: readonly PrendaDeCampana[], incluyeClaure: boolean): Map<string, number> {
-  const cuenta = new Map<string, number>();
+  const modelos = new Map<string, Set<string>>();
   for (const p of prendasDeLaCampana) {
     if (!p.categoriaId) continue;
-    cuenta.set(p.categoriaId, (cuenta.get(p.categoriaId) ?? 0) + (incluyeClaure || !p.deClaure ? 1 : 0));
+    const set = modelos.get(p.categoriaId) ?? new Set<string>();
+    if (incluyeClaure || !p.deClaure) set.add(p.modelo ?? p.id);
+    modelos.set(p.categoriaId, set);
   }
-  return cuenta;
+  return new Map([...modelos].map(([id, set]) => [id, set.size]));
 }

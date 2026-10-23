@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, ChevronRight, Gift, Info, Layers, Search, ShoppingBag, Star, Tag, Undo2, Wallet } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Gift, Info, Layers, Star, Tag, Undo2, Wallet } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
@@ -14,13 +14,15 @@ import { BotonVerMas } from "@/components/ui/VerMas";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { Volver } from "@/components/ui/Volver";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
+import { EtiquetaDeCampana } from "@/components/campana-hoja/EtiquetaDeCampana";
+import { CategoriasDeCampana } from "@/components/campana-hoja/CategoriasDeCampana";
 import type { CategoriaOpcion, Etiqueta } from "@/components/EtiquetasLista";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import type { CampoDeGuia } from "@/lib/guia-campos";
-import { avisoReimprimir, destinoReimprimir, nombreBajoCosto, objecionVigencia, parsearFecha, prendasBajoCosto, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
-import { descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
+import { alcanceCampana, avisoReimprimir, chipDeTarjeta, destinoReimprimir, nombreBajoCosto, objecionVigencia, parsearFecha, prendasBajoCosto, prendasQueCambianDePrecioHoy, textoSedesDeCampana, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
+import { ejemplosDeCaja, piezasDelMosaico } from "@/lib/campana-hoja";
 import { sumarDias } from "@/lib/fechas-lima";
-import { avisoDiaDeSemana, fechaCorta, repetirTemporada } from "@/lib/etiqueta-vigencia";
+import { avisoDiaDeSemana, fechaCorta, repetirTemporada, textoRango, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import {
   DIAS_SEMANA,
   PORCENTAJES_RAPIDOS,
@@ -28,7 +30,9 @@ import {
   PORCENTAJE_MIN,
   PORCENTAJE_PASO,
   atajosDeFechas,
+  categoriasDichas,
   contarPorCategoria,
+  contarPrendas,
   cuentaDias,
   diaCorto,
   diasQueCaen,
@@ -60,12 +64,13 @@ import {
    «Tres preguntas» · las OFERTAS de una campaña (Felipe 2026-10-23, elegida entre cinco: docs/maquetas/ofertas-promociones-2026-10/formulario/)
 
    PROMETE: una hoja con tres cosas — las ofertas ya registradas de la campaña (a la izquierda), un asistente de UNA pregunta por
-   pantalla (¿Qué le das al cliente? · ¿En qué prendas y dónde? · ¿Cuándo?) y la etiqueta que se arma con cada respuesta (a la
-   derecha). Las preguntas 2 y 3 ya vienen contestadas con lo más común; quien ya sabe usa el atajo de la pregunta 1.
+   pantalla (¿Qué le das al cliente? · ¿Cuándo? · ¿En qué prendas y tiendas?) y, a la derecha, la etiqueta de la campaña que se arma con
+   cada respuesta (la misma de la hoja de la campaña, ADR-0488, con el resumen de la oferta). El cuándo y las prendas ya vienen contestados
+   con lo más común; las tiendas no (se marcan una por una); quien ya sabe usa el atajo de la pregunta 1.
    ASUME: hoy solo existe «Un % menos» (los otros 14 tipos de la maqueta cambian dinero en la caja y llegan después: se ven apagados con
-   «Pronto»). Las tiendas son las de la campaña (una oferta no elige tiendas aparte). Quien no es líder deja un borrador; un líder la activa
-   (la base vuelve a exigirlo). Guardar y activar van por /api/productos/campana-reglas; la base valida todo otra vez.
-   NO HACE: no cambia precios por su cuenta ni toca el descuento «de siempre» de la campaña (eso sigue en «Fechas y prendas de la campaña»).
+   «Pronto»). Las tiendas y las prendas de una oferta son un subconjunto de las de su campaña. Quien no es líder deja un borrador; un líder
+   la activa (la base vuelve a exigirlo). Guardar y activar van por /api/productos/campana-reglas; la base valida todo otra vez.
+   NO HACE: no cambia precios por su cuenta ni toca el descuento «de siempre» de la campaña (solo se retira desde «Ya registradas»).
    ==================================================================== */
 
 type Paso = 1 | 2 | 3;
@@ -154,22 +159,21 @@ export function OfertasHoja({
     return prendasConCosto.filter((p) => (p.categoriaId !== null && cats.has(p.categoriaId)) || manuales.has(p.id));
   }, [prendasConCosto, etiqueta.categoriaIds, manuales]);
   const [o, setO] = useState<OfertaEnEdicion>(nuevaOferta);
-  // Cada categoría dice cuántas prendas DE LA CAMPAÑA alcanzaría la oferta (no las de toda la categoría): las prendas de Claurè no cuentan
-  // salvo que la oferta las incluya a propósito, porque la base no se las baja.
-  const alcanzable = (p: PrendaConCosto) => o.incluyeClaure || !p.deClaure;
-  const deClaureFuera = o.incluyeClaure ? 0 : prendasCampana.filter((p) => p.deClaure).length;
-  const categoriasDeLaCampana = useMemo(() => {
-    const cuenta = contarPorCategoria(prendasCampana, o.incluyeClaure);
-    return categorias.filter((c) => cuenta.has(c.id)).map((c) => ({ id: c.id, nombre: c.nombre, prendas: cuenta.get(c.id) ?? 0 }));
-  }, [prendasCampana, categorias, o.incluyeClaure]);
+  // Cada categoría dice cuántas prendas a la venta trae, como en la hoja de la campaña: son las de TODO el catálogo porque una oferta puede
+  // elegir categorías que la campaña no tiene. Una prenda es un modelo en su color (sus tallas cuentan una vez, ADR-0488) y las de Claurè
+  // no cuentan salvo que la oferta las incluya a propósito, porque la base no se las baja.
+  const cuentaCats = useMemo(() => contarPorCategoria(prendasConCosto, o.incluyeClaure), [prendasConCosto, o.incluyeClaure]);
+  const catsCampana = useMemo(() => new Set(etiqueta.categoriaIds), [etiqueta.categoriaIds]);
 
   // ---- El asistente ---------------------------------------------------------------------------------------------------------------
   const [paso, setPaso] = useState<Paso>(1);
   const [elegido, setElegido] = useState(false);
   const [visitado, setVisitado] = useState<Record<Paso, boolean>>({ 1: false, 2: false, 3: false });
   const [navego, setNavego] = useState(false);
-  const [abre2, setAbre2] = useState(false);
-  const [mas2, setMas2] = useState(false);
+  // La categoría recién marcada: su casilla vuela a su pieza en la etiqueta (`EtiquetaDeCampana`).
+  const vuelo = useRef<string | null>(null);
+  // La persona tocó la grilla de categorías (aunque la dejó vacía: vacío es «ninguna», no «las de la campaña»).
+  const [tocoCats, setTocoCats] = useState(false);
   const [masQ3, setMasQ3] = useState(false);
   const [soloAlgunosDias, setSoloAlgunosDias] = useState(false);
   const [guardando, setGuardando] = useState<Guardando>(null);
@@ -245,8 +249,7 @@ export function OfertasHoja({
     setElegido(false);
     setPaso(1);
     setVisitado({ 1: false, 2: false, 3: false });
-    setAbre2(false);
-    setMas2(false);
+    setTocoCats(false);
     setMasQ3(false);
     setSoloAlgunosDias(false);
   }
@@ -256,16 +259,27 @@ export function OfertasHoja({
     setPaso(1);
     setNavego(true);
     setVisitado({ 1: false, 2: false, 3: false });
-    setAbre2(false);
-    setMas2(r.categoriasFuera.length > 0 || r.incluyeClaure);
+    setTocoCats(false);
     setMasQ3(false);
     setSoloAlgunosDias(r.dias.length < 7);
     setRegsAb(false);
   }
 
   // ---- Lo que la oferta alcanzaría y lo que avisa ---------------------------------------------------------------------------------
-  const alcanzadas = useMemo(() => prendasQueAlcanza(prendasCampana, o), [prendasCampana, o]);
+  const alcanzadas = useMemo(() => prendasQueAlcanza(prendasCampana, prendasConCosto, o), [prendasCampana, prendasConCosto, o]);
   const bajoCosto = useMemo(() => prendasBajoCosto(o.porcentaje, alcanzadas, new Set<string>(), new Set(alcanzadas.map((p) => p.id))), [o.porcentaje, alcanzadas]);
+  const nAlcanza = contarPrendas(alcanzadas);
+  // Por debajo del costo se cuenta como se cuentan las prendas (un modelo en su color) y se nombran dos, no dos tallas del mismo.
+  const bajoPorModelo = useMemo(() => [...new Map(bajoCosto.map((p) => [p.modelo ?? p.id, p])).values()], [bajoCosto]);
+  // La grilla de categorías: las marcadas son las de la oferta; sin ninguna elegida, las de la campaña (menos lo que una oferta vieja deja fuera).
+  const categoriasPendientes = tocoCats && o.categoriasSolo.length === 0;
+  const elegidasSolo = useMemo(
+    () => (o.categoriasSolo.length > 0 ? new Set(o.categoriasSolo) : tocoCats ? new Set<string>() : new Set([...catsCampana].filter((id) => !o.categoriasFuera.includes(id)))),
+    [o.categoriasSolo, o.categoriasFuera, tocoCats, catsCampana],
+  );
+  const hayClaure = o.incluyeClaure || prendasConCosto.some((p) => p.deClaure);
+  // Las de Claurè que quedan fuera, dentro de lo que la oferta alcanzaría si las incluyera.
+  const claureFuera = o.incluyeClaure ? 0 : contarPrendas(prendasQueAlcanza(prendasCampana, prendasConCosto, { ...o, incluyeClaure: true }).filter((p) => p.deClaure));
   const sinTiendas = idsDeTiendas.length === 0; // la lista no llegó (base sin ADR-0486): no hay nada que elegir ni exigir
   const tiendasPendientes = !sinTiendas && o.sedeIds.length === 0;
   // Marcarlas todas es «todas» (la base lo guarda como sin límite, así una tienda nueva no queda fuera): para el nombre y la frase no se nombran.
@@ -281,13 +295,14 @@ export function OfertasHoja({
   const nombreManual = o.nombre.trim() !== "";
 
   const faltan: CampoDeGuia[] = [];
+  // En el orden de las etapas: qué le das, cuándo, y al final prendas y tiendas.
   if (!elegido) faltan.push({ id: "que", nombre: "Elegir qué le das al cliente", requerido: true, hecho: false, pendiente: "Elige qué le das al cliente." });
-  else if (tiendasPendientes) faltan.push({ id: "tiendas", nombre: "Elegir en qué tiendas rige", requerido: true, hecho: false, pendiente: "Marca al menos una tienda." });
   else if (problemas.length > 0) {
     const sinDias = /al menos un día de la semana/.test(problemas[0]);
     faltan.push({ id: "cuando", nombre: sinDias ? "Elegir al menos un día de la semana" : "Corregir lo de «¿Cuándo?»", requerido: true, hecho: false, pendiente: problemas[0] });
-  }
-  const puedeGuardar = elegido && !tiendasPendientes && problemas.length === 0 && !terminada;
+  } else if (tiendasPendientes) faltan.push({ id: "tiendas", nombre: "Elegir en qué tiendas rige", requerido: true, hecho: false, pendiente: "Marca al menos una tienda." });
+  else if (categoriasPendientes) faltan.push({ id: "categorias", nombre: "Elegir las categorías", requerido: true, hecho: false, pendiente: "Marca al menos una categoría." });
+  const puedeGuardar = elegido && !tiendasPendientes && !categoriasPendientes && problemas.length === 0 && !terminada;
 
   // ---- Lo que guarda ------------------------------------------------------------------------------------------------------------
   async function llamar(metodo: "POST" | "PATCH", cuerpo: unknown): Promise<{ ok: true; id: string | null } | { ok: false }> {
@@ -361,13 +376,33 @@ export function OfertasHoja({
   }
 
   // ---- Piezas pequeñas --------------------------------------------------------------------------------------------------------------
-  const chipCategoria = (id: string, nombreC: string, prendas: number, marcado: boolean, alPulsar: () => void, prefijo = "") => (
-    <button key={id} type="button" className="pildora-cayla" aria-pressed={marcado} onClick={alPulsar}>
-      {prefijo}
-      {nombreC} <span className="tabular-nums opacity-70">{prendas}</span>
-    </button>
-  );
   const alternarEn = (lista_: string[], id: string) => (lista_.includes(id) ? lista_.filter((x) => x !== id) : [...lista_, id]);
+  // La selección de categorías de la hoja (la de producción). Si queda igual a las de la campaña es «las de la campaña» (sin lista: las que se
+  // sumen después entran solas y las marcadas a mano también); si no, es una lista de la oferta. Sin ninguna es «ninguna», y no deja guardar.
+  function fijarCategorias(siguiente: ReadonlySet<string>) {
+    const comoLaCampana = siguiente.size === catsCampana.size && [...siguiente].every((id) => catsCampana.has(id));
+    cambiar({ categoriasSolo: comoLaCampana ? [] : [...siguiente], categoriasFuera: [] });
+    setTocoCats(!comoLaCampana);
+  }
+  // La casilla recién marcada vuela a su pieza en la etiqueta.
+  const alternarCategoria = (id: string) => {
+    const siguiente = new Set(elegidasSolo);
+    if (siguiente.has(id)) siguiente.delete(id);
+    else {
+      siguiente.add(id);
+      vuelo.current = id;
+    }
+    fijarCategorias(siguiente);
+  };
+  // La casilla de «toda la familia»: marca o quita sus categorías de un toque.
+  const alternarFamilia = (ids: string[], marcar: boolean) => {
+    const siguiente = new Set(elegidasSolo);
+    for (const id of ids) {
+      if (marcar) siguiente.add(id);
+      else siguiente.delete(id);
+    }
+    fijarCategorias(siguiente);
+  };
 
   // ---- Pregunta 1 -----------------------------------------------------------------------------------------------------------------
   function pregunta1() {
@@ -401,7 +436,7 @@ export function OfertasHoja({
               {GRUPOS.map((g) => (
                 <button key={g.k} type="button" className="pildora-cayla" aria-pressed={g.activo} disabled={!g.activo} title={g.activo ? undefined : "Llega pronto"}>
                   {g.corto}
-                  {!g.activo && <span className="opacity-70"> · pronto</span>}
+                  {!g.activo && <span className="font-normal"> · pronto</span>}
                 </button>
               ))}
             </div>
@@ -419,9 +454,20 @@ export function OfertasHoja({
                 </button>
               </div>
             </div>
+            <div className="mt-3">
+            <Campo
+              etiqueta="Cuánto menos"
+              tono={bajoPorModelo.length > 0 ? "error" : "neutro"}
+              sinPie={bajoPorModelo.length === 0}
+              pie={
+                bajoPorModelo.length > 0
+                  ? `Por debajo del costo: ${plural(bajoPorModelo.length, "prenda", "prendas")} (${bajoPorModelo.slice(0, 2).map(nombreBajoCosto).join(", ")}${bajoPorModelo.length > 2 ? "…" : ""}). Se puede guardar igual.`
+                  : undefined
+              }
+            >
             <div className="of-ctl">
-              <span className="of-lbl">Cuánto menos</span>
               <PasoCantidad
+                tono={bajoPorModelo.length > 0 ? "error" : undefined}
                 menos={{ onClick: () => cambiar({ porcentaje: Math.max(PORCENTAJE_MIN, o.porcentaje - PORCENTAJE_PASO) }), deshabilitado: o.porcentaje <= PORCENTAJE_MIN, etiqueta: "Bajar el descuento" }}
                 mas={{ onClick: () => cambiar({ porcentaje: Math.min(PORCENTAJE_MAX, o.porcentaje + PORCENTAJE_PASO) }), deshabilitado: o.porcentaje >= PORCENTAJE_MAX, etiqueta: "Subir el descuento" }}
                 data-guia="sellos.oferta-pct"
@@ -436,6 +482,8 @@ export function OfertasHoja({
                 ))}
               </div>
             </div>
+            </Campo>
+            </div>
             <p className="of-ayuda">
               <Info aria-hidden />
               <span>El precio baja ese porcentaje. El cliente no tiene que hacer nada: la caja y la tienda web lo aplican solas.</span>
@@ -446,18 +494,14 @@ export function OfertasHoja({
     );
   }
 
-  // ---- Pregunta 2 -----------------------------------------------------------------------------------------------------------------
+  // ---- Dónde rige (se contesta en «¿Cuándo y dónde?») ------------------------------------------------------------------------------
   const dondeRige = textoSedesDeCampana(etiqueta.sedeIds, tiendas) ?? "En todas las tiendas";
-  const prendasTexto = (() => {
-    const base = o.categoriasSolo.length > 0 ? lista(nombresOrdenados(o.categoriasSolo, nombreCategoria)) : "Todas las de la campaña";
-    const extras = [o.categoriasFuera.length > 0 ? `menos ${lista(nombresOrdenados(o.categoriasFuera, nombreCategoria).map((n) => n.toLowerCase()))}` : "", o.incluyeClaure ? "con Claurè" : ""].filter(Boolean);
-    return extras.length > 0 ? `${base} · ${extras.join(" · ")}` : base;
-  })();
-
   const dondeDeLaOferta = sinTiendas ? dondeRige : tiendasPendientes ? "Elige al menos una tienda" : seleccionCompleta ? "En todas las tiendas" : (textoSedesDeCampana(o.sedeIds, tiendas) ?? dondeRige);
+  // «Dónde rige», como en la hoja de la campaña: una pastilla por tienda. Aquí no hay «Todas las sedes» (Felipe 2026-10-23): quien la quiere
+  // en todas las marca todas, y la oferta queda sin límite de tiendas.
   const chipsDeTiendas =
     tiendasDeLaCampana.length > 1 ? (
-      <div className="of-opciones mt-1.5" role="group" aria-label="Tiendas donde rige la oferta" data-guia="sellos.oferta-tiendas">
+      <div className="of-opciones" role="group" aria-label="Tiendas donde rige la oferta" data-guia="sellos.oferta-tiendas">
         {tiendasDeLaCampana.map((t) => (
           <button key={t.id} type="button" className="pildora-cayla" aria-pressed={o.sedeIds.includes(t.id)} onClick={() => cambiar({ sedeIds: alternarEn(o.sedeIds, t.id) })}>
             {t.nombre}
@@ -465,145 +509,20 @@ export function OfertasHoja({
         ))}
       </div>
     ) : null;
-  // Sin prendas la oferta no baja ningún precio: se dice con el camino para arreglarlo, no con un «0» suelto.
-  const avisoSinPrendas =
-    prendasCampana.length === 0 ? (
-      <Aviso tono="atencion" titulo="Esta campaña todavía no tiene prendas">
-        Mientras no tenga, ninguna oferta baja un precio. Márcalas con «Prendas», en la tarjeta de la campaña.
-      </Aviso>
-    ) : null;
+  const textoDonde = sinTiendas
+    ? `${dondeRige}.`
+    : tiendasPendientes
+      ? "Marca al menos una tienda."
+      : seleccionCompleta
+        ? "Rige en todas las tiendas."
+        : `${textoSedesDeCampana(o.sedeIds, tiendas)}: en las demás tiendas se cobra el precio normal.`;
 
-  function pregunta2() {
-    return (
-      <>
-        <h2>¿En qué prendas y dónde?</h2>
-        <p className="of-baj">{abre2 ? "Cambia solo lo que haga falta." : tiendasPendientes ? "Las prendas ya vienen contestadas. Falta marcar en qué tiendas rige." : "Ya viene contestado con lo más común. Si te sirve, sigue."}</p>
-        {abre2 ? (
-          <div className="of-panel">
-            {avisoSinPrendas}
-            <div>
-              <span className="of-lbl">Prendas</span>
-              <div className="of-opciones">
-                <button type="button" className="pildora-cayla" aria-pressed={o.categoriasSolo.length === 0} onClick={() => cambiar({ categoriasSolo: [] })}>
-                  Todas las de la campaña <span className="tabular-nums opacity-70">{prendasCampana.filter(alcanzable).length}</span>
-                </button>
-              </div>
-              {categoriasDeLaCampana.length > 0 && (
-                <>
-                  <p className="of-sublbl">
-                    O solo de estas categorías <span>· las prendas de la campaña que alcanzaría{deClaureFuera > 0 ? `; ${plural(deClaureFuera, "prenda", "prendas")} de Claurè quedan fuera` : ""}</span>
-                  </p>
-                  <div className="of-opciones" role="group" aria-label="Solo estas categorías">
-                    {categoriasDeLaCampana.map((c) =>
-                      chipCategoria(c.id, c.nombre, c.prendas, o.categoriasSolo.includes(c.id), () =>
-                        cambiar({ categoriasSolo: alternarEn(o.categoriasSolo, c.id), categoriasFuera: o.categoriasFuera.filter((x) => x !== c.id) }),
-                      ),
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-            <div>
-              <span className="of-lbl">Tiendas</span>
-              {chipsDeTiendas}
-              <p className="of-pequeno mt-1.5">
-                {chipsDeTiendas ? "Marca las tiendas donde rige esta oferta; si quieres todas, márcalas todas." : `${dondeRige}.`} La tienda web cobra lo mismo y no se elige aparte.
-              </p>
-            </div>
-            {mas2 && (
-              <div>
-                <p className="of-sublbl" style={{ marginTop: 0 }}>
-                  Dejar fuera <span>· opcional</span>
-                </p>
-                <div className="of-opciones" role="group" aria-label="Dejar fuera estas categorías">
-                  {categoriasDeLaCampana
-                    .filter((c) => !o.categoriasSolo.includes(c.id))
-                    .map((c) => chipCategoria(c.id, c.nombre, c.prendas, o.categoriasFuera.includes(c.id), () => cambiar({ categoriasFuera: alternarEn(o.categoriasFuera, c.id) }), o.categoriasFuera.includes(c.id) ? "Sin " : ""))}
-                </div>
-                <p className="of-sublbl">
-                  Prendas de Claurè <span>· otra empresa: quedan fuera, salvo que las pongas a propósito</span>
-                </p>
-                <div className="of-opciones">
-                  <button type="button" className="pildora-cayla" aria-pressed={o.incluyeClaure} onClick={() => cambiar({ incluyeClaure: !o.incluyeClaure })}>
-                    Incluir las de Claurè
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className="of-enlaces">
-              <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => setMas2((v) => !v)}>
-                {mas2 ? "Menos ajustes" : "Más ajustes: dejar fuera y Claurè"}
-              </button>
-              <button
-                type="button"
-                className="btn-cayla btn-enlace ml-auto text-sm"
-                onClick={() => {
-                  cambiar({ categoriasSolo: [], categoriasFuera: [], incluyeClaure: false });
-                  setMas2(false);
-                }}
-              >
-                <Undo2 aria-hidden className="mr-1 inline h-3.5 w-3.5" />
-                Poner lo de fábrica
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            {avisoSinPrendas && <div className="mt-3">{avisoSinPrendas}</div>}
-            <div className="of-filas">
-              <div className="of-fila">
-                <span className="of-ico">
-                  <Search aria-hidden />
-                </span>
-                <div className="of-fila-cuerpo">
-                  <span className="of-lbl">Prendas</span>
-                  <b>{prendasTexto}</b>
-                  <small>
-                    {alcanzadas.length > 0 ? `${plural(alcanzadas.length, "prenda", "prendas")} a la venta` : "Ninguna todavía"}
-                    {deClaureFuera > 0 ? ` · ${plural(deClaureFuera, "prenda", "prendas")} de Claurè quedan fuera` : ""}
-                  </small>
-                </div>
-              </div>
-              <div className="of-fila">
-                <span className="of-ico">
-                  <ShoppingBag aria-hidden />
-                </span>
-                <div className="of-fila-cuerpo">
-                  <span className="of-lbl">Dónde</span>
-                  <b>{dondeDeLaOferta}</b>
-                  {chipsDeTiendas}
-                  <small>{tiendasPendientes ? "Marca al menos una. " : ""}La tienda web cobra lo mismo y no se elige aparte.</small>
-                </div>
-              </div>
-            </div>
-            <div className="of-grande">
-              <Boton
-                peso="primario"
-                disabled={tiendasPendientes}
-                onClick={() => {
-                  setVisitado((v) => ({ ...v, 2: true }));
-                  ir(3);
-                }}
-              >
-                <Check aria-hidden className="mr-1 inline h-4 w-4" />
-                Está bien así
-              </Boton>
-              <Boton peso="fantasma" onClick={() => setAbre2(true)}>
-                Cambiar
-              </Boton>
-            </div>
-          </>
-        )}
-      </>
-    );
-  }
-
-  // ---- Pregunta 3 -----------------------------------------------------------------------------------------------------------------
+  // ---- Pregunta 2 · ¿Cuándo y dónde? --------------------------------------------------------------------------------------------------
   const atajos = useMemo(() => atajosDeFechas(inicio, campHasta, hoy), [inicio, campHasta, hoy]);
   const algunos = soloAlgunosDias || diasSueltos;
   const errorFechas = problemas.find((p) => /fecha|empieza|termina|inicio|campaña|año/i.test(p));
 
-  function dias3() {
+  function dias2() {
     return (
       <div className="of-sem" data-guia="sellos.oferta-dias">
         <div className="of-semf">
@@ -671,12 +590,13 @@ export function OfertasHoja({
     );
   }
 
-  function pregunta3() {
-    const oracion = fraseDeOferta(oDicha, nombreCategoria, nombreSede);
+  function preguntaCuando() {
     return (
       <>
-        <h2>¿Cuándo?</h2>
-        <p className="of-baj">{campHasta ? `Rige toda la campaña (hasta el ${sinPunto(fechaCorta(campHasta))}) salvo que lo cambies.` : "Elige desde cuándo y hasta cuándo."}</p>
+        <h2>¿Cuándo y dónde?</h2>
+        <p className="of-baj">
+          {tiendasPendientes ? "Las fechas ya vienen contestadas. Falta marcar en qué tiendas rige." : campHasta ? `Rige toda la campaña (hasta el ${sinPunto(fechaCorta(campHasta))}) salvo que lo cambies.` : "Elige desde cuándo y hasta cuándo."}
+        </p>
         {atajos.length > 0 && (
           <div className="of-opciones mt-3" role="group" aria-label="Fechas de siempre">
             {atajos.map((a) => (
@@ -690,7 +610,82 @@ export function OfertasHoja({
           <CampoFecha etiqueta="Desde" valor={o.desde} onValor={(v) => cambiar({ desde: v })} tono={errorFechas ? "error" : undefined} />
           <CampoFecha etiqueta="Hasta" valor={o.hasta} onValor={(v) => cambiar({ hasta: v })} tono={errorFechas ? "error" : undefined} pie={errorFechas} />
         </div>
-        {dias3()}
+        {dias2()}
+        <div className="of-donde">
+          <span className="of-lbl">Dónde rige</span>
+          {chipsDeTiendas}
+          <p className="of-pequeno mt-1.5" aria-live="polite">
+            {textoDonde} La tienda web cobra lo mismo y no se elige aparte.
+          </p>
+        </div>
+      </>
+    );
+  }
+
+  // ---- Pregunta 3 · ¿En qué prendas? ----------------------------------------------------------------------------------------------------
+  // Lo que se dice de las prendas, en una línea (la etiqueta de la derecha y el nombre usan la misma).
+  const prendasTexto = (() => {
+    const base = o.categoriasSolo.length > 0 ? categoriasDichas(o.categoriasSolo, nombreCategoria) : "Todas las de la campaña";
+    const extras = [o.categoriasFuera.length > 0 ? `menos ${lista(nombresOrdenados(o.categoriasFuera, nombreCategoria).map((n) => n.toLowerCase()))}` : "", o.incluyeClaure ? "con Claurè" : ""].filter(Boolean);
+    return extras.length > 0 ? `${base} · ${extras.join(" · ")}` : base;
+  })();
+  // La frase de producción bajo «Categorías»: «Alcanza a 47 prendas a la venta: 3 de 1 categoría y 44 marcadas a mano.»
+  const alcanceTexto = (() => {
+    if (categoriasPendientes) return "Marca al menos una categoría.";
+    const claure = claureFuera > 0 ? ` ${plural(claureFuera, "prenda", "prendas")} de Claurè ${claureFuera === 1 ? "queda" : "quedan"} fuera.` : "";
+    const comoLaCampana = o.categoriasSolo.length === 0;
+    if (comoLaCampana && prendasCampana.length === 0) return "La campaña todavía no tiene prendas: marca las categorías de esta oferta.";
+    const delCatalogo = prendasConCosto.filter((p) => o.incluyeClaure || !p.deClaure);
+    const a = alcanceCampana(delCatalogo, elegidasSolo, comoLaCampana ? manuales : new Set<string>());
+    const partes = [a.porCategoria > 0 ? `${a.porCategoria} de ${plural(elegidasSolo.size, "categoría", "categorías")}` : "", a.aMano > 0 ? `${plural(a.aMano, "marcada", "marcadas")} a mano` : ""].filter(Boolean);
+    return `Alcanza a ${plural(nAlcanza, "prenda", "prendas")} a la venta${partes.length > 0 ? `: ${partes.join(" y ")}` : ""}.${claure}`;
+  })();
+  const distintaDeLaCampana = o.categoriasSolo.length > 0 || tocoCats;
+
+  function preguntaPrendas() {
+    const oracion = fraseDeOferta(oDicha, nombreCategoria, nombreSede);
+    return (
+      <>
+        <h2>¿En qué prendas?</h2>
+        <p className="of-baj">{distintaDeLaCampana ? "Marca las categorías donde rige esta oferta." : "Ya viene lo de la campaña. Marca o quita categorías para cambiarlo."}</p>
+        <div className="of-panel" data-guia="sellos.oferta-prendas">
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="of-lbl" style={{ margin: 0 }}>
+                Categorías
+              </span>
+              {/* Marcan varias de un toque: el botón chico sutil, no el enlace (ADR-0358, ronda 9). Los dos siempre están: si aparecieran al marcar,
+                  la lista saltaría bajo el mouse (ADR-0185). */}
+              <div className="flex items-center justify-end gap-2">
+                <button type="button" className="btn-cayla btn-sutil btn-chico" disabled={elegidasSolo.size >= categorias.length} onClick={() => fijarCategorias(new Set(categorias.map((c) => c.id)))}>
+                  Elegir todas
+                </button>
+                <button type="button" className="btn-cayla btn-sutil btn-chico" disabled={elegidasSolo.size === 0} onClick={() => fijarCategorias(new Set())}>
+                  Quitar todas
+                </button>
+              </div>
+            </div>
+            <p className="of-pequeno mt-1" aria-live="polite">
+              {alcanceTexto}
+            </p>
+            <div className="mt-3">
+              <CategoriasDeCampana categorias={categorias} prendasDe={cuentaCats} elegidas={elegidasSolo} onAlternar={alternarCategoria} onFamilia={alternarFamilia} plegables />
+            </div>
+          </div>
+          {hayClaure && (
+            <div>
+              <p className="of-sublbl" style={{ marginTop: 0 }}>
+                Prendas de Claurè <span>· otra empresa: quedan fuera, salvo que las pongas a propósito</span>
+              </p>
+              <div className="of-opciones">
+                <button type="button" className="pildora-cayla" aria-pressed={o.incluyeClaure} onClick={() => cambiar({ incluyeClaure: !o.incluyeClaure })}>
+                  Incluir las de Claurè
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="of-rev" data-guia="sellos.oferta-revision">
           <span className="of-lbl">Revisa y guarda</span>
           <p className="of-oracion">{oracion}</p>
@@ -708,15 +703,15 @@ export function OfertasHoja({
                   {p}
                 </Aviso>
               ))}
-            {alcanzadas.length === 0 && (
+            {nAlcanza === 0 && (
               <Aviso tono="atencion" chico titulo="Todavía no alcanza ninguna prenda">
-                Márcalas en «Prendas» o suma categorías en «Fechas y prendas de la campaña».
+                Márcalas en «Prendas», en la tarjeta de la campaña, o elige otras categorías.
               </Aviso>
             )}
-            {bajoCosto.length > 0 && (
-              <Aviso tono="atencion" chico titulo={`Queda por debajo del costo: ${plural(bajoCosto.length, "prenda", "prendas")}`}>
-                {bajoCosto.slice(0, 2).map(nombreBajoCosto).join(", ")}
-                {bajoCosto.length > 2 ? "…" : ""}. No se bloquea, pero pierdes plata en cada una: avísale al contador.
+            {bajoPorModelo.length > 0 && (
+              <Aviso tono="atencion" chico titulo={`Queda por debajo del costo: ${plural(bajoPorModelo.length, "prenda", "prendas")}`}>
+                {bajoPorModelo.slice(0, 2).map(nombreBajoCosto).join(", ")}
+                {bajoPorModelo.length > 2 ? "…" : ""}. No se bloquea, pero pierdes plata en cada una: avísale al contador.
               </Aviso>
             )}
             {o.incluyeClaure && (
@@ -741,9 +736,7 @@ export function OfertasHoja({
             )}
           </div>
           <div className="of-fin">
-            <span className="of-pequeno">
-              Se llamará «{nombre}»
-            </span>
+            <span className="of-pequeno">Se llamará «{nombre}»</span>
             <button type="button" className="btn-cayla btn-enlace ml-auto text-sm" onClick={() => setMasQ3((v) => !v)}>
               {masQ3 ? "Menos opciones" : "Más opciones"}
             </button>
@@ -771,60 +764,56 @@ export function OfertasHoja({
     );
   }
 
-  // ---- La etiqueta: lo que verá el cliente ----------------------------------------------------------------------------------------
-  function etiquetaDeOferta() {
-    const da = elegido ? `−${pct(o.porcentaje)} %` : "Tu oferta";
-    const tam = da.length > 18 ? 22 : da.length > 11 ? 28 : 38;
-    const ejemplo = elegido ? alcanzadas.find((p) => p.precio > 0) : undefined;
-    const final = ejemplo ? totalDeLineas([{ cantidad: 1, precioUnitario: ejemplo.precio, descuentoUnitario: descuentoDeCampana(ejemplo.precio, o.porcentaje) }]) : null;
-    const dinero = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const corta = elegido ? `${prendasTexto} · ${(tiendasPendientes ? "tiendas por elegir" : dondeDeLaOferta).toLowerCase()} · ${textoFechas(o.desde, o.hasta)}${diasSueltos ? ` · ${textoDias(o.dias)}` : ""}` : "Aquí se va armando con cada respuesta.";
-    const linea = (n: string, v: string, deFabrica = false) => (
+  // ---- La etiqueta de la campaña (la de producción), con lo que esta oferta pone encima ---------------------------------------------
+  // Es la misma `EtiquetaDeCampana` de la hoja de la campaña (ADR-0488): su descuento, sus fechas, a cuántas prendas llega, sus categorías
+  // y lo que cobra la caja. Aquí se le suma un resumen de la oferta: qué prendas, en qué tiendas y cuándo.
+  const cuandoTexto = `${sinPunto(textoFechas(o.desde, o.hasta)).replace(/^el /, "")}${diasSueltos ? ` · ${textoDias(o.dias)}` : ""}`;
+  // El mosaico y los ejemplos de la caja salen de lo que la oferta alcanza de verdad (también las marcadas a mano de una campaña sin categorías).
+  const cuentaAlcanza = useMemo(() => contarPorCategoria(alcanzadas, true), [alcanzadas]);
+  const catsAlcanza = useMemo(() => new Set(cuentaAlcanza.keys()), [cuentaAlcanza]);
+  const mosaico = piezasDelMosaico(categorias, catsAlcanza, cuentaAlcanza);
+  // Mientras no elige qué le da al cliente, la caja cobra el precio de siempre: no se enseña un descuento que nadie puso.
+  const ejemplos = ejemplosDeCaja(alcanzadas, catsAlcanza, manuales, cuentaAlcanza, elegido ? o.porcentaje : null);
+
+  function etiquetaViva() {
+    const fechasBien = o.desde !== "" && o.hasta !== "" && o.desde <= o.hasta;
+    const linea = (n: string, v: string) => (
       <div className="of-ef">
         <span className="of-n">{n}</span>
-        <span className="of-v">
-          {v ? (
-            <>
-              {v}
-              {deFabrica && <i>de fábrica</i>}
-            </>
-          ) : (
-            <i className="of-pend">por elegir</i>
-          )}
-        </span>
+        <span className="of-v">{v || <i className="of-pend">por elegir</i>}</span>
       </div>
     );
+    const resumen = (
+      <>
+        <div className="eqp-solo-ancho">
+          <hr className="eqp-perfora" />
+          {linea("Prendas", prendasTexto)}
+          {linea("Tiendas", tiendasPendientes ? "" : dondeDeLaOferta)}
+          {linea("Cuándo", cuandoTexto)}
+        </div>
+        <p className="of-res-corto">{[tiendasPendientes ? "tiendas por elegir" : dondeDeLaOferta, cuandoTexto].join(" · ")}</p>
+      </>
+    );
     return (
-      <aside className="of-etq" data-vacia={elegido ? undefined : ""} aria-live="polite" aria-label="Así va quedando" data-guia="sellos.oferta-etiqueta">
-        <span className="of-lbl">Lo que verá el cliente</span>
-        <div className="of-etq-top">
-          <span className="of-marca">CAYLA</span>
-          {elegido && (
-            <Chip tono="verde" versalitas={false}>
-              Oferta
-            </Chip>
-          )}
-        </div>
-        <div className="of-gran" style={{ fontSize: `${tam}px` }}>
-          {da}
-        </div>
-        {elegido && ejemplo && final !== null ? (
-          <div className="of-ej">
-            <b>{ejemplo.nombre.replace(/\s*\(.*$/, "")}</b>
-            <span>
-              <s>{dinero(ejemplo.precio)}</s>
-              {dinero(final)}
-            </span>
-          </div>
-        ) : (
-          <div className="of-ej">{elegido ? "Sin una prenda con precio para mostrar." : "Aquí se va armando con cada respuesta."}</div>
-        )}
-        <div className="of-corta">{corta}</div>
-        <div className="of-perf" />
-        {linea("Qué", elegido ? da : "")}
-        {linea("Prendas", elegido ? prendasTexto : "", !visitado[2] && o.categoriasSolo.length === 0)}
-        {linea("Tiendas", elegido && !tiendasPendientes ? dondeDeLaOferta : "")}
-        {linea("Cuándo", elegido ? `${sinPunto(textoFechas(o.desde, o.hasta)).replace(/^el /, "")}${diasSueltos ? ` · ${textoDias(o.dias)}` : ""}` : "", !visitado[3])}
+      <aside className="of-lado cph-hoja" aria-label={`La etiqueta «${etiqueta.nombre}»`} data-guia="sellos.oferta-etiqueta">
+        <EtiquetaDeCampana
+          nombre={etiqueta.nombre}
+          descuento={elegido ? o.porcentaje : null}
+          textoSinDescuento="Elige qué le das al cliente"
+          rango={fechasBien ? (textoRango(o.desde, o.hasta) ?? "") : "Revisa las fechas"}
+          chip={fechasBien ? chipDeTarjeta(vigenciaDe(o.desde, o.hasta, hoy), nAlcanza, hoy) : null}
+          total={nAlcanza}
+          piezas={mosaico.piezas}
+          mas={mosaico.mas}
+          ejemplos={ejemplos}
+          categoriaDe={(id) => {
+            const c = id ? categorias.find((x) => x.id === id) : undefined;
+            return c && { id: c.id, nombre: c.nombre, prefijo: c.prefijo, familiaCodigo: c.familiaCodigo, prendas: cuentaAlcanza.get(c.id) ?? 0 };
+          }}
+          vueloRef={vuelo}
+          sello={null}
+          resumen={resumen}
+        />
       </aside>
     );
   }
@@ -833,7 +822,7 @@ export function OfertasHoja({
   function pasos() {
     const d = (n: Paso, texto: string) => {
       const apagado = !elegido && n > 1;
-      const hecho = visitado[n] && elegido && (n !== 2 || !tiendasPendientes);
+      const hecho = visitado[n] && elegido && (n !== 2 || !tiendasPendientes) && (n !== 3 || !categoriasPendientes);
       return (
         <button
           key={n}
@@ -853,8 +842,8 @@ export function OfertasHoja({
     return (
       <nav className="of-pasos" aria-label="Pasos" data-guia="sellos.oferta-pasos">
         {d(1, "Qué le das")}
-        {d(2, "Prendas y tiendas")}
-        {d(3, "Cuándo")}
+        {d(2, "Cuándo y dónde")}
+        {d(3, "Prendas")}
       </nav>
     );
   }
@@ -868,7 +857,7 @@ export function OfertasHoja({
     let derecha: ReactNode = null;
 
     if (faltan.length > 0) {
-      falta = <FaltanDelPaso faltan={faltan} ahora={faltan[0].id} onIr={(c) => ir(c.id === "que" ? 1 : c.id === "tiendas" ? 2 : 3)} />;
+      falta = <FaltanDelPaso faltan={faltan} ahora={faltan[0].id} onIr={(c) => ir(c.id === "que" ? 1 : c.id === "cuando" || c.id === "tiendas" ? 2 : 3)} />;
     }
     if (paso === 1) {
       if (faltan.length === 0) {
@@ -892,26 +881,13 @@ export function OfertasHoja({
         </>
       );
     } else if (paso === 2) {
-      if (abre2) {
-        if (faltan.length === 0) falta = <span className="of-falta">Lo que cambies aquí se ve al instante en la etiqueta.</span>;
-        derecha = (
-          <Boton
-            peso="primario"
-            className="of-siguiente"
-            disabled={tiendasPendientes}
-            onClick={() => {
-              setAbre2(false);
-              setVisitado((v) => ({ ...v, 2: true }));
-              ir(3);
-            }}
-          >
-            Listo, seguir
-            <ChevronRight aria-hidden className="ml-1 inline h-4 w-4" />
-          </Boton>
-        );
-      } else {
-        if (faltan.length === 0) falta = <span className="of-falta">Lo de fábrica sirve casi siempre para las prendas: todas las de la campaña.</span>;
-      }
+      if (faltan.length === 0) falta = <span className="of-falta">Lo de fábrica sirve casi siempre: rige toda la campaña, todos los días.</span>;
+      derecha = (
+        <Boton peso="primario" className="of-siguiente" disabled={problemas.length > 0 || tiendasPendientes} onClick={() => ir(3)}>
+          Siguiente
+          <ChevronRight aria-hidden className="ml-1 inline h-4 w-4" />
+        </Boton>
+      );
     } else {
       const ok = puedeGuardar;
       if (ok) {
@@ -1036,7 +1012,7 @@ export function OfertasHoja({
     return (
       <aside className="of-rail" data-guia="sellos.ofertas-registradas">
         <button type="button" className="of-tog" aria-expanded={regsAb} onClick={() => setRegsAb((v) => !v)}>
-          <Tag aria-hidden className="h-4 w-4" /> Ya registradas <span className="tabular-nums opacity-70">{totalRail}</span>
+          <Tag aria-hidden className="h-4 w-4" /> Ya registradas <span className="tabular-nums font-normal">{totalRail}</span>
           <ChevronDown aria-hidden className="ml-auto h-4 w-4" />
         </button>
         <div className="of-rl" data-abierta={regsAb ? "" : undefined}>
@@ -1102,7 +1078,7 @@ export function OfertasHoja({
             </Chip>
             <span>
               {terminada && campHasta ? `Terminó el ${sinPunto(fechaCorta(campHasta))}` : campDesde && campHasta ? `Rige del ${sinPunto(fechaCorta(campDesde))} al ${sinPunto(fechaCorta(campHasta))}` : "Sin fechas todavía"} ·{" "}
-              {plural(prendasCampana.length, "prenda", "prendas")} a la venta
+              {plural(contarPrendas(prendasCampana), "prenda", "prendas")} a la venta
             </span>
             {etiqueta.sedeIds.length > 0 && (
               <>
@@ -1170,10 +1146,10 @@ export function OfertasHoja({
                   </Aviso>
                 )}
                 <div className="of-cols mt-2">
-                  <div className="of-q" key={`${paso}-${abre2}`} data-entra={navego ? "" : undefined} id="oferta-pregunta">
-                    {paso === 1 ? pregunta1() : paso === 2 ? pregunta2() : pregunta3()}
+                  <div className="of-q" key={paso} data-entra={navego ? "" : undefined} id="oferta-pregunta">
+                    {paso === 1 ? pregunta1() : paso === 2 ? preguntaCuando() : preguntaPrendas()}
                   </div>
-                  {etiquetaDeOferta()}
+                  {etiquetaViva()}
                 </div>
               </section>
             )}

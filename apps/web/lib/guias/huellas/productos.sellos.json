@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 133,
+  "total": 130,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -71,7 +71,8 @@
     ],
     "components/campana-hoja/CategoriasDeCampana.tsx": [
       "Casilla «{`${c.nombre}»",
-      "Casilla «{`Toda la familia ${g.familia}»"
+      "Casilla «{`Toda la familia ${g.familia}»",
+      "button «{`${abierta ? \"Ocultar\" : \"Mostrar\"}»"
     ],
     "components/campana-hoja/EtiquetaDeCampana.tsx": [
       "button «Prenda anterior»",
@@ -85,7 +86,6 @@
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/sellos/OfertasHoja.tsx": [
-      "button «{prefijo}»",
       "button «{g.activo ? \"sellos.oferta-rebaja\" : undefined}»",
       "button «{g.activo ? undefined : \"Llega pronto\"}»",
       "button «Un % menos»",
@@ -93,12 +93,6 @@
       "button «Llega pronto» #2",
       "button «{v}»",
       "button «{t.nombre}»",
-      "button «Todas las de la campaña»",
-      "button «Incluir las de Claurè»",
-      "button «{mas2 ? \"Menos ajustes\" : \"Más ajustes: dejar fuera y Claurè\"}»",
-      "button «Poner lo de fábrica»",
-      "Boton «Está bien así»",
-      "Boton «Cambiar»",
       "button «Todos los días»",
       "button «Solo algunos días»",
       "button «Lun–vie»",
@@ -107,13 +101,16 @@
       "button «{a.texto}»",
       "CampoFecha «Desde»",
       "CampoFecha «Hasta»",
+      "button «Elegir todas»",
+      "button «Quitar todas»",
+      "button «Incluir las de Claurè»",
       "button «{masQ3 ? \"Menos opciones\" : \"Más opciones\"}»",
       "CampoTexto «Nombre»",
       "button «Usar el nombre automático»",
       "button «{n === 3 ? \"sellos.oferta-paso-3\" : n === 2 ? \"sellos.oferta-paso-2\" : undefined}»",
       "Boton «sellos.oferta-atajo»",
       "Boton «Siguiente»",
-      "Boton «Listo, seguir»",
+      "Boton «Siguiente» #2",
       "Boton «Guardar cambios»",
       "Boton «{edita ? \"Guardar cambios\" : \"Guardar como borrador\"}»",
       "Boton «sellos.oferta-activar»",
