@@ -156,3 +156,12 @@ describe("«Salió de» (chaos 2026-10-23, hallazgo 1: proponía un banco y camb
     expect(salidaDeLaHoja(sinCajonDeLima, { sede: "tru", comprobante: "sin_comprobante" }, "interbank", true)).toBe("interbank");
   });
 });
+
+describe("el monto sobre el tope (chaos 2026-10-23, hallazgo 2: la guía lo daba por bueno y la base lo rechazaba)", () => {
+  it("cien millones no cuenta como hecho ni llega al ticket", () => {
+    const h = llena({ monto: "100000000" });
+    expect(camposDeLaHoja(h, listo).find((c) => c.id === "monto")?.hecho).toBe(false);
+    expect(ticketDeLaHoja(h, { categoriaNombre: null, sedeNombre: null, salidaNombre: null, proveedorNombre: null }).lineas.some((l) => l.etiqueta === "Total")).toBe(false);
+    expect(sePuedeConfirmar(camposDeLaHoja(h, listo))).toBe(validarHoja(h, "prov-1", efectivo, HOY).ok);
+  });
+});

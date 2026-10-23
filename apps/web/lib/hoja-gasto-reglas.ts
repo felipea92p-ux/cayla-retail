@@ -10,7 +10,7 @@
 import { soloDigitos, validarRuc } from "@cayla-retail/shared";
 import type { CampoDeGuia } from "./guia-campos";
 import { cuentaDeSalida, cuentasDeLaClase, usable, type CuentaElegible } from "./cuenta-sellada-reglas";
-import { igvDeFactura, parsearMonto, partirSerieNumero, validarGasto, type BorradorGasto, type MedioGasto, type PayloadGasto, type ProveedorGasto, type TipoComprobante } from "./gastos-reglas";
+import { igvDeFactura, montoDentroDelTope, parsearMonto, partirSerieNumero, validarGasto, type BorradorGasto, type MedioGasto, type PayloadGasto, type ProveedorGasto, type TipoComprobante } from "./gastos-reglas";
 import { soles } from "./compras-reglas";
 
 export type HojaGasto = {
@@ -116,7 +116,8 @@ export type ContextoGuia = {
  * ESTE borrador; la prueba lo recorre en todos los caminos. «¿Ya lo pagaste?» llega respondido en «Sí» y no se lista.
  */
 export function camposDeLaHoja(h: HojaGasto, ctx: ContextoGuia): CampoDeGuia[] {
-  const monto = parsearMonto(h.monto);
+  // El mismo tope que `validarGasto` (S/ 1 000 000): sin él la guía decía «listo» a un monto que la base rechaza.
+  const monto = montoDentroDelTope(parsearMonto(h.monto));
   const papel = conComprobante(h);
   const credito = aCredito(h);
   const campos: CampoDeGuia[] = [
@@ -153,7 +154,8 @@ export function ticketDeLaHoja(
   h: HojaGasto,
   ctx: { categoriaNombre: string | null; sedeNombre: string | null; salidaNombre: string | null; proveedorNombre: string | null },
 ): TicketHoja {
-  const monto = parsearMonto(h.monto);
+  // El mismo tope que `validarGasto` (S/ 1 000 000): sin él la guía decía «listo» a un monto que la base rechaza.
+  const monto = montoDentroDelTope(parsearMonto(h.monto));
   const total = monto.ok ? monto.valor : null;
   const lineas: TicketHoja["lineas"] = [];
   const pasara: string[] = [];
