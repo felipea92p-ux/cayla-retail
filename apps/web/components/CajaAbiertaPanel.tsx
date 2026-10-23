@@ -133,11 +133,11 @@ export function CajaAbiertaPanel({
   contexto: ContextoTableroCaja;
   /** Qué accesos a otras pantallas se muestran: solo los módulos que la cuenta ve (ADR-0161). */
   accesos: AccesosCaja;
-  /** Lo que necesita el formulario de Finanzas ▸ Gastos para abrirse aquí; `null` si la cuenta no registra gastos. */
+  /** Lo que necesita «Registrar gasto» para abrirse aquí; `null` si la cuenta no registra gastos (ni Caja ni Gastos, ADR-0491). */
   gasto?: {
     categorias: CategoriaGasto[];
-    ubicaciones: UbicacionGastos[];
-    cajasAbiertas: { id: string; ubicacionId: string }[];
+    /** Lo que pide el formulario completo de Finanzas ▸ Gastos; `null` sin el módulo Gastos (solo la hoja rápida). */
+    completo: { ubicaciones: UbicacionGastos[]; cajasAbiertas: { id: string; ubicacionId: string }[] } | null;
     proveedores: { id: string; nombre: string; ruc: string | null }[];
     esLider: boolean;
     hoy: string;
@@ -531,16 +531,16 @@ export function CajaAbiertaPanel({
           proveedores={gasto.proveedores}
           hoy={gasto.hoy}
           onCerrar={() => setModal(null)}
-          onFormularioCompleto={() => setModal("gastoCompleto")}
+          onFormularioCompleto={gasto.completo ? () => setModal("gastoCompleto") : undefined}
           onRetiro={() => setModal("movimiento")}
         />
       )}
-      {modal === "gastoCompleto" && gasto && (
+      {modal === "gastoCompleto" && gasto?.completo && (
         <RegistrarGastoModal
           categorias={gasto.categorias}
-          ubicaciones={gasto.ubicaciones}
+          ubicaciones={gasto.completo.ubicaciones}
           proveedores={gasto.proveedores}
-          cajasAbiertas={gasto.cajasAbiertas}
+          cajasAbiertas={gasto.completo.cajasAbiertas}
           esLider={gasto.esLider}
           ubicacionInicial={caja.ubicacionId}
           hoy={gasto.hoy}

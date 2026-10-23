@@ -3,7 +3,7 @@
 // dibuja (ADR-0161): cada función devuelve null en ese caso, y la pantalla no muestra el botón.
 //
 // Lo que todavía no existe (2026-10-06): la rebaja de Etiquetas no recibe prendas marcadas: «Liquidar» abre las etiquetas de esas
-// prendas. «Comprar» de terceros lleva a «Mi plata para compras», donde nace toda compra desde el 2026-10-23 (ADR-0480 act.: el
+// prendas. «Comprar» de terceros lleva a «Mis compras», donde nace toda compra desde el 2026-10-23 (ADR-0480 act.: el
 // registro a mano de una factura, con su `?prov=`, se retiró).
 
 import type { AccesoAnalisis, PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
@@ -28,7 +28,7 @@ const RUTA_MI_PLATA = "/compras/mi-plata";
 export const RUTA_ANALISIS = "/gestion/analisis";
 
 /**
- * «Comprar»: del Taller, una orden de Producción con el modelo ya elegido; de terceros, «Mi plata para compras» (allí se anota
+ * «Comprar»: del Taller, una orden de Producción con el modelo ya elegido; de terceros, «Mis compras» (allí se anota
  * lo comprado). Sin origen conocido, la compra (lo más común); null si la cuenta no ve ese módulo.
  */
 export function hrefComprar(p: Pick<PrendaAnalisis, "origen" | "productoId" | "proveedorId">, a: Pick<AccesoAnalisis, "produccion" | "compras">): string | null {

@@ -10,7 +10,7 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { diaMes } from "@/lib/fechas-lima";
 import type { MovimientoCompradora } from "@/lib/mi-plata-reglas";
 
-// La lista de Mi plata para compras (maqueta docs/maquetas/compras-formidable-2026-10/): lo que compró, gastó y anotó en UNA lista, en
+// La lista de Mis compras (maqueta docs/maquetas/compras-formidable-2026-10/): lo que compró, gastó y anotó en UNA lista, en
 // orden, con su ícono, su monto (− lo que sale, + en verde lo que entra) y su estado dicho por quién lo hace. Antes eran tres listas que
 // había que juntar en la cabeza. Arriba, lo de la ronda abierta («En esta ronda», 20261023183000); lo de rondas anteriores espera bajo
 // «Ver rondas anteriores», cada fila con su número. El orden y el corte: `movimientosDeLaCompradora`.

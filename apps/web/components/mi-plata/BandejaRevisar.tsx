@@ -2,12 +2,14 @@
 
 import { useState, type ReactNode } from "react";
 import { CheckCheck } from "lucide-react";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { soles } from "@/lib/compras-reglas";
 import type { CuentaOpcion } from "@/lib/fondos-reglas";
+import { diaMes, diaLima } from "@/lib/fechas-lima";
 import type { PlataPorConfirmarConFoto } from "@/lib/mi-plata";
 import type { GastoConFoto, PapelConFoto } from "@/lib/revisar-compras";
 import {
@@ -21,7 +23,9 @@ import {
   filaPlata,
   siguienteDeBandeja,
   totalBandeja,
+  detalleRondaAbierta,
   type CierrePorRecibir,
+  type RondaAbiertaRevisar,
   type FilaBandeja,
   type ProveedorOpcion,
   type TipoBandeja,
@@ -48,6 +52,8 @@ type Datos = {
   cierres: CierrePorRecibir[];
   proveedores: ProveedorOpcion[];
   cuentas: CuentaOpcion[];
+  /** Quién está comprando ahora (20261023210000): la tarjeta «Rondas abiertas» bajo la lista. */
+  rondasAbiertas?: RondaAbiertaRevisar[];
 };
 
 export function BandejaRevisar(d: Datos) {
@@ -116,53 +122,81 @@ export function BandejaRevisar(d: Datos) {
 
       <div className="grid items-start gap-4 lg:grid-cols-[25rem_minmax(0,1fr)]">
         {/* La lista: una tarjeta con su cabecera en versalitas y cuántos hay, y cada fila con la miniatura, de quién, cuánto y su estado. */}
-        <section className="card-cayla flex flex-col overflow-hidden" data-guia="fondos.bandeja">
-          <div className="border-b border-sand px-5 pb-2.5 pt-3.5">
-            <TituloGrupo cuenta={lista.length} nivel={2}>
-              {CIFRA_BANDEJA[tipo].cabecera}
-            </TituloGrupo>
-          </div>
-          <ul className="flex flex-col" aria-label={CIFRA_BANDEJA[tipo].nombre}>
-            {lista.length === 0 ? (
-              <li className="p-5">
-                <Vacio icono={<CheckCheck aria-hidden />} titulo="Nada por revisar aquí" tamano="chico">
-                  Elige otra cifra de arriba.
-                </Vacio>
-              </li>
-            ) : (
-              lista.map(({ fila, mini }) => {
-                const marcado = actual?.id === fila.id;
-                return (
-                  <li key={fila.id} className="border-b border-sand last:border-b-0">
-                    <button
-                      type="button"
-                      aria-current={marcado || undefined}
-                      onClick={() => setElegido(fila.id)}
-                      className={`relative grid w-full items-center gap-3.5 px-5 py-3.5 text-left transition-colors ${mini ? "grid-cols-[auto_minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_auto]"} ${
-                        marcado ? "bg-crema" : "hover:bg-hueso/60"
-                      }`}
-                    >
-                      {/* El hilo rojo de canto marca el que está abierto, como la fila que se abre en una tabla. */}
-                      {marcado && <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-rojo" />}
-                      {mini}
-                      <span className="min-w-0">
-                        <span className="block truncate text-[15px] font-medium text-tinta">{fila.titulo}</span>
-                        <span className="mt-0.5 block truncate text-xs text-taupe">
-                          {fila.quien}
-                          {fila.cuando ? ` · ${fila.cuando}` : ""}
+        <div className="flex min-w-0 flex-col gap-4">
+          <section className="card-cayla flex flex-col overflow-hidden" data-guia="fondos.bandeja">
+            <div className="border-b border-sand px-5 pb-2.5 pt-3.5">
+              <TituloGrupo cuenta={lista.length} nivel={2}>
+                {CIFRA_BANDEJA[tipo].cabecera}
+              </TituloGrupo>
+            </div>
+            <ul className="flex flex-col" aria-label={CIFRA_BANDEJA[tipo].nombre}>
+              {lista.length === 0 ? (
+                <li className="p-5">
+                  <Vacio icono={<CheckCheck aria-hidden />} titulo="Nada por revisar aquí" tamano="chico">
+                    Elige otra cifra de arriba.
+                  </Vacio>
+                </li>
+              ) : (
+                lista.map(({ fila, mini }) => {
+                  const marcado = actual?.id === fila.id;
+                  return (
+                    <li key={fila.id} className="border-b border-sand last:border-b-0">
+                      <button
+                        type="button"
+                        aria-current={marcado || undefined}
+                        onClick={() => setElegido(fila.id)}
+                        className={`relative grid w-full items-center gap-3.5 px-5 py-3.5 text-left transition-colors ${mini ? "grid-cols-[auto_minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_auto]"} ${
+                          marcado ? "bg-crema" : "hover:bg-hueso/60"
+                        }`}
+                      >
+                        {/* El hilo rojo de canto marca el que está abierto, como la fila que se abre en una tabla. */}
+                        {marcado && <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-rojo" />}
+                        {mini}
+                        <span className="min-w-0">
+                          <span className="block truncate text-[15px] font-medium text-tinta">{fila.titulo}</span>
+                          <span className="mt-0.5 block truncate text-xs text-taupe">
+                            {fila.quien}
+                            {fila.cuando ? ` · ${fila.cuando}` : ""}
+                          </span>
                         </span>
+                        <span className="flex flex-col items-end gap-1.5">
+                          <span className="whitespace-nowrap text-sm font-medium tabular-nums text-tinta">{soles(fila.monto)}</span>
+                          <Chip tono={fila.chip.tono}>{fila.chip.texto}</Chip>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          </section>
+          {/* Rondas abiertas (diseño A): quién está comprando ahora, desde cuándo y cuánto lleva. Sin ninguna, no se dibuja. */}
+          {(d.rondasAbiertas?.length ?? 0) > 0 && (
+            <section className="card-cayla flex flex-col overflow-hidden" data-guia="fondos.rondas-abiertas">
+              <div className="border-b border-sand px-5 pb-2.5 pt-3.5">
+                <TituloGrupo cuenta={d.rondasAbiertas!.length} nivel={2}>
+                  Rondas abiertas
+                </TituloGrupo>
+              </div>
+              <ul className="flex flex-col">
+                {d.rondasAbiertas!.map((r) => (
+                  <li key={r.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-sand px-5 py-3 last:border-b-0">
+                    <AvatarPersona personaId={r.personaId} nombre={r.persona} tamano={32} />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-tinta">
+                        {r.texto} · {r.persona.split(" ")[0]}
                       </span>
-                      <span className="flex flex-col items-end gap-1.5">
-                        <span className="whitespace-nowrap text-sm font-medium tabular-nums text-tinta">{soles(fila.monto)}</span>
-                        <Chip tono={fila.chip.tono}>{fila.chip.texto}</Chip>
+                      <span className="block truncate text-xs text-taupe">
+                        {[r.abiertaEn ? `Desde ${diaMes(diaLima(r.abiertaEn) ?? "")}` : null, r.tienda].filter(Boolean).join(" · ")}
                       </span>
-                    </button>
+                    </span>
+                    <span className="whitespace-nowrap text-xs text-taupe">{detalleRondaAbierta(r.cuenta)}</span>
                   </li>
-                );
-              })
-            )}
-          </ul>
-        </section>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
         {actual ? (
           detalle()
         ) : (
