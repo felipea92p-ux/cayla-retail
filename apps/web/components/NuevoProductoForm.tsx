@@ -1040,7 +1040,7 @@ export function NuevoProductoForm({
               )}
             </FilaAlta>
             <FilaAlta
-              etiqueta="Sellos y campañas"
+              etiqueta="Insignias y campañas"
               ayuda={`Para buscar y agrupar${nombresEtiquetas.length ? ` · ${plural(nombresEtiquetas.length, "elegida", "elegidas")}` : ""}`}
             >
               <ElegirEtiquetas

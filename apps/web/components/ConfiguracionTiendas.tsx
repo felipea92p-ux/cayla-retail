@@ -345,8 +345,8 @@ export function ConfiguracionTiendas({ datos, metas, despuesDeWhatsapp }: { dato
       {despuesDeWhatsapp}
 
       <Superficie className="anim-sube" guia="config.tiendas-campanas">
-        <TituloDeTarjeta titulo="Campañas: lo que cambian en la caja" bajada="Las campañas y sus fechas son las de Catálogo ▸ Campañas. Aquí se dice, por tienda, cuánto sube la meta y qué fondo dejar. Vacío = lo normal.">
-          <BotonEnlace href="/productos/campanas">+ Nueva campaña (en Catálogo ▸ Campañas)</BotonEnlace>
+        <TituloDeTarjeta titulo="Campañas: lo que cambian en la caja" bajada="Las campañas y sus fechas son las de Catálogo ▸ Insignias. Aquí se dice, por tienda, cuánto sube la meta y qué fondo dejar. Vacío = lo normal.">
+          <BotonEnlace href="/productos/insignias">+ Nueva campaña (en Catálogo ▸ Insignias)</BotonEnlace>
         </TituloDeTarjeta>
         <div className="fin-tabla-wrap">
           <table className="fin-tabla fin-tabla-apretada">

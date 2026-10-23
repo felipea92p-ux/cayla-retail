@@ -120,7 +120,7 @@ describe("los combos: lo elegido siempre está en la lista", () => {
   it("«Módulo»: parado en uno que todavía no anota, también está (si no, el combo diría «Elegir»)", () => {
     const opciones = opcionesDeModulo("etiquetas");
     expect(opciones.map((o) => o.valor)).toEqual(["", ...MODULOS_CON_ACTIVIDAD, "etiquetas"]);
-    expect(opciones.at(-1)?.texto).toBe("Sellos");
+    expect(opciones.at(-1)?.texto).toBe("Insignias");
   });
 
   it("«Persona»: la elegida sigue aunque ya no tenga actividad en lo que se mira, y no se repite", () => {
