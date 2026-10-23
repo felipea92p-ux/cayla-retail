@@ -39,7 +39,10 @@ export function BarraDeAbajo({
   );
 }
 
-/** La cifra en serif y, debajo, el detalle en taupe: lo que resume la barra, a la izquierda. */
+/**
+ * La cifra en serif y, debajo, el detalle en taupe: lo que resume la barra, a la izquierda.
+ * @public Sin uso hasta la primera barra nueva: las 14 migradas conservaron su propio contenido (ADR-0479, actividad 12).
+ */
 export function BarraDeAbajoResumen({ cifra, detalle, className = "" }: { cifra: ReactNode; detalle?: ReactNode; className?: string }) {
   return (
     <div className={`barra-abajo-resumen ${className}`}>
