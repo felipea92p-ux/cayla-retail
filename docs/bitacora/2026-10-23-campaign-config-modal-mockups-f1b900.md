@@ -35,3 +35,14 @@ ninguna estira a la otra, que era lo que descentraba el número en la v2.
 Qué se rompería sin esto: el bloque ocupaba ~230 px de alto con la mitad vacía, y empujaba «Cuándo rige» y las categorías bajo el pliegue.
 Cómo se verifica: abrir `index.html` (II); medido en el navegador: caja 68 px y opciones 32 px en una fila a 1024 y 1440 px, − y + a 12 px
 arriba y abajo, el número a la misma distancia de cada lado; 44 px por opción a 375 px; en claro y oscuro, sin errores en la consola.
+
+## 2026-10-23 (Configurar campaña: la II construida en el ERP, actividades 1 a 7 de 8 — ADR-0488)
+Qué hice: la hoja «Configuración» es la de «Prendas» con el formulario a la izquierda y la etiqueta viva a la derecha (descuento, fechas,
+alcance, mosaico de categorías con su vuelo, «En caja» con lo que cobra la caja y el sello al guardar); «Cuánto baja» con `PasoCantidad`
+grande, «Cuándo rige» con la temporada pintada en `CampoFecha`, «Categorías» en grilla de casillas; su movimiento con su regla y «Sugerido».
+Por qué así: Felipe eligió la II y aprobó la lista; todo con las piezas que el ERP ya tiene (dos opciones nuevas y opcionales en
+`PasoCantidad` y `CampoFecha`, y la variante `pie-parejo` del pie), sin migración ni cambio en cómo guarda.
+Qué se rompería sin esto: la hoja no decía que una campaña vigente no llegaba a ninguna prenda ni a qué precio quedaba una; la maqueta
+prometía 71,91 y la caja cobra 71,90 (una prueba lo detectó).
+Cómo se verifica: cada actividad en el navegador local (guardar de verdad y deshacer, 1024/1440/375, oscuro); suite web 594 archivos en verde,
+`tsc`, ESLint y Knip. Falta la actividad 8 y correr `guias:recorrer` y `tema:auditar` (esta Mac no tiene Chromium de Playwright).
