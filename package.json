@@ -65,6 +65,7 @@
     "pruebas:estado-resultados": "node scripts/pruebas/estado_resultados.mjs",
     "pruebas:presupuesto": "node scripts/pruebas/presupuesto.mjs",
     "pruebas:cierre-mes": "node scripts/pruebas/cierre_mes.mjs",
+    "pruebas:cierre-diferencias": "node scripts/pruebas/cierre_diferencias.mjs",
     "pruebas:balance": "node scripts/pruebas/balance.mjs",
     "pruebas:reversa-de-cobro": "node scripts/pruebas/reversa_de_cobro_por_su_cuenta.mjs",
     "pruebas:perdidas": "node scripts/pruebas/perdidas.mjs",
