@@ -11,8 +11,10 @@ import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { CampoFin, InputFin, RadiosFin, SalidaFin, SelectFin } from "@/components/finanzas/kit";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
+import { Aviso } from "@/components/ui/Aviso";
 import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
+import { fijosQueSeParecen, textoFechaDeFijo } from "@/lib/fijos-del-mes-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -35,7 +37,9 @@ import {
   mediosPara,
   parsearMonto,
   partirSerieNumero,
+  solesRedondo,
   sumarProveedorDeGasto,
+  textoMes,
   textoVidaUtil,
   validarActivo,
   validarGasto,
@@ -60,6 +64,9 @@ import { Boton } from "@/components/ui/campos";
 // «¿No está? Súmalo» pregunta antes «¿no será un proveedor que ya tienes?» (`sumarProveedorDeGasto`, 2026-09-25): «Sí» lo
 // elige aquí mismo; «No, es otro» deja sumar; sumar sin contestar no suma. Si es el mismo RUC o el mismo nombre, se elige
 // el que ya está: es lo que haría la base (`registrar_proveedor_de_gasto`), dicho antes y sin viaje.
+// Un gasto suelto que se parece a un gasto fijo pendiente (misma tienda, categoría y mes) pregunta «¿es ese fijo?» antes de registrar
+// (`fijosQueSeParecen`, tarea #1 de /pantalla, 2026-10-22): «Sí» lo registra con su `gasto_fijo_id` y lo cierra; «No» sigue aparte.
+// Registrar sin contestar no registra. Solo con los fijos del mes que le pasa Gastos: Caja no los pasa y no pregunta.
 
 export type { ProveedorGasto };
 
@@ -74,6 +81,8 @@ export function RegistrarGastoModal({
   fijo,
   clase = "gasto",
   tiposActivo = [],
+  fijosDelMes = [],
+  mes,
   hoy,
   onCerrar,
 }: {
@@ -90,6 +99,10 @@ export function RegistrarGastoModal({
   /** F2b: «activo» registra un activo fijo en vez de un gasto. */
   clase?: "gasto" | "activo";
   tiposActivo?: TipoActivo[];
+  /** Los fijos del mes que se mira (con su estado): con ellos, un gasto suelto pregunta si es uno de los que faltan. Sin ellos, no pregunta. */
+  fijosDelMes?: GastoFijoMes[];
+  /** El mes («2026-10») al que pertenecen `fijosDelMes`. */
+  mes?: string;
   hoy: string;
   onCerrar: () => void;
 }) {
@@ -108,6 +121,8 @@ export function RegistrarGastoModal({
   // Va con el /chaos de Finanzas (deuda declarada en `lib/intento-reglas.test.ts`, TOKEN_FIJO_TODAVIA).
   const [tokenActivo] = useState(() => crypto.randomUUID());
   const [documento, setDocumento] = useState("");
+  // Los fijos a los que ya se contestó «No, es otro gasto» (no se vuelve a preguntar por ellos).
+  const [fijosDescartados, setFijosDescartados] = useState<ReadonlySet<string>>(() => new Set());
   const esActivo = clase === "activo";
   const guardando = esActivo ? guardandoActivo : intento.enviando;
   // Vida útil = la del tipo de bien (spike: un solo campo «10 años · muebles»); el contador confirma la de cada tipo.
@@ -131,12 +146,20 @@ export function RegistrarGastoModal({
     referencia: "",
     ...(fijo ? borradorDesdeFijo(fijo, hoy) : {}),
   }));
-  const poner = <K extends keyof BorradorGasto>(k: K, v: BorradorGasto[K]) => setB((x) => ({ ...x, [k]: v }));
+  // Si cambia lo que decía «es ese fijo» (la categoría, la tienda o la fecha), el enlace ya no vale: se vuelve a preguntar. Un gasto que
+  // nace de un fijo (`fijo`) conserva el suyo.
+  const poner = <K extends keyof BorradorGasto>(k: K, v: BorradorGasto[K]) =>
+    setB((x) => ({ ...x, [k]: v, ...(!fijo && (k === "categoria" || k === "ubicacion" || k === "fecha") ? { gastoFijoId: undefined } : {}) }));
 
   const conComprobante = b.comprobante !== "sin_comprobante";
   const aCredito = conComprobante && b.condicion === "credito";
   const cajaDeLaTienda = cajasAbiertas.find((c) => c.ubicacionId === b.ubicacion) ?? null;
   const monto = parsearMonto(b.monto);
+  // ¿Este gasto suelto es uno de los fijos que faltan? Solo se pregunta en un gasto nuevo (no al clasificar un egreso, ni un activo, ni uno que ya viene de un fijo).
+  const sePareceA =
+    !fijo && !egreso && !esActivo && mes ? fijosQueSeParecen(fijosDelMes, { ubicacion: b.ubicacion, categoria: b.categoria, fecha: b.fecha, monto: monto.ok ? monto.valor : null }, mes) : [];
+  const fijoElegido = !fijo && b.gastoFijoId ? (fijosDelMes.find((f) => f.id === b.gastoFijoId) ?? null) : null;
+  const fijosPorPreguntar = fijoElegido ? [] : sePareceA.filter((f) => !fijosDescartados.has(f.id));
   const igv = b.comprobante === "factura" && monto.ok ? igvDeFactura(monto.valor) : 0;
   const categoria = categorias.find((c) => c.codigo === b.categoria) ?? null;
   const tipoActivo = tiposActivo.find((t) => t.codigo === activo.tipo) ?? null;
@@ -220,6 +243,8 @@ export function RegistrarGastoModal({
       : { ...b, cuentaId: undefined, cajaId: b.medio === "efectivo" && !b.egresoId ? (cajaDeLaTienda?.id ?? "") : "" };
     const v = esActivo ? validarActivo({ ...conCaja, tipo: activo.tipo, nombre: b.descripcion, serie: "", vidaUtilMeses: String(tipoActivo?.vidaUtilMeses ?? "") }, hoy) : validarGasto(conCaja, hoy);
     if (!v.ok) return avisar.error(v.error);
+    // Registrar sin contestar si es uno de los fijos que faltan es justo lo que duplica un gasto: no se registra.
+    if (fijosPorPreguntar.length > 0) return avisar.error("Antes de registrar, dinos si es uno de los gastos fijos de arriba.", { enfocar: "gasto-fijo-parecido" });
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
@@ -469,6 +494,34 @@ export function RegistrarGastoModal({
                 opciones={opcionesUbicacion}
               />
             </CampoFin>
+          </div>
+        )}
+
+        {fijosPorPreguntar.length > 0 && mes && (
+          <div className="mb-4" data-guia="fin-gastos.form-fijo-parecido" data-sin-cascada>
+            <PreguntaParecido
+              id="gasto-fijo-parecido"
+              titulo={fijosPorPreguntar.length === 1 ? `¿Es «${fijosPorPreguntar[0]!.descripcion}» de ${textoMes(mes)}?` : "¿Es uno de tus gastos fijos de este mes?"}
+              bajada="Si es ese, queda cerrado como fijo: no sigue en «Faltan» y nadie lo paga dos veces. Si no, se registra como un gasto aparte."
+              opciones={fijosPorPreguntar.map((f) => ({ id: f.id, nombre: f.descripcion, detalle: `${f.montoVariable ? "~" : ""}${solesRedondo(f.monto)} · ${textoFechaDeFijo(f, hoy)}` }))}
+              si={(o) => ({ texto: fijosPorPreguntar.length === 1 ? "Sí, es ese" : `Sí, es ${o.nombre}`, onClick: () => poner("gastoFijoId", o.id) })}
+              no={{ texto: "No, es otro gasto", onClick: () => setFijosDescartados((prev) => new Set([...prev, ...fijosPorPreguntar.map((f) => f.id)])) }}
+            />
+          </div>
+        )}
+        {fijoElegido && mes && (
+          <div className="mb-4" data-sin-cascada>
+            <Aviso
+              tono="exito"
+              chico
+              accion={
+                <button type="button" className="btn-cayla btn-enlace" onClick={() => poner("gastoFijoId", undefined)}>
+                  Quitar
+                </button>
+              }
+            >
+              Se registra como «{fijoElegido.descripcion}» de {textoMes(mes)}.
+            </Aviso>
           </div>
         )}
 

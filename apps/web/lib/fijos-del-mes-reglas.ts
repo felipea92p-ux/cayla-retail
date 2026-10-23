@@ -77,3 +77,30 @@ export function textoFechaDeFijo(f: Pick<GastoFijoMes, "estado" | "fechaEsperada
   if (dias === 1) return "se espera mañana";
   return `se espera el ${fecha} · en ${dias} días`;
 }
+
+// ---- Un gasto suelto que parece un fijo (tarea #1 de /pantalla, Felipe 2026-10-22) ---------------------------------------------
+//
+// Un gasto registrado con «+ Registrar gasto» no cierra el fijo que le tocaba: el fijo seguía diciendo «falta» y otra persona podía
+// pagarlo por segunda vez (un fijo «sin comprobante» no tiene ningún candado contra eso). Antes de registrar, el formulario pregunta si
+// es uno de los fijos pendientes; si es, el gasto lleva su `gasto_fijo_id` y lo cierra. Qué cuenta como «se parece» lo decide esta
+// función (el formulario solo pregunta): misma tienda, misma categoría, el mismo mes (`gastos_fijo_mes_uq` es un gasto por fijo y por
+// mes, contado por la fecha del gasto) y que el fijo siga sin registrar. El monto NO filtra, solo ordena: en un fijo de monto variable
+// (el recibo de la luz) el monto de siempre es una referencia y filtrar por él dejaría pasar justo los que más duplican.
+
+/**
+ * Los fijos pendientes del `mes` que se parecen a este gasto, los más probables primero (con monto, el más cercano; sin él, el que
+ * se esperaba antes). `ubicacion` es la del formulario: el id de la tienda o «empresa».
+ */
+export function fijosQueSeParecen(
+  fijos: readonly GastoFijoMes[],
+  gasto: { ubicacion: string; categoria: string; fecha: string; monto: number | null },
+  mes: string,
+  max = 3,
+): GastoFijoMes[] {
+  if (!gasto.categoria || gasto.fecha.slice(0, 7) !== mes) return [];
+  const distancia = (f: GastoFijoMes) => (gasto.monto === null ? 0 : Math.abs(f.monto - gasto.monto));
+  return fijos
+    .filter((f) => f.estado !== "registrado" && f.categoria === gasto.categoria && (f.ubicacionId ?? "empresa") === gasto.ubicacion)
+    .sort((a, b) => distancia(a) - distancia(b) || porFecha(a, b) || porMontoLuegoNombre(a, b))
+    .slice(0, max);
+}

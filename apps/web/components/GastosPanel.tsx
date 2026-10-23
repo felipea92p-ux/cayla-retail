@@ -375,6 +375,8 @@ export function GastosPanel({
           fijo={registrar.fijo}
           clase={registrar.clase}
           tiposActivo={tiposActivo}
+          fijosDelMes={fijos}
+          mes={mes}
           hoy={hoy}
           onCerrar={() => setRegistrar(null)}
         />

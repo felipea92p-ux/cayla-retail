@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 56,
+  "total": 57,
   "controles": {
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -58,6 +58,7 @@
       "button «¿No está? Súmalo»",
       "button «Cancelar»",
       "button «Sumar proveedor»",
+      "button «Quitar»",
       "ComboResponsable «{responsable}»",
       "button «Cancelar» #2",
       "Boton «→guardar»"

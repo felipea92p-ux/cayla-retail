@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GastoFijoMes } from "./gastos-reglas";
-import { bajadaDeLaCola, colaDeFijos, textoFechaDeFijo, tituloDeLaCola } from "./fijos-del-mes-reglas";
+import { bajadaDeLaCola, colaDeFijos, fijosQueSeParecen, textoFechaDeFijo, tituloDeLaCola } from "./fijos-del-mes-reglas";
 
 const F = (p: Partial<GastoFijoMes> & Pick<GastoFijoMes, "id" | "estado" | "fechaEsperada">): GastoFijoMes => ({
   ubicacionId: null, ubicacionNombre: "De la empresa", categoria: "software", categoriaNombre: "Software", descripcion: p.id, proveedorId: null, proveedorNombre: null,
@@ -78,5 +78,42 @@ describe("textoFechaDeFijo: cuándo se esperaba o cuándo llega", () => {
   });
   it("una fecha que no se lee no rompe la fila: cae a «cuándo llega»", () => {
     expect(textoFechaDeFijo(F({ id: "a", estado: "falta", fechaEsperada: "undefined", momento: "fin_de_mes" }), HOY)).toBe("a fin de mes");
+  });
+});
+
+describe("fijosQueSeParecen: un gasto suelto que parece un fijo pendiente", () => {
+  const fijos = [
+    F({ id: "alq-tru", estado: "por_llegar", fechaEsperada: "2026-10-31", categoria: "alquileres", ubicacionId: "tru", monto: 4200 }),
+    F({ id: "alq-alm", estado: "por_llegar", fechaEsperada: "2026-10-31", categoria: "alquileres", ubicacionId: "tru", monto: 1300 }),
+    F({ id: "alq-aqp", estado: "por_llegar", fechaEsperada: "2026-10-31", categoria: "alquileres", ubicacionId: "aqp", monto: 3300 }),
+    F({ id: "sw", estado: "falta", fechaEsperada: "2026-10-15", categoria: "software", ubicacionId: null, monto: 37 }),
+    F({ id: "luz-ya", estado: "registrado", fechaEsperada: "2026-10-15", categoria: "luz", ubicacionId: "tru", monto: 280 }),
+  ];
+  const g = (p: Partial<{ ubicacion: string; categoria: string; fecha: string; monto: number | null }> = {}) => ({ ubicacion: "tru", categoria: "alquileres", fecha: "2026-10-22", monto: null, ...p });
+
+  it("misma tienda, misma categoría y mismo mes: los fijos que aún no están registrados", () => {
+    expect(fijosQueSeParecen(fijos, g(), "2026-10").map((f) => f.id).sort()).toEqual(["alq-alm", "alq-tru"]);
+  });
+  it("con el monto, el más cercano primero; el monto no descarta a ninguno (un fijo variable es solo una referencia)", () => {
+    expect(fijosQueSeParecen(fijos, g({ monto: 1250 }), "2026-10").map((f) => f.id)).toEqual(["alq-alm", "alq-tru"]);
+    expect(fijosQueSeParecen(fijos, g({ monto: 4000 }), "2026-10").map((f) => f.id)).toEqual(["alq-tru", "alq-alm"]);
+    expect(fijosQueSeParecen(fijos, g({ monto: 9 }), "2026-10")).toHaveLength(2);
+  });
+  it("otra tienda, otra categoría o un fijo ya registrado no se parecen", () => {
+    expect(fijosQueSeParecen(fijos, g({ ubicacion: "lim" }), "2026-10")).toEqual([]);
+    expect(fijosQueSeParecen(fijos, g({ categoria: "internet" }), "2026-10")).toEqual([]);
+    expect(fijosQueSeParecen(fijos, g({ categoria: "luz" }), "2026-10")).toEqual([]);
+  });
+  it("un fijo de la empresa se parece a un gasto «de la empresa», no al de una tienda", () => {
+    expect(fijosQueSeParecen(fijos, g({ ubicacion: "empresa", categoria: "software" }), "2026-10").map((f) => f.id)).toEqual(["sw"]);
+    expect(fijosQueSeParecen(fijos, g({ ubicacion: "tru", categoria: "software" }), "2026-10")).toEqual([]);
+  });
+  it("un gasto de otro mes no cierra los fijos de este (la base cuenta un gasto por fijo y por mes de la fecha del gasto)", () => {
+    expect(fijosQueSeParecen(fijos, g({ fecha: "2026-09-30" }), "2026-10")).toEqual([]);
+    expect(fijosQueSeParecen(fijos, g({ fecha: "2026-11-02" }), "2026-10")).toEqual([]);
+  });
+  it("sin categoría todavía no hay nada que preguntar; y se muestran pocos", () => {
+    expect(fijosQueSeParecen(fijos, g({ categoria: "" }), "2026-10")).toEqual([]);
+    expect(fijosQueSeParecen(fijos, g(), "2026-10", 1)).toHaveLength(1);
   });
 });

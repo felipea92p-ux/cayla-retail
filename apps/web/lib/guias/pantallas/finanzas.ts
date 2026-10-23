@@ -202,6 +202,13 @@ export const GUIA_FIN_GASTOS: Guia = {
       texto: "La categoría dice qué tipo de gasto es y ya trae su cuenta contable: nadie la elige a mano. «A quién se le carga» es la tienda, el Taller o la empresa: así cada tienda ve lo que de verdad le cuesta.",
     },
     {
+      id: "form-fijo-parecido",
+      ancla: "fin-gastos.form-fijo-parecido",
+      opcional: true,
+      titulo: "¿Es uno de tus fijos?",
+      texto: "Si la categoría y la tienda son las de un gasto fijo que este mes todavía no está registrado, te pregunta si es ese. «Sí» lo cierra como fijo y ya no sale en «Faltan»; «No» lo deja aparte. Sin contestar no se registra: así nadie lo paga dos veces.",
+    },
+    {
       id: "form-monto",
       ancla: "fin-gastos.form-monto",
       opcional: true,
