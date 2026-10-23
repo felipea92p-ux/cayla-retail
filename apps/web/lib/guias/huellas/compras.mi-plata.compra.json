@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata.compra",
   "ruta": "/compras/mi-plata/compra",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 47,
+  "total": 44,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -19,17 +19,15 @@
       "Boton «Quitar de la compra»",
       "Boton «Cancelar»",
       "Boton «compra.agregar»",
-      "button «{guia}»"
+      "button «{guia}»",
+      "Desplegable «{n.categoriaId ?? \"\"}»",
+      "Desplegable «{n.marcaId ?? \"\"}»",
+      "CampoTexto «compra.nombre-nuevo»"
     ],
     "components/mi-plata/RegistrarCompra.tsx": [
       "Volver «→() => setPaso(atras)»",
       "Volver «/compras/mi-plata»",
       "Boton «compra.revisar»",
-      "CampoTexto «compra.nombre-nuevo»",
-      "Boton «Seguir»",
-      "button «{m.nombre}»",
-      "button «Otra marca»",
-      "button «{m.nombre}» #2",
       "button «→() => corregir(i)»",
       "button «Otra prenda de»",
       "Boton «compra.al-papel»",
@@ -46,7 +44,6 @@
       "BotonVerMas «{`Ver los otros ${resto.length}»",
       "BotonFiltro «{c.nombre}»",
       "Boton «compra.proveedor-nuevo»",
-      "button «{c.nombre}»",
       "button «{linea && <Globito n={linea.cantidad}»",
       "BotonFiltro «Todos»",
       "BotonFiltro «{c.nombre}» #2",

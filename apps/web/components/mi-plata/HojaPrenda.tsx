@@ -3,20 +3,29 @@
 import type { ReactNode } from "react";
 import { Check } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoMonto } from "@/components/ui/campos";
+import { Boton, CampoMonto, CampoTexto, Desplegable } from "@/components/ui/campos";
+import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
-import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { soles } from "@/lib/compras-reglas";
+import { sugerirNombre } from "@/lib/sugerencias-alta-producto";
 import {
+  NOMBRE_NUEVO_MAX,
   camposPrenda,
+  camposPrendaNueva,
+  habitualParecido,
+  opcionesCategoriaNueva,
+  opcionesMarcaNueva,
   gananciaPorPrenda,
   leerCantidad,
   leerPrecio,
   textoAgregarPrenda,
+  type BorradorNuevo,
   type BorradorPrenda,
+  type CategoriaParaComprar,
   type Habitual,
 } from "@/lib/compra-rapida-reglas";
 
@@ -25,8 +34,28 @@ import {
 // tienda va (por prenda: Felipe lo pidió así el mismo día). La cantidad llega vacía con «La vez pasada» a un toque (/formidable,
 // 2026-10-23); el costo y la venta, con su atajo («La vez pasada», «Del catálogo»). La tienda llega marcada con la de la prenda anterior.
 // No guarda nada en la base: agrega la prenda a la compra, que se guarda al final, con el papel.
+//
+// «Algo nuevo de este proveedor» es esta misma hoja (Felipe 2026-10-23: «que se entienda»): arriba, qué es, la marca y cómo se llama; abajo,
+// lo de siempre. Es solo una referencia de la compra: no crea la prenda en el catálogo, la crea la tienda al recibir.
 
 type Tienda = { id: string; nombre: string };
+
+/** Lo que pide una prenda que todavía no le compras: lo escrito, y con qué se elige. */
+export type PrendaNuevaDeHoja = {
+  borrador: BorradorNuevo;
+  cambiar: (cambio: Partial<BorradorNuevo>) => void;
+  proveedor: string;
+  categorias: CategoriaParaComprar[];
+  /** Las categorías que ya le compras: van primero. */
+  suyas: ReadonlySet<string>;
+  marcas: { id: string; nombre: string }[];
+  /** Las marcas que trae este proveedor: van primero. */
+  marcasDelProveedor: { id: string; nombre: string }[];
+  /** Sus habituales, para preguntar «¿Es la …?» si el nombre se parece. */
+  habituales: Habitual[];
+  /** «Usar esa»: la hoja pasa a la prenda que ya le compras. */
+  usar: (h: Habitual) => void;
+};
 
 export function HojaPrenda({
   habitual: h,
@@ -38,6 +67,7 @@ export function HojaPrenda({
   onAgregar,
   onQuitar,
   onClose,
+  nueva,
 }: {
   habitual: Habitual;
   borrador: BorradorPrenda;
@@ -51,8 +81,12 @@ export function HojaPrenda({
   onAgregar: () => void;
   onQuitar?: () => void;
   onClose: () => void;
+  /** Una prenda que todavía no le compras: la hoja pregunta además qué es, la marca y cómo se llama. */
+  nueva?: PrendaNuevaDeHoja;
 }) {
-  const guia = useGuiaCampos(camposPrenda(b));
+  const n = nueva?.borrador;
+  const parecido = nueva && n ? habitualParecido(n.nombre, nueva.habituales, n.descartadas) : null;
+  const guia = useGuiaCampos(n ? camposPrendaNueva(n, parecido !== null, b) : camposPrenda(b));
   const poner = (campo: keyof BorradorPrenda) => (v: string | null) => cambiar({ [campo]: v });
   const cantidad = leerCantidad(b.cantidad);
   const ganancia = gananciaPorPrenda(b);
@@ -60,7 +94,7 @@ export function HojaPrenda({
   const detalle = [h.categoria, h.marca].filter(Boolean).join(" · ");
 
   return (
-    <Modal titulo={h.nombre} subtitulo={detalle} onClose={onClose} variante="hoja">
+    <Modal titulo={nueva ? "Algo nuevo" : h.nombre} subtitulo={nueva ? `De ${nueva.proveedor} · solo una referencia` : detalle} onClose={onClose} variante="hoja">
       {(cerrar) => (
         <form
           className="space-y-4"
@@ -73,6 +107,8 @@ export function HojaPrenda({
             }
           }}
         >
+          {nueva && n && <DescribirNueva nueva={nueva} n={n} parecido={parecido} guia={guia} />}
+
           {/* Compacta como la maqueta (Felipe 2026-10-23: «aprovecha mejor los espacios»): «¿Cuántas?» y su − y + en la misma fila; el costo
               y la venta lado a lado, también en el celular; los atajos, píldoras chicas bajo su campo. */}
           <CampoGuiado id="cantidad" guia={guia}>
@@ -205,5 +241,74 @@ function Atajo({ elegido, onClick, guia, titulo, children }: { elegido: boolean;
       {elegido && <Check className="h-3.5 w-3.5 text-verde" aria-hidden />}
       <span className="truncate">{children}</span>
     </button>
+  );
+}
+
+/** Lo de arriba de la hoja de una prenda nueva: qué es y la marca, cómo se llama debajo, y la nota de que es solo una
+ *  referencia. El ejemplo del nombre sigue a la categoría elegida (ADR-0290). */
+function DescribirNueva({
+  nueva,
+  n,
+  parecido,
+  guia,
+}: {
+  nueva: PrendaNuevaDeHoja;
+  n: BorradorNuevo;
+  parecido: Habitual | null;
+  guia: GuiaCampos;
+}) {
+  const categoria = nueva.categorias.find((c) => c.id === n.categoriaId) ?? null;
+  const ejemplo = categoria ? sugerirNombre(categoria) : null;
+  return (
+    <div className="space-y-4 border-b border-sand pb-4">
+      <p className="text-[12.5px] leading-snug text-taupe">
+        Solo es una referencia para la compra: no se crea en el catálogo. La tienda la registra cuando la recibe, con su color y sus tallas.
+      </p>
+      {/* Qué es y la marca, lado a lado desde `sm`; en el celular, uno bajo otro: a media columna, «¿Qué es? · Sigue aquí» se partía. */}
+      <div className="grid gap-4 sm:grid-cols-2 sm:gap-3">
+        <CampoGuiado id="categoria" guia={guia} titulo="¿Qué es?">
+          <div data-guia="compra.categoria-nueva">
+            <Desplegable
+              valor={n.categoriaId ?? ""}
+              onValor={(v) => nueva.cambiar({ categoriaId: v || null })}
+              opciones={opcionesCategoriaNueva(nueva.categorias, nueva.suyas)}
+              marcador="Elige"
+              etiquetaAccesible="¿Qué es?"
+            />
+          </div>
+        </CampoGuiado>
+        <CampoGuiado id="marca" guia={guia} titulo="¿De qué marca?">
+          <div data-guia="compra.marca-nueva">
+            <Desplegable
+              valor={n.marcaId ?? ""}
+              onValor={(v) => nueva.cambiar({ marcaId: v || null })}
+              opciones={opcionesMarcaNueva(nueva.marcas, nueva.marcasDelProveedor)}
+              marcador="Elige"
+              etiquetaAccesible="¿De qué marca?"
+            />
+          </div>
+        </CampoGuiado>
+      </div>
+      <CampoGuiado id="nombre" guia={guia} titulo="¿Cómo se llama?">
+        <CampoTexto
+          caja
+          etiqueta="¿Cómo se llama?"
+          maxLength={NOMBRE_NUEVO_MAX}
+          value={n.nombre}
+          placeholder={ejemplo ? (ejemplo.origen === "categoria" ? `Ej. ${ejemplo.texto}` : ejemplo.texto) : "Primero elige qué es"} // sugerir-fijo: sin categoría, solo pide elegirla antes
+          data-guia="compra.nombre-nuevo"
+          onChange={(e) => nueva.cambiar({ nombre: e.target.value })}
+        />
+      </CampoGuiado>
+      {parecido && (
+        <PreguntaParecido
+          titulo={`¿Es «${parecido.nombre}»?`}
+          bajada={parecido.veces > 0 ? "Ya se la compraste: para no anotarla dos veces, úsala." : "Ya le compras esa prenda a este proveedor: si es esa, úsala."}
+          opciones={[{ id: parecido.clave, nombre: parecido.nombre, detalle: `${parecido.categoria}${parecido.marca ? ` · ${parecido.marca}` : ""}` }]}
+          si={() => ({ texto: "Usar esa", onClick: () => nueva.usar(parecido) })}
+          no={{ texto: "No, es otra", onClick: () => nueva.cambiar({ descartadas: new Set([...n.descartadas, parecido.clave]) }) }}
+        />
+      )}
+    </div>
   );
 }
