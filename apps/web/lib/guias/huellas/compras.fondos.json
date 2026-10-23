@@ -2,7 +2,7 @@
   "guia": "compras.fondos",
   "ruta": "/compras/fondos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 49,
+  "total": 67,
   "controles": {
     "components/fondos/AccionesFondos.tsx": [
       "Boton «fondos.entregar»",
@@ -49,6 +49,28 @@
       "Boton «Devolver para corregir»",
       "Boton «Devolver para corregir» #2",
       "Boton «{pieListaRevisar(lectura) ?? guia.frase ?? undefined}»"
+    ],
+    "components/mi-plata/CierresPorRecibir.tsx": [
+      "Boton «fondos.cierre-recibir»",
+      "CampoSelect «{devuelve ? \"¿A dónde vuelve?\" : \"¿De dónde sale?\"}»",
+      "CampoMonto «{devuelve ? \"¿Cuánto trajo?\" : \"¿Cuánto le pagas?\"}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/mi-plata/PapelesPorCompletar.tsx": [
+      "a «Ver la foto en grande»",
+      "Boton «fondos.papel-completar»",
+      "ComboBuscable «{proveedorId}»",
+      "button «No es este: cambiar»",
+      "CampoTexto «Serie»",
+      "CampoTexto «Número»",
+      "CampoTexto «Número» #2",
+      "CampoMonto «Lo que dice el papel»",
+      "button «Se anotó mal: cambiar el monto»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/mi-plata/PlataPorConfirmar.tsx": [
       "Boton «fondos.plata-cambiar»",

@@ -1,0 +1,314 @@
+import { soles } from "./compras-reglas";
+import { TIPOS_PAPEL, type TipoPapel } from "./compra-rapida-reglas";
+import { campoResponsable, primerNombre, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
+import type { CampoDeGuia } from "./guia-campos";
+
+// Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ los papeles que llegaron a la tienda y los cierres del día. Las reglas
+// puras: leer lo que manda `fn_revisar_compras` (que puede venir vieja o rota: nunca se cae, descarta lo ilegible), decir si la compra
+// cuadra (la plata del papel contra lo que anotó la compradora, y lo que llegó contra lo que se mandó) y qué falta en cada hoja: lo MISMO
+// que rechazan `completar_papel_compra` y `recibir_cierre_compras` (20261023143000). La guía no agrega reglas (ADR-0284).
+
+// Cada llamada nombra su constante (`.rpc(RPC_X as never, …)`): así la lee la prueba de cobertura de roles.
+export const RPC_REVISAR_COMPRAS = "fn_revisar_compras";
+export const RPC_COMPLETAR_PAPEL = "completar_papel_compra";
+export const RPC_RECIBIR_CIERRE = "recibir_cierre_compras";
+
+/** Por qué faltó una prenda, como lo dijo la tienda al recibir. Compras lo ve; no lo vuelve a decidir. */
+export type CausaFaltante = "no_vino" | "se_perdio" | "otra_sede" | "devuelta";
+export const CAUSAS_FALTANTE: Record<CausaFaltante, string> = {
+  no_vino: "no vino: está en «Nos debe» del proveedor",
+  se_perdio: "se perdió: lo asume CAYLA",
+  otra_sede: "llegó a otra sede",
+  devuelta: "llegó dañada y se devolvió al proveedor",
+};
+
+export type LineaPapel = {
+  id: string;
+  nombre: string;
+  cantidad: number;
+  costo: number;
+  subtotal: number;
+  destino: string;
+  mandadas: number;
+  faltan: { cantidad: number; causa: CausaFaltante }[];
+  sobran: number;
+};
+
+export type EnvioPapel = { id: string; numero: number; estado: "en_camino" | "abierto" | "cerrado" };
+
+export type PapelPorCompletar = {
+  id: string;
+  personaId: string;
+  persona: string;
+  esMia: boolean;
+  proveedorId: string;
+  proveedor: string;
+  tipo: TipoPapel;
+  monto: number;
+  fotoRuta: string | null;
+  fecha: string;
+  lineas: LineaPapel[];
+  envios: EnvioPapel[];
+  llego: boolean;
+};
+
+export type CierrePorRecibir = {
+  id: string;
+  personaId: string;
+  persona: string;
+  esMia: boolean;
+  fecha: string;
+  decision: "devuelve" | "le_deben";
+  monto: number;
+  plataPorConfirmar: number;
+};
+
+export type ProveedorOpcion = { id: string; nombre: string; ruc: string | null };
+
+export type RevisarCompras = { papeles: PapelPorCompletar[]; cierres: CierrePorRecibir[]; proveedores: ProveedorOpcion[] };
+
+const numero = (v: unknown): number | null => {
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : null;
+};
+const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
+const objeto = (x: unknown): Record<string, unknown> | null => (x && typeof x === "object" && !Array.isArray(x) ? (x as Record<string, unknown>) : null);
+const lista = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+const esTipo = (v: unknown): v is TipoPapel => typeof v === "string" && v in TIPOS_PAPEL;
+const esCausa = (v: unknown): v is CausaFaltante => typeof v === "string" && v in CAUSAS_FALTANTE;
+const ESTADOS_ENVIO = ["en_camino", "abierto", "cerrado"] as const;
+
+function leerLinea(x: unknown): LineaPapel | null {
+  const o = objeto(x);
+  const id = texto(o?.id);
+  const cantidad = numero(o?.cantidad);
+  const costo = numero(o?.costo);
+  if (!o || !id || cantidad == null || costo == null) return null;
+  return {
+    id,
+    nombre: texto(o.nombre) ?? "Prenda",
+    cantidad,
+    costo,
+    subtotal: numero(o.subtotal) ?? cantidad * costo,
+    destino: texto(o.destino) ?? "la tienda",
+    mandadas: numero(o.mandadas) ?? 0,
+    faltan: lista(o.faltan).flatMap((f) => {
+      const fo = objeto(f);
+      const n = numero(fo?.cantidad);
+      return fo && n != null && n > 0 && esCausa(fo.causa) ? [{ cantidad: n, causa: fo.causa }] : [];
+    }),
+    sobran: numero(o.sobran) ?? 0,
+  };
+}
+
+function leerPapel(x: unknown): PapelPorCompletar | null {
+  const o = objeto(x);
+  const id = texto(o?.id);
+  const monto = numero(o?.monto);
+  if (!o || !id || monto == null || !esTipo(o.tipo) || !texto(o.proveedor_id)) return null;
+  return {
+    id,
+    personaId: texto(o.persona_id) ?? "",
+    persona: texto(o.persona) ?? "Alguien de Compras",
+    esMia: o.es_mia === true,
+    proveedorId: texto(o.proveedor_id)!,
+    proveedor: texto(o.proveedor) ?? "Proveedor",
+    tipo: o.tipo,
+    monto,
+    fotoRuta: texto(o.foto_ruta),
+    fecha: texto(o.fecha) ?? "",
+    lineas: lista(o.lineas).map(leerLinea).filter((l): l is LineaPapel => l !== null),
+    envios: lista(o.envios).flatMap((e) => {
+      const eo = objeto(e);
+      const eid = texto(eo?.id);
+      const n = numero(eo?.numero);
+      const estado = ESTADOS_ENVIO.find((s) => s === eo?.estado);
+      return eid && n != null && estado ? [{ id: eid, numero: n, estado }] : [];
+    }),
+    llego: o.llego === true,
+  };
+}
+
+function leerCierre(x: unknown): CierrePorRecibir | null {
+  const o = objeto(x);
+  const id = texto(o?.id);
+  const monto = numero(o?.monto);
+  if (!o || !id || monto == null || (o.decision !== "devuelve" && o.decision !== "le_deben")) return null;
+  return {
+    id,
+    personaId: texto(o.persona_id) ?? "",
+    persona: texto(o.persona) ?? "Alguien de Compras",
+    esMia: o.es_mia === true,
+    fecha: texto(o.fecha) ?? "",
+    decision: o.decision,
+    monto,
+    plataPorConfirmar: numero(o.plata_por_confirmar) ?? 0,
+  };
+}
+
+/** Lo que manda `fn_revisar_compras`. `null` si no es lo que se espera (la base vieja, una respuesta rota). */
+export function leerRevisarCompras(data: unknown): RevisarCompras | null {
+  const o = objeto(data);
+  if (!o || !Array.isArray(o.papeles) || !Array.isArray(o.cierres)) return null;
+  return {
+    papeles: o.papeles.map(leerPapel).filter((p): p is PapelPorCompletar => p !== null),
+    cierres: o.cierres.map(leerCierre).filter((c): c is CierrePorRecibir => c !== null),
+    proveedores: lista(o.proveedores).flatMap((p) => {
+      const po = objeto(p);
+      const pid = texto(po?.id);
+      const nombre = texto(po?.nombre);
+      return pid && nombre ? [{ id: pid, nombre, ruc: texto(po?.ruc) }] : [];
+    }),
+  };
+}
+
+// ---------- ¿Cuadra? ----------
+
+/**
+ * Los cuatro casos de la maqueta: la plata (lo que dice el papel contra lo que suman las prendas anotadas) y las prendas (lo que se mandó
+ * contra lo que contó la tienda).
+ */
+export type CasoPapel = "cuadra" | "plata" | "faltan" | "nada";
+
+export type Veredicto = {
+  caso: CasoPapel;
+  /** Lo que suman las prendas como las anotó la compradora. */
+  anotado: number;
+  /** Lo que dice el papel (o lo que corrige Compras). */
+  pagado: number;
+  unidades: number;
+  faltan: number;
+};
+
+const CENTAVO = 0.005;
+
+export function veredictoPapel(p: Pick<PapelPorCompletar, "monto" | "lineas">, monto: number = p.monto): Veredicto {
+  const anotado = Math.round(p.lineas.reduce((a, l) => a + l.subtotal, 0) * 100) / 100;
+  const unidades = p.lineas.reduce((a, l) => a + l.cantidad, 0);
+  const faltan = p.lineas.reduce((a, l) => a + l.faltan.reduce((b, f) => b + f.cantidad, 0), 0);
+  const plataCuadra = Math.abs(monto - anotado) < CENTAVO;
+  const caso: CasoPapel = plataCuadra ? (faltan > 0 ? "faltan" : "cuadra") : faltan > 0 ? "nada" : "plata";
+  return { caso, anotado, pagado: monto, unidades, faltan };
+}
+
+/** El título del veredicto, en palabras de tienda. */
+export const TITULO_CASO: Record<CasoPapel, string> = {
+  cuadra: "Cuadra todo",
+  plata: "Cuadran las prendas, no la plata",
+  faltan: "Cuadra la plata, faltan prendas",
+  nada: "No cuadra ni la plata ni las prendas",
+};
+
+/** Qué pasa con lo que no cuadra al completar: manda el papel (Felipe 2026-10-23) y lo que faltó ya lo dijo la tienda. */
+export function fraseVeredicto(v: Veredicto, tipo: TipoPapel): string {
+  const partes: string[] = [];
+  if (v.caso === "cuadra") return "Las prendas y la plata dicen lo mismo.";
+  if (v.caso === "plata" || v.caso === "nada") {
+    partes.push(
+      `El papel dice ${soles(v.pagado)} y las prendas anotadas suman ${soles(v.anotado)}: el comprobante queda por lo del papel` +
+        (tipo === "factura" ? " (con su IGV)" : "") +
+        ". Si se anotó mal, cambia el monto.",
+    );
+  }
+  if (v.faltan > 0) partes.push(`${v.faltan === 1 ? "Faltó 1 prenda" : `Faltaron ${v.faltan} prendas`}: abajo dice qué dijo la tienda.`);
+  return partes.join(" ");
+}
+
+/** Dónde está una compra que todavía no se completa: falta mandarla, va en camino o la tienda la está contando. */
+export function textoLlegada(p: Pick<PapelPorCompletar, "llego" | "lineas" | "envios">): string {
+  if (p.llego) return "Llegó a la tienda";
+  if (p.lineas.some((l) => l.mandadas < l.cantidad)) return "Falta mandarla a la tienda";
+  if (p.envios.some((e) => e.estado === "abierto")) return "La tienda la está contando";
+  return "En camino a la tienda";
+}
+
+/** Qué dijo la tienda de lo que faltó en una línea: «2 no vino: está en «Nos debe» del proveedor». */
+export function textoFaltan(l: Pick<LineaPapel, "faltan">): string | null {
+  if (l.faltan.length === 0) return null;
+  return l.faltan.map((f) => `${f.cantidad} ${CAUSAS_FALTANTE[f.causa]}`).join(" · ");
+}
+
+// ---------- Completar el papel: lo que falta (lo mismo que rechaza la base) ----------
+
+/** ¿Este papel pide serie y número? Factura y boleta, sí; nota de venta, solo el número y si lo tiene; sin papel, nada. */
+export function pideSerie(tipo: TipoPapel): boolean {
+  return tipo === "factura" || tipo === "boleta";
+}
+
+export function problemaSerie(serie: string): string | null {
+  const s = serie.trim().toUpperCase();
+  if (!s) return "Copia la serie como está en el papel.";
+  return /^[A-Z0-9]{1,8}$/.test(s) ? null : "La serie lleva letras y números, hasta 8 (F001, B002…).";
+}
+
+export function problemaNumero(numeroPapel: string, tipo: TipoPapel): string | null {
+  const n = numeroPapel.trim();
+  if (tipo === "nota_venta") return !n || /^[0-9A-Za-z-]{1,20}$/.test(n) ? null : "El número lleva letras, números o guiones, hasta 20.";
+  if (!n) return "Copia el número como está en el papel.";
+  return /^[0-9]{1,12}$/.test(n) ? null : "El número lleva solo números, hasta 12.";
+}
+
+/** La serie de ejemplo sigue al papel: «F001» en una factura, «B001» en una boleta (ADR-0290). */
+export function ejemploSerie(tipo: TipoPapel): string {
+  return tipo === "factura" ? "Ej. F001" : "Ej. B001";
+}
+
+type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null };
+
+/** Los campos de «Completar el papel», en el orden de la hoja. El número de una nota de venta es opcional: no cuenta como «falta». */
+export function camposCompletar(
+  v: { serie: string; numero: string; cambiaMonto: boolean; monto: string },
+  tipo: TipoPapel,
+  r: Responsable,
+): CampoDeGuia[] {
+  const campos: CampoDeGuia[] = [];
+  if (pideSerie(tipo)) {
+    const s = problemaSerie(v.serie);
+    const n = problemaNumero(v.numero, tipo);
+    campos.push({ id: "serie", nombre: "Serie", requerido: true, hecho: s === null, pendiente: s ?? "" });
+    campos.push({ id: "numero", nombre: "Número", requerido: true, hecho: n === null, pendiente: n ?? "" });
+  } else if (tipo === "nota_venta") {
+    const n = problemaNumero(v.numero, tipo);
+    campos.push({ id: "numero", nombre: "Número", requerido: n !== null, hecho: n === null && v.numero.trim() !== "", pendiente: n ?? "" });
+  }
+  if (v.cambiaMonto) {
+    const m = problemaDeMonto(v.monto);
+    campos.push({ id: "monto", nombre: "Lo que dice el papel", requerido: true, hecho: m === null, pendiente: m ?? "" });
+  }
+  return [...campos, ...campoResponsable({ ...r, quien: "Quién completa" })];
+}
+
+/** El botón de la hoja dice lo que va a pasar: «Guardar la boleta de S/ 330.00». */
+export function fraseCompletar(tipo: TipoPapel, monto: number | null): string {
+  const que = tipo === "sin_comprobante" ? "la compra" : `la ${TIPOS_PAPEL[tipo].nombre.toLowerCase()}`;
+  return monto != null && monto > 0 ? `Guardar ${que} de ${soles(monto)}` : `Guardar ${que}`;
+}
+
+// ---------- Los cierres del día ----------
+
+/** Lo que espera a Compras de un cierre: «Devuelve S/ 200.00» o «Le debemos S/ 50.00». */
+export function textoCierrePorRecibir(c: Pick<CierrePorRecibir, "decision" | "monto">): string {
+  return c.decision === "devuelve" ? `Devuelve ${soles(c.monto)}` : `Le debemos ${soles(c.monto)}`;
+}
+
+/** El botón del cierre: «Recibir S/ 200.00» o «Pagarle S/ 50.00 a Marisol». */
+export function botonCierre(c: Pick<CierrePorRecibir, "decision" | "persona">, monto: number | null): string {
+  const cuanto = monto != null && monto > 0 ? ` ${soles(monto)}` : "";
+  return c.decision === "devuelve" ? `Recibir${cuanto}` : `Pagarle${cuanto} a ${primerNombre(c.persona)}`;
+}
+
+/** Los campos de la hoja del cierre: a dónde vuelve (o de dónde sale) la plata y cuánto. */
+export function camposCierre(v: { cuentaId: string; monto: string }, decision: CierrePorRecibir["decision"], cuentas: readonly CuentaOpcion[], r: Responsable): CampoDeGuia[] {
+  const m = problemaDeMonto(v.monto);
+  return [
+    {
+      id: "cuenta",
+      nombre: decision === "devuelve" ? "A dónde vuelve" : "De dónde sale",
+      requerido: true,
+      hecho: cuentas.some((c) => c.id === v.cuentaId),
+      pendiente: decision === "devuelve" ? "Elige a dónde vuelve la plata." : "Elige de qué cuenta sale la plata.",
+    },
+    { id: "monto", nombre: "Cuánto", requerido: true, hecho: m === null, pendiente: m ?? "" },
+    ...campoResponsable({ ...r, quien: decision === "devuelve" ? "Quién recibe" : "Quién paga" }),
+  ];
+}

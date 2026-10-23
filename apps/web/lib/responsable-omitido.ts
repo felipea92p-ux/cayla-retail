@@ -105,6 +105,9 @@ export const ACCIONES_SIN_RESPONSABLE = {
   gasto_rapido: "Anotar un gasto que no es ropa desde el celular (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   compra_mandar: "Mandar a una tienda lo que compraste para ella (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   compra_terminar_dia: "Terminar el día de compras (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Revisar compras (ADR-0480, actividad 7; migración 20261023143000): completar el papel y recibir lo del cierre del día.
+  papel_completar: "Completar el papel de una compra anotada desde el celular (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  compra_cierre_recibir: "Recibir lo que devuelve una compradora al terminar el día, o pagarle lo que puso (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_rendir: "Rendir el propio fondo (solo con la cuenta de su dueña: desde una terminal no se rinde)",
   fondo_rendicion_aprobar: "Aprobar la rendición de un fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_rendicion_devolver: "Devolver para corregir la rendición de un fondo, o retirar la propia (con la cuenta de una persona firma ella, desde una terminal se elige quién)",

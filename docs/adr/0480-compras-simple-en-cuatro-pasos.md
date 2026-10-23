@@ -4,7 +4,8 @@
   (`/construir`). Actividad 1 (menú y módulos): migración `20261022225000_compras_simple_modulos.sql`. Actividad 2 (anotar y confirmar
   la plata): `20261022235000_compras_simple_plata_anotada.sql`. Actividad 3 (registrar una compra): `20261023005000_compras_simple_compra_rapida.sql`. Actividad 5 (otro gasto,
   mandar a la tienda y terminar el día): `20261023114000_compras_simple_gasto_envio_y_cierre.sql`. Actividad 6 (recibir
-  mirando la foto): `20261023121000_compras_simple_recibir_con_la_foto.sql`.
+  mirando la foto): `20261023121000_compras_simple_recibir_con_la_foto.sql`. Actividad 7 (revisar compras):
+  `20261023143000_compras_simple_revisar.sql`.
   **Ninguna pegada en producción** (se pegan después de publicar la web,
   en orden y con el OK de Felipe).
 - **Maqueta aprobada:** `docs/maquetas/compras-simple-2026-10/` (index.html tocable + README con cada decisión).
@@ -147,6 +148,39 @@ Se le sumó lo que faltaba:
 Se descartó dibujar otra recepción con los tres pasos de la maqueta (ADR-0393 decidió una sola) y una política nueva en `storage.objects`
 (toma en exclusiva `auth` y `storage`, ADR-0195): la regla vive en la función que la política ya llama.
 
+## Actividad 7: Revisar compras (2026-10-23)
+
+**Lo que decidió Felipe al construirla:** cuando la plata no cuadra (el papel dice S/ 320 y las prendas anotadas suman S/ 330), **manda el
+papel**: si el monto se anotó mal, Compras lo cambia por el del papel; si el papel de verdad dice otro total, el comprobante y el pago quedan
+por lo que dice el papel y el costo de cada línea del comprobante se ajusta en proporción. El costo con que las prendas entraron a la tienda no
+se toca. Lo que faltó lo decide la tienda al recibir («No vino» → «Nos debe»; «Se perdió» → lo asume CAYLA): Compras solo lo ve.
+
+- **Completar el papel** (`completar_papel_compra`, módulo `fondos`, nunca la propia): cuando todo lo comprado salió y la tienda cerró el
+  conteo, Compras copia de la foto la serie y el número (factura y boleta; la nota de venta, si lo tiene; sin papel, número interno SC-…) y
+  puede corregir el proveedor o el monto. Nace **un comprobante por papel** (`compras`, al contado, con una línea por prenda a la tienda de su
+  orden y la tienda gestora donde llega más), pagado desde el fondo de quien compró, el día que compró (`compra_pagos` con la cuenta del fondo,
+  «en efectivo» por ahora). Desde ahí lo ven los libros: el fondo baja, el libro de compras lo tiene, Facturas de proveedor lo lista. En
+  factura, el monto del papel lleva el IGV: las líneas van sin IGV y suman exacto (el céntimo de redondeo va en una unidad aparte). El papel
+  queda «completado» y la compradora deja de verlo como «por completar» (su «tienes» no cambia: lo que bajó en su celular ahora baja en su fondo).
+- **Lo recibido antes del comprobante** (`compra_item_recibido_antes`): la tienda recibió antes de que existiera el comprobante, así que sus
+  entradas no apuntan a ninguna línea, y `movimientos` no se edita. Esta tabla (solo se agregan filas) dice qué parte de lo recibido es de qué
+  línea: el comprobante nace «recibido» por lo que ya entró, y lo que todavía está por crear en la tienda se le carga cuando entre (el cupo de
+  siempre). Lo suman el cupo de la recepción, el de las deudas del proveedor, `recalcular_compras` y la explicación de la mercadería del Balance.
+- **Pagar desde el fondo de otra persona**: desde un fondo paga solo su dueña (`fn_fondo_para_pagar`), salvo el pago que arma
+  `completar_papel_compra` para ese fondo dentro de su transacción. Es plata que ella ya gastó: Compras solo la pasa a los libros.
+- **Un envío cuya compra se completó ya no se reabre** (`reabrir_papel_completado`), igual que uno cuya deuda Compras ya resolvió (ADR-0393).
+- **Los cierres del día** (`recibir_cierre_compras`): «Lo devuelvo» vuelve al banco o a la caja fuerte que elige Compras (`devolver_fondo`);
+  «CAYLA me debe» sale de la cuenta que elige (`entregar_fondo`). Con el cierre como marca, un reintento no mueve dos veces; con plata suya
+  por confirmar, primero se confirma (todavía no está en su fondo). Esa plata no se anula aparte (el cierre quedaría recibido sin su plata).
+  Da igual el orden: devolver antes o después de completar sus papeles deja el fondo en el mismo número.
+- **La pantalla:** en Revisar compras, debajo de «Plata que anotaron», «Compras por completar» (una tarjeta por papel: foto, proveedor, prendas
+  por tienda, lo que faltó y por qué, si llegó y si cuadra; «Completar» abre la hoja) y «Cierres del día por recibir». Anular un comprobante así
+  no se puede (tiene su pago, como todo comprobante pagado).
+
+Se descartó `registrar_comprobante_orden` (un comprobante por orden, con la llave de la compradora y el IGV aparte; el papel es UN documento),
+escribir `recibido_cantidad` a mano (`recalcular_compras` lo borraría) y repartir el ajuste en el costo de las prendas (Felipe eligió que el
+catálogo quede con lo anotado).
+
 ## Cómo se ve mal hecho
 
 - Retirar `ordenes_compra` y crear una clave nueva: el rol «Compras» perdería en silencio recibir, gastos y proveedores.
@@ -155,5 +189,5 @@ Se descartó dibujar otra recepción con los tres pasos de la maqueta (ADR-0393 
 
 ## Qué queda
 
-Actividades 7 y 8 de la construcción (revisar compras —que también recibe la devolución del cierre del día y revisa los gastos—, y el
-cierre con guías y pruebas). Cada una agrega su sección a este ADR.
+Revisar los gastos que anotaron las compradoras (la segunda parte de la actividad 7) y la actividad 8 (el cierre con guías y pruebas). Cada
+una agrega su sección a este ADR.
