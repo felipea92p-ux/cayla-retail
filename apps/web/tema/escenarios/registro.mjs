@@ -1164,9 +1164,12 @@ ESCENARIOS.push(
   // Las hojas del celular de Mi plata (rediseño): «Gasté en otra cosa» y «Mandar a la tienda» (necesita algo por mandar).
   { id: "mi-plata.gasto", ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mi plata para compras · «Gasté en otra cosa»", preparar: clicRol("button", /Gasté en otra cosa/i) },
   { id: "mi-plata.mandar", soloPorId: true, ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mi plata para compras · «Mandar a la tienda» (necesita algo por mandar)", preparar: clicRol("button", /Te falta mandar/i) },
-  { id: "fondos.devolver", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Registrar devolución»", preparar: clicRol("button", /^Registrar devolución/i) },
-  { id: "fondos.pagar-deuda", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Registrar su pago» (la deuda de un faltante)", preparar: clicRol("button", /^Registrar su pago/i) },
-  { id: "fondos.anular", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Anular» un movimiento", preparar: clicRol("button", /^Anular$/) },
+  // «Quién tiene plata» y «Entregas y devoluciones» se abren en una hoja desde la cabecera (Felipe 2026-10-23); lo de adentro, desde ella.
+  { id: "fondos.quien-tiene", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Revisar compras · la hoja «Quién tiene plata»", preparar: clicGuia("fondos.quien-tiene") },
+  { id: "fondos.entregas", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Revisar compras · la hoja «Entregas y devoluciones» (necesita una)", preparar: clicGuia("fondos.entregas") },
+  { id: "fondos.devolver", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog] >> nth=1", nombre: "Revisar compras · «Registrar devolución», desde «Quién tiene plata»", preparar: secuencia(clicGuia("fondos.quien-tiene"), clicRol("button", /^Registrar devolución/i)) },
+  { id: "fondos.pagar-deuda", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog] >> nth=1", nombre: "Revisar compras · «Registrar su pago» (la deuda de un faltante), desde «Quién tiene plata»", preparar: secuencia(clicGuia("fondos.quien-tiene"), clicRol("button", /^Registrar su pago/i)) },
+  { id: "fondos.anular", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog] >> nth=1", nombre: "Revisar compras · «Anular» un movimiento, desde «Entregas y devoluciones»", preparar: secuencia(clicGuia("fondos.entregas"), clicRol("button", /^Anular$/)) },
   { id: "fondos.revisar", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Revisar» una rendición (necesita una por aprobar)", preparar: clicRol("button", /^Revisar$/) },
   // La lista de lo rendido que no se puede leer (decisión 81): la lectura falla SOLO en la red de la auditoría (no se toca la base), y la
   // hoja dice que no pudo, con «Volver a intentar». `limpiar` quita la ruta.

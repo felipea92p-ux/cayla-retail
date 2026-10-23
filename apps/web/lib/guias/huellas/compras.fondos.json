@@ -4,9 +4,6 @@
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 68,
   "controles": {
-    "app/(app)/compras/fondos/page.tsx": [
-      "BotonEnlace «fondos.ir-quien-tiene»"
-    ],
     "components/fondos/AccionesFondos.tsx": [
       "Boton «fondos.entregar»",
       "CampoSelect «¿A quién le entregas?»",
@@ -40,6 +37,9 @@
     "components/fondos/FotoDelGasto.tsx": [
       "button «{abriendo ? \"Abriendo…\" : \"Ver foto\"}»",
       "input «(sin nombre)»"
+    ],
+    "components/fondos/HojaDeFondos.tsx": [
+      "Boton «{guia}»"
     ],
     "components/fondos/RevisarRendicion.tsx": [
       "Boton «fondos.revisar»",
