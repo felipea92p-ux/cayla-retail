@@ -32,6 +32,7 @@ export default async function SellosPage({ searchParams }: { searchParams: Promi
       etiquetasIniciales={datos.etiquetas}
       categorias={datos.categorias}
       tiendas={datos.tiendas}
+      sedeActualId={persona.ubicacionId}
       prendasConCosto={datos.prendasConCosto}
       variantesManuales={datos.variantesManuales}
       prendasVitrina={datos.prendasVitrina}

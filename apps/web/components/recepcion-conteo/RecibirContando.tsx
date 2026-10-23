@@ -37,6 +37,8 @@ import { ContarEnvio } from "./ContarEnvio";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
+import { PreguntaDeLaCompra } from "./PreguntaDeLaCompra";
+import { siguienteAnotada } from "@/lib/recibir-papel-reglas";
 import { PasosConteo } from "@/components/conteo/PasosConteo";
 
 // «Recibir ENV-000061» contando primero (ADR-0393, la cara A; maqueta `docs/maquetas/recibir-fardo-2026-10/a-camino.html`). Tres pasos:
@@ -161,6 +163,8 @@ export function RecibirContando({
     });
   }, [detalle, conteos, borradores]);
   const cifras = cifrasDelEnvio(lineas);
+  // Lo anotado que se dejó para después con «Es otra prenda» (rediseño de Compras simple): se cuenta a mano en el contador.
+  const [saltadas, setSaltadas] = useState<ReadonlySet<string>>(() => new Set());
 
   /** Guarda una línea en la base con lo último que se escribió. */
   const guardar = useCallback(
@@ -247,6 +251,7 @@ export function RecibirContando({
   }, [recienCerrado]);
 
   const origen = origenDelEnvio(detalle) || (sinAviso ? `Sin aviso · ${base?.proveedores[0]?.nombre ?? ""}` : "");
+  const conPapel = papeles.length > 0 && (porRecibir || estado === "cerrado") && !otraSede && !noLoRecibe;
   const reabierto = estado === "abierto" && (base?.cierres.length ?? 0) > 0;
   // La frase de la maqueta, la misma en los tres pasos (de qué envío se trata lo dicen el riel y su tarjeta).
   const frase =
@@ -320,7 +325,19 @@ export function RecibirContando({
         />
       )}
 
-      {(porRecibir || estado === "cerrado") && !otraSede && !noLoRecibe && <PapelesDeLaCompra papeles={papeles} />}
+      {/* Con el papel de una compra anotada desde el celular, el papel va en una columna fija a la izquierda mientras se cuenta (maqueta
+          compras-formidable-2026-10); sin papeles, todo sigue a lo ancho. */}
+      <div className={conPapel ? "grid items-start gap-6 xl:grid-cols-[21.25rem_minmax(0,1fr)]" : "space-y-6"}>
+      {conPapel && (
+        <div className="xl:sticky xl:top-4">
+          <PapelesDeLaCompra papeles={papeles} lineas={lineas} siguiente={estado === "abierto" ? (siguienteAnotada(lineas, saltadas)?.clave ?? null) : null} />
+        </div>
+      )}
+      <div className={conPapel ? "min-w-0 space-y-6" : "space-y-6"}>
+
+      {estado === "abierto" && !otraSede && !noLoRecibe && paso !== 3 && conPapel && (
+        <PreguntaDeLaCompra lineas={lineas} saltadas={saltadas} onEscribir={escribir} onSaltar={(c) => setSaltadas((s) => new Set(s).add(c))} />
+      )}
 
       {estado === "en_camino" && !otraSede && !noLoRecibe && (
         <EmpezarARecibir
@@ -400,6 +417,9 @@ export function RecibirContando({
           }}
         />
       )}
+
+      </div>
+      </div>
 
       {avisoSalida.aviso}
     </div>

@@ -7,4 +7,4 @@
 - [x] **SQL pegado en producción** el 2026-10-22 por la noche (hora de Lima), en dos partes y en orden. Verificado: la parte 1 dejó 22 filas, 10 componentes del IGV, `aviso_umbral_uit` = 250 y las tres reglas de la tabla con los nombres nuevos; la parte 2 dejó `fn_impuestos_panel` = `e899a1a9812a9a15e159464b964d6fca` y `guardar_parametro_tributario` = `e8aa5e8c0d835bdb8dd8ddd391541bfb`.
 - [ ] **Sin probar en el navegador:** las pantallas de Impuestos, Resumen y Configuración con la base nueva (a 1440 y 375 px, claro y oscuro) y `pnpm --filter web guias:recorrer` de las guías de Configuración e Impuestos.
 - [ ] Orden de publicación: con el SQL antes que la web, la tarjeta vieja muestra S/ 0 hasta publicarse; con la web antes, la tarjeta dice que falta actualizar la base. Conviene pegar el SQL y publicar la web seguidos.
-- [ ] Tras pegar en producción: refrescar el diccionario (`pnpm datos:generar:produccion`).
+- [x] Tras pegar en producción: diccionario refrescado el 2026-10-23 (`pnpm datos:refrescar`: 22 filas en `parametros_tributarios`, las tres reglas nuevas de la tabla y las dos funciones).

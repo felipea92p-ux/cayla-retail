@@ -347,6 +347,10 @@ export type LineaDiario = {
   glosa: string;
 };
 
+/** El orden con que se pagina `fn_diario` (`rpc-por-paginas.ts`): un mes de ventas pasa de 5.000 líneas y PostgREST corta en 1.000. Entran todas las
+ *  columnas que distinguen una línea de otra: sin un orden único, dos páginas pueden repetir una línea o saltarse otra y la suma sale distinta. */
+export const ORDEN_DIARIO = ["fecha", "asiento", "cuenta", "debe", "haber", "origen_id", "regla", "ubicacion_id", "glosa"] as const;
+
 export function leerLineaDiario(r: Fila): LineaDiario {
   return {
     fecha: String(r.fecha ?? ""),

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
 import { navegacionSinEspera } from "@/components/ui/Espera";
 import { cambioLaFirma, escribiendoEn, firmaDePrecios, type FilaCampana } from "@/lib/precios-en-vivo-firma";
 import { hayPreciosPropios } from "@/lib/precios-en-vivo-registro";
@@ -51,7 +52,7 @@ export function PreciosEnVivo({ ubicacionId }: { ubicacionId: string }) {
       enCurso = true;
       try {
         const supabase = createClient();
-        const [resVersion, resCampanas] = await Promise.all([supabase.rpc("fn_catalogo_version"), supabase.rpc("campanas_vigentes", { p_ubicacion_id: ubicacionId })]);
+        const [resVersion, resCampanas] = await Promise.all([supabase.rpc("fn_catalogo_version"), leerCampanasVigentes(supabase, ubicacionId)]);
         if (cancelado) return;
         const version = resVersion.error || resVersion.data === null ? null : Number(resVersion.data);
         // Sin la función de campañas en esa base (PGRST202) no hay campañas: lista vacía, como al cargar Vender.

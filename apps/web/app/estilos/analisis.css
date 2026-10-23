@@ -249,6 +249,21 @@
     .m-tabla td.total{min-width:0;color:var(--color-tinta-60);font-weight:600;font-size:13px}
     .m-tabla tfoot th.color{color:var(--color-tinta-60)}
     .m-tabla td:focus-visible{outline:2px solid var(--color-pizarra);outline-offset:1px}
+    /* En un teléfono la tabla no cabe (color + una columna por talla + «Vendiste» = ~420 px en una hoja de ~325) y se desliza dentro de su
+       caja; hasta ahora nada avisaba que había más (hallazgo 9 de la auditoría del celular, 2026-10-23). El color queda fijo a la izquierda
+       para no perder de qué fila es cada celda, las celdas se achican un poco y una sombra en el borde dice «hay más»: aparece donde falta
+       por ver y se apaga sola al llegar al final (la técnica de `background-attachment: local`, sin JavaScript). */
+    @container analisis (max-width:460px){
+      .m-tabla{background:
+        linear-gradient(to right,var(--color-papel) 30%,transparent) left/20px 100% no-repeat local,
+        linear-gradient(to left,var(--color-papel) 30%,transparent) right/20px 100% no-repeat local,
+        linear-gradient(to right,color-mix(in srgb,var(--color-tinta) 16%,transparent),transparent) left/12px 100% no-repeat scroll,
+        linear-gradient(to left,color-mix(in srgb,var(--color-tinta) 16%,transparent),transparent) right/12px 100% no-repeat scroll}
+      .m-tabla td{min-width:72px;padding:6px 3px}
+      .m-tabla td.total{padding:6px 2px}
+      .m-tabla th.color{padding-right:2px}
+      .m-tabla thead th.col-color,.m-tabla th.color{position:sticky;left:0;z-index:1;background:var(--color-papel)}
+    }
     .m-leyenda{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
     .m-leyenda span{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;border-radius:999px;padding:3px 9px}
     .m-leyenda span::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
@@ -321,10 +336,15 @@
     /* Anillos, días y semanas */
     .anillos{display:flex;gap:18px;flex-wrap:wrap}
     .anillo{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;width:128px}
-    .anillo svg{width:96px;height:96px}
+    /* El anillo de Análisis se llama `anillo`, igual que la pieza única del sistema (`avance-anillo-copiar.css`: `.anillo > svg` es
+       `position:absolute; inset:0`, para dibujar el arco debajo de la cifra). Sin `position:static` el SVG de aquí flotaba sobre su
+       título y su botón y los tres anillos de «Datos incompletos» se pisaban (hallazgo 5 de la auditoría del celular, 2026-10-23). */
+    .anillo svg{position:static;inset:auto;flex:none;width:96px;height:96px}
     .anillo .et{font-size:12.5px;font-weight:600;line-height:1.25}
     .anillo .sub{font-size:11.5px;color:var(--color-tinta-60)}
     .anillo .btn-cayla{margin-top:4px}
+    /* En un teléfono caben dos anillos por fila, no tres: las filas se centran para que el tercero no quede huérfano a la izquierda. */
+    @container analisis (max-width:460px){ .anillos{justify-content:center} }
     .anim .arco{animation:an-arco 900ms var(--ease-cayla) both;animation-delay:200ms}
     .dias{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
     .dia{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--color-tinta-60)}

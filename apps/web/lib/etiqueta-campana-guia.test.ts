@@ -34,6 +34,18 @@ describe("guía de la campaña de una etiqueta", () => {
     expect(estadosDe(camposDeCampana({ ...base, sedes: 1 })).sedes).toBe("hecho");
   });
 
+  it("con un descuento que no llega a ninguna prenda, «Categorías» queda sugerida (ADR-0488), y nunca bloquea", () => {
+    const sinLlegar = camposDeCampana({ ...base, descuento: "10", alcance: 0 });
+    expect(estadosDe(sinLlegar).categorias).toBe("ahora");
+    expect(sePuedeConfirmar(sinLlegar)).toBe(true);
+    // Sin descuento, con uno mal escrito, sin permiso o llegando a alguna prenda, sigue opcional.
+    expect(estadosDe(camposDeCampana({ ...base, alcance: 0 })).categorias).toBe("opcional");
+    expect(estadosDe(camposDeCampana({ ...base, descuento: "abc", alcance: 0 })).categorias).toBe("opcional");
+    expect(estadosDe(camposDeCampana({ ...base, descuento: "10", alcance: 0, puedeDarDescuento: false })).categorias).toBe("opcional");
+    expect(estadosDe(camposDeCampana({ ...base, descuento: "10", alcance: 3 })).categorias).toBe("opcional");
+    expect(estadosDe(camposDeCampana({ ...base, descuento: "10", alcance: 15, categorias: 1 })).categorias).toBe("hecho");
+  });
+
   // La coherencia que importa: «se puede guardar» según la guía ⇔ la regla real de CampanaModal (`campanaValida`, que el modal llama tal cual).
   it("coincide con la validación real en cada combinación", () => {
     const descuentos = ["", "20", "12,5", "20 %", "0", "101", "abc", "%"];

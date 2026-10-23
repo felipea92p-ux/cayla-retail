@@ -97,6 +97,7 @@ export function OfertasHoja({
   reglas,
   categorias,
   tiendas,
+  sedeActualId,
   prendasConCosto,
   variantesManuales,
   esLider,
@@ -112,6 +113,8 @@ export function OfertasHoja({
   reglas: ReglaCampana[];
   categorias: CategoriaOpcion[];
   tiendas: TiendaOpcion[];
+  /** La sede de quien guarda: el aviso de «reimprime las etiquetas» lleva a imprimir las suyas (ADR-0180, ADR-0486). */
+  sedeActualId: string | null;
   prendasConCosto: PrendaConCosto[];
   variantesManuales: string[];
   /** Un líder activa y cambia lo que ya rige; los demás dejan borradores. */
@@ -215,9 +218,9 @@ export function OfertasHoja({
         return;
       }
       // Si guardar cambió HOY el precio en caja de alguna prenda, su etiqueta de papel quedó vieja: el aviso lo dice y lleva a imprimir solo esas (ADR-0180).
-      const cambian = prendasQueCambianDePrecioHoy(etiqueta, nueva, prendasConCosto, manuales, hoy);
+      const cambian = prendasQueCambianDePrecioHoy(etiqueta, nueva, prendasConCosto, manuales, hoy, { tiendas, aqui: sedeActualId });
       const destino = destinoReimprimir(cambian, etiqueta.id);
-      const reimprimir = avisoReimprimir(cambian.quedan.length + cambian.salen.length, destino !== null);
+      const reimprimir = avisoReimprimir(cambian, destino !== null);
       avisar.exito(titulo, reimprimir ? { detalle: reimprimir.detalle, accion: destino && reimprimir.boton ? { texto: reimprimir.boton, onClick: () => router.push(destino) } : undefined } : undefined);
       alGuardarCampana(nueva);
       setEditandoFechas(false);
