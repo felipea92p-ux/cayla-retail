@@ -6,6 +6,8 @@
 // acá: es el camino de siempre (`resolverCodigoV2` + `agregar` en `PuntoDeVenta`). Acá solo vive lo que es propio de la
 // cámara, que sí es distinto del lector: la cámara ve la MISMA etiqueta 8 veces por segundo mientras la tienes delante.
 
+import type { SonidoLectura } from "./conteo-conectado";
+
 /** Un teléfono: puntero táctil y pantalla angosta (o apaisada y baja). Una tablet de mostrador con lector bluetooth queda
  *  fuera a propósito: ahí el lector escribe en el campo de siempre, y cambiarlo por un botón la dejaría sin escáner. */
 export const MQ_TELEFONO = "(pointer: coarse) and (max-width: 639.98px), (pointer: coarse) and (max-height: 500px)";
@@ -67,6 +69,20 @@ export function keyframesAviso(): Keyframe[] {
 /** El texto del QR tal cual lo usaría el lector: sin espacios ni saltos alrededor. */
 export function normalizarLectura(crudo: string): string {
   return crudo.trim();
+}
+
+/** Con qué tono pinta una pantalla lo que pasó con una lectura: `verde` entró · `taupe` y `pizarra` la reconoció (se quitó, ya
+ *  estaba, no cambia nada) · `ambar` no entró o no es de ninguna prenda. */
+export type TonoLectura = "verde" | "taupe" | "pizarra" | "ambar";
+
+/**
+ * El bip de una lectura con la cámara del teléfono (Felipe 2026-10-23: «que siempre emita sonido, así como en Bajar en tandas»): el
+ * mismo de Conteo y de la bajada (`PATRON_SONIDO`), para saber que se leyó sin volver a mirar la pantalla. Agudo y corto si la prenda
+ * se reconoció; grave y largo si no entró («mira la pantalla»). Sin tono —la pantalla solo busca lo leído y no sabe todavía si está—,
+ * agudo: el código se leyó.
+ */
+export function sonidoDeLecturaCamara(tono?: TonoLectura): SonidoLectura {
+  return tono === "ambar" ? "desconocida" : "suma";
 }
 
 /** ¿Es la misma etiqueta que se acaba de leer y todavía no pasó la pausa? */
