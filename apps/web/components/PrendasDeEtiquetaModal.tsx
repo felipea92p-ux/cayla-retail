@@ -17,6 +17,7 @@ import { EscanerBusqueda, type RespuestaLectura } from "@/components/EscanerBusq
 import { EtiquetaColgada } from "@/components/etiqueta-prendas/EtiquetaColgada";
 import type { Vuelo } from "@/components/etiqueta-prendas/vuelo";
 import { createClient } from "@/lib/supabase/client";
+import { leerTodas } from "@/lib/resultado";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -160,15 +161,23 @@ export function PrendasDeEtiquetaModal({
     (async () => {
       setCarga({ estado: "cargando" });
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("productos")
-        .select(
-          `id, referencia, codigo, descripcion, categoria_id, categoria:categorias ( nombre, prefijo, familia ),
+      // Por páginas: PostgREST corta en 1.000 productos sin avisar (hoy son ~450 y suben ~100 por semana); los de después del corte no existirían
+      // para el modal ni para la pistola («no encontrado»), y no habría cómo etiquetarlos. `id` desempata el orden de `referencia`.
+      const { data, error } = await leerTodas(
+        (desde, hasta) =>
+          supabase
+            .from("productos")
+            .select(
+              `id, referencia, codigo, descripcion, categoria_id, categoria:categorias ( nombre, prefijo, familia ),
            producto_fotos ( url, orden, es_principal ),
            variantes ( id, activo, precio, sku, codigo, codigos_barras ( codigo ), color:colores ( nombre, hex ), talla:tallas ( valor ), variante_etiquetas ( etiqueta_id ) )`,
-        )
-        .eq("estado", "activo")
-        .order("referencia");
+            )
+            .eq("estado", "activo")
+            .order("referencia")
+            .order("id")
+            .range(desde, hasta),
+        { enParalelo: 1 },
+      );
       if (!vigente) return;
       if (error) {
         setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas", { lectura: true }) });

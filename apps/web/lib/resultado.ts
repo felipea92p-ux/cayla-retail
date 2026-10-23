@@ -111,6 +111,34 @@ export async function leerTodas<T, E extends { message: string }>(
   }
 }
 
+/** Ids por consulta: viajan en la URL (37 caracteres cada uno) y el API rechaza una dirección larga — o la responde cortada —, así que mil
+ *  ids de una vez (las ~1.100 prendas de una tienda, los ~1.100 comprobantes de un mes) no caben. Ver `leerPorTandasDeIds`. */
+export const IDS_POR_TANDA = 100;
+
+/**
+ * Lo que `.in("id", ids)` no aguanta con muchos ids: parte la lista en tandas de `IDS_POR_TANDA` (o `tamano`), pide cada una y junta las filas.
+ * Devuelve la misma forma que supabase-js; una tanda con error corta la lectura (media lista nunca se entrega como lista entera).
+ *
+ * `consulta(tanda)` arma la consulta de UNA tanda. Si cada id puede traer varias filas (las tallas de un modelo), esa consulta debe
+ * paginar por dentro con `leerTodas`: una tanda de 100 modelos trae más de 1.000 variantes.
+ */
+export async function leerPorTandasDeIds<T, E extends { message: string }>(
+  ids: readonly string[],
+  consulta: (tanda: string[]) => PromiseLike<{ data: T[] | null; error: E | null }>,
+  tamano: number = IDS_POR_TANDA,
+): Promise<{ data: T[] | null; error: E | null }> {
+  const unicos = [...new Set(ids)];
+  const tandas: string[][] = [];
+  for (let i = 0; i < unicos.length; i += tamano) tandas.push(unicos.slice(i, i + tamano));
+  const respuestas = await Promise.all(tandas.map((t) => consulta(t)));
+  const filas: T[] = [];
+  for (const res of respuestas) {
+    if (res.error || !res.data) return { data: null, error: res.error };
+    filas.push(...res.data);
+  }
+  return { data: filas, error: null };
+}
+
 /** Lo que `tolerar()` entrega: los datos si llegaron, y el aviso para pintar si no. */
 export type Tolerado<T> = { datos: T | null; fallo: string | null };
 
