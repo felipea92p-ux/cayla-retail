@@ -1,7 +1,8 @@
 import { soles } from "./compras-reglas";
-import { TIPOS_PAPEL, type TipoPapel } from "./compra-rapida-reglas";
+import { TIPOS_PAPEL, type MedioPagoCompra, type TipoPapel } from "./compra-rapida-reglas";
 import { campoResponsable, primerNombre, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
-import { CONCEPTOS_GASTO, type ConceptoGasto } from "./mi-plata-reglas";
+import { CONCEPTOS_GASTO, MEDIOS_PLATA, nombreGasto, type ConceptoGasto, type PlataPorConfirmar } from "./mi-plata-reglas";
+import { diaMes } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
 
 // Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ los papeles que llegaron a la tienda y los cierres del día. Las reglas
@@ -47,8 +48,13 @@ export type PapelPorCompletar = {
   proveedor: string;
   tipo: TipoPapel;
   monto: number;
+  /** Lo que la compradora le pagó al proveedor de su plata (20261023181000) y con qué; lo que falta lo paga Compras desde Por pagar. */
+  pagado: number;
+  medioPago: string | null;
   fotoRuta: string | null;
   fecha: string;
+  /** La ronda de compras en la que se anotó (20261023183000): «RC-000003». Lo de antes de las rondas, sin ronda. */
+  ronda: string | null;
   lineas: LineaPapel[];
   envios: EnvioPapel[];
   llego: boolean;
@@ -60,6 +66,8 @@ export type CierrePorRecibir = {
   persona: string;
   esMia: boolean;
   fecha: string;
+  /** La ronda de compras en la que se anotó (20261023183000): «RC-000003». Lo de antes de las rondas, sin ronda. */
+  ronda: string | null;
   decision: "devuelve" | "le_deben";
   monto: number;
   plataPorConfirmar: number;
@@ -78,6 +86,8 @@ export type GastoPorRevisar = {
   monto: number;
   fotoRuta: string | null;
   fecha: string;
+  /** La ronda de compras en la que se anotó (20261023183000): «RC-000003». Lo de antes de las rondas, sin ronda. */
+  ronda: string | null;
   /** Sin ninguna compra de quien gastó, la base no lo deja pasar: un gasto del viaje va siempre a una compra (decisión 75). */
   tieneCompra: boolean;
 };
@@ -133,8 +143,11 @@ function leerPapel(x: unknown): PapelPorCompletar | null {
     proveedor: texto(o.proveedor) ?? "Proveedor",
     tipo: o.tipo,
     monto,
+    pagado: numero(o.pagado) ?? monto,
+    medioPago: texto(o.medio_pago),
     fotoRuta: texto(o.foto_ruta),
     fecha: texto(o.fecha) ?? "",
+    ronda: texto(o.ronda),
     lineas: lista(o.lineas).map(leerLinea).filter((l): l is LineaPapel => l !== null),
     envios: lista(o.envios).flatMap((e) => {
       const eo = objeto(e);
@@ -145,6 +158,24 @@ function leerPapel(x: unknown): PapelPorCompletar | null {
     }),
     llego: o.llego === true,
   };
+}
+
+// Con qué le pagó, como se dice en la tienda: «con Yape», «en efectivo», «con transferencia».
+const MEDIO_EN_FRASE: Record<MedioPagoCompra, string> = { yape: "con Yape", efectivo: "en efectivo", transferencia: "con transferencia" };
+
+/** El bloque «Pagó» del detalle (diseño A, 2026-10-23): qué pagó la compradora, qué le toca a Compras y qué parte del papel ya está pagada. */
+export type PagoPapel = { titulo: string; detalle: string; fraccion: number };
+
+/**
+ * Cómo se le pagó al proveedor (20261023181000): lo que pagó la compradora y con qué, y lo que le toca a Compras. Al completar el papel,
+ * lo que falta queda como deuda en Por pagar (con vencimiento a 7 días, provisional).
+ */
+export function pagoPapel(p: Pick<PapelPorCompletar, "monto" | "pagado" | "medioPago">): PagoPapel {
+  const medio = p.medioPago && p.medioPago in MEDIO_EN_FRASE ? ` ${MEDIO_EN_FRASE[p.medioPago as MedioPagoCompra]}` : "";
+  const falta = Math.round((p.monto - p.pagado) * 100) / 100;
+  if (p.pagado <= 0) return { titulo: "No le pagó al proveedor", detalle: `Compras paga ${soles(p.monto)} desde Por pagar`, fraccion: 0 };
+  if (falta < 0.005) return { titulo: `Pagó todo${medio}`, detalle: "Compras no paga nada", fraccion: 1 };
+  return { titulo: `Pagó ${soles(p.pagado)}${medio}`, detalle: `Compras paga ${soles(falta)} desde Por pagar`, fraccion: p.monto > 0 ? p.pagado / p.monto : 0 };
 }
 
 function leerGasto(x: unknown): GastoPorRevisar | null {
@@ -162,6 +193,7 @@ function leerGasto(x: unknown): GastoPorRevisar | null {
     monto,
     fotoRuta: texto(o.foto_ruta),
     fecha: texto(o.fecha) ?? "",
+    ronda: texto(o.ronda),
     tieneCompra: o.tiene_compra !== false,
   };
 }
@@ -177,6 +209,7 @@ function leerCierre(x: unknown): CierrePorRecibir | null {
     persona: texto(o.persona) ?? "Alguien de Compras",
     esMia: o.es_mia === true,
     fecha: texto(o.fecha) ?? "",
+    ronda: texto(o.ronda),
     decision: o.decision,
     monto,
     plataPorConfirmar: numero(o.plata_por_confirmar) ?? 0,
@@ -229,27 +262,25 @@ export function veredictoPapel(p: Pick<PapelPorCompletar, "monto" | "lineas">, m
   return { caso, anotado, pagado: monto, unidades, faltan };
 }
 
-/** El título del veredicto, en palabras de tienda. */
-export const TITULO_CASO: Record<CasoPapel, string> = {
-  cuadra: "Cuadra todo",
-  plata: "Cuadran las prendas, no la plata",
-  faltan: "Cuadra la plata, faltan prendas",
-  nada: "No cuadra ni la plata ni las prendas",
-};
+/** Si la plata no cuadra, manda el papel (Felipe 2026-10-23): el comprobante queda por lo que dice, y una factura con su IGV. */
+export function notaNoCuadra(tipo: TipoPapel): string {
+  return `Queda por lo del papel${tipo === "factura" ? ", con su IGV" : ""}`;
+}
 
-/** Qué pasa con lo que no cuadra al completar: manda el papel (Felipe 2026-10-23) y lo que faltó ya lo dijo la tienda. */
-export function fraseVeredicto(v: Veredicto, tipo: TipoPapel): string {
-  const partes: string[] = [];
-  if (v.caso === "cuadra") return "Las prendas y la plata dicen lo mismo.";
-  if (v.caso === "plata" || v.caso === "nada") {
-    partes.push(
-      `El papel dice ${soles(v.pagado)} y las prendas anotadas suman ${soles(v.anotado)}: el comprobante queda por lo del papel` +
-        (tipo === "factura" ? " (con su IGV)" : "") +
-        ". Si se anotó mal, cambia el monto.",
-    );
-  }
-  if (v.faltan > 0) partes.push(`${v.faltan === 1 ? "Faltó 1 prenda" : `Faltaron ${v.faltan} prendas`}: abajo dice qué dijo la tienda.`);
-  return partes.join(" ");
+/** Arriba del detalle, en versalitas: el papel y su ronda («Boleta · RC-000012»). */
+export function sobrePapel(p: Pick<PapelPorCompletar, "tipo" | "ronda">): string {
+  return [TIPOS_PAPEL[p.tipo].nombre, p.ronda].filter(Boolean).join(" · ");
+}
+
+/** Bajo el proveedor: quién, cuándo y cuántas prendas («Marisol Rojas · 23/10 · 12 prendas»). */
+export function subtituloPapel(p: Pick<PapelPorCompletar, "persona" | "fecha" | "lineas">): string {
+  const prendas = p.lineas.reduce((a, l) => a + l.cantidad, 0);
+  return [p.persona, p.fecha ? diaMes(p.fecha) : null, prendas === 1 ? "1 prenda" : `${prendas} prendas`].filter(Boolean).join(" · ");
+}
+
+/** A qué tienda iban las prendas, sin repetir: «Tienda Lima», «Tienda Lima · Tienda AQP». */
+export function destinosDePapel(p: Pick<PapelPorCompletar, "lineas">): string {
+  return [...new Set(p.lineas.map((l) => l.destino))].join(" · ");
 }
 
 /** Dónde está una compra que todavía no se completa: falta mandarla, va en camino o la tienda la está contando. */
@@ -316,18 +347,12 @@ export function camposCompletar(
   return [...campos, ...campoResponsable({ ...r, quien: "Quién completa" })];
 }
 
-/** El botón de la hoja dice lo que va a pasar: «Guardar la boleta de S/ 330.00». */
-export function fraseCompletar(tipo: TipoPapel, monto: number | null): string {
-  const que = tipo === "sin_comprobante" ? "la compra" : `la ${TIPOS_PAPEL[tipo].nombre.toLowerCase()}`;
-  return monto != null && monto > 0 ? `Guardar ${que} de ${soles(monto)}` : `Guardar ${que}`;
+/** El botón del detalle (diseño A, Felipe 2026-10-23): una palabra. Que pasa a los libros lo dice el aviso al guardar. */
+export function fraseCompletar(): string {
+  return "Completar";
 }
 
 // ---------- Los cierres del día ----------
-
-/** Lo que espera a Compras de un cierre: «Devuelve S/ 200.00» o «Le debemos S/ 50.00». */
-export function textoCierrePorRecibir(c: Pick<CierrePorRecibir, "decision" | "monto">): string {
-  return c.decision === "devuelve" ? `Devuelve ${soles(c.monto)}` : `Le debemos ${soles(c.monto)}`;
-}
 
 /** El botón del cierre: «Recibir S/ 200.00» o «Pagarle S/ 50.00 a Marisol». */
 export function botonCierre(c: Pick<CierrePorRecibir, "decision" | "persona">, monto: number | null): string {
@@ -404,7 +429,111 @@ export function camposRevisarGasto(
   ];
 }
 
-/** El botón: «Pasar S/ 15.00 a los gastos». */
-export function fraseRevisarGasto(monto: number): string {
-  return `Pasar ${soles(monto)} a los gastos`;
+// ---------- La bandeja de «Revisar compras» (rediseño, maqueta compras-formidable-2026-10, Felipe 2026-10-23) ----------
+// Cuatro cifras arriba que filtran y, debajo, la lista de lo que espera (a la izquierda) con el detalle al lado. Lo que dice cada fila y
+// cada cifra sale de aquí; qué se guarda sigue siendo lo de cada hoja de antes.
+
+export type TipoBandeja = "plata" | "papel" | "gasto" | "cierre";
+export const TIPOS_BANDEJA: readonly TipoBandeja[] = ["plata", "papel", "gasto", "cierre"];
+
+/** Cada cifra: su nombre largo (el de la lista para el lector), el corto de la tarjeta y la cabecera de su lista (diseño A, 2026-10-23). */
+export const CIFRA_BANDEJA: Record<TipoBandeja, { nombre: string; corto: string; cabecera: string }> = {
+  plata: { nombre: "Plata por confirmar", corto: "Plata", cabecera: "Por confirmar" },
+  papel: { nombre: "Compras por completar", corto: "Compras", cabecera: "Por completar" },
+  gasto: { nombre: "Gastos por revisar", corto: "Gastos", cabecera: "Por revisar" },
+  cierre: { nombre: "Rondas cerradas", corto: "Rondas", cabecera: "Por recibir" },
+};
+
+/** El total en soles de una lista de la bandeja (la plata, los papeles, los gastos o lo que devuelven o se les debe en las rondas). */
+export function totalBandeja(lista: readonly { monto: number }[]): number {
+  return Math.round(lista.reduce((a, x) => a + x.monto, 0) * 100) / 100;
+}
+
+/** Una fila de la bandeja: qué es, de quién y cuándo, cuánto y su estado. */
+/** Cuándo y en qué ronda: «23/10 · RC-000003» (lo de antes de las rondas, solo el día). */
+export function diaYRonda(fecha: string, ronda: string | null): string {
+  return [fecha ? diaMes(fecha) : null, ronda].filter(Boolean).join(" · ");
+}
+
+export type FilaBandeja = { id: string; titulo: string; quien: string; cuando: string; monto: number; chip: { tono: "ambar" | "verde" | "pizarra"; texto: string } };
+
+/** Lo que llegó a la tienda de una compra ya recibida: «35 de 35». Antes de llegar, nada. */
+export function llegadaDePapel(p: Pick<PapelPorCompletar, "llego" | "lineas">): { llegaron: number; total: number; completa: boolean } | null {
+  if (!p.llego) return null;
+  const total = p.lineas.reduce((a, l) => a + l.cantidad, 0);
+  const faltan = p.lineas.reduce((a, l) => a + l.faltan.reduce((b, f) => b + f.cantidad, 0), 0);
+  return { llegaron: Math.max(0, total - faltan), total, completa: faltan === 0 };
+}
+
+/** El estado de una compra en la lista, corto para que quepa junto al monto: llegó todo, faltaron N, o dónde está. */
+export function chipPapel(p: Pick<PapelPorCompletar, "llego" | "lineas" | "envios">): FilaBandeja["chip"] {
+  const l = llegadaDePapel(p);
+  if (!l) {
+    const donde = textoLlegada(p);
+    const corto = donde === "Falta mandarla a la tienda" ? "Sin mandar" : donde === "La tienda la está contando" ? "La tienda cuenta" : "En camino";
+    return { tono: "pizarra", texto: corto };
+  }
+  const faltan = l.total - l.llegaron;
+  return faltan === 0 ? { tono: "verde", texto: "Llegó todo" } : { tono: "ambar", texto: faltan === 1 ? "Faltó 1" : `Faltaron ${faltan}` };
+}
+
+export function filaPlata(f: Pick<PlataPorConfirmar, "id" | "persona" | "medio" | "monto" | "fecha" | "fotoRuta">): FilaBandeja {
+  return {
+    id: f.id,
+    titulo: f.medio === "ya_tenia" ? "Ya tenía de antes" : `${MEDIOS_PLATA[f.medio].nombre}${f.fotoRuta ? " · con foto" : " · sin foto"}`,
+    quien: f.persona,
+    cuando: f.fecha ? diaMes(f.fecha) : "",
+    monto: f.monto,
+    chip: { tono: "ambar", texto: "Por confirmar" },
+  };
+}
+
+export function filaPapel(p: Pick<PapelPorCompletar, "id" | "persona" | "proveedor" | "tipo" | "monto" | "fecha" | "ronda" | "llego" | "lineas" | "envios">): FilaBandeja {
+  return {
+    id: p.id,
+    titulo: `${p.proveedor} · ${TIPOS_PAPEL[p.tipo].nombre}`,
+    quien: p.persona,
+    cuando: diaYRonda(p.fecha, p.ronda),
+    monto: p.monto,
+    chip: chipPapel(p),
+  };
+}
+
+export function filaGasto(g: Pick<GastoPorRevisar, "id" | "persona" | "concepto" | "nota" | "monto" | "fecha" | "ronda" | "fotoRuta">): FilaBandeja {
+  return {
+    id: g.id,
+    titulo: `${nombreGasto(g)} · ${g.fotoRuta ? "con foto" : "sin papel"}`,
+    quien: g.persona,
+    cuando: diaYRonda(g.fecha, g.ronda),
+    monto: g.monto,
+    chip: { tono: "ambar", texto: "Por revisar" },
+  };
+}
+
+export function filaCierre(c: Pick<CierrePorRecibir, "id" | "persona" | "decision" | "monto" | "fecha" | "ronda">): FilaBandeja {
+  return {
+    id: c.id,
+    titulo: c.decision === "devuelve" ? "Devuelve en caja" : "Pagó de su bolsillo",
+    quien: c.persona,
+    cuando: diaYRonda(c.fecha, c.ronda),
+    monto: c.monto,
+    chip: c.decision === "devuelve" ? { tono: "pizarra", texto: "Lo devuelve" } : { tono: "ambar", texto: "Le debemos" },
+  };
+}
+
+/** La lista que se abre al entrar: la primera que tiene algo, en el orden de las cifras. Todo vacío: la de la plata. */
+export function bandejaInicial(cuantos: Record<TipoBandeja, number>): TipoBandeja {
+  return TIPOS_BANDEJA.find((t) => cuantos[t] > 0) ?? "plata";
+}
+
+/** El detalle que se ve: el elegido si sigue en la lista (al guardar, se va); si no, el primero. */
+export function elegidoDeBandeja<T extends { id: string }>(lista: readonly T[], id: string | null): T | null {
+  return lista.find((x) => x.id === id) ?? lista[0] ?? null;
+}
+
+/** Después de «Más tarde»: el que sigue en la lista (al final, el primero). */
+export function siguienteDeBandeja<T extends { id: string }>(lista: readonly T[], id: string): string | null {
+  if (lista.length === 0) return null;
+  const i = lista.findIndex((x) => x.id === id);
+  return lista[(i + 1) % lista.length].id;
 }

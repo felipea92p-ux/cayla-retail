@@ -12,6 +12,7 @@ import {
   RPC_GASTO_RAPIDO,
   RPC_MANDAR_A_TIENDA,
   RPC_TERMINAR_DIA,
+  RPC_ABRIR_RONDA,
   type ConceptoGasto,
   type DecisionCierre,
   type MedioPlata,
@@ -82,6 +83,12 @@ export async function mandarATienda(
   firma: Firma | FirmaOmitida | null,
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_MANDAR_A_TIENDA as never, args as never), firma);
+  return { error: error ?? null };
+}
+
+/** Abre la ronda de compras de quien la toca (o devuelve la que ya tenía abierta: dos toques no abren dos). */
+export async function abrirRonda(firma: Firma | FirmaOmitida | null): Promise<{ error: ErrorDeBase }> {
+  const { error } = await firmar(createClient().rpc(RPC_ABRIR_RONDA as never), firma);
   return { error: error ?? null };
 }
 
