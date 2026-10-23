@@ -75,14 +75,3 @@ export async function getRepartoDeCompra(compraId: string): Promise<RepartoDeCom
 
   return { filas, reasignaciones, fallo: sinReparto ? null : r.fallo };
 }
-
-/**
- * ¿Esta base ya tiene el reparto por tienda (migración 20260919172000)? Si no, Registrar no ofrece «Repartir»: la
- * `registrar_compra` de antes IGNORARÍA los `destinos` y mandaría todo a una tienda sin avisar. La tabla y la `registrar_compra`
- * nueva nacen en la misma transacción, así que una implica la otra. Ante cualquier error se responde que no (lo seguro).
- */
-export async function repartoDisponible(): Promise<boolean> {
-  const supabase = await createClient();
-  const { error } = await supabase.from("compra_item_destinos").select("compra_item_id").limit(1);
-  return !error;
-}
