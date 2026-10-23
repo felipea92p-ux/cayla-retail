@@ -6,6 +6,7 @@ import { AvisoDestacado } from "@/components/ui/AvisoDestacado";
 import { EsperaGlobal } from "@/components/ui/Espera";
 import { PaginaEstable } from "@/components/ui/PaginaEstable";
 import { OndaBotones } from "@/components/ui/OndaBotones";
+import { FilasQueSeDeslizan } from "@/components/ui/FilasQueSeDeslizan";
 import { SesionEntrePestanas } from "@/components/ui/SesionEntrePestanas";
 import { EntradaColibri } from "@/components/login/EntradaColibri";
 import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
@@ -51,6 +52,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PaginaEstable />
         {/* La onda de un clic en un botón (ADR-0358, ronda 4): una vez, acá, para todos los botones del ERP. */}
         <OndaBotones />
+        {/* Las filas de pestañas o de píldoras que se deslizan avisan que hay más con un degradado en el borde (Felipe 2026-10-23, ADR-0358): una vez, acá, para todas. */}
+        <FilasQueSeDeslizan />
         {/* Una cuenta por navegador (ADR-0309): si otra pestaña cambia de cuenta, esta se va sola al login o al inicio. */}
         <SesionEntrePestanas />
         {/* La entrada al ERP (Felipe 2026-10-13): el colibrí que cruza al centro y se abre sobre la pantalla de destino. Una vez, acá, para que sobreviva a la navegación del login. */}

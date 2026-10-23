@@ -36,10 +36,13 @@ describe("PuntoDeVentaTicket — el ticket no se desborda en móvil angosto", ()
   // nombre | − 1 + | importe | quitar. Lo que no puede encogerse (paso, importe, basurero) lleva `shrink-0`; lo que
   // cede el ancho es el bloque del nombre (`min-w-0 flex-1`), que corta el nombre en 2 líneas y deja bajar a otra
   // línea el «color · talla · stock». Sin esas clases, a 320-375 px la fila empuja al ticket fuera de la pantalla.
+  // Desde el 2026-10-23 (auditoría del celular, hallazgo 10), bajo `sm` la fila ocupa DOS filas —arriba el nombre con la papelera, abajo la
+  // cantidad y el importe—: el bloque del nombre conserva `min-w-0 flex-1` y suma sus clases `max-sm:`.
   it("la fila de cada prenda cede el ancho por el nombre y el detalle baja de línea", () => {
     const linea = readFileSync(join(__dirname, "punto-de-venta", "LineaDelTicket.tsx"), "utf8");
     expect(codigo).toContain("<LineaDelTicket");
-    expect(linea).toMatch(/<div className="min-w-0 flex-1" title=/);
+    expect(linea).toMatch(/<div className="min-w-0 flex-1[^"]*" title=/);
+    expect(linea).toMatch(/flex items-center gap-2 max-sm:flex-wrap/);
     expect(linea).toContain("line-clamp-2");
     expect(linea).toMatch(/<p className="[^"]*\bflex-wrap\b[^"]*">\s*<span>\{f\.detalle\}/);
     // El paso, el importe y el basurero no se encogen: se encoge el nombre.

@@ -7,6 +7,7 @@
 // (`retail.etiquetar_variantes`, 20260919010000): el modelo por variante no cambia.
 
 import { resolverCodigoV2 } from "./buscar-prenda-v2";
+import { cambioEnLasTiendas, rigeEnSede, type CambioDePrecio, type DondeSeImprime } from "./etiqueta-campana";
 import { vigenciaDe } from "./etiqueta-vigencia";
 import { normalizarNombre } from "./patron-visual";
 import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
@@ -249,16 +250,22 @@ export function vistaPreviaQuitar(c: CampanaParaVistaPrevia, prendasQuitadas: nu
 /** Las prendas a las que etiquetar les cambia el precio en caja HOY (ADR-0472): con descuento y en su temporada, las que ganan la
  *  etiqueta (`quedan`) y las que la pierden (`salen`); si la etiqueta no rebaja hoy, ninguna. Las que entran por su categoría no están
  *  en `cambio` (no se marcan ni se quitan a mano). Como al guardar una campaña (`prendasQueCambianDePrecioHoy`), no mira otras campañas:
- *  si una prenda sigue rebajada por otra mayor, se reimprime igual y el papel sale con lo que cobra la caja (no hace daño). */
+ *  si una prenda sigue rebajada por otra mayor, se reimprime igual y el papel sale con lo que cobra la caja (no hace daño).
+ *  Una campaña de solo algunas tiendas (ADR-0486) cambia el precio solo allá: el aviso las nombra y el botón imprime solo si la sede de
+ *  quien marca (`donde.aqui`) es una de ellas, con la misma regla que «Configurar» (`cambioEnLasTiendas`, Felipe 2026-10-23). */
 export function prendasQueCambianAlEtiquetar(
-  c: Pick<CampanaParaVistaPrevia, "descuentoPct" | "vigenteDesde" | "vigenteHasta">,
+  c: Pick<CampanaParaVistaPrevia, "descuentoPct" | "vigenteDesde" | "vigenteHasta"> & { sedeIds: readonly string[] },
   cambio: { agregar: readonly string[]; quitar: readonly string[] },
   hoy: string,
-): { quedan: string[]; salen: string[] } {
-  if (c.descuentoPct === null || !(c.descuentoPct > 0)) return { quedan: [], salen: [] };
+  donde: DondeSeImprime = { tiendas: [], aqui: null },
+): CambioDePrecio {
   const v = vigenciaDe(c.vigenteDesde, c.vigenteHasta, hoy);
-  if (v && v.estado !== "vigente") return { quedan: [], salen: [] };
-  return { quedan: [...cambio.agregar], salen: [...cambio.quitar] };
+  const rebajaHoy = c.descuentoPct !== null && c.descuentoPct > 0 && (!v || v.estado === "vigente");
+  return cambioEnLasTiendas(
+    (sede) => (rebajaHoy && rigeEnSede(c, sede) ? { quedan: [...cambio.agregar], salen: [...cambio.quitar] } : { quedan: [], salen: [] }),
+    donde,
+    c.sedeIds,
+  );
 }
 
 const textoPct = (pct: number) => `${pct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %`;

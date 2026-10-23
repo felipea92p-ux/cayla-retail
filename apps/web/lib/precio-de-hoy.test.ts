@@ -1,8 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  cambianEnCaja,
+  cambianEnCajaAlGuardar,
   campanasDeLaFicha,
-  cobraPorVariante,
   detalleCampana,
   fraseCajaCobra,
   insigniaCampana,
@@ -10,7 +9,9 @@ import {
   precioDeHoy,
   type CampanaDelVocabulario,
   type CampanaDeVariante,
+  type LadoDeLaFicha,
 } from "./precio-de-hoy";
+import { avisoReimprimir, type TiendaOpcion } from "./etiqueta-campana";
 import { descuentoDeCampana } from "./vender-reglas";
 
 const ANIVERSARIO: CampanaDeVariante = { etiquetaId: "e-aniv", nombre: "Aniversario CAYLA", pct: 10, hasta: "2026-10-25" };
@@ -18,10 +19,10 @@ const LIQUIDAR: CampanaDeVariante = { etiquetaId: "e-liq", nombre: "Para liquida
 const HOY = "2026-10-21";
 
 const vocabulario: CampanaDelVocabulario[] = [
-  { id: "e-aniv", nombre: "Aniversario CAYLA", descuentoPct: 10, vigenteDesde: "2026-10-01", vigenteHasta: "2026-10-25", categoriaIds: [] },
-  { id: "e-liq", nombre: "Para liquidar", descuentoPct: 20, vigenteDesde: null, vigenteHasta: null, categoriaIds: ["cat-faldas"] },
-  { id: "e-bf", nombre: "Black Friday", descuentoPct: 30, vigenteDesde: "2026-11-27", vigenteHasta: "2026-11-30", categoriaIds: [] },
-  { id: "e-nuevo", nombre: "Nuevo", descuentoPct: null, vigenteDesde: null, vigenteHasta: null, categoriaIds: [] },
+  { id: "e-aniv", nombre: "Aniversario CAYLA", descuentoPct: 10, vigenteDesde: "2026-10-01", vigenteHasta: "2026-10-25", categoriaIds: [], sedeIds: [] },
+  { id: "e-liq", nombre: "Para liquidar", descuentoPct: 20, vigenteDesde: null, vigenteHasta: null, categoriaIds: ["cat-faldas"], sedeIds: [] },
+  { id: "e-bf", nombre: "Black Friday", descuentoPct: 30, vigenteDesde: "2026-11-27", vigenteHasta: "2026-11-30", categoriaIds: [], sedeIds: [] },
+  { id: "e-nuevo", nombre: "Nuevo", descuentoPct: null, vigenteDesde: null, vigenteHasta: null, categoriaIds: [], sedeIds: [] },
 ];
 
 describe("precioConDescuento: la cuenta de la caja", () => {
@@ -198,33 +199,99 @@ describe("cómo se dice", () => {
   });
 });
 
-describe("cambianEnCaja: qué etiquetas de papel quedan viejas al guardar", () => {
-  const antes = cobraPorVariante(
-    [
-      { id: "a", precio: 79.9 },
-      { id: "b", precio: 79.9 },
-      { id: "c", precio: 79.9 },
-    ],
-    new Map(),
-  );
+describe("cambianEnCajaAlGuardar: qué etiquetas de papel quedan viejas al guardar Editar producto", () => {
+  const TRU: TiendaOpcion = { id: "tru", nombre: "Tienda Trujillo" };
+  const AQP: TiendaOpcion = { id: "aqp", nombre: "Tienda Arequipa" };
+  const LIM: TiendaOpcion = { id: "lim", nombre: "Tienda Lima" };
+  const TRES = [AQP, LIM, TRU];
+  const lado = (variantes: LadoDeLaFicha["variantes"], propios: [string, number][] = [], categoriaId: string | null = "cat-blusas"): LadoDeLaFicha => ({
+    variantes,
+    categoriaId,
+    propios: new Map(propios),
+  });
+  const v = (id: string, precio = 79.9, etiquetaIds: string[] = []) => ({ id, precio, etiquetaIds });
+  const antes = lado([v("a"), v("b"), v("c")]);
+  const guardar = (a: LadoDeLaFicha, d: LadoDeLaFicha, aqui: string | null, voc: CampanaDelVocabulario[] = vocabulario) =>
+    cambianEnCajaAlGuardar(a, d, voc, HOY, { tiendas: TRES, aqui });
 
   it("las que entran a una campaña, las que salen y las que cambian de precio", () => {
-    const despues = cobraPorVariante(
-      [
-        { id: "a", precio: 79.9 },
-        { id: "b", precio: 89.9 },
-        { id: "c", precio: 79.9 },
-      ],
-      new Map([["a", ANIVERSARIO]]),
-    );
-    expect(cambianEnCaja(antes, despues)).toEqual(["a", "b"]);
+    const c = guardar(lado([v("a", 79.9, ["e-aniv"]), v("b", 89.9), v("c")]), lado([v("a"), v("b"), v("c", 79.9, ["e-aniv"])]), "lim");
+    expect(c).toMatchObject({ quedan: ["c"], salen: ["a", "b"], total: 3, dondeCambia: null, aqui: null });
+    const otra = guardar(antes, lado([v("a", 79.9, ["e-aniv"]), v("b", 89.9), v("c")]), "lim");
+    expect(otra).toMatchObject({ quedan: ["a"], salen: ["b"], total: 2 });
+    expect(avisoReimprimir(otra)).toEqual({ detalle: "Cambió el precio en caja de 2 prendas: sus etiquetas de papel dicen el de antes.", boton: "Imprimir sus etiquetas" });
   });
 
   it("una variante nueva no está en la cuenta (sus etiquetas salen por lo que entró)", () => {
-    expect(cambianEnCaja(antes, cobraPorVariante([{ id: "z", precio: 79.9 }], new Map([["z", ANIVERSARIO]])))).toEqual([]);
+    expect(guardar(antes, lado([v("a"), v("b"), v("c"), v("z", 79.9, ["e-aniv"])]), "lim").total).toBe(0);
   });
 
   it("sin cambios, nada", () => {
-    expect(cambianEnCaja(antes, antes)).toEqual([]);
+    const c = guardar(antes, antes, "lim");
+    expect(c.total).toBe(0);
+    expect(avisoReimprimir(c)).toBeNull();
+  });
+
+  // ADR-0486: la impresión sale con el precio de la sede de la cabecera. Poner una campaña de solo Trujillo desde Lima no cambia el precio
+  // de Lima: un botón imprimiría en Lima etiquetas iguales a las que ya cuelgan, y el papel de Trujillo seguiría viejo.
+  describe("una campaña de solo Trujillo", () => {
+    const soloTru = vocabulario.map((c) => (c.id === "e-aniv" ? { ...c, sedeIds: ["tru"] } : c));
+    const conAniv = lado([v("a", 79.9, ["e-aniv"]), v("b"), v("c")]);
+
+    it("ponerla desde Lima: el aviso nombra Trujillo y no ofrece botón", () => {
+      const c = guardar(antes, conAniv, "lim", soloTru);
+      expect(c).toMatchObject({ quedan: [], salen: [], total: 1, dondeCambia: [TRU], aqui: null });
+      expect(avisoReimprimir(c)).toEqual({
+        detalle: "Cambió el precio en caja de 1 prenda en Tienda Trujillo: su etiqueta de papel dice el de antes. Imprímela en esa tienda.",
+        boton: null,
+      });
+    });
+
+    it("ponerla desde Trujillo: el botón imprime la de Trujillo", () => {
+      const c = guardar(antes, conAniv, "tru", soloTru);
+      expect(c).toMatchObject({ quedan: ["a"], salen: [], total: 1, dondeCambia: [TRU], aqui: TRU });
+      expect(avisoReimprimir(c)?.boton).toBe("Imprimir la de Tienda Trujillo");
+    });
+
+    it("quitarla desde Trujillo: vuelve a su precio solo allá", () => {
+      expect(guardar(conAniv, antes, "tru", soloTru)).toMatchObject({ quedan: [], salen: ["a"], dondeCambia: [TRU], aqui: TRU });
+    });
+
+    it("sin saber las tiendas, no nombra ninguna ni ofrece un botón que imprima el precio de otra", () => {
+      const c = cambianEnCajaAlGuardar(antes, conAniv, soloTru, HOY, { tiendas: [], aqui: "lim" });
+      expect(c).toMatchObject({ total: 1, dondeCambia: null, quedan: [], salen: [] });
+      expect(avisoReimprimir(c)?.boton).toBeNull();
+    });
+  });
+
+  // ADR-0370: una tienda con precio propio no ve el precio nuevo de la prenda; su papel no queda viejo.
+  describe("otro precio con una tienda que tiene el suyo", () => {
+    const masCara = lado([v("a", 89.9), v("b", 89.9), v("c", 89.9)], [["tru", 69.9]]);
+    const antesConPropio = lado([v("a"), v("b"), v("c")], [["tru", 69.9]]);
+
+    it("cambia en Arequipa y Lima, no en Trujillo; desde Lima, el botón imprime las de Lima", () => {
+      const c = guardar(antesConPropio, masCara, "lim");
+      expect(c).toMatchObject({ salen: ["a", "b", "c"], total: 3, dondeCambia: [AQP, LIM], aqui: LIM });
+      expect(avisoReimprimir(c)?.boton).toBe("Imprimir las de Tienda Lima");
+    });
+
+    it("desde Trujillo, la de precio propio: el aviso nombra las otras dos y no ofrece botón", () => {
+      const c = guardar(antesConPropio, masCara, "tru");
+      expect(c).toMatchObject({ quedan: [], salen: [], total: 3, dondeCambia: [AQP, LIM], aqui: null });
+      expect(avisoReimprimir(c)?.detalle).toBe(
+        "Cambió el precio en caja de 3 prendas en Tienda Arequipa y Tienda Lima: sus etiquetas de papel dicen el de antes. Imprímelas en esas tiendas.",
+      );
+    });
+
+    it("si Trujillo se iguala al precio nuevo, cambia en las tres igual: sin lista y con botón", () => {
+      const c = guardar(antesConPropio, lado([v("a", 89.9), v("b", 89.9), v("c", 89.9)]), "tru");
+      expect(c).toMatchObject({ total: 3, dondeCambia: null, aqui: null, salen: ["a", "b", "c"] });
+      expect(avisoReimprimir(c)?.boton).toBe("Imprimir sus etiquetas");
+    });
+
+    it("una campaña de todas las sedes con precio propio en Trujillo: cambia en las tres (cada una desde su precio)", () => {
+      const c = guardar(antesConPropio, lado([v("a", 79.9, ["e-aniv"]), v("b"), v("c")], [["tru", 69.9]]), "tru");
+      expect(c).toMatchObject({ quedan: ["a"], total: 1, dondeCambia: null });
+    });
   });
 });

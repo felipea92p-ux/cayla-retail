@@ -39,8 +39,10 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
   const nombre = linea.referencia;
   return (
     <article className="px-5 py-2.5">
-      <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1" title={f.titulo}>
+      {/* En el celular la fila ocupa dos: arriba el nombre (a todo el ancho, menos la papelera) y abajo la cantidad y el importe. En una sola
+          fila el nombre se quedaba con ~90 px y se partía por palabra («Blusa / Emma»; hallazgo 10 de la auditoría del celular, 2026-10-23). */}
+      <div className="flex items-center gap-2 max-sm:flex-wrap max-sm:gap-y-1.5">
+        <div className="min-w-0 flex-1 max-sm:order-1 max-sm:flex-[1_1_calc(100%-2.25rem)]" title={f.titulo}>
           <h3 className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{/* unificar-fijo: el nombre de la prenda en el ticket es un dato */}{nombre}</h3>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] leading-snug text-tinta/65">
             <span>{f.detalle}</span>
@@ -56,7 +58,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
         {/* El paso de cantidad del sistema (ADR-0358, ronda 17): la caja del campo con el − y el + adentro. */}
         {f.conPaso && (
           <PasoCantidad
-            className="shrink-0"
+            className="shrink-0 max-sm:order-3"
             menos={{ onClick: () => onCantidad(linea.claveLinea, linea.cantidad - 1), deshabilitado: linea.cantidad <= 1, etiqueta: "Reducir cantidad" }}
             mas={{
               onClick: () => onCantidad(linea.claveLinea, linea.cantidad + 1),
@@ -84,7 +86,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
             disabled={bloqueado}
             aria-label={`Descuento para ${nombre} (importe ${money(f.importe)})`}
             title="Descuento de esta prenda"
-            className="-mr-1 flex shrink-0 items-center gap-1 rounded-md py-0.5 pr-1 pl-1.5 text-right transition-colors hover:bg-sand/40 disabled:hover:bg-transparent"
+            className="-mr-1 flex shrink-0 items-center gap-1 rounded-md py-0.5 pr-1 pl-1.5 text-right transition-colors hover:bg-sand/40 disabled:hover:bg-transparent max-sm:order-4 max-sm:ml-auto"
           >
             <Percent aria-hidden className={`h-3 w-3 shrink-0 ${f.pct > 0 ? "text-rojo-profundo" : "text-tinta/35"}`} />
             <span className="min-w-[4.25rem]">
@@ -94,7 +96,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
           </button>
         ) : (
           // Pieza de liquidación (ADR-0379): precio final, el importe no abre ningún descuento.
-          <span className="min-w-[4.25rem] shrink-0 pr-1 text-right text-sm font-semibold text-tinta tabular-nums">{money(f.importe)}</span>
+          <span className="min-w-[4.25rem] shrink-0 pr-1 text-right text-sm font-semibold text-tinta tabular-nums max-sm:order-4 max-sm:ml-auto">{money(f.importe)}</span>
         )}
 
         <button
@@ -102,7 +104,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
           aria-label={`Quitar ${nombre}`}
           title="Quitar"
           onClick={() => onQuitar(linea.claveLinea)}
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo max-sm:order-2"
         >
           <Trash2 className="h-4 w-4" aria-hidden />
         </button>

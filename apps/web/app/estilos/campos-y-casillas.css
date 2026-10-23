@@ -179,6 +179,17 @@
     .paso-cantidad[data-tam="fila"] .paso-cantidad-n { width: 2.75rem; font-size: 16px; }
     .paso-cantidad[data-tam="fila"] .paso-cantidad-b svg { width: 16px; height: 16px; }
   }
+  /* «grande» (la hoja «Configuración» de una campaña, ADR-0488, Felipe 2026-10-23): 68 px, − y + de 44 px (también con el dedo) y el
+     número en la serif de 36 px con su unidad al lado (`sufijo`), los dos sobre la misma línea base y al centro de la caja. */
+  .caja-campo.paso-cantidad[data-tam="grande"] { display: grid; grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem; align-items: center; height: 4.25rem; padding: 0 0.75rem; border-radius: 14px; }
+  .paso-cantidad[data-tam="grande"] .paso-cantidad-b { height: 2.75rem; border-radius: 10px; }
+  .paso-cantidad[data-tam="grande"] .paso-cantidad-b svg { width: 16px; height: 16px; }
+  .paso-cantidad[data-tam="grande"] .paso-cantidad-n { width: auto; min-width: 1ch; display: inline-block; align-self: auto; font-family: var(--font-serif); font-size: 36px; font-weight: 500; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+  .paso-cantidad-c { display: inline-flex; align-items: baseline; justify-content: center; gap: 3px; justify-self: center; min-width: 0; }
+  /* El centro óptico de la serif: el de la tinta de «10» cae 1,3 px bajo el de la caja (medido en el navegador). */
+  .paso-cantidad[data-tam="grande"] .paso-cantidad-c { transform: translateY(-1px); }
+  .paso-cantidad-s { color: var(--color-taupe); line-height: 1; }
+  .paso-cantidad[data-tam="grande"] .paso-cantidad-s { font-family: var(--font-serif); font-size: 26px; }
 
   /* ---------- La lista que se abre (Desplegable, ComboBuscable, ComboResponsable, las píldoras de filtro) ----------
      La elegida lleva el hilo rojo de canto y su ✓ que se DIBUJA; con más de 8 opciones, el buscador fijo arriba con su lupa. */
@@ -482,5 +493,54 @@
   .caja-campo[data-trabajando]::after {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
+  }
+}
+
+/* =====================================================================
+   LETRA DE 16 PX EN EL CELULAR — auditoría de modales en celular, hallazgo 1 (2026-10-23)
+
+   Safari de iPhone amplía la pantalla solo al tocar un campo cuya letra mide menos de 16 px, y no la devuelve al salir: la hoja queda
+   cortada de un lado hasta que la persona pellizca. Los campos del ERP miden 13, 13,5, 14 y 15 px (medido: 324 de 343 campos en 205
+   pantallas a 375 px), así que esta regla los sube a 16 px en el teléfono y en cualquier pantalla táctil (`pointer: coarse`: también
+   el teléfono girado, que mide más de 640 px). En un escritorio con mouse no cambia nada. No usar `maximum-scale=1` en el viewport:
+   quita el zoom de accesibilidad.
+
+   Va SIN capa a propósito, como `pie-acciones.css`: una regla sin capa les gana a las utilidades de Tailwind (`text-sm`, `text-[13px]`)
+   y a lo que cada pieza hereda de `.caja-campo` (14 px). Con `:where` su especificidad es cero: una regla SIN capa de una pieza con
+   letra propia y más grande (`.rc-numero input`, el conteo de 64 px; `.tp-contador input`, 20 px) le sigue ganando.
+
+   Solo SUBE: un campo grande a propósito no debe achicarse. Los que traen su tamaño en una clase de Tailwind (`text-base`, `text-lg`…
+   `text-4xl`, `text-[16px]`…`text-[3Npx]`) y el monto del gasto rápido (`.gr-monto-input`, 36 px, que vive en una capa) quedan
+   afuera (y a su ejemplo no se le toca la letra). Un campo nuevo con letra grande propia que no entre en esa lista se verá de 16 px: se le
+   suma su clase aquí.
+   ===================================================================== */
+@media (max-width: 639.98px), (pointer: coarse) {
+  :where(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"], [type="color"], [type="button"], [type="submit"], [type="reset"], [type="image"]),
+    textarea,
+    select
+  ):where(
+    :not(
+      .gr-monto-input,
+      [class*="text-base"], [class*="text-lg"], [class*="text-xl"], [class*="text-2xl"], [class*="text-3xl"], [class*="text-4xl"],
+      [class*="text-[16"], [class*="text-[17"], [class*="text-[18"], [class*="text-[19"], [class*="text-[2"], [class*="text-[3"]
+    )
+  ) {
+    font-size: 16px;
+  }
+  /* El ejemplo (placeholder) se queda en 14 px: iOS decide el zoom por la letra del campo, no por la del ejemplo, y los topes de largo de los
+     ejemplos (`MAX_DESCRIPCION` = 36 caracteres en `lib/sugerencias-alta-producto.ts`, y los de ajuste, gasto fijo, tienda web y orden de
+     producción) se midieron con 14 px: a 16 px un ejemplo de 36 caracteres no cabe en los 279 px de la caja a 375 px. */
+  :where(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"], [type="color"], [type="button"], [type="submit"], [type="reset"], [type="image"]),
+    textarea
+  ):where(
+    :not(
+      .gr-monto-input,
+      [class*="text-base"], [class*="text-lg"], [class*="text-xl"], [class*="text-2xl"], [class*="text-3xl"], [class*="text-4xl"],
+      [class*="text-[16"], [class*="text-[17"], [class*="text-[18"], [class*="text-[19"], [class*="text-[2"], [class*="text-[3"]
+    )
+  )::placeholder {
+    font-size: 14px;
   }
 }
