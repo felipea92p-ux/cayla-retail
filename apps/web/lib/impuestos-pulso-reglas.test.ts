@@ -53,7 +53,24 @@ describe("pulsoImpuestos", () => {
     expect(p.frase).toContain("te dejó S/ 1,500 de IGV a favor");
     expect(p.frase).toContain("La renta a cuenta sí se paga: S/ 890");
     expect(p.cuenta.find((t) => t.clave === "igv")).toMatchObject({ nombre: "Te queda a favor", monto: 1500 });
-    expect(p.cuenta.some((t) => t.clave === "total")).toBe(false);
+    // La cuenta cierra también a favor: lo único que sale es la renta.
+    expect(p.cuenta.find((t) => t.clave === "total")).toMatchObject({ nombre: "Pagas a SUNAT (solo la renta)", monto: 890 });
+  });
+
+  it("un mes sin ventas ni compras no dice «a favor S/ 0»: dice que no hubo nada", () => {
+    const p = pulsoImpuestos({ ...PANEL, foco: mes({ comprobantes: 0, baseVentas: 0, igvVentas: 0, debito: 0, creditoMercaderia: 0, creditoGastos: 0, credito: 0, aPagar: 0, saldoAFavor: 0 }) });
+    expect(p).toEqual({ estado: "sin_mes", mes: "2026-09", frase: "En septiembre no hubo ventas ni compras con factura en el sistema: no hay IGV que pagar ni saldo a favor." });
+  });
+
+  it("un mes sin movimiento pero con saldo que arrastra sí queda a favor", () => {
+    const p = pulsoImpuestos({ ...PANEL, foco: mes({ debito: 0, credito: 0, saldoAnterior: 814, aPagar: 0, saldoAFavor: 814 }) });
+    expect(p.estado).toBe("a_favor");
+  });
+
+  it("los comprobantes por revisar llevan a Comprobantes de Vender (la ruta que existe)", () => {
+    const p = pulsoImpuestos({ ...PANEL, revisar: { ...PANEL.revisar, sinAceptar: { n: 1, total: 80 }, sinComprobante: { n: 2, total: 460, alegra: 0 } } });
+    if (p.estado === "sin_mes") throw new Error("hay mes");
+    for (const clave of ["sin_aceptar", "rechazados", "sin_comprobante"]) expect(p.porHacer.find((h) => h.clave === clave)!.href).toBe("/vender/comprobantes");
   });
 
   it("el saldo a favor que se traía entra a la cuenta como un descuento más", () => {

@@ -201,7 +201,8 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
           </label>
         </Herramientas>
         <div className="fin-tabla-wrap">
-          <table className="fin-tabla" style={{ minWidth: 560 }}>
+          {/* El ancho mínimo solo en escritorio: bajo 860 px la tabla pasa a fichas y un ancho fijo la cortaba (375 px). */}
+          <table className="fin-tabla min-[861px]:min-w-[560px]">
             <thead>
               <tr>
                 <th>Mes</th>

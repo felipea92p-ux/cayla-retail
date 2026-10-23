@@ -39,6 +39,9 @@ export function pulsoImpuestos(p: PanelImpuestos): PulsoImpuestos {
   const igv = r2(f.aPagar);
   const aFavor = r2(f.saldoAFavor);
   const total = r2(igv + (renta ?? 0));
+  // Un mes sin ventas ni compras con factura (ni saldo que arrastre) no queda «a favor S/ 0»: no hay nada que contar.
+  if (igv === 0 && aFavor === 0 && f.debito === 0 && f.credito === 0)
+    return { estado: "sin_mes", mes: p.mes, frase: `En ${mes} no hubo ventas ni compras con factura en el sistema: no hay IGV que pagar ni saldo a favor.` };
   const estado = igv > 0 ? "a_pagar" : "a_favor";
   const cuenta: TramoImpuesto[] = [
     { clave: "cobrado", nombre: "IGV que cobraste al vender", monto: r2(f.debito), tipo: "entra", detalle: `${plural(f.comprobantes, "comprobante", "comprobantes")} de ${mes}.` },
@@ -52,13 +55,14 @@ export function pulsoImpuestos(p: PanelImpuestos): PulsoImpuestos {
   );
   if (renta !== null) {
     cuenta.push({ clave: "renta", nombre: `Pago a cuenta de renta (${p.renta.tasa !== null ? `${Math.round(p.renta.tasa * 1000) / 10} %` : "el porcentaje del régimen"} de lo vendido sin IGV)`, monto: renta, tipo: "suma" });
-    if (estado === "a_pagar") cuenta.push({ clave: "total", nombre: "Total a SUNAT", monto: total, tipo: "queda" });
+    // Con saldo a favor el IGV no se paga, pero la renta sí: la cuenta cierra igual, con lo que de verdad sale.
+    cuenta.push({ clave: "total", nombre: estado === "a_pagar" ? "Total a SUNAT" : "Pagas a SUNAT (solo la renta)", monto: total, tipo: "queda" });
   }
   const porHacer: PorHacer[] = [];
   const r = p.revisar;
-  if (r.sinAceptar.n > 0) porHacer.push({ clave: "sin_aceptar", texto: `${plural(r.sinAceptar.n, "comprobante que SUNAT todavía no aceptó", "comprobantes que SUNAT todavía no aceptó")} (${soles(r.sinAceptar.total)}).`, href: "/ventas/comprobantes" });
-  if (r.rechazados.n > 0) porHacer.push({ clave: "rechazados", texto: `${plural(r.rechazados.n, "comprobante rechazado", "comprobantes rechazados")} por SUNAT (${soles(r.rechazados.total)}): hay que volver a emitirlos.`, href: "/ventas/comprobantes" });
-  if (r.sinComprobante.n > 0) porHacer.push({ clave: "sin_comprobante", texto: `${plural(r.sinComprobante.n, "venta sin comprobante", "ventas sin comprobante")} (${soles(r.sinComprobante.total)}).`, href: "/ventas/comprobantes" });
+  if (r.sinAceptar.n > 0) porHacer.push({ clave: "sin_aceptar", texto: `${plural(r.sinAceptar.n, "comprobante que SUNAT todavía no aceptó", "comprobantes que SUNAT todavía no aceptó")} (${soles(r.sinAceptar.total)}).`, href: "/vender/comprobantes" });
+  if (r.rechazados.n > 0) porHacer.push({ clave: "rechazados", texto: `${plural(r.rechazados.n, "comprobante rechazado", "comprobantes rechazados")} por SUNAT (${soles(r.rechazados.total)}): hay que volver a emitirlos.`, href: "/vender/comprobantes" });
+  if (r.sinComprobante.n > 0) porHacer.push({ clave: "sin_comprobante", texto: `${plural(r.sinComprobante.n, "venta sin comprobante", "ventas sin comprobante")} (${soles(r.sinComprobante.total)}).`, href: "/vender/comprobantes" });
   if (r.boletas.n > 0) porHacer.push({ clave: "boletas", texto: `${plural(r.boletas.n, "compra con boleta", "compras con boleta")} (${soles(r.boletas.total)}): ese IGV no se descuenta. Pide factura a ${r.boletas.proveedores.slice(0, 2).join(" y ") || "esos proveedores"}.`, href: "/finanzas/gastos" });
   if (r.igvPerdido.n > 0) porHacer.push({ clave: "igv_perdido", texto: `${plural(r.igvPerdido.n, "factura de S/\u00a02,000 o más pagada en efectivo", "facturas de S/\u00a02,000 o más pagadas en efectivo")}: se perdieron ${soles(r.igvPerdido.igv)} de IGV. Paga por el banco.`, href: "/finanzas/gastos" });
   // La alerta anticipada del límite (250 UIT, parámetro): va con lo que hay que hacer antes de declarar, porque cambia el pago a cuenta de renta de lo que viene. Dice qué cuenta
