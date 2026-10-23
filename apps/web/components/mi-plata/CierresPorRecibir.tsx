@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowDownLeft, ArrowUpRight, HandCoins, Undo2 } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
-import { Boton, CampoMonto, CampoSelect } from "@/components/ui/campos";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
+import { Boton, CampoMonto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
+import { FichasCuenta } from "@/components/fondos/FichasCuenta";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
@@ -15,10 +18,11 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { opcionesDeCuentas, primerNombre, type CuentaOpcion } from "@/lib/fondos-reglas";
+import { diaMes } from "@/lib/fechas-lima";
+import { primerNombre, type CuentaOpcion } from "@/lib/fondos-reglas";
 import { cuentaSugerida } from "@/lib/mi-plata-reglas";
 import { recibirCierre } from "@/lib/revisar-compras-acciones";
-import { botonCierre, camposCierre, filaCierre, type CierrePorRecibir, diaYRonda } from "@/lib/revisar-compras-reglas";
+import { botonCierre, camposCierre, type CierrePorRecibir } from "@/lib/revisar-compras-reglas";
 import { PanelDetalle } from "./PanelDetalle";
 
 // Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ los cierres del día que esperan a Compras. Rediseño (2026-10-23): se reciben
@@ -26,6 +30,11 @@ import { PanelDetalle } from "./PanelDetalle";
 // una. Trae el monto del cierre y la cuenta sugerida, y se puede corregir el monto si trajo otra cosa (lo que no devolvió sigue en su
 // plata). Con plata suya por confirmar, primero se confirma: la base no deja recibir antes (la plata por confirmar todavía no está en su
 // fondo). El cierre de quien mira no lo recibe ella.
+//
+// Sigue el diseño «A · Bandeja serena» que Felipe eligió el 2026-10-23 mirando las capturas: arriba la persona con su avatar («Lucía
+// cerró su ronda») y el día del cierre en un chip; abajo, el cuaderno de la ronda en una tarjeta hueso y la cuenta en fichas de un toque.
+// El cierre solo trae lo que devuelve o lo que le debemos (no lo que le dieron, compró y gastó): el cuaderno muestra ese renglón final,
+// en grande, sin inventar los demás.
 
 type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 
@@ -43,7 +52,6 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
   const otroMonto = montoLeido != null && Math.abs(montoLeido - cierre.monto) >= 0.005;
   const nombre = primerNombre(cierre.persona);
   const espera = cierre.plataPorConfirmar > 0.005;
-  const chip = filaCierre(cierre).chip;
 
   async function confirmar() {
     if (guardando) return;
@@ -72,62 +80,71 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
     router.refresh();
   }
 
+  const IconoFinal = devuelve ? Undo2 : HandCoins;
+  const IconoBoton = devuelve ? ArrowDownLeft : ArrowUpRight;
+
   return (
     <PanelDetalle
       guia="fondos.cierre-detalle"
-      sobre={[cierre.persona, diaYRonda(cierre.fecha, cierre.ronda)].filter(Boolean).join(" · ")}
-      titulo={devuelve ? `Cerró su ronda y devuelve ${soles(cierre.monto)}` : `Cerró su ronda y le debemos ${soles(cierre.monto)}`}
-      estado={<Chip tono={chip.tono}>{chip.texto}</Chip>}
+      avatar={<AvatarPersona personaId={cierre.personaId} nombre={cierre.persona} tamano={40} />}
+      sobre={[cierre.ronda, "Ronda cerrada"].filter(Boolean).join(" · ")}
+      titulo={`${nombre} cerró su ronda`}
+      estado={<Chip tono="verde">{cierre.fecha ? `Cerrada ${diaMes(cierre.fecha)}` : "Cerrada"}</Chip>}
     >
+      {/* El cuaderno de la ronda: hoy solo su renglón final (lo que devuelve o lo que le debemos), que es lo que trae el cierre. */}
+      <div className="rounded-[20px] bg-hueso p-2">
+        <div className="flex items-center gap-4 rounded-2xl bg-papel px-5 py-4">
+          <span aria-hidden className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${devuelve ? "bg-verde/10 text-verde" : "bg-ambar/10 text-ambar-profundo"}`}>
+            <IconoFinal className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1 text-[15px] font-semibold text-tinta">{devuelve ? "Devuelve" : "Le debemos"}</span>
+          <span className="whitespace-nowrap font-serif text-[40px] leading-none tabular-nums text-tinta">{soles(cierre.monto)}</span>
+        </div>
+      </div>
       {cierre.esMia ? (
         <div className="flex flex-col items-start gap-2">
           <Chip tono="pizarra">Es tuyo</Chip>
-          <p className="text-sm text-taupe">Lo de tu propia ronda lo recibe otra persona de Compras.</p>
+          <p className="text-sm text-taupe">Lo recibe otra persona de Compras.</p>
         </div>
       ) : espera ? (
-        <p className="nota-cayla text-sm">
-          Primero confirma su plata por confirmar ({soles(cierre.plataPorConfirmar)}), en «Plata por confirmar»: todavía no está en su fondo.
-        </p>
+        <Aviso tono="atencion" titulo="Primero confirma su plata">
+          {soles(cierre.plataPorConfirmar)} en «Plata», por confirmar: todavía no está en su fondo.
+        </Aviso>
       ) : (
         <form
           onSubmit={(e) => {
             e.preventDefault();
             void confirmar();
           }}
-          className="flex min-w-0 max-w-2xl flex-col gap-5"
+          className="flex min-w-0 flex-col gap-5"
         >
-          <div className="grid gap-3 @min-[40rem]:grid-cols-2">
-            <CampoGuiado id="cuenta" guia={guia} titulo={devuelve ? "¿Dónde entra la plata?" : "¿De dónde sale?"}>
-              <CampoSelect
-                etiqueta={devuelve ? "¿Dónde entra la plata?" : "¿De dónde sale?"}
-                caja
-                valor={cuentaId}
-                onValor={(x) => {
-                  setRechazo(null);
-                  setCuentaId(x);
-                }}
-                opciones={opcionesDeCuentas(cuentas)}
-                marcador={cuentas.length === 0 ? "No hay un banco ni una caja fuerte activos" : "Elige el banco o la caja fuerte"}
-                deshabilitado={guardando || cuentas.length === 0}
-              />
-            </CampoGuiado>
-            <CampoGuiado id="monto" guia={guia} titulo={devuelve ? "¿Cuánto trajo?" : "¿Cuánto le pagas?"}>
-              <CampoMonto
-                etiqueta={devuelve ? "¿Cuánto trajo?" : "¿Cuánto le pagas?"}
-                etiquetaOculta
-                inputMode="decimal"
-                autoComplete="off"
-                value={monto}
-                disabled={guardando}
-                onChange={(e) => {
-                  setRechazo(null);
-                  setMonto(e.target.value);
-                }}
-              />
-              {otroMonto && devuelve && <p className="mt-1.5 text-xs text-taupe">Lo que no trajo sigue en su plata para compras.</p>}
-            </CampoGuiado>
-          </div>
-          {devuelve && <p className="nota-cayla text-sm">Cuéntala antes de recibirla. Si falta, recíbela por lo que contaste.</p>}
+          <CampoGuiado id="cuenta" guia={guia} titulo={devuelve ? "¿Dónde entra?" : "¿De dónde sale?"}>
+            <FichasCuenta
+              etiqueta={devuelve ? "¿Dónde entra la plata?" : "¿De dónde sale?"}
+              cuentas={cuentas}
+              valor={cuentaId}
+              onValor={(x) => {
+                setRechazo(null);
+                setCuentaId(x);
+              }}
+              deshabilitado={guardando}
+            />
+          </CampoGuiado>
+          <CampoGuiado id="monto" guia={guia} titulo={devuelve ? "¿Cuánto trajo?" : "¿Cuánto le pagas?"} ayuda={devuelve ? "Cuéntala antes" : undefined} className="max-w-xs">
+            <CampoMonto
+              etiqueta={devuelve ? "¿Cuánto trajo?" : "¿Cuánto le pagas?"}
+              etiquetaOculta
+              inputMode="decimal"
+              autoComplete="off"
+              value={monto}
+              disabled={guardando}
+              onChange={(e) => {
+                setRechazo(null);
+                setMonto(e.target.value);
+              }}
+            />
+            {otroMonto && devuelve && <p className="mt-1.5 text-xs text-taupe">Lo que no trajo sigue en su plata.</p>}
+          </CampoGuiado>
           {!esPersona && (
             <CampoGuiado id="responsable" guia={guia} titulo={devuelve ? "Quién recibe" : "Quién paga"}>
               <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -150,7 +167,10 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
               className={guia.claseConfirmar}
               data-guia="fondos.cierre-recibir"
             >
-              {botonCierre(cierre, montoLeido)}
+              <span className="inline-flex items-center gap-2">
+                <IconoBoton className="h-4 w-4" aria-hidden />
+                {botonCierre(cierre, montoLeido)}
+              </span>
             </Boton>
           </div>
         </form>
