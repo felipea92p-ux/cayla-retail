@@ -44,6 +44,11 @@
     animation: cayla-aviso-sale 260ms var(--ease-salida) forwards;
     pointer-events: none;
   }
+  /* Con el dedo (ADR-0479, actividad 8): la tarjeta se aparta de lado o hacia arriba, así que el navegador no se queda con
+     el gesto (sin esto, un dedo que va de lado lo toma como desplazar la página y el arrastre se corta). Mientras el dedo la
+     toca, el reloj se detiene, como con el mouse encima. */
+  .aviso-tarjeta { touch-action: none; }
+  .aviso-tarjeta[data-tocando] .aviso-reloj { animation-play-state: paused, paused; }
 
   /* ---- Texto: el título dice QUÉ pasó; el detalle, sobre qué ---- */
   .aviso-tit {
@@ -84,8 +89,12 @@
     opacity: 0;
     transition: opacity 200ms var(--ease-cayla), color 200ms;
   }
-  /* Cerrar aparece al mirar el aviso: en reposo la tarjeta queda limpia. */
+  /* Cerrar aparece al mirar el aviso: en reposo la tarjeta queda limpia. Con el dedo no hay «mirar» (ADR-0479): el ✕ está
+     siempre a la vista y crece a 30 px para el dedo, sin mover el texto. */
   .aviso-x:focus-visible { opacity: 1; }
+  @media (hover: none) {
+    .aviso-x { opacity: 1; padding: 0.5rem; margin: -0.25rem -0.25rem -0.25rem 0; }
+  }
   @media (hover: hover) {
     .aviso-tarjeta:hover .aviso-x { opacity: 1; }
     .aviso-x:hover { color: var(--color-tinta); background: color-mix(in srgb, var(--color-tinta) 4%, transparent); }
