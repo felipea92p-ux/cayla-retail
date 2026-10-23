@@ -44,6 +44,18 @@ export type PlataAnotada = {
   conFoto: boolean;
 };
 
+/** Una compra que anotó (ADR-0480, actividad 3): el papel con su proveedor, cuántas prendas y a qué tiendas van. */
+export type CompraAnotada = {
+  id: string;
+  proveedor: string;
+  tipo: string;
+  monto: number;
+  porCompletar: boolean;
+  fecha: string;
+  prendas: number;
+  tiendas: string[];
+};
+
 export type MiPlata = {
   /** Sin cuenta de persona (una terminal), no hay «tu plata». */
   persona: boolean;
@@ -51,10 +63,13 @@ export type MiPlata = {
   saldo: number;
   /** Lo que anotó y Compras todavía no confirma: ya está en su plata y lo puede usar. */
   porConfirmar: number;
-  /** Lo que tiene para comprar: su fondo más lo por confirmar. */
+  /** Lo que compró con un papel que Compras todavía no completa: ya bajó de su plata (los libros lo mueven al completarlo). */
+  comprasPorCompletar: number;
+  /** Lo que tiene para comprar: su fondo más lo por confirmar, menos lo comprado por completar. */
   tiene: number;
   puedeYaTenia: boolean;
   anotada: PlataAnotada[];
+  compras: CompraAnotada[];
 };
 
 function leerAnotada(x: unknown): PlataAnotada | null {
@@ -75,20 +90,41 @@ function leerAnotada(x: unknown): PlataAnotada | null {
   };
 }
 
+function leerCompra(x: unknown): CompraAnotada | null {
+  if (!x || typeof x !== "object") return null;
+  const o = x as Record<string, unknown>;
+  const id = texto(o.id);
+  const monto = numero(o.monto);
+  if (!id || monto == null) return null;
+  return {
+    id,
+    proveedor: texto(o.proveedor) ?? "un proveedor",
+    tipo: texto(o.tipo) ?? "",
+    monto,
+    porCompletar: o.estado === "por_completar",
+    fecha: texto(o.fecha) ?? "",
+    prendas: Math.max(0, Math.trunc(numero(o.prendas) ?? 0)),
+    tiendas: Array.isArray(o.tiendas) ? o.tiendas.filter((t): t is string => typeof t === "string") : [],
+  };
+}
+
 /** Lo que manda `fn_mi_plata_compras`. Ilegible: sin persona (la pantalla dice que no se pudo leer, no inventa cifras). */
 export function leerMiPlata(data: unknown): MiPlata | null {
   if (!data || typeof data !== "object") return null;
   const o = data as Record<string, unknown>;
-  if (o.persona !== true) return { persona: false, saldo: 0, porConfirmar: 0, tiene: 0, puedeYaTenia: false, anotada: [] };
+  if (o.persona !== true) return { persona: false, saldo: 0, porConfirmar: 0, comprasPorCompletar: 0, tiene: 0, puedeYaTenia: false, anotada: [], compras: [] };
   const saldo = numero(o.saldo) ?? 0;
   const porConfirmar = numero(o.por_confirmar) ?? 0;
+  const comprasPorCompletar = numero(o.compras_por_completar) ?? 0;
   return {
     persona: true,
     saldo,
     porConfirmar,
-    tiene: Math.round((saldo + porConfirmar) * 100) / 100,
+    comprasPorCompletar,
+    tiene: Math.round((saldo + porConfirmar - comprasPorCompletar) * 100) / 100,
     puedeYaTenia: o.puede_ya_tenia === true,
     anotada: (Array.isArray(o.anotada) ? o.anotada : []).map(leerAnotada).filter((a): a is PlataAnotada => a !== null),
+    compras: (Array.isArray(o.compras) ? o.compras : []).map(leerCompra).filter((c): c is CompraAnotada => c !== null),
   };
 }
 
@@ -171,6 +207,13 @@ const normalizar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toL
 export function cuentaSugerida(cuentas: readonly CuentaOpcion[]): string | null {
   const bancos = cuentas.filter((c) => c.tipo === "banco");
   return (bancos.find((c) => /\bbcp\b/.test(normalizar(c.nombre))) ?? bancos[0])?.id ?? null;
+}
+
+/** La frase bajo «Tienes para comprar». En negativo gastó más de lo que anotó: lo que sigue es anotar la plata que le dieron. */
+export function detalleTienes(tiene: number): string {
+  return tiene < 0
+    ? `Gastaste ${soles(-tiene)} más de lo que anotaste: anota en «Me dieron plata» la plata que te dieron.`
+    : "Tu plata de compras, lista para usar.";
 }
 
 /** El botón de la hoja dice lo que va a pasar: «Anotar S/ 300.00». */

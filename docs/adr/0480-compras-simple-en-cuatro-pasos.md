@@ -2,7 +2,8 @@
 
 - **Fecha:** 2026-10-22 · **Estado:** en construcción en la rama `claude/modulo-compras-66e94a`, actividad por actividad
   (`/construir`). Actividad 1 (menú y módulos): migración `20261022225000_compras_simple_modulos.sql`. Actividad 2 (anotar y confirmar
-  la plata): `20261022235000_compras_simple_plata_anotada.sql`. **Ninguna pegada en producción** (se pegan después de publicar la web,
+  la plata): `20261022235000_compras_simple_plata_anotada.sql`. Actividad 3 (registrar una compra): `20261023005000_compras_simple_compra_rapida.sql`.
+  **Ninguna pegada en producción** (se pegan después de publicar la web,
   en orden y con el OK de Felipe).
 - **Maqueta aprobada:** `docs/maquetas/compras-simple-2026-10/` (index.html tocable + README con cada decisión).
 - **Relacionados:** ADR-0362 (Órdenes de compra y Fondos por rendir, fases 1–6: lo que se reemplaza), ADR-0111 y ADR-0362 fase 5b
@@ -71,6 +72,25 @@ que «ya tenía» entra como **saldo de apertura**.
   «¿cómo se pagó?», y la casilla «Ya tenía plata de antes» solo la primera vez) y «Lo que anotaste». En «Revisar compras», arriba, «Plata
   que anotaron las compradoras»: el voucher, la cuenta sugerida, «Confirmar» de un toque y «Cambiar» para corregir el monto o la cuenta.
 
+## Actividad 3: «Compré ropa» desde el celular (2026-10-22)
+
+**Lo que decidió Felipe al construirla:** cuando la compradora guarda una compra, **la plata baja en su celular al instante y en los libros
+recién al completar el papel** (paso 4): nada que Compras no revisó toca las cuentas.
+
+- **Una compra = un papel rápido + una orden de compra por tienda.** `compra_papeles` guarda de quién, qué papel (factura, boleta, nota de
+  venta o ninguno), la foto (carpeta `papeles/` del mismo depósito) y el monto; nace «por completar». Las prendas son órdenes de compra, una
+  por tienda de destino (`ordenes_compra.papel_id`): el envío a cada tienda, Recibir y todo lo que ya entiende una orden siguen igual. Se
+  descartó una columna de tienda por línea, que obligaba a tocar todo lo que trabaja por orden.
+- **`registrar_compra_rapida`** guarda todo en una transacción y valida cada línea con `fn_orden_compra_validar`, la misma regla de las
+  órdenes del escritorio. Una prenda elegida del catálogo trae su categoría y su marca de ahí (`orden_compra_items.producto_id`, para que
+  la tienda la cuente sin buscarla al recibir). El identificador nace al abrir la pantalla: repetir el envío devuelve lo mismo.
+- **Los habituales** (`fn_habituales_proveedor`) salen de lo que ya se le compró aquí (con lo de la vez pasada) y, después, de las prendas
+  del catálogo que tienen ese proveedor: en producción, 323 de 438 el 2026-10-22, así que sirve desde el primer día (con 0 órdenes, solo las
+  órdenes darían una lista vacía). Sin una tabla de «productos por proveedor» que se desincronice.
+- **La pantalla** (`/compras/mi-plata/compra`) es una pregunta a la vez, como la maqueta: el proveedor (por nombre o por lo que vende) →
+  sus habituales → cuántas, el costo y la venta («Igual que la vez pasada» o «Igual que en el catálogo» de un toque) → a qué tienda →
+  revisar → el papel (qué te dieron, la foto, cuánto: viene con el total). «Algo nuevo» y «Nuevo proveedor» llegan en la actividad 4.
+
 ## Cómo se ve mal hecho
 
 - Retirar `ordenes_compra` y crear una clave nueva: el rol «Compras» perdería en silencio recibir, gastos y proveedores.
@@ -79,5 +99,5 @@ que «ya tenía» entra como **saldo de apertura**.
 
 ## Qué queda
 
-Actividades 3 a 8 de la construcción (registrar la compra, algo nuevo y proveedor nuevo, otro gasto y
+Actividades 4 a 8 de la construcción ( algo nuevo y proveedor nuevo, otro gasto y
 cierre del día, recibir con costo y precio, revisar compras, cierre con guías y pruebas). Cada una agrega su sección a este ADR.

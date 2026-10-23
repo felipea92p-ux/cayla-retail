@@ -62,7 +62,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
   "/compras/factura/[compraId]": PENDIENTE,
   "/compras/fondos": { estado: "no-aplica", motivo: "Lista de fondos por rendir (ADR-0362, fase 6): se mira quién tiene plata y qué se le entregó, no se llena. Lo que se llena (a quién, de dónde, cuánto, para qué) vive en sus hojas «Entregar plata», «Lo que devuelve» y «Anular», con su guía (registro de modales)." },
-  "/compras/mi-plata": { estado: "no-aplica", motivo: "Actividad 1 de ADR-0480: la pantalla todavía no tiene campos, solo dice qué viene. Los campos (la plata, la compra, el gasto) llegan con su guía de foco en las actividades 2 a 5." },
+  "/compras/mi-plata": { estado: "no-aplica", motivo: "ADR-0480: la pantalla no tiene campos propios; los tiene la hoja «Me dieron plata» (declarada en MODALES) y la compra (/compras/mi-plata/compra)." },
+  // ADR-0480, actividad 3: «Compré ropa». Una pregunta por pantalla; el paso del papel dice qué falta (qué te dieron, la foto si hay papel, cuánto).
+  "/compras/mi-plata/compra": { estado: "aplicada", evidencia: ["components/mi-plata/RegistrarCompra.tsx"] },
   "/compras/notas-credito": { estado: "no-aplica", motivo: "Redirige a Facturas de proveedor: Notas de crédito se retiró (ADR-0480)." },
   "/compras/nueva": PENDIENTE,
   "/compras/ordenes": { estado: "no-aplica", motivo: "Lista de órdenes de compra (ADR-0362): se mira y se filtra, no se llena. Lo que se llena (proveedor, destino, líneas) vive en «Nueva orden de compra», con su guía." },

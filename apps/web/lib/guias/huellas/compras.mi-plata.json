@@ -2,8 +2,11 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 7,
+  "total": 8,
   "controles": {
+    "app/(app)/compras/mi-plata/page.tsx": [
+      "Link «mi-plata.compre»"
+    ],
     "components/mi-plata/AnotarPlata.tsx": [
       "button «mi-plata.me-dieron»",
       "Casilla «{`${MEDIOS_PLATA.ya_tenia.nombre}»",

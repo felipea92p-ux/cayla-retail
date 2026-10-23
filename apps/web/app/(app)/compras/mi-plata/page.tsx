@@ -1,7 +1,7 @@
-import { HandCoins } from "lucide-react";
+import { HandCoins, ShoppingBag } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getMiPlata } from "@/lib/mi-plata";
-import { MEDIOS_PLATA, textoMontoAnotado, textoPorConfirmar } from "@/lib/mi-plata-reglas";
+import { MEDIOS_PLATA, detalleTienes, textoMontoAnotado, textoPorConfirmar } from "@/lib/mi-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -11,6 +11,8 @@ import { Chip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { AnotarPlata } from "@/components/mi-plata/AnotarPlata";
+import Link from "next/link";
+import { TIPOS_PAPEL, type TipoPapel } from "@/lib/compra-rapida-reglas";
 
 // Compras ▸ Mi plata para compras (ADR-0480, Compras simple): la pantalla de quien compra, hecha para el celular. Maqueta aprobada:
 // docs/maquetas/compras-simple-2026-10/.
@@ -44,7 +46,7 @@ export default async function MiPlataPage() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
           <div className="flex flex-col gap-4">
             <TarjetaCifra etiqueta="Tienes para comprar" valor={soles(plata.tiene)} guia="mi-plata.tienes">
-              {plata.saldo < 0 && plata.porConfirmar <= 0 ? "Pusiste de tu bolsillo: CAYLA te debe esa plata." : "Tu plata de compras, lista para usar."}
+              {detalleTienes(plata.tiene)}
             </TarjetaCifra>
             {revisando && (
               <p className="nota-cayla text-sm" data-guia="mi-plata.revisando">
@@ -53,10 +55,45 @@ export default async function MiPlataPage() {
             )}
             <section className="flex flex-col gap-3">
               <TituloSeccion>¿Qué hiciste?</TituloSeccion>
+              <Link href="/compras/mi-plata/compra" data-guia="mi-plata.compre" className="card-cayla mov-boton flex w-full items-center gap-4 p-4 text-left">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sand/50 text-tinta">
+                  <ShoppingBag className="h-5 w-5" aria-hidden />
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-serif text-xl leading-tight text-tinta">Compré ropa</span>
+                  <span className="block text-sm text-taupe">A un proveedor, en la calle o por pedido: anota qué compraste.</span>
+                </span>
+              </Link>
               <AnotarPlata puedeYaTenia={plata.puedeYaTenia} />
             </section>
           </div>
 
+          <div className="flex min-w-0 flex-col gap-6">
+          {plata.compras.length > 0 && (
+            <section className="flex min-w-0 flex-col gap-3" data-guia="mi-plata.compras">
+              <TituloSeccion cuenta={plata.compras.length}>Lo que compraste</TituloSeccion>
+              <ul className="card-cayla divide-y divide-sand">
+                {plata.compras.map((c) => (
+                  <li key={c.id} className="flex items-center gap-3 px-4 py-3">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-tinta">Compra a {c.proveedor}</span>
+                      <span className="block text-xs text-taupe">
+                        {c.prendas} prendas · {TIPOS_PAPEL[c.tipo as TipoPapel]?.nombre ?? "Papel"}
+                        {c.fecha ? ` · ${diaMes(c.fecha)}` : ""}
+                        {c.tiendas.length ? ` · va a ${c.tiendas.join(", ")}` : ""}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end gap-1">
+                      <span className="whitespace-nowrap text-sm tabular-nums text-tinta">− {soles(c.monto)}</span>
+                      <Chip tono={c.porCompletar ? "ambar" : "verde"} title={c.porCompletar ? "Compras copia su serie y número" : "Compras ya la completó"}>
+                        {c.porCompletar ? "Por completar" : "Completa"}
+                      </Chip>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <section className="flex min-w-0 flex-col gap-3" data-guia="mi-plata.lista">
             <TituloSeccion cuenta={plata.anotada.length}>Lo que anotaste</TituloSeccion>
             {plata.anotada.length === 0 ? (
@@ -88,6 +125,7 @@ export default async function MiPlataPage() {
               </ul>
             )}
           </section>
+          </div>
         </div>
       )}
     </div>

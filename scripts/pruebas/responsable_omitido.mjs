@@ -187,7 +187,8 @@ caso(
 // más: deshacer la unión de una cuenta de Google con un miembro (`vinculo_google_desvincular`, 20261021170000; ADR-0469), solo del líder. Y una
 // más: registrar un proveedor nuevo desde una orden de compra (`proveedor_de_orden`, 20261021202000; ADR-0362), con el trato de la orden.
 // Y dos más de Compras simple: anotar la plata que te dieron y confirmarla (`plata_anotar`, `plata_confirmar`, 20261022235000; ADR-0480).
-const TOTAL = EN_SECO ? "28" : "56";
+// Y una más: registrar una compra desde el celular (`compra_rapida`, 20261023005000; ADR-0480).
+const TOTAL = EN_SECO ? "28" : "57";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
 // El gasto del viaje es la excepción con motivo: se anota en Gamarra, donde nadie marca entrada (ADR-0362 fase 6, provisional). Sumarle
 // la foto de su papel no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`).

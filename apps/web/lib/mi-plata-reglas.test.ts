@@ -3,6 +3,7 @@ import {
   camposAnotar,
   camposConfirmar,
   cuentaSugerida,
+  detalleTienes,
   fraseAnotar,
   leerMiPlata,
   leerPlataPorConfirmar,
@@ -35,6 +36,15 @@ describe("leerMiPlata: lo que tiene para comprar es su fondo más lo por confirm
       ["b", false, null, false],
       ["a", true, 280, true],
     ]);
+  });
+
+  it("lo comprado con un papel por completar ya bajó de su plata; lee sus compras", () => {
+    const p = leerMiPlata({
+      persona: true, saldo: 300, por_confirmar: 200, compras_por_completar: 450, anotada: [],
+      compras: [{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, estado: "por_completar", fecha: "2026-10-22", prendas: 16, tiendas: ["Tienda TRU"] }, { id: "x" }],
+    });
+    expect(p).toMatchObject({ tiene: 50, comprasPorCompletar: 450 });
+    expect(p?.compras).toEqual([{ id: "c", proveedor: "Textiles Rosa", tipo: "boleta", monto: 450, porCompletar: true, fecha: "2026-10-22", prendas: 16, tiendas: ["Tienda TRU"] }]);
   });
 
   it("un fondo en negativo (pagó de su bolsillo) resta: tiene lo que queda de verdad", () => {
@@ -129,6 +139,10 @@ describe("cuentaSugerida: el BCP (Felipe 2026-10-22)", () => {
 });
 
 describe("textos", () => {
+  it("bajo lo que tiene: en negativo, que anote la plata que le dieron", () => {
+    expect(detalleTienes(50)).toBe("Tu plata de compras, lista para usar.");
+    expect(plano(detalleTienes(-726))).toBe("Gastaste S/ 726.00 más de lo que anotaste: anota en «Me dieron plata» la plata que te dieron.");
+  });
   it("el botón dice cuánto se anota", () => {
     expect(plano(fraseAnotar(300))).toBe("Anotar S/ 300.00");
     expect(plano(fraseAnotar(null))).toBe("Anotar la plata");

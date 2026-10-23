@@ -1405,6 +1405,9 @@ export const PRUEBAS = [
   // Compras simple (ADR-0480, actividad 2): la compradora anota su plata (por confirmar, sin mover plata; «ya tenía» solo la primera
   // vez; el token sigue al contenido) y Compras la confirma (entrega al fondo desde la cuenta elegida, o el saldo inicial del fondo).
   "pruebas:compras-simple-plata",
+  // Compras simple (ADR-0480, actividad 3): «Compré ropa» es un papel por completar y una orden por tienda, sin mover plata en los libros;
+  // los habituales del proveedor (lo comprado aquí y su catálogo) y el reintento que no duplica.
+  "pruebas:compras-simple-compra",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,
