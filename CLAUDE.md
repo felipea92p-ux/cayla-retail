@@ -164,7 +164,8 @@ raro, el log de Postgres (`query_logs`, `source = 'postgres_logs'`) muestra el t
 **Todo modal nuevo se hace con `<Modal>` (`apps/web/components/ui/Modal.tsx`; por URL, `<ModalRuta>`) y hereda solo el
 efecto del sistema: velo con desenfoque → hoja que sube 18 px y crece → contenido en cascada (título, bajada y campos,
 55 ms de desfase) → salida corta. En el celular la hoja llega desde el borde, con asa, se baja con el dedo y aleja lo de atrás
-(«B · Hoja viva con profundidad», ADR-0479): `<Modal>` y `<Cajon>` ya lo hacen.** No definas otra animación de entrada de modal ni reimplementes el overlay
+(«B · Hoja viva con profundidad», ADR-0479): `<Modal>` y `<Cajon>` ya lo hacen.** Y un `:hover` de nuestro CSS va siempre dentro de
+`@media (hover: hover)` (en el teléfono se queda pegado tras un toque; el `hover:` de Tailwind ya lo hace solo): lo vigila `lib/hover-con-mouse.test.ts`. No definas otra animación de entrada de modal ni reimplementes el overlay
 (`fixed inset-0`): si una pieza no debe entrar en cascada, `data-sin-cascada`. Lo único que un modal agrega por su cuenta
 son respuestas a una acción dentro del contenido (barra que se llena, cifra que cuenta, «visto» que se dibuja) con
 `--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida», el hilo que barre el botón mientras la base responde (antes, su giro; ronda 12 de `/unificar`) y las rayas
