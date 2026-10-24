@@ -13,25 +13,22 @@ import { COSTO_REAL_MIN_PCT, margenDe, pct, plataRealEnEstantes, tieneCostoReal,
 
 /** Una prenda que llegó hace menos que esto no se juzga: «sin vender» puede ser solo que llegó ayer. */
 export const DIAS_PARA_JUZGAR = 21;
-/** Plata parada mínima para avisar (por debajo no vale la pena un aviso). */
-export const PLATA_PARADA_MIN = 1000;
+/** Plata parada mínima para avisar (por debajo no vale la pena un aviso). Felipe 2026-10-24: 1000 → 500. */
+export const PLATA_PARADA_MIN = 500;
 /** Unidades paradas mínimas para avisar cuando el costo está por confirmar (el aviso es de unidades, no de plata). */
 export const UNIDADES_PARADAS_MIN = 30;
-/** Desde qué parte de lo gastado, parada, se dice «frénate». */
-export const PARADO_PCT = 40;
 /** Cuántos puntos de margen por debajo del promedio de la cartera para avisar. */
 export const PUNTOS_MARGEN_BAJO = 7;
-/** Unidades vendidas mínimas para juzgar a un proveedor (con menos, dos ventas no son una tendencia). */
+/** Unidades vendidas mínimas para sacar una conclusión de MARGEN (margen bajo, vuelve a comprarle). No rige para el ritmo ni la plata parada. */
 export const MIN_VENDIDAS = 10;
-/** Cuánto de lo comprado debe estar vendido para decir «vuelve a comprarle». */
-export const VENDIDO_BUENO_PCT = 60;
-/** Con tantas unidades compradas y tan poco vendido (%), se avisa rotación lenta aunque el costo esté por confirmar. */
-export const VENDIDO_LENTO_PCT = 10;
-export const UNIDADES_PARA_ROTACION = 50;
-/** Semanas de stock desde las que se avisa «a este ritmo tardas mucho». */
-export const SEMANAS_STOCK_LARGO = 26;
-/** Peso de un proveedor en el gasto de Compras desde el que se avisa dependencia. */
-export const DEPENDENCIA_PCT = 40;
+/** Unidades compradas mínimas para hablar del ritmo de un proveedor (con menos, es poca mercadería para medir nada). */
+export const MIN_COMPRADAS = 20;
+/** Semanas que tardaría en venderse lo que queda, al ritmo actual, desde las que se avisa «frénate»: una temporada. */
+export const SEMANAS_STOCK_LARGO = 16;
+/** Semanas en las que, al ritmo actual, se agota lo que queda: desde ahí es «vuelve a comprarle» (con margen) o «se agota pronto». */
+export const SEMANAS_AGOTA = 6;
+/** Peso de un proveedor en el gasto de Compras desde el que se avisa dependencia. Felipe 2026-10-24: 40 → 25. */
+export const DEPENDENCIA_PCT = 25;
 export const MAX_AVISOS = 5;
 
 export type TonoHallazgo = "atencion" | "exito" | "info";
@@ -60,6 +57,49 @@ function semanasDesde(primera: string | null, hoy: string): number {
   if (!primera) return 1;
   return Math.max(1, diasEntreFechas(primera, hoy) / 7);
 }
+
+export type Ritmo = {
+  /** ¿Hay mercadería suficiente y tiempo en la tienda para hablar de ritmo? */
+  juzgable: boolean;
+  vendidas: number;
+  enEstantes: number;
+  semanas: number;
+  porSemana: number;
+  /** Semanas que tardaría en venderse lo que queda: 0 si no queda nada, `Infinity` si no vendió nada. */
+  semanasParaAgotar: number;
+  /** Tarda `SEMANAS_STOCK_LARGO` semanas o más (o no vendió nada) en vender lo que le queda. */
+  lento: boolean;
+  /** Agota lo que le queda en `SEMANAS_AGOTA` semanas o menos. */
+  agota: boolean;
+};
+
+/**
+ * El ritmo de UN proveedor, en UNIDADES (vale para los dos orígenes, carga inicial incluida): una sola función para la ficha y la lista,
+ * así no se contradicen. No exige un mínimo de ventas: con 0 o pocas, el ritmo es lento por definición. Si no vendió nada no hay ritmo
+ * que medir: cuenta como lento cuando lleva `DIAS_PARA_JUZGAR` días o más en la tienda.
+ */
+export function ritmoDe(prendas: readonly PrendaDeProveedor[], hoy: string): Ritmo {
+  const t = totalesDePrendas(prendas);
+  const primera = prendas.map((p) => p.primeraEntrada).filter((d): d is string => !!d).sort()[0] ?? null;
+  const dias = primera ? diasEntreFechas(primera, hoy) : null;
+  const semanas = semanasDesde(primera, hoy);
+  const porSemana = t.unidadesVendidas / semanas;
+  const enEstantes = t.unidadesEnEstantes;
+  const semanasParaAgotar = enEstantes === 0 ? 0 : t.unidadesVendidas === 0 ? Infinity : enEstantes / porSemana;
+  const juzgable = dias != null && dias >= DIAS_PARA_JUZGAR && t.unidadesCompradas >= MIN_COMPRADAS;
+  return {
+    juzgable,
+    vendidas: t.unidadesVendidas,
+    enEstantes,
+    semanas,
+    porSemana,
+    semanasParaAgotar,
+    lento: juzgable && enEstantes > 0 && semanasParaAgotar >= SEMANAS_STOCK_LARGO,
+    agota: juzgable && t.unidadesVendidas > 0 && enEstantes > 0 && semanasParaAgotar <= SEMANAS_AGOTA,
+  };
+}
+
+const textoSemanas = (r: Ritmo) => (Number.isFinite(r.semanasParaAgotar) ? `unas ${Math.round(r.semanasParaAgotar)} semanas` : "un tiempo que no se puede medir: no ha vendido nada");
 
 function sinVenderViejas(prendas: readonly PrendaDeProveedor[], hoy: string): PrendaDeProveedor[] {
   return prendas.filter((p) => p.unidadesVendidas === 0 && p.primeraEntrada != null && diasEntreFechas(p.primeraEntrada, hoy) >= DIAS_PARA_JUZGAR);
@@ -118,18 +158,18 @@ export function hallazgosDeProveedor(prendas: readonly PrendaDeProveedor[], hoy:
     });
   }
 
-  // 3. A este ritmo, cuánto tardas en vender lo que queda (unidades: vale para los dos orígenes).
-  const semanas = semanasDesde(prendas.map((p) => p.primeraEntrada).filter((d): d is string => !!d).sort()[0] ?? null, hoy);
-  const porSemana = t.unidadesVendidas / semanas;
-  if (t.unidadesVendidas >= MIN_VENDIDAS && porSemana > 0 && t.unidadesEnEstantes / porSemana >= SEMANAS_STOCK_LARGO) {
-    const meses = t.unidadesEnEstantes / porSemana / 4.345;
+  // 3. A este ritmo, cuánto tardas en vender lo que queda (unidades: vale para los dos orígenes; sin mínimo de ventas).
+  const r = ritmoDe(prendas, hoy);
+  if (r.lento) {
     out.push({
       id: "ritmo",
       tono: "atencion",
-      titulo: `A este ritmo tardarías unos ${Math.round(meses)} meses en vender lo que le queda`,
+      titulo: Number.isFinite(r.semanasParaAgotar)
+        ? `A este ritmo tardarías unas ${Math.round(r.semanasParaAgotar)} semanas en vender lo que le queda`
+        : `No ha vendido nada en ${Math.round(r.semanas)} semanas y le quedan ${num(r.enEstantes)} unidades`,
       texto: "Vendes poco por semana comparado con lo que tienes en estantes de este proveedor: compra menos o mueve lo que hay.",
-      numeros: [`${num(t.unidadesVendidas)} vendidas en ${Math.round(semanas)} semanas (${porSemana.toLocaleString("es-PE", { maximumFractionDigits: 1 })} por semana)`, `${num(t.unidadesEnEstantes)} unidades siguen en estantes`],
-      regla: `Unidades en estantes entre las vendidas por semana; avisa desde ${SEMANAS_STOCK_LARGO} semanas, con al menos ${MIN_VENDIDAS} unidades vendidas.`,
+      numeros: [`${num(r.vendidas)} vendidas en ${Math.round(r.semanas)} semanas (${r.porSemana.toLocaleString("es-PE", { maximumFractionDigits: 1 })} por semana)`, `${num(r.enEstantes)} unidades siguen en estantes`],
+      regla: `Unidades en estantes entre las vendidas por semana; avisa desde ${SEMANAS_STOCK_LARGO} semanas (una temporada), con al menos ${MIN_COMPRADAS} unidades compradas y ${DIAS_PARA_JUZGAR} días en la tienda. Si no vendió nada, cuenta como lento.`,
       prioridad: 70,
     });
   }
@@ -166,59 +206,40 @@ export function hallazgosDeProveedor(prendas: readonly PrendaDeProveedor[], hoy:
   return out.sort((a, b) => b.prioridad - a.prioridad);
 }
 
-type Resumen = ReturnType<typeof totalesDePrendas> & { proveedorId: string; nombre: string; plataParada: number; prendasParadas: number; unidadesParadas: number; primera: string | null };
+type Resumen = ReturnType<typeof totalesDePrendas> & { proveedorId: string; nombre: string; ritmo: Ritmo; plataParada: number };
 
 /** Lo que se ve en la lista: compara a los proveedores externos entre sí (el Taller queda fuera). */
 export function hallazgosDeCartera(filas: readonly PrendaConProveedor[], hoy: string): Hallazgo[] {
   const porProveedor = new Map<string, PrendaConProveedor[]>();
   for (const f of filas) if (!f.esTaller) porProveedor.set(f.proveedorId, [...(porProveedor.get(f.proveedorId) ?? []), f]);
-  const resumenes: Resumen[] = [...porProveedor.entries()].map(([proveedorId, ps]) => {
-    const viejas = sinVenderViejas(ps, hoy);
-    return {
-      ...totalesDePrendas(ps),
-      proveedorId,
-      nombre: ps[0].proveedorNombre,
-      plataParada: viejas.reduce((a, p) => a + plataRealEnEstantes(p), 0),
-      prendasParadas: viejas.length,
-      unidadesParadas: viejas.reduce((a, p) => a + enEstantes(p), 0),
-      primera: ps.map((p) => p.primeraEntrada).filter((d): d is string => !!d).sort()[0] ?? null,
-    };
-  });
+  const resumenes: Resumen[] = [...porProveedor.entries()].map(([proveedorId, ps]) => ({
+    ...totalesDePrendas(ps),
+    proveedorId,
+    nombre: ps[0].proveedorNombre,
+    ritmo: ritmoDe(ps, hoy),
+    plataParada: sinVenderViejas(ps, hoy).reduce((a, p) => a + plataRealEnEstantes(p), 0),
+  }));
   const todos = totalesDePrendas(filas.filter((f) => !f.esTaller && tieneCostoReal(f)));
   const margenCartera = todos.margenPct;
   const reales = resumenes.filter((r) => !r.costoPorConfirmar);
   const out: Hallazgo[] = [];
-  const yaFrenados = new Set<string>();
-
-  // 1. Frenar: mucha plata parada (dinero: solo proveedores con costo real).
-  for (const r of reales.filter((x) => x.plataParada >= PLATA_PARADA_MIN && (pct(x.plataParada, x.gastoCompras) ?? 0) >= PARADO_PCT).sort((a, b) => b.plataParada - a.plataParada).slice(0, 2)) {
-    yaFrenados.add(r.proveedorId);
+  // 1. Frenar: al ritmo actual, vender lo que le queda tarda una temporada o más (unidades: vale para los dos orígenes, carga inicial
+  // incluida; el Taller no entra). No exige un mínimo de ventas. La plata solo se nombra cuando hay costo real.
+  for (const r of resumenes.filter((x) => x.ritmo.lento).sort((a, b) => b.ritmo.semanasParaAgotar - a.ritmo.semanasParaAgotar || b.ritmo.enEstantes - a.ritmo.enEstantes).slice(0, 3)) {
+    const rt = r.ritmo;
     out.push({
       id: `frenar-${r.proveedorId}`,
       proveedorId: r.proveedorId,
       tono: "atencion",
-      titulo: `${r.nombre}: ${soles(r.plataParada)} parados. Antes de comprarle más, mueve lo que tienes`,
-      texto: `Compraste ${num(r.unidadesCompradas)} prendas y vendiste ${num(r.unidadesVendidas)}. ${num(r.prendasParadas)} ${r.prendasParadas === 1 ? "prenda no ha vendido" : "prendas no han vendido"} ni una unidad.`,
-      numeros: [`Gastaste por Compras ${soles(r.gastoCompras)}`, `Parados (prendas sin ventas, con más de ${DIAS_PARA_JUZGAR} días): ${soles(r.plataParada)} = ${p0(pct(r.plataParada, r.gastoCompras) ?? 0)} de lo gastado por Compras`],
-      regla: `Se avisa si lo parado pasa de ${soles(PLATA_PARADA_MIN)} y es ${PARADO_PCT} % o más de lo gastado por Compras con ese proveedor.`,
-      prioridad: 85 + Math.min(10, r.plataParada / 1000),
-    });
-  }
-
-  // 1b. Rotación lenta en UNIDADES (vale para los dos orígenes): lo que se vendió es poco frente a lo comprado y el costo no está confirmado.
-  for (const r of resumenes
-    .filter((x) => !yaFrenados.has(x.proveedorId) && x.unidadesCompradas >= UNIDADES_PARA_ROTACION && (x.vendidoPct ?? 0) < VENDIDO_LENTO_PCT && x.primera != null && diasEntreFechas(x.primera, hoy) >= DIAS_PARA_JUZGAR && x.unidadesEnEstantes >= UNIDADES_PARADAS_MIN)
-    .sort((a, b) => b.unidadesEnEstantes - a.unidadesEnEstantes)
-    .slice(0, 2)) {
-    out.push({
-      id: `lento-${r.proveedorId}`,
-      proveedorId: r.proveedorId,
-      tono: "atencion",
-      titulo: `${r.nombre}: vendiste ${num(r.unidadesVendidas)} de ${num(r.unidadesCompradas)} (${p0(r.vendidoPct ?? 0)}). Rota lento`,
-      texto: `Siguen ${num(r.unidadesEnEstantes)} unidades en estantes. El costo está por confirmar: cuando lleguen compras por Compras se verá cuánta plata es.`,
-      numeros: [`${num(r.unidadesVendidas)} vendidas de ${num(r.unidadesCompradas)} compradas (${p0(r.vendidoPct ?? 0)})`, `${num(r.unidadesEnEstantes)} unidades siguen en estantes, desde hace más de ${DIAS_PARA_JUZGAR} días`],
-      regla: `Con ${UNIDADES_PARA_ROTACION} unidades compradas o más, menos de ${VENDIDO_LENTO_PCT} % vendido, al menos ${UNIDADES_PARADAS_MIN} unidades en estantes y ${DIAS_PARA_JUZGAR} días desde que llegaron.`,
-      prioridad: 72,
+      titulo: `${r.nombre}: vender lo que le queda tardaría ${textoSemanas(rt)}. Antes de comprarle más, mueve lo que tienes`,
+      texto: `Compraste ${num(r.unidadesCompradas)} unidades y vendiste ${num(r.unidadesVendidas)}; siguen ${num(rt.enEstantes)} en estantes.${r.costoPorConfirmar ? " El costo está por confirmar: cuando lleguen compras por Compras se verá cuánta plata es." : ""}`,
+      numeros: [
+        `${num(r.unidadesVendidas)} vendidas de ${num(r.unidadesCompradas)} compradas en ${Math.round(rt.semanas)} semanas (${rt.porSemana.toLocaleString("es-PE", { maximumFractionDigits: 1 })} por semana)`,
+        `${num(rt.enEstantes)} unidades siguen en estantes`,
+        ...(r.costoPorConfirmar ? [] : [`Plata en estantes (costo de Compras): ${soles(r.plataEnStock)}${r.plataParada >= PLATA_PARADA_MIN ? `, de la cual ${soles(r.plataParada)} en prendas sin una sola venta` : ""}`]),
+      ],
+      regla: `Unidades en estantes entre las vendidas por semana; avisa desde ${SEMANAS_STOCK_LARGO} semanas (una temporada), con al menos ${MIN_COMPRADAS} unidades compradas y ${DIAS_PARA_JUZGAR} días en la tienda. Si no vendió nada, cuenta como lento.`,
+      prioridad: 85 + (Number.isFinite(rt.semanasParaAgotar) ? Math.min(9, rt.semanasParaAgotar / 20) : 10),
     });
   }
 
@@ -238,20 +259,40 @@ export function hallazgosDeCartera(filas: readonly PrendaConProveedor[], hoy: st
     }
   }
 
-  // 3. Vuelve a comprarle (dinero: solo con costo real).
-  for (const r of reales
-    .filter((x) => x.unidadesVendidas >= MIN_VENDIDAS && (x.vendidoPct ?? 0) >= VENDIDO_BUENO_PCT && x.margenPct != null && margenCartera != null && x.margenPct >= margenCartera)
-    .sort((a, b) => (b.vendidoPct ?? 0) - (a.vendidoPct ?? 0))
+  // 3. Se vende rápido: al ritmo actual agota lo que le queda en `SEMANAS_AGOTA` semanas o menos.
+  //   · Con costo real y margen igual o mayor al promedio: «vuelve a comprarle».
+  //   · Con el costo por confirmar NO se recomienda comprar (el margen no se conoce): se avisa que «se agota pronto» y que se mire el margen
+  //     antes de reponer. Decisión del 2026-10-24: sin margen confiable, el aviso sale por ritmo y dice «margen por confirmar».
+  const yaVolver = new Set<string>();
+  for (const r of resumenes
+    .filter((x) => !x.costoPorConfirmar && x.unidadesVendidas >= MIN_VENDIDAS && x.ritmo.agota && x.margenPct != null && margenCartera != null && x.margenPct >= margenCartera)
+    .sort((a, b) => a.ritmo.semanasParaAgotar - b.ritmo.semanasParaAgotar)
     .slice(0, 2)) {
+    yaVolver.add(r.proveedorId);
     out.push({
       id: `volver-${r.proveedorId}`,
       proveedorId: r.proveedorId,
       tono: "exito",
-      titulo: `${r.nombre} es de lo que mejor te rinde: vendiste ${p0(r.vendidoPct ?? 0)} con ${p0(r.margenPct ?? 0)} de margen`,
+      titulo: `${r.nombre} es de lo que mejor te rinde: lo que le queda se agota en ${textoSemanas(r.ritmo)} y deja ${p0(r.margenPct ?? 0)} de margen`,
       texto: "Si vas a reponer, es buen lugar para hacerlo.",
-      numeros: [`${num(r.unidadesVendidas)} vendidas de ${num(r.unidadesCompradas)} compradas`, `Margen ${p0(r.margenPct ?? 0)} (promedio ${p0(margenCartera ?? 0)})`],
-      regla: `Con ${MIN_VENDIDAS} unidades vendidas o más y costo real, ${VENDIDO_BUENO_PCT} % o más de lo comprado ya vendido y margen igual o mayor al promedio.`,
+      numeros: [`${num(r.unidadesVendidas)} vendidas de ${num(r.unidadesCompradas)} compradas (${r.ritmo.porSemana.toLocaleString("es-PE", { maximumFractionDigits: 1 })} por semana)`, `${num(r.ritmo.enEstantes)} unidades siguen en estantes`, `Margen ${p0(r.margenPct ?? 0)} (promedio ${p0(margenCartera ?? 0)})`],
+      regla: `Con ${MIN_VENDIDAS} unidades vendidas o más y costo real, agota lo que le queda en ${SEMANAS_AGOTA} semanas o menos y su margen es igual o mayor al promedio.`,
       prioridad: 50,
+    });
+  }
+  for (const r of resumenes
+    .filter((x) => !yaVolver.has(x.proveedorId) && x.costoPorConfirmar && x.unidadesVendidas >= MIN_VENDIDAS && x.ritmo.agota)
+    .sort((a, b) => a.ritmo.semanasParaAgotar - b.ritmo.semanasParaAgotar)
+    .slice(0, 2)) {
+    out.push({
+      id: `agota-${r.proveedorId}`,
+      proveedorId: r.proveedorId,
+      tono: "info",
+      titulo: `${r.nombre} se vende rápido: lo que le queda se agota en ${textoSemanas(r.ritmo)} (margen por confirmar)`,
+      texto: "Vende bien, pero su costo viene de la carga inicial y todavía no se sabe cuánto deja. Mira su margen antes de reponer.",
+      numeros: [`${num(r.unidadesVendidas)} vendidas de ${num(r.unidadesCompradas)} compradas (${r.ritmo.porSemana.toLocaleString("es-PE", { maximumFractionDigits: 1 })} por semana)`, `${num(r.ritmo.enEstantes)} unidades siguen en estantes`, `Solo el ${p0(r.costoRealPct)} de lo comprado tiene costo real`],
+      regla: `Con ${MIN_VENDIDAS} unidades vendidas o más, agota lo que le queda en ${SEMANAS_AGOTA} semanas o menos. Sin costo real no se recomienda comprar: el margen se confirma cuando lleguen compras por Compras.`,
+      prioridad: 55,
     });
   }
 

@@ -1,6 +1,6 @@
 # ADR-0502 — Proveedores: lo que le compré, lo que vendí y «Lo que quizá no ves»
 
-- **Fecha:** 2026-10-24 · **Estado:** construido y probado en local; **su primera migración `20261024221000_proveedor_prendas_compradas_y_vendidas.sql` ya está pegada en producción el 2026-10-24; la segunda, `20261024231000_proveedor_prendas_origen_compras_y_carga.sql` (ver «Actualización 2026-10-24 (b)»), la reemplaza y NO está pegada** (una parte, solo lectura; con `apply_migration`, así que su versión allá es la de la hora en que se aplicó). La web se publica DESPUÉS de la base: sin la función, la ficha y la lista se pintan como antes. Verificada con datos reales: 335 filas (proveedor, prenda) de 52 proveedores; Textil Anqori sale con 138 compradas (51 estimadas), 19 vendidas, 115 en stock y 42 % de margen.
+- **Fecha:** 2026-10-24 · **Estado:** construido y probado en local; **su primera migración `20261024221000_proveedor_prendas_compradas_y_vendidas.sql` ya está pegada en producción el 2026-10-24; la segunda, `20261024231000_proveedor_prendas_origen_compras_y_carga.sql` (ver «Actualización 2026-10-24 (b)»), la reemplaza y también está pegada en producción desde el 2026-10-24** (una parte, solo lectura; con `apply_migration`, así que su versión allá es la de la hora en que se aplicó). La web se publica DESPUÉS de la base: sin la función, la ficha y la lista se pintan como antes. Verificada con datos reales: 335 filas (proveedor, prenda) de 52 proveedores; Textil Anqori sale con 138 compradas (51 estimadas), 19 vendidas, 115 en stock y 42 % de margen.
 - **Relacionados:** ADR-0111 (ficha de proveedor), ADR-0387 (el módulo Proveedores es la llave del dinero), ADR-0161 (módulos y roles), ADR-0358 (una función, una pieza), ADR-0389 (guías interactivas), ADR-0195 (políticas y deadlocks).
 
 ## El problema
@@ -15,7 +15,7 @@ Proveedores era un directorio con facturas: quién es, cuánto se le debe, cuán
 3. **Ficha:** sección «Lo que le compré» (cifras: unidades, plata, ya vendido, margen, sin vender; una tarjeta por marca con su tabla por prenda).
    **Lista:** «A quién le compro y qué me deja» (ranking por gasto con una palabra: Rinde / Plata parada / Margen bajo / Pocas ventas).
 4. **«Lo que quizá no ves»:** avisos de reglas puras y probadas (`lib/proveedor-analisis-reglas.ts`), sin IA generativa: mismas cifras, mismos avisos. Cada uno trae su «¿Por qué?» con los números y la regla. Con menos de 10 unidades vendidas no se concluye nada. Una prenda que llegó hace menos de 21 días no se juzga.
-5. **Los umbrales son reglas de negocio de Felipe**, todos con nombre al inicio de `proveedor-analisis-reglas.ts` (21 días, S/ 1,000 parados, 40 %, 7 puntos de margen, 10 unidades, 60 % vendido, 26 semanas, 40 % de dependencia). Se cambian en un solo lugar.
+5. **Los umbrales son reglas de negocio de Felipe**, todos con nombre al inicio de `proveedor-analisis-reglas.ts`. Se cambian en un solo lugar. Los de hoy están en «Actualización 2026-10-24 (c)».
 
 ## Lo que NO hace
 
@@ -30,7 +30,7 @@ Proveedores era un directorio con facturas: quién es, cuánto se le debe, cuán
 
 ## Actualización 2026-10-24 (b): dos orígenes, Taller aparte, costo de la carga y vendidas netas
 
-Decidido por Felipe en una sesión hermana («Sí: aplica el diseño con origen Compras vs Carga inicial, Taller aparte, y empieza la actividad 1»), a partir de lo que dijo: Compras se termina en paralelo y entra en uso en unos días; hoy todo el inventario vino por cargas iniciales y «muchas veces hasta se distorsionaron los costos porque no había una correcta comunicación con el área de compras». **Reemplaza la definición de «compré» del punto 1** (el mayor entre entradas y vendido + stock, todo sumado). Migración nueva `20261024231000_proveedor_prendas_origen_compras_y_carga.sql` (la primera, `20261024221000`, ya estaba pegada en producción; esta la sustituye y **no está pegada**).
+Decidido por Felipe en una sesión hermana («Sí: aplica el diseño con origen Compras vs Carga inicial, Taller aparte, y empieza la actividad 1»), a partir de lo que dijo: Compras se termina en paralelo y entra en uso en unos días; hoy todo el inventario vino por cargas iniciales y «muchas veces hasta se distorsionaron los costos porque no había una correcta comunicación con el área de compras». **Reemplaza la definición de «compré» del punto 1** (el mayor entre entradas y vendido + stock, todo sumado). Migración nueva `20261024231000_proveedor_prendas_origen_compras_y_carga.sql` (la primera, `20261024221000`, ya estaba pegada en producción; esta la sustituye y **también está pegada, 2026-10-24**).
 
 1. **Dos orígenes que nunca se suman a escondidas.**
    - **Compras (exacto):** entradas con motivo `recepcion`. Con factura (`compra_item_id`, compra vigente): proveedor y costo de la línea. Sin factura (un envío sin guía): proveedor del lote (`lotes.proveedor_id`) y costo de `costo_historial.costo_unitario_nuevo` de ese movimiento, contado aparte como «sin factura». Se atribuye al proveedor de la factura o del lote, no al habitual de la prenda.
@@ -43,3 +43,28 @@ Decidido por Felipe en una sesión hermana («Sí: aplica el diseño con origen 
 7. **Prueba de Postgres del enlace con Compras:** `scripts/pruebas/proveedor_prendas_origen.mjs` (en la lista `PRUEBAS` del CI): una compra registrada y recibida cuenta como origen Compras con el costo de su factura y para el proveedor de la factura; una entrada sin factura cuenta aparte con el costo del historial; y vigila que `fn_recepcion_entrar` siga escribiendo `compra_item_id` en la entrada que deja. **Límite:** no maneja el despacho entero (`fn_recepcion_entrar` exige un despacho, órdenes y conteos); inserta la entrada tal como esa función la escribe y comprueba por texto que la función sigue haciéndolo. Si Compras cambia el enlace, el texto deja de coincidir y el CI se pone rojo.
 
 **Lo que no cambió:** es solo lectura; la llave sigue siendo `fn_ve_plata_de_proveedores()`; los umbrales de los avisos siguen siendo de Felipe.
+
+## Actualización 2026-10-24 (c): umbrales nuevos y el ritmo en unidades
+
+Felipe aprobó las recomendaciones de umbrales de una sesión hermana («Sí: pásale a la sesión de proveedores tus recomendaciones de umbrales tal como están»), después de aplicarlas a los proveedores reales con los datos de producción. **Motivo:** con los umbrales de antes, Lasak Store (183 compradas, 6 vendidas, 11 de 12 modelos con 0–1 ventas) no recibía ningún aviso: la exigencia de 10 ventas lo callaba justo por no vender, y «plata parada» solo contaba prendas con 0 ventas.
+
+| Umbral | Antes | Ahora |
+|---|---|---|
+| `DIAS_PARA_JUZGAR` | 21 | 21 (se queda) |
+| `PLATA_PARADA_MIN` | S/ 1,000 | **S/ 500** (Jacard: S/ 825 en 4 prendas) |
+| «Frenar» en la lista | `PARADO_PCT` (40 % de lo gastado parado) | **ritmo en unidades**; se elimina `PARADO_PCT` en el análisis |
+| `MIN_COMPRADAS` | — | **20** unidades compradas para hablar de ritmo |
+| `SEMANAS_STOCK_LARGO` | 26 | **16** (una temporada) |
+| `PUNTOS_MARGEN_BAJO` | 7 | 7 (se queda; es de dinero: solo con origen Compras) |
+| `MIN_VENDIDAS` | 10 para todo | **10 solo para conclusiones de margen** (margen bajo, vuelve a comprarle) |
+| «Vuelve a comprarle» | `VENDIDO_BUENO_PCT` (60 % vendido) | **agota lo que le queda en ≤ `SEMANAS_AGOTA` = 6 semanas**, con 10 vendidas y margen ≥ promedio; se elimina `VENDIDO_BUENO_PCT` |
+| `DEPENDENCIA_PCT` | 40 | **25** (hoy no cambia nada: el mayor externo pesa ~9 %) |
+| Prenda estrella (≥ 3 vendidas y ≥ 40 % de margen) | — | se queda |
+
+**Una sola función de ritmo** (`ritmoDe`, pura): semanas que tardaría en venderse lo que queda, al ritmo actual desde la primera entrada. La usan el aviso «ritmo» de la ficha y «frenar» de la lista, para que no se contradigan. No exige un mínimo de ventas: con 0 o pocas, el ritmo es lento por definición; si no vendió nada, cuenta como lento cuando lleva ≥ 21 días en la tienda. Es de unidades: **vale para los dos orígenes, carga inicial incluida**. El Taller no entra. Casos esperados en producción (semanas): Lasak 99, Textil Anqori 22, Alex William Sevilla 22, Corporaciones Wayi 19, Marisol Bellido 17.
+
+**Decisión sobre «vuelve a comprarle» sin margen confiable** (la dejó abierta la sesión que propuso los umbrales): con el costo por confirmar **no se recomienda comprar** (no se conoce lo que deja); sale un aviso distinto, **«se vende rápido: se agota en N semanas (margen por confirmar)»**, que dice que se mire el margen antes de reponer. «Vuelve a comprarle» sale solo con costo real y margen igual o mayor al promedio de la cartera. Así un proveedor que vende rápido no queda invisible, pero tampoco se recomienda gastar con costos que pudieron distorsionarse.
+
+**Pruebas** (`lib/proveedor-analisis-reglas.test.ts`): el caso Lasak (carga inicial, avisa «frenar» sin exigir 10 ventas y sin nombrar plata), el caso Jacard (S/ 825 con costo real avisa en plata; los mismos 33 sin vender con costo de carga avisan en unidades, desde 30), el caso Deyner (406 compradas, 193 vendidas, 204 en estantes: «se agota pronto» con el costo por confirmar y «vuelve a comprarle» con costo real y margen ≥ promedio), la unión de la ficha y la lista en una sola regla, y el mínimo de 20 unidades.
+
+**Lo que no cambió:** el veredicto de una palabra del ranking («Plata parada» a partir del 40 % de lo gastado por Compras, «Margen bajo», «Rinde») conserva sus umbrales; solo los avisos de «Lo que quizá no ves» cambiaron.

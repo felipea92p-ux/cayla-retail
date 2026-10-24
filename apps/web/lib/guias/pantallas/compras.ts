@@ -608,7 +608,7 @@ export const GUIA_PROVEEDORES: Guia = {
       ancla: "proveedores.analisis",
       opcional: true,
       titulo: "Lo que quizá no ves",
-      texto: "Avisos que compara a tus proveedores entre sí: a quién frenar por plata parada, a quién le queda poco margen y a quién conviene volver a comprarle. «¿Por qué?» abre los números y la regla.",
+      texto: "Avisos que compara a tus proveedores entre sí: a quién frenar porque vende lento, a quién le queda poco margen, quién se agota pronto y a quién conviene volver a comprarle. «¿Por qué?» abre los números y la regla.",
     },
     {
       id: "rendimiento",

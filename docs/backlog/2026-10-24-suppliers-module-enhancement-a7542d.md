@@ -1,7 +1,7 @@
 # Backlog · 2026-10-24 · Proveedores: lo que compré y lo que no ves
 
 - [x] `20261024221000_proveedor_prendas_compradas_y_vendidas.sql` pegada en producción el 2026-10-24 y verificada con datos reales.
-- [ ] **POR PEGAR (2026-10-24):** `20261024231000_proveedor_prendas_origen_compras_y_carga.sql` (dos orígenes: Compras / Carga inicial; Taller aparte). Una parte, solo lectura, re-pegable; reemplaza las 4 funciones de la anterior. La web nueva la necesita: la base ANTES que la web. Verificar tras pegar con datos reales (Compras debe dar 0 % de costo real casi en todos).
+- [x] `20261024231000_proveedor_prendas_origen_compras_y_carga.sql` (dos orígenes; Taller aparte) pegada en producción el 2026-10-24 y verificada con datos reales: 37 unidades de origen Compras (todas sin factura), el resto carga inicial.
 - [ ] Ver la ficha y la lista en el navegador con datos de producción tras publicar la web.
 - [ ] `tema:auditar` (modo oscuro) y `/chaos` sin correr sobre las pantallas nuevas (solo lectura: `/chaos` se declara de solo lectura).
 - [ ] Revisar a 375 px la ficha y la lista de Proveedores (solo se probó a 1440 y a ancho de tarjeta angosto).

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hallazgosDeCartera, hallazgosDeProveedor, DIAS_PARA_JUZGAR, type PrendaConProveedor } from "./proveedor-analisis-reglas";
+import { hallazgosDeCartera, hallazgosDeProveedor, ritmoDe, DIAS_PARA_JUZGAR, MIN_COMPRADAS, SEMANAS_AGOTA, SEMANAS_STOCK_LARGO, type PrendaConProveedor } from "./proveedor-analisis-reglas";
 import type { PrendaDeProveedor } from "./proveedor-prendas-reglas";
 
 const HOY = "2026-11-30";
@@ -61,10 +61,24 @@ describe("hallazgosDeProveedor", () => {
   });
 });
 
+describe("CASO JACARD (ficha)", () => {
+  it("S/ 825 parados en 4 prendas con costo real y ≥ 21 días → avisa en plata (desde S/ 500)", () => {
+    const paradas = [300, 225, 200, 100].map((plata, i) => prenda({ productoId: `j${i}`, referencia: `Top ${i}`, unidadesCompradas: 10, unidadesCompras: 10, gasto: plata, gastoCompras: plata, stockActual: 10, unidadesVendidas: 0, primeraEntrada: antes(24) }));
+    const a = hallazgosDeProveedor(paradas, HOY).find((x) => x.id === "paradas");
+    expect(a?.titulo).toContain("825.00");
+  });
+  it("con costo de la carga, los mismos 33 sin vender avisan en unidades (desde 30), no en plata", () => {
+    const paradas = [12, 9, 7, 5].map((u, i) => carga({ productoId: `j${i}`, unidadesCompradas: u, unidadesCarga: u, unidadesEstimadas: u, gasto: u * 25, gastoCarga: u * 25, stockActual: u, unidadesVendidas: 0, primeraEntrada: antes(24) }));
+    const a = hallazgosDeProveedor(paradas, HOY).find((x) => x.id === "paradas");
+    expect(a?.titulo).toContain("33 unidades");
+    expect(a?.titulo).not.toContain("S/");
+  });
+});
+
 describe("hallazgosDeCartera", () => {
-  it("dice «frénate» al proveedor con mucha plata parada y «vuelve» al que rinde", () => {
+  it("dice «frénate» al proveedor que tardaría una temporada en vender lo que le queda, y «vuelve» al que se agota rápido con buen margen", () => {
     const filas = [
-      de("lento", prenda({ gasto: 5000, gastoCompras: 5000 })),
+      de("lento", prenda({ gasto: 5000, gastoCompras: 5000, unidadesVendidas: 5, stockActual: 95 })),
       de("bueno", prenda({ gasto: 3000, gastoCompras: 3000, stockActual: 20, unidadesVendidas: 80, ingresoVendido: 6000, costoVendido: 2400 })),
     ];
     const ids = hallazgosDeCartera(filas, HOY).map((h) => h.id);
@@ -72,10 +86,54 @@ describe("hallazgosDeCartera", () => {
     expect(ids).toContain("volver-bueno");
   });
 
-  it("con carga inicial no dice nada de dinero: avisa rotación lenta en unidades", () => {
-    const ids = hallazgosDeCartera([de("carga", carga({ unidadesVendidas: 2, stockActual: 98 }))], HOY).map((h) => h.id);
-    expect(ids).toContain("lento-carga");
-    expect(ids.some((i) => i.startsWith("frenar") || i.startsWith("margen") || i.startsWith("volver"))).toBe(false);
+  it("CASO LASAK: 183 compradas, 6 vendidas, 11 de 12 modelos con 0–1 ventas, más de 21 días, carga inicial → avisa «frenar» (no exige 10 vendidas)", () => {
+    const modelos = Array.from({ length: 12 }, (_, i) =>
+      carga({ productoId: `m${i}`, unidadesCompradas: i < 11 ? 15 : 18, unidadesCarga: i < 11 ? 15 : 18, unidadesEstimadas: i < 11 ? 15 : 18, unidadesVendidas: i < 5 ? 1 : i === 11 ? 1 : 0, stockActual: i < 5 ? 14 : i === 11 ? 17 : 15, primeraEntrada: antes(30) }),
+    );
+    const total = modelos.reduce((a, m) => a + m.unidadesCompradas, 0);
+    expect(total).toBeGreaterThanOrEqual(183 - 3);
+    const h = hallazgosDeCartera(modelos.map((m) => de("lasak", m)), HOY).find((x) => x.id === "frenar-lasak");
+    expect(h).toBeDefined();
+    expect(h?.titulo).not.toContain("S/");
+    expect(ritmoDe(modelos, HOY).lento).toBe(true);
+  });
+
+  it("si no vendió nada y lleva ≥ 21 días, cuenta como lento; si llegó hace poco, no se juzga", () => {
+    expect(ritmoDe([carga({ unidadesVendidas: 0, stockActual: 100 })], HOY).lento).toBe(true);
+    expect(ritmoDe([carga({ unidadesVendidas: 0, stockActual: 100, primeraEntrada: antes(DIAS_PARA_JUZGAR - 1) })], HOY).lento).toBe(false);
+  });
+
+  it("no habla de ritmo con menos de 20 unidades compradas", () => {
+    expect(MIN_COMPRADAS).toBe(20);
+    expect(ritmoDe([carga({ unidadesCompradas: 10, unidadesCarga: 10, stockActual: 10 })], HOY).lento).toBe(false);
+  });
+
+  it("la ficha y la lista usan el mismo ritmo y el mismo umbral (una temporada = 16 semanas)", () => {
+    expect(SEMANAS_STOCK_LARGO).toBe(16);
+    const ps = [carga({ unidadesVendidas: 20, stockActual: 80, primeraEntrada: antes(35) })];
+    const enFicha = hallazgosDeProveedor(ps, HOY).some((x) => x.id === "ritmo");
+    const enLista = hallazgosDeCartera(ps.map((p) => de("x", p)), HOY).some((x) => x.id === "frenar-x");
+    expect(enFicha).toBe(ritmoDe(ps, HOY).lento);
+    expect(enLista).toBe(ritmoDe(ps, HOY).lento);
+  });
+
+  it("CASO DEYNER: 406 compradas, 193 vendidas en ~3,5 semanas, 204 en estantes → agota en ≤ 6 semanas; con costo real y margen ≥ promedio dice «vuelve a comprarle»", () => {
+    const base = { unidadesCompradas: 406, gasto: 9300, gastoCompras: 0, unidadesVendidas: 193, ingresoVendido: 8793, costoVendido: 4489, stockActual: 204, primeraEntrada: antes(25) };
+    const conCarga = [de("deyner", carga({ ...base, unidadesCarga: 406, unidadesEstimadas: 406, gastoCarga: 9300 }))];
+    const r = ritmoDe(conCarga, HOY);
+    expect(r.semanasParaAgotar).toBeLessThanOrEqual(SEMANAS_AGOTA);
+    // Con el costo por confirmar NO se recomienda comprar: sale «se agota pronto», con «margen por confirmar».
+    const sinMargen = hallazgosDeCartera(conCarga, HOY).map((h) => h.id);
+    expect(sinMargen).toContain("agota-deyner");
+    expect(sinMargen).not.toContain("volver-deyner");
+    // Con costo real y un margen mayor al de los demás: «vuelve a comprarle».
+    const conReal = [
+      de("deyner", prenda({ ...base, unidadesCompras: 406, gastoCompras: 9300, gasto: 9300 })),
+      de("otro", prenda({ unidadesVendidas: 40, ingresoVendido: 2000, costoVendido: 1500, stockActual: 60, gasto: 3000, gastoCompras: 3000, primeraEntrada: antes(25) })),
+    ];
+    const ids = hallazgosDeCartera(conReal, HOY).map((h) => h.id);
+    expect(ids).toContain("volver-deyner");
+    expect(ids).not.toContain("agota-deyner");
   });
 
   it("avisa un margen muy por debajo del promedio, solo con ventas suficientes y costo real", () => {
@@ -90,7 +148,7 @@ describe("hallazgosDeCartera", () => {
   });
 
   it("deja fuera al Taller: ni lo compara ni cuenta en la dependencia", () => {
-    const ids = hallazgosDeCartera([de("taller", prenda({ gasto: 90000, gastoCompras: 90000 }), true), de("a", prenda({ gasto: 3000, gastoCompras: 3000 })), de("b", prenda({ gasto: 3000, gastoCompras: 3000 })), de("c", prenda({ gasto: 3000, gastoCompras: 3000 }))], HOY).map((h) => h.id);
+    const ids = hallazgosDeCartera([de("taller", prenda({ gasto: 90000, gastoCompras: 90000 }), true), de("a", prenda({ gasto: 3000, gastoCompras: 3000 })), de("b", prenda({ gasto: 3000, gastoCompras: 3000 })), de("c", prenda({ gasto: 3000, gastoCompras: 3000 })), de("d", prenda({ gasto: 3000, gastoCompras: 3000 })), de("e", prenda({ gasto: 3000, gastoCompras: 3000 }))], HOY).map((h) => h.id);
     expect(ids.some((i) => i.endsWith("taller"))).toBe(false);
     expect(ids).not.toContain("dependencia");
   });
