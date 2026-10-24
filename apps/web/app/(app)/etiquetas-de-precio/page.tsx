@@ -12,7 +12,8 @@ import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
 //   - un producto (`?producto=`): sus tallas y colores en la tienda.
 //   - tallas sueltas (`?variantes=`): las marcadas en Existencias con «Etiquetas» (ADR-0237), las marcadas en la Tabla de
 //     Productos o la impresora de UNA talla (Tabla y Grilla); con `?desde=` de Productos el encabezado habla de Productos.
-//   - las unidades que acaban de entrar desde Editar producto (`?unidades=id:n`): una etiqueta por unidad nueva (ADR-0313).
+//   - las unidades que acaban de entrar desde Editar producto (`?unidades=id:n`): una etiqueta por unidad nueva (ADR-0313), o desde
+//     «Ajustar stock» de Existencias (`?unidades=` + `?ajuste=1`, ADR-0494).
 // La etiqueta dice lo que la caja cobra HOY: con campaña vigente, el precio rebajado exacto (ADR-0180 paso 2, ADR-0302).
 //
 // No es un módulo del menú (ADR-0161): es la salida de otras pantallas que ya tienen su módulo, así que no lleva
@@ -28,6 +29,8 @@ type Params = {
   desde?: string | string[];
   /** El traslado de donde se salió (`?unidades=` + `?traslado=`: «Lo siguiente» del detalle): cambia el texto y adónde vuelve «Volver». */
   traslado?: string | string[];
+  /** Llegó desde «Ajustar stock» de Existencias (`?unidades=` + `?ajuste=1`, ADR-0494): cambia el texto; «Volver» ya va a Existencias. */
+  ajuste?: string | string[];
 };
 
 export default async function EtiquetasDePrecioPage({ searchParams }: { searchParams: Promise<Params> }) {
@@ -62,7 +65,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       : origen?.tipo === "producto"
         ? { tipo: "producto", nombre: datos.producto ?? null }
         : origen?.tipo === "variantes"
-          ? { tipo: "variantes", desdeProductos: desde !== null, tallas: variantes.length, entraron: unidades.size > 0, desdeTraslado: unidades.size > 0 && traslado !== undefined }
+          ? { tipo: "variantes", desdeProductos: desde !== null, tallas: variantes.length, entraron: unidades.size > 0, desdeTraslado: unidades.size > 0 && traslado !== undefined, desdeAjuste: unidades.size > 0 && params.ajuste !== undefined }
           : origen
             ? { tipo: origen.tipo }
             : { tipo: "ninguno" };
