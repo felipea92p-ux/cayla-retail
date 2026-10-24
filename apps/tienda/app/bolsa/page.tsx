@@ -1,3 +1,4 @@
+import { BotonDeFormulario } from "@/components/BotonDeFormulario";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { elegirTiendaDeRecojo, quitarDeLaBolsa } from "@/app/acciones/bolsa";
@@ -25,16 +26,24 @@ import {
 import { leerBolsaDeLaCookie, leerBolsaEnBase } from "@/lib/bolsa-servidor";
 import { formaDe, fotoOptimizable, hrefDePrenda, hrefLista, soles } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
+import { aplicaA } from "@/lib/diseno-campana";
+import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
+import { leerPortada } from "@/lib/portada-servidor";
+import { pctTexto } from "@/lib/portada";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
 import { promesasDeCompra } from "@/lib/ficha";
 import { detalleDeLaPrenda, nombreTienda } from "@/lib/pedidos";
-import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
+import { claveDeSede, sedesEnOrden, soloTiendas } from "@/lib/sede-elegida";
+import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
+import { cuponDicho } from "@/lib/puntos";
+import { leerMisPuntosEnBase } from "@/lib/puntos-servidor";
 import { notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../estilos/catalogo.css";
 import "../estilos/bolsa.css";
+import "../estilos/campana.css";
 
 export const metadata: Metadata = { title: "Tu bolsa · CAYLA", robots: { index: false, follow: false } };
 
@@ -52,7 +61,8 @@ const CARRIL_DE_LA_BOLSA: Record<CarrilDeLaBolsaVacia["lista"], { ceja: string; 
  * (`retail.tienda_bolsa`); la bolsa solo guarda qué prendas y cuántas. El resumen termina con lo que la tienda ya cumple (las promesas
  * de la ficha, en corto) y, arriba, «Seguir mirando» vuelve a la tienda. Vacía, ofrece sus favoritos y Lo nuevo en carriles (2026-10-16).
  */
-export default async function Bolsa() {
+export default async function Bolsa({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
   const sesion = await leerSesion();
   // La bolsa se arma sin cuenta (vive en la cookie de este aparato); la cuenta se pide al «Separar» (Felipe 2026-10-17).
   const visitante = sesion.estado === "sin_sesion";
@@ -63,16 +73,28 @@ export default async function Bolsa() {
     return <Aviso titulo="No pudimos revisar tu sesión" texto="Vuelve a intentarlo en unos minutos." />;
 
   const bolsa = await leerBolsaDeLaCookie();
+  // El diseño de la campaña que anuncia la portada: la línea de cada prenda dice de qué campaña es su descuento, con el color de su sello.
+  const diseno = await leerPortada().then(({ campana }) => leerDisenoDeCampana(campana?.nombre));
+  // La tienda en la que se está (ADR-0465, Felipe 2026-10-21: «es importante mostrar la sede»): con prendas, la de la bolsa (cambiar de tienda la
+  // vacía); sin ellas, la de la dirección o la que se eligió la última vez. Con ella, el selector de la cabecera y el catálogo de ESA tienda
+  // (en Lima, con lo de CLAURE y su empresa en cada tarjeta).
+  const sedes = sedesEnOrden(await leerSedes());
+  const deLaBolsa = bolsa.lineas.length > 0 && bolsa.sedeId ? sedes.find((s) => s.id === bolsa.sedeId) ?? null : null;
+  const elegida = deLaBolsa ?? (await sedeDeLaPagina(sp, sedes, "/bolsa", claveDeSede));
+  const tiendasDeLaCabecera = soloTiendas(
+    sedes.map((s) => ({ nombre: s.nombre, href: `/bolsa?sede=${claveDeSede(s.nombre)}`, actual: s.id === elegida?.id })),
+  );
+  const prendasEnBolsa = bolsa.lineas.reduce((n, l) => n + l.cantidad, 0);
   if (bolsa.lineas.length === 0) {
     // Vacía no es un callejón (2026-10-16): sus favoritos y Lo nuevo, en carriles, para llenarla desde aquí. El catálogo es la misma
     // lectura de la cabecera (`MarcoCuenta`, con «Todas»); si la base no responde, solo queda el vacío con sus dos caminos.
-    const [catalogo, guardados, sedes] = await Promise.all([leerCatalogo(null), sesion.estado === "con_sesion" ? leerGuardadosEnBase(sesion.usuarioId) : null, leerSedes()]);
-    const tiendas = sedesEnOrden(sedes);
+    const [catalogo, guardados] = await Promise.all([leerCatalogo(elegida?.id ?? null), sesion.estado === "con_sesion" ? leerGuardadosEnBase(sesion.usuarioId) : null]);
+    const tiendas = sedes;
     const favoritos = guardados?.favoritos ?? new Set<string>();
     const carriles = carrilesDeLaBolsaVacia(catalogo?.prendas ?? [], favoritos);
     const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
     return (
-      <MarcoCuenta conCuenta conPie visitante={visitante}>
+      <MarcoCuenta conCuenta conPie visitante={visitante} tiendas={tiendasDeLaCabecera} prendasEnBolsa={prendasEnBolsa}>
         <div className="t-ancho cp-bolsa-vacia">
           <SubirAlLlenar />
           <div className="t-vacio">
@@ -94,9 +116,9 @@ export default async function Bolsa() {
               id={`bolsa-${c.lista}`}
               {...CARRIL_DE_LA_BOLSA[c.lista]}
               prendas={c.prendas}
-              sede={null}
+              sede={elegida ? claveDeSede(elegida.nombre) : null}
               origenFotos={origenFotos}
-              nota={(p) => notaDeStock(p.stock, null, tiendas)}
+              nota={(p) => notaDeStock(p.stock, elegida, tiendas)}
               guardados={favoritos}
             />
           ))}
@@ -106,7 +128,15 @@ export default async function Bolsa() {
   }
 
   // Los plazos de las promesas del resumen (la misma lectura de la ayuda) van junto con la bolsa: una sola espera.
-  const [enBase, plazos] = await Promise.all([leerBolsaEnBase(bolsa.lineas, bolsa.sedeId), leerAyuda()]);
+  // Sus cupones vivos (20261019224000), para elegirlos con un toque en «Código de cupón». Si «Mi Club» no responde, el campo sigue: se escribe.
+  const conCupon = sesion.estado === "con_sesion" && !sinClub;
+  const [enBase, plazos, puntos] = await Promise.all([
+    leerBolsaEnBase(bolsa.lineas, bolsa.sedeId),
+    leerAyuda(),
+    conCupon ? leerMisPuntosEnBase(sesion.usuarioId) : null,
+  ]);
+  const misCupones =
+    puntos?.estado === "ok" ? puntos.puntos.cupones.filter((c) => c.estado === "activo").map((c) => ({ codigo: c.codigo, texto: cuponDicho(c) })) : [];
   if (!enBase)
     return (
       <Aviso
@@ -123,7 +153,7 @@ export default async function Bolsa() {
   const totalPrendas = bolsa.lineas.reduce((n, l) => n + l.cantidad, 0);
 
   return (
-    <MarcoCuenta conCuenta conPie visitante={visitante}>
+    <MarcoCuenta conCuenta conPie visitante={visitante} tiendas={tiendasDeLaCabecera} prendasEnBolsa={prendasEnBolsa}>
       <div className="t-ancho">
         <header className="t-lista-cab t-bolsa-cab cp-sec-cab">
           <span className="t-ceja">Tu bolsa</span>
@@ -147,9 +177,9 @@ export default async function Bolsa() {
                     <input type="hidden" name="variante" value={linea.varianteId} />
                     <input type="hidden" name="vista" value={linea.cantidad} />
                     <input type="hidden" name="todas" value="1" />
-                    <button className={`w-quitar${urgente ? " urgente" : ""}`} type="submit" aria-label={`Quitar de tu bolsa: ${leer}`}>
+                    <BotonDeFormulario className={`w-quitar${urgente ? " urgente" : ""}`} textoPendiente="Quitando…" aria-label={`Quitar de tu bolsa: ${leer}`}>
                       Quitar
-                    </button>
+                    </BotonDeFormulario>
                   </form>
                 );
                 if (yaNoEsta(linea)) {
@@ -179,19 +209,22 @@ export default async function Bolsa() {
                       />
                     </Link>
                     <span>
+                      {/* La empresa de la prenda, encima de su nombre (ADR-0465; solo en Lima, donde conviven CAYLA y CLAURE). */}
+                      {linea.empresa && <span className="t-bolsa-empresa">{linea.empresa.nombre}</span>}
                       <Link className="t-card-nom" href={href}>
                         {linea.nombre}
                       </Link>
                       <small>{detalleDeLaPrenda(linea)}</small>
+                      {/* De qué campaña es el descuento (si el líder dejó la línea de la bolsa encendida), con el color de su sello. */}
+                      {diseno?.donde.bolsa && aplicaA(diseno, linea.campana?.nombre) && linea.campana && (
+                        <span className="t-bolsa-campana" style={{ background: diseno.sello.fondo, color: diseno.sello.texto }}>
+                          {linea.campana.nombre} −{pctTexto(linea.campana.pct)} %
+                        </span>
+                      )}
                       {texto &&
                         (marca.tipo === "hay" ? (
                           <small className="t-ok">
                             <Icono nombre="check" />
-                            {texto}
-                          </small>
-                        ) : marca.tipo === "traslado" ? (
-                          <small className="t-traslado">
-                            <Icono nombre="traslado" />
                             {texto}
                           </small>
                         ) : (
@@ -220,17 +253,36 @@ export default async function Bolsa() {
               })}
             </div>
 
-            {v.tiendas.length > 0 && (
+            {/* La bolsa es de UNA tienda, la que se eligió arriba (cambiarla vacía la bolsa): se muestra solo esa. Solo si todavía no
+                tiene tienda (una bolsa vieja) se ofrecen las demás para elegir. */}
+            {v.sede && v.tiendas.some((t) => t.elegida) ? (
+              <div id="bloque-tienda" className="w-bloque t-bolsa-tiendas" data-campo="tienda" data-estado="hecho">
+                <span className="w-lbl">Recoges en</span>
+                {v.tiendas
+                  .filter((t) => t.elegida)
+                  .map((t) => (
+                    <div key={t.sede.id} className="w-opcion t-op-tienda t-op-fija">
+                      <span className="w-opcion-cab">
+                        <span className="w-opcion-t">
+                          <b>{nombreTienda(t.sede.nombre)}</b>
+                          {t.texto && <small>{t.texto}</small>}
+                        </span>
+                        <Icono nombre="tienda" />
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+            v.tiendas.length > 0 && (
               <div id="bloque-tienda" className="w-bloque t-bolsa-tiendas" data-campo="tienda" data-estado={v.sede ? "hecho" : "sigue"}>
                 <span className="w-lbl" id="tienda-de-recojo">
                   ¿En qué tienda lo recoges? <span className="w-marca">{v.sede ? "✓ Listo" : "Sigue aquí"}</span>
                 </span>
                 <form action={elegirTiendaDeRecojo} className="w-lista" role="group" aria-labelledby="tienda-de-recojo">
                   {v.tiendas.map((t) => (
-                    <button
+                    <BotonDeFormulario
                       key={t.sede.id}
                       className="w-opcion t-op-tienda"
-                      type="submit"
                       name="sede"
                       value={t.sede.id}
                       aria-pressed={t.elegida}
@@ -243,11 +295,11 @@ export default async function Bolsa() {
                         </span>
                         <Icono nombre="tienda" />
                       </span>
-                    </button>
+                    </BotonDeFormulario>
                   ))}
                 </form>
               </div>
-            )}
+            ))}
           </div>
 
           {/* El resumen y «Separar»: en la computadora, la columna de la derecha que acompaña al bajar; en el celular, «Separar» queda
@@ -287,6 +339,8 @@ export default async function Bolsa() {
               sinClub={sinClub}
               faltaTienda={v.faltaTienda}
               boton={v.boton}
+              conCupon={conCupon}
+              misCupones={misCupones}
               nota={
                 <>
                   {v.nota.antes}

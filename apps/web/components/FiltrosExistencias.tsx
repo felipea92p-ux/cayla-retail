@@ -273,11 +273,14 @@ export function FiltrosExistencias({
       )}
       <FilaPildoras titulo="Vista">
         {/* «Ver como» (2026-10-06, tarde): tarjetas, tabla o una fila por talla, a un toque y con su nombre. Antes era un icono suelto en
-            la barra y, en la tabla, otro par «Por prenda | Por talla»: ahora la barra solo busca y filtra. */}
+            la barra y, en la tabla, otro par «Por prenda | Por talla»: ahora la barra solo busca y filtra.
+            Con `shrink-0` y `h-9` fijos el grupo medía 403 px y en el celular (hoja de ~327 px útiles) «Por talla» quedaba cortado y toda
+            la hoja se deslizaba de lado. Ahora puede partirse en dos líneas —«Ver como:» arriba y los tres botones debajo—, y a
+            partir de `sm` queda en una sola, igual que antes. */}
         {verComo && (
-          <div role="group" aria-label="Ver como" data-guia="existencias.ver-como" className="flex h-9 shrink-0 items-center gap-1.5 px-3">
+          <div role="group" aria-label="Ver como" data-guia="existencias.ver-como" className="flex min-h-9 min-w-0 max-w-full flex-wrap items-center gap-x-1.5 gap-y-1 px-3 max-sm:py-1">
             <span className="label-cayla text-[11px] text-tinta/55">Ver como:</span>
-            <span className="inline-flex rounded-lg bg-tinta/[0.05] p-0.5">
+            <span className="inline-flex max-w-full rounded-lg bg-tinta/[0.05] p-0.5">
               {VISTAS.map(({ valor, texto, icono: Icono }) => (
                 <button
                   key={valor}
@@ -285,9 +288,9 @@ export function FiltrosExistencias({
                   data-guia={`existencias.ver-${valor}`}
                   aria-pressed={verComo.valor === valor}
                   onClick={() => verComo.onValor(valor)}
-                  className="label-cayla inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] text-tinta/60 transition-colors hover:text-tinta aria-pressed:bg-papel aria-pressed:text-tinta aria-pressed:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]"
+                  className="label-cayla inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-[11px] max-sm:px-2 text-tinta/60 transition-colors hover:text-tinta aria-pressed:bg-papel aria-pressed:text-tinta aria-pressed:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]"
                 >
-                  <Icono aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                  <Icono aria-hidden className="h-3.5 w-3.5 shrink-0 max-[380px]:hidden" />
                   {texto}
                 </button>
               ))}
@@ -449,7 +452,7 @@ export function FiltrosExistencias({
       {panelAbierto && !hojaAbierta && <div className="hidden md:block">{panel}</div>}
 
       {hojaAbierta && (
-        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana">
+        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana" mediaAltura>
           {panel}
           <div className="pie-hoja-fijo pie-acciones mt-4">
             {activos > 0 && (

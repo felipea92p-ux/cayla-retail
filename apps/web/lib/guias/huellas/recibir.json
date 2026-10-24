@@ -8,7 +8,6 @@
       "Volver «/recibir»",
       "BotonEnlace «Limpiar filtros»",
       "Link «recíbela sin factura»",
-      "BotonEnlace «Registrar un comprobante»",
       "Link «recíbela sin factura» #2"
     ],
     "components/AvisoCostoAtipico.tsx": [
@@ -34,7 +33,7 @@
       "button «Editar»"
     ],
     "components/EnvioRecibido.tsx": [
-      "Link «Se reclama en Notas de crédito ↗»",
+      "Link «Se reclama en «Nos debe» ↗»",
       "BotonImprimir «Imprimir»",
       "Boton «Recibir otro envío»",
       "BotonVer «Ver recibidas»"
@@ -72,7 +71,7 @@
       "Link «Siguiente página»"
     ],
     "components/ProveedorModal.tsx": [
-      "button «Cerrar»",
+      "SegmentoDeslizante «Clase de proveedor»",
       "CampoTexto «Contacto»",
       "CampoTexto «Teléfono»",
       "button «{r}»",
@@ -112,7 +111,7 @@
       "button «Nada llegó» #2",
       "button «Vaciar»",
       "button «Contar»",
-      "Link «Se reclama en Notas de crédito ↗»",
+      "Link «Se reclama en «Nos debe» ↗»",
       "ComboBuscable «{`recibir-extra-${i}»",
       "Desplegable «{ex.varianteId}»",
       "input «Cantidad»",
@@ -145,6 +144,7 @@
     "components/recepcion-conteo/LlegoSinAviso.tsx": [
       "button «→() => setProveedorId(p.id)»",
       "button «No sé de quién es»",
+      "button «+ Agregar proveedor»",
       "Link «Sí, viene con la»",
       "CampoTexto «{campos.etiqueta(\"sin-aviso-guia\", \"Número de guía (opcional)\")}»",
       "ComboResponsable «{responsable}»",

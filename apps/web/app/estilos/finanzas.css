@@ -49,8 +49,10 @@
     white-space: nowrap;
     transition: color 150ms, border-color 150ms;
   }
-  .fin-pestana:hover {
-    color: var(--color-tinta);
+  @media (hover: hover) {
+    .fin-pestana:hover {
+      color: var(--color-tinta);
+    }
   }
   .fin-pestana[aria-selected="true"],
   .fin-pestana[aria-current="page"] {
@@ -374,8 +376,10 @@
   .fin-tabla tbody tr:nth-child(even) {
     background: color-mix(in oklab, var(--color-hueso) 50%, transparent);
   }
-  .fin-tabla tbody tr:hover {
-    background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+  @media (hover: hover) {
+    .fin-tabla tbody tr:hover {
+      background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+    }
   }
   .fin-tabla tbody tr[data-clic] {
     cursor: pointer;
@@ -439,6 +443,13 @@
     gap: 16px;
     align-items: start;
   }
+  /* Las tarjetas de las tiendas (Tienda web ▸ Conf. Tienda): todas en una fila mientras quepan, a 18 rem como mínimo cada una. */
+  .fin-sedes-fila {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: 16px;
+    align-items: start;
+  }
   .fin-columna {
     display: flex;
     flex-direction: column;
@@ -454,7 +465,8 @@
   }
   .fin-fijo {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    /* La última columna mide lo mismo en todas las filas con botón (7,5 rem): así los montos quedan alineados aunque diga «Registrar» o «Registrar monto». */
+    grid-template-columns: 1fr auto minmax(7.5rem, auto);
     gap: 12px;
     align-items: center;
     padding: 12px 0;
@@ -462,6 +474,9 @@
   }
   .fin-fijos .fin-fijo:first-child {
     border-top: 0;
+  }
+  .fin-fijo > :last-child {
+    justify-self: end;
   }
   .fin-fijo b {
     display: block;
@@ -479,6 +494,19 @@
     font-size: 19px;
     white-space: nowrap;
     color: var(--color-tinta);
+  }
+  /* Fijos del mes como cola (2026-10-22): los grupos se separan con aire, y en el celular el botón baja bajo el nombre en vez de partirlo. */
+  .fin-fijos-grupo {
+    margin-top: 18px;
+  }
+  @media (max-width: 639px) {
+    .fin-fijo {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .fin-fijo > :last-child {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
   }
 
   /* Par de entradas en una celda (Configuración: «% · fondo»). */
@@ -912,8 +940,10 @@
     cursor: pointer;
     border-radius: 4px;
   }
-  .fin-eerr td:has(> button.fin-eerr-celda):hover {
-    background: var(--color-hueso);
+  @media (hover: hover) {
+    .fin-eerr td:has(> button.fin-eerr-celda):hover {
+      background: var(--color-hueso);
+    }
   }
   .fin-eerr button.fin-eerr-celda:focus-visible {
     outline: 2px solid var(--color-rojo);
@@ -999,9 +1029,13 @@
   .fin-grafico-barra.fin-grafico-mala path {
     fill: var(--color-rojo);
   }
-  .fin-grafico-barra:hover path,
   .fin-grafico-barra:focus path {
     opacity: 0.8;
+  }
+  @media (hover: hover) {
+    .fin-grafico-barra:hover path {
+      opacity: 0.8;
+    }
   }
   .fin-grafico-barra:focus {
     outline: none;
@@ -1150,8 +1184,10 @@
     color: inherit;
     cursor: pointer;
   }
-  .fin-etq-select:hover {
-    color: var(--color-tinta);
+  @media (hover: hover) {
+    .fin-etq-select:hover {
+      color: var(--color-tinta);
+    }
   }
   /* «Entró S/ 80,600» y su lista: concepto a la izquierda, monto en negrita a la derecha. */
   .fin-h-flujo {
@@ -1395,8 +1431,10 @@
   button.fin-unidad {
     transition: border-color 150ms;
   }
-  button.fin-unidad:hover {
-    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  @media (hover: hover) {
+    button.fin-unidad:hover {
+      border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+    }
   }
   button.fin-unidad[aria-pressed="true"] {
     border-color: var(--color-tinta);

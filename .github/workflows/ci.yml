@@ -175,6 +175,17 @@ jobs:
           node --test scripts/migraciones/sin-drop-trigger.test.mjs
           node scripts/migraciones/sin-drop-trigger.mjs
 
+      # Ningún ayudante `pg_temp.<nombre>` cambia el nombre de sus parámetros respecto de uno anterior con la misma firma:
+      # el CLI de Supabase aplica todas las migraciones en UNA sesión y `pg_temp` se arrastra, así que el segundo
+      # `create or replace` falla con 42P13 y la base no se arma (2026-10-23, `20261023212000`; #1300 y #1301 en rojo).
+      # En producción cada pegada es su propia sesión y no lo ve; el CI de la migración nueva tampoco, porque se aparta.
+      # Solo lee archivos; no necesita node_modules.
+      - name: Ayudantes pg_temp sin choque
+        if: ${{ !cancelled() }}
+        run: |
+          node --test scripts/migraciones/pg-temp-sin-choque.test.mjs
+          node scripts/migraciones/pg-temp-sin-choque.mjs
+
       # Las pruebas del check «SQL pegado» (el check en sí corre en `sql-pegado.yml`, también al editar el cuerpo del
       # PR). Aquí porque una de ellas lee la plantilla del formulario, y ese workflow solo baja scripts/migraciones.
       # deriva-diaria.test.mjs simula `deriva-diaria.yml` paso a paso (bash, jq y curl, que el runner trae).
@@ -202,7 +213,7 @@ jobs:
       # publicación al Deploy Hook. Sus pruebas simulan un commit sin publicación contra un GitHub falso en 127.0.0.1.
       - name: Qué construye Vercel
         if: ${{ !cancelled() }}
-        run: node --test scripts/ci/vercel-ignorar.test.mjs scripts/ci/vercel-ignorar-tienda.test.mjs scripts/ci/vigia-vercel.test.mjs
+        run: node --test scripts/ci/vercel-ignorar.test.mjs scripts/ci/vercel-ignorar-tienda.test.mjs scripts/ci/vigia-vercel.test.mjs scripts/ci/vigia-salud.test.mjs
 
       # Una entrada nueva de bitácora o de backlog vive en su propio archivo (ADR-0259): BITACORA.md y BACKLOG.md eran los
       # dos archivos más tocados del repo y cada PR chocaba ahí con el anterior. Van también las pruebas de «qué toca el

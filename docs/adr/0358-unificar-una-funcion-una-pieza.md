@@ -218,6 +218,14 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   herramientas: el escáner de las guías nombra una pieza que se cierra sola por sus datos (`texto`, `href`, `id`, `valor`, `control`…) y no
   por el código que le sigue (92 huellas aceptadas), y el censo ve un `<aside>` dentro de la pantalla (el ticket de Vender). Con esto quedan
   sin decisión solo `grafico` (repartida en sus familias) y `accion.anterior` (nada que decidir).
+- **2026-10-22 · la hoja del celular (`hoja-movil`), tocando la maqueta con el dedo.** Felipe eligió **«B · Hoja viva con profundidad»**
+  entre «Hoy», «A» y «B» (`docs/maquetas/hojas-movil-2026-10/`): bajo 640 px la hoja de `<Modal>` y de `<Cajon>` llega desde el borde con
+  asa, se baja con el dedo y aleja lo de atrás; Filtros a media altura; el cajón se desliza entre registros. Su propio ADR (0479), porque
+  cambia el movimiento de todas las hojas del teléfono. Deuda: 3 capas a mano. Registro: `docs/unificar/hoja-movil.md`.
+- **2026-10-23 · la barra de abajo del celular (`barra-movil`), mirando las fotos en las pantallas reales.** Felipe eligió **la Isla** para
+  las dos preguntas (la barra con lo que toca hacer y lo que llevas elegido) entre las 6 formas de hoy y las propuestas «Isla» y «Vidrio»:
+  flota a 12 px de los bordes, clara (papel) para lo que toca hacer y oscura (tinta) para lo elegido; con una acción, la isla es el botón.
+  Pieza: `barra-abajo` / `<BarraDeAbajo>`. Deuda: 14 archivos. Registro: `docs/unificar/barra-movil.md` (ADR-0479, actividad 12).
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en

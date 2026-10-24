@@ -513,6 +513,11 @@ ESCENARIOS.push(
 // Cambios y Devoluciones NO son modales: son un flujo de 4 pasos dentro de la página (FlujoGuiado). Los escenarios avanzan paso a paso
 // hasta la confirmación, sin confirmar: «Confirmar cambio» o «Registrar devolución» escribirían en la base.
 const POSVENTA = ["admin", "integrante", "terminal-ventas"];
+/** Un clic en la pieza anclada por su `data-guia` (las guías interactivas, ADR-0389): no depende de su texto. */
+const clicGuia = (guia) => async (pagina) => {
+  await pagina.locator(`[data-guia="${guia}"]`).first().click({ timeout: 8000 });
+  await esperar(pagina, 1100);
+};
 const clicRol = (rol, nombre, opts = {}) => async (pagina) => {
   await pagina.getByRole(rol, { name: nombre, ...opts }).first().click({ timeout: 8000 });
   await esperar(pagina, 1100);
@@ -746,9 +751,45 @@ ESCENARIOS.push(
   { id: "producto.historial", ruta: "/productos/[id]/historial", cuentas: ["admin"], abre: "h1", nombre: "Historial de una prenda", preparar: productoPorCodigo("VES-0001", "historial") },
   { id: "categorias.agregar", ruta: "/productos/categorias", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Categorías · «Agregar categoría»", preparar: clicRol("button", /Agregar categoría/i) },
   { id: "categorias.fila", ruta: "/productos/categorias", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Categorías · el detalle de una categoría", preparar: clicRol("button", /Blazers/i) },
-  { id: "atributos.agregar", ruta: "/productos/atributos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Atributos · «Agregar etiqueta»", preparar: clicRol("button", /Agregar etiqueta/i) },
-  { id: "atributos.prendas", ruta: "/productos/atributos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Atributos · las prendas de una etiqueta", preparar: clicRol("button", /^Prendas$/i) },
-  { id: "atributos.campana", ruta: "/productos/atributos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Atributos · «Configurar campaña»", preparar: clicRol("button", /Configurar campaña/i) },
+  // Los sellos salieron de Atributos el 2026-10-22 (hoy Catálogo ▸ Insignias, la billetera de pases): sus hojas se abren desde ahí.
+  { id: "sellos.agregar", ruta: "/productos/insignias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Insignias · «Nueva campaña»", preparar: clicRol("button", /Nueva campaña/i) },
+  { id: "sellos.prendas", ruta: "/productos/insignias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Insignias · las prendas del pase abierto", preparar: clicRol("button", /^Prendas$/i) },
+  { id: "sellos.campana", ruta: "/productos/insignias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Insignias · «Configurar» el pase abierto", preparar: clicRol("button", /^(Configurar|Repetir)$/i) },
+  // «Configurar» es la hoja de ofertas de la campaña (ADR-0496: «Tres preguntas»), con la etiqueta de la campaña a la derecha (ADR-0488).
+  // Cada etapa es un estado que no se ve al cargar: la rebaja elegida (etiqueta con su descuento), el cuándo y, al final, las categorías
+  // marcadas en la grilla con sus casillas y su mosaico.
+  {
+    id: "sellos.oferta.rebaja",
+    ruta: "/productos/insignias",
+    cuentas: ["admin"],
+    abre: "[role=dialog] .eqp-pct",
+    nombre: "Insignias · «Configurar» con «Una rebaja» elegida (la etiqueta con su descuento)",
+    preparar: secuencia(clicRol("button", /^(Configurar|Repetir)$/i), clicRol("button", /Una rebaja/i), clicRol("button", /^50 %$/)),
+  },
+  {
+    id: "sellos.oferta.cuando",
+    ruta: "/productos/insignias",
+    cuentas: ["admin"],
+    abre: "[role=dialog] [data-guia='sellos.oferta-dias'] .of-dia",
+    nombre: "Insignias · «Configurar» · ¿Cuándo y dónde? (fechas, días de la semana y tiendas)",
+    preparar: secuencia(clicRol("button", /^(Configurar|Repetir)$/i), clicRol("button", /Una rebaja/i), clicRol("button", /^Siguiente/), clicRol("button", /^Solo algunos días$/i)),
+  },
+  {
+    id: "sellos.campana.llena",
+    ruta: "/productos/insignias",
+    cuentas: ["admin"],
+    abre: "[role=dialog] .cph-cat[data-elegida]",
+    nombre: "Insignias · «Configurar» · prendas con categorías marcadas (la grilla y el mosaico)",
+    preparar: secuencia(
+      clicRol("button", /^(Configurar|Repetir)$/i),
+      clicRol("button", /Una rebaja/i),
+      clicRol("button", /^Siguiente/),
+      clicRol("button", /^Tienda Lima$/),
+      clicRol("button", /^Siguiente/),
+      clicRol("checkbox", /^Camisas y Blusas,/),
+      clicRol("checkbox", /^Casacas,/),
+    ),
+  },
   { id: "marcas.nueva", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "button:has-text('Registrar')", nombre: "Marcas · «Nueva marca» (el formulario se abre en la página)", preparar: clicRol("button", /Nueva marca/i) },
   { id: "marcas.editar", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Marcas · «Editar» una marca", preparar: clicRol("button", /^Editar/i) },
   // ADR-0373: los estados que no se ven al cargar. El resumen cerrado es lo de siempre; abierto trae las cuatro tarjetas de cifra.
@@ -1033,12 +1074,7 @@ const COMPRAS = ["admin", "admin-taller"];
 const idDeCompra = () => consultarLocal("select id from retail.compras order by created_at limit 1");
 const idDeProveedor = () => consultarLocal("select id from retail.proveedores where nombre ilike '%Textiles Andina%' limit 1");
 ESCENARIOS.push(
-  { id: "compras.filtros", ruta: "/compras", cuentas: COMPRAS, nombre: "Facturas de proveedor · el panel «Filtros»", preparar: clicRol("button", /^Filtros/i) },
-  { id: "compras.credito", ruta: "/compras/nueva", cuentas: COMPRAS, nombre: "Nueva compra · a crédito (con vencimiento)", preparar: clicRol("radio", /Crédito/i) },
-  { id: "compras.repartir", ruta: "/compras/nueva", cuentas: COMPRAS, nombre: "Nueva compra · «Repartir entre tiendas»", preparar: clicRol("radio", /Repartir entre tiendas/i) },
-  { id: "compras.proveedor", ruta: "/compras/nueva", cuentas: COMPRAS, abre: "[role=listbox]", nombre: "Nueva compra · la lista de proveedores", preparar: clicRol("combobox", /^Proveedor/i) },
-  { id: "compras.calendario", ruta: "/compras/nueva", cuentas: COMPRAS, abre: "[role=gridcell]", nombre: "Nueva compra · el calendario de la fecha", preparar: clicRol("button", /Abrir calendario/i) },
-  { id: "compras.producto", ruta: "/compras/nueva", cuentas: COMPRAS, abre: "[role=listbox]", nombre: "Nueva compra · la lista de productos", preparar: clicRol("combobox", /^Producto/i) },
+  { id: "compras.filtros", ruta: "/compras", cuentas: COMPRAS, nombre: "Historial de compras · el panel «Filtros»", preparar: clicRol("button", /^Filtros/i) },
   { id: "porpagar.pagar", ruta: "/compras/por-pagar", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Por pagar · «Pagar» un comprobante", preparar: clicRol("button", /^Pagar$/i) },
   {
     id: "porpagar.juntos",
@@ -1057,9 +1093,6 @@ ESCENARIOS.push(
   { id: "proveedores.vista", ruta: "/compras/proveedores", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Proveedores · la vista rápida de un proveedor", preparar: clicRol("button", /Textiles Andina SAC: abrir vista rápida/i) },
   { id: "proveedores.sin-datos", ruta: "/compras/proveedores", cuentas: COMPRAS, nombre: "Proveedores · el filtro «Sin datos de pago»", preparar: clicRol("button", /Sin datos de pago/i) },
   { id: "proveedores.ficha", ruta: "/compras/proveedores/[id]", cuentas: ["admin"], abre: "h1", nombre: "Proveedores · la ficha de un proveedor", preparar: async (pagina) => irA(`/compras/proveedores/${idDeProveedor()}`)(pagina) },
-  { id: "notas.registrar", ruta: "/compras/notas-credito", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Notas de crédito · «Registrar nota»", preparar: clicRol("button", /Registrar nota/i) },
-  { id: "notas.saldos", ruta: "/compras/notas-credito", cuentas: COMPRAS, nombre: "Notas de crédito · «Saldos a favor»", preparar: clicPestana(/Saldos a favor/i) },
-  { id: "notas.todas", ruta: "/compras/notas-credito", cuentas: COMPRAS, nombre: "Notas de crédito · «Todas»", preparar: clicRol("button", /^Todas/i) },
   { id: "factura.detalle", ruta: "/compras/factura/[compraId]", cuentas: ["admin"], abre: "h1", nombre: "Factura de proveedor · el comprobante", preparar: async (pagina) => irA(`/compras/factura/${idDeCompra()}`)(pagina) },
   { id: "parte.detalle", ruta: "/compras/parte/[compraId]", cuentas: ["admin"], abre: "h1", nombre: "Parte de recepción · el documento", preparar: async (pagina) => irA(`/compras/parte/${idDeCompra()}`)(pagina) },
   { id: "produccion.orden-nueva", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva orden»", preparar: clicRol("button", /Nueva orden/i) },
@@ -1103,6 +1136,11 @@ const numeroDeOrdenConVuelta = () =>
 // Una orden con una salida que todavía se puede anular (la misma regla que la base: `fn_produccion_salida_anulable`).
 const numeroDeOrdenConAnulable = () =>
   consultarLocal(`select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_salidas s join retail.produccion_fases f on f.id = s.fase_id where f.produccion_id = p.id and s.anula_id is null and retail.fn_produccion_salida_anulable(s.id) is null) order by p.numero desc limit 1`);
+// Una orden en proceso con una fase que se marca (Ploteo) sin marcar, y otra con la marca viva: las que ofrecen «Ploteo hecho» y su «Deshacer».
+const numeroDeOrdenConPloteoSinMarcar = () =>
+  consultarLocal("select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id and f.clave = 'ploteo' and retail.fn_produccion_marca_viva(f.id) is null) order by p.numero desc limit 1");
+const numeroDeOrdenConPloteoMarcado = () =>
+  consultarLocal("select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id and f.clave = 'ploteo' and retail.fn_produccion_marca_viva(f.id) is not null) order by p.numero desc limit 1");
 // Una orden en proceso con tela declarada: es la que ofrece «Anotar lo que usaste».
 const numeroDeOrdenConTela = () =>
   consultarLocal("select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_insumos i where i.produccion_id = p.id) and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id) order by p.numero desc limit 1");
@@ -1119,6 +1157,8 @@ ESCENARIOS.push(
   { id: "produccion.orden-tela-usada", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: '[role=dialog] [data-campo="cantidad"]', nombre: "Producción · una orden: la hoja «Anotar lo que usaste» de la tela, con lo que falta según el plan", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConTela()}`)(pagina), clicRol("button", /^Anotar lo que usaste$/, { exact: true })) },
   { id: "produccion.orden-stock", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog] [data-matriz-mover]", nombre: "Producción · una orden: la hoja «Pasar al stock» con lo terminado precargado y el costo por prenda", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenLista()}`)(pagina), clicRol("button", /^Pasar al stock$/, { exact: true })) },
   { id: "produccion.orden-anular-orden", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · una orden: la hoja «Anular orden»", preparar: secuencia(irALaOrden, clicRol("button", /^Anular orden$/, { exact: true })) },
+  { id: "produccion.orden-marcar", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · una orden: la hoja «Ploteo hecho» (una fase que se marca, sin contar prendas)", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConPloteoSinMarcar()}`)(pagina), clicRol("button", /^Ploteo hecho$/)) },
+  { id: "produccion.orden-desmarcar", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · una orden: la hoja «Deshacer la marca» de Ploteo", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConPloteoMarcado()}`)(pagina), clicRol("button", /^Deshacer$/, { exact: true })) },
   { id: "produccion.orden-cambiar-quien", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: '[role=dialog] [data-campo="fase"]', nombre: "Producción · una orden: la hoja «Cambiar quién» de una fase que no empezó", preparar: secuencia(irALaOrden, clicRol("button", /^Cambiar quién$/, { exact: true })) },
 );
 
@@ -1148,9 +1188,23 @@ const idDeOrdenConGastoDelViaje = () =>
   );
 ESCENARIOS.push(
   { id: "fondos.entregar", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Entregar plata»", preparar: clicRol("button", /Entregar plata/i) },
-  { id: "fondos.devolver", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Registrar devolución»", preparar: clicRol("button", /^Registrar devolución/i) },
-  { id: "fondos.pagar-deuda", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Registrar su pago» (la deuda de un faltante)", preparar: clicRol("button", /^Registrar su pago/i) },
-  { id: "fondos.anular", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Anular» un movimiento", preparar: clicRol("button", /^Anular$/) },
+  // Compras simple (ADR-0480, actividad 2): «Me dieron plata» (la compradora) y «Confirmar la plata» (necesita una plata anotada de otra persona).
+  { id: "mi-plata.anotar", ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mis compras · «Me dieron plata»", preparar: clicRol("button", /Me dieron plata/i) },
+  // Revisar compras como bandeja (rediseño, maqueta compras-formidable-2026-10): cada cifra filtra la lista y abre su detalle al lado, sin
+  // hoja. Los de gastos y cierres necesitan uno pendiente en la base: se corren por su id.
+  { id: "fondos.plata-confirmar", ruta: "/compras/fondos", cuentas: ["admin"], abre: '[data-guia="fondos.plata-detalle"]', nombre: "Revisar compras · la plata por confirmar, con su detalle al lado", preparar: clicGuia("fondos.cifra-plata") },
+  { id: "fondos.bandeja-papel", ruta: "/compras/fondos", cuentas: ["admin"], abre: '[data-guia="fondos.papel-detalle"]', nombre: "Revisar compras · una compra por completar, con su detalle al lado", preparar: clicGuia("fondos.cifra-papel") },
+  { id: "fondos.bandeja-gasto", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: '[data-guia="fondos.gasto-detalle"]', nombre: "Revisar compras · un gasto por revisar (necesita uno)", preparar: clicGuia("fondos.cifra-gasto") },
+  { id: "fondos.bandeja-cierre", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: '[data-guia="fondos.cierre-detalle"]', nombre: "Revisar compras · un cierre del día por recibir (necesita uno)", preparar: clicGuia("fondos.cifra-cierre") },
+  // Las hojas del celular de Mi plata (rediseño): «Gasté en otra cosa» y «Mandar a la tienda» (necesita algo por mandar).
+  { id: "mi-plata.gasto", ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mis compras · «Gasté en otra cosa»", preparar: clicRol("button", /Gasté en otra cosa/i) },
+  { id: "mi-plata.mandar", soloPorId: true, ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mis compras · «Mandar a la tienda» (necesita algo por mandar)", preparar: clicRol("button", /Te falta mandar/i) },
+  // «Quién tiene plata» y «Entregas y devoluciones» se abren en una hoja desde la cabecera (Felipe 2026-10-23); lo de adentro, desde ella.
+  { id: "fondos.quien-tiene", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Revisar compras · la hoja «Quién tiene plata»", preparar: clicGuia("fondos.quien-tiene") },
+  { id: "fondos.entregas", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Revisar compras · la hoja «Entregas y devoluciones» (necesita una)", preparar: clicGuia("fondos.entregas") },
+  { id: "fondos.devolver", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog] >> nth=1", nombre: "Revisar compras · «Registrar devolución», desde «Quién tiene plata»", preparar: secuencia(clicGuia("fondos.quien-tiene"), clicRol("button", /^Registrar devolución/i)) },
+  { id: "fondos.pagar-deuda", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog] >> nth=1", nombre: "Revisar compras · «Registrar su pago» (la deuda de un faltante), desde «Quién tiene plata»", preparar: secuencia(clicGuia("fondos.quien-tiene"), clicRol("button", /^Registrar su pago/i)) },
+  { id: "fondos.anular", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog] >> nth=1", nombre: "Revisar compras · «Anular» un movimiento, desde «Entregas y devoluciones»", preparar: secuencia(clicGuia("fondos.entregas"), clicRol("button", /^Anular$/)) },
   { id: "fondos.revisar", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Revisar» una rendición (necesita una por aprobar)", preparar: clicRol("button", /^Revisar$/) },
   // La lista de lo rendido que no se puede leer (decisión 81): la lectura falla SOLO en la red de la auditoría (no se toca la base), y la
   // hoja dice que no pudo, con «Volver a intentar». `limpiar` quita la ruta.
@@ -1311,7 +1365,7 @@ ESCENARIOS.push(
         ruta.fulfill({ json: { cuenta_web: true, pedidos_en_curso: [{ codigo: "W-0012", estado: "pagado", tienda: "Tienda Trujillo" }] } }),
       );
       await clicRol("button", /^Camila Torres/i)(pagina);
-      await clicRol("button", /^Archivar$/)(pagina);
+      await clicRol("button", /^Archivar a este cliente$/)(pagina);
     },
     limpiar: (pagina) => pagina.unroute(/\/rpc\/fn_clienta_tienda_online/).catch(() => {}),
   },
@@ -1362,7 +1416,19 @@ ESCENARIOS.push(
       await pagina.unroute(/\/rpc\/fn_clienta_acceso_web/).catch(() => {});
     },
   },
-  { id: "clientas.acciones", ruta: "/clientas", cuentas: ["admin"], abre: "[role=menu]", nombre: "Clientes · «Más acciones»", preparar: clicRol("button", /Más acciones de Clientes/i) },
+  // El historial en línea de tiempo (diseño B de Fichas, 2026-10-20): la pestaña «Historial» de la ficha.
+  {
+    id: "clientas.ficha-historial",
+    ruta: "/clientas",
+    cuentas: ["admin", "integrante"],
+    abre: '[data-guia="clientas.ficha-actividad"]',
+    nombre: "Clientes · la ficha, pestaña «Historial»",
+    async preparar(pagina) {
+      await clicRol("button", /^Camila Torres/i)(pagina);
+      await clicRol("tab", /^Historial/i)(pagina);
+      await esperar(pagina, 900);
+    },
+  },
   { id: "clientas.buscar", ruta: "/clientas", cuentas: ["admin", "terminal-ventas"], nombre: "Clientes · una búsqueda", async preparar(pagina) { await pagina.getByPlaceholder(/DNI, celular/i).first().fill("Rosa"); await esperar(pagina, 1800); } },
   { id: "avisos.beneficios", ruta: "/clientas/avisos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Avisos · «Beneficios del club»", preparar: clicRol("button", /Beneficios del club/i) },
   { id: "avisos.cumpleanos", ruta: "/clientas/avisos", cuentas: ["admin"], nombre: "Avisos · la pestaña «Cumpleaños»", preparar: clicRol("button", /^Cumpleaños/i) },
@@ -1390,7 +1456,7 @@ ESCENARIOS.push(
   { id: "colaboradores.terminal", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · la ficha de una terminal", preparar: clicRol("button", /^Almacén Trujillo/i) },
   { id: "colaboradores.roles", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · «Roles y accesos»", preparar: clicRol("button", /^Roles y accesos/i) },
   { id: "colaboradores.rol", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · el detalle de un rol", preparar: secuencia(clicRol("button", /^Roles y accesos/i), async (pagina) => { await pagina.getByRole("button", { name: /Integrante/i }).first().click({ timeout: 8000 }); await esperar(pagina, 1200); }) },
-  { id: "tienda-web.ajustes", ruta: "/tienda-web/ajustes", cuentas: ["admin"], abre: '[data-guia="config.tienda-web-sedes"]', nombre: "Tienda web ▸ Datos y plazos (ADR-0430; antes la pestaña «Tienda web» de Configuración)" },
+  { id: "tienda-web.ajustes", ruta: "/tienda-web/ajustes", cuentas: ["admin"], abre: '[data-guia="config.tienda-web-sedes"]', nombre: "Tienda web ▸ Conf. Tienda (antes Datos y plazos; ADR-0430; antes la pestaña «Tienda web» de Configuración)" },
   { id: "configuracion.caja", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Caja y avisos»", preparar: clicPestana(/Caja y avisos/i) },
   { id: "configuracion.cuentas", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Cuentas y cobros»", preparar: clicPestana(/Cuentas y cobros/i) },
   { id: "configuracion.gastos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Gastos fijos»", preparar: clicPestana(/Gastos fijos/i) },

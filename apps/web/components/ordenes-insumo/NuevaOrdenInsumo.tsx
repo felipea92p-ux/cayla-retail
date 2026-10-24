@@ -89,7 +89,7 @@ const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
 // guía (✓, «Sigue aquí», falta, opcional).
 const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
 // La fila de una línea cuando hay lugar (sección de 60 rem o más: una pantalla de 1440 con el menú abierto): marca de la guía y número ·
-// insumo · descripción · cantidad con su unidad («12.5 metros») · precio por unidad · descuento (caja + «% / S/») · subtotal · quitar. La
+// insumo · descripción · cantidad con su unidad («12.5 metros») · costo por unidad · descuento (caja + «% / S/») · subtotal · quitar. La
 // comparten el encabezado y cada fila. Más angosta que la de la orden de compra (56 rem): la cantidad lleva su unidad al lado.
 const FILA_ANCHA = "@min-[60rem]:grid-cols-[2.5rem_minmax(0,1.5fr)_minmax(0,1fr)_9.5rem_6rem_minmax(8.5rem,10rem)_6.5rem_2rem]";
 
@@ -478,7 +478,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, e
                 Descripción
               </span>
               <span>Cantidad</span>
-              <span>Precio u.</span>
+              <span>Costo u.</span>
               <span className="truncate">
                 Descuento <span className="text-[12px] font-normal text-taupe">si hay</span>
               </span>
@@ -614,7 +614,7 @@ function LineaOrdenInsumo({
 
   // Dos caras, según el ancho de la SECCIÓN (`@container` de «Lo que pides»), no de la ventana: con 60 rem o más, la línea es UNA FILA
   // (los títulos van en el encabezado de arriba); más angosta (y en el celular), una tarjeta: «Línea N» con su ✕, el insumo, la
-  // descripción, cantidad y precio, el descuento y el subtotal.
+  // descripción, cantidad y costo, el descuento y el subtotal.
   return (
     <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[60rem]:rounded-lg @min-[60rem]:py-2">
       <div data-guia="oi-form.linea" className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[60rem]:items-center ${FILA_ANCHA}`}>
@@ -673,11 +673,11 @@ function LineaOrdenInsumo({
           </div>
         </div>
         <div className="min-w-0">
-          <p className={`${TITULO} @min-[60rem]:hidden`}>Precio por {porUnidad}</p>
+          <p className={`${TITULO} @min-[60rem]:hidden`}>Costo por {porUnidad}</p>
           <CampoTexto
             caja
             sinPie
-            etiqueta={`Precio por ${porUnidad} de la línea ${numero}, en soles`}
+            etiqueta={`Costo por ${porUnidad} de la línea ${numero}, en soles`}
             inputMode="decimal"
             placeholder="0.00"
             value={l.precio}

@@ -6,18 +6,18 @@
    «reducir movimiento» no se anima nada.
    ===================================================================================================== */
 .t-inst-icono { --t-icono-app: #f5f0e8; /* el crema del archivo del ícono (public/cayla-app-*.png): no cambia con el tema */
-  flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--t-icono-app); box-shadow: inset 0 0 0 1px var(--sand); }
-.t-inst-icono img { width: 62%; height: auto; }
+  flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 0; background: var(--t-icono-app); box-shadow: inset 0 0 0 1px var(--sand); }
+.t-inst-icono .t-marca-colibri { width: 62%; color: var(--t-logo); }
 
 /* ---------- la hoja (plantillas C y D) ---------- */
 dialog.t-inst { position: fixed; inset: 0; margin: 0; padding: 0; border: 0; width: 100%; height: 100%; max-width: none; max-height: none; background: transparent; color: var(--tinta); overflow: hidden; }
 dialog.t-inst[open] { display: flex; align-items: flex-end; justify-content: center; }
 dialog.t-inst::backdrop { background: var(--velo); animation: t-inst-vela .3s var(--ease) both; }
 html:has(dialog.t-inst[open]) { overflow: hidden; }
-.t-inst-hoja { width: 100%; max-width: 520px; max-height: 92dvh; overflow-y: auto; background: var(--papel); border-radius: 24px 24px 0 0; padding: 10px 22px calc(24px + env(safe-area-inset-bottom)); box-shadow: 0 -12px 40px -10px var(--sombra); animation: t-inst-sube .5s var(--ease) .1s both; }
+.t-inst-hoja { width: 100%; max-width: 520px; max-height: 92dvh; overflow-y: auto; background: var(--papel); border-radius: 0; padding: 10px 22px calc(24px + env(safe-area-inset-bottom)); box-shadow: 0 -12px 40px -10px var(--sombra); animation: t-inst-sube .5s var(--ease) .1s both; }
 .t-inst-hoja:focus { outline: none; }
-.t-inst-asa { width: 38px; height: 4px; border-radius: 2px; background: var(--sand); margin: 0 auto 16px; }
-.t-inst-tit { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 29px; line-height: 1.04; letter-spacing: -.01em; }
+.t-inst-asa { width: 38px; height: 4px; border-radius: 0; background: var(--sand); margin: 0 auto 16px; }
+.t-inst-tit { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 18px; line-height: 1.12;  }
 .t-inst-tit em { color: var(--rojo); }
 .t-inst-txt { margin: 10px 0 0; font-size: 14.5px; line-height: 1.5; color: var(--tinta-60); }
 .t-inst-acc { display: grid; gap: 2px; margin-top: 20px; justify-items: center; }
@@ -26,19 +26,19 @@ html:has(dialog.t-inst[open]) { overflow: hidden; }
 .t-inst-hoja button:focus-visible, .t-inst-franja button:focus-visible, .t-inst-tarjeta button:focus-visible, .t-inst-fila button:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 
 /* cómo quedará el ícono entre los demás */
-.t-inst-previa { margin-top: 18px; padding: 14px 16px; border-radius: 16px; background: var(--hueso); display: flex; justify-content: space-around; }
+.t-inst-previa { margin-top: 18px; padding: 14px 16px; border-radius: 0; background: var(--hueso); display: flex; justify-content: space-around; }
 .t-inst-it { display: grid; justify-items: center; gap: 6px; font-size: 10.5px; color: var(--tinta-60); }
-.t-inst-it i { width: 54px; height: 54px; border-radius: 13px; background: color-mix(in srgb, var(--tinta) 12%, transparent); }
-.t-inst-it .t-inst-icono { width: 54px; height: 54px; border-radius: 13px; }
+.t-inst-it i { width: 54px; height: 54px; border-radius: 0; background: color-mix(in srgb, var(--tinta) 12%, transparent); }
+.t-inst-it .t-inst-icono { width: 54px; height: 54px; border-radius: 0; }
 .t-inst-it-cayla { color: var(--tinta); font-weight: 700; }
 .t-inst-it-cayla .t-inst-icono { box-shadow: 0 0 0 3px var(--papel), 0 0 0 5px var(--rojo); }
 
 /* la guía de tres toques */
 .t-inst-pasos { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 12px; counter-reset: paso; }
 .t-inst-pasos li { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: center; font-size: 14.5px; line-height: 1.4; }
-.t-inst-pasos li::before { counter-increment: paso; content: counter(paso); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-family: var(--serif); font-size: 19px; background: var(--hueso); }
+.t-inst-pasos li::before { counter-increment: paso; content: counter(paso); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-family: var(--nombre); font-size: 19px; background: var(--hueso); }
 .t-inst-pasos b { font-weight: 600; }
-.t-inst-mini { display: inline-flex; vertical-align: -6px; width: 26px; height: 26px; margin-inline: 4px 0; border-radius: 7px; border: 1px solid var(--sand); background: var(--crema); align-items: center; justify-content: center; }
+.t-inst-mini { display: inline-flex; vertical-align: -6px; width: 26px; height: 26px; margin-inline: 4px 0; border-radius: 0; border: 1px solid var(--sand); background: var(--crema); align-items: center; justify-content: center; }
 .t-inst-mini .ic { width: 15px; height: 15px; }
 .t-inst-ayuda { margin: 14px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--tinta-60); }
 
@@ -47,7 +47,7 @@ html:has(dialog.t-inst[open]) { overflow: hidden; }
 .t-inst-pliegue[data-cerrado] { grid-template-rows: 0fr; opacity: 0; }
 .t-inst-pliegue > div { min-height: 0; overflow: hidden; }
 .t-inst-franja { display: flex; align-items: center; gap: 12px; padding: 9px 8px 9px 16px; background: var(--papel); border-bottom: 1px solid var(--sand); }
-.t-inst-franja .t-inst-icono { width: 36px; height: 36px; border-radius: 9px; }
+.t-inst-franja .t-inst-icono { width: 36px; height: 36px; border-radius: 0; }
 .t-inst-franja-txt { flex: 1; min-width: 0; line-height: 1.25; }
 .t-inst-franja-txt b { display: block; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .t-inst-franja-txt small { display: block; font-size: 12px; color: var(--tinta-60); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -57,16 +57,16 @@ html:has(dialog.t-inst[open]) { overflow: hidden; }
 .t-inst-x .ic { width: 18px; height: 18px; }
 
 /* ---------- la tarjeta tras separar (plantilla E) ---------- */
-.t-inst-tarjeta { margin-top: 18px; padding: 16px 18px; border-radius: 16px; background: var(--hueso); animation: t-inst-entra .5s var(--ease) .3s both; }
+.t-inst-tarjeta { margin-top: 18px; padding: 16px 18px; border-radius: 0; background: var(--hueso); animation: t-inst-entra .5s var(--ease) .3s both; }
 .t-inst-tarjeta-cab { display: flex; align-items: center; gap: 12px; }
-.t-inst-tarjeta-cab .t-inst-icono { width: 44px; height: 44px; border-radius: 11px; }
-.t-inst-tarjeta h2 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 23px; line-height: 1.05; }
+.t-inst-tarjeta-cab .t-inst-icono { width: 44px; height: 44px; border-radius: 0; }
+.t-inst-tarjeta h2 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 18px; line-height: 1.12; }
 .t-inst-tarjeta p { margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--tinta-60); }
 .t-inst-tarjeta-acc { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
 .t-inst-tarjeta .t-btn.t-btn-chico { margin-left: 0; }
 
 /* ---------- la fila de «Mi perfil» (plantilla F) ---------- */
-.t-inst-fila { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--verde) 7%, var(--papel)); border: 1px solid var(--sand); }
+.t-inst-fila { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 0; background: color-mix(in srgb, var(--verde) 7%, var(--papel)); border: 1px solid var(--sand); }
 .t-inst-fila-txt { flex: 1; min-width: 0; line-height: 1.25; }
 .t-inst-fila-txt b { display: block; font-size: 14.5px; font-weight: 600; }
 .t-inst-fila-txt small { display: block; font-size: 12.5px; color: var(--tinta-60); }

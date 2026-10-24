@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 173,
+  "total": 182,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -98,13 +98,14 @@
       "button «Descartar»"
     ],
     "components/PuntoDeVentaTicket.tsx": [
+      "button «Dejar en espera»",
       "button «Volver al catálogo»",
       "button «En espera ·»",
       "Volver «→onVolverATicket»",
       "button «Retomar»",
       "SegmentoDeslizante «Cómo escribir el descuento»",
       "button «S/»",
-      "input «Monto de descuento por prenda»",
+      "input «Monto de descuento»",
       "button «{p}»",
       "input «Porcentaje de descuento»",
       "button «{r.etiqueta}»",
@@ -113,9 +114,10 @@
       "button «{todoElTicket && <IconoCheck />}»",
       "button «{marcada && <IconoCheck />}»",
       "input «Lo recoge el sábado, va con arreglo de bastilla…»",
+      "button «Quitar»",
       "button «Cambiar»",
       "button «Aplicar descuento»",
-      "button «Dejar en espera»",
+      "button «vender.codigo-cupon-boton»",
       "ComboResponsable «{responsable}»",
       "button «Aplicar descuento» #2",
       "button «Quitar descuento»",
@@ -155,7 +157,8 @@
       "ComboResponsable «{responsable}»"
     ],
     "components/punto-de-venta/BolsaDelTicket.tsx": [
-      "Boton «+ Agregar bolsa»",
+      "Boton «{lleva > 0 ? `Agregar bolsa, ya lleva ${lleva}»",
+      "Boton «vender.bolsas»",
       "button «{`Agregar ${nombreDeBolsa(b)}»"
     ],
     "components/punto-de-venta/CajaCerrada.tsx": [
@@ -166,7 +169,7 @@
       "button «{abiertaLaCaja ? \"Ocultar lo del club\" : \"Ver lo del club\"}»",
       "button «Quitar al cliente de esta venta»",
       "button «{ayuda}»",
-      "button «Agregar cliente»",
+      "button «Búscalo por documento, celular o nombre. Es opcional.»",
       "button «{boton.texto}»",
       "Boton «Actualizar»",
       "Boton «Registrarlo»",
@@ -220,6 +223,14 @@
     ],
     "components/punto-de-venta/PedirEnOtraTienda.tsx": [
       "button «Pedir y apartar para este cliente»"
+    ],
+    "components/punto-de-venta/PuntosYCuponModales.tsx": [
+      "Boton «Cancelar»",
+      "Boton «Aplicar»",
+      "CampoTexto «Código del cupón»",
+      "button «{solesDelCupon(c.valor)}»",
+      "Boton «Cancelar» #2",
+      "Boton «Aplicar al ticket»"
     ],
     "components/punto-de-venta/RegistrarBajadaModal.tsx": [
       "ComboResponsable «{responsable}»",

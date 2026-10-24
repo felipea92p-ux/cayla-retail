@@ -1,0 +1,70 @@
+{
+  "guia": "compras.mi-plata.compra",
+  "ruta": "/compras/mi-plata/compra",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 48,
+  "controles": {
+    "app/(app)/compras/mi-plata/compra/page.tsx": [
+      "Volver «/compras/mi-plata»"
+    ],
+    "components/ConsultaDocumento.tsx": [
+      "CampoTexto «{contador ? ( <> {}»",
+      "BotonBuscar «→buscar»",
+      "CampoTexto «{etiqueta.nombre}»"
+    ],
+    "components/mi-plata/AbrirRonda.tsx": [
+      "Boton «Abrir mi ronda de compras»"
+    ],
+    "components/mi-plata/HojaPrenda.tsx": [
+      "CampoMonto «compra.costo»",
+      "CampoMonto «compra.venta»",
+      "button «{tiendaAnterior === t.id ? \"La de la prenda anterior\" : undefined}»",
+      "Boton «Quitar de la compra»",
+      "Boton «Cancelar»",
+      "Boton «compra.agregar»",
+      "button «{guia}»",
+      "Desplegable «{n.categoriaId ?? \"\"}»",
+      "CampoTexto «Marca nueva»",
+      "Desplegable «{n.marcaId ?? \"\"}»",
+      "Boton «compra.marca-mas»",
+      "CampoTexto «compra.nombre-nuevo»"
+    ],
+    "components/mi-plata/RegistrarCompra.tsx": [
+      "Volver «→() => setPaso(atras)»",
+      "Volver «/compras/mi-plata»",
+      "Boton «compra.algo-nuevo»",
+      "Boton «compra.revisar»",
+      "button «→() => corregir(i)»",
+      "button «Otra prenda de»",
+      "Boton «compra.al-papel»",
+      "button «{TIPOS_PAPEL[k].nombre}»",
+      "CampoMonto «compra.monto»",
+      "button «{o.nombre}»",
+      "CampoMonto «compra.pagado»",
+      "ComboResponsable «{responsable}»",
+      "Boton «compra.guardar»",
+      "BotonEnlace «compra.mandar»",
+      "Boton «Anotar otra compra»",
+      "Link «Ver mis compras»",
+      "button «{inicialesProveedor(p.nombre)}»",
+      "button «compra.proveedor-nuevo»",
+      "Boton «{q.trim() ? `Registrar «${q.trim()}»",
+      "BotonVerMas «(sin nombre)»",
+      "BotonFiltro «{c.nombre}»",
+      "button «→onClick»",
+      "BotonFiltro «Todos»",
+      "BotonFiltro «{c.nombre}» #2",
+      "BotonVerMas «{`Ver todos los suyos (${habituales.length}»"
+    ],
+    "components/mi-plata/TarjetaFoto.tsx": [
+      "input «(sin nombre)»"
+    ],
+    "components/ordenes-compra/RegistrarProveedorOrden.tsx": [
+      "CampoTexto «Nombre del proveedor»",
+      "Casilla «No tiene RUC»",
+      "CampoTexto «WhatsApp del proveedor»",
+      "Boton «Cancelar»",
+      "Boton «{faltaResponsable ? (responsable.motivo ?? undefined) : (guia.frase ?? undefined)}»"
+    ]
+  }
+}

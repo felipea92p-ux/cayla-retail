@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import { hoyLima } from "@/lib/fechas-lima";
-import { marcasPorProveedor, rubrosConConteo, serie12Meses, type MarcasDeProveedor } from "@/lib/proveedores-reglas";
+import { marcasPorProveedor, rubrosConConteo, serie12Meses, esDeServicios, type MarcasDeProveedor, type TipoProveedor } from "@/lib/proveedores-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -47,6 +47,8 @@ export type Proveedor = {
   facturas_atrasadas: number | null;
   /** Todo lo que vende (Polos, Casacas…), texto libre; `[]` = sin rubro, nunca null (ADR-0213). */
   rubros: string[];
+  /** Mercadería (ropa) o servicios (Entel, luz, agua, alquiler): `proveedores.tipo`, 20261024222000. */
+  tipo: TipoProveedor;
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
   /** Facturado en los últimos 12 meses (la lista dejó de mostrar «desde siempre»). */
@@ -60,15 +62,29 @@ export type Proveedor = {
   saldo_favor: number | null;
 };
 
+async function leerTipos(supabase: Awaited<ReturnType<typeof createClient>>, soloId?: string): Promise<Map<string, TipoProveedor>> {
+  const consulta = supabase.from("proveedores").select("id, tipo");
+  const { data, error } = await (soloId ? consulta.eq("id", soloId) : consulta);
+  if (error) {
+    console.error("[proveedores] no se pudo leer el tipo; se infiere del rubro «Gastos»:", error.message);
+    return new Map();
+  }
+  return new Map((data ?? []).map((f) => [f.id, f.tipo === "servicios" ? "servicios" : "mercaderia"] as const));
+}
+
 export async function getProveedores(): Promise<Proveedor[]> {
   const supabase = await createClient();
   const filas = exigir(await supabase.rpc("fn_proveedores"), "el directorio de proveedores");
+  // El tipo se lee aparte (la función de la lista no cambia de forma). Secundario: si la base todavía no tiene la columna (20261024222000
+  // se pega aparte del despliegue), todos salen como «mercadería» y las reglas caen a «solo Gastos» (esDeServicios).
+  const tipos = await leerTipos(supabase);
   // Los `numeric` de Postgres viajan como texto por JSON — se normalizan acá, preservando `null` tal
   // cual (Number(null) da 0, que acá significaría «sin deuda» en vez de «no te corresponde verlo»: son
   // cosas distintas, no se pueden confundir).
   const num = (v: number | string | null | undefined) => (v == null ? null : Number(v));
   return filas.map((p) => ({
     ...p,
+    tipo: tipos.get(p.id) ?? (esDeServicios(p) ? "servicios" : "mercaderia"),
     saldo: num(p.saldo),
     total_facturado: num(p.total_facturado),
     facturado_12m: num(p.facturado_12m),
@@ -190,6 +206,8 @@ export async function getProveedoresResumen(): Promise<ResumenProveedores> {
 // hace `notFound()`, no es un error de lectura.
 export type ProveedorFicha = {
   id: string;
+  /** Mercadería o servicios (20261024222000). */
+  tipo: TipoProveedor;
   nombre: string;
   ruc: string | null;
   contacto: string | null;
@@ -204,6 +222,9 @@ export type ProveedorFicha = {
   rubros: string[];
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
+  /** `false` = la base no le entregó los datos bancarios a esta cuenta (no tiene permiso): los seis campos vienen en null por eso, NO
+   *  porque el proveedor no tenga cuenta. Las pantallas de pago lo dicen («no puedes verlos»), nunca «no tiene cuenta». */
+  bancarios_visibles: boolean;
 };
 
 // Los datos bancarios ya no se leen de la tabla (20261013161000, Felipe 2026-10-13): solo los ve quien ve Proveedores, Por
@@ -221,8 +242,11 @@ export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
       .maybeSingle(),
     supabase.rpc("fn_proveedor_datos_bancarios", { p_proveedor_id: id }),
   ]);
-  const ficha = exigirOpcional(general, "la ficha del proveedor");
-  if (!ficha) return null;
+  const generalFicha = exigirOpcional(general, "la ficha del proveedor");
+  if (!generalFicha) return null;
+  // El tipo se lee aparte y sin tumbar la ficha: si la base todavía no tiene la columna, vale la regla de «solo Gastos».
+  const tipoLeido = (await leerTipos(supabase, id)).get(id);
+  const ficha = { ...generalFicha, tipo: tipoLeido ?? (esDeServicios(generalFicha) ? ("servicios" as const) : ("mercaderia" as const)) };
   // La web se publica ANTES de pegar la migración (20261013161000): mientras la función no exista en esa base (PGRST202), la cuenta
   // se lee de la tabla como siempre. Nunca `SIN_DATOS_BANCARIOS` por un error: la edición mandaría la cuenta en blanco al guardar
   // y `actualizar_proveedor` borraría la real.
@@ -232,9 +256,12 @@ export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
       .select("banco, cuenta_bancaria, cci, celular_billetera, billeteras, titular_cuenta")
       .eq("id", id)
       .maybeSingle();
-    return { ...ficha, ...(exigirOpcional(comoAntes, "los datos para pagar del proveedor") ?? SIN_DATOS_BANCARIOS) };
+    return { ...ficha, ...(exigirOpcional(comoAntes, "los datos para pagar del proveedor") ?? SIN_DATOS_BANCARIOS), bancarios_visibles: true };
   }
-  return { ...ficha, ...(exigir(bancarios, "los datos para pagar del proveedor")[0] ?? SIN_DATOS_BANCARIOS) };
+  // Cero filas = la cuenta no puede verlos (`fn_proveedor_datos_bancarios` no devuelve nada sin permiso); una fila con todo en null =
+  // sí puede y el proveedor no tiene cuenta cargada. Son dos cosas distintas y la pantalla las dice distinto.
+  const fila = exigir(bancarios, "los datos para pagar del proveedor")[0];
+  return { ...ficha, ...(fila ?? SIN_DATOS_BANCARIOS), bancarios_visibles: fila !== undefined };
 }
 
 /**
@@ -364,4 +391,36 @@ export async function getProveedorMetricasInsumos(id: string): Promise<MetricasI
     total_comprado: string | number;
   };
   return { ...fila, total_comprado: Number(fila.total_comprado) };
+}
+
+// Lo que se le PAGA a un proveedor de servicios (Entel, luz, agua, alquiler): los comprobantes de gasto
+// (fn_proveedor_servicio_resumen, 20261024222000). Las métricas de mercadería no los cuentan.
+export type ResumenServicio = {
+  comprobantes: number;
+  total: number;
+  total12m: number;
+  mesesConPago12m: number;
+  saldo: number;
+  vencido: number;
+  ultimaFecha: string | null;
+  meses: { mes: string; monto: number }[];
+  ultimos: { id: string; documento: string | null; fecha: string; total: number; saldo: number; estado: string }[];
+};
+
+export async function getProveedorServicioResumen(id: string): Promise<ResumenServicio> {
+  const supabase = await createClient();
+  const f = exigir(await supabase.rpc("fn_proveedor_servicio_resumen", { p_proveedor_id: id }), "lo que se le paga al proveedor") as unknown as Record<string, unknown>;
+  const n = (v: unknown) => Number(v ?? 0);
+  const lista = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+  return {
+    comprobantes: n(f.comprobantes),
+    total: n(f.total),
+    total12m: n(f.total_12m),
+    mesesConPago12m: n(f.meses_con_pago_12m),
+    saldo: n(f.saldo),
+    vencido: n(f.vencido),
+    ultimaFecha: (f.ultima_fecha as string | null) ?? null,
+    meses: lista<{ mes: string; monto: unknown }>(f.meses).map((m) => ({ mes: m.mes, monto: n(m.monto) })),
+    ultimos: lista<{ id: string; documento: string | null; fecha: string; total: unknown; saldo: unknown; estado: string }>(f.ultimos).map((u) => ({ ...u, total: n(u.total), saldo: n(u.saldo) })),
+  };
 }

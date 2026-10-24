@@ -1,0 +1,543 @@
+/* ====================================================================
+   El telar de Finanzas (Felipe 2026-10-23, docs/maquetas/finanzas-telar-2026-10/): las piezas comunes de los seis submódulos.
+   Cada sede es un hilo de color (`--color-sede-*`, color de DATO) que atraviesa las seis pantallas; Empresa va rayada porque es
+   de todos. Movimiento de ADR-0136: una sola vez, sin rebote, y nada con `prefers-reduced-motion`.
+   ==================================================================== */
+
+/* ---- La mesa de mando: fija bajo la cabecera del ERP ---- */
+.mesa-telar {
+  position: sticky;
+  /* Justo bajo la cabecera del ERP (61–62 px, `AppShell`): queda 1–2 px por debajo de ella, y la cabecera (z-30) tapa la unión. */
+  top: calc(3.75rem + env(safe-area-inset-top));
+  z-index: 20;
+  margin: -0.5rem -1rem 1.5rem;
+  padding: 0.5rem 1rem 0.25rem;
+  /* Opaca: con transparencia el contenido que pasa por detrás se leía a través de las pestañas. */
+  background: var(--color-crema);
+  border-bottom: 1px solid var(--color-sand);
+}
+@media (min-width: 640px) {
+  .mesa-telar {
+    margin-inline: -1.25rem;
+    padding-inline: 1.25rem;
+  }
+}
+.mesa-telar-fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding-block: 4px;
+}
+.mesa-telar-fila-2 {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.mesa-telar-palabra {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  line-height: 1;
+  white-space: nowrap;
+  flex: none;
+}
+.mesa-telar-dice {
+  font-size: 12.5px;
+  color: var(--color-taupe);
+  white-space: nowrap;
+}
+
+/* ---- Los hilos de sede: elegir una sede es tirar de su hilo ---- */
+.hilos-telar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-width: 0;
+}
+.hilo-telar {
+  --c: var(--color-taupe);
+  position: relative;
+  padding: 6px 11px 10px;
+  font-size: 13px;
+  white-space: nowrap;
+  /* contraste: texto sobre crema, papel (tinta al 64 %: el piso de ADR-0336) */
+  color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
+  border-radius: 10px;
+  transition: color 0.25s var(--ease-cayla), background-color 0.2s var(--ease-cayla);
+}
+.hilo-telar::after {
+  content: "";
+  position: absolute;
+  left: 11px;
+  right: 11px;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--c);
+  transform: scaleX(0.22);
+  transform-origin: left;
+  opacity: 0.75;
+  transition: transform 0.5s var(--ease-cayla), opacity 0.3s var(--ease-cayla);
+}
+@media (hover: hover) {
+  a.hilo-telar:hover {
+    background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+    color: var(--color-tinta);
+  }
+  a.hilo-telar:hover::after {
+    transform: scaleX(0.55);
+  }
+}
+.hilo-telar:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+.hilo-telar[aria-current="true"] {
+  color: var(--color-tinta);
+  font-weight: 600;
+}
+.hilo-telar[aria-current="true"]::after {
+  transform: scaleX(1);
+  opacity: 1;
+}
+.hilo-telar[data-color="tru"] { --c: var(--color-sede-tru); }
+.hilo-telar[data-color="aqp"] { --c: var(--color-sede-aqp); }
+.hilo-telar[data-color="lim"] { --c: var(--color-sede-lim); }
+.hilo-telar[data-color="tal"] { --c: var(--color-sede-tal); }
+.hilo-telar[data-color="emp"]::after {
+  background: repeating-linear-gradient(45deg, var(--color-sede-emp) 0 3px, color-mix(in srgb, var(--color-sede-emp) 40%, transparent) 3px 6px);
+}
+.hilo-telar[data-color="todas"]::after {
+  background: linear-gradient(90deg, var(--color-sede-tru) 0 22%, var(--color-sede-aqp) 0 44%, var(--color-sede-lim) 0 64%, var(--color-sede-tal) 0 82%, var(--color-sede-emp) 0);
+}
+
+.mesa-telar-espacio { flex: 1 1 auto; }
+.mesa-telar-registrar { flex: none; }
+
+/* ---- «Te toca»: cuántas cosas te tocan en Finanzas, y su cajón ---- */
+.te-toca-telar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  flex: none;
+  border: 1px solid var(--color-sand);
+  border-radius: 999px;
+  background: var(--color-papel);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-tinta);
+  transition: border-color 0.2s var(--ease-cayla), transform 0.2s var(--ease-cayla);
+}
+@media (hover: hover) {
+  .te-toca-telar:hover { border-color: var(--color-taupe); transform: translateY(-1px); }
+}
+.te-toca-telar:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.te-toca-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-sand);
+  border-left: 3px solid var(--color-ambar);
+  border-radius: 12px;
+  background: var(--color-papel);
+}
+.te-toca-item[data-estado="frena"] { border-left-color: var(--color-rojo-profundo); }
+
+/* ---- El dock: lo que más se hace en este submódulo, abajo y al centro (solo escritorio) ---- */
+.dock-telar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 25;
+  display: none;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--color-sand);
+  border-radius: 18px;
+  background: var(--color-papel);
+  box-shadow: 0 12px 32px -14px color-mix(in srgb, var(--color-sombra) 35%, transparent);
+  transform: translateX(-50%);
+  animation: dock-sube 0.45s var(--ease-cayla) backwards;
+}
+@media (min-width: 1024px) {
+  .dock-telar { display: flex; }
+  /* Que el dock no tape lo último de la pantalla. */
+  main:has(.dock-telar) { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+}
+@keyframes dock-sube {
+  from { transform: translate(-50%, 12px); opacity: 0; }
+}
+.dock-telar-accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--color-tinta);
+  white-space: nowrap;
+  transition: background-color 0.2s var(--ease-cayla);
+}
+.dock-telar-accion svg { width: 16px; height: 16px; }
+@media (hover: hover) {
+  .dock-telar-accion:hover { background: var(--color-hueso); }
+  .dock-telar-accion.es-principal:hover { background: var(--color-rojo-profundo); }
+}
+.dock-telar-accion:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.dock-telar-accion.es-principal { background: var(--color-tinta); color: var(--color-crema); }
+.dock-telar-tecla {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border: 1px solid var(--color-sand);
+  border-radius: 6px;
+  color: var(--color-taupe-profundo);
+}
+.dock-telar-accion.es-principal .dock-telar-tecla {
+  border-color: color-mix(in srgb, var(--color-crema) 40%, transparent);
+  color: var(--color-crema);
+}
+
+/* ---- Gastos · el retazo: cada categoría es un pedazo del tamaño de su gasto ---- */
+.retazo-gastos {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 100 / 46;
+}
+.retazo-gastos[data-alto] { aspect-ratio: 100 / 110; }
+.retazo-pieza {
+  position: absolute;
+  padding: 3px;
+  animation: retazo-despliega 0.6s var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+@keyframes retazo-despliega {
+  from { opacity: 0; transform: scale(0.96); }
+}
+.retazo-pieza > button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 12px 12px 0;
+  overflow: hidden;
+  text-align: left;
+  border: 1px solid var(--color-sand);
+  border-radius: 12px;
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  transition: transform 0.3s var(--ease-cayla), border-color 0.2s var(--ease-cayla), background-color 0.3s var(--ease-cayla), color 0.3s var(--ease-cayla);
+}
+@media (hover: hover) {
+  .retazo-pieza > button:hover { transform: translateY(-2px); border-color: var(--color-taupe); }
+}
+.retazo-pieza > button:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.retazo-pieza > button[aria-pressed="true"] { background: var(--color-tinta); color: var(--color-crema); border-color: var(--color-tinta); }
+.retazo-nombre { font-size: 13px; font-weight: 500; line-height: 1.25; }
+.retazo-monto { font-family: var(--font-serif); font-size: clamp(18px, 2vw, 28px); line-height: 1.05; font-variant-numeric: tabular-nums; }
+/* contraste: texto sobre papel y tinta (tinta y crema al 70 %, sobre el piso del 64 %) */
+.retazo-pct { font-size: 11.5px; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
+.retazo-pieza > button[aria-pressed="true"] .retazo-pct { color: color-mix(in srgb, var(--color-crema) 70%, transparent); }
+.retazo-pieza[data-chica] .retazo-monto,
+.retazo-pieza[data-chica] .retazo-pct { display: none; }
+.retazo-trama {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 1px;
+  height: 8px;
+}
+.retazo-trama i {
+  --c: var(--color-taupe);
+  flex: 1 1 0;
+  background: var(--c);
+  transform-origin: left;
+  animation: orillo-teje 0.8s var(--ease-cayla) backwards;
+  animation-delay: calc(200ms + var(--i, 0) * 55ms);
+}
+.retazo-trama i[data-color="tru"] { --c: var(--color-sede-tru); }
+.retazo-trama i[data-color="aqp"] { --c: var(--color-sede-aqp); }
+.retazo-trama i[data-color="lim"] { --c: var(--color-sede-lim); }
+.retazo-trama i[data-color="tal"] { --c: var(--color-sede-tal); }
+.retazo-trama i[data-color="emp"] {
+  background: repeating-linear-gradient(45deg, var(--color-sede-emp) 0 3px, color-mix(in srgb, var(--color-sede-emp) 45%, transparent) 3px 6px);
+}
+
+/* ---- Gastos · el calendario: más oscuro, más gasto ---- */
+.calendario-gastos {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.calendario-dia-semana {
+  padding-bottom: 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--color-taupe-profundo);
+}
+.calendario-dia {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-height: 28px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--color-tinta) calc(var(--a, 0) * 1%), var(--color-hueso));
+  color: var(--color-tinta);
+  transition: transform 0.2s var(--ease-cayla), box-shadow 0.2s var(--ease-cayla);
+  animation: calendario-entra 0.4s var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 12ms);
+}
+@keyframes calendario-entra {
+  from { opacity: 0; }
+}
+.calendario-dia[data-oscuro] { color: var(--color-crema); }
+@media (hover: hover) {
+  .calendario-dia:hover:not(:disabled) { transform: scale(1.08); }
+}
+.calendario-dia:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.calendario-dia[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--color-rojo); }
+.calendario-dia:disabled {
+  background: transparent;
+  border: 1px dashed var(--color-sand);
+  /* contraste: texto sobre crema y papel (tinta al 64 %, el piso) */
+  color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
+  cursor: default;
+}
+
+/* ---- La hoja «Registrar gasto»: el formulario a la izquierda y «Así queda» a la derecha ---- */
+.hoja-gasto {
+  display: grid;
+  gap: 20px;
+}
+@media (min-width: 720px) {
+  .hoja-gasto { grid-template-columns: minmax(0, 1fr) 15rem; }
+}
+.hoja-gasto-form { display: flex; flex-direction: column; gap: 14px; }
+.hoja-gasto-repetir { display: flex; flex-direction: column; gap: 6px; padding-bottom: 12px; border-bottom: 1px dashed var(--color-sand); }
+.hoja-gasto-opciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.hoja-gasto-papel { display: grid; gap: 12px; padding: 12px; border-radius: 12px; background: var(--color-hueso); }
+.hoja-gasto-sede {
+  --c: var(--color-taupe);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-sand);
+  border-radius: 999px;
+  background: var(--color-papel);
+  font-size: 13px;
+  color: var(--color-tinta);
+  transition: border-color 0.2s var(--ease-cayla), background-color 0.2s var(--ease-cayla), color 0.2s var(--ease-cayla);
+}
+@media (hover: hover) {
+  .hoja-gasto-sede:hover { border-color: var(--color-taupe); }
+}
+.hoja-gasto-sede:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.hoja-gasto-sede[aria-checked="true"] { background: var(--color-tinta); color: var(--color-crema); border-color: var(--color-tinta); }
+.hoja-gasto-punto { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+.hoja-gasto-sede[data-color="tru"] { --c: var(--color-sede-tru); }
+.hoja-gasto-sede[data-color="aqp"] { --c: var(--color-sede-aqp); }
+.hoja-gasto-sede[data-color="lim"] { --c: var(--color-sede-lim); }
+.hoja-gasto-sede[data-color="tal"] { --c: var(--color-sede-tal); }
+.hoja-gasto-sede[data-color="emp"] .hoja-gasto-punto {
+  background: repeating-linear-gradient(45deg, var(--color-sede-emp) 0 2px, transparent 2px 4px);
+  box-shadow: inset 0 0 0 1px var(--color-sede-emp);
+}
+.hoja-gasto-lado { display: flex; flex-direction: column; gap: 10px; }
+@media (min-width: 720px) {
+  .hoja-gasto-lado { position: sticky; top: 0; align-self: start; }
+}
+/* El ticket es papel: no cambia con el modo oscuro (`.papel-fijo`, ADR-0336). */
+.hoja-gasto-ticket {
+  padding: 16px 14px 18px;
+  border: 1px solid var(--color-sand);
+  border-radius: 6px;
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.hoja-gasto-linea {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  animation: hoja-gasto-tinta 0.35s var(--ease-cayla) backwards;
+}
+.hoja-gasto-linea dt { color: var(--color-taupe-profundo); }
+.hoja-gasto-linea dd { text-align: right; overflow-wrap: anywhere; }
+.hoja-gasto-linea[data-fuerte] { margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--color-sand); font-family: var(--font-serif); font-size: 18px; }
+@keyframes hoja-gasto-tinta {
+  from { opacity: 0; transform: translateY(2px); }
+}
+.hoja-gasto-ticket-vacio { color: var(--color-taupe-profundo); }
+.hoja-gasto-pasara { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--color-taupe-profundo); }
+.hoja-gasto-pasara li { padding-left: 14px; position: relative; }
+.hoja-gasto-pasara li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 6px; height: 6px; border-radius: 50%; background: var(--color-sand); }
+
+/* ---- El orillo: cuánto pone cada sede en esta pantalla ---- */
+.orillo-telar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  margin: -0.75rem 0 1.5rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--color-hueso);
+}
+.orillo-tramo {
+  --c: var(--color-taupe);
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--c);
+  transition: flex-grow 0.8s var(--ease-cayla), opacity 0.4s var(--ease-cayla), filter 0.2s var(--ease-cayla);
+  animation: orillo-teje 0.9s var(--ease-cayla) backwards;
+  transform-origin: left;
+}
+@keyframes orillo-teje {
+  from { transform: scaleX(0); }
+}
+@media (hover: hover) {
+  .orillo-tramo:hover { filter: brightness(1.15); }
+}
+.orillo-tramo:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.orillo-tramo[data-color="tru"] { --c: var(--color-sede-tru); }
+.orillo-tramo[data-color="aqp"] { --c: var(--color-sede-aqp); }
+.orillo-tramo[data-color="lim"] { --c: var(--color-sede-lim); }
+.orillo-tramo[data-color="tal"] { --c: var(--color-sede-tal); }
+.orillo-tramo[data-color="emp"] {
+  background: repeating-linear-gradient(45deg, var(--color-sede-emp) 0 3px, color-mix(in srgb, var(--color-sede-emp) 45%, transparent) 3px 6px);
+}
+/* Con una sede elegida, su hilo ocupa todo el ancho y los demás se recogen. */
+.orillo-telar[data-una] .orillo-tramo:not([aria-current]) {
+  flex-grow: 0 !important;
+  opacity: 0;
+}
+
+/* ---- La respuesta: la pregunta del submódulo y la cifra grande, a la derecha de la cabecera ---- */
+.respuesta-telar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  gap: 6px;
+  min-width: 0;
+}
+.respuesta-telar-pregunta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+}
+.respuesta-telar-hilo {
+  display: block;
+  width: 48px;
+  height: 2px;
+  background: var(--color-rojo);
+}
+.respuesta-telar-cifra {
+  font-family: var(--font-serif);
+  font-size: 46px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+}
+.respuesta-telar-motivo {
+  max-width: 22rem;
+  font-size: 14px;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}
+.respuesta-telar-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+@media (max-width: 639px) {
+  .respuesta-telar {
+    align-items: flex-start;
+    text-align: left;
+  }
+  .respuesta-telar-chips {
+    justify-content: flex-start;
+  }
+  .respuesta-telar-cifra {
+    font-size: 40px;
+  }
+}
+
+/* ---- Celular: líneas cortas (pestañas · hilos que se deslizan · mes), para que la barra fija no se coma la pantalla ---- */
+@media (max-width: 1100px) {
+  /* Solo el ícono a la vista; el texto queda para el lector de pantalla (es el nombre del botón). */
+  .te-toca-telar-texto,
+  .mesa-telar-registrar-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .te-toca-telar { padding: 0 12px; }
+}
+@media (max-width: 639px) {
+  .mesa-telar-palabra,
+  .mesa-telar-dice {
+    display: none;
+  }
+  .mesa-telar-fila {
+    padding-block: 2px;
+  }
+  .mesa-telar-fila-2 {
+    row-gap: 4px;
+  }
+  .hilos-telar {
+    flex: 1 0 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .hilos-telar::-webkit-scrollbar {
+    display: none;
+  }
+  .hilo-telar {
+    padding-inline: 9px;
+  }
+  .hilo-telar::after {
+    left: 9px;
+    right: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hilo-telar,
+  .hilo-telar::after,
+  .orillo-tramo,
+  .retazo-pieza,
+  .retazo-pieza > button,
+  .retazo-trama i,
+  .calendario-dia,
+  .hoja-gasto-sede,
+  .hoja-gasto-linea,
+  .te-toca-telar,
+  .dock-telar,
+  .dock-telar-accion {
+    transition: none;
+    animation: none;
+  }
+}

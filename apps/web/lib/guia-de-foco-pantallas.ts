@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 59;
+export const PENDIENTES_HOY = 57;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -45,6 +45,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/clientas": { estado: "no-aplica", motivo: "Lista de clientas con buscador y filtros; todo lo que se llena vive en sus ventanas (registrar clienta, la ficha, «Llegó un mensaje de WhatsApp»), cada una con su guía en el registro de modales." },
   // ADR-0288 act. g (tanda 1g): una bandeja; lo único que se llena es quién envía (se enciende si falta). «Beneficios del club» es un modal.
   "/clientas/avisos": { estado: "aplicada", evidencia: ["components/clientas/AvisosClubPanel.tsx"] },
+  // Programa de puntos (actividad 8): Clientes ▸ Beneficios del club. Llega con lo vigente (o lo ya programado): la guía se mueve cuando algo se
+  // borra o se escribe mal (`lib/club-puntos-config-guia.ts`, la misma regla que apaga «Guardar», probada contra `problemasDeConfig`).
+  "/clientas/beneficios": { estado: "aplicada", evidencia: ["components/clientas/BeneficiosPuntosPanel.tsx"] },
   "/clientas/cartel": { estado: "no-aplica", motivo: "Hoja de impresión del cartel del club: una hoja A4 por tienda con su QR; se revisa y se imprime, no hay campos que completar ni pasos." },
   // ---- colaboradores ----
   // Rediseño del 2026-10-05 (Equipo): una lista agrupada por sede con buscador y atajos; lo que se cambia vive en la ficha.
@@ -58,9 +61,15 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/@modal/(.)ordenes/ver/[id]": { estado: "no-aplica", motivo: "Una orden de compra abierta sobre la lista (ADR-0362): se lee, no se llena. Editarla y anularla llegan con su propia guía." },
   "/compras/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
   "/compras/factura/[compraId]": PENDIENTE,
-  "/compras/fondos": { estado: "no-aplica", motivo: "Lista de fondos por rendir (ADR-0362, fase 6): se mira quién tiene plata y qué se le entregó, no se llena. Lo que se llena (a quién, de dónde, cuánto, para qué) vive en sus hojas «Entregar plata», «Lo que devuelve» y «Anular», con su guía (registro de modales)." },
-  "/compras/notas-credito": PENDIENTE,
-  "/compras/nueva": PENDIENTE,
+  // Revisar compras (ADR-0480; rediseño 2026-10-23): lo que se llena vive en el detalle de la bandeja, al lado de la lista y sin hoja —confirmar
+  // la plata (cuánto llegó y de qué cuenta), completar el papel (serie y número según el papel; el monto si se anotó mal), revisar un gasto
+  // (qué papel; su número y RUC, opcionales) y recibir un cierre (la cuenta y el monto); desde una terminal, quién lo hace—, cada uno con su
+  // guía. Lo de los fondos (Entregar plata, Lo que devuelve, Anular) sigue en sus hojas (registro de modales).
+  "/compras/fondos": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx", "components/mi-plata/PapelesPorCompletar.tsx", "components/mi-plata/GastosPorRevisar.tsx", "components/mi-plata/CierresPorRecibir.tsx"] },
+  "/compras/mi-plata": { estado: "no-aplica", motivo: "ADR-0480: la pantalla no tiene campos propios; los tiene la hoja «Me dieron plata» (declarada en MODALES) y la compra (/compras/mi-plata/compra)." },
+  // ADR-0480, actividad 3: «Compré ropa». Una pregunta por pantalla; el paso del papel dice qué falta (qué te dieron, la foto si hay papel, cuánto).
+  "/compras/mi-plata/compra": { estado: "aplicada", evidencia: ["components/mi-plata/RegistrarCompra.tsx"] },
+  "/compras/notas-credito": { estado: "no-aplica", motivo: "Redirige al Historial de compras: Notas de crédito se retiró (ADR-0480)." },
   "/compras/ordenes": { estado: "no-aplica", motivo: "Lista de órdenes de compra (ADR-0362): se mira y se filtra, no se llena. Lo que se llena (proveedor, destino, líneas) vive en «Nueva orden de compra», con su guía." },
   "/compras/ordenes/comprobante/[id]": { estado: "aplicada", evidencia: ["components/ordenes-compra/RegistrarComprobanteOrden.tsx"] },
   "/compras/ordenes/editar/[id]": { estado: "aplicada", evidencia: ["components/ordenes-compra/NuevaOrdenCompra.tsx"] },
@@ -179,9 +188,10 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/productos/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
   "/productos/[id]/editar": { estado: "aplicada", evidencia: ["components/ProductoForm.tsx"] },
   "/productos/[id]/historial": { estado: "no-aplica", motivo: "Historial de solo lectura de una prenda (ADR-0354); solo hay filtros de tipo y de persona." },
-  "/productos/atributos": { estado: "no-aplica", motivo: "Tablero de tarjetas, búsqueda y filtros por pestaña; todo lo que se llena vive en ventanas propias (colores, tejidos, patrones, tallas, temporadas, etiquetas), cada una con su guía en el registro de modales." },
+  "/productos/atributos": { estado: "no-aplica", motivo: "Tablero de tarjetas, búsqueda y filtros por pestaña; todo lo que se llena vive en ventanas propias (colores, tejidos, patrones, tallas, temporadas), cada una con su guía en el registro de modales." },
   "/productos/categorias": PENDIENTE,
   "/productos/familias": { estado: "no-aplica", motivo: "Muestra las familias como tarjetas de solo lectura; lo que se llena vive en la ventana «Nueva familia», que lleva su propia guía (registro de modales)." },
+  "/productos/insignias": { estado: "no-aplica", motivo: "Billetera de pases (campañas e insignias): se elige uno y se mira; todo lo que se llena (nueva insignia o campaña, configurar, prendas, aprobar con su comentario, rechazar) vive en ventanas propias, cada una en el registro de modales." },
   "/productos/marcas": { estado: "aplicada", evidencia: ["components/alta-producto/NuevaMarcaForm.tsx"] },
   "/productos/nuevo": { estado: "aplicada", evidencia: ["components/NuevoProductoForm.tsx", "components/alta-producto/piezas.tsx"] },
   "/productos/por-revisar": { estado: "no-aplica", motivo: "Cola de solo lectura de las prendas que alguien propuso (ADR-0371): cada fila trae sus datos y dos botones, Aprobar y Rechazar; no hay campos que llenar ni pasos que seguir. Lo único que se elige —quién firma— vive en la hoja de cada decisión (components/RevisarProductoHoja.tsx)." },
@@ -217,6 +227,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/tienda-web/recomendaciones": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
   // ADR-0408 (actividad 3): Tienda web ▸ Vitrina. Lo que se llena vive en sus dos hojas: la del modelo (precio web —lo que la base
   // rechaza: vacío, inválido o bajo el costo—, descripción opcional y quién lo cambia) y la del lote (cuánto subir o bajar, y quién).
+  "/tienda-web/campanas/[id]": { estado: "aplicada", evidencia: ["components/campanas-web/EditorCampana.tsx"] },
+  "/tienda-web/campanas": { estado: "no-aplica", motivo: "Tienda web ▸ Campañas (Felipe 2026-10-21), primera entrega: la lista de las campañas con su diseño. Solo mira: unas cifras, un filtro por estado y una tabla, sin campos que llenar ni pasos. Cuando llegue el editor de diseño (ambiente, colores, movimiento, textos), su pantalla y sus hojas se declaran `aplicada` con su guía de foco." },
   "/tienda-web/vitrina": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaModeloHoja.tsx", "components/vitrina/VitrinaLoteHoja.tsx"] },
   // ADR-0408 (actividad 12): lo que los clientes esperan con «Avísame». Solo se lee: un buscador y píldoras de tienda, nada que guardar.
   "/tienda-web/vitrina/esperan": { estado: "no-aplica", motivo: "Lista de solo lectura de lo que los clientes de la tienda online esperan (Esperan una talla): un buscador y píldoras de tienda para filtrar, sin campos que llenar ni pasos que seguir." },
@@ -245,7 +257,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17; 52 → 54 ese mismo día, cuando la prueba aprendió a ver el `<Cajon>`: la orden de Producción vuelve —su cajón sigue llevando el cierre y los insumos, sin guía— y entra la ficha de una persona del Equipo, que nació el 2026-10-05 en un cajón hecho a mano que la prueba no veía. Ninguno es un modal nuevo: es deuda que estaba escondida; 54 → 53 ese mismo día, con la guía de la ficha del Equipo.) */
-export const MODALES_PENDIENTES_HOY = 53;
+export const MODALES_PENDIENTES_HOY = 52;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -291,6 +303,12 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/EditarMarcaModal.tsx": { estado: "aplicada", evidencia: ["components/EditarMarcaModal.tsx"] },
   "components/EliminarProductoModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el texto ya dice qué se borra y por qué; no hay camino que indicar." },
   "components/EtiquetasLista.tsx": { estado: "aplicada", evidencia: ["components/EtiquetasLista.tsx"] },
+  "components/sellos/CambiarDibujoModal.tsx": { estado: "aplicada", evidencia: ["components/sellos/CambiarDibujoModal.tsx"] },
+  // «Tres preguntas» (Felipe 2026-10-23): una pregunta por pantalla, los pasos con su ✓, la etiqueta que dice «de fábrica» / «por elegir» y
+  // el «Falta: …» tocable al pie (`FaltanDelPaso`) que lleva a la pregunta que lo arregla. Sale de lo mismo que apaga «Guardar»
+  // (`problemasDeOferta` y haber elegido qué se da), sin reglas nuevas.
+  "components/sellos/OfertasHoja.tsx": { estado: "aplicada", evidencia: ["components/sellos/OfertasHoja.tsx"] },
+  "components/sellos/SellosPantalla.tsx": { estado: "no-aplica", motivo: "Sus dos ventanas propias tienen UN solo campo cada una (el comentario al aprobar, el motivo al rechazar) y el botón dice por qué espera; las que se llenan de verdad (nueva insignia o campaña, configurar) son de EtiquetasLista.tsx, con su guía." },
   "components/FamiliasLista.tsx": { estado: "aplicada", evidencia: ["components/FamiliasLista.tsx"] },
   "components/FiltrosExistencias.tsx": { estado: "no-aplica", motivo: "Hoja de filtros de Existencias en el celular (misma estructura que Productos, 2026-10-03): cada control filtra la lista al tocarlo y el botón dice cuántos productos quedan; no hay nada que completar ni pasos que seguir." },
   "components/FiltrosHistorialVentas.tsx": PENDIENTE, // 3 controles
@@ -302,6 +320,13 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/InsumoModales.tsx": { estado: "aplicada", evidencia: ["components/InsumoModales.tsx"] },
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
+  // Registrar proveedor desde Nueva orden (2026-10-21): el RUC y la razón social (un solo campo: la consulta los pinta juntos), o solo el nombre con
+  // «No tiene RUC», y el WhatsApp si se escribió; la pregunta «¿no será uno que ya tienes?» sin contestar también bloquea. Sale de lo que la función
+  // `registrar_proveedor_de_orden` ya exige (`lib/proveedor-de-orden-reglas.ts`, con su prueba).
+  "components/ordenes-compra/RegistrarProveedorOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/RegistrarProveedorOrden.tsx"] },
+  "components/campanas-web/VistaPreviaCampana.tsx": { estado: "no-aplica", motivo: "Una hoja de un solo paso: «Crear enlace» y copiarlo. El único control es el «Responsable» de siempre y la hoja dice qué hace antes de pedir nada." },
+  // Avisos, «Editar mensajes» (2026-10-20): cada aviso es un campo (lo que rechazaría `fn_club_aviso_problema`), el cierre opcional y quién lo cambia.
+  "components/clientas/EditarMensajesAvisos.tsx": { estado: "aplicada", evidencia: ["components/clientas/EditarMensajesAvisos.tsx"] },
   // Pedidos web (ADR-0408 act. 8): confirmar enciende prenda por prenda y después quién; cerrar y anular, el motivo y quién; enviar, el día.
   "components/pedidos-web/PedidoWebHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/PedidoWebHoja.tsx"] },
   "components/pedidos-web/EnviarPedidoWebHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/EnviarPedidoWebHoja.tsx"] },
@@ -310,6 +335,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/pedidos-web/RegistrarPagoHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/RegistrarPagoHoja.tsx"] },
   "components/pedidos-web/AnularPagoHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/AnularPagoHoja.tsx"] },
   "components/pedidos-web/AnularPedidoPagadoHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/AnularPedidoPagadoHoja.tsx"] },
+  "components/pedidos-web/EditarMensajePredeterminadoHoja.tsx": { estado: "no-aplica", motivo: "Un solo campo de texto (el mensaje) con su vista previa; los botones no dependen de otros campos." },
   "components/liquidacion/EtiquetarPiezaModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/EtiquetarPiezaModal.tsx"] },
   "components/liquidacion/PiezaLiquidacionModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/PiezaLiquidacionModal.tsx"] },
   // Precio por tienda (Felipe 2026-10-09): «Precio distinto en una sede» (tienda, precio, por qué, quién) y «Quitar» (quién).
@@ -348,6 +374,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/orden-pagina/RevertirLaOrdenModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo revierte): el texto dice qué pasa con el stock; no hay camino que indicar." },
   // Actividad 7: anotar lo que se usó de la tela (o devolver lo que sobró): cuánto —con lo que hay en el estante o lo ya descontado— y quién lo anota.
   "components/orden-pagina/TelaUsadaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/TelaUsadaModal.tsx"] },
+  "components/orden-pagina/MarcarFaseModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién la marca o la deshace): el título dice qué fase queda hecha o por hacer y no cuenta prendas; no hay camino que indicar." },
   "components/orden-pagina/DeshacerAvanceModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo deshace): el título dice qué anotación se deshace y cuántas prendas vuelven a quedar por terminar; no hay camino que indicar." },
   // La orden de Producción, en su `<Cajon>` (ADR-0358 ronda 17). Su archivo trae un solo control (quién lo hace), pero el cajón lleva
   // adentro el cierre («Pasar al stock»: `OrdenCierre.tsx`, 4 controles) y los insumos (`OrdenInsumos.tsx`, 4): ahí está el camino que guiar.
@@ -382,7 +409,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RecepcionEnvio.tsx": PENDIENTE, // 16 controles
   "components/RecibirComprobanteModal.tsx": PENDIENTE, // 7 controles
   "components/RegistrarGastoModal.tsx": PENDIENTE, // 29 controles
-  "components/RegistrarNotaCreditoModal.tsx": PENDIENTE, // 9 controles
+  // El telar (ADR-0493): la hoja nueva de «Registrar gasto». Cuentan como «falta» lo que `validarHoja` exige (monto, sede, en qué, qué
+  // fue, si tiene comprobante; con comprobante, el RUC y la serie; a crédito, cuándo vence; si no, de dónde salió) y el responsable;
+  // `lib/hoja-gasto-reglas.test.ts` cruza la guía con la validación en cada camino.
+  "components/finanzas/gastos/HojaRegistrarGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaRegistrarGasto.tsx"] },
   // ADR-0328 act. 10: cuál (color y talla), dónde estaba, cuántas, qué tiene y quién: todo cuenta como «falta» (lo exige la base).
   // ADR-0328 act. 10 («Se arregló»): la guía enciende lo del panel abierto —qué se arregló, o precio y forma de pago al liquidar— y
   // quién decide. La nota de «Se botó» / «Donada» es opcional.
@@ -396,15 +426,12 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/TejidosLista.tsx": { estado: "aplicada", evidencia: ["components/TejidosLista.tsx"] },
   "components/TemporadasLista.tsx": { estado: "aplicada", evidencia: ["components/TemporadasLista.tsx"] },
   "components/TerminalesModales.tsx": PENDIENTE, // 6 controles
-  // ADR-0288 act. g (tanda 1g): «Beneficios del club», del líder, desde Clientas ▸ Avisos. Llega con lo vigente: la guía se mueve cuando algo
-  // se borra o se escribe mal (`lib/club-beneficios-guia.ts`, la misma regla que apaga «Guardar»).
   // ADR-0341: Dar acceso en una hoja. Falta = lo mismo que apaga el botón: a quién, la sede, el rol (si se leyeron los roles) y quién lo da.
   "components/colaboradores/DarAccesoModal.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/DarAccesoModal.tsx"] },
   // ADR-0340: la ficha de una persona del Equipo, en su `<Cajon>`. La guía vive en el panel abierto (`lib/ficha-colaborador-guia.ts`): «Cambiar
   // rol» pide quién lo hace, el rol nuevo y, solo al bajar a un líder sin sede, la sede donde queda (lo que exige `asignar_rol`); «Suspender»,
   // quién lo hace y el motivo como sugerido (Felipe 2026-10-17: se enciende y sale en «Falta», pero nunca bloquea); cambiar la sede, reactivar y quitar el acceso son un toque y solo piden quién lo hace.
   "components/colaboradores/FichaColaborador.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/FichaColaborador.tsx"] },
-  "components/clientas/BeneficiosClubModal.tsx": { estado: "aplicada", evidencia: ["components/clientas/BeneficiosClubModal.tsx"] },
   // Recomendaciones (ADR-0408): desde el 2026-10-17 la hoja es un `<Cajon>`, que la prueba también cuenta como hoja. Su guía: la respuesta,
   // que falta hasta estar bien escrita, y quién lo hace. «Falta» = lo que `responder_recomendacion` rechazaría (`lib/recomendaciones-guia.ts`).
   "components/recomendaciones/RecomendacionHoja.tsx": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
@@ -436,10 +463,20 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/SaldosArranqueModal.tsx": PENDIENTE, // 3 controles
   // ADR-0288 tanda 1a: la hoja ganó el alta de la clienta. Tanda 1g: solo el documento (tipo, número, nombre) y quién atiende.
   "components/punto-de-venta/ClientaDelTicket.tsx": { estado: "aplicada", evidencia: ["components/punto-de-venta/ClientaDelTicket.tsx"] },
+  // Programa de puntos (actividad 5): «Usar puntos» es un stepper (un solo control: cuántos canjear, con el rango que la base aceptaría)
+  // y «Código de cupón» es un campo con su resultado al instante (se pregunta solo al completar el código): ninguno lleva pasos.
+  "components/punto-de-venta/PuntosYCuponModales.tsx": { estado: "no-aplica", motivo: "Dos hojas de UN solo control cada una: el stepper de puntos a canjear y el campo del código del cupón, con su resultado a la vista al instante." },
   "components/punto-de-venta/Esperas.tsx": PENDIENTE, // 2 controles
   "components/punto-de-venta/RegistrarBajadaModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién atiende, el mismo combo del ticket) antes de registrar desde Vender la bajada al piso que se olvidó (ADR-0321): el texto dice qué prenda entra y dónde queda; el botón se apaga hasta elegir y dice por qué." },
   // ADR-0362 (actividad 5): «Anular orden». Falta lo que la base rechazaría: el motivo y, desde una terminal, quién la anula.
   "components/fondos/AccionesFondos.tsx": { estado: "aplicada", evidencia: ["components/fondos/AccionesFondos.tsx"] },
+  // Compras simple (ADR-0480, actividad 2): «Me dieron plata» (cómo le llegó, cuánto; la foto del voucher, opcional) y «Confirmar la plata»
+  // (cuánto llegó y, salvo «ya tenía», de qué cuenta salió; desde una terminal, quién confirma).
+  "components/mi-plata/AnotarPlata.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarPlata.tsx"] },
+  "components/mi-plata/AnotarGasto.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/AnotarGasto.tsx"] },
+  // La hoja de la prenda de «Compré ropa» (rediseño 2026-10-23): cuántas, costo, venta y tienda; falta lo que antes frenaba cada paso.
+  "components/mi-plata/HojaPrenda.tsx": { estado: "aplicada", evidencia: ["components/mi-plata/HojaPrenda.tsx"] },
+  "components/mi-plata/TerminarDia.tsx": { estado: "no-aplica", motivo: "ADR-0480: una sola pregunta (qué haces con lo que te queda), con el botón apagado y su frase hasta elegir; sin plata no hay nada que elegir." },
   // La rendición (ADR-0362 fase 6 · actividad 5): «Rendir tu fondo» (el efectivo; la explicación, sugerida si falta plata) y «Revisar la
   // rendición» (quién asume lo que falta, cuando hay explicación; la nota; desde una terminal, quién aprueba).
   "components/fondos/RendirFondo.tsx": { estado: "aplicada", evidencia: ["components/fondos/RendirFondo.tsx"] },
@@ -482,7 +519,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   // el medio y la cuenta vienen puestos y son «sugeridos».
   "components/nos-debe/HojaDeposito.tsx": { estado: "aplicada", evidencia: ["components/nos-debe/HojaDeposito.tsx"] },
   // ADR-0362 fase 5b, actividad 3: «Llegó su nota de crédito».
-  "components/NotaDelProveedorModal.tsx": { estado: "aplicada", evidencia: ["components/NotaDelProveedorModal.tsx"] },
   // ADR-0408 (actividad 3): las hojas de la Vitrina web. «Falta» es lo que `vitrina_guardar_modelo` y `vitrina_mostrar` rechazarían: quién
   // lo cambia. La descripción para la web es opcional, y no hay precio que llenar (es el de cada tienda, Felipe 2026-10-14).
   "components/vitrina/VitrinaModeloHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaModeloHoja.tsx"] },

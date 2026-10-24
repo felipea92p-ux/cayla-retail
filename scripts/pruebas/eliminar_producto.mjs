@@ -341,10 +341,16 @@ select pg_temp.huella(:'va');`);
     // ADR-0393: lo contado al recibir que todavía no entró al stock (un pendiente «detalle») también: renglón 23 de
     // `fn_producto_historia` (20261014234000). Lo recibido frena por su movimiento con lote; un pendiente no deja movimiento.
     "despacho_pendientes",
+    // ADR-0480 (actividad 3): una prenda en una línea de orden de compra (la compra anotada desde el celular) tiene un proveedor del otro
+    // lado: renglón 26 de `fn_producto_historia` (20261023005000).
+    "orden_compra_items",
     // ADR-0408: una prenda que un cliente pidió por la web (con su precio, y quizá su pago) es historia: frena el borrado aunque
     // nunca haya movido stock (se puede separar algo que está por conseguir). Las líneas no se borran (pedido_web_lineas_sin_borrar);
     // renglón 25 de `fn_producto_historia` (20261015011000, act. 8): Catálogo dice «tiene pedidos web» y no ofrece «Eliminar».
     "pedido_web_lineas",
+    // ADR-0470: las prendas que se lleva la clienta en un cambio por VARIAS prendas. Es historia de la prenda, como `cambios`; el cambio deja además
+    // un movimiento de salida con su `cambio_id`, que ya frena el borrado, y la llave a `variantes` (sin cascada) lo impediría igual.
+    "cambio_salidas",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.

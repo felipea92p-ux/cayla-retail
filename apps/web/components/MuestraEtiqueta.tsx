@@ -1,5 +1,6 @@
-import type { ReactElement } from "react";
-import { iconoDeEtiqueta, type IconoEtiqueta } from "@/lib/etiqueta-visual";
+import { createElement, type ReactElement } from "react";
+import { DIBUJOS_DE_INSIGNIA, dibujoDeInsignia, type ColorDeInsignia, type DibujoDeInsignia, type PiezaDeInsignia } from "@cayla-retail/shared/insignias-visual";
+import { urlDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 
 /**
  * La imagen de una etiqueta comercial en la grilla de Atributos → Etiquetas.
@@ -40,212 +41,36 @@ const ALTO = 60;
 /** Un ícono dibujado centrado en (0,0) dentro de ±14 unidades; `a` es el color de acento. */
 export type DibujoIcono = (a: string) => ReactElement;
 
-// Cada ícono se dibuja centrado en (0,0) dentro de ±14 unidades. `a` es el
-// color de acento del grupo.
-const ICONOS: Record<IconoEtiqueta | "generico", DibujoIcono> = {
-  // Destello de cuatro puntas + uno chico.
-  nuevo: (a) => (
-    <>
-      <path d="M0 -13 Q1.6 -1.6 13 0 Q1.6 1.6 0 13 Q-1.6 1.6 -13 0 Q-1.6 -1.6 0 -13 Z" fill={a} />
-      <path d="M10 -12 Q10.6 -10.6 12 -10 Q10.6 -9.4 10 -8 Q9.4 -9.4 8 -10 Q9.4 -10.6 10 -12 Z" fill={a} />
-    </>
-  ),
+// Los dibujos viven en `packages/shared/src/insignias-visual.ts` (ADR-0489), compartidos con la tienda online: aquí solo se pintan. Cada
+// uno se dibuja centrado en (0,0) dentro de ±14 unidades; `a` es el color de acento del grupo, CREMA lo «recortado» (la cara de la
+// calabaza) y TINTA el negro fijo del Black Friday.
+export function pintarDibujo(piezas: readonly PiezaDeInsignia[], colores: Record<ColorDeInsignia, string>): ReactElement[] {
+  return piezas.map((pieza, i) => {
+    // Un valor que empieza con «$» es un color con nombre; todo lo demás (números, «none», «round») pasa tal cual y en su orden.
+    const props = Object.fromEntries(
+      Object.entries(pieza.props).map(([k, v]) => [k, typeof v === "string" && v.startsWith("$") ? colores[v as ColorDeInsignia] : v]),
+    );
+    return createElement(pieza.tag, { key: i, ...props }, ...(pieza.hijos ? pintarDibujo(pieza.hijos, colores) : []));
+  });
+}
 
-  // Reloj de arena con la arena ya abajo: quedan pocas.
-  ultimas: (a) => (
-    <>
-      <path d="M-8 -12 H8 M-8 12 H8" stroke={a} strokeWidth={2} strokeLinecap="round" fill="none" />
-      <path d="M-5.5 -12 C-5.5 -3 0 -1.5 0 0 C0 1.5 -5.5 3 -5.5 12 M5.5 -12 C5.5 -3 0 -1.5 0 0 C0 1.5 5.5 3 5.5 12" stroke={a} strokeWidth={1.8} strokeLinecap="round" fill="none" />
-      <path d="M-4.2 11 L0 5 L4.2 11 Z" fill={a} />
-    </>
-  ),
+const ICONOS = Object.fromEntries(
+  Object.entries(DIBUJOS_DE_INSIGNIA).map(([icono, piezas]) => [
+    icono,
+    ((a) => <>{pintarDibujo(piezas, { $acento: a, $hueco: CREMA, $tinta: TINTA })}</>) satisfies DibujoIcono,
+  ]),
+) as Record<DibujoDeInsignia, DibujoIcono>;
 
-  // Podio con estrella arriba: lo más vendido.
-  top: (a) => (
-    <>
-      <rect x={-4.5} y={-3} width={9} height={15} rx={1} fill={a} />
-      <rect x={-13.5} y={3} width={9} height={9} rx={1} fill={a} opacity={0.55} />
-      <rect x={4.5} y={6} width={9} height={6} rx={1} fill={a} opacity={0.55} />
-      <path d="M0 -13 Q0.8 -9.2 4.6 -8.4 Q0.8 -7.6 0 -3.8 Q-0.8 -7.6 -4.6 -8.4 Q-0.8 -9.2 0 -13 Z" fill={a} />
-    </>
-  ),
-
-  // Etiqueta de precio con símbolo de porcentaje.
-  liquidar: (a) => (
-    <>
-      <path d="M-10 -12 H4 L12 -4 V12 H-10 Z" fill={a} opacity={0.14} stroke={a} strokeWidth={1.8} strokeLinejoin="round" />
-      <circle cx={-5} cy={-7} r={1.5} fill={a} />
-      <circle cx={-4.5} cy={3} r={2} stroke={a} strokeWidth={1.6} fill="none" />
-      <circle cx={4.5} cy={8} r={2} stroke={a} strokeWidth={1.6} fill="none" />
-      <path d="M5.5 1 L-5.5 10" stroke={a} strokeWidth={1.6} strokeLinecap="round" />
-    </>
-  ),
-
-  // Aguja con hilo.
-  manual: (a) => (
-    <>
-      <path d="M-8 11 L9 -8" stroke={a} strokeWidth={2} strokeLinecap="round" />
-      <ellipse cx={8.6} cy={-8.6} rx={1.3} ry={2.2} transform="rotate(45 8.6 -8.6)" fill={CREMA} stroke={a} strokeWidth={1.2} />
-      <path d="M8.6 -8.6 C15 -3 8 5 3 3 C-2 1 -5 6 -10 12" stroke={a} strokeWidth={1.4} strokeLinecap="round" fill="none" strokeDasharray="0.1 3" />
-    </>
-  ),
-
-  // Gema: una sola pieza.
-  unica: (a) => (
-    <>
-      <path d="M-12 -4 L-6 -11 H6 L12 -4 L0 12 Z" fill={a} opacity={0.18} stroke={a} strokeWidth={1.8} strokeLinejoin="round" />
-      <path d="M-12 -4 H12 M-6 -11 L-3 -4 L0 12 M6 -11 L3 -4 L0 12" stroke={a} strokeWidth={1.4} strokeLinejoin="round" fill="none" />
-    </>
-  ),
-
-  // Dos flechas circulares: vuelve.
-  reedicion: (a) => (
-    <>
-      <path d="M-10 0 A10 10 0 0 1 7 -7.2" stroke={a} strokeWidth={2} strokeLinecap="round" fill="none" />
-      <path d="M10 0 A10 10 0 0 1 -7 7.2" stroke={a} strokeWidth={2} strokeLinecap="round" fill="none" />
-      <path d="M4 -12 L10.5 -8 L3 -3.5 Z" fill={a} />
-      <path d="M-4 12 L-10.5 8 L-3 3.5 Z" fill={a} />
-    </>
-  ),
-
-  valentin: (a) => <path d="M0 11 C-15 1 -12 -10 -5.5 -10 C-2.5 -10 0 -8 0 -5.5 C0 -8 2.5 -10 5.5 -10 C12 -10 15 1 0 11 Z" fill={a} />,
-
-  // Dos corazones, uno detrás del otro: las amigas.
-  galentine: (a) => (
-    <>
-      <g transform="translate(6 -3) scale(0.7)">
-        <path d="M0 11 C-15 1 -12 -10 -5.5 -10 C-2.5 -10 0 -8 0 -5.5 C0 -8 2.5 -10 5.5 -10 C12 -10 15 1 0 11 Z" fill={a} opacity={0.5} />
-      </g>
-      <g transform="translate(-4 3) scale(0.85)">
-        <path d="M0 11 C-15 1 -12 -10 -5.5 -10 C-2.5 -10 0 -8 0 -5.5 C0 -8 2.5 -10 5.5 -10 C12 -10 15 1 0 11 Z" fill={a} />
-      </g>
-    </>
-  ),
-
-  // Tulipán.
-  madre: (a) => (
-    <>
-      <path d="M0 5 V13" stroke={a} strokeWidth={2} strokeLinecap="round" />
-      <path d="M0 11 C-7 11 -9 6 -9 3 C-4 3 0 6 0 11 Z" fill={a} opacity={0.5} />
-      <path d="M-7 -3 C-7.5 -12 -3 -13 0 -11 C3 -13 7.5 -12 7 -3 C7 3 3 5.5 0 5.5 C-3 5.5 -7 3 -7 -3 Z" fill={a} />
-      <path d="M-2.4 -10.4 L0 -3.5 L2.4 -10.4" stroke={CREMA} strokeWidth={1.2} strokeLinejoin="round" fill="none" opacity={0.85} />
-    </>
-  ),
-
-  // Símbolo de Venus.
-  mujer: (a) => (
-    <>
-      <circle cx={0} cy={-4.5} r={7} stroke={a} strokeWidth={2.2} fill="none" />
-      <path d="M0 2.5 V13 M-4.5 8 H4.5" stroke={a} strokeWidth={2.2} strokeLinecap="round" />
-    </>
-  ),
-
-  // Calabaza con cara.
-  halloween: (a) => (
-    <>
-      <path d="M0 -8 C0 -10 1 -12 3 -13" stroke={a} strokeWidth={2} strokeLinecap="round" fill="none" />
-      <ellipse cx={0} cy={2} rx={12.5} ry={9.5} fill={a} />
-      <path d="M-4.5 -6.5 C-8.5 -1 -8.5 5 -4.5 10 M4.5 -6.5 C8.5 -1 8.5 5 4.5 10" stroke={CREMA} strokeWidth={1} opacity={0.4} fill="none" />
-      <path d="M-7 0 H-3 L-5 -3.4 Z M3 0 H7 L5 -3.4 Z" fill={CREMA} />
-      <path d="M-5.5 5.5 L-3 3.5 L-1 5.5 L1 3.5 L3 5.5 L5.5 3.5" stroke={CREMA} strokeWidth={1.4} strokeLinejoin="round" strokeLinecap="round" fill="none" />
-    </>
-  ),
-
-  // Arbolito de tres pisos con estrella.
-  navidad: (a) => (
-    <>
-      <path d="M0 -10 L-7 -1 H7 Z M0 -5 L-9 5 H9 Z M0 0 L-11 10 H11 Z" fill={a} />
-      <rect x={-2} y={10} width={4} height={3.5} fill={a} opacity={0.6} />
-      <path d="M0 -14 Q0.6 -12.4 2.2 -12 Q0.6 -11.6 0 -10 Q-0.6 -11.6 -2.2 -12 Q-0.6 -12.4 0 -14 Z" fill={a} />
-    </>
-  ),
-
-  // Bandera en tres franjas verticales. Sin rojo: franjas del acento del
-  // grupo y crema al centro (ver REGLA DE COLOR arriba).
-  patrias: (a) => (
-    <>
-      <path d="M-13 -12 V13" stroke={a} strokeWidth={1.8} strokeLinecap="round" />
-      <rect x={-11} y={-11} width={7.5} height={15} fill={a} />
-      <rect x={-3.5} y={-11} width={7.5} height={15} fill={CREMA} stroke={a} strokeWidth={1} />
-      <rect x={4} y={-11} width={7.5} height={15} fill={a} />
-    </>
-  ),
-
-  // Etiqueta negra llena con cordón: Black Friday.
-  blackfriday: () => (
-    <>
-      <path d="M-10 -9 H4 L12 -1 V13 H-10 Z" fill={TINTA} />
-      <circle cx={-5} cy={-4} r={1.6} fill={CREMA} />
-      <path d="M-5 -4 C-5 -12 3 -14 8 -12" stroke={TINTA} strokeWidth={1.4} strokeLinecap="round" fill="none" />
-      <path d="M-3 7 H6 M-3 10 H3" stroke={CREMA} strokeWidth={1.4} strokeLinecap="round" opacity={0.7} />
-    </>
-  ),
-
-  // Rayo dentro de un aro: la oferta relámpago online.
-  cyberwow: (a) => (
-    <>
-      <circle cx={0} cy={0} r={12.5} stroke={a} strokeWidth={1.4} opacity={0.4} fill="none" />
-      <path d="M3 -11 L-7 2 H-1 L-3.5 11 L8 -3 H2 Z" fill={a} />
-    </>
-  ),
-
-  // Pastel de dos pisos con vela.
-  aniversario: (a) => (
-    <>
-      <rect x={-11} y={2} width={22} height={9} rx={2} fill={a} />
-      <rect x={-7.5} y={-4} width={15} height={6.5} rx={2} fill={a} opacity={0.6} />
-      <rect x={-1} y={-11} width={2} height={7} fill={a} />
-      <path d="M0 -15 Q2.4 -12.6 0 -10.6 Q-2.4 -12.6 0 -15 Z" fill={a} />
-      <path d="M-11 6.5 Q-7.3 4 -3.7 6.5 T3.7 6.5 T11 6.5" stroke={CREMA} strokeWidth={1.2} fill="none" opacity={0.7} />
-    </>
-  ),
-
-  // Cabeza de gato.
-  gato: (a) => (
-    <>
-      <path d="M-10.5 -1 L-10.5 -12 L-3.5 -7 Q0 -8 3.5 -7 L10.5 -12 L10.5 -1 Q10.5 10.5 0 10.5 Q-10.5 10.5 -10.5 -1 Z" fill={a} />
-      <circle cx={-4} cy={0} r={1.5} fill={CREMA} />
-      <circle cx={4} cy={0} r={1.5} fill={CREMA} />
-      <path d="M-1.6 3 H1.6 L0 4.8 Z" fill={CREMA} />
-      <path d="M-15 1.5 L-9.5 2.6 M-15 5.5 L-9.5 4.6 M15 1.5 L9.5 2.6 M15 5.5 L9.5 4.6" stroke={a} strokeWidth={1.2} strokeLinecap="round" />
-    </>
-  ),
-
-  // Huella de perro.
-  perro: (a) => (
-    <>
-      <path d="M0 2.5 C-6.5 2.5 -10 8 -6.8 11.5 C-4 13.6 -1.8 11.6 0 11.6 C1.8 11.6 4 13.6 6.8 11.5 C10 8 6.5 2.5 0 2.5 Z" fill={a} />
-      <ellipse cx={-9.4} cy={-1.6} rx={2.6} ry={3.7} transform="rotate(-18 -9.4 -1.6)" fill={a} />
-      <ellipse cx={-3.6} cy={-7.6} rx={2.6} ry={3.9} transform="rotate(-6 -3.6 -7.6)" fill={a} />
-      <ellipse cx={3.6} cy={-7.6} rx={2.6} ry={3.9} transform="rotate(6 3.6 -7.6)" fill={a} />
-      <ellipse cx={9.4} cy={-1.6} rx={2.6} ry={3.7} transform="rotate(18 9.4 -1.6)" fill={a} />
-    </>
-  ),
-
-  // Globo terráqueo: aro, meridiano y ecuador (para que no parezca una galleta)
-  // y tres continentes.
-  tierra: (a) => (
-    <>
-      <circle cx={0} cy={0} r={12} fill={a} opacity={0.14} />
-      <circle cx={0} cy={0} r={12} stroke={a} strokeWidth={1.8} fill="none" />
-      <ellipse cx={0} cy={0} rx={5.2} ry={12} stroke={a} strokeWidth={0.9} fill="none" opacity={0.45} />
-      <path d="M-12 0 H12" stroke={a} strokeWidth={0.9} opacity={0.45} />
-      <path d="M-7.5 -6.5 C-4.5 -10 1 -9 -0.5 -5 C-2.5 -2.8 -7.8 -3 -7.5 -6.5 Z" fill={a} />
-      <path d="M2.5 2 C7 0.5 10 4 7.5 8 C4.5 9.8 1 7.5 2.5 2 Z" fill={a} />
-      <path d="M-9 2.5 C-6.5 1.5 -4.5 4 -6.5 7.5 C-8.8 6.8 -9.8 5 -9 2.5 Z" fill={a} />
-    </>
-  ),
-
-  // Etiqueta genérica en contorno, para nombres que no reconocemos: una
-  // etiqueta es siempre "una etiqueta", así que esto no es un dibujo falso.
-  generico: (a) => (
-    <>
-      <path d="M-10 -12 H4 L12 -4 V12 H-10 Z" fill={a} opacity={0.12} stroke={a} strokeWidth={1.8} strokeLinejoin="round" />
-      <circle cx={-5} cy={-7} r={1.6} fill={a} />
-      <path d="M-5 3 H5 M-5 7 H1" stroke={a} strokeWidth={1.6} strokeLinecap="round" opacity={0.6} />
-    </>
-  ),
-};
+/** El dibujo de una etiqueta (el mismo de su tarjeta), para quien lo pone en otro marco: el centro del sello de tinta de Catálogo ▸
+ *  Insignias (`components/sellos/SelloTinta.tsx`). Manda su imagen propia (`imagen`, la ruta en el almacén), luego el dibujo que se eligió
+ *  (`icono`, ADR-0490) y, si no hay ninguno, el de su nombre. Centrado en (0,0) dentro de ±14; `a` es el color de su trazo (una imagen propia
+ *  lleva sus propios colores: no lo usa). */
+export function dibujoDeEtiqueta(nombre: string, icono?: DibujoDeInsignia | null, imagen?: string | null): DibujoIcono {
+  const url = urlDeImagenDeInsignia(process.env.NEXT_PUBLIC_SUPABASE_URL, imagen);
+  // Un poco más chica que el cuadrado de ±14 de los dibujos: la imagen es un cuadrado lleno y sus esquinas no deben pasar del anillo del sello.
+  if (url) return function ImagenPropia() { return <image href={url} x={-13} y={-13} width={26} height={26} preserveAspectRatio="xMidYMid meet" />; };
+  return ICONOS[dibujoDeInsignia({ nombre, icono })];
+}
 
 /**
  * `group/etq` lo pone la tarjeta que la contiene: al pasarle el mouse por
@@ -259,17 +84,23 @@ export const MOV = "transition-transform duration-500 ease-cayla [transform-box:
 
 export function MuestraEtiqueta({
   nombre,
+  icono,
+  imagen,
   estilo,
   className = "aspect-[3/1] w-full",
 }: {
   nombre: string;
+  /** El dibujo elegido al crearla (ADR-0490); sin él, el de su nombre. */
+  icono?: DibujoDeInsignia | null;
+  /** Su imagen propia (la ruta en el almacén de insignias); manda sobre `icono`. */
+  imagen?: string | null;
   estilo: Estilo;
   className?: string;
 }) {
   const { fondo, acento } = TONOS[estilo];
   return (
     <MuestraIcono
-      dibujo={ICONOS[iconoDeEtiqueta(nombre) ?? "generico"]}
+      dibujo={dibujoDeEtiqueta(nombre, icono, imagen)}
       fondo={fondo}
       acento={acento}
       etiqueta={`Ilustración de la etiqueta ${nombre}`}

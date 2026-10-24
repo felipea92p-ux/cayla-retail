@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { BadgePercent, Banknote, Cake, Gift, Check, CirclePause, CreditCard, Landmark, MessageSquareText, Percent, Play, QrCode, ShoppingBag, StickyNote, Tag, Wallet, X } from "lucide-react";
+import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, MessageSquareText, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Tag, Ticket, Wallet, X } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
-  descuentoPedido,
+  descuentosPedidos,
+  entraAlDescuento,
   descuentoResultante,
   desgloseIgv,
   hayDescuentoManual,
@@ -25,8 +26,8 @@ import { nombreDeEspera } from "@/lib/vender-hoy-reglas";
 import { money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import type { DetalleVariante } from "@/lib/ticket-linea-reglas";
-import { ayudaPieCumple, textoPieCumple, ticketConCumple } from "@/lib/club-cumple-canje-reglas";
-import { TEXTO_PIE_VALE, ayudaPieVale, ticketConVale } from "@/lib/club-aniversario-canje-reglas";
+import { ticketConVale } from "@/lib/club-cupon-reparto-reglas";
+import { TEXTO_PIE_CUPON } from "@/lib/club-puntos-reglas";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Volver } from "@/components/ui/Volver";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -193,16 +194,19 @@ type Props = {
   onRetomar: (id: string) => void;
   onIrAEspera: () => void;
   // Totales — ya calculados en el padre
-  /** Lo que se cobra: con el canje del cumpleaños o el vale de aniversario, ya sin la parte del club. */
+  /** Lo que se cobra: con el cupón del Club, ya sin su parte. */
   total: number;
   prendas: number;
-  /** El canje del cumpleaños aplicado (ADR-0288 D-5, tanda 1c): UNA línea en el pie, sobre el total (spike del club, punto
-   *  9). `monto` es lo que regala el club en toda la compra; `totalSinCumple`, sobre qué se calculó. null sin canje. Las
-   *  prendas no lo muestran: el reparto por línea es de la base y del comprobante. */
-  cumple?: { pct: number; monto: number; totalSinCumple: number } | null;
-  /** El vale de aniversario aplicado (tanda 1g, G-13), igual que el cumpleaños: UNA línea en el pie. `vale` es de cuánto es;
-   *  `monto`, lo que descuenta en esta compra (menos si la compra es menor); `totalSinVale`, sobre qué se repartió. */
-  vale?: { vale: number; monto: number; totalSinVale: number } | null;
+  /** El cupón del Club puesto (programa de puntos): UNA línea en el pie, sobre el total. `vale` es de cuánto es el cupón; `monto`, lo que
+   *  descuenta en esta compra; `totalSinVale`, sobre qué se repartió. Las prendas no lo muestran: el reparto por línea es de la base y
+   *  del comprobante. null sin cupón. */
+  vale?: { vale: number; monto: number; totalSinVale: number; cupon: { codigo: string; detalle: string; ayuda: string } } | null;
+  /** Quitar el cupón del Club puesto (programa de puntos): la línea del pie lo ofrece mientras se arma la venta. */
+  onQuitarCupon?: () => void;
+  /** Abre «Código de cupón», junto a «Aplicar descuento». */
+  onAbrirCodigo?: () => void;
+  /** Lo que gana la miembro identificada con esta compra: sus puntos y, si le toca, el regalo de cumpleaños. null sin miembro. */
+  gana?: { nombre: string; puntos: number; regalo: number } | null;
   // Los momentos del ticket: «armar» (líneas + total), «descuento» y «cobrar» (pago + comprobante)
   momento: MomentoTicket;
   onIrACobrar: () => void;
@@ -267,8 +271,10 @@ export function PuntoDeVentaTicket({
   onIrAEspera,
   total,
   prendas,
-  cumple = null,
   vale = null,
+  onQuitarCupon,
+  onAbrirCodigo,
+  gana = null,
   momento,
   onIrACobrar,
   onVolverATicket,
@@ -330,6 +336,8 @@ export function PuntoDeVentaTicket({
   const cobrando = momentoMostrado === "cobrar";
   const descontando = momentoMostrado === "descuento";
   const enLaEspera = momentoMostrado === "espera";
+  // El chip «En espera · N» de la cabecera: solo cuando hay algo esperando, y no en la hoja del celular (allí ya está la tira).
+  const conChipEspera = enEspera.length > 0 && !enHoja;
   // Resumen de cada ticket en espera, derivado de sus líneas (sin estado, sin hooks).
   const resumenEspera = (t: TicketEnEspera) => ({
     hora: new Date(t.creadoEn).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" }),
@@ -356,20 +364,23 @@ export function PuntoDeVentaTicket({
   const elegidas = descuento.elegidas;
   const todoElTicket = elegidas === null;
   const alcanza = (claveLinea: string) => elegidas === null || elegidas.includes(claveLinea);
+  // Lo que de verdad recibe el descuento: lo elegido menos las piezas de liquidación (precio final, ADR-0379). Aquí `[]` es
+  // «ninguna marcada» (en la regla, `[]` es todo el ticket): por eso se pregunta con `alcanza` y no con las claves.
+  const recibeDescuento = (it: ItemCarrito) => alcanza(it.claveLinea) && entraAlDescuento(it, null);
+  const alcanzadas = carrito.filter(recibeDescuento);
   const elegidasCuenta = elegidas === null ? carrito.length : elegidas.length;
   // El descuento por unidad que va a quedar en cada línea si se aplica ahora — en % sale del
-  // precio de cada una (sin céntimos sueltos, ADR-0403); en S/ es el monto tal cual.
-  const montoPedido = (it: ItemCarrito) => descuentoPedido(descuento.modo, porMonto ? monto : pct, it.precioUnitario);
+  // precio de cada una (sin céntimos sueltos, ADR-0403); en S/ el monto es del total de lo elegido y se reparte según el precio.
+  const pedidos = descuentosPedidos(descuento.modo, porMonto ? monto : pct, alcanzadas);
+  const montoPedido = (it: ItemCarrito) => pedidos.get(it.claveLinea) ?? 0;
+  const unidadesAlcanzadas = alcanzadas.reduce((c, it) => c + it.cantidad, 0);
   const descuentoUnitarioAplicando = (it: ItemCarrito) =>
-    !alcanza(it.claveLinea) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto;
-  // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora. Con el cumpleaños canjeado, también
-  // sin su parte (en cascada sobre el descuento nuevo, CL-11): el mismo número que quedará en «Total».
-  // Con el vale de aniversario, lo mismo: el vale se reparte sobre lo que quedará.
-  const totalConDescuento = cumple
-    ? ticketConCumple(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })), cumple.pct).total
-    : vale
-      ? ticketConVale(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })), vale.vale).total
-      : totalDeLineas(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })));
+    !recibeDescuento(it) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto;
+  // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora. Con un cupón del Club puesto, también sin su parte
+  // (el cupón se reparte sobre lo que quedará): el mismo número que quedará en «Total».
+  const totalConDescuento = vale
+    ? ticketConVale(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })), vale.vale).total
+    : totalDeLineas(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })));
   // «Quitar descuento» solo tiene sentido para lo puesto a mano: el de campaña no se quita.
   const hayDescuentoEnAlcance = hayDescuentoManual(carrito.filter((it) => alcanza(it.claveLinea)));
   // Si alguna prenda alcanzada va a quedar pasada del 15 %: ahí el apartado MUESTRA el
@@ -377,8 +388,7 @@ export function PuntoDeVentaTicket({
   // cuenta — ese descuento no es manual. El candado real vive en `registrar_venta`.
   const mostrarArgumento =
     valorValido &&
-    carrito.some((it) => {
-      if (!alcanza(it.claveLinea)) return false;
+    alcanzadas.some((it) => {
       const r = descuentoResultante(it, montoPedido(it));
       return !r.prevaleceCampana && necesitaArgumentoEscrito(it.precioUnitario, r.monto);
     });
@@ -434,15 +444,37 @@ export function PuntoDeVentaTicket({
       {/* Un solo título grande por momento: la sede ya está en la barra de arriba
           («Venta en tienda · sede»), repetirla acá no decía nada. Fuera de «armar», la
           cabecera ofrece la vuelta al ticket y el conteo vivo. */}
-      <div className="flex min-h-[4.5rem] items-center justify-between border-b border-sand px-5 py-3">
+      <div className="@container flex min-h-[4.5rem] items-center justify-between gap-2 border-b border-sand px-5 py-3">
         {momentoMostrado === "armar" ? (
           <>
             <TituloSeccion>
               <span className="inline-flex items-center gap-2.5">
                 <ShoppingBag className="h-5 w-5 text-tinta/70" aria-hidden />
-                Ticket actual
+                {/* Con «Dejar en espera» y el chip «En espera · N» al lado, en un ticket de 320 px el título se partía en dos
+                    líneas: ahí dice solo «Ticket». */}
+                <span className="whitespace-nowrap">
+                  Ticket<span className={conChipEspera ? "@max-[19rem]:hidden" : undefined}> actual</span>
+                </span>
               </span>
             </TituloSeccion>
+            {/* Park, a la altura del título (Felipe 2026-10-22): sacarlo del pie le devuelve una fila a la lista. Guarda el
+                ticket y libera la caja para el siguiente cliente. Con el chip «En espera · N» al lado, o en un ticket angosto,
+                queda solo el ícono (con su nombre para el lector y al pasar el mouse): los dos con texto no caben en 420 px. */}
+            {carrito.length > 0 && (
+              <button
+                type="button"
+                onClick={onDejarEnEspera}
+                disabled={bloqueado}
+                aria-label="Dejar en espera"
+                title="Dejar en espera"
+                className={`btn-cayla btn-secundario anim-revelar ml-auto flex h-8 shrink-0 items-center gap-1.5 text-[12.5px] ${
+                  conChipEspera ? "w-8 justify-center px-0" : "px-2.5 @max-[20rem]:w-8 @max-[20rem]:justify-center @max-[20rem]:px-0"
+                }`}
+              >
+                <CirclePause className={ICONO_CHICO} aria-hidden />
+                {!conChipEspera && <span className="hidden @min-[20rem]:inline">Dejar en espera</span>}
+              </button>
+            )}
             {/* En la hoja del celular, la salida al catálogo (además del velo): la clienta pide otra prenda. */}
             {enHoja && onCerrarHoja && (
               <button
@@ -456,7 +488,7 @@ export function PuntoDeVentaTicket({
             )}
             {/* Solo cuando hay algo esperando: el chip abre la lista completa. En la hoja del celular no hace falta: la
                 tira de arriba ya los muestra y la cabecera no tiene ancho para los dos. */}
-            {enEspera.length > 0 && !enHoja && (
+            {conChipEspera && (
               <button
                 type="button"
                 onClick={onIrAEspera}
@@ -562,14 +594,15 @@ export function PuntoDeVentaTicket({
             </div>
           ) : descontando ? (
             <div className={saliendo ? "anim-revelar-salida space-y-5 px-5 py-4" : "anim-revelar space-y-5 px-5 py-4"}>
-              {/* 1 · Cuánto: % del precio o S/ por prenda (Felipe, 2026-10-14: el S/ vuelve; salió el 2026-09-25). El % deja el
-                  precio sin céntimos sueltos (ADR-0403); el S/ es lo que se escribe, tal cual. Los atajos son los habituales;
+              {/* 1 · Cuánto: % del precio o S/ del total de lo elegido (Felipe, 2026-10-14: el S/ vuelve; salió el 2026-09-25; desde el
+                  2026-10-24 el S/ se reparte entre las prendas según su precio, ya no es por prenda). El % deja el precio sin
+                  céntimos sueltos (ADR-0403); el S/ es lo que se escribe, tal cual. Los atajos son los habituales;
                   «Otro» es para cualquier otro valor. */}
               <fieldset className="space-y-2">
                 <legend className="text-[11px] text-tinta/50">
                   <span className="flex items-center gap-1.5">
                     {porMonto ? <Banknote className={ICONO_CHICO} aria-hidden /> : <Percent className={ICONO_CHICO} aria-hidden />}
-                    {porMonto ? "Monto por prenda" : "Porcentaje"}
+                    {porMonto ? "Monto" : "Porcentaje"}
                   </span>
                 </legend>
                 <SegmentoDeslizante
@@ -579,7 +612,7 @@ export function PuntoDeVentaTicket({
                   onCambio={(m) => onDescuento({ modo: m as ModoDescuento })}
                   opciones={[
                     { clave: "porcentaje", etiqueta: "%", ayuda: "En porcentaje del precio" },
-                    { clave: "monto", etiqueta: "S/", ayuda: "En soles por prenda" },
+                    { clave: "monto", etiqueta: "S/", ayuda: "En soles, del total de lo elegido" },
                   ]}
                 />
                 {porMonto ? (
@@ -602,7 +635,7 @@ export function PuntoDeVentaTicket({
                       <span className="text-[11px] text-tinta/50">Otro</span>
                       <span className="ml-auto text-sm text-tinta/60">S/</span>
                       <input
-                        aria-label="Monto de descuento por prenda"
+                        aria-label="Monto de descuento"
                         {...atributosMontoTexto(descuento.monto)}
                         value={descuento.monto}
                         onChange={(e) => onDescuento({ monto: e.target.value })}
@@ -775,6 +808,10 @@ export function PuntoDeVentaTicket({
               {/* Por qué el % no da el precio «exacto»: cada prenda baja al S/ 0.10 de abajo para que se cobre sin céntimos
                   sueltos (ADR-0403). En S/ no hace falta: lo que se escribe es lo que se descuenta. */}
               {valorValido && elegidasCuenta > 0 && !porMonto && <p className="-mt-3 text-xs text-tinta/50">Cada prenda baja a un precio sin céntimos sueltos.</p>}
+              {/* En S/ con más de una prenda: el monto no se resta a cada una, se reparte (Felipe, 2026-10-24). */}
+              {valorValido && porMonto && unidadesAlcanzadas > 1 && (
+                <p className="-mt-3 text-xs text-tinta/50">Los {money(monto)} se reparten entre las prendas según su precio.</p>
+              )}
             </div>
           ) : cobrando && cuerpoCobro ? (
             // En el celular la hoja de cobro vive aquí, dentro de la hoja del ticket (y del formulario que cobra). En
@@ -851,38 +888,47 @@ export function PuntoDeVentaTicket({
           )}
         </div>
 
-        <div data-guia="vender.ticket-pie" className="border-t border-sand bg-papel px-5 pt-4 pb-5">
-          {/* El cumpleaños del club (tanda 1c; spike, `descuentoClub`): UNA línea de toda la compra, en cualquier momento
-              del ticket mientras esté aplicado, porque el Total de abajo ya lo descuenta. `key` en el monto: se asienta
-              cuando cambia (entra o sale una prenda), como el Total. */}
-          {cumple && cumple.monto > 0 && (
+        <div data-guia="vender.ticket-pie" className="@container border-t border-sand bg-papel px-5 pt-4 pb-5">
+          {/* El cupón del Club (programa de puntos): UNA línea de toda la compra, en cualquier momento del ticket mientras esté puesto,
+              porque el Total de abajo ya lo descuenta; el reparto por prenda queda en la base y el comprobante. Se puede quitar mientras
+              se arma la venta. `key` en el monto: se asienta cuando cambia, como el Total. */}
+          {vale && vale.monto > 0 && (
             <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 text-xs">
-              <span title={ayudaPieCumple(cumple.pct, cumple.totalSinCumple)} className="flex items-center gap-1.5 text-taupe-profundo">
-                <Cake className={ICONO_CHICO} aria-hidden />
-                {textoPieCumple(cumple.pct)}
+              <span title={vale.cupon.ayuda} className="flex min-w-0 items-center gap-1.5 text-taupe-profundo">
+                <Ticket className={ICONO_CHICO} aria-hidden />
+                <span className="min-w-0">
+                  {TEXTO_PIE_CUPON} <span className="font-mono tracking-wide">{vale.cupon.codigo}</span>
+                  <span className="block text-[11px] text-tinta/60">{vale.cupon.detalle}</span>
+                </span>
               </span>
-              <span key={cumple.monto} className="anim-asentar font-semibold text-taupe-profundo">
-                −{money(cumple.monto)}
+              <span className="flex items-center gap-2">
+                <span key={vale.monto} className="anim-asentar font-semibold text-taupe-profundo">
+                  −{money(vale.monto)}
+                </span>
+                {onQuitarCupon && momentoMostrado === "armar" && (
+                  <button type="button" onClick={onQuitarCupon} disabled={bloqueado} className="btn-cayla btn-enlace text-[11.5px]">
+                    Quitar
+                  </button>
+                )}
               </span>
             </div>
           )}
-          {/* El vale de aniversario (tanda 1g), igual: UNA línea; el reparto por prenda queda en la base y el comprobante. */}
-          {vale && vale.monto > 0 && (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 text-xs">
-              <span title={ayudaPieVale(vale.vale, vale.monto, vale.totalSinVale)} className="flex items-center gap-1.5 text-taupe-profundo">
-                <Gift className={ICONO_CHICO} aria-hidden />
-                {TEXTO_PIE_VALE}
+          {/* Lo que gana la miembro con esta compra (programa de puntos): se dice antes de cobrar, para que la cajera se lo cuente. */}
+          {gana && gana.puntos + gana.regalo > 0 && (
+            <p className="mb-3 flex items-start gap-1.5 text-xs text-taupe-profundo" data-guia="vender.gana-puntos">
+              <Star className={`${ICONO_CHICO} mt-px`} aria-hidden />
+              <span key={gana.puntos + gana.regalo}>
+                {gana.nombre} gana <b className="font-semibold">{gana.puntos.toLocaleString("es-PE")} puntos</b> con esta compra
+                {gana.regalo > 0 && <> + {gana.regalo} de regalo de cumpleaños</>}
               </span>
-              <span key={vale.monto} className="anim-asentar font-semibold text-taupe-profundo">
-                −{money(vale.monto)}
-              </span>
-            </div>
+            </p>
           )}
 
           {/* Fila «Descuento», solo mientras se arma la venta: el descuento cambia cuánto
-              se cobra, así que se decide antes de cobrar (decisión 3-A). */}
+              se cobra, así que se decide antes de cobrar (decisión 3-A). Una sola línea con «Código de cupón»: «Dejar en
+              espera» subió a la cabecera (Felipe 2026-10-22) para darle ese alto a la lista. */}
           {momentoMostrado === "armar" && (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 text-xs">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
               {totalDescuento > 0 ? (
                 <>
                   <span className="text-tinta/60">Descuento</span>
@@ -903,24 +949,34 @@ export function PuntoDeVentaTicket({
                   type="button"
                   onClick={() => onAbrirDescuento(null)}
                   disabled={bloqueado || carrito.length === 0}
+                  aria-label="Aplicar descuento"
                   className="label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   <span className="flex items-center gap-1.5">
                     <Percent className={ICONO_CHICO} aria-hidden />
-                    Aplicar descuento
+                    {/* En un ticket angosto (menos de 336 px de contenido) la fila dice «Descuento · Cupón»: con las dos frases enteras se
+                        partía en dos líneas y le quitaba ese alto a la lista. */}
+                    <span>
+                      <span className="@max-[21rem]:hidden">Aplicar </span>descuento
+                    </span>
                   </span>
                 </button>
               )}
-              {/* Park: guarda el ticket y libera la caja para la siguiente clienta. */}
-              {carrito.length > 0 && (
+              {onAbrirCodigo && (
                 <button
                   type="button"
-                  onClick={onDejarEnEspera}
-                  disabled={bloqueado}
-                  className="label-cayla flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta"
+                  onClick={onAbrirCodigo}
+                  disabled={bloqueado || carrito.length === 0 || vale != null}
+                  data-guia="vender.codigo-cupon-boton"
+                  aria-label="Código de cupón"
+                  className="label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
-                  <CirclePause className={ICONO_CHICO} aria-hidden />
-                  Dejar en espera
+                  <span className="flex items-center gap-1.5">
+                    <Ticket className={ICONO_CHICO} aria-hidden />
+                    <span>
+                      <span className="@max-[21rem]:hidden">Código de </span>cupón
+                    </span>
+                  </span>
                 </button>
               )}
             </div>

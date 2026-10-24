@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- es la plantilla de `next/og` (satori), no la página: ahí `next/image` no existe. */
 import "server-only";
 import { bordesDe, DOMINIO_A_LA_VISTA, fotoContenida, tarjetasDelLook, type PiezaDeLaImagen, type Tarjeta } from "./compartir-look";
+import { COLIBRI, LOGO, type PiezaDeMarca } from "@cayla-retail/shared/marca";
 
 // Las dos imágenes de un look compartido (ADR-0434, actividad 9), como las dibuja `next/og` (satori: estilos en línea, sin las clases
 // ni las variables de la tienda). Los colores son los MISMOS de `app/globals.css`, escritos aquí porque `next/og` no lee CSS: el oscuro
@@ -19,7 +20,7 @@ const COLOR = {
 };
 
 const SERIF = "EB Garamond";
-const SANS = "DM Sans";
+const SANS = "Heebo";
 
 /** Una prenda lista para dibujar: su nombre, su tamaño de tarjeta y su foto ya leída (`data:`), o null si no llegó. */
 export type PiezaConFoto = PiezaDeLaImagen & { dato: string | null };
@@ -42,18 +43,23 @@ async function comoDato(url: string): Promise<string | null> {
 export const cargarFotos = (piezas: readonly PiezaDeLaImagen[]): Promise<PiezaConFoto[]> =>
   Promise.all(piezas.map(async (p) => ({ ...p, dato: await comoDato(p.foto.url) })));
 
-/** El colibrí, del mismo servidor (`public/cayla-isotipo.png`); sin él, la marca va solo con su nombre. */
-export const cargarIsotipo = (origen: string): Promise<string | null> => comoDato(`${origen}/cayla-isotipo.png`);
+/** Una pieza del logo oficial (`packages/shared/src/marca.ts`) como imagen suelta del color pedido: `next/og` no lee la página ni su CSS. Sale del mismo
+ *  trazo que la tienda, sin pedirlo a la red: la marca nunca falta en la imagen. */
+function piezaComoDato(pieza: PiezaDeMarca, color: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${pieza.viewBox}"><path fill="${color}" fill-rule="evenodd" d="${pieza.trazo}"/></svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+}
+
+const LOGO_CREMA = piezaComoDato(LOGO, COLOR.crema);
+// El rojo del dibujo oficial (el `--t-logo` de la tienda).
+const COLIBRI_ROJO = piezaComoDato(COLIBRI, "#d13730");
 
 /* ---------------- Las piezas comunes ---------------- */
 
-function Marca({ isotipo, alto }: { isotipo: string | null; alto: number }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: Math.round(alto * 0.5) }}>
-      {isotipo && <img src={isotipo} width={Math.round(alto * 1.49)} height={alto} alt="" />}
-      <span style={{ fontFamily: SERIF, fontSize: alto, fontWeight: 500, letterSpacing: Math.round(alto * 0.24) }}>CAYLA</span>
-    </div>
-  );
+/** El logo oficial en crema. `alto` es el de la marca escrita de antes: el logo entero mide 1,2 veces eso (su palabra, la mitad). */
+function Marca({ alto }: { alto: number }) {
+  const h = Math.round(alto * 1.2);
+  return <img src={LOGO_CREMA} width={Math.round((h * LOGO.ancho) / LOGO.alto)} height={h} alt="" />;
 }
 
 function Llamado({ tamano }: { tamano: number }) {
@@ -142,15 +148,7 @@ const px = (n: number) => Math.round(n * S);
 
 /** Lienzo v3, pantalla 9: la marca, «Mi look» y su nombre (la última palabra en cursiva y rosada), las prendas como polaroids y el
  *  llamado con la dirección de la tienda. */
-export function HistoriaDelLook({
-  titulo,
-  piezas,
-  isotipo,
-}: {
-  titulo: { antes: string; ultima: string; tamano: number };
-  piezas: readonly PiezaConFoto[];
-  isotipo: string | null;
-}) {
+export function HistoriaDelLook({ titulo, piezas }: { titulo: { antes: string; ultima: string; tamano: number }; piezas: readonly PiezaConFoto[] }) {
   const tarjetas = tarjetasDelLook(
     piezas.map((p) => p.clase),
     { arriba: 236, abajo: 612 },
@@ -158,7 +156,7 @@ export function HistoriaDelLook({
   return (
     <div style={{ ...TAMANO_HISTORIA, position: "relative", display: "flex", backgroundImage: COLOR.fondo, color: COLOR.crema, fontFamily: SANS }}>
       <div style={{ position: "absolute", left: px(28), top: px(30), display: "flex" }}>
-        <Marca isotipo={isotipo} alto={px(20)} />
+        <Marca alto={px(20)} />
       </div>
       <div style={{ position: "absolute", left: px(28), right: px(28), top: px(84), display: "flex", flexDirection: "column", gap: px(8) }}>
         <div
@@ -195,7 +193,7 @@ export const TAMANO_VISTA = { width: 1200, height: 630 };
 
 /** Lo que muestra WhatsApp al pegar el enlace: a la izquierda la marca y «Mira este look», con el llamado; a la derecha, las prendas. Sin
  *  ningún texto que venga en la dirección. Sin prendas (un enlace viejo), «Arma tu look» y el colibrí grande. */
-export function VistaDelLook({ piezas, isotipo }: { piezas: readonly PiezaConFoto[]; isotipo: string | null }) {
+export function VistaDelLook({ piezas }: { piezas: readonly PiezaConFoto[] }) {
   const tarjetas = tarjetasDelLook(
     piezas.map((p) => p.clase),
     { arriba: 0, abajo: 376 },
@@ -209,7 +207,7 @@ export function VistaDelLook({ piezas, isotipo }: { piezas: readonly PiezaConFot
   return (
     <div style={{ ...TAMANO_VISTA, position: "relative", display: "flex", backgroundImage: COLOR.fondoAncho, color: COLOR.crema, fontFamily: SANS }}>
       <div style={{ position: "absolute", left: 72, top: 64, bottom: 64, width: 520, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-        <Marca isotipo={isotipo} alto={34} />
+        <Marca alto={34} />
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 19, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", color: COLOR.acento }}>
             <div style={{ width: 40, height: 2, background: COLOR.acento }} />
@@ -232,7 +230,7 @@ export function VistaDelLook({ piezas, isotipo }: { piezas: readonly PiezaConFot
       {conLook ? (
         <Tarjetas piezas={piezas} tarjetas={tarjetas} k={k} dx={dx} dy={dy} />
       ) : (
-        isotipo && <img src={isotipo} width={372} height={250} alt="" style={{ position: "absolute", left: caja.x + 64, top: caja.y + 144, opacity: 0.9 }} />
+        <img src={COLIBRI_ROJO} width={372} height={Math.round((372 * COLIBRI.alto) / COLIBRI.ancho)} alt="" style={{ position: "absolute", left: caja.x + 64, top: caja.y + 144, opacity: 0.9 }} />
       )}
     </div>
   );

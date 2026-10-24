@@ -8,7 +8,6 @@ import { diaLima } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 import { estadoDeMiTienda, nombreDeLineaSinPrenda } from "./reparto-reglas";
 import type { NoDeducible } from "./no-deducible-reglas";
-import { numeroDeMonto } from "./monto-plata-reglas";
 
 // La etiqueta de una línea sin prenda vive junto a `etiquetaDeLinea` (reparto-reglas); las pantallas la piden desde acá.
 export { nombreDeLineaSinPrenda };
@@ -152,7 +151,8 @@ export type PagoCompra = {
   noDeducible?: NoDeducible | null;
 };
 
-export type ProveedorResumen = { id: string; nombre: string; ruc: string | null };
+/** `rubros`: para separar a quien es solo de gastos (`proveedoresParaPedir`, ADR-0452): lo usan las pantallas que ELIGEN a quién se le recibe mercadería. */
+export type ProveedorResumen = { id: string; nombre: string; ruc: string | null; rubros: string[] };
 
 export type AdjuntoCompra = {
   id: string;
@@ -283,14 +283,6 @@ export const ETIQUETA_MOTIVO_CIERRE: Record<MotivoCierre, string> = {
   error_proveedor: "Error del proveedor",
 };
 
-/** Motivos de una nota de crédito del proveedor (D2, ADR-0111): lo que acepta `registrar_nota_credito_compra`. */
-export const ETIQUETA_MOTIVO_NOTA: Record<string, string> = {
-  faltante: "Faltante",
-  devolucion: "Devolución",
-  descuento: "Descuento",
-  otro: "Otro",
-};
-
 /**
  * «S/ 1,234.50». Entre «S/» y la cifra va un espacio que no se parte (`\u00a0`, como lo escribe el propio `Intl` en es-PE): un renglón
  * nunca deja «S/» sola al final y la cifra en el siguiente («su deuda pasa de S/ ⏎ 25.00»). Así se escribe todo monto del ERP
@@ -308,85 +300,6 @@ export function fechaCorta(iso: string | null): string {
   const dia = diaLima(iso) ?? iso.slice(0, 10);
   const [a, m, d] = dia.split("-");
   return `${d}/${m}/${a}`;
-}
-
-// ---------------------------------------------------------------------------
-// Costo tipeado con o sin IGV (lo pidió Felipe, 2026-09-14).
-//
-// EL PROBLEMA: muchos proveedores listan el precio unitario ya con IGV, y el
-// formulario solo aceptaba el costo sin IGV — Felipe tenía que dividir entre
-// 1.18 a mano por cada línea. LA BASE NO CAMBIA: `compra_items.costo_unitario`
-// sigue siendo sin IGV y `registrar_compra` sigue armando subtotal + igv =
-// total desde ahí (principio 4). El switch es interpretación en pantalla: si
-// el costo viene con IGV, acá se descuenta ANTES de mandarlo.
-//
-// El redondeo a 2 decimales imita `numeric(12, 2)`: lo que la pantalla suma
-// es exactamente lo que la base va a guardar. El centavo que se pierde al
-// redondear la base (10 / 1.18 = 8.4746 → 8.47) NO se traslada al total:
-// con precios con IGV, `totalesCompra` toma el total del papel y el IGV es
-// la diferencia — misma regla que `registrar_compra` con `p_total`.
-// ---------------------------------------------------------------------------
-function a2(n: number): number {
-  return Math.round(n * 100) / 100;
-}
-
-/** Costo sin IGV que se guarda, a partir de lo tipeado y de cómo se tipeó. */
-export function costoBase(costoTipeado: number, igvPorcentaje: number, conIgv: boolean): number {
-  if (!Number.isFinite(costoTipeado) || costoTipeado < 0) return 0;
-  if (!conIgv || !(igvPorcentaje > 0)) return a2(costoTipeado);
-  return a2(costoTipeado / (1 + igvPorcentaje / 100));
-}
-
-/** Inverso: el último costo conocido (sin IGV) sugerido en el modo en que se está tipeando. */
-export function costoParaTipear(costoSinIgv: number, igvPorcentaje: number, conIgv: boolean): number {
-  if (!conIgv || !(igvPorcentaje > 0)) return a2(costoSinIgv);
-  return a2(costoSinIgv * (1 + igvPorcentaje / 100));
-}
-
-/**
- * Totales de la factura tal como los va a guardar `registrar_compra`
- * (20260914190000_compras_total_del_papel.sql). Con precios sin IGV, el
- * IGV se calcula sobre la base; con precios con IGV, el total es la suma de
- * lo tipeado (lo que dice el papel) y el IGV es la diferencia con la base:
- * el redondeo lo absorbe el IGV, nunca el total. 1 × S/ 10.00 con IGV da
- * base 8.47, IGV 1.53, total 10.00 — no 9.99.
- */
-export function totalesCompra(
-  lineas: readonly { cantidad: number; costoTipeado: number }[],
-  igvPorcentaje: number,
-  conIgv: boolean,
-): { subtotal: number; igv: number; total: number } {
-  const subtotal = a2(lineas.reduce((acc, l) => acc + l.cantidad * costoBase(l.costoTipeado, igvPorcentaje, conIgv), 0));
-  if (conIgv && igvPorcentaje > 0) {
-    const total = a2(lineas.reduce((acc, l) => acc + a2(l.cantidad * (Number.isFinite(l.costoTipeado) && l.costoTipeado > 0 ? l.costoTipeado : 0)), 0));
-    return { subtotal, igv: a2(total - subtotal), total };
-  }
-  const igv = a2((subtotal * igvPorcentaje) / 100);
-  return { subtotal, igv, total: a2(subtotal + igv) };
-}
-
-/**
- * ¿Esta fila de la factura que se arma en pantalla se manda a `registrar_compra`? Solo la que trae prenda y una cantidad: una fila a
- * medio llenar no se envía y, por eso mismo, tampoco se suma (`totalesDeLasLineasQueSeEnvian`).
- */
-export function seEnviaLinea(l: { productoId?: string | null; cantidad: number }): boolean {
-  return !!l.productoId && l.cantidad > 0;
-}
-
-/**
- * Los totales de la factura que se arma: suman EXACTAMENTE las líneas que se envían. Antes sumaban todas las filas, también las que
- * no iban (sin prenda o sin cantidad): la pantalla mostraba un total mayor y el comprobante se registraba por menos.
- */
-export function totalesDeLasLineasQueSeEnvian(
-  lineas: readonly { productoId?: string | null; cantidad: number; costoUnitario: string | number }[],
-  igvPorcentaje: number,
-  conIgv: boolean,
-): { subtotal: number; igv: number; total: number } {
-  return totalesCompra(
-    lineas.filter(seEnviaLinea).map((l) => ({ cantidad: l.cantidad, costoTipeado: typeof l.costoUnitario === "number" ? l.costoUnitario : numeroDeMonto(l.costoUnitario) })),
-    igvPorcentaje,
-    conIgv,
-  );
 }
 
 // ---------- Lectura operativa: recibir SIN ver dinero (ADR-0126) ----------
@@ -508,12 +421,3 @@ export function esRelacionAusente(error: { code?: string | null } | null | undef
   return error?.code === "PGRST205" || error?.code === "42P01";
 }
 
-/** El IGV va de 0 % a 18 %, la emisión no es futura y el vencimiento no es anterior a la emisión: lo mismo que exige `registrar_compra`
- *  (`igv_fuera_de_rango`, `emision_futura`) y la tabla (`compras_vence_despues_de_emitir`), dicho antes de mandar (/chaos de Compras,
- *  ADR-0421). Fechas `aaaa-mm-dd`; sin vencimiento (al contado), no se mira. */
-export function problemaDeFechasEIgv(e: { fechaEmision: string; fechaVencimiento: string | null; igvPorcentaje: number; hoy: string }): string | null {
-  if (!(e.igvPorcentaje >= 0 && e.igvPorcentaje <= 18)) return "El IGV de la factura va de 0 % a 18 %: revisa el porcentaje.";
-  if (e.fechaEmision > e.hoy) return "La fecha de emisión no puede ser futura: revisa la fecha del documento.";
-  if (e.fechaVencimiento && e.fechaVencimiento < e.fechaEmision) return "El vencimiento no puede ser anterior a la emisión.";
-  return null;
-}

@@ -77,6 +77,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         personaSesionId={persona.personaId}
         esAdmin={persona.esAdmin}
         nombreSesion={persona.nombre}
+        firmaRespaldo={persona.firmaRespaldo}
       >
         {/* Service worker, copias por persona y aviso «sin conexión / copia guardada» (ADR-0210). `generadoEn` sella
             esta carga: en una copia servida sin red, es la hora de la copia. */}
@@ -87,7 +88,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Sube lo guardado sin conexión (ADR-0210) desde cualquier pantalla. */}
         <ColasSinConexion />
         {/* Precio o campaña cambiados desde otra pestaña o caja: la pantalla abierta se pone al día sola (2026-10-08). */}
-        <PreciosEnVivo />
+        <PreciosEnVivo ubicacionId={persona.ubicacionId} />
         {/* Un guardado que se quedó sin respuesta (ADR-0410): la pantalla se vuelve a leer sola cuando la base responda (ADR-0411). */}
         <RefrescoTrasCorte />
         {/* «Es hora de cerrar caja» (ADR-0305): desde la hora de cierre de la tienda hasta que la caja se cierra, en toda pantalla. */}

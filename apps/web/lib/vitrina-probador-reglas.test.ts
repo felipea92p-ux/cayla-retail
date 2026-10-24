@@ -152,17 +152,17 @@ describe("errorDeLargo", () => {
 describe("lo que entra al probador: la misma regla de la tienda (/formidable, 2026-10-17)", () => {
   const cat = (prefijo: string | null, nombre = "X") => ({ id: `c-${prefijo ?? nombre}`, nombre, prefijo });
 
-  it("entran la ropa (arriba, vestidos, abajo, encima) y Bolsos y Carteras; no los demás accesorios, la bisutería ni el calzado", () => {
-    for (const prefijo of ["TOP", "CMS", "BOD", "VES", "CON", "ENT", "PAN", "JEA", "FAL", "SHO", "CAS", "BLZ", "CAP", "CAR"]) expect(entraAlProbador(cat(prefijo))).toBe(true);
+  it("entran arriba (con casacas, blazers y chalecos), abajo y Bolsos y Carteras; no vestidos, enterizos, conjuntos ni capas, ni los demás accesorios, la bisutería o el calzado (ADR-0444)", () => {
+    for (const prefijo of ["TOP", "CMS", "BOD", "PAN", "JEA", "FAL", "SHO", "CAS", "BLZ", "CHA", "ABR", "CAR"]) expect(entraAlProbador(cat(prefijo))).toBe(true);
+    for (const prefijo of ["VES", "CON", "ENT", "TBA", "CAP"]) expect(entraAlProbador(cat(prefijo))).toBe(false);
     for (const prefijo of ["ACC", "CIN", "COL", "ARE", "ANL", "BUF", "GOR", "LSO", "MAQ", "ZAP", "LIB"]) expect(entraAlProbador(cat(prefijo))).toBe(false);
     expect(entraAlProbador(null)).toBe(false);
   });
-
   it("cada prefijo de los grupos de la tienda decide igual en el ERP (una sola regla)", () => {
     for (const g of GRUPOS_DE_LA_TIENDA) for (const prefijo of g.prefijos) expect(entraAlProbador(cat(prefijo))).toBe(zonaDelProbador(prefijo) !== null);
   });
 
-  it("una categoría nueva sin lista cae donde la pone la tienda (Encima y más): entra", () => {
+  it("una categoría nueva sin lista cae donde la pone la tienda (Chompas/Abrigos): entra", () => {
     expect(entraAlProbador(cat("NUE"))).toBe(true);
     expect(entraAlProbador(cat(null, "Kimonos"))).toBe(true);
   });

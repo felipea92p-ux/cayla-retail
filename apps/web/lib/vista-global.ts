@@ -41,6 +41,11 @@ export const MODULOS_DE_LA_VISTA_GLOBAL = [
   "configuracion",
   // Datos y plazos de la tienda web (20261016223000): la web es una sola, así que se abre también en CAYLA Global, como cuando la abría Configuración.
   "ajustes_web",
+  // Campañas de la tienda web (20261021161000): la web es una sola, así que el diseño de una campaña se arma también en CAYLA Global.
+  "campanas_web",
+  // Beneficios del club (programa de puntos, actividad 8): lo que el club le ofrece al cliente es de la empresa entera (los mismos puntos y cupones en
+  // las 3 tiendas), no de una sede: se abre también en CAYLA Global, como Configuración.
+  "beneficios_club",
   "actividad",
   // Frescura del piso (ADR-0208, act. 2026-10-10 (b)): en esta vista dibuja una barra por tienda y la suma de CAYLA (`FrescuraRed`).
   "frescura",
@@ -53,8 +58,9 @@ export const MODULOS_SOLO_DE_LA_VISTA_GLOBAL = ["cayla_global"] as const satisfi
  *  pantallas de los módulos de arriba —lo vigila la prueba contra el árbol del menú—, más dos que no son de un módulo:
  *  «Sin acceso» y el panel comercial (`/comercial`, que ya compara todas las tiendas y es solo del líder). «/» es solo el
  *  Inicio (nada «cuelga» de la raíz): la página manda a `/global` a quien no es Admin. Tienda web ▸ Ajustes (ADR-0430) es la
- *  antigua pestaña «Tienda web» de Configuración: de CAYLA entera, con el mismo módulo, así que sigue abriéndose aquí. */
-export const RUTAS_DE_LA_VISTA_GLOBAL = ["/", "/global", "/clientas", "/finanzas", "/configuracion", "/actividad", "/comercial", "/sin-acceso", "/gestion/frescura", "/tienda-web/ajustes"] as const;
+ *  antigua pestaña «Tienda web» de Configuración: de CAYLA entera, con el mismo módulo, así que sigue abriéndose aquí. Tienda web ▸ Campañas
+ *  (20261021161000) también: la web es una sola y una campaña de Etiquetas no es de una sede. */
+export const RUTAS_DE_LA_VISTA_GLOBAL = ["/", "/global", "/clientas", "/finanzas", "/configuracion", "/actividad", "/comercial", "/sin-acceso", "/gestion/frescura", "/tienda-web/ajustes", "/tienda-web/campanas"] as const;
 
 /** Las pantallas que cuelgan de una ruta de la lista de arriba pero trabajan en UNA sede: no se abren en CAYLA Global (mandan a
  *  elegir sede). Clientas ▸ Avisos (ADR-0288 act. g) manda los mensajes desde el WhatsApp de una tienda: sin tienda no hay desde

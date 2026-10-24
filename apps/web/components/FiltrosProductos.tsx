@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpDown, Banknote, CalendarRange, CircleCheck, ClipboardList, PackageSearch, Palette, Ruler, Shirt, Tag, Truck } from "lucide-react";
+import { ArrowUpDown, Banknote, CalendarRange, CircleCheck, ClipboardList, PackageSearch, Palette, Ruler, Shirt, Store, Tag, Truck } from "lucide-react";
 import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { Slider } from "radix-ui";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
@@ -27,6 +27,7 @@ import {
   SIN_TEMPORADA,
   faltaDeUrl,
   temporadaDeUrl,
+  empresaDeUrl,
   DISPONIBILIDADES,
   DISPONIBILIDAD_DE_SEDE,
   disponibilidadDeUrl,
@@ -74,6 +75,7 @@ export function FiltrosProductos({
   panelInicial,
   sede,
   temporadas,
+  empresas,
   facetas,
   junto,
 }: {
@@ -94,6 +96,8 @@ export function FiltrosProductos({
   sede: string | null;
   /** La lista cerrada de temporadas (`fn_temporadas`); `null` si la base aún no la tiene: la píldora no se dibuja. */
   temporadas: Opcion[] | null;
+  /** CAYLA y CLAURE (`fn_empresas`, ADR-0467); en pantalla «Tienda». `null` si la base no las tiene o hay una sola: la píldora no se dibuja. */
+  empresas: Opcion[] | null;
   /** Cuántas prendas hay en cada opción y los tramos de precio (`fn_productos_facetas`); `null` = no se pudo saber. */
   facetas: FacetasProductos | null;
   /** Lo que va a la derecha del conteo, al final de su fila: el tamaño de las tarjetas en la Grilla (2026-10-09). */
@@ -225,6 +229,7 @@ export function FiltrosProductos({
   const estado = estadoDeUrl(params.get("estado"));
   const disponibilidad = disponibilidadDeUrl(params.get("stock"), sede != null);
   const temporada = temporadaDeUrl(params.get("temporada"));
+  const empresa = empresaDeUrl(params.get("empresa"));
   const falta = faltaDeUrl(params.get("falta"));
   const orden = ordenDeUrl(params.get("orden"));
 
@@ -240,6 +245,7 @@ export function FiltrosProductos({
       familia: (f) => textoDeFamilia(f),
       sede,
       temporada: (clave) => temporadas?.find((t) => t.id === clave)?.nombre,
+      empresa: (id) => empresas?.find((e) => e.id === id)?.nombre,
     },
     SIN_EN_URL,
   );
@@ -485,6 +491,16 @@ export function FiltrosProductos({
             ]}
           />
         )}
+        {/* ADR-0467: de qué empresa es la prenda. Va sin conteo por opción (la faceta no existe todavía); solo si hay más de una empresa. */}
+        {empresas && (
+          <DesplegablePildora
+            icono={Store}
+            etiqueta="Tienda"
+            valor={empresa ?? TODOS}
+            onValor={(v) => aplicar({ empresa: v === TODOS ? "" : v })}
+            opciones={[{ valor: TODOS, texto: "Todas" }, ...empresas.map((e) => ({ valor: e.id, texto: e.nombre }))]}
+          />
+        )}
         {/* Lo que le falta a la ficha, en un solo lugar: el filtro de quien carga el catálogo (Felipe, 2026-10-02). */}
         <DesplegablePildora
           icono={ClipboardList}
@@ -531,7 +547,7 @@ export function FiltrosProductos({
       {panelAbierto && !hojaAbierta && <div data-guia="productos.panel" className="hidden md:block">{panel}</div>}
 
       {hojaAbierta && (
-        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana">
+        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana" mediaAltura>
           {panel}
           <div className="pie-hoja-fijo pie-acciones mt-4">
             {activos > 0 && (

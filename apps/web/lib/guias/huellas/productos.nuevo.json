@@ -57,9 +57,9 @@
       "button «{c.nombre}»"
     ],
     "components/alta-producto/ElegirEtiquetas.tsx": [
-      "Boton «{enLinea ? undefined : \"Crear una etiqueta necesita internet\"}»",
+      "Boton «{enLinea ? undefined : \"Crear una insignia necesita internet\"}»",
       "Boton «+ Crear «»",
-      "CampoTexto «Nombre de la etiqueta»",
+      "CampoTexto «Nombre de la insignia»",
       "Boton «{firma.motivo ?? undefined}»",
       "button «Cancelar»"
     ],

@@ -6,29 +6,31 @@ import Link from "next/link";
 import { formaDe, fotoOptimizable } from "@/lib/catalogo";
 import { claveEspera } from "@/lib/club";
 import {
-  avisoOtraTienda,
   avisoOtrosSepararon,
   botonDeLaFicha,
   campanaDeLaFicha,
   chipCampana,
   colorInicial,
+  dibujoDeLaCampana,
   faltaParaTerminar,
   fotosDelColor,
+  imagenDeLaCampana,
   lineaAlAgregar,
   notaDeTalla,
+  pistaOtraTienda,
   precioDeLaFicha,
   tallaDelPrecio,
   tallasDelColor,
+  type ChipFicha,
   type Ficha,
-  type Promesa,
 } from "@/lib/ficha";
 import { hrefDelProbador } from "@/lib/probador";
 import { esLaMismaFoto } from "@/lib/prenda-tocada";
-import { leyendaNiveles, textoNivel, tonoNivel } from "@/lib/stock";
+import { textoNivel, tonoNivel } from "@/lib/stock";
 import { AgregarALaBolsa } from "./bolsa/AgregarALaBolsa";
-import { Promesas } from "./bolsa/Promesas";
 import { BotonAvisame } from "./club/BotonAvisame";
 import { BotonFavorito } from "./club/BotonFavorito";
+import { IconoInsignia } from "./IconoInsignia";
 import { usePrendaTocada } from "./PrendaTocada";
 import { fotoQueViaja } from "./Vistas";
 import { DibujoPrenda } from "./DibujoPrenda";
@@ -56,8 +58,6 @@ export function FichaPrenda({
   colorPedido,
   origenFotos,
   chips = [],
-  cambios,
-  promesas = [],
   esperas = [],
   esperasIds = {},
   enLaBolsa = 0,
@@ -71,12 +71,9 @@ export function FichaPrenda({
   /** `?color=` de la dirección: con qué color abre. */
   colorPedido: string | null;
   origenFotos: string | undefined;
-  /** Los chips de arriba del nombre que vienen del catálogo («Nuevo…», «N.º 3 en más vendidos»). */
-  chips?: { texto: string; tono?: "nuevo" }[];
+  /** Los chips de arriba del nombre: «Nuevo…» y «N.º 3 en más vendidos» (del catálogo) y las insignias de la prenda (de su ficha, ADR-0489). */
+  chips?: ChipFicha[];
   /** «Cambios»: como en tienda, con el plazo de la caja (`lib/ayuda.ts`, el mismo de «Cambios y devoluciones»). */
-  cambios: string;
-  /** Lo que la tienda ya cumple, junto al botón (`promesasDeCompra`, con los plazos de la ayuda). */
-  promesas?: readonly Promesa[];
   /** Lo que la cuenta ya pidió con «Avísame» (`claveEspera`: prenda y tienda). */
   esperas?: readonly string[];
   /** El id de cada una de esas esperas (por su misma clave): con él, «Te avisaremos ×» la quita desde la ficha, aunque se haya pedido
@@ -92,7 +89,7 @@ export function FichaPrenda({
   /** Lo que va debajo de la ficha: la barra del celular queda pegada abajo mientras se ve. */
   children?: React.ReactNode;
 }) {
-  const [color, setColor] = useState(() => colorInicial(ficha, colorPedido));
+  const [color, setColor] = useState(() => colorInicial(ficha, colorPedido, sedeElegida));
   const tallas = tallasDelColor(ficha, color);
   const [tallaId, setTallaId] = useState<string | null>(() => (tallas.length === 1 ? tallas[0].talla.id : null));
   const elegida = tallas.find((t) => t.talla.id === tallaId)?.variante ?? null;
@@ -105,11 +102,11 @@ export function FichaPrenda({
   const hasta = campanaVista?.hasta ?? null;
   const hayTiendas = ficha.sedes.length > 0;
   const tiendaElegida = ficha.sedes.find((s) => s.id === sedeElegida) ?? null;
-  const boton = botonDeLaFicha(elegida);
+  const boton = botonDeLaFicha(elegida, sedeElegida);
   const tallaElegida = tallas.find((t) => t.variante === elegida)?.talla.nombre ?? "";
   const yaSeparadas = useMemo(() => new Set(separadas), [separadas]);
   const otrosSepararon = avisoOtrosSepararon(elegida, tiendaElegida, yaSeparadas);
-  const otraTienda = avisoOtraTienda(elegida, tiendaElegida, ficha.sedes);
+  const otraTienda = pistaOtraTienda(elegida, tiendaElegida, ficha.sedes);
 
   // Lo que pasó al agregar, atado al color y la talla de ese momento: al elegir otra, ya no corresponde y se va.
   const seleccion = `${color}|${tallaId ?? ""}`;
@@ -218,11 +215,16 @@ export function FichaPrenda({
               <div className="t-pdp-chips">
                 {chips.map((c) => (
                   <span key={c.texto} className={`t-chip${c.tono ? ` ${c.tono}` : ""}`}>
-                    {c.tono === "nuevo" && <Icono nombre="chispa" />}
+                    {c.icono && <IconoInsignia icono={c.icono} imagen={c.imagen} origen={origenFotos} />}
                     {c.texto}
                   </span>
                 ))}
-                {campana && <span className="t-chip oferta">{campana}</span>}
+                {campana && campanaVista && (
+                  <span className="t-chip oferta">
+                    <IconoInsignia icono={dibujoDeLaCampana(ficha, campanaVista)} imagen={imagenDeLaCampana(ficha, campanaVista)} origen={origenFotos} />
+                    {campana}
+                  </span>
+                )}
               </div>
             )}
             <h1>{ficha.nombre}</h1>
@@ -254,13 +256,12 @@ export function FichaPrenda({
                   key={c.codigo}
                   type="button"
                   className="t-swatch"
-                  data-color-dato
-                  style={c.hex ? { background: c.hex } : undefined}
                   aria-pressed={c.codigo === color}
-                  aria-label={c.nombre}
-                  title={c.nombre}
                   onClick={() => elegirColor(c.codigo)}
-                />
+                >
+                  <i data-color-dato style={c.hex ? { background: c.hex } : undefined} aria-hidden="true" />
+                  {c.nombre}
+                </button>
               ))}
             </div>
             {!colorElegido.foto && ficha.fotos.length > 0 && <span className="t-swatch-nota">Este color aún no tiene foto: la ves en otro color.</span>}
@@ -310,7 +311,7 @@ export function FichaPrenda({
           )}
           {otraTienda && (
             <p className="t-pdp-nota" role="status">
-              <Icono nombre="traslado" />
+              <Icono nombre="ubicacion" />
               <span>{otraTienda}</span>
             </p>
           )}
@@ -326,13 +327,10 @@ export function FichaPrenda({
                 <Icono nombre="chispas" />
                 Arma un look con esta prenda
               </Link>
-              <p>Pruébala con otras prendas de la tienda, a su tamaño y en el color que elijas.</p>
             </div>
           )}
 
-          {promesas.length > 0 && <Promesas promesas={promesas} />}
-
-          {/* Lo que describe la prenda va primero y abierto; cómo se separa ya lo dicen las promesas de arriba: aquí, el detalle. */}
+          {/* Solo el detalle de la prenda (A · Muro, menos texto): cómo se separa y los cambios viven en su página de ayuda. */}
           <div className="t-acordeon">
             {ficha.descripcion && (
               <details open>
@@ -342,21 +340,6 @@ export function FichaPrenda({
                 <p>{ficha.descripcion}</p>
               </details>
             )}
-            <details>
-              <summary>
-                Cómo funciona separar <Icono nombre="chevron" />
-              </summary>
-              <p>
-                Agrega tus prendas, elige tu tienda y toca «Separar». Se crea tu pedido con su número; lo mandas por WhatsApp y la tienda
-                revisa que esté y te confirma. No pagas nada en la web: el pago se coordina por WhatsApp y lo recoges en tu tienda.
-              </p>
-            </details>
-            <details>
-              <summary>
-                Cambios <Icono nombre="chevron" />
-              </summary>
-              <p>{cambios}</p>
-            </details>
           </div>
         </div>
       </div>
@@ -535,11 +518,14 @@ function TablaStock({
 }) {
   const tallas = tallasDelColor(ficha, color);
   const varias = tallas.length > 1;
+  // Cada tienda maneja lo suyo (2026-10-19): con una tienda elegida, la tabla muestra solo esa; sin ella, todas.
+  const tiendas = ficha.sedes.filter((s) => !sedeElegida || s.id === sedeElegida);
+  const soloUna = tiendas.length === 1 ? tiendas[0] : null;
   return (
     <div className="t-bloque t-stock-bloque">
       <span className="t-etq">
         <span>
-          Cuánto hay por tienda <b>{colorNombre}</b>
+          {soloUna ? `Cuánto hay en ${soloUna.nombre}` : "Cuánto hay por tienda"} <b>{colorNombre}</b>
         </span>
       </span>
       {ficha.sedes.length === 0 ? (
@@ -549,7 +535,7 @@ function TablaStock({
           <div className="t-stock-envol">
             <table className="t-stock">
               <caption className="t-sr">
-                Cuánto hay de {ficha.nombre} en {colorNombre}, por tienda y talla
+                Cuánto hay de {ficha.nombre} en {colorNombre}, {soloUna ? `en ${soloUna.nombre}` : "por tienda"} y por talla
               </caption>
               <thead>
                 <tr>
@@ -564,8 +550,8 @@ function TablaStock({
                 </tr>
               </thead>
               <tbody>
-                {ficha.sedes.map((s) => (
-                  <tr key={s.id} className={s.id === sedeElegida ? "elegida" : undefined}>
+                {tiendas.map((s) => (
+                  <tr key={s.id} className={s.id === sedeElegida && !soloUna ? "elegida" : undefined}>
                     <th scope="row">{s.nombre}</th>
                     {tallas.map(({ talla, variante }) => {
                       const nivel = variante.stock[s.id] ?? 0;
@@ -580,7 +566,6 @@ function TablaStock({
               </tbody>
             </table>
           </div>
-          <p className="t-stock-nota">{leyendaNiveles(ficha.umbral)}</p>
         </>
       )}
     </div>

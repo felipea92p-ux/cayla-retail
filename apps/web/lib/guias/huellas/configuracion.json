@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 91,
+  "total": 96,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «{responsable}»",
@@ -30,8 +30,10 @@
       "button «config.nuevo-tope»",
       "Casilla «{`Saldo a favor de IGV al empezar ${textoMes(t.vigenteDesde.slice(0, 7))}»",
       "button «config.nuevo-saldo»",
+      "Casilla «{`Ajuste de ventas de ${anio}»",
       "button «+ Año nuevo»",
       "Casilla «{`Límite de ventas de ${anio}»",
+      "Casilla «{`Aviso anticipado de ${anio}»",
       "Casilla «{`Pago a cuenta de renta de ${anio}»",
       "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
@@ -53,7 +55,7 @@
       "Casilla «{`Fondo de caja en ${campana.nombre}»",
       "ComboResponsable «{responsable}»",
       "BotonVer «Ver el cartel del club»",
-      "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Etiquetas)»",
+      "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Insignias)»",
       "Link «Ver cómo se ve en Caja»"
     ],
     "components/CuentasProveedor.tsx": [
@@ -65,7 +67,8 @@
       "BotonEditar «Editar fijos»",
       "BotonEnlace «Agregar el primero»",
       "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}»",
-      "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}» #2",
+      "button «{`Ver el gasto de ${nombre(f)}»",
+      "BotonVerMas «→setVerRegistrados»",
       "button «Marcar fijo»",
       "button «No es fijo»",
       "ComboResponsable «{responsable}»",
@@ -120,6 +123,10 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «Guardar»"
+    ],
+    "components/gasto-fijo/FichaDePagoCampos.tsx": [
+      "Casilla «{TEXTO_BILLETERA[b]}»",
+      "textarea «ficha-notas»"
     ]
   }
 }

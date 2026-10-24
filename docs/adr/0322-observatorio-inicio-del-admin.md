@@ -105,3 +105,12 @@ y ordena el ranking por lo vendido hasta que se cargue en Configuración) y **el
 ## Actualización 2026-10-05 — el modo oscuro entró (ADR-0336)
 
 **El «modo oscuro listo, apagado» (decisión 8) se encendió.** La pregunta que dejó abierta —cómo se activa en todo el sistema— se resolvió como preferencia del APARATO (`localStorage`), con un botón en la cabecera (ADR-0336, decisión 4). El bloque `[data-tema="oscuro"] .obs` que definía sus propias variables ya no existe: el Observatorio hereda los tokens oscuros del sistema, que parten de la misma paleta (`#1a1a18` / `#f5f0e8`), y solo conserva un ajuste de su tercer nivel de texto (`--o-tx3`) para llegar a 4.5:1.
+
+
+## Actualización 2026-10-22 — la versión que corre en producción llega a `main` (20261022201000)
+
+**`fn_observatorio_tienda` en producción no es la de `main`.** La revisión de deriva del 2026-10-22 la encontró como «otra versión»: alguien la pegó en el SQL Editor sin dejar archivo (no está en `main`, ni en ninguna rama remota, ni en un stash ni en otro worktree). La diferencia son tres líneas: la categoría de cada línea de venta pasa de `coalesce(ca.nombre, 'Sin categoría')` a `coalesce(ca.nombre, cr.nombre, 'Sin categoría')`, con un `left join` a `prendas_por_regularizar` (por `venta_item_id`, que es único, así que no duplica ventas) y otro a `categorias`. Efecto: una prenda vendida sin registrar cuenta en la categoría que se declaró en caja y no en «Sin categoría»; la categoría del catálogo sigue mandando.
+
+**DECIDÍ:** copiar el cuerpo de producción a `main` tal cual (`20261022201000_observatorio_tienda_prenda_sin_registrar_en_su_categoria.sql`, «YA ESTÁ EN PRODUCCIÓN, NO SE VUELVE A PEGAR»), con `pnpm pruebas:arreglos-en-vivo-roles-observatorio` para que el CI avise si alguien lo pisa.
+**DESCARTÉ:** (a) *dejarlo solo en producción*: la próxima migración que recree la función desde `main` le devolvería esas ventas a «Sin categoría» en silencio, que es lo que ya le pasó a Análisis con el PR 397; (b) *revertir producción a la versión de `main`*: cambia lo que ve el Admin hoy sin que nadie lo haya pedido, y una migración que lo hiciera tocaría producción; (c) *mejorar la función de paso*: mezcla dos decisiones, y lo que corre hoy en producción es lo único que ya está probado allá.
+**SE ROMPE SI:** alguien vuelve a pegar `20261004020000` entero (por ejemplo, para reparar `fn_observatorio`): el caso «la prenda sin registrar cuenta en su categoría» de la prueba sale rojo; o `prendas_por_regularizar.venta_item_id` deja de ser único y la unión duplica ventas.

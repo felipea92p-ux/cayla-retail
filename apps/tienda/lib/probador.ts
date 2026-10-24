@@ -5,12 +5,13 @@ import type { Look as LookDeCayla, TallaLook } from "./looks";
 import { esquemaStockModelo, hayAlgo, notaDeStock, type NotaStock, type StockModelo, type Tienda } from "./stock";
 
 // «Arma el tuyo», el probador de looks de la tienda (ADR-0434, actividad 4; lienzo v3, `V3Probador`). El cliente se viste prenda por
-// prenda a escala —arriba, abajo o un vestido, algo encima y un bolso—, cambia cada una deslizándola o desde la tira de opciones y la
+// prenda a escala —una de arriba, una de abajo y un bolso: MÁXIMO 3 prendas, ADR-0444—, cambia cada una deslizándola o desde la tira de opciones y la
 // elige en cualquiera de sus colores. Todo lo de aquí es lógica pura, con su prueba al lado:
 //   1. Lo que dice la base (`retail.tienda_probador`): el largo, los recortes y el precio y el stock de CADA color.
 //   2. La zona de cada categoría, de los grupos que ya usa la tienda (`grupos.ts`).
 //   3. Juntar el catálogo (qué se ve, su nombre y sus colores) con lo del probador, y lo que dice cada color.
-//   4. El look: poner, sacar y cambiar prendas (un vestido ocupa arriba y abajo y, al sacarlo, vuelven las que había), «Sorpréndeme».
+//   4. El look: poner, sacar y cambiar prendas, «Sorpréndeme». (Desde el ADR-0444 ninguna categoría cae en «vestido» ni en «encima»: el código de
+//      esas dos zonas —el vestido que ocupa arriba y abajo, la fila «Algo encima»— queda, sin prendas que lo usen, por si se vuelve atrás.)
 //   5. El look en la dirección (`?p=`), para volver a él o compartirlo.
 //   6. La figura: dónde va cada prenda y de qué tamaño (2,5 px por cm, desde los hombros o la cintura).
 // Solo fotos reales (Felipe, 2026-10-16): un color sin foto propia se elige igual, la figura muestra otra foto de la prenda y lo dice.
@@ -103,10 +104,13 @@ export const OPCIONAL: Record<Zona, boolean> = { vestido: false, arriba: false, 
 /** El body va metido: debajo de lo de abajo. */
 const PREFIJOS_METIDOS: readonly string[] = ["BOD"];
 
+/** Las prendas de arriba que se dibujan por su propio torso (ADR-0449 act. c): blusas, camisas, polos y tops. Las de abrigo (casacas, chalecos, blazers) quedan con la regla de siempre. */
+const PREFIJOS_POR_TORSO: readonly string[] = ["CMS", "BLU", "TOP", "POL", "COR"];
+
 /** La zona de una categoría, por su prefijo (nunca por el nombre visible, que se renombra). null: no entra al probador. La regla vive
  *  en `packages/shared` (`zonaDelProbador`): el ERP cuenta con la misma qué prendas preparar (Tienda web ▸ Vitrina ▸ Probador). */
 export function zonaDe(categoria: Prenda["categoria"]): Zona | null {
-  return zonaDelProbador(claveCategoria(categoria));
+  return zonaDelProbador(claveCategoria(categoria), categoria?.familia);
 }
 
 /* =============================================== 3. Juntar el catálogo y el probador =============================================== */
@@ -149,6 +153,8 @@ export type PrendaDelProbador = {
   categoria: string | null;
   zona: Zona;
   metida: boolean;
+  /** Se dibuja por el ancho de su propio torso (blusa, camisa, polo, top) y no solo por el largo típico de su categoría. */
+  porTorso?: boolean;
   largo: number;
   /** Los colores que se ofrecen, en el orden del catálogo. Al menos uno. */
   colores: ColorDelProbador[];
@@ -244,6 +250,7 @@ export function armarProbador(
         categoria: p.categoria?.nombre ?? null,
         zona,
         metida: clave !== null && PREFIJOS_METIDOS.includes(clave),
+        porTorso: zona === "arriba" && clave !== null && PREFIJOS_POR_TORSO.includes(clave),
         largo: extra.largo,
         colores,
       },
@@ -436,11 +443,17 @@ export function memoriaInicial(look: Look, prendas: readonly PrendaDelProbador[]
 
 export type Totales = { cuantas: number; final: number; lista: number; desde: boolean };
 
-/** Lo que cuesta el look completo: la suma de lo que se paga por cada prenda en su color (con «Desde» si alguna lo lleva). */
-export function totales(look: Look, indice: ReadonlyMap<string, PrendaDelProbador>): Totales {
+/** Las prendas que el cliente NO lleva (su «✕» en «Tu look»), por el id de la prenda: siguen en la figura, pero no cuentan en el total ni van
+ *  a la bolsa. Por id y no por zona: si cambia la prenda de esa zona, la nueva entra sola; si vuelve la de antes, vuelve como la dejó. */
+export type SinLlevar = ReadonlySet<string>;
+
+/** Lo que cuesta el look completo: la suma de lo que se paga por cada prenda en su color (con «Desde» si alguna lo lleva). Sin las
+ *  que el cliente no lleva (`sin`). */
+export function totales(look: Look, indice: ReadonlyMap<string, PrendaDelProbador>, sin?: SinLlevar): Totales {
   return presentes(look).reduce<Totales>(
     (t, z) => {
       const pieza = look[z]!;
+      if (sin?.has(pieza.id)) return t;
       const p = indice.get(pieza.id);
       if (!p) return t;
       const c = colorDeLaPieza(p, pieza);
@@ -477,17 +490,27 @@ export function piezasParaLasTallas(dato: unknown): PiezaParaTallas[] | null {
   return r.success ? r.data.map((p) => ({ id: p.id, color: p.color.toUpperCase() })) : null;
 }
 
-/** Las prendas puestas, para pedir sus tallas, en el orden de las zonas. */
-export function piezasDelLook(look: Look): PiezaParaTallas[] {
-  return presentes(look).map((z) => ({ id: look[z]!.id, color: look[z]!.color }));
+/** Las prendas puestas, para pedir sus tallas, en el orden de las zonas. Sin las que el cliente no lleva (`sin`): la bolsa solo recibe lo
+ *  que lleva. */
+export function piezasDelLook(look: Look, sin?: SinLlevar): PiezaParaTallas[] {
+  return presentes(look)
+    .filter((z) => !sin?.has(look[z]!.id))
+    .map((z) => ({ id: look[z]!.id, color: look[z]!.color }));
+}
+
+/** Lo que dice el botón de la bolsa de «Tu look»: cuántas prendas se agregan, no «todo» (Felipe 2026-10-19: con una prenda sin llevar,
+ *  «Agregar a mi bolsa» daba a entender que se agregaba todo). Sin ninguna que llevar, se apaga y dice qué hacer. */
+export function textoAgregarAlLook(llevo: number): { texto: string; apagado: boolean } {
+  if (llevo <= 0) return { texto: "Elige qué llevar", apagado: true };
+  return { texto: `Agregar ${llevo} ${llevo === 1 ? "prenda" : "prendas"} a mi bolsa`, apagado: false };
 }
 
 /**
  * El look del probador como la hoja de tallas de los looks (`AgregarLook`) lo dibuja: cada prenda en su color, con su recorte, lo que
  * vale ese color y sus tallas. La hoja y la bolsa son las mismas de «Arma tu look» (ADR-0434): una sola forma de llevar un look a la bolsa.
  */
-export function lookParaLaHoja(look: Look, indice: ReadonlyMap<string, PrendaDelProbador>, tallas: TallasDeTuLook): LookDeCayla {
-  const t = totales(look, indice);
+export function lookParaLaHoja(look: Look, indice: ReadonlyMap<string, PrendaDelProbador>, tallas: TallasDeTuLook, sin?: SinLlevar): LookDeCayla {
+  const t = totales(look, indice, sin);
   return {
     id: "tu-look",
     nombre: "Una talla por prenda",
@@ -497,7 +520,7 @@ export function lookParaLaHoja(look: Look, indice: ReadonlyMap<string, PrendaDel
     total: t.lista,
     totalFinal: t.final,
     desde: t.desde,
-    piezas: presentes(look).flatMap((z, i) => {
+    piezas: presentes(look).filter((z) => !sin?.has(look[z]!.id)).flatMap((z, i) => {
       const pieza = look[z]!;
       const p = indice.get(pieza.id);
       if (!p) return [];
@@ -509,7 +532,7 @@ export function lookParaLaHoja(look: Look, indice: ReadonlyMap<string, PrendaDel
           y: 0,
           ancho: 0,
           giro: 0,
-          prenda: { id: p.id, nombre: p.nombre, categoria: null, precio: c.precio, precioFinal: c.precioFinal, desde: c.desde, campana: null },
+          prenda: { id: p.id, nombre: p.nombre, categoria: null, empresa: null, precio: c.precio, precioFinal: c.precioFinal, desde: c.desde, campana: null },
           color: { codigo: c.codigo, nombre: c.nombre, hex: c.hex },
           foto: c.foto.url,
           tallas: tallas.find((x) => x.id === p.id && x.color === c.codigo)?.tallas ?? [],

@@ -449,3 +449,49 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
 - **Dónde vive:** `apps/web/components/ui/Aventurero.tsx`, `apps/web/app/estilos/aventurero.css` (que también importa `global-error.tsx`,
   pintada sin globals.css) y la foto en `apps/web/public/aventurero.webp` (recortada para que el texto no tape al gato; la pantalla del
   monitor y el teléfono no se leen a ese tamaño).
+
+## Actualización 2026-10-22 — la hoja del celular: llega desde el borde, se baja con el dedo y aleja lo de atrás (ADR-0479)
+
+- **Qué cambia, solo bajo 640 px:** el paso 2 de la tabla («en móvil sube desde el borde») ahora es literal: la hoja de `<Modal>` y de
+  `<Cajon>` llega desde el borde de abajo (`cayla-hoja-movil-entra`, 460 ms) y se va entera (`cayla-hoja-movil-sale`, 300 ms). Antes subía
+  24 px con un fundido. Tiene asa, sigue al dedo y, al soltarla, va a su punto en 180–420 ms según la velocidad del dedo.
+- **Lo de atrás se aleja** (la «B» que eligió Felipe): la cabecera, el contenido y la persiana de Caja cerrada se alejan a 0,92 mientras la
+  hoja está abierta y vuelven al ritmo del dedo. Es parte del movimiento de la hoja, no adorno suelto: dice que la pantalla sigue ahí.
+- **Lo que no cambia:** el velo, la cascada del contenido (los mismos 55 ms), la salida corta, el escritorio entero y la cámara. Sin rebote:
+  tirada más arriba de abierta, la hoja resiste y se frena, nunca vuelve pasándose. Sin bucle. Con `prefers-reduced-motion` la hoja aparece
+  y se va de una y lo de atrás no se mueve; el dedo la sigue igual (es el dedo, no una animación).
+- **Detalle, números y verificación:** `docs/adr/0479-la-hoja-del-celular-viva-y-con-profundidad.md` y `docs/unificar/hoja-movil.md`.
+
+## Actualización 2026-10-22 — Catálogo ▸ Insignias (se llamó «Sellos» hasta el 2026-10-23), la billetera de pases (ADR-0481), pedido por Felipe
+
+- **Qué:** el sello de tinta se estampa al aparecer (baja, gira a su lugar y deja un anillo de tinta que se abre), el pase se abre y se cierra
+  (su cuerpo baja de 0fr a 1fr y lo de adentro entra en cascada), el pase cerrado sube 8 px al pasar el mouse, el título del pase abierto sube
+  por su ranura, la frase y las prendas entran en cascada, las cifras cuentan desde cero (`CifraQueCuenta`) y el visto de «Lo que ya tiene» se
+  dibuja.
+- **Por qué se admite:** Felipe pidió «sofisticado, elegante y con full animaciones» y eligió esta maqueta entre seis (docs/maquetas/sellos-2026-10/).
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote, solo tokens del tema, y con `prefers-reduced-motion` todo queda quieto.
+  **Nada en bucle:** el punto que respiraba junto a «rige hoy» en la maqueta no entró; un bucle nuevo es otra decisión de Felipe.
+- **Dónde vive:** `apps/web/app/estilos/sellos.css`, `components/sellos/` y lo vigila `lib/sellos-movimiento.test.ts`.
+
+## Actualización 2026-10-23 — la hoja «Configuración» de una campaña, la etiqueta viva (ADR-0488), pedido por Felipe
+
+- **Qué:** el hilo de la etiqueta se dibuja y la etiqueta baja y se asienta al abrir la hoja, el descuento de la etiqueta entra subiendo cada
+  vez que cambia, las casillas de las categorías entran en cascada, cada pieza del mosaico aparece, la categoría que se marca vuela de su
+  casilla a su pieza (el vuelo de «Prendas») y, al guardar, el sello de la campaña se estampa sobre la etiqueta (`SelloTinta`, el de Insignias)
+  antes de que la hoja se cierre.
+- **Por qué se admite:** Felipe pidió «elegante, sofisticado y con full animaciones» y eligió la «II · La etiqueta» mirándola
+  (docs/maquetas/campana-configuracion-2026-10/), con «ricas, una vez, sin bucle».
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote, cada pieza en 1,2 s o menos, solo tokens del tema, y con
+  `prefers-reduced-motion` todo queda quieto (la hoja se cierra al instante al guardar). **Nada en bucle.**
+- **Dónde vive:** `apps/web/app/estilos/campana-hoja.css`, `components/campana-hoja/` y lo vigila `lib/campana-hoja-movimiento.test.ts`.
+
+## Actualización 2026-10-23 (b) — El telar de Finanzas (ADR-0493), aprobado por Felipe
+
+- **Qué:** en la barra común de Finanzas, los hilos de sede que crecen bajo la sede elegida, el orillo que se teje al entrar y se reacomoda al
+  cambiar de sede, la cifra de la respuesta que cuenta y el dock que sube. En cada submódulo, su gráfico propio entra una vez: el retazo y el
+  calendario de Gastos, los frascos de Cuentas y dinero, la biblioteca de Reportes, la balanza de Impuestos y el mapa del Cierre.
+- **Por qué se admite:** Felipe eligió «El telar de Finanzas» mirando la maqueta (docs/maquetas/finanzas-telar-2026-10/), que pedía «muchas
+  animaciones», y aprobó la excepción acotada a lo que la maqueta muestra (decisión b, 2026-10-23).
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote y solo con tokens del tema; con `prefers-reduced-motion`, todo queda
+  quieto. **Nada en bucle**, salvo las señales que esta regla ya admite.
+- **Dónde vive:** `apps/web/app/estilos/telar.css` y `components/finanzas/telar/`.

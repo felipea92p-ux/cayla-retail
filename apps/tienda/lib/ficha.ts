@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Plazos } from "./ayuda";
 import { claveCategoria, conFotoPrimero, soles, type Color, type PrecioTarjeta, type Prenda } from "./catalogo";
 import { grupoDe } from "./grupos";
+import { dibujoDeLaInsignia, leerInsigniasDeLaFicha, sinLasQueLaTiendaYaDice, type DibujoDeInsignia, type InsigniaDeLaFicha } from "./insignias";
 import type { Look } from "./looks";
 import { pctTexto } from "./portada";
 import type { TallaRapida } from "./rapido";
@@ -56,6 +57,8 @@ const esquemaFicha = z.object({
       precio_final: z.number().nonnegative(),
       desde: z.boolean(),
       campana: esquemaCampana.nullable().catch(null),
+      // Sin el campo (la base todavía no tiene 20261023182000, o una ficha guardada de antes): ninguna insignia, nunca un error.
+      insignias: z.array(z.unknown()).catch([]),
       colores: z.array(esquemaColor).min(1),
       tallas: z.array(z.object({ id: z.string().uuid().nullable(), nombre: z.string().min(1).nullable() })).min(1),
       fotos: z.array(z.object({ url: z.string().url(), color: z.string().nullable() })).catch([]),
@@ -93,6 +96,8 @@ export type Ficha = {
   precioFinal: number;
   desde: boolean;
   campana: Campana | null;
+  /** Las insignias de la prenda, por grupo y nombre (ya filtradas por la base: aprobadas, vigentes hoy y de esta tienda). */
+  insignias: InsigniaDeLaFicha[];
   colores: Color[];
   tallas: Talla[];
   fotos: { url: string; color: string | null }[];
@@ -128,6 +133,7 @@ export function interpretarFicha(dato: unknown): Ficha | "no_esta" | null {
     precioFinal: p.precio_final,
     desde: p.desde,
     campana: p.campana,
+    insignias: leerInsigniasDeLaFicha(p.insignias),
     colores: p.colores,
     tallas: p.tallas.map((t) => ({ id: t.id, nombre: t.nombre ?? "Única" })),
     fotos: p.fotos,
@@ -138,11 +144,14 @@ export function interpretarFicha(dato: unknown): Ficha | "no_esta" | null {
 /** ¿Este id puede ser el de una prenda? (un uuid). Si no, la página es «no está» sin preguntarle a la base. */
 export const esIdDePrenda = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-/** El color con que abre la ficha: el pedido (`?color=`) si existe; si no, el primero con foto y con algo en alguna tienda; si no,
- *  el primero con foto; si no, el primero (maqueta, `vProducto`). */
-export function colorInicial(f: Ficha, pedido?: string | null): string {
+/** Cuánto hay de una talla donde la persona mira: en su tienda elegida (cada tienda maneja lo suyo) o, sin tienda elegida, en todas. */
+export const nivelAqui = (v: Variante, sedeId: string | null): Nivel | undefined => (sedeId ? v.stock[sedeId] : v.total);
+
+/** El color con que abre la ficha: el pedido (`?color=`) si existe; si no, el primero con foto y con algo en la tienda elegida (o en
+ *  alguna, sin tienda); si no, el primero con foto; si no, el primero (maqueta, `vProducto`). */
+export function colorInicial(f: Ficha, pedido?: string | null, sedeId: string | null = null): string {
   if (pedido && f.colores.some((c) => c.codigo === pedido)) return pedido;
-  const conAlgo = (c: Color) => f.variantes.some((v) => v.color === c.codigo && hayAlgo(v.total));
+  const conAlgo = (c: Color) => f.variantes.some((v) => v.color === c.codigo && hayAlgo(nivelAqui(v, sedeId)));
   return (f.colores.find((c) => c.foto && conAlgo(c)) ?? f.colores.find((c) => c.foto) ?? f.colores[0]).codigo;
 }
 
@@ -162,27 +171,24 @@ export function fotosDelColor(f: Ficha, color: string): { fotos: string[]; enOtr
   return { fotos: [...propias, ...otras], enOtroColor: propias.length === 0 && otras.length > 0 };
 }
 
-/** Lo que dice debajo de una talla sin stock (maqueta, `vProducto`): «Otra tienda» si la elegida no tiene y otra sí; «Avísame» si
- *  ninguna tiene (el botón de abajo ofrece el aviso). Con stock, o sin tiendas en la web, nada. */
+/** Lo que dice debajo de una talla sin stock (cada tienda maneja lo suyo, 2026-10-19): «Agotada» si en la tienda elegida no queda (aunque
+ *  otra tienda tenga: eso lo dice `pistaOtraTienda`, sin prometerlo); sin tienda elegida, «Agotada» si ninguna tiene. Con stock, o sin
+ *  tiendas en la web, nada. */
 export function notaDeTalla(v: Variante, sedeElegida: string | null, hayTiendas: boolean): string | null {
   if (!hayTiendas) return null;
-  if (sedeElegida) {
-    if (hayAlgo(v.stock[sedeElegida])) return null;
-    return hayAlgo(v.total) ? "Otra tienda" : "Avísame";
-  }
-  return hayAlgo(v.total) ? null : "Avísame";
+  return hayAlgo(nivelAqui(v, sedeElegida)) ? null : "Agotada";
 }
 
 /**
- * El botón principal de la ficha (maqueta, `cta` de `vProducto`): sin talla elegida, «Elige tu talla» (apagado); si esa talla hay en
- * ALGUNA tienda de la web, «Agregar a la bolsa» (si no está en la tienda elegida, la tienda la trae de otra); si no hay en ninguna,
- * «Avísame cuando llegue».
+ * El botón principal de la ficha (maqueta, `cta` de `vProducto`): sin talla elegida, «Elige tu talla» (apagado); si esa talla hay en la
+ * tienda elegida, «Agregar a la bolsa»; si ahí no hay, «Avísame cuando llegue» (cada tienda maneja lo suyo: la tienda no trae de otra,
+ * 2026-10-19). Sin tienda elegida (la web sin tiendas), vale lo que haya en todas.
  */
 export type BotonDeLaFicha = { tipo: "elige" } | { tipo: "agregar"; varianteId: string } | { tipo: "avisame"; varianteId: string };
 
-export function botonDeLaFicha(elegida: Variante | null): BotonDeLaFicha {
+export function botonDeLaFicha(elegida: Variante | null, sedeId: string | null = null): BotonDeLaFicha {
   if (!elegida) return { tipo: "elige" };
-  return hayAlgo(elegida.total) ? { tipo: "agregar", varianteId: elegida.id } : { tipo: "avisame", varianteId: elegida.id };
+  return hayAlgo(nivelAqui(elegida, sedeId)) ? { tipo: "agregar", varianteId: elegida.id } : { tipo: "avisame", varianteId: elegida.id };
 }
 
 /**
@@ -204,19 +210,20 @@ export function avisoOtrosSepararon(
 }
 
 /**
- * Con una tienda elegida y una talla que ahí no hay pero sí en otra tienda de la web: qué pasa si igual la separa en la elegida. La
- * talla ya dice «Otra tienda», que se puede leer como «anda a la otra tienda»; esto aclara que no: se separa igual y la tienda la
- * puede traer (la misma promesa que la bolsa, «No está en Lima: la tienda puede traerla de Trujillo»; maqueta y DECIDÍ «una tienda
- * para todo, lo que falta se trae con un traslado»). Sin tienda elegida, con algo ahí o sin otra que tenga, nada.
+ * Con una tienda elegida y una talla que ahí no hay pero sí en otra tienda de la web: una pista, «Hay en Arequipa.», sin prometer nada:
+ * cada tienda maneja lo suyo y la tienda elegida no la trae (Felipe 2026-10-19; antes «la tienda puede traerla de Arequipa»). Con dos
+ * tiendas que la tienen: «Hay en Arequipa y Lima.». Sin tienda elegida, con algo ahí o sin otra que tenga, nada.
  */
-export function avisoOtraTienda(
+export function pistaOtraTienda(
   v: Variante | null,
   sede: { id: string; nombre: string } | null,
   sedes: readonly { id: string; nombre: string }[],
 ): string | null {
   if (!v || !sede || hayAlgo(v.stock[sede.id])) return null;
-  const otra = sedes.find((s) => s.id !== sede.id && hayAlgo(v.stock[s.id]));
-  return otra ? `No hay en ${sede.nombre}. Igual puedes separarla ahí: la tienda puede traerla de ${otra.nombre}.` : null;
+  const otras = sedes.filter((s) => s.id !== sede.id && hayAlgo(v.stock[s.id])).map((s) => s.nombre);
+  if (otras.length === 0) return null;
+  const donde = otras.length === 1 ? otras[0] : `${otras.slice(0, -1).join(", ")} y ${otras[otras.length - 1]}`;
+  return `Hay en ${donde}.`;
 }
 
 /** Lo que dice la ficha junto al botón después de «Agregar a la bolsa»: corto (la barra del celular es angosta) y con la talla, que
@@ -257,19 +264,19 @@ export function combinaCon(looks: readonly Look[], productoId: string, prendas: 
  * si todas son de ahí; si no, «Sigue mirando»); `ver`: la lista de eso mismo, para su «Ver todo» (sin nada, toda la tienda).
  */
 export function parecidasA(
-  prenda: { id: string; categoria: { nombre: string; prefijo: string | null } | null },
+  prenda: { id: string; categoria: { nombre: string; prefijo: string | null; familia?: string | null } | null },
   prendas: readonly Prenda[],
   { fuera = [], cuantas = 8 }: { fuera?: readonly string[]; cuantas?: number } = {},
 ): { prendas: Prenda[]; ceja: string; ver: { categoria: string | null; grupo: string | null } } {
   const clave = claveCategoria(prenda.categoria);
-  const grupo = clave ? grupoDe(clave) : null;
+  const grupo = clave ? grupoDe(clave, prenda.categoria?.familia) : null;
   const sacar = new Set([prenda.id, ...fuera]);
   // 0: su categoría · 1: su grupo · 2: su menú · 3: lo demás.
   const cercania = (p: Prenda): number => {
     const suya = claveCategoria(p.categoria);
     if (!clave || !suya) return 3;
     if (suya === clave) return 0;
-    const g = grupoDe(suya);
+    const g = grupoDe(suya, p.categoria?.familia);
     if (grupo && g.clave === grupo.clave) return 1;
     return grupo && g.menu === grupo.menu ? 2 : 3;
   };
@@ -293,7 +300,7 @@ const enDias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
 /**
  * Lo que la tienda ya cumple, dicho junto al botón de comprar (2026-10-16, la confianza a la vista de las marcas grandes): separas sin
  * pagar en la web, recoges en tu tienda y cambias en cualquier tienda CAYLA. Promete lo mismo que «Cómo separar» y «Cambios y
- * devoluciones» (`lib/ayuda.ts`: `pasosParaSeparar`, `avisosParaSeparar`, `textoCambios`), con sus mismos plazos (`tienda_ayuda()`); sin
+ * devoluciones» (`lib/ayuda.ts`: `pasosParaSeparar`, `avisosParaSeparar`), con sus mismos plazos (`tienda_ayuda()`); sin
  * el plazo, la frase va sin número, nunca uno inventado. La usan la ficha, el look y la bolsa.
  */
 export function promesasDeCompra(p: Plazos): Promesa[] {
@@ -365,17 +372,47 @@ export function campanaDeLaFicha(f: Ficha, talla: Variante | null): Campana | nu
 /** El chip de la campaña: «−12 % · Aniversario CAYLA». */
 export const chipCampana = (c: Campana | null): string | null => (c ? `−${pctTexto(c.pct)} % · ${c.nombre}` : null);
 
-/** Los chips de arriba del nombre que salen del catálogo (actividad 5): «Nuevo · llegó hace 4 días» (o «Nuevo», si está fijado en la
- *  Vitrina) y «N.º 3 en más vendidos». */
-export function chipsDelCatalogo(p: { nuevo: { dias: number | null } | null; vendidos: number | null } | null): { texto: string; tono?: "nuevo" }[] {
-  if (!p) return [];
-  const chips: { texto: string; tono?: "nuevo" }[] = [];
-  if (p.nuevo) {
+/** El dibujo del chip de una campaña con descuento: el que se eligió para ESA campaña (viene en la lista de insignias de la ficha, que la trae
+ *  marcada) o, si no se eligió, el de su nombre. El mismo que le da el ERP en Catálogo ▸ Insignias (`packages/shared`). */
+export function dibujoDeLaCampana(f: Pick<Ficha, "insignias">, c: Campana): DibujoDeInsignia {
+  return dibujoDeLaInsignia(c.nombre, c.id ? f.insignias.find((i) => i.id === c.id)?.icono : null);
+}
+
+/** La imagen propia de ESA campaña (la ruta en el almacén de insignias), o null: si la tiene, el chip del descuento la dibuja en lugar del dibujo. */
+export function imagenDeLaCampana(f: Pick<Ficha, "insignias">, c: Campana): string | null {
+  return (c.id ? f.insignias.find((i) => i.id === c.id)?.imagen : null) ?? null;
+}
+
+/** Un chip de arriba del nombre: «nuevo» es el de la llegada reciente; «insignia» (la misma cara) es el de una insignia de Catálogo ▸
+ *  Insignias, con su dibujo. */
+export type ChipFicha = { texto: string; tono?: "nuevo" | "insignia"; icono?: DibujoDeInsignia; imagen?: string };
+
+/** Los chips de arriba del nombre (ADR-0408 act. 5 y ADR-0489): «Nuevo · llegó hace 4 días» (o «Nuevo», si está fijado en la Vitrina), las
+ *  insignias que se le asignaron a la prenda en Catálogo ▸ Insignias —en el mismo dibujo—, y «N.º 3 en más vendidos». La insignia «Nuevo» no
+ *  se repite si la tienda ya dice «Nuevo · llegó hace…», ni «Top ventas» si ya dice «N.º 3 en más vendidos»: lo que cuenta la tienda trae el
+ *  dato. Las insignias con descuento no vienen aquí: su descuento es el chip de la campaña (`chipCampana`). */
+export function chipsDelCatalogo(
+  p: { nuevo: { dias: number | null } | null; vendidos: number | null } | null,
+  insignias: readonly { nombre: string; icono?: DibujoDeInsignia | null; imagen?: string | null; descuento?: boolean }[] = [],
+): ChipFicha[] {
+  const chips: ChipFicha[] = [];
+  if (p?.nuevo) {
     const d = p.nuevo.dias;
     const cuando = d === null ? "" : d === 0 ? " · llegó hoy" : ` · llegó hace ${d} ${d === 1 ? "día" : "días"}`;
-    chips.push({ texto: `Nuevo${cuando}`, tono: "nuevo" });
+    chips.push({ texto: `Nuevo${cuando}`, tono: "nuevo", icono: "nuevo" });
   }
-  if (p.vendidos !== null) chips.push({ texto: `N.º ${p.vendidos} en más vendidos` });
+  // Las de descuento no se dibujan aparte: su descuento es el chip de la campaña (`chipCampana`), que de ellas solo toma el dibujo.
+  const sinDescuento = insignias.filter((i) => !i.descuento);
+  for (const insignia of sinLasQueLaTiendaYaDice(sinDescuento, { nuevo: Boolean(p?.nuevo), masVendido: p !== null && p.vendidos !== null })) {
+    // Con imagen propia, el chip la lleva (la ruta); su `icono` queda por si la dirección no se arma (sin origen del almacén): se ve el dibujo.
+    chips.push({
+      texto: insignia.nombre.trim(),
+      tono: "insignia",
+      icono: dibujoDeLaInsignia(insignia.nombre, insignia.icono),
+      ...(insignia.imagen ? { imagen: insignia.imagen } : {}),
+    });
+  }
+  if (p && p.vendidos !== null) chips.push({ texto: `N.º ${p.vendidos} en más vendidos` });
   return chips;
 }
 

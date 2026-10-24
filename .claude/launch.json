@@ -9,6 +9,12 @@
       "autoPort": true
     },
     {
+      "name": "investigacion-docs",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "3032", "--bind", "127.0.0.1", "--directory", "docs/investigacion"],
+      "port": 3032
+    },
+    {
       "name": "cayla-retail-dev",
       "runtimeExecutable": "sh",
       "runtimeArgs": [
@@ -100,6 +106,16 @@
       "runtimeArgs": [
         "-c",
         "pnpm --filter tienda exec next dev --port ${PORT:-3100}"
+      ],
+      "port": 3100,
+      "autoPort": true
+    },
+    {
+      "name": "tienda-compilada",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "pnpm --filter tienda exec next start --port ${PORT:-3100}"
       ],
       "port": 3100,
       "autoPort": true

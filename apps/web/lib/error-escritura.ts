@@ -65,6 +65,9 @@ const HUELLAS: Huella[] = [
   { marca: "_textos_con_tope", frase: "Un nombre o una descripción es demasiado largo. Acórtalo y vuelve a intentar." },
   // Montos con tope en Finanzas (/chaos 2026-10-14, 20261015002000, ADR-0412): un gasto o un movimiento de dinero, hasta un millón de soles.
   { marca: "_monto_con_tope", frase: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero y vuelve a intentar." },
+  // Gasto que cierra un fijo (20260925000000, revisión del 22-oct): `registrar_gasto` levanta «Ese gasto fijo ya tiene su gasto de este mes.» con 23505
+  // ante CUALQUIER choque único cuando el gasto lleva un fijo, también un comprobante repetido. La frase no afirma cuál de los dos fue.
+  { marca: "ya tiene su gasto de este mes", frase: "No se registró: ese gasto fijo ya tiene su gasto de este mes (quizá otra persona lo registró hace un momento) o ese comprobante ya estaba registrado. Mira «Fijos del mes» antes de volver a intentar." },
   // Costo atípico (20260930120000 y siguientes): un costo por prenda fuera de lo normal (sin costo, mayor que el precio,
   // más del doble o menos de dos tercios del vigente) no entra al costo de la prenda sin que un líder lo confirme.
   // ORDEN: `costo_atipico_sin_lider` va ANTES que `costo_atipico`, porque la búsqueda es por «contiene» y la segunda marca
@@ -446,7 +449,8 @@ const HUELLAS: Huella[] = [
     // lista de la pantalla (solo aprobadas y activas) no muestre ninguna igual — por eso la frase lo dice.
     marca: "etiquetas_clave_unica",
     frase:
-      "Ya existe una etiqueta con ese nombre (aunque esté escrito distinto, esté pendiente de aprobar o desactivada). Búscala en Catálogo → Atributos → Etiquetas en vez de crearla otra vez.",
+      // Insignias y campañas son la misma tabla (ADR-0473): el nombre no se repite entre los dos.
+      "Ya existe una insignia o una campaña con ese nombre (aunque esté escrita distinto, pendiente de aprobar o desactivada). Búscala en Catálogo ▸ Insignias en vez de crearla otra vez.",
   },
   {
     // 20260915160000_categorias_editar_desactivar.sql — el candado real:
@@ -498,7 +502,7 @@ const HUELLAS: Huella[] = [
  * (actividad 5): `rendicion_quien_aprueba` («Le entregaste plata en esta rendición…», `42501`), `rendicion_abierta`, `rendicion_sobra`,
  * `rendicion_cambio`, `rendicion_sin_explicacion` y `en_rendicion` («Ese gasto ya está en una rendición…»).
  */
-const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion)_[a-z_]+|en_rendicion)$/;
+const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion|oferta)_[a-z_]+|en_rendicion)$/;
 
 /**
  * `hint` de la corrección de color y talla de una variante (ADR-0263, 20260929045000). Su mensaje ya viene en castellano
@@ -547,23 +551,19 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  *   · `celular_con_publicidad`: el celular de una socia con novedades se cambió por un camino que no se las quita (el
  *     disparador `clientas_celular_con_publicidad`). `editar_clienta` se las quita sola; la ficha lo avisa ANTES de guardar
  *     (`avisoCambioDeCelular`, lib/club-clientas-reglas.ts).
- * Tanda 1c (el canje del cumpleaños en `registrar_venta`, ADR-0288 D-5). Llegan como `P0001` con su frase; la de acá es el
- * respaldo. En Cobrar, además, la caja apaga el canje y dice qué hizo (`rechazoDelCanje`, lib/club-cumple-canje-reglas.ts):
- *   · `cumple_sin_clienta`: canjear sin clienta en el ticket.
- *   · `cumple_no_socia`: no es socia (o se archivó o anonimizó mientras se cobraba).
- *   · `cumple_fuera_de_mes`: no es el mes de su cumpleaños en Lima.
- *   · `cumple_ya_canjeado`: ya tiene un canje vivo este año (otra caja o tienda se adelantó).
- *   · `cumple_descuento_distinto`: la parte del club de una prenda no es la que calcula la base (el % pudo cambiar).
- *   · `cumple_sin_canje`: una prenda trae parte del club sin `p_canjear_cumpleanos`.
- *   · `cumple_sin_monto`: el canje no descontaría nada.
- * Tanda 1g (el vale de aniversario en `registrar_venta`, G-13), con el mismo criterio. En Cobrar, además, la caja apaga el
- * vale y dice qué hizo (`rechazoDelVale`, lib/club-aniversario-canje-reglas.ts):
- *   · `club_un_cupon_por_compra`: se mandaron las dos ventajas del club en una venta (cumpleaños y vale).
- *   · `aniversario_no_disponible`: no tiene un vale disponible (el año no cuenta, venció, o no es socia).
- *   · `aniversario_ya_canjeado`: ya usó el vale de este año de club (otra caja o tienda se adelantó).
- *   · `aniversario_sin_monto`: el vale no descontaría nada.
- *   · `aniversario_cubre_todo`: el vale cubre toda la compra (una venta en S/ 0 no se registra; decisión pendiente de Felipe).
- *   · `aniversario_descuento_distinto`: el reparto por prenda no coincide con el de la base (misma regla que `repartirVale`).
+ * Programa de puntos (2026-10-19): el cupón del Club en `registrar_venta` y el canje de puntos. Llegan con su frase; la de acá es el
+ * respaldo. En Cobrar, además, la caja quita el cupón y dice qué hizo (`rechazoDelCupon`, lib/club-puntos-reglas.ts):
+ *   · `cupon_no_existe`, `cupon_ya_usado`, `cupon_vencido`: el código no sirve (otra caja se adelantó, o venció).
+ *   · `cupon_reservado`: lo tiene un pedido web por recoger (20261019224000); `cupon_no_reservado`: al cobrar el pedido, su cupón ya
+ *     no estaba reservado para él (no debería pasar: la base lo hace imposible).
+ *   · `cupon_compra_minima`: la compra no llega al mínimo del cupón.
+ *   · `cupon_cubre_todo`, `cupon_sin_monto`: el cupón cubriría toda la compra, o no descontaría nada.
+ *   · `cupon_descuento_distinto`: el reparto por prenda no coincide con el de la base (misma regla que `repartirVale`).
+ *   · `club_un_cupon_por_compra`: va un solo cupón del Club por compra.
+ *   · `beneficio_retirado`: el 10 % de cumpleaños y el vale de aniversario ya no existen (los reemplazaron los puntos).
+ *   · `puntos_insuficientes`, `canje_menor_al_minimo`, `canje_no_multiplo`: el canje de puntos no alcanza o no es de a 100.
+ * Avisos, «Editar mensajes» (20261020144000): `mensaje_aviso_invalido` (`22023`, el mensaje no pasa `fn_club_aviso_problema`; su
+ * `detail` dice cuál) y `avisos_otra_tienda` (`42501`, 20261020151000: cada tienda edita sus mensajes, y solo donde se puede operar).
  */
 const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["documento_invalido", "El documento del cliente no tiene el formato de su tipo: el DNI tiene 8 dígitos; el carné y el pasaporte, de 6 a 12 letras o números."],
@@ -584,19 +584,22 @@ const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["club_texto_cambio", "El texto del club cambió mientras lo invitabas: vuelve a leérselo."],
   ["ya_tiene_publicidad", "Ya recibe novedades por WhatsApp: no hace falta mostrarle su QR."],
   ["celular_con_publicidad", "Cambió su celular: pierde la publicidad hasta que la vuelva a pedir desde el número nuevo."],
-  ["cumple_sin_clienta", "El cumpleaños es de un miembro del club: elige al cliente en el ticket antes de canjearlo."],
-  ["cumple_no_socia", "El descuento de cumpleaños es para los miembros del club: este cliente no es miembro."],
-  ["cumple_fuera_de_mes", "El descuento de cumpleaños se canjea solo en el mes de su cumpleaños, y este no es."],
-  ["cumple_ya_canjeado", "Este miembro ya canjeó su cumpleaños este año."],
-  ["cumple_descuento_distinto", "El descuento de cumpleaños no coincide con el que calcula el sistema. Vuelve a abrir el cobro."],
-  ["cumple_sin_canje", "Esta venta trae un descuento de cumpleaños sin canjearlo. Vuelve a tocar «Canjear» o quítalo."],
-  ["cumple_sin_monto", "En esta venta no queda nada que descontar por el cumpleaños: no se canjea."],
-  ["club_un_cupon_por_compra", "Va una sola ventaja del club por compra: el cupón de cumpleaños o el vale de aniversario, no los dos."],
-  ["aniversario_no_disponible", "Este miembro no tiene un vale de aniversario disponible (pudo vencer, o su año de club todavía no cuenta)."],
-  ["aniversario_ya_canjeado", "Este miembro ya usó su vale de aniversario de este año de club."],
-  ["aniversario_sin_monto", "En esta venta no queda nada que descontar con el vale de aniversario: no se usa."],
-  ["aniversario_cubre_todo", "El vale de aniversario cubre toda la compra, y una venta en S/\u00a00 no se puede registrar. Agrega otra prenda o cobra esta compra sin el vale."],
-  ["aniversario_descuento_distinto", "El descuento del vale de aniversario no coincide con el que calcula el sistema. Vuelve a abrir el cobro."],
+  ["club_un_cupon_por_compra", "Va un solo cupón del Club por compra: quita uno y vuelve a cobrar."],
+  ["beneficio_retirado", "El descuento de cumpleaños y el vale de aniversario ya no existen: ahora el club da puntos y cupones. Quita el canje y vuelve a cobrar."],
+  ["cupon_no_existe", "Ese código de cupón no existe. Revisa que esté completo (CAY-XXXX-XXXX)."],
+  ["cupon_ya_usado", "Ese cupón ya se usó: cada cupón vale una sola vez."],
+  ["cupon_reservado", "Ese cupón está reservado para un pedido web: se usa cuando se cobre ese pedido."],
+  ["cupon_no_reservado", "El cupón de este pedido web ya no está reservado para él. Vuelve a abrir el pedido para ver su total."],
+  ["cupon_vencido", "Ese cupón venció: sus puntos ya volvieron a su dueño."],
+  ["cupon_compra_minima", "La compra no llega al mínimo del cupón: agrega prendas o cobra sin él."],
+  ["cupon_cubre_todo", "El cupón cubriría toda la compra, y una venta en S/\u00a00 no se puede registrar: agrega otra prenda o cobra sin él."],
+  ["cupon_sin_monto", "En esta venta no queda nada que descontar con el cupón: queda para otra compra."],
+  ["cupon_descuento_distinto", "El descuento del cupón no coincide con el que calcula el sistema. Quítalo, vuelve a ponerlo y cobra."],
+  ["puntos_insuficientes", "Ya no le alcanzan los puntos para ese canje. Vuelve a abrir «Usar puntos»."],
+  ["canje_menor_al_minimo", "Todavía no llega al mínimo de puntos para canjear."],
+  ["canje_no_multiplo", "Los puntos se canjean de 100 en 100."],
+  ["mensaje_aviso_invalido", "Uno de los mensajes no se puede guardar así: revisa el que está marcado."],
+  ["avisos_otra_tienda", "No puedes cambiar los mensajes de esa tienda: elige una tienda donde trabajas en el selector de sede."],
 ]);
 
 /**

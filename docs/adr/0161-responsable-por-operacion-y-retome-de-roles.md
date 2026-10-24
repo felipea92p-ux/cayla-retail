@@ -395,3 +395,12 @@ aquí si el stock de otras sedes **debería** ser solo del líder: hoy Vender, C
 
 **Lo que se rompería si se «arregla» al revés.** Cerrar `fn_stock_por_sede` al líder dejaría a Vender, Cambios y Apartados diciendo
 «ninguna otra sede tiene stock» a toda integrante, sin error: la misma falla silenciosa que el ADR-0289 corrigió para las terminales.
+
+
+## Actualización 2026-10-22 — `fn_cuentas_con_rol` solo lista personas activas: la versión de producción llega a `main` (20261022200000)
+
+**`fn_cuentas_con_rol()` en producción no es la de `main`.** Origen: se aplicó el 2026-10-08 con `apply_migration` (versión registrada `20261008010408`, `cuentas_con_rol_solo_personas_activas`) desde la rama `claude/user-removal-dynamic-retail-8ba721` (commit `e47c681c3`, su ADR-0003); esa rama nació de una base vieja (2026-07-23, esquema V1), no tiene PR y nunca llegó a `main`. La deriva del 2026-10-14 la había visto como «otra versión» sin origen conocido; el 2026-10-22 se encontró buscando por el nombre de la migración. La diferencia son dos `where p.estado = 'activo'` (la rama de colaboradores y la de suspendidos): una persona que Dynamic dio de baja no aparece en «Roles y accesos» para asignarle rol. Las terminales no se filtran (no hay persona detrás).
+
+**DECIDÍ:** copiar el cuerpo de producción a `main` tal cual (`20261022200000_cuentas_con_rol_solo_personas_activas.sql`, «YA ESTÁ EN PRODUCCIÓN, NO SE VUELVE A PEGAR»), con `pnpm pruebas:arreglos-en-vivo-roles-observatorio` (la persona inactiva no aparece, ni como colaboradora ni como suspendida; el control con la versión de antes sí la deja pasar).
+**DESCARTÉ:** (a) *dejarlo solo en producción*: `20260923030000_roles_por_modulo.sql`, que `scripts/pruebas/roles_por_modulo.mjs` vuelve a cargar, devolvería a la lista a quien ya no trabaja en CAYLA, sin error; (b) *filtrar por `colaboradores.estado`*: es otra pregunta (pendientes y suspendidas SÍ deben verse) y no es lo que corre en producción.
+**SE ROMPE SI:** alguien re-pega `20260923030000` entero (el caso de la persona inactiva sale rojo) o Dynamic deja de escribir `'activo'` en `public.personas.estado` para quien trabaja (la lista saldría vacía).

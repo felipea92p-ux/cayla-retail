@@ -4,15 +4,17 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { avisar } from "@/components/ui/Avisos";
+import { avisar, enfocar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { CampoFin, InputFin, RadiosFin, SalidaFin, SelectFin } from "@/components/finanzas/kit";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
+import { Aviso } from "@/components/ui/Aviso";
 import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
+import { choqueConElFijo, claveDeFijo, fijosQueSeParecen, mesDelFijo, textoFechaDeFijo } from "@/lib/fijos-del-mes-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -22,19 +24,23 @@ import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
 import { ProveedorElegido } from "@/components/ProveedorElegido";
+import { proveedoresParaElegirEnGasto } from "@/lib/gasto-fijo-ficha-reglas";
+import { FichaDePagoTarjeta } from "@/components/gasto-fijo/FichaDePagoTarjeta";
 import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import {
   TEXTO_COMPROBANTE,
   TEXTO_MEDIO,
   TIPOS_COMPROBANTE,
   borradorDesdeFijo,
-  textoCuandoLlega,
+  textoCuandoVence,
   type ProveedorGasto,
   igvDeFactura,
   mediosPara,
   parsearMonto,
   partirSerieNumero,
+  solesRedondo,
   sumarProveedorDeGasto,
+  textoMes,
   textoVidaUtil,
   validarActivo,
   validarGasto,
@@ -59,8 +65,15 @@ import { Boton } from "@/components/ui/campos";
 // «¿No está? Súmalo» pregunta antes «¿no será un proveedor que ya tienes?» (`sumarProveedorDeGasto`, 2026-09-25): «Sí» lo
 // elige aquí mismo; «No, es otro» deja sumar; sumar sin contestar no suma. Si es el mismo RUC o el mismo nombre, se elige
 // el que ya está: es lo que haría la base (`registrar_proveedor_de_gasto`), dicho antes y sin viaje.
+// Un gasto suelto que se parece a un gasto fijo pendiente (misma tienda, categoría y mes) pregunta «¿es ese fijo?» antes de registrar
+// (`fijosQueSeParecen`, tarea #1 de /pantalla, 2026-10-22): «Sí» lo registra con su `gasto_fijo_id` y lo cierra; «No» sigue aparte.
+// Registrar sin contestar no registra. Solo con los fijos que le pasa Gastos (de todas las tiendas, del mes que se mira y del de hoy): Caja
+// no los pasa y no pregunta. Un gasto que cierra un fijo tiene que ser de ESE mes: la base cuenta un gasto por fijo y por mes de la fecha.
 
 export type { ProveedorGasto };
+
+// El campo del formulario al que lleva el foco un choque con el fijo (`choqueConElFijo`).
+const IDS_DE_CAMPO = { categoria: "gasto-categoria", fecha: "gasto-fecha" } as const;
 
 export function RegistrarGastoModal({
   categorias,
@@ -73,6 +86,7 @@ export function RegistrarGastoModal({
   fijo,
   clase = "gasto",
   tiposActivo = [],
+  fijosDelMes = [],
   hoy,
   onCerrar,
 }: {
@@ -89,6 +103,8 @@ export function RegistrarGastoModal({
   /** F2b: «activo» registra un activo fijo en vez de un gasto. */
   clase?: "gasto" | "activo";
   tiposActivo?: TipoActivo[];
+  /** Los fijos (de varios meses y de todas las tiendas, cada fila con su fecha esperada): con ellos, un gasto suelto pregunta si es uno de los que faltan. Sin ellos, no pregunta. */
+  fijosDelMes?: GastoFijoMes[];
   hoy: string;
   onCerrar: () => void;
 }) {
@@ -107,6 +123,8 @@ export function RegistrarGastoModal({
   // Va con el /chaos de Finanzas (deuda declarada en `lib/intento-reglas.test.ts`, TOKEN_FIJO_TODAVIA).
   const [tokenActivo] = useState(() => crypto.randomUUID());
   const [documento, setDocumento] = useState("");
+  // Los fijos (`claveDeFijo`: el fijo y su mes) a los que ya se contestó «No, es otro gasto»: no se vuelve a preguntar por ellos.
+  const [fijosDescartados, setFijosDescartados] = useState<ReadonlySet<string>>(() => new Set());
   const esActivo = clase === "activo";
   const guardando = esActivo ? guardandoActivo : intento.enviando;
   // Vida útil = la del tipo de bien (spike: un solo campo «10 años · muebles»); el contador confirma la de cada tipo.
@@ -130,12 +148,25 @@ export function RegistrarGastoModal({
     referencia: "",
     ...(fijo ? borradorDesdeFijo(fijo, hoy) : {}),
   }));
-  const poner = <K extends keyof BorradorGasto>(k: K, v: BorradorGasto[K]) => setB((x) => ({ ...x, [k]: v }));
+  // Si cambia lo que decía «es ese fijo» (la categoría, la tienda o la fecha), el enlace ya no vale: se vuelve a preguntar. Un gasto que
+  // nace de un fijo (`fijo`) conserva el suyo.
+  const poner = <K extends keyof BorradorGasto>(k: K, v: BorradorGasto[K]) =>
+    setB((x) => ({ ...x, [k]: v, ...(!fijo && (k === "categoria" || k === "ubicacion" || k === "fecha") ? { gastoFijoId: undefined } : {}) }));
 
   const conComprobante = b.comprobante !== "sin_comprobante";
   const aCredito = conComprobante && b.condicion === "credito";
   const cajaDeLaTienda = cajasAbiertas.find((c) => c.ubicacionId === b.ubicacion) ?? null;
   const monto = parsearMonto(b.monto);
+  // ¿Este gasto suelto es uno de los fijos que faltan? Solo se pregunta en un gasto nuevo (no al clasificar un egreso, ni un activo, ni uno que ya viene de un fijo).
+  const sePareceA =
+    !fijo && !egreso && !esActivo
+      ? fijosQueSeParecen(fijosDelMes, { ubicacion: b.ubicacion, categoria: b.categoria, fecha: b.fecha, monto: monto.ok ? monto.valor : null, proveedorId: b.proveedorId }, fijosDescartados)
+      : [];
+  // El fijo elegido tiene que seguir pendiente y ser del mes de la fecha; si la pantalla se releyó y ya está registrado, el enlace deja de viajar.
+  const fijoElegido = !fijo && b.gastoFijoId ? (fijosDelMes.find((f) => f.id === b.gastoFijoId && f.estado !== "registrado" && mesDelFijo(f) === b.fecha.slice(0, 7)) ?? null) : null;
+  const fijosPorPreguntar = fijoElegido ? [] : sePareceA;
+  // El fijo que este gasto va a cerrar (el que abrió la hoja o el que se eligió): es el único `gasto_fijo_id` que se manda.
+  const fijoDelGasto = fijo ?? fijoElegido;
   const igv = b.comprobante === "factura" && monto.ok ? igvDeFactura(monto.valor) : 0;
   const categoria = categorias.find((c) => c.codigo === b.categoria) ?? null;
   const tipoActivo = tiposActivo.find((t) => t.codigo === activo.tipo) ?? null;
@@ -203,7 +234,7 @@ export function RegistrarGastoModal({
     const { data, error } = await createClient().rpc("registrar_proveedor_de_gasto" as never, { p_nombre: nuevoProveedor.nombre, p_ruc: nuevoProveedor.ruc || null } as never);
     if (error) return avisar.error(traducirError(error, "sumar el proveedor"));
     const id = String(data);
-    if (!proveedores.some((p) => p.id === id)) setProveedores((ps) => [...ps, { id, nombre: nuevoProveedor.nombre.trim(), ruc: nuevoProveedor.ruc || null }].sort((x, y) => x.nombre.localeCompare(y.nombre)));
+    if (!proveedores.some((p) => p.id === id)) setProveedores((ps) => [...ps, { id, nombre: nuevoProveedor.nombre.trim(), ruc: nuevoProveedor.ruc || null, rubros: ["Gastos"] }].sort((x, y) => x.nombre.localeCompare(y.nombre)));
     elegirProveedor(id);
   }
 
@@ -217,8 +248,16 @@ export function RegistrarGastoModal({
           cajaId: salida?.tipo === "cajon" ? (cajasAbiertas.find((c) => c.ubicacionId === salida.ubicacionId)?.id ?? "") : "",
         }
       : { ...b, cuentaId: undefined, cajaId: b.medio === "efectivo" && !b.egresoId ? (cajaDeLaTienda?.id ?? "") : "" };
-    const v = esActivo ? validarActivo({ ...conCaja, tipo: activo.tipo, nombre: b.descripcion, serie: "", vidaUtilMeses: String(tipoActivo?.vidaUtilMeses ?? "") }, hoy) : validarGasto(conCaja, hoy);
+    const v = esActivo
+      ? validarActivo({ ...conCaja, tipo: activo.tipo, nombre: b.descripcion, serie: "", vidaUtilMeses: String(tipoActivo?.vidaUtilMeses ?? "") }, hoy)
+      : validarGasto({ ...conCaja, gastoFijoId: fijoDelGasto?.id }, hoy);
     if (!v.ok) return avisar.error(v.error);
+    // Lo que cierra un fijo tiene que ser de ese fijo (su categoría y su mes): si no, lo cerraría equivocado y nadie lo vería como pendiente.
+    // Con la hoja abierta desde un fijo la categoría ya va fija; esto cubre cualquier otro camino por el que llegue distinta.
+    const choque = fijoDelGasto ? choqueConElFijo(fijoDelGasto, { categoria: b.categoria, fecha: b.fecha }) : null;
+    if (choque) return avisar.error(choque.mensaje, { enfocar: IDS_DE_CAMPO[choque.campo] });
+    // Registrar sin contestar si es uno de los fijos que faltan es justo lo que duplica un gasto: no se registra.
+    if (fijosPorPreguntar.length > 0) return avisar.error("Antes de registrar, dinos si es uno de los gastos fijos de arriba.", { enfocar: "gasto-fijo-parecido" });
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
@@ -239,7 +278,11 @@ export function RegistrarGastoModal({
     responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
     // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
     if (r.tipo === "incierto") return;
-    if (r.tipo === "error") return avisar.error(traducirError(r.error, "registrar el gasto"));
+    if (r.tipo === "error") {
+      // Un fijo que ya tenía su gasto (otra persona lo registró): se vuelve a leer la pantalla para que salga «registrado» y la hoja suelte el enlace.
+      if (fijoDelGasto && r.error?.code === "23505") router.refresh();
+      return avisar.error(traducirError(r.error, "registrar el gasto"));
+    }
     registrado();
   }
 
@@ -291,7 +334,7 @@ export function RegistrarGastoModal({
     : esActivo
       ? "Algo que sirve varios años: muebles, equipos, remodelación, máquinas del Taller."
       : fijo
-        ? `Gasto fijo de ${fijo.ubicacionNombre}: llega ${textoCuandoLlega(fijo.momento, fijo.diaDelMes)}${fijo.montoVariable ? ". Escribe el monto del recibo." : "."}`
+        ? `Gasto fijo de ${fijo.ubicacionNombre}: vence ${textoCuandoVence(fijo.momento, fijo.diaDelMes)}${fijo.montoVariable ? ". Escribe el monto del recibo." : "."}`
         : "Lo que se paga para que el negocio funcione. La planilla no va aquí: viene de Dynamic.";
 
   const bloqueComprobante = (
@@ -326,7 +369,7 @@ export function RegistrarGastoModal({
                   valor={b.proveedorId}
                   onValor={(v) => poner("proveedorId", v)}
                   marcador="Elige…"
-                  opciones={proveedores.map((p) => ({ valor: p.id, texto: `${p.nombre}${p.ruc ? ` · ${p.ruc}` : ""}` }))}
+                  opciones={proveedoresParaElegirEnGasto(proveedores, b.proveedorId).map((p) => ({ valor: p.id, texto: `${p.nombre}${p.ruc ? ` · ${p.ruc}` : ""}` }))}
                 />
               </CampoFin>
               <CampoFin etiqueta="Serie y número" htmlFor="gasto-documento" tono={documento && !b.numero ? "aviso" : undefined} ayuda={documento && !b.numero ? "Como está en el comprobante: serie, guion y número (F001-00140)." : undefined}>
@@ -400,6 +443,8 @@ export function RegistrarGastoModal({
     <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion} tamano="mediana" bloqueado={guardando || intento.incierto}>
       {/* Los campos se congelan mientras no se sabe si el gasto se guardó (la cascada de la hoja sigue igual: globals.css). */}
       <fieldset disabled={intento.incierto} className="campos-congelables min-w-0">
+        {/* Un gasto que viene de un fijo muestra a quién y cómo se le paga (ADR-0452): quien lo paga no depende de quien lo cargó. */}
+        {fijo && !esActivo && <FichaDePagoTarjeta gastoFijoId={fijo.id} hoy={hoy} />}
         {/* Orden del spike: un gasto empieza por su comprobante; un activo, por qué es, dónde está y cuánto dura. */}
         {!esActivo && bloqueComprobante}
         <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]" data-guia="fin-gastos.form-que">
@@ -448,10 +493,22 @@ export function RegistrarGastoModal({
           </div>
         ) : (
           <div className="fin-dos-campos" data-guia="fin-gastos.form-categoria">
-            <CampoFin etiqueta="Categoría" htmlFor="gasto-categoria" ayuda={categoria ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.` : "Sin «Otros»: si no calza en ninguna, avisa al líder."}>
+            <CampoFin
+              etiqueta="Categoría"
+              htmlFor="gasto-categoria"
+              ayuda={
+                fijo
+                  ? `${categoria ? `Va a la cuenta ${categoria.cuenta}. ` : ""}Viene del fijo «${fijo.descripcion}»: si es otro gasto, regístralo aparte; si la categoría del fijo está mal, se corrige en Configuración ▸ Gastos fijos.`
+                  : categoria
+                    ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.`
+                    : "Sin «Otros»: si no calza en ninguna, avisa al líder."
+              }
+            >
               <SelectFin
                 id="gasto-categoria"
                 valor={b.categoria}
+                // Como la tienda: la hoja que nace de un fijo cierra ESE fijo, y un fijo es de una categoría (`choqueConElFijo`).
+                deshabilitado={!!fijo}
                 onValor={(v) => poner("categoria", v)}
                 marcador="Elige…"
                 opciones={categorias.map((c) => ({ valor: c.codigo, texto: `${c.nombre} — ${c.ejemplos}` }))}
@@ -466,6 +523,61 @@ export function RegistrarGastoModal({
                 opciones={opcionesUbicacion}
               />
             </CampoFin>
+          </div>
+        )}
+
+        {fijosPorPreguntar.length > 0 && (
+          <div className="mb-4" data-guia="fin-gastos.form-fijo-parecido" data-sin-cascada>
+            <PreguntaParecido
+              id="gasto-fijo-parecido"
+              titulo={
+                fijosPorPreguntar.length === 1
+                  ? `¿Es «${fijosPorPreguntar[0]!.descripcion}» de ${textoMes(mesDelFijo(fijosPorPreguntar[0]!))}?`
+                  : `¿Es uno de tus gastos fijos de ${textoMes(mesDelFijo(fijosPorPreguntar[0]!))}?`
+              }
+              bajada="Si es ese, queda cerrado como fijo: ya no sigue pendiente en «Fijos del mes» y nadie lo paga dos veces. Si no, se registra como un gasto aparte."
+              opciones={fijosPorPreguntar.map((f) => ({ id: f.id, nombre: f.descripcion, detalle: `${f.montoVariable ? "~" : ""}${solesRedondo(f.monto)} · ${textoFechaDeFijo(f, hoy)}` }))}
+              si={(o) => ({
+                // El nombre ya va en el texto de la fila: el botón dice lo mismo siempre y no se desborda con un nombre largo a 375 px.
+                texto: "Sí, es este",
+                onClick: () => {
+                  poner("gastoFijoId", o.id);
+                  // El aviso de «Se registra como…» todavía no existe: se enfoca cuando ya se dibujó (el botón que se tocó se desmonta y el foco caía al fondo de la hoja).
+                  window.setTimeout(() => enfocar("gasto-fijo-elegido"), 60);
+                },
+              })}
+              no={{
+                // «No» vale para TODOS los que se parecían: así un fijo de monto lejano no vuelve a aparecer al rato.
+                texto: "No, es otro gasto",
+                onClick: () => {
+                  setFijosDescartados((prev) => new Set([...prev, ...fijosPorPreguntar.map(claveDeFijo)]));
+                  enfocar("gasto-monto");
+                },
+              }}
+            />
+          </div>
+        )}
+        {fijoElegido && (
+          <div className="mb-4" data-sin-cascada>
+            <Aviso
+              id="gasto-fijo-elegido"
+              tono="exito"
+              chico
+              enfocable
+              accion={
+                <button
+                  type="button"
+                  className="btn-cayla btn-enlace min-h-6"
+                  aria-label={`Quitar «${fijoElegido.descripcion}»: no cerrar ese fijo`}
+                  onClick={() => poner("gastoFijoId", undefined)}
+                >
+                  Quitar
+                </button>
+              }
+            >
+              Se registra como «{fijoElegido.descripcion}» de {textoMes(mesDelFijo(fijoElegido))}.
+              {conComprobante && !aCredito ? " Con el comprobante ya pagado, después no se puede anular." : ""}
+            </Aviso>
           </div>
         )}
 

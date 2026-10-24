@@ -98,6 +98,8 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
   const anular = puedeAnular && (
     <Boton
       peso="peligro"
+      // En el celular, en la columna de acciones del pie, «Anular orden» va abajo del todo (ver `lugar === "pie"`); en la cabecera no cambia.
+      className={lugar === "pie" ? "max-sm:order-2" : undefined}
       onClick={(e) => {
         origenAnular.current = e.currentTarget;
         setAnulando(true);
@@ -111,9 +113,12 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
   return (
     <>
       {lugar === "pie" ? (
-        <div data-guia="orden.acciones" className="flex w-full flex-wrap items-center gap-3">
+        // En el celular las acciones van en una columna, cada una a todo el ancho (con `flex-wrap` caían en cuatro filas de largos distintos y
+        // «Editar» quedaba suelto; hallazgo 13 de la auditoría del celular, 2026-10-23): las normales arriba, con la principal al final, y
+        // «Anular orden» aparte, debajo. En escritorio no cambia: anular a la izquierda y el resto a la derecha.
+        <div data-guia="orden.acciones" className="flex w-full flex-wrap items-center gap-3 max-sm:flex-col max-sm:items-stretch">
           {anular}
-          <div className="ml-auto flex flex-wrap items-center gap-3">
+          <div className="ml-auto flex flex-wrap items-center gap-3 max-sm:order-1 max-sm:ml-0 max-sm:flex-col max-sm:items-stretch">
             {imprimir}
             {gastoViaje}
             {puedeEditar && <BotonEditarOrden id={orden.id} />}

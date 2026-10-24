@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import {
   achicar,
   cajaDe,
@@ -25,6 +25,8 @@ import {
 } from "@/lib/probador";
 import { Icono } from "../Icono";
 import { Recorte } from "./Recorte";
+import { useFaseDelAjuste } from "./useFaseDelAjuste";
+import { useUnionDeLaFigura } from "./useUnionDeLaFigura";
 
 export type TipoDeEntrada = "der" | "izq" | "asoma" | "tinte";
 /** Cómo entró la última prenda de una zona; `vuelta` cambia en cada cambio para que la animación vuelva a empezar. */
@@ -74,16 +76,29 @@ export function Figura({
   const ignorarClic = useRef(false);
   const [arrastre, setArrastre] = useState<{ zona: Zona; dx: number } | null>(null);
 
-  const piezas = presentes(look).flatMap((z) => {
+  const piezasPorLargo = presentes(look).flatMap((z) => {
     const pieza = look[z]!;
     const p = indice.get(pieza.id);
     if (!p) return [];
     const c = colorDeLaPieza(p, pieza);
     return [{ z, p, c, caja: cajaDe(z, p.largo, c.foto.proporcion) }];
   });
+  // Las fotos que probablemente se vean pronto (las vecinas de arriba y de abajo): se miden en segundo plano para que la unión sea inmediata.
+  const cercanas = (["arriba", "abajo"] as const).flatMap((z) => {
+    const pieza = look[z];
+    return pieza ? vecinasDe(prendas, z, pieza.id).map(({ prenda }) => colorPara(prenda, recordados).foto) : [];
+  });
+  // La prenda de abajo se une a la de arriba: su pretina coincide con el borde de abajo de la otra (ADR-0449). `ajustando`: la medida tarda y se avisa.
+  const { piezas, ajustando, hilo } = useUnionDeLaFigura(piezasPorLargo, cercanas);
+  // Mientras espera la medida: el hilo cose la cintura, la escena se atenúa y una etiqueta, debajo del arco, dice «Ajustando tu look…» (B1, ADR-0449 act. 2026-10-22).
+  const fase = useFaseDelAjuste(ajustando);
   // Si lo más largo no cabe, toda la figura se achica igual (las prendas siguen a escala entre ellas).
   const k = escalaDe(piezas.map((x) => x.caja));
   const dibujadas = piezas.map((x) => ({ ...x, caja: achicar(x.caja, k) }));
+  // El hilo se achica con la figura, igual que las prendas (los hombros no se mueven de lado).
+  const centro = ESCENA.ancho / 2;
+  const costura = hilo ? { y: hilo.y * k, x0: centro + (hilo.x0 - centro) * k, x1: centro + (hilo.x1 - centro) * k } : null;
+  const trazo = costura ? `M ${costura.x0.toFixed(1)} ${costura.y.toFixed(1)} Q ${centro} ${(costura.y + 6 * k).toFixed(1)} ${costura.x1.toFixed(1)} ${costura.y.toFixed(1)}` : null;
   const elegida = dibujadas.find((x) => x.z === zona) ?? null;
   const vecinas =
     elegida && zona !== "bolso"
@@ -142,8 +157,10 @@ export function Figura({
   }
 
   return (
+    <div className="pb-figura">
     <div
       className="pb-escena"
+      data-fase={fase}
       role="group"
       aria-label="Tu probador: toca una prenda y desliza para cambiarla"
       onPointerDown={inicio}
@@ -220,6 +237,15 @@ export function Figura({
         );
       })}
 
+      <span className="pb-velo" aria-hidden="true" />
+      {fase !== "quieto" && costura && trazo && (
+        <svg className="pb-hilo" viewBox={`0 0 ${ESCENA.ancho} ${ESCENA.alto}`} aria-hidden="true" style={{ "--camino": `path('${trazo}')` } as CSSProperties}>
+          <path className="pb-hilo-p" d={trazo} />
+          <path className="pb-hilo-ag" d="M0 0 L20 -4.5 L20 4.5 Z" />
+          <circle className="pb-hilo-nudo" cx={costura.x1} cy={costura.y} r="4" />
+        </svg>
+      )}
+
       {hayFlechas && elegida && (
         <>
           <button
@@ -247,6 +273,19 @@ export function Figura({
         <Icono nombre="chispas" />
         Sorpréndeme
       </button>
+    </div>
+    {/* La franja de estado: debajo del arco, con su alto reservado, así la etiqueta nunca tapa una prenda (con un pantalón largo llegan casi al piso) ni mueve la página. */}
+    <div className="pb-estado" role="status" aria-live="polite">
+      {fase === "espera" && (
+        <span className="pb-etq">
+          Ajustando tu look
+          <i>.</i>
+          <i>.</i>
+          <i>.</i>
+        </span>
+      )}
+      {fase === "listo" && <span className="pb-etq">✓ Listo</span>}
+    </div>
     </div>
   );
 }

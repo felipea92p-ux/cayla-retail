@@ -1045,9 +1045,11 @@ export function FlujoTalla({
   }
 
   return (
-    <div onKeyDown={alTeclear} className="flex min-h-0 flex-1 flex-col">
+    // `min-w-0`: este flujo es hijo de una grilla de una columna `auto` (`PanelTalla`); sin él su ancho mínimo era el de la tabla de «Colgar
+    // varias» (372 px) y en el celular la hoja entera se deslizaba de lado, con «Continuar →» cortado. Con él, la tabla scrollea en su caja.
+    <div onKeyDown={alTeclear} className="flex min-h-0 min-w-0 flex-1 flex-col">
       {/* La acción, la talla y los pasos. */}
-      <div className="grid gap-2.5 border-b border-sand px-[18px] py-3">
+      <div className="grid grid-cols-1 gap-2.5 border-b border-sand px-[18px] py-3">
         <p className="flex items-center gap-2 text-sm text-tinta">
           <i aria-hidden className="h-4 w-4 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoContexto }} />
           <span className="min-w-0 truncate">

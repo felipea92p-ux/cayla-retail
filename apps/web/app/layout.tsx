@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { EB_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Avisos } from "@/components/ui/Avisos";
@@ -6,6 +6,7 @@ import { AvisoDestacado } from "@/components/ui/AvisoDestacado";
 import { EsperaGlobal } from "@/components/ui/Espera";
 import { PaginaEstable } from "@/components/ui/PaginaEstable";
 import { OndaBotones } from "@/components/ui/OndaBotones";
+import { FilasQueSeDeslizan } from "@/components/ui/FilasQueSeDeslizan";
 import { SesionEntrePestanas } from "@/components/ui/SesionEntrePestanas";
 import { EntradaColibri } from "@/components/login/EntradaColibri";
 import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
@@ -24,6 +25,11 @@ export const metadata: Metadata = {
   // con el favicon.ico de plantilla (el triángulo de Vercel) y el navegador elegía
   // el equivocado.
 };
+
+// `viewport-fit=cover` (ADR-0479, actividad 9): la página llega hasta los bordes del iPhone, con el fondo crema bajo la isla, la
+// muesca de lado y la barrita de abajo. Sin esto Safari dejaba esos bordes en blanco y todo `env(safe-area-inset-*)` valía 0. Lo que
+// se toca vive dentro: la cabecera, el lateral, el contenido, las barras fijas y las hojas se apartan solos (AppShell, Modal, Cajon).
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -46,6 +52,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PaginaEstable />
         {/* La onda de un clic en un botón (ADR-0358, ronda 4): una vez, acá, para todos los botones del ERP. */}
         <OndaBotones />
+        {/* Las filas de pestañas o de píldoras que se deslizan avisan que hay más con un degradado en el borde (Felipe 2026-10-23, ADR-0358): una vez, acá, para todas. */}
+        <FilasQueSeDeslizan />
         {/* Una cuenta por navegador (ADR-0309): si otra pestaña cambia de cuenta, esta se va sola al login o al inicio. */}
         <SesionEntrePestanas />
         {/* La entrada al ERP (Felipe 2026-10-13): el colibrí que cruza al centro y se abre sobre la pantalla de destino. Una vez, acá, para que sobreviva a la navegación del login. */}

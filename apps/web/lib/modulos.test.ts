@@ -206,6 +206,7 @@ const CON_MODULOS_NUEVOS = (c: Cuenta) =>
         { clave: "frescura" as const, completo: false },
         { clave: "rendimiento" as const, completo: false },
         { clave: "avisos_club" as const, completo: false },
+        { clave: "beneficios_club" as const, completo: false },
         { clave: "liquidacion" as const, completo: false },
         { clave: "plan_piso" as const, completo: false },
         { clave: "ordenes_compra" as const, completo: false },
@@ -214,6 +215,8 @@ const CON_MODULOS_NUEVOS = (c: Cuenta) =>
         { clave: "fondos" as const, completo: false },
         { clave: "vitrina_web" as const, completo: false },
         { clave: "pedidos_web" as const, completo: false },
+        { clave: "campanas_web" as const, completo: false },
+        { clave: "campanas" as const, completo: false },
         { clave: "recomendaciones" as const, completo: false },
         { clave: "tienda_web" as const, completo: false },
       ];
@@ -230,11 +233,11 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
   }
 
   for (const u of TIPOS_UBICACION) {
-    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4), «rendimiento» (ADR-0219), «avisos_club» (ADR-0288 act. g), «plan_piso» (ADR-0329), «liquidacion» (ADR-0379), «ordenes_compra» (ADR-0362), «plan_compra» (ADR-0387), «ordenes_insumos» (ADR-0362 fase 7) «fondos» (ADR-0362 fase 6), «vitrina_web» (ADR-0408), «pedidos_web» (ADR-0408, act. 8), «recomendaciones» (ADR-0408, 2026-10-15) ni «tienda_web» (ADR-0430) le faltan exactamente esas quince`, () => {
+    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4), «rendimiento» (ADR-0219), «avisos_club» (ADR-0288 act. g), «beneficios_club» (puntos, act. 8), «plan_piso» (ADR-0329), «liquidacion» (ADR-0379), «ordenes_compra» (ADR-0362), «plan_compra» (ADR-0387), «ordenes_insumos» (ADR-0362 fase 7) «fondos» (ADR-0362 fase 6), «vitrina_web» (ADR-0408), «campanas_web» (2026-10-21), «campanas» (ADR-0473), «pedidos_web» (ADR-0408, act. 8), «recomendaciones» (ADR-0408, 2026-10-15) ni «tienda_web» (ADR-0430) le faltan exactamente esas dieciocho`, () => {
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/gestion/plan-del-piso", "/productos/liquidacion", "/compras/ordenes", "/compras/plan", "/ordenes-insumos", "/compras/fondos", "/tienda-web/vitrina", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web"]
+      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/liquidacion", "/productos/insignias", "/compras/mi-plata", "/compras/plan", "/ordenes-insumos", "/compras/fondos", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web"]
         .filter((h) => deAntes.includes(h))
         .sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);
@@ -314,7 +317,6 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     const con = (...cs: ClaveModulo[]) => permisosDeModulos("integrante", cs.map((clave) => ({ clave, completo: true })));
     expect(con("facturas_compra")).toEqual(["verDineroCompras"]);
     expect(con("por_pagar")).toEqual(["verDineroCompras"]);
-    expect(con("notas_credito")).toEqual(["verDineroCompras"]);
     expect(con("etiquetas")).toEqual(["editarEtiquetas"]);
     expect(con("analisis")).toEqual(["analizar"]);
     expect(con("colaboradores", "roles")).toEqual([]);
@@ -324,13 +326,16 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(permisosDeModulos("integrante", [{ clave: "por_pagar", completo: false }])).toEqual([]);
   });
 
-  it("«Por pagar» solo: Compras sale con una sola pantalla, Por pagar; Etiquetas solo: entra por la fila «Atributos»", () => {
+  it("«Por pagar» solo: Compras sale con una sola pantalla, Por pagar; Insignias o Campañas solos: entran por la fila «Insignias»", () => {
     const soloPagos = ahora({ nombre: "pagos", rol: "integrante" }, "tienda", [{ clave: "por_pagar", completo: true }]);
     const riel = menuPara(soloPagos).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Compras"]);
     expect(riel.find((f) => f.etiqueta === "Compras")).toMatchObject({ href: "/compras/por-pagar" });
     const soloEtiquetas = ahora({ nombre: "etiquetas", rol: "integrante" }, "tienda", [{ clave: "etiquetas", completo: true }]);
-    expect(menuPara(soloEtiquetas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/atributos" });
+    expect(menuPara(soloEtiquetas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/insignias" });
+    // Campañas no tiene fila propia desde el 2026-10-22: abre la de Insignias, su `moduloAlterno` (la pantalla le muestra solo esa vista).
+    const soloCampanas = ahora({ nombre: "campanas", rol: "integrante" }, "tienda", [{ clave: "campanas", completo: true }]);
+    expect(menuPara(soloCampanas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/insignias" });
   });
 
   // ADR-0161 P1 (20260923140000): en Compras cada módulo escribe solo lo suyo, aunque los tres vean los montos. Espeja
@@ -339,10 +344,10 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     const de = (clave: ClaveModulo, completo = true) => [{ clave, completo }];
     expect(accionesDeCompra("integrante", de("facturas_compra"))).toEqual({ facturas: true, pagar: false, notas: false });
     expect(accionesDeCompra("integrante", de("por_pagar"))).toEqual({ facturas: false, pagar: true, notas: false });
-    expect(accionesDeCompra("integrante", de("notas_credito"))).toEqual({ facturas: false, pagar: false, notas: true });
     expect(accionesDeCompra("integrante", de("por_pagar", false))).toEqual({ facturas: false, pagar: false, notas: false });
-    expect(accionesDeCompra("lider", [])).toEqual({ facturas: true, pagar: true, notas: true });
-    for (const clave of ["facturas_compra", "por_pagar", "notas_credito"] as const) {
+    // ADR-0480: las notas de crédito de proveedor no se manejan por ahora; ni el líder las ve en la web.
+    expect(accionesDeCompra("lider", [])).toEqual({ facturas: true, pagar: true, notas: false });
+    for (const clave of ["facturas_compra", "por_pagar"] as const) {
       expect(permisosDeModulos("integrante", de(clave)), clave).toContain("verDineroCompras");
     }
     expect(usaModulo("integrante", de("recibir"), "facturas_compra")).toBe(false);

@@ -183,12 +183,22 @@ caso(
 // 20261013235000). Y dos de la deuda de un faltante (ADR-0362 fase 6 · actividad 7): registrar lo que la persona paga y anularlo
 // (`fondo_deuda_pagar`, `fondo_deuda_anular`, 20261014145000). Y una más: el comprobante de una orden de insumos del Taller
 // (`orden_insumo_comprobante`, 20261015020000; ADR-0362 fase 7 parte 2), con el trato de la orden de tienda. Y una más: el recorte que el
-// ERP guarda solo al subir una foto, para el probador de la tienda online (`recorte_foto`, 20261017013000; ADR-0434, Felipe 2026-10-16).
-const TOTAL = EN_SECO ? "28" : "52";
+// ERP guarda solo al subir una foto, para el probador de la tienda online (`recorte_foto`, 20261017013000; ADR-0434, Felipe 2026-10-16). Y una
+// más: deshacer la unión de una cuenta de Google con un miembro (`vinculo_google_desvincular`, 20261021170000; ADR-0469), solo del líder. Y una
+// más: registrar un proveedor nuevo desde una orden de compra (`proveedor_de_orden`, 20261021202000; ADR-0362), con el trato de la orden.
+// Y dos más de Compras simple: anotar la plata que te dieron y confirmarla (`plata_anotar`, `plata_confirmar`, 20261022235000; ADR-0480).
+// Y una más: registrar una compra desde el celular (`compra_rapida`, 20261023005000; ADR-0480).
+// Y tres más del día de compras: el gasto que no es ropa, mandar a la tienda y terminar el día (`gasto_rapido`, `compra_mandar`,
+// `compra_terminar_dia`, 20261023114000; ADR-0480). Y tres de «Revisar compras»: completar el papel, recibir lo del cierre del día y pasar
+// un gasto a los gastos del viaje (`papel_completar`, `compra_cierre_recibir`, `gasto_revisar`, 20261023143000; ADR-0480).
+// Y una más: abrir la ronda de compras (`compra_ronda_abrir`, 20261023183000; ADR-0480).
+const TOTAL = EN_SECO ? "28" : "64";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
 // El gasto del viaje es la excepción con motivo: se anota en Gamarra, donde nadie marca entrada (ADR-0362 fase 6, provisional). Sumarle
-// la foto de su papel no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`).
-caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)' and clave not in ('gasto_viaje_registrar', 'gasto_viaje_foto');`, "0");
+// la foto de su papel no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`). Su reemplazo en Compras simple,
+// «Gasté en otra cosa» (`gasto_rapido`), se anota en el mismo lugar; y su revisión (`gasto_revisar`) la hace Revisar compras con su cuenta,
+// como confirmar la plata (ADR-0480; la misma excepción que `apps/web/lib/responsable-omitido.test.ts`).
+caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)' and clave not in ('gasto_viaje_registrar', 'gasto_viaje_foto', 'gasto_rapido', 'gasto_revisar');`, "0");
 caso(
   "la API no lee ni escribe la lista (RLS sin políticas, sin permisos)",
   `set local role authenticated;\nselect pg_temp.intento('select * from retail.acciones_sin_responsable') || ',' || pg_temp.intento($$delete from retail.acciones_sin_responsable$$);`,

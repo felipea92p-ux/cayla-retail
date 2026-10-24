@@ -226,9 +226,9 @@ export function problemaDeLinea(l: LineaBorrador, ctx: ContextoValidacion): stri
   if (cant.tipo === "mal" && cant.motivo === "ambiguo") return dudaDeCantidad(l.cantidad);
   if (cant.tipo === "mal" || cant.escalado < 1 || cant.escalado > TOPES.cantidad) return "La cantidad va de 1 a 99 999 unidades, sin decimales.";
   const precio = leerNumero(l.precio, 2);
-  if (precio.tipo === "vacio") return "Escribe el precio por unidad.";
+  if (precio.tipo === "vacio") return "Escribe el costo por unidad.";
   if (precio.tipo === "mal" && precio.motivo === "ambiguo") return dudaDeMonto(l.precio);
-  if (precio.tipo === "mal" || precio.escalado > TOPES.precioCentimos) return "El precio va de S/\u00a00 a S/\u00a099 999.99, con hasta dos decimales.";
+  if (precio.tipo === "mal" || precio.escalado > TOPES.precioCentimos) return "El costo va de S/\u00a00 a S/\u00a099 999.99, con hasta dos decimales.";
   if (l.modoDescuento === "pct") {
     const p = leerNumero(l.descuento, 4);
     if (p.tipo === "mal" || (p.tipo === "ok" && p.escalado > 1_000_000)) return "El descuento va de 0 % a 100 %.";

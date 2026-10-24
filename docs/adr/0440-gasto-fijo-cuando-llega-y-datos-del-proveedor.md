@@ -3,6 +3,9 @@
 - **Fecha:** 2026-10-17 · **Estado:** escrito, **la migración `20261017190000` NO está probada ni en producción**. La nube de esta sesión no tenía
   Docker ni Postgres, así que ni la migración ni `pnpm pruebas:activos-y-fijos` corrieron; las pruebas SQL nuevas están escritas y sin ejecutar.
   Las pruebas de la web (vitest) sí corren. Rama `claude/cayla-config-data-errors-35e9da-duw4wu`.
+- **Actualización 2026-10-18:** la parte del proveedor (mostrar su teléfono y su cuenta en el modal del fijo) la reemplaza el ADR-0452: a quién se le paga un
+  fijo no es un proveedor de mercadería, sino una ficha de pago propia. La del «Cuándo llega» sigue igual, y su migración ya corrió limpia en local.
+- **Actualización 2026-10-23:** la fecha que este ADR llama «cuándo llega» se lee desde hoy como el **vencimiento** (ADR-0487): mismas columnas y funciones, otros textos, y se suma «pagar N días antes». Lo de abajo sigue siendo cómo funciona.
 - **Pedido:** Felipe, 2026-10-17, sobre el modal «Nuevo gasto fijo»: elegir primera semana, quincena o fin de mes en vez de «Día del mes»;
   y al elegir proveedor, ver su teléfono y su cuenta bancaria. Fondo: que si Felipe falta, otra persona pueda gestionar CAYLA.
 

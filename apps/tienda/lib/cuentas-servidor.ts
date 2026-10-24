@@ -1,16 +1,14 @@
 import "server-only";
 import type { TipoDocumentoClienta } from "@cayla-retail/shared";
-import { cacheLife, unstable_cache } from "next/cache";
 import { cache } from "react";
 import { base, leerConRespaldo } from "./base";
+import { correoOcultoValido } from "./google";
 import {
-  leerBeneficios,
   leerCasillaWhatsapp,
   leerIntentoDeCodigo,
   leerMiCuenta,
   leerReserva,
   type AvisosAlUnirse,
-  type Beneficios,
   type CasillaWhatsapp,
   type IntentoDeCodigo,
   type MiCuenta,
@@ -189,6 +187,36 @@ export async function registrarCuentaSimpleEnBase(d: DatosCuentaSimple): Promise
   }
 }
 
+export type DatosVinculoGoogle = { usuarioWebId: string; correo: string; nombre: string; textos: string };
+
+/** Lo que dijo la base al unir una cuenta de Google a la ficha que ya tenía su correo (`tienda_vincular_cuenta_google`, 20261021170000).
+ *  `sin_respuesta`: la base no contestó o todavía no tiene la función (la web se publicó antes de pegar la migración): quien llama sigue
+ *  como si no hubiera ficha, y el registro de siempre dirá lo que ya decía. */
+export type ResultadoVinculo =
+  | { estado: "vinculada" | "ya_tiene_cuenta" | "no_aplica" | "no_coincide" | "sin_respuesta" }
+  /** La ficha ya tiene cuenta abierta con OTRO correo y el nombre coincide: `correoCuenta` es ese correo, a medias (20261021182000). */
+  | { estado: "otro_correo"; correoCuenta: string };
+
+export async function vincularCuentaGoogleEnBase(d: DatosVinculoGoogle): Promise<ResultadoVinculo> {
+  try {
+    const [fila] = await base()`
+      select retail.tienda_vincular_cuenta_google(${d.usuarioWebId}::uuid, ${d.correo}::text, ${d.nombre}::text, ${d.textos}::text) as r`;
+    const estado = ESTADO(fila?.r);
+    if (estado === "otro_correo") {
+      const correoCuenta = correoOcultoValido((fila?.r as { correo_cuenta?: unknown }).correo_cuenta);
+      // Sin un correo a medias que se pueda mostrar, se dice lo de siempre (la persona no se une igual).
+      return correoCuenta ? { estado, correoCuenta } : { estado: "no_coincide" };
+    }
+    const conocidos = ["vinculada", "ya_tiene_cuenta", "no_aplica", "no_coincide"] as const;
+    return conocidos.includes(estado as (typeof conocidos)[number]) ? { estado: estado as (typeof conocidos)[number] } : { estado: "sin_respuesta" };
+  } catch (error) {
+    const e = error as { hint?: unknown; code?: unknown };
+    // Sin el mensaje de la base en el registro: puede traer datos de la persona. El código y el hint bastan.
+    console.error(JSON.stringify({ evento: "tienda_vincular_cuenta_google_fallo", codigo: e.code ?? null, hint: typeof e.hint === "string" ? e.hint : null }));
+    return { estado: "sin_respuesta" };
+  }
+}
+
 export type DatosClub = {
   usuarioWebId: string;
   /** DNI, carné de extranjería o pasaporte (20261015161000). */
@@ -251,39 +279,3 @@ export const leerMiCuentaEnBase = cache(async (usuarioWebId: string): Promise<Le
     return { estado: "sin_respuesta" };
   }
 });
-
-/** El % del cumpleaños y la escala del vale, para los términos. null si la base no contesta: se dicen sin cifras. */
-// Los beneficios del Club son los mismos para todos (los configura el ERP): desde que salen en la portada y en el Inicio (el sello del
-// descuento de cumpleaños, 2026-10-16), se comparten entre visitas unos minutos, como el catálogo, en vez de preguntarle a la base en
-// cada página. Se guarda el JSON crudo; un fallo NO se guarda (se lanza adentro y se responde `null` afuera, para reintentar).
-const beneficiosCompartidos = unstable_cache(
-  async (): Promise<unknown> => {
-    const [fila] = await base()`select retail.tienda_club_beneficios() as r`;
-    return fila?.r ?? null;
-  },
-  ["tienda-club-beneficios-v1"],
-  { revalidate: 300 },
-);
-
-async function beneficiosGuardados(): Promise<unknown> {
-  "use cache";
-  try {
-    const cruda = await beneficiosCompartidos();
-    cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
-    return cruda;
-  } catch (error) {
-    // Sin base: no se lanza (Next daría por rota la página que se arma por adelantado) y el respaldo dura segundos, no minutos.
-    console.error(JSON.stringify({ evento: "tienda_club_beneficios_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
-    cacheLife({ stale: 300, revalidate: 5, expire: 3600 });
-    return null;
-  }
-}
-
-export const leerBeneficiosDelClub = async (): Promise<Beneficios | null> => {
-  try {
-    return leerBeneficios(await beneficiosGuardados());
-  } catch (error) {
-    console.error(JSON.stringify({ evento: "tienda_club_beneficios_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
-    return null;
-  }
-};

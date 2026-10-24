@@ -58,9 +58,11 @@
     cursor: pointer;
     transition: color 200ms, background-color 200ms;
   }
-  .pestana-cayla:hover {
-    color: var(--color-tinta);
-    background: color-mix(in srgb, var(--color-tinta) 6%, transparent);
+  @media (hover: hover) {
+    .pestana-cayla:hover {
+      color: var(--color-tinta);
+      background: color-mix(in srgb, var(--color-tinta) 6%, transparent);
+    }
   }
   .pestana-cayla[aria-selected="true"],
   .pestana-cayla[aria-current="page"] {
@@ -68,11 +70,13 @@
     background: var(--color-tinta);
   }
   /* En cuanto la píldora que viaja se coloca, el fondo estático de la elegida se apaga: si no, se vería saltar y, además, viajar. */
-  [data-indicador] > .pestana-cayla[aria-selected="true"],
-  [data-indicador] > .pestana-cayla[aria-current="page"],
-  [data-indicador] > .pestana-cayla[aria-selected="true"]:hover,
-  [data-indicador] > .pestana-cayla[aria-current="page"]:hover {
+  [data-indicador] > .pestana-cayla[aria-selected="true"], [data-indicador] > .pestana-cayla[aria-current="page"] {
     background: transparent;
+  }
+  @media (hover: hover) {
+    [data-indicador] > .pestana-cayla[aria-selected="true"]:hover, [data-indicador] > .pestana-cayla[aria-current="page"]:hover {
+      background: transparent;
+    }
   }
   .pestanas-cayla > .cmp-ind-pildora {
     z-index: 0;
@@ -183,6 +187,32 @@
     display: none;
   }
 
+  /* ---------- Una fila que se desliza avisa que hay más ----------
+     Opción A de la maqueta `docs/maquetas/pestanas-que-se-deslizan-2026-10/` (Felipe 2026-10-23, hallazgo 14 de la auditoría del celular):
+     la fila se desvanece 28 px del lado donde falta por ver y se apaga sola al llegar al final. `FilasQueSeDeslizan` (montado una vez
+     en `app/layout.tsx`) mide la fila y pone `data-mas-izq` / `data-mas-der`; aquí solo se dibuja. La máscara solo existe MIENTRAS la fila
+     se desliza (nunca en escritorio, donde cabe entera): el vidrio de `<Pestanas>` usa `backdrop-filter`, y si un navegador no combinara
+     bien las dos cosas lo peor que pasaría es perder el desenfoque del vidrio, no las pestañas. Es una máscara de ALFA: el color da
+     igual (va `--color-tinta` por no escribir uno suelto) y vale sobre cualquier fondo y en los dos temas. */
+  .pestanas-cayla,
+  .pildoras-desliza {
+    --fade-izq: 0px;
+    --fade-der: 0px;
+  }
+  .pestanas-cayla[data-mas-izq],
+  .pildoras-desliza[data-mas-izq] {
+    --fade-izq: 28px;
+  }
+  .pestanas-cayla[data-mas-der],
+  .pildoras-desliza[data-mas-der] {
+    --fade-der: 28px;
+  }
+  .pestanas-cayla:is([data-mas-izq], [data-mas-der]),
+  .pildoras-desliza:is([data-mas-izq], [data-mas-der]) {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, var(--color-tinta) var(--fade-izq), var(--color-tinta) calc(100% - var(--fade-der)), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, var(--color-tinta) var(--fade-izq), var(--color-tinta) calc(100% - var(--fade-der)), transparent 100%);
+  }
+
   /* ---------- 3 · Segmento de modo de vista y de orden ----------
      La caja arena de «GRILLA / TABLA» de Productos, que eligió Felipe: fondo sand con 2 px de aire, cada opción en versalitas de
      10,5 px (label-cayla) y la elegida en papel y tinta; las otras en tinta al 60 %. 36 px de alto: mide lo mismo que el buscador
@@ -221,8 +251,10 @@
     cursor: pointer;
     transition: color 150ms, background-color 150ms;
   }
-  .segmento-cayla__opcion:hover {
-    color: var(--color-tinta);
+  @media (hover: hover) {
+    .segmento-cayla__opcion:hover {
+      color: var(--color-tinta);
+    }
   }
   .segmento-cayla__opcion[aria-checked="true"],
   .segmento-cayla__opcion[aria-current="page"],

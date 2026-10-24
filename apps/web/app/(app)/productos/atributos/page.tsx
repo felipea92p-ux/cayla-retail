@@ -1,12 +1,6 @@
-import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
-import { getCostosVariantes } from "@/lib/catalogo-v2";
-import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
-import { precioMasBajoEnTiendas } from "@/lib/precio-sede-reglas";
-
-/** «Ninguna tienda con precio propio»: lo que se usa cuando no hace falta leerlos (la forma de `getPreciosDeLasTiendas`). */
-const sinPreciosDeTiendas = () => ({ nombres: new Map<string, string>(), porSede: {} as Record<string, Record<string, number>> });
 import { Ayuda } from "@/components/Ayuda";
 import { AtributosHub } from "@/components/AtributosHub";
 import type { EventoCalendario, Temporada, TemporadaEfectiva } from "@/lib/temporada-reglas";
@@ -113,36 +107,18 @@ async function leerTemporadas(supabase: Supabase): Promise<{ datos: DatosPestana
 // aprueba/rechaza. Una sola carga de datos, una sola pantalla, 5 pestañas.
 // Las rutas viejas siguen funcionando vía `redirects()` en next.config.ts.
 export default async function AtributosPage({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
-  const persona = await requirePersonaActualV2();
-  const supabase = await createClient();
   const { tipo: tipoParam } = await searchParams;
+  // `?tipo=etiquetas` (los sellos, la primera pestaña hasta el 2026-10-22) lo redirige next.config.ts a Catálogo ▸ Insignias.
+  // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
+  const persona = await exigirModulo("atributos");
+  const supabase = await createClient();
   // Mismo orden que las pestañas de `AtributosHub`; la primera es la que abre por defecto.
-  const TIPOS = ["etiquetas", "colores", "tallas", "tejidos", "patrones", "temporadas"] as const;
-  // Un rol con Etiquetas y sin Categorías/atributos (20260923130000) ve SOLO la pestaña de etiquetas; uno con Categorías/
-  // atributos y sin Etiquetas, las otras cinco (Temporadas incluida, ADR-0246). El líder, todas.
-  const veEtiquetas = veModulo(persona, "etiquetas");
-  const veAtributos = veModulo(persona, "atributos");
-  const tipos = TIPOS.filter((t) => (t === "etiquetas" ? veEtiquetas : veAtributos));
-  const tipo = tipos.find((t) => t === tipoParam) ?? tipos[0] ?? TIPOS[0];
-  const puedeEditarEtiquetas = puede(persona, "editarEtiquetas");
-  // Configurar el descuento de una etiqueta y tocar las que lo llevan: líder o un rol con Etiquetas (ADR-0293, 2026-09-30;
-  // `fn_puede_dar_descuento_por_etiqueta` = `fn_puede_editar_etiquetas`). Antes era solo el líder y esas tarjetas salían sin acciones.
-  const puedeDarDescuento = puedeEditarEtiquetas;
+  const TIPOS = ["colores", "tallas", "tejidos", "patrones", "temporadas"] as const;
+  const tipo = TIPOS.find((t) => t === tipoParam) ?? TIPOS[0];
   // Se lanza ya, en paralelo con el resto de la carga; se espera abajo.
   const cargaTemporadas = tipo === "temporadas" ? cargarTemporadas(supabase) : Promise.resolve(null);
-  // El costo, por la puerta que revisa el permiso (20260923193700). El líder lo tiene siempre; quien no, configura la campaña sin el
-  // aviso de costo (`costo` 0 nunca queda «por debajo»). Se lanza ya, en paralelo con el resto.
-  const cargaCostos = puedeDarDescuento ? getCostosVariantes() : Promise.resolve(null);
-  // Los precios propios de cada tienda (ADR-0370), para el aviso de costo: una campaña vale en TODAS las tiendas y la caja de cada una
-  // cobra su precio, así que el peor caso es el más bajo entre la prenda y las tiendas. Solo si el aviso puede salir: sin costos (la
-  // cuenta no ve el dinero) no hay aviso y no se piden. Nunca lanza: si una lectura falla, esa tienda no entra y el aviso queda como
-  // antes (con el precio de la prenda).
-  const cargaPreciosTiendas =
-    tipo === "etiquetas" && puedeDarDescuento
-      ? cargaCostos.then((c) => (c === null ? sinPreciosDeTiendas() : getPreciosDeLasTiendas()))
-      : Promise.resolve(sinPreciosDeTiendas());
 
-  const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, resUsos, preciosTiendas] = await Promise.all([
+  const [resColores, resTallas, resTejidos, resPatrones, resUsos] = await Promise.all([
     supabase
       .from("colores")
       .select("codigo, nombre, familia_color, tipo, hex, orden, activo, notas, estado, pantone_tcx, sinonimos, descripcion, combina_con")
@@ -151,49 +127,9 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     supabase.from("tallas").select("id, valor, activo, notas, estado").order("valor"),
     supabase.from("tejidos").select("id, nombre, activo, notas, estado, imagen_muestra_url, descripcion_dibujo").order("nombre"),
     supabase.from("patrones").select("id, nombre, activo, notas, estado, imagen_muestra_url, descripcion_dibujo").order("nombre"),
-    // Etiquetas (y lo que necesita su editor de campaña) solo se pide al abrir esa pestaña:
-    // así un despliegue que llegue antes que el SQL de producción no tumba Colores/Tallas/etc.
-    tipo === "etiquetas"
-      ? supabase
-          .from("etiquetas")
-          .select("id, nombre, activo, notas, estado, estilo, vigente_desde, vigente_hasta, descuento_pct")
-          .order("nombre")
-      : Promise.resolve({ data: [], error: null }),
-    tipo === "etiquetas"
-      ? supabase.from("categorias").select("id, nombre, familia").eq("activo", true).order("nombre")
-      : Promise.resolve({ data: [], error: null }),
-    tipo === "etiquetas"
-      ? supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id")
-      : Promise.resolve({ data: [], error: null }),
-    tipo === "etiquetas" ? supabase.from("familias").select("codigo, nombre") : Promise.resolve({ data: [], error: null }),
-    // Las prendas a la venta con su precio: para el aviso de «por debajo del costo», el alcance de una campaña y lo que cuenta
-    // cada tarjeta. «A la venta» es una sola regla en toda la pestaña, la de la hoja «Prendas»: talla activa de un producto que no
-    // está descontinuado (2026-10-17: antes la tarjeta decía 186 y su hoja 164). El COSTO no viaja a quien no tiene permiso de
-    // dinero: `getCostosVariantes` lo pide por la puerta que lo revisa.
-    tipo === "etiquetas" && puedeDarDescuento
-      ? leerTodas((desde, hasta) =>
-          supabase
-            .from("variantes")
-            .select("id, sku, precio, producto:productos!inner ( referencia, categoria_id )")
-            .eq("activo", true)
-            .eq("producto.estado", "activo")
-            .order("id")
-            .range(desde, hasta)
-        )
-      : Promise.resolve({ data: [], error: null }),
-    // Cuántas prendas lleva cada etiqueta «a mano»: para quien edita etiquetas (el líder o un rol con el módulo).
-    // Las dos por páginas: más de 1.000 variantes desde sep-2026 y PostgREST corta en 1.000 (`leerTodas`).
-    tipo === "etiquetas" && puedeEditarEtiquetas
-      ? leerTodas((desde, hasta) =>
-          supabase.from("variante_etiquetas").select("etiqueta_id, variante_id").order("variante_id").order("etiqueta_id").range(desde, hasta)
-        )
-      : Promise.resolve({ data: [], error: null }),
-    // Cuántas prendas usan cada tejido y cada patrón (ADR-0256): lo que dice cada tarjeta. Solo al abrir esas pestañas;
-    // por páginas, porque el catálogo crece (`leerTodas`).
     tipo === "tejidos" || tipo === "patrones"
       ? leerTodas((desde, hasta) => supabase.from("productos").select("id, tejido_id, patron_id").order("id").range(desde, hasta))
       : Promise.resolve({ data: [], error: null }),
-    cargaPreciosTiendas,
   ]);
 
   const colores = exigir(resColores, "los colores del vocabulario").map((c) => ({
@@ -242,46 +178,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     if (u.tejido_id) prendasPorTejido[u.tejido_id] = (prendasPorTejido[u.tejido_id] ?? 0) + 1;
     if (u.patron_id) prendasPorPatron[u.patron_id] = (prendasPorPatron[u.patron_id] ?? 0) + 1;
   }
-  const etiquetaCategorias = new Map<string, string[]>();
-  for (const f of exigir(resEtiquetaCategorias, "las categorías de cada etiqueta")) {
-    etiquetaCategorias.set(f.etiqueta_id, [...(etiquetaCategorias.get(f.etiqueta_id) ?? []), f.categoria_id]);
-  }
-  const etiquetas = exigir(resEtiquetas, "las etiquetas del vocabulario").map((e) => ({
-    id: e.id,
-    nombre: e.nombre,
-    activo: e.activo,
-    notas: e.notas,
-    estado: e.estado as "pendiente" | "aprobado" | "rechazado",
-    estilo: e.estilo as "neutral" | "urgencia" | "positivo" | "campana",
-    vigenteDesde: e.vigente_desde,
-    vigenteHasta: e.vigente_hasta,
-    descuentoPct: e.descuento_pct,
-    categoriaIds: (etiquetaCategorias.get(e.id) ?? []) as string[],
-  }));
-  const costos = await cargaCostos;
-  const prendasConCosto = exigir(resPrendas, "las prendas para el aviso de costo").map((v) => {
-    // El precio más bajo al que se cobra en cualquier tienda (el de la prenda o el propio de una), y cuál tienda lo fija.
-    const bajo = precioMasBajoEnTiendas(Number(v.precio), v.id, preciosTiendas.porSede, preciosTiendas.nombres);
-    return {
-      id: v.id,
-      categoriaId: v.producto?.categoria_id ?? null,
-      precio: bajo.precio,
-      enSede: bajo.sede,
-      costo: costos?.get(v.id) ?? 0,
-      nombre: `${v.producto?.referencia ?? "Prenda"} (${v.sku})`,
-    };
-  });
-  const variantesManuales: Record<string, string[]> = {};
-  for (const f of exigir(resManuales, "las prendas etiquetadas a mano")) {
-    (variantesManuales[f.etiqueta_id] ??= []).push(f.variante_id);
-  }
-  const nombreFamilia = new Map(exigir(resFamilias, "las familias").map((f) => [f.codigo, f.nombre]));
   const temporadas = await cargaTemporadas;
-  const categorias = exigir(resCategorias, "las categorías").map((c) => ({
-    id: c.id,
-    nombre: c.nombre,
-    familia: (c.familia && nombreFamilia.get(c.familia)) || "Sin familia",
-  }));
 
   return (
     <div className="space-y-6">
@@ -295,10 +192,11 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
               <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">
                 <Ayuda titulo="Atributos">
                   Los vocabularios cerrados que describen una prenda además de su categoría: color,
-                  talla, tejido, patrón, etiqueta libre y temporada. En los cinco primeros, cualquiera
-                  con sesión propone un valor nuevo y lo puede usar de inmediato; un Líder lo aprueba o
-                  lo rechaza después. La temporada es una lista fija de nueve: en su pestaña se ve el
-                  calendario y se completan las prendas que todavía no la tienen.
+                  talla, tejido, patrón y temporada. En los cuatro primeros, cualquiera con sesión
+                  propone un valor nuevo y lo puede usar de inmediato; un Líder lo aprueba o lo
+                  rechaza después. La temporada es una lista fija de nueve: en su pestaña se ve el
+                  calendario y se completan las prendas que todavía no la tienen. Las insignias (Nuevo,
+                  Top ventas, las campañas) viven en Catálogo ▸ Insignias.
                 </Ayuda>
               </span>
             </>
@@ -314,17 +212,10 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         patrones={patrones}
         prendasPorTejido={prendasPorTejido}
         prendasPorPatron={prendasPorPatron}
-        etiquetas={etiquetas}
-        categorias={categorias}
-        prendasConCosto={prendasConCosto}
-        variantesManuales={variantesManuales}
         puedeEditar={puede(persona, "editarCatalogo")}
-        puedeEditarEtiquetas={puedeEditarEtiquetas}
-        puedeDarDescuento={puedeDarDescuento}
         temporadas={temporadas}
         esLider={persona.rol === "lider"}
         veProductos={veModulo(persona, "productos")}
-        tipos={tipos}
       />
     </div>
   );

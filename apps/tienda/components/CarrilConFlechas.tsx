@@ -40,11 +40,36 @@ export function CarrilConFlechas({ children, className = "" }: { children: React
     };
   }, []);
 
+  // Cada flecha lleva el carril a una TARJETA exacta (un punto de anclaje), nunca a «80 % del ancho»: ese número casi nunca cae en el borde de
+  // una tarjeta y, con el anclaje obligatorio (`scroll-snap-type: x mandatory`), Safari dejaba el carril a medias, con una tarjeta cortada a
+  // cada lado (2026-10-19). Siguiente: la primera tarjeta que no cabe entera (la cortada del lado derecho) pasa a ser la primera. Anterior:
+  // la tarjeta que queda tantas antes como caben a la vista.
   function mover(lado: 1 | -1) {
     const carril = caja.current?.firstElementChild;
     if (!(carril instanceof HTMLElement)) return;
+    const tarjetas = Array.from(carril.children).filter((e): e is HTMLElement => e instanceof HTMLElement);
+    if (tarjetas.length === 0) return;
+    const estilo = getComputedStyle(carril);
+    const margen = parseFloat(estilo.scrollPaddingLeft) || parseFloat(estilo.paddingLeft) || 0;
+    const caja_ = carril.getBoundingClientRect();
+    const izq = caja_.left + margen;
+    const der = caja_.right - (parseFloat(estilo.paddingRight) || 0);
+    const TOL = 4;
+    const rects = tarjetas.map((t) => t.getBoundingClientRect());
+    let objetivo: number;
+    if (lado === 1) {
+      const i = rects.findIndex((r) => r.right > der + TOL);
+      if (i < 0) return;
+      objetivo = i;
+    } else {
+      const primera = Math.max(0, rects.findIndex((r) => r.left >= izq - TOL));
+      const caben = Math.max(1, rects.filter((r) => r.left >= izq - TOL && r.right <= der + TOL).length);
+      objetivo = Math.max(0, primera - caben);
+    }
+    // Donde queda esa tarjeta al anclarla al borde izquierdo (con su margen de anclaje).
+    const izquierda = carril.scrollLeft + (rects[objetivo].left - izq);
     const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    carril.scrollBy({ left: lado * carril.clientWidth * 0.8, behavior: quieto ? "instant" : "smooth" });
+    carril.scrollTo({ left: Math.max(0, izquierda), behavior: quieto ? "instant" : "smooth" });
   }
 
   return (

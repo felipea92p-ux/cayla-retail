@@ -11,7 +11,7 @@ import { CampoMonto, CampoSelect, CampoTexto, type Opcion } from "@/components/u
 import { campoEtiqueta } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import {
-  FASES,
+  FASES_DE_LA_HOJA,
   FIJO_MAXIMO,
   TARIFA_MAXIMA,
   avisoMinimo,
@@ -29,11 +29,11 @@ import {
   type TarifaDeLista,
 } from "@/lib/orden-fases-reglas";
 
-// «Fases y quién las hace», el bloque de la hoja «Nueva orden de producción» (ADR-0400, decisiones 2, 3 y 5; «Pantallas» punto 3). Una FILA por
-// fase en el orden de la ruta —Corte · Costura · Acabado siempre; Bordado, Estampado y Lavandería se encienden desde una línea de chips— y en cada
-// fila la pregunta de siempre de la prueba ciega: ¿la hace el Taller o sale afuera, y a quién? Cuando sale afuera aparecen el proveedor (solo los
-// que hacen servicios), la tarifa por prenda (precargada en gris desde su lista de precios), la cantidad mínima, la fecha prometida y, plegado, el
-// fijo por orden (ponchado, matriz). Bordado y estampado dicen además si van sobre la pieza cortada o sobre la prenda armada.
+// «Fases y quién las hace», el bloque de la hoja «Nueva orden de producción» (ADR-0400, decisiones 2, 3 y 5; act. k y l; «Pantallas» punto 3). Una FILA por
+// fase en el orden de la ruta —Ploteo · Corte · Habilitado · Costura · Limpiar hilos y revisar · Planchado · Etiquetar y embolsar siempre; Ojales y botones se
+// enciende desde una línea de chips si el modelo lo lleva— y en cada fila la pregunta de siempre de la prueba ciega: ¿la hace el Taller o sale afuera, y a quién?
+// Cuando sale afuera aparecen el proveedor (solo los que hacen servicios), la tarifa por prenda (precargada en gris desde su lista de precios), la cantidad
+// mínima, la fecha prometida y, plegado, el fijo por orden. Ploteo se cobra por ORDEN: no lleva tarifa por prenda ni mínimo, y su fijo se pide a la vista.
 //
 // No tiene estado de negocio: el formulario es el dueño de `fases` (una fila por fase del catálogo, `fasesIniciales()`), lee las faltas con
 // `problemasFases` y las pasa en `problemas`; acá solo se dibuja lo que dice `lib/orden-fases-reglas.ts` y se llama a `onFases` con la lista entera.
@@ -72,8 +72,12 @@ function lugarDe(p: ProblemaFase, s: ServicioLeido | null): Lugar {
       return "proveedor";
     case "fase_sin_tarifa":
       return "tarifa";
+    case "fase_sin_fijo":
+      return "fijo";
     case "fase_tarifa_invalida": {
       if (!s) return "tarifa";
+      // Una fase que cobra por orden (el ploteo) solo tiene el fijo: todo lo que se escribe mal es ahí.
+      if (s.cantidadMinima === null && s.tarifaPrenda === null && s.tarifa.tipo === "vacio" && s.fijo.tipo !== "vacio") return "fijo";
       if (s.tarifa.tipo === "coma" || s.tarifa.tipo === "invalido") return "tarifa";
       if (s.fijo.tipo === "coma" || s.fijo.tipo === "invalido") return "fijo";
       if (s.minimo.tipo === "invalido") return "minimo";
@@ -92,7 +96,7 @@ function lugarDe(p: ProblemaFase, s: ServicioLeido | null): Lugar {
 
 /** Una falta que todavía no se escribió es un camino (pie neutro); una que se escribió mal es un error (rojo). Sin rojo salvo el error real. */
 function esFalta(p: ProblemaFase, fase: FaseBorrador): boolean {
-  return p.hint === "fase_sin_proveedor" || (p.hint === "fase_sin_tarifa" && fase.tarifa.trim() === "") || p.hint === "fase_sin_posicion";
+  return p.hint === "fase_sin_proveedor" || (p.hint === "fase_sin_tarifa" && fase.tarifa.trim() === "") || (p.hint === "fase_sin_fijo" && fase.fijo.trim() === "") || p.hint === "fase_sin_posicion";
 }
 
 const dosDecimales = (n: number) => n.toFixed(2);
@@ -119,7 +123,7 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
   const opcionesProveedor: Opcion<string>[] = sirven.map((p) => ({ valor: p.id, texto: p.nombre }));
   const encendidas = ordenarFases(fases).filter((f) => f.encendida || faseDe(f.clave).siempre);
   // Las que se pueden encender, en el orden del catálogo (Bordado · Estampado · Lavandería), no en el de la ruta.
-  const apagadas = FASES.filter((def) => !def.siempre && !fases.some((f) => f.clave === def.clave && f.encendida));
+  const apagadas = FASES_DE_LA_HOJA.filter((def) => !def.siempre && !fases.some((f) => f.clave === def.clave && f.encendida));
   const sinServicios = opcionesProveedor.length === 0 && encendidas.some((f) => f.quien === "servicio");
 
   function cambiar(clave: FaseClave, parche: Partial<FaseBorrador>) {
@@ -260,7 +264,38 @@ export function FilaFase({
         </div>
       )}
 
-      {servicio && (
+      {servicio && def.hito && (
+        <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
+          <CampoSelect
+            id={`${idBase}-proveedor`}
+            etiqueta="Proveedor"
+            valor={fase.proveedorId ?? ""}
+            onValor={(v) => onCambiar({ proveedorId: v || null })}
+            opciones={opciones}
+            marcador={opcionesProveedor.length === 0 ? "Sin proveedores de servicio" : "Elegir a quién"}
+            deshabilitado={opciones.length === 0}
+            {...pieDe("proveedor")}
+          />
+          <CampoMonto
+            id={`${idBase}-fijo`}
+            etiqueta="Cobra por esta orden"
+            inputMode="decimal"
+            placeholder={sugerida && sugerida.fijo > 0 ? dosDecimales(sugerida.fijo) : "0.00"}
+            value={fase.fijo}
+            onChange={(e) => onCambiar({ fijo: e.target.value })}
+            {...pieDe("fijo", sugerida && sugerida.fijo > 0 && fase.fijo.trim() === "" ? "de su lista de precios" : "una sola vez por la orden, sin IGV")}
+          />
+          <CampoFecha
+            id={`${idBase}-fecha`}
+            etiqueta="Prometido para"
+            valor={fase.fechaPrometida}
+            onValor={(iso) => onCambiar({ fechaPrometida: iso })}
+            {...pieDe("fecha", "opcional · cuándo lo devuelve")}
+          />
+        </div>
+      )}
+
+      {servicio && !def.hito && (
         <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
           <CampoSelect
             id={`${idBase}-proveedor`}

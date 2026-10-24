@@ -53,6 +53,9 @@ const fila = (p: Partial<FilaER> & Pick<FilaER, "unidad" | "nombre">): FilaER =>
   descuadres: 0,
   planillaVisible: true,
   planillaNota: null,
+  planillaEstimada: 0,
+  planillaAlCierre: 0,
+  planillaPersonas: 0,
   ...p,
 });
 
@@ -177,6 +180,14 @@ describe("las filas del cuadro", () => {
     expect([planilla.nombre, planilla.cuenta]).toEqual(["Planilla (Dynamic)", "62"]);
     expect(conceptos.find((k) => k.clave === "g639")!.nombre).toBe("Comisiones bancarias");
   });
+  it("las mermas se rotulan con la 6951 (desvalorización de inventarios), no con la 659; la 659 ya no es la cuenta de la fila", () => {
+    const mermas = conceptos.find((k) => k.clave === "mermas")!;
+    expect([mermas.nombre, mermas.cuenta]).toEqual(["Mermas", "6951"]);
+    expect(mermas.cuentas[0]).toBe("6951");
+    // Las diferencias de caja y el redondeo empiezan igual (659…) pero son otras cuentas: la fila de mermas nunca las lee.
+    expect(mermas.cuentas).not.toContain("6599");
+    expect(mermas.cuentas).not.toContain("6598");
+  });
   it("el redondeo de efectivo (ADR-0311) sale como su gasto, con su cuenta, y dice de dónde viene", () => {
     const conRedondeo: FilaER = { ...TRU, detalleGastos: [...TRU.detalleGastos, { cuenta: "6598", nombre: "Redondeo de efectivo (a favor del cliente)", monto: 0.08 }] };
     const k = conceptosER([conRedondeo]).find((c) => c.clave === "g6598")!;
@@ -254,6 +265,21 @@ describe("de dónde sale una cifra", () => {
     ]);
     expect(o.mayores[0]!.asiento).toBe("v1");
   });
+  it("«De dónde sale» de las mermas suma la 6951 y, mientras siga en el plan, la 659; nunca las diferencias de caja (6599) ni el redondeo (6598)", () => {
+    const k = conceptosER([TAL]).find((c) => c.clave === "mermas")!;
+    const mermas = [
+      l({ cuenta: "6951", debe: 50, regla: "merma_conteo", asiento: "m1" }),
+      l({ cuenta: "659", debe: 30, regla: "merma_merma", asiento: "m2" }),
+      l({ cuenta: "6599", debe: 7, regla: "diferencia_caja", asiento: "c1" }),
+      l({ cuenta: "6598", debe: 0.08, regla: "venta", asiento: "r1" }),
+    ];
+    const o = origenDeCifra(mermas, k.cuentas, "u-tru");
+    expect(o.total).toBe(80);
+    expect(o.porRegla.map((g) => [g.texto, g.monto])).toEqual([
+      ["Faltantes de conteo", 50],
+      ["Quitadas a mano, sin contar", 30],
+    ]);
+  });
   it("CAYLA suma todas las unidades; «empresa», solo lo que no tiene tienda", () => {
     expect(Math.round(origenDeCifra(lineas, ["7011"], "consolidado").total * 100) / 100).toBe(296.61);
     expect(origenDeCifra(lineas, ["7011"], "empresa").total).toBe(0);
@@ -277,6 +303,8 @@ describe("descargar", () => {
     expect(csv.startsWith("﻿Estado de resultados · Agosto 2026")).toBe(true);
     expect(csv).toContain("Concepto;Cuenta;Trujillo;CAYLA");
     expect(csv).toContain("Costo de lo vendido;691;-19850.00;0.00");
+    expect(csv).toContain("Mermas;6951;");
+    expect(csv).not.toContain("Mermas;659;");
   });
 });
 

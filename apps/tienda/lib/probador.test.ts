@@ -30,6 +30,7 @@ import {
   notaDeLaFoto,
   notaDelColor,
   piezasDelLook,
+  textoAgregarAlLook,
   piezasParaLasTallas,
   poner,
   presentes,
@@ -108,21 +109,30 @@ describe("interpretarProbador: lo que dice la base", () => {
   });
 });
 
-describe("zonaDe: la zona de cada categoría, por su prefijo", () => {
+describe("zonaDe: la zona de cada categoría, por su prefijo (máximo 3 prendas: arriba, abajo y bolso; ADR-0444)", () => {
   const de = (prefijo: string | null, nombre = "X") => zonaDe({ nombre, prefijo });
-  it("arriba, vestido, abajo, encima y el bolso (Bolsos y Carteras)", () => {
+  it("arriba, abajo y el bolso (Bolsos y Carteras)", () => {
     expect(["CMS", "TOP", "BOD", "POL"].map((p) => de(p))).toEqual(["arriba", "arriba", "arriba", "arriba"]);
-    expect(["VES", "CON", "ENT"].map((p) => de(p))).toEqual(["vestido", "vestido", "vestido"]);
     expect(["PAN", "JEA", "FAL", "SHO"].map((p) => de(p))).toEqual(["abajo", "abajo", "abajo", "abajo"]);
-    expect(["BLZ", "CHA", "CAS", "CAP"].map((p) => de(p))).toEqual(["encima", "encima", "encima", "encima"]);
     expect(de("CAR")).toBe("bolso");
+  });
+  it("una casaca, un chaleco, un blazer o un abrigo ES la prenda de arriba: no va encima de otra", () => {
+    expect(["BLZ", "CHA", "CAS", "ABR"].map((p) => de(p))).toEqual(["arriba", "arriba", "arriba", "arriba"]);
+  });
+  it("los vestidos, enterizos y conjuntos, y las capas, no entran", () => {
+    expect(["VES", "CON", "ENT", "TBA", "CAP"].map((p) => de(p))).toEqual([null, null, null, null, null]);
+  });
+  it("ninguna categoría cae en las zonas «vestido» ni «encima»", () => {
+    for (const p of ["CMS", "TOP", "BOD", "POL", "VES", "CON", "ENT", "PAN", "JEA", "FAL", "SHO", "BLZ", "CHA", "CAS", "CAP", "ABR", "CAR", "KIM"]) {
+      expect(["vestido", "encima"]).not.toContain(de(p));
+    }
   });
   it("los demás accesorios, la bisutería, el calzado y el empaque no entran", () => {
     expect(["MOC", "ARE", "ZAP", "BOL", "MAQ"].map((p) => de(p))).toEqual([null, null, null, null, null]);
     expect(zonaDe(null)).toBeNull();
   });
-  it("una categoría nueva que nadie ordenó cae en «Encima y más», como en el menú de la tienda", () => {
-    expect(de("KIM")).toBe("encima");
+  it("una categoría nueva que nadie ordenó cae en «Chompas/Abrigos» del menú, y en el armador es prenda de arriba", () => {
+    expect(de("KIM")).toBe("arriba");
   });
 });
 
@@ -166,6 +176,8 @@ describe("notaDelColor: cada color dice cuánto hay", () => {
 
 describe("armarProbador: el catálogo y lo del probador, juntos", () => {
   const delCatalogo = (n: number, prefijo: string, colores: string[], extra: Partial<Prenda> = {}): Prenda => ({
+    empresa: null,
+    insignias: [],
     id: id(n),
     codigo: `P-${n}`,
     nombre: `Prenda ${n}`,
@@ -362,6 +374,13 @@ describe("lo que cuesta el look", () => {
     expect(totales(look, INDICE)).toEqual({ cuantas: 2, final: 90, lista: 100, desde: true });
     expect(totales(LOOK_VACIO, INDICE)).toEqual({ cuantas: 0, final: 0, lista: 0, desde: false });
   });
+  it("sin las prendas que el cliente no lleva («✕»): no cuentan ni en la cantidad ni en el precio; con todas fuera, cero", () => {
+    const look: Look = { ...LOOK_VACIO, arriba: pieza(TOP), abajo: pieza(JEAN, "AZD") };
+    expect(totales(look, INDICE, new Set([TOP.id]))).toEqual({ cuantas: 1, final: 40, lista: 50, desde: true });
+    expect(totales(look, INDICE, new Set([TOP.id, JEAN.id]))).toEqual({ cuantas: 0, final: 0, lista: 0, desde: false });
+    // Una prenda que ya no está en el look no cambia nada.
+    expect(totales(look, INDICE, new Set(["otra"]))).toEqual(totales(look, INDICE));
+  });
   it("«Algo encima» dice qué hay en esa zona", () => {
     expect(ayudaDeZona(TODAS, "encima")).toBe("blazers o chalecos");
     expect(ayudaDeZona(TODAS, "bolso")).toBe("bolsos y carteras");
@@ -384,6 +403,25 @@ describe("tallas y a la bolsa", () => {
     for (const malo of [[], [{ id: "x", color: "NEG" }], [{ id: TOP.id, color: "N E G" }], Array.from({ length: 5 }, () => ({ id: TOP.id, color: "NEG" })), "x", null]) {
       expect(piezasParaLasTallas(malo), JSON.stringify(malo)).toBeNull();
     }
+  });
+  it("lo que no se lleva no se pide ni va a la hoja, y la hoja numera de nuevo lo que sí", () => {
+    const sin = new Set([JEAN.id]);
+    expect(piezasDelLook(look, sin)).toEqual([
+      { id: TOP.id, color: "NEG" },
+      { id: CARTERA.id, color: "NEG" },
+    ]);
+    const hoja = lookParaLaHoja(look, INDICE, [{ id: TOP.id, color: "NEG", tallas: [] }, { id: CARTERA.id, color: "NEG", tallas: [] }], sin);
+    expect(hoja.piezas.map((p) => [p.posicion, p.prenda.nombre])).toEqual([
+      [1, "Prenda 1"],
+      [2, "Prenda 9"],
+    ]);
+    expect(hoja).toMatchObject({ total: 100, totalFinal: 100 });
+  });
+  it("el botón dice cuántas prendas se agregan, no «todo»; sin ninguna que llevar se apaga y dice qué hacer", () => {
+    expect(textoAgregarAlLook(3)).toEqual({ texto: "Agregar 3 prendas a mi bolsa", apagado: false });
+    expect(textoAgregarAlLook(2).texto).toBe("Agregar 2 prendas a mi bolsa");
+    expect(textoAgregarAlLook(1).texto).toBe("Agregar 1 prenda a mi bolsa");
+    expect(textoAgregarAlLook(0)).toEqual({ texto: "Elige qué llevar", apagado: true });
   });
   it("la hoja de los looks recibe cada prenda en su color, con su recorte, lo que vale ese color y sus tallas", () => {
     const hoja = lookParaLaHoja(look, INDICE, [

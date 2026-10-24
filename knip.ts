@@ -36,8 +36,9 @@ const config: KnipConfig = {
   ignoreExportsUsedInFile: true,
   // `supabase` es la CLI (en el CI va por `npx supabase`, no como dependencia) y `uptime`, el comando del sistema que lee la carga
   // de la máquina en `scripts/carga/carga.mjs`; `openssl`, el del sistema, que arma el certificado de prueba del experimento
-  // `scripts/investigacion/reintento-post-cortado.mjs`.
-  ignoreBinaries: ["supabase", "uptime", "openssl"],
+  // `scripts/investigacion/reintento-post-cortado.mjs`; `vercel`, la CLI de cada máquina (`vercel login`), con que
+  // `apps/tienda/scripts/medicion-leer.mjs` baja el registro de la tienda (ADR-0447).
+  ignoreBinaries: ["supabase", "uptime", "openssl", "vercel"],
   workspaces: {
     ".": {
       // Los scripts de la raíz se corren a mano, desde las skills o desde el CI: cada uno es un punto de entrada, y también lo que
@@ -76,6 +77,10 @@ const config: KnipConfig = {
             ignoreFiles: [
               "lib/{guia-de-foco-pantallas,sugerir-archivos,tema-colores-archivos}.ts",
               "lib/*-fixture{,s}.ts",
+              // La ayuda de precio de «Nueva orden de compra» (`docs/pantallas/compras-ordenes-precio-y-stock.md`, actividad 1 de 7): las reglas
+              // puras nacen antes que su pantalla, que las importa en la actividad 4 (`components/ordenes-compra/NuevaOrdenCompra.tsx`).
+              // SE SACA DE AQUÍ al conectarla: este candado es justo para que «lo uso después» no se quede.
+              "lib/orden-compra-precio-ayuda.ts",
             ],
           }
         : {}),
@@ -96,6 +101,12 @@ const config: KnipConfig = {
         // `scripts/rol-local.mjs` crea el usuario de la base LOCAL (`pnpm --filter tienda rol-local`): solo en la corrida normal.
         "scripts/**/*.mjs",
       ],
+    },
+    "packages/shared": {
+      project: ["src/**/*.{ts,css}!"],
+      // La hoja de los efectos de las campañas es la FUENTE de dos copias (`apps/web/app/estilos` y `apps/tienda/app/estilos`) que una prueba
+      // (`apps/web/lib/campana-efectos.test.ts`) lee como texto y mantiene idénticas: ningún archivo la importa.
+      ignore: ["src/campana-efectos.css"],
     },
     "packages/*": {
       project: ["src/**/*.{ts,css}!"],

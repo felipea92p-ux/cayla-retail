@@ -2,7 +2,7 @@ import { exigirModulo } from "@/lib/persona-actual";
 import { getCargaInicial } from "@/lib/carga-inicial";
 import { ConfiguracionCargaInicial } from "@/components/ConfiguracionCargaInicial";
 import { getConfiguracionMetas, getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
-import { getCategoriasGasto, getContextoGastos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
+import { getCategoriasGasto, getContextoGastos, getFichasDeFijos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
 import { anioLima, hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -92,16 +92,25 @@ async function SeccionCuentas() {
 
 async function SeccionFijos() {
   const { desde } = rangoMes(mesDe(hoyLima()));
-  const [contexto, categorias, proveedores, fijos] = await Promise.all([
+  const [contexto, categorias, proveedores, fijos, fichas] = await Promise.all([
     getContextoGastos(),
     getCategoriasGasto(),
     getProveedoresParaGasto(),
     getFijosMes(desde, { clave: "todas", ubicacionId: null, soloEmpresa: false }),
+    getFichasDeFijos(),
   ]);
   return (
     <>
       {fijos.falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{fijos.falla}</p>}
-      <TablaGastosFijos fijos={fijos.datos} categorias={categorias} ubicaciones={contexto.ubicaciones} proveedores={proveedores} />
+      <TablaGastosFijos
+        fijos={fijos.datos}
+        categorias={categorias}
+        ubicaciones={contexto.ubicaciones}
+        proveedores={proveedores}
+        fichas={fichas.porFijo}
+        fichaDisponible={fichas.disponible}
+        hoy={hoyLima()}
+      />
       <p className="nota-cayla">
         Un fijo es un recordatorio: cada mes aparece en <b>Finanzas ▸ Gastos ▸ Fijos del mes</b> para registrarlo con lo que llegó de verdad. Si uno deja de pagarse, se archiva: sus gastos ya registrados se quedan.
       </p>

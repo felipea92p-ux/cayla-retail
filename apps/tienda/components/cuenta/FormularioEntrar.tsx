@@ -8,7 +8,8 @@ import { anotarEntrada } from "@/app/acciones/entrada";
 import { INICIO_CON_CUENTA } from "@/lib/sesion";
 import { clienteNavegador } from "@/lib/auth-navegador";
 import { normalizarCorreo } from "@/lib/cuentas";
-import { MENSAJES } from "@/lib/cuentas-mensajes";
+import { googleYaTienesCuentaCon, MENSAJES } from "@/lib/cuentas-mensajes";
+import { COOKIE_GOOGLE_CORREO, correoOcultoDeLaCookie } from "@/lib/google";
 import { hrefConVolver, PARAMETRO_VOLVER, problemaAlEntrar, rutaParaVolver, type ProblemaAlEntrar } from "@/lib/entrada";
 import { BotonGoogle } from "./BotonGoogle";
 import { CajaClave } from "./CajaClave";
@@ -32,6 +33,8 @@ const MENSAJES_GOOGLE: Record<string, string> = {
   "no-disponible": MENSAJES.googleNoDisponible,
   "correo-repetido": MENSAJES.googleCorreoRepetido,
   "correo-de-otra-persona": MENSAJES.googleCorreoDeOtraPersona,
+  // Sin el correo (la cookie venció o se borró), igual se dice que ya tiene cuenta.
+  "ya-tienes-cuenta": MENSAJES.googleYaTienesCuenta,
 };
 
 export function FormularioEntrar() {
@@ -54,7 +57,10 @@ export function FormularioEntrar() {
     // Google volvió con un problema (`app/auth/google/route.ts`): se dice con palabras y se limpia de la dirección.
     const google = parametros.get("google");
     if (google) {
-      setError(MENSAJES_GOOGLE[google] ?? MENSAJES.googleNoDisponible);
+      // «Ya tienes cuenta con otro correo»: el correo (a medias) lo dejó la ruta de Google en una cookie corta; se lee y se borra.
+      const correoOculto = google === "ya-tienes-cuenta" ? correoOcultoDeLaCookie(document.cookie) : null;
+      if (google === "ya-tienes-cuenta") document.cookie = `${COOKIE_GOOGLE_CORREO}=; path=/entrar; max-age=0`;
+      setError(correoOculto ? googleYaTienesCuentaCon(correoOculto) : (MENSAJES_GOOGLE[google] ?? MENSAJES.googleNoDisponible));
       const url = new URL(window.location.href);
       url.searchParams.delete("google");
       window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
@@ -132,13 +138,7 @@ export function FormularioEntrar() {
         entrar(e.currentTarget);
       }}
     >
-      <div>
-        <span className="t-ceja">Tu cuenta</span>
-        <h1 className="w-titulo">
-          Entra a <em>tu cuenta.</em>
-        </h1>
-      </div>
-      <BotonGoogle volver={volver} />
+      <h1 className="w-titulo">Entrar</h1>
       <div className="w-campo" data-estado={problema?.campo === "correo" ? "error" : undefined}>
         <label htmlFor={ID.correo}>Correo</label>
         <input
@@ -208,6 +208,7 @@ export function FormularioEntrar() {
       <button className="t-btn t-btn-ancho" type="submit" disabled={enviando} aria-busy={enviando || undefined}>
         {enviando ? "Entrando…" : "Entrar"}
       </button>
+      <BotonGoogle volver={volver} abajo />
       {/* Quien llega sin cuenta (un enlace que le mandaron) ve el otro camino como un botón, no como un enlace perdido en una frase. La
           pregunta va en la raya que separa los dos caminos; lo que gana con el Club lo dice el panel de al lado (o de abajo). */}
       <div className="w-otro-camino">

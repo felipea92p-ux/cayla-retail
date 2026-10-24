@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EncabezadoAyuda } from "./ayuda/EncabezadoAyuda";
+import { BotonVerTienda } from "./BotonVerTienda";
 import { Icono } from "./Icono";
 import { columnasDeTiendas, enlaceMapa, enlaceWhatsapp, whatsappLegible, type Sede } from "@/lib/tiendas";
 import "@/app/estilos/tiendas.css";
@@ -96,24 +97,17 @@ export function NuestrasTiendas({
                 {enlace && (
                   // En el Inicio elegir la tienda deja la vista donde está (se sigue mirando esta sección); desde /tiendas se llega al
                   // Inicio desde arriba.
-                  <Link
-                    className="ay-tienda-ver"
-                    href={enlace.href}
-                    aria-current={enlace.actual ? "true" : undefined}
-                    scroll={enPagina ? undefined : false}
-                  >
-                    {enlace.actual ? (
-                      <>
-                        <Icono nombre="check" />
-                        <span>Viendo lo de {s.nombre}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Ver solo lo que hay aquí</span>
-                        <Icono nombre="flecha" />
-                      </>
-                    )}
-                  </Link>
+                  enlace.actual ? (
+                    <Link className="ay-tienda-ver" href={enlace.href} aria-current="true" scroll={enPagina ? undefined : false}>
+                      <Icono nombre="check" />
+                      <span>Viendo lo de {s.nombre}</span>
+                    </Link>
+                  ) : (
+                    <BotonVerTienda href={enlace.href} enPagina={enPagina}>
+                      <span>Ver lo que hay</span>
+                      <Icono nombre="flecha" />
+                    </BotonVerTienda>
+                  )
                 )}
               </div>
             </li>
@@ -153,7 +147,7 @@ export function NuestrasTiendas({
     <section className="t-sec t-ancho ay-tiendas-sec" aria-labelledby={idTitulo}>
       <div className="t-sec-cab">
         <div>
-          <span className="t-ceja">{laCeja}</span>
+          {laCeja && <span className="t-ceja">{laCeja}</span>}
           <h2 id={idTitulo}>
             Nuestras <em>tiendas</em>
           </h2>

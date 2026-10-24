@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 92,
+  "total": 100,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -99,6 +99,11 @@
       "Boton «{primeraAnulable === e ? \"prod-orden.anular\" : undefined}»",
       "BotonDeshacer «→() => setDeshaciendo(e)»"
     ],
+    "components/orden-pagina/MarcarFaseModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
     "components/orden-pagina/PasarAlStockModal.tsx": [
       "Boton «Anotarla ahora»",
       "ComboResponsable «{responsable}»",
@@ -114,6 +119,8 @@
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/RutaDeFases.tsx": [
+      "Boton «{fase.id === idDeLaQueMarca ? \"prod-orden.marcar\" : undefined}»",
+      "BotonDeshacer «→() => setHoja({ tipo: \"desmarcar\", faseId: fase.id»",
       "Boton «{fase.actual ? \"prod-orden.terminar\" : undefined}»",
       "Boton «{fase.id === idDeLaQueRecibe ? \"prod-orden.vuelta\" : undefined}»",
       "Boton «{fase.id === idDeLaQueSale ? \"prod-orden.salida\" : undefined}»",
@@ -140,9 +147,12 @@
       "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
       "SegmentoDeslizante «{`Dónde va el ${nombreEnFrase}»",
       "CampoSelect «Proveedor»",
+      "CampoMonto «Cobra por esta orden»",
+      "CampoFecha «Prometido para»",
+      "CampoSelect «Proveedor» #2",
       "CampoMonto «Por prenda»",
       "CampoTexto «Cantidad mínima»",
-      "CampoFecha «Prometido para»",
+      "CampoFecha «Prometido para» #2",
       "CampoMonto «Fijo por orden»",
       "button «+ fijo por orden (ponchado, matriz)»"
     ]

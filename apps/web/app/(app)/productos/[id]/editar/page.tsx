@@ -1,3 +1,5 @@
+import { dibujoElegido } from "@cayla-retail/shared/insignias-visual";
+import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { notFound, redirect } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
@@ -14,6 +16,8 @@ import { Chip } from "@/components/ui/Chip";
 import { precioUnico } from "@/lib/precio-sede-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { esUuid } from "@/lib/club-registro-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
+import type { CampanaDelVocabulario } from "@/lib/precio-de-hoy";
 
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
@@ -36,7 +40,7 @@ export default async function EditarProductoPage({
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, resSedesCampanas] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -49,7 +53,14 @@ export default async function EditarProductoPage({
       "los colores del vocabulario"
     ),
     getEjesPorCategoria(),
-    supabase.from("etiquetas").select("id, nombre, estilo, vigente_desde, vigente_hasta, descuento_pct").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+    // Con las categorías donde cada campaña rige sola: la ficha dice lo que cobra la caja hoy y al guardar (ADR-0472), con la misma
+    // regla de la caja (marcada a mano o por su categoría).
+    supabase
+      .from("etiquetas")
+      .select("id, nombre, estilo, icono, icono_imagen, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
+      .eq("activo", true)
+      .eq("estado", "aprobado")
+      .order("nombre"),
     getCatalogoMarcas(),
     supabase.from("familias").select("codigo, exige_tejido_patron, entra_a_motores"),
     getImagenesMuestra(),
@@ -59,6 +70,9 @@ export default async function EditarProductoPage({
     supabase.rpc("fn_variantes_estado", { p_producto_id: id }),
     // Precio por tienda (Felipe 2026-10-09): las tiendas abiertas. Tolerante: si falla, el bloque solo se lee.
     supabase.from("ubicaciones").select("id, nombre").eq("tipo", "tienda").eq("activo", true).order("nombre"),
+    // Las tiendas donde rige cada campaña (ADR-0486; sin filas = todas): el aviso de reimprimir dice en cuáles cambió el precio en caja.
+    // Tolerante: si falla (la base sin la migración), todas rigen en todas las sedes, como antes.
+    supabase.rpc("campanas_sedes"),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const filasFamilias = exigir(familias, "las familias del catálogo");
@@ -69,7 +83,8 @@ export default async function EditarProductoPage({
   // (Halloween, CyberWow...) deja de OFRECERSE fuera de su ventana, pero
   // nunca se retira sola de una variante que ya la tenía — eso sería
   // perder un dato sin que nadie lo pidiera.
-  const hoy = new Date().toISOString().slice(0, 10);
+  // El día de Lima, no el de UTC: pasadas las 7 pm la fecha UTC ya es mañana y una campaña que termina hoy dejaba de ofrecerse.
+  const hoy = hoyLima();
   // Quien edita Productos cambia aquí las etiquetas de la prenda, con descuento o sin él (ADR-0293, Felipe 2026-09-30: la ficha
   // perdió su guardia en `actualizar_variantes_etiquetas`, en producción desde ese día). Esta pantalla seguía escondiendo las de
   // descuento a quien no es líder, con el aviso «las pone un líder», que ya no era cierto (revisión 2026-10-03).
@@ -77,7 +92,23 @@ export default async function EditarProductoPage({
   const vocabulario = exigir(resEtiquetas, "las etiquetas del vocabulario");
   const etiquetas = vocabulario
     .filter((e) => (!e.vigente_desde || e.vigente_desde <= hoy) && (!e.vigente_hasta || e.vigente_hasta >= hoy))
-    .map((e) => ({ id: e.id, texto: e.nombre, estilo: e.estilo ?? "neutral" }));
+    .map((e) => ({ id: e.id, texto: e.nombre, estilo: e.estilo ?? "neutral", icono: dibujoElegido(e.icono), imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null }));
+  // Las que bajan el precio (ADR-0472): la ficha calcula con ellas lo que cobra la caja, también mientras se cambian etiquetas.
+  const sedesDeCampana = new Map<string, string[]>();
+  for (const f of resSedesCampanas.error ? [] : (resSedesCampanas.data ?? [])) {
+    sedesDeCampana.set(f.etiqueta_id, [...(sedesDeCampana.get(f.etiqueta_id) ?? []), f.ubicacion_id]);
+  }
+  const campanas: CampanaDelVocabulario[] = vocabulario
+    .filter((e) => e.descuento_pct !== null && Number(e.descuento_pct) > 0)
+    .map((e) => ({
+      id: e.id,
+      nombre: e.nombre,
+      descuentoPct: Number(e.descuento_pct),
+      vigenteDesde: e.vigente_desde,
+      vigenteHasta: e.vigente_hasta,
+      categoriaIds: (e.etiqueta_categorias ?? []).map((c) => c.categoria_id),
+      sedeIds: sedesDeCampana.get(e.id) ?? [],
+    }));
 
   if (!producto) notFound();
 
@@ -159,6 +190,7 @@ export default async function EditarProductoPage({
         ejes={ejes}
         imagenes={imagenes}
         etiquetas={etiquetas}
+        campanas={{ vocabulario: campanas, hoy }}
         marcas={marcas}
         estadoVariantes={resEstado.error ? null : leerEstadoVariantes(resEstado.data)}
         esLider={esLider}

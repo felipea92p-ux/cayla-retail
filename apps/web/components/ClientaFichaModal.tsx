@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -23,7 +22,7 @@ import { deducirTallas, estadoFrecuente } from "@/lib/clienta-actividad-reglas";
 import { ajustarNumeroAlTipo, contactoVisible, normalizarNumeroDocumento, problemaDocumento } from "@/lib/documento-clienta-reglas";
 import { estadoClub } from "@/lib/club-reglas";
 import { cajaDelProblemaCumple, cumpleCompleto, problemaCumple, type CumpleEscrito } from "@/lib/club-cumple-reglas";
-import { avisoCambioDeCelular, cumpleLegible, faltaParaSerSocia } from "@/lib/club-clientas-reglas";
+import { avisoCambioDeCelular, faltaParaSerSocia } from "@/lib/club-clientas-reglas";
 import { registrarBajaWhatsapp } from "@/lib/club-acciones";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import { archivarClienta, cargarFichaClienta, editarClienta, reactivarClienta, type DatosEdicion } from "@/lib/clientas-acciones";
@@ -38,9 +37,15 @@ import { Aviso } from "@/components/ui/Aviso";
 import { frecuenteDeLaFicha, suSedeDeLaFicha } from "@/lib/clientas-lista-reglas";
 import { PreferenciasClienta } from "@/components/clientas/PreferenciasClienta";
 import { HistoriaPermisos } from "@/components/clientas/HistoriaPermisos";
-import { ShoppingBag } from "lucide-react";
-import { Vacio } from "@/components/ui/Vacio";
+import { PuntosDeLaFicha, usePuntosDeLaFicha } from "@/components/clientas/PuntosDeLaFicha";
 import { BotonEditar } from "@/components/ui/BotonEditar";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+// Diseño B de la ficha (Felipe 2026-10-20): su perfil a la izquierda, tres cifras, y un historial en línea de tiempo.
+import { CifraDeLaFicha, HistorialDelCliente, PerfilDelCliente, type DatosDelPerfil } from "@/components/clientas/FichaDelCliente";
+import { lineaDeTiempo, totalComprado } from "@/lib/clienta-actividad-reglas";
+import { estadoDeLaFila, suSedeLegible, ultimaCompraLegible } from "@/lib/clientas-lista-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
+import { MESES_DEL_ANIO } from "@/lib/club-cumple-reglas";
 
 /** Lo que muestra la hoja: la ficha, o una de sus acciones (cada una responde adentro del mismo panel, ADR-0136). Del club
  *  queda «Registrar su BAJA» (`baja`): desde la tanda 1g (ADR-0288, G-1, G-7) ella se une sola desde el cartel, así que la
@@ -115,7 +120,7 @@ function camposDeLaGuia(
       requerido: problema !== null,
       sugerido: false,
       hecho: cumpleCompleto(escrito, anioActual),
-      pendiente: problema ?? "Sin él no hay beneficio de cumpleaños.",
+      pendiente: problema ?? "Sin él no recibe su regalo de cumpleaños.",
     };
   };
   switch (modo) {
@@ -270,6 +275,10 @@ export function ClientaFichaModal({
     setFicha(ficha);
     setModo("ver");
   }
+
+  // Sus puntos se leen una vez y sirven a la cifra de arriba y al bloque de abajo (solo una miembro tiene).
+  const esMiembro = ficha ? estadoClub(ficha.clienta) !== "no_socia" && !ficha.clienta.anonimizada : false;
+  const puntos = usePuntosDeLaFicha(id, ficha?.clienta.version ?? 0, ficha?.clienta.cumpleMes ?? null, esMiembro);
 
   if (cargando || !ficha) {
     return (
@@ -444,91 +453,151 @@ export function ClientaFichaModal({
     </Boton>
   );
 
+  // ---- Lo que arma el diseño B (Felipe 2026-10-20): su perfil, las tres cifras y el historial ----
+  const nombreVisible = c.nombre ?? documento ?? "Sin nombre";
+  const cumple = c.cumpleDia && c.cumpleMes ? `${c.cumpleDia} ${MESES_DEL_ANIO[c.cumpleMes - 1]?.slice(0, 3).toLowerCase() ?? ""}${c.cumpleAnio ? ` ${c.cumpleAnio}` : ""}` : null;
+  const perfil: DatosDelPerfil = {
+    nombre: nombreVisible,
+    estado: estadoDeLaFila({ archivadaEn: c.archivadaEn, anonimizada: c.anonimizada, fusionadaEnId: c.fusionadaEnId, clubDesde: c.clubDesde, esFrecuente: frecuente.esFrecuente }),
+    novedades: conClub && activa ? { texto: c.publicidadDesde ? "Recibe novedades" : "No recibe novedades", recibe: c.publicidadDesde !== null } : null,
+    documento,
+    celular: contacto.celular,
+    correo,
+    cumple,
+    codigo: c.codigoClub,
+    // Copiar solo sirve con el dato completo: quien lo ve a medias no copia «71••••82».
+    completos: verCompleto ? { documento: c.documentoNumero, celular: c.telefonoWhatsapp, correo: c.correo, codigo: c.codigoClub } : null,
+  };
+  const movimientos = lineaDeTiempo(ficha);
+  const ultimaIso = ficha.resumenCompras?.ultimaCompra ?? ficha.compras[0]?.fecha ?? null;
+  const ultima = ultimaCompraLegible(ultimaIso, hoyLima());
+  const sedeUltima = ficha.compras[0] ? suSedeLegible(ficha.compras[0].ubicacion) : null;
+  const detalleCompras = [
+    `${ficha.compras.length} compra${ficha.compras.length === 1 ? "" : "s"}`,
+    conClub ? (frecuente.esFrecuente ? "compra seguido" : `le ${frecuente.faltanParaFrecuente === 1 ? "falta" : "faltan"} ${frecuente.faltanParaFrecuente} para «seguido»`) : null,
+    ficha.devoluciones.length > 0 ? "sin descontar devoluciones" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const datosPuntos = puntos.tipo === "listo" ? puntos.puntos : null;
+  // En vez del título de siempre, la hoja abre con el perfil (su nombre ya está ahí): el nombre queda para el lector de pantalla.
+  // Editar tiene su propio título; el resto de las acciones (archivar, BAJA…) conservan el nombre y lo que decían.
+  const tituloHoja = modo === "ver" ? <span className="sr-only">Ficha de {nombreVisible}</span> : modo === "editar" ? "Editar datos" : nombreVisible;
+  const subtituloHoja =
+    modo === "ver"
+      ? undefined
+      : modo === "editar"
+        ? nombreVisible
+        : [documento, contacto.celular, correo, c.codigoClub].filter(Boolean).join(" · ") || "Sin documento ni celular";
+
   return (
     <Modal
-      titulo={c.nombre ?? documento ?? "Sin nombre"}
-      subtitulo={
-        !activa
-          ? c.anonimizada
-            ? "Ficha anonimizada — sin datos personales (Ley 29733)"
-            : c.fusionadaEnId
-              ? "Esta ficha se unió a otra"
-              : `Ficha archivada: ${c.motivoArchivo}`
-          : [documento, contacto.celular, correo, c.codigoClub].filter(Boolean).join(" · ") || "Sin documento ni celular"
-      }
+      titulo={tituloHoja}
+      subtitulo={subtituloHoja}
       onClose={onClose}
       variante="hoja"
-      tamano="ancha"
+      ancho="max-w-4xl" /* unificar-fijo: la ficha de un cliente abre con su perfil a un lado (diseño B de Fichas, aprobado por Felipe 2026-10-20) */
       // Una salida a la vista (ADR-0358, ronda 12): mirando la ficha, la ×; editando, archivando o con la BAJA, «Cancelar».
       conCerrar={modo === "ver"}
     >
       {() => (
         <div ref={raiz} className="space-y-5">
           {modo === "ver" && (
-            <>
-              {/* Lo primero, lo que más se busca (spike del club, `modalFicha`): los datos de un vistazo. Lo demás se reparte en dos
-                  pestañas —Club y Actividad— en vez de apilar nueve bloques, y «Editar» queda arriba, sin tener que bajar. */}
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4" data-guia="clientas.ficha-datos">
-                <Dato etiqueta="Cumpleaños" valor={cumpleLegible(c.cumpleDia, c.cumpleMes, c.cumpleAnio)} />
-                <Dato etiqueta="Club" valor={c.clubDesde ? `Desde ${fecha(c.clubDesde)}` : "No es miembro"} />
-                <Dato etiqueta="Frecuente" valor={frecuente.esFrecuente ? "Sí" : `Falta ${frecuente.faltanParaFrecuente}`} tono={frecuente.esFrecuente ? "verde" : undefined} />
-                <Dato etiqueta="Su sede" valor={suSede.valor} detalle={suSede.detalle} />
-              </div>
-
-              <div className="flex items-end justify-between gap-3 border-b border-sand">
-                {/* Club o Actividad son dos secciones de la ficha: la pestaña de vista del sistema (ADR-0358). La línea la pone la fila. */}
-                <Pestanas
-                  etiquetaAccesible="Qué ver de este cliente"
-                  guia="clientas.ficha-pestanas"
-                  idIndicador="ficha-cliente-vista"
-                  activa={vistaActual}
-                  onCambio={(clave) => setVista(clave as Vista)}
-                  className="-mb-px border-b-0"
-                  items={[
-                    ...(conClub ? [{ clave: "club", etiqueta: "Club" }] : []),
-                    { clave: "actividad", etiqueta: "Actividad", conteo: totalActividad > 0 ? totalActividad : undefined, guia: "clientas.ficha-tab-actividad" },
-                  ]}
-                />
+            // `-m-6` deja que el perfil llegue hasta el borde de la hoja (que ya le pone p-6 a todo).
+            <div className="-m-6 grid lg:grid-cols-[250px_minmax(0,1fr)]">
+              <PerfilDelCliente d={perfil}>
                 {activa && (
                   <BotonEditar
                     guia="clientas.ficha-editar"
-                    className="mb-2 shrink-0 !py-2"
+                    className="w-full !bg-papel"
                     onClick={() => {
                       setEdicion(datosDeEdicion(c));
                       setRechazoCorreo(null);
                       setSalioDelCorreo(false);
                       setModo("editar");
                     }}
-                  />
+                  >
+                    Editar datos
+                  </BotonEditar>
                 )}
-              </div>
+                {/* Lo que se hace pocas veces va abajo y discreto; lo de todos los días («Editar») está arriba. */}
+                {activa && (
+                  <div className="mt-auto pt-2" data-guia="clientas.ficha-acciones">
+                    <button
+                      type="button"
+                      className="btn-cayla btn-sutil w-full"
+                      onClick={() => {
+                        setMotivoArchivo("");
+                        setAnonimizar(false);
+                        setModo("archivar");
+                      }}
+                    >
+                      Archivar a este cliente
+                    </button>
+                  </div>
+                )}
+              </PerfilDelCliente>
 
-              {vistaActual === "club" && conClub && (
-                <div className="space-y-4">
-                  <div className="card-cayla divide-y divide-sand" data-guia="clientas.ficha-club">
-                    <div className="grid gap-x-4 gap-y-1.5 p-4 sm:grid-cols-[7.5rem_1fr] sm:items-center">
-                      <span className="label-cayla text-[10.5px] text-tinta/55">Club</span>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <Chip tono="verde">Miembro</Chip>
-                        <span className="text-xs text-tinta/60">
-                          desde {fecha(c.clubDesde!)}
-                          {c.codigoClub ? ` · ${c.codigoClub}` : ""}
-                        </span>
-                      </div>
-                      <span className="text-xs text-tinta/55 sm:col-start-2">Su cupón de cumpleaños y su vale de aniversario, en tienda.</span>
-                    </div>
-                    <div className="grid gap-x-4 gap-y-1.5 p-4 sm:grid-cols-[7.5rem_1fr] sm:items-center">
-                      <span className="label-cayla text-[10.5px] text-tinta/55">Publicidad</span>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <section className="min-w-0 space-y-5 p-6 lg:pt-7">
+                {!activa && (
+                  <Aviso tono="atencion" chico>
+                    {c.anonimizada ? "Ficha anonimizada: sin datos personales (Ley 29733)." : c.fusionadaEnId ? "Esta ficha se unió a otra." : `Ficha archivada: ${c.motivoArchivo}.`}
+                  </Aviso>
+                )}
+
+                {/* Las tres cifras: sus puntos (o, sin club, su sede), cuánto ha comprado y su última compra. */}
+                <div className="grid gap-2.5 sm:grid-cols-3 lg:pr-10" data-guia="clientas.ficha-resumen">
+                  {datosPuntos ? (
+                    <CifraDeLaFicha titulo="Puntos" valor={datosPuntos.destacado.replace(/ puntos?$/, "")} detalle={datosPuntos.resto} />
+                  ) : (
+                    <CifraDeLaFicha titulo="Su sede" valor={suSede.valor} detalle={suSede.detalle ? `Donde más compró (${suSede.detalle})` : "Donde más compró en 12 meses"} />
+                  )}
+                  <CifraDeLaFicha titulo="Ha comprado" valor={soles(totalComprado(ficha.compras))} detalle={detalleCompras} />
+                  <CifraDeLaFicha titulo="Última compra" valor={ultima?.hace ?? "—"} detalle={ultima ? [ultima.fecha, sedeUltima].filter(Boolean).join(" · ") : "Todavía sin compras"} />
+                </div>
+
+                {/* Club o Historial son dos secciones de la ficha: la pestaña de vista del sistema (ADR-0358). Quien no es del club solo
+                    tiene el Historial: una sola pestaña no elige nada, así que ahí es el título del bloque. */}
+                {conClub ? (
+                  <Pestanas
+                    etiquetaAccesible="Qué ver de este cliente"
+                    guia="clientas.ficha-pestanas"
+                    idIndicador="ficha-cliente-vista"
+                    activa={vistaActual}
+                    onCambio={(clave) => setVista(clave as Vista)}
+                    items={[
+                      { clave: "club", etiqueta: "Club" },
+                      { clave: "actividad", etiqueta: "Historial", conteo: totalActividad > 0 ? totalActividad : undefined, guia: "clientas.ficha-tab-actividad" },
+                    ]}
+                  />
+                ) : (
+                  <TituloSeccion nivel={3} cuenta={totalActividad > 0 ? totalActividad : undefined} guia="clientas.ficha-tab-actividad">
+                    Historial
+                  </TituloSeccion>
+                )}
+
+                {vistaActual === "club" && conClub && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-tinta/75">
+                      Miembro desde <b className="font-medium text-tinta">{fecha(c.clubDesde!)}</b>. Gana puntos con cada compra y los canjea en caja por un cupón.
+                    </p>
+
+                    {/* Sus puntos, su regalo de cumpleaños y sus cupones vivos (programa de puntos): se leen aparte y, si fallan, la
+                        ficha sigue igual. Sin ficha de miembro no se dibuja nada. */}
+                    <PuntosDeLaFicha estado={puntos} />
+
+                    <div className="card-cayla p-4" data-guia="clientas.ficha-club">
+                      <TituloSeccion nivel={3}>Novedades por WhatsApp</TituloSeccion>
+                      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
                         {c.publicidadDesde ? (
                           <>
-                            <Chip tono="verde">Con publicidad</Chip>
+                            <Chip tono="verde">Recibe novedades</Chip>
                             <span className="text-xs text-tinta/60">desde {fecha(c.publicidadDesde)}</span>
                           </>
                         ) : (
                           <>
-                            <Chip tono="neutro">Sin publicidad</Chip>
-                            <span className="text-xs text-tinta/60">no la pidió: es miembro sin mensajes</span>
+                            <Chip tono="neutro">No recibe novedades</Chip>
+                            <span className="text-xs text-tinta/60">no las pidió: es miembro sin mensajes</span>
                           </>
                         )}
                         {/* «Registrar su BAJA»: solo si tiene publicidad (y su celular, que es lo que se da de baja). */}
@@ -538,216 +607,181 @@ export function ClientaFichaModal({
                           </Boton>
                         )}
                       </div>
-                      <span className="text-xs text-tinta/55 sm:col-start-2">
-                        Solo el cliente la acepta, desde el cartel. Si te escribe BAJA, regístralo aquí: vale para las 3 tiendas.
-                      </span>
+                      <p className="mt-2.5 text-xs text-tinta/55">Solo el cliente las acepta, desde el cartel. Si te escribe BAJA, regístralo aquí: vale para las 3 tiendas.</p>
                     </div>
+
+                    <PreferenciasClienta
+                      clientaId={c.id}
+                      version={c.version}
+                      guardadas={c.preferencias ?? {}}
+                      soloLectura={!activa}
+                      onGuardada={(version, preferencias) => setFicha((f) => (f ? { ...f, clienta: { ...f.clienta, version, preferencias } } : f))}
+                    />
+
+                    <HistoriaPermisos clientaId={c.id} clave={c.version} />
                   </div>
+                )}
 
-                  <PreferenciasClienta
-                    clientaId={c.id}
-                    version={c.version}
-                    guardadas={c.preferencias ?? {}}
-                    soloLectura={!activa}
-                    onGuardada={(version, preferencias) => setFicha((f) => (f ? { ...f, clienta: { ...f.clienta, version, preferencias } } : f))}
-                  />
+                {vistaActual === "actividad" && (
+                  <div className="space-y-5" data-guia="clientas.ficha-actividad">
+                    {!c.anonimizada && !conClub && (
+                      <div className="rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
+                        <b className="font-semibold text-tinta">Tiene ficha pero no es del club.</b>{" "}
+                        {faltaParaElClub ?? "Se une por su cuenta, escaneando el cartel del club con su celular y este mismo documento."}
+                      </div>
+                    )}
 
-                  <HistoriaPermisos clientaId={c.id} clave={c.version} />
-                </div>
-              )}
+                    {tallas.length > 0 && (
+                      <p className="text-sm text-tinta/75">
+                        <span className="label-cayla mr-2 text-[10.5px] text-tinta/55">Talla que suele comprar</span>
+                        {tallas.map((t) => `${t.categoria}: ${t.talla}`).join(" · ")}
+                      </p>
+                    )}
 
-              {vistaActual === "actividad" && (
-                <div className="space-y-5" data-guia="clientas.ficha-actividad">
-                  {!c.anonimizada && !conClub && (
-                    <div className="rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
-                      <b className="font-semibold text-tinta">Tiene ficha pero no es del club.</b>{" "}
-                      {faltaParaElClub ?? "Se une por su cuenta, escaneando el cartel del club con su celular y este mismo documento."}
-                    </div>
-                  )}
+                    <HistorialDelCliente movimientos={movimientos} />
+                  </div>
+                )}
 
-                  {tallas.length > 0 && (
-                    <p className="text-sm text-tinta/75">
-                      <span className="label-cayla mr-2 text-[10.5px] text-tinta/55">Talla que suele comprar</span>
-                      {tallas.map((t) => `${t.categoria}: ${t.talla}`).join(" · ")}
-                    </p>
-                  )}
+                {activa && ficha.tiendaOnline?.cuentaWeb && <TiendaOnlineDeLaFicha clientaId={c.id} verCompleto={verCompleto} onRestablecer={() => setModo("acceso-web")} />}
 
-                  {totalActividad === 0 ? (
-                    <Vacio tamano="chico" icono={<ShoppingBag />}>
-                      Todavía no tiene compras, cambios, devoluciones ni apartados.
-                    </Vacio>
-
-                  ) : (
-                    <>
-                      <SeccionActividad titulo="Compras" total={ficha.compras.length}>
-                        {ficha.compras.map((compra) => (
-                          <FilaActividad
-                            key={compra.ventaId}
-                            fecha={fecha(compra.fecha)}
-                            texto={compra.ubicacion}
-                            detalle={compra.items.map((i) => `${i.cantidad}× ${i.categoria ?? "prenda"}${i.talla ? ` (${i.talla})` : ""}`).join(", ")}
-                            monto={soles(compra.total)}
-                          />
-                        ))}
-                      </SeccionActividad>
-
-                      <SeccionActividad titulo="Cambios" total={ficha.cambios.length}>
-                        {ficha.cambios.map((cambio) => (
-                          <FilaActividad key={cambio.id} fecha={fecha(cambio.fecha)} texto={cambio.ubicacion} detalle={cambio.motivo ?? "—"} />
-                        ))}
-                      </SeccionActividad>
-
-                      <SeccionActividad titulo="Devoluciones" total={ficha.devoluciones.length}>
-                        {ficha.devoluciones.map((d) => (
-                          <FilaActividad key={d.id} fecha={fecha(d.fecha)} texto={d.estado} detalle={d.motivo ?? "—"} />
-                        ))}
-                      </SeccionActividad>
-
-                      <SeccionActividad titulo="Apartados" total={ficha.separaciones.length}>
-                        {ficha.separaciones.map((s) => (
-                          <FilaActividad key={s.id} fecha={fecha(s.fecha)} texto={s.codigo} detalle={s.estado} monto={soles(s.total)} />
-                        ))}
-                      </SeccionActividad>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {activa && ficha.tiendaOnline?.cuentaWeb && <TiendaOnlineDeLaFicha clientaId={c.id} verCompleto={verCompleto} onRestablecer={() => setModo("acceso-web")} />}
-
-              {/* Lo que se hace pocas veces va abajo y discreto; lo de todos los días («Editar») está arriba. */}
-              {activa ? (
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-sand pt-3" data-guia="clientas.ficha-acciones">
-                  <button
-                    type="button"
-                    className="btn-cayla btn-sutil"
-                    onClick={() => {
-                      setMotivoArchivo("");
-                      setAnonimizar(false);
-                      setModo("archivar");
-                    }}
-                  >
-                    Archivar
-                  </button>
-                </div>
-              ) : (
-                !c.anonimizada &&
-                !c.fusionadaEnId && (
+                {!activa && !c.anonimizada && !c.fusionadaEnId && (
                   <div className="flex flex-wrap justify-end gap-3 border-t border-sand pt-4">
                     <ComboResponsable control={responsable} deshabilitado={guardando} compacto />
                     <Boton textoCargando="Reactivando…" type="button" peso="primario" cargando={guardando} onClick={onReactivar} disabled={!responsable.listo}>
                       Reactivar
                     </Boton>
                   </div>
-                )
-              )}
-            </>
+                )}
+              </section>
+            </div>
           )}
 
           {modo === "editar" && edicion && (
+            // Diseño B (Felipe 2026-10-20): cuatro bloques con su título —Quién es, Cómo contactarlo, Cumpleaños, Quién guarda el
+            // cambio—, el campo que sigue se enciende (guía de foco, ADR-0284) y abajo un pie fijo con «Falta: …» y Cancelar / Guardar.
             <form onSubmit={onEditar} className="space-y-4">
-              <CampoGuiado id="documento" guia={guia} className="grid gap-3 sm:grid-cols-2">
-                <CampoTipoDocumento
-                  tipo={edicion.documentoTipo}
-                  onTipo={(t) => setEdicion((d) => d && { ...d, documentoTipo: t, documentoNumero: ajustarNumeroAlTipo(t, d.documentoNumero) })}
-                />
-                <CampoNumeroDocumento
-                  tipo={edicion.documentoTipo}
-                  numero={edicion.documentoNumero}
-                  onNumero={(v) => setEdicion((d) => d && { ...d, documentoNumero: v })}
-                />
-              </CampoGuiado>
-              {/* El nombre (Felipe 2026-10-15): con DNI no se edita a mano —bloqueado, con «Actualizar desde el padrón»; si el DNI
-                  cambió, el padrón trae el del número nuevo—; con carné o pasaporte se escribe tal cual, sin números. */}
-              <CampoGuiado id="nombre" guia={guia}>
-                {nombreEditado?.origen === "padron" ? (
-                  <NombreDelPadron
-                    padron={padron}
-                    donde="ficha"
-                    onConsultar={consultar}
-                    deAntes={mismoDni ? (c.nombre ?? "") : null}
-                    actualizable={mismoDni}
-                    deshabilitado={guardando}
-                    conMarca={(titulo) => guia.etiqueta("nombre", titulo)}
+              <section className="card-cayla space-y-4 p-4 sm:p-5">
+                <TituloSeccion nivel={3}>Quién es</TituloSeccion>
+                <CampoGuiado id="documento" guia={guia} className="grid gap-3 sm:grid-cols-2">
+                  <CampoTipoDocumento
+                    tipo={edicion.documentoTipo}
+                    onTipo={(t) => setEdicion((d) => d && { ...d, documentoTipo: t, documentoNumero: ajustarNumeroAlTipo(t, d.documentoNumero) })}
                   />
-                ) : (
-                  <CampoTexto
-                    id={ID_NOMBRE_ESCRITO}
-                    etiqueta={guia.etiqueta("nombre", "Nombre")}
-                    maxLength={200}
-                    value={edicion.nombre}
-                    onChange={(e) => setEdicion((d) => d && { ...d, nombre: e.target.value })}
-                    pie={
-                      nombreEditado?.pendiente && /[0-9]/.test(edicion.nombre)
-                        ? nombreEditado.pendiente
-                        : nombreEditado?.origen === "escrito"
-                          ? AYUDA_NOMBRE_ESCRITO
-                          : undefined
-                    }
-                    tono={nombreEditado?.pendiente && /[0-9]/.test(edicion.nombre) ? "error" : "neutro"}
+                  <CampoNumeroDocumento
+                    tipo={edicion.documentoTipo}
+                    numero={edicion.documentoNumero}
+                    onNumero={(v) => setEdicion((d) => d && { ...d, documentoNumero: v })}
                   />
-                )}
-              </CampoGuiado>
-              <CampoGuiado id="celular" guia={guia}>
-                <CampoCelular
-                  etiqueta={guia.etiqueta("celular", "Celular (WhatsApp)")}
-                  obligatorio={c.clubDesde !== null}
-                  valor={edicion.telefonoWhatsapp}
-                  onValor={(v) => setEdicion((d) => d && { ...d, telefonoWhatsapp: v })}
-                />
-                {/* Recibe novedades en el celular de ahora: al cambiarlo las pierde (la base se las quita sola), y se dice antes. */}
-                {avisoCelular && <p className="nota-cayla mt-2 text-[13px]">{avisoCelular}</p>}
-              </CampoGuiado>
-              {/* El correo de CONTACTO (Felipe 2026-10-15): opcional. Mal escrito, o de otra ficha (la base dice de cuál: quien edita ve
-                  el módulo), va bajo la caja. El correo con que entra a la tienda online no cambia desde aquí, y se dice. */}
-              <CampoGuiado id="correo" guia={guia}>
-                <CampoTexto
-                  id={ID_CORREO}
-                  etiqueta={guia.etiqueta(
-                    "correo",
-                    <>
-                      Correo <span className="font-normal normal-case text-tinta/45">· opcional</span>
-                    </>,
+                </CampoGuiado>
+                {/* El nombre (Felipe 2026-10-15): con DNI no se edita a mano —bloqueado, con «Actualizar desde el padrón»; si el DNI
+                    cambió, el padrón trae el del número nuevo—; con carné o pasaporte se escribe tal cual, sin números. */}
+                <CampoGuiado id="nombre" guia={guia}>
+                  {nombreEditado?.origen === "padron" ? (
+                    <NombreDelPadron
+                      padron={padron}
+                      donde="ficha"
+                      onConsultar={consultar}
+                      deAntes={mismoDni ? (c.nombre ?? "") : null}
+                      actualizable={mismoDni}
+                      deshabilitado={guardando}
+                      conMarca={(titulo) => guia.etiqueta("nombre", titulo)}
+                    />
+                  ) : (
+                    <CampoTexto
+                      id={ID_NOMBRE_ESCRITO}
+                      etiqueta={guia.etiqueta("nombre", "Nombre")}
+                      maxLength={200}
+                      value={edicion.nombre}
+                      onChange={(e) => setEdicion((d) => d && { ...d, nombre: e.target.value })}
+                      pie={
+                        nombreEditado?.pendiente && /[0-9]/.test(edicion.nombre)
+                          ? nombreEditado.pendiente
+                          : nombreEditado?.origen === "escrito"
+                            ? AYUDA_NOMBRE_ESCRITO
+                            : undefined
+                      }
+                      tono={nombreEditado?.pendiente && /[0-9]/.test(edicion.nombre) ? "error" : "neutro"}
+                    />
                   )}
-                  type="email"
-                  inputMode="email"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  maxLength={254}
-                  value={edicion.correo}
-                  onChange={(e) => setEdicion((d) => d && { ...d, correo: e.target.value })}
-                  onBlur={() => setSalioDelCorreo(true)}
-                  aria-invalid={pieCorreo ? true : undefined}
-                  pie={pieCorreo ?? "Solo para contactar al cliente si hace falta, nunca para publicidad."}
-                  tono={pieCorreo ? "error" : "neutro"}
-                />
-                {notaCorreo && <p className="nota-cayla mt-2 text-[13px]">{notaCorreo}</p>}
-              </CampoGuiado>
-              <CampoGuiado id="cumple" guia={guia} titulo="Cumpleaños" ayuda="Día y mes; el año, solo si lo quiere decir">
-                <CamposCumpleanos
-                  cumple={cumpleDeEdicion(edicion)}
-                  onCumple={(nuevo) => setEdicion((d) => d && { ...d, cumpleDia: nuevo.dia, cumpleMes: nuevo.mes, cumpleAnio: nuevo.anio })}
-                  anioActual={anioActual}
-                  despues="se puede agregar después."
-                />
-              </CampoGuiado>
+                </CampoGuiado>
+              </section>
+
+              <section className="card-cayla space-y-4 p-4 sm:p-5">
+                <TituloSeccion nivel={3}>Cómo contactarlo</TituloSeccion>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <CampoGuiado id="celular" guia={guia}>
+                    <CampoCelular
+                      etiqueta={guia.etiqueta("celular", "Celular (WhatsApp)")}
+                      obligatorio={c.clubDesde !== null}
+                      valor={edicion.telefonoWhatsapp}
+                      onValor={(v) => setEdicion((d) => d && { ...d, telefonoWhatsapp: v })}
+                    />
+                    {/* Recibe novedades en el celular de ahora: al cambiarlo las pierde (la base se las quita sola), y se dice antes. */}
+                    {avisoCelular && <p className="nota-cayla mt-2 text-[13px]">{avisoCelular}</p>}
+                  </CampoGuiado>
+                  {/* El correo de CONTACTO (Felipe 2026-10-15): opcional. Mal escrito, o de otra ficha (la base dice de cuál: quien edita ve
+                      el módulo), va bajo la caja. El correo con que entra a la tienda online no cambia desde aquí, y se dice. */}
+                  <CampoGuiado id="correo" guia={guia}>
+                    <CampoTexto
+                      id={ID_CORREO}
+                      etiqueta={guia.etiqueta(
+                        "correo",
+                        <>
+                          Correo <span className="font-normal normal-case text-tinta/45">· opcional</span>
+                        </>,
+                      )}
+                      type="email"
+                      inputMode="email"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      maxLength={254}
+                      value={edicion.correo}
+                      onChange={(e) => setEdicion((d) => d && { ...d, correo: e.target.value })}
+                      onBlur={() => setSalioDelCorreo(true)}
+                      aria-invalid={pieCorreo ? true : undefined}
+                      pie={pieCorreo ?? "Solo para contactar al cliente si hace falta, nunca para publicidad."}
+                      tono={pieCorreo ? "error" : "neutro"}
+                    />
+                    {notaCorreo && <p className="nota-cayla mt-2 text-[13px]">{notaCorreo}</p>}
+                  </CampoGuiado>
+                </div>
+              </section>
+
+              <section className="card-cayla space-y-4 p-4 sm:p-5">
+                <TituloSeccion nivel={3}>Cumpleaños</TituloSeccion>
+                <CampoGuiado id="cumple" guia={guia} titulo="Día, mes y año" ayuda="Día y mes; el año, solo si lo quiere decir">
+                  <CamposCumpleanos
+                    cumple={cumpleDeEdicion(edicion)}
+                    onCumple={(nuevo) => setEdicion((d) => d && { ...d, cumpleDia: nuevo.dia, cumpleMes: nuevo.mes, cumpleAnio: nuevo.anio })}
+                    anioActual={anioActual}
+                    despues="se puede agregar después."
+                  />
+                </CampoGuiado>
+              </section>
+
+              <section className="card-cayla space-y-4 p-4 sm:p-5">
+                <TituloSeccion nivel={3}>Quién guarda este cambio</TituloSeccion>
+                <CampoGuiado id="responsable" guia={guia}>
+                  <ComboResponsable control={responsable} deshabilitado={guardando} />
+                </CampoGuiado>
+              </section>
+
               <p className="text-xs text-tinta/65">El club y las novedades por WhatsApp no se cambian aquí: se ven y se registran en la ficha.</p>
-              <CampoGuiado id="responsable" guia={guia}>
-                <ComboResponsable control={responsable} deshabilitado={guardando} />
-              </CampoGuiado>
-              <PieGuia guia={guia} listo="Todo listo para guardar." />
-              <div className="pie-hoja-fijo flex justify-end gap-3 pt-2">
-                {volverAVer}
-                <Boton
-                  type="submit"
-                  peso="primario"
-                  cargando={guardando}
-                  disabled={!responsable.listo}
-                  title={responsable.motivo ?? guia.frase ?? undefined}
-                  className={guia.claseConfirmar}
-                >
-                  Guardar
-                </Boton>
+              <div className="pie-hoja-fijo space-y-1 pt-2">
+                <PieGuia guia={guia} listo="Todo listo para guardar." />
+                <div className="pie-acciones">
+                  {volverAVer}
+                  <Boton
+                    type="submit"
+                    peso="primario"
+                    cargando={guardando}
+                    disabled={!responsable.listo}
+                    title={responsable.motivo ?? guia.frase ?? undefined}
+                    className={guia.claseConfirmar}
+                  >
+                    Guardar
+                  </Boton>
+                </div>
               </div>
             </form>
           )}
@@ -813,8 +847,8 @@ export function ClientaFichaModal({
             <div className="space-y-5">
               <p className="text-sm text-tinta/75">
                 Escribió BAJA (o pidió que no le manden más novedades). Desde hoy no se le envían novedades, rebajas ni los avisos de sus
-                cupones por WhatsApp, en las 3 tiendas. <strong>Sigue siendo miembro</strong>: su cupón de cumpleaños y su vale de aniversario
-                siguen, en tienda.
+                cupones por WhatsApp, en las 3 tiendas. <strong>Sigue siendo miembro</strong>: sus puntos, sus cupones y su regalo de cumpleaños
+                siguen igual.
               </p>
               <p className="text-xs text-tinta/65">Vale para toda ficha con el celular {contacto.celular}.</p>
               <CampoGuiado id="responsable" guia={guia}>
@@ -840,54 +874,5 @@ export function ClientaFichaModal({
         </div>
       )}
     </Modal>
-  );
-}
-
-function Dato({ etiqueta, valor, tono, detalle }: { etiqueta: string; valor: string; tono?: "verde"; detalle?: string | null }) {
-  return (
-    <div>
-      <p className="label-cayla text-[10px] text-tinta/50">{etiqueta}</p>
-      <p className={`mt-0.5 text-sm font-medium ${tono === "verde" ? "text-verde" : "text-tinta"}`}>
-        {valor}
-        {detalle && <span className="text-xs font-normal text-tinta/55"> · {detalle}</span>}
-      </p>
-    </div>
-  );
-}
-
-const FILAS_VISIBLES = 5;
-
-/** Una lista de lo que hizo (compras, cambios…): sin filas no se dibuja (antes cada vacía ocupaba su título y su «Sin …»), y
- *  con muchas muestra las 5 más recientes y el resto a un toque. */
-function SeccionActividad({ titulo, total, children }: { titulo: string; total: number; children: React.ReactNode[] }) {
-  const [todas, setTodas] = useState(false);
-  if (total === 0) return null;
-  return (
-    <div>
-      <p className="label-cayla text-[11px] text-tinta/65">
-        {titulo} <span className="tabular-nums text-tinta/45">· {total}</span>
-      </p>
-      <div className="mt-2 space-y-1.5">{children.slice(0, FILAS_VISIBLES)}</div>
-      {total > FILAS_VISIBLES && (
-        <>
-          <FilasDeMas abierto={todas}>
-            <div className="space-y-1.5 pt-1.5">{children.slice(FILAS_VISIBLES)}</div>
-          </FilasDeMas>
-          <BotonVerMas forma="enlace" abierto={todas} onCambiar={setTodas} texto={`Ver las ${total}`} className="mt-1" />
-        </>
-      )}
-    </div>
-  );
-}
-
-function FilaActividad({ fecha, texto, detalle, monto }: { fecha: string; texto: string; detalle: string; monto?: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-tinta/5 py-1.5 text-sm last:border-0">
-      <div className="min-w-0">
-        <span className="text-tinta/50">{fecha}</span> <span className="text-tinta">{texto}</span>
-        <p className="truncate text-xs text-tinta/60">{detalle}</p>
-      </div>
-      {monto && <span className="shrink-0 font-medium text-tinta">{monto}</span>}
-    </div>
   );
 }

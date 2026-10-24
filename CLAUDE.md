@@ -56,7 +56,9 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
    manda la sesión, una búsqueda ni un DNI, y un mensaje de error lleva ids, nunca nombres); y
    la publicación en Vercel (ADR-0425: si el aviso de GitHub no le llega, nadie lo reintenta; el
    «Vigía de Vercel» de Actions mira el último commit de `main` y, sin marca de Vercel a los 3 min,
-   lo pide al Deploy Hook y deja un aviso «Producción atrás de main»); el
+   lo pide al Deploy Hook y deja un aviso «Producción atrás de main»); y la
+   base misma (ADR-0450: si no responde, el ERP no confunde eso con «sin acceso» ni «sin sesión»: manda a `/sin-base`, que espera y vuelve sola; `GET /api/salud`
+   corre una consulta de verdad en Postgres y un vigía de GitHub la pregunta cada 5 min; el usuario de la tienda tiene tope de conexiones); el
    sistema se degrada con gracia, nunca pierde datos. Culqi y Shopify se investigaron pero no se integraron
    (docs/investigacion/2026-09-23-tarjeta-pos-y-canal-online.md).
 10. **Ergonomía = potencia** — un colaborador de sede sin formación técnica debe
@@ -161,7 +163,9 @@ raro, el log de Postgres (`query_logs`, `source = 'postgres_logs'`) muestra el t
 
 **Todo modal nuevo se hace con `<Modal>` (`apps/web/components/ui/Modal.tsx`; por URL, `<ModalRuta>`) y hereda solo el
 efecto del sistema: velo con desenfoque → hoja que sube 18 px y crece → contenido en cascada (título, bajada y campos,
-55 ms de desfase) → salida corta.** No definas otra animación de entrada de modal ni reimplementes el overlay
+55 ms de desfase) → salida corta. En el celular la hoja llega desde el borde, con asa, se baja con el dedo y aleja lo de atrás
+(«B · Hoja viva con profundidad», ADR-0479): `<Modal>` y `<Cajon>` ya lo hacen.** Y un `:hover` de nuestro CSS va siempre dentro de
+`@media (hover: hover)` (en el teléfono se queda pegado tras un toque; el `hover:` de Tailwind ya lo hace solo): lo vigila `lib/hover-con-mouse.test.ts`. No definas otra animación de entrada de modal ni reimplementes el overlay
 (`fixed inset-0`): si una pieza no debe entrar en cascada, `data-sin-cascada`. Lo único que un modal agrega por su cuenta
 son respuestas a una acción dentro del contenido (barra que se llena, cifra que cuenta, «visto» que se dibuja) con
 `--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida», el hilo que barre el botón mientras la base responde (antes, su giro; ronda 12 de `/unificar`) y las rayas
@@ -169,7 +173,7 @@ del círculo punteado de un campo opcional en la guía de foco, ADR-0136 act. c;
 cartel que se mece al colgarse y sus bucles suaves, ADR-0136 act. d / ADR-0301; y, en el Observatorio del Admin, el latido de una
 tienda con caja abierta, el cometa de un traslado en camino y el halo de un aviso urgente, ADR-0322; y la **vista rápida de producto** de
 Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Felipe —ola de celdas, cruz, foto que cruza—, y su página
-«Historial» (el hilo que se dibuja, el precio que cuenta, ADR-0354), pero también sin rebote y sin bucle, ADR-0136 act. 2026-10-05; y en **Movimientos** el sello de cada tipo y su trayecto, que corren una vez al verse o al pasar el mouse, ADR-0353; y en **Nuevo producto** el punto del paso abierto, que late todo el tiempo, ADR-0136 act. 2026-10-06; y en **Análisis** los gráficos que se arman una vez al entrar a la pestaña —piezas en cascada, barras que crecen, perchas y puntos que asoman, arcos, las cintas del flujo y cifras que cuentan—, sin rebote ni bucle, ADR-0357 / ADR-0136 act. 2026-10-06 (b), salvo los puntos que corren por la cinta del flujo de «Qué hacer hoy» mientras el mouse está encima; y en las **tarjetas de Existencias** la onda lenta (3,2 s) que sale del color elegido, ADR-0344 act. 2026-10-08; y el **aviso de cierre de caja** de la cabecera, con sus ondas continuas desde la hora, su resplandor que deriva y su destello en «sin cerrar», ADR-0359 / ADR-0136 act. 2026-10-06 (c); y en **Ventas sin registrar** la mesa de talones, puente y prendas —hilos que se dibujan, visitos en cascada, balanza que se llena, mitades que se juntan, sello y talón que se pliega—, sin rebote ni bucle, ADR-0360 / ADR-0136 act. 2026-10-07; y en el **gasto rápido de Caja** (y su hermana, **Registrar ingreso**, ADR-0375) la ola del mosaico, la ★ que se dibuja con sus veces que cuentan, la tinta que se derrama desde el clic y el sello de «listo», sin rebote ni bucle, ADR-0368 / ADR-0136 act. 2026-10-09; y las **guías interactivas** —el velo que se abre hacia la pieza, la onda de llegada, el cursor fantasma que viaja y hace clic, la cascada de la tarjeta, el visto y las chispas del cierre—, sin rebote, con dos bucles que son señal de «mira aquí»: el halo que respira alrededor de la pieza y el cursor de texto que parpadea, ADR-0389 / ADR-0136 act. 2026-10-07 (d); y el **login «El vuelo vivo»**: el colibrí rojo que aletea de Trujillo a su lugar, cose las tres sedes con un hilo punteado, tiñe «transforma.» al pasar y se acomoda, una sola vez al entrar y sin rebote (el aleteo se detiene al llegar), ADR-0136 act. 2026-10-13 (con tres rojos, ADR-0169 act. 2026-10-13); y la **entrada al ERP «El colibrí se abre»**: al iniciar sesión el colibrí cruza al centro y se abre una ventana con su forma sobre la pantalla de destino, una sola vez, sin rebote y sin empezar con `prefers-reduced-motion`, ADR-0136 act. 2026-10-13 (b); y su **salida**, la misma al revés y más rápida al apretar «Salir» —el colibrí vuela de vuelta a su lugar en el login—, ADR-0136 act. 2026-10-13 (c); con su **saludo** bajo el colibrí, «Bienvenido(a), Nombre» al entrar y «Hasta luego, Nombre» al salir, que asoma, se queda y se va una sola vez, ADR-0136 act. 2026-10-13 (d); y **Aventurero**, el gato del meme en «Sin acceso» y en las barreras de error, que teclea en bucle —apurado en un error, dos toques y un Enter decidido en «Sin acceso»—, sin rebote, ADR-0136 act. 2026-10-15; y el grupo **Tienda web** —la ventana del navegador que se asienta y recibe un barrido de luz, las prendas de la vitrina que entran en cascada, el camino del pedido que se dibuja tramo a tramo, la bandeja que entra en cascada con su filo de color—, una sola vez al llegar, sin rebote ni bucle (Felipe eligió «ricas, una vez, sin bucle»), ADR-0430 / ADR-0136 act. 2026-10-16, vigilado por `lib/tienda-web-movimiento.test.ts`), y todo se apaga con
+«Historial» (el hilo que se dibuja, el precio que cuenta, ADR-0354), pero también sin rebote y sin bucle, ADR-0136 act. 2026-10-05; y en **Movimientos** el sello de cada tipo y su trayecto, que corren una vez al verse o al pasar el mouse, ADR-0353; y en **Nuevo producto** el punto del paso abierto, que late todo el tiempo, ADR-0136 act. 2026-10-06; y en **Análisis** los gráficos que se arman una vez al entrar a la pestaña —piezas en cascada, barras que crecen, perchas y puntos que asoman, arcos, las cintas del flujo y cifras que cuentan—, sin rebote ni bucle, ADR-0357 / ADR-0136 act. 2026-10-06 (b), salvo los puntos que corren por la cinta del flujo de «Qué hacer hoy» mientras el mouse está encima; y en las **tarjetas de Existencias** la onda lenta (3,2 s) que sale del color elegido, ADR-0344 act. 2026-10-08; y el **aviso de cierre de caja** de la cabecera, con sus ondas continuas desde la hora, su resplandor que deriva y su destello en «sin cerrar», ADR-0359 / ADR-0136 act. 2026-10-06 (c); y en **Ventas sin registrar** la mesa de talones, puente y prendas —hilos que se dibujan, visitos en cascada, balanza que se llena, mitades que se juntan, sello y talón que se pliega—, sin rebote ni bucle, ADR-0360 / ADR-0136 act. 2026-10-07; y en el **gasto rápido de Caja** (y su hermana, **Registrar ingreso**, ADR-0375) la ola del mosaico, la ★ que se dibuja con sus veces que cuentan, la tinta que se derrama desde el clic y el sello de «listo», sin rebote ni bucle, ADR-0368 / ADR-0136 act. 2026-10-09; y las **guías interactivas** —el velo que se abre hacia la pieza, la onda de llegada, el cursor fantasma que viaja y hace clic, la cascada de la tarjeta, el visto y las chispas del cierre—, sin rebote, con dos bucles que son señal de «mira aquí»: el halo que respira alrededor de la pieza y el cursor de texto que parpadea, ADR-0389 / ADR-0136 act. 2026-10-07 (d); y el **login «El vuelo vivo»**: el colibrí rojo que aletea de Trujillo a su lugar, cose las tres sedes con un hilo punteado, tiñe «transforma.» al pasar y se acomoda, una sola vez al entrar y sin rebote (el aleteo se detiene al llegar), ADR-0136 act. 2026-10-13 (con tres rojos, ADR-0169 act. 2026-10-13); y la **entrada al ERP «El colibrí se abre»**: al iniciar sesión el colibrí cruza al centro y se abre una ventana con su forma sobre la pantalla de destino, una sola vez, sin rebote y sin empezar con `prefers-reduced-motion`, ADR-0136 act. 2026-10-13 (b); y su **salida**, la misma al revés y más rápida al apretar «Salir» —el colibrí vuela de vuelta a su lugar en el login—, ADR-0136 act. 2026-10-13 (c); con su **saludo** bajo el colibrí, «Bienvenido(a), Nombre» al entrar y «Hasta luego, Nombre» al salir, que asoma, se queda y se va una sola vez, ADR-0136 act. 2026-10-13 (d); y **Aventurero**, el gato del meme en «Sin acceso» y en las barreras de error, que teclea en bucle —apurado en un error, dos toques y un Enter decidido en «Sin acceso»—, sin rebote, ADR-0136 act. 2026-10-15; y el grupo **Tienda web** —la ventana del navegador que se asienta y recibe un barrido de luz, las prendas de la vitrina que entran en cascada, el camino del pedido que se dibuja tramo a tramo, la bandeja que entra en cascada con su filo de color—, una sola vez al llegar, sin rebote ni bucle (Felipe eligió «ricas, una vez, sin bucle»), ADR-0430 / ADR-0136 act. 2026-10-16, vigilado por `lib/tienda-web-movimiento.test.ts`); y **Catálogo ▸ Insignias**, la billetera de pases —la insignia que se estampa como un sello de tinta, el pase que se abre, el título que sube por su ranura, el detalle y las prendas en cascada, las cifras que cuentan y el visto que se dibuja—, una sola vez, sin rebote ni bucle (Felipe pidió «full animaciones»), ADR-0481 / ADR-0136 act. 2026-10-22, vigilado por `lib/sellos-movimiento.test.ts`; y la **hoja «Configuración» de una campaña**, la etiqueta viva —el hilo que se dibuja, la etiqueta que baja y se asienta, el descuento que entra al cambiar, las casillas en cascada, la categoría que vuela a su pieza y el sello que se estampa al guardar—, una sola vez, sin rebote ni bucle (Felipe eligió «ricas, una vez, sin bucle»), ADR-0488 / ADR-0136 act. 2026-10-23, vigilado por `lib/campana-hoja-movimiento.test.ts`; y **El telar de Finanzas** —los hilos de sede que crecen, el orillo que se teje y se reacomoda, la cifra de la respuesta que cuenta, el dock que sube y el gráfico propio de cada submódulo—, una sola vez, sin rebote ni bucle, ADR-0493 / ADR-0136 act. 2026-10-23 (b), y todo se apaga con
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
@@ -212,10 +216,20 @@ nombre del menú, nunca la sede → frase; a la derecha, las cifras o el reloj y
 (prop `acciones`: bajan solas bajo la frase si la derecha está ocupada); la vuelta es una flecha a la izquierda de la línea de
 sede (`volver={<Volver href a />}`, Felipe 2026-10-06; desde la tarde de ese día es la única cara de la vuelta en todo el ERP, ADR-0358) y bajo la frase van solo estados (`pie`);
 la frase es opcional y lo que diga de dónde se llegó («Productos · Blusa Emma») va tras la fecha (`detalle`); ADR-0220 y sus actualizaciones);
-solo en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). Lo vigila `lib/unificar.test.ts` (`titulo-pagina`). Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
+solo en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195), hasta que su pantalla se rediseña con El telar (ADR-0493), que usa `<EncabezadoPagina>`. Lo vigila `lib/unificar.test.ts` (`titulo-pagina`). Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
 contraste medido y lo que quedó fuera (formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`. **El modo oscuro entró el
 2026-10-05 sobre esos mismos tokens: ver «Modo oscuro» más abajo.**
+
+## Toda pantalla ocupa todo el ancho (regla — ADR-0462, Felipe 2026-10-20)
+
+**Una pantalla nueva usa el ancho completo de la pantalla: no se centra en una columna angosta.** El marco (`components/AppShell.tsx`) ya lo
+hace solo: una ruta nueva no tiene que pedir nada. Lo que sí te toca es **llenar ese ancho con sentido**: cifras en fila, tabla a lo ancho,
+una columna al costado (un ejemplo, un resumen, una vista previa) y campos de a dos cuando la pantalla es muy ancha, como Clientes ▸
+Beneficios del club. Un párrafo largo o un formulario corto se topan por su cuenta (`max-w-prose`, `max-w-2xl`), nunca la pantalla entera.
+Se revisa a 1440 y 1920 px, además de 375. Las pantallas que nacieron antes con el tope de 64 rem viven en `CON_TOPE_DE_ANCHO` (AppShell):
+es deuda, solo baja, y `lib/ancho-completo.test.ts` falla si una ruta nueva entra ahí. Al revisar una de ellas a lo ancho, se saca de la lista
+(y de `CON_TOPE_HOY` en la prueba). El Inicio («/») sigue con tope: el de almacén, el Observatorio y Aventurero lo quitan con `data-ancho-completo`.
 
 ## Modo oscuro (regla — ADR-0336, Felipe 2026-10-05)
 
@@ -272,6 +286,11 @@ Cambios, Devoluciones, Compras y Resumen dibujan la percha porque su cargador a�
 
 ## Pantallas de Finanzas (regla — ADR-0195, «Ajuste de diseño al spike», Felipe 2026-09-24)
 
+**Desde el 2026-10-23 Finanzas se rediseña con «El telar de Finanzas» (ADR-0493, `docs/maquetas/finanzas-telar-2026-10/`):** la mesa de
+mando común (`app/(app)/finanzas/layout.tsx`) lleva la sede y el mes de todo Finanzas en la URL (`?sede=`, `?mes=`; cada página los lee con
+`sedeDeLaUrl`, nunca con un selector propio), y una pantalla rediseñada usa `<EncabezadoPagina>` con `<RespuestaTelar>`, `<Orillo>` y
+`<DockTelar>` (`components/finanzas/telar/`). Lo que sigue abajo vale para lo que todavía no se rediseñó.
+
 **Toda pantalla de Finanzas (Gastos, Configuración, y las que vienen: Cuentas y dinero, Reportes, Impuestos, Cierre) se
 dibuja como el spike aprobado (`docs/maquetas/finanzas-2026-09/`) y se arma con sus piezas**: `components/finanzas/kit.tsx`
 (tarjeta con herramientas + tabla + pie, campos en caja, opciones en tarjeta; sus pestañas, desde el 2026-10-06, son la pestaña de vista
@@ -301,7 +320,7 @@ ni el cajón abierto**: la pila es rama (`DismissableLayer.Branch`) de toda capa
 Para lo que no pasa por `fetch`: `useEsperando(activo, mensaje?)` (hook), `esperar(mensaje?) → fin()` (imperativo) y
 `<EsperaPantalla />` en cada `loading.tsx`. Una petición que no debe bloquear lleva el header `x-espera: no`. **Al agregar una
 RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la lista de lectura de `espera-reglas.ts`** (hoy
-`fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`); si no, el loader bloqueará la pantalla mientras se busca
+`fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`, `validar_`); si no, el loader bloqueará la pantalla mientras se busca
 o se escribe. **Un buscador que filtra por URL (`?q=`) navega con `buscar(href)` de `useBusquedaEnUrl`
 (`components/ui/BusquedaEnUrl.tsx`), nunca con `router.push` suelto:** lo tipeado no abre el loader; el campo dice «Buscando…»
 (`<Buscador buscando>`) y la lista marcada con `data-resultados` se atenúa (Felipe 2026-09-28). Un filtro por clic sigue con el loader.
@@ -498,6 +517,27 @@ siempre el OK de Felipe**. Respeta los tokens (ADR-0169), el movimiento sin rebo
 modal, corre `/formidable`; el avance módulo por módulo vive en `docs/formidable/README.md` (piloto: Inventario ▸ Frescura del piso). Detalle:
 `docs/adr/0350-formidable-el-iphone-llevado-al-erp.md` y `.claude/skills/formidable/`.
 
+## Skills de diseño de afuera: se consultan, no mandan (regla — Felipe 2026-10-17)
+
+**`frontend-design` (Anthropic) y `ui-ux-pro-max` solo se consultan: nunca mandan sobre los colores ni sobre las piezas ya decididas.**
+No viven en el repo (cada quien las instala en su `~/.claude/skills/`), pero se activan solas en casi cualquier tarea de interfaz y empujan
+a elegir una estética propia —fuentes, paletas, estilos—. Si lo que sugieren choca con este archivo, gana este archivo:
+1. **En el ERP (`apps/web`), colores y letras:** solo los tokens de `apps/web/app/globals.css` con su oscuro en `estilos/tema.css`
+   (ADR-0169 y ADR-0336). Nunca una paleta, un hex ni una fuente que proponga la skill.
+2. **En el ERP, piezas y movimiento:** la tabla de «Una función, una pieza» (ADR-0358) y la regla de ADR-0136. Una sugerencia de la skill
+   no reemplaza una pieza decidida ni abre otra variante; una idea que valga para el ERP pasa por `/unificar` y Felipe la elige mirando.
+3. **La tienda online (`apps/tienda`) puede tener identidad visual propia** (Felipe 2026-10-17, al pedir su rediseño completo): ahí las
+   skills SÍ proponen paleta, letras y estilo, pero siempre como 2 o 3 direcciones en maquetas tocables (`docs/maquetas/`) que Felipe
+   elige mirando, nunca directo en el código. Lo elegido se escribe en `apps/tienda/app/globals.css`, que sigue siendo la única fuente
+   de la tienda; desde ahí, la tienda se trata como el ERP (nada se reinventa pieza por pieza). El logo y el colibrí son la marca y no
+   se rediseñan sin que Felipe lo pida, y lo que decida la tienda no viaja al ERP.
+4. **Nunca `--persist`, en ninguna de las dos apps:** `ui-ux-pro-max` no crea `design-system/<proyecto>/MASTER.md` ni sus `pages/*.md`.
+   Se presenta como «fuente de verdad» y sería una segunda, compitiendo con los `globals.css`, los ADR y `docs/unificar/`; una carpeta
+   `design-system/` no entra a un commit.
+
+Sirven, además, para lo que el repo no decide: criterios de accesibilidad y de UX, cómo elegir un gráfico, ideas para una maqueta en
+`docs/maquetas/`. La búsqueda de `ui-ux-pro-max` está en inglés (en español no encuentra nada) y nunca lleva datos de CAYLA.
+
 ## Una función, una pieza (regla — ADR-0358, Felipe 2026-10-06)
 
 **Dos piezas que hacen lo mismo se ven igual en todo el ERP.** Si «Cancelar», unas pestañas o una insignia de estado se dibujan distinto en dos
@@ -568,6 +608,8 @@ dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y
 | Elegir el mes (`mes`) | `<SelectorMes valor actual onCambiar guia guiaAnterior>` (`components/ui/SelectorMes.tsx`), «‹ Octubre 2026 ›»: las flechas pasan al mes de al lado, al tocar el nombre se abren los doce meses (los que no llegan, con candado) y en el mes de hoy la flecha de la derecha se apaga; en una pantalla de servidor que lee `?m=`, `<SelectorMesEnUrl ruta mes actual>`. Nunca los vecinos escritos con «←»/«→». Finanzas (su combo) queda aparte | 2026-10-17 |
 | El paso de cantidad (`cantidad`) | `<PasoCantidad tamano menos mas campo tono sinTab>` (`components/ui/PasoCantidad.tsx`): la caja del campo (la que se enciende con su hilo) con − y + de lucide adentro y el número que se escribe (`campo`) o se muestra (`children`); «celda» de 26 px en una matriz, «fila» de 36 px que crece sola a 44 en una pantalla táctil; `tono` tiñe borde y número con lo que dice el dato. Nunca un «− 1 +» a mano ni los signos escritos. Las teclas grandes de contar (escáner, Contar el envío, el paso a paso táctil de Existencias) y el pase de Traslados quedan aparte | 2026-10-17 |
 | El cajón lateral (`cajon`) | `<Cajon titulo sobre frase debajo marca pie navegacion ancho velo clave>` (`components/ui/Cajon.tsx`): la banda de Compras en todos —la marca a la izquierda (avatar de 40, sello, ícono), versalitas, título serif de 24, la × de las hojas—, el cuerpo que corre y el pie con las acciones y «3 de 12» con ↑ ↓; anchos de 456 y 544 px; sin `velo`, la lista sigue viva detrás. Nunca un `fixed inset-y-0 right-0` a mano. La vista rápida de Productos es una hoja al centro (ADR-0136) | 2026-10-17 |
+| La hoja del celular (`hoja-movil`) | Bajo 640 px, `<Modal>` y `<Cajon>` ya lo hacen: llegan desde el borde con asa, se bajan con el dedo (se van pasado un tercio o de un tirón; con cambios preguntan) y alejan lo de atrás; una lista de opciones que se aplican al momento abre a media altura (`<Modal mediaAltura>`); el cajón se desliza entre registros. Nunca un `Dialog.Content`, un `Popover.Content` ni una hoja de abajo armada a mano (ADR-0479) | 2026-10-22 |
+| La barra de abajo del celular (`barra-movil`) | La Isla: la clase `barra-abajo` o `<BarraDeAbajo tono sola pegada sobre>` (`components/ui/BarraDeAbajo.tsx`, `app/estilos/barra-abajo.css`): flota a 12 px de los bordes con esquinas de 18 px; clara para lo que toca hacer en la pantalla (con una sola acción, `sola`: la isla es el botón) y oscura (`tono="tinta"`) para lo que llevas elegido (el ticket, las prendas marcadas); el resumen con `<BarraDeAbajoResumen cifra detalle>` y las acciones a la derecha; entra subiendo 12 px una vez. En escritorio, `BarraFija` sigue de borde a borde (sus `sm:`). Nunca un degradado con un botón, una píldora `fixed inset-x-3` ni un pie `sticky -mx-4 border-t` a mano (ADR-0479) | 2026-10-23 |
 | Anterior y siguiente de un paso a paso (`accion.anterior`) | Como todo paso a paso: la flecha redonda `<Volver onClick a="Volver al paso anterior">` a la izquierda (no se dibuja en el primer paso; su lugar se guarda) y «Siguiente» `btn-cayla btn-primario` con su `ArrowRight`, como «Seguir» de Nuevo producto. Una lista con páginas es `<Paginas>`. Nunca «← Anterior» ni «Siguiente →» escritos. La guía interactiva queda aparte (ADR-0389) | 2026-10-17 |
 
 ## Guías interactivas: una demo por pantalla, siempre al día (regla — ADR-0389, Felipe 2026-10-07)

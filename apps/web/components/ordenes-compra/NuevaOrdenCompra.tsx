@@ -18,11 +18,16 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { MarcaCampo } from "@/components/alta-producto/guia";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { ComoPagarle } from "@/components/ordenes-compra/ComoPagarle";
+import { RegistrarProveedorOrden, type ProveedorDeLista } from "@/components/ordenes-compra/RegistrarProveedorOrden";
+import type { ProveedorRegistrado } from "@/lib/proveedor-de-orden-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { EstadoCampo } from "@/lib/guia-campos";
 import { opcionesDeMarca } from "@/lib/marca-proveedor-reglas";
+import { proveedoresParaPedir } from "@/lib/proveedores-reglas";
+import { afinidadDe, lineaNoCalza, prefiltrar, textoDeAfinidad, type AvisoDeLinea } from "@/lib/orden-compra-prefiltro";
 import { sugerirDescripcion } from "@/lib/sugerencias-alta-producto";
 import { soles } from "@/lib/compras-reglas";
 import { TEXTO_AVISO_ORDEN, tituloAvisoOrden } from "@/lib/nos-debe-reglas";
@@ -56,7 +61,7 @@ import { crearOrdenCompra, editarOrdenCompra } from "@/lib/ordenes-compra-accion
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Nueva orden de compra (ADR-0362, fase 1 · actividad 2). Arriba, a quién se le pide y a dónde llega; abajo, lo que se pide, una
-// tarjeta por línea (categoría y marca obligatorias, descripción opcional, cantidad, precio y descuento), con el total al pie. Se usa
+// tarjeta por línea (categoría y marca obligatorias, descripción opcional, cantidad, costo y descuento), con el total al pie. Se usa
 // sobre todo en el celular, en Gamarra: cada línea es una tarjeta que se apila, y el botón de guardar queda a la vista.
 //
 // Quién firma (decisión 39): con la cuenta de una PERSONA no hay combo —firma ella (`orden_compra_crear`)—; desde una TERMINAL, el combo
@@ -76,7 +81,7 @@ const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
 // estado de la guía (✓, «Sigue aquí», falta, opcional).
 const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
 // La fila de una línea cuando hay lugar (sección de 56 rem o más). La comparten el encabezado y cada fila: marca de la guía y número ·
-// categoría · marca · descripción · cantidad · precio · descuento (caja + «% / S/») · subtotal · quitar.
+// categoría · marca · descripción · cantidad · costo · descuento (caja + «% / S/») · subtotal · quitar.
 const FILA_ANCHA = "@min-[56rem]:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_6rem_minmax(9rem,11rem)_6.5rem_2rem]";
 
 /** Editar una orden «generada» en vez de crear una (actividad 4). */
@@ -105,6 +110,20 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
     () => editar?.inicial ?? { proveedorId: "", destino: destinoInicial, entrega: "", nota: "", lineas: [lineaVacia("l1")] },
   );
   const [guardando, setGuardando] = useState(false);
+  // La hoja «Cómo pagarle» del proveedor elegido (solo lectura: no entra al borrador ni a lo que se guarda).
+  const [verComoPagarle, setVerComoPagarle] = useState(false);
+  // «Registrar proveedor» (Felipe 2026-10-21): lo que se había tipeado en el buscador (la hoja está abierta si no es `null`) y los
+  // proveedores que se registraron en esta pantalla, que se suman a los que cargó la página (que no se vuelve a pedir).
+  const [registro, setRegistro] = useState<string | null>(null);
+  const [nuevos, setNuevos] = useState<(ProveedorDeLista & { telefono: string | null })[]>([]);
+  const proveedores = useMemo(
+    () => (nuevos.length ? [...datos.proveedores, ...nuevos.filter((n) => !datos.proveedores.some((p) => p.id === n.id))] : datos.proveedores),
+    [datos.proveedores, nuevos],
+  );
+  // Con el proveedor elegido, las categorías y las marcas ofrecen primero lo suyo; «Ver todas» (al pie de cada lista) amplía una de
+  // las dos y se apaga al cambiar de proveedor (`orden-compra-prefiltro.ts`).
+  const [categoriasTodas, setCategoriasTodas] = useState(false);
+  const [marcasTodas, setMarcasTodas] = useState(false);
   // «Llega a» viene puesto con la sede donde se trabaja: hasta que la persona lo elige (aunque elija la misma), la guía lo trata como
   // sugerido y no lo marca con ✓ (ADR-0284 act. h). Al editar, el destino es el que la orden ya tenía: cuenta como elegido.
   const [destinoElegido, setDestinoElegido] = useState(Boolean(editar));
@@ -121,14 +140,14 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const ctx: ContextoValidacion = useMemo(
     () => ({
       hoy,
-      proveedoresActivos: new Set(datos.proveedores.map((p) => p.id)),
+      proveedoresActivos: new Set(proveedores.map((p) => p.id)),
       categoriasActivas: new Set(datos.categorias.map((c) => c.id)),
       marcasActivas: new Set(datos.marcas.map((m) => m.id)),
       destinos: new Set(datos.destinos.map((d) => d.id)),
       entregaOriginal: editar?.entregaOriginal,
       destinoElegido,
     }),
-    [datos, hoy, editar?.entregaOriginal, destinoElegido],
+    [datos, proveedores, hoy, editar?.entregaOriginal, destinoElegido],
   );
   const campos = camposDeLaOrden(orden, ctx, { pide: !esPersona, listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos, { enModal: false });
@@ -153,9 +172,12 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
 
   // ---- opciones de los combos ----
   const nombreMarca = useMemo(() => new Map(datos.marcas.map((m) => [m.id, m.nombre])), [datos.marcas]);
+  // A quién se le PIDE mercadería: sin los proveedores que son solo de gastos (luz, agua, internet: ADR-0452, act. 2026-10-21). La base acepta
+  // a cualquiera activo, y el que está elegido —o el que la orden traía al abrirse— se queda, pero ofrecerlos era un error esperando a pasar.
+  // «Registrar proveedor» recibe a TODOS (`proveedores`) para avisar de un RUC o un nombre que ya existe, también el de un servicio.
   const opcionesProveedor: OpcionCombo<string>[] = useMemo(
     () =>
-      datos.proveedores.map((p) => {
+      proveedoresParaPedir(proveedores, [orden.proveedorId, editar?.inicial.proveedorId]).map((p) => {
         const suyas = datos.vinculos.filter((v) => v.proveedorId === p.id).map((v) => nombreMarca.get(v.marcaId) ?? "");
         return {
           valor: p.id,
@@ -165,14 +187,20 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           claves: [...suyas, ...(p.ruc ? [p.ruc] : [])],
         };
       }),
-    [datos.proveedores, datos.vinculos, nombreMarca],
+    [proveedores, orden.proveedorId, editar?.inicial.proveedorId, datos.vinculos, nombreMarca],
   );
   // Con el proveedor elegido, sus marcas van primero (la orden acepta cualquiera y no toca el catálogo: decisión por defecto).
   const opcionesMarca: OpcionCombo<string>[] = useMemo(
-    () => opcionesDeMarca(datos.marcas, datos.proveedores, datos.vinculos, orden.proveedorId),
-    [datos.marcas, datos.proveedores, datos.vinculos, orden.proveedorId],
+    () => opcionesDeMarca(datos.marcas, proveedores, datos.vinculos, orden.proveedorId),
+    [datos.marcas, proveedores, datos.vinculos, orden.proveedorId],
   );
   const opcionesCategoria: OpcionCombo<string>[] = useMemo(() => datos.categorias.map((c) => ({ valor: c.id, texto: c.nombre })), [datos.categorias]);
+  // El prefiltro (Felipe 2026-10-21): solo lo que el proveedor maneja, más lo ya elegido en alguna línea (no desaparece), con «Ver todas».
+  const afinidad = useMemo(() => afinidadDe(orden.proveedorId, datos.categoriasDeProveedor, datos.vinculos), [orden.proveedorId, datos.categoriasDeProveedor, datos.vinculos]);
+  const yaElegidas = useMemo(() => new Set(orden.lineas.flatMap((l) => [l.categoriaId, l.marcaId]).filter(Boolean)), [orden.lineas]);
+  const categoriasVista = prefiltrar(opcionesCategoria, afinidad?.categorias ?? null, { verTodas: categoriasTodas, conservar: yaElegidas });
+  const marcasVista = prefiltrar(opcionesMarca, afinidad?.marcas ?? null, { verTodas: marcasTodas, conservar: yaElegidas });
+  const textoAfinidad = textoDeAfinidad(afinidad);
   const opcionesDestino = useMemo(
     // «Por repartir», corto en la caja: «(llega a Lima)» la partía en dos renglones en una pantalla angosta. Lo explica el título de su
     // grupo en la lista abierta, ANTES de elegirlo (Formidable, 2026-10-10: dos de dos pruebas ciegas no sabían qué era).
@@ -183,6 +211,8 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
     [datos.destinos],
   );
   const categoriaPor = useMemo(() => new Map(datos.categorias.map((c) => [c.id, c])), [datos.categorias]);
+  // Cada línea dice si su categoría o su marca ya no son de este proveedor (se deriva: al volver al proveedor de antes, se va sola).
+  const nombresDeLinea = { categoria: (id: string) => categoriaPor.get(id)?.nombre, marca: (id: string) => nombreMarca.get(id) };
 
   // La única marca de un proveedor se pone sola en las líneas que todavía no tienen marca (casi todos traen una sola).
   const marcaUnicaDe = (proveedorId: string) => {
@@ -192,7 +222,17 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
 
   function elegirProveedor(proveedorId: string) {
     const unica = marcaUnicaDe(proveedorId);
+    // Otro proveedor, otra lista: «Ver todas» vuelve a empezar cerrado.
+    setCategoriasTodas(false);
+    setMarcasTodas(false);
     setOrden((o) => ({ ...o, proveedorId, lineas: o.lineas.map((l) => (l.marcaId || !unica ? l : { ...l, marcaId: unica })) }));
+  }
+  /** Un proveedor que se acaba de registrar (o que ya estaba y no se había cargado): se suma a la lista y se elige, y la hoja se cierra. */
+  function alRegistrarse(p: ProveedorRegistrado, telefono: string | null) {
+    // Con su WhatsApp, para que «Cómo pagarle» no diga «Falta teléfono» de uno que acaba de registrarse con él.
+    setNuevos((n) => (n.some((x) => x.id === p.id) ? n : [...n, { id: p.id, nombre: p.nombre, ruc: p.ruc, telefono }]));
+    setRegistro(null);
+    elegirProveedor(p.id);
   }
   function cambiarLinea(clave: string, cambios: Partial<LineaBorrador>) {
     setOrden((o) => ({ ...o, lineas: o.lineas.map((l) => (l.clave === clave ? { ...l, ...cambios } : l)) }));
@@ -213,7 +253,8 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const problemaEntrega = problemaDeEntrega(orden.entrega, hoy, editar?.entregaOriginal);
   // «Nos debe» (ADR-0362, fase 5a, decisión 14): si el proveedor elegido debe prendas por reponer, se avisa antes de pedirle lo nuevo.
   const deudaDelProveedor = orden.proveedorId ? (datos.nosDebe?.[orden.proveedorId] ?? null) : null;
-  const nombreDelProveedor = datos.proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? deudaDelProveedor?.nombre ?? "Este proveedor";
+  const proveedorElegido = proveedores.find((p) => p.id === orden.proveedorId);
+  const nombreDelProveedor = proveedorElegido?.nombre ?? deudaDelProveedor?.nombre ?? "Este proveedor";
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -269,7 +310,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
 
   // «Textiles Andina SAC · S/ 1,260.00 · llega a Tienda TRU»: lo guardado, dicho como se ve en la lista.
   function detalleGuardada(): string {
-    const proveedor = datos.proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? "";
+    const proveedor = proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? "";
     const destino = fraseDestino(orden.destino === POR_REPARTIR ? null : (datos.destinos.find((d) => d.id === orden.destino)?.nombre ?? null));
     return [proveedor, soles(total), destino.charAt(0).toLowerCase() + destino.slice(1)].filter(Boolean).join(" · ");
   }
@@ -362,7 +403,14 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
               (con ✓ 25 px, con «Sigue aquí» 21 px) y las cuatro cajas quedaban a distinta altura mientras se llenaba (Felipe, 2026-10-10:
               «debería estar alineado»). El proveedor va sin ayuda al lado: con «Sigue aquí» no cabía en la columna. */}
           <CampoGuiado id="proveedor" guia={guia}>
-            <p className={TITULO_FIJO}>{etiqueta("proveedor", "Proveedor")}</p>
+            <p className={TITULO_FIJO}>
+              {etiqueta("proveedor", "Proveedor")}
+              {proveedorElegido && (
+                <button type="button" data-guia="orden-form.como-pagarle" onClick={() => setVerComoPagarle(true)} className="btn-cayla btn-enlace ml-auto text-xs font-normal">
+                  Cómo pagarle
+                </button>
+              )}
+            </p>
             <ComboBuscable
               id="oc-proveedor"
               caja
@@ -371,6 +419,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
               valor={orden.proveedorId}
               onValor={elegirProveedor}
               opciones={opcionesProveedor}
+              crear={{ etiqueta: (q) => (q ? `+ Registrar proveedor «${q}»` : "+ Registrar proveedor"), onCrear: (q) => setRegistro(q) }}
             />
           </CampoGuiado>
           <CampoGuiado id="destino" guia={guia}>
@@ -438,6 +487,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           >
             Lo que pides
           </TituloSeccion>
+          {textoAfinidad && <p className="text-xs text-taupe">{textoAfinidad}</p>}
 
           {orden.lineas.length === 0 && (
             <CampoGuiado id="lineas" guia={guia}>
@@ -457,7 +507,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
                 Descripción <span className="text-[12px] font-normal text-taupe">opcional</span>
               </span>
               <span>Cantidad</span>
-              <span>Precio u.</span>
+              <span>Costo u.</span>
               <span className="truncate">
                 Descuento <span className="text-[12px] font-normal text-taupe">si hay</span>
               </span>
@@ -474,8 +524,11 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
               guia={guia}
               etiqueta={etiqueta}
               estado={estadoVisible}
-              opcionesCategoria={opcionesCategoria}
-              opcionesMarca={opcionesMarca}
+              opcionesCategoria={categoriasVista.opciones}
+              opcionesMarca={marcasVista.opciones}
+              ampliarCategoria={categoriasVista.filtrada ? { texto: `Ver todas (${categoriasVista.total})`, onAmpliar: () => setCategoriasTodas(true) } : undefined}
+              ampliarMarca={marcasVista.filtrada ? { texto: `Ver todas (${marcasVista.total})`, onAmpliar: () => setMarcasTodas(true) } : undefined}
+              noCalza={lineaNoCalza(l, afinidad, nombresDeLinea)}
               placeholderDescripcion={sugerirDescripcion(categoriaPor.get(l.categoriaId) ?? null).texto}
               onCambio={(cambios) => cambiarLinea(l.clave, cambios)}
               onQuitar={() => quitarLinea(l.clave)}
@@ -509,6 +562,10 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
       </form>
 
       {avisoSalida.aviso}
+      {verComoPagarle && proveedorElegido && <ComoPagarle proveedor={proveedorElegido} onClose={() => setVerComoPagarle(false)} />}
+      {registro !== null && (
+        <RegistrarProveedorOrden proveedores={proveedores} tipeado={registro} esPersona={esPersona} responsable={responsable} onRegistrado={alRegistrarse} onClose={() => setRegistro(null)} />
+      )}
     </div>
   );
 }
@@ -528,6 +585,9 @@ function LineaOrden({
   estado,
   opcionesCategoria,
   opcionesMarca,
+  ampliarCategoria,
+  ampliarMarca,
+  noCalza,
   placeholderDescripcion,
   onCambio,
   onQuitar,
@@ -540,6 +600,11 @@ function LineaOrden({
   estado: (id: string) => EstadoCampo | null;
   opcionesCategoria: OpcionCombo<string>[];
   opcionesMarca: OpcionCombo<string>[];
+  /** «Ver todas (N)» al pie de la lista cuando se está mostrando solo lo que el proveedor maneja; sin esto, la lista ya es la completa. */
+  ampliarCategoria?: { texto: string; onAmpliar: () => void };
+  ampliarMarca?: { texto: string; onAmpliar: () => void };
+  /** La categoría o la marca de esta línea no son de lo que maneja el proveedor elegido (derivado; nunca bloquea). */
+  noCalza?: AvisoDeLinea | null;
   placeholderDescripcion: string;
   onCambio: (cambios: Partial<LineaBorrador>) => void;
   onQuitar: () => void;
@@ -563,7 +628,7 @@ function LineaOrden({
   // Dos caras, según el ancho de la SECCIÓN (`@container` de «Lo que pides»), no de la ventana: con el menú abierto una laptop deja la
   // sección en ~700 px. Con 56 rem o más, la línea es UNA FILA (Felipe, 2026-10-10: «hay mucho espacio… quizás por fila»): los títulos
   // van en el encabezado de arriba, la marca de la guía y el número abren la fila, y la ✕ la cierra. Más angosta (y en el celular), una
-  // tarjeta apretada: «Línea N» con su ✕ arriba, categoría y marca, descripción, cantidad y precio, descuento y el subtotal.
+  // tarjeta apretada: «Línea N» con su ✕ arriba, categoría y marca, descripción, cantidad y costo, descuento y el subtotal.
   return (
     <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[56rem]:rounded-lg @min-[56rem]:py-2">
       <div data-guia="orden-form.linea" className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[56rem]:items-center ${FILA_ANCHA}`}>
@@ -578,11 +643,11 @@ function LineaOrden({
         </div>
         <div className="col-span-2 @min-[28rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>Categoría</p>
-          <ComboBuscable caja etiquetaAccesible={`Categoría de la línea ${numero}`} marcador="Categoría…" valor={l.categoriaId} onValor={(categoriaId) => onCambio({ categoriaId })} opciones={opcionesCategoria} />
+          <ComboBuscable caja etiquetaAccesible={`Categoría de la línea ${numero}`} marcador="Categoría…" valor={l.categoriaId} onValor={(categoriaId) => onCambio({ categoriaId })} opciones={opcionesCategoria} ampliar={ampliarCategoria} />
         </div>
         <div className="col-span-2 @min-[28rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>Marca</p>
-          <ComboBuscable caja etiquetaAccesible={`Marca de la línea ${numero}`} marcador="Marca…" valor={l.marcaId} onValor={(marcaId) => onCambio({ marcaId })} opciones={opcionesMarca} />
+          <ComboBuscable caja etiquetaAccesible={`Marca de la línea ${numero}`} marcador="Marca…" valor={l.marcaId} onValor={(marcaId) => onCambio({ marcaId })} opciones={opcionesMarca} ampliar={ampliarMarca} />
         </div>
         <div className="col-span-2 @min-[56rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>
@@ -595,8 +660,8 @@ function LineaOrden({
           <CampoTexto caja sinPie etiqueta={`Cantidad de la línea ${numero}`} inputMode="numeric" placeholder="0" value={l.cantidad} onChange={(e) => onCambio({ cantidad: e.target.value })} />
         </div>
         <div>
-          <p className={`${TITULO} @min-[56rem]:hidden`}>Precio por unidad</p>
-          <CampoTexto caja sinPie etiqueta={`Precio por unidad de la línea ${numero}, en soles`} inputMode="decimal" placeholder="0.00" value={l.precio} onChange={(e) => onCambio({ precio: e.target.value })} />
+          <p className={`${TITULO} @min-[56rem]:hidden`}>Costo por unidad</p>
+          <CampoTexto caja sinPie etiqueta={`Costo por unidad de la línea ${numero}, en soles`} inputMode="decimal" placeholder="0.00" value={l.precio} onChange={(e) => onCambio({ precio: e.target.value })} />
         </div>
         <div className="col-span-2 @min-[56rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>
@@ -641,6 +706,11 @@ function LineaOrden({
       {duda && (
         <Aviso tono="atencion" chico className="mt-2">
           {duda}
+        </Aviso>
+      )}
+      {noCalza && (
+        <Aviso tono={noCalza.tono} chico className="mt-2">
+          {noCalza.texto}
         </Aviso>
       )}
     </CampoGuiado>

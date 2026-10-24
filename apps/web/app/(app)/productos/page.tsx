@@ -16,6 +16,7 @@ import {
   getSinTemporadaResumen,
   getFacetasProductos,
   getTemporadasCatalogo,
+  getEmpresasParaFiltro,
   getCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
@@ -42,6 +43,8 @@ import { getPorRevisarResumen } from "@/lib/revisar-productos-datos";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { preciosDeTiendaPorProducto } from "@/lib/precio-sede-reglas";
 import { variantesQueSeVenden } from "@/lib/productos-vista";
+import { campanasQueCobra } from "@/lib/etiquetas-precio";
+import { hoyLima } from "@/lib/fechas-lima";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -107,7 +110,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear, empresas] = await Promise.all([
     listarProductos(filtros, pagina),
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
@@ -127,6 +130,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     editaCatalogo ? getPorRevisarResumen() : Promise.resolve(null),
     // ADR-0393 (decisión 4): lo nuevo que llegó a la sede y todavía no existe en el catálogo («por crear»). `null` si la base no lo sabe.
     getPendientesDeLaSede(persona.ubicacionId),
+    // ADR-0467: CAYLA y CLAURE, para su filtro. `null` si la base no las tiene o hay una sola: la píldora no aparece.
+    getEmpresasParaFiltro().catch(() => null),
   ]);
 
   // Lo de la sede elegida arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Va después de la
@@ -144,7 +149,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // filtros puestos). Sin conteos, no se avisa.
   const descontinuadas =
     resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
-  const [existencias, preciosTiendas, catalogoSede, pisoSede] = await Promise.all([
+  const [existencias, preciosTiendas, catalogoSede, pisoSede, campanas] = await Promise.all([
     getExistenciasProductos(
       resultado.productos.map((p) => p.productoId),
       persona.ubicacionId
@@ -155,7 +160,11 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     // leen Vender y siete pantallas) y el piso cobrable de esta sede. Secundarios: si alguno falla, la hoja no dice la frase.
     getCatalogo().catch(() => null),
     getDisponibleEnSede(persona.ubicacionId).catch(() => null),
+    // Lo que cobra la caja HOY con su campaña (ADR-0472, Felipe 2026-10-21): la misma lectura que la etiqueta de papel. Si no responde,
+    // las tarjetas muestran el precio de lista, como antes de esto: la lista no se cae por una campaña.
+    campanasQueCobra(supabase, hoyLima(), resultado.productos.flatMap((p) => p.variantes.map((v) => v.varianteId))).catch(() => null),
   ]);
+  const campanasHoy = campanas ? Object.fromEntries(campanas) : undefined;
   const tarjetasLook = catalogoSede && pisoSede ? tarjetasDesdeVariantes(catalogoSede, (id) => cantidadCobrable(pisoSede.get(id))) : [];
   // El precio de cada prenda en CADA tienda (para «2 precios»: cuenta precios distintos, no tiendas), y el de la tienda elegida arriba
   // para el precio grande de la tarjeta y la fila (Felipe 2026-10-10: en TRU, FAL-0008 decía S/ 79.90 y la caja cobraba 69.90). En
@@ -340,6 +349,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         panelInicial={panelFiltros}
         sede={enSede ? persona.ubicacionEtiqueta : null}
         temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}
+        empresas={empresas}
         // El tamaño de las tarjetas, al final de la fila del conteo (2026-10-09): en el celular era una fila más entre el orden y las
         // prendas. Solo en la Grilla: la Tabla no tiene tarjetas. La `key` es porque `FiltrosProductos` lo dibuja entre hermanos y React
         // pide key a un elemento que llega del servidor (aviso «unique key prop» en la consola, 2026-10-10).
@@ -363,6 +373,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             tamanoInicial={tamanoGrilla}
             preciosTienda={preciosTienda}
             preciosAqui={preciosAqui}
+            campanasHoy={campanasHoy}
             colores={fichasDeColor}
             tarjetasLook={tarjetasLook}
           />
@@ -380,6 +391,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             hrefLimpiar="/productos?vista=tabla"
             preciosTienda={preciosTienda}
             preciosAqui={preciosAqui}
+            campanasHoy={campanasHoy}
           />
         )}
 

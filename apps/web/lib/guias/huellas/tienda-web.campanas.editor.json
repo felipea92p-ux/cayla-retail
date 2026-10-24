@@ -1,0 +1,128 @@
+{
+  "guia": "tienda-web.campanas.editor",
+  "ruta": "/tienda-web/campanas/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 98,
+  "controles": {
+    "app/(app)/tienda-web/campanas/[id]/page.tsx": [
+      "Volver «/tienda-web/campanas»",
+      "Pestanas «(sin nombre)»"
+    ],
+    "components/EscanerBusqueda.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Buscar escribiendo»",
+      "button «Listo ·»",
+      "button «Mejor buscar escribiendo»"
+    ],
+    "components/EtiquetasLista.tsx": [
+      "BotonImprimir «(sin nombre)»",
+      "BotonVer «Diseño en la tienda web»",
+      "button «campana-web.prendas»",
+      "button «campana-web.configurar»",
+      "button «Sin descuento»",
+      "button «{v}»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "button «{avisoDia.boton}»",
+      "BotonDeshacer «(sin nombre)»",
+      "button «Todas las sedes»",
+      "button «{t.nombre}»",
+      "button «Elegir todas»",
+      "button «Quitar todas»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", `Nombre ${delUno}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar» #2",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/PrendasDeEtiquetaModal.tsx": [
+      "Boton «Escanear las etiquetas con la cámara del teléfono»",
+      "BotonFiltro «Todas»",
+      "BotonFiltro «Con la etiqueta»",
+      "BotonFiltro «Sin ella»",
+      "DesplegablePildora «Categoría»",
+      "SegmentoDeslizante «Qué hace una lectura»",
+      "BotonFiltro «Todas las sedes»",
+      "BotonFiltro «{nombreCortoSede(t.nombre)}»",
+      "button «Marca todas las tallas de los productos de la lista. Los que entran por su categoría ya la llevan.»",
+      "button «Desmarca los productos de la lista. Los que entran por su categoría siguen marcados.»",
+      "Boton «Reintentar»",
+      "Casilla «{`${nombre}»",
+      "button «(sin nombre)»",
+      "Casilla «{nombreTalla}»",
+      "BotonDeshacer «→() => setQuitarFuera(false)»",
+      "button «Quitárselas»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Volver»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "Boton «Cancelar»",
+      "Boton «{requiereRevision ? \"Revisar y aplicar\" : \"Aplicar\"}»",
+      "button «→onOtras»",
+      "BotonDeshacer «Deshacer esta lectura»"
+    ],
+    "components/atributos/kit.tsx": [
+      "Boton «vocabulario.agregar»",
+      "Boton «Limpiar filtros»",
+      "button «{abrir.titulo}»",
+      "Boton «Aprobar»",
+      "Boton «Rechazar»",
+      "button «{cambiando ? \"Desactivando…\" : \"Desactivar\"}»",
+      "Boton «Reactivar»"
+    ],
+    "components/campana-hoja/CategoriasDeCampana.tsx": [
+      "Casilla «{`${c.nombre}»",
+      "Casilla «{`Toda la familia ${g.familia}»",
+      "button «{`${abierta ? \"Ocultar\" : \"Mostrar\"}»"
+    ],
+    "components/campana-hoja/EtiquetaDeCampana.tsx": [
+      "button «Prenda anterior»",
+      "button «Prenda siguiente»"
+    ],
+    "components/campanas-web/EditorCampana.tsx": [
+      "button «{nombre}»",
+      "button «Aa»",
+      "button «{p.nombre}»",
+      "SegmentoDeslizante «Cómo corre la franja de arriba»",
+      "SegmentoDeslizante «Cómo entra la portada»",
+      "button «{NOMBRE_DE_EFECTO[e]}»",
+      "SegmentoDeslizante «Cuánto efecto»",
+      "SegmentoDeslizante «Cuánto dura el efecto»",
+      "SegmentoDeslizante «Cuándo se ve la cuenta regresiva»",
+      "Boton «Ver la entrada otra vez»",
+      "CampoTexto «{<>Titular <Opcional /></>}»",
+      "CampoTexto «{<>Una línea debajo <Opcional /></>}»",
+      "CampoTexto «{<>Texto del botón <Opcional /></>}»",
+      "SegmentoDeslizante «Qué parte de la tienda ver»",
+      "SegmentoDeslizante «Tamaño de la vista previa»",
+      "button «Movimiento reducido»",
+      "ComboResponsable «{responsable}»",
+      "Boton «campana-editor.previa»",
+      "Boton «campana-editor.programar»",
+      "Boton «campana-editor.programar» #2",
+      "Boton «{terminada ? \"La campaña ya terminó\" : (guia.frase ?? undefined)}»",
+      "button «{hecho && !falta ? <Check className=\"h-3.5 w-3.5\" /> : numero}»",
+      "input «Elegir el color de acento»",
+      "CampoTexto «Color en hexadecimal»",
+      "button «Quitar»",
+      "button «Quitar» #2",
+      "input «{id}»"
+    ],
+    "components/campanas-web/VistaPreviaCampana.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "CampoTexto «Enlace de la vista previa»",
+      "BotonCopiar «el enlace»",
+      "a «Abrirlo en otra pestaña»"
+    ],
+    "components/etiqueta-prendas/EtiquetaColgada.tsx": [
+      "button «{`${x.producto.referencia}»"
+    ],
+    "components/sellos/ElegirDibujoDeInsignia.tsx": [
+      "button «{o.tipo === \"dibujo\" ? NOMBRE_DEL_DIBUJO[o.clave] : \"Tu imagen\"}»",
+      "input «→alElegirArchivo»",
+      "button «→() => archivo.current?.click()»"
+    ]
+  }
+}

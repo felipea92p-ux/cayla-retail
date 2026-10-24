@@ -58,6 +58,8 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Elegir el mes (`mes`) | `<SelectorMes>` / `<SelectorMesEnUrl>` (`components/ui/SelectorMes.tsx`): «‹ Octubre 2026 ›» con los doce meses al tocar el nombre (ronda 17) | 2026-10-17 (mirando) | 0 | [mes.md](mes.md) |
 | El paso de cantidad (`cantidad`) | `<PasoCantidad>` (`components/ui/PasoCantidad.tsx`): la caja del campo con − y + adentro; celda 26 px, fila 36 (44 con el dedo) (ronda 17) | 2026-10-17 (mirando) | 0 | [cantidad.md](cantidad.md) |
 | El cajón lateral (`cajon`) | `<Cajon>` (`components/ui/Cajon.tsx`): la banda de Compras en todos, anchos de 456 y 544 px (ronda 17) | 2026-10-17 (mirando) | 0 | [cajon.md](cajon.md) |
+| La hoja del celular (`hoja-movil`) | `<Modal>` y `<Cajon>` bajo 640 px: llegan desde el borde con asa, se bajan con el dedo y alejan lo de atrás; Filtros a media altura; el cajón se desliza entre registros (ADR-0479) | 2026-10-22 (tocando) | 0 | [hoja-movil.md](hoja-movil.md) |
+| La barra de abajo del celular (`barra-movil`) | La Isla, `barra-abajo` / `<BarraDeAbajo>`: flota a 12 px de los bordes, clara para lo que toca hacer (con una acción, la isla es el botón) y oscura para lo que llevas elegido (ADR-0479) | 2026-10-23 (mirando) | 0 | [barra-movil.md](barra-movil.md) |
 | Anterior y siguiente (`accion.anterior`) | `<Volver onClick>` + «Siguiente» primario con su flecha, como todo paso a paso (ronda 17) | 2026-10-17 (mirando) | 0 | [accion.anterior.md](accion.anterior.md) |
 
 ## Propuestas esperando decisión

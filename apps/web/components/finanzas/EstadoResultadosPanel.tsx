@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { CabeceraReportes } from "@/components/finanzas/CabeceraReportes";
@@ -24,6 +25,7 @@ import {
   NOTA_MES_CERRADO,
   montoNatural,
   nombreCorto,
+  ORDEN_DIARIO,
   origenDeCifra,
   porcentaje,
   solesER,
@@ -294,9 +296,12 @@ function Celda({
   }
   const delta = previa && (k.tipo !== "linea" || k.clave === "ventas") ? deltaTexto(v, k.valor(previa), mesPrevio) : null;
   const neg = k.tipo !== "linea" && v < 0 ? "fin-eerr-neg" : "";
+  // Los sueldos que todavía no pagó Dynamic están provisionados con sus boletas (ADR-0453): se dice en la misma celda.
+  const estimado = k.clave === "g62" && c.planillaEstimada > 0 ? (c.planilla - c.planillaEstimada > 0.5 ? "en parte provisionado" : "provisionado") : null;
   const contenido = (
     <>
       {solesER(v)}
+      {estimado && <span className="fin-delta">{estimado}</span>}
       {delta && <span className="fin-delta">{delta}</span>}
     </>
   );
@@ -327,20 +332,12 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
   useEffect(() => {
     let vivo = true;
     const { desde, hasta } = rangoMes(mes);
-    createClient()
-      .rpc(
-        "fn_diario" as never,
-        {
-          p_desde: desde,
-          p_hasta: hasta,
-          p_ubicacion_id: c.ubicacionId,
-        } as never,
-      )
-      .then(({ data, error: e }) => {
-        if (!vivo) return;
-        if (e) setError(e.message);
-        else setLineas(((data ?? []) as Record<string, unknown>[]).map(leerLineaDiario));
-      });
+    // Por páginas: un mes de ventas da unas 5.400 líneas de diario y PostgREST corta en 1.000 sin error; «De dónde sale» sumaba solo los primeros días.
+    leerRpcPorPaginas(createClient(), "fn_diario", { p_desde: desde, p_hasta: hasta, p_ubicacion_id: c.ubicacionId }, ORDEN_DIARIO).then(({ data, error: e }) => {
+      if (!vivo) return;
+      if (e) setError(e.message);
+      else setLineas((data ?? []).map(leerLineaDiario));
+    });
     return () => {
       vivo = false;
     };
@@ -364,6 +361,13 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
       <p className="text-[13px] leading-relaxed text-taupe" data-guia="fin-resultados.origen">
         <b className="font-semibold text-tinta">Sale de</b> {fuentes.join("; ")}.
       </p>
+      {k.clave === "g62" && c.planillaEstimada > 0 && (
+        <Aviso tono="info" chico className="mt-3">
+          {solesER(c.planillaEstimada)} de esta cifra están provisionados: lo que corresponde pagar hasta hoy según las boletas de Dynamic ({c.planillaPersonas}{" "}
+          {c.planillaPersonas === 1 ? "persona" : "personas"}). Las horas de hoy son un cálculo con lo que lleva cada persona y se corrigen cuando cierra su jornada.
+          Todavía no está en el diario, por eso estas líneas no lo suman; cuando Dynamic pague el período, entra lo pagado de verdad.
+        </Aviso>
+      )}
       {o && o.porRegla.length > 0 && (
         <ListaDatos
           filas={o.porRegla.map((g) => ({

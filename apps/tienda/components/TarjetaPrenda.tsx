@@ -5,24 +5,34 @@ import {
   fotoOptimizable,
   fotosDeTarjeta,
   hrefDePrenda,
-  insigniaOferta,
+  insigniasAsignadasDeTarjeta,
+  insigniasDeTarjeta,
   muestras,
   precioTarjeta,
   type Prenda,
 } from "@/lib/catalogo";
 import type { NotaStock } from "@/lib/stock";
 import { BotonFavorito } from "./club/BotonFavorito";
+import { aplicaA, type DisenoDeLaTienda } from "@/lib/diseno-campana";
+import { FilaDeInsignias } from "./FilaDeInsignias";
 import { FotoTarjeta } from "./FotoTarjeta";
 import { RapidoDeTarjeta } from "./RapidoDeTarjeta";
 
 /**
  * La tarjeta de una prenda en la grilla (maqueta v4, `tarjeta`): su foto (o su silueta), sus insignias (el puesto en Más vendidos, la
- * campaña y «Nuevo»), el corazón de favoritos arriba a la derecha (actividad 12), «Agregar» con la talla al pasar el mouse (actividad
+ * campaña y «Nuevo», y las que se le asignaron en Catálogo ▸ Insignias: hasta 3 en total y un «+N», ADR-0489), el corazón de favoritos arriba a la derecha (actividad 12), «Agregar» con la talla al pasar el mouse (actividad
  * 7, desde 960 px), su nombre, el precio que paga el cliente en la tienda elegida (con el precio del modelo tachado si hay descuento),
  * sus colores y la nota de cuánto hay («Quedan 2 en Lima», «Solo en Trujillo», `notaDeStock`). La foto y el nombre llevan a su
  * ficha, con la tienda elegida. El corazón sabe solo si está guardado (`ProveedorGuardados`, en el marco del catálogo); fuera de él
  * («Mi cuenta») se lo dice `guardado`.
  */
+const CLASE_INSIGNIA = {
+  puesto: "t-insignia",
+  oferta: "t-insignia oferta",
+  nuevo: "t-insignia cp-insignia-nuevo",
+  empresa: "t-insignia cp-insignia-nuevo",
+} as const;
+
 export function TarjetaPrenda({
   prenda,
   sede,
@@ -32,6 +42,7 @@ export function TarjetaPrenda({
   sinNuevo = false,
   guardado,
   arriba = false,
+  diseno = null,
 }: {
   prenda: Prenda;
   sede: string | null;
@@ -45,15 +56,24 @@ export function TarjetaPrenda({
   guardado?: boolean;
   /** Va en la primera fila de la lista (se ve sin bajar): su foto se pide apenas llega la página. */
   arriba?: boolean;
+  /** El diseño de la campaña (Tienda web ▸ Campañas): viste el sello de descuento de las prendas de ESA campaña. Sin él, el de siempre. */
+  diseno?: DisenoDeLaTienda | null;
 }) {
   const [foto, segunda] = fotosDeTarjeta(prenda);
   const precio = precioTarjeta(prenda);
-  const oferta = insigniaOferta(prenda);
-  const nueva = Boolean(prenda.nuevo) && !sinNuevo;
+  const insignias = insigniasDeTarjeta(prenda, { puesto, sinNuevo });
+  // La empresa baja sola, debajo de la fila; todo lo demás va en la fila.
+  const empresa = insignias.find((i) => i.clave === "empresa");
+  const enLaFila = insignias.filter((i) => i.clave !== "empresa");
+  // Las asignadas en Catálogo ▸ Insignias: hasta 3 EN TOTAL con lo de arriba (la empresa no cuenta) y lo que no cabe, en un «+N».
+  const { visibles: asignadas, mas: masInsignias, nombres } = insigniasAsignadasDeTarjeta(prenda, { puesto, sinNuevo });
   const { visibles, mas } = muestras(prenda);
   const href = hrefDePrenda(prenda, sede);
   // Las insignias van dentro de la foto, que el lector salta: el nombre las dice también («Falda Luna, −12 %, nuevo»).
-  const insigniasDichas = [puesto ? `N.º ${puesto} en más vendidos` : null, oferta, nueva ? "nuevo" : null].filter(Boolean).join(", ");
+  const insigniasDichas = [
+    ...insignias.map((i) => (i.clave === "puesto" ? `${i.texto} en más vendidos` : i.clave === "nuevo" ? "nuevo" : i.texto)),
+    ...nombres, // todas las asignadas, también las que no caben en la foto
+  ].join(", ");
   return (
     // Lo que la tarjeta ya muestra, para que la ficha llegue con eso mismo mientras carga (`RecordarPrendaTocada`, lib/prenda-tocada.ts).
     <article
@@ -77,12 +97,29 @@ export function TarjetaPrenda({
             color={colorDeDibujo(prenda)}
             pronto={arriba}
           />
-          {(puesto || oferta || nueva) && (
+          {(insignias.length > 0 || asignadas.length > 0 || masInsignias > 0) && (
             <span className="t-insignias">
-              {puesto && <span className="t-insignia">N.º {puesto}</span>}
-              {oferta && <span className="t-insignia oferta">{oferta}</span>}
-              {/* «Nuevo» va claro (2026-10-16): con casi todo el catálogo nuevo, un sello negro en cada foto le quitaba la vista a la prenda. */}
-              {nueva && <span className="t-insignia cp-insignia-nuevo">Nuevo</span>}
+              {(enLaFila.length > 0 || asignadas.length > 0 || masInsignias > 0) && (
+                // TODAS en UNA fila (Felipe, 2026-10-23): el descuento, «Nuevo» y el puesto, las asignadas en Catálogo ▸ Insignias y el «+N», con la misma cara.
+                // Se ven las que caben enteras en el ancho de esta tarjeta; el resto va al «+N» (`FilaDeInsignias` mide en el navegador).
+                <FilaDeInsignias
+                  chips={[
+                    // «Nuevo» va claro (2026-10-16): con casi todo el catálogo nuevo, un sello negro en cada foto le quitaba la vista a la prenda.
+                    ...enLaFila.map((i) => ({
+                      id: i.clave,
+                      texto: i.texto,
+                      clase: `${CLASE_INSIGNIA[i.clave]} propia`,
+                      // El sello de descuento de la campaña con diseño (si el líder lo dejó encendido): su color, que se lee sobre la foto.
+                      estilo: i.clave === "oferta" && diseno?.donde.sello && aplicaA(diseno, prenda.campana?.nombre) ? { background: diseno.sello.fondo, color: diseno.sello.texto } : undefined,
+                    })),
+                    ...asignadas.map((i) => ({ id: i.id, texto: i.nombre, clase: "t-insignia asignada" })),
+                  ]}
+                  masBase={masInsignias}
+                  nombresMasBase={nombres.slice(asignadas.length)}
+                />
+              )}
+              {/* La empresa (ADR-0465) no es una insignia más: va SOLA debajo de la fila, la sola que baja (en Lima, donde operan CAYLA y Claurè). */}
+              {empresa && <span className={CLASE_INSIGNIA.empresa}>{empresa.texto}</span>}
             </span>
           )}
         </Link>

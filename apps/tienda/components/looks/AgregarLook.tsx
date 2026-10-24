@@ -113,6 +113,7 @@ export function AgregarLook({
                     <Foto pieza={p} origenFotos={origenFotos} />
                   </span>
                   <span className="t-look-fila-txt">
+                    {p.prenda.empresa && <span className="t-look-empresa">{p.prenda.empresa.nombre}</span>}
                     <b>{p.prenda.nombre}</b>
                     <small>
                       {p.color.nombre} · {precio.principal}

@@ -1,3 +1,4 @@
+import { BotonDeFormulario } from "@/components/BotonDeFormulario";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -12,19 +13,25 @@ import { TarjetaClub } from "@/components/TarjetaClub";
 import type { Prenda } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { leerMiClubEnBase } from "@/lib/club-servidor";
+import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
+import { sedeRecordada } from "@/lib/sede-servidor";
+import { leerSedes } from "@/lib/tiendas-servidor";
 import { hoyLima } from "@/lib/cuentas";
 import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { hrefConVolver } from "@/lib/entrada";
 import { conciliarCorreo } from "@/lib/mi-cuenta-servidor";
 import { leerMisPedidos } from "@/lib/pedidos-servidor";
-import { lineaDeMiembro, resumenAvisos, resumenClub, resumenFavoritos, resumenPedidos } from "@/lib/perfil";
+import { lineaDeMiembro, resumenAvisos, resumenFavoritos, resumenPedidos } from "@/lib/perfil";
+import { resumenDePuntos } from "@/lib/puntos";
+import { leerMisPuntosEnBase } from "@/lib/puntos-servidor";
 import { anioLima } from "@/lib/portada";
 import { leerSesion } from "@/lib/sesion-servidor";
 import "../estilos/catalogo.css";
 import "../estilos/club.css";
 import "../estilos/mi-cuenta.css";
 import "../estilos/perfil.css";
+import "../estilos/puntos.css";
 
 export const metadata: Metadata = { title: "Mi perfil · CAYLA", robots: { index: false, follow: false } };
 
@@ -45,12 +52,18 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
     return <NoDisponible texto="No pudimos revisar tu sesión ahora. Vuelve a intentarlo en unos minutos." />;
   }
 
+  // La tienda en que se mira (la que eligió la última vez): las prendas se dibujan con el catálogo de ESA tienda (ADR-0465: en Lima, con la
+  // empresa de cada tarjeta).
+  const sedes = sedesEnOrden(await leerSedes());
+  const elegida = await sedeRecordada(sedes);
+  const sedeClave = elegida ? claveDeSede(elegida.nombre) : null;
   // La cuenta, sus pedidos, el Club (que anota la visita) y el catálogo (para dibujar las prendas con su precio) a la vez.
-  const [lectura, pedidos, club, catalogo] = await Promise.all([
+  const [lectura, pedidos, club, lecturaPuntos, catalogo] = await Promise.all([
     leerMiCuentaEnBase(sesion.usuarioId),
     leerMisPedidos(sesion.usuarioId),
     leerMiClubEnBase(sesion.usuarioId),
-    leerCatalogo(null),
+    leerMisPuntosEnBase(sesion.usuarioId),
+    leerCatalogo(elegida?.id ?? null),
   ]);
   if (lectura.estado === "sin_respuesta") {
     return <NoDisponible texto="No pudimos cargar tu cuenta ahora. Vuelve a intentarlo en unos minutos." />;
@@ -69,9 +82,9 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
               <p className="w-texto-sec">Algo falló mientras la creabas y no quedó guardada. Vuelve a crearla: tu correo queda libre para usarlo otra vez.</p>
             </div>
             <form action={rehacerCuenta}>
-              <button className="t-btn t-btn-ancho" type="submit">
+              <BotonDeFormulario className="t-btn t-btn-ancho" textoPendiente="Creando tu cuenta…">
                 Crear mi cuenta otra vez
-              </button>
+              </BotonDeFormulario>
             </form>
           </div>
         </div>
@@ -84,6 +97,7 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
   const correoDeEntrada = await conciliarCorreo(sesion.usuarioId, sesion.correo, cuenta.correo);
   const hoy = hoyLima();
   const miClub = club.estado === "ok" ? club.club : null;
+  const misPuntos = lecturaPuntos.estado === "ok" ? lecturaPuntos.puntos : null;
   // Las prendas del catálogo por su modelo: el mismo precio (con «Todas», el mayor) y las mismas fotos que la lista.
   const porId = new Map<string, Prenda>((catalogo?.prendas ?? []).map((p) => [p.id, p]));
   const deIds = (ids: readonly string[]) => ids.flatMap((id) => {
@@ -118,7 +132,7 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
           <AtajosDelPerfil
             atajos={[
               { ancla: "pf-pedidos", icono: "pedido", nombre: "Mis pedidos", resumen: resumenPedidos(pedidos.estado === "ok" ? pedidos.pedidos : null) },
-              { ancla: "pf-club", icono: "regalo", nombre: "Mi Club", resumen: resumenClub(miClub?.club ?? null, esDelClub) },
+              { ancla: "pf-club", icono: "regalo", nombre: "Mi Club", resumen: resumenDePuntos(misPuntos, esDelClub) },
               { ancla: "pf-favoritos", icono: "corazon", nombre: "Favoritos", resumen: resumenFavoritos(miClub ? miClub.favoritos.length : null) },
               { ancla: "pf-avisos", icono: "campana", nombre: "Te avisamos", resumen: resumenAvisos(miClub?.esperas ?? null) },
             ]}
@@ -129,7 +143,7 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
             {miClub ? (
               <>
                 {esDelClub ? (
-                  <BeneficiosDelClub club={miClub.club} hoy={hoy} tarjeta={tarjeta} />
+                  <BeneficiosDelClub club={miClub.club} puntos={misPuntos} hoy={hoy} tarjeta={tarjeta} />
                 ) : (
                   // Todavía no es del Club: lo que gana y el camino, sin tarjeta con un año que no es suyo.
                   <SeccionDelPerfil id="pf-club" titulo="Mi Club CAYLA" mitad>
@@ -137,8 +151,8 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
                       <div className="pf-club-fila">
                         <div className="pf-beneficios">
                           <p className="w-texto-sec">
-                            Con tu documento y tu celular entras al Club: descuento en tu cumpleaños y un vale de compra por cada año. Son los mismos
-                            datos que pide «Separar», y se piden una sola vez.
+                            Con tu documento y tu celular entras al Club: ganas puntos con cada compra, los cambias por cupones de descuento y
+                            recibes un regalo en tu cumpleaños. Son los mismos datos que pide «Separar», y se piden una sola vez.
                           </p>
                           <Link className="t-btn t-btn-chico" href={hrefConVolver("/cuenta/club", null)}>
                             Completar mis datos y entrar al Club
@@ -153,9 +167,10 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
                   cuantos={miClub.favoritos.length}
                   sinMostrar={catalogo ? miClub.favoritos.filter((id) => !porId.has(id)).length : 0}
                   origenFotos={origenFotos}
+                  sede={sedeClave}
                 />
                 <TeAvisamos esperas={miClub.esperas} prendas={porId} origenFotos={origenFotos} />
-                <NovedadesParaTi novedades={miClub.novedades} prendas={deIds(miClub.novedades.productos)} favoritos={favoritos} origenFotos={origenFotos} />
+                <NovedadesParaTi novedades={miClub.novedades} prendas={deIds(miClub.novedades.productos)} favoritos={favoritos} origenFotos={origenFotos} sede={sedeClave} />
               </>
             ) : (
               // Sin el Club (la base no contestó): la tarjeta igual (es de la cuenta) y una sola nota para lo que falta.

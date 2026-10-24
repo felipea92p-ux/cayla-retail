@@ -118,6 +118,18 @@ import {
   type LineaParaImprimir,
 } from "@/lib/matriz-ficha-reglas";
 import { conDesde } from "@/lib/vuelta-productos";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
+import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { avisoReimprimir } from "@/lib/etiqueta-campana";
+import { hoyLima } from "@/lib/fechas-lima";
+import {
+  cambianEnCajaAlGuardar,
+  campanasDeLaFicha,
+  fraseCajaCobra,
+  precioDeHoy,
+  type CampanaDelVocabulario,
+  type LadoDeLaFicha,
+} from "@/lib/precio-de-hoy";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { MarcaCampo, EtiquetaAhora } from "@/components/alta-producto/guia";
@@ -227,6 +239,41 @@ function conCambiosDeColor(base: Readonly<Record<string, string>>, cambios: Read
   return salida;
 }
 
+/** Las variantes que se venden según lo GUARDADO (sus etiquetas y su precio en la base), con el precio que cobra la caja de aquí:
+ *  el propio de la tienda si lo tiene, si no el de la variante. */
+function variantesGuardadas(filas: readonly FilaFicha[], precioAqui: number | null) {
+  return filas.flatMap((f) =>
+    f.id && f.guardada?.activo ? [{ id: f.id, etiquetaIds: f.guardada.etiquetaIds, precio: precioAqui ?? numeroDeMonto(f.guardada.precio) }] : [],
+  );
+}
+
+/** Las mismas, según lo que está en PANTALLA (lo que quedará al guardar). Una nueva se nombra por su clave hasta tener id. */
+function variantesEnPantalla(filas: readonly FilaFicha[], precioAqui: number | null) {
+  return filas.filter((f) => f.activo).map((f) => ({ id: f.id ?? f.clave, etiquetaIds: f.etiquetaIds, precio: precioAqui ?? numeroDeMonto(f.precio) }));
+}
+
+/** La frase de «Precio de la prenda» (ADR-0472): lo guardado contra lo que está en pantalla, con la misma regla de la caja. */
+function fraseDeLaFicha(
+  campanas: { vocabulario: CampanaDelVocabulario[]; hoy: string },
+  filas: readonly FilaFicha[],
+  categoriaGuardada: string,
+  categoriaEnPantalla: string,
+  precioAqui: number | null,
+  sede: string | null,
+) {
+  const guardadas = variantesGuardadas(filas, precioAqui);
+  const enPantalla = variantesEnPantalla(filas, precioAqui);
+  const deHoy = campanasDeLaFicha(guardadas, categoriaGuardada || null, campanas.vocabulario, campanas.hoy);
+  const alGuardar = campanasDeLaFicha(enPantalla, categoriaEnPantalla || null, campanas.vocabulario, campanas.hoy);
+  const lista = enPantalla.map((v) => v.precio).filter((p) => p > 0);
+  return fraseCajaCobra(
+    precioDeHoy(guardadas, (id) => deHoy.get(id)),
+    precioDeHoy(enPantalla, (id) => alGuardar.get(id)),
+    lista.length > 0 ? { desde: Math.min(...lista), hasta: Math.max(...lista) } : null,
+    sede,
+  );
+}
+
 export function ProductoForm({
   categorias,
   colores: coloresVocabulario,
@@ -234,6 +281,7 @@ export function ProductoForm({
   imagenes,
   etiquetas,
   avisoEtiquetas,
+  campanas = null,
   marcas,
   estadoVariantes,
   esLider,
@@ -255,6 +303,9 @@ export function ProductoForm({
   etiquetas: (ValorVocabulario & { estilo: string })[];
   /** Una línea bajo el selector de etiquetas (ADR-0161 P4: a quien no es líder, que las de descuento no se le ofrecen). */
   avisoEtiquetas?: string;
+  /** Las campañas con descuento (aprobadas y activas, con sus categorías) y el día de Lima: con ellas la ficha dice lo que cobra la
+   *  caja hoy y lo que cobrará al guardar (ADR-0472). `null` = no lo dice (el alta tiene su propio resumen). */
+  campanas?: { vocabulario: CampanaDelVocabulario[]; hoy: string } | null;
   /** Marcas, proveedores y parejas registradas (ADR-0109). */
   marcas: CatalogoMarcas;
   /** Stock y ventas por variante (`fn_variantes_estado`). `null` = no está en la base: la ficha sigue sin stock. */
@@ -540,6 +591,8 @@ export function ProductoForm({
   const precioPropioAqui = propioAqui ? { sede: nombreCorto(propioAqui.sede), precio: propioAqui.precio } : null;
   // El precio de esta tienda después del último guardado (o null: el de la prenda), para la vista previa de las etiquetas.
   const precioAquiTras = useRef<number | null>(null);
+  // Los precios propios que siguen después del último guardado (los igualados se van), para ver en qué tiendas cambió el precio en caja.
+  const propiosTras = useRef<ReadonlyMap<string, number>>(new Map());
   const [igualarTiendas, setIgualarTiendas] = useState<ReadonlySet<string>>(new Set());
   // Ya se guardó bien y la pantalla se está yendo: la barra baja y nada más pregunta.
   const [guardado, setGuardado] = useState(false);
@@ -577,6 +630,19 @@ export function ProductoForm({
   // Sube con «Descartar» (y su «Deshacer»): «Cambiar en bloque» vuelve a nacer, y con él lo que guarda por su cuenta («Precio
   // puesto en N variantes…»).
   const [reinicio, setReinicio] = useState(0);
+
+  // ---------- lo que cobra la caja hoy (ADR-0472) ----------
+  // Una etiqueta con descuento no cambia `variantes.precio`: la caja la descuenta al cobrar. Sin decirlo aquí, poner «Aniversario
+  // CAYLA» y guardar parecía no hacer nada (Felipe, 2026-10-21). Lo guardado es lo que la caja cobra ahora; lo que está en pantalla, lo
+  // que cobrará al guardar. Con precio propio de esta tienda, su caja cobra desde ese (es uno para toda la prenda, ADR-0370).
+  const precioCajaAqui = propioAqui?.precio ?? null;
+  const fraseCampana = producto && campanas ? fraseDeLaFicha(campanas, filas, enLaBase.datos.categoriaId, categoriaId, precioCajaAqui, propioAqui ? nombreCorto(propioAqui.sede) : null) : null;
+  // Lo guardado al empezar un guardado (variantes, categoría y precios propios de cada tienda): al terminar se compara el precio en caja
+  // de antes y de después, tienda por tienda, y si cambió (una campaña que entra o sale, otro precio) el aviso ofrece reimprimir sus
+  // etiquetas de papel (ADR-0180: el papel dice lo que cobra la caja el día que se imprime). Se toma una vez y sobrevive a los reintentos
+  // de un guardado a medias, como `logrado`.
+  const cobraAntesDeGuardar = useRef<LadoDeLaFicha | null>(null);
+  const propiosDeTienda = () => new Map((preciosTienda.precios ?? []).map((p) => [p.ubicacionId, p.precio] as const));
 
   // Lo que impide guardar de las variantes (y un monto escrito en «Cambiar en bloque» sin aplicar): «Revisar y guardar» lo
   // dice con el campo a enfocar. Lo que solo avisa (todas quedan desactivadas) se lee en la hoja, antes de confirmar. La
@@ -739,6 +805,9 @@ export function ProductoForm({
   async function guardar(): Promise<boolean> {
     if (!producto) return true;
     precioAquiTras.current = propioAqui?.precio ?? null;
+    propiosTras.current = propiosDeTienda();
+    // Lo que cobra la caja ANTES de tocar nada; si el guardado queda a medias y se reintenta, sigue el primero.
+    cobraAntesDeGuardar.current ??= { variantes: variantesGuardadas(filas, null), categoriaId: enLaBase.datos.categoriaId || null, propios: propiosDeTienda() };
     // Solo se tocó el stock: no hay nada de la prenda que mandar (ni versión que subir, ni historial que escribir).
     if (resumen.total === 0) {
       setLoading(true);
@@ -860,10 +929,10 @@ export function ProductoForm({
     setIgualarTiendas(new Set());
     // El precio propio de esta tienda que sigue vigente después del guardado (la vista previa de «Etiquetas de lo que entró» sale con él):
     // ni se igualó a mano ni quedó igual al de la prenda (la base lo quita sola).
-    const quedaIgualAqui = alCambiarPrecio?.conPropio.some(
-      (t) => t.ubicacionId === propioAqui?.ubicacionId && (t.que === "se-iguala" || igualadas.has(t.ubicacionId))
-    );
-    precioAquiTras.current = propioAqui && !quedaIgualAqui ? propioAqui.precio : null;
+    const quedaIgual = (ubicacionId: string) =>
+      alCambiarPrecio?.conPropio.some((t) => t.ubicacionId === ubicacionId && (t.que === "se-iguala" || igualadas.has(t.ubicacionId))) ?? false;
+    precioAquiTras.current = propioAqui && !quedaIgual(propioAqui.ubicacionId) ? propioAqui.precio : null;
+    propiosTras.current = new Map([...propiosDeTienda()].filter(([ubicacionId]) => !quedaIgual(ubicacionId)));
     // La base quita sola el precio propio que quedó igual al de la prenda: el bloque se vuelve a leer.
     if ((preciosTienda.precios?.length ?? 0) > 0) preciosTienda.recargar();
 
@@ -1012,12 +1081,34 @@ export function ProductoForm({
     // el mapa leído al abrir). Sin precio propio vigente, el de cada talla.
     const precioAqui = precioAquiTras.current;
     const preciosAquiTras = precioAqui !== null ? Object.fromEntries(filasFinales.filter((f) => f.id).map((f) => [f.id!, precioAqui])) : {};
-    const lineas = !huboCorrecciones && hrefSubidas ? lineasParaImprimir(subidas, filasFinales, nombres, preciosAquiTras) : [];
+    // ADR-0472: si el precio que cobra la caja HOY cambió en alguna variante que ya existía (una campaña que entra o sale, otro precio),
+    // sus etiquetas de papel dicen el de antes. Se ofrecen esas (y lo que entró, que también necesita la suya), en vez de la hoja de
+    // «lo que entró», que solo imprimiría las nuevas. Tienda por tienda (ADR-0486, ADR-0370): si cambió solo en otras tiendas, el aviso las
+    // nombra y el botón no sale, porque la impresión de aquí sale con el precio de aquí, que no cambió.
+    const antes = cobraAntesDeGuardar.current;
+    cobraAntesDeGuardar.current = null;
+    const cambian = antes
+      ? cambianEnCajaAlGuardar(
+          antes,
+          { variantes: variantesEnPantalla(filasFinales, null), categoriaId: categoriaId || null, propios: propiosTras.current },
+          campanas?.vocabulario ?? [],
+          campanas?.hoy ?? hoyLima(),
+          { tiendas: preciosSede?.todas ?? [], aqui: preciosSede?.ubicacionId ?? null }
+        )
+      : null;
+    const reimprimir = huboCorrecciones || !cambian ? null : avisoReimprimir(cambian);
+    const idsReimprimir = [...new Set([...(cambian?.quedan ?? []), ...(cambian?.salen ?? []), ...subidas.filter((x) => x.unidades > 0).map((x) => x.varianteId)])];
+    const lineas = !huboCorrecciones && !reimprimir?.boton && hrefSubidas ? lineasParaImprimir(subidas, filasFinales, nombres, preciosAquiTras) : [];
     // La barra baja y nada más pregunta al salir; el aviso dice qué se guardó (la prueba de que quedó hecho).
     setGuardado(true);
     if (lineas.length > 0 && hrefSubidas) {
       avisar.exito(`${nombrePrenda} guardado`, {
-        detalle: [hechoTodo.length > 0 ? hechoTodo.join(", ") : null, `entraron ${unidadesNuevas} ${unidadesNuevas === 1 ? "unidad" : "unidades"}`]
+        detalle: [
+          hechoTodo.length > 0 ? hechoTodo.join(", ") : null,
+          `entraron ${unidadesNuevas} ${unidadesNuevas === 1 ? "unidad" : "unidades"}`,
+          // Cambió el precio solo en otras tiendas: aquí se imprime lo que entró y el aviso dice dónde cambiar el papel.
+          reimprimir?.detalle ?? null,
+        ]
           .filter(Boolean)
           .join(" · "),
       });
@@ -1031,6 +1122,7 @@ export function ProductoForm({
           hechoTodo.length > 0 ? hechoTodo.join(", ") : null,
           ajustadas > 0 ? `stock ajustado en ${ajustadas} ${ajustadas === 1 ? "talla" : "tallas"}` : null,
           cargadas > 0 ? `${cargadas} ${cargadas === 1 ? "unidad entró" : "unidades entraron"} como stock inicial` : creadas > 0 ? NACEN_SIN_UNIDADES : null,
+          reimprimir?.detalle ?? null,
         ]
           .filter(Boolean)
           .join(" · ") || undefined,
@@ -1038,15 +1130,17 @@ export function ProductoForm({
       // entraron unidades, una etiqueta por cada una nueva (las que ya estaban en la tienda ya tienen la suya).
       ...(huboCorrecciones
         ? { accion: { texto: "Imprimir etiquetas", onClick: () => router.push(`/etiquetas-de-precio?producto=${producto.id}`) }, duracion: 10000 }
-        : hrefSubidas
-          ? {
-              accion: {
-                texto: `Imprimir ${unidadesNuevas} ${unidadesNuevas === 1 ? "etiqueta" : "etiquetas"}`,
-                onClick: () => router.push(conDesde(hrefSubidas, volverA)),
-              },
-              duracion: 10000,
-            }
-          : {}),
+        : reimprimir?.boton
+          ? { accion: { texto: reimprimir.boton, onClick: () => router.push(urlEtiquetasDePrecio({ variantes: idsReimprimir }, volverA)) }, duracion: 10000 }
+          : hrefSubidas
+            ? {
+                accion: {
+                  texto: `Imprimir ${unidadesNuevas} ${unidadesNuevas === 1 ? "etiqueta" : "etiquetas"}`,
+                  onClick: () => router.push(conDesde(hrefSubidas, volverA)),
+                },
+                duracion: 10000,
+              }
+            : {}),
     });
     salida.soltar();
     router.replace(volverA);
@@ -1761,6 +1855,7 @@ export function ProductoForm({
           pendientes={pendientes}
           completadaAqui={pendientesAlAbrir.size > 0}
           onIrPendiente={irAPendiente}
+          campana={fraseCampana}
           deshabilitado={loading}
         />
       </div>

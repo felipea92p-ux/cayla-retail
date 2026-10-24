@@ -15,7 +15,6 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { BotonEnlace } from "@/components/ui/campos";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { ComprobantesListaFilas } from "@/components/ComprobantesListaFilas";
@@ -23,7 +22,9 @@ import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
-// Comprobantes de proveedores (ADR-0035, rediseño ADR-0111): la lista de lo que se compró. Cada
+// Historial de compras (ADR-0035, rediseño ADR-0111; solo lectura desde el 2026-10-23, ADR-0480 act.): la lista de lo que
+// se compró, con su papel —factura, boleta, nota de venta o sin comprobante—. Aquí ya no se registra nada: la compra nace en
+// «Mis compras» y su comprobante, en «Revisar compras». Cada
 // fila dice los dos estados que importan —cuánto falta pagar y cuánto falta llegar— con su cifra
 // debajo, no solo con un chip. Filtros, vistas y paginado viven en la URL y se resuelven en
 // Postgres (`listar_compras`): la página nunca recibe más de 50 filas, haya 300 comprobantes o
@@ -52,7 +53,7 @@ const PLANTILLA = "sm:grid-cols-[8rem_1fr_7.5rem_10.75rem_11rem_7.25rem_1rem]";
 const PARAMS_DE_VISTA = ["saldo", "porrecibir", "vencidas", "pago"];
 
 export default async function ComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras> }) {
-  // 20260923130000: la lista de facturas es del módulo Facturas de compra. ADR-0387 (Felipe 2026-10-12): con el módulo se ven
+  // 20260923130000: la lista es del módulo `facturas_compra` (en pantalla, «Historial de compras»). ADR-0387 (Felipe 2026-10-12): con el módulo se ven
   // las facturas de TODAS las tiendas, como el líder (lo filtra la base); ya no hay «tu parte» en comprobantes de otra tienda.
   await exigirModulo("facturas_compra");
   const params = await searchParams;
@@ -108,19 +109,14 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           facturas de todas las tiendas: eso dice la línea de arriba. */}
       <EncabezadoPagina
         sede="Todas las tiendas"
-        titulo="Facturas de proveedor"
-        subtitulo="Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella."
+        titulo="Historial de compras"
+        subtitulo="Todo lo que se compró, con su factura, boleta, nota de venta o sin comprobante: lo que falta pagar y lo que falta llegar."
         acciones={
-          <>
-            {/* El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien lo descarga: desde ADR-0387,
-                quien tiene el módulo descarga las facturas de todas las tiendas, como el líder. */}
-            <BotonDescargar href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} guia="compras.exportar">
-              Descargar el mes
-            </BotonDescargar>
-            <BotonEnlace href="/compras/nueva" peso="primario" data-guia="compras.registrar">
-              + Registrar factura
-            </BotonEnlace>
-          </>
+          // El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien lo descarga: desde ADR-0387,
+          // quien tiene el módulo descarga las compras de todas las tiendas, como el líder. Registrar ya no vive aquí (ADR-0480 act.).
+          <BotonDescargar href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} guia="compras.exportar">
+            Descargar el mes
+          </BotonDescargar>
         }
       />
 
@@ -148,7 +144,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           detalleTono={resumen.porRecibirAtrasadas > 0 ? "text-ambar-profundo" : undefined}
           etiqueta="Por recibir"
           valor={<CifraQueCuenta valor={resumen.porRecibir} alMontar />}
-          unidad={resumen.porRecibir === 1 ? "factura" : "facturas"}
+          unidad={resumen.porRecibir === 1 ? "compra" : "compras"}
           href={resumen.porRecibir > 0 ? "/compras/recibir" : undefined}
           reparto={{ fraccion: resumen.porRecibir > 0 ? resumen.porRecibirAtrasadas / resumen.porRecibir : 0, tono: "ambar" }}
         >
@@ -183,7 +179,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
       {/* Los estados dejan menos facturas en la MISMA lista (mismas columnas, mismas acciones): son un filtro de un valor y van
           con la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no con la pestaña en MAYÚSCULAS de la
           maqueta de ADR-0111. La vista sigue en la URL. */}
-      <nav aria-label="Vistas de facturas" data-guia="compras.vistas" className="anim-entra pildoras-desliza gap-2 sm:flex-wrap" style={{ ["--i" as string]: 5 }}>
+      <nav aria-label="Vistas del historial" data-guia="compras.vistas" className="anim-entra pildoras-desliza gap-2 sm:flex-wrap" style={{ ["--i" as string]: 5 }}>
         {(
           [
             { clave: "todos", etiqueta: "Todos", conteo: resumen.registradas },
@@ -207,7 +203,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           visibles={["proveedor", "pago", "recepcion", "destino", "condicion", "tipo", "fechas", "vencidas"]}
           accionesDespues={
             <SegmentoEnlaces
-              etiquetaAccesible="Ordenar facturas"
+              etiquetaAccesible="Ordenar compras"
               guia="compras.orden"
               activo={orden}
               opciones={[

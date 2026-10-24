@@ -38,6 +38,7 @@ import {
 } from "./pantallas/inventario";
 import {
   GUIA_ATRIBUTOS,
+  GUIA_SELLOS,
   GUIA_CATEGORIAS,
   GUIA_EDITAR_PRODUCTO,
   GUIA_FAMILIAS,
@@ -57,8 +58,8 @@ import {
   GUIA_FACTURAS,
   GUIA_FONDOS,
   GUIA_MI_PARTE,
-  GUIA_NOTAS_CREDITO,
-  GUIA_NUEVA_FACTURA,
+  GUIA_MI_PLATA,
+  GUIA_COMPRA_RAPIDA,
   GUIA_NUEVA_ORDEN,
   GUIA_ORDEN,
   GUIA_ORDENES,
@@ -113,8 +114,10 @@ import {
   GUIA_INICIO,
 } from "./pantallas/general";
 import { GUIA_ANALISIS, GUIA_FRESCURA, GUIA_PLAN_DEL_PISO, GUIA_RENDIMIENTO } from "./pantallas/gestion";
-import { GUIA_AVISOS_CLUB, GUIA_CLIENTES } from "./pantallas/clientes";
+import { GUIA_AVISOS_CLUB, GUIA_BENEFICIOS_CLUB, GUIA_CLIENTES } from "./pantallas/clientes";
 import {
+  GUIA_CAMPANAS_EDITOR,
+  GUIA_CAMPANAS_WEB,
   GUIA_PEDIDOS_WEB,
   GUIA_RECOMENDACIONES,
   GUIA_TIENDA_WEB_AJUSTES,
@@ -167,6 +170,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_EDITAR_PRODUCTO,
   GUIA_HISTORIAL_PRENDA,
   GUIA_ATRIBUTOS,
+  GUIA_SELLOS,
   GUIA_CATEGORIAS,
   GUIA_FAMILIAS,
   GUIA_MARCAS,
@@ -177,10 +181,10 @@ export const GUIAS: readonly Guia[] = [
   GUIA_FACTURAS,
   GUIA_FACTURA,
   GUIA_POR_PAGAR,
-  GUIA_NOTAS_CREDITO,
+  GUIA_MI_PLATA,
+  GUIA_COMPRA_RAPIDA,
   GUIA_PROVEEDORES,
   GUIA_PROVEEDOR,
-  GUIA_NUEVA_FACTURA,
   GUIA_MI_PARTE,
   GUIA_PLAN_CAMPANA,
   GUIA_PLAN_RESULTADOS,
@@ -226,6 +230,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_BUSCAR,
   GUIA_CLIENTES,
   GUIA_AVISOS_CLUB,
+  GUIA_BENEFICIOS_CLUB,
   GUIA_COLABORADORES,
   GUIA_COMERCIAL,
   GUIA_CALIDAD,
@@ -239,6 +244,8 @@ export const GUIAS: readonly Guia[] = [
   GUIA_VITRINA_ESPERAN,
   GUIA_VITRINA_LOOKS,
   GUIA_VITRINA_PROBADOR,
+  GUIA_CAMPANAS_WEB,
+  GUIA_CAMPANAS_EDITOR,
   GUIA_RECOMENDACIONES,
   GUIA_TIENDA_WEB_AJUSTES,
 ];
@@ -264,6 +271,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- clientas ----
   "/clientas": { estado: "aplicada", guia: GUIA_CLIENTES.id },
   "/clientas/avisos": { estado: "aplicada", guia: GUIA_AVISOS_CLUB.id },
+  "/clientas/beneficios": { estado: "aplicada", guia: GUIA_BENEFICIOS_CLUB.id },
   "/clientas/cartel": { estado: "no-aplica", motivo: "Hoja de impresión del cartel del club: se revisa y se imprime, no hay piezas que recorrer." },
   // ---- colaboradores ----
   "/colaboradores": { estado: "aplicada", guia: GUIA_COLABORADORES.id },
@@ -277,8 +285,9 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/compras/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
   "/compras/factura/[compraId]": { estado: "aplicada", guia: GUIA_FACTURA.id },
   "/compras/fondos": { estado: "aplicada", guia: GUIA_FONDOS.id },
-  "/compras/notas-credito": { estado: "aplicada", guia: GUIA_NOTAS_CREDITO.id },
-  "/compras/nueva": { estado: "aplicada", guia: GUIA_NUEVA_FACTURA.id },
+  "/compras/mi-plata": { estado: "aplicada", guia: GUIA_MI_PLATA.id },
+  "/compras/mi-plata/compra": { estado: "aplicada", guia: GUIA_COMPRA_RAPIDA.id },
+  "/compras/notas-credito": { estado: "no-aplica", motivo: "Redirige al Historial de compras: Notas de crédito se retiró (ADR-0480)." },
   "/compras/ordenes": { estado: "aplicada", guia: GUIA_ORDENES.id },
   "/compras/ordenes/comprobante/[id]": { estado: "aplicada", guia: GUIA_COMPROBANTE_ORDEN.id },
   "/compras/ordenes/editar/[id]": { estado: "aplicada", guia: GUIA_EDITAR_ORDEN.id },
@@ -370,6 +379,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/productos/categorias": { estado: "aplicada", guia: GUIA_CATEGORIAS.id },
   "/productos/familias": { estado: "aplicada", guia: GUIA_FAMILIAS.id },
   "/productos/liquidacion": { estado: "aplicada", guia: GUIA_LIQUIDACION.id },
+  "/productos/insignias": { estado: "aplicada", guia: GUIA_SELLOS.id },
   "/productos/marcas": { estado: "aplicada", guia: GUIA_MARCAS.id },
   "/productos/nuevo": { estado: "aplicada", guia: GUIA_NUEVO_PRODUCTO.id },
   "/productos/por-revisar": { estado: "aplicada", guia: GUIA_POR_REVISAR.id },
@@ -385,6 +395,8 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- tienda-web ---- (ADR-0430: antes en Clientas, Productos, Vender y una pestaña de Configuración)
   "/tienda-web": { estado: "aplicada", guia: GUIA_TIENDA_WEB_RESUMEN.id },
   "/tienda-web/ajustes": { estado: "aplicada", guia: GUIA_TIENDA_WEB_AJUSTES.id },
+  "/tienda-web/campanas": { estado: "aplicada", guia: GUIA_CAMPANAS_WEB.id },
+  "/tienda-web/campanas/[id]": { estado: "aplicada", guia: GUIA_CAMPANAS_EDITOR.id },
   "/tienda-web/pedidos": { estado: "aplicada", guia: GUIA_PEDIDOS_WEB.id },
   "/tienda-web/recomendaciones": { estado: "aplicada", guia: GUIA_RECOMENDACIONES.id },
   "/tienda-web/vitrina": { estado: "aplicada", guia: GUIA_VITRINA.id },

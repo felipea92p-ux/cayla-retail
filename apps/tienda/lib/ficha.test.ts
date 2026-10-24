@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
 import {
-  avisoOtraTienda,
   avisoOtrosSepararon,
   botonDeLaFicha,
   campanaDeLaFicha,
@@ -9,6 +8,8 @@ import {
   chipsDelCatalogo,
   colorInicial,
   combinaCon,
+  dibujoDeLaCampana,
+  imagenDeLaCampana,
   esIdDePrenda,
   faltaParaTerminar,
   fotosDelColor,
@@ -16,6 +17,7 @@ import {
   interpretarSeparadas,
   lineaAlAgregar,
   notaDeTalla,
+  pistaOtraTienda,
   parecidasA,
   precioDeLaFicha,
   promesasDeCompra,
@@ -24,6 +26,7 @@ import {
   tallasRapidas,
   type Ficha,
 } from "./ficha";
+import { dibujoDeLaInsignia } from "./insignias";
 import type { Look } from "./looks";
 import { PLAZOS_SIN_DATOS } from "./ayuda";
 
@@ -136,6 +139,11 @@ describe("al elegir color y talla", () => {
     expect(colorInicial(ficha)).toBe("BEI");
     const sinStockBei = { ...ficha, variantes: ficha.variantes.map((v) => (v.color === "BEI" ? { ...v, total: 0 as const } : v)) };
     expect(colorInicial(sinStockBei)).toBe("BEI");
+    // Con una tienda elegida cuenta lo que hay AHÍ (cada tienda maneja lo suyo): el negro no tiene nada en Lima, el beige sí.
+    const conFotos = { ...ficha, colores: ficha.colores.map((c) => ({ ...c, foto: FOTO(c.codigo) })) };
+    const sinNegroEnLima = { ...conFotos, variantes: conFotos.variantes.map((v) => (v.color === "NEG" ? { ...v, stock: { ...v.stock, [LIM]: 0 as const } } : v)) };
+    expect(colorInicial(sinNegroEnLima, null, LIM)).toBe("BEI");
+    expect(colorInicial(sinNegroEnLima, null, null)).toBe("NEG");
     const sinFotos = { ...ficha, colores: ficha.colores.map((c) => ({ ...c, foto: null })) };
     expect(colorInicial(sinFotos)).toBe("NEG");
   });
@@ -152,14 +160,14 @@ describe("al elegir color y talla", () => {
     expect(fotosDelColor({ ...ficha, fotos: [] }, "NEG")).toEqual({ fotos: [], enOtroColor: false });
   });
 
-  it("la nota de la talla: «Otra tienda» si la elegida no tiene y otra sí, «Avísame» si ninguna; sin tiendas, nada", () => {
+  it("la nota de la talla: «Agotada» si la tienda elegida no tiene (aunque otra sí: cada tienda maneja lo suyo); sin tienda, si ninguna; sin tiendas, nada", () => {
     const [negS, negM, negL, beiS, beiM] = ficha.variantes;
-    expect(notaDeTalla(negS, LIM, true)).toBe("Otra tienda");
+    expect(notaDeTalla(negS, LIM, true)).toBe("Agotada");
     expect(notaDeTalla(negM, LIM, true)).toBeNull();
-    expect(notaDeTalla(negL, TRU, true)).toBe("Avísame");
+    expect(notaDeTalla(negL, TRU, true)).toBe("Agotada");
     expect(notaDeTalla(beiS, null, true)).toBeNull();
-    expect(notaDeTalla(negL, null, true)).toBe("Avísame");
-    expect(notaDeTalla(beiM, TRU, true)).toBe("Otra tienda");
+    expect(notaDeTalla(negL, null, true)).toBe("Agotada");
+    expect(notaDeTalla(beiM, TRU, true)).toBe("Agotada");
     expect(notaDeTalla(negL, null, false)).toBeNull();
   });
 
@@ -200,12 +208,12 @@ describe("al elegir color y talla", () => {
 describe("los chips que salen del catálogo (actividad 5)", () => {
   it("«Nuevo» con hace cuántos días llegó (o «llegó hoy»), solo «Nuevo» si está fijado sin días, y su puesto en Más vendidos", () => {
     expect(chipsDelCatalogo({ nuevo: { dias: 4 }, vendidos: 3 })).toEqual([
-      { texto: "Nuevo · llegó hace 4 días", tono: "nuevo" },
+      { texto: "Nuevo · llegó hace 4 días", tono: "nuevo", icono: "nuevo" },
       { texto: "N.º 3 en más vendidos" },
     ]);
-    expect(chipsDelCatalogo({ nuevo: { dias: 1 }, vendidos: null })).toEqual([{ texto: "Nuevo · llegó hace 1 día", tono: "nuevo" }]);
-    expect(chipsDelCatalogo({ nuevo: { dias: 0 }, vendidos: null })).toEqual([{ texto: "Nuevo · llegó hoy", tono: "nuevo" }]);
-    expect(chipsDelCatalogo({ nuevo: { dias: null }, vendidos: null })).toEqual([{ texto: "Nuevo", tono: "nuevo" }]);
+    expect(chipsDelCatalogo({ nuevo: { dias: 1 }, vendidos: null })).toEqual([{ texto: "Nuevo · llegó hace 1 día", tono: "nuevo", icono: "nuevo" }]);
+    expect(chipsDelCatalogo({ nuevo: { dias: 0 }, vendidos: null })).toEqual([{ texto: "Nuevo · llegó hoy", tono: "nuevo", icono: "nuevo" }]);
+    expect(chipsDelCatalogo({ nuevo: { dias: null }, vendidos: null })).toEqual([{ texto: "Nuevo", tono: "nuevo", icono: "nuevo" }]);
     expect(chipsDelCatalogo({ nuevo: null, vendidos: 1 })).toEqual([{ texto: "N.º 1 en más vendidos" }]);
     // Sin la prenda en el catálogo (o sin base), ningún chip: nunca se afirma lo que no se sabe.
     expect(chipsDelCatalogo({ nuevo: null, vendidos: null })).toEqual([]);
@@ -213,14 +221,139 @@ describe("los chips que salen del catálogo (actividad 5)", () => {
   });
 });
 
+describe("las insignias de Catálogo ▸ Insignias en la ficha (ADR-0489)", () => {
+  const HALLOWEEN = { id: "7b7b7b7b-1111-4222-8333-444444444441", nombre: "Halloween" };
+  const REEDICION = { id: "7b7b7b7b-1111-4222-8333-444444444442", nombre: "Reedición" };
+  // Lo que la ficha entrega de cada una: sin dibujo elegido ni descuento (la base vieja, o una que no los tiene), «según el nombre».
+  const COMPLETAS = (i: { id: string; nombre: string }) => ({ ...i, icono: null, imagen: null, descuento: false });
+  const conInsignias = (insignias: unknown) => interpretarFicha({ ...BASE, prenda: { ...BASE.prenda, insignias } }) as Ficha;
+
+  it("la ficha las lee en el orden que manda la base; sin el campo, sin insignias y sin error", () => {
+    expect(conInsignias([HALLOWEEN, REEDICION]).insignias).toEqual([COMPLETAS(HALLOWEEN), COMPLETAS(REEDICION)]);
+    expect(ficha.insignias).toEqual([]);
+    expect(conInsignias(undefined).insignias).toEqual([]);
+    expect(conInsignias("raro").insignias).toEqual([]);
+  });
+
+  it("una insignia con un dato raro o repetida se deja fuera; las demás se ven (y la ficha no se cae)", () => {
+    const f = conInsignias([HALLOWEEN, { id: "no-es-uuid", nombre: "Rota" }, { id: REEDICION.id, nombre: "   " }, 7, null, HALLOWEEN, REEDICION]);
+    expect(f.insignias).toEqual([COMPLETAS(HALLOWEEN), COMPLETAS(REEDICION)]);
+    expect(f.nombre).toBe("Blusa Emma");
+  });
+
+  it("las insignias van después de «Nuevo» y antes de «N.º … en más vendidos», con la misma cara entre ellas", () => {
+    expect(chipsDelCatalogo({ nuevo: { dias: 3 }, vendidos: 2 }, [HALLOWEEN, REEDICION])).toEqual([
+      { texto: "Nuevo · llegó hace 3 días", tono: "nuevo", icono: "nuevo" },
+      { texto: "Halloween", tono: "insignia", icono: "halloween" },
+      { texto: "Reedición", tono: "insignia", icono: "reedicion" },
+      { texto: "N.º 2 en más vendidos" },
+    ]);
+  });
+
+  it("sin la prenda en el catálogo se ven igual (vienen de su ficha, no del catálogo), pero «Nuevo» y el puesto no se inventan", () => {
+    expect(chipsDelCatalogo(null, [HALLOWEEN])).toEqual([{ texto: "Halloween", tono: "insignia", icono: "halloween" }]);
+    expect(chipsDelCatalogo({ nuevo: null, vendidos: null }, [])).toEqual([]);
+  });
+
+  it("la insignia «Nuevo» no repite a «Nuevo · llegó hace…», pero sí se ve si la tienda no lo dice (llegó hace más de 30 días)", () => {
+    const nuevo = { id: "7b7b7b7b-1111-4222-8333-444444444443", nombre: "Nuevo" };
+    expect(chipsDelCatalogo({ nuevo: { dias: 0 }, vendidos: null }, [nuevo, HALLOWEEN])).toEqual([
+      { texto: "Nuevo · llegó hoy", tono: "nuevo", icono: "nuevo" },
+      { texto: "Halloween", tono: "insignia", icono: "halloween" },
+    ]);
+    expect(chipsDelCatalogo({ nuevo: null, vendidos: null }, [nuevo])).toEqual([{ texto: "Nuevo", tono: "insignia", icono: "nuevo" }]);
+  });
+
+  it("«Top ventas» no repite a «N.º 3 en más vendidos», pero sí se ve si la tienda no dice el puesto; sin tildes ni mayúsculas", () => {
+    const top = { id: "7b7b7b7b-1111-4222-8333-444444444444", nombre: "  TOP  Ventas " };
+    const mas = { id: "7b7b7b7b-1111-4222-8333-444444444445", nombre: "Más vendidos" };
+    expect(chipsDelCatalogo({ nuevo: null, vendidos: 3 }, [top, mas])).toEqual([{ texto: "N.º 3 en más vendidos" }]);
+    expect(chipsDelCatalogo({ nuevo: null, vendidos: null }, [top])).toEqual([{ texto: "TOP  Ventas", tono: "insignia", icono: "top" }]);
+  });
+
+  it("cada insignia lleva su dibujo: el que se eligió al crearla manda; si no, el de su nombre (el mismo que le da el ERP); si no se reconoce, una etiqueta", () => {
+    const sin = (nombre: string) => chipsDelCatalogo(null, [{ nombre }])[0].icono;
+    expect(sin("Halloween")).toBe("halloween");
+    expect(sin("Aniversario CAYLA")).toBe("aniversario");
+    expect(sin("Día Internacional del Gato")).toBe("gato");
+    expect(sin("  HALLOWEEN  ")).toBe("halloween");
+    expect(sin("Estreno")).toBe("generico");
+    // El elegido manda sobre el nombre: «Día del Padre» con el pastel; «Halloween» con el gato; y una clave desconocida cae al nombre.
+    expect(chipsDelCatalogo(null, [{ nombre: "Día del Padre", icono: "aniversario" }])[0].icono).toBe("aniversario");
+    expect(chipsDelCatalogo(null, [{ nombre: "Halloween", icono: "gato" }])[0].icono).toBe("gato");
+    expect(chipsDelCatalogo(null, [{ nombre: "Estreno", icono: "generico" }])[0].icono).toBe("generico");
+  });
+
+  it("la ficha lee el dibujo elegido: una clave que no existe, o ninguna, o un dato raro, es «según el nombre» y nunca rompe", () => {
+    const f = conInsignias([
+      { ...HALLOWEEN, icono: "gato" },
+      { ...REEDICION, icono: "ya-no-existe" },
+      { id: "7b7b7b7b-1111-4222-8333-444444444447", nombre: "Estreno", icono: 7 },
+      { id: "7b7b7b7b-1111-4222-8333-444444444448", nombre: "Sin campo" },
+    ]);
+    expect(f.insignias.map((i) => i.icono)).toEqual(["gato", null, null, null]);
+    expect(chipsDelCatalogo(null, f.insignias).map((c) => c.icono)).toEqual(["gato", "reedicion", "generico", "generico"]);
+  });
+
+  it("una insignia con descuento no se dibuja aparte, pero su dibujo elegido lo toma el chip del descuento (el mismo que muestra el ERP)", () => {
+    const ANIV = { id: "7b7b7b7b-1111-4222-8333-444444444449", nombre: "Día del Padre", icono: "aniversario", descuento: true };
+    const f = conInsignias([HALLOWEEN, ANIV]);
+    expect(f.insignias.map((i) => i.descuento)).toEqual([false, true]);
+    expect(chipsDelCatalogo(null, f.insignias).map((c) => c.texto)).toEqual(["Halloween"]);
+    const campana = { id: ANIV.id, nombre: "Día del Padre", pct: 25, hasta: null };
+    expect(dibujoDeLaCampana(f, campana)).toBe("aniversario");
+    // Sin dibujo elegido, el de su nombre; y si la lista no la trae (base vieja, campaña sin id), también.
+    expect(dibujoDeLaCampana(conInsignias([{ ...ANIV, icono: null }]), campana)).toBe("generico");
+    expect(dibujoDeLaCampana(conInsignias([]), { id: ANIV.id, nombre: "Aniversario CAYLA", pct: 20, hasta: null })).toBe("aniversario");
+    expect(dibujoDeLaCampana(conInsignias([ANIV]), { nombre: "Navidad", pct: 10, hasta: null })).toBe("navidad");
+  });
+
+  it("la ficha lee la imagen propia (ADR-0490): solo una ruta con la forma que el ERP sube; cualquier otra cosa es «sin imagen» y nunca rompe", () => {
+    const RUTA = "insignias/7b7b7b7b-1111-4222-8333-444444444441/0a0a0a0a-2222-4333-8444-555555555555.webp";
+    const f = conInsignias([
+      { ...HALLOWEEN, imagen: RUTA },
+      { ...REEDICION, imagen: "https://otro.com/x.png" },
+      { id: "7b7b7b7b-1111-4222-8333-444444444447", nombre: "Estreno", imagen: "insignias/../x.webp" },
+      { id: "7b7b7b7b-1111-4222-8333-444444444448", nombre: "Sin campo", imagen: 7 },
+    ]);
+    expect(f.insignias.map((i) => i.imagen)).toEqual([RUTA, null, null, null]);
+    // El chip lleva la ruta de su imagen (y conserva su dibujo por si la dirección no se arma); sin imagen no trae el campo.
+    const chips = chipsDelCatalogo(null, f.insignias);
+    expect(chips[0]).toEqual({ texto: "Halloween", tono: "insignia", icono: "halloween", imagen: RUTA });
+    expect(chips[1]).toEqual({ texto: "Reedición", tono: "insignia", icono: "reedicion" });
+    expect("imagen" in chips[1]).toBe(false);
+  });
+
+  it("el chip del descuento toma la imagen propia de ESA campaña", () => {
+    const RUTA = "insignias/7b7b7b7b-1111-4222-8333-444444444449/0a0a0a0a-2222-4333-8444-555555555555.webp";
+    const ANIV = { id: "7b7b7b7b-1111-4222-8333-444444444449", nombre: "Día del Padre", icono: null, imagen: RUTA, descuento: true };
+    const f = conInsignias([ANIV]);
+    const campana = { id: ANIV.id, nombre: "Día del Padre", pct: 25, hasta: null };
+    expect(imagenDeLaCampana(f, campana)).toBe(RUTA);
+    expect(imagenDeLaCampana(f, { nombre: "Navidad", pct: 10, hasta: null })).toBeNull();
+    expect(imagenDeLaCampana(conInsignias([]), campana)).toBeNull();
+    expect(chipsDelCatalogo(null, f.insignias)).toEqual([]);
+  });
+
+  it("una insignia que solo se parece a «Nuevo» (otro nombre) se ve siempre", () => {
+    const otra = { id: "7b7b7b7b-1111-4222-8333-444444444446", nombre: "Colección nueva" };
+    expect(chipsDelCatalogo({ nuevo: { dias: 1 }, vendidos: null }, [otra]).map((c) => c.texto)).toEqual(["Nuevo · llegó hace 1 día", "Colección nueva"]);
+  });
+});
+
 describe("lo que la ficha conecta: el botón, la propuesta k, «Agregar» de la tarjeta y «Combínalo con»", () => {
   const [negS, negM, negL, beiS, beiM] = ficha.variantes;
   const TRUJILLO = { id: TRU, nombre: "Trujillo" };
 
-  it("el botón: sin talla «Elige tu talla»; si hay en ALGUNA tienda, agregar (aunque no en la elegida); si no hay en ninguna, «Avísame»", () => {
-    expect(botonDeLaFicha(null)).toEqual({ tipo: "elige" });
+  it("el botón: sin talla «Elige tu talla»; si hay en la tienda elegida, agregar; si ahí no hay (aunque otra tenga), «Avísame»; sin tienda, lo de todas", () => {
+    expect(botonDeLaFicha(null, LIM)).toEqual({ tipo: "elige" });
+    expect(botonDeLaFicha(negS, TRU)).toEqual({ tipo: "agregar", varianteId: negS.id });
+    expect(botonDeLaFicha(negS, LIM)).toEqual({ tipo: "avisame", varianteId: negS.id });
+    expect(botonDeLaFicha(beiM, LIM)).toEqual({ tipo: "agregar", varianteId: beiM.id });
+    expect(botonDeLaFicha(beiM, TRU)).toEqual({ tipo: "avisame", varianteId: beiM.id });
+    expect(botonDeLaFicha(negL, LIM)).toEqual({ tipo: "avisame", varianteId: negL.id });
+    // Sin tienda elegida (la web sin tiendas): vale lo que haya en todas juntas.
     expect(botonDeLaFicha(negS)).toEqual({ tipo: "agregar", varianteId: negS.id });
-    expect(botonDeLaFicha(beiM)).toEqual({ tipo: "agregar", varianteId: beiM.id });
     expect(botonDeLaFicha(negL)).toEqual({ tipo: "avisame", varianteId: negL.id });
   });
 
@@ -239,17 +372,23 @@ describe("lo que la ficha conecta: el botón, la propuesta k, «Agregar» de la 
     expect(avisoOtrosSepararon(null, TRUJILLO, separadas)).toBeNull();
   });
 
-  it("una talla que no está en la tienda elegida pero sí en otra: se separa igual y la tienda la puede traer; si no, nada", () => {
+  it("una talla que no está en la tienda elegida pero sí en otra: solo una pista, «Hay en …», sin prometer que la tienda la traiga; si no, nada", () => {
     const LIMA = { id: LIM, nombre: "Lima" };
-    // NEG S: Trujillo 3, Lima 0 → con Lima elegida, la trae de Trujillo.
-    expect(avisoOtraTienda(negS, LIMA, ficha.sedes)).toBe("No hay en Lima. Igual puedes separarla ahí: la tienda puede traerla de Trujillo.");
-    // BEI M: Trujillo 0, Lima 1 → con Trujillo elegida, la trae de Lima.
-    expect(avisoOtraTienda(beiM, TRUJILLO, ficha.sedes)).toBe("No hay en Trujillo. Igual puedes separarla ahí: la tienda puede traerla de Lima.");
-    // Hay en la elegida; sin tienda («Todas»); sin talla; en ninguna (eso es «Avísame»).
-    expect(avisoOtraTienda(negM, LIMA, ficha.sedes)).toBeNull();
-    expect(avisoOtraTienda(negS, null, ficha.sedes)).toBeNull();
-    expect(avisoOtraTienda(null, LIMA, ficha.sedes)).toBeNull();
-    expect(avisoOtraTienda(negL, LIMA, ficha.sedes)).toBeNull();
+    // NEG S: Trujillo 3, Lima 0 → con Lima elegida, hay en Trujillo.
+    expect(pistaOtraTienda(negS, LIMA, ficha.sedes)).toBe("Hay en Trujillo.");
+    // BEI M: Trujillo 0, Lima 1 → con Trujillo elegida, hay en Lima.
+    expect(pistaOtraTienda(beiM, TRUJILLO, ficha.sedes)).toBe("Hay en Lima.");
+    // Con tres tiendas, las nombra todas: «Hay en Arequipa y Lima.».
+    const tres = [{ id: "a", nombre: "Arequipa" }, ...ficha.sedes];
+    const enDos = { ...negS, stock: { ...negS.stock, a: "hay" as const, [TRU]: "hay" as const, [LIM]: 0 as const } };
+    expect(pistaOtraTienda(enDos, LIMA, tres)).toBe("Hay en Arequipa y Trujillo.");
+    // Hay en la elegida; sin tienda; sin talla; en ninguna (eso es «Avísame» sin pista).
+    expect(pistaOtraTienda(negM, LIMA, ficha.sedes)).toBeNull();
+    expect(pistaOtraTienda(negS, null, ficha.sedes)).toBeNull();
+    expect(pistaOtraTienda(null, LIMA, ficha.sedes)).toBeNull();
+    expect(pistaOtraTienda(negL, LIMA, ficha.sedes)).toBeNull();
+    // Nunca la promesa vieja.
+    expect(pistaOtraTienda(negS, LIMA, ficha.sedes)).not.toMatch(/traer|separarla/);
   });
 
   it("lo que dice la ficha junto al botón al agregar: corto y con la talla; si no entró, la frase del servidor", () => {
@@ -330,7 +469,7 @@ describe("«También te puede gustar» llena su fila (2026-10-16)", () => {
 
   it("la ceja dice de dónde salen y «Ver todo» lleva a eso mismo: su categoría, su grupo o toda la tienda", () => {
     expect(parecidasA(emma, catalogo, { cuantas: 2 })).toMatchObject({ ceja: "Camisas y Blusas", ver: { categoria: "CMS", grupo: null } });
-    expect(parecidasA(emma, catalogo, { cuantas: 3 })).toMatchObject({ ceja: "Arriba", ver: { categoria: null, grupo: "arriba" } });
+    expect(parecidasA(emma, catalogo, { cuantas: 3 })).toMatchObject({ ceja: "Blusas/Tops", ver: { categoria: null, grupo: "arriba" } });
     expect(parecidasA(emma, catalogo)).toMatchObject({ ceja: "Sigue mirando", ver: { categoria: null, grupo: null } });
   });
 

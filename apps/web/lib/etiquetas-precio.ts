@@ -1,12 +1,15 @@
 import type { createClient as crearCliente } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
-import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
+import { exigir, exigirOpcional, leerPorTandasDeIds, leerTodas } from "@/lib/resultado";
 import {
   armarEtiquetas,
+  empresaDeEtiqueta,
   fechaDeAlcance,
   iconosPorVariante,
   mejorCampanaPorVariante,
   sumarEntradas,
+  type CampanaDeVariante,
+  type EmpresaEtiqueta,
   type EtiquetaDeLaPrenda,
   type EtiquetaPrecio,
 } from "@/lib/etiqueta-precio-reglas";
@@ -91,47 +94,54 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
     if (vigencia?.estado === "proxima") return { etiquetas: [], sinCodigo: [], ...extra };
     const stock = await stockEnTienda(supabase, origen.ubicacionId, null);
     // Qué prendas de la tienda alcanza (o alcanzó, si ya terminó: para volver al precio normal).
-    const alcance = await campanasDe(supabase, fechaDeAlcance(e.vigente_desde, e.vigente_hasta, hoy), [...stock.keys()]);
+    const alcance = await campanasDe(supabase, fechaDeAlcance(e.vigente_desde, e.vigente_hasta, hoy), [...stock.keys()], origen.ubicacionId);
     const suyas = new Set(alcance.filter((f) => f.etiqueta_id === e.id).map((f) => f.variante_id));
     entradas = new Map([...stock].filter(([id]) => suyas.has(id)));
   }
   if (entradas.size === 0) return { etiquetas: [], sinCodigo: [], ...extra };
 
+  // Por tandas de ids: las etiquetas de una campaña grande piden ~1.100 prendas de una tienda (el Aniversario en TRU) y mil ids en la dirección
+  // (43 KB) no caben: o el API la rechaza y la hoja no sale, o la responde cortada y faltan prendas sin avisar (`leerPorTandasDeIds`).
   const variantes = exigir(
-    await supabase
-      .from("variantes")
-      .select(
-        "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex, familia_color, tipo ), producto:productos ( referencia, categoria_id, marca:marcas ( nombre ) ), variante_etiquetas ( etiqueta_id )",
-      )
-      .in("id", [...entradas.keys()]),
+    await leerPorTandasDeIds([...entradas.keys()], (tanda) =>
+      supabase
+        .from("variantes")
+        .select(
+          "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex, familia_color, tipo ), producto:productos ( referencia, categoria_id, empresa_id, marca:marcas ( nombre ) ), variante_etiquetas ( etiqueta_id )",
+        )
+        .in("id", tanda),
+    ),
     "las prendas a etiquetar",
   );
 
   // Las otras tallas de esos modelos, para la fila «Tallas del modelo». Un envío grande (50 modelos × 20 variantes)
   // pasa las 1.000 filas: cortada, la etiqueta saldría con tallas de menos sin que nadie lo note.
   const productoIds = [...new Set(variantes.map((v) => v.producto_id))];
+  // Tandas de 50 modelos (cada uno trae varias tallas, así que cada tanda pagina por dentro): 267 modelos en una dirección pesan 10 KB.
   const hermanas = exigir(
-    await leerTodas((desde, hasta) =>
-      supabase.from("variantes").select("id, producto_id, color_codigo, activo, talla:tallas ( valor )").in("producto_id", productoIds).order("id").range(desde, hasta),
+    await leerPorTandasDeIds(
+      productoIds,
+      (tanda) =>
+        leerTodas((desde, hasta) =>
+          supabase.from("variantes").select("id, producto_id, color_codigo, activo, talla:tallas ( valor )").in("producto_id", tanda).order("id").range(desde, hasta),
+        ),
+      50,
     ),
     "las tallas de esos modelos",
   );
 
   // La campaña de HOY de cada prenda: la etiqueta dice lo que la caja cobra hoy, venga de donde venga.
   // Y el precio de ESTA tienda (precio propio, Felipe 2026-10-09): la etiqueta que se imprime aquí dice lo que cobra la caja de aquí.
-  const [deHoy, preciosSede] = await Promise.all([campanasDe(supabase, hoy, [...entradas.keys()]), getPreciosPorSede([origen.ubicacionId])]);
+  const [campanas, preciosSede, empresas] = await Promise.all([
+    campanasQueCobra(supabase, hoy, [...entradas.keys()], origen.ubicacionId),
+    getPreciosPorSede([origen.ubicacionId]),
+    getEmpresasDelPapel(supabase),
+  ]);
   const propios = preciosSede[origen.ubicacionId] ?? {};
-  const etiquetaIds = [...new Set(deHoy.map((f) => f.etiqueta_id))];
-  const hastas = new Map(
-    etiquetaIds.length === 0
-      ? []
-      : exigir(await supabase.from("etiquetas").select("id, vigente_hasta").in("id", etiquetaIds), "hasta cuándo rigen las campañas").map((e) => [e.id, e.vigente_hasta] as const),
-  );
 
   // Los íconos de las etiquetas comerciales de cada prenda (Felipe, 2026-09-29): las elegidas a mano y las que la alcanzan
-  // por su categoría, con o sin descuento. La ganadora del precio sigue siendo la de `deHoy`, la misma de la caja.
-  const campanas = mejorCampanaPorVariante(deHoy, hastas);
-  const iconos = await iconosDeLasPrendas(supabase, variantes, campanas, hoy);
+  // por su categoría, con o sin descuento. La ganadora del precio sigue siendo la de `campanas`, la misma de la caja.
+  const { conDescuento: iconos, sinDescuento: iconosSinDescuento } = await iconosDeLasPrendas(supabase, variantes, campanas, hoy);
 
   return {
     ...armarEtiquetas(
@@ -148,13 +158,23 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
         colorMuestra: fondoDeMuestra(v.color?.hex ?? null, v.color?.familia_color, v.color?.tipo) ?? null,
         talla: v.talla?.valor ?? null,
         marca: v.producto?.marca?.nombre ?? null,
+        empresa: (v.producto?.empresa_id ? empresas.get(v.producto.empresa_id) : null) ?? null,
       })),
       hermanas.map((h) => ({ productoId: h.producto_id, colorCodigo: h.color_codigo, talla: h.talla?.valor ?? null, activo: h.activo })),
       campanas,
       iconos,
+      iconosSinDescuento,
     ),
     ...extra,
   };
+}
+
+/** Cómo dice el papel cada empresa (ADR-0463): id → nombre, colibrí solo de CAYLA y link. Si la base todavía no tiene `fn_empresas()`
+ *  (la migración se pega antes o después de la web) o no responde, queda vacío y TODAS salen como CAYLA, como siempre: nunca se cae. */
+async function getEmpresasDelPapel(supabase: Cliente): Promise<Map<string, EmpresaEtiqueta>> {
+  const { data, error } = await supabase.rpc("fn_empresas");
+  if (error || !data) return new Map();
+  return new Map(data.map((e) => [e.id, empresaDeEtiqueta(e)] as const));
 }
 
 /** Qué íconos lleva el papel de cada prenda. Son tres lecturas chicas y ninguna crece con el envío: las etiquetas a mano
@@ -184,14 +204,12 @@ async function iconosDeLasPrendas(
           "las etiquetas de las prendas",
         ).map((e) => [e.id, { nombre: e.nombre, pct: e.descuento_pct === null ? null : Number(e.descuento_pct), desde: e.vigente_desde, hasta: e.vigente_hasta }] as const),
   );
-  return iconosPorVariante(
-    variantes.map((v) => ({ id: v.id, categoriaId: v.producto?.categoria_id ?? null })),
-    directas,
-    porCategoria,
-    catalogo,
-    campanas,
-    hoy,
-  );
+  const prendas = variantes.map((v) => ({ id: v.id, categoriaId: v.producto?.categoria_id ?? null }));
+  // Las dos versiones salen de las mismas lecturas: la de siempre y la que se imprime «sin el descuento» (`sinDescuento`).
+  return {
+    conDescuento: iconosPorVariante(prendas, directas, porCategoria, catalogo, campanas, hoy),
+    sinDescuento: iconosPorVariante(prendas, directas, porCategoria, catalogo, campanas, hoy, true),
+  };
 }
 
 /** Unidades en la tienda por prenda (todas sus sububicaciones: piso y almacén). `cantidad` es lo físico: lo apartado
@@ -208,13 +226,33 @@ async function stockEnTienda(supabase: Cliente, ubicacionId: string, varianteIds
   return sumarEntradas(filas);
 }
 
-/** Las campañas que rigen en `fecha` sobre esas prendas: la MISMA función que usa la caja (`fn_campanas_por_variante`). */
-async function campanasDe(supabase: Cliente, fecha: string, varianteIds: string[]) {
+/** La campaña que cobra la caja en `fecha` por prenda, con hasta cuándo rige: de las que alcanzan a cada una (la MISMA función de la
+ *  caja), la de mayor %; a igual %, por nombre. La leen la etiqueta de papel y Catálogo (ADR-0472). Lanza si la base no responde: el
+ *  papel no se imprime con un precio dudoso, y Catálogo la tolera mostrando el precio de lista.
+ *  Con `ubicacionId` (la etiqueta de papel: se imprime EN una tienda) rigen también las campañas limitadas a esa tienda (ADR-0486,
+ *  `fn_campanas_en_sede`): sin ella, la etiqueta de Tienda TRU no veía el Aniversario de solo-TRU y la caja sí lo cobraba (Felipe,
+ *  2026-10-23). Sin `ubicacionId` (Catálogo, que no sabe de qué tienda habla) solo rigen las de todas las sedes. */
+export async function campanasQueCobra(supabase: Cliente, fecha: string, varianteIds: string[], ubicacionId?: string): Promise<Map<string, CampanaDeVariante>> {
+  const filas = await campanasDe(supabase, fecha, varianteIds, ubicacionId);
+  const etiquetaIds = [...new Set(filas.map((f) => f.etiqueta_id))];
+  const hastas = new Map(
+    etiquetaIds.length === 0
+      ? []
+      : exigir(await supabase.from("etiquetas").select("id, vigente_hasta").in("id", etiquetaIds), "hasta cuándo rigen las campañas").map((e) => [e.id, e.vigente_hasta] as const),
+  );
+  return mejorCampanaPorVariante(filas, hastas);
+}
+
+/** Las campañas que rigen en `fecha` sobre esas prendas: la MISMA función que usa la caja. Con `ubicacionId`, las de esa tienda
+ *  (`fn_campanas_en_sede`); sin ella, solo las de todas las sedes (`fn_campanas_por_variante`, que delega con sede nula). */
+async function campanasDe(supabase: Cliente, fecha: string, varianteIds: string[], ubicacionId?: string) {
   if (varianteIds.length === 0) return [];
   return exigir(
     await leerTodas((desde, hasta) =>
-      supabase
-        .rpc("fn_campanas_por_variante", { p_hoy: fecha, p_tolerancia_dias: 0, p_variante_ids: varianteIds })
+      (ubicacionId
+        ? supabase.rpc("fn_campanas_en_sede", { p_hoy: fecha, p_tolerancia_dias: 0, p_variante_ids: varianteIds, p_ubicacion_id: ubicacionId })
+        : supabase.rpc("fn_campanas_por_variante", { p_hoy: fecha, p_tolerancia_dias: 0, p_variante_ids: varianteIds })
+      )
         .order("variante_id")
         .order("etiqueta_id")
         .range(desde, hasta),

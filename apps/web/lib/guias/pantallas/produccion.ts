@@ -68,7 +68,7 @@ export const GUIA_PROD_RESUMEN: Guia = {
       id: "hoy",
       ancla: "prod-resumen.hoy",
       titulo: "Hoy en el Taller",
-      texto: "Dónde está cada orden abierta ahora: lotes por cortar, en costura o en acabado (y en bordado, estampado o lavandería si hay alguno), con sus prendas, cuántas están afuera y con quién. Ámbar avisa que alguna pide algo. Tocas una tarjeta y te lleva a Órdenes.",
+      texto: "Dónde está cada orden abierta ahora: por cortar y en costura siempre, y por plotear, en habilitado, en planchado u otra fase si hay algún lote ahí, con sus prendas, cuántas están afuera y con quién. Ámbar avisa que alguna pide algo. Tocas una tarjeta y te lleva a Órdenes.",
     },
     {
       id: "que-producir",
@@ -282,7 +282,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
-      texto: "Corte, Costura y Acabado van siempre; Bordado, Estampado y Lavandería se encienden si el modelo las lleva. En cada fase dices si la hace el Taller o sale afuera: si sale, eliges el servicio, su precio por prenda y para cuándo lo prometió. Se decide ahora y se puede cambiar hasta que la fase empiece.",
+      texto: "Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar van siempre; Ojales y botones, si el modelo los lleva. En cada fase eliges si la hace el Taller o sale afuera: si sale, el servicio, su precio y la fecha (el ploteo cobra una vez por orden).",
     },
     {
       id: "tela",
@@ -358,7 +358,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       id: "fases",
       ancla: "prod-orden.fases",
       titulo: "Las fases del lote",
-      texto: "Corte, Costura y Acabado, y Bordado, Estampado o Lavandería si la orden los lleva. Cada fase dice quién la hace —el Taller o un servicio de afuera—, cuántas prendas van y para cuándo lo prometió. ✓ es hecha; la encendida es en la que se está.",
+      texto: "Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar, y Ojales y botones si la orden los lleva. Cada fase dice quién la hace —el Taller o un servicio de afuera—, cuántas prendas van y para cuándo lo prometió. ✓ es hecha; la encendida es en la que se está.",
     },
     {
       id: "fase-actual",
@@ -366,6 +366,13 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       titulo: "La fase en que se está",
       texto: "Es la que toca ahora. Si la hace el Taller, aquí anotas «Terminé N». Si la hace un servicio de afuera, se anota lo que sale (Salida) y lo que vuelve (Vuelta), con las buenas, las segundas y las que faltan.",
+    },
+    {
+      id: "marcar",
+      ancla: "prod-orden.marcar",
+      opcional: true,
+      titulo: "Marcar una fase que no cuenta prendas",
+      texto: "Ploteo no cuenta prendas: se marca como hecho con un toque cuando la marcada está lista, y la hoja pide quién lo marca. Si te equivocas, «Deshacer» lo vuelve atrás sin borrar el historial. En la demo no se marca nada.",
     },
     {
       id: "terminar",
@@ -1398,7 +1405,7 @@ const PASOS_FORMULARIO_OI = {
     ancla: "oi-form.linea",
     opcional: true,
     titulo: "Cada línea",
-    texto: "El insumo (por su nombre o su código), una descripción si ayuda, la cantidad en su unidad con hasta tres decimales (12.5 metros) y el precio por esa unidad con hasta cuatro (un botón a S/\u00a00.0350). El descuento va en % o en soles; al lado, el subtotal. La ✕ quita la línea.",
+    texto: "El insumo (por su nombre o su código), una descripción si ayuda, la cantidad en su unidad con hasta tres decimales (12.5 metros) y el costo por esa unidad con hasta cuatro (un botón a S/\u00a00.0350). El descuento va en % o en soles; al lado, el subtotal. La ✕ quita la línea.",
   },
   unidadCambiada: {
     id: "unidad-cambiada",
@@ -1481,7 +1488,7 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       id: "lineas",
       ancla: "oi.lineas",
       titulo: "Lo que se pidió",
-      texto: "Una fila por insumo: su nombre y su código, cuánto en su unidad, el precio de cada una (con cuatro decimales si los usa), el descuento y el subtotal. Abajo, cuánto se pidió de cada unidad y el total.",
+      texto: "Una fila por insumo: su nombre y su código, cuánto en su unidad, el costo de cada una (con cuatro decimales si los usa), el descuento y el subtotal. Abajo, cuánto se pidió de cada unidad y el total.",
     },
     {
       id: "papel-linea",

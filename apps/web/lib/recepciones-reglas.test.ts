@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CompraResumen } from "./compras-reglas";
-import type { NotaCreditoCompra } from "./compras-faltantes";
-import { chipLlegada, cierresElegidos, diasDeAtraso, estadoLinea, etiquetaConfirmar, estadoNotaFaltante, faltanteDeLinea, fechaEsperada, disponibilidadNota, montoDeCierres, notasPorReclamar, reparteNota, sinDecidir, ordenarPorUrgencia, resumenConteo, tasaIgv, textoEsperada, valorPorLlegar } from "./recepciones-reglas";
+import { chipLlegada, cierresElegidos, diasDeAtraso, estadoLinea, etiquetaConfirmar, faltanteDeLinea, fechaEsperada, montoDeCierres, notasPorReclamar, sinDecidir, ordenarPorUrgencia, resumenConteo, tasaIgv, textoEsperada, valorPorLlegar } from "./recepciones-reglas";
 
 // Hoy en Lima = 2026-09-18 (a las 19:30 de Lima en UTC ya es 09-19).
 const AHORA = new Date("2026-09-19T00:30:00Z");
@@ -91,27 +89,6 @@ describe("decisiones por línea", () => {
   });
 });
 
-describe("disponibilidadNota: se anticipa lo que la base va a exigir", () => {
-  const base = { pendiente: 24, llegando: 20, cerrandoAhora: 4, cerradoAntes: 0, yaTieneNotaFaltante: false };
-  it("disponible cuando la guía deja el comprobante resuelto al 100 %", () => {
-    expect(disponibilidadNota(base)).toEqual({ estado: "disponible" });
-  });
-  it("bloqueada si después de la guía quedan unidades sin recibir ni cerrar (y dice cuántas)", () => {
-    expect(disponibilidadNota({ ...base, llegando: 10 })).toEqual({ estado: "bloqueada", quedan: 10 });
-    // `pendiente` ya descuenta lo cerrado antes: con 4 cerrados antes quedan 20 pendientes en las líneas.
-    expect(disponibilidadNota({ ...base, pendiente: 20, llegando: 10, cerrandoAhora: 0, cerradoAntes: 4 })).toEqual({ estado: "bloqueada", quedan: 10 });
-  });
-  it("sin ningún cierre (ni antes ni ahora) no hay nota por faltante", () => {
-    expect(disponibilidadNota({ ...base, cerrandoAhora: 0, llegando: 24 })).toEqual({ estado: "sin_cierres" });
-  });
-  it("los cierres de guías anteriores cuentan para poder registrar la nota", () => {
-    expect(disponibilidadNota({ ...base, pendiente: 20, cerrandoAhora: 0, cerradoAntes: 4, llegando: 20 })).toEqual({ estado: "disponible" });
-  });
-  it("si ya tiene su nota por faltante, no hay otra", () => {
-    expect(disponibilidadNota({ ...base, yaTieneNotaFaltante: true })).toEqual({ estado: "ya_registrada" });
-  });
-});
-
 describe("notasPorReclamar: Recepción avisa lo que el proveedor va a deber, ya no lo registra", () => {
   const compra = (id: string) => ({ id, documento: `F001-${id}`, proveedorNombre: "Textiles Andina SAC", igv: 18, subtotal: 100 });
   const bloque = (id: string, extra: Partial<{ cierresAhora: { faltan: number; costoUnitario: number }[]; cerradoAntes: { faltan: number; costoUnitario: number }[]; yaTieneNotaFaltante: boolean }> = {}) => ({
@@ -140,40 +117,6 @@ describe("notasPorReclamar: Recepción avisa lo que el proveedor va a deber, ya 
   it("un envío de varios comprobantes deja un reclamo por comprobante", () => {
     const r = notasPorReclamar([bloque("c1", { cierresAhora: [{ faltan: 1, costoUnitario: 100 }] }), bloque("c2"), bloque("c3", { cerradoAntes: [{ faltan: 1, costoUnitario: 200 }] })]);
     expect(r.map((x) => x.compraId)).toEqual(["c1", "c3"]);
-  });
-});
-
-describe("estadoNotaFaltante: vive en un módulo puro para que el detalle (servidor) pueda llamarla", () => {
-  // Solo importan las tres cantidades; el resto del comprobante no interviene.
-  const compra = (facturado: number, recibido: number, cerrado: number) => ({ facturadoCantidad: facturado, recibidoCantidad: recibido, cerradoCantidad: cerrado }) as CompraResumen;
-  const nota = (motivo: string) => ({ motivo }) as NotaCreditoCompra;
-  it("con unidades cerradas y todo lo demás recibido, la nota por faltante está disponible", () => {
-    expect(estadoNotaFaltante(compra(24, 20, 4), [])).toEqual({ estado: "disponible" });
-  });
-  it("sin nada cerrado no hay nota por faltante", () => {
-    expect(estadoNotaFaltante(compra(24, 24, 0), [])).toEqual({ estado: "sin_cierres" });
-  });
-  it("si aún quedan unidades sin recibir ni cerrar, dice cuántas", () => {
-    expect(estadoNotaFaltante(compra(24, 10, 4), [])).toEqual({ estado: "bloqueada", quedan: 10 });
-  });
-  it("una nota de otro motivo no cuenta como la del faltante; la del faltante, sí", () => {
-    expect(estadoNotaFaltante(compra(24, 20, 4), [nota("devolucion")])).toEqual({ estado: "disponible" });
-    expect(estadoNotaFaltante(compra(24, 20, 4), [nota("faltante")])).toEqual({ estado: "ya_registrada" });
-  });
-});
-
-describe("reparteNota: la nota baja la deuda y lo que sobra queda a favor", () => {
-  it("a crédito sin pagar: baja la deuda, nada a favor", () => {
-    const r = reparteNota(236, 1180);
-    expect(r).toEqual({ baja: 236, aFavor: 0, deudaDespues: 944 });
-  });
-  it("al contado (ya pagada): todo queda a favor", () => {
-    const r = reparteNota(236, 0);
-    expect(r).toEqual({ baja: 0, aFavor: 236, deudaDespues: 0 });
-  });
-  it("debe menos que la nota: baja a 0 y el resto queda a favor", () => {
-    const r = reparteNota(236, 116);
-    expect(r).toEqual({ baja: 116, aFavor: 120, deudaDespues: 0 });
   });
 });
 

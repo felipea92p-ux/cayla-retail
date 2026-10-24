@@ -32,6 +32,16 @@ export type FilaER = {
   descuadres: number;
   planillaVisible: boolean;
   planillaNota: string | null;
+  /**
+   * Lo que de `planilla` (y de `gastos`) es ESTIMADO (ADR-0453): lo que corresponde pagar hasta hoy según las boletas de Dynamic, de
+   * un período que Dynamic todavía no pagó. Fuera del libro: la base no lo trae, lo suma la web (`aplicarProvision`). 0 = todo lo de
+   * `planilla` está asentado en el diario.
+   */
+  planillaEstimada: number;
+  /** Lo que costaría el período entero de esa estimación (nunca menos que `planillaEstimada`). 0 si no hay estimación. */
+  planillaAlCierre: number;
+  /** Personas en las boletas de esa estimación (suma de las sedes de la columna). */
+  planillaPersonas: number;
 };
 
 type Fila = Record<string, unknown>;
@@ -71,6 +81,9 @@ export function leerFilaER(r: Fila): FilaER {
     descuadres: n(r.asientos_descuadrados),
     planillaVisible: !!r.planilla_visible,
     planillaNota: texto(r.planilla_nota),
+    planillaEstimada: 0,
+    planillaAlCierre: 0,
+    planillaPersonas: 0,
   };
 }
 
@@ -193,9 +206,12 @@ export function conceptosER(columnas: readonly FilaER[]): ConceptoER[] {
     {
       clave: "mermas",
       nombre: "Mermas",
-      cuenta: "659",
+      // Las pérdidas de inventario van a la 6951 «Desvalorización de inventarios — mercaderías» (migración 20261023012000,
+      // provisional hasta el OK del contador). Antes iban a la 659: se sigue leyendo para que «De dónde sale» no quede vacío
+      // si la web y la base se publican en distinto orden, y mientras la 659 siga en el plan.
+      cuenta: "6951",
       tipo: "linea",
-      cuentas: ["659"],
+      cuentas: ["6951", "659"],
       valor: (f) => -f.mermas,
     },
     {
@@ -302,6 +318,11 @@ export function avisosER(columnas: readonly FilaER[], enCurso: boolean): AvisoER
       tono: "pizarra",
       texto: "La planilla la muestra Dynamic solo a quien la administra: estos números no la restan.",
     });
+  } else if (columnas.some((f) => f.planillaEstimada > 0)) {
+    out.push({
+      tono: "pizarra",
+      texto: "Los sueldos marcados «provisionado» son lo que corresponde pagar hasta hoy según las boletas de Dynamic; las horas de hoy se calculan con lo que lleva cada persona y se corrigen al cerrar su jornada. Cuando Dynamic pague el período entra lo pagado de verdad y la provisión desaparece.",
+    });
   } else if (enCurso && columnas.every((f) => f.planilla === 0)) {
     out.push({
       tono: "pizarra",
@@ -325,6 +346,10 @@ export type LineaDiario = {
   origenId: string;
   glosa: string;
 };
+
+/** El orden con que se pagina `fn_diario` (`rpc-por-paginas.ts`): un mes de ventas pasa de 5.000 líneas y PostgREST corta en 1.000. Entran todas las
+ *  columnas que distinguen una línea de otra: sin un orden único, dos páginas pueden repetir una línea o saltarse otra y la suma sale distinta. */
+export const ORDEN_DIARIO = ["fecha", "asiento", "cuenta", "debe", "haber", "origen_id", "regla", "ubicacion_id", "glosa"] as const;
 
 export function leerLineaDiario(r: Fila): LineaDiario {
   return {
@@ -413,7 +438,11 @@ export function fuentesDe(clave: string): string[] {
       "todo lo que salió sin venderse (fn_perdida_razon, la misma cuenta que la pestaña Pérdidas): faltantes de conteo, restas a mano, dañadas botadas o donadas, lo que faltó en un traslado y la venta anulada cuya prenda no volvió",
       "al costo que tenía la prenda ese día (la venta anulada, al costo sellado en la venta)",
     ];
-  if (clave === "g62") return ["planilla_por_sede (Dynamic)", "lo pagado + las provisiones de la sede, del período que termina en el mes"];
+  if (clave === "g62")
+    return [
+      "planilla_por_sede (Dynamic): el costo real de la sede (lo pagado con la AFP y la renta de 4ª que se retienen, el EsSalud del empleador y las provisiones), del período que termina en el mes",
+      "mientras Dynamic no pague el período, una provisión del costo real con las boletas de cada persona hasta hoy (no entra al diario)",
+    ];
   if (clave === "g681") return ["activos_fijos", "costo ÷ vida útil, mes a mes, desde el mes siguiente a la compra"];
   if (clave === "g655") return ["activos_fijos dados de baja", "lo que faltaba depreciar el día de la baja"];
   if (clave === "g6599") return ["cajas: lo contado − lo que decía el sistema al cerrar, y lo contado al abrir − el fondo que quedó", "un sobrante resta"];

@@ -1,77 +1,17 @@
 import { describe, it, expect } from "vitest";
 import {
-  problemaDeFechasEIgv,
   codigoDeLinea,
   comprobanteDeFilaOperativa,
-  costoBase,
-  costoParaTipear,
   destinoDesdeParam,
   esFuncionAusente,
   fechaCorta,
   hayAlgoQueRecibir,
   MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE,
   nombreDeLineaSinPrenda,
-  seEnviaLinea,
   textoChipDestino,
-  totalesCompra,
-  totalesDeLasLineasQueSeEnvian,
   type FilaOperativa,
   esRelacionAusente,
 } from "./compras-reglas";
-
-// El costo unitario que se guarda alimenta el costo de la variante y el
-// margen de cada venta. Si el descuento del IGV se hace mal, la mercadería
-// entra un 18 % más cara de lo real y todos los márgenes salen chicos — y
-// nadie lo nota, porque el total de la factura sí cuadra con el papel.
-
-describe("costoBase", () => {
-  it("sin IGV devuelve lo tipeado, redondeado a 2 decimales como la base", () => {
-    expect(costoBase(100, 18, false)).toBe(100);
-    expect(costoBase(38.898, 18, false)).toBe(38.9);
-  });
-
-  it("con IGV descuenta el porcentaje", () => {
-    expect(costoBase(118, 18, true)).toBe(100);
-    expect(costoBase(59, 18, true)).toBe(50);
-    expect(costoBase(45.9, 18, true)).toBe(38.9);
-  });
-
-  it("con IGV pero porcentaje 0 (boleta, nota de venta) no descuenta nada", () => {
-    expect(costoBase(118, 0, true)).toBe(118);
-  });
-
-  it("basura numérica cae a 0, nunca a NaN", () => {
-    expect(costoBase(NaN, 18, true)).toBe(0);
-    expect(costoBase(-5, 18, false)).toBe(0);
-  });
-});
-
-describe("costoParaTipear", () => {
-  it("es el inverso de costoBase para el costo sugerido de la variante", () => {
-    expect(costoParaTipear(100, 18, true)).toBe(118);
-    expect(costoParaTipear(100, 18, false)).toBe(100);
-    expect(costoBase(costoParaTipear(38.9, 18, true), 18, true)).toBe(38.9);
-  });
-});
-
-describe("totalesCompra", () => {
-  it("con IGV incluido, el total es el del papel y el IGV absorbe el redondeo", () => {
-    expect(totalesCompra([{ cantidad: 1, costoTipeado: 10 }], 18, true)).toEqual({ subtotal: 8.47, igv: 1.53, total: 10 });
-    expect(totalesCompra([{ cantidad: 3, costoTipeado: 10 }], 18, true)).toEqual({ subtotal: 25.41, igv: 4.59, total: 30 });
-  });
-
-  it("sin IGV incluido, el IGV se calcula sobre la base como siempre", () => {
-    expect(totalesCompra([{ cantidad: 1, costoTipeado: 100 }], 18, false)).toEqual({ subtotal: 100, igv: 18, total: 118 });
-  });
-
-  it("boleta (IGV 0) con el interruptor prendido: nada que descontar", () => {
-    expect(totalesCompra([{ cantidad: 2, costoTipeado: 10 }], 0, true)).toEqual({ subtotal: 20, igv: 0, total: 20 });
-  });
-
-  it("líneas vacías o basura no aportan", () => {
-    expect(totalesCompra([{ cantidad: 1, costoTipeado: NaN }], 18, true)).toEqual({ subtotal: 0, igv: 0, total: 0 });
-  });
-});
 
 // ADR-0126: quien no es líder lee los comprobantes de `listar_compras_operativo`, que no trae un solo monto. La
 // pantalla de Recibir espera la forma de siempre (`CompraResumen`): si el mapeo inventara un monto, un integrante
@@ -268,51 +208,6 @@ describe("codigoDeLinea", () => {
   });
 });
 
-// ---------- el total suma EXACTAMENTE las líneas que se envían ----------
-// El formulario de Facturas arma filas; `registrar_compra` recibe solo las que traen prenda y cantidad. Sumar todas las filas mostraba
-// un total mayor al que de verdad se registraba (la factura salía por menos que el papel) y el pago al contado no cuadraba.
-describe("seEnviaLinea", () => {
-  it("solo se envía la fila con prenda y con cantidad", () => {
-    expect(seEnviaLinea({ productoId: "p1", cantidad: 2 })).toBe(true);
-    expect(seEnviaLinea({ productoId: "", cantidad: 2 })).toBe(false);
-    expect(seEnviaLinea({ productoId: null, cantidad: 2 })).toBe(false);
-    expect(seEnviaLinea({ productoId: "p1", cantidad: 0 })).toBe(false);
-    expect(seEnviaLinea({ productoId: "p1", cantidad: -1 })).toBe(false);
-  });
-});
-
-describe("totalesDeLasLineasQueSeEnvian", () => {
-  const enviadas = [
-    { productoId: "p1", cantidad: 2, costoUnitario: "50" },
-    { productoId: "p2", cantidad: 1, costoUnitario: "30" },
-  ];
-  const aMedias = [
-    { productoId: "", cantidad: 5, costoUnitario: "99" }, // sin prenda: no se manda
-    { productoId: "p3", cantidad: 0, costoUnitario: "40" }, // sin cantidad: no se manda
-  ];
-
-  it("una fila a medio llenar no entra al total", () => {
-    const soloEnviadas = totalesCompra([{ cantidad: 2, costoTipeado: 50 }, { cantidad: 1, costoTipeado: 30 }], 18, false);
-    expect(totalesDeLasLineasQueSeEnvian([...enviadas, ...aMedias], 18, false)).toEqual(soloEnviadas);
-    expect(soloEnviadas).toEqual({ subtotal: 130, igv: 23.4, total: 153.4 });
-    // El error de antes: sumar todo daba 130 + 5 × 99 en el subtotal.
-    expect(totalesCompra([...enviadas, ...aMedias].map((l) => ({ cantidad: l.cantidad, costoTipeado: Number(l.costoUnitario) })), 18, false).subtotal).toBe(625);
-  });
-
-  it("con precios con IGV incluido, el total sigue siendo lo que dice el papel de las líneas que van", () => {
-    expect(totalesDeLasLineasQueSeEnvian([{ productoId: "p1", cantidad: 3, costoUnitario: "10" }, ...aMedias], 18, true)).toEqual({ subtotal: 25.41, igv: 4.59, total: 30 });
-  });
-
-  it("sin ninguna línea que se envíe, todo en cero", () => {
-    expect(totalesDeLasLineasQueSeEnvian(aMedias, 18, false)).toEqual({ subtotal: 0, igv: 0, total: 0 });
-    expect(totalesDeLasLineasQueSeEnvian([], 18, false)).toEqual({ subtotal: 0, igv: 0, total: 0 });
-  });
-
-  it("acepta el costo como número y no cuenta un costo vacío o no numérico", () => {
-    expect(totalesDeLasLineasQueSeEnvian([{ productoId: "p1", cantidad: 2, costoUnitario: 10 }, { productoId: "p2", cantidad: 1, costoUnitario: "" }], 0, false).total).toBe(20);
-  });
-});
-
 // ---------- la línea sin prenda (la de un comprobante que sale de una orden de compra, ADR-0362) ----------
 describe("nombreDeLineaSinPrenda", () => {
   it("«categoría · marca · descripción»", () => {
@@ -358,20 +253,5 @@ describe("fechaCorta: una fecha o un instante, siempre el día de Lima", () => {
     expect(fechaCorta("2026-10-13T03:17:00+00:00")).toBe("12/10/2026");
     expect(fechaCorta("2026-10-13 03:17:00+00")).toBe("12/10/2026");
     expect(fechaCorta("2026-10-12T15:00:00.123+00:00")).toBe("12/10/2026");
-  });
-});
-
-// /chaos de Compras 2026-10-15 (ADR-0421): lo mismo que la base exige, dicho antes de mandar.
-describe("problemaDeFechasEIgv", () => {
-  const base = { fechaEmision: "2026-10-15", fechaVencimiento: "2026-10-25", igvPorcentaje: 18, hoy: "2026-10-15" };
-  it("una factura normal pasa (también al contado, sin vencimiento, y con IGV 0)", () => {
-    expect(problemaDeFechasEIgv(base)).toBeNull();
-    expect(problemaDeFechasEIgv({ ...base, fechaVencimiento: null, igvPorcentaje: 0 })).toBeNull();
-  });
-  it("IGV fuera de 0–18, emisión futura y vencimiento antes de la emisión", () => {
-    expect(problemaDeFechasEIgv({ ...base, igvPorcentaje: 180 })).toMatch(/0 % a 18 %/);
-    expect(problemaDeFechasEIgv({ ...base, igvPorcentaje: Number.NaN })).toMatch(/0 % a 18 %/);
-    expect(problemaDeFechasEIgv({ ...base, fechaEmision: "2030-01-01", fechaVencimiento: null })).toMatch(/no puede ser futura/);
-    expect(problemaDeFechasEIgv({ ...base, fechaVencimiento: "2026-10-01" })).toMatch(/anterior a la emisión/);
   });
 });

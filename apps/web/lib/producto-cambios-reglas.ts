@@ -369,7 +369,7 @@ const TITULO_GRUPO: Record<ClaveGrupo, string> = {
   identidad: "Color o talla corregidos",
   precios: "Precios",
   costos: "Costos",
-  etiquetas: "Etiquetas",
+  etiquetas: "Insignias y campañas",
   fotos: "Fotos",
   datos: "Datos de la prenda",
   temporadaColor: "Temporada por color",

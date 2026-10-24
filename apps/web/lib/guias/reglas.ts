@@ -23,7 +23,7 @@ const VERBOS_QUE_ESCRIBEN = [
   "aprobar", "rechazar", "aceptar", "transferir", "imprimir", "abrir caja", "cerrar caja", "apartar", "liberar", "descartar",
   "subir", "recibir", "despachar", "crear", "agregar", "anadir", "dejar en espera", "soltar", "aplicar", "cerrar el conteo",
   "marcar", "suspender", "reactivar", "devolver", "cambiar", "canjear", "entregar", "retirar", "reponer", "bajar", "ajustar",
-  "descargar", "compartir", "whatsapp", "llamar", "salir", "cerrar sesion", "anotar", "corregir", "pedir", "avisar", "unir",
+  "programar", "pasar a borrador", "descargar", "compartir", "whatsapp", "llamar", "salir", "cerrar sesion", "anotar", "corregir", "pedir", "avisar", "unir",
   "archivar", "desactivar", "activar", "asignar", "dar acceso", "revertir", "reintentar", "conciliar", "transmitir", "cargar",
 ] as const;
 

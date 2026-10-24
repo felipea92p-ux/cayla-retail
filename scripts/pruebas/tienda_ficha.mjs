@@ -402,13 +402,14 @@ select retail.vitrina_mostrar(array[:'emma']::uuid[], true) \\gset
           (select string_agg(k, ',' order by k) from jsonb_object_keys(${FICHA()} -> 'prenda') k),
           (select string_agg(k, ',' order by k) from jsonb_object_keys(${FICHA()} -> 'prenda' -> 'variantes' -> 0) k));
       rollback;`,
-    "prenda,sede,sedes,umbral|campana,categoria,codigo,colores,descripcion,desde,fotos,id,nombre,precio,precio_final,tallas,variantes|campana,color,id,precio,precio_final,stock,talla,total",
+    // `insignias` (ADR-0489, 20261023182000): las de Catálogo ▸ Insignias que ve el cliente, solo {id, nombre}; sus reglas las prueba `pruebas:tienda-insignias`.
+    "prenda,sede,sedes,umbral|campana,categoria,codigo,colores,descripcion,desde,fotos,id,insignias,nombre,precio,precio_final,tallas,variantes|campana,color,id,precio,precio_final,stock,talla,total",
   );
 
   // ---------------------------------------------------------------- 7. El catálogo
-  // Lo de la actividad 4 tiene que estar; lo único que puede sumarse es `nuevo` y `vendidos` (la actividad 5, pruebas:tienda-inicio).
+  // Lo de la actividad 4 tiene que estar; lo único que puede sumarse es `nuevo` y `vendidos` (la actividad 5, pruebas:tienda-inicio), `empresa` (ADR-0465) y `categoria_familia` (20261021163000).
   const CLAVES_A4 = "campana,categoria,codigo,colores,desde,fotos,id,nombre,precio,precio_final,stock";
-  const CLAVES_PERMITIDAS = `${CLAVES_A4},nuevo,vendidos`;
+  const CLAVES_PERMITIDAS = `${CLAVES_A4},nuevo,vendidos,empresa,categoria_familia,insignias`; // `empresa` (ADR-0465): la insignia de la tarjeta; `categoria_familia` (20261021163000): dónde cae una categoría nueva; `insignias` (ADR-0489 act. c, 20261023205000): las de Catálogo ▸ Insignias que ve el cliente, solo {id, nombre}
   valor(
     "el catálogo suma `stock` (total y sedes) y nada del ERP; la campaña trae su id y su último día",
     `${PREPARAR}insert into retail.etiquetas (nombre, estilo, activo, descuento_pct, vigente_hasta) values ('ZZ Todo', 'campana', true, 10, retail.fn_hoy_lima() + 3) returning id as etq \\gset
@@ -441,6 +442,14 @@ select color_codigo as falda_color from retail.variantes where producto_id = :'f
 select retail.vitrina_guardar_look(null, 'ZZ Look del precio', null, true,
          jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'color', 'NEG'), jsonb_build_object('producto_id', :'falda', 'color', :'falda_color')),
          null, null) ->> 'id' as look \\gset
+-- ADR-0468 (20261021010000): un look sale en una tienda solo si cada prenda, en su color, tiene algo libre ahí. La blusa negra (talla S) y la
+-- falda (una talla de su color) quedan con 1 en el piso de las dos tiendas, para que el look salga en Trujillo, en Lima y con «Todas».
+insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada)
+select v.id, s.ub, s.sub, 1, 0
+  from (select id from retail.variantes where producto_id = :'falda' and activo and color_codigo = :'falda_color' order by id limit 1) v
+  cross join (values (:'tru'::uuid, :'tru_piso'::uuid), (:'lim'::uuid, :'lim_piso'::uuid)) s (ub, sub)
+on conflict on constraint stock_variante_ubicacion_sububicacion_key do nothing;
+${poner("neg_s", "tru", "tru_piso", 1)}${poner("neg_s", "lim", "lim_piso", 1)}
 -- Lo que dicen de UNA prenda en UNA tienda (null = «Todas») la ficha, la bolsa, el catálogo y el look: «precio/lo que se paga/campaña».
 create function pg_temp.dicen(p_v uuid, p_sede uuid, p_look uuid) returns table (quien text, dice text) language sql as $f$
   with v as (select va.producto_id from retail.variantes va where va.id = p_v)
@@ -521,6 +530,7 @@ insert into retail.etiqueta_categorias (etiqueta_id, categoria_id) select :'etq_
     "la prenda de un look vale lo de SU color: con una campaña solo en el negro, la blusa negra del look vale su precio de campaña exacto (sin «Desde») y la beige de otro look vale 79.90 sin campaña, como la ficha y la bolsa de esa talla; la tarjeta del modelo sí dice «Desde»",
     `${PREPARAR}${CON_LOOK}insert into retail.etiquetas (nombre, estilo, activo, descuento_pct) values ('ZZ Negro', 'campana', true, 20) returning id as etq \\gset
       insert into retail.variante_etiquetas (variante_id, etiqueta_id) select v.id, :'etq' from retail.variantes v where v.producto_id = :'emma' and v.activo and v.color_codigo = 'NEG';
+      ${poner("bei_s", "tru", "tru_piso", 1)}
       select retail.vitrina_guardar_look(null, 'ZZ Look beige', null, true,
                jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'color', 'BEI'), jsonb_build_object('producto_id', :'falda', 'color', :'falda_color')),
                null, null) ->> 'id' as look_bei \\gset

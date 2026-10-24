@@ -20,6 +20,10 @@ import { LapizEditar } from "@/components/ui/BotonEditar";
 // UNA sola fuente para la ficha del proveedor y para los modales de pago (antes eran tres copias distintas,
 // y el «Yape / Plin» del pago mostraba el WhatsApp del contacto — plata mandada al celular equivocado).
 //
+// El TITULAR va primero (Felipe 2026-10-21): es lo que se compara con el nombre que muestra el banco o Yape ANTES de confirmar, y
+// pagar al celular equivocado no se revierte. Y si la cuenta que mira no puede ver los datos (`datos.ocultos`), se dice «no puedes
+// verlos», nunca «sin cuenta»: no se sabe si el proveedor la tiene.
+//
 // Los datos salen enmascarados y «Ver completos» los destapa (son datos de un tercero); «Copiar» copia
 // siempre el valor completo, sin guiones ni espacios, listo para pegar en la app del banco. Sin cuenta, sin CCI
 // y sin billetera se dice, con un enlace para agregarlos, salvo que el proveedor cobre en efectivo: ahí no le
@@ -52,21 +56,30 @@ export function CuentasProveedor({
   onEditar,
   titulo = "Paga por",
   className = "",
+  mostrarPlazo = true,
+  etiquetaForma,
 }: {
   datos: DatosPagoProveedor;
   /** Si se pasa, aparece «Editar» y, cuando no hay datos, «Agregar…». */
   onEditar?: () => void;
   titulo?: string;
   className?: string;
+  /** «Contado» o «Crédito a N días»: es de un proveedor de Compras; un gasto fijo no lo tiene (ADR-0452). */
+  mostrarPlazo?: boolean;
+  /** Dice la forma de pago con sus palabras (la ficha de un gasto fijo), en vez de la «preferida» de un proveedor. */
+  etiquetaForma?: string;
 }) {
   const [ver, setVer] = useState(false);
   const filas = filasDe(datos, ver);
   const cobraEnEfectivo = datos.formaPagoPreferida === "efectivo";
   const sinNada = filas.length === 0;
-  const forma = datos.formaPagoPreferida ? (ETIQUETA_METODO[datos.formaPagoPreferida] ?? datos.formaPagoPreferida) : null;
+  const ocultos = datos.ocultos === true;
+  // Ámbar solo si de verdad falta la cuenta: lo que no se puede ver no se acusa de faltar.
+  const faltaCuenta = sinNada && !cobraEnEfectivo && !ocultos;
+  const forma = etiquetaForma ?? (datos.formaPagoPreferida ? (ETIQUETA_METODO[datos.formaPagoPreferida] ?? datos.formaPagoPreferida) : null);
 
   return (
-    <div className={`anim-revelar rounded-xl border p-4 ${sinNada && !cobraEnEfectivo ? "border-ambar/30 bg-ambar/[0.06]" : "border-sand bg-sand/40"} ${className}`}>
+    <div className={`anim-revelar rounded-xl border p-4 ${faltaCuenta ? "border-ambar/30 bg-ambar/[0.06]" : "border-sand bg-sand/40"} ${className}`}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
           <p className="label-cayla text-[10px] text-tinta/55">{titulo}</p>
@@ -74,7 +87,7 @@ export function CuentasProveedor({
             {forma ?? "Sin medio preferido"}
             {datos.banco ? ` · ${datos.banco}` : ""}
           </p>
-          <p className="text-xs text-tinta/55">{datos.plazoCreditoDias ? `Crédito a ${datos.plazoCreditoDias} días` : "Contado"}</p>
+          {mostrarPlazo && <p className="text-xs text-tinta/55">{datos.plazoCreditoDias ? `Crédito a ${datos.plazoCreditoDias} días` : "Contado"}</p>}
         </div>
         <div className="flex items-center gap-4">
           {filas.length > 0 && (
@@ -93,20 +106,17 @@ export function CuentasProveedor({
         </div>
       </div>
 
-      {filas.length > 0 && (
+      {(filas.length > 0 || datos.titular) && (
         <dl className="mt-3 divide-y divide-tinta/10 border-t border-tinta/10">
+          {datos.titular && <FilaTitular titular={datos.titular} />}
           {filas.map((f) => (
             <FilaDato key={f.clave} etiqueta={f.etiqueta} valor={f.mostrar} copiar={f.copiar} alFallar={() => setVer(true)} />
           ))}
         </dl>
       )}
-      {datos.titular && (
-        <p className="mt-2 border-t border-tinta/10 pt-2 text-xs text-tinta/65">
-          Titular: <b className="font-semibold text-tinta">{datos.titular}</b> <span className="text-tinta/45">· compáralo con el nombre que muestra el banco antes de confirmar</span>
-        </p>
-      )}
 
-      {sinNada && (
+      {ocultos && <p className="mt-3 text-sm text-tinta/70">No puedes ver los datos de pago de este proveedor. Pídeselos a quien paga.</p>}
+      {sinNada && !ocultos && (
         <p className={`mt-3 text-sm ${cobraEnEfectivo ? "text-tinta/70" : "text-ambar-profundo"}`}>
           {cobraEnEfectivo ? "Cobra en efectivo: no necesita cuenta." : "Sin cuenta, CCI ni Yape / Plin registrados."}
           {onEditar && !cobraEnEfectivo && (
@@ -117,6 +127,20 @@ export function CuentasProveedor({
           )}
         </p>
       )}
+    </div>
+  );
+}
+
+// El titular, primera fila: lo que se compara con el nombre que muestra el banco antes de mandar la plata. No lleva «Copiar» (no es
+// un dato que se pegue en la app del banco).
+function FilaTitular({ titular }: { titular: string }) {
+  return (
+    <div className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-3 py-2">
+      <dt className="label-cayla text-[10px] text-tinta/55">Titular</dt>
+      <dd className="min-w-0 break-words text-sm text-tinta">
+        <b className="font-semibold">{titular}</b>
+        <span className="block text-xs text-tinta/45">Compáralo con el nombre que muestra el banco antes de confirmar.</span>
+      </dd>
     </div>
   );
 }

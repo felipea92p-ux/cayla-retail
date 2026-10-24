@@ -13,6 +13,8 @@ const CAT = {
 };
 
 const prenda = (nombre: string, extra: Partial<Prenda> = {}): Prenda => ({
+  empresa: null,
+  insignias: [],
   id: nombre,
   codigo: null,
   nombre,
@@ -147,7 +149,7 @@ describe("la cabecera con cuenta", () => {
   it("los menús «Ropa» y «Accesorios»: solo los grupos con algo, cada categoría en el suyo, y un menú vacío no sale", () => {
     const d = datosDeCabecera(prendas, null, undefined);
     expect(d.menus.map((m) => [m.nombre, m.grupos.map((g) => [g.nombre, g.categorias.map((c) => c.clave)])])).toEqual([
-      ["Ropa", [["Arriba", ["CMS"]], ["Vestidos y conjuntos", ["VES"]], ["Abajo", ["FAL"]]]],
+      ["Ropa", [["Blusas/Tops", ["CMS"]], ["Vestidos/Conjuntos", ["VES"]], ["Pantalones/Faldas", ["FAL"]]]],
       ["Accesorios", [["Calzado", ["ZAP"]]]],
     ]);
     // El título del grupo lleva a todo el grupo; la categoría, a la suya (las dos con la tienda elegida).

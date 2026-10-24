@@ -31,6 +31,8 @@ export const OPERACIONES_CON_MARCA = [
   "editar_separacion",
   "enviar_pedido_para_apartar",
   "registrar_cambio",
+  // Cambiar una prenda por varias (ADR-0470; 20261021190000 la guarda y 20261021192000 la hace revisable).
+  "registrar_cambio_varias",
   "separar_pedido_para_apartar",
   "iniciar_traslado",
   "enviar_pedido_a_otra_sede",
@@ -40,6 +42,8 @@ export const OPERACIONES_CON_MARCA = [
   "pagar_deuda_fondo",
   "registrar_gasto_viaje",
   "rendir_fondo",
+  // La plata que anota la compradora (ADR-0480, actividad 2; 20261022235000).
+  "anotar_plata_compras",
   // El pago de un pedido web (ADR-0408, actividad 9; 20261015042000).
   "registrar_pago_pedido_web",
   // La entrega de un pedido web con su código (ADR-0408, actividad 10; 20261015052000).

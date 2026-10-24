@@ -117,10 +117,10 @@ export function esMostrador(perfil: { terminal?: boolean; modulos?: readonly Cla
 export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "existencias" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
-  | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
+  | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
-  | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "vitrina" | "pedidosWeb"
-  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb";
+  | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "revisarCompras" | "vitrina" | "pedidosWeb"
+  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana" | "insignias";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender" | "pedidosWebPorConfirmar";
@@ -162,9 +162,9 @@ type Comun = {
    *  como las rutas de prueba) no sale. Existe por CAYLA Global (ADR-0275): una pantalla que no es de ninguna sede no
    *  existía antes de los módulos y no tiene por qué aparecerle a un perfil que no los trae. */
   soloConModulo?: true;
-  /** Otro módulo que TAMBIÉN abre esta fila (ADR-0161, 20260923130000). Existe por UN caso: las etiquetas viven como
-   *  pestaña de «Atributos», así que un rol que ve Etiquetas sin ver Categorías/atributos entra por la misma fila (y la
-   *  pantalla le muestra solo esa pestaña). */
+  /** Otro módulo que TAMBIÉN abre esta fila (ADR-0161, 20260923130000). Existe por UN caso: Catálogo ▸ Insignias junta lo
+   *  que eran dos filas, Sellos (`etiquetas`, hoy «Insignias») y Campañas (`campanas`; Felipe 2026-10-22), así que un rol que solo ve Campañas
+   *  entra por la misma fila (y la pantalla le muestra solo esa vista). Hasta ese día era Atributos con los sellos en una pestaña. */
   moduloAlterno?: ClaveModulo;
 };
 
@@ -362,14 +362,17 @@ export const ARBOL: readonly Nodo[] = [
       { id: "tiendaWeb.pedidos", modulo: "pedidos_web", etiqueta: "Pedidos", estado: "viva", ruta: "/tienda-web/pedidos", icono: "pedidosWeb", contador: "pedidosWebPorConfirmar", pajaro: "07 Colibrí" },
       // Qué modelos se ven en la web, sus looks y quién espera una talla (ADR-0408, actividades 3, 11 y 12). El dato es del Loro.
       { id: "tiendaWeb.vitrina", modulo: "vitrina_web", etiqueta: "Vitrina", estado: "viva", ruta: "/tienda-web/vitrina", icono: "vitrina", pajaro: "02 Loro" },
+      // Cómo se ve la tienda online durante cada campaña (Felipe 2026-10-21): ambiente del catálogo o imagen propia, movimiento y textos. Las fechas,
+      // el % y las prendas se siguen armando en Catálogo ▸ Campañas (ADR-0473); aquí solo el diseño. Justo después de la Vitrina: las dos visten la web.
+      { id: "tiendaWeb.campanas", modulo: "campanas_web", etiqueta: "Campañas", estado: "viva", ruta: "/tienda-web/campanas", icono: "paleta", pajaro: "02 Loro" },
       // Lo que los clientes le recomiendan a CAYLA desde la web, con su nombre (ADR-0408, 2026-10-15). Firma con el responsable de la
       // sede donde se está parado: en CAYLA Global no se abre (no es de la vista global).
       { id: "tiendaWeb.recomendaciones", modulo: "recomendaciones", etiqueta: "Recomendaciones", estado: "viva", ruta: "/tienda-web/recomendaciones", icono: "recomendaciones", pajaro: "07 Colibrí" },
       // Lo que la web muestra de cada tienda y los plazos de los pedidos (ADR-0408, actividad 6). Era la pestaña «Tienda web» de
-      // Configuración y la abría su módulo; desde 20261016223000 tiene el suyo («Datos y plazos de la tienda web»). El rótulo dice qué
-      // hay dentro: «Ajustes» a secas era demasiado general. El dato sigue siendo del Ganso, como el resto de Configuración.
+      // Configuración y la abría su módulo; desde 20261016223000 tiene el suyo («Datos y plazos de la tienda web»). El rótulo («Conf. Tienda», Felipe
+      // 2026-10-21; antes «Datos y plazos») dice qué hay dentro: «Ajustes» a secas era demasiado general. El dato sigue siendo del Ganso, como el resto de Configuración.
       // `soloConModulo`: antes de los roles (un perfil sin módulos) esta pantalla no existía, así que la fila no le aparece a nadie.
-      { id: "tiendaWeb.ajustes", modulo: "ajustes_web", soloConModulo: true, etiqueta: "Datos y plazos", estado: "viva", ruta: "/tienda-web/ajustes", icono: "ajustesWeb", pajaro: "01 Ganso" },
+      { id: "tiendaWeb.ajustes", modulo: "ajustes_web", soloConModulo: true, etiqueta: "Conf. Tienda", estado: "viva", ruta: "/tienda-web/ajustes", icono: "ajustesWeb", pajaro: "01 Ganso" },
     ],
   },
 
@@ -393,7 +396,9 @@ export const ARBOL: readonly Nodo[] = [
   },
 
   // Catálogo (2026-09-16/17): qué ES una prenda y el vocabulario del que cuelga. Colores, tallas, tejidos, patrones y
-  // etiquetas viven como pestañas de «Atributos».
+  // temporadas viven como pestañas de «Atributos». Los sellos vivieron ahí también hasta el 2026-10-22 y las campañas tuvieron su
+  // fila ese mismo día (ADR-0473); esa tarde Felipe pidió juntarlos en «Sellos», con las campañas como su primera vista, y el 2026-10-23 que se
+  // llamaran «Insignias» (ADR-0481): deciden a cuánto se vende y cuándo, no qué es la prenda.
   // Marcas (2026-09-25): la pantalla existía desde el ADR-0109 pero nunca entró al menú; solo se llegaba por un enlace
   // dentro de Nuevo producto. Felipe vio una marca mal cargada en Proveedores y no tenía por dónde corregirla. Mismo
   // módulo que Categorías: «atributos» ya se llama «Categorías, marcas y atributos» en Roles y accesos.
@@ -405,7 +410,8 @@ export const ARBOL: readonly Nodo[] = [
       // «Tienda web».
       { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
       { id: "catalogo.marcas", modulo: "atributos", etiqueta: "Marcas", estado: "viva", ruta: "/productos/marcas", icono: "marcas", pajaro: "02 Loro" },
-      { id: "catalogo.atributos", modulo: "atributos", moduloAlterno: "etiquetas", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
+      { id: "catalogo.atributos", modulo: "atributos", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
+      { id: "catalogo.insignias", modulo: "etiquetas", moduloAlterno: "campanas", etiqueta: "Insignias", estado: "viva", ruta: "/productos/insignias", icono: "insignias", pajaro: "02 Loro" },
       // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan con su etiqueta, SIN pasar a Productos. Vive en
       // Catálogo porque es la otra cara de «qué se vende y a cuánto» (y el grupo Inventario ya está en su tope). La
       // visibilidad la da su módulo, que nace solo para el líder.
@@ -425,29 +431,24 @@ export const ARBOL: readonly Nodo[] = [
   // Mismo orden que ya tenía: proveedor → factura → recepción → pago → notas de crédito.
   // PL-50 (Felipe, 2026-09-23): «Comprobantes» y «Notas de crédito» son palabras SOLO de Ventas (lo que CAYLA le emite a la
   // clienta ante SUNAT). Acá se dice «Facturas de proveedor» y «Notas de crédito de proveedor»; en el Taller, «Facturas de
-  // insumos». Solo cambió el texto visible: ids, rutas y claves de módulo siguen iguales.
+  // insumos». Solo cambió el texto visible: ids, rutas y claves de módulo siguen iguales. Desde el 2026-10-23 (ADR-0480 act.)
+  // «Facturas de proveedor» es «Historial de compras»: solo lectura, y el papel puede ser factura, boleta, nota de venta o ninguno.
   {
     id: "compras", etiqueta: "Compras", estado: "viva", icono: "compras", raiz: "/compras", pajaro: "09 Pelícano", ubicaciones: ["tienda", "almacen"],
     hijos: [
       // Plan de campaña (ADR-0349): cuánto comprar para una campaña, por categoría. Va primero: se planifica antes de comprar. Muestra
       // costos e inversión, así que pide ver el dinero de Compras como sus hermanas (ADR-0126).
       { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "campana", pajaro: "09 Pelícano" },
+      // ADR-0480 (Compras simple, Felipe 2026-10-22): la compra nace en el celular de quien compra. «Mis compras» reusa la
+      // clave `ordenes_compra` (unas 40 funciones la usan como llave: recibir, gastos del viaje, datos bancarios, proveedor nuevo,
+      // «Nos debe»); las pantallas de órdenes salen del menú. «Revisar compras» es la oficina (la clave `fondos`). «Notas de crédito»
+      // se retiró: «por ahora no manejaremos notas de crédito». Compras queda en 6, dentro del tope.
+      { id: "compras.miPlata", modulo: "ordenes_compra", etiqueta: "Mis compras", estado: "viva", ruta: "/compras/mi-plata", icono: "fondos", pajaro: "09 Pelícano" },
+      { id: "compras.fondos", modulo: "fondos", etiqueta: "Revisar compras", estado: "viva", ruta: "/compras/fondos", icono: "revisarCompras", pajaro: "09 Pelícano" },
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
-      // Órdenes de compra (ADR-0362): lo que se le pide al proveedor, antes de su factura; por eso va entre las dos. Sin `exige`: el
-      // módulo es la llave y trae sus precios (decisión 34). Fue la 7.ª hija de Compras mientras «Recibir mercadería» vivía aquí
-      // (decisión 38); desde el 2026-10-14 Recibir está en Inventario y Compras queda en 7 con «Fondos por rendir» (decisión 65). El id termina en «Compra» a propósito: Producción ya tiene `produccion.ordenes` (sus órdenes de producción) y ninguna pantalla
-      // puede llamarse igual en los dos módulos.
-      { id: "compras.ordenesCompra", modulo: "ordenes_compra", etiqueta: "Órdenes de compra", estado: "viva", ruta: "/compras/ordenes", icono: "ordenes", pajaro: "09 Pelícano" },
-      { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Facturas de proveedor", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Historial de compras", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
       // «Recibir mercadería» ya no vive aquí: desde el 2026-10-14 es una sola fila, en Inventario (ver allí).
       { id: "compras.porPagar", modulo: "por_pagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDineroCompras" },
-      // Fondos por rendir (ADR-0362, fase 6; Felipe 2026-10-13, decisión 65: «Compras, directo», como octava entrada). Solo pide su módulo.
-      { id: "compras.fondos", modulo: "fondos", etiqueta: "Fondos por rendir", estado: "viva", ruta: "/compras/fondos", icono: "fondos", pajaro: "09 Pelícano" },
-      // Notas de crédito (2026-09-19): lo que el proveedor le acredita a CAYLA. Va pegada a «Por pagar» y al final: las dos
-      // responden a la misma pregunta —cuánto dinero hay entre CAYLA y ese proveedor—, una de cada lado. Sin insignia a
-      // propósito: el contador de «por reclamar» saldría de `notas_credito_tablero()`, y pagarlo en CADA pantalla de la app
-      // por un número que ya se ve como primera cifra del módulo no vale la pena (principio 5).
-      { id: "compras.notasCredito", modulo: "notas_credito", etiqueta: "Notas de crédito de proveedor", estado: "viva", ruta: "/compras/notas-credito", icono: "notasCredito", pajaro: "09 Pelícano", exige: "verDineroCompras" },
     ],
   },
 
@@ -482,6 +483,8 @@ export const ARBOL: readonly Nodo[] = [
     hijos: [
       { id: "clientas.fichas", modulo: "clientas", etiqueta: "Fichas", estado: "viva", ruta: "/clientas", icono: "clientas", pajaro: "07 Colibrí" },
       { id: "clientas.avisos", modulo: "avisos_club", etiqueta: "Avisos", estado: "viva", ruta: "/clientas/avisos", icono: "avisos", pajaro: "07 Colibrí" },
+      // Beneficios del club (programa de puntos, actividad 8): lo que se le ofrece al cliente, configurable sin deploy. Solo el líder.
+      { id: "clientas.beneficios", modulo: "beneficios_club", etiqueta: "Beneficios", estado: "viva", ruta: "/clientas/beneficios", icono: "puntos", pajaro: "07 Colibrí" },
       // «Recomendaciones» vivió aquí del 2026-10-15 al 2026-10-16 (ADR-0408): desde ADR-0430 es de «Tienda web».
     ],
   },
@@ -560,6 +563,19 @@ export type FilaMenu = ItemMenu | GrupoMenu;
 
 export function esGrupoMenu(f: FilaMenu): f is GrupoMenu {
   return "hijos" in f;
+}
+
+/** Ids de los grupos HERMANOS de `id` (mismo nivel, mismo padre; `id` no incluido). Abrir un grupo cierra a sus
+ *  hermanos — un solo desplegado a la vez por nivel (Felipe, 2026-10-23) —, pero nunca a su padre ni a sus hijos:
+ *  abrir Abastecimiento no cierra Producción. */
+export function hermanosDe(id: string, filas: readonly FilaMenu[]): string[] {
+  if (filas.some((f) => esGrupoMenu(f) && f.id === id)) return filas.filter((f) => esGrupoMenu(f) && f.id !== id).map((f) => f.id);
+  for (const f of filas) {
+    if (!esGrupoMenu(f)) continue;
+    const dentro = hermanosDe(id, f.hijos);
+    if (dentro.length) return dentro;
+  }
+  return [];
 }
 
 /** Todas las hojas que cuelgan de una fila YA CONSTRUIDA (`riel`/`movil`), sin importar cuántos subgrupos haya en el

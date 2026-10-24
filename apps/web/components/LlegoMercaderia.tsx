@@ -48,6 +48,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import { BORRADOR_VACIO, ProveedorModal } from "@/components/ProveedorModal";
+import { proveedoresParaPedir, rubrosSinGastos } from "@/lib/proveedores-reglas";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { Buscador } from "@/components/ui/Buscador";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
@@ -57,7 +58,8 @@ import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
-export type ProveedorLlegada = { id: string; nombre: string; ruc: string | null; marcas: string[] };
+/** `rubros`: quien es solo de gastos no se ofrece aquí (`proveedoresParaPedir`). Los recién agregados no los traen: son de mercadería. */
+export type ProveedorLlegada = { id: string; nombre: string; ruc: string | null; marcas: string[]; rubros?: string[] };
 
 type Lectura = { bueno: boolean; texto: string; varianteId?: string; crear?: boolean };
 type Recibido = { lineas: LineaLlegada[]; unidades: number; loteId: string | null; sinConexion?: boolean };
@@ -148,11 +150,15 @@ export function LlegoMercaderia({
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
 
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
-  // Cuando la página relee el directorio, el recién agregado ya viene en `proveedores`: no se repite.
-  const directorio = useMemo(() => {
+  // Cuando la página relee el directorio, el recién agregado ya viene en `proveedores`: no se repite. `directorioCompleto` incluye a quien
+  // es solo de gastos (luz, agua…): solo sirve para avisar de un RUC o un nombre repetido al agregar; el combo ofrece `directorio`.
+  const directorioCompleto = useMemo(() => {
     const nuevos = agregados.filter((a) => !proveedores.some((p) => p.id === a.id));
     return nuevos.length === 0 ? proveedores : [...proveedores, ...nuevos].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [proveedores, agregados]);
+  // A quién se le RECIBE mercadería (ADR-0452, act. 2026-10-21): sin quien es solo de gastos, salvo el que ya está elegido (lo guardado de
+  // otra visita, por ejemplo).
+  const directorio = useMemo(() => proveedoresParaPedir(directorioCompleto, proveedorId), [directorioCompleto, proveedorId]);
   const proveedor = directorio.find((p) => p.id === proveedorId) ?? null;
   const marcas = proveedor?.marcas ?? [];
   const sugerencias = sugerirPrendas(busqueda, prendas, marcas);
@@ -612,8 +618,8 @@ export function LlegoMercaderia({
       {agregando && (
         <ProveedorModal
           inicial={BORRADOR_VACIO}
-          rubros={rubrosEnUso}
-          existentes={directorio.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, activo: true }))}
+          rubros={rubrosSinGastos(rubrosEnUso)}
+          existentes={directorioCompleto.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, activo: true }))}
           onClose={() => setAgregando(false)}
           onGuardado={alAgregarProveedor}
         />

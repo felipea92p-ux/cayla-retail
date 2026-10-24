@@ -16,7 +16,10 @@ import {
   leerMovimientosFondos,
   leerOpcionesFondos,
   leerResumenMiFondo,
+  MAX_FICHAS_PERSONA,
   mostrarTuFondo,
+  movimientosPorDia,
+  nombresDeFichas,
   opcionesDeCuentas,
   opcionesDePersonas,
   problemaDeMonto,
@@ -24,6 +27,8 @@ import {
   problemaDePersona,
   subtituloDevolver,
   topeDevolucion,
+  tramosDelFondo,
+  VUELVE_A_CAYLA,
   type OpcionesFondos,
   type ResumenMiFondo,
 } from "./fondos-reglas";
@@ -338,5 +343,59 @@ describe("lo que dicen los botones", () => {
     expect(fraseEntregar(null, null)).toBe("Entregar plata");
     expect(fraseDevolver(120)).toBe("Registrar S/\u00a0120.00 devueltos");
     expect(fraseDevolver(null)).toBe("Registrar lo devuelto");
+  });
+});
+
+// ---------- Las hojas de Revisar compras (diseño A, 2026-10-23) ----------
+
+describe("tramosDelFondo", () => {
+  it("parte lo entregado en gastó, devolvió y tiene", () => {
+    expect(tramosDelFondo({ entregado: 1200, gastado: 245, devuelto: 300, saldo: 655 })).toEqual({ gasto: 245, devolvio: 300, tiene: 655, total: 1200 });
+  });
+  it("un fondo en negativo no tiene plata en la mano y la pista crece hasta lo gastado", () => {
+    expect(tramosDelFondo({ entregado: 300, gastado: 374.4, devuelto: 0, saldo: -74.4 })).toEqual({ gasto: 374.4, devolvio: 0, tiene: 0, total: 374.4 });
+  });
+  it("sin nada entregado, todo en cero", () => {
+    expect(tramosDelFondo({ entregado: 0, gastado: 0, devuelto: 0, saldo: 0 })).toEqual({ gasto: 0, devolvio: 0, tiene: 0, total: 0 });
+  });
+});
+
+describe("movimientosPorDia", () => {
+  it("agrupa por día en el orden en que llegan y junta un día repetido en su primer lugar", () => {
+    const movs = [
+      { id: "a", fecha: "2026-10-23" },
+      { id: "b", fecha: "2026-10-22T10:00:00" },
+      { id: "c", fecha: "2026-10-23" },
+      { id: "d", fecha: "2026-10-20" },
+    ];
+    expect(movimientosPorDia(movs).map((g) => [g.dia, g.movimientos.map((m) => m.id)])).toEqual([
+      ["2026-10-23", ["a", "c"]],
+      ["2026-10-22", ["b"]],
+      ["2026-10-20", ["d"]],
+    ]);
+  });
+  it("sin movimientos, sin grupos", () => {
+    expect(movimientosPorDia([])).toEqual([]);
+  });
+});
+
+describe("VUELVE_A_CAYLA", () => {
+  it("la devolución y el pago de una deuda vuelven; la entrega sale", () => {
+    expect(VUELVE_A_CAYLA).toEqual({ entrega_fondo: false, devolucion_fondo: true, pago_deuda_fondo: true });
+  });
+});
+
+describe("nombresDeFichas", () => {
+  it("el primer nombre, salvo que dos lo compartan", () => {
+    expect(
+      nombresDeFichas([
+        { id: "1", nombre: "Marisol Ramos", sede: null },
+        { id: "2", nombre: "Rosa Quispe", sede: null },
+        { id: "3", nombre: "rosa Díaz", sede: null },
+      ]),
+    ).toEqual({ "1": "Marisol", "2": "Rosa Quispe", "3": "rosa Díaz" });
+  });
+  it("MAX_FICHAS_PERSONA es 6", () => {
+    expect(MAX_FICHAS_PERSONA).toBe(6);
   });
 });

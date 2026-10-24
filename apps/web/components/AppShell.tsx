@@ -10,7 +10,7 @@ import { BotonActividad } from "@/components/actividad/BotonActividad";
 import { BotonTema } from "@/components/ui/BotonTema";
 import { veActividad } from "@/lib/actividad-reglas";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
-import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
+import { esGrupoMenu as esGrupo, hermanosDe, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
 import { TRAZOS_MENU } from "@/lib/menu-iconos";
 import { PerfilModal } from "@/components/PerfilModal";
@@ -20,9 +20,10 @@ import { BotonDemo } from "@/components/guias/BotonDemo";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { BuscadorGlobal } from "@/components/BuscadorGlobal";
-import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
+import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
+import { useLateralConElDedo } from "@/components/useLateralConElDedo";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
 // escritorio = lateral con "+ Nuevo" global; celular = 4 pestañas + botón + central.
@@ -642,29 +643,21 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
   );
 }
 
-// Rutas (y todo lo que cuelga de ellas) que usan el ancho completo del <main>.
-// Inventario entró el 2026-09-16: la tabla de Existencias con «En tránsito» y
-// «En la red» (6 columnas) y la de Movimientos con origen → destino no caben
-// en 64rem sin recortar la prenda.
-// `/recibir` (ADR-0113) salió de `/compras` y trae su ancho: la lista de pendientes + el envío con la tabla de
-// conteo (prenda, SKU, pendiente, llegó, dif., estado) no caben en 64rem.
-// Caja entró el 2026-09-18 (pedido de Felipe): el tablero de la caja abierta —KPIs, dona,
-// ritmo del día, movimientos— tiene qué mostrar a lo ancho y en pantalla grande sobraba
-// margen. Lo que cuelga de /caja y NO es tablero (el formulario de abrir caja y el historial
-// de cierres) se topa por su cuenta con `max-w-5xl`: no fueron pensados para estirarse.
-// Cambios y Devoluciones entraron el 2026-09-19 (pedido de Felipe): con el flujo guiado y el
-// panel de validaciones ya había de sobra qué poner a los lados.
-// Producción entró el 2026-09-22 (pedido de Felipe: «los módulos no ocupan todo el espacio»): el Resumen (cifras, tarjetas, tablas de modelos y telas), el tablero de Órdenes (cuatro
-// columnas desde 1240 px) y las tablas de Comprobantes, Por pagar y Eficiencia se apretaban en la columna de 64 rem, con ~300 px de margen vacío a cada lado en pantallas grandes.
-// «/ordenes-insumos» (Formidable de Producción, 2026-10-15): es de Producción pero su ruta no cuelga de «/produccion» (ADR-0362); fuera de la lista, al pasar de Proveedores a Órdenes de insumos
-// el título saltaba 32 px y la pantalla se estrechaba. Lo vigila `lib/ancho-completo.test.ts`.
-// Colaboradores entró el 2026-09-22 (pedido de Felipe): «Roles y accesos» pasa a tres columnas —roles, módulos del rol y el
-// efecto en el menú— y las tablas de Activos/Terminales tienen qué poner a lo ancho. Los párrafos siguen con su `max-w-*`.
-// «/etiquetas-de-precio» (Felipe 2026-10-03): la vista previa de las etiquetas va a la derecha de la tabla, a tamaño real; con el tope no
-// cabían lado a lado y quedaba al final, sin verse a la primera. «/rotulos» (ADR-0366): dos rótulos de 100 mm a tamaño real, lado a lado.
-// «/gestion» (ADR-0392, 2026-10-13): Análisis, Frescura del piso y Plan del piso vivían bajo «/inventario» y ya iban a ancho completo (sus
-// tableros por categoría y los dos rieles del plan); al mudarse al grupo «Gestión» conservan el ancho. «/rendimiento» no cuelga de ahí y sigue igual.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/gestion", "/recibir", "/caja", "/cambios", "/devoluciones", "/produccion", "/ordenes-insumos", "/colaboradores", "/etiquetas-de-precio", "/rotulos"];
+// EL ANCHO DE UNA PANTALLA (regla — ADR-0462, Felipe 2026-10-20: «toda pantalla nueva ocupe todo el espacio de la pantalla»).
+// Toda pantalla usa el ancho completo del <main>. Hasta ese día era al revés: el tope de 64 rem (`max-w-5xl`) era el de fábrica y cada
+// módulo que lo necesitaba entraba a una lista (Vender 2026-09-12, Compras, Inventario, Caja, Cambios y Devoluciones, Producción,
+// Colaboradores, Gestión, Clientes…: «los módulos no ocupan todo el espacio», una y otra vez). Ahora la lista es la de las rutas que
+// TODAVÍA llevan el tope porque nacieron antes de la regla y no se han revisado a lo ancho: es deuda, solo baja, y una ruta nueva no
+// puede entrar (lo vigila `lib/ancho-completo.test.ts`). Al revisar una de estas a 1440 y 1920 px, se saca de la lista. Un párrafo largo
+// o un formulario corto se topan por su cuenta (`max-w-prose`, `max-w-2xl`…), no con la pantalla entera.
+// El Inicio («/», exacto) también lleva el tope: es de todas las cuentas y no fue pensado a lo ancho; el de almacén, el Observatorio y la
+// pantalla de Aventurero lo piden con `data-ancho-completo`.
+const CON_TOPE_DE_ANCHO = ["/actividad", "/buscar", "/comercial", "/configuracion", "/finanzas", "/global", "/movimientos", "/pedidos-no-atendidos", "/rendimiento", "/sin-acceso"];
+
+/** ¿Esta ruta lleva todavía el tope de 64 rem? El Inicio exacto y lo que cuelga de `CON_TOPE_DE_ANCHO`; todo lo demás, ancho completo. */
+function conTopeDeAncho(pathname: string): boolean {
+  return pathname === "/" || CON_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+}
 
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
@@ -690,6 +683,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
     if (devolverFoco) botonMenuMovil.current?.focus();
   }, []);
   const asideRef = useRef<HTMLElement | null>(null);
+  const veloRef = useRef<HTMLDivElement | null>(null);
+  // En el celular el cajón se cierra también deslizándolo hacia la izquierda (ADR-0479, actividad 11).
+  useLateralConElDedo(asideRef, veloRef, movilAbierto, cerrarMovil);
   // Etiqueta flotante de una fila plegada y cajón de un grupo: uno a la vez, ambos siempre pegados
   // al borde derecho del lateral.
   const [etiqueta, setEtiqueta] = useState<{ texto: string; top: number; left: number } | null>(null);
@@ -849,6 +845,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       {/* Velo del cajón (celular): tocarlo cierra. Siempre montado para que también se APAGUE al cerrar (`.velo-cajon`,
           globals.css); cerrado no recibe toques. */}
       <div
+        ref={veloRef}
         aria-hidden
         data-abierto={movilAbierto}
         onClick={() => cerrarMovil()}
@@ -869,22 +866,22 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
         // Cerrado en celular queda fuera de pantalla y fuera del tabulador.
         inert={esCelular && !movilAbierto}
         data-cajon={movilAbierto ? "abierto" : undefined}
-        className={`cajon-lateral fixed inset-y-0 left-0 z-50 flex w-[18rem] max-w-[85vw] flex-col overflow-hidden border-r border-tinta/10 bg-crema pb-[env(safe-area-inset-bottom)] sm:z-40 sm:transition-[width] sm:duration-300 sm:ease-cayla sm:w-lateral sm:max-w-none sm:pb-0 ${movilAbierto ? "max-sm:shadow-xl" : ""}`}
+        className={`cajon-lateral fixed inset-y-0 left-0 z-50 flex w-[18rem] max-w-[85vw] flex-col overflow-hidden border-r border-tinta/10 bg-crema pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] sm:z-40 sm:pl-[env(safe-area-inset-left)] sm:transition-[width] sm:duration-300 sm:ease-cayla sm:w-lateral sm:max-w-none sm:pb-0 ${movilAbierto ? "max-sm:shadow-xl" : ""}`}
       >
         {/* Plegado el isotipo queda centrado en la columna (76 px): el padding se anima con el ancho. */}
         {/* En el cajón del celular la ✕ comparte fila con el logo. `data-pieza-cajon` + `--k`: el orden de la cascada
             al abrir el cajón (globals.css) — logo, cada fila del menú, la firma y la persona. */}
         <div className="flex items-start" data-pieza-cajon style={{ "--k": 0 } as React.CSSProperties}>
-        <Link href="/" className={`group flex min-w-0 flex-1 items-center gap-3 overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-3.5" : "pl-7"}`}>
-          <IsotipoCayla className="h-8 w-auto shrink-0 transition-transform duration-500 ease-cayla group-hover:scale-105" />
-          <span className={`flex min-w-0 flex-col transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
-            <span className="label-cayla text-sm text-tinta transition-colors duration-200 group-hover:text-rojo" style={{ letterSpacing: "0.26em" }}>
-              CAYLA
-            </span>
-            {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo. */}
-            <span className="label-cayla text-[10px] text-taupe-profundo" style={{ letterSpacing: "0.2em" }}>
-              Retail
-            </span>
+        {/* El logo oficial, el mismo dibujo que la tienda (ADR-0446): la palabra CAYLA es el trazo del logo, no una letra. */}
+        <Link href="/" aria-label="CAYLA Retail, ir al inicio" className={`group flex min-w-0 flex-1 flex-col items-start overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-3.5" : "pl-7"}`}>
+          <LogoCayla sinPalabra={compacto} className="h-8 origin-left transition-transform duration-500 ease-cayla group-hover:scale-105" />
+          {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo, alineado con la palabra. */}
+          <span
+            aria-hidden
+            className={`label-cayla -mt-0.5 text-[10px] text-taupe-profundo transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}
+            style={{ letterSpacing: "0.2em", marginLeft: `${INICIO_DE_LA_PALABRA * 2}rem` }}
+          >
+            Retail
           </span>
         </Link>
         <button
@@ -908,7 +905,13 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               gruposAbiertos={gruposAbiertos}
               compacto={compacto}
               cajonDe={cajon?.grupoId ?? null}
-              onToggleGrupo={(id) => setGruposAbiertos((g) => ({ ...g, [id]: !g[id] }))}
+              onToggleGrupo={(id) =>
+                setGruposAbiertos((g) => {
+                  const abre = !g[id];
+                  const cerrados = abre ? Object.fromEntries(hermanosDe(id, menu.riel).map((h) => [h, false])) : {};
+                  return { ...g, ...cerrados, [id]: abre };
+                })
+              }
               onAbrirCajon={abrirCajon}
               onEntrarFila={entrarFila}
               onSalirFila={salirFila}
@@ -1020,8 +1023,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       {/* Translúcida + desenfoque: el contenido pasa POR DEBAJO al hacer scroll.
           No es decoración, es la única forma de que se note que hay más página
           arriba en vez de que el texto se corte contra una banda opaca. */}
-      <header data-cabecera-app className="fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 backdrop-blur-md sm:left-lateral">
-        <div className="flex items-center gap-3 px-4 py-2.5 sm:px-8 sm:py-3">
+      {/* `data-fondo-hoja`: con una hoja abierta en el celular, la cabecera y el contenido se alejan juntos y la cabecera se
+          redondea arriba (ADR-0479, components/ui/fondoDeLaHoja.ts). */}
+      <header data-cabecera-app data-fondo-hoja="borde" className="fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 pt-[env(safe-area-inset-top)] backdrop-blur-md sm:left-lateral">
+        <div className="flex items-center gap-3 px-4 pr-[max(1rem,env(safe-area-inset-right))] py-2.5 sm:px-8 sm:pr-[max(2rem,env(safe-area-inset-right))] sm:py-3">
           {/* Celular: abre el cajón con el menú completo (v4), a la izquierda del logo. */}
           <button
             type="button"
@@ -1042,7 +1047,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             aria-expanded={!plegado}
             aria-controls="lateral"
             title={`${plegado ? "Expandir" : "Contraer"} el menú  ( [ )`}
-            className="-ml-2 hidden h-9 w-9 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:grid"
+            className="-ml-2 hidden h-9 w-9 shrink-0 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:grid"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
               <rect x="3" y="4" width="18" height="16" rx="2.5" />
@@ -1061,7 +1066,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             mostrarEquipo={persona.ubicacionTipo === "tienda" && !esAparato}
           />
           <Link href="/" className="flex items-center gap-2 sm:hidden">
-            <IsotipoCayla className="h-[26px] w-auto" />
+            <LogoCayla soloColibri className="h-[26px]" />
           </Link>
           {/* Selector de ubicación del líder (Fase 2, ya no pendiente):
               cambia toda la app de perspectiva, no solo Inventario/Recepción
@@ -1105,16 +1110,14 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       </header>
 
       {/* ==================== Contenido ==================== */}
-      {/* Vender y Compras van sin el tope de max-w-5xl: el catálogo + ticket
-          necesita todo el ancho (pedido de Felipe, 2026-09-12), y las tablas
-          de Compras —seis columnas con documento, proveedor, estados y
-          cifras— se apretaban en la columna de lectura (pedido de Felipe,
-          2026-09-14). El resto de la app sigue centrado en la columna
-          angosta de siempre. */}
-      <main className="px-4 pb-10 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24">
-        {/* `has-[[data-ancho-completo]]`: una pantalla que necesita todo el ancho lo pide con ese atributo (el Inicio de almacén,
-            Felipe 2026-09-30) sin entrar a la lista de rutas de arriba, que quitaría el tope a todas las cuentas de «/». */}
-        <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none"}>{children}</div>
+      {/* Toda pantalla va a lo ancho (ADR-0462); solo las de `CON_TOPE_DE_ANCHO` y el Inicio siguen centradas en 64 rem. */}
+      <main
+        data-fondo-hoja
+        className="px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(5rem+env(safe-area-inset-top))] sm:ml-lateral sm:pl-5 sm:pr-[max(2.5rem,env(safe-area-inset-right))] sm:pb-[calc(3rem+env(safe-area-inset-bottom))] sm:pt-[calc(6rem+env(safe-area-inset-top))]"
+      >
+        {/* `has-[[data-ancho-completo]]`: una pantalla con tope que necesita todo el ancho lo pide con ese atributo (el Inicio de almacén,
+            Felipe 2026-09-30) sin quitarle el tope a todas las cuentas de «/». */}
+        <div className={conTopeDeAncho(pathname) ? "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none" : ""}>{children}</div>
       </main>
 
       {/* Guías interactivas (ADR-0389): la oferta de la primera vez y la demo con el velo. `quien` decide «una vez por

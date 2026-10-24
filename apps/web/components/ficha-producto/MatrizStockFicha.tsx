@@ -211,7 +211,7 @@ export function MatrizStockFicha({
     ["unidades", "Unidades de hoy"],
     ["precio", "Precios"],
     ...(ctx.veCosto ? ([["costo", "Costos"]] as [VistaMatriz, string][]) : []),
-    ["etiquetas", "Etiquetas"],
+    ["etiquetas", "Insignias y campañas"],
   ];
   const nombreElegida = etiquetaElegida ? textoEtiqueta(etiquetaElegida) : null;
   // Todos los costos vienen de compras: en «Costos» no hay nada que escribir, ni de a una ni en bloque.

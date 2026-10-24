@@ -133,11 +133,11 @@ export function CajaAbiertaPanel({
   contexto: ContextoTableroCaja;
   /** Qué accesos a otras pantallas se muestran: solo los módulos que la cuenta ve (ADR-0161). */
   accesos: AccesosCaja;
-  /** Lo que necesita el formulario de Finanzas ▸ Gastos para abrirse aquí; `null` si la cuenta no registra gastos. */
+  /** Lo que necesita «Registrar gasto» para abrirse aquí; `null` si la cuenta no registra gastos (ni Caja ni Gastos, ADR-0491). */
   gasto?: {
     categorias: CategoriaGasto[];
-    ubicaciones: UbicacionGastos[];
-    cajasAbiertas: { id: string; ubicacionId: string }[];
+    /** Lo que pide el formulario completo de Finanzas ▸ Gastos; `null` sin el módulo Gastos (solo la hoja rápida). */
+    completo: { ubicaciones: UbicacionGastos[]; cajasAbiertas: { id: string; ubicacionId: string }[] } | null;
     proveedores: { id: string; nombre: string; ruc: string | null }[];
     esLider: boolean;
     hoy: string;
@@ -426,7 +426,7 @@ export function CajaAbiertaPanel({
         ) : (
           <>
         {/* ---------- Lo que hay: efectivo en el cajón, cobrado y ritmo ---------- */}
-        <div className="grid gap-3 @[900px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] @[1200px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-3 @[900px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] @[1200px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={1} />
           <TarjetaCobrado porMetodo={series.porMetodo} redondeo={resumen.redondeo} indice={2} />
           <div className="card-cayla anim-sube hidden flex-col p-5 sm:flex @[900px]:col-span-2 @[1200px]:col-span-1" style={{ "--i": 3 } as CSSProperties}>
@@ -438,7 +438,7 @@ export function CajaAbiertaPanel({
 
         {/* ---------- Meta de hoy y lo que pedirá el cierre (ADR-0195 F1) ---------- */}
         {metaVentaDiaria !== null && metaPct !== null && (
-          <div className={`grid gap-3 ${puedeCerrar && fondoCierre ? "@[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
+          <div className={`grid grid-cols-1 gap-3 ${puedeCerrar && fondoCierre ? "@[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
             <div data-guia="caja.meta" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
               <TituloSeccion dato={<b>{soles0(metaVentaDiaria)}</b>}>Meta de hoy</TituloSeccion>
               <p className="mt-1 text-[13px] text-taupe">{explicacionMeta}</p>
@@ -531,16 +531,16 @@ export function CajaAbiertaPanel({
           proveedores={gasto.proveedores}
           hoy={gasto.hoy}
           onCerrar={() => setModal(null)}
-          onFormularioCompleto={() => setModal("gastoCompleto")}
+          onFormularioCompleto={gasto.completo ? () => setModal("gastoCompleto") : undefined}
           onRetiro={() => setModal("movimiento")}
         />
       )}
-      {modal === "gastoCompleto" && gasto && (
+      {modal === "gastoCompleto" && gasto?.completo && (
         <RegistrarGastoModal
           categorias={gasto.categorias}
-          ubicaciones={gasto.ubicaciones}
+          ubicaciones={gasto.completo.ubicaciones}
           proveedores={gasto.proveedores}
-          cajasAbiertas={gasto.cajasAbiertas}
+          cajasAbiertas={gasto.completo.cajasAbiertas}
           esLider={gasto.esLider}
           ubicacionInicial={caja.ubicacionId}
           hoy={gasto.hoy}

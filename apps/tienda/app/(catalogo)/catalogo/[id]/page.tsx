@@ -6,19 +6,18 @@ import { FichaPrenda } from "@/components/FichaPrenda";
 import { Icono } from "@/components/Icono";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
-import { textoCambios } from "@/lib/ayuda";
-import { leerAyuda } from "@/lib/ayuda-servidor";
 import { cuantasEnLaBolsa } from "@/lib/bolsa-servidor";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { claveCategoria, fotoOptimizable, hrefDePrenda, hrefLista } from "@/lib/catalogo";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
-import { chipsDelCatalogo, combinaCon, esIdDePrenda, parecidasA, promesasDeCompra } from "@/lib/ficha";
+import { chipsDelCatalogo, combinaCon, esIdDePrenda, parecidasA} from "@/lib/ficha";
 import { leerFicha, leerSeparadasPorOtros } from "@/lib/ficha-servidor";
 import { hrefLook } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
 import { armarProbador } from "@/lib/probador";
 import { leerProbador } from "@/lib/probador-servidor";
-import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
+import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
@@ -36,7 +35,7 @@ async function leer(props: Props) {
   const [{ id }, sp] = await Promise.all([props.params, props.searchParams]);
   if (!esIdDePrenda(id)) notFound();
   const sedes = sedesEnOrden(await leerSedes());
-  const pedida = sedeDeLaUrl(sp.sede, sedes);
+  const pedida = await sedeDeLaPagina(sp, sedes, `/catalogo/${id}`, claveDeSede);
   const ficha = await leerFicha(id, pedida?.id ?? null);
   if (ficha === "no_esta") notFound();
   return { id, sp, sedes, pedida, ficha };
@@ -61,9 +60,8 @@ export default async function FichaDePrenda(props: Props) {
   const elegida = ficha?.sede ? sedes.find((s) => s.id === ficha.sede) ?? null : null;
   // El plazo de cambio es el de la caja (el que imprime la boleta), el mismo de «Cambios y devoluciones». Lo guardado (las esperas)
   // es la misma lectura del marco del catálogo (una sola consulta por visita).
-  const [catalogo, plazos, guardados, enLaBolsa, looks, separadas, lecturaProbador] = await Promise.all([
+  const [catalogo, guardados, enLaBolsa, looks, separadas, lecturaProbador] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
-    leerAyuda(),
     usuario ? leerGuardadosEnBase(usuario) : null,
     cuantasEnLaBolsa(),
     ficha ? leerLooks(pedida?.id ?? null) : null,
@@ -78,8 +76,9 @@ export default async function FichaDePrenda(props: Props) {
   const combina = ficha ? combinaCon(looks?.looks ?? [], ficha.id, catalogo?.prendas ?? []) : null;
   // Las de su categoría y, si no llenan la fila, las de su grupo y su menú (sin repetir las de «Combínalo con»), de lo que hay en la tienda.
   const parecidas = ficha ? parecidasA(ficha, enLaTienda, { fuera: combina?.prendas.map((p) => p.id) ?? [] }) : null;
-  // «Nuevo · llegó hace 4 días» y «N.º 3 en más vendidos» salen del catálogo, que ya los trae.
-  const chips = chipsDelCatalogo(catalogo?.prendas.find((p) => p.id === id) ?? null);
+  // «Nuevo · llegó hace 4 días» y «N.º 3 en más vendidos» salen del catálogo, que ya los trae; entre los dos van las insignias que se le
+  // asignaron a la prenda en Catálogo ▸ Insignias (ADR-0489), que trae su propia ficha.
+  const chips = chipsDelCatalogo(catalogo?.prendas.find((p) => p.id === id) ?? null, ficha?.insignias ?? []);
   // «Arma un look con esta prenda», solo si el probador de esta tienda la tiene (con su recorte y su largo, y algo en la tienda): las
   // mismas reglas que arman el probador, así el botón nunca abre un probador sin ella.
   const enElProbador = lecturaProbador
@@ -128,8 +127,6 @@ export default async function FichaDePrenda(props: Props) {
             colorPedido={unValor(sp.color)}
             origenFotos={origenFotos}
             chips={chips}
-            cambios={textoCambios(plazos)}
-            promesas={promesasDeCompra(plazos)}
             esperas={guardados ? [...guardados.esperas.keys()] : []}
             esperasIds={guardados ? Object.fromEntries(guardados.esperas) : {}}
             enLaBolsa={enLaBolsa}

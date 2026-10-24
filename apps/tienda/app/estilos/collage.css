@@ -3,25 +3,28 @@
    y la portada sin cuenta (sin precio: Felipe 2026-10-16, «fotos sin precio»). Solo tokens: el papel de una polaroid y el estudio de la
    foto son fijos (son parte de la foto), igual en claro y en oscuro.
    ===================================================================================================== */
-.t-collage { position: relative; height: 330px; z-index: 2; }
-/* La caída empieza con la página y dura menos (2026-10-17): antes la primera polaroid esperaba 0,26 s y la tercera quedaba quieta a
-   los 1,54 s; como empiezan invisibles, lo principal del héroe (las fotos) se veía tarde. Ahora la primera cae desde el primer cuadro
-   y la tercera queda quieta a los 0,88 s: la misma caída, una sola vez, sin rebote. */
-.t-polaroid { position: absolute; width: 47%; padding: 8px 8px 34px; background: var(--t-papel-fijo); border-radius: 5px; box-shadow: 0 26px 40px -18px color-mix(in srgb, var(--t-tinta-fija) 55%, transparent); transform: rotate(var(--r)); transition: transform .45s var(--ease), box-shadow .45s; animation: t-caer .7s var(--ease) both; animation-delay: calc(var(--i) * 90ms); color: var(--t-tinta-fija); }
+/* «A · Muro» (Felipe 2026-10-17): el héroe cuelga UNA obra, la primera de las prendas que eligió el Inicio, con su cédula debajo (nombre
+   en cursiva y precio), como en la maqueta a-muro.html. Las otras dos piezas del collage no se dibujan: A es una sala, no una mesa con
+   fotos. Entra una vez, despacio; nada se mueve después. */
+.t-collage { position: relative; z-index: 2; }
+.t-polaroid { position: relative; display: block; width: 100%; padding: 0; background: none; border-radius: 0; box-shadow: none; color: var(--tinta); animation: a-aparece 1s var(--ease) .12s both; }
 .t-polaroid .t-card-foto { border-radius: 0; }
-.t-polaroid-pie { position: absolute; left: 10px; right: 10px; bottom: 8px; display: flex; justify-content: space-between; gap: 6px; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; }
-.t-polaroid-pie > span:first-child { overflow: hidden; text-overflow: ellipsis; }
-.t-polaroid:hover { transform: rotate(0deg) translateY(-8px) scale(1.04); z-index: 6; box-shadow: 0 40px 50px -20px color-mix(in srgb, var(--t-tinta-fija) 60%, transparent); }
-.t-polaroid.p1 { left: 0; top: 7%; --r: -7deg; --i: 0; z-index: 2; }
-.t-polaroid.p2 { left: 27%; top: 0; --r: 3deg; --i: 1; z-index: 3; }
-.t-polaroid.p3 { right: 0; top: 16%; --r: 8deg; --i: 2; z-index: 2; }
-.t-polaroid:focus-visible { outline: 2px solid var(--t-hero-acento); outline-offset: 3px; }
-.t-hero-pct { position: absolute; right: -10px; bottom: -36px; z-index: 0; font-family: var(--serif); font-style: italic; font-weight: 500; font-size: clamp(150px, 46cqi, 300px); line-height: 1; letter-spacing: -.04em; color: transparent; -webkit-text-stroke: 1.4px var(--t-hero-filo); pointer-events: none; animation: t-aparecer 1.4s var(--ease) .5s both; }
-/* En la portada no hay precio: en su lugar, «Ver precio», que lleva a crear la cuenta. */
-.t-polaroid-pie .t-polaroid-ver { flex: none; color: color-mix(in srgb, var(--t-tinta-fija) 62%, transparent); font-weight: 600; }
+.t-polaroid-pie { position: static; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 2px 16px; padding-top: 14px; font-size: 15px; font-weight: 400; }
+.t-polaroid-pie > span:first-child { font-family: var(--nombre); font-style: italic; font-size: 21px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-polaroid:hover .t-card-foto img { transform: scale(1.03); }
+.t-polaroid.p2, .t-polaroid.p3 { display: none; }
+.t-polaroid:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 4px; }
+/* El descuento de la campaña, sobre la obra: la cifra en cursiva, en cochinilla (es lo que cambia el precio). */
+.t-hero-pct { position: absolute; left: 18px; top: 10px; z-index: 3; font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: clamp(44px, 6cqi, 84px); line-height: 1; letter-spacing: -.02em; color: var(--rojo); pointer-events: none; animation: a-aparece 1s var(--ease) .4s both; }
+.t-polaroid-pie .t-polaroid-ver { flex: none; color: var(--taupe); font-weight: 400; }
 
+/* El héroe cabe en la pantalla (Felipe 2026-10-19: «que el alto sea lo de la pantalla»): en la computadora ocupa lo que queda bajo la franja y
+   la cabecera (30 + 73 px), así «Lo nuevo» y su obra se ven completos sin bajar; la obra toma el alto que sobra, sin pasar de él. */
 @container tienda (min-width: 960px) {
-  .t-collage { height: 480px; }
-  .t-polaroid { width: 44%; }
+  .t-hero.t-hero-inicio { min-height: max(560px, calc(100svh - 103px)); align-items: stretch; padding-block: clamp(20px, 4svh, 44px); }
+  .t-hero-inicio .t-hero-texto { justify-content: flex-end; }
+  .t-hero-inicio .t-collage { display: grid; grid-template-rows: minmax(0, 1fr); min-height: 0; }
+  .t-hero-inicio .t-collage > .t-polaroid { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; }
+  .t-hero-inicio .t-collage > .t-polaroid.p2, .t-hero-inicio .t-collage > .t-polaroid.p3 { display: none; }
+  .t-hero-inicio .t-polaroid .t-card-foto { min-height: 0; aspect-ratio: auto; }
 }
-@keyframes t-caer { from { opacity: 0; transform: translateY(-70px) rotate(calc(var(--r) * -2.2)) scale(.92); } }

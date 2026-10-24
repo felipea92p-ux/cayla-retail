@@ -918,9 +918,14 @@ export function BajarAlPisoForm({
                     className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-hueso/70 focus-visible:bg-hueso/70"
                   >
                     <MiniaturaPrenda fotoUrl={p.fotoUrl} {...categoriaDe(p)} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm text-tinta">{nombreDePrenda(p)}</span>
-                      {p.sku && <span className="block truncate font-mono text-[11px] text-tinta/60">{p.sku}</span>}
+                    {/* El modelo arriba y «talla · color» debajo, con el código al final de esa línea: lo que distingue una fila de otra
+                        es la talla y el color, y en una sola línea («Vestido Sofía · L · Azul…») era justo lo que se cortaba en el celular. */}
+                    <span className="min-w-0 flex-1" title={nombreDePrenda(p)}>
+                      <span className="block truncate text-sm text-tinta">{p.referencia}</span>
+                      <span className="block truncate text-xs text-tinta/70">
+                        {[p.talla, p.color].map((t) => (t ?? "").trim()).filter(Boolean).join(" · ")}
+                        {p.sku && <span className="ml-2 font-mono text-[11px] text-tinta/60">{p.sku}</span>}
+                      </span>
                     </span>
                     <span className="shrink-0 text-right text-xs tabular-nums text-taupe">{textoDeExistencia(p)}</span>
                   </button>
@@ -1124,8 +1129,9 @@ export function BajarAlPisoForm({
             <Aviso tono="atencion">Este navegador no puede guardar tu lista: confirma antes de salir de la pantalla.</Aviso>
           )}
 
-          {/* Pie pegajoso al fondo: desde ADR-0206 el celular no tiene barra abajo (mismo patrón que FichaPrevia). */}
-          <div className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 sm:bottom-4 sm:mx-0 sm:rounded-xl sm:border sm:px-5 sm:py-3">
+          {/* Pie pegajoso al fondo: en el celular es la Isla pegada dentro del formulario (ADR-0479, actividad 12); desde `sm`, la
+              tarjeta de siempre a 16 px del borde. */}
+          <div data-pegada className="barra-abajo z-20 block px-4 py-3 sm:bottom-4 sm:rounded-xl sm:px-5 sm:py-3 sm:shadow-none sm:animate-none">
             <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
               <div data-guia="bajar.resumen" className="min-w-0">
                 <p className="font-display text-xl tabular-nums text-tinta">{textoDeResumen(resumen)}</p>

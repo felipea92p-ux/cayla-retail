@@ -132,7 +132,10 @@
   /* con colores el ícono mide siempre el ancho de tres prendas (54 de 43 de alto): la misma altura, más ancho */
   .pp-chip .pp-ic-colores { width: 24px; }
   .pp-chip b { font-weight: 700; font-variant-numeric: lining-nums tabular-nums; }
-  .pp-chip:hover, .pp-chip.pp-on { background: color-mix(in srgb, var(--pp-c) 12%, var(--color-papel)); border-color: var(--pp-c); }
+  .pp-chip.pp-on { background: color-mix(in srgb, var(--pp-c) 12%, var(--color-papel)); border-color: var(--pp-c); }
+  @media (hover: hover) {
+    .pp-chip:hover { background: color-mix(in srgb, var(--pp-c) 12%, var(--color-papel)); border-color: var(--pp-c); }
+  }
   /* un grupo FIJADO (aria-pressed) tiene cara propia: el filo doble lo distingue de uno que solo se señala con el cursor o el teclado */
   .pp-chip[aria-pressed="true"], .pp-lg[aria-pressed="true"] { border-color: var(--pp-c); box-shadow: inset 0 0 0 1px var(--pp-c); }
 
@@ -157,7 +160,10 @@
   .pp-lg-t b { font-size: 13.5px; font-weight: 600; line-height: 1.25; }
   .pp-lg-t small { font-size: 12.5px; color: var(--color-tinta-60); line-height: 1.3; font-variant-numeric: lining-nums tabular-nums; }
   .pp-lg-n { font-family: var(--font-serif); font-size: 26px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -0.01em; }
-  .pp-lg:hover, .pp-lg.pp-on { background: color-mix(in srgb, var(--pp-c) 10%, var(--color-papel)); border-color: var(--pp-c); }
+  .pp-lg.pp-on { background: color-mix(in srgb, var(--pp-c) 10%, var(--color-papel)); border-color: var(--pp-c); }
+  @media (hover: hover) {
+    .pp-lg:hover { background: color-mix(in srgb, var(--pp-c) 10%, var(--color-papel)); border-color: var(--pp-c); }
+  }
   .pp-zona[data-sel] .pp-lg:not(.pp-on) .pp-ic, .pp-zona[data-sel] .pp-chip:not(.pp-on) .pp-ic { opacity: 0.35; }
 
   /* el pie del riel: la escala y la frase que cambia al pasar por un grupo */
@@ -179,7 +185,9 @@
     border: 1px solid var(--color-sand); background: var(--color-papel); font-size: 12.5px; font-weight: 500; line-height: 1.2;
     transition: background-color 200ms var(--ease-cayla);
   }
-  .pp-porque:hover { background: var(--color-sand); }
+  @media (hover: hover) {
+    .pp-porque:hover { background: var(--color-sand); }
+  }
   .pp-porque[aria-expanded="true"] { background: var(--color-hueso); border-color: var(--color-taupe); }
   .pp-q { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--color-sand); font-family: var(--font-serif); font-size: 14px; font-weight: 600; line-height: 1; }
   .pp-panel { flex: 1 1 100%; background: var(--color-hueso); border-radius: var(--radius-lg); padding: 16px 18px; display: grid; gap: 10px; font-size: 13.5px; line-height: 1.5; color: var(--color-tinta-60); animation: pp-entra 260ms var(--ease-cayla) both; }
@@ -228,7 +236,9 @@
   .mc-bajada { margin-top: 2px; max-width: 42rem; font-size: 13px; line-height: 1.45; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
   .mc-leyenda { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 12px; list-style: none; }
   .mc-leg { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 3px 12px 3px 10px; border-radius: 999px; border: 1px solid transparent; font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); transition: background-color 180ms var(--ease-cayla), border-color 180ms var(--ease-cayla); cursor: pointer; }
-  .mc-leg:hover { background: color-mix(in srgb, var(--color-hueso) 60%, var(--color-papel)); }
+  @media (hover: hover) {
+    .mc-leg:hover { background: color-mix(in srgb, var(--color-hueso) 60%, var(--color-papel)); }
+  }
   .mc-leg[aria-pressed="true"] { background: var(--color-hueso); border-color: var(--color-taupe); color: var(--color-tinta); }
 
   /* Las cuatro marcas: el mismo dibujo en la leyenda (`.mc-g`), en la lectura y en la pista (`.mc-m`) */
@@ -272,7 +282,10 @@
   .mc-fila, .mc-eje { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; width: 100%; padding: 2px 8px; }
   @container mc (min-width: 560px) { .mc-fila, .mc-eje { grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) 4.5rem; } }
   .mc-fila { border-radius: var(--radius-lg); text-align: left; color: inherit; cursor: pointer; transition: opacity 180ms var(--ease-cayla), background-color 180ms var(--ease-cayla); }
-  .mc-fila:hover, .mc-fila[data-act="si"] { background: color-mix(in srgb, var(--color-hueso) 55%, var(--color-papel)); }
+  .mc-fila[data-act="si"] { background: color-mix(in srgb, var(--color-hueso) 55%, var(--color-papel)); }
+  @media (hover: hover) {
+    .mc-fila:hover { background: color-mix(in srgb, var(--color-hueso) 55%, var(--color-papel)); }
+  }
   .mc-fila[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--color-taupe); }
   .mc-lista[data-sel] .mc-fila:not([data-act]) { opacity: 0.42; }
   .mc-nombre { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; color: var(--color-tinta); }
@@ -338,7 +351,9 @@
     border: 1px solid var(--color-sand); background: var(--color-papel); border-radius: var(--radius-lg); min-width: 0; text-align: left;
     transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
   }
-  .pp-col-celda:hover { background: var(--color-hueso); }
+  @media (hover: hover) {
+    .pp-col-celda:hover { background: var(--color-hueso); }
+  }
   /* la familia abierta: la misma cara que el botón «¿Por qué?» cuando su panel está abierto */
   .pp-col-celda[aria-expanded="true"] { background: var(--color-hueso); border-color: var(--color-taupe); }
   .pp-col-n { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; line-height: 1.2; }
@@ -359,7 +374,9 @@
     display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--color-sand); background: var(--color-papel); color: var(--color-tinta);
     transition: background-color 200ms var(--ease-cayla);
   }
-  .pp-des-x:hover { background: var(--color-sand); }
+  @media (hover: hover) {
+    .pp-des-x:hover { background: var(--color-sand); }
+  }
   .pp-des-frase { font-size: 14px; line-height: 1.45; color: var(--color-tinta); max-width: 68ch; }
   .pp-des-fam { display: grid; gap: 8px; }
   .pp-des-fam + .pp-des-fam { margin-top: 6px; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--color-tinta) 14%, transparent); }

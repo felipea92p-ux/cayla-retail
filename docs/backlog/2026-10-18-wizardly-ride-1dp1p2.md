@@ -1,0 +1,6 @@
+## Gasto fijo: ficha de pago (ADR-0452)
+- **No está en producción:** pegar en orden `20261017190000` (ADR-0440), `20261018003000` (ficha) y `20261018004000` (9 proveedores de servicios). Antes de la tercera, verificar los 9 RUC en la Consulta RUC de SUNAT (salieron de fuentes públicas citadas por un buscador). La web funciona antes y después.
+- **Números sin reservar:** ADR 0452 y las dos migraciones se eligieron a mano porque la nube no pudo crear etiquetas (403). `/abrir-pr` los revisa; si chocan, renombrar.
+- **Probado en local:** `pnpm pruebas:gasto-fijo-ficha` (51 casos) y vecinas (`activos-y-fijos`, `cierre-mes`, `flujo-caja`); `finanzas_montos…` pasa con `PGTZ=America/Lima` (en UTC falla por «fecha futura», ajeno a esto). El modal se fotografió con respuestas simuladas, no con login real.
+- **Por correr con sesión real:** `/chaos` (guarda con ficha: doble clic, cuenta que cambia entre dos pestañas, líder vs colaboradora), `pnpm --filter web tema:auditar`, `guias:recorrer` y probar «Editar» con una cuenta que no sea líder (no ve cuenta ni historial).
+- **Pendiente:** aviso en el Inicio cuando cambia la cuenta de un fijo (como el de proveedores); avisar el contrato que vence en 60 días también en el Inicio; `pnpm datos:generar:produccion` tras pegar; si un propietario repite en varios fijos, evaluar un directorio de beneficiarios.

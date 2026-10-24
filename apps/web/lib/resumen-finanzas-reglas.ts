@@ -22,7 +22,7 @@ import {
   TEXTO_SIN_CUENTA,
   type Proyeccion,
 } from "./flujo-caja-reglas";
-import { leerPanelImpuestos, nombreMes, proyectarUmbral, sumarMeses, tonoAvance, type PanelImpuestos } from "./impuestos-reglas";
+import { avisoUmbral, leerPanelImpuestos, nombreMes, proyectarUmbral, sumarMeses, tonoAvance, type PanelImpuestos } from "./impuestos-reglas";
 import { chipPpto, leerFilaPpto, type FilaPpto } from "./presupuesto-reglas";
 import {
   extraNecesario,
@@ -675,7 +675,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     }
   }
 
-  // Gastos fijos que ya debieron llegar (F2b).
+  // Gastos fijos que ya vencieron sin registrarse (F2b; ADR-0487).
   if (r.fijos.estado === "ok") {
     const fs = r.fijos.datos;
     for (const f of fs.slice(0, MAX_POR_TIPO)) {
@@ -684,7 +684,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
         orden: CLASE.fijo,
         tono: "ambar",
         titulo: `Falta registrar: ${f.descripcion} ${deUnidad(f.ubicacionNombre ?? "De la empresa")}`,
-        detalle: `Se esperaba el día ${Number(f.fechaEsperada.slice(8, 10)) || f.dia} por unos ${soles(f.monto)}. Si no está, el resultado del mes sale mejor de lo que es.`,
+        detalle: `Venció el día ${Number(f.fechaEsperada.slice(8, 10)) || f.dia} por unos ${soles(f.monto)}. Si no está, el resultado del mes sale mejor de lo que es.`,
         impacto: `~${soles(f.monto)}`,
         href: enlace("gastos", conQuery("/finanzas/gastos", "tab=fijos", `mes=${r.mes}`, verParam(r))),
         boton: "Ver fijos",
@@ -852,12 +852,34 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     });
   }
 
+  // El aviso anticipado del límite (250 UIT, parámetro): «Llevas S/ X vendidos este año, a S/ Y de las 300 UIT: habla con tu contador». Mide el año calendario, la misma cifra que la
+  // tarjeta del límite, y dice que cuenta lo registrado en el sistema. Mientras no llegue al límite REEMPLAZA al «Vas al X % del límite» de abajo (mismo tema, menos preciso);
+  // pasado el límite manda el aviso rojo de siempre.
+  const datosIgv = r.igv.estado === "ok" ? r.igv.datos : null;
+  const anticipado = datosIgv ? avisoUmbral(datosIgv) : null;
+  const tituloAnticipado = anticipado?.nivel === "aviso" ? anticipado.titulo : null;
+  const hayAnticipado = tituloAnticipado !== null;
+  if (anticipado && tituloAnticipado) {
+    out.push({
+      clave: "umbral_aviso",
+      orden: CLASE.umbral,
+      tono: "ambar",
+      titulo: tituloAnticipado,
+      detalle: [anticipado.detalle, anticipado.alcance].filter(Boolean).join(" "),
+      impacto: null,
+      href: enlace("impuestos", "/finanzas/impuestos"),
+      boton: "Ver",
+      origen: "Impuestos",
+      peso: 0,
+    });
+  }
+
   // El límite del régimen (F8), desde el ámbar de Impuestos.
   if (r.igv.estado === "ok" && r.igv.datos.umbral.avance !== null) {
     const u = r.igv.datos.umbral;
     const tono = tonoAvance(u.avance);
-    if (tono === "ambar" || tono === "rojo") {
-      const proy = proyectarUmbral(u.ventasMeses, r.hoy, u.umbralSoles, u.primerMes);
+    if (tono === "rojo" || (tono === "ambar" && !hayAnticipado)) {
+      const proy = proyectarUmbral(u.ventasMeses, r.hoy, u.umbralSoles, u.primerMes, u.ajuste);
       const uit = r.igv.datos.parametros.umbralUit?.valor;
       out.push({
         clave: "umbral",

@@ -27,6 +27,8 @@ import { Boton } from "@/components/ui/campos";
 export type DatosFicha = {
   nombre: string;
   codigo: string | null;
+  /** La tienda del producto («CLAURE»), o null si la base aún no tiene tiendas o todavía no se eligió (ADR-0463). */
+  empresa?: string | null;
   /** «Indumentaria › Camisas y Blusas». */
   categoria: string | null;
   marca: string | null;
@@ -78,8 +80,10 @@ function Siguiente({ d, clase }: { d: DatosFicha; clase: string }) {
   }
   return (
     <p role="status" className={`${clase} text-taupe`}>
-      <button type="button" onClick={g.onIr} className="btn-enlace text-left">
-        {g.bloquea ? `Siguiente: ${g.texto}` : `Ya puedes crear. Sin elegir todavía: ${g.nombre.toLocaleLowerCase("es")}.`}
+      {/* El subrayado va en el texto (un <span>, en línea) y no en el botón: si la frase pasa a dos líneas (la isla del celular es
+          más angosta), cada línea lleva el suyo en vez de uno cruzado a media altura. */}
+      <button type="button" onClick={g.onIr} className="text-left">
+        <span className="btn-enlace">{g.bloquea ? `Siguiente: ${g.texto}` : `Ya puedes crear. Sin elegir todavía: ${g.nombre.toLocaleLowerCase("es")}.`}</span>
       </button>
     </p>
   );
@@ -114,6 +118,7 @@ function Tarjeta({ d }: { d: DatosFicha }) {
         <p className="font-mono text-[12.5px] tabular-nums text-taupe">{d.codigo ?? <Vacio>— código —</Vacio>}</p>
         <p className="font-display mt-0.5 text-2xl leading-tight text-tinta">{d.nombre || <Vacio>Sin nombre</Vacio>}</p>
         <p className="text-[13px] text-taupe">
+          {d.empresa && `${d.empresa} · `}
           {d.categoria ?? <Vacio>Sin categoría</Vacio>}
           {d.marca && ` · ${d.marca}`}
           {d.tejido && ` · ${d.tejido}`}
@@ -189,7 +194,8 @@ export function FichaPrevia({
     const el = barra.current;
     if (!el || typeof ResizeObserver === "undefined") return;
     const raiz = document.documentElement;
-    const publicar = () => raiz.style.setProperty("--alto-barra-ficha", `${el.offsetHeight}px`);
+    // La barra es una isla que flota a 12 px del borde (y de la barrita del iPhone): lo que se pega sobre ella suma ese aire.
+    const publicar = () => raiz.style.setProperty("--alto-barra-ficha", `calc(${el.offsetHeight}px + 0.75rem + env(safe-area-inset-bottom, 0px))`);
     publicar();
     const obs = new ResizeObserver(publicar);
     obs.observe(el);
@@ -239,7 +245,8 @@ export function FichaPrevia({
       {/* Celular y tablet: barra pegada abajo */}
       {/* Pegada al fondo: desde 2026-09-25 el celular no tiene barra de navegación abajo (el menú es un cajón lateral).
           El aire inferior respeta la zona segura del teléfono. */}
-      <div ref={barra} data-barra-ficha data-guia="nuevo.barra" className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2.5 lg:hidden">
+      {/* La barra de abajo del celular es la Isla (ADR-0479, actividad 12): pegada dentro del formulario. */}
+      <div ref={barra} data-barra-ficha data-guia="nuevo.barra" data-pegada className="barra-abajo z-20 block overflow-hidden px-4 pb-3 pt-2.5 lg:hidden">
         {/* La tira va PRIMERO en la barra (sus márgenes negativos la llevan de borde a borde): se ve sin abrir «Ver» y un toque abre la hoja. */}
         {parecidas && <TiraParecidas alerta={parecidas.alerta} avisoEnLinea={parecidas.avisoEnLinea} onVer={parecidas.onVer} onReintentar={parecidas.onReintentar} />}
         {verMovil && (

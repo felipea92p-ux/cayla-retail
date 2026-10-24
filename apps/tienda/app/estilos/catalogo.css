@@ -10,43 +10,43 @@
 
 /* ---- «Ver lo que hay en»: la tienda elegida (maqueta v4, `filtroTienda`). Una franja bajo la cabecera; en el celular sin el texto y
    corriendo de lado, desde 960 px centrada y con su texto. ---- */
-.t-ubic { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 16px; font-size: 12.5px; color: var(--tinta-60); background: var(--papel); border-bottom: 1px solid var(--sand); white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.t-ubic { flex: none; display: flex; align-items: center; gap: 14px; padding: 10px clamp(16px, 4cqi, 64px); font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); background: var(--crema); border-bottom: 1px solid var(--sand); white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
 .t-ubic::-webkit-scrollbar { display: none; }
-.t-ubic .ic { width: 15px; height: 15px; color: var(--taupe); flex: none; }
+.t-ubic .ic { width: 14px; height: 14px; color: var(--taupe); flex: none; }
 .t-filtro-txt { display: none; }
-.t-pildoras-tienda { display: flex; gap: 6px; }
-.t-pildora-mini { flex: none; border: 1px solid var(--sand); background: var(--crema); border-radius: 999px; padding: 5px 13px; font-size: 12.5px; font-weight: 600; color: var(--tinta); transition: background-color .2s, color .2s, border-color .2s; }
-.t-pildora-mini:hover { border-color: var(--tinta); }
+.t-pildoras-tienda { display: flex; gap: 22px; }
+.t-pildora-mini { flex: none; border: 0; border-bottom: 1px solid transparent; background: none; border-radius: 0; padding: 4px 0 3px; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); transition: color .3s, border-color .3s; }
+.t-pildora-mini:hover { color: var(--tinta); }
 /* La tienda se elige con el dedo en 44 px de alto (una capa invisible sobre la píldora de 29; la franja la deja entera a la vista). */
 .t-pildora-mini { position: relative; }
 .t-pildora-mini::before { content: ""; position: absolute; inset: -8px -3px; }
-.t-pildora-mini[aria-current="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+.t-pildora-mini[aria-current="true"] { background: none; border-color: var(--tinta); color: var(--tinta); }
 
 /* ---- La ruta y la cabecera de la lista ---- */
-.t-ruta { display: flex; gap: 6px; align-items: center; padding-block: 14px 0; font-size: 12px; color: var(--tinta-60); flex-wrap: wrap; }
+.t-ruta { display: flex; gap: 8px; align-items: center; padding-block: 24px 0; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); flex-wrap: wrap; }
 /* El enlace mide 16 px de alto: su zona de toque crece a 44 sin mover nada (el relleno y el margen negativo se anulan). */
-.t-ruta a { color: var(--tinta-60); padding-block: 14px; margin-block: -14px; }
+.t-ruta a { color: var(--taupe); padding-block: 14px; margin-block: -14px; }
 .t-ruta a:hover { color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; }
-.t-lista-cab { padding-block: 10px 18px; display: flex; flex-direction: column; gap: 6px; }
-.t-lista-cab h1 { margin: 6px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 8cqi, 60px); line-height: .94; letter-spacing: -.015em; }
-.t-lista-cab h1 em { font-style: italic; color: var(--rojo); }
-.t-lista-cab p { margin: 0; color: var(--tinta-60); max-width: 56ch; }
+.t-lista-cab { padding-block: clamp(40px, 6cqi, 80px) 28px; display: flex; flex-direction: column; gap: 10px; }
+.t-lista-cab h1 { margin: 10px 0 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; font-weight: 200; font-size: clamp(48px, 8cqi, 120px); line-height: .9; letter-spacing: .02em; }
+.t-lista-cab h1 em { font-style: normal; color: inherit; }
+.t-lista-cab p { margin: 8px 0 0; color: var(--taupe); max-width: 56ch; }
 
 /* ---- Filtros: categorías y orden (quedan pegados arriba al bajar) ---- */
-.t-filtros { position: sticky; top: 0; z-index: 6; display: flex; align-items: center; gap: 10px; padding-block: 10px; margin-bottom: 14px; background: color-mix(in srgb, var(--crema) 94%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--sand); }
-.t-pildoras { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
+.t-filtros { position: sticky; top: 0; z-index: 6; display: flex; align-items: center; gap: 16px 32px; padding-block: 14px; margin-bottom: 14px; background: color-mix(in srgb, var(--crema) 94%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-top: 1px solid var(--sand); border-bottom: 1px solid var(--sand); }
+.t-pildoras { display: flex; gap: 4px 22px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
 .t-pildoras::-webkit-scrollbar { display: none; }
-.t-pildora { flex: none; display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--sand); background: transparent; border-radius: 999px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; color: var(--tinta); white-space: nowrap; transition: background-color .2s, border-color .2s, color .2s; }
-.t-pildora small { font-weight: 500; opacity: .65; }
-.t-pildora:hover { border-color: var(--taupe); }
-.t-pildora[aria-current="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
-.t-orden { flex: none; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tinta-60); }
-.t-orden a { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--tinta); white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; transition: border-color .2s; }
-.t-orden a:hover { border-color: var(--taupe); }
+.t-pildora { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 0; border-bottom: 1px solid transparent; background: none; border-radius: 0; padding: 8px 0 7px; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); white-space: nowrap; transition: color .3s, border-color .3s; }
+.t-pildora small { font-weight: 500; opacity: .7; letter-spacing: .08em; }
+.t-pildora:hover { color: var(--tinta); }
+.t-pildora[aria-current="true"] { background: none; border-color: var(--tinta); color: var(--tinta); }
+.t-orden { flex: none; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
+.t-orden a { border: 0; border-bottom: 1px solid var(--sand); background: none; border-radius: 0; padding: 4px 0 3px; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--tinta); white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; transition: border-color .3s; }
+.t-orden a:hover { border-color: var(--tinta); }
 .t-orden .ic { width: 14px; height: 14px; }
 /* «Orden:» delante de cuál, donde cabe (en el celular el botón dice solo cuál, con sus flechas). */
-.t-orden-rot { display: none; font-weight: 500; color: var(--tinta-60); margin-right: -2px; }
-.t-conteo { font-size: 12.5px; color: var(--tinta-60); margin: -4px 0 14px; }
+.t-orden-rot { display: none; color: var(--taupe); margin-right: -2px; }
+.t-conteo { font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); margin: 0 0 24px; }
 /* Dónde empieza la barra cuando no está pegada (`FiltrosDeLista`): al tocar un filtro con la barra pegada, la vista vuelve aquí. */
 .t-filtros-marca { display: block; height: 0; }
 /* Con el dedo, cada filtro se toca en 44 px de alto aunque se vea más bajo (36, 30): una capa invisible lo agranda. Las filas que se
@@ -62,13 +62,13 @@
 .t-filtros:has(.t-filtros-niveles) { align-items: flex-start; }
 .t-subcats { display: flex; gap: 2px 20px; overflow-x: auto; scrollbar-width: none; padding: 8px 2px 6px; margin-block: -4px; animation: t-subcats .35s var(--ease) both; }
 .t-subcats::-webkit-scrollbar { display: none; }
-.t-subcat { flex: none; position: relative; padding: 5px 0 7px; font-size: 13px; color: var(--tinta-60); white-space: nowrap; transition: color .2s; }
+.t-subcat { flex: none; position: relative; padding: 5px 0 7px; font-size: 13px; color: var(--taupe); white-space: nowrap; transition: color .3s; }
 .t-subcat small { margin-left: 3px; font-size: 11px; font-variant-numeric: tabular-nums; }
-.t-subcat::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px; background: var(--rojo); transform: scaleX(0); transform-origin: left; transition: transform .3s var(--ease); }
+.t-subcat::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--tinta); transform: scaleX(0); transform-origin: left; transition: transform .4s var(--ease); }
 .t-subcat:hover { color: var(--tinta); }
-.t-subcat[aria-current="true"] { color: var(--tinta); font-weight: 600; }
+.t-subcat[aria-current="true"] { color: var(--tinta); font-weight: 500; }
 .t-subcat[aria-current="true"]::after { transform: scaleX(1); }
-.t-subcat:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 4px; }
+.t-subcat:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 2px; }
 @keyframes t-subcats { from { opacity: 0; transform: translateY(-4px); } }
 @media (prefers-reduced-motion: reduce) { .t-subcats { animation: none; } .t-subcat::after { transition: none; } }
 
@@ -102,27 +102,27 @@
 /* ---- Mientras llega la lista nueva (`PendienteDelEnlace`): lo tocado ya se ve elegido y la lista se apaga un poco, con un pequeño
    retraso (si llega al instante, nada parpadea). Antes, durante ese medio segundo, nada decía que el toque había llegado. ---- */
 .t-pendiente { display: none; }
-.t-pildora:has(> .t-pendiente[data-pendiente]), .t-pildora-mini:has(> .t-pendiente[data-pendiente]) { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+.t-pildora:has(> .t-pendiente[data-pendiente]), .t-pildora-mini:has(> .t-pendiente[data-pendiente]) { background: none; border-color: var(--tinta); color: var(--tinta); }
 .t-subcat:has(> .t-pendiente[data-pendiente]) { color: var(--tinta); }
 .t-subcat:has(> .t-pendiente[data-pendiente])::after { transform: scaleX(1); }
 .t-orden a:has(> .t-pendiente[data-pendiente]), .t-campana:has(> .t-pendiente[data-pendiente]) { border-color: var(--tinta); }
 .tienda:has(.t-pendiente[data-pendiente]) :is(.t-grilla, .t-conteo) { opacity: .45; transition: opacity .25s var(--ease) .12s; }
 /* Mientras tanto, la que estaba elegida deja de verse elegida: nunca dos píldoras encendidas a la vez. */
-:is(.t-pildoras, .t-pildoras-tienda):has(.t-pendiente[data-pendiente]) :is(.t-pildora, .t-pildora-mini)[aria-current="true"]:not(:has(> .t-pendiente[data-pendiente])) { background: transparent; border-color: var(--sand); color: var(--tinta); }
+:is(.t-pildoras, .t-pildoras-tienda):has(.t-pendiente[data-pendiente]) :is(.t-pildora, .t-pildora-mini)[aria-current="true"]:not(:has(> .t-pendiente[data-pendiente])) { background: none; border-color: transparent; color: var(--taupe); }
 .t-subcats:has(.t-pendiente[data-pendiente]) .t-subcat[aria-current="true"]:not(:has(> .t-pendiente[data-pendiente]))::after { transform: scaleX(0); }
 
 /* ---- La grilla ---- */
-.t-grilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 10px; }
+.t-grilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 14px; }
 
 /* ---- La tarjeta de una prenda ---- */
-.t-card { position: relative; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.t-card { position: relative; display: flex; flex-direction: column; gap: 0; min-width: 0; }
 /* La foto con lo que va encima: el enlace a la ficha, «Agregar» con la talla (abajo, al pasar el mouse) y el corazón (arriba a la
    derecha). Recorta lo que asoma: «Agregar» espera escondido debajo del borde. */
-.t-card-media { position: relative; display: block; overflow: hidden; border-radius: 3px; }
+.t-card-media { position: relative; display: block; overflow: hidden; border-radius: 0; container: tarjeta / inline-size; }
 .t-card-enlace { display: block; }
 .t-rapido-ancla { display: contents; }
-.t-card-foto { position: relative; display: block; width: 100%; aspect-ratio: 4 / 5; background: var(--t-foto); border-radius: 3px; overflow: hidden; }
-.t-card-foto img { object-fit: contain; mix-blend-mode: multiply; transition: opacity .5s var(--ease), transform .8s var(--ease); }
+.t-card-foto { position: relative; display: block; width: 100%; aspect-ratio: 4 / 5; background: var(--t-foto); border-radius: 0; overflow: hidden; }
+.t-card-foto img { object-fit: contain; padding: 9%; mix-blend-mode: multiply; transition: opacity .5s var(--ease), transform 1.2s var(--ease); }
 .t-card-foto .f2 { opacity: 0; }
 /* La foto que todavía baja (`FotoTarjeta`, `data-esperando`): invisible sobre la silueta de su color y, al llegar, aparece con el fundido
    de .5 s de arriba. Con «reducir movimiento», la regla general de globals.css la muestra de una vez. */
@@ -130,7 +130,7 @@
 @media (hover: hover) {
   .t-card:hover .t-card-foto .f2 { opacity: 1; }
   .t-card:hover .t-card-foto .f1.con-f2 { opacity: 0; }
-  .t-card:hover .t-card-foto img { transform: scale(1.045); }
+  .t-card:hover .t-card-foto img { transform: scale(1.03); }
 }
 /* Sin foto (o si no carga): la silueta de su categoría en su color, sobre el estudio. */
 .t-dibujo { display: none; position: absolute; inset: 0; place-items: center; }
@@ -142,34 +142,51 @@
 .pz-cuerpo .pz-linea { fill: none; }
 .pz-suelo { fill: var(--suelo); }
 
-.t-insignias { position: absolute; left: 8px; top: 8px; z-index: 2; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
-.t-insignia { font-size: 9.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 4px 7px 3px; border-radius: 2px; background: var(--t-papel-fijo); color: var(--t-tinta-fija); }
+/* Arriba de la foto: UNA sola fila con todo lo que la tarjeta dice (descuento, «Nuevo», puesto, las insignias asignadas en Catálogo ▸ Insignias y el «+N»,
+   ADR-0489) y, solo cuando hay empresa (Lima: CAYLA o Claurè), su nombre debajo de la fila. A la derecha se deja el lugar del corazón (36 px a 6 px del
+   borde). Lo que no cabe se achica con «…», empezando por los nombres de las asignadas; las propias y el «+N» no se achican. */
+.t-insignias { position: absolute; left: 8px; top: 8px; right: 46px; z-index: 2; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+/* `position: relative`: la copia invisible con la que `FilaDeInsignias` mide cuántas caben vive dentro y no ocupa lugar. */
+.t-insignias-fila { position: relative; display: flex; flex-wrap: nowrap; gap: 4px; align-items: flex-start; max-width: 100%; min-width: 0; }
+.t-insignias-medida { position: absolute; left: 0; top: 0; display: flex; gap: inherit; width: max-content; visibility: hidden; pointer-events: none; }
+.t-insignias-medida .t-insignia { flex: none; }
+.t-insignias-fila .t-insignia { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-insignias-fila .t-insignia:is(.propia, .mas) { flex: none; }
+.t-insignia.asignada { max-width: 16em; } /* un nombre larguísimo se corta con «…» aunque vaya solo */
+/* La tarjeta que no es ancha (menos de 380 px: la de 3 columnas a 1024 px, la de la tablet y la de 2 columnas del celular): todo en la fila va más chico, para
+   que los nombres quepan enteros en vez de cortarse a la mitad. */
+@container tarjeta (max-width: 379px) {
+  .t-insignias { right: 38px; }
+  .t-insignias-fila { gap: 3px; }
+  .t-insignias .t-insignia { font-size: 8.5px; letter-spacing: .05em; padding: 3px 4px 2px; line-height: 1.25; }
+}
+.t-insignia { font-size: 9.5px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; padding: 4px 7px 3px; border-radius: 0; background: var(--t-papel-fijo); color: var(--t-tinta-fija); }
 .t-insignia.oferta { background: var(--t-oferta); color: var(--t-oferta-tinta); }
 .t-insignia.nuevo { background: var(--t-tinta-fija); color: var(--t-papel-fijo); }
 /* El «Nuevo» de la tarjeta: claro, con su filo (2026-10-16). Cuando casi todo el catálogo es nuevo, el sello negro en cada foto le quitaba
    la vista a la prenda; el de la oferta sigue en rojo, que es lo que cambia el precio. (El sello negro sigue para quien lo usa.) */
-.t-insignia.cp-insignia-nuevo { background: var(--t-papel-fijo); color: var(--t-tinta-fija); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t-tinta-fija) 14%, transparent); }
+.t-insignia.cp-insignia-nuevo { background: var(--t-papel-fijo); color: var(--t-tinta-fija); box-shadow: none; }
 
-.t-card-info { display: flex; flex-direction: column; gap: 4px; padding-inline: 1px; }
-.t-card-nom { font-size: 13px; font-weight: 500; line-height: 1.3; color: var(--tinta); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.t-card-info { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 2px 16px; padding-top: 14px; }
+.t-card-nom { font-family: var(--nombre); font-style: italic; font-size: 17px; font-weight: 400; line-height: 1.2; letter-spacing: -.005em; color: var(--tinta); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .t-card-nom:hover { text-decoration: underline; text-underline-offset: 3px; }
-.t-precio { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; font-size: 13.5px; }
-.t-precio b { font-weight: 700; }
-.t-precio.oferta b { color: var(--rojo-profundo); }
-.t-precio s { font-size: 12px; color: var(--tinta-60); }
+.t-precio { display: flex; flex-direction: column; align-items: flex-end; gap: 0; font-size: 15px; }
+.t-precio b { font-weight: 400; }
+.t-precio.oferta b { color: var(--rojo); }
+.t-precio s { font-size: 12px; color: var(--taupe); }
 .t-precio .num { font-variant-numeric: tabular-nums lining-nums; }
 .t-muestras { display: flex; align-items: center; gap: 4px; min-height: 16px; }
 /* El filo sigue al tema (tinta): un color oscuro se distingue sobre el fondo oscuro, y uno claro sobre el claro. */
-.t-muestras i { width: 11px; height: 11px; border-radius: 50%; background: var(--sand); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 30%, transparent); }
-.t-muestras small { font-size: 11px; color: var(--tinta-60); margin-left: 1px; }
+.t-muestras i { width: 9px; height: 9px; border-radius: 50%; background: var(--sand); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 22%, transparent); }
+.t-muestras small { font-size: 11px; color: var(--taupe); margin-left: 1px; }
 
 /* Bajo el precio: los colores y, a la derecha, cuánto hay (actividad 4, maqueta `notaStock`): «Quedan 2 en Lima» en ámbar, «Hay en
    Lima» en verde, «No hay en Lima» tenue. */
-.t-card-pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 16px; }
+.t-card-pie { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 16px; margin-top: 6px; }
 .t-card-pie .t-muestras { min-width: 0; }
-.t-card-nota { font-size: 11px; font-weight: 600; color: var(--ambar); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.t-card-nota { font-size: 12px; font-weight: 400; color: var(--ambar); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .t-card-nota.ok { color: var(--verde); }
-.t-card-nota.no { color: var(--tinta-60); font-weight: 500; }
+.t-card-nota.no { color: var(--taupe); font-weight: 400; }
 /* «Tus favoritos»: la prenda que se acaba de quitar queda apagada hasta recargar (no desaparece bajo el dedo, y el corazón la vuelve a
    guardar). */
 .t-grilla-favoritos .t-card:has(.c-corazon[aria-pressed="false"]) :is(.t-card-enlace, .t-card-info) { opacity: .45; transition: opacity .3s var(--ease); }
@@ -177,13 +194,13 @@
 /* Las campañas de las ofertas (actividad 5, maqueta `t-campanas`): una tarjeta por campaña, que la elige o la suelta. */
 .t-campanas { display: grid; grid-auto-flow: column; grid-auto-columns: 78%; gap: 10px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 4px; padding: 0 16px 14px; }
 .t-campanas::-webkit-scrollbar { display: none; }
-.t-campana { border: 1px solid var(--sand); border-radius: 10px; padding: 14px; background: var(--papel); display: flex; flex-direction: column; gap: 4px; color: var(--tinta); transition: border-color .2s, box-shadow .2s; }
-a.t-campana:hover { border-color: var(--taupe); }
+.t-campana { border: 1px solid var(--sand); border-radius: 0; padding: 16px; background: transparent; display: flex; flex-direction: column; gap: 6px; color: var(--tinta); transition: border-color .3s, box-shadow .3s; }
+a.t-campana:hover { border-color: var(--tinta); }
 .t-campana[aria-current="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
-.t-campana b { font-family: var(--serif); font-size: 24px; font-weight: 500; line-height: 1; }
-.t-campana .pct { font-family: var(--serif); font-style: italic; font-size: 36px; line-height: 1; color: var(--rojo); }
-.t-campana small { font-size: 12px; color: var(--tinta-60); }
-.t-campana:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.t-campana b { font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; font-size: 15px; font-weight: 400; letter-spacing: .08em; line-height: 1.2; }
+.t-campana .pct { font-family: var(--nombre); font-style: italic; font-size: 36px; line-height: 1; color: var(--rojo); }
+.t-campana small { font-size: 12px; color: var(--taupe); }
+.t-campana:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 2px; }
 /* Con una sola campaña, su tarjeta va a lo ancho, con el descuento a la izquierda (2026-10-16): sola en una cuarta parte de la fila, en la
    computadora quedaba media página vacía a su lado. */
 .t-campanas:has(> .t-campana:only-child) { grid-auto-columns: 100%; }
@@ -192,7 +209,7 @@ a.t-campana:hover { border-color: var(--taupe); }
 .t-campana:only-child :is(b, small) { grid-column: 2; }
 
 /* Un carril que se desliza de lado (la ficha: «También te puede gustar»; el Inicio: Lo nuevo). */
-.t-carril { display: grid; grid-auto-flow: column; grid-auto-columns: 47%; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; padding: 0 16px 10px; scroll-padding-inline: 16px; }
+.t-carril { display: grid; grid-auto-flow: column; grid-auto-columns: 62%; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: calc(-1 * clamp(16px, 4cqi, 64px)); padding: 0 clamp(16px, 4cqi, 64px) 10px; scroll-padding-inline: clamp(16px, 4cqi, 64px); }
 .t-carril::-webkit-scrollbar { display: none; }
 .t-carril > * { scroll-snap-align: start; }
 /* ---- Las flechas de un carril (`CarrilConFlechas`): solo con mouse (con el dedo, el carril se desliza). Cada una sale si hay algo más
@@ -200,10 +217,10 @@ a.t-campana:hover { border-color: var(--taupe); }
 .t-carril-envol { position: relative; }
 .t-carril-flecha { display: none; }
 @media (hover: hover) and (pointer: fine) {
-  .t-carril-flecha { position: absolute; z-index: 7; top: var(--flecha-y, 50%); width: 40px; height: 40px; margin-top: -20px; padding: 0; display: grid; place-items: center; border: 1px solid var(--sand); border-radius: 50%; background: var(--papel); color: var(--tinta); cursor: pointer; box-shadow: 0 10px 24px -14px var(--sombra); transition: border-color .2s, transform .2s var(--ease); animation: t-flecha-asoma .25s var(--ease) both; }
+  .t-carril-flecha { position: absolute; z-index: 7; top: var(--flecha-y, 50%); width: 40px; height: 40px; margin-top: -20px; padding: 0; display: grid; place-items: center; border: 1px solid var(--sand); border-radius: 0; background: var(--crema); color: var(--tinta); cursor: pointer; transition: border-color .3s, background-color .3s; animation: t-flecha-asoma .3s var(--ease) both; }
   .t-carril-flecha[hidden] { display: none; }
-  .t-carril-flecha:hover { border-color: var(--tinta); transform: scale(1.06); }
-  .t-carril-flecha:active { transform: scale(.96); }
+  .t-carril-flecha:hover { border-color: var(--tinta); }
+  .t-carril-flecha:active { background: var(--hueso); }
   .t-carril-flecha .ic { width: 18px; height: 18px; }
   .t-carril-flecha.antes { left: var(--flecha-borde, 6px); }
   .t-carril-flecha.antes .ic { transform: scaleX(-1); }
@@ -222,31 +239,38 @@ a.t-campana:hover { border-color: var(--taupe); }
 .cp-sec-cab .t-ver { grid-column: 2; grid-row: 1; margin-block: -12px; }
 .cp-sec-cab :is(h1, h2) { grid-column: 1 / -1; grid-row: 2; }
 .cp-sec-cab p { grid-column: 1 / -1; grid-row: 3; }
-.cp-sec-cab .t-ver:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 4px; }
+.cp-sec-cab .t-ver:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 0; }
 
 /* Solo para el lector de pantalla («Antes S/ 74.90»). */
 .t-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* El foco del teclado, visible sobre crema y sobre el oscuro. */
-.t-card-nom:focus-visible, .t-pildora:focus-visible, .t-orden a:focus-visible, .t-ruta a:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 4px; }
-.t-pildora-mini:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.t-card-nom:focus-visible, .t-pildora:focus-visible, .t-orden a:focus-visible, .t-ruta a:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 3px; }
+.t-pildora-mini:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 3px; }
 
 @container tienda (min-width: 700px) {
-  .t-grilla { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 34px 16px; }
-  .t-carril { grid-auto-columns: calc((100% - 32px) / 3.2); }
+  .t-grilla { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(36px, 5cqi, 72px) clamp(20px, 3cqi, 48px); }
+  .t-carril { grid-auto-columns: calc((100% - 2 * 20px) / 2.4); gap: 20px; }
+  .t-card-nom { font-size: 21px; }
   .t-campanas { grid-auto-columns: calc((100% - 30px) / 3.4); }
+}
+/* En el celular (A · Muro, Felipe 2026-10-19): la lupa es solo su ícono y el orden, su ícono (⇅) con el nombre del que está puesto («Destacado»,
+   «Menor precio»), sin el «Orden:» de la computadora: las categorías se ven y se deslizan con casi todo el ancho. */
+@container tienda (max-width: 959px) {
+  .t-filtros { gap: 16px 10px; }
+  .t-orden a { gap: 4px; font-size: 10.5px; letter-spacing: .06em; }
+  .t-orden .ic { width: 16px; height: 16px; }
 }
 @container tienda (min-width: 960px) {
   .t-ubic { justify-content: center; }
   .t-filtro-txt { display: inline; }
   .t-orden-rot { display: inline; }
-  .t-grilla { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px 18px; }
   .t-pildoras { flex-wrap: wrap; overflow: visible; }
   /* Aquí las píldoras bajan de fila en vez de deslizarse: sin borde que desvanecer (la máscara recortaría el foco). */
   .t-filtros .t-pildoras { -webkit-mask-image: none; mask-image: none; animation: none; }
   /* Sin el relleno del celular, tampoco su margen de encaje: con él, al deslizar, la primera tarjeta quedaba corrida 16 px y la cuarta
      cortada. */
-  .t-carril { grid-auto-columns: calc((100% - 3 * 18px) / 4); gap: 18px; margin-inline: 0; padding-inline: 0; scroll-padding-inline: 0; }
+  .t-carril { grid-auto-columns: calc((100% - 2 * clamp(20px, 3cqi, 48px)) / 3); gap: clamp(20px, 3cqi, 48px); margin-inline: 0; padding-inline: 0; scroll-padding-inline: 0; }
   .t-campanas { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-columns: auto; margin: 0 0 4px; padding: 0 0 18px; overflow: visible; }
   .t-campanas:has(> .t-campana:only-child) { grid-template-columns: minmax(0, 1fr); }
   .t-campana:only-child .pct { font-size: 52px; }
@@ -263,22 +287,36 @@ a.t-campana:hover { border-color: var(--taupe); }
   background-size: 260% 100%;
   animation: brillo 1.4s linear infinite;
 }
-.t-esqueleto-linea { height: 11px; margin-top: 12px; border-radius: 3px; background: var(--hueso); }
+.t-esqueleto-linea { height: 11px; margin-top: 12px; border-radius: 0; background: var(--hueso); }
 .t-esqueleto-linea + .t-esqueleto-linea { width: 55%; margin-top: 7px; }
 .t-solo-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-/* El final de una lista con más prendas por dibujar (`components/MasPrendas.tsx`, lib/tandas.ts): la tanda siguiente se pide sola y,
-   mientras llega, cuatro tarjetas brillan con la forma de las que vienen, pegadas a la grilla de arriba (mismo espacio entre filas). */
-.t-mas { display: grid; justify-items: center; gap: 22px; margin-top: 24px; }
-.t-mas-esqueleto { padding-block: 0; width: 100%; }
-.t-mas-boton { gap: 10px; }
-.t-mas-boton small { font-size: 12.5px; font-weight: 500; color: var(--tinta-60); }
-.t-mas[data-cargando] .t-mas-boton { opacity: .6; pointer-events: none; }
+/* Las páginas de una lista (`components/Paginacion.tsx`, lib/paginas.ts; Felipe 2026-10-19): al pie de la grilla, «‹ 1 … 4 5 6 … 12 ›» con lo
+   que se ve («31–60 de 128 prendas»). Esquinas rectas y versalitas como las píldoras de arriba; la página actual, subrayada en tinta (el
+   mismo gesto que la píldora elegida). Cada lugar mide 40 px (44 con el dedo): caben 9 en 375 px. */
+.t-paginas { display: grid; justify-items: center; gap: 14px; margin-top: 48px; padding-top: 28px; border-top: 1px solid var(--sand); }
+.t-paginas-fila { display: flex; align-items: center; justify-content: center; gap: 2px; max-width: 100%; }
+.t-pag { position: relative; min-width: 36px; height: 44px; padding: 0 4px; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: none; display: inline-grid; place-items: center; font-size: 13px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .08em; color: var(--taupe); transition: color .3s, border-color .3s; }
+.t-pag .ic { width: 18px; height: 18px; }
+.t-pag-anterior .ic { transform: rotate(180deg); }
+.t-pag-flecha { min-width: 44px; color: var(--tinta); }
+.t-pag-flecha[aria-disabled="true"] { color: var(--tinta-40); pointer-events: none; }
+.t-pag-salto { min-width: 24px; color: var(--tinta-40); }
+.t-pag[aria-current="page"] { color: var(--tinta); border-bottom-color: var(--tinta); font-weight: 700; }
+a.t-pag:focus-visible { outline: 2px solid var(--rojo); outline-offset: -2px; }
+@media (hover: hover) {
+  a.t-pag:not([aria-current="page"]):hover { color: var(--tinta); border-bottom-color: var(--sand); }
+  a.t-pag-flecha:hover .ic { transform: translateX(3px); }
+  a.t-pag-anterior:hover .ic { transform: rotate(180deg) translateX(3px); }
+}
+.t-paginas-dato { margin: 0; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
+.t-paginas-dato .num { color: var(--tinta); }
+@media (min-width: 700px) { .t-pag { min-width: 40px; height: 40px; } .t-pag-flecha { min-width: 40px; } }
 @media (prefers-reduced-motion: reduce) {
   .t-esqueleto .t-card-foto, .t-esqueleto .t-foto-g { animation: none; background: var(--t-foto); }
 }
 /* La lista que brilla de las páginas de «Mi perfil» y de la bolsa: un título y filas con su miniatura. */
 .t-esqueleto-lista { display: grid; gap: 18px; max-width: 760px; }
-.t-esqueleto-titulo { width: 40%; height: 30px; border-radius: 4px; background: var(--hueso); margin-bottom: 8px; }
+.t-esqueleto-titulo { width: 40%; height: 30px; border-radius: 0; background: var(--hueso); margin-bottom: 8px; }
 .t-esqueleto-fila { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 16px; align-items: center; }
 .t-esqueleto-fila .t-card-foto { width: 72px; }
 .t-esqueleto-fila .t-esqueleto-linea { margin-top: 0; }
@@ -291,20 +329,20 @@ a.t-campana:hover { border-color: var(--taupe); }
    arriba. Ni ella ni «Mi perfil» llevan el margen de arriba de la grilla: el de su página ya está en sus cajas. */
 .t-esqueleto[data-forma="ficha"], .t-esqueleto[data-forma="perfil"] { padding-top: 0; }
 .t-esqueleto .t-ruta .t-esq-ruta { width: min(220px, 60%); height: 10px; margin: 4px 0 3px; }
-.t-esq-chip { width: 96px; height: 24px; border-radius: 999px; background: var(--hueso); }
-.t-esq-titulo { height: clamp(28px, 6cqi, 42px); margin-top: 12px; border-radius: 4px; background: var(--hueso); }
+.t-esq-chip { width: 96px; height: 24px; border-radius: 0; background: var(--hueso); }
+.t-esq-titulo { height: clamp(28px, 6cqi, 42px); margin-top: 12px; border-radius: 0; background: var(--hueso); }
 .t-esq-titulo.corto { width: 58%; margin-top: 8px; }
-.t-esq-precio { width: 120px; height: 24px; border-radius: 4px; background: var(--hueso); }
+.t-esq-precio { width: 120px; height: 24px; border-radius: 0; background: var(--hueso); }
 .t-esqueleto .t-esq-etq { width: 130px; height: 11px; margin: 3px 0; }
-.t-esq-swatch { width: 32px; height: 32px; border-radius: 50%; background: var(--hueso); }
-.t-esq-talla { height: 48px; border-radius: 6px; border: 1px solid var(--sand); background: var(--papel); }
+.t-esq-swatch { width: 96px; height: 44px; border-radius: 0; background: var(--hueso); }
+.t-esq-talla { height: 48px; border-radius: 0; border: 1px solid var(--sand); background: transparent; }
 /* El botón de la ficha vive en la barra de abajo en el celular y en la columna en la computadora: el que brilla, igual. */
-.t-esqueleto .t-esq-boton { display: none; height: 52px; border-radius: 999px; background: var(--hueso); }
+.t-esqueleto .t-esq-boton { display: none; height: 52px; border-radius: 0; background: var(--hueso); }
 /* En el celular la ficha pone el nombre y el precio arriba y las insignias debajo (`.cp-pdp-cab`, ficha.css): el esqueleto, igual. */
 .t-esqueleto .cp-pdp-cab .t-esq-titulo { order: -2; }
 .t-esqueleto .t-pdp-info > .t-esq-precio { order: -1; }
 .t-esq-barra { display: flex; gap: 10px; }
-.t-esq-barra i:first-child { flex: 1; height: 52px; border-radius: 999px; background: var(--hueso); }
+.t-esq-barra i:first-child { flex: 1; height: 52px; border-radius: 0; background: var(--hueso); }
 .t-esq-barra i:last-child { width: 52px; height: 52px; border-radius: 50%; background: var(--hueso); }
 @container tienda (min-width: 960px) {
   .t-esqueleto .t-esq-boton { display: block; }
@@ -325,10 +363,10 @@ a.t-campana:hover { border-color: var(--taupe); }
 .t-esqueleto .t-foto-g.con-foto { animation: none; background: var(--t-foto); }
 .t-foto-previa { position: absolute; inset: 0; width: 100%; height: 100%; }
 .t-esq-ceja { width: 110px; height: 10px; }
-.t-esq-titulo-lista { width: min(340px, 72%); height: clamp(34px, 8cqi, 60px); margin-top: 6px; border-radius: 4px; background: var(--hueso); }
+.t-esq-titulo-lista { width: min(340px, 72%); height: clamp(34px, 8cqi, 60px); margin-top: 6px; border-radius: 0; background: var(--hueso); }
 .t-esq-filtros { pointer-events: none; }
 /* Cada línea ocupa el renglón de lo que va a escribirse en su lugar (11 px de línea en un renglón de 17): nada sube ni baja al llegar. */
-.t-esq-pildora { flex: none; height: 35px; border-radius: 999px; background: var(--hueso); }
+.t-esq-pildora { flex: none; height: 35px; border-radius: 0; background: var(--hueso); }
 .t-esq-orden { width: 163px; height: 32px; }
 .t-esqueleto .t-esq-conteo { width: 96px; height: 11px; margin: 3px 0; }
 .t-esqueleto .t-esq-circ { width: 46px; height: 11px; margin: 3px auto; }
@@ -337,14 +375,14 @@ a.t-campana:hover { border-color: var(--taupe); }
 .t-esqueleto .t-card-info .t-esq-precio-tarjeta { width: 34%; }
 .t-esqueleto .t-card-info .t-esq-colores { width: 22%; height: 10px; }
 .t-esqueleto .t-esq-cuenta { width: 210px; height: 11px; margin: 3px 0; }
-.t-esq-tabla { height: 136px; border-radius: 8px; background: var(--hueso); }
+.t-esq-tabla { height: 136px; border-radius: 0; background: var(--hueso); }
 /* El título de un carril (`.t-sec-cab`: la ceja de 14 px y el título de 56), con su alto. */
 .t-esqueleto .t-sec-cab .t-esq-ceja { margin-top: 5px; }
 .t-esqueleto .t-sec-cab .t-esq-titulo-lista { width: min(300px, 60%); height: 31px; margin: 19px 0 8px; }
 @container tienda (min-width: 960px) {
   .t-esqueleto .t-sec-cab .t-esq-titulo-lista { height: 40px; }
 }
-.t-esq-look-nombre { width: 62%; height: 27px; border-radius: 4px; background: var(--hueso); }
+.t-esq-look-nombre { width: 62%; height: 27px; border-radius: 0; background: var(--hueso); }
 .t-esqueleto .t-look-card .t-esq-ceja { margin: 2px 0; }
 /* Un look abierto: la columna de sus datos se centra con la lámina; con el alto de la de verdad (sus prendas, el total, el botón y la
    nota), empieza a la misma altura. */
@@ -355,8 +393,8 @@ a.t-campana:hover { border-color: var(--taupe); }
 .t-esqueleto .t-esq-boton.t-esq-boton-siempre { display: block; }
 .t-esq-formulario { display: grid; gap: 12px; margin-top: 6px; }
 .t-esq-opciones { display: flex; flex-wrap: wrap; gap: 8px; }
-.t-esq-opciones i { width: 112px; height: 38px; border-radius: 999px; background: var(--hueso); }
-.t-esq-caja { height: 150px; border-radius: 10px; background: var(--hueso); }
+.t-esq-opciones i { width: 112px; height: 38px; border-radius: 0; background: var(--hueso); }
+.t-esq-caja { height: 150px; border-radius: 0; background: var(--hueso); }
 .t-esq-caja.alta { height: 392px; }
 /* El formulario de Recomendaciones mide lo mismo que el de verdad (su caja de texto, el contador y la firma), así la columna de al
    lado no salta al llegar. */
@@ -366,17 +404,24 @@ a.t-campana:hover { border-color: var(--taupe); }
 .t-esqueleto .t-bolsa-item .t-esqueleto-linea + .t-esqueleto-linea { width: 38%; margin-top: 9px; }
 .t-esqueleto .t-resumen .t-esqueleto-linea { margin-top: 14px; }
 /* El héroe del Inicio sin campaña, mientras llega: las líneas, claras sobre su fondo. */
-.t-hero-espera .t-hero-texto > i { display: block; border-radius: 4px; background: color-mix(in srgb, var(--t-hero-tinta) 16%, transparent); }
+.t-hero-espera .t-hero-texto > i { display: block; border-radius: 0; background: var(--hueso); }
 .t-esq-hero-ceja { width: 150px; height: 10px; }
 .t-esq-hero-titulo { width: min(520px, 88%); height: clamp(44px, 13cqi, 110px); margin-top: 14px; }
 .t-esq-hero-titulo.corto { width: min(360px, 60%); margin-top: 8px; }
 .t-esq-hero-linea { width: min(320px, 70%); height: 14px; margin-top: 18px; }
 /* Las polaroids que esperan: sus marcos en su lugar, quietos y apagados (las de verdad caen al llegar). */
-.t-collage-espera .t-polaroid { animation: none; opacity: .32; pointer-events: none; }
+.t-collage-espera .t-polaroid { animation: none; pointer-events: none; }
 .t-collage-espera .t-polaroid .t-card-foto { display: block; }
-.t-collage-espera .t-polaroid-pie i { display: block; height: 8px; width: 46%; border-radius: 3px; background: color-mix(in srgb, var(--t-tinta-fija) 18%, transparent); }
+.t-collage-espera .t-polaroid-pie i { display: block; height: 8px; width: 46%; border-radius: 0; background: color-mix(in srgb, var(--t-tinta-fija) 18%, transparent); }
 .t-collage-espera .t-polaroid-pie i + i { width: 22%; }
 .t-collage-espera .t-hero-pct { animation: none; }
 /* Lo que el esqueleto ya mostraba no vuelve a entrar con su animación al llegar la página (`data-tras-esqueleto`, FormaDelEsqueleto):
    el título del héroe se queda donde estaba. Recién abierta la pestaña no hay esqueleto antes y entra como siempre. */
 :root[data-tras-esqueleto] .t-hero-tit :is(span, em) { animation: none; }
+
+/* «Buscar» en la barra del catálogo (A · Muro): una palabra con su lupa, junto al orden. */
+.t-buscar-cat { flex: none; position: relative; display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; background: none; color: var(--tinta); cursor: pointer; transition: background-color .25s var(--ease); }
+.t-buscar-cat::before { content: ""; position: absolute; inset: -4px; }
+.t-buscar-cat .ic { width: 18px; height: 18px; }
+.t-buscar-cat:hover { background: var(--hueso); }
+.t-buscar-cat:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; }

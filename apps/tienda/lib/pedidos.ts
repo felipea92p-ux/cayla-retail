@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { soles } from "./catalogo";
+import { leerCuponDelPedido, type CuponDelPedido } from "./cupon";
 import { enlaceWhatsapp } from "./tiendas";
 
 // Los pedidos web del cliente (ADR-0408, actividad 7): lo que devuelve `retail.tienda_mis_pedidos` (y, uno solo, `tienda_pedido`).
@@ -14,6 +15,8 @@ const esquemaLinea = z.object({
   producto_id: z.string().uuid().nullable().catch(null),
   nombre: z.string().min(1),
   categoria: z.object({ nombre: z.string(), prefijo: z.string().nullable() }).nullable().catch(null),
+  // De qué empresa es la prenda (ADR-0465): solo viene en un pedido a una tienda con dos o más empresas (Lima). Sin el dato, no se escribe.
+  empresa: z.object({ clave: z.string().min(1), nombre: z.string().min(1) }).nullable().catch(null),
   color: z
     .object({
       nombre: z.string().nullable(),
@@ -53,6 +56,7 @@ const esquemaPedido = z.object({
   confirmado_en: fecha.nullable(),
   pagado_en: fecha.nullable(),
   entregado_en: fecha.nullable(),
+  cerrado_en: fecha.nullable(),
   cierre_motivo: z.string().nullable(),
   listo_para_recoger: z.boolean(),
   recoger_hasta: fecha.nullable(),
@@ -75,6 +79,8 @@ const esquemaPedido = z.object({
     .nullable()
     .catch(null)
     .default(null),
+  // El cupón del Club que puso al separar (20261019224000). Lo lee `leerCuponDelPedido`: uno raro no tumba el pedido.
+  cupon: z.unknown().optional(),
   tienda_web: z.object({
     nombre: z.string().min(1),
     // El WhatsApp de la tienda (el del QR del club). Si la tienda lo borró, el pedido se sigue viendo, sin el botón.
@@ -92,6 +98,7 @@ export type LineaPedido = {
   productoId: string | null;
   nombre: string;
   categoria: { nombre: string; prefijo: string | null } | null;
+  empresa: { clave: string; nombre: string } | null;
   color: { nombre: string | null; hex: string | null };
   talla: string | null;
   foto: string | null;
@@ -113,6 +120,8 @@ export type Pedido = {
   confirmadoEn: string | null;
   pagadoEn: string | null;
   entregadoEn: string | null;
+  /** Cuándo se cerró el pedido (anulado o vencido): el paso «Anulado» de la línea de tiempo lo muestra con fecha y hora. */
+  cerradoEn: string | null;
   cierreMotivo: string | null;
   listoParaRecoger: boolean;
   recogerHasta: string | null;
@@ -123,6 +132,8 @@ export type Pedido = {
   devuelto: number;
   /** Anulado después de pagarse: «BC01-000001», la nota de crédito que anuló su boleta. */
   notaCredito: string | null;
+  /** El cupón del Club: reservado (espera el pago), usado (en su boleta) o liberado (volvió a «Mi Club», y por qué). */
+  cupon: CuponDelPedido | null;
   tienda: { nombre: string; whatsapp: string | null };
   lineas: LineaPedido[];
 };
@@ -144,6 +155,7 @@ function aPedido(d: z.infer<typeof esquemaPedido>): Pedido {
     confirmadoEn: d.confirmado_en,
     pagadoEn: d.pagado_en,
     entregadoEn: d.entregado_en,
+    cerradoEn: d.cerrado_en,
     cierreMotivo: d.cierre_motivo,
     listoParaRecoger: d.listo_para_recoger,
     recogerHasta: d.recoger_hasta,
@@ -151,12 +163,14 @@ function aPedido(d: z.infer<typeof esquemaPedido>): Pedido {
     boleta: d.boleta,
     devuelto: d.devuelto,
     notaCredito: d.nota_credito,
+    cupon: leerCuponDelPedido(d.cupon),
     tienda: d.tienda_web,
     lineas: d.lineas.map((l) => ({
       varianteId: l.variante_id,
       productoId: l.producto_id,
       nombre: l.nombre,
       categoria: l.categoria,
+      empresa: l.empresa,
       color: l.color,
       talla: l.talla,
       foto: l.foto,
@@ -298,18 +312,27 @@ export function textoCambiarlo(diasParaCambiar: number | null): string {
     : "Puedes cambiarlo en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta. El plazo va impreso en tu boleta.";
 }
 
-export type Hito = { nombre: string; cuando: string | null; estado: "hecho" | "ahora" | "falta" };
+export type Hito = { nombre: string; cuando: string | null; estado: "hecho" | "ahora" | "falta" | "anulado" };
 
 /** La línea de tiempo del pedido (maqueta, `hitos`): Separado → Confirmado por la tienda → Pagado → Entregado. Un pedido cerrado
- *  (vencido o anulado) marca hecho todo paso que tiene fecha (hasta dónde llegó antes de cerrarse) y nada como «ahora». */
-export function hitos(p: Pick<Pedido, "estado" | "creadoEn" | "confirmadoEn" | "pagadoEn" | "entregadoEn">): Hito[] {
+ *  (vencido o anulado) marca hecho todo paso que tiene fecha (hasta dónde llegó antes de cerrarse) y nada como «ahora». Un pedido
+ *  anulado NO muestra los pasos que quedaron sin hacer: solo los hechos y, al final, «Anulado» (con la X roja). */
+export function hitos(
+  p: Pick<Pedido, "estado" | "creadoEn" | "confirmadoEn" | "pagadoEn" | "entregadoEn"> & { cerradoEn?: string | null },
+): Hito[] {
   const orden: [EstadoPedido, string, string | null][] = [
     ["por_confirmar", "Separado", p.creadoEn],
     ["confirmado", "Confirmado por la tienda", p.confirmadoEn],
     ["pagado", "Pagado", p.pagadoEn],
     ["entregado", "Entregado", p.entregadoEn],
   ];
-  const cerrado = p.estado === "vencido" || p.estado === "anulado";
+  if (p.estado === "anulado") {
+    return [
+      ...orden.filter(([, , cuando]) => cuando !== null).map(([, nombre, cuando]) => ({ nombre, cuando, estado: "hecho" as const })),
+      { nombre: "Anulado", cuando: p.cerradoEn ?? null, estado: "anulado" },
+    ];
+  }
+  const cerrado = p.estado === "vencido";
   const idx = cerrado ? 0 : orden.findIndex(([e]) => e === p.estado);
   return orden.map(([, nombre, cuando], i) => ({
     nombre,

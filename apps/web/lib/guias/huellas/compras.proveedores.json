@@ -10,7 +10,7 @@
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/ProveedorModal.tsx": [
-      "button «Cerrar»",
+      "SegmentoDeslizante «Clase de proveedor»",
       "CampoTexto «Contacto»",
       "CampoTexto «Teléfono»",
       "button «{r}»",
@@ -30,15 +30,16 @@
       "Boton «(sin nombre)»"
     ],
     "components/ProveedorVistaRapida.tsx": [
-      "Link «+ Comprobante»",
       "Boton «{p.activo ? \"Desactivar\" : \"Reactivar\"}»",
       "BotonVer «Abrir ficha completa»"
     ],
     "components/ProveedoresPanel.tsx": [
       "Boton «proveedores.registrar»",
+      "Pestanas «(sin nombre)»",
       "button «{o.etiqueta}»",
       "button «proveedores.sin-pago»",
       "Boton «Registrar el primero»",
+      "Boton «Registrar uno»",
       "Boton «Borrar la búsqueda»",
       "Boton «Registrarlo»",
       "Boton «Limpiar filtros»",
@@ -46,7 +47,6 @@
       "button «proveedores.nombre»",
       "Link «{soles(saldo)}»",
       "Link «{soles(p.saldo_favor ?? 0)}»",
-      "Link «proveedores.comprobante»",
       "Boton «Reactivar»"
     ]
   }

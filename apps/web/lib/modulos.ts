@@ -13,11 +13,11 @@ import { PERMISOS, type Permiso } from "./menu";
 export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion",
-  "tienda_web", "pedidos_web", "vitrina_web", "recomendaciones", "ajustes_web",
-  "clientas", "avisos_club",
+  "tienda_web", "pedidos_web", "vitrina_web", "campanas_web", "recomendaciones", "ajustes_web",
+  "clientas", "avisos_club", "beneficios_club",
   "existencias", "conteos", "traslados", "movimientos", "recibir",
-  "productos", "atributos", "etiquetas", "liquidacion",
-  "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "notas_credito", "plan_compra",
+  "productos", "atributos", "etiquetas", "campanas", "liquidacion",
+  "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "plan_compra",
   "produccion", "ordenes_insumos",
   "analisis", "frescura", "plan_piso", "colaboradores", "roles",
   "configuracion",
@@ -54,7 +54,8 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "vender", grupo: "Ventas", nombre: "Punto de venta", incluye: "Registrar ventas, descuento hasta su tope, dejar en espera, monto manual" },
   // Apartados (ADR-0196): se separó del Punto de venta a pedido de Felipe (2026-09-24). Nace sin rol: solo lo ve el líder.
   { clave: "apartados", grupo: "Ventas", nombre: "Apartados", incluye: "Apartar prendas con adelanto, entregar cobrando el saldo, extender, liberar y devolver el adelanto" },
-  { clave: "caja", grupo: "Ventas", nombre: "Caja", incluye: "Abrir y cerrar caja, ingresos y egresos, ajustes de caja" },
+  // Registrar el gasto de hoy desde la caja es de Caja, sin el módulo Gastos (ADR-0491, 20261023212000).
+  { clave: "caja", grupo: "Ventas", nombre: "Caja", incluye: "Abrir y cerrar caja, ingresos y egresos, ajustes de caja, y registrar los gastos de hoy que se pagan del cajón o con el Yape o el Plin de la tienda" },
   { clave: "cambios", grupo: "Ventas", nombre: "Cambios", incluye: "Registrar cambios de prenda" },
   { clave: "devoluciones", grupo: "Ventas", nombre: "Devoluciones", incluye: "Solicitar devoluciones" },
   { clave: "historial", grupo: "Ventas", nombre: "Historial de ventas", incluye: "Consultar, reimprimir, exportar y corregir el pago mientras la caja siga abierta" },
@@ -71,6 +72,10 @@ export const MODULOS: readonly Modulo[] = [
   // Vitrina web (ADR-0408, actividad 3; 20261014225000): qué modelos se ven en la tienda online y a qué precio web. Nace SIN rol
   // (solo el líder) y delegable: sus funciones piden este módulo. El costo y el margen siguen siendo del líder (la base no los manda).
   { clave: "vitrina_web", grupo: "Tienda web", nombre: "Vitrina web", incluye: "Elegir qué modelos se ven en la tienda online, mostrar u ocultar varios a la vez, fijarlos o quitarlos de Lo nuevo y armar los looks de «Arma tu look»" },
+  // Campañas de la tienda web (Felipe 2026-10-21; 20261021161000): cómo se ve la tienda online durante cada campaña (ambiente del catálogo o
+  // imagen propia, colores, movimiento, textos y dónde se muestra). El diseño cuelga de la campaña de Etiquetas; fechas, % y prendas no se
+  // tocan aquí. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo.
+  { clave: "campanas_web", grupo: "Tienda web", nombre: "Campañas de la tienda web", incluye: "Elegir cómo se ve la tienda online durante cada campaña (el ambiente, los colores, el movimiento, los textos o una imagen propia y dónde se muestra), programarlo y verlo antes con un enlace privado. Las fechas, el descuento y las prendas se siguen armando en Catálogo ▸ Insignias" },
   // Recomendaciones (ADR-0408, Felipe 2026-10-15; 20261015135000): lo que los clientes recomiendan desde la tienda online, SIEMPRE con
   // su nombre. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las de TODAS las tiendas y
   // las de CAYLA en general, con el nombre del cliente aunque no tenga «Clientes» (la ficha, solo si la ve).
@@ -83,7 +88,11 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "clientas", grupo: "Clientes", nombre: "Fichas de clientes", incluye: "Registrar, editar y archivar clientes; ver sus compras" },
   // Avisos del club (ADR-0288 act. g, G-8; 20261001210500): Clientas ▸ Avisos, los mensajes del club por mandar a las socias
   // con publicidad. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo, no al líder.
-  { clave: "avisos_club", grupo: "Clientes", nombre: "Avisos del club", incluye: "Ver los mensajes del club por mandar a los miembros con WhatsApp de su tienda (cumpleaños, aniversario, novedades y rebajas en su talla), enviarlos por WhatsApp Web, deshacer un envío y anotar la BAJA" },
+  { clave: "avisos_club", grupo: "Clientes", nombre: "Avisos del club", incluye: "Ver los mensajes del club por mandar a los miembros con WhatsApp de su tienda (regalo de cumpleaños, puntos por vencer, novedades y rebajas en su talla), enviarlos por WhatsApp Web, deshacer un envío y anotar la BAJA" },
+  // Beneficios del club (programa de puntos, actividad 8; 20261019215000): Clientes ▸ Beneficios del club, lo que se le ofrece al cliente
+  // (cuánto vale cada punto, desde cuántos se canjea, cuánto dura un cupón, el regalo de cumpleaños), sin deploy. Nace SIN rol (solo el
+  // líder) y delegable: sus funciones piden este módulo. Reemplaza la hoja «Beneficios del club» de Avisos.
+  { clave: "beneficios_club", grupo: "Clientes", nombre: "Beneficios del club", incluye: "Ver y cambiar los beneficios del Club: cuánto vale cada punto, desde cuántos se canjea, cuánto dura un cupón y el regalo de cumpleaños, con lo que cuesta al negocio y los últimos cambios. Un cambio de lo que valen los puntos rige 15 días después de avisarlo" },
   // «Retirar del piso» (ADR-0208, bloque 2) vive en Existencias: el texto lo nombra para que el líder sepa qué da (20260926170000).
   // «Bajada al piso» y «Ajustar stock» NO son módulos (ADR-0306, Felipe 2026-10-02): son funciones de Existencias, porque no
   // tienen entrada propia en el menú. Regla: un módulo es una entrada del menú izquierdo; quien lo ve hace todo lo de adentro.
@@ -95,21 +104,32 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "recibir", grupo: "Inventario", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
   { clave: "productos", grupo: "Catálogo", nombre: "Productos", incluye: "Crear, editar y archivar prendas; precios, fotos y códigos" },
   { clave: "atributos", grupo: "Catálogo", nombre: "Categorías, marcas y atributos", incluye: "Crear, editar, desactivar y aprobar propuestas" },
-  { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar, aprobar y archivar etiquetas, configurar su campaña y descuento, y ponérselas a las prendas" },
+  // ADR-0473 (Felipe 2026-10-22): en pantalla se llamaron «Sellos» («etiqueta» queda para el papel con el precio) y desde el
+  // 2026-10-23 se llaman «Insignias» (ADR-0481, 20261023142000); la clave no cambia.
+  { clave: "etiquetas", grupo: "Catálogo", nombre: "Insignias", incluye: "Crear, editar, aprobar y archivar las insignias de las prendas (Nuevo, Top ventas, Hecho a mano…), con descuento o sin él, y ponérselas a las prendas" },
+  // ADR-0473: las campañas salen de Atributos a su propia entrada. La clave `campanas` nació en Tienda web (PR #1190) y se muda
+  // aquí (20261022151000, Felipe 2026-10-22: «reusar `campanas`»). Guarda una campaña quien ve Campañas, Campañas de la tienda web
+  // o Insignias (`fn_puede_campanas`). Desde esa misma tarde no tiene fila propia: abre Catálogo ▸ Insignias, donde las campañas son
+  // la primera vista (la fila Insignias la declara como `moduloAlterno`). Sigue siendo un módulo aparte en Roles y accesos.
+  { clave: "campanas", grupo: "Catálogo", nombre: "Campañas", incluye: "Crear y archivar campañas (San Valentín, Halloween, Navidad…), elegir sus fechas, su descuento, sus prendas y las categorías donde rige, repetirlas el año siguiente e imprimir sus etiquetas de precio" },
   // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan sin entrar al catálogo. Nace sin rol (20261010195000);
   // el líder se lo da después a las terminales de almacén y caja.
   { clave: "liquidacion", grupo: "Catálogo", nombre: "Liquidación", incluye: "Etiquetar las prendas sueltas que se liquidan sin registrarlas en el catálogo, bajarles el precio con una etiqueta nueva y retirarlas" },
   // Órdenes de compra (ADR-0362, 20261010214500): lo que se le pide a cada proveedor antes de la factura. Nace SIN rol (solo el
   // líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las órdenes de TODAS las sedes con sus precios
   // (decisiones 34 y 37): no pasa por la regla de Compras por tienda (ADR-0184).
-  { clave: "ordenes_compra", grupo: "Compras", nombre: "Órdenes de compra", incluye: "Crear, ver, editar y anular las órdenes de compra a proveedores de todas las sedes, con sus precios, y descargar su PDF" },
-  { clave: "facturas_compra", grupo: "Compras", nombre: "Facturas de compra", incluye: "Registrar, corregir y anular facturas" },
+  // ADR-0480 (Compras simple, 20261022225000): la clave `ordenes_compra` se REUSA como «Mis compras». Unas 40 funciones de la
+  // base la usan como llave (recibir, gastos del viaje, datos bancarios, proveedor nuevo, «Nos debe»); retirarla cambiaría en silencio
+  // quién puede qué. Lo que se ve es la compradora en su celular; las pantallas de órdenes salen del menú.
+  { clave: "ordenes_compra", grupo: "Compras", nombre: "Mis compras", incluye: "En el celular: abrir y cerrar tu ronda de compras, anotar la plata que te dieron, lo que compraste (proveedor, prendas y el papel) y otros gastos, y mandar lo comprado a cada tienda" },
+  { clave: "facturas_compra", grupo: "Compras", nombre: "Historial de compras", incluye: "Ver todas las compras con su papel (factura, boleta, nota de venta o sin comprobante), lo que falta pagar y lo que falta llegar; adjuntar documentos, anular una compra sin pagos ni recepciones y descargar el mes para el contador" },
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
   // Fondos por rendir (ADR-0362, fase 6; 20261013181000): la plata que se le entrega a quien compra. Nace SIN rol (solo el líder) y
   // delegable: sus funciones piden este módulo, no al líder (decisión 35).
-  { clave: "fondos", grupo: "Compras", nombre: "Fondos por rendir", incluye: "Entregar plata a una persona para que compre, registrar lo que devuelve y ver cuánto tiene cada una en la mano" },
+  // ADR-0480: «Revisar compras», la oficina. Misma clave y mismas funciones; cambia lo que se ve.
+  { clave: "fondos", grupo: "Compras", nombre: "Revisar compras", incluye: "Confirmar la plata que anotaron las compradoras, completar las compras que llegaron a la tienda (serie y número del papel, y qué hacer si algo no cuadró), revisar sus gastos y recibir sus rondas cerradas" },
   { clave: "proveedores", grupo: "Compras", nombre: "Proveedores", incluye: "Crear, editar y archivar; cuentas bancarias, Yape y Plin" },
-  { clave: "notas_credito", grupo: "Compras", nombre: "Notas de crédito", incluye: "Registrar y anular notas" },
+  // «Notas de crédito» se retiró (ADR-0480, 20261022225000): «por ahora no manejaremos notas de crédito» (Felipe, 2026-10-22).
   // Plan de campaña (ADR-0349, 20261005220000): cuánto comprar por categoría para una campaña (diciembre 2026 primero), con tres
   // escenarios, y compararlo después con lo vendido. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo.
   { clave: "plan_compra", grupo: "Compras", nombre: "Plan de campaña", incluye: "Armar por categoría cuánto comprar para una campaña (tres escenarios, precio, costo, curva de tallas) y compararlo después con lo que se vendió" },
@@ -246,7 +266,8 @@ export function modulosDeHoy(
  * De los módulos que ve la cuenta a los permisos que preguntan las pantallas (`puede(persona, …)`). ESPEJA las
  * capacidades de la base (`fn_puede_*()` = líder o `fn_capacidad_por_modulos`), así pantalla y candado dicen lo mismo:
  *  - facturar               ← ve Facturación
- *  - gestionarCaja          ← ve Caja, completo
+ *  - gestionarCaja          ← ve Caja, completo (también registrar el gasto de hoy desde la caja sin el módulo Gastos:
+ *                             `fn_puede_registrar_gasto`, ADR-0491)
  *  - ajustarInventario      ← ve Existencias, Conteos o Traslados, completo (cerrar conteo/traslado con diferencia;
  *                             sigue así desde antes de ADR-0250, a propósito: no es el botón «Ajustar»)
  *  - ajustarStock           ← lo mismo que ajustarInventario (`fn_puede_ajustar_stock`, ADR-0306): el botón «Ajustar» de
@@ -257,7 +278,7 @@ export function modulosDeHoy(
  *  - verDineroCompras       ← ve Facturas de compra, Por pagar o Notas de crédito, completo
  *                             (`fn_puede_ver_dinero_de_compras`, 20260923130000). Solo VER: qué ESCRIBE cada uno lo dice
  *                             `accionesDeCompra` (P1, 20260923140000)
- *  - editarEtiquetas        ← ve Etiquetas, completo (`fn_puede_editar_etiquetas`; también las etiquetas CON descuento, ADR-0293)
+ *  - editarEtiquetas        ← ve Insignias (`etiquetas`), completo (`fn_puede_editar_etiquetas`; también las etiquetas CON descuento, ADR-0293, ADR-0473)
  *  - analizar               ← ve Análisis, completo (`fn_puede_analizar`)
  *  - registrarGastos        ← ve Gastos, completo (`fn_gastos_ubicaciones`, ADR-0195 F2): los de SU tienda
  *  - verCuentasDinero       ← ve Cuentas y dinero, completo (ADR-0195 F3): las cuentas y el efectivo de SU tienda
@@ -287,7 +308,7 @@ export function permisosDeModulos(rol: "lider" | "integrante", modulos: readonly
   if (completo("existencias", "conteos", "traslados")) permisos.push("ajustarStock");
   if (completo("productos", "atributos")) permisos.push("editarCatalogo");
   if (completo("proveedores")) permisos.push("editarCuentasProveedor");
-  if (completo("facturas_compra", "por_pagar", "notas_credito")) permisos.push("verDineroCompras");
+  if (completo("facturas_compra", "por_pagar")) permisos.push("verDineroCompras");
   if (completo("etiquetas")) permisos.push("editarEtiquetas");
   if (completo("gastos")) permisos.push("registrarGastos");
   if (completo("cuentas_dinero")) permisos.push("verCuentasDinero");
@@ -334,7 +355,7 @@ export function accionesDeCompra(rol: "lider" | "integrante", modulos: readonly 
   return {
     facturas: usaModulo(rol, modulos, "facturas_compra"), // fn_puede_registrar_facturas_compra: registrar, anular, reparto, adjuntos
     pagar: usaModulo(rol, modulos, "por_pagar"), // fn_puede_pagar_compras: pagos y reembolsos
-    notas: usaModulo(rol, modulos, "notas_credito"), // fn_puede_registrar_notas_credito
+    notas: false, // ADR-0480: las notas de crédito de proveedor no se manejan por ahora (fn_puede_registrar_notas_credito, solo el líder)
   };
 }
 

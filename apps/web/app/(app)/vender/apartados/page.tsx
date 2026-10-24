@@ -10,6 +10,7 @@ import { getApartadosDeTienda } from "@/lib/separaciones";
 import { hoyLima } from "@/lib/fechas-lima";
 import { PERIODO_DE_FABRICA, rangoDelPeriodo } from "@/lib/historial-apartados-reglas";
 import { createClient } from "@/lib/supabase/server";
+import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
 import { ApartadosPanel } from "@/components/apartados/ApartadosPanel";
 import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
@@ -48,7 +49,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     getDisponibleEnSede(persona.ubicacionId),
-    supabase.rpc("campanas_vigentes"),
+    leerCampanasVigentes(supabase, persona.ubicacionId),
     // «¿Dónde más hay?» para lo que aquí no tiene disponible (misma lectura que el Punto de venta). Es secundario:
     // si falla, el buscador sigue funcionando sin esa línea.
     leerStockDeLasSedes(),
