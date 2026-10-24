@@ -2226,6 +2226,13 @@
   .fin-pulso-tramo[data-tipo="queda"] .fin-pulso-tramo-barra > i {
     background: var(--color-verde);
   }
+  /* Una pérdida no se pinta de verde (auditoría v3 del Resumen, hallazgo 3): el color sigue al signo, como la cifra grande. */
+  .fin-pulso-tramo[data-tipo="queda"][data-negativo] .fin-pulso-tramo-barra > i {
+    background: var(--color-rojo-profundo);
+  }
+  .fin-pulso-tramo[data-tipo="queda"][data-negativo] .fin-pulso-tramo-monto {
+    color: var(--color-rojo-profundo);
+  }
   @keyframes fin-pulso-crece {
     from {
       width: 0;
