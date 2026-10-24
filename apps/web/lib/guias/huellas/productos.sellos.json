@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 138,
+  "total": 140,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -44,6 +44,8 @@
       "BotonFiltro «Sin ella»",
       "DesplegablePildora «Categoría»",
       "SegmentoDeslizante «Qué hace una lectura»",
+      "BotonFiltro «Todas las sedes»",
+      "BotonFiltro «{nombreCortoSede(t.nombre)}»",
       "button «Marca todas las tallas de los productos de la lista. Los que entran por su categoría ya la llevan.»",
       "button «Desmarca los productos de la lista. Los que entran por su categoría siguen marcados.»",
       "Boton «Reintentar»",

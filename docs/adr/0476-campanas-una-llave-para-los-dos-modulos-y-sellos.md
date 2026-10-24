@@ -79,3 +79,31 @@ en solo lectura:
 
 La suite completa de Postgres en un stack propio (la corre el CI). La base local compartida está a medio
 migrar: no tiene `campanas_web` y sí tiene la fila de `campanas`.
+
+## Actualización 2026-10-24 — #1190 se cierra y la portada vuelve a `main`
+
+**Qué cambia.** #1190 (ADR-0436) se cierra sin fusionar (decisión de Felipe, tras un diagnóstico de solo lectura del 2026-10-23). Este ADR había dejado
+`tienda_portada()` como la de #1190 «a propósito»; esa pieza era lo único vivo que ataba la tienda a #1190 (668 llamadas desde el 17-oct) y lo que mantenía
+la deriva diaria en rojo desde el 15-oct. La migración `20261024155000_campanas_cierre_de_1190_portada_a_main_y_archivo.sql` (borrador, sin pegar):
+
+1. Devuelve `tienda_portada()` EXACTAMENTE a la de `20261014220000` (guarda de md5: solo acepta la de #1190 o la de main).
+2. Quita el EXECUTE de `public`, `anon` y `authenticated` a las 10 funciones de diseño que #1190 dejó (donde ya estaba quitado no cambia nada), y las comenta «ARCHIVADA».
+3. Corrige el comentario de `campana_disenos` (decía que `tienda_portada()` la sigue leyendo).
+
+Nada se borra. `scripts/migraciones/deriva.mjs` registra lo archivado como diferencia CONOCIDA, con las 10 funciones y los dos permisos de la tabla **congelados por
+huella**: si alguien vuelve a abrir su EXECUTE (re-pegar `20261017160000`, `144000`, `200000` o `231000`), la huella cambia y la revisión diaria lo muestra.
+
+**DECIDÍ:** cerrar #1190 y limpiar. **DESCARTÉ:** fusionarlo (33 archivos en conflicto, dos sistemas de diseño de campaña paralelos, su editor ya no tiene permiso de
+ejecutar en producción y en el CI sus migraciones corren después de las de main, donde `144000` y `151000` abortan en su propia guarda); y marcar su casilla de
+«SQL pegado» (producción tiene 4 de sus 8 migraciones: la comprobación fallaría por las otras 4). **SE ROMPE SI:** se borra `fn_campana_en_portada`,
+`fn_diseno_json` o `campana_disenos` ANTES de pegar la migración (la portada se queda sin campaña en silencio), o se re-pega una de las migraciones congeladas de #1190.
+
+**Se pierde, hasta rehacerlo sobre `campana_web_disenos`:** campañas sin descuento en la portada (`204000`), el carrusel (`210000`), la puerta de Editar producto
+(`212000`; sigue abierta por ADR-0293), el editor de siete pasos con fondo con foto (`231000`) y `packages/portada`. La rama de #1190 se conserva: ahí vive ADR-0436
+(35 decisiones) y su maqueta.
+
+**Ensayo (base desechable = main + las 4 migraciones de #1190 pegadas; funciones y permisos idénticos a producción):** `pnpm pruebas:tienda-puerta` pasa de 35/36 a
+36/36; con dos campañas de prueba devuelve la misma campaña que antes sin la clave `diseno`; pegada dos veces seguida no cambia las huellas; en una base de main sin
+#1190 no cambia nada; si `tienda_portada()` fue tocada a mano, la guarda aborta sin aplicar nada; `deriva.mjs` pasa de «4 diferencias» a «58 conocidas, 0 sin explicar».
+**Sin verificar:** pegarla en producción (no se hizo) y ver la tienda real en un navegador. Sigue en rojo la deriva por `fn_analisis_pedido_en_camino(uuid)`, de la rama
+`claude/skills-todos-agents-94f745` (sin PR), que no es de este cierre.
