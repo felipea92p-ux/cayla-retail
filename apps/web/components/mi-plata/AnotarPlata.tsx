@@ -11,6 +11,7 @@ import { Boton, CampoMonto } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
 import { FichasMedio } from "@/components/ui/FichasMedio";
 import { avisar } from "@/components/ui/Avisos";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -46,13 +47,14 @@ type Ficha = (typeof FICHAS)[number]["clave"];
 const DE_FICHA: Record<Ficha, MedioPlata> = { transferencia: "transferencia", yape: "yape_plin", efectivo: "efectivo" };
 const A_FICHA: Partial<Record<MedioPlata, Ficha>> = { transferencia: "transferencia", yape_plin: "yape", efectivo: "efectivo" };
 
-export function AnotarPlata({ puedeYaTenia }: { puedeYaTenia: boolean }) {
+export function AnotarPlata({ puedeYaTenia, ancha = false }: { puedeYaTenia: boolean; ancha?: boolean }) {
   const [abierta, setAbierta] = useState(false);
   const origen = useRef<HTMLElement | null>(null);
   return (
     <>
       <AccionDelDia
         guia="mi-plata.me-dieron"
+        ancha={ancha}
         titulo="Me dieron plata"
         detalle="Yape, transferencia o efectivo"
         icono={<HandCoins className="h-5 w-5" aria-hidden />}
@@ -89,6 +91,11 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
   );
   const montoLeido = leerMontoPlata(monto);
   const yaTenia = medio === "ya_tenia";
+  // En el celular la hoja se baja con el dedo (ADR-0479): un tirón sin querer, o el gesto «atrás», borraba el monto y la foto sin avisar.
+  const salida = useSalidaSinGuardar(
+    medio !== null || monto.trim() !== "" || archivo !== null,
+    "Llenaste parte de esta plata y todavía no se anotó. Si cierras ahora, se pierde lo que llenaste.",
+  );
 
   const limpiar = <T,>(f: (v: T) => void) => (v: T) => {
     setRechazo(null);
@@ -136,8 +143,9 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
   // Lo que se anuncia es lo que se mandó: con la hoja congelada mientras estuvo en duda, es lo mismo que guardó la base.
   function anotada() {
     avisar.exito(`Anotaste ${soles(montoLeido ?? 0)}`, { detalle: "Ya está en tu plata y la puedes usar. Compras la revisa." });
+    // La guardia del «atrás» se retira antes de refrescar: los dos a la vez pueden recargar la página entera (useSalidaSinGuardar).
+    void salida.retirarYa().then(() => router.refresh());
     onClose();
-    router.refresh();
   }
 
   async function revisar() {
@@ -157,6 +165,7 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
       variante="hoja"
       alCerrarEnfocar={volverA}
       bloqueado={guardando || congelada}
+      antesDeCerrar={salida.pedirAccion}
     >
       {(cerrar) => (
         <form
@@ -211,7 +220,8 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
                 <TarjetaFoto
                   guia="mi-plata.foto"
                   titulo="Foto del voucher"
-                  ayuda="Ayuda a Compras a confirmarla rápido. Sin foto, igual se anota."
+                  ayuda="La captura del Yape o de la transferencia. Sin foto, igual se anota."
+                  camara={false}
                   archivo={archivo}
                   deshabilitada={guardando}
                   onArchivo={(f) => {
@@ -238,7 +248,7 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
           )}
           <PieGuia guia={guia} listo="Todo listo para anotar." conFrase />
           <div className="pie-hoja-fijo pie-acciones pt-1">
-            <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando || congelada}>
+            <Boton type="button" peso="fantasma" onClick={() => salida.pedirAccion(cerrar)} disabled={guardando || congelada}>
               Cancelar
             </Boton>
             <Boton
@@ -253,6 +263,7 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
               {congelada ? "Volver a intentar" : fraseAnotar(montoLeido)}
             </Boton>
           </div>
+          {salida.aviso}
         </form>
       )}
     </Modal>

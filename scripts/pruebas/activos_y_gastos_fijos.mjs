@@ -252,10 +252,43 @@ select momento, dia_del_mes from retail.fn_gastos_fijos_mes('2026-09-01', :'tru'
   esperar("primera semana: el 7", r.ok && semana === "2026-09-07|falta", r);
   esperar("fin de este mes: se espera el último día y todavía no falta", r.ok && /^\d{4}-\d{2}-\d{2}\|(por_llegar|registrado)$/.test(esteMes), r);
   esperar("la llamada vieja de 9 argumentos sigue siendo «un día fijo»", r.ok && viejo === "dia|5", r);
-  esperar("un momento que no existe se rechaza", r.ok && momentoInvalido.includes("Elige cuándo llega"), r);
+  esperar("un momento que no existe se rechaza", r.ok && momentoInvalido.includes("Elige cuándo vence"), r);
   esperar("el día 31 con «un día fijo» se rechaza y manda a «Fin de mes»", r.ok && dia31.includes("Fin de mes"), r);
   esperar("la base no deja «fin de mes, día 3»", r.ok && incoherente.includes("gastos_fijos_momento_coherente"), r);
   esperar("se puede volver de fin de mes a un día fijo", r.ok && vuelveADia === "dia|12", r);
+}
+
+// 6c. Pagar N días antes (20261023173000, ADR-0487): la fecha de pago es el vencimiento menos esos días.
+{
+  const r = correr(`${ESCENA}
+select retail.guardar_gasto_fijo(null, :'tru', 'servicios_basicos', 'Luz con aviso', null, 'boleta', 180, true, 12, 'dia', null, 3) as f \\gset
+select dias_antes, fecha_esperada, fecha_pago, estado, toca_pagar from retail.fn_gastos_fijos_mes('2026-02-01', :'tru') where id = :'f';
+select retail.guardar_gasto_fijo(null, :'tru', 'servicios_basicos', 'Agua sin aviso', null, 'boleta', 60, true, 12) as sin \\gset
+select dias_antes, fecha_pago = fecha_esperada from retail.fn_gastos_fijos_mes('2026-02-01', :'tru') where id = :'sin';
+select retail.guardar_gasto_fijo(null, :'tru', 'servicios_basicos', 'Celular', null, 'boleta', 30, false, 1, 'fin_de_mes', null, 30) as fm \\gset
+select estado, toca_pagar, fecha_pago = fecha_esperada - 30 from retail.fn_gastos_fijos_mes(date_trunc('month', retail.fn_hoy_lima())::date, :'tru') where id = :'fm';
+select retail.guardar_gasto_fijo(null, :'tru', 'servicios_basicos', 'Internet', null, 'boleta', 30, false, 1, 'fin_de_mes', null, 3) as prox \\gset
+select estado, toca_pagar, fecha_pago = fecha_esperada - 3 from retail.fn_gastos_fijos_mes((date_trunc('month', retail.fn_hoy_lima()) + interval '1 month')::date, :'tru') where id = :'prox';
+select retail.guardar_gasto_fijo(:'f', :'tru', 'servicios_basicos', 'Luz con aviso', null, 'boleta', 180, true, 12) as _a \\gset
+select dias_antes from retail.fn_gastos_fijos_mes('2026-02-01', :'tru') where id = :'f';
+select retail.guardar_gasto_fijo(:'f', :'tru', 'servicios_basicos', 'Luz con aviso', null, 'boleta', 180, true, 12, 'dia', null, 0) as _b \\gset
+select dias_antes from retail.fn_gastos_fijos_mes('2026-02-01', :'tru') where id = :'f';
+select pg_temp.intento(format('select retail.guardar_gasto_fijo(null, %L, ''servicios_basicos'', ''x'', null, ''boleta'', 10, false, 5, ''dia'', null, 31)', :'tru'));
+select pg_temp.intento(format('select retail.guardar_gasto_fijo(null, %L, ''servicios_basicos'', ''x'', null, ''boleta'', 10, false, 5, ''dia'', null, -1)', :'tru'));
+select pg_temp.intento(format('update retail.gastos_fijos set dias_antes = 45 where id = %L', :'f'));
+select retail.registrar_gasto(:'tru', 'servicios_basicos', 'Celular del mes', date_trunc('month', retail.fn_hoy_lima())::date, 30, null, 'yape', null, null, null, null, :'fm') as _g \\gset
+select estado, toca_pagar from retail.fn_gastos_fijos_mes(date_trunc('month', retail.fn_hoy_lima())::date, :'tru') where id = :'fm';`);
+  const [conAviso, sinAviso, tocaYa, noToca, editaSinTocar, vuelveACero, dia31, negativo, directo, yaRegistrado] = lineas(r);
+  esperar("vence el 12 y se paga 3 días antes: la fecha de pago es el 9 (y ya venció: falta, no «toca pagar»)", r.ok && conAviso === "3|2026-02-12|2026-02-09|falta|f", r);
+  esperar("la llamada vieja (sin «pagar antes») queda en 0: se paga el día que vence", r.ok && sinAviso === "0|t", r);
+  esperar("30 días antes de fin de mes: ya toca pagar este mes, sin haber vencido", r.ok && tocaYa === "por_llegar|t|t", r);
+  esperar("el mes que viene, 3 días antes del último día: todavía no toca", r.ok && noToca === "por_llegar|f|t", r);
+  esperar("editar sin decir «pagar antes» deja el que tenía", r.ok && editaSinTocar === "3", r);
+  esperar("decir 0 al editar lo vuelve a 0", r.ok && vuelveACero === "0", r);
+  esperar("31 días antes se rechaza, con su razón", r.ok && dia31.includes("de 0 a 30"), r);
+  esperar("un número negativo se rechaza", r.ok && negativo.includes("de 0 a 30"), r);
+  esperar("la base no deja guardar 45 aunque no pase por la función", r.ok && directo.includes("gastos_fijos_dias_antes_valido"), r);
+  esperar("ya registrado este mes, no «toca pagar»", r.ok && yaRegistrado === "registrado|f", r);
 }
 
 // 7. Lo que se repite se propone como fijo; ya guardado, deja de proponerse. Permisos de fijos.

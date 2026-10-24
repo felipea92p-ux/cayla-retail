@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 67,
+  "total": 71,
   "controles": {
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -13,7 +13,8 @@
       "BotonEditar «Editar fijos»",
       "BotonEnlace «Agregar el primero»",
       "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}»",
-      "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}» #2",
+      "button «{`Ver el gasto de ${nombre(f)}»",
+      "BotonVerMas «→setVerRegistrados»",
       "button «Marcar fijo»",
       "button «No es fijo»",
       "ComboResponsable «{responsable}»",
@@ -34,6 +35,8 @@
     "components/GastosPanel.tsx": [
       "Boton «fin-gastos.registrar»",
       "Boton «fin-gastos.registrar» #2",
+      "button «Ver todas las tiendas»",
+      "Boton «Ver todas las tiendas»",
       "button «fin-gastos.clasificar»",
       "DesplegablePildora «Categoría»",
       "DesplegablePildora «Comprobante»",
@@ -59,6 +62,7 @@
       "button «¿No está? Súmalo»",
       "button «Cancelar»",
       "button «Sumar proveedor»",
+      "button «{`Quitar «${fijoElegido.descripcion}»",
       "ComboResponsable «{responsable}»",
       "button «Cancelar» #2",
       "Boton «→guardar»"
