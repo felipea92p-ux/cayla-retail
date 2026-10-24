@@ -2,9 +2,10 @@
   "guia": "finanzas.resumen",
   "ruta": "/finanzas/resumen",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 13,
+  "total": 14,
   "controles": {
     "components/finanzas/Confianza.tsx": [
+      "BotonVerMas «{faltan > 0 ? `${faltan === 1 ? \"1 cosa por revisar\" : `${faltan}»",
       "Link «{p.accion}»"
     ],
     "components/finanzas/RecorridoPlata.tsx": [

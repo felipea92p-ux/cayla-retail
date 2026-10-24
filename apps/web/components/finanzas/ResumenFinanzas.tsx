@@ -116,6 +116,14 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE}>
         <RespuestaTelar pregunta={resp.pregunta} valor={resp.valor} chips={resp.chips} motivo={resp.motivo} />
       </EncabezadoPagina>
+      {/* ADR-0417: qué tan cierto es el número que acaba de leer, y qué falta para que lo sea. Si no se pudo medir, se dice (nunca un 0 % falso). */}
+      {confianza.datos ? (
+        <Confianza confianza={confianza.datos} guia="fin-resumen.confianza" />
+      ) : (
+        <p className="card-cayla px-4 py-3 text-sm text-taupe sm:px-5" data-guia="fin-resumen.confianza">
+          {confianza.falla ?? "No se pudo medir qué tan seguro es este número."}
+        </p>
+      )}
       <Orillo porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} que="vendido" hoy={hoy} />
       {dock}
 
@@ -166,17 +174,6 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
 
       <div {...entra(5)}>
         <VentasContraMeta r={r} hoy={hoy} enCurso={enCurso} ventasPorDia={ventasPorDia} />
-      </div>
-
-      {/* ADR-0417: qué tan cierto es el número del mes y qué falta para que lo sea. Si no se pudo medir, se dice (nunca un 0 % falso). */}
-      <div {...entra(6)}>
-        {confianza.datos ? (
-          <Confianza confianza={confianza.datos} guia="fin-resumen.confianza" />
-        ) : (
-          <Superficie pad guia="fin-resumen.confianza">
-            <CabeceraBloque titulo="Qué tan seguro es este número" bajada={confianza.falla ?? "No se pudo medir."} />
-          </Superficie>
-        )}
       </div>
     </div>
   );

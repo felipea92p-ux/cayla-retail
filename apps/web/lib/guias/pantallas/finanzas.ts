@@ -114,6 +114,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "La cifra grande es lo que te queda en el mes, después de pagar la ropa, los sueldos, los alquileres y los servicios. Debajo dice cómo vas contra el mes pasado a la misma fecha. Mirando el Taller o la Empresa, dice cuánto cuestan: no venden.",
     },
     {
+      id: "confianza",
+      ancla: "fin-resumen.confianza",
+      opcional: true,
+      titulo: "Qué tan seguro es ese número",
+      texto: "Un número de Finanzas solo es tan cierto como lo que los otros módulos registraron. Aquí ves cuánto confiar en él. Tocas «cosas por revisar» y ves qué falta —el costo de las prendas, los alquileres, las facturas, el banco cuadrado—, cada cosa con su botón para arreglarla.",
+    },
+    {
       id: "orillo",
       ancla: "telar.orillo",
       opcional: true,
@@ -168,13 +175,6 @@ export const GUIA_FIN_RESUMEN: Guia = {
       opcional: true,
       titulo: "Ventas contra la meta",
       texto: "La línea oscura es lo vendido día a día, sumado; la punteada, lo que pedía la meta de cada sede (o la del presupuesto, pareja en el mes). Si la oscura va arriba, vas por delante. Al pasar el mouse dice cada día.",
-    },
-    {
-      id: "confianza",
-      ancla: "fin-resumen.confianza",
-      opcional: true,
-      titulo: "Qué tan seguro es el número",
-      texto: "Un número de Finanzas solo es tan cierto como lo que los otros módulos registraron. Este medidor dice cuánto confiar en él y qué falta: el costo de las prendas sin registrar, los alquileres cargados, las facturas, el banco cuadrado. Cada cosa que falta lleva a la pantalla donde se arregla.",
     },
     {
       id: "fin",
