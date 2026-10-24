@@ -1,4 +1,4 @@
-## 🎨 El dibujo de una insignia, elegible o propio (2026-10-23, ADR-0490) — migraciones `20261023203000` y `20261023213000` PEGADAS en producción el 2026-10-23 (y la `20261023221000` de la silueta, también); PR #1300 (sin fusionar); rama `claude/insignia-icono-elegible-6dc77a`
+## 🎨 El dibujo de una insignia, elegible o propio (2026-10-23, ADR-0490) — migraciones `20261023203000` y `20261023213000` PEGADAS en producción el 2026-10-23 (y la `20261023221000` de la silueta, también); PR #1300 fusionado el 2026-10-23 (sin la silueta; ésta va en su PR de seguimiento); rama `claude/insignia-icono-elegible-6dc77a`
 
 - [x] Columnas `retail.etiquetas.icono` (clave de un dibujo) e `icono_imagen` (ruta de una imagen propia), excluyentes y con candados; `fijar_icono_etiqueta` con la llave de cada
       etiqueta (ADR-0476) y `fn_tienda_insignias` con `{id, nombre, icono, imagen, descuento}`; bucket público `retail-insignias` (WebP, 100 KB) con política por
@@ -12,7 +12,8 @@
       `supabase/migrations/20261023213000_insignias_almacen_de_imagenes.sql` en DOS pegados, uno por PARTE (la segunda lleva la política, ADR-0195). Verificar con
       `retail.fn_tienda_insignias(<modelo con Halloween>, null)` y `select id from storage.buckets where id = 'retail-insignias'` (verificado, con `md5(prosrc)` igual al archivo).
       Pendiente: refrescar el volcado de `docs/datos/generado/` si se pide (columnas nuevas).
-- [ ] **Fusionar el PR #1300** (publica la web): lo decide Felipe.
+- [x] PR #1300 fusionado por Felipe el 2026-10-23 (publicó la web sin la silueta).
+- [ ] **Fusionar el PR de seguimiento de la silueta** (publica la casilla «Pintar con el color del sello»): lo decide Felipe. La migración ya está en producción.
 - [ ] **Sin probar:** `guias:recorrer` (esta Mac no tiene el navegador de Playwright), `/chaos` sobre las dos hojas que guardan, la subida desde un teléfono real, el chip rojo del descuento con
       imagen mirado en el navegador (probado solo con datos).
 - [ ] **No cubierto a propósito:** el papel de la etiqueta de precio (sigue por el nombre), la insignia que se propone al vuelo dentro de Nuevo producto (nace por el nombre), el borrado de
