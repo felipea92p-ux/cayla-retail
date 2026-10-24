@@ -441,6 +441,32 @@ select retail.guardar_campana_regla(null, :'sello', 'ZZ', 10, ${HOY}, ${HOY} + 1
       return !r.ok && r.mensaje.includes("permission denied");
     })(),
   );
+  // Lo que esta prueba NO miraba y costó una caída en producción (2026-10-23 a 24, 14 177 errores 42501): las tablas de arriba se cierran
+  // a `authenticated`, así que quien las lee tiene que correr con permisos de dueño (`security definer`). Las demás pruebas llaman a
+  // `fn_campanas_en_sede` como dueño de la base (solo cambian el `sub` del JWT), y como dueño siempre funciona: hay que preguntar con
+  // el ROL de la sesión de la tienda, el mismo que usan Vender, Etiquetas de precio y Productos desde la web.
+  esperarValor(
+    "fn_campanas_en_sede responde a la sesión de la tienda (rol authenticated) y trae la oferta",
+    correr(`${PREPARAR}${OFERTA()}${COMO_MICAELA}set local role authenticated;\nselect ${VE()};\nrollback;`),
+    "1|30.00",
+  );
+  esperarValor(
+    "fn_campanas_por_variante (que delega en ella) también responde con el rol authenticated",
+    correr(`${PREPARAR}${OFERTA()}${COMO_MICAELA}set local role authenticated;
+select count(*) || '|' || coalesce(max(descuento_pct), 0) from retail.fn_campanas_por_variante(${HOY}, 0, array[:'v1']::uuid[]) where etiqueta_id = :'camp';\nrollback;`),
+    "1|30.00",
+  );
+  esperar(
+    "ninguna función de la caja y la pantalla de ofertas depende de leer las tablas cerradas como invoker",
+    (() => {
+      const r = correr(`select string_agg(proname, ',' order by proname) from pg_proc p
+        where p.pronamespace = 'retail'::regnamespace and not p.prosecdef
+          and p.proname in ('fn_campanas_en_sede', 'campana_reglas', 'guardar_campana_regla', 'activar_campana_regla', 'retirar_campana_regla')
+          and (pg_get_functiondef(p.oid) ~ 'campana_reglas|campana_regla_categorias|campana_regla_sedes|campana_regla_historial');`);
+      return r.ok && ultimaLinea(r) === "";
+    })(),
+    "alguna función que lee las tablas de ofertas es security invoker",
+  );
 
   // ---------------------------------------------------------------- 9. El historial y la pantalla
   console.log("\n— El historial y la pantalla —");

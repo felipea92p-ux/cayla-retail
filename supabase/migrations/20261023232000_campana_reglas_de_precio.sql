@@ -18,7 +18,11 @@
 --      dice dónde rige, Felipe 2026-10-23). Siempre sin las prendas de Claurè, salvo que la regla las incluya a propósito.
 --      Devuelve UNA fila por prenda y campaña (la de mayor %), así que `registrar_venta` y los demás verifican igual que siempre. La
 --      línea de venta sigue apuntando a la campaña (`descuento_etiqueta_id`).
---   3. `campana_reglas()` (la lee la pantalla), `guardar_campana_regla`, `activar_campana_regla` y `retirar_campana_regla`
+--      Corre como `security definer`: las tablas de abajo se cierran a `authenticated` (RLS sin políticas), así que quien las lee
+--      necesita permisos de dueño. Como invoker (la primera versión de este archivo) toda cuenta de la tienda recibía
+--      `42501 permission denied for table campana_reglas` al preguntar «qué campaña rige hoy» (Vender, Etiquetas de precio,
+--      Productos…): 14 177 errores en producción entre el 2026-10-23 y el 24, arreglados con un `alter` aparte (PR #1317).
+--   3.`campana_reglas()` (la lee la pantalla), `guardar_campana_regla`, `activar_campana_regla` y `retirar_campana_regla`
 --      (security definer, firman con `fn_actor_persona_id(true)`).
 --
 -- QUÉ NO HACE. No toca `etiquetas.descuento_pct`: el descuento de siempre de una campaña sigue valiendo y convive con las ofertas
@@ -28,6 +32,9 @@
 --
 -- DESCARTÉ: reescribir `registrar_venta` (42 mil caracteres con 40 parches): como la oferta devuelve el mismo tipo de fila que una
 --   campaña (prenda, campaña, %), basta con que LA función que ya lee todo el mundo la conozca.
+-- DESCARTÉ: dejar `fn_campanas_en_sede` como invoker y darle `grant select` a `authenticated` sobre las tablas: con RLS sin políticas la
+--   función dejaría de fallar pero leería CERO ofertas sin avisar, y la etiqueta y Vender dirían un precio distinto del que cobra
+--   `registrar_venta` (que es security definer y sí las ve). Una política nueva, además, toma las tablas de auth y storage (ADR-0195).
 -- DESCARTÉ: guardar las reglas como filas de `etiquetas` o como columnas de la campaña: una campaña tiene VARIAS ofertas y cada una
 --   cambia sola.
 -- DESCARTÉ: que una oferta solo pueda bajar prendas que su campaña ya tiene (la primera versión): la hoja de la oferta lista TODAS las categorías,
@@ -192,6 +199,7 @@ create or replace function retail.fn_campanas_en_sede(
 ) returns table (variante_id uuid, etiqueta_id uuid, etiqueta_nombre text, descuento_pct numeric)
 language sql
 stable
+security definer
 set search_path to 'retail', 'public'
 as $function$
   -- Una fila por prenda y campaña: la de mayor % entre el descuento de siempre de la campaña y sus ofertas activas.

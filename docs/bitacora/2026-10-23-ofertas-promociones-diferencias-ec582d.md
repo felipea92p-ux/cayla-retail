@@ -40,3 +40,8 @@ Por qué así: `fn_campanas_en_sede` es la función que lee la caja; cambiarla e
 Qué se rompería sin esto: la web nueva publicada sin las tablas (cae a la hoja de siempre, pero nadie podría registrar ofertas) o, peor, una función de la caja cambiada sin haberla probado contra los datos reales.
 Estado: en producción hay 0 ofertas. Falta refrescar el volcado y el diccionario (4 tablas nuevas).
 
+## 2026-10-24 (la migración de las ofertas rompió la lectura de campañas en producción — ADR-0496)
+Qué hice: el check «SQL pegado» del PR #1310 falló porque producción tenía `fn_campanas_en_sede` como `security definer` y el archivo la dejaba `invoker`. Al seguirlo apareció el fondo: mi migración, pegada en producción el 2026-10-23 a las 18:59, cerró las tablas de ofertas a `authenticated` y dejó la función que las lee con los permisos de quien llama, así que toda cuenta de la tienda recibió `42501` al preguntar qué campaña rige (Etiquetas de precio, Vender, Productos, Inventario: 14 177 errores en ~16 horas). Otra sesión lo arregló en producción con un `alter` (PR #1317). Ahora el archivo declara `security definer` y la suite SQL llama a la función con el rol `authenticated` (71 casos).
+Por qué así: el ensayo en producción y las pruebas corrían como dueño de la base, que lee cualquier tabla: no había forma de ver un permiso faltante. Se prueba con el rol de la sesión de la tienda.
+Qué se rompería sin esto: cualquier base armada desde el repo (un local nuevo, el CI de otro PR) nacería con la función rota, y producción y repo seguirían distintos.
+Estado: las 66 huellas de lo que toca la migración coinciden con las de producción; falta que el CI lo confirme. Pendiente de Felipe: nada se pegó de nuevo en producción desde mi lado.

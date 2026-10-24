@@ -1,7 +1,7 @@
 # ADR-0496 — Las ofertas de una campaña: «Tres preguntas», un % menos con fechas, días de la semana y categorías
 
 - **Fecha:** 2026-10-23 · **Estado:** construido, probado en local y **con su migración `20261023232000_campana_reglas_de_precio.sql` ya pegada en producción el 2026-10-23**
-  (ensayada antes con ROLLBACK; la web se publica DESPUÉS: con la web nueva y sin la migración, la pantalla cae a la hoja de siempre).
+  (ensayada antes con ROLLBACK; **la primera versión rompió la lectura de campañas ~16 h: ver «Actualización 2026-10-24»**; la web se publica DESPUÉS: con la web nueva y sin la migración, la pantalla cae a la hoja de siempre).
   El número de este ADR y la versión de la migración están reservados para esta rama (`pnpm reservar`). Nació de lo que pidió Felipe: «implementarlo ya dentro del sistema».
 - **Relacionados:** ADR-0481 (Catálogo ▸ Insignias), ADR-0486 (campañas por sede), ADR-0107/0108/0302 (el descuento de campaña y su cuenta exacta), ADR-0476
   (la llave de las campañas), ADR-0195 (políticas y deadlocks), ADR-0161 (módulos y roles), ADR-0284 (guía de foco), ADR-0389 (guías interactivas).
@@ -52,7 +52,8 @@ catálogo: cada categoría cuenta solo las prendas que la campaña ya trae, y la
 Un % fuera de 1–70 · un fin anterior al inicio · una oferta de más de un año · días de la semana repetidos o fuera de 1–7 o sin ninguno · **una oferta que no rige nunca**
 (ninguno de sus días cae entre sus fechas: rechazada al guardar, `fn_regla_tiene_dias`) · una categoría a la vez en «solo» y «dejar fuera» · fechas que se salen de las de la
 campaña · empezar antes de hoy (salvo al editar sin mover las fechas) · ofertas en una campaña inactiva o desactivada · una oferta `desactivada` que se vuelva a editar.
-Las tablas tienen RLS encendido y SIN políticas: se leen y escriben solo por funciones `security definer` (ADR-0195).
+Las tablas tienen RLS encendido y SIN políticas: se leen y escriben solo por funciones `security definer` (ADR-0195) — **todas**, también `fn_campanas_en_sede`
+(ver «Actualización 2026-10-24»: la primera versión la dejó como invoker y rompió la lectura de campañas en producción).
 
 ## Lo que NO cubre (y queda en el backlog)
 
@@ -132,3 +133,28 @@ SE ROMPE SI: se espera que una prenda con oferta salga en la vitrina o el pase d
 
 Esto **revierte** la primera versión (una oferta solo bajaba prendas de su campaña). Archivos: `supabase/migrations/20261023232000_campana_reglas_de_precio.sql` (la rama de ofertas de `fn_campanas_en_sede`), `scripts/pruebas/campana_reglas.mjs` (68 casos),
 `lib/campana-reglas.ts` (`prendasQueAlcanza` recibe el catálogo, `categoriasDichas`: con más de 3 categorías el nombre y la frase dicen cuántas son), `components/sellos/OfertasHoja.tsx`, la guía (27 pasos) y los escenarios de tema.
+
+## Actualización 2026-10-24: `fn_campanas_en_sede` es `security definer` (rompió la lectura de campañas en producción ~16 horas)
+
+**Qué pasó.** La migración se pegó en producción el 2026-10-23 a las 18:59 (Lima). Cerró las cuatro tablas nuevas a `authenticated` (RLS sin políticas) y
+reescribió `fn_campanas_en_sede` para que también las lea, **pero la dejó `security invoker`**: corre con los permisos de quien la llama. Desde ese minuto toda cuenta de la
+tienda que preguntaba «qué campaña rige hoy» recibía `42501 permission denied for table campana_reglas`: Etiquetas de precio se caía entera y lo mismo le pasaba a
+Vender, Productos e Inventario (`fn_campanas_por_variante` delega en ella): 14 177 errores entre el 2026-10-23 23:59 y el 2026-10-24 15:35 UTC. `registrar_venta`,
+`separar_prendas` y `editar_separacion` son `security definer` y siguieron cobrando. Otra sesión lo vio en los registros de Postgres y lo arregló en producción con un
+`alter function … security definer` (PR #1317, `20261024154000_campanas_en_sede_security_definer.sql`).
+
+**Por qué no lo vi.** El ensayo en producción corre dentro de una transacción como dueño de la base (el SQL Editor), y el dueño lee cualquier tabla: «0 diferencias en lo que
+lee la caja» era cierto y no probaba nada sobre permisos. Las 68 pruebas SQL también llaman a la función como dueño (solo cambian el `sub` del JWT, no el ROL de la
+sesión). Y verifiqué la copia en producción por el cuerpo de la función, que no incluye el `security definer` del encabezado.
+
+**Qué cambia.** El archivo de la migración declara `security definer` en `fn_campanas_en_sede` (lo mismo que ya tiene producción, así que el check «SQL pegado» vuelve a
+coincidir) y la suite SQL llama a la función y a `fn_campanas_por_variante` con `set local role authenticated`, más una comprobación de catálogo: ninguna de las cinco
+funciones que leen las tablas de ofertas puede ser invoker (71 casos; los tres nuevos fallan con la primera versión del archivo, con el mismo error de producción).
+
+```
+DECIDÍ:      que toda función que lee una tabla cerrada a `authenticated` sea `security definer` con el `search_path` fijado, y que la prueba la llame con el ROL de la tienda.
+DESCARTÉ:    darle `grant select` a `authenticated` sobre las tablas de ofertas: con RLS sin políticas la función dejaría de fallar pero leería CERO ofertas sin avisar, y la
+             etiqueta y Vender dirían un precio distinto del que cobra `registrar_venta`; una política nueva, además, toma las tablas de auth y storage (ADR-0195).
+SE ROMPE SI: se agrega una función invoker nueva que lee `campana_reglas*` (la comprobación de catálogo solo conoce las cinco de hoy) o si `fn_campanas_en_sede` pasa a devolver
+             algo que no deba ver cualquier cuenta de la tienda (hoy: qué campaña y qué % alcanza a cada prenda, que Catálogo ya muestra).
+```
