@@ -14,6 +14,15 @@ const BOTON_FILTROS: PasoGuia = {
   texto: "Abre filtros por proveedor, tienda de destino, condición (contado o crédito) y vencimiento. Cada filtro que pones aparece como una etiqueta con su ✕ para quitarlo.",
 };
 
+/** Las tres pestañas de «Historial de compras» (ADR-0504): el mismo paso en las tres guías. Es `opcional`: quien solo trae una sección no ve la fila. */
+const PASO_PESTANAS: PasoGuia = {
+  id: "pestanas",
+  ancla: "compras.pestanas",
+  opcional: true,
+  titulo: "Las tres secciones de Compras",
+  texto: "Historial es el libro de lo comprado; Revisar compras, lo que anotaron y falta confirmar; Por pagar, lo que se debe. Solo ves las secciones que tu rol trae, y un número en ámbar dice cuánto espera.",
+};
+
 export const GUIA_FACTURAS: Guia = {
   id: "compras",
   ruta: "/compras",
@@ -26,6 +35,7 @@ export const GUIA_FACTURAS: Guia = {
       titulo: "El historial de compras",
       texto: "Cada compra que CAYLA le hizo a un proveedor, con su papel: factura, boleta, nota de venta o sin comprobante. Aquí ves las de todas las tiendas, con lo que falta pagar y lo que falta llegar. Solo se mira: las compras se anotan en «Mis compras» y se completan en «Revisar compras».",
     },
+    PASO_PESTANAS,
     {
       id: "exportar",
       ancla: "compras.exportar",
@@ -308,6 +318,7 @@ export const GUIA_POR_PAGAR: Guia = {
       titulo: "Lo que se debe a proveedores",
       texto: "Cada factura registrada, de cualquier tienda, que todavía no se paga del todo aparece aquí, de lo más urgente a lo que puede esperar. Desde aquí se paga. Es una demo: no se paga nada.",
     },
+    PASO_PESTANAS,
     {
       id: "cifras",
       ancla: "por-pagar.cifras",
@@ -2281,6 +2292,7 @@ export const GUIA_FONDOS: Guia = {
       titulo: "La plata para comprar",
       texto: "Quien compra para CAYLA anota desde su celular la plata que le dan, lo que compra y lo que gasta. Aquí lo revisas y lo pasas a los libros, y ves cuánto tiene cada persona en la mano. Es una demo: no se guarda nada.",
     },
+    PASO_PESTANAS,
     {
       id: "cifras-revisar",
       ancla: "fondos.cifras-revisar",

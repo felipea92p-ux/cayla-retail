@@ -442,14 +442,15 @@ export const ARBOL: readonly Nodo[] = [
       { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "campana", pajaro: "09 Pelícano" },
       // ADR-0480 (Compras simple, Felipe 2026-10-22): la compra nace en el celular de quien compra. «Mis compras» reusa la
       // clave `ordenes_compra` (unas 40 funciones la usan como llave: recibir, gastos del viaje, datos bancarios, proveedor nuevo,
-      // «Nos debe»); las pantallas de órdenes salen del menú. «Revisar compras» es la oficina (la clave `fondos`). «Notas de crédito»
-      // se retiró: «por ahora no manejaremos notas de crédito». Compras queda en 6, dentro del tope.
+      // «Nos debe»); las pantallas de órdenes salen del menú. «Notas de crédito» se retiró: «por ahora no manejaremos notas de crédito».
       { id: "compras.miPlata", modulo: "ordenes_compra", etiqueta: "Mis compras", estado: "viva", ruta: "/compras/mi-plata", icono: "fondos", pajaro: "09 Pelícano" },
-      { id: "compras.fondos", modulo: "fondos", etiqueta: "Revisar compras", estado: "viva", ruta: "/compras/fondos", icono: "revisarCompras", pajaro: "09 Pelícano" },
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
-      { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Historial de compras", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      // ADR-0504 (Felipe 2026-10-24, opción A): UNA fila, tres pestañas —Historial, Revisar compras (la oficina, `fondos`) y Por pagar—, antes tres
+      // filas sueltas (Compras bajó de 6 a 4). Los TRES módulos siguen en Roles y accesos y la fila se abre con cualquiera; cada pestaña pide el suyo
+      // (`CabeceraHistorialCompras`, `lib/compras-pestanas-reglas.ts`) y las rutas no cambian. Sin `exige`: `verDineroCompras` sale de Historial o Por
+      // pagar y, sumado al módulo, escondería la fila de un rol con solo «Revisar compras».
       // «Recibir mercadería» ya no vive aquí: desde el 2026-10-14 es una sola fila, en Inventario (ver allí).
-      { id: "compras.porPagar", modulo: "por_pagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      { id: "compras.comprobantes", modulo: "facturas_compra", modulosAlternos: ["fondos", "por_pagar"], etiqueta: "Historial de compras", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano" },
     ],
   },
 

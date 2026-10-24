@@ -70,7 +70,9 @@ describe("Roles y accesos dibuja cada módulo como el menú (`iconoDeModulo`)", 
   const SIN_ICONO_DE_MENU: readonly ClaveModulo[] = ["roles", "configuracion"];
   // No son una fila propia del menú: el módulo reúne varias filas, o es una pestaña de otra (ver `APARTE` en lib/menu-iconos.ts).
   // Campañas es la primera vista de Catálogo ▸ Insignias desde el 2026-10-22: abre esa fila, pero en Roles conserva su calendario.
-  const A_MANO: readonly ClaveModulo[] = ["produccion", "atributos", "reportes_financieros", "campanas", "colaboradores", "actividad"];
+  // «Revisar compras» (`fondos`) y «Por pagar» (`por_pagar`) son pestañas de «Historial de compras» desde el 2026-10-24 (ADR-0504): abren esa fila, pero
+  // en Roles conservan cada uno su dibujo (si no, los tres módulos de Compras saldrían con la misma hoja).
+  const A_MANO: readonly ClaveModulo[] = ["produccion", "atributos", "reportes_financieros", "campanas", "fondos", "por_pagar", "colaboradores", "actividad"];
   const delArbol = iconosPorModulo(ARBOL);
 
   it.each(CLAVES_MODULO)("%s", (modulo) => {

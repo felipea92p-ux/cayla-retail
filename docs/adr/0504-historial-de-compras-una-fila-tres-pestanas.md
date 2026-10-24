@@ -1,7 +1,7 @@
 # ADR-0504 · Historial de compras: una fila de menú, tres pestañas, tres módulos
 
-- **Fecha:** 2026-10-24 · **Estado:** aceptado (Felipe, 2026-10-24: opción A y cabecera A). **Paso 1 construido** (el menú acepta varios módulos
-  alternos); los pasos 2 a 5 están por construir.
+- **Fecha:** 2026-10-24 · **Estado:** aceptado (Felipe, 2026-10-24: opción A y cabecera A). **Pasos 1 y 2 construidos** (el menú acepta varios
+  módulos alternos; las tres pantallas son pestañas de una sola fila); los pasos 3 a 5 están por construir.
 - **Pedido:** Felipe, 2026-10-24: unificar «Revisar compras» y «Por pagar» dentro de «Historial de compras», porque son la misma cadena
   (revisar → comprobante → pagar). Maqueta navegable: `docs/maquetas/compras-historial-unificado-2026-10/index.html`.
 - **Sigue de:** ADR-0480 (Compras simple, que dejó el Historial en solo lectura), ADR-0306 (un módulo es una entrada del menú), ADR-0387
@@ -20,7 +20,7 @@ filas en total), y para saber si había algo pendiente había que entrar a cada 
   Almacén (0) el Historial y Por pagar. Pagar a un proveedor (`fn_puede_pagar_compras` = líder o módulo `por_pagar`) es dinero: no puede venir
   de regalo con poder ver el historial. Un solo módulo daría ese poder a Producción.
 - **En producción hay 9 compras, ninguna a crédito:** «Por pagar» está vacío y la cadena revisar → crédito → pagar nunca ha corrido allí. Se
-  recorre en local antes del paso 2.
+  recorrió en una base local antes del paso 2 (ver «Paso 2»).
 
 ## Decisión
 
@@ -29,7 +29,8 @@ filas en total), y para saber si había algo pendiente había que entrar a cada 
    ve ni entra por URL («Sin acceso»). La fila se abre con **cualquiera** de los tres: `modulo: "facturas_compra"` y
    `modulosAlternos: ["fondos", "por_pagar"]`.
 2. **La fila no pide `verDineroCompras`.** El menú exige el permiso **y** el módulo (`cumplePermisos`), y `verDineroCompras` sale de
-   Historial o Por pagar: un rol con solo «Revisar compras» no la vería. Quien ve dinero lo decide cada pestaña.
+   Historial o Por pagar: un rol con solo «Revisar compras» no la vería. Quien ve dinero lo decide cada pestaña. Efecto conocido: un perfil
+   **sin módulos** (solo rutas de prueba) ve esta fila donde antes veía «Revisar compras»; todo perfil real trae módulos.
 3. **Las URLs no cambian** (`/compras`, `/compras/fondos`, `/compras/por-pagar`): unos 20 archivos las enlazan (Inicio, Observatorio, Finanzas,
    Proveedores, avisos). Las pestañas son enlaces y la URL es la verdad, como en Facturación.
 4. **Pestañas con `<Pestanas>`** (la pieza decidida): el contador de Revisar y de Por pagar usa `conteo`, `pide` y `tono` (ámbar si hay algo
@@ -41,6 +42,29 @@ filas en total), y para saber si había algo pendiente había que entrar a cada 
    las guías interactivas, sus huellas y los escenarios del tema; (3) textos y estados de Revisar (Todo al día, «Cierres», «quienes compran»);
    (4) el Historial sin las vistas que repiten Por pagar; (5) **PR aparte, con el OK de Felipe:** la lista de «Entregas y devoluciones» con
    el saldo inicial y los saldos en «Entregar plata».
+
+## Paso 2 (hecho)
+
+- **La cadena a crédito, de punta a punta, en una base local** (Postgres 17 privado con las 845 migraciones; Docker no respondía): completar el
+  papel de una compra pagada «después» deja el comprobante a crédito y entero por pagar, con **vencimiento a los 7 días (fijo: el plazo de cada
+  proveedor todavía no se usa)**; `listar_compras` con saldo —la lectura de Por pagar— lo trae; se paga; sale de Por pagar y el Historial lo da por
+  pagado. Quedó como caso permanente en `scripts/pruebas/compras_simple_revisar.mjs` (14 de 14). Honesto: es la cadena de la base con las mismas
+  consultas que usan las pantallas, no un recorrido de clics en el ERP con sesión.
+- **`CabeceraHistorialCompras`** (lee qué pestañas trae la cuenta y sus contadores) y **`CabeceraDeCompras`** (solo dibuja) en `components/compras/`;
+  la lógica pura, con su prueba, en `lib/compras-pestanas-reglas.ts`; los conteos que la pantalla no trae ya, en `lib/compras-pestanas.ts`
+  (sin firmar fotos; si una lectura falla, el contador se calla). Las tres pantallas usan esa cabecera: Historial pasa lo que ya leyó de Por pagar,
+  Por pagar lo suyo y Revisar su total, así que nadie se lee dos veces.
+- **Una sola fila de menú** (`compras.comprobantes`, con `modulosAlternos: ["fondos", "por_pagar"]` y sin `exige`); Compras baja de 6 a 4 filas.
+  `/compras` deja pasar a quien ve cualquiera de los tres módulos y manda a quien no ve el Historial a su primera pestaña (`entradaDeCompras`).
+  El Historial deja de enlazar a Por pagar si la cuenta no lo ve. En Roles y accesos, «Revisar compras» y «Por pagar» conservan su ícono
+  (`APARTE` de `menu-iconos.ts`). La foto dorada del menú cambió **a propósito** (Compras: 6 → 4 filas).
+- **Guías interactivas:** las tres suman el paso «Las tres secciones de Compras» (opcional: quien trae una sola sección no ve la fila) y sus huellas
+  cambiaron en un solo control. La frase propia de Por pagar («se paga desde cada fila, o varios del mismo proveedor juntos») se fue con la
+  cabecera única; su guía lo explica.
+- **Verificado:** 609 archivos de prueba, tipos, ESLint, Knip y Knip de producción en verde; la cabecera real, dibujada con los datos de cada
+  rol (Compras, Terminal Almacén, Producción, contadores en cero y sin lectura), se miró en claro, en oscuro, a 1280 y a 375 px, sin desborde.
+  **No verificado** (necesita el ERP con sesión y base): `pnpm --filter web guias:recorrer`, `pnpm --filter web tema:auditar` y un recorrido de
+  clics por las tres pestañas.
 
 ## Paso 1 (hecho)
 

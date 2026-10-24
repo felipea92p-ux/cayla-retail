@@ -1452,9 +1452,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
-- **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en seis entradas: Plan de campaña, `/compras/mi-plata`
-  («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), `/compras/fondos` («Revisar
-  compras», módulo `fondos`), Proveedores, Facturas de proveedor y Por pagar. `/compras/ordenes` sigue en el código sin entrada en el menú.
+- **Historial de compras = una fila, tres pestañas (ADR-0504, 2026-10-24):** `/compras` (Historial), `/compras/fondos` (Revisar compras) y
+  `/compras/por-pagar` (Por pagar) comparten la cabecera `components/compras/CabeceraHistorialCompras.tsx` (qué pestañas trae la cuenta y sus
+  contadores; dibuja `CabeceraDeCompras.tsx`) → `lib/compras-pestanas-reglas.ts` (puro) + `lib/compras-pestanas.ts` (conteos: `fn_revisar_compras`,
+  `fn_plata_por_confirmar`, `resumen_compras`). El menú tiene UNA fila (`compras.comprobantes`, `modulo: facturas_compra` + `modulosAlternos`
+  `fondos` y `por_pagar`, sin `exige`); cada pantalla sigue pidiendo su módulo y `/compras` manda a quien no ve el Historial a su primera pestaña.
+- **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en cuatro entradas (ADR-0504; eran seis): Plan de campaña,
+  `/compras/mi-plata` («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), Proveedores e Historial
+  de compras (con `/compras/fondos`, «Revisar compras», módulo `fondos`, y Por pagar como pestañas). `/compras/ordenes` sigue en el código sin entrada en el menú.
   Actividad 2: `/compras/mi-plata` → `lib/mi-plata.ts` (`fn_mi_plata_compras`) + `lib/mi-plata-reglas.ts` (puro: lectura, cifras, qué falta,
   la cuenta sugerida) + `components/mi-plata/AnotarPlata.tsx` (`anotar_plata_compras`, la foto al depósito `retail-gastos-viaje/plata/`);
   `/compras/fondos` suma `getPlataPorConfirmar` (`fn_plata_por_confirmar`, vouchers firmados) + `components/mi-plata/PlataPorConfirmar.tsx`
