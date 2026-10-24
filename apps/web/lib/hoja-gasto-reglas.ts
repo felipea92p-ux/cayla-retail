@@ -114,6 +114,8 @@ export function validarHoja(
   if (!h.comprobante) return { ok: false, error: "Di si tiene comprobante." };
   if (conComprobante(h) && !proveedorListo) return { ok: false, error: validarRuc(h.ruc).valido ? "Escribe la razón social." : "Escribe el RUC del comprobante." };
   if (conComprobante(h) && !serieNumeroLegible(h.serieNumero)) return { ok: false, error: "Escribe la serie y el número, como F001-2231." };
+  if (aCredito(h) && (!h.vence || h.vence < h.fecha)) return { ok: false, error: "Di cuándo vence (no antes de la fecha)." };
+  if (!aCredito(h) && !salida.medio) return { ok: false, error: "Di de dónde salió la plata." };
   return validarGasto(borradorDeLaHoja(h, proveedorId, salida), hoy);
 }
 

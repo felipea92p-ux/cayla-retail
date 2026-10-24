@@ -178,6 +178,8 @@ describe("el aviso al guardar sigue el orden de la guía (chaos 2026-10-23, hall
     ["monto sobre el tope", llena({ monto: "100000000", comprobante: "" })],
     ["factura sin RUC ni serie", llena({ comprobante: "factura" })],
     ["factura con RUC y sin serie", llena({ comprobante: "factura", ruc: RUC })],
+    ["todo lleno menos de dónde salió", llena()],
+    ["a crédito sin vencimiento", llena({ comprobante: "factura", ruc: RUC, serieNumero: "F001-9", pagado: "no" })],
   ])("%s: el primer aviso es el primer campo que falta", (_n, h) => {
     const proveedorListo = Boolean(h.ruc);
     const v = validarHoja(h, "", sin, HOY, proveedorListo);
