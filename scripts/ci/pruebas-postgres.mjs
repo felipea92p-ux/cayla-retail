@@ -262,6 +262,7 @@ export const PRUEBAS = [
   // en su tienda y no lo acepta en otra (`registrar_venta`), el apartado nace con él solo ahí, la tienda web lo muestra desde su tienda y
   // sin sede nunca aparece una campaña limitada; el guardián falla si una de las cinco funciones deja de preguntar por la sede. ROLLBACK.
   "pruebas:campanas-por-sede",
+  "pruebas:campana-reglas",
 
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el

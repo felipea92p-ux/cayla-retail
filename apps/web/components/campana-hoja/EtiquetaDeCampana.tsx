@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -38,6 +38,8 @@ export function EtiquetaDeCampana({
   categoriaDe,
   vueloRef,
   sello,
+  resumen,
+  textoSinDescuento,
 }: {
   nombre: string;
   /** El descuento como quedaría: un %, `null` (la campaña solo marca prendas) o `"mal"` (lo escrito no es un descuento). */
@@ -59,6 +61,11 @@ export function EtiquetaDeCampana({
   vueloRef: RefObject<string | null>;
   /** Al guardar: el sello de la campaña se estampa en la etiqueta. */
   sello: { estilo: EstiloEtiqueta; anio: string | null } | null;
+  /** Lo que la hoja quiera resumir bajo el mosaico (la hoja de ofertas dice aquí en qué tiendas y cuándo rige). Trae sus propias clases
+   *  `eqp-solo-ancho` (se esconde en la franja del celular) y su versión corta para esa franja. */
+  resumen?: ReactNode;
+  /** Lo que dice la etiqueta cuando `descuento` es `null`. De fábrica, el de una campaña que solo marca prendas. */
+  textoSinDescuento?: string;
 }) {
   const tarjeta = useRef<HTMLDivElement>(null);
   const mosaico = useRef<HTMLDivElement>(null);
@@ -103,7 +110,7 @@ export function EtiquetaDeCampana({
             −{textoPct(descuento)} %
           </p>
         ) : (
-          <p className="eqp-pct-info">{descuento === "mal" ? "Revisa el descuento" : "Informativa · no cambia el precio"}</p>
+          <p className="eqp-pct-info">{descuento === "mal" ? "Revisa el descuento" : (textoSinDescuento ?? "Informativa · no cambia el precio")}</p>
         )}
         <p className="eqp-solo-ancho mt-1 text-center text-xs text-taupe">{rango}</p>
         {chip && (
@@ -145,6 +152,8 @@ export function EtiquetaDeCampana({
           )}
           {piezas.length === 0 && Array.from({ length: 6 }, (_, i) => <span key={i} aria-hidden className="eqp-hueco" />)}
         </div>
+
+        {resumen}
 
         {/* Lo que cobra la caja por una prenda real que alcanzaría (el precio más bajo de las tiendas, con el redondeo de la caja). */}
         <div className="eqp-solo-ancho">
