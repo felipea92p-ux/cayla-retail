@@ -271,6 +271,7 @@
     "pruebas:compras-simple-dia": "node scripts/pruebas/compras_simple_dia.mjs",
     "pruebas:compras-simple-recibir": "node scripts/pruebas/compras_simple_recibir.mjs",
     "pruebas:compras-simple-revisar": "node scripts/pruebas/compras_simple_revisar.mjs",
+    "pruebas:compras-simple-marca": "node scripts/pruebas/compras_simple_marca_nueva.mjs",
     "pruebas:plan-compra-historia": "node scripts/pruebas/plan_compra_historia.mjs",
     "pruebas:plan-compra-descuento": "node scripts/pruebas/plan_compra_descuento.mjs",
     "pruebas:plan-compra-plazo": "node scripts/pruebas/plan_compra_plazo.mjs",
