@@ -1,0 +1,9 @@
+## 🧹 Cierre de #1190: portada a `main` y archivo (2026-10-24) — solo base y deriva, sin web; rama `claude/cierre-1190-limpieza`
+
+- [x] #1190 cerrado en GitHub (rama conservada: ahí viven ADR-0436, su maqueta y `packages/portada`).
+- [x] Migración `20261024155000_campanas_cierre_de_1190_portada_a_main_y_archivo.sql` (una parte, idempotente, con guarda de md5) + `deriva.mjs` (diferencias CONOCIDAS congeladas por huella, con 3 pruebas) + actualización de ADR-0476. Ensayo en base desechable: ver la bitácora.
+- [x] **PEGADA en producción por Felipe el 2026-10-24** — `supabase/migrations/20261024155000_campanas_cierre_de_1190_portada_a_main_y_archivo.sql`, de una vez en el SQL Editor. Verificada el mismo día en solo lectura: las 4 consultas de su encabezado dan `t`; `tienda_portada()` tiene el md5 de `main` y devuelve la misma campaña sin la clave `diseno`; las 10 funciones archivadas tienen exactamente las huellas que `deriva.mjs` congela; `campana_disenos` sigue en 0 filas.
+- [ ] La deriva diaria seguirá en rojo hasta que ESTE PR se fusione (las diferencias conocidas viven en el `deriva.mjs` de `main`); después debe quedar roja solo por `fn_analisis_pedido_en_camino`. Luego, refrescar el volcado (`pnpm datos:generar:produccion`).
+- [ ] `fn_analisis_pedido_en_camino(uuid)`: de la rama `claude/skills-todos-agents-94f745` (commit `b9dfac277`, sin PR); subirla a PR o dejar constancia de por qué no.
+- [ ] Decisión de Felipe: lo que se pierde con el cierre (campañas sin descuento, carrusel, fondo con foto, `packages/portada`, la puerta de Editar producto de `212000`) se rehace o no sobre `campana_web_disenos`.
+- [ ] Independiente de #1190 y visible al cliente: Aniversario CAYLA (−10 %) rige solo en TRU y la portada lo anuncia en las 3 sedes; el 24 y 25-oct el Día del Gato (−15 %, todas las sedes) convive con una portada que sigue anunciando Aniversario.

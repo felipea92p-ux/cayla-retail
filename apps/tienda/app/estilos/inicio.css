@@ -27,7 +27,9 @@
 .t-circs-envol { --flecha-y: 53px; }
 .t-carril-inicio { --flecha-y: 42%; }
 
-/* ---- Las ofertas: la banda oscura, con una píldora por campaña ---- */
+/* ---- Las ofertas: la banda de lienzo (hueso), con una pestaña por campaña. Las pestañas son las mismas del catálogo (piedra, y la
+   activa en grafito con su subrayado): ya no hay que pisarles el color. Aquí había una línea que las pintaba con `--t-oscuro-tinta` (crema,
+   hecha para la banda oscura de antes) y en claro quedaban a 1,13:1 sobre el hueso, invisibles. ---- */
 .t-ofertas { margin-top: clamp(56px, 9cqi, 132px); padding-block: clamp(48px, 7cqi, 96px); background: var(--hueso); color: var(--tinta); }
 .t-ofertas .t-ceja { color: var(--taupe); }
 .t-ofertas .t-sec-cab h2 em { color: inherit; }
@@ -41,7 +43,6 @@
 .t-ofertas .t-pildoras { padding-block: 5px; margin-block: -5px 11px; }
 .t-ofertas .t-pildora { border-color: transparent; color: var(--taupe); }
 .t-ofertas .t-pildora::before { content: ""; position: absolute; inset: -5px -3px; }
-.t-ofertas .t-pildora { border-color: var(--t-oscuro-filo); color: var(--t-oscuro-tinta); }
 .t-ofertas .t-pildora:hover { color: var(--tinta); }
 .t-ofertas .t-pildora[aria-current="true"], .t-ofertas .t-pildora:has(> .t-pendiente[data-pendiente]) { background: none; border-color: var(--tinta); color: var(--tinta); }
 .t-ofertas .t-pildoras:has(.t-pendiente[data-pendiente]) .t-pildora[aria-current="true"]:not(:has(> .t-pendiente[data-pendiente])) { background: none; border-color: transparent; color: var(--taupe); }
