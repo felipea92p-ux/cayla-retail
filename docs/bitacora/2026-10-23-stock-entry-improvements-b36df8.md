@@ -23,3 +23,8 @@ Qué hice: con «Conté y hay otro número», cada línea de la planilla viaja c
 Por qué así: Felipe eligió mi recomendación. Comparar en la base, con el candado de las ventas, no deja ninguna ventana y no cuesta otra lectura; releer en la pantalla dejaba una ventana.
 Felipe se lleva: dar el OK para pegar `20261024001000` en producción. La web funciona con o sin ella: sin la migración, la base ignora lo que había y se porta como antes.
 
+## 2026-10-24 (La comparación al contar, en producción)
+Qué hice: pegué `20261024001000` en producción con `apply_migration`, que la registró como `20261024224929`, y marqué «SQL pegado en producción» en el PR #1316. Antes de pegar revisé que cada ancla apareciera una vez en la función viva. Después, la consulta del PR dio `t | 2`, y los dos bloques insertados tienen la misma huella que en local.
+Por qué así: Felipe dio el OK. La regla es pegar antes de fusionar, y esta migración no rompe la web de hoy.
+Felipe se lleva: el PR listo para fusionar cuando su CI quede en verde. La función de producción ya difería del repo antes de pegar (md5 `44d927…` contra `01ef62…` en local): no la toqué, pero vale una revisión de deriva aparte.
+

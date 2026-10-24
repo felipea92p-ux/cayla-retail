@@ -3,8 +3,9 @@
 - **Fecha:** 2026-10-23 · **Estado:** aceptado. Felipe eligió la ronda 3 de la maqueta mirándola
   (`docs/maquetas/existencias-ajustar-stock-2026-10/ronda-3.html`), «incluido que entre en el lugar donde esa talla tiene más unidades», y
   dijo «Arranca la actividad 1». Código en la rama `claude/stock-entry-improvements-b36df8`. La planilla nació sin migración; contar con la
-  tienda abierta sumó una, `20261024001000_ajuste_compara_lo_que_habia_al_contar.sql` (ver la actualización al final). **No está en
-  producción**: se pega con el OK de Felipe, y la web funciona con o sin ella.
+  tienda abierta sumó una, `20261024001000_ajuste_compara_lo_que_habia_al_contar.sql` (ver la actualización al final). **Está en
+  producción desde el 2026-10-24** (Felipe dio el OK; se pegó con `apply_migration`, que la registró como `20261024224929`, y los dos
+  bloques insertados tienen la misma huella que en local).
 - **Relacionados:** ADR-0391 (el modal de la prenda de Existencias), ADR-0240 (`ajustar_inventario`: todo el ajuste en una llamada, con su
   marca), ADR-0328 (la carga inicial), ADR-0306 (un botón es una función del módulo donde vive), ADR-0136 act. 2026-10-23 (c) (el movimiento
   de esta vista), ADR-0358 (una función, una pieza), ADR-0389 (guías interactivas), ADR-0149 (el loader único).
