@@ -25,92 +25,103 @@
 .mesa-telar-fila {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   min-width: 0;
   padding-block: 4px;
 }
-.mesa-telar-fila-2 {
-  flex-wrap: wrap;
-  row-gap: 6px;
-}
-.mesa-telar-palabra {
-  font-family: var(--font-serif);
-  font-size: 22px;
-  line-height: 1;
-  white-space: nowrap;
-  flex: none;
-}
+/* Lo que se está mirando: toma el aire que queda entre el mes y «Te toca» (nunca empuja a «Te toca» a otra línea) y, si no cabe,
+   se parte en dos líneas; el texto entero queda en su `title`. */
 .mesa-telar-dice {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 42ch;
   font-size: 12.5px;
-  color: var(--color-taupe);
-  white-space: nowrap;
+  line-height: 1.35;
+  color: var(--color-taupe-profundo);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
-/* ---- Los hilos de sede: elegir una sede es tirar de su hilo ---- */
-.hilos-telar {
+/* ---- Ver sede: un botón por sede; se marcan una, varias o «Todas» (Felipe 2026-10-24: los hilos no se leían como filtro) ---- */
+.sedes-telar {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: 6px;
   min-width: 0;
+  padding: 4px 6px 4px 14px;
+  border-radius: 999px;
+  background: var(--color-hueso);
 }
-.hilo-telar {
-  --c: var(--color-taupe);
-  position: relative;
-  padding: 6px 11px 10px;
-  font-size: 13px;
+.sedes-telar-titulo {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-taupe-profundo);
+  margin-right: 2px;
   white-space: nowrap;
-  /* contraste: texto sobre crema, papel (tinta al 64 %: el piso de ADR-0336) */
-  color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
-  border-radius: 10px;
-  transition: color 0.25s var(--ease-cayla), background-color 0.2s var(--ease-cayla);
 }
-.hilo-telar::after {
-  content: "";
-  position: absolute;
-  left: 11px;
-  right: 11px;
-  bottom: 4px;
-  height: 3px;
-  border-radius: 3px;
-  background: var(--c);
-  transform: scaleX(0.22);
-  transform-origin: left;
-  opacity: 0.75;
-  transition: transform 0.5s var(--ease-cayla), opacity 0.3s var(--ease-cayla);
+.sede-telar {
+  --c: var(--color-taupe);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 13px 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-sand);
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease-cayla), color 0.2s var(--ease-cayla), border-color 0.2s var(--ease-cayla), transform 0.2s var(--ease-cayla);
 }
+span.sede-telar { cursor: default; }
 @media (hover: hover) {
-  a.hilo-telar:hover {
-    background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
-    color: var(--color-tinta);
-  }
-  a.hilo-telar:hover::after {
-    transform: scaleX(0.55);
+  button.sede-telar:hover {
+    border-color: var(--color-taupe);
+    transform: translateY(-1px);
   }
 }
-.hilo-telar:focus-visible {
+.sede-telar:focus-visible {
   outline: 2px solid var(--color-tinta);
   outline-offset: 2px;
 }
-.hilo-telar[aria-current="true"] {
-  color: var(--color-tinta);
-  font-weight: 600;
+.sede-telar[aria-pressed="true"] {
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  border-color: var(--color-tinta);
 }
-.hilo-telar[aria-current="true"]::after {
-  transform: scaleX(1);
-  opacity: 1;
+/* El punto con el color de la sede: un aro cuando no está marcada; lleno y con su ✓ cuando sí. */
+.sede-telar-punto {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--c);
+  color: var(--color-crema-fija);
+  transition: background-color 0.2s var(--ease-cayla);
 }
-.hilo-telar[data-color="tru"] { --c: var(--color-sede-tru); }
-.hilo-telar[data-color="aqp"] { --c: var(--color-sede-aqp); }
-.hilo-telar[data-color="lim"] { --c: var(--color-sede-lim); }
-.hilo-telar[data-color="tal"] { --c: var(--color-sede-tal); }
-.hilo-telar[data-color="emp"]::after {
-  background: repeating-linear-gradient(45deg, var(--color-sede-emp) 0 3px, color-mix(in srgb, var(--color-sede-emp) 40%, transparent) 3px 6px);
-}
-.hilo-telar[data-color="todas"]::after {
-  background: linear-gradient(90deg, var(--color-sede-tru) 0 22%, var(--color-sede-aqp) 0 44%, var(--color-sede-lim) 0 64%, var(--color-sede-tal) 0 82%, var(--color-sede-emp) 0);
+.sede-telar[aria-pressed="true"] .sede-telar-punto { background: var(--c); }
+.sede-telar[data-color="tru"] { --c: var(--color-sede-tru); }
+.sede-telar[data-color="aqp"] { --c: var(--color-sede-aqp); }
+.sede-telar[data-color="lim"] { --c: var(--color-sede-lim); }
+.sede-telar[data-color="tal"] { --c: var(--color-sede-tal); }
+.sede-telar[data-color="emp"] { --c: var(--color-sede-emp); }
+.sede-telar[data-color="emp"][aria-pressed="true"] .sede-telar-punto {
+  background: repeating-linear-gradient(45deg, var(--color-sede-emp) 0 2px, color-mix(in srgb, var(--color-sede-emp) 45%, transparent) 2px 4px);
 }
 
-.mesa-telar-espacio { flex: 1 1 auto; }
+/* «Te toca» (y «Registrar gasto» tras él) van siempre a la derecha: el aire que el dicho no usa queda a su izquierda. */
+.mesa-telar-fila > .te-toca-telar { margin-left: auto; }
 .mesa-telar-registrar { flex: none; }
 
 /* ---- «Te toca»: cuántas cosas te tocan en Finanzas, y su cajón ---- */
@@ -487,7 +498,7 @@
   }
 }
 
-/* ---- Celular: líneas cortas (pestañas · hilos que se deslizan · mes), para que la barra fija no se coma la pantalla ---- */
+/* ---- Celular: líneas cortas (las sedes se deslizan · mes), para que la barra fija no se coma la pantalla ---- */
 @media (max-width: 1100px) {
   /* Solo el ícono a la vista; el texto queda para el lector de pantalla (es el nombre del botón). */
   .te-toca-telar-texto,
@@ -502,37 +513,30 @@
   .te-toca-telar { padding: 0 12px; }
 }
 @media (max-width: 639px) {
-  .mesa-telar-palabra,
   .mesa-telar-dice {
     display: none;
   }
   .mesa-telar-fila {
     padding-block: 2px;
   }
-  .mesa-telar-fila-2 {
-    row-gap: 4px;
+  .mesa-telar-fila {
+    flex-wrap: wrap;
+    row-gap: 6px;
   }
-  .hilos-telar {
+  .sedes-telar {
     flex: 1 0 100%;
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
   }
-  .hilos-telar::-webkit-scrollbar {
+  .sedes-telar::-webkit-scrollbar {
     display: none;
-  }
-  .hilo-telar {
-    padding-inline: 9px;
-  }
-  .hilo-telar::after {
-    left: 9px;
-    right: 9px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hilo-telar,
-  .hilo-telar::after,
+  .sede-telar,
+  .sede-telar-punto,
   .orillo-tramo,
   .retazo-pieza,
   .retazo-pieza > button,

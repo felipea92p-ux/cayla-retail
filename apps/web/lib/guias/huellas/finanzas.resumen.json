@@ -29,9 +29,9 @@
       "Link «Ver todo»"
     ],
     "components/finanzas/telar/MesaDeMando.tsx": [
-      "Pestanas «(sin nombre)»",
-      "BotonEnlace «telar.registrar»",
-      "Link «{h.nombre}»"
+      "button «Todas»",
+      "button «{marcada && <Check className=\"h-3 w-3\" />}»",
+      "BotonEnlace «telar.registrar»"
     ],
     "components/finanzas/telar/TeToca.tsx": [
       "button «telar.te-toca»",

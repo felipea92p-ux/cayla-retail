@@ -11,19 +11,13 @@
 import type { Guia, PasoGuia } from "../tipos";
 
 /** La mesa de mando del telar (Felipe 2026-10-23): la barra que comparten los seis submódulos de Finanzas. Se explica en cada guía
- *  porque es lo primero que se ve; el piloto no la toca (cambiar de submódulo o de sede es cambiar de pantalla). */
+ *  porque es lo primero que se ve; el piloto no la toca (cambiar de sede es cambiar de pantalla). */
 const TELAR: PasoGuia[] = [
-  {
-    id: "telar-submodulos",
-    ancla: "telar.submodulos",
-    titulo: "Las partes de Finanzas",
-    texto: "Arriba están todas las partes de Finanzas: Resumen, Gastos, Cuentas y dinero, Reportes, Impuestos y Cierre de mes. Pasas de una a otra sin perder la sede ni el mes que elegiste. Solo ves las que tu rol tiene.",
-  },
   {
     id: "telar-sedes",
     ancla: "telar.sedes",
-    titulo: "Qué sede mirar",
-    texto: "Cada sede tiene su hilo de color. Tocas una y todo Finanzas muestra solo esa sede; «Todas las sedes» las junta. «Empresa» es lo que no es de ninguna tienda, como el contador. Si tu rol no ve todas, aquí sale solo la tuya.",
+    titulo: "Qué sedes mirar",
+    texto: "Toca una sede para ver solo esa; toca otra y se suman. Si las marcas todas, vuelve a «Todas». Lo que eliges vale para todo Finanzas, también cuando pasas a otra parte desde el menú de la izquierda. «Empresa» es lo que no es de ninguna tienda, como el contador. Si tu rol no ve todas, aquí sale solo la tuya.",
   },
   {
     id: "telar-mes",
