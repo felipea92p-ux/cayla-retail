@@ -286,13 +286,13 @@ function prendasYDeDonde(prendas: number, aMano: number, categorias: readonly st
   return `${n}: ${prendas - aMano} de ${cats} y ${marcadas}`;
 }
 
-export type ItemListo = { clave: "fechas" | "prendas" | "descuento"; nombre: string; hecho: boolean; opcional: boolean; detalle: string };
+export type ItemListo = { clave: "fechas" | "prendas" | "descuento" | "ofertas"; nombre: string; hecho: boolean; opcional: boolean; detalle: string };
 
 /** Lo que ya tiene una campaña. Fechas y prendas son lo que la hace funcionar; el descuento es opcional (una campaña puede ser solo
  *  de vitrina). Sale de lo mismo que ya decide la pantalla («Sin prendas», «Sin preparar»): no agrega reglas. */
-export function loQueTiene(f: FilaSello, prendas: number, categorias: readonly string[], hoy: string, aMano = 0): ItemListo[] {
+export function loQueTiene(f: FilaSello, prendas: number, categorias: readonly string[], hoy: string, aMano = 0, ofertas?: { total: number; borradores: number }): ItemListo[] {
   const llega = prendas > 0 || categorias.length > 0;
-  return [
+  const items: ItemListo[] = [
     { clave: "fechas", nombre: "Fechas", hecho: Boolean(f.vigenteDesde && f.vigenteHasta), opcional: false, detalle: rangoCorto(f.vigenteDesde, f.vigenteHasta, hoy) ?? "sin fechas" },
     {
       clave: "prendas",
@@ -303,4 +303,15 @@ export function loQueTiene(f: FilaSello, prendas: number, categorias: readonly s
     },
     { clave: "descuento", nombre: "Descuento", hecho: f.descuentoPct !== null, opcional: true, detalle: f.descuentoPct !== null ? pct(f.descuentoPct) : "sin descuento" },
   ];
+  // Las ofertas de la campaña («Tres preguntas», 2026-10-23): opcionales como el descuento; solo se dicen si la pantalla las conoce.
+  if (ofertas) {
+    items.push({
+      clave: "ofertas",
+      nombre: "Ofertas",
+      hecho: ofertas.total > 0,
+      opcional: true,
+      detalle: ofertas.total > 0 ? `${plural(ofertas.total, "oferta", "ofertas")}${ofertas.borradores > 0 ? ` · ${plural(ofertas.borradores, "en borrador", "en borrador")}` : ""}` : "ninguna todavía",
+    });
+  }
+  return items;
 }

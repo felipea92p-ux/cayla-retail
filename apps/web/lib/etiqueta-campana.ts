@@ -60,6 +60,8 @@ export type PrendaConCosto = {
   /** El modelo en su color (`producto·color`, la clave del pase de Insignias): una prenda, con todas sus tallas. Sin él, cada talla
    *  cuenta sola. Lo usan los conteos de la hoja y de la tarjeta (ADR-0488): «8 prendas» dicen lo mismo que el pase. */
   modelo?: string;
+  /** Es de Claurè (otra empresa): una oferta no la alcanza salvo que la incluya a propósito. Ausente = de CAYLA. */
+  deClaure?: boolean;
 };
 
 /** Cómo se nombra una prenda en el aviso: «Falda Emma (FAL-0008-NEG-M) · precio más bajo: S/ 69.90 en Trujillo» si el precio más bajo

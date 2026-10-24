@@ -487,6 +487,13 @@ describe("temporadas (ADR-0246): la lista cerrada y sus funciones", () => {
     expect(traducirError(ajeno, "registrar el pago", { confirmarAntesDeRepetir: true })).toBe(ajeno.message);
   });
 
+  it("los de las ofertas de una campaña («Tres preguntas»): dicen quién las activa, sin «Código:»", () => {
+    const lider = { message: "Solo un líder activa una oferta.", code: "42501", hint: "oferta_solo_lider" };
+    const modulo = { message: "Registrar una oferta necesita el módulo «Campañas», «Campañas de la tienda web» o «Insignias» en tu rol.", code: "42501", hint: "oferta_sin_modulo" };
+    expect(traducirError(lider, "activar la oferta")).toBe(lider.message);
+    expect(traducirError(modulo, "guardar la oferta")).toBe(modulo.message);
+  });
+
   it("un 42501 de otro origen no se cuela por la regla de temporadas", () => {
     const salida = traducirError({ message: "permission denied for table temporadas", code: "42501", hint: null }, "guardar la temporada");
     expect(salida).toContain("Código:");
