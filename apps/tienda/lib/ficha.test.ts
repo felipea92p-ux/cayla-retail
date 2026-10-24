@@ -225,7 +225,7 @@ describe("las insignias de Catálogo ▸ Insignias en la ficha (ADR-0489)", () =
   const HALLOWEEN = { id: "7b7b7b7b-1111-4222-8333-444444444441", nombre: "Halloween" };
   const REEDICION = { id: "7b7b7b7b-1111-4222-8333-444444444442", nombre: "Reedición" };
   // Lo que la ficha entrega de cada una: sin dibujo elegido ni descuento (la base vieja, o una que no los tiene), «según el nombre».
-  const COMPLETAS = (i: { id: string; nombre: string }) => ({ ...i, icono: null, imagen: null, descuento: false });
+  const COMPLETAS = (i: { id: string; nombre: string }) => ({ ...i, icono: null, imagen: null, silueta: false, descuento: false });
   const conInsignias = (insignias: unknown) => interpretarFicha({ ...BASE, prenda: { ...BASE.prenda, insignias } }) as Ficha;
 
   it("la ficha las lee en el orden que manda la base; sin el campo, sin insignias y sin error", () => {
@@ -324,12 +324,30 @@ describe("las insignias de Catálogo ▸ Insignias en la ficha (ADR-0489)", () =
     expect("imagen" in chips[1]).toBe(false);
   });
 
+  it("la silueta (ADR-0490 act. b): solo cuenta con imagen, viaja en el chip y el de la campaña la toma de su insignia", () => {
+    const RUTA = "insignias/7b7b7b7b-1111-4222-8333-444444444441/0a0a0a0a-2222-4333-8444-555555555555.webp";
+    const f = conInsignias([
+      { ...HALLOWEEN, imagen: RUTA, silueta: true },
+      { ...REEDICION, imagen: RUTA, silueta: false },
+      { id: "7b7b7b7b-1111-4222-8333-444444444447", nombre: "Estreno", silueta: true },
+      { id: "7b7b7b7b-1111-4222-8333-444444444448", nombre: "Raro", imagen: RUTA, silueta: "sí" },
+    ]);
+    expect(f.insignias.map((i) => i.silueta)).toEqual([true, false, true, false]);
+    const chips = chipsDelCatalogo(null, f.insignias);
+    expect(chips[0]).toEqual({ texto: "Halloween", tono: "insignia", icono: "halloween", imagen: RUTA, silueta: true });
+    expect("silueta" in chips[1]).toBe(false);
+    // Sin imagen la silueta no dibuja nada: el chip no la lleva (la imagen es lo que se pinta).
+    expect("silueta" in chips[2]).toBe(false);
+    const ANIV = { id: "7b7b7b7b-1111-4222-8333-444444444449", nombre: "Día del Padre", imagen: RUTA, silueta: true, descuento: true };
+    expect(imagenDeLaCampana(conInsignias([ANIV]), { id: ANIV.id, nombre: "Día del Padre", pct: 25, hasta: null })).toEqual({ ruta: RUTA, silueta: true });
+  });
+
   it("el chip del descuento toma la imagen propia de ESA campaña", () => {
     const RUTA = "insignias/7b7b7b7b-1111-4222-8333-444444444449/0a0a0a0a-2222-4333-8444-555555555555.webp";
     const ANIV = { id: "7b7b7b7b-1111-4222-8333-444444444449", nombre: "Día del Padre", icono: null, imagen: RUTA, descuento: true };
     const f = conInsignias([ANIV]);
     const campana = { id: ANIV.id, nombre: "Día del Padre", pct: 25, hasta: null };
-    expect(imagenDeLaCampana(f, campana)).toBe(RUTA);
+    expect(imagenDeLaCampana(f, campana)).toEqual({ ruta: RUTA, silueta: false });
     expect(imagenDeLaCampana(f, { nombre: "Navidad", pct: 10, hasta: null })).toBeNull();
     expect(imagenDeLaCampana(conInsignias([]), campana)).toBeNull();
     expect(chipsDelCatalogo(null, f.insignias)).toEqual([]);

@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.editor",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 95,
+  "total": 96,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»",
@@ -119,7 +119,8 @@
     "components/sellos/ElegirDibujoDeInsignia.tsx": [
       "button «{o.tipo === \"dibujo\" ? NOMBRE_DEL_DIBUJO[o.clave] : \"Tu imagen\"}»",
       "input «→alElegirArchivo»",
-      "button «→() => archivo.current?.click()»"
+      "button «→() => archivo.current?.click()»",
+      "Casilla «Pintar con el color del sello»"
     ]
   }
 }

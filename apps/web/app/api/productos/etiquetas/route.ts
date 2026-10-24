@@ -14,7 +14,7 @@ import { esRutaDeImagenDeInsignia, imagenEsDeLaInsignia } from "@cayla-retail/sh
 // sede a propósito (Felipe, 2026-09-18: "empresa uniforme") — la columna
 // `sedes_permitidas` sigue en el esquema, dormida, pero este endpoint ya
 // no la lee ni la escribe.
-const COLUMNAS_FILA = "id, nombre, activo, notas, estado, icono, icono_imagen";
+const COLUMNAS_FILA = "id, nombre, activo, notas, estado, icono, icono_imagen, icono_imagen_silueta";
 
 /** La función todavía no está en esta base (PostgREST no la encuentra): se sigue por el camino de antes. */
 const faltaLaFuncion = (e: { code?: string }) => e.code === "PGRST202" || e.code === "42883";
@@ -133,7 +133,8 @@ export async function PATCH(request: Request) {
 
   // El dibujo (ADR-0490) se cambia por su función (`fijar_icono_etiqueta`): la llave es la de cada etiqueta (una campaña, la de las
   // campañas; otra insignia, Insignias) y la fila se toma primero. Un dibujo de la lista (`icono`) o una imagen propia ya subida al almacén
-  // (`imagen`, su ruta); nunca los dos, y fijar uno borra el otro. Solo ese cambio: nada más viaja en el mismo pedido.
+  // (`imagen`, su ruta); nunca los dos, y fijar uno borra el otro. La imagen puede pintarse como silueta (`silueta`, ADR-0490 act. b): el archivo es un
+  // molde que toma el color del lugar; solo tiene sentido con una imagen. Solo ese cambio: nada más viaja en el mismo pedido.
   if ("icono" in cuerpoObj || "imagen" in cuerpoObj) {
     const pedidoIcono = cuerpoObj.icono ?? null;
     const pedidoImagen = cuerpoObj.imagen ?? null;
@@ -143,10 +144,12 @@ export async function PATCH(request: Request) {
     const imagen = pedidoImagen === null ? null : esRutaDeImagenDeInsignia(pedidoImagen) && imagenEsDeLaInsignia(pedidoImagen, id) ? pedidoImagen : undefined;
     if (imagen === undefined) return Response.json({ error: "Esa imagen no es válida para esta insignia." }, { status: 400 });
     if (icono !== null && imagen !== null) return Response.json({ error: "Elige un dibujo de la lista o una imagen propia, no los dos." }, { status: 400 });
+    const silueta = cuerpoObj.silueta === true;
+    if (silueta && imagen === null) return Response.json({ error: "La silueta es de una imagen propia: sube una imagen o quita la silueta." }, { status: 400 });
     const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-    const { error } = await supabase.rpc("fijar_icono_etiqueta", { p_etiqueta_id: id, p_icono: icono, p_imagen: imagen });
+    const { error } = await supabase.rpc("fijar_icono_etiqueta", { p_etiqueta_id: id, p_icono: icono, p_imagen: imagen, p_silueta: silueta });
     if (error) return Response.json({ error: traducirError(error, "cambiar el dibujo") }, { status: 400 });
-    return Response.json({ ok: true, icono, imagen });
+    return Response.json({ ok: true, icono, imagen, silueta });
   }
 
   const patch: { nombre?: string; activo?: boolean; notas?: string | null; estado?: string } = {};

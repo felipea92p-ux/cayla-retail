@@ -771,7 +771,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.dibujo",
       opcional: true,
       titulo: "Su dibujo",
-      texto: "Cambia el dibujo de su sello: la calabaza, el pastel, el gato… o sube tu propia imagen. Las que ya existían siguen con el dibujo de su nombre: «Halloween» lleva la calabaza. Quien compra ve lo mismo en la ficha de la prenda, en la tienda online. En la demo no lo tocamos.",
+      texto: "Cambia el dibujo de su sello: la calabaza, el pastel, el gato… o sube tu propia imagen; si es de un solo color, píntala con el color del sello y se verá bien también en modo oscuro. Quien compra ve lo mismo en la ficha de la prenda. En la demo no lo tocamos.",
     },
     {
       id: "campana-form",
