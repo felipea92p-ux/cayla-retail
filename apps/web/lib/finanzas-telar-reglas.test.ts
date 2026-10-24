@@ -111,8 +111,11 @@ describe("varias sedes a la vez (Felipe 2026-10-24)", () => {
     expect(hrefConSedeYMes("/finanzas/dinero", "/finanzas/gastos", [["sede", "todas"]])).toBe("/finanzas/dinero");
   });
 
-  it("ninguna pantalla junta varias sedes hasta que su submódulo lo declara", () => {
-    expect(aceptaVariasSedes("/finanzas/gastos")).toBe(RUTAS_CON_VARIAS_SEDES.includes("/finanzas/gastos"));
+  it("solo juntan varias sedes las pantallas que lo declaran (Gastos, desde el 2026-10-24)", () => {
+    expect(RUTAS_CON_VARIAS_SEDES).toContain("/finanzas/gastos");
+    expect(aceptaVariasSedes("/finanzas/gastos")).toBe(true);
+    expect(aceptaVariasSedes("/finanzas/gastos-viejos")).toBe(false);
+    expect(aceptaVariasSedes("/finanzas/dinero")).toBe(RUTAS_CON_VARIAS_SEDES.includes("/finanzas/dinero"));
   });
 });
 

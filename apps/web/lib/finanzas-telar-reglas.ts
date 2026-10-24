@@ -74,7 +74,10 @@ export function claveDeSedes(elegidas: readonly ClaveSede[], sedes: readonly Sed
  * Las pantallas de Finanzas que ya juntan varias sedes (leen `sedesDeLaUrl` y suman lo de cada una). En las demás, la barra
  * elige de a una sede y lo dice; cada submódulo suma su ruta aquí cuando su pantalla junta varias.
  */
-export const RUTAS_CON_VARIAS_SEDES: readonly string[] = [];
+export const RUTAS_CON_VARIAS_SEDES: readonly string[] = [
+  // Gastos (2026-10-24): lo que trae su sede se filtra y el resumen se pide sede por sede (`gastos-varias-sedes.ts`).
+  "/finanzas/gastos",
+];
 
 export const aceptaVariasSedes = (ruta: string) => RUTAS_CON_VARIAS_SEDES.some((r) => ruta === r || ruta.startsWith(`${r}/`));
 
