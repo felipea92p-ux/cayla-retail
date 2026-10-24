@@ -7,4 +7,4 @@ Por qué así: Felipe 2026-10-24: «quien tiene el módulo puede crear una marca
 Estado:
 - `pnpm pruebas:compras-simple-marca` 6/6, cobertura de módulos 32/32, vitest de `lib/` (606 archivos) y Knip en verde; guía `compras.mi-plata.compra` recorrida a 375 px.
 - Probado en el navegador a 375 px en el banco propio: «Algo nuevo» con marca escrita a Lima 3 y Trujillo 3; la base creó la marca unida a CAYLA SAC y dos órdenes.
-- La migración `20261024214000` NO está en producción: espera el OK de Felipe.
+- La migración `20261024214000` está en producción desde el 2026-10-24 (OK de Felipe), verificada por `md5` de la función.
