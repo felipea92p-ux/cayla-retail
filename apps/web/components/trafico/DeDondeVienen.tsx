@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
@@ -28,7 +29,7 @@ export function DeDondeVienen({ r, filtros }: { r: ResumenTrafico; filtros: Filt
   const camino = lider(r.caminos);
   const ciudad = lider(r.ciudades);
   return (
-    <section className="card-cayla px-5 py-4" aria-labelledby="trafico-donde" data-guia="trafico.donde">
+    <section className="anim-sube card-cayla px-5 py-4" style={{ "--i": 4 } as CSSProperties} aria-labelledby="trafico-donde" data-guia="trafico.donde">
       <TituloSeccion id="trafico-donde">De dónde vienen</TituloSeccion>
       {camino && ciudad && (
         <p className="mt-1 text-[13.5px] text-tinta/70">

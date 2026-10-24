@@ -62,7 +62,13 @@ export function VitrinaTrafico({
   const mas = prendas[0];
 
   return (
-    <section ref={contenedor} className="card-cayla flex min-w-0 flex-col px-5 py-4" aria-labelledby="trafico-vitrina" data-guia="trafico.vitrina">
+    <section
+      ref={contenedor}
+      className="anim-sube card-cayla flex min-w-0 flex-col px-5 py-4"
+      style={{ "--i": 3 } as CSSProperties}
+      aria-labelledby="trafico-vitrina"
+      data-guia="trafico.vitrina"
+    >
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <TituloSeccion id="trafico-vitrina">La vitrina, por miradas</TituloSeccion>
         {mas && (
@@ -78,6 +84,7 @@ export function VitrinaTrafico({
           <div ref={caja} className="trafico-mosaico mt-3">
             {lienzo && aLaVista.map((p, k) => <Pieza key={p.id} p={p} k={k} b={baldosas[k]} onAbrir={() => abrir(k)} />)}
             {lienzo && resto.length > 0 && <Resto n={resto.length} b={baldosas[aLaVista.length]} />}
+            {lienzo && <div aria-hidden className="trafico-barrido" style={{ "--n": aLaVista.length } as CSSProperties} />}
           </div>
         </TooltipProvider>
       ) : (
@@ -105,7 +112,7 @@ function Pieza({ p, k, b, onAbrir }: { p: PrendaTrafico; k: number; b: Baldosa |
   const cabe = etiquetaQueCabe(w, h);
   const n = p.recorrido[0];
   const etiqueta = `${p.nombre}${p.categoria ? `, ${p.categoria}` : ""}: ${personas(n)} la ${n === 1 ? "miró" : "miraron"}, ${k === 0 ? "la más mirada" : `la ${k + 1}.ª más mirada`}. Ver el detalle`;
-  const estilo: CSSProperties = { left: x, top: y, width: w, height: h, backgroundColor: franjas.length ? undefined : tono.fondo };
+  const estilo = { left: x, top: y, width: w, height: h, backgroundColor: franjas.length ? undefined : tono.fondo, "--k": k } as CSSProperties;
   const boton = (
     <button
       type="button"

@@ -118,6 +118,11 @@ SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_
   dos columnas la vitrina mide lo mismo que «De dónde vienen» y «A qué hora entran» (631 px a 1920). La guía: 14 pasos, `guias:recorrer`
   bien a 1440 y a 375 px. Si el panel del navegador está oculto, la página corre en segundo plano y React no muestra lo que llega por
   partes hasta que vuelve a la vista: no es de esta pantalla.
+- **Actividad 7:** el movimiento de la maqueta (tarjetas con `anim-sube`; baldosas en cascada, etiqueta que se cuelga y una luz que cruza la
+  vitrina una vez; el punto verde que respira solo con alguien mirando), con su excepción en ADR-0136 (act. 2026-10-23 (b)) y en
+  `CLAUDE.md`, vigilado por `lib/trafico-movimiento.test.ts` (19). Modo oscuro: `tema:auditar` con la pantalla y los dos escenarios del
+  cajón (vitrina y tabla), 0 hallazgos; en oscuro toda baldosa y toda muestra de color lleva un filo claro. Anchos: la guía recorre sus 14
+  pasos a 375, 1024, 1280 y 1440 px; sin scroll horizontal hasta 1920. `/formidable rapido`: `docs/formidable/tienda-web-trafico.md`.
 - **Sin probar:** las cabeceras de ubicación reales de Vercel (solo existen publicadas), la tienda con la base caída en vivo (cubierta por la
   prueba de `anotarPasos`) y «separó» en el navegador (en local no hay una cuenta de cliente de prueba; crear una pide consultar un DNI
   real): su función está probada en Postgres y la acción usa el mismo camino que «a la bolsa».

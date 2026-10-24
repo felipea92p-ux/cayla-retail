@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { horaRedonda, personas, picoDeHoras, tramoTexto, type ResumenTrafico } from "@/lib/trafico-reglas";
@@ -13,7 +14,7 @@ export function HorasTrafico({ r }: { r: ResumenTrafico }) {
   const pico = picoDeHoras(r.horas);
   const enPico = (h: number) => !!pico && h >= pico.desde && h < pico.hasta;
   return (
-    <section className="card-cayla px-5 py-4" aria-labelledby="trafico-horas" data-guia="trafico.horas">
+    <section className="anim-sube card-cayla px-5 py-4" style={{ "--i": 5 } as CSSProperties} aria-labelledby="trafico-horas" data-guia="trafico.horas">
       <TituloSeccion id="trafico-horas">A qué hora entran</TituloSeccion>
       <p className="mt-1 text-[13.5px] text-tinta/70">
         {pico ? (

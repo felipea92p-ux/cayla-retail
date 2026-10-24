@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { de100, dondeSeAtora, explicaAtora, fraseAtora, miles, PASOS, type ResumenTrafico } from "@/lib/trafico-reglas";
@@ -13,7 +14,7 @@ export function RecorridoTrafico({ r }: { r: ResumenTrafico }) {
   const atora = dondeSeAtora(r.pasos, r.base);
   const dicho = atora ? fraseAtora(atora) : null;
   return (
-    <section className="card-cayla px-5 py-4" aria-labelledby="trafico-recorrido" data-guia="trafico.recorrido">
+    <section className="anim-sube card-cayla px-5 py-4" style={{ "--i": 2 } as CSSProperties} aria-labelledby="trafico-recorrido" data-guia="trafico.recorrido">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <TituloSeccion id="trafico-recorrido">El recorrido</TituloSeccion>
         {dicho && atora && (
@@ -28,7 +29,11 @@ export function RecorridoTrafico({ r }: { r: ResumenTrafico }) {
           const n = r.pasos[i];
           const pct = i === 0 ? 100 : de100(n, total);
           return (
-            <li key={paso.nombre} className="flex min-w-0 flex-col gap-1 xl:border-l xl:border-sand xl:px-3.5 xl:first:border-l-0 xl:first:pl-0">
+            <li
+              key={paso.nombre}
+              className="anim-sube flex min-w-0 flex-col gap-1 xl:border-l xl:border-sand xl:px-3.5 xl:first:border-l-0 xl:first:pl-0"
+              style={{ "--i": 3 + i } as CSSProperties}
+            >
               <span className="label-cayla text-[11px] leading-tight text-taupe-profundo">{paso.nombre}</span>
               <span className="flex flex-wrap items-baseline gap-x-2">
                 <b className="font-display text-2xl leading-tight">{miles(n)}</b>
