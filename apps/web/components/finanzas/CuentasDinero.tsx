@@ -67,7 +67,7 @@ import { Globito } from "@/components/ui/Globito";
 import { Volver } from "@/components/ui/Volver";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { bancosParaCuadrar, camposDeAnotarSaldo, estadoPar, respuestaCuadre, textoLadoBanco } from "@/lib/cuadrar-reglas";
+import { bancosParaCuadrar, camposDeAnotarSaldo, estadoPar, respuestaCuadre, textoLadoBanco, textoPeriodo } from "@/lib/cuadrar-reglas";
 import { MAX_REFERENCIA_MOVIMIENTO } from "@/lib/finanzas-topes";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
@@ -495,7 +495,7 @@ export function ConciliacionPanel({
     }
   }
 
-  const periodo = `del ${fechaCorta(actual.desde)} al ${fechaCorta(actual.hasta)}`;
+  const periodo = textoPeriodo(actual.desde, actual.hasta, hoy);
 
   return (
     <>
@@ -616,6 +616,7 @@ export function ConciliacionPanel({
                 id="conc-fecha"
                 type="date"
                 value={fecha}
+                min={actual.cuenta.saldoDesde?.slice(0, 10) ?? undefined}
                 max={hoy}
                 onChange={(e) => {
                   setFecha(e.target.value);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ConciliacionCuenta, LineaConciliacion } from "./cuentas-dinero-reglas";
-import { bancosParaCuadrar, camposDeAnotarSaldo, estadoPar, respuestaCuadre, textoLadoBanco } from "./cuadrar-reglas";
+import { bancosParaCuadrar, camposDeAnotarSaldo, estadoPar, hastaDeLaUrl, respuestaCuadre, textoLadoBanco, textoPeriodo } from "./cuadrar-reglas";
 import { sePuedeConfirmar } from "./guia-campos";
 import { leerMontoPlata } from "./monto-plata-reglas";
 
@@ -74,5 +74,41 @@ describe("camposDeAnotarSaldo (guía de foco)", () => {
   });
   it("en orden: quién, el saldo y la fecha; todos requeridos", () => {
     expect(camposDeAnotarSaldo(base).map((c) => [c.id, c.requerido])).toEqual([["responsable", true], ["saldo", true], ["fecha", true]]);
+  });
+});
+
+// /chaos 2026-10-23 (semilla 1023, hallazgo #1, NAV-07): `?hasta=1900-01-01` dibujaba «movimientos del 16 oct al 1 ene», un período
+// al revés. Una fecha antes de que empiece la cuenta se trata como sin fecha (el corte de hoy), igual que una futura o una que no lo es.
+describe("hastaDeLaUrl", () => {
+  const HOY = "2026-10-23";
+  const DESDE = "2026-10-16";
+  it("una fecha válida dentro del período de la cuenta se respeta", () => {
+    expect(hastaDeLaUrl("2026-10-20", HOY, DESDE)).toBe("2026-10-20");
+    expect(hastaDeLaUrl(DESDE, HOY, DESDE)).toBe(DESDE);
+    expect(hastaDeLaUrl(HOY, HOY, DESDE)).toBe(HOY);
+  });
+  it("antes de que empiece la cuenta: sin fecha (el período nunca queda al revés)", () => {
+    expect(hastaDeLaUrl("1900-01-01", HOY, DESDE)).toBeNull();
+    expect(hastaDeLaUrl("2026-10-15", HOY, DESDE)).toBeNull();
+  });
+  it("futura, basura o vacía: sin fecha, como antes", () => {
+    expect(hastaDeLaUrl("2099-01-01", HOY, DESDE)).toBeNull();
+    expect(hastaDeLaUrl("basura", HOY, DESDE)).toBeNull();
+    expect(hastaDeLaUrl(undefined, HOY, DESDE)).toBeNull();
+  });
+  it("sin inicio de la cuenta ni de Finanzas no hay piso", () => {
+    expect(hastaDeLaUrl("1900-01-01", HOY, null)).toBe("1900-01-01");
+  });
+  it("el inicio de Finanzas sirve de piso cuando la cuenta no tiene el suyo (lo pasa la página)", () => {
+    expect(hastaDeLaUrl("2026-09-30", HOY, "2026-10-01")).toBeNull();
+  });
+});
+
+describe("textoPeriodo", () => {
+  const HOY = "2026-10-23";
+  it("del año de hoy, sin año; de otro año, con el año (nunca «del 2 dic al 1 ene» de 1899)", () => {
+    expect(textoPeriodo("2026-10-16", "2026-10-23", HOY)).toBe("del 16 oct al 23 oct");
+    expect(textoPeriodo("1899-12-02", "1900-01-01", HOY)).toBe("del 2 dic 1899 al 1 ene 1900");
+    expect(textoPeriodo("2025-12-15", "2026-01-14", HOY)).toBe("del 15 dic 2025 al 14 ene 2026");
   });
 });

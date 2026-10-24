@@ -6,6 +6,8 @@ import { getConciliacion, getContextoDinero, pendientesDeConciliar } from "@/lib
 import { ConciliacionPanel, PantallaDinero } from "@/components/finanzas/CuentasDinero";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { preguntaDeDinero, respuestaCuadrar } from "@/lib/dinero-telar-reglas";
+import { hastaDeLaUrl } from "@/lib/cuadrar-reglas";
+import { getParametrosFinanzas } from "@/lib/configuracion";
 
 // Finanzas ▸ Cuentas y dinero ▸ Conciliación (ADR-0195 F3, solo el líder): se anota el saldo que dice el banco en una fecha;
 // el sistema suma el suyo, dice la diferencia y muestra las líneas del período para marcarlas revisadas. Es de CAYLA entera:
@@ -17,7 +19,10 @@ export default async function ConciliacionPage({ searchParams }: { searchParams:
   const hoy = hoyLima();
   const ctx = await getContextoDinero(persona, "todas");
   const elegida = cuentaParaConciliar(ctx.conciliacion.datos, sp.cuenta);
-  const hasta = sp.hasta && /^\d{4}-\d{2}-\d{2}$/.test(sp.hasta) && sp.hasta <= hoy ? sp.hasta : null;
+  // El inicio de la cuenta (o, si no lo tiene, el de Finanzas) pone el piso del corte: antes de él el período quedaba al revés
+  // (/chaos 2026-10-23, hallazgo #1).
+  const inicioFinanzas = (await getParametrosFinanzas())?.inicioFinanzas ?? null;
+  const hasta = hastaDeLaUrl(sp.hasta, hoy, ctx.cuentas.datos.find((c) => c.id === elegida?.id)?.saldoDesde ?? inicioFinanzas);
   const [actual, telar] = await Promise.all([elegida ? getConciliacion(elegida.id, hasta) : Promise.resolve({ datos: null, falla: null }), getSedesDelTelar()]);
   const cuadre = respuestaCuadrar(ctx.conciliacion.datos);
 

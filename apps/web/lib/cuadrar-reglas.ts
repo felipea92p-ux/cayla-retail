@@ -67,3 +67,23 @@ export function camposDeAnotarSaldo(d: { responsableListo: boolean; saldo: strin
     { id: "fecha", nombre: "Fecha", requerido: true, hecho: d.fecha !== "" && d.fecha <= d.hoy, pendiente: "Elige el día del saldo (hoy o antes)." },
   ];
 }
+
+// ---- Qué corte mirar: `?hasta=` -----------------------------------------------------------------------------------------------
+
+/**
+ * El corte que pide la URL (`?hasta=`), o nulo para el de hoy. Se ignora lo que no es una fecha, lo futuro y lo anterior al piso: el
+ * inicio de la cuenta (`saldoDesde`) o, si no lo tiene, el inicio de Finanzas (`inicio_finanzas`). Antes de eso no hay movimientos, y
+ * el período quedaba al revés («del 16 oct al 1 ene», /chaos 2026-10-23).
+ */
+export function hastaDeLaUrl(pedido: string | undefined, hoy: string, piso: string | null): string | null {
+  if (!pedido || !/^\d{4}-\d{2}-\d{2}$/.test(pedido) || pedido > hoy) return null;
+  if (piso && pedido < piso.slice(0, 10)) return null;
+  return pedido;
+}
+
+/** «del 16 oct al 23 oct»; con el año si el período no es del año de hoy («del 2 dic 1899 al 1 ene 1900»), para que no se lea como
+ *  de este año. */
+export function textoPeriodo(desde: string, hasta: string, hoy: string): string {
+  const conAnio = desde.slice(0, 4) !== hoy.slice(0, 4) || hasta.slice(0, 4) !== hoy.slice(0, 4);
+  return `del ${fechaCorta(desde, conAnio)} al ${fechaCorta(hasta, conAnio)}`;
+}
