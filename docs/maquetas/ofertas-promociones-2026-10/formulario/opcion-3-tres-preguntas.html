@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opción 3 · Tres preguntas · Nueva oferta o promoción</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · Opción 3 «Tres preguntas» · formulario de «Nueva oferta o promoción» (2026-10-23)
+   Un asistente de UNA pregunta por pantalla: 1 ¿Qué le das al cliente? · 2 ¿En qué prendas y dónde? · 3 ¿Cuándo? (+ Revisa y guarda).
+   Las preguntas 2 y 3 ya vienen contestadas con los valores de fábrica; una «etiqueta» al costado se va armando con cada respuesta.
+   Tokens = los de ../index.html (ADR-0169), claro y oscuro. Datos de la campaña «Aniversario CAYLA» de producción; cifras y ofertas, inventadas. Hoy simulado = 23 oct 2026.
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+--t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.66);--t50:rgba(26,26,24,.55);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.1);
+--lienzo:#ddd5c6;--sombra:rgba(26,26,24,.35);--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{--crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;
+--t80:rgba(245,240,232,.85);--t65:rgba(245,240,232,.68);--t50:rgba(245,240,232,.58);--t30:rgba(245,240,232,.3);--t10:rgba(245,240,232,.1);--lienzo:#0f0f0e;--sombra:rgba(0,0,0,.6)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}svg.s{width:14px;height:14px}svg.m{width:20px;height:20px}svg.l{width:24px;height:24px}
+@keyframes sube{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes sale{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes fundir{from{opacity:0}to{opacity:1}}
+@keyframes subeh{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes pulsa{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--tinta) 28%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+/* ---- barra de la maqueta ---- */
+.spk{position:sticky;top:0;z-index:200;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:8px 16px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.72)}
+.seg button.on{background:#f5f0e8;color:#1a1a18;font-weight:600}
+.spk .go{height:30px;padding:0 12px;border-radius:8px;border:1px solid rgba(245,240,232,.35);font-size:12.5px;color:#f5f0e8}
+.spk .go:hover{background:rgba(245,240,232,.12)}
+.escena{padding:18px 16px 60px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.ley{max-width:1180px;width:100%;background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--t80)}.ley b{font-weight:600}
+.ley .ej{display:inline-block;margin:4px 6px 0 0;padding:1px 8px;border-radius:999px;background:var(--hueso);font-size:11px;color:var(--taupe);font-weight:600}
+.sx{width:100%;overflow-x:auto;display:flex}.sx>.marco,.sx>.tel{margin:0 auto}
+.marco{container-type:inline-size;flex:none;position:relative;overflow:hidden;background:var(--crema);box-shadow:0 30px 60px -30px var(--sombra)}
+.marco.desk{width:1180px;height:780px;border-radius:14px;border:1px solid var(--t30)}
+.tel{width:391px;height:812px;border-radius:46px;background:#1b1a18;padding:8px;box-shadow:0 30px 60px -30px var(--sombra);flex:none}
+.marco.cel{width:375px;height:796px;border-radius:39px}
+.pant{position:absolute;inset:0;overflow:auto;scrollbar-width:thin}
+/* ---- piezas (las mismas de ../index.html) ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;border:1px solid var(--tinta);background:var(--tinta);color:var(--crema);font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;transition:background .2s,transform .2s,color .2s;white-space:nowrap}
+.btn:hover{background:var(--rojo-p);border-color:var(--rojo-p);color:#fbf8f2;transform:translateY(-2px)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn.sec{background:transparent;color:var(--tinta);border-color:var(--t30)}.btn.sec:hover{background:var(--hueso);color:var(--tinta);border-color:var(--t30)}
+.btn.n{font-size:13.5px;letter-spacing:0;text-transform:none;height:38px}
+.btn.chico{height:30px;padding:0 11px;font-size:12.5px;border-radius:8px;letter-spacing:0;text-transform:none}
+.btn.grande{height:56px;font-size:15px;border-radius:14px}
+.volver{width:40px;height:40px;border-radius:50%;border:1px solid var(--t30);display:grid;place-items:center;flex:none}.volver:hover{background:var(--hueso)}.volver.oculto{visibility:hidden}
+.enl{color:var(--tinta);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--taupe);font-size:13px;text-align:left}.enl:hover{color:var(--rojo-p)}
+.chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--hueso);color:var(--t80);white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}.chip.nodot::before{display:none}
+.chip.v{color:var(--verde);background:color-mix(in srgb,var(--verde) 14%,transparent)}.chip.a{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 14%,transparent)}
+.chip.r{color:var(--rojo-p);background:color-mix(in srgb,var(--rojo) 12%,transparent)}.chip.p{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 14%,transparent)}
+.chip.t{background:var(--tinta);color:var(--crema)}
+.pil{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 13px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:12.5px;font-weight:500;transition:background .2s}
+.pil:hover{background:var(--hueso)}.pil.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.nota{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--hueso);font-size:12.5px;color:var(--t80);display:flex;gap:9px;align-items:flex-start}
+.nota .ic{margin-top:2px;color:var(--taupe);flex:none}
+.nota.am{background:color-mix(in srgb,var(--ambar) 13%,transparent)}.nota.am .ic{color:var(--ambar)}.nota.ok{background:color-mix(in srgb,var(--verde) 12%,transparent)}
+.lbl{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.toast{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;border-radius:12px;font-size:13px;max-width:calc(100% - 32px);box-shadow:0 12px 30px -10px var(--sombra);animation:sale .3s var(--ease) both}
+.opc{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:6px 13px;border-radius:12px;border:1px solid var(--sand);background:var(--hueso);font-size:13px;transition:background .2s;text-align:left}
+.opc:hover{background:var(--sand)}.opc.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}.opc small{font-size:11.5px;opacity:.7}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.pq{display:inline-flex;align-items:center;border:1px solid var(--sand);background:var(--hueso);border-radius:12px;height:48px;overflow:hidden;max-width:100%}
+.pq button{width:44px;height:100%;display:grid;place-items:center;flex:none}.pq button:hover{background:var(--sand)}.pq button:disabled{opacity:.3;pointer-events:none}
+.pq b,.pq input{min-width:96px;text-align:center;font-family:'EB Garamond',serif;font-size:26px;font-weight:500;white-space:nowrap}
+.pq input{width:112px;border:0;background:transparent;outline:0;padding:0 4px}.pq:focus-within{background:var(--papel);border-color:var(--tinta)}
+.campo{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border:1px solid var(--sand);border-radius:12px;background:var(--hueso);transition:background .2s,border-color .2s}
+.campo:focus-within{background:var(--papel);border-color:var(--tinta)}.campo input{flex:1;min-width:0;border:0;background:transparent;outline:0;font-size:14.5px}
+.dosc{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dosc label{display:block}.dosc label span{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:5px}
+.sublbl{font-size:12px;font-weight:600;color:var(--t65);margin:12px 0 6px}.sublbl span{font-weight:400}
+.sec-of{display:flex;gap:10px;align-items:center}.sec-of b{font-family:'EB Garamond',serif;font-weight:500;font-size:22px}
+.cn{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--hueso);font-size:11px;font-weight:700}
+/* ---- el ERP de fondo (solo para que se vea dónde está la hoja) ---- */
+.erp{display:grid;grid-template-columns:208px minmax(0,1fr);min-height:100%;background:var(--crema)}
+.lat{position:sticky;top:0;align-self:start;height:780px;border-right:1px solid var(--sand);background:var(--papel);padding:16px 12px;font-size:13px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.lat .logo{font-weight:700;letter-spacing:.16em;color:var(--rojo);font-size:17px;padding:2px 10px 12px}
+.lat .g{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--t50);padding:12px 10px 4px}
+.lat a{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border-radius:8px;color:var(--t80);cursor:default}
+.lat a.sub{padding-left:22px}.lat a.on{background:var(--tinta);color:var(--crema);font-weight:600}
+.mtop{display:none}
+.cont{min-width:0}
+.enc{padding:22px 28px 0}
+.enc .sede{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe);display:flex;align-items:center;gap:12px}
+.enc .sede::after{content:"";flex:1;height:1px;background:var(--taupe);opacity:.4;min-width:40px}
+.enc h1{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1.05;margin-top:6px}
+.enc p{color:var(--t65);margin-top:4px;max-width:600px}
+.cuerpo{padding:18px 28px 44px}
+.tarj{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.tarj .cab{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:14px 16px;border-bottom:1px solid var(--sand)}
+.pest{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--sand);border-radius:12px;background:var(--papel);max-width:100%}
+.pest button{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 15px;border-radius:9px;font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pest button.on{background:var(--tinta);color:var(--crema)}
+.pest .gl{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--hueso);color:var(--tinta);font-size:11px;letter-spacing:0}
+.pest button.on .gl{background:var(--crema);color:var(--tinta)}
+.fo{display:flex;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--sand)}.fo:last-child{border:0}
+.fo b{font-size:14px;font-weight:600}.fo small{display:block;color:var(--t65);font-size:12px}.fo .btn{margin-left:auto}
+/* ---- la hoja «Configuración» (ADR-0136: velo con desenfoque, la hoja sube y crece) ---- */
+.velo{position:absolute;inset:0;z-index:40;display:grid;place-items:stretch center;padding:22px}
+.velo-fondo{position:absolute;inset:0;background:color-mix(in srgb,#000 48%,transparent);backdrop-filter:blur(3px)}
+.hoja{position:relative;display:flex;flex-direction:column;width:min(1080px,100%);max-height:100%;background:var(--papel);border:1px solid var(--sand);border-radius:20px;overflow:hidden}
+.velo.entra .velo-fondo{animation:fundir .3s var(--ease) both}.velo.entra .hoja{animation:subeh .38s var(--ease) both}
+.hoja-cab{padding:22px 28px 8px}.hoja-cab h2{font-family:'EB Garamond',serif;font-weight:500;font-size:26px;line-height:1.15}.hoja-cab p{color:var(--t65);font-size:14px;margin-top:2px}
+.hoja-cuerpo{overflow:auto;padding:4px 28px 16px;flex:1;min-height:0}
+.hoja-pie{display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:12px 28px;border-top:1px solid var(--sand);background:var(--papel);flex:none}
+.hoja-pie .falta{margin:0 auto 0 6px;flex:1;min-width:0;font-size:12.5px;color:var(--t65);line-height:1.35}.hoja-pie .falta b{color:var(--ambar);font-weight:600}
+/* ====================================================================
+   Opción 3 · el asistente (clases t3-)
+   ==================================================================== */
+.t3-cuerpo{display:flex;flex-direction:column}
+.t3-camp{display:flex;gap:6px 14px;align-items:center;flex-wrap:wrap;margin:4px 0 12px;padding:8px 12px;border-radius:10px;background:var(--hueso);font-size:12.5px;color:var(--t80);flex:none}
+.t3-camp .ic{color:var(--taupe)}.t3-camp b{font-weight:600}.t3-camp .enl{margin-left:auto;font-size:12.5px}
+.t3-g{display:grid;grid-template-columns:248px minmax(0,1fr);gap:20px;flex:1 1 auto;min-height:420px}
+.t3-rail{display:flex;flex-direction:column;gap:8px;min-height:0;overflow:auto;padding-right:2px}
+.t3-rl{display:flex;flex-direction:column;gap:8px}
+.t3-tog{display:none;align-items:center;gap:8px;height:40px;padding:0 12px;border:1px solid var(--sand);border-radius:12px;background:var(--crema);font-size:13px;font-weight:600;width:100%}
+.t3-gt{display:flex;gap:10px;align-items:center}.t3-gt b{font-family:'EB Garamond',serif;font-weight:500;font-size:20px}
+.t3-rw{display:flex;flex-direction:column;gap:4px;align-items:stretch}
+.t3-reg{display:grid;gap:4px;text-align:left;padding:9px 12px;border:1px solid var(--sand);border-radius:12px;background:var(--crema);transition:background .2s,border-color .2s;width:100%}
+.t3-reg:hover{background:var(--hueso)}.t3-reg.recien{background:color-mix(in srgb,var(--verde) 9%,transparent)}
+.t3-reg.edit{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta);background:var(--papel)}
+.t3-reg b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.t3-reg .m{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.t3-reg small{font-size:11.5px;color:var(--t65);line-height:1.3}
+.t3-reg small.hist{display:flex;gap:4px;align-items:center;color:var(--taupe)}
+.t3-rw .espera{font-size:11.5px;color:var(--ambar);padding-left:4px}
+.t3-hint{font-size:12px;color:var(--t65);line-height:1.4}
+.t3-wz{display:flex;flex-direction:column;min-height:0;background:var(--crema);border:1px solid var(--sand);border-radius:16px;padding:14px 20px 16px}
+.t3-top{display:flex;align-items:center;justify-content:space-between;gap:8px 14px;flex-wrap:wrap;margin-bottom:8px;flex:none}
+.t3-dots{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.t3-d{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px 0 5px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:12.5px;color:var(--t80);transition:background .2s}
+.t3-d b{width:20px;height:20px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;font-size:11px}
+.t3-d:hover:not([aria-disabled="true"]){background:var(--hueso)}
+.t3-d.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}.t3-d.on b{background:var(--crema);color:var(--tinta)}
+.t3-d.ok b{background:var(--verde);color:var(--crema)}.t3-d.on.ok b{background:var(--verde);color:var(--crema)}
+.t3-d[aria-disabled="true"]{cursor:default;color:var(--t65)}
+.t3-cols{display:grid;grid-template-columns:minmax(0,1fr) 236px;gap:22px;flex:1;min-height:0}
+.t3-q{min-width:0;min-height:0;overflow:auto;padding:2px 4px 6px 2px;margin:-2px -4px -6px -2px}
+.t3-q.ent>*{animation:sube .35s var(--ease) both}
+.t3-q h2{font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1.12}
+.t3-q .baj{color:var(--taupe);font-size:13.5px;margin-top:2px}
+.t3-fams{display:grid;gap:8px;margin-top:14px}
+.t3-fam{display:grid;grid-template-columns:40px 1fr auto;gap:0 12px;align-items:center;text-align:left;padding:9px 14px;border:1px solid var(--sand);border-radius:14px;background:var(--papel);transition:background .2s,border-color .2s}
+.t3-fam:hover{background:var(--hueso);border-color:var(--t30)}
+.t3-fam .ico{width:40px;height:40px;border-radius:12px;background:var(--hueso);display:grid;place-items:center;color:var(--taupe);grid-row:1/3}
+.t3-fam b{grid-column:2;grid-row:1;font-size:14.5px;font-weight:600;line-height:1.3}.t3-fam small{grid-column:2;grid-row:2;font-size:12.5px;color:var(--t65);line-height:1.3}
+.t3-fam .go{grid-column:3;grid-row:1/3;color:var(--t50)}
+.t3-fams.pulsa .t3-fam{animation:pulsa .6s var(--ease) 1}
+.t3-gp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}.t3-gp .pil{justify-content:center;padding:0 8px}
+.t3-sub{margin-top:10px}.t3-sub .lbl{display:block;margin-bottom:4px}
+.t3-cs{display:grid;grid-template-columns:repeat(auto-fit,minmax(212px,1fr));gap:10px 14px;margin-top:10px}
+.t3-c .t3-cl{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:5px}
+.t3-c.ancho{grid-column:1/-1}
+.t3-ayuda{margin-top:8px;font-size:12.5px;color:var(--t65);display:flex;gap:8px;line-height:1.4}.t3-ayuda .ic{color:var(--taupe);margin-top:1px}
+.t3-rs{display:grid;gap:8px;margin-top:14px}
+.t3-r{display:grid;grid-template-columns:40px 1fr;gap:0 12px;padding:10px 14px;border:1px solid var(--sand);border-radius:14px;background:var(--papel);align-items:center}
+.t3-r .ico{width:40px;height:40px;border-radius:12px;background:var(--hueso);display:grid;place-items:center;color:var(--taupe);grid-row:1/4}
+.t3-r .lbl{font-size:10.5px;line-height:1.2}.t3-r b{font-size:15px;font-weight:600;line-height:1.3}.t3-r small{font-size:12.5px;color:var(--t65);line-height:1.3}
+.t3-big{display:grid;grid-template-columns:1.5fr 1fr;gap:10px;margin-top:16px}
+.t3-pn{display:grid;gap:10px;margin-top:12px}
+.t3-pg .lbl{display:block;margin-bottom:6px}
+.t3-pg .sublbl{margin:10px 0 6px}
+.t3-der{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--hueso);font-size:13px}
+.t3-lnk{display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
+.t3-rev{margin-top:8px;padding-top:8px;border-top:1px solid var(--sand)}
+.t3-oracion{font-family:'EB Garamond',serif;font-weight:500;font-size:21px;line-height:1.28;margin:5px 0 0}
+.t3-rige{font-size:13px;color:var(--t80);margin:2px 0 0}
+.t3-sm{font-size:12px;color:var(--t65)}
+.t3-fin{margin-top:6px;display:flex;gap:4px 12px;align-items:center;flex-wrap:wrap}
+.t3-mas{display:grid;gap:12px;margin-top:10px;padding:12px 14px;border:1px dashed var(--t30);border-radius:12px}
+.t3-nota-edit{flex:none;margin:0 0 10px}
+.t3-rev .nota{margin-top:6px;padding:7px 10px;font-size:12px;line-height:1.35;gap:7px}
+.t3-sem{margin-top:10px}
+.t3-semf{display:flex;gap:6px 8px;align-items:center;flex-wrap:wrap}.t3-semf .lbl{margin-right:2px}.t3-semf .enl{font-size:12.5px}
+.t3-cab{display:flex;gap:6px 18px;align-items:center;justify-content:space-between;flex-wrap:wrap}.t3-cab h2{flex:none}.t3-cab .t3-camp{margin:0;flex:1 1 360px;min-width:0}
+.t3-dias{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.t3-dia{width:46px;height:38px;border-radius:12px;border:1px solid var(--sand);background:var(--hueso);font-size:12.5px;font-weight:600;transition:background .2s,color .2s,border-color .2s}
+.t3-dia:hover{background:var(--sand)}
+.t3-dia.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.t3-dia.fuera:not(.on){opacity:.4}.t3-dia.fuera.on{outline:1.5px dashed var(--ambar);outline-offset:2px}
+
+/* ---- la etiqueta que se va armando ---- */
+.t3-etq{position:relative;align-self:start;border:1.5px solid var(--tinta);border-radius:14px;background:var(--papel);padding:12px 15px 10px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.t3-etq>.lbl{font-size:10px;letter-spacing:.14em}
+.t3-etq-top{display:flex;align-items:center;gap:8px;padding-right:20px}
+.t3-etq::after{content:"";position:absolute;top:10px;right:12px;width:11px;height:11px;border-radius:50%;border:1.5px solid var(--tinta);background:var(--crema)}
+.t3-marca{font-weight:700;letter-spacing:.16em;font-size:12px;color:var(--rojo)}
+.t3-gran{font-family:'EB Garamond',serif;font-weight:500;line-height:1.02;margin-top:2px;overflow-wrap:anywhere}
+.t3-etq.vacia .t3-gran{color:var(--t50)}
+.t3-ej{display:flex;gap:8px;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--t80);padding:6px 9px;border-radius:9px;background:var(--hueso)}
+.t3-ej b{font-weight:500}.t3-ej span{white-space:nowrap;font-weight:600}.t3-ej s{color:var(--t50);font-weight:400;margin-right:3px}
+.t3-etq.vacia .t3-ej{background:transparent;border:1px dashed var(--t30);color:var(--t65);display:block}
+.t3-perf{height:0;border-top:1.5px dashed color-mix(in srgb,var(--tinta) 30%,transparent);margin:5px -15px 2px}
+.t3-ef{display:grid;grid-template-columns:54px 1fr;gap:8px;font-size:12.5px;padding:3px 0;align-items:baseline}
+.t3-ef .n{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--t65)}
+.t3-ef .v{font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.t3-ef .v i{font-style:normal;font-weight:400;font-size:11px;color:var(--taupe);margin-left:6px;white-space:nowrap}
+.t3-ef .v i.pend{margin:0;color:var(--t50);font-weight:400}
+.solo-m{display:none}
+.t3-corta{display:none;font-size:12.5px;color:var(--t80);flex-basis:100%}
+@container (max-width:760px){
+ .erp{grid-template-columns:1fr}.lat{display:none}
+ .mtop{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--sand);font-size:12px;color:var(--t65);background:var(--papel)}.mtop b{color:var(--rojo);letter-spacing:.14em}
+ .enc{padding:16px 16px 0}.enc h1{font-size:32px}.cuerpo{padding:14px 16px 40px}
+ .velo{padding:0;place-items:stretch}.hoja{border-radius:0;width:100%;height:100%;max-height:none;border:0}
+ .hoja-cab,.hoja-cuerpo,.hoja-pie{padding-left:16px;padding-right:16px}.hoja-cab{padding-top:16px}.hoja-cab h2{font-size:20px}
+ .hoja-pie{flex-wrap:wrap;gap:8px;padding-top:10px;padding-bottom:12px}.hoja-pie .falta{flex:1 1 100%;order:-2;margin:0}
+ .hoja-pie .t3-sig{flex:1}.hoja-pie .t3-atajo{flex:1 1 100%;order:-1}
+ .solo-d{display:none}.solo-m{display:inline}
+ .t3-dias{gap:5px}.t3-dia{width:38px;height:36px;font-size:12px}.t3-cab{gap:6px}.t3-cab .t3-camp{flex-basis:100%}
+ .t3-d:not(.on) .tx{display:none}.t3-d:not(.on){padding:0 5px 0 5px}
+ .t3-gp{display:flex;flex-wrap:wrap}.t3-gp .pil{padding:0 12px}
+ .toast{bottom:150px}
+ .t3-g{display:block;min-height:0}
+ .t3-rail{overflow:visible;margin-bottom:12px}
+ .t3-tog{display:flex}.t3-rl{display:none;margin-top:8px}.t3-rl.ab{display:flex}
+ .t3-wz{padding:12px 14px}
+ .t3-cols{display:flex;flex-direction:column;gap:12px}
+ .t3-q{overflow:visible;order:2}
+ .t3-q h2{font-size:25px}
+ .t3-etq{order:1;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:9px 40px 9px 12px}
+ .t3-etq>.lbl,.t3-ej,.t3-perf,.t3-ef{display:none}.t3-corta{display:block}
+ .t3-etq-top{padding:0}.t3-gran{margin:0;font-size:26px!important}
+ .t3-etq::after{top:12px;right:12px}
+ .t3-cs{grid-template-columns:1fr}
+ .t3-big{grid-template-columns:1fr}
+ .t3-d{padding:0 9px 0 4px;font-size:12px}
+ .t3-camp{flex-wrap:nowrap;gap:8px}.t3-camp .enl{margin-left:auto;white-space:nowrap}
+}
+/* ---- Cómo se mide ---- */
+.mide{max-width:1180px;width:100%;background:var(--papel);border:1px dashed var(--t30);border-radius:12px;padding:14px 18px;font-size:13px;color:var(--t80)}
+.mide h3{font-family:'EB Garamond',serif;font-weight:500;font-size:21px;margin-bottom:8px}
+.mide table{border-collapse:collapse;width:100%;font-size:12.5px;margin:6px 0 10px}
+.mide th,.mide td{padding:6px 10px;border-bottom:1px solid var(--sand);text-align:left;vertical-align:top}
+.mide th{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);font-weight:700}
+.mide td.n,.mide th.n{font-variant-numeric:tabular-nums}
+.mide td:first-child{width:34%}
+.mide td.n b{font-weight:700}
+.mide ul{padding-left:18px;display:grid;gap:3px;margin:6px 0}
+.mide .vivo{display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;background:var(--hueso);font-size:12px;font-weight:600}
+.mide .cols{display:grid;gap:4px}
+.mide .cols>div{overflow-x:auto}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
+<symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></symbol>
+<symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+<symbol id="i-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+</svg>
+<div class="spk" id="spk"></div>
+<div class="escena"><div class="ley" id="ley"></div><div id="esc" class="sx"></div><div class="mide" id="mide"></div></div>
+<script>
+/* =========================== datos (copiados de ../index.html) =========================== */
+const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const HOY = '2026-10-23';
+const CATS = [
+  {id:'blusas',   n:'Blusas',     prendas:18, unid:96,  v30:62,  ej:{n:'Blusa Carlita',      p:90,   c:38, col:'#ece6dc'}},
+  {id:'vestidos', n:'Vestidos',   prendas:11, unid:54,  v30:30,  ej:{n:'Vestido Lucía',      p:159,  c:70, col:'#b9c9a8'}},
+  {id:'pantalones',n:'Pantalones',prendas:9,  unid:70,  v30:41,  ej:{n:'Jean Palazzo',       p:129,  c:52, col:'#a9bfd6'}},
+  {id:'polos',    n:'Polos',      prendas:14, unid:210, v30:150, ej:{n:'Polo Básico M/corta',p:39.9, c:14, col:'#d8c3a5'}},
+  {id:'casacas',  n:'Casacas',    prendas:6,  unid:28,  v30:9,   ej:{n:'Casaca Aurora',      p:219,  c:98, col:'#4a4744'}},
+  {id:'faldas',   n:'Faldas',     prendas:8,  unid:40,  v30:18,  ej:{n:'Falda Midi Sara',    p:99,   c:41, col:'#e3c1b8'}}
+];
+const SEDES = ['TRU','AQP','LIM'];
+/* La campaña de esta hoja: «Aniversario CAYLA» (nombre, fechas y 339 prendas marcadas salen de producción; unidades y ventas, inventadas). */
+const ANIV = {id:'aniversario', n:'Aniversario CAYLA', desde:'2026-10-01', hasta:'2026-10-25', manu:339, prendas:339, unid:1210, v30:410, modelos:61, ej:'blusas', hist:[]};
+/* Halloween y el Día del Gato también son de producción (nombre, fechas y prendas marcadas); sirven para probar los días de la semana: Aniversario ya solo tiene viernes, sábado y domingo por delante. */
+const HALL = {id:'halloween', n:'Halloween', desde:'2026-09-15', hasta:'2026-10-31', manu:47, prendas:53, unid:190, v30:48, modelos:14, ej:'casacas', hist:[]};
+const GATO = {id:'gato', n:'Día Internacional del Gato', desde:'2026-10-24', hasta:'2026-10-30', manu:7, prendas:7, unid:7, v30:3, modelos:5, ej:'polos', hist:[]};
+const ETQS = [ANIV, HALL, GATO];
+let CAMPANA = ANIV;
+/* Quién guarda qué: el líder guarda borrador o activa; quien solo ve Insignias deja un borrador y un líder la activa. */
+const ROLES = {lider:{t:'Líder', act:true}, etq:{t:'Con Insignias', act:false}};
+const REG = {basta:{t:'Arreglo de basta gratis',sub:'lo hace el taller',costo:6}, bolsa:{t:'Bolsa de regalo',sub:'empaque',costo:1.5}, panuelo:{t:'Pañuelo de regalo',sub:'accesorio',costo:4}};
+/* «cond» es lo que el cliente tiene que hacer: sin condición = oferta, con condición = promoción. */
+const TIPOS = {
+  pct:         {cond:'ninguna', da:s=>`−${s.pct} %`},
+  soles:       {cond:'ninguna', da:s=>`${sol(s.desc)} menos por prenda`},
+  precio:      {cond:'ninguna', da:s=>`A ${fmt(s.precio)}`},
+  combo:       {cond:'cantidad',da:s=>`${s.qty} por ${fmt(s.precio)}`},
+  segunda:     {cond:'cantidad',da:s=>`La ${s.nth}.ª ${s.pct2>=100?'gratis':`con ${s.pct2} % menos`}`},
+  nxm:         {cond:'cantidad',da:s=>`${s.lleva}x${s.m}`},
+  volumen:     {cond:'cantidad',da:s=>`−${s.pct} % desde ${s.qty} prendas`},
+  look:        {cond:'cantidad',da:s=>`Conjunto por ${fmt(s.precio)}`},
+  monto:       {cond:'monto',   da:s=>`${sol(s.desc)} menos`},
+  montopct:    {cond:'monto',   da:s=>`−${s.pct} % en la compra`},
+  regalo:      {cond:'monto',   da:s=>REG[s.regalo].t},
+  club_pct:    {cond:'club',    da:s=>`−${s.pct} % para miembros`},
+  club_cupon:  {cond:'club',    da:s=>`${s.pct} % en su 1.ª compra`},
+  club_privada:{cond:'club',    da:s=>`Compra ${s.horas} h antes`},
+  club_puntos: {cond:'club',    da:s=>`Puntos x${s.mult}`}
+};
+const LIM = {pct:[5,70,5], qty:[2,6,1], precio:[20,500,5], pct2:[10,100,10], nth:[2,6,1], lleva:[2,6,1], m:[1,5,1], min:[100,600,50], desc:[10,100,5]};
+const limites = (W,f) => (W.tipo==='club_cupon'&&f==='pct') ? [5,30,5] : f==='m' ? [1,W.lleva-1,1] : LIM[f];
+const base = o => Object.assign({camp:null,liq:false,tipo:'pct',cats:[],sedes:[...SEDES],dias:0,pct:20,qty:2,precio:59.9,pct2:50,nth:2,lleva:3,m:2,min:300,desc:30,regalo:'basta',horas:24,mult:2,mezcla:false,partes:['blusas','faldas'],acum:true,nocats:[],claure:false,borrador:false,hist:[],tope:0,vendidas:0,sem:[0,1,2,3,4,5,6]}, o);
+const CAMP = [
+  base({id:'c1',camp:'halloween',n:'Casacas · −30 %',tipo:'pct',pct:30,cats:['casacas'],desde:'2026-10-12',hasta:'2026-10-31',vendidas:29}),
+  base({id:'c2',camp:'aniversario',n:'2 polos por S/ 59.90',tipo:'combo',qty:2,precio:59.9,cats:['polos'],desde:'2026-10-01',hasta:'2026-10-25'}),
+  base({id:'c3',camp:'aniversario',n:'S/ 30 menos desde S/ 300',tipo:'monto',min:300,desc:30,cats:['all'],desde:'2026-10-15',hasta:'2026-10-25'}),
+  base({id:'c4',camp:'aniversario',n:'Puntos dobles · fin de semana',tipo:'club_puntos',mult:2,cats:['all'],desde:'2026-10-24',hasta:'2026-10-25'}),
+  base({id:'c5',camp:'aniversario',n:'Toda la campaña · −10 %',tipo:'pct',pct:10,cats:['e:aniversario'],desde:'2026-10-01',hasta:'2026-10-25',vendidas:12,legado:true}),
+  base({id:'c6',camp:'madre',n:'Blusas y vestidos · −20 %',tipo:'pct',pct:20,cats:['blusas','vestidos'],desde:'2026-05-04',hasta:'2026-05-10'}),
+  base({id:'c7',camp:'gato',n:'Prendas del Gato · −10 %',tipo:'pct',pct:10,cats:['e:gato'],desde:'2026-10-24',hasta:'2026-10-30'}),
+  base({id:'c9',camp:'navidad',n:'Vestidos · −15 %',tipo:'pct',pct:15,cats:['vestidos'],desde:'2026-12-11',hasta:'2026-12-25',borrador:true}),
+  /* Una oferta de días sueltos (inventada, para ver cómo se lee en la lista): los polos al 2x1 solo martes y jueves. */
+  base({id:'c10',camp:'halloween',n:'Polos · 2x1 · mar y jue',tipo:'nxm',lleva:2,m:1,cats:['polos'],desde:'2026-10-26',hasta:'2026-10-31',sem:[1,3]})
+];
+/* Orden de la lista «Ya registradas»: las de la semilla en este orden; las nuevas, arriba. */
+const ordenar = () => CAMP.forEach((c,i)=>{ if(c.ord===undefined) c.ord = 100-i; });
+ordenar();
+let ORD = 200;
+const SNAP = JSON.stringify(CAMP);
+/* Los 15 tipos, agrupados en 5 respuestas en palabras de tienda. El primero de cada grupo es el que viene elegido. */
+const GRUPOS = [
+  {k:'rebaja', corto:'Una rebaja',      t:'Una rebaja',                  s:'20 % menos, S/ 10 menos o un precio único', ic:'tag',    tipos:['pct','soles','precio']},
+  {k:'varias', corto:'Llevar varias',   t:'Llevar varias y pagar menos', s:'3x2, 2 polos por S/ 59.90, la 2.ª al 50 %…', ic:'layers', tipos:['nxm','combo','segunda','volumen','look']},
+  {k:'monto',  corto:'Gastar un monto', t:'Gastar un monto y ahorrar',   s:'S/ 30 menos desde S/ 300',                  ic:'wallet', tipos:['monto','montopct']},
+  {k:'regalo', corto:'Un regalo',       t:'Un regalo',                   s:'Un arreglo de basta gratis desde S/ 200',   ic:'gift',   tipos:['regalo']},
+  {k:'club',   corto:'Para el Club',    t:'Algo para miembros del Club', s:'10 % menos, puntos dobles, compra privada…', ic:'star',   tipos:['club_pct','club_puntos','club_cupon','club_privada']}
+];
+const grupoDe = t => GRUPOS.find(g=>g.tipos.includes(t));
+const FORMA = {pct:'Un % menos',soles:'Soles menos en cada prenda',precio:'Un precio único',nxm:'3x2, 2x1…',combo:'Varias por un precio',segunda:'La 2.ª con descuento',volumen:'Más prendas, más descuento',look:'Un conjunto',monto:'Soles menos',montopct:'Un % menos',regalo:'Un regalo',club_pct:'% menos para miembros',club_puntos:'Puntos extra',club_cupon:'Cupón de bienvenida',club_privada:'Compra privada'};
+const AYUDA = {
+  pct:'El precio baja un porcentaje. El cliente no tiene que hacer nada.',
+  soles:'Cada prenda baja la misma cantidad de soles.',
+  precio:'Todas las prendas elegidas pasan a valer lo mismo.',
+  nxm:'Ej. 3x2: llevas 3 y pagas 2. También sirve 2x1.',
+  combo:'Llevando varias, el total tiene un precio fijo. Ej. 2 polos por S/ 59.90.',
+  segunda:'Una de las prendas lleva descuento. Ej. la 2.ª al 50 %, o la 4.ª gratis.',
+  volumen:'Desde cierta cantidad, todas bajan. Ej. 3 o más, 15 % menos.',
+  look:'Prendas distintas que juntas salen más baratas. Ej. blusa + falda.',
+  monto:'Si la compra llega al monto, se resta esa cantidad de soles.',
+  montopct:'Si la compra llega al monto, baja un porcentaje.',
+  regalo:'Si la compra llega al monto, el cliente se lleva un regalo.',
+  club_pct:'Un porcentaje menos, solo para quien es miembro del Club.',
+  club_cupon:'Un cupón para quien se une al Club: vale en su 1.ª compra.',
+  club_privada:'Los miembros compran antes que el resto de los clientes.',
+  club_puntos:'Los miembros acumulan más puntos por cada sol.'
+};
+/* =========================== utilidades =========================== */
+const $ = s => document.querySelector(s);
+const fmt = n => 'S/ ' + Number(n).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const r2 = n => Math.round(n*100)/100;
+const sol = n => Number.isInteger(n) ? 'S/ '+n : fmt(n);
+const plural = (n,s,p) => n+' '+(n===1?s:p);
+const esc = t => String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const lista = a => a.length<=1 ? (a[0]||'') : a.slice(0,-1).join(', ')+' y '+a[a.length-1];
+const cap = t => t.charAt(0).toUpperCase()+t.slice(1);
+/* El precio rebajado baja al .90 más cercano hacia abajo (ADR-0182). «Gratis» no pasa por esa regla. */
+const rebaja = (p,pct) => r2(Math.floor(p*(1-pct/100)-0.9+1e-9)+0.9);
+const rebajaP = (p,pct) => pct>=100 ? 0 : rebaja(p,pct);
+const precioSug = W => r2(Math.round(W.qty*(catsDe(W)[0]||CATS[3]).ej.p*.75/5)*5-.1);
+const precioLook = W => r2(Math.round(W.partes.reduce((t,id)=>t+CATS.find(c=>c.id===id).ej.p,0)*.8/5)*5-.1);
+const D = s => new Date(s+'T00:00:00');
+const campanaDe = id => ETQS.find(e=>e.id===id);
+const reglasDe = id => CAMP.filter(c=>c.camp===id);
+const fechaTxt = s => { const d=D(s); return d.getDate()+' '+MES[d.getMonth()]; };
+const diasEntre = (a,b) => Math.round((D(b)-D(a))/864e5);
+const estadoDe = c => c.borrador ? 'Borrador' : c.desde>HOY ? 'Programada' : c.hasta<HOY ? 'Terminada' : 'Vigente';
+const fam = c => TIPOS[c.tipo].cond==='ninguna' ? 'Oferta' : 'Promoción';
+const etqGrupo = e => ({id:'e:'+e.id, n:e.n, etq:true, prendas:e.prendas, unid:e.unid, v30:e.v30, ej:CATS.find(c=>c.id===e.ej).ej});
+const catsDe = c => { const t = c.cats.includes('all') ? CATS : [...CATS.filter(x=>c.cats.includes(x.id)), ...ETQS.filter(e=>c.cats.includes('e:'+e.id)).map(etqGrupo)]; return (c.nocats||[]).length ? t.filter(x=>!c.nocats.includes(x.id)) : t; };
+const catsTxt = c => c.cats.includes('all') ? 'Todo' : (catsDe(c).length<=2 ? catsDe(c).map(x=>x.etq?'Toda la campaña':x.n).join(' y ') : catsDe(c).length+' grupos');
+/* Unas reglas miran PRENDAS y otras miran la COMPRA entera (el monto, el regalo, el cupón y los puntos): estas se saltan la pregunta 2. */
+const deCompra = t => ['monto','montopct','regalo','club_cupon','club_puntos'].includes(t);
+const esPrecio = c => ['pct','soles','precio','combo','segunda','nxm','volumen','look'].includes(c.tipo);
+const unitario = (s,p) => s.tipo==='pct' ? rebaja(p,s.pct) : s.tipo==='soles' ? r2(Math.max(0,p-s.desc)) : s.tipo==='precio' ? s.precio : p;
+const ic = (n,c='') => `<svg class="ic ${c}"><use href="#i-${n}"/></svg>`;
+const chipEstado = e => `<span class="chip ${e==='Vigente'?'v':e==='Programada'?'p':e==='Borrador'?'a':''}">${e}</span>`;
+const chipFam = f => `<span class="chip nodot ${f==='Oferta'?'t':'p'}">${f}</span>`;
+const sedesTxt = s => s.length===SEDES.length ? 'Las 3 tiendas' : s.join(' · ');
+const todasCamp = W => W.cats.some(x=>x.startsWith('e:'));
+const salta2 = W => deCompra(W.tipo);
+const esCant = W => ['combo','segunda','nxm','volumen'].includes(W.tipo);
+
+/* =========================== cálculos (copiados de ../index.html) =========================== */
+function alcance(s){
+  const f = {0:1,60:.5,90:.3,120:.15}[s.dias]||1;
+  const cs = catsDe(s), e = campanaDe(s.camp);
+  let prendas = Math.round(cs.reduce((t,c)=>t+c.prendas,0)*f), unid = Math.round(cs.reduce((t,c)=>t+c.unid,0)*f);
+  if(e && !deCompra(s.tipo)){ prendas = Math.min(prendas,Math.round(e.prendas*f)); unid = Math.min(unid,Math.round(e.unid*f)); }
+  return {prendas, unid, f};
+}
+function costoEst(s){
+  const cs = catsDe(s), f = alcance(s).f, sf = s.sedes.length/SEDES.length;
+  let t = 0;
+  for(const c of cs){
+    const u = c.v30*f*sf, p = c.ej.p;
+    if(['pct','soles','precio'].includes(s.tipo)) t += u*Math.max(0,p-unitario(s,p));
+    else if(s.tipo==='combo') t += (u*.5/s.qty)*(s.qty*p-s.precio);
+    else if(s.tipo==='segunda') t += (u*.5/s.nth)*(p*s.pct2/100);
+    else if(s.tipo==='nxm') t += (u*.5/s.lleva)*((s.lleva-s.m)*p);
+    else if(s.tipo==='volumen') t += (u*.5)*(p*s.pct/100);
+  }
+  if(s.tipo==='look') t = Math.min(...cs.map(c=>c.v30))*.3*sf*Math.max(0,cs.reduce((a,c)=>a+c.ej.p,0)-s.precio);
+  if(s.tipo==='monto') t = 40*sf*s.desc;
+  if(s.tipo==='montopct') t = 40*sf*(s.pct/100)*(s.min+12);
+  if(s.tipo==='club_pct') t = 30*sf*(s.pct/100)*90;
+  if(s.tipo==='regalo') t = 35*sf*REG[s.regalo].costo;
+  if(s.tipo==='club_cupon') t = 12*(s.pct/100)*140;
+  if(s.tipo==='club_puntos') t = 3000*(s.mult-1)*0.05;
+  if(s.tipo==='club_privada') t = 0;
+  /* Con días sueltos, solo cuentan los días que caen en sus fechas. */
+  const fd = semDe(s).length<7 ? (()=>{ const r = rigenN(s); return r.total ? r.rige/r.total : 1; })() : 1;
+  return Math.round(t*fd/10)*10;
+}
+const nombreBase = s => s.tipo==='monto' ? `${sol(s.desc)} menos desde ${sol(s.min)}`
+  : s.tipo==='montopct' ? `${s.pct} % menos desde ${sol(s.min)}`
+  : s.tipo==='regalo' ? `${REG[s.regalo].t} desde ${sol(s.min)}`
+  : s.tipo.startsWith('club') ? `${TIPOS[s.tipo].da(s)} · Club`
+  : `${catsTxt(s)} · ${TIPOS[s.tipo].da(s)}`;
+const defNombre = s => nombreBase(s) + (diasCorto(s) ? ' · '+diasCorto(s) : '');
+function cruces(s){
+  if(!esPrecio(s)) return [];
+  return CAMP.filter(c=>estadoDe(c)!=='Terminada' && esPrecio(c) && c.id!==s.editId && c.desde<=s.hasta && s.desde<=c.hasta && semDe(c).some(d=>semDe(s).includes(d)) &&
+    (c.cats.includes('all')||s.cats.includes('all')||c.cats.some(x=>s.cats.includes(x))||(c.camp===s.camp&&(c.cats.some(x=>x.startsWith('e:'))||s.cats.some(x=>x.startsWith('e:'))))) && c.sedes.some(x=>s.sedes.includes(x)));
+}
+/* Los avisos: SOLO los que piden decidir algo (ámbar) y dos informativos útiles (cruce y monto). Nada de verificaciones en verde. */
+function avisos(s){
+  const out = [], ec = campanaDe(s.camp);
+  const sem = semDe(s);
+  if(sem.length>0 && sem.length<7 && D(s.hasta) >= D(s.desde)){
+    const {rige:nr,total} = rigenN(s);
+    if(nr===0) out.push({k:'nunca',t:'a',x:`En esas fechas no cae ${sem.length===1?`ningún ${SEMN[sem[0]]}`:`ninguno de esos días (${lista(sem.map(i=>SEMN[i]))})`}.`,s:`Del ${fechaTxt(s.desde)} al ${fechaTxt(s.hasta)} la oferta no regiría nunca. Cambia los días o las fechas.`});
+    if(esPrecio(s)) out.push({k:'papel',t:'i',x:'El papel colgado no cambia cada día.',s:'Antes de activarla, decide con el líder qué dirá la etiqueta.'});
+  }
+  if(D(s.hasta) < D(s.desde)) out.push({k:'orden',t:'a',x:'La fecha de término es anterior a la de inicio.'});
+  else if(ec && (s.desde<ec.desde||s.hasta>ec.hasta)) out.push({k:'fuera',t:'a',x:`Las fechas se salen de «${ec.n}» (${fechaTxt(ec.desde)} – ${fechaTxt(ec.hasta)}).`,s:'Una oferta no puede regir fuera de su campaña.',act:'encajar'});
+  if(esPrecio(s)){
+    if(s.cats.length && alcance(s).prendas===0) out.push({k:'vacia',t:'a',x:'Todavía no alcanza ninguna prenda.',s:'Márcalas en «Prendas» o suma categorías en «La campaña».'});
+    if(s.tipo==='combo'){
+      const sin = catsDe(s).filter(c=>s.precio>=s.qty*c.ej.p);
+      if(sin.length) out.push({k:'combo',t:'a',x:`El paquete no es una rebaja en ${sin.map(c=>c.n).join(', ')}.`,s:`${s.qty} cuestan ${fmt(s.qty*sin[0].ej.p)} por separado y el paquete ${fmt(s.precio)}. Un precio de paquete que no baja el precio es el engaño que Indecopi sanciona.`});
+    }
+    if(s.tipo==='look'){
+      const suma = s.partes.reduce((t,id)=>t+CATS.find(c=>c.id===id).ej.p,0);
+      if(s.partes.length<2) out.push({k:'look',t:'a',x:'Un conjunto necesita al menos 2 prendas distintas.'});
+      else if(s.precio>=suma) out.push({k:'look',t:'a',x:'El conjunto no es una rebaja.',s:`Por separado cuestan ${fmt(suma)} y el conjunto ${fmt(s.precio)}. Es el engaño que Indecopi sanciona.`});
+    }
+    const jean = (s.cats.includes('all')||s.cats.includes('pantalones')) && !s.excl.includes('jean');
+    if(jean) out.push({k:'jean',t:'a',x:'Jean Palazzo subió de S/ 119 a S/ 129 hace 6 días.',s:'Si la rebajas ahora, el «antes» no es un precio normal y Indecopi puede tomarlo como engaño.',act:'excl'});
+    if(s.tipo==='precio'){
+      const sin = catsDe(s).filter(c=>s.precio>=c.ej.p);
+      if(sin.length) out.push({k:'precio',t:'a',x:`A ${fmt(s.precio)} no es una rebaja en ${sin.map(c=>c.n).join(', ')}.`,s:`Su precio de lista es ${fmt(sin[0].ej.p)}. Es el engaño que Indecopi sanciona.`});
+    }
+    if(['pct','soles','precio'].includes(s.tipo)){
+      const bajo = catsDe(s).filter(c=>unitario(s,c.ej.p)<c.ej.c);
+      if(bajo.length) out.push({k:'costo',t:'a',x:`Queda por debajo del costo: ${bajo.map(c=>c.n).join(', ')}.`,s:'No se bloquea, pero pierdes plata en cada prenda: avísale al contador.'});
+    }
+    const cr = cruces(s);
+    if(cr.length) out.push({k:'cruce',t:'i',x:`Se cruza con «${cr[0].n}»${cr.length>1?` y ${cr.length-1} más`:''}.`,s:'En cada prenda gana la que deja al cliente con el mejor precio; no se suman.'});
+  } else if(s.tipo==='monto'||s.tipo==='montopct'){
+    out.push({k:'monto',t:'i',x:'El monto se cuenta sobre lo que el cliente paga,',s:'después de las demás ofertas. Una prenda ya rebajada cuenta con su precio rebajado.'});
+  } else if(s.tipo==='regalo'){
+    out.push({k:'regalo',t:'a',x:'Un regalo es una transferencia gratuita.',s:'Pregúntale al contador cómo se declara en la boleta antes de activarlo.'});
+  }
+  if(s.claure) out.push({k:'claure',t:'a',x:'Entran las prendas de Claurè.',s:'Es otra empresa: confirma con su dueña que acepta el descuento.'});
+  return out;
+}
+
+/* =========================== frases en palabras de tienda =========================== */
+const extras = W => [ (W.nocats||[]).length ? `menos ${W.nocats.map(id=>CATS.find(c=>c.id===id).n.toLowerCase()).join(' y ')}` : '', W.dias ? `solo lo que lleva ${W.dias}+ días en el piso` : '', W.claure ? 'con prendas de Claurè' : ''].filter(Boolean);
+function prendasEn(W){
+  if(W.tipo==='look') return 'dentro de las prendas de la campaña';
+  const ex = extras(W);
+  const b = todasCamp(W) ? 'en todas las prendas de la campaña' : (catsDe(W).length ? 'solo en '+lista(catsDe(W).map(c=>c.n)) : 'en ninguna categoría todavía');
+  return b + (ex.length ? ` (${ex.join(', ')})` : '');
+}
+function prendasDe(W){ return todasCamp(W) ? 'de la campaña' : (catsDe(W).length ? 'de '+lista(catsDe(W).map(c=>c.n)) : 'de ninguna categoría'); }
+function prendasCorto(W){
+  if(salta2(W)) return 'Toda la compra';
+  if(W.tipo==='look') return lista(W.partes.map(id=>CATS.find(c=>c.id===id).n));
+  const b = todasCamp(W) ? 'Todas las de la campaña' : (catsDe(W).length ? lista(catsDe(W).map(c=>c.n)) : 'Elige categorías');
+  const ex = extras(W);
+  return b + (ex.length ? ' · '+ex.join(' · ') : '');
+}
+/* Los días de la semana de una oferta: 0 = lunes … 6 = domingo. «Todos» = rige cada día de sus fechas. */
+const SEMTODOS = [0,1,2,3,4,5,6];
+const SEMN = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+const SEMP = ['lunes','martes','miércoles','jueves','viernes','sábados','domingos'];
+const SEM3 = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const semDe = W => W.sem || SEMTODOS;
+/* Qué día de la semana cae en cada fecha entre «desde» y «hasta» (con setDate: un cambio de hora no corre un día). */
+function semDelRango(W){
+  const r = []; if(!W.desde || !W.hasta || W.hasta<W.desde) return r;
+  const n = Math.min(diasEntre(W.desde,W.hasta),400), d = D(W.desde);
+  for(let i=0;i<=n;i++){ r.push((d.getDay()+6)%7); d.setDate(d.getDate()+1); }
+  return r;
+}
+/* Cuántos días de sus fechas rige de verdad: los que caen en los días elegidos. */
+const rigenN = W => { const sem = semDe(W), r = semDelRango(W); return {rige:r.filter(d=>sem.includes(d)).length, total:r.length}; };
+const contiguos = s => s.length>=3 && s.every((x,i)=>i===0||x===s[i-1]+1);
+/* «los martes y jueves» · «de lunes a viernes» · «los sábados y domingos»; vacío si rige todos los días. */
+function diasTxt(W){
+  const s = [...semDe(W)].sort((a,b)=>a-b);
+  if(s.length===7) return '';
+  if(!s.length) return 'ningún día';
+  if(s.join()==='5,6') return 'los sábados y domingos';
+  if(contiguos(s)) return `de ${SEMN[s[0]]} a ${SEMN[s[s.length-1]]}`;
+  return 'los '+lista(s.map(i=>SEMP[i]));
+}
+/* «mar y jue» · «lun a vie» · «fin de semana»: para el nombre y la lista. */
+function diasCorto(W){
+  const s = [...semDe(W)].sort((a,b)=>a-b);
+  if(s.length===7) return '';
+  if(!s.length) return 'sin días';
+  if(s.join()==='5,6') return 'fin de semana';
+  if(contiguos(s)) return `${SEM3[s[0]]} a ${SEM3[s[s.length-1]]}`.toLowerCase();
+  return lista(s.map(i=>SEM3[i].toLowerCase()));
+}
+/* Una oferta con días sueltos solo vale si al menos uno de sus días cae dentro de sus fechas. */
+const semOk = W => { const s = semDe(W); return s.length===7 || (s.length>0 && rigenN(W).rige>0); };
+const rangoTxt = W => W.desde===W.hasta ? `el ${fechaTxt(W.desde)}` : `del ${fechaTxt(W.desde)} al ${fechaTxt(W.hasta)}`;
+const rige = W => `Rige ${W.sedes.length===SEDES.length?'en las 3 tiendas':W.sedes.length?'solo en '+lista(W.sedes):'en ninguna tienda todavía'}${diasTxt(W)?', '+diasTxt(W):''}, ${rangoTxt(W)}.`;
+function oracion(W){
+  const pe = prendasEn(W), pd = prendasDe(W), mz = W.mezcla ? ', de cualquiera de las elegidas' : ', del mismo modelo';
+  const p = {
+    pct:`${W.pct} % menos ${pe}.`,
+    soles:`${sol(W.desc)} menos en cada prenda ${pd}.`,
+    precio:`Todas las prendas ${pd} a ${fmt(W.precio)}.`,
+    combo:`${W.qty} por ${fmt(W.precio)} ${pe}${mz}.`,
+    segunda:`La ${W.nth}.ª ${W.pct2>=100?'gratis':`con ${W.pct2} % menos`} ${pe}${mz}.`,
+    nxm:`${W.lleva}x${W.m}: lleva ${W.lleva} y paga ${W.m} ${pe}${mz}.`,
+    volumen:`${W.pct} % menos desde ${W.qty} prendas ${pe}${mz}.`,
+    look:`${lista(W.partes.map(id=>CATS.find(c=>c.id===id).n.toLowerCase()))} juntas por ${fmt(W.precio)}.`,
+    monto:`${sol(W.desc)} menos en compras desde ${sol(W.min)}.`,
+    montopct:`${W.pct} % menos en compras desde ${sol(W.min)}.`,
+    regalo:`${REG[W.regalo].t} en compras desde ${sol(W.min)}.`,
+    club_pct:`${W.pct} % menos para los miembros del Club ${pe}.`,
+    club_cupon:`${W.pct} % menos en la 1.ª compra de un miembro nuevo.`,
+    club_privada:`Los miembros del Club compran ${W.horas} horas antes ${pe}.`,
+    club_puntos:`Los miembros ganan puntos x${W.mult} en toda la compra.`
+  }[W.tipo];
+  return {que:cap(p), rige:rige(W)};
+}
+
+/* =========================== estado =========================== */
+function fechasDeCampana(W){ const e = campanaDe(W.camp); W.desde = e.desde>HOY ? e.desde : HOY; W.hasta = e.hasta; }
+const nuevoW = () => { const W = Object.assign(base({}), {camp:CAMPANA.id, elegido:false, editId:null, nombre:'', nombreMan:false, excl:[], desde:HOY, hasta:CAMPANA.hasta, precioMan:false, catsMem:null, semSolo:false, cats:['e:'+CAMPANA.id]}); fechasDeCampana(W); return W; };
+const S0 = () => ({paso:1, vis:{1:false,2:false,3:false}, abre2:false, mas2:false, masq3:false, cedo:false, nota3:'', verTodas:false, regsAb:false, recien:null, toast:null, ent:true, pulso:false, W:nuevoW()});
+const S = Object.assign({dev:'escritorio', tema:'claro', rol:'lider', abierta:true, mAnim:true}, S0());
+
+/* =========================== los tres pasos =========================== */
+function stepper(f,txt,W,typed){
+  const [mn,mx,st] = limites(W,f);
+  const mid = typed ? `<input data-f="num" data-n="${f}" value="${esc(txt)}" inputmode="decimal" autocomplete="off" aria-label="Escribe el valor (hoy ${esc(txt)})" onfocus="this.select()">` : `<b>${txt}</b>`;
+  return `<div class="pq"><button data-a="step" data-n="${f}" data-d="${-st}" ${W[f]<=mn?'disabled':''} aria-label="Menos">${ic('minus')}</button>${mid}<button data-a="step" data-n="${f}" data-d="${st}" ${W[f]>=mx?'disabled':''} aria-label="Más">${ic('plus')}</button></div>`;
+}
+/* Solo los 1 a 3 contadores del tipo elegido, con la oración viva en la etiqueta. */
+function controles(W){
+  const c = (l,h,x='') => `<div class="t3-c ${x}"><span class="t3-cl">${l}</span>${h}</div>`;
+  const st = (f,l,txt,typed) => c(l,stepper(f,txt,W,typed));
+  const ch = (l,h) => c(l,`<div class="chips">${h}</div>`,'ancho');
+  switch(W.tipo){
+    case 'pct': return st('pct','Cuánto menos',`−${W.pct} %`);
+    case 'soles': return st('desc','Soles menos en cada prenda',sol(W.desc),true);
+    case 'precio': return st('precio','Todas a',fmt(W.precio),true);
+    case 'nxm': return st('lleva','Lleva',`${W.lleva} prendas`) + st('m','Paga',plural(W.m,'prenda','prendas'));
+    case 'combo': return st('qty','Cuántas lleva',`${W.qty} prendas`) + st('precio','Por cuánto',fmt(W.precio),true);
+    case 'segunda': return st('nth','Cuál lleva descuento',`La ${W.nth}.ª`) + st('pct2','Cuánto menos',W.pct2>=100?'Gratis':`−${W.pct2} %`);
+    case 'volumen': return st('qty','Desde cuántas',`${W.qty} prendas`) + st('pct','Cuánto menos en todas',`−${W.pct} %`);
+    case 'look': return ch('Qué prendas lo forman · elige 2 o 3', CATS.map(x=>`<button class="opc ${W.partes.includes(x.id)?'on':''}" data-a="parte" data-v="${x.id}">${x.n}</button>`).join('')) + st('precio','Precio del conjunto',fmt(W.precio),true);
+    case 'monto': return st('min','Desde cuánto',sol(W.min),true) + st('desc','Cuántos soles menos',sol(W.desc),true);
+    case 'montopct': return st('min','Desde cuánto',sol(W.min),true) + st('pct','Cuánto menos',`−${W.pct} %`);
+    case 'regalo': return st('min','Desde cuánto',sol(W.min),true) + ch('Qué se regala', Object.entries(REG).map(([k,v])=>`<button class="opc ${W.regalo===k?'on':''}" data-a="regalo" data-v="${k}">${v.t} <small>${v.sub}</small></button>`).join(''));
+    case 'club_pct': case 'club_cupon': return st('pct','Cuánto menos',`−${W.pct} %`);
+    case 'club_privada': return ch('Cuántas horas antes', [12,24,48].map(h=>`<button class="opc ${W.horas===h?'on':''}" data-a="horas" data-v="${h}">${h} horas</button>`).join(''));
+    case 'club_puntos': return ch('Puntos por cada sol', [2,3].map(m=>`<button class="opc ${W.mult===m?'on':''}" data-a="mult" data-v="${m}">x${m} <small>${m} puntos por cada S/ 1</small></button>`).join(''));
+  }
+  return '';
+}
+function q1(W){
+  const h = `<h2>¿Qué le das al cliente?</h2><p class="baj">${W.elegido?'Ajusta los números. Lo demás ya viene contestado.':'Elige lo que más se parezca. Los detalles vienen después.'}</p>`;
+  if(!W.elegido) return h + `<div class="t3-fams ${S.pulso?'pulsa':''}" role="radiogroup" aria-label="Qué le das al cliente">${GRUPOS.map(g=>`<button class="t3-fam" role="radio" aria-checked="false" data-a="grupo" data-v="${g.k}"><span class="ico">${ic(g.ic,'m')}</span><b>${g.t}</b><small>${g.s}</small><span class="go">${ic('right','s')}</span></button>`).join('')}</div>`;
+  const G = grupoDe(W.tipo);
+  return h + `<div class="t3-gp" role="radiogroup" aria-label="Qué le das al cliente">${GRUPOS.map(g=>`<button class="pil ${g.k===G.k?'on':''}" role="radio" aria-checked="${g.k===G.k}" data-a="grupo" data-v="${g.k}">${g.corto}</button>`).join('')}</div>
+    ${G.tipos.length>1?`<div class="t3-sub"><span class="lbl">De qué forma</span><div class="chips">${G.tipos.map(t=>`<button class="opc ${W.tipo===t?'on':''}" data-a="forma" data-v="${t}">${FORMA[t]}</button>`).join('')}</div></div>`:''}
+    <div class="t3-cs">${controles(W)}</div>
+    <p class="t3-ayuda">${ic('info','s')}<span>${AYUDA[W.tipo]}${salta2(W)?' Cuenta toda la compra, así que se salta la pregunta de las prendas.':''}${W.tipo==='combo'&&!W.precioMan?' El precio sigue a las prendas que elijas después, hasta que lo cambies.':''}</span></p>`;
+}
+function panel2(W){
+  const camp = CAMPANA, todas = todasCamp(W);
+  const prendas = W.tipo==='look'
+    ? `<div class="t3-der">${ic('search','s')}<span>Las del conjunto que elegiste (${prendasCorto(W).toLowerCase()}), dentro de las prendas de «${camp.n}».</span></div>`
+    : `<div class="t3-pg"><span class="lbl">Prendas</span><div class="chips"><button class="opc ${todas?'on':''}" data-a="todas2">Todas las de la campaña <small>${camp.prendas}</small></button></div>
+        <div class="sublbl" style="margin-top:8px">O solo de estas categorías <span>· dentro de las prendas de la campaña</span></div>
+        <div class="chips">${CATS.map(c=>`<button class="opc ${!todas&&W.cats.includes(c.id)?'on':''}" data-a="cat" data-v="${c.id}">${c.n} <small>${c.prendas}</small></button>`).join('')}</div></div>`;
+  const tiendas = `<div class="t3-pg"><span class="lbl">Tiendas</span> <span class="t3-sm">· la tienda web cobra lo mismo y no se elige aparte</span><div class="chips" style="margin-top:6px">${SEDES.map(x=>`<button class="opc ${W.sedes.includes(x)?'on':''}" data-a="sede" data-v="${x}">${x}</button>`).join('')}</div></div>`;
+  const cuentan = esCant(W) ? `<div class="t3-pg"><span class="lbl">Cuáles prendas cuentan para llevar varias</span><div class="chips"><button class="opc ${!W.mezcla?'on':''}" data-a="mezcla" data-v="0">Del mismo modelo <small>cualquier color o talla</small></button><button class="opc ${W.mezcla?'on':''}" data-a="mezcla" data-v="1">Cualquiera de las elegidas <small>el descuento va a la más barata</small></button></div></div>` : '';
+  const mas = W.tipo==='look' ? '' : (S.mas2 ? `<div class="t3-pg">
+      <div class="sublbl" style="margin-top:0">Dejar fuera <span>· opcional</span></div><div class="chips">${CATS.map(c=>`<button class="opc ${W.nocats.includes(c.id)?'on':''}" data-a="nocat" data-v="${c.id}">${W.nocats.includes(c.id)?'Sin ':''}${c.n}</button>`).join('')}</div>
+      <div class="sublbl">Prendas de Claurè <span>· otra empresa: fuera, salvo que las pongas a propósito</span></div><div class="chips"><button class="opc ${W.claure?'on':''}" data-a="claure">Incluir las de Claurè <small>${W.claure?'incluidas a propósito':'fuera de fábrica'}</small></button></div>
+      <div class="sublbl">Solo lo que lleva tiempo sin moverse <span>· opcional</span></div><div class="chips">${[[0,'Todas'],[60,'60+ días'],[90,'90+ días'],[120,'120+ días']].map(([d,t])=>`<button class="opc ${W.dias===d?'on':''}" data-a="dias" data-v="${d}">${t}</button>`).join('')}</div></div>` : '');
+  const enlaces = `<div class="t3-lnk">${W.tipo==='look'?'':`<button class="enl" data-a="mas2">${S.mas2?'Menos ajustes':'Más ajustes: dejar fuera, Claurè, días en el piso'}</button>`}<button class="enl" data-a="fabrica2" style="margin-left:auto">${ic('undo','s')} Volver a lo de fábrica</button></div>`;
+  return `<div class="t3-pn">${prendas}${tiendas}${cuentan}${enlaces}${mas}</div>`;
+}
+function q2(W){
+  const al = alcance(W);
+  const h = `<h2>¿En qué prendas y dónde?</h2><p class="baj">${S.abre2?'Cambia solo lo que haga falta.':'Ya viene contestado con lo más común. Si te sirve, sigue.'}</p>`;
+  if(S.abre2) return h + panel2(W);
+  const fila = (i,l,t,s) => `<div class="t3-r"><span class="ico">${ic(i,'m')}</span><span class="lbl">${l}</span><b>${t}</b><small>${s}</small></div>`;
+  const dd = W.sedes.length===SEDES.length ? 'En las 3 tiendas' : (W.sedes.length ? 'Solo en '+lista(W.sedes) : 'Elige al menos una tienda');
+  return h + `<div class="t3-rs">${fila('search','Prendas',cap(prendasCorto(W)), W.tipo==='look' ? 'Dentro de las prendas de la campaña' : `${plural(al.prendas,'prenda','prendas')} · ${al.unid} unidades en el piso`)}
+    ${fila('bag','Dónde',dd,'TRU · AQP · LIM. La tienda web cobra lo mismo y no se elige aparte.')}
+    ${esCant(W)?fila('layers','Cuentan',W.mezcla?'Cualquiera de las elegidas':'Prendas del mismo modelo',W.mezcla?'El descuento va a la más barata':'Cualquier color o talla'):''}</div>
+    <div class="t3-big"><button class="btn n grande" data-a="bienasi">${ic('check')} Está bien así</button><button class="btn n sec grande" data-a="cambiar2">Cambiar</button></div>`;
+}
+const iniFecha = W => W.editId ? CAMPANA.desde : (CAMPANA.desde>HOY ? CAMPANA.desde : HOY);
+function presets(W){
+  const camp = CAMPANA;
+  return [['Toda la campaña',[iniFecha(W),camp.hasta]],['Fin de semana',['2026-10-24','2026-10-25']],['7 días',['2026-10-26','2026-11-01']],['Hasta fin de mes',['2026-10-26','2026-10-31']]]
+    .filter(([t,r])=>r[0]>=camp.desde && r[1]<=camp.hasta && r[1]>=HOY);
+}
+/* «¿Qué días de la semana?»: todos (de fábrica) o solo algunos, con los siete días a un toque. Un día que no cae en las fechas se ve apagado: tocarlo no serviría. */
+function semUI(W){
+  const sem = semDe(W), algunos = !!W.semSolo || sem.length<7, rango = new Set(semDelRango(W));
+  const dia = i => `<button class="t3-dia ${sem.includes(i)?'on':''} ${rango.has(i)?'':'fuera'}" data-a="dsem" data-v="${i}" aria-pressed="${sem.includes(i)}" title="${SEMN[i]}${rango.has(i)?'':': no cae en estas fechas'}">${SEM3[i]}</button>`;
+  return `<div class="t3-sem"><div class="t3-semf"><span class="lbl" title="¿Qué días de la semana rige?">Días</span><button class="opc ${algunos?'':'on'}" data-a="semtodos">Todos los días</button><button class="opc ${algunos?'on':''}" data-a="semalgunos">Solo algunos días</button>${algunos?`<button class="enl" data-a="semlv">Lun–vie</button><button class="enl" data-a="semsd">Sáb y dom</button>`:''}</div>
+    ${algunos?`<div class="t3-dias" role="group" aria-label="Días de la semana en que rige">${SEMTODOS.map(dia).join('')}</div>${sem.length?'':'<div class="t3-sm" style="margin-top:6px">Toca los días en que rige.</div>'}`:''}
+  </div>`;
+}
+const avisoHTML = a => `<div class="nota ${a.t==='a'?'am':''}" style="margin-top:8px">${ic(a.t==='a'?'alert':'info','s')}<span><b>${a.x}</b>${a.s?` ${a.s}`:''}${a.act==='excl'?` <button class="btn n sec chico" style="margin-left:4px" data-a="excl">Sacarla de la oferta</button>`:''}${a.act==='encajar'?` <button class="btn n sec chico" style="margin-left:4px" data-a="encajar">Ajustar a la campaña</button>`:''}</span></div>`;
+function masOpc(W){
+  const nombre = W.nombreMan ? W.nombre : defNombre(W);
+  return `<div class="t3-mas">
+    <div><span class="lbl">Nombre</span><span class="t3-sm"> · se arma solo; cámbialo si quieres</span><div class="campo" style="margin-top:6px"><input value="${esc(nombre)}" data-f="nombre" aria-label="Nombre de la oferta"></div></div>
+    <div><span class="lbl">Con las demás ofertas</span><div class="chips" style="margin-top:6px"><button class="opc ${W.acum?'on':''}" data-a="acum" data-v="1">Se suma <small>si la prenda ya está en otra oferta, el cliente recibe las dos</small></button><button class="opc ${!W.acum?'on':''}" data-a="acum" data-v="0">No acumulable <small>si la prenda lleva esta, no recibe las demás</small></button></div></div>
+    ${salta2(W)?`<div><span class="lbl">Tiendas</span><div class="chips" style="margin-top:6px">${SEDES.map(x=>`<button class="opc ${W.sedes.includes(x)?'on':''}" data-a="sede" data-v="${x}">${x}</button>`).join('')}</div><div class="sublbl" style="margin-top:6px"><span>Esta promoción cuenta toda la compra; aquí solo eliges en qué tiendas rige.</span></div></div>`:''}
+  </div>`;
+}
+function q3(W){
+  const camp = CAMPANA, pres = presets(W), ini = iniFecha(W);
+  const av = avisos(W).filter(a=>a.t==='a' || ['cruce','monto','papel'].includes(a.k));
+  const rn = semDe(W).length<7 ? rigenN(W) : null;
+  const nombre = W.nombreMan ? W.nombre : defNombre(W);
+  return `<h2>¿Cuándo?</h2><p class="baj">Rige toda la campaña (hasta el ${fechaTxt(camp.hasta)}) salvo que lo cambies.</p>
+    <div class="chips" style="margin-top:12px">${pres.map(([t,r])=>`<button class="opc ${W.desde===r[0]&&W.hasta===r[1]?'on':''}" data-a="rango" data-v="${r.join(',')}">${t}</button>`).join('')}</div>
+    <div class="dosc" style="margin-top:10px"><label><span>Desde</span><div class="campo"><input type="date" value="${W.desde}" data-f="desde" min="${ini}" max="${camp.hasta}"></div></label><label><span>Hasta</span><div class="campo"><input type="date" value="${W.hasta}" data-f="hasta" min="${ini}" max="${camp.hasta}"></div></label></div>
+    ${semUI(W)}
+    <div class="t3-rev"><span class="lbl">Revisa y guarda</span>
+      <p class="t3-oracion">${oracion(W).que}</p><p class="t3-rige">${oracion(W).rige}${rn&&rn.rige>0?` <span class="t3-sm">· ${rn.rige} de ${rn.total} días</span>`:''}</p>
+      ${S.nota3?`<div class="nota">${ic('info','s')}<span>${S.nota3}</span></div>`:''}
+      ${av.map(avisoHTML).join('')}
+      <div class="t3-fin"><button class="enl" data-a="cedo">${S.cedo?'Ocultar lo que cedes':'¿Cuánto margen cedo?'}</button><span class="t3-sm">Se llamará «${esc(nombre)}»${W.acum?'':' · no acumulable'}</span><button class="enl" data-a="masq3">${S.masq3?'Menos opciones':'Más opciones'}</button></div>
+      ${S.cedo?`<div class="nota t3-cedo">${ic('info','s')}<span><b>≈ ${fmt(costoEst(W))}</b> ${costoEst(W)?'si vendes como en los últimos 30 días. Es una estimación, no una promesa.':'— esta promoción no baja ningún precio.'}</span></div>`:''}
+      ${S.masq3?masOpc(W):''}
+    </div>`;
+}
+/* La etiqueta: lo que verá el cliente + las respuestas, que se llenan una a una. Lo que no se tocó dice «de fábrica». */
+function ejemplo(W){
+  const T = TIPOS[W.tipo], cs = catsDe(W).length ? catsDe(W) : CATS, pj = cs[0].ej;
+  const ej = (l,a,b) => `<div class="t3-ej"><b>${l}</b><span><s>${fmt(a)}</s>${fmt(b)}</span></div>`;
+  const txt = t => `<div class="t3-ej"><b>${t}</b></div>`;
+  switch(W.tipo){
+    case 'pct': case 'soles': case 'precio': return ej(pj.n, pj.p, unitario(W,pj.p));
+    case 'combo': return ej(`${W.qty} × ${pj.n}`, W.qty*pj.p, W.precio);
+    case 'segunda': return ej(`${W.nth} × ${pj.n}`, W.nth*pj.p, r2((W.nth-1)*pj.p+rebajaP(pj.p,W.pct2)));
+    case 'nxm': return ej(`${W.lleva} × ${pj.n}`, W.lleva*pj.p, W.m*pj.p);
+    case 'volumen': return ej(`${W.qty} × ${pj.n}`, W.qty*pj.p, r2(W.qty*unitario({tipo:'pct',pct:W.pct},pj.p)));
+    case 'look': return ej(W.partes.map(id=>CATS.find(c=>c.id===id).ej.n.split(' ')[0]).join(' + '), W.partes.reduce((t,id)=>t+CATS.find(c=>c.id===id).ej.p,0), W.precio);
+    case 'monto': return ej(`Compra de ${fmt(W.min+12)}`, W.min+12, W.min+12-W.desc);
+    case 'montopct': return ej(`Compra de ${fmt(W.min+12)}`, W.min+12, r2((W.min+12)*(1-W.pct/100)));
+    case 'regalo': return txt(`En compras desde ${sol(W.min)}`);
+    default: return txt('Solo para miembros del Club');
+  }
+}
+function etiqueta(){
+  const W = S.W, el = W.elegido, T = TIPOS[W.tipo], sk = el && salta2(W);
+  const lin = (n,v,fab) => `<div class="t3-ef"><span class="n">${n}</span><span class="v">${v?v:'<i class="pend">por elegir</i>'}${v&&fab?'<i>de fábrica</i>':''}</span></div>`;
+  const da = el ? T.da(W) : 'Tu oferta', tam = da.length>18 ? 22 : da.length>11 ? 28 : 38;
+  const corta = el ? `${prendasCorto(W)} · ${sedesTxt(W.sedes).toLowerCase()} · ${rangoTxt(W)}${diasTxt(W)?' · '+diasTxt(W):''}` : 'Aquí se va armando con cada respuesta.';
+  return `<aside class="t3-etq ${el?'':'vacia'}" aria-live="polite" aria-label="Así va quedando">
+    <span class="lbl">Lo que verá el cliente</span>
+    <div class="t3-etq-top"><span class="t3-marca">CAYLA</span>${el?chipFam(fam(W)):''}</div>
+    <div class="t3-gran" style="font-size:${tam}px">${da}</div>
+    ${el?ejemplo(W):'<div class="t3-ej">Aquí se va armando con cada respuesta.</div>'}
+    <div class="t3-corta">${corta}</div>
+    <div class="t3-perf"></div>
+    ${lin('Qué', el?T.da(W):'', false)}
+    ${lin('Prendas', el?prendasCorto(W):'', !S.vis[2] && !sk)}
+    ${lin('Tiendas', el?sedesTxt(W.sedes):'', !S.vis[2])}
+    ${lin('Cuándo', el?rangoTxt(W).replace(/^el /,'')+(diasTxt(W)?' · '+diasTxt(W):''):'', !S.vis[3])}
+  </aside>`;
+}
+function dots(){
+  const W = S.W, sk = W.elegido && salta2(W);
+  const d = (n,t) => {
+    const on = S.paso===n, auto = n===2 && sk, ok = (n===1&&S.vis[1]) || (n===2&&(S.vis[2]||auto)) || (n===3&&S.vis[3]);
+    const off = !W.elegido && n>1 || auto;
+    return `<button class="t3-d ${on?'on':''} ${ok?'ok':''}" data-a="paso" data-v="${n}" ${off?'aria-disabled="true"':''} ${on?'aria-current="step"':''}><b>${ok?ic('check','s'):n}</b><span class="tx">${t}</span></button>`;
+  };
+  return `<nav class="t3-dots" aria-label="Pasos">${d(1,'Qué le das')}${d(2,sk?'Toda la compra':'Prendas y tiendas')}${d(3,'Cuándo')}</nav>`;
+}
+function wizard(){
+  const W = S.W, s = S.paso;
+  const body = s===1 ? q1(W) : s===2 ? q2(W) : q3(W);
+  const edit = W.editId ? `<div class="nota am t3-nota-edit">${ic('alert','s')}<span><b>Editando «${esc(W.nombreMan?W.nombre:defNombre(W))}».</b> Los cambios valen desde ahora; lo que ya se vendió se queda como estaba. <button class="btn n sec chico" style="margin-left:6px" data-a="nueva">Registrar otra en vez de editar</button></span></div>` : '';
+  return `<section class="t3-wz" aria-label="${W.editId?'Editar':'Nueva'} oferta o promoción"><div class="t3-top"><div class="sec-of"><b>${W.editId?'Editar':'Nueva'} oferta o promoción</b></div>${dots()}</div>${edit}
+    <div class="t3-cols"><div class="t3-q ${S.ent?'ent':''}" id="t3q">${body}</div>${etiqueta()}</div></section>`;
+}
+function railFila(c){
+  const P = ROLES[S.rol];
+  return `<div class="t3-rw"><button class="t3-reg ${S.recien===c.id?'recien':''} ${S.W.editId===c.id?'edit':''}" data-a="editar" data-v="${c.id}"><b>${esc(c.n)}</b><span class="m">${chipFam(fam(c))}${chipEstado(estadoDe(c))}</span><small>${TIPOS[c.tipo].da(c)} · ${fechaTxt(c.desde)} – ${fechaTxt(c.hasta)}${diasCorto(c)?' · '+diasCorto(c):''}${!c.acum?' · no acumulable':''}${c.legado?' · el descuento que tenía la campaña':''}</small>${c.hist.length?`<small class="hist">${ic('undo','s')} ${plural(c.hist.length,'cambio','cambios')} · antes: ${c.hist[c.hist.length-1]}</small>`:''}</button>${c.borrador?(P.act?`<button class="btn n sec chico" data-a="activar" data-v="${c.id}">Activar</button>`:`<span class="espera">espera a un líder</span>`):''}</div>`;
+}
+function rail(){
+  const rs = reglasDe(CAMPANA.id).sort((a,b)=>(b.ord||0)-(a.ord||0)), vis = S.verTodas ? rs : rs.slice(0,3), resto = rs.length-3;
+  return `<aside class="t3-rail"><button class="t3-tog" data-a="regsab" aria-expanded="${S.regsAb}">${ic('tag','s')} Ya registradas <span class="cn">${rs.length}</span><span style="margin-left:auto">${ic('down','s')}</span></button>
+    <div class="t3-rl ${S.regsAb?'ab':''}"><div class="t3-gt"><b>Ya registradas</b><span class="cn">${rs.length}</span></div>${vis.map(railFila).join('')}${resto>0?`<button class="enl" data-a="vertodas">${S.verTodas?'Ver menos':`Ver ${resto} más`}</button>`:''}<p class="t3-hint">Toca una para editarla: vale desde ese momento, lo ya vendido no cambia y queda su historial.</p></div></aside>`;
+}
+const listoW = W => W.elegido && W.cats.length>0 && W.sedes.length>0 && !(W.tipo==='look' && W.partes.length<2) && D(W.hasta)>=D(W.desde) && semOk(W);
+const faltanW = W => [!W.elegido&&'elegir qué le das al cliente', W.elegido&&!W.cats.length&&'elegir al menos una categoría', W.elegido&&!W.sedes.length&&'elegir al menos una tienda', W.tipo==='look'&&W.partes.length<2&&'elegir al menos 2 prendas del conjunto', D(W.hasta)<D(W.desde)&&'corregir las fechas', semDe(W).length===0&&'elegir al menos un día de la semana', semDe(W).length>0&&semDe(W).length<7&&D(W.hasta)>=D(W.desde)&&!semOk(W)&&'cambiar los días o las fechas: ninguno de esos días cae en ellas'].filter(Boolean);
+function pie(){
+  const W = S.W, P = ROLES[S.rol], edit = !!W.editId, s = S.paso, ok = listoW(W), fa = faltanW(W);
+  const volver = `<button class="volver ${s===1?'oculto':''}" data-a="atras" aria-label="Volver al paso anterior">${ic('left')}</button>`;
+  const cancelar = `<button class="btn n sec" data-a="cerrar">Cancelar</button>`;
+  let falta = '', der = '';
+  if(s===1){
+    if(!W.elegido){ falta = `Falta: <button class="enl" data-a="falta1" style="font-size:12.5px"><b>elegir qué le das al cliente</b></button>`; der = `<button class="btn n t3-sig" disabled>Siguiente ${ic('right','s')}</button>`; }
+    else {
+      falta = fa.length ? `Falta: <b>${fa[0]}</b>` : (salta2(W) ? 'Esta promoción cuenta toda la compra: solo falta decir cuándo. El atajo la guarda como borrador.' : 'Prendas, tiendas y fechas ya vienen contestadas. El atajo la guarda como borrador.');
+      der = `<button class="btn n sec t3-atajo" data-a="atajo" ${ok?'':'disabled'}>${edit?'Listo, guardar los cambios':'Listo, guardar con lo demás de fábrica'}</button><button class="btn n t3-sig" data-a="sig" ${ok?'':'disabled'}>Siguiente ${ic('right','s')}</button>`;
+    }
+  } else if(s===2){
+    if(S.abre2){ falta = fa.length ? `Falta: <b>${fa[0]}</b>` : 'Lo que cambies aquí se ve al instante en la etiqueta.'; der = `<button class="btn n t3-sig" data-a="listo2" ${fa.length?'disabled':''}>Listo, seguir ${ic('right','s')}</button>`; }
+    else falta = 'Lo de fábrica sirve casi siempre: todas las prendas de la campaña, en las 3 tiendas.';
+  } else {
+    falta = ok ? (edit ? 'Vale desde ahora; lo ya vendido no cambia.' : P.act ? 'Todo listo: actívala o déjala como borrador.' : 'Queda como borrador: un líder la activa.') : `Falta: <b>${fa[0]}</b>`;
+    der = edit ? `<button class="btn n" data-a="gcambios" ${ok?'':'disabled'}>${ic('check','s')} Guardar cambios</button>`
+      : P.act ? `<button class="btn n sec" data-a="gborrador" ${ok?'':'disabled'}>Guardar como borrador</button><button class="btn n" data-a="gactivar" ${ok?'':'disabled'}>${ic('check','s')} Activar</button>`
+      : `<button class="btn n" data-a="gborrador" ${ok?'':'disabled'}>${ic('check','s')} Guardar como borrador</button>`;
+  }
+  return `<div class="hoja-pie">${volver}${cancelar}<span class="falta">${falta}</span>${der}</div>`;
+}
+function hoja(){
+  const camp = CAMPANA, dias = diasEntre(camp.desde,camp.hasta)+1;
+  return `<div class="velo ${S.mAnim?'entra':''}"><div class="velo-fondo" data-a="cerrar"></div>
+    <div class="hoja" role="dialog" aria-modal="true" aria-label="Configuración «${camp.n}»">
+      <div class="hoja-cab t3-cab"><h2>Configuración «${camp.n}»</h2><div class="t3-camp">${ic('cal','s')}<span><b>La campaña</b> · <span class="solo-d">rige del ${fechaTxt(camp.desde)} al ${fechaTxt(camp.hasta)} (${dias} días) · ${camp.prendas} prendas a la venta</span><span class="solo-m">${fechaTxt(camp.desde)} – ${fechaTxt(camp.hasta)} · ${camp.prendas} prendas</span></span><button class="enl" data-a="campinfo"><span class="solo-d">Cambiar fechas o prendas</span><span class="solo-m">Cambiar</span></button></div></div>
+      <div class="hoja-cuerpo t3-cuerpo">
+        <div class="t3-g">${rail()}${wizard()}</div>
+      </div>
+      ${pie()}
+    </div></div>`;
+}
+/* =========================== el ERP de fondo =========================== */
+function lateral(activo='Insignias'){
+  const sub = n => `<a class="sub ${n===activo?'on':''}">${n}</a>`, top = n => `<a class="${n===activo?'on':''}">${n}</a>`;
+  return `<aside class="lat"><div class="logo">CAYLA</div>${['Inicio','Ventas','Inventario'].map(top).join('')}<div class="g">Catálogo</div>${['Productos','Categorías','Marcas','Atributos','Insignias','Liquidación'].map(sub).join('')}<div class="g">Más</div>${['Compras','Finanzas','Clientes','Colaboradores'].map(top).join('')}</aside>`;
+}
+function fondo(){
+  return `<div class="erp">${lateral()}<div class="cont"><div class="mtop"><b>CAYLA</b><span>Catálogo ▸ Insignias</span></div>
+    <div class="enc"><div class="sede">Lima · Vie 23 oct</div><h1>Insignias</h1><p>Lo que se le marca a una prenda. Primero las campañas; con las pestañas, las demás insignias.</p></div>
+    <div class="cuerpo"><div class="tarj"><div class="cab"><div class="pest"><button class="on">Campañas <span class="gl">13</span></button><button>Rotación</button><button>Artesanal</button><button>General</button></div></div>
+      <div class="fo"><div><b>Halloween</b><small>15 sep – 31 oct · 53 prendas</small></div>${chipEstado('Vigente')}<button class="btn n sec chico" data-a="abrir" data-v="halloween">Configurar</button></div>
+      <div class="fo"><div><b>Aniversario CAYLA</b><small>1 – 25 oct · 339 prendas</small></div>${chipEstado('Vigente')}<button class="btn n sec chico" data-a="abrir" data-v="aniversario">Configurar</button></div>
+      <div class="fo"><div><b>Día Internacional del Gato</b><small>24 – 30 oct · 7 prendas</small></div>${chipEstado('Programada')}<button class="btn n sec chico" data-a="abrir" data-v="gato">Configurar</button></div>
+    </div>${S.abierta?'':`<div class="nota" style="margin-top:14px">${ic('info','s')}<span>Cerraste la hoja. Ábrela de nuevo con «Configurar» en <b>Aniversario CAYLA</b>, <b>Halloween</b> o el <b>Día del Gato</b>: son las campañas de esta maqueta.</span></div>`}</div></div></div>`;
+}
+/* =========================== barra, ley, mide =========================== */
+function barra(){
+  $('#spk').innerHTML = `<span class="tag">Maqueta · Opción 3 · Tres preguntas</span>
+  <div class="seg"><button class="${S.dev==='escritorio'?'on':''}" data-a="dev" data-v="escritorio">Escritorio</button><button class="${S.dev==='celular'?'on':''}" data-a="dev" data-v="celular">Celular</button></div>
+  <div class="seg"><button class="${S.tema==='claro'?'on':''}" data-a="tema" data-v="claro">Claro</button><button class="${S.tema==='oscuro'?'on':''}" data-a="tema" data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ver como</span><div class="seg">${Object.entries(ROLES).map(([k,r])=>`<button class="${S.rol===k?'on':''}" data-a="rol" data-v="${k}">${r.t}</button>`).join('')}</div>
+  <button class="go" data-a="reiniciar">Reiniciar</button><span style="margin-left:auto;color:rgba(245,240,232,.6);font-size:12px">Campaña de producción · cifras inventadas · hoy = vie 23 oct 2026</span>`;
+  $('#ley').innerHTML = `<b>Opción 3 · Tres preguntas.</b> Un asistente de <b>una pregunta por pantalla</b>, para quien nunca lo ha usado: <b>1 ¿Qué le das al cliente?</b> · <b>2 ¿En qué prendas y dónde?</b> · <b>3 ¿Cuándo?</b> (fechas <b>y días de la semana</b>; ahí mismo, «Revisa y guarda»). Las preguntas 2 y 3 ya vienen contestadas con lo de fábrica; la etiqueta de la derecha se va armando con cada respuesta. Quien ya sabe usa el atajo «Listo, guardar con lo demás de fábrica» desde la pregunta 1.
+  <br><span class="ej">Caso 1 · −20 % en toda la campaña</span><span class="ej">Caso 2 · 3x2</span><span class="ej">Caso 3 · S/ 30 menos desde S/ 300</span><span class="ej">Caso 4 · 2 polos por S/ 59.90, solo Polos, 2 tiendas, fin de semana</span><span class="ej">Caso 5 · −20 % solo martes y jueves (abre Halloween: Aniversario ya solo tiene vie, sáb y dom)</span><span class="ej">Toca una de «Ya registradas» para editarla</span><span class="ej">Al guardar, la hoja queda abierta para que pruebes otro caso</span>`;
+}
+function vivo(){
+  const q = document.getElementById('t3q'); if(!q){ return ''; }
+  const n = q.querySelectorAll('button:not([disabled]),input').length;
+  return n;
+}
+/* «Cómo se mide»: números medidos en esta misma maqueta (1180 × 780, escritorio). El renglón vivo cuenta lo que se ve ahora. */
+function mideRender(){
+  const q = document.getElementById('t3q');
+  const ahora = q ? `${q.querySelectorAll('button:not([disabled]),input').length} controles en esta pregunta · ${document.querySelectorAll('.hoja button:not([disabled]),.hoja input').length} en toda la hoja` : 'la hoja está cerrada';
+  $('#mide').innerHTML = `<h3>Cómo se mide</h3>
+  <div class="cols">
+  <div><table><thead><tr><th></th><th class="n">Formulario de hoy</th><th class="n">Opción 3</th></tr></thead><tbody>
+    <tr><td>Controles a la vista a la vez</td><td class="n"><b>42</b> (33 chips)</td><td class="n"><b>5</b> al abrir · <b>10–14</b> tras elegir · máx. <b>19</b> (Conjunto)</td></tr>
+    <tr><td>Lo mismo contando la lista de «Ya registradas», los puntos y el pie</td><td class="n">—</td><td class="n">13 – 32</td></tr>
+    <tr><td>Alto</td><td class="n"><b>2 460 px</b> (más de 4 pantallas)</td><td class="n"><b>1 pantalla</b>: cada pregunta cabe en ≈ 515 px (la campaña ya va al lado del título). Con días sueltos y dos avisos, la pregunta 3 se pasa entre 3 y 30 px y baja un poco dentro de su caja</td></tr>
+    <tr><td>«Antes de guardar»</td><td class="n">3 cajas · 7 verificaciones</td><td class="n">0 en verde · avisos solo si hay (típico 0–2)</td></tr>
+  </tbody></table></div>
+  <div><table><thead><tr><th>Toques por caso</th><th class="n">Con atajo (borrador)</th><th class="n">Atajo + activar (líder)</th><th class="n">Camino largo (líder)</th></tr></thead><tbody>
+    <tr><td>1 · −20 % en toda la campaña</td><td class="n"><b>2</b></td><td class="n"><b>3</b></td><td class="n"><b>4</b></td></tr>
+    <tr><td>2 · 3x2</td><td class="n"><b>2</b></td><td class="n"><b>3</b></td><td class="n"><b>4</b></td></tr>
+    <tr><td>3 · S/ 30 menos desde S/ 300</td><td class="n"><b>2</b></td><td class="n"><b>3</b></td><td class="n"><b>3</b> (se salta la pregunta 2)</td></tr>
+    <tr><td>4 · 2 polos por S/ 59.90, solo Polos, 2 tiendas, fin de semana</td><td class="n">el atajo no sirve (hay cambios)</td><td class="n">—</td><td class="n"><b>9</b> (10 si escribes el precio)</td></tr>
+    <tr><td>5 · −20 % solo martes y jueves (en Halloween)</td><td class="n">el atajo no sirve (hay cambios)</td><td class="n">—</td><td class="n"><b>7</b>: Una rebaja → Siguiente → Está bien así → Solo algunos días → Mar → Jue → Activar</td></tr>
+  </tbody></table></div>
+  </div>
+  <p style="margin-top:4px">Un toque = un clic. Escribir un precio cuenta 1. Camino largo del caso 1: Una rebaja → Siguiente → «Está bien así» → Activar. Caso 4: Llevar varias → Varias por un precio → Siguiente → Cambiar → Polos → quitar LIM → Listo, seguir → Fin de semana → Activar.</p>
+  <p style="margin-top:8px"><b>Qué se esconde y dónde</b></p>
+  <ul>
+    <li><b>«Cambiar» en la pregunta 2</b>: elegir categorías, tiendas y qué prendas cuentan para llevar varias; y, un nivel más abajo, «Más ajustes»: dejar fuera, Claurè y días en el piso.</li>
+    <li><b>«Solo algunos días» en la pregunta 3</b>: los siete días (Lun a Dom) y dos atajos (Lun–vie, Sáb y dom). Un día que no cae en las fechas se ve apagado; si ninguno de los elegidos cae, no deja guardar y lo dice.</li>
+    <li><b>«Más opciones» en la pregunta 3</b>: nombre, «Se suma / No acumulable» y, para las promociones de compra (que se saltan la pregunta 2), las tiendas.</li>
+    <li><b>«¿Cuánto margen cedo?»</b>: a un toque en la pregunta 3, no ocupa un panel.</li>
+    <li><b>«De qué forma»</b>: los 15 tipos salen de 5 respuestas; cada una abre sus formas (3, 5, 2, 1 y 4) solo después de elegirla.</li>
+    <li>Los avisos (Indecopi, Jean Palazzo, costo, regalo, cruce) aparecen solo en «Revisa y guarda» y, si hay uno que decidir, el atajo se detiene ahí.</li>
+  </ul>
+  <p style="margin-top:6px"><b>Peor caso:</b> el caso 4 (9 toques, tres pantallas y un precio que se corrige solo cuando eliges Polos). Y el caso 1 frente al formulario de hoy, que ya abre con −20 % marcado (1 toque, pero con 2 460 px de scroll y sin saber qué se eligió).</p>
+  <span class="vivo">Ahora: ${ahora}</span>`;
+}
+/* =========================== render =========================== */
+function claveFoco(){
+  const a = document.activeElement; if(!a || !a.dataset || !a.closest || !a.closest('.marco')) return null;
+  if(!a.dataset.a && !a.dataset.f) return null;
+  return ['a','v','n','d','f'].map(k=>a.dataset[k]||'').join('|');
+}
+function render(){
+  document.documentElement.dataset.tema = S.tema;
+  barra();
+  const fk = claveFoco();
+  const q = document.getElementById('t3q'), qs = q && !S.ent ? q.scrollTop : 0;
+  const hc = document.querySelector('.hoja-cuerpo'), hs = hc && !S.ent ? hc.scrollTop : 0;
+  const html = fondo(), modal = S.abierta ? hoja() : '';
+  const marco = `<div class="marco ${S.dev==='escritorio'?'desk':'cel'}"><div class="pant">${html}</div>${modal}${S.toast?`<div class="toast" role="status">${S.toast}</div>`:''}</div>`;
+  $('#esc').innerHTML = S.dev==='escritorio' ? marco : `<div class="tel">${marco}</div>`;
+  S.mAnim = false; S.ent = false; S.pulso = false;
+  if(S.ver){ const el = document.querySelector(S.ver), qq = document.getElementById('t3q'); S.ver = null; if(el && qq){ const d = el.getBoundingClientRect().bottom - qq.getBoundingClientRect().bottom; if(d>-12) qq.scrollTop += d + 14; } }
+  const nq = document.getElementById('t3q'); if(nq) nq.scrollTop = qs;
+  const nh = document.querySelector('.hoja-cuerpo'); if(nh) nh.scrollTop = hs;
+  if(fk){ const el = [...document.querySelectorAll('.marco [data-a],.marco [data-f]')].find(e=>['a','v','n','d','f'].map(k=>e.dataset[k]||'').join('|')===fk); if(el && !el.disabled) el.focus({preventScroll:true}); }
+  mideRender();
+}
+let tt;
+function avisar(t){ S.toast = t; clearTimeout(tt); tt = setTimeout(()=>{ S.toast = null; S.ent = false; render(); }, 4200); }
+
+/* =========================== acciones =========================== */
+/* Cambiar el tipo conserva lo contestado en la pregunta 2 (prendas, tiendas, días); solo se resetea lo propio del tipo. */
+function cambiarTipo(W,k){
+  const esp = t => deCompra(t) || t==='look';
+  if(!esp(W.tipo) && esp(k)) W.catsMem = [...W.cats];
+  if(esp(W.tipo) && !esp(k)) W.cats = W.catsMem ? [...W.catsMem] : ['e:'+W.camp];
+  const {cats, partes, ...resto} = DEF[k];
+  Object.assign(W, {precioMan:false}, resto);
+  if(partes) W.partes = [...partes];
+  if(cats) W.cats = [...cats];
+  if(k==='combo') W.precio = precioSug(W);
+  if(k==='look') W.precio = precioLook(W);
+}
+const DEF = {
+  pct:{tipo:'pct',pct:20}, soles:{tipo:'soles',desc:10}, precio:{tipo:'precio',precio:29.9},
+  combo:{tipo:'combo',qty:2}, segunda:{tipo:'segunda',nth:2,pct2:50}, nxm:{tipo:'nxm',lleva:3,m:2}, volumen:{tipo:'volumen',qty:3,pct:15}, look:{tipo:'look',partes:['blusas','faldas'],cats:['blusas','faldas']},
+  monto:{tipo:'monto',min:300,desc:30,cats:['all']}, montopct:{tipo:'montopct',min:300,pct:10,cats:['all']}, regalo:{tipo:'regalo',min:200,regalo:'basta',cats:['all']},
+  club_pct:{tipo:'club_pct',pct:10}, club_cupon:{tipo:'club_cupon',pct:10,cats:['all']}, club_privada:{tipo:'club_privada',horas:24}, club_puntos:{tipo:'club_puntos',mult:2,cats:['all']}
+};
+function encajar(W){
+  const e = campanaDe(W.camp), ini = e.desde>HOY ? e.desde : HOY;
+  if(W.desde<ini || W.desde>e.hasta) W.desde = ini;
+  if(W.hasta>e.hasta || W.hasta<W.desde) W.hasta = e.hasta;
+}
+function aFabrica(W){ Object.assign(W,{nocats:[],claure:false,dias:0,sedes:[...SEDES],mezcla:false}); if(!salta2(W) && W.tipo!=='look') W.cats = ['e:'+W.camp]; if(W.tipo==='combo' && !W.precioMan) W.precio = precioSug(W); }
+function nuevaRegla(W,borrador){
+  const n = W.nombreMan && W.nombre.trim() ? W.nombre.trim() : defNombre(W), id = 'n'+(CAMP.length+1), cn = campanaDe(S.W.camp).n;
+  const c = base(Object.assign({}, W, {id, n, borrador, vendidas:0, hist:[], cats:[...W.cats], partes:[...W.partes], nocats:[...W.nocats], sem:[...semDe(W)], ord:++ORD})); delete c.editId; CAMP.push(c);
+  S.recien = id;
+  return {c,n,cn};
+}
+function guardar(modo){
+  const W = S.W; let msg;
+  if(modo==='cambios'){
+    const c = CAMP.find(x=>x.id===W.editId); if(!c) return;
+    const antes = `${TIPOS[c.tipo].da(c)} · ${fechaTxt(c.desde)} – ${fechaTxt(c.hasta)}`;
+    Object.keys(base({})).filter(x=>!['hist','vendidas','borrador','camp'].includes(x)).forEach(x=>{ c[x] = Array.isArray(W[x]) ? [...W[x]] : W[x]; });
+    c.n = W.nombreMan && W.nombre.trim() ? W.nombre.trim() : defNombre(W); c.hist = [...c.hist, `${antes}, hasta el ${fechaTxt(HOY)}`]; c.legado = false;
+    S.recien = c.id;
+    msg = `Cambios guardados en «${c.n}»: valen desde ahora; lo ya vendido no cambia y queda en el historial.`;
+  } else {
+    const activa = modo==='activar' && ROLES[S.rol].act, r = nuevaRegla(W,!activa);
+    msg = activa ? `Activada dentro de «${r.cn}»: «${r.n}». ${r.c.desde>HOY?'Empieza el '+fechaTxt(r.c.desde):'Ya rige'}.` : `Guardada como borrador dentro de «${r.cn}»: «${r.n}». ${ROLES[S.rol].act?'Actívala desde «Ya registradas» cuando quieras.':'Un líder tiene que activarla.'}`;
+  }
+  Object.assign(S, S0(), {recien:S.recien, verTodas:S.verTodas});
+  avisar(msg);
+}
+function reiniciar(){
+  CAMPANA = ETQS[0];
+  CAMP.splice(0,CAMP.length,...JSON.parse(SNAP).map(o=>base(o))); ORD = 200;
+  Object.assign(S, S0(), {rol:'lider', abierta:true, mAnim:true});
+}
+function act(a,v,el){
+  const W = S.W; S.ent = false; S.mAnim = false;
+  switch(a){
+    case 'dev': S.dev = v; break;
+    case 'tema': S.tema = v; break;
+    case 'rol': S.rol = v; break;
+    case 'reiniciar': reiniciar(); break;
+    case 'abrir': if(v && v!==CAMPANA.id){ CAMPANA = campanaDe(v); Object.assign(S, S0(), {recien:null, verTodas:false}); } S.abierta = true; S.mAnim = true; break;
+    case 'cerrar': S.abierta = false; break;
+    case 'campinfo': avisar('En la versión real abre «La campaña»: cambiar sus fechas y sus categorías. Es la hoja de hoy, sin cambios.'); break;
+    case 'regsab': S.regsAb = !S.regsAb; break;
+    case 'vertodas': S.verTodas = !S.verTodas; break;
+    /* ---- pregunta 1 ---- */
+    case 'grupo': if(!W.elegido || grupoDe(W.tipo).k!==v){ cambiarTipo(W,GRUPOS.find(g=>g.k===v).tipos[0]); W.elegido = true; S.ent = true; } break;
+    case 'forma': cambiarTipo(W,v); break;
+    case 'falta1': S.pulso = true; break;
+    case 'step': { const f = el.dataset.n, d = +el.dataset.d, [mn,mx] = limites(W,f); W[f] = r2(Math.min(mx,Math.max(mn,W[f]+d)));
+      if(f==='precio'){ W.precio = Math.round(W.precio*10)/10; W.precioMan = true; }
+      if(f==='lleva' && W.m>=W.lleva) W.m = W.lleva-1;
+      if(f==='qty' && W.tipo==='combo' && !W.precioMan) W.precio = precioSug(W);
+      break; }
+    case 'regalo': W.regalo = v; break;
+    case 'horas': W.horas = +v; break;
+    case 'mult': W.mult = +v; break;
+    case 'parte': W.partes = W.partes.includes(v) ? W.partes.filter(x=>x!==v) : (W.partes.length<3 ? [...W.partes,v] : W.partes); W.cats = [...W.partes]; if(!W.precioMan && W.partes.length>=2) W.precio = precioLook(W); break;
+    case 'sig': if(!W.elegido){ S.pulso = true; break; } S.vis[1] = true; S.paso = salta2(W) ? 3 : 2; if(S.paso===3) S.vis[3] = true; S.abre2 = false; S.ent = true; break;
+    case 'atajo': { if(!listoW(W)) break; const av = avisos(W).filter(x=>x.t==='a');
+      if(av.length){ S.vis[1] = true; S.paso = 3; S.vis[3] = true; S.ent = true; S.nota3 = 'El atajo se detuvo aquí: hay algo que decidir antes de guardar.'; break; }
+      guardar(W.editId ? 'cambios' : 'borrador'); return render(); }
+    /* ---- pregunta 2 ---- */
+    case 'bienasi': S.vis[2] = true; S.paso = 3; S.vis[3] = true; S.abre2 = false; S.ent = true; break;
+    case 'cambiar2': S.abre2 = true; break;
+    case 'listo2': S.vis[2] = true; S.paso = 3; S.vis[3] = true; S.abre2 = false; S.ent = true; break;
+    case 'fabrica2': aFabrica(W); break;
+    case 'todas2': W.cats = ['e:'+W.camp]; if(W.tipo==='combo' && !W.precioMan) W.precio = precioSug(W); break;
+    case 'cat': W.cats = W.cats.filter(x=>x!=='all' && !x.startsWith('e:')); W.cats = W.cats.includes(v) ? W.cats.filter(x=>x!==v) : [...W.cats,v]; if(W.tipo==='combo' && !W.precioMan) W.precio = precioSug(W); break;
+    case 'sede': W.sedes = W.sedes.includes(v) ? W.sedes.filter(x=>x!==v) : [...W.sedes,v]; break;
+    case 'mezcla': W.mezcla = v==='1'; break;
+    case 'mas2': S.mas2 = !S.mas2; if(S.mas2) S.ver = '.t3-pn > .t3-pg:last-child'; break;
+    case 'nocat': W.nocats = W.nocats.includes(v) ? W.nocats.filter(x=>x!==v) : [...W.nocats,v]; break;
+    case 'claure': W.claure = !W.claure; break;
+    case 'dias': W.dias = +v; break;
+    /* ---- pregunta 3 ---- */
+    case 'rango': { const [d,h] = v.split(','); W.desde = d; W.hasta = h; break; }
+    case 'semtodos': W.sem = [...SEMTODOS]; W.semSolo = false; break;
+    case 'semalgunos': if(!W.semSolo){ W.semSolo = true; if(semDe(W).length===7) W.sem = []; } break;
+    case 'dsem': { const i = +v, t = new Set(semDe(W)); if(t.has(i)) t.delete(i); else t.add(i); W.sem = [...t].sort((a,b)=>a-b); W.semSolo = true; break; }
+    case 'semlv': W.sem = [0,1,2,3,4]; W.semSolo = true; break;
+    case 'semsd': W.sem = [5,6]; W.semSolo = true; break;
+    case 'masq3': S.masq3 = !S.masq3; if(S.masq3) S.ver = '.t3-mas'; break;
+    case 'cedo': S.cedo = !S.cedo; if(S.cedo) S.ver = '.t3-cedo'; break;
+    case 'acum': W.acum = v==='1'; break;
+    case 'excl': W.excl = [...W.excl,'jean']; break;
+    case 'encajar': encajar(W); break;
+    case 'gborrador': if(listoW(W)){ guardar(W.editId?'cambios':'borrador'); } break;
+    case 'gactivar': if(listoW(W)){ guardar('activar'); } break;
+    case 'gcambios': if(listoW(W)){ guardar('cambios'); } break;
+    /* ---- navegación ---- */
+    case 'atras': S.paso = (S.paso===3 && salta2(W)) ? 1 : S.paso-1; S.ent = true; break;
+    case 'paso': { const n = +v; if(!W.elegido && n>1){ S.pulso = true; S.paso = 1; break; } if(n===2 && salta2(W)) break; if(n===3) S.vis[3] = true; S.paso = n; S.abre2 = false; S.ent = true; break; }
+    /* ---- lo ya registrado ---- */
+    case 'activar': { if(!ROLES[S.rol].act) break; const c = CAMP.find(x=>x.id===v); c.borrador = false; S.recien = v; avisar(`Activada: «${c.n}». ${c.desde>HOY?'Empieza el '+fechaTxt(c.desde):'Ya rige'}.`); break; }
+    case 'editar': { const c = CAMP.find(x=>x.id===v); if(!c) break;
+      S.W = Object.assign(nuevoW(), JSON.parse(JSON.stringify(c)), {editId:c.id, camp:CAMPANA.id, elegido:true, nombre:c.n, nombreMan:c.n!==defNombre(c), excl:[], catsMem:null, semSolo:semDe(c).length<7});
+      Object.assign(S,{paso:1, vis:{1:false,2:false,3:false}, abre2:false, mas2:false, masq3:false, cedo:false, nota3:'', ent:true}); break; }
+    case 'nueva': Object.assign(S,S0(),{recien:S.recien,verTodas:S.verTodas}); break;
+  }
+  render();
+}
+document.addEventListener('click', e=>{ const b = e.target.closest('[data-a]'); if(!b || b.disabled) return; act(b.dataset.a, b.dataset.v, b); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && S.abierta){ act('cerrar'); } });
+document.addEventListener('change', e=>{
+  const f = e.target.dataset && e.target.dataset.f; if(!f) return;
+  const W = S.W; S.ent = false;
+  if(f==='num'){ const n = e.target.dataset.n; let x = parseFloat(String(e.target.value).replace(',','.').replace(/[^0-9.]/g,''));
+    if(!isNaN(x)){ const [mn,mx] = limites(W,n); x = Math.min(mx,Math.max(mn,x)); W[n] = n==='precio' ? Math.round(x*10)/10 : Math.round(x); if(n==='precio') W.precioMan = true; }
+    render(); return; }
+  if(f==='nombre'){ W.nombre = e.target.value; W.nombreMan = true; render(); return; }
+  if(f==='desde'||f==='hasta'){ W[f] = e.target.value || W[f]; render(); }
+});
+render();
+</script>
+</body>
+</html>

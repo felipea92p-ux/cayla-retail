@@ -8,7 +8,7 @@ import { Icono } from "@/components/Icono";
 import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
-import { PendienteDelEnlace } from "@/components/PendienteDelEnlace";
+import { OfertasPorCampana } from "@/components/OfertasPorCampana";
 import { SeccionClub } from "@/components/SeccionClub";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
@@ -104,7 +104,8 @@ export default async function Inicio({ searchParams }: Props) {
   const ofertas = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "ofertas" });
   const campanas = campanasDe(prendas);
   const ofertaElegida = campanas.find((c) => c.id === leerCampana(sp.oferta)) ?? null;
-  const ofertasVistas = ofertaElegida ? ofertas.filter((p) => p.campana?.id === ofertaElegida.id) : ofertas;
+  const grillaDe = (lista: Prenda[]) =>
+    lista.slice(0, 8).map((p) => <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} diseno={diseno} />);
   const vendidos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "vendidos" }).slice(0, 8);
   const lista = (l: "nuevo" | "ofertas" | "vendidos", campanaId: string | null = null) =>
     hrefLista({ sede, categoria: null, orden: "destacado", lista: l, campana: campanaId });
@@ -182,40 +183,28 @@ export default async function Inicio({ searchParams }: Props) {
           {ofertas.length > 0 && (
             <section className="t-ofertas" id="ofertas" aria-labelledby="las-ofertas">
               <div className="t-ancho">
-                <div className="t-sec-cab">
-                  <div>
-                    <h2 id="las-ofertas">
-                      Las <em>ofertas</em>
-                    </h2>
-                  </div>
-                  <Link className="t-ver" href={lista("ofertas", ofertaElegida?.id ?? null)}>
-                    Ver todas <b>{ofertaElegida ? ofertaElegida.cuantas : ofertas.length}</b>
-                    <Icono nombre="flecha" />
-                  </Link>
-                </div>
-                <nav className="t-pildoras" aria-label="Campañas">
-                  <Link className="t-pildora" href={`${hrefInicio(sede)}#ofertas`} scroll={false} aria-current={ofertaElegida ? undefined : "true"}>
-                    Todas <small>{ofertas.length}</small>
-                    <PendienteDelEnlace />
-                  </Link>
-                  {campanas.map((c) => (
-                    <Link
-                      key={c.id}
-                      className="t-pildora"
-                      href={`${hrefInicio(sede, c.id)}#ofertas`}
-                      scroll={false}
-                      aria-current={ofertaElegida?.id === c.id ? "true" : undefined}
-                    >
-                      {c.nombre} −{pctTexto(c.pct)} % <small>{c.hasta ? `hasta ${fechaCorta(c.hasta)}` : "sin fecha"}</small>
-                      <PendienteDelEnlace />
-                    </Link>
-                  ))}
-                </nav>
-                <div className="t-grilla">
-                  {ofertasVistas.slice(0, 8).map((p) => (
-                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} diseno={diseno} />
-                  ))}
-                </div>
+                <OfertasPorCampana
+                  inicial={ofertaElegida?.id ?? null}
+                  titulo={
+                    <div>
+                      <h2 id="las-ofertas">
+                        Las <em>ofertas</em>
+                      </h2>
+                    </div>
+                  }
+                  campanas={[
+                    { id: null, nombre: "Todas", hasta: null, cuantas: ofertas.length, href: `${hrefInicio(sede)}#ofertas`, verTodas: lista("ofertas"), grilla: grillaDe(ofertas) },
+                    ...campanas.map((c) => ({
+                      id: c.id,
+                      nombre: `${c.nombre} −${pctTexto(c.pct)} %`,
+                      hasta: c.hasta ? `hasta ${fechaCorta(c.hasta)}` : null,
+                      cuantas: c.cuantas,
+                      href: `${hrefInicio(sede, c.id)}#ofertas`,
+                      verTodas: lista("ofertas", c.id),
+                      grilla: grillaDe(ofertas.filter((p) => p.campana?.id === c.id)),
+                    })),
+                  ]}
+                />
               </div>
             </section>
           )}

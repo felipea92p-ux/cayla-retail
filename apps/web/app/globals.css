@@ -48,6 +48,8 @@
 @import "./estilos/titulos.css";
 @import "./estilos/traslados-pases.css";
 @import "./estilos/sellos.css";
+/* Las ofertas de una campaña, «Tres preguntas» (Felipe 2026-10-23): la hoja de Configurar de Insignias ▸ Campañas. */
+@import "./estilos/ofertas.css";
 @import "./estilos/traslados-guia.css";
 /* La orden de compra en papel (ADR-0362, actividad 6): A4 para imprimir o guardar en PDF. */
 @import "./estilos/orden-compra-papel.css";

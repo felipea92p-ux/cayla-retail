@@ -262,6 +262,7 @@ export const PRUEBAS = [
   // en su tienda y no lo acepta en otra (`registrar_venta`), el apartado nace con él solo ahí, la tienda web lo muestra desde su tienda y
   // sin sede nunca aparece una campaña limitada; el guardián falla si una de las cinco funciones deja de preguntar por la sede. ROLLBACK.
   "pruebas:campanas-por-sede",
+  "pruebas:campana-reglas",
 
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el
@@ -1439,6 +1440,8 @@ export const PRUEBAS = [
   // compradora; Recibir lee las fotos de papeles/ y nada más del depósito.
   "pruebas:compras-simple-recibir",
   "pruebas:compras-simple-revisar",
+  // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
+  "pruebas:compras-simple-marca",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,

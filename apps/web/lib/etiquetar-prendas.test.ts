@@ -7,6 +7,10 @@ import {
   estadoDe,
   filtrarProductos,
   idsPorMarca,
+  cuentaPorSede,
+  disponiblePorVariante,
+  filtrarPorSede,
+  hayEnSede,
   llevaEtiqueta,
   marcarProductos,
   precioConCampana,
@@ -352,5 +356,48 @@ describe("prendasQueCambianAlEtiquetar: qué etiquetas de papel quedan viejas (A
     const r = prendasQueCambianAlEtiquetar(campana(20, null, null, ["tru"]), cambio, HOY);
     expect(r).toMatchObject({ quedan: [], salen: [], total: 3, dondeCambia: null });
     expect(avisoReimprimir(r)?.boton).toBeNull();
+  });
+});
+
+describe("filtrar por sede: qué hay para vender en cada tienda", () => {
+  const en = (id: string, disponible: Record<string, number>) => ({ ...v(id), disponible });
+  const blusa: ProductoEtiquetable = { ...polo, id: "b", variantes: [en("b1", { tru: 2 }), en("b2", { tru: 1, aqp: 4 })] };
+  const jean: ProductoEtiquetable = { ...falda, id: "j", variantes: [en("j1", { lim: 3 })] };
+  const agotado: ProductoEtiquetable = { ...falda, id: "z", variantes: [en("z1", {})] };
+  const sinDato: ProductoEtiquetable = { ...falda, id: "s", variantes: [v("s1")] };
+  const todos = [blusa, jean, agotado, sinDato];
+
+  const fila = (variante_id: string, ubicacion_id: string, disponible: number) => ({ variante_id, ubicacion_id, disponible });
+  it("toma la cifra disponible de la base, por talla y por sede", () => {
+    const m = disponiblePorVariante([fila("a", "tru", 3), fila("a", "aqp", 2), fila("b", "tru", 1)]);
+    expect(m.get("a")).toEqual({ tru: 3, aqp: 2 });
+    expect(m.get("b")).toEqual({ tru: 1 });
+  });
+  it("una sede en cero no aparece y una talla sin nada no sale", () => {
+    const m = disponiblePorVariante([fila("a", "tru", 0), fila("a", "lim", 4)]);
+    expect(m.get("a")).toEqual({ lim: 4 });
+    expect(disponiblePorVariante([fila("z", "tru", 0)]).has("z")).toBe(false);
+    expect(disponiblePorVariante([]).size).toBe(0);
+  });
+  it("un producto está en la sede si UNA de sus tallas tiene algo", () => {
+    expect(hayEnSede(blusa, "aqp")).toBe(true);
+    expect(hayEnSede(blusa, "lim")).toBe(false);
+    expect(hayEnSede(sinDato, "tru")).toBe(false);
+  });
+  it("sin sede elegida no recorta nada; con sede, solo lo de esa tienda", () => {
+    expect(filtrarPorSede(todos, null).map((p) => p.id)).toEqual(["b", "j", "z", "s"]);
+    expect(filtrarPorSede(todos, "tru").map((p) => p.id)).toEqual(["b"]);
+    expect(filtrarPorSede(todos, "lim").map((p) => p.id)).toEqual(["j"]);
+  });
+  it("se aplica ENCIMA de los otros filtros: cada uno recorta lo que dejó el anterior", () => {
+    const buscados = filtrarProductos(todos, { texto: "", categoriaId: "c-tops" });
+    expect(filtrarPorSede(buscados, "tru").map((p) => p.id)).toEqual(["b"]);
+    expect(filtrarPorSede(buscados, "lim")).toEqual([]);
+    const conMarca = idsPorMarca(buscados, "con", new Set(["b1"]), new Set());
+    expect(filtrarPorSede(buscados.filter((p) => conMarca!.has(p.id)), "aqp").map((p) => p.id)).toEqual(["b"]);
+  });
+  it("cuenta cuántos productos hay en cada sede y no muta lo recibido", () => {
+    expect(cuentaPorSede(todos, ["tru", "aqp", "lim"])).toEqual({ tru: 1, aqp: 1, lim: 1 });
+    expect(todos).toHaveLength(4);
   });
 });

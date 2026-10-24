@@ -305,6 +305,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/EliminarProductoModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el texto ya dice qué se borra y por qué; no hay camino que indicar." },
   "components/EtiquetasLista.tsx": { estado: "aplicada", evidencia: ["components/EtiquetasLista.tsx"] },
   "components/sellos/CambiarDibujoModal.tsx": { estado: "aplicada", evidencia: ["components/sellos/CambiarDibujoModal.tsx"] },
+  // «Tres preguntas» (Felipe 2026-10-23): una pregunta por pantalla, los pasos con su ✓, la etiqueta que dice «de fábrica» / «por elegir» y
+  // el «Falta: …» tocable al pie (`FaltanDelPaso`) que lleva a la pregunta que lo arregla. Sale de lo mismo que apaga «Guardar»
+  // (`problemasDeOferta` y haber elegido qué se da), sin reglas nuevas.
+  "components/sellos/OfertasHoja.tsx": { estado: "aplicada", evidencia: ["components/sellos/OfertasHoja.tsx"] },
   "components/sellos/SellosPantalla.tsx": { estado: "no-aplica", motivo: "Sus dos ventanas propias tienen UN solo campo cada una (el comentario al aprobar, el motivo al rechazar) y el botón dice por qué espera; las que se llenan de verdad (nueva insignia o campaña, configurar) son de EtiquetasLista.tsx, con su guía." },
   "components/FamiliasLista.tsx": { estado: "aplicada", evidencia: ["components/FamiliasLista.tsx"] },
   "components/FiltrosExistencias.tsx": { estado: "no-aplica", motivo: "Hoja de filtros de Existencias en el celular (misma estructura que Productos, 2026-10-03): cada control filtra la lista al tocarlo y el botón dice cuántos productos quedan; no hay nada que completar ni pasos que seguir." },
@@ -406,6 +410,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RecepcionEnvio.tsx": PENDIENTE, // 16 controles
   "components/RecibirComprobanteModal.tsx": PENDIENTE, // 7 controles
   "components/RegistrarGastoModal.tsx": PENDIENTE, // 29 controles
+  // El telar (ADR-0493): la hoja nueva de «Registrar gasto». Cuentan como «falta» lo que `validarHoja` exige (monto, sede, en qué, qué
+  // fue, si tiene comprobante; con comprobante, el RUC y la serie; a crédito, cuándo vence; si no, de dónde salió) y el responsable;
+  // `lib/hoja-gasto-reglas.test.ts` cruza la guía con la validación en cada camino.
+  "components/finanzas/gastos/HojaRegistrarGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaRegistrarGasto.tsx"] },
   // ADR-0328 act. 10: cuál (color y talla), dónde estaba, cuántas, qué tiene y quién: todo cuenta como «falta» (lo exige la base).
   // ADR-0328 act. 10 («Se arregló»): la guía enciende lo del panel abierto —qué se arregló, o precio y forma de pago al liquidar— y
   // quién decide. La nota de «Se botó» / «Donada» es opcional.
