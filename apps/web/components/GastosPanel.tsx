@@ -13,7 +13,9 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Orillo } from "@/components/finanzas/telar/Orillo";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
-import { nombreCortoSede, porSedeDe, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { nombreCortoSede, porSedeDe, sedesDelTelar, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { plantillasDe } from "@/lib/hoja-gasto-reglas";
+import { HojaRegistrarGasto } from "@/components/finanzas/gastos/HojaRegistrarGasto";
 import { calendarioDelMes, chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, preguntaDeGastos, retazoDeGastos, sedeDeLaCabecera as sedeDeLaCabeceraDe, type FiltrosLista } from "@/lib/gastos-telar-reglas";
 import { Buscador as BuscadorLista } from "@/components/ui/Buscador";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
@@ -437,7 +439,21 @@ export function GastosPanel({
         </>
       )}
 
-      {registrar && (
+      {/* Un gasto nuevo va en la hoja de El telar (ADR-0493); clasificar un egreso, un gasto fijo y un activo siguen en la de antes. */}
+      {registrar && !registrar.egreso && !registrar.fijo && registrar.clase !== "activo" && (
+        <HojaRegistrarGasto
+          categorias={categorias}
+          sedes={sedesDelTelar(ubicaciones, esLider)}
+          proveedores={proveedores}
+          cajasAbiertas={cajasAbiertas}
+          sedeInicial={ver.soloEmpresa ? "empresa" : (ver.ubicacionId ?? "")}
+          plantillas={plantillasDe(gastos.map((g) => ({ ...g, proveedorRuc: proveedores.find((p) => p.nombre === g.proveedorNombre)?.ruc ?? null })))}
+          fijosDelMes={fijosParaPreguntar}
+          hoy={hoy}
+          onCerrar={() => setRegistrar(null)}
+        />
+      )}
+      {registrar && (registrar.egreso || registrar.fijo || registrar.clase === "activo") && (
         <RegistrarGastoModal
           categorias={categorias}
           ubicaciones={ubicaciones}
