@@ -1,6 +1,8 @@
 # Backlog · 2026-10-24 · Proveedores: lo que compré y lo que no ves
 
-- [ ] Pegar `20261024221000_proveedor_prendas_compradas_y_vendidas.sql` en producción (una parte, solo lectura; la base ANTES que la web) y verla con datos reales.
+- [x] `20261024221000_proveedor_prendas_compradas_y_vendidas.sql` pegada en producción el 2026-10-24 y verificada con datos reales (la base va ANTES que la web).
+- [ ] Ver la ficha y la lista en el navegador con datos de producción tras publicar la web.
+- [ ] `tema:auditar` (modo oscuro) y `/chaos` sin correr sobre las pantallas nuevas (solo lectura: `/chaos` se declara de solo lectura).
 - [ ] Revisar a 375 px la ficha y la lista de Proveedores (solo se probó a 1440 y a ancho de tarjeta angosto).
 - [ ] Felipe ajusta los umbrales de `proveedor-analisis-reglas.ts` mirando avisos reales.
 - [ ] El Taller («CAYLA SAC») entra hoy al ranking y a los avisos como un proveedor más: separarlo cuando exista el tipo de proveedor (Mercadería / Servicios).

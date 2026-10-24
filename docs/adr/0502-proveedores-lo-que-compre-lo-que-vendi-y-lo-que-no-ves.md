@@ -1,6 +1,6 @@
 # ADR-0502 — Proveedores: lo que le compré, lo que vendí y «Lo que quizá no ves»
 
-- **Fecha:** 2026-10-24 · **Estado:** construido y probado en local; **su migración `20261024221000_proveedor_prendas_compradas_y_vendidas.sql` NO está pegada en producción** (solo lee; espera el OK de Felipe). La web se publica DESPUÉS de la base: sin la función, la ficha y la lista se pintan como antes.
+- **Fecha:** 2026-10-24 · **Estado:** construido y probado en local; **su migración `20261024221000_proveedor_prendas_compradas_y_vendidas.sql` ya está pegada en producción el 2026-10-24** (una parte, solo lectura; con `apply_migration`, así que su versión allá es la de la hora en que se aplicó). La web se publica DESPUÉS de la base: sin la función, la ficha y la lista se pintan como antes. Verificada con datos reales: 335 filas (proveedor, prenda) de 52 proveedores; Textil Anqori sale con 138 compradas (51 estimadas), 19 vendidas, 115 en stock y 42 % de margen.
 - **Relacionados:** ADR-0111 (ficha de proveedor), ADR-0387 (el módulo Proveedores es la llave del dinero), ADR-0161 (módulos y roles), ADR-0358 (una función, una pieza), ADR-0389 (guías interactivas), ADR-0195 (políticas y deadlocks).
 
 ## El problema
