@@ -133,6 +133,9 @@ SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_
   *tienda.cayla.pe*…») lo escribe el líder y no lleva marca: esos mensajes cuentan como «Directo».
 - **En producción (2026-10-24):** `20261023230000` pegada por el MCP de Supabase con el OK de Felipe (versión registrada `20261024225147`);
   verificada por la huella de sus dos funciones, columnas, reglas, índices, disparadores, RLS y permisos, iguales a la base local.
+  `20261023231000` también, con su OK (versión `20261024230230`): sus cuatro funciones con la misma huella que en local, el módulo
+  `trafico` sin rol, sin sesión responde 42501 y como líder la forma completa en cero. El diccionario no se refrescó todavía: otra sesión
+  pegaba sus migraciones en ese momento (ver backlog).
 - **Sin probar:** las cabeceras de ubicación reales de Vercel (solo existen publicadas), la tienda con la base caída en vivo (cubierta por la
   prueba de `anotarPasos`) y «separó» en el navegador (en local no hay una cuenta de cliente de prueba; crear una pide consultar un DNI
   real): su función está probada en Postgres y la acción usa el mismo camino que «a la bolsa».
