@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CifrasPedidosWeb } from "./pedidos-web-reglas";
-import type { ModeloVitrina } from "./vitrina-reglas";
+import { filtrarVitrina, type ModeloVitrina } from "./vitrina-reglas";
 import { encendidosSinPrecio, fraseVentana, lecturasCaidas, pendientesDe, teselasDe, type EntradaResumen } from "./tienda-web-resumen";
 
 const HORA = 3_600_000;
@@ -100,6 +100,20 @@ const modelo = (id: string, extra: Partial<ModeloVitrina> = {}): ModeloVitrina =
   stock: [],
   vitrina: { publicado: true, enLoNuevo: "automatico", descripcionWeb: null, version: 1, actualizadoEn: null, actualizadoPor: null },
   ...extra,
+});
+
+describe("los enlaces del Resumen a la Vitrina llegan ya filtrados", () => {
+  it("«sin precio» y «sin nada que separar» abren la lista con ese filtro, y el número del Resumen es el de la lista", () => {
+    const e: EntradaResumen = {
+      ...NADA,
+      vitrina: { estado: "ok", dato: { cifras: { seVen: 5, total: 9, sinStock: 2 }, encendidosSinPrecio: 1, looks: null, esperan: null } },
+    };
+    const p = pendientesDe(e);
+    expect(p.find((x) => x.clave === "sin-precio")!.href).toBe("/tienda-web/vitrina?filtro=sin_precio");
+    expect(p.find((x) => x.clave === "sin-stock")!.href).toBe("/tienda-web/vitrina?filtro=sin_stock");
+    const ms = [modelo("a", { publicable: false, porQueNo: "sin_precio" }), modelo("b", { publicable: false, porQueNo: "sin_precio", vitrina: null })];
+    expect(filtrarVitrina(ms, "sin_precio", "")).toHaveLength(encendidosSinPrecio(ms));
+  });
 });
 
 describe("la ventana de la vitrina", () => {

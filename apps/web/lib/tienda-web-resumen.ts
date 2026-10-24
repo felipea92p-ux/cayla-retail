@@ -14,7 +14,7 @@ import type { CifrasRecomendaciones } from "./recomendaciones-reglas";
 import type { CifrasEsperan } from "./vitrina-esperan-reglas";
 import type { CifrasLooks } from "./vitrina-looks-reglas";
 import type { CifrasVitrina, ModeloVitrina } from "./vitrina-reglas";
-import { seVeEnLaWeb } from "./vitrina-reglas";
+import { esEncendidoSinPrecio, hrefVitrina, seVeEnLaWeb } from "./vitrina-reglas";
 
 /** Cómo llegó cada lectura: leída, sin el módulo (no se pide ni se muestra) o caída (se dice, y el resto de la pantalla sigue). */
 export type Lectura<T> = { estado: "ok"; dato: T } | { estado: "sin_modulo" } | { estado: "fallo" };
@@ -188,7 +188,7 @@ export function pendientesDe(e: EntradaResumen): Pendiente[] {
         formato: "entero",
         titulo: `${plural(n, "modelo encendido no se ve", "modelos encendidos no se ven")}: sin precio`,
         detalle: "Ninguna tienda de la web les pone precio. Se arregla en su ficha, en Catálogo ▸ Productos.",
-        href: "/tienda-web/vitrina",
+        href: hrefVitrina("sin_precio"),
         accion: "Revisar",
       });
     }
@@ -216,7 +216,7 @@ export function pendientesDe(e: EntradaResumen): Pendiente[] {
         formato: "entero",
         titulo: `${plural(n, "modelo se ve", "modelos se ven")} sin nada que separar`,
         detalle: "Se ven en la web, pero no queda libre en ninguna tienda.",
-        href: "/tienda-web/vitrina",
+        href: hrefVitrina("sin_stock"),
         accion: "Ver",
       });
     }
@@ -292,8 +292,7 @@ export function teselasDe(modelos: readonly ModeloVitrina[], cuantas = TESELAS):
 }
 
 /** Los encendidos que la web no muestra porque ninguna tienda les pone precio (`razonNoSeMuestra`, el chip «Sin precio: no se ve»). */
-export const encendidosSinPrecio = (modelos: readonly ModeloVitrina[]): number =>
-  modelos.filter((m) => m.vitrina?.publicado && !m.publicable && m.porQueNo === "sin_precio").length;
+export const encendidosSinPrecio = (modelos: readonly ModeloVitrina[]): number => modelos.filter(esEncendidoSinPrecio).length;
 
 /** Lo que sigue al número de la ventana: «modelos en la web · se recoge en 2 tiendas» (el número va aparte, contando). */
 export function fraseVentana(seVen: number, tiendasVisibles: number | null): string {

@@ -372,6 +372,13 @@ export const GUIA_VITRINA: Guia = {
       texto: "Cuántos modelos se ven en la web y cuántos no tienen nada en ninguna tienda (toca una y la lista se queda con esos). «Esperan una talla» son los clientes que tocaron «Avísame»: tócala para ver qué esperan.",
     },
     {
+      id: "filtros",
+      ancla: "vitrina.filtros",
+      opcional: true,
+      titulo: "Afina la lista",
+      texto: "Por Estado (cada uno dice cuántos modelos trae: los que se ven, los que no tienen nada, los encendidos sin precio, los ocultos), por Categoría y por Lo nuevo. Lo que eliges queda como una píldora que se quita con su ✕; «Limpiar filtros» las quita todas.",
+    },
+    {
       id: "buscador",
       ancla: "vitrina.buscador",
       opcional: true,

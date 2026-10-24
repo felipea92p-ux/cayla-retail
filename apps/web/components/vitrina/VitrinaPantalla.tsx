@@ -2,13 +2,15 @@
 
 import { useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { LayoutGrid, List, MonitorSmartphone, SearchX } from "lucide-react";
+import { CircleCheck, LayoutGrid, List, MonitorSmartphone, SearchX, Shirt, Sparkles } from "lucide-react";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
+import { DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { MiniaturaPrenda, SinFoto } from "@/components/ui/PrendaCelda";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -18,18 +20,40 @@ import { Vacio } from "@/components/ui/Vacio";
 import { VitrinaLoteHoja } from "@/components/vitrina/VitrinaLoteHoja";
 import { VitrinaModeloHoja } from "@/components/vitrina/VitrinaModeloHoja";
 import {
+  categoriasDe,
   cifrasDe,
   coloresSinFoto,
+  contarPorEstado,
   esEmpaque,
   filtrarVitrina,
   interruptorEncendido,
   razonNoSeMuestra,
   stockEnTiendas,
+  type FiltroLoNuevo,
   type FiltroVitrina,
+  type FiltrosVitrina,
   type LecturaVitrina,
   type ModeloVitrina,
   type ModoLote,
 } from "@/lib/vitrina-reglas";
+
+// Cómo se llama cada estado en la píldora y en el filtro puesto. «Encendidos sin precio» es lo que el Resumen cuenta: los que alguien
+// prendió y no se ven porque ninguna tienda de la web les pone precio.
+const ESTADOS: { valor: FiltroVitrina; texto: string }[] = [
+  { valor: "todos", texto: "Todos" },
+  { valor: "en_la_web", texto: "Se ven en la web" },
+  { valor: "sin_stock", texto: "Sin stock en ninguna tienda" },
+  { valor: "sin_precio", texto: "Encendidos sin precio" },
+  { valor: "ocultos", texto: "Ocultos" },
+];
+// La píldora se da por «puesta» cuando su valor no es `TODOS`: «todos» de aquí se le dice con ese mismo valor.
+const aPildora = (v: string) => (v === "todos" ? TODOS : v);
+const dePildora = (v: string) => (v === TODOS ? "todos" : v);
+const LO_NUEVO: { valor: FiltroLoNuevo; texto: string }[] = [
+  { valor: "todos", texto: "Todos" },
+  { valor: "fijo", texto: "Fijados en Lo nuevo" },
+  { valor: "quitado", texto: "Fuera de Lo nuevo" },
+];
 
 // En el celular la fila es una tarjeta: casilla, modelo e interruptor arriba y lo libre en cada tienda bajo el nombre; desde `sm`,
 // columnas.
@@ -42,7 +66,17 @@ const PLANTILLA = "grid-cols-[1.5rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[1.5rem
  * fila muestra u oculta ese modelo, y marcar varios abre la barra para mostrarlos u ocultarlos juntos. Toda escritura pasa por una hoja
  * con el combo «Responsable» (ADR-0162).
  */
-export function VitrinaPantalla({ lectura, esperan }: { lectura: LecturaVitrina; /** Personas que esperan una talla (actividad 12); `null`: no se pudo leer. */ esperan: number | null }) {
+export function VitrinaPantalla({
+  lectura,
+  esperan,
+  inicial,
+}: {
+  lectura: LecturaVitrina;
+  /** Personas que esperan una talla (actividad 12); `null`: no se pudo leer. */
+  esperan: number | null;
+  /** Los filtros con los que abre la lista (los de la dirección: un enlace del Resumen llega ya filtrado). */
+  inicial: FiltrosVitrina;
+}) {
   const router = useRouter();
   const [modelos, setModelos] = useState(lectura.modelos);
   // Lo que trae el servidor al refrescar manda (sin un efecto: se ajusta al dibujar, como pide React).
@@ -51,7 +85,9 @@ export function VitrinaPantalla({ lectura, esperan }: { lectura: LecturaVitrina;
     setDeServidor(lectura.modelos);
     setModelos(lectura.modelos);
   }
-  const [filtro, setFiltro] = useState<FiltroVitrina>("todos");
+  const [filtro, setFiltro] = useState<FiltroVitrina>(inicial.estado);
+  const [categoria, setCategoria] = useState<string | null>(inicial.categoria);
+  const [loNuevo, setLoNuevo] = useState<FiltroLoNuevo>(inicial.loNuevo);
   // Cómo se ve la lista (ADR-0430): «Vitrina», las prendas en mosaico como las ve el cliente (de fábrica), o «Lista», la tabla de
   // siempre, más compacta para revisar muchas. Las dos hacen lo mismo: tocar abre su hoja, la casilla elige, el interruptor muestra.
   const [vista, setVista] = useState<"vitrina" | "lista">("vitrina");
@@ -62,7 +98,21 @@ export function VitrinaPantalla({ lectura, esperan }: { lectura: LecturaVitrina;
 
   const { tiendas } = lectura;
   const cifras = cifrasDe(modelos);
-  const visibles = filtrarVitrina(modelos, filtro, texto);
+  const extra = { categoria, loNuevo };
+  const visibles = filtrarVitrina(modelos, filtro, texto, extra);
+  const categorias = categoriasDe(modelos);
+  const porEstado = contarPorEstado(modelos, extra);
+  // Cada filtro puesto, para decirlo y quitarlo con un toque. El buscador no cuenta: tiene su propia ✕.
+  const puestos = [
+    filtro !== "todos" ? { clave: "estado", texto: ESTADOS.find((e) => e.valor === filtro)!.texto, quitar: () => setFiltro("todos") } : null,
+    categoria ? { clave: "categoria", texto: categoria, quitar: () => setCategoria(null) } : null,
+    loNuevo !== "todos" ? { clave: "lo-nuevo", texto: LO_NUEVO.find((e) => e.valor === loNuevo)!.texto, quitar: () => setLoNuevo("todos") } : null,
+  ].filter((p) => p !== null);
+  const limpiarFiltros = () => {
+    setFiltro("todos");
+    setCategoria(null);
+    setLoNuevo("todos");
+  };
   const elegidosVisibles = visibles.filter((m) => elegidos.includes(m.id));
   const modeloAbierto = abierto ? modelos.find((m) => m.id === abierto) ?? null : null;
   const delLote = lote ? modelos.filter((m) => lote.ids.includes(m.id)) : [];
@@ -142,6 +192,51 @@ export function VitrinaPantalla({ lectura, esperan }: { lectura: LecturaVitrina;
           />
         </div>
 
+        {modelos.length > 0 && (
+          <div className="space-y-3 border-b border-sand px-5 py-3" data-guia="vitrina.filtros">
+            <PanelPildoras>
+              <DesplegablePildora
+                icono={CircleCheck}
+                etiqueta="Estado"
+                valor={aPildora(filtro)}
+                onValor={(v) => setFiltro(dePildora(v) as FiltroVitrina)}
+                rotuloCantidad="Modelos"
+                opciones={ESTADOS.map((e) => ({ valor: aPildora(e.valor), texto: e.texto, cantidad: porEstado[e.valor] }))}
+              />
+              {categorias.length > 0 && (
+                <DesplegablePildora
+                  icono={Shirt}
+                  etiqueta="Categoría"
+                  valor={categoria ?? TODOS}
+                  onValor={(v) => setCategoria(v === TODOS ? null : v)}
+                  rotuloCantidad="Modelos"
+                  opciones={[{ valor: TODOS, texto: "Todas las categorías" }, ...categorias.map((c) => ({ valor: c.nombre, texto: c.nombre, cantidad: c.modelos }))]}
+                />
+              )}
+              <DesplegablePildora
+                icono={Sparkles}
+                etiqueta="Lo nuevo"
+                valor={aPildora(loNuevo)}
+                onValor={(v) => setLoNuevo(dePildora(v) as FiltroLoNuevo)}
+                opciones={LO_NUEVO.map((e) => ({ valor: aPildora(e.valor), texto: e.texto }))}
+              />
+            </PanelPildoras>
+            {puestos.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                {puestos.map((p) => (
+                  <FiltroPuesto key={p.clave} onQuitar={p.quitar} etiqueta={`Quitar el filtro: ${p.texto}`}>
+                    {p.texto}
+                  </FiltroPuesto>
+                ))}
+                <BotonLimpiar onClick={limpiarFiltros}>Limpiar filtros</BotonLimpiar>
+                <span className="ml-auto text-[13px] tabular-nums text-taupe">
+                  {visibles.length} de {modelos.length} {modelos.length === 1 ? "modelo" : "modelos"}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {visibles.length === 0 ? (
           texto.trim() ? (
             <Vacio icono={<SearchX />} titulo={`Nada coincide con «${texto.trim()}»`} acciones={<Boton onClick={() => setTexto("")}>Borrar la búsqueda</Boton>}>
@@ -153,8 +248,18 @@ export function VitrinaPantalla({ lectura, esperan }: { lectura: LecturaVitrina;
               tienda online.
             </Vacio>
           ) : (
-            <Vacio icono={<MonitorSmartphone />} tamano="chico">
-              {filtro === "sin_stock" ? "Todos los modelos que se ven en la web tienen algo en alguna tienda." : "Ningún modelo se ve en la web todavía."}
+            <Vacio
+              icono={<SearchX />}
+              tamano="chico"
+              acciones={puestos.length > 0 ? <Boton onClick={limpiarFiltros}>Limpiar filtros</Boton> : undefined}
+            >
+              {filtro === "sin_stock" && !categoria && loNuevo === "todos"
+                ? "Todos los modelos que se ven en la web tienen algo en alguna tienda."
+                : filtro === "sin_precio" && !categoria && loNuevo === "todos"
+                  ? "Ningún modelo encendido se queda sin verse por falta de precio."
+                  : puestos.length > 0
+                    ? "Ningún modelo cumple estos filtros a la vez."
+                    : "Ningún modelo se ve en la web todavía."}
             </Vacio>
           )
         ) : vista === "vitrina" ? (

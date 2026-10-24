@@ -191,16 +191,83 @@ export function cifrasDe(modelos: readonly ModeloVitrina[]): CifrasVitrina {
   return { seVen: visibles.length, total: modelos.length, sinStock: visibles.filter((m) => libreEnTiendas(m) === 0).length };
 }
 
-export type FiltroVitrina = "todos" | "en_la_web" | "sin_stock";
+/** Los estados por los que se filtra la lista. Los dos primeros son las cifras de arriba; `sin_precio` y `ocultos` son lo que el Resumen
+ *  cuenta como «encendidos que no se ven» y lo que alguien apagó. */
+export type FiltroVitrina = "todos" | "en_la_web" | "sin_stock" | "sin_precio" | "ocultos";
+const FILTROS_VITRINA: readonly FiltroVitrina[] = ["todos", "en_la_web", "sin_stock", "sin_precio", "ocultos"];
 
-export function filtrarVitrina(modelos: readonly ModeloVitrina[], filtro: FiltroVitrina, busqueda: string): ModeloVitrina[] {
+/** Lo nuevo, como lo guarda la ficha de la vitrina: solo lo que se decidió a mano se puede filtrar (el «automático» depende de cuándo
+ *  llegó a una tienda, y la lista no trae ese dato). */
+export type FiltroLoNuevo = "todos" | "fijo" | "quitado";
+const FILTROS_LO_NUEVO: readonly FiltroLoNuevo[] = ["todos", "fijo", "quitado"];
+
+export type FiltrosVitrina = { estado: FiltroVitrina; categoria: string | null; loNuevo: FiltroLoNuevo };
+
+/** Encendido pero sin verse porque ninguna tienda de la web le pone precio. Lo cuenta el Resumen («N modelos encendidos no se ven») y lo
+ *  filtra la lista: una sola definición, para que el número de una pantalla sea el de la otra. */
+export const esEncendidoSinPrecio = (m: ModeloVitrina): boolean => Boolean(m.vitrina?.publicado) && !m.publicable && m.porQueNo === "sin_precio";
+
+/** Lo que alguien apagó o nunca encendió: se puede mostrar con un toque. El empaque no cuenta: su interruptor no se puede prender. */
+const estaOculto = (m: ModeloVitrina): boolean => !m.vitrina?.publicado && !esEmpaque(m);
+
+function coincideEstado(m: ModeloVitrina, estado: FiltroVitrina): boolean {
+  switch (estado) {
+    case "en_la_web":
+      return seVeEnLaWeb(m);
+    case "sin_stock":
+      return seVeEnLaWeb(m) && libreEnTiendas(m) === 0;
+    case "sin_precio":
+      return esEncendidoSinPrecio(m);
+    case "ocultos":
+      return estaOculto(m);
+    default:
+      return true;
+  }
+}
+
+/** La lista según el estado, la categoría, Lo nuevo y lo que se escribió en el buscador. Sin los filtros opcionales, como siempre. */
+export function filtrarVitrina(
+  modelos: readonly ModeloVitrina[],
+  filtro: FiltroVitrina,
+  busqueda: string,
+  extra: { categoria?: string | null; loNuevo?: FiltroLoNuevo } = {},
+): ModeloVitrina[] {
   const q = normalizarBusqueda(busqueda.trim());
   return modelos.filter((m) => {
-    if (filtro === "en_la_web" && !seVeEnLaWeb(m)) return false;
-    if (filtro === "sin_stock" && !(seVeEnLaWeb(m) && libreEnTiendas(m) === 0)) return false;
+    if (!coincideEstado(m, filtro)) return false;
+    if (extra.categoria && m.categoria !== extra.categoria) return false;
+    if (extra.loNuevo && extra.loNuevo !== "todos" && (m.vitrina?.enLoNuevo ?? "automatico") !== extra.loNuevo) return false;
     if (!q) return true;
     return normalizarBusqueda(`${m.nombre} ${m.codigo ?? ""} ${m.categoria ?? ""}`).includes(q);
   });
+}
+
+/** Cuántos modelos trae cada estado, para decirlo en la lista de la píldora («Ocultos · 6»). Cuentan lo que ya dejaron la categoría y Lo nuevo. */
+export function contarPorEstado(modelos: readonly ModeloVitrina[], extra: { categoria?: string | null; loNuevo?: FiltroLoNuevo } = {}): Record<FiltroVitrina, number> {
+  const base = filtrarVitrina(modelos, "todos", "", extra);
+  return Object.fromEntries(FILTROS_VITRINA.map((f) => [f, base.filter((m) => coincideEstado(m, f)).length])) as Record<FiltroVitrina, number>;
+}
+
+/** Las categorías que hay en la lista, de la A a la Z, con cuántos modelos trae cada una. */
+export function categoriasDe(modelos: readonly ModeloVitrina[]): { nombre: string; modelos: number }[] {
+  const cuenta = new Map<string, number>();
+  for (const m of modelos) if (m.categoria) cuenta.set(m.categoria, (cuenta.get(m.categoria) ?? 0) + 1);
+  return [...cuenta].map(([nombre, n]) => ({ nombre, modelos: n })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Los filtros que trae la dirección (`?filtro=sin_precio&categoria=Blusas&lonuevo=fijo`). Un valor que no existe se ignora: un enlace viejo
+ *  o escrito a mano abre la lista completa, nunca una pantalla rota. */
+export function filtrosDeLaUrl(params: { filtro?: string | string[]; categoria?: string | string[]; lonuevo?: string | string[] }): FiltrosVitrina {
+  const uno = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const estado = FILTROS_VITRINA.find((f) => f === uno(params.filtro));
+  const loNuevo = FILTROS_LO_NUEVO.find((f) => f === uno(params.lonuevo));
+  const categoria = uno(params.categoria)?.trim();
+  return { estado: estado ?? "todos", categoria: categoria ? categoria : null, loNuevo: loNuevo ?? "todos" };
+}
+
+/** La dirección de la Vitrina ya filtrada: la usan los enlaces del Resumen. */
+export function hrefVitrina(filtro: FiltroVitrina): string {
+  return filtro === "todos" ? "/tienda-web/vitrina" : `/tienda-web/vitrina?filtro=${filtro}`;
 }
 
 /* ---------------- La hoja de un modelo ---------------- */

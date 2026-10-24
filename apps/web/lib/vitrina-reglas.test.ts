@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  categoriasDe,
   cifrasDe,
   coloresSinFoto,
+  contarPorEstado,
   descripcionParaGuardar,
   errorDeVitrina,
   esEmpaque,
+  esEncendidoSinPrecio,
   filtrarVitrina,
+  filtrosDeLaUrl,
+  hrefVitrina,
   interruptorEncendido,
   leerVitrina,
   libreEnTiendas,
@@ -137,6 +142,66 @@ describe("cifras y filtros", () => {
     expect(filtrarVitrina(todos, "todos", "sofia").map((m) => m.id)).toEqual(["o"]);
     expect(filtrarVitrina(todos, "todos", "fal-0001").map((m) => m.id)).toEqual(["s"]);
     expect(filtrarVitrina(todos, "en_la_web", "vestido")).toEqual([]);
+  });
+});
+
+describe("filtros por estado, categoría y Lo nuevo (Ola 1 de Tienda web)", () => {
+  const sinPrecio = modelo({ id: "p", nombre: "Collar Perla", categoria: "Collares", publicable: false, porQueNo: "sin_precio" });
+  const sinPrecioApagado = modelo({ id: "pa", nombre: "Collar Luna", categoria: "Collares", publicable: false, porQueNo: "sin_precio", vitrina: { ...emma.vitrina!, publicado: false } });
+  const apagado = modelo({ id: "a", nombre: "Falda Renata", categoria: "Faldas", vitrina: { ...emma.vitrina!, publicado: false, enLoNuevo: "quitado" } });
+  const nunca = modelo({ id: "n", nombre: "Vestido Sofía", categoria: "Vestidos", vitrina: null });
+  const bolsa = modelo({ id: "b", nombre: "Bolsa Kraft", categoria: "Bolsas", publicable: false, porQueNo: "empaque", vitrina: { ...emma.vitrina!, publicado: false } });
+  const sinStock = modelo({ id: "s", nombre: "Polo Abril", categoria: "Camisas y Blusas", stock: [{ ubicacionId: "lim", cantidad: 0 }], vitrina: { ...emma.vitrina!, enLoNuevo: "automatico" } });
+  const todos = [emma, sinPrecio, sinPrecioApagado, apagado, nunca, bolsa, sinStock];
+  const ids = (ms: ModeloVitrina[]) => ms.map((m) => m.id);
+
+  it("«sin precio» es lo mismo que cuenta el Resumen: encendidos que no se ven, no los apagados ni el empaque", () => {
+    expect(ids(filtrarVitrina(todos, "sin_precio", ""))).toEqual(["p"]);
+    expect(todos.filter(esEncendidoSinPrecio).map((m) => m.id)).toEqual(["p"]);
+  });
+
+  it("«ocultos» es lo que alguien apagó o nunca encendió; el empaque no, porque no se puede prender", () => {
+    expect(ids(filtrarVitrina(todos, "ocultos", ""))).toEqual(["pa", "a", "n"]);
+  });
+
+  it("la categoría y Lo nuevo se suman al estado y al texto", () => {
+    expect(ids(filtrarVitrina(todos, "todos", "", { categoria: "Collares" }))).toEqual(["p", "pa"]);
+    expect(ids(filtrarVitrina(todos, "ocultos", "", { categoria: "Collares" }))).toEqual(["pa"]);
+    expect(ids(filtrarVitrina(todos, "todos", "", { loNuevo: "fijo" }))).toEqual(["e1", "p", "pa", "b"]);
+    expect(ids(filtrarVitrina(todos, "todos", "", { loNuevo: "quitado" }))).toEqual(["a"]);
+    expect(ids(filtrarVitrina(todos, "todos", "luna", { categoria: "Collares" }))).toEqual(["pa"]);
+    // Sin la ficha de la vitrina, Lo nuevo es automático.
+    expect(ids(filtrarVitrina(todos, "todos", "", { loNuevo: "todos" }))).toHaveLength(todos.length);
+  });
+
+  it("cuenta cada estado para la lista de la píldora, ya con la categoría y Lo nuevo puestas", () => {
+    expect(contarPorEstado(todos)).toEqual({ todos: 7, en_la_web: 2, sin_stock: 1, sin_precio: 1, ocultos: 3 });
+    expect(contarPorEstado(todos, { categoria: "Collares" })).toEqual({ todos: 2, en_la_web: 0, sin_stock: 0, sin_precio: 1, ocultos: 1 });
+  });
+
+  it("las categorías, de la A a la Z y con su cuenta; sin categoría no entra", () => {
+    expect(categoriasDe([...todos, modelo({ id: "x", categoria: null })])).toEqual([
+      { nombre: "Bolsas", modelos: 1 },
+      { nombre: "Camisas y Blusas", modelos: 2 },
+      { nombre: "Collares", modelos: 2 },
+      { nombre: "Faldas", modelos: 1 },
+      { nombre: "Vestidos", modelos: 1 },
+    ]);
+  });
+
+  it("lee los filtros de la dirección y un valor raro abre la lista completa", () => {
+    expect(filtrosDeLaUrl({ filtro: "sin_precio", categoria: "Blusas", lonuevo: "fijo" })).toEqual({ estado: "sin_precio", categoria: "Blusas", loNuevo: "fijo" });
+    expect(filtrosDeLaUrl({})).toEqual({ estado: "todos", categoria: null, loNuevo: "todos" });
+    expect(filtrosDeLaUrl({ filtro: "cualquier-cosa", lonuevo: "siempre", categoria: "  " })).toEqual({ estado: "todos", categoria: null, loNuevo: "todos" });
+    expect(filtrosDeLaUrl({ filtro: ["sin_stock", "ocultos"] }).estado).toBe("sin_stock");
+  });
+
+  it("los enlaces del Resumen llevan a la Vitrina ya filtrada, y lo que arman se lee igual al llegar", () => {
+    expect(hrefVitrina("todos")).toBe("/tienda-web/vitrina");
+    expect(hrefVitrina("sin_precio")).toBe("/tienda-web/vitrina?filtro=sin_precio");
+    for (const f of ["en_la_web", "sin_stock", "sin_precio", "ocultos"] as const) {
+      expect(filtrosDeLaUrl({ filtro: new URL(hrefVitrina(f), "http://x").searchParams.get("filtro") ?? undefined }).estado).toBe(f);
+    }
   });
 });
 
