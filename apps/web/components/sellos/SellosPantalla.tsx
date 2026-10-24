@@ -23,6 +23,7 @@ import { BotonesPendiente, BotonReactivar } from "@/components/atributos/kit";
 import { CampanaModal, NuevaEtiquetaModal, botonCampana, ordenarEtiquetas, type CategoriaOpcion, type Etiqueta } from "@/components/EtiquetasLista";
 import { CambiarDibujoModal } from "@/components/sellos/CambiarDibujoModal";
 import { SelloTinta } from "@/components/sellos/SelloTinta";
+import { OfertasHoja } from "@/components/sellos/OfertasHoja";
 import { useColumnasDeLaBilletera, useCupoDelLookbook } from "@/components/sellos/useMedidasDeSellos";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
@@ -36,6 +37,7 @@ import { vigenciaDe } from "@/lib/etiqueta-vigencia";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { notaSinRegistrar, type LecturaRotacion } from "@/lib/etiqueta-rotacion";
 import { hoyLima } from "@/lib/fechas-lima";
+import { reglasDeCampana, reglasVivas, vigenciaDeRegla, type ReglaCampana } from "@/lib/campana-reglas";
 import { tramoDeCampana, TEXTOS_MODO } from "@/lib/sellos-campanas";
 import {
   ESTILO_DE_VISTA,
@@ -92,6 +94,9 @@ export function SellosPantalla({
   puedeEditarSellos,
   puedeEditarCampanas,
   disenoWeb,
+  reglas: reglasIniciales,
+  reglasDisponibles,
+  esLider,
 }: {
   sede: string;
   etiquetasIniciales: Etiqueta[];
@@ -115,6 +120,12 @@ export function SellosPantalla({
   puedeEditarCampanas: boolean;
   /** La cuenta ve Tienda web ▸ Campañas: el pase de una campaña con descuento lleva a su diseño en la tienda online. */
   disenoWeb: boolean;
+  /** Las ofertas de todas las campañas («Tres preguntas», 2026-10-23); vacío si la base aún no las tiene o la cuenta no las ve. */
+  reglas: ReglaCampana[];
+  /** La base responde por las ofertas: si no, «Configurar» abre la hoja de siempre. */
+  reglasDisponibles: boolean;
+  /** Un líder activa y retira lo que ya rige; los demás dejan borradores. */
+  esLider: boolean;
 }) {
   const hoy = hoyLima();
   const responsable = useResponsable();
@@ -138,6 +149,9 @@ export function SellosPantalla({
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
   const [cambiandoId, setCambiandoId] = useState<string | null>(null);
   const [configurando, setConfigurando] = useState<Etiqueta | null>(null);
+  // Las ofertas de las campañas viven aquí: la hoja las guarda y devuelve la lista entera tal como quedó en la base.
+  const [reglas, setReglas] = useState(reglasIniciales);
+  const [ofertandoId, setOfertandoId] = useState<string | null>(null);
   const [etiquetando, setEtiquetando] = useState<Etiqueta | null>(null);
   const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   // La billetera tiene dos columnas (la pila y el pase en grande) o una, según su ancho (una consulta de contenedor en sellos.css). Con
@@ -379,6 +393,9 @@ export function SellosPantalla({
     const chip = e.activo && e.estado === "aprobado" ? chipDeTarjeta(vigencia, p.modelos.length + e.categoriaIds.length, hoy) : null;
     const dondeRige = e.descuentoPct !== null ? textoSedesDeCampana(e.sedeIds, tiendas) : null;
     const anio = e.vigenteDesde ? e.vigenteDesde.slice(0, 4) : null;
+    const ofertas = e.estilo === "campana" && reglasDisponibles ? reglasDeCampana(reglas, e.id) : [];
+    const ofertasVivas = reglasVivas(ofertas, hoy);
+    const porActivar = ofertasVivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length;
     return (
       <article
         key={e.id}
@@ -405,12 +422,17 @@ export function SellosPantalla({
           <div>
             <div className="sl-perfo" />
             <div className="sl-dentro">
-              {(chip || e.estado !== "aprobado") && (
+              {(chip || e.estado !== "aprobado" || porActivar > 0) && (
                 <div className="flex flex-wrap gap-1.5" style={{ "--i": 0 } as CSSProperties}>
                   {e.estado === "pendiente" && <Chip tono="ambar">Por aprobar</Chip>}
                   {e.estado === "rechazado" && <Chip tono="apagado" tachado={false}>Rechazado</Chip>}
                   {chip && <Chip tono={chip.tono} title={chip.title}>{chip.texto}</Chip>}
                   {chip?.alerta && <Chip tono="ambar" title={chip.title}>{chip.alerta}</Chip>}
+                  {porActivar > 0 && (
+                    <Chip tono="ambar" title="Hay ofertas guardadas como borrador: un líder las activa para que bajen el precio.">
+                      {porActivar === 1 ? "1 oferta por activar" : `${porActivar} ofertas por activar`}
+                    </Chip>
+                  )}
                 </div>
               )}
               {e.activo && (tramo === "ahora" || tramo === "proximas") && e.vigenteDesde && e.vigenteHasta && (
@@ -438,9 +460,16 @@ export function SellosPantalla({
                 <div>
                   <strong>{p.unidades !== null ? p.unidades.toLocaleString("es-PE") : "—"}</strong>en las tiendas
                 </div>
-                <div>
-                  <strong>{e.descuentoPct !== null ? `${e.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %` : "—"}</strong>descuento
-                </div>
+                {ofertas.length > 0 ? (
+                  <div>
+                    <strong>{ofertasVivas.length}</strong>
+                    {ofertasVivas.length === 1 ? "oferta o promoción" : "ofertas y promociones"}
+                  </div>
+                ) : (
+                  <div>
+                    <strong>{e.descuentoPct !== null ? `${e.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %` : "—"}</strong>descuento
+                  </div>
+                )}
               </div>
               {dondeRige && (
                 <div style={{ "--i": 3 } as CSSProperties}>
@@ -486,12 +515,20 @@ export function SellosPantalla({
     const vigencia = vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy);
     const imprimir = e.descuentoPct !== null && vigencia?.estado !== "proxima";
     const boton = botonCampana(e, hoy);
+    // Una campaña se configura con sus ofertas («Tres preguntas», ADR-0496); la hoja de siempre (`CampanaModal`) solo queda si la base aún no las tiene.
+    const conOfertas = e.estilo === "campana" && reglasDisponibles;
     return (
       <>
         <button type="button" onClick={() => setEtiquetando(e)} data-guia={conGuia ? "sellos.prendas" : undefined} className="btn-cayla btn-sutil btn-chico">
           Prendas
         </button>
-        <button type="button" onClick={() => setConfigurando(e)} title={boton.title} data-guia={conGuia ? "sellos.configurar" : undefined} className="btn-cayla btn-sutil btn-chico">
+        <button
+          type="button"
+          onClick={() => (conOfertas ? setOfertandoId(e.id) : setConfigurando(e))}
+          title={conOfertas ? (boton.texto === "Repetir" ? boton.title : "Sus ofertas y sus fechas") : boton.title}
+          data-guia={conGuia ? "sellos.configurar" : undefined}
+          className="btn-cayla btn-sutil btn-chico"
+        >
           {boton.texto}
         </button>
         <button type="button" onClick={() => setCambiandoDibujo(e)} data-guia={conGuia ? "sellos.dibujo" : undefined} className="btn-cayla btn-sutil btn-chico">
@@ -525,6 +562,12 @@ export function SellosPantalla({
   }
 
   // ---- El pase abierto, en grande --------------------------------------------------------------------------------------------
+
+  /** Cuántas ofertas vivas tiene una campaña y cuántas esperan a un líder (para «Lo que ya tiene»). */
+  function ofertasDe(e: Etiqueta) {
+    const vivas = reglasVivas(reglasDeCampana(reglas, e.id), hoy);
+    return { total: vivas.length, borradores: vivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length };
+  }
 
   function detalle(e: Etiqueta) {
     const p = prendasDe(e);
@@ -617,7 +660,7 @@ export function SellosPantalla({
         {e.estilo === "campana" && tramo !== "pasaron" && (
           <div className="sl-listo mt-6" data-guia="sellos.listo" style={{ "--i": 3 } as CSSProperties}>
             <p className="label-cayla pb-1.5 pt-3.5 text-[10px] text-tinta/65">Lo que ya tiene</p>
-            {loQueTiene(e, p.modelos.length, cats, hoy, p.aMano).map((x, i) => (
+            {loQueTiene(e, p.modelos.length, cats, hoy, p.aMano, e.estilo === "campana" && reglasDisponibles ? ofertasDe(e) : undefined).map((x, i) => (
               <div key={x.clave} className="sl-listo-fila" data-estado={x.hecho ? "hecho" : x.opcional ? "opcional" : "falta"} style={{ "--i": i } as CSSProperties}>
                 <span className="sl-listo-marca" aria-hidden>
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
@@ -640,6 +683,7 @@ export function SellosPantalla({
   const nota = vista === "rotacion" && rotacion ? notaSinRegistrar(rotacion.registradas, rotacion.sinRegistrar) : null;
   const rechazandoEtiqueta = etiquetas.find((e) => e.id === rechazandoAbierto) ?? null;
   const aprobandoEtiqueta = etiquetas.find((e) => e.id === aprobandoAbierto) ?? null;
+  const ofertando = etiquetas.find((e) => e.id === ofertandoId) ?? null;
   const puedeCrear = esCampanas ? puedeEditarCampanas : puedeEditarSellos;
   let indice = 0;
 
@@ -794,6 +838,24 @@ export function SellosPantalla({
             setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === configurando.id ? { ...x, ...cambios } : x))));
             setConfigurando(null);
           }}
+        />
+      )}
+
+      {ofertando && (
+        <OfertasHoja
+          etiqueta={ofertando}
+          reglas={reglasDeCampana(reglas, ofertando.id)}
+          categorias={categorias}
+          tiendas={tiendas}
+          sedeActualId={sedeActualId}
+          prendasConCosto={prendasConCosto}
+          variantesManuales={manuales[ofertando.id] ?? []}
+          esLider={esLider}
+          hoy={hoy}
+          puedeDarDescuento={puedeEditar(ofertando)}
+          alGuardarCampana={(cambios) => setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === ofertando.id ? { ...x, ...cambios } : x))))}
+          alReglas={setReglas}
+          onClose={() => setOfertandoId(null)}
         />
       )}
 
