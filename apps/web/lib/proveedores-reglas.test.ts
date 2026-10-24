@@ -12,6 +12,7 @@ import {
   enmascararCci,
   enmascararCelular,
   enmascararCuenta,
+  esDeServicios,
   esSoloDeGastos,
   formatoCci,
   formatoCelular,
@@ -547,5 +548,29 @@ describe("proveedores de mercadería y de gastos (ADR-0452, complemento 2026-10-
     // Un número de otro largo (un celular, un DNI) no se cuela como RUC.
     expect(borradorDeLoBuscado("987654321")).toEqual({ nombre: "987654321", ruc: "" });
     expect(borradorDeLoBuscado("")).toEqual({ nombre: "", ruc: "" });
+  });
+});
+
+describe("esDeServicios: el tipo manda; sin tipo, la regla de «Gastos»", () => {
+  it("el tipo de la base decide, aunque el rubro diga otra cosa", () => {
+    expect(esDeServicios({ tipo: "servicios", rubros: ["Telefonía"] })).toBe(true);
+    expect(esDeServicios({ tipo: "mercaderia", rubros: ["Gastos"] })).toBe(false);
+  });
+
+  it("sin tipo (lista anterior a la columna) vale lo de siempre", () => {
+    expect(esDeServicios({ rubros: ["Gastos"] })).toBe(true);
+    expect(esDeServicios({ rubros: ["Telas", "Gastos"] })).toBe(false);
+    expect(esDeServicios({ rubros: [] })).toBe(false);
+    expect(esDeServicios({})).toBe(false);
+  });
+
+  it("proveedoresParaPedir deja fuera a los de servicios por tipo, y conserva al elegido", () => {
+    const lista = [
+      { id: "a", tipo: "mercaderia", rubros: ["Polos"] },
+      { id: "b", tipo: "servicios", rubros: ["Telefonía"] },
+      { id: "c", rubros: ["Gastos"] },
+    ];
+    expect(proveedoresParaPedir(lista).map((p) => p.id)).toEqual(["a"]);
+    expect(proveedoresParaPedir(lista, "b").map((p) => p.id)).toEqual(["a", "b"]);
   });
 });
