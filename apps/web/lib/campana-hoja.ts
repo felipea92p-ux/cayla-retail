@@ -106,6 +106,12 @@ export function categoriasDeLaHoja(
   };
 }
 
+/** Las familias que ya traen alguna categoría marcada: son las que abren solas en la grilla plegable (`plegables`); lo demás empieza plegado
+ *  para no llenar la pantalla. Se calcula una vez, al abrir: marcar o desmarcar después no pliega ni abre nada bajo el mouse. */
+export function familiasConMarcadas(categorias: readonly { id: string; familia: string }[], elegidas: ReadonlySet<string>): Set<string> {
+  return new Set(categorias.filter((c) => elegidas.has(c.id)).map((c) => c.familia));
+}
+
 // ---- La etiqueta viva: el mosaico y «En caja» ----------------------------------------------------------------------------------
 
 /** Cuántas piezas entran en el mosaico de la etiqueta: dos filas de seis. Con más, la última es «+N». */
