@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
+import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
 import { MarcaProveedorLinea } from "@/components/MarcaProveedorLinea";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
@@ -241,6 +242,13 @@ function TarjetaProducto({
         className="relative aspect-[4/5] w-full text-left outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-rojo/40 focus-visible:ring-inset"
       >
         {activo?.fotoUrl ? <ImagenDePrenda src={activo.fotoUrl} alt={`${producto.referencia} — ${activo.nombre}`} fill sizes={SIZES_FOTO} className="object-cover" fondo={activo.hex} fallback={sinFoto} /> : sinFoto}
+        {producto.empresa && (
+          // ADR-0505: «CLAURE» arriba a la izquierda, donde no choca con «Muestra — color» (arriba a la derecha) ni con «Descontinuado».
+          // Con fondo propio, como «Descontinuado»: sobre una foto oscura, un chip transparente no se lee.
+          <span className="absolute top-2.5 left-2.5 rounded-full bg-papel/90">
+            <InsigniaEmpresa nombre={producto.empresa} />
+          </span>
+        )}
         {descontinuado && (
           // Abajo a la izquierda: arriba a la derecha ya vive «Muestra — color» y en una tarjeta angosta chocarían.
           // Con fondo propio: sobre una foto oscura, un chip transparente no se lee.
