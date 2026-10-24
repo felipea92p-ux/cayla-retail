@@ -700,6 +700,13 @@ export const GUIA_PROVEEDOR: Guia = {
       titulo: "Cómo cumple",
       texto: "Lo facturado en el año, lo que se le debe, sus entregas atrasadas, cuántas llegaron completas, cuánto tarda en entregar y en cuánto le pagas de verdad.",
     },
+    {
+      id: "prendas",
+      ancla: "proveedor-ficha.prendas",
+      opcional: true,
+      titulo: "Lo que le compré",
+      texto: "Cuántas prendas le compraste, cuánta plata gastaste (al costo de cada prenda) y cuánto de eso ya vendiste, marca por marca. El margen es el de lo ya vendido.",
+    },
     // «Nos debe» (ADR-0362, fase 5a): las prendas por reponer, encima del saldo a favor. Solo la ve quien ve los montos de la ficha. El piloto
     // abre la hoja «Llegó la reposición» para mostrarla y la cierra sin anotar nada.
     {

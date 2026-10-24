@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import { hoyLima } from "@/lib/fechas-lima";
 import { marcasPorProveedor, rubrosConConteo, serie12Meses, type MarcasDeProveedor } from "@/lib/proveedores-reglas";
+import type { PrendaDeProveedor } from "@/lib/proveedor-prendas-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -370,4 +371,29 @@ export async function getProveedorMetricasInsumos(id: string): Promise<MetricasI
     total_comprado: string | number;
   };
   return { ...fila, total_comprado: Number(fila.total_comprado) };
+}
+
+// Lo que se le compró a ESTE proveedor, prenda por prenda (fn_proveedor_prendas, 20261024221000): unidades y gasto
+// salen de las entradas de inventario al costo de la prenda (las líneas de factura mandan cuando existen); lo vendido,
+// de las ventas completadas. Solo lectura. Las reglas que lo agrupan y lo interpretan viven en `proveedor-prendas-reglas.ts`.
+export async function getProveedorPrendas(id: string): Promise<PrendaDeProveedor[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedor_prendas", { p_proveedor_id: id }), "las prendas compradas al proveedor");
+  return filas.map((f) => ({
+    productoId: f.producto_id,
+    referencia: f.referencia,
+    codigo: f.codigo,
+    marca: f.marca,
+    categoria: f.categoria,
+    unidadesCompradas: Number(f.unidades_compradas),
+    gasto: Number(f.gasto),
+    costoPromedio: f.costo_promedio == null ? null : Number(f.costo_promedio),
+    unidadesVendidas: Number(f.unidades_vendidas),
+    ingresoVendido: Number(f.ingreso_vendido),
+    costoVendido: Number(f.costo_vendido),
+    stockActual: Number(f.stock_actual),
+    primeraEntrada: f.primera_entrada,
+    ultimaVenta: f.ultima_venta,
+    conFactura: f.con_factura,
+  }));
 }

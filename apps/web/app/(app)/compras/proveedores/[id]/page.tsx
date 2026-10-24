@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { accionesDeCompraDe, puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { usaModulo } from "@/lib/modulos";
-import { getCambiosBancarios, getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor } from "@/lib/proveedores";
+import { getCambiosBancarios, getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor, getProveedorPrendas } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
 import { ChevronRight, Receipt } from "lucide-react";
@@ -16,6 +16,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { PasoSugerido } from "@/components/ui/PasoSugerido";
 import { PistaPlazo } from "@/components/ui/PistaPlazo";
 import { ProveedorAcciones } from "@/components/ProveedorAcciones";
+import { ProveedorPrendas } from "@/components/ProveedorPrendas";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
 import { CambiosCuentaProveedor } from "@/components/CambiosCuentaProveedor";
@@ -57,7 +58,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   if (!esUuid(id)) notFound();
   const siDinero = <T,>(leer: () => Promise<T>): Promise<T | null> => (verMontos ? leer() : Promise.resolve(null));
 
-  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, cambiosCuenta, nosDebe] = await Promise.all([
+  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, cambiosCuenta, nosDebe, prendas] = await Promise.all([
     getProveedor(id),
     siDinero(() => getProveedorMetricasCompras(id)),
     esLider ? getProveedorMetricasInsumos(id) : Promise.resolve(null),
@@ -72,6 +73,9 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     // «Nos debe» (ADR-0362, fase 5a): las prendas por reponer. Con los mismos ojos que el saldo a favor (los montos de la ficha); si la base
     // todavía no lo sabe contar, llega vacío y la ficha sale como antes.
     siDinero(() => getNosDebeProveedor(id)),
+    // Lo que se le compró prenda por prenda y cuánto se vendió (2026-10-24): plata, así que con la misma llave que las cifras de arriba.
+    // Opcional: si la base todavía no tiene la función, la ficha se pinta sin esta sección.
+    siDinero(() => getProveedorPrendas(id).catch(() => null)),
   ]);
   if (!proveedor) notFound();
   const marcas = marcasMapa?.[id] ?? [];
@@ -210,6 +214,8 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
         )}
       </section>
       )}
+
+      {prendas && <ProveedorPrendas prendas={prendas} />}
 
       {/* «Nos debe» (ADR-0362, fase 5a): las prendas por reponer y, a su lado, el saldo a favor de siempre (la plata). Si la base todavía
           no cuenta las prendas, el saldo a favor queda solo, como antes. */}

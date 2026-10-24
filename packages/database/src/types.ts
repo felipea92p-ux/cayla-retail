@@ -7924,6 +7924,26 @@ export type Database = {
           unidad: string
         }[]
       }
+      fn_proveedor_prendas: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          categoria: string | null
+          codigo: string | null
+          con_factura: boolean
+          costo_promedio: number | null
+          costo_vendido: number
+          gasto: number
+          ingreso_vendido: number
+          marca: string | null
+          primera_entrada: string | null
+          producto_id: string
+          referencia: string
+          stock_actual: number
+          ultima_venta: string | null
+          unidades_compradas: number
+          unidades_vendidas: number
+        }[]
+      }
       fn_proveedor_produccion_metricas: {
         Args: { p_proveedor_id: string }
         Returns: {
