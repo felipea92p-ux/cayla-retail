@@ -2,7 +2,7 @@
   "guia": "caja",
   "ruta": "/caja",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 108,
+  "total": 109,
   "controles": {
     "app/(app)/caja/page.tsx": [
       "BotonEnlace «caja.historial-todas»"
@@ -141,6 +141,7 @@
       "button «¿No está? Súmalo»",
       "button «Cancelar»",
       "button «Sumar proveedor»",
+      "button «{`Quitar «${fijoElegido.descripcion}»",
       "ComboResponsable «{responsable}»",
       "button «Cancelar» #2",
       "Boton «→guardar»"

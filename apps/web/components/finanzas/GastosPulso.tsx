@@ -29,9 +29,9 @@ export function GastosPulso({
     <>
       <div {...entra("", 5)}>
         <Superficie pad guia="fin-gastos.bandeja">
-          <CabeceraBloque titulo={bandeja.frase} bajada={bandeja.n > 0 ? `${montoBandeja(bandeja)}. Una por una: el sistema propone y tú solo dices de qué fue.` : "Cada salida de caja ya dice qué fue y los fijos del mes están registrados."}>
+          <CabeceraBloque titulo={bandeja.frase} bajada={bandeja.n > 0 ? `${montoBandeja(bandeja)}. Una por una: el sistema propone y tú solo dices de qué fue.` : bandeja.bajadaVacia}>
             <Chip tono={bandeja.n === 0 ? "verde" : "ambar"} vivo={bandeja.n > 0}>
-              {bandeja.n === 0 ? "Al día" : `${bandeja.n} por revisar`}
+              {bandeja.chip}
             </Chip>
           </CabeceraBloque>
           {primera && (

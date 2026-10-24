@@ -177,6 +177,7 @@ describe("notaDelColor: cada color dice cuánto hay", () => {
 describe("armarProbador: el catálogo y lo del probador, juntos", () => {
   const delCatalogo = (n: number, prefijo: string, colores: string[], extra: Partial<Prenda> = {}): Prenda => ({
     empresa: null,
+    insignias: [],
     id: id(n),
     codigo: `P-${n}`,
     nombre: `Prenda ${n}`,

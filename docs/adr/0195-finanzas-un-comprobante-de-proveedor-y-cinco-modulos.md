@@ -439,6 +439,90 @@ cajón con la caja cerrada). El spike no podía definir esa lista: en él la pin
 `select.fin-control` ahora apuntan a `.fin-desplegable-caja` (la caja que ocupa lugar en la fila) y `.fin-desplegable`
 (el botón); `className` ubica el combo (`w-fit`, `fin-mes-chico`, `fin-compacto`), no lo pinta.
 
+## Actualización 2026-10-22 — Gastos: titular honesto, Fijos como cola de cierre y «¿es ese fijo?» (Felipe, `/pantalla` y `/formidable`)
+
+Felipe: «este mamarracho de gastos tiene que tener mejores funcionalidades». El análisis (`docs/pantallas/finanzas-gastos.md`, 12 tareas) dijo que
+a la pantalla no le faltaban botones: no contaba lo que pesa. Los 24 gastos fijos se confirmaban uno por uno y el titular («este mes gastaste S/ X»)
+leía como el mes completo sin ellos. Se hicieron las tres primeras tareas, **solo web: no cambia la base, ninguna RPC ni Caja**.
+
+- **El titular dice lo que todavía no cuenta (ADR-0417, camino A).** Bajo «este mes gastaste» sale «Todavía no cuenta: 5 gastos fijos por confirmar
+  (~S/ 1,200)» con el enlace «Ver los fijos»; el «~» aparece si algún monto es una referencia (fijo de monto variable). Si se mira otro mes, el
+  titular lo dice («en septiembre 2026 gastaste»). «Por pagar» y «Egresos sin clasificar» son de hoy aunque se mire otro mes (así lo calcula
+  `fn_gastos_panel`): en otro mes su bajada empieza por «A hoy ·».
+- **«De la empresa» no es toda la empresa.** Esa vista trae solo lo que no es de ninguna tienda; con 144 gastos de tienda al lado decía «0 gastos · la
+  empresa», «S/ 0» y «Todo clasificado», y se leía como que la empresa no había gastado nada. Ahora los conteos dicen «sin tienda», un aviso lo explica
+  con «Ver todas las tiendas», y la 4.ª tarjeta y la pestaña de egresos dejan de afirmar «Todo clasificado» sobre lo que esa vista no mira. El nombre
+  «De la empresa» se queda (vocabulario compartido con Resumen y Cierre): cambia lo que lo rodea, no el nombre.
+- **Fijos del mes es una sola lista (se aparta del spike).** El spike y el «Ajuste de diseño al spike» de arriba la dibujaban en dos columnas:
+  «Para confirmar» (casi siempre vacía) y «Faltan», y «Ya registrados» en la otra. Ahora es una lista con el mes en el título y lo que falta
+  confirmar con su suma; primero lo que ya venció (el más atrasado primero, «venció el 15 oct · hace 7 días»), después lo que vence este mes
+  («vence el 31 oct · en 9 días · pagar desde el 28 oct», con los que ya «Toca pagar» arriba y su chip ámbar; ADR-0487) y, plegados, los registrados
+  con «Ver el gasto». «Editar fijos» sube a la cabecera de la lista; los montos se alinean y a 375 px el botón baja bajo el nombre. Se aparta del
+  spike porque la mitad de la pantalla quedaba vacía y lo urgente iba segundo. (ADR-0487 nació con las dos tarjetas «Para confirmar» y «Faltan» y
+  se fusionó antes que este PR: su «vence», su «pagar desde» y su «Toca pagar» se trasladaron a la lista única; sus grupos se llaman «Ya vencieron»
+  y «Vencen este mes».)
+- **Un gasto suelto pregunta si es uno de los fijos que faltan.** Un gasto registrado con «+ Registrar gasto» no cerraba el fijo que le tocaba: el
+  fijo seguía en «Faltan» y otra persona podía pagarlo dos veces (un fijo «sin comprobante» no tiene ningún candado contra eso). Al elegir la
+  categoría y la tienda de un fijo pendiente del mes, el formulario pregunta «¿Es «Luz · Tienda TRU» de octubre?»: «Sí» registra el gasto con su
+  `gasto_fijo_id` y lo cierra; «No, es otro gasto» sigue aparte; registrar sin contestar no registra (el mismo patrón de «¿No será un proveedor que
+  ya tienes?»). Cambiar la categoría, la tienda o la fecha suelta el enlace. **Se parecen** = misma tienda, misma categoría, el mismo mes de la fecha
+  del gasto (como `gastos_fijo_mes_uq`) y fijo sin registrar; el monto solo ordena y nunca filtra, porque el monto de un fijo variable es una
+  referencia; el proveedor descarta cuando los dos lo tienen y son distintos. La pregunta ve los fijos de **todas las tiendas** y de **dos meses** (el que
+  se mira y el de hoy), no solo los de la vista: el formulario puede ser de otra tienda que la que se mira. Caja y los demás que abren el formulario no le
+  pasan los fijos y no preguntan: el 95 % de los gastos (los del cajón) no gana fricción.
+
+**DECIDÍ:** preguntar antes de registrar, y no dejar registrar sin contestar. **DESCARTÉ:** (a) enlazar solo por tienda y categoría, sin preguntar:
+un enlace equivocado consume el cupo del fijo de ese mes y no se deshace (`gastos_solo_anular`: un gasto no se edita; anularlo solo se puede si no
+tiene pagos); (b) empezar por un candado en la base (`fn_gastos_validar`): cambia una función que usa el gasto rápido de las tres tiendas, y va aparte,
+después del cierre de octubre. **SE ROMPE SI:** hay dos fijos de la misma tienda y categoría (la luz de la tienda y la del almacén) y la persona elige
+el equivocado: el gasto cierra el que no era y el verdadero sigue en «Faltan»; si un líder mira una tienda y registra un gasto de otra, los fijos de
+esa otra no están cargados y no pregunta.
+
+**Lo que encontró la revisión adversaria (4 revisores y un escéptico por cada uno, 22-oct) y se arregló antes de commitear:** la pregunta no veía los fijos
+de otra tienda ni los de otro mes (ahora sí); recortaba a 3 antes de quitar los ya descartados y escondía al cuarto, justo el de monto variable (ahora «No»
+descarta a todos los que se parecían, por fijo y mes); un gasto que nacía de un fijo con otra fecha cerraba el mes equivocado (ahora la fecha tiene que
+ser del mes del fijo); la bandeja decía «Al día» con fijos por llegar, y en «De la empresa» sobre cajones que no leyó (ahora «Sin atrasos» y lo dice); un mes
+anterior al inicio de Finanzas mostraba todos los fijos como atrasados (ahora «los fijos de ese mes no se confirman»); tres textos mandaban a «Faltan», que ya
+no existe; «Ver los fijos» cambiaba de pestaña sin llevar la vista; el título «Gastos de la empresa» sobre un aviso que dice lo contrario (ahora «Gastos sin
+tienda» y «de toda CAYLA»); el error de un fijo que ya tenía su gasto decía «Vuelve a intentar», que nunca funciona (ahora dice qué pasó y la pantalla se
+relee). **No se arregló, y es de Felipe:** `registrar_gasto` rotula CUALQUIER 23505 como «Ese gasto fijo ya tiene su gasto de este mes» cuando el gasto
+lleva un fijo (también un comprobante repetido; la frase de la web lo dice sin afirmar cuál) y no valida que la categoría del fijo sea la del gasto: las dos
+son migraciones sobre una función que usa el gasto rápido de las tres tiendas. Caja y «Clasificar un egreso» siguen sin preguntar.
+
+**Lo que no se hizo:** el candado de la base, confirmar los fijos de corrido (#4), «este mes no corresponde» y una sola definición de «falta» (#8): ver
+`docs/pantallas/finanzas-gastos.md`. Verificado con 40 casos nuevos de lógica pura y, en el navegador con datos inventados, la lista, el aviso, el
+mes pasado, 375 px y el envío (sin contestar: ninguna llamada a `registrar_gasto`; «Sí»: con `p_gasto_fijo_id`; «No»: sin él). **Sin `/chaos`, sin
+prueba ciega y sin colaboradora real todavía.**
+
+### Lo que encontró `/chaos` y cómo se cerró en la pantalla (2026-10-22, noche)
+
+`/chaos` (semilla 1023) mostró que un gasto de OTRA categoría cerraba un fijo: se abría la hoja con «Registrar» de la fila del alquiler, se cambiaba la
+categoría y el enlace al fijo se conservaba; el alquiler quedaba «registrado» y nadie lo veía más como pendiente.
+
+DECIDÍ: la hoja que nace de un fijo deja la categoría **fija**, igual que ya hacía con la tienda (con una ayuda que dice por qué y dónde se corrige un fijo mal
+categorizado, en Configuración ▸ Gastos fijos), y `guardar()` vuelve a mirar el gasto contra su fijo con `choqueConElFijo` (categoría y mes, lógica pura en
+`lib/fijos-del-mes-reglas.ts`) antes de mandarlo, por si llega distinto por otro camino.
+DESCARTÉ: dejar el combo libre y avisar al guardar. Con la tienda ya fija, la categoría libre eran dos reglas para el mismo problema, y la persona se
+enteraba de su error al final de un formulario largo. Tampoco agregué una opción para una categoría desactivada: nada en el producto desactiva una categoría
+de gasto, y quien lo construya debe hacer que la baja se niegue mientras haya fijos activos en ella.
+SE ROMPE SI: alguien arma otra puerta que mande `p_gasto_fijo_id` sin pasar por `guardar()` (hoy no hay otra: la revisión leyó todos los llamadores), o si la
+categoría de un fijo cargado antes de ADR-0477 (todos en `servicios_basicos`) está mal y la persona no tiene el módulo Configuración para corregirla: la ayuda
+le dice dónde, pero no puede hacerlo ella. La base sigue aceptando una categoría distinta (hay un borrador de migración, de Felipe, ver el backlog); el mes no lo puede exigir la base, que lo cuenta por la fecha del gasto (un gasto de septiembre cierra el septiembre de ese fijo): lo exige la pantalla.
+
+
+### Dónde quedó lo de arriba tras «El telar de Finanzas» (2026-10-23, al fusionar con ADR-0493)
+
+El telar (ADR-0493, PR #1305) retiró el titular («este mes gastaste S/ X») y la tarjeta «Gastado en el mes»: la cifra del mes es ahora la de la cabecera (`<RespuestaTelar>`),
+y la sede vive en `?sede=`. De lo que decidió la actualización del 22-oct, **se conserva todo menos el sitio**:
+- «Todavía no cuenta: N fijos por confirmar» pasó a ser **un chip bajo la cifra grande** («Sin contar 5 fijos por confirmar (~S/ 1,200)», en ámbar,
+  junto a «N gastos» y «N sin comprobante»): la cifra sigue sin incluir los fijos que nadie registró, y lo dice. Pierde el enlace «Ver los fijos»
+  (la pestaña, el dock con la tecla F y la tarjeta de egresos ya llevan a ellos: cambian de pestaña y bajan hasta ellas, con `scroll-mt-44` para no quedar bajo la mesa de mando). El mes lo dice la pregunta de la cabecera, así que el verbo «en septiembre gastaste» se retiró.
+- El aviso de «solo lo que no es de una tienda» (y su «Ver todas las tiendas», que ahora escribe `?sede=todas`), el «A hoy ·» de las tarjetas de hoy y el
+  recorte de los fijos antes del inicio de Finanzas siguen. Los conteos «sin tienda» y el título «Gastos sin tienda» se retiraron con el titular (la pantalla vuelve a titularse «Gastos»; la sede la dice la
+  cabecera): el chip dice «N gastos» y el aviso explica por qué puede ser cero. Los textos que citan la barra usan sus nombres: «Todas las sedes» y «Empresa». La pregunta de la cabecera dice «¿Cuánto gastó la empresa…?» (redacción de ADR-0493): si Felipe quiere que diga «sin tienda»,
+  es un cambio de `quien()` en `lib/gastos-telar-reglas.ts`.
+- Fijos del mes como una sola lista y la pregunta «¿es ese fijo?» no dependen del telar y no cambiaron.
+
 ## Actualización 2026-10-23 — El telar de Finanzas reemplaza el diseño del spike (ADR-0493)
 
 Felipe eligió «El telar de Finanzas» (docs/maquetas/finanzas-telar-2026-10/) para los seis submódulos. Desde ese día:

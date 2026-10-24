@@ -69,7 +69,8 @@ export const aCredito = (h: Pick<HojaGasto, "comprobante" | "pagado">) => conCom
 export type SalidaDeLaHoja = { medio: MedioGasto | ""; cuentaId?: string; cajaId: string; referencia: string };
 
 /** La hoja → el borrador de siempre. `proveedorId` es el del RUC (el que ya estaba o el recién sumado). */
-export function borradorDeLaHoja(h: HojaGasto, proveedorId: string, salida: SalidaDeLaHoja): BorradorGasto {
+/** `gastoFijoId`: el gasto fijo que este gasto cierra, si la persona contestó «Sí, es este» a «¿es ese fijo?» (#1271). */
+export function borradorDeLaHoja(h: HojaGasto, proveedorId: string, salida: SalidaDeLaHoja, gastoFijoId?: string): BorradorGasto {
   const { serie, numero } = partirSerieNumero(h.serieNumero);
   const credito = aCredito(h);
   return {
@@ -89,6 +90,7 @@ export function borradorDeLaHoja(h: HojaGasto, proveedorId: string, salida: Sali
     egresoId: "",
     referencia: credito ? "" : salida.referencia,
     ...(salida.cuentaId && !credito ? { cuentaId: salida.cuentaId } : {}),
+    ...(gastoFijoId ? { gastoFijoId } : {}),
   };
 }
 
@@ -103,6 +105,8 @@ export function validarHoja(
   hoy: string,
   /** ¿El RUC ya tiene proveedor (del directorio o la razón social para sumarlo)? Sin decirlo, se da por sí. */
   proveedorListo = true,
+  /** El gasto fijo que cierra (ver `borradorDeLaHoja`). */
+  gastoFijoId?: string,
 ): { ok: true; valor: PayloadGasto } | { ok: false; error: string } {
   // En el orden de la guía (el /chaos del 2026-10-23 vio «Di si tiene comprobante» con la hoja vacía, cuando la guía marcaba el monto):
   // el primer aviso es el primer campo que la guía enciende. Los textos son los de `camposDeLaHoja`.
@@ -116,7 +120,7 @@ export function validarHoja(
   if (conComprobante(h) && !serieNumeroLegible(h.serieNumero)) return { ok: false, error: "Escribe la serie y el número, como F001-2231." };
   if (aCredito(h) && (!h.vence || h.vence < h.fecha)) return { ok: false, error: "Di cuándo vence (no antes de la fecha)." };
   if (!aCredito(h) && !salida.medio) return { ok: false, error: "Di de dónde salió la plata." };
-  return validarGasto(borradorDeLaHoja(h, proveedorId, salida), hoy);
+  return validarGasto(borradorDeLaHoja(h, proveedorId, salida, gastoFijoId), hoy);
 }
 
 export type ContextoGuia = {

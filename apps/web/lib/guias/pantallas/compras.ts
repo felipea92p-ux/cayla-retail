@@ -1985,7 +1985,7 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.antes",
       opcional: true,
       titulo: "Rondas anteriores",
-      texto: "Lo de tus rondas anteriores espera aquí, cada cosa con su número de ronda: tócalo para verlo.",
+      texto: "Aquí está la plata que te dieron, lo que devolviste en caja y cada ronda que cerraste. Toca una ronda para ver lo que compraste y gastaste en ella.",
     },
     {
       id: "fin",

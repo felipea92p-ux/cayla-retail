@@ -899,6 +899,12 @@ describe("montos con tope de Finanzas", () => {
       ).toMatch(/pasa de S\/\u00a01 000 000/);
     }
   });
+  it("un gasto que cierra un fijo ya cerrado dice qué pasó en vez de «Vuelve a intentar» (que nunca funciona)", () => {
+    const frase = traducirError({ message: "Ese gasto fijo ya tiene su gasto de este mes.", code: "23505" }, "registrar el gasto");
+    expect(frase).toMatch(/ya tiene su gasto de este mes/);
+    expect(frase).toMatch(/Fijos del mes/);
+    expect(frase).not.toMatch(/Vuelve a intentar/);
+  });
   it("el vuelto con tope sigue con su propia frase", () => {
     expect(
       traducirError({ message: 'new row for relation "venta_pagos" violates check constraint "venta_pagos_recibido_con_tope"', code: "23514" }, "cobrar"),

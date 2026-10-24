@@ -47,6 +47,7 @@ import {
   papelDelGasto,
   papelEnUnaLinea,
   perdidoEnOtroMes,
+  prefijoALaFecha,
   puedeAnular,
   resumenActivosPorSede,
   resumenFijos,
@@ -71,9 +72,11 @@ import {
 } from "@/lib/gastos-reglas";
 import { Boton } from "@/components/ui/campos";
 import { GastosPulso } from "@/components/finanzas/GastosPulso";
-import { bandejaPulso, gastastePulso } from "@/lib/gastos-pulso-reglas";
+import { bandejaPulso, chipDeFijosPorConfirmar, fijosPorConfirmar, gastastePulso } from "@/lib/gastos-pulso-reglas";
+import { mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
+import { fijosDelMesVisibles } from "@/lib/fijos-del-mes-reglas";
 import { Vacio } from "@/components/ui/Vacio";
-import { Armchair, Check, FunnelX, Plus, Receipt, Repeat, SearchX, Tag, Wallet } from "lucide-react";
+import { Armchair, Check, FunnelX, Plus, Receipt, Repeat, SearchX, Store, Tag, Wallet } from "lucide-react";
 import { MAX_MOTIVO_ANULAR_GASTO } from "@/lib/finanzas-topes";
 
 // Finanzas ▸ Gastos (ADR-0195 F2), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, vista «Gastos»):
@@ -91,6 +94,8 @@ export function GastosPanel({
   marcas,
   activos,
   fijos,
+  fijosParaPreguntar,
+  inicioFinanzas = null,
   sugeridos,
   tiposActivo,
   categorias,
@@ -114,6 +119,10 @@ export function GastosPanel({
   marcas: MarcaNoGasto[];
   activos: ActivoFila[];
   fijos: GastoFijoMes[];
+  /** Los fijos de TODAS las tiendas del mes que se mira y del mes de hoy: con ellos, un gasto suelto pregunta si es uno de los que faltan. */
+  fijosParaPreguntar: GastoFijoMes[];
+  /** El día desde el que Finanzas cuenta (`parametros_finanzas`): antes de ese mes, los fijos no se confirman. `null` si no hay corte. */
+  inicioFinanzas?: string | null;
   sugeridos: FijoSugerido[];
   tiposActivo: TipoActivo[];
   categorias: CategoriaGasto[];
@@ -149,6 +158,9 @@ export function GastosPanel({
   const [nuevoFijo, setNuevoFijo] = useState<FijoSugerido | null>(null);
   const [noEsFijo, setNoEsFijo] = useState<FijoSugerido | null>(null);
   const [clasificar, setClasificar] = useState<EgresoPorClasificar | null>(null);
+  // Antes del inicio de Finanzas no hay fijos que confirmar: la base los marcaría todos «falta» y la base rechaza un gasto anterior a esa fecha.
+  const antesDelCorte = !!inicioFinanzas && mesAntesDelCorte(mes, inicioFinanzas);
+  const fijosDelMes = fijosDelMesVisibles(fijos, mes, inicioFinanzas);
   // Los filtros de la lista: los ponen la lista misma, el retazo (una categoría), el calendario (un día) y «Por ordenar» (sin comprobante).
   const [filtros, setFiltros] = useState<FiltrosLista>({ q: "", categoria: "", dia: null, comprobante: "todos" });
   const elegirFiltro = (f: Partial<FiltrosLista>) => {
@@ -164,20 +176,35 @@ export function GastosPanel({
     p.delete("registrar");
     router.replace(p.size ? `${ruta}?${p.toString()}` : ruta, { scroll: false });
   }, [params, ruta, router]);
-  const rf = resumenFijos(fijos);
+  const rf = resumenFijos(fijosDelMes);
 
   const ir = (cambios: Record<string, string>) => {
     const p = new URLSearchParams(params.toString());
     for (const [k, v] of Object.entries(cambios)) p.set(k, v);
     // La sede ahora es `?sede=` (la mesa de mando del telar); un `?ver=` viejo ganaría sobre ella.
     p.delete("ver");
-    p.set("tab", pestana);
+    // La pestaña que se pide gana; si no se pide ninguna, sigue la de ahora (antes pisaba siempre con la de ahora y un «Ver todas» caía en otra).
+    if (!("tab" in cambios)) p.set("tab", pestana);
     router.push(`${ruta}?${p.toString()}`, { scroll: false });
+  };
+  // Las pestañas empiezan más abajo del primer pliegue: el dock (F, E, A), la tarjeta de egresos y «Ver todas» de la bandeja cambian de pestaña y llevan la vista hasta ellas.
+  const irALasPestanas = (p: PestanaGastos) => {
+    setPestana(p);
+    requestAnimationFrame(() => {
+      const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.getElementById("fin-gastos-secciones")?.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" });
+    });
   };
   const verTodas = !ver.ubicacionId && !ver.soloEmpresa;
   const ubicacionParaRegistrar = ver.soloEmpresa ? "empresa" : (ver.ubicacionId ?? ubicaciones[0]?.id ?? "empresa");
   const enUso = activos.filter((a) => a.estado === "activo").length;
   const sedeDeLaCabecera = sedeDeLaCabeceraDe(ver, ubicaciones);
+  const aHoy = prefijoALaFecha(mes, hoy);
+  const verTodasLasTiendas = () => ir({ sede: "todas" });
+  // En «De la empresa» no se lee ningún cajón: la bandeja no puede decir que todo está clasificado.
+  const bandeja = bandejaPulso(egresos, fijosDelMes, { egresosLeidos: !ver.soloEmpresa });
+  // Lo que la cifra grande todavía no cuenta: los fijos del mes sin confirmar (tarea #2 de /pantalla, 2026-10-22).
+  const chipsRespuesta = panel ? [...chipsDeGastos(panel), ...chipDeFijosPorConfirmar(fijosPorConfirmar(fijosDelMes))] : [];
 
   return (
     <div className="space-y-6">
@@ -197,15 +224,15 @@ export function GastosPanel({
           )
         }
       >
-        <RespuestaTelar pregunta={preguntaDeGastos(ver, ubicaciones, mes)} valor={panel ? panel.total : null} chips={panel ? chipsDeGastos(panel) : []} />
+        <RespuestaTelar pregunta={preguntaDeGastos(ver, ubicaciones, mes)} valor={panel ? panel.total : null} chips={chipsRespuesta} />
       </EncabezadoPagina>
       <Orillo porSede={porSedeDe(panel?.porUbicacion ?? [])} sedes={sedesTelar} que="gastado" hoy={hoy} />
       <DockTelar
         acciones={[
           { texto: "Registrar gasto", tecla: "g", icono: <Plus aria-hidden />, principal: true, onClick: () => setRegistrar({}) },
-          { texto: "Fijos del mes", tecla: "f", icono: <Repeat aria-hidden />, onClick: () => setPestana("fijos") },
-          { texto: "Salidas de caja", tecla: "e", icono: <Wallet aria-hidden />, onClick: () => setPestana("egresos") },
-          { texto: "Activos fijos", tecla: "a", icono: <Armchair aria-hidden />, onClick: () => setPestana("activos") },
+          { texto: "Fijos del mes", tecla: "f", icono: <Repeat aria-hidden />, onClick: () => irALasPestanas("fijos") },
+          { texto: "Salidas de caja", tecla: "e", icono: <Wallet aria-hidden />, onClick: () => irALasPestanas("egresos") },
+          { texto: "Activos fijos", tecla: "a", icono: <Armchair aria-hidden />, onClick: () => irALasPestanas("activos") },
         ]}
       />
 
@@ -215,10 +242,27 @@ export function GastosPanel({
         </Aviso>
       )}
 
+      {/* «De la empresa» no es toda la empresa: sin este aviso la pantalla dice «S/ 0» y «Todo clasificado» con cientos de gastos de tienda al lado
+          (tarea #2 de /pantalla, 2026-10-22). Solo quien ve todas las sedes llega a esa vista. */}
+      {ver.soloEmpresa && (
+        <Aviso
+          tono="info"
+          titulo="Estás viendo solo lo que no es de una tienda"
+          guia="fin-gastos.alcance"
+          accion={
+            <button type="button" className="btn-cayla btn-enlace" onClick={verTodasLasTiendas}>
+              Ver todas las tiendas
+            </button>
+          }
+        >
+          Los gastos y las salidas de caja de cada tienda no entran aquí: por eso puede mostrar cero.
+        </Aviso>
+      )}
+
       {/* El telar (ADR-0493): en qué se va la plata (el retazo) y cuándo (el calendario); tocar uno filtra la lista. Después, la bandeja. */}
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">
         <Superficie pad className="anim-entra min-w-0">
-          <TituloSeccion dato={gastastePulso(panel)?.frase}>En qué se va</TituloSeccion>
+          <TituloSeccion dato={gastastePulso(panel, { mes, hoy })?.frase}>En qué se va</TituloSeccion>
           {retazo.length ? (
             <div className="mt-3">
               <RetazoGastos piezas={retazo} sedes={sedesTelar} elegida={filtros.categoria} onElegir={(c) => elegirFiltro({ categoria: c })} />
@@ -238,11 +282,11 @@ export function GastosPanel({
       </section>
 
       <GastosPulso
-        bandeja={bandejaPulso(egresos, fijos)}
+        bandeja={bandeja}
         sinComprobante={panel?.sinComprobante ?? 0}
         onVerSinComprobante={() => elegirFiltro({ comprobante: "sin" })}
         onResolver={(cosa) => (cosa.tipo === "egreso" ? setClasificar(cosa.egreso) : setRegistrar({ fijo: cosa.fijo }))}
-        onVerTodas={() => setPestana(bandejaPulso(egresos, fijos).cosas[0]?.tipo === "fijo" ? "fijos" : "egresos")}
+        onVerTodas={() => irALasPestanas(bandeja.cosas[0]?.tipo === "fijo" ? "fijos" : "egresos")}
       />
 
       <section className="fin-cifras" data-guia="fin-gastos.cifras">
@@ -253,21 +297,31 @@ export function GastosPanel({
           {panel ? bajadaIgvDelMes({ ...panel, mes }, perdidoEnOtroMes(gastos, mes)) : ""}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Por pagar de gastos" tono={panel?.porPagar ? "text-ambar" : undefined} valor={panel ? solesRedondo(panel.porPagar) : null} noSePudoLeer={!panel} {...entra(2)}>
-          {panel ? (panel.nPorPagar ? `${panel.nPorPagar} con factura a crédito` : "Nada a crédito") : ""}
+          {panel ? `${aHoy}${panel.nPorPagar ? `${panel.nPorPagar} con factura a crédito` : "Nada a crédito"}` : ""}
         </TarjetaCifra>
+        {/* En «De la empresa» la base devuelve 0 egresos porque los cajones son de las tiendas: decir «Todo clasificado» sería afirmar lo que no se miró. */}
         <TarjetaCifra
           etiqueta="Egresos de caja sin clasificar"
-          tono={panel?.egresosSinClasificar ? "text-ambar" : undefined}
-          valor={panel ? String(panel.egresosSinClasificar) : null}
+          tono={panel && !ver.soloEmpresa && panel.egresosSinClasificar ? "text-ambar" : undefined}
+          valor={panel && !ver.soloEmpresa ? String(panel.egresosSinClasificar) : null}
           noSePudoLeer={!panel}
-          onClick={() => setPestana("egresos")}
+          onClick={() => {
+            if (!ver.soloEmpresa) return irALasPestanas("egresos");
+            setPestana("egresos");
+            ir({ sede: "todas", tab: "egresos" });
+          }}
           {...entra(3)}
         >
-          {panel?.egresosSinClasificar ? "No cuentan en ningún número hasta clasificarlos" : "Todo clasificado"}
+          {!panel
+            ? "Sin datos"
+            : ver.soloEmpresa
+              ? "Las salidas de caja son de cada tienda: míralas en «Todas las sedes»"
+              : `${aHoy}${panel.egresosSinClasificar ? "No cuentan en ningún número hasta clasificarlos" : "Todo clasificado"}`}
         </TarjetaCifra>
       </section>
 
-      <div {...entra(5)}>
+      {/* `scroll-mt-44`: la cabecera fija del ERP y la mesa de mando del telar (sticky) tapan lo que queda justo bajo ellas al llevar la vista aquí. */}
+      <div id="fin-gastos-secciones" className="anim-entra scroll-mt-44" style={entra(5).style}>
         <PestanasFin
           etiqueta="Secciones de Gastos"
           guia="fin-gastos.pestanas"
@@ -296,11 +350,16 @@ export function GastosPanel({
 
       {pestana === "fijos" && (
         <FijosDelMes
-          fijos={fijos}
+          fijos={fijosDelMes}
+          desdeFinanzas={antesDelCorte && inicioFinanzas ? textoMes(inicioFinanzas.slice(0, 7)) : undefined}
           sugeridos={sugeridos}
           verTodas={verTodas}
           puedeConfigurar={puedeConfigurar}
+          mes={mes}
+          hoy={hoy}
+          gastoDe={(id) => gastos.find((g) => g.id === id)}
           onRegistrar={(f) => setRegistrar({ fijo: f })}
+          onAbrirGasto={setDetalle}
           onMarcarFijo={setNuevoFijo}
           onNoEsFijo={setNoEsFijo}
         />
@@ -315,7 +374,22 @@ export function GastosPanel({
 
       {pestana === "egresos" && (
         <>
-          {egresos.length === 0 ? (
+          {ver.soloEmpresa ? (
+            // Los cajones son de las tiendas: en «De la empresa» la lista sale vacía por diseño, no porque todo esté clasificado.
+            <Superficie>
+              <Vacio
+                icono={<Store />}
+                titulo="Las salidas de caja son de cada tienda"
+                acciones={
+                  <Boton type="button" peso="primario" onClick={verTodasLasTiendas}>
+                    Ver todas las tiendas
+                  </Boton>
+                }
+              >
+                En «Empresa» no se leen los cajones. Mira «Todas las sedes» o una tienda para clasificar sus salidas.
+              </Vacio>
+            </Superficie>
+          ) : egresos.length === 0 ? (
             <Superficie>
               <Vacio icono={<Check />} titulo="Todo en orden: no hay egresos de caja por clasificar">
                 Cada salida de plata de los cajones ya dice si fue gasto, depósito o retiro.
@@ -374,6 +448,7 @@ export function GastosPanel({
           cajasAbiertas={cajasAbiertas}
           sedeInicial={ver.soloEmpresa ? "empresa" : (ver.ubicacionId ?? "")}
           plantillas={plantillasDe(gastos.map((g) => ({ ...g, proveedorRuc: proveedores.find((p) => p.nombre === g.proveedorNombre)?.ruc ?? null })))}
+          fijosDelMes={fijosParaPreguntar}
           hoy={hoy}
           onCerrar={() => setRegistrar(null)}
         />
@@ -390,13 +465,14 @@ export function GastosPanel({
           fijo={registrar.fijo}
           clase={registrar.clase}
           tiposActivo={tiposActivo}
+          fijosDelMes={fijosParaPreguntar}
           hoy={hoy}
           onCerrar={() => setRegistrar(null)}
         />
       )}
       {activo && <ActivoDetalleModal activo={activo} hoy={hoy} onCerrar={() => setActivo(null)} />}
       {nuevoFijo && (
-        <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
+        <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} conDiasAntes={fijos.some((f) => f.diasAntes !== null)} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
       )}
       {noEsFijo && <NoEsFijoModal sugerido={noEsFijo} onCerrar={() => setNoEsFijo(null)} />}
       {detalle && <GastoDetalleModal gasto={detalle} puedeVerImpuestos={puedeVerImpuestos} onCerrar={() => setDetalle(null)} />}

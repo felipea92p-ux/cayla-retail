@@ -199,3 +199,12 @@ describe("un monto que no sirve dice por qué (chaos 2026-10-23, hallazgo 4)", (
     expect(motivoDelMonto("100000000")).toMatch(/1 000 000/);
   });
 });
+
+describe("cerrar un gasto fijo desde la hoja (#1271: «¿es ese fijo?»)", () => {
+  it("el gasto lleva el fijo que cierra solo si se eligió", () => {
+    expect(borradorDeLaHoja(llena(), "", efectivo).gastoFijoId).toBeUndefined();
+    expect(borradorDeLaHoja(llena(), "", efectivo, "fijo-luz").gastoFijoId).toBe("fijo-luz");
+    const v = validarHoja(llena(), "", efectivo, HOY, true, "fijo-luz");
+    expect(v.ok && v.valor.p_gasto_fijo_id).toBe("fijo-luz");
+  });
+});

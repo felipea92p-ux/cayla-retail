@@ -28,6 +28,7 @@ export type IconoInsignia =
   | "mujer"
   | "halloween"
   | "navidad"
+  | "findeano"
   | "patrias"
   | "blackfriday"
   | "cyberwow"
@@ -62,6 +63,7 @@ const REGLAS: ReadonlyArray<readonly [IconoInsignia, RegExp]> = [
   ["patrias", /\b(fiestas patrias|patrias|independencia)\b/],
   ["halloween", /\b(halloween|noche de brujas)\b/],
   ["navidad", /\b(navidad|navideno|navidena)\b/],
+  ["findeano", /\b(fin de ano|ano nuevo|nochevieja|noche vieja)\b/],
   ["ultimas", /\bultimas?\b/],
   ["top", /\b(top ventas|mas vendid[oa]s?|best ?seller)\b/],
   ["liquidar", /\b(liquidar|liquidacion|outlet|rebaja|remate)\b/],
@@ -78,6 +80,74 @@ export function iconoDeInsignia(nombre: string): IconoInsignia | null {
     if (regla.test(limpio)) return icono;
   }
   return null;
+}
+
+/** Un dibujo que se puede elegir: cada familia o `generico` (la etiqueta). Es lo que guarda `etiquetas.icono` (ADR-0490). */
+export type DibujoDeInsignia = IconoInsignia | "generico";
+
+/** Los dibujos que se ofrecen al elegir, en este orden (lo de la tienda y la rotación primero, después las fechas del año, al final la
+ *  etiqueta sin más). Es total y sin repetidos: `lib/insignias-dibujos.test.ts` (tienda) lo exige contra `DIBUJOS_DE_INSIGNIA`. */
+export const DIBUJOS_ELEGIBLES: readonly DibujoDeInsignia[] = [
+  "nuevo",
+  "ultimas",
+  "top",
+  "liquidar",
+  "reedicion",
+  "manual",
+  "unica",
+  "aniversario",
+  "navidad",
+  "findeano",
+  "halloween",
+  "valentin",
+  "galentine",
+  "madre",
+  "mujer",
+  "patrias",
+  "blackfriday",
+  "cyberwow",
+  "gato",
+  "perro",
+  "tierra",
+  "generico",
+];
+
+/** Cómo se llama cada dibujo cuando se elige («Calabaza», «Pastel»): una palabra o dos, lo que la persona ve en la lista. */
+export const NOMBRE_DEL_DIBUJO: Readonly<Record<DibujoDeInsignia, string>> = {
+  nuevo: "Destello",
+  ultimas: "Reloj de arena",
+  top: "Podio",
+  liquidar: "Etiqueta con %",
+  manual: "Aguja",
+  unica: "Gema",
+  reedicion: "Flechas",
+  valentin: "Corazón",
+  galentine: "Dos corazones",
+  madre: "Tulipán",
+  mujer: "Venus",
+  halloween: "Calabaza",
+  navidad: "Árbol",
+  findeano: "Brindis",
+  patrias: "Bandera",
+  blackfriday: "Etiqueta negra",
+  cyberwow: "Rayo",
+  aniversario: "Pastel",
+  gato: "Gato",
+  perro: "Huella",
+  tierra: "Planeta",
+  generico: "Etiqueta",
+};
+
+/** El dibujo que guardó una insignia (`etiquetas.icono`), o `null` si no eligió ninguno o la clave ya no existe: un dato raro nunca rompe
+ *  nada, la insignia se dibuja por su nombre. */
+export function dibujoElegido(valor: unknown): DibujoDeInsignia | null {
+  return typeof valor === "string" && Object.hasOwn(DIBUJOS_DE_INSIGNIA, valor) ? (valor as DibujoDeInsignia) : null;
+}
+
+/** El dibujo con que se ve una insignia: el que se eligió al crearla; si no eligió o ya no existe, el de su nombre; si el nombre no se reconoce,
+ *  la etiqueta. UNA sola regla para el ERP y la tienda. */
+export function dibujoDeInsignia(insignia: { nombre: string; icono?: string | null }): DibujoDeInsignia {
+  return dibujoElegido(insignia.icono) ?? iconoDeInsignia(insignia.nombre) ?? "generico";
 }
 
 /** Los colores con nombre de un dibujo: quien lo pinta los resuelve a lo que le toca en su marco. */
@@ -211,6 +281,21 @@ export const DIBUJOS_DE_INSIGNIA: Readonly<Record<IconoInsignia | "generico", re
     path({ d: "M0 -10 L-7 -1 H7 Z M0 -5 L-9 5 H9 Z M0 0 L-11 10 H11 Z", fill: A }),
     rect({ x: -2, y: 10, width: 4, height: 3.5, fill: A, opacity: 0.6 }),
     path({ d: "M0 -14 Q0.6 -12.4 2.2 -12 Q0.6 -11.6 0 -10 Q-0.6 -11.6 -2.2 -12 Q-0.6 -12.4 0 -14 Z", fill: A }),
+  ],
+
+  // Dos copas de brindis que se inclinan una hacia la otra, con una chispa arriba.
+  findeano: [
+    g({ transform: "translate(-6 1) rotate(16)" }, [
+      path({ d: "M-2.9 -5 H2.9 L2.6 -1 Q0 1.2 -2.6 -1 Z", fill: A, opacity: 0.45 }),
+      path({ d: "M-3.2 -10 H3.2 L2.6 -1 Q0 1.2 -2.6 -1 Z", stroke: A, strokeWidth: 1.6, strokeLinejoin: "round", fill: "none" }),
+      path({ d: "M0 1 V9 M-3.5 9.5 H3.5", stroke: A, strokeWidth: 1.6, strokeLinecap: "round", fill: "none" }),
+    ]),
+    g({ transform: "translate(6 1) rotate(-16)" }, [
+      path({ d: "M-2.9 -5 H2.9 L2.6 -1 Q0 1.2 -2.6 -1 Z", fill: A, opacity: 0.45 }),
+      path({ d: "M-3.2 -10 H3.2 L2.6 -1 Q0 1.2 -2.6 -1 Z", stroke: A, strokeWidth: 1.6, strokeLinejoin: "round", fill: "none" }),
+      path({ d: "M0 1 V9 M-3.5 9.5 H3.5", stroke: A, strokeWidth: 1.6, strokeLinecap: "round", fill: "none" }),
+    ]),
+    path({ d: "M0 -14 Q0.6 -12 2.4 -11.4 Q0.6 -10.8 0 -9 Q-0.6 -10.8 -2.4 -11.4 Q-0.6 -12 0 -14 Z", fill: A }),
   ],
 
   // Bandera en tres franjas verticales. Sin rojo: franjas del acento del grupo y el hueco al centro.
