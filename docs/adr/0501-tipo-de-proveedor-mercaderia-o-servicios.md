@@ -1,6 +1,6 @@
 # ADR-0501 · El tipo de proveedor: mercadería o servicios
 
-- **Fecha:** 2026-10-24 · **Estado:** construido y probado en local; migración `20261024222000` (ver «Cómo se pega»).
+- **Fecha:** 2026-10-24 · **Estado:** construido y probado en local; migración `20261024222000` **ya en producción** (2026-10-24, con el OK de Felipe, por `apply_migration`: la versión que quedó en el historial de Supabase es la de ese momento, no la del archivo; el archivo es re-pegable). Quedaron 17 proveedores de servicios y 102 de mercadería (100 activos).
 - **Pedido:** Felipe, 2026-10-24: Proveedores vive dentro de Compras y todo en él asume ropa, pero también hay proveedores de teléfono (Entel), luz, agua.
 
 ## El problema primero
