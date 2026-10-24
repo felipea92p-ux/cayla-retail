@@ -216,7 +216,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       id: "respuesta",
       ancla: "telar.respuesta",
       titulo: "Cuánto se gastó",
-      texto: "La cifra grande es todo lo gastado en el mes por la sede que elegiste arriba, con IGV. Debajo dice cuántos gastos son y cuántos no tienen boleta ni factura: sin comprobante no recuperas su IGV.",
+      texto: "La cifra grande es todo lo gastado en el mes por la sede que elegiste arriba, con IGV. Debajo dice cuántos gastos son y cuántos no tienen boleta ni factura: sin comprobante no recuperas su IGV. Si faltan fijos por registrar, un aviso ámbar dice cuántos son y cuánto suman: la cifra aún no los cuenta.",
     },
     {
       id: "orillo",
@@ -226,6 +226,13 @@ export const GUIA_FIN_GASTOS: Guia = {
       texto: "Esta tira de colores reparte lo gastado entre las sedes: cada color es una sede, del tamaño de lo que gastó. Tocas un color y ves solo esa sede; lo tocas otra vez y vuelves a todas.",
     },
     DOCK_GASTOS,
+    {
+      id: "alcance",
+      ancla: "fin-gastos.alcance",
+      opcional: true,
+      titulo: "Cuando miras solo la empresa",
+      texto: "Con «Empresa» ves solo lo que no es de una tienda, y por eso puede decir cero aunque las tiendas hayan gastado. Este aviso lo recuerda; «Ver todas las tiendas» te devuelve a la vista completa.",
+    },
     {
       id: "registrar",
       ancla: "fin-gastos.registrar",
@@ -253,6 +260,13 @@ export const GUIA_FIN_GASTOS: Guia = {
       opcional: true,
       titulo: "Categoría y a quién se carga",
       texto: "La categoría dice qué tipo de gasto es y ya trae su cuenta contable: nadie la elige a mano. «A quién se le carga» es la tienda, el Taller o la empresa: así cada tienda ve lo que de verdad le cuesta.",
+    },
+    {
+      id: "form-fijo-parecido",
+      ancla: "fin-gastos.form-fijo-parecido",
+      opcional: true,
+      titulo: "¿Es uno de tus fijos?",
+      texto: "Si la categoría y la tienda son las de un gasto fijo que todavía no está registrado ese mes, te pregunta si es ese. «Sí, es este» lo cierra como fijo y deja de salir pendiente; «No» lo deja aparte. Sin contestar no se registra: así nadie lo paga dos veces.",
     },
     {
       id: "form-monto",
@@ -315,7 +329,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.cifras",
       preparar: [{ tipo: "escape" }],
       titulo: "Los gastos en cifras",
-      texto: "Lo gastado en el mes, el IGV que puedes descontar (solo de facturas, menos el que se pierde por pagar sin banco; una boleta no da IGV), lo que falta pagar de gastos a crédito y los egresos de caja que nadie dijo qué fueron. Esa última tarjeta te lleva a su lista.",
+      texto: "El IGV que puedes descontar (solo de facturas, menos el que se pierde por pagar sin banco; una boleta no da IGV), lo que falta pagar a crédito y los egresos de caja sin clasificar. Estas dos últimas son de hoy aunque mires otro mes; la última te lleva a su lista. Lo gastado en el mes es la cifra grande de arriba.",
     },
     {
       id: "pestanas",
@@ -362,7 +376,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.fijos",
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "fin-gastos.tab-fijos" }],
       titulo: "Los fijos del mes",
-      texto: "El alquiler, la luz o el contador se guardan una vez y cada mes el sistema dice cuáles ya están registrados y cuáles faltan. Los que ya toca pagar salen marcados. «Registrar» abre el gasto ya lleno, con a quién y cómo se le paga. Si un gasto se repite, el sistema te pregunta si lo marca como fijo.",
+      texto: "Una sola lista de lo que se paga cada mes: primero lo que ya venció (con los días de atraso), luego lo que vence este mes; «Toca pagar» marca los que ya puedes pagar. «Registrar» abre el gasto ya lleno y los registrados se pliegan abajo. Si un gasto se repite, el sistema pregunta si lo marcas como fijo.",
     },
     {
       id: "activos",

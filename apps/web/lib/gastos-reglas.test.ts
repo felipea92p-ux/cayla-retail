@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  prefijoALaFecha,
   borradorDesdeFijo,
   estadoGasto,
   igvDeFactura,
@@ -104,6 +105,10 @@ describe("«Ver»: qué mira la pantalla", () => {
   });
   it("quien no es líder ve solo su tienda, aunque la URL pida otra cosa", () => {
     expect(leerVer("empresa", [ubics[0]!], false, "lim")).toEqual({ clave: "tru", ubicacionId: "tru", soloEmpresa: false });
+  });
+  it("«Por pagar» y «Egresos sin clasificar» son de hoy: con otro mes, la bajada lo dice", () => {
+    expect(prefijoALaFecha("2026-10", "2026-10-22")).toBe("");
+    expect(prefijoALaFecha("2026-09", "2026-10-22")).toBe("A hoy · ");
   });
 });
 

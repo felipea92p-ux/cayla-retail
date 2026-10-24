@@ -145,6 +145,14 @@ export function leerVer(param: string | undefined, ubicaciones: readonly Ubicaci
   return { clave: "todas", ubicacionId: null, soloEmpresa: false };
 }
 
+/**
+ * «Por pagar» y «Egresos sin clasificar» cuentan lo que hay HOY, no lo del mes elegido (así lo dice `fn_gastos_panel`: una deuda de
+ * septiembre sigue siendo deuda en octubre). Con el mes de hoy no hace falta decirlo; con otro mes, la bajada empieza por «A hoy ·».
+ */
+export function prefijoALaFecha(mes: string, hoy: string): string {
+  return mes === mesDe(hoy) ? "" : "A hoy · ";
+}
+
 // ---- Lo que devuelve la base → tipos de la pantalla ---------------------------------------------------------------------
 
 export type CategoriaGasto = { codigo: string; nombre: string; ejemplos: string; cuenta: string; cuentaNombre: string };
