@@ -26,6 +26,7 @@ import type { TiendaReparto } from "./plan-compra-reparto";
 import { enCaminoDe, type PedidoCategoria } from "./plan-compra-pedido";
 import { compararTallas } from "./tallas";
 import { proyectarCampana } from "./plan-compra-historial";
+import type { SugeridoDescuento } from "./plan-compra-descuento";
 
 export const RPC_PLAN = "fn_plan_compra";
 export const RPC_GUARDAR_LINEA = "guardar_plan_compra_linea";
@@ -50,6 +51,9 @@ export type LineaPlan = {
   precio: number;
   costo: number;
   recuperoPct: number;
+  /** El descuento que se supuso para esta categoría en la campaña (0 a 99,99 %). Ausente o 0 = precio de lista. Lo que sobra NO lo lleva:
+   *  se recupera sobre el precio de lista, porque se vende después de la campaña (ADR-0499). */
+  descuentoPct?: number;
   /** talla_id → porcentaje entero; vacío = sin curva decidida. */
   curva: Record<string, number>;
   nota: string | null;
@@ -84,6 +88,10 @@ export type LecturaPlan = {
   tope: { soportado: boolean; valor: number | null };
   /** La base ya compara versiones al guardar una categoría (B4): la web le manda la que leyó. false = base vieja, se guarda como antes. */
   conVersion: boolean;
+  /** La base ya guarda el descuento supuesto de cada categoría: la web se lo manda. false = base vieja, se guarda como antes y el campo no se ofrece. */
+  conDescuento: boolean;
+  /** categoría → lo que sugiere la campaña del plan (`lib/plan-compra-descuento.ts`); vacío si la base no lo manda. */
+  sugeridosDescuento: Map<string, SugeridoDescuento>;
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -189,6 +197,8 @@ export function leerPlan(v: unknown): LecturaPlan | null {
     vendido30: hay("vendido_30") ? porCategoria(v.vendido_30) : null,
     tope: { soportado: v.plan.tope_inversion !== undefined, valor: topeLeido !== null && topeLeido > 0 ? topeLeido : null },
     conVersion: v.con_version === true,
+    conDescuento: false,
+    sugeridosDescuento: new Map(),
   };
 }
 
@@ -196,12 +206,63 @@ export function leerPlan(v: unknown): LecturaPlan | null {
 // 2. Cuánto comprar
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** Cu ÷ (Cu + Co). Si sobrar no cuesta nada (se recupera todo el costo), conviene cubrir el escenario bueno: 1. */
-export function cuantilCritico(precio: number, costo: number, recuperoPct: number): number {
-  const cu = Math.max(precio - costo, 0);
+/**
+ * Cu ÷ (Cu + Co). Si sobrar no cuesta nada (se recupera todo el costo), conviene cubrir el escenario bueno: 1.
+ * `descuentoPct` (ADR-0499): en la campaña se vende con descuento, así que lo que se pierde por cada prenda que faltó es el precio CON descuento
+ * menos el costo. Lo que sobra se recupera después de la campaña, sobre el precio de lista: el descuento no entra en Co. Si el descuento se
+ * come todo el margen, Cu = 0 y el cuantil es 0: comprar cerca del flojo.
+ */
+export function cuantilCritico(precio: number, costo: number, recuperoPct: number, descuentoPct = 0): number {
+  const cu = Math.max(precioEnCampana(precio, descuentoPct) - costo, 0);
   const co = Math.max(costo - (precio * recuperoPct) / 100, 0);
   if (cu + co === 0) return 0.5;
   return cu / (cu + co);
+}
+
+/** El precio al que se vende en la campaña: el de lista menos el descuento, a centavos. */
+export function precioEnCampana(precio: number, descuentoPct = 0): number {
+  const d = Math.min(Math.max(descuentoPct, 0), 100);
+  return Math.round(precio * (1 - d / 100) * 100) / 100;
+}
+
+export type MargenPorPrenda = {
+  /** Lo que queda por prenda al precio de lista. */
+  lista: number;
+  /** Lo que queda por prenda al precio de la campaña. Negativo = se vende por debajo del costo. */
+  enCampana: number;
+  /** El precio de la campaña. */
+  precioCampana: number;
+  /** El margen de la campaña como % de su precio; null si el precio es 0. */
+  pctEnCampana: number | null;
+  /** Se vende al costo o por debajo (no deja ganancia): hay que avisarlo. */
+  pierde: boolean;
+};
+
+/** Lo que gana la campaña por prenda, dicho con y sin descuento. null mientras falte el precio o el costo. */
+export function margenPorPrenda(precio: number, costo: number, descuentoPct = 0): MargenPorPrenda | null {
+  if (!(precio > 0) || !(costo >= 0)) return null;
+  const precioCampana = precioEnCampana(precio, descuentoPct);
+  const enCampana = Math.round((precioCampana - costo) * 100) / 100;
+  return {
+    lista: Math.round((precio - costo) * 100) / 100,
+    enCampana,
+    precioCampana,
+    pctEnCampana: precioCampana > 0 ? Math.round((enCampana / precioCampana) * 1000) / 10 : null,
+    pierde: enCampana <= 0,
+  };
+}
+
+/**
+ * «Con −20 % ganas S/ 33.92 por prenda en vez de S/ 49.90.» El margen dicho junto al campo del descuento. null si no hay descuento o falta
+ * un dato; si el descuento se come el margen lo dice con todas sus letras (nunca un número negativo sin explicar).
+ */
+export function fraseDelMargen(precio: number, costo: number, descuentoPct: number): string | null {
+  if (!(descuentoPct > 0)) return null;
+  const m = margenPorPrenda(precio, costo, descuentoPct);
+  if (!m) return null;
+  const d = `${descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %`;
+  if (m.pierde) return `Con −${d} vendes a ${solesES(m.precioCampana)}, que no deja ganancia sobre el costo de ${solesES(costo)}: cada prenda vendida en la campaña no te deja nada o te cuesta.`;
+  return `Con −${d} ganas ${solesES(m.enCampana)} por prenda en vez de ${solesES(m.lista)}.`;
 }
 
 /** El cuantil p de una triangular (mínimo a, más probable c, máximo b). */
@@ -225,8 +286,8 @@ export type Calculo = {
   inversion: number;
 };
 
-export function calcular(l: Pick<LineaPlan, "flojo" | "normal" | "bueno" | "precio" | "costo" | "recuperoPct">, stock: number): Calculo {
-  const cuantil = cuantilCritico(l.precio, l.costo, l.recuperoPct);
+export function calcular(l: Pick<LineaPlan, "flojo" | "normal" | "bueno" | "precio" | "costo" | "recuperoPct" | "descuentoPct">, stock: number): Calculo {
+  const cuantil = cuantilCritico(l.precio, l.costo, l.recuperoPct, l.descuentoPct ?? 0);
   const objetivo = Math.ceil(cuantilTriangular(l.flojo, l.normal, l.bueno, cuantil) - 1e-9);
   const comprar = Math.max(0, objetivo - stock);
   return { cuantil, objetivo, stock, comprar, inversion: Math.round(comprar * l.costo * 100) / 100 };
@@ -254,12 +315,12 @@ export function porQue(c: Calculo): string {
  * Lo que produce el porcentaje de «Lo que sobra» con el precio y el costo de la hoja, dicho junto al campo mientras se escribe: el número que
  * más mueve la compra no se llena a ciegas (Formidable, 2026-10-10). null mientras falte el precio, el costo o el porcentaje.
  */
-export function veredictoDeLoQueSobra(b: Pick<Borrador, "precio" | "costo" | "recupero">): string | null {
+export function veredictoDeLoQueSobra(b: Pick<Borrador, "precio" | "costo" | "recupero"> & { descuento?: string }): string | null {
   const precio = leerNumeroDeMonto(b.precio);
   const costo = leerNumeroDeMonto(b.costo);
   const recupero = entero(b.recupero);
   if (precio === null || costo === null || recupero === null || precio <= 0 || costo >= precio || recupero > 100) return null;
-  const { costo: cuesta, compra } = lecturaDelCuantil(cuantilCritico(precio, costo, recupero));
+  const { costo: cuesta, compra } = lecturaDelCuantil(cuantilCritico(precio, costo, recupero, leerDescuento(b.descuento) ?? 0));
   return `Con ${recupero} %, ${cuesta}. Conviene ${compra}.`;
 }
 
@@ -307,8 +368,18 @@ export function comprarPorTalla(total: number, tallas: readonly TallaPlan[], cur
 // 4. Validar (lo mismo que `guardar_plan_compra_linea`)
 // ---------------------------------------------------------------------------------------------------------------------
 
-export type Borrador = { flojo: string; normal: string; bueno: string; precio: string; costo: string; recupero: string; curva: Record<string, string> };
-export type CampoPlan = "flojo" | "normal" | "bueno" | "precio" | "costo" | "recupero" | "curva";
+export type Borrador = {
+  flojo: string;
+  normal: string;
+  bueno: string;
+  precio: string;
+  costo: string;
+  recupero: string;
+  /** El descuento que se supone para la campaña, en %. Opcional: vacío = sin descuento (0). */
+  descuento?: string;
+  curva: Record<string, string>;
+};
+export type CampoPlan = "flojo" | "normal" | "bueno" | "precio" | "costo" | "recupero" | "descuento" | "curva";
 
 const entero = (s: string): number | null => (/^\d+$/.test(s.trim()) ? Number(s.trim()) : null);
 
@@ -322,6 +393,16 @@ export function leerNumeroDeMonto(t: string): number | null {
   if (!limpio) return null;
   const sinMiles = /^\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(limpio) ? limpio.replace(/,/g, "") : limpio.replace(",", ".");
   return /^\d+(\.\d{1,2})?$/.test(sinMiles) ? Number(sinMiles) : null;
+}
+
+/**
+ * El descuento tal como lo escribe la persona: «20», «12,5» o «12.5» (hasta dos decimales). Vacío = sin descuento (0). null si no se entiende.
+ * Es el mismo rango que acepta la base (0 a menos de 100): un 100 % deja el precio en cero y no hay nada que planear.
+ */
+export function leerDescuento(t: string | undefined): number | null {
+  const limpio = (t ?? "").replace(/\s+/g, "").replace(",", ".");
+  if (limpio === "") return 0;
+  return /^\d{1,2}(\.\d{1,2})?$/.test(limpio) ? Number(limpio) : null;
 }
 
 /** Topes contra un error de tipeo, no reglas de negocio: ninguna categoría de CAYLA vende 100 000 prendas en una campaña ni una prenda cuesta
@@ -354,6 +435,7 @@ export function problemasDelBorrador(b: Borrador, tallas: readonly TallaPlan[]):
   else if (precio !== null && costo >= precio) p.costo = "El costo tiene que ser menor que el precio de venta.";
   const recupero = entero(b.recupero);
   if (recupero === null || recupero > 100) p.recupero = "Escribe a qué % del precio vendes lo que sobre (de 0 a 100).";
+  if (leerDescuento(b.descuento) === null) p.descuento = "Escribe el descuento en %, de 0 a menos de 100 (déjalo vacío si no hay).";
   const usadas = tallas.filter((t) => (b.curva[t.id] ?? "").trim() !== "");
   if (usadas.length > 0) {
     const valores = tallas.map((t) => entero(b.curva[t.id] ?? "0") ?? NaN);
@@ -368,7 +450,16 @@ export function problemasDelBorrador(b: Borrador, tallas: readonly TallaPlan[]):
  * Los argumentos de `guardar_plan_compra_linea` desde un borrador válido. `versionEsperada` (B4, ADR-0193): la versión de la línea que la hoja
  * leyó al abrirse (0 = no había plan). Solo se manda si la base ya compara versiones (`conVersion`); sin ella, la llamada es la de siempre.
  */
-export function argsGuardar(planId: string, categoriaId: string, b: Borrador, tallas: readonly TallaPlan[], nota: string, versionEsperada?: number) {
+export function argsGuardar(
+  planId: string,
+  categoriaId: string,
+  b: Borrador,
+  tallas: readonly TallaPlan[],
+  nota: string,
+  versionEsperada?: number,
+  /** Solo si la base ya guarda el descuento (`LecturaPlan.conDescuento`): una función que no conoce el parámetro rechazaría la llamada. */
+  conDescuento = false,
+) {
   const curva: Record<string, number> = {};
   if (tallas.some((t) => (b.curva[t.id] ?? "").trim() !== "")) for (const t of tallas) curva[t.id] = Number((b.curva[t.id] ?? "0").trim() || "0");
   return {
@@ -383,6 +474,7 @@ export function argsGuardar(planId: string, categoriaId: string, b: Borrador, ta
     p_curva: curva,
     p_nota: nota.trim() === "" ? null : nota.trim(),
     ...(versionEsperada !== undefined ? { p_version_esperada: versionEsperada } : {}),
+    ...(conDescuento ? { p_descuento_pct: leerDescuento(b.descuento) ?? 0 } : {}),
   };
 }
 
@@ -398,6 +490,9 @@ export function versionDevuelta(data: unknown): number | null {
   return esObjeto(data) && typeof data.version === "number" && Number.isInteger(data.version) ? data.version : null;
 }
 
+/** Un descuento como se escribe en el campo: «20», «12.5» (el punto, como el precio y el costo de la misma hoja); 0 = vacío (sin descuento). */
+const textoDeDescuento = (n: number) => (n > 0 ? String(n) : "");
+
 /** El borrador para una categoría: lo guardado, o vacío con la curva que propone el sistema. */
 export function borradorDe(
   linea: LineaPlan | undefined,
@@ -407,6 +502,8 @@ export function borradorDe(
   catalogo?: { precio: number; costo: number } | null,
   /** El % de lo que sobra de la campaña (C5): sin plan guardado, la categoría arranca con él; se puede cambiar. */
   recuperoDefecto?: number | null,
+  /** El descuento que rige para esta categoría según la campaña (ADR-0499): sin plan guardado, la categoría arranca con él; se puede cambiar. */
+  descuentoSugerido?: number | null,
 ): Borrador {
   const curva = linea && Object.keys(linea.curva).length > 0 ? linea.curva : curvaSugerida(tallas, vendido);
   return {
@@ -416,15 +513,16 @@ export function borradorDe(
     precio: linea ? linea.precio.toFixed(2) : catalogo ? catalogo.precio.toFixed(2) : "",
     costo: linea ? linea.costo.toFixed(2) : catalogo ? catalogo.costo.toFixed(2) : "",
     recupero: linea ? String(linea.recuperoPct) : recuperoDefecto != null ? String(recuperoDefecto) : "",
+    descuento: textoDeDescuento(linea ? (linea.descuentoPct ?? 0) : (descuentoSugerido ?? 0)),
     curva: Object.fromEntries(Object.entries(curva).map(([k, v]) => [k, String(v)])),
   };
 }
 
 /** El borrador como línea (para calcular en vivo mientras se escribe); null si todavía no se puede. */
-export function lineaDeBorrador(b: Borrador, tallas: readonly TallaPlan[]): Pick<LineaPlan, "flojo" | "normal" | "bueno" | "precio" | "costo" | "recuperoPct" | "curva"> | null {
+export function lineaDeBorrador(b: Borrador, tallas: readonly TallaPlan[]): Pick<LineaPlan, "flojo" | "normal" | "bueno" | "precio" | "costo" | "recuperoPct" | "descuentoPct" | "curva"> | null {
   if (Object.keys(problemasDelBorrador(b, tallas)).length > 0) return null;
   const a = argsGuardar("", "", b, tallas, "");
-  return { flojo: a.p_flojo, normal: a.p_normal, bueno: a.p_bueno, precio: a.p_precio, costo: a.p_costo, recuperoPct: a.p_recupero_pct, curva: a.p_curva };
+  return { flojo: a.p_flojo, normal: a.p_normal, bueno: a.p_bueno, precio: a.p_precio, costo: a.p_costo, recuperoPct: a.p_recupero_pct, descuentoPct: leerDescuento(b.descuento) ?? 0, curva: a.p_curva };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -483,6 +581,10 @@ export type FilaPlan = {
   pedido?: PedidoCategoria;
   /** Lo pedido que todavía no llegó a ninguna tienda: se suma a `stock` en la cuenta de «Comprar». 0 si no hay o la base no lo manda. */
   enCamino: number;
+  /** La base guarda el descuento de cada categoría (ADR-0499): la hoja ofrece el campo. false = base vieja, no se ofrece. */
+  conDescuento?: boolean;
+  /** Lo que sugiere la campaña para esta categoría; null = la campaña no la alcanza; undefined = la base no lo manda. */
+  descuentoSugerido?: SugeridoDescuento | null;
 };
 
 const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);
@@ -510,6 +612,8 @@ export function armarFilas(plan: LecturaPlan, pedido?: ReadonlyMap<string, Pedid
         calculo: linea ? calcular(linea, stock + enCamino) : null,
         pedido: delPedido,
         enCamino,
+        conDescuento: plan.conDescuento,
+        descuentoSugerido: plan.conDescuento ? (plan.sugeridosDescuento.get(c.id) ?? null) : undefined,
         vendido: plan.vendidoEnCampana.get(c.id) ?? 0,
         ventas: sumaDe(plan.vendidoPorTalla.get(c.id)),
         puesto: null,

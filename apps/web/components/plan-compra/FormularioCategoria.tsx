@@ -19,6 +19,7 @@ import { camposDelPlan } from "@/lib/plan-compra-guia";
 import { Check, Sparkles } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { explicarPropuesta } from "@/lib/plan-compra-propuesta";
+import { fraseDelSugerido, sugeridoParcial } from "@/lib/plan-compra-descuento";
 import { RepartoTiendas } from "@/components/plan-compra/RepartoTiendas";
 import {
   RPC_GUARDAR_LINEA,
@@ -29,6 +30,9 @@ import {
   curvaSugerida,
   efectoEnElTope,
   enteroES,
+  fraseDelMargen,
+  leerDescuento,
+  margenPorPrenda,
   lineaDeBorrador,
   porQue,
   propuestaDeNormal,
@@ -55,6 +59,7 @@ import {
 
 const soloDigitos = (s: string) => s.replace(/[^\d]/g, "");
 const soloMonto = (s: string) => s.replace(/[^\d.,\s]/g, "");
+const soloDescuento = (s: string) => s.replace(/[^\d.,]/g, "");
 
 function EfectoEnElTope({ efecto, tope }: { efecto: ReturnType<typeof efectoEnElTope>; tope: number }) {
   return (
@@ -142,7 +147,7 @@ export function FormularioCategoria({
   const router = useRouter();
   const responsable = useResponsable();
   const tallas = useMemo(() => [...categoria.tallas].sort((a, b) => compararTallas(a.valor, b.valor)), [categoria]);
-  const [inicial] = useState(() => ({ b: borradorDe(linea, tallas, vendidoPorTalla, catalogo, fila.recuperoDefecto), nota: linea?.nota ?? "" }));
+  const [inicial] = useState(() => ({ b: borradorDe(linea, tallas, vendidoPorTalla, catalogo, fila.recuperoDefecto, fila.descuentoSugerido?.pct ?? null), nota: linea?.nota ?? "" }));
   const [b, setB] = useState<Borrador>(inicial.b);
   const [nota, setNota] = useState(inicial.nota);
   const [guardando, setGuardando] = useState(false);
@@ -160,7 +165,8 @@ export function FormularioCategoria({
     avisarCambios.current?.(sucio);
   }, [sucio]);
 
-  const campos = camposDelPlan(b, tallas, { listo: responsable.listo, motivo: responsable.motivo });
+  // Con una base que todavía no guarda el descuento (ADR-0499), el campo no se ofrece y la guía no lo cuenta.
+  const campos = camposDelPlan(b, tallas, { listo: responsable.listo, motivo: responsable.motivo }).filter((c) => c.id !== "descuento" || fila.conDescuento);
   const guia = useGuiaCampos(campos, { enModal: !enPantalla });
   // `guia.ir` cambia en cada render: el efecto de abajo lee siempre el último, sin volver a correr.
   const irAlCampo = useRef(guia.ir);
@@ -179,6 +185,12 @@ export function FormularioCategoria({
   const sumaCurva = tallas.reduce((s, t) => s + (Number(b.curva[t.id] || "0") || 0), 0);
   const cambiar = (k: keyof Omit<Borrador, "curva">) => (v: string) => setB((x) => ({ ...x, [k]: v }));
   const loQueSobra = veredictoDeLoQueSobra(b);
+  // El descuento (ADR-0499): lo que queda por prenda con él, y cuánto cambia la compra frente al precio de lista.
+  const descuento = leerDescuento(b.descuento) ?? 0;
+  const frase = lineaViva ? fraseDelMargen(lineaViva.precio, lineaViva.costo, descuento) : null;
+  const pierdeMargen = lineaViva ? (margenPorPrenda(lineaViva.precio, lineaViva.costo, descuento)?.pierde ?? false) : false;
+  const sinDescuento = lineaViva && descuento > 0 ? calcular({ ...lineaViva, descuentoPct: 0 }, stock + enCamino) : null;
+  const sugeridoDeCampana = fila.descuentoSugerido ?? null;
 
   // La propuesta de los tres escenarios (C4) si la base la manda; si no (base vieja), la de antes: solo el normal.
   const sugerida = fila.propuesta;
@@ -199,7 +211,7 @@ export function FormularioCategoria({
     const seguir = ((e.nativeEvent as SubmitEvent).submitter as HTMLElement | null)?.dataset.seguir === "1";
     enviando.current = true;
     setGuardando(true);
-    const args = argsGuardar(planId, categoria.id, b, tallas, nota, versionParaGuardar(conVersion, versionLeida, versionConocida));
+    const args = argsGuardar(planId, categoria.id, b, tallas, nota, versionParaGuardar(conVersion, versionLeida, versionConocida), fila.conDescuento === true);
     const { data, error } = await firmar(createClient().rpc(RPC_GUARDAR_LINEA as never, args as never), responsable.firma());
     responsable.despues(error);
     setGuardando(false);
@@ -384,6 +396,47 @@ export function FormularioCategoria({
         </div>
       </CampoGuiado>
 
+      {fila.conDescuento && (
+        <CampoGuiado id="descuento" guia={guia} titulo="Descuento en la campaña" ayuda="opcional">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-start gap-x-4 gap-y-1">
+              <div className="flex w-32 items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <CampoTexto etiqueta="Descuento en la campaña, en %" caja inputMode="decimal" value={b.descuento ?? ""} onChange={(e) => cambiar("descuento")(soloDescuento(e.target.value))} />
+                </div>
+                <span aria-hidden className="pb-4 text-sm text-tinta/70">
+                  %
+                </span>
+              </div>
+              <p className="min-w-0 flex-1 basis-60 pt-2.5 text-[13px] leading-snug text-tinta/80">
+                {sugeridoDeCampana ? (
+                  <>
+                    {fraseDelSugerido(sugeridoDeCampana)}{" "}
+                    {leerDescuento(b.descuento) !== sugeridoDeCampana.pct && (
+                      <button type="button" onClick={() => cambiar("descuento")(String(sugeridoDeCampana.pct))} className="btn-cayla btn-enlace text-xs">
+                        Usar −{sugeridoDeCampana.pct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  "La campaña no da descuento a esta categoría. Si vas a rebajarla igual, escríbelo aquí; si no, déjalo vacío."
+                )}
+              </p>
+            </div>
+            {sugeridoDeCampana && sugeridoParcial(sugeridoDeCampana) && (
+              <Aviso tono="atencion" chico>
+                Rige solo en parte de las tiendas o de los días: el plan es de toda CAYLA, así que revisa si este % le toca a toda la venta.
+              </Aviso>
+            )}
+            {frase && (
+              <Aviso tono={pierdeMargen ? "error" : "info"} chico>
+                {frase}
+              </Aviso>
+            )}
+          </div>
+        </CampoGuiado>
+      )}
+
       <div data-guia="plan-modal.curva">
       <CampoGuiado id="curva" guia={guia} titulo="Curva de tallas" ayuda={`Suma ${sumaCurva} %`}>
         {tallas.length === 0 ? (
@@ -436,6 +489,13 @@ export function FormularioCategoria({
               )}
               . {porQue(calculo)}
             </p>
+            {sinDescuento && (
+              <p className="mt-1 text-[13px] text-tinta/80">
+                {sinDescuento.comprar > calculo.comprar
+                  ? `Con el descuento compras ${enteroES.format(sinDescuento.comprar - calculo.comprar)} menos que a precio de lista (${enteroES.format(sinDescuento.comprar)}): quedarte corto te cuesta menos.`
+                  : "Con este descuento la compra es la misma que a precio de lista."}
+              </p>
+            )}
             {lineaViva && (
               <div className="mt-3">
                 <BarraRango viva linea={lineaViva} calculo={calculo} enCamino={enCamino} />
