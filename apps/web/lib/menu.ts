@@ -162,10 +162,11 @@ type Comun = {
    *  como las rutas de prueba) no sale. Existe por CAYLA Global (ADR-0275): una pantalla que no es de ninguna sede no
    *  existía antes de los módulos y no tiene por qué aparecerle a un perfil que no los trae. */
   soloConModulo?: true;
-  /** Otro módulo que TAMBIÉN abre esta fila (ADR-0161, 20260923130000). Existe por UN caso: Catálogo ▸ Insignias junta lo
-   *  que eran dos filas, Sellos (`etiquetas`, hoy «Insignias») y Campañas (`campanas`; Felipe 2026-10-22), así que un rol que solo ve Campañas
-   *  entra por la misma fila (y la pantalla le muestra solo esa vista). Hasta ese día era Atributos con los sellos en una pestaña. */
-  moduloAlterno?: ClaveModulo;
+  /** Los otros módulos que TAMBIÉN abren esta fila (ADR-0161, 20260923130000; lista desde ADR-0504). Una fila de menú con varias
+   *  vistas, cada una con su módulo en Roles y accesos: quien ve CUALQUIERA de los módulos entra por la misma fila, y la pantalla
+   *  le muestra solo las vistas que le tocan. Catálogo ▸ Insignias junta lo que eran dos filas, Sellos (`etiquetas`, hoy «Insignias»)
+   *  y Campañas (`campanas`; Felipe 2026-10-22). Era `moduloAlterno` (uno solo) hasta que Compras necesitó dos. */
+  modulosAlternos?: readonly ClaveModulo[];
 };
 
 /** Una pantalla. */
@@ -411,7 +412,7 @@ export const ARBOL: readonly Nodo[] = [
       { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
       { id: "catalogo.marcas", modulo: "atributos", etiqueta: "Marcas", estado: "viva", ruta: "/productos/marcas", icono: "marcas", pajaro: "02 Loro" },
       { id: "catalogo.atributos", modulo: "atributos", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
-      { id: "catalogo.insignias", modulo: "etiquetas", moduloAlterno: "campanas", etiqueta: "Insignias", estado: "viva", ruta: "/productos/insignias", icono: "insignias", pajaro: "02 Loro" },
+      { id: "catalogo.insignias", modulo: "etiquetas", modulosAlternos: ["campanas"], etiqueta: "Insignias", estado: "viva", ruta: "/productos/insignias", icono: "insignias", pajaro: "02 Loro" },
       // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan con su etiqueta, SIN pasar a Productos. Vive en
       // Catálogo porque es la otra cara de «qué se vende y a cuánto» (y el grupo Inventario ya está en su tope). La
       // visibilidad la da su módulo, que nace solo para el líder.
@@ -638,7 +639,7 @@ function esVisible(n: Comun & { estado: string }, perfil: PerfilDelMenu): boolea
     if (n.id === "inicio" && perfil.terminal) return terminalVeInicio(modulos);
     // Por rol (ADR-0161): la hoja sale si la cuenta ve su módulo; un grupo, si le queda alguna hija (lo resuelve
     // `construirFila`).
-    if (n.modulo) return modulos.includes(n.modulo) || (!!n.moduloAlterno && modulos.includes(n.moduloAlterno));
+    if (n.modulo) return modulos.includes(n.modulo) || !!n.modulosAlternos?.some((m) => modulos.includes(m));
   }
   return true;
 }

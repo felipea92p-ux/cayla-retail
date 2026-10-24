@@ -30,7 +30,7 @@ function iconosPorModulo(nodos: readonly Nodo[], cabeceras: readonly ClaveIcono[
       iconosPorModulo(n.hijos, [...cabeceras, n.icono], acumulado);
       continue;
     }
-    for (const m of [n.modulo, n.moduloAlterno]) {
+    for (const m of [n.modulo, ...(n.modulosAlternos ?? [])]) {
       if (!m) continue;
       const set = acumulado.get(m) ?? new Set<ClaveIcono>();
       set.add(n.icono);

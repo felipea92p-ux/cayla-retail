@@ -184,7 +184,7 @@ const APARTE: Partial<Record<ClaveModulo, ClaveIcono | null>> = {
   atributos: "atributos",
   // Resumen y Reportes de Finanzas son dos filas del mismo módulo; en Roles se dibuja como los reportes.
   reportes_financieros: "reportes",
-  // Campañas (`campanas`) no tiene fila propia desde el 2026-10-22: abre la de Insignias (su `moduloAlterno`). En Roles lleva su
+  // Campañas (`campanas`) no tiene fila propia desde el 2026-10-22: abre la de Insignias (su `modulosAlternos`). En Roles lleva su
   // calendario con corazón, para no confundirse con la medalla del módulo Insignias (`etiquetas`).
   campanas: "calendarioCampana",
   colaboradores: "colaboradores",

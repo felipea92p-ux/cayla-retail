@@ -333,7 +333,7 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(riel.find((f) => f.etiqueta === "Compras")).toMatchObject({ href: "/compras/por-pagar" });
     const soloEtiquetas = ahora({ nombre: "etiquetas", rol: "integrante" }, "tienda", [{ clave: "etiquetas", completo: true }]);
     expect(menuPara(soloEtiquetas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/insignias" });
-    // Campañas no tiene fila propia desde el 2026-10-22: abre la de Insignias, su `moduloAlterno` (la pantalla le muestra solo esa vista).
+    // Campañas no tiene fila propia desde el 2026-10-22: abre la de Insignias, su `modulosAlternos` (la pantalla le muestra solo esa vista).
     const soloCampanas = ahora({ nombre: "campanas", rol: "integrante" }, "tienda", [{ clave: "campanas", completo: true }]);
     expect(menuPara(soloCampanas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/insignias" });
   });
@@ -469,9 +469,9 @@ describe("un módulo es una entrada del menú, no una función suelta (ADR-0306)
   };
 
   it("cada módulo del catálogo tiene su entrada en el menú, o es una de las cuatro pantallas declaradas", () => {
-    const sinEntrada = CLAVES_MODULO.filter(
-      (c) => !new RegExp(`modulo(?:Alterno)?: "${c}"`).test(MENU) && !(c in PANTALLA_PROPIA_FUERA_DEL_LATERAL),
-    );
+    // Un módulo tiene entrada si es el `modulo` de una fila o uno de sus `modulosAlternos` (una fila con varias vistas, ADR-0504).
+    const enElMenu = (c: string) => new RegExp(`modulo: "${c}"|modulosAlternos: \\[[^\\]]*"${c}"`).test(MENU);
+    const sinEntrada = CLAVES_MODULO.filter((c) => !enElMenu(c) && !(c in PANTALLA_PROPIA_FUERA_DEL_LATERAL));
     expect(sinEntrada, `módulos sin entrada de menú: ${sinEntrada.join(", ")}. ¿Es una función de otro módulo? No la des de alta como módulo.`).toEqual([]);
   });
 

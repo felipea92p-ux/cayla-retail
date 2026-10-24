@@ -580,6 +580,25 @@ describe("reglas de menuPara", () => {
     expect(ids({ permisos: ["verDinero"], ubicacionTipo: "taller" })).toEqual(["libre", "soloConDinero", "soloTaller"]);
   });
 
+  it("una fila con varias vistas se abre con CUALQUIERA de sus módulos, y sin ninguno no sale (ADR-0504)", () => {
+    const arbol: Nodo[] = [hoja("historial", { modulo: "facturas_compra", modulosAlternos: ["fondos", "por_pagar"] })];
+    const ids = (modulos: ClaveModulo[]) => menuPara({ ...PERFIL_BASE, modulos }, fuente(arbol)).riel.map((f) => f.id);
+    expect(ids(["facturas_compra"])).toEqual(["historial"]);
+    expect(ids(["fondos"])).toEqual(["historial"]);
+    expect(ids(["por_pagar"])).toEqual(["historial"]);
+    expect(ids(["fondos", "por_pagar"])).toEqual(["historial"]);
+    expect(ids(["proveedores"])).toEqual([]);
+    expect(ids([])).toEqual([]);
+  });
+
+  it("Catálogo ▸ Insignias sigue abriéndose con Campañas sola: el alterno de antes no cambió", () => {
+    // Con una sola hija, el grupo sale como fila suelta con el nombre del grupo: se mira el destino, no el id.
+    const destinos = (modulos: ClaveModulo[]) => menuPara({ permisos: LIDER, ubicacionTipo: "tienda", modulos }).riel.flatMap(hojasDe).map((h) => h.href);
+    expect(destinos(["campanas"])).toContain("/productos/insignias");
+    expect(destinos(["etiquetas"])).toContain("/productos/insignias");
+    expect(destinos(["existencias"])).not.toContain("/productos/insignias");
+  });
+
   it("las insignias salen solo con un número positivo", () => {
     const arbol: Nodo[] = [hoja("t", { contador: "trasladosPorAtender" })];
     const contador = (n: number | null | undefined) => (menuPara({ ...PERFIL_BASE, contadores: { trasladosPorAtender: n } }, fuente(arbol)).riel[0] as { contador?: number }).contador;
