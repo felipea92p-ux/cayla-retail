@@ -3707,6 +3707,7 @@ export type Database = {
           nombre: string
           plazo_credito_dias: number | null
           rubros: string[]
+          tipo: string
           ruc: string | null
           telefono: string | null
           titular_cuenta: string | null
@@ -3725,6 +3726,7 @@ export type Database = {
           nombre: string
           plazo_credito_dias?: number | null
           rubros?: string[]
+          tipo?: string
           ruc?: string | null
           telefono?: string | null
           titular_cuenta?: string | null
@@ -3743,6 +3745,7 @@ export type Database = {
           nombre?: string
           plazo_credito_dias?: number | null
           rubros?: string[]
+          tipo?: string
           ruc?: string | null
           telefono?: string | null
           titular_cuenta?: string | null
@@ -6879,6 +6882,10 @@ export type Database = {
         Args: { p_categoria_id: string }
         Returns: undefined
       }
+      cambiar_tipo_proveedor: {
+        Args: { p_proveedor_id: string; p_tipo: string }
+        Returns: undefined
+      }
       desactivar_proveedor: {
         Args: { p_proveedor_id: string }
         Returns: undefined
@@ -7923,6 +7930,10 @@ export type Database = {
           tipo: string
           unidad: string
         }[]
+      }
+      fn_proveedor_servicio_resumen: {
+        Args: { p_proveedor_id: string }
+        Returns: Json
       }
       fn_proveedor_produccion_metricas: {
         Args: { p_proveedor_id: string }
