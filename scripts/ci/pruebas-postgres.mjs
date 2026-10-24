@@ -611,6 +611,11 @@ export const PRUEBAS = [
   // disparador. Cada caso: ROLLBACK.
   "pruebas:cuarentena-no-se-ajusta",
 
+  // Una prenda solo se mueve en las sedes donde opera su empresa (ADR-0505): un disparador en movimientos rechaza la entrada,
+  // el traslado, la venta y el ajuste de una prenda de CLAURE fuera de Lima, y uno diferido en productos no deja cambiarle la
+  // empresa con stock fuera. Crear una de CLAURE en Lima sigue. Control sin el candado; la sonda de la migración. Cada caso: ROLLBACK.
+  "pruebas:empresa-solo-en-sus-sedes",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 
