@@ -7,6 +7,7 @@
 @import "./estilos/notas-credito.css";
 @import "./estilos/avisos.css";
 @import "./estilos/finanzas.css";
+@import "./estilos/telar.css";
 @import "./estilos/alta-guia.css";
 @import "./estilos/campana-efectos.css";
 @import "./estilos/etiqueta-prendas.css";
@@ -192,6 +193,15 @@
   /* El anticipo de un apartado entregado (ADR-0196) no es un medio del mostrador: ya se cobró antes. Va en taupe, el color
      de lo guardado para una clienta, para que en «Cómo se pagó» no salga sin punto (Historial, ADR-0230). */
   --color-metodo-anticipo: var(--color-taupe);
+
+  /* Los hilos de sede del telar de Finanzas (Felipe 2026-10-23, docs/maquetas/finanzas-telar-2026-10/): color de DATO, como los
+     métodos de pago. Cada sede se lee con el mismo color en la barra, el orillo y cada gráfico de Finanzas; Empresa va rayada
+     (es de todos). Son relleno y filo, no texto: el nombre de la sede va siempre escrito al lado. */
+  --color-sede-tru: #2f6aa3;
+  --color-sede-aqp: #c26a2e;
+  --color-sede-lim: #1d8a72;
+  --color-sede-tal: #8a4fa8;
+  --color-sede-emp: #9a8b7b;
   /* El redondeo del efectivo (ADR-0311) tampoco es un medio ni dinero que entró: es lo que no se cobró por llegar a la moneda
      de S/ 0.10. En «Cómo se pagó» (Historial) va en taupe, como el anticipo, para que no salga sin punto. */
   --color-metodo-redondeo: var(--color-taupe);
@@ -1966,7 +1976,8 @@ html[data-buscando] [data-resultados] {
   [data-teclado] > .cascada-modal {
     max-height: 100%;
     padding-bottom: calc(var(--teclado, 0px) + 1.5rem);
-    scroll-padding-bottom: calc(var(--teclado, 0px) + 1rem);
+    /* `--alto-pie`: el pie fijo (Cancelar / Agregar) también tapa; sin él, el campo enfocado quedaba debajo del pie (2026-10-23). */
+    scroll-padding-bottom: calc(var(--teclado, 0px) + var(--alto-pie, 0px) + 1rem);
   }
   /* Bajo el pie fijo no asoma nada: si el navegador reportó corto lo visible, entre el pie y el teclado quedaría a la vista
      el contenido que pasa por detrás. Este paño del color de la hoja lo tapa (detrás del teclado no se ve). */

@@ -6,7 +6,7 @@
   tienda abierta sumó una, `20261024001000_ajuste_compara_lo_que_habia_al_contar.sql` (ver la actualización al final). **No está en
   producción**: se pega con el OK de Felipe, y la web funciona con o sin ella.
 - **Relacionados:** ADR-0391 (el modal de la prenda de Existencias), ADR-0240 (`ajustar_inventario`: todo el ajuste en una llamada, con su
-  marca), ADR-0328 (la carga inicial), ADR-0306 (un botón es una función del módulo donde vive), ADR-0136 act. 2026-10-23 (b) (el movimiento
+  marca), ADR-0328 (la carga inicial), ADR-0306 (un botón es una función del módulo donde vive), ADR-0136 act. 2026-10-23 (c) (el movimiento
   de esta vista), ADR-0358 (una función, una pieza), ADR-0389 (guías interactivas), ADR-0149 (el loader único).
 
 ## El problema
@@ -56,7 +56,7 @@ Hoy se hacen sobre todo **correcciones al contar**: todavía se está cuadrando 
     enlazar un ajuste con un conteo.
 11. **Dos piezas crecen, sin abrir variantes nuevas:** `PasoCantidad` gana `tamano="planilla"` (44 px, número en serif de 24 px) y el botón
     `bloqueado` (se ve apagado, dice por qué en su `title` y sigue tocable para explicarlo). `CifraQueCuenta` gana `desde`, para contar desde
-    el número viejo. El movimiento es la excepción ADR-0136 act. 2026-10-23 (b), vigilada por `lib/ajuste-modelo-movimiento.test.ts`.
+    el número viejo. El movimiento es la excepción ADR-0136 act. 2026-10-23 (c), vigilada por `lib/ajuste-modelo-movimiento.test.ts`.
 
 ## Por qué así y no de otra forma
 

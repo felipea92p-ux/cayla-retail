@@ -10,7 +10,7 @@ import { BotonActividad } from "@/components/actividad/BotonActividad";
 import { BotonTema } from "@/components/ui/BotonTema";
 import { veActividad } from "@/lib/actividad-reglas";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
-import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
+import { esGrupoMenu as esGrupo, hermanosDe, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
 import { TRAZOS_MENU } from "@/lib/menu-iconos";
 import { PerfilModal } from "@/components/PerfilModal";
@@ -905,7 +905,13 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               gruposAbiertos={gruposAbiertos}
               compacto={compacto}
               cajonDe={cajon?.grupoId ?? null}
-              onToggleGrupo={(id) => setGruposAbiertos((g) => ({ ...g, [id]: !g[id] }))}
+              onToggleGrupo={(id) =>
+                setGruposAbiertos((g) => {
+                  const abre = !g[id];
+                  const cerrados = abre ? Object.fromEntries(hermanosDe(id, menu.riel).map((h) => [h, false])) : {};
+                  return { ...g, ...cerrados, [id]: abre };
+                })
+              }
               onAbrirCajon={abrirCajon}
               onEntrarFila={entrarFila}
               onSalirFila={salirFila}

@@ -1,7 +1,7 @@
 /* EXISTENCIAS · «AJUSTAR STOCK» EN EL MODAL DE LA PRENDA (ADR-0494, Felipe 2026-10-23; ronda 3 de
    docs/maquetas/existencias-ajustar-stock-2026-10/ronda-3.html). La banda bajo «Dónde está», la planilla del modelo entero con la talla
    en foco y el talón de lo que se va a guardar. Solo tokens (ADR-0169, ADR-0336); el color de cada prenda es dato (`data-color-dato`).
-   Movimiento: excepción de ADR-0136 (act. 2026-10-23 (b); Felipe pidió «sofisticada, elegante y full animaciones» y eligió la ronda 3):
+   Movimiento: excepción de ADR-0136 (act. 2026-10-23 (c); Felipe pidió «sofisticada, elegante y full animaciones» y eligió la ronda 3):
    la luz que cruza la banda y el lápiz que se dibuja, el hilo de la cabecera de la planilla, las filas en cascada y las celdas en ola,
    el anillo que se cierra sobre la talla en foco, el número que rueda al cambiar, el talón que entra, el visto que sella cada talla al
    guardar y el sello «Guardado». Todo UNA vez, con `--ease-cayla`, sin rebote ni bucle, y quieto con `prefers-reduced-motion`. Lo vigila

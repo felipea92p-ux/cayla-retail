@@ -485,7 +485,18 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   `prefers-reduced-motion` todo queda quieto (la hoja se cierra al instante al guardar). **Nada en bucle.**
 - **Dónde vive:** `apps/web/app/estilos/campana-hoja.css`, `components/campana-hoja/` y lo vigila `lib/campana-hoja-movimiento.test.ts`.
 
-## Actualización 2026-10-23 (b) — «Ajustar stock» en el modal de la prenda de Existencias, la planilla (ADR-0494), pedido por Felipe
+## Actualización 2026-10-23 (b) — El telar de Finanzas (ADR-0493), aprobado por Felipe
+
+- **Qué:** en la barra común de Finanzas, los hilos de sede que crecen bajo la sede elegida, el orillo que se teje al entrar y se reacomoda al
+  cambiar de sede, la cifra de la respuesta que cuenta y el dock que sube. En cada submódulo, su gráfico propio entra una vez: el retazo y el
+  calendario de Gastos, los frascos de Cuentas y dinero, la biblioteca de Reportes, la balanza de Impuestos y el mapa del Cierre.
+- **Por qué se admite:** Felipe eligió «El telar de Finanzas» mirando la maqueta (docs/maquetas/finanzas-telar-2026-10/), que pedía «muchas
+  animaciones», y aprobó la excepción acotada a lo que la maqueta muestra (decisión b, 2026-10-23).
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote y solo con tokens del tema; con `prefers-reduced-motion`, todo queda
+  quieto. **Nada en bucle**, salvo las señales que esta regla ya admite.
+- **Dónde vive:** `apps/web/app/estilos/telar.css` y `components/finanzas/telar/`.
+
+## Actualización 2026-10-23 (c) — «Ajustar stock» en el modal de la prenda de Existencias, la planilla (ADR-0494), pedido por Felipe
 
 - **Qué:** al abrir el modal, una luz cruza la banda «¿No es lo que ves en la tienda?» y su lápiz se dibuja. Al tocarla, la foto se achica
   y dice «Ajustando», lo de la prenda se pliega, el modal crece solo si la planilla no cabe, el hilo de la cabecera se dibuja columna por

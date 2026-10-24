@@ -24,10 +24,12 @@ import {
   repartoBilletera,
   textoFaltaMandar,
   movimientosDeLaCompradora,
+  historialDeLaCompradora,
   siglaTienda,
   detalleEnvio,
 } from "./mi-plata-reglas";
 import type { CuentaOpcion } from "./fondos-reglas";
+import { soles } from "./compras-reglas";
 
 // `soles()` une «S/» y la cifra con un espacio que no se parte (ADR-0413): las frases se comparan con espacios comunes.
 const plano = (s: string | null) => s?.replace(/\u00a0/g, " ") ?? null;
@@ -240,8 +242,8 @@ describe("el resto del día de compras (actividad 5)", () => {
     expect(detalleRonda({ abiertaEn: "2026-10-23T08:00:00Z", compras: 0, prendas: 0 }, "2026-10-23")).toBe("Abierta hoy · Todavía sin compras");
     // Las 8 pm de Lima ya son el día siguiente en UTC: sigue siendo «hoy».
     expect(detalleRonda({ abiertaEn: "2026-10-24T01:00:00Z", compras: 0, prendas: 0 }, "2026-10-23")).toBe("Abierta hoy · Todavía sin compras");
-    expect(leerMiPlata({ ...BASE, ronda: { abierta: { texto: "RC-1" }, ultima_cerrada: { decision: "regala" } } })?.ronda).toEqual({ abierta: null, ultimaCerrada: null });
-    expect(leerMiPlata({ persona: false })?.ronda).toEqual({ abierta: null, ultimaCerrada: null });
+    expect(leerMiPlata({ ...BASE, ronda: { abierta: { texto: "RC-1" }, ultima_cerrada: { decision: "regala" } } })?.ronda).toEqual({ abierta: null, ultimaCerrada: null, cerradas: [] });
+    expect(leerMiPlata({ persona: false })?.ronda).toEqual({ abierta: null, ultimaCerrada: null, cerradas: [] });
   });
 
   it("lee el cierre de hoy y descarta una decisión que no conoce", () => {
@@ -394,5 +396,87 @@ describe("compra pagada en parte o después (20261023181000)", () => {
       ["S/ 100.00", "2 prendas · Compras paga S/ 200.00 · Boleta"],
       ["S/ 0.00", "1 prenda · Compras paga S/ 80.00 · Boleta"],
     ]);
+  });
+});
+
+describe("el historial por ronda (Felipe 2026-10-23)", () => {
+  // Dos rondas cerradas: RC-000001 (se quedó con la plata) y RC-000002 (devolvió S/ 80, Compras todavía no lo recibe).
+  const p = leerMiPlata({
+    persona: true,
+    saldo: 0,
+    anotada: [
+      { id: "a1", medio: "yape_plin", monto: 500, estado: "confirmada", fecha: "2026-10-20", creado_en: "2026-10-20T09:00:00Z", ronda_id: "r1", ronda: "RC-000001" },
+      { id: "a2", medio: "efectivo", monto: 200, estado: "por_confirmar", fecha: "2026-10-22", creado_en: "2026-10-22T09:00:00Z", ronda_id: "r2", ronda: "RC-000002" },
+    ],
+    compras: [
+      { id: "c1", proveedor: "Rosa", tipo: "boleta", monto: 300, estado: "completado", fecha: "2026-10-20", creado_en: "2026-10-20T11:00:00Z", prendas: 10, tiendas: ["LIM"], por_mandar: [], ronda_id: "r1", ronda: "RC-000001" },
+      { id: "c2", proveedor: "Andina", tipo: "factura", monto: 250, pagado: 100, estado: "por_completar", fecha: "2026-10-22", creado_en: "2026-10-22T11:00:00Z", prendas: 5, tiendas: ["AQP"], por_mandar: [], ronda_id: "r2", ronda: "RC-000002" },
+    ],
+    gastos: [
+      { id: "g1", concepto: "taxi", monto: 20, estado: "completado", fecha: "2026-10-22", creado_en: "2026-10-22T12:00:00Z", ronda_id: "r2", ronda: "RC-000002" },
+      { id: "g0", concepto: "comida", monto: 15, estado: "completado", fecha: "2026-10-01", creado_en: "2026-10-01T12:00:00Z", ronda_id: null },
+    ],
+    hoy: { fecha: "2026-10-23" },
+    ronda: {
+      abierta: null,
+      ultima_cerrada: { texto: "RC-000002", cerrada_en: "2026-10-22T20:00:00Z", decision: "devuelve", monto: 80 },
+      cerradas: [
+        { id: "r2", texto: "RC-000002", abierta_en: "2026-10-21T15:00:00Z", cerrada_en: "2026-10-22T20:00:00Z", decision: "devuelve", monto: 80, resuelto: false },
+        { id: "r1", texto: "RC-000001", abierta_en: "2026-10-20T08:00:00Z", cerrada_en: "2026-10-20T20:00:00Z", decision: "se_queda", monto: 200, resuelto: false },
+        { id: "r9", texto: "RC-000009", decision: "regala" },
+      ],
+    },
+  })!;
+  const h = historialDeLaCompradora(movimientosDeLaCompradora(p).antes, p.ronda.cerradas ?? []);
+
+  it("lee las rondas cerradas y descarta las ilegibles", () => {
+    expect(p.ronda.cerradas?.map((r) => [r.id, r.decision])).toEqual([["r2", "devuelve"], ["r1", "se_queda"]]);
+  });
+
+  it("arriba solo la plata, lo que devolvió y las rondas, del más nuevo al más viejo", () => {
+    expect(h.map((e) => e.clave)).toEqual(["cierre-r2", "ronda-r2", "plata-a2", "ronda-r1", "plata-a1", "ronda-sin-ronda"]);
+  });
+
+  it("dentro de cada ronda, sus compras y gastos; la plata que le dieron NO entra", () => {
+    const r2 = h.find((e) => e.clave === "ronda-r2");
+    expect(r2?.tipo === "ronda" && r2.movimientos.map((m) => m.clave)).toEqual(["gasto-g1", "compra-c2"]);
+    // Lo que salió de su plata: lo pagado (100 de 250) y el taxi (20).
+    expect(r2?.tipo === "ronda" && [r2.titulo, r2.detalle, r2.monto, r2.pendiente, r2.cierre]).toEqual([
+      "Ronda RC-000002",
+      "21/10 al 22/10 · 1 compra · 1 gasto",
+      soles(120),
+      true,
+      null,
+    ]);
+    const r1 = h.find((e) => e.clave === "ronda-r1");
+    expect(r1?.tipo === "ronda" && [r1.detalle, r1.pendiente, r1.cierre]).toEqual(["20/10 · 1 compra", false, `Te quedaste ${soles(200)} para tu próxima ronda.`]);
+  });
+
+  it("lo que devolvió dice cuánto, dónde y si Compras ya lo recibió", () => {
+    const c = h[0];
+    expect(c.tipo === "cierre" && [c.titulo, c.detalle, c.entra, c.monto, c.estado.texto, c.estado.pendiente]).toEqual([
+      "Devolviste en caja",
+      "RC-000002 · 22/10",
+      false,
+      soles(80),
+      "Entrégalo en caja",
+      true,
+    ]);
+  });
+
+  it("lo de antes de las rondas va en su propio grupo; una ronda sin compras ni gastos igual aparece", () => {
+    const sin = h.at(-1);
+    expect(sin?.tipo === "ronda" && [sin.titulo, sin.movimientos.length]).toEqual(["Antes de las rondas", 1]);
+    const vacia = historialDeLaCompradora([], [{ id: "r5", texto: "RC-000005", abiertaEn: "2026-10-22T08:00:00Z", cerradaEn: "2026-10-22T09:00:00Z", decision: "le_deben", monto: 30, resuelto: true }]);
+    expect(vacia.map((e) => [e.clave, e.tipo === "ronda" ? e.detalle : e.tipo === "cierre" ? e.estado.texto : ""])).toEqual([
+      ["cierre-r5", "Te lo devolvieron"],
+      ["ronda-r5", "22/10 · Sin compras ni gastos"],
+    ]);
+  });
+
+  it("sin la migración (sin `cerradas`), igual agrupa por ronda con el número de sus compras", () => {
+    const sinLista = historialDeLaCompradora(movimientosDeLaCompradora(p).antes, []);
+    expect(sinLista.filter((e) => e.tipo === "ronda").map((e) => e.tipo === "ronda" && e.titulo)).toEqual(["Ronda RC-000002", "Ronda RC-000001", "Antes de las rondas"]);
+    expect(sinLista.some((e) => e.tipo === "cierre")).toBe(false);
   });
 });

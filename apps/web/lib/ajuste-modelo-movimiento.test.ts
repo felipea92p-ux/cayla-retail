@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Candado de los límites de ADR-0136 para «Ajustar stock» en el modal de la prenda de Existencias (excepción del 2026-10-23 (b),
+// Candado de los límites de ADR-0136 para «Ajustar stock» en el modal de la prenda de Existencias (excepción del 2026-10-23 (c),
 // ADR-0494): Felipe pidió que la vista sea «sofisticada, elegante y full animaciones» y eligió la ronda 3 de la maqueta. La luz cruza la
 // banda y el lápiz se dibuja, el hilo de la cabecera se dibuja, las filas llegan en cascada y las celdas en ola, el anillo se cierra sobre
 // la talla en foco, el número rueda al cambiar, el talón entra, cada talla se sella al guardar y el sello «Guardado» se estampa: UNA vez,
