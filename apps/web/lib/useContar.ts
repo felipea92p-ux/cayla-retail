@@ -9,9 +9,11 @@ import { useEffect, useRef, useState } from "react";
  * `alMontar`: además se «arma» una vez al llegar a la pantalla, contando desde 0 (entrada escalonada de la
  * regla de globals.css, revisada el 2026-09-19). Curva de salida de potencia 3,5: arranca rápido y frena
  * largo, sin rebote. Con movimiento reducido salta al valor.
+ * `desde`: al llegar a la pantalla, cuenta desde ESE número (el de antes de un guardado: «Dónde está» de Existencias tras ajustar el
+ * stock, ADR-0494). Tiene prioridad sobre `alMontar`.
  */
-export function useContar(valor: number, ms = 800, alMontar = false): number {
-  const inicial = alMontar ? 0 : valor;
+export function useContar(valor: number, ms = 800, alMontar = false, desde?: number): number {
+  const inicial = desde ?? (alMontar ? 0 : valor);
   const [mostrado, setMostrado] = useState(inicial);
   // Lo que REALMENTE se está mostrando (no el destino): así, si React repite el efecto (StrictMode en
   // desarrollo, o un valor que cambia a mitad de camino), el conteo arranca de donde está la cifra y no

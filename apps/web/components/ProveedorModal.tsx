@@ -9,7 +9,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { agregarRubro, alternarRubro, claveRubro, normalizarCci, normalizarCelular, opcionesDeRubro, proveedorConRuc, proveedoresParecidos } from "@/lib/proveedores-reglas";
+import { ETIQUETA_TIPO_PROVEEDOR, agregarRubro, alternarRubro, claveRubro, normalizarCci, normalizarCelular, opcionesDeRubro, proveedorConRuc, proveedoresParecidos, type TipoProveedor } from "@/lib/proveedores-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { Modal } from "@/components/ui/Modal";
 import {
@@ -96,6 +96,8 @@ export type Borrador = {
   rubros: string[];
   plazoCreditoDias: string;
   formaPagoPreferida: string;
+  /** Mercadería (ropa) o servicios (Entel, luz, agua, alquiler); 20261024222000. */
+  tipo: TipoProveedor;
 } & CuentasForm;
 
 export const BORRADOR_VACIO: Borrador = {
@@ -109,6 +111,7 @@ export const BORRADOR_VACIO: Borrador = {
   rubros: [],
   plazoCreditoDias: "",
   formaPagoPreferida: "",
+  tipo: "mercaderia",
   ...CUENTAS_VACIAS,
 };
 
@@ -124,6 +127,7 @@ export function borradorDe(p: {
   rubros: string[];
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
+  tipo?: string | null;
   cci: string | null;
   celular_billetera: string | null;
   billeteras: string[] | null;
@@ -140,6 +144,7 @@ export function borradorDe(p: {
     rubros: p.rubros,
     plazoCreditoDias: p.plazo_credito_dias != null ? String(p.plazo_credito_dias) : "",
     formaPagoPreferida: p.forma_pago_preferida ?? "",
+    tipo: p.tipo === "servicios" ? "servicios" : "mercaderia",
     ...cuentasDeFila(p),
   };
 }
@@ -153,19 +158,23 @@ export function ProveedorModal({
   inicial,
   rubros = [],
   existentes = [],
+  elegirTipo = true,
   onClose,
   onGuardado,
 }: {
   inicial: Borrador;
+  /** Pregunta primero qué clase de proveedor es. Las pantallas de mercadería (Recibir, Órdenes, Marcas) no la hacen: ahí solo se registra ropa. */
   /** Rubros ya usados en el directorio: los botones que se eligen con un toque. */
   rubros?: string[];
   /** Los proveedores ya registrados, para avisar de un RUC repetido mientras se escribe. */
   existentes?: { id: string; nombre: string; ruc: string | null; activo?: boolean }[];
+  elegirTipo?: boolean;
   onClose: () => void;
   /** `id` del proveedor guardado (el nuevo, o el que se editó): la lista lo marca y lo lleva a la vista. `datos` trae lo
    *  que se guardó, para quien lo necesita en pantalla sin esperar a que la página vuelva a leer el directorio (Recibir). */
   onGuardado: (id: string | null, datos?: { nombre: string; ruc: string | null; plazoCreditoDias?: number | null; formaPagoPreferida?: string | null }) => void;
 }) {
+  const [tipo, setTipo] = useState<TipoProveedor>(inicial.tipo);
   const [nombre, setNombre] = useState(inicial.nombre);
   const [ruc, setRuc] = useState(inicial.ruc);
   const [contacto, setContacto] = useState(inicial.contacto);
@@ -303,6 +312,18 @@ export function ProveedorModal({
     alCerrar.current = () =>
       onGuardado(id, { nombre: nombre.trim(), ruc: ruc || null, plazoCreditoDias: plazoCreditoDias ? Number(plazoCreditoDias) : null, formaPagoPreferida: formaPagoPreferida || null });
 
+    // Paso 1b: el tipo, solo si no es el de fábrica (un alta de mercadería ya nace así) o si cambió al editar. Si falla, el proveedor
+    // queda guardado como estaba (un estado válido) y se avisa; no se pierde nada.
+    if (id && tipo !== (editando ? inicial.tipo : "mercaderia")) {
+      const { error: errorTipo } = await supabase.rpc("cambiar_tipo_proveedor", { p_proveedor_id: id, p_tipo: tipo });
+      if (errorTipo) {
+        if (!editando) setIdGuardado(id);
+        setFase("reposo");
+        avisar.error(`El proveedor se guardó, pero no se pudo poner su tipo: ${traducirError(errorTipo, "cambiar el tipo del proveedor")}`);
+        return;
+      }
+    }
+
     // Paso 2: las cuentas, solo si algo de ellas cambió (o es un alta con algo escrito).
     if (id && hayQueGuardarCuentas(cuentasIniciales, cuentas, inicial.id === null)) {
       const { error: errorCuentas } = await supabase.rpc("guardar_cuentas_proveedor", argsGuardarCuentas(id, cuentas));
@@ -333,6 +354,25 @@ export function ProveedorModal({
     >
       {(cerrar) => (
         <form onSubmit={(e) => onSubmit(e, cerrar)} className="space-y-2">
+          {elegirTipo && (
+            <div data-guia="proveedor-modal.tipo">
+              <Campo etiqueta="¿Qué clase de proveedor es?" idEtiqueta="etiqueta-tipo-proveedor">
+                <SegmentoDeslizante
+                  etiqueta="Clase de proveedor"
+                  valor={tipo}
+                  onCambio={(c) => setTipo(c as TipoProveedor)}
+                  opciones={[
+                    { clave: "mercaderia", etiqueta: ETIQUETA_TIPO_PROVEEDOR.mercaderia },
+                    { clave: "servicios", etiqueta: ETIQUETA_TIPO_PROVEEDOR.servicios },
+                  ]}
+                />
+                <span className="mt-1 block text-xs text-taupe">
+                  {tipo === "servicios" ? "A quien se le paga un servicio: telefonía, luz, agua, alquiler." : "A quien se le compra ropa o lo que se revende."}
+                </span>
+              </Campo>
+            </div>
+          )}
+
           {/* La razón social y el RUC: el mismo <ConsultaDocumento> que usa Vender/Facturación (una sola copia de
               la lógica del padrón). `contador` le agrega «n/11», el hilo verde y el ✓ del spike. */}
           <div data-guia="proveedor-modal.ruc">

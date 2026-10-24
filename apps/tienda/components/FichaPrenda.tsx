@@ -11,8 +11,10 @@ import {
   campanaDeLaFicha,
   chipCampana,
   colorInicial,
+  dibujoDeLaCampana,
   faltaParaTerminar,
   fotosDelColor,
+  imagenDeLaCampana,
   lineaAlAgregar,
   notaDeTalla,
   pistaOtraTienda,
@@ -22,7 +24,6 @@ import {
   type ChipFicha,
   type Ficha,
 } from "@/lib/ficha";
-import { dibujoDeLaInsignia } from "@/lib/insignias";
 import { hrefDelProbador } from "@/lib/probador";
 import { esLaMismaFoto } from "@/lib/prenda-tocada";
 import { textoNivel, tonoNivel } from "@/lib/stock";
@@ -214,13 +215,13 @@ export function FichaPrenda({
               <div className="t-pdp-chips">
                 {chips.map((c) => (
                   <span key={c.texto} className={`t-chip${c.tono ? ` ${c.tono}` : ""}`}>
-                    {c.icono && <IconoInsignia icono={c.icono} />}
+                    {c.icono && <IconoInsignia icono={c.icono} imagen={c.imagen} origen={origenFotos} />}
                     {c.texto}
                   </span>
                 ))}
                 {campana && campanaVista && (
                   <span className="t-chip oferta">
-                    <IconoInsignia icono={dibujoDeLaInsignia(campanaVista.nombre)} />
+                    <IconoInsignia icono={dibujoDeLaCampana(ficha, campanaVista)} imagen={imagenDeLaCampana(ficha, campanaVista)} origen={origenFotos} />
                     {campana}
                   </span>
                 )}

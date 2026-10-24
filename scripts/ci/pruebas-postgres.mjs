@@ -262,6 +262,7 @@ export const PRUEBAS = [
   // en su tienda y no lo acepta en otra (`registrar_venta`), el apartado nace con él solo ahí, la tienda web lo muestra desde su tienda y
   // sin sede nunca aparece una campaña limitada; el guardián falla si una de las cinco funciones deja de preguntar por la sede. ROLLBACK.
   "pruebas:campanas-por-sede",
+  "pruebas:campana-reglas",
 
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el
@@ -275,6 +276,10 @@ export const PRUEBAS = [
   // aparte (su descuento es el chip de la campaña: con varias, la de mayor %); la función de adentro es interna y `tienda_web` solo llama a la
   // ficha; la migración se pega dos veces. ROLLBACK.
   "pruebas:tienda-insignias",
+  // El dibujo elegido de una insignia (ADR-0490): la columna `etiquetas.icono` (vacía = según el nombre, solo exige su forma), `fijar_icono_etiqueta` con la
+  // llave de cada etiqueta (Insignias para una insignia suelta; Campañas, Campañas web o Insignias para una campaña), crear una insignia con su dibujo, y que
+  // `tienda_ficha` lo traiga en `{id, nombre, icono}`. ROLLBACK.
+  "pruebas:insignia-icono",
   // La propuesta k de la ficha de la tienda online (ADR-0408): «otra persona ya separó la última» solo cuando los pedidos web por
   // confirmar de OTROS clientes que recogen en esa tienda (y no vencieron) cubren lo libre de esa talla ahí (la pieza de la ficha);
   // lo propio, otra tienda, lo vencido y lo confirmado no cuentan; nunca una cifra ni quién; solo tienda_web. ROLLBACK.
@@ -550,6 +555,9 @@ export const PRUEBAS = [
   // ADR-0401 (/chaos de Inventario 2026-10-14): el token sigue al contenido en ocho funciones de Inventario, el resolver revisa
   // un traslado, y los topes de notas, llegada y motivo de ajuste.
   "pruebas:inventario-token-y-textos",
+  // ADR-0494 (/chaos 2026-10-23, CON-06): «Conté y hay otro número» viaja con lo que había al contar; si otra venta o movimiento lo
+  // cambió, la base rechaza todo el ajuste y dice qué cambió. Sin `esperado`, como antes. Con control y dos sesiones en ROLLBACK.
+  "pruebas:ajuste-lo-que-habia",
   // ADR-0416 (/chaos de Clientes, Colaboradores y Configuración 2026-10-15): NaN en metas, fondo de caja, club y lo que quedaba fuera
   // de Compras; la ficha de un cliente con algún dato, un cumpleaños que existe y no futuro; anonimizar solo un líder. Con controles.
   "pruebas:clientas-y-metas-candados",
@@ -788,6 +796,10 @@ export const PRUEBAS = [
   // ADR-0421 (/chaos de Compras 2026-10-15): recibir y anular la misma factura no terminan las dos; el token sigue al contenido en la
   // factura y los pagos; NaN, IGV 0–18 %, emisión no futura, serie y vencimiento. Con controles (y anular que espera a la recepción).
   "pruebas:compras-candados-y-token",
+
+  // Lo que le compré a un proveedor (ADR-0502, act. b): una compra recibida cuenta como origen Compras con el costo de su factura y para el
+  // proveedor de la factura; lo sin factura y la carga inicial van aparte y nunca se suman a escondidas. Vigila el enlace con Compras. ROLLBACK.
+  "pruebas:proveedor-prendas-origen",
 
   // El reparto de un comprobante entre tiendas (ADR-0139) y su filtro «Destino»: 24 unidades repartidas 12/12, una suma distinta
   // de lo facturado se rechaza (por la RPC y por la base misma), una tienda no recibe más de lo suyo ni se «come» la de otra,
@@ -1432,6 +1444,8 @@ export const PRUEBAS = [
   // compradora; Recibir lee las fotos de papeles/ y nada más del depósito.
   "pruebas:compras-simple-recibir",
   "pruebas:compras-simple-revisar",
+  // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
+  "pruebas:compras-simple-marca",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,

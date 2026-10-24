@@ -7,6 +7,7 @@
 @import "./estilos/notas-credito.css";
 @import "./estilos/avisos.css";
 @import "./estilos/finanzas.css";
+@import "./estilos/finanzas-recorrido.css";
 @import "./estilos/telar.css";
 @import "./estilos/alta-guia.css";
 @import "./estilos/campana-efectos.css";
@@ -31,6 +32,7 @@
 @import "./estilos/caja-cierre.css";
 @import "./estilos/caja-comparativa.css";
 @import "./estilos/ficha-taller.css";
+@import "./estilos/ajuste-modelo.css";
 @import "./estilos/orden-pagina.css";
 @import "./estilos/ordenes-lista.css";
 @import "./estilos/compra-celular.css";
@@ -47,6 +49,8 @@
 @import "./estilos/titulos.css";
 @import "./estilos/traslados-pases.css";
 @import "./estilos/sellos.css";
+/* Las ofertas de una campaña, «Tres preguntas» (Felipe 2026-10-23): la hoja de Configurar de Insignias ▸ Campañas. */
+@import "./estilos/ofertas.css";
 @import "./estilos/traslados-guia.css";
 /* La orden de compra en papel (ADR-0362, actividad 6): A4 para imprimir o guardar en PDF. */
 @import "./estilos/orden-compra-papel.css";

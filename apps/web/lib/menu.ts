@@ -565,6 +565,19 @@ export function esGrupoMenu(f: FilaMenu): f is GrupoMenu {
   return "hijos" in f;
 }
 
+/** Ids de los grupos HERMANOS de `id` (mismo nivel, mismo padre; `id` no incluido). Abrir un grupo cierra a sus
+ *  hermanos — un solo desplegado a la vez por nivel (Felipe, 2026-10-23) —, pero nunca a su padre ni a sus hijos:
+ *  abrir Abastecimiento no cierra Producción. */
+export function hermanosDe(id: string, filas: readonly FilaMenu[]): string[] {
+  if (filas.some((f) => esGrupoMenu(f) && f.id === id)) return filas.filter((f) => esGrupoMenu(f) && f.id !== id).map((f) => f.id);
+  for (const f of filas) {
+    if (!esGrupoMenu(f)) continue;
+    const dentro = hermanosDe(id, f.hijos);
+    if (dentro.length) return dentro;
+  }
+  return [];
+}
+
 /** Todas las hojas que cuelgan de una fila YA CONSTRUIDA (`riel`/`movil`), sin importar cuántos subgrupos haya en el
  *  medio (D-84): la usan `menuPara` (para sumar los números de la barra del celular) y `menu.test.ts` (para que un
  *  invariante siga valiendo aunque una pantalla se mude un nivel más abajo, sin tener que saber a qué profundidad vive). */

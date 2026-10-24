@@ -10,7 +10,8 @@ import { Minus, Plus } from "lucide-react";
 
    Tres tamaños: «celda» (26 px, dentro de una matriz de tallas × colores), «fila» (36 px con mouse, que crece sola a 44 px en una
    pantalla táctil, el celular del mostrador) y «grande» (68 px, el número en la serif de 36 px y − y + de 44 px: el descuento de la
-   hoja «Configuración» de una campaña, ADR-0488, Felipe 2026-10-23). `sufijo` pone la unidad al lado del número («%»), sobre su
+   hoja «Configuración» de una campaña, ADR-0488, Felipe 2026-10-23) y «planilla» (44 px, el número en la serif de 24 px y − y + redondos: la
+   planilla de «Ajustar stock» de Existencias, ADR-0494, Felipe 2026-10-23). `sufijo` pone la unidad al lado del número («%»), sobre su
    misma línea base. Las teclas grandes de contar (el escáner, Contar el envío y el paso a paso de Existencias, 56 px con el número
    enorme) son un teclado de contar y quedan aparte.
 
@@ -27,13 +28,15 @@ import { Minus, Plus } from "lucide-react";
 type Boton = {
   onClick: () => void;
   deshabilitado?: boolean;
+  /** Se ve apagado pero se puede tocar, para que la pantalla diga POR QUÉ no (un `title` no llega al celular). `aria-disabled`. */
+  bloqueado?: boolean;
   /** Lo que oye el lector: «Una menos de Blusa Emma S». */
   etiqueta?: string;
   title?: string;
 };
 
 type Props = Omit<HTMLAttributes<HTMLSpanElement>, "children"> & {
-  tamano?: "celda" | "fila" | "grande";
+  tamano?: "celda" | "fila" | "grande" | "planilla";
   menos: Boton;
   mas: Boton;
   /** El número se puede escribir: las props de su <input>. */
@@ -59,6 +62,7 @@ export function PasoCantidad({ tamano = "fila", menos, mas, campo, children, suf
       aria-label={b.etiqueta ?? (signo === "menos" ? "Una menos" : "Una más")}
       title={b.title}
       disabled={b.deshabilitado}
+      aria-disabled={b.bloqueado || undefined}
       onClick={b.onClick}
       className={`paso-cantidad-b ${claseBotones}`}
     >
