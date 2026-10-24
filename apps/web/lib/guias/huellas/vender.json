@@ -105,7 +105,7 @@
       "button «Retomar»",
       "SegmentoDeslizante «Cómo escribir el descuento»",
       "button «S/»",
-      "input «Monto de descuento por prenda»",
+      "input «Monto de descuento»",
       "button «{p}»",
       "input «Porcentaje de descuento»",
       "button «{r.etiqueta}»",
