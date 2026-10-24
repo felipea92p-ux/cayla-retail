@@ -615,6 +615,21 @@ export const GUIA_PROVEEDORES: Guia = {
       texto: "Registra una factura suya, desactívalo si ya no le compras (no se borra: deja de aparecer al registrar) o abre su ficha completa. En la demo no tocamos nada.",
     },
     {
+      id: "analisis",
+      ancla: "proveedores.analisis",
+      opcional: true,
+      titulo: "Lo que quizá no ves",
+      texto: "Avisos que compara a tus proveedores entre sí: a quién frenar porque vende lento, a quién le queda poco margen, quién se agota pronto y a quién conviene volver a comprarle. «¿Por qué?» abre los números y la regla.",
+    },
+    {
+      id: "rendimiento",
+      ancla: "proveedores.rendimiento",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "A quién le compro y qué me deja",
+      texto: "Cada proveedor con lo que gastaste, cuánto ya vendiste, su margen y la plata parada en prendas sin vender. La última columna lo resume en una palabra; pasa el mouse para ver por qué.",
+    },
+    {
       id: "fin",
       ancla: null,
       preparar: [{ tipo: "escape" }],
@@ -731,6 +746,27 @@ export const GUIA_PROVEEDOR: Guia = {
       preparar: [{ tipo: "escape" }],
       titulo: "Cómo cumple",
       texto: "Lo facturado en el año, lo que se le debe, sus entregas atrasadas, cuántas llegaron completas, cuánto tarda en entregar y en cuánto le pagas de verdad.",
+    },
+    {
+      id: "analisis",
+      ancla: "proveedor-ficha.analisis",
+      opcional: true,
+      titulo: "Lo que quizá no ves",
+      texto: "Avisos que el sistema saca de lo comprado y lo vendido: prendas que no rotan, ventas por debajo del costo o lo que mejor rinde. «¿Por qué?» muestra los números y la regla.",
+    },
+    {
+      id: "costo-real",
+      ancla: "proveedor-ficha.costo-real",
+      opcional: true,
+      titulo: "Cuánto tiene costo real",
+      texto: "Lo que llegó por Compras tiene el costo de su factura; lo que ya estaba cuando se cargó el inventario es una estimación. Esta barra dice qué parte es cada una: el margen y la plata sin vender se muestran cuando la mitad ya es real.",
+    },
+    {
+      id: "prendas",
+      ancla: "proveedor-ficha.prendas",
+      opcional: true,
+      titulo: "Lo que le compré",
+      texto: "Cuántas prendas le compraste, cuánta plata gastaste (al costo de cada prenda) y cuánto de eso ya vendiste, marca por marca. El margen es el de lo ya vendido.",
     },
     // «Nos debe» (ADR-0362, fase 5a): las prendas por reponer, encima del saldo a favor. Solo la ve quien ve los montos de la ficha. El piloto
     // abre la hoja «Llegó la reposición» para mostrarla y la cierra sin anotar nada.

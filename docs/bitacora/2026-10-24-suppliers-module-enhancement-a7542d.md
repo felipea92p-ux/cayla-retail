@@ -1,0 +1,9 @@
+## 2026-10-24 (Proveedores: lo que le compré, lo que vendí y lo que quizá no ves)
+Qué hice: la ficha de cada proveedor muestra cuántas prendas le compraste, cuánta plata gastaste y cuánto ya vendiste, marca por marca y prenda por prenda; la lista suma «A quién le compro y qué me deja»; y ambas traen «Lo que quizá no ves», avisos (plata parada, ventas bajo el costo, margen bajo, a quién volver a comprarle) cada uno con su «¿Por qué?». Una migración de solo lectura (`20261024221000`) hace la cuenta.
+Por qué así: «compré» sale de entradas de inventario porque las facturas no tienen líneas; si faltan entradas se reconstruye con vendido + stock y se marca «estimado». Las reglas son código probado, no IA, para que cada aviso se pueda discutir (ADR-0502).
+Felipe se lleva: una decisión pendiente (pegar la migración en producción, con tu OK, antes de publicar la web) y los umbrales (21 días, S/ 1,000, 40 %, 7 puntos…) para que los ajustes tú.
+
+## 2026-10-24 (b) (Proveedores: dos orígenes, Compras y Carga inicial, y el Taller aparte)
+Qué hice: la ficha y la lista separan lo que llegó por Compras (costo real de su factura o su lote) de lo que viene de la carga inicial (estimado, «costo por confirmar»), con una barra de cuánto tiene costo real; los veredictos de dinero (margen, plata parada) solo cuentan lo que tiene costo real y el Taller («CAYLA SAC») sale aparte en el ranking. Vendidas netas desde movimientos. Migración nueva `20261024231000` (sin pegar) y una prueba de Postgres que vigila el enlace con Compras.
+Por qué así: Compras entra en uso en unos días y hoy los costos de la carga pudieron distorsionarse; hablar de margen con ellos engañaría. Cuando lleguen compras, la barra sube sola y los veredictos de dinero aparecen.
+Felipe se lleva: pegar la segunda migración (la base antes que la web), confirmar el umbral del 50 % de costo real, y que el Taller se reconoce por su nombre hasta que exista una marca propia.

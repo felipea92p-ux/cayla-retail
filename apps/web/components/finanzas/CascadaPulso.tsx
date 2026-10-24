@@ -10,7 +10,7 @@ export function CascadaPulso({ id, tramos, etiqueta }: { id: string; tramos: Tra
   return (
     <ol id={id} className="fin-pulso-cascada" aria-label={etiqueta}>
       {tramos.map((t, i) => (
-        <li key={t.clave} className="fin-pulso-tramo anim-entra" data-tipo={t.tipo} style={{ ["--i" as string]: i } as CSSProperties}>
+        <li key={t.clave} className="fin-pulso-tramo anim-entra" data-tipo={t.tipo} data-negativo={t.negativo || undefined} style={{ ["--i" as string]: i } as CSSProperties}>
           <span className="fin-pulso-tramo-nombre">
             {t.nombre}
             {t.detalle && <small>{t.detalle}</small>}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { agruparPendientes, pendientesDeGastos, type PendienteTelar } from "./finanzas-te-toca-reglas";
+import { agruparPendientes, pendientesDeGastos, pendientesDeImpuestos, type PendienteTelar } from "./finanzas-te-toca-reglas";
+import type { PendienteImpuesto } from "./impuestos-antes-reglas";
 
 const vacio = { egresosSinClasificar: 0, egresosSinClasificarMonto: 0, sinComprobante: 0, nPorPagar: 0, porPagar: 0 };
 
@@ -36,5 +37,23 @@ describe("el cajón agrupa por submódulo", () => {
       ["Cierre de mes", ["c", "b"]],
       ["Gastos", ["a"]],
     ]);
+  });
+});
+
+describe("pendientesDeImpuestos", () => {
+  const lista: PendienteImpuesto[] = [
+    { modulo: "impuestos", id: "rechazados", estado: "frena", titulo: "1 comprobante rechazado", detalle: "…", verbo: "Ver en Comprobantes", href: "/vender/comprobantes" },
+    { modulo: "impuestos", id: "aviso_umbral", estado: "avisa", titulo: "Llevas…", detalle: "…", verbo: null, href: null },
+  ];
+
+  it("toma la forma de «Te toca»: su submódulo, id con prefijo, siempre un verbo y un destino", () => {
+    expect(pendientesDeImpuestos(lista, "sede=lim")).toEqual([
+      { submodulo: "finanzas.impuestos", id: "impuestos.rechazados", estado: "frena", titulo: "1 comprobante rechazado", detalle: "…", verbo: "Ver en Comprobantes", href: "/vender/comprobantes" },
+      { submodulo: "finanzas.impuestos", id: "impuestos.aviso_umbral", estado: "avisa", titulo: "Llevas…", detalle: "…", verbo: "Ver", href: "/finanzas/impuestos?sede=lim" },
+    ]);
+  });
+
+  it("sin consulta, lleva a Impuestos a secas", () => {
+    expect(pendientesDeImpuestos([lista[1]!], "")[0]!.href).toBe("/finanzas/impuestos");
   });
 });
