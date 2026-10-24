@@ -37,6 +37,7 @@ import {
   hojaDePlantilla,
   hojaSiguiente,
   hojaVacia,
+  motivoDelMonto,
   proveedorDelRuc,
   salidaDeLaHoja,
   serieNumeroLegible,
@@ -258,7 +259,7 @@ export function HojaRegistrarGasto({
           )}
 
           <CampoGuiado id="monto" guia={guia} titulo="Cuánto">
-            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie inputMode="decimal" value={h.monto} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus />
+            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!motivoDelMonto(h.monto)} pie={motivoDelMonto(h.monto) ?? undefined} tono={motivoDelMonto(h.monto) ? "aviso" : undefined} inputMode="decimal" value={h.monto} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus />
           </CampoGuiado>
 
           <CampoGuiado id="sede" guia={guia} titulo="Para qué sede">

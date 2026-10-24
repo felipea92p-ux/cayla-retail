@@ -6,6 +6,7 @@ import {
   borradorDeLaHoja,
   camposDeLaHoja,
   hojaDePlantilla,
+  motivoDelMonto,
   hojaSiguiente,
   hojaVacia,
   plantillasDe,
@@ -184,5 +185,15 @@ describe("el aviso al guardar sigue el orden de la guía (chaos 2026-10-23, hall
     expect(v.ok).toBe(false);
     if (!v.ok && primero.id !== "monto") expect(v.error).toBe(primero.pendiente);
     if (!v.ok && primero.id === "monto") expect(v.error).toMatch(/monto|cuánto/i);
+  });
+});
+
+describe("un monto que no sirve dice por qué (chaos 2026-10-23, hallazgo 4)", () => {
+  it("vacío no regaña; cero, negativo, tres decimales, letras y el tope sí dicen qué pasa", () => {
+    expect(motivoDelMonto("")).toBeNull();
+    expect(motivoDelMonto("12.50")).toBeNull();
+    for (const v of ["0", "-0.01", "12.505", "abc", "100000000"]) expect(motivoDelMonto(v), v).toMatch(/\S/);
+    expect(motivoDelMonto("0")).toMatch(/mayor que cero/);
+    expect(motivoDelMonto("100000000")).toMatch(/1 000 000/);
   });
 });

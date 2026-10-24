@@ -250,3 +250,11 @@ export function salidaDeLaHoja(
   }
   return cuentaDeSalida(cuentas, "pago", null);
 }
+
+/** Por qué el monto escrito no sirve, para el pie de su caja (el /chaos del 2026-10-23 vio que 0, −0.01 o 12.505 no se aceptaban sin
+ *  decir por qué). Vacío no regaña: la guía ya dice que falta. Los textos son los de `parsearMonto` y `montoDentroDelTope`. */
+export function motivoDelMonto(texto: string): string | null {
+  if (!texto.trim()) return null;
+  const m = montoDentroDelTope(parsearMonto(texto));
+  return m.ok ? null : m.error;
+}
