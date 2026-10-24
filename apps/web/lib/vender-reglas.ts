@@ -9,6 +9,7 @@ import { efectivoACobrar, redondeoDelEfectivo, TOPE_VUELTO, UNIDAD_EFECTIVO } fr
 export { TOPE_VUELTO };
 import { motivoNoCobrable } from "./vender-stock-local";
 import { precioValido } from "./variantes-ficha-reglas";
+import { repartirVale } from "./club-cupon-reparto-reglas";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -379,23 +380,29 @@ export function descuentoUnitarioPorPorcentaje(precioUnitario: number, porcentaj
   return (precioC - finalC) / 100;
 }
 
-/** Cómo la colaboradora le dice la cantidad al apartado «Descuento»: en % del precio o en soles por prenda. */
+/** Cómo la colaboradora le dice la cantidad al apartado «Descuento»: en % del precio de cada prenda, o en soles del total de
+ *  lo elegido. */
 export type ModoDescuento = "porcentaje" | "monto";
 
-/** El descuento por unidad que pide el apartado para una línea de ese precio, sea cual sea el modo: en % sale de
- *  `descuentoUnitarioPorPorcentaje` (con el precio sin céntimos sueltos) y en S/ es el monto tal cual, recortado al precio. */
-export function descuentoPedido(modo: ModoDescuento, valor: number, precioUnitario: number): number {
-  return modo === "monto" ? descuentoUnitarioPorMonto(precioUnitario, valor) : descuentoUnitarioPorPorcentaje(precioUnitario, valor);
-}
+/** Lo mínimo de una línea para saber cuánto le toca de un descuento: su clave, su precio y cuántas unidades son. */
+type LineaParaDescuento = { claveLinea: string; precioUnitario: number; cantidad: number };
 
-/** Un monto en soles (no %) convertido a descuento por unidad, con 2 decimales. Nunca
- *  supera el precio — el candado `venta_items_descuento_no_supera_precio` lo rechazaría
- *  igual, pero acá se recorta antes para que "Quedaría en" no muestre un negativo.
- *  Es lo que la colaboradora escribió, al céntimo: un monto no se redondea (ADR-0403), porque quien lo escribe ya
- *  decidió cuánto quiere descontar. */
-export function descuentoUnitarioPorMonto(precioUnitario: number, montoUnitario: number): number {
-  if (!Number.isFinite(montoUnitario) || montoUnitario <= 0) return 0;
-  return redondear2(Math.min(montoUnitario, precioUnitario));
+/** El descuento por unidad que pide el apartado para cada línea alcanzada (clave de la línea → soles por unidad).
+ *  - En %: el de cada línea sale de su precio (`descuentoUnitarioPorPorcentaje`, sin céntimos sueltos).
+ *  - En S/: el monto es para TODO lo elegido, no para cada prenda (Felipe, 2026-10-24). Antes era «por prenda»: S/ 100 sobre un
+ *    ticket de S/ 139 con dos prendas de menos de S/ 100 dejaba las dos en S/ 0 y la venta no se podía cobrar. Ahora se reparte
+ *    entre las líneas en proporción a su precio, por unidad y al céntimo, con la MISMA regla que el cupón del Club
+ *    (`repartirVale`): nunca más que el precio de una prenda ni que el total de lo elegido, y la suma es exacta salvo cuando el
+ *    resto no se puede partir por unidades (se queda corta por céntimos, nunca se pasa). Con una sola prenda es el monto tal
+ *    cual, recortado a su precio. Lo que se escribe no se redondea al S/ 0.10 (ADR-0403): quien lo escribe ya decidió cuánto. */
+export function descuentosPedidos(modo: ModoDescuento, valor: number, lineas: readonly LineaParaDescuento[]): Map<string, number> {
+  if (modo === "porcentaje") return new Map(lineas.map((l) => [l.claveLinea, descuentoUnitarioPorPorcentaje(l.precioUnitario, valor)]));
+  if (!Number.isFinite(valor) || valor <= 0) return new Map(lineas.map((l) => [l.claveLinea, 0]));
+  const partes = repartirVale(
+    lineas.map((l) => ({ precioUnitario: l.precioUnitario, descuentoUnitario: 0, cantidad: l.cantidad })),
+    valor,
+  );
+  return new Map(lineas.map((l, i) => [l.claveLinea, partes[i]!]));
 }
 
 // ---- Motivo y argumento del descuento (R-45 / D-44, cerrado el 2026-09-15) ---------
@@ -466,6 +473,8 @@ type LineaDescontable = {
   razonDescuentoOtro: string;
   argumentoDescuento: string;
   campana?: CampanaLinea | null;
+  /** Una pieza de liquidación tiene precio final: ningún descuento del ticket la toca (ADR-0379). */
+  liquidacion?: { codigo: string } | null;
 };
 
 /** ¿El descuento que lleva esta línea es el de su campaña (no uno puesto a mano)? */
@@ -523,11 +532,22 @@ export function conCampanas<L extends LineaDescontable & { varianteId: string }>
   });
 }
 
-function aplicarConMonto<L extends LineaDescontable>(carrito: L[], claves: string[], detalle: DetalleDescuento, montoPara: (l: L) => number): L[] {
-  const alcanza = (l: L) => claves.length === 0 || claves.includes(l.claveLinea);
+/** ¿El descuento del apartado alcanza a esta línea? Las de `claves` (o todas, si viene vacío: «todo el ticket»), menos las
+ *  piezas de liquidación (ADR-0379). */
+export function entraAlDescuento(l: { claveLinea: string; liquidacion?: { codigo: string } | null }, claves: readonly string[] | null): boolean {
+  return !l.liquidacion && (claves === null || claves.length === 0 || claves.includes(l.claveLinea));
+}
+
+function aplicarConMonto<L extends LineaDescontable>(
+  carrito: L[],
+  claves: string[],
+  detalle: DetalleDescuento,
+  montosPara: (alcanzadas: L[]) => Map<string, number>,
+): L[] {
+  const pedidos = montosPara(carrito.filter((l) => entraAlDescuento(l, claves)));
   return carrito.map((l) => {
-    if (!alcanza(l)) return l;
-    const { monto, prevaleceCampana } = descuentoResultante(l, montoPara(l));
+    if (!entraAlDescuento(l, claves)) return l;
+    const { monto, prevaleceCampana } = descuentoResultante(l, pedidos.get(l.claveLinea) ?? 0);
     if (prevaleceCampana) return conDescuentoDeCampana(l);
     return {
       ...l,
@@ -543,14 +563,21 @@ function aplicarConMonto<L extends LineaDescontable>(carrito: L[], claves: strin
  *  `claves` viene vacío ("todo el ticket"). Las que no entran quedan como estaban. Para
  *  quitar un descuento: `aplicarDescuento(carrito, 0, claves, SIN_DETALLE_DESCUENTO)`. */
 export function aplicarDescuento<L extends LineaDescontable>(carrito: L[], porcentaje: number, claves: string[], detalle: DetalleDescuento): L[] {
-  return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorPorcentaje(l.precioUnitario, porcentaje));
+  return aplicarConMonto(carrito, claves, detalle, (ls) => new Map(ls.map((l) => [l.claveLinea, descuentoUnitarioPorPorcentaje(l.precioUnitario, porcentaje)])));
 }
 
-/** Lo mismo que `aplicarDescuento`, pero con un monto en soles por unidad en vez de un %
- *  — la otra entrada del apartado «Descuento» (Xstore «Add Discount» admite las dos).
- *  Vuelve el 2026-10-14 (Felipe) tras haberse quitado el 2026-09-25. */
-export function aplicarDescuentoMonto<L extends LineaDescontable>(carrito: L[], montoUnitario: number, claves: string[], detalle: DetalleDescuento): L[] {
-  return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorMonto(l.precioUnitario, montoUnitario));
+/** Lo mismo que `aplicarDescuento`, pero con un monto en soles para TODO lo alcanzado, repartido entre las prendas según su
+ *  precio (`descuentosPedidos`) — la otra entrada del apartado «Descuento» (Xstore «Add Discount» admite las dos).
+ *  Vuelve el 2026-10-14 (Felipe) tras haberse quitado el 2026-09-25; desde el 2026-10-24 el monto es del total, no por prenda.
+ *  Una línea cuya campaña da igual o más que su parte se queda con la campaña (un solo descuento por prenda, el mayor), y su
+ *  parte no pasa a las demás. */
+export function aplicarDescuentoMonto<L extends LineaDescontable & { cantidad: number }>(
+  carrito: L[],
+  monto: number,
+  claves: string[],
+  detalle: DetalleDescuento,
+): L[] {
+  return aplicarConMonto(carrito, claves, detalle, (ls) => descuentosPedidos("monto", monto, ls));
 }
 
 /** El % entero que se muestra en el chip de la línea, leído desde el monto guardado

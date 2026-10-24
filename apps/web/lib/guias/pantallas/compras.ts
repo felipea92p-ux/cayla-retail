@@ -2075,7 +2075,14 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.marca-nueva",
       opcional: true,
       titulo: "La marca",
-      texto: "Como dice la etiqueta. Primero las que trae este proveedor; si trae una sola, ya viene puesta. Si falta una marca, Compras la crea en Catálogo ▸ Marcas.",
+      texto: "Como dice la etiqueta. Primero las que trae este proveedor; si trae una sola, ya viene puesta.",
+    },
+    {
+      id: "marca-mas",
+      ancla: "compra.marca-mas",
+      opcional: true,
+      titulo: "¿No está la marca?",
+      texto: "Toca «+» y escríbela como dice su etiqueta; la «×» vuelve a la lista. Se crea al guardar la compra, unida a este proveedor. Si ya existía, se usa esa.",
     },
     {
       id: "nombre-nuevo",

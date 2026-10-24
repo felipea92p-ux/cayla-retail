@@ -136,3 +136,10 @@
   .as-n { display: block; font-size: 52px; margin-bottom: 18px; }
   .as-x { display: block; }
 }
+
+/* Las píldoras de las ofertas cambian en el navegador (`OfertasPorCampana`): la lista que se muestra entra con el mismo desvanecido corto
+   de siempre (sin rebote, una vez); las demás esperan escondidas. */
+.t-ofertas-grilla[hidden] { display: none; }
+.t-ofertas-grilla { animation: t-ofertas-entra .28s var(--ease) both; }
+@keyframes t-ofertas-entra { from { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .t-ofertas-grilla { animation: none; } }
