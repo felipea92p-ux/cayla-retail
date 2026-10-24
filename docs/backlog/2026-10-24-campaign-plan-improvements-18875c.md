@@ -44,7 +44,7 @@ El módulo Compras ▸ Plan de campaña debe servir para: (1) mapear campañas �
 
 - `pnpm pruebas:plan-compra` reproduce migraciones viejas y en la base local falla (planes repetidos por etiqueta); `plan_compra_historia` falla 3 casos por ventas de otras sesiones. Son datos de la base compartida, no de estos cambios. Agregué un `drop function` de la firma de 12 parámetros después de B4 en `scripts/pruebas/plan_compra.mjs` para que en el CI no haya dos sobrecargas: **razonado, no corrido**.
 - La base local es compartida con otras sesiones: quedó un plan demo **«Demo descuento CAYLA (borrar)»** (id `471aa331-90f8-44c2-8990-5fcacae04680`, con su etiqueta y una oferta «Martes y jueves de Casacas»). Otra sesión lo archivó. Bórralo al terminar.
-- Un botón que dice «Volver a…» a mano rompe `lib/unificar.test.ts` (lo vigila la regla de «Volver»): por eso el botón se llama «Usar el supuesto de 14».
+- Un botón que dice «Volver a…» a mano rompe `lib/unificar.test.ts` (lo vigila la regla de «Volver»): por eso el botón no empezó con «Volver». Hoy se llama «Quitar el plazo», como «Quitar el tope» y «Quitar el %» (con «Usar el supuesto de 14» no cabía en una fila).
 - No hay `node_modules` listos en un worktree nuevo ni `.env.local`: copiar `apps/web/.env.local` del checkout principal. El puerto 3010 suele estar ocupado: `preview_start` con `cayla-retail-dev` asigna otro (esta vez 3013). Usar `localhost`, no `127.0.0.1`.
 - En el panel del navegador, con una hoja abierta la captura sale a medias; verificar con texto/DOM.
 

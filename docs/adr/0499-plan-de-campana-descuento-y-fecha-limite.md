@@ -106,6 +106,7 @@ Cada migración va en UNA parte: un `alter table` de una tabla chica (0 líneas 
 - **El sugerido pondera nada:** una oferta de 4 días de −35 % se sugiere como −35 %. Decisión de Felipe pendiente: sugerir solo el descuento que rige todos los días.
 - **«Descargar la lista»** no lleva todavía el descuento ni el plazo. Decisión de Felipe pendiente.
 - **Un proveedor o el Taller con otro plazo** (ver el segundo bloque de arriba).
-- **El pie de la hoja «Días para llegar» se desborda a 375 px:** «Usar el supuesto de 14» queda cortado y, en escritorio, «Guardar plazo» baja a una segunda fila. Es un hallazgo del recorrido de la guía,
-  a corregir en `/formidable` antes del PR.
+- **El pie de la hoja «Días para llegar» se desbordaba a 375 px** (el botón rojo quedaba cortado y, en escritorio, «Guardar plazo» bajaba a una segunda fila). Corregido: usa `<PieAcciones izquierda>`
+  y el botón se llama «Quitar el plazo», como «Quitar el tope» y «Quitar el %». **Las hojas hermanas (`TopeModal`, `RecuperoModal`) arman ese botón con `mr-auto` y pueden tener el mismo desborde en el celular**
+  (la regla de mitades de `pie-acciones.css` le gana en especificidad a la que lo manda a su propia fila); no se tocaron ni se midieron.
 - **Sin historia de recepciones no se puede sugerir el plazo.** Cuando haya órdenes de compra recibidas, la pantalla podría proponerlo SIN tocar esta tabla.

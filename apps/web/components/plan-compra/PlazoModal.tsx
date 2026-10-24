@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
+import { PieAcciones } from "@/components/ui/PieAcciones";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -18,7 +19,8 @@ import { DIAS_PARA_LLEGAR_DE_FABRICA, RPC_GUARDAR_PLAZO, argsGuardarPlazo, detal
 // Los días que tarda un pedido en llegar a las tiendas, para esta campaña (ADR-0499): con ellos, la fecha límite para pedir. Lo fija quien tiene
 // el módulo Plan de campaña (la base lo exige también). Guía de foco (ADR-0284): `camposDelPlazo` sale de la misma regla que la base. Mientras se
 // escribe, la hoja dice qué fecha límite resulta; al guardar, el aviso dice lo que cambió (subir el plazo mueve la fecha de TODAS las categorías).
-// «Usar el supuesto» quita el número fijado.
+// «Quitar el plazo» (como «Quitar el tope» y «Quitar el %», sus hermanas) quita el número fijado y vuelve al supuesto de 14: cabe en una fila con
+// Cancelar y Guardar en la hoja angosta, que con «Usar el supuesto de 14» no cabía (8 px de más) y Guardar bajaba a una segunda fila.
 
 export function PlazoModal({
   planId,
@@ -103,19 +105,23 @@ export function PlazoModal({
           </CampoGuiado>
           <div data-guia="plazo-modal.pie" className="pie-hoja-fijo">
             <PieGuia guia={guia} listo="Todo listo para guardar." />
-            <div className="pie-acciones pt-2">
-              {diasActuales !== null && (
-                <Boton type="button" peso="peligro" disabled={trabajando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void guardar(null, cerrar)} className="mr-auto">
-                  Usar el supuesto de 14
-                </Boton>
-              )}
+            <PieAcciones
+              className="pt-2"
+              izquierda={
+                diasActuales !== null ? (
+                  <Boton type="button" peso="peligro" disabled={trabajando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void guardar(null, cerrar)}>
+                    Quitar el plazo
+                  </Boton>
+                ) : undefined
+              }
+            >
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>
               <Boton type="submit" peso="primario" cargando={trabajando} disabled={!guia.puedeConfirmar} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
                 Guardar plazo
               </Boton>
-            </div>
+            </PieAcciones>
           </div>
         </form>
       )}

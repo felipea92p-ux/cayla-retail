@@ -937,7 +937,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plazo-modal.pie",
       opcional: true,
       titulo: "Fijar el plazo",
-      texto: "Eliges quién lo fija; «Guardar plazo» lo deja firmado con ese nombre y «Usar el supuesto» quita el número fijado. Solo avisa: nunca te impide guardar un plan. En la demo cerramos sin guardar.",
+      texto: "Eliges quién lo fija; «Guardar plazo» lo deja firmado con ese nombre y «Quitar el plazo» borra el número fijado y vuelve al supuesto de 14 días. Solo avisa: nunca te impide guardar un plan. En la demo cerramos sin guardar.",
     },
     {
       id: "resumen",
