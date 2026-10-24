@@ -5,7 +5,7 @@
   y `20261023213000_insignias_almacen_de_imagenes.sql`— están en producción desde el 2026-10-23** (pegadas a pedido de Felipe y verificadas, ver «Orden al
   desplegar»): iban ANTES de publicar la web porque la pantalla de Insignias lee las columnas nuevas y sube al almacén nuevo.
 - **Actualización 2026-10-23 (b):** la imagen propia puede pintarse como **silueta** (ver «Actualización (b)» al final). Trae una tercera migración,
-  `20261023221000_insignia_imagen_como_silueta.sql`, que **NO está en producción** y va ANTES de publicar la web.
+  `20261023221000_insignia_imagen_como_silueta.sql`, que **está en producción desde el 2026-10-23** (pegada a pedido de Felipe y verificada, ver «Orden al desplegar (acumulado)»): iba ANTES de publicar la web.
 - **Relacionados:** ADR-0489 (la ficha de la tienda muestra las insignias y su dibujo), ADR-0481 (Catálogo ▸ Insignias), ADR-0476 (la llave de las
   campañas), ADR-0161 (módulos y roles; el combo «Responsable»), ADR-0284 (guía de foco), ADR-0389 (guías interactivas), ADR-0195 (políticas y
   deadlocks), ADR-0446 (el logo en `packages/shared`: el patrón de dibujos compartidos), el camino de las imágenes de las campañas (`campana-imagen.ts`).
@@ -175,8 +175,13 @@ se pegan en orden con la última repetible); `pruebas:tienda-insignias` 20/20; p
 casilla marcada → la baldosa del selector se pinta de tinta (y de crema en modo oscuro); guardado el archivo es de 256 × 256 con todos sus píxeles opacos **blancos** y el resto transparente; el sello de la campaña lo dibuja con el color de su
 tinta en claro y en oscuro; un JPG blanco con texto negro → «lo oscuro sobre el fondo claro» y la baldosa muestra el texto; en la tienda, el chip lo pinta del color de su texto. A 375 px la casilla cabe (sin desbordar, fila de 70 px de alto). El aviso «1 Issue» de Next que salió a 375 px es un desajuste de hidratación de `Pestanas` (`data-mas-der`), ya existente y ajeno a esto.
 
-**Sin verificar.** La migración en producción (no está pegada), `guias:recorrer`, `/chaos`, un teléfono real, y el chip rojo del descuento con silueta mirado en el navegador (cubierto por prueba de datos).
+**Sin verificar.** La web nueva en producción (el PR no está fusionado), `guias:recorrer`, `/chaos`, un teléfono real, y el chip rojo del descuento con silueta mirado en el navegador (cubierto por prueba de datos).
 
-**Orden al desplegar (acumulado).** 203000 y 213000 ya están en producción. Falta pegar **`20261023221000_insignia_imagen_como_silueta.sql`** (una sola parte, idempotente; hace `drop function` de la firma de tres datos y crea la de cuatro, sin tocar `auth` ni `storage`) y verificar:
+**Orden al desplegar (acumulado).** 203000, 213000 y **`20261023221000_insignia_imagen_como_silueta.sql`** (una sola parte, idempotente; hace `drop function` de la firma de tres datos y crea la de cuatro, sin tocar `auth` ni `storage`) están en producción; solo falta fusionar el PR. La 221000 se verifica así:
 `select column_name from information_schema.columns where table_schema='retail' and table_name='etiquetas' and column_name='icono_imagen_silueta';` (1 fila), `select pg_get_function_identity_arguments(oid) from pg_proc where pronamespace='retail'::regnamespace and proname='fijar_icono_etiqueta';`
 (una sola fila: `p_etiqueta_id uuid, p_icono text, p_imagen text, p_silueta boolean`) y que `fn_tienda_insignias` traiga `silueta`. **Recién entonces** publicar la web.
+
+**Hecho el 2026-10-23 (la 221000, a pedido de Felipe, con su OK puntual):** antes de pegar, producción estaba como se esperaba (sin la columna, con la firma de tres datos, `fn_tienda_insignias` con el `md5` de la 203000, ninguna insignia con dibujo elegido). Se pegó con `execute_sql` en una sola
+pasada y se verificó contra producción: columna `icono_imagen_silueta` boolean NOT NULL con valor por defecto falso; los 5 candados `etiquetas_icono%`; **una sola** firma de `fijar_icono_etiqueta` (`p_etiqueta_id uuid, p_icono text, p_imagen text, p_silueta boolean`), ejecutable solo por `authenticated`;
+`md5(prosrc)` de `fijar_icono_etiqueta` = `46a4b65b16d1dfaf4ad425a6a49a020b` y de `fn_tienda_insignias` = `eaffcf37f57d3166dd9bb7719c87b155` (iguales a los de la base local con el mismo archivo); `fn_tienda_insignias` sigue cerrada a `anon`, `authenticated` y `tienda_web` y ya trae `silueta`; ninguna insignia tiene silueta
+todavía. Una llamada real a `fn_tienda_insignias` devuelve un arreglo.

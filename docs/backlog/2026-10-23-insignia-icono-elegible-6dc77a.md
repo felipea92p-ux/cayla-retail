@@ -1,4 +1,4 @@
-## 🎨 El dibujo de una insignia, elegible o propio (2026-10-23, ADR-0490) — migraciones `20261023203000` y `20261023213000` PEGADAS en producción el 2026-10-23; PR #1300 (sin fusionar); rama `claude/insignia-icono-elegible-6dc77a`
+## 🎨 El dibujo de una insignia, elegible o propio (2026-10-23, ADR-0490) — migraciones `20261023203000` y `20261023213000` PEGADAS en producción el 2026-10-23 (y la `20261023221000` de la silueta, también); PR #1300 (sin fusionar); rama `claude/insignia-icono-elegible-6dc77a`
 
 - [x] Columnas `retail.etiquetas.icono` (clave de un dibujo) e `icono_imagen` (ruta de una imagen propia), excluyentes y con candados; `fijar_icono_etiqueta` con la llave de cada
       etiqueta (ADR-0476) y `fn_tienda_insignias` con `{id, nombre, icono, imagen, descuento}`; bucket público `retail-insignias` (WebP, 100 KB) con política por
@@ -21,6 +21,6 @@
       (imagen propia → dibujo elegido → nombre) y no `iconoDeInsignia` a secas.
 - [x] **Silueta (act. b del ADR-0490):** casilla «Pintar con el color del sello» al subir una imagen; `lib/silueta-de-imagen.ts`; columna `icono_imagen_silueta`; el sello, las tarjetas, el selector y el chip de la tienda
       la pintan con el color del lugar. `pnpm pruebas:insignia-icono` 47/47.
-- [ ] **Pegar `supabase/migrations/20261023221000_insignia_imagen_como_silueta.sql` en producción ANTES de publicar la web** (una parte, idempotente; sin ella la pantalla de Insignias no carga). Verificar con
-      las consultas del ADR-0490 («Orden al desplegar»).
+- [x] **`supabase/migrations/20261023221000_insignia_imagen_como_silueta.sql` PEGADA en producción el 2026-10-23, antes de publicar la web** (una parte, idempotente), con el OK puntual de Felipe; verificada contra producción
+      (columna, 5 candados, una sola firma de cuatro datos, `md5(prosrc)` igual al archivo). Detalle en el ADR-0490.
 - [ ] **Sin probar:** el chip rojo del descuento con silueta en el navegador (probado con datos) y la silueta con una foto de un teléfono real.
