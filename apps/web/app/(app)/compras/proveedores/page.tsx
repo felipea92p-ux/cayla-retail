@@ -1,7 +1,8 @@
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { usaModulo } from "@/lib/modulos";
-import { getMarcasPorProveedor, getProveedores, getProveedoresResumen, getProveedoresSerie } from "@/lib/proveedores";
+import { getMarcasPorProveedor, getProveedores, getProveedoresRendimiento, getProveedoresResumen, getProveedoresSerie } from "@/lib/proveedores";
 import { ProveedoresPanel } from "@/components/ProveedoresPanel";
+import { ProveedoresRendimiento } from "@/components/ProveedoresRendimiento";
 
 // Directorio de proveedores (20260914150000_proveedores_administrables.sql).
 // Cualquiera con acceso ve el directorio (a quién se le compra); lo
@@ -30,12 +31,19 @@ export default async function ProveedoresPage() {
   const persona = await exigirModulo("proveedores");
   const verMontos = puede(persona, "verDineroCompras") || usaModulo(persona.rol, persona.modulos, "proveedores");
   const puedeEditar = puede(persona, "editarCuentasProveedor");
-  const [proveedores, resumen, series, marcas] = await Promise.all([
+  const [proveedores, resumen, series, marcas, rendimiento] = await Promise.all([
     getProveedores(),
     verMontos ? getProveedoresResumen() : null,
     verMontos ? getProveedoresSerie() : null,
     getMarcasPorProveedor(),
+    // Qué le deja cada proveedor (2026-10-24): plata, así que con la misma llave que las cifras. Opcional: si la base no tiene la función, la lista sale como antes.
+    verMontos ? getProveedoresRendimiento().catch(() => null) : null,
   ]);
 
-  return <ProveedoresPanel proveedores={proveedores} verMontos={verMontos} puedeEditar={puedeEditar} resumen={resumen} series={series} marcas={marcas} />;
+  return (
+    <div className="space-y-6">
+      <ProveedoresPanel proveedores={proveedores} verMontos={verMontos} puedeEditar={puedeEditar} resumen={resumen} series={series} marcas={marcas} />
+      {rendimiento && <ProveedoresRendimiento filas={rendimiento} />}
+    </div>
+  );
 }

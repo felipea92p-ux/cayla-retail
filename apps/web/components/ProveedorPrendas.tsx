@@ -71,7 +71,7 @@ export function ProveedorPrendas({ prendas }: { prendas: PrendaDeProveedor[] }) 
     <section className="space-y-3" data-guia="proveedor-ficha.prendas">
       <TituloSeccion cuenta={total.prendas}>Lo que le compré · prendas</TituloSeccion>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <TarjetaCifra punto="neutro" etiqueta="Unidades compradas" valor={<CifraQueCuenta valor={total.unidadesCompradas} alMontar />}>
           en {total.prendas.toLocaleString("es-PE")} {total.prendas === 1 ? "prenda" : "prendas"}
         </TarjetaCifra>
@@ -91,6 +91,15 @@ export function ProveedorPrendas({ prendas }: { prendas: PrendaDeProveedor[] }) 
           valor={total.margenPct != null ? <CifraQueCuenta valor={total.margenPct} formato="porcentaje" alMontar /> : null}
         >
           {total.margenPct != null ? `Ganaste ${soles(total.gananciaVendida)} sobre ${soles(total.ingresoVendido)} vendidos` : "Aparece con la primera venta"}
+        </TarjetaCifra>
+        <TarjetaCifra
+          punto={total.prendasSinVenta === 0 ? "verde" : "ambar"}
+          etiqueta="Sin vender"
+          valor={<CifraQueCuenta valor={total.plataSinVenta} formato="soles" alMontar />}
+        >
+          {total.prendasSinVenta === 0
+            ? "Todas sus prendas ya vendieron algo"
+            : `${total.prendasSinVenta.toLocaleString("es-PE")} de ${total.prendas.toLocaleString("es-PE")} prendas sin una sola venta`}
         </TarjetaCifra>
       </div>
 

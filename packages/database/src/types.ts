@@ -8008,6 +8008,22 @@ export type Database = {
           ultima_compra: string
         }[]
       }
+      fn_proveedores_rendimiento: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          costo_vendido: number
+          gasto: number
+          ingreso_vendido: number
+          nombre: string
+          plata_en_stock: number
+          plata_sin_venta: number
+          prendas: number
+          prendas_sin_venta: number
+          proveedor_id: string
+          unidades_compradas: number
+          unidades_vendidas: number
+        }[]
+      }
       fn_proveedores_resumen: {
         Args: never
         Returns: {

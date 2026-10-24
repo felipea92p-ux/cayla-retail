@@ -47,3 +47,33 @@ describe("agruparPorMarca", () => {
     expect(g[0].prendasLista.map((p) => p.productoId)).toEqual(["b", "d"]);
   });
 });
+
+import { rankingDeProveedores, veredictoDe, type RendimientoProveedor } from "./proveedor-prendas-reglas";
+
+const prov = (o: Partial<RendimientoProveedor>): RendimientoProveedor => ({
+  proveedorId: "x", nombre: "Textil", prendas: 5, unidadesCompradas: 100, gasto: 3000, unidadesVendidas: 50, ingresoVendido: 3000,
+  costoVendido: 1500, plataEnStock: 1500, prendasSinVenta: 0, plataSinVenta: 0, ...o,
+});
+
+describe("veredictoDe", () => {
+  it("con pocas ventas no concluye nada", () => {
+    expect(veredictoDe(prov({ unidadesVendidas: 4 })).texto).toBe("Pocas ventas");
+  });
+  it("marca la plata parada cuando pasa del 40 % de lo gastado", () => {
+    expect(veredictoDe(prov({ plataSinVenta: 1500 })).texto).toBe("Plata parada");
+  });
+  it("marca el margen bajo", () => {
+    expect(veredictoDe(prov({ costoVendido: 2400 })).texto).toBe("Margen bajo");
+  });
+  it("si vende y deja margen, rinde", () => {
+    expect(veredictoDe(prov({})).texto).toBe("Rinde");
+  });
+});
+
+describe("rankingDeProveedores", () => {
+  it("ordena por gasto y reparte el peso sobre el total", () => {
+    const r = rankingDeProveedores([prov({ proveedorId: "a", gasto: 1000 }), prov({ proveedorId: "b", gasto: 3000 })]);
+    expect(r.map((x) => x.proveedorId)).toEqual(["b", "a"]);
+    expect(r[0].pesoPct).toBeCloseTo(75);
+  });
+});

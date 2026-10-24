@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import { hoyLima } from "@/lib/fechas-lima";
 import { marcasPorProveedor, rubrosConConteo, serie12Meses, type MarcasDeProveedor } from "@/lib/proveedores-reglas";
-import type { PrendaDeProveedor } from "@/lib/proveedor-prendas-reglas";
+import type { PrendaDeProveedor, RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -395,5 +395,24 @@ export async function getProveedorPrendas(id: string): Promise<PrendaDeProveedor
     primeraEntrada: f.primera_entrada,
     ultimaVenta: f.ultima_venta,
     conFactura: f.con_factura,
+  }));
+}
+
+// El ranking de la lista (fn_proveedores_rendimiento): lo comprado, lo vendido y lo parado de cada proveedor al que se le compró algo.
+export async function getProveedoresRendimiento(): Promise<RendimientoProveedor[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedores_rendimiento"), "el rendimiento de los proveedores");
+  return filas.map((f) => ({
+    proveedorId: f.proveedor_id,
+    nombre: f.nombre,
+    prendas: Number(f.prendas),
+    unidadesCompradas: Number(f.unidades_compradas),
+    gasto: Number(f.gasto),
+    unidadesVendidas: Number(f.unidades_vendidas),
+    ingresoVendido: Number(f.ingreso_vendido),
+    costoVendido: Number(f.costo_vendido),
+    plataEnStock: Number(f.plata_en_stock),
+    prendasSinVenta: Number(f.prendas_sin_venta),
+    plataSinVenta: Number(f.plata_sin_venta),
   }));
 }

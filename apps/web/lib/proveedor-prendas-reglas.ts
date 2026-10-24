@@ -34,8 +34,11 @@ export type TotalesPrendas = {
   margenPct: number | null;
   /** De lo comprado, cuánto ya se vendió, 0–100 (nunca más de 100). */
   vendidoPct: number | null;
-  /** Plata que sigue en estantes: stock actual al costo promedio de cada prenda. */
+  /** Plata que sigue en estantes: stock actual (nunca más de lo comprado) al costo promedio de cada prenda. */
   plataEnStock: number;
+  /** Prendas de las que no se vendió ni una unidad, y la plata que sigue en estantes de ellas. */
+  prendasSinVenta: number;
+  plataSinVenta: number;
 };
 
 export type GrupoDeMarca = TotalesPrendas & { marca: string; prendasLista: PrendaDeProveedor[] };
@@ -50,14 +53,19 @@ export function pct(parte: number, total: number): number | null {
 }
 
 export function totalesDePrendas(prendas: readonly PrendaDeProveedor[]): TotalesPrendas {
-  let unidadesCompradas = 0, gasto = 0, unidadesVendidas = 0, ingresoVendido = 0, costoVendido = 0, plataEnStock = 0;
+  let unidadesCompradas = 0, gasto = 0, unidadesVendidas = 0, ingresoVendido = 0, costoVendido = 0, plataEnStock = 0, prendasSinVenta = 0, plataSinVenta = 0;
   for (const p of prendas) {
     unidadesCompradas += p.unidadesCompradas;
     gasto += p.gasto;
     unidadesVendidas += p.unidadesVendidas;
     ingresoVendido += p.ingresoVendido;
     costoVendido += p.costoVendido;
-    plataEnStock += p.stockActual * (p.costoPromedio ?? 0);
+    const enEstantes = Math.min(p.stockActual, p.unidadesCompradas) * (p.costoPromedio ?? 0);
+    plataEnStock += enEstantes;
+    if (p.unidadesVendidas === 0) {
+      prendasSinVenta += 1;
+      plataSinVenta += enEstantes;
+    }
   }
   const gananciaVendida = ingresoVendido - costoVendido;
   return {
@@ -71,6 +79,8 @@ export function totalesDePrendas(prendas: readonly PrendaDeProveedor[]): Totales
     margenPct: ingresoVendido > 0 ? (gananciaVendida / ingresoVendido) * 100 : null,
     vendidoPct: pct(unidadesVendidas, unidadesCompradas),
     plataEnStock: redondear(plataEnStock),
+    prendasSinVenta,
+    plataSinVenta: redondear(plataSinVenta),
   };
 }
 
@@ -89,4 +99,58 @@ export function agruparPorMarca(prendas: readonly PrendaDeProveedor[]): GrupoDeM
 /** Cuánto pesa una parte del gasto en el total, 0–100. */
 export function pesoDelGasto(gasto: number, total: number): number {
   return pct(gasto, total) ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// Ranking de proveedores (lista de Proveedores): la misma cuenta, una fila por proveedor (`fn_proveedores_rendimiento`).
+// ---------------------------------------------------------------------------
+
+export type RendimientoProveedor = {
+  proveedorId: string;
+  nombre: string;
+  prendas: number;
+  unidadesCompradas: number;
+  gasto: number;
+  unidadesVendidas: number;
+  ingresoVendido: number;
+  costoVendido: number;
+  plataEnStock: number;
+  prendasSinVenta: number;
+  plataSinVenta: number;
+};
+
+/** Con menos unidades vendidas que esto no se juzga a un proveedor: dos ventas no son una tendencia. */
+export const MIN_VENDIDAS_PARA_JUZGAR = 10;
+export const MARGEN_BAJO_PCT = 35;
+export const PARADO_PCT = 40;
+
+export type Veredicto = { tono: "verde" | "ambar" | "pizarra"; texto: string; porque: string };
+
+export function margenDe(r: Pick<RendimientoProveedor, "ingresoVendido" | "costoVendido">): number | null {
+  return r.ingresoVendido > 0 ? ((r.ingresoVendido - r.costoVendido) / r.ingresoVendido) * 100 : null;
+}
+
+/** Una palabra por proveedor, con su porqué. Con pocas ventas dice «Pocas ventas»: no inventa una conclusión. */
+export function veredictoDe(r: RendimientoProveedor): Veredicto {
+  const margen = margenDe(r);
+  const vendidoPct = pct(r.unidadesVendidas, r.unidadesCompradas) ?? 0;
+  const paradoPct = pct(r.plataSinVenta, r.gasto) ?? 0;
+  if (r.unidadesVendidas < MIN_VENDIDAS_PARA_JUZGAR) {
+    return { tono: "pizarra", texto: "Pocas ventas", porque: `Solo ${r.unidadesVendidas} unidades vendidas: todavía no alcanza para juzgarlo.` };
+  }
+  if (paradoPct >= PARADO_PCT) {
+    return { tono: "ambar", texto: "Plata parada", porque: `El ${Math.round(paradoPct)} % de lo que gastaste está en prendas que no se han vendido.` };
+  }
+  if (margen != null && margen < MARGEN_BAJO_PCT) {
+    return { tono: "ambar", texto: "Margen bajo", porque: `Ganas ${Math.round(margen)} % de lo que vendes: menos de ${MARGEN_BAJO_PCT} %.` };
+  }
+  return { tono: "verde", texto: "Rinde", porque: `Vendiste el ${Math.round(vendidoPct)} % de lo comprado${margen != null ? ` con ${Math.round(margen)} % de margen` : ""}.` };
+}
+
+/** Los proveedores ordenados por lo que gastaste, con su peso sobre el total gastado. */
+export function rankingDeProveedores(filas: readonly RendimientoProveedor[]): (RendimientoProveedor & { pesoPct: number; margenPct: number | null; vendidoPct: number | null; veredicto: Veredicto })[] {
+  const total = filas.reduce((a, f) => a + f.gasto, 0);
+  return [...filas]
+    .sort((a, b) => b.gasto - a.gasto || a.nombre.localeCompare(b.nombre, "es"))
+    .map((f) => ({ ...f, pesoPct: pesoDelGasto(f.gasto, total), margenPct: margenDe(f), vendidoPct: pct(f.unidadesVendidas, f.unidadesCompradas), veredicto: veredictoDe(f) }));
 }

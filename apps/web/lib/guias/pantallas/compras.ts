@@ -589,6 +589,14 @@ export const GUIA_PROVEEDORES: Guia = {
       texto: "Registra una factura suya, desactívalo si ya no le compras (no se borra: deja de aparecer al registrar) o abre su ficha completa. En la demo no tocamos nada.",
     },
     {
+      id: "rendimiento",
+      ancla: "proveedores.rendimiento",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "A quién le compro y qué me deja",
+      texto: "Cada proveedor con lo que gastaste, cuánto ya vendiste, su margen y la plata parada en prendas sin vender. La última columna lo resume en una palabra; pasa el mouse para ver por qué.",
+    },
+    {
       id: "fin",
       ancla: null,
       preparar: [{ tipo: "escape" }],
