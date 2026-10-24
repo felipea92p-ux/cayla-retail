@@ -249,7 +249,8 @@ flowchart TB
   (`lib/existencias-panel-talla.ts`, `lib/existencias-flujos.ts`) → RPC `bajar_al_piso` (Colgar y Colgar varias), `retirar_del_piso` y
   `subir_para_enviar` (Subir), `pedir_a_otra_sede` y `pedir_prenda_para_apartar` (Pedir), `ajustar_inventario` (Ajustar: desde el
   2026-10-23 es la **planilla de todo el modelo** dentro del mismo modal, ADR-0494 —la banda «¿No es lo que ves en la tienda?» o la tecla 6,
-  `existencias/AjusteDelModelo.tsx` con `existencias/useAjusteDelModelo.ts` y la lógica pura de `lib/existencias-ajuste-modelo.ts`; al guardar
+  `existencias/AjusteDelModelo.tsx` con `existencias/useAjusteDelModelo.ts` y la lógica pura de `lib/existencias-ajuste-modelo.ts`; con «Conté»
+  cada línea lleva `esperado` y `ajustar_inventario` rechaza con `ajuste_cambio_al_contar` si cambió mientras se contaba; al guardar
   lo que entró, «Etiquetas de lo que entró» de `ficha-producto/ImprimirLoQueEntro.tsx` lleva a `/etiquetas-de-precio?…&ajuste=1`—, que
   reemplazó al recorrido de 4 pasos por talla; «Ajustar stock» de la cabecera, `existencias/BotonAjustarStock.tsx`, abre
   `existencias/BuscarPrendaParaAjustar.tsx` con `lib/existencias-buscar-ajuste.ts`; la ventana completa `AjustarInventarioModal.tsx` queda

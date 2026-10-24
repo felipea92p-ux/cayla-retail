@@ -17,3 +17,9 @@ Felipe se lleva: aprobar la ronda 3 (y que entre en el lugar donde esa talla tie
 Qué hice: el modal de la prenda de Existencias ajusta todo el modelo en una planilla color × talla. Entra con la talla elegida en foco y en el lugar con más unidades, y guarda en una sola llamada a `ajustar_inventario`. Si entró algo, ofrece «Etiquetas de lo que entró», y «Ajustar stock» de la cabecera busca la prenda y abre su planilla. Retiré el recorrido de 4 pasos por talla. Cuatro commits, sin migración; la guía de Existencias pasa sus 36 pasos.
 Por qué así: Felipe aprobó la ronda 3. Catálogo ganaba por la tabla de todo el modelo, el número contado y un solo guardado, y ahora Existencias tiene las tres cosas.
 Felipe se lleva: el `/chaos` (semilla 494) encontró que contar con la tienda abierta guarda la diferencia contra lo que la planilla leyó al abrirse: con 6 leídas, 1 vendida y 5 contadas, quedan 4. Es de stock y de la RPC: decide él. El ataque quedó a medias porque otra sesión escribía en la base local, y una restauración mía le borró 1239 filas de prueba de `trafico_web`.
+
+## 2026-10-23 (Contar con la tienda abierta: la base compara lo que había, ADR-0494 act. b)
+Qué hice: con «Conté y hay otro número», cada línea de la planilla viaja con lo que había al contar. `ajustar_inventario`, con la prenda ya bloqueada, rechaza todo si cambió y dice qué cambió; la planilla conserva lo contado y marca la talla. Migración `20261024001000` (reemplazos anclados) y `pnpm pruebas:ajuste-lo-que-habia` (18 casos). En el navegador, el mismo ataque quedó en 6, lo contado. La migración no está en producción.
+Por qué así: Felipe eligió mi recomendación. Comparar en la base, con el candado de las ventas, no deja ninguna ventana y no cuesta otra lectura; releer en la pantalla dejaba una ventana.
+Felipe se lleva: dar el OK para pegar `20261024001000` en producción. La web funciona con o sin ella: sin la migración, la base ignora lo que había y se porta como antes.
+

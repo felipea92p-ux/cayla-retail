@@ -550,6 +550,9 @@ export const PRUEBAS = [
   // ADR-0401 (/chaos de Inventario 2026-10-14): el token sigue al contenido en ocho funciones de Inventario, el resolver revisa
   // un traslado, y los topes de notas, llegada y motivo de ajuste.
   "pruebas:inventario-token-y-textos",
+  // ADR-0494 (/chaos 2026-10-23, CON-06): «Conté y hay otro número» viaja con lo que había al contar; si otra venta o movimiento lo
+  // cambió, la base rechaza todo el ajuste y dice qué cambió. Sin `esperado`, como antes. Con control y dos sesiones en ROLLBACK.
+  "pruebas:ajuste-lo-que-habia",
   // ADR-0416 (/chaos de Clientes, Colaboradores y Configuración 2026-10-15): NaN en metas, fondo de caja, club y lo que quedaba fuera
   // de Compras; la ficha de un cliente con algún dato, un cumpleaños que existe y no futuro; anonimizar solo un líder. Con controles.
   "pruebas:clientas-y-metas-candados",

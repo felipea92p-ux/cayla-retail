@@ -316,7 +316,7 @@ export function PlanillaDelAjuste({
         </Aviso>
       )}
       {control.error && (
-        <Aviso tono={control.incierto ? "atencion" : "error"} enfocable>
+        <Aviso tono={control.incierto || control.cambioAlContar ? "atencion" : "error"} enfocable>
           {control.error}
         </Aviso>
       )}
@@ -365,6 +365,8 @@ function Celda({
   const noSube = control.porQueNoSube(v);
   const noBaja = control.porQueNoBaja(v);
   const apartado = apartadoEn(v, control.lugar);
+  // Cambió mientras se contaba (ADR-0494): se dice de cuánto venía hasta que la persona toca la talla.
+  const ajeno = control.cambioAjeno(v);
 
   function tocar(p: 1 | -1) {
     const r = control.paso(v, p);
@@ -381,8 +383,9 @@ function Celda({
     else onRazon(r.razon);
   }
 
-  let bajo: { texto: string; tono: "cambio" | "nueva" | "dato" | "otro" } | null;
-  if (cambio) bajo = { texto: `${hoy} → ${n}`, tono: "cambio" };
+  let bajo: { texto: string; tono: "cambio" | "nueva" | "dato" | "otro" | "ajeno" } | null;
+  if (ajeno) bajo = { texto: `había ${ajeno.antes}, ahora ${ajeno.ahora}`, tono: "ajeno" };
+  else if (cambio) bajo = { texto: `${hoy} → ${n}`, tono: "cambio" };
   else if (v.sinHistoria) bajo = { texto: "nueva aquí", tono: "nueva" };
   else if (apartado > 0) bajo = { texto: `${apartado} ${apartado === 1 ? "apartada" : "apartadas"}`, tono: "dato" };
   else if (control.separa) bajo = { texto: `${control.lugar === "piso" ? v.stockAlmacen : v.stockPiso} en ${control.lugar === "piso" ? "almacén" : "piso"}`, tono: "otro" };
@@ -394,6 +397,7 @@ function Celda({
       data-variante={v.varianteId}
       data-foco={enFoco ? "si" : undefined}
       data-cambio={cambio ? "si" : undefined}
+      data-ajeno={ajeno ? "si" : undefined}
       data-sellada={sello >= 0 ? "si" : undefined}
       style={{ "--f": ola.f, "--c": ola.c, "--espera-foco": `${(ola.f + ola.c) * 38 + 640}ms` } as CSSProperties}
     >

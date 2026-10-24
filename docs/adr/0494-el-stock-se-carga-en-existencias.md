@@ -2,8 +2,9 @@
 
 - **Fecha:** 2026-10-23 · **Estado:** aceptado. Felipe eligió la ronda 3 de la maqueta mirándola
   (`docs/maquetas/existencias-ajustar-stock-2026-10/ronda-3.html`), «incluido que entre en el lugar donde esa talla tiene más unidades», y
-  dijo «Arranca la actividad 1». Código en la rama `claude/stock-entry-improvements-b36df8`. **Sin migración:** guarda con
-  `ajustar_inventario` tal como está en producción.
+  dijo «Arranca la actividad 1». Código en la rama `claude/stock-entry-improvements-b36df8`. La planilla nació sin migración; contar con la
+  tienda abierta sumó una, `20261024001000_ajuste_compara_lo_que_habia_al_contar.sql` (ver la actualización al final). **No está en
+  producción**: se pega con el OK de Felipe, y la web funciona con o sin ella.
 - **Relacionados:** ADR-0391 (el modal de la prenda de Existencias), ADR-0240 (`ajustar_inventario`: todo el ajuste en una llamada, con su
   marca), ADR-0328 (la carga inicial), ADR-0306 (un botón es una función del módulo donde vive), ADR-0136 act. 2026-10-23 (b) (el movimiento
   de esta vista), ADR-0358 (una función, una pieza), ADR-0389 (guías interactivas), ADR-0149 (el loader único).
@@ -69,11 +70,8 @@ Hoy se hacen sobre todo **correcciones al contar**: todavía se está cuadrando 
 
 ## Lo que queda abierto
 
-- **Contar con la tienda abierta (gravedad 2, `/chaos` del 2026-10-23, semilla 494, CON-06):** la planilla lee el stock al abrirse y manda la
-  diferencia contra esa lectura. Si mientras se cuenta otra persona vende o mueve esa talla, el número guardado no es el contado: con 6 leídas,
-  1 vendida y 5 contadas, la base quedó en 4. La base cuadra consigo misma (`movimientos` igual a `stock`), pero queda mal contra la realidad,
-  sin aviso. La matriz de Editar producto hace lo mismo. Arreglarlo toca stock y la RPC: **lo decide Felipe** (el conteo viaja con lo que se
-  leyó y la base rechaza si cambió, o la pantalla relee justo antes de guardar).
+- **Contar con la tienda abierta:** resuelto en la planilla (ver la actualización de abajo). La matriz de Editar producto todavía manda
+  la diferencia sin lo que había; se retira con la actividad 3, cuando Catálogo quede de solo lectura.
 - El `/chaos` quedó detenido a los 9 de 23 ataques: otra sesión escribía en la base local compartida. Falta el núcleo de red, recarga, sede y
   teclado.
 - Actividades 2 y 3.
@@ -92,3 +90,42 @@ Hoy se hacen sobre todo **correcciones al contar**: todavía se está cuadrando 
   2. Se cuenta y se guarda: cada talla se sella, salen las etiquetas si entró algo y Movimientos muestra el conteo a nombre del responsable.
   3. «Ajustar stock» de la cabecera ▸ «ivana» ▸ Enter: la planilla entra en Blanco S.
   4. Se revisó a 1280 y 375 px, en claro y oscuro.
+
+## Actualización 2026-10-23 (b) — contar con la tienda abierta: la base compara lo que había (Felipe: «aplica tu recomendación»)
+
+**El problema.** El `/chaos` de la planilla (semilla 494, CON-06) encontró que contar con la tienda abierta guardaba un stock que no era el
+contado. La planilla leyó 6, otra sesión sacó 1 y quedó en 5; al escribir lo contado, 5, se mandó −1 contra la lectura vieja y la base quedó
+en 4. La base cuadraba consigo misma pero no con la tienda, y nadie avisaba.
+
+**Lo que se decidió.**
+1. **Con «Conté y hay otro número», cada línea viaja con `esperado`:** lo que había en ese lugar cuando se contó, el mismo «hoy» que
+   muestra la planilla (la sububicación, o la suma de la sede donde no se separa). Los demás motivos no lo llevan: «encontré 2» y «no
+   aparece 1» son diferencias, y valen igual aunque alguien haya vendido.
+2. **La base compara con el stock ya bloqueado** (`fn_bloquear_en_orden`, el mismo candado de las ventas). Si una línea cambió, rechaza TODO
+   el ajuste con `ajuste_cambio_al_contar` y devuelve en `detail` qué cambió (`[{variante_id, esperado, ahora}]`). Nada queda a medias.
+3. **La comparación va después del atajo de la marca:** el reintento de un ajuste ya guardado sigue devolviendo «ya registrado», aunque el
+   stock ya no sea el `esperado`. `esperado` no entra a la huella de la marca en la base.
+4. **La pantalla no pierde lo contado:** la copia local toma lo de ahora y la diferencia se vuelve a sacar contra eso
+   (`mantenerLoContado`). Con 6 leídas, 5 contadas y 1 vendida, la talla ya no cambia: lo contado es lo que hay. La talla queda marcada en
+   ámbar («había 8, ahora 7») hasta que la persona la toca, y un aviso dice qué cambió, que no se guardó nada y que vuelva a guardar.
+   Guardar no se repite solo: la persona decide si su conteo ya descontaba esa venta.
+5. **Sin `esperado`, todo sigue igual:** la ficha de Editar producto, «Ajustar inventario» y el hallazgo de un conteo no cambian.
+
+**Por qué así y no releer en la pantalla justo antes de guardar.** Releer deja una ventana entre la lectura y el guardado, y además gasta una
+lectura más en cada guardado. Comparar en la base con la prenda bloqueada no deja ninguna ventana y no cuesta una ida más: es el mismo
+candado que ya toman las ventas.
+
+**Cómo se pega.** Una sola parte, solo funciones, con dos reemplazos ANCLADOS (ADR-0288) sobre la función viva. Si las anclas no calzan,
+se niega sin escribir nada. Es idempotente y no tiene `select … into` dentro de un texto entre comillas. Se puede pegar antes o después de
+publicar la web: una web vieja no manda `esperado`, y una base vieja ignora la clave.
+
+**Cómo se verifica.**
+- `pnpm pruebas:ajuste-lo-que-habia`: 18 casos en ROLLBACK, con un control sin la migración y dos sesiones reales; el conteo espera a que
+  la otra suelte la prenda.
+- La lógica pura (`cambiosAlContar`, `conStockDeAhora`, `mantenerLoContado`, `textoCambiosAlContar`) está en
+  `lib/existencias-ajuste-modelo.test.ts`.
+- En el navegador, el mismo ataque de la semilla 494:
+  - La planilla leyó 8 y otra sesión sacó 1.
+  - Al guardar 6, la base rechazó: «Mientras contabas cambió Beige S: había 8 y ahora hay 7…». La celda siguió en 6 y el pie pasó de «salen 2»
+    a «salen 1».
+  - El segundo guardado dejó 6, lo contado. Ninguna invariante nueva.

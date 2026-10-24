@@ -22,6 +22,7 @@ import {
   type MotivoAjuste,
   type VarianteAjuste,
 } from "./ajuste-reglas";
+import { conPaso, type Pendientes } from "./matriz-ficha-reglas";
 import { compararTallas } from "./tallas";
 
 /** Los motivos de la planilla, en voz de tienda. Son los del ajuste de una talla de Existencias (ADR-0391), juntados en una lista que
@@ -213,6 +214,67 @@ export function resumenDelLote(lineas: readonly { delta: number }[]): { tallas: 
     entran: lineas.reduce((s, l) => s + Math.max(0, l.delta), 0),
     salen: lineas.reduce((s, l) => s + Math.max(0, -l.delta), 0),
   };
+}
+
+/* ---------- Contar con la tienda abierta (ADR-0494, /chaos 2026-10-23 CON-06; Felipe: «aplica tu recomendación») ---------- */
+
+/** «Conté y hay otro número» es un número de verdad, no una diferencia: viaja con lo que había al contar (`esperado`) y la base rechaza
+ *  el ajuste si otra venta o movimiento lo cambió mientras tanto. Los demás motivos SON diferencias («encontré 2», «no aparece 1») y
+ *  valen igual aunque alguien haya vendido. */
+export function viajaConLoQueHabia(motivo: ClaveMotivoPlanilla): boolean {
+  return motivo === "conte";
+}
+
+/** Una talla que cambió mientras se contaba: lo que había (lo que leyó la planilla) y lo que hay ahora, según la base. */
+export type CambioAlContar = { varianteId: string; antes: number; ahora: number };
+
+/** El rechazo `ajuste_cambio_al_contar` trae en `details` lo que cambió, en JSON (`[{variante_id, esperado, ahora}]`). Otro error, `null`;
+ *  ese rechazo con un `details` que no se entiende, una lista vacía (la pantalla vuelve a leer todo). */
+export function cambiosAlContar(error: { hint?: string | null; details?: string | null } | null): CambioAlContar[] | null {
+  if (error?.hint !== "ajuste_cambio_al_contar") return null;
+  let crudo: unknown;
+  try {
+    crudo = JSON.parse(error.details ?? "");
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(crudo)) return [];
+  return crudo.flatMap((c) =>
+    c && typeof c.variante_id === "string" && Number.isInteger(c.esperado) && Number.isInteger(c.ahora)
+      ? [{ varianteId: c.variante_id as string, antes: c.esperado as number, ahora: c.ahora as number }]
+      : []
+  );
+}
+
+/** La copia local con lo que hay ahora en el lugar contado (lo acaba de decir la base). */
+export function conStockDeAhora(v: VarianteAjuste, lugar: LugarAjuste, ahora: number): VarianteAjuste {
+  const diferencia = ahora - stockEn(v, lugar);
+  return {
+    ...v,
+    stockPiso: lugar === "piso" ? ahora : v.stockPiso,
+    stockAlmacen: lugar === "almacen" ? ahora : v.stockAlmacen,
+    stockSinDividir: v.stockSinDividir + diferencia,
+  };
+}
+
+/** Lo contado se queda escrito: la diferencia se vuelve a sacar contra lo de ahora (con 6 leídas, 5 contadas y 1 vendida, la talla
+ *  ya no cambia: lo contado es lo que hay). */
+export function mantenerLoContado(pendientes: Pendientes, cambios: readonly CambioAlContar[]): Pendientes {
+  return cambios.reduce((p, c) => conPaso(p, c.varianteId, c.antes + (pendientes[c.varianteId] ?? 0) - c.ahora), pendientes);
+}
+
+/** El aviso, en voz de tienda: qué talla cambió, de cuánto a cuánto, que no se guardó nada y qué hacer. */
+export function textoCambiosAlContar(cambios: readonly CambioAlContar[], nombreDe: (varianteId: string) => string): string {
+  const cada = cambios.map((c) => ({ nombre: nombreDe(c.varianteId), antes: c.antes, ahora: c.ahora }));
+  const queCambio =
+    cada.length === 1
+      ? `Mientras contabas cambió ${cada[0]!.nombre}: había ${cada[0]!.antes} y ahora hay ${cada[0]!.ahora}.`
+      : `Mientras contabas cambiaron ${listaEnFrase(cada.map((c) => `${c.nombre} (había ${c.antes}, ahora hay ${c.ahora})`))}.`;
+  return `${queCambio} No se guardó nada: lo que contaste sigue escrito. ${cada.length === 1 ? "Revisa esa talla" : "Revisa esas tallas"} y vuelve a guardar.`;
+}
+
+function listaEnFrase(partes: readonly string[]): string {
+  return partes.length <= 1 ? (partes[0] ?? "") : `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}`;
 }
 
 /* ---------- El ancho justo del modal (Felipe 2026-10-23: «no debería ensancharse innecesariamente») ---------- */

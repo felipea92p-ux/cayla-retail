@@ -5,8 +5,11 @@ import {
   anchoDeLaPlanilla,
   anchoDelModalAlAjustar,
   armarModelo,
+  cambiosAlContar,
   claveCelda,
+  conStockDeAhora,
   lugarInicial,
+  mantenerLoContado,
   maximoDeLaCelda,
   minimoDeLaCelda,
   motivoCerrado,
@@ -17,6 +20,8 @@ import {
   porQueNoSube,
   problemaDelLote,
   resumenDelLote,
+  textoCambiosAlContar,
+  viajaConLoQueHabia,
 } from "./existencias-ajuste-modelo";
 
 const variante = (o: Partial<VarianteAjuste> & { varianteId: string }): VarianteAjuste => ({
@@ -177,5 +182,58 @@ describe("el ancho justo del modal", () => {
   });
   it("tiene un tope: con muchas tallas, la planilla se desliza", () => {
     expect(anchoDelModalAlAjustar(20)).toBe(ANCHOS_DEL_MODAL[ANCHOS_DEL_MODAL.length - 1]);
+  });
+});
+
+describe("contar con la tienda abierta (ADR-0494, /chaos CON-06)", () => {
+  it("solo «Conté y hay otro número» viaja con lo que había: los demás motivos son diferencias", () => {
+    expect(MOTIVOS_PLANILLA.filter((m) => viajaConLoQueHabia(m.clave)).map((m) => m.clave)).toEqual(["conte"]);
+  });
+
+  it("lee el rechazo de la base: qué talla, lo que había y lo de ahora", () => {
+    const details = JSON.stringify([{ variante_id: "v1", esperado: 6, ahora: 5 }]);
+    expect(cambiosAlContar({ hint: "ajuste_cambio_al_contar", details })).toEqual([{ varianteId: "v1", antes: 6, ahora: 5 }]);
+  });
+
+  it("otro rechazo no es un cambio; uno sin detalle legible pide volver a leer (lista vacía)", () => {
+    expect(cambiosAlContar(null)).toBeNull();
+    expect(cambiosAlContar({ hint: "ajuste_sin_tienda", details: "[]" })).toBeNull();
+    expect(cambiosAlContar({ hint: "ajuste_cambio_al_contar", details: "no es json" })).toEqual([]);
+    expect(cambiosAlContar({ hint: "ajuste_cambio_al_contar", details: "{}" })).toEqual([]);
+    expect(cambiosAlContar({ hint: "ajuste_cambio_al_contar", details: JSON.stringify([{ variante_id: "v1", esperado: "6", ahora: 5 }]) })).toEqual([]);
+  });
+
+  it("la copia local toma lo de ahora en el lugar contado, y la suma de la sede se mueve con él", () => {
+    const v = variante({ varianteId: "v1", stockPiso: 4, stockAlmacen: 6, stockSinDividir: 10 });
+    expect(conStockDeAhora(v, "almacen", 5)).toMatchObject({ stockPiso: 4, stockAlmacen: 5, stockSinDividir: 9 });
+    expect(conStockDeAhora(v, "piso", 7)).toMatchObject({ stockPiso: 7, stockAlmacen: 6, stockSinDividir: 13 });
+    expect(conStockDeAhora(variante({ varianteId: "t", stockSinDividir: 8 }), "sede", 6)).toMatchObject({ stockSinDividir: 6 });
+  });
+
+  it("lo contado se queda escrito: la diferencia se vuelve a sacar contra lo de ahora", () => {
+    // Había 6, contó 5 (−1) y vendieron 1: ahora hay 5, así que ya no cambia nada.
+    expect(mantenerLoContado({ v1: -1 }, [{ varianteId: "v1", antes: 6, ahora: 5 }])).toEqual({});
+    // Había 6, contó 4 (−2) y vendieron 1: ahora hay 5, así que sale 1.
+    expect(mantenerLoContado({ v1: -2, v2: 3 }, [{ varianteId: "v1", antes: 6, ahora: 5 }])).toEqual({ v1: -1, v2: 3 });
+    // Había 2, contó 3 (+1) y llegaron 4 por un traslado: ahora hay 6, así que la talla queda en −3, marcada para que se revise.
+    expect(mantenerLoContado({ v1: 1 }, [{ varianteId: "v1", antes: 2, ahora: 6 }])).toEqual({ v1: -3 });
+  });
+
+  it("el aviso dice qué talla cambió, de cuánto a cuánto, que no se guardó y qué hacer", () => {
+    const nombre = (id: string) => ({ v1: "Beige S", v2: "Negro M" })[id] ?? "una talla";
+    expect(textoCambiosAlContar([{ varianteId: "v1", antes: 6, ahora: 5 }], nombre)).toBe(
+      "Mientras contabas cambió Beige S: había 6 y ahora hay 5. No se guardó nada: lo que contaste sigue escrito. Revisa esa talla y vuelve a guardar."
+    );
+    expect(
+      textoCambiosAlContar(
+        [
+          { varianteId: "v1", antes: 6, ahora: 5 },
+          { varianteId: "v2", antes: 3, ahora: 4 },
+        ],
+        nombre
+      )
+    ).toBe(
+      "Mientras contabas cambiaron Beige S (había 6, ahora hay 5) y Negro M (había 3, ahora hay 4). No se guardó nada: lo que contaste sigue escrito. Revisa esas tallas y vuelve a guardar."
+    );
   });
 });

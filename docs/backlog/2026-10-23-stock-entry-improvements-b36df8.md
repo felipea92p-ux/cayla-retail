@@ -13,7 +13,9 @@
 - [ ] Actividad 3, al final: Editar producto de solo lectura en stock (sin − / + en la matriz ni en el panel del taller) con «Ajustar en Existencias».
 - [ ] Sin medir: cuántos ajustes se hicieron desde la ficha y con qué motivo (la lectura de producción estaba bloqueada en esta sesión).
 - [ ] Sin confirmar en producción: que todo rol que hoy carga stock desde Productos tenga Existencias (ADR-0306 dice que Integrante y los terminales sí).
-- [ ] **Decide Felipe — contar con la tienda abierta (`/chaos` g2, CON-06):** la planilla manda la diferencia contra lo que leyó al abrirse; si mientras se cuenta alguien vende esa talla, el stock guardado no es el contado (6 leídas, 1 vendida, 5 contadas → 4). Lo mismo en la matriz de Editar producto. Toca stock y `ajustar_inventario`.
+- [x] Contar con la tienda abierta (`/chaos` g2, CON-06): «Conté» viaja con lo que había y la base rechaza si cambió (ADR-0494 act. b, migración `20261024001000`, `pnpm pruebas:ajuste-lo-que-habia`). Repetido en el navegador con la semilla 494: queda lo contado.
+- [ ] **`20261024001000` no está en producción:** pegarla con el OK de Felipe (una parte, solo funciones, anclada; la web funciona antes y después).
+- [ ] La matriz de Editar producto sigue mandando la diferencia sin lo que había: sale con la actividad 3 (Catálogo de solo lectura).
 - [ ] `/chaos` de la planilla a medias (9 de 23, semilla 494): faltan red, recarga, cambio de sede, sesión y teclado. Se detuvo porque otra sesión escribía en la base local.
 - [ ] Chicos de la planilla (g4): la celda quita la coma sin avisar («1,5» → 15; mejor `limpiarCantidad` y una línea bajo la celda); `TEXTO_AJUSTE_INCIERTO` dice «Confirmar» y el botón dice «Guardar N cambios» (`lib/ajuste-reglas.ts:467`).
 - [ ] `/formidable` de la planilla, antes de abrir el PR.

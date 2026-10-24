@@ -424,7 +424,7 @@ export function textoPrendaNueva(ubicado: "piso" | "almacen", separaPisoAlmacen:
 export type ArgumentosDeAjuste = {
   p_ubicacion_id: string;
   p_sububicacion_id: string | null;
-  p_ajustes: { variante_id: string; cantidad: number }[];
+  p_ajustes: { variante_id: string; cantidad: number; conteo_item_id?: string; esperado?: number }[];
   p_motivo: string | null;
   p_cargas: { variante_id: string; cantidad: number }[];
   p_al_piso: boolean;
@@ -432,7 +432,14 @@ export type ArgumentosDeAjuste = {
   p_token: string;
 };
 
-type LineaParaEnviar = { variante: Pick<VarianteAjuste, "varianteId">; delta: number; /** La línea de conteo donde esta prenda faltó y con la que este ajuste se enlaza (solo una suma). */ conteoItemId?: string | null };
+type LineaParaEnviar = {
+  variante: Pick<VarianteAjuste, "varianteId">;
+  delta: number;
+  /** La línea de conteo donde esta prenda faltó y con la que este ajuste se enlaza (solo una suma). */
+  conteoItemId?: string | null;
+  /** Lo que había en ese lugar cuando se contó (ADR-0494): con él, la base rechaza si otra venta o movimiento lo cambió. */
+  esperado?: number;
+};
 
 /** Arma la llamada con las dos listas del modal (`repartirLineasAjuste`). El motivo solo viaja si hay ajustes (las prendas
  *  nuevas entran como stock inicial y no lo llevan) y la nota vacía viaja como null: así el reintento con lo mismo da la
@@ -447,9 +454,15 @@ export function argumentosDeAjuste(o: {
   nota: string;
   token: string;
 }): ArgumentosDeAjuste {
-  // `conteo_item_id` solo viaja cuando hay enlace: sin él el envío es idéntico al de siempre (misma huella del reintento).
+  // `conteo_item_id` solo viaja cuando hay enlace y `esperado` solo con un conteo (ADR-0494): sin ellos el envío es idéntico al de
+  // siempre (misma huella del reintento).
   const aItems = (ls: readonly LineaParaEnviar[]) =>
-    ls.map((l) => ({ variante_id: l.variante.varianteId, cantidad: l.delta, ...(l.conteoItemId ? { conteo_item_id: l.conteoItemId } : {}) }));
+    ls.map((l) => ({
+      variante_id: l.variante.varianteId,
+      cantidad: l.delta,
+      ...(l.conteoItemId ? { conteo_item_id: l.conteoItemId } : {}),
+      ...(l.esperado !== undefined ? { esperado: l.esperado } : {}),
+    }));
   return {
     p_ubicacion_id: o.ubicacionId,
     p_sububicacion_id: o.sububicacionId,

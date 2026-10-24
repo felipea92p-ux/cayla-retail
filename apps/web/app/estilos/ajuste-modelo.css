@@ -143,6 +143,9 @@
 .ajuste-bajo { min-height: 14px; font-size: 11px; line-height: 1.25; white-space: nowrap; color: var(--color-taupe); }
 .ajuste-bajo[data-tono="cambio"] { color: var(--color-ambar-profundo); font-weight: 600; }
 .ajuste-bajo[data-tono="nueva"] { color: var(--color-pizarra); }
+/* Cambió mientras se contaba (ADR-0494): el mismo ámbar de lo que cambia, con un filo en la celda para encontrarla en la tabla. */
+.ajuste-bajo[data-tono="ajeno"] { color: var(--color-ambar-profundo); font-weight: 600; }
+.ajuste-celda[data-ajeno="si"] { box-shadow: 0 0 0 1.5px var(--color-ambar); }
 /* Lo del otro lugar es secundario: aparece al pasar el mouse por la fila o con el cursor en la celda (y siempre con el dedo). */
 .ajuste-bajo[data-tono="otro"] { opacity: 0; transition: opacity 240ms var(--ease-cayla); }
 @media (hover: hover) {
@@ -188,7 +191,7 @@
   animation-delay: calc(var(--n, 0) * 70ms);
 }
 .ajuste-visto path { stroke-dasharray: 20; stroke-dashoffset: 20; animation: ajuste-traza 320ms var(--ease-cayla) 1 forwards; animation-delay: calc(var(--n, 0) * 70ms + 120ms); }
-.ajuste-planilla[data-enfocada="si"] .ajuste-celda:not([data-foco="si"]):not([data-cambio="si"]),
+.ajuste-planilla[data-enfocada="si"] .ajuste-celda:not([data-foco="si"]):not([data-cambio="si"]):not([data-ajeno="si"]),
 .ajuste-planilla[data-enfocada="si"] .ajuste-color:not([data-foco="si"]),
 .ajuste-planilla[data-enfocada="si"] .ajuste-talla:not([data-foco="si"]),
 .ajuste-planilla[data-enfocada="si"] .ajuste-total,

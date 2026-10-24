@@ -28,6 +28,9 @@ import { conPaso, lineasDelLote, type Pendientes } from "@/lib/matriz-ficha-regl
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import {
   armarModelo,
+  cambiosAlContar,
+  conStockDeAhora,
+  mantenerLoContado,
   maximoDeLaCelda,
   minimoDeLaCelda,
   MOTIVO_INICIAL,
@@ -39,6 +42,9 @@ import {
   porQueNoSube,
   problemaDelLote,
   resumenDelLote,
+  textoCambiosAlContar,
+  viajaConLoQueHabia,
+  type CambioAlContar,
   type ClaveMotivoPlanilla,
   type ExtraDeVariante,
   type ModeloDeAjuste,
@@ -49,6 +55,8 @@ import {
 // `useStockFicha`), y viaja en UNA llamada a `ajustar_inventario` con la marca del intento (ADR-0240): si la respuesta no llega, lo tocado
 // queda fijo y «Guardar» reenvía LO MISMO con la misma marca, así que si ya se guardó la base no lo repite (como el ajuste de una talla
 // que reemplaza, `FlujoTalla`). La lectura es la MISMA de Ajustar y de la ficha (`leerVariantesParaAjuste`, ADR-0270).
+// Con «Conté y hay otro número» cada línea lleva además lo que había al contar (`esperado`): si mientras se contaba otra persona vendió
+// o movió esa talla, la base rechaza todo y dice qué cambió, y aquí lo contado se queda escrito contra lo de ahora (/chaos CON-06).
 
 /** Un guardado que no responde en 20 s se da por cortado (como `FlujoTalla` y la ficha). */
 const TOPE_ESPERA_MS = 20_000;
@@ -93,6 +101,10 @@ export type ControlAjuste = {
   enviando: boolean;
   /** Se cortó la conexión al guardar: lo tocado queda fijo hasta reenviar. */
   incierto: boolean;
+  /** La base rechazó el conteo porque, mientras se contaba, una venta o un movimiento cambió esas tallas (ADR-0494). */
+  cambioAlContar: boolean;
+  /** De una talla que cambió mientras se contaba: lo que había al contar y lo de ahora. Se olvida al tocarla o al guardar. */
+  cambioAjeno: (v: VarianteAjuste) => CambioAlContar | null;
   error: string | null;
   guardar: () => Promise<AjusteGuardado | null>;
   descartar: () => void;
@@ -154,6 +166,7 @@ export function useAjusteDelModelo({
   const [enviando, setEnviando] = useState(false);
   const [incierto, setIncierto] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cambiadas, setCambiadas] = useState<ReadonlyMap<string, CambioAlContar>>(new Map());
   const enVuelo = useRef(false);
   // La marca de cada intento: la misma mientras no cambie lo que se manda, nueva si cambia (como `FlujoTalla`).
   const intento = useRef<{ huella: string; token: string } | null>(null);
@@ -170,6 +183,7 @@ export function useAjusteDelModelo({
       setPendientes({});
       setIncierto(false);
       setError(null);
+      setCambiadas(new Map());
       setVariantes(null);
       setLectura((n) => n + 1);
     }
@@ -215,6 +229,14 @@ export function useAjusteDelModelo({
     porQueNoSube({ variante: v, motivo, pendiente: pendiente(v.varianteId), cargaAbierta: abiertaCarga, enPisoCerrado, nombre: nombre(v) });
   const baja = (v: VarianteAjuste) => porQueNoBaja({ variante: v, lugar, motivo, pendiente: pendiente(v.varianteId), nombre: nombre(v) });
   const fija = "Se cortó la conexión al guardar: lo tocado queda como está hasta que vuelvas a tocar «Guardar».";
+  // Una talla que cambió mientras se contaba deja de marcarse en cuanto la persona la toca: ya la revisó.
+  const olvidarCambio = (id: string) =>
+    setCambiadas((m) => {
+      if (!m.has(id)) return m;
+      const sin = new Map(m);
+      sin.delete(id);
+      return sin;
+    });
 
   const lineas: LineaDelLote[] = variantes ? lineasDelLote(variantes, pendientes, lugar, base.motivo).map((l) => ({ ...l, nombre: nombre(l.variante) })) : [];
   const resumen = resumenDelLote(lineas);
@@ -241,6 +263,7 @@ export function useAjusteDelModelo({
       if (tope !== null && n > tope) return actual;
       return conPaso(actual, v.varianteId, siguiente);
     });
+    olvidarCambio(v.varianteId);
     setError(null);
     return { razon: null, abrirConteo: false };
   }
@@ -262,6 +285,7 @@ export function useAjusteDelModelo({
     const minimo = minimoDeLaCelda(v, lugar, motivo);
     if (objetivo < minimo) return { razon: `${nombre(v)}: no puede quedar en menos de ${minimo} (hay apartadas para clientes).`, abrirConteo: false };
     setPendientes((p) => conPaso(p, v.varianteId, objetivo - actual));
+    olvidarCambio(v.varianteId);
     setError(null);
     return { razon: null, abrirConteo: false };
   }
@@ -288,16 +312,23 @@ export function useAjusteDelModelo({
     if (enVuelo.current || !variantes || lineas.length === 0 || problema) return null;
     const { ajustes, cargaInicial } = repartirLineasAjuste(lineas, abiertaCarga);
     const sububicacionId = separa ? (ubicado === "piso" ? sububicacionPisoId : sububicacionAlmacenId) : null;
+    // «Conté» viaja con lo que había al contar (ADR-0494): si una venta lo cambió mientras tanto, la base rechaza y dice qué cambió.
+    const conHabia = viajaConLoQueHabia(motivo);
     const sinMarca = {
       ubicacionId,
       sububicacionId,
-      ajustes,
+      ajustes: conHabia ? ajustes.map((l) => ({ ...l, esperado: hoy(l.variante) })) : ajustes,
       cargaInicial,
       motivo: base.motivo,
       alPiso: cargaInicialAlPiso(ubicado, separa, puedeBajarAlPiso),
       nota: base.nota,
     };
-    const huella = JSON.stringify([sububicacionId, base, ajustes.map((l) => [l.variante.varianteId, l.delta]), cargaInicial.map((l) => [l.variante.varianteId, l.delta])]);
+    const huella = JSON.stringify([
+      sububicacionId,
+      base,
+      ajustes.map((l) => [l.variante.varianteId, l.delta, conHabia ? hoy(l.variante) : null]),
+      cargaInicial.map((l) => [l.variante.varianteId, l.delta]),
+    ]);
     if (!intento.current || intento.current.huella !== huella) intento.current = { huella, token: crypto.randomUUID() };
     enVuelo.current = true;
     setEnviando(true);
@@ -330,6 +361,27 @@ export function useAjusteDelModelo({
         return null;
       }
       setIncierto(false);
+      // Cambió mientras se contaba: nada se guardó. La copia local toma lo de ahora, lo contado se queda escrito y las tallas se marcan.
+      const cambios = cambiosAlContar(errorRpc);
+      if (cambios) {
+        intento.current = null;
+        if (cambios.length === 0) {
+          setError(traducirError(errorRpc, "ajustar el inventario"));
+          setLectura((n) => n + 1);
+          return null;
+        }
+        const porId = new Map(cambios.map((c) => [c.varianteId, c]));
+        setVariantes((actuales) => (actuales ?? []).map((v) => (porId.has(v.varianteId) ? conStockDeAhora(v, lugar, porId.get(v.varianteId)!.ahora) : v)));
+        setPendientes((p) => mantenerLoContado(p, cambios));
+        setCambiadas(porId);
+        setError(
+          textoCambiosAlContar(cambios, (id) => {
+            const v = variantes.find((x) => x.varianteId === id);
+            return v ? nombre(v) : "una talla";
+          })
+        );
+        return null;
+      }
       setError(traducirError(errorRpc, "ajustar el inventario"));
       // La carga se cerró con la planilla abierta (pasada la medianoche del último día): se vuelve a leer (ADR-0328).
       if (esRechazoPorCargaCerrada(errorRpc)) releerCarga();
@@ -340,6 +392,7 @@ export function useAjusteDelModelo({
     setVariantes((actuales) => (actuales ?? []).map((v) => (porId.has(v.varianteId) ? conDelta(v, lugar, porId.get(v.varianteId)!) : v)));
     setPendientes({});
     setIncierto(false);
+    setCambiadas(new Map());
     intento.current = null;
     return { lineas, yaEstaba: leerResultadoAjuste(data)?.ya_registrado === true, lugar, motivo };
   }
@@ -372,11 +425,14 @@ export function useAjusteDelModelo({
     avisoCarga: avisoCargaInicial(carga),
     enviando,
     incierto,
+    cambioAlContar: cambiadas.size > 0,
+    cambioAjeno: (v) => cambiadas.get(v.varianteId) ?? null,
     error,
     guardar,
     descartar: () => {
       if (incierto || enviando) return;
       setPendientes({});
+      setCambiadas(new Map());
       setError(null);
     },
     guia,
