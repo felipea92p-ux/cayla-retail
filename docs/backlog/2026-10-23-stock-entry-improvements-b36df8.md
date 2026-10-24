@@ -1,0 +1,21 @@
+## 📦 El stock se carga en Existencias (2026-10-23) — actividad 1 hecha (ADR-0494), sin migración; rama `claude/stock-entry-improvements-b36df8`
+
+- [x] Análisis de los dos caminos (Editar producto vs. Existencias) y maqueta tocable con tres formas: `docs/maquetas/existencias-ajustar-stock-2026-10/` (README con el porqué y las reglas). Revisada en el navegador a 1440, 1024 y 375 px, en claro y oscuro.
+- [x] Decidido por Felipe: Nuevo producto conserva sus unidades del día; Editar producto queda con números y «Ajustar en Existencias»; la tabla arranca en «Conté y hay otro número» (hoy son sobre todo correcciones).
+- [x] Felipe eligió la forma A sobre el modal actual, con más peso para «Ajustar stock» y una vista «sofisticada, elegante y full animaciones».
+- [x] Ronda 2: `ronda-2.html` (tres pesos, planilla o riel, coreografía completa), revisada a 1024 y 375 px, claro y oscuro.
+- [x] Felipe eligió la banda (peso 1) y la planilla; pidió el ancho justo, el foco en la talla elegida y una tabla más estética.
+- [x] Ronda 3: `ronda-3.html`, revisada a 1440, 1024 y 375 px, claro y oscuro, con 1, 4 y 6 tallas.
+- [x] Felipe aprobó la ronda 3 (incluido: entrar en el lugar donde esa talla tiene más unidades).
+- [x] La excepción de movimiento en ADR-0136 (act. 2026-10-23 (b)) y en CLAUDE.md, con `lib/ajuste-modelo-movimiento.test.ts`.
+- [x] Actividad 1 (ADR-0494): la planilla del modelo en el modal de la prenda, «Ajustar stock» en la cabecera y «Etiquetas de lo que entró»; el recorrido de 4 pasos por talla salió. Sin migración. Guía `inventario` al día (36 pasos).
+- [ ] Actividad 2: Existencias encuentra las prendas que la tienda nunca tuvo (búsqueda y escáner); hoy `getExistencias` solo lista lo que tiene fila de `stock` o viene en camino.
+- [ ] Actividad 3, al final: Editar producto de solo lectura en stock (sin − / + en la matriz ni en el panel del taller) con «Ajustar en Existencias».
+- [ ] Sin medir: cuántos ajustes se hicieron desde la ficha y con qué motivo (la lectura de producción estaba bloqueada en esta sesión).
+- [ ] Sin confirmar en producción: que todo rol que hoy carga stock desde Productos tenga Existencias (ADR-0306 dice que Integrante y los terminales sí).
+- [x] Contar con la tienda abierta (`/chaos` g2, CON-06): «Conté» viaja con lo que había y la base rechaza si cambió (ADR-0494 act. b, migración `20261024001000`, `pnpm pruebas:ajuste-lo-que-habia`). Repetido en el navegador con la semilla 494: queda lo contado.
+- [ ] **`20261024001000` no está en producción:** pegarla con el OK de Felipe (una parte, solo funciones, anclada; la web funciona antes y después).
+- [ ] La matriz de Editar producto sigue mandando la diferencia sin lo que había: sale con la actividad 3 (Catálogo de solo lectura).
+- [ ] `/chaos` de la planilla a medias (9 de 23, semilla 494): faltan red, recarga, cambio de sede, sesión y teclado. Se detuvo porque otra sesión escribía en la base local.
+- [ ] Chicos de la planilla (g4): la celda quita la coma sin avisar («1,5» → 15; mejor `limpiarCantidad` y una línea bajo la celda); `TEXTO_AJUSTE_INCIERTO` dice «Confirmar» y el botón dice «Guardar N cambios» (`lib/ajuste-reglas.ts:467`).
+- [ ] `/formidable` de la planilla, antes de abrir el PR.

@@ -697,6 +697,17 @@ describe("encabezadoDeEtiquetas: lo que entró desde Editar producto (?unidades=
   });
 });
 
+describe("encabezadoDeEtiquetas: lo que entró al ajustar el stock en Existencias (?unidades= con ?ajuste=, ADR-0494)", () => {
+  it("habla de Existencias y del ajuste, no de guardar la ficha; «Volver» lleva a Existencias", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "variantes", entraron: true, desdeAjuste: true }, { unidades: 4, modelos: 1 }, "Tienda Lima");
+    expect(e.sobretitulo).toBe("Existencias · Lo que entró");
+    expect(e.bajada).toBe("Entraron 4 prendas de 1 modelo al ajustar el stock. Sale una etiqueta por cada prenda nueva.");
+    expect(e.bajada).not.toMatch(/ficha/i);
+    expect(e.columnaCantidad).toBe("Entraron");
+    expect(volverDeEtiquetas({ tipo: "variantes" }, null, null)).toEqual({ href: "/inventario", a: "Existencias" });
+  });
+});
+
 describe("Etiquetas desde un traslado (?unidades= con ?traslado=, «Lo siguiente» del detalle, ADR-0242 D-6.1)", () => {
   const n = { unidades: 3, modelos: 1 };
   const ID = "ec84230c-0814-4669-82e9-de9d8132cc27";
