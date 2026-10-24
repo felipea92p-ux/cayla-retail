@@ -123,6 +123,14 @@ SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_
   `CLAUDE.md`, vigilado por `lib/trafico-movimiento.test.ts` (19). Modo oscuro: `tema:auditar` con la pantalla y los dos escenarios del
   cajón (vitrina y tabla), 0 hallazgos; en oscuro toda baldosa y toda muestra de color lleva un filo claro. Anchos: la guía recorre sus 14
   pasos a 375, 1024, 1280 y 1440 px; sin scroll horizontal hasta 1920. `/formidable rapido`: `docs/formidable/tienda-web-trafico.md`.
+- **Actividad 8:** el QR del cartel del Club abre `https://tienda.cayla.pe/?utm_source=qr` (`ENLACE_DEL_CARTEL`) y la página vieja del
+  cartel (`/club/<uuid>`) redirige ahí mismo (307, comprobado con `curl` sin seguirlo); lo escrito bajo el QR sigue siendo
+  «tienda.cayla.pe». El enlace de «Compartir tu look» lleva `&utm_source=whatsapp` al final, sin reescribir el look (`enlaceParaCompartir`).
+  En la tienda local, abrir `/tu-look?p=…&utm_source=whatsapp` anotó la entrada con el camino «whatsapp». **Lo que no cambia:** los carteles
+  YA impresos con el QR nuevo de octubre (abren `tienda.cayla.pe` a secas) cuentan como «Directo» hasta reimprimirlos; los de `/club/<uuid>`
+  sí cuentan como QR. Un look compartido por otra aplicación igual dice WhatsApp (la hoja del celular no cuenta a cuál fue). Las etiquetas
+  de precio solo llevan la dirección escrita (sin QR): quien la escribe es «Directo». El cierre de los avisos del Club («en
+  *tienda.cayla.pe*…») lo escribe el líder y no lleva marca: esos mensajes cuentan como «Directo».
 - **Sin probar:** las cabeceras de ubicación reales de Vercel (solo existen publicadas), la tienda con la base caída en vivo (cubierta por la
   prueba de `anotarPasos`) y «separó» en el navegador (en local no hay una cuenta de cliente de prueba; crear una pide consultar un DNI
   real): su función está probada en Postgres y la acción usa el mismo camino que «a la bolsa».
