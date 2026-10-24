@@ -149,7 +149,13 @@
 /* ---- El dock: lo que más se hace en este submódulo, abajo y al centro (solo escritorio) ---- */
 .dock-telar {
   position: fixed;
-  left: 50%;
+  /* Al centro del ÁREA de la pantalla, no de la ventana: el lateral ocupa `--spacing-lateral` a la izquierda (lo comparten la
+     cabecera, el <main> y las barras fijas, y cambia solo al plegarlo). Centrado en la ventana, a 1024 px el lateral tapaba la
+     acción principal. En un `fixed`, el 100 % es el ancho de la ventana sin la barra de scroll. */
+  left: calc(var(--spacing-lateral) + (100% - var(--spacing-lateral)) / 2);
+  max-width: calc(100% - var(--spacing-lateral) - 32px);
+  overflow-x: auto;
+  scrollbar-width: none;
   bottom: calc(16px + env(safe-area-inset-bottom));
   z-index: 25;
   display: none;

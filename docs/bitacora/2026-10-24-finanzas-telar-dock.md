@@ -1,0 +1,4 @@
+# 2026-10-24 · El telar: la barra de abajo ya no queda bajo el lateral
+
+- **Qué:** al probar el módulo de Finanzas entero en local (main + las cinco ramas del telar), a 1024 px el dock de la barra común quedaba centrado en la ventana y el lateral tapaba su acción principal («Registrar gasto»). Ahora se centra en el área de la pantalla con `--spacing-lateral` (expandido o plegado) y no pasa de su ancho. Además, `<Pestanas>` deja de avisar «hydration mismatch» en la mesa de mando: `data-mas-izq`/`data-mas-der` los pone `FilasQueSeDeslizan` desde afuera de React.
+- **Verificado:** a 1024 y 1440 px, con el lateral expandido y plegado, el centro del dock coincide con el del `<main>` y el botón principal recibe el clic; la consola ya no muestra el aviso. Pruebas de pestañas, unificar, tema y telar en verde.
