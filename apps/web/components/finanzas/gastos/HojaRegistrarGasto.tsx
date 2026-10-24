@@ -197,9 +197,12 @@ export function HojaRegistrarGasto({
   function registrado(otro: boolean) {
     avisar.exito("Gasto registrado", { detalle: ticket.pasara.at(-1) });
     if (otro) {
-      // Lo de recién se limpia; la sede, la fecha y de dónde salió se quedan para el siguiente.
-      setH(hojaSiguiente(h));
+      // Lo de recién se limpia; la sede, la fecha y de dónde salió se quedan para el siguiente. La foto de «¿Salir sin guardar?» se vuelve
+      // a tomar con la hoja limpia (el /chaos del 2026-10-23: cerrar la hoja recién limpiada preguntaba si se perdía lo que no había).
+      const siguiente = hojaSiguiente(h);
+      setH(siguiente);
       setReferencia("");
+      setFotoAlAbrir(fotoFormulario({ h: siguiente, cuentaId, medioSinCuentas, referencia: "" }));
       router.refresh();
       return;
     }
