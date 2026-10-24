@@ -32,8 +32,9 @@ function recorrer(piezas: readonly PiezaDeInsignia[], f: (p: PiezaDeInsignia) =>
 
 describe("los dibujos de las insignias", () => {
   it("hay uno por cada familia, más el genérico, y ninguno está vacío", () => {
-    expect(Object.keys(DIBUJOS_DE_INSIGNIA)).toHaveLength(21);
+    expect(Object.keys(DIBUJOS_DE_INSIGNIA)).toHaveLength(22);
     expect(Object.keys(DIBUJOS_DE_INSIGNIA)).toContain("halloween");
+    expect(Object.keys(DIBUJOS_DE_INSIGNIA)).toContain("findeano");
     expect(Object.keys(DIBUJOS_DE_INSIGNIA)).toContain("generico");
     for (const piezas of Object.values(DIBUJOS_DE_INSIGNIA)) expect(piezas.length).toBeGreaterThan(0);
   });
