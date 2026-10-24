@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { FORMAS_DE_PAGO } from "./gasto-fijo-ficha-reglas";
-import { formasParaElegir, pideVence, sugerirFicha, SUGERENCIA_NEUTRA, SUGERENCIAS_POR_CATEGORIA, type SugerenciaFicha } from "./sugerencias-gasto-fijo";
+import { diasAntesSugeridos, formasParaElegir, pideVence, sugerirFicha, SUGERENCIA_NEUTRA, SUGERENCIAS_POR_CATEGORIA, type SugerenciaFicha } from "./sugerencias-gasto-fijo";
 
 // Las categorías que trae el sistema desde el principio, tal como las siembra la migración (la fuente real de los códigos).
 const SEMILLA = readFileSync(join(__dirname, "../../../supabase/migrations/20260924235000_finanzas_plan_de_cuentas_y_categorias_gasto.sql"), "utf8");
@@ -210,5 +210,19 @@ describe("los títulos, las ayudas y los campos de la ficha siguen a la categor�
     expect(b.tituloCodigo).not.toMatch(/cuenta/i);
     expect(b.codigo).not.toMatch(/cuenta/i);
     expect(b.ayudaCodigo).toMatch(/no pongas aquí el número de cuenta/i);
+  });
+});
+
+describe("cuántos días antes se sugiere pagar (ADR-0487)", () => {
+  it("el recibo de un servicio se paga 3 días antes; todo lo demás, el día que vence", () => {
+    for (const c of ["luz", "agua", "internet", "telefonia"]) expect(diasAntesSugeridos(c), c).toBe(3);
+    for (const c of TODOS_LOS_CODIGOS.filter((x) => !["luz", "agua", "internet", "telefonia"].includes(x))) expect(diasAntesSugeridos(c), c).toBe(0);
+  });
+  it("sin categoría o con una que un líder creó sin deploy: 0, nunca lo de otra categoría", () => {
+    expect(diasAntesSugeridos("")).toBe(0);
+    expect(diasAntesSugeridos("categoria_nueva_de_un_lider")).toBe(0);
+  });
+  it("lo sugerido cabe en el tope de la base (0 a 30)", () => {
+    for (const s of TODAS) expect(s.diasAntes ?? 0).toBeLessThanOrEqual(30);
   });
 });

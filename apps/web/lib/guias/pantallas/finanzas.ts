@@ -195,7 +195,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       id: "respuesta",
       ancla: "telar.respuesta",
       titulo: "Cuánto se gastó",
-      texto: "La cifra grande es todo lo gastado en el mes por la sede que elegiste arriba, con IGV. Debajo dice cuántos gastos son y cuántos no tienen boleta ni factura: sin comprobante no recuperas su IGV.",
+      texto: "La cifra grande es todo lo gastado en el mes por la sede que elegiste arriba, con IGV. Debajo dice cuántos gastos son y cuántos no tienen boleta ni factura: sin comprobante no recuperas su IGV. Si faltan fijos por registrar, un aviso ámbar dice cuántos son y cuánto suman: la cifra aún no los cuenta.",
     },
     {
       id: "orillo",
@@ -206,10 +206,53 @@ export const GUIA_FIN_GASTOS: Guia = {
     },
     DOCK_GASTOS,
     {
+      id: "alcance",
+      ancla: "fin-gastos.alcance",
+      opcional: true,
+      titulo: "Cuando miras solo la empresa",
+      texto: "Con «Empresa» ves solo lo que no es de una tienda, y por eso puede decir cero aunque las tiendas hayan gastado. Este aviso lo recuerda; «Ver todas las tiendas» te devuelve a la vista completa.",
+    },
+    {
       id: "registrar",
       ancla: "fin-gastos.registrar",
       titulo: "Registrar un gasto",
       texto: "Abre la ventana para anotar un gasto. En «Activos fijos» este mismo botón registra un mueble o una máquina. Te la abrimos para que veas qué pide; no registramos nada.",
+    },
+    {
+      id: "hoja-cinco",
+      ancla: "fin-hoja.cinco",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fin-gastos.registrar" }],
+      titulo: "Cinco toques",
+      texto: "Cuánto, para qué sede, en qué, qué fue y si tiene comprobante. La parte que sigue se ilumina sola. Si eliges factura, boleta o recibo, aparecen el RUC (que se busca solo en SUNAT) y la serie, que escribes como sea.",
+    },
+    {
+      id: "hoja-repetir",
+      ancla: "fin-hoja.repetir",
+      opcional: true,
+      titulo: "Repetir uno anterior",
+      texto: "La luz, las bolsas, el contador: tocas uno de los últimos gastos y la hoja se llena como la vez pasada. Casi siempre solo cambia el monto.",
+    },
+    {
+      id: "hoja-fijo-parecido",
+      ancla: "fin-hoja.fijo-parecido",
+      opcional: true,
+      titulo: "¿Es uno de tus gastos fijos?",
+      texto: "Si el gasto se parece a uno fijo que falta este mes (la luz, el alquiler), la hoja pregunta si es ese. «Sí, es este» lo cierra como fijo y ya nadie lo paga dos veces; «No, es otro gasto» lo deja aparte.",
+    },
+    {
+      id: "hoja-asi-queda",
+      ancla: "fin-hoja.asi-queda",
+      opcional: true,
+      titulo: "Así queda",
+      texto: "Mientras llenas, aquí se arma el registro como un ticket y debajo dice qué va a pasar al guardar: a qué gastos se suma, de dónde sale la plata y cuánto IGV recuperas.",
+    },
+    {
+      id: "hoja-botones",
+      ancla: "fin-hoja.botones",
+      opcional: true,
+      titulo: "Registrar, o registrar y seguir",
+      texto: "«Registrar gasto» lo guarda. «Guardar y registrar otro» lo guarda y deja la hoja lista para el siguiente, con la misma sede y fecha. En la demo no registramos nada.",
     },
     {
       id: "form-comprobante",
@@ -232,6 +275,13 @@ export const GUIA_FIN_GASTOS: Guia = {
       opcional: true,
       titulo: "Categoría y a quién se carga",
       texto: "La categoría dice qué tipo de gasto es y ya trae su cuenta contable: nadie la elige a mano. «A quién se le carga» es la tienda, el Taller o la empresa: así cada tienda ve lo que de verdad le cuesta.",
+    },
+    {
+      id: "form-fijo-parecido",
+      ancla: "fin-gastos.form-fijo-parecido",
+      opcional: true,
+      titulo: "¿Es uno de tus fijos?",
+      texto: "Si la categoría y la tienda son las de un gasto fijo que todavía no está registrado ese mes, te pregunta si es ese. «Sí, es este» lo cierra como fijo y deja de salir pendiente; «No» lo deja aparte. Sin contestar no se registra: así nadie lo paga dos veces.",
     },
     {
       id: "form-monto",
@@ -273,7 +323,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.bandeja",
       opcional: true,
       titulo: "Lo que falta revisar, de a uno",
-      texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes que ya pasó sin registrarse. Aparece una cosa a la vez, con su botón: Clasificar o Registrar. Cuando no queda nada, lo dice.",
+      texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes que ya venció sin registrarse. Aparece una cosa a la vez, con su botón: Clasificar o Registrar. Cuando no queda nada, lo dice.",
     },
     {
       id: "sin-comprobante",
@@ -294,7 +344,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.cifras",
       preparar: [{ tipo: "escape" }],
       titulo: "Los gastos en cifras",
-      texto: "Lo gastado en el mes, el IGV que puedes descontar (solo de facturas, menos el que se pierde por pagar sin banco; una boleta no da IGV), lo que falta pagar de gastos a crédito y los egresos de caja que nadie dijo qué fueron. Esa última tarjeta te lleva a su lista.",
+      texto: "El IGV que puedes descontar (solo de facturas, menos el que se pierde por pagar sin banco; una boleta no da IGV), lo que falta pagar a crédito y los egresos de caja sin clasificar. Estas dos últimas son de hoy aunque mires otro mes; la última te lleva a su lista. Lo gastado en el mes es la cifra grande de arriba.",
     },
     {
       id: "pestanas",
@@ -341,7 +391,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.fijos",
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "fin-gastos.tab-fijos" }],
       titulo: "Los fijos del mes",
-      texto: "El alquiler, la luz o el contador se guardan una vez y cada mes el sistema dice cuáles llegaron y cuáles faltan. «Registrar» abre el gasto ya lleno, con a quién y cómo se le paga. Si un gasto se repite, el sistema te pregunta si lo marca como fijo.",
+      texto: "Una sola lista de lo que se paga cada mes: primero lo que ya venció (con los días de atraso), luego lo que vence este mes; «Toca pagar» marca los que ya puedes pagar. «Registrar» abre el gasto ya lleno y los registrados se pliegan abajo. Si un gasto se repite, el sistema pregunta si lo marcas como fijo.",
     },
     {
       id: "activos",

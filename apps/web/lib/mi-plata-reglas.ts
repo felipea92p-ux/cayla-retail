@@ -139,7 +139,10 @@ export type RondaAbierta = {
   gastaste: number;
 };
 export type RondaCerrada = { texto: string; cerradaEn: string; decision: DecisionCierre; monto: number; resuelto: boolean };
-export type Rondas = { abierta: RondaAbierta | null; ultimaCerrada: RondaCerrada | null };
+/** Una ronda ya cerrada, para el historial de Mis compras (20261023225000): cuándo fue y cómo cerró. */
+export type RondaDeLista = RondaCerrada & { id: string; abiertaEn: string };
+/** `cerradas`: las últimas rondas cerradas, la más nueva primero. Sin la migración 20261023225000, vacía. */
+export type Rondas = { abierta: RondaAbierta | null; ultimaCerrada: RondaCerrada | null; cerradas?: RondaDeLista[] };
 
 export type MiPlata = {
   /** Sin cuenta de persona (una terminal), no hay «tu plata». */
@@ -291,7 +294,18 @@ function leerRondas(x: unknown): Rondas {
       c && decision
         ? { texto: texto(c.texto) ?? "Tu ronda", cerradaEn: texto(c.cerrada_en) ?? "", decision, monto: numero(c.monto) ?? 0, resuelto: c.resuelto === true }
         : null,
+    cerradas: (Array.isArray(o.cerradas) ? o.cerradas : []).map(leerRondaDeLista).filter((r): r is RondaDeLista => r !== null),
   };
+}
+
+function leerRondaDeLista(x: unknown): RondaDeLista | null {
+  if (!x || typeof x !== "object") return null;
+  const o = x as Record<string, unknown>;
+  const id = texto(o.id);
+  const cerradaEn = texto(o.cerrada_en);
+  const decision = DECISIONES.includes(o.decision as DecisionCierre) ? (o.decision as DecisionCierre) : null;
+  if (!id || !cerradaEn || !decision) return null;
+  return { id, texto: texto(o.texto) ?? "Tu ronda", abiertaEn: texto(o.abierta_en) ?? cerradaEn, cerradaEn, decision, monto: numero(o.monto) ?? 0, resuelto: o.resuelto === true };
 }
 
 /** Lo que manda `fn_mi_plata_compras`. Ilegible: sin persona (la pantalla dice que no se pudo leer, no inventa cifras). */
@@ -572,6 +586,8 @@ export type MovimientoCompradora = {
   /** La plata que entra suma (+, en verde); la que sale resta (−). */
   entra: boolean;
   monto: string;
+  /** El mismo monto, en número (sin signo): lo que suma una ronda en el historial. */
+  valor: number;
   estado: { texto: string; detalle: string; pendiente: boolean };
   fecha: string;
   creadoEn: string;
@@ -619,6 +635,7 @@ export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gast
         entra: false,
         // Baja de su plata solo lo que pagó: «− S/ 0.00» si se la dejó toda a Compras.
         monto: soles(c.pagado),
+        valor: c.pagado,
         estado: { ...e, pendiente: c.porCompletar },
         fecha: c.fecha,
         creadoEn: c.creadoEn,
@@ -636,6 +653,7 @@ export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gast
         detalle: g.conFoto ? "Con foto" : "Sin papel",
         entra: false,
         monto: soles(g.monto),
+        valor: g.monto,
         estado: { ...e, pendiente: g.porCompletar },
         fecha: g.fecha,
         creadoEn: g.creadoEn,
@@ -653,6 +671,7 @@ export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gast
         detalle: `${MEDIOS_PLATA[a.medio].nombre}${a.conFoto ? " · con foto" : ""}`,
         entra: true,
         monto: textoMontoAnotado(a),
+        valor: a.confirmada && a.montoConfirmado != null ? a.montoConfirmado : a.monto,
         estado: { ...e, pendiente: !a.confirmada },
         fecha: a.fecha,
         creadoEn: a.creadoEn,
@@ -689,4 +708,114 @@ export function siglaTienda(nombre: string): string {
 export function detalleEnvio(t: Pick<PorMandar, "unidades" | "prendas">): string {
   const compras = new Set(t.prendas.map((p) => p.papelId)).size;
   return `${t.unidades === 1 ? "1 prenda" : `${t.unidades} prendas`} de ${compras === 1 ? "1 compra" : `${compras} compras`}`;
+}
+
+// ---------- El historial por ronda (Felipe 2026-10-23, revisando Mis compras en el celular) ----------
+
+/**
+ * Una fila de «Ver rondas anteriores». Arriba solo va lo que movió su plata fuera de una compra —la plata que le dieron, lo que devolvió
+ * al cerrar (o lo que CAYLA le devuelve)— y una fila por ronda; las compras y lo de «Gasté en otra cosa» van DENTRO de su ronda.
+ */
+export type EntradaHistorial =
+  | { tipo: "plata"; clave: string; mov: MovimientoCompradora }
+  | {
+      tipo: "cierre";
+      clave: string;
+      decision: Exclude<DecisionCierre, "se_queda">;
+      titulo: string;
+      detalle: string;
+      entra: boolean;
+      monto: string;
+      estado: { texto: string; detalle: string; pendiente: boolean };
+    }
+  | {
+      tipo: "ronda";
+      clave: string;
+      titulo: string;
+      detalle: string;
+      /** Lo que salió de su plata en la ronda: lo pagado en compras más lo gastado. */
+      monto: string;
+      /** Algo de la ronda que Compras todavía no pasa a los libros. */
+      pendiente: boolean;
+      movimientos: MovimientoCompradora[];
+      /** Cómo cerró, dicho al pie del detalle («Te quedaste S/ 405.50 para tu próxima ronda»). Sin el cierre, null. */
+      cierre: string | null;
+    };
+
+/** «23/10» o «21/10 al 23/10»: los días de Lima en que estuvo abierta. */
+function diasDeRonda(abiertaEn: string, cerradaEn: string): string {
+  const a = diaLima(abiertaEn);
+  const c = diaLima(cerradaEn);
+  if (!c) return "";
+  return a && a !== c ? `${diaMes(a)} al ${diaMes(c)}` : diaMes(c);
+}
+
+const SIN_RONDA = "sin-ronda";
+
+/** El historial de la compradora (lo de `antes` de `movimientosDeLaCompradora`), agrupado por ronda y del más nuevo al más viejo. */
+export function historialDeLaCompradora(antes: readonly MovimientoCompradora[], cerradas: readonly RondaDeLista[]): EntradaHistorial[] {
+  type ConMomento = { e: EntradaHistorial; momento: number; orden: number };
+  const ms = (t: string) => Date.parse(t) || 0;
+  const filas: ConMomento[] = [];
+  const grupos = new Map<string, MovimientoCompradora[]>();
+  for (const m of antes) {
+    if (m.tipo === "plata") {
+      filas.push({ e: { tipo: "plata", clave: m.clave, mov: m }, momento: ms(m.creadoEn || m.fecha), orden: 2 });
+      continue;
+    }
+    const k = m.rondaId ?? SIN_RONDA;
+    grupos.set(k, [...(grupos.get(k) ?? []), m]);
+  }
+  const deLista = new Map(cerradas.map((r) => [r.id, r]));
+  const claves = new Set([...cerradas.map((r) => r.id), ...grupos.keys()]);
+  for (const k of claves) {
+    const movimientos = grupos.get(k) ?? [];
+    const r = deLista.get(k) ?? null;
+    const compras = movimientos.filter((m) => m.tipo === "compra").length;
+    const gastos = movimientos.length - compras;
+    const cuantas = [compras === 0 ? null : compras === 1 ? "1 compra" : `${compras} compras`, gastos === 0 ? null : gastos === 1 ? "1 gasto" : `${gastos} gastos`];
+    const ultimo = movimientos.reduce((max, m) => Math.max(max, ms(m.creadoEn || m.fecha)), 0);
+    const dias = r ? diasDeRonda(r.abiertaEn, r.cerradaEn) : "";
+    filas.push({
+      e: {
+        tipo: "ronda",
+        clave: `ronda-${k}`,
+        titulo: k === SIN_RONDA ? "Antes de las rondas" : `Ronda ${r?.texto ?? movimientos[0]?.ronda ?? ""}`.trim(),
+        detalle: movimientos.length === 0 ? [dias, "Sin compras ni gastos"].filter(Boolean).join(" · ") : [dias, ...cuantas].filter(Boolean).join(" · "),
+        monto: soles(redondear(movimientos.reduce((s, m) => s + m.valor, 0))),
+        pendiente: movimientos.some((m) => m.estado.pendiente),
+        movimientos,
+        cierre: r?.decision === "se_queda" ? (r.monto > 0 ? `Te quedaste ${soles(r.monto)} para tu próxima ronda.` : "No te quedó plata.") : null,
+      },
+      momento: r ? ms(r.cerradaEn) : ultimo,
+      orden: 1,
+    });
+    // Lo que devolvió al cerrarla (o lo que CAYLA le devuelve) va arriba, aparte: es plata que se movió, no una compra.
+    if (r && r.decision !== "se_queda" && r.monto > 0) {
+      const devuelve = r.decision === "devuelve";
+      filas.push({
+        e: {
+          tipo: "cierre",
+          clave: `cierre-${r.id}`,
+          decision: r.decision,
+          titulo: devuelve ? "Devolviste en caja" : "Pusiste de tu bolsillo",
+          detalle: [r.texto, diaLima(r.cerradaEn) ? diaMes(diaLima(r.cerradaEn)!) : null].filter(Boolean).join(" · "),
+          entra: !devuelve,
+          monto: soles(r.monto),
+          estado: devuelve
+            ? r.resuelto
+              ? { texto: "Compras lo recibió", detalle: "Ya entregaste la plata en caja", pendiente: false }
+              : { texto: "Entrégalo en caja", detalle: "Compras lo recibe cuando lo entregues", pendiente: true }
+            : r.resuelto
+              ? { texto: "Te lo devolvieron", detalle: "CAYLA ya te devolvió lo que pusiste", pendiente: false }
+              : { texto: "Compras te lo devuelve", detalle: "Compras lo ve y te lo devuelve", pendiente: true },
+        },
+        momento: ms(r.cerradaEn),
+        orden: 0,
+      });
+    }
+  }
+  // Lo más nuevo primero; a la misma hora, lo que devolvió va sobre su ronda.
+  filas.sort((a, b) => b.momento - a.momento || a.orden - b.orden);
+  return filas.map((f) => f.e);
 }

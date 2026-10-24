@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoriasDeLaHoja, ejemplosDeCaja, nombreSinSku, pasoDeDescuento, piezasDelMosaico, textoDuracion, unSoloEnvio } from "./campana-hoja";
+import { categoriasDeLaHoja, ejemplosDeCaja, familiasConMarcadas, nombreSinSku, pasoDeDescuento, piezasDelMosaico, textoDuracion, unSoloEnvio } from "./campana-hoja";
 import { parsearDescuento } from "./etiqueta-campana";
 
 describe("pasoDeDescuento (− y + de la hoja de campaña)", () => {
@@ -225,5 +225,23 @@ describe("unSoloEnvio (el candado de «Guardar»)", () => {
       reintento = true;
     });
     expect(reintento).toBe(true);
+  });
+});
+
+describe("familiasConMarcadas (qué familias abren solas en la grilla plegable)", () => {
+  const categorias = [
+    { id: "a", familia: "Indumentaria" },
+    { id: "b", familia: "Indumentaria" },
+    { id: "c", familia: "Bisutería" },
+    { id: "d", familia: "Belleza" },
+  ];
+  it("abren las familias con alguna categoría marcada, y solo esas", () => {
+    expect([...familiasConMarcadas(categorias, new Set(["b", "d"]))].sort()).toEqual(["Belleza", "Indumentaria"]);
+  });
+  it("sin nada marcado, todo empieza plegado", () => {
+    expect(familiasConMarcadas(categorias, new Set()).size).toBe(0);
+  });
+  it("una marca de una categoría que ya no existe no abre nada", () => {
+    expect(familiasConMarcadas(categorias, new Set(["zzz"])).size).toBe(0);
   });
 });

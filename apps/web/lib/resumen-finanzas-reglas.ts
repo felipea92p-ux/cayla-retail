@@ -514,7 +514,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     }
   }
 
-  // Gastos fijos que ya debieron llegar (F2b).
+  // Gastos fijos que ya vencieron sin registrarse (F2b; ADR-0487).
   if (r.fijos.estado === "ok") {
     const fs = r.fijos.datos;
     for (const f of fs.slice(0, MAX_POR_TIPO)) {
@@ -523,7 +523,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
         orden: CLASE.fijo,
         tono: "ambar",
         titulo: `Falta registrar: ${f.descripcion} ${deUnidad(f.ubicacionNombre ?? "De la empresa")}`,
-        detalle: `Se esperaba el día ${Number(f.fechaEsperada.slice(8, 10)) || f.dia} por unos ${soles(f.monto)}. Si no está, el resultado del mes sale mejor de lo que es.`,
+        detalle: `Venció el día ${Number(f.fechaEsperada.slice(8, 10)) || f.dia} por unos ${soles(f.monto)}. Si no está, el resultado del mes sale mejor de lo que es.`,
         impacto: `~${soles(f.monto)}`,
         href: enlace("gastos", conQuery("/finanzas/gastos", "tab=fijos", `mes=${r.mes}`, verParam(r))),
         boton: "Ver fijos",
