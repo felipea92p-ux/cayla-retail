@@ -114,7 +114,9 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
       <Orillo porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} que="vendido" hoy={hoy} />
       {dock}
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(18rem,1fr)]">
+      {/* «Hoy te toca» va al lado del recorrido solo cuando cabe (desde 1280 px y con 20 rem de piso); antes, a 1024 px quedaba tan
+          angosta que partía el texto palabra por palabra. Más angosto, baja bajo el recorrido, a todo el ancho. */}
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(20rem,1fr)]">
         <div {...entra(2)}>
           <Superficie pad guia="fin-resumen.recorrido">
             <CabeceraBloque
