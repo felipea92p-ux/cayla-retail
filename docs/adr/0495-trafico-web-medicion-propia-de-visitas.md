@@ -131,6 +131,8 @@ SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_
   sí cuentan como QR. Un look compartido por otra aplicación igual dice WhatsApp (la hoja del celular no cuenta a cuál fue). Las etiquetas
   de precio solo llevan la dirección escrita (sin QR): quien la escribe es «Directo». El cierre de los avisos del Club («en
   *tienda.cayla.pe*…») lo escribe el líder y no lleva marca: esos mensajes cuentan como «Directo».
+- **En producción (2026-10-24):** `20261023230000` pegada por el MCP de Supabase con el OK de Felipe (versión registrada `20261024225147`);
+  verificada por la huella de sus dos funciones, columnas, reglas, índices, disparadores, RLS y permisos, iguales a la base local.
 - **Sin probar:** las cabeceras de ubicación reales de Vercel (solo existen publicadas), la tienda con la base caída en vivo (cubierta por la
   prueba de `anotarPasos`) y «separó» en el navegador (en local no hay una cuenta de cliente de prueba; crear una pide consultar un DNI
   real): su función está probada en Postgres y la acción usa el mismo camino que «a la bolsa».
