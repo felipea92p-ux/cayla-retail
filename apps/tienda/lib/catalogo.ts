@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { insigniasDeLaTarjeta, leerInsignias, type Insignia, type InsigniasDeLaTarjeta } from "./insignias";
 import { pctTexto } from "./portada";
 import { esquemaStockModelo, type StockModelo } from "./stock";
 import type { Lista } from "./listas";
@@ -53,6 +54,9 @@ const esquemaPrenda = z
     nuevo: z.object({ dias: z.number().int().min(0).max(30).nullable() }).nullable().catch(null),
     // Su puesto en «Más vendidos» (1 a 20), o null. Nunca las unidades.
     vendidos: z.number().int().min(1).max(20).nullable().catch(null),
+    // Las insignias asignadas en Catálogo ▸ Insignias que ve el cliente (ADR-0489, act. c): todas, en el orden de la base; la tarjeta decide cuántas
+    // caben (`insigniasAsignadasDeTarjeta`). Sin el campo (una base que aún no lo manda), ninguna: nunca un error.
+    insignias: z.array(z.unknown()).catch([]),
   })
   .refine((p) => p.precio_final <= p.precio);
 
@@ -73,6 +77,8 @@ export type Prenda = {
   stock: StockModelo | null;
   nuevo: { dias: number | null } | null;
   vendidos: number | null;
+  /** Las insignias de Catálogo ▸ Insignias de la prenda (sin las de descuento: ese es el sello rojo), por grupo y nombre. */
+  insignias: Insignia[];
 };
 
 /** El catálogo leído: sus prendas y la tienda cuyo precio usó la base (`null`: «Todas»). */
@@ -106,6 +112,7 @@ export function interpretarCatalogo(dato: unknown): Catalogo | null {
         stock: d.stock,
         nuevo: d.nuevo,
         vendidos: d.vendidos,
+        insignias: leerInsignias(d.insignias),
       }];
     }),
   };
@@ -154,6 +161,17 @@ export function insigniasDeTarjeta(p: Prenda, { puesto, sinNuevo = false }: { pu
     ...(oferta ? [{ clave: "oferta" as const, texto: oferta }] : []),
     ...(nueva ? [{ clave: "nuevo" as const, texto: "Nuevo" }, ...empresa] : []),
   ];
+}
+
+/**
+ * Las insignias de Catálogo ▸ Insignias que caben en la tarjeta (ADR-0489, act. c; Felipe 2026-10-23): el tope es de 3 EN TOTAL —el descuento, «Nuevo»
+ * y el puesto cuentan, igual que las asignadas— y lo que no cabe se dice en un «+2». La empresa (CAYLA o CLAURE) no cuenta. Con las mismas opciones
+ * que `insigniasDeTarjeta`, que es lo que la tarjeta ya dibuja de lo suyo.
+ */
+export function insigniasAsignadasDeTarjeta(p: Prenda, opciones: { puesto?: number | null; sinNuevo?: boolean } = {}): InsigniasDeLaTarjeta {
+  const propias = insigniasDeTarjeta(p, opciones).filter((i) => i.clave !== "empresa").length;
+  // «Nuevo» se mira por lo que la prenda ES (llegó hace poco), no por si la lista lo escribe en cada tarjeta: en «Lo nuevo» tampoco se repite.
+  return insigniasDeLaTarjeta(p.insignias, { propias, nuevo: p.nuevo !== null, masVendido: opciones.puesto != null });
 }
 
 /** Las muestras de color de la tarjeta: hasta `max`, y cuántas más hay. */
