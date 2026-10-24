@@ -1,7 +1,7 @@
 # Plan de campaña: el descuento de la campaña y la fecha límite para pedir — traspaso (2026-10-24)
 
 Rama: `claude/campaign-plan-improvements-18875c` · ADR: **0499** (`docs/adr/0499-plan-de-campana-descuento-y-fecha-limite.md`) · Migraciones reservadas: **20261024215000** (descuento) y **20261024220000** (plazo).
-Aprobado por Felipe el 2026-10-24 (opción B del descuento y plazo único por campaña). **Las migraciones NO están en producción:** las pega Felipe en el SQL Editor, una por una (la herramienta de Supabase fue bloqueada por el clasificador). La del descuento ya tuvo su ensayo revertido contra producción con huella idéntica a local.
+Aprobado por Felipe el 2026-10-24 (opción B del descuento y plazo único por campaña). **Las dos migraciones ya están en producción (2026-10-24):** las pegó Felipe en el SQL Editor, una por una (la herramienta de Supabase fue bloqueada por el clasificador), después de su ensayo revertido; la huella de producción es idéntica a la de local. Falta refrescar el diccionario de datos (`docs/datos/generado/COMO-REFRESCAR.md`).
 
 > **Actualización 2026-10-24 (cierre):** los pasos 1, 2 y 6 de «Pendiente» y `/focus`, `/formidable` y `/chaos` del paso 3 están hechos (el commit de traspaso ya no deja el CI en rojo: la huella de la guía está aceptada). Siguen abiertos: el aviso de deriva (4), los 3 cambios de `/formidable` (esperan OK) y producción (5).
 
@@ -18,8 +18,8 @@ El módulo Compras ▸ Plan de campaña debe servir para: (1) mapear campañas �
 | Fecha límite y plazo fijado | `apps/web/lib/plan-compra-plazo.ts` | listo |
 | Campo «Descuento en la campaña», chips en la fila, franja de plazo | `FormularioCategoria`, `FilaCategoria`, `PlanCampana`, `ListaCategorias` | listo, visto en localhost |
 | Hoja «Días para llegar» | `components/plan-compra/PlazoModal.tsx` (registrada como `aplicada` en la guía de foco) | listo, guardó en local |
-| Migración del descuento (`planes_compra_lineas.descuento_pct`, `guardar_plan_compra_linea` de 12 parámetros, `fn_plan_compra_descuento`) | `supabase/migrations/20261024215000_…sql` | probada 19/19 (`pnpm pruebas:plan-compra-descuento`), **aplicada solo en local** |
-| Migración del plazo (`planes_compra.dias_para_llegar` con autor, `guardar_plan_compra_plazo`, `fn_plan_compra_plazo`) | `supabase/migrations/20261024220000_…sql` | probada 11/11 (`pnpm pruebas:plan-compra-plazo`), **aplicada solo en local** |
+| Migración del descuento (`planes_compra_lineas.descuento_pct`, `guardar_plan_compra_linea` de 12 parámetros, `fn_plan_compra_descuento`) | `supabase/migrations/20261024215000_…sql` | probada 19/19 (`pnpm pruebas:plan-compra-descuento`), **en producción desde el 2026-10-24** (pegada por Felipe, huella idéntica a local) |
+| Migración del plazo (`planes_compra.dias_para_llegar` con autor, `guardar_plan_compra_plazo`, `fn_plan_compra_plazo`) | `supabase/migrations/20261024220000_…sql` | probada 11/11 (`pnpm pruebas:plan-compra-plazo`), **en producción desde el 2026-10-24** (pegada por Felipe, huella idéntica a local) |
 | Maqueta interactiva | `docs/maquetas/plan-descuento-plazo-2026-10/index.html` | lista |
 
 ## Decisiones (DECIDÍ / DESCARTÉ / SE ROMPE SI)

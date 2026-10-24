@@ -1,8 +1,9 @@
 # ADR-0499 — Plan de campaña: la cuenta con el descuento de la campaña y la fecha límite para pedir
 
-- **Fecha:** 2026-10-24 · **Estado:** construido y probado en local; **las dos migraciones (`20261024215000` y `20261024220000`) NO están en producción**: cada una espera el OK
-  puntual de Felipe, una por una (ver «Cómo se pega en producción»). La web nueva con la base vieja no ofrece ni el campo de descuento ni «Cambiar los días» y calcula como antes.
-  Faltan, en este orden: `/focus`, `/formidable` y `/chaos` sobre las dos hojas nuevas, y el aviso de deriva (ver «Lo que NO cubre»).
+- **Fecha:** 2026-10-24 · **Estado:** construido, probado en local y **las dos migraciones (`20261024215000` y `20261024220000`) pegadas por Felipe en producción el 2026-10-24**, cada una tras su ensayo
+  revertido, y verificadas después con la huella (md5 del cuerpo de las cuatro funciones, columnas, CHECK, `security definer`, `search_path` y permisos: idéntica a local). Con la base vieja
+  la web nueva no ofrecía ni el campo de descuento ni «Cambiar los días» y calculaba como antes; ya no aplica.
+  Quedan: los 3 cambios de `/formidable` (esperan el OK de Felipe) y el aviso de deriva (ver «Lo que NO cubre»); `/focus`, `/formidable` y `/chaos` ya corrieron.
   El número de este ADR y las versiones de las migraciones están reservados para la rama `claude/campaign-plan-improvements-18875c` (`pnpm reservar`).
 - **Continúa a:** [ADR-0349](0349-plan-de-campana.md) (el modelo del vendedor de diarios) y [ADR-0372](0372-plan-de-campana-barra-de-rango-paso-a-paso-y-exportar.md).
 - **Relacionados:** ADR-0496 (las ofertas de una campaña), ADR-0486 (campañas por sede), ADR-0302 (el descuento de campaña es exacto), ADR-0195 (políticas y deadlocks),
