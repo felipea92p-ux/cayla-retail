@@ -14,8 +14,8 @@ const FORMATO = {
 
 /**
  * Un número que cuenta hasta su valor nuevo cuando cambia (ver `useContar`). En reposo es solo el número.
- * `alMontar`: además cuenta desde 0 una vez al aparecer la pantalla.
+ * `alMontar`: además cuenta desde 0 una vez al aparecer la pantalla. `desde`: al aparecer, cuenta desde ese número (el de antes de guardar).
  */
-export function CifraQueCuenta({ valor, formato = "entero", alMontar = false }: { valor: number; formato?: keyof typeof FORMATO; alMontar?: boolean }) {
-  return <>{FORMATO[formato](useContar(valor, 800, alMontar))}</>;
+export function CifraQueCuenta({ valor, formato = "entero", alMontar = false, desde }: { valor: number; formato?: keyof typeof FORMATO; alMontar?: boolean; desde?: number }) {
+  return <>{FORMATO[formato](useContar(valor, 800, alMontar, desde))}</>;
 }

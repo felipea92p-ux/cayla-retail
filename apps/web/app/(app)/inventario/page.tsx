@@ -24,6 +24,7 @@ import { estaAtrasado } from "@/lib/traslados-reglas";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { BotonAjustarStock } from "@/components/existencias/BotonAjustarStock";
 import { CifrasExistencias } from "@/components/existencias/CifrasExistencias";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
@@ -228,7 +229,9 @@ export default async function InventarioPage({
         detalle={`vista de las ${horaCarga}`}
         // Como la maqueta (Felipe, 2026-10-05: «me da más herramientas, en la maqueta no»): la cabecera no lleva fila de botones. Colgar
         // se hace en cada tarjeta, «Cuadrar el piso» y lo demás pendiente están en «Pendientes», y Recibir, Contar, Trasladar y
-        // Apartados siguen en el menú lateral. `/inventario/bajar` conserva su ruta, sin botón en esta pantalla.
+        // Apartados siguen en el menú lateral. `/inventario/bajar` conserva su ruta, sin botón en esta pantalla. La única excepción es
+        // «Ajustar stock» (ADR-0494, Felipe 2026-10-23): el stock se carga aquí y no en Catálogo, y lo que no se ve no se usa.
+        acciones={<BotonAjustarStock ubicacionId={ubicacionActivaId} puedeAjustar={puede(persona, "ajustarStock")} />}
       >
         <CifrasExistencias
           sede={ubicacionActiva?.nombre ?? "esta sede"}
