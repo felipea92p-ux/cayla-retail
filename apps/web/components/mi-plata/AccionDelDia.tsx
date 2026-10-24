@@ -3,12 +3,14 @@ import type { MouseEvent, ReactNode } from "react";
 
 // Una respuesta a «¿Qué hiciste?» (maqueta docs/maquetas/compras-formidable-2026-10/): «Compré ropa» es la grande, a todo el ancho, con
 // su borde y su círculo en tinta; «Me dieron plata» y «Gasté en otra cosa» van a su lado, de a dos. Lleva a otra pantalla (`href`) o abre
-// una hoja (`onClick`). Sin estado propio: la usan el servidor (el enlace) y las hojas (el botón).
+// una hoja (`onClick`). Sin estado propio: la usan el servidor (el enlace) y las hojas (el botón). `ancha`: sola en su fila (sin ronda
+// abierta, «Me dieron plata» es la única), a todo el ancho y en una línea; a media columna dejaba un hueco al lado.
 export function AccionDelDia({
   titulo,
   detalle,
   icono,
   grande = false,
+  ancha = false,
   href,
   onClick,
   guia,
@@ -17,13 +19,16 @@ export function AccionDelDia({
   detalle: string;
   icono: ReactNode;
   grande?: boolean;
+  ancha?: boolean;
   href?: string;
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   guia?: string;
 }) {
   const cara = grande
     ? "col-span-2 flex-row items-center gap-4 border-tinta"
-    : "flex-col items-start gap-2.5";
+    : ancha
+      ? "col-span-2 flex-row items-center gap-3"
+      : "flex-col items-start gap-2.5";
   const contenido = (
     <>
       <span

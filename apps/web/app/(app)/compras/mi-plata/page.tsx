@@ -1,7 +1,7 @@
 import { HandCoins, ShoppingBag } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getMiPlata } from "@/lib/mi-plata";
-import { movimientosDeLaCompradora, tituloDeLaLista } from "@/lib/mi-plata-reglas";
+import { historialDeLaCompradora, movimientosDeLaCompradora, tituloDeLaLista } from "@/lib/mi-plata-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
@@ -26,6 +26,8 @@ import { TerminarDia } from "@/components/mi-plata/TerminarDia";
 export default async function MiPlataPage({ searchParams }: { searchParams: Promise<{ mandar?: string }> }) {
   const persona = await exigirModulo("ordenes_compra");
   const [plata, { mandar }] = await Promise.all([getMiPlata(), searchParams]);
+  // Arriba lo de la ronda abierta; lo anterior, agrupado por ronda (Felipe 2026-10-23).
+  const lista = plata?.persona ? movimientosDeLaCompradora(plata) : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -68,7 +70,7 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
             <div className="flex flex-col gap-2.5 lg:col-start-1">
               <AbrirRonda ultimaCerrada={plata.ronda.ultimaCerrada} />
               <div className="grid grid-cols-2 gap-2.5">
-                <AnotarPlata puedeYaTenia={plata.puedeYaTenia} />
+                <AnotarPlata puedeYaTenia={plata.puedeYaTenia} ancha />
               </div>
             </div>
           )}
@@ -78,7 +80,11 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
             </div>
           )}
           <div className="min-w-0 lg:col-start-2 lg:row-span-5 lg:row-start-1">
-            <ListaDelDia {...movimientosDeLaCompradora(plata)} titulo={tituloDeLaLista(plata.ronda)} />
+            <ListaDelDia
+              actuales={lista?.actuales ?? []}
+              historial={historialDeLaCompradora(lista?.antes ?? [], plata.ronda.cerradas ?? [])}
+              titulo={tituloDeLaLista(plata.ronda)}
+            />
           </div>
           <div className="lg:col-start-1">
             <TerminarDia plata={plata} />
