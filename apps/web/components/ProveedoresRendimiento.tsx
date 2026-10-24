@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { rankingDeProveedores, type RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { soles } from "@/lib/compras";
+import { hoyLima } from "@/lib/fechas-lima";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Chip } from "@/components/ui/Chip";
 import { BarraAvance } from "@/components/ui/BarraAvance";
@@ -29,7 +30,7 @@ const pctTexto = (n: number | null) => (n == null ? "—" : `${n.toLocaleString(
 
 export function ProveedoresRendimiento({ filas }: { filas: RendimientoProveedor[] }) {
   if (filas.length === 0) return null;
-  const { ranking, taller } = rankingDeProveedores(filas);
+  const { ranking, taller } = rankingDeProveedores(filas, hoyLima());
   return (
     <section className="space-y-3" data-guia="proveedores.rendimiento">
       <TituloSeccion cuenta={ranking.length} dato="ordenado por lo que gastaste (sin la producción propia)">A quién le compro y qué me deja</TituloSeccion>
@@ -69,7 +70,7 @@ export function ProveedoresRendimiento({ filas }: { filas: RendimientoProveedor[
       )}
       <p className="nota-cayla">
         «Gastaste» es lo comprado (lo que llegó por Compras, exacto, más lo de la carga inicial, estimado); «Sin vender» es la plata que sigue en estantes en prendas de las que todavía no se vendió ni una unidad, solo de lo que tiene costo real.
-        Con menos de 10 unidades vendidas la lectura dice «Pocas ventas»; si la mayor parte viene de la carga inicial dice «Costo por confirmar»: el margen y la plata parada se calculan solo con costo real.
+        «Rota lento» usa la misma regla que el aviso de frenar: vender lo que le queda tardaría 16 semanas o más al ritmo actual. Con menos de 10 unidades vendidas y buen ritmo dice «Pocas ventas»; si la mayor parte viene de la carga inicial dice «Costo por confirmar»: el margen y la plata sin vender se calculan solo con costo real.
       </p>
     </section>
   );

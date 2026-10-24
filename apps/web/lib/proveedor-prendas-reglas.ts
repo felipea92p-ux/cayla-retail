@@ -6,6 +6,8 @@
 // Lo de UNIDADES (vendidas, rotación, sin venta) vale para los dos. Lo de DINERO (margen, plata parada, «margen bajo») se calcula solo
 // con lo que tiene costo real; con carga inicial se dice «Costo por confirmar» en vez de un veredicto de dinero.
 
+import { ritmoDeDatos, textoSemanas } from "./proveedor-ritmo-reglas";
+
 export type PrendaDeProveedor = {
   productoId: string;
   referencia: string;
@@ -187,12 +189,14 @@ export type RendimientoProveedor = {
   prendasSinVenta: number;
   /** Dinero: solo de origen Compras. */
   plataSinVenta: number;
+  /** La primera entrada de lo que se le compró y lo que sigue en estantes: lo que hace falta para medir el ritmo (`proveedor-ritmo-reglas.ts`). */
+  primeraEntrada: string | null;
+  unidadesEnEstantes: number;
 };
 
 /** Con menos unidades vendidas que esto no se juzga a un proveedor: dos ventas no son una tendencia. */
 export const MIN_VENDIDAS_PARA_JUZGAR = 10;
 export const MARGEN_BAJO_PCT = 35;
-export const PARADO_PCT = 40;
 
 export type Veredicto = { tono: "verde" | "ambar" | "pizarra"; texto: string; porque: string };
 
@@ -203,13 +207,21 @@ export function margenDe(r: Pick<RendimientoProveedor, "ingresoVendido" | "costo
 export const costoRealPctDe = (r: Pick<RendimientoProveedor, "unidadesCompras" | "unidadesCompradas">) => pct(r.unidadesCompras, r.unidadesCompradas) ?? 0;
 
 /**
- * Una palabra por proveedor, con su porqué. Con pocas ventas dice «Pocas ventas»: no inventa una conclusión. Con la carga inicial
- * como mayoría de lo comprado dice «Costo por confirmar»: el dinero (margen, plata parada) todavía no es real.
+ * Una palabra por proveedor, con su porqué. **El ritmo manda y es el MISMO del aviso «frenar» de la lista** (`ritmoDeDatos`, ADR-0502 act. (d)):
+ * si vender lo que le queda tardaría una temporada o más, dice «Rota lento» aunque haya vendido poco. Con pocas ventas y buen ritmo dice «Pocas
+ * ventas»: no inventa una conclusión. Con la carga inicial como mayoría dice «Costo por confirmar»: el dinero (margen) todavía no es real.
  */
-export function veredictoDe(r: RendimientoProveedor): Veredicto {
+export function veredictoDe(r: RendimientoProveedor, hoy: string): Veredicto {
   const margen = margenDe(r);
   const vendidoPct = pct(r.unidadesVendidas, r.unidadesCompradas) ?? 0;
-  const paradoPct = pct(r.plataSinVenta, r.gastoCompras) ?? 0;
+  const ritmo = ritmoDeDatos({ unidadesVendidas: r.unidadesVendidas, unidadesCompradas: r.unidadesCompradas, unidadesEnEstantes: r.unidadesEnEstantes, primeraEntrada: r.primeraEntrada }, hoy);
+  if (ritmo.lento) {
+    return {
+      tono: "ambar",
+      texto: "Rota lento",
+      porque: `Vender lo que le queda tardaría ${textoSemanas(ritmo)} (${ritmo.vendidas.toLocaleString("es-PE")} vendidas en ${Math.round(ritmo.semanas)} semanas, ${ritmo.enEstantes.toLocaleString("es-PE")} siguen en estantes).`,
+    };
+  }
   if (r.unidadesVendidas < MIN_VENDIDAS_PARA_JUZGAR) {
     return { tono: "pizarra", texto: "Pocas ventas", porque: `Solo ${r.unidadesVendidas} unidades vendidas: todavía no alcanza para juzgarlo.` };
   }
@@ -221,9 +233,6 @@ export function veredictoDe(r: RendimientoProveedor): Veredicto {
       porque: `Solo el ${Math.round(real)} % de lo que le compraste llegó por Compras con su costo real; el resto viene de la carga inicial. Vendiste el ${Math.round(vendidoPct)} % de lo comprado.`,
     };
   }
-  if (paradoPct >= PARADO_PCT) {
-    return { tono: "ambar", texto: "Plata parada", porque: `El ${Math.round(paradoPct)} % de lo que gastaste por Compras está en prendas que no se han vendido.` };
-  }
   if (margen != null && margen < MARGEN_BAJO_PCT) {
     return { tono: "ambar", texto: "Margen bajo", porque: `Ganas ${Math.round(margen)} % de lo que vendes: menos de ${MARGEN_BAJO_PCT} %.` };
   }
@@ -233,7 +242,7 @@ export function veredictoDe(r: RendimientoProveedor): Veredicto {
 export type FilaDeRanking = RendimientoProveedor & { pesoPct: number; margenPct: number | null; vendidoPct: number | null; costoRealPct: number; veredicto: Veredicto };
 
 /** El ranking de proveedores externos por lo que gastaste, y aparte la producción propia (el Taller) con su peso en el gasto total. */
-export function rankingDeProveedores(filas: readonly RendimientoProveedor[]): { ranking: FilaDeRanking[]; taller: (RendimientoProveedor & { pesoPct: number }) | null } {
+export function rankingDeProveedores(filas: readonly RendimientoProveedor[], hoy: string): { ranking: FilaDeRanking[]; taller: (RendimientoProveedor & { pesoPct: number }) | null } {
   const total = filas.reduce((a, f) => a + f.gasto, 0);
   const externos = filas.filter((f) => !f.esTaller);
   const taller = filas.find((f) => f.esTaller) ?? null;
@@ -247,7 +256,7 @@ export function rankingDeProveedores(filas: readonly RendimientoProveedor[]): { 
         margenPct: costoReal(f) >= COSTO_REAL_MIN_PCT ? margenDe(f) : null,
         vendidoPct: pct(f.unidadesVendidas, f.unidadesCompradas),
         costoRealPct: costoReal(f),
-        veredicto: veredictoDe(f),
+        veredicto: veredictoDe(f, hoy),
       })),
     taller: taller ? { ...taller, pesoPct: pesoDelGasto(taller.gasto, total) } : null,
   };
