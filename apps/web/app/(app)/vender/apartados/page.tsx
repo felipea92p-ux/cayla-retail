@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { getCajaAbierta } from "@/lib/caja";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
@@ -46,7 +46,8 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
   const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede] = await Promise.all([
     // El Historial abre en los últimos 30 días de lo cerrado (Felipe 2026-10-10); lo abierto sale siempre.
     getApartadosDeTienda(persona.ubicacionId, { desde: rangoDelPeriodo(PERIODO_DE_FABRICA, hoyLima()).desde ?? undefined, abrir }),
-    getCatalogo(),
+    // Lo que se ofrece AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima.
+    getCatalogoDeLaSede(persona.ubicacionId),
     getCajaAbierta(persona.ubicacionId),
     getDisponibleEnSede(persona.ubicacionId),
     leerCampanasVigentes(supabase, persona.ubicacionId),
