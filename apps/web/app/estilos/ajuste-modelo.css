@@ -1,0 +1,306 @@
+/* EXISTENCIAS · «AJUSTAR STOCK» EN EL MODAL DE LA PRENDA (ADR-0494, Felipe 2026-10-23; ronda 3 de
+   docs/maquetas/existencias-ajustar-stock-2026-10/ronda-3.html). La banda bajo «Dónde está», la planilla del modelo entero con la talla
+   en foco y el talón de lo que se va a guardar. Solo tokens (ADR-0169, ADR-0336); el color de cada prenda es dato (`data-color-dato`).
+   Movimiento: excepción de ADR-0136 (act. 2026-10-23 (c); Felipe pidió «sofisticada, elegante y full animaciones» y eligió la ronda 3):
+   la luz que cruza la banda y el lápiz que se dibuja, el hilo de la cabecera de la planilla, las filas en cascada y las celdas en ola,
+   el anillo que se cierra sobre la talla en foco, el número que rueda al cambiar, el talón que entra, el visto que sella cada talla al
+   guardar y el sello «Guardado». Todo UNA vez, con `--ease-cayla`, sin rebote ni bucle, y quieto con `prefers-reduced-motion`. Lo vigila
+   `lib/ajuste-modelo-movimiento.test.ts`. */
+
+/* ---- La banda: «¿No es lo que ves en la tienda?» ---- */
+.banda-ajustar {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 12px 12px 14px;
+  text-align: left;
+  border: 1px solid var(--color-tinta);
+  border-radius: 16px;
+  background: var(--color-papel);
+  transition: background-color 240ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .banda-ajustar:hover { background: var(--color-crema); }
+}
+.banda-ajustar:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.banda-ajustar-icono {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--color-tinta);
+  color: var(--color-crema);
+}
+.banda-ajustar-boton { gap: 8px; pointer-events: none; }
+/* Al llegar, una luz cruza la banda una vez y el lápiz se dibuja: «aquí se corrige». */
+.banda-ajustar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--color-sand) 70%, transparent) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: ajuste-luz 1100ms var(--ease-cayla) 500ms 1 both;
+}
+.banda-ajustar-icono svg :is(path, line, polyline) { stroke-dasharray: 60; stroke-dashoffset: 60; animation: ajuste-traza 600ms var(--ease-cayla) 350ms 1 forwards; }
+@media (max-width: 639px) {
+  .banda-ajustar { grid-template-columns: 40px minmax(0, 1fr); }
+  .banda-ajustar-boton { grid-column: 1 / -1; }
+}
+
+/* ---- La planilla ---- */
+.ajuste-planilla {
+  position: relative;
+  overflow-x: auto;
+  border: 1px solid var(--color-sand);
+  border-radius: 18px;
+  background: var(--color-papel);
+}
+.ajuste-tabla { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+.ajuste-tabla th,
+.ajuste-tabla td { padding: 10px 4px; text-align: center; vertical-align: middle; font-weight: inherit; }
+.ajuste-tabla thead th { position: relative; padding: 14px 4px 12px; }
+/* El hilo de la cabecera se dibuja de izquierda a derecha, columna por columna. */
+.ajuste-tabla thead th::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--color-tinta);
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: ajuste-hilo 140ms var(--ease-cayla) 1 forwards;
+  animation-delay: calc(var(--i, 0) * 120ms + 160ms);
+}
+.ajuste-tabla tbody tr { animation: ajuste-cascada 320ms var(--ease-cayla) 1 backwards; animation-delay: calc(var(--i, 0) * 55ms + 260ms); }
+.ajuste-tabla tbody tr + tr > * { border-top: 1px solid var(--color-sand); }
+.ajuste-tabla tfoot > tr > * { border-top: 1px solid var(--color-sand); padding: 12px 4px; font-family: var(--font-serif); font-size: 16px; color: var(--color-taupe); }
+@media (hover: hover) {
+  .ajuste-tabla tbody tr:hover > * { background: color-mix(in srgb, var(--color-hueso) 32%, var(--color-papel)); }
+}
+.ajuste-col-color {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 150px;
+  padding-left: 16px !important;
+  text-align: left !important;
+  background: var(--color-papel);
+}
+.ajuste-color { display: flex; align-items: center; gap: 12px; min-width: 0; transition: opacity 420ms var(--ease-cayla); }
+.ajuste-muestra {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid var(--color-papel);
+  box-shadow: 0 0 0 1px var(--color-sand);
+  transition: box-shadow 420ms var(--ease-cayla);
+}
+.ajuste-color[data-foco="si"] .ajuste-muestra { box-shadow: 0 0 0 2px var(--color-tinta); }
+.ajuste-talla {
+  display: inline-grid;
+  place-items: center;
+  min-width: 36px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--color-hueso);
+  color: var(--color-tinta);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  transition: background-color 420ms var(--ease-cayla), color 420ms var(--ease-cayla), opacity 420ms var(--ease-cayla);
+}
+.ajuste-talla[data-foco="si"] { background: var(--color-tinta); color: var(--color-crema); }
+.ajuste-total { font-family: var(--font-serif); font-size: 19px; color: var(--color-taupe); transition: opacity 420ms var(--ease-cayla); }
+.ajuste-guion { color: var(--color-taupe); font-size: 18px; transition: opacity 420ms var(--ease-cayla); }
+
+/* La celda: el paso de cantidad «planilla» y, debajo, lo que hay que saber. */
+.ajuste-celda {
+  position: relative;
+  display: inline-grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 16px;
+  transition: opacity 420ms var(--ease-cayla), background-color 320ms var(--ease-cayla), box-shadow 420ms var(--ease-cayla);
+  /* La ola en diagonal: cada celda llega un poco después que la de su izquierda y la de arriba. La que no está en foco llega ya en
+     sombra (la animación termina en su opacidad de 0,28). */
+  animation: ajuste-ola 320ms var(--ease-cayla) 1 backwards;
+  animation-delay: calc((var(--f, 0) + var(--c, 0)) * 38ms + 320ms);
+}
+/* El número que rueda al cambiar: sube al sumar, baja al restar. */
+.ajuste-celda .paso-cantidad-n.ajuste-sube { animation: ajuste-sube 240ms var(--ease-cayla) 1; }
+.ajuste-celda .paso-cantidad-n.ajuste-baja { animation: ajuste-baja 240ms var(--ease-cayla) 1; }
+.ajuste-bajo { min-height: 14px; font-size: 11px; line-height: 1.25; white-space: nowrap; color: var(--color-taupe); }
+.ajuste-bajo[data-tono="cambio"] { color: var(--color-ambar-profundo); font-weight: 600; }
+.ajuste-bajo[data-tono="nueva"] { color: var(--color-pizarra); }
+/* Cambió mientras se contaba (ADR-0494): el mismo ámbar de lo que cambia, con un filo en la celda para encontrarla en la tabla. */
+.ajuste-bajo[data-tono="ajeno"] { color: var(--color-ambar-profundo); font-weight: 600; }
+.ajuste-celda[data-ajeno="si"] { box-shadow: 0 0 0 1.5px var(--color-ambar); }
+/* Lo del otro lugar es secundario: aparece al pasar el mouse por la fila o con el cursor en la celda (y siempre con el dedo). */
+.ajuste-bajo[data-tono="otro"] { opacity: 0; transition: opacity 240ms var(--ease-cayla); }
+@media (hover: hover) {
+  .ajuste-tabla tbody tr:hover .ajuste-bajo[data-tono="otro"] { opacity: 1; }
+}
+@media (hover: none) {
+  .ajuste-bajo[data-tono="otro"] { opacity: 1; }
+}
+.ajuste-celda:focus-within .ajuste-bajo[data-tono="otro"],
+.ajuste-celda[data-foco="si"] .ajuste-bajo[data-tono="otro"] { opacity: 1; }
+
+/* El foco (Felipe, ronda 3): la talla de la que se viene se queda encendida y lo demás baja de tono. Lo que ya se cambió nunca baja. */
+.ajuste-celda[data-foco="si"] {
+  background: var(--color-papel);
+  box-shadow: 0 0 0 1.5px var(--color-tinta), 0 12px 28px color-mix(in srgb, var(--color-sombra) 16%, transparent);
+}
+/* Cuando la ola termina, un anillo se cierra una vez sobre la talla en foco. */
+.ajuste-celda[data-foco="si"]::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 28%, transparent);
+  pointer-events: none;
+  animation: ajuste-anillo 500ms var(--ease-cayla) 1 backwards;
+  animation-delay: var(--espera-foco, 700ms);
+}
+/* Al guardar, cada talla se sella en verde, una tras otra, con su visto que se dibuja. */
+.ajuste-celda[data-sellada="si"] { background: color-mix(in srgb, var(--color-verde) 10%, transparent); box-shadow: 0 0 0 1.5px var(--color-verde); }
+.ajuste-visto {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--color-verde);
+  color: var(--color-papel);
+  transform: scale(0);
+  animation: ajuste-aparece 240ms var(--ease-cayla) 1 forwards;
+  animation-delay: calc(var(--n, 0) * 70ms);
+}
+.ajuste-visto path { stroke-dasharray: 20; stroke-dashoffset: 20; animation: ajuste-traza 320ms var(--ease-cayla) 1 forwards; animation-delay: calc(var(--n, 0) * 70ms + 120ms); }
+.ajuste-planilla[data-enfocada="si"] .ajuste-celda:not([data-foco="si"]):not([data-cambio="si"]):not([data-ajeno="si"]),
+.ajuste-planilla[data-enfocada="si"] .ajuste-color:not([data-foco="si"]),
+.ajuste-planilla[data-enfocada="si"] .ajuste-talla:not([data-foco="si"]),
+.ajuste-planilla[data-enfocada="si"] .ajuste-total,
+.ajuste-planilla[data-enfocada="si"] .ajuste-guion,
+.ajuste-planilla[data-enfocada="si"] tfoot > tr > * {
+  opacity: 0.28;
+}
+
+/* ---- El talón: lo que se va a guardar ---- */
+.ajuste-ticket {
+  animation: ajuste-entra-ticket 320ms var(--ease-cayla) 1 backwards;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-sand);
+  border-radius: 10px;
+  background: var(--color-papel);
+  font-size: 12.5px;
+}
+.ajuste-ticket-muestra { width: 12px; height: 12px; border-radius: 999px; box-shadow: 0 0 0 1px var(--color-sand); }
+.ajuste-ticket-delta { padding: 1px 7px; border-radius: 999px; font-size: 12px; font-weight: 700; animation: ajuste-late 240ms var(--ease-cayla) 1; }
+/* El sello «Guardado» se estampa sobre los tickets, inclinado, una vez. */
+.ajuste-talon-tickets { position: relative; }
+.ajuste-sello {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  margin-top: -14px;
+  z-index: 1;
+  padding: 3px 10px;
+  border: 2px solid var(--color-verde);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-papel) 85%, transparent);
+  color: var(--color-verde-profundo);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-7deg);
+  animation: ajuste-estampa 420ms var(--ease-cayla) 1 both;
+}
+/* El rótulo «Ajustando» sobre la foto que se achica. */
+.ajuste-rotulo {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-papel) 88%, transparent);
+  color: var(--color-tinta);
+  font-size: 12px;
+  font-weight: 600;
+  animation: ajuste-asoma 320ms var(--ease-cayla) 200ms 1 backwards;
+}
+/* Lo de la prenda se pliega al ajustar (y vuelve al salir). */
+.ajuste-repliega { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 320ms var(--ease-cayla), opacity 240ms var(--ease-cayla); }
+.ajuste-repliega[data-plegado="si"] { grid-template-rows: 0fr; opacity: 0; pointer-events: none; }
+.ajuste-repliega > * { min-height: 0; overflow: hidden; }
+.ajuste-ticket-delta[data-tono="entra"] { background: color-mix(in srgb, var(--color-verde) 14%, transparent); color: var(--color-verde-profundo); }
+.ajuste-ticket-delta[data-tono="sale"] { background: color-mix(in srgb, var(--color-ambar) 14%, transparent); color: var(--color-ambar-profundo); }
+
+/* El «−» o el «+» que no se puede (`bloqueado`) no cambia de fondo al pasar el mouse: la pantalla dice por qué al tocarlo. */
+@media (hover: hover) {
+  .ajuste-celda .paso-cantidad-b[aria-disabled="true"]:hover { background: transparent; }
+}
+
+@keyframes ajuste-luz { to { transform: translateX(100%); } }
+@keyframes ajuste-traza { to { stroke-dashoffset: 0; } }
+@keyframes ajuste-hilo { to { transform: scaleX(1); } }
+@keyframes ajuste-cascada { from { opacity: 0; transform: translateY(8px); } }
+@keyframes ajuste-ola { from { opacity: 0; transform: translateY(6px) scale(0.94); } }
+@keyframes ajuste-anillo { from { opacity: 0; transform: scale(1.3); } }
+@keyframes ajuste-sube { from { opacity: 0; transform: translateY(12px); } }
+@keyframes ajuste-baja { from { opacity: 0; transform: translateY(-12px); } }
+@keyframes ajuste-aparece { to { transform: scale(1); } }
+@keyframes ajuste-entra-ticket { from { opacity: 0; transform: translateX(16px); } }
+@keyframes ajuste-late { from { transform: scale(1.35); } }
+@keyframes ajuste-estampa { from { opacity: 0; transform: rotate(-7deg) scale(1.5); } to { opacity: 1; transform: rotate(-7deg) scale(1); } }
+@keyframes ajuste-asoma { from { opacity: 0; transform: translateY(6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .banda-ajustar::before,
+  .banda-ajustar-icono svg :is(path, line, polyline),
+  .ajuste-tabla thead th::after,
+  .ajuste-tabla tbody tr,
+  .ajuste-celda,
+  .ajuste-celda .paso-cantidad-n.ajuste-sube,
+  .ajuste-celda .paso-cantidad-n.ajuste-baja,
+  .ajuste-celda[data-foco="si"]::after,
+  .ajuste-visto,
+  .ajuste-visto path,
+  .ajuste-ticket,
+  .ajuste-ticket-delta,
+  .ajuste-sello,
+  .ajuste-rotulo { animation: none; }
+  .banda-ajustar::before { display: none; }
+  .banda-ajustar-icono svg :is(path, line, polyline),
+  .ajuste-visto path { stroke-dashoffset: 0; }
+  .ajuste-tabla thead th::after,
+  .ajuste-visto { transform: none; }
+  .ajuste-repliega,
+  .banda-ajustar,
+  .ajuste-color,
+  .ajuste-muestra,
+  .ajuste-talla,
+  .ajuste-total,
+  .ajuste-guion,
+  .ajuste-celda,
+  .ajuste-bajo { transition: none; }
+}
