@@ -12,6 +12,7 @@ import {
   esGrupo,
   esGrupoMenu,
   esMostrador,
+  hermanosDe,
   hojasDe,
   menuPara,
   permisosDe,
@@ -879,5 +880,25 @@ describe("«Gestión» con una sola pantalla se disuelve en esa pantalla, con su
     expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso", "Inventario"]);
     expect(conModulos(["frescura", "existencias"]).grupoDe("/gestion/frescura")).toBe("gestion");
     expect(conModulos(["frescura", "existencias"]).grupoDe("/inventario")).toBe("inventario");
+  });
+});
+
+describe("hermanosDe (un solo grupo abierto por nivel)", () => {
+  const filas: FilaMenu[] = [
+    { id: "a", etiqueta: "A", icono: "inicio" as never, hijos: [{ id: "a1", etiqueta: "A1", href: "/a1", icono: "inicio" as never }] },
+    { id: "b", etiqueta: "B", icono: "inicio" as never, hijos: [
+      { id: "b-sub", etiqueta: "Sub", icono: "inicio" as never, hijos: [] },
+      { id: "b-sub2", etiqueta: "Sub2", icono: "inicio" as never, hijos: [] },
+    ] },
+    { id: "suelta", etiqueta: "Suelta", href: "/s", icono: "inicio" as never },
+  ];
+  it("los grupos de primer nivel son hermanos entre sí, sin contar las filas sueltas", () => {
+    expect(hermanosDe("a", filas)).toEqual(["b"]);
+  });
+  it("un subgrupo solo cierra a sus hermanos, nunca a su padre", () => {
+    expect(hermanosDe("b-sub", filas)).toEqual(["b-sub2"]);
+  });
+  it("un id desconocido no cierra nada", () => {
+    expect(hermanosDe("zzz", filas)).toEqual([]);
   });
 });
