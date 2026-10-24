@@ -107,6 +107,7 @@ Cada migración va en UNA parte: un `alter table` de una tabla chica (0 líneas 
 - **«Descargar la lista»** no lleva todavía el descuento ni el plazo. Decisión de Felipe pendiente.
 - **Un proveedor o el Taller con otro plazo** (ver el segundo bloque de arriba).
 - **El pie de la hoja «Días para llegar» se desbordaba a 375 px** (el botón rojo quedaba cortado y, en escritorio, «Guardar plazo» bajaba a una segunda fila). Corregido: usa `<PieAcciones izquierda>`
-  y el botón se llama «Quitar el plazo», como «Quitar el tope» y «Quitar el %». **Las hojas hermanas (`TopeModal`, `RecuperoModal`) arman ese botón con `mr-auto` y pueden tener el mismo desborde en el celular**
-  (la regla de mitades de `pie-acciones.css` le gana en especificidad a la que lo manda a su propia fila); no se tocaron ni se midieron.
+  y el botón se llama «Quitar el plazo», como «Quitar el tope» y «Quitar el %». **Las hojas hermanas (`TopeModal`, `RecuperoModal`) arman ese botón con `mr-auto` y a 375 px NO quedan en su propia fila, como dice `pie-acciones.css`:**
+  la regla de mitades (`flex: 1 1 0`) le gana en especificidad a la que lo manda a su fila, y los tres botones quedan en una sola fila de ~98 px cada uno. Medido en una réplica en el navegador
+  (2026-10-24, sin tocar esas hojas): no se cortan porque sus etiquetas son cortas, pero «Guardar el tope» queda a 98 px. La salida es la misma, `<PieAcciones izquierda>`; queda para un cambio aparte.
 - **Sin historia de recepciones no se puede sugerir el plazo.** Cuando haya órdenes de compra recibidas, la pantalla podría proponerlo SIN tocar esta tabla.
