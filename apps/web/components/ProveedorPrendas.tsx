@@ -1,18 +1,20 @@
 import { Shirt } from "lucide-react";
-import { agruparPorMarca, pesoDelGasto, totalesDePrendas, type PrendaDeProveedor } from "@/lib/proveedor-prendas-reglas";
+import { agruparPorMarca, COSTO_REAL_MIN_PCT, pesoDelGasto, tieneCostoReal, totalesDePrendas, type PrendaDeProveedor } from "@/lib/proveedor-prendas-reglas";
 import { fechaCorta, soles } from "@/lib/compras";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { BarraAvance } from "@/components/ui/BarraAvance";
+import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { Encabezado, Tabla, fila, celda, type Columna } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 
 // «Lo que le compré» de la ficha de un proveedor (2026-10-24): cuántas prendas, cuánta plata y cuánto de eso ya se vendió,
 // marca por marca y prenda por prenda. Server Component sin estado: cada marca se abre y se cierra con <details>.
 //
-// «Comprado» son las entradas de inventario al costo de la prenda (la línea de factura manda cuando existe): ver
-// `fn_proveedor_prendas`. El margen es el de lo YA vendido (precio cobrado menos el costo que tenía al venderse), no una promesa.
+// «Comprado» tiene DOS ORÍGENES que nunca se suman a escondidas (ADR-0502, act. 2026-10-24 (b)): lo que llegó por Compras (exacto, con el costo
+// de su factura o su lote) y la carga inicial (estimado, «costo por confirmar»): ver `fn_proveedor_prendas`. Las unidades (vendidas, quedan)
+// valen para los dos; el dinero (margen, plata sin vender) solo con lo que tiene costo real. El margen es el de lo YA vendido, no una promesa.
 
 const PLANTILLA = "sm:grid-cols-[minmax(0,1fr)_5rem_6.5rem_9rem_5.5rem_5rem]";
 const COLUMNAS: Columna[] = [
@@ -36,9 +38,10 @@ function FilaPrenda({ p }: { p: PrendaDeProveedor }) {
           {[p.codigo, p.categoria, p.primeraEntrada ? `desde ${fechaCorta(p.primeraEntrada)}` : null].filter(Boolean).join(" · ")}
         </span>
       </span>
-      <span className={celda("der", "text-sm text-tinta")} title={p.unidadesEstimadas > 0 ? `${p.unidadesEstimadas.toLocaleString("es-PE")} de estas unidades son estimadas: no hay una entrada que las respalde, se calculan con lo vendido más lo que queda` : undefined}>
+      <span className={celda("der", "text-sm text-tinta")} title={p.unidadesCarga > 0 ? `${p.unidadesCarga.toLocaleString("es-PE")} de estas unidades vienen de la carga inicial (estimadas, costo por confirmar)${p.unidadesCompras > 0 ? `; ${p.unidadesCompras.toLocaleString("es-PE")} llegaron por Compras` : ""}` : p.unidadesSinFactura > 0 ? `${p.unidadesSinFactura.toLocaleString("es-PE")} llegaron sin factura (un envío sin guía)` : undefined}>
         {p.unidadesCompradas.toLocaleString("es-PE")}
-        {p.unidadesEstimadas > 0 && <span className="block text-[10px] leading-none text-taupe">{p.unidadesEstimadas === p.unidadesCompradas ? "estimado" : `${p.unidadesEstimadas.toLocaleString("es-PE")} est.`}</span>}
+        {p.unidadesCarga > 0 && <span className="block text-[10px] leading-none text-taupe">{p.unidadesCompras === 0 ? "carga inicial" : `${p.unidadesCarga.toLocaleString("es-PE")} de carga`}</span>}
+        {p.unidadesCarga === 0 && p.unidadesSinFactura > 0 && <span className="block text-[10px] leading-none text-taupe">sin factura</span>}
       </span>
       <span className={celda("der", "text-sm text-tinta")}>{soles(p.gasto)}</span>
       <span className={celda("izq", "overflow-visible")}>
@@ -47,7 +50,7 @@ function FilaPrenda({ p }: { p: PrendaDeProveedor }) {
         </span>
         <BarraAvance pct={t.vendidoPct ?? 0} alto="fina" tono="tinta" decorativa className="mt-1" />
       </span>
-      <span className={celda("der", "text-sm text-tinta")}>{pctTexto(t.margenPct)}</span>
+      <span className={celda("der", "text-sm text-tinta")} title={tieneCostoReal(p) ? undefined : "Costo por confirmar: esta prenda viene sobre todo de la carga inicial"}>{pctTexto(t.margenPct)}</span>
       <span className={celda("der", "text-sm text-tinta")}>{p.stockActual.toLocaleString("es-PE")}</span>
     </div>
   );
@@ -74,36 +77,90 @@ export function ProveedorPrendas({ prendas }: { prendas: PrendaDeProveedor[] }) 
     <section className="space-y-3" data-guia="proveedor-ficha.prendas">
       <TituloSeccion cuenta={total.prendas}>Lo que le compré · prendas</TituloSeccion>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      {/* Los dos orígenes, cada uno con lo suyo y nunca sumados a escondidas: lo que llegó por Compras es exacto (costo de su factura o su
+          lote); lo de la carga inicial es una estimación al costo de la carga, que se confirma cuando lleguen compras por Compras. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TarjetaCifra
+          punto={total.unidadesCompras > 0 ? "verde" : "neutro"}
+          etiqueta="Llegó por Compras · exacto"
+          valor={total.unidadesCompras > 0 ? <CifraQueCuenta valor={total.gastoCompras} formato="soles" alMontar /> : null}
+        >
+          {total.unidadesCompras > 0
+            ? `${total.unidadesCompras.toLocaleString("es-PE")} unidades con el costo de su factura${total.unidadesSinFactura > 0 ? ` · ${total.unidadesSinFactura.toLocaleString("es-PE")} llegaron sin factura (costo del lote)` : ""}`
+            : "Todavía no llegó nada de este proveedor por Compras. Aparecerá aquí, con su costo real, en cuanto se reciba una compra."}
+        </TarjetaCifra>
+        <TarjetaCifra
+          punto="ambar"
+          etiqueta="De la carga inicial · estimado"
+          valor={total.unidadesCarga > 0 ? <CifraQueCuenta valor={total.gastoCarga} formato="soles" alMontar /> : null}
+        >
+          {total.unidadesCarga > 0
+            ? `${total.unidadesCarga.toLocaleString("es-PE")} unidades al costo de la carga · costo por confirmar`
+            : "Nada de este proveedor viene de la carga inicial."}
+        </TarjetaCifra>
+      </div>
+
+      <div className="card-cayla space-y-2 px-5 py-4" data-guia="proveedor-ficha.costo-real">
+        <p className="text-sm text-tinta">
+          <b className="font-semibold">{pctTexto(total.costoRealPct)}</b> de lo que tienes de este proveedor ya tiene costo real
+        </p>
+        <BarraApilada
+          alto={8}
+          unidad="unidades"
+          decorativa
+          segmentos={[
+            { clave: "compras", nombre: "Llegó por Compras", valor: total.unidadesCompras, clase: "bg-verde" },
+            { clave: "carga", nombre: "De la carga inicial", valor: total.unidadesCarga, clase: "bg-tinta/25" },
+          ]}
+        />
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-taupe">
+          <span className="inline-flex items-center gap-1.5">
+            <MuestraTramo clase="bg-verde" /> Por Compras ({total.unidadesCompras.toLocaleString("es-PE")})
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <MuestraTramo clase="bg-tinta/25" /> Carga inicial ({total.unidadesCarga.toLocaleString("es-PE")})
+          </span>
+          <span>
+            {total.costoPorConfirmar
+              ? `El margen y la plata sin vender se muestran cuando al menos el ${COSTO_REAL_MIN_PCT} % tiene costo real.`
+              : "El margen y la plata sin vender salen de lo que tiene costo real."}
+          </span>
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <TarjetaCifra punto="neutro" etiqueta="Unidades compradas" valor={<CifraQueCuenta valor={total.unidadesCompradas} alMontar />}>
           en {total.prendas.toLocaleString("es-PE")} {total.prendas === 1 ? "prenda" : "prendas"}
-          {total.unidadesEstimadas > 0 && ` · ${total.unidadesEstimadas.toLocaleString("es-PE")} estimadas`}
-        </TarjetaCifra>
-        <TarjetaCifra punto="neutro" etiqueta="Plata gastada" valor={<CifraQueCuenta valor={total.gasto} formato="soles" alMontar />}>
-          al costo de cada prenda
         </TarjetaCifra>
         <TarjetaCifra
           punto="neutro"
           etiqueta="Ya vendido"
           valor={total.vendidoPct != null ? <CifraQueCuenta valor={total.vendidoPct} formato="porcentaje" alMontar /> : null}
         >
-          {total.unidadesVendidas.toLocaleString("es-PE")} de {total.unidadesCompradas.toLocaleString("es-PE")} unidades · quedan {soles(total.plataEnStock)} en estantes
+          {total.unidadesVendidas.toLocaleString("es-PE")} de {total.unidadesCompradas.toLocaleString("es-PE")} unidades · quedan {total.unidadesEnEstantes.toLocaleString("es-PE")} en estantes
         </TarjetaCifra>
         <TarjetaCifra
           punto={total.margenPct == null ? "neutro" : total.margenPct >= 40 ? "verde" : "ambar"}
           etiqueta="Margen de lo vendido"
           valor={total.margenPct != null ? <CifraQueCuenta valor={total.margenPct} formato="porcentaje" alMontar /> : null}
         >
-          {total.margenPct != null ? `Ganaste ${soles(total.gananciaVendida)} sobre ${soles(total.ingresoVendido)} vendidos` : "Aparece con la primera venta"}
+          {total.costoPorConfirmar
+            ? "Costo por confirmar: la mayor parte viene de la carga inicial"
+            : total.margenPct != null
+              ? `Ganaste ${soles(total.gananciaVendida)} sobre ${soles(total.ingresoVendido)} vendidos`
+              : "Aparece con la primera venta"}
         </TarjetaCifra>
         <TarjetaCifra
           punto={total.prendasSinVenta === 0 ? "verde" : "ambar"}
           etiqueta="Sin vender"
-          valor={<CifraQueCuenta valor={total.plataSinVenta} formato="soles" alMontar />}
+          valor={total.costoPorConfirmar ? <CifraQueCuenta valor={total.prendasSinVenta} alMontar /> : <CifraQueCuenta valor={total.plataSinVenta} formato="soles" alMontar />}
+          unidad={total.costoPorConfirmar ? (total.prendasSinVenta === 1 ? "prenda" : "prendas") : undefined}
         >
           {total.prendasSinVenta === 0
             ? "Todas sus prendas ya vendieron algo"
-            : `${total.prendasSinVenta.toLocaleString("es-PE")} de ${total.prendas.toLocaleString("es-PE")} prendas sin una sola venta`}
+            : total.costoPorConfirmar
+              ? `de ${total.prendas.toLocaleString("es-PE")} sin una sola venta · la plata se muestra con costo real`
+              : `${total.prendasSinVenta.toLocaleString("es-PE")} de ${total.prendas.toLocaleString("es-PE")} prendas sin una sola venta`}
         </TarjetaCifra>
       </div>
 
@@ -129,8 +186,8 @@ export function ProveedorPrendas({ prendas }: { prendas: PrendaDeProveedor[] }) 
       </div>
 
       <p className="nota-cayla">
-        «Comprado» es el mayor entre las entradas de inventario y lo vendido más lo que queda, valorizado al costo actual de cada prenda; lo que no tiene una entrada que lo respalde sale como «estimado». Cuando viene de una factura, manda la factura.
-        El margen es el de lo ya vendido (lo cobrado menos el costo que tenía la prenda al venderse). Los cambios, devoluciones y traslados entre sedes no cuentan como compra.
+        «Por Compras» es lo que llegó por una recepción, con el costo de su factura (o de su lote si llegó sin guía). «Carga inicial» es lo que ya estaba cuando se cargó el inventario: se estima con lo vendido más lo que queda y se valora al costo de la carga, que se confirma cuando lleguen compras.
+        El margen y la plata sin vender solo se calculan con lo que tiene costo real; las unidades valen para los dos orígenes. Los cambios, devoluciones y traslados entre sedes no cuentan como compra.
       </p>
     </section>
   );

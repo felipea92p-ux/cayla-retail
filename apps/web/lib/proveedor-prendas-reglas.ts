@@ -1,8 +1,10 @@
-// Reglas puras de «Lo que le compré a este proveedor» (ficha de Proveedores, 2026-10-24). Sin I/O: se prueban sin base.
+// Reglas puras de «Lo que le compré a este proveedor» (ficha y lista de Proveedores, 2026-10-24). Sin I/O: se prueban sin base.
 //
-// Qué es «comprado»: el mayor entre las entradas de inventario y (vendido + stock actual), al costo de la prenda; lo que sobra sobre
-// las entradas es ESTIMADO (`unidadesEstimadas`) y la pantalla lo dice. La línea de una factura vigente manda y es exacta
-// (`fn_proveedor_prendas`, 20261024221000). Lo vendido sale de ventas completadas con el costo que tenía al venderse.
+// DOS ORÍGENES que nunca se suman a escondidas (ADR-0502, actualización 2026-10-24 (b), `fn_proveedor_prendas`, 20261024231000):
+//   · COMPRAS (exacto): lo que llegó por una recepción, con el costo de su factura o de su lote.
+//   · CARGA INICIAL (estimado): lo que ya estaba cuando se cargó el inventario, al costo de la carga («costo por confirmar»).
+// Lo de UNIDADES (vendidas, rotación, sin venta) vale para los dos. Lo de DINERO (margen, plata parada, «margen bajo») se calcula solo
+// con lo que tiene costo real; con carga inicial se dice «Costo por confirmar» en vez de un veredicto de dinero.
 
 export type PrendaDeProveedor = {
   productoId: string;
@@ -10,10 +12,19 @@ export type PrendaDeProveedor = {
   codigo: string | null;
   marca: string | null;
   categoria: string | null;
+  /** Compras + carga inicial. */
   unidadesCompradas: number;
-  /** De las compradas, cuántas se reconstruyeron (vendido + stock) porque no hay entrada que las respalde. */
+  /** Las que llegaron por una recepción (costo real). */
+  unidadesCompras: number;
+  /** De las de Compras, las que llegaron sin factura (un envío sin guía): costo del lote, no de una factura. */
+  unidadesSinFactura: number;
+  /** Las de la carga inicial (estimadas). */
+  unidadesCarga: number;
+  /** Igual que `unidadesCarga`: lo que no tiene una recepción que lo respalde. */
   unidadesEstimadas: number;
   gasto: number;
+  gastoCompras: number;
+  gastoCarga: number;
   costoPromedio: number | null;
   unidadesVendidas: number;
   ingresoVendido: number;
@@ -24,24 +35,39 @@ export type PrendaDeProveedor = {
   conFactura: boolean;
 };
 
+/** Desde qué parte de lo comprado debe tener costo real (origen Compras) para hablar de dinero (margen, plata parada). */
+export const COSTO_REAL_MIN_PCT = 50;
+
 export type TotalesPrendas = {
   prendas: number;
   unidadesCompradas: number;
+  unidadesCompras: number;
+  unidadesSinFactura: number;
+  unidadesCarga: number;
   unidadesEstimadas: number;
   gasto: number;
+  gastoCompras: number;
+  gastoCarga: number;
+  /** Qué parte de lo comprado ya tiene costo real (llegó por Compras), 0–100. */
+  costoRealPct: number;
+  /** `true` cuando el dinero (margen, plata parada) todavía no se puede afirmar. */
+  costoPorConfirmar: boolean;
   unidadesVendidas: number;
   ingresoVendido: number;
   costoVendido: number;
   /** Ganancia de lo ya vendido: ingreso − costo de esas unidades. */
   gananciaVendida: number;
-  /** Margen sobre lo vendido, 0–100; `null` si todavía no se vendió nada. */
+  /** Margen sobre lo vendido, 0–100; `null` si no se vendió nada o el costo está por confirmar. */
   margenPct: number | null;
-  /** De lo comprado, cuánto ya se vendió, 0–100 (nunca más de 100). */
+  /** De lo comprado, cuánto ya se vendió, 0–100 (nunca más de 100). Es de UNIDADES: vale para los dos orígenes. */
   vendidoPct: number | null;
-  /** Plata que sigue en estantes: stock actual (nunca más de lo comprado) al costo promedio de cada prenda. */
+  /** Unidades que siguen en estantes (nunca más de lo comprado). */
+  unidadesEnEstantes: number;
+  /** Plata en estantes de lo que tiene costo real (origen Compras). */
   plataEnStock: number;
-  /** Prendas de las que no se vendió ni una unidad, y la plata que sigue en estantes de ellas. */
+  /** Prendas de las que no se vendió ni una unidad (unidades: vale para los dos orígenes). */
   prendasSinVenta: number;
+  /** Plata que sigue en estantes en esas prendas, solo de origen Compras (dinero). */
   plataSinVenta: number;
 };
 
@@ -56,34 +82,63 @@ export function pct(parte: number, total: number): number | null {
   return Math.max(0, Math.min(100, (parte / total) * 100));
 }
 
+/** ¿Esta prenda tiene costo real? (la mitad o más de lo comprado llegó por Compras). */
+export function tieneCostoReal(p: Pick<PrendaDeProveedor, "unidadesCompras" | "unidadesCompradas">): boolean {
+  return (pct(p.unidadesCompras, p.unidadesCompradas) ?? 0) >= COSTO_REAL_MIN_PCT;
+}
+
+/** Lo que queda en estantes de lo que tiene costo real, al costo de la factura o del lote. */
+export function plataRealEnEstantes(p: PrendaDeProveedor): number {
+  if (p.unidadesCompras <= 0) return 0;
+  return Math.min(p.stockActual, p.unidadesCompras) * (p.gastoCompras / p.unidadesCompras);
+}
+
 export function totalesDePrendas(prendas: readonly PrendaDeProveedor[]): TotalesPrendas {
-  let unidadesCompradas = 0, unidadesEstimadas = 0, gasto = 0, unidadesVendidas = 0, ingresoVendido = 0, costoVendido = 0, plataEnStock = 0, prendasSinVenta = 0, plataSinVenta = 0;
+  let unidadesCompradas = 0, unidadesCompras = 0, unidadesSinFactura = 0, unidadesCarga = 0, unidadesEstimadas = 0;
+  let gasto = 0, gastoCompras = 0, gastoCarga = 0, unidadesVendidas = 0, ingresoVendido = 0, costoVendido = 0;
+  let unidadesEnEstantes = 0, plataEnStock = 0, prendasSinVenta = 0, plataSinVenta = 0;
   for (const p of prendas) {
     unidadesCompradas += p.unidadesCompradas;
+    unidadesCompras += p.unidadesCompras;
+    unidadesSinFactura += p.unidadesSinFactura;
+    unidadesCarga += p.unidadesCarga;
     unidadesEstimadas += p.unidadesEstimadas;
     gasto += p.gasto;
+    gastoCompras += p.gastoCompras;
+    gastoCarga += p.gastoCarga;
     unidadesVendidas += p.unidadesVendidas;
     ingresoVendido += p.ingresoVendido;
     costoVendido += p.costoVendido;
-    const enEstantes = Math.min(p.stockActual, p.unidadesCompradas) * (p.costoPromedio ?? 0);
-    plataEnStock += enEstantes;
+    unidadesEnEstantes += Math.min(p.stockActual, p.unidadesCompradas);
+    const real = plataRealEnEstantes(p);
+    plataEnStock += real;
     if (p.unidadesVendidas === 0) {
       prendasSinVenta += 1;
-      plataSinVenta += enEstantes;
+      plataSinVenta += real;
     }
   }
+  const costoRealPct = pct(unidadesCompras, unidadesCompradas) ?? 0;
+  const costoPorConfirmar = costoRealPct < COSTO_REAL_MIN_PCT;
   const gananciaVendida = ingresoVendido - costoVendido;
   return {
     prendas: prendas.length,
     unidadesCompradas,
+    unidadesCompras,
+    unidadesSinFactura,
+    unidadesCarga,
     unidadesEstimadas,
     gasto: redondear(gasto),
+    gastoCompras: redondear(gastoCompras),
+    gastoCarga: redondear(gastoCarga),
+    costoRealPct,
+    costoPorConfirmar,
     unidadesVendidas,
     ingresoVendido: redondear(ingresoVendido),
     costoVendido: redondear(costoVendido),
     gananciaVendida: redondear(gananciaVendida),
-    margenPct: ingresoVendido > 0 ? (gananciaVendida / ingresoVendido) * 100 : null,
+    margenPct: !costoPorConfirmar && ingresoVendido > 0 ? (gananciaVendida / ingresoVendido) * 100 : null,
     vendidoPct: pct(unidadesVendidas, unidadesCompradas),
+    unidadesEnEstantes,
     plataEnStock: redondear(plataEnStock),
     prendasSinVenta,
     plataSinVenta: redondear(plataSinVenta),
@@ -114,15 +169,23 @@ export function pesoDelGasto(gasto: number, total: number): number {
 export type RendimientoProveedor = {
   proveedorId: string;
   nombre: string;
+  /** La producción propia (el Taller): va aparte, fuera del ranking y de los veredictos. */
+  esTaller: boolean;
   prendas: number;
   unidadesCompradas: number;
+  unidadesCompras: number;
+  unidadesSinFactura: number;
+  unidadesCarga: number;
   unidadesEstimadas: number;
   gasto: number;
+  gastoCompras: number;
+  gastoCarga: number;
   unidadesVendidas: number;
   ingresoVendido: number;
   costoVendido: number;
   plataEnStock: number;
   prendasSinVenta: number;
+  /** Dinero: solo de origen Compras. */
   plataSinVenta: number;
 };
 
@@ -137,16 +200,29 @@ export function margenDe(r: Pick<RendimientoProveedor, "ingresoVendido" | "costo
   return r.ingresoVendido > 0 ? ((r.ingresoVendido - r.costoVendido) / r.ingresoVendido) * 100 : null;
 }
 
-/** Una palabra por proveedor, con su porqué. Con pocas ventas dice «Pocas ventas»: no inventa una conclusión. */
+export const costoRealPctDe = (r: Pick<RendimientoProveedor, "unidadesCompras" | "unidadesCompradas">) => pct(r.unidadesCompras, r.unidadesCompradas) ?? 0;
+
+/**
+ * Una palabra por proveedor, con su porqué. Con pocas ventas dice «Pocas ventas»: no inventa una conclusión. Con la carga inicial
+ * como mayoría de lo comprado dice «Costo por confirmar»: el dinero (margen, plata parada) todavía no es real.
+ */
 export function veredictoDe(r: RendimientoProveedor): Veredicto {
   const margen = margenDe(r);
   const vendidoPct = pct(r.unidadesVendidas, r.unidadesCompradas) ?? 0;
-  const paradoPct = pct(r.plataSinVenta, r.gasto) ?? 0;
+  const paradoPct = pct(r.plataSinVenta, r.gastoCompras) ?? 0;
   if (r.unidadesVendidas < MIN_VENDIDAS_PARA_JUZGAR) {
     return { tono: "pizarra", texto: "Pocas ventas", porque: `Solo ${r.unidadesVendidas} unidades vendidas: todavía no alcanza para juzgarlo.` };
   }
+  const real = costoRealPctDe(r);
+  if (real < COSTO_REAL_MIN_PCT) {
+    return {
+      tono: "pizarra",
+      texto: "Costo por confirmar",
+      porque: `Solo el ${Math.round(real)} % de lo que le compraste llegó por Compras con su costo real; el resto viene de la carga inicial. Vendiste el ${Math.round(vendidoPct)} % de lo comprado.`,
+    };
+  }
   if (paradoPct >= PARADO_PCT) {
-    return { tono: "ambar", texto: "Plata parada", porque: `El ${Math.round(paradoPct)} % de lo que gastaste está en prendas que no se han vendido.` };
+    return { tono: "ambar", texto: "Plata parada", porque: `El ${Math.round(paradoPct)} % de lo que gastaste por Compras está en prendas que no se han vendido.` };
   }
   if (margen != null && margen < MARGEN_BAJO_PCT) {
     return { tono: "ambar", texto: "Margen bajo", porque: `Ganas ${Math.round(margen)} % de lo que vendes: menos de ${MARGEN_BAJO_PCT} %.` };
@@ -154,10 +230,25 @@ export function veredictoDe(r: RendimientoProveedor): Veredicto {
   return { tono: "verde", texto: "Rinde", porque: `Vendiste el ${Math.round(vendidoPct)} % de lo comprado${margen != null ? ` con ${Math.round(margen)} % de margen` : ""}.` };
 }
 
-/** Los proveedores ordenados por lo que gastaste, con su peso sobre el total gastado. */
-export function rankingDeProveedores(filas: readonly RendimientoProveedor[]): (RendimientoProveedor & { pesoPct: number; margenPct: number | null; vendidoPct: number | null; veredicto: Veredicto })[] {
+export type FilaDeRanking = RendimientoProveedor & { pesoPct: number; margenPct: number | null; vendidoPct: number | null; costoRealPct: number; veredicto: Veredicto };
+
+/** El ranking de proveedores externos por lo que gastaste, y aparte la producción propia (el Taller) con su peso en el gasto total. */
+export function rankingDeProveedores(filas: readonly RendimientoProveedor[]): { ranking: FilaDeRanking[]; taller: (RendimientoProveedor & { pesoPct: number }) | null } {
   const total = filas.reduce((a, f) => a + f.gasto, 0);
-  return [...filas]
-    .sort((a, b) => b.gasto - a.gasto || a.nombre.localeCompare(b.nombre, "es"))
-    .map((f) => ({ ...f, pesoPct: pesoDelGasto(f.gasto, total), margenPct: margenDe(f), vendidoPct: pct(f.unidadesVendidas, f.unidadesCompradas), veredicto: veredictoDe(f) }));
+  const externos = filas.filter((f) => !f.esTaller);
+  const taller = filas.find((f) => f.esTaller) ?? null;
+  const costoReal = (f: RendimientoProveedor) => costoRealPctDe(f);
+  return {
+    ranking: [...externos]
+      .sort((a, b) => b.gasto - a.gasto || a.nombre.localeCompare(b.nombre, "es"))
+      .map((f) => ({
+        ...f,
+        pesoPct: pesoDelGasto(f.gasto, total),
+        margenPct: costoReal(f) >= COSTO_REAL_MIN_PCT ? margenDe(f) : null,
+        vendidoPct: pct(f.unidadesVendidas, f.unidadesCompradas),
+        costoRealPct: costoReal(f),
+        veredicto: veredictoDe(f),
+      })),
+    taller: taller ? { ...taller, pesoPct: pesoDelGasto(taller.gasto, total) } : null,
+  };
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { pct, rankingDeProveedores, type RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
+import { rankingDeProveedores, type RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { soles } from "@/lib/compras";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Chip } from "@/components/ui/Chip";
@@ -29,10 +29,10 @@ const pctTexto = (n: number | null) => (n == null ? "—" : `${n.toLocaleString(
 
 export function ProveedoresRendimiento({ filas }: { filas: RendimientoProveedor[] }) {
   if (filas.length === 0) return null;
-  const ranking = rankingDeProveedores(filas);
+  const { ranking, taller } = rankingDeProveedores(filas);
   return (
     <section className="space-y-3" data-guia="proveedores.rendimiento">
-      <TituloSeccion cuenta={ranking.length} dato="ordenado por lo que gastaste">A quién le compro y qué me deja</TituloSeccion>
+      <TituloSeccion cuenta={ranking.length} dato="ordenado por lo que gastaste (sin la producción propia)">A quién le compro y qué me deja</TituloSeccion>
       <Tabla className="@container">
         <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS} visible="grid" />
         {ranking.map((r) => (
@@ -40,8 +40,7 @@ export function ProveedoresRendimiento({ filas }: { filas: RendimientoProveedor[
             <span className={celda("izq")}>
               <span className="block truncate text-sm text-tinta">{r.nombre}</span>
               <span className="block truncate text-xs text-taupe">
-                {r.prendas.toLocaleString("es-PE")} {r.prendas === 1 ? "prenda" : "prendas"} · {pctTexto(r.pesoPct)} de todo lo que gastaste
-                {r.unidadesEstimadas > 0 && ` · ${pctTexto(pct(r.unidadesEstimadas, r.unidadesCompradas))} estimado`}
+                {r.prendas.toLocaleString("es-PE")} {r.prendas === 1 ? "prenda" : "prendas"} · {pctTexto(r.pesoPct)} de todo lo que gastaste · {pctTexto(r.costoRealPct)} con costo real
               </span>
             </span>
             <span className={celda("der", "text-sm text-tinta")}>{soles(r.gasto)}</span>
@@ -60,9 +59,17 @@ export function ProveedoresRendimiento({ filas }: { filas: RendimientoProveedor[
           </Link>
         ))}
       </Tabla>
+      {taller && (
+        <p className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-lg bg-hueso px-5 py-3 text-sm text-tinta">
+          <span>
+            <b className="font-semibold">Producción propia</b> · {taller.nombre}: {taller.prendas.toLocaleString("es-PE")} {taller.prendas === 1 ? "prenda" : "prendas"}, {pctTexto(taller.pesoPct)} del gasto
+          </span>
+          <span className="text-xs text-taupe">No entra al ranking ni a los avisos: es lo que hace el Taller, no un proveedor.</span>
+        </p>
+      )}
       <p className="nota-cayla">
-        «Gastaste» es lo comprado al costo de cada prenda (lo que no tiene entrada que lo respalde se estima con lo vendido más lo que queda); «Sin vender» es la plata que sigue en estantes en prendas de las que todavía no se vendió ni una unidad.
-        Con menos de 10 unidades vendidas la lectura dice «Pocas ventas»: aún no alcanza para juzgar al proveedor.
+        «Gastaste» es lo comprado (lo que llegó por Compras, exacto, más lo de la carga inicial, estimado); «Sin vender» es la plata que sigue en estantes en prendas de las que todavía no se vendió ni una unidad, solo de lo que tiene costo real.
+        Con menos de 10 unidades vendidas la lectura dice «Pocas ventas»; si la mayor parte viene de la carga inicial dice «Costo por confirmar»: el margen y la plata parada se calculan solo con costo real.
       </p>
     </section>
   );

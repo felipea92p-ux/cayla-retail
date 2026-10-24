@@ -7940,6 +7940,8 @@ export type Database = {
           costo_promedio: number | null
           costo_vendido: number
           gasto: number
+          gasto_carga: number
+          gasto_compras: number
           ingreso_vendido: number
           marca: string | null
           primera_entrada: string | null
@@ -7947,8 +7949,11 @@ export type Database = {
           referencia: string
           stock_actual: number
           ultima_venta: string | null
+          unidades_carga: number
           unidades_compradas: number
+          unidades_compras: number
           unidades_estimadas: number
+          unidades_sin_factura: number
           unidades_vendidas: number
         }[]
       }
@@ -8028,7 +8033,10 @@ export type Database = {
           con_factura: boolean
           costo_promedio: number | null
           costo_vendido: number
+          es_taller: boolean
           gasto: number
+          gasto_carga: number
+          gasto_compras: number
           ingreso_vendido: number
           marca: string | null
           primera_entrada: string | null
@@ -8038,8 +8046,11 @@ export type Database = {
           referencia: string
           stock_actual: number
           ultima_venta: string | null
+          unidades_carga: number
           unidades_compradas: number
+          unidades_compras: number
           unidades_estimadas: number
+          unidades_sin_factura: number
           unidades_vendidas: number
         }[]
       }
@@ -8047,7 +8058,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: {
           costo_vendido: number
+          es_taller: boolean
           gasto: number
+          gasto_carga: number
+          gasto_compras: number
           ingreso_vendido: number
           nombre: string
           plata_en_stock: number
@@ -8055,8 +8069,11 @@ export type Database = {
           prendas: number
           prendas_sin_venta: number
           proveedor_id: string
+          unidades_carga: number
           unidades_compradas: number
+          unidades_compras: number
           unidades_estimadas: number
+          unidades_sin_factura: number
           unidades_vendidas: number
         }[]
       }

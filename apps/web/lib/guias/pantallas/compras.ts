@@ -744,6 +744,13 @@ export const GUIA_PROVEEDOR: Guia = {
       texto: "Avisos que el sistema saca de lo comprado y lo vendido: prendas que no rotan, ventas por debajo del costo o lo que mejor rinde. «¿Por qué?» muestra los números y la regla.",
     },
     {
+      id: "costo-real",
+      ancla: "proveedor-ficha.costo-real",
+      opcional: true,
+      titulo: "Cuánto tiene costo real",
+      texto: "Lo que llegó por Compras tiene el costo de su factura; lo que ya estaba cuando se cargó el inventario es una estimación. Esta barra dice qué parte es cada una: el margen y la plata sin vender se muestran cuando la mitad ya es real.",
+    },
+    {
       id: "prendas",
       ancla: "proveedor-ficha.prendas",
       opcional: true,
