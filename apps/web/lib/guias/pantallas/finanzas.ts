@@ -83,8 +83,24 @@ const EXCEL: PasoGuia = {
 const PESTANAS_DINERO: PasoGuia = {
   id: "pestanas",
   ancla: "fin-dinero.pestanas",
-  titulo: "Las cuatro partes",
-  texto: "Cuentas: cuánta plata hay en cada lugar. Efectivo por tienda: lo que debería haber en cada cajón. Por pagar: lo que se debe. Conciliación (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
+  titulo: "Las tres partes",
+  texto: "Cuentas: dónde está la plata, cada lugar como un frasco, con el efectivo de hoy. Por pagar: lo que se debe. Conciliación (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
+};
+
+/** El orillo y el dock de Cuentas y dinero (El telar): lo mismo en sus tres caras. */
+const ORILLO_DINERO: PasoGuia = {
+  id: "orillo",
+  ancla: "telar.orillo",
+  opcional: true,
+  titulo: "Cuánto pone cada sede",
+  texto: "Esta tira de colores reparte la cifra de arriba entre las sedes: cada color es una sede, del tamaño de lo suyo. Tocas un color y ves solo esa sede; lo tocas otra vez y vuelves a todas.",
+};
+const DOCK_DINERO: PasoGuia = {
+  id: "dock",
+  ancla: "telar.dock",
+  opcional: true,
+  titulo: "Lo que más se usa, a una tecla",
+  texto: "Abajo: registrar un movimiento entre cuentas (M), dónde está la plata (D), qué debes (P) y, si eres líder, cuadrar con el banco (C). Las tocas o apretas su letra cuando no estás escribiendo.",
 };
 
 const REGISTRAR_MOVIMIENTO: PasoGuia = {
@@ -446,7 +462,13 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "Cada lugar donde CAYLA tiene dinero: los bancos, la tarjeta que todavía no abona, los cajones y las cajas fuertes. Un saldo nunca se escribe a mano: se suma de las ventas, los gastos y los movimientos. Es una demo.",
     },
     ...TELAR,
-    VER,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "¿Cuánta plata tienes hoy?",
+      texto: "La cifra grande es lo que tiene la sede que elegiste arriba: bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. Con una sede, solo su efectivo: los bancos son de CAYLA entera. Debajo dice dónde está y lo que debes en la tarjeta.",
+    },
+    ORILLO_DINERO,
     {
       ...REGISTRAR_MOVIMIENTO,
       texto: "Cuando la plata cambia de lugar —depositas el cajón en el banco, llega el abono de la tarjeta, pasas de una cuenta a otra— lo anotas aquí. No es venta ni gasto: la plata solo se mueve. Te abrimos la ventana; no registramos nada.",
@@ -496,24 +518,11 @@ export const GUIA_FIN_CUENTAS: Guia = {
     },
     { ...PESTANAS_DINERO, preparar: [{ tipo: "escape" }] },
     {
-      id: "pulso",
-      ancla: "fin-dinero.pulso",
-      titulo: "¿Dónde está mi plata?",
-      texto: "La respuesta grande: todo lo que tienes, sumado de los bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. La tarjeta de crédito va aparte, porque es deuda. Nada se escribe a mano: sale de los movimientos.",
-    },
-    {
       id: "alcanza",
       ancla: "fin-dinero.alcanza",
       opcional: true,
       titulo: "¿Me alcanza?",
       texto: "La primera semana de las próximas seis en que la plata bajaría de tu mínimo de caja, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo que está guardado en las cajas fuertes. Si falta cargar saldos o historia, dice «provisional» y qué falta.",
-    },
-    {
-      id: "debes",
-      ancla: "fin-dinero.debes",
-      opcional: true,
-      titulo: "¿Qué debes?",
-      texto: "Lo vencido primero y lo próximo que vence, de todas las facturas por pagar. Si hay una factura sin anotar, no está aquí: por eso el medidor de confianza del Resumen las cuenta.",
     },
     {
       id: "aviso-maquina",
@@ -534,8 +543,15 @@ export const GUIA_FIN_CUENTAS: Guia = {
       id: "cuentas",
       ancla: "fin-dinero.cuentas",
       preparar: [{ tipo: "escape" }],
-      titulo: "Cada lugar con su saldo",
-      texto: "Una tarjeta por lugar: cuánto hay y de dónde sale. Los cajones suben con las ventas en efectivo y bajan con los egresos y depósitos. El saldo del cajón solo lo ve quien puede cerrar la caja.",
+      titulo: "Cada lugar, un frasco",
+      texto: "Cada cajón, caja fuerte y banco es un frasco que se llena hasta su saldo, en la fila de su sede. El cajón dice desde qué hora está abierto y cuánto se vendió en efectivo; la caja fuerte, hace cuánto se depositó. El saldo del cajón solo lo ve quien puede cerrar la caja.",
+    },
+    {
+      id: "diferencias",
+      ancla: "fin-dinero.diferencias",
+      opcional: true,
+      titulo: "Cierres con diferencia",
+      texto: "Los últimos cierres de caja donde lo contado no coincidió con lo que debía haber: si faltó o sobró plata, cuánto y quién cerró. Sirve para conversarlo a tiempo con la tienda.",
     },
     {
       id: "dueno",
@@ -591,6 +607,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       titulo: "El detalle de un movimiento",
       texto: "De dónde salió, a dónde llegó, cuánto, su estado y quién lo registró. Nada se borra: si fue un error, «Anular…» pide el motivo y lo deja a la vista. En la demo cerramos sin anular.",
     },
+    DOCK_DINERO,
     {
       id: "fin",
       ancla: null,
@@ -600,44 +617,6 @@ export const GUIA_FIN_CUENTAS: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }],
-};
-
-export const GUIA_FIN_EFECTIVO: Guia = {
-  id: "finanzas.dinero.efectivo",
-  ruta: "/finanzas/dinero/efectivo",
-  titulo: "Efectivo por tienda",
-  resumen: "Lo que debería haber ahora mismo en el cajón de cada tienda.",
-  pasos: [
-    {
-      id: "bienvenida",
-      ancla: null,
-      titulo: "El efectivo de cada cajón",
-      texto: "Lo que debería haber en el cajón de cada tienda en este momento. Es la misma cuenta que hace Caja al cerrar: Finanzas solo la junta para verlas todas. Es una demo.",
-    },
-    ...TELAR,
-    VER,
-    PESTANAS_DINERO,
-    {
-      id: "efectivo",
-      ancla: "fin-dinero.efectivo",
-      titulo: "Lo que debería haber",
-      texto: "Por tienda: si la caja está abierta, con cuánto abrió, más las ventas en efectivo, menos los egresos y los depósitos al banco. El resultado es lo que debería haber. El monto lo ve solo quien puede cerrar la caja.",
-    },
-    {
-      id: "diferencias",
-      ancla: "fin-dinero.diferencias",
-      opcional: true,
-      titulo: "Cierres con diferencia",
-      texto: "Los últimos cierres de caja donde lo contado no coincidió con lo que debía haber: si faltó o sobró plata, cuánto y quién cerró. Sirve para conversarlo a tiempo con la tienda.",
-    },
-    REGISTRAR_MOVIMIENTO,
-    {
-      id: "fin",
-      ancla: null,
-      titulo: "¡Listo!",
-      texto: "Ya sabes cuánto efectivo debería haber en cada tienda. Para repasarlo: Mi perfil ▸ Demo ▸ Efectivo por tienda.",
-    },
-  ],
 };
 
 export const GUIA_FIN_POR_PAGAR: Guia = {
@@ -653,13 +632,33 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       texto: "Las facturas de mercadería, de gastos, de activos y de los insumos del Taller que todavía tienen saldo, juntas y ordenadas por cuándo vencen. La planilla no está porque la paga Dynamic. Es una demo: no se paga nada.",
     },
     ...TELAR,
-    VER,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "¿Cuánto debes?",
+      texto: "La cifra grande es todo lo que se debe de la sede que elegiste arriba. Debajo, cuántas facturas son, cuánto ya venció (en rojo) y cuánto vence esta semana.",
+    },
+    ORILLO_DINERO,
     PESTANAS_DINERO,
     {
       id: "cifras",
       ancla: "fin-por-pagar.cifras",
       titulo: "Cuándo vence la deuda",
-      texto: "Lo que ya venció (se paga primero), lo que vence esta semana, la próxima y más adelante, con cuántas facturas hay en cada tramo.",
+      texto: "Lo que ya venció (se paga primero), lo que vence esta semana, la próxima y más adelante, con cuántas facturas hay en cada tramo. Toca una cifra para ver solo esas facturas; tócala otra vez para verlas todas.",
+    },
+    {
+      id: "burbujas",
+      ancla: "fin-por-pagar.burbujas",
+      opcional: true,
+      titulo: "Las deudas en el calendario",
+      texto: "Cada círculo es una factura, del color de su sede y del tamaño de lo que falta pagar, sobre los próximos 30 días. Lo vencido va a la izquierda con borde rojo. Tocar un círculo abre su pago.",
+    },
+    {
+      id: "filtros",
+      ancla: "fin-por-pagar.filtros",
+      opcional: true,
+      titulo: "Buscar y filtrar",
+      texto: "Escribe un proveedor o el número de la factura, o elige el tipo. Cada filtro puesto aparece debajo con su ✕ para quitarlo, y «Limpiar todo» los quita juntos.",
     },
     {
       id: "lista",
@@ -681,6 +680,7 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       titulo: "Pagar varias de un proveedor",
       texto: "Te lleva a Compras ▸ Por pagar, donde juntas varias facturas del mismo proveedor en un solo pago. En la demo no salimos de aquí.",
     },
+    DOCK_DINERO,
     {
       id: "fin",
       ancla: null,
@@ -703,6 +703,12 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       texto: "Cada viernes, el líder anota el saldo que muestra la banca por internet y el sistema dice si coincide con lo que él suma. Así se encuentra a tiempo un depósito que no se registró. Es una demo: no se anota nada.",
     },
     ...TELAR,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "¿Cuánto dicen tus bancos?",
+      texto: "Lo que suma el sistema en los bancos de CAYLA, y cuántas líneas faltan revisar. Los bancos son de CAYLA entera: la sede de arriba no los cambia.",
+    },
     PESTANAS_DINERO,
     {
       id: "vacia",
@@ -722,8 +728,8 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       id: "lineas",
       ancla: "fin-conciliacion.lineas",
       opcional: true,
-      titulo: "Lo que registró el sistema",
-      texto: "Cada entrada y salida de esa cuenta en el período. Con el extracto del banco al lado, marcas «Revisada» cada línea que aparece en los dos. Lo que no encuentres en el banco es lo que hay que aclarar.",
+      titulo: "Lo anotado y el extracto, en pares",
+      texto: "A la izquierda, cada entrada y salida que anotó CAYLA en el período; a la derecha, si está en el extracto del banco. Con «Sí, está» el hilo que los une se vuelve verde. Lo que no encuentres en el banco es lo que hay que aclarar.",
     },
     {
       id: "anotar",
@@ -743,9 +749,10 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       id: "otras",
       ancla: "fin-conciliacion.otras",
       opcional: true,
-      titulo: "Las otras cuentas",
-      texto: "Los demás bancos, con cuándo se conciliaron por última vez y cuántas líneas faltan revisar. «Conciliar» abre esa cuenta.",
+      titulo: "Qué banco cuadrar",
+      texto: "Arriba eliges el banco o la cuenta que vas a cuadrar; el número dice cuántas líneas le faltan revisar. Los bancos son de CAYLA entera, no de una sede.",
     },
+    DOCK_DINERO,
     {
       id: "fin",
       ancla: null,
