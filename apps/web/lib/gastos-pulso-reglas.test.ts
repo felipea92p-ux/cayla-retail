@@ -37,7 +37,7 @@ const egreso = (p: Partial<EgresoPorClasificar> & Pick<EgresoPorClasificar, "id"
 });
 const fijo = (p: Partial<GastoFijoMes> & Pick<GastoFijoMes, "id" | "descripcion" | "estado" | "fechaEsperada">): GastoFijoMes => ({
   ubicacionId: "tru", ubicacionNombre: "Tienda Trujillo", categoria: "alquiler", categoriaNombre: "Alquiler", proveedorId: null, proveedorNombre: null,
-  comprobanteTipo: "factura", monto: 4000, montoVariable: false, diaDelMes: 5, momento: "dia", gastoId: null, gastoMonto: null, ...p,
+  comprobanteTipo: "factura", monto: 4000, montoVariable: false, diaDelMes: 5, momento: "dia", gastoId: null, gastoMonto: null, diasAntes: 0, fechaPago: null, tocaPagar: false, ...p,
 });
 
 describe("bandejaPulso", () => {
@@ -52,7 +52,7 @@ describe("bandejaPulso", () => {
     expect(b.cosas[1]).toMatchObject({ tipo: "egreso", titulo: "Taxi", accion: "Clasificar", monto: 18 });
     expect(b.cosas[1]!.detalle).toBe("Salió del cajón de Tienda Trujillo el 14 oct · al mercado · lo anotó Ana. ¿De qué fue?");
     expect(b.cosas[2]).toMatchObject({ tipo: "fijo", titulo: "Alquiler TRU", accion: "Registrar", monto: 4000 });
-    expect(b.cosas[2]!.detalle).toBe("Alquiler de Tienda Trujillo: se esperaba el 5 oct y todavía no está registrado.");
+    expect(b.cosas[2]!.detalle).toBe("Alquiler de Tienda Trujillo: venció el 5 oct y todavía no está registrado.");
     expect(montoBandeja(b)).toBe("S/ 4,030 entre 3 cosas");
   });
   it("sin nada pendiente, lo dice", () => {

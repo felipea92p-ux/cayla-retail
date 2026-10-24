@@ -1985,7 +1985,7 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.antes",
       opcional: true,
       titulo: "Rondas anteriores",
-      texto: "Lo de tus rondas anteriores espera aquí, cada cosa con su número de ronda: tócalo para verlo.",
+      texto: "Aquí está la plata que te dieron, lo que devolviste en caja y cada ronda que cerraste. Toca una ronda para ver lo que compraste y gastaste en ella.",
     },
     {
       id: "fin",
@@ -2117,7 +2117,14 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.tiendas",
       opcional: true,
       titulo: "A qué tienda va",
-      texto: "La tienda donde se va a vender esta prenda. Llega marcada la de la prenda anterior («Como la anterior»).",
+      texto: "La tienda donde se va a vender. Llega marcada la de la prenda anterior. Una prenda del catálogo puede ir a varias: toca otra tienda y repártela.",
+    },
+    {
+      id: "reparto",
+      ancla: "compra.reparto",
+      opcional: true,
+      titulo: "¿Cuántas a cada una?",
+      texto: "Con dos o más tiendas, el total llega repartido parejo. Corrígelo con − y +: abajo te dice si cuadra con lo que compraste.",
     },
     {
       id: "agregar",

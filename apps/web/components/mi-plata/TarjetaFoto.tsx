@@ -1,15 +1,25 @@
 "use client";
 
+import { useState } from "react";
 import { Camera, Check } from "lucide-react";
+import { objecionArchivo } from "@/lib/adjuntos-compra";
 
 // La foto de un papel (el voucher, la boleta del gasto, el papel de la compra) como una tarjeta punteada de un toque, con su ayuda; lista,
 // con el borde verde y el nombre del archivo (maqueta docs/maquetas/compras-formidable-2026-10/). La usan las hojas de Mi plata y el paso
 // del papel de «Compré ropa»: una sola cara para lo mismo (ADR-0358).
+//
+// `camara` (de fábrica): el celular abre la cámara directo, para fotografiar un papel. Sin ella deja elegir también de la galería: el
+// voucher de un Yape o de una transferencia casi siempre es una captura de pantalla que ya está en el celular, y con la cámara forzada
+// no había cómo adjuntarla.
+//
+// Un archivo que no se puede subir (muy pesado, de otro tipo) se rechaza al elegirlo, con el motivo en la tarjeta: antes se aceptaba y
+// recién al tocar «Anotar» o «Guardar», con todo lo demás ya llenado, decía «No se subió la foto».
 export function TarjetaFoto({
   archivo,
   onArchivo,
   titulo = "Tomar la foto",
   ayuda,
+  camara = true,
   deshabilitada = false,
   guia,
 }: {
@@ -18,9 +28,12 @@ export function TarjetaFoto({
   titulo?: string;
   /** Lo que se lee debajo mientras no hay foto: «Que se lea el total y el número». */
   ayuda: string;
+  /** Abre la cámara directo (un papel); `false` deja elegir de la galería (una captura de pantalla). */
+  camara?: boolean;
   deshabilitada?: boolean;
   guia?: string;
 }) {
+  const [rechazo, setRechazo] = useState<string | null>(null);
   return (
     <label
       data-guia={guia}
@@ -33,17 +46,28 @@ export function TarjetaFoto({
       </span>
       <span className="min-w-0">
         <span className="block truncate font-medium text-tinta">{archivo ? `Lista: ${archivo.name}` : titulo}</span>
-        <span className="block text-xs text-taupe">{archivo ? "Toca para cambiarla" : ayuda}</span>
+        {rechazo ? (
+          <span className="block text-xs text-rojo-profundo" role="alert">
+            {rechazo} Elige otra.
+          </span>
+        ) : (
+          <span className="block text-xs text-taupe">{archivo ? "Toca para cambiarla" : ayuda}</span>
+        )}
       </span>
       <input
         type="file"
         accept="image/*,application/pdf"
-        capture="environment"
+        capture={camara ? "environment" : undefined}
         className="sr-only"
         disabled={deshabilitada}
         onChange={(e) => {
-          onArchivo(e.target.files?.[0] ?? null);
+          const f = e.target.files?.[0] ?? null;
           e.target.value = "";
+          // Cancelar el selector no borra la foto que ya estaba.
+          if (!f) return;
+          const motivo = objecionArchivo(f);
+          setRechazo(motivo);
+          if (!motivo) onArchivo(f);
         }}
       />
     </label>

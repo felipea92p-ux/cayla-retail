@@ -28,7 +28,9 @@ import {
   AYUDA_MOMENTO_FIJO,
   MOMENTOS_FIJO,
   TEXTO_MOMENTO_FIJO,
-  textoCuandoLlega,
+  textoCuandoVence,
+  textoDiasAntes,
+  textoPagarDesde,
   textoColumnaCuando,
   validarGasto,
   leerGasto,
@@ -323,6 +325,7 @@ describe("F2b: gastos fijos", () => {
     id: "f1", ubicacionId: "tru", ubicacionNombre: "Tienda Trujillo", categoria: "servicios_basicos", categoriaNombre: "Servicios básicos",
     descripcion: "Luz", proveedorId: "p1", proveedorNombre: "Hidrandina", comprobanteTipo: "boleta" as const, monto: 180, montoVariable: true,
     diaDelMes: 10, momento: "dia" as const, fechaEsperada: "2026-09-10", estado: "falta" as const, gastoId: null, gastoMonto: null,
+    diasAntes: 0, fechaPago: "2026-09-10", tocaPagar: false,
   };
   it("un gasto que nace de un fijo trae su tienda, categoría, proveedor y comprobante; si el monto varía, no lo inventa", () => {
     expect(borradorDesdeFijo(fijo, HOY)).toEqual({ gastoFijoId: "f1", ubicacion: "tru", categoria: "servicios_basicos", descripcion: "Luz", comprobante: "boleta", proveedorId: "p1", monto: "", fecha: "2026-09-10" });
@@ -339,14 +342,14 @@ describe("F2b: gastos fijos", () => {
     expect(resumenFijos([fijo, vienen, listo])).toEqual({ faltan: 1, vienen: 1, registrados: 1, montoPendiente: 2680 });
   });
   it("el día va del 1 al 28 y el monto es obligatorio", () => {
-    const b = { ubicacion: "tru", categoria: "alquileres", descripcion: "Alquiler", proveedorId: "", comprobante: "factura" as const, monto: "2500", variable: false, dia: "1", momento: "dia" as const };
+    const b = { ubicacion: "tru", categoria: "alquileres", descripcion: "Alquiler", proveedorId: "", comprobante: "factura" as const, monto: "2500", variable: false, dia: "1", momento: "dia" as const, diasAntes: null };
     expect(validarFijo(b).ok && validarFijo(b)).toMatchObject({ valor: { p_ubicacion_id: "tru", p_proveedor_id: null, p_dia_del_mes: 1, p_monto: 2500 } });
     expect(validarFijo({ ...b, dia: "31" }).ok).toBe(false);
     expect(validarFijo({ ...b, monto: "" }).ok).toBe(false);
     expect(validarFijo({ ...b, ubicacion: "empresa" }).ok && validarFijo({ ...b, ubicacion: "empresa" })).toMatchObject({ valor: { p_ubicacion_id: null } });
   });
-  it("cuándo llega (ADR-0440): un día fijo no manda p_momento; los otros tres mandan su momento y su día de respaldo", () => {
-    const b = { ubicacion: "tru", categoria: "alquileres", descripcion: "Alquiler", proveedorId: "", comprobante: "factura" as const, monto: "2500", variable: false, dia: "", momento: "dia" as const };
+  it("cuándo vence (ADR-0440, ADR-0487): un día fijo no manda p_momento; los otros tres mandan su momento y su día de respaldo", () => {
+    const b = { ubicacion: "tru", categoria: "alquileres", descripcion: "Alquiler", proveedorId: "", comprobante: "factura" as const, monto: "2500", variable: false, dia: "", momento: "dia" as const, diasAntes: null };
     expect(validarFijo(b).ok).toBe(false); // «un día fijo» sin día
     const conDia = validarFijo({ ...b, dia: "12" });
     expect(conDia.ok && "p_momento" in conDia.valor).toBe(false);
@@ -358,8 +361,9 @@ describe("F2b: gastos fijos", () => {
   });
   it("cada momento tiene su texto y su ayuda", () => {
     for (const m of MOMENTOS_FIJO) expect(TEXTO_MOMENTO_FIJO[m]).toBeTruthy();
-    expect(AYUDA_MOMENTO_FIJO.dia).toBeUndefined();
+    for (const m of MOMENTOS_FIJO) expect(AYUDA_MOMENTO_FIJO[m]).toMatch(/vence|Vence/);
     expect(AYUDA_MOMENTO_FIJO.fin_de_mes).toContain("28, 29, 30 o 31");
+    expect(AYUDA_MOMENTO_FIJO.quincena).toContain("no si no sabes el día");
   });
   it("lee el momento de la base y, sin la columna o con un valor raro, cuenta como un día fijo", () => {
     const fila = { id: "f1", categoria: "alquileres", categoria_nombre: "Alquileres", descripcion: "Alquiler", comprobante_tipo: "factura", monto: "2500", dia_del_mes: 28, fecha_esperada: "2026-09-30", estado: "por_llegar" };
@@ -367,13 +371,44 @@ describe("F2b: gastos fijos", () => {
     expect(leerFijoMes(fila).momento).toBe("dia");
     expect(leerFijoMes({ ...fila, momento: "el_30" }).momento).toBe("dia");
   });
-  it("dice cuándo llega con palabras de tienda", () => {
-    expect(textoCuandoLlega("dia", 10)).toBe("el día 10");
-    expect(textoCuandoLlega("primera_semana", 7)).toBe("la primera semana");
-    expect(textoCuandoLlega("quincena", 15)).toBe("la quincena");
-    expect(textoCuandoLlega("fin_de_mes", 28)).toBe("a fin de mes");
+  it("dice cuándo vence con palabras de tienda", () => {
+    expect(textoCuandoVence("dia", 10)).toBe("el día 10");
+    expect(textoCuandoVence("primera_semana", 7)).toBe("la primera semana");
+    expect(textoCuandoVence("quincena", 15)).toBe("la quincena");
+    expect(textoCuandoVence("fin_de_mes", 28)).toBe("a fin de mes");
     expect(textoColumnaCuando("dia", 10)).toBe("10");
     expect(textoColumnaCuando("fin_de_mes", 28)).toBe("Fin de mes");
+  });
+  it("pagar antes (ADR-0487): sin la columna en la base no se manda; con ella siempre va explícito, también el 0", () => {
+    const b = { ubicacion: "tru", categoria: "luz", descripcion: "Luz", proveedorId: "", comprobante: "boleta" as const, monto: "180", variable: true, dia: "12", momento: "dia" as const };
+    const sin = validarFijo({ ...b, diasAntes: null });
+    expect(sin.ok && "p_dias_antes" in sin.valor).toBe(false);
+    expect(validarFijo({ ...b, diasAntes: "3" })).toMatchObject({ ok: true, valor: { p_dias_antes: 3 } });
+    expect(validarFijo({ ...b, diasAntes: "0" })).toMatchObject({ ok: true, valor: { p_dias_antes: 0 } });
+    expect(validarFijo({ ...b, diasAntes: "  " })).toMatchObject({ ok: true, valor: { p_dias_antes: 0 } }); // vacío = el mismo día
+    expect(validarFijo({ ...b, diasAntes: "30" })).toMatchObject({ ok: true, valor: { p_dias_antes: 30 } });
+  });
+  it("pagar antes: más de 30, negativo o con decimales se rechaza con su razón (el mismo tope que la base)", () => {
+    const b = { ubicacion: "tru", categoria: "luz", descripcion: "Luz", proveedorId: "", comprobante: "boleta" as const, monto: "180", variable: true, dia: "12", momento: "dia" as const };
+    for (const malo of ["31", "45", "-1", "2.5", "tres"]) expect(validarFijo({ ...b, diasAntes: malo }), malo).toMatchObject({ ok: false, error: expect.stringContaining("de 0 a 30") });
+  });
+  it("dice cuánto antes se paga y desde cuándo, sin hacer la cuenta a la persona", () => {
+    expect(textoDiasAntes(0)).toBe("el mismo día");
+    expect(textoDiasAntes(1)).toBe("1 día antes");
+    expect(textoDiasAntes(3)).toBe("3 días antes");
+    expect(textoPagarDesde("dia", 15, 3)).toBe("desde el día 12");
+    expect(textoPagarDesde("quincena", 15, 3)).toBe("desde el día 12");
+    expect(textoPagarDesde("primera_semana", 7, 3)).toBe("desde el día 4");
+    expect(textoPagarDesde("fin_de_mes", 28, 3)).toBe("3 días antes de fin de mes");
+    expect(textoPagarDesde("dia", 2, 5)).toBe("desde fines del mes anterior");
+    expect(textoPagarDesde("dia", 15, 0)).toBeNull();
+    expect(textoPagarDesde("dia", Number.NaN, 3)).toBeNull(); // «un día fijo» todavía sin día escrito
+  });
+  it("lee «pagar antes» de la base y, sin la columna, queda en null (el campo no se pide)", () => {
+    const fila = { id: "f1", categoria: "luz", categoria_nombre: "Luz", descripcion: "Luz", comprobante_tipo: "boleta", monto: "180", dia_del_mes: 15, momento: "quincena", fecha_esperada: "2026-10-15", estado: "por_llegar" };
+    expect(leerFijoMes(fila)).toMatchObject({ diasAntes: null, fechaPago: null, tocaPagar: false });
+    expect(leerFijoMes({ ...fila, dias_antes: 3, fecha_pago: "2026-10-12", toca_pagar: true })).toMatchObject({ diasAntes: 3, fechaPago: "2026-10-12", tocaPagar: true });
+    expect(leerFijoMes({ ...fila, dias_antes: 0, fecha_pago: "2026-10-15", toca_pagar: false })).toMatchObject({ diasAntes: 0, tocaPagar: false });
   });
 });
 

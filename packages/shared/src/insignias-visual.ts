@@ -82,6 +82,72 @@ export function iconoDeInsignia(nombre: string): IconoInsignia | null {
   return null;
 }
 
+/** Un dibujo que se puede elegir: cada familia o `generico` (la etiqueta). Es lo que guarda `etiquetas.icono` (ADR-0490). */
+export type DibujoDeInsignia = IconoInsignia | "generico";
+
+/** Los dibujos que se ofrecen al elegir, en este orden (lo de la tienda y la rotación primero, después las fechas del año, al final la
+ *  etiqueta sin más). Es total y sin repetidos: `lib/insignias-dibujos.test.ts` (tienda) lo exige contra `DIBUJOS_DE_INSIGNIA`. */
+export const DIBUJOS_ELEGIBLES: readonly DibujoDeInsignia[] = [
+  "nuevo",
+  "ultimas",
+  "top",
+  "liquidar",
+  "reedicion",
+  "manual",
+  "unica",
+  "aniversario",
+  "navidad",
+  "halloween",
+  "valentin",
+  "galentine",
+  "madre",
+  "mujer",
+  "patrias",
+  "blackfriday",
+  "cyberwow",
+  "gato",
+  "perro",
+  "tierra",
+  "generico",
+];
+
+/** Cómo se llama cada dibujo cuando se elige («Calabaza», «Pastel»): una palabra o dos, lo que la persona ve en la lista. */
+export const NOMBRE_DEL_DIBUJO: Readonly<Record<DibujoDeInsignia, string>> = {
+  nuevo: "Destello",
+  ultimas: "Reloj de arena",
+  top: "Podio",
+  liquidar: "Etiqueta con %",
+  manual: "Aguja",
+  unica: "Gema",
+  reedicion: "Flechas",
+  valentin: "Corazón",
+  galentine: "Dos corazones",
+  madre: "Tulipán",
+  mujer: "Venus",
+  halloween: "Calabaza",
+  navidad: "Árbol",
+  patrias: "Bandera",
+  blackfriday: "Etiqueta negra",
+  cyberwow: "Rayo",
+  aniversario: "Pastel",
+  gato: "Gato",
+  perro: "Huella",
+  tierra: "Planeta",
+  generico: "Etiqueta",
+};
+
+/** El dibujo que guardó una insignia (`etiquetas.icono`), o `null` si no eligió ninguno o la clave ya no existe: un dato raro nunca rompe
+ *  nada, la insignia se dibuja por su nombre. */
+export function dibujoElegido(valor: unknown): DibujoDeInsignia | null {
+  return typeof valor === "string" && Object.hasOwn(DIBUJOS_DE_INSIGNIA, valor) ? (valor as DibujoDeInsignia) : null;
+}
+
+/** El dibujo con que se ve una insignia: el que se eligió al crearla; si no eligió o ya no existe, el de su nombre; si el nombre no se reconoce,
+ *  la etiqueta. UNA sola regla para el ERP y la tienda. */
+export function dibujoDeInsignia(insignia: { nombre: string; icono?: string | null }): DibujoDeInsignia {
+  return dibujoElegido(insignia.icono) ?? iconoDeInsignia(insignia.nombre) ?? "generico";
+}
+
 /** Los colores con nombre de un dibujo: quien lo pinta los resuelve a lo que le toca en su marco. */
 export type ColorDeInsignia = "$acento" | "$hueco" | "$tinta";
 

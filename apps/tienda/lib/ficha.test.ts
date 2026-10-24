@@ -8,7 +8,8 @@ import {
   chipsDelCatalogo,
   colorInicial,
   combinaCon,
-  dibujoDeLaInsignia,
+  dibujoDeLaCampana,
+  imagenDeLaCampana,
   esIdDePrenda,
   faltaParaTerminar,
   fotosDelColor,
@@ -25,6 +26,7 @@ import {
   tallasRapidas,
   type Ficha,
 } from "./ficha";
+import { dibujoDeLaInsignia } from "./insignias";
 import type { Look } from "./looks";
 import { PLAZOS_SIN_DATOS } from "./ayuda";
 
@@ -222,10 +224,12 @@ describe("los chips que salen del catálogo (actividad 5)", () => {
 describe("las insignias de Catálogo ▸ Insignias en la ficha (ADR-0489)", () => {
   const HALLOWEEN = { id: "7b7b7b7b-1111-4222-8333-444444444441", nombre: "Halloween" };
   const REEDICION = { id: "7b7b7b7b-1111-4222-8333-444444444442", nombre: "Reedición" };
+  // Lo que la ficha entrega de cada una: sin dibujo elegido ni descuento (la base vieja, o una que no los tiene), «según el nombre».
+  const COMPLETAS = (i: { id: string; nombre: string }) => ({ ...i, icono: null, imagen: null, descuento: false });
   const conInsignias = (insignias: unknown) => interpretarFicha({ ...BASE, prenda: { ...BASE.prenda, insignias } }) as Ficha;
 
   it("la ficha las lee en el orden que manda la base; sin el campo, sin insignias y sin error", () => {
-    expect(conInsignias([HALLOWEEN, REEDICION]).insignias).toEqual([HALLOWEEN, REEDICION]);
+    expect(conInsignias([HALLOWEEN, REEDICION]).insignias).toEqual([COMPLETAS(HALLOWEEN), COMPLETAS(REEDICION)]);
     expect(ficha.insignias).toEqual([]);
     expect(conInsignias(undefined).insignias).toEqual([]);
     expect(conInsignias("raro").insignias).toEqual([]);
@@ -233,7 +237,7 @@ describe("las insignias de Catálogo ▸ Insignias en la ficha (ADR-0489)", () =
 
   it("una insignia con un dato raro o repetida se deja fuera; las demás se ven (y la ficha no se cae)", () => {
     const f = conInsignias([HALLOWEEN, { id: "no-es-uuid", nombre: "Rota" }, { id: REEDICION.id, nombre: "   " }, 7, null, HALLOWEEN, REEDICION]);
-    expect(f.insignias).toEqual([HALLOWEEN, REEDICION]);
+    expect(f.insignias).toEqual([COMPLETAS(HALLOWEEN), COMPLETAS(REEDICION)]);
     expect(f.nombre).toBe("Blusa Emma");
   });
 
@@ -267,14 +271,68 @@ describe("las insignias de Catálogo ▸ Insignias en la ficha (ADR-0489)", () =
     expect(chipsDelCatalogo({ nuevo: null, vendidos: null }, [top])).toEqual([{ texto: "TOP  Ventas", tono: "insignia", icono: "top" }]);
   });
 
-  it("cada insignia lleva su dibujo, el mismo que le da el ERP por su nombre (la calabaza, el pastel…); si no se reconoce, el de una etiqueta", () => {
-    expect(dibujoDeLaInsignia("Halloween")).toBe("halloween");
-    expect(dibujoDeLaInsignia("Aniversario CAYLA")).toBe("aniversario");
-    expect(dibujoDeLaInsignia("Día Internacional del Gato")).toBe("gato");
-    expect(dibujoDeLaInsignia("  HALLOWEEN  ")).toBe("halloween");
-    expect(dibujoDeLaInsignia("Estreno")).toBe("generico");
-    const raras = chipsDelCatalogo(null, [{ nombre: "Estreno" }]);
-    expect(raras).toEqual([{ texto: "Estreno", tono: "insignia", icono: "generico" }]);
+  it("cada insignia lleva su dibujo: el que se eligió al crearla manda; si no, el de su nombre (el mismo que le da el ERP); si no se reconoce, una etiqueta", () => {
+    const sin = (nombre: string) => chipsDelCatalogo(null, [{ nombre }])[0].icono;
+    expect(sin("Halloween")).toBe("halloween");
+    expect(sin("Aniversario CAYLA")).toBe("aniversario");
+    expect(sin("Día Internacional del Gato")).toBe("gato");
+    expect(sin("  HALLOWEEN  ")).toBe("halloween");
+    expect(sin("Estreno")).toBe("generico");
+    // El elegido manda sobre el nombre: «Día del Padre» con el pastel; «Halloween» con el gato; y una clave desconocida cae al nombre.
+    expect(chipsDelCatalogo(null, [{ nombre: "Día del Padre", icono: "aniversario" }])[0].icono).toBe("aniversario");
+    expect(chipsDelCatalogo(null, [{ nombre: "Halloween", icono: "gato" }])[0].icono).toBe("gato");
+    expect(chipsDelCatalogo(null, [{ nombre: "Estreno", icono: "generico" }])[0].icono).toBe("generico");
+  });
+
+  it("la ficha lee el dibujo elegido: una clave que no existe, o ninguna, o un dato raro, es «según el nombre» y nunca rompe", () => {
+    const f = conInsignias([
+      { ...HALLOWEEN, icono: "gato" },
+      { ...REEDICION, icono: "ya-no-existe" },
+      { id: "7b7b7b7b-1111-4222-8333-444444444447", nombre: "Estreno", icono: 7 },
+      { id: "7b7b7b7b-1111-4222-8333-444444444448", nombre: "Sin campo" },
+    ]);
+    expect(f.insignias.map((i) => i.icono)).toEqual(["gato", null, null, null]);
+    expect(chipsDelCatalogo(null, f.insignias).map((c) => c.icono)).toEqual(["gato", "reedicion", "generico", "generico"]);
+  });
+
+  it("una insignia con descuento no se dibuja aparte, pero su dibujo elegido lo toma el chip del descuento (el mismo que muestra el ERP)", () => {
+    const ANIV = { id: "7b7b7b7b-1111-4222-8333-444444444449", nombre: "Día del Padre", icono: "aniversario", descuento: true };
+    const f = conInsignias([HALLOWEEN, ANIV]);
+    expect(f.insignias.map((i) => i.descuento)).toEqual([false, true]);
+    expect(chipsDelCatalogo(null, f.insignias).map((c) => c.texto)).toEqual(["Halloween"]);
+    const campana = { id: ANIV.id, nombre: "Día del Padre", pct: 25, hasta: null };
+    expect(dibujoDeLaCampana(f, campana)).toBe("aniversario");
+    // Sin dibujo elegido, el de su nombre; y si la lista no la trae (base vieja, campaña sin id), también.
+    expect(dibujoDeLaCampana(conInsignias([{ ...ANIV, icono: null }]), campana)).toBe("generico");
+    expect(dibujoDeLaCampana(conInsignias([]), { id: ANIV.id, nombre: "Aniversario CAYLA", pct: 20, hasta: null })).toBe("aniversario");
+    expect(dibujoDeLaCampana(conInsignias([ANIV]), { nombre: "Navidad", pct: 10, hasta: null })).toBe("navidad");
+  });
+
+  it("la ficha lee la imagen propia (ADR-0490): solo una ruta con la forma que el ERP sube; cualquier otra cosa es «sin imagen» y nunca rompe", () => {
+    const RUTA = "insignias/7b7b7b7b-1111-4222-8333-444444444441/0a0a0a0a-2222-4333-8444-555555555555.webp";
+    const f = conInsignias([
+      { ...HALLOWEEN, imagen: RUTA },
+      { ...REEDICION, imagen: "https://otro.com/x.png" },
+      { id: "7b7b7b7b-1111-4222-8333-444444444447", nombre: "Estreno", imagen: "insignias/../x.webp" },
+      { id: "7b7b7b7b-1111-4222-8333-444444444448", nombre: "Sin campo", imagen: 7 },
+    ]);
+    expect(f.insignias.map((i) => i.imagen)).toEqual([RUTA, null, null, null]);
+    // El chip lleva la ruta de su imagen (y conserva su dibujo por si la dirección no se arma); sin imagen no trae el campo.
+    const chips = chipsDelCatalogo(null, f.insignias);
+    expect(chips[0]).toEqual({ texto: "Halloween", tono: "insignia", icono: "halloween", imagen: RUTA });
+    expect(chips[1]).toEqual({ texto: "Reedición", tono: "insignia", icono: "reedicion" });
+    expect("imagen" in chips[1]).toBe(false);
+  });
+
+  it("el chip del descuento toma la imagen propia de ESA campaña", () => {
+    const RUTA = "insignias/7b7b7b7b-1111-4222-8333-444444444449/0a0a0a0a-2222-4333-8444-555555555555.webp";
+    const ANIV = { id: "7b7b7b7b-1111-4222-8333-444444444449", nombre: "Día del Padre", icono: null, imagen: RUTA, descuento: true };
+    const f = conInsignias([ANIV]);
+    const campana = { id: ANIV.id, nombre: "Día del Padre", pct: 25, hasta: null };
+    expect(imagenDeLaCampana(f, campana)).toBe(RUTA);
+    expect(imagenDeLaCampana(f, { nombre: "Navidad", pct: 10, hasta: null })).toBeNull();
+    expect(imagenDeLaCampana(conInsignias([]), campana)).toBeNull();
+    expect(chipsDelCatalogo(null, f.insignias)).toEqual([]);
   });
 
   it("una insignia que solo se parece a «Nuevo» (otro nombre) se ve siempre", () => {

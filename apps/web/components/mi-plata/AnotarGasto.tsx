@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { firmaOmitida } from "@/lib/responsable-omitido";
@@ -62,6 +63,11 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
 
   const guia = useGuiaCampos(camposGasto({ concepto, nota, monto, conFoto: archivo !== null }));
   const montoLeido = leerMontoPlata(monto);
+  // En el celular la hoja se baja con el dedo (ADR-0479): un tirón sin querer, o el gesto «atrás», borraba lo llenado sin avisar.
+  const salida = useSalidaSinGuardar(
+    concepto !== null || nota.trim() !== "" || monto.trim() !== "" || archivo !== null,
+    "Llenaste parte de este gasto y todavía no se anotó. Si cierras ahora, se pierde lo que llenaste.",
+  );
 
   const limpiar = <T,>(f: (v: T) => void) => (v: T) => {
     setRechazo(null);
@@ -103,8 +109,9 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
       );
     }
     avisar.exito(`Anotaste ${soles(montoLeido ?? 0)}`, { detalle: "Ya bajó de tu plata. Compras lo revisa." });
+    // La guardia del «atrás» se retira antes de refrescar: los dos a la vez pueden recargar la página entera (useSalidaSinGuardar).
+    void salida.retirarYa().then(() => router.refresh());
     onClose();
-    router.refresh();
   }
 
   return (
@@ -115,6 +122,7 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
       variante="hoja"
       alCerrarEnfocar={volverA}
       bloqueado={guardando}
+      antesDeCerrar={salida.pedirAccion}
     >
       {(cerrar) => (
         <form
@@ -189,7 +197,7 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
           )}
           <PieGuia guia={guia} listo="Todo listo para anotar." conFrase />
           <div className="pie-hoja-fijo pie-acciones pt-1">
-            <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
+            <Boton type="button" peso="fantasma" onClick={() => salida.pedirAccion(cerrar)} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton
@@ -204,6 +212,7 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
               {fraseGasto(montoLeido)}
             </Boton>
           </div>
+          {salida.aviso}
         </form>
       )}
     </Modal>
