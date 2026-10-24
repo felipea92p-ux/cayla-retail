@@ -28,6 +28,8 @@ export type SugerenciaFicha = {
   vencePrimero: boolean;
   /** Formas de pago que no calzan con la categoría y no se ofrecen. */
   formasOcultas: readonly FormaDePago[];
+  /** Cuántos días antes de que venza conviene pagarlo (ADR-0487): 3 en los recibos de servicios. Sin el campo, 0 (se paga el día que vence). */
+  diasAntes?: number;
 };
 
 // Lo de siempre, sin ninguna promesa: es lo que ve una categoría desconocida y lo que decía la ficha antes de esta regla.
@@ -72,6 +74,7 @@ export const SUGERENCIAS_POR_CATEGORIA: Record<string, SugerenciaFicha> = {
     vence: null,
     vencePrimero: false,
     formasOcultas: [],
+    diasAntes: 3,
   },
   agua: {
     tituloBeneficiario: "Empresa de agua",
@@ -84,6 +87,7 @@ export const SUGERENCIAS_POR_CATEGORIA: Record<string, SugerenciaFicha> = {
     vence: null,
     vencePrimero: false,
     formasOcultas: [],
+    diasAntes: 3,
   },
   // Internet y telefonía sí pueden tener contrato con permanencia: la fecha es opcional y la ayuda dice cuándo hace falta.
   internet: {
@@ -97,6 +101,7 @@ export const SUGERENCIAS_POR_CATEGORIA: Record<string, SugerenciaFicha> = {
     vence: { titulo: "Vence el contrato", ayuda: "Solo si tu plan tiene permanencia." },
     vencePrimero: false,
     formasOcultas: [],
+    diasAntes: 3,
   },
   telefonia: {
     tituloBeneficiario: "Operadora",
@@ -109,6 +114,7 @@ export const SUGERENCIAS_POR_CATEGORIA: Record<string, SugerenciaFicha> = {
     vence: { titulo: "Vence el contrato", ayuda: "Solo si tu plan tiene permanencia." },
     vencePrimero: false,
     formasOcultas: [],
+    diasAntes: 3,
   },
   // Software y suscripciones (Adobe, Google Workspace, ChatGPT, el dominio web, Shopify): se cobra a una tarjeta, llega una factura por correo y
   // lo que más sirve es saber cuándo se renueva. Nunca se pide la clave de acceso.
@@ -249,4 +255,9 @@ export function pideVence(s: SugerenciaFicha, contratoVence: string): boolean {
 /** Las formas de pago que se ofrecen: las de la categoría, más la que la ficha ya tiene aunque no calce. */
 export function formasParaElegir(s: SugerenciaFicha, todas: readonly FormaDePago[], elegida: FormaDePago | ""): FormaDePago[] {
   return todas.filter((f) => !s.formasOcultas.includes(f) || f === elegida);
+}
+
+/** Cuántos días antes de que venza se sugiere pagar la categoría elegida (`""` o desconocida = 0: el mismo día). */
+export function diasAntesSugeridos(categoria: string): number {
+  return sugerirFicha(categoria).diasAntes ?? 0;
 }

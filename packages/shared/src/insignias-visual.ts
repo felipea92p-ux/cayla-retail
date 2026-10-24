@@ -28,6 +28,7 @@ export type IconoInsignia =
   | "mujer"
   | "halloween"
   | "navidad"
+  | "findeano"
   | "patrias"
   | "blackfriday"
   | "cyberwow"
@@ -62,6 +63,7 @@ const REGLAS: ReadonlyArray<readonly [IconoInsignia, RegExp]> = [
   ["patrias", /\b(fiestas patrias|patrias|independencia)\b/],
   ["halloween", /\b(halloween|noche de brujas)\b/],
   ["navidad", /\b(navidad|navideno|navidena)\b/],
+  ["findeano", /\b(fin de ano|ano nuevo|nochevieja|noche vieja)\b/],
   ["ultimas", /\bultimas?\b/],
   ["top", /\b(top ventas|mas vendid[oa]s?|best ?seller)\b/],
   ["liquidar", /\b(liquidar|liquidacion|outlet|rebaja|remate)\b/],
@@ -95,6 +97,7 @@ export const DIBUJOS_ELEGIBLES: readonly DibujoDeInsignia[] = [
   "unica",
   "aniversario",
   "navidad",
+  "findeano",
   "halloween",
   "valentin",
   "galentine",
@@ -124,6 +127,7 @@ export const NOMBRE_DEL_DIBUJO: Readonly<Record<DibujoDeInsignia, string>> = {
   mujer: "Venus",
   halloween: "Calabaza",
   navidad: "Árbol",
+  findeano: "Brindis",
   patrias: "Bandera",
   blackfriday: "Etiqueta negra",
   cyberwow: "Rayo",
@@ -277,6 +281,21 @@ export const DIBUJOS_DE_INSIGNIA: Readonly<Record<IconoInsignia | "generico", re
     path({ d: "M0 -10 L-7 -1 H7 Z M0 -5 L-9 5 H9 Z M0 0 L-11 10 H11 Z", fill: A }),
     rect({ x: -2, y: 10, width: 4, height: 3.5, fill: A, opacity: 0.6 }),
     path({ d: "M0 -14 Q0.6 -12.4 2.2 -12 Q0.6 -11.6 0 -10 Q-0.6 -11.6 -2.2 -12 Q-0.6 -12.4 0 -14 Z", fill: A }),
+  ],
+
+  // Dos copas de brindis que se inclinan una hacia la otra, con una chispa arriba.
+  findeano: [
+    g({ transform: "translate(-6 1) rotate(16)" }, [
+      path({ d: "M-2.9 -5 H2.9 L2.6 -1 Q0 1.2 -2.6 -1 Z", fill: A, opacity: 0.45 }),
+      path({ d: "M-3.2 -10 H3.2 L2.6 -1 Q0 1.2 -2.6 -1 Z", stroke: A, strokeWidth: 1.6, strokeLinejoin: "round", fill: "none" }),
+      path({ d: "M0 1 V9 M-3.5 9.5 H3.5", stroke: A, strokeWidth: 1.6, strokeLinecap: "round", fill: "none" }),
+    ]),
+    g({ transform: "translate(6 1) rotate(-16)" }, [
+      path({ d: "M-2.9 -5 H2.9 L2.6 -1 Q0 1.2 -2.6 -1 Z", fill: A, opacity: 0.45 }),
+      path({ d: "M-3.2 -10 H3.2 L2.6 -1 Q0 1.2 -2.6 -1 Z", stroke: A, strokeWidth: 1.6, strokeLinejoin: "round", fill: "none" }),
+      path({ d: "M0 1 V9 M-3.5 9.5 H3.5", stroke: A, strokeWidth: 1.6, strokeLinecap: "round", fill: "none" }),
+    ]),
+    path({ d: "M0 -14 Q0.6 -12 2.4 -11.4 Q0.6 -10.8 0 -9 Q-0.6 -10.8 -2.4 -11.4 Q-0.6 -12 0 -14 Z", fill: A }),
   ],
 
   // Bandera en tres franjas verticales. Sin rojo: franjas del acento del grupo y el hueco al centro.
