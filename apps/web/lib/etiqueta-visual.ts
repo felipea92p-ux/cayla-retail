@@ -37,6 +37,7 @@ const ROTULOS: Record<IconoEtiqueta, string> = {
   mujer: "Día mujer",
   halloween: "Halloween",
   navidad: "Navidad",
+  findeano: "Fin de año",
   patrias: "Patrias",
   blackfriday: "Black Friday",
   cyberwow: "CyberWow",
