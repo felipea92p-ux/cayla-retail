@@ -29,6 +29,21 @@
     animation: cayla-linea-aparece 300ms var(--ease-cayla) 1000ms backwards; }
   .linea-cifra-chica { font-size: 10.5px; font-weight: 600; fill: var(--color-tinta); font-variant-numeric: tabular-nums; }
   .linea-guia { stroke: color-mix(in srgb, var(--color-rojo) 55%, transparent); stroke-width: 1.5; }
+  /* Los números que se tocan (`marcas`): entran con los puntos, el elegido se llena de tinta. */
+  .linea-marca { cursor: pointer; outline: none; animation: cayla-linea-aparece 300ms var(--ease-cayla) backwards; animation-delay: calc(700ms + var(--i, 0) * 120ms); }
+  .linea-marca-toque { fill: transparent; }
+  .linea-marca-fondo { fill: var(--color-papel); stroke: var(--color-tinta); stroke-width: 2; transition: fill 200ms var(--ease-cayla); }
+  .linea-marca-n { font-size: 11.5px; font-weight: 700; fill: var(--color-tinta); font-variant-numeric: tabular-nums; pointer-events: none; transition: fill 200ms var(--ease-cayla); }
+  .linea-marca-texto { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
+  .linea-marca-sube .linea-marca-texto { fill: var(--color-ambar); }
+  .linea-marca-baja .linea-marca-texto { fill: var(--color-verde); }
+  .linea-marca-neutro .linea-marca-texto { fill: var(--color-taupe-profundo); }
+  .linea-marca-activa .linea-marca-fondo, .linea-marca:focus-visible .linea-marca-fondo { fill: var(--color-tinta); }
+  .linea-marca-activa .linea-marca-n, .linea-marca:focus-visible .linea-marca-n { fill: var(--color-papel); }
+  .linea-marca:focus-visible .linea-marca-fondo { stroke: var(--color-rojo); }
+  @media (hover: hover) {
+    .linea-marca:hover .linea-marca-fondo { stroke-width: 2.5; }
+  }
   .linea-globo, .barra-t-globo {
     position: absolute; z-index: 10; padding: 6px 10px; border-radius: 10px; white-space: nowrap; pointer-events: none;
     background: var(--color-tinta); color: var(--color-crema); font-size: 12px; line-height: 1.4; font-variant-numeric: tabular-nums;
@@ -85,5 +100,5 @@
 @keyframes cayla-barras-crece { from { transform: scaleY(0); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .linea-area, .linea-trazo, .linea-punto-fin, .linea-punto, .linea-cifra, .linea-globo, .barra-t-relleno, .barra-t-encima, .barra-t-globo { animation: none; transition: none; }
+  .linea-area, .linea-trazo, .linea-punto-fin, .linea-punto, .linea-marca, .linea-cifra, .linea-globo, .barra-t-relleno, .barra-t-encima, .barra-t-globo { animation: none; transition: none; }
 }

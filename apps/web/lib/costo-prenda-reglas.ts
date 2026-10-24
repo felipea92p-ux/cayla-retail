@@ -121,3 +121,73 @@ export function diaCorto(instante: string): string {
   if (!dia) return "—";
   return `${Number(dia.slice(8, 10))} ${MESES[Number(dia.slice(5, 7)) - 1]}`;
 }
+
+export type GraficoCosto = {
+  /** Los escalones: dónde empieza, cada compra y hoy. */
+  puntos: { x: number; y: number }[];
+  /** Un número por compra, en la esquina de su escalón. */
+  marcas: { x: number; y: number; n: number; movida: Movida; fecha: string }[];
+  desde: number;
+  hasta: number;
+  minY: number;
+  maxY: number;
+  /** Las fechas bajo el gráfico; «hoy» va fuerte. */
+  fechas: { x: number; texto: string; fuerte?: boolean }[];
+};
+
+/**
+ * Los datos del gráfico de escalera. Empieza en el costo que había antes de la primera compra (si había prendas) o en la primera
+ * compra; cada compra es un escalón con su número; termina hoy en lo que cuesta hoy. El eje y deja aire arriba y abajo para que un
+ * cambio de céntimos se vea, sin exagerarlo. `null` si no hay compras.
+ */
+export function graficoDelCosto(c: CostoPrenda, ahora: number): GraficoCosto | null {
+  if (c.compras.length === 0) return null;
+  const r = respuestaCosto(c);
+  const t = (iso: string) => Date.parse(iso);
+  const primera = c.compras[0]!;
+  const conAntes = primera.yaHabia > 0 && primera.costoAntes !== null;
+  // Si había prendas antes de la primera compra, la línea arranca cuando nació la prenda (o un poco antes de la compra, si no se sabe).
+  const inicio = conAntes ? Math.min(c.inicio.fecha ? t(c.inicio.fecha) : t(primera.fecha), t(primera.fecha) - 86_400_000) : t(primera.fecha);
+  const puntos = [
+    ...(conAntes ? [{ x: inicio, y: primera.costoAntes! }] : []),
+    ...c.compras.map((x) => ({ x: t(x.fecha), y: x.costoDespues })),
+  ];
+  const fin = Math.max(ahora, puntos.at(-1)!.x);
+  puntos.push({ x: fin, y: r.hoy ?? puntos.at(-1)!.y });
+
+  const ys = puntos.map((p) => p.y);
+  const bajo = Math.min(...ys), alto = Math.max(...ys);
+  const aire = Math.max((alto - bajo) * 0.6, alto * 0.05, 0.5);
+  const minY = Math.max(0, Math.floor(bajo - aire));
+  const maxY = Math.ceil(alto + aire);
+
+  // Fechas: el comienzo, cada compra y hoy, salteando las que quedarían encima de otra (menos de un 12 % del ancho entre dos).
+  const desde = puntos[0]!.x;
+  const ancho = Math.max(fin - desde, 1);
+  const candidatas = [
+    { x: desde, texto: diaCorto(new Date(desde).toISOString()) },
+    ...c.compras.map((x) => ({ x: t(x.fecha), texto: diaCorto(x.fecha) })),
+  ];
+  const fechas: GraficoCosto["fechas"] = [{ x: fin, texto: "hoy", fuerte: true }];
+  for (const f of candidatas) {
+    if (fechas.every((o) => Math.abs(o.x - f.x) / ancho >= 0.12)) fechas.push(f);
+  }
+  fechas.sort((a, b) => a.x - b.x);
+
+  return {
+    puntos,
+    marcas: c.compras.map((x, i) => ({ x: t(x.fecha), y: x.costoDespues, n: i + 1, movida: movidaDeCompra(x), fecha: x.fecha })),
+    desde,
+    hasta: fin,
+    minY,
+    maxY,
+    fechas,
+  };
+}
+
+/** Lo que dice el número sobre la línea, en dos palabras. */
+export function textoDeMovida(m: Movida): string {
+  if (m.tipo === "sube") return `↑ subió ${soles(m.monto)}`;
+  if (m.tipo === "baja") return `↓ bajó ${soles(m.monto)}`;
+  return m.tipo === "igual" ? "igual" : "primera";
+}

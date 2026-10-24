@@ -49,6 +49,13 @@ el plan y «si sigue así») y la ficha de un proveedor (el costo compra a compr
 
 **Se quedan, por su ADR:** las del Observatorio (ADR-0322) y las de Análisis (ADR-0357).
 
+## Escalones y números (2026-10-24)
+
+La pestaña «Costo» del Historial de la prenda necesitaba un costo que se queda quieto hasta que llega mercadería y salta ahí, con un número
+que se toca en cada salto. La pieza ganó dos opciones, sin cambiar a nadie que ya la usaba: `escalones` (el trazo va en escalón y la guía
+lee el valor del último punto que pasó) y `marcas` (①②③ sobre la línea, con lo que pasó en dos palabras: sube en ámbar, baja en verde, el
+resto en taupe; se tocan con el mouse, el dedo o Enter, y el elegido se llena de tinta). Maqueta: `docs/maquetas/costo-historial-2026-10/`.
+
 ## Firmas
 
 Una `<polyline>` o un `<path>` armado con su propia función de trazo (`d={trazo(…)}`, `camino`, `linea`) fuera de la pieza. Con el código de

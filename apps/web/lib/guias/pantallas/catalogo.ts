@@ -197,6 +197,13 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "Arriba, lo que cuesta hoy cada prenda y cuánto subió o bajó desde la primera compra. Solo lo mueve la mercadería que llega: una corrección no cuenta como cambio.",
     },
     {
+      id: "vr-costo-grafico",
+      ancla: "historial-prenda.costo-grafico",
+      opcional: true,
+      titulo: "La escalera del costo",
+      texto: "La línea sube o baja solo cuando llega mercadería. Cada escalón lleva un número y dice cuánto subió o bajó; tócalo y se marca su compra en la tabla de abajo.",
+    },
+    {
       id: "vr-costo-compras",
       ancla: "historial-prenda.costo-compras",
       opcional: true,
@@ -506,6 +513,13 @@ export const GUIA_HISTORIAL_PRENDA: Guia = {
       preparar: [{ tipo: "clic", ancla: "historial-prenda.costo", siEsta: true }],
       titulo: "El costo de hoy",
       texto: "Arriba, lo que cuesta hoy cada prenda y cuánto subió o bajó desde la primera compra. Solo lo mueve la mercadería que llega: una corrección no cuenta como cambio.",
+    },
+    {
+      id: "costo-grafico",
+      ancla: "historial-prenda.costo-grafico",
+      opcional: true,
+      titulo: "La escalera del costo",
+      texto: "La línea sube o baja solo cuando llega mercadería. Cada escalón lleva un número y dice cuánto subió o bajó; tócalo y se marca su compra en la tabla de abajo.",
     },
     {
       id: "costo-compras",

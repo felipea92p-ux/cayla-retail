@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cuentaDeCompra, fraseDeRespuesta, leerCostoPrenda, movidaDeCompra, respuestaCosto } from "./costo-prenda-reglas";
+import { cuentaDeCompra, fraseDeRespuesta, graficoDelCosto, leerCostoPrenda, movidaDeCompra, respuestaCosto, textoDeMovida } from "./costo-prenda-reglas";
 
 // El ejemplo de la maqueta (docs/maquetas/costo-historial-2026-10/v2-escalera-amigable.html), tal como lo devuelve la base.
 const BASE = {
@@ -71,5 +71,48 @@ describe("cuentaDeCompra", () => {
   it("sin nada antes, solo lo que llegó", () => {
     const [x] = leerCostoPrenda(BASE)!.compras;
     expect(cuentaDeCompra({ ...x!, yaHabia: 0, costoAntes: null })).toBe("30 × S/ 18.00 = S/ 540.00 ÷ 30 = S/ 18.00");
+  });
+});
+
+describe("graficoDelCosto", () => {
+  const AHORA = Date.parse("2026-10-24T17:00:00+00:00");
+  it("escalones: el costo de antes, una marca por compra y hoy al final", () => {
+    const g = graficoDelCosto(leerCostoPrenda(BASE)!, AHORA)!;
+    expect(g.puntos.map((p) => p.y)).toEqual([18, 18, 19.61, 19.57, 19.57]);
+    expect(g.puntos[0]!.x).toBe(Date.parse(BASE.inicio.fecha));
+    expect(g.puntos.at(-1)!.x).toBe(AHORA);
+    expect(g.marcas.map((m) => [m.n, m.y, m.movida.tipo])).toEqual([[1, 18, "igual"], [2, 19.61, "sube"], [3, 19.57, "baja"]]);
+  });
+
+  it("el eje deja aire para que un cambio de céntimos se vea, sin bajar de cero", () => {
+    const g = graficoDelCosto(leerCostoPrenda(BASE)!, AHORA)!;
+    expect(g.minY).toBeLessThan(18);
+    expect(g.maxY).toBeGreaterThan(19.61);
+    expect(g.minY).toBeGreaterThanOrEqual(0);
+  });
+
+  it("sin prendas antes de la primera compra, la línea empieza en esa compra", () => {
+    const c = leerCostoPrenda({ ...BASE, compras: [{ ...BASE.compras[1], ya_habia: 0, costo_antes: null }] })!;
+    const g = graficoDelCosto(c, AHORA)!;
+    expect(g.puntos[0]).toEqual({ x: Date.parse(BASE.compras[1]!.fecha), y: 18 });
+    expect(g.marcas[0]!.movida.tipo).toBe("primera");
+  });
+
+  it("las fechas no se pisan: «hoy» siempre está y las demás guardan distancia", () => {
+    const g = graficoDelCosto(leerCostoPrenda(BASE)!, AHORA)!;
+    expect(g.fechas.at(-1)).toEqual({ x: AHORA, texto: "hoy", fuerte: true });
+    const xs = g.fechas.map((f) => f.x);
+    for (let i = 1; i < xs.length; i++) expect((xs[i]! - xs[i - 1]!) / (g.hasta - g.desde)).toBeGreaterThanOrEqual(0.12);
+    expect(g.fechas.map((f) => f.texto)).toContain("14 oct");
+  });
+
+  it("sin compras no hay gráfico", () => {
+    expect(graficoDelCosto(leerCostoPrenda({ ...BASE, compras: [] })!, AHORA)).toBeNull();
+  });
+
+  it("el número dice lo que pasó en dos palabras", () => {
+    expect(textoDeMovida({ tipo: "sube", monto: 1.61 })).toBe("↑ subió S/ 1.61");
+    expect(textoDeMovida({ tipo: "baja", monto: 0.04 })).toBe("↓ bajó S/ 0.04");
+    expect(textoDeMovida({ tipo: "igual", monto: 0 })).toBe("igual");
   });
 });

@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, CircleHelp, Equal } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
+import { Linea } from "@/components/ui/Linea";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import {
   cuentaDeCompra,
   diaCorto,
   fraseDeRespuesta,
+  graficoDelCosto,
   movidaDeCompra,
   respuestaCosto,
+  textoDeMovida,
   type CompraCosto,
   type CostoPrenda as Costo,
   type Movida,
@@ -22,6 +25,7 @@ import { soles } from "@/lib/historial-prenda-reglas";
  * docs/maquetas/costo-historial-2026-10/v2-escalera-amigable.html). Primero la respuesta —cuánto cuesta hoy cada prenda y si
  * subió o bajó—, después una fila por compra: cuántas llegaron y a cuánto, cuántas ya había y a cuánto, y en cuánto quedó.
  * La cuenta, a un toque en «?». Solo la ve quien ve el dinero de compras (lo decide la base: sin permiso no llega `costo`).
+ * El gráfico de escalera lleva un número por compra: tocar el número enciende su fila y tocar la fila enciende el número.
  */
 
 // La tabla decide su forma por el ancho de su tarjeta (en la vista rápida es angosta aunque la pantalla sea ancha): desde 560 px
@@ -38,6 +42,21 @@ const COLUMNAS: Columna[] = [
 
 export function CostoPrenda({ costo }: { costo: Costo }) {
   const r = respuestaCosto(costo);
+  // «Ahora» se fija al dibujar: el escalón de hoy no se corre mientras la pestaña está abierta.
+  const [ahora] = useState(() => Date.now());
+  const g = useMemo(() => graficoDelCosto(costo, ahora), [costo, ahora]);
+  const [activa, setActiva] = useState<number | null>(null);
+  const tabla = useRef<HTMLDivElement>(null);
+  const elegir = (n: number, llevar: boolean) => {
+    setActiva((a) => (a === n ? null : n));
+    // Desde el gráfico, la fila elegida se deja a la vista (solo si no se ve); desde la fila, no se mueve nada.
+    const f = llevar ? tabla.current?.querySelector<HTMLElement>(`[data-compra="${n}"]`) : null;
+    if (f) {
+      const rect = f.getBoundingClientRect();
+      if (rect.top < 0 || rect.bottom > window.innerHeight)
+        f.scrollIntoView({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }
+  };
   const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(new Set());
   const alternar = (k: string) =>
     setAbiertas((prev) => {
@@ -70,7 +89,39 @@ export function CostoPrenda({ costo }: { costo: Costo }) {
         </p>
       </section>
 
-      <section data-guia="historial-prenda.costo-compras">
+      {g && (
+        <section data-guia="historial-prenda.costo-grafico" className="card-cayla px-5 pb-3 pt-4">
+          <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <TituloSeccion nivel={3}>Cuánto te costó cada prenda</TituloSeccion>
+            <span className="text-[12.5px] text-tinta/65">Toca un número para ver esa compra</span>
+          </div>
+          <Linea
+            serie={g.puntos}
+            escalones
+            desde={g.desde}
+            hasta={g.hasta}
+            minY={g.minY}
+            maxY={g.maxY}
+            formatoY={(v) => `S/\u00a0${v.toFixed(v % 1 ? 1 : 0)}`}
+            marcasX={g.fechas}
+            cifra={soles(r.hoy)}
+            alto={230}
+            etiqueta={`Costo por prenda: empezó en ${soles(r.desde)} y hoy es ${soles(r.hoy)}`}
+            marcas={g.marcas.map((m) => ({
+              x: m.x,
+              y: m.y,
+              n: m.n,
+              texto: textoDeMovida(m.movida),
+              tono: m.movida.tipo === "sube" ? "sube" : m.movida.tipo === "baja" ? "baja" : "neutro",
+              activa: activa === m.n,
+              etiqueta: `Compra ${m.n}, ${diaCorto(m.fecha)}: ${textoDeMovida(m.movida).replace(/^[↑↓] /, "")}`,
+              onElegir: () => elegir(m.n, true),
+            }))}
+          />
+        </section>
+      )}
+
+      <section data-guia="historial-prenda.costo-compras" ref={tabla}>
         <TituloSeccion nivel={3} cuenta={costo.compras.length} className="mb-2">
           Compras que movieron el costo
         </TituloSeccion>
@@ -79,7 +130,15 @@ export function CostoPrenda({ costo }: { costo: Costo }) {
           {costo.compras.map((c, i) => {
             const k = c.fecha;
             return (
-              <FilaCompra key={k} compra={c} numero={i + 1} abierta={abiertas.has(k)} onAlternar={() => alternar(k)} />
+              <FilaCompra
+                key={k}
+                compra={c}
+                numero={i + 1}
+                activa={activa === i + 1}
+                onElegir={() => elegir(i + 1, false)}
+                abierta={abiertas.has(k)}
+                onAlternar={() => alternar(k)}
+              />
             );
           })}
         </Tabla>
@@ -88,13 +147,44 @@ export function CostoPrenda({ costo }: { costo: Costo }) {
   );
 }
 
-function FilaCompra({ compra: c, numero, abierta, onAlternar }: { compra: CompraCosto; numero: number; abierta: boolean; onAlternar: () => void }) {
+function FilaCompra({
+  compra: c,
+  numero,
+  activa,
+  onElegir,
+  abierta,
+  onAlternar,
+}: {
+  compra: CompraCosto;
+  numero: number;
+  activa: boolean;
+  onElegir: () => void;
+  abierta: boolean;
+  onAlternar: () => void;
+}) {
   const m = movidaDeCompra(c);
   // En angosto, tres líneas: el número a la izquierda, lo que llegó al centro y el costo a la derecha.
   return (
-    <div className={fila(PLANTILLA, `grid-cols-[28px_minmax(0,1fr)_auto] gap-x-3 @min-[560px]:items-center`)} role="row">
+    <div
+      className={fila(PLANTILLA, `cursor-pointer grid-cols-[28px_minmax(0,1fr)_auto] gap-x-3 @min-[560px]:items-center`)}
+      role="row"
+      data-compra={numero}
+      aria-current={activa ? "true" : undefined}
+      // Un clic en cualquier parte de la fila la elige; el «?» y el número hacen lo suyo.
+      onClick={(e) => {
+        if (!(e.target as HTMLElement).closest("button")) onElegir();
+      }}
+    >
       <span className={`row-span-3 @min-[560px]:row-span-1`} role="cell">
-        <span className="grid h-6 w-6 place-items-center rounded-full border-2 border-tinta text-[11.5px] font-semibold tabular-nums text-tinta">{numero}</span>
+        <button
+          type="button"
+          onClick={onElegir}
+          aria-pressed={activa}
+          aria-label={`Compra ${numero}: verla en el gráfico`}
+          className={`grid h-6 w-6 place-items-center rounded-full border-2 border-tinta text-[11.5px] font-semibold tabular-nums transition-colors duration-200 ${activa ? "bg-tinta text-papel" : "text-tinta"}`}
+        >
+          {numero}
+        </button>
       </span>
       <span className={celda("izq", `col-start-2 text-[12.5px] text-tinta/65 @min-[560px]:col-auto @min-[560px]:text-[13.5px]`)} role="cell">
         {diaCorto(c.fecha)}
