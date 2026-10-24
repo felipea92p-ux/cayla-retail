@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { accionesDeCompraDe, puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { usaModulo } from "@/lib/modulos";
-import { getCambiosBancarios, getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor, getProveedorServicioResumen } from "@/lib/proveedores";
+import { getCambiosBancarios, getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor, getProveedorServicioResumen, getProveedorPrendas } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
 import { ChevronRight, Receipt } from "lucide-react";
@@ -16,6 +16,9 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { PasoSugerido } from "@/components/ui/PasoSugerido";
 import { PistaPlazo } from "@/components/ui/PistaPlazo";
 import { ProveedorAcciones } from "@/components/ProveedorAcciones";
+import { ProveedorPrendas } from "@/components/ProveedorPrendas";
+import { LoQueQuizaNoVes } from "@/components/LoQueQuizaNoVes";
+import { hallazgosDeProveedor } from "@/lib/proveedor-analisis-reglas";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 import { ProveedorServicio } from "@/components/ProveedorServicio";
 import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
@@ -62,7 +65,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   const proveedor = await getProveedor(id);
   if (!proveedor) notFound();
   const deServicios = proveedor.tipo === "servicios";
-  const [m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, cambiosCuenta, nosDebe, servicio] = await Promise.all([
+  const [m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, cambiosCuenta, nosDebe, servicio, prendas] = await Promise.all([
     deServicios ? Promise.resolve(null) : siDinero(() => getProveedorMetricasCompras(id)),
     esLider && !deServicios ? getProveedorMetricasInsumos(id) : Promise.resolve(null),
     deServicios ? Promise.resolve(null) : siDinero(() => getProveedorCostoEvolucion(id)),
@@ -78,6 +81,9 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     deServicios ? Promise.resolve(null) : siDinero(() => getNosDebeProveedor(id)),
     // Lo que se le paga a un proveedor de servicios (comprobantes de gasto). Con la misma llave que los montos.
     deServicios ? siDinero(() => getProveedorServicioResumen(id)) : Promise.resolve(null),
+    // Lo que se le compró prenda por prenda y cuánto se vendió (2026-10-24): plata, así que con la misma llave que las cifras de arriba.
+    // Un proveedor de servicios no tiene prendas. Opcional: si la base todavía no tiene la función, la ficha se pinta sin esta sección.
+    deServicios ? Promise.resolve(null) : siDinero(() => getProveedorPrendas(id).catch(() => null)),
   ]);
   const marcas = marcasMapa?.[id] ?? [];
 
@@ -220,6 +226,9 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
         )}
       </section>
       )}
+
+      {prendas && <LoQueQuizaNoVes guia="proveedor-ficha.analisis" hallazgos={hallazgosDeProveedor(prendas, hoyLima())} />}
+      {prendas && <ProveedorPrendas prendas={prendas} />}
 
       {/* «Nos debe» (ADR-0362, fase 5a): las prendas por reponer y, a su lado, el saldo a favor de siempre (la plata). Si la base todavía
           no cuenta las prendas, el saldo a favor queda solo, como antes. */}
