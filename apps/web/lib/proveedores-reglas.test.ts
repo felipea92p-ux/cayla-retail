@@ -14,6 +14,7 @@ import {
   enmascararCuenta,
   esDeServicios,
   esSoloDeGastos,
+  resumenSoloMercaderia,
   formatoCci,
   formatoCelular,
   normalizarCci,
@@ -572,5 +573,25 @@ describe("esDeServicios: el tipo manda; sin tipo, la regla de «Gastos»", () =>
     ];
     expect(proveedoresParaPedir(lista).map((p) => p.id)).toEqual(["a"]);
     expect(proveedoresParaPedir(lista, "b").map((p) => p.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("resumenSoloMercaderia: los servicios no cuentan como «sin compras»", () => {
+  const base = { activos: 13, desactivados: 1, sinCompras90d: 11, deudaTotal: 500 };
+  const lista = [
+    { activo: true, tipo: "mercaderia", dias_desde_ultima_compra: 10 },
+    { activo: true, tipo: "mercaderia", dias_desde_ultima_compra: 200 },
+    { activo: true, tipo: "servicios", dias_desde_ultima_compra: null },
+    { activo: true, tipo: "servicios", dias_desde_ultima_compra: null },
+    { activo: false, tipo: "servicios", dias_desde_ultima_compra: null },
+  ];
+
+  it("saca de los conteos a los de servicios y deja lo demás", () => {
+    expect(resumenSoloMercaderia(base, lista)).toEqual({ activos: 11, desactivados: 0, sinCompras90d: 9, deudaTotal: 500 });
+  });
+
+  it("sin servicios no cambia nada; sin dato de «sin compras» sigue sin dato", () => {
+    expect(resumenSoloMercaderia(base, lista.filter((p) => p.tipo === "mercaderia"))).toEqual(base);
+    expect(resumenSoloMercaderia({ ...base, sinCompras90d: null }, lista).sinCompras90d).toBeNull();
   });
 });

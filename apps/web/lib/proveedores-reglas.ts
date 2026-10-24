@@ -705,3 +705,23 @@ export function cambioBancarioLegible(
   // Un CCI que cambió solo en los dígitos que la máscara tapa se leería «igual → igual»: `cambioOculto` lo avisa.
   return { dato: DATO_BANCARIO[campo] ?? campo, antes: a, despues: d, cambioOculto: a === d && (antes ?? "") !== (despues ?? "") };
 }
+
+/**
+ * Las cifras de arriba de la lista (`fn_proveedores_resumen`) cuentan a TODOS los proveedores; los de servicios (Entel, luz, agua) no
+ * se compran ni se reciben, así que inflaban «Proveedores activos» y, sobre todo, «Sin compras en 90 días» (a Entel nunca se le compra
+ * ropa). Su deuda y su saldo a favor ya son cero —la función solo cuenta comprobantes de mercadería—, de modo que solo hay que
+ * sacarlos de los conteos de personas: activos, desactivados y «sin compras». Con 0 servicios devuelve lo mismo.
+ */
+export function resumenSoloMercaderia<R extends { activos: number; desactivados: number; sinCompras90d: number | null }>(
+  resumen: R,
+  proveedores: readonly { activo: boolean; tipo?: string | null; rubros?: readonly string[] | null; dias_desde_ultima_compra?: number | null }[],
+): R {
+  const servicios = proveedores.filter((p) => esDeServicios(p));
+  const activos = servicios.filter((p) => p.activo);
+  return {
+    ...resumen,
+    activos: Math.max(0, resumen.activos - activos.length),
+    desactivados: Math.max(0, resumen.desactivados - servicios.filter((p) => !p.activo).length),
+    sinCompras90d: resumen.sinCompras90d == null ? null : Math.max(0, resumen.sinCompras90d - activos.filter((p) => (p.dias_desde_ultima_compra ?? 100000) > 90).length),
+  };
+}
