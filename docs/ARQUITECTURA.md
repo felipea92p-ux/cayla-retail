@@ -247,8 +247,14 @@ flowchart TB
   posible y la línea «No ahora», el código copiable y la pestaña «Todas» —colgadas y guardadas por talla con totales y las casillas que filtran
   la tabla—; reemplazó al cajón lateral de ADR-0344; el ritmo lleva `existencias/AroSemanas.tsx`) con sus pasos `existencias/FlujoTalla.tsx`
   (`lib/existencias-panel-talla.ts`, `lib/existencias-flujos.ts`) → RPC `bajar_al_piso` (Colgar y Colgar varias), `retirar_del_piso` y
-  `subir_para_enviar` (Subir), `pedir_a_otra_sede` y `pedir_prenda_para_apartar` (Pedir), `ajustar_inventario` (Ajustar; la ventana completa
-  `AjustarInventarioModal.tsx` queda para enlazar con un conteo) y `reportar_danada` («Reportar dañada», en la Ficha del panel y desde Ajustar «Se dañó»:
+  `subir_para_enviar` (Subir), `pedir_a_otra_sede` y `pedir_prenda_para_apartar` (Pedir), `ajustar_inventario` (Ajustar: desde el
+  2026-10-23 es la **planilla de todo el modelo** dentro del mismo modal, ADR-0494 —la banda «¿No es lo que ves en la tienda?» o la tecla 6,
+  `existencias/AjusteDelModelo.tsx` con `existencias/useAjusteDelModelo.ts` y la lógica pura de `lib/existencias-ajuste-modelo.ts`; con «Conté»
+  cada línea lleva `esperado` y `ajustar_inventario` rechaza con `ajuste_cambio_al_contar` si cambió mientras se contaba; al guardar
+  lo que entró, «Etiquetas de lo que entró» de `ficha-producto/ImprimirLoQueEntro.tsx` lleva a `/etiquetas-de-precio?…&ajuste=1`—, que
+  reemplazó al recorrido de 4 pasos por talla; «Ajustar stock» de la cabecera, `existencias/BotonAjustarStock.tsx`, abre
+  `existencias/BuscarPrendaParaAjustar.tsx` con `lib/existencias-buscar-ajuste.ts`; la ventana completa `AjustarInventarioModal.tsx` queda
+  para enlazar con un conteo) y `reportar_danada` («Reportar dañada», en «Qué hago» de la talla:
   el paso «Reportar dañada» de `FlujoTalla`, con la validación de `lib/danadas-reglas.ts`; ADR-0328 act. 10; la ventana `ReportarDanadaModal.tsx` ya no existe). La lista de Dañadas
   (`ResolverDanadosModal.tsx`, «Para hoy» ▸ Decidir) lee `prendas_danadas` (`getPrendasDanadasPendientes`) y resuelve con
   `arreglar_prenda_danada` («Se arregló»: vuelve al almacén), `liquidar_prenda_danada` y `resolver_prenda_danada`. La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
@@ -849,7 +855,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `prendasDelSello`, `loQueTiene`), el sello de tinta en `components/sellos/SelloTinta.tsx` y el movimiento en
   `app/estilos/sellos.css`. Guarda por las mismas puertas de antes: crear (`POST /api/productos/etiquetas` con el estilo de la vista),
   aprobar, rechazar, desactivar y reactivar (`PATCH`), configurar o repetir (`CampanaModal` → `actualizar_campana_etiqueta`) y
-  prendas (`PrendasDeEtiquetaModal`); imprime sus etiquetas de precio y enlaza al diseño (`/tienda-web/campanas/[id]`, para quien ve
+  prendas (`PrendasDeEtiquetaModal`); **desde el 2026-10-23 «Configurar» de una campaña abre `components/sellos/OfertasHoja.tsx` («Tres preguntas», ADR-0496): las ofertas de la campaña (`campana_reglas()` leídas en `cargarEtiquetasPantalla`; guardar, activar y retirar por `/api/productos/campana-reglas` → `guardar_campana_regla`, `activar_campana_regla`, `retirar_campana_regla`; lógica en `lib/campana-reglas.ts`, estilos `app/estilos/ofertas.css`; las etapas son ¿Qué le das? → ¿Cuándo y dónde? (fechas, días y tiendas) → ¿En qué prendas? (la selección de categorías de producción), con la etiqueta de la hoja de la campaña a la derecha, `components/campana-hoja/EtiquetaDeCampana.tsx`, y su grilla de categorías, `CategoriasDeCampana.tsx`) y, en la misma hoja y sin otra ventana, la franja de la campaña cambia o repite sus fechas, retira su descuento de siempre y quita un límite de tiendas (todo por `PATCH /api/productos/etiquetas`); cada oferta puede limitarse a algunas tiendas de su campaña (`campana_regla_sedes`); la caja las lee por `fn_campanas_en_sede`; `CampanaModal` solo se abre si la base no tiene las ofertas y desde la ficha de Tienda web**; imprime sus etiquetas de precio y enlaza al diseño (`/tienda-web/campanas/[id]`, para quien ve
   `campanas_web`). `/productos/campanas`, `/productos/etiquetas` y `/productos/atributos?tipo=etiquetas` redirigen aquí
   (`next.config.ts`). La tarjeta de UNA campaña (`TarjetaDeCampana`, en `components/EtiquetasLista.tsx`) sigue en la pestaña «Datos y
   prendas» de `/tienda-web/campanas/[id]`. Una campaña es una fila de `retail.etiquetas` con estilo `campana`; un sello, todo lo demás.
@@ -1500,6 +1506,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   y `medio_pago`, lo que falta queda a crédito al completar); y la **ronda de compras** (`20261023183000`: `compra_rondas`, serie RC; RPC
   `abrir_ronda_compras` desde `AbrirRonda.tsx` vía `lib/mi-plata-acciones.ts`; `terminar_dia_compras` cierra la ronda; `fn_ronda_compras_de` dentro de
   `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres).
+  El 2026-10-24 «Algo nuevo» también se reparte entre tiendas y su marca se puede escribir con «+» (`HojaPrenda.tsx`); la marca escrita se crea al
+  guardar con la RPC `registrar_marca_de_compra` (`20261024214000`, vía `registrarMarcaDeCompra` de `lib/compra-rapida-acciones.ts`), unida al proveedor.
 - **Recibir mercadería: «Llegó mercadería» (ADR-0330, 2026-10-04)** — `/recibir` abre en la puerta única: `LlegoMercaderia.tsx`
   (lógica pura en `lib/llegada-reglas.ts`, con prueba) → RPC `recibir_lote` sin cambios (entra al almacén de la sede de la
   cabecera, token y cola sin conexión). Lee en el servidor el catálogo, los proveedores con sus marcas (`getMarcasPorProveedor`),
@@ -1896,7 +1904,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
-  - `/finanzas/resumen` → el tablero que junta lo anterior (F10).
+  - `/finanzas/resumen` → el tablero que junta lo anterior (F10). Desde El telar (2026-10-23, ADR-0493) lee, además de
+    `fn_resumen_finanzas` (los avisos de hoy) y `fn_finanzas_confianza` (del mes elegido), `fn_estado_resultados` del mes de la barra
+    y del tramo con que se compara (`lib/resultados.ts`), y `fn_rendimiento_serie` por tienda si la cuenta ve Rendimiento
+    (`lib/resumen-telar.ts`). Lo dibujan `lib/resumen-telar-reglas.ts` (la respuesta, el orillo y la línea de ventas contra la
+    meta) y `lib/recorrido-plata-reglas.ts` → `components/finanzas/RecorridoPlata.tsx` (el recorrido de la plata).
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
     Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
   - `/tienda-web/ajustes` (ADR-0408, actividad 6; fue la pestaña `/configuracion?tab=tienda-web` hasta ADR-0430; módulo `ajustes_web` «Datos y plazos de la tienda web» desde 20261016223000, antes `configuracion`) → `lib/configuracion.ts`
@@ -2683,3 +2695,9 @@ variables/funciones. Nunca "empleado/jefe/sucursal": se usa
 *Este documento es una fotografía del código al 2026-09-04. Para el estado
 vivo día a día ver `docs/BACKLOG.md` y `docs/BITACORA.md`; para el porqué
 de cada decisión estructural, `docs/adr/`.*
+
+## Proveedores: lo que le compré y «Lo que quizá no ves» (2026-10-24, ADR-0502)
+
+- `/compras/proveedores/[id]` (ficha) → `getProveedorPrendas` (`lib/proveedores.ts`, RPC `fn_proveedor_prendas`) → `components/ProveedorPrendas.tsx` (reglas `lib/proveedor-prendas-reglas.ts`) y `components/LoQueQuizaNoVes.tsx` (reglas `lib/proveedor-analisis-reglas.ts:hallazgosDeProveedor`).
+- `/compras/proveedores` (lista) → `getProveedoresRendimiento` (RPC `fn_proveedores_rendimiento`) → `components/ProveedoresRendimiento.tsx`; `getProveedoresPrendas` (RPC `fn_proveedores_prendas`) → `hallazgosDeCartera` → `LoQueQuizaNoVes`.
+- Las tres RPC leen `fn_proveedor_prendas_base` (migración `20261024221000`, sin permiso para nadie) y exigen `fn_ve_plata_de_proveedores()`.

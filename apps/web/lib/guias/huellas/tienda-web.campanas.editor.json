@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.editor",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 95,
+  "total": 98,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»",
@@ -43,6 +43,8 @@
       "BotonFiltro «Sin ella»",
       "DesplegablePildora «Categoría»",
       "SegmentoDeslizante «Qué hace una lectura»",
+      "BotonFiltro «Todas las sedes»",
+      "BotonFiltro «{nombreCortoSede(t.nombre)}»",
       "button «Marca todas las tallas de los productos de la lista. Los que entran por su categoría ya la llevan.»",
       "button «Desmarca los productos de la lista. Los que entran por su categoría siguen marcados.»",
       "Boton «Reintentar»",
@@ -70,7 +72,8 @@
     ],
     "components/campana-hoja/CategoriasDeCampana.tsx": [
       "Casilla «{`${c.nombre}»",
-      "Casilla «{`Toda la familia ${g.familia}»"
+      "Casilla «{`Toda la familia ${g.familia}»",
+      "button «{`${abierta ? \"Ocultar\" : \"Mostrar\"}»"
     ],
     "components/campana-hoja/EtiquetaDeCampana.tsx": [
       "button «Prenda anterior»",

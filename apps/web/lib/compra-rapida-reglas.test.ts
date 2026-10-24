@@ -34,6 +34,11 @@ import {
   lineasDeBorrador,
   repartoParejo,
   alternarDestino,
+  MARCA_NUEVA_MAX,
+  MARCA_NUEVA_PREFIJO,
+  marcaEscrita,
+  marcasPorCrear,
+  conMarcasCreadas,
   conCantidad,
   problemaReparto,
   borradorDeLineas,
@@ -270,14 +275,14 @@ describe("algo nuevo de este proveedor", () => {
     const vacio = camposPrendaNueva(nuevoVacio([]), false, b);
     expect(vacio.map((c) => c.id)).toEqual(["categoria", "marca", "nombre", "cantidad", "costo", "venta", "tienda"]);
     expect(vacio.slice(0, 3).every((c) => !c.hecho && c.requerido)).toBe(true);
-    const n = { categoriaId: "jeans", marcaId: "m1", nombre: "Jean mom", descartadas: new Set<string>() };
+    const n = { categoriaId: "jeans", marcaId: "m1", marcaNueva: null, nombre: "Jean mom", descartadas: new Set<string>() };
     expect(camposPrendaNueva(n, false, b).slice(0, 3).every((c) => c.hecho)).toBe(true);
     const conParecido = camposPrendaNueva(n, true, b)[2];
     expect(conParecido).toMatchObject({ hecho: false, pendiente: "Dinos si es la misma prenda." });
   });
   it("la prenda nueva es solo una referencia: un habitual sin producto del catálogo y sin precios de antes", () => {
     const marcas = [{ id: "m1", nombre: "CAYLA" }];
-    const n = { categoriaId: "blusas", marcaId: "m1", nombre: "  Casaca   corta ", descartadas: new Set<string>() };
+    const n = { categoriaId: "blusas", marcaId: "m1", marcaNueva: null, nombre: "  Casaca   corta ", descartadas: new Set<string>() };
     const h = habitualDeNuevo("nuevo:1", n, CATS, marcas);
     expect(h).toMatchObject({ clave: "nuevo:1", productoId: null, nombre: "Casaca corta", categoriaId: "blusas", marcaId: "m1", veces: 0, costo: null, venta: null });
     expect(textoHabitual(h!)).toBeNull();
@@ -285,6 +290,34 @@ describe("algo nuevo de este proveedor", () => {
     expect(habitualDeNuevo("x", { ...n, categoriaId: null }, CATS, marcas)).toBeNull();
     expect(habitualDeNuevo("x", { ...n, marcaId: "otra" }, CATS, marcas)).toBeNull();
     expect(habitualDeNuevo("x", { ...n, nombre: "ab" }, CATS, marcas)).toBeNull();
+  });
+});
+
+describe("la marca nueva de «Algo nuevo»", () => {
+  const marcas = [{ id: "m1", nombre: "Pionier" }];
+  it("lo escrito que ya está en la lista usa esa marca; lo que no, una provisional que se crea al guardar", () => {
+    expect(marcaEscrita("  píonier ", marcas)).toEqual({ id: "m1", nombre: "Pionier" });
+    expect(marcaEscrita("Andina  Jeans", marcas)).toEqual({ id: `${MARCA_NUEVA_PREFIJO}andina jeans`, nombre: "Andina Jeans" });
+    expect(marcaEscrita("a", marcas)).toBeUndefined();
+    expect(marcaEscrita("x".repeat(MARCA_NUEVA_MAX + 1), marcas)).toBeUndefined();
+  });
+  it("la guía pide escribirla mientras la caja está abierta, y la prenda se arma con ella", () => {
+    const b = { cantidad: "", costo: "", venta: "", destinos: [], reparto: {} };
+    const n = { categoriaId: "blusas", marcaId: null, marcaNueva: "", nombre: "Casaca corta", descartadas: new Set<string>() };
+    expect(camposPrendaNueva(n, false, b)[1]).toMatchObject({ hecho: false, pendiente: "Escribe la marca, como dice su etiqueta." });
+    const lista = { ...n, marcaNueva: "Andina" };
+    expect(camposPrendaNueva(lista, false, b)[1].hecho).toBe(true);
+    expect(habitualDeNuevo("nuevo:1", lista, [{ id: "blusas", nombre: "Camisas y Blusas", prefijo: "CMS", familia: "indumentaria" }], marcas)).toMatchObject({ marcaId: `${MARCA_NUEVA_PREFIJO}andina`, marca: "Andina" });
+  });
+  it("antes de guardar: una marca por nombre aunque vaya en varias líneas, y después cada línea con su id de verdad", () => {
+    const l = (marcaId: string | null, marca: string | null) => ({ marcaId, marca });
+    const lineas = [l("nueva:andina", "Andina"), l("nueva:andina", "Andina"), l("m1", "Pionier"), l("nueva:zeta", "Zeta")];
+    expect(marcasPorCrear(lineas)).toEqual([
+      { id: "nueva:andina", nombre: "Andina" },
+      { id: "nueva:zeta", nombre: "Zeta" },
+    ]);
+    const creadas = new Map([["nueva:andina", "u1"], ["nueva:zeta", "u2"]]);
+    expect(conMarcasCreadas(lineas, creadas).map((x) => x.marcaId)).toEqual(["u1", "u1", "m1", "u2"]);
   });
 });
 
@@ -411,11 +444,10 @@ describe("repartir una prenda entre varias tiendas (Felipe 2026-10-23)", () => {
     expect(repartoParejo(2, ["a", "b", "c"])).toEqual({ a: "1", b: "1", c: "0" });
     expect(repartoParejo(null, ["a", "b"])).toEqual({});
   });
-  it("prender una segunda tienda reparte parejo; apagarla vuelve a una; sin varias, cambia de tienda", () => {
-    const dos = { ...base, ...alternarDestino(base, "aqp", true) };
+  it("prender una segunda tienda reparte parejo; apagarla vuelve a una", () => {
+    const dos = { ...base, ...alternarDestino(base, "aqp") };
     expect(dos).toMatchObject({ destinos: ["lim", "aqp"], reparto: { lim: "5", aqp: "5" } });
-    expect(alternarDestino(dos, "aqp", true).destinos).toEqual(["lim"]);
-    expect(alternarDestino(dos, "tru", false).destinos).toEqual(["tru"]);
+    expect(alternarDestino(dos, "aqp").destinos).toEqual(["lim"]);
   });
   it("cambiar cuántas rehace el reparto, salvo que se haya tocado a mano", () => {
     const dos = { ...base, destinos: ["lim", "aqp"], reparto: { lim: "5", aqp: "5" } };

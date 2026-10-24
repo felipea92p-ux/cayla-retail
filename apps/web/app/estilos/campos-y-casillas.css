@@ -151,6 +151,8 @@
   }
   .paso-cantidad-b:active { transform: scale(0.9); }
   .paso-cantidad-b:disabled { opacity: 0.3; pointer-events: none; }
+  /* Apagado pero tocable (`bloqueado`): la pantalla dice por qué al tocarlo. */
+  .paso-cantidad-b[aria-disabled="true"] { opacity: 0.3; cursor: not-allowed; }
   /* `.paso-cantidad` delante: le gana a la regla de todo control dentro de una caja (`.caja-campo :is(input)`, ancho completo). */
   .paso-cantidad .paso-cantidad-n {
     width: 2.25rem; flex: none; align-self: stretch; display: grid; place-items: center;
@@ -189,6 +191,12 @@
   /* El centro óptico de la serif: el de la tinta de «10» cae 1,3 px bajo el de la caja (medido en el navegador). */
   .paso-cantidad[data-tam="grande"] .paso-cantidad-c { transform: translateY(-1px); }
   .paso-cantidad-s { color: var(--color-taupe); line-height: 1; }
+  /* «planilla» («Ajustar stock» en el modal de la prenda de Existencias, ADR-0494, Felipe 2026-10-23): 44 px, el número contado en la
+     serif de 24 px y − y + redondos de 28 px (su ícono, de 14). Va en una tabla de colores × tallas: la caja mide 104 px y su columna 112 (`PLANILLA.columnaTalla`). */
+  .caja-campo.paso-cantidad[data-tam="planilla"] { height: 2.75rem; padding: 0 5px; border-radius: 12px; }
+  .paso-cantidad[data-tam="planilla"] .paso-cantidad-b { height: 1.75rem; border-radius: 999px; }
+  .paso-cantidad[data-tam="planilla"] .paso-cantidad-b svg { width: 14px; height: 14px; }
+  .paso-cantidad[data-tam="planilla"] .paso-cantidad-n { width: 2.25rem; font-family: var(--font-serif); font-size: 24px; font-weight: 500; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
   .paso-cantidad[data-tam="grande"] .paso-cantidad-s { font-family: var(--font-serif); font-size: 26px; }
 
   /* ---------- La lista que se abre (Desplegable, ComboBuscable, ComboResponsable, las píldoras de filtro) ----------

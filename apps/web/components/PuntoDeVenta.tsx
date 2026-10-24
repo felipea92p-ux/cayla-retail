@@ -22,7 +22,8 @@ import {
   atendioDelTicket,
   conCodigoDelCatalogo,
   descuentoResultante,
-  descuentoPedido,
+  descuentosPedidos,
+  entraAlDescuento,
   esperaAlCargar,
   metodoDeAtajo,
   cobroEnEfectivo,
@@ -251,8 +252,8 @@ export type ItemCarrito = {
 
 export type OrigenDeLinea = "combina_bien_con";
 
-/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% o S/ por
- *  prenda; el S/ volvió el 2026-10-14, Felipe), el valor tal cual lo escribe en cada uno, a qué líneas alcanza (`null` es todo el ticket;
+/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% de cada prenda o S/ del total de lo elegido,
+ *  repartido entre las prendas; el S/ volvió el 2026-10-14 y es del total desde el 2026-10-24, Felipe), el valor tal cual lo escribe en cada uno, a qué líneas alcanza (`null` es todo el ticket;
  *  `[]` es que todavía no eligió ninguna), el motivo (R-45) y el argumento que pide todo
  *  descuento pasado el 15 %. */
 export type DescuentoForm = {
@@ -1383,22 +1384,26 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // Un solo descuento por prenda, el mayor: si en alguna línea la campaña da igual o
     // más que lo pedido, se queda la campaña — y se dice, para que no parezca que el
     // descuento «no entró».
+    const pedidos = descuentosPedidos(
+      descuento.modo,
+      descuento.modo === "monto" ? numeroDeMonto(descuento.monto) : Number(descuento.pct),
+      carrito.filter((it) => entraAlDescuento(it, claves)),
+    );
     const cedieron = carrito.filter((it) => {
-      if (!it.campana || (claves.length > 0 && !claves.includes(it.claveLinea))) return false;
-      const monto = descuentoPedido(descuento.modo, descuento.modo === "monto" ? numeroDeMonto(descuento.monto) : Number(descuento.pct), it.precioUnitario);
-      return Number(monto) > 0 && descuentoResultante(it, monto).prevaleceCampana;
+      if (!it.campana || !entraAlDescuento(it, claves)) return false;
+      const monto = pedidos.get(it.claveLinea) ?? 0;
+      return monto > 0 && descuentoResultante(it, monto).prevaleceCampana;
     });
     if (cedieron.length > 0) {
       avisar.aviso(
         `${cedieron.map((it) => `${it.referencia} (${it.campana?.nombre})`).join(", ")} ya tiene${cedieron.length > 1 ? "n" : ""} una campaña con igual o más descuento: se mantiene la campaña.`,
       );
     }
-    // ADR-0379: una pieza de liquidación tiene precio final; el descuento del ticket no la toca.
+    // ADR-0379: una pieza de liquidación tiene precio final; el descuento del ticket no la toca (`entraAlDescuento`).
     setCarrito((actual) =>
-      (descuento.modo === "monto"
+      descuento.modo === "monto"
         ? aplicarDescuentoMonto(actual, numeroDeMonto(descuento.monto), claves, detalle)
-        : aplicarDescuento(actual, Number(descuento.pct), claves, detalle)
-      ).map((it, i) => (actual[i]?.liquidacion ? actual[i]! : it)),
+        : aplicarDescuento(actual, Number(descuento.pct), claves, detalle),
     );
     setMomento("armar");
   }

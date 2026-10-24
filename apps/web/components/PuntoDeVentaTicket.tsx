@@ -5,7 +5,8 @@ import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, Messa
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
-  descuentoPedido,
+  descuentosPedidos,
+  entraAlDescuento,
   descuentoResultante,
   desgloseIgv,
   hayDescuentoManual,
@@ -363,12 +364,18 @@ export function PuntoDeVentaTicket({
   const elegidas = descuento.elegidas;
   const todoElTicket = elegidas === null;
   const alcanza = (claveLinea: string) => elegidas === null || elegidas.includes(claveLinea);
+  // Lo que de verdad recibe el descuento: lo elegido menos las piezas de liquidación (precio final, ADR-0379). Aquí `[]` es
+  // «ninguna marcada» (en la regla, `[]` es todo el ticket): por eso se pregunta con `alcanza` y no con las claves.
+  const recibeDescuento = (it: ItemCarrito) => alcanza(it.claveLinea) && entraAlDescuento(it, null);
+  const alcanzadas = carrito.filter(recibeDescuento);
   const elegidasCuenta = elegidas === null ? carrito.length : elegidas.length;
   // El descuento por unidad que va a quedar en cada línea si se aplica ahora — en % sale del
-  // precio de cada una (sin céntimos sueltos, ADR-0403); en S/ es el monto tal cual.
-  const montoPedido = (it: ItemCarrito) => descuentoPedido(descuento.modo, porMonto ? monto : pct, it.precioUnitario);
+  // precio de cada una (sin céntimos sueltos, ADR-0403); en S/ el monto es del total de lo elegido y se reparte según el precio.
+  const pedidos = descuentosPedidos(descuento.modo, porMonto ? monto : pct, alcanzadas);
+  const montoPedido = (it: ItemCarrito) => pedidos.get(it.claveLinea) ?? 0;
+  const unidadesAlcanzadas = alcanzadas.reduce((c, it) => c + it.cantidad, 0);
   const descuentoUnitarioAplicando = (it: ItemCarrito) =>
-    !alcanza(it.claveLinea) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto;
+    !recibeDescuento(it) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto;
   // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora. Con un cupón del Club puesto, también sin su parte
   // (el cupón se reparte sobre lo que quedará): el mismo número que quedará en «Total».
   const totalConDescuento = vale
@@ -381,8 +388,7 @@ export function PuntoDeVentaTicket({
   // cuenta — ese descuento no es manual. El candado real vive en `registrar_venta`.
   const mostrarArgumento =
     valorValido &&
-    carrito.some((it) => {
-      if (!alcanza(it.claveLinea)) return false;
+    alcanzadas.some((it) => {
       const r = descuentoResultante(it, montoPedido(it));
       return !r.prevaleceCampana && necesitaArgumentoEscrito(it.precioUnitario, r.monto);
     });
@@ -588,14 +594,15 @@ export function PuntoDeVentaTicket({
             </div>
           ) : descontando ? (
             <div className={saliendo ? "anim-revelar-salida space-y-5 px-5 py-4" : "anim-revelar space-y-5 px-5 py-4"}>
-              {/* 1 · Cuánto: % del precio o S/ por prenda (Felipe, 2026-10-14: el S/ vuelve; salió el 2026-09-25). El % deja el
-                  precio sin céntimos sueltos (ADR-0403); el S/ es lo que se escribe, tal cual. Los atajos son los habituales;
+              {/* 1 · Cuánto: % del precio o S/ del total de lo elegido (Felipe, 2026-10-14: el S/ vuelve; salió el 2026-09-25; desde el
+                  2026-10-24 el S/ se reparte entre las prendas según su precio, ya no es por prenda). El % deja el precio sin
+                  céntimos sueltos (ADR-0403); el S/ es lo que se escribe, tal cual. Los atajos son los habituales;
                   «Otro» es para cualquier otro valor. */}
               <fieldset className="space-y-2">
                 <legend className="text-[11px] text-tinta/50">
                   <span className="flex items-center gap-1.5">
                     {porMonto ? <Banknote className={ICONO_CHICO} aria-hidden /> : <Percent className={ICONO_CHICO} aria-hidden />}
-                    {porMonto ? "Monto por prenda" : "Porcentaje"}
+                    {porMonto ? "Monto" : "Porcentaje"}
                   </span>
                 </legend>
                 <SegmentoDeslizante
@@ -605,7 +612,7 @@ export function PuntoDeVentaTicket({
                   onCambio={(m) => onDescuento({ modo: m as ModoDescuento })}
                   opciones={[
                     { clave: "porcentaje", etiqueta: "%", ayuda: "En porcentaje del precio" },
-                    { clave: "monto", etiqueta: "S/", ayuda: "En soles por prenda" },
+                    { clave: "monto", etiqueta: "S/", ayuda: "En soles, del total de lo elegido" },
                   ]}
                 />
                 {porMonto ? (
@@ -628,7 +635,7 @@ export function PuntoDeVentaTicket({
                       <span className="text-[11px] text-tinta/50">Otro</span>
                       <span className="ml-auto text-sm text-tinta/60">S/</span>
                       <input
-                        aria-label="Monto de descuento por prenda"
+                        aria-label="Monto de descuento"
                         {...atributosMontoTexto(descuento.monto)}
                         value={descuento.monto}
                         onChange={(e) => onDescuento({ monto: e.target.value })}
@@ -801,6 +808,10 @@ export function PuntoDeVentaTicket({
               {/* Por qué el % no da el precio «exacto»: cada prenda baja al S/ 0.10 de abajo para que se cobre sin céntimos
                   sueltos (ADR-0403). En S/ no hace falta: lo que se escribe es lo que se descuenta. */}
               {valorValido && elegidasCuenta > 0 && !porMonto && <p className="-mt-3 text-xs text-tinta/50">Cada prenda baja a un precio sin céntimos sueltos.</p>}
+              {/* En S/ con más de una prenda: el monto no se resta a cada una, se reparte (Felipe, 2026-10-24). */}
+              {valorValido && porMonto && unidadesAlcanzadas > 1 && (
+                <p className="-mt-3 text-xs text-tinta/50">Los {money(monto)} se reparten entre las prendas según su precio.</p>
+              )}
             </div>
           ) : cobrando && cuerpoCobro ? (
             // En el celular la hoja de cobro vive aquí, dentro de la hoja del ticket (y del formulario que cobra). En
