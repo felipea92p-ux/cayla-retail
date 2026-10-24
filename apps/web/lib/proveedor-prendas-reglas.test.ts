@@ -3,7 +3,7 @@ import { agruparPorMarca, pct, SIN_MARCA, totalesDePrendas, type PrendaDeProveed
 
 const prenda = (o: Partial<PrendaDeProveedor>): PrendaDeProveedor => ({
   productoId: "p", referencia: "Blusa", codigo: null, marca: "CAYLA", categoria: null,
-  unidadesCompradas: 10, gasto: 300, costoPromedio: 30, unidadesVendidas: 0, ingresoVendido: 0, costoVendido: 0,
+  unidadesCompradas: 10, unidadesEstimadas: 0, gasto: 300, costoPromedio: 30, unidadesVendidas: 0, ingresoVendido: 0, costoVendido: 0,
   stockActual: 10, primeraEntrada: null, ultimaVenta: null, conFactura: false, ...o,
 });
 
@@ -19,6 +19,12 @@ describe("totalesDePrendas", () => {
     expect(t.margenPct).toBeCloseTo(40);
     expect(t.vendidoPct).toBeCloseTo(20);
     expect(t.plataEnStock).toBe(6 * 30 + 10 * 50);
+  });
+
+  it("suma las unidades estimadas aparte de las compradas", () => {
+    const t = totalesDePrendas([prenda({ unidadesCompradas: 100, unidadesEstimadas: 40 }), prenda({ unidadesCompradas: 20, unidadesEstimadas: 0 })]);
+    expect(t.unidadesCompradas).toBe(120);
+    expect(t.unidadesEstimadas).toBe(40);
   });
 
   it("no inventa un margen si todavía no se vendió nada", () => {
@@ -51,7 +57,7 @@ describe("agruparPorMarca", () => {
 import { rankingDeProveedores, veredictoDe, type RendimientoProveedor } from "./proveedor-prendas-reglas";
 
 const prov = (o: Partial<RendimientoProveedor>): RendimientoProveedor => ({
-  proveedorId: "x", nombre: "Textil", prendas: 5, unidadesCompradas: 100, gasto: 3000, unidadesVendidas: 50, ingresoVendido: 3000,
+  proveedorId: "x", nombre: "Textil", prendas: 5, unidadesCompradas: 100, unidadesEstimadas: 0, gasto: 3000, unidadesVendidas: 50, ingresoVendido: 3000,
   costoVendido: 1500, plataEnStock: 1500, prendasSinVenta: 0, plataSinVenta: 0, ...o,
 });
 

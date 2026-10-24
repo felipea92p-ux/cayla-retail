@@ -2685,3 +2685,9 @@ variables/funciones. Nunca "empleado/jefe/sucursal": se usa
 *Este documento es una fotografía del código al 2026-09-04. Para el estado
 vivo día a día ver `docs/BACKLOG.md` y `docs/BITACORA.md`; para el porqué
 de cada decisión estructural, `docs/adr/`.*
+
+## Proveedores: lo que le compré y «Lo que quizá no ves» (2026-10-24, ADR-0502)
+
+- `/compras/proveedores/[id]` (ficha) → `getProveedorPrendas` (`lib/proveedores.ts`, RPC `fn_proveedor_prendas`) → `components/ProveedorPrendas.tsx` (reglas `lib/proveedor-prendas-reglas.ts`) y `components/LoQueQuizaNoVes.tsx` (reglas `lib/proveedor-analisis-reglas.ts:hallazgosDeProveedor`).
+- `/compras/proveedores` (lista) → `getProveedoresRendimiento` (RPC `fn_proveedores_rendimiento`) → `components/ProveedoresRendimiento.tsx`; `getProveedoresPrendas` (RPC `fn_proveedores_prendas`) → `hallazgosDeCartera` → `LoQueQuizaNoVes`.
+- Las tres RPC leen `fn_proveedor_prendas_base` (migración `20261024221000`, sin permiso para nadie) y exigen `fn_ve_plata_de_proveedores()`.

@@ -36,7 +36,10 @@ function FilaPrenda({ p }: { p: PrendaDeProveedor }) {
           {[p.codigo, p.categoria, p.primeraEntrada ? `desde ${fechaCorta(p.primeraEntrada)}` : null].filter(Boolean).join(" · ")}
         </span>
       </span>
-      <span className={celda("der", "text-sm text-tinta")}>{p.unidadesCompradas.toLocaleString("es-PE")}</span>
+      <span className={celda("der", "text-sm text-tinta")} title={p.unidadesEstimadas > 0 ? `${p.unidadesEstimadas.toLocaleString("es-PE")} de estas unidades son estimadas: no hay una entrada que las respalde, se calculan con lo vendido más lo que queda` : undefined}>
+        {p.unidadesCompradas.toLocaleString("es-PE")}
+        {p.unidadesEstimadas > 0 && <span className="block text-[10px] leading-none text-taupe">{p.unidadesEstimadas === p.unidadesCompradas ? "estimado" : `${p.unidadesEstimadas.toLocaleString("es-PE")} est.`}</span>}
+      </span>
       <span className={celda("der", "text-sm text-tinta")}>{soles(p.gasto)}</span>
       <span className={celda("izq", "overflow-visible")}>
         <span className="block text-sm tabular-nums text-tinta">
@@ -74,6 +77,7 @@ export function ProveedorPrendas({ prendas }: { prendas: PrendaDeProveedor[] }) 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <TarjetaCifra punto="neutro" etiqueta="Unidades compradas" valor={<CifraQueCuenta valor={total.unidadesCompradas} alMontar />}>
           en {total.prendas.toLocaleString("es-PE")} {total.prendas === 1 ? "prenda" : "prendas"}
+          {total.unidadesEstimadas > 0 && ` · ${total.unidadesEstimadas.toLocaleString("es-PE")} estimadas`}
         </TarjetaCifra>
         <TarjetaCifra punto="neutro" etiqueta="Plata gastada" valor={<CifraQueCuenta valor={total.gasto} formato="soles" alMontar />}>
           al costo de cada prenda
@@ -125,7 +129,7 @@ export function ProveedorPrendas({ prendas }: { prendas: PrendaDeProveedor[] }) 
       </div>
 
       <p className="nota-cayla">
-        «Comprado» son las entradas de inventario valorizadas al costo actual de cada prenda; cuando una entrada viene de una factura, manda el costo de la factura.
+        «Comprado» es el mayor entre las entradas de inventario y lo vendido más lo que queda, valorizado al costo actual de cada prenda; lo que no tiene una entrada que lo respalde sale como «estimado». Cuando viene de una factura, manda la factura.
         El margen es el de lo ya vendido (lo cobrado menos el costo que tenía la prenda al venderse). Los cambios, devoluciones y traslados entre sedes no cuentan como compra.
       </p>
     </section>

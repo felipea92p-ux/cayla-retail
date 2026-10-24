@@ -7941,6 +7941,7 @@ export type Database = {
           stock_actual: number
           ultima_venta: string | null
           unidades_compradas: number
+          unidades_estimadas: number
           unidades_vendidas: number
         }[]
       }
@@ -8027,6 +8028,7 @@ export type Database = {
           stock_actual: number
           ultima_venta: string | null
           unidades_compradas: number
+          unidades_estimadas: number
           unidades_vendidas: number
         }[]
       }
@@ -8043,6 +8045,7 @@ export type Database = {
           prendas_sin_venta: number
           proveedor_id: string
           unidades_compradas: number
+          unidades_estimadas: number
           unidades_vendidas: number
         }[]
       }

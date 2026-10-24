@@ -1,6 +1,7 @@
 // Reglas puras de «Lo que le compré a este proveedor» (ficha de Proveedores, 2026-10-24). Sin I/O: se prueban sin base.
 //
-// Qué es «comprado»: las entradas de inventario al costo de la prenda, y la línea de factura cuando existe
+// Qué es «comprado»: el mayor entre las entradas de inventario y (vendido + stock actual), al costo de la prenda; lo que sobra sobre
+// las entradas es ESTIMADO (`unidadesEstimadas`) y la pantalla lo dice. La línea de una factura vigente manda y es exacta
 // (`fn_proveedor_prendas`, 20261024221000). Lo vendido sale de ventas completadas con el costo que tenía al venderse.
 
 export type PrendaDeProveedor = {
@@ -10,6 +11,8 @@ export type PrendaDeProveedor = {
   marca: string | null;
   categoria: string | null;
   unidadesCompradas: number;
+  /** De las compradas, cuántas se reconstruyeron (vendido + stock) porque no hay entrada que las respalde. */
+  unidadesEstimadas: number;
   gasto: number;
   costoPromedio: number | null;
   unidadesVendidas: number;
@@ -24,6 +27,7 @@ export type PrendaDeProveedor = {
 export type TotalesPrendas = {
   prendas: number;
   unidadesCompradas: number;
+  unidadesEstimadas: number;
   gasto: number;
   unidadesVendidas: number;
   ingresoVendido: number;
@@ -53,9 +57,10 @@ export function pct(parte: number, total: number): number | null {
 }
 
 export function totalesDePrendas(prendas: readonly PrendaDeProveedor[]): TotalesPrendas {
-  let unidadesCompradas = 0, gasto = 0, unidadesVendidas = 0, ingresoVendido = 0, costoVendido = 0, plataEnStock = 0, prendasSinVenta = 0, plataSinVenta = 0;
+  let unidadesCompradas = 0, unidadesEstimadas = 0, gasto = 0, unidadesVendidas = 0, ingresoVendido = 0, costoVendido = 0, plataEnStock = 0, prendasSinVenta = 0, plataSinVenta = 0;
   for (const p of prendas) {
     unidadesCompradas += p.unidadesCompradas;
+    unidadesEstimadas += p.unidadesEstimadas;
     gasto += p.gasto;
     unidadesVendidas += p.unidadesVendidas;
     ingresoVendido += p.ingresoVendido;
@@ -71,6 +76,7 @@ export function totalesDePrendas(prendas: readonly PrendaDeProveedor[]): Totales
   return {
     prendas: prendas.length,
     unidadesCompradas,
+    unidadesEstimadas,
     gasto: redondear(gasto),
     unidadesVendidas,
     ingresoVendido: redondear(ingresoVendido),
@@ -110,6 +116,7 @@ export type RendimientoProveedor = {
   nombre: string;
   prendas: number;
   unidadesCompradas: number;
+  unidadesEstimadas: number;
   gasto: number;
   unidadesVendidas: number;
   ingresoVendido: number;

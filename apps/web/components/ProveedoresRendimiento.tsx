@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { rankingDeProveedores, type RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
+import { pct, rankingDeProveedores, type RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { soles } from "@/lib/compras";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Chip } from "@/components/ui/Chip";
@@ -41,6 +41,7 @@ export function ProveedoresRendimiento({ filas }: { filas: RendimientoProveedor[
               <span className="block truncate text-sm text-tinta">{r.nombre}</span>
               <span className="block truncate text-xs text-taupe">
                 {r.prendas.toLocaleString("es-PE")} {r.prendas === 1 ? "prenda" : "prendas"} · {pctTexto(r.pesoPct)} de todo lo que gastaste
+                {r.unidadesEstimadas > 0 && ` · ${pctTexto(pct(r.unidadesEstimadas, r.unidadesCompradas))} estimado`}
               </span>
             </span>
             <span className={celda("der", "text-sm text-tinta")}>{soles(r.gasto)}</span>
@@ -60,7 +61,7 @@ export function ProveedoresRendimiento({ filas }: { filas: RendimientoProveedor[
         ))}
       </Tabla>
       <p className="nota-cayla">
-        «Gastaste» es lo comprado al costo de cada prenda; «Sin vender» es la plata que sigue en estantes en prendas de las que todavía no se vendió ni una unidad.
+        «Gastaste» es lo comprado al costo de cada prenda (lo que no tiene entrada que lo respalde se estima con lo vendido más lo que queda); «Sin vender» es la plata que sigue en estantes en prendas de las que todavía no se vendió ni una unidad.
         Con menos de 10 unidades vendidas la lectura dice «Pocas ventas»: aún no alcanza para juzgar al proveedor.
       </p>
     </section>

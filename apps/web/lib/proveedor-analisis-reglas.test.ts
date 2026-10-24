@@ -7,7 +7,7 @@ const antes = (dias: number) => new Date(Date.parse(`${HOY}T00:00:00Z`) - dias *
 
 const prenda = (o: Partial<PrendaDeProveedor>): PrendaDeProveedor => ({
   productoId: "p", referencia: "Blusa", codigo: null, marca: null, categoria: null,
-  unidadesCompradas: 100, gasto: 3000, costoPromedio: 30, unidadesVendidas: 0, ingresoVendido: 0, costoVendido: 0,
+  unidadesCompradas: 100, unidadesEstimadas: 0, gasto: 3000, costoPromedio: 30, unidadesVendidas: 0, ingresoVendido: 0, costoVendido: 0,
   stockActual: 100, primeraEntrada: antes(60), ultimaVenta: null, conFactura: false, ...o,
 });
 const de = (proveedorId: string, o: Partial<PrendaDeProveedor>): PrendaConProveedor => ({ ...prenda(o), proveedorId, proveedorNombre: `Prov ${proveedorId}` });
