@@ -1,0 +1,198 @@
+/* Finanzas ▸ Resumen · «El recorrido de la plata» (El telar, 2026-10-23; pieza `components/finanzas/RecorridoPlata.tsx`).
+   Solo tokens. Movimiento de ADR-0136: los hilos se tejen una vez al entrar, de izquierda a derecha (cascada de 55 ms), sin rebote
+   ni bucle; las etiquetas aparecen después. Todo quieto con `prefers-reduced-motion`. El hover va dentro de `(hover: hover)`. */
+
+.fin-recorrido {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ---------- Escritorio: los hilos ---------- */
+.fin-recorrido-hilos {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.fin-recorrido-hilo {
+  fill: none;
+  stroke-linecap: butt;
+  opacity: 0.62;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: opacity 0.3s var(--ease-cayla);
+  animation: fin-recorrido-teje 1.1s var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms + 120ms);
+}
+.fin-recorrido-hilo[data-tenue],
+.fin-recorrido-nudo[data-tenue],
+.fin-recorrido-etiqueta[data-tenue] {
+  opacity: 0.25;
+}
+.fin-recorrido-enlace {
+  cursor: pointer;
+}
+.fin-recorrido-enlace:focus-visible {
+  outline: none;
+}
+.fin-recorrido-enlace:focus-visible .fin-recorrido-hilo {
+  opacity: 0.9;
+}
+@media (hover: hover) {
+  .fin-recorrido-hilos:hover .fin-recorrido-hilo {
+    opacity: 0.2;
+  }
+  .fin-recorrido-hilos .fin-recorrido-hilo:hover {
+    opacity: 0.88;
+  }
+}
+.fin-recorrido-nudo {
+  animation: fin-recorrido-aparece 0.5s var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms + 60ms);
+}
+.fin-recorrido-centro {
+  fill: var(--color-tinta);
+}
+.fin-recorrido-etiqueta {
+  animation: fin-recorrido-aparece 0.5s var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms + 520ms);
+}
+.fin-recorrido-nombre {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  fill: var(--color-tinta);
+}
+.fin-recorrido-monto {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  fill: var(--color-tinta);
+  font-variant-numeric: tabular-nums;
+}
+.fin-recorrido-monto[data-tipo="deja"] {
+  fill: var(--color-verde);
+  font-size: 20px;
+}
+.fin-recorrido-monto[data-tipo="falta"] {
+  fill: var(--color-rojo-profundo);
+}
+.fin-recorrido-pct {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  fill: var(--color-taupe);
+}
+
+/* ---------- Celular: dos tiras ---------- */
+.fin-recorrido-tiras {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+}
+.fin-recorrido-tira {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fin-recorrido-tira-titulo {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-taupe);
+}
+.fin-recorrido-tira-barra {
+  display: flex;
+  gap: 2px;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.fin-recorrido-tira-barra > i {
+  flex: var(--f) 1 0;
+  min-width: 2px;
+  background: var(--c);
+  transform-origin: left;
+  animation: fin-recorrido-crece 0.7s var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms + 120ms);
+}
+.fin-recorrido-tira-barra > i[data-tenue] {
+  opacity: 0.25;
+}
+.fin-recorrido-tira-ley {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12.5px;
+  color: var(--color-tinta);
+}
+.fin-recorrido-tira-ley li[data-tenue] {
+  opacity: 0.6;
+}
+.fin-recorrido-tira-ley b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.fin-recorrido-tira-ley b[data-tipo="deja"] {
+  color: var(--color-verde);
+}
+.fin-recorrido-tira-ley b[data-tipo="falta"] {
+  color: var(--color-rojo-profundo);
+}
+.fin-recorrido-tira-enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--color-sand);
+  text-underline-offset: 3px;
+}
+.fin-recorrido-tira-ley li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fin-recorrido-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c);
+  flex: none;
+}
+
+@media (max-width: 639px) {
+  .fin-recorrido-hilos {
+    display: none;
+  }
+  .fin-recorrido-tiras {
+    display: flex;
+  }
+}
+
+@keyframes fin-recorrido-teje {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@keyframes fin-recorrido-aparece {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fin-recorrido-crece {
+  from {
+    transform: scaleX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fin-recorrido-hilo,
+  .fin-recorrido-nudo,
+  .fin-recorrido-etiqueta,
+  .fin-recorrido-tira-barra > i {
+    animation: none;
+  }
+}

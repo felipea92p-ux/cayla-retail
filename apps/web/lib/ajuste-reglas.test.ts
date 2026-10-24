@@ -564,6 +564,16 @@ describe("la prenda que faltó en un conteo y apareció (ADR-0291)", () => {
     expect(sin.p_ajustes).toEqual([{ variante_id: "v1", cantidad: 1 }]);
   });
 
+  it("lo que había al contar (ADR-0494) viaja solo en la línea que lo trae, también cuando es 0", () => {
+    const base = { ubicacionId: "u", sububicacionId: "alm", cargaInicial: [], motivo: "conteo_fisico", alPiso: false, nota: "", token: "t" };
+    const r = argumentosDeAjuste({ ...base, ajustes: [{ variante: { varianteId: "v1" }, delta: -1, esperado: 6 }, { variante: { varianteId: "v2" }, delta: 2, esperado: 0 }, { variante: { varianteId: "v3" }, delta: 1 }] });
+    expect(r.p_ajustes).toEqual([
+      { variante_id: "v1", cantidad: -1, esperado: 6 },
+      { variante_id: "v2", cantidad: 2, esperado: 0 },
+      { variante_id: "v3", cantidad: 1 },
+    ]);
+  });
+
   it("el aviso de éxito cuenta lo enlazado", () => {
     expect(textoExitoAjuste({ ajustes: 1, cargas: 0, enlazados: 1 })).toBe("1 variante ajustada · 1 enlazada al conteo donde faltaba");
     expect(leerResultadoAjuste({ ajustes: 1, cargas: 0, enlazados: 1, ya_registrado: false })?.enlazados).toBe(1);
