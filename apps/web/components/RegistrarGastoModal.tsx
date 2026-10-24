@@ -30,7 +30,7 @@ import {
   TEXTO_MEDIO,
   TIPOS_COMPROBANTE,
   borradorDesdeFijo,
-  textoCuandoLlega,
+  textoCuandoVence,
   type ProveedorGasto,
   igvDeFactura,
   mediosPara,
@@ -293,7 +293,7 @@ export function RegistrarGastoModal({
     : esActivo
       ? "Algo que sirve varios años: muebles, equipos, remodelación, máquinas del Taller."
       : fijo
-        ? `Gasto fijo de ${fijo.ubicacionNombre}: llega ${textoCuandoLlega(fijo.momento, fijo.diaDelMes)}${fijo.montoVariable ? ". Escribe el monto del recibo." : "."}`
+        ? `Gasto fijo de ${fijo.ubicacionNombre}: vence ${textoCuandoVence(fijo.momento, fijo.diaDelMes)}${fijo.montoVariable ? ". Escribe el monto del recibo." : "."}`
         : "Lo que se paga para que el negocio funcione. La planilla no va aquí: viene de Dynamic.";
 
   const bloqueComprobante = (
