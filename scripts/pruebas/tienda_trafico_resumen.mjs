@@ -12,8 +12,10 @@
  *   6. La ciudad de cada departamento (Lima, Lima Metropolitana y Callao son Lima; otro del Perú, «otras»; fuera, «fuera»).
  *   7. Las prendas: por cada una, hasta dónde llegó cada persona con ella (también quien solo la separó), sus tallas, sus colores,
  *      sus caminos y cuántas la miraron antes (actividad 5).
- *   8. «Ahora» y «último dato».
- *   9. La migración se puede pegar dos veces.
+ *   8. De dónde vienen: cuántas personas por camino y por ciudad (cada lista sin su propio filtro, con el otro) y las 24 horas de su
+ *      primera entrada, en Lima (actividad 6).
+ *   9. «Ahora» y «último dato».
+ *  10. La migración se puede pegar dos veces.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK y escribe sus pasos en enero de 2025, lejos de lo que haya en la base local.
  *
@@ -182,14 +184,32 @@ esperarValor(
 const directoPrendas = escenario(`${COMO(FELIPE)}select count(*) from retail.fn_trafico_web_prendas('2025-01-10', '2025-01-10');`);
 esperar("nadie llama directo a las prendas", !directoPrendas.ok && /permission denied/.test(directoPrendas.mensaje), directoPrendas.ok ? "se pudo" : directoPrendas.mensaje);
 
-// ---- 7. La ciudad de cada departamento ----
+// ---- 7. De dónde vienen y a qué hora (actividad 6) ----
+// Mira el resumen como postgres: `R` es el resumen entero.
+const conResumen = (expr, camino = "null", ciudad = "null") => escenario(`${resumen(camino, ciudad)} as r \\gset
+${COMO_POSTGRES}select ${expr.replaceAll("R", "(:'r'::jsonb)")};`);
+esperarValor(
+  "los caminos dicen cuántas personas llegaron por cada uno (y suman el total)",
+  conResumen("(R -> 'caminos' ->> 'instagram') || ',' || (R -> 'caminos' ->> 'google') || ',' || (select sum(v::int) from jsonb_each_text(R -> 'caminos') as t(k, v))"),
+  "1,1,4",
+);
+esperarValor("con Instagram puesto, los caminos se siguen contando todos (tocar otro cambia de camino)", conResumen("(select sum(v::int) from jsonb_each_text(R -> 'caminos') as t(k, v))", "'instagram'"), "4");
+esperarValor("…pero las ciudades son las de Instagram", conResumen("R -> 'ciudades'", "'instagram'"), '{"trujillo": 1}');
+esperarValor("con Lima puesta, los caminos son los de Lima", conResumen("R -> 'caminos'", "null", "'lima'"), '{"google": 1, "tiktok": 1}');
+esperarValor(
+  "las horas son 24, suman los que entraron y van por la hora de Lima de su primera entrada",
+  conResumen("jsonb_array_length(R -> 'horas') || ',' || (select sum(v::int) from jsonb_array_elements_text(R -> 'horas') v) || ',' || (R -> 'horas' ->> 9) || ',' || (R -> 'horas' ->> 15) || ',' || (R -> 'horas' ->> 16)"),
+  "24,4,1,1,0",
+);
+
+// ---- 8. La ciudad de cada departamento ----
 esperarValor(
   "la ciudad de cada departamento",
   escenario(`select string_agg(retail.fn_trafico_web_ciudad(r), ',' order by n) from unnest(array['PE-LAL','PE-LIM','PE-LMA','PE-CAL','PE-ARE','PE-LAM','PE-PIU','PE-CUS','PE-AMA','PE','US',null]) with ordinality as t(r, n);`),
   "trujillo,lima,lima,lima,arequipa,chiclayo,piura,cusco,otras,otras,fuera,sin_dato",
 );
 
-// ---- 8. Ahora y último dato ----
+// ---- 9. Ahora y último dato ----
 esperarValor(
   "«ahora» cuenta a quien dio un paso hace menos de 5 minutos, y «último dato» es el último paso que llegó",
   escenario(`${paso(8, "2025-01-10 12:00", 0, { camino: "directo" }).replace(lima("2025-01-10 12:00"), "now()")}
@@ -200,7 +220,7 @@ esperarValor(
 esperarValor("la base del veredicto son 6 cifras que nunca crecen", escenario(`${resumen()} as r \\gset
   ${COMO_POSTGRES}select bool_and(a >= b) from (select (e.v)::int a, lead((e.v)::int) over (order by e.n) b from jsonb_array_elements_text(:'r'::jsonb -> 'base') with ordinality as e(v, n)) x where b is not null;`), "t");
 
-// ---- 9. Se puede pegar dos veces ----
+// ---- 10. Se puede pegar dos veces ----
 const dosVeces = correr(`begin;\n${MIGRACION}\n${MIGRACION}\nrollback;`);
 esperar("la migración se puede pegar dos veces", dosVeces.ok, dosVeces.mensaje);
 

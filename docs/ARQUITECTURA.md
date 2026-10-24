@@ -1351,7 +1351,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   con su recorrido, tallas, colores y caminos, `fn_trafico_web_prendas`) →
   `lib/trafico-reglas.ts` (puro: lectura, «de cada 100», el cambio contra los días de antes, dónde se atora con poca gente contraído hacia
   lo de costumbre, y el aviso de «la tienda no manda visitas»; el mosaico de la vitrina, `lib/trafico-mosaico.ts`) → `components/trafico/`
-  (`CifraTrafico`, `RecorridoTrafico`, `PorQue`, `VitrinaTrafico` y su `CajonPrendaTrafico`, con «Ver en la vitrina» → `/tienda-web/vitrina`). Lo
+  (`CifraTrafico`, `RecorridoTrafico`, `PorQue`, `VitrinaTrafico` y su `CajonPrendaTrafico` —abierto con `usePrendaAbierta`, también desde
+  la tabla—, con «Ver en la vitrina» → `/tienda-web/vitrina`; `ControlesTrafico` con el período, los filtros puestos y la vista;
+  `DeDondeVienen`, `HorasTrafico` y `TablasTrafico`). El período, los filtros y la vista van en la dirección (`leerFiltros`/`hrefTrafico`);
+  la campaña del tercer período se lee de `etiquetas` (estilo «campaña», `campanaDelPeriodo`). Lo
   escribe la TIENDA (`apps/tienda`): `POST /api/visita` y las acciones de la bolsa → `retail.tienda_anotar_pasos` → `retail.trafico_web`
   (solo se agrega). Pruebas en la base: `pnpm pruebas:tienda-trafico` y `pnpm pruebas:tienda-trafico-resumen`.
 - `/tienda-web/recomendaciones` (ADR-0408, Felipe 2026-10-15; módulo **`recomendaciones`**, nace solo para el líder; migraciones

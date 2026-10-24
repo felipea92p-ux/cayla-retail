@@ -29,6 +29,59 @@
       aspect-ratio: 12 / 5;
     }
   }
+  /* Con «De dónde vienen» al lado (el cuerpo de la pantalla pasa de 1000 px), la vitrina termina donde termina esa columna: llena el
+     alto que le queda a su tarjeta, sin bajar más. */
+  @container trafico (min-width: 1000px) {
+    .trafico-mosaico {
+      flex: 1;
+      aspect-ratio: auto;
+      min-height: 360px;
+      max-height: none;
+    }
+  }
+  .trafico-cuerpo {
+    container: trafico / inline-size;
+  }
+  .trafico-cuerpo-rejilla {
+    display: grid;
+    gap: 16px;
+    align-items: stretch;
+  }
+  @container trafico (min-width: 1000px) {
+    .trafico-cuerpo-rejilla {
+      grid-template-columns: minmax(0, 1fr) 460px;
+    }
+  }
+  @container trafico (min-width: 1500px) {
+    .trafico-cuerpo-rejilla {
+      grid-template-columns: minmax(0, 1fr) 520px;
+    }
+  }
+
+  /* ---------- De dónde vienen (actividad 6): cada fila es un filtro ---------- */
+  .trafico-fila {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 2rem 2.25rem;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 6px;
+    border-radius: 8px;
+    font-size: 13px;
+    transition: background-color 180ms var(--ease-cayla);
+  }
+  @media (hover: hover) {
+    a.trafico-fila:hover {
+      background: color-mix(in oklab, var(--color-sand) 50%, transparent);
+    }
+  }
+  .trafico-fila[aria-current="true"] {
+    background: var(--color-hueso);
+    font-weight: 600;
+  }
+  .trafico-fila[data-cero] {
+    color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
+  }
   .trafico-pieza {
     position: absolute;
     display: flex;

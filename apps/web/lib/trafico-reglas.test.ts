@@ -10,8 +10,16 @@ import {
   fraseAtora,
   horaCorta,
   leerResumen,
-  periodoSieteDias,
+  campanaDelPeriodo,
+  hrefTrafico,
+  leerFiltros,
+  periodoDe,
   personas,
+  picoDeHoras,
+  quienesTexto,
+  rangoTexto,
+  tramoTexto,
+  tramosDeTres,
   sinNoticias,
 } from "./trafico-reglas";
 
@@ -40,6 +48,9 @@ describe("leerResumen: lo que devuelve la base", () => {
       ahora: 9,
       ultimoDato: "2026-10-23T21:40:00+00:00",
       prendas: [],
+      caminos: { instagram: 0, directo: 0, whatsapp: 0, tiktok: 0, google: 0, qr: 0, otros: 0 },
+      ciudades: { trujillo: 0, lima: 0, arequipa: 0, chiclayo: 0, piura: 0, cusco: 0, otras: 0, fuera: 0, sin_dato: 0 },
+      horas: Array.from({ length: 24 }, () => 0),
     });
   });
   it("sin ningún paso todavía, el último dato es null", () => {
@@ -54,7 +65,8 @@ describe("leerResumen: lo que devuelve la base", () => {
 });
 
 describe("el período y las cifras", () => {
-  it("7 días cuenta hoy", () => expect(periodoSieteDias("2026-10-23")).toEqual({ desde: "2026-10-17", hasta: "2026-10-23" }));
+  it("7 días cuenta hoy", () =>
+    expect(periodoDe("7", "2026-10-23", null)).toEqual({ clave: "7", desde: "2026-10-17", hasta: "2026-10-23", nombre: "Últimos 7 días", antes: "los 7 días anteriores" }));
   it("de cada 100", () => {
     expect(de100(1274, 1920)).toBe(66);
     expect(de100(5, 0)).toBe(0);
@@ -206,5 +218,83 @@ describe("las prendas del período", () => {
     expect(cambioDeLaPrenda({ ...p, anterior: 120 }).texto).toBe("Igual que antes");
     expect(cambioDeLaPrenda({ ...p, anterior: 5 }).texto).toBe("Pocas personas para comparar");
     expect(cambioDeLaPrenda({ ...p, anterior: 150 })).toEqual({ tono: "ambar", texto: "20 % menos que antes", sube: -20 });
+  });
+});
+
+describe("de dónde vienen y a qué hora", () => {
+  it("lee los caminos y las ciudades con todas sus claves, sin las que no conoce", () => {
+    const r = leerResumen({ ...DE_LA_BASE, caminos: { instagram: 80, fax: 3 }, ciudades: { trujillo: 40, marte: 2 } })!;
+    expect(r.caminos.instagram).toBe(80);
+    expect(r.caminos.qr).toBe(0);
+    expect("fax" in r.caminos).toBe(false);
+    expect(r.ciudades.trujillo).toBe(40);
+    expect("marte" in r.ciudades).toBe(false);
+  });
+  it("las horas son 24 o, si no, todas en 0", () => {
+    expect(leerResumen({ ...DE_LA_BASE, horas: [1, 2] })!.horas).toHaveLength(24);
+  });
+  it("la hora con más gente: las 3 horas seguidas que más suman", () => {
+    const horas = Array.from({ length: 24 }, (_, h) => (h >= 19 && h <= 21 ? 10 : 1));
+    expect(picoDeHoras(horas)).toEqual({ desde: 19, hasta: 22, n: 30, de100: 59 });
+  });
+  it("con muy poca gente no hay hora punta", () => {
+    expect(picoDeHoras(Array.from({ length: 24 }, (_, h) => (h === 20 ? 9 : 0)))).toBeNull();
+  });
+  it("el tramo en palabras", () => {
+    expect(tramoTexto(19, 22)).toBe("de 7 a 10 p. m.");
+    expect(tramoTexto(11, 14)).toBe("de 11 a. m. a 2 p. m.");
+    expect(tramoTexto(21, 24)).toBe("de 9 p. m. a 12 a. m.");
+    expect(tramoTexto(0, 3)).toBe("de 12 a 3 a. m.");
+  });
+  it("los 8 tramos de 3 horas suman todo el día", () => {
+    const horas = Array.from({ length: 24 }, (_, h) => h);
+    const t = tramosDeTres(horas);
+    expect(t).toHaveLength(8);
+    expect(t.reduce((a, x) => a + x.n, 0)).toBe(276);
+  });
+});
+
+describe("el período y los filtros", () => {
+  const CAMPANAS = [
+    { nombre: "Aniversario CAYLA", desde: "2026-10-01", hasta: "2026-10-14" },
+    { nombre: "Halloween", desde: "2026-10-17", hasta: "2026-10-31" },
+    { nombre: "Navidad", desde: "2026-12-11", hasta: "2026-12-25" },
+    { nombre: "Sin fechas", desde: null, hasta: null },
+  ];
+  it("la campaña que rige hoy, hasta hoy", () => {
+    expect(campanaDelPeriodo(CAMPANAS, "2026-10-23")).toEqual({ nombre: "Halloween", desde: "2026-10-17", hasta: "2026-10-23", vigente: true });
+  });
+  it("si ninguna rige, la última que terminó", () => {
+    expect(campanaDelPeriodo(CAMPANAS, "2026-10-15")).toEqual({ nombre: "Aniversario CAYLA", desde: "2026-10-01", hasta: "2026-10-14", vigente: false });
+  });
+  it("una campaña que todavía no empieza no es un período", () => {
+    expect(campanaDelPeriodo([CAMPANAS[2]], "2026-10-23")).toBeNull();
+  });
+  it("la campaña como período, y sin campaña vuelve a 7 días", () => {
+    const c = campanaDelPeriodo(CAMPANAS, "2026-10-23");
+    expect(periodoDe("campana", "2026-10-23", c)).toMatchObject({ desde: "2026-10-17", hasta: "2026-10-23", nombre: "Halloween", antes: "los 7 días anteriores" });
+    expect(periodoDe("campana", "2026-10-23", null).clave).toBe("7");
+    expect(periodoDe("30", "2026-10-23", null)).toMatchObject({ desde: "2026-09-24", nombre: "Últimos 30 días" });
+  });
+  it("lee la dirección e ignora lo que no conoce", () => {
+    expect(leerFiltros({ periodo: "30", camino: "instagram", ciudad: "trujillo", vista: "tabla" })).toEqual({ periodo: "30", camino: "instagram", ciudad: "trujillo", vista: "tabla" });
+    expect(leerFiltros({ periodo: "99", camino: "fax", ciudad: ["lima", "cusco"] })).toEqual({ periodo: "7", camino: null, ciudad: "lima", vista: "grafico" });
+  });
+  it("la dirección con un cambio; lo de fábrica no se escribe", () => {
+    const f = leerFiltros({ camino: "instagram" });
+    expect(hrefTrafico(f, { ciudad: "lima" })).toBe("/tienda-web/trafico?camino=instagram&ciudad=lima");
+    expect(hrefTrafico(f, { camino: null })).toBe("/tienda-web/trafico");
+    expect(hrefTrafico(f, { periodo: "campana", vista: "tabla" })).toBe("/tienda-web/trafico?periodo=campana&camino=instagram&vista=tabla");
+  });
+  it("el rango en palabras", () => {
+    expect(rangoTexto("2026-10-17", "2026-10-23")).toBe("Del 17 al 23 de octubre");
+    expect(rangoTexto("2026-09-24", "2026-10-23")).toBe("Del 24 de setiembre al 23 de octubre");
+    expect(rangoTexto("2026-10-23", "2026-10-23")).toBe("El 23 de octubre");
+  });
+  it("a quiénes se mira, en palabras", () => {
+    expect(quienesTexto("instagram", "trujillo")).toBe("por Instagram desde Trujillo");
+    expect(quienesTexto("qr", null)).toBe("por el QR de la tienda");
+    expect(quienesTexto(null, "fuera")).toBe("desde fuera del Perú");
+    expect(quienesTexto(null, null)).toBe("");
   });
 });

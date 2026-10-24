@@ -55,8 +55,11 @@ revoke all on function retail.fn_trafico_web_ciudad(text) from public, anon;
 grant execute on function retail.fn_trafico_web_ciudad(text) to authenticated;
 
 -- ---------- 3. Las personas de un período ----------
+-- Devuelve también cuándo entró cada persona (actividad 6: a qué hora entran). Cambiar lo que devuelve pide borrarla antes: una base que
+-- ya tenía la versión de la actividad 4 no la reemplaza con `create or replace`. `drop function` no toma las tablas de auth ni de storage.
+drop function if exists retail.fn_trafico_web_personas(date, date, text, text);
 create or replace function retail.fn_trafico_web_personas(p_desde date, p_hasta date, p_camino text default null, p_ciudad text default null)
-returns table (visitante uuid, camino text, ciudad text, hasta smallint)
+returns table (visitante uuid, camino text, ciudad text, hasta smallint, entro_en timestamptz)
 language sql
 stable
 security definer
@@ -75,7 +78,7 @@ as $fn$
     having count(*) > 200
   ),
   entradas as (
-    select distinct on (f.visitante) f.visitante, f.camino, retail.fn_trafico_web_ciudad(f.region) as ciudad
+    select distinct on (f.visitante) f.visitante, f.camino, retail.fn_trafico_web_ciudad(f.region) as ciudad, f.ocurrio_en as entro_en
     from filas f
     where f.paso = 0 and not exists (select 1 from raros r where r.visitante = f.visitante)
     order by f.visitante, f.ocurrio_en, f.id
@@ -90,7 +93,7 @@ as $fn$
     join entradas e on e.visitante = f.visitante
     group by f.visitante
   )
-  select e.visitante, e.camino, e.ciudad, h.hasta
+  select e.visitante, e.camino, e.ciudad, h.hasta, e.entro_en
   from entradas e
   join hasta h on h.visitante = e.visitante
   where (p_camino is null or e.camino = p_camino)
@@ -183,7 +186,9 @@ revoke all on function retail.fn_trafico_web_prendas(date, date, text, text) fro
 -- `ahora`: personas con un paso en los últimos 5 minutos. `ultimo_dato`: el último paso que llegó (por su id, que crece con el tiempo:
 -- usa la llave primaria y no recorre la tabla). `prendas`: las que alguien miró, de la más mirada a la menos, con su recorrido, sus tallas,
 -- sus colores (los elegidos y los del catálogo, para dibujarla aunque nadie haya elegido color), sus caminos, su foto principal y cuántas
--- personas la miraron en los días de antes (calculado UNA vez para todas, no una vez por prenda).
+-- personas la miraron en los días de antes (calculado UNA vez para todas, no una vez por prenda). `caminos` y `ciudades`: cuántas personas
+-- llegaron por cada camino y desde cada ciudad (`{"instagram": 80, …}`; cada lista sin su propio filtro); `horas`: 24 cifras, cuántas
+-- entraron en cada hora del día, de las 0 a las 23 de Lima (actividad 6).
 create or replace function retail.resumen_trafico_web(p_desde date, p_hasta date, p_camino text default null, p_ciudad text default null)
 returns jsonb
 language plpgsql
@@ -197,6 +202,7 @@ declare
   v_ant_hasta date;
   v_hoy date := retail.fn_hoy_lima();
   v_antes jsonb;
+  v_estos_dias jsonb;
 begin
   if not retail.fn_ve_modulo('trafico') then
     raise exception 'Tu rol no ve «Tráfico de la tienda web».' using errcode = '42501';
@@ -211,22 +217,49 @@ begin
     select coalesce(jsonb_object_agg(a.producto_id, a.miraron), '{}'::jsonb)
     from retail.fn_trafico_web_prendas(v_ant_desde, v_ant_hasta, p_camino, p_ciudad) a
   );
+  -- La gente del período se lee UNA vez, sin filtro, y de ahí sale todo lo de estos días (actividad 6). Cada lista de filtros se cuenta
+  -- sin su propio filtro (con Instagram puesto, los caminos siguen mostrando cuántos llegaron por cada uno: tocar otro cambia de camino),
+  -- pero con el otro (con Trujillo puesto, los caminos son los de Trujillo). Las horas son las de la entrada, en Lima.
+  with gente as (
+    select g.camino, g.ciudad, g.hasta, g.entro_en from retail.fn_trafico_web_personas(p_desde, p_hasta) g
+  ),
+  elegida as (
+    select g.* from gente g where (p_camino is null or g.camino = p_camino) and (p_ciudad is null or g.ciudad = p_ciudad)
+  )
+  select jsonb_build_object(
+    'pasos', (
+      select jsonb_build_array(
+        count(*),
+        count(*) filter (where e.hasta >= 1),
+        count(*) filter (where e.hasta >= 2),
+        count(*) filter (where e.hasta >= 3),
+        count(*) filter (where e.hasta >= 4),
+        count(*) filter (where e.hasta >= 5))
+      from elegida e
+    ),
+    'caminos', (
+      select coalesce(jsonb_object_agg(x.camino, x.n), '{}'::jsonb)
+      from (select g.camino, count(*)::int as n from gente g where p_ciudad is null or g.ciudad = p_ciudad group by g.camino) x
+    ),
+    'ciudades', (
+      select coalesce(jsonb_object_agg(x.ciudad, x.n), '{}'::jsonb)
+      from (select g.ciudad, count(*)::int as n from gente g where p_camino is null or g.camino = p_camino group by g.ciudad) x
+    ),
+    'horas', (
+      select jsonb_agg(coalesce(h.n, 0) order by s.hora)
+      from generate_series(0, 23) as s(hora)
+      left join (
+        select extract(hour from e.entro_en at time zone 'America/Lima')::int as hora, count(*)::int as n from elegida e group by 1
+      ) h on h.hora = s.hora
+    )
+  )
+  into v_estos_dias;
 
-  return jsonb_build_object(
+  return v_estos_dias || jsonb_build_object(
     'desde', p_desde,
     'hasta', p_hasta,
     'anterior_desde', v_ant_desde,
     'anterior_hasta', v_ant_hasta,
-    'pasos', (
-      select jsonb_build_array(
-        count(*),
-        count(*) filter (where p.hasta >= 1),
-        count(*) filter (where p.hasta >= 2),
-        count(*) filter (where p.hasta >= 3),
-        count(*) filter (where p.hasta >= 4),
-        count(*) filter (where p.hasta >= 5))
-      from retail.fn_trafico_web_personas(p_desde, p_hasta, p_camino, p_ciudad) p
-    ),
     'anterior', (select count(*) from retail.fn_trafico_web_personas(v_ant_desde, v_ant_hasta, p_camino, p_ciudad)),
     'base', (
       select jsonb_build_array(

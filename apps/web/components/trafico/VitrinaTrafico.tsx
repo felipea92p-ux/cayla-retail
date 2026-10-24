@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Shirt } from "lucide-react";
 import type { Familia } from "@cayla-retail/shared";
 import { IconoCategoria } from "@/components/IconoCategoria";
 import { tonoDeCategoria } from "@/components/MuestraCategoria";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Vacio } from "@/components/ui/Vacio";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
 import { BALDOSAS_A_LA_VISTA, conIcono, etiquetaQueCabe, franjasDe, squarify, type Baldosa } from "@/lib/trafico-mosaico";
 import { de100QueVieron, miles, personas, type PrendaTrafico } from "@/lib/trafico-reglas";
-import { CajonPrendaTrafico } from "./CajonPrendaTrafico";
+import { usePrendaAbierta } from "./usePrendaAbierta";
 
 /** El aire entre baldosa y baldosa (px). */
 const HUECO = 3;
@@ -17,7 +19,8 @@ const HUECO = 3;
 /**
  * «La vitrina, por miradas» (ADR-0495, actividad 5; maqueta C «La vitrina»): un mosaico de las prendas que la gente miró en el período.
  * Cada baldosa ocupa lo que la miraron y lleva los colores que eligieron, en franjas; la etiqueta de papel dice su nombre y su cifra.
- * Tocar una abre su cajón con su recorrido, sus tallas, sus colores y de dónde vinieron. Se mide con el ancho real de la tarjeta.
+ * Tocar una abre su cajón con su recorrido, sus tallas, sus colores y de dónde vinieron. Se mide con el ancho y el alto reales de su
+ * caja: junto a «De dónde vienen», termina donde termina esa columna.
  */
 export function VitrinaTrafico({
   prendas,
@@ -31,14 +34,15 @@ export function VitrinaTrafico({
   vieron: number;
   /** El «de costumbre» de los 6 pasos (90 días de toda la tienda), para decir dónde se atora cada prenda. */
   base: number[];
-  /** «Últimos 7 días». */
+  /** «Últimos 7 días», «Halloween». */
   periodo: string;
   /** «Los 7 días anteriores». */
   antes: string;
 }) {
   const caja = useRef<HTMLDivElement>(null);
   const [lienzo, setLienzo] = useState<{ w: number; h: number } | null>(null);
-  const [abierta, setAbierta] = useState<number | null>(null);
+  const { contenedor, abrir, cajon } = usePrendaAbierta({ prendas, vieron, base, periodo, antes });
+  const hay = prendas.length > 0;
 
   useEffect(() => {
     const el = caja.current;
@@ -48,18 +52,7 @@ export function VitrinaTrafico({
     const ro = new ResizeObserver(medir);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
-
-  // Al cerrar, el foco vuelve a la baldosa de la última prenda que se miró (con ↑ ↓ pudo ser otra que la que se tocó). Radix lo
-  // devuelve al `body` cuando la hoja se desmonta sola tras su salida: se espera a que termine y, si nadie tomó el foco, se pone aquí.
-  const cerrar = () => {
-    const id = abierta !== null ? prendas[abierta]?.id : undefined;
-    setAbierta(null);
-    setTimeout(() => {
-      if (document.activeElement && document.activeElement !== document.body) return;
-      caja.current?.querySelector<HTMLElement>(`[data-prenda="${id}"]`)?.focus();
-    }, 50);
-  };
+  }, [hay]);
 
   const aLaVista = prendas.slice(0, BALDOSAS_A_LA_VISTA);
   const resto = prendas.slice(BALDOSAS_A_LA_VISTA);
@@ -69,7 +62,7 @@ export function VitrinaTrafico({
   const mas = prendas[0];
 
   return (
-    <section className="card-cayla px-5 py-4" aria-labelledby="trafico-vitrina" data-guia="trafico.vitrina">
+    <section ref={contenedor} className="card-cayla flex min-w-0 flex-col px-5 py-4" aria-labelledby="trafico-vitrina" data-guia="trafico.vitrina">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <TituloSeccion id="trafico-vitrina">La vitrina, por miradas</TituloSeccion>
         {mas && (
@@ -78,30 +71,21 @@ export function VitrinaTrafico({
             prenda).
           </p>
         )}
-        <p className="text-[12.5px] text-tinta/70 sm:ml-auto">Tamaño: cuántos la miraron · franjas: los colores que eligieron</p>
+        {hay && <p className="text-[12.5px] text-tinta/70 sm:ml-auto">Tamaño: cuántos la miraron · franjas: los colores que eligieron</p>}
       </div>
-      <TooltipProvider delayDuration={250}>
-        <div ref={caja} className="trafico-mosaico mt-3">
-          {lienzo &&
-            aLaVista.map((p, k) => (
-              <Pieza key={p.id} p={p} k={k} b={baldosas[k]} onAbrir={() => setAbierta(k)} />
-            ))}
-          {lienzo && resto.length > 0 && <Resto n={resto.length} b={baldosas[aLaVista.length]} />}
-        </div>
-      </TooltipProvider>
-      {abierta !== null && prendas[abierta] && (
-        <CajonPrendaTrafico
-          p={prendas[abierta]}
-          puesto={abierta + 1}
-          total={prendas.length}
-          vieron={vieron}
-          base={base}
-          periodo={periodo}
-          antes={antes}
-          onCerrar={cerrar}
-          onNavegar={(d) => setAbierta((i) => (i === null ? i : Math.min(prendas.length - 1, Math.max(0, i + d))))}
-        />
+      {hay ? (
+        <TooltipProvider delayDuration={250}>
+          <div ref={caja} className="trafico-mosaico mt-3">
+            {lienzo && aLaVista.map((p, k) => <Pieza key={p.id} p={p} k={k} b={baldosas[k]} onAbrir={() => abrir(k)} />)}
+            {lienzo && resto.length > 0 && <Resto n={resto.length} b={baldosas[aLaVista.length]} />}
+          </div>
+        </TooltipProvider>
+      ) : (
+        <Vacio icono={<Shirt />} titulo="Nadie miró una prenda en estos días" tamano="chico">
+          Entraron a la tienda, pero se fueron sin abrir ninguna.
+        </Vacio>
       )}
+      {cajon}
     </section>
   );
 }

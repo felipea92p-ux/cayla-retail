@@ -38,6 +38,12 @@ que ya viven en la base.
    que esa persona separó (recoger: el pedido entregado y la prenda ni quitada ni liberada). La vitrina dibuja las 24 más miradas en un
    mosaico donde el área es lo que la miraron (squarified); las demás, en un hueco «y N prendas más». Dónde se atora una prenda se dice
    solo con 30 personas o más en el paso de antes: con menos, una prenda no tiene un paso «malo», tiene pocas personas.
+7. **El período, los filtros y la vista** (actividad 6) viven en la dirección (`?periodo=30&camino=instagram&ciudad=trujillo&vista=tabla`):
+   los últimos 7 días (de fábrica), los últimos 30 o **la campaña** (la etiqueta de estilo «campaña» que rige hoy, desde que empezó; si
+   ninguna rige, la última que terminó en el año). Cada período se compara con los mismos días de antes. Tocar un camino o una ciudad
+   filtra toda la pantalla; cada lista se cuenta **sin su propio filtro y con el otro** (con Instagram puesto se sigue viendo cuántos
+   llegaron por cada camino, para cambiar de uno a otro). «A qué hora entran» es la hora de Lima de la primera entrada; la hora punta son
+   las 3 horas seguidas con más gente y se dice solo con 10 personas o más. La vista de tabla lleva los mismos números y TODAS las prendas.
 
 ```
 DECIDÍ:     una tabla propia de pasos anónimos (retail.trafico_web), escrita solo por retail.tienda_anotar_pasos desde el servidor de la
@@ -103,6 +109,15 @@ SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_
   con el mouse y con Enter, pasa de prenda con ↓, cierra con Escape y el foco vuelve a la baldosa de la última prenda vista (Radix lo
   dejaba en el `body`). La guía suma la vitrina, la más mirada y el cajón (que el piloto abre y cierra): `guias:recorrer` 9 pasos a
   1440 px en claro y a 375 px en oscuro. La lectura completa tarda ~80 ms con 1.240 pasos en local.
+- **Actividad 6:** `resumen_trafico_web` lee a la gente del período UNA vez y de ahí saca el recorrido, los caminos, las ciudades y las
+  horas (`pnpm pruebas:tienda-trafico-resumen`, ahora 32: los caminos suman el total, cada lista sin su propio filtro y con el otro, las 24
+  horas por la primera entrada en Lima). Reglas puras en `lib/trafico-reglas.test.ts` (41: la campaña que rige o la última, el período, la
+  dirección, el rango y el tramo en palabras, la hora punta y su mínimo). En el ERP local, como líder: los tres períodos («Halloween» rige
+  hoy), el filtro por Instagram y por Instagram + Trujillo (42 personas; las listas siguen mostrando los demás), la vista de tabla con las
+  21 prendas que abren el mismo cajón (el foco vuelve a su fila), «Aquí se atora» sin cortarse, a 1440, 1920 y 375 px sin desborde. En
+  dos columnas la vitrina mide lo mismo que «De dónde vienen» y «A qué hora entran» (631 px a 1920). La guía: 14 pasos, `guias:recorrer`
+  bien a 1440 y a 375 px. Si el panel del navegador está oculto, la página corre en segundo plano y React no muestra lo que llega por
+  partes hasta que vuelve a la vista: no es de esta pantalla.
 - **Sin probar:** las cabeceras de ubicación reales de Vercel (solo existen publicadas), la tienda con la base caída en vivo (cubierta por la
   prueba de `anotarPasos`) y «separó» en el navegador (en local no hay una cuenta de cliente de prueba; crear una pide consultar un DNI
   real): su función está probada en Postgres y la acción usa el mismo camino que «a la bolsa».

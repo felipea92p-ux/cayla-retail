@@ -2,7 +2,7 @@
 // el cambio contra los días de antes, dónde se atora el recorrido y si la tienda dejó de mandar visitas. Sin React y sin base: se prueba
 // en `trafico-reglas.test.ts`. La base cuenta (personas por el paso más lejano al que llegaron); aquí solo se traduce a lo que se lee.
 
-import { diaLima, horaLima, sumarDias } from "./fechas-lima";
+import { diaLima, diasEntreFechas, horaLima, sumarDias } from "./fechas-lima";
 
 /** Los pasos del recorrido, en orden: lo que se cuenta, cómo se llama y cómo se dice quien llegó o se fue ahí. */
 export const PASOS = [
@@ -29,6 +29,12 @@ export type ResumenTrafico = {
   ultimoDato: string | null;
   /** Las prendas que alguien miró en el período, de la más mirada a la menos (actividad 5). */
   prendas: PrendaTrafico[];
+  /** Cuántas personas llegaron por cada camino (sin el filtro de camino, con el de ciudad). Todos los caminos, en 0 si nadie. */
+  caminos: Record<Camino, number>;
+  /** Cuántas personas miraron desde cada ciudad (sin el filtro de ciudad, con el de camino). */
+  ciudades: Record<Ciudad, number>;
+  /** 24 cifras: cuántas personas entraron en cada hora del día (Lima), de las 0 a las 23. */
+  horas: number[];
 };
 
 /** Cómo se dice cada camino en pantalla (la base guarda la clave: `retail.trafico_web.camino`). */
@@ -38,11 +44,38 @@ export const CAMINOS = {
   whatsapp: "WhatsApp",
   tiktok: "TikTok",
   google: "Google",
-  qr: "El QR de la tienda",
+  qr: "QR en tienda",
   otros: "Otros",
 } as const;
 export type Camino = keyof typeof CAMINOS;
-const esCamino = (v: unknown): v is Camino => typeof v === "string" && Object.hasOwn(CAMINOS, v);
+/** Lo que no se entiende solo con el nombre del camino (va en su `title`). */
+export const AYUDA_CAMINO: Partial<Record<Camino, string>> = {
+  directo: "Escribieron la dirección o la tenían guardada",
+  qr: "Escanearon el código de una etiqueta o un cartel en la tienda",
+  otros: "Facebook, correos y enlaces de otras páginas",
+};
+export const esCamino = (v: unknown): v is Camino => typeof v === "string" && Object.hasOwn(CAMINOS, v);
+
+/** Las ciudades como las agrupa la base (`retail.fn_trafico_web_ciudad`), en el orden en que se listan; `tienda`: hay una tienda CAYLA. */
+export const CIUDADES = {
+  trujillo: { nombre: "Trujillo", tienda: true },
+  lima: { nombre: "Lima", tienda: true },
+  arequipa: { nombre: "Arequipa", tienda: true },
+  chiclayo: { nombre: "Chiclayo", tienda: false },
+  piura: { nombre: "Piura", tienda: false },
+  cusco: { nombre: "Cusco", tienda: false },
+  otras: { nombre: "Otras ciudades", tienda: false },
+  fuera: { nombre: "Del extranjero", tienda: false },
+  sin_dato: { nombre: "Sin dato", tienda: false },
+} as const;
+export type Ciudad = keyof typeof CIUDADES;
+export const esCiudad = (v: unknown): v is Ciudad => typeof v === "string" && Object.hasOwn(CIUDADES, v);
+
+/** `{"instagram": 80}` de la base, con todas las claves (en 0 las que no vinieron) y sin las que la pantalla no conoce. */
+function conteoPor<K extends string>(claves: readonly K[], v: unknown): Record<K, number> {
+  const d = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  return Object.fromEntries(claves.map((k) => [k, esCifra(d[k]) ? d[k] : 0])) as Record<K, number>;
+}
 
 export type ColorTrafico = { codigo: string; nombre: string; hex: string | null };
 
@@ -119,13 +152,123 @@ export function leerResumen(datos: unknown): ResumenTrafico | null {
     base: d.base,
     ahora: d.ahora,
     ultimoDato: ultimo,
-    // Una base de antes de la actividad 5 no trae prendas: la vitrina sale vacía, no rota.
+    // Una base de antes de la actividad 5 no trae prendas, ni una de antes de la 6 sus caminos y horas: sale vacío, no roto.
     prendas: lista(d.prendas).map(leerPrenda).filter((p): p is PrendaTrafico => p !== null),
+    caminos: conteoPor(Object.keys(CAMINOS) as Camino[], d.caminos),
+    ciudades: conteoPor(Object.keys(CIUDADES) as Ciudad[], d.ciudades),
+    horas: Array.isArray(d.horas) && d.horas.length === 24 && d.horas.every(esCifra) ? d.horas : Array.from({ length: 24 }, () => 0),
   };
 }
 
-/** Los últimos 7 días contando hoy (Lima). */
-export const periodoSieteDias = (hoy: string) => ({ desde: sumarDias(hoy, -6), hasta: hoy });
+// ---------- El período, la campaña y los filtros (actividad 6) ----------
+
+/** Una campaña como la guarda Catálogo (`retail.etiquetas` con estilo «campaña»): su nombre y cuándo rige. */
+export type CampanaDelCatalogo = { nombre: string; desde: string | null; hasta: string | null };
+export type CampanaDelPeriodo = { nombre: string; desde: string; hasta: string; vigente: boolean };
+
+/**
+ * La campaña que se ofrece como período: la que rige hoy (si hay dos, la que empezó después) o, si ninguna, la última que terminó en el
+ * último año. Termina hoy si todavía no acaba (no hay visitas del futuro). Sin fechas, no es un período.
+ */
+export function campanaDelPeriodo(campanas: readonly CampanaDelCatalogo[], hoy: string): CampanaDelPeriodo | null {
+  const con = campanas.filter((c): c is { nombre: string; desde: string; hasta: string } => !!c.desde && !!c.hasta && FECHA.test(c.desde) && FECHA.test(c.hasta) && c.desde <= c.hasta);
+  const vigente = con.filter((c) => c.desde <= hoy && hoy <= c.hasta).sort((a, b) => b.desde.localeCompare(a.desde))[0];
+  if (vigente) return { nombre: vigente.nombre, desde: vigente.desde, hasta: hoy, vigente: true };
+  const pasada = con.filter((c) => c.hasta < hoy && c.hasta >= sumarDias(hoy, -365)).sort((a, b) => b.hasta.localeCompare(a.hasta))[0];
+  return pasada ? { nombre: pasada.nombre, desde: pasada.desde, hasta: pasada.hasta, vigente: false } : null;
+}
+
+export const PERIODOS = ["7", "30", "campana"] as const;
+export type ClavePeriodo = (typeof PERIODOS)[number];
+
+export type Periodo = { clave: ClavePeriodo; desde: string; hasta: string; nombre: string; antes: string };
+
+/** «Los 7 días anteriores» / «el día anterior»: contra qué se compara un período de `dias` días. */
+export const antesDe = (dias: number) => (dias === 1 ? "el día anterior" : `los ${dias} días anteriores`);
+
+/** El período que se lee: los últimos 7 días (de fábrica), los últimos 30 o la campaña (si no hay campaña, los 7 días). */
+export function periodoDe(clave: ClavePeriodo, hoy: string, campana: CampanaDelPeriodo | null): Periodo {
+  const de = (c: ClavePeriodo, desde: string, hasta: string, nombre: string): Periodo => ({ clave: c, desde, hasta, nombre, antes: antesDe(diasEntreFechas(desde, hasta) + 1) });
+  if (clave === "campana" && campana) return de("campana", campana.desde, campana.hasta, campana.nombre);
+  if (clave === "30") return de("30", sumarDias(hoy, -29), hoy, "Últimos 30 días");
+  return de("7", sumarDias(hoy, -6), hoy, "Últimos 7 días");
+}
+
+export type FiltrosTrafico = { periodo: ClavePeriodo; camino: Camino | null; ciudad: Ciudad | null; vista: "grafico" | "tabla" };
+
+/** Lo que pide la dirección (`?periodo=30&camino=instagram&ciudad=trujillo&vista=tabla`); lo que no se reconoce, se ignora. */
+export function leerFiltros(q: Record<string, string | string[] | undefined>): FiltrosTrafico {
+  const uno = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const periodo = uno(q.periodo);
+  return {
+    periodo: (PERIODOS as readonly string[]).includes(periodo ?? "") ? (periodo as ClavePeriodo) : "7",
+    camino: esCamino(uno(q.camino)) ? (uno(q.camino) as Camino) : null,
+    ciudad: esCiudad(uno(q.ciudad)) ? (uno(q.ciudad) as Ciudad) : null,
+    vista: uno(q.vista) === "tabla" ? "tabla" : "grafico",
+  };
+}
+
+/** La dirección de la pantalla con un cambio; lo de fábrica (7 días, gráfico, sin filtro) no ensucia la URL. */
+export function hrefTrafico(actual: FiltrosTrafico, cambio: Partial<FiltrosTrafico>): string {
+  const f = { ...actual, ...cambio };
+  const q = new URLSearchParams();
+  if (f.periodo !== "7") q.set("periodo", f.periodo);
+  if (f.camino) q.set("camino", f.camino);
+  if (f.ciudad) q.set("ciudad", f.ciudad);
+  if (f.vista === "tabla") q.set("vista", "tabla");
+  const s = q.toString();
+  return `/tienda-web/trafico${s ? `?${s}` : ""}`;
+}
+
+/** «Del 17 al 23 de octubre», «Del 28 de setiembre al 4 de octubre», «El 23 de octubre». */
+export function rangoTexto(desde: string, hasta: string): string {
+  if (desde === hasta) return `El ${fechaLarga(desde)}`;
+  const mismoMes = desde.slice(0, 7) === hasta.slice(0, 7);
+  return `Del ${mismoMes ? Number(desde.slice(8, 10)) : fechaLarga(desde)} al ${fechaLarga(hasta)}`;
+}
+
+/** Quién se está mirando, en palabras: «por Instagram», «desde Trujillo», «por Instagram desde Trujillo»; vacío sin filtro. */
+export function quienesTexto(camino: Camino | null, ciudad: Ciudad | null): string {
+  const por = camino ? (camino === "directo" ? "directo" : `por ${camino === "qr" ? "el QR de la tienda" : CAMINOS[camino]}`) : "";
+  const desde = ciudad ? (ciudad === "fuera" ? "desde fuera del Perú" : ciudad === "sin_dato" ? "sin ciudad conocida" : ciudad === "otras" ? "desde otras ciudades del Perú" : `desde ${CIUDADES[ciudad].nombre}`) : "";
+  return [por, desde].filter(Boolean).join(" ");
+}
+
+/** Lo que más se repite de una lista de conteos: `null` si nadie. */
+export function lider<K extends string>(conteo: Record<K, number>): K | null {
+  let mejor: K | null = null;
+  for (const k of Object.keys(conteo) as K[]) if (conteo[k] > 0 && (mejor === null || conteo[k] > conteo[mejor])) mejor = k;
+  return mejor;
+}
+
+// ---------- A qué hora entran ----------
+
+const hora12 = (h: number) => (h % 12 === 0 ? 12 : h % 12);
+const mitad = (h: number) => (h % 24 < 12 ? "a. m." : "p. m.");
+/** «7 p. m.», «12 a. m.». */
+export const horaRedonda = (h: number) => `${hora12(h)} ${mitad(h)}`;
+/** «de 7 a 10 p. m.», «de 11 a. m. a 2 p. m.». `hasta` es la hora en que termina (exclusiva). */
+export const tramoTexto = (desde: number, hasta: number) =>
+  mitad(desde) === mitad(hasta) && hasta % 24 !== 0 ? `de ${hora12(desde)} a ${horaRedonda(hasta)}` : `de ${horaRedonda(desde)} a ${horaRedonda(hasta)}`;
+
+/** Con menos gente que esto, «a qué hora entran más» no se dice: tres personas no hacen una hora punta. */
+export const MINIMO_PARA_LA_HORA = 10;
+
+/** Las 3 horas seguidas con más gente (el tramo de la tarde de un día de semana, no una sola hora con suerte). */
+export function picoDeHoras(horas: readonly number[]): { desde: number; hasta: number; n: number; de100: number } | null {
+  const total = horas.reduce((a, b) => a + b, 0);
+  if (horas.length !== 24 || total < MINIMO_PARA_LA_HORA) return null;
+  let mejor = { desde: 0, n: -1 };
+  for (let h = 0; h <= 21; h++) {
+    const n = horas[h] + horas[h + 1] + horas[h + 2];
+    if (n > mejor.n) mejor = { desde: h, n };
+  }
+  return { desde: mejor.desde, hasta: mejor.desde + 3, n: mejor.n, de100: de100(mejor.n, total) };
+}
+
+/** Las 24 horas en 8 tramos de 3 (la vista de tabla): 12 a 3 a. m., 3 a 6 a. m.… */
+export const tramosDeTres = (horas: readonly number[]) =>
+  Array.from({ length: 8 }, (_, i) => ({ desde: i * 3, hasta: i * 3 + 3, n: horas[i * 3] + horas[i * 3 + 1] + horas[i * 3 + 2] }));
 
 /** «De cada 100» redondeado; 0 si no hay de dónde contar. */
 export const de100 = (n: number, total: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
