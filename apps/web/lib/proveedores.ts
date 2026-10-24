@@ -3,6 +3,7 @@ import { exigir, exigirOpcional } from "@/lib/resultado";
 import { hoyLima } from "@/lib/fechas-lima";
 import { marcasPorProveedor, rubrosConConteo, serie12Meses, type MarcasDeProveedor } from "@/lib/proveedores-reglas";
 import type { PrendaDeProveedor, RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
+import type { PrendaConProveedor } from "@/lib/proveedor-analisis-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -414,5 +415,30 @@ export async function getProveedoresRendimiento(): Promise<RendimientoProveedor[
     plataEnStock: Number(f.plata_en_stock),
     prendasSinVenta: Number(f.prendas_sin_venta),
     plataSinVenta: Number(f.plata_sin_venta),
+  }));
+}
+
+// Todas las prendas de todos los proveedores (fn_proveedores_prendas): la materia prima del análisis «Lo que quizá no ves».
+export async function getProveedoresPrendas(): Promise<PrendaConProveedor[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedores_prendas"), "las prendas compradas a los proveedores");
+  return filas.map((f) => ({
+    proveedorId: f.proveedor_id,
+    proveedorNombre: f.proveedor,
+    productoId: f.producto_id,
+    referencia: f.referencia,
+    codigo: f.codigo,
+    marca: f.marca,
+    categoria: f.categoria,
+    unidadesCompradas: Number(f.unidades_compradas),
+    gasto: Number(f.gasto),
+    costoPromedio: f.costo_promedio == null ? null : Number(f.costo_promedio),
+    unidadesVendidas: Number(f.unidades_vendidas),
+    ingresoVendido: Number(f.ingreso_vendido),
+    costoVendido: Number(f.costo_vendido),
+    stockActual: Number(f.stock_actual),
+    primeraEntrada: f.primera_entrada,
+    ultimaVenta: f.ultima_venta,
+    conFactura: f.con_factura,
   }));
 }

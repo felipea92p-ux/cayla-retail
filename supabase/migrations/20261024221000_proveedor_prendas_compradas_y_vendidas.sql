@@ -189,3 +189,53 @@ revoke all on function retail.fn_proveedores_rendimiento() from public, anon;
 grant execute on function retail.fn_proveedores_rendimiento() to authenticated;
 comment on function retail.fn_proveedores_rendimiento() is
   'Lista de proveedores (2026-10-24): por proveedor, gasto, vendido, margen, plata en estantes y plata en prendas que no se vendieron. La misma cuenta que fn_proveedor_prendas. Solo lectura; llave: fn_ve_plata_de_proveedores().';
+
+-- El análisis «Lo que quizá no ves» (actividad 4): las mismas filas por (proveedor, prenda) de TODOS los proveedores, para que la web
+-- juzgue con reglas puras y probadas (lib/proveedor-analisis-reglas.ts). Son unos cientos de filas: no hace falta resumirlas aquí.
+create or replace function retail.fn_proveedores_prendas()
+returns table (
+  proveedor_id uuid,
+  proveedor text,
+  producto_id uuid,
+  referencia text,
+  codigo text,
+  marca text,
+  categoria text,
+  unidades_compradas integer,
+  gasto numeric,
+  costo_promedio numeric,
+  unidades_vendidas integer,
+  ingreso_vendido numeric,
+  costo_vendido numeric,
+  stock_actual integer,
+  primera_entrada date,
+  ultima_venta date,
+  con_factura boolean
+)
+language plpgsql
+stable
+security definer
+set search_path to 'retail', 'public', 'extensions'
+as $function$
+begin
+  if not retail.fn_ve_plata_de_proveedores() then
+    raise exception 'El análisis de los proveedores necesita Proveedores, Facturas de compra, Por pagar o Notas de crédito en tu rol.' using errcode = '42501';
+  end if;
+  return query
+    select b.proveedor_id, pv.nombre, pr.id, pr.referencia, pr.codigo, ma.nombre, ca.nombre,
+           b.unidades_compradas, round(b.gasto, 2), round(b.gasto / nullif(b.unidades_compradas, 0), 2),
+           b.unidades_vendidas, round(b.ingreso_vendido, 2), round(b.costo_vendido, 2),
+           b.stock_actual, b.primera_entrada, b.ultima_venta, b.con_factura
+    from retail.fn_proveedor_prendas_base(null) b
+    join retail.proveedores pv on pv.id = b.proveedor_id
+    join retail.productos pr on pr.id = b.producto_id
+    left join retail.marcas ma on ma.id = pr.marca_id
+    left join retail.categorias ca on ca.id = pr.categoria_id
+    order by pv.nombre, b.gasto desc nulls last, pr.referencia;
+end;
+$function$;
+
+revoke all on function retail.fn_proveedores_prendas() from public, anon;
+grant execute on function retail.fn_proveedores_prendas() to authenticated;
+comment on function retail.fn_proveedores_prendas() is
+  'Análisis de proveedores (2026-10-24): una fila por (proveedor, prenda) con lo comprado, lo vendido y lo que queda. Solo lectura; llave: fn_ve_plata_de_proveedores().';

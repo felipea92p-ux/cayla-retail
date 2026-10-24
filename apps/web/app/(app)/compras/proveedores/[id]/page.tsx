@@ -17,6 +17,8 @@ import { PasoSugerido } from "@/components/ui/PasoSugerido";
 import { PistaPlazo } from "@/components/ui/PistaPlazo";
 import { ProveedorAcciones } from "@/components/ProveedorAcciones";
 import { ProveedorPrendas } from "@/components/ProveedorPrendas";
+import { LoQueQuizaNoVes } from "@/components/LoQueQuizaNoVes";
+import { hallazgosDeProveedor } from "@/lib/proveedor-analisis-reglas";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
 import { CambiosCuentaProveedor } from "@/components/CambiosCuentaProveedor";
@@ -215,6 +217,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       </section>
       )}
 
+      {prendas && <LoQueQuizaNoVes guia="proveedor-ficha.analisis" hallazgos={hallazgosDeProveedor(prendas, hoyLima())} />}
       {prendas && <ProveedorPrendas prendas={prendas} />}
 
       {/* «Nos debe» (ADR-0362, fase 5a): las prendas por reponer y, a su lado, el saldo a favor de siempre (la plata). Si la base todavía

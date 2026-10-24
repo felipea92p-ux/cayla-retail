@@ -589,6 +589,13 @@ export const GUIA_PROVEEDORES: Guia = {
       texto: "Registra una factura suya, desactívalo si ya no le compras (no se borra: deja de aparecer al registrar) o abre su ficha completa. En la demo no tocamos nada.",
     },
     {
+      id: "analisis",
+      ancla: "proveedores.analisis",
+      opcional: true,
+      titulo: "Lo que quizá no ves",
+      texto: "Avisos que compara a tus proveedores entre sí: a quién frenar por plata parada, a quién le queda poco margen y a quién conviene volver a comprarle. «¿Por qué?» abre los números y la regla.",
+    },
+    {
       id: "rendimiento",
       ancla: "proveedores.rendimiento",
       opcional: true,
@@ -707,6 +714,13 @@ export const GUIA_PROVEEDOR: Guia = {
       preparar: [{ tipo: "escape" }],
       titulo: "Cómo cumple",
       texto: "Lo facturado en el año, lo que se le debe, sus entregas atrasadas, cuántas llegaron completas, cuánto tarda en entregar y en cuánto le pagas de verdad.",
+    },
+    {
+      id: "analisis",
+      ancla: "proveedor-ficha.analisis",
+      opcional: true,
+      titulo: "Lo que quizá no ves",
+      texto: "Avisos que el sistema saca de lo comprado y lo vendido: prendas que no rotan, ventas por debajo del costo o lo que mejor rinde. «¿Por qué?» muestra los números y la regla.",
     },
     {
       id: "prendas",
