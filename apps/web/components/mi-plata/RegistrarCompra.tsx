@@ -32,7 +32,7 @@ import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
 import type { ProveedorRegistrado } from "@/lib/proveedor-de-orden-reglas";
-import { cargarFotosDeHabituales, cargarHabituales, registrarCompraRapida, subirFotoPapel } from "@/lib/compra-rapida-acciones";
+import { cargarFotosDeHabituales, cargarHabituales, registrarCompraRapida, registrarMarcaDeCompra, subirFotoPapel } from "@/lib/compra-rapida-acciones";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import {
   HABITUALES_A_LA_VISTA,
@@ -58,6 +58,8 @@ import {
   textoPrendaEnCompra,
   nombreCortoTienda,
   lineasParaBase,
+  marcasPorCrear,
+  conMarcasCreadas,
   marcasDeHabituales,
   prendasDeLineas,
   resumenCarrito,
@@ -351,6 +353,22 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       }
     }
     const firma = esPersona ? firmaOmitida("compra_rapida") : responsable.firma();
+    // Las marcas escritas con «+» en «Algo nuevo» se crean ahora, unidas al proveedor: si la compra se cancelaba antes, no quedaba una marca
+    // suelta. Si ya existían, la base devuelve esa. Un reintento tras un corte las vuelve a encontrar.
+    const creadas = new Map<string, string>();
+    for (const m of marcasPorCrear(lineas)) {
+      const r = await registrarMarcaDeCompra(m.nombre, proveedor.id, firma);
+      if (!r.id) {
+        setGuardando(false);
+        if (!esPersona) responsable.despues(r.error);
+        return setRechazo(
+          r.error && esFalloDeRed(r.error)
+            ? { titulo: "Se cortó la conexión", texto: "No se guardó la compra. Vuelve a tocar «Guardar».", tono: "atencion" }
+            : { titulo: `No se creó la marca «${m.nombre}»`, texto: traducirError(r.error, "crear la marca"), tono: "error" },
+        );
+      }
+      creadas.set(m.id, r.id);
+    }
     const { error } = await registrarCompraRapida(
       {
         p_id: id,
@@ -358,7 +376,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
         p_tipo: tipo!,
         p_monto: montoLeido ?? 0,
         p_foto_ruta: ruta,
-        p_lineas: lineasParaBase(lineas),
+        p_lineas: lineasParaBase(conMarcasCreadas(lineas, creadas)),
         ...pagoParaBase(pagoAhora),
       },
       firma,
@@ -733,7 +751,6 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           cambiar={(cambio) => setEnCurso((e) => (e ? { ...e, ...cambio } : e))}
           tiendas={datos.tiendas}
           tiendaAnterior={tiendaAnterior(lineas)}
-          puedeRepartir={enCurso.habitual.productoId != null}
           corrige={enCurso.edita != null}
           tocada={hojaTocada}
           onAgregar={agregarPrenda}
