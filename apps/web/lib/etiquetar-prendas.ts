@@ -22,6 +22,9 @@ export type VarianteEtiquetable = {
   colorHex?: string | null;
   precio?: number | null;
   codigos?: readonly string[];
+  /** Cuántas unidades de esta talla y color se pueden vender hoy en cada sede (`ubicacion_id` → unidades, solo las que tienen). Es la
+   *  cifra de Existencias, la de `fn_existencias` (ADR-0270): físico menos dañado menos apartado (`disponiblePorVariante`). */
+  disponible?: Readonly<Record<string, number>>;
 };
 
 /** La foto y el prefijo y la familia de la categoría son para la miniatura (`MiniaturaPrenda`, ADR-0333): sin foto, el ícono de
@@ -93,6 +96,39 @@ export function filtrarProductos(productos: ProductoEtiquetable[], filtro: { tex
     if (!t) return true;
     return normalizarNombre(`${p.referencia} ${p.codigo ?? ""} ${p.descripcion ?? ""} ${p.categoria}`).includes(t);
   });
+}
+
+// ---- Filtrar por sede: ¿hay prenda para vender en esa tienda? -------------------------------------------------------
+
+/** Lo que devuelve `fn_existencias` (ADR-0270, la única fórmula de «cuánto hay»), por talla y sede → cuánto se puede vender en cada sede,
+ *  solo las que tienen algo. La pantalla no suma `stock` por su cuenta: la cifra es la de la base. */
+export function disponiblePorVariante(
+  filas: readonly { variante_id: string; ubicacion_id: string; disponible: number }[],
+): Map<string, Record<string, number>> {
+  const salida = new Map<string, Record<string, number>>();
+  for (const f of filas) {
+    if (f.disponible <= 0) continue;
+    const de = salida.get(f.variante_id) ?? {};
+    de[f.ubicacion_id] = (de[f.ubicacion_id] ?? 0) + f.disponible;
+    salida.set(f.variante_id, de);
+  }
+  return salida;
+}
+
+/** ¿Alguna talla o color del producto se puede vender hoy en esa sede? */
+export function hayEnSede(p: ProductoEtiquetable, sedeId: string): boolean {
+  return p.variantes.some((v) => (v.disponible?.[sedeId] ?? 0) > 0);
+}
+
+/** Con una sede elegida, solo los productos que tienen algo para vender ahí; sin sede (`null`), todos. Se aplica ENCIMA de los otros
+ *  filtros (buscador, categoría, píldoras): cada uno recorta lo que dejó el anterior. */
+export function filtrarPorSede<T extends ProductoEtiquetable>(productos: readonly T[], sedeId: string | null): T[] {
+  return sedeId === null ? [...productos] : productos.filter((p) => hayEnSede(p, sedeId));
+}
+
+/** El número de cada chip de sede: cuántos de estos productos hay en ella. */
+export function cuentaPorSede(productos: readonly ProductoEtiquetable[], sedeIds: readonly string[]): Record<string, number> {
+  return Object.fromEntries(sedeIds.map((id) => [id, productos.filter((p) => hayEnSede(p, id)).length]));
 }
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
