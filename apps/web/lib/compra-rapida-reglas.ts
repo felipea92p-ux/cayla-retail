@@ -14,6 +14,7 @@ import { diasEntreFechas } from "./fechas-lima";
 export const RPC_PROVEEDORES_PARA_COMPRAR = "fn_proveedores_para_comprar";
 export const RPC_HABITUALES_PROVEEDOR = "fn_habituales_proveedor";
 export const RPC_REGISTRAR_COMPRA_RAPIDA = "registrar_compra_rapida";
+export const RPC_REGISTRAR_MARCA_DE_COMPRA = "registrar_marca_de_compra";
 
 /** La carpeta de las fotos de los papeles dentro del depósito de las fotos de los gastos del viaje (la base exige que la ruta empiece así). */
 export const CARPETA_PAPELES = "papeles/";
@@ -257,8 +258,8 @@ export function repartoParejo(total: number | null, destinos: readonly string[])
 }
 
 /** Prender o apagar una tienda: el reparto vuelve a ser parejo (lo escrito a mano de otras tiendas ya no suma igual). */
-export function alternarDestino(b: BorradorPrenda, tienda: string, varias: boolean): Pick<BorradorPrenda, "destinos" | "reparto" | "repartoPropio"> {
-  const destinos = !varias ? [tienda] : b.destinos.includes(tienda) ? b.destinos.filter((d) => d !== tienda) : [...b.destinos, tienda];
+export function alternarDestino(b: BorradorPrenda, tienda: string): Pick<BorradorPrenda, "destinos" | "reparto" | "repartoPropio"> {
+  const destinos = b.destinos.includes(tienda) ? b.destinos.filter((d) => d !== tienda) : [...b.destinos, tienda];
   return { destinos, reparto: repartoParejo(leerCantidad(b.cantidad), destinos), repartoPropio: false };
 }
 
@@ -517,12 +518,15 @@ export function opcionesMarcaNueva(marcas: readonly { id: string; nombre: string
   return enDosGrupos(orden, (m) => suyas.has(m.id), ["Las que trae", "Otras marcas"]);
 }
 
-/** Lo que se va contestando de la prenda nueva en su hoja. `descartadas`: los habituales parecidos que ya contestó con «No, es otra». */
-export type BorradorNuevo = { categoriaId: string | null; marcaId: string | null; nombre: string; descartadas: ReadonlySet<string> };
+/**
+ * Lo que se va contestando de la prenda nueva en su hoja. `descartadas`: los habituales parecidos que ya contestó con «No, es otra».
+ * `marcaNueva`: lo escrito en «+ marca nueva» (Felipe 2026-10-24); `null` mientras elige de la lista.
+ */
+export type BorradorNuevo = { categoriaId: string | null; marcaId: string | null; marcaNueva: string | null; nombre: string; descartadas: ReadonlySet<string> };
 
 /** Cómo llega la hoja: si el proveedor trae una sola marca, ya puesta (antes se saltaba la pregunta; ahora se ve y se cambia). */
 export function nuevoVacio(marcasDelProveedor: readonly { id: string }[]): BorradorNuevo {
-  return { categoriaId: null, marcaId: marcasDelProveedor.length === 1 ? marcasDelProveedor[0].id : null, nombre: "", descartadas: new Set() };
+  return { categoriaId: null, marcaId: marcasDelProveedor.length === 1 ? marcasDelProveedor[0].id : null, marcaNueva: null, nombre: "", descartadas: new Set() };
 }
 
 /** Lo más corto y lo más largo que se acepta como nombre de una prenda nueva (lo que la tienda reconoce al recibir). */
@@ -585,7 +589,9 @@ export function camposPrendaNueva(n: BorradorNuevo, hayParecido: boolean, b: Bor
   const nombre = faltaNombreNuevo(n.nombre);
   return [
     { id: "categoria", nombre: "Qué es", requerido: true, hecho: n.categoriaId !== null, pendiente: "Elige qué es." },
-    { id: "marca", nombre: "Marca", requerido: true, hecho: n.marcaId !== null, pendiente: "Elige la marca, como dice su etiqueta." },
+    n.marcaNueva !== null
+      ? { id: "marca", nombre: "Marca", requerido: true, hecho: faltaMarcaNueva(n.marcaNueva) === null, pendiente: "Escribe la marca, como dice su etiqueta." }
+      : { id: "marca", nombre: "Marca", requerido: true, hecho: n.marcaId !== null, pendiente: "Elige la marca, como dice su etiqueta." },
     { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre === null && !hayParecido, pendiente: nombre ? "Escribe cómo se llama." : "Dinos si es la misma prenda." },
     ...camposPrenda(b),
   ];
@@ -599,7 +605,52 @@ export function habitualDeNuevo(
   marcas: readonly { id: string; nombre: string }[],
 ): Habitual | null {
   const categoria = categorias.find((c) => c.id === n.categoriaId);
-  const marca = marcas.find((m) => m.id === n.marcaId);
+  const marca = n.marcaNueva !== null ? marcaEscrita(n.marcaNueva, marcas) : marcas.find((m) => m.id === n.marcaId);
   if (!categoria || !marca || faltaNombreNuevo(n.nombre)) return null;
   return habitualNuevo(clave, { nombre: n.nombre, categoria, marca });
+}
+
+// ---------- La marca nueva de «Algo nuevo» (Felipe 2026-10-24) ----------
+// Con el «+» junto a «¿De qué marca?», la compradora escribe una marca que no está en la lista. La marca se crea en la base al GUARDAR la
+// compra (`registrar_marca_de_compra`, que la une al proveedor): si cancela antes, no queda una marca suelta en el catálogo. Mientras tanto
+// la prenda lleva un id provisional (`nueva:…`) que se cambia por el de verdad justo antes de guardar.
+
+/** El id provisional de una marca escrita que todavía no existe en la base. */
+export const MARCA_NUEVA_PREFIJO = "nueva:";
+export const MARCA_NUEVA_MAX = 60;
+
+const claveMarca = (t: string): string =>
+  t
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** Lo que dice bajo la caja de la marca nueva; `null` si se puede usar. */
+export function faltaMarcaNueva(t: string): string | null {
+  const limpio = t.trim().replace(/\s+/g, " ");
+  if (limpio.length < 2) return "Escribe la marca, como dice su etiqueta";
+  if (limpio.length > MARCA_NUEVA_MAX) return `La marca va hasta ${MARCA_NUEVA_MAX} letras`;
+  return null;
+}
+
+/** La marca escrita: si ya está en la lista (sin tildes ni mayúsculas), esa; si no, una provisional que se crea al guardar. */
+export function marcaEscrita(t: string, marcas: readonly { id: string; nombre: string }[]): { id: string; nombre: string } | undefined {
+  if (faltaMarcaNueva(t)) return undefined;
+  const nombre = t.trim().replace(/\s+/g, " ");
+  const igual = marcas.find((m) => claveMarca(m.nombre) === claveMarca(nombre));
+  return igual ?? { id: MARCA_NUEVA_PREFIJO + claveMarca(nombre), nombre };
+}
+
+/** Las marcas que hay que crear antes de guardar la compra: una por nombre, aunque vaya en varias prendas o tiendas. */
+export function marcasPorCrear(lineas: readonly Pick<LineaCompra, "marcaId" | "marca">[]): { id: string; nombre: string }[] {
+  const vistas = new Map<string, string>();
+  for (const l of lineas) if (l.marcaId?.startsWith(MARCA_NUEVA_PREFIJO) && l.marca && !vistas.has(l.marcaId)) vistas.set(l.marcaId, l.marca);
+  return [...vistas].map(([id, nombre]) => ({ id, nombre }));
+}
+
+/** Las prendas con el id de verdad de cada marca recién creada. */
+export function conMarcasCreadas<T extends Pick<LineaCompra, "marcaId">>(lineas: readonly T[], creadas: ReadonlyMap<string, string>): T[] {
+  return lineas.map((l) => (l.marcaId && creadas.has(l.marcaId) ? { ...l, marcaId: creadas.get(l.marcaId)! } : l));
 }
