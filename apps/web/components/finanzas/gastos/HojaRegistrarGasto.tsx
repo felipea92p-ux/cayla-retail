@@ -155,9 +155,8 @@ export function HojaRegistrarGasto({
   }
 
   async function guardar(otro: boolean) {
-    const v0 = validarHoja(h, existente?.id ?? "x", salidaHoja, hoy);
+    const v0 = validarHoja(h, existente?.id ?? "x", salidaHoja, hoy, proveedorListo);
     if (!v0.ok) return avisar.error(v0.error);
-    if (papel && !proveedorListo) return avisar.error(rucValido ? "Escribe la razón social del RUC." : "Revisa el RUC del comprobante.", { enfocar: "hoja-gasto-ruc" });
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;

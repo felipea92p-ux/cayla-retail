@@ -96,8 +96,23 @@ export function borradorDeLaHoja(h: HojaGasto, proveedorId: string, salida: Sali
  * Lo que la hoja deja guardar: lo de `validarGasto` y, antes, que se haya contestado «¿tiene comprobante?». No es una regla de negocio
  * nueva (sin contestar, la base lo guardaría como «sin comprobante»): es que la hoja no contesta por la persona.
  */
-export function validarHoja(h: HojaGasto, proveedorId: string, salida: SalidaDeLaHoja, hoy: string): { ok: true; valor: PayloadGasto } | { ok: false; error: string } {
+export function validarHoja(
+  h: HojaGasto,
+  proveedorId: string,
+  salida: SalidaDeLaHoja,
+  hoy: string,
+  /** ¿El RUC ya tiene proveedor (del directorio o la razón social para sumarlo)? Sin decirlo, se da por sí. */
+  proveedorListo = true,
+): { ok: true; valor: PayloadGasto } | { ok: false; error: string } {
+  // En el orden de la guía (el /chaos del 2026-10-23 vio «Di si tiene comprobante» con la hoja vacía, cuando la guía marcaba el monto):
+  // el primer aviso es el primer campo que la guía enciende. Los textos son los de `camposDeLaHoja`.
+  const monto = montoDentroDelTope(parsearMonto(h.monto));
+  if (!monto.ok) return { ok: false, error: h.monto.trim() ? monto.error : "Escribe cuánto se pagó." };
+  if (!h.sede) return { ok: false, error: "Elige a qué sede se le carga." };
+  if (!h.categoria) return { ok: false, error: "Elige en qué se gastó." };
+  if (!h.descripcion.trim()) return { ok: false, error: "Escribe qué se pagó." };
   if (!h.comprobante) return { ok: false, error: "Di si tiene comprobante." };
+  if (conComprobante(h) && !proveedorListo) return { ok: false, error: validarRuc(h.ruc).valido ? "Escribe la razón social." : "Escribe el RUC del comprobante." };
   if (conComprobante(h) && !serieNumeroLegible(h.serieNumero)) return { ok: false, error: "Escribe la serie y el número, como F001-2231." };
   return validarGasto(borradorDeLaHoja(h, proveedorId, salida), hoy);
 }

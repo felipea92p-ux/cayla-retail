@@ -165,3 +165,24 @@ describe("el monto sobre el tope (chaos 2026-10-23, hallazgo 2: la guía lo daba
     expect(sePuedeConfirmar(camposDeLaHoja(h, listo))).toBe(validarHoja(h, "prov-1", efectivo, HOY).ok);
   });
 });
+
+describe("el aviso al guardar sigue el orden de la guía (chaos 2026-10-23, hallazgo 3)", () => {
+  const sin: SalidaDeLaHoja = { medio: "", cajaId: "", referencia: "" };
+  it.each([
+    ["vacía", hojaVacia(HOY)],
+    ["solo el monto", { ...hojaVacia(HOY), monto: "20" }],
+    ["monto y sede", { ...hojaVacia(HOY, "lima"), monto: "20" }],
+    ["sin decir qué fue", llena({ descripcion: "" })],
+    ["sin comprobante elegido", llena({ comprobante: "" })],
+    ["monto sobre el tope", llena({ monto: "100000000", comprobante: "" })],
+    ["factura sin RUC ni serie", llena({ comprobante: "factura" })],
+    ["factura con RUC y sin serie", llena({ comprobante: "factura", ruc: RUC })],
+  ])("%s: el primer aviso es el primer campo que falta", (_n, h) => {
+    const proveedorListo = Boolean(h.ruc);
+    const v = validarHoja(h, "", sin, HOY, proveedorListo);
+    const primero = camposDeLaHoja(h, { ...listo, proveedorListo, salidaLista: false }).find((c) => !c.hecho && c.requerido)!;
+    expect(v.ok).toBe(false);
+    if (!v.ok && primero.id !== "monto") expect(v.error).toBe(primero.pendiente);
+    if (!v.ok && primero.id === "monto") expect(v.error).toMatch(/monto|cuánto/i);
+  });
+});
