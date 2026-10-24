@@ -1,13 +1,14 @@
 // Fijos del mes como cola de cierre (tarea #3 de /pantalla, Felipe 2026-10-22). La pestaña «Fijos del mes» era dos tarjetas: «Para confirmar»
 // (casi siempre vacía) primero y «Faltan» segunda, sin la fecha ni los días de atraso, sin la suma de lo que falta y con lo ya registrado
 // en otra columna. Ahora es una sola lista que se lee de arriba abajo: lo que ya pasó su fecha (el más atrasado primero), lo que llega este
-// mes y, plegado, lo que ya está registrado.
+// mes y, plegado, lo que ya está registrado. Desde ADR-0487 cada fijo habla de cuándo VENCE (lo que el recibo trae impreso) y, si se paga
+// con días de anticipo, desde cuándo toca pagarlo.
 //
 // PROMETE: ordenar y describir lo que `fn_gastos_fijos_mes` ya devuelve (estado y fecha esperada vienen de la base, ADR-0440); no decide
 // qué falta ni cuándo. Lógica pura: sin fecha de hoy propia (se la pasan) y sin red.
 
 import { mesAntesDelCorte } from "./finanzas-arranque-reglas";
-import { fechaCorta, solesRedondo, textoCuandoLlega, textoMes, type GastoFijoMes } from "./gastos-reglas";
+import { fechaCorta, solesRedondo, textoCuandoVence, textoMes, type GastoFijoMes } from "./gastos-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -20,7 +21,7 @@ function diasEntre(desde: string, hasta: string): number {
 type ColaDeFijos = {
   /** Ya pasaron su fecha y no están registrados: el más atrasado primero, y a igual fecha el de más monto. */
   faltan: GastoFijoMes[];
-  /** Todavía no llegan: el más próximo primero. */
+  /** Todavía no vencen: los que ya toca pagar primero (traen su fecha de pago cumplida) y luego el que vence antes. */
   vienen: GastoFijoMes[];
   /** Ya tienen su gasto: por fecha esperada. */
   registrados: GastoFijoMes[];
@@ -37,7 +38,10 @@ const porMontoLuegoNombre = (a: GastoFijoMes, b: GastoFijoMes) => b.monto - a.mo
 
 export function colaDeFijos(fijos: readonly GastoFijoMes[]): ColaDeFijos {
   const faltan = fijos.filter((f) => f.estado === "falta").sort((a, b) => porFecha(a, b) || porMontoLuegoNombre(a, b));
-  const vienen = fijos.filter((f) => f.estado === "por_llegar").sort((a, b) => porFecha(a, b) || porMontoLuegoNombre(a, b));
+  // «Toca pagar» (ADR-0487) sube: es la señal de que ya se puede pagar aunque el vencimiento sea más lejos que el de otro.
+  const vienen = fijos
+    .filter((f) => f.estado === "por_llegar")
+    .sort((a, b) => Number(b.tocaPagar) - Number(a.tocaPagar) || porFecha(a, b) || porMontoLuegoNombre(a, b));
   const registrados = fijos.filter((f) => f.estado === "registrado").sort((a, b) => porFecha(a, b) || a.descripcion.localeCompare(b.descripcion, "es"));
   const pendientes = [...faltan, ...vienen];
   return {
@@ -64,19 +68,25 @@ export function bajadaDeLaCola(c: ColaDeFijos, mes: string): string {
 }
 
 /**
- * La línea de cada fijo: cuándo se esperaba y cuántos días lleva de atraso, o cuándo llega.
- * «se esperaba el 15 oct · hace 7 días» · «se espera mañana» · «se espera el 31 oct · en 9 días». Un fijo ya registrado dice cuándo llega
- * cada mes, como siempre («la quincena»).
+ * La línea de cada fijo: cuándo venció y cuántos días lleva de atraso, o cuándo vence; y, si se paga con días de anticipo, desde cuándo.
+ * «venció el 15 oct · hace 7 días» · «vence mañana» · «vence el 31 oct · en 9 días · pagar desde el 28 oct». Un fijo ya registrado dice
+ * cuándo vence cada mes, como siempre («vence la quincena»).
  */
-export function textoFechaDeFijo(f: Pick<GastoFijoMes, "estado" | "fechaEsperada" | "momento" | "diaDelMes">, hoy: string): string {
-  if (f.estado === "registrado") return textoCuandoLlega(f.momento, f.diaDelMes);
+export function textoFechaDeFijo(
+  f: Pick<GastoFijoMes, "estado" | "fechaEsperada" | "momento" | "diaDelMes"> & Partial<Pick<GastoFijoMes, "diasAntes" | "fechaPago">>,
+  hoy: string,
+): string {
+  const cuandoVence = `vence ${textoCuandoVence(f.momento, f.diaDelMes)}`;
+  const pagarDesde = f.diasAntes && f.fechaPago ? ` · pagar desde el ${fechaCorta(f.fechaPago)}` : "";
+  if (f.estado === "registrado") return `${cuandoVence}${pagarDesde}`;
   const dias = f.estado === "falta" ? diasEntre(f.fechaEsperada, hoy) : diasEntre(hoy, f.fechaEsperada);
-  if (Number.isNaN(dias)) return textoCuandoLlega(f.momento, f.diaDelMes);
+  if (Number.isNaN(dias)) return `${cuandoVence}${pagarDesde}`;
   const fecha = fechaCorta(f.fechaEsperada);
-  if (f.estado === "falta") return `se esperaba el ${fecha} · hace ${dias} ${dias === 1 ? "día" : "días"}`;
-  if (dias <= 0) return "se espera hoy";
-  if (dias === 1) return "se espera mañana";
-  return `se espera el ${fecha} · en ${dias} días`;
+  // Vencido: la fecha de pago ya no informa, lo que importa es cuánto lleva de atraso.
+  if (f.estado === "falta") return `venció el ${fecha} · hace ${dias} ${dias === 1 ? "día" : "días"}`;
+  if (dias <= 0) return `vence hoy${pagarDesde}`;
+  if (dias === 1) return `vence mañana${pagarDesde}`;
+  return `vence el ${fecha} · en ${dias} días${pagarDesde}`;
 }
 
 // ---- Un gasto suelto que parece un fijo (tarea #1 de /pantalla, Felipe 2026-10-22) ---------------------------------------------
@@ -162,7 +172,7 @@ export function choqueConElFijo(
   if (gasto.categoria !== fijo.categoria) {
     return { campo: "categoria", mensaje: `«${fijo.descripcion}» es de la categoría ${fijo.categoriaNombre}: un gasto de otra categoría no puede cerrarlo. Registra el gasto aparte.` };
   }
-  // Un gasto cierra el fijo de UN mes (el de su fecha): con otra fecha cerraría el mes equivocado y dejaría el verdadero en «Ya pasaron su fecha».
+  // Un gasto cierra el fijo de UN mes (el de su fecha): con otra fecha cerraría el mes equivocado y dejaría el verdadero en «Ya vencieron».
   if (gasto.fecha.slice(0, 7) !== mesDelFijo(fijo)) {
     return { campo: "fecha", mensaje: `La fecha tiene que ser de ${textoMes(mesDelFijo(fijo))} para cerrar «${fijo.descripcion}». Cámbiala, o registra el gasto aparte.` };
   }

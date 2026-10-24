@@ -118,7 +118,7 @@ export function bandejaPulso(egresos: readonly EgresoPorClasificar[], fijos: rea
       tipo: "fijo",
       titulo: f.descripcion,
       // Un fijo sin tienda trae «De la empresa» como nombre: «de De la empresa» se leía mal.
-      detalle: `${f.categoriaNombre} de ${f.ubicacionId ? f.ubicacionNombre : "la empresa"}${f.proveedorNombre ? ` · ${f.proveedorNombre}` : ""}: se esperaba el ${fechaCorta(f.fechaEsperada)} y todavía no está registrado.`,
+      detalle: `${f.categoriaNombre} de ${f.ubicacionId ? f.ubicacionNombre : "la empresa"}${f.proveedorNombre ? ` · ${f.proveedorNombre}` : ""}: venció el ${fechaCorta(f.fechaEsperada)} y todavía no está registrado.`,
       monto: f.monto,
       accion: "Registrar",
       fijo: f,

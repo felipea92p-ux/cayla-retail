@@ -455,9 +455,12 @@ leía como el mes completo sin ellos. Se hicieron las tres primeras tareas, **so
   «De la empresa» se queda (vocabulario compartido con Resumen y Cierre): cambia lo que lo rodea, no el nombre.
 - **Fijos del mes es una sola lista (se aparta del spike).** El spike y el «Ajuste de diseño al spike» de arriba la dibujaban en dos columnas:
   «Para confirmar» (casi siempre vacía) y «Faltan», y «Ya registrados» en la otra. Ahora es una lista con el mes en el título y lo que falta
-  confirmar con su suma; primero lo que ya pasó su fecha (el más atrasado primero, «se esperaba el 15 oct · hace 7 días»), después lo que llega este
-  mes («se espera el 31 oct · en 9 días») y, plegados, los registrados con «Ver el gasto». «Editar fijos» sube a la cabecera de la lista; los montos
-  se alinean y a 375 px el botón baja bajo el nombre. Se aparta del spike porque la mitad de la pantalla quedaba vacía y lo urgente iba segundo.
+  confirmar con su suma; primero lo que ya venció (el más atrasado primero, «venció el 15 oct · hace 7 días»), después lo que vence este mes
+  («vence el 31 oct · en 9 días · pagar desde el 28 oct», con los que ya «Toca pagar» arriba y su chip ámbar; ADR-0487) y, plegados, los registrados
+  con «Ver el gasto». «Editar fijos» sube a la cabecera de la lista; los montos se alinean y a 375 px el botón baja bajo el nombre. Se aparta del
+  spike porque la mitad de la pantalla quedaba vacía y lo urgente iba segundo. (ADR-0487 nació con las dos tarjetas «Para confirmar» y «Faltan» y
+  se fusionó antes que este PR: su «vence», su «pagar desde» y su «Toca pagar» se trasladaron a la lista única; sus grupos se llaman «Ya vencieron»
+  y «Vencen este mes».)
 - **Un gasto suelto pregunta si es uno de los fijos que faltan.** Un gasto registrado con «+ Registrar gasto» no cerraba el fijo que le tocaba: el
   fijo seguía en «Faltan» y otra persona podía pagarlo dos veces (un fijo «sin comprobante» no tiene ningún candado contra eso). Al elegir la
   categoría y la tienda de un fijo pendiente del mes, el formulario pregunta «¿Es «Luz · Tienda TRU» de octubre?»: «Sí» registra el gasto con su

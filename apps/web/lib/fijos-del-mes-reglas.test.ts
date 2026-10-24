@@ -5,7 +5,7 @@ import { bajadaDeLaCola, choqueConElFijo, claveDeFijo, colaDeFijos, fijosDelMesV
 
 const F = (p: Partial<GastoFijoMes> & Pick<GastoFijoMes, "id" | "estado" | "fechaEsperada">): GastoFijoMes => ({
   ubicacionId: null, ubicacionNombre: "De la empresa", categoria: "software", categoriaNombre: "Software", descripcion: p.id, proveedorId: null, proveedorNombre: null,
-  comprobanteTipo: "sin_comprobante", monto: 100, montoVariable: false, diaDelMes: 15, momento: "dia", gastoId: null, gastoMonto: null, ...p,
+  comprobanteTipo: "sin_comprobante", monto: 100, montoVariable: false, diaDelMes: 15, momento: "dia", gastoId: null, gastoMonto: null, diasAntes: null, fechaPago: null, tocaPagar: false, ...p,
 });
 
 describe("colaDeFijos: lo que se lee de arriba abajo", () => {
@@ -19,11 +19,18 @@ describe("colaDeFijos: lo que se lee de arriba abajo", () => {
   ];
   const c = colaDeFijos(fijos);
 
-  it("primero los que ya pasaron su fecha, el más atrasado primero y a igual fecha el de más monto", () => {
+  it("primero los que ya vencieron, el más atrasado primero y a igual fecha el de más monto", () => {
     expect(c.faltan.map((f) => f.id)).toEqual(["musica", "celular", "ia"]);
   });
-  it("después los que llegan este mes: el más próximo primero y a igual fecha el de más monto", () => {
+  it("después los que vencen este mes: el más próximo primero y a igual fecha el de más monto", () => {
     expect(c.vienen.map((f) => f.id)).toEqual(["alquiler", "luz"]);
+  });
+  it("entre los que vencen este mes, los que ya «tocan pagar» suben aunque venzan más lejos", () => {
+    const c2 = colaDeFijos([
+      F({ id: "vence-antes", estado: "por_llegar", fechaEsperada: "2026-10-25", monto: 500 }),
+      F({ id: "toca-pagar", estado: "por_llegar", fechaEsperada: "2026-10-31", monto: 100, diasAntes: 10, fechaPago: "2026-10-21", tocaPagar: true }),
+    ]);
+    expect(c2.vienen.map((f) => f.id)).toEqual(["toca-pagar", "vence-antes"]);
   });
   it("los registrados van aparte y no cuentan como pendientes", () => {
     expect(c.registrados.map((f) => f.id)).toEqual(["internet"]);
@@ -60,25 +67,37 @@ describe("el título y la bajada", () => {
   });
 });
 
-describe("textoFechaDeFijo: cuándo se esperaba o cuándo llega", () => {
+describe("textoFechaDeFijo: cuándo venció o cuándo vence", () => {
   const HOY = "2026-10-22";
-  it("un fijo que ya pasó dice su fecha y los días de atraso, en singular si es uno", () => {
-    expect(textoFechaDeFijo(F({ id: "a", estado: "falta", fechaEsperada: "2026-10-15" }), HOY)).toBe("se esperaba el 15 oct · hace 7 días");
-    expect(textoFechaDeFijo(F({ id: "a", estado: "falta", fechaEsperada: "2026-10-21" }), HOY)).toBe("se esperaba el 21 oct · hace 1 día");
+  it("un fijo que ya venció dice su fecha y los días de atraso, en singular si es uno", () => {
+    expect(textoFechaDeFijo(F({ id: "a", estado: "falta", fechaEsperada: "2026-10-15" }), HOY)).toBe("venció el 15 oct · hace 7 días");
+    expect(textoFechaDeFijo(F({ id: "a", estado: "falta", fechaEsperada: "2026-10-21" }), HOY)).toBe("venció el 21 oct · hace 1 día");
   });
   it("cuenta bien los días al cruzar de mes", () => {
-    expect(textoFechaDeFijo(F({ id: "a", estado: "falta", fechaEsperada: "2026-09-30" }), "2026-10-02")).toBe("se esperaba el 30 sep · hace 2 días");
+    expect(textoFechaDeFijo(F({ id: "a", estado: "falta", fechaEsperada: "2026-09-30" }), "2026-10-02")).toBe("venció el 30 sep · hace 2 días");
   });
-  it("uno que llega: hoy, mañana, o la fecha y los días que faltan", () => {
-    expect(textoFechaDeFijo(F({ id: "a", estado: "por_llegar", fechaEsperada: "2026-10-22" }), HOY)).toBe("se espera hoy");
-    expect(textoFechaDeFijo(F({ id: "a", estado: "por_llegar", fechaEsperada: "2026-10-23" }), HOY)).toBe("se espera mañana");
-    expect(textoFechaDeFijo(F({ id: "a", estado: "por_llegar", fechaEsperada: "2026-10-31" }), HOY)).toBe("se espera el 31 oct · en 9 días");
+  it("uno que vence: hoy, mañana, o la fecha y los días que faltan", () => {
+    expect(textoFechaDeFijo(F({ id: "a", estado: "por_llegar", fechaEsperada: "2026-10-22" }), HOY)).toBe("vence hoy");
+    expect(textoFechaDeFijo(F({ id: "a", estado: "por_llegar", fechaEsperada: "2026-10-23" }), HOY)).toBe("vence mañana");
+    expect(textoFechaDeFijo(F({ id: "a", estado: "por_llegar", fechaEsperada: "2026-10-31" }), HOY)).toBe("vence el 31 oct · en 9 días");
   });
-  it("uno ya registrado dice cuándo llega cada mes, como siempre", () => {
-    expect(textoFechaDeFijo(F({ id: "a", estado: "registrado", fechaEsperada: "2026-10-15", momento: "quincena" }), HOY)).toBe("la quincena");
+  it("uno ya registrado dice cuándo vence cada mes, como siempre", () => {
+    expect(textoFechaDeFijo(F({ id: "a", estado: "registrado", fechaEsperada: "2026-10-15", momento: "quincena" }), HOY)).toBe("vence la quincena");
   });
-  it("una fecha que no se lee no rompe la fila: cae a «cuándo llega»", () => {
-    expect(textoFechaDeFijo(F({ id: "a", estado: "falta", fechaEsperada: "undefined", momento: "fin_de_mes" }), HOY)).toBe("a fin de mes");
+  it("una fecha que no se lee no rompe la fila: cae a «cuándo vence»", () => {
+    expect(textoFechaDeFijo(F({ id: "a", estado: "falta", fechaEsperada: "undefined", momento: "fin_de_mes" }), HOY)).toBe("vence a fin de mes");
+  });
+  // ADR-0487: un fijo que se paga con días de anticipo dice desde cuándo; uno ya vencido solo cuenta su atraso.
+  it("si se paga con días de anticipo, dice desde cuándo se paga (también el que vence hoy y el ya registrado)", () => {
+    const con = { diasAntes: 3, fechaPago: "2026-10-28" };
+    expect(textoFechaDeFijo(F({ id: "a", estado: "por_llegar", fechaEsperada: "2026-10-31", ...con }), HOY)).toBe("vence el 31 oct · en 9 días · pagar desde el 28 oct");
+    expect(textoFechaDeFijo(F({ id: "a", estado: "por_llegar", fechaEsperada: "2026-10-23", ...con }), HOY)).toBe("vence mañana · pagar desde el 28 oct");
+    expect(textoFechaDeFijo(F({ id: "a", estado: "registrado", fechaEsperada: "2026-10-31", momento: "fin_de_mes", ...con }), HOY)).toBe("vence a fin de mes · pagar desde el 28 oct");
+  });
+  it("con 0 días de anticipo o sin la fecha de pago no agrega nada; el ya vencido solo cuenta su atraso", () => {
+    expect(textoFechaDeFijo(F({ id: "a", estado: "por_llegar", fechaEsperada: "2026-10-31", diasAntes: 0, fechaPago: "2026-10-31" }), HOY)).toBe("vence el 31 oct · en 9 días");
+    expect(textoFechaDeFijo(F({ id: "a", estado: "por_llegar", fechaEsperada: "2026-10-31", diasAntes: 3, fechaPago: null }), HOY)).toBe("vence el 31 oct · en 9 días");
+    expect(textoFechaDeFijo(F({ id: "a", estado: "falta", fechaEsperada: "2026-10-15", diasAntes: 3, fechaPago: "2026-10-12" }), HOY)).toBe("venció el 15 oct · hace 7 días");
   });
 });
 

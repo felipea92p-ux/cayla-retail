@@ -308,7 +308,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.bandeja",
       opcional: true,
       titulo: "Lo que falta revisar, de a uno",
-      texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes que ya pasó sin registrarse. Aparece una cosa a la vez, con su botón: Clasificar o Registrar. Cuando no queda nada, lo dice.",
+      texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes que ya venció sin registrarse. Aparece una cosa a la vez, con su botón: Clasificar o Registrar. Cuando no queda nada, lo dice.",
     },
     {
       id: "sin-comprobante",
@@ -376,7 +376,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.fijos",
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "fin-gastos.tab-fijos" }],
       titulo: "Los fijos del mes",
-      texto: "Una sola lista de lo que se paga cada mes: primero lo que ya pasó su fecha (con los días de atraso), luego lo que llega este mes. «Registrar» abre el gasto ya lleno. Los registrados se pliegan abajo y «Ver el gasto» abre cada uno. Si un gasto se repite, el sistema pregunta si lo marcas como fijo.",
+      texto: "Una sola lista de lo que se paga cada mes: primero lo que ya venció (con los días de atraso), luego lo que vence este mes; «Toca pagar» marca los que ya puedes pagar. «Registrar» abre el gasto ya lleno y los registrados se pliegan abajo. Si un gasto se repite, el sistema pregunta si lo marcas como fijo.",
     },
     {
       id: "activos",

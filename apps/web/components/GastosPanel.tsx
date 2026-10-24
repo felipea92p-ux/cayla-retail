@@ -456,7 +456,7 @@ export function GastosPanel({
       )}
       {activo && <ActivoDetalleModal activo={activo} hoy={hoy} onCerrar={() => setActivo(null)} />}
       {nuevoFijo && (
-        <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
+        <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} conDiasAntes={fijos.some((f) => f.diasAntes !== null)} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
       )}
       {noEsFijo && <NoEsFijoModal sugerido={noEsFijo} onCerrar={() => setNoEsFijo(null)} />}
       {detalle && <GastoDetalleModal gasto={detalle} puedeVerImpuestos={puedeVerImpuestos} onCerrar={() => setDetalle(null)} />}
