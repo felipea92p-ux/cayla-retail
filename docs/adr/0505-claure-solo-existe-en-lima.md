@@ -1,6 +1,6 @@
 # ADR-0505 — CLAURE solo existe en Lima: el candado en la base y lo que ve cada sede
 
-**Estado:** aceptada · construida y probada en local · **migración SIN pegar en producción** (espera el OK de Felipe) · **Fecha:** 2026-10-24 ·
+**Estado:** aceptada · **migración EN PRODUCCIÓN desde 2026-10-24** (con el OK de Felipe; versión `20261024233234`, la hora del pegado) · la web va en su PR · **Fecha:** 2026-10-24 ·
 **Decidió:** Felipe · **Sigue a:** ADR-0463 (empresas CAYLA y CLAURE), ADR-0465 (tienda online) y ADR-0467 (filtro «Tienda»)
 
 ## Contexto
@@ -102,4 +102,8 @@ devuelve o se cambia en Lima. Tampoco puede ir al Taller.
   Vender muestran «CLAURE» en esa prenda y nada en las de CAYLA; en Trujillo, Productos encuentra 1 de 2 «aurora» y no muestra la píldora
   «Tienda», Vender (con todo el catálogo a la vista y buscando «aurora») no la ofrece, y Existencias solo ofrece la de CAYLA «sin stock
   aquí». Vender a 375 px: la insignia cabe y la página no se desborda; en modo oscuro se lee.
-- **Producción:** sin pegar. Se pega en una sola parte; la última línea debe decir «QUEDÓ BIEN».
+- **Producción (2026-10-24, con el OK de Felipe):** pegada con `apply_migration` en una sola parte; quedó registrada como `20261024233234`. Antes, la
+  sonda dio 0 prendas con stock fuera de la sede de su empresa. Después: «QUEDÓ BIEN»; el cuerpo de las dos funciones tiene la misma huella md5
+  que en la base local (`6e26bc52…` y `e518cad6…`); y una prueba que se deshace sola (cada intento en su bloque, con un error a propósito si
+  pasaba) dio: la entrada de la Blusa Broana (CLAURE) en Tienda TRU, rechazada con «Blusa Broana es de CLAURE, y CLAURE no está en Tienda TRU:
+  esta prenda solo se vende, se recibe y se traslada en Tienda LIM.»; la de la Blusa Becky (CAYLA), aceptada; 0 movimientos de prueba en la base.
