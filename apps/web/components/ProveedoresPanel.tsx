@@ -12,7 +12,7 @@ import { ProveedorVistaRapida } from "@/components/ProveedorVistaRapida";
 import { ProveedoresIndicadores } from "@/components/ProveedoresIndicadores";
 import { soles } from "@/lib/compras-reglas";
 import { clave } from "@/lib/buscar-prenda-v2";
-import { chipEntregas, haceCuanto, marcasParaMostrar, ordenarProveedores, repartoDeuda, rubrosConConteo, siguienteOrden, sinDatosDePago, textoBuscableProveedor, tieneRubro, type CampoOrden, type MarcasDeProveedor, type Orden } from "@/lib/proveedores-reglas";
+import { ETIQUETA_TIPO_PROVEEDOR, chipEntregas, haceCuanto, marcasParaMostrar, ordenarProveedores, repartoDeuda, rubrosConConteo, siguienteOrden, resumenSoloMercaderia, sinDatosDePago, textoBuscableProveedor, tieneRubro, type CampoOrden, type MarcasDeProveedor, type Orden, type TipoProveedor } from "@/lib/proveedores-reglas";
 import { useFlip } from "@/lib/useFlip";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -22,6 +22,7 @@ import { Tabla, Encabezado, fila, celda, type Columna } from "@/components/ui/Ta
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Buscador } from "@/components/ui/Buscador";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { Vacio } from "@/components/ui/Vacio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
@@ -102,6 +103,8 @@ export function ProveedoresPanel({
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [cambiandoId, setCambiandoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
+  // Qué clase de proveedor se mira (20261024222000): la ropa que se compra, o los servicios que se pagan (Entel, luz, agua, alquiler).
+  const [tipo, setTipo] = useState<TipoProveedor>("mercaderia");
   const [rubro, setRubro] = useState<string | null>(null); // clave normalizada; null = todos
   const [soloSinPago, setSoloSinPago] = useState(false);
   const [orden, setOrden] = useState<Orden>({ campo: "saldo", dir: "desc" });
@@ -114,24 +117,28 @@ export function ProveedoresPanel({
   // miles), así que filtrar acá es instantáneo y no cuesta una consulta por tecla. Busca por nombre, marca,
   // RUC y contacto, sin tildes ni mayúsculas (misma `clave` que el buscador de Vender).
   const k = clave(busqueda);
-  const rubros = useMemo(() => rubrosConConteo(proveedores.filter((p) => p.activo)), [proveedores]);
+  // Con algo escrito en el buscador se busca en TODOS los tipos (quien busca «Entel» no tiene por qué saber en qué pestaña está); sin
+  // búsqueda, la lista, los rubros y los conteos son del tipo elegido.
+  const delTipo = useMemo(() => proveedores.filter((p) => p.tipo === tipo), [proveedores, tipo]);
+  const rubros = useMemo(() => rubrosConConteo(delTipo.filter((p) => p.activo)), [delTipo]);
+  const nDeTipo = useMemo(() => ({ mercaderia: proveedores.filter((p) => p.activo && p.tipo === "mercaderia").length, servicios: proveedores.filter((p) => p.activo && p.tipo === "servicios").length }), [proveedores]);
   // Solo quien edita proveedores: el filtro (y su conteo) no le sirve a quien no puede completar los datos.
   const faltaPago = (p: Proveedor) => puedeEditar && p.activo && sinDatosDePago(p);
-  const nSinPago = proveedores.filter(faltaPago).length;
+  const nSinPago = delTipo.filter(faltaPago).length;
   // Si al completar los datos ya no queda ninguno, el filtro deja de aplicar (y su botón desaparece): no se queda una lista vacía.
   const filtrarSinPago = soloSinPago && nSinPago > 0;
   const marcasDe = (id: string): readonly string[] => marcas?.[id] ?? [];
   // Solo se promete «marca» si hay marcas que buscar: sin lectura (`null`) o sin ningún vínculo, sería una promesa vacía.
   const hayMarcas = !!marcas && Object.keys(marcas).length > 0;
   const coincide = (p: Proveedor) =>
-    (!k || clave(textoBuscableProveedor(p, marcasDe(p.id))).includes(k)) && (!rubro || tieneRubro(p, rubro)) && (!filtrarSinPago || faltaPago(p));
+    (k ? clave(textoBuscableProveedor(p, marcasDe(p.id))).includes(k) : p.tipo === tipo) && (!rubro || tieneRubro(p, rubro)) && (!filtrarSinPago || faltaPago(p));
   const activos = ordenarProveedores(
     proveedores.filter((p) => p.activo && coincide(p)),
     orden,
   );
   const desactivados = proveedores.filter((p) => !p.activo && coincide(p));
-  const totalActivos = proveedores.filter((p) => p.activo).length;
-  const hayProveedores = totalActivos > 0;
+  const totalActivos = delTipo.filter((p) => p.activo).length;
+  const hayProveedores = proveedores.some((p) => p.activo);
   const filtrando = !!k || !!rubro || filtrarSinPago;
   const reparto = useMemo(() => repartoDeuda(proveedores.filter((p) => p.activo).map((p) => ({ id: p.id, nombre: p.nombre, saldo: p.saldo }))), [proveedores]);
   const maxSaldo = Math.max(1, ...proveedores.filter((p) => p.activo).map((p) => p.saldo ?? 0));
@@ -197,7 +204,7 @@ export function ProveedoresPanel({
         subtitulo="A quién se le compra. Un proveedor tiene que estar acá antes de poder registrar su comprobante."
         acciones={
           puedeEditar && (
-            <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)} aria-haspopup="dialog" data-guia="proveedores.registrar">
+            <Boton peso="primario" onClick={() => setBorrador({ ...BORRADOR_VACIO, tipo })} aria-haspopup="dialog" data-guia="proveedores.registrar">
               <span className="flex items-center gap-2">
                 <span aria-hidden>+</span> Registrar proveedor
               </span>
@@ -206,10 +213,26 @@ export function ProveedoresPanel({
         }
       />
 
-      {verMontos && resumen && <ProveedoresIndicadores resumen={resumen} reparto={reparto} foco={foco} onFoco={setFoco} onAbrir={setAbiertoId} />}
+      {verMontos && resumen && tipo === "mercaderia" && <ProveedoresIndicadores resumen={resumenSoloMercaderia(resumen, proveedores)} reparto={reparto} foco={foco} onFoco={setFoco} onAbrir={setAbiertoId} />}
 
       {/* Buscador + filtro por rubro con conteo. Una sola línea: el buscador a la izquierda, los rubros
           a la derecha; en celular los rubros bajan y se desplazan en horizontal. */}
+      {hayProveedores && (
+        <Pestanas
+          guia="proveedores.tipos"
+          idIndicador="proveedores-tipo"
+          etiquetaAccesible="Tipo de proveedor"
+          activa={tipo}
+          onCambio={(c) => {
+            setTipo(c as TipoProveedor);
+            setRubro(null);
+          }}
+          items={[
+            { clave: "mercaderia", etiqueta: ETIQUETA_TIPO_PROVEEDOR.mercaderia, conteo: nDeTipo.mercaderia, tono: "neutro", pide: "activos", ayuda: "Ropa y lo que se revende: a ellos se les compra y se les recibe" },
+            { clave: "servicios", etiqueta: ETIQUETA_TIPO_PROVEEDOR.servicios, conteo: nDeTipo.servicios, tono: "neutro", pide: "activos", ayuda: "Telefonía, luz, agua, alquiler: a ellos se les paga" },
+          ]}
+        />
+      )}
       {hayProveedores && (
         <div className="anim-entra flex flex-wrap items-center gap-x-4 gap-y-3" style={{ ["--i" as string]: 6 }}>
           <Buscador guia="proveedores.buscador"
@@ -219,7 +242,7 @@ export function ProveedoresPanel({
             atajo
             placeholder={hayMarcas ? "Nombre, marca, RUC o contacto" : "Nombre, RUC o contacto"}
             etiqueta="Buscar proveedor"
-            conteo={filtrando ? `${activos.length + desactivados.length} de ${proveedores.length}` : undefined}
+            conteo={filtrando ? `${activos.length + desactivados.length} de ${k ? proveedores.length : delTipo.length}` : undefined}
             className="min-w-[14rem] flex-1"
           />
           {rubros.length > 0 && (
@@ -266,7 +289,23 @@ export function ProveedoresPanel({
         </div>
       ) : activos.length === 0 && desactivados.length === 0 ? (
         <div className="card-cayla">
-          {busqueda.trim() ? (
+          {!filtrando ? (
+            <Vacio
+              icono={<Truck />}
+              titulo={tipo === "servicios" ? "Todavía no hay proveedores de servicios" : "Todavía no hay proveedores de mercadería"}
+              acciones={
+                puedeEditar ? (
+                  <Boton peso="primario" onClick={() => setBorrador({ ...BORRADOR_VACIO, tipo })}>
+                    Registrar uno
+                  </Boton>
+                ) : null
+              }
+            >
+              {tipo === "servicios"
+                ? "Aquí van Entel, la luz, el agua o el alquiler: a quien se le paga un servicio, no se le compra ropa."
+                : "Aquí van los fabricantes y mayoristas de ropa, a quienes se les compra y se les recibe mercadería."}
+            </Vacio>
+          ) : busqueda.trim() ? (
             <Vacio
               icono={<SearchX />}
               titulo={`Ningún proveedor coincide con «${busqueda.trim()}»`}
