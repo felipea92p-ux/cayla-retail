@@ -156,6 +156,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       demostrar: [{ tipo: "clic", ancla: "fin-resumen.ver-mas" }],
     },
     {
+      id: "caja",
+      ancla: "fin-resumen.caja",
+      opcional: true,
+      titulo: "Tu caja en las próximas dos semanas",
+      texto: "Ganar plata no es tener plata. La línea sigue lo que tendrás cada día —lo de hoy, más lo que esperas cobrar, menos lo que vence— contra tu mínimo de caja. La frase dice cuándo baja, o que aguantas. Con una sede elegida, solo se separan sus cobros y salidas: los bancos son de CAYLA entera.",
+    },
+    {
       id: "ventas",
       ancla: "fin-resumen.ventas",
       opcional: true,

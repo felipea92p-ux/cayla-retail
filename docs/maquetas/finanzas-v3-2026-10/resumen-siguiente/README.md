@@ -11,7 +11,7 @@ Análisis completo (modo rápido, 12 tareas): `docs/pantallas/finanzas-resumen.m
 
 | Spike | Pregunta que contesta | Variantes | Qué hace con #1311 |
 |---|---|---|---|
-| 1 · Caja | ¿Puedo pagar lo que viene? | A frase + línea · B hoy/sale/queda · C día por día | Agrega. El dato (`flujo`, `cuentas`, `porPagar`) ya llega a la página y se descarta |
+| 1 · Caja | ¿Puedo pagar lo que viene? | A frase + línea · B hoy/sale/queda · C día por día | Agrega. Lee `fn_flujo_caja_proyeccion` (la de Dinero): `fn_resumen_finanzas` recorta los cobros |
 | 2 · Mes pasado | ¿Por qué ese número y no el del mes pasado? | A el puente · B lo que más se movió | Agrega. `estadoAntes` ya se lee, hoy solo para un chip |
 | 3 · De cada 100 | ¿Cuánto de lo que vendo me queda? | A cien cuadros · B este mes contra el pasado | Agrega (frase en la respuesta + cuadro a un toque) |
 | 4 · Equilibrio | ¿Ya pagué el mes? | A la línea (con simulador de gastos sin registrar) · B el camino | **Reemplaza** «ventas contra la meta» |

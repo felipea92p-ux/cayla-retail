@@ -8,12 +8,14 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Linea } from "@/components/ui/Linea";
 import { Vacio } from "@/components/ui/Vacio";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
+import { CajaProximaPieza } from "@/components/finanzas/CajaProxima";
 import { Confianza } from "@/components/finanzas/Confianza";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
 import { RecorridoPlata } from "@/components/finanzas/RecorridoPlata";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { Orillo } from "@/components/finanzas/telar/Orillo";
 import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
+import { cajaProxima, type FlujoProximo } from "@/lib/caja-proxima-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
 import { soles } from "@/lib/flujo-caja-reglas";
@@ -52,12 +54,14 @@ type Props = {
   /** Lo vendido por día de cada tienda; `null` si la cuenta no ve Rendimiento. */
   ventasPorDia: { series: DiaVenta[][]; incompleta: boolean } | null;
   sedes: SedeTelar[];
+  /** La proyección de caja con sus cobros y salidas por día (la de Dinero ▸ Flujo), para «Tu caja en las próximas dos semanas». */
+  flujoProximo: FlujoProximo;
   acceso: Acceso;
 };
 
 const FRASE = "Por dónde pasa la plata del mes: de lo que vende cada tienda a lo que te queda.";
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, acceso }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, flujoProximo, acceso }: Props) {
   const sp = useSearchParams();
   const mesDeHoy = mesDelDia(hoy);
   const enCurso = mes === mesDeHoy;
@@ -101,6 +105,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
   const avisos = avisosParaDecidir(resumen, acceso);
   const faltan = noRevisado(resumen);
+  const caja = cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver });
   const sede = r.ver.todas ? "Todas las sedes" : r.ver.soloEmpresa ? "Empresa" : r.ver.nombre.replace(/^Tienda\s+/i, "");
   const hrefDeSede = acceso.lider
     ? Object.fromEntries(sedes.map((s) => [s.clave, hrefTelar("/finanzas/resumen", sp.entries(), { sede: s.clave }, { mismaPantalla: true, mesDeHoy })]))
@@ -156,11 +161,15 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
       </section>
 
       <div {...entra(4)}>
+        <CajaProximaPieza caja={caja} hrefFlujo={ir("/finanzas/reportes/flujo")} />
+      </div>
+
+      <div {...entra(5)}>
         <VentasContraMeta r={r} hoy={hoy} enCurso={enCurso} ventasPorDia={ventasPorDia} />
       </div>
 
       {/* ADR-0417: qué tan cierto es el número del mes y qué falta para que lo sea. Si no se pudo medir, se dice (nunca un 0 % falso). */}
-      <div {...entra(5)}>
+      <div {...entra(6)}>
         {confianza.datos ? (
           <Confianza confianza={confianza.datos} guia="fin-resumen.confianza" />
         ) : (
