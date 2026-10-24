@@ -439,8 +439,8 @@ export function GastosPanel({
         </>
       )}
 
-      {/* Un gasto nuevo va en la hoja de El telar (ADR-0493); clasificar un egreso, un gasto fijo y un activo siguen en la de antes. */}
-      {registrar && !registrar.egreso && !registrar.fijo && registrar.clase !== "activo" && (
+      {/* Un gasto va en la hoja de El telar (ADR-0493): nuevo, el de una salida de caja o el de un gasto fijo. Un activo sigue en la de antes. */}
+      {registrar && registrar.clase !== "activo" && (
         <HojaRegistrarGasto
           categorias={categorias}
           sedes={sedesDelTelar(ubicaciones, esLider)}
@@ -449,11 +449,13 @@ export function GastosPanel({
           sedeInicial={ver.soloEmpresa ? "empresa" : (ver.ubicacionId ?? "")}
           plantillas={plantillasDe(gastos.map((g) => ({ ...g, proveedorRuc: proveedores.find((p) => p.nombre === g.proveedorNombre)?.ruc ?? null })))}
           fijosDelMes={fijosParaPreguntar}
+          egreso={registrar.egreso}
+          fijo={registrar.fijo}
           hoy={hoy}
           onCerrar={() => setRegistrar(null)}
         />
       )}
-      {registrar && (registrar.egreso || registrar.fijo || registrar.clase === "activo") && (
+      {registrar && registrar.clase === "activo" && (
         <RegistrarGastoModal
           categorias={categorias}
           ubicaciones={ubicaciones}

@@ -15,6 +15,8 @@ import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoInte
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
+import { FichaDePagoTarjeta } from "@/components/gasto-fijo/FichaDePagoTarjeta";
+import { diaLima } from "@/lib/fechas-lima";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { Aviso } from "@/components/ui/Aviso";
 import { choqueConElFijo, claveDeFijo, fijosQueSeParecen, mesDelFijo, textoFechaDeFijo } from "@/lib/fijos-del-mes-reglas";
@@ -30,13 +32,15 @@ import { medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
 import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
 import { MAX_DESCRIPCION_GASTO } from "@/lib/finanzas-topes";
 import { soles } from "@/lib/compras-reglas";
-import { TEXTO_MEDIO, mediosPara, parsearMonto, solesRedondo, textoMes, type CategoriaGasto, type GastoFijoMes, type MedioGasto, type ProveedorGasto, type TipoComprobante } from "@/lib/gastos-reglas";
+import { TEXTO_MEDIO, mediosPara, parsearMonto, solesRedondo, textoMes, textoCuandoVence, type CategoriaGasto, type EgresoPorClasificar, type GastoFijoMes, type MedioGasto, type ProveedorGasto, type TipoComprobante } from "@/lib/gastos-reglas";
 import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { sugerirQueFue, sugerirSerie } from "@/lib/sugerencias-hoja-gasto";
 import {
   aCredito,
   camposDeLaHoja,
   conComprobante,
+  hojaDeEgreso,
+  hojaDeFijo,
   hojaDePlantilla,
   hojaSiguiente,
   hojaVacia,
@@ -64,8 +68,8 @@ const COMPROBANTES: { valor: TipoComprobante; texto: string }[] = [
  * padrón y trae la razón social) y la serie, que se escribe como sea y queda como en SUNAT. A la derecha, «Así queda»: el registro como
  * un ticket que se arma mientras se llena, y lo que va a pasar al guardar. «Guardar y registrar otro» conserva la sede y la fecha.
  *
- * Guarda con `registrar_gasto`, igual que la hoja de antes (`RegistrarGastoModal`, que sigue para clasificar un egreso, un gasto fijo
- * y un activo): la misma validación (`validarHoja` = `validarGasto`), la misma salida de la plata, el mismo aviso de bancarización y la
+ * También clasifica una salida de caja como gasto (`egreso`) y registra un gasto fijo del mes (`fijo`). Un activo fijo sigue en la hoja
+ * de antes (`RegistrarGastoModal`), igual que el formulario completo de Caja. Guarda con `registrar_gasto`, igual que la hoja de antes: la misma validación (`validarHoja` = `validarGasto`), la misma salida de la plata, el mismo aviso de bancarización y la
  * misma marca que no deja guardar dos veces (`useIntento`). Un RUC nuevo se suma al directorio con `registrar_proveedor_de_gasto`.
  */
 export function HojaRegistrarGasto({
@@ -76,6 +80,8 @@ export function HojaRegistrarGasto({
   sedeInicial,
   plantillas,
   fijosDelMes = [],
+  egreso,
+  fijo,
   hoy,
   onCerrar,
 }: {
@@ -89,6 +95,10 @@ export function HojaRegistrarGasto({
   /** Los gastos fijos que faltan (de todas las tiendas, del mes que se mira y del de hoy): con ellos, un gasto que se parece a uno
    *  pregunta «¿es ese fijo?» antes de registrar (#1271), para que nadie lo pague dos veces. */
   fijosDelMes?: GastoFijoMes[];
+  /** Clasificar esta salida de caja como gasto: su monto, su sede y su fecha vienen fijos, y la plata ya salió del cajón. */
+  egreso?: EgresoPorClasificar;
+  /** Registrar este gasto fijo del mes: llega lleno, con su sede y su categoría fijas, y lo cierra. */
+  fijo?: GastoFijoMes;
   hoy: string;
   onCerrar: () => void;
 }) {
@@ -98,7 +108,14 @@ export function HojaRegistrarGasto({
   const [revisando, setRevisando] = useState(false);
   const [sumando, setSumando] = useState(false);
   const [proveedores, setProveedores] = useState(proveedoresIniciales);
-  const [h, setH] = useState<HojaGasto>(() => hojaVacia(hoy, sedes.some((s) => s.clave === sedeInicial) ? sedeInicial : ""));
+  const [h, setH] = useState<HojaGasto>(() =>
+    egreso
+      ? hojaDeEgreso(egreso, diaLima(egreso.creadoEn) ?? hoy)
+      : fijo
+        ? hojaDeFijo(fijo, hoy, proveedoresIniciales).hoja
+        : hojaVacia(hoy, sedes.some((s) => s.clave === sedeInicial) ? sedeInicial : ""),
+  );
+  const desdeOtroLado = Boolean(egreso || fijo);
   // «¿Es ese fijo?» (#1271): el fijo elegido vale para la sede, la categoría y la fecha de ese momento; si cambian, se vuelve a preguntar.
   const [gastoFijoId, setGastoFijoId] = useState<string | undefined>(undefined);
   const [fijosDescartados, setFijosDescartados] = useState<ReadonlySet<string>>(() => new Set());
@@ -135,13 +152,16 @@ export function HojaRegistrarGasto({
 
   // El proveedor sale del RUC: el que ya está en el directorio, o la razón social que trajo el padrón (o se escribió) para sumarlo.
   const rucValido = validarRuc(h.ruc).valido;
-  const existente = papel ? proveedorDelRuc(h.ruc, proveedores) : null;
+  // El proveedor de un gasto fijo vale aunque no tenga RUC en el directorio (mientras no se escriba otro RUC).
+  const proveedorDelFijo = fijo?.proveedorId ? (proveedores.find((p) => p.id === fijo.proveedorId) ?? null) : null;
+  const fijoSinRuc = Boolean(proveedorDelFijo && !proveedorDelFijo.ruc && !soloDigitos(h.ruc));
+  const existente = papel ? (proveedorDelRuc(h.ruc, proveedores) ?? (fijoSinRuc ? proveedorDelFijo : null)) : null;
   const proveedorListo = Boolean(existente) || (rucValido && h.razonSocial.trim().length > 1);
 
   const monto = parsearMonto(h.monto);
   const categoria = categorias.find((c) => c.codigo === h.categoria) ?? null;
   const sede = sedes.find((s) => s.clave === h.sede) ?? null;
-  const sePareceA = fijosQueSeParecen(
+  const sePareceA = desdeOtroLado ? [] : fijosQueSeParecen(
     fijosDelMes,
     { ubicacion: h.sede, categoria: h.categoria, fecha: h.fecha, monto: monto.ok ? monto.valor : null, proveedorId: existente?.id },
     fijosDescartados,
@@ -149,16 +169,20 @@ export function HojaRegistrarGasto({
   // El fijo elegido tiene que seguir pendiente y ser del mes de la fecha (la base cuenta un gasto por fijo y por mes).
   const fijoElegido = gastoFijoId ? (fijosDelMes.find((f) => f.id === gastoFijoId && f.estado !== "registrado" && mesDelFijo(f) === h.fecha.slice(0, 7)) ?? null) : null;
   const fijosPorPreguntar = fijoElegido ? [] : sePareceA;
-  const campos = camposDeLaHoja(h, { proveedorListo, salidaLista, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
+  // El fijo que este gasto cierra: el que abrió la hoja o el que se eligió en «¿es ese fijo?». Es el único `gasto_fijo_id` que se manda.
+  const fijoDelGasto = fijo ?? fijoElegido;
+  const campos = camposDeLaHoja(h, { proveedorListo, proveedorSinRuc: fijoSinRuc, salidaLista, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
   const guia = useGuiaCampos(campos);
   const ticket = ticketDeLaHoja(h, {
     categoriaNombre: categoria?.nombre ?? null,
     sedeNombre: sede?.nombre ?? null,
-    salidaNombre: credito || !h.sede ? null : conCuentas ? (salida?.nombre ?? null) : medioSinCuentas ? TEXTO_MEDIO[medioSinCuentas] : null,
+    salidaNombre: egreso ? `el cajón de ${egreso.ubicacionNombre}` : credito || !h.sede ? null : conCuentas ? (salida?.nombre ?? null) : medioSinCuentas ? TEXTO_MEDIO[medioSinCuentas] : null,
     proveedorNombre: existente?.nombre ?? (h.razonSocial.trim() || null),
   });
   const pagaAhora = papel && !credito && monto.ok;
-  const avisoNoDeducible = pagaAhora ? avisoBancarizacion(monto.valor, [{ monto: monto.valor, medio: medioSalida || medioSinCuentas, tipoCuenta: salida?.tipo ?? null }]) : null;
+  const avisoNoDeducible = pagaAhora
+    ? avisoBancarizacion(monto.valor, [{ monto: monto.valor, medio: egreso ? "efectivo" : medioSalida || medioSinCuentas, tipoCuenta: egreso ? "cajon" : (salida?.tipo ?? null) }])
+    : null;
   const guardando = intento.enviando || sumando;
 
   function elegirSede(id: string) {
@@ -179,7 +203,7 @@ export function HojaRegistrarGasto({
   async function guardar(otro: boolean) {
     const v0 = validarHoja(h, existente?.id ?? "x", salidaHoja, hoy, proveedorListo);
     if (!v0.ok) return avisar.error(v0.error);
-    const choque = fijoElegido ? choqueConElFijo(fijoElegido, { categoria: h.categoria, fecha: h.fecha }) : null;
+    const choque = fijoDelGasto ? choqueConElFijo(fijoDelGasto, { categoria: h.categoria, fecha: h.fecha }) : null;
     if (choque) return avisar.error(choque.mensaje);
     // Registrar sin contestar si es uno de los fijos que faltan es justo lo que duplica un gasto: no se registra.
     if (fijosPorPreguntar.length > 0) return avisar.error("Antes de registrar, dinos si es uno de los gastos fijos de arriba.", { enfocar: "hoja-gasto-fijo-parecido" });
@@ -197,7 +221,7 @@ export function HojaRegistrarGasto({
       proveedorId = String(data);
       setProveedores((ps) => (ps.some((p) => p.id === proveedorId) ? ps : [...ps, { id: proveedorId, nombre: h.razonSocial.trim(), ruc: soloDigitos(h.ruc), rubros: ["Gastos"] }]));
     }
-    const v = validarHoja(h, proveedorId, salidaHoja, hoy, true, fijoElegido?.id);
+    const v = validarHoja(h, proveedorId, salidaHoja, hoy, true, fijoDelGasto?.id);
     if (!v.ok) return avisar.error(v.error);
     const r = await intento.enviar(huellaDe(v.valor), (token, senal) =>
       firmar(createClient().rpc("registrar_gasto" as never, { ...v.valor, p_token: token } as never), responsable.firma()).abortSignal(senal),
@@ -208,7 +232,7 @@ export function HojaRegistrarGasto({
     if (r.tipo === "incierto") return;
     if (r.tipo === "error") {
       // Un fijo que ya tenía su gasto (otra persona lo registró): se vuelve a leer la pantalla para que salga «registrado» y la hoja suelte el enlace.
-      if (fijoElegido && r.error?.code === "23505") router.refresh();
+      if (fijoDelGasto && r.error?.code === "23505") router.refresh();
       return avisar.error(traducirError(r.error, "registrar el gasto"));
     }
     registrado(otro);
@@ -224,7 +248,7 @@ export function HojaRegistrarGasto({
   }
 
   function registrado(otro: boolean) {
-    avisar.exito("Gasto registrado", { detalle: ticket.pasara.at(-1) });
+    avisar.exito(egreso ? "Egreso clasificado como gasto" : "Gasto registrado", { detalle: ticket.pasara.at(-1) });
     if (otro) {
       // Lo de recién se limpia; la sede, la fecha y de dónde salió se quedan para el siguiente. La foto de «¿Salir sin guardar?» se vuelve
       // a tomar con la hoja limpia (el /chaos del 2026-10-23: cerrar la hoja recién limpiada preguntaba si se perdía lo que no había).
@@ -246,7 +270,7 @@ export function HojaRegistrarGasto({
     const alTeclear = (e: KeyboardEvent) => {
       if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey) || guardando) return;
       e.preventDefault();
-      void guardar(e.shiftKey);
+      void guardar(e.shiftKey && !desdeOtroLado);
     };
     window.addEventListener("keydown", alTeclear);
     return () => window.removeEventListener("keydown", alTeclear);
@@ -269,8 +293,14 @@ export function HojaRegistrarGasto({
   return (
     <Modal
       variante="hoja"
-      titulo="Registrar gasto"
-      subtitulo="Lo de todos los días son cinco toques. Si tiene comprobante, la hoja te pide lo que hace falta."
+      titulo={egreso ? "Es un gasto" : fijo ? `Registrar ${fijo.descripcion.toLowerCase()}` : "Registrar gasto"}
+      subtitulo={
+        egreso
+          ? `${egreso.ubicacionNombre} · ${soles(egreso.monto)} que salieron del cajón · «${egreso.motivo}${egreso.nota ? ` — ${egreso.nota}` : ""}»`
+          : fijo
+            ? `Gasto fijo de ${fijo.ubicacionNombre}: vence ${textoCuandoVence(fijo.momento, fijo.diaDelMes)}${fijo.montoVariable ? ". Escribe el monto del recibo." : "."}`
+            : "Lo de todos los días son cinco toques. Si tiene comprobante, la hoja te pide lo que hace falta."
+      }
       onClose={onCerrar}
       antesDeCerrar={avisoSalida.pedirAccion}
       tamano="ancha"
@@ -278,7 +308,9 @@ export function HojaRegistrarGasto({
     >
       <div className="hoja-gasto">
         <fieldset disabled={intento.incierto} className="campos-congelables hoja-gasto-form min-w-0" data-guia="fin-hoja.cinco">
-          {plantillas.length > 0 && (
+          {/* Un gasto que viene de un fijo muestra a quién y cómo se le paga (ADR-0452). */}
+          {fijo && <FichaDePagoTarjeta gastoFijoId={fijo.id} hoy={hoy} />}
+          {plantillas.length > 0 && !desdeOtroLado && (
             <div className="hoja-gasto-repetir" data-guia="fin-hoja.repetir">
               <span className="campo-etiqueta">Repetir uno anterior</span>
               <div className="flex flex-wrap gap-1.5">
@@ -292,13 +324,13 @@ export function HojaRegistrarGasto({
           )}
 
           <CampoGuiado id="monto" guia={guia} titulo="Cuánto">
-            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!motivoDelMonto(h.monto)} pie={motivoDelMonto(h.monto) ?? undefined} tono={motivoDelMonto(h.monto) ? "aviso" : undefined} inputMode="decimal" value={h.monto} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus />
+            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!motivoDelMonto(h.monto)} pie={motivoDelMonto(h.monto) ?? undefined} tono={motivoDelMonto(h.monto) ? "aviso" : undefined} inputMode="decimal" value={h.monto} readOnly={Boolean(egreso)} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus={!egreso} />
           </CampoGuiado>
 
           <CampoGuiado id="sede" guia={guia} titulo="Para qué sede">
             <div className="hoja-gasto-opciones" role="radiogroup" aria-label="Sede">
               {sedes.map((s) => (
-                <button key={s.clave} type="button" role="radio" aria-checked={h.sede === s.clave} className="hoja-gasto-sede" data-color={s.color} onClick={() => elegirSede(s.clave)}>
+                <button key={s.clave} type="button" role="radio" aria-checked={h.sede === s.clave} className="hoja-gasto-sede" data-color={s.color} disabled={desdeOtroLado} onClick={() => elegirSede(s.clave)}>
                   <span className="hoja-gasto-punto" aria-hidden />
                   {nombreSede(s)}
                 </button>
@@ -314,6 +346,7 @@ export function HojaRegistrarGasto({
                 valor={h.categoria}
                 onValor={(v) => poner("categoria", v)}
                 marcador="Elige…"
+                deshabilitado={Boolean(fijo)}
                 opciones={categorias.map((c) => ({ valor: c.codigo, texto: c.nombre }))}
               />
             </CampoGuiado>
@@ -365,8 +398,8 @@ export function HojaRegistrarGasto({
           )}
 
           <div className="grid gap-x-3 sm:grid-cols-2">
-            <CampoFecha etiqueta={papel ? "Fecha del comprobante" : "Fecha"} valor={h.fecha} onValor={(v) => poner("fecha", v)} />
-            {papel && (
+            <CampoFecha etiqueta={papel ? "Fecha del comprobante" : "Fecha"} valor={h.fecha} onValor={(v) => poner("fecha", v)} disabled={Boolean(egreso)} />
+            {papel && !egreso && (
               <div>
                 <span className="campo-etiqueta">¿Ya lo pagaste?</span>
                 <div className="hoja-gasto-opciones mt-1.5" role="radiogroup" aria-label="¿Ya lo pagaste?">
@@ -389,7 +422,7 @@ export function HojaRegistrarGasto({
             <CampoGuiado id="vence" guia={guia}>
               <CampoFecha etiqueta="Cuándo vence" valor={h.vence} onValor={(v) => poner("vence", v)} ayuda="Queda en Cuentas y dinero ▸ Por pagar hasta ese día." />
             </CampoGuiado>
-          ) : !h.sede ? null : (
+          ) : !h.sede || egreso ? null : (
             // «Salió de» depende de la sede (un gasto de una tienda sale de SU cajón): aparece cuando ya se eligió.
             <CampoGuiado id="salida" guia={guia}>
               {conCuentas ? (
@@ -484,11 +517,13 @@ export function HojaRegistrarGasto({
         <Boton type="button" peso="fantasma" onClick={() => avisoSalida.pedirAccion(onCerrar)} disabled={guardando || intento.incierto}>
           Cancelar
         </Boton>
-        <Boton type="button" peso="fantasma" onClick={() => void guardar(true)} disabled={guardando || revisando || intento.incierto} title="Guardar y registrar otro (⌘⇧↵)">
-          Guardar y registrar otro
-        </Boton>
+        {!desdeOtroLado && (
+          <Boton type="button" peso="fantasma" onClick={() => void guardar(true)} disabled={guardando || revisando || intento.incierto} title="Guardar y registrar otro (⌘⇧↵)">
+            Guardar y registrar otro
+          </Boton>
+        )}
         <Boton type="button" peso="primario" cargando={guardando} onClick={() => void guardar(false)} disabled={guardando || revisando || !responsable.listo} title="Registrar (⌘↵)">
-          {intento.incierto ? "Volver a intentar" : "Registrar gasto"}
+          {intento.incierto ? "Volver a intentar" : egreso ? "Guardar como gasto" : "Registrar gasto"}
         </Boton>
       </PieAcciones>
       {avisoSalida.aviso}

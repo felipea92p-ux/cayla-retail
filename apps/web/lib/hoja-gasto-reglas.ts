@@ -29,6 +29,8 @@ export type HojaGasto = {
   serieNumero: string;
   pagado: "si" | "no";
   vence: string;
+  /** Si se está clasificando una salida de caja como gasto: su id. El monto, la sede y la fecha vienen de ella y la plata ya salió del cajón. */
+  egresoId: string;
 };
 
 export const hojaVacia = (hoy: string, sede = ""): HojaGasto => ({
@@ -43,6 +45,7 @@ export const hojaVacia = (hoy: string, sede = ""): HojaGasto => ({
   serieNumero: "",
   pagado: "si",
   vence: "",
+  egresoId: "",
 });
 
 /** «Guardar y registrar otro»: lo de recién se limpia, pero la sede y la fecha se quedan (el siguiente casi siempre es igual). */
@@ -63,7 +66,7 @@ export function proveedorDelRuc(ruc: string, proveedores: readonly ProveedorGast
 
 export const conComprobante = (h: Pick<HojaGasto, "comprobante">) => h.comprobante !== "" && h.comprobante !== "sin_comprobante";
 /** A crédito solo con comprobante: sin papel no hay a quién deberle en Por pagar. */
-export const aCredito = (h: Pick<HojaGasto, "comprobante" | "pagado">) => conComprobante(h) && h.pagado === "no";
+export const aCredito = (h: Pick<HojaGasto, "comprobante" | "pagado"> & { egresoId?: string }) => !h.egresoId && conComprobante(h) && h.pagado === "no";
 
 /** De dónde salió la plata, ya resuelto por la hoja con las cuentas de la tienda (`cuentaDeSalida`) o con el medio elegido. */
 export type SalidaDeLaHoja = { medio: MedioGasto | ""; cuentaId?: string; cajaId: string; referencia: string };
@@ -85,11 +88,12 @@ export function borradorDeLaHoja(h: HojaGasto, proveedorId: string, salida: Sali
     numero: conComprobante(h) ? numero : "",
     condicion: credito ? "credito" : "contado",
     vence: credito ? h.vence : "",
-    medio: credito ? "" : salida.medio,
-    cajaId: credito ? "" : salida.cajaId,
-    egresoId: "",
-    referencia: credito ? "" : salida.referencia,
-    ...(salida.cuentaId && !credito ? { cuentaId: salida.cuentaId } : {}),
+    // Una salida de caja ya es efectivo del cajón: la base no crea otra (`p_caja_movimiento_id`).
+    medio: h.egresoId ? "efectivo" : credito ? "" : salida.medio,
+    cajaId: h.egresoId || credito ? "" : salida.cajaId,
+    egresoId: h.egresoId,
+    referencia: h.egresoId || credito ? "" : salida.referencia,
+    ...(salida.cuentaId && !credito && !h.egresoId ? { cuentaId: salida.cuentaId } : {}),
     ...(gastoFijoId ? { gastoFijoId } : {}),
   };
 }
@@ -119,13 +123,15 @@ export function validarHoja(
   if (conComprobante(h) && !proveedorListo) return { ok: false, error: validarRuc(h.ruc).valido ? "Escribe la razón social." : "Escribe el RUC del comprobante." };
   if (conComprobante(h) && !serieNumeroLegible(h.serieNumero)) return { ok: false, error: "Escribe la serie y el número, como F001-2231." };
   if (aCredito(h) && (!h.vence || h.vence < h.fecha)) return { ok: false, error: "Di cuándo vence (no antes de la fecha)." };
-  if (!aCredito(h) && !salida.medio) return { ok: false, error: "Di de dónde salió la plata." };
+  if (!aCredito(h) && !h.egresoId && !salida.medio) return { ok: false, error: "Di de dónde salió la plata." };
   return validarGasto(borradorDeLaHoja(h, proveedorId, salida, gastoFijoId), hoy);
 }
 
 export type ContextoGuia = {
   /** El RUC escrito ya tiene un proveedor (del directorio, o la razón social para sumarlo). */
   proveedorListo: boolean;
+  /** El proveedor viene del gasto fijo y no tiene RUC en el directorio: vale igual (la base no pide RUC al proveedor). */
+  proveedorSinRuc?: boolean;
   /** Ya se sabe de dónde salió la plata (una cuenta o un medio). */
   salidaLista: boolean;
   responsableListo: boolean;
@@ -151,12 +157,13 @@ export function camposDeLaHoja(h: HojaGasto, ctx: ContextoGuia): CampoDeGuia[] {
   if (papel) {
     const ruc = validarRuc(h.ruc);
     campos.push(
-      { id: "ruc", nombre: "RUC", requerido: true, hecho: ruc.valido && ctx.proveedorListo, pendiente: ruc.valido ? "Escribe la razón social." : "Escribe el RUC del comprobante." },
+      { id: "ruc", nombre: "RUC", requerido: true, hecho: (ruc.valido || Boolean(ctx.proveedorSinRuc)) && ctx.proveedorListo, pendiente: ruc.valido ? "Escribe la razón social." : "Escribe el RUC del comprobante." },
       { id: "serie", nombre: "Serie y número", requerido: true, hecho: serieNumeroLegible(h.serieNumero) !== null, pendiente: "Escribe la serie y el número, como F001-2231." },
     );
   }
   if (credito) campos.push({ id: "vence", nombre: "Cuándo vence", requerido: true, hecho: Boolean(h.vence) && h.vence >= h.fecha, pendiente: "Di cuándo vence (no antes de la fecha)." });
-  else campos.push({ id: "salida", nombre: "Salió de", requerido: true, hecho: ctx.salidaLista, pendiente: "Di de dónde salió la plata." });
+  // Una salida de caja ya dice de dónde salió la plata: del cajón.
+  else if (!h.egresoId) campos.push({ id: "salida", nombre: "Salió de", requerido: true, hecho: ctx.salidaLista, pendiente: "Di de dónde salió la plata." });
   campos.push({ id: "responsable", nombre: "Responsable", requerido: true, hecho: ctx.responsableListo, pendiente: ctx.responsableMotivo ?? "Elige quién registra." });
   return campos;
 }
@@ -199,7 +206,7 @@ export function ticketDeLaHoja(
   else if (h.comprobante === "boleta") pasara.push("Una boleta no recupera IGV: con factura lo recuperarías.");
   else if (h.comprobante === "sin_comprobante") pasara.push("Sin comprobante no recuperas IGV.");
   if (aCredito(h)) pasara.push(h.vence ? `Queda en Por pagar hasta el ${h.vence.split("-").reverse().join("/")}.` : "Queda en Por pagar.");
-  else if (ctx.salidaNombre) pasara.push(`Sale de ${ctx.salidaNombre}.`);
+  else if (ctx.salidaNombre) pasara.push(/^el /.test(ctx.salidaNombre) ? `Sale del ${ctx.salidaNombre.slice(3)}.` : `Sale de ${ctx.salidaNombre}.`);
   return { lineas, pasara };
 }
 
@@ -263,4 +270,38 @@ export function motivoDelMonto(texto: string): string | null {
   if (!texto.trim()) return null;
   const m = montoDentroDelTope(parsearMonto(texto));
   return m.ok ? null : m.error;
+}
+
+
+/**
+ * Clasificar una salida de caja como gasto (lo que antes hacía la hoja vieja con `egreso`): el monto, la sede y la fecha vienen de la
+ * salida y no se cambian; la plata ya salió del cajón, así que no se pregunta de dónde ni si está pagado. Lo que se anotó en Caja llega
+ * como «qué fue».
+ */
+export function hojaDeEgreso(e: { id: string; ubicacionId: string; monto: number; nota: string | null }, fecha: string): HojaGasto {
+  return { ...hojaVacia(fecha, e.ubicacionId), monto: String(e.monto), descripcion: e.nota ?? "", comprobante: "sin_comprobante", egresoId: e.id };
+}
+
+/**
+ * Registrar un gasto fijo del mes (desde «Fijos del mes» o la bandeja): todo lo de siempre viene lleno (`borradorDesdeFijo`), y el
+ * proveedor del fijo se reconoce por su RUC. Devuelve también el proveedor, porque un proveedor del directorio sin RUC igual vale.
+ */
+export function hojaDeFijo(
+  f: { ubicacionId: string | null; categoria: string; descripcion: string; comprobanteTipo: TipoComprobante; proveedorId: string | null; monto: number; montoVariable: boolean; fechaEsperada: string },
+  hoy: string,
+  proveedores: readonly ProveedorGasto[],
+): { hoja: HojaGasto; proveedor: ProveedorGasto | null } {
+  const proveedor = f.proveedorId ? (proveedores.find((p) => p.id === f.proveedorId) ?? null) : null;
+  return {
+    hoja: {
+      ...hojaVacia(f.fechaEsperada <= hoy ? f.fechaEsperada : hoy, f.ubicacionId ?? "empresa"),
+      categoria: f.categoria,
+      descripcion: f.descripcion,
+      comprobante: f.comprobanteTipo,
+      monto: f.montoVariable ? "" : String(f.monto),
+      ruc: proveedor?.ruc ?? "",
+      razonSocial: proveedor?.nombre ?? "",
+    },
+    proveedor,
+  };
 }

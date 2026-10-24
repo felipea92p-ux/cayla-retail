@@ -5,6 +5,8 @@ import {
   aCredito,
   borradorDeLaHoja,
   camposDeLaHoja,
+  hojaDeEgreso,
+  hojaDeFijo,
   hojaDePlantilla,
   motivoDelMonto,
   hojaSiguiente,
@@ -206,5 +208,32 @@ describe("cerrar un gasto fijo desde la hoja (#1271: «¿es ese fijo?»)", () =>
     expect(borradorDeLaHoja(llena(), "", efectivo, "fijo-luz").gastoFijoId).toBe("fijo-luz");
     const v = validarHoja(llena(), "", efectivo, HOY, true, "fijo-luz");
     expect(v.ok && v.valor.p_gasto_fijo_id).toBe("fijo-luz");
+  });
+});
+
+describe("clasificar una salida de caja y registrar un fijo en la hoja nueva", () => {
+  const sin: SalidaDeLaHoja = { medio: "", cajaId: "", referencia: "" };
+
+  it("la salida de caja trae su monto, su sede y su fecha, y no pide de dónde salió", () => {
+    const h = { ...hojaDeEgreso({ id: "egr-1", ubicacionId: "lima", monto: 20, nota: "Bolsas" }, "2026-10-20"), categoria: "suministros" };
+    expect(h).toMatchObject({ monto: "20", sede: "lima", fecha: "2026-10-20", descripcion: "Bolsas", comprobante: "sin_comprobante", egresoId: "egr-1" });
+    expect(camposDeLaHoja(h, { ...listo, salidaLista: false }).map((c) => c.id)).not.toContain("salida");
+    expect(ticketDeLaHoja(h, { categoriaNombre: null, sedeNombre: null, salidaNombre: "el cajón de Tienda Lima", proveedorNombre: null }).pasara).toContain("Sale del cajón de Tienda Lima.");
+    const v = validarHoja(h, "", sin, HOY);
+    expect(v.ok && v.valor).toMatchObject({ p_caja_movimiento_id: "egr-1", p_medio_pago: "efectivo", p_caja_id: null });
+  });
+
+  it("una salida de caja con comprobante no queda por pagar", () => {
+    const h = { ...hojaDeEgreso({ id: "egr-1", ubicacionId: "lima", monto: 20, nota: null }, "2026-10-20"), categoria: "suministros", descripcion: "Bolsas", comprobante: "boleta" as const, ruc: RUC, serieNumero: "B001-5", pagado: "no" as const };
+    expect(aCredito(h)).toBe(false);
+    expect(validarHoja(h, "prov-1", sin, HOY).ok).toBe(true);
+  });
+
+  it("el fijo llega lleno, con su proveedor por RUC o por su id aunque no tenga RUC", () => {
+    const f = { ubicacionId: "lima", categoria: "servicios_basicos", descripcion: "Luz del local", comprobanteTipo: "factura" as const, proveedorId: "hid", monto: 180, montoVariable: true, fechaEsperada: "2026-10-10" };
+    const { hoja, proveedor } = hojaDeFijo(f, HOY, [{ id: "hid", nombre: "Hidrandina", ruc: "20132023540", rubros: [] }]);
+    expect(hoja).toMatchObject({ sede: "lima", categoria: "servicios_basicos", descripcion: "Luz del local", comprobante: "factura", monto: "", ruc: "20132023540", fecha: "2026-10-10" });
+    expect(proveedor?.id).toBe("hid");
+    expect(hojaDeFijo({ ...f, montoVariable: false, fechaEsperada: "2026-11-10" }, HOY, []).hoja).toMatchObject({ monto: "180", fecha: HOY, ruc: "" });
   });
 });
