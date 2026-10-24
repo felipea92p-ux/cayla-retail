@@ -211,6 +211,13 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "Cuántas llegaron y a cuánto, cuántas ya tenías y a cuánto, y en cuánto quedó cada prenda al juntarlas. El «?» muestra la cuenta.",
     },
     {
+      id: "vr-costo-errores",
+      ancla: "historial-prenda.costo-errores",
+      opcional: true,
+      titulo: "Errores arreglados",
+      texto: "Si alguien anotó mal el costo y lo arregló, aquí queda: el número equivocado tachado, el bueno, cuándo y quién. No cuenta como cambio: el gráfico usa el bueno desde el principio y solo marca la fecha con un lápiz.",
+    },
+    {
       id: "vr-volver",
       ancla: "historial-prenda.volver",
       opcional: true,
@@ -527,6 +534,13 @@ export const GUIA_HISTORIAL_PRENDA: Guia = {
       opcional: true,
       titulo: "Una fila por compra",
       texto: "Cuántas llegaron y a cuánto, cuántas ya tenías y a cuánto, y en cuánto quedó cada prenda al juntarlas. El «?» muestra la cuenta.",
+    },
+    {
+      id: "costo-errores",
+      ancla: "historial-prenda.costo-errores",
+      opcional: true,
+      titulo: "Errores arreglados",
+      texto: "Si alguien anotó mal el costo y lo arregló, aquí queda: el número equivocado tachado, el bueno, cuándo y quién. No cuenta como cambio: el gráfico usa el bueno desde el principio y solo marca la fecha con un lápiz.",
     },
     {
       id: "fin",

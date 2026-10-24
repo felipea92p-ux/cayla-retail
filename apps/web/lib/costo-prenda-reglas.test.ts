@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { cuentaDeCompra, fraseDeRespuesta, graficoDelCosto, leerCostoPrenda, movidaDeCompra, respuestaCosto, textoDeMovida } from "./costo-prenda-reglas";
+import type { Evento } from "./historial-prenda-reglas";
+import { cuentaDeCompra, fraseDeRespuesta, erroresArreglados, graficoDelCosto, leerCostoPrenda, movidaDeCompra, respuestaCosto, textoDeMovida } from "./costo-prenda-reglas";
 
 // El ejemplo de la maqueta (docs/maquetas/costo-historial-2026-10/v2-escalera-amigable.html), tal como lo devuelve la base.
 const BASE = {
@@ -114,5 +115,35 @@ describe("graficoDelCosto", () => {
     expect(textoDeMovida({ tipo: "sube", monto: 1.61 })).toBe("↑ subió S/ 1.61");
     expect(textoDeMovida({ tipo: "baja", monto: 0.04 })).toBe("↓ bajó S/ 0.04");
     expect(textoDeMovida({ tipo: "igual", monto: 0 })).toBe("igual");
+  });
+});
+
+describe("erroresArreglados", () => {
+  const persona = { id: "p1", nombre: "Daniel Ruiz", corto: "Daniel", iniciales: "DR", rol: null, sede: null };
+  const evento = (id: string, cuando: string, cambios: Evento["cambios"]): Evento => ({ id, cuando, persona, sede: null, familia: "precio", titulo: "", cambios });
+  const v = { color: "Beige", hex: null, talla: "M" };
+
+  it("un costo declarado arreglado en la ficha es un error arreglado, con en cuántas variantes y quién", () => {
+    const e = erroresArreglados([evento("e1", "2026-09-12T21:40:00Z", [{ k: "costo", antes: 19, despues: 18, variantes: [v, v], declarado: true }])]);
+    expect(e).toEqual([{ id: "e1-0", cuando: "2026-09-12T21:40:00Z", antes: 19, despues: 18, variantes: 2, persona: "Daniel Ruiz" }]);
+  });
+
+  it("lo que mueve una compra (campo `costo`) no es un error, ni anotar un costo donde no había, ni el precio", () => {
+    expect(
+      erroresArreglados([
+        evento("e1", "2026-10-14T20:30:00Z", [{ k: "costo", antes: 18, despues: 20.5, variantes: [v] }]),
+        evento("e2", "2026-09-12T15:00:00Z", [{ k: "costo", antes: null, despues: 18, variantes: [v], declarado: true }]),
+        evento("e3", "2026-09-12T15:00:00Z", [{ k: "costo", antes: 0, despues: 18, variantes: [v], declarado: true }]),
+        evento("e4", "2026-09-12T15:00:00Z", [{ k: "precio", antes: 39.9, despues: 35, variantes: [v] }]),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("del más viejo al más nuevo", () => {
+    const e = erroresArreglados([
+      evento("b", "2026-09-20T15:00:00Z", [{ k: "costo", antes: 20, despues: 21, variantes: [v], declarado: true }]),
+      evento("a", "2026-09-12T15:00:00Z", [{ k: "costo", antes: 19, despues: 18, variantes: [v], declarado: true }]),
+    ]);
+    expect(e.map((x) => x.id)).toEqual(["a-0", "b-0"]);
   });
 });

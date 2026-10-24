@@ -1,4 +1,4 @@
-import { soles } from "./historial-prenda-reglas";
+import { soles, type Evento } from "./historial-prenda-reglas";
 import { diaLima } from "./fechas-lima";
 
 // La pestaña «Costo» del Historial de la prenda (maqueta: docs/maquetas/costo-historial-2026-10/v2-escalera-amigable.html). Lee
@@ -190,4 +190,31 @@ export function textoDeMovida(m: Movida): string {
   if (m.tipo === "sube") return `↑ subió ${soles(m.monto)}`;
   if (m.tipo === "baja") return `↓ bajó ${soles(m.monto)}`;
   return m.tipo === "igual" ? "igual" : "primera";
+}
+
+export type ErrorArreglado = {
+  id: string;
+  cuando: string;
+  antes: number;
+  despues: number;
+  /** En cuántas variantes se arregló (la ficha guarda el mismo costo en todas las que se tocaron). */
+  variantes: number;
+  persona: string | null;
+};
+
+/**
+ * Los costos que alguien arregló a mano. Desde 20260927190000 el costo solo se edita en la ficha mientras la prenda no tuvo ninguna
+ * compra, y ese arreglo queda como `costo_declarado`: es una CORRECCIÓN, no un costo nuevo (Felipe, 2026-10-24), y el gráfico ya usa el
+ * número bueno desde el principio. Lo que mueven las compras queda como `costo` y no es un error. Anotar un costo donde no había
+ * (de 0 o vacío a algo) tampoco es arreglar un error: no se lista. Del más viejo al más nuevo.
+ */
+export function erroresArreglados(eventos: readonly Evento[]): ErrorArreglado[] {
+  const out: ErrorArreglado[] = [];
+  for (const e of eventos) {
+    e.cambios.forEach((c, i) => {
+      if (c.k !== "costo" || !c.declarado || c.antes === null || c.despues === null || c.antes <= 0 || c.antes === c.despues) return;
+      out.push({ id: `${e.id}-${i}`, cuando: e.cuando, antes: c.antes, despues: c.despues, variantes: Math.max(1, c.variantes.length), persona: e.persona?.nombre ?? null });
+    });
+  }
+  return out.sort((a, b) => a.cuando.localeCompare(b.cuando));
 }

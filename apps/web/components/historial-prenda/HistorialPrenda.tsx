@@ -36,6 +36,7 @@ import {
 } from "@/lib/historial-prenda-reglas";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { CostoPrenda } from "@/components/historial-prenda/CostoPrenda";
+import { erroresArreglados } from "@/lib/costo-prenda-reglas";
 import { horaLima, hoyLima } from "@/lib/fechas-lima";
 import type { LecturaHistorial } from "@/lib/historial-prenda-reglas";
 
@@ -113,7 +114,9 @@ export function HistorialPrenda({
   const [familia, setFamilia] = useState<Familia | "todo" | "costo">("todo");
   const [persona, setPersona] = useState<string | null>(null);
   const lista = useMemo(() => (familia === "costo" ? [] : filtrarEventos(eventos, familia, persona)), [eventos, familia, persona]);
-  const costo = lectura.estado === "ok" && lectura.costo && lectura.costo.compras.length > 0 ? lectura.costo : null;
+  // La pestaña aparece si hay compras que movieron el costo o costos que alguien arregló a mano.
+  const errores = useMemo(() => erroresArreglados(eventos), [eventos]);
+  const costo = lectura.estado === "ok" && lectura.costo && (lectura.costo.compras.length > 0 || errores.length > 0) ? lectura.costo : null;
   const cuenta = (f: Familia) => eventos.filter((e) => e.familia === f).length;
   const gente = useMemo(() => personasDe(eventos.filter((e) => e.familia !== "alta")), [eventos]);
   const recien = eventos.length > 0 && eventos.every((e) => e.familia === "alta");
@@ -159,7 +162,7 @@ export function HistorialPrenda({
                     data-guia="historial-prenda.costo"
                   >
                     <span className="hp-pt" />
-                    Costo <span className="hp-n">{costo.compras.length}</span>
+                    Costo <span className="hp-n">{costo.compras.length + errores.length}</span>
                   </button>
                 )}
               </Fragment>
@@ -206,7 +209,7 @@ export function HistorialPrenda({
           )}
         </div>
       )}
-      {lectura.estado === "ok" && familia === "costo" && costo && <CostoPrenda costo={costo} />}
+      {lectura.estado === "ok" && familia === "costo" && costo && <CostoPrenda costo={costo} errores={errores} />}
       {lectura.estado === "ok" && familia !== "costo" && (
         <Hilo key={`${familia}|${persona}`} eventos={lista} hoy={hoy} total={totalVariantes} recien={recien} hrefMovimientos={hrefMovimientos} />
       )}

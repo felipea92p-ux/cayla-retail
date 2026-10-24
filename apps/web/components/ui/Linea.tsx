@@ -15,12 +15,16 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
    · Se dibuja de izquierda a derecha una vez al verse (900 ms), el área aparece detrás y el punto final con su cifra al llegar.
    · `escalones`: el valor se queda quieto hasta el punto siguiente y salta ahí (un costo, que solo cambia cuando llega mercadería). Con
      `marcas`, cada salto lleva su número (①②③) y lo que pasó en dos palabras; el número se toca y lleva a su detalle (la pestaña «Costo»
-     del Historial de la prenda, 2026-10-24).
+     del Historial de la prenda, 2026-10-24). `arreglos`: un lápiz punteado sobre la fecha de algo que se corrigió (un costo mal
+     anotado), fuera de la línea: lo arreglado no mueve la línea, solo se avisa que pasó.
    En una fila de una lista, la mini es `<Sparkline>` (components/ui/Sparkline.tsx). Registro: docs/unificar/grafico.linea.md.
    Nunca una `<polyline>` ni un `<path>` de datos dibujados a mano.
    ==================================================================== */
 
 export type PuntoLinea = { x: number; y: number };
+
+/** Un lápiz sobre la fecha de algo que se corrigió: se toca y lleva a su detalle. */
+export type ArregloLinea = { x: number; etiqueta: string; onElegir?: () => void };
 
 /** Un número sobre la línea que se toca: dice qué pasó en ese punto y lleva a su detalle. */
 export type MarcaLinea = {
@@ -65,6 +69,8 @@ type Props = {
   escalones?: boolean;
   /** Números que se tocan sobre la línea. */
   marcas?: readonly MarcaLinea[];
+  /** Lápices sobre la fecha de lo que se corrigió (fuera de la línea). */
+  arreglos?: readonly ArregloLinea[];
   /** La raya punteada vertical de «ahora», con su texto. */
   ahora?: { x: number; texto: string } | null;
   /** La cifra del último punto, en serif. */
@@ -121,6 +127,7 @@ export function Linea({
   puntos = false,
   escalones = false,
   marcas = [],
+  arreglos = [],
   ahora = null,
   cifra = null,
   cifraReferencia = null,
@@ -244,6 +251,34 @@ export function Linea({
                   {cifra}
                 </text>
               )}
+              {arreglos.map((a, i) => {
+                // Sobre la raya del piso; lo de antes del primer punto se dibuja en su comienzo, sin pisar el monto del eje.
+                const ax = Math.max(X(Math.min(Math.max(a.x, desde), hasta)), L + 14);
+                const ay = Y(minY);
+                return (
+                  <g
+                    key={`${a.x}-${i}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={a.etiqueta}
+                    className="linea-arreglo"
+                    style={{ "--i": i } as CSSProperties}
+                    onClick={a.onElegir}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        a.onElegir?.();
+                      }
+                    }}
+                  >
+                    <title>{a.etiqueta}</title>
+                    <circle cx={ax} cy={ay} r={16} className="linea-marca-toque" />
+                    <circle cx={ax} cy={ay} r={9} className="linea-arreglo-fondo" />
+                    {/* El lápiz de lucide, a escala: dibujado en el propio SVG (un foreignObject se corre en Safari). */}
+                    <path d="M4 20h4L19 9l-4-4L4 16z" transform={`translate(${ax - 5.4} ${ay - 5.4}) scale(0.45)`} className="linea-arreglo-lapiz" />
+                  </g>
+                );
+              })}
               {marcas.map((m, i) => (
                 <g
                   key={m.n}

@@ -54,7 +54,8 @@ el plan y «si sigue así») y la ficha de un proveedor (el costo compra a compr
 La pestaña «Costo» del Historial de la prenda necesitaba un costo que se queda quieto hasta que llega mercadería y salta ahí, con un número
 que se toca en cada salto. La pieza ganó dos opciones, sin cambiar a nadie que ya la usaba: `escalones` (el trazo va en escalón y la guía
 lee el valor del último punto que pasó) y `marcas` (①②③ sobre la línea, con lo que pasó en dos palabras: sube en ámbar, baja en verde, el
-resto en taupe; se tocan con el mouse, el dedo o Enter, y el elegido se llena de tinta). Maqueta: `docs/maquetas/costo-historial-2026-10/`.
+resto en taupe; se tocan con el mouse, el dedo o Enter, y el elegido se llena de tinta). Y `arreglos`: un lápiz punteado en pizarra sobre la raya del piso, en la fecha de algo que se corrigió (un costo mal anotado); no
+mueve la línea y se toca para ir a su detalle. Maqueta: `docs/maquetas/costo-historial-2026-10/`.
 
 ## Firmas
 

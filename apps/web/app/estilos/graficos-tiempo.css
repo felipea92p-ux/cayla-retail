@@ -41,6 +41,11 @@
   .linea-marca-activa .linea-marca-fondo, .linea-marca:focus-visible .linea-marca-fondo { fill: var(--color-tinta); }
   .linea-marca-activa .linea-marca-n, .linea-marca:focus-visible .linea-marca-n { fill: var(--color-papel); }
   .linea-marca:focus-visible .linea-marca-fondo { stroke: var(--color-rojo); }
+  /* Los lápices de lo que se corrigió (`arreglos`): punteados en pizarra, sobre la raya del piso. */
+  .linea-arreglo { cursor: pointer; outline: none; animation: cayla-linea-aparece 300ms var(--ease-cayla) backwards; animation-delay: calc(900ms + var(--i, 0) * 120ms); }
+  .linea-arreglo-fondo { fill: var(--color-papel); stroke: var(--color-pizarra); stroke-width: 1.5; stroke-dasharray: 3 2; }
+  .linea-arreglo-lapiz { fill: none; stroke: var(--color-pizarra); stroke-width: 4; stroke-linejoin: round; pointer-events: none; }
+  .linea-arreglo:focus-visible .linea-arreglo-fondo { stroke: var(--color-rojo); stroke-dasharray: none; }
   @media (hover: hover) {
     .linea-marca:hover .linea-marca-fondo { stroke-width: 2.5; }
   }
@@ -100,5 +105,5 @@
 @keyframes cayla-barras-crece { from { transform: scaleY(0); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .linea-area, .linea-trazo, .linea-punto-fin, .linea-punto, .linea-marca, .linea-cifra, .linea-globo, .barra-t-relleno, .barra-t-encima, .barra-t-globo { animation: none; transition: none; }
+  .linea-area, .linea-trazo, .linea-punto-fin, .linea-punto, .linea-marca, .linea-arreglo, .linea-cifra, .linea-globo, .barra-t-relleno, .barra-t-encima, .barra-t-globo { animation: none; transition: none; }
 }
