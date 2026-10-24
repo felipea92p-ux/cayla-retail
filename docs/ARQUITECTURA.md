@@ -1104,7 +1104,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     suma el chip «Nos debe» con `fn_ordenes_insumo_nos_debe` (lo anotado como «no llegará» × su costo).
 
 **Ventas / caja**
-- `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +
+- `/vender` → `lib/catalogo-v2.ts:getCatalogoDeLaSede` (el catálogo sin las prendas de una empresa que no opera en la sede —CLAURE
+  fuera de Lima— y con su insignia en Lima, `lib/empresas-de-sede-reglas.ts`, ADR-0505; lo mismo leen Apartados, Cambios, Buscar,
+  Recibir, Existencias, Contar y Cuadrar) + `lib/caja.ts:getCajaAbierta` +
   `stock` de todas las sedes que RLS deje ver (`lib/stock-por-sede.ts`: aquí + dónde más
   hay; la RPC `fn_stock_por_sede` para colaboradoras está escrita y sin aplicar; «Ventas
   de hoy» firma cada venta con la integrante vía `lib/nombre-integrante.ts`) →
@@ -1207,7 +1209,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `ComprasAgrupadas.tsx` (lista por día y compra) y `FlujoGuiado.tsx` (pasos, botones,
   validaciones, foco/Escape). Reglas puras compartidas —plazo R-38, `unidadesDisponibles`
   (descuenta lo cambiado y lo devuelto), validaciones— en `lib/cambios-reglas.ts`.
-- `/cambios` → `getVentasRecientes` + `getCatalogo` + stock del piso + `fn_stock_por_sede` +
+- `/cambios` → `getVentasRecientes` + `getCatalogoDeLaSede` + stock del piso + `fn_stock_por_sede` +
   `getCajaAbierta` + `lib/cambios-estadisticas.ts` (hoy / mes / valor cambiado; "tallas que no
   calzan" solo para líderes) → `CambiosPanel.tsx` (bloques "Iniciar un cambio" y "Actividad
   reciente", filas en `CambiosVentas.tsx`) → `CambiosFlujo.tsx` (Venta → Prenda → Reemplazo →

@@ -5,6 +5,7 @@ import { BarraAvance } from "@/components/ui/BarraAvance";
 import Link from "next/link";
 import { ChevronRight, History, PackageOpen, PauseCircle, PlayCircle, SignpostBig, Trash2, X, FunnelX, Tag } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
 import { MiniaturaPrenda, SwatchesColor } from "@/components/ProductoPiezas";
@@ -471,9 +472,12 @@ function FilaAncha({
             </button>
             <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[50px] w-10 ${fila.descontinuado ? "opacity-60" : ""}`} {...categoriaDe(p)} />
             <div className={`min-w-0 ${fila.descontinuado ? "opacity-70" : ""}`}>
-              <p className="font-display truncate text-[17px] leading-tight text-tinta" title={p.referencia}>
-                {p.referencia}
-              </p>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <p className="font-display truncate text-[17px] leading-tight text-tinta" title={p.referencia}>
+                  {p.referencia}
+                </p>
+                <InsigniaEmpresa nombre={p.empresa} className="shrink-0" />
+              </div>
               <p className="mt-0.5 truncate text-[11px] text-tinta/55">
                 <span className="font-mono tracking-wide">{p.codigo ?? "sin código"}</span> · {p.categoria ?? "sin categoría"}
               </p>
@@ -635,7 +639,10 @@ function TarjetaFila({
         <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[62px] w-[50px] ${fila.descontinuado ? "opacity-60" : ""}`} {...categoriaDe(p)} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <p className="font-display min-w-0 truncate text-[17px] leading-tight text-tinta">{p.referencia}</p>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <p className="font-display min-w-0 truncate text-[17px] leading-tight text-tinta">{p.referencia}</p>
+              <InsigniaEmpresa nombre={p.empresa} className="shrink-0" />
+            </div>
             <p className="shrink-0 text-right text-[14px] tabular-nums text-tinta">
               {fila.deHoy ? <PrecioConCampana precio={fila.deHoy} className="justify-end" /> : fila.precio}
               <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
