@@ -40,7 +40,16 @@ function psql(sql) {
   ).trim();
 }
 
-/** Las sedes, las dos empresas, una categoría con talla, un color y una marca con su proveedor; deja la escena sin la blusa. */
+/** Una prenda nueva por el camino real; `ubic` es donde cae el stock inicial (la sede que se valida es Lima). */
+const CREAR = (ref, empresa, ubic) =>
+  `retail.crear_producto_con_empresa('${ref}', :'cat',
+     jsonb_build_array(jsonb_build_object('talla_id', :'t1', 'color_codigo', :'c1', 'precio', 59, 'costo', 26, 'cantidad', 3)),
+     :'${empresa}', :'lim', null, gen_random_uuid(), null, null, false, null, :'marca', :'prov', :'${ubic}', false)`;
+
+/**
+ * Las sedes, las dos empresas, una categoría con talla, un color, una marca con su proveedor y una prenda de CAYLA con 3 de stock en
+ * Trujillo (`emma`, `v_emma`), creada aquí: la base limpia del CI no trae stock del seed en Trujillo. Deja la escena sin la blusa de CLAURE.
+ */
 const SEDES = `
 set local request.jwt.claim.sub = '${FELIPE}';
 select id as lim from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
@@ -65,17 +74,9 @@ select c.id as cat from retail.categorias c join retail.familias f on f.codigo =
 select t.id as t1 from retail.categoria_tallas ct join retail.tallas t on t.id = ct.talla_id and t.activo where ct.categoria_id = :'cat' order by t.id limit 1 \\gset
 select marca_id as marca, proveedor_id as prov from retail.marca_proveedores limit 1 \\gset
 select codigo as c1 from retail.colores where activo order by codigo limit 1 \\gset
-select v.id as v_emma from retail.variantes v join retail.productos p on p.id = v.producto_id
-  join retail.stock s on s.variante_id = v.id and s.ubicacion_id = :'tru' and s.cantidad > 0
- where p.referencia = 'Blusa Emma' limit 1 \\gset
-select producto_id as emma from retail.variantes where id = :'v_emma' \\gset
+select ${CREAR("Blusa Prueba Trujillo", "cayla", "tru")} as emma \\gset
+select id as v_emma from retail.variantes where producto_id = :'emma' limit 1 \\gset
 `;
-
-/** Una prenda nueva por el camino real; `ubic` es donde cae el stock inicial (la sede que se valida es Lima). */
-const CREAR = (ref, empresa, ubic) =>
-  `retail.crear_producto_con_empresa('${ref}', :'cat',
-     jsonb_build_array(jsonb_build_object('talla_id', :'t1', 'color_codigo', :'c1', 'precio', 59, 'costo', 26, 'cantidad', 3)),
-     :'${empresa}', :'lim', null, gen_random_uuid(), null, null, false, null, :'marca', :'prov', :'${ubic}', false)`;
 
 const BLUSA = `
 select ${CREAR("Blusa Prueba Claurè", "claure", "lim")} as blusa \\gset
@@ -162,7 +163,7 @@ caso(
 );
 caso(
   "pasar a CLAURE una prenda de CAYLA con stock en Trujillo se rechaza al cerrar",
-  rechaza(`update retail.productos set empresa_id = :'claure' where id = :'emma';\nset constraints all immediate;\nselect true;`, /Blusa Emma no puede ser de CLAURE: tiene prendas en .*Tienda Trujillo/, {
+  rechaza(`update retail.productos set empresa_id = :'claure' where id = :'emma';\nset constraints all immediate;\nselect true;`, /Blusa Prueba Trujillo no puede ser de CLAURE: tiene prendas en Tienda Trujillo, donde CLAURE no está\./, {
     conBlusa: false,
   }),
 );
@@ -186,7 +187,7 @@ ${MIGRACION}
 rollback;`);
     return `pasó y debía rechazarse: ${salida}`;
   } catch (e) {
-    if (!/No se aplicó nada: ya hay prendas con stock en una sede donde su empresa no opera: .*Blusa Emma \(CLAURE\) en Tienda Trujillo/.test(String(e.stderr))) throw e;
+    if (!/No se aplicó nada: ya hay prendas con stock en una sede donde su empresa no opera: .*Blusa Prueba Trujillo \(CLAURE\) en Tienda Trujillo/.test(String(e.stderr))) throw e;
   }
 });
 caso("la migración se puede pegar dos veces (un disparador de cada uno)", () => {
