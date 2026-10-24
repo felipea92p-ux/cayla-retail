@@ -1,9 +1,9 @@
 # Plan de campaña: el descuento de la campaña y la fecha límite para pedir — traspaso (2026-10-24)
 
-Rama: `claude/campaign-plan-improvements-18875c` · ADR reservado: **0499** (el archivo aún no existe) · Migraciones reservadas: **20261024215000** (descuento) y **20261024220000** (plazo).
-Aprobado por Felipe el 2026-10-24 (opción B del descuento y plazo único por campaña). **Nada de esto está en producción: cada migración espera su OK puntual.**
+Rama: `claude/campaign-plan-improvements-18875c` · ADR: **0499** (`docs/adr/0499-plan-de-campana-descuento-y-fecha-limite.md`) · Migraciones reservadas: **20261024215000** (descuento) y **20261024220000** (plazo).
+Aprobado por Felipe el 2026-10-24 (opción B del descuento y plazo único por campaña). **Las migraciones NO están en producción:** las pega Felipe en el SQL Editor, una por una (la herramienta de Supabase fue bloqueada por el clasificador). La del descuento ya tuvo su ensayo revertido contra producción con huella idéntica a local.
 
-> **Commit de traspaso (WIP):** se subió con `--no-verify` por orden de Felipe porque el hook frena la huella de la guía de `compras.plan` (a propósito, hasta el paso 1 de «Pendiente»). El CI de esta rama estará en rojo en `lib/guias.test.ts` hasta entonces; no abras el PR antes.
+> **Actualización 2026-10-24 (cierre):** los pasos 1, 2 y 6 de «Pendiente» y `/focus`, `/formidable` y `/chaos` del paso 3 están hechos (el commit de traspaso ya no deja el CI en rojo: la huella de la guía está aceptada). Siguen abiertos: el aviso de deriva (4), los 3 cambios de `/formidable` (esperan OK) y producción (5).
 
 ## Para qué existe (lo que pidió Felipe)
 
