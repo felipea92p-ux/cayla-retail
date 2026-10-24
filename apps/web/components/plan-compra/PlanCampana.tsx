@@ -378,12 +378,14 @@ export function PlanCampana({
       {plazo.estado !== "termino" && (
         // La fecha límite para pedir (ADR-0499): una franja con el tono de lo urgente que es. Con nada por pedir, solo informa.
         <Aviso
+          guia="plan.plazo"
           tono={porPedir === 0 && plazo.estado !== "tarde" ? "info" : TONO_DEL_PLAZO[plazo.estado]}
           titulo={plazo.texto}
-          // Cambiar los días (quien tiene el módulo; la base lo exige también). Solo si la base ya guarda el plazo.
+          // Cambiar los días (quien tiene el módulo; la base lo exige también). Solo si la base ya guarda el plazo. Solo abre su hoja
+          // (nada se guarda hasta «Guardar plazo»): `aria-haspopup` lo dice al lector y deja que la guía la abra.
           accion={
             plazoFijado ? (
-              <Boton peso="fantasma" onClick={() => setEditandoPlazo(true)}>
+              <Boton type="button" peso="fantasma" aria-haspopup="dialog" data-guia="plan.plazo-cambiar" onClick={() => setEditandoPlazo(true)}>
                 Cambiar los días
               </Boton>
             ) : undefined

@@ -398,7 +398,7 @@ export function FormularioCategoria({
 
       {fila.conDescuento && (
         <CampoGuiado id="descuento" guia={guia} titulo="Descuento en la campaña" ayuda="opcional">
-          <div className="space-y-2">
+          <div data-guia="plan-modal.descuento" className="space-y-2">
             <div className="flex flex-wrap items-start gap-x-4 gap-y-1">
               <div className="flex w-32 items-center gap-2">
                 <div className="min-w-0 flex-1">

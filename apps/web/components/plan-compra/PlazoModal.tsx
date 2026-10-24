@@ -84,7 +84,7 @@ export function PlazoModal({
           className="space-y-5"
         >
           <CampoGuiado id="dias" guia={guia} titulo="Días para llegar" ayuda="Desde que pides hasta que está en la tienda">
-            <div className="flex flex-wrap items-start gap-x-4 gap-y-1">
+            <div data-guia="plazo-modal.dias" className="flex flex-wrap items-start gap-x-4 gap-y-1">
               <div className="flex w-32 items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <CampoTexto etiqueta="Días para llegar a las tiendas" caja inputMode="numeric" value={texto} onChange={(e) => setTexto(e.target.value.replace(/[^\d]/g, ""))} />
@@ -101,7 +101,7 @@ export function PlazoModal({
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={trabajando} />
           </CampoGuiado>
-          <div className="pie-hoja-fijo">
+          <div data-guia="plazo-modal.pie" className="pie-hoja-fijo">
             <PieGuia guia={guia} listo="Todo listo para guardar." />
             <div className="pie-acciones pt-2">
               {diasActuales !== null && (
