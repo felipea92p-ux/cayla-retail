@@ -65,6 +65,9 @@ const HUELLAS: Huella[] = [
   { marca: "_textos_con_tope", frase: "Un nombre o una descripción es demasiado largo. Acórtalo y vuelve a intentar." },
   // Montos con tope en Finanzas (/chaos 2026-10-14, 20261015002000, ADR-0412): un gasto o un movimiento de dinero, hasta un millón de soles.
   { marca: "_monto_con_tope", frase: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero y vuelve a intentar." },
+  // Gasto que cierra un fijo (20260925000000, revisión del 22-oct): `registrar_gasto` levanta «Ese gasto fijo ya tiene su gasto de este mes.» con 23505
+  // ante CUALQUIER choque único cuando el gasto lleva un fijo, también un comprobante repetido. La frase no afirma cuál de los dos fue.
+  { marca: "ya tiene su gasto de este mes", frase: "No se registró: ese gasto fijo ya tiene su gasto de este mes (quizá otra persona lo registró hace un momento) o ese comprobante ya estaba registrado. Mira «Fijos del mes» antes de volver a intentar." },
   // Costo atípico (20260930120000 y siguientes): un costo por prenda fuera de lo normal (sin costo, mayor que el precio,
   // más del doble o menos de dos tercios del vigente) no entra al costo de la prenda sin que un líder lo confirme.
   // ORDEN: `costo_atipico_sin_lider` va ANTES que `costo_atipico`, porque la búsqueda es por «contiene» y la segunda marca
@@ -499,7 +502,7 @@ const HUELLAS: Huella[] = [
  * (actividad 5): `rendicion_quien_aprueba` («Le entregaste plata en esta rendición…», `42501`), `rendicion_abierta`, `rendicion_sobra`,
  * `rendicion_cambio`, `rendicion_sin_explicacion` y `en_rendicion` («Ese gasto ya está en una rendición…»).
  */
-const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion)_[a-z_]+|en_rendicion)$/;
+const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion|oferta)_[a-z_]+|en_rendicion)$/;
 
 /**
  * `hint` de la corrección de color y talla de una variante (ADR-0263, 20260929045000). Su mensaje ya viene en castellano

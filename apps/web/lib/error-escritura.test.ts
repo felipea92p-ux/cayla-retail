@@ -487,6 +487,13 @@ describe("temporadas (ADR-0246): la lista cerrada y sus funciones", () => {
     expect(traducirError(ajeno, "registrar el pago", { confirmarAntesDeRepetir: true })).toBe(ajeno.message);
   });
 
+  it("los de las ofertas de una campaña («Tres preguntas»): dicen quién las activa, sin «Código:»", () => {
+    const lider = { message: "Solo un líder activa una oferta.", code: "42501", hint: "oferta_solo_lider" };
+    const modulo = { message: "Registrar una oferta necesita el módulo «Campañas», «Campañas de la tienda web» o «Insignias» en tu rol.", code: "42501", hint: "oferta_sin_modulo" };
+    expect(traducirError(lider, "activar la oferta")).toBe(lider.message);
+    expect(traducirError(modulo, "guardar la oferta")).toBe(modulo.message);
+  });
+
   it("un 42501 de otro origen no se cuela por la regla de temporadas", () => {
     const salida = traducirError({ message: "permission denied for table temporadas", code: "42501", hint: null }, "guardar la temporada");
     expect(salida).toContain("Código:");
@@ -898,6 +905,12 @@ describe("montos con tope de Finanzas", () => {
         traducirError({ message: `new row for relation "gastos" violates check constraint "${candado}"`, code: "23514" }, "registrar el gasto"),
       ).toMatch(/pasa de S\/\u00a01 000 000/);
     }
+  });
+  it("un gasto que cierra un fijo ya cerrado dice qué pasó en vez de «Vuelve a intentar» (que nunca funciona)", () => {
+    const frase = traducirError({ message: "Ese gasto fijo ya tiene su gasto de este mes.", code: "23505" }, "registrar el gasto");
+    expect(frase).toMatch(/ya tiene su gasto de este mes/);
+    expect(frase).toMatch(/Fijos del mes/);
+    expect(frase).not.toMatch(/Vuelve a intentar/);
   });
   it("el vuelto con tope sigue con su propia frase", () => {
     expect(

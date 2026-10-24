@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 95,
+  "total": 96,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «{responsable}»",
@@ -67,7 +67,8 @@
       "BotonEditar «Editar fijos»",
       "BotonEnlace «Agregar el primero»",
       "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}»",
-      "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}» #2",
+      "button «{`Ver el gasto de ${nombre(f)}»",
+      "BotonVerMas «→setVerRegistrados»",
       "button «Marcar fijo»",
       "button «No es fijo»",
       "ComboResponsable «{responsable}»",

@@ -49,8 +49,11 @@ export function TerminarDia({ plata }: { plata: Plata }) {
           setAbierta(true);
         }}
       >
-        <Flag className="h-4 w-4" aria-hidden />
-        Cerrar mi ronda
+        {/* El ícono y el texto en una fila: sueltos, el botón los apilaba (el ícono arriba y el texto abajo, a doble alto). */}
+        <span className="inline-flex items-center gap-2">
+          <Flag className="h-4 w-4" aria-hidden />
+          Cerrar mi ronda
+        </span>
       </Boton>
       {abierta && <TerminarModal plata={plata} onClose={() => setAbierta(false)} volverA={origen} />}
     </section>

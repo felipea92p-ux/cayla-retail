@@ -70,7 +70,8 @@
     ],
     "components/campana-hoja/CategoriasDeCampana.tsx": [
       "Casilla «{`${c.nombre}»",
-      "Casilla «{`Toda la familia ${g.familia}»"
+      "Casilla «{`Toda la familia ${g.familia}»",
+      "button «{`${abierta ? \"Ocultar\" : \"Mostrar\"}»"
     ],
     "components/campana-hoja/EtiquetaDeCampana.tsx": [
       "button «Prenda anterior»",

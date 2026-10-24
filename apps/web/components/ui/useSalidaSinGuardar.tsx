@@ -20,6 +20,9 @@ import { destinoQueSaleDeLaPantalla } from "@/lib/salida-sin-guardar";
    y la pantalla se limpió, o el modal se cerró), para que «atrás» no pida dos toques.
 
    Quien guarda y NAVEGA llama a `soltar()` antes, para que su propia salida no pregunte ni toque el historial.
+
+   `{ soloAlCerrar: true }`: solo la puerta 3, para una hoja que vive dentro de una pantalla que ya cuida el «atrás» con su propia
+   guardia (la hoja de la prenda de «Compré ropa»). Dos guardias en el historial a la vez preguntaban dos veces por el mismo gesto.
    ==================================================================== */
 
 type Destino = { tipo: "ruta"; ruta: string } | { tipo: "atras" } | { tipo: "accion"; hacer: () => void };
@@ -62,8 +65,10 @@ if (typeof window !== "undefined") {
   );
 }
 
-export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_SE_PIERDE) {
+export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_SE_PIERDE, { soloAlCerrar = false }: { soloAlCerrar?: boolean } = {}) {
   const router = useRouter();
+  // Con `soloAlCerrar`, las puertas del historial, los enlaces y la pestaña no se instalan: no hay cambios que cuidar ahí.
+  const vigilaSalidas = conCambios && !soloAlCerrar;
   const [pendiente, setPendiente] = useState<Destino | null>(null);
   // Refs y no estado: los escuchadores se registran una vez y leen siempre el valor del momento.
   const hayCambios = useRef(conCambios);
@@ -98,7 +103,7 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
 
   // 5. Cerrar o recargar la pestaña.
   useEffect(() => {
-    if (!conCambios) return;
+    if (!vigilaSalidas) return;
     const alDescargar = (e: BeforeUnloadEvent) => {
       if (!debePreguntar()) return;
       e.preventDefault();
@@ -106,10 +111,11 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
     };
     window.addEventListener("beforeunload", alDescargar);
     return () => window.removeEventListener("beforeunload", alDescargar);
-  }, [conCambios, debePreguntar]);
+  }, [vigilaSalidas, debePreguntar]);
 
   // 1. Enlaces. En la captura de `window`: corre antes que el `onClick` de <Link> (React escucha en su raíz).
   useEffect(() => {
+    if (soloAlCerrar) return;
     const alClic = (e: MouseEvent) => {
       if (!debePreguntar()) return;
       const enlace = (e.target as Element | null)?.closest?.("a");
@@ -132,7 +138,7 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
     };
     window.addEventListener("click", alClic, true);
     return () => window.removeEventListener("click", alClic, true);
-  }, [debePreguntar]);
+  }, [debePreguntar, soloAlCerrar]);
 
   // 4. Atrás. La guardia se pone con el primer cambio y se retira cuando ya no hay cambios. Copia el `history.state` de
   //    Next (para que su router no pierda el árbol de la pantalla) y le suma la MARCA.
@@ -164,14 +170,14 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
   }, [retirarGuardia]);
   useEffect(() => {
     if (saliendo.current) return;
-    if (conCambios && !conGuardia.current) {
+    if (vigilaSalidas && !conGuardia.current) {
       urlGuardia.current = window.location.href;
       window.history.pushState({ ...(window.history.state ?? {}), [MARCA]: true }, "", window.location.href);
       conGuardia.current = true;
-    } else if (!conCambios) {
+    } else if (!vigilaSalidas) {
       retirarGuardia();
     }
-  }, [conCambios, retirarGuardia]);
+  }, [vigilaSalidas, retirarGuardia]);
   useEffect(() => {
     const alVolver = () => {
       // Respaldo: el escuchador de captura ya corta este popstate; un navegador que no corra la captura primero lo deja pasar.

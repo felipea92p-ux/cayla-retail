@@ -25,16 +25,16 @@
   color: var(--color-tinta);
 }
 
-/* «Terminé de comprar hoy»: la cuenta del día como un cuaderno rayado (la maqueta). Cada renglón mide 44 px y la raya de arena cae
-   bajo cada uno; el último, «Te queda», es más alto y va en la serif. */
+/* «Cerrar mi ronda»: la cuenta de la ronda como un cuaderno rayado (la maqueta). Cada renglón mide 44 px y la raya de arena cae
+   bajo cada uno; el último, «Te queda», es más alto y va en la serif. La raya es de cada renglón: un rayado de fondo cada 44 px
+   cruzaba «Te queda» (52 px) cerca de su pie y el cuaderno se veía cortado. Sin `margin` propio: pisaba el aire de la hoja
+   (`space-y-5`) y la pregunta de abajo quedaba pegada al cuaderno. */
 .compra-cuaderno {
   list-style: none;
-  margin: 0;
-  padding: 0 16px;
+  padding: 0;
   border: 1px solid var(--color-sand);
   border-radius: 18px;
   background-color: var(--color-papel);
-  background-image: repeating-linear-gradient(to bottom, transparent 0 43px, var(--color-sand) 43px 44px);
 }
 .compra-cuaderno > li {
   display: flex;
@@ -42,8 +42,12 @@
   justify-content: space-between;
   gap: 12px;
   height: 44px;
+  padding: 0 16px;
   font-size: 14.5px;
   color: var(--color-tinta);
+}
+.compra-cuaderno > li:not(:last-child) {
+  border-bottom: 1px solid var(--color-sand);
 }
 .compra-cuaderno > li.compra-cuaderno-fin {
   height: 52px;
