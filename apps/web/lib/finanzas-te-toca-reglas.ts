@@ -3,6 +3,7 @@
 // submódulo donde se está. Lógica pura, probada en `finanzas-te-toca-reglas.test.ts`. No inventa reglas: cada pendiente sale de una
 // cifra que su pantalla ya muestra.
 import { soles } from "./flujo-caja-reglas";
+import type { PendienteImpuesto } from "./impuestos-antes-reglas";
 
 /** «frena»: no deja seguir (un cierre, un pago que vence). «avisa»: conviene hacerlo. */
 export type EstadoPendiente = "frena" | "avisa";
@@ -65,6 +66,21 @@ export function pendientesDeGastos(
     });
   }
   return lista;
+}
+
+/** Los pendientes de Impuestos: su lista «Antes de declarar» (`antesDeDeclarar`, del mes que se declara ahora). Lo que no lleva a
+ *  otra pantalla (el aviso del límite, los recibos por honorarios) lleva a Impuestos. `consulta` es lo que viaja (`?sede=…`). */
+export function pendientesDeImpuestos(lista: readonly PendienteImpuesto[], consulta: string): PendienteTelar[] {
+  const aImpuestos = consulta ? `/finanzas/impuestos?${consulta}` : "/finanzas/impuestos";
+  return lista.map((p) => ({
+    submodulo: "finanzas.impuestos",
+    id: `impuestos.${p.id}`,
+    estado: p.estado,
+    titulo: p.titulo,
+    detalle: p.detalle,
+    verbo: p.href && p.verbo ? p.verbo : "Ver",
+    href: p.href ?? aImpuestos,
+  }));
 }
 
 export type GrupoPendientes = { submodulo: string; etiqueta: string; pendientes: PendienteTelar[] };
