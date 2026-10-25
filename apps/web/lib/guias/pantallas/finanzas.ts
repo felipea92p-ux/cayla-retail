@@ -142,6 +142,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "Lo que vende cada tienda entra a «Vendiste» y de ahí se va: a lo que costaron las prendas, a los gastos de las tiendas, a lo que faltó en caja, al Taller y a la Empresa. Lo que queda es lo que te deja el mes. Cada hilo es del grosor de su plata; toca el de una sede para ver solo lo suyo.",
     },
     {
+      id: "cien",
+      ancla: "fin-resumen.cien",
+      opcional: true,
+      titulo: "De cada S/\u00a0100",
+      texto: "La misma plata del recorrido, dicha en la unidad que se entiende: de cada S/\u00a0100 que vendes, cuánto se va en la ropa, cuánto en gastos y cuánto te queda. Cada cuadro es un sol. Tocas un renglón y se encienden solo sus cuadros.",
+    },
+    {
       id: "decidir",
       ancla: "fin-resumen.decidir",
       titulo: "Hoy te toca",

@@ -9,6 +9,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { CajaProximaPieza } from "@/components/finanzas/CajaProxima";
 import { CambiosDelMesPieza } from "@/components/finanzas/CambiosDelMes";
+import { DeCadaCienPieza } from "@/components/finanzas/DeCadaCien";
 import { Confianza } from "@/components/finanzas/Confianza";
 import { EquilibrioMesPieza } from "@/components/finanzas/EquilibrioMes";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
@@ -22,6 +23,7 @@ import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
 import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
 import { hrefTelar, mesDelDia, porSedeDe, SEDE_EMPRESA, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { deCadaCien } from "@/lib/de-cada-cien-reglas";
 import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
 import { cambiosDelMes } from "@/lib/resumen-cambios-reglas";
 import { avisosParaDecidir, noRevisado, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
@@ -102,6 +104,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const resp = respuestaResumen(r, estadoAntes, provisional, enCurso);
   const filas = estadoMes.falla ? [] : estadoMes.datos;
   const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
+  const cien = deCadaCien(recorrido);
   const avisos = avisosParaDecidir(resumen, acceso);
   const faltan = noRevisado(resumen);
   const caja = cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver });
@@ -113,7 +116,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   return (
     <div className="space-y-6">
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE}>
-        <RespuestaTelar pregunta={resp.pregunta} valor={resp.valor} chips={resp.chips} motivo={resp.motivo} />
+        <RespuestaTelar pregunta={resp.pregunta} valor={resp.valor} chips={cien ? [...resp.chips, { texto: cien.chip, tono: "pizarra" as const }] : resp.chips} motivo={resp.motivo} />
       </EncabezadoPagina>
       {/* ADR-0417: qué tan cierto es el número que acaba de leer, y qué falta para que lo sea. Si no se pudo medir, se dice (nunca un 0 % falso). */}
       {confianza.datos ? (
@@ -136,7 +139,10 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
               bajada={recorrido ? `${recorrido.nota}${acceso.lider ? " Toca una sede para seguirla." : ""}` : `${mesNombre(mes).replace(/^./, (c) => c.toUpperCase())} sin movimientos para dibujar.`}
             />
             {recorrido ? (
-              <RecorridoPlata recorrido={recorrido} hrefDeSede={hrefDeSede} colorDeSede={coloresDeSede(sedes)} />
+              <>
+                <RecorridoPlata recorrido={recorrido} hrefDeSede={hrefDeSede} colorDeSede={coloresDeSede(sedes)} />
+                {cien && <DeCadaCienPieza cien={cien} colorDeSede={coloresDeSede(sedes)} />}
+              </>
             ) : (
               <Vacio tamano="chico" icono={<ChartColumn />}>
                 {estadoMes.falla
