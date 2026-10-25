@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -13,6 +13,7 @@ import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { leerOrdenCreada, type OrdenCreada } from "@/lib/ordenes-lista-reglas";
+import { crearTokenDeOrden } from "@/lib/token-de-orden";
 import type { ModeloProducible, OpcionesNuevaOrden } from "@/lib/produccion";
 import type { InsumoVista } from "@/lib/insumos";
 import type { DecisionProduccion } from "@/lib/decision-produccion";
@@ -90,9 +91,11 @@ import {
 // la ficha de la orden (`FichaOrden`: la prenda, cuántas son, a cuánto se vende, para cuándo, y debajo lo que la cierra). La ficha es presentacional; el formulario sigue dueño de los números, de
 // los controles de cierre (lo que falta, el responsable, el aviso de nombre repetido, Cancelar y «Abrir orden») y del envío. Ya no hay pie pegado: lo que tapaba al responsable.
 //
-// El token de idempotencia nace con el formulario (useRef): si el Taller
-// pierde la red a mitad del clic y reintenta, la base devuelve la misma orden
-// en vez de abrir dos. Mismo mecanismo que `registrar_venta` (p_token).
+// El token de idempotencia (`lib/token-de-orden.ts`) vive con el formulario: si el Taller pierde la red a mitad del clic y reintenta, la base devuelve la misma orden en vez de abrir dos.
+// Mismo mecanismo que `registrar_venta` (p_token). Se renueva cuando la base confirma una orden: el formulario ya no se desmonta al guardar por fuerza (ADR-0509).
+//
+// El MARCO (ADR-0509): el formulario no sabe dónde vive. Por defecto es la hoja de siempre (`MarcoDeHoja`, un `<Modal>`); el compositor sobre la lista le pasa el suyo (`marco`). Cada marco
+// recibe el cuerpo y la salida sin guardar (`antesDeCerrar`: la pregunta «¿Salir sin guardar?» que corre antes de descartar lo escrito).
 
 type Tipo = "produccion" | "muestra";
 const OPCIONES_TIPO = [
@@ -118,6 +121,23 @@ const CHIP_SEMAFORO: Record<Semaforo["tono"], { tono: "verde" | "ambar" | "rojo"
   pierde: { tono: "rojo", texto: TEXTO_SEMAFORO.pierde },
 };
 
+/** Dónde vive el formulario: recibe el cuerpo (el `<form>` y el aviso de salida) y cómo preguntar «¿Salir sin guardar?» antes de descartarlo. */
+export type MarcoDeLaOrden = ComponentType<{ onClose: () => void; antesDeCerrar: (cerrar: () => void) => void; children: ReactNode }>;
+
+/** El marco de siempre: una hoja ancha. Escape, el clic fuera y la ✕ pasan por `antesDeCerrar` y NO por `onClose` (`lib/hojas-salida-sin-guardar.test.ts`). */
+const MarcoDeHoja: MarcoDeLaOrden = ({ onClose, antesDeCerrar, children }) => (
+  <Modal
+    titulo="Nueva orden de producción"
+    onClose={onClose}
+    antesDeCerrar={antesDeCerrar}
+    variante="hoja"
+    // 1080 px (A3). `scroll-pb`: bajo 980 px la ficha es una barra pegada abajo y, al llevar el cursor a un campo (la guía de foco), no debe quedar detrás de ella.
+    ancho="max-w-[1080px] scroll-pb-[calc(var(--alto-barra-ficha,10rem)+1rem)] min-[980px]:scroll-pb-0"
+  >
+    {children}
+  </Modal>
+);
+
 export function NuevaOrdenProduccionForm({
   tallerId,
   modelos,
@@ -133,6 +153,7 @@ export function NuevaOrdenProduccionForm({
   insumos = [],
   hoy,
   onCreada,
+  marco,
   onClose,
 }: {
   tallerId: string;
@@ -161,10 +182,12 @@ export function NuevaOrdenProduccionForm({
   hoy: string;
   /** Se abrió la orden (ADR-0509): la lista salta a la pestaña donde quedó y la marca. Solo si la base devolvió su número. */
   onCreada?: (orden: OrdenCreada & { esMuestra: boolean }) => void;
+  /** Dónde vive el formulario (ADR-0509). Sin él, la hoja de siempre. */
+  marco?: MarcoDeLaOrden;
   onClose: () => void;
 }) {
   const router = useRouter();
-  const token = useRef<string>(crypto.randomUUID());
+  const [token] = useState(() => crearTokenDeOrden());
   // El tipo con que arranca: un `?tipo=muestra` de la URL (al volver de Nuevo producto) es una elección de la persona y no se pisa (`aMano`).
   const tipoAMano = useRef(tipoInicial === "muestra");
   const [tipo, setTipo] = useState<Tipo>(() => tipoAlElegir({ eleccion: modelos.length === 0 ? "nuevo" : "existente", tipoActual: tipoInicial, aMano: tipoInicial === "muestra" }));
@@ -417,6 +440,8 @@ export function NuevaOrdenProduccionForm({
   const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Llenaste parte de esta orden y todavía no se abrió. Si cierras ahora, se pierde lo que llenaste.");
   /** Tras guardar: se retira la guardia ANTES de cerrar y de refrescar (juntos, Next podía volver a montar la pantalla de atrás: ver `useSalidaSinGuardar`). */
   function cerrarTrasGuardar() {
+    // La base confirmó la orden: la siguiente es otra orden y lleva otro token (nunca se renueva tras un error o una respuesta perdida: ahí el reintento necesita el mismo).
+    token.renovar();
     const guardiaFuera = avisoSalida.retirarYa();
     onClose();
     void guardiaFuera.then(() => router.refresh());
@@ -516,7 +541,7 @@ export function NuevaOrdenProduccionForm({
     try {
       // La MISMA carga útil de siempre para `abrir_produccion_con_modelo_nuevo` (`paramsRpcModeloNuevo`, con los costos en cero), envuelta por la
       // RPC nueva que además escribe las fases y la tela en la misma transacción (ADR-0400).
-      const p = paramsRpcModeloNuevo({ ubicacionId: tallerId, borrador, celdas: celdasNuevas, costos: SIN_COSTOS, fechaEntrega, nota, confirmoDistinto, token: token.current });
+      const p = paramsRpcModeloNuevo({ ubicacionId: tallerId, borrador, celdas: celdasNuevas, costos: SIN_COSTOS, fechaEntrega, nota, confirmoDistinto, token: token.actual() });
       resultado = await firmar(
         createClient().rpc(RPC_ABRIR_ORDEN as never, {
           p_apertura: {
@@ -601,7 +626,7 @@ export function NuevaOrdenProduccionForm({
             es_muestra: tipo === "muestra",
             fecha_entrega: fechaEntrega || null,
             nota: nota.trim() || null,
-            token: token.current,
+            token: token.actual(),
             // Solo cuando se marcó a propósito: la base lo vuelve a comprobar (corregir lo que el modelo ya dice es de quien edita el catálogo).
             ...(fijarElConsumo ? { fijar_consumo_modelo: true } : {}),
           },
@@ -624,15 +649,9 @@ export function NuevaOrdenProduccionForm({
     cerrarTrasGuardar();
   }
 
+  const Marco = marco ?? MarcoDeHoja;
   return (
-    <Modal
-      titulo="Nueva orden de producción"
-      onClose={onClose}
-      antesDeCerrar={avisoSalida.pedirAccion}
-      variante="hoja"
-      // 1080 px (A3). `scroll-pb`: bajo 980 px la ficha es una barra pegada abajo y, al llevar el cursor a un campo (la guía de foco), no debe quedar detrás de ella.
-      ancho="max-w-[1080px] scroll-pb-[calc(var(--alto-barra-ficha,10rem)+1rem)] min-[980px]:scroll-pb-0"
-    >
+    <Marco onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion}>
       <form onSubmit={onSubmit} className="mt-3.5 grid gap-y-5 min-[980px]:grid-cols-[minmax(0,1fr)_332px] min-[980px]:items-start min-[980px]:gap-x-8">
         <div className="min-w-0 space-y-5">
         {/* El modelo primero (ADR-0396, A1): el buscador, o la tarjeta del elegido, o los campos del modelo nuevo. El interruptor del tipo aparece cuando ya hay modelo. */}
@@ -864,6 +883,6 @@ export function NuevaOrdenProduccionForm({
         </FichaOrden>
       </form>
       {avisoSalida.aviso}
-    </Modal>
+    </Marco>
   );
 }
