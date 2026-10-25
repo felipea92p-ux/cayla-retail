@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 105,
+  "total": 109,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -19,6 +19,8 @@
       "Link «Créalo en Productos»"
     ],
     "components/NuevaOrdenProduccionForm.tsx": [
+      "Boton «Retomarla»",
+      "Boton «Descartarla»",
       "SegmentoDeslizante «Tipo de orden»",
       "Link «Editar producto»",
       "CampoTexto «Fecha de entrega»",
@@ -153,6 +155,8 @@
       "Boton «prod-ordenes.nueva»",
       "Pestanas «→(clave) => setPestana(clave as PestanaLista)»",
       "button «{f.texto}»",
+      "Boton «Retomar»",
+      "Boton «Descartar»",
       "Boton «+ Crear el primer modelo»"
     ]
   }

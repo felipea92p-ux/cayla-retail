@@ -215,6 +215,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       demostrar: [{ tipo: "clic", ancla: "prod-ordenes.porque" }],
     },
     {
+      id: "borrador",
+      ancla: "prod-ordenes.borrador",
+      opcional: true,
+      titulo: "Lo que dejaste a medias",
+      texto: "Si armas una orden y sales sin abrirla, queda guardada en este computador: aquí dice de qué modelo era, cuántas prendas llevaba y hace cuánto. «Retomar» la arma otra vez como la dejaste; «Descartar» la suelta, con «Deshacer» a mano. No se guarda en la base.",
+    },
+    {
       id: "nueva",
       ancla: "prod-ordenes.nueva",
       titulo: "Abrir una orden nueva",
@@ -316,6 +323,12 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.entrega",
       titulo: "Fecha y nota",
       texto: "Para cuándo debe estar lista (así el tablero avisa si se atrasa) y una nota libre: la tela, el cliente, la urgencia. Las dos son opcionales.",
+    },
+    {
+      id: "otra",
+      ancla: "prod-orden-nueva.otra",
+      titulo: "Crear otra orden",
+      texto: "Prende «Crear otra orden después de esta» si vas a abrir varias seguidas: al abrir una, el formulario se queda con el mismo tipo, las mismas fases y el mismo modelo, y las cantidades vacías. Apagado, el formulario se cierra al abrir la orden.",
     },
     {
       id: "cierre",
