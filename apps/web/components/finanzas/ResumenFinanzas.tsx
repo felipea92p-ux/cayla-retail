@@ -5,29 +5,26 @@ import type { CSSProperties } from "react";
 import { BookOpen, CalendarCheck, ChartColumn, Percent, Wallet } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Aviso } from "@/components/ui/Aviso";
-import { Linea } from "@/components/ui/Linea";
 import { Vacio } from "@/components/ui/Vacio";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { CajaProximaPieza } from "@/components/finanzas/CajaProxima";
 import { Confianza } from "@/components/finanzas/Confianza";
+import { EquilibrioMesPieza } from "@/components/finanzas/EquilibrioMes";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
 import { RecorridoPlata } from "@/components/finanzas/RecorridoPlata";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { Orillo } from "@/components/finanzas/telar/Orillo";
 import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
 import { cajaProxima, type FlujoProximo } from "@/lib/caja-proxima-reglas";
+import { equilibrioMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
-import { soles } from "@/lib/flujo-caja-reglas";
 import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
 import { hrefTelar, mesDelDia, porSedeDe, SEDE_EMPRESA, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
 import { avisosParaDecidir, noRevisado, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
 import {
-  fraseLineaVentas,
-  lineaVentasMeta,
   mesAnteriorDe,
-  metaVentasPresupuesto,
   respuestaResumen,
   vendidoPorSede,
   type DiaVenta,
@@ -173,7 +170,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
       </div>
 
       <div {...entra(5)}>
-        <VentasContraMeta r={r} hoy={hoy} enCurso={enCurso} ventasPorDia={ventasPorDia} />
+        <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso })} provisional={provisional} />
       </div>
     </div>
   );
@@ -183,58 +180,5 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
 function coloresDeSede(sedes: readonly SedeTelar[]): Record<string, string> {
   return Object.fromEntries(
     sedes.filter((s) => s.color !== "otra").map((s) => [s.clave === SEDE_EMPRESA ? "empresa" : s.clave, `var(--color-sede-${s.color})`]),
-  );
-}
-
-/** Ventas del mes contra la meta (con IGV, como Caja): lo vendido acumulado en tinta y la meta en taupe punteado. */
-function VentasContraMeta({ r, hoy, enCurso, ventasPorDia }: { r: ResumenFinanzas; hoy: string; enCurso: boolean; ventasPorDia: Props["ventasPorDia"] }) {
-  const titulo = `Ventas de ${mesNombre(r.mes)} contra la meta`;
-  const vende = r.ver.todas || r.ver.tipo === "tienda";
-  if (!vende)
-    return (
-      <Superficie pad guia="fin-resumen.ventas">
-        <CabeceraBloque titulo={titulo} bajada={r.ver.tipo === "taller" ? "El Taller no vende: no hay línea de ventas." : "La empresa no vende: no hay línea de ventas."} />
-      </Superficie>
-    );
-  if (!ventasPorDia)
-    return (
-      <Superficie pad guia="fin-resumen.ventas">
-        <CabeceraBloque titulo={titulo} bajada="La venta día por día sale de Rendimiento, y tu cuenta no lo ve. Pídeselo a tu líder si lo necesitas." />
-      </Superficie>
-    );
-  // La meta del presupuesto es la del mes en curso: para un mes pasado solo vale la de cada sede.
-  const l = lineaVentasMeta(ventasPorDia.series, r.mes, hoy, enCurso ? metaVentasPresupuesto(r) : null);
-  const dia = Number(hoy.slice(8, 10));
-  const frase = `${fraseLineaVentas(l, r.mes, enCurso)}${ventasPorDia.incompleta ? " Falta una tienda que no respondió: la suma está incompleta." : ""}`;
-  return (
-    <Superficie pad guia="fin-resumen.ventas">
-      <CabeceraBloque titulo={titulo} bajada={`${frase} Con IGV, como en Caja.`} />
-      <Linea
-        etiqueta={`${titulo}. ${frase}`}
-        serie={l.serie}
-        referencia={l.referencia}
-        desde={0}
-        hasta={l.diasMes}
-        marcasX={[1, 8, 15, 22, l.diasMes].map((x) => ({ x, texto: String(x), fuerte: enCurso && x === dia }))}
-        ahora={enCurso ? { x: dia, texto: "hoy" } : null}
-        cifra={l.serie.length ? soles(l.vendido) : null}
-        cifraReferencia={l.meta !== null ? { valor: soles(l.meta), texto: "meta" } : null}
-        leer={(x) => {
-          const v = l.serie.find((p) => p.x === Math.round(x));
-          const m = l.referencia ? (l.origenMeta === "sedes" ? l.referencia[Math.round(x)]?.y : ((l.meta ?? 0) * Math.round(x)) / l.diasMes) : null;
-          return (
-            <>
-              <b>
-                {Math.round(x)} de {mesNombre(r.mes)}
-              </b>
-              {v && <span>Vendido: {soles(v.y)}</span>}
-              {m != null && <span>La meta pedía: {soles(m)}</span>}
-            </>
-          );
-        }}
-        vacio={`Todavía no hay ventas en ${mesNombre(r.mes)}.`}
-        alto={220}
-      />
-    </Superficie>
   );
 }

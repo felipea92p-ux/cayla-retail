@@ -79,7 +79,6 @@ function CajaDeCayla({ caja: c, hrefFlujo }: { caja: CajaCayla; hrefFlujo: strin
     .filter((x, k, a) => x <= ultimo.dia && a.indexOf(x) === k)
     .map((x) => ({ x, texto: x === 0 ? "hoy" : diaYMes(c.puntos.find((p) => p.dia === x)?.fecha ?? c.hoy), fuerte: x === 0 }));
   const etiqueta = `${TITULO}. ${c.titular} Hoy tienes ${soles(c.saldoHoy)}; hasta el ${fechaEnPalabras(c.hasta)} sale ${soles(c.sale)} y te quedan ${soles(c.queda)}.`;
-  const unidades = (n: number) => soles(n).replace("S/ ", "S/ ");
 
   return (
     <Superficie pad guia="fin-resumen.caja">

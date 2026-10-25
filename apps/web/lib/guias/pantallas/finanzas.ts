@@ -170,11 +170,11 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "Ganar plata no es tener plata. La línea sigue lo que tendrás cada día —lo de hoy, más lo que esperas cobrar, menos lo que vence— contra tu mínimo de caja. La frase dice cuándo baja, o que aguantas. Con una sede elegida, solo se separan sus cobros y salidas: los bancos son de CAYLA entera.",
     },
     {
-      id: "ventas",
-      ancla: "fin-resumen.ventas",
+      id: "equilibrio",
+      ancla: "fin-resumen.equilibrio",
       opcional: true,
-      titulo: "Ventas contra la meta",
-      texto: "La línea oscura es lo vendido día a día, sumado; la punteada, lo que pedía la meta de cada sede (o la del presupuesto, pareja en el mes). Si la oscura va arriba, vas por delante. Al pasar el mouse dice cada día.",
+      titulo: "¿Ya pagaste el mes?",
+      texto: "La barra es lo vendido en el mes. La raya marca cuánto hay que vender para pagar TODO —ropa, sueldos, alquileres, servicios—. Pasada la raya, cada sol vendido es ganancia; la frase dice desde qué día. Si faltan gastos por registrar, dice «Provisional»: hace falta vender más.",
     },
     {
       id: "fin",
