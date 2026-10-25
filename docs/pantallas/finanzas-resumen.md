@@ -169,4 +169,4 @@ Relevancia = (2·10 + 5 + 8 + 4) / 5 = **7,4**.
 ## Historial
 | Fecha | Modo | SHA | Quién | Nota |
 |---|---|---|---|---|
-| 2026-10-24 | rápido | `2097ad099` + PR #1311 `d224b50c8` | Claude (worktree `finance-summary-improvements-b60347`) | Primer análisis. No comparable con uno completo: sin SQL, sin captura real, sin medir en navegador. Spikes en `docs/maquetas/finanzas-v3-2026-10/resumen-siguiente/`. |
+| 2026-10-24 | rápido | `2097ad099` + PR #1311 `d224b50c8` | Claude (worktree `finance-summary-improvements-b60347`) | Primer análisis. **Tras construir (misma fecha):** cerradas #2 (caja), #3 (confianza), #4 (equilibrio), #5 (lo que más se movió) y #6 (de cada S/ 100); la #1 se decidió construyendo. Corrección: la lista «no revisado» de «Hoy te toca» no es lo mismo que la confianza (se queda), así que solo eran dos sitios para «¿puedo fiarme?», no tres. No comparable con uno completo: sin SQL, sin captura real, sin medir en navegador. Spikes en `docs/maquetas/finanzas-v3-2026-10/resumen-siguiente/`. |

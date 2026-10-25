@@ -72,3 +72,30 @@ bucle** (salvo las señales que ADR-0136 ya admite) y con `prefers-reduced-motio
 tokens nuevos en los tres lugares) y las guías: las 14 de Finanzas explican la barra (`...TELAR`). En el navegador, a 1440 y a 375 px: elegir
 Lima en Gastos y pasar a Resumen la conserva, y Resumen muestra Tienda Lima; Te toca abre el cajón y «Clasificar» lleva a la pestaña de salidas
 de caja; «Registrar gasto» desde Resumen abre la hoja en Gastos.
+
+## Actualización 2026-10-24 — El Resumen contesta también «¿me alcanza?»
+
+Con el Resumen ya en El telar (#1311), Felipe pidió ver qué faltaba y qué sobraba (`docs/pantallas/finanzas-resumen.md`, spikes en
+`docs/maquetas/finanzas-v3-2026-10/resumen-siguiente/`). Se construyeron cinco piezas, solo web, sin migración, cada una en su commit:
+
+1. **«Tu caja en las próximas dos semanas»** (`lib/caja-proxima-reglas.ts`). La línea del saldo día por día contra el mínimo de caja y la frase de cuándo
+   baja o que aguanta; en celular, tres cifras y una barra. Mirando una sede solo separa lo que se separa (su efectivo, lo que se espera cobrar de ella y
+   lo que sale de ella). El saldo de cada día se arma con las mismas piezas con que la base arma sus bloques y **tiene que cuadrar con el de Dinero ▸ Flujo**;
+   si no cuadra, usa solo los bloques y lo dice. Lectura propia de `fn_flujo_caja_proyeccion` (`getFlujoProximo`): la de `fn_resumen_finanzas` recorta los
+   cobros (`- 'cobros'`) y solo trae el flujo mirando CAYLA entera.
+2. **«¿Puedo fiarme de este número?»** (`Confianza.tsx`). El medidor pasó de una tarjeta al fondo a una franja bajo la respuesta: «Seguro al N %» y, a un toque,
+   lo que falta. Se quitó el arco. La lista «no revisado» de «Hoy te toca» **se queda**: dice qué partes de la lista no pudo leer la cuenta, que es otra pregunta.
+3. **«¿Ya pagaste el mes?»** (`lib/equilibrio-mes-reglas.ts`). Reemplaza a «ventas contra la meta»: cuánto hay que vender para pagar TODO el mes (gastos ÷ margen),
+   cuánto va vendido y desde qué día se cubrió. Todo sin IGV; lo de Caja se convierte con la proporción del propio período.
+4. **«Lo que más se movió desde el mes pasado»** (`lib/resumen-cambios-reglas.ts`), rubro por rubro contra el mismo tramo del mes pasado; la lista suma exactamente
+   lo que cambió lo que te deja el mes.
+5. **«De cada S/ 100 que vendes»** (`lib/de-cada-cien-reglas.ts`): la frase va en la respuesta y los cien cuadros a un toque bajo el recorrido.
+
+**DECIDÍ:** la caja vive también en el Resumen, con una lectura propia que usa el mismo cálculo de Dinero. **DESCARTÉ:** recalcular el saldo en el navegador con
+otra regla, porque habría dos números distintos para «cuánto me queda el 31»; y repartir los bancos por sede con un porcentaje, porque es inventar un dato (D-32).
+**SE ROMPE SI:** una cuenta ve el Resumen y no Dinero (la pieza se oculta, no muestra S/ 0), o si la base cambia cómo arma los bloques (la prueba de «cuadra con
+los bloques» pasa a usar solo los bloques y lo dice).
+
+**Lo que se descartó a propósito:** mostrar la meta por día de cada sede como la «meta del mes» (`fn_rendimiento_serie` termina en hoy, así que solo cubre hasta hoy; en
+el equilibrio solo entra la meta del mes del presupuesto) y un equilibrio sin gastos registrados (`motivoSinEquilibrio` lo corta y manda a Gastos). Los cien cuadros son
+una pieza nueva: si Felipe quiere que sea la de la familia «proporción de cien», entra a `docs/unificar/` en su ronda; hoy es local del Resumen.
