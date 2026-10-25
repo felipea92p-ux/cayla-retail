@@ -33,6 +33,8 @@ import { FichaOrden } from "@/components/orden-produccion/FichaOrden";
 import { ConsejoDeLaRed } from "@/components/orden-produccion/ConsejoDeLaRed";
 import { FasesDeLaOrden } from "@/components/orden-produccion/FasesDeLaOrden";
 import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion/TelaDeLaOrden";
+import { NivelDos } from "@/components/orden-produccion/NivelDos";
+import { esDeNivelDos, nivelDosPideAbrirse, resumenNivelDos } from "@/lib/orden-nivel-dos-reglas";
 import { costoServiciosEstimado, fasesIniciales, fasesParaRpc, problemasFases, proveedoresQueSirven, serviciosConCosto, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
 import { coloresDeLaOrden, consumoSugerido, insumosParaRpc, metrosAPedir, ofertaDeConsumoDelModelo, problemasTela, telasSugeridas, type InsumoDelTaller, type TelaBorrador } from "@/lib/orden-tela-reglas";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
@@ -426,6 +428,27 @@ export function NuevaOrdenProduccionForm({
   const fotoActual = fotoFormulario({ nombreNuevo, categoriaNuevaId, tallasNuevas, coloresNuevos, precioNuevo, cantidades, fases, telas: telasTocadas ? telas : null, fechaEntrega, nota });
   const [fotoAlAbrir] = useState(fotoActual);
   const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Llenaste parte de esta orden y todavía no se abrió. Si cierras ahora, se pierde lo que llenaste.");
+  // El nivel 2 (ADR-0509): fases, tela, entrega y nota, plegados bajo una línea. Se abre a mano, o solo si algo adentro está mal (lo que está mal no se esconde) o si la guía de foco quiere
+  // llevar al cursor a un campo de adentro. Una vez que algo lo abrió, se queda abierto mientras esté mal: cerrarlo con el problema a la vista no lo esconde.
+  const [nivelDosAMano, setNivelDosAMano] = useState(false);
+  const [nivelDosPidio, setNivelDosPidio] = useState(false);
+  const nivelDosPide = nivelDosPideAbrirse({ problemasFases: problemasDeFases.length, problemasTela: problemasDeTela.length, entregaMala: problemaDeEntrega(fechaEntrega, hoyLima()) });
+  if (nivelDosPide && !nivelDosPidio) setNivelDosPidio(true);
+  const nivelDosAbierto = nivelDosAMano || nivelDosPidio;
+  function cambiarNivelDos(abrir: boolean) {
+    setNivelDosAMano(abrir);
+    if (!abrir) setNivelDosPidio(false);
+  }
+  // «Falta: Fases…» lleva al campo: si está plegado, se abre primero (plegado, ni se ve ni se alcanza).
+  const guiaDelPie = {
+    ...guia,
+    ir: (id: string) => {
+      if (esDeNivelDos(id) && !nivelDosAbierto) {
+        setNivelDosAMano(true);
+        window.setTimeout(() => guia.ir(id), 120);
+      } else guia.ir(id);
+    },
+  };
   /** Tras guardar: se retira la guardia ANTES de cerrar y de refrescar (juntos, Next podía volver a montar la pantalla de atrás: ver `useSalidaSinGuardar`). */
   function cerrarTrasGuardar() {
     // La base confirmó la orden: la siguiente es otra orden y lleva otro token (nunca se renueva tras un error o una respuesta perdida: ahí el reintento necesita el mismo).
@@ -752,6 +775,11 @@ export function NuevaOrdenProduccionForm({
           />
         )}
 
+        <NivelDos
+          abierto={nivelDosAbierto}
+          onCambio={cambiarNivelDos}
+          resumen={resumenNivelDos({ hayModelo: Boolean(modelo), fases, telasElegidas: telas.filter((t) => t.insumoId !== null).length, entrega: fechaCorta(fechaEntrega), hayNota: nota.trim() !== "" })}
+        >
         {modelo && (
           <>
             <FasesDeLaOrden fases={fases} onFases={setFases} proveedores={proveedoresServicio} tarifas={listaDePrecios} totalPrendas={total} hoy={hoy} guia={guia} problemas={problemasDeFases} />
@@ -786,6 +814,7 @@ export function NuevaOrdenProduccionForm({
           <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" min={hoyLima()} value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
           <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder={sugerirNotaDeOrden(tipo)} maxLength={MAX_NOTA_ORDEN_BASE} />
         </div>
+        </NivelDos>
 
         </div>
 
@@ -826,7 +855,7 @@ export function NuevaOrdenProduccionForm({
           }
         >
           <div data-guia="prod-orden-nueva.cierre" className="space-y-3">
-            <PieGuia guia={guia} listo={responsable.listo ? "Todo listo para abrir la orden." : "Solo falta elegir quién abre la orden."} conFrase />
+            <PieGuia guia={guiaDelPie} listo={responsable.listo ? "Todo listo para abrir la orden." : "Solo falta elegir quién abre la orden."} conFrase />
             <ComboResponsable control={responsable} deshabilitado={cargando} compacto />
 
             {choque && (

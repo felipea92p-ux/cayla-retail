@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 104,
+  "total": 105,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -132,6 +132,9 @@
       "CampoFecha «Prometido para» #2",
       "CampoMonto «Fijo por orden»",
       "button «+ fijo por orden (ponchado, matriz)»"
+    ],
+    "components/orden-produccion/NivelDos.tsx": [
+      "BotonVerMas «prod-orden-nueva.nivel2-abrir»"
     ],
     "components/orden-produccion/TelaDeLaOrden.tsx": [
       "CampoSelect «Tela»",

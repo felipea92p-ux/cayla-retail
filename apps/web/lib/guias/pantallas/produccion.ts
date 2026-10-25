@@ -279,6 +279,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Una segunda opinión, para comparar: mira tienda por tienda y dice qué le falta para poder recomendar (más días de ventas, cuadrar el piso, contar el almacén). Mientras diga «Para comparar», manda la curva de arriba.",
     },
     {
+      id: "nivel2",
+      ancla: "prod-orden-nueva.nivel2",
+      titulo: "Lo demás ya viene resuelto",
+      texto: "Las fases, la tela, la fecha y la nota vienen rellenadas con lo de siempre, y esta línea te lo resume: cuántas fases, cuáles salen afuera, cuántas telas y para cuándo. Casi nunca hay que tocarlas: «Ver y cambiar» las abre (te las abrimos para mostrártelas). Si algo está mal, se abren solas.",
+      demostrar: [{ tipo: "clic", ancla: "prod-orden-nueva.nivel2-abrir" }],
+    },
+    {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
