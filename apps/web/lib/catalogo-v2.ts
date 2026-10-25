@@ -4,6 +4,8 @@ import { createClient as crearClienteSupabase, type SupabaseClient } from "@supa
 import type { Database } from "@cayla-retail/database";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { insigniaDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/productos-stock";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
@@ -49,6 +51,11 @@ export type VarianteCatalogo = {
   categoriaFamilia?: string | null;
   /** De qué marca es (ADR-0109). Opcional: la caja la usa solo para BUSCAR («adidas»); un catálogo guardado antes de este cambio no la trae. */
   marca?: string | null;
+  /** De qué empresa es la prenda (`productos.empresa_id`, CAYLA o CLAURE; ADR-0463). Decide en qué sedes se ve (ADR-0505). Opcional: un
+   *  catálogo guardado antes de este cambio no la trae, y entonces la prenda se ve en todas, como antes. */
+  empresaId?: string | null;
+  /** La insignia de su empresa EN LA SEDE que lo pidió (`getCatalogoDeLaSede`): «CLAURE» en Lima, `null` en el resto. */
+  empresa?: string | null;
   codigosBarras: string[];
 };
 
@@ -128,7 +135,7 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
         .select(
           `id, sku, codigo, color_codigo, precio, activo,
            talla:tallas ( valor ),
-           producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
+           producto:productos ( id, referencia, empresa_id, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
            color:colores ( nombre, hex ),
            codigos_barras ( codigo )`
         )
@@ -169,8 +176,23 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     categoriaPrefijo: v.producto?.categoria?.prefijo ?? null,
     categoriaFamilia: v.producto?.categoria?.familia ?? null,
     marca: marcaPorProducto.get(v.producto?.id ?? "") ?? null,
+    empresaId: v.producto?.empresa_id ?? null,
     codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
   }));
+}
+
+/**
+ * El catálogo que se puede vender, recibir y contar en ESTA sede (ADR-0505): sin las prendas de una empresa que no opera aquí
+ * (CLAURE fuera de Lima), y cada una con la insignia de su empresa donde conviven dos (Lima). Es la misma copia guardada de
+ * `getCatalogo()`, filtrada después: la copia se comparte entre todas las sedes. Si no se pueden leer las empresas de la sede,
+ * el catálogo entero, como antes (la base igual rechaza mover una prenda donde su empresa no opera).
+ *
+ * Para Vender, Apartados, Cambios, Buscar, Recibir: lo que se OFRECE. Una pantalla que solo busca el nombre o la foto de una
+ * variante que ya está en un documento (una proforma, un traslado, un conteo cerrado) sigue con `getCatalogo()`.
+ */
+export async function getCatalogoDeLaSede(sedeId: string): Promise<VarianteCatalogo[]> {
+  const [catalogo, empresas] = await Promise.all([getCatalogo(), getEmpresasAqui(sedeId).catch(() => null)]);
+  return soloLasDeAqui(catalogo, empresas).map((v) => ({ ...v, empresa: insigniaDeEmpresa(v.empresaId, empresas) }));
 }
 
 // ============================================================================
@@ -302,6 +324,10 @@ export type ProductoListado = {
   /** De quién es y quién lo trae (20260918231000). `null` = todavía sin registrar (ADR-0283). */
   marca: string | null;
   proveedor: string | null;
+  /** De qué empresa es (`productos.empresa_id`, ADR-0463), pegada por la consulta de la descripción. Ausente si no se pudo leer. */
+  empresaId?: string | null;
+  /** La insignia de su empresa en la sede que se mira («CLAURE» en Lima; `null` en el resto). La pone la página (ADR-0505). */
+  empresa?: string | null;
   estado: string;
   stockMinimo: number | null;
   stockTotal: number;
@@ -427,7 +453,7 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
   const sinFoto = [...porProducto.values()].filter((p) => p.variantes.some((v) => v.fotoUrl === null)).map((p) => p.productoId);
   // La descripción, el tejido y el patrón de cada prenda de la página, para la vista rápida (Grilla): `fn_productos_listado` no
   // los trae y no vale una migración en producción por textos que solo se leen. Una consulta de ≤ 20 filas, a la vez que la de
-  // las fotos. Si falla, la vista rápida se abre igual, sin esos datos.
+  // las fotos. Si falla, la vista rápida se abre igual, sin esos datos. De paso, la empresa: la insignia «CLAURE» de Lima (ADR-0505).
   const [{ data: generales }, { data: descripciones }] = await Promise.all([
     sinFoto.length > 0
       ? supabase
@@ -439,7 +465,7 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
     porProducto.size > 0
       ? supabase
           .from("productos")
-          .select("id, descripcion, tejido:tejidos ( nombre ), patron:patrones ( nombre )")
+          .select("id, descripcion, empresa_id, tejido:tejidos ( nombre ), patron:patrones ( nombre )")
           .in("id", [...porProducto.keys()])
       : Promise.resolve({ data: null }),
   ]);
@@ -447,6 +473,7 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
     const p = porProducto.get(d.id);
     if (!p) continue;
     p.descripcion = d.descripcion?.trim() || null;
+    p.empresaId = d.empresa_id;
     p.tejido = d.tejido?.nombre ?? null;
     p.patron = d.patron?.nombre ?? null;
   }
@@ -661,17 +688,6 @@ export type FichaTemporadas = TemporadasCatalogo & {
  * Las dos o ninguna: sin la temporada de las categorías, la ficha y el alta ofrecerían «Sin temporada» en vez de «Igual
  * que su categoría (Verano)», y quien lo viera le pondría una a mano a una prenda que ya heredaba la suya.
  */
-/**
- * Las empresas entre las que filtra Catálogo ▸ Productos (CAYLA, CLAURE; ADR-0467). `null` si la base todavía no las tiene, si falló la
- * lectura o si hay una sola: con una sola empresa la píldora sería ruido, y la pantalla se ve como siempre (se degrada, no se cae).
- */
-export async function getEmpresasParaFiltro(): Promise<{ id: string; nombre: string }[] | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_empresas");
-  if (error || !data || data.length < 2) return null;
-  return data.map((e) => ({ id: e.id, nombre: e.nombre }));
-}
-
 export async function getTemporadasCatalogo(): Promise<TemporadasCatalogo | null> {
   const supabase = await createClient();
   const [resLista, resCategorias] = await Promise.all([

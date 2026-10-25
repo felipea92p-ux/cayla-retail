@@ -2,8 +2,11 @@
   "guia": "compras.fondos",
   "ruta": "/compras/fondos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 69,
+  "total": 70,
   "controles": {
+    "components/compras/CabeceraDeCompras.tsx": [
+      "Pestanas «{items.map(({ clave, etiqueta, href, conteo, pide, tono}»"
+    ],
     "components/fondos/AccionesFondos.tsx": [
       "Boton «fondos.entregar»",
       "button «{soyYo ? \"Tu fondo: que te la entregue otra persona\" : p.sede ? `${p.nombre}»",

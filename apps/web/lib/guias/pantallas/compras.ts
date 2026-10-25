@@ -14,6 +14,15 @@ const BOTON_FILTROS: PasoGuia = {
   texto: "Abre filtros por proveedor, tienda de destino, condición (contado o crédito) y vencimiento. Cada filtro que pones aparece como una etiqueta con su ✕ para quitarlo.",
 };
 
+/** Las tres pestañas de «Historial de compras» (ADR-0504): el mismo paso en las tres guías. Es `opcional`: quien solo trae una sección no ve la fila. */
+const PASO_PESTANAS: PasoGuia = {
+  id: "pestanas",
+  ancla: "compras.pestanas",
+  opcional: true,
+  titulo: "Las tres secciones de Compras",
+  texto: "Historial es el libro de lo comprado; Revisar compras, lo que anotaron y falta confirmar; Por pagar, lo que se debe. Solo ves las secciones que tu rol trae, y un número en ámbar dice cuánto espera.",
+};
+
 export const GUIA_FACTURAS: Guia = {
   id: "compras",
   ruta: "/compras",
@@ -26,6 +35,7 @@ export const GUIA_FACTURAS: Guia = {
       titulo: "El historial de compras",
       texto: "Cada compra que CAYLA le hizo a un proveedor, con su papel: factura, boleta, nota de venta o sin comprobante. Aquí ves las de todas las tiendas, con lo que falta pagar y lo que falta llegar. Solo se mira: las compras se anotan en «Mis compras» y se completan en «Revisar compras».",
     },
+    PASO_PESTANAS,
     {
       id: "exportar",
       ancla: "compras.exportar",
@@ -308,6 +318,7 @@ export const GUIA_POR_PAGAR: Guia = {
       titulo: "Lo que se debe a proveedores",
       texto: "Cada factura registrada, de cualquier tienda, que todavía no se paga del todo aparece aquí, de lo más urgente a lo que puede esperar. Desde aquí se paga. Es una demo: no se paga nada.",
     },
+    PASO_PESTANAS,
     {
       id: "cifras",
       ancla: "por-pagar.cifras",
@@ -976,9 +987,39 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       texto: "Esta campaña se quitó y quedó archivada: la ves tal como quedó, pero no sale en el selector. Un líder la devuelve con «Restaurar…».",
     },
     {
+      id: "plazo",
+      ancla: "plan.plazo",
+      opcional: true,
+      titulo: "Hasta cuándo pedir",
+      texto: "Esta franja dice el último día para pedir y que la mercadería llegue antes de que empiece la campaña: verde si vas a tiempo, ámbar si es justo, rojo si ya no llega. Para contarlo usa unos días de espera que se dicen aquí mismo.",
+    },
+    {
+      id: "plazo-cambiar",
+      ancla: "plan.plazo-cambiar",
+      opcional: true,
+      titulo: "Los días para llegar",
+      texto: "Si no los fijas, se cuenta con un supuesto (14 días), no con una medida. «Cambiar los días» abre una hoja donde dices cuánto tarda de verdad un pedido en llegar a las tiendas en esta campaña. Te la abrimos.",
+    },
+    {
+      id: "plazo-dias",
+      ancla: "plazo-modal.dias",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "plan.plazo-cambiar" }],
+      titulo: "Cuántos días tarda en llegar",
+      texto: "Cuenta desde que pides hasta que la mercadería está en la tienda. Mientras escribes, la hoja te dice qué fecha límite resulta. Ojo: cambiarlo mueve la fecha de todas las categorías de esta campaña.",
+    },
+    {
+      id: "plazo-pie",
+      ancla: "plazo-modal.pie",
+      opcional: true,
+      titulo: "Fijar el plazo",
+      texto: "Eliges quién lo fija; «Guardar plazo» lo deja firmado con ese nombre y «Quitar el plazo» borra el número fijado y vuelve al supuesto de 14 días. Solo avisa: nunca te impide guardar un plan. En la demo cerramos sin guardar.",
+    },
+    {
       id: "resumen",
       ancla: "plan.resumen",
       opcional: true,
+      preparar: [{ tipo: "escape" }],
       titulo: "Resumen y avisos",
       texto: "Lo que no es la tabla vive aquí: si el stock está al día, las cifras de toda CAYLA, lo que sobra, el reparto entre tiendas y el simulador. El número rojo dice cuántas tiendas tienen el stock sin cuadrar. Te lo abrimos.",
     },
@@ -1044,7 +1085,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       id: "tabla",
       ancla: "plan.tabla",
       titulo: "Una fila por categoría",
-      texto: "Lo que esperas vender en los tres escenarios, lo que ya hay hoy en todas las tiendas, cuánto comprar y cuánto cuesta. «Armar plan» quiere decir que esa categoría todavía no tiene números; las columnas de compra salen cuando alguna ya los tiene.",
+      texto: "Lo que esperas vender en los tres escenarios, lo que ya hay hoy en todas las tiendas, cuánto comprar y cuánto cuesta. «Armar plan» es que aún no tiene números. Donde hay algo por pedir, la fila dice hasta cuándo; si rebajas la categoría, cuánto ganas por prenda.",
     },
     {
       id: "categoria",
@@ -1087,6 +1128,13 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       opcional: true,
       titulo: "Lo que sobre",
       texto: "A qué porcentaje del precio venderías lo que quede al terminar la campaña, en la liquidación. Con eso el sistema decide si conviene arriesgar más o quedarse corto, y al lado te dice qué cambia.",
+    },
+    {
+      id: "descuento",
+      ancla: "plan-modal.descuento",
+      opcional: true,
+      titulo: "El descuento de la campaña",
+      texto: "Si la campaña rebaja esta categoría, escribe el % aquí: el plan cuenta con el precio ya rebajado. Te sugerimos el de la campaña y «Usar −…» lo pone. Debajo ves cuánto ganas por prenda y cuánto cambia la compra; si no deja ganancia, te avisa.",
     },
     {
       id: "curva",
@@ -2317,6 +2365,7 @@ export const GUIA_FONDOS: Guia = {
       titulo: "La plata para comprar",
       texto: "Quien compra para CAYLA anota desde su celular la plata que le dan, lo que compra y lo que gasta. Aquí lo revisas y lo pasas a los libros, y ves cuánto tiene cada persona en la mano. Es una demo: no se guarda nada.",
     },
+    PASO_PESTANAS,
     {
       id: "cifras-revisar",
       ancla: "fondos.cifras-revisar",
