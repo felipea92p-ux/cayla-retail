@@ -55,7 +55,7 @@ fases y el mismo modelo (si ya existía), con las cantidades vacías, y la lista
 - **Un estado «borrador» en la base.** Un borrador no es una orden: sumarlo toca la tabla de órdenes (que ya cuelga de stock, costos y fases) y exige migración; el costo
   de no tenerlo en la base es que no viaja de un computador a otro, y para armar un lote en el mismo Taller no hace falta.
 - **Un segundo botón «Abrir y crear otra».** Dos botones de envío compiten por el mismo clic y ensucian la guía de «qué sigue». El interruptor se prende una vez y vale para toda la tanda.
-  (Esto se aparta de lo aprobado en la lista, que decía «el botón»; Felipe puede pedir el botón.)
+  (Se aparta de lo que decía la lista aprobada, «el botón»; Felipe lo confirmó como interruptor el 2026-10-25.)
 - **Un solo apunte al «último» borrador.** Era lo primero que escribí: empezar el modelo A, pasar al B y abrir la orden de B dejaba el borrador de A guardado pero invisible, y
   nunca se soltaba. Por eso hay un índice (`fix(produccion)`, con la prueba que fallaba primero).
 
