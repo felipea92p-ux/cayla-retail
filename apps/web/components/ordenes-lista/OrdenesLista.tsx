@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Factory, FunnelX, Scissors, Shirt } from "lucide-react";
 import { AnularOrdenModal, RevertirOrdenModal } from "@/components/OrdenModales";
 import { NuevaOrdenProduccionForm } from "@/components/NuevaOrdenProduccionForm";
@@ -32,9 +32,12 @@ import {
   datoHoyEnElTaller,
   filtrarFilas,
   ordenarFilas,
+  pestanaDeOrdenNueva,
   pieDeLaLista,
+  urlSinParametrosDeNueva,
   type FiltroDeLista,
   type ListaDeOrdenes,
+  type OrdenCreada,
   type PestanaLista,
 } from "@/lib/ordenes-lista-reglas";
 import type { Tolerado } from "@/lib/resultado";
@@ -52,6 +55,9 @@ const COLUMNAS: Columna[] = [
   { titulo: "Entrega", clase: "hidden @min-[900px]:block" },
   { titulo: "Pide algo", clase: "hidden @min-[620px]:block" },
 ];
+
+/** Cuánto se queda marcada la orden recién abierta: la animación corre una vez; pasado esto, la fila vuelve a ser una más. */
+const MS_ORDEN_RECIEN = 6000;
 
 const FILTROS: { valor: FiltroDeLista; texto: string }[] = [
   { valor: "todas", texto: "Todas" },
@@ -118,6 +124,13 @@ export function OrdenesLista({
   const [fase, setFase] = useState<FaseClave | null>(null);
   const [filtro, setFiltro] = useState<FiltroDeLista>("todas");
   const [texto, setTexto] = useState("");
+  // La orden que se acaba de abrir (su id): su fila respira en verde una vez y se lleva a la vista (ADR-0509).
+  const [recien, setRecien] = useState<string | null>(null);
+  useEffect(() => {
+    if (!recien) return;
+    const t = window.setTimeout(() => setRecien(null), MS_ORDEN_RECIEN);
+    return () => window.clearTimeout(t);
+  }, [recien]);
 
   // Una orden abierta antes de las fases no trae ninguna: su lugar se lee de las etapas de siempre (las que ya traen `ordenes`).
   const filas = useMemo(() => {
@@ -139,6 +152,20 @@ export function OrdenesLista({
     setFase(null);
     setFiltro("todas");
     setTexto("");
+  }
+
+  // Al abrirse la orden, la lista va a la pestaña donde quedó (una muestra cae en «Muestras») sin filtros que la escondan, y la marca. La fila llega con el refresco que el formulario hace al guardar.
+  function alCrearse(o: OrdenCreada & { esMuestra: boolean }) {
+    setPestana(pestanaDeOrdenNueva(o.esMuestra));
+    quitarFiltros();
+    setRecien(o.id);
+  }
+
+  // `?nueva=` (Resumen, Análisis, Nuevo producto) abre la hoja desde la URL, y la URL no cambia sola: con F5 la hoja volvía a abrirse aunque la orden ya estuviera creada. Al cerrar o guardar se limpia.
+  function limpiarUrlDeNueva() {
+    const actual = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const limpia = urlSinParametrosDeNueva(actual);
+    if (limpia !== actual) window.history.replaceState(null, "", limpia);
   }
 
   const nuevaOrden = (
@@ -251,7 +278,7 @@ export function OrdenesLista({
               <>
                 <Encabezado visible="hidden @min-[620px]:grid" plantilla={PLANTILLA_LISTA} columnas={COLUMNAS} />
                 {visibles.map((f, i) => (
-                  <FilaDeOrden key={f.id} f={f} primera={i === 0} guiaPorque={f.id === primeraConPorque} onAbrirCajon={() => setAbiertaId(f.id)} />
+                  <FilaDeOrden key={f.id} f={f} primera={i === 0} guiaPorque={f.id === primeraConPorque} recien={f.id === recien} onAbrirCajon={() => setAbiertaId(f.id)} />
                 ))}
               </>
             )}
@@ -324,9 +351,11 @@ export function OrdenesLista({
           hoy={hoy}
           abiertas={paraLaLista.abiertas}
           recientes={paraLaLista.recientes}
+          onCreada={alCrearse}
           onClose={() => {
             setNuevaAbierta(false);
             setSugeridaPendiente(false);
+            limpiarUrlDeNueva();
           }}
         />
       )}

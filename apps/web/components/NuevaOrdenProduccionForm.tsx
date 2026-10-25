@@ -12,6 +12,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
+import { leerOrdenCreada, type OrdenCreada } from "@/lib/ordenes-lista-reglas";
 import type { ModeloProducible, OpcionesNuevaOrden } from "@/lib/produccion";
 import type { InsumoVista } from "@/lib/insumos";
 import type { DecisionProduccion } from "@/lib/decision-produccion";
@@ -131,6 +132,7 @@ export function NuevaOrdenProduccionForm({
   opciones = null,
   insumos = [],
   hoy,
+  onCreada,
   onClose,
 }: {
   tallerId: string;
@@ -157,6 +159,8 @@ export function NuevaOrdenProduccionForm({
   insumos?: InsumoVista[];
   /** `aaaa-mm-dd` de Lima: la tarifa vigente y las fechas prometidas se juzgan contra hoy. */
   hoy: string;
+  /** Se abrió la orden (ADR-0509): la lista salta a la pestaña donde quedó y la marca. Solo si la base devolvió su número. */
+  onCreada?: (orden: OrdenCreada & { esMuestra: boolean }) => void;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -417,6 +421,12 @@ export function NuevaOrdenProduccionForm({
     onClose();
     void guardiaFuera.then(() => router.refresh());
   }
+  /** Tras abrir la orden, el aviso dice cuál es y lleva a su página; la lista salta a donde quedó. Si la base no devolvió el número, el aviso es el de siempre: nunca se inventa uno. */
+  function avisarCreada(texto: string, detalle: string, data: unknown) {
+    const creada = leerOrdenCreada(data);
+    avisar.exito(texto, { detalle, ...(creada ? { accion: { texto: `Ver ${creada.numeroTexto}`, onClick: () => router.push(creada.href) } } : {}) });
+    if (creada) onCreada?.({ ...creada, esMuestra: tipo === "muestra" });
+  }
 
   function usarCurva() {
     setCantidades(cantidadesDeLaCurva(curva));
@@ -530,7 +540,7 @@ export function NuevaOrdenProduccionForm({
     } finally {
       enVuelo.current = false;
     }
-    const { error } = resultado;
+    const { data, error } = resultado;
     responsable.despues(error);
     setCargando(false);
     if (error) {
@@ -543,7 +553,7 @@ export function NuevaOrdenProduccionForm({
       avisar.error(lectura.tipo === "funcion_ausente" ? TEXTO_FUNCION_AUSENTE : traducirError(error, "abrir la orden", { confirmarAntesDeRepetir: true }));
       return;
     }
-    avisar.exito(`Orden de ${nombreDelModelo(borrador)} abierta`, { detalle: `Modelo nuevo · ${resumenNuevo.total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}` });
+    avisarCreada(`Orden de ${nombreDelModelo(borrador)} abierta`, `Modelo nuevo · ${resumenNuevo.total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}`, data);
     cerrarTrasGuardar();
   }
 
@@ -603,14 +613,14 @@ export function NuevaOrdenProduccionForm({
     } finally {
       enVuelo.current = false;
     }
-    const { error } = resultado;
+    const { data, error } = resultado;
     responsable.despues(error);
     setCargando(false);
     if (error) {
       avisar.error(traducirError(error, "abrir la orden", { confirmarAntesDeRepetir: true }));
       return;
     }
-    avisar.exito(`Orden de ${modelo.referencia} abierta`, { detalle: `${total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}` });
+    avisarCreada(`Orden de ${modelo.referencia} abierta`, `${total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}`, data);
     cerrarTrasGuardar();
   }
 
@@ -847,7 +857,7 @@ export function NuevaOrdenProduccionForm({
                 title={guia.frase ?? responsable.motivo ?? undefined}
                 className={`flex-1 ${guia.claseConfirmar}`}
               >
-                {esNuevo ? "Crear y abrir orden" : "Abrir orden"}
+                {esNuevo ? "Crear orden" : "Abrir orden"}
               </Boton>
             </div>
           </div>
