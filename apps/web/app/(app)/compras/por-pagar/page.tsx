@@ -21,7 +21,7 @@ import type { DatosPagoProveedor } from "@/components/PagoJuntosModal";
 import { CircleCheck, FunnelX, SearchX } from "lucide-react";
 import { BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
-import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { CabeceraHistorialCompras } from "@/components/compras/CabeceraHistorialCompras";
 
 // Por pagar (ADR-0035, rediseño ADR-0111): los comprobantes vigentes con saldo, de lo más urgente
 // a lo que puede esperar. Sale del índice parcial `compras_por_pagar_idx`, que solo contiene lo
@@ -131,11 +131,10 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   return (
     <PorPagarProvider agruparInicial={agrupar}>
       <div className="space-y-6">
-        <EncabezadoPagina
-          sede="Todas las tiendas"
-          titulo="Por pagar"
-          subtitulo="Lo que se debe a proveedores, de lo más urgente a lo que puede esperar. Se paga desde cada fila, o varios comprobantes del mismo proveedor juntos."
-        />
+        {/* La cabecera de las tres pestañas de «Historial de compras» (ADR-0504): esta pestaña ya leyó lo que se debe, no se vuelve a pedir.
+            La frase propia que tenía («se paga desde cada fila, o varios comprobantes del mismo proveedor juntos») se fue con la cabecera
+            única; cómo se paga lo explica su guía interactiva. */}
+        <CabeceraHistorialCompras activa="porpagar" conteos={{ porPagar: { conSaldo: resumen.conSaldo, vencidas: resumen.vencidas } }} />
 
         {/* Cuatro cifras, todas con acción. `grid-cols-2` también en celular: con las tarjetas
             apiladas a ancho completo la lista —lo que se vino a ver— quedaba a ~830 px de scroll.
