@@ -6,6 +6,7 @@ import { AnularOrdenModal, RevertirOrdenModal } from "@/components/OrdenModales"
 import { NuevaOrdenProduccionForm } from "@/components/NuevaOrdenProduccionForm";
 import { OrdenPanel } from "@/components/OrdenPanel";
 import { FilaDeOrden, PLANTILLA_LISTA } from "@/components/ordenes-lista/FilaDeOrden";
+import { MarcoDePagina } from "@/components/ordenes-lista/MarcoDePagina";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
 import { Boton } from "@/components/ui/campos";
@@ -168,8 +169,14 @@ export function OrdenesLista({
     if (limpia !== actual) window.history.replaceState(null, "", limpia);
   }
 
+  // Con el compositor ya abierto, «+ Nueva orden» no hace nada nuevo: lo lleva a la vista.
+  function abrirNueva() {
+    if (nuevaAbierta) document.querySelector("[data-compositor-orden]")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    else setNuevaAbierta(true);
+  }
+
   const nuevaOrden = (
-    <Boton peso="primario" data-guia="prod-ordenes.nueva" onClick={() => setNuevaAbierta(true)}>
+    <Boton peso="primario" data-guia="prod-ordenes.nueva" onClick={abrirNueva}>
       + Nueva orden
     </Boton>
   );
@@ -182,7 +189,8 @@ export function OrdenesLista({
       </Aviso>
     );
   } else if (filas.length === 0) {
-    cuerpo = (
+    // Con el compositor abierto, él ocupa el lugar de «Todavía no se abrió ninguna orden» (arriba, bajo la cabecera).
+    cuerpo = nuevaAbierta ? null : (
       <div className="card-cayla">
         <Vacio icono={<Factory />} titulo="Todavía no se abrió ninguna orden" acciones={modelos.length > 0 ? nuevaOrden : null}>
           Una orden es un lote de un modelo: cuántas prendas por talla y color, quién hace cada fase y la tela que lleva. Ábrela aquí y la verás avanzar fase por fase.
@@ -268,7 +276,7 @@ export function OrdenesLista({
                 <Vacio
                   tamano="chico"
                   icono={pestana === "muestras" ? <Shirt /> : <Scissors />}
-                  accion={pestana === "en_curso" && modelos.length > 0 ? { texto: "Abrir una orden", onClick: () => setNuevaAbierta(true) } : undefined}
+                  accion={pestana === "en_curso" && modelos.length > 0 ? { texto: "Abrir una orden", onClick: abrirNueva } : undefined}
                   className="py-5"
                 >
                   {pestana === "en_curso" ? "No hay órdenes en curso." : pestana === "muestras" ? "No hay muestras en desarrollo." : "Todavía no se cerró ninguna orden."}
@@ -304,7 +312,33 @@ export function OrdenesLista({
     <div className="space-y-6">
       <EncabezadoPagina sede={tallerNombre} titulo="Órdenes" subtitulo="Cada lote, en qué fase está y quién lo tiene. Toca uno para ver y anotar lo que terminaste." acciones={nuevaOrden} />
 
-      {modelos.length === 0 && (
+      {/* «Nueva orden» (ADR-0509): se arma aquí, con la lista a la vista debajo. Antes era una hoja de 1080 px que la tapaba. */}
+      {nuevaAbierta && (
+        <NuevaOrdenProduccionForm
+          tallerId={tallerId}
+          modelos={modelos}
+          decision={decision}
+          productoInicialId={nuevaInicial}
+          sugeridaInicial={sugeridaPendiente}
+          tipoInicial={tipoInicial}
+          puedeEditarCatalogo={puedeEditarCatalogo}
+          vocabulario={vocabulario}
+          opciones={opcionesNuevaOrden}
+          insumos={insumos}
+          hoy={hoy}
+          abiertas={paraLaLista.abiertas}
+          recientes={paraLaLista.recientes}
+          marco={MarcoDePagina}
+          onCreada={alCrearse}
+          onClose={() => {
+            setNuevaAbierta(false);
+            setSugeridaPendiente(false);
+            limpiarUrlDeNueva();
+          }}
+        />
+      )}
+
+      {modelos.length === 0 && !nuevaAbierta && (
         <div className="card-cayla">
           <Vacio
             icono={<Shirt />}
@@ -334,29 +368,6 @@ export function OrdenesLista({
           onCerrar={() => setAbiertaId(null)}
           onAnular={() => setAnulando(abierta)}
           onRevertir={() => setRevirtiendo(abierta)}
-        />
-      )}
-      {nuevaAbierta && (
-        <NuevaOrdenProduccionForm
-          tallerId={tallerId}
-          modelos={modelos}
-          decision={decision}
-          productoInicialId={nuevaInicial}
-          sugeridaInicial={sugeridaPendiente}
-          tipoInicial={tipoInicial}
-          puedeEditarCatalogo={puedeEditarCatalogo}
-          vocabulario={vocabulario}
-          opciones={opcionesNuevaOrden}
-          insumos={insumos}
-          hoy={hoy}
-          abiertas={paraLaLista.abiertas}
-          recientes={paraLaLista.recientes}
-          onCreada={alCrearse}
-          onClose={() => {
-            setNuevaAbierta(false);
-            setSugeridaPendiente(false);
-            limpiarUrlDeNueva();
-          }}
         />
       )}
       {anulando && <AnularOrdenModal orden={anulando} consumos={consumosPorOrden[anulando.id] ?? []} onClose={() => setAnulando(null)} />}

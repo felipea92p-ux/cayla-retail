@@ -552,9 +552,10 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
     // Escape, clic fuera y ✕ preguntan por `antesDeCerrar` (la hoja sigue a la vista); `onClose` es solo el cierre de verdad. Pasar la pregunta por `onClose` la hacía con la hoja ya
     // cerrada y, con «Seguir editando», la pantalla dejaba de responder (/pantalla 2026-10-13; lo vigila también lib/hojas-salida-sin-guardar.test.ts).
     // La etiqueta puede ir en varias líneas (A3 le suma `variante`, `conCerrar` y el ancho): se lee sin importar los saltos.
-    // ADR-0509: el formulario no sabe dónde vive. Le entrega a su marco la pregunta (`antesDeCerrar={avisoSalida.pedirAccion}`) y el marco de siempre, la hoja, la pasa tal cual al `<Modal>`.
+    // ADR-0509: el formulario no sabe dónde vive y ya no es una hoja: le entrega a su marco la pregunta (`antesDeCerrar={avisoSalida.pedirAccion}`) y no dibuja ningún `<Modal>`. Escape y el clic
+    // fuera ya no existen (una página no se descarta por un roce); la pregunta sale con «Cancelar» y al intentar salir por un enlace o por «atrás» (el mismo hook vigila el historial).
     expect(f).toMatch(/<Marco\s+onClose=\{onClose\}\s+antesDeCerrar=\{avisoSalida\.pedirAccion\}>/);
-    expect(f).toMatch(/<Modal\s+titulo="Nueva orden de producción"\s+onClose=\{onClose\}\s+antesDeCerrar=\{antesDeCerrar\}/);
+    expect(f).not.toContain("<Modal");
     expect(f).not.toContain("onClose={() => avisoSalida.pedirAccion(onClose)}");
     expect(f).toContain('onClick={() => avisoSalida.pedirAccion(onClose)} className="btn-cayla btn-secundario"');
     // Elegir el tipo (Producción/Muestra), el modo (Ya existe/Modelo nuevo) o el modelo de la lista no es trabajo perdido: no cuenta como «cambios sin guardar».

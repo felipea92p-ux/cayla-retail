@@ -9,7 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { CampoTexto, Boton } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Aviso } from "@/components/ui/Aviso";
-import { Modal, campoEtiqueta } from "@/components/ui/Modal";
+import { campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { leerOrdenCreada, type OrdenCreada } from "@/lib/ordenes-lista-reglas";
@@ -87,15 +87,15 @@ import {
 // cada color elegido es una fila con su «×» y «+ Agregar color» suma otra. Lo que se manda a la base NO cambia: `lib/orden-tabla-reglas.ts` arma la tabla desde las mismas celdas y las mismas
 // líneas de siempre, y `lib/orden-carga-util.test.ts` lo fija con los números de antes.
 //
-// ADR-0396 (A3, «la hoja ancha con ficha viva»): la hoja mide ~1080 px y es una rejilla de dos paneles dentro del propio `<form>`: el pedido a la izquierda y, a la derecha y siempre a la vista,
+// ADR-0396 (A3, «la hoja ancha con ficha viva»): el formulario es una rejilla de dos paneles dentro del propio `<form>` (era una hoja de ~1080 px; desde ADR-0509 vive en la página y los dos paneles salen cuando su marco mide 880 px o más): el pedido a la izquierda y, a la derecha y siempre a la vista,
 // la ficha de la orden (`FichaOrden`: la prenda, cuántas son, a cuánto se vende, para cuándo, y debajo lo que la cierra). La ficha es presentacional; el formulario sigue dueño de los números, de
 // los controles de cierre (lo que falta, el responsable, el aviso de nombre repetido, Cancelar y «Abrir orden») y del envío. Ya no hay pie pegado: lo que tapaba al responsable.
 //
 // El token de idempotencia (`lib/token-de-orden.ts`) vive con el formulario: si el Taller pierde la red a mitad del clic y reintenta, la base devuelve la misma orden en vez de abrir dos.
 // Mismo mecanismo que `registrar_venta` (p_token). Se renueva cuando la base confirma una orden: el formulario ya no se desmonta al guardar por fuerza (ADR-0509).
 //
-// El MARCO (ADR-0509): el formulario no sabe dónde vive. Por defecto es la hoja de siempre (`MarcoDeHoja`, un `<Modal>`); el compositor sobre la lista le pasa el suyo (`marco`). Cada marco
-// recibe el cuerpo y la salida sin guardar (`antesDeCerrar`: la pregunta «¿Salir sin guardar?» que corre antes de descartar lo escrito).
+// El MARCO (ADR-0509): el formulario no sabe dónde vive. Hasta ADR-0509 era una hoja de 1080 px que tapaba la lista; hoy vive en la página de Órdenes (`ordenes-lista/MarcoDePagina`).
+// El marco recibe el cuerpo y la salida sin guardar (`antesDeCerrar`: la pregunta «¿Salir sin guardar?» que corre antes de descartar lo escrito).
 
 type Tipo = "produccion" | "muestra";
 const OPCIONES_TIPO = [
@@ -123,20 +123,6 @@ const CHIP_SEMAFORO: Record<Semaforo["tono"], { tono: "verde" | "ambar" | "rojo"
 
 /** Dónde vive el formulario: recibe el cuerpo (el `<form>` y el aviso de salida) y cómo preguntar «¿Salir sin guardar?» antes de descartarlo. */
 export type MarcoDeLaOrden = ComponentType<{ onClose: () => void; antesDeCerrar: (cerrar: () => void) => void; children: ReactNode }>;
-
-/** El marco de siempre: una hoja ancha. Escape, el clic fuera y la ✕ pasan por `antesDeCerrar` y NO por `onClose` (`lib/hojas-salida-sin-guardar.test.ts`). */
-const MarcoDeHoja: MarcoDeLaOrden = ({ onClose, antesDeCerrar, children }) => (
-  <Modal
-    titulo="Nueva orden de producción"
-    onClose={onClose}
-    antesDeCerrar={antesDeCerrar}
-    variante="hoja"
-    // 1080 px (A3). `scroll-pb`: bajo 980 px la ficha es una barra pegada abajo y, al llevar el cursor a un campo (la guía de foco), no debe quedar detrás de ella.
-    ancho="max-w-[1080px] scroll-pb-[calc(var(--alto-barra-ficha,10rem)+1rem)] min-[980px]:scroll-pb-0"
-  >
-    {children}
-  </Modal>
-);
 
 export function NuevaOrdenProduccionForm({
   tallerId,
@@ -182,8 +168,8 @@ export function NuevaOrdenProduccionForm({
   hoy: string;
   /** Se abrió la orden (ADR-0509): la lista salta a la pestaña donde quedó y la marca. Solo si la base devolvió su número. */
   onCreada?: (orden: OrdenCreada & { esMuestra: boolean }) => void;
-  /** Dónde vive el formulario (ADR-0509). Sin él, la hoja de siempre. */
-  marco?: MarcoDeLaOrden;
+  /** Dónde vive el formulario (ADR-0509): hoy, la página de Órdenes (`MarcoDePagina`). */
+  marco: MarcoDeLaOrden;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -428,7 +414,9 @@ export function NuevaOrdenProduccionForm({
       totalExistente: total,
       fases: { falta: problemasDeFases[0]?.texto ?? null },
       tela: { falta: problemasDeTela[0]?.texto ?? null, elegida: telas.some((t) => t.insumoId !== null) },
-    })
+    }),
+    // Ya no vive en una hoja que se desplaza sola: la guía lleva el campo a la vista de la ventana, sin taparlo (la cabecera y la barra de abajo cuentan).
+    { enModal: false }
   );
 
   // «¿Salir sin guardar?» (2026-09-28; /chaos NAV-04, 2026-10-10). Escape, el clic fuera y «Cancelar» cerraban la hoja y TODO lo escrito (nombre, tallas, colores, la matriz
@@ -649,10 +637,10 @@ export function NuevaOrdenProduccionForm({
     cerrarTrasGuardar();
   }
 
-  const Marco = marco ?? MarcoDeHoja;
+  const Marco = marco;
   return (
     <Marco onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion}>
-      <form onSubmit={onSubmit} className="mt-3.5 grid gap-y-5 min-[980px]:grid-cols-[minmax(0,1fr)_332px] min-[980px]:items-start min-[980px]:gap-x-8">
+      <form onSubmit={onSubmit} className="mt-3.5 grid gap-y-5 @min-[880px]:grid-cols-[minmax(0,1fr)_332px] @min-[880px]:items-start @min-[880px]:gap-x-8">
         <div className="min-w-0 space-y-5">
         {/* El modelo primero (ADR-0396, A1): el buscador, o la tarjeta del elegido, o los campos del modelo nuevo. El interruptor del tipo aparece cuando ya hay modelo. */}
         <div data-guia="prod-orden-nueva.modelo" className="space-y-4">
