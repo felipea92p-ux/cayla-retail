@@ -170,6 +170,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "Ganar plata no es tener plata. La línea sigue lo que tendrás cada día —lo de hoy, más lo que esperas cobrar, menos lo que vence— contra tu mínimo de caja. La frase dice cuándo baja, o que aguantas. Con una sede elegida, solo se separan sus cobros y salidas: los bancos son de CAYLA entera.",
     },
     {
+      id: "cambios",
+      ancla: "fin-resumen.cambios",
+      opcional: true,
+      titulo: "Lo que más se movió",
+      texto: "Compara este mes con el mismo tramo del mes pasado, rubro por rubro. Cada barra dice cuánto movió lo que te deja el mes: verde ayuda, taupe resta. La frase de arriba explica si ganas más porque vendes más o porque cada prenda deja más.",
+    },
+    {
       id: "equilibrio",
       ancla: "fin-resumen.equilibrio",
       opcional: true,

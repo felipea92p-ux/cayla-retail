@@ -8,6 +8,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { CajaProximaPieza } from "@/components/finanzas/CajaProxima";
+import { CambiosDelMesPieza } from "@/components/finanzas/CambiosDelMes";
 import { Confianza } from "@/components/finanzas/Confianza";
 import { EquilibrioMesPieza } from "@/components/finanzas/EquilibrioMes";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
@@ -22,6 +23,7 @@ import type { Lectura } from "@/lib/resumen-finanzas";
 import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
 import { hrefTelar, mesDelDia, porSedeDe, SEDE_EMPRESA, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
+import { cambiosDelMes } from "@/lib/resumen-cambios-reglas";
 import { avisosParaDecidir, noRevisado, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
 import {
   mesAnteriorDe,
@@ -170,6 +172,10 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
       </div>
 
       <div {...entra(5)}>
+        <CambiosDelMesPieza cambios={cambiosDelMes({ r, ahora: filas, antes: estadoAntes, enCurso })} />
+      </div>
+
+      <div {...entra(6)}>
         <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso })} provisional={provisional} />
       </div>
     </div>
