@@ -16,10 +16,11 @@ import {
   getSinTemporadaResumen,
   getFacetasProductos,
   getTemporadasCatalogo,
-  getEmpresasParaFiltro,
   getCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { empresaDelListado, insigniaDeEmpresa, opcionesDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { getDisponibleEnSede } from "@/lib/inventario-v2";
 import { cantidadCobrable } from "@/lib/vender-stock-local";
 import { tarjetasDesdeVariantes } from "@/lib/combinar-reglas";
@@ -82,7 +83,11 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const params = await searchParams;
   // «Hay en …» y «Sin stock en …» miran la sede elegida arriba; en CAYLA Global no hay una (ADR-0275) y no se aplican.
   const enSede = persona.vista !== "global";
-  const filtros = conSede(filtrosProductosDesdeParams(params), enSede ? persona.ubicacionId : null);
+  // ADR-0505: CLAURE solo existe donde opera (Lima). En una sede con una sola empresa la lista pide solo esa, aunque la URL diga
+  // otra; en Lima y en CAYLA Global, la elegida en «Tienda». Va antes de la lista porque la decide. Sin respuesta, como antes.
+  const empresasAqui = await getEmpresasAqui(enSede ? persona.ubicacionId : null).catch(() => null);
+  const desdeUrl = filtrosProductosDesdeParams(params);
+  const filtros = conSede({ ...desdeUrl, empresaId: empresaDelListado(desdeUrl.empresaId, empresasAqui) }, enSede ? persona.ubicacionId : null);
   const pagina = paginaProductosDesdeParams(params);
   const vista = params.vista === "tabla" ? "tabla" : "grilla";
   // El tamaño de las tarjetas que esta máquina dejó la última vez (Felipe, 2026-09-29): cookie leída acá para que la primera
@@ -110,7 +115,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear, empresas] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear] = await Promise.all([
     listarProductos(filtros, pagina),
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
@@ -130,9 +135,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     editaCatalogo ? getPorRevisarResumen() : Promise.resolve(null),
     // ADR-0393 (decisión 4): lo nuevo que llegó a la sede y todavía no existe en el catálogo («por crear»). `null` si la base no lo sabe.
     getPendientesDeLaSede(persona.ubicacionId),
-    // ADR-0467: CAYLA y CLAURE, para su filtro. `null` si la base no las tiene o hay una sola: la píldora no aparece.
-    getEmpresasParaFiltro().catch(() => null),
   ]);
+  // ADR-0467 + ADR-0505: la píldora «Tienda» solo donde conviven dos empresas (Lima, Global); en Trujillo no hay nada que elegir.
+  const empresas = opcionesDeEmpresa(empresasAqui);
 
   // Lo de la sede elegida arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Va después de la
   // lista. «A quién pedirle» se quitó el 2026-10-07 (Felipe): repetía Disponibilidad ▸ «Pedir a proveedor» + Proveedor.
@@ -165,7 +170,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     campanasQueCobra(supabase, hoyLima(), resultado.productos.flatMap((p) => p.variantes.map((v) => v.varianteId))).catch(() => null),
   ]);
   const campanasHoy = campanas ? Object.fromEntries(campanas) : undefined;
-  const tarjetasLook = catalogoSede && pisoSede ? tarjetasDesdeVariantes(catalogoSede, (id) => cantidadCobrable(pisoSede.get(id))) : [];
+  // «Combina bien con» tampoco sugiere una prenda de CLAURE fuera de Lima (ADR-0505).
+  const tarjetasLook = catalogoSede && pisoSede ? tarjetasDesdeVariantes(soloLasDeAqui(catalogoSede, empresasAqui), (id) => cantidadCobrable(pisoSede.get(id))) : [];
   // El precio de cada prenda en CADA tienda (para «2 precios»: cuenta precios distintos, no tiendas), y el de la tienda elegida arriba
   // para el precio grande de la tarjeta y la fila (Felipe 2026-10-10: en TRU, FAL-0008 decía S/ 79.90 y la caja cobraba 69.90). En
   // CAYLA Global no hay tienda: el de la prenda.
@@ -188,9 +194,11 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // Cada producto lleva el prefijo y la familia de su categoría (de la misma lectura de arriba, sin otra consulta): de ahí sale el
   // ícono de su miniatura cuando no tiene foto (ADR-0333). Una categoría desactivada no está en la lectura: esa prenda dibuja la percha.
   const categoriaPorId = new Map(categoriasLeidas.map((c) => [c.id, c] as const));
+  // Y la insignia de su empresa donde conviven dos (ADR-0505): «CLAURE» en Lima y en Global; nada en Trujillo ni para CAYLA.
   const productos = resultado.productos.map((p) => {
     const c = p.categoriaId ? categoriaPorId.get(p.categoriaId) : undefined;
-    return c ? { ...p, categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : p;
+    const empresa = insigniaDeEmpresa(p.empresaId, empresasAqui);
+    return { ...p, ...(c ? { categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : {}), empresa };
   });
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo }));
   const fichasDeColor: ColorConFicha[] = exigir(colores, "los colores").map((c) => ({

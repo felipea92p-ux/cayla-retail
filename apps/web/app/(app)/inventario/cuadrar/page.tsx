@@ -41,7 +41,7 @@ export default async function CuadrarPisoPage() {
 
   // En paralelo: el catálogo ENTERO (una prenda guardada que el sistema no tiene en la sede también se escanea: es una «no
   // cargada»), lo libre de la sede para el aviso «no cargada» mientras se escanea, y la fecha del último cuadre.
-  const [catalogo, filas, cuadre] = await Promise.all([getCatalogoConteo(), getStockPorUbicacion(persona.ubicacionId), getCuadrePisoEstado(persona.ubicacionId)]);
+  const [catalogo, filas, cuadre] = await Promise.all([getCatalogoConteo(persona.ubicacionId), getStockPorUbicacion(persona.ubicacionId), getCuadrePisoEstado(persona.ubicacionId)]);
   const prendas: PrendaCuadre[] = catalogo.map((p) => ({
     varianteId: p.varianteId,
     sku: p.sku,

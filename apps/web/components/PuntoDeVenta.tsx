@@ -186,6 +186,9 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   /** Su familia está apagada para los motores (`familias.entra_a_motores = false`): bolsas, cajas, empaque. Es lo que ofrece «Agregar bolsa»
    *  en el ticket (`lib/bolsas-reglas.ts`). Ausente = una prenda normal. */
   fueraDeMotores?: boolean;
+  /** La insignia de su empresa donde conviven dos (ADR-0505): «CLAURE» en Lima, para no confundirla con la misma blusa de CAYLA.
+   *  `null` o ausente = sin insignia (CAYLA, o una tienda con una sola empresa). */
+  empresa?: string | null;
   /** `#rrggbb` del color de la variante (`colores.hex`): el fondo del ícono en la grilla y en el buscador. Ausente = el tono de su familia. */
   colorHex?: string | null;
   /** `variantes.color_codigo`: cruza con la ficha del color (ADR-0316) en «Todo de la prenda». Ausente = sin ficha. */

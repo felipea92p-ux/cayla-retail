@@ -30,6 +30,8 @@ export type ProductoDeCatalogo = {
   esPrueba: boolean;
   /** ¿Tiene al menos una variante activa? Sin ella no hay nada que tener ni pedir (p. ej. «Prenda sin Registrar», el producto del cargo especial). */
   conVariantesActivas: boolean;
+  /** De qué empresa es (`productos.empresa_id`, ADR-0463): una de CLAURE no se ofrece «sin stock aquí» fuera de Lima (ADR-0505). */
+  empresaId?: string | null;
 };
 
 /** Pone la marca a cada fila por su producto. Una fila cuyo producto no llegó (la lectura falló o el producto es nuevo) queda con `marca: null`. */
