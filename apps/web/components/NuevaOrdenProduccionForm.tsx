@@ -769,6 +769,7 @@ export function NuevaOrdenProduccionForm({
           {oferta && (
             <Aviso
               tono="info"
+              guia="prod-orden-nueva.oferta"
               titulo="Tienes una orden a medias de este modelo"
               accion={
                 <span className="flex flex-wrap gap-2">
@@ -999,7 +1000,7 @@ export function NuevaOrdenProduccionForm({
             </div>
 
             <div className="pie-acciones">
-              <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className="btn-cayla btn-secundario">
+              <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className="btn-cayla btn-secundario" data-guia="prod-orden-nueva.cancelar">
                 Cancelar
               </button>
               <Boton

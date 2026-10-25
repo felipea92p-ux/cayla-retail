@@ -29,7 +29,7 @@
       "ComboResponsable «{responsable}»",
       "Boton «Usar ese modelo»",
       "Boton «Es otro modelo, crearlo igual»",
-      "button «Cancelar»",
+      "button «prod-orden-nueva.cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/OrdenCierre.tsx": [
