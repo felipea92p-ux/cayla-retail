@@ -188,6 +188,14 @@ describe("lo que no se ve o no se pudo leer", () => {
     expect(cajaProxima({ flujo: { estado: "falla", mensaje: "no respondió" }, cuentas: null, ver: TODAS })).toEqual({ tipo: "falla", mensaje: "no respondió" });
   });
 
+  it("con la proyección provisional el veredicto de alarma lleva la cautela del ADR-0417, y el verde no la necesita", () => {
+    const p = { diasDeCajaConfiable: false, saldoInicialDeclarado: false };
+    const alarma = cayla(proyeccion({ ...p, salidas: [salida("2026-10-28", "Planilla", 16_000, { tipo: "planilla" })] }));
+    expect(texto(alarma.titular)).toBe("Con lo que hay registrado, tu caja baja de tu mínimo el 28 de octubre: llegas a S/ 12,000 y tu mínimo es S/ 15,000.");
+    const bien = cayla(proyeccion({ ...p, salidas: [salida("2026-10-20", "Factura", 1_000)] }));
+    expect(bien.titular.startsWith("Tu caja aguanta")).toBe(true);
+  });
+
   it("la planilla que la cuenta no ve se anota; lo provisional lo dice la regla de Dinero", () => {
     const c = cayla(proyeccion({ planillaVisible: false, diasDeCajaConfiable: false, saldoInicialDeclarado: false }));
     expect(c.sinPlanilla).toBe(true);

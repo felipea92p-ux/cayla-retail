@@ -263,7 +263,10 @@ export function cajaProxima({ flujo, cuentas, ver }: Entrada): CajaProxima {
     tono = "pizarra";
   }
 
+  // ADR-0417: un veredicto firme solo con datos firmes. Con la proyección provisional (faltan saldos de arranque, facturas o historia) el titular
+  // lo dice, como el de la respuesta: «Con lo que hay registrado, tu caja…».
   const falta = queFaltaEnLaProyeccion(p);
+  if (falta.provisional && (tono === "rojo" || tono === "ambar")) titular = `Con lo que hay registrado, ${titular.charAt(0).toLowerCase()}${titular.slice(1)}`;
   return {
     tipo: "cayla",
     hoy: p.hoy,
