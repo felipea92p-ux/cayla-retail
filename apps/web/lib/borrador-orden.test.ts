@@ -134,6 +134,52 @@ describe("borrar", () => {
   });
 });
 
+describe("varios borradores en un mismo Taller: ninguno queda huérfano", () => {
+  it("empezar A, pasar a B y abrir la orden de B: la lista sigue ofreciendo A (antes quedaba guardado pero invisible)", () => {
+    const a = almacen();
+    guardarBorrador(a, TALLER, foto({ productoId: "m-A", cantidades: { "a-1": "12" } }));
+    guardarBorrador(a, TALLER, foto({ productoId: "m-B", cantidades: { "b-1": "8" } }));
+    expect(ultimoBorrador(a, TALLER)?.foto.productoId).toBe("m-B");
+    borrarBorrador(a, TALLER, "m-B");
+    expect(ultimoBorrador(a, TALLER)?.foto.productoId).toBe("m-A");
+    borrarBorrador(a, TALLER, "m-A");
+    expect(hayBorradorEnElTaller(a, TALLER)).toBe(false);
+  });
+  it("el último es el que se tocó más recientemente, no el que se creó primero", () => {
+    const a = almacen();
+    guardarBorrador(a, TALLER, foto({ productoId: "m-A" }));
+    guardarBorrador(a, TALLER, foto({ productoId: "m-B" }));
+    guardarBorrador(a, TALLER, foto({ productoId: "m-A", nota: "volví a A" }));
+    expect(ultimoBorrador(a, TALLER)?.foto.productoId).toBe("m-A");
+  });
+  it("son diez como máximo por Taller: al llegar el once, se suelta el más viejo (el almacén del navegador es chico y no se llena de borradores olvidados)", () => {
+    const a = almacen();
+    for (let i = 1; i <= 11; i++) guardarBorrador(a, TALLER, foto({ productoId: `m-${i}` }));
+    expect(leerBorradorGuardado(a, TALLER, "m-1")).toBeNull();
+    expect(a.datos.has(claveDelBorrador(TALLER, "m-1"))).toBe(false);
+    for (let i = 2; i <= 11; i++) expect(leerBorradorGuardado(a, TALLER, `m-${i}`), `m-${i}`).not.toBeNull();
+    expect(ultimoBorrador(a, TALLER)?.foto.productoId).toBe("m-11");
+  });
+  it("un índice roto o con un modelo cuyo borrador ya no está se ignora: se ofrece el siguiente que sí se pueda leer", () => {
+    const a = almacen();
+    guardarBorrador(a, TALLER, foto({ productoId: "m-A" }));
+    a.datos.set(`cayla:borrador-orden:${TALLER}:indice`, JSON.stringify(["m-fantasma", "m-A"]));
+    expect(ultimoBorrador(a, TALLER)?.foto.productoId).toBe("m-A");
+    a.datos.set(`cayla:borrador-orden:${TALLER}:indice`, "no es json");
+    expect(ultimoBorrador(a, TALLER)).toBeNull();
+    a.datos.set(`cayla:borrador-orden:${TALLER}:indice`, JSON.stringify([1, 2]));
+    expect(ultimoBorrador(a, TALLER)).toBeNull();
+  });
+  it("es por Taller: el índice de uno no mezcla los borradores del otro", () => {
+    const a = almacen();
+    guardarBorrador(a, "t-1", foto({ productoId: "m-A" }));
+    guardarBorrador(a, "t-2", foto({ productoId: "m-B" }));
+    borrarBorrador(a, "t-1", "m-A");
+    expect(ultimoBorrador(a, "t-1")).toBeNull();
+    expect(ultimoBorrador(a, "t-2")?.foto.productoId).toBe("m-B");
+  });
+});
+
 describe("lo leído se valida: un borrador malo se ignora, no rompe nada", () => {
   const bueno = JSON.stringify({ v: 1, guardadoEn: "2026-10-25T15:00:00.000Z", foto: foto() });
   it("el bueno se lee", () => {
@@ -159,7 +205,7 @@ describe("lo leído se valida: un borrador malo se ignora, no rompe nada", () =>
   it("un borrador guardado a medias en el almacén (basura) se lee como «no hay»", () => {
     const a = almacen();
     a.datos.set(claveDelBorrador(TALLER, "m-1"), "{\"v\":1,");
-    a.datos.set(`cayla:borrador-orden:${TALLER}:ultimo`, "m-1");
+    a.datos.set(`cayla:borrador-orden:${TALLER}:indice`, JSON.stringify(["m-1"]));
     expect(leerBorradorGuardado(a, TALLER, "m-1")).toBeNull();
     expect(ultimoBorrador(a, TALLER)).toBeNull();
     expect(hayBorradorEnElTaller(a, TALLER)).toBe(false);

@@ -218,7 +218,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "borrador",
       ancla: "prod-ordenes.borrador",
       opcional: true,
-      titulo: "Lo que dejaste a medias",
+      titulo: "Una orden a medias",
       texto: "Si armas una orden y sales sin abrirla, queda guardada en este computador: aquí dice de qué modelo era, cuántas prendas llevaba y hace cuánto. «Retomar» la arma otra vez como la dejaste; «Descartar» la suelta, con «Deshacer» a mano. No se guarda en la base.",
     },
     {

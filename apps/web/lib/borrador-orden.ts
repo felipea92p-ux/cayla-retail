@@ -4,7 +4,8 @@ import type { TelaBorrador } from "./orden-tela-reglas";
 // El borrador de «Nueva orden» (ADR-0509): lo escrito sobrevive a salir de la pantalla. Un compositor sobre la lista se abandona con más facilidad que una hoja (basta tocar el menú) y
 // armar 120 blusas con sus fases son varios minutos. Reglas puras y un almacén que NUNCA lanza: sin Supabase ni React.
 //
-// DÓNDE VIVE. En el navegador (`localStorage`), por Taller y por modelo: `cayla:borrador-orden:<taller>:<modelo>` (`<modelo>` es el id del producto, o «nuevo» si se está creando uno). No hay
+// DÓNDE VIVE. En el navegador (`localStorage`), por Taller y por modelo: `cayla:borrador-orden:<taller>:<modelo>` (`<modelo>` es el id del producto, o «nuevo» si se está creando uno), y un índice
+// `cayla:borrador-orden:<taller>:indice` con los modelos que tienen borrador, el más reciente primero (son diez como máximo: el almacén del navegador es chico). No hay
 // estado «borrador» en la base (una orden solo está en proceso, terminada o anulada) y no hace falta: un borrador no es una orden. Nunca guarda dinero ni datos personales: cantidades, fases
 // y la nota que la persona escribió.
 //
@@ -53,7 +54,9 @@ export type Almacen = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 const VERSION = 1;
 const PREFIJO = "cayla:borrador-orden";
 export const claveDelBorrador = (tallerId: string, modelo: string) => `${PREFIJO}:${tallerId}:${modelo}`;
-const claveDelUltimo = (tallerId: string) => `${PREFIJO}:${tallerId}:ultimo`;
+const claveDelIndice = (tallerId: string) => `${PREFIJO}:${tallerId}:indice`;
+/** Cuántos borradores guarda un Taller: al llegar uno más, se suelta el más viejo. */
+const MAX_BORRADORES = 10;
 
 /** El modelo al que pertenece: el id del producto, o «nuevo» si se está creando uno; `null` si todavía no hay modelo (nada que guardar). */
 export function modeloDelBorrador(f: Pick<FotoDelBorrador, "modoModelo" | "productoId">): string | null {
@@ -125,14 +128,30 @@ export function almacenDelNavegador(): Almacen | null {
   }
 }
 
-/** Guarda el borrador y apunta que es el último del Taller. `true` solo si de verdad quedó guardado. Sin modelo o sin trabajo, no guarda nada. */
+/** Los modelos con borrador en este Taller, el más reciente primero. Un índice roto o de otro tipo se lee como vacío (nunca lanza: lo llama quien ya está dentro de un `try`, pero también la lista). */
+function leerIndice(almacen: Almacen, tallerId: string): string[] {
+  try {
+    const x: unknown = JSON.parse(almacen.getItem(claveDelIndice(tallerId)) ?? "[]");
+    return Array.isArray(x) && x.every(esTexto) ? x : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Guarda el borrador y lo pone primero en el índice del Taller. `true` solo si de verdad quedó guardado. Sin modelo o sin trabajo, no guarda nada. */
 export function guardarBorrador(almacen: Almacen | null, tallerId: string, foto: FotoDelBorrador, ahora: Date = new Date()): boolean {
   const modelo = modeloDelBorrador(foto);
   if (!almacen || !modelo || !tieneTrabajo(foto)) return false;
   try {
     const borrador: BorradorDeOrden = { v: VERSION, guardadoEn: ahora.toISOString(), foto };
     almacen.setItem(claveDelBorrador(tallerId, modelo), JSON.stringify(borrador));
-    almacen.setItem(claveDelUltimo(tallerId), modelo);
+    const indice = leerIndice(almacen, tallerId);
+    // Se guarda con cada letra que se escribe: si ya es el primero, el índice no se vuelve a escribir.
+    if (indice[0] !== modelo) {
+      const nuevo = [modelo, ...indice.filter((m) => m !== modelo)];
+      for (const viejo of nuevo.slice(MAX_BORRADORES)) almacen.removeItem(claveDelBorrador(tallerId, viejo));
+      almacen.setItem(claveDelIndice(tallerId), JSON.stringify(nuevo.slice(0, MAX_BORRADORES)));
+    }
     return true;
   } catch {
     return false;
@@ -148,23 +167,29 @@ export function leerBorradorGuardado(almacen: Almacen | null, tallerId: string, 
   }
 }
 
-/** El texto del último borrador tal como está guardado (el que ofrece la lista para retomar): un valor estable que comparar en `useSyncExternalStore`; se lee con `leerBorrador`. */
+/** El texto del borrador más reciente que se pueda leer (el que ofrece la lista para retomar): un valor estable que comparar en `useSyncExternalStore`; se lee con `leerBorrador`. Un modelo del índice
+ *  cuyo borrador ya no está o no se entiende se salta: se ofrece el siguiente. */
 export function textoDelUltimoBorrador(almacen: Almacen | null, tallerId: string): string | null {
   if (!almacen) return null;
   try {
-    const modelo = almacen.getItem(claveDelUltimo(tallerId));
-    return modelo ? almacen.getItem(claveDelBorrador(tallerId, modelo)) : null;
+    for (const modelo of leerIndice(almacen, tallerId)) {
+      const texto = almacen.getItem(claveDelBorrador(tallerId, modelo));
+      if (leerBorrador(texto)) return texto;
+    }
+    return null;
   } catch {
     return null;
   }
 }
 
-/** Borra el borrador de un modelo (se abrió la orden, se descartó, o se empezó de cero) y, si era el último, suelta el apunte. */
+/** Borra el borrador de un modelo (se abrió la orden, se descartó, o se empezó de cero) y lo saca del índice: el siguiente más reciente pasa a ser el que ofrece la lista. */
 export function borrarBorrador(almacen: Almacen | null, tallerId: string, modelo: string): void {
   if (!almacen) return;
   try {
     almacen.removeItem(claveDelBorrador(tallerId, modelo));
-    if (almacen.getItem(claveDelUltimo(tallerId)) === modelo) almacen.removeItem(claveDelUltimo(tallerId));
+    const resto = leerIndice(almacen, tallerId).filter((m) => m !== modelo);
+    if (resto.length > 0) almacen.setItem(claveDelIndice(tallerId), JSON.stringify(resto));
+    else almacen.removeItem(claveDelIndice(tallerId));
   } catch {
     /* sin almacén no había borrador que borrar */
   }

@@ -770,7 +770,7 @@ export function NuevaOrdenProduccionForm({
             <Aviso
               tono="info"
               guia="prod-orden-nueva.oferta"
-              titulo="Tienes una orden a medias de este modelo"
+              titulo="Hay una orden a medias de este modelo"
               accion={
                 <span className="flex flex-wrap gap-2">
                   <Boton type="button" peso="fantasma" onClick={() => onRetomar(oferta)}>

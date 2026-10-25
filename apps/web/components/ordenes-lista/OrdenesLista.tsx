@@ -381,7 +381,7 @@ export function OrdenesLista({
       {!nuevaAbierta && borradorGuardado && (
         <Aviso
           tono="info"
-          titulo="Dejaste una orden a medias"
+          titulo="Hay una orden a medias en este computador"
           guia="prod-ordenes.borrador"
           accion={
             <span className="flex flex-wrap gap-2">
