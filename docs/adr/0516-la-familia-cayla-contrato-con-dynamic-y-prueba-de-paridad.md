@@ -87,7 +87,7 @@ Ninguna función de la base y ningún permiso. Los cambios visibles son dos: el 
    `aplicacion_pendiente` en los dos repositorios. Revisar lo que dependa de que su campo (`hueso`) sea más oscuro que su tarjeta.
 2. **Decidir P3 a P9.** P6 pedirá su lámina. P4 (vocabulario) choca con el `CLAUDE.md` global de Felipe y el README de Dynamic, que todavía dicen «clienta» y
    «encargada», mientras Retail dice «cliente» y «encargado de sede» desde el 2026-10-02 (ADR-0288, act. k).
-3. **Mirar el ERP real en oscuro** con `tema:auditar` en una máquina con la pila local, y las pantallas con muchos campos juntos (la matriz de tallas, las celdas de una fila) ahora que llevan el borde de control.
+3. **Mirar el ERP real en oscuro** con `tema:auditar` en una máquina con la pila local. Las pantallas con muchos campos juntos ya se vieron (2026-10-26): no pesan.
 4. **Limpiar `packages/shared/src/design-tokens.ts`**, que sigue desfasado y nadie importa (solo `MAX_ROJO_POR_PANTALLA` se usa).
 
 ## Actualización 2026-10-26 (b) — P2 = C: el borde de un control tiene su propio color
@@ -102,7 +102,7 @@ bloque oscuro y `.papel-fijo` de `tema.css`). Lo llevan **lo que se toca o se es
   (`campos-y-casillas.css`, `vacio-aviso-buscador.css`, `alta-guia.css`, `globals.css`). El foco **no** quedó en tinta plena (como mostraba la lámina): en el ERP real se suma al anillo de foco de 2 px, y un borde negro además se leía como un doble marco.
 - **DESCARTÉ:** B (taupe pleno, como Dynamic), porque en oscuro da 6,9:1 y cada borde queda tan claro como el texto secundario; y A (dejar `sand`), porque Dynamic ya cumple 1.4.11 y la familia habría quedado dividida justo en lo que más se toca.
 - **SE ROMPE SI:** una pantalla dibuja a mano un campo con `border-sand` (no recibe el cambio; una búsqueda de `<input … border-sand>` en `components/` y `app/` no encontró ninguno, pero un campo armado con un contenedor y `border-sand` no se vería así); si Dynamic no cambia su alias `borde-control = taupe` (el comparador lo avisa mientras esté en `aplicacion_pendiente`);
-  o si las pantallas con muchos campos juntos (la matriz de tallas, las celdas de una fila de tabla) se ven pesadas con un borde de 3:1 en cada celda (no se miró: falta `tema:auditar` y una pasada por esas pantallas).
+  o si alguien pone las celdas tecleadas de una matriz (`border-transparent bg-hueso`, hechas a mano en `MatrizCantidades`, `MatrizStockFicha` y `FlujoTalla`) junto a las celdas con − y +, que sí llevan el borde: dentro de la misma tabla cambian de cara. **Mirado el 2026-10-26** con las piezas reales (matriz de 48 celdas y filas de tabla con cuatro campos, en claro y oscuro, antes y después): el borde de control no pesa y mejora los campos sobre una fila rayada; queda abierta la decisión de llevarlo también a esas celdas tecleadas (backlog de la rama).
 - **Verificación:** las piezas reales (`CampoMonto`, `CampoSelect`, `CampoTexto`, `Casilla`, `Interruptor`, `Boton`) en una página temporal bajo `/login`, en claro y oscuro: bordes `#96786a` y `#8d7a6e`, `sand` intacto en tarjeta y píldora, interruptor
   apagado con su aro y prendido sin él, foco con borde un escalón arriba, anillo y hilo. La página se borró al terminar. 176 pruebas de tema, familia, colores y foco en verde. No se corrió `tema:auditar`.
 
