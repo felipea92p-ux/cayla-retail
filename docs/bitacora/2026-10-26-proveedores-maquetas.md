@@ -13,3 +13,11 @@ Qué hice:
 - Revisadas a 1440 px en claro y oscuro y a 375 px sin desborde. La primera ronda queda marcada como descartada en su README.
 Por qué así: lo que Felipe necesita leer sin esfuerzo es «a quién le compro más» (tamaño) y «se vende o no» (color); lo demás va en etiquetas legibles junto al nombre.
 Estado: solo maquetas, sin PR. Falta que Felipe elija una de las tres.
+
+## 2026-10-26 (Proveedores v3: investigar primero, ranking + lo que no se ve)
+Qué hice:
+- Felipe descartó la v2 (espacio muerto, colores mal usados, «el mosaico es un error tremendo con muchos proveedores») y pidió investigar antes. `docs/maquetas/proveedores-v3-2026-10/INVESTIGACION.md`: con muchos registros el largo se lee mejor que el área (Cleveland y McGill, Heer y Bostock, «Raising the Bars»); una sola barra por fila; color solo para la excepción y siempre con forma y palabra; a la derecha una cola de excepciones por urgencia; las medidas de retail son vendido y semanas de stock (las que ya calcula `proveedor-ritmo-reglas.ts`).
+- Tres maquetas con 52 proveedores (los 11 reales del ADR-0502 y 41 inventados con semilla): ranking ordenado por **prendas compradas o dinero gastado**, filtros con su cuenta, buscador y «Ver los que faltan»; a la derecha, fija, «Lo que no se ve a simple vista» (Para hoy · Antes de volver a comprar · Oportunidades). **A · Tabla** (filas que se abren), **B · Concentración** (curva acumulada arriba y el detalle en la columna derecha) y **C · Compraste y vendiste** (dos puntos por fila; el tramo es lo que queda).
+- Revisadas a 1440 y 1920 px, claro y oscuro, y a 375 px sin desborde. La v2 queda marcada como descartada.
+Por qué así: lo pidió Felipe y lo respalda la investigación; la ficha se rediseña después de elegir la lista.
+Estado: solo maquetas, sin PR.

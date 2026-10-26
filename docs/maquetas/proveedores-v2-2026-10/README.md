@@ -1,5 +1,8 @@
 # Proveedores v2 · tamaño y color (2026-10-26)
 
+> **Descartada por Felipe el mismo día:** espacio desaprovechado, colores mal usados y el mosaico no sirve con muchos proveedores.
+> La tercera ronda (ranking + lo que no se ve, tras investigar) está en `../proveedores-v3-2026-10/`.
+
 Segunda ronda. Felipe vio la primera (`../proveedores-2026-10/`) y dijo: «No puedo identificar a simple vista a quién le compro más o a
 quién le compro menos, tengo que leer letras pequeñas para enterarme de cosas importantes. Usa los colores a tu favor para dar a entender a
 quién comprarle o el ritmo de venta». Esta ronda parte de dos reglas que valen para las tres direcciones:
