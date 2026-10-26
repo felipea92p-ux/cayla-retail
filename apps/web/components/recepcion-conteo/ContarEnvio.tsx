@@ -27,6 +27,7 @@ import {
   leerContadas,
   lineasALaVista,
   ponerTallas,
+  prendaCreadaDeNueva,
   textoPrendas,
   totalSeparado,
   veredictoDe,
@@ -50,6 +51,8 @@ import { SepararPrendas } from "./SepararPrendas";
 type Hoja =
   | { tipo: "tallas"; clave: ClaveLinea; original: PrendaSeparada; prenda: PrendaRecepcion }
   | { tipo: "prenda"; clave: ClaveLinea; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null }
+  // «Crear ahora» de una nueva ya descrita: la hoja de la prenda, sin una prenda de partida (la descripción es el nombre que se ofrece).
+  | { tipo: "crear"; clave: ClaveLinea; nueva: { cantidad: number; descripcion: string } }
   | { tipo: "agregar" }
   | null;
 
@@ -136,6 +139,19 @@ export function ContarEnvio({
       return;
     }
     setHoja({ tipo: "tallas", clave: l.clave, original: p, prenda: completa });
+  }
+
+  /**
+   * La prenda de «Crear ahora» ya existe (recién creada, o «Usar esa prenda»): esas nuevas dejan de estar «por crear» y pasan a ser la prenda,
+   * sin tallas todavía, y se sigue en su hoja de tallas. Se guarda ya: si la hoja de tallas se deja para después, la fila queda con
+   * «Tallas y colores ahora».
+   */
+  function prendaDeLaNueva(l: LineaParaContar, descripcion: string, prenda: PrendaRecepcion) {
+    onPrendaVista(prenda);
+    const separado = prendaCreadaDeNueva(l.conteo?.separado ?? { prendas: [], nuevas: [] }, descripcion, prenda);
+    onEscribir(l, { separado });
+    const original = separado.prendas.find((p) => p.productoId === prenda.productoId);
+    setHoja(original ? { tipo: "tallas", clave: l.clave, original, prenda } : null);
   }
 
   const lineaDeHoja = hoja && hoja.tipo !== "agregar" ? (visibles.find((l) => l.clave === hoja.clave) ?? null) : null;
@@ -263,6 +279,7 @@ export function ContarEnvio({
                     onSeparado={(s) => onEscribir(linea, { separado: s, contadas: Math.max(contadasDe(linea), (linea.conteo?.enStock ?? 0) + totalSeparado(s)) })}
                     onTallas={(p) => void abrirTallas(linea, p)}
                     onPrendaVista={onPrendaVista}
+                    onCrearNueva={(nueva) => setHoja({ tipo: "crear", clave: linea.clave, nueva })}
                   />
                 )}
                 {errorHoja && (
@@ -340,6 +357,26 @@ export function ContarEnvio({
             setHoja(null);
           }}
           onAbrirHoja={(modo, prenda) => setHoja({ tipo: "prenda", clave: hoja.clave, original: hoja.original, modo, prenda })}
+          onCerrar={() => setHoja(null)}
+        />
+      )}
+
+      {hoja?.tipo === "crear" && lineaDeHoja?.categoria && (
+        <HojaPrenda
+          // Lo que se describió al contar se ofrece como nombre, igual que con «Crear ahora» de «Para después».
+          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length), descripcionOrden: hoja.nueva.descripcion || (lineaDeHoja.linea?.descripcion ?? null) }}
+          categoria={categoriaDeHoja}
+          colores={catalogo?.colores ?? []}
+          responsable={responsable}
+          onListo={(prenda) => prendaDeLaNueva(lineaDeHoja, hoja.nueva.descripcion, prenda)}
+          onUsarExistente={async (productoId, nombre) => {
+            if (!lineaDeHoja.categoria) return false;
+            const { prendas: halladas } = await buscarPrendasParaRecibir(lineaDeHoja.categoria.id, marcaDeLinea(lineaDeHoja).id, nombre);
+            const hallada = halladas.find((x) => x.productoId === productoId);
+            if (!hallada) return false;
+            prendaDeLaNueva(lineaDeHoja, hoja.nueva.descripcion, hallada);
+            return true;
+          }}
           onCerrar={() => setHoja(null)}
         />
       )}

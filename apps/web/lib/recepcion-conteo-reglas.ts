@@ -316,6 +316,18 @@ export function cambiarCantidadNuevaDescrita(s: Separado, descripcion: string, c
 }
 
 /**
+ * «Crear ahora» de una nueva ya descrita: la prenda ya existe en el catálogo, así que esas nuevas dejan de estar «por crear» y pasan a ser una
+ * prenda conocida, todavía sin tallas ni colores (de ahí en adelante le toca «Tallas y colores ahora»). Cuántas eran se conserva: lo
+ * contado no cambia ni se pierde. Si esa prenda ya estaba separada (se creó una que ya existía, «Usar esa prenda»), se juntan: una prenda va
+ * una sola vez, como pide la base. Sin esa descripción en lo separado, no toca nada.
+ */
+export function prendaCreadaDeNueva(s: Separado, descripcion: string, prenda: { productoId: string; nombre: string | null; codigo: string | null }): Separado {
+  const nueva = s.nuevas.find((x) => x.descripcion === descripcion);
+  if (!nueva) return s;
+  return sumarPrenda({ ...s, nuevas: s.nuevas.filter((x) => x !== nueva) }, prenda, nueva.cantidad);
+}
+
+/**
  * Lo que se guarda de una línea: si lo separado pasa de lo contado, el número sube (perdonar antes que preguntar, ley 7 de /formidable): la
  * pantalla lo dice («Separaste más de lo que contaste: el conteo pasa a 12»). En un envío reabierto lo contado no baja de lo que ya entró.
  */
@@ -935,6 +947,17 @@ export type ParaDespues =
   | { tipo: "separar"; linea: ClaveLinea; cantidad: number; titulo: string; sub: string }
   | { tipo: "detalle"; linea: ClaveLinea; pendiente: PendienteDeLinea; cantidad: number; titulo: string; sub: string }
   | { tipo: "crear"; linea: ClaveLinea; pendiente: PendienteDeLinea; cantidad: number; titulo: string; sub: string };
+
+/**
+ * Lo que dice el botón de cada fila de «Para después»: lo que hace, con las mismas palabras que «¿Qué … son?» al contar («+ Crear ahora»,
+ * «Tallas y colores ahora»). Un pendiente «detalle» —una prenda que ya existe y espera sus tallas y colores, sea porque se separó sin
+ * ellas o porque se acaba de crear— dice lo que le falta, no el genérico «Hacer ahora» de «Separar».
+ */
+export const BOTON_DE_PENDIENTE: Record<ParaDespues["tipo"], string> = {
+  separar: "Hacer ahora",
+  detalle: "Tallas y colores ahora",
+  crear: "+ Crear ahora",
+};
 
 /** Lo que queda por terminar, línea por línea: lo sin separar, cada «detalle» y cada «crear» con lo que todavía no entró. */
 export function paraDespues(lineas: readonly LineaParaContar[]): ParaDespues[] {
