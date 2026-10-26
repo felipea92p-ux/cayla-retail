@@ -178,3 +178,5 @@ El Resumen dibuja las pestañas «Lo que dice la historia» y «Cuánto cuesta»
 
 Vistas con cifras de ejemplo (solo en desarrollo): `/finanzas/resumen?inversion=ejemplo`.
 
+
+**Contrato aprobado por Felipe (2026-10-26, en el chat del Plan):** columna `visibilidad_finanzas` con `'todo' | 'escenarios' | 'nada'` (por defecto `'todo'`) y una lectura del plan que devuelve, por campaña, valor sin IGV, IGV y lo que sale de caja **separados en «falta pedir» y «pedido»**, más la lista de pagos y la visibilidad. Nombre y formato son definitivos; **construirlo aún no está aprobado** (tarea #10 del Plan). Cuando exista la función, `leerInversion` se adapta a su forma (hoy lee `plan_sin_igv`, `igv`, `pedido` y `pagado`) y `getInversionMercaderia` llama a la RPC; el resto del Resumen no cambia.
