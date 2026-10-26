@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Mis compras · el código de cada envío y su historial</title>
+<title>Mis compras · envíos por ronda</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@400;500&display=swap">
 <style>
@@ -213,7 +213,7 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
 .tarjeta-codigo .mini { text-transform: uppercase; letter-spacing: .1em; font-size: 11px; font-weight: 600; }
 .chip-e.neutro { background: var(--hueso); color: var(--taupe); }
 .chip-e.rojo { background: color-mix(in srgb, var(--rojo) 14%, transparent); color: var(--rojo); }
-.cod-mini { font-family: var(--serif); font-size: 17px; font-variant-numeric: tabular-nums; }
+.cod-mini { white-space: nowrap; font-family: var(--serif); font-size: 17px; font-variant-numeric: tabular-nums; }
 .buscador { display:flex; align-items:center; gap:8px; background: var(--hueso); border-radius: 14px; min-height: 48px; padding: 0 14px; }
 .buscador input { border:0; background:transparent; font:inherit; color:var(--tinta); width:100%; }
 .buscador input:focus { outline:none; }
@@ -227,13 +227,21 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
 .linea-tiempo i { width:10px; height:10px; border-radius:50%; background:var(--sand); margin-top:5px; display:block; }
 .linea-tiempo .ok { color:var(--tinta); } .linea-tiempo .ok i { background:var(--verde); }
 .linea-tiempo .ahora { color:var(--tinta); font-weight:600; } .linea-tiempo .ahora i { background:var(--tinta); }
+.rcard, .lista { flex: none; }
+.rcard { background: var(--papel); border:1px solid var(--sand); border-radius:18px; overflow:hidden; }
+.rcard > button.rcab { width:100%; border:0; background:transparent; text-align:left; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; padding:12px 14px; }
+.rcard .rcuerpo { border-top:1px solid var(--sand); }
+.rcard .rcuerpo .fila:first-child { border-top:0; }
+.seg { display:grid; grid-template-columns:1fr 1fr; background:var(--hueso); border-radius:14px; padding:4px; gap:4px; }
+.seg button { border:0; background:transparent; border-radius:11px; min-height:40px; font-weight:500; font-size:13.5px; }
+.seg button[aria-pressed="true"] { background:var(--tinta); color:var(--sobre); }
 .ver-todos { display:flex; justify-content:space-between; align-items:center; }
 </style>
 <div class="envoltura">
   <header>
     <div class="eyebrow">Compras ▸ Mis compras ▸ Envíos · maqueta tocable · 26 de octubre de 2026</div>
-    <h1>El código de cada envío y su historial</h1>
-    <p class="bajada">Hoy, al tocar «Mandar a la tienda», el código del envío (<b>ENV-000118</b>) existe pero no se ve: la compradora no tiene cómo avisarle a la sede qué buscar en «Recibir», ni cómo volver a verlo. Aquí: (1) el código grande apenas se manda, con «Copiar»; (2) «Mis envíos», con el historial de lo que mandó y en qué quedó cada uno; (3) el detalle de uno. Toca el teléfono.</p>
+    <h1>El código de cada envío, por ronda</h1>
+    <p class="bajada">Hoy, al tocar «Mandar a la tienda», el código del envío (<b>ENV-000118</b>) existe pero no se ve: la compradora no tiene cómo avisarle a la sede qué buscar en «Recibir», ni cómo volver a verlo. Aquí: (1) el código grande apenas se manda; (2) «Mis envíos» de la ronda abierta y, aparte, los de rondas anteriores; (3) una ronda cerrada con sus envíos; (4) cerrar la ronda con sus códigos a la vista. Toca el teléfono.</p>
     <span class="ejemplo">● Datos de ejemplo: Marisol manda a Lima, Trujillo y Arequipa</span>
   </header>
   <section class="escena">
@@ -243,22 +251,24 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
 </div>
 <script>
 (() => {
-  const S = (n) => "S/ " + Number(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const ESTADOS = {
-    en_camino: ["En camino", "pizarra", "La tienda todavía no lo abre"],
-    abierto: ["La tienda lo está contando", "ambar", "Ya lo abrieron en la tienda"],
-    cerrado: ["Recibido", "verde", "La tienda ya lo contó"],
-    anulado: ["Anulado", "rojo", "Se anuló y no salió"],
+    en_camino: ["En camino", "pizarra"], abierto: ["La tienda lo cuenta", "ambar"], cerrado: ["Recibido", "verde"], anulado: ["Anulado", "rojo"],
   };
+  const RONDAS = [
+    { texto: "RC-000612", fechas: "desde hoy 08:30" },
+    { texto: "RC-000611", fechas: "22 – 24 oct", cierre: "Te quedaste S/ 120.00 para tu próxima ronda", compras: 3, gastos: 1, salio: "S/ 904.00" },
+    { texto: "RC-000610", fechas: "18 – 19 oct", cierre: "Devolviste S/ 85.00 en caja", compras: 2, gastos: 2, salio: "S/ 412.50" },
+  ];
   const INICIO = () => ({
-    sig: 118, vista: "inicio", hoja: null, aviso: null, copiado: false, q: "", filtro: "todos", det: null,
+    sig: 117, vista: "inicio", hoja: null, aviso: null, copiado: false, q: "", filtro: "todos", alcance: "esta", det: null, abierta: true, ronda: null, abiertas: { "RC-000611": true },
     porMandar: [{ t: "Tienda Trujillo", n: 10, prendas: ["Casaca Corta ×4", "Jean Mom ×6"] }, { t: "Tienda Lima", n: 6, prendas: ["Blusa Emma ×6"] }],
-    fardos: { "Tienda Trujillo": 1, "Tienda Lima": 1 },
-    ultimo: null,
+    fardos: { "Tienda Trujillo": 1, "Tienda Lima": 1 }, ultimo: null,
     envios: [
-      { cod: "ENV-000109", t: "Tienda Arequipa", dia: "Viernes 24 oct", hora: "16:20", n: 24, fardos: 2, estado: "cerrado", recibido: "Sáb 25 oct · 10:05 por Rosa (Arequipa)", contadas: 24, ronda: "RC-000611", prendas: ["Jean Recto ×14", "Blusa Luz ×10"] },
-      { cod: "ENV-000104", t: "Tienda Trujillo", dia: "Miércoles 22 oct", hora: "09:12", n: 12, fardos: 1, estado: "cerrado", recibido: "Mié 22 oct · 17:30 por Micaela (Trujillo)", contadas: 10, ronda: "RC-000611", prendas: ["Polo Tito ×12"] },
-      { cod: "ENV-000098", t: "Tienda Lima", dia: "Domingo 19 oct", hora: "18:40", n: 8, fardos: 1, estado: "cerrado", recibido: "Lun 20 oct · 09:15 por Camila (Lima)", contadas: 8, ronda: "RC-000610", prendas: ["Casaca Corta ×8"] },
+      { cod: "ENV-000116", ronda: "RC-000612", t: "Tienda Arequipa", dia: "Hoy", hora: "09:48", n: 8, fardos: 1, estado: "abierto", prendas: ["Vestido Aurora ×8"] },
+      { cod: "ENV-000109", ronda: "RC-000611", t: "Tienda Arequipa", dia: "Viernes 24 oct", hora: "16:20", n: 24, fardos: 2, estado: "cerrado", recibido: "Sáb 25 oct · 10:05 por Rosa (Arequipa)", contadas: 24, prendas: ["Jean Recto ×14", "Blusa Luz ×10"] },
+      { cod: "ENV-000104", ronda: "RC-000611", t: "Tienda Trujillo", dia: "Miércoles 22 oct", hora: "09:12", n: 12, fardos: 1, estado: "cerrado", recibido: "Mié 22 oct · 17:30 por Micaela (Trujillo)", contadas: 10, prendas: ["Polo Tito ×12"] },
+      { cod: "ENV-000098", ronda: "RC-000610", t: "Tienda Lima", dia: "Domingo 19 oct", hora: "18:40", n: 8, fardos: 1, estado: "cerrado", recibido: "Lun 20 oct · 09:15 por Camila (Lima)", contadas: 8, prendas: ["Casaca Corta ×8"] },
+      { cod: "ENV-000095", ronda: "RC-000610", t: "Tienda Trujillo", dia: "Sábado 18 oct", hora: "17:05", n: 9, fardos: 1, estado: "en_camino", atraso: 9, prendas: ["Falda Plisada ×9"] },
     ],
   });
   let st = INICIO();
@@ -267,39 +277,67 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
   function avisar(t) { st.aviso = t; render(); clearTimeout(avisar.x); avisar.x = setTimeout(() => { st.aviso = null; render(); }, 1800); }
   const chip = (e) => `<span class="chip-e ${ESTADOS[e][1]}">${ESTADOS[e][0]}</span>`;
   const faltan = (e) => e.estado === "cerrado" && e.contadas < e.n;
-
-  // ---------- Inicio ----------
-  function seccionEnvios() {
-    const ult = st.envios.slice(0, 3);
-    return `<div class="seccion ver-todos"><h3>Mis envíos</h3><button class="btn sutil" data-ir="envios">Ver todos · ${st.envios.length}</button></div>
-      <div class="lista">${ult.map((e, k) => `<button class="fila envio" data-det="${e.cod}"><span style="min-width:0"><div class="t"><span class="cod-mini">${e.cod}</span> · ${e.t.replace("Tienda ", "")}</div><div class="d">${e.dia === "Hoy" ? "Hoy" : e.dia.split(" ").slice(-2).join(" ")} ${e.hora} · ${e.n} prendas · ${e.fardos} fardo${e.fardos > 1 ? "s" : ""}</div></span><span class="m" style="font-weight:500">${chip(e.estado)}</span></button>`).join("")}</div>`;
+  const cabe = (e) => e.dia === "Hoy" ? "Hoy " + e.hora : e.dia.split(" ").slice(-2).join(" ") + " " + e.hora;
+  const deRonda = (r) => st.envios.filter(e => e.ronda === r);
+  const prendasDe = (l) => l.reduce((s, e) => s + e.n, 0);
+  const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`;
+  // Cómo quedó una ronda con sus envíos, dicho en una frase y su chip.
+  function resumen(r) {
+    const l = deRonda(r), sin = l.filter(e => ["en_camino", "abierto"].includes(e.estado)).length, dif = l.filter(faltan).length;
+    if (!l.length) return { txt: "Sin envíos", chip: "" };
+    const txt = `${plural(l.length, "envío", "envíos")} · ${plural(prendasDe(l), "prenda", "prendas")}`;
+    const atras = l.some(e => e.atraso);
+    const chipx = atras ? `<span class="chip-e ambar">${sin} sin recibir</span>` : sin ? `<span class="chip-e pizarra">${sin} sin recibir</span>` : dif ? `<span class="chip-e ambar">${dif} con diferencias</span>` : `<span class="chip-e verde">Todo recibido</span>`;
+    return { txt, chip: chipx };
   }
+  const fila = (e, conRonda) => `<button class="fila envio" data-det="${e.cod}"><span style="min-width:0"><div class="t"><span class="cod-mini">${e.cod}</span> · ${e.t.replace("Tienda ", "")}</div><div class="d">${cabe(e)} · ${plural(e.n, "prenda", "prendas")} · ${plural(e.fardos, "fardo", "fardos")}${conRonda ? " · " + e.ronda : ""}</div></span><span class="m" style="font-weight:500">${chip(e.estado)}${faltan(e) ? `<br><span class="mini" style="color:var(--ambar)">faltaron ${e.n - e.contadas}</span>` : ""}${e.atraso ? `<br><span class="mini" style="color:var(--ambar)">hace ${e.atraso} días</span>` : ""}</span></button>`;
   const V = {};
   V.inicio = () => {
-    const n = st.porMandar.reduce((s, x) => s + x.n, 0);
+    const n = st.porMandar.reduce((s, x) => s + x.n, 0), act = deRonda("RC-000612");
+    const r = RONDAS[0];
+    if (!st.abierta) return `<div class="cab"><div><div class="mini">Hola, Marisol · Tienda Lima</div><h2 class="titulo">Mis compras</h2></div></div>
+      <div class="abrir"><span class="t">¿Sales a comprar?</span><span class="sub">Abre tu ronda: lo que compres y gastes queda junto, y al volver la cierras.</span><button class="btn primario grande" data-accion="reiniciar">Abrir mi ronda</button></div>
+      ${anteriores()}`;
     return `<div class="cab"><div><div class="mini">Hola, Marisol · Tienda Lima</div><h2 class="titulo">Mis compras</h2></div></div>
-      ${n ? `<button class="franja ambar" data-hoja="mandar"><span>📦</span><span><b>Falta mandar ${n} prendas</b>${st.porMandar.map(x => x.t.replace("Tienda ", "").slice(0, 3).toUpperCase() + " " + x.n).join(" · ")}</span><span class="ir">Mandar →</span></button>` : `<div class="franja" style="background:var(--verde-suave);color:var(--verde)"><span>✓</span><span><b>Todo lo que compraste ya salió</b>Los códigos están en «Mis envíos»</span></div>`}
-      ${seccionEnvios()}
-      <div class="seccion"><h3>En esta ronda</h3><span class="mini">desde hoy 08:30</span></div>
-      <div class="lista"><div class="fila"><span class="ico">🛍</span><span style="min-width:0"><div class="t">Compra a Moda Gamarra</div><div class="d">09:15 · 4 prendas · ${st.porMandar.length ? "falta mandar a TRU" : "enviada · " + (st.ultimo ? st.ultimo.cod : "ENV-000118")}</div></span><span class="m">− S/ 220.00</span></div></div>`;
+      ${n ? `<button class="franja ambar" data-hoja="mandar"><span>📦</span><span><b>Falta mandar ${n} prendas</b>${st.porMandar.map(x => x.t.replace("Tienda ", "").slice(0, 3).toUpperCase() + " " + x.n).join(" · ")}</span><span class="ir">Mandar →</span></button>` : `<div class="franja" style="background:var(--verde-suave);color:var(--verde);cursor:default"><span>✓</span><span><b>Todo lo de esta ronda ya salió</b>Sus códigos están en «Mis envíos»</span></div>`}
+      <div class="seccion ver-todos"><h3>Envíos de esta ronda</h3><button class="btn sutil" data-ir="envios">Ver todos</button></div>
+      ${act.length ? `<div class="lista">${act.map(e => fila(e)).join("")}</div>` : `<div class="lista"><div class="fila" style="grid-template-columns:1fr"><span class="d">Todavía no mandaste nada en la ronda ${r.texto}.</span></div></div>`}
+      <div class="seccion"><h3>En esta ronda</h3><span class="mini">${r.texto} · ${r.fechas}</span></div>
+      <div class="lista"><div class="fila"><span class="ico">🛍</span><span style="min-width:0"><div class="t">Compra a Moda Gamarra</div><div class="d">09:15 · 4 prendas · ${st.porMandar.length ? "falta mandar a TRU" : "enviada"}</div></span><span class="m">− S/ 220.00</span></div></div>
+      <button class="btn ancho" data-hoja="cerrar">🏁 Cerrar mi ronda ${r.texto}</button>
+      ${anteriores()}`;
   };
-  // ---------- Mis envíos ----------
+  function anteriores() {
+    return `<div class="seccion"><h3>Rondas anteriores</h3><button class="btn sutil" data-ir="envios-ant">Ver envíos</button></div>
+      <div class="lista">${RONDAS.slice(1).map(r => { const x = resumen(r.texto); return `<button class="fila envio" data-ronda="${r.texto}"><span style="min-width:0"><div class="t">Ronda ${r.texto}</div><div class="d">${r.fechas} · ${x.txt}</div></span><span class="m">${x.chip}</span></button>`; }).join("")}</div>`;
+  }
   function filtrados() {
     const q = st.q.trim().toLowerCase();
     return st.envios.filter(e => (st.filtro === "todos" || (st.filtro === "camino" ? ["en_camino", "abierto"].includes(e.estado) : e.estado === "cerrado"))
-      && (!q || e.cod.toLowerCase().includes(q) || e.t.toLowerCase().includes(q)));
+      && (q ? (e.cod.toLowerCase().includes(q) || e.t.toLowerCase().includes(q) || e.ronda.toLowerCase().includes(q)) : (st.alcance === "esta" ? e.ronda === "RC-000612" : e.ronda !== "RC-000612")));
   }
   V.envios = () => {
-    const lista = filtrados(), dias = [...new Set(lista.map(e => e.dia))];
-    const cuenta = (f) => st.envios.filter(e => f === "todos" || (f === "camino" ? ["en_camino", "abierto"].includes(e.estado) : e.estado === "cerrado")).length;
+    const lista = filtrados(), buscando = st.q.trim() !== "";
+    const cuenta = (a) => st.envios.filter(e => a === "esta" ? e.ronda === "RC-000612" : e.ronda !== "RC-000612").length;
+    const filtros = `<div class="chips">${[["todos", "Todos"], ["camino", "Sin recibir"], ["recibidos", "Recibidos"]].map(([k, n]) => `<button class="chip" aria-pressed="${st.filtro === k}" data-filtro="${k}">${n}</button>`).join("")}</div>`;
+    let cuerpo;
+    if (buscando) cuerpo = lista.length ? `<div class="dia">Resultados de todas las rondas</div><div class="lista">${lista.map(e => fila(e, true)).join("")}</div>` : `<div class="lista"><div class="fila" style="grid-template-columns:1fr"><span class="d">No hay un envío así. Revisa el código o quita el filtro.</span></div></div>`;
+    else if (st.alcance === "esta") {
+      const dias = [...new Set(lista.map(e => e.dia))];
+      cuerpo = `<div class="dia">Ronda ${RONDAS[0].texto} · abierta · ${RONDAS[0].fechas}</div>` + (lista.length ? `<div class="lista">${lista.map(e => fila(e)).join("")}</div>` : `<div class="lista"><div class="fila" style="grid-template-columns:1fr"><span class="d">${st.filtro === "todos" ? "Todavía no mandaste nada en esta ronda." : "Nada con ese filtro."}</span></div></div>`)
+        + (st.porMandar.length ? `<button class="franja ambar" data-hoja="mandar"><span>📦</span><span><b>Falta mandar ${st.porMandar.reduce((s, x) => s + x.n, 0)} prendas</b>Cuando salgan, aparecen aquí con su código</span><span class="ir">Mandar →</span></button>` : "");
+    } else {
+      cuerpo = RONDAS.slice(1).map(r => {
+        const l = lista.filter(e => e.ronda === r.texto), x = resumen(r.texto), abierta = st.abiertas[r.texto];
+        if (!l.length && st.filtro !== "todos") return "";
+        return `<div class="rcard"><button class="rcab" data-acordeon="${r.texto}" aria-expanded="${!!abierta}"><span style="min-width:0"><div class="t" style="font-weight:600;white-space:nowrap">Ronda ${r.texto}</div><div class="d mini">${r.fechas} · cerrada<br>${x.txt}</div></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">${x.chip}<span aria-hidden="true" class="mini">${abierta ? "▴" : "▾"}</span></span></button>${abierta ? `<div class="rcuerpo">${l.map(e => fila(e)).join("") || `<div class="fila" style="grid-template-columns:1fr"><span class="d">Nada con ese filtro.</span></div>`}</div>` : ""}</div>`;
+      }).join("");
+    }
     return `<div class="cab"><button class="volver" data-ir="inicio" aria-label="Volver a Mis compras">←</button><div><div class="mini">Mis compras</div><h2 class="titulo" style="font-size:30px">Mis envíos</h2></div></div>
-      <p class="sub">Todo lo que mandaste a las tiendas, con su código. Dáselo a la tienda: lo busca en «Recibir».</p>
-      <label class="buscador"><span aria-hidden="true">🔎</span><input id="buscar" placeholder="Busca un código o una tienda" value="${st.q}" autocomplete="off" aria-label="Buscar un envío"></label>
-      <div class="chips">${[["todos", "Todos"], ["camino", "Sin recibir"], ["recibidos", "Recibidos"]].map(([k, n]) => `<button class="chip" aria-pressed="${st.filtro === k}" data-filtro="${k}">${n} · ${cuenta(k)}</button>`).join("")}</div>
-      ${dias.length ? dias.map(d => `<div class="dia">${d}</div><div class="lista">${lista.filter(e => e.dia === d).map(e => `<button class="fila envio" data-det="${e.cod}"><span style="min-width:0"><div class="t"><span class="cod-mini">${e.cod}</span></div><div class="d">${e.hora} · ${e.t} · ${e.n} prendas · ${e.fardos} fardo${e.fardos > 1 ? "s" : ""}</div></span><span class="m" style="font-weight:500">${chip(e.estado)}${faltan(e) ? `<br><span class="mini" style="color:var(--ambar)">faltaron ${e.n - e.contadas}</span>` : ""}</span></button>`).join("")}</div>`).join("")
-        : `<div class="lista"><div class="fila" style="grid-template-columns:1fr"><span class="d">No hay un envío así. Revisa el código o quita el filtro.</span></div></div>`}`;
+      <div class="seg" role="group" aria-label="Qué envíos ver"><button aria-pressed="${st.alcance === "esta"}" data-alcance="esta">Esta ronda · ${cuenta("esta")}</button><button aria-pressed="${st.alcance === "anteriores"}" data-alcance="anteriores">Rondas anteriores · ${cuenta("anteriores")}</button></div>
+      <label class="buscador"><span aria-hidden="true">🔎</span><input id="buscar" placeholder="Busca un código, una tienda o una ronda" value="${st.q}" autocomplete="off" aria-label="Buscar un envío"></label>
+      ${filtros}${cuerpo}`;
   };
-  // ---------- Hojas ----------
   const H = {};
   H.mandar = () => `<h3>Mandar a las tiendas</h3><p class="sub">Toca «Mandar» cuando entregues el paquete (el fardo) al transporte. Te damos el código para avisar a la tienda.</p>
     <div class="lista">${st.porMandar.map(x => `<div class="fila" style="grid-template-columns:36px minmax(0,1fr);align-items:start"><span class="ico">📦</span><span><div class="t" style="white-space:normal">${x.t}</div><div class="d">${x.n} prendas · ${x.prendas.join(" · ")}</div>
@@ -308,46 +346,61 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
     <div class="pie"><button class="btn ancho" data-accion="cerrar-hoja">Cerrar</button></div>`;
   H.mandado = () => { const u = st.ultimo; return `<div class="listo" style="padding-top:6px;gap:8px"><div class="sello" style="width:60px;height:60px;font-size:26px">✓</div>
     <h3>Salió el envío a ${u.t.replace("Tienda ", "")}</h3>
-    <div class="tarjeta-codigo" style="width:100%"><span class="mini">Código del envío</span><span class="codigo" aria-label="Código ${u.cod}">${u.cod}</span><span class="sub">${u.n} prendas · ${u.fardos} fardo${u.fardos > 1 ? "s" : ""} · ${u.hora}</span></div>
+    <div class="tarjeta-codigo" style="width:100%"><span class="mini">Código del envío</span><span class="codigo">${u.cod}</span><span class="sub">${u.n} prendas · ${u.fardos} fardo${u.fardos > 1 ? "s" : ""} · ${u.hora} · ronda ${u.ronda}</span></div>
     <p class="sub">Avísale a la tienda este código: lo busca en <b style="color:var(--tinta)">Recibir</b> y lo cuenta.</p>
     <div style="display:flex;flex-direction:column;gap:10px;width:100%">
       <button class="btn primario grande" data-accion="copiar">${st.copiado ? "✓ Código copiado" : "Copiar el código"}</button>
       <button class="btn ancho" data-accion="compartir">Compartir por WhatsApp</button>
-      ${st.porMandar.length ? `<button class="btn sutil" data-hoja="mandar">Mandar a la siguiente tienda (${st.porMandar.length})</button>` : `<button class="btn sutil" data-ir="envios" >Ver mis envíos</button>`}</div></div>`; };
+      ${st.porMandar.length ? `<button class="btn sutil" data-hoja="mandar">Mandar a la siguiente tienda (${st.porMandar.length})</button>` : `<button class="btn sutil" data-ir="envios">Ver mis envíos</button>`}</div></div>`; };
   H.detalle = () => { const e = st.envios.find(x => x.cod === st.det); const dif = faltan(e);
     const pasos = e.estado === "cerrado" ? [["ok", `Salió · ${e.dia} ${e.hora}`], ["ok", "La tienda lo abrió y lo contó"], ["ok", "Recibido · " + e.recibido]] : e.estado === "abierto" ? [["ok", `Salió · ${e.dia} ${e.hora}`], ["ahora", "La tienda lo está contando"], ["", "Recibido"]] : [["ok", `Salió · ${e.dia} ${e.hora}`], ["ahora", "En camino: la tienda todavía no lo abre"], ["", "Recibido"]];
     return `<h3>${e.t}</h3>
       <div class="tarjeta-codigo"><span class="mini">Código del envío</span><span class="codigo">${e.cod}</span>${chip(e.estado)}</div>
       <div class="par"><button class="btn" data-accion="copiar-det">${st.copiado ? "✓ Copiado" : "Copiar código"}</button><button class="btn" data-accion="compartir">Compartir</button></div>
       <div class="linea-tiempo">${pasos.map(([c, t]) => `<div class="${c}"><i></i><span>${t}</span></div>`).join("")}</div>
+      ${e.atraso ? `<div class="franja ambar" style="cursor:default"><span>⏳</span><span><b>Salió hace ${e.atraso} días y la tienda no lo abrió</b>Avísale a Trujillo el código ${e.cod}: lo busca en Recibir.</span></div>` : ""}
       ${dif ? `<div class="franja ambar" style="cursor:default"><span>⚠</span><span><b>La tienda contó ${e.contadas} de ${e.n}</b>Faltaron ${e.n - e.contadas}: Compras lo revisa con el proveedor.</span></div>` : ""}
-      <div class="cuaderno"><div><span>Prendas</span><span>${e.n}</span></div><div><span>Fardos</span><span>${e.fardos}</span></div><div><span>Ronda</span><span>${e.ronda}</span></div></div>
+      <div class="cuaderno"><div><span>Prendas</span><span>${e.n}</span></div><div><span>Fardos</span><span>${e.fardos}</span></div><div><span>Ronda</span><span>${e.ronda}${e.ronda === "RC-000612" ? " · abierta" : " · cerrada"}</span></div></div>
       <div><div class="mini" style="margin-bottom:4px">Lo que llevaba</div>${e.prendas.map(p => `<div class="detalle-linea"><span>${p.split(" ×")[0]}</span><span>× ${p.split("×")[1]}</span></div>`).join("")}</div>
       <div class="pie"><button class="btn ancho" data-accion="cerrar-hoja">Cerrar</button></div>`; };
-
-  // ---------- Notas ----------
+  H.ronda = () => { const r = RONDAS.find(x => x.texto === st.ronda), l = deRonda(r.texto), x = resumen(r.texto);
+    return `<h3>Ronda ${r.texto}</h3><p class="sub">${r.fechas} · cerrada</p>
+      <div class="cuaderno"><div><span>Compras</span><span>${r.compras}</span></div><div><span>Otros gastos</span><span>${r.gastos}</span></div><div class="tot"><span>Salió de tu plata</span><span>${r.salio}</span></div></div>
+      <p class="nota" style="font-size:13px;color:var(--taupe)">${r.cierre}.</p>
+      <div class="seccion"><h3 style="font-size:20px">Envíos de esta ronda</h3>${x.chip}</div>
+      <div class="lista">${l.map(e => fila(e)).join("")}</div>
+      <div class="pie"><button class="btn ancho" data-accion="cerrar-hoja">Cerrar</button></div>`; };
+  H.cerrar = () => { const r = RONDAS[0], l = deRonda(r.texto), n = st.porMandar.reduce((s, x) => s + x.n, 0), x = resumen(r.texto);
+    return `<h3>Cerrar mi ronda ${r.texto}</h3>
+      <div class="cuaderno"><div><span>Te dieron</span><span>S/ 1,500.00</span></div><div><span>Compraste</span><span>− S/ 304.00</span></div><div><span>Gastaste</span><span>− S/ 18.00</span></div><div class="tot"><span>Te queda</span><span>S/ 1,178.00</span></div></div>
+      <div class="seccion"><h3 style="font-size:20px">Tus envíos de la ronda</h3>${x.chip}</div>
+      ${l.length ? `<div class="lista">${l.map(e => fila(e)).join("")}</div>` : `<p class="sub">No mandaste nada en esta ronda.</p>`}
+      ${n ? `<button class="franja ambar" data-hoja="mandar"><span>📦</span><span><b>Antes, manda ${n} prendas</b>${st.porMandar.map(y => y.t.replace("Tienda ", "").slice(0, 3).toUpperCase() + " " + y.n).join(" · ")}</span><span class="ir">Mandar →</span></button>` : `<p class="sub">Los envíos que sigan «en camino» los puedes seguir viendo en «Mis envíos» después de cerrar.</p>`}
+      <div class="pie par"><button class="btn" data-accion="cerrar-hoja">Todavía no</button><button class="btn primario" data-accion="cerrar-ronda" ${n ? "disabled" : ""}>Cerrar la ronda</button></div>`; };
   const NOTAS = {
-    inicio: ["Mis compras", ["Debajo de lo que falta mandar, «Mis envíos»: los últimos tres, cada uno con su código y en qué quedó.", "Una compra de la ronda dice a qué envío salió («enviada · ENV-000118») en vez de solo «falta mandar».", "Cuando no falta nada, la franja ámbar pasa a verde y dice dónde están los códigos."]],
-    mandar: ["Mandar a las tiendas", ["Igual que hoy: un fardo o varios y un botón por tienda. Lo nuevo viene al tocarlo.", "Tocar «Mandar» guarda el envío de verdad: la sede ya lo ve «en camino» en Recibir."]],
-    mandado: ["Salió el envío: el código", ["<b>El código se ve grande apenas sale</b>: ENV-000118, el mismo que la tienda busca en «Recibir». Hoy se crea y se pierde en un aviso que desaparece.", "«Copiar el código» lo deja listo para pegar en un mensaje; «Compartir» abre WhatsApp con el texto armado («Marisol: salió el ENV-000118 a Trujillo, 10 prendas, 1 fardo»).", "Si faltan más tiendas, el botón de abajo sigue con la siguiente; si no, lleva a «Mis envíos»."]],
-    envios: ["Mis envíos", ["Lo que mandó la persona, del más nuevo al más viejo y agrupado por día. Con su código a la vista.", "Se busca por código o por tienda. Los filtros son tres: todos, sin recibir y recibidos.", "El chip dice en qué quedó: en camino, la tienda lo está contando, recibido o anulado. Si la tienda contó menos, lo dice sin alarmar («faltaron 2»).", "Es una pantalla de solo lectura: no guarda nada."]],
-    detalle: ["Un envío", ["El código otra vez en grande, con «Copiar» y «Compartir» (para avisar de nuevo).", "Una línea de tiempo corta: salió, la tienda lo abrió, recibido, con quién y cuándo.", "Si la tienda contó menos prendas, un aviso ámbar dice cuántas faltaron y que Compras lo revisa con el proveedor.", "Abajo, lo que llevaba y a qué ronda pertenece."]],
+    inicio: ["Mis compras · con la ronda abierta", ["«Envíos de esta ronda» muestra solo los de la ronda abierta (RC-000612), con su código y en qué van. Lo que todavía falta mandar sigue arriba, en la franja ámbar.", "Una vez que sale un envío, aparece aquí al instante; no hay que ir a otra pantalla para ver su código.", "Más abajo, «Rondas anteriores»: cada una con cuántos envíos tuvo y si quedó algo sin recibir."]],
+    mandar: ["Mandar a las tiendas", ["Igual que hoy: un fardo o varios y un botón por tienda.", "Tocar «Mandar» guarda el envío de verdad: la sede ya lo ve «en camino» en Recibir. Lo que cambia es lo que ve la compradora después."]],
+    mandado: ["Salió el envío: el código", ["El código se ve grande apenas sale, con la ronda a la que pertenece (RC-000612).", "«Copiar» y «Compartir por WhatsApp» (el mensaje sale armado)."]],
+    envios: ["Mis envíos · esta ronda / anteriores", ["Arriba, dos opciones: <b>Esta ronda</b> (los de la ronda abierta, con la franja de lo que falta mandar) y <b>Rondas anteriores</b>.", "En «Rondas anteriores» cada ronda cerrada es una tarjeta plegada con su resumen: cuántos envíos y prendas, y un chip («Todo recibido», «1 con diferencias», «1 sin recibir» en ámbar). Se abre ahí mismo; la más reciente viene abierta.", "Buscar por código, tienda o ronda trae resultados de <b>todas</b> las rondas, cada uno con su ronda al lado: así se encuentra un código viejo sin saber en cuál ronda salió.", "Los filtros (todos · sin recibir · recibidos) valen en las dos vistas. Es de solo lectura."]],
+    detalle: ["Un envío", ["El mismo detalle para cualquier ronda; dice si la ronda sigue abierta o ya se cerró.", "Un envío que salió hace días y no lo abrieron muestra un aviso con el código: es el que hay que recordarle a la tienda."]],
+    ronda: ["Una ronda cerrada", ["Al tocar una ronda en «Rondas anteriores» se abre su hoja: el cuaderno de lo que compró y gastó, cómo cerró y, nuevo, <b>los envíos de esa ronda</b> con su código.", "Cada envío se abre en su detalle. Así un código de hace dos semanas está a dos toques del inicio."]],
+    cerrar: ["Cerrar la ronda", ["La cuenta de siempre y, nuevo, <b>«Tus envíos de la ronda»</b>: los códigos a la vista antes de cerrar, por si hay que avisar algo a una tienda.", "Con prendas por mandar, el cierre sigue apagado y la franja manda a «Mandar a la tienda» (ya es así hoy). Un envío «en camino» no bloquea: puede cerrarse y seguirse en «Mis envíos».", "Al cerrar, los envíos de la ronda pasan a «Rondas anteriores» sin perderse."]],
   };
-  const INDICE = [["inicio", "Inicio"], ["h:mandar", "Mandar"], ["h:mandado", "Salió: el código"], ["envios", "Mis envíos"], ["h:detalle", "Un envío"], ["h:dif", "Con diferencias"]];
-  const claveNota = () => st.hoja || st.vista;
+  const INDICE = [["inicio", "Inicio · ronda abierta"], ["h:mandado", "Salió: el código"], ["envios", "Mis envíos · esta ronda"], ["envios-ant", "Mis envíos · anteriores"], ["buscar", "Buscar un código"], ["h:ronda", "Una ronda cerrada"], ["h:cerrar", "Cerrar · con envíos"], ["h:cerrar-ok", "Cerrar · todo mandado"], ["h:atraso", "Un envío sin recibir"], ["h:dif", "Con diferencias"], ["cerrada", "Inicio · ronda cerrada"]];
+  const claveNota = () => st.hoja === "mandar" ? "mandar" : st.hoja || (st.vista === "envios" ? "envios" : st.vista);
   function render() {
     pantalla.innerHTML = V[st.vista]();
     capa.innerHTML = (st.hoja ? `<div class="velo" data-fondo="1"><div class="hoja" role="dialog"><div class="asa"></div>${H[st.hoja]()}</div></div>` : "") + (st.aviso ? `<div class="aviso" role="status">✓ ${st.aviso}</div>` : "");
     const [t, b] = NOTAS[claveNota()] || NOTAS.inicio;
     notas.innerHTML = `<div><span class="eyebrow">Qué cambia aquí</span><h2>${t}</h2></div>
       <div class="tarj"><ul>${b.map(x => `<li>${x}</li>`).join("")}</ul></div>
-      <div class="tarj igual"><h4>Lo que ya existe</h4><span>El código ya se crea: es el correlativo del envío (<b>ENV-000118</b>, el mismo que usa «Recibir» en las sedes) y la base ya lo devuelve al mandar. Lo que falta es <b>mostrarlo</b> y una lectura de solo lectura con los envíos de cada persona. No cambia lo que guarda «Mandar a la tienda».</span></div>
+      <div class="tarj igual"><h4>Cómo se decide a qué ronda va un envío</h4><span>Un envío lleva las prendas que la compradora ya compró para esa tienda, y como el cierre de la ronda exige que nada quede por mandar, <b>todo envío sale dentro de su ronda abierta</b>. Por eso «Mis envíos» puede agruparse por ronda sin ambigüedad. La ronda se lee de las compras del envío; no hay que guardar nada nuevo para eso.</span></div>
       <div class="tarj"><h4>Ir a una pantalla</h4><div class="indice">${INDICE.map(([c, n]) => `<button data-ver="${c}" aria-current="${c === claveNota() || c === "h:" + claveNota()}">${n}</button>`).join("")}</div><button class="btn sutil" style="align-self:flex-start" data-accion="reiniciar">Reiniciar la demo</button></div>`;
   }
   function ir(v) { st.vista = v; st.hoja = null; render(); pantalla.scrollTop = 0; }
   function nuevoEnvio(t) {
     const x = st.porMandar.find(y => y.t === t), cod = "ENV-" + String(st.sig++).padStart(6, "0");
-    const e = { cod, t, dia: "Hoy", hora: "10:4" + (st.envios.filter(z => z.dia === "Hoy").length + 2), n: x.n, fardos: st.fardos[t], estado: "en_camino", ronda: "RC-000612", prendas: x.prendas };
+    const e = { cod, ronda: "RC-000612", t, dia: "Hoy", hora: "10:4" + st.envios.filter(z => z.dia === "Hoy").length, n: x.n, fardos: st.fardos[t], estado: "en_camino", prendas: x.prendas };
     st.envios.unshift(e); st.ultimo = e; st.porMandar = st.porMandar.filter(y => y.t !== t); st.copiado = false;
   }
   document.addEventListener("input", (e) => { if (e.target.id === "buscar") { st.q = e.target.value; const p = e.target.selectionStart; render(); const b = $("#buscar"); b.focus(); b.setSelectionRange(p, p); } });
@@ -356,15 +409,26 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
     if (el.dataset.fondo) { if (e.target === el) { st.hoja = null; render(); } return; }
     const d = el.dataset;
     if (d.ver) {
-      if (d.ver === "inicio" || d.ver === "envios") { if (d.ver === "inicio") st = INICIO(); else { st.hoja = null; } ir(d.ver); return; }
-      if (d.ver === "h:mandar") { st = INICIO(); st.hoja = "mandar"; st.vista = "inicio"; render(); return; }
-      if (d.ver === "h:mandado") { st = INICIO(); nuevoEnvio("Tienda Trujillo"); st.hoja = "mandado"; render(); return; }
-      if (d.ver === "h:detalle") { st.det = "ENV-000109"; st.vista = "envios"; st.hoja = "detalle"; render(); return; }
-      if (d.ver === "h:dif") { st.det = "ENV-000104"; st.vista = "envios"; st.hoja = "detalle"; render(); return; }
+      const v = d.ver; st = INICIO();
+      if (v === "inicio") { st.vista = "inicio"; }
+      else if (v === "envios") st.vista = "envios";
+      else if (v === "envios-ant") { st.vista = "envios"; st.alcance = "anteriores"; }
+      else if (v === "buscar") { st.vista = "envios"; st.q = "104"; }
+      else if (v === "h:mandado") { nuevoEnvio("Tienda Trujillo"); st.hoja = "mandado"; }
+      else if (v === "h:ronda") { st.ronda = "RC-000611"; st.hoja = "ronda"; }
+      else if (v === "h:cerrar") { st.hoja = "cerrar"; }
+      else if (v === "h:cerrar-ok") { st.porMandar = []; st.hoja = "cerrar"; }
+      else if (v === "h:atraso") { st.det = "ENV-000095"; st.vista = "envios"; st.alcance = "anteriores"; st.hoja = "detalle"; }
+      else if (v === "h:dif") { st.det = "ENV-000104"; st.vista = "envios"; st.alcance = "anteriores"; st.hoja = "detalle"; }
+      else if (v === "cerrada") { st.porMandar = []; st.abierta = false; }
+      render(); pantalla.scrollTop = 0; return;
     }
-    if (d.ir) { st.hoja = null; ir(d.ir); return; }
+    if (d.ir) { st.hoja = null; if (d.ir === "envios-ant") { st.alcance = "anteriores"; ir("envios"); } else ir(d.ir); return; }
     if (d.hoja) { st.hoja = d.hoja; render(); return; }
     if (d.det) { st.det = d.det; st.copiado = false; st.hoja = "detalle"; render(); return; }
+    if (d.ronda) { st.ronda = d.ronda; st.hoja = "ronda"; render(); return; }
+    if (d.alcance) { st.alcance = d.alcance; render(); return; }
+    if (d.acordeon) { st.abiertas[d.acordeon] = !st.abiertas[d.acordeon]; render(); return; }
     if (d.filtro) { st.filtro = d.filtro; render(); return; }
     if (d.fardo) { st.fardos[d.fardo] = Math.max(1, st.fardos[d.fardo] + Number(d.d)); render(); return; }
     if (d.mandar) { nuevoEnvio(d.mandar); st.hoja = "mandado"; render(); return; }
@@ -372,6 +436,7 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
       case "cerrar-hoja": st.hoja = null; break;
       case "copiar": case "copiar-det": st.copiado = true; render(); setTimeout(() => { st.copiado = false; render(); }, 1600); return;
       case "compartir": avisar("Se abrió WhatsApp con el mensaje armado"); return;
+      case "cerrar-ronda": st.abierta = false; st.hoja = null; st.vista = "inicio"; RONDAS[0] = RONDAS[0]; avisar("Cerraste tu ronda RC-000612"); return;
       case "reiniciar": st = INICIO(); break;
       default: return;
     }
