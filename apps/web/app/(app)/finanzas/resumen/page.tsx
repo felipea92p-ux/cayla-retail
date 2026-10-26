@@ -5,6 +5,7 @@ import { leerVerResumen } from "@/lib/resumen-finanzas-reglas";
 import { getEstadoResultados } from "@/lib/resultados";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { getFlujoProximo, getVentasPorDia } from "@/lib/resumen-telar";
+import { getInversionMercaderia } from "@/lib/inversion-mercaderia";
 import { esMesTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 import { tiendasDeLaLinea, tramoDeComparacion, tramoDelMes } from "@/lib/resumen-telar-reglas";
 import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
@@ -15,9 +16,10 @@ import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
 //   - `fn_estado_resultados` del mes elegido (al día de hoy si es el mes en curso) y del tramo con que se compara: la respuesta de
 //     la cabecera, el orillo y el recorrido salen de aquí, así que el mes de la barra filtra de verdad (auditoría v3);
 //   - `fn_rendimiento_serie` de cada tienda, si la cuenta ve Rendimiento: la línea de ventas contra la meta;
-//   - `fn_flujo_caja_proyeccion`, la misma de Dinero ▸ Flujo: «Tu caja en las próximas dos semanas».
+//   - `fn_flujo_caja_proyeccion`, la misma de Dinero ▸ Flujo: «Tu caja en las próximas dos semanas»;
+//   - la inversión en mercadería que entrega el Plan de campaña (`getInversionMercaderia`): hoy la base no la trae y el Resumen no ofrece nada.
 // Quien no ve las finanzas de todo mira su sede: lo decide la base.
-export default async function ResumenFinanzasPage({ searchParams }: { searchParams: Promise<{ ver?: string; sede?: string; mes?: string }> }) {
+export default async function ResumenFinanzasPage({ searchParams }: { searchParams: Promise<{ ver?: string; sede?: string; mes?: string; inversion?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
   const sp = await searchParams;
   const hoy = hoyLima();
@@ -28,13 +30,14 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   const tramo = tramoDelMes(mes, hoy)!;
   const comparar = tramoDeComparacion(mes, hoy);
 
-  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo] = await Promise.all([
+  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion] = await Promise.all([
     getResumenFinanzas(pedido),
     getConfianzaFinanzas(pedido, mes),
     getEstadoResultados(tramo.desde, tramo.hasta),
     getEstadoResultados(comparar.desde, comparar.hasta),
     getSedesDelTelar(),
     getFlujoProximo(),
+    getInversionMercaderia(hoy, sp.inversion === "ejemplo"),
   ]);
   const tiendas = datos ? tiendasDeLaLinea(datos) : [];
   const ventas = veModulo(persona, "rendimiento") ? await getVentasPorDia(tiendas, tramo.desde, tramo.hasta) : null;
@@ -51,6 +54,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       ventasPorDia={ventas}
       sedes={telar.sedes}
       flujoProximo={flujoProximo}
+      inversion={inversion.datos}
       acceso={{ lider: veTodo, modulos: persona.modulos.map((m) => m.clave) }}
     />
   );

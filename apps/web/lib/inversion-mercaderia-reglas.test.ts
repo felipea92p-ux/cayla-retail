@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { Proyeccion } from "./flujo-caja-reglas";
 import {
   avisoDeInversion,
+  formaEfectiva,
+  pagosDeLaCompra,
   cajaConCompra,
   diasParaPedir,
   evaluarFormas,
@@ -237,5 +239,38 @@ describe("el aviso de «te falta pedir»", () => {
   it("sin nada por pedir o sin fecha límite no hay aviso (no se inventa urgencia)", () => {
     expect(avisoDeInversion(camp({ pedido: 18400 }), HOY, true)).toBeNull();
     expect(avisoDeInversion(camp({ fechaLimite: null }), HOY, true)).toBeNull();
+  });
+});
+
+describe("qué forma de pago cuenta la caja", () => {
+  const justa = proy({ saldoHoy: 12000, minimoCaja: 5000, semanas: [sem("2026-11-02", 12000), sem("2026-11-09", 12000), sem("2026-11-16", 12000), sem("2026-11-23", 12000), sem("2026-11-30", 20000), sem("2026-12-07", 20000)] });
+  const plan = camp({ pedido: 0, pagado: 0, planSinIgv: 10593, igv: 1907 });
+  const evaluadas = (c: CampanaInversion) => evaluarFormas(justa, formasDePago(c, HOY, true));
+
+  it("la que la persona eligió; si no, «Tu plan»; si no, la mejor mezcla", () => {
+    expect(formaEfectiva(evaluadas(plan), "junto")!.clave).toBe("junto");
+    expect(formaEfectiva(evaluadas(plan), undefined)!.clave).toBe("tandas");
+    const conPlan = camp({ pedido: 0, pagado: 0, planSinIgv: 10593, igv: 1907, pagos: [{ fecha: "2026-11-30", pct: 100 }] });
+    expect(formaEfectiva(evaluadas(conPlan), undefined)!.clave).toBe("plan");
+  });
+
+  it("una forma elegida que ya no existe (cambió la campaña) cae a la de siempre, no a un error", () => {
+    expect(formaEfectiva(evaluadas(plan), "inventada")!.clave).toBe("tandas");
+  });
+
+  it("si ninguna forma cumple, la caja cuenta «Todo junto» para mostrar el daño; sin nada que comparar, no suma nada", () => {
+    const grande = camp({ pedido: 0, pagado: 0, planSinIgv: 90000, igv: 16200 });
+    expect(mejorMezcla(evaluadas(grande))).toBeNull();
+    expect(formaEfectiva(evaluadas(grande), undefined)!.clave).toBe("junto");
+    expect(formaEfectiva([], "junto")).toBeNull();
+    expect(pagosDeLaCompra([camp({ pedido: 18400 })], justa, true, {})).toEqual([]);
+  });
+
+  it("los pagos de varias campañas se juntan por fecha", () => {
+    const a = camp({ id: "a", pedido: 0, pagado: 0, planSinIgv: 4000, igv: 720, fechaLimite: "2026-11-20" });
+    const b = camp({ id: "b", pedido: 0, pagado: 0, planSinIgv: 4000, igv: 720, fechaLimite: "2026-11-05" });
+    const pagos = pagosDeLaCompra([a, b], justa, true, { a: "junto", b: "junto" });
+    expect(pagos.map((x) => x.fecha)).toEqual(["2026-11-05", "2026-11-20"]);
+    expect(suma(pagos)).toBe(9440);
   });
 });

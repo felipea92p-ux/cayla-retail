@@ -1,13 +1,16 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { BookOpen, CalendarCheck, ChartColumn, Percent, Wallet } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
+import { AjustesResumen } from "@/components/finanzas/AjustesResumen";
 import { CajaProximaPieza } from "@/components/finanzas/CajaProxima";
+import { InversionMercaderia } from "@/components/finanzas/InversionMercaderia";
+import { useAjustesResumen } from "@/components/finanzas/useAjustesResumen";
 import { CambiosDelMesPieza } from "@/components/finanzas/CambiosDelMes";
 import { DeCadaCienPieza } from "@/components/finanzas/DeCadaCien";
 import { Confianza } from "@/components/finanzas/Confianza";
@@ -27,7 +30,9 @@ import { deCadaCien } from "@/lib/de-cada-cien-reglas";
 import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
 import { tresRespuestas } from "@/lib/tres-respuestas-reglas";
 import { cambiosDelMes } from "@/lib/resumen-cambios-reglas";
-import { avisosParaDecidir, noRevisado, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
+import { avisosParaDecidir, noRevisado, ordenarAvisos, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
+import { campanasQueSeVen } from "@/lib/ajustes-resumen-reglas";
+import { avisoDeInversion, pagosDeLaCompra, type CampanaInversion } from "@/lib/inversion-mercaderia-reglas";
 import {
   mesAnteriorDe,
   respuestaResumen,
@@ -62,13 +67,20 @@ type Props = {
   sedes: SedeTelar[];
   /** La proyección de caja con sus cobros y salidas por día (la de Dinero ▸ Flujo), para «Tu caja en las próximas dos semanas». */
   flujoProximo: FlujoProximo;
+  /** La inversión en mercadería que entrega el Plan de campaña; `null` si esta base aún no la trae (entonces no se ofrece nada). */
+  inversion: CampanaInversion[] | null;
   acceso: Acceso;
 };
 
 const FRASE = "Por dónde pasa la plata del mes: de lo que vende cada tienda a lo que te queda.";
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, flujoProximo, acceso }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, flujoProximo, inversion, acceso }: Props) {
   const sp = useSearchParams();
+  // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
+  const [ajustes, ponerAjustes] = useAjustesResumen();
+  const [elegidas, setElegidas] = useState<Record<string, string>>({});
+  const [abierta, setAbierta] = useState<string | null>(null);
+  const delPlan = inversion ?? [];
   const mesDeHoy = mesDelDia(hoy);
   const enCurso = mes === mesDeHoy;
   // Las acciones del dock llevan la sede y el mes que se miran (`hrefTelar`).
@@ -112,10 +124,19 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
   const cien = deCadaCien(recorrido);
   const faltan = noRevisado(resumen);
-  const caja = cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver });
-  // «Hoy te toca» y «Tu caja» cuentan el mismo hecho con el mismo número (el punto más bajo de las dos semanas).
+  // La inversión en mercadería es de CAYLA entera: mirando una sola sede no se reparte (como el saldo de los bancos), así que ahí no se dibuja.
+  const todasLasCampanas = r.ver.todas ? delPlan : [];
+  const campanas = campanasQueSeVen(todasLasCampanas, ajustes);
+  // La compra de campaña que falta pedir entra a la caja como un pago aparte (no como un gasto) si la persona la deja y se mira CAYLA entera.
+  const proyeccion = flujoProximo.estado === "ok" ? flujoProximo.datos : null;
+  const pagosDeCompra = ajustes.enCaja && proyeccion ? pagosDeLaCompra(campanas, proyeccion, ajustes.conIgv, elegidas) : [];
+  const caja = cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver, inversion: pagosDeCompra.length ? { pagos: pagosDeCompra, dias: 42 } : null });
+  // «Hoy te toca» y «Tu caja» cuentan el mismo hecho con el mismo número (el punto más bajo que ve la tarjeta, con la compra si está contada).
   const verReportes = acceso.lider || acceso.modulos.includes("reportes_financieros");
-  const avisos = alinearAvisoDeCaja(avisosParaDecidir(resumen, acceso), caja, verReportes ? "/finanzas/reportes/escenarios" : null);
+  const avisos = ordenarAvisos([
+    ...alinearAvisoDeCaja(avisosParaDecidir(resumen, acceso), caja, verReportes ? "/finanzas/reportes/escenarios" : null),
+    ...campanas.flatMap((c) => avisoDeInversion(c, hoy, ajustes.conIgv) ?? []),
+  ]);
   const sede = r.ver.todas ? "Todas las sedes" : r.ver.soloEmpresa ? "Empresa" : r.ver.nombre.replace(/^Tienda\s+/i, "");
   const hrefDeSede = acceso.lider
     ? Object.fromEntries(sedes.map((s) => [s.clave, hrefTelar("/finanzas/resumen", sp.entries(), { sede: s.clave }, { mismaPantalla: true, mesDeHoy })]))
@@ -142,7 +163,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
           quedaba tan angosta que partía el texto palabra por palabra). Más angosto, una bajo la otra. Sin huecos (Felipe 2026-10-26). */}
       <section className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(20rem,1fr)]">
         <div {...alto(2)}>
-          <CajaProximaPieza caja={caja} hrefFlujo={ir("/finanzas/reportes/flujo")} className="h-full" />
+          <CajaProximaPieza caja={caja} hrefFlujo={ir("/finanzas/reportes/flujo")} className="h-full" incluye={ajustes.conIgv ? "inversión en mercadería (con IGV)" : "inversión en mercadería"} />
         </div>
 
         <div {...alto(3)} data-guia="fin-resumen.decidir">
@@ -162,6 +183,20 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
           </Superficie>
         </div>
       </section>
+
+      {/* No es un gasto: sale de la caja cuando se paga. Solo existe si el Plan de campaña la entrega (hoy la base no) y se deja ver. */}
+      <InversionMercaderia
+        campanas={campanas}
+        conIgv={ajustes.conIgv}
+        hoy={hoy}
+        proyeccion={proyeccion}
+        elegidas={elegidas}
+        onElegir={(id, clave) => setElegidas((e) => ({ ...e, [id]: clave }))}
+        abierta={abierta}
+        onAbrir={setAbierta}
+        ocultasAqui={todasLasCampanas.some((c) => c.visible) && campanas.length === 0}
+      />
+      <AjustesResumen campanas={todasLasCampanas.filter((c) => c.visible)} ajustes={ajustes} onCambiar={ponerAjustes} />
 
       {/* Lo demás, en columnas que se llenan una tras otra: cada tarjeta queda pegada a la de arriba, sin aire. Con ancho para dos
           columnas de 34 rem se reparten (el navegador corta donde las deja más parejas); con menos, van en una sola (Felipe 2026-10-26). */}

@@ -303,3 +303,26 @@ export function avisoDeInversion(c: CampanaInversion, hoy: string, conIgv: boole
     peso: falta,
   };
 }
+
+// ---- Qué forma de pago cuenta la caja ----------------------------------------------------------------------------------------------------
+
+/**
+ * La forma de pago que la caja cuenta para una campaña: la que la persona eligió si todavía existe; si no, «Tu plan» (lo que ya dejó escrito),
+ * si no, la mejor mezcla y, si ninguna cumple, «Todo junto»: la más dura, para que la caja muestre el daño en vez de esconderlo. Eso no la vuelve
+ * «la mejor mezcla»: esa etiqueta solo la lleva una que cumple. Sin ninguna forma que comparar (nada por pedir, sin fecha), `null`.
+ */
+export function formaEfectiva(formas: readonly FormaEvaluada[], elegida: string | null | undefined): FormaEvaluada | null {
+  const dela = formas.find((f) => f.clave === elegida);
+  if (dela) return dela;
+  const plan = formas.find((f) => f.clave === "plan");
+  if (plan) return plan;
+  const mejor = mejorMezcla(formas);
+  return formas.find((f) => f.clave === mejor) ?? formas.find((f) => f.clave === "junto") ?? formas[0] ?? null;
+}
+
+/** Todos los pagos que la caja suma: los de la forma efectiva de cada campaña que se ve. */
+export function pagosDeLaCompra(campanas: readonly CampanaInversion[], p: Proyeccion, conIgv: boolean, elegidas: Readonly<Record<string, string>>): Pago[] {
+  return campanas
+    .flatMap((c) => formaEfectiva(evaluarFormas(p, formasDePago(c, p.hoy, conIgv)), elegidas[c.id])?.pagos ?? [])
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+}

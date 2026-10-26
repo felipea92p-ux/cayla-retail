@@ -7,7 +7,7 @@ import { Linea, topeRedondo } from "@/components/ui/Linea";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
-import { estadoDeCaja, fechaEnPalabras, type CajaCayla, type CajaProxima, type CajaSede, type SalidaGrande } from "@/lib/caja-proxima-reglas";
+import { diasEntre, estadoDeCaja, fechaEnPalabras, ventanaEnPalabras, type CajaCayla, type CajaProxima, type CajaSede, type SalidaGrande } from "@/lib/caja-proxima-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
 
 // Finanzas ▸ Resumen, «Tu caja en las próximas dos semanas» (Felipe 2026-10-24, spike 1). Solo DIBUJA lo que arma `cajaProxima`: la línea del
@@ -15,12 +15,13 @@ import { soles } from "@/lib/flujo-caja-reglas";
 // pantalla con JavaScript). Mirando una sede no hay línea: el saldo de los bancos es de CAYLA entera y repartirlo sería inventarlo.
 // Las piezas son las del sistema (`Linea`, `TarjetaCifra`, `BarraApilada`): esta no dibuja nada a mano.
 
-const TITULO = "Tu caja en las próximas dos semanas";
+const tituloDe = (dias: number) => `Tu caja en las próximas ${ventanaEnPalabras(dias)}`;
+const TITULO = tituloDe(14);
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const diaYMes = (iso: string) => `${Number(iso.slice(8, 10))} ${MESES_CORTOS[Number(iso.slice(5, 7)) - 1]}`;
 
-export function CajaProximaPieza({ caja, hrefFlujo, className = "" }: { caja: CajaProxima; hrefFlujo: string; className?: string }) {
+export function CajaProximaPieza({ caja, hrefFlujo, className = "", incluye }: { caja: CajaProxima; hrefFlujo: string; className?: string; /** Lo que la caja suma además de lo que ya sabía («inversión en mercadería, con IGV»): un chip que lo dice. */ incluye?: string }) {
   if (caja.tipo === "oculta") return null;
   if (caja.tipo === "falla")
     return (
@@ -28,7 +29,7 @@ export function CajaProximaPieza({ caja, hrefFlujo, className = "" }: { caja: Ca
         <CabeceraBloque titulo={TITULO} bajada="No se pudo leer la caja. Vuelve a cargar la página en un rato: el resto del Resumen sigue igual." />
       </Superficie>
     );
-  return caja.tipo === "sede" ? <CajaDeSede caja={caja} hrefFlujo={hrefFlujo} className={className} /> : <CajaDeCayla caja={caja} hrefFlujo={hrefFlujo} className={className} />;
+  return caja.tipo === "sede" ? <CajaDeSede caja={caja} hrefFlujo={hrefFlujo} className={className} /> : <CajaDeCayla caja={caja} hrefFlujo={hrefFlujo} className={className} incluye={incluye} />;
 }
 
 /** Lo que más pesa en el horizonte, con la misma lista de montos del resto de Finanzas. */
@@ -52,8 +53,8 @@ function Pesan({ mayores }: { mayores: readonly SalidaGrande[] }) {
 }
 
 /** Los chips de estado: a la derecha del título en escritorio, y bajo él en el celular (a 375 px el título quedaba en una columna angosta). */
-function Estados({ c, estado, className }: { c: CajaCayla; estado: string | null; className: string }) {
-  if (!c.provisional && !estado) return null;
+function Estados({ c, estado, className, incluye }: { c: CajaCayla; estado: string | null; className: string; incluye?: string }) {
+  if (!c.provisional && !estado && !(incluye && c.conInversion)) return null;
   return (
     <div className={`${className} shrink-0 flex-wrap items-center justify-end gap-2`}>
       {c.provisional && (
@@ -62,11 +63,17 @@ function Estados({ c, estado, className }: { c: CajaCayla; estado: string | null
         </Chip>
       )}
       {estado && <Chip tono={c.tono}>{estado}</Chip>}
+      {incluye && c.conInversion && (
+        <Chip tono="pizarra" versalitas={false} title="La compra de campaña que falta pedir está contada como un pago aparte, no como un gasto">
+          Incluye {incluye}
+        </Chip>
+      )}
     </div>
   );
 }
 
-function CajaDeCayla({ caja: c, hrefFlujo, className }: { caja: CajaCayla; hrefFlujo: string; className: string }) {
+function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCayla; hrefFlujo: string; className: string; incluye?: string }) {
+  const titulo = tituloDe(diasEntre(c.hoy, c.hasta));
   const ultimo = c.puntos.at(-1)!;
   const menor = Math.min(...c.puntos.map((p) => p.saldo));
   const minY = menor < 0 ? -topeRedondo(-menor) : 0;
@@ -75,17 +82,19 @@ function CajaDeCayla({ caja: c, hrefFlujo, className }: { caja: CajaCayla; hrefF
   // El chip sale de lo que pasa, no del color: el ámbar es «bajo tu mínimo» (dentro de las dos semanas) y también «ojo después».
   const estado = estadoDeCaja(c)?.texto ?? null;
   // Las marcas del eje: hoy, la mitad y el último día, con su mes («31 oct», «7 nov»): el horizonte casi siempre cruza de mes.
-  const marcas = [0, 7, ultimo.dia]
+  const paso = ultimo.dia > 14 ? 14 : 7;
+  const marcas = [...[...Array(Math.floor(ultimo.dia / paso) + 1)].map((_, k) => k * paso), ultimo.dia]
     .filter((x, k, a) => x <= ultimo.dia && a.indexOf(x) === k)
     .map((x) => ({ x, texto: x === 0 ? "hoy" : diaYMes(c.puntos.find((p) => p.dia === x)?.fecha ?? c.hoy), fuerte: x === 0 }));
-  const etiqueta = `${TITULO}. ${c.titular} Hoy tienes ${soles(c.saldoHoy)}; hasta el ${fechaEnPalabras(c.hasta)} sale ${soles(c.sale)} y te quedan ${soles(c.queda)}.`;
+  const etiqueta = `${titulo}. ${c.titular} Hoy tienes ${soles(c.saldoHoy)}; hasta el ${fechaEnPalabras(c.hasta)} sale ${soles(c.sale)} y te quedan ${soles(c.queda)}.`;
 
   return (
     <Superficie pad guia="fin-resumen.caja" className={className}>
-      <CabeceraBloque titulo={TITULO} bajada={c.titular}>
-        <Estados c={c} estado={estado} className="hidden sm:flex" />
+      {/* Con la compra de campaña son tres chips (provisional, estado, «incluye…»): al lado del título lo dejaban en una columna de 8 letras, así que van debajo. */}
+      <CabeceraBloque titulo={titulo} bajada={c.titular}>
+        {!c.conInversion && <Estados c={c} estado={estado} className="hidden sm:flex" incluye={incluye} />}
       </CabeceraBloque>
-      <Estados c={c} estado={estado} className="mb-3 sm:hidden" />
+      <Estados c={c} estado={estado} className={c.conInversion ? "mb-3 flex justify-start" : "mb-3 sm:hidden"} incluye={incluye} />
 
       {/* Escritorio: la línea del saldo contra tu mínimo. */}
       <div className="hidden sm:block">
@@ -93,6 +102,7 @@ function CajaDeCayla({ caja: c, hrefFlujo, className }: { caja: CajaCayla; hrefF
           etiqueta={etiqueta}
           serie={c.puntos.map((p) => ({ x: p.dia, y: p.saldo }))}
           referencia={hayMinimo ? [{ x: 0, y: c.minimo }, { x: ultimo.dia, y: c.minimo }] : null}
+          proyeccion={c.conInversion ? c.conInversion.sin.map((p) => ({ x: p.dia, y: p.saldo })) : null}
           desde={0}
           hasta={ultimo.dia}
           minY={minY}
