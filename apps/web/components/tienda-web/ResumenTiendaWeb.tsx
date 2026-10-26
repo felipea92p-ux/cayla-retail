@@ -29,6 +29,7 @@ import { soles } from "@/lib/precio-sede-reglas";
 import {
   fraseSinPedidos,
   fraseVentana,
+  hayTiendasAMedias,
   lecturasCaidas,
   pendientesDe,
   sinPedidosAbiertos,
@@ -64,6 +65,8 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
   const vitrina = entrada.vitrina.estado === "ok" ? entrada.vitrina.dato : null;
   const tiendasVisibles = sedes ? sedes.filter((s) => s.tono === "verde").length : null;
   const conVentana = entrada.vitrina.estado !== "sin_modulo";
+  // «Tiendas en la web» solo cuando una está a medias: con todas bien repetía el pie de la ventana, y el caso a medias ya es un pendiente.
+  const conTiendas = hayTiendasAMedias(sedes);
 
   return (
     <div className="tw space-y-8">
@@ -98,9 +101,11 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
         </Aviso>
       ) : null}
 
-      {(conVentana || sedes) && (
-        <div className={`grid gap-5 ${conVentana && sedes ? "xl:grid-cols-[minmax(0,1fr)_19rem]" : ""}`}>
+      {(conVentana || conTiendas) && (
+        <div className={`grid gap-5 ${conVentana && conTiendas ? "xl:grid-cols-[minmax(0,1fr)_19rem]" : ""}`}>
           {conVentana && (
+            // Sola (sin la tarjeta de tiendas al lado), la ventana conserva su tamaño de siempre: a todo el ancho sus prendas medían 225 px de alto.
+            <div className={`min-w-0 ${conTiendas ? "" : "max-w-3xl"}`}>
             <MarcoWeb
               etiqueta="La vitrina de la tienda online, como la ve el cliente"
               i={0}
@@ -148,9 +153,10 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
                 </>
               )}
             </MarcoWeb>
+            </div>
           )}
 
-          {sedes && (
+          {sedes && conTiendas && (
             <section className="card-cayla tw-entra self-start p-5" style={{ "--i": 1 } as CSSProperties} data-guia="tienda-web.tiendas">
               <TituloSeccion nivel={2} accion={<EnlaceVer href="/tienda-web/ajustes">Conf. Tienda</EnlaceVer>}>
                 Tiendas en la web
@@ -171,14 +177,6 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
           )}
         </div>
       )}
-
-      <div className="nota-cayla space-y-2 text-[13px]" data-guia="tienda-web.nota">
-        <p>
-          Este resumen solo mira: cada cosa se resuelve en su pantalla, a un toque. Muestra lo que tu rol ve; si una pantalla de Tienda web no
-          te aparece en el menú, aquí tampoco. Los pedidos son los de la tienda en la que estás; la vitrina, las recomendaciones y los
-          ajustes son de toda CAYLA.
-        </p>
-      </div>
     </div>
   );
 }

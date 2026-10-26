@@ -243,6 +243,10 @@ export function pendientesDe(e: EntradaResumen): Pendiente[] {
   return p.map((x, i) => ({ x, i })).sort((a, b) => ORDEN_TONO[a.x.tono] - ORDEN_TONO[b.x.tono] || a.i - b.i).map(({ x }) => x);
 }
 
+/** La tarjeta «Tiendas en la web» solo sale si alguna tienda está encendida y no se ve (ámbar): con todas bien repite lo que ya dice el pie de
+ *  la ventana («se recoge en 2 tiendas»), y ese caso ya es un pendiente. Una tienda apagada a propósito (neutra) no es un problema. */
+export const hayTiendasAMedias = (sedes: readonly SedeEnLaWeb[] | null): boolean => Boolean(sedes?.some((s) => s.tono === "ambar"));
+
 /** Ningún pedido abierto (por confirmar, por cobrar o por entregar), nada por devolver y nada cobrado hoy: el camino no tiene qué contar
  *  y el Resumen lo dice en una línea en vez de dibujar cuatro tarjetas en cero (Felipe 2026-10-26, propuesta A). Lo cerrado no cuenta: son
  *  pedidos que ya no piden nada. */

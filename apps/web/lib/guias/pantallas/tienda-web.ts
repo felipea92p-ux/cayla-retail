@@ -18,7 +18,7 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "La tienda web de un vistazo",
-      texto: "Aquí ves lo que la tienda online te pide hoy, sin entrar a cada pantalla: qué ve el cliente, qué espera respuesta y cómo van los pedidos. Solo mira; cada cosa se resuelve en su pantalla.",
+      texto: "Aquí ves lo que la tienda online te pide hoy, sin entrar a cada pantalla: qué ve el cliente, qué espera respuesta y cómo van los pedidos. Solo mira; cada cosa se resuelve en su pantalla, y ves lo que tu rol ve. Los pedidos son los de tu tienda; lo demás es de toda CAYLA.",
     },
     {
       id: "pendientes",
@@ -45,13 +45,7 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       ancla: "tienda-web.tiendas",
       opcional: true,
       titulo: "Las tiendas en la web",
-      texto: "En verde, la tienda se ve y el cliente puede recoger ahí lo que separa. En ámbar, está encendida pero le falta un dato y no se ve. «Conf. Tienda» te lleva a completarla.",
-    },
-    {
-      id: "nota",
-      ancla: "tienda-web.nota",
-      titulo: "Lo que ves depende de tu rol",
-      texto: "Si una pantalla de Tienda web no te aparece en el menú, aquí tampoco. Los pedidos son los de tu tienda; lo demás es de toda CAYLA.",
+      texto: "Solo sale cuando una tienda está encendida pero le falta un dato y no se ve: el cliente no puede recoger ahí lo que separa. «Conf. Tienda» te lleva a completarla. Con todas bien no hace falta.",
     },
     {
       id: "fin",

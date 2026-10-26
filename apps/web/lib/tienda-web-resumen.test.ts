@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CifrasPedidosWeb } from "./pedidos-web-reglas";
 import { filtrarVitrina, type ModeloVitrina } from "./vitrina-reglas";
-import { encendidosSinPrecio, fraseSinPedidos, fraseVentana, lecturasCaidas, pendientesDe, sinPedidosAbiertos, teselasDe, type EntradaResumen } from "./tienda-web-resumen";
+import { encendidosSinPrecio, fraseSinPedidos, fraseVentana, hayTiendasAMedias, lecturasCaidas, pendientesDe, sinPedidosAbiertos, teselasDe, type EntradaResumen } from "./tienda-web-resumen";
 
 const HORA = 3_600_000;
 const PLAZOS = { horasParaConfirmar: 24, horasAvisoSinPagar: 48, diasAvisoSinRecoger: 7 };
@@ -100,6 +100,20 @@ const modelo = (id: string, extra: Partial<ModeloVitrina> = {}): ModeloVitrina =
   stock: [],
   vitrina: { publicado: true, enLoNuevo: "automatico", descripcionWeb: null, version: 1, actualizadoEn: null, actualizadoPor: null },
   ...extra,
+});
+
+describe("«Tiendas en la web» solo sale cuando una tienda está a medias", () => {
+  const verde = { id: "l", nombre: "Lima", tono: "verde" as const, texto: "Se ve en la web" };
+  it("con todas bien (o apagadas a propósito), la tarjeta sobra", () => {
+    expect(hayTiendasAMedias([verde, { ...verde, id: "t", nombre: "Trujillo" }])).toBe(false);
+    expect(hayTiendasAMedias([verde, { ...verde, id: "a", tono: "neutro", texto: "No se muestra en la web" }])).toBe(false);
+    expect(hayTiendasAMedias([])).toBe(false);
+    expect(hayTiendasAMedias(null)).toBe(false);
+  });
+
+  it("con una encendida a la que le falta un dato, sale", () => {
+    expect(hayTiendasAMedias([verde, { ...verde, id: "t", tono: "ambar", texto: "No se ve: falta su dirección" }])).toBe(true);
+  });
 });
 
 describe("el camino de los pedidos se resume en una línea cuando no hay pedidos abiertos", () => {
