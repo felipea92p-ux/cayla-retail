@@ -1,6 +1,7 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { CircleCheck, LayoutGrid, List, MonitorSmartphone, SearchX, Shirt, Sparkles } from "lucide-react";
 import { BarraFija } from "@/components/ui/BarraFija";
@@ -23,8 +24,6 @@ import { useAnchoDe } from "@/components/ui/useAnchoDe";
 import { paginar } from "@/lib/paginacion";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { Vacio } from "@/components/ui/Vacio";
-import { VitrinaLoteHoja } from "@/components/vitrina/VitrinaLoteHoja";
-import { VitrinaModeloHoja } from "@/components/vitrina/VitrinaModeloHoja";
 import {
   categoriasDe,
   cifrasDe,
@@ -63,6 +62,13 @@ const LO_NUEVO: { valor: FiltroLoNuevo; texto: string }[] = [
   { valor: "fijo", texto: "Fijados en Lo nuevo" },
   { valor: "quitado", texto: "Fuera de Lo nuevo" },
 ];
+
+// Las dos hojas solo se abren al tocar un modelo o al mostrar/ocultar: no viajan con la pantalla (carga diferida, ADR-0136 / skill de velocidad).
+// Para que la primera vez no espere a que baje su archivo, se piden en un rato libre después de dibujar la pantalla (`precargarHojas`).
+const cargarHojaModelo = () => import("@/components/vitrina/VitrinaModeloHoja").then((m) => m.VitrinaModeloHoja);
+const cargarHojaLote = () => import("@/components/vitrina/VitrinaLoteHoja").then((m) => m.VitrinaLoteHoja);
+const VitrinaModeloHoja = dynamic(cargarHojaModelo);
+const VitrinaLoteHoja = dynamic(cargarHojaLote);
 
 // En el celular la fila es una tarjeta: casilla, modelo e interruptor arriba y lo libre en cada tienda bajo el nombre; desde `sm`,
 // columnas.
@@ -135,6 +141,14 @@ export function VitrinaPantalla({
   const pag = paginar(lista, pagina, MODELOS_POR_PAGINA);
   const visibles = pag.filas;
   const cajaRef = useRef<HTMLElement>(null);
+  // Un rato después de dibujar, las hojas se piden en segundo plano: abrirlas por primera vez no espera su archivo.
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      void cargarHojaModelo();
+      void cargarHojaLote();
+    }, 1500);
+    return () => window.clearTimeout(t);
+  }, []);
   // Pantalla grande y pocas tiendas: una columna por tienda; angosta, o más de 8 tiendas: las filas de siempre (`modoDeLista`).
   const modoLista = modoDeLista(useAnchoDe(cajaRef), tiendas.length);
   const plantillaLista = modoLista === "columnas" ? PLANTILLA_COLUMNAS[tiendas.length]! : PLANTILLA;
