@@ -1,6 +1,6 @@
 # ADR-0510 — La tela y los avíos de una orden se pueden declarar y corregir después de abrirla
 
-**Estado:** aceptada, **web y base en su PR; la migración `20261026035000` espera el OK de Felipe para pegarse en producción** · **Fecha:** 2026-10-25 ·
+**Estado:** aceptada, **web en su PR (#1334); la migración `20261026035000` ya está pegada en producción (Felipe, 2026-10-26; md5 del cuerpo `fd233a9a8e6ad6649a5b42f91686be0a`, `authenticated` sí, `anon` no)** · **Fecha:** 2026-10-25 ·
 **Decidió:** Felipe (la lista de 5 actividades, aprobada el 2026-10-25) · **Sigue a:** ADR-0400 (decisión 6: la tela de la orden) y ADR-0509 (Nueva orden sobre la lista)
 
 ## Contexto
@@ -69,8 +69,8 @@ nada: es legítimo») porque esa regla existía porque no había cómo declararl
 ## Cómo se pega en producción
 
 `supabase/migrations/20261026035000_produccion_editar_tela_y_avios_de_la_orden.sql`, **una sola parte**, después de 154000 y 155000 (que ya están): solo
-`create or replace function` y permisos; ninguna política ni `alter` (no choca con el Asesor de seguridad, ADR-0195). Idempotente. **Espera el OK de Felipe.** Sin
-ella, la web nueva funciona hasta el botón «Guardar», que dice que no se pudo guardar.
+`create or replace function` y permisos; ninguna política ni `alter` (no choca con el Asesor de seguridad, ADR-0195). Idempotente. **Pegada el 2026-10-26, antes de fusionar** (como debe ser: sin
+ella, la web nueva funciona hasta el botón «Guardar», que dice que no se pudo guardar).
 
 ## Verificación
 

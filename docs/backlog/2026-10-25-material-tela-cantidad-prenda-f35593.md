@@ -1,7 +1,7 @@
 # Backlog · 2026-10-25 · Producción: editar la tela y los avíos de una orden abierta (ADR-0510)
 
 - [x] Actividades 1 a 5 de la lista aprobada por Felipe (25-oct): `guardar_insumos_orden` con su prueba, la hoja «Editar / Declarar tela y avíos», avíos por color y «Tela y avíos», los avisos de Corte y de «Pasar al stock», cierre.
-- [ ] **De la base (la decide Felipe): pegar `20261026035000_produccion_editar_tela_y_avios_de_la_orden.sql`** en producción (una parte, solo `create or replace function`, después de 154000 y 155000) y refrescar el diccionario. Sin eso, «Guardar» falla en producción.
+- [x] **De la base: `20261026035000_produccion_editar_tela_y_avios_de_la_orden.sql` pegada en producción por Felipe el 2026-10-26** (una parte, solo `create or replace function`; verificada: md5 `fd233a9a8e6ad6649a5b42f91686be0a`, `authenticated` sí, `anon` no). Sin tablas nuevas: el diccionario no cambia.
 - [ ] **Ficha de consumo por talla y por modelo** (la opción C de la propuesta): `producto_consumos.por_talla` existe y nada lo escribe ni lo lee (hoy: un solo número por tela para todas las tallas, y los avíos hay que reescribirlos en cada orden). Merece maqueta antes de construir.
 - [ ] La guía de Nueva orden (`produccion.ordenes`): el paso «Lo demás ya viene resuelto» falla en `guias:recorrer` porque su botón «Ver y cambiar» contiene «cambiar», un verbo de la lista de escritura de `lib/guias/reglas.ts` (el motor se niega a tocarlo). Anterior a esta rama.
 - [ ] Textos que mejorar (chicos): «1 conos» (la unidad corta no tiene singular); el mensaje «por ejemplo 1.200» de `problemasTela` también sale para un avío en unidades; con 0 telas en Insumos la hoja dice «Regístralas ahí» sin enlace a Insumos.
