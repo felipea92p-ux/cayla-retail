@@ -72,7 +72,7 @@ export function pestanasDeTickets<T extends { id: string; nombre?: string; cread
   return pestanas;
 }
 
-/** «+ Nueva cliente»: el ticket de la caja se queda en su lugar y la caja abre uno vacío al final. */
+/** «+ Nuevo cliente»: el ticket de la caja se queda en su lugar y la caja abre uno vacío al final. */
 export function abrirNuevoTicket<T>(enEspera: readonly T[], posActivo: number | null, actual: T): { espera: T[]; posActivo: null } {
   const espera = [...enEspera];
   espera.splice(posicionDelActivo(posActivo, enEspera.length), 0, actual);

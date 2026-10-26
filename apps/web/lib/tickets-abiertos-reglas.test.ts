@@ -65,7 +65,7 @@ describe("las pestañas", () => {
   });
 });
 
-describe("«+ Nueva cliente»", () => {
+describe("«+ Nuevo cliente»", () => {
   it("el ticket de la caja se queda en su lugar y la caja abre uno nuevo al final", () => {
     const { espera, posActivo } = abrirNuevoTicket([ticket("a", "A"), ticket("b", "B")], 1, ticket("c", "C"));
     expect(ids(espera)).toEqual(["a", "c", "b"]);

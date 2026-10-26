@@ -1511,7 +1511,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     limpiarTicket();
     buscador.current?.focus();
   }
-  /** «Nueva cliente» (Felipe, 2026-10-25): atender a otra sin perder este ticket, de un toque y con nombre automático. */
+  /** «Nuevo cliente» (Felipe, 2026-10-25): atender a otra sin perder este ticket, de un toque y con nombre automático. */
   function nuevaCliente() {
     dejarEnEspera(nombreActivo);
   }
@@ -2312,7 +2312,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 puedeNueva={carrito.length > 0 && cabeOtroTicket(enEspera.length)}
                 motivoNueva={
                   carrito.length === 0
-                    ? "Agrega una prenda a este ticket para atender a otra cliente"
+                    ? "Agrega una prenda a este ticket para atender a otro cliente"
                     : cabeOtroTicket(enEspera.length)
                       ? null
                       : `Ya hay ${TOPE_TICKETS_ABIERTOS} tickets abiertos: cobra o descarta uno`

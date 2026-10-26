@@ -453,7 +453,7 @@ export function PuntoDeVentaTicket({
               </span>
             </TituloSeccion>
             {/* Park, a la altura del título (Felipe 2026-10-22): sacarlo del pie le devuelve una fila a la lista. Guarda el
-                ticket (pidiendo un nombre) y libera la caja para el siguiente cliente; «Nueva cliente», en las pestañas de
+                ticket (pidiendo un nombre) y libera la caja para el siguiente cliente; «Nuevo cliente», en las pestañas de
                 arriba, hace lo mismo de un toque y con nombre automático. En un ticket angosto queda solo el ícono (con su
                 nombre para el lector y al pasar el mouse). */}
             {carrito.length > 0 && (

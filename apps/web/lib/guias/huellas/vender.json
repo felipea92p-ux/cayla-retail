@@ -188,14 +188,14 @@
       "a «Abrir WhatsApp con la boleta»"
     ],
     "components/punto-de-venta/Esperas.tsx": [
-      "button «Ver todas las clientas abiertas»",
-      "button «Nueva cliente»",
+      "button «Ver todos los clientes abiertos»",
+      "button «Nuevo cliente»",
       "input «Nombre de este ticket»",
       "button «Cambiar el nombre de este ticket»",
       "button «{`Descartar el ticket de ${p.nombre}»",
       "button «{`Pasar a ${p.nombre}»",
       "button «{`Descartar el ticket de ${p.nombre}» #2",
-      "button «Nueva cliente» #2",
+      "button «Nuevo cliente» #2",
       "button «(sin nombre)»",
       "button «{`Descartar el ticket de ${p.nombre}» #3",
       "Boton «Cancelar»",

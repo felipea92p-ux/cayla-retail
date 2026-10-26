@@ -165,7 +165,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       solo: "escritorio",
       ...CAJA_ABIERTA,
       titulo: "Varios clientes a la vez",
-      texto: "Cada cliente tiene su pestaña: la marcada está en la caja y las demás esperan, con su monto. «Nueva cliente» deja este ticket como está y abre otro; toca una pestaña para volver a ella y su ✕ la descarta. Toca el nombre del ticket para cambiarlo. En la demo no abrimos ninguna.",
+      texto: "Cada cliente tiene su pestaña: la marcada está en la caja y las demás esperan, con su monto. «Nuevo cliente» deja este ticket como está y abre otro; toca una pestaña para volver a ella y su ✕ la descarta. Toca el nombre del ticket para cambiarlo. En la demo no abrimos ninguna.",
     },
     {
       id: "cliente",

@@ -34,7 +34,7 @@ export function TiraDeTickets({
   nombreEscrito: string;
   /** El ticket de la caja ya tiene prendas y no se llegó al tope: se puede abrir otro. */
   puedeNueva: boolean;
-  /** Por qué «Nueva cliente» está apagado, para decirlo en vez de dejarlo mudo; `null` si está prendido. */
+  /** Por qué «Nuevo cliente» está apagado, para decirlo en vez de dejarlo mudo; `null` si está prendido. */
   motivoNueva: string | null;
   bloqueado: boolean;
   /** Pasar a una pestaña que espera. */
@@ -99,7 +99,7 @@ export function TiraDeTickets({
           onClick={() => setListaAbierta(true)}
           disabled={bloqueado}
           aria-haspopup="dialog"
-          title="Ver todas las clientas abiertas"
+          title="Ver todos los clientes abiertos"
           className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-sand bg-papel pl-4 pr-3 text-left text-xs text-tinta"
         >
           <b className="min-w-0 truncate font-semibold">{activa?.nombre}</b>
@@ -117,8 +117,8 @@ export function TiraDeTickets({
           type="button"
           onClick={onNueva}
           disabled={!puedeNueva || bloqueado}
-          title={motivoNueva ?? "Atender a otra cliente sin perder este ticket"}
-          aria-label="Nueva cliente"
+          title={motivoNueva ?? "Atender a otro cliente sin perder este ticket"}
+          aria-label="Nuevo cliente"
           className="btn-cayla btn-secundario h-11 w-11 shrink-0 justify-center px-0"
         >
           <Plus className="h-4 w-4" aria-hidden />
@@ -129,7 +129,7 @@ export function TiraDeTickets({
   }
 
   return (
-    // «Nueva cliente» va FUERA del tramo que se desliza: con tres pestañas se iba fuera de la vista y justo ese botón es lo que hay
+    // «Nuevo cliente» va FUERA del tramo que se desliza: con tres pestañas se iba fuera de la vista y justo ese botón es lo que hay
     // que encontrar (nadie conocía la espera de antes).
     <div className="flex items-center gap-2 border-b border-sand bg-crema px-5 py-2" data-guia="vender.tickets">
       <div ref={tramo} className="scroll-cayla relative flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto" role="group" aria-label="Tickets abiertos">
@@ -223,13 +223,13 @@ export function TiraDeTickets({
         type="button"
         onClick={onNueva}
         disabled={!puedeNueva || bloqueado}
-        title={motivoNueva ?? "Atender a otra cliente sin perder este ticket"}
+        title={motivoNueva ?? "Atender a otro cliente sin perder este ticket"}
         // Con una o dos pestañas dice la palabra (es lo que enseña a usarlo); con tres o más queda el «+», para que las pestañas tengan sitio.
-        aria-label="Nueva cliente"
+        aria-label="Nuevo cliente"
         className={`btn-cayla btn-secundario h-8 shrink-0 gap-1.5 text-[12.5px] ${pestanas.length >= 3 ? "w-8 justify-center px-0" : "px-3"}`}
       >
         <Plus className="h-4 w-4" aria-hidden />
-        {pestanas.length < 3 && "Nueva cliente"}
+        {pestanas.length < 3 && "Nuevo cliente"}
       </button>
     </div>
   );
@@ -265,7 +265,7 @@ function ListaDeTicketsModal({
   onClose: () => void;
 }) {
   return (
-    <Modal titulo="Tus clientas" subtitulo="Toca una para atenderla." variante="hoja" mediaAltura onClose={onClose}>
+    <Modal titulo="Tus clientes" subtitulo="Toca uno para atenderlo." variante="hoja" mediaAltura onClose={onClose}>
       {(cerrar) => (
         <ul className="flex flex-col gap-2" data-lista-tickets>
           {pestanas.map((p) => (
@@ -287,7 +287,7 @@ function ListaDeTicketsModal({
                 <span className="min-w-0 flex-1">
                   <b className="block truncate text-sm font-semibold">{p.nombre}</b>
                   <span className={`block text-xs ${p.esActivo ? "text-crema/70" : "text-tinta/60"}`}>
-                    {p.prendas} {p.prendas === 1 ? "prenda" : "prendas"} · {p.creadoEn ? `la dejaste ${haceCuanto(p.creadoEn, ahora)}` : "en la caja"}
+                    {p.prendas} {p.prendas === 1 ? "prenda" : "prendas"} · {p.creadoEn ? `lo dejaste ${haceCuanto(p.creadoEn, ahora)}` : "en la caja"}
                   </span>
                 </span>
                 <span className="shrink-0 text-sm font-semibold tabular-nums">S/{p.total.toFixed(2)}</span>
@@ -337,7 +337,7 @@ export function DescartarTicketModal({
     >
       {(cerrar) => (
         <>
-          <p className="text-sm text-tinta/70">Se pierden las prendas y todo lo que ya se había anotado para esta cliente. No se puede deshacer.</p>
+          <p className="text-sm text-tinta/70">Se pierden las prendas y todo lo que ya se había anotado para este cliente. No se puede deshacer.</p>
           <PieAcciones className="mt-5">
             <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
