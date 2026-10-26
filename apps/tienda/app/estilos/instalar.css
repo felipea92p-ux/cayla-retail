@@ -17,7 +17,7 @@ html:has(dialog.t-inst[open]) { overflow: hidden; }
 .t-inst-hoja { width: 100%; max-width: 520px; max-height: 92dvh; overflow-y: auto; background: var(--papel); border-radius: 0; padding: 10px 22px calc(24px + env(safe-area-inset-bottom)); box-shadow: 0 -12px 40px -10px var(--sombra); animation: t-inst-sube .5s var(--ease) .1s both; }
 .t-inst-hoja:focus { outline: none; }
 .t-inst-asa { width: 38px; height: 4px; border-radius: 0; background: var(--sand); margin: 0 auto 16px; }
-.t-inst-tit { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 18px; line-height: 1.12;  }
+.t-inst-tit { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: 23px; line-height: 1.12;  }
 .t-inst-tit em { color: var(--rojo); }
 .t-inst-txt { margin: 10px 0 0; font-size: 14.5px; line-height: 1.5; color: var(--tinta-60); }
 .t-inst-acc { display: grid; gap: 2px; margin-top: 20px; justify-items: center; }
@@ -60,7 +60,7 @@ html:has(dialog.t-inst[open]) { overflow: hidden; }
 .t-inst-tarjeta { margin-top: 18px; padding: 16px 18px; border-radius: 0; background: var(--hueso); animation: t-inst-entra .5s var(--ease) .3s both; }
 .t-inst-tarjeta-cab { display: flex; align-items: center; gap: 12px; }
 .t-inst-tarjeta-cab .t-inst-icono { width: 44px; height: 44px; border-radius: 0; }
-.t-inst-tarjeta h2 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 18px; line-height: 1.12; }
+.t-inst-tarjeta h2 { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: 23px; line-height: 1.12; }
 .t-inst-tarjeta p { margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--tinta-60); }
 .t-inst-tarjeta-acc { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
 .t-inst-tarjeta .t-btn.t-btn-chico { margin-left: 0; }

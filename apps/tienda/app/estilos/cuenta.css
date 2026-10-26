@@ -9,7 +9,7 @@
 .w-pagina-form { padding-block: 8px 28px; }
 .w-ficha { padding: 18px 20px 26px; display: flex; flex-direction: column; gap: 20px; }
 .w-ficha-centro { align-items: center; text-align: center; padding-top: 34px; }
-.w-titulo { font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; font-size: 30px; font-weight: 250; letter-spacing: .06em; line-height: 1.1; margin: 6px 0 0; text-wrap: balance; }
+.w-titulo { font-family: var(--display); text-transform: none; font-size: 39px; font-weight: 400; letter-spacing: -.01em; line-height: 1.1; margin: 6px 0 0; text-wrap: balance; }
 /* La última palabra en cursiva ROJA, como el resto de la tienda («Hola, Valeria.») y como la maqueta aprobada (que la pinta así en
    todos sus títulos de ficha: «Entra para ver el catálogo.», «¡Listo, lo separaste!»). Antes iba en tinta y la cursiva se perdía. */
 .w-titulo em { font-style: normal; color: inherit; }
@@ -199,7 +199,7 @@
 /* ---- Las páginas de «Mi perfil» («Mis pedidos»): su cabecera. «Mi perfil» mismo vive en perfil.css. ---- */
 .t-cuenta-pag { display: grid; gap: 22px; padding-block: 20px 28px; }
 .t-cuenta-cab { display: grid; gap: 18px; }
-.t-cuenta-cab h1 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: clamp(21.1px, 4.96cqi, 33.5px); line-height: 1.12; }
+.t-cuenta-cab h1 { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: clamp(27px, 4.96cqi, 44px); line-height: 1.12; }
 .t-cuenta-cab h1 em { font-style: italic; color: var(--rojo); }
 /* El estado de un pedido: «Escríbele a CAYLA Trujillo» al pie es un enlace al chat (la caja `.w-info` de bolsa.css, que se toca). */
 .w-info.w-info-enlace { color: var(--tinta); align-items: center; transition: border-color .2s; }
@@ -210,7 +210,7 @@
 .w-info.w-info-enlace:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 /* El vacío de una página de la cuenta que es TODA un vacío («No encontramos ese pedido»): su título es el de la página (h1), con la
    misma letra que el título de los vacíos de la tienda (`.t-vacio h3`, globals.css). */
-.t-vacio > h1 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-size: 18px; font-weight: 250; }
+.t-vacio > h1 { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-size: 23px; font-weight: 400; }
 /* Una nota que se queda (los avisos que no se activaron al crear la cuenta): hueso, como las notas del ERP. */
 .w-nota { margin: 0; padding: 12px 14px; border-radius: 0; background: var(--hueso); color: var(--tinta); font-size: 13px; line-height: 1.5; max-width: 52ch; }
 

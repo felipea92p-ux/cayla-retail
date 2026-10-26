@@ -10,12 +10,12 @@
 
 /* ---- «Ver lo que hay en»: la tienda elegida (maqueta v4, `filtroTienda`). Una franja bajo la cabecera; en el celular sin el texto y
    corriendo de lado, desde 960 px centrada y con su texto. ---- */
-.t-ubic { flex: none; display: flex; align-items: center; gap: 14px; padding: 10px clamp(16px, 4cqi, 64px); font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); background: var(--crema); border-bottom: 1px solid var(--sand); white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.t-ubic { flex: none; display: flex; align-items: center; gap: 14px; padding: 10px clamp(16px, 4cqi, 64px); font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); background: var(--crema); border-bottom: 1px solid var(--sand); white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
 .t-ubic::-webkit-scrollbar { display: none; }
 .t-ubic .ic { width: 14px; height: 14px; color: var(--taupe); flex: none; }
 .t-filtro-txt { display: none; }
 .t-pildoras-tienda { display: flex; gap: 22px; }
-.t-pildora-mini { flex: none; border: 0; border-bottom: 1px solid transparent; background: none; border-radius: 0; padding: 4px 0 3px; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); transition: color .3s, border-color .3s; }
+.t-pildora-mini { flex: none; border: 0; border-bottom: 1px solid transparent; background: none; border-radius: 0; padding: 4px 0 3px; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); transition: color .3s, border-color .3s; }
 .t-pildora-mini:hover { color: var(--tinta); }
 /* La tienda se elige con el dedo en 44 px de alto (una capa invisible sobre la píldora de 29; la franja la deja entera a la vista). */
 .t-pildora-mini { position: relative; }
@@ -23,12 +23,12 @@
 .t-pildora-mini[aria-current="true"] { background: none; border-color: var(--tinta); color: var(--tinta); }
 
 /* ---- La ruta y la cabecera de la lista ---- */
-.t-ruta { display: flex; gap: 8px; align-items: center; padding-block: 24px 0; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); flex-wrap: wrap; }
+.t-ruta { display: flex; gap: 8px; align-items: center; padding-block: 24px 0; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); flex-wrap: wrap; }
 /* El enlace mide 16 px de alto: su zona de toque crece a 44 sin mover nada (el relleno y el margen negativo se anulan). */
 .t-ruta a { color: var(--taupe); padding-block: 14px; margin-block: -14px; }
 .t-ruta a:hover { color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; }
 .t-lista-cab { padding-block: clamp(40px, 6cqi, 80px) 28px; display: flex; flex-direction: column; gap: 10px; }
-.t-lista-cab h1 { margin: 10px 0 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; font-weight: 200; font-size: clamp(48px, 8cqi, 120px); line-height: .9; letter-spacing: .02em; }
+.t-lista-cab h1 { margin: 10px 0 0; font-family: var(--display); text-transform: uppercase; font-weight: 400; font-size: clamp(48px, 8cqi, 120px); line-height: .9; letter-spacing: -.01em; }
 .t-lista-cab h1 em { font-style: normal; color: inherit; }
 .t-lista-cab p { margin: 8px 0 0; color: var(--taupe); max-width: 56ch; }
 
@@ -36,17 +36,17 @@
 .t-filtros { position: sticky; top: 0; z-index: 6; display: flex; align-items: center; gap: 16px 32px; padding-block: 14px; margin-bottom: 14px; background: color-mix(in srgb, var(--crema) 94%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-top: 1px solid var(--sand); border-bottom: 1px solid var(--sand); }
 .t-pildoras { display: flex; gap: 4px 22px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
 .t-pildoras::-webkit-scrollbar { display: none; }
-.t-pildora { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 0; border-bottom: 1px solid transparent; background: none; border-radius: 0; padding: 8px 0 7px; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); white-space: nowrap; transition: color .3s, border-color .3s; }
+.t-pildora { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 0; border-bottom: 1px solid transparent; background: none; border-radius: 0; padding: 8px 0 7px; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); white-space: nowrap; transition: color .3s, border-color .3s; }
 .t-pildora small { font-weight: 500; opacity: .7; letter-spacing: .08em; }
 .t-pildora:hover { color: var(--tinta); }
 .t-pildora[aria-current="true"] { background: none; border-color: var(--tinta); color: var(--tinta); }
-.t-orden { flex: none; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
-.t-orden a { border: 0; border-bottom: 1px solid var(--sand); background: none; border-radius: 0; padding: 4px 0 3px; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--tinta); white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; transition: border-color .3s; }
+.t-orden { flex: none; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
+.t-orden a { border: 0; border-bottom: 1px solid var(--sand); background: none; border-radius: 0; padding: 4px 0 3px; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--tinta); white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; transition: border-color .3s; }
 .t-orden a:hover { border-color: var(--tinta); }
 .t-orden .ic { width: 14px; height: 14px; }
 /* «Orden:» delante de cuál, donde cabe (en el celular el botón dice solo cuál, con sus flechas). */
 .t-orden-rot { display: none; color: var(--taupe); margin-right: -2px; }
-.t-conteo { font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); margin: 0 0 24px; }
+.t-conteo { font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); margin: 0 0 24px; }
 /* Dónde empieza la barra cuando no está pegada (`FiltrosDeLista`): al tocar un filtro con la barra pegada, la vista vuelve aquí. */
 .t-filtros-marca { display: block; height: 0; }
 /* Con el dedo, cada filtro se toca en 44 px de alto aunque se vea más bajo (36, 30): una capa invisible lo agranda. Las filas que se
@@ -160,7 +160,7 @@
   .t-insignias-fila { gap: 3px; }
   .t-insignias .t-insignia { font-size: 8.5px; letter-spacing: .05em; padding: 3px 4px 2px; line-height: 1.25; }
 }
-.t-insignia { font-size: 9.5px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; padding: 4px 7px 3px; border-radius: 0; background: var(--t-papel-fijo); color: var(--t-tinta-fija); }
+.t-insignia { font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; padding: 4px 7px 3px; border-radius: 0; background: var(--t-papel-fijo); color: var(--t-tinta-fija); }
 .t-insignia.oferta { background: var(--t-oferta); color: var(--t-oferta-tinta); }
 .t-insignia.nuevo { background: var(--t-tinta-fija); color: var(--t-papel-fijo); }
 /* El «Nuevo» de la tarjeta: claro, con su filo (2026-10-16). Cuando casi todo el catálogo es nuevo, el sello negro en cada foto le quitaba
@@ -197,7 +197,7 @@
 .t-campana { border: 1px solid var(--sand); border-radius: 0; padding: 16px; background: transparent; display: flex; flex-direction: column; gap: 6px; color: var(--tinta); transition: border-color .3s, box-shadow .3s; }
 a.t-campana:hover { border-color: var(--tinta); }
 .t-campana[aria-current="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
-.t-campana b { font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; font-size: 15px; font-weight: 400; letter-spacing: .08em; line-height: 1.2; }
+.t-campana b { font-family: var(--sans); text-transform: uppercase; font-size: 15px; font-weight: 400; letter-spacing: .08em; line-height: 1.2; }
 .t-campana .pct { font-family: var(--nombre); font-style: italic; font-size: 36px; line-height: 1; color: var(--rojo); }
 .t-campana small { font-size: 12px; color: var(--taupe); }
 .t-campana:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 2px; }
@@ -295,7 +295,7 @@ a.t-campana:hover { border-color: var(--tinta); }
    mismo gesto que la píldora elegida). Cada lugar mide 40 px (44 con el dedo): caben 9 en 375 px. */
 .t-paginas { display: grid; justify-items: center; gap: 14px; margin-top: 48px; padding-top: 28px; border-top: 1px solid var(--sand); }
 .t-paginas-fila { display: flex; align-items: center; justify-content: center; gap: 2px; max-width: 100%; }
-.t-pag { position: relative; min-width: 36px; height: 44px; padding: 0 4px; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: none; display: inline-grid; place-items: center; font-size: 13px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .08em; color: var(--taupe); transition: color .3s, border-color .3s; }
+.t-pag { position: relative; min-width: 36px; height: 44px; padding: 0 4px; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: none; display: inline-grid; place-items: center; font-size: 13px; font-weight: 500; letter-spacing: .08em; color: var(--taupe); transition: color .3s, border-color .3s; }
 .t-pag .ic { width: 18px; height: 18px; }
 .t-pag-anterior .ic { transform: rotate(180deg); }
 .t-pag-flecha { min-width: 44px; color: var(--tinta); }
@@ -308,7 +308,7 @@ a.t-pag:focus-visible { outline: 2px solid var(--rojo); outline-offset: -2px; }
   a.t-pag-flecha:hover .ic { transform: translateX(3px); }
   a.t-pag-anterior:hover .ic { transform: rotate(180deg) translateX(3px); }
 }
-.t-paginas-dato { margin: 0; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
+.t-paginas-dato { margin: 0; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
 .t-paginas-dato .num { color: var(--tinta); }
 @media (min-width: 700px) { .t-pag { min-width: 40px; height: 40px; } .t-pag-flecha { min-width: 40px; } }
 @media (prefers-reduced-motion: reduce) {

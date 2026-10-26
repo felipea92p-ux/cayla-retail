@@ -34,7 +34,7 @@
 .t-bolsa-item > span { display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; min-width: 0; }
 .t-bolsa-item small { color: var(--tinta-60); font-size: 12.5px; }
 /* La empresa de la prenda, encima de su nombre (ADR-0465): la letra de la insignia de la tarjeta, sin caja. */
-.t-bolsa-empresa { font-size: 9.5px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--tinta-60); }
+.t-bolsa-empresa { font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--tinta-60); }
 .t-bolsa-item > span > b { font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: 22px; line-height: 1.2; letter-spacing: -.005em; }
 .t-bolsa-item .t-bolsa-der b { font-family: var(--sans); font-style: normal; font-size: 15px; letter-spacing: 0; line-height: 1.5; }
 .t-bolsa-item em { font-style: normal; font-size: 12px; color: var(--rojo-profundo); font-weight: 600; }
@@ -105,7 +105,7 @@
 
 /* El resumen y «Separar» */
 .t-resumen { border: 0; border-radius: 0; background: var(--hueso); padding: 32px; display: flex; flex-direction: column; gap: 16px; }
-.t-resumen h3 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; font-weight: 250; font-size: clamp(20px, 2.2cqi, 28px); letter-spacing: .06em; line-height: 1.05; }
+.t-resumen h3 { margin: 0; font-family: var(--display); text-transform: none; font-weight: 400; font-size: clamp(26px, 2.2cqi, 36px); letter-spacing: -.01em; line-height: 1.05; }
 .w-resumen { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
 .w-resumen > div { display: flex; justify-content: space-between; gap: 10px; }
 .w-resumen .tot { font-weight: 400; font-size: 15px; align-items: baseline; padding-top: 12px; border-top: 1px solid var(--sand); }
