@@ -41,4 +41,5 @@ El párrafo inicial de la hoja (cambio 2) y la línea «Queda anotado con tu nom
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Nota |
 |---|---|---|---|---|
-| 2026-10-26 | 2cba541d8 | 7,0 | 7 | primera medición; sin ciega ni escéptico; 3 cambios propuestos, esperan OK de Felipe |
+| 2026-10-26 | 2cba541d8 | 7,0 | 7 | primera medición; sin ciega ni escéptico; 3 cambios propuestos |
+| 2026-10-26 | (este commit) | sin re-medir | sin re-medir | Felipe aprobó y se aplicaron los 3 cambios: el pie solo dice «Cancelar» con el aviso a la vista, párrafo de arriba de una línea, aviso sobre el pie fijo a 375 px (medido: botón del aviso a 702 px, pie desde 752 px) |

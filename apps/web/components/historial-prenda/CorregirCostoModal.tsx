@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -59,6 +59,11 @@ export function CorregirCostoModal({
   const [error, setError] = useState<string | null>(null);
   // Lo que dijo la base cuando el costo está fuera de lo normal (ADR-0298): el líder lo corrige o lo confirma.
   const [atipicos, setAtipicos] = useState<CostoAtipico[] | null>(null);
+  // El aviso se deja a la vista SOBRE el pie fijo (a 375 px, sus botones quedaban debajo): `scroll-mb-24` guarda el alto del pie.
+  const zonaAviso = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (atipicos) zonaAviso.current?.scrollIntoView({ block: "nearest" });
+  }, [atipicos]);
   const responsable = useResponsable();
 
   const borrador = { costo, motivo, costoActual: compra.costoLlegaron };
@@ -121,8 +126,7 @@ export function CorregirCostoModal({
       {(cerrar) => (
         <div data-guia="historial-prenda.corregir-costo" className="mt-4 space-y-4">
           <p className="nota-cayla">
-            En esa compra llegaron <b>{compra.llegaron}</b> a <b>{soles(compra.costoLlegaron)}</b>. Escribe lo que costaron de verdad: cambia lo que cuesta cada
-            prenda, pero no la factura ni lo que ya se vendió.
+            Llegaron <b>{compra.llegaron}</b> a <b>{soles(compra.costoLlegaron)}</b>. La factura y lo ya vendido no cambian.
           </p>
 
           <CampoGuiado id="costo" guia={guia}>
@@ -165,21 +169,23 @@ export function CorregirCostoModal({
 
           {error && <Aviso tono="error">{error}</Aviso>}
           {atipicos && (
-            <AvisoCostoAtipico
-              costos={atipicos}
-              pie="Si es el costo de verdad, confírmalo: entra al promedio de las tres sedes y queda anotado como un costo fuera de lo normal."
-              textoCorregir="Corregir el costo"
-              textoConfirmar="Confirmar y guardar"
-              textoCargando="Guardando…"
-              cargando={guardando}
-              listo={responsable.listo}
-              motivoNoListo={responsable.motivo}
-              onCorregir={() => {
-                setAtipicos(null);
-                guia.ir("costo");
-              }}
-              onConfirmar={() => void guardar(cerrar, true)}
-            />
+            <div ref={zonaAviso} className="scroll-mb-24">
+              <AvisoCostoAtipico
+                costos={atipicos}
+                pie="Si es el costo de verdad, confírmalo: entra al promedio de las tres sedes y queda anotado como un costo fuera de lo normal."
+                textoCorregir="Corregir el costo"
+                textoConfirmar="Confirmar y guardar"
+                textoCargando="Guardando…"
+                cargando={guardando}
+                listo={responsable.listo}
+                motivoNoListo={responsable.motivo}
+                onCorregir={() => {
+                  setAtipicos(null);
+                  guia.ir("costo");
+                }}
+                onConfirmar={() => void guardar(cerrar, true)}
+              />
+            </div>
           )}
 
           <CampoGuiado id="responsable" guia={guia}>
@@ -190,9 +196,12 @@ export function CorregirCostoModal({
             <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton peso="primario" onClick={() => void guardar(cerrar)} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
-              Guardar
-            </Boton>
+            {/* Con el aviso de costo raro a la vista, la decisión (corregir o confirmar) la lleva el aviso: el pie no repite «Guardar». */}
+            {!atipicos && (
+              <Boton peso="primario" onClick={() => void guardar(cerrar)} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
+                Guardar
+              </Boton>
+            )}
           </div>
         </div>
       )}

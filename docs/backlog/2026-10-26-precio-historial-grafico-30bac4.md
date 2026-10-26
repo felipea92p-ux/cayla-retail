@@ -13,7 +13,7 @@ Maqueta elegida: `docs/maquetas/costo-historial-2026-10/v2-escalera-amigable.htm
       `/chaos` semilla 515 (1 hallazgo g2, arreglado) y prueba de punta a punta (1 defecto de la web, arreglado).
 - [x] 6 · Cierre: `guias:recorrer` a 1440, 375 y en oscuro, `tema:auditar` (0 solo en oscuro), `/formidable` (informe; 3 cambios esperan OK de Felipe).
 - [ ] **POR PEGAR en producción: `20261026160000_corregir_costo_de_compra.sql`** (una parte; crea la tabla `costo_correcciones` sin políticas y las funciones; no hace `alter` de tablas en uso). Comprobación: `select to_regprocedure('retail.corregir_costo_de_compra(uuid,timestamptz,numeric,text,boolean)') is not null, to_regclass('retail.costo_correcciones') is not null;` → t | t. Después: refrescar el diccionario de datos (`costo_correcciones`).
-- [ ] Los 3 cambios de Formidable (`docs/formidable/catalogo-costo-correccion.md`): el pie no repite «Guardar» con el aviso de costo raro, párrafo de arriba más corto, aviso sobre el pie fijo.
+- [x] Los 3 cambios de Formidable (`docs/formidable/catalogo-costo-correccion.md`), aprobados por Felipe y aplicados: el pie no repite «Guardar» con el aviso de costo raro, párrafo de arriba más corto, aviso sobre el pie fijo. Falta re-medir con prueba ciega.
 - [x] **El gráfico de escalera se pisaba con compras cercanas** (6 compras en 2 días): `marcas` ahora separa los números a 26 px (`lib/linea-marcas-reglas.ts`), con un hilo hasta su punto y el texto solo si cabe; registro en `docs/unificar/grafico.linea.md`.
 - [ ] Confirmar con Felipe que el costo de una compra es «sin IGV» en Recibir (la hoja lo promete).
 - [ ] `docs/datos/generado/`: el diccionario no tiene todavía `costo_correcciones` (entra al aplicar la migración en producción).
