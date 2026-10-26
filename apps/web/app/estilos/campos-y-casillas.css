@@ -27,14 +27,18 @@
     transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla);
   }
   @media (hover: hover) {
-    .caja-campo:hover { border-color: color-mix(in srgb, var(--color-taupe) 60%, transparent); }
+    /* P2 de la familia (2026-10-26): en reposo el borde ya es el de control (3:1), así que hover y encendida suben UN escalón: una mezcla de
+       tinta (el mismo para los dos). Antes subían desde el sand (hover taupe al 60 %, encendida tinta al 38 %), que ahora quedaría MÁS débil que
+       el reposo. Encendida NO usa la tinta plena: con el cursor adentro ya se suman el anillo de foco de 2 px, el papel y el hilo rojo, y un borde
+       negro además se leía como un doble marco (visto en el ERP, no en la lámina, que no dibuja el anillo). */
+    .caja-campo:hover { border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
   }
   /* Encendida: con el cursor adentro o la lista abierta. */
   .caja-campo:has(:is(input, textarea):focus),
   .caja-campo[aria-expanded="true"],
   .caja-campo:has([aria-expanded="true"]) {
     background: var(--color-papel);
-    border-color: color-mix(in srgb, var(--color-tinta) 38%, transparent);
+    border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel));
   }
   /* El hilo: se dibuja desde el centro en el borde de abajo. */
   .caja-campo::after {
@@ -97,7 +101,7 @@
     width: 100%;
     min-height: 2.5rem;
     padding: 0 0.75rem;
-    border: 1px solid var(--color-sand);
+    border: 1px solid var(--color-borde-control);
     border-radius: var(--radius-md);
     background-color: var(--color-hueso);
     background-image: linear-gradient(var(--color-rojo), var(--color-rojo));
@@ -109,11 +113,11 @@
     transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla), background-size 320ms var(--ease-cayla);
   }
   @media (hover: hover) {
-    .caja-campo-input:hover { border-color: color-mix(in srgb, var(--color-taupe) 60%, transparent); }
+    .caja-campo-input:hover { border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
   }
   .caja-campo-input:focus {
     background-color: var(--color-papel);
-    border-color: color-mix(in srgb, var(--color-tinta) 38%, transparent);
+    border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel));
     background-size: calc(100% - 1.25rem) 2px;
   }
   .caja-campo-input::placeholder { color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre hueso, papel */
@@ -327,7 +331,7 @@
     appearance: none;
     cursor: pointer;
     border-radius: 6px;
-    border: 1.5px solid color-mix(in srgb, var(--color-tinta) 35%, transparent);
+    border: 1.5px solid var(--color-borde-control); /* P2 de la familia: antes tinta al 35 % (2.2:1 en claro) */
     background: var(--color-papel);
     transition: border-color 150ms, scale 120ms var(--ease-cayla);
   }
@@ -377,9 +381,11 @@
     flex-shrink: 0;
     border-radius: 999px;
     background: color-mix(in srgb, var(--color-tinta) 22%, transparent);
-    transition: background-color 280ms var(--ease-cayla);
+    /* Apagado: el aro de control (P2 de la familia; el relleno solo daba 1.6:1). Prendido: el relleno de tinta ya lo identifica. */
+    box-shadow: inset 0 0 0 1.5px var(--color-borde-control);
+    transition: background-color 280ms var(--ease-cayla), box-shadow 280ms var(--ease-cayla);
   }
-  .interruptor[aria-checked="true"] { background: var(--color-tinta); }
+  .interruptor[aria-checked="true"] { background: var(--color-tinta); box-shadow: none; }
   .interruptor:disabled { cursor: not-allowed; }
   /* La perilla: se desliza al cambiar y se ESTIRA mientras se presiona (como un dedo que la empuja). */
   .interruptor-perilla {

@@ -5,13 +5,16 @@ import {
   CONSUMO_MAXIMO,
   HINTS_TELA,
   aMilesimas,
+  cantidadAPedir,
   coloresDeLaOrden,
   consumoSugerido,
   insumosParaRpc,
   leerConsumo,
   metrosAPedir,
   ofertaDeConsumoDelModelo,
+  prendasDeLaFila,
   problemasTela,
+  telasDeLaHoja,
   telasSugeridas,
   veredictoTela,
   type HintTela,
@@ -322,5 +325,105 @@ describe("paridad del interruptor con la base", () => {
     expect(sql).toContain("'fijar_consumo_modelo'");
     expect(sql).toContain("hint = 'consumo_modelo_sin_permiso'");
     expect(sql.indexOf("consumo_modelo_sin_permiso")).toBeLessThan(sql.indexOf("v_id := retail.abrir_produccion("));
+  });
+});
+
+describe("telasDeLaHoja — la lista que dibuja Nueva orden: filas por color y avíos", () => {
+  const HILO_BEIGE = { ...HILO, id: "hilo-beige", nombre: "Hilo beige" };
+  const insumos = [...INSUMOS, HILO_BEIGE];
+  const sugeridas: TelaBorrador[] = [
+    { insumoId: LINO_NEG.id, colorCodigo: "NEG", consumoPorPrenda: "1.2" },
+    { insumoId: null, colorCodigo: "PRO", consumoPorPrenda: "1.2" },
+  ];
+  const lista = (manual: TelaBorrador[] | null) => telasDeLaHoja({ sugeridas, manual, insumos });
+
+  it("sin haber tocado nada manda la sugerencia", () => {
+    expect(lista(null)).toEqual(sugeridas);
+  });
+  it("lo que la persona tocó de un color gana sobre la sugerencia de ese color; los colores que no tocó siguen sugeridos", () => {
+    const manual = [{ insumoId: LINO_CRU.id, colorCodigo: "NEG", consumoPorPrenda: "1.5" }];
+    expect(lista(manual)).toEqual([manual[0], sugeridas[1]]);
+  });
+  it("un avío de toda la orden y uno de UN color se quedan, después de las filas de color", () => {
+    const deTodos: TelaBorrador = { insumoId: HILO.id, colorCodigo: null, consumoPorPrenda: "0.02" };
+    const deUnColor: TelaBorrador = { insumoId: HILO_BEIGE.id, colorCodigo: "PRO", consumoPorPrenda: "0.01" };
+    const l = lista([...sugeridas, deTodos, deUnColor]);
+    expect(l.slice(2)).toEqual([deTodos, deUnColor]);
+  });
+  it("un avío de un color NO se toma por la fila de tela de ese color, aunque esté antes en la lista", () => {
+    const deUnColor: TelaBorrador = { insumoId: HILO_BEIGE.id, colorCodigo: "NEG", consumoPorPrenda: "0.01" };
+    const l = lista([deUnColor, { insumoId: LINO_NEG.id, colorCodigo: "NEG", consumoPorPrenda: "1.2" }]);
+    expect(l[0].insumoId).toBe(LINO_NEG.id);
+    expect(l.slice(2)).toEqual([deUnColor]);
+  });
+  it("una fila de avío recién agregada, todavía sin elegir, no desaparece (si no, «+ Agregar avío» no haría nada)", () => {
+    const vacia: TelaBorrador = { insumoId: null, colorCodigo: null, consumoPorPrenda: "" };
+    expect(lista([...sugeridas, vacia])).toEqual([...sugeridas, vacia]);
+  });
+  it("un avío cuyo color ya no se fabrica y la tela de un color que ya no se fabrica se descartan", () => {
+    const aviosSinColor: TelaBorrador = { insumoId: HILO.id, colorCodigo: "ROJ", consumoPorPrenda: "0.02" };
+    const telaSinColor: TelaBorrador = { insumoId: LINO_CRU.id, colorCodigo: "ROJ", consumoPorPrenda: "1.2" };
+    expect(lista([...sugeridas, aviosSinColor, telaSinColor])).toEqual(sugeridas);
+  });
+  it("un modelo sin colores puede llevar avíos (antes se descartaban todos)", () => {
+    const sinColor: TelaBorrador[] = [{ insumoId: LINO_SIN.id, colorCodigo: null, consumoPorPrenda: "1.2" }];
+    const hilo: TelaBorrador = { insumoId: HILO.id, colorCodigo: null, consumoPorPrenda: "0.02" };
+    expect(telasDeLaHoja({ sugeridas: sinColor, manual: [...sinColor, hilo], insumos })).toEqual([sinColor[0], hilo]);
+  });
+  it("lo que devuelve viaja a la base tal cual: las filas con tela elegida, con su color o sin él", () => {
+    const deUnColor: TelaBorrador = { insumoId: HILO_BEIGE.id, colorCodigo: "PRO", consumoPorPrenda: "0.01" };
+    expect(insumosParaRpc(lista([...sugeridas, deUnColor]))).toEqual([
+      { insumo_id: LINO_NEG.id, color_codigo: "NEG", consumo_por_prenda: "1.2" },
+      { insumo_id: HILO_BEIGE.id, color_codigo: "PRO", consumo_por_prenda: "0.01" },
+    ]);
+  });
+});
+
+describe("prendasDeLaFila", () => {
+  const colores = [
+    { codigo: "NEG", prendas: 30 },
+    { codigo: "PRO", prendas: 5 },
+  ];
+  it("un color lleva las prendas de ese color; toda la orden, las de todos", () => {
+    expect(prendasDeLaFila("NEG", colores)).toBe(30);
+    expect(prendasDeLaFila(null, colores)).toBe(35);
+  });
+  it("un color que la orden no fabrica no lleva ninguna", () => {
+    expect(prendasDeLaFila("ROJ", colores)).toBe(0);
+  });
+  it("un modelo sin colores: toda la orden es su única fila", () => {
+    expect(prendasDeLaFila(null, [{ codigo: null, prendas: 12 }])).toBe(12);
+  });
+  it("coincide con lo que la base calcula como plan (`cantidad_plan`): consumo × prendas de la fila × (1 + merma)", () => {
+    expect(metrosAPedir("0.02", prendasDeLaFila("NEG", colores), 0)).toBe(0.6);
+    expect(metrosAPedir("0.02", prendasDeLaFila(null, colores), 0)).toBe(0.7);
+  });
+});
+
+describe("cantidadAPedir — se pide hacia arriba, nunca de menos", () => {
+  it("un plan de hilo menor que un cono se pide como un cono, no como cero", () => {
+    expect(cantidadAPedir(0.24, "cono")).toBe(1);
+    expect(cantidadAPedir(2.01, "cono")).toBe(3);
+  });
+  it("los metros a un decimal hacia arriba (15.12 → 15.2) y lo exacto no sube (15.1 → 15.1)", () => {
+    expect(cantidadAPedir(15.12, "metro")).toBe(15.2);
+    expect(cantidadAPedir(15.1, "metro")).toBe(15.1);
+  });
+  it("no sube por el ruido de los decimales binarios (0.6 × 10)", () => {
+    expect(cantidadAPedir(0.1 + 0.2, "metro")).toBe(0.3);
+    expect(cantidadAPedir(0.6000000000000001, "kilo")).toBe(0.6);
+  });
+  it("las unidades enteras: 192 botones son 192; un par y una docena también", () => {
+    expect(cantidadAPedir(192, "unidad")).toBe(192);
+    expect(cantidadAPedir(1.2, "par")).toBe(2);
+    expect(cantidadAPedir(0.5, "docena")).toBe(1);
+  });
+  it("lo que no es una cantidad no se pide: cero", () => {
+    expect(cantidadAPedir(0, "metro")).toBe(0);
+    expect(cantidadAPedir(-3, "cono")).toBe(0);
+    expect(cantidadAPedir(Number.NaN, "metro")).toBe(0);
+  });
+  it("una unidad que el catálogo no conoce se trata como metros (un decimal)", () => {
+    expect(cantidadAPedir(1.01, "rollo")).toBe(1.1);
   });
 });

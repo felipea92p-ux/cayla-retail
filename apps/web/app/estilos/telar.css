@@ -45,6 +45,14 @@
   overflow: hidden;
 }
 
+/* El Resumen cuelga su ícono «Qué se ve» junto al mes. Hasta 1500 px la fila queda justa: ese texto de ayuda se esconde (ya está en su `title`)
+   para que «Registrar gasto» no baje a otra línea. Solo cuando el ícono existe; las otras pantallas de Finanzas no cambian. */
+@media (max-width: 1500px) {
+  .mesa-telar-fila:has(#slot-ajustes-resumen button) .mesa-telar-dice {
+    display: none;
+  }
+}
+
 /* ---- Ver sede: un botón por sede; se marcan una, varias o «Todas» (Felipe 2026-10-24: los hilos no se leían como filtro) ---- */
 .sedes-telar {
   display: flex;

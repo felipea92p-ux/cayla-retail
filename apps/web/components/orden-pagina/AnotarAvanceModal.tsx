@@ -6,6 +6,7 @@ import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
@@ -14,6 +15,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { cantidadesQueFaltan, avancesNuevos, cantidadConUnidad, esPrimeraFase, faltaTerminar, leerOrdenPagina, RPC_DESHACER_AVANCE, RPC_ORDEN_PRODUCCION, RPC_REGISTRAR_AVANCE, textoTermine, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import { RPC_REGISTRAR_CONSUMO, anotarConsumoEnLotes, cantidadDeFabrica, leerCantidad, problemaDeTelaUsada, telasDeLaOrden, textoAnotasteTela } from "@/lib/orden-tela-usada-reglas";
 import { camposDeAvance } from "@/lib/orden-pagina-guia";
+import { avisoCorteSinTela } from "@/lib/orden-tela-sin-anotar-reglas";
 import { lineasDeModeloExistente, tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
@@ -54,6 +56,8 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
   // ¿Esto completa el corte? Entonces se pregunta la tela. Solo en la primera fase, y solo si hay una tela que anotar y se puede operar.
   const completaElCorte = esPrimeraFase(fase, datos.fases) && total > 0 && total >= faltaTerminar(fase, datos.fases);
   const preguntaLaTela = completaElCorte && telas.some((t) => t.falta > 0 || t.usado === 0);
+  // Con el corte completo y ninguna tela declarada no hay nada que preguntar ni descontar: se avisa, no se bloquea (ADR-0510).
+  const sinTela = avisoCorteSinTela(datos.insumos, completaElCorte);
   const problemasDeTela = preguntaLaTela ? telas.flatMap((t) => (telaUsada[t.insumoId]?.trim() ? [problemaDeTelaUsada(t, telaUsada[t.insumoId], "usar")] : [])).filter((p): p is string => p !== null) : [];
 
   const guia = useGuiaCampos(camposDeAvance({ total, responsableListo: responsable.listo }));
@@ -207,6 +211,8 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
             <p className="text-xs text-tinta/65">{problemasDeTela[0] ?? "Opcional: déjalo vacío si prefieres anotarla después desde «Tela»."}</p>
           </div>
         )}
+
+        {sinTela && <Aviso tono="atencion">{sinTela.texto}</Aviso>}
 
         <CampoTexto id="avance-nota" etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
 

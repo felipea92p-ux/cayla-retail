@@ -10,8 +10,10 @@
    ==================================================================== */
 
 /* ---- El riel de pasos ---- */
-.rc-riel { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 6px 0 2px; }
-.rc-riel-linea { position: absolute; left: calc(16.67% + 18px); right: calc(16.67% + 18px); top: 24px; height: 2px; border-radius: 2px; background: var(--color-sand); overflow: hidden; }
+.rc-riel { position: relative; display: grid; grid-template-columns: repeat(var(--pasos, 3), minmax(0, 1fr)); gap: 8px; padding: 6px 0 2px; }
+/* Con dos paradas (Recibir: Contar y Cerrar) el riel se junta y se centra, con una separación proporcional al ancho (78 %, con un mínimo para el celular). */
+.rc-riel[data-pasos="2"] { width: max(78%, min(100%, 22rem)); margin-inline: auto; }
+.rc-riel-linea { position: absolute; left: calc(50% / var(--pasos, 3) + 18px); right: calc(50% / var(--pasos, 3) + 18px); top: 24px; height: 2px; border-radius: 2px; background: var(--color-sand); overflow: hidden; }
 .rc-riel-linea > i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: var(--color-tinta); transition: width 450ms var(--ease-cayla); }
 .rc-parada { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 2px 6px 8px; border-radius: 14px; color: color-mix(in srgb, var(--color-tinta) 72%, transparent); transition: color 240ms var(--ease-cayla); }
 @media (hover: hover) {

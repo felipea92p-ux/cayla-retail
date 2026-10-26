@@ -45,3 +45,6 @@ La firma no contaba una casilla `sr-only` (un input escondido que solo guarda un
 `peer-checked:`: la casilla propia de Por pagar (una función local que hasta se llamaba `Casilla`) y el interruptor «Es un regalo» de las
 prendas fuera de comprobante en Recepción. Pasaron a `<Casilla>` y a `<Interruptor>` (la fila de Por pagar ya ignoraba el clic de una casilla,
 así que la pieza, que no lo deja subir, no cambia qué hace). Una firma nueva atrapa `type="checkbox"` con `peer`.
+
+**Actualización 2026-10-26 (P2 de la familia CAYLA, ADR-0516).** El borde de la casilla vacía pasó de tinta al 35 % (2.2:1 en claro) a `borde-control` (3.8:1), y el interruptor apagado ganó un aro de 1,5 px del mismo color
+(antes solo su relleno, 1.6:1): lo que se toca lleva el borde de control, no la línea decorativa. Felipe lo eligió mirando la lámina `docs/maquetas/familia-borde-control-2026-10/`. Cómo se mueve (se dibuja, se estira) no cambia.
