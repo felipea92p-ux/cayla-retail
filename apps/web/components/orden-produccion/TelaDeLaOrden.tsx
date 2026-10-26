@@ -92,6 +92,8 @@ export type PropsTelaDeLaOrden = {
   onFijarAvios?: (v: boolean) => void;
   /** Cuántos avíos tiene ya el modelo (los que la orden propone sola mientras nadie toque nada). */
   aviosDelModelo?: number;
+  /** Abre la hoja «Ficha de consumo» del modelo (ADR-0513): la ficha se escribe una vez y las órdenes nuevas la proponen. Sin esto, no hay botón (un modelo nuevo todavía no tiene ficha). */
+  onAbrirFicha?: () => void;
   /** Editar una orden que ya está abierta (ADR-0510): lo que cambia respecto a Nueva orden. Sin esto, el bloque es el de siempre. */
   edicion?: {
     /** Lo ya usado en la orden, por tela: con consumo anotado el «Alcanza» no se dice aquí (el estante ya bajó) y se muestra cuánto se usó. */
@@ -116,7 +118,7 @@ const porPrenda = (n: number, unidad: string) => `${n.toLocaleString("es-PE", { 
 const SIN_CAMINO = new Map<string, number>();
 const FILA_VACIA = (colorCodigo: string | null): TelaBorrador => ({ insumoId: null, colorCodigo, consumoPorPrenda: "" });
 
-export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre, colores, comprometido, enCamino = SIN_CAMINO, consumoDeclarado, conCostos, costoPorMetro, guia, problemas, ofertaConsumo, puedeCorregirConsumo, fijarConsumo, onFijarConsumo, ofertaAvios = { tipo: "ninguna" }, puedeCorregirAvios = false, fijarAvios = false, onFijarAvios, aviosDelModelo = 0, edicion, titulo = "Tela de la orden" }: PropsTelaDeLaOrden) {
+export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre, colores, comprometido, enCamino = SIN_CAMINO, consumoDeclarado, conCostos, costoPorMetro, guia, problemas, ofertaConsumo, puedeCorregirConsumo, fijarConsumo, onFijarConsumo, ofertaAvios = { tipo: "ninguna" }, puedeCorregirAvios = false, fijarAvios = false, onFijarAvios, aviosDelModelo = 0, onAbrirFicha, edicion, titulo = "Tela de la orden" }: PropsTelaDeLaOrden) {
   const porId = new Map(insumos.map((i) => [i.id, i] as const));
   const esAvio = (t: TelaBorrador) => (t.insumoId ? porId.get(t.insumoId)?.tipo === "avio" : false);
 
@@ -207,9 +209,16 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
   return (
     <section aria-label={titulo} data-guia="prod-orden-nueva.tela">
       <CampoGuiado id="tela" guia={guia} retiene="fila" className="space-y-2">
-        <span className={`${campoEtiqueta} block`}>
-          {guia.etiqueta("tela", titulo)} {!edicion && <span className="font-normal normal-case text-tinta/45">· opcional</span>}
-        </span>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <span className={`${campoEtiqueta} block`}>
+            {guia.etiqueta("tela", titulo)} {!edicion && <span className="font-normal normal-case text-tinta/45">· opcional</span>}
+          </span>
+          {onAbrirFicha && (
+            <Boton type="button" peso="fantasma" onClick={onAbrirFicha}>
+              Ficha del modelo
+            </Boton>
+          )}
+        </div>
 
         {!algunaElegida && telasDelEstante.length > 0 && (
           <p className="text-[12.5px] text-tinta/70">Si eliges la tela, la orden te dice cuántos metros pedir y si alcanzan.</p>

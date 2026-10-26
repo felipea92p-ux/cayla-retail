@@ -45,6 +45,7 @@ import { AgregarColor, QuitarColor } from "@/components/orden-produccion/Agregar
 import { FichaOrden } from "@/components/orden-produccion/FichaOrden";
 import { ConsejoDeLaRed } from "@/components/orden-produccion/ConsejoDeLaRed";
 import { FasesDeLaOrden } from "@/components/orden-produccion/FasesDeLaOrden";
+import { FichaDeConsumoHoja } from "@/components/orden-produccion/FichaDeConsumoHoja";
 import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion/TelaDeLaOrden";
 import { NivelDos } from "@/components/orden-produccion/NivelDos";
 import { esDeNivelDos, nivelDosPideAbrirse, resumenNivelDos } from "@/lib/orden-nivel-dos-reglas";
@@ -244,6 +245,7 @@ export function NuevaOrdenProduccionForm({
   // «Dejar este consumo como el del modelo»: apagado de fábrica; solo vale si el modelo ya dice otra cosa y quien abre edita el catálogo (`ofertaConsumo`).
   const [fijarConsumo, setFijarConsumo] = useState(false);
   const [fijarAvios, setFijarAvios] = useState(false);
+  const [fichaAbierta, setFichaAbierta] = useState(false);
   const [fechaEntrega, setFechaEntrega] = useState(inicio?.fechaEntrega ?? "");
   const [nota, setNota] = useState(inicio?.nota ?? "");
   const [cargando, setCargando] = useState(false);
@@ -936,6 +938,7 @@ export function NuevaOrdenProduccionForm({
               fijarAvios={fijarLosAvios}
               onFijarAvios={setFijarAvios}
               aviosDelModelo={aviosDelModelo.length}
+              onAbrirFicha={!esNuevo && modeloExistente && opcionesDatos ? () => setFichaAbierta(true) : undefined}
               onFijarConsumo={setFijarConsumo}
             />
             {opciones?.fallo && (
@@ -1045,6 +1048,9 @@ export function NuevaOrdenProduccionForm({
           </div>
         </FichaOrden>
       </form>
+      {fichaAbierta && modeloExistente && (
+        <FichaDeConsumoHoja tallerId={tallerId} productoId={modeloExistente.productoId} referencia={modeloExistente.referencia} insumos={insumosDelTaller} onClose={() => setFichaAbierta(false)} />
+      )}
       {avisoSalida.aviso}
     </Marco>
   );

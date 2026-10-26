@@ -4,15 +4,15 @@
  * `20261026150000` y `20261026151000`. CAYLA V2.
  *
  * LO QUE VIGILA. Que los botones, el hilo y las etiquetas de un modelo se escriban una vez y la orden siguiente los encuentre: la primera orden con avíos los
- * deja como los del modelo; una orden posterior NO los pisa sola; quien edita el catálogo puede corregirlos a propósito (`fijar_avios_modelo`) y quien no, no
- * (42501 antes de abrir, sin gastar número); reemplazar archiva las filas anteriores en vez de borrarlas; Nueva orden los recibe en `avios_modelo`; y el modelo
+ * deja como los del modelo; una orden posterior NO los pisa sola; quien opera el Taller puede corregirlos a propósito (`fijar_avios_modelo`; desde la
+ * actividad 4 ya no hace falta el permiso de catálogo: Producción edita la ficha); reemplazar archiva las filas anteriores en vez de borrarlas; Nueva orden los recibe en `avios_modelo`; y el modelo
  * nunca queda a medias ni con dos filas vigentes del mismo avío y color.
  *
  * QUÉ PRUEBA (cada caso en su transacción con ROLLBACK; las migraciones se cargan dentro de cada caso: así se prueba que se pueden pegar otra vez).
  *   A  DECLARAR: la primera orden con avíos los deja en el modelo (toda la orden y un color); una orden sin avíos no los toca; las telas no entran.
  *   N  NO PISAR: una orden posterior con otros avíos deja intactos los del modelo.
- *   F  FIJAR:    el líder reemplaza (los anteriores quedan archivados, no borrados); quien no edita el catálogo, 42501 y sin número gastado; donde el modelo no tenía
- *                nada, quien opera el Taller lo declara sin permiso.
+ *   F  FIJAR:    quien opera el Taller (líder o no, edite o no el catálogo) reemplaza (los anteriores quedan archivados, no borrados); donde el modelo no tenía
+ *                nada también lo declara.
  *   L  LEER:     `fn_nueva_orden_opciones` devuelve los vigentes de cada modelo y no los archivados.
  *   U  UNICIDAD: el índice vigente impide dos filas del mismo avío y color; la tabla tiene RLS sin políticas y la función interna está cerrada a la API.
  *   M  LA MIGRACIÓN: se vuelve a cargar sin error.
@@ -41,6 +41,7 @@ const MIGRACION_EDITAR = leerMig("20261026035000_produccion_editar_tela_y_avios_
 const MIGRACION_MEDIDO = leerMig("20261026150000_produccion_lo_medido_no_pisa_lo_declarado.sql");
 const MIGRACION_TALLA = leerMig("20261026151000_produccion_consumo_por_talla.sql");
 const MIGRACION = leerMig("20261026152000_produccion_avios_del_modelo.sql");
+const MIGRACION_FICHA = leerMig("20261026153000_produccion_ficha_de_consumo.sql"); // ADR-0513 act. 4: Producción edita la ficha (ya no pide catálogo)
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda Trujillo (seed)
@@ -100,6 +101,8 @@ set local search_path = retail, public, extensions;
 ${MIGRACION_TALLA}
 set local search_path = retail, public, extensions;
 ${MIGRACION}
+set local search_path = retail, public, extensions;
+${MIGRACION_FICHA}
 set local search_path = retail, public, extensions;
 ${ENVOLTURAS}
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
@@ -213,15 +216,14 @@ caso(
   (o) => /^OK:\d+\|OK:\d+\|AV-BOTON:-:6\.000 AV-HILO-2:c2:0\.050\|2$/.test(o)
 );
 caso(
-  "F2 quien opera el Taller pero no edita el catálogo NO corrige los avíos que el modelo ya dice: 42501 antes de abrir, los avíos quedan igual y NO se gasta número",
+  "F2 quien opera el Taller aunque NO edite el catálogo SÍ corrige los avíos del modelo (Producción edita la ficha, ADR-0513): los anteriores quedan archivados y la orden se abre",
   `${ABRE(LISTA(["boton", null, "4"]))}
    ${MICAELA_SIN_CATALOGO}
-   select last_value as antes from retail.producciones_numero_seq \\gset
    ${como(MICAELA)}
-   select pg_temp.eh(pg_temp.abre(${APERTURA(", 'fijar_avios_modelo', true")}, ${ESPINA}, ${LISTA(["boton", null, "9"])})) as r2 \\gset
+   select pg_temp.abre(${APERTURA(", 'fijar_avios_modelo', true")}, ${ESPINA}, ${LISTA(["boton", null, "9"])}) as r2 \\gset
    ${como(FELIPE)}
-   select concat_ws('|', :'r2', ${VIGENTES}, (select last_value = :'antes' from retail.producciones_numero_seq));`,
-  "42501|avios_modelo_sin_permiso|AV-BOTON:-:4.000|t"
+   select concat_ws('|', :'r2', ${VIGENTES}, ${ARCHIVADOS});`,
+  (o) => /^OK:\d+\|AV-BOTON:-:9\.000\|1$/.test(o)
 );
 caso(
   "F3 donde el modelo todavía no dice nada no hace falta permiso: quien opera el Taller abre la orden con el interruptor y sus avíos quedan como los del modelo",

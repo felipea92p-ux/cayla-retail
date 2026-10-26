@@ -310,7 +310,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.tela",
       opcional: true,
       titulo: "La tela de la orden",
-      texto: "Por cada color eliges la tela y cuántos metros lleva cada prenda (el modelo ya lo sugiere). «Separar por talla» deja escribir cada talla; con una sola cifra el pedido sale «Aproximado». La orden te dice cuántos pedir y si alcanza. Los avíos del modelo vienen puestos; «+ Agregar avío» suma otro.",
+      texto: "Por cada color eliges la tela y cuántos metros lleva cada prenda (el modelo ya lo sugiere). «Separar por talla» deja escribir cada talla; con una sola cifra el pedido sale «Aproximado». La orden te dice cuántos pedir y si alcanza. «Ficha del modelo» guarda tela y avíos para las próximas; «+ Agregar avío» suma otro.",
     },
     {
       id: "consumo-modelo",
