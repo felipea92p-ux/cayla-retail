@@ -1330,6 +1330,13 @@ export const PRUEBAS = [
   // el caso de las sesiones paralelas, que confirma sobre filas «ZZ Cal concurrencia» y las borra al terminar.
   "pruebas:plan-compra-calendario",
 
+  // El paso 2 del Plan (ADR-0526): la lectura cuenta lo mismo que `fn_plan_compra` (ventas completadas y no de prueba en 90 días, stock libre de apartados y sin Cuarentena,
+  // sin modelos de prueba, las «sin registrar» aparte); guardar rechaza lo imposible (un reparto que se pasa del total del paso 1, un modelo de otra categoría, una talla ajena,
+  // la misma celda dos veces) sin escribir nada; lo idéntico no crea otra foto; quien edita sobre una versión vieja no pisa a otra persona; la tabla no se edita ni se borra;
+  // responde al rol de la tienda y se cierra sin el módulo; y cuatro personas a la vez dejan UNA foto vigente. ROLLBACK, salvo el caso de las sesiones paralelas, que confirma
+  // sobre filas «ZZ Paso2 Concurrencia» y las borra al terminar.
+  "pruebas:plan-compra-paso-2",
+
   // El plazo de pedido del Plan (ADR-0499): `dias_para_llegar` por campaña (1 a 365, nunca sin autor, ni con la tabla directo), quitarlo deja anotado
   // quién, solo con el módulo (42501 si no) y responde al rol de la tienda. ROLLBACK siempre.
   "pruebas:plan-compra-plazo",
