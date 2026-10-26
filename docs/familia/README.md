@@ -46,6 +46,8 @@ Ocho pendientes (P1, el oscuro, se decidió el 2026-10-26), cada uno con lo que 
 | **P8** | «¡» y mayúsculas | «¡» en el recibo y las guías | sin exclamación, mayúscula solo al inicio |
 | **P9** | Tokens de capas (z-index) | z-50 y z-[60] sueltos | `z-sticky` 10, `z-overlay` 40, `z-toast` 60 |
 
+P2 ya tiene su lámina para elegir mirando: `docs/maquetas/familia-borde-control-2026-10/index.html` (tres bordes, controles tocables, claro y oscuro, con las medidas).
+
 Mientras uno de estos siga abierto, cada aplicación conserva su valor y nadie lo cambia sin decidirlo; al decidirlo, el pendiente pasa a `decidido`, el valor
 sube a la capa «marca» (como pasó con el oscuro) y lo que falte aplicar en la otra aplicación queda anotado en `aplicacion_pendiente`.
 
