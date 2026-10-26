@@ -9,7 +9,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buenasDeRecibidos, CAUSAS_FALTANTE, CAUSAS_SOBRANTE, despuesDeRecibirEnvio, textoCausa, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
-import { cifrasDelEnvio, paraDespues, textoNoSeReabre, textoPrendas, veredictoDelCerrado, prendasQueEntraron, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
+import { BOTON_DE_PENDIENTE, cifrasDelEnvio, paraDespues, textoNoSeReabre, textoPrendas, veredictoDelCerrado, prendasQueEntraron, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
 import { HacerAhora } from "./HacerAhora";
 import { Sello } from "./piezas";
 import { ReabrirEnvio } from "./ReabrirEnvio";
@@ -154,7 +154,7 @@ export function EnvioCerrado({
                   <small className="block text-[12.5px] text-taupe">{p.sub}</small>
                 </span>
                 <Boton type="button" peso="fantasma" onClick={() => setHaciendo(p)}>
-                  {p.tipo === "crear" ? "+ Crear ahora" : "Hacer ahora"}
+                  {BOTON_DE_PENDIENTE[p.tipo]}
                 </Boton>
               </li>
             ))}

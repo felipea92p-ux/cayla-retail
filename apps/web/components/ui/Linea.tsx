@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { radioDeToque, separarMarcas, textosQueCaben } from "@/lib/linea-marcas-reglas";
 
 /* ====================================================================
    La línea — una sola pieza (ADR-0358, ronda 14, Felipe eligió P1 el 2026-10-15)
@@ -13,11 +14,34 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
    · Al pasar el mouse, una guía salta al punto más cercano (o recorre cualquier momento, `continuo`) y un globito dice lo que pasa la
      pantalla (`leer`). Lo que está bien o mal (vas arriba o abajo de ayer) lo dice la frase de la pantalla, no el color de la línea.
    · Se dibuja de izquierda a derecha una vez al verse (900 ms), el área aparece detrás y el punto final con su cifra al llegar.
+   · `escalones`: el valor se queda quieto hasta el punto siguiente y salta ahí (un costo, que solo cambia cuando llega mercadería). Con
+     `marcas`, cada salto lleva su número (①②③) y lo que pasó en dos palabras; el número se toca y lleva a su detalle (la pestaña «Costo»
+     del Historial de la prenda, 2026-10-24). `arreglos`: un lápiz punteado sobre la fecha de algo que se corrigió (un costo mal
+     anotado), fuera de la línea: lo arreglado no mueve la línea, solo se avisa que pasó.
    En una fila de una lista, la mini es `<Sparkline>` (components/ui/Sparkline.tsx). Registro: docs/unificar/grafico.linea.md.
    Nunca una `<polyline>` ni un `<path>` de datos dibujados a mano.
    ==================================================================== */
 
 export type PuntoLinea = { x: number; y: number };
+
+/** Un lápiz sobre la fecha de algo que se corrigió: se toca y lleva a su detalle. */
+export type ArregloLinea = { x: number; etiqueta: string; onElegir?: () => void };
+
+/** Un número sobre la línea que se toca: dice qué pasó en ese punto y lleva a su detalle. */
+export type MarcaLinea = {
+  x: number;
+  y: number;
+  n: number;
+  /** Lo que pasó, en dos palabras («↑ subió S/ 1.61»): encima del número (debajo si `tono` es «baja»). */
+  texto: string;
+  /** Sube en ámbar, baja en verde, el resto en taupe: lo que el número le hizo a la línea. */
+  tono?: "sube" | "baja" | "neutro";
+  /** El número elegido: lleno de tinta. */
+  activa?: boolean;
+  /** Para el lector de pantalla: «Compra 2, 14 oct: subió S/ 1.61». */
+  etiqueta: string;
+  onElegir?: () => void;
+};
 
 type Props = {
   /** Lo de hoy (lo vendido, el costo): la línea de tinta con su área. Puede llegar solo hasta «ahora». */
@@ -42,6 +66,12 @@ type Props = {
   area?: boolean;
   /** Un punto en cada dato (las compras de un proveedor). */
   puntos?: boolean;
+  /** El valor se queda quieto hasta el punto siguiente y salta ahí (un costo). */
+  escalones?: boolean;
+  /** Números que se tocan sobre la línea. */
+  marcas?: readonly MarcaLinea[];
+  /** Lápices sobre la fecha de lo que se corrigió (fuera de la línea). */
+  arreglos?: readonly ArregloLinea[];
   /** La raya punteada vertical de «ahora», con su texto. */
   ahora?: { x: number; texto: string } | null;
   /** La cifra del último punto, en serif. */
@@ -71,9 +101,10 @@ export function topeRedondo(mx: number): number {
 
 const montoCorto = (v: number) => (v >= 1000 ? `${(v / 1000).toLocaleString("es-PE", { maximumFractionDigits: 1 })} mil` : Math.round(v).toLocaleString("es-PE"));
 
-/** El valor de una línea en el momento `x` (interpolado entre sus dos puntos vecinos). */
-export function valorEnLinea(puntos: readonly PuntoLinea[], x: number): number | null {
+/** El valor de una línea en el momento `x` (interpolado entre sus dos puntos vecinos; con `escalones`, el del último punto que pasó). */
+export function valorEnLinea(puntos: readonly PuntoLinea[], x: number, escalones = false): number | null {
   if (puntos.length === 0) return null;
+  if (escalones) return [...puntos].reverse().find((p) => p.x <= x)?.y ?? puntos[0]!.y;
   if (x <= puntos[0]!.x) return puntos[0]!.y;
   for (let i = 1; i < puntos.length; i++) {
     const a = puntos[i - 1]!, b = puntos[i]!;
@@ -95,6 +126,9 @@ export function Linea({
   ejes = true,
   area = true,
   puntos = false,
+  escalones = false,
+  marcas = [],
+  arreglos = [],
   ahora = null,
   cifra = null,
   cifraReferencia = null,
@@ -131,7 +165,11 @@ export function Linea({
   const B = marcasX.length > 0 ? 24 : 8;
   const X = (x: number) => L + (hasta === desde ? 0 : ((x - desde) / (hasta - desde)) * (W - L - R));
   const Y = (v: number) => T + (H - T - B) * (1 - (v - minY) / Math.max(techo - minY, 1e-9));
-  const camino = (ps: readonly PuntoLinea[]) => ps.map((p, i) => `${i ? "L" : "M"}${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`).join(" ");
+  const camino = (ps: readonly PuntoLinea[], escalon = false) =>
+    ps.map((p, i) => (i === 0 ? `M${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}` : escalon ? `H${X(p.x).toFixed(1)} V${Y(p.y).toFixed(1)}` : `L${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`)).join(" ");
+  // Los números de `marcas` se separan cuando caen casi juntos (seis compras en dos días): el número se corre, el escalón no.
+  const lugarMarcas = separarMarcas(marcas.map((m) => X(m.x)), 26, L + 12, W - R);
+  const textoCabe = textosQueCaben(lugarMarcas, marcas.map((m) => m.texto));
   const ultimo = serie.at(-1) ?? null;
   const finRef = referencia?.at(-1) ?? null;
 
@@ -148,7 +186,7 @@ export function Linea({
     setGuia(xs.reduce((m, x) => (Math.abs(x - xv) < Math.abs(m - xv) ? x : m), xs[0]!));
   }
 
-  const gSerie = guia === null || !ultimo || guia > ultimo.x ? null : valorEnLinea(serie, guia);
+  const gSerie = guia === null || !ultimo || guia > ultimo.x ? null : valorEnLinea(serie, guia, escalones);
   const gRef = guia === null || !referencia ? null : valorEnLinea(referencia, guia);
   const contenido = guia === null || !leer ? null : leer(guia);
   const yGlobo = guia === null ? 0 : Math.min(...[gSerie, gRef].filter((v): v is number => v !== null).map(Y), H);
@@ -204,9 +242,9 @@ export function Linea({
           {serie.length > 0 && ultimo ? (
             <>
               {area && serie.length > 1 && (
-                <path d={`${camino(serie)} L${X(ultimo.x).toFixed(1)},${Y(minY).toFixed(1)} L${X(serie[0]!.x).toFixed(1)},${Y(minY).toFixed(1)} Z`} className="linea-area" />
+                <path d={`${camino(serie, escalones)} L${X(ultimo.x).toFixed(1)},${Y(minY).toFixed(1)} L${X(serie[0]!.x).toFixed(1)},${Y(minY).toFixed(1)} Z`} className="linea-area" />
               )}
-              {serie.length > 1 && <path d={camino(serie)} pathLength={1} className="linea-trazo" />}
+              {serie.length > 1 && <path d={camino(serie, escalones)} pathLength={1} className="linea-trazo" />}
               {puntos &&
                 serie.map((p, i) => (
                   <circle key={i} cx={X(p.x)} cy={Y(p.y)} r={guia === p.x ? 6.5 : 4.5} className="linea-punto" style={{ "--i": i } as CSSProperties} />
@@ -217,6 +255,73 @@ export function Linea({
                   {cifra}
                 </text>
               )}
+              {arreglos.map((a, i) => {
+                // Sobre la raya del piso; lo de antes del primer punto se dibuja en su comienzo, sin pisar el monto del eje.
+                const ax = Math.max(X(Math.min(Math.max(a.x, desde), hasta)), L + 14);
+                const ay = Y(minY);
+                return (
+                  <g
+                    key={`${a.x}-${i}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={a.etiqueta}
+                    className="linea-arreglo"
+                    style={{ "--i": i } as CSSProperties}
+                    onClick={a.onElegir}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        a.onElegir?.();
+                      }
+                    }}
+                  >
+                    <title>{a.etiqueta}</title>
+                    <circle cx={ax} cy={ay} r={16} className="linea-marca-toque" />
+                    <circle cx={ax} cy={ay} r={9} className="linea-arreglo-fondo" />
+                    {/* El lápiz de lucide, a escala: dibujado en el propio SVG (un foreignObject se corre en Safari). */}
+                    <path d="M4 20h4L19 9l-4-4L4 16z" transform={`translate(${ax - 5.4} ${ay - 5.4}) scale(0.45)`} className="linea-arreglo-lapiz" />
+                  </g>
+                );
+              })}
+              {/* En su orden: mover un nodo de lugar reinicia su animación de entrada. Separados a 26 px no se tapan entre sí. */}
+              {marcas.map((m, i) => {
+                  const cx = lugarMarcas[i]!;
+                  const real = X(m.x);
+                  const cy = Y(m.y);
+                  const verTexto = textoCabe[i] || !!m.activa;
+                  return (
+                    <g
+                      key={m.n}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={m.etiqueta}
+                      aria-pressed={!!m.activa}
+                      className={`linea-marca linea-marca-${m.tono ?? "neutro"} ${m.activa ? "linea-marca-activa" : ""}`}
+                      style={{ "--i": i } as CSSProperties}
+                      onClick={m.onElegir}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          m.onElegir?.();
+                        }
+                      }}
+                    >
+                      <title>{m.etiqueta}</title>
+                      {/* Un hilo une el número corrido con el punto de la línea donde de verdad pasó (el empujoncito del borde izquierdo no lo lleva). */}
+                      {Math.abs(cx - real) > 14 && <line x1={real} y1={cy} x2={cx} y2={cy} className="linea-marca-hilo" />}
+                      <circle cx={cx} cy={cy} r={radioDeToque(lugarMarcas, i)} className="linea-marca-toque" />
+                      <circle cx={cx} cy={cy} r={12} className="linea-marca-fondo" />
+                      <text x={cx} y={cy + 4} textAnchor="middle" className="linea-marca-n">
+                        {m.n}
+                      </text>
+                      {verTexto && (
+                        <text x={cx} y={m.tono === "baja" ? cy + 30 : cy - 20} textAnchor="middle" className="linea-marca-texto">
+                          {m.texto}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
             </>
           ) : (
             vacio && (

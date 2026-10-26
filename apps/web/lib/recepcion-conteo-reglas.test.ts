@@ -64,6 +64,8 @@ import {
   describirNuevas,
   quitarNuevaDescrita,
   cambiarCantidadNuevaDescrita,
+  prendaCreadaDeNueva,
+  BOTON_DE_PENDIENTE,
   veredictoDeLaBalanza,
   subtitulosDelRiel,
   insigniaDelEnvio,
@@ -595,6 +597,71 @@ describe("maqueta A: «Describir ahora» las nuevas", () => {
     expect(s.nuevas.find((x) => x.descripcion === "Top corto")?.cantidad).toBe(1);
     s = quitarNuevaDescrita(s, "Top corto");
     expect(s.nuevas).toEqual([{ cantidad: 3, descripcion: null }]);
+  });
+});
+
+describe("«Crear ahora» una nueva ya descrita: de «por crear» a prenda conocida", () => {
+  const CREADA = { productoId: "p-lazo", nombre: "Blusa lazo", codigo: "BLU-0042" };
+  const conUnaDescrita = () => describirNuevas(cambiarNuevasSinDescribir(SEPARADO_VACIO, 5), "Blusa con lazo, rosada", 3);
+
+  it("pasa a prenda sin tallas con las mismas cantidades: lo contado ni cambia ni se pierde", () => {
+    const s = conUnaDescrita();
+    const r = prendaCreadaDeNueva(s, "Blusa con lazo, rosada", CREADA);
+    expect(r.nuevas).toEqual([{ cantidad: 2, descripcion: null }]);
+    expect(r.prendas).toEqual([{ ...CREADA, cantidad: 3, variantes: null }]);
+    expect(totalSeparado(r)).toBe(totalSeparado(s));
+    expect(detalladas(r)).toBe(0);
+  });
+
+  it("ya creada, se detalla como cualquier prenda separada y entra al stock", () => {
+    const r = prendaCreadaDeNueva(conUnaDescrita(), "Blusa con lazo, rosada", CREADA);
+    const v = { varianteId: "v1", cantidad: 3, danadas: 0, solucion: null, talla: "S", color: "Rosado", codigo: "BLU-0042-S-ROS" };
+    const d = ponerTallas(r, CREADA.productoId, CREADA, [v]);
+    expect(d.prendas[0]?.variantes).toEqual([v]);
+    expect(detalladas(d)).toBe(3);
+  });
+
+  it("si esa prenda ya estaba separada (usó una que ya existía), se juntan: una prenda va una sola vez", () => {
+    const s = sumarPrenda(conUnaDescrita(), CREADA, 2);
+    const r = prendaCreadaDeNueva(s, "Blusa con lazo, rosada", CREADA);
+    expect(r.prendas).toEqual([{ ...CREADA, cantidad: 5, variantes: null }]);
+    expect(totalSeparado(r)).toBe(totalSeparado(s));
+  });
+
+  it("una descripción que no está en lo separado no toca nada", () => {
+    const s = conUnaDescrita();
+    expect(prendaCreadaDeNueva(s, "Otra cosa", CREADA)).toBe(s);
+    expect(prendaCreadaDeNueva(SEPARADO_VACIO, "Blusa con lazo, rosada", CREADA)).toBe(SEPARADO_VACIO);
+  });
+
+  it("lo que se guarda en la base lleva la prenda y ya no la nueva; la base no ve la descripción", () => {
+    const r = prendaCreadaDeNueva(describirNuevas(cambiarNuevasSinDescribir(SEPARADO_VACIO, 3), "Blusa con lazo, rosada", 3), "Blusa con lazo, rosada", CREADA);
+    expect(separadoParaBase(r)).toEqual({ prendas: [{ producto_id: "p-lazo", cantidad: 3, variantes: null }], nuevas: [] });
+  });
+});
+
+describe("el botón de cada fila de «Para después»", () => {
+  it("cada tipo dice lo que hace: crear, tallas y colores, o el genérico de separar", () => {
+    expect(BOTON_DE_PENDIENTE).toEqual({ separar: "Hacer ahora", detalle: "Tallas y colores ahora", crear: "+ Crear ahora" });
+  });
+
+  it("cubre todos los tipos que paraDespues puede devolver", () => {
+    const l = {
+      clave: "item:1",
+      linea: { id: "1" },
+      categoria: { nombre: "Blusas" },
+      marca: { nombre: "CAYLA" },
+      conteo: {
+        sinSeparar: 2,
+        pendientes: [
+          { id: "p1", tipo: "detalle", estado: "pendiente", quedan: 3, producto: { id: "x", nombre: "Emma" }, descripcion: null },
+          { id: "p2", tipo: "crear", estado: "pendiente", quedan: 1, producto: null, descripcion: "Top" },
+        ],
+      },
+    } as unknown as LineaParaContar;
+    const tipos = paraDespues([l]).map((p) => p.tipo);
+    expect(new Set(tipos)).toEqual(new Set(["separar", "detalle", "crear"]));
+    for (const t of tipos) expect(BOTON_DE_PENDIENTE[t]).toBeTruthy();
   });
 });
 

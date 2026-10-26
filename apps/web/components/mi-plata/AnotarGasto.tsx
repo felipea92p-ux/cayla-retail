@@ -120,6 +120,8 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
       subtitulo="No es ropa: no se suma al costo de las prendas."
       onClose={onClose}
       variante="hoja"
+      // En PC la hoja se ensancha para llevar dos columnas (Felipe 2026-10-26, «A», docs/maquetas/mis-compras-envios-pc-2026-10/): el celular y la tablet siguen igual.
+      ancho="max-w-md lg:max-w-3xl" // unificar-fijo: hoja de dos columnas solo desde 1024 px; bajo eso es la hoja angosta de siempre
       alCerrarEnfocar={volverA}
       bloqueado={guardando}
       antesDeCerrar={salida.pedirAccion}
@@ -132,6 +134,9 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
           }}
           className="space-y-5"
         >
+          {/* En PC: ¿en qué gastaste? a la izquierda; cuánto y la foto, a la derecha. En el celular las cajas «desaparecen» (`contents`). */}
+          <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
+          <div className="contents lg:flex lg:flex-col lg:gap-5">
           <CampoGuiado id="concepto" guia={guia} titulo="¿En qué gastaste?">
             <div role="group" aria-label="¿En qué gastaste?" className="grid grid-cols-3 gap-2" data-guia="mi-plata.concepto">
               {(Object.keys(CONCEPTOS_GASTO) as ConceptoGasto[]).map((k) => {
@@ -166,6 +171,8 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
               />
             </CampoGuiado>
           )}
+          </div>
+          <div className="contents lg:flex lg:flex-col lg:gap-5">
           <CampoGuiado id="monto" guia={guia} titulo="¿Cuánto fue?">
             <CampoMonto
               etiqueta="¿Cuánto fue?"
@@ -178,7 +185,7 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
               onChange={(e) => limpiar(setMonto)(e.target.value)}
             />
           </CampoGuiado>
-          <CampoGuiado id="foto" guia={guia} titulo="Foto del papel">
+          <CampoGuiado id="foto" guia={guia} titulo="Foto del papel" ayuda="· opcional">
             <TarjetaFoto
               titulo="Foto del papel, si te dieron"
               ayuda="Un taxi o un cargador pueden ir sin papel"
@@ -190,6 +197,8 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
               }}
             />
           </CampoGuiado>
+          </div>
+          </div>
           {rechazo && (
             <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
               {rechazo.texto}

@@ -4,9 +4,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight, Check, ChevronRight, Plus, Store, Truck } from "lucide-react";
+import { Chip } from "@/components/ui/Chip";
 import { Aviso } from "@/components/ui/Aviso";
 import { FichasMedio } from "@/components/ui/FichasMedio";
-import { BarraAvance } from "@/components/ui/BarraAvance";
+import { CaminoDePasos } from "./CaminoDePasos";
 import { Boton, BotonEnlace, CampoMonto } from "@/components/ui/campos";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Buscador } from "@/components/ui/Buscador";
@@ -18,6 +19,7 @@ import { BotonVerMas } from "@/components/ui/VerMas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
+import { TuCompra } from "./TuCompra";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Globito } from "@/components/ui/Globito";
 import { HojaPrenda } from "@/components/mi-plata/HojaPrenda";
@@ -62,8 +64,12 @@ import {
   conMarcasCreadas,
   marcasDeHabituales,
   prendasDeLineas,
+  prendasDeLaCompra,
+  totalesPorTienda,
   resumenCarrito,
   textoAvance,
+  lineaDeAvance,
+  PASOS_DE_LA_COMPRA,
   textoHabitual,
   pagoParaBase,
   textoLoQueFalta,
@@ -88,8 +94,9 @@ import {
 // tienda va —la tienda, por prenda—; la barra negra de abajo suma; al final, revisar) → 3 · el papel (qué le dieron, la foto y cuánto
 // pagó, que viene con el total anotado).
 //
-// Pagar ahora o después (Felipe 2026-10-23, 20261023181000): de fábrica paga ahora todo lo del papel, por Yape. Puede bajar el monto (lo
-// que falta queda en Por pagar) o dejarle todo a Compras («Pagar después»). Los tres métodos salen de su plata para compras.
+// Quién paga (Felipe 2026-10-23, 20261023181000; rótulos de la maqueta mis-compras-rediseno-2026-10): de fábrica «Pagué ahora» todo lo del
+// papel, por Yape. «Pagué solo una parte» (escondido hasta tocarlo) baja el monto (lo que falta queda en Por pagar); o «Paga Compras» y
+// le deja todo. Los tres métodos salen de su plata para compras.
 //
 // Guardar no mueve plata en los libros (Felipe 2026-10-22): en su plata baja al instante, y los libros la mueven cuando Compras completa
 // el papel. Lo que falta en el paso del papel es lo mismo que rechaza la base (`camposPapel`). La compra lleva su identificador desde que se
@@ -168,6 +175,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [pago, setPago] = useState<PagoCompra>(PAGO_DE_FABRICA);
   // Lo pagado sigue a lo que dice el papel hasta que la persona lo cambia: así «Pagar ahora» de fábrica es todo.
   const [pagadoPropio, setPagadoPropio] = useState(false);
+  // «Pagué solo una parte» está escondido hasta tocarlo (maqueta mis-compras-rediseno-2026-10): lo normal es pagar todo lo del papel.
+  const [pagoParcial, setPagoParcial] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<{ titulo: string; texto: string; tono: "error" | "atencion" } | null>(null);
   // `tieneAntes`: lo que tenía al guardar. Después de guardar, la pantalla se refresca y `datos.tiene` ya trae esta compra descontada:
@@ -204,8 +213,12 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const total = totalDeLineas(lineas);
   const ganancia = gananciaDeCompra(lineas);
   const pagoAhora: PagoCompra = { ...pago, pagado: pagadoPropio ? pago.pagado : monto };
+  // Con el monto escondido, lo pagado es todo lo del papel: no hay nada que la guía pida ahí.
+  const verParte = pagoParcial || pagadoPropio;
   const guia = useGuiaCampos(
-    camposPapel({ tipo, conFoto: archivo !== null, monto, pago: pagoAhora }, { esPersona, listo: responsable.listo, motivo: responsable.motivo }),
+    camposPapel({ tipo, conFoto: archivo !== null, monto, pago: pagoAhora }, { esPersona, listo: responsable.listo, motivo: responsable.motivo }).filter(
+      (c) => c.id !== "pagado" || verParte,
+    ),
   );
   const montoLeido = leerMontoPlata(monto);
   const pagadoLeido = pago.forma === "despues" ? 0 : leerMontoPlata(pagoAhora.pagado);
@@ -406,36 +419,44 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     setMonto("");
     setPago(PAGO_DE_FABRICA);
     setPagadoPropio(false);
+    setPagoParcial(false);
     setGuardada(null);
     setRechazo(null);
     setPaso("proveedor");
   }
 
   const atras = ANTERIOR[paso];
-  // Arriba, como la maqueta: la flecha, a quién le compras y en qué paso vas, y la barra de 3 tramos (proveedor · prendas · papel): los
-  // hechos en tinta y el de ahora en rojo. Cada tramo es una barra de avance del sistema, llena o vacía.
+  // Arriba, la cabecera compacta B (maqueta docs/maquetas/mis-compras-cabecera-2026-10/, Felipe 2026-10-26): sin la sede, la fecha ni la frase
+  // de la cabecera del ERP —las ve en el resto de las pantallas—, una sola caja que se queda fija bajo la barra de arriba al bajar por las
+  // prendas: la flecha, «Compré ropa» en chico con a quién y «2 de 3», y el camino de 3 tramos con nombre (El proveedor · Las prendas ·
+  // Papel y pago): los hechos en verde con su ✓, el de ahora en tinta, el que falta en arena. El título es el de la pantalla (nivel 1).
   const fase = faseDePaso(paso);
   const cabecera = paso !== "listo" && (
-    <div className="flex flex-col gap-3" data-guia="compra.avance">
+    <div
+      className="sticky top-[3.625rem] z-20 -mx-4 flex flex-col gap-2.5 bg-crema/95 px-4 pb-2.5 pt-3 backdrop-blur sm:-mx-8 sm:px-8"
+      data-guia="compra.avance"
+    >
       <div className="flex items-center gap-3">
         {atras ? <Volver onClick={() => setPaso(atras)} a="el paso anterior" /> : <Volver href="/compras/mi-plata" a="Mis compras" />}
-        {/* «Compré ropa» ya es el título de la pantalla: aquí solo va a quién, una vez elegido. */}
-        <span className="min-w-0">
-          {proveedor && <span className="block truncate text-sm font-medium text-tinta">{nombreCorto}</span>}
-          <span className="block truncate text-xs text-taupe">{textoAvance(paso)}</span>
-        </span>
+        <div className="min-w-0 flex-1">
+          <div role="heading" aria-level={1} className="font-serif text-[28px] leading-none text-tinta">
+            Compré ropa
+          </div>
+          <div className="mt-1 truncate text-xs text-taupe">{lineaDeAvance(paso, proveedor ? nombreCorto : null)}</div>
+        </div>
       </div>
-      <div className="grid grid-cols-3 gap-1" role="img" aria-label={textoAvance(paso)}>
-        {[1, 2, 3].map((i) => (
-          <BarraAvance key={i} pct={i <= fase ? 100 : 0} tono={i === fase ? "rojo" : "tinta"} alto="fina" decorativa />
-        ))}
-      </div>
+      <CaminoDePasos pasos={PASOS_DE_LA_COMPRA} ahora={fase - 1} etiqueta={textoAvance(paso)} />
     </div>
   );
 
+  // En PC (Felipe 2026-10-26, «A», docs/maquetas/mis-compras-envios-pc-2026-10/): el mismo paso a paso, pero usando el ancho: los pasos a la
+  // izquierda y «Tu compra» fija a la derecha (en «¿Está bien así?» ese lugar ya lo ocupa su propia cuenta). El celular no cambia.
+  const conPanel = paso === "proveedor" || paso === "habituales" || paso === "papel";
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-5 pb-8">
+    <div className="mx-auto flex w-full max-w-md flex-col gap-5 pb-8 lg:max-w-6xl">
       {cabecera}
+      <div className={conPanel ? "flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-x-8" : "flex flex-col gap-5"}>
+      <div className="flex min-w-0 flex-col gap-5">
       {paso === "proveedor" && (
         <PasoProveedor
           datos={datos}
@@ -462,8 +483,12 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
 
       {paso === "habituales" && proveedor && (
         <section className="flex flex-col gap-4">
-          <h2 className="compra-pregunta">¿Qué le compras hoy?</h2>
-          <p className="-mt-2 text-sm text-taupe">Toca una prenda: anotas cuántas, el precio y a qué tienda va.</p>
+          <h2 className="compra-pregunta">¿Qué le compraste?</h2>
+          <p className="-mt-2 text-sm text-taupe">
+            {Array.isArray(habituales) && habituales.length === 0
+              ? "Todavía no le compraste nada: descríbelo con «Algo nuevo»."
+              : "Toca una prenda de las suyas: viene con lo de la vez pasada. Si es otra, usa «Algo nuevo»."}
+          </p>
           {habituales === "cargando" ? (
             <p className="text-sm text-taupe" role="status">
               Buscando lo que le compras…
@@ -493,14 +518,23 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             {/* «Algo nuevo», fijo abajo junto a lo que lleva la compra (Felipe 2026-10-23): con muchas prendas, la tarjeta del final de la
                 grilla quedaba lejos y en el celular había que bajar hasta ella. */}
             {Array.isArray(habituales) && (
-              <Boton peso="fantasma" className="w-full" onClick={() => algoNuevo()} data-guia="compra.algo-nuevo">
-                <span className="inline-flex items-center gap-2">
-                  <Plus className="h-4 w-4" aria-hidden />
-                  {/* También es la salida de quien no encuentra la prenda en la grilla o no sabe cómo la llaman en la tienda (Felipe
-                      2026-10-23): la describe como la conoce, y Recibir la registra después. */}
-                  Algo nuevo, o no la encuentras aquí
+              <button
+                type="button"
+                onClick={() => algoNuevo()}
+                data-guia="compra.algo-nuevo"
+                /* unificar-fijo: la misma fila punteada de «Es un proveedor nuevo», en chico, para que «Algo nuevo» se vea sin competir con la barra */
+                className="card-cayla mov-boton grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-[16px] border-dashed border-tinta/50 bg-papel px-3 py-2 text-left"
+              >
+                <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-tinta text-crema">
+                  <Plus className="h-4 w-4" />
                 </span>
-              </Boton>
+                {/* También es la salida de quien no encuentra la prenda en la grilla o no sabe cómo la llaman en la tienda (Felipe
+                    2026-10-23): la describe como la conoce, y Recibir la registra después. */}
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold leading-tight text-tinta">Algo nuevo</span>
+                  <span className="block truncate text-xs text-taupe">Una prenda que no está en la lista</span>
+                </span>
+              </button>
             )}
             {lineas.length > 0 ? (
               <div className="flex items-center gap-3 rounded-full bg-tinta py-1.5 pl-5 pr-1.5 text-crema" data-guia="compra.carrito">
@@ -525,7 +559,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       )}
 
       {paso === "revisar" && (
-        <section className="flex flex-col gap-4">
+        <section className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-x-8">
+          <div className="flex min-w-0 flex-col gap-4">
           <h2 className="compra-pregunta">¿Está bien así?</h2>
           <p className="-mt-2 text-sm text-taupe">Toca una prenda para corregirla o quitarla.</p>
           {lineas.length === 0 ? (
@@ -533,71 +568,115 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               Elige qué le compras.
             </Vacio>
           ) : (
-            <ul className="divide-y divide-sand" data-guia="compra.lineas">
-              {lineas.map((l, i) => {
-                const c = deCategoria.get(l.categoriaId);
+            // Una tarjeta por prenda (no una fila por tienda): su foto, cuántas y a cuánto, y a qué tiendas va; el total a la derecha.
+            <ul className="flex flex-col gap-2.5" data-guia="compra.lineas">
+              {prendasDeLaCompra(lineas).map((pr) => {
+                const c = deCategoria.get(pr.categoriaId);
                 return (
-                  <li key={`${l.clave}-${i}`}>
-                    <button type="button" onClick={() => corregir(i)} className="grid w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-3 text-left">
-                      <MiniaturaPrenda fotoUrl={(l.productoId && fotos.get(l.productoId)) || null} tamano="md" prefijo={c?.prefijo} familia={c?.familia} categoria={l.categoria} />
+                  <li key={pr.clave}>
+                    <button
+                      type="button"
+                      onClick={() => corregir(pr.indice)}
+                      className="card-cayla mov-boton grid w-full grid-cols-[48px_minmax(0,1fr)_auto] items-start gap-3 rounded-[18px] p-3 text-left"
+                    >
+                      <MiniaturaPrenda fotoUrl={(pr.productoId && fotos.get(pr.productoId)) || null} tamano="lg" prefijo={c?.prefijo} familia={c?.familia} categoria={pr.categoria} />
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-tinta">
-                          {l.cantidad} · {l.nombre}
+                        <span className="block truncate font-medium text-tinta">{pr.nombre}</span>
+                        <span className="block text-xs tabular-nums text-taupe">
+                          {pr.cantidad} × {soles(pr.costo)}
                         </span>
-                        <span className="block truncate text-xs tabular-nums text-taupe">
-                          {l.cantidad} × {soles(l.costo)} · va a {nombresTienda.get(l.destinoId) ?? "una tienda"}
+                        <span className="mt-1.5 flex flex-wrap gap-1.5">
+                          {pr.tiendas.map((t) => (
+                            <Chip key={t.destinoId} tono="neutro" versalitas={false}>
+                              {nombresTienda.get(t.destinoId) ?? "Tienda"} {t.cantidad}
+                            </Chip>
+                          ))}
                         </span>
                       </span>
-                      <span className="whitespace-nowrap text-sm tabular-nums text-tinta">{soles(l.cantidad * l.costo)}</span>
+                      <span className="flex flex-col items-end gap-1">
+                        <span className="whitespace-nowrap font-medium tabular-nums text-tinta">{soles(pr.total)}</span>
+                        <ChevronRight className="h-4 w-4 text-taupe" aria-hidden />
+                      </span>
                     </button>
                   </li>
                 );
               })}
             </ul>
           )}
-          <button type="button" className="btn-cayla btn-enlace self-start" onClick={() => setPaso("habituales")}>
-            <Plus className="h-4 w-4" aria-hidden />
-            Otra prenda de {nombreCorto}
+          <button
+            type="button"
+            onClick={() => setPaso("habituales")}
+            /* unificar-fijo: la misma fila punteada de «Es un proveedor nuevo» y «Algo nuevo», en chico */
+            className="card-cayla mov-boton grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-[16px] border-dashed border-tinta/50 bg-papel px-3 py-2 text-left"
+          >
+            <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-tinta text-crema">
+              <Plus className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 truncate text-sm font-semibold text-tinta">Otra prenda de {nombreCorto}</span>
           </button>
+          </div>
           {lineas.length > 0 && (
-            <div className="flex items-baseline justify-between border-t border-sand pt-3">
-              {/* «Total», no «Pagaste»: todavía no se eligió cómo pagar (puede ser «Pagar después», y paga Compras). */}
-              <span className="text-sm text-tinta/65">Total · {prendasDeLineas(lineas) === 1 ? "1 prenda" : `${prendasDeLineas(lineas)} prendas`}</span>
-              <span className="font-serif text-3xl tabular-nums text-tinta">{soles(total)}</span>
+            // La cuenta de la compra: lo que cuesta, lo que se vende y lo que se gana, y qué le toca a cada tienda.
+            <div className="card-cayla flex flex-col gap-3 rounded-[18px] p-4 lg:sticky lg:top-40" data-guia="compra.resumen">
+              {/* «Total», no «Pagaste»: todavía no se eligió cómo pagar (puede ser «Paga Compras»). */}
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-tinta/65">Total · {prendasDeLineas(lineas) === 1 ? "1 prenda" : `${prendasDeLineas(lineas)} prendas`}</span>
+                <span className="font-serif text-3xl tabular-nums text-tinta">{soles(total)}</span>
+              </div>
+              {totalesPorTienda(lineas).length > 1 && (
+                <ul className="flex flex-col gap-1 border-t border-sand pt-2.5 text-sm">
+                  {totalesPorTienda(lineas).map((t) => (
+                    <li key={t.destinoId} className="flex justify-between gap-3 text-tinta/75">
+                      <span>
+                        {nombresTienda.get(t.destinoId) ?? "Tienda"} · {t.prendas === 1 ? "1 prenda" : `${t.prendas} prendas`}
+                      </span>
+                      <span className="tabular-nums">{soles(t.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {ganancia && (
+                <p
+                  /* unificar-fijo: el dato de lo que se gana si se vende todo (la maqueta), no un aviso */ className="flex items-center justify-between gap-3 rounded-[12px] bg-verde/10 px-3 py-2.5 text-sm"
+                >
+                  <span className="text-tinta">
+                    Si se vende todo, ganas
+                    <span className="block text-xs text-taupe">Vendes {soles(ganancia.vendes)}</span>
+                  </span>
+                  <b className="text-[17px] tabular-nums text-verde">{soles(ganancia.ganas)}</b>
+                </p>
+              )}
             </div>
           )}
-          {ganancia && (
-            <p
-              /* unificar-fijo: el dato de lo que se gana si se vende todo (la maqueta), no un aviso */ className="flex items-center justify-between gap-3 rounded-[14px] bg-verde/10 px-3.5 py-3 text-sm"
-            >
-              <span className="text-tinta">
-                Si se vende todo, ganas
-                <span className="block text-xs text-taupe">Vendes {soles(ganancia.vendes)}</span>
+          <div className="sticky bottom-0 z-10 bg-crema/95 py-3 backdrop-blur lg:col-span-2">
+            <div className="flex items-center gap-3 rounded-full bg-tinta py-1.5 pl-5 pr-1.5 text-crema">
+              <span className="min-w-0 flex-1">
+                <b className="block truncate text-[15px] font-medium tabular-nums">{resumenCarrito(lineas).titulo}</b>
+                <span className="block text-xs text-crema/75">{resumenCarrito(lineas).detalle}</span>
               </span>
-              <b className="text-[17px] tabular-nums text-verde">{soles(ganancia.ganas)}</b>
-            </p>
-          )}
-          <div className="sticky bottom-0 z-10 bg-crema/95 py-3 backdrop-blur">
-            <Boton peso="primario" className="w-full" onClick={alPapel} disabled={lineas.length === 0} data-guia="compra.al-papel">
-              <span className="inline-flex items-center gap-2">
-                Sigue: el papel
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </span>
-            </Boton>
+              <Boton peso="fantasma" className="border-transparent bg-crema" onClick={alPapel} disabled={lineas.length === 0} data-guia="compra.al-papel">
+                <span className="inline-flex items-center gap-2">
+                  Sigue: el papel
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </span>
+              </Boton>
+            </div>
           </div>
         </section>
       )}
 
       {paso === "papel" && (
         <form
-          className="flex flex-col gap-5"
+          className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8"
           onSubmit={(e) => {
             e.preventDefault();
             void guardar();
           }}
         >
-          <h2 className="compra-pregunta">¿Qué papel te dieron?</h2>
-          <CampoGuiado id="tipo" guia={guia} titulo="El papel">
+          <h2 className="compra-pregunta lg:col-span-2">El papel y el pago</h2>
+          {/* En PC el papel va a la izquierda y el pago a la derecha; en el celular las dos cajas «desaparecen» (`contents`) y todo sigue en fila. */}
+          <div className="contents lg:flex lg:flex-col lg:gap-5">
+          <CampoGuiado id="tipo" guia={guia} titulo="¿Qué papel te dieron?">
             <div role="group" aria-label="¿Qué te dio el proveedor?" className="grid grid-cols-2 gap-2" data-guia="compra.tipo">
               {(Object.keys(TIPOS_PAPEL) as TipoPapel[]).map((k) => (
                 <button
@@ -620,13 +699,13 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               ))}
             </div>
           </CampoGuiado>
-          {tipo !== "sin_comprobante" && (
-            <CampoGuiado id="foto" guia={guia} titulo="La foto del papel" ayuda="· opcional">
+          {tipo !== null && tipo !== "sin_comprobante" && (
+            <CampoGuiado id="foto" guia={guia} titulo="Foto del papel" ayuda="· opcional">
               <TarjetaFoto
                 guia="compra.foto"
                 archivo={archivo}
                 deshabilitada={guardando}
-                ayuda="Que se lea el total y el número. Sin foto, igual se guarda"
+                ayuda="Opcional: ayuda a Compras a copiar el número"
                 onArchivo={(f) => {
                   setRechazo(null);
                   setArchivo(f);
@@ -634,10 +713,13 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               />
             </CampoGuiado>
           )}
-          <CampoGuiado id="monto" guia={guia} titulo="¿Cuánto dice el papel?">
+          </div>
+          <div className="contents lg:flex lg:flex-col lg:gap-5">
+          <CampoGuiado id="monto" guia={guia} titulo={tipo === "sin_comprobante" ? "¿Cuánto dice lo que pagaste?" : "¿Cuánto dice el papel?"}>
             <CampoMonto
-              etiqueta="¿Cuánto dice el papel?"
+              etiqueta={tipo === "sin_comprobante" ? "¿Cuánto dice lo que pagaste?" : "¿Cuánto dice el papel?"}
               etiquetaOculta
+              sinPie
               inputMode="decimal"
               autoComplete="off"
               value={monto}
@@ -649,19 +731,19 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               }}
             />
             {cuadra && (
-              <p className={`mt-2 flex items-start gap-2 text-[13px] ${cuadra.cuadra ? "text-verde" : "text-ambar"}`}>
+              <p className={`mt-1.5 flex items-start gap-2 text-[13px] ${cuadra.cuadra ? "text-verde" : "text-ambar"}`}>
                 {cuadra.cuadra ? <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> : <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />}
                 {cuadra.texto}
               </p>
             )}
           </CampoGuiado>
           <div className="flex flex-col gap-2" data-guia="compra.pago">
-            <span className="campo-etiqueta">¿Cuándo le pagas?</span>
-            <div role="group" aria-label="¿Cuándo le pagas?" className="grid grid-cols-2 gap-2">
+            <span className="campo-etiqueta">¿Quién paga?</span>
+            <div role="group" aria-label="¿Quién paga?" className="grid grid-cols-2 gap-2">
               {(
                 [
-                  { forma: "ahora", nombre: "Pagar ahora", ayuda: "Sale de tu plata para compras" },
-                  { forma: "despues", nombre: "Pagar después", ayuda: "Compras le paga al proveedor" },
+                  { forma: "ahora", nombre: "Pagué ahora", ayuda: "Sale de tu plata" },
+                  { forma: "despues", nombre: "Paga Compras", ayuda: "Después, desde Por pagar" },
                 ] as const
               ).map((o) => (
                 <button
@@ -686,26 +768,9 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           </div>
           {pago.forma === "ahora" && (
             <>
-              <CampoGuiado id="pagado" guia={guia} titulo="¿Cuánto le pagas ahora?">
-                <CampoMonto
-                  etiqueta="¿Cuánto le pagas ahora?"
-                  etiquetaOculta
-                  inputMode="decimal"
-                  autoComplete="off"
-                  value={pagoAhora.pagado}
-                  disabled={guardando}
-                  data-guia="compra.pagado"
-                  onChange={(e) => {
-                    setRechazo(null);
-                    setPagadoPropio(true);
-                    setPago((p) => ({ ...p, pagado: e.target.value }));
-                  }}
-                />
-                {textoLoQueFalta(montoLeido, pagadoLeido) && <p className="mt-2 text-[13px] text-taupe">{textoLoQueFalta(montoLeido, pagadoLeido)}</p>}
-              </CampoGuiado>
-              <CampoGuiado id="medio" guia={guia} titulo="¿Con qué le pagaste?">
+              <CampoGuiado id="medio" guia={guia} titulo="¿Con qué pagaste?">
                 <FichasMedio
-                  etiqueta="¿Con qué le pagaste?"
+                  etiqueta="¿Con qué pagaste?"
                   opciones={MEDIOS_PAGO_COMPRA}
                   valor={pago.medio}
                   onValor={(m) => {
@@ -716,6 +781,41 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                   deshabilitado={guardando}
                 />
               </CampoGuiado>
+              {/* «Pagué solo una parte»: escondido hasta tocarlo. Al volver a «Pagué todo», lo pagado vuelve a seguir al papel. */}
+              {verParte ? (
+                <CampoGuiado id="pagado" guia={guia} titulo="¿Cuánto pagaste?">
+                  <CampoMonto
+                    etiqueta="¿Cuánto pagaste?"
+                    etiquetaOculta
+                    sinPie
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={pagoAhora.pagado}
+                    disabled={guardando}
+                    data-guia="compra.pagado"
+                    onChange={(e) => {
+                      setRechazo(null);
+                      setPagadoPropio(true);
+                      setPago((p) => ({ ...p, pagado: e.target.value }));
+                    }}
+                  />
+                  {textoLoQueFalta(montoLeido, pagadoLeido) && <p className="mt-1.5 text-[13px] text-taupe">{textoLoQueFalta(montoLeido, pagadoLeido)}</p>}
+                  <button
+                    type="button"
+                    className="btn-cayla btn-enlace mt-1 self-start"
+                    onClick={() => {
+                      setPagoParcial(false);
+                      setPagadoPropio(false);
+                    }}
+                  >
+                    Pagué todo
+                  </button>
+                </CampoGuiado>
+              ) : (
+                <button type="button" className="btn-cayla btn-enlace -mt-2 self-start" data-guia="compra.parte" onClick={() => setPagoParcial(true)}>
+                  Pagué solo una parte
+                </button>
+              )}
             </>
           )}
           {!esPersona && (
@@ -723,12 +823,17 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               <ComboResponsable control={responsable} deshabilitado={guardando} />
             </CampoGuiado>
           )}
+          </div>
           {rechazo && (
-            <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
-              {rechazo.texto}
-            </Aviso>
+            <div className="lg:col-span-2">
+              <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
+                {rechazo.texto}
+              </Aviso>
+            </div>
           )}
-          <PieGuia guia={guia} listo="Todo listo para guardar." conFrase />
+          <div className="lg:col-span-2">
+            <PieGuia guia={guia} listo="Todo listo para guardar." conFrase />
+          </div>
           <Boton
             type="submit"
             peso="primario"
@@ -736,13 +841,19 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             textoCargando="Guardando…"
             disabled={!guia.puedeConfirmar}
             title={guia.frase ?? undefined}
-            className={guia.claseConfirmar}
+            className={`${guia.claseConfirmar} lg:col-span-2`}
             data-guia="compra.guardar"
           >
             {montoLeido != null && montoLeido > 0 ? `Guardar la compra · ${soles(montoLeido)}` : "Guardar la compra"}
           </Boton>
         </form>
       )}
+
+      </div>
+      {conPanel && (
+        <TuCompra proveedor={proveedor ? nombreCorto : null} prendas={prendasDeLaCompra(lineas)} nombresTienda={nombresTienda} total={total} unidades={prendasDeLineas(lineas)} />
+      )}
+      </div>
 
       {enCurso && (
         <HojaPrenda
@@ -775,7 +886,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       )}
 
       {paso === "listo" && guardada && (
-        <section className="flex flex-col items-center gap-4 pt-6 text-center" data-guia="compra.listo">
+        <section className="flex flex-col items-center gap-4 pt-6 text-center lg:mx-auto lg:w-full lg:max-w-md" data-guia="compra.listo">
           {/* El visto que se dibuja una vez (la maqueta), con la misma clase que el ícono de un vacío o un aviso. */}
           <span className="trazo-dibuja grid h-24 w-24 place-items-center rounded-full bg-verde text-crema" aria-hidden>
             <Check className="h-11 w-11" />
@@ -898,7 +1009,7 @@ function PasoProveedor({
   );
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="compra-pregunta">¿A quién le compras?</h2>
+      <h2 className="compra-pregunta">¿A quién le compraste?</h2>
       <Buscador
         valor={q}
         onCambio={setQ}
@@ -945,13 +1056,13 @@ function PasoProveedor({
           {verRecientes.length > 0 && (
             <>
               <span className="label-cayla text-[11px] text-taupe">Les compraste hace poco</span>
-              <ul className="flex flex-col gap-2">{verRecientes.map(fila)}</ul>
+              <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2">{verRecientes.map(fila)}</ul>
             </>
           )}
           {verResto.length > 0 && (
             <>
               {verRecientes.length > 0 && <span className="label-cayla pt-2 text-[11px] text-taupe">Los demás</span>}
-              <ul className="flex flex-col gap-2">{verResto.map(fila)}</ul>
+              <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2">{verResto.map(fila)}</ul>
             </>
           )}
           {/* Sin IntersectionObserver (navegador viejo), el centinela es un botón que trae la tanda siguiente. */}
@@ -1064,7 +1175,7 @@ function ListaHabituales({
           ))}
         </div>
       )}
-      <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3" data-guia="compra.habituales">
+      <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4" data-guia="compra.habituales">
         {nuevas.map(({ l, i }) => tarjeta(l.clave, l.productoId, l.nombre, l.categoriaId, l.categoria, null, () => alCorregir(i)))}
         {ver.map((h) =>
           tarjeta(h.clave, h.productoId, h.nombre, h.categoriaId, h.categoria, textoHabitual(h) ?? `${h.categoria}${h.marca ? ` · ${h.marca}` : ""}`, () => alElegir(h)),

@@ -45,3 +45,9 @@ Observatorio (ADR-0322), Inicio de almacén (ADR-0292), la vista rápida (ADR-01
 
 **0.** Las firmas atrapan las piezas que se fueron (`TarjetaCifraAnalisis`, `TarjetaIndicador`, `TarjetaSenal`, `TarjetaAvance`) y una tarjeta
 de número dibujada a mano (`function Tarjeta({ etiqueta …`).
+
+## Actualización 2026-10-26 — `compacta`, solo en la Vitrina (Felipe: «hagamos más compactos los KPI»)
+
+`<TarjetaCifra compacta>` vuelve como **opt-in** y solo la usa Tienda web ▸ Vitrina ▸ Modelos: el contexto va en el mismo renglón del número
+(«27 de 27 modelos», «0 Todos los que se ven tienen algo»), el relleno baja a 10 px y la tarjeta mide ~74 px en vez de ~135 (medido a 1440 px).
+Solo con contexto de texto: no lleva `pie`, `accion` ni `reparto`. **Extenderla a otras pantallas es decisión de Felipe, mirando.**

@@ -25,7 +25,9 @@ import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { anotarPlata, subirVoucher } from "@/lib/mi-plata-acciones";
-import { MEDIOS_PLATA, camposAnotar, fraseAnotar, type MedioPlata } from "@/lib/mi-plata-reglas";
+import { MEDIOS_PLATA, bancoSugerido, camposAnotar, fraseAnotar, type MedioPlata } from "@/lib/mi-plata-reglas";
+import type { CuentaOpcion } from "@/lib/fondos-reglas";
+import { FichasCuenta } from "@/components/fondos/FichasCuenta";
 
 // Compras simple (ADR-0480, actividad 2): «Me dieron plata». La compradora anota cómo le llegó (transferencia, Yape o Plin, efectivo),
 // cuánto y, si lo tiene, la foto del voucher; la primera vez también puede anotar la plata que ya tenía. Queda «por confirmar» hasta que
@@ -47,7 +49,7 @@ type Ficha = (typeof FICHAS)[number]["clave"];
 const DE_FICHA: Record<Ficha, MedioPlata> = { transferencia: "transferencia", yape: "yape_plin", efectivo: "efectivo" };
 const A_FICHA: Partial<Record<MedioPlata, Ficha>> = { transferencia: "transferencia", yape_plin: "yape", efectivo: "efectivo" };
 
-export function AnotarPlata({ puedeYaTenia, ancha = false }: { puedeYaTenia: boolean; ancha?: boolean }) {
+export function AnotarPlata({ puedeYaTenia, bancos, ancha = false }: { puedeYaTenia: boolean; bancos: CuentaOpcion[]; ancha?: boolean }) {
   const [abierta, setAbierta] = useState(false);
   const origen = useRef<HTMLElement | null>(null);
   return (
@@ -56,23 +58,25 @@ export function AnotarPlata({ puedeYaTenia, ancha = false }: { puedeYaTenia: boo
         guia="mi-plata.me-dieron"
         ancha={ancha}
         titulo="Me dieron plata"
-        detalle="Yape, transferencia o efectivo"
+        detalle={ancha ? "Se puede anotar antes de abrir la ronda" : "Yape, transferencia o efectivo"}
         icono={<HandCoins className="h-5 w-5" aria-hidden />}
         onClick={(e) => {
           origen.current = e.currentTarget;
           setAbierta(true);
         }}
       />
-      {abierta && <AnotarPlataModal puedeYaTenia={puedeYaTenia} onClose={() => setAbierta(false)} volverA={origen} />}
+      {abierta && <AnotarPlataModal puedeYaTenia={puedeYaTenia} bancos={bancos} onClose={() => setAbierta(false)} volverA={origen} />}
     </>
   );
 }
 
 type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 
-function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: boolean; onClose: () => void; volverA: RefObject<HTMLElement | null> }) {
+function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaTenia: boolean; bancos: CuentaOpcion[]; onClose: () => void; volverA: RefObject<HTMLElement | null> }) {
   const router = useRouter();
   const [medio, setMedio] = useState<MedioPlata | null>(null);
+  // «¿De qué banco salió?»: solo con una transferencia; llega elegido el BCP (Felipe 2026-10-26) y se cambia de un toque.
+  const [banco, setBanco] = useState<string | null>(null);
   const [monto, setMonto] = useState("");
   const [archivo, setArchivo] = useState<File | null>(null);
   // La ruta de la foto ya subida, junto al archivo del que salió: si se elige otra foto, se vuelve a subir.
@@ -87,7 +91,7 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
   const responsable = useResponsable();
 
   const guia = useGuiaCampos(
-    camposAnotar({ medio, monto, conFoto: archivo !== null }, puedeYaTenia, { esPersona, listo: responsable.listo, motivo: responsable.motivo }),
+    camposAnotar({ medio, monto, conFoto: archivo !== null, banco, hayBancos: bancos.length > 0 }, puedeYaTenia, { esPersona, listo: responsable.listo, motivo: responsable.motivo }),
   );
   const montoLeido = leerMontoPlata(monto);
   const yaTenia = medio === "ya_tenia";
@@ -124,7 +128,8 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
       }
     }
     const firma = esPersona ? firmaOmitida("plata_anotar") : responsable.firma();
-    const args = { p_medio: medio!, p_monto: montoLeido ?? 0, p_foto_ruta: ruta };
+    const conBanco = medio === "transferencia" && bancos.length > 0 && banco !== null;
+    const args = { p_medio: medio!, p_monto: montoLeido ?? 0, p_foto_ruta: ruta, ...(conBanco ? { p_cuenta_indicada_id: banco } : {}) };
     const r = await intento.enviar(huellaDe(args), (token, senal) => anotarPlata(args, firma, token, senal));
     if (r.tipo === "ocupado") return;
     if (r.tipo === "congelado") return avisarCongelado(avisar);
@@ -160,9 +165,11 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
   return (
     <Modal
       titulo="Me dieron plata"
-      subtitulo="Anótala aquí: la puedes usar de una vez, y Compras la revisa."
+      subtitulo="La puedes usar de una vez. Compras la confirma después."
       onClose={onClose}
       variante="hoja"
+      // En PC la hoja se ensancha para llevar dos columnas (Felipe 2026-10-26, «A», docs/maquetas/mis-compras-envios-pc-2026-10/): el celular y la tablet siguen igual.
+      ancho="max-w-md lg:max-w-3xl" // unificar-fijo: hoja de dos columnas solo desde 1024 px; bajo eso es la hoja angosta de siempre
       alCerrarEnfocar={volverA}
       bloqueado={guardando || congelada}
       antesDeCerrar={salida.pedirAccion}
@@ -175,15 +182,21 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
           }}
           className="space-y-5"
         >
-          <fieldset disabled={congelada} className="campos-congelables min-w-0 space-y-5">
+          <fieldset disabled={congelada} className="campos-congelables min-w-0">
+            {/* En PC: cómo te llegó y de qué banco, a la izquierda; cuánto y la foto, a la derecha. En el celular las cajas «desaparecen» (`contents`). */}
+            <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
+            <div className="contents lg:flex lg:flex-col lg:gap-5">
             <CampoGuiado id="medio" guia={guia} titulo="¿Cómo te llegó?">
               {!yaTenia && (
                 <FichasMedio<Ficha>
                   etiqueta="¿Cómo te llegó?"
                   opciones={FICHAS}
                   valor={medio ? (A_FICHA[medio] ?? null) : null}
-                  onValor={(f) => limpiar(setMedio)(DE_FICHA[f])}
-                  guia={(f) => (f === "yape" ? "mi-plata.medio" : undefined)}
+                  onValor={(f) => {
+                    limpiar(setMedio)(DE_FICHA[f]);
+                    if (f === "transferencia") setBanco((b) => b ?? bancoSugerido(bancos));
+                  }}
+                  guia={(f) => (f === "yape" ? "mi-plata.medio" : f === "transferencia" ? "mi-plata.transferencia" : undefined)}
                   deshabilitado={guardando}
                 />
               )}
@@ -203,6 +216,14 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
                 </label>
               )}
             </CampoGuiado>
+            {medio === "transferencia" && bancos.length > 0 && (
+              <CampoGuiado id="banco" guia={guia} titulo="¿De qué banco salió?">
+                <FichasCuenta etiqueta="¿De qué banco salió?" cuentas={bancos} valor={banco ?? ""} onValor={limpiar(setBanco)} deshabilitado={guardando} guia="mi-plata.banco" />
+                <p className="mt-1.5 text-xs text-taupe">La cuenta de la empresa de donde salió la plata: así queda en Finanzas. Compras la confirma.</p>
+              </CampoGuiado>
+            )}
+            </div>
+            <div className="contents lg:flex lg:flex-col lg:gap-5">
             <CampoGuiado id="monto" guia={guia} titulo={yaTenia ? "¿Cuánto tenías?" : "¿Cuánto te dieron?"}>
               <CampoMonto
                 etiqueta={yaTenia ? "¿Cuánto tenías?" : "¿Cuánto te dieron?"}
@@ -216,11 +237,11 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
               />
             </CampoGuiado>
             {!yaTenia && (
-              <CampoGuiado id="foto" guia={guia} titulo="Foto del voucher">
+              <CampoGuiado id="foto" guia={guia} titulo="Foto del voucher" ayuda="· opcional">
                 <TarjetaFoto
                   guia="mi-plata.foto"
                   titulo="Foto del voucher"
-                  ayuda="La captura del Yape o de la transferencia. Sin foto, igual se anota."
+                  ayuda="La captura del Yape o de la transferencia ayuda a Compras a confirmarla."
                   camara={false}
                   archivo={archivo}
                   deshabilitada={guardando}
@@ -236,6 +257,8 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>
             )}
+            </div>
+            </div>
           </fieldset>
           {congelada ? (
             <AvisoIntentoIncierto onRevisar={() => void revisar()} revisando={revisando} />

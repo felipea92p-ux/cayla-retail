@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 194,
+  "total": 180,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -99,6 +99,7 @@
     ],
     "components/PuntoDeVentaTicket.tsx": [
       "button «Dejar en espera»",
+      "button «En espera ·»",
       "button «Volver al catálogo»",
       "Volver «→onVolverATicket»",
       "button «Retomar»",
@@ -188,23 +189,8 @@
       "a «Abrir WhatsApp con la boleta»"
     ],
     "components/punto-de-venta/Esperas.tsx": [
-      "button «Ver todos los clientes abiertos»",
-      "button «Nuevo cliente»",
-      "input «Nombre de este ticket»",
-      "button «Cambiar el nombre de este ticket»",
-      "button «{`Descartar el ticket de ${p.nombre}»",
-      "button «{`Pasar a ${p.nombre}»",
-      "button «{`Descartar el ticket de ${p.nombre}» #2",
-      "button «Nuevo cliente» #2",
-      "button «(sin nombre)»",
-      "button «{`Descartar el ticket de ${p.nombre}» #3",
       "Boton «Cancelar»",
-      "Boton «Seguir con el cierre»",
-      "Boton «Cancelar» #2",
-      "Boton «Descartar ticket»",
-      "input «Ej. Probador 2, señora del abrigo…»",
-      "button «{s}»",
-      "button «Dejar en espera»"
+      "Boton «Seguir con el cierre»"
     ],
     "components/punto-de-venta/HojaDeCobro.tsx": [
       "Volver «→onVolver»",

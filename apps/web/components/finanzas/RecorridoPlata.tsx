@@ -19,7 +19,7 @@ import { pctDelNudo, type HiloRecorrido, type Recorrido } from "@/lib/recorrido-
 const RESPALDO_SEDE = ["var(--color-tinta)", "var(--color-taupe)", "var(--color-pizarra)", "var(--color-ambar)", "var(--color-oliva)"];
 
 /** El color de lo que no es una sede: fijo, y dice qué es (verde lo que queda, rojo lo que falta). */
-const COLOR_TIPO: Partial<Record<HiloRecorrido["tipo"], string>> = {
+export const COLOR_TIPO: Partial<Record<HiloRecorrido["tipo"], string>> = {
   prendas: "color-mix(in srgb, var(--color-taupe) 60%, transparent)",
   gastos: "color-mix(in srgb, var(--color-tinta) 32%, transparent)",
   caja: "var(--color-ambar)",

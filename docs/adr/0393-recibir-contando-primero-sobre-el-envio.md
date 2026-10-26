@@ -493,6 +493,29 @@ Probado sobre una base hecha de cero con todo `main`: `pruebas:eliminar-producto
 `pruebas:pendientes-de-envio` 25/25 (E1 y E2 nuevos).
 **En producción el 2026-10-14** (con el OK de Felipe): la huella de `fn_producto_historia` coincide con la de la base hecha de cero.
 
+### Una nueva ya descrita se puede crear al contar (Felipe, 2026-10-26)
+
+«Describir ahora» anotaba qué era una prenda nueva, pero esa fila solo decía «Por crear»: para crearla había que cerrar el envío y esperar a
+«Para después ▸ + Crear ahora». Quien tiene la prenda en la mano la crea ahí. Ahora la fila descrita lleva «Crear ahora» (en Contar y en
+«Hacer ahora ▸ Separar»), con la misma hoja de la prenda y lo descrito como nombre sugerido.
+
+DECIDÍ: al crearse, la fila deja de ser una «nueva» y pasa a ser una prenda separada sin tallas, con la misma cantidad
+(`prendaCreadaDeNueva`, `lib/recepcion-conteo-reglas.ts`): de ahí en adelante es lo que ya existía —«Tallas y colores ahora» y, con ellas,
+«Entra al stock»—. Se guarda en el momento de crear: si la hoja de tallas se deja «para después», la fila ya dice lo que es. Sin cambio en la
+base: la prenda creada es de la categoría y marca de la línea, y `guardar_conteo_envio` ya acepta una prenda conocida sin tallas.
+DESCARTÉ: un estado «creada» dentro de `NuevaSeparada`, porque habría dos maneras de decir qué es una fila (una nueva «creada» o una prenda)
+y la base solo conoce la segunda; y pasar a la fila el nombre real de la prenda en la descripción, porque la descripción es lo que escribió
+quien contó.
+SE ROMPE SI: nace otro camino que cree una prenda desde una nueva sin pasar por `prendaCreadaDeNueva` (la nueva y la prenda quedarían las dos
+en lo separado y lo contado se duplicaría).
+
+En «Para después», la fila de un pendiente «detalle» dice «Tallas y colores ahora» (`BOTON_DE_PENDIENTE`), como al contar; «crear» sigue en
+«+ Crear ahora» y «separar» en «Hacer ahora». Que un «crear» pase a «detalle» cuando se crea su prenda es de la base (`ligar_prenda_a_pendiente`,
+migración `20261026163000`, rama `prenda-para-despues-save-613e8c`): no se repite aquí.
+
+De paso, la fila de lo separado baja sus acciones bajo el nombre según el ancho de la LISTA (`.rc-filas-sep`, contenedor de 700 px), no el de la
+ventana: junto a «Los papeles de la compra» la lista queda de ~400 px aun en un monitor ancho y el nombre se aplastaba.
+
 ### «Crear ahora» deja la prenda creada en «Para después» (2026-10-26)
 
 Felipe probó «Crear ahora» sobre «6 prendas nuevas · jean» (ENV-000253): la hoja creó la prenda en el catálogo y le abrió «Tallas y colores».

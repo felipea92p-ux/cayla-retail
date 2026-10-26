@@ -2,10 +2,17 @@
   "guia": "compras.mi-plata",
   "ruta": "/compras/mi-plata",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 22,
+  "total": 31,
   "controles": {
+    "app/(app)/compras/mi-plata/page.tsx": [
+      "BotonVer «Mis envíos»"
+    ],
+    "components/fondos/FichasCuenta.tsx": [
+      "CampoSelect «{etiqueta}»",
+      "button «→() => onValor(c.id)»"
+    ],
     "components/mi-plata/AbrirRonda.tsx": [
-      "Boton «Abrir mi ronda de compras»"
+      "Boton «Abrir mi ronda»"
     ],
     "components/mi-plata/AccionDelDia.tsx": [
       "Link «{guia}»",
@@ -25,12 +32,22 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
+    "components/mi-plata/CodigoDeEnvio.tsx": [
+      "BotonCopiar «el código del envío»",
+      "BotonAncla «Compartir por WhatsApp»"
+    ],
+    "components/mi-plata/FilaEnvio.tsx": [
+      "button «{abierta && <HojaEnvio e={e}»"
+    ],
     "components/mi-plata/ListaDelDia.tsx": [
+      "button «{cara}»",
       "button «→() => setAbierta(true)»",
-      "BotonVerMas «mi-plata.antes»"
+      "BotonVerMas «{`Ver ${historial.length}»"
     ],
     "components/mi-plata/MandarATienda.tsx": [
-      "button «mi-plata.mandar»",
+      "button «{guia}»",
+      "Boton «Mandar a la siguiente tienda (»",
+      "BotonVer «Ver mis envíos»",
       "Boton «{t === porMandar[0] ? \"mi-plata.mandar-uno\" : undefined}»"
     ],
     "components/mi-plata/TarjetaFoto.tsx": [

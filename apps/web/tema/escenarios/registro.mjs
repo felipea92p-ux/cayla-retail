@@ -472,49 +472,47 @@ ESCENARIOS.push(
   },
 );
 
-// ---- Vender: varios clientes a la vez (pestañas de tickets, Felipe 2026-10-25) ----
+// ---- Vender: tickets en espera (el chip «En espera · N» y su vista, Felipe 2026-10-26) ----
 /** Dos tickets con prendas: uno espera y el otro está en la caja. Es la misma prenda en los dos, así sale también el aviso «Ya está en el
  *  ticket de Cliente 1» donde no alcanza. Los tickets viven en el navegador: no se escribe nada en la base. */
 async function dosTickets(pagina) {
   await agregarPrendaAlTicket(pagina);
-  await pagina.getByRole("button", { name: /^Nuevo cliente/ }).first().click();
-  await esperar(pagina, 900);
+  await dejarEnEspera(pagina);
   await agregarPrendaAlTicket(pagina);
+}
+/** «Dejar en espera» de la cabecera del ticket: de un clic, con el nombre automático. */
+async function dejarEnEspera(pagina) {
+  await pagina.getByRole("button", { name: "Dejar en espera" }).first().click();
+  await esperar(pagina, 900);
 }
 async function dosTicketsCelular(pagina) {
   await abrirCatalogoCelular(pagina);
   await agregarPrendaAlTicket(pagina);
   await pagina.getByRole("button", { name: /Ver ticket/i }).first().click();
   await esperar(pagina, 1200);
-  await pagina.getByRole("button", { name: "Nuevo cliente" }).first().click();
-  await esperar(pagina, 900);
+  await dejarEnEspera(pagina);
   await pagina.getByRole("button", { name: /Volver al catálogo/i }).first().click();
   await esperar(pagina, 900);
   await agregarPrendaAlTicket(pagina);
   await pagina.getByRole("button", { name: /Ver ticket/i }).first().click();
   await esperar(pagina, 1200);
 }
+/** El chip «En espera · 1» cambia el ticket por la lista de los que esperan. */
+async function abrirLaEspera(pagina) {
+  await pagina.getByRole("button", { name: /^En espera ·/ }).first().click();
+  await esperar(pagina, 1000);
+}
 ESCENARIOS.push(
   {
-    id: "vender.tickets",
+    id: "vender.espera",
     ruta: "/vender",
     cuentas: VENDEDORAS,
     ancho: "escritorio",
-    abre: '[role="group"][aria-label="Tickets abiertos"]',
-    nombre: "Vender · pestañas de tickets (uno en la caja y uno esperando, con el aviso de la prenda repetida)",
-    preparar: dosTickets,
-  },
-  {
-    id: "vender.tickets-descartar",
-    ruta: "/vender",
-    cuentas: VENDEDORAS,
-    ancho: "escritorio",
-    abre: "[role=dialog]",
-    nombre: "Vender · «Descartar este ticket» (pide confirmación)",
+    abre: "text=Tu ticket actual tiene",
+    nombre: "Vender · la vista «En espera» (uno esperando y otro en la caja)",
     async preparar(pagina) {
       await dosTickets(pagina);
-      await pagina.getByRole("button", { name: /^Descartar el ticket de/ }).first().click();
-      await esperar(pagina, 1000);
+      await abrirLaEspera(pagina);
     },
   },
   {
@@ -534,25 +532,15 @@ ESCENARIOS.push(
     },
   },
   {
-    id: "vender.m-tickets",
+    id: "vender.m-espera",
     ruta: "/vender",
     cuentas: VENDEDORAS,
     ancho: "celular",
-    abre: '[data-guia="vender.tickets"] button[aria-haspopup="dialog"]',
-    nombre: "Vender (celular) · el selector «Cliente 2 de 2» en la hoja del ticket",
-    preparar: dosTicketsCelular,
-  },
-  {
-    id: "vender.m-tickets-lista",
-    ruta: "/vender",
-    cuentas: VENDEDORAS,
-    ancho: "celular",
-    abre: "[data-lista-tickets]",
-    nombre: "Vender (celular) · la lista «Tus clientes»",
+    abre: "text=Tu ticket actual tiene",
+    nombre: "Vender (celular) · la vista «En espera» en la hoja del ticket",
     async preparar(pagina) {
       await dosTicketsCelular(pagina);
-      await pagina.locator('[data-guia="vender.tickets"] button[aria-haspopup="dialog"]').first().click();
-      await esperar(pagina, 1100);
+      await abrirLaEspera(pagina);
     },
   },
 );
@@ -757,6 +745,44 @@ ESCENARIOS.push(
       await esperar(pagina, 1200);
       await pagina.locator("[data-ir-historial]").click({ timeout: 8000 });
       await esperar(pagina, 2500);
+    },
+  },
+  // ADR-0515: la pestaña «Costo» del Historial (con «Hoy: N prendas» estimado) y la hoja «Corregir el costo» de la última compra. Solo
+  // quien ve el dinero de compras: el admin. `abre` exige la tarjeta o la hoja, no solo la ventana.
+  {
+    id: "productos.historial-costo",
+    ruta: "/productos",
+    cuentas: ["admin"],
+    abre: '[role=dialog] [data-guia="historial-prenda.costo-hoy"]',
+    nombre: "Productos · el historial de una prenda ▸ Costo (Hoy: N prendas, errores arreglados)",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="productos.buscador"] input').first().fill("Pantalón Carla");
+      await esperar(pagina, 1800);
+      await pagina.locator(".card-cayla button").first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.locator("[data-ir-historial]").click({ timeout: 8000 });
+      await esperar(pagina, 2500);
+      await pagina.locator('[data-guia="historial-prenda.costo"]').click({ timeout: 8000 });
+      await esperar(pagina, 1500);
+    },
+  },
+  {
+    id: "productos.historial-costo-corregir",
+    ruta: "/productos",
+    cuentas: ["admin"],
+    abre: '[data-guia="historial-prenda.corregir-costo"]',
+    nombre: "Productos · la hoja «Corregir el costo» de la última compra",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="productos.buscador"] input').first().fill("Pantalón Carla");
+      await esperar(pagina, 1800);
+      await pagina.locator(".card-cayla button").first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.locator("[data-ir-historial]").click({ timeout: 8000 });
+      await esperar(pagina, 2500);
+      await pagina.locator('[data-guia="historial-prenda.costo"]').click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.locator('[data-guia="historial-prenda.costo-corregir"]').click({ timeout: 8000 });
+      await esperar(pagina, 1500);
     },
   },
   {
@@ -1177,6 +1203,8 @@ ESCENARIOS.push(
   { id: "proveedores.registrar", ruta: "/compras/proveedores", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Proveedores · «Registrar proveedor»", preparar: clicRol("button", /Registrar proveedor/i) },
   { id: "proveedores.vista", ruta: "/compras/proveedores", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Proveedores · la vista rápida de un proveedor", preparar: clicRol("button", /Textiles Andina SAC: abrir vista rápida/i) },
   { id: "proveedores.sin-datos", ruta: "/compras/proveedores", cuentas: COMPRAS, nombre: "Proveedores · el filtro «Sin datos de pago»", preparar: clicRol("button", /Sin datos de pago/i) },
+  // El ranking (ADR-0521): marcar dos casillas cambia la columna derecha a «Comparar» (y, bajo 1280 px, saca la isla de abajo).
+  { id: "proveedores.comparar", ruta: "/compras/proveedores", cuentas: COMPRAS, abre: "#proveedores-comparacion", nombre: "Proveedores · comparar dos proveedores del ranking", preparar: secuencia(clicRol("checkbox", /Comparar Textiles Andina/i), clicRol("checkbox", /Comparar Confecciones del Sur/i)) },
   { id: "proveedores.ficha", ruta: "/compras/proveedores/[id]", cuentas: ["admin"], abre: "h1", nombre: "Proveedores · la ficha de un proveedor", preparar: async (pagina) => irA(`/compras/proveedores/${idDeProveedor()}`)(pagina) },
   { id: "factura.detalle", ruta: "/compras/factura/[compraId]", cuentas: ["admin"], abre: "h1", nombre: "Factura de proveedor · el comprobante", preparar: async (pagina) => irA(`/compras/factura/${idDeCompra()}`)(pagina) },
   { id: "parte.detalle", ruta: "/compras/parte/[compraId]", cuentas: ["admin"], abre: "h1", nombre: "Parte de recepción · el documento", preparar: async (pagina) => irA(`/compras/parte/${idDeCompra()}`)(pagina) },
@@ -1185,6 +1213,8 @@ ESCENARIOS.push(
   { id: "produccion.orden-nueva-tabla", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: "[data-matriz-mover]", nombre: "Producción · «Nueva orden» con un modelo que existe: la tabla de cantidades", preparar: secuencia(clicRol("button", /Nueva orden/i), async (pagina) => { await pagina.locator('[data-guia="prod-orden-nueva.modelo-fila"]').first().click({ timeout: 8000 }); await esperar(pagina, 1000); }) },
   // ADR-0396, A3: la ficha viva a la derecha de la hoja ancha (con un modelo ya elegido, para que no sea la ficha vacía).
   { id: "produccion.orden-nueva-ficha", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: 'aside[aria-label="La orden, tal como va a quedar"]', nombre: "Producción · «Nueva orden»: la ficha viva de la orden con un modelo elegido", preparar: secuencia(clicRol("button", /Nueva orden/i), async (pagina) => { await pagina.locator('[data-guia="prod-orden-nueva.modelo-fila"]').first().click({ timeout: 8000 }); await esperar(pagina, 1000); }) },
+  // ADR-0513, act. 4: la hoja «Ficha de consumo» del modelo (tela por talla, avíos y de dónde sale el número), abierta desde «Nueva orden» con un modelo que existe. `abre` exige su campo guiado dentro de la hoja.
+  { id: "produccion.orden-ficha-consumo", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: '[role=dialog] [data-campo="ficha"]', nombre: "Producción · «Nueva orden»: la hoja «Ficha de consumo» del modelo, con la tela por talla y de dónde sale el número", preparar: secuencia(clicRol("button", /Nueva orden/i), async (pagina) => { await pagina.locator('[data-guia="prod-orden-nueva.modelo-fila"]').first().click({ timeout: 8000 }); await esperar(pagina, 1000); }, clicRol("button", /Ver y cambiar/i), clicRol("button", /^Ficha del modelo$/)) },
   { id: "produccion.orden-nueva-color", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: '[data-guia="prod-orden-nueva.matriz"] [role="combobox"]', nombre: "Producción · «Nueva orden» con un modelo nuevo: «+ Agregar color» abierto sobre la tabla", preparar: secuencia(clicRol("button", /Nueva orden/i), clicRol("button", /Crear un modelo nuevo/i), async (pagina) => { await pagina.getByRole("combobox", { name: /^Categoría/ }).first().click({ timeout: 8000 }); await esperar(pagina, 600); await pagina.getByRole("option").first().click({ timeout: 8000 }); await esperar(pagina, 800); }, clicRol("button", /Agregar color/i)) },
   // ADR-0509, A5: el borrador de «Nueva orden». Se escribe una cantidad (queda en el navegador, nada llega a la base) y se recarga: la lista ofrece lo que quedó a medias, y al elegir ese mismo modelo otra vez el formulario lo ofrece.
   // `abre` exige el aviso mismo: sin borrador el escenario no pasa en verde sin haberlo mostrado.
@@ -1288,7 +1318,7 @@ ESCENARIOS.push(
   { id: "fondos.bandeja-cierre", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: '[data-guia="fondos.cierre-detalle"]', nombre: "Revisar compras · un cierre del día por recibir (necesita uno)", preparar: clicGuia("fondos.cifra-cierre") },
   // Las hojas del celular de Mi plata (rediseño): «Gasté en otra cosa» y «Mandar a la tienda» (necesita algo por mandar).
   { id: "mi-plata.gasto", ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mis compras · «Gasté en otra cosa»", preparar: clicRol("button", /Gasté en otra cosa/i) },
-  { id: "mi-plata.mandar", soloPorId: true, ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mis compras · «Mandar a la tienda» (necesita algo por mandar)", preparar: clicRol("button", /Te falta mandar/i) },
+  { id: "mi-plata.mandar", soloPorId: true, ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mis compras · «Mandar a la tienda» (necesita algo por mandar)", preparar: clicRol("button", /Falta mandar/i) },
   // «Quién tiene plata» y «Entregas y devoluciones» se abren en una hoja desde la cabecera (Felipe 2026-10-23); lo de adentro, desde ella.
   { id: "fondos.quien-tiene", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Revisar compras · la hoja «Quién tiene plata»", preparar: clicGuia("fondos.quien-tiene") },
   { id: "fondos.entregas", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Revisar compras · la hoja «Entregas y devoluciones» (necesita una)", preparar: clicGuia("fondos.entregas") },
@@ -1404,6 +1434,7 @@ ESCENARIOS.push(
 const FIN = ["admin"];
 ESCENARIOS.push(
   { id: "finanzas.que-mirar", ruta: "/finanzas/resumen", cuentas: FIN, abre: "[role=listbox]", nombre: "Finanzas · la lista «Qué mirar» (tienda o empresa)", preparar: clicRol("combobox", /Qué mirar/i) },
+  { id: "finanzas.resumen-confianza", ruta: "/finanzas/resumen", cuentas: FIN, abre: "#fin-confianza-piezas", nombre: "Resumen · «cosas por revisar» abre el medidor de confianza", preparar: clicRol("button", /(cosas? por revisar|Ver el detalle)/i) },
   { id: "gastos.registrar", ruta: "/finanzas/gastos", cuentas: FIN, abre: "[role=dialog]", nombre: "Gastos · «Registrar gasto»", preparar: clicRol("button", /Registrar gasto/i) },
   { id: "gastos.fijos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Fijos del mes»", preparar: clicRol("tab", /Fijos del mes/i) },
   { id: "gastos.activos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Activos fijos»", preparar: clicRol("tab", /Activos fijos/i) },

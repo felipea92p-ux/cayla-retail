@@ -61,7 +61,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       solo: "celular",
       preparar: [{ tipo: "vaciar", ancla: "existencias.buscador" }],
       titulo: "«¿Hay en M?» a un toque",
-      texto: "En el celular, este botón fijo abre la cámara. Escaneas la etiqueta de la prenda que tienes en la mano y ves al toque cuántas quedan de cada talla.",
+      texto: "En el celular, este botón fijo abre la cámara. Escaneas la etiqueta de la prenda que tienes en la mano y ves al toque cuántas quedan de cada talla. Abajo eliges «Bajar en tandas» para colgar un lote: escaneas una tras otra y confirmas al final.",
     },
     {
       id: "filtros",
@@ -245,7 +245,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.cajon-ajustar",
       opcional: true,
       titulo: "¿No es lo que ves? Ajusta el stock",
-      texto: "Si contaste y el número no cuadra, toca aquí: el modal se vuelve una tabla con todos los colores y tallas, con esta talla encendida. Escribes lo que contaste, eliges qué pasó y guardas todo de una vez; si entraron prendas, te ofrece imprimir sus etiquetas. En la demo no lo abrimos.",
+      texto: "Si contaste y el número no cuadra, toca aquí: arriba eliges dónde contaste y qué pasó, y debajo va la tabla con todos los colores y tallas. Escribes lo que contaste, Enter pasa al siguiente y guardas todo de una vez. En la demo no lo abrimos.",
     },
     {
       id: "cajon-acciones",
@@ -1669,7 +1669,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "¿Qué prendas son? (opcional)",
-      texto: "Si te da tiempo: busca una prenda del catálogo y pon cuántas eran; con sus tallas y colores entra al stock al cerrar. De lo nuevo dices cuántas y, si quieres, qué son con «Describir ahora». Lo que no separes queda para después.",
+      texto: "Si te da tiempo: busca una prenda del catálogo y pon cuántas eran; con sus tallas y colores entra al stock al cerrar. De lo nuevo dices cuántas y, si quieres, qué son con «Describir ahora»; ya descrita, «Crear ahora» la crea y sigues con sus tallas. Lo que no separes queda para después.",
     },
     {
       id: "elegida",
@@ -1847,7 +1847,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.para-despues",
       requiere: ["recepcion.para-despues"],
       titulo: "Para después",
-      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. «Hacer ahora» lo termina con la cantidad ya contada y, con la prenda ya identificada, deja cambiar su precio de venta. Lo puede hacer cualquiera que tenga Recibir. En la demo no lo tocamos.",
+      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. Cada fila trae su botón («Hacer ahora», «Tallas y colores ahora» o «+ Crear ahora»); al identificar la prenda se puede cambiar su precio de venta. Lo hace quien tenga Recibir. En la demo no lo tocamos.",
     },
     {
       id: "reabrir",
