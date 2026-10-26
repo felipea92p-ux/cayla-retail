@@ -36,9 +36,30 @@
   }
 }
 
+/* ---- El visor y el flash (G · Pasarela, ADR-0524; la maqueta, `.p-visor` y `.p-flash`): al agregar la prenda, cuatro esquinas encuadran la foto
+   y estalla un flash blanco, una sola vez. Es un adorno: lo que pasó lo dice la línea de abajo del botón, y con «reducir movimiento» no se dibuja. ---- */
+.t-visor { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.t-visor > i { position: absolute; width: 34px; height: 34px; border: 0 solid var(--t-tinta-fija); opacity: 0; }
+.t-visor > i:nth-of-type(1) { left: 14px; top: 14px; border-width: 1px 0 0 1px; }
+.t-visor > i:nth-of-type(2) { right: 14px; top: 14px; border-width: 1px 1px 0 0; }
+.t-visor > i:nth-of-type(3) { left: 14px; bottom: 14px; border-width: 0 0 1px 1px; }
+.t-visor > i:nth-of-type(4) { right: 14px; bottom: 14px; border-width: 0 1px 1px 0; }
+.t-visor-flash { position: absolute; inset: 0; background: var(--t-papel-fijo); opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .t-visor > i { animation: t-encuadre .9s var(--ease) both; }
+  .t-visor-flash { animation: t-flash-visor .5s ease-out .35s both; }
+}
+@keyframes t-encuadre { 0% { opacity: 0; transform: scale(1.6); } 30% { opacity: 1; } 70% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes t-flash-visor { 0% { opacity: 0; } 15% { opacity: .9; } 100% { opacity: 0; } }
+/* En la computadora el visor encuadra solo la foto grande (la primera); en la tira del celular, la que se ve. */
+@container tienda (min-width: 960px) {
+  .t-galeria .t-foto-g:not(:first-child) .t-visor { display: none; }
+}
+
 /* ---- Los datos ---- */
 .t-pdp-info { display: flex; flex-direction: column; gap: 18px; padding-top: 12px; min-width: 0; }
-.t-pdp-info h1 { margin: 6px 0 0; font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: clamp(36px, 8cqi, 56px); line-height: 1.05; letter-spacing: -.005em; text-wrap: balance; }
+/* G · Pasarela (ADR-0524): el nombre en Didone recta, como el de la maqueta (`.p-panel h1`). */
+.t-pdp-info h1 { margin: 6px 0 0; font-family: var(--nombre); font-style: normal; font-weight: 400; font-size: clamp(36px, 4.2cqi, 58px); line-height: 1.02; letter-spacing: -.01em; text-wrap: balance; }
 /* En el celular la caja del nombre se deshace: el nombre y el precio quedan pegados a la foto (en la primera pantalla) y los chips
    («Nuevo», la campaña) bajan bajo el precio. En la computadora, los chips van sobre el nombre. */
 .cp-pdp-cab { display: contents; }
@@ -69,7 +90,7 @@
 
 .t-bloque { display: flex; flex-direction: column; gap: 10px; }
 .t-bloque-precio { gap: 6px; }
-.t-precio.grande { font-size: 20px; gap: 4px; align-items: flex-start; }
+.t-precio.grande { font-size: 18px; letter-spacing: .04em; gap: 10px; align-items: baseline; justify-content: flex-start; }
 .t-precio.grande s { font-size: 15px; }
 .t-precio-nota { font-size: 12px; color: var(--tinta-60); }
 .t-cuenta-linea { font-size: 12.5px; color: var(--rojo-profundo); font-weight: 600; display: flex; gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
