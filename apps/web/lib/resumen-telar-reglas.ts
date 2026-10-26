@@ -137,26 +137,6 @@ export function lineaVentasMeta(series: readonly (readonly DiaVenta[])[], mes: s
   return { serie, referencia, vendido: Math.round(acum * 100) / 100, meta, origenMeta, diasMes };
 }
 
-/** La frase de la línea, en lenguaje de tienda: cuánto vas contra lo que la meta pedía a esta fecha. */
-export function fraseLineaVentas(l: LineaVentas, mes: string, enCurso = true): string {
-  if (!l.serie.length) return `Todavía no hay ventas en ${mesNombre(mes)}.`;
-  const llevas = enCurso ? `Llevas ${soles(l.vendido)} vendidos en ${mesNombre(mes)}` : `Vendiste ${soles(l.vendido)} en ${mesNombre(mes)}`;
-  if (l.meta === null || !l.referencia) return `${llevas}. No hay meta puesta para comparar.`;
-  if (!enCurso) {
-    const dif = Math.round(l.vendido - l.meta);
-    if (Math.abs(dif) < 1) return `${llevas}: justo la meta.`;
-    return `${llevas}: ${soles(Math.abs(dif))} ${dif > 0 ? "arriba" : "abajo"} de la meta de ${soles(l.meta)}.`;
-  }
-  const dia = l.serie.at(-1)!.x;
-  const pedia = l.origenMeta === "sedes" ? (l.referencia[dia]?.y ?? 0) : (l.meta * dia) / l.diasMes;
-  const dif = Math.round(l.vendido - pedia);
-  const deDonde = l.origenMeta === "presupuesto" ? " (la meta del presupuesto, pareja en el mes)" : "";
-  if (Math.abs(dif) < 1) return `Vas justo en la meta${deDonde}: ${soles(l.vendido)} de ${soles(l.meta)}.`;
-  return dif > 0
-    ? `Vas ${soles(dif)} arriba de lo que la meta pedía a esta fecha${deDonde}: ${soles(l.vendido)} de ${soles(l.meta)}.`
-    : `Vas ${soles(-dif)} abajo de lo que la meta pedía a esta fecha${deDonde}: ${soles(l.vendido)} de ${soles(l.meta)}.`;
-}
-
 // ---- El mes que se mira (el `?mes=` de la barra) ------------------------------------------------------------------------------
 
 /** Del 1 del mes elegido a hoy (si es el mes en curso) o a su último día (si ya pasó). `null` si el mes todavía no llega. */

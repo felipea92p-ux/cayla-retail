@@ -9,7 +9,8 @@ import { telasDeLaOrden, type TelaDeLaOrden } from "./orden-tela-usada-reglas";
 //
 // CONTRATO
 //   PROMETE: que una tela cuenta como «sin anotar» solo si el plan le pide algo (plan > 0) y la orden no tiene NADA descontado (usado = 0); que un avío nunca cuenta (los botones y los cierres se
-//            pueden usar después del corte); que una tela en varios colores es UNA sola; y que una orden sin tela declarada, o una muestra (no entra al stock ni deja costo), no avisa nada.
+//            pueden usar después del corte); que una tela en varios colores es UNA sola; que una muestra (no entra al stock ni deja costo) no avisa nada; y que una orden que NO declaró ninguna tela
+//            (un avío solo no es tela) avisa aparte, con `avisoSinTelaDeclarada` (ADR-0510): antes era «legítimo» porque no había cómo declararla después; ahora sí lo hay.
 //   ASUME:   `telasDeLaOrden` junta los colores de un mismo insumo y toma como «usado» lo que dice el libro, que no sabe de colores.
 //   NO HACE: no bloquea (es un aviso, nunca un candado: «Pasar al stock» sigue disponible), no calcula el costo ni toca la base, y no decide si la tela «debería» estar anotada por completo.
 
@@ -35,4 +36,29 @@ export function avisoTelaSinAnotar(insumos: readonly InsumoPagina[], esMuestra: 
   const quienes = nombres([...new Set(telas.map((t) => t.nombre))]);
   const texto = telas.length === 1 ? `Todavía no anotaste la tela de este lote (${quienes}): el costo por prenda saldría sin tela.` : `Todavía no anotaste las telas de este lote (${quienes}): el costo por prenda saldría sin ellas.`;
   return { insumoId: telas[0].insumoId, texto };
+}
+
+export type AvisoSinTelaDeclarada = {
+  /** La frase del aviso, en lenguaje de tienda. */
+  texto: string;
+};
+
+/**
+ * El aviso de una orden que NO declaró qué tela lleva (ADR-0510): sin tela declarada, «Anotar lo que usaste» no tiene nada que anotar y el lote entraría al stock con el costo por prenda sin
+ * tela. Solo en un lote (una muestra no entra al stock ni deja costo). Un avío no cuenta como tela. Nunca bloquea: lo dice y ofrece declararla.
+ */
+export function avisoSinTelaDeclarada(insumos: readonly InsumoPagina[], esMuestra: boolean): AvisoSinTelaDeclarada | null {
+  if (esMuestra) return null;
+  if (telasDeLaOrden(insumos).some((t) => t.tipo === "tela")) return null;
+  return { texto: "Esta orden no declaró qué tela lleva: el costo por prenda saldría sin tela." };
+}
+
+/**
+ * El aviso de la hoja «Terminé» cuando con lo que se anota queda cortado todo el lote y la orden no declaró ninguna tela: no hay tela que descontar del estante, y después de Corte es cuando
+ * se sabe cuánta se usó de verdad. Vale también para una muestra (de ella sale el consumo del modelo). `completaElCorte` lo decide la hoja (primera fase y todo lo que falta).
+ */
+export function avisoCorteSinTela(insumos: readonly InsumoPagina[], completaElCorte: boolean): AvisoSinTelaDeclarada | null {
+  if (!completaElCorte) return null;
+  if (telasDeLaOrden(insumos).some((t) => t.tipo === "tela")) return null;
+  return { texto: "Esta orden no declaró qué tela lleva, así que no se descuenta nada del estante. Antes de terminar, cierra esta hoja y usa «Declarar tela y avíos» en la sección Tela y avíos." };
 }
