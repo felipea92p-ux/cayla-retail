@@ -49,7 +49,7 @@ import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion
 import { NivelDos } from "@/components/orden-produccion/NivelDos";
 import { esDeNivelDos, nivelDosPideAbrirse, resumenNivelDos } from "@/lib/orden-nivel-dos-reglas";
 import { costoServiciosEstimado, fasesIniciales, fasesParaRpc, problemasFases, proveedoresQueSirven, serviciosConCosto, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
-import { coloresDeLaOrden, consumoSugerido, insumosParaRpc, metrosAPedir, ofertaDeConsumoDelModelo, problemasTela, telasSugeridas, type InsumoDelTaller, type TelaBorrador } from "@/lib/orden-tela-reglas";
+import { coloresDeLaOrden, consumoSugerido, insumosParaRpc, metrosAPedir, ofertaDeConsumoDelModelo, prendasDeLaFila, problemasTela, telasDeLaHoja, telasSugeridas, type InsumoDelTaller, type TelaBorrador } from "@/lib/orden-tela-reglas";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { tipoAlElegir, urgentesDeLaRed } from "@/lib/orden-modelo-reglas";
 import { cantidadesAlCambiarColores, lineasDeModeloExistente, tablaDeModeloExistente, tablaDeModeloNuevo } from "@/lib/orden-tabla-reglas";
@@ -358,12 +358,7 @@ export function NuevaOrdenProduccionForm({
     [tejidoId, coloresOrden, insumosDelTaller, consumoDeclaradoTexto]
   );
   const telasTocadas = telasManual !== null;
-  const telas = useMemo<TelaBorrador[]>(() => {
-    if (telasManual === null) return telasSugeridasAhora;
-    const porColor = telasSugeridasAhora.map((s) => telasManual.find((p) => p.colorCodigo !== null && p.colorCodigo === s.colorCodigo) ?? s);
-    const avios = telasSugeridasAhora.some((s) => s.colorCodigo === null) ? [] : telasManual.filter((p) => p.colorCodigo === null && p.insumoId);
-    return [...porColor, ...avios];
-  }, [telasManual, telasSugeridasAhora]);
+  const telas = useMemo<TelaBorrador[]>(() => telasDeLaHoja({ sugeridas: telasSugeridasAhora, manual: telasManual, insumos: insumosDelTaller }), [telasManual, telasSugeridasAhora, insumosDelTaller]);
   const problemasDeFases = useMemo(() => problemasFases(fases, { hoy, proveedores: proveedoresServicio, lista: listaDePrecios }), [fases, hoy, proveedoresServicio, listaDePrecios]);
   const problemasDeTela = useMemo(() => problemasTela(telas, { insumos: insumosDelTaller, colores: coloresOrden }), [telas, insumosDelTaller, coloresOrden]);
   const ofertaConsumo = useMemo(() => ofertaDeConsumoDelModelo(telas, insumosDelTaller, consumoDeclarado), [telas, insumosDelTaller, consumoDeclarado]);
@@ -386,7 +381,7 @@ export function NuevaOrdenProduccionForm({
     ? telas.reduce((suma, t) => {
         if (!t.insumoId) return suma;
         const i = insumosDelTaller.find((x) => x.id === t.insumoId);
-        const prendas = t.colorCodigo === null ? total : (coloresOrden.find((c) => c.colorCodigo === t.colorCodigo)?.cantidad ?? 0);
+        const prendas = prendasDeLaFila(t.colorCodigo, coloresDeLaTela);
         const plan = i ? metrosAPedir(t.consumoPorPrenda, prendas, i.mermaPct) : null;
         return suma + (plan ?? 0) * (costoPorMetro.get(t.insumoId) ?? 0);
       }, 0)

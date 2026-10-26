@@ -196,3 +196,81 @@
     animation: none;
   }
 }
+
+/* ---------- «De cada S/ 100» (spike 3-A, 2026-10-24; pieza `components/finanzas/DeCadaCien.tsx`) ----------
+   Cien cuadros, uno por sol de cada cien. Entran en cascada una vez al abrirse (ADR-0136: sin rebote ni bucle) y se apagan con
+   `prefers-reduced-motion`. Los cuadros que no son del renglón apuntado bajan al 18 %. Solo tokens. */
+.fin-cien {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+}
+.fin-cien-cuadros {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  width: 300px;
+  max-width: 100%;
+}
+.fin-cien-cuadros > i {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: var(--c);
+  animation: fin-cien-entra 380ms var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 7ms);
+  transition: opacity 0.25s var(--ease-cayla);
+}
+.fin-cien-cuadros[data-foco] > i:not([data-en]) {
+  opacity: 0.18;
+}
+.fin-cien-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.fin-cien-lista button {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+.fin-cien-lista button[aria-pressed="true"] {
+  background: var(--color-hueso);
+}
+.fin-cien-lista button > i {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--c);
+}
+@media (max-width: 760px) {
+  .fin-cien {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+}
+@keyframes fin-cien-entra {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fin-cien-cuadros > i {
+    animation: none;
+    transition: none;
+  }
+}

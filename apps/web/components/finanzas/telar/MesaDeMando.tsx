@@ -1,20 +1,21 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
-import { Pestanas } from "@/components/ui/Pestanas";
+import { Check, Plus } from "lucide-react";
 import { BotonEnlace } from "@/components/ui/campos";
 import { TeToca } from "@/components/finanzas/telar/TeToca";
 import { SelectorMes } from "@/components/ui/SelectorMes";
 import { rutaActiva } from "@/lib/menu";
 import {
+  aceptaVariasSedes,
+  alternarSede,
+  claveDeSedes,
   dichoDeLaSede,
   esMesTelar,
   hrefTelar,
   mesTelar,
-  sedeDeLaUrl,
-  sedeElegida,
+  sedesDeLaUrl,
+  sedesElegidas,
   SEDE_TODAS,
   type ClaveSede,
   type SedeTelar,
@@ -22,13 +23,17 @@ import {
 
 const conRegistrar = (href: string) => `${href}${href.includes("?") ? "&" : "?"}registrar=1`;
 
+/** El lugar de la barra donde una pantalla puede colgar su propio ajuste, junto al mes. */
+export const SLOT_AJUSTES_RESUMEN = "slot-ajustes-resumen";
+
 export type SubmoduloTelar = { clave: string; etiqueta: string; ruta: string };
 
 /**
- * La mesa de mando de Finanzas (El telar, Felipe 2026-10-23): la barra fija que comparten los seis submódulos. Arriba, las
- * pestañas de los submódulos que la cuenta ve; abajo, los hilos de sede (elegir una sede es tirar de su hilo: su raya crece) y el
- * mes. La sede y el mes viven en la URL (`?sede=`, `?mes=`) y viajan al cambiar de submódulo: una sola elección para todo
- * Finanzas. Se monta una vez, en `app/(app)/finanzas/layout.tsx`; un submódulo no tiene que hacer nada para tenerla.
+ * La mesa de mando de Finanzas (El telar, Felipe 2026-10-23): la barra fija que comparten los seis submódulos. Una fila: «Ver
+ * sede» con un botón por sede (se marcan una, varias o «Todas»), el mes, «Te toca» y «Registrar gasto». La sede y el mes viven en
+ * la URL (`?sede=<id>,<id>`, `?mes=`) y viajan al cambiar de submódulo, también por el menú lateral: una sola elección para todo
+ * Finanzas. Las pestañas de los submódulos se fueron (Felipe 2026-10-24): repetían el menú lateral. Se monta una vez, en
+ * `app/(app)/finanzas/layout.tsx`; un submódulo no tiene que hacer nada para tenerla.
  */
 export function MesaDeMando({
   submodulos,
@@ -52,33 +57,69 @@ export function MesaDeMando({
   const sp = useSearchParams();
   const router = useRouter();
   const actuales = [...sp.entries()];
-  const elegida = sedeElegida(sedeDeLaUrl({ sede: sp.get("sede"), ver: sp.get("ver") }), sedes, veTodo, sedePropia);
+  const elegidas = sedesElegidas(sedesDeLaUrl({ sede: sp.get("sede"), ver: sp.get("ver") }), sedes, veTodo, sedePropia);
   const mesUrl = sp.get("mes");
   const mes = esMesTelar(mesUrl) ? mesUrl : mesDeHoy;
   const [anio, m] = mes.split("-").map(Number) as [number, number];
   const [anioHoy, mHoy] = mesDeHoy.split("-").map(Number) as [number, number];
 
-  const activo = submodulos.find((s) => rutaActiva(pathname, s.ruta))?.clave ?? "";
   const aqui = (cambios: { sede?: ClaveSede; mes?: string }) => hrefTelar(pathname, actuales, cambios, { mismaPantalla: true, mesDeHoy });
-  const hilos: { clave: ClaveSede; nombre: string; color: string }[] =
-    veTodo && sedes.length > 1 ? [{ clave: SEDE_TODAS, nombre: "Todas las sedes", color: "todas" }, ...sedes] : sedes;
+  // Esta pantalla todavía mira de a una sede: tocar una la deja sola, y si en la URL vienen varias (de otra pantalla) se dice.
+  const deAUna = !aceptaVariasSedes(pathname);
+  const variasSinJuntar = deAUna && elegidas.length > 1;
+  const puedeElegir = veTodo && sedes.length > 1;
+  // En una pantalla que todavía no suma varias, se dice: si no, tocar una segunda sede y ver que reemplaza a la primera parece una falla.
+  const dicho = variasSinJuntar
+    ? "Esta pantalla aún no suma varias: muestra todas. Toca una para verla sola."
+    : deAUna && elegidas.length === 1
+      ? `${dichoDeLaSede(elegidas, sedes)} (aquí, una a la vez)`
+      : dichoDeLaSede(elegidas, sedes);
+  const tocar = (clave: ClaveSede) => router.push(aqui({ sede: claveDeSedes(alternarSede(elegidas, clave, sedes, deAUna), sedes) }), { scroll: false });
 
   return (
     <header className="mesa-telar">
       <div className="mesa-telar-fila">
-        <span className="mesa-telar-palabra">Finanzas</span>
-        <Pestanas
-          etiquetaAccesible="Submódulos de Finanzas"
-          idIndicador="telar-submodulos"
-          activa={activo}
-          guia="telar.submodulos"
-          items={submodulos.map((s) => ({
-            clave: s.clave,
-            etiqueta: s.etiqueta,
-            href: hrefTelar(s.ruta, actuales, {}, { mismaPantalla: false, mesDeHoy }),
-          }))}
+        <div className="sedes-telar" role="group" aria-label="Qué sedes mirar" data-guia="telar.sedes">
+          <span className="sedes-telar-titulo">Ver sede</span>
+          {puedeElegir ? (
+            <>
+              <button type="button" className="sede-telar" data-color="todas" aria-pressed={elegidas.length === 0} onClick={() => tocar(SEDE_TODAS)}>
+                Todas
+              </button>
+              {sedes.map((s) => {
+                const marcada = elegidas.includes(s.clave);
+                return (
+                  <button key={s.clave} type="button" className="sede-telar" data-color={s.color} aria-pressed={marcada} onClick={() => tocar(s.clave)}>
+                    <span className="sede-telar-punto" aria-hidden>
+                      {marcada && <Check className="h-3 w-3" />}
+                    </span>
+                    {s.nombre}
+                  </button>
+                );
+              })}
+            </>
+          ) : (
+            sedes.map((s) => (
+              <span key={s.clave} className="sede-telar" data-color={s.color} aria-pressed="true">
+                <span className="sede-telar-punto" aria-hidden />
+                {s.nombre}
+              </span>
+            ))
+          )}
+        </div>
+        <SelectorMes
+          valor={{ anio, mes: m }}
+          actual={{ anio: anioHoy, mes: mHoy }}
+          onCambiar={(x) => router.push(aqui({ mes: mesTelar(x.anio, x.mes) }), { scroll: false })}
+          guia="telar.mes"
         />
-        <span className="mesa-telar-espacio" />
+        {/* El Resumen cuelga aquí su ícono «Qué se ve» (`AjustesResumen`): solo esa pantalla lo dibuja, el resto de Finanzas no. */}
+        <span id={SLOT_AJUSTES_RESUMEN} className="contents" />
+        {puedeElegir && (
+          <span className="mesa-telar-dice" role="status" title={dicho}>
+            {dicho}
+          </span>
+        )}
         <TeToca submodulos={submodulos} />
         {/* En Gastos no: su cabecera ya trae «Registrar gasto» (y «Registrar activo» en su pestaña). */}
         {puedeRegistrarGasto && !rutaActiva(pathname, "/finanzas/gastos") && (
@@ -88,28 +129,6 @@ export function MesaDeMando({
             <span className="mesa-telar-registrar-texto">Registrar gasto</span>
           </BotonEnlace>
         )}
-      </div>
-      <div className="mesa-telar-fila mesa-telar-fila-2">
-        <nav className="hilos-telar" aria-label="Sede" data-guia="telar.sedes">
-          {hilos.map((h) =>
-            hilos.length > 1 ? (
-              <Link key={h.clave} href={aqui({ sede: h.clave })} scroll={false} className="hilo-telar" data-color={h.color} aria-current={h.clave === elegida ? "true" : undefined}>
-                {h.nombre}
-              </Link>
-            ) : (
-              <span key={h.clave} className="hilo-telar" data-color={h.color} aria-current="true">
-                {h.nombre}
-              </span>
-            ),
-          )}
-        </nav>
-        <SelectorMes
-          valor={{ anio, mes: m }}
-          actual={{ anio: anioHoy, mes: mHoy }}
-          onCambiar={(x) => router.push(aqui({ mes: mesTelar(x.anio, x.mes) }), { scroll: false })}
-          guia="telar.mes"
-        />
-        {hilos.length > 1 && <span className="mesa-telar-dice">{dichoDeLaSede(elegida, sedes)}</span>}
       </div>
     </header>
   );

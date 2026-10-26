@@ -122,7 +122,8 @@
     "components/sellos/ElegirDibujoDeInsignia.tsx": [
       "button «{o.tipo === \"dibujo\" ? NOMBRE_DEL_DIBUJO[o.clave] : \"Tu imagen\"}»",
       "input «→alElegirArchivo»",
-      "button «→() => archivo.current?.click()»"
+      "button «→() => archivo.current?.click()»",
+      "Casilla «Pintar con el color del sello»"
     ]
   }
 }

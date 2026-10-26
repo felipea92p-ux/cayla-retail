@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avisoTelaSinAnotar, telasSinAnotar } from "./orden-tela-sin-anotar-reglas";
+import { avisoCorteSinTela, avisoSinTelaDeclarada, avisoTelaSinAnotar, telasSinAnotar } from "./orden-tela-sin-anotar-reglas";
 import type { InsumoPagina } from "./orden-pagina-reglas";
 
 const insumo = (parche: Partial<InsumoPagina> = {}): InsumoPagina => ({
@@ -58,5 +58,44 @@ describe("avisoTelaSinAnotar — lo que dice la hoja «Pasar al stock»", () => 
   });
   it("una muestra no avisa: no entra al stock y no deja costo en ninguna prenda", () => {
     expect(avisoTelaSinAnotar([insumo()], true)).toBeNull();
+  });
+});
+
+describe("avisoSinTelaDeclarada — la orden que no dijo qué tela lleva", () => {
+  it("un lote sin ninguna fila de insumos avisa, con la misma frase que la persona lee", () => {
+    expect(avisoSinTelaDeclarada([], false)?.texto).toBe("Esta orden no declaró qué tela lleva: el costo por prenda saldría sin tela.");
+  });
+  it("un avío solo no es tela: sigue avisando", () => {
+    expect(avisoSinTelaDeclarada([avio()], false)).not.toBeNull();
+  });
+  it("con una tela declarada (anotada o no) no avisa esto: el otro aviso se encarga de la que falta anotar", () => {
+    expect(avisoSinTelaDeclarada([insumo()], false)).toBeNull();
+    expect(avisoSinTelaDeclarada([insumo({ usado: 10 })], false)).toBeNull();
+  });
+  it("una muestra no avisa: no entra al stock y no deja costo en ninguna prenda", () => {
+    expect(avisoSinTelaDeclarada([], true)).toBeNull();
+  });
+  it("los dos avisos nunca salen a la vez: sin tela declarada, uno; con tela sin anotar, el otro", () => {
+    for (const insumos of [[], [avio()], [insumo()], [insumo({ usado: 5 })], [insumo(), avio()]]) {
+      const sinDeclarar = avisoSinTelaDeclarada(insumos, false) !== null;
+      const sinAnotar = avisoTelaSinAnotar(insumos, false) !== null;
+      expect(sinDeclarar && sinAnotar, JSON.stringify(insumos.map((i) => i.tipo))).toBe(false);
+    }
+  });
+});
+
+describe("avisoCorteSinTela — al terminar Corte sin tela declarada", () => {
+  it("solo cuando lo que se anota completa el corte", () => {
+    expect(avisoCorteSinTela([], false)).toBeNull();
+    expect(avisoCorteSinTela([], true)?.texto).toContain("«Declarar tela y avíos»");
+  });
+  it("con una tela declarada no avisa (la hoja ya pregunta cuánta se usó)", () => {
+    expect(avisoCorteSinTela([insumo()], true)).toBeNull();
+  });
+  it("un avío solo no cuenta como tela", () => {
+    expect(avisoCorteSinTela([avio()], true)).not.toBeNull();
+  });
+  it("vale también para una muestra: de ella sale el consumo del modelo", () => {
+    expect(avisoCorteSinTela([], true)).not.toBeNull();
   });
 });
