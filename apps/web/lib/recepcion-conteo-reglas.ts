@@ -839,11 +839,16 @@ export function estaSeparada(s: Separado, p: PrendaAnotada): boolean {
   return s.nuevas.some((n) => n.descripcion?.toLocaleLowerCase("es") === clave);
 }
 
-/** Pasa una anotada a lo separado, como si se hubiera elegido desde el buscador: la del catálogo, como prenda conocida (sin tallas: queda por detallar); la que solo tiene nombre, como nueva ya descrita («por crear»). */
+/**
+ * Pasa una anotada a lo separado, como si se hubiera elegido desde el buscador: la del catálogo, como prenda conocida (sin tallas: queda por
+ * detallar); la que solo tiene nombre, como nueva ya descrita («por crear»). Una nueva sale primero de las «nuevas sin describir» que ya había
+ * (quitar una descrita las devuelve ahí): solo se suman las que faltan, así sacarla y volver a pasarla no duplica nada.
+ */
 export function separarAnotada(s: Separado, p: PrendaAnotada, cantidad: number): Separado {
   const n = Math.max(1, Math.min(TOPES_CONTEO.contadas, Math.trunc(cantidad)));
   if (p.productoId) return sumarPrenda(s, { productoId: p.productoId, nombre: p.nombre, codigo: p.codigo }, n);
-  return describirNuevas(cambiarNuevasSinDescribir(s, nuevasSinDescribir(s) + n), p.nombre, n);
+  const sinDescribir = nuevasSinDescribir(s);
+  return describirNuevas(cambiarNuevasSinDescribir(s, Math.max(sinDescribir, n)), p.nombre, n);
 }
 
 /** El texto del botón principal: «Cerrar el envío · 40 contadas en Tienda TRU». */

@@ -4,7 +4,6 @@ import {
   anotadasDelGrupo,
   anotadasPorSepararDelGrupo,
   camposDelConteoPorGrupo,
-  cantidadAlSepararDelGrupo,
   claveDeGrupo,
   descripcionDelGrupo,
   lineaDeLaPrenda,
@@ -13,9 +12,8 @@ import {
   minimoDelGrupo,
   repartirSeparado,
   repartirTotal,
-  sinSepararDelGrupo,
 } from "./recepcion-grupos-reglas";
-import { leerConteosDelEnvio, totalSeparado, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
+import { leerConteosDelEnvio, separarAnotada, totalSeparado, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
 
 const VESTIDOS = { id: "c-vestidos", nombre: "Vestidos", prefijo: "VES", familia: "vestidos" };
@@ -101,7 +99,6 @@ describe("agrupar las líneas del envío por categoría", () => {
     expect(g.contadas).toBe(10);
     expect(g.enStock).toBe(1);
     expect(totalSeparado(g.separado)).toBe(3);
-    expect(sinSepararDelGrupo(g)).toBe(6);
     expect(minimoDelGrupo(g)).toBe(4);
     expect(g.contado).toBe(true);
     expect(agruparLineas([deLaGuia(sofia(), { contadas: 5 }), deLaGuia(lima())])[0].contado).toBe(false);
@@ -268,15 +265,21 @@ describe("lo que muestra la pantalla de una categoría", () => {
     expect(anotadasDelGrupo(agruparLineas([{ clave: "extra:1", linea: null, conteo: null, categoria: VESTIDOS, marca: CAYLA, proveedor: PROV, dijeron: null }])[0])).toEqual([]);
   });
 
-  it("entra con las que se esperaban; si la categoría ya se contó, no más de lo contado que sigue sin separar (contar es certificar)", () => {
-    const esperada = { cantidad: 12 };
-    expect(cantidadAlSepararDelGrupo(dosVestidos(), esperada)).toBe(12);
-    expect(cantidadAlSepararDelGrupo(dosVestidos({ contadas: 5 }, { contadas: 5 }), esperada)).toBe(10);
-    expect(cantidadAlSepararDelGrupo(dosVestidos({ contadas: 6 }, { contadas: 6 }), esperada)).toBe(12);
-    expect(cantidadAlSepararDelGrupo(dosVestidos({ contadas: 8 }, { contadas: 8, en_stock: 4 }), esperada)).toBe(12);
-    expect(cantidadAlSepararDelGrupo(dosVestidos({ contadas: 7 }, { contadas: 7, en_stock: 4 }), esperada)).toBe(10);
-    // Contada y toda ya separada: entra una (la persona la ajusta) en vez de ninguna.
-    expect(cantidadAlSepararDelGrupo(dosVestidos({ contadas: 4, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 4)], nuevas: [] } }, { contadas: 0 }), esperada)).toBe(1);
+  it("separar las anotadas con sus cantidades esperadas aunque se hayan contado menos: lo contado sube a lo separado", () => {
+    // Contadas 5 de 12: Sofía (5) entra y no cambia el conteo; después Lima (7) entra entera y la categoría queda en 12.
+    const g1 = dosVestidos({ contadas: 5 }, { contadas: 0 });
+    const [a, b] = anotadasDelGrupo(g1);
+    const r1 = repartirSeparado(g1, separarAnotada(g1.separado, a.prenda, a.prenda.cantidad), g1.contadas);
+    expect([r1.contadas, r1.subio]).toEqual([5, false]);
+    const g2 = dosVestidos({ contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } }, { contadas: 0 });
+    const r2 = repartirSeparado(g2, separarAnotada(g2.separado, b.prenda, b.prenda.cantidad), g2.contadas);
+    expect([r2.contadas, r2.subio]).toEqual([12, true]); // subió de 5 a 12: la pantalla lo avisa
+    expect(r2.cambios.map((c) => [c.linea.linea?.id, c.contadas, c.separado.prendas.map((p) => p.cantidad)])).toEqual([["l-lima", 7, [7]]]);
+    // En el orden contrario también entran con lo esperado (la que no cabe en lo contado sube el conteo).
+    const g3 = dosVestidos({ contadas: 5 }, { contadas: 0 });
+    const r3 = repartirSeparado(g3, separarAnotada(g3.separado, b.prenda, b.prenda.cantidad), g3.contadas);
+    expect([r3.contadas, r3.subio]).toEqual([7, true]);
+    expect(r3.cambios.find((c) => c.linea.linea?.id === "l-lima")?.separado.prendas[0].cantidad).toBe(7);
   });
 
   it("el chip dice lo que falta o sobra de toda la categoría, no de una línea", () => {

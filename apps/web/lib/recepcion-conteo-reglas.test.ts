@@ -761,9 +761,17 @@ describe("lo que anotó la compra: las prendas exactas de una línea, de un toqu
     const b = separarAnotada(SEPARADO_VACIO, { productoId: null, nombre: "Vestido midi", codigo: null, cantidad: 12 }, 12);
     expect(b.nuevas).toEqual([{ cantidad: 12, descripcion: "Vestido midi" }]);
     expect(totalSeparado(b)).toBe(12);
-    // Lo ya separado a mano se respeta: las nuevas sin describir de antes quedan como estaban.
+    // Las nuevas sin describir que ya había se usan primero: solo se suman las que faltan.
     const c = separarAnotada(cambiarNuevasSinDescribir(SEPARADO_VACIO, 2), { productoId: null, nombre: "Vestido midi", codigo: null, cantidad: 5 }, 5);
-    expect(c.nuevas).toEqual([{ cantidad: 5, descripcion: "Vestido midi" }, { cantidad: 2, descripcion: null }]);
+    expect(c.nuevas).toEqual([{ cantidad: 5, descripcion: "Vestido midi" }]);
+    expect(totalSeparado(c)).toBe(5);
+    const mas = separarAnotada(cambiarNuevasSinDescribir(SEPARADO_VACIO, 9), { productoId: null, nombre: "Vestido midi", codigo: null, cantidad: 5 }, 5);
+    expect(mas.nuevas).toEqual([{ cantidad: 5, descripcion: "Vestido midi" }, { cantidad: 4, descripcion: null }]);
+    // Pasarla, sacarla y volver a pasarla deja lo mismo: no se duplica.
+    const ida = separarAnotada(SEPARADO_VACIO, { productoId: null, nombre: "Vestido midi", codigo: null, cantidad: 12 }, 12);
+    const vuelta = quitarNuevaDescrita(ida, "Vestido midi");
+    expect(totalSeparado(vuelta)).toBe(12);
+    expect(totalSeparado(separarAnotada(vuelta, { productoId: null, nombre: "Vestido midi", codigo: null, cantidad: 12 }, 12))).toBe(12);
     // Nunca menos de una.
     expect(separarAnotada(SEPARADO_VACIO, { productoId: "pa", nombre: "Chompa Aurora", codigo: null, cantidad: 12 }, 0).prendas[0].cantidad).toBe(1);
   });

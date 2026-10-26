@@ -5,6 +5,7 @@ import { BarraAvance } from "@/components/ui/BarraAvance";
 import { ArrowLeft, ArrowRight, ChevronDown, Minus, Plus } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
+import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -41,7 +42,6 @@ import {
   anotadasDelGrupo,
   anotadasPorSepararDelGrupo,
   camposDelConteoPorGrupo,
-  cantidadAlSepararDelGrupo,
   descripcionDelGrupo,
   lineaDeLaPrenda,
   minimoDelGrupo,
@@ -166,10 +166,15 @@ export function ContarEnvio({
     aplicar(repartirSeparado(g, s, g.contadas));
   }
 
-  /** El «+» de una prenda anotada al comprar: pasa a «¿Qué … son?» con las que se esperaban, como si se hubiera elegido desde el buscador. */
+  /**
+   * El «+» de una prenda anotada al comprar: pasa a «¿Qué … son?» con las que se esperaban (Felipe 2026-10-26), como si se hubiera elegido
+   * desde el buscador. Si con eso se separa más de lo contado, lo contado sube y la pantalla lo dice: quien cuenta puede corregirlo.
+   */
   function separarAnotadaDe(g: GrupoDeLineas, a: AnotadaDelGrupo) {
     setFoco(g.clave);
-    escribirSeparado(g, separarAnotada(g.separado, a.prenda, cantidadAlSepararDelGrupo(g, a.prenda)));
+    const r = repartirSeparado(g, separarAnotada(g.separado, a.prenda, a.prenda.cantidad), g.contadas);
+    aplicar(r);
+    if (r.contadas > g.contadas) avisar.aviso(`Pasaste más de las que contaste: el conteo sube de ${g.contadas} a ${r.contadas}. Si no es así, corrígelo en el número.`);
   }
 
   async function prendaCompleta(p: PrendaSeparada, l: LineaParaContar): Promise<PrendaRecepcion | null> {
@@ -311,7 +316,7 @@ export function ContarEnvio({
                               <button
                                 type="button"
                                 className="rc-anotada-mas"
-                                aria-label={`Pasar ${a.prenda.nombre} (${cantidadAlSepararDelGrupo(g, a.prenda)}) a «¿Qué ${nombreCategoria} son?»`}
+                                aria-label={`Pasar ${a.prenda.nombre} (${a.prenda.cantidad}) a «¿Qué ${nombreCategoria} son?»`}
                                 title={`Pasar a «¿Qué ${nombreCategoria} son?»`}
                                 onClick={() => separarAnotadaDe(g, a)}
                               >

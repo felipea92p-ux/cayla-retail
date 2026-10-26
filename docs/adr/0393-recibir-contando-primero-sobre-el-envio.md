@@ -500,10 +500,11 @@ muestra la prenda exacta con cuántas eran y un «+» redondo. Al tocarlo la pre
 buscador: la del catálogo, como prenda conocida; la que solo tiene nombre, como nueva ya descrita. No hay estado nuevo: lo que queda en la lista
 es lo anotado menos lo ya separado (`anotadasSinSeparar`), así que quitarla de «¿Qué … son?» la devuelve sola.
 
-DECIDÍ: la cantidad que entra es la esperada, pero en una línea ya contada nunca pasa de lo contado que sigue sin separar (`cantidadAlSepararDelGrupo`):
-contar es certificar (decisión 17 de ADR-0362) y un toque no lo pisa. En una línea sin contar entra la esperada y lo contado sube, igual que al
-separar de más a mano. La cantidad de una prenda separada también se escribe: se guarda al salir de la caja o con Enter, no con cada tecla,
-porque una prenda con tallas las suelta si su número cambia.
+DECIDÍ: la cantidad que entra es siempre la esperada (Felipe, 2026-10-26: con un tope «no más de lo contado» la segunda prenda entraba con 1). Si con eso se
+separa más de lo contado, lo contado sube y la pantalla lo avisa («el conteo sube de 8 a 15»): quien cuenta lo puede corregir en el número. Una prenda anotada
+solo por su nombre sale primero de las «nuevas sin describir» que ya había (quitar una descrita las devuelve ahí), así sacarla y volver a pasarla no duplica.
+La cantidad de una prenda separada también se escribe: se guarda al salir de la caja o con Enter, no con cada tecla, porque una prenda con tallas las suelta si su
+número cambia.
 AGRUPÉ (Felipe, 2026-10-26: «si ambas prendas son vestidos, lo ideal es que se muestren dentro de la misma categoría»): las líneas del mismo proveedor,
 categoría y marca —la llave con la que «Nos debe» suma el reclamo— son UNA categoría en la pantalla: un número, una lista de anotadas, un «¿Qué … son?».
 La base no cambió: sigue una fila por línea (`despacho_conteos`), y `lib/recepcion-grupos-reglas.ts` reparte lo que se escribe cambiando lo mínimo (sube

@@ -106,9 +106,6 @@ export function agruparLineas(lineas: readonly LineaParaContar[]): GrupoDeLineas
   }));
 }
 
-/** Lo contado de la categoría que sigue sin separar (ni en el stock ni dicho qué prenda es). Nunca menos de 0. */
-export const sinSepararDelGrupo = (g: GrupoDeLineas): number => Math.max(0, g.contadas - g.enStock - totalSeparado(g.separado));
-
 /** Lo mínimo que puede contar la categoría: lo que ya entró al stock más lo ya separado. */
 export const minimoDelGrupo = (g: GrupoDeLineas): number => g.lineas.reduce((a, l) => a + minimoDe(l), 0);
 
@@ -240,15 +237,6 @@ export function anotadasDelGrupo(g: GrupoDeLineas): AnotadaDelGrupo[] {
 
 /** Las que todavía no pasaron a «¿Qué … son?». Si se quita de ahí, vuelve sola: no hay otro estado que guardar. */
 export const anotadasPorSepararDelGrupo = (g: GrupoDeLineas): AnotadaDelGrupo[] => anotadasDelGrupo(g).filter((a) => !estaSeparada(g.separado, a.prenda));
-
-/**
- * Con cuántas entra al tocar «+»: las que se esperaban. Si la categoría ya se contó, no más de lo contado que sigue sin separar: lo que
- * cuenta quien recibe es lo que vale (contar es certificar). Nunca menos de 1. Sin contar todavía, lo esperado (lo contado sube).
- */
-export function cantidadAlSepararDelGrupo(g: GrupoDeLineas, p: Pick<PrendaAnotada, "cantidad">): number {
-  if (!g.lineas.some((l) => l.conteo !== null)) return p.cantidad;
-  return Math.max(1, Math.min(p.cantidad, sinSepararDelGrupo(g)));
-}
 
 /** Lo que dice el chip del contador de la categoría: «Cuadra: llegaron las 12», «Faltan 2», «Sobran 3», «12 contadas». */
 export function veredictoDelGrupo(g: GrupoDeLineas): { texto: string; tono: "verde" | "ambar" | "neutro" } {
