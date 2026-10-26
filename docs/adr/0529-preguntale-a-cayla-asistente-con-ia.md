@@ -22,7 +22,7 @@ las preguntas, las sin solución dicen qué construir y las frecuentes dicen qu�
 | # | Pregunta | Respuesta |
 |---|---|---|
 | 1 | Cómo responde | **Guía viva:** el motor de las guías te lleva a la pantalla y enciende cada pieza con el velo y el cursor fantasma. |
-| 2 | Dónde vive | **Botón en la cabecera + atajo de teclado** (⌘K, y «?» fuera de un campo), en toda pantalla. Abre un `<Cajon>`. |
+| 2 | Dónde vive | **Botón en la cabecera + atajo de teclado** («?» fuera de un campo y ⌘/ desde cualquier lado: ⌘K ya era del buscador de la cabecera), en toda pantalla. Abre un `<Cajon>`. |
 | 3 | Qué contesta | **Cómo hacer algo en el ERP · reglas del negocio · por qué el sistema hizo algo.** No lee datos de la tienda (ventas, stock). |
 | 4 | ¿Actúa? | **Llena, la persona confirma:** puede escribir en los campos; el botón que guarda lo aprieta siempre la persona. |
 | 5 | Sin acceso | **Dice quién puede** («eso lo hace quien tiene Inventario ▸ Existencias; pídeselo a tu líder de equipo»), y se registra. |

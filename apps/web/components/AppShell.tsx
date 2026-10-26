@@ -17,6 +17,7 @@ import { PerfilModal } from "@/components/PerfilModal";
 import { MotorGuias } from "@/components/guias/MotorGuias";
 import { ElegirDemoModal } from "@/components/guias/ElegirDemoModal";
 import { BotonDemo } from "@/components/guias/BotonDemo";
+import { BotonAsistente } from "@/components/asistente/Asistente";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { BuscadorGlobal } from "@/components/BuscadorGlobal";
@@ -1099,6 +1100,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               En celular (ADR-0205) se agrupa con Buscar, pegadas al borde como una sola unidad. El avatar
               que ADR-0205 puso acá salió con el cajón (v4): «Mi perfil» vive al pie del cajón. */}
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            {/* «Pregúntale a CAYLA» (ADR-0529): lo ve toda cuenta, también una terminal. No es un módulo (ADR-0306): es una ayuda,
+                como «Demo», y solo ofrece las pantallas del menú de esta cuenta. */}
+            <BotonAsistente rutasDelMenu={pantallasBuscables.map((h) => h.href)} />
             {/* Actividad (ADR-0207): el historial del módulo donde uno está, pegado a la sede que mira. No es fila del
                 lateral: no es una pantalla más. Solo para el líder y quien tenga el módulo; nunca en una terminal. */}
             {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (
