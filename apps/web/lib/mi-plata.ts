@@ -11,6 +11,7 @@ import {
   type MiPlata,
   type PlataPorConfirmar,
 } from "@/lib/mi-plata-reglas";
+import { RPC_MIS_ENVIOS, leerMisEnvios, type EnvioMio } from "@/lib/mis-envios-reglas";
 import type { CuentaOpcion } from "@/lib/fondos-reglas";
 
 // Compras simple (ADR-0480, actividad 2): lectura del servidor de la plata anotada (20261022235000). Si una lectura falla —la web
@@ -65,4 +66,18 @@ export async function getPlataPorConfirmar(): Promise<PlataPorConfirmarConFoto[]
     for (const f of firmadas.data ?? []) if (f.path && f.signedUrl) urls.set(f.path, f.signedUrl);
   }
   return filas.map((f) => ({ ...f, fotoUrl: f.fotoRuta ? (urls.get(f.fotoRuta) ?? null) : null }));
+}
+
+/**
+ * Los envíos que mandó quien mira, con su código y su ronda (20261026174000). `null` si no se pudo leer —la web publicada antes que la
+ * migración, o la base caída—: la pantalla lo dice, y Mis compras sigue sin «Mis envíos» en vez de caerse (principio 9).
+ */
+export async function getMisEnvios(): Promise<EnvioMio[] | null> {
+  const supabase = await createClient();
+  const r = (await supabase.rpc(RPC_MIS_ENVIOS as never)) as unknown as Awaited<Respuesta>;
+  if (r.error) {
+    console.error(`mis envíos: ${r.error.message}`);
+    return null;
+  }
+  return leerMisEnvios(r.data);
 }
