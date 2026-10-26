@@ -1,0 +1,82 @@
+{
+  "guia": "compras.plan.pagos",
+  "ruta": "/compras/plan/presupuesto/pagos",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 46,
+  "controles": {
+    "components/plan-compra/CampanasArchivadasModal.tsx": [
+      "BotonEnlace «Ver»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "ComboResponsable «{responsable}»"
+    ],
+    "components/plan-compra/CentroDeAvisos.tsx": [
+      "Link «{a.texto}»",
+      "button «{a.tipo === \"cambiar-dias\" ? \"plan.plazo-cambiar\" : undefined}»",
+      "button «{aviso.nivel === \"pendiente\" ? \"Deja de contarlo hasta que cambie\" : undefined}»",
+      "button «{`${urgente.corto}»",
+      "button «{etiqueta}»"
+    ],
+    "components/plan-compra/CostoEIgv.tsx": [
+      "Boton «Marcar todas»",
+      "Boton «Quitar todas»"
+    ],
+    "components/plan-compra/CuandoSePaga.tsx": [
+      "SegmentoDeslizante «Cuántas tandas»",
+      "Boton «Ver lo que guardó»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Descartar cambios»",
+      "Boton «Guardar cómo se paga»"
+    ],
+    "components/plan-compra/EditarCampanaModal.tsx": [
+      "CampoTexto «Nombre del plan»",
+      "CampoFecha «{<span className=\"sr-only\">Desde</span>}»",
+      "CampoFecha «{<span className=\"sr-only\">Hasta</span>}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «No, dejarla»",
+      "Boton «Sí, borrar campaña»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? (cambio ? undefined : \"No cambiaste nada\")}»"
+    ],
+    "components/plan-compra/MarcoPlan.tsx": [
+      "Boton «Restaurar…»"
+    ],
+    "components/plan-compra/NuevaCampanaModal.tsx": [
+      "CampoTexto «{<span className=\"sr-only\">Nombre del plan</span>}»",
+      "CampoFecha «{<span className=\"sr-only\">Desde</span>}»",
+      "CampoFecha «{<span className=\"sr-only\">Hasta</span>}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/plan-compra/PartesDelPresupuesto.tsx": [
+      "SegmentoEnlaces «(sin nombre)»"
+    ],
+    "components/plan-compra/PestanasPlan.tsx": [
+      "Pestanas «{[ { clave: \"plan\", etiqueta: \"Plan\", href: `/compras/plan${conPlan}»"
+    ],
+    "components/plan-compra/PlazoModal.tsx": [
+      "CampoTexto «Días para llegar a las tiendas»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/plan-compra/SelectorCampana.tsx": [
+      "Desplegable «{actual ? actualId : \"\"}»"
+    ],
+    "components/plan-compra/SinCampana.tsx": [
+      "Boton «Armar el plan de»",
+      "BotonEnlace «Elegir mis campañas»",
+      "BotonEnlace «Ver mi calendario»",
+      "Boton «Ver campañas archivadas»"
+    ],
+    "components/plan-compra/TandaDePago.tsx": [
+      "CampoSelect «Semana del pedido»",
+      "CampoSelect «Cómo se paga»"
+    ],
+    "components/plan-compra/VisibilidadEnFinanzas.tsx": [
+      "button «{TEXTO_DE_VISIBILIDAD[v].corto}»"
+    ]
+  }
+}

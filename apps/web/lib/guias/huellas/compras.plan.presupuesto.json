@@ -2,7 +2,7 @@
   "guia": "compras.plan.presupuesto",
   "ruta": "/compras/plan/presupuesto",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 67,
+  "total": 68,
   "controles": {
     "components/plan-compra/CampanasArchivadasModal.tsx": [
       "BotonEnlace «Ver»",
@@ -43,6 +43,9 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/plan-compra/PartesDelPresupuesto.tsx": [
+      "SegmentoEnlaces «(sin nombre)»"
     ],
     "components/plan-compra/PestanasPlan.tsx": [
       "Pestanas «{[ { clave: \"plan\", etiqueta: \"Plan\", href: `/compras/plan${conPlan}»"

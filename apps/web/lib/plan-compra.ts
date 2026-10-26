@@ -9,6 +9,7 @@ import { RPC_DESCUENTO } from "@/lib/plan-compra-descuento";
 import { RPC_PLAZO } from "@/lib/plan-compra-plazo";
 import { RPC_VERSIONES } from "@/lib/plan-compra-versiones";
 import { RPC_PASOS_2 } from "@/lib/plan-compra-modelos";
+import { RPC_PAGADO, RPC_PAGOS } from "@/lib/plan-compra-inversion";
 import { esFirmaDesconocida } from "@/lib/plan-compra-propuesta-guardada";
 import { RPC_RESULTADOS, campanaParaResultados } from "@/lib/plan-compra-resultados";
 import { SIN_EVIDENCIA, leerYMedirLaHistoria } from "@/lib/plan-compra-historia-servidor";
@@ -34,7 +35,11 @@ export type FamiliaPlan = { codigo: string; nombre: string };
 // Sin campaña en la URL se abre la que toca hoy (`campanaQueAbre`, C1): la que está en curso, si no la próxima, si no la última terminada.
 // Para eso las campañas se leen ANTES que el plan (encadenadas, en paralelo con lo demás). Si esa lectura falla, la base elige (la de inicio
 // más reciente, como antes): el plan se ve igual.
-export async function getPlanCompra(planId?: string): Promise<{
+export async function getPlanCompra(
+  planId?: string,
+  /** `conPagos`: la pantalla «Cuándo se paga» (ADR-0527) también lee cómo se paga la campaña y cuánto de lo facturado ya se pagó. Las demás pestañas no lo piden: no cuestan dos lecturas más. */
+  opciones: { conPagos?: boolean } = {},
+): Promise<{
   datos: unknown;
   falla: string | null;
   familias: FamiliaPlan[];
@@ -63,6 +68,12 @@ export async function getPlanCompra(planId?: string): Promise<{
   pasos2: unknown;
   /** La lectura del calendario del plan (ADR-0525) FALLÓ (no es que la base todavía no lo tenga): el selector ofrece todas las campañas, como antes, y el Calendario lo dice. */
   calendarioFallo: boolean;
+  /** Cómo se paga la campaña y si Finanzas la ve (`fn_plan_compra_pagos`, ADR-0527), crudo; null si no se pidió (`conPagos`), la base todavía no lo tiene o falló. */
+  pagos: unknown;
+  /** Cuánto de lo facturado de la campaña ya se pagó, sin IGV (`fn_plan_compra_pagado`), crudo; null si no se pidió, la base no lo tiene o falló. */
+  pagado: unknown;
+  /** Se pidió leer los pagos y la lectura FALLÓ (no es que la base todavía no los tenga): la pantalla lo dice y no ofrece guardar a ciegas. */
+  pagosFallo: boolean;
 }> {
   const supabase = await createClient();
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
@@ -97,7 +108,7 @@ export async function getPlanCompra(planId?: string): Promise<{
   const nombres = familias.error ? [] : (familias.data ?? []);
   if (plan.error) {
     console.error(`${RPC_PLAN}: ${plan.error.message}`);
-    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null, historia: null, descuentos: null, plazo: null, versiones: null, versionesFallo: false, pasos2: null, calendarioFallo };
+    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null, historia: null, descuentos: null, plazo: null, versiones: null, versionesFallo: false, pasos2: null, calendarioFallo, pagos: null, pagado: null, pagosFallo: false };
   }
   // La propuesta (C4) es una ayuda: si falla o la base todavía no la tiene, cada categoría se llena a mano, como antes.
   const abierto = (plan.data as { plan?: { id?: unknown } } | null)?.plan?.id;
@@ -112,7 +123,7 @@ export async function getPlanCompra(planId?: string): Promise<{
     return { propuesta, historia };
   };
   // Lo pedido en órdenes (ADR-0372 act. (e)) también es una ayuda: sin ella, el Plan no lo muestra.
-  const [leida, ordenes, descuento, plazo, versiones, pasos2] =
+  const [leida, ordenes, descuento, plazo, versiones, pasos2, pagos, pagado] =
     typeof abierto === "string"
       ? await Promise.all([
           leerPropuestaYSuHistoria(abierto),
@@ -125,8 +136,11 @@ export async function getPlanCompra(planId?: string): Promise<{
           supabase.rpc(RPC_VERSIONES as never, { p_plan_id: abierto } as never),
           // El paso 2 (ADR-0526) también: sin él, la lista no marca qué categorías ya repartieron en modelos, colores y tallas.
           supabase.rpc(RPC_PASOS_2 as never, { p_plan_id: abierto } as never),
+          // Cómo se paga y cuánto ya se pagó (ADR-0527): solo la pantalla «Cuándo se paga» los pide.
+          opciones.conPagos ? supabase.rpc(RPC_PAGOS as never, { p_plan_id: abierto } as never) : Promise.resolve(null),
+          opciones.conPagos ? supabase.rpc(RPC_PAGADO as never, { p_plan_id: abierto } as never) : Promise.resolve(null),
         ])
-      : [null, null, null, null, null, null];
+      : [null, null, null, null, null, null, null, null];
   const propuesta = leida?.propuesta ?? null;
   const historia = leida?.historia ?? null;
   if (propuesta?.error) console.error(`${RPC_PROPUESTA}: ${propuesta.error.message}`);
@@ -136,6 +150,8 @@ export async function getPlanCompra(planId?: string): Promise<{
   if (plazo?.error) console.error(`${RPC_PLAZO}: ${plazo.error.message}`);
   if (versiones?.error) console.error(`${RPC_VERSIONES}: ${versiones.error.message}`);
   if (pasos2?.error && !esFirmaDesconocida(pasos2.error)) console.error(`${RPC_PASOS_2}: ${pasos2.error.message}`);
+  if (pagos?.error && !esFirmaDesconocida(pagos.error)) console.error(`${RPC_PAGOS}: ${pagos.error.message}`);
+  if (pagado?.error && !esFirmaDesconocida(pagado.error)) console.error(`${RPC_PAGADO}: ${pagado.error.message}`);
   return {
     datos: plan.data,
     falla: null,
@@ -153,6 +169,10 @@ export async function getPlanCompra(planId?: string): Promise<{
     versionesFallo: !!versiones?.error && !esFirmaDesconocida(versiones.error),
     pasos2: pasos2 && !pasos2.error ? pasos2.data : null,
     calendarioFallo,
+    pagos: pagos && !pagos.error ? pagos.data : null,
+    pagado: pagado && !pagado.error ? pagado.data : null,
+    // Una base que todavía no tiene las funciones (la web se publicó antes que la migración) NO es un fallo: simplemente no se ofrece.
+    pagosFallo: (!!pagos?.error && !esFirmaDesconocida(pagos.error)) || (!!pagado?.error && !esFirmaDesconocida(pagado.error)),
   };
 }
 

@@ -1818,6 +1818,12 @@ export const GUIA_PLAN_PRESUPUESTO: Guia = {
     },
     VISTAS_DEL_PLAN("Presupuesto"),
     {
+      id: "partes",
+      ancla: "presupuesto.partes",
+      titulo: "Costos y tope, y Cuándo se paga",
+      texto: "El Presupuesto tiene dos partes: «Costos y tope» (lo que ves aquí: cuánto cuesta el plan y si cabe en tu tope) y «Cuándo se paga» (cuándo pides, cómo pagas y qué ve Finanzas). Cámbiate de una a otra con este selector; en la demo no entramos.",
+    },
+    {
       id: "cifras",
       ancla: "presupuesto.cifras",
       titulo: "Las cuatro cifras",
@@ -1895,6 +1901,73 @@ export const GUIA_PLAN_PRESUPUESTO: Guia = {
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes leer cuánto cuesta el plan y si cabe en tu tope. Para repasarlo: Mi perfil ▸ Demo ▸ Presupuesto del plan.",
+    },
+  ],
+};
+
+export const GUIA_PLAN_PAGOS: Guia = {
+  id: "compras.plan.pagos",
+  ruta: "/compras/plan/presupuesto/pagos",
+  titulo: "Cuándo se paga",
+  resumen: "Cuándo pides lo que falta comprar, cómo lo pagas y qué ve Finanzas de esa compra.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Cuándo pides y cuándo pagas",
+      texto: "Aquí armas el plan de pagos de lo que todavía falta comprar de esta campaña: cuándo se pide y cómo se paga. Finanzas lo lee para decirte si la caja aguanta. Nada se compra ni se paga desde aquí. Es una demo: no se guarda nada.",
+    },
+    VISTAS_DEL_PLAN("Presupuesto ▸ Cuándo se paga"),
+    {
+      id: "cifras",
+      ancla: "pagos.cifras",
+      titulo: "Lo que pesa en tu caja",
+      texto: "Cuánto cuesta lo que falta pedir, cuánto sale de tu caja con IGV, hasta qué día pedir para llegar a tiempo, y que esto es mercadería (no un gasto): el costo entra cuando se vende.",
+    },
+    {
+      id: "tandas",
+      ancla: "pagos.tandas",
+      titulo: "Tandas de compra",
+      texto: "Parte la compra en 1, 2 o 3 pedidos. Cada tanda tiene su semana, su porcentaje y su forma de pago (contado, a 30 o 60 días, o con anticipo). Si una tanda se pide después del último día para pedir, te avisa que llega tarde.",
+    },
+    {
+      id: "meses",
+      ancla: "pagos.meses",
+      titulo: "Mes a mes",
+      opcional: true,
+      texto: "Lo que sale de tu caja en cada mes, según las tandas y la forma de pago que elegiste. Sirve para ver en qué mes pesa más.",
+    },
+    {
+      id: "igv",
+      ancla: "pagos.igv",
+      titulo: "Costo e IGV",
+      opcional: true,
+      texto: "Marca las categorías cuyo costo ya incluye el IGV; a las demás se les suma el 18 %. Así sabes cuánto le pagas al proveedor, cuánto es IGV y cuánto sale de tu caja. La marca es de esta campaña: no cambia el costo de la ficha.",
+    },
+    {
+      id: "visibilidad",
+      ancla: "pagos.visibilidad",
+      titulo: "¿Lo ve Finanzas?",
+      texto: "Decide qué ve Finanzas de esta campaña: todo, solo en Escenarios o nada. Elegir una se guarda al instante, a tu nombre, y no borra nada: la campaña sigue en el Plan y en Compras. En la demo no lo tocamos.",
+    },
+    {
+      id: "finanzas",
+      ancla: "pagos.finanzas",
+      titulo: "Qué pasa en Finanzas",
+      opcional: true,
+      texto: "Dónde cuenta esta compra y dónde no: en el Resumen y en tu caja sí; no es un gasto ni baja «Te deja». El flujo de caja de Reportes y Escenarios todavía no la leen.",
+    },
+    {
+      id: "guardar",
+      ancla: "pagos.guardar",
+      titulo: "Guardar cómo se paga",
+      texto: "Lo que armes no cuenta hasta que lo guardes. Al guardar, Finanzas lee los pagos; si otra persona guardó antes que tú, te lo dice y no pisa lo suyo. En la demo no guardamos.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes armar cuándo se pide y se paga una campaña. Para repasarlo: Mi perfil ▸ Demo ▸ Cuándo se paga.",
     },
   ],
 };

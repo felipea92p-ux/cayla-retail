@@ -196,6 +196,12 @@ Cada tarea lleva su clase —**Urgente** (pierde algo cada día o vence pronto),
 - **Cómo lo verificas tú:** con el estado en «No mostrarla» Finanzas queda igual que hoy; al registrar la factura, la planeada desaparece; con «Quitar todas» la salida de caja sube 18 %.
 - **Esfuerzo / dependencias:** L · **varios módulos: pide tu OK** (decisión de Felipe, CLAUDE.md) · después de #5.
 
+- **Estado (2026-10-26):** construida y probada en local (C8, ADR-0527, **migración `20261026212000` solo en local**; falta el OK de Felipe para producción). Es «Presupuesto ▸ Cuándo se paga» (spike ⑤): tandas de
+  pedido (1 a 3) con su semana y su forma de pago, mes a mes, «llega tarde», IGV por categoría y los tres estados de visibilidad; se guardan los **pagos** (fecha, %) como fotos que solo se agregan, con la base exigiendo
+  100 %. **Finanzas ▸ Resumen ya lee la inversión** (`getInversionMercaderia`, con las mismas cuentas del Plan). **Todavía no:** el flujo de caja de Reportes y Escenarios no leen la compra (`fn_flujo_caja_proyeccion` es de
+  Finanzas), la gráfica de la caja de las 12 semanas y el recomendador (#13). Cuatro objeciones abiertas en el ADR (el tope mide cosas distintas en las dos pantallas, sus unidades con IGV, el módulo «Plan de campaña» para
+  quien mira el Resumen y el flujo sin conectar). Probada con 27 casos de base (incluidas cuatro personas a la vez) y 70 de la lógica.
+
 ### #11 · [Eliminar/fusionar · Estético] Pulido pendiente
 - **Dónde:** los 3 cambios de Formidable del 2026-10-24 (fecha que resulta en la hoja del plazo y los días una sola vez, margen apenas hay descuento, «Quitar el plazo» que dice qué pasa) y `<PieAcciones izquierda>` en `TopeModal`/`RecuperoModal`.
 - **Por qué:** ya están medidos; no cambian ningún cálculo.
@@ -260,3 +266,4 @@ Recomiendo el programa, pero **en orden**: #1–#3 ya, luego #4–#6 (sin tocar 
 |---|---|---|---|---|
 | 2026-10-26 | completo | 6,8 | 7,2 | — (primer análisis de `/pantalla` sobre esta ruta; antes: `docs/pantallas/compras-plan-prompt-maestro.md`, 2026-10-13, con 12 hipótesis de las que se cerraron S1–S6, V1, V3, V5) |
 | 2026-10-26 (tarde) | construcción | — | — | #1 (en local), #2 (el aviso con fecha) y #3 hechas con `/construir`; ver `docs/backlog/2026-10-26-campaign-plan-audit-652032.md` |
+| 2026-10-26 (noche) | construcción | — | — | #4–#9 y #10 (la parte del Plan y de lo que lee el Resumen) hechas con `/construir`; ver `docs/backlog/2026-10-26-campaign-plan-audit-652032.md` |

@@ -9,6 +9,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { MarcoPlan, type DelMarco } from "@/components/plan-compra/MarcoPlan";
+import { PartesDelPresupuesto } from "@/components/plan-compra/PartesDelPresupuesto";
 import { NotaDeVersionModal, type AccionDeVersion } from "@/components/plan-compra/NotaDeVersionModal";
 import { PlanConTope } from "@/components/plan-compra/PlanConTope";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
@@ -178,6 +179,7 @@ function ContenidoDelPresupuesto({ derivado, marco, veAnalisis }: { derivado: Pl
 
   return (
     <>
+      <PartesDelPresupuesto activa="costos" planId={plan.plan.id} />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-guia="presupuesto.cifras">
         <TarjetaCifra
           etiqueta="Inversión al costo"
