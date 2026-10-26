@@ -61,7 +61,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       solo: "celular",
       preparar: [{ tipo: "vaciar", ancla: "existencias.buscador" }],
       titulo: "«¿Hay en M?» a un toque",
-      texto: "En el celular, este botón fijo abre la cámara. Escaneas la etiqueta de la prenda que tienes en la mano y ves al toque cuántas quedan de cada talla.",
+      texto: "En el celular, este botón fijo abre la cámara. Escaneas la etiqueta de la prenda que tienes en la mano y ves al toque cuántas quedan de cada talla. Abajo eliges «Bajar en tandas» para colgar un lote: escaneas una tras otra y confirmas al final.",
     },
     {
       id: "filtros",
