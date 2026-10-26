@@ -120,6 +120,12 @@ const HUELLAS: Huella[] = [
     frase: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.",
   },
   {
+    // 20261026224000 (Felipe 2026-10-26): llega con 42501 y este hint. Una terminal no cambia el precio de la prenda, que vale en
+    // todas las tiendas; la ficha ya no se lo ofrece, así que esto solo sale si una pantalla vieja o dos pestañas lo intentan.
+    marca: "terminal_precio_de_la_prenda",
+    frase: "Desde una terminal el precio se cambia solo en su tienda: usa «Precio en tu tienda» en la ficha de la prenda. No se guardó nada.",
+  },
+  {
     // Desde 20261004204000 «Perdió la etiqueta» descuenta solo de lo DISPONIBLE (como las cifras de la mesa): las apartadas y las
     // de Cuarentena no se descuentan, aunque la tienda las tenga.
     marca: "prenda_sin_stock_para_descontar",

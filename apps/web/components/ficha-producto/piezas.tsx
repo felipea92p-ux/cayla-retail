@@ -48,6 +48,10 @@ export type ContextoFicha = {
   puedeCorregir: boolean;
   /** Ajustar el stock desde la ficha. `null` o ausente = la cuenta no puede ajustar stock: no se ofrece. */
   ajusteStock?: AjusteStockFicha | null;
+  /** Una terminal (Felipe 2026-10-26): el precio de la prenda vale en todas las tiendas y la base no se lo deja cambiar
+   *  (`variantes_terminal_no_cambia_precio`). Trae el nombre de su tienda, donde sí pone el suyo («Precio en …»); `""` si la
+   *  terminal no está en una tienda. Ausente = la cuenta cambia el precio de la prenda como siempre. Una talla NUEVA sí lleva su precio. */
+  precioFijoEn?: string | null;
 };
 
 /** Valor del combo para «Sin color»: los códigos de color son 3 mayúsculas, este no choca con ninguno. */

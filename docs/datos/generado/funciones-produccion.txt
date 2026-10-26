@@ -1243,6 +1243,7 @@ fn_temporadas() -> TABLE(clave text, nombre text, orden smallint, es_clasico boo
 fn_terminal_actual() -> TABLE(id uuid, ubicacion_id uuid, tipo text, nombre text) [definer]
 fn_terminal_firma_respaldo() -> TABLE(persona_id uuid, nombre text) [definer]
 fn_terminal_firma_respaldo_id(p_terminal_id uuid) -> uuid [definer]
+fn_terminal_no_cambia_precio_de_la_prenda() -> trigger [definer]
 fn_terminal_rol_coherente() -> trigger [invoker]
 fn_terminales() -> TABLE(id uuid, nombre text, ubicacion_id uuid, ubicacion_nombre text, rol_id uuid, rol_nombre text, correo text, activo boolean, creada_at timestamp with time zone, desactivada_at timestamp with time zone, ultimo_acceso timestamp with time zone) [definer]
 fn_texto_carga_inicial_cerrada(p_ubicacion_id uuid, p_para text) -> text [invoker]

@@ -217,6 +217,8 @@ export function MatrizStockFicha({
   // Todos los costos vienen de compras: en «Costos» no hay nada que escribir, ni de a una ni en bloque.
   const activas = filas.filter((f) => f.activo);
   const costosTodosFijos = activas.length > 0 && activas.every((f) => f.costoFijo);
+  // Una terminal no cambia el precio de la prenda (vale en todas las tiendas): las tallas guardadas se ven sin caja y no hay bloque.
+  const precioFijo = ctx.precioFijoEn != null;
 
   /** Lo que dice la columna de la derecha en la fila de un color, según la pestaña. */
   function resumenDeFila(c: string | null, delColor: readonly FilaFicha[]): string {
@@ -252,7 +254,9 @@ export function MatrizStockFicha({
           <span className="text-tinta/45">—</span> = no existe: tócala para agregarla.
         </p>
         <p className={`col-start-1 row-start-1 ${vista === "precio" ? "" : "invisible"}`} aria-hidden={vista !== "precio"}>
-          Escribe el precio de cada talla, o cambia varias de una vez aquí abajo. Lo que cambió se ve en ámbar hasta guardarlo.
+          {precioFijo
+            ? `El precio de la prenda vale en todas las tiendas: desde esta terminal se ve, no se cambia.${ctx.precioFijoEn ? ` Para vender a otro precio aquí, usa «Precio en ${ctx.precioFijoEn}», más abajo.` : ""}`
+            : "Escribe el precio de cada talla, o cambia varias de una vez aquí abajo. Lo que cambió se ve en ámbar hasta guardarlo."}
         </p>
         <p className={`col-start-1 row-start-1 ${vista === "costo" ? "" : "invisible"}`} aria-hidden={vista !== "costo"}>
           {costosTodosFijos ? "El costo de cada talla, con su margen debajo. " : "Escribe el costo de cada talla; debajo, el margen. "}
@@ -273,7 +277,7 @@ export function MatrizStockFicha({
       )}
 
       {/* Oculto en «Unidades de hoy», pero montado: un monto escrito y no aplicado no se pierde al cambiar de pestaña. */}
-      {bloque && <div hidden={enUnidades || enEtiquetas || (vista === "costo" && costosTodosFijos)}>{bloque}</div>}
+      {bloque && <div hidden={enUnidades || enEtiquetas || (vista === "costo" && costosTodosFijos) || (vista === "precio" && precioFijo)}>{bloque}</div>}
 
       <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
         {/* Columnas de ancho FIJO (table-fixed + colgroup): agregar un color de nombre largo («Gris perla · nueva») o cambiar de
@@ -633,6 +637,13 @@ export function MatrizStockFicha({
     const valor = campo === "precio" ? f.precio : f.costo;
     const antes = f.guardada ? (campo === "precio" ? f.guardada.precio : f.guardada.costo) : null;
     const cambiado = antes !== null && Number(antes) !== Number(valor);
+    if (campo === "precio" && precioFijo && f.guardada) {
+      return (
+        <span className="px-1 text-[13px] tabular-nums text-tinta" title="El precio de la prenda vale en todas las tiendas: desde una terminal no se cambia">
+          {texto(valor)}
+        </span>
+      );
+    }
     if (campo === "costo" && f.costoFijo) {
       return (
         <>

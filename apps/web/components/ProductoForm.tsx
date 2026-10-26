@@ -333,6 +333,8 @@ export function ProductoForm({
     general: number | null;
     ubicacionId: string;
     sede: string;
+    /** Una terminal: el bloque «Precio por tienda» muestra solo su tienda. */
+    soloAqui?: boolean;
   } | null;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
@@ -494,6 +496,7 @@ export function ProductoForm({
     costoSinComprobar: costosSinComprobar(producto?.variantes ?? []),
     puedeCorregir,
     ajusteStock,
+    precioFijoEn: preciosSede?.soloAqui ? (preciosSede.tiendas[0]?.nombre ?? "") : null,
   };
 
   // «Para completar esta ficha» (ADR-0284 c): lo que le falta a la prenda para estar completa. Solo guía; guardar no depende de esto.
@@ -1743,6 +1746,7 @@ export function ProductoForm({
                 tiendas={preciosSede.tiendas}
                 ubicacionActual={preciosSede.ubicacionId}
                 costoMaximo={veCosto ? costoMaximoGuardado(filas, admiteCeroGuardada) : null}
+                soloAqui={preciosSede.soloAqui}
                 deshabilitado={loading}
               />
             )}
