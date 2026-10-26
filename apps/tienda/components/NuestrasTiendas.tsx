@@ -52,7 +52,7 @@ export function NuestrasTiendas({
               )}
               <div className="ay-tienda-in">
                 <Nombre className="ay-tienda-nombre">{s.nombre}</Nombre>
-                <EstadoDeTienda dias={s.dias} />
+                <EstadoDeTienda dias={s.dias} cierres={s.cierres} />
                 <ul className="ay-tienda-datos">
                   <li>
                     <Icono nombre="ubicacion" />

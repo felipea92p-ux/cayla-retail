@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  estadoDeAtencion, etiquetaDeHora, filasDeSemana, mismaSemana, momentoEnLima, resumenDeHorario, semanaDesdeFilas, semanaDeSerializada,
+  cierresDesdeFilas, estadoDeAtencion, etiquetaDeCierre, fechaIsoValida, etiquetaDeHora, filasDeSemana, mismaSemana, momentoEnLima, resumenDeHorario, semanaDesdeFilas, semanaDeSerializada,
   semanaTieneHoras, semanaVacia, serializarSemana, sumarDias, tramoValido, type SemanaDeTienda,
 } from "@cayla-retail/shared/horario-de-tienda";
 
@@ -117,10 +117,31 @@ describe("¿abierta ahora?", () => {
     expect(estadoDeAtencion(sinMartes, [], lima("2026-10-27T03:00:00Z"))?.texto).toBe("Cerrada · abre el miércoles 10 a. m.");
   });
   it("un cierre por fecha manda sobre el horario: «Cerrada hoy», y no se ofrece abrir ese día", () => {
-    expect(estadoDeAtencion(TRU, [{ fecha: "2026-10-26", motivo: "Feriado" }], lima("2026-10-26T22:00:00Z"))).toEqual({ abierta: false, texto: "Cerrada hoy", cierreHoy: true });
+    expect(estadoDeAtencion(TRU, [{ fecha: "2026-10-26" }], lima("2026-10-26T22:00:00Z"))).toEqual({ abierta: false, texto: "Cerrada hoy", cierreHoy: true });
     expect(estadoDeAtencion(TRU, [{ fecha: "2026-10-27" }], lima("2026-10-27T03:00:00Z"))?.texto).toBe("Cerrada · abre el miércoles 10 a. m.");
   });
   it("sin horario por días no se dice nada: la tienda no se declara cerrada por falta de datos", () => {
     expect(estadoDeAtencion(semanaVacia(), [], lima("2026-10-26T22:00:00Z"))).toBeNull();
+  });
+});
+
+describe("los cierres por fecha", () => {
+  it("una fecha es real o no es", () => {
+    expect(fechaIsoValida("2026-10-28")).toBe(true);
+    expect(fechaIsoValida("2028-02-29")).toBe(true);
+    for (const mala of ["2026-02-30", "2026-13-01", "26-10-28", "2026-10-28T10:00", "hoy", "", null, 3, "2026-1-5"]) expect(fechaIsoValida(mala)).toBe(false);
+  });
+  it("las filas de la base salen sin repetir y en orden; lo mal formado se ignora", () => {
+    expect(cierresDesdeFilas([{ fecha: "2026-11-02" }, { fecha: "2026-10-28" }, { fecha: "2026-10-28" }, { fecha: "2026-02-30" }, { fecha: 3 }, null, "x", {}])).toEqual([{ fecha: "2026-10-28" }, { fecha: "2026-11-02" }]);
+    expect(cierresDesdeFilas(null)).toEqual([]);
+    expect(cierresDesdeFilas("2026-10-28")).toEqual([]);
+  });
+  it("se dicen como se hablan: Hoy, Mañana o el día", () => {
+    expect(etiquetaDeCierre("2026-10-26", "2026-10-26")).toBe("Hoy");
+    expect(etiquetaDeCierre("2026-10-27", "2026-10-26")).toBe("Mañana");
+    expect(etiquetaDeCierre("2026-10-28", "2026-10-26")).toBe("Mié 28 oct");
+    expect(etiquetaDeCierre("2026-12-25", "2026-10-26")).toBe("Vie 25 dic");
+    expect(etiquetaDeCierre("2026-10-31", "2026-10-31")).toBe("Hoy");
+    expect(etiquetaDeCierre("2026-11-01", "2026-10-31")).toBe("Mañana");
   });
 });

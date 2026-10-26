@@ -1084,6 +1084,13 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
       texto: "Cada día es una barra: arrastra un borde para cambiar esa hora, la barra para correrla, o toca la letra del día para abrirlo o cerrarlo. De media en media hora. La tienda online dirá «Abierta · cierra 9 p. m.» sola.",
     },
     {
+      id: "cierres",
+      ancla: "config.tienda-web-cierres",
+      opcional: true,
+      titulo: "Un día que no abre",
+      texto: "«Cerrar hoy» o «Cerrar otra fecha» apagan ese día aunque el horario diga que abre: un feriado, un inventario. La web dice «Cerrada hoy» y, al contar cuándo vuelve, salta esos días. Se quitan con su ✕.",
+    },
+    {
       id: "guardar",
       ancla: "config.tienda-web-guardar",
       opcional: true,

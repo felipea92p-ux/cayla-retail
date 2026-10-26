@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { tramoValido, type SemanaDeTienda } from "@cayla-retail/shared/horario-de-tienda";
 import {
-  RANGO_DE_FABRICA, conAperturaEn, conCierreEn, conTecla, corridoPor, minutoDeLaPista, porcentajeDeMinuto, rangoVisible, semanaComoElLunes, tramoPintado, tramoParaAbrir,
+  RANGO_DE_FABRICA, cierresDeSerializados, cierresVigentes, conAperturaEn, conCierre, objecionAlCierre, serializarCierres, sinCierre, conCierreEn, conTecla, corridoPor, minutoDeLaPista, porcentajeDeMinuto, rangoVisible, semanaComoElLunes, tramoPintado, tramoParaAbrir,
 } from "./horario-edicion-reglas";
 
 const R = RANGO_DE_FABRICA; // 7 a. m. a 11 p. m. (420 a 1380)
@@ -102,5 +102,37 @@ describe("el teclado sobre una barra", () => {
   it("otra tecla no hace nada", () => {
     expect(conTecla(t, "a", { mayus: false, alt: false }, R)).toBeNull();
     expect(conTecla(t, "Enter", { mayus: false, alt: false }, R)).toBeNull();
+  });
+});
+
+describe("los cierres por fecha en el borrador", () => {
+  const HOY = "2026-10-26";
+  it("se guardan como texto, sin repetir y en orden, y vuelven igual; un texto raro es «sin cierres»", () => {
+    const t = serializarCierres(["2026-11-02", "2026-10-28", "2026-10-28"]);
+    expect(t).toBe('["2026-10-28","2026-11-02"]');
+    expect(cierresDeSerializados(t)).toEqual(["2026-10-28", "2026-11-02"]);
+    expect(serializarCierres([])).toBe("[]");
+    for (const raro of ["", "x", "{}", '["2026-02-30","hoy",3]', "null"]) expect(cierresDeSerializados(raro)).toEqual([]);
+  });
+  it("dice por qué no se puede cerrar un día", () => {
+    expect(objecionAlCierre([], "2026-10-25", HOY)).toBe("Ese día ya pasó.");
+    expect(objecionAlCierre([], "2026-02-30", HOY)).toBe("Esa no es una fecha.");
+    expect(objecionAlCierre([], "2028-10-26", HOY)).toBe("Ese día está a más de dos años.");
+    expect(objecionAlCierre([], "2028-10-25", HOY)).toBeNull(); // 730 días: 2028 es bisiesto
+    expect(objecionAlCierre(["2026-10-28"], "2026-10-28", HOY)).toBe("Ese día ya está cerrado.");
+    expect(objecionAlCierre(Array.from({ length: 60 }, (_, i) => `2027-01-${String((i % 28) + 1).padStart(2, "0")}-${i}`), "2026-10-28", HOY)).toBe("Caben hasta 60 cierres.");
+    expect(objecionAlCierre([], HOY, HOY)).toBeNull();
+  });
+  it("agregar deja la lista en orden; si no se puede, no cambia nada", () => {
+    expect(conCierre(["2026-11-02"], "2026-10-28", HOY)).toEqual(["2026-10-28", "2026-11-02"]);
+    expect(conCierre(["2026-11-02"], "2026-11-02", HOY)).toEqual(["2026-11-02"]);
+    expect(conCierre(["2026-11-02"], "2026-10-01", HOY)).toEqual(["2026-11-02"]);
+  });
+  it("quitar saca solo ese día", () => {
+    expect(sinCierre(["2026-10-28", "2026-11-02"], "2026-10-28")).toEqual(["2026-11-02"]);
+    expect(sinCierre(["2026-11-02"], "2027-01-01")).toEqual(["2026-11-02"]);
+  });
+  it("lo que se manda a guardar es de hoy en adelante", () => {
+    expect(cierresVigentes(["2026-10-25", "2026-10-26", "2026-11-02"], HOY)).toEqual(["2026-10-26", "2026-11-02"]);
   });
 });

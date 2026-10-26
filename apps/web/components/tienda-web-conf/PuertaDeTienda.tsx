@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { Check, ChevronLeft, ChevronRight, GripVertical, Lock } from "lucide-react";
 import { estadoDeAtencion, semanaDeSerializada } from "@cayla-retail/shared/horario-de-tienda";
 import { useAhoraEnLima } from "@/components/tienda-web-conf/useAhoraEnLima";
+import { cierresDeSerializados } from "@/lib/horario-edicion-reglas";
 import { Anillo } from "@/components/ui/Anillo";
 import { Chip } from "@/components/ui/Chip";
 import { Interruptor } from "@/components/ui/campos";
@@ -76,7 +77,7 @@ export function PuertaDeTienda({
   const nombre = limpiarTexto(borrador.nombreWeb) ?? nombreCorto(sede.nombre);
   // «Abierta · cierra 9 p. m.»: con el horario que la base YA tiene (lo que el cliente ve hoy) y solo si la tienda se ve en la web.
   const ahora = useAhoraEnLima();
-  const atencion = ahora && guardado.mostrar ? estadoDeAtencion(semanaDeSerializada(guardado.dias), [], ahora) : null;
+  const atencion = ahora && guardado.mostrar ? estadoDeAtencion(semanaDeSerializada(guardado.dias), cierresDeSerializados(guardado.cierres).map((fecha) => ({ fecha })), ahora) : null;
 
   return (
     <div

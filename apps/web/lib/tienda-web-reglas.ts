@@ -5,7 +5,8 @@
 // El WhatsApp de una tienda es `ubicaciones.whatsapp_numero`, el mismo número del QR del club (ADR-0288): esta pestaña lo
 // guarda con la misma función que Tiendas y caja (`guardar_whatsapp_tienda`) y con la misma regla (`celularValido`).
 
-import { semanaDeSerializada, semanaDesdeFilas, semanaTieneHoras, serializarSemana, type SemanaDeTienda } from "@cayla-retail/shared/horario-de-tienda";
+import { cierresDesdeFilas, semanaDeSerializada, semanaDesdeFilas, semanaTieneHoras, serializarSemana, type SemanaDeTienda } from "@cayla-retail/shared/horario-de-tienda";
+import { serializarCierres } from "./horario-edicion-reglas";
 import { enlaceMapaValido, esRutaDeFotoDeTienda } from "@cayla-retail/shared/tienda-web-sede";
 import { celularValido } from "./club-reglas";
 import type { CampoDeGuia } from "./guia-campos";
@@ -30,6 +31,8 @@ export type SedeWeb = {
   fotoRuta: string | null;
   /** El horario por días (lunes a domingo); una semana sin ningún día abierto es «sin horario por días». `horario` es su texto corto. */
   dias: SemanaDeTienda;
+  /** Los días de hoy en adelante en que no abre aunque el horario diga que sí («AAAA-MM-DD», en orden). */
+  cierres: string[];
 };
 
 export type ParametrosTiendaWeb = { horasParaConfirmar: number; horasAvisoSinPagar: number; diasAvisoSinRecoger: number; quedanPocasDesde: number };
@@ -56,6 +59,7 @@ export function leerConfiguracionTiendaWeb(data: unknown): ConfiguracionTiendaWe
       mapaUrl: texto(s.mapa_url),
       fotoRuta: esRutaDeFotoDeTienda(s.foto_ruta, String(s.id)) ? s.foto_ruta : null,
       dias: semanaDesdeFilas(s.dias),
+      cierres: cierresDesdeFilas(s.cierres).map((c) => c.fecha),
     })),
     parametros: p
       ? {
@@ -74,9 +78,9 @@ export function leerConfiguracionTiendaWeb(data: unknown): ConfiguracionTiendaWe
 export const TOPES_SEDE = { nombreWeb: 40, direccion: 160, horario: 120 } as const;
 
 /** Lo que se escribe en las cajas de una tienda, tal cual (sin limpiar). */
-export type BorradorSede = { nombreWeb: string; whatsapp: string; direccion: string; horario: string; mapa: string; foto: string; dias: string };
+export type BorradorSede = { nombreWeb: string; whatsapp: string; direccion: string; horario: string; mapa: string; foto: string; dias: string; cierres: string };
 
-export const borradorDe = (s: Pick<SedeWeb, "nombreWeb" | "whatsapp" | "direccion" | "horario" | "mapaUrl" | "fotoRuta" | "dias">): BorradorSede => ({
+export const borradorDe = (s: Pick<SedeWeb, "nombreWeb" | "whatsapp" | "direccion" | "horario" | "mapaUrl" | "fotoRuta" | "dias" | "cierres">): BorradorSede => ({
   nombreWeb: s.nombreWeb ?? "",
   whatsapp: s.whatsapp ?? "",
   direccion: s.direccion ?? "",
@@ -84,6 +88,7 @@ export const borradorDe = (s: Pick<SedeWeb, "nombreWeb" | "whatsapp" | "direccio
   mapa: s.mapaUrl ?? "",
   foto: s.fotoRuta ?? "",
   dias: serializarSemana(s.dias),
+  cierres: serializarCierres(s.cierres),
 });
 
 /** Como lo guarda la base: sin espacios de más; vacío = sin dato. */
@@ -99,7 +104,7 @@ export function limpiarTexto(t: string): string | null {
 export function fusionarBorrador(actual: BorradorSede, baseAntes: BorradorSede, baseNueva: BorradorSede): BorradorSede {
   const tomar = (k: keyof BorradorSede) =>
     actual[k] === baseAntes[k] || limpiarTexto(actual[k]) === limpiarTexto(baseNueva[k]) ? baseNueva[k] : actual[k];
-  return { nombreWeb: tomar("nombreWeb"), whatsapp: tomar("whatsapp"), direccion: tomar("direccion"), horario: tomar("horario"), mapa: tomar("mapa"), foto: tomar("foto"), dias: tomar("dias") };
+  return { nombreWeb: tomar("nombreWeb"), whatsapp: tomar("whatsapp"), direccion: tomar("direccion"), horario: tomar("horario"), mapa: tomar("mapa"), foto: tomar("foto"), dias: tomar("dias"), cierres: tomar("cierres") };
 }
 
 /** ¿Tiene algún horario? Los días que se pintaron, o el texto que se escribió antes de que hubiera días. */

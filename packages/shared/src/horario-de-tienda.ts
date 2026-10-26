@@ -126,8 +126,36 @@ export function sumarDias(fecha: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Un día en que la tienda no abre por una razón puntual (feriado, inventario). */
-export type CierrePorFecha = { fecha: string; motivo?: string | null };
+/** Un día en que la tienda no abre por una razón puntual (feriado, inventario): su fecha, «AAAA-MM-DD». */
+export type CierrePorFecha = { fecha: string };
+
+/** ¿Es una fecha real «AAAA-MM-DD»? (el 30 de febrero no lo es). */
+export function fechaIsoValida(fecha: unknown): fecha is string {
+  if (typeof fecha !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return false;
+  const d = new Date(`${fecha}T12:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === fecha;
+}
+
+/** Lo más lejos que se puede avisar un cierre, y cuántos caben: los mismos topes de la base (`guardar_cierres_tienda_web`). */
+export const DIAS_MAXIMOS_DE_ANTICIPO = 730;
+export const MAXIMO_DE_CIERRES = 60;
+
+/** Las filas que manda la base (`[{fecha}]`) → las fechas, sin repetir y en orden. Lo mal formado se ignora: un dato raro no tumba la pantalla. */
+export function cierresDesdeFilas(filas: unknown): CierrePorFecha[] {
+  if (!Array.isArray(filas)) return [];
+  const fechas = filas.flatMap((f) => (typeof f === "object" && f !== null && fechaIsoValida((f as Record<string, unknown>).fecha) ? [(f as { fecha: string }).fecha] : []));
+  return [...new Set(fechas)].sort().map((fecha) => ({ fecha }));
+}
+
+/** Una fecha de cierre como se dice en voz alta: «Hoy», «Mañana» o «Mié 28 oct». */
+export function etiquetaDeCierre(fecha: string, hoy: string): string {
+  if (fecha === hoy) return "Hoy";
+  if (fecha === sumarDias(hoy, 1)) return "Mañana";
+  const d = new Date(`${fecha}T12:00:00Z`);
+  const dia = DIAS_CORTOS[(d.getUTCDay() + 6) % 7];
+  const mes = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][d.getUTCMonth()];
+  return `${dia} ${d.getUTCDate()} ${mes}`;
+}
 
 export type EstadoDeAtencion = {
   /** Abierta en este momento. */

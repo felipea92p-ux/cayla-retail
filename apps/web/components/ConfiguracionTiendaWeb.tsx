@@ -12,6 +12,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
+import { CierresDeTienda } from "@/components/tienda-web-conf/CierresDeTienda";
 import { HorarioSemanal } from "@/components/tienda-web-conf/HorarioSemanal";
 import { useAhoraEnLima } from "@/components/tienda-web-conf/useAhoraEnLima";
 import { filasDeSemana, resumenDeHorario, semanaDeSerializada, serializarSemana, type SemanaDeTienda } from "@cayla-retail/shared/horario-de-tienda";
@@ -21,6 +22,8 @@ import { CabeceraBloque, CampoFin, InputFin, Superficie } from "@/components/fin
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
 import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { cierresDeSerializados, cierresVigentes, serializarCierres } from "@/lib/horario-edicion-reglas";
+import { momentoEnLima } from "@cayla-retail/shared/horario-de-tienda";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { ajustarCelular, celularValido } from "@/lib/club-reglas";
@@ -185,7 +188,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     const base = bases[s.id];
     if (!b || !base) return false;
     const texto = (["nombreWeb", "direccion", "horario"] as const).some((k) => limpiarTexto(b[k]) !== limpiarTexto(base[k]));
-    return texto || b.whatsapp !== base.whatsapp || b.mapa.trim() !== base.mapa.trim() || b.foto !== base.foto || b.dias !== base.dias || (mostrar[s.id] ?? s.mostrar) !== s.mostrar;
+    return texto || b.whatsapp !== base.whatsapp || b.mapa.trim() !== base.mapa.trim() || b.foto !== base.foto || b.dias !== base.dias || b.cierres !== base.cierres || (mostrar[s.id] ?? s.mostrar) !== s.mostrar;
   };
 
   /** El botón «Guardar» de una tienda: valida todo antes de escribir nada, guarda el WhatsApp (su propia función, la del QR del club) y
@@ -262,6 +265,15 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
         hacer: () =>
           createClient().rpc("guardar_horario_tienda_web" as never, { p_ubicacion_id: s.id, p_dias: filasDeSemana(semana), p_resumen: resumen } as never),
         listo: resumen ? `${s.nombre}: horario guardado. ${resumen}.` : `${s.nombre}: sin horario por días.`,
+      });
+    }
+    // Los cierres también al final. Solo de hoy en adelante: una pantalla que se quedó abierta de ayer no manda un día pasado (la base lo rechazaría).
+    if (b.cierres !== base.cierres) {
+      const fechas = cierresVigentes(cierresDeSerializados(b.cierres), momentoEnLima().fecha);
+      pasos.push({
+        que: "guardar los cierres de la tienda",
+        hacer: () => createClient().rpc("guardar_cierres_tienda_web" as never, { p_ubicacion_id: s.id, p_fechas: fechas } as never),
+        listo: fechas.length ? `${s.nombre}: ${fechas.length === 1 ? "1 cierre guardado" : `${fechas.length} cierres guardados`}.` : `${s.nombre}: sin cierres por fecha.`,
       });
     }
     // Con varias cosas, un solo aviso que las junta; la tienda que se enciende o se apaga lo dice primero, porque es lo que el cliente nota.
@@ -541,10 +553,20 @@ function TallerDeTienda({
               valor={semanaDeSerializada(b.dias)}
               onCambio={(semana: SemanaDeTienda) => onEscribir("dias", serializarSemana(semana))}
               ahora={ahora}
+              cierreHoy={ahora !== null && cierresDeSerializados(b.cierres).includes(ahora.fecha)}
               deshabilitado={guardando}
             />
           </CampoFin>
         </CampoGuiado>
+
+        <CampoFin etiqueta="Cierres" ayuda="Opcional. Un día en que no abre aunque el horario diga que sí: un feriado, un inventario." guia="config.tienda-web-cierres">
+          <CierresDeTienda
+            valor={cierresDeSerializados(b.cierres)}
+            onCambio={(fechas) => onEscribir("cierres", serializarCierres(fechas))}
+            ahora={ahora}
+            deshabilitado={guardando}
+          />
+        </CampoFin>
 
         <div className="space-y-3 border-t border-sand pt-3">
           {faltan.length > 0 ? (

@@ -7,7 +7,7 @@
 //   ASUME:   minutos desde la medianoche (`@cayla-retail/shared/horario-de-tienda`).
 //   NO HACE: leer el DOM ni guardar.
 
-import { PASO_DE_HORA, semanaVacia, type SemanaDeTienda, type TramoDia } from "@cayla-retail/shared/horario-de-tienda";
+import { DIAS_MAXIMOS_DE_ANTICIPO, MAXIMO_DE_CIERRES, PASO_DE_HORA, fechaIsoValida, semanaVacia, sumarDias, type SemanaDeTienda, type TramoDia } from "@cayla-retail/shared/horario-de-tienda";
 
 /** Lo que se ve de la línea de horas: de 7 a. m. a 11 p. m. de fábrica; se ensancha solo si la base trae un horario que se sale. */
 export type RangoVisible = { desde: number; hasta: number };
@@ -90,3 +90,37 @@ export function conTecla(t: TramoDia, tecla: string, { mayus, alt }: { mayus: bo
   if (alt) return conAperturaEn(t, t.abre + paso, rango);
   return corridoPor(t, paso, rango);
 }
+
+// ---------------------------------------------------------------- Cierres por fecha
+
+/** Los cierres de un borrador de pantalla: un texto (JSON de fechas ordenadas) para que se compare y se fusione como cualquier otro campo. */
+export const serializarCierres = (fechas: readonly string[]): string => JSON.stringify([...new Set(fechas)].sort());
+
+/** Lo que dice un texto de cierres; lo que no es una lista de fechas reales se ignora (nunca tumba la pantalla). */
+export function cierresDeSerializados(texto: string): string[] {
+  try {
+    const v: unknown = JSON.parse(texto);
+    return Array.isArray(v) ? [...new Set(v.filter(fechaIsoValida))].sort() : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Por qué no se puede cerrar ese día (o `null` si se puede): ya pasó, está muy lejos, ya está, o no caben más. La base dice lo mismo. */
+export function objecionAlCierre(fechas: readonly string[], fecha: string, hoy: string): string | null {
+  if (!fechaIsoValida(fecha)) return "Esa no es una fecha.";
+  if (fecha < hoy) return "Ese día ya pasó.";
+  if (fecha > sumarDias(hoy, DIAS_MAXIMOS_DE_ANTICIPO)) return "Ese día está a más de dos años.";
+  if (fechas.includes(fecha)) return "Ese día ya está cerrado.";
+  if (fechas.length >= MAXIMO_DE_CIERRES) return `Caben hasta ${MAXIMO_DE_CIERRES} cierres.`;
+  return null;
+}
+
+/** Agregar un cierre (sin repetir, en orden); si no se puede, la lista queda igual. */
+export const conCierre = (fechas: readonly string[], fecha: string, hoy: string): string[] =>
+  objecionAlCierre(fechas, fecha, hoy) === null ? [...fechas, fecha].sort() : [...fechas];
+
+export const sinCierre = (fechas: readonly string[], fecha: string): string[] => fechas.filter((f) => f !== fecha);
+
+/** Lo que se manda a guardar: de hoy en adelante. Una pantalla que se quedó abierta de ayer no manda un día pasado (la base lo rechazaría). */
+export const cierresVigentes = (fechas: readonly string[], hoy: string): string[] => fechas.filter((f) => f >= hoy).sort();

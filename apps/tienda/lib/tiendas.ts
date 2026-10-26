@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { semanaDesdeFilas } from "@cayla-retail/shared/horario-de-tienda";
+import { cierresDesdeFilas, semanaDesdeFilas } from "@cayla-retail/shared/horario-de-tienda";
 import { enlaceMapaValido, urlDeFotoDeTienda } from "@cayla-retail/shared/tienda-web-sede";
 
 // Las tiendas que la web muestra (ADR-0408, actividad 6). Las arma la base en `retail.tienda_sedes()`: solo las que el ERP
@@ -23,6 +23,8 @@ const esquemaSede = z.object({
   // El horario por días que puso el ERP (`[{dia, abre, cierra}]`, minutos). Se lee sin tumbar nada: lo mal formado se ignora y sin días la tarjeta
   // se queda con el texto del horario, sin «Abierta ahora».
   dias: z.unknown().transform(semanaDesdeFilas),
+  // Los días de hoy en adelante en que no abre (feriado, inventario): «Cerrada hoy», y al decir cuándo abre se saltan.
+  cierres: z.unknown().transform(cierresDesdeFilas),
 });
 
 export type Sede = z.infer<typeof esquemaSede>;

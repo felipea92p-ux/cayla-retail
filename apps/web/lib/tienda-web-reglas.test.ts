@@ -38,6 +38,7 @@ const sede = (s: Partial<SedeWeb> = {}): SedeWeb => ({
   mapaUrl: null,
   fotoRuta: null,
   dias: semanaVacia(),
+  cierres: [],
   ...s,
 });
 const completa = { nombreWeb: "Trujillo", whatsapp: "987654321", direccion: "Jr. Pizarro 512" };
@@ -48,7 +49,7 @@ describe("leer lo que devuelve fn_configuracion_tienda_web", () => {
       sedes: [{ id: "u1", nombre: "Tienda TRU", nombre_web: "Trujillo", whatsapp: "987654321", direccion: " ", horario: null, mostrar: true }],
       parametros: { horas_para_confirmar: 24, horas_aviso_sin_pagar: 48, dias_aviso_sin_recoger: 7, quedan_pocas_desde: 3 },
     });
-    expect(c.sedes).toEqual([{ id: "u1", nombre: "Tienda TRU", nombreWeb: "Trujillo", whatsapp: "987654321", direccion: null, horario: null, mostrar: true, orden: null, mapaUrl: null, fotoRuta: null, dias: semanaVacia() }]);
+    expect(c.sedes).toEqual([{ id: "u1", nombre: "Tienda TRU", nombreWeb: "Trujillo", whatsapp: "987654321", direccion: null, horario: null, mostrar: true, orden: null, mapaUrl: null, fotoRuta: null, dias: semanaVacia(), cierres: [] }]);
     expect(c.parametros).toEqual({ horasParaConfirmar: 24, horasAvisoSinPagar: 48, diasAvisoSinRecoger: 7, quedanPocasDesde: 3 });
   });
   it("sin datos (o sin la migración) no se cae: sin tiendas y sin plazos", () => {
@@ -309,5 +310,22 @@ describe("el horario por días en la pantalla (maqueta de Conf. Tienda)", () => 
     expect(sin[0]?.hecho).toBe(false);
     expect(con[0]?.hecho).toBe(true);
     expect(con[0]?.sugerido).toBe(true);
+  });
+});
+
+describe("los cierres por fecha en la pantalla (maqueta de Conf. Tienda)", () => {
+  it("la base manda los cierres y la pantalla los lee en orden; un dato raro no la tumba", () => {
+    const r = leerConfiguracionTiendaWeb({ sedes: [{ id: "a", nombre: "x", cierres: [{ fecha: "2026-11-02" }, { fecha: "2026-10-28" }, { fecha: "2026-02-30" }, "x"] }] });
+    expect(r.sedes[0]?.cierres).toEqual(["2026-10-28", "2026-11-02"]);
+    expect(leerConfiguracionTiendaWeb({ sedes: [{ id: "a", nombre: "x" }] }).sedes[0]?.cierres).toEqual([]);
+  });
+  it("el borrador los guarda como texto y un refresco no pisa lo que se acaba de agregar", () => {
+    const con = sede({ cierres: ["2026-10-28"] });
+    expect(borradorDe(con).cierres).toBe('["2026-10-28"]');
+    expect(borradorDe(sede()).cierres).toBe("[]");
+    const base = borradorDe(sede());
+    const agregado = { ...base, cierres: '["2026-11-02"]' };
+    expect(fusionarBorrador(agregado, base, borradorDe(con)).cierres).toBe('["2026-11-02"]');
+    expect(fusionarBorrador(base, base, borradorDe(con)).cierres).toBe('["2026-10-28"]');
   });
 });

@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, MapPin, MessageCircle, Navigation } from "lucide-r
 import { estadoDeAtencion, resumenDeHorario, semanaDeSerializada } from "@cayla-retail/shared/horario-de-tienda";
 import { Fachada } from "@/components/tienda-web-conf/Fachada";
 import { useAhoraEnLima } from "@/components/tienda-web-conf/useAhoraEnLima";
+import { cierresDeSerializados } from "@/lib/horario-edicion-reglas";
 import { nombreCorto } from "@/lib/precio-sede-reglas";
 import { celularValido } from "@/lib/club-reglas";
 import { colorDeSede, errorDeMapa, limpiarTexto, type BorradorSede } from "@/lib/tienda-web-reglas";
@@ -19,7 +20,7 @@ export function TelefonoDeTienda({ nombreSede, borrador, enWeb, fotoUrl }: { nom
   const semana = semanaDeSerializada(borrador.dias);
   const horario = resumenDeHorario(semana) ?? limpiarTexto(borrador.horario);
   const ahora = useAhoraEnLima();
-  const atencion = ahora ? estadoDeAtencion(semana, [], ahora) : null;
+  const atencion = ahora ? estadoDeAtencion(semana, cierresDeSerializados(borrador.cierres).map((fecha) => ({ fecha })), ahora) : null;
   const conWhatsapp = celularValido(borrador.whatsapp);
   // «Cómo llegar» existe con el mapa pegado o, sin él, buscando la dirección (la tienda online lo hace así hoy).
   const conMapa = (borrador.mapa.trim() !== "" && errorDeMapa(borrador.mapa) === null) || direccion !== null;

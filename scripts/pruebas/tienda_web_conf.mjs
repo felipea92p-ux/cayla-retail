@@ -16,6 +16,9 @@
  *   ACTIVIDAD 5 · el horario por días: `guardar_horario_tienda_web` guarda los días y el texto corto en un solo paso, reemplaza lo anterior,
  *      rechaza todo lo que no sea una hora de media en media dentro del día (y no deja nada a medias), la tabla también lo exige, nadie la
  *      lee ni escribe directo, la web y el ERP traen los días, y solo el líder o quien tenga el módulo.
+ *   ACTIVIDAD 6 · los cierres por fecha: `guardar_cierres_tienda_web` deja exactamente las fechas que llegan de hoy en adelante (hora de Lima),
+ *      reemplaza lo anterior, no toca los días pasados, rechaza fechas que no existen, pasadas, repetidas o a más de dos años sin dejar nada a
+ *      medias, la tabla no repite un día ni se toca por fuera, la web y el ERP los traen, y solo el líder o quien tenga el módulo.
  *   La migración se puede pegar dos veces.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK y mete la migración DENTRO de ella: nunca se commitea nada en el Postgres
@@ -425,6 +428,103 @@ select pg_temp.intento('select retail.guardar_horario_tienda_web(gen_random_uuid
     const [taller, ajena, sinModulo, anonimo] = lineas(r);
     esperar("no guarda el horario del Taller ni de una tienda que no existe", (taller ?? "").includes("tienda abierta") && (ajena ?? "").includes("no existe"), r);
     esperar("una colaboradora sin el módulo no cambia el horario", (sinModulo ?? "").includes("necesita el módulo"), r);
+    esperar("un visitante anónimo tampoco", (anonimo ?? "").includes("permission denied"), r);
+  }
+
+  console.log("— Los cierres por fecha —");
+  const HOY = "(now() at time zone 'America/Lima')::date";
+  const dia = (n) => `(${HOY} + ${n})::text`;
+  const CIERRES = (t, ...offsets) => `select retail.guardar_cierres_tienda_web(:'${t}', jsonb_build_array(${offsets.map(dia).join(", ")})) as _c \\gset\n`;
+  const FECHAS_ERP = `select string_agg(c ->> 'fecha', ',' order by o) from jsonb_array_elements(s -> 'cierres') with ordinality as x (c, o);`;
+  const ERP_DE = (t) => `select string_agg(c ->> 'fecha', ',' order by o) from retail.fn_configuracion_tienda_web() r, jsonb_array_elements(r -> 'sedes') s, jsonb_array_elements(s -> 'cierres') with ordinality as x (c, o) where s ->> 'id' = :'${t}';`;
+  const WEB_DE = (t) => `select string_agg(c ->> 'fecha', ',' order by o) from jsonb_array_elements(retail.tienda_sedes() -> 'sedes') s, jsonb_array_elements(s -> 'cierres') with ordinality as x (c, o) where s ->> 'id' = :'${t}';`;
+  const ESPERADAS = (...offsets) => `select string_agg((${HOY} + n)::text, ',' order by n) from unnest(array[${offsets.join(",")}]) n;`;
+  void FECHAS_ERP;
+  {
+    const r = correr(`${ESCENA}${CIERRES("t1", 0, 3)}${ERP_DE("t1")}\n${WEB_DE("t1")}\n${ESPERADAS(0, 3)}`);
+    const [erp, web, esperadas] = lineas(r);
+    esperar("guarda hoy y dentro de 3 días: el ERP y la web los traen, en orden", r.ok && erp === esperadas && web === esperadas, r);
+  }
+  {
+    const r = correr(`${ESCENA}${CIERRES("t1", 3)}${CIERRES("t1", 5)}${ERP_DE("t1")}\n${ESPERADAS(5)}`);
+    const [erp, esperadas] = lineas(r);
+    esperar("guardar otra vez reemplaza los cierres de antes (no se acumulan)", r.ok && erp === esperadas, r);
+  }
+  {
+    const r = correr(`${ESCENA}${CIERRES("t1", 0, 3)}${CIERRES("t1")}
+select count(*) from retail.ubicacion_cierres_web where ubicacion_id = :'t1';
+select jsonb_array_length(s -> 'cierres') from jsonb_array_elements(retail.tienda_sedes() -> 'sedes') s where s ->> 'id' = :'t1';`);
+    const [filas, web] = lineas(r);
+    esperar("una lista vacía quita todos los cierres", filas === "0" && web === "0", r);
+  }
+  {
+    const r = correr(`${ESCENA}reset role;
+insert into retail.ubicacion_cierres_web (ubicacion_id, fecha) values (:'t1', ${HOY} - 5);
+${como(FELIPE)}${CIERRES("t1", 2)}${CIERRES("t1")}
+select count(*) from retail.ubicacion_cierres_web where ubicacion_id = :'t1' and fecha < ${HOY};
+${ERP_DE("t1")}`);
+    const [pasados, erp] = lineas(r);
+    esperar("los cierres de días que ya pasaron no se tocan, y ni el ERP ni la web los traen", pasados === "1" && (erp ?? "") === "", r);
+  }
+  {
+    const r = correr(`${ESCENA}${CIERRES("t1", 0, 3)}${CIERRES("t1", 3, 0)}${CIERRES("t2")}
+select count(*) from retail.configuracion_historial where que = 'tienda_web_cierres';
+select jsonb_array_length(detalle -> 'antes') || '|' || jsonb_array_length(detalle -> 'despues') || '|' || (hecho_por is not null) from retail.configuracion_historial where que = 'tienda_web_cierres';`);
+    const [anotados, detalle] = lineas(r);
+    esperar("solo se anota el cambio de verdad (el mismo orden de siempre o quitar lo que no hay, no)", anotados === "1" && detalle === "0|2|true", r);
+  }
+  {
+    const malos = [
+      [`jsonb_build_array((${HOY} - 1)::text)`, "un día que ya pasó", "ya pasó"],
+      [`jsonb_build_array((${HOY} + 731)::text)`, "una fecha a más de dos años", "dos años"],
+      [`jsonb_build_array('2026-02-30')`, "el 30 de febrero", "no existe"],
+      [`jsonb_build_array('2026-13-01')`, "el mes 13", "no existe"],
+      [`jsonb_build_array('28/10/2026')`, "una fecha con otro formato", "Cada cierre es una fecha"],
+      [`jsonb_build_array(20261028)`, "un número en vez de una fecha", "Cada cierre es una fecha"],
+      [`jsonb_build_array(null)`, "un vacío en la lista", "Cada cierre es una fecha"],
+      [`jsonb_build_array((${HOY} + 1)::text, (${HOY} + 1)::text)`, "la misma fecha dos veces", "repetida"],
+      [`(select jsonb_agg((${HOY} + n)::text) from generate_series(1, 61) n)`, "61 cierres", "hasta 60"],
+      [`'{"fecha": "2030-01-01"}'::jsonb`, "un objeto suelto en vez de una lista", "lista de fechas"],
+      [`'null'::jsonb`, "un null", "lista de fechas"],
+    ];
+    for (const [expr, que, frase] of malos) {
+      const r = correr(`${ESCENA}select pg_temp.intento(format('select retail.guardar_cierres_tienda_web(%L, %L::jsonb)', :'t1', (select ${expr}::text)));`);
+      esperar(`rechaza ${que}`, r.ok && r.salida.includes(frase), r);
+    }
+    const justo = correr(`${ESCENA}${CIERRES("t1", 730)}select count(*) from retail.ubicacion_cierres_web where ubicacion_id = :'t1';`);
+    esperar("acepta justo dos años", justo.ok && justo.salida === "1", justo);
+    const sesenta = correr(`${ESCENA}select retail.guardar_cierres_tienda_web(:'t1', (select jsonb_agg((${HOY} + n)::text) from generate_series(1, 60) n)) as _c \\gset
+select count(*) from retail.ubicacion_cierres_web where ubicacion_id = :'t1';`);
+    esperar("acepta 60 cierres", sesenta.ok && sesenta.salida === "60", sesenta);
+    const a_medias = correr(`${ESCENA}${CIERRES("t1", 1)}select pg_temp.intento(format('select retail.guardar_cierres_tienda_web(%L, %L::jsonb)', :'t1', jsonb_build_array((${HOY} + 4)::text, '2026-02-30')::text));
+${ERP_DE("t1")}
+${ESPERADAS(1)}`);
+    const [msg, erp, esperadas] = lineas(a_medias);
+    esperar("una lista con una fecha mala no deja nada a medias: lo de antes sigue", (msg ?? "").includes("no existe") && erp === esperadas, a_medias);
+  }
+  {
+    const r = correr(`${ESCENA}reset role;
+select pg_temp.intento(format('insert into retail.ubicacion_cierres_web values (%L, %L)', :'t1', ${HOY} + 1));
+select pg_temp.intento(format('insert into retail.ubicacion_cierres_web values (%L, %L)', :'t1', ${HOY} + 1));
+set local role authenticated;
+select pg_temp.intento('select count(*) from retail.ubicacion_cierres_web');
+select pg_temp.intento(format('insert into retail.ubicacion_cierres_web values (%L, %L)', :'t1', ${HOY} + 2));`);
+    const [primera, repetida, leer, escribir] = lineas(r);
+    esperar("la tabla no deja el mismo día dos veces por tienda, aunque se escriba por fuera (llave primaria)", primera === "SIN_ERROR" && (repetida ?? "").includes("duplicate key"), r);
+    esperar("nadie lee ni escribe la tabla directo, ni el líder: todo pasa por las funciones", (leer ?? "").includes("permission denied") && (escribir ?? "").includes("permission denied"), r);
+  }
+  {
+    const r = correr(`${ESCENA}
+select pg_temp.intento(format('select retail.guardar_cierres_tienda_web(%L, ''[]''::jsonb)', :'taller'));
+select pg_temp.intento(format('select retail.guardar_cierres_tienda_web(%L, ''[]''::jsonb)', gen_random_uuid()));
+${como(MICAELA)}
+select pg_temp.intento(format('select retail.guardar_cierres_tienda_web(%L, ''[]''::jsonb)', :'t1'));
+reset role;
+set local role anon;
+select pg_temp.intento('select retail.guardar_cierres_tienda_web(gen_random_uuid(), ''[]''::jsonb)');`);
+    const [taller, ajena, sinModulo, anonimo] = lineas(r);
+    esperar("no guarda cierres del Taller ni de una tienda que no existe", (taller ?? "").includes("tienda abierta") && (ajena ?? "").includes("no existe"), r);
+    esperar("una colaboradora sin el módulo no cambia los cierres", (sinModulo ?? "").includes("necesita el módulo"), r);
     esperar("un visitante anónimo tampoco", (anonimo ?? "").includes("permission denied"), r);
   }
 

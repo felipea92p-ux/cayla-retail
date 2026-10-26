@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { estadoDeAtencion, momentoEnLima, type SemanaDeTienda } from "@cayla-retail/shared/horario-de-tienda";
+import { estadoDeAtencion, momentoEnLima, type CierrePorFecha, type SemanaDeTienda } from "@cayla-retail/shared/horario-de-tienda";
 
 // «Abierta · cierra 9 p. m.» / «Cerrada · abre mañana 10 a. m.» en la tarjeta de cada tienda (ADR-0518). Se calcula en el NAVEGADOR, con la hora de
 // Lima: «Nuestras tiendas» sale armada de antemano (cache components) y un «Abierta» escrito en el servidor seguiría diciéndose horas después de
@@ -13,9 +13,9 @@ const suscribir = (avisar: () => void) => {
   return () => clearInterval(id);
 };
 
-export function EstadoDeTienda({ dias }: { dias: SemanaDeTienda }) {
+export function EstadoDeTienda({ dias, cierres }: { dias: SemanaDeTienda; cierres: CierrePorFecha[] }) {
   const minuto = useSyncExternalStore(suscribir, unaVezPorMinuto, () => 0);
-  const estado = minuto === 0 ? null : estadoDeAtencion(dias, [], momentoEnLima(new Date(minuto * 60_000)));
+  const estado = minuto === 0 ? null : estadoDeAtencion(dias, cierres, momentoEnLima(new Date(minuto * 60_000)));
   if (!estado) return null;
   return (
     <p className="ay-tienda-estado" data-abierta={estado.abierta ? "" : undefined} role="status">

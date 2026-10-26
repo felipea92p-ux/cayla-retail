@@ -17,6 +17,9 @@
 --      `guardar_horario_tienda_web(uuid, jsonb, text)`: guarda los días y, en el mismo paso, el texto corto («Lun–Sáb 10 a. m.–9 p. m.») en
 --      `ubicacion_datos_web.horario`, para que lo que ya lee la web y cualquier función vieja siga viendo un horario. La web, con los días,
 --      dice «Abierta · cierra 9 p. m.»; sin ellos, sigue mostrando solo el texto.
+--   ACTIVIDAD 6 · CIERRES POR FECHA. `retail.ubicacion_cierres_web` (una fila por tienda y fecha en que no abre: feriado, inventario) y
+--      `guardar_cierres_tienda_web(uuid, jsonb)`: reemplaza los cierres que vienen de hoy en adelante (hora de Lima) por la lista que llega. La
+--      web dice «Cerrada hoy» y, al decir cuándo vuelve a abrir, salta esos días. Los cierres de días ya pasados se quedan (no estorban).
 --
 -- LECTURAS. `fn_configuracion_tienda_web()` (el ERP) y `tienda_sedes()` (la web) se reescriben UNA vez, al final, con todo lo nuevo.
 --   Solo AGREGAN claves al JSON: ninguna que ya leyera una pantalla o una función cambia de nombre ni de forma.
@@ -387,6 +390,110 @@ comment on function retail.guardar_horario_tienda_web(uuid, jsonb, text) is
 revoke all on function retail.guardar_horario_tienda_web(uuid, jsonb, text) from public, anon;
 grant execute on function retail.guardar_horario_tienda_web(uuid, jsonb, text) to authenticated;
 
+-- ============================== ACTIVIDAD 6 · los cierres por fecha ==============================
+
+create table if not exists retail.ubicacion_cierres_web (
+  ubicacion_id uuid not null references retail.ubicaciones (id),
+  fecha date not null,
+  primary key (ubicacion_id, fecha)
+);
+
+comment on table retail.ubicacion_cierres_web is
+  'Tienda web ▸ Conf. Tienda (ADR-0518): los días en que una tienda NO abre aunque su horario diga que sí (feriado, inventario). Una fila por tienda y fecha. Solo por guardar_cierres_tienda_web.';
+
+alter table retail.ubicacion_cierres_web enable row level security;
+revoke all on retail.ubicacion_cierres_web from public, anon, authenticated;
+
+-- PROMETE: deja como cierres de una tienda abierta, de HOY en adelante (hora de Lima), exactamente las fechas que llegan (`["2026-10-28", …]`;
+--   `[]` los quita todos). Cada fecha es real, de hoy a dos años, sin repetir, y caben hasta 60. Los cierres de días que ya pasaron no se tocan. Si
+--   nada cambió, no escribe ni anota.
+create or replace function retail.guardar_cierres_tienda_web(p_ubicacion_id uuid, p_fechas jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_actor uuid;
+  v_tipo text;
+  v_activo boolean;
+  v_hoy date := (now() at time zone 'America/Lima')::date;
+  v_texto text;
+  v_fecha date;
+  v_nuevas date[] := '{}';
+  v_antes date[];
+begin
+  if not retail.fn_puede_ajustes_tienda_web() then
+    raise exception 'Cambiar los cierres de la tienda web necesita el módulo «Datos y plazos de la tienda web» en tu rol.' using errcode = 'P0001';
+  end if;
+  v_actor := retail.fn_actor_persona_id(true);
+
+  select u.tipo, u.activo into v_tipo, v_activo from retail.ubicaciones u where u.id = p_ubicacion_id;
+  if not found then
+    raise exception 'Esa tienda no existe.' using errcode = 'P0001';
+  end if;
+  if v_tipo is distinct from 'tienda' or not v_activo then
+    raise exception 'Solo una tienda abierta aparece en la web.' using errcode = 'P0001';
+  end if;
+  if p_fechas is null or jsonb_typeof(p_fechas) <> 'array' then
+    raise exception 'Los cierres tienen que ser una lista de fechas.' using errcode = 'P0001', hint = 'cierres_invalidos';
+  end if;
+  if jsonb_array_length(p_fechas) > 60 then
+    raise exception 'Caben hasta 60 cierres por tienda.' using errcode = 'P0001', hint = 'cierres_demasiados';
+  end if;
+
+  for v_texto in
+    select case when jsonb_typeof(e) = 'string' then e #>> '{}' end from jsonb_array_elements(p_fechas) e
+  loop
+    if v_texto is null or v_texto !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then
+      raise exception 'Cada cierre es una fecha (día, mes y año).' using errcode = 'P0001', hint = 'cierres_invalidos';
+    end if;
+    begin
+      v_fecha := v_texto::date;
+    exception when others then
+      raise exception 'Esa fecha no existe: %.', v_texto using errcode = 'P0001', hint = 'cierres_invalidos';
+    end;
+    if v_fecha::text <> v_texto then
+      raise exception 'Esa fecha no existe: %.', v_texto using errcode = 'P0001', hint = 'cierres_invalidos';
+    end if;
+    if v_fecha < v_hoy then
+      raise exception 'Un cierre no puede ser de un día que ya pasó (%).', v_texto using errcode = 'P0001', hint = 'cierres_invalidos';
+    end if;
+    if v_fecha > v_hoy + 730 then
+      raise exception 'Un cierre no puede estar a más de dos años (%).', v_texto using errcode = 'P0001', hint = 'cierres_invalidos';
+    end if;
+    if v_fecha = any (v_nuevas) then
+      raise exception 'La fecha % está repetida.', v_texto using errcode = 'P0001', hint = 'cierres_invalidos';
+    end if;
+    v_nuevas := v_nuevas || v_fecha;
+  end loop;
+
+  -- Dos personas guardando los cierres de la misma tienda se turnan: la segunda compara contra lo que dejó la primera.
+  perform pg_advisory_xact_lock(hashtext('tienda_web_cierres:' || p_ubicacion_id::text));
+
+  select coalesce(array_agg(c.fecha order by c.fecha), '{}') into v_antes
+    from retail.ubicacion_cierres_web c where c.ubicacion_id = p_ubicacion_id and c.fecha >= v_hoy;
+  select coalesce(array_agg(f order by f), '{}') into v_nuevas from unnest(v_nuevas) f;
+  if v_antes = v_nuevas then
+    return;
+  end if;
+
+  delete from retail.ubicacion_cierres_web where ubicacion_id = p_ubicacion_id and fecha >= v_hoy;
+  insert into retail.ubicacion_cierres_web (ubicacion_id, fecha) select p_ubicacion_id, f from unnest(v_nuevas) f;
+
+  insert into retail.configuracion_historial (que, detalle, hecho_por)
+  values ('tienda_web_cierres',
+          jsonb_build_object('ubicacion_id', p_ubicacion_id, 'antes', to_jsonb(v_antes), 'despues', to_jsonb(v_nuevas)),
+          v_actor);
+end
+$$;
+
+comment on function retail.guardar_cierres_tienda_web(uuid, jsonb) is
+  'Tienda web ▸ Conf. Tienda (ADR-0518): los días de hoy en adelante (hora de Lima) en que una tienda abierta no abre (`["2026-10-28", …]`; `[]` los quita). Líder o módulo «Datos y plazos de la tienda web»; firma el responsable; deja rastro.';
+
+revoke all on function retail.guardar_cierres_tienda_web(uuid, jsonb) from public, anon;
+grant execute on function retail.guardar_cierres_tienda_web(uuid, jsonb) to authenticated;
+
 -- ============================== LAS LECTURAS (se reescriben una vez, con todo lo nuevo) ==============================
 
 -- El ERP lee: cada tienda abierta, en el orden de la web, con lo que la pantalla muestra. Mismo permiso que antes.
@@ -414,7 +521,8 @@ begin
           'orden', w.orden,
           'mapa_url', w.mapa_url,
           'foto_ruta', w.foto_ruta,
-          'dias', coalesce((select jsonb_agg(jsonb_build_object('dia', h.dia, 'abre', h.abre, 'cierra', h.cierra) order by h.dia) from retail.ubicacion_horario_web h where h.ubicacion_id = u.id), '[]'::jsonb))
+          'dias', coalesce((select jsonb_agg(jsonb_build_object('dia', h.dia, 'abre', h.abre, 'cierra', h.cierra) order by h.dia) from retail.ubicacion_horario_web h where h.ubicacion_id = u.id), '[]'::jsonb),
+          'cierres', coalesce((select jsonb_agg(jsonb_build_object('fecha', c.fecha) order by c.fecha) from retail.ubicacion_cierres_web c where c.ubicacion_id = u.id and c.fecha >= (now() at time zone 'America/Lima')::date), '[]'::jsonb))
         order by coalesce(w.orden, 2147483647), u.nombre, u.id)
       from retail.ubicaciones u
       left join retail.ubicacion_datos_web w on w.ubicacion_id = u.id
@@ -447,7 +555,8 @@ as $$
       'whatsapp', u.whatsapp_numero,
       'mapa', w.mapa_url,
       'foto', w.foto_ruta,
-      'dias', coalesce((select jsonb_agg(jsonb_build_object('dia', h.dia, 'abre', h.abre, 'cierra', h.cierra) order by h.dia) from retail.ubicacion_horario_web h where h.ubicacion_id = u.id), '[]'::jsonb))
+      'dias', coalesce((select jsonb_agg(jsonb_build_object('dia', h.dia, 'abre', h.abre, 'cierra', h.cierra) order by h.dia) from retail.ubicacion_horario_web h where h.ubicacion_id = u.id), '[]'::jsonb),
+      'cierres', coalesce((select jsonb_agg(jsonb_build_object('fecha', c.fecha) order by c.fecha) from retail.ubicacion_cierres_web c where c.ubicacion_id = u.id and c.fecha >= (now() at time zone 'America/Lima')::date), '[]'::jsonb))
     order by coalesce(w.orden, 2147483647), lower(w.nombre_web), u.id), '[]'::jsonb))
   from retail.ubicacion_datos_web w
   join retail.ubicaciones u on u.id = w.ubicacion_id
