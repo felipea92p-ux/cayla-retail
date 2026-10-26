@@ -289,6 +289,11 @@ export const PRUEBAS = [
   // precio propio, campaña del modelo y de la categoría, «Todas»), ofrecen las mismas tallas (ninguna a S/ 0) y romper la pieza común
   // las cambia a todas juntas. ROLLBACK.
   "pruebas:tienda-ficha",
+  // Qué hay por COLOR y TALLA en la tienda (ADR-0512, actividad 1): `tienda_filtros` dice qué variantes (prenda, color, talla) se pueden
+  // separar en la tienda elegida o, con «Todas», en alguna de la web, con LA regla de «hay» (fn_tienda_disponible) y lo que la tienda
+  // ofrece (fn_tienda_precios); coincide con el catálogo, baja al vender o apartar, no cuenta lo retirado, lo de S/ 0, lo no publicado,
+  // el Taller ni lo escondido, NUNCA deja salir una cifra y es solo de tienda_web; con 10 mutantes. ROLLBACK.
+  "pruebas:tienda-filtros",
   // Las insignias en la ficha de la tienda (ADR-0489): la ficha trae las de Catálogo ▸ Insignias que alcanzan al modelo (a mano en una variante
   // que se ofrece o por su categoría), activas, aprobadas, vigentes hoy y de su tienda, por grupo y nombre; una insignia CON descuento no sale
   // aparte (su descuento es el chip de la campaña: con varias, la de mayor %); la función de adentro es interna y `tienda_web` solo llama a la
