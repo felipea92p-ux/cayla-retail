@@ -128,3 +128,16 @@ orden, con su texto exacto, por el MCP de Supabase (`apply_migration`). Después
 no la ejecuta nadie, y las otras dos, solo `authenticated`; «Lo que le compré» entera tarda 182 ms. Falta refrescar el volcado del diccionario
 (`docs/datos/generado/COMO-REFRESCAR.md`).
 
+
+## Actualización 2026-10-26 (b): dos líneas sobre la lista
+
+**El problema (Felipe, con su captura a 2000 px):** entre la cabecera y el primer proveedor había siete franjas: las pestañas, las dos tarjetas grandes de «Prendas» y «Costo», el buscador, dos filas de píldoras de rubro, «Sin datos de pago» y la fila de ritmo. El primer proveedor quedaba en el borde de abajo. Sus palabras: los filtros «ocupan mucho espacio» y las dos tarjetas habría que achicarlas, «pero sobre todo ubicarlos mejor».
+
+**Lo que cambió (solo cómo se ve, no qué hace):**
+1. **Primera línea:** las pestañas Mercadería / Servicios a la izquierda y, a la derecha, «Ordenar por» con un segmento de modo (`SegmentoDeslizante forma="modo"`, la pieza decidida para «lo mismo de otra forma»). Cada opción lleva su ícono, su nombre y su total: «Prendas 2,885» y «Costo ≈ S/ 85,602». Lo que quiere decir la cifra elegida va en letra chica al lado («lo que te llegó, sin IGV · aproximado: el 99 % vino por la carga inicial»). Antes eran dos tarjetas de opción de 19,5 rem cada una.
+2. **Segunda línea:** el buscador y los tres filtros como `DesplegablePildora`, la pieza decidida para «filtro que se abre» (ADR-0358): **Rubro**, **Ritmo** y **Datos de pago**. Cada opción lleva su cuenta adentro. Si hay alguno puesto, aparece «Limpiar filtros» (`BotonLimpiar`). Antes eran tres filas de píldoras sueltas.
+3. **Las anclas de la guía** (`proveedores.medida`, `.rubros`, `.ritmo`, `.sin-pago`) quedaron en las piezas nuevas; los textos de esos pasos ahora dicen «ábrelo», y la huella se aceptó después de mirar la pantalla.
+
+**Lo que se pierde a cambio:** las cuentas por ritmo (Repón 9, Frena compras 5…) ya no se leen sin abrir «Ritmo». La columna «Lo que no se ve a simple vista» sigue avisando lo urgente de cada grupo.
+
+**Cómo se verificó:** en el navegador local a 1440 px y 1920 px en oscuro y a 375 px en claro (sin desborde horizontal); elegir un ritmo filtra la lista y «Limpiar filtros» la devuelve. En local los proveedores no tienen rubro, así que la píldora «Rubro» no se vio con datos.

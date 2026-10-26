@@ -563,7 +563,7 @@ export const GUIA_PROVEEDORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Prendas o plata",
-      texto: "Ordena el ranking por las prendas que te llegaron de cada uno o por lo que te costaron, sin IGV (lo facturado y lo que debes van aparte). Al cambiar, cada proveedor dice cuántos puestos subió o bajó. Con «≈» es aproximado: vino por la carga inicial.",
+      texto: "«Ordenar por» elige si el ranking va por las prendas que te llegaron de cada uno o por lo que te costaron, sin IGV (lo facturado y lo que debes van aparte). Cada opción trae el total de todos. Al cambiar, cada proveedor dice cuántos puestos subió o bajó. Con «≈» es aproximado: vino por la carga inicial.",
     },
     {
       id: "buscador",
@@ -578,7 +578,7 @@ export const GUIA_PROVEEDORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "proveedores.buscador" }],
       titulo: "Por rubro",
-      texto: "Deja solo a los que venden un tipo de cosa: prendas, telas, accesorios…",
+      texto: "Ábrelo para dejar solo a los que venden un tipo de cosa: polos, blusas, jeans… Cada rubro dice cuántos proveedores tiene.",
     },
     {
       id: "sin-pago",
@@ -586,7 +586,7 @@ export const GUIA_PROVEEDORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "proveedores.buscador" }],
       titulo: "Sin datos de pago",
-      texto: "Los proveedores a los que les falta su cuenta, CCI o Yape. Tócalo para verlos y completa sus datos antes del próximo pago.",
+      texto: "Ábrelo y elige «Sin datos de pago» para ver a los que les falta su cuenta, CCI o Yape, y completa sus datos antes del próximo pago.",
     },
     {
       id: "ritmo",
@@ -594,7 +594,7 @@ export const GUIA_PROVEEDORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "proveedores.buscador" }],
       titulo: "Por cómo se vende",
-      texto: "Repón: lo que le queda se acaba en 6 semanas o menos. A su ritmo: entre 6 y 16. Frena compras: tardaría 16 o más. Tócalo para ver solo a esos, o a los que tienen deuda vencida.",
+      texto: "Ábrelo para ver solo a un grupo. Repón: lo que le queda se acaba en 6 semanas o menos. A su ritmo: entre 6 y 16. Frena compras: tardaría 16 o más. También, los que tienen deuda vencida. Cada opción dice cuántos son.",
     },
     {
       id: "lista",

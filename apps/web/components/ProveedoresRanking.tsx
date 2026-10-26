@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowUp, Banknote, Check, ChevronRight, Shirt } from "lucide-react";
+import { ArrowDown, ArrowUp, Banknote, ChevronRight, Shirt } from "lucide-react";
 import type { Proveedor } from "@/lib/proveedores";
 import { soles } from "@/lib/compras-reglas";
 import { solesRedondo } from "@/lib/gastos-reglas";
 import { RITMOS, DIAS_DE_VENTAS, FILAS_A_LA_VISTA, MAX_COMPARAR, cambioDePuesto, semanasCortas, esAproximado, semanaDeVentas, textoRitmo, type FilaRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
 import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { Tabla, Encabezado, fila, celda, type Columna } from "@/components/ui/Tabla";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Anillo } from "@/components/ui/Anillo";
 import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Casilla } from "@/components/ui/Casilla";
@@ -50,45 +51,41 @@ const SIN_VENTAS: number[] = Array.from({ length: DIAS_DE_VENTAS }, () => 0);
 const ICONO_MEDIDA = { prendas: Shirt, soles: Banknote } as const;
 
 /**
- * Las dos medidas como dos tarjetas de opción: el ícono, el nombre, el total de todos y qué quiere decir. Ordenan el ranking. Se llaman por lo que
- * cuentan (Formidable 2026-10-26): lo que te LLEGÓ, al costo de la prenda y sin IGV. «Dinero gastado» se leía como la plata que salió, y se
- * confundía con lo facturado (con IGV, haya llegado o no) y con lo que se debe.
+ * Las dos medidas, en una sola línea (Felipe 2026-10-26: las dos tarjetas grandes tapaban la lista): «Ordenar por» y un segmento con el ícono,
+ * el nombre y el total de cada una, y al lado lo que esa cifra quiere decir. Ordenan el ranking. Se llaman por lo que cuentan (Formidable
+ * 2026-10-26): lo que te LLEGÓ, al costo de la prenda y sin IGV. «Dinero gastado» se leía como la plata que salió, y se confundía con lo
+ * facturado (con IGV, haya llegado o no) y con lo que se debe.
  */
 export function MedidaDelRanking({ medida, onMedida, prendas, gasto, cargaPct, proveedores }: { medida: MedidaRanking; onMedida: (m: MedidaRanking) => void; prendas: number; gasto: number; cargaPct: number; proveedores: number }) {
+  const aproximado = cargaPct >= 50;
   const opciones = [
-    { m: "prendas" as const, titulo: "Prendas que te llegaron", valor: prendas.toLocaleString("es-PE"), nota: `de ${proveedores} ${proveedores === 1 ? "proveedor" : "proveedores"}` },
-    { m: "soles" as const, titulo: "Lo que te llegó, a su costo", valor: `${cargaPct >= 50 ? "≈ " : ""}${solesRedondo(gasto)}`, nota: cargaPct >= 50 ? `sin IGV · aproximado: el ${Math.round(cargaPct)} % vino por la carga inicial` : "sin IGV, al costo de cada compra" },
+    { m: "prendas" as const, texto: "Prendas", valor: prendas.toLocaleString("es-PE"), nota: `te llegaron de ${proveedores} ${proveedores === 1 ? "proveedor" : "proveedores"}` },
+    { m: "soles" as const, texto: "Costo", valor: `${aproximado ? "≈ " : ""}${solesRedondo(gasto)}`, nota: aproximado ? `lo que te llegó, sin IGV · aproximado: el ${Math.round(cargaPct)} % vino por la carga inicial` : "lo que te llegó, sin IGV, al costo de cada compra" },
   ];
+  const elegida = opciones.find((o) => o.m === medida) ?? opciones[0]!;
   return (
-    <div role="radiogroup" aria-label="Ordenar el ranking por" data-guia="proveedores.medida" className="grid grid-cols-2 gap-2.5 sm:inline-grid sm:grid-cols-[repeat(2,minmax(0,19.5rem))]">
-      {opciones.map((o) => {
-        const Icono = ICONO_MEDIDA[o.m];
-        const on = medida === o.m;
-        return (
-          <button
-            key={o.m}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            onClick={() => onMedida(o.m)}
-            className={`group/medida grid grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-3 rounded-xl border-[1.5px] px-3.5 py-3 text-left transition-[border-color,box-shadow] duration-300 ease-cayla sm:grid-cols-[2.75rem_minmax(0,1fr)_1.25rem] ${
-              on ? "border-tinta bg-papel shadow-[0_10px_24px_-18px_color-mix(in_srgb,var(--color-sombra)_60%,transparent)]" : "border-sand bg-papel hover:border-taupe"
-            }`}
-          >
-            <span className={`grid h-9 w-9 place-items-center rounded-[10px] transition-colors duration-300 ease-cayla sm:h-11 sm:w-11 sm:rounded-xl ${on ? "bg-tinta text-crema" : "bg-hueso text-tinta"}`}>
-              <Icono aria-hidden className="h-5 w-5" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[13.5px] font-semibold text-tinta">{o.titulo}</span>
-              <span className="font-display block whitespace-nowrap text-[22px] leading-tight text-tinta tabular-nums sm:text-[26px]">{o.valor}</span>
-              <span className="block text-xs leading-snug text-tinta/65">{o.nota}</span>
-            </span>
-            <span aria-hidden className={`hidden h-5 w-5 place-items-center self-start rounded-full border-[1.5px] transition-colors duration-300 ease-cayla sm:grid ${on ? "border-tinta bg-tinta text-crema" : "border-sand"}`}>
-              {on && <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="check-trazo h-3 w-3" strokeWidth={3} />}
-            </span>
-          </button>
-        );
-      })}
+    <div data-guia="proveedores.medida" className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+      <span className="label-cayla text-[11px] text-tinta/65">Ordenar por</span>
+      <SegmentoDeslizante
+        forma="modo"
+        etiqueta="Ordenar el ranking por"
+        valor={medida}
+        onCambio={(c) => onMedida(c as MedidaRanking)}
+        opciones={opciones.map((o) => {
+          const Icono = ICONO_MEDIDA[o.m];
+          return {
+            clave: o.m,
+            icono: <Icono aria-hidden className="h-4 w-4" />,
+            etiqueta: (
+              <span className="whitespace-nowrap">
+                {o.texto} <b className="font-semibold tabular-nums">{o.valor}</b>
+              </span>
+            ),
+            ayuda: `${o.valor} · ${o.nota}`,
+          };
+        })}
+      />
+      <span className="min-w-0 text-xs text-tinta/65">{elegida.nota}</span>
     </div>
   );
 }
