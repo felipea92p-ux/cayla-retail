@@ -9,6 +9,7 @@ import {
   RPC_CERRAR_CONTEO,
   RPC_CONTEOS_ENVIO,
   RPC_CORREGIR_GUIA,
+  RPC_PRECIO_RECEPCION,
   RPC_GUARDAR_CONTEO,
   RPC_PONER_PROVEEDOR,
   RPC_REABRIR_ENVIO,
@@ -56,6 +57,23 @@ export async function cerrarConteo(
 ): Promise<{ resultado: ResultadoRecepcion | null; error: ErrorDeBase }> {
   const { data, error } = (await firmar(createClient().rpc(RPC_CERRAR_CONTEO as never, args as never), firma)) as Respuesta;
   return { resultado: error ? null : leerResultadoRecepcion(data), error: error ?? null };
+}
+
+/** Cambia el precio de venta de una prenda de este envío: de todas las sedes o solo de la sede que recibe. Rige hacia adelante; lo vendido no se toca. */
+export async function cambiarPrecioEnRecepcion(
+  args: { p_despacho_id: string; p_producto_id: string; p_precio: number; p_alcance: "todas" | "sede" },
+  firma: Firma | null,
+): Promise<{ error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_PRECIO_RECEPCION as never, args as never), firma)) as Respuesta;
+  return { error: error ?? null };
+}
+
+/** El precio de venta de una prenda hoy (el de sus tallas activas, de menor a mayor), para mostrarlo junto al campo. Sin costo: esa columna es de otro permiso. */
+export async function leerPrecioDePrenda(productoId: string): Promise<{ desde: number; hasta: number } | null> {
+  const { data, error } = await createClient().from("variantes").select("precio").eq("producto_id", productoId).eq("activo", true);
+  if (error || !data || data.length === 0) return null;
+  const precios = data.map((v) => Number((v as { precio: number | string }).precio)).filter((n) => Number.isFinite(n));
+  return precios.length > 0 ? { desde: Math.min(...precios), hasta: Math.max(...precios) } : null;
 }
 
 /** «Hacer ahora»: termina un pendiente o separa lo que quedó sin separar. */
