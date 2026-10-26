@@ -54,3 +54,48 @@ export function TicketsSinCobrarModal({ tickets, onSeguir, onClose }: { tickets:
     </Modal>
   );
 }
+
+/** Antes de tirar un ticket que espera (el basurero de la vista «En espera»): no se puede deshacer, así que se pregunta. */
+export function DescartarTicketModal({
+  nombre,
+  prendas,
+  total,
+  onDescartar,
+  onClose,
+}: {
+  nombre: string;
+  prendas: number;
+  total: number;
+  onDescartar: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      titulo="Descartar este ticket"
+      subtitulo={`${nombre} · ${prendas} ${prendas === 1 ? "prenda" : "prendas"} · S/${total.toFixed(2)}`}
+      variante="hoja"
+      onClose={onClose}
+    >
+      {(cerrar) => (
+        <>
+          <p className="text-sm text-tinta/70">Se pierden las prendas y todo lo que ya se había anotado para este cliente. No se puede deshacer.</p>
+          <PieAcciones className="mt-5">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
+              Cancelar
+            </Boton>
+            <Boton
+              type="button"
+              peso="peligro"
+              onClick={() => {
+                onDescartar();
+                cerrar();
+              }}
+            >
+              Descartar ticket
+            </Boton>
+          </PieAcciones>
+        </>
+      )}
+    </Modal>
+  );
+}
