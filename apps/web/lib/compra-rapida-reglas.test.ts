@@ -11,6 +11,8 @@ import {
   nuevoVacio,
   opcionesCategoriaNueva,
   opcionesMarcaNueva,
+  chipsDeLoHabitual,
+  TOPE_CHIPS_NUEVA,
   PROVEEDORES_POR_TANDA,
   tandaDeLista,
   habitualParecido,
@@ -238,6 +240,24 @@ describe("algo nuevo de este proveedor", () => {
       ["jeans", undefined],
       ["nueva", undefined],
     ]);
+  });
+  it("los chips son solo lo habitual del proveedor, hasta 4; lo elegido en «Otra…» queda aparte", () => {
+    const todas = [..."abcdefgh"].map((id) => ({ id, nombre: id.toUpperCase() }));
+    expect(TOPE_CHIPS_NUEVA).toBe(4);
+    // Con pocas habituales, todas; nada elegido, nada «fuera».
+    expect(chipsDeLoHabitual(todas, ["b", "d"], null)).toEqual({ chips: [todas[1], todas[3]], fuera: "" });
+    // Elegida una de los chips: sigue siendo chip, «Otra…» no la toma.
+    expect(chipsDeLoHabitual(todas, ["b", "d"], "d").fuera).toBe("");
+    // Elegida una de la lista completa: «Otra…» la muestra.
+    expect(chipsDeLoHabitual(todas, ["b", "d"], "g").fuera).toBe("g");
+    // Con más de 4 habituales, solo 4 chips; la quinta, si se elige, también es «fuera» (se ve en «Otra…», no se pierde).
+    const seis = chipsDeLoHabitual(todas, ["a", "b", "c", "d", "e", "f"], "e");
+    expect(seis.chips.map((c) => c.id)).toEqual(["a", "b", "c", "d"]);
+    expect(seis.fuera).toBe("e");
+    // Un habitual que ya no está en la lista (una categoría borrada) no rompe nada.
+    expect(chipsDeLoHabitual(todas, ["zz", "a"], null).chips).toEqual([todas[0]]);
+    // Proveedor nuevo, sin historial: ningún chip.
+    expect(chipsDeLoHabitual(todas, [], "c")).toEqual({ chips: [], fuera: "c" });
   });
   it("el nombre: de 3 a 80 letras, sin contar los espacios de más", () => {
     expect(faltaNombreNuevo("")).toBe("Escribe el nombre de la prenda");

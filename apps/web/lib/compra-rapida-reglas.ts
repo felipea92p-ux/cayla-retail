@@ -517,6 +517,28 @@ export function opcionesCategoriaNueva(categorias: readonly CategoriaParaComprar
   return enDosGrupos(categorias, (c) => suyas.has(c.id), ["Ya le compras", "Otras"]);
 }
 
+/** Cuántos chips caben a la vista antes de «Otra…» (Felipe 2026-10-26: «con muchas categorías o marcas la hoja se alargaría»). */
+export const TOPE_CHIPS_NUEVA = 4;
+
+/**
+ * «¿Qué es?» y «¿De qué marca?» de una prenda nueva (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-26): como chips solo lo
+ * HABITUAL de este proveedor (hasta `tope`), y «Otra…» abre la lista completa con buscador. Un proveedor sin nada habitual no tiene
+ * chips: elige de la lista, con un campo que se llama «Elige una categoría» / «Elige una marca» (no «Otra…», que sin chips al lado no
+ * diría de qué es otra). `fuera`: lo elegido que no está entre los chips (vino de «Otra…»): es lo que muestra ese control.
+ */
+export function chipsDeLoHabitual<T extends { id: string }>(
+  todas: readonly T[],
+  habituales: readonly string[],
+  elegida: string | null,
+  tope = TOPE_CHIPS_NUEVA,
+): { chips: T[]; fuera: string } {
+  const chips = habituales
+    .map((id) => todas.find((x) => x.id === id))
+    .filter((x): x is T => x !== undefined)
+    .slice(0, tope);
+  return { chips, fuera: elegida && !chips.some((c) => c.id === elegida) ? elegida : "" };
+}
+
 /** «¿De qué marca?»: primero las que trae este proveedor, después todas las del catálogo. */
 export function opcionesMarcaNueva(marcas: readonly { id: string; nombre: string }[], delProveedor: readonly { id: string }[]): OpcionConGrupo[] {
   const suyas = new Set(delProveedor.map((m) => m.id));

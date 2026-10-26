@@ -2174,7 +2174,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.habituales",
       opcional: true,
       titulo: "Lo que le compras siempre",
-      texto: "Sus prendas en tarjetas, con su foto y lo de la vez pasada. Toca una y se abre su hoja: cuántas, el precio y a qué tienda va. La que ya va en la compra lleva su número.",
+      texto: "Sus prendas de siempre en tarjetas, con su foto y lo de la vez pasada: son un atajo, no una obligación. Toca una y se abre su hoja: cuántas, el precio y a qué tienda va. La que ya va en la compra lleva su número.",
     },
     {
       id: "algo-nuevo",
@@ -2188,14 +2188,14 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.categoria-nueva",
       opcional: true,
       titulo: "Qué es",
-      texto: "La categoría de la prenda. Arriba, las que ya le compras a este proveedor; abajo, las demás.",
+      texto: "La categoría de la prenda. Los botones son las que ya le compras a este proveedor; «Otra…» abre todas las demás, con su buscador. Si es un proveedor nuevo, no hay botones: eliges de la lista.",
     },
     {
       id: "marca-nueva",
       ancla: "compra.marca-nueva",
       opcional: true,
       titulo: "La marca",
-      texto: "Como dice la etiqueta. Primero las que trae este proveedor; si trae una sola, ya viene puesta.",
+      texto: "Como dice la etiqueta. Los botones son las marcas que trae este proveedor; «Otra…» abre todas las del catálogo. Si trae una sola, ya viene puesta.",
     },
     {
       id: "marca-mas",

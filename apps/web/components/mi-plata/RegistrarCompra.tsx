@@ -456,8 +456,12 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
 
       {paso === "habituales" && proveedor && (
         <section className="flex flex-col gap-4">
-          <h2 className="compra-pregunta">¿Qué le compras hoy?</h2>
-          <p className="-mt-2 text-sm text-taupe">Toca una prenda: anotas cuántas, el precio y a qué tienda va.</p>
+          <h2 className="compra-pregunta">¿Qué le compraste?</h2>
+          <p className="-mt-2 text-sm text-taupe">
+            {Array.isArray(habituales) && habituales.length === 0
+              ? "Todavía no le compraste nada: descríbelo con «Algo nuevo»."
+              : "Toca una prenda de las suyas: viene con lo de la vez pasada. Si es otra, usa «Algo nuevo»."}
+          </p>
           {habituales === "cargando" ? (
             <p className="text-sm text-taupe" role="status">
               Buscando lo que le compras…
