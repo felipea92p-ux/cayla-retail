@@ -20,14 +20,15 @@ import { getDestinosDeposito } from "@/lib/cuentas-dinero";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { GastosPanel, type PestanaGastos } from "@/components/GastosPanel";
 import { verDeLaVista } from "@/lib/vista-global";
-import { sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
+import { sedeDeLaUrl, sedesDeLaUrl, sedesElegidas } from "@/lib/finanzas-telar-reglas";
+import { verDeVarias } from "@/lib/gastos-varias-sedes";
 
 const PESTANAS: PestanaGastos[] = ["gastos", "fijos", "activos", "egresos"];
 const TODAS: Ver = { clave: "todas", ubicacionId: null, soloEmpresa: false };
 
 // Finanzas ▸ Gastos (ADR-0195 F2). Lee en el servidor y deja a una sola pieza cliente operar. `?mes=2026-09` elige el mes;
-// `?ver=` (solo el líder) elige qué tienda mirar: por defecto la sede donde trabaja, o «todas», o «empresa». `?tab=` abre en una
-// pestaña (fijos, activos, egresos): así llegan los enlaces de Caja y de Configuración.
+// `?sede=` (la barra del telar; antes `?ver=`) elige qué mirar: una sede, varias (`?sede=a,b`, Felipe 2026-10-24), la empresa o todas;
+// quien no ve todo, solo la suya. `?tab=` abre en una pestaña (fijos, activos, egresos): así llegan los enlaces de Caja y de Configuración.
 export default async function GastosPage({ searchParams }: { searchParams: Promise<{ mes?: string; ver?: string; sede?: string; tab?: string }> }) {
   const persona = await exigirModulo("gastos");
   const sp = await searchParams;
@@ -47,7 +48,9 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
     getDestinosDeposito(),
     getSedesDelTelar(),
   ]);
-  const ver = leerVer(verDeLaVista(persona.vista, sedeDeLaUrl(sp)), contexto.ubicaciones, veTodo, persona.ubicacionId);
+  // Varias sedes marcadas: `verDeVarias`; una, ninguna o quien no ve todo: como siempre.
+  const elegidas = sedesElegidas(sedesDeLaUrl(sp), telar.sedes, veTodo, persona.ubicacionId);
+  const ver = verDeVarias(elegidas, contexto.ubicaciones) ?? leerVer(verDeLaVista(persona.vista, sedeDeLaUrl(sp)), contexto.ubicaciones, veTodo, persona.ubicacionId);
   const mesDeHoy = mesDe(hoy);
   const [panel, gastos, egresos, marcas, activos, fijos, sugeridos] = await Promise.all([
     getPanelGastos(desde, hasta, ver),

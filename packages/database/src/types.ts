@@ -2389,6 +2389,7 @@ export type Database = {
           estilo: string
           icono: string | null
           icono_imagen: string | null
+          icono_imagen_silueta: boolean
           id: string
           nombre: string
           notas: string | null
@@ -2407,6 +2408,7 @@ export type Database = {
           estilo?: string
           icono?: string | null
           icono_imagen?: string | null
+          icono_imagen_silueta?: boolean
           id?: string
           nombre: string
           notas?: string | null
@@ -2425,6 +2427,7 @@ export type Database = {
           estilo?: string
           icono?: string | null
           icono_imagen?: string | null
+          icono_imagen_silueta?: boolean
           id?: string
           nombre?: string
           notas?: string | null
@@ -5303,6 +5306,7 @@ export type Database = {
           p_etiqueta_id: string
           p_icono: string | null
           p_imagen?: string | null
+          p_silueta?: boolean
         }
         Returns: undefined
       }
@@ -8066,12 +8070,14 @@ export type Database = {
           nombre: string
           plata_en_stock: number
           plata_sin_venta: number
+          primera_entrada: string | null
           prendas: number
           prendas_sin_venta: number
           proveedor_id: string
           unidades_carga: number
           unidades_compradas: number
           unidades_compras: number
+          unidades_en_estantes: number
           unidades_estimadas: number
           unidades_sin_factura: number
           unidades_vendidas: number
