@@ -11,7 +11,8 @@ import { Chip } from "@/components/ui/Chip";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
+import { FiltrosFlotantes } from "@/components/ui/FiltrosFlotantes";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { MiniaturaPrenda, SinFoto } from "@/components/ui/PrendaCelda";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
@@ -234,8 +235,10 @@ export function VitrinaPantalla({
       </div>
 
       <section ref={cajaRef} className="card-cayla scroll-mt-20 space-y-0">
-        <div className="flex flex-wrap items-center gap-3 border-b border-sand px-5 py-4">
-          <div className="min-w-[14rem] flex-1">
+        {/* El buscador, los filtros (un botón que abre un panel flotante) y cómo ver la lista, en una sola fila: bajo `sm` los dos últimos son solo
+            íconos y el buscador conserva su ancho. */}
+        <div className="flex items-center gap-3 border-b border-sand px-4 py-4 sm:px-5">
+          <div className="min-w-0 flex-1">
             <Buscador
               valor={texto}
               onCambio={setTexto}
@@ -245,33 +248,8 @@ export function VitrinaPantalla({
               conteo={texto.trim() ? `${lista.length} ${lista.length === 1 ? "coincide" : "coinciden"}` : undefined}
             />
           </div>
-          {vista === "vitrina" && visibles.length > 0 && (
-            <button type="button" className="btn-enlace text-[13px]" data-guia="vitrina.elegir-pagina" onClick={alternarPagina}>
-              {paginaEntera ? `Quitar los ${visibles.length} de esta página` : `Elegir los ${visibles.length} de esta página`}
-            </button>
-          )}
-          {hayMasPaginas && (
-            <button type="button" className="btn-enlace text-[13px]" onClick={alternarTodos}>
-              {todosLosQueCoinciden ? `Quitar los ${lista.length} que coinciden` : `Elegir los ${lista.length} que coinciden`}
-            </button>
-          )}
-          <SegmentoDeslizante
-            forma="modo"
-            etiqueta="Cómo ver los modelos"
-            valor={vista}
-            onCambio={(v) => setVista(v === "lista" ? "lista" : "vitrina")}
-            opciones={[
-              { clave: "vitrina", etiqueta: "Vitrina", icono: <LayoutGrid />, ayuda: "Las prendas como las ve el cliente", guia: "vitrina.vista-vitrina" },
-              { clave: "lista", etiqueta: "Lista", icono: <List />, ayuda: "Una fila por modelo, para revisar muchos" },
-            ]}
-          />
-        </div>
-
-        {modelos.length > 0 && (
-          <div className="space-y-3 border-b border-sand px-5 py-3">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <div className="min-w-0" data-guia="vitrina.filtros">
-            <PanelPildoras>
+          {modelos.length > 0 && (
+            <FiltrosFlotantes activos={puestos.length} guia="vitrina.filtros" pie={puestos.length > 0 ? <BotonLimpiar onClick={limpiarFiltros}>Limpiar filtros</BotonLimpiar> : undefined}>
               <DesplegablePildora
                 icono={CircleCheck}
                 etiqueta="Estado"
@@ -297,28 +275,50 @@ export function VitrinaPantalla({
                 onValor={(v) => setLoNuevo(dePildora(v) as FiltroLoNuevo)}
                 opciones={LO_NUEVO.map((e) => ({ valor: aPildora(e.valor), texto: e.texto }))}
               />
-            </PanelPildoras>
+            </FiltrosFlotantes>
+          )}
+          <SegmentoDeslizante
+            forma="modo"
+            etiqueta="Cómo ver los modelos"
+            valor={vista}
+            onCambio={(v) => setVista(v === "lista" ? "lista" : "vitrina")}
+            opciones={[
+              { clave: "vitrina", etiqueta: "Vitrina", icono: <LayoutGrid />, ayuda: "Las prendas como las ve el cliente", guia: "vitrina.vista-vitrina", soloIcono: true },
+              { clave: "lista", etiqueta: "Lista", icono: <List />, ayuda: "Una fila por modelo, para revisar muchos", soloIcono: true },
+            ]}
+          />
+        </div>
+
+        {/* Lo que se filtró, para quitarlo con un toque; a la derecha, cuántos se ven y cómo elegirlos. */}
+        {modelos.length > 0 && (puestos.length > 0 || lista.length > 0) && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-sand px-4 py-2.5 sm:px-5">
+            {puestos.map((p) => (
+              <FiltroPuesto key={p.clave} onQuitar={p.quitar} etiqueta={`Quitar el filtro: ${p.texto}`}>
+                {p.texto}
+              </FiltroPuesto>
+            ))}
+            {puestos.length > 0 && <BotonLimpiar onClick={limpiarFiltros}>Limpiar filtros</BotonLimpiar>}
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
+              {vista === "vitrina" && visibles.length > 0 && (
+                <button type="button" className="btn-cayla btn-sutil btn-chico" data-guia="vitrina.elegir-pagina" onClick={alternarPagina}>
+                  {paginaEntera ? `Quitar los ${visibles.length} de esta página` : `Elegir los ${visibles.length} de esta página`}
+                </button>
+              )}
+              {hayMasPaginas && (
+                <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={alternarTodos}>
+                  {todosLosQueCoinciden ? `Quitar los ${lista.length} que coinciden` : `Elegir los ${lista.length} que coinciden`}
+                </button>
+              )}
+              {lista.length > 0 && (
+                <p className="text-[13px] tabular-nums text-taupe" aria-live="polite">
+                  Mostrando{" "}
+                  <b className="font-semibold text-tinta">
+                    {pag.desde}–{pag.hasta}
+                  </b>{" "}
+                  de <b className="font-semibold text-tinta">{lista.length}</b>
+                </p>
+              )}
             </div>
-            {lista.length > 0 && (
-              <p className="ml-auto text-[13px] tabular-nums text-taupe" aria-live="polite">
-                Mostrando{" "}
-                <b className="font-semibold text-tinta">
-                  {pag.desde}–{pag.hasta}
-                </b>{" "}
-                de <b className="font-semibold text-tinta">{lista.length}</b>
-              </p>
-            )}
-            </div>
-            {puestos.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                {puestos.map((p) => (
-                  <FiltroPuesto key={p.clave} onQuitar={p.quitar} etiqueta={`Quitar el filtro: ${p.texto}`}>
-                    {p.texto}
-                  </FiltroPuesto>
-                ))}
-                <BotonLimpiar onClick={limpiarFiltros}>Limpiar filtros</BotonLimpiar>
-              </div>
-            )}
           </div>
         )}
 
