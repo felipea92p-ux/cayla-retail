@@ -93,13 +93,13 @@ Ninguna función de la base y ningún permiso. Los cambios visibles son dos: el 
 ## Actualización 2026-10-26 (b) — P2 = C: el borde de un control tiene su propio color
 
 Felipe eligió la opción C de la lámina de P2: un color de marca nuevo, **`borde-control`** (claro `#96786a`, oscuro `#8d7a6e`), en el contrato (versión 3) y en Retail (`@theme` de `globals.css`,
-bloque oscuro y `.papel-fijo` de `tema.css`). Lo llevan **lo que se toca o se escribe**: `.caja-cayla` y `.caja-campo-input` (campo, combo, monto, fecha, área de texto), `.btn-secundario`, `.casilla-input` y el interruptor apagado
+bloque oscuro y `.papel-fijo` de `tema.css`). Lo llevan **lo que se toca o se escribe**: `.caja-cayla` y `.caja-campo-input` (campo, combo, monto, fecha, área de texto), `.buscador` (el buscador de una lista; el «mostrador» de Vender no lleva borde), `.btn-secundario`, `.casilla-input` y el interruptor apagado
 (`.interruptor`, un aro de 1,5 px). `sand` sigue siendo la línea **decorativa** (tarjeta, tabla, píldora con texto, separadores): la regla que ya aplicaba Dynamic.
 
 - **Por qué:** `sand` da 1.2:1 contra la tarjeta y no identifica un control (WCAG 1.4.11 pide 3:1). Hoy las cuatro piezas fallaban en los dos temas (campo y botón 1.2:1, interruptor apagado 1.6:1, casilla 2.2:1 en claro).
   `borde-control` se calculó mezclando taupe con papel hasta pasar 3:1 sobre la página, la tarjeta **y** el campo (`hueso`) en los dos temas (3.6 / 3.8 / 3.1:1 en claro; 4.3 / 3.8 / 3.2:1 en oscuro); `lib/tema-tokens.test.ts` lo mide.
 - **Los estados suben un escalón.** Con el reposo ya a 3:1, el hover antiguo (taupe al 60 %) y el foco antiguo (tinta al 38 %) quedaban más débiles que el reposo: hover y campo encendido usan ahora una mezcla de tinta al 65 %
-  (`campos-y-casillas.css`, `alta-guia.css`, `globals.css`). El foco **no** quedó en tinta plena (como mostraba la lámina): en el ERP real se suma al anillo de foco de 2 px, y un borde negro además se leía como un doble marco.
+  (`campos-y-casillas.css`, `vacio-aviso-buscador.css`, `alta-guia.css`, `globals.css`). El foco **no** quedó en tinta plena (como mostraba la lámina): en el ERP real se suma al anillo de foco de 2 px, y un borde negro además se leía como un doble marco.
 - **DESCARTÉ:** B (taupe pleno, como Dynamic), porque en oscuro da 6,9:1 y cada borde queda tan claro como el texto secundario; y A (dejar `sand`), porque Dynamic ya cumple 1.4.11 y la familia habría quedado dividida justo en lo que más se toca.
 - **SE ROMPE SI:** una pantalla dibuja a mano un campo con `border-sand` (no recibe el cambio; una búsqueda de `<input … border-sand>` en `components/` y `app/` no encontró ninguno, pero un campo armado con un contenedor y `border-sand` no se vería así); si Dynamic no cambia su alias `borde-control = taupe` (el comparador lo avisa mientras esté en `aplicacion_pendiente`);
   o si las pantallas con muchos campos juntos (la matriz de tallas, las celdas de una fila de tabla) se ven pesadas con un borde de 3:1 en cada celda (no se miró: falta `tema:auditar` y una pasada por esas pantallas).
@@ -110,4 +110,4 @@ bloque oscuro y `.papel-fijo` de `tema.css`). Lo llevan **lo que se toca o se es
 
 `docs/familia/contrato.json`, `docs/familia/README.md`, `apps/web/lib/familia.test.ts`, `scripts/familia/comparar.mjs` (y su entrada `familia:comparar` en `package.json`),
 `docs/maquetas/familia-oscuro-2026-10/` y `docs/maquetas/familia-borde-control-2026-10/` (las láminas para decidir mirando). El oscuro cambia en `apps/web/app/estilos/tema.css`,
-`app/global-error.tsx`, `public/sin-conexion.html` y `unificar/fotos.mjs`, con su prueba en `lib/tema-tokens.test.ts`; el borde de control, en `app/globals.css`, `app/estilos/campos-y-casillas.css` y `app/estilos/alta-guia.css`.
+`app/global-error.tsx`, `public/sin-conexion.html` y `unificar/fotos.mjs`, con su prueba en `lib/tema-tokens.test.ts`; el borde de control, en `app/globals.css`, `app/estilos/campos-y-casillas.css`, `app/estilos/vacio-aviso-buscador.css` y `app/estilos/alta-guia.css`.
