@@ -19,5 +19,5 @@ No se eligió B. La Lista **alterna entre C y A según el ancho**: pantalla gran
 pantalla angosta —o más de 8 tiendas, o si la tabla se ve muy compacta—, **A** (las filas de siempre, nombre grande y todas las tiendas en un
 renglón). Lo decide `modoDeLista(ancho, tiendas)` en `lib/vitrina-reglas.ts` con el ancho de la tarjeta (`components/ui/useAnchoDe.ts`): con 3
 tiendas pasa a C desde ~1036 px de tarjeta (una laptop de 1366 px); cada tienda de más pide 80 px más. En C las columnas tienen tope (modelo 22 rem,
-categoría 10 rem) para que el stock no quede lejos del nombre: el hueco a 1440 px baja de 625 px a ~220 px.
+categoría 10 rem) para que el stock no se aleje sin límite del nombre. **Medido en la app real a 1440 px (2 tiendas):** del final del nombre al primer stock hay ~465 px (443–483), y en medio van la categoría y los colores, que son datos y no espacio vacío; en las filas de siempre eran ~625 px (3 tiendas) de espacio vacío. Si se quiere más apretado, bajar el tope del modelo (22 rem) o el de la categoría (10 rem) en `PLANTILLA_COLUMNAS`.
 
