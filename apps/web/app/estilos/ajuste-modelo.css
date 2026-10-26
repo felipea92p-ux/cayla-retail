@@ -54,7 +54,7 @@
 }
 
 /* ---- La vista de ajuste («Planilla rápida», ronda 2: Felipe 2026-10-26, docs/maquetas/existencias-ajustar-tabla-2026-10/ronda-2.html) ----
-   La hoja no se desliza (`<Modal altoFijo>`): de arriba abajo van la vuelta, la banda con «Dónde» y «Qué pasó» (siempre en el mismo
+   La hoja no se desliza desde 640 px (`<Modal altoFijo>`; el celular, más abajo): de arriba abajo van la vuelta, la banda con «Dónde» y «Qué pasó» (siempre en el mismo
    lugar, con una talla o con muchas), el aviso y la planilla, que es lo ÚNICO que se desliza, con su cabecera fija. Abajo, el pie. */
 .ajuste-vista { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; min-width: 0; container-type: inline-size; }
 .ajuste-vista > * { flex: none; }
@@ -260,6 +260,15 @@
   .ajuste-tabla[data-tallas="una"] :is(.ajuste-hoy, .ajuste-relleno) { display: none; }
   .ajuste-tabla[data-tallas="una"] .ajuste-hoy-movil { display: block; }
   .ajuste-pista { display: none; }
+}
+
+/* El celular: la hoja se desliza entera (desde 640 px sigue de alto fijo, `<Modal altoFijo>`) y el pie queda pegado abajo. Con dos avisos
+   la planilla se quedaba con una fila (Felipe 2026-10-26): ahora crece con sus colores hasta lo que se ve sobre el pie (`--tope-planilla`,
+   lo mide `useTopeDeLaPlanilla`) y, bajando la hoja, llena la pantalla. Si aún así no cabe, corre por dentro y, en su borde, el gesto
+   sigue con la hoja (sin `contain` hacia arriba y abajo), para volver a «Qué pasó» sin buscar de dónde agarrarla. */
+@media (max-width: 639.98px) {
+  .ajuste-planilla { max-height: var(--tope-planilla, 70dvh); }
+  .ajuste-desliza { overscroll-behavior-y: auto; }
 }
 
 /* ---- El talón: lo que se va a guardar ---- */
