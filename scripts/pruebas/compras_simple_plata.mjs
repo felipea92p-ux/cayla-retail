@@ -14,6 +14,11 @@
  *   · Confirmar «ya tenía» es el saldo inicial de su fondo, con su fecha: no le resta a ningún banco, y «Quién tiene plata» (`fn_fondos`)
  *     cuadra (le entregaste − devolvió − gastó = tiene).
  *   · Nadie confirma su propia plata. Una plata anotada no se edita ni se borra.
+ *   · «¿De qué banco salió?» (Felipe 2026-10-26, `20261026165000` y `20261026170000`): con una transferencia, la compradora indica el banco de
+ *     la empresa; con otro medio o con algo que no es un banco que se usa, se rechaza (`banco_solo_transferencia`, `banco_invalido`); el
+ *     banco viaja con el token (`token_reusado` si cambia); «Revisar compras» lo ve ya elegido; confirmar sigue eligiendo la cuenta de la que
+ *     sale la plata (la indicación no mueve nada) y no cambia lo que dijo la compradora; los bancos los ve quien tiene «Mis compras» o
+ *     «Revisar compras».
  *   · `anon` no ejecuta nada.
  *
  * CÓMO. Sesión simulada con `request.jwt.claim.sub`, la migración pegada dos veces (se puede pegar dos veces) y ROLLBACK siempre.
@@ -40,6 +45,12 @@ const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261022235
   "",
 );
 
+// Las dos partes del banco (columna y funciones), tal como se pegan en producción: tras la migración de arriba, que recrea la anotar de 4
+// parámetros, la parte 2 la retira. Pegadas dos veces, como todo lo demás.
+const PARTES_DEL_BANCO = ["20261026165000_mis_compras_banco_de_la_plata_parte1_columna.sql", "20261026170000_mis_compras_banco_de_la_plata_parte2_funciones.sql"]
+  .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8").replace(/^set lock_timeout.*$/gm, ""))
+  .join("\n");
+
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
 
@@ -60,6 +71,8 @@ const PRELUDIO = `
 begin;
 ${MIGRACION}
 ${MIGRACION}
+${PARTES_DEL_BANCO}
+${PARTES_DEL_BANCO}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_hint text; v_msg text;
@@ -259,14 +272,89 @@ select split_part(pg_temp.intento(format('update retail.fondo_plata_anotada set 
 );
 
 caso(
-  "anon no ejecuta ninguna de las cuatro; la tabla no se lee directo",
+  "anon no ejecuta ninguna de las cinco; la tabla no se lee directo",
   `reset role;
-select has_function_privilege('anon', 'retail.anotar_plata_compras(text, numeric, text, uuid)', 'execute'),
+select has_function_privilege('anon', 'retail.anotar_plata_compras(text, numeric, text, uuid, uuid)', 'execute'),
+       has_function_privilege('anon', 'retail.fn_bancos_para_plata_compras()', 'execute'),
        has_function_privilege('anon', 'retail.confirmar_plata_compras(uuid, numeric, uuid)', 'execute'),
        has_function_privilege('anon', 'retail.fn_mi_plata_compras()', 'execute'),
        has_function_privilege('anon', 'retail.fn_plata_por_confirmar()', 'execute'),
        has_table_privilege('authenticated', 'retail.fondo_plata_anotada', 'select');`,
-  "f|f|f|f|f",
+  "f|f|f|f|f|f",
+);
+
+// ---------- «¿De qué banco salió?» ----------
+const anotaConBanco = (nombre, medio, monto, token, banco) =>
+  `${como(MICAELA, "plata_anotar")}select retail.anotar_plata_compras('${medio}', ${monto}, null, '${token}', ${banco}) as ${nombre} \\gset\n`;
+
+caso(
+  "con una transferencia, el banco queda indicado y «Revisar compras» lo ve con su nombre; la plata sigue por confirmar y sin mover nada",
+  `${rolDeMicaela("ordenes_compra")}${anotaConBanco("a", "transferencia", 500, T1, ":'banco'")}
+reset role;
+select nombre as nombre_banco from retail.cuentas_dinero where id = :'banco' \\gset
+select (select cuenta_indicada_id = :'banco' from retail.fondo_plata_anotada where id = :'a'),
+       (select estado || ':' || coalesce(cuenta_origen_id::text, 'sin') from retail.fondo_plata_anotada where id = :'a');
+${como(FELIPE, "plata_confirmar")}
+select x ->> 'cuenta_indicada' = :'nombre_banco', x ->> 'cuenta_indicada_id' = :'banco'::text
+  from jsonb_array_elements(retail.fn_plata_por_confirmar()) x where x ->> 'id' = :'a'::text;`,
+  "t|por_confirmar:sin / t|t",
+);
+
+caso(
+  "sin banco (como antes, con 4 argumentos) también se anota: la indicación es opcional y «Revisar compras» la ve vacía",
+  `${rolDeMicaela("ordenes_compra")}${anota("a", "transferencia", 90, T1)}
+${como(FELIPE, "plata_confirmar")}
+select x ->> 'cuenta_indicada_id' is null, x ->> 'cuenta_indicada' is null
+  from jsonb_array_elements(retail.fn_plata_por_confirmar()) x where x ->> 'id' = :'a'::text;`,
+  "t|t",
+);
+
+caso(
+  "el banco solo con una transferencia; no vale una cuenta que no es un banco, una que no existe ni un banco archivado",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "plata_anotar")}
+select split_part(pg_temp.intento(format($q$select retail.anotar_plata_compras('yape_plin', 10, null, null, %L)$q$, :'banco')), '|', 2),
+       split_part(pg_temp.intento(format($q$select retail.anotar_plata_compras('efectivo', 10, null, null, %L)$q$, :'banco')), '|', 2),
+       split_part(pg_temp.intento(format($q$select retail.anotar_plata_compras('transferencia', 10, null, null, %L)$q$, :'cajon')), '|', 2),
+       split_part(pg_temp.intento($q$select retail.anotar_plata_compras('transferencia', 10, null, null, '00000000-0000-4000-8000-000000000000')$q$), '|', 2);
+reset role;
+update retail.cuentas_dinero set archivada_en = now() where id = :'banco';
+${como(MICAELA, "plata_anotar")}
+select split_part(pg_temp.intento(format($q$select retail.anotar_plata_compras('transferencia', 10, null, null, %L)$q$, :'banco')), '|', 2);`,
+  "banco_solo_transferencia|banco_solo_transferencia|banco_invalido|banco_invalido / banco_invalido",
+);
+
+caso(
+  "el banco viaja con el token: el mismo token con otro banco es token_reusado; con el mismo, devuelve la misma fila",
+  `${rolDeMicaela("ordenes_compra")}${anotaConBanco("a", "transferencia", 70, T1, ":'banco'")}
+select retail.anotar_plata_compras('transferencia', 70, null, '${T1}', :'banco') = :'a',
+       split_part(pg_temp.intento(format($q$select retail.anotar_plata_compras('transferencia', 70, null, %L, null)$q$, '${T1}')), '|', 2);`,
+  "t|token_reusado",
+);
+
+caso(
+  "confirmar elige la cuenta de la que sale la plata (la indicación no manda) y lo que indicó la compradora queda tal cual",
+  `${rolDeMicaela("ordenes_compra")}${anotaConBanco("a", "transferencia", 300, T1, ":'banco'")}
+${como(FELIPE, "plata_confirmar")}
+select retail.confirmar_plata_compras(:'a', null, :'banco') \\g /dev/null
+reset role;
+select (select cuenta_indicada_id = :'banco' and cuenta_origen_id = :'banco' and estado = 'confirmada' from retail.fondo_plata_anotada where id = :'a'),
+       split_part(pg_temp.intento(format('update retail.fondo_plata_anotada set cuenta_indicada_id = null where id = %L', :'a')), '|', 3);`,
+  "t|La plata anotada solo cambia al confirmarla, una vez.",
+);
+
+caso(
+  "los bancos de la empresa los ve quien tiene «Mis compras» o «Revisar compras»; sin ninguno, 42501",
+  `${rolDeMicaela("ordenes_compra")}${como(MICAELA, "plata_anotar")}
+select jsonb_array_length(retail.fn_bancos_para_plata_compras()) >= 1,
+       (select (x ->> 'id') = :'banco' from jsonb_array_elements(retail.fn_bancos_para_plata_compras()) x limit 1);`,
+  "t|t",
+);
+
+caso(
+  "sin «Mis compras» ni «Revisar compras», los bancos no se ven (42501)",
+  `${rolDeMicaela("existencias")}${como(MICAELA, "plata_anotar")}
+select left(pg_temp.intento('select retail.fn_bancos_para_plata_compras()'), 5);`,
+  "42501",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde`);

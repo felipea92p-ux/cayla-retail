@@ -1867,7 +1867,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   en `components/finanzas/{CascadaPulso,Confianza,DineroPulso,ImpuestosPulso,GastosPulso,ResultadoPulso,CierrePulso}.tsx` y los estilos
   `fin-pulso-*` en `app/estilos/finanzas.css`. Lo nuevo en la base (sin pegar al 2026-10-15): `fn_costo_estimado_prenda` + los disparadores
   `prendas_por_regularizar_costo_estimado` y `venta_items_costo_real` + `fn_costo_estimado_resumen` (20261015233000; `venta_items.costo_estimado`);
-  `fn_finanzas_confianza` (20261015235000) → `lib/finanzas-confianza.ts` (los pesos) → `<Confianza>` en `/finanzas/resumen`; y los tipos
+  `fn_finanzas_confianza` (20261015235000) → `lib/finanzas-confianza.ts` (los pesos) → `<Confianza>` en `/finanzas/resumen` (desde 2026-10-24, una franja bajo la respuesta); y los tipos
   `pago_planilla` y `pago_sunat` de `movimientos_dinero` (20261016002000; `registrar_movimiento_dinero`, `fn_asientos_dinero_y_caja` 41 | 104 y
   4011 | 104), que ofrece el modal de `/finanzas/dinero` (`OPCIONES_QUE_PASO`) y enlaza Impuestos.
   **La planilla estimada por sede (ADR-0453, pegada en producción el 2026-10-17):** `fn_planilla_provision` (20261018040000; la interna
@@ -1917,8 +1917,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   - `/finanzas/resumen` → el tablero que junta lo anterior (F10). Desde El telar (2026-10-23, ADR-0493) lee, además de
     `fn_resumen_finanzas` (los avisos de hoy) y `fn_finanzas_confianza` (del mes elegido), `fn_estado_resultados` del mes de la barra
     y del tramo con que se compara (`lib/resultados.ts`), y `fn_rendimiento_serie` por tienda si la cuenta ve Rendimiento
-    (`lib/resumen-telar.ts`). Lo dibujan `lib/resumen-telar-reglas.ts` (la respuesta, el orillo y la línea de ventas contra la
-    meta) y `lib/recorrido-plata-reglas.ts` → `components/finanzas/RecorridoPlata.tsx` (el recorrido de la plata).
+    (`lib/resumen-telar.ts`). Lo dibujan `lib/resumen-telar-reglas.ts` (la respuesta y el orillo) y `lib/recorrido-plata-reglas.ts` →
+    `components/finanzas/RecorridoPlata.tsx` (el recorrido de la plata). **Desde 2026-10-24 (ADR-0493, actualización)**, cinco piezas más:
+    **Desde 2026-10-26 (ADR-0493, actualización c):** abre con `lib/tres-respuestas-reglas.ts` → `TresRespuestas.tsx` (tienes / debes pronto / te deja), va a ancho completo (desde la actualización d de ese ADR, como todo Finanzas: `/finanzas` salió de `CON_TOPE_DE_ANCHO`), y suma la inversión en mercadería tras bandera: `lib/inversion-mercaderia-reglas.ts` (etapas del plan, formas de pagar, la caja con la compra), `lib/inversion-mercaderia.ts` (el lector: hoy `null`, la base aún no lo trae), `InversionMercaderia.tsx`, `AjustesResumen.tsx` (+ `lib/ajustes-resumen-reglas.ts`, `useAjustesResumen`); `cajaProxima` acepta `inversion` y mira seis semanas.
+    `lib/caja-proxima-reglas.ts` → `CajaProxima.tsx` («Tu caja en las próximas dos semanas»; su lectura propia es `getFlujoProximo` →
+    `fn_flujo_caja_proyeccion`, la de Dinero ▸ Flujo, porque `fn_resumen_finanzas` recorta los cobros y solo trae el flujo mirando CAYLA entera),
+    `lib/resumen-cambios-reglas.ts` → `CambiosDelMes.tsx` (lo que más se movió contra el mismo tramo del mes pasado, con `conceptosER`),
+    `lib/equilibrio-mes-reglas.ts` → `EquilibrioMes.tsx` («¿Ya pagaste el mes?», que reemplazó a la línea de ventas contra la meta),
+    `lib/de-cada-cien-reglas.ts` → `DeCadaCien.tsx` («De cada S/ 100», sobre el recorrido) y `Confianza.tsx`, que pasó de tarjeta al fondo a
+    franja bajo la respuesta. Sin migración ni RPC nuevos.
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
     Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
   - `/tienda-web/ajustes` (ADR-0408, actividad 6; fue la pestaña `/configuracion?tab=tienda-web` hasta ADR-0430; módulo `ajustes_web` «Datos y plazos de la tienda web» desde 20261016223000, antes `configuracion`) → `lib/configuracion.ts`

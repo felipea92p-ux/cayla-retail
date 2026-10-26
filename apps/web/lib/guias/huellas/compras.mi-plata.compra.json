@@ -2,7 +2,7 @@
   "guia": "compras.mi-plata.compra",
   "ruta": "/compras/mi-plata/compra",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 48,
+  "total": 51,
   "controles": {
     "app/(app)/compras/mi-plata/compra/page.tsx": [
       "Volver «/compras/mi-plata»"
@@ -13,7 +13,12 @@
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/mi-plata/AbrirRonda.tsx": [
-      "Boton «Abrir mi ronda de compras»"
+      "Boton «Abrir mi ronda»"
+    ],
+    "components/mi-plata/ChipsConOtra.tsx": [
+      "Desplegable «{fuera}»",
+      "button «{c.nombre}»",
+      "Desplegable «{fuera}» #2"
     ],
     "components/mi-plata/HojaPrenda.tsx": [
       "CampoMonto «compra.costo»",
@@ -23,24 +28,24 @@
       "Boton «Cancelar»",
       "Boton «compra.agregar»",
       "button «{guia}»",
-      "Desplegable «{n.categoriaId ?? \"\"}»",
       "CampoTexto «Marca nueva»",
-      "Desplegable «{n.marcaId ?? \"\"}»",
       "Boton «compra.marca-mas»",
       "CampoTexto «compra.nombre-nuevo»"
     ],
     "components/mi-plata/RegistrarCompra.tsx": [
       "Volver «→() => setPaso(atras)»",
       "Volver «/compras/mi-plata»",
-      "Boton «compra.algo-nuevo»",
+      "button «compra.algo-nuevo»",
       "Boton «compra.revisar»",
-      "button «→() => corregir(i)»",
+      "button «→() => corregir(pr.indice)»",
       "button «Otra prenda de»",
       "Boton «compra.al-papel»",
       "button «{TIPOS_PAPEL[k].nombre}»",
       "CampoMonto «compra.monto»",
       "button «{o.nombre}»",
       "CampoMonto «compra.pagado»",
+      "button «Pagué todo»",
+      "button «compra.parte»",
       "ComboResponsable «{responsable}»",
       "Boton «compra.guardar»",
       "BotonEnlace «compra.mandar»",

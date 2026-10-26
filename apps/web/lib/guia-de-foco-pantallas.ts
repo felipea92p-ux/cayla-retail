@@ -416,6 +416,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // fue, si tiene comprobante; con comprobante, el RUC y la serie; a crédito, cuándo vence; si no, de dónde salió) y el responsable;
   // `lib/hoja-gasto-reglas.test.ts` cruza la guía con la validación en cada camino.
   "components/finanzas/gastos/HojaRegistrarGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaRegistrarGasto.tsx"] },
+  "components/finanzas/AjustesResumen.tsx": { estado: "no-aplica", motivo: "«Qué se ve» en el Resumen (Felipe 2026-10-26): son interruptores que se aplican al momento y no hay nada que llenar ni un orden que seguir; no guarda, solo cambia lo que se ve. Su ícono tiene su paso en la guía de la pantalla." },
   // ADR-0328 act. 10: cuál (color y talla), dónde estaba, cuántas, qué tiene y quién: todo cuenta como «falta» (lo exige la base).
   // ADR-0328 act. 10 («Se arregló»): la guía enciende lo del panel abierto —qué se arregló, o precio y forma de pago al liquidar— y
   // quién decide. La nota de «Se botó» / «Donada» es opcional.
