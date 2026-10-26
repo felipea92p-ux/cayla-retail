@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, claveNavegacion, type MensajeEspera } from "@/lib/espera-reglas";
@@ -331,7 +331,8 @@ export function EsperaGlobal() {
         }`}
       >
         <div className="relative mx-auto mb-3.5 grid h-16 w-16 place-items-center">
-          <Image src="/cayla-isotipo.png" alt="" width={34} height={34} priority className="h-[34px] w-auto" />
+          {/* El colibrí del logo oficial (ADR-0446), el mismo del lateral. */}
+          <LogoCayla soloColibri className="h-6" />
           <svg aria-hidden viewBox="0 0 64 64" fill="none" strokeWidth={2} className="absolute inset-0 h-full w-full">
             <circle cx="32" cy="32" r="29" className="stroke-sand" />
             <circle

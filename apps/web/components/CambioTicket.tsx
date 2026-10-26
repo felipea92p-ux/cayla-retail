@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { MessageCircle, Plus, ShoppingBag } from "lucide-react";
@@ -144,8 +144,8 @@ function TicketCambioTermico({ ticket }: { ticket: TicketCambio }) {
   return (
     <div id="comprobante-print">
       <header className="rt-centro">
-        <Image src="/cayla-isotipo.png" alt="" width={221} height={150} priority unoptimized className="rt-logo" />
-        <p className="rt-marca">{EMISOR.nombreComercial}</p>
+        <LogoCayla tinta="negro" className="rt-logo" />
+        <p className="sr-only">{EMISOR.nombreComercial}</p>
         <p className="rt-tienda">{ticket.sede}</p>
       </header>
       <div className="rt-doble" />
