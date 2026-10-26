@@ -250,7 +250,7 @@
     button[aria-haspopup]:not(.caja-cayla button)
   ) {
   background-color: var(--color-papel);
-  border-color: color-mix(in srgb, var(--color-tinta) 38%, transparent);
+  border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); /* P2 de la familia: el reposo ya es el borde de control (3:1); el control que sigue sube un escalón */
 }
 
 @media (prefers-reduced-motion: reduce) {

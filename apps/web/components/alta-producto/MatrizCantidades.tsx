@@ -189,7 +189,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
               // Ya se aplica sola en cada tecla: Enter solo evita que envíe el formulario del alta.
               if (e.key === "Enter") e.preventDefault();
             }}
-            className="h-10 w-[72px] rounded-[9px] border border-transparent bg-hueso px-1.5 text-center text-base font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe"
+            className="h-10 w-[72px] rounded-[9px] border border-borde-control bg-hueso px-1.5 text-center text-base font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe"
           />
         </div>
       </div>
@@ -320,7 +320,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                             />
                           ) : enCantidades ? (
                             // La orden de producción no lleva − ni +: es una caja para escribir, no un paso de cantidad.
-                            <span className="inline-flex items-center gap-0.5 rounded-[7px] border border-transparent bg-hueso pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel">
+                            <span className="inline-flex items-center gap-0.5 rounded-[7px] border border-borde-control bg-hueso pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel">
                               <input
                                 {...numero}
                                 // El número gris DICE algo (lo que sugiere la red): más legible que el «0» de siempre (3,6:1 en claro y 4,7:1 en oscuro, antes 1,7 y 2,1).
@@ -339,7 +339,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                               value={propio}
                               onChange={(e) => (enCostos ? onCosto : onPrecio)?.(cel.clave, limpiarPrecio(e.target.value))}
                               onFocus={(e) => e.currentTarget.select()}
-                              className={`w-[58px] rounded-[7px] border border-transparent bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px] ${
+                              className={`w-[58px] rounded-[7px] border border-borde-control bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px] ${
                                 distinto ? "font-semibold text-ambar" : "text-tinta"
                               }`}
                             />

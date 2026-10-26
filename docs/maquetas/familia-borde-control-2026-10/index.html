@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El borde de un control — elige mirando</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* La hoja que rodea (no es parte de ninguna app): crema del tema claro, que es idéntico en Retail y en Dynamic. */
+  :root { --c-crema: #f5f0e8; --c-papel: #fbf8f2; --c-sand: #e8e0d0; --c-tinta: #1a1a18; --c-taupe: #805c4c; --sans: "DM Sans", ui-sans-serif, system-ui, sans-serif; --serif: "EB Garamond", ui-serif, Georgia, serif; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--c-crema); color: var(--c-tinta); font-family: var(--sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  button, input, textarea { font: inherit; color: inherit; }
+  button { background: none; border: 0; cursor: pointer; }
+  .hoja { max-width: 1320px; margin: 0 auto; padding: 36px 24px 72px; }
+  .kick { display: inline-flex; align-items: center; gap: 10px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; font-weight: 600; color: var(--c-taupe); }
+  .kick::before { content: ""; width: 30px; height: 1px; background: var(--c-taupe); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 5vw, 52px); line-height: 1.05; margin: 8px 0 10px; letter-spacing: -.01em; }
+  .lead { max-width: 800px; color: color-mix(in srgb, var(--c-tinta) 72%, transparent); }
+  .lead b { color: var(--c-tinta); font-weight: 600; }
+
+  /* La barra fija: el tema de las pantallas y la elección. */
+  .eleccion { position: sticky; top: 0; z-index: 20; margin: 22px -24px 0; padding: 12px 24px; background: color-mix(in srgb, var(--c-papel) 94%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--c-sand); display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 14px; }
+  .eleccion strong { font-weight: 600; }
+  .tema-sel { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--c-sand); }
+  .tema-sel button { padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--c-taupe); }
+  .tema-sel button[aria-pressed="true"] { background: var(--c-tinta); color: var(--c-crema); }
+  .eleccion .estado { display: inline-flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-left: auto; }
+  .eleccion .copia { padding: 7px 14px; border: 1px solid var(--c-taupe); border-radius: 8px; font-size: 13px; font-weight: 500; }
+  .eleccion .copia:hover { background: color-mix(in srgb, var(--c-sand) 50%, transparent); }
+
+  .tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 22px; align-items: start; }
+  @media (max-width: 1000px) { .tres { grid-template-columns: 1fr; } }
+  .col { border: 2px solid transparent; border-radius: 22px; padding: 14px; background: color-mix(in srgb, var(--c-sand) 45%, transparent); transition: border-color .25s; }
+  .col[data-elegida] { border-color: var(--c-tinta); }
+  .cab { display: grid; gap: 4px; padding: 2px 4px 12px; }
+  .cab .letra { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--c-taupe); }
+  .cab h2 { font-family: var(--serif); font-weight: 500; font-size: 26px; line-height: 1.1; }
+  .cab p { font-size: 13.5px; color: color-mix(in srgb, var(--c-tinta) 72%, transparent); }
+  .cab .elegir { justify-self: start; margin-top: 6px; padding: 9px 16px; border-radius: 8px; background: var(--c-tinta); color: var(--c-crema); font-size: 13.5px; font-weight: 500; transition: background .2s; }
+  .cab .elegir:hover { background: #8b2a1f; }
+  .col[data-elegida] .elegir { background: transparent; color: var(--c-tinta); border: 1px solid var(--c-tinta); }
+  .muestra-borde { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 8px 10px; border-radius: 10px; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .muestra-borde i { flex: none; width: 46px; height: 0; border-top-width: 3px; border-top-style: solid; border-radius: 2px; }
+
+  /* ---------- La mini pantalla, pintada solo con los tokens de la columna ---------- */
+  .p { background: var(--crema); color: var(--tinta); border-radius: 18px; padding: 18px; font-size: 13.5px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .p .linea { display: flex; align-items: center; gap: 10px; font-size: 10.5px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
+  .p .linea::before { content: ""; width: 28px; height: 1px; background: var(--taupe); }
+  .p h3 { font-family: var(--serif); font-weight: 600; font-size: 32px; line-height: 1; letter-spacing: -.02em; margin-top: 8px; }
+  .p .frase { margin-top: 6px; color: color-mix(in srgb, var(--tinta) 70%, transparent); font-size: 14px; }
+
+  .p .barra { display: grid; gap: 8px; }
+  .p .barra .fila-uno { display: flex; gap: 8px; }
+  .p .buscador { flex: 1; min-width: 0; }
+  .p .pildoras { display: flex; flex-wrap: wrap; gap: 6px; }
+  .p .pil { padding: 5px 12px; border: 1px solid var(--sand); border-radius: 99px; font-size: 12.5px; font-weight: 600; color: var(--taupe); transition: background .15s, color .15s; }
+  .p .pil:hover { background: color-mix(in srgb, var(--sand) 45%, transparent); color: var(--tinta); }
+  .p .pil[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+  .p .rotulo { font-size: 11.5px; color: var(--taupe); margin-top: -4px; }
+
+  /* La tarjeta y su línea: DECORACIÓN. Sigue en sand en las tres opciones. */
+  .p .tarjeta { background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 16px; display: grid; gap: 12px; }
+  .p .tarjeta-tit { font-family: var(--serif); font-weight: 600; font-size: 19px; line-height: 1.2; }
+  .p .campos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px; }
+  .p .campo.ancho { grid-column: 1 / -1; }
+  .p .campo > label { display: block; margin-bottom: 5px; font-size: 10.5px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: color-mix(in srgb, var(--tinta) 62%, transparent); }
+
+  /* La caja del campo, calcada de .caja-cayla + .caja-campo (campos-y-casillas.css): hueso, borde, radio de control. */
+  .p .caja { position: relative; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 11px; border-radius: 8px; background: var(--hueso); border: 1px solid var(--borde); font-size: 13.5px; color: var(--tinta); transition: background-color .22s, border-color .22s; }
+  .p .caja:hover { border-color: var(--borde-hover); }
+  .p .caja:focus-within, .p .caja.abierta { background: var(--papel); border-color: var(--borde-foco); }
+  .p .caja::after { content: ""; position: absolute; left: 9px; right: 9px; bottom: -1px; height: 2px; border-radius: 2px 2px 0 0; background: var(--rojo); transform: scaleX(0); transition: transform .3s cubic-bezier(.22, 1, .36, 1); }
+  .p .caja:focus-within::after, .p .caja.abierta::after { transform: scaleX(1); }
+  .p .caja input, .p .caja textarea { flex: 1; min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; color: var(--tinta); padding: 9px 0; resize: none; }
+  .p .caja input::placeholder, .p .caja textarea::placeholder { color: color-mix(in srgb, var(--tinta) 64%, transparent); }
+  .p .caja.area { align-items: flex-start; }
+  .p .caja .flecha { margin-left: auto; width: 16px; height: 16px; color: color-mix(in srgb, var(--tinta) 55%, transparent); transition: transform .3s; }
+  .p .caja.abierta .flecha { transform: rotate(180deg); }
+  .p button.caja { width: 100%; text-align: left; cursor: pointer; }
+  .p .caja .lupa { flex: none; width: 15px; height: 15px; color: color-mix(in srgb, var(--tinta) 64%, transparent); }
+  .p .caja .pref { color: var(--taupe); font-weight: 600; }
+
+  .p .marcas { display: grid; gap: 10px; }
+  .p .opcion { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13.5px; }
+  .p .casilla { position: relative; flex: none; width: 20px; height: 20px; }
+  .p .casilla input { position: absolute; inset: 0; margin: 0; appearance: none; cursor: pointer; border-radius: 6px; border: 1.5px solid var(--borde-cas); background: var(--papel); transition: border-color .15s; }
+  .p .casilla input:hover { border-color: var(--tinta); }
+  .p .casilla .fondo { position: absolute; inset: 0; border-radius: 6px; background: var(--tinta); scale: .4; opacity: 0; pointer-events: none; transition: scale .22s cubic-bezier(.22, 1, .36, 1), opacity .16s; }
+  .p .casilla input:checked ~ .fondo { scale: 1; opacity: 1; }
+  .p .casilla svg { position: absolute; inset: 0; margin: auto; width: 13px; height: 13px; color: var(--crema); pointer-events: none; opacity: 0; transition: opacity .2s .09s; }
+  .p .casilla input:checked ~ svg { opacity: 1; }
+  .p .interruptor { position: relative; flex: none; width: 38px; height: 22px; border-radius: 99px; background: color-mix(in srgb, var(--tinta) 22%, transparent); box-shadow: inset 0 0 0 var(--borde-int-ancho) var(--borde-int); transition: background-color .28s; }
+  .p .interruptor[aria-checked="true"] { background: var(--tinta); box-shadow: none; }
+  .p .interruptor i { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 99px; background: var(--papel); box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: translate .28s cubic-bezier(.22, 1, .36, 1); }
+  .p .interruptor[aria-checked="true"] i { translate: 16px 0; }
+
+  .p .botones { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+  .p .btn { padding: 8px 16px; border-radius: 8px; border: 1px solid transparent; font-size: 13.5px; font-weight: 500; transition: background .15s, border-color .15s; }
+  .p .btn.pri { background: var(--tinta); color: var(--crema); }
+  .p .btn.pri:hover { background: var(--rojop); }
+  .p .btn.sec { border-color: var(--borde-btn); color: var(--tinta); }
+  .p .btn.sec:hover { border-color: var(--borde-btn-hover); background: color-mix(in srgb, var(--sand) 50%, transparent); }
+  .p .btn.chico { padding: 0 14px; min-height: 40px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+  /* ---------- La tabla de medidas ---------- */
+  .med { margin-top: 12px; padding: 12px 14px 8px; border-radius: 16px; background: var(--c-papel); border: 1px solid var(--c-sand); }
+  .med h5 { font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--c-taupe); margin-bottom: 6px; display: grid; grid-template-columns: 1fr 74px 74px; gap: 8px; }
+  .med h5 span:not(:first-child) { text-align: right; }
+  .med table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .med td { padding: 4px 0; border-top: 1px solid var(--c-sand); vertical-align: baseline; }
+  .med td:first-child { padding-right: 8px; color: color-mix(in srgb, var(--c-tinta) 80%, transparent); }
+  .med td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; width: 74px; }
+  .med .ok { color: #48603f; } .med .no { color: #8b2a1f; } .med .ref { color: var(--c-taupe); font-weight: 500; }
+  .med .pie { margin: 6px 0 2px; font-size: 11.5px; color: var(--c-taupe); }
+
+  .lectura { margin-top: 28px; padding: 22px 24px; border-radius: 20px; background: var(--c-papel); border: 1px solid var(--c-sand); display: grid; gap: 10px; max-width: 900px; }
+  .lectura h2 { font-family: var(--serif); font-weight: 500; font-size: 26px; }
+  .lectura ul { margin-left: 18px; display: grid; gap: 4px; }
+  .lectura b { font-weight: 600; }
+  .quien { display: inline-block; padding: 1px 8px; border-radius: 99px; background: var(--c-sand); font-size: 12px; font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="hoja">
+  <p class="kick">Familia CAYLA · pendiente P2</p>
+  <h1>El borde de un control: elige mirando</h1>
+  <p class="lead">Hoy el borde de un campo, de un botón secundario y de una casilla en Retail es casi invisible (<b>1.2:1</b> contra la tarjeta); en Dynamic es <b>taupe</b> (5.6:1). Las reglas de accesibilidad piden <b>3:1</b> para que alguien reconozca un control sin leerlo (WCAG 1.4.11). Esta lámina pone <b>la misma pantalla</b> con tres bordes. Escribe en los campos, marca las casillas, prende los interruptores y pasa el mouse por los botones; cambia a <b>Oscuro</b> arriba para ver los mismos controles allá. Debajo de cada columna están las medidas.</p>
+
+  <div class="eleccion" id="eleccion" aria-live="polite">
+    <div class="tema-sel" role="group" aria-label="Tema de las pantallas">
+      <button type="button" data-tema="claro" aria-pressed="true">Claro</button>
+      <button type="button" data-tema="oscuro" aria-pressed="false">Oscuro</button>
+    </div>
+    <span class="estado"><span>Todavía no elegiste.</span></span>
+  </div>
+
+  <div class="tres" id="tres"></div>
+
+  <section class="lectura">
+    <h2>Mi lectura (tuya es la decisión)</h2>
+    <ul>
+      <li><b>Qué cambia y qué no:</b> solo lo que se toca o se escribe (campo, combo, área de texto, botón secundario, casilla e interruptor apagado). La tarjeta, las tablas y las píldoras de filtro siguen en <i>sand</i>: la tarjeta es decoración y la píldora lleva su texto, que ya la identifica. Con la opción B o C, la línea decorativa y la funcional por fin se distinguen.</li>
+      <li><b>Hoy las cuatro piezas fallan los 3:1, en claro y en oscuro:</b> el campo y el botón secundario dan 1.2:1, el interruptor apagado 1.6:1 y la casilla 2.2:1 en claro. En oscuro la casilla es la que más se acerca (2.9:1) y las demás siguen entre 1.4:1 y 2.0:1.</li>
+      <li><b>B (taupe) es la regla que Dynamic ya aplica</b>: no hay token nuevo, Retail solo la adopta. Su costo es el peso: en oscuro el taupe da 6.9:1 sobre la tarjeta, así que cada borde queda tan claro como el texto secundario.</li>
+      <li><b>C (un tono propio) es el mínimo que pasa con margen</b> (3.1 a 3.8:1 en claro y 3.2 a 4.3:1 en oscuro, según la superficie de atrás) y es más calmado, sobre todo en oscuro. Su costo: un token nuevo en el contrato de la familia (<code>borde-control</code>, dos valores) y que Dynamic cambie su alias de taupe al mismo valor, así que sus campos también se suavizan.</li>
+      <li><b>A (dejarlo)</b> es válido si la decisión es que el campo se identifica por su relleno, pero entonces Dynamic o vuelve a sand o queda como diferencia aprobada con su motivo en el contrato.</li>
+    </ul>
+    <p>Elige y copia el mensaje para Claude: <span class="quien">P2 = A</span>, <span class="quien">P2 = B</span> o <span class="quien">P2 = C</span>. Se guarda en este navegador.</p>
+  </section>
+</main>
+
+<script>
+  // Los dos temas de la familia (docs/familia/contrato.json, versión 2). El tema claro es idéntico en Retail y en Dynamic.
+  const TEMAS = {
+    claro:  { crema: "#f5f0e8", papel: "#fbf8f2", hueso: "#eae1d2", sand: "#e8e0d0", tinta: "#1a1a18", taupe: "#805c4c", rojo: "#b8412d", rojop: "#8b2a1f" },
+    oscuro: { crema: "#1c1a17", papel: "#26241f", hueso: "#33302a", sand: "#403b34", tinta: "#f5f0e8", taupe: "#c4a898", rojo: "#e8806a", rojop: "#f29a86" },
+  };
+
+  const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const lum = (h) => { const [r, g, b] = hex(h).map(lin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const cr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const mezcla = (fg, bg, a) => "#" + hex(fg).map((v, i) => Math.round(v * a + hex(bg)[i] * (1 - a)).toString(16).padStart(2, "0")).join("");
+
+  // Las tres opciones. `borde` = el de los campos, combos, área de texto y botón secundario; `cas` = el de la casilla; `int` = el borde del interruptor apagado.
+  // C es nuevo: la mezcla de taupe y papel más clara que pasa 3:1 contra la página, la tarjeta Y el campo (hueso) en los dos temas.
+  const OPCIONES = [
+    { id: "A", nombre: "Sand (como Retail hoy)", sub: "No cambia nada", texto: "El borde es la línea decorativa de siempre. El campo se reconoce por su relleno hueso, que casi no se separa de la tarjeta.",
+      borde: (t) => t.sand, hover: (t) => mezcla(t.taupe, t.papel, 0.6), foco: (t) => mezcla(t.tinta, t.papel, 0.38),
+      cas: (t) => mezcla(t.tinta, t.papel, 0.35), int: () => null, btn: (t) => t.sand, btnHover: (t) => mezcla(t.taupe, t.papel, 0.4),
+      resumen: "sand" },
+    { id: "B", nombre: "Taupe (como Dynamic)", sub: "El que Dynamic ya aplica", texto: "El taupe del texto secundario. Sin token nuevo: Retail adopta la regla de Dynamic (campo, combo, área de texto y botón secundario).",
+      borde: (t) => t.taupe, hover: (t) => mezcla(t.tinta, t.papel, 0.65), foco: (t) => t.tinta,
+      cas: (t) => t.taupe, int: (t) => t.taupe, btn: (t) => t.taupe, btnHover: (t) => mezcla(t.tinta, t.papel, 0.65),
+      resumen: "taupe" },
+    { id: "C", nombre: "Un tono propio", sub: "Nuevo: el mínimo que pasa con margen", texto: "Un tono entre sand y taupe, calculado para pasar 3:1 sobre la página, la tarjeta y el campo. Token nuevo de la familia: borde-control.",
+      borde: (t, n) => (n === "claro" ? "#96786a" : "#8d7a6e"), hover: (t) => mezcla(t.tinta, t.papel, 0.65), foco: (t) => t.tinta,
+      cas: (t, n) => (n === "claro" ? "#96786a" : "#8d7a6e"), int: (t, n) => (n === "claro" ? "#96786a" : "#8d7a6e"),
+      btn: (t, n) => (n === "claro" ? "#96786a" : "#8d7a6e"), btnHover: (t) => mezcla(t.tinta, t.papel, 0.65),
+      resumen: "claro #96786a · oscuro #8d7a6e" },
+  ];
+
+  const LUPA = '<svg class="lupa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
+  const FLECHA = '<svg class="flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  const VISTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7.5"/></svg>';
+
+  const PANTALLA = `
+    <div class="p">
+      <div><p class="linea">Trujillo · Sáb 25 oct</p><h3>Gastos</h3><p class="frase">Lo que sale de la caja y queda anotado.</p></div>
+      <div class="barra">
+        <div class="fila-uno">
+          <div class="caja buscador">${LUPA}<input type="text" placeholder="Buscar" aria-label="Buscar"></div>
+          <button class="btn sec chico" type="button">Descargar Excel</button>
+        </div>
+        <div class="pildoras"><button class="pil" type="button" aria-pressed="true">Todos</button><button class="pil" type="button" aria-pressed="false">Fijos</button><button class="pil" type="button" aria-pressed="false">Del día</button></div>
+        <p class="rotulo">Las píldoras y la línea de la tarjeta siguen en sand: llevan texto o son decoración.</p>
+      </div>
+      <div class="tarjeta">
+        <p class="tarjeta-tit">Registrar un gasto</p>
+        <div class="campos">
+          <div class="campo"><label>Monto (S/)</label><div class="caja"><span class="pref">S/</span><input type="text" value="120.00" inputmode="decimal" aria-label="Monto"></div></div>
+          <div class="campo"><label>Medio de pago</label><button class="caja" type="button" aria-label="Medio de pago"><span>Efectivo</span>${FLECHA}</button></div>
+          <div class="campo"><label>Fecha</label><div class="caja"><input type="text" value="25/10/2026" aria-label="Fecha"></div></div>
+          <div class="campo"><label>Concepto</label><div class="caja"><input type="text" placeholder="Ej. Bolsas" aria-label="Concepto"></div></div>
+          <div class="campo ancho"><label>Nota · opcional</label><div class="caja area"><textarea rows="2" placeholder="Algo que ayude a entenderlo después" aria-label="Nota"></textarea></div></div>
+        </div>
+        <div class="marcas">
+          <label class="opcion"><span class="casilla"><input type="checkbox" checked><span class="fondo"></span>${VISTO}</span>Es un gasto fijo del mes</label>
+          <label class="opcion"><span class="casilla"><input type="checkbox"><span class="fondo"></span>${VISTO}</span>Tiene factura</label>
+          <label class="opcion"><button class="interruptor" type="button" role="switch" aria-checked="true" aria-label="Avisarme cuando venza"><i></i></button>Avisarme cuando venza</label>
+          <label class="opcion"><button class="interruptor" type="button" role="switch" aria-checked="false" aria-label="Mostrar en el cierre"><i></i></button>Mostrar en el cierre de caja</label>
+        </div>
+        <div class="botones"><button class="btn sec" type="button">Cancelar</button><button class="btn pri" type="button">Registrar gasto</button></div>
+      </div>
+    </div>`;
+
+  function variables(o, nombre) {
+    const t = TEMAS[nombre];
+    const v = { ...t, borde: o.borde(t, nombre), "borde-hover": o.hover(t, nombre), "borde-foco": o.foco(t, nombre), "borde-cas": o.cas(t, nombre),
+      "borde-btn": o.btn(t, nombre), "borde-btn-hover": o.btnHover(t, nombre), "borde-int": o.int(t, nombre) || "transparent", "borde-int-ancho": o.int(t, nombre) ? "1.5px" : "0px" };
+    return Object.entries(v).map(([k, x]) => `--${k}:${x}`).join(";");
+  }
+
+  const f = (n) => n.toFixed(1) + ":1";
+  const celda = (v) => `<td class="${v >= 3 ? "ok" : "no"}">${f(v)} ${v >= 3 ? "✓" : "✗"}</td>`;
+  const dato = (v) => `<td class="ref">${f(v)}</td>`;
+  function medidas(o) {
+    const m = (nombre) => {
+      const t = TEMAS[nombre];
+      const borde = o.borde(t, nombre), cas = o.cas(t, nombre), btn = o.btn(t, nombre), int = o.int(t, nombre);
+      return {
+        campoTarjeta: cr(borde, t.papel), campoPagina: cr(borde, t.crema), campoHueso: cr(borde, t.hueso),
+        casilla: cr(cas, t.papel), boton: cr(btn, t.crema),
+        interruptor: int ? cr(int, t.papel) : cr(mezcla(t.tinta, t.papel, 0.22), t.papel),
+        tarjeta: cr(t.sand, t.crema),
+      };
+    };
+    const c = m("claro"), d = m("oscuro");
+    const fila = (n, k) => `<tr><td>${n}</td>${celda(c[k])}${celda(d[k])}</tr>`;
+    return `<div class="med"><h5><span>Medidas (mínimo 3:1)</span><span>Claro</span><span>Oscuro</span></h5><table>
+      ${fila("Borde del campo contra la tarjeta", "campoTarjeta")}
+      ${fila("Borde del campo contra la página", "campoPagina")}
+      ${fila("Borde del botón secundario contra la página", "boton")}
+      ${fila("Casilla vacía contra la tarjeta", "casilla")}
+      ${fila("Interruptor apagado contra la tarjeta", "interruptor")}
+      <tr><td>Borde del campo contra el campo (hueso)</td>${dato(c.campoHueso)}${dato(d.campoHueso)}</tr>
+      <tr><td>La línea de la tarjeta contra la página</td>${dato(c.tarjeta)}${dato(d.tarjeta)}</tr>
+    </table><p class="pie">✓ = pasa los 3:1 de WCAG 1.4.11. La fila de «contra el campo» es informativa: pesa si un campo vive dentro de una nota o una fila rayada.</p></div>`;
+  }
+
+  const raiz = document.getElementById("tres");
+  let tema = "claro";
+
+  function dibujar() {
+    raiz.innerHTML = OPCIONES.map((o) => {
+      const t = TEMAS[tema];
+      const borde = o.borde(t, tema);
+      return `
+      <article class="col" data-id="${o.id}">
+        <header class="cab"><span class="letra">Opción ${o.id} · ${o.sub}</span><h2>${o.nombre}</h2><p>${o.texto}</p><button class="elegir" type="button">Elegir la ${o.id}</button></header>
+        <div class="muestra-borde" style="background:${t.papel};color:${t.tinta}"><i style="border-top-color:${borde}"></i><span>Borde del control: <b>${borde}</b> · ${f(cr(borde, t.papel))} sobre la tarjeta</span></div>
+        <div class="tema" style="${variables(o, tema)}">${PANTALLA}</div>
+        ${medidas(o)}
+      </article>`;
+    }).join("");
+    pintarEleccion(guardada());
+  }
+
+  // Estado de lo que se escribió/marcó se pierde al cambiar de tema (se redibuja): es solo una lámina.
+  raiz.addEventListener("click", (e) => {
+    const p = e.target.closest(".pil");
+    if (p) { p.parentElement.querySelectorAll(".pil").forEach((x) => x.setAttribute("aria-pressed", String(x === p))); return; }
+    const s = e.target.closest(".interruptor");
+    if (s) { e.preventDefault(); s.setAttribute("aria-checked", String(s.getAttribute("aria-checked") !== "true")); return; }
+    const c = e.target.closest("button.caja");
+    if (c) { c.classList.toggle("abierta"); return; }
+    const b = e.target.closest(".elegir");
+    if (b) elegir(b.closest(".col").dataset.id);
+  });
+
+  document.querySelector(".tema-sel").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-tema]");
+    if (!b) return;
+    tema = b.dataset.tema;
+    document.querySelectorAll(".tema-sel button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    dibujar();
+  });
+
+  const barra = document.querySelector("#eleccion .estado");
+  function guardada() { try { return localStorage.getItem("familia-borde-p2"); } catch (_) { return null; } }
+  function elegir(id) { try { localStorage.setItem("familia-borde-p2", id); } catch (_) {} pintarEleccion(id); }
+  function pintarEleccion(id) {
+    raiz.querySelectorAll(".col").forEach((c) => c.toggleAttribute("data-elegida", c.dataset.id === id));
+    const o = OPCIONES.find((x) => x.id === id);
+    if (!o) { barra.innerHTML = "<span>Todavía no elegiste.</span>"; return; }
+    barra.innerHTML = `<span>Elegiste <strong>la opción ${o.id} · ${o.nombre}</strong>.</span><span style="color:#805c4c">Dile a Claude: <strong>P2 = ${o.id}</strong></span><button class="copia" type="button">Copiar «P2 = ${o.id}»</button>`;
+    barra.querySelector(".copia").onclick = async (e) => { try { await navigator.clipboard.writeText("P2 = " + o.id); e.target.textContent = "Copiado ✓"; } catch (_) { e.target.textContent = "P2 = " + o.id; } };
+  }
+
+  dibujar();
+</script>
+</body>
+</html>
