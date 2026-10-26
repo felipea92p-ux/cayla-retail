@@ -243,6 +243,18 @@ export function pendientesDe(e: EntradaResumen): Pendiente[] {
   return p.map((x, i) => ({ x, i })).sort((a, b) => ORDEN_TONO[a.x.tono] - ORDEN_TONO[b.x.tono] || a.i - b.i).map(({ x }) => x);
 }
 
+/** Ningún pedido abierto (por confirmar, por cobrar o por entregar), nada por devolver y nada cobrado hoy: el camino no tiene qué contar
+ *  y el Resumen lo dice en una línea en vez de dibujar cuatro tarjetas en cero (Felipe 2026-10-26, propuesta A). Lo cerrado no cuenta: son
+ *  pedidos que ya no piden nada. */
+export const sinPedidosAbiertos = (c: CifrasPedidosWeb): boolean =>
+  c.porConfirmar === 0 && c.confirmados === 0 && c.porEntregar === 0 && c.porDevolver === 0 && c.cobradoHoy === 0;
+
+/** La línea que reemplaza al camino cuando no hay pedidos abiertos: «Sin pedidos abiertos en Tienda Lima · 12 cerrados en los últimos 30 días». */
+export function fraseSinPedidos(tienda: string, cerrados: number): string {
+  const cerradosTxt = cerrados === 0 ? "ninguno cerrado" : `${cerrados} ${plural(cerrados, "cerrado", "cerrados")}`;
+  return `En ${tienda}: sin pedidos abiertos · ${cerradosTxt} en los últimos 30 días`;
+}
+
 /** Lo que no se pudo leer, para decirlo en una línea (y que la persona sepa que el Resumen está incompleto, no que todo va bien). */
 export function lecturasCaidas(e: EntradaResumen): string[] {
   const caidas: string[] = [];

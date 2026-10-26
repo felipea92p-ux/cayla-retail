@@ -21,6 +21,19 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       texto: "Aquí ves lo que la tienda online te pide hoy, sin entrar a cada pantalla: qué ve el cliente, qué espera respuesta y cómo van los pedidos. Solo mira; cada cosa se resuelve en su pantalla.",
     },
     {
+      id: "pendientes",
+      ancla: "tienda-web.pendientes",
+      titulo: "Lo que te pide hoy",
+      texto: "De lo urgente a lo que solo informa: pedidos por confirmar, plata por devolver, recomendaciones por responder, tallas que llegaron. Tocas una y te lleva a la pantalla donde se resuelve.",
+    },
+    {
+      id: "camino",
+      ancla: "tienda-web.camino",
+      opcional: true,
+      titulo: "El camino de los pedidos",
+      texto: "Cuántos pedidos hay en cada paso: por confirmar, por cobrar, por entregar y cerrados. Con el reloj en rojo, la venta se pierde: sin confirmar se cierra solo, y sin ningún pago se anula solo. Sin pedidos abiertos es una línea. Toca un paso para ver esos pedidos.",
+    },
+    {
       id: "ventana",
       ancla: "tienda-web.ventana",
       opcional: true,
@@ -33,19 +46,6 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       opcional: true,
       titulo: "Las tiendas en la web",
       texto: "En verde, la tienda se ve y el cliente puede recoger ahí lo que separa. En ámbar, está encendida pero le falta un dato y no se ve. «Conf. Tienda» te lleva a completarla.",
-    },
-    {
-      id: "pendientes",
-      ancla: "tienda-web.pendientes",
-      titulo: "Lo que te pide hoy",
-      texto: "De lo urgente a lo que solo informa: pedidos por confirmar, plata por devolver, recomendaciones por responder, tallas que llegaron. Tocas una y te lleva a la pantalla donde se resuelve.",
-    },
-    {
-      id: "camino",
-      ancla: "tienda-web.camino",
-      opcional: true,
-      titulo: "El camino de los pedidos",
-      texto: "Cuántos pedidos hay en cada paso: por confirmar, por cobrar, por entregar y cerrados. Los tramos con el reloj en rojo pierden la venta: sin confirmar, se cierra solo; sin ningún pago, se anula solo. El de la campana solo avisa. Toca uno para ver esos pedidos.",
     },
     {
       id: "nota",

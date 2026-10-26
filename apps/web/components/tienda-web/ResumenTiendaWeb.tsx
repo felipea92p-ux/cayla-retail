@@ -5,6 +5,7 @@ import {
   BellRing,
   CheckCircle2,
   ClipboardCheck,
+  Clock,
   Lightbulb,
   MonitorSmartphone,
   PackageCheck,
@@ -26,9 +27,11 @@ import { MarcoWeb } from "@/components/tienda-web/MarcoWeb";
 import { DIRECCION_TIENDA_ONLINE } from "@/lib/club-qr-reglas";
 import { soles } from "@/lib/precio-sede-reglas";
 import {
+  fraseSinPedidos,
   fraseVentana,
   lecturasCaidas,
   pendientesDe,
+  sinPedidosAbiertos,
   type EntradaResumen,
   type IconoPendiente,
   type Pendiente,
@@ -48,9 +51,10 @@ const ICONO: Record<IconoPendiente, ReactNode> = {
 };
 
 /**
- * Tienda web ▸ Resumen (ADR-0430, Felipe 2026-10-16): lo que la tienda online pide hoy, de un vistazo. Arriba, la vitrina como la ve el
- * cliente (en su ventana de navegador) y cómo está cada tienda en la web; después, lo que pide acción, de lo urgente a lo que solo
- * informa, cada cosa con la pantalla que la resuelve; y el camino de los pedidos de esta tienda. Solo lee: cada bloque sale únicamente
+ * Tienda web ▸ Resumen (ADR-0430, Felipe 2026-10-16): lo que la tienda online pide hoy, de un vistazo. Primero, lo que pide acción, de lo
+ * urgente a lo que solo informa, cada cosa con la pantalla que la resuelve; después el camino de los pedidos de esta tienda (en una
+ * línea si no hay ninguno abierto); y al final, como contexto, la vitrina como la ve el cliente (en su ventana de navegador) y cómo está
+ * cada tienda en la web (propuesta A, Felipe 2026-10-26: la pregunta de la pantalla es «qué te pide hoy», no «cómo se ve»). Solo lee: cada bloque sale únicamente
  * si la cuenta ve el módulo de su pantalla, y si una lectura se cae, se dice y el resto se ve igual (principio 9).
  */
 export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: EntradaResumen; teselas: TeselaWeb[] | null; tienda: string }) {
@@ -68,6 +72,31 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
           No se pudo leer {new Intl.ListFormat("es", { type: "conjunction" }).format(caidas)}. Recarga la página; si sigue, entra a su pantalla.
         </Aviso>
       )}
+
+      <section className="space-y-3" data-guia="tienda-web.pendientes">
+        <TituloSeccion cuenta={pendientes.length}>Lo que te pide hoy</TituloSeccion>
+        {pendientes.length === 0 ? (
+          <Vacio icono={<CheckCircle2 />} titulo="Todo al día" tamano="chico" alinear="izquierda">
+            Nada de la tienda online espera por ti ahora. Si llega un pedido, aparece aquí y en el número del menú.
+          </Vacio>
+        ) : (
+          <ul className="tw-bandeja">
+            {pendientes.map((p, i) => (
+              <li key={p.clave}>
+                <FilaPendiente pendiente={p} i={i} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {entrada.pedidos.estado === "ok" ? (
+        <CaminoDePedidosResumen pedidos={entrada.pedidos.dato} tienda={tienda} />
+      ) : entrada.pedidos.estado === "no_tienda" ? (
+        <Aviso tono="info" titulo="Los pedidos web se atienden en una tienda">
+          Cambia a una tienda desde el selector de arriba para ver el camino de sus pedidos.
+        </Aviso>
+      ) : null}
 
       {(conVentana || sedes) && (
         <div className={`grid gap-5 ${conVentana && sedes ? "xl:grid-cols-[minmax(0,1fr)_19rem]" : ""}`}>
@@ -143,31 +172,6 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
         </div>
       )}
 
-      <section className="space-y-3" data-guia="tienda-web.pendientes">
-        <TituloSeccion cuenta={pendientes.length}>Lo que te pide hoy</TituloSeccion>
-        {pendientes.length === 0 ? (
-          <Vacio icono={<CheckCircle2 />} titulo="Todo al día" tamano="chico" alinear="izquierda">
-            Nada de la tienda online espera por ti ahora. Si llega un pedido, aparece aquí y en el número del menú.
-          </Vacio>
-        ) : (
-          <ul className="tw-bandeja">
-            {pendientes.map((p, i) => (
-              <li key={p.clave}>
-                <FilaPendiente pendiente={p} i={i} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {entrada.pedidos.estado === "ok" ? (
-        <CaminoDePedidosResumen pedidos={entrada.pedidos.dato} tienda={tienda} />
-      ) : entrada.pedidos.estado === "no_tienda" ? (
-        <Aviso tono="info" titulo="Los pedidos web se atienden en una tienda">
-          Cambia a una tienda desde el selector de arriba para ver el camino de sus pedidos.
-        </Aviso>
-      ) : null}
-
       <div className="nota-cayla space-y-2 text-[13px]" data-guia="tienda-web.nota">
         <p>
           Este resumen solo mira: cada cosa se resuelve en su pantalla, a un toque. Muestra lo que tu rol ve; si una pantalla de Tienda web no
@@ -220,6 +224,16 @@ function FilaPendiente({ pendiente: p, i }: { pendiente: Pendiente; i: number })
  *  cobrado hoy va en el título: no es un paso del pedido (ADR-0430, act. 2026-10-17). */
 function CaminoDePedidosResumen({ pedidos, tienda }: { pedidos: Extract<EntradaResumen["pedidos"], { estado: "ok" }>["dato"]; tienda: string }) {
   const { cifras: c, plazos } = pedidos;
+  // Sin ningún pedido abierto, cuatro tarjetas en cero no dicen nada: una línea, con lo cerrado y el enlace a Pedidos (propuesta A, 2026-10-26).
+  if (sinPedidosAbiertos(c)) {
+    return (
+      <section data-guia="tienda-web.camino">
+        <Vacio icono={<Clock />} tamano="chico" alinear="izquierda" accion={{ texto: "Ver pedidos", href: "/tienda-web/pedidos" }}>
+          {fraseSinPedidos(tienda, c.cerrados)}
+        </Vacio>
+      </section>
+    );
+  }
   return (
     <section className="space-y-3" data-guia="tienda-web.camino">
       <TituloSeccion dato={c.cobradoHoy > 0 ? <>En {tienda} · cobrado hoy {soles(c.cobradoHoy)}</> : <>En {tienda}</>}>El camino de los pedidos</TituloSeccion>

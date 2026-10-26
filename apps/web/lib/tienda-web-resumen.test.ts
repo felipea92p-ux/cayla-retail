@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CifrasPedidosWeb } from "./pedidos-web-reglas";
 import { filtrarVitrina, type ModeloVitrina } from "./vitrina-reglas";
-import { encendidosSinPrecio, fraseVentana, lecturasCaidas, pendientesDe, teselasDe, type EntradaResumen } from "./tienda-web-resumen";
+import { encendidosSinPrecio, fraseSinPedidos, fraseVentana, lecturasCaidas, pendientesDe, sinPedidosAbiertos, teselasDe, type EntradaResumen } from "./tienda-web-resumen";
 
 const HORA = 3_600_000;
 const PLAZOS = { horasParaConfirmar: 24, horasAvisoSinPagar: 48, diasAvisoSinRecoger: 7 };
@@ -100,6 +100,22 @@ const modelo = (id: string, extra: Partial<ModeloVitrina> = {}): ModeloVitrina =
   stock: [],
   vitrina: { publicado: true, enLoNuevo: "automatico", descripcionWeb: null, version: 1, actualizadoEn: null, actualizadoPor: null },
   ...extra,
+});
+
+describe("el camino de los pedidos se resume en una línea cuando no hay pedidos abiertos", () => {
+  it("sin nada por confirmar, cobrar, entregar ni devolver, y sin cobrado hoy, no hay pedidos abiertos; cualquiera de esas cosas lo cambia", () => {
+    expect(sinPedidosAbiertos(CIFRAS_EN_CERO)).toBe(true);
+    expect(sinPedidosAbiertos({ ...CIFRAS_EN_CERO, cerrados: 12 })).toBe(true);
+    for (const c of [{ porConfirmar: 1 }, { confirmados: 1 }, { porEntregar: 1 }, { porDevolver: 40 }, { cobradoHoy: 80 }] as Partial<CifrasPedidosWeb>[]) {
+      expect(sinPedidosAbiertos({ ...CIFRAS_EN_CERO, ...c }), JSON.stringify(c)).toBe(false);
+    }
+  });
+
+  it("la línea dice la tienda y cuántos se cerraron en 30 días, en singular y en plural", () => {
+    expect(fraseSinPedidos("Tienda Lima", 12)).toBe("En Tienda Lima: sin pedidos abiertos · 12 cerrados en los últimos 30 días");
+    expect(fraseSinPedidos("Tienda TRU", 1)).toBe("En Tienda TRU: sin pedidos abiertos · 1 cerrado en los últimos 30 días");
+    expect(fraseSinPedidos("Tienda TRU", 0)).toBe("En Tienda TRU: sin pedidos abiertos · ninguno cerrado en los últimos 30 días");
+  });
 });
 
 describe("los enlaces del Resumen a la Vitrina llegan ya filtrados", () => {
