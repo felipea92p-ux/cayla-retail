@@ -78,7 +78,7 @@ export function PasosConteo({
     const avance = pasos.length > 1 ? Math.max(0, indice) / (pasos.length - 1) : 0;
     return (
       <nav aria-label={etiqueta} className={className}>
-        <ol className="rc-riel">
+        <ol className="rc-riel" data-pasos={pasos.length} style={{ "--pasos": pasos.length } as React.CSSProperties}>
           <li aria-hidden className="rc-riel-linea">
             <i style={{ "--p": avance } as React.CSSProperties} />
           </li>

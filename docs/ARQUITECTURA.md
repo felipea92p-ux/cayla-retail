@@ -264,6 +264,9 @@ flowchart TB
   → RPC `bajar_a_piso` (mueve de `stock_almacen` a `stock` de piso). (V1; hoy: esa ruta y `bajar_a_piso` no
   existen; se baja con `mover_interno` desde «Reponer» de Existencias o con `bajar_al_piso` desde
   `/inventario/bajar`, ver «Inventario V2».)
+- `/recibir` y `/recibir/envio/[id]` (Recibir mercadería, ADR-0393/0503): la puerta lista los envíos por recibir en una tabla con buscador
+  (`EnviosParaRecibir.tsx` + `lib/recepcion-envio-busqueda.ts`) y el botón «Sin Aviso» (`LlegoSinAviso.tsx`); el cierre
+  (`recepcion-conteo/CerrarEnvio.tsx`) lleva la tarjeta «Costos y precios» y `PrecioDePrenda.tsx` → RPC `cambiar_precio_en_recepcion`.
 - `/inventario/recibir` → `lib/catalogo.ts` → `RecibirLoteForm.tsx` → RPC
   `recibir_lote` (la función más inestable del sistema, ver §6).
 - `/inventario/compras` → `ComprasManager.tsx` (escribe directo en
