@@ -192,7 +192,6 @@ type Props = {
   enEspera: TicketEnEspera[];
   onDejarEnEspera: () => void;
   onRetomar: (id: string) => void;
-  onIrAEspera: () => void;
   // Totales — ya calculados en el padre
   /** Lo que se cobra: con el cupón del Club, ya sin su parte. */
   total: number;
@@ -268,7 +267,6 @@ export function PuntoDeVentaTicket({
   enEspera,
   onDejarEnEspera,
   onRetomar,
-  onIrAEspera,
   total,
   prendas,
   vale = null,
@@ -336,8 +334,6 @@ export function PuntoDeVentaTicket({
   const cobrando = momentoMostrado === "cobrar";
   const descontando = momentoMostrado === "descuento";
   const enLaEspera = momentoMostrado === "espera";
-  // El chip «En espera · N» de la cabecera: solo cuando hay algo esperando, y no en la hoja del celular (allí ya está la tira).
-  const conChipEspera = enEspera.length > 0 && !enHoja;
   // Resumen de cada ticket en espera, derivado de sus líneas (sin estado, sin hooks).
   const resumenEspera = (t: TicketEnEspera) => ({
     hora: new Date(t.creadoEn).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" }),
@@ -450,16 +446,13 @@ export function PuntoDeVentaTicket({
             <TituloSeccion>
               <span className="inline-flex items-center gap-2.5">
                 <ShoppingBag className="h-5 w-5 text-tinta/70" aria-hidden />
-                {/* Con «Dejar en espera» y el chip «En espera · N» al lado, en un ticket de 320 px el título se partía en dos
-                    líneas: ahí dice solo «Ticket». */}
-                <span className="whitespace-nowrap">
-                  Ticket<span className={conChipEspera ? "@max-[19rem]:hidden" : undefined}> actual</span>
-                </span>
+                <span className="whitespace-nowrap">Ticket actual</span>
               </span>
             </TituloSeccion>
             {/* Park, a la altura del título (Felipe 2026-10-22): sacarlo del pie le devuelve una fila a la lista. Guarda el
-                ticket y libera la caja para el siguiente cliente. Con el chip «En espera · N» al lado, o en un ticket angosto,
-                queda solo el ícono (con su nombre para el lector y al pasar el mouse): los dos con texto no caben en 420 px. */}
+                ticket (pidiendo un nombre) y libera la caja para el siguiente cliente; «Nueva cliente», en las pestañas de
+                arriba, hace lo mismo de un toque y con nombre automático. En un ticket angosto queda solo el ícono (con su
+                nombre para el lector y al pasar el mouse). */}
             {carrito.length > 0 && (
               <button
                 type="button"
@@ -467,12 +460,10 @@ export function PuntoDeVentaTicket({
                 disabled={bloqueado}
                 aria-label="Dejar en espera"
                 title="Dejar en espera"
-                className={`btn-cayla btn-secundario anim-revelar ml-auto flex h-8 shrink-0 items-center gap-1.5 text-[12.5px] ${
-                  conChipEspera ? "w-8 justify-center px-0" : "px-2.5 @max-[20rem]:w-8 @max-[20rem]:justify-center @max-[20rem]:px-0"
-                }`}
+                className="btn-cayla btn-secundario anim-revelar ml-auto flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-[12.5px] @max-[20rem]:w-8 @max-[20rem]:justify-center @max-[20rem]:px-0"
               >
                 <CirclePause className={ICONO_CHICO} aria-hidden />
-                {!conChipEspera && <span className="hidden @min-[20rem]:inline">Dejar en espera</span>}
+                <span className="hidden @min-[20rem]:inline">Dejar en espera</span>
               </button>
             )}
             {/* En la hoja del celular, la salida al catálogo (además del velo): la clienta pide otra prenda. */}
@@ -484,19 +475,6 @@ export function PuntoDeVentaTicket({
                 className="order-last ml-2 grid h-9 w-9 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors hover:bg-sand/40 hover:text-tinta"
               >
                 <X className="h-5 w-5" aria-hidden />
-              </button>
-            )}
-            {/* Solo cuando hay algo esperando: el chip abre la lista completa. En la hoja del celular no hace falta: la
-                tira de arriba ya los muestra y la cabecera no tiene ancho para los dos. */}
-            {conChipEspera && (
-              <button
-                type="button"
-                onClick={onIrAEspera}
-                disabled={bloqueado}
-                className="btn-cayla btn-secundario anim-revelar flex h-8 items-center gap-1.5 px-2.5 text-[12.5px]"
-              >
-                <CirclePause className={ICONO_CHICO} aria-hidden />
-                En espera · {enEspera.length}
               </button>
             )}
           </>

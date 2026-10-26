@@ -141,7 +141,16 @@ import {
   rechazoDelCupon,
   solesDelCupon,
 } from "@/lib/club-puntos-reglas";
-import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
+import { DejarEnEsperaModal, DescartarTicketModal, TiraDeTickets } from "@/components/punto-de-venta/Esperas";
+import {
+  abrirNuevoTicket,
+  cabeOtroTicket,
+  nombreDelTicketActivo,
+  pasarAlTicket,
+  pestanasDeTickets,
+  quitarDeLaEspera,
+  TOPE_TICKETS_ABIERTOS,
+} from "@/lib/tickets-abiertos-reglas";
 import { ticketParaEspera } from "@/lib/vender-hoy-reglas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { PedirEnOtraTienda } from "@/components/punto-de-venta/PedirEnOtraTienda";
@@ -295,8 +304,6 @@ export type TicketEnEspera = {
   cobro?: CobroDelTicket;
 };
 
-/** Más de esto no es «en espera», es un mostrador desbordado: el sexto avisa. */
-const TOPE_ESPERA = 5;
 /** Un medio con el que pagó la clienta (ver `lib/vender-reglas.ts`); compartido con el
  *  ticket desde acá, como los otros tipos (ADR-0043). */
 export type { PagoAplicado } from "@/lib/vender-reglas";
@@ -489,6 +496,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const [hojaPuntos, setHojaPuntos] = useState(false);
   const [hojaCodigo, setHojaCodigo] = useState(false);
   const [esperaAbierta, setEsperaAbierta] = useState(false);
+  // Dónde se dibuja el ticket de la caja entre las pestañas (`lib/tickets-abiertos-reglas.ts`); `null` = al final, donde nace uno nuevo.
+  const [posActivo, setPosActivo] = useState<number | null>(null);
+  // El ticket que se va a descartar, con lo que la hoja de confirmación dice (se guarda aparte: al descartarlo su pestaña desaparece
+  // y la hoja no puede leerla de ahí mientras sale). `id: null` es el de la caja.
+  const [porDescartar, setPorDescartar] = useState<{ id: string | null; nombre: string; prendas: number; total: number } | null>(null);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
   // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
   // no sale hasta que las filas cubran el total al centavo: lo frena `motivoBloqueo`.
@@ -511,6 +523,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // render dejaría el HTML del servidor distinto del primero del navegador (hidratación).
   const [enEspera, setEnEspera] = useState<TicketEnEspera[]>([]);
   const claveEspera = claveLocal(ubicacionId, "en-espera");
+  // Cómo se llama el ticket de la caja en las pestañas: el que le puso la cajera o el siguiente «Cliente N» libre.
+  const nombreActivo = nombreDelTicketActivo(nombreTicket, enEspera);
+  const pestanas = pestanasDeTickets(enEspera, posActivo, { nombre: nombreTicket, carrito });
   // Cola de ventas offline (BACKLOG "resiliencia sin internet", ADR-0036 adaptado): a
   // diferencia de `enEspera`, sobrevive el cierre de caja a propósito — una venta ya
   // cobrada en el mostrador no puede perderse solo porque alguien cerró caja antes de
@@ -728,7 +743,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
+    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || porDescartar !== null || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -1457,33 +1472,66 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  pero las sugerencias («Probador 1»…) y Enter lo dejan de un toque. El tope se revisa ANTES de preguntar. */
   function pedirDejarEnEspera() {
     if (carrito.length === 0) return;
-    if (enEspera.length >= TOPE_ESPERA) {
-      avisar.error(`Ya hay ${TOPE_ESPERA} tickets en espera en ${ubicacionEtiqueta}. Retoma o cobra uno antes de dejar otro.`);
+    if (!cabeOtroTicket(enEspera.length)) {
+      avisarTopeDeTickets();
       return;
     }
     setHojaTicket(false);
     setEsperaAbierta(true);
   }
+  /** Más de 9 tickets abiertos no es atender a varias clientas, es un mostrador desbordado (Felipe, 2026-10-25): avisa en vez de dejar crecer la fila. */
+  function avisarTopeDeTickets() {
+    avisar.error(`Ya hay ${TOPE_TICKETS_ABIERTOS} tickets abiertos en ${ubicacionEtiqueta}. Cobra o descarta uno antes de abrir otro.`);
+  }
   function dejarEnEspera(nombre: string) {
     if (carrito.length === 0) return;
-    if (enEspera.length >= TOPE_ESPERA) {
-      avisar.error(`Ya hay ${TOPE_ESPERA} tickets en espera en ${ubicacionEtiqueta}. Retoma o cobra uno antes de dejar otro.`);
+    if (!cabeOtroTicket(enEspera.length)) {
+      avisarTopeDeTickets();
       return;
     }
     capturarFlip();
-    persistirEspera([...enEspera, ticketParaEspera({ carrito, nota, nombre, clienta, cobro: cobroParaEspera() }, crypto.randomUUID(), new Date().toISOString())]);
+    // Sin nombre se guarda con el automático («Cliente 2»): una pestaña sin nombre no se distingue de las otras.
+    const dejado = ticketParaEspera({ carrito, nota, nombre: nombre || nombreActivo, clienta, cobro: cobroParaEspera() }, crypto.randomUUID(), new Date().toISOString());
+    // El ticket se queda en su lugar de la fila y la caja abre uno vacío al final.
+    const nueva = abrirNuevoTicket(enEspera, posActivo, dejado);
+    persistirEspera(nueva.espera);
+    setPosActivo(nueva.posActivo);
     limpiarTicket();
     buscador.current?.focus();
+  }
+  /** «Nueva cliente» (Felipe, 2026-10-25): atender a otra sin perder este ticket, de un toque y con nombre automático. */
+  function nuevaCliente() {
+    dejarEnEspera(nombreActivo);
+  }
+  /** Descartar un ticket (pide confirmación: se pierden sus prendas). Sin `id`, el de la caja. */
+  function pedirDescartar(id: string | null) {
+    const p = pestanas.find((x) => x.id === id);
+    if (p) setPorDescartar({ id, nombre: p.nombre, prendas: p.prendas, total: p.total });
+  }
+  function descartarTicket(id: string | null) {
+    if (id === null) {
+      // Una proforma en cobro se suelta con su propio camino: sigue vigente en Proformas y no se cobra como venta suelta.
+      if (proformaActiva) soltarProforma();
+      else limpiarTicket();
+      buscador.current?.focus();
+      return;
+    }
+    const sin = quitarDeLaEspera(enEspera, posActivo, id);
+    persistirEspera(sin.espera);
+    setPosActivo(sin.posActivo);
   }
   function retomar(id: string) {
     const ticket = enEspera.find((t) => t.id === id);
     if (!ticket) return;
-    // Si el ticket actual tiene líneas, se intercambian: el actual ocupa el lugar del retomado.
+    // Si el ticket actual tiene líneas, se intercambian de lugar: el actual se queda donde estaba la pestaña retomada y nadie más se mueve.
     const actual: TicketEnEspera | null =
       carrito.length > 0
-        ? ticketParaEspera({ carrito, nota, nombre: nombreTicket, clienta, cobro: cobroParaEspera() }, crypto.randomUUID(), new Date().toISOString())
+        ? ticketParaEspera({ carrito, nota, nombre: nombreActivo, clienta, cobro: cobroParaEspera() }, crypto.randomUUID(), new Date().toISOString())
         : null;
-    persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
+    const paso = pasarAlTicket(enEspera, posActivo, actual, id);
+    if (!paso) return;
+    persistirEspera(paso.espera);
+    setPosActivo(paso.posActivo);
     // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
     // completa acá, la única puerta por la que algo del navegador vuelve al carrito.
     // Con el precio y la campaña de AHORA: un ticket en espera pudo nacer antes de que alguien cambiara un precio o
@@ -2224,7 +2272,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             enEspera={enEspera}
             onDejarEnEspera={pedirDejarEnEspera}
             onRetomar={retomar}
-            onIrAEspera={() => setMomento("espera")}
             total={total}
             prendas={prendas}
             vale={valeDelTicket}
@@ -2246,7 +2293,23 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           onCerrarHoja={() => setHojaTicket(false)}
           arriba={
             <>
-              <TiraDeEsperas enEspera={enEspera} onRetomar={retomar} bloqueado={bloqueado} />
+              <TiraDeTickets
+                pestanas={pestanas}
+                nombreEscrito={nombreTicket}
+                puedeNueva={carrito.length > 0 && cabeOtroTicket(enEspera.length)}
+                motivoNueva={
+                  carrito.length === 0
+                    ? "Agrega una prenda a este ticket para atender a otra cliente"
+                    : cabeOtroTicket(enEspera.length)
+                      ? null
+                      : `Ya hay ${TOPE_TICKETS_ABIERTOS} tickets abiertos: cobra o descarta uno`
+                }
+                bloqueado={bloqueado}
+                onIr={retomar}
+                onNueva={nuevaCliente}
+                onDescartar={pedirDescartar}
+                onRenombrar={setNombreTicket}
+              />
               {/* Cliente y bolsa en UNA fila (Felipe 2026-10-22): apiladas, las dos franjas le quitaban a la lista de prendas casi
                   70 px. Con un cliente elegido su caja crece y la bolsa queda en un ícono a su derecha. */}
               <div className="flex items-start gap-2 px-5 pt-3 empty:hidden">
@@ -2505,6 +2568,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           ocupados={[...enEspera.map((t) => t.nombre ?? ""), nombreTicket]}
           onDejar={dejarEnEspera}
           onClose={() => setEsperaAbierta(false)}
+        />
+      )}
+
+      {porDescartar && (
+        <DescartarTicketModal
+          nombre={porDescartar.nombre}
+          prendas={porDescartar.prendas}
+          total={porDescartar.total}
+          onDescartar={() => descartarTicket(porDescartar.id)}
+          onClose={() => setPorDescartar(null)}
         />
       )}
 
