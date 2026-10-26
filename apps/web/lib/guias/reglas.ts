@@ -46,6 +46,9 @@ export function motivoParaNoTocar(p: PiezaATocar): string | null {
     if (/^(https?:|mailto:|tel:|whatsapp:)/i.test(p.href)) return "sale del ERP";
     if (destino && destino !== p.rutaActual) return "lleva a otra pantalla";
   }
+  // Un pliegue (`aria-expanded`) muestra u oculta lo que ya está en la pantalla: se toca aunque diga «Ver y cambiar». Va DESPUÉS de
+  // las reglas de envío y de los enlaces, así que un submit o un enlace a otra pantalla con `aria-expanded` sigue prohibido.
+  if (p.esPliegue) return null;
   const texto = normalizar(p.texto);
   for (const verbo of VERBOS_QUE_ESCRIBEN) {
     if (new RegExp(`(^|[^a-z])${verbo}([^a-z]|$)`).test(texto)) return `es un botón que hace algo («${verbo}»)`;
