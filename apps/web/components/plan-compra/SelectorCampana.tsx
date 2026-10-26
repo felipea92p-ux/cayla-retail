@@ -67,16 +67,17 @@ export function SelectorCampana({
           ? // Sin plan todavía: el líder la arma con un toque; los demás la ven, apagada, para saber que viene.
             { valor: `${DEL_CALENDARIO}${claveDeRanura(x.ranura)}`, texto: `${rotuloDeCampana(x.ranura)} · ${armar ? "armar plan" : "sin plan"}`, grupo: x.grupo, deshabilitada: !armar }
           : // En mi plan pero sin fechas: el Calendario es donde se le ponen.
-            { valor: `${SIN_FECHAS}${x.etiqueta.id}`, texto: `${x.etiqueta.nombre} · ponle fechas en el Calendario`, grupo: x.grupo, deshabilitada: !onSinFechas },
+            { valor: `${SIN_FECHAS}${x.etiqueta.id}`, texto: `${x.etiqueta.nombre} · ponle fechas en el Calendario`, grupo: x.grupo, deshabilitada: !onSinFechas || !campanas.calendario },
     );
     if (actual && !enLista.some((x) => x.tipo === "plan" && x.campana.id === actual.id)) planes.push({ valor: actual.id, texto: rotuloDeCampana(actual), grupo: "Terminadas" });
     if (!puedeCrear) return planes;
-    const acciones: Opcion<string>[] = [{ valor: NUEVA, texto: "+ Campaña nueva…", grupo: "Acciones" }];
+    // «Campaña nueva» y «ponle fechas» llevan al Calendario: si la base todavía no lo tiene (la web sale antes que su migración), no se ofrecen para no dejar a nadie en un callejón.
+    const acciones: Opcion<string>[] = campanas.calendario ? [{ valor: NUEVA, texto: "+ Campaña nueva…", grupo: "Acciones" }] : [];
     // Editar y archivar existen desde B5: si la base todavía no lo sabe, no se ofrece.
     if (campanas.edicion && actual) acciones.push({ valor: EDITAR, texto: "Editar o quitar esta campaña…", grupo: "Acciones" });
     if (campanas.edicion && archivadas.length > 0) acciones.push({ valor: ARCHIVADAS, texto: `Campañas archivadas (${archivadas.length})…`, grupo: "Acciones" });
     return [...planes, ...acciones];
-  }, [enLista, actual, archivadas, campanas.edicion, puedeCrear, onArmar, onSinFechas]);
+  }, [enLista, actual, archivadas, campanas.edicion, campanas.calendario, puedeCrear, onArmar, onSinFechas]);
   if (opciones.length < 2) return null;
   return (
     // La caja solo lleva el ancla de la guía (ADR-0389): el desplegable no recibe atributos sueltos.
