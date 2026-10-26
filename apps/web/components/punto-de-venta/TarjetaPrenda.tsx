@@ -13,6 +13,7 @@ import { motivoNoCobrable, tooltipTallaSinPiso } from "@/lib/vender-stock-local"
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
 
 /** Cuántos puntos de color entran en la tarjeta más angosta (un celular de 320 px, dos columnas): con más, «+N». */
 const PUNTOS_A_LA_VISTA = 5;
@@ -149,6 +150,8 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
         {/* Dos líneas: en un celular de 320 la tarjeta mide ~140 px y una sola dejaba «Pantalón…» sin decir cuál. */}
         <p className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{nombre}</p>
         <p className="mt-0.5 text-[11.5px] text-tinta/55">{resumenDePrenda(prenda)}</p>
+        {/* ADR-0505: en Lima, «CLAURE» bajo el nombre, para no venderla como la blusa de CAYLA que se le parece. */}
+        <InsigniaEmpresa nombre={elegido.tallas[0]?.variante.empresa} className="mt-1" />
       </div>
 
       {prenda.colores.length > 1 && (

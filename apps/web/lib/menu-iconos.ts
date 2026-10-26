@@ -184,9 +184,13 @@ const APARTE: Partial<Record<ClaveModulo, ClaveIcono | null>> = {
   atributos: "atributos",
   // Resumen y Reportes de Finanzas son dos filas del mismo módulo; en Roles se dibuja como los reportes.
   reportes_financieros: "reportes",
-  // Campañas (`campanas`) no tiene fila propia desde el 2026-10-22: abre la de Insignias (su `moduloAlterno`). En Roles lleva su
+  // Campañas (`campanas`) no tiene fila propia desde el 2026-10-22: abre la de Insignias (su `modulosAlternos`). En Roles lleva su
   // calendario con corazón, para no confundirse con la medalla del módulo Insignias (`etiquetas`).
   campanas: "calendarioCampana",
+  // «Revisar compras» y «Por pagar» ya no tienen fila propia (ADR-0504): son pestañas de «Historial de compras», que abre con su módulo y con
+  // `modulosAlternos`. En Roles y accesos siguen dibujándose como siempre: el portapapeles con visto y el calendario con reloj.
+  fondos: "revisarCompras",
+  por_pagar: "porPagar",
   colaboradores: "colaboradores",
   // Actividad no es una fila: es el botón de la cabecera (ADR-0207), que dibuja el reloj con flecha del Historial (`BotonActividad`).
   actividad: "historial",

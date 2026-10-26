@@ -26,6 +26,10 @@ import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { conHistorial, fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
 import { leerHistorial } from "@/lib/plan-compra-historial";
 import { leerPedido, numeroDeOrden } from "@/lib/plan-compra-pedido";
+import { conDescuentos, leerDescuentos } from "@/lib/plan-compra-descuento";
+import { diasConQueSeCuenta, fraseDeLosDias, leerPlazoFijado, plazoDePedido, type EstadoDelPlazo } from "@/lib/plan-compra-plazo";
+import { PlazoModal } from "@/components/plan-compra/PlazoModal";
+import type { TonoAvisoLinea } from "@/components/ui/Aviso";
 import Link from "next/link";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
 import { SimuladorPlan } from "@/components/plan-compra/SimuladorPlan";
@@ -74,6 +78,9 @@ import { BotonDescargar } from "@/components/ui/BotonDescargar";
 /** Marca, en el historial, la entrada que la pantalla agregó al pasar al paso a paso: volver a la tabla la retira en vez de apilar otra. */
 const MARCA_VISTA = "__planVistaPaso";
 
+/** El tono de la franja de la fecha límite: verde si va a tiempo, ámbar si ya es justo, rojo si ya no llega; informativa si la campaña empezó. */
+const TONO_DEL_PLAZO: Record<EstadoDelPlazo, TonoAvisoLinea> = { a_tiempo: "exito", justo: "atencion", tarde: "error", empezo: "info", termino: "info" };
+
 export function PlanCampana({
   datos,
   falla,
@@ -87,6 +94,8 @@ export function PlanCampana({
   propuesta: propuestaCruda = null,
   pedido: pedidoCrudo = null,
   historia: historiaCruda = null,
+  descuentos: descuentosCrudos = null,
+  plazo: plazoCrudo = null,
 }: {
   datos: unknown;
   falla: string | null;
@@ -107,8 +116,12 @@ export function PlanCampana({
   pedido?: unknown;
   /** La misma campaña del año anterior en el historial (`fn_historial_ventas`), crudo: el multiplicador de las tiendas que el ERP no cubre. */
   historia?: unknown;
+  /** El descuento guardado por categoría y el que sugiere la campaña (`fn_plan_compra_descuento`, ADR-0499), crudo; null = el plan cuenta a precio de lista. */
+  descuentos?: unknown;
+  /** Los días para llegar fijados para esta campaña (`fn_plan_compra_plazo`, ADR-0499), crudo; null = la base no lo manda: se cuenta con el supuesto y no se ofrece cambiarlo. */
+  plazo?: unknown;
 }) {
-  const plan = useMemo(() => leerPlan(datos), [datos]);
+  const plan = useMemo(() => conDescuentos(leerPlan(datos), leerDescuentos(descuentosCrudos)), [datos, descuentosCrudos]);
   const hechos = useMemo(() => {
     const leida = leerPropuesta(propuestaCruda);
     return leida ? conHistorial(leida, leerHistorial(historiaCruda)) : null;
@@ -133,6 +146,7 @@ export function PlanCampana({
   const [editandoRecupero, setEditandoRecupero] = useState(false);
   const [resumenAbierto, setResumenAbierto] = useState(false);
   const [editandoReparto, setEditandoReparto] = useState(false);
+  const [editandoPlazo, setEditandoPlazo] = useState(false);
   // La hoja de una campaña: una del calendario para armar su plan (`ranura`) o una nueva (`ranura: null`). Act. 2026-10-12 f.
   const [hojaCampana, setHojaCampana] = useState<{ ranura: RanuraCalendario | null } | null>(null);
   const [editandoCampana, setEditandoCampana] = useState(false);
@@ -248,6 +262,11 @@ export function PlanCampana({
 
   const momento = momentoDeLaCampana(plan.hoy, plan.plan.desde, plan.plan.hasta);
   const totales = totalesDelPlan(filas);
+  // La fecha límite para pedir (ADR-0499): el inicio de la campaña menos los días que tarda un pedido en llegar. Mientras ese número no se
+  // fije por campaña, es el supuesto de fábrica (14) y la franja lo dice.
+  const plazoFijado = leerPlazoFijado(plazoCrudo);
+  const plazo = plazoDePedido(plan.plan.desde, plan.plan.hasta, plan.hoy, diasConQueSeCuenta(plazoFijado));
+  const porPedir = filas.filter((f) => (f.calculo?.comprar ?? 0) > 0).length;
   const confianza = confianzaDelStock(preparacion);
   const filaAbierta = abierta ? (filas.find((f) => f.c.id === abierta.id) ?? null) : null;
   const siguiente = abierta ? (siguienteSinPlan(filas, [...hechas, abierta.id])?.c ?? null) : null;
@@ -355,6 +374,31 @@ export function PlanCampana({
       />
 
       <PestanasPlan activa="plan" planId={plan.plan.id} />
+
+      {plazo.estado !== "termino" && (
+        // La fecha límite para pedir (ADR-0499): una franja con el tono de lo urgente que es. Con nada por pedir, solo informa.
+        <Aviso
+          guia="plan.plazo"
+          tono={porPedir === 0 && plazo.estado !== "tarde" ? "info" : TONO_DEL_PLAZO[plazo.estado]}
+          titulo={plazo.texto}
+          // Cambiar los días (quien tiene el módulo; la base lo exige también). Solo si la base ya guarda el plazo. Solo abre su hoja
+          // (nada se guarda hasta «Guardar plazo»): `aria-haspopup` lo dice al lector y deja que la guía la abra.
+          accion={
+            plazoFijado ? (
+              <Boton type="button" peso="fantasma" aria-haspopup="dialog" data-guia="plan.plazo-cambiar" onClick={() => setEditandoPlazo(true)}>
+                Cambiar los días
+              </Boton>
+            ) : undefined
+          }
+        >
+          {porPedir > 0
+            ? `${porPedir} ${porPedir === 1 ? "categoría tiene" : "categorías tienen"} compra pendiente. `
+            : totales.conPlan > 0
+              ? "Ninguna categoría tiene compra pendiente. "
+              : ""}
+          {plazo.detalle} {fraseDeLosDias(plazoFijado)}
+        </Aviso>
+      )}
 
       {plan.plan.archivado && (
         <Aviso
@@ -512,6 +556,7 @@ export function PlanCampana({
         onSinMov={setSinMovAbiertas}
         onAbrir={(f) => setAbierta(f.c)}
         recientes={recientes}
+        plazo={plazo}
         vista={vista}
         onVista={irAVista}
         pasoAPaso={
@@ -550,6 +595,17 @@ export function PlanCampana({
       {verArchivadas && campanas && <CampanasArchivadasModal archivadas={campanasArchivadas(campanas)} onClose={() => setVerArchivadas(false)} />}
 
       {editandoTope && <TopeModal planId={plan.plan.id} planNombre={plan.plan.nombre} topeActual={plan.tope.valor} onClose={() => setEditandoTope(false)} />}
+      {editandoPlazo && plazoFijado && (
+        <PlazoModal
+          planId={plan.plan.id}
+          planNombre={plan.plan.nombre}
+          desde={plan.plan.desde}
+          hasta={plan.plan.hasta}
+          hoy={plan.hoy}
+          diasActuales={plazoFijado.dias}
+          onClose={() => setEditandoPlazo(false)}
+        />
+      )}
       {editandoReparto && hechos && (
         <RepartoModal planId={plan.plan.id} planNombre={plan.plan.nombre} tiendas={hechos.tiendasActivas} minimos={hechos.minimos} onClose={() => setEditandoReparto(false)} />
       )}

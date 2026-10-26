@@ -12,7 +12,9 @@ import {
   enmascararCci,
   enmascararCelular,
   enmascararCuenta,
+  esDeServicios,
   esSoloDeGastos,
+  resumenSoloMercaderia,
   formatoCci,
   formatoCelular,
   normalizarCci,
@@ -547,5 +549,49 @@ describe("proveedores de mercadería y de gastos (ADR-0452, complemento 2026-10-
     // Un número de otro largo (un celular, un DNI) no se cuela como RUC.
     expect(borradorDeLoBuscado("987654321")).toEqual({ nombre: "987654321", ruc: "" });
     expect(borradorDeLoBuscado("")).toEqual({ nombre: "", ruc: "" });
+  });
+});
+
+describe("esDeServicios: el tipo manda; sin tipo, la regla de «Gastos»", () => {
+  it("el tipo de la base decide, aunque el rubro diga otra cosa", () => {
+    expect(esDeServicios({ tipo: "servicios", rubros: ["Telefonía"] })).toBe(true);
+    expect(esDeServicios({ tipo: "mercaderia", rubros: ["Gastos"] })).toBe(false);
+  });
+
+  it("sin tipo (lista anterior a la columna) vale lo de siempre", () => {
+    expect(esDeServicios({ rubros: ["Gastos"] })).toBe(true);
+    expect(esDeServicios({ rubros: ["Telas", "Gastos"] })).toBe(false);
+    expect(esDeServicios({ rubros: [] })).toBe(false);
+    expect(esDeServicios({})).toBe(false);
+  });
+
+  it("proveedoresParaPedir deja fuera a los de servicios por tipo, y conserva al elegido", () => {
+    const lista = [
+      { id: "a", tipo: "mercaderia", rubros: ["Polos"] },
+      { id: "b", tipo: "servicios", rubros: ["Telefonía"] },
+      { id: "c", rubros: ["Gastos"] },
+    ];
+    expect(proveedoresParaPedir(lista).map((p) => p.id)).toEqual(["a"]);
+    expect(proveedoresParaPedir(lista, "b").map((p) => p.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("resumenSoloMercaderia: los servicios no cuentan como «sin compras»", () => {
+  const base = { activos: 13, desactivados: 1, sinCompras90d: 11, deudaTotal: 500 };
+  const lista = [
+    { activo: true, tipo: "mercaderia", dias_desde_ultima_compra: 10 },
+    { activo: true, tipo: "mercaderia", dias_desde_ultima_compra: 200 },
+    { activo: true, tipo: "servicios", dias_desde_ultima_compra: null },
+    { activo: true, tipo: "servicios", dias_desde_ultima_compra: null },
+    { activo: false, tipo: "servicios", dias_desde_ultima_compra: null },
+  ];
+
+  it("saca de los conteos a los de servicios y deja lo demás", () => {
+    expect(resumenSoloMercaderia(base, lista)).toEqual({ activos: 11, desactivados: 0, sinCompras90d: 9, deudaTotal: 500 });
+  });
+
+  it("sin servicios no cambia nada; sin dato de «sin compras» sigue sin dato", () => {
+    expect(resumenSoloMercaderia(base, lista.filter((p) => p.tipo === "mercaderia"))).toEqual(base);
+    expect(resumenSoloMercaderia({ ...base, sinCompras90d: null }, lista).sinCompras90d).toBeNull();
   });
 });

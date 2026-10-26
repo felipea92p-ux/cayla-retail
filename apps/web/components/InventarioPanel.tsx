@@ -17,6 +17,8 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { Modal } from "@/components/ui/Modal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import { BuscarPrendaParaAjustar } from "@/components/existencias/BuscarPrendaParaAjustar";
+import { usePedidoDeAjuste } from "@/components/existencias/BotonAjustarStock";
 // «Pedir para una clienta» (PedirOtraSedeModal) no vuelve: el rediseño del cajón (2026-09-28) no tiene esa entrada — el
 // mismo criterio ya documentado para «Apartar»/«Retirar del piso»/«Dónde más hay». «Eliminar el producto» (ADR-0252) salió del
 // detalle de la prenda el 2026-10-12 (ADR-0391, decisión de Felipe): es de Catálogo, y ahí sigue (la vista rápida de Productos).
@@ -291,6 +293,14 @@ export function InventarioPanel({
   // «Reponer prenda» y «Subir prenda» ya no existen. Ajustar y Reportar dañada conservan su ventana completa para lo que el panel no cubre
   // (varias tallas a la vez, enlazar con un conteo).
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
+  // «Ajustar stock» de la cabecera (ADR-0494): cada toque abre «¿Qué prenda vas a ajustar?» (patrón «previo + comparación»).
+  const pedidoDeAjuste = usePedidoDeAjuste();
+  const [pedidoVisto, setPedidoVisto] = useState(pedidoDeAjuste);
+  const [buscandoAjuste, setBuscandoAjuste] = useState(false);
+  if (pedidoDeAjuste !== pedidoVisto) {
+    setPedidoVisto(pedidoDeAjuste);
+    setBuscandoAjuste(true);
+  }
   // «Eliminar el producto» desde el detalle (ADR-0252): el producto entero, no la talla ni el color.
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
   const [viendoApartados, setViendoApartados] = useState(false);
@@ -1353,6 +1363,18 @@ export function InventarioPanel({
           El cajón de la prenda (diseño aprobado, 2026-09-28): el MISMO desde «Por prenda» y «Por talla». Sus acciones no abren un
           modal encima del cajón: lo cierran y abren el suyo (Reponer, Ajustar, Eliminar), que al guardar refresca la pantalla. Sin
           `key`: al tocar otra fila el cajón se queda y solo cambia su contenido. */}
+      {buscandoAjuste && puedeAjustarAqui && (
+        <BuscarPrendaParaAjustar
+          indice={indiceBusqueda}
+          sedeNombre={sedeNombre}
+          onClose={() => setBuscandoAjuste(false)}
+          onElegir={(clave, varianteId) => {
+            setBuscandoAjuste(false);
+            setAbierta({ clave, varianteId, flujo: { tipo: "ajustar" } });
+          }}
+        />
+      )}
+
       {prendaAbierta && (
         <PanelTalla
           colores={coloresDelModelo(stock, prendaAbierta.productoId)}
