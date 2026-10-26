@@ -19,6 +19,13 @@ import {
   type ConteosDelEnvio,
   type LineaParaCerrar,
 } from "@/lib/recepcion-conteo-reglas";
+import {
+  leerObservacion,
+  leerObservaciones,
+  RPC_OBSERVACIONES_ENVIO,
+  RPC_REGISTRAR_OBSERVACION,
+  type ObservacionDeEnvio,
+} from "@/lib/observaciones-envio-reglas";
 import { leerResultadoRecepcion, type ResultadoRecepcion } from "@/lib/recepcion-envio-reglas";
 
 // Recibir contando primero (ADR-0393): lo que la cara A le pide a la base. Las reglas viven en cada función (el módulo Recibir, la sede, quien
@@ -92,4 +99,19 @@ export async function corregirGuiaEnvio(
   const { data, error } = (await firmar(createClient().rpc(RPC_CORREGIR_GUIA as never, args as never), firma)) as Respuesta;
   const r = !error && data && typeof data === "object" ? (data as { version?: unknown }) : null;
   return { version: r && typeof r.version === "number" ? r.version : null, error: error ?? null };
+}
+
+/** Las observaciones de un envío (ADR-0507). Lectura: no abre el loader. Sin la base al día devuelve una lista vacía y el error. */
+export async function leerObservacionesDelEnvio(despachoId: string): Promise<{ observaciones: ObservacionDeEnvio[]; error: ErrorDeBase }> {
+  const { data, error } = (await createClient().rpc(RPC_OBSERVACIONES_ENVIO as never, { p_despacho_id: despachoId } as never)) as unknown as Respuesta;
+  return { observaciones: error ? [] : leerObservaciones(data), error: error ?? null };
+}
+
+/** Anota una observación (tipo + mensaje) de una línea del envío o del envío entero. El token hace seguro el doble clic y el reintento. */
+export async function registrarObservacion(
+  args: { p_despacho_id: string; p_despacho_item_id: string | null; p_tipo: string; p_mensaje: string; p_token: string },
+  firma: Firma | null,
+): Promise<{ observacion: ObservacionDeEnvio | null; error: ErrorDeBase }> {
+  const { data, error } = (await firmar(createClient().rpc(RPC_REGISTRAR_OBSERVACION as never, args as never), firma)) as Respuesta;
+  return { observacion: error ? null : leerObservacion(data), error: error ?? null };
 }
