@@ -335,8 +335,10 @@ export function ExistenciasTarjetas({
                 <span data-guia="existencias.prenda-nombre" className="block truncate font-display text-[16.5px] leading-tight text-tinta" title={[p.referencia, mostrarMarca ? p.marca : null, p.categoria].filter(Boolean).join(" · ")}>
                   {p.referencia}
                 </span>
-                <span className="mt-1 flex min-w-0 items-center gap-1.5">
-              <div className="flex shrink-0 items-center gap-2.5 pl-0.5" role="radiogroup" aria-label={`Color de ${p.referencia}`} onPointerLeave={() => setMirando(null)}>
+                {/* Con muchos colores los puntos bajan a otra línea dentro de la tarjeta, nunca se salen de ella (Felipe 2026-10-26: un
+                    modelo de 14 colores pasaba el borde). El nombre del color va detrás del último punto, o abajo si no cabe. */}
+                <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1.5">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-2 pl-0.5" role="radiogroup" aria-label={`Color de ${p.referencia}`} onPointerLeave={() => setMirando(null)}>
                 {m.colores.map((h) => {
                   const propia = h.clave === pFijo.clave;
                   const n = marcaDelFiltro ? (tallasCompletas?.(h) ?? h.tallas).filter(marcaDelFiltro.coincide).length : 0;
