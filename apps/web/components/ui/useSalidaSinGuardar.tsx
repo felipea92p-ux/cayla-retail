@@ -78,8 +78,9 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
   useEffect(() => {
     hayCambios.current = conCambios;
   }, [conCambios]);
-  /** ¿Hay algo que perder ahora mismo? Se pregunta en el momento del gesto, no al dibujar. */
-  const debePreguntar = useCallback(() => hayCambios.current && !saliendo.current, []);
+  /** ¿Hay algo que perder ahora mismo? Se pregunta en el momento del gesto, no al dibujar. Con una guía interactiva en curso no hay nada que
+   *  perder: lo que el piloto escribió o eligió es de la demo (que nunca guarda), y preguntar dejaba la hoja abierta bajo el resto de la guía. */
+  const debePreguntar = useCallback(() => hayCambios.current && !saliendo.current && !document.querySelector("[data-guia-motor]"), []);
 
   const soltar = useCallback(() => {
     saliendo.current = true;

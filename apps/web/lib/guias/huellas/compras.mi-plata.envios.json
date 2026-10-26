@@ -1,0 +1,29 @@
+{
+  "guia": "compras.mi-plata.envios",
+  "ruta": "/compras/mi-plata/envios",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 11,
+  "controles": {
+    "app/(app)/compras/mi-plata/envios/page.tsx": [
+      "Volver «/compras/mi-plata»"
+    ],
+    "components/mi-plata/CodigoDeEnvio.tsx": [
+      "BotonCopiar «el código del envío»",
+      "BotonAncla «Compartir por WhatsApp»"
+    ],
+    "components/mi-plata/FilaEnvio.tsx": [
+      "button «{abierta && <HojaEnvio e={e}»"
+    ],
+    "components/mi-plata/MandarATienda.tsx": [
+      "button «{guia}»",
+      "Boton «Mandar a la siguiente tienda (»",
+      "BotonVer «Ver mis envíos»",
+      "Boton «{t === porMandar[0] ? \"mi-plata.mandar-uno\" : undefined}»"
+    ],
+    "components/mi-plata/MisEnvios.tsx": [
+      "Pestanas «→(c) => setAlcance(c as Alcance)»",
+      "button «{f.nombre}»",
+      "button «{r.rondaId ? `Ronda ${r.texto}»"
+    ]
+  }
+}

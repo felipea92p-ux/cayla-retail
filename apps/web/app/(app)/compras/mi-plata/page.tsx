@@ -1,9 +1,12 @@
 import { HandCoins, ShoppingBag } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
-import { getBancosParaPlata, getMiPlata } from "@/lib/mi-plata";
+import { getBancosParaPlata, getMiPlata, getMisEnvios } from "@/lib/mi-plata";
+import { codigosPorCompra, enviosDeLaRonda, rondasConEnvios } from "@/lib/mis-envios-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { PASOS_DE_LA_RONDA, desdeRonda, historialDeLaCompradora, movimientosDeLaCompradora, pasoDeLaRonda, tituloDeLaLista } from "@/lib/mi-plata-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Vacio } from "@/components/ui/Vacio";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 import { Aviso } from "@/components/ui/Aviso";
 import { AbrirRonda } from "@/components/mi-plata/AbrirRonda";
 import { AccionDelDia } from "@/components/mi-plata/AccionDelDia";
@@ -11,6 +14,7 @@ import { AnotarPlata } from "@/components/mi-plata/AnotarPlata";
 import { AnotarGasto } from "@/components/mi-plata/AnotarGasto";
 import { Billetera } from "@/components/mi-plata/Billetera";
 import { CaminoDePasos } from "@/components/mi-plata/CaminoDePasos";
+import { EnviosDeLaRonda } from "@/components/mi-plata/EnviosDeLaRonda";
 import { ListaDelDia, RondasAnteriores } from "@/components/mi-plata/ListaDelDia";
 import { MandarATienda } from "@/components/mi-plata/MandarATienda";
 import { TerminarDia } from "@/components/mi-plata/TerminarDia";
@@ -26,9 +30,12 @@ import { TerminarDia } from "@/components/mi-plata/TerminarDia";
 // tiene «tu plata». `?mandar=1` (desde «Compra guardada») abre «Mandar a la tienda».
 export default async function MiPlataPage({ searchParams }: { searchParams: Promise<{ mandar?: string }> }) {
   const persona = await exigirModulo("ordenes_compra");
-  const [plata, bancos, { mandar }] = await Promise.all([getMiPlata(), getBancosParaPlata(), searchParams]);
-  // Arriba lo de la ronda abierta; lo anterior, agrupado por ronda (Felipe 2026-10-23).
-  const lista = plata?.persona ? movimientosDeLaCompradora(plata) : null;
+  const [plata, bancos, envios, { mandar }] = await Promise.all([getMiPlata(), getBancosParaPlata(), getMisEnvios(), searchParams]);
+  // Arriba lo de la ronda abierta; lo anterior, agrupado por ronda (Felipe 2026-10-23). Cada compra ya mandada dice el código de su envío
+  // (Felipe 2026-10-26); si «Mis envíos» no se pudo leer, Mis compras sigue sin ellos.
+  const lista = plata?.persona ? movimientosDeLaCompradora(plata, codigosPorCompra(envios ?? [])) : null;
+  const rondaAbierta = plata?.persona ? plata.ronda.abierta : null;
+  const hoy = hoyLima();
   const anteriores = plata?.persona ? historialDeLaCompradora(lista?.antes ?? [], plata.ronda.cerradas ?? []) : [];
 
   return (
@@ -37,6 +44,14 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
         sede={persona.ubicacionEtiqueta}
         titulo="Mis compras"
         subtitulo="Lo que tienes para comprar, lo que compraste y lo que mandas a la tienda."
+        // Con la ronda abierta, «Envíos de esta ronda» ya trae su «Ver todos»; sin ella (ronda cerrada), Mis envíos sigue a un toque aquí arriba: ahí viven los códigos de antes.
+        acciones={
+          plata?.persona && !plata.ronda.abierta && envios !== null && envios.length > 0 ? (
+            <BotonVer href="/compras/mi-plata/envios" guia="mi-plata.mis-envios">
+              Mis envíos
+            </BotonVer>
+          ) : undefined
+        }
       />
 
       {plata === null ? (
@@ -50,7 +65,7 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
       ) : (
         // Una sola columna en el celular; en escritorio, «Hoy» ocupa la derecha a todo lo alto y la última fila (1fr) se lleva el aire,
         // así las piezas de la izquierda no se separan.
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:grid-rows-[auto_auto_auto_auto_1fr] lg:gap-x-8">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:grid-rows-[auto_auto_auto_auto_auto_1fr] lg:gap-x-8">
           <div className="flex flex-col gap-3.5 lg:col-start-1">
             <CaminoDePasos pasos={PASOS_DE_LA_RONDA} ahora={pasoDeLaRonda(plata)} etiqueta="Tu ronda, paso a paso" guia="mi-plata.camino" />
             <Billetera plata={plata} />
@@ -77,12 +92,15 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
               </div>
             </div>
           )}
-          {plata.porMandar.length > 0 && (
+          <MandarATienda porMandar={plata.porMandar} abrirAlCargar={mandar === "1"} className="lg:col-start-1" />
+          {/* Los envíos van pegados a «Falta mandar»: es el mismo paso del camino (Manda). En el celular quedan antes de la lista larga de la
+              ronda, donde no se pierden; en escritorio, en la columna de las acciones. */}
+          {rondaAbierta && envios !== null && (
             <div className="lg:col-start-1">
-              <MandarATienda porMandar={plata.porMandar} abrirAlCargar={mandar === "1"} />
+              <EnviosDeLaRonda envios={enviosDeLaRonda(envios, rondaAbierta.id)} texto={rondaAbierta.texto} hoy={hoy} />
             </div>
           )}
-          <div className="min-w-0 lg:col-start-2 lg:row-span-5 lg:row-start-1">
+          <div className="min-w-0 lg:col-start-2 lg:row-span-6 lg:row-start-1">
             <ListaDelDia
               actuales={lista?.actuales ?? []}
               titulo={tituloDeLaLista(plata.ronda)}
@@ -90,11 +108,11 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
             />
           </div>
           <div className="lg:col-start-1">
-            <TerminarDia plata={plata} />
+            <TerminarDia plata={plata} envios={envios === null ? null : enviosDeLaRonda(envios, rondaAbierta?.id ?? null)} hoy={hoy} />
           </div>
           {anteriores.length > 0 && (
             <div className="lg:col-start-1">
-              <RondasAnteriores historial={anteriores} />
+              <RondasAnteriores historial={anteriores} envios={envios === null ? null : rondasConEnvios(envios, rondaAbierta?.id ?? null)} hoy={hoy} />
             </div>
           )}
         </div>
