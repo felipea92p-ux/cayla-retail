@@ -42,6 +42,7 @@ import { leerGuardadosEnBase } from "@/lib/club-servidor";
 import { hayElegido, leerElegido, NADA_ELEGIDO } from "@/lib/filtros-color-talla";
 import {
   categoriasConLaCuenta,
+  coincidenciaDe,
   elegidoEnElDestino,
   esLaDireccionCanonica,
   filtrosDeLaLista,
@@ -531,6 +532,7 @@ export default async function Catalogo({ searchParams }: Props) {
                       sinNuevo={lista === "nuevo"}
                       arriba={i < ARRIBA}
                       diseno={diseno}
+                      coincide={hayFiltros ? coincidenciaDe(filtros, p) : null}
                     />
                   ))}
                 </div>

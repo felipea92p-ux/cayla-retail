@@ -175,14 +175,19 @@ export function insigniasAsignadasDeTarjeta(p: Prenda, opciones: { puesto?: numb
   return insigniasDeLaTarjeta(p.insignias, { propias, nuevo: p.nuevo !== null, masVendido: opciones.puesto != null });
 }
 
-/** Las muestras de color de la tarjeta: hasta `max`, y cuántas más hay. */
-export function muestras(p: Prenda, max = 5): { visibles: Color[]; mas: number } {
-  return { visibles: p.colores.slice(0, max), mas: Math.max(0, p.colores.length - max) };
+/** Las muestras de color de la tarjeta: hasta `max`, y cuántas más hay. Con colores elegidos en los filtros (`elegidos`: sus códigos, ADR-0512)
+ *  esos van primero, para que se vean aunque la prenda tenga más de las que caben. */
+export function muestras(p: Prenda, max = 5, elegidos: readonly string[] = []): { visibles: Color[]; mas: number } {
+  const colores = elegidos.length > 0 ? [...p.colores.filter((c) => elegidos.includes(c.codigo)), ...p.colores.filter((c) => !elegidos.includes(c.codigo))] : p.colores;
+  return { visibles: colores.slice(0, max), mas: Math.max(0, colores.length - max) };
 }
 
 /** Las dos fotos de la tarjeta: la principal y la que aparece al pasar el mouse. Sin fotos del modelo, la de su primer color que tenga
- *  una (propuesta c: un color sin foto propia se ve con la principal, y al revés). */
-export function fotosDeTarjeta(p: Prenda): [string | null, string | null] {
+ *  una (propuesta c: un color sin foto propia se ve con la principal, y al revés). Con un color elegido en los filtros (`color`, su código,
+ *  ADR-0512) que tiene foto propia, esa va primero: se ve la prenda en el color que se buscó (si no tiene, la de siempre). */
+export function fotosDeTarjeta(p: Prenda, color: string | null = null): [string | null, string | null] {
+  const delColor = color ? p.colores.find((c) => c.codigo === color)?.foto ?? null : null;
+  if (delColor) return [delColor, [...p.fotos, ...p.colores.map((c) => c.foto)].find((f) => f && f !== delColor) ?? null];
   const primera = p.fotos[0] ?? p.colores.find((c) => c.foto)?.foto ?? null;
   return [primera, p.fotos[1] ?? null];
 }
@@ -193,8 +198,9 @@ const tieneFoto = (p: Prenda): boolean => fotosDeTarjeta(p)[0] !== null;
 /** Para ordenar con lo que tiene foto adelante. `sort` es estable: dentro de cada parte queda el orden que ya traía la lista. */
 export const conFotoPrimero = (a: Prenda, b: Prenda): number => Number(tieneFoto(b)) - Number(tieneFoto(a));
 
-/** El color con que se dibuja la prenda sin foto: el de su primer color (es un dato de la prenda, no del tema). */
-export const colorDeDibujo = (p: Prenda): string | null => p.colores[0]?.hex ?? null;
+/** El color con que se dibuja la prenda sin foto: el de su primer color o, con un color elegido en los filtros (`color`, su código), el de ese
+ *  (es un dato de la prenda, no del tema). */
+export const colorDeDibujo = (p: Prenda, color: string | null = null): string | null => (color ? p.colores.find((c) => c.codigo === color)?.hex : null) ?? p.colores[0]?.hex ?? null;
 
 /** La silueta de la prenda sin foto, por su categoría (`categorias.prefijo`, nunca el nombre visible, que se renombra). Lo que no es
  *  ropa (calzado, bisutería, accesorios) cae en la percha: no promete una forma que no tiene. */
@@ -211,7 +217,15 @@ const FORMA_POR_PREFIJO: Record<string, Forma> = {
 export const formaDe = (prefijo: string | null | undefined): Forma => (prefijo ? FORMA_POR_PREFIJO[prefijo] ?? "percha" : "percha");
 
 /** A dónde lleva una tarjeta: la ficha de la prenda, con la tienda elegida si hay una. */
-export const hrefDePrenda = (p: Pick<Prenda, "id">, sede: string | null = null) => `/catalogo/${p.id}${sede ? `?sede=${encodeURIComponent(sede)}` : ""}`;
+export const hrefDePrenda = (
+  p: Pick<Prenda, "id">,
+  sede: string | null = null,
+  /** Con color o talla elegidos en los filtros (ADR-0512), la ficha abre ya con eso: `?color=` es el código del color y `?talla=`, la talla. */
+  elegido: { color?: string | null; talla?: string | null } = {},
+) => {
+  const q = [sede ? `sede=${encodeURIComponent(sede)}` : "", elegido.color ? `color=${encodeURIComponent(elegido.color)}` : "", elegido.talla ? `talla=${encodeURIComponent(elegido.talla)}` : ""].filter(Boolean);
+  return `/catalogo/${p.id}${q.length > 0 ? `?${q.join("&")}` : ""}`;
+};
 
 /** ¿El optimizador de imágenes de Next puede achicar esta foto? Solo si vive en el almacén PÚBLICO de fotos de prendas del origen
  *  que permite `next.config.ts` (`TIENDA_FOTOS_ORIGEN`). Cualquier otra se muestra tal cual: con un host no permitido, `next/image`

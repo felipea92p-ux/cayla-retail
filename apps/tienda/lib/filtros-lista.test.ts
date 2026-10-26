@@ -3,6 +3,7 @@ import { categoriasDe, interpretarCatalogo, type Prenda } from "./catalogo";
 import { escribirElegido, leerElegido, NADA_ELEGIDO, type DatosDeFiltros, type Elegido } from "./filtros-color-talla";
 import {
   categoriasConLaCuenta,
+  coincidenciaDe,
   elegidoEnElDestino,
   esLaDireccionCanonica,
   filtrosDeLaLista,
@@ -106,6 +107,43 @@ describe("elegidoEnElDestino", () => {
 
   it("sin filtros no hay nada que llevar ni que decir", () => {
     expect(elegidoEnElDestino(filtrosDeLaLista(null, negroM, prendas), prendas, "Todo")).toEqual({ elegido: NADA_ELEGIDO, quita: null });
+  });
+});
+
+describe("coincidenciaDe", () => {
+  const f = (e: Elegido) => filtrosDeLaLista(datos, e, prendas);
+
+  it("dice por qué está («En Negro · talla M»), con los colores y tallas ELEGIDOS que tiene, no todos los suyos", () => {
+    const c = coincidenciaDe(f(negroM), { id: CARLA });
+    expect(c).toEqual({ color: "NEG", talla: "M", texto: "En Negro · talla M", codigos: ["NEG"] });
+    // Carla tiene negro y beige en M; si se eligen los dos colores, dice los dos y marca las dos muestras.
+    const dos = coincidenciaDe(f({ color: ["negro", "beige"], talla: ["M"] }), { id: CARLA });
+    expect(dos?.texto).toBe("En Negro / Beige y arena · talla M");
+    expect(dos?.codigos).toEqual(["NEG", "BEI"]);
+  });
+
+  it("con varias tallas elegidas, solo las que esa prenda tiene (en el orden de la tienda)", () => {
+    const c = coincidenciaDe(f({ color: ["negro"], talla: ["M", "S", "L"] }), { id: CARLA });
+    expect(c?.texto).toBe("En Negro · tallas S y M");
+    expect(c?.talla).toBe("S"); // la primera elegida que tiene la variante con la que abre
+  });
+
+  it("solo color, o solo talla: dice solo eso, y la ficha abre en una variante que de verdad lo cumple", () => {
+    expect(coincidenciaDe(f({ color: ["negro"], talla: [] }), { id: EMMA })).toEqual({ color: "NEG", talla: null, texto: "En Negro", codigos: ["NEG"] });
+    // Solo la talla S: Luna la tiene en beige, y abre en beige (no en un color que no la tenga).
+    expect(coincidenciaDe(f({ color: [], talla: ["S"] }), { id: LUNA })).toEqual({ color: "BEI", talla: "S", texto: "En talla S", codigos: ["BEI"] });
+  });
+
+  it("la talla única se dice «estándar / única» y abre con la clave UNICA", () => {
+    // El bolso Ana es de talla única; entre todas las prendas se piden tallas (hay S, M y las cinturas), así que la elección se queda.
+    const c = coincidenciaDe(f({ color: [], talla: ["UNICA"] }), { id: ANA });
+    expect(c).toEqual({ color: "NEG", talla: "UNICA", texto: "En talla estándar / única", codigos: ["NEG"] });
+  });
+
+  it("sin filtros, o si ninguna variante cumple, no hay nada que decir", () => {
+    expect(coincidenciaDe(filtrosDeLaLista(null, negroM, prendas), { id: CARLA })).toBeNull();
+    expect(coincidenciaDe(f(negroM), { id: LUNA })).toBeNull(); // Luna no tiene negro en M
+    expect(coincidenciaDe(f(NADA_ELEGIDO), { id: CARLA })).toBeNull();
   });
 });
 

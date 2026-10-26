@@ -186,6 +186,12 @@
 .fp-hoja .fp-notas { margin-top: 8px; }
 .fp-hoja .fp-nota { font-size: 12.5px; }
 
+/* ══════════ La tarjeta de una lista filtrada (actividad 6) ══════════ */
+/* La muestra del color elegido: marcada con su aro, y primero entre las de la prenda. */
+.t-muestras i[data-elegido] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 22%, transparent), 0 0 0 2px var(--crema), 0 0 0 3px var(--tinta); margin-inline: 2px; }
+/* Por qué la prenda está en la lista: «En Negro · talla M» (los colores y tallas elegidos que tiene, no todos los suyos). */
+.t-card-coincide { grid-column: 1 / -1; font-size: 12px; line-height: 1.35; color: var(--taupe); margin-top: 2px; }
+
 @media (prefers-reduced-motion: reduce) {
   .fp-pal, .fp-caret, .fp-sel, .fp-ficha, .fp-qt, .fp-mu, .fp-mu svg, .fp-chip, .fp-op-color, .fp-panel, .fp-nota, .fp-filtros-btn, .fp-ver { transition: none !important; }
   .fp-ficha, .fp-aviso, .fp-op[data-sacude] { animation: none; }

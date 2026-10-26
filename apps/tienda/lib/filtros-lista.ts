@@ -1,13 +1,18 @@
 import { categoriasDe, type CategoriaLista, type Prenda } from "./catalogo";
 import {
   alCambiarDeNivel,
+  compararTallas,
   escribirElegido,
+  fraseDeTalla,
   hayElegido,
   huboSoltado,
   indexar,
   mensajeDeLoSoltado,
   NADA_ELEGIDO,
+  nombreDeFamilia,
   prendaPasa,
+  unir,
+  variantesQueCoinciden,
   type DatosDeFiltros,
   type Elegido,
   type Indice,
@@ -54,6 +59,46 @@ export function elegidoEnElDestino(filtros: FiltrosDeLaLista, destino: readonly 
   const ids = destino.map((p) => p.id);
   const cambio = alCambiarDeNivel(indice, ids, elegido);
   return { elegido: cambio.elegido, quita: huboSoltado(cambio.soltado) ? mensajeDeLoSoltado(indice, ids, cambio.soltado, donde) : null };
+}
+
+/** Por qué una prenda está en la lista filtrada y cómo abre su ficha (ADR-0512, actividad 6). */
+export type Coincidencia = {
+  /** El código del color con que abre la ficha (`?color=`): el de la primera variante que cumple lo elegido. */
+  color: string | null;
+  /** La talla con que abre la ficha (`?talla=`): la primera de las elegidas que esa variante tiene. */
+  talla: string | null;
+  /** «En Negro · talla M», «En Negro / Beige y arena · tallas S y M»: los colores y tallas ELEGIDOS que la prenda tiene (no todos los suyos). */
+  texto: string;
+  /** Los códigos de los colores que cumplen lo elegido: sus muestras van primero y marcadas. */
+  codigos: readonly string[];
+};
+
+/**
+ * Lo que la tarjeta dice de una prenda de la lista filtrada: por qué está («En Negro · talla M»), qué muestras marcar y con qué color y talla
+ * abre su ficha. La prenda se mira por su variante: abre en una que de verdad cumple lo elegido (aunque lo elegido sea solo la talla, abre en
+ * un color que la tiene). Sin filtros, o si ninguna variante cumple, `null`: la tarjeta es la de siempre.
+ */
+export function coincidenciaDe(filtros: FiltrosDeLaLista, prenda: Pick<Prenda, "id">): Coincidencia | null {
+  const { indice, elegido } = filtros;
+  if (!indice || !hayElegido(elegido)) return null;
+  const vs = variantesQueCoinciden(indice, prenda.id, elegido);
+  if (vs.length === 0) return null;
+  const sinRepetir = <T>(xs: readonly T[]) => [...new Set(xs)];
+  // Los colores en el orden de la paleta (el de lo elegido), no en el que casualmente traen las variantes.
+  const colores = elegido.color.filter((c) => vs.some((v) => v.familia === c)).map(nombreDeFamilia);
+  const tallas = elegido.talla.length > 0 ? sinRepetir(vs.flatMap((v) => v.tallas.filter((t) => elegido.talla.includes(t)))).sort(compararTallas) : [];
+  const partes = [
+    // Con « / » y no con «y»: hay colores que ya llevan una («Beige y arena», «Blanco y crudo») y «Negro y Beige y arena» no se entiende.
+    ...(colores.length > 0 ? [colores.join(" / ")] : []),
+    ...(tallas.length > 0 ? [tallas.length === 1 ? fraseDeTalla(tallas[0]) : `tallas ${unir(tallas.map((t) => (t === "UNICA" ? "estándar / única" : t)), "y")}`] : []),
+  ];
+  const primera = vs[0];
+  return {
+    color: primera.codigo,
+    talla: elegido.talla.length > 0 ? primera.tallas.find((t) => elegido.talla.includes(t)) ?? null : null,
+    texto: `En ${partes.join(" · ")}`,
+    codigos: sinRepetir(vs.flatMap((v) => (v.codigo ? [v.codigo] : []))),
+  };
 }
 
 type Direccion = { color?: string | string[]; talla?: string | string[] };

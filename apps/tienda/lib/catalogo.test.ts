@@ -178,6 +178,34 @@ describe("la tarjeta", () => {
     expect(hrefDePrenda(emma, "trujillo")).toBe("/catalogo/3f0e8a8e-2f1b-4c3e-9a55-111111111111?sede=trujillo");
   });
 
+  it("con color y talla elegidos en los filtros (ADR-0512), la ficha abre ya con eso", () => {
+    expect(hrefDePrenda(emma, "trujillo", { color: "NEG", talla: "M" })).toBe("/catalogo/3f0e8a8e-2f1b-4c3e-9a55-111111111111?sede=trujillo&color=NEG&talla=M");
+    expect(hrefDePrenda(emma, null, { color: "NEG" })).toBe("/catalogo/3f0e8a8e-2f1b-4c3e-9a55-111111111111?color=NEG");
+    expect(hrefDePrenda(emma, "trujillo", { color: null, talla: "UNICA" })).toBe("/catalogo/3f0e8a8e-2f1b-4c3e-9a55-111111111111?sede=trujillo&talla=UNICA");
+    expect(hrefDePrenda(emma, "trujillo", { color: null, talla: null })).toBe("/catalogo/3f0e8a8e-2f1b-4c3e-9a55-111111111111?sede=trujillo");
+  });
+
+  it("con un color elegido, su muestra va primera, su foto es la que se ve y su color, el del dibujo", () => {
+    // Emma: Beige (sin foto propia) y Negro (con foto).
+    expect(muestras(emma, 5, ["NEG"]).visibles.map((c) => c.codigo)).toEqual(["NEG", "BEI"]);
+    expect(muestras(emma, 5, []).visibles.map((c) => c.codigo)).toEqual(["BEI", "NEG"]);
+    // Si la prenda tiene más colores de los que caben, el elegido se ve aunque estuviera al final.
+    const muchos = leer({ ...EMMA, colores: ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "NEG"].map((codigo) => ({ codigo, nombre: codigo, hex: "#112233", foto: null })) });
+    expect(muestras(muchos, 5, ["NEG"]).visibles[0].codigo).toBe("NEG");
+    expect(muestras(muchos, 5, ["NEG"]).mas).toBe(2);
+    // La foto: la del color elegido si la tiene; si no, la de siempre.
+    const FOTO_BEI = `${FOTO}?bei`;
+    const dosFotos = leer({ ...EMMA, fotos: [FOTO], colores: [{ codigo: "BEI", nombre: "Beige", hex: "#D5BA98", foto: FOTO_BEI }, { codigo: "NEG", nombre: "Negro", hex: "#2D2C2F", foto: null }] });
+    expect(fotosDeTarjeta(dosFotos, "BEI")).toEqual([FOTO_BEI, FOTO]);
+    expect(fotosDeTarjeta(dosFotos, "NEG")).toEqual([FOTO, null]);
+    expect(fotosDeTarjeta(dosFotos, "XXX")).toEqual([FOTO, null]);
+    expect(fotosDeTarjeta(dosFotos)).toEqual([FOTO, null]);
+    // El dibujo de la prenda sin foto toma el color elegido; sin elegir (o con uno que no tiene), el primero.
+    expect(colorDeDibujo(emma, "NEG")).toBe("#2D2C2F");
+    expect(colorDeDibujo(emma, "XXX")).toBe("#D5BA98");
+    expect(colorDeDibujo(emma)).toBe("#D5BA98");
+  });
+
   it("solo se optimizan las fotos del almacén público de prendas del origen permitido", () => {
     expect(fotoOptimizable(FOTO, "https://x.supabase.co")).toBe(true);
     expect(fotoOptimizable(FOTO, "https://otro.supabase.co")).toBe(false);
