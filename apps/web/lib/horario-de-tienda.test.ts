@@ -12,16 +12,18 @@ const TRU = semana([10, 21], [11, 19]);
 const lima = (iso: string) => momentoEnLima(new Date(iso));
 
 describe("las horas se leen como en una tienda", () => {
-  it.each([[0, "12 a. m."], [h(9) + 30, "9:30 a. m."], [h(10), "10 a. m."], [h(12), "12 p. m."], [h(13), "1 p. m."], [h(21), "9 p. m."], [h(23) + 30, "11:30 p. m."], [1440, "12 a. m."]])("%i minutos → %s", (min, texto) => {
+  it.each([[0, "12 a. m."], [h(8) + 15, "8:15 a. m."], [h(9) + 30, "9:30 a. m."], [h(21) + 45, "9:45 p. m."], [h(10), "10 a. m."], [h(12), "12 p. m."], [h(13), "1 p. m."], [h(21), "9 p. m."], [h(23) + 30, "11:30 p. m."], [1440, "12 a. m."]])("%i minutos → %s", (min, texto) => {
     expect(etiquetaDeHora(min)).toBe(texto);
   });
 });
 
 describe("un tramo", () => {
-  it("vale con enteros, de a media hora y apertura antes del cierre dentro del día", () => {
+  it("vale con enteros, de a 15 minutos y apertura antes del cierre dentro del día", () => {
     expect(tramoValido({ abre: 600, cierra: 1260 })).toBe(true);
+    expect(tramoValido({ abre: 495, cierra: 1275 })).toBe(true); // 8:15 a. m. a 9:15 p. m.
+    expect(tramoValido({ abre: 525, cierra: 1305 })).toBe(true); // 8:45 a. m. a 9:45 p. m.
     expect(tramoValido({ abre: 0, cierra: 1440 })).toBe(true);
-    for (const malo of [{ abre: 1260, cierra: 600 }, { abre: 600, cierra: 600 }, { abre: 615, cierra: 1260 }, { abre: -30, cierra: 600 }, { abre: 600, cierra: 1470 }, { abre: 6.5, cierra: 21 }, { abre: "600", cierra: 1260 }, null, "x", {}]) {
+    for (const malo of [{ abre: 1260, cierra: 600 }, { abre: 600, cierra: 600 }, { abre: 610, cierra: 1260 }, { abre: 600, cierra: 1265 }, { abre: -15, cierra: 600 }, { abre: 600, cierra: 1470 }, { abre: 6.5, cierra: 21 }, { abre: "600", cierra: 1260 }, null, "x", {}]) {
       expect(tramoValido(malo)).toBe(false);
     }
   });

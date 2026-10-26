@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { FichaDeConsumoHoja } from "@/components/orden-produccion/FichaDeConsumoHoja";
 import { BarraAvance } from "@/components/ui/BarraAvance";
+import { Boton } from "@/components/ui/campos";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Punto } from "@/components/alta-producto/ElegirColores";
@@ -14,6 +16,7 @@ import { useSubirFotos, type FotoSubida } from "./useSubirFotos";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
+import type { PuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
 
 // Panel del taller (maqueta B, Felipe 2026-10-02): la columna derecha que usa el ancho que ADR-0257 dejó libre. Es la identidad
 // visual de la prenda en vivo —la foto del color elegido, sus colores, el stock por talla de ese color, el precio y lo que le falta—
@@ -38,6 +41,7 @@ export function PanelDelTaller({
   completadaAqui,
   onIrPendiente,
   campana = null,
+  fichaConsumo = null,
   deshabilitado,
 }: {
   ctx: ContextoFicha;
@@ -58,9 +62,12 @@ export function PanelDelTaller({
   /** Lo que cobra la caja hoy con la campaña de la prenda, o lo que cobrará al guardar (`fraseCajaCobra`, ADR-0472). `null` = sin
    *  campaña: la tarjeta dice solo el precio, como siempre. */
   campana?: { texto: string; alGuardar: boolean } | null;
+  /** La puerta de la ficha de consumo (ADR-0513): con ella se dibuja la tarjeta que abre su hoja. `null` = sin tarjeta. */
+  fichaConsumo?: (PuertaDeLaFicha & { productoId: string; referencia: string }) | null;
   deshabilitado: boolean;
 }) {
   const n = ctx.nombres;
+  const [fichaAbierta, setFichaAbierta] = useState(false);
   const archivo = useRef<HTMLInputElement>(null);
   const { elegir, ocupado } = useSubirFotos({ onSubidas: onFotosSubidas });
 
@@ -240,6 +247,18 @@ export function PanelDelTaller({
         </div>
       )}
 
+      {fichaConsumo && (
+        <div data-guia="editar.ficha-consumo" className="taller-tarjeta">
+          <div className="flex items-center justify-between gap-2">
+            <span className="taller-tit">Ficha de consumo</span>
+            <Boton type="button" peso="fantasma" aria-haspopup="dialog" onClick={() => setFichaAbierta(true)}>
+              Abrir la ficha
+            </Boton>
+          </div>
+          <p className="mt-2 text-[12.5px] leading-snug text-tinta/75">Cuánta tela y qué avíos lleva una prenda. Las órdenes de producción la proponen solas.</p>
+        </div>
+      )}
+
       {pendiente ? (
         <button type="button" data-guia="editar.falta" className="taller-tarjeta taller-guia" onClick={() => onIrPendiente(pendiente, primerSinFoto)} title={pendiente.detalle}>
           <span className="taller-hilo" aria-hidden />
@@ -258,6 +277,9 @@ export function PanelDelTaller({
       )}
 
       <p data-guia="editar.guardar" className="text-center text-[11.5px] text-tinta/45">Guardar sigue abajo, en la barra.</p>
+      {fichaAbierta && fichaConsumo && (
+        <FichaDeConsumoHoja tallerId={fichaConsumo.tallerId} tallerNombre={fichaConsumo.tallerNombre} productoId={fichaConsumo.productoId} referencia={fichaConsumo.referencia} insumos={fichaConsumo.insumos} onClose={() => setFichaAbierta(false)} />
+      )}
     </aside>
   );
 }
