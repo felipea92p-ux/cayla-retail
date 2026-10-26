@@ -43,11 +43,13 @@ export default async function ProveedoresPage() {
     verMontos ? getProveedoresPrendas().catch(() => null) : null,
   ]);
 
+  const hallazgos = prendas ? hallazgosDeCartera(prendas, hoyLima()) : null;
   return (
     <div className="space-y-6">
       {/* Mercadería es el ranking (dirección «C», Felipe 2026-10-26): reemplaza a la tabla «A quién le compro y qué me deja», que contaba lo mismo. */}
-      <ProveedoresPanel proveedores={proveedores} verMontos={verMontos} puedeEditar={puedeEditar} resumen={resumen} series={series} marcas={marcas} rendimiento={rendimiento} hoy={hoyLima()} />
-      {prendas && <LoQueQuizaNoVes guia="proveedores.analisis" hallazgos={hallazgosDeCartera(prendas, hoyLima())} />}
+      {/* Con el ranking, los avisos van a su columna derecha; sin él (la base todavía sin el rendimiento), debajo como antes. */}
+      <ProveedoresPanel proveedores={proveedores} verMontos={verMontos} puedeEditar={puedeEditar} resumen={resumen} series={series} marcas={marcas} rendimiento={rendimiento} hoy={hoyLima()} hallazgos={hallazgos} />
+      {hallazgos && !rendimiento && <LoQueQuizaNoVes guia="proveedores.analisis" hallazgos={hallazgos} />}
     </div>
   );
 }

@@ -118,3 +118,30 @@ export function totalesDelRanking(filas: readonly Pick<FilaRanking, "unidadesCom
   const compras = filas.reduce((a, f) => a + f.unidadesCompras, 0);
   return { prendas, gasto: filas.reduce((a, f) => a + f.gasto, 0), cargaPct: prendas > 0 ? ((prendas - compras) / prendas) * 100 : 0 };
 }
+
+// ---------------------------------------------------------------------------
+// La columna derecha, «Lo que no se ve a simple vista»: lo de hoy (lo vencido, las entregas atrasadas, lo que te deben) y cuánto de lo que
+// compras se concentra en pocos proveedores. Los avisos de compra (frenar, plata parada, margen, reponer) vienen de `hallazgosDeCartera`.
+// ---------------------------------------------------------------------------
+
+type ProveedorDeHoy = { id: string; nombre: string; saldo_vencido: number | null; facturas_atrasadas: number | null; saldo_favor: number | null };
+
+/** Lo que pide actuar hoy, de mayor a menor: lo vencido, las entregas atrasadas y lo que los proveedores te deben (saldo a favor). */
+export function paraHoy<P extends ProveedorDeHoy>(proveedores: readonly P[]) {
+  const de = (k: "saldo_vencido" | "facturas_atrasadas" | "saldo_favor"): P[] =>
+    proveedores.filter((p) => (p[k] ?? 0) > 0).sort((a, b) => (b[k] ?? 0) - (a[k] ?? 0) || a.nombre.localeCompare(b.nombre, "es"));
+  const suma = (xs: readonly P[], k: "saldo_vencido" | "facturas_atrasadas" | "saldo_favor") => xs.reduce((a, p) => a + (p[k] ?? 0), 0);
+  const vencidos = de("saldo_vencido"), atrasados = de("facturas_atrasadas"), aFavor = de("saldo_favor");
+  return {
+    vencidos, vencido: suma(vencidos, "saldo_vencido"),
+    atrasados, atrasadas: suma(atrasados, "facturas_atrasadas"),
+    aFavor, favor: suma(aFavor, "saldo_favor"),
+  };
+}
+
+/** Qué parte de lo que compras (en la medida elegida) es de tus `n` primeros proveedores: con pocos, dependes de ellos. */
+export function concentracion(filas: readonly Pick<FilaRanking, "unidadesCompradas" | "gasto">[], medida: MedidaRanking, n = 10): number {
+  const valores = filas.map((f) => valorDe(f, medida)).sort((a, b) => b - a);
+  const total = valores.reduce((a, v) => a + v, 0);
+  return total > 0 ? (valores.slice(0, n).reduce((a, v) => a + v, 0) / total) * 100 : 0;
+}

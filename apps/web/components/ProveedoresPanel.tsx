@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BarraApilada } from "@/components/ui/BarraApilada";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,6 +11,8 @@ import { ProveedorModal, BORRADOR_VACIO, type Borrador } from "@/components/Prov
 import { ProveedorVistaRapida } from "@/components/ProveedorVistaRapida";
 import { ProveedoresIndicadores } from "@/components/ProveedoresIndicadores";
 import { MedidaDelRanking, ProveedoresRanking } from "@/components/ProveedoresRanking";
+import { ProveedoresLoQueNoSeVe } from "@/components/ProveedoresLoQueNoSeVe";
+import type { Hallazgo } from "@/lib/proveedor-analisis-reglas";
 import { RITMOS, contarPorRitmo, filasDelRanking, pasaFiltroRanking, totalesDelRanking, valorDe, type ClaseRitmo, type FiltroRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
 import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -99,6 +101,7 @@ export function ProveedoresPanel({
   marcas,
   rendimiento = null,
   hoy,
+  hallazgos = null,
 }: {
   proveedores: Proveedor[];
   verMontos: boolean;
@@ -113,6 +116,8 @@ export function ProveedoresPanel({
   rendimiento?: RendimientoProveedor[] | null;
   /** La fecha de Lima de hoy (la pone el servidor): desde cuándo se mide el ritmo. */
   hoy: string;
+  /** Los avisos de compra de toda la cartera (`hallazgosDeCartera`): en el ranking van a la columna derecha. */
+  hallazgos?: Hallazgo[] | null;
 }) {
   const router = useRouter();
   const [borrador, setBorrador] = useState<Borrador | null>(null);
@@ -267,8 +272,23 @@ export function ProveedoresPanel({
         }
       />
 
-      {verMontos && resumen && tipo === "mercaderia" && <ProveedoresIndicadores resumen={resumenSoloMercaderia(resumen, proveedores)} reparto={reparto} foco={foco} onFoco={setFoco} onAbrir={setAbiertoId} />}
+      {/* En el ranking, lo de estas cifras (la deuda, lo vencido, lo que te deben, los que no reciben compras) va a la columna derecha. */}
+      {verMontos && resumen && tipo === "mercaderia" && !enRanking && <ProveedoresIndicadores resumen={resumenSoloMercaderia(resumen, proveedores)} reparto={reparto} foco={foco} onFoco={setFoco} onAbrir={setAbiertoId} />}
 
+      <ConLado
+        lado={
+          enRanking && ranking ? (
+            <ProveedoresLoQueNoSeVe
+              proveedores={proveedores.filter((p) => p.activo && p.tipo === "mercaderia")}
+              resumen={resumen ? resumenSoloMercaderia(resumen, proveedores) : null}
+              filas={ranking.filas}
+              medida={medida}
+              hallazgos={hallazgos ?? []}
+              onAbrir={setAbiertoId}
+            />
+          ) : null
+        }
+      >
       {/* Buscador + filtro por rubro con conteo. Una sola línea: el buscador a la izquierda, los rubros
           a la derecha; en celular los rubros bajan y se desplazan en horizontal. */}
       {hayProveedores && (
@@ -528,6 +548,8 @@ export function ProveedoresPanel({
           </Tabla>
         </section>
       )}
+
+      </ConLado>
 
       {verMontos && abierto && (
         <ProveedorVistaRapida
@@ -790,4 +812,15 @@ const COLUMNAS_ENCABEZADO_LIDER: Columna[] = [
 
 function EncabezadoOrdenable({ orden, onOrden }: { orden: Orden; onOrden: (c: CampoOrden) => void }) {
   return <Encabezado plantilla={`${COLUMNAS_LIDER} @max-3xl:hidden!`} columnas={COLUMNAS_ENCABEZADO_LIDER} orden={orden} onOrden={(c) => onOrden(c as CampoOrden)} />;
+}
+
+// En el ranking, la lista y su columna derecha («Lo que no se ve a simple vista») lado a lado desde 1280 px; más angosto, la columna baja.
+function ConLado({ lado, children }: { lado: ReactNode; children: ReactNode }) {
+  if (!lado) return <>{children}</>;
+  return (
+    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_23rem] 2xl:grid-cols-[minmax(0,1fr)_26rem]">
+      <div className="min-w-0 space-y-6">{children}</div>
+      {lado}
+    </div>
+  );
 }

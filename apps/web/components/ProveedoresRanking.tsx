@@ -5,7 +5,7 @@ import { ArrowDown, ArrowUp, Banknote, Check, ChevronRight, Shirt } from "lucide
 import type { Proveedor } from "@/lib/proveedores";
 import { soles } from "@/lib/compras-reglas";
 import { solesRedondo } from "@/lib/gastos-reglas";
-import { RITMOS, FILAS_A_LA_VISTA, cambioDePuesto, esAproximado, textoRitmo, valorDe, type FilaRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
+import { RITMOS, FILAS_A_LA_VISTA, cambioDePuesto, esAproximado, textoRitmo, type FilaRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
 import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { Tabla, Encabezado, fila, celda, type Columna } from "@/components/ui/Tabla";
 import { Anillo } from "@/components/ui/Anillo";
@@ -22,10 +22,10 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 // La fila entera abre la vista rápida que ya existía (decisión de Felipe, 2026-10-26): el botón del nombre se estira sobre la fila con `after:`
 // y el enlace a Por pagar queda por encima (`relative`), igual que en el directorio.
 
-// Columnas según el ANCHO DE LA TABLA (`@container`), como el directorio: angosta, puesto · proveedor · insignia y la barra debajo; desde 48 rem,
-// todo en una línea.
+// Columnas según el ANCHO DE LA TABLA (`@container`), como el directorio: angosta, puesto · proveedor · insignia y la barra debajo; desde 42 rem,
+// todo en una línea (con la columna derecha al lado, la lista mide ~44 rem en una pantalla de 1440).
 const PLANTILLA =
-  "grid-cols-[1.75rem_minmax(0,1fr)_auto] @3xl:grid-cols-[2rem_minmax(11rem,1.2fr)_2.75rem_minmax(12rem,1.4fr)_10.5rem_1rem]";
+  "grid-cols-[1.75rem_minmax(0,1fr)_auto] @2xl:grid-cols-[2rem_minmax(9rem,1.2fr)_2.75rem_minmax(9rem,1.4fr)_9.75rem_1rem]";
 const columnas = (medida: MedidaRanking): Columna[] => [
   { titulo: "#", alinear: "der" },
   { titulo: "Proveedor" },
@@ -115,7 +115,7 @@ export function ProveedoresRanking({
   return (
     <div className="space-y-3" data-guia="proveedores.lista">
       <Tabla className="@container anim-entra overflow-y-hidden" style={{ ["--i" as string]: 7 }}>
-        <Encabezado plantilla={PLANTILLA} columnas={columnas(medida)} visible="hidden @3xl:grid" />
+        <Encabezado plantilla={PLANTILLA} columnas={columnas(medida)} visible="hidden @2xl:grid" />
         {vista.map(filaDe)}
         {resto.length > 0 && (
           <FilasDeMas abierto={verTodos} id="proveedores-ranking-resto">
@@ -211,12 +211,12 @@ function FilaDelRanking({
           )}
         </span>
       </span>
-      <span className="hidden @3xl:block">
+      <span className="hidden @2xl:block">
         <Anillo pct={vendidoPct} tamano="chico" indice={indice} etiqueta={`${f.nombre}: vendiste el ${Math.round(vendidoPct)} % de lo que le compraste`}>
           <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(vendidoPct)}%</span>
         </Anillo>
       </span>
-      <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 items-center gap-2.5 @3xl:col-span-1 @3xl:col-start-auto @3xl:row-start-auto">
+      <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 items-center gap-2.5 @2xl:col-span-1 @2xl:col-start-auto @2xl:row-start-auto">
         <BarraApilada
           alto={8}
           total={maxValor}
@@ -244,12 +244,12 @@ function FilaDelRanking({
           {valor}
         </span>
       </span>
-      <span className="col-start-3 row-start-1 justify-self-end overflow-visible @3xl:col-start-auto @3xl:row-start-auto @3xl:justify-self-start">
+      <span className="col-start-3 row-start-1 justify-self-end overflow-visible @2xl:col-start-auto @2xl:row-start-auto @2xl:justify-self-start">
         <Chip tono={ritmo.tono} title={`${ritmo.ayuda}. ${f.veredicto.porque}`}>
           {textoRitmo(f)}
         </Chip>
       </span>
-      <ChevronRight aria-hidden className="hidden h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-300 ease-cayla group-hover:translate-x-0 group-hover:opacity-100 @3xl:block" />
+      <ChevronRight aria-hidden className="hidden h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-300 ease-cayla group-hover:translate-x-0 group-hover:opacity-100 @2xl:block" />
     </div>
   );
 }

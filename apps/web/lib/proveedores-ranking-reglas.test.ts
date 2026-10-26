@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cambioDePuesto, claseDeRitmo, contarPorRitmo, esAproximado, filasDelRanking, pasaFiltroRanking, semanasCortas, textoRitmo, totalesDelRanking, valorDe } from "./proveedores-ranking-reglas";
+import { cambioDePuesto, claseDeRitmo, concentracion, paraHoy, contarPorRitmo, esAproximado, filasDelRanking, pasaFiltroRanking, semanasCortas, textoRitmo, totalesDelRanking, valorDe } from "./proveedores-ranking-reglas";
 import { ritmoDeDatos } from "./proveedor-ritmo-reglas";
 import type { RendimientoProveedor } from "./proveedor-prendas-reglas";
 
@@ -97,5 +97,23 @@ describe("el ranking de la lista de Proveedores", () => {
     const t = totalesDelRanking(filas);
     expect(t.prendas).toBe(486);
     expect(Math.round(t.cargaPct)).toBe(88);
+  });
+
+  it("lo de hoy: lo vencido, las entregas atrasadas y lo que te deben, de mayor a menor", () => {
+    const p = (id: string, v: number | null, a: number | null, f: number | null) => ({ id, nombre: id, saldo_vencido: v, facturas_atrasadas: a, saldo_favor: f });
+    const h = paraHoy([p("a", 310, 0, null), p("b", 1150, 2, 0), p("c", null, 1, 180), p("d", 0, null, null)]);
+    expect(h.vencidos.map((x) => x.id)).toEqual(["b", "a"]);
+    expect(h.vencido).toBe(1460);
+    expect(h.atrasados.map((x) => x.id)).toEqual(["b", "c"]);
+    expect(h.atrasadas).toBe(3);
+    expect(h.aFavor.map((x) => x.id)).toEqual(["c"]);
+    expect(h.favor).toBe(180);
+  });
+
+  it("la concentración: qué parte de lo que compras es de tus primeros proveedores", () => {
+    const filas = [100, 50, 30, 20].map((u, i) => ({ unidadesCompradas: u, gasto: [1000, 4000, 300, 200][i] }));
+    expect(concentracion(filas, "prendas", 2)).toBe(75);
+    expect(Math.round(concentracion(filas, "soles", 1))).toBe(73);
+    expect(concentracion([], "prendas")).toBe(0);
   });
 });

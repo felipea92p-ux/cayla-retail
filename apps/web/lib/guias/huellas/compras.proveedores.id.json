@@ -2,7 +2,7 @@
   "guia": "compras.proveedores.id",
   "ruta": "/compras/proveedores/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 73,
+  "total": 74,
   "controles": {
     "app/(app)/compras/proveedores/[id]/page.tsx": [
       "Volver «/compras/proveedores»",
@@ -17,6 +17,9 @@
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
       "LapizEditar «la cuenta»",
       "BotonCopiar «{que}»"
+    ],
+    "components/LoQueQuizaNoVes.tsx": [
+      "button «Ver»"
     ],
     "components/PagoPiezas.tsx": [
       "BotonCopiar «{que}»",
