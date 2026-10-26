@@ -1,5 +1,8 @@
 # Proveedores · tres direcciones (2026-10-26)
 
+> **Descartada por Felipe el mismo día:** no se veía a simple vista a quién se le compra más y lo importante estaba en letra chica.
+> La segunda ronda (tamaño = cuánto le compras, color = cómo se vende) está en `../proveedores-v2-2026-10/`.
+
 Lo pidió Felipe: Compras ▸ Proveedores ya calcula lo comprado, lo vendido, el ritmo, la deuda y las entregas de cada proveedor
 (ADR-0502), pero **hoy no se entiende lo que muestra**. Estas son tres maquetas tocables para elegir mirando. Todas responden la misma
 pregunta en 5 segundos —**¿a quién le vuelvo a comprar?**— con los mismos datos y las mismas reglas; cambia cómo se ve la respuesta.
