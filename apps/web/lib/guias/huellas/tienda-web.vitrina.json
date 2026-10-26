@@ -2,7 +2,7 @@
   "guia": "tienda-web.vitrina",
   "ruta": "/tienda-web/vitrina",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 28,
+  "total": 29,
   "controles": {
     "components/vitrina/VitrinaLoteHoja.tsx": [
       "ComboResponsable «{responsable}»",
@@ -17,6 +17,7 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/vitrina/VitrinaPantalla.tsx": [
+      "button «vitrina.elegir-pagina»",
       "SegmentoDeslizante «Cómo ver los modelos»",
       "DesplegablePildora «Estado»",
       "DesplegablePildora «Categoría»",
@@ -25,7 +26,7 @@
       "BotonLimpiar «Limpiar filtros»",
       "Boton «Borrar la búsqueda»",
       "Boton «Limpiar filtros»",
-      "Casilla «{todosMarcados ? \"Quitar todos los de la lista\" : \"Elegir todos los de la lista\"}»",
+      "Casilla «{paginaEntera ? `Quitar los ${visibles.length}»",
       "button «vitrina.desmarcar»",
       "Boton «Ocultar»",
       "Boton «vitrina.lote-mostrar»",

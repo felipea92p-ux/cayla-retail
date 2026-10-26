@@ -401,11 +401,18 @@ export const GUIA_VITRINA: Guia = {
       texto: "«Vitrina» muestra las prendas como las ve el cliente en la tienda online. «Lista» pone una fila por modelo, más cómoda para revisar muchos de una vez. Las dos hacen lo mismo.",
     },
     {
-      id: "ayuda",
-      ancla: "vitrina.ayuda",
+      id: "elegir-pagina",
+      ancla: "vitrina.elegir-pagina",
       opcional: true,
       titulo: "Uno o varios",
-      texto: "Toca un modelo para ver lo que ve el cliente o cambiar Lo nuevo. Marca varios con su casilla para mostrarlos u ocultarlos juntos.",
+      texto: "Toca un modelo para ver lo que ve el cliente o cambiar Lo nuevo. Para varios a la vez, marca la casilla de cada uno, o «Elegir los 30 de esta página» para marcar todos los que ves; después, Ocultar o Mostrar en la web.",
+    },
+    {
+      id: "paginas",
+      ancla: "vitrina.paginas",
+      opcional: true,
+      titulo: "De 30 en 30",
+      texto: "La lista llega de 30 en 30 modelos. Arriba, a la derecha de los filtros, «Mostrando 1–30 de 59» dice dónde estás; abajo cambias de página. Lo que marcaste se queda marcado aunque cambies de página.",
     },
     {
       id: "interruptor",

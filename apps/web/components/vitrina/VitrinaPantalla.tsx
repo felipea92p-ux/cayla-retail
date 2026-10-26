@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { CircleCheck, LayoutGrid, List, MonitorSmartphone, SearchX, Shirt, Sparkles } from "lucide-react";
 import { BarraFija } from "@/components/ui/BarraFija";
@@ -8,6 +8,8 @@ import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
 import { Chip } from "@/components/ui/Chip";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
+import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
@@ -16,6 +18,7 @@ import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Encabezado, Tabla, fila } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { paginar } from "@/lib/paginacion";
 import { Vacio } from "@/components/ui/Vacio";
 import { VitrinaLoteHoja } from "@/components/vitrina/VitrinaLoteHoja";
 import { VitrinaModeloHoja } from "@/components/vitrina/VitrinaModeloHoja";
@@ -27,6 +30,7 @@ import {
   esEmpaque,
   filtrarVitrina,
   interruptorEncendido,
+  MODELOS_POR_PAGINA,
   razonNoSeMuestra,
   stockEnTiendas,
   type FiltroLoNuevo,
@@ -100,7 +104,32 @@ export function VitrinaPantalla({
   const { tiendas } = lectura;
   const cifras = cifrasDe(modelos);
   const extra = { categoria, loNuevo };
-  const visibles = filtrarVitrina(modelos, filtro, texto, extra);
+  // La lista entera según lo que se filtró, y de ella solo una página (30 modelos): con ~300 en producción, sin tope era una página de
+  // ~24 000 px. Cambiar cualquier filtro o lo que se escribe vuelve a la primera página.
+  const lista = filtrarVitrina(modelos, filtro, texto, extra);
+  const [pagina, setPagina] = useState(1);
+  const claveDeLista = `${filtro}|${categoria ?? ""}|${loNuevo}|${texto}`;
+  const [claveVista, setClaveVista] = useState(claveDeLista);
+  if (claveVista !== claveDeLista) {
+    setClaveVista(claveDeLista);
+    setPagina(1);
+  }
+  const pag = paginar(lista, pagina, MODELOS_POR_PAGINA);
+  const visibles = pag.filas;
+  const cajaRef = useRef<HTMLElement>(null);
+  const saltoAlInicio = useRef(false);
+  // Cambiar de página lleva la vista al inicio de la lista (ADR-0185): una paginación al pie no se queda abajo.
+  const irAPagina = (n: number) => {
+    saltoAlInicio.current = true;
+    setPagina(n);
+  };
+  useLayoutEffect(() => {
+    if (!saltoAlInicio.current) return;
+    saltoAlInicio.current = false;
+    soltarPaginaEstable();
+    const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    cajaRef.current?.scrollIntoView({ block: "start", behavior: sinMovimiento ? "auto" : "smooth" });
+  });
   // Las categorías de lo que se está mirando: con «Empaque», las del empaque; si no, las de la ropa (una categoría de bolsas no
   // serviría de filtro: «todos» no trae el empaque).
   const categorias = categoriasDe(modelos.filter((m) => (filtro === "empaque") === esEmpaque(m)));
@@ -122,13 +151,16 @@ export function VitrinaPantalla({
     setCategoria(null);
     setLoNuevo("todos");
   };
+  // «Elegir los N de esta página» marca (o quita) solo lo que se ve: elegir todo lo que coincide en todas las páginas haría fácil
+  // ocultar 200 modelos con un clic de más.
   const elegidosVisibles = visibles.filter((m) => elegidos.includes(m.id));
+  const paginaEntera = visibles.length > 0 && elegidosVisibles.length === visibles.length;
+  const alternarPagina = () => setElegidos((ids) => (paginaEntera ? ids.filter((id) => !visibles.some((m) => m.id === id)) : [...new Set([...ids, ...visibles.map((m) => m.id)])]));
   const modeloAbierto = abierto ? modelos.find((m) => m.id === abierto) ?? null : null;
   const delLote = lote ? modelos.filter((m) => lote.ids.includes(m.id)) : [];
 
   const alternarFiltro = (f: FiltroVitrina) => cambiarEstado(filtro === f ? "todos" : f);
   const alternar = (id: string) => setElegidos((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
-  const todosMarcados = visibles.length > 0 && elegidosVisibles.length === visibles.length;
 
   const actualizar = (nuevo: ModeloVitrina) => {
     setModelos((ms) => ms.map((m) => (m.id === nuevo.id ? nuevo : m)));
@@ -174,7 +206,7 @@ export function VitrinaPantalla({
         </TarjetaCifra>
       </div>
 
-      <section className="card-cayla space-y-0">
+      <section ref={cajaRef} className="card-cayla scroll-mt-20 space-y-0">
         <div className="flex flex-wrap items-center gap-3 border-b border-sand px-5 py-4">
           <div className="min-w-[14rem] flex-1">
             <Buscador
@@ -183,12 +215,14 @@ export function VitrinaPantalla({
               atajo
               guia="vitrina.buscador"
               placeholder="Busca un modelo"
-              conteo={texto.trim() ? `${visibles.length} ${visibles.length === 1 ? "coincide" : "coinciden"}` : undefined}
+              conteo={texto.trim() ? `${lista.length} ${lista.length === 1 ? "coincide" : "coinciden"}` : undefined}
             />
           </div>
-          <p className="min-w-[12rem] flex-1 text-[13px] text-taupe" data-guia="vitrina.ayuda">
-            Toca un modelo para ver lo que ve el cliente o cambiar Lo nuevo. Marca varios para mostrarlos u ocultarlos juntos.
-          </p>
+          {vista === "vitrina" && visibles.length > 0 && (
+            <button type="button" className="btn-enlace text-[13px]" data-guia="vitrina.elegir-pagina" onClick={alternarPagina}>
+              {paginaEntera ? `Quitar los ${visibles.length} de esta página` : `Elegir los ${visibles.length} de esta página`}
+            </button>
+          )}
           <SegmentoDeslizante
             forma="modo"
             etiqueta="Cómo ver los modelos"
@@ -202,7 +236,9 @@ export function VitrinaPantalla({
         </div>
 
         {modelos.length > 0 && (
-          <div className="space-y-3 border-b border-sand px-5 py-3" data-guia="vitrina.filtros">
+          <div className="space-y-3 border-b border-sand px-5 py-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="min-w-0" data-guia="vitrina.filtros">
             <PanelPildoras>
               <DesplegablePildora
                 icono={CircleCheck}
@@ -230,6 +266,17 @@ export function VitrinaPantalla({
                 opciones={LO_NUEVO.map((e) => ({ valor: aPildora(e.valor), texto: e.texto }))}
               />
             </PanelPildoras>
+            </div>
+            {lista.length > 0 && (
+              <p className="ml-auto text-[13px] tabular-nums text-taupe" aria-live="polite">
+                Mostrando{" "}
+                <b className="font-semibold text-tinta">
+                  {pag.desde}–{pag.hasta}
+                </b>{" "}
+                de <b className="font-semibold text-tinta">{lista.length}</b>
+              </p>
+            )}
+            </div>
             {puestos.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 {puestos.map((p) => (
@@ -238,9 +285,6 @@ export function VitrinaPantalla({
                   </FiltroPuesto>
                 ))}
                 <BotonLimpiar onClick={limpiarFiltros}>Limpiar filtros</BotonLimpiar>
-                <span className="ml-auto text-[13px] tabular-nums text-taupe">
-                  {visibles.length} de {modelos.length} {modelos.length === 1 ? "modelo" : "modelos"}
-                </span>
               </div>
             )}
           </div>
@@ -254,7 +298,7 @@ export function VitrinaPantalla({
           </div>
         )}
 
-        {visibles.length === 0 ? (
+        {lista.length === 0 ? (
           texto.trim() ? (
             <Vacio icono={<SearchX />} titulo={`Nada coincide con «${texto.trim()}»`} acciones={<Boton onClick={() => setTexto("")}>Borrar la búsqueda</Boton>}>
               Busca por el nombre del modelo, su código o su categoría.
@@ -302,14 +346,10 @@ export function VitrinaPantalla({
                 {
                   titulo: (
                     <Casilla
-                      marcada={todosMarcados}
-                      aMedias={!todosMarcados && elegidosVisibles.length > 0}
-                      onCambio={() =>
-                        setElegidos((ids) =>
-                          todosMarcados ? ids.filter((id) => !visibles.some((m) => m.id === id)) : [...new Set([...ids, ...visibles.map((m) => m.id)])],
-                        )
-                      }
-                      etiqueta={todosMarcados ? "Quitar todos los de la lista" : "Elegir todos los de la lista"}
+                      marcada={paginaEntera}
+                      aMedias={!paginaEntera && elegidosVisibles.length > 0}
+                      onCambio={alternarPagina}
+                      etiqueta={paginaEntera ? `Quitar los ${visibles.length} de esta página` : `Elegir los ${visibles.length} de esta página`}
                     />
                   ),
                 },
@@ -330,6 +370,12 @@ export function VitrinaPantalla({
               />
             ))}
           </Tabla>
+        )}
+
+        {pag.totalPaginas > 1 && (
+          <div className="flex justify-center border-t border-sand px-5 py-4" data-guia="vitrina.paginas">
+            <PaginacionLocal pagina={pag.pagina} totalPaginas={pag.totalPaginas} onPagina={irAPagina} />
+          </div>
         )}
       </section>
 

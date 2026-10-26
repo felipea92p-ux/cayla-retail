@@ -14,6 +14,7 @@ import {
   interruptorEncendido,
   leerVitrina,
   libreEnTiendas,
+  MODELOS_POR_PAGINA,
   modeloDeJson,
   queLePasa,
   razonNoSeMuestra,
@@ -22,6 +23,7 @@ import {
   textoLoNuevo,
   type ModeloVitrina,
 } from "./vitrina-reglas";
+import { paginar } from "./paginacion";
 import { camposDeLoteMostrar, camposDeModelo } from "./vitrina-guia";
 
 // Un modelo tal como lo devuelve `retail.fn_vitrina_modelos()` (20261014225000). Sin precio ni costo: el precio es el de cada tienda.
@@ -213,6 +215,24 @@ describe("filtros por estado, categoría y Lo nuevo (Ola 1 de Tienda web)", () =
     for (const f of ["en_la_web", "sin_stock", "sin_precio", "ocultos"] as const) {
       expect(filtrosDeLaUrl({ filtro: new URL(hrefVitrina(f), "http://x").searchParams.get("filtro") ?? undefined }).estado).toBe(f);
     }
+  });
+});
+
+describe("la lista de la Vitrina llega de 30 en 30", () => {
+  const muchos = Array.from({ length: 59 }, (_, i) => modelo({ id: `m${i}`, nombre: `Modelo ${i}` }));
+
+  it("30 por página: dos páginas para 59, con lo que se ve de cada una", () => {
+    expect(MODELOS_POR_PAGINA).toBe(30);
+    const p1 = paginar(filtrarVitrina(muchos, "todos", ""), 1, MODELOS_POR_PAGINA);
+    expect(p1).toMatchObject({ pagina: 1, totalPaginas: 2, desde: 1, hasta: 30 });
+    const p2 = paginar(filtrarVitrina(muchos, "todos", ""), 2, MODELOS_POR_PAGINA);
+    expect(p2).toMatchObject({ pagina: 2, desde: 31, hasta: 59 });
+    expect(p2.filas.at(-1)!.id).toBe("m58");
+  });
+
+  it("un filtro que deja pocos cabe en una página, y una página que ya no existe vuelve a la última", () => {
+    expect(paginar(filtrarVitrina(muchos, "todos", "Modelo 5"), 1, MODELOS_POR_PAGINA).totalPaginas).toBe(1);
+    expect(paginar(muchos, 9, MODELOS_POR_PAGINA).pagina).toBe(2);
   });
 });
 
