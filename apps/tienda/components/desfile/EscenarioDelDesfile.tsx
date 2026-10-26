@@ -121,7 +121,7 @@ export function EscenarioDelDesfile({ piezas, modo, ceja, titulo, boton, enEsper
   const quieta = (i: number) => (calma ? i === actual : !arrancado && i === 0);
 
   return (
-    <section ref={caja} className="t-escenario" data-modo={modo} data-sin-prendas={conPrendas ? undefined : ""} aria-label={conPrendas ? "Desfile de lo nuevo" : undefined}>
+    <section ref={caja} className="t-escenario" data-modo={modo} data-sin-prendas={conPrendas || enEspera ? undefined : ""} data-espera={enEspera ? "" : undefined} aria-label={conPrendas ? "Desfile de lo nuevo" : undefined}>
       <div className="t-escenario-cab t-cap">
         <span className="t-entra">{ceja}</span>
         {en && n > 1 && (

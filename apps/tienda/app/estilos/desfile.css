@@ -82,6 +82,8 @@
   .t-luz { animation: t-luz-enciende 2.2s var(--ease) .3s both; }
   .t-escenario .t-entra { animation: t-entra 1s var(--ease) calc(.7s + var(--s, 0) * 110ms) both; }
 }
+/* El esqueleto del Inicio (`enEspera`) muestra el mismo escenario quieto: la entrada es de la página de verdad, una vez, al llegar. */
+.t-escenario[data-espera] .t-letra, .t-escenario[data-espera] .t-luz, .t-escenario[data-espera] .t-entra { animation: none; }
 @keyframes t-letra-sube { from { opacity: 0; transform: translateY(.6em); } }
 @keyframes t-luz-enciende { from { opacity: 0; scale: .6; } }
 @keyframes t-entra { from { opacity: 0; transform: translateY(12px); } }

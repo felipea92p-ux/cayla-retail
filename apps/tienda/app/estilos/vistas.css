@@ -50,22 +50,25 @@ html { scrollbar-gutter: stable; }
 
 @keyframes t-vista-llega { from { opacity: 0; } }
 
-/* ---- «El título se cuelga» (ADR-0466, Felipe 2026-10-20): la pantalla de carga del cambio de pestaña (Lo nuevo, Ropa, Looks, Ofertas…).
-   Lo hace el ESQUELETO de la lista (`FormaDelEsqueleto`: `CabeceraDeLista` y `Looks`), que ya trae el título real de la pestaña tocada: cada
-   palabra sube desde su línea, una tras otra; la ceja y la frase aparecen; y las tarjetas vacías se cuelgan en cascada, como cuando se monta
-   una exposición en el muro. Al llegar, la página escribe el mismo título quieto en el mismo lugar y cada foto aparece en su marco (el
-   fundido de `FotoTarjeta`). El título espera 120 ms antes de empezar: si la página llega casi al instante, el esqueleto ni alcanza a
-   mostrarlo y nada parpadea. Una vez, sin rebote ni bucle; con «reducir movimiento», todo quieto. ---- */
-@keyframes t-cuelga-sube { from { transform: translateY(108%); } }
-@keyframes t-cuelga-baja { from { opacity: 0; transform: translateY(18px); } }
-@keyframes t-cuelga-aparece { from { opacity: 0; } }
-.t-esqueleto .t-lista-cab.t-cuelga h1 { clip-path: inset(-20% -5% 0 -5%); }
-.t-esqueleto .t-lista-cab.t-cuelga h1 .t-pal { display: inline-block; animation: t-cuelga-sube 480ms var(--ease) both; animation-delay: calc(120ms + var(--j, 0) * 55ms); }
-.t-esqueleto .t-lista-cab.t-cuelga :is(.t-ceja, p) { animation: t-cuelga-aparece 360ms var(--ease) 140ms both; }
-.t-esqueleto :is(.t-grilla > .t-card, .t-looks > .t-look-card) { animation: t-cuelga-baja 460ms var(--ease) both; animation-delay: calc(120ms + var(--i, 0) * 32ms); }
-@media (prefers-reduced-motion: reduce) {
-  .t-esqueleto .t-lista-cab.t-cuelga h1 .t-pal, .t-esqueleto .t-lista-cab.t-cuelga :is(.t-ceja, p), .t-esqueleto :is(.t-grilla > .t-card, .t-looks > .t-look-card) { animation: none; }
-}
+/* ---- «La raya que viaja» (ADR-0524, Felipe 2026-10-26; reemplaza a «El título se cuelga» de ADR-0466): la pantalla de carga del cambio de pestaña.
+   Dos cosas a la vez: la raya de la cabecera corre de la palabra de antes a la nueva (`components/useRayaDelNav.ts`, `cabecera.css`) y la página entra de lado,
+   en el sentido del recorrido (hacia la derecha si la pestaña nueva está a la derecha): la de antes sale 22 px y se apaga, la nueva llega desde 22 px.
+   Lo que entra de lado es el esqueleto de la pestaña, con su título real; al llegar la página, cada foto aparece en su marco sin que nada se mueva.
+   `--dir` (1 o -1) y `data-viaja` los pone la cabecera al tocar una pestaña y los quita medio segundo después de que empieza la transición
+   (`Marca`, `Vistas.tsx`): el paso del esqueleto a la página, que viene después, es el fundido de siempre. Una vez, sin rebote ni bucle; con «reducir
+   movimiento» todo cambia de golpe. En el celular no hay raya (la navegación es el menú): queda el deslizamiento. ---- */
+@keyframes t-vista-sale { to { opacity: 0; transform: translateX(calc(var(--dir, 1) * -22px)); } }
+@keyframes t-vista-entra { from { opacity: 0; transform: translateX(calc(var(--dir, 1) * 22px)); } }
+/* Sin espacio entre `html[data-viaja]` y el pseudoelemento: la transición de vista cuelga de la raíz misma, no de un descendiente suyo. */
+html[data-viaja]::view-transition-old(root) { animation: t-vista-sale .2s var(--ease) both; }
+html[data-viaja]::view-transition-new(root) { animation: t-vista-entra .32s var(--ease) both; mix-blend-mode: normal; }
+
+/* La raya: una sola, con nombre, para que si el navegador reemplaza la cabecera a medio camino (el esqueleto trae la suya) la raya siga su recorrido
+   desde donde iba hasta donde queda, en vez de saltar. */
+.t-raya { view-transition-name: t-raya; }
+::view-transition-group(t-raya) { animation-duration: .32s; animation-timing-function: var(--ease); z-index: 61; }
+::view-transition-old(t-raya) { display: none; }
+::view-transition-new(t-raya) { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),

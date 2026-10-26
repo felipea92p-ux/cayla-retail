@@ -256,8 +256,9 @@
 /* ---- La entrada (G · Pasarela, ADR-0524): las prendas de la bolsa y su resumen suben una vez, una tras otra; la invitación de «Separado» se da vuelta. Todo se apaga con
    «reducir movimiento». ---- */
 @media (prefers-reduced-motion: no-preference) {
-  .t-bolsa-items .t-bolsa-item { animation: t-sube-k 1s var(--ease) calc(.15s + var(--i, 0) * 110ms) both; }
-  .t-resumen { animation: t-sube-k 1s var(--ease) .3s both; }
+  /* Su esqueleto (`.t-esqueleto`) no sube: la bolsa de verdad sube al llegar, una vez; el esqueleto solo espera. */
+  .t-bolsa-items .t-bolsa-item:not(.t-esqueleto .t-bolsa-item) { animation: t-sube-k 1s var(--ease) calc(.15s + var(--i, 0) * 110ms) both; }
+  .t-resumen:not(.t-esqueleto .t-resumen) { animation: t-sube-k 1s var(--ease) .3s both; }
   .t-separado-cab { animation: t-voltea 1.3s var(--ease) both; }
 }
 @keyframes t-sube-k { from { opacity: 0; transform: translateY(26px); } }
