@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as 
 import { Archive, Check, ClipboardCheck, Info, PencilLine, PenLine, ReceiptText, SearchCheck, SearchX, Store } from "lucide-react";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Boton, CampoTexto } from "@/components/ui/campos";
-import { BarraAvance } from "@/components/ui/BarraAvance";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { Volver } from "@/components/ui/Volver";
@@ -22,7 +21,6 @@ import { hrefEtiquetasDeSubidas } from "@/lib/matriz-ficha-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { apartadoEn, type VarianteAjuste } from "@/lib/ajuste-reglas";
 import {
-  avanceDeLaRevision,
   avisoCargaDeLaPlanilla,
   claveCelda,
   motivoCerrado,
@@ -99,7 +97,8 @@ function notaDeCelda(v: VarianteAjuste, control: ControlAjuste): { texto: string
 /* La planilla del modelo entero («Planilla rápida», ronda 2: Felipe 2026-10-26, docs/maquetas/existencias-ajustar-tabla-2026-10/ronda-2.html).
    Arriba, la banda con «Dónde» y «Qué pasó», siempre en el mismo lugar; debajo, el aviso, y la planilla, lo único que se desliza. Con una
    talla, columnas Hoy · Contaste · Cambio y lo del otro lugar; con varias, colores × tallas. La cantidad de la que se viene lleva el cursor y
-   un filo, y nada se apaga: todo el modelo se toca igual. Enter pasa a la siguiente cantidad (talla por talla, bajando por los colores). */
+   un filo, y nada se apaga: todo el modelo se toca igual. Enter pasa a la siguiente cantidad (talla por talla, bajando por los colores), y
+   un ✓ marca cada color ya mirado. «Dónde» no lleva conteos: eran del modelo entero y chocaban con los de la talla (/formidable 2026-10-26). */
 export function PlanillaDelAjuste({
   control,
   foco,
@@ -107,6 +106,7 @@ export function PlanillaDelAjuste({
   onVolver,
   onAbrirConteo,
   onGuardarYPasar,
+  onAvisoLugar,
   sedeNombre,
   sellados,
 }: {
@@ -119,6 +119,8 @@ export function PlanillaDelAjuste({
   onAbrirConteo: (varianteId: string) => void;
   /** «Guardar y pasar a almacén»: guarda lo contado aquí y sigue en el otro lugar. */
   onGuardarYPasar: (lugar: "piso" | "almacen") => void;
+  /** El aviso de lugar se abrió o se cerró: mientras está abierto, el pie no compite con él. */
+  onAvisoLugar?: (abierto: boolean) => void;
   sedeNombre: string;
   /** Lo recién guardado, por variante y en orden: cada talla se sella en verde, una tras otra, antes de «listo». */
   sellados?: readonly string[];
@@ -127,9 +129,15 @@ export function PlanillaDelAjuste({
   // El último «por qué no» de un toque, o el lugar pedido con cambios sin guardar: en el aviso, entre la banda y la planilla, hasta el
   // siguiente toque que sí se pudo. `vez` vuelve a montar el aviso, así destella también la segunda vez que se pide lo mismo.
   const [razon, setRazon] = useState<string | null>(null);
-  const [pideLugar, setPideLugar] = useState<"piso" | "almacen" | null>(null);
+  const [pideLugar, ponerPideLugar] = useState<"piso" | "almacen" | null>(null);
+  // Mientras el aviso pregunta, la acción principal es la suya: el panel baja el «Guardar» del pie a secundario (/formidable 2026-10-26).
+  const setPideLugar = (u: "piso" | "almacen" | null) => {
+    ponerPideLugar(u);
+    onAvisoLugar?.(u !== null);
+  };
   const [vez, setVez] = useState(0);
-  // Lo que la persona ya miró en esta visita (tocó, escribió o confirmó con Enter): «Revisaste 3 de 7».
+  // Lo que la persona ya miró en esta visita (tocó, escribió o confirmó con Enter): el ✓ de cada color ya mirado entero. Sin contador: «Revisaste
+  // 0 de 6» se leía como una tarea obligatoria (/formidable 2026-10-26).
   const [vistas, setVistas] = useState<ReadonlySet<string>>(() => new Set());
   const [deslizada, setDeslizada] = useState(false);
   const m = motivoPlanilla(control.motivo);
@@ -138,7 +146,6 @@ export function PlanillaDelAjuste({
   const caja = useRef<HTMLDivElement>(null);
   const motivos = useRef<HTMLDivElement>(null);
   const orden = modelo ? ordenDeRecorrido(modelo) : [];
-  const avance = modelo ? avanceDeLaRevision(modelo, vistas) : null;
   const avisoCarga = avisoCargaDeLaPlanilla(control.avisoCarga);
 
   // En el celular «Qué pasó» va en una fila que se desliza: el motivo elegido queda a la vista (solo se mueve esa fila, nunca la hoja).
@@ -221,7 +228,6 @@ export function PlanillaDelAjuste({
   const nTallas = modelo?.tallas.length ?? 0;
   const varias = nTallas > 1;
   const titulo = varianteFoco ? nombreDeCelda(varianteFoco, modelo) : null;
-  const totalEn = (u: "piso" | "almacen") => (modelo ? [...modelo.celdas.values()].reduce((s, v) => s + (u === "piso" ? v.stockPiso : v.stockAlmacen), 0) : 0);
   const otroLugar = control.lugar === "piso" ? "almacén" : "piso";
   const otro = (v: VarianteAjuste) => (control.lugar === "piso" ? v.stockAlmacen : v.stockPiso);
   const nCambios = control.lineas.length;
@@ -287,9 +293,6 @@ export function PlanillaDelAjuste({
                 >
                   {u === "almacen" ? <Archive aria-hidden className="h-4 w-4" /> : <IconoPercha aria-hidden className="h-4 w-4" />}
                   {u === "almacen" ? "En almacén" : "En piso"}
-                  <span className="ajuste-opcion-cuenta" title={`${totalEn(u)} ${DONDE[u]} hoy`}>
-                    {totalEn(u)}
-                  </span>
                 </button>
               ))}
             </div>
@@ -352,7 +355,7 @@ export function PlanillaDelAjuste({
           className="ajuste-aviso"
           titulo={`Tienes ${nCambios} ${nCambios === 1 ? "cambio" : "cambios"} sin guardar ${DONDE[control.lugar]}`}
         >
-          Se cuenta un lugar por vez. ¿Qué hacemos con lo que contaste antes de pasar a {NOMBRE_LUGAR[pideLugar]}?
+          Guárdalo y sigue con {pideLugar === "piso" ? "el piso" : "el almacén"}, o descártalo.
           <span className="ajuste-aviso-acciones">
             <Boton
               peso="primario"
@@ -419,14 +422,6 @@ export function PlanillaDelAjuste({
               <span className="ajuste-pista">
                 <kbd>Enter</kbd> pasa {varias ? "al color de abajo" : "al siguiente"}
               </span>
-              {avance && (
-                <span className="ajuste-avance">
-                  <span>
-                    Revisaste <b>{avance.hechos}</b> de {avance.total} {avance.unidad}
-                  </span>
-                  <BarraAvance pct={avance.total ? (100 * avance.hechos) / avance.total : 0} alto="fina" decorativa className="ajuste-avance-barra" />
-                </span>
-              )}
             </div>
             <div ref={caja} className="ajuste-desliza" data-desliza={deslizada ? "si" : undefined} onScroll={(e) => setDeslizada(e.currentTarget.scrollLeft > 2)}>
               {varias ? (
@@ -553,7 +548,7 @@ export function PlanillaDelAjuste({
   );
 }
 
-/** El visto de «Revisaste»: aparece cuando ya miraste todo ese color. */
+/** El visto de un color ya mirado entero en esta visita. */
 function Revisado({ on }: { on: boolean }) {
   return (
     <span aria-hidden className="ajuste-revisado" data-on={on ? "si" : undefined}>
@@ -744,7 +739,18 @@ export function TalonDelAjuste({ control, guardadas, sellado = false }: { contro
 }
 
 /** El pie: quién firma, el resumen o lo que falta, y Descartar (o Cancelar) / Guardar. */
-export function PieDelAjuste({ control, onCancelar, onGuardar }: { control: ControlAjuste; onCancelar: () => void; onGuardar: () => void }) {
+export function PieDelAjuste({
+  control,
+  onCancelar,
+  onGuardar,
+  secundario = false,
+}: {
+  control: ControlAjuste;
+  onCancelar: () => void;
+  onGuardar: () => void;
+  /** El aviso de lugar está preguntando: su «Guardar y pasar» es la acción principal y este botón no compite con él. */
+  secundario?: boolean;
+}) {
   const { resumen, problema, guia } = control;
   const n = resumen.tallas;
   return (
@@ -772,7 +778,7 @@ export function PieDelAjuste({ control, onCancelar, onGuardar }: { control: Cont
           <Boton peso="fantasma" onClick={onCancelar} disabled={control.enviando || control.incierto}>
             {n > 0 ? "Descartar" : "Cancelar"}
           </Boton>
-          <Boton peso="primario" cargando={control.enviando} disabled={n === 0 || Boolean(problema) || control.enviando} onClick={onGuardar} title={problema ? (guia.frase ?? undefined) : undefined}>
+          <Boton peso={secundario ? "fantasma" : "primario"} cargando={control.enviando} disabled={n === 0 || Boolean(problema) || control.enviando} onClick={onGuardar} title={problema ? (guia.frase ?? undefined) : undefined}>
             {n > 0 ? `Guardar ${n} ${n === 1 ? "cambio" : "cambios"}` : "Guardar"}
           </Boton>
         </PieAcciones>

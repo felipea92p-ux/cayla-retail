@@ -68,3 +68,15 @@ propia sesión, no un agente aparte.
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-26 | 360bbb1fa | 6,8 | 6 | — |
+| 2026-10-26 (b) | (este commit) | 7,3 (provisional, sin repetir la ciega) · leyes 2: 8 · 3 y 8: 7 · 9: 6 | 6 (sin cambio: lo que falla quedó en la lista aparte) | los 3, con el OK de Felipe |
+
+**Re-análisis 2026-10-26 (b), con el OK de Felipe («arregla el bug de la hoja corrida y aplica los 3 cambios; deja la lista aparte para
+después»).** Hechos y medidos en un navegador sin pantalla, misma semilla de /chaos (1026):
+1. **La hoja no queda corrida** — `useLayoutEffect` en `PanelTalla` que llama `soltarPaginaEstable()` al entrar a la planilla, y `overflow: clip`
+   en `<Modal altoFijo>`. [Medido] H1 a 1024, 1280 y 1440: relleno 0, hoja de 660 px, planilla de 246 px (antes, a 1024: relleno de 862 px,
+   hoja de 888 px y planilla en su mínimo). Prueba de regresión: `lib/ajuste-modelo-hoja-fija.test.ts`. Cerrado.
+2. **«Dónde» sin conteos y sin el contador «Revisaste»** — queda el ✓ de cada color ya mirado. [Medido] el texto de «Dónde» es «En almacén En
+   piso» y «Revisaste» ya no está en la hoja. Cerrado (falta la ciega que confirme que se fueron las dudas).
+3. **Una acción principal con el aviso abierto** — el «Guardar» del pie baja a secundario mientras el aviso pregunta, y la frase es «Guárdalo y
+   sigue con el piso, o descártalo.». [Medido] un solo `btn-primario` visible con el aviso abierto. Cerrado.
+Captura antes/después a 1440 con el aviso abierto: `1440-3-aviso.png` (scratchpad de la sesión, no versionada). La lista aparte sigue igual.

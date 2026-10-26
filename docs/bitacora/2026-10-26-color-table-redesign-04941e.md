@@ -9,4 +9,8 @@
 - **/chaos (semilla 1026) y /formidable, el mismo día:** 17 ataques en un navegador sin pantalla, 0 estados imposibles; doble clic,
   recargar, red cortada y «Guardar y pasar» escriben una vez. Abierto (g3, de esta rama): llegar con la hoja bajada deja la planilla
   aplastada y corrida (`PaginaEstable` reserva el alto en la hoja de alto fijo). Formidable: leyes 6,8 (ley 9: 4), oficio 6; ciega en 4
-  toques con 14 dudas. Los arreglos y los 3 cambios esperan el OK de Felipe (`docs/formidable/inventario-existencias-ajustar-stock.md`).
+  toques con 14 dudas (`docs/formidable/inventario-existencias-ajustar-stock.md`).
+- **Con el OK de Felipe:** cerrada la hoja corrida (`soltarPaginaEstable()` al entrar a la planilla, `overflow: clip` en `<Modal altoFijo>`,
+  prueba `lib/ajuste-modelo-hoja-fija.test.ts`) y hechos los 3 cambios de Formidable: «Dónde» sin conteos, sin el contador «Revisaste» (queda el
+  ✓ por color) y un solo botón principal mientras el aviso de lugar pregunta. H1 repetido con la semilla 1026: resiste. Pendiente: repetir la
+  ciega y la lista aparte (Tab por lo plegado, «Confirmar» en el aviso de red, 44 px con el dedo, la caja que borra lo que no es dígito).

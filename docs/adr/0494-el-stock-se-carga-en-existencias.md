@@ -172,4 +172,15 @@ lo vigila `lib/ajuste-modelo-movimiento.test.ts`. Las medidas de `PLANILLA` (160
 oscuro) y 375 px; la hoja no se desliza en ninguno, sin scroll horizontal en escritorio; en el celular la columna del color queda fija y
 opaca al deslizar. Enter bajó de Beige S a Negro S, el aviso de lugar salió con sus tres salidas y «Descartar y pasar» dejó la planilla limpia
 en piso. **No se probó «Guardar y pasar» guardando de verdad** (la base local es compartida): el guardado es el de siempre y el cambio de
-lugar después se probó con «Descartar y pasar».
+lugar después se probó con «Descartar y pasar». (Lo probó después /chaos, restaurando la base: escribe una sola vez, también con doble clic.)
+
+**Después de /chaos y /formidable (mismo día, con el OK de Felipe).**
+- **La hoja corrida (/chaos H1, g3):** quien bajaba la hoja de la talla y tocaba «Ajustar stock» encontraba la planilla aplastada y el pie
+  encima de «Dónde»: `<PaginaEstable>` (ADR-0185) reservaba como relleno el alto que se recortó tras el clic, dentro de una hoja que ahora es de
+  alto fijo. Pasar a la planilla es un cambio de vista: `PanelTalla` llama `soltarPaginaEstable()` en un `useLayoutEffect` (como los pasos
+  de Nuevo producto), y `<Modal altoFijo>` usa `overflow: clip`, que no se deja desplazar ni por código. Lo vigila
+  `lib/ajuste-modelo-hoja-fija.test.ts`.
+- **Quitar lo que hacía dudar (Formidable, leyes 3 y 8):** «Dónde» ya no lleva conteos (eran del modelo entero y chocaban con los de la
+  talla) y se fue el contador «Revisaste N de M» con su barra (se leía como tarea obligatoria); queda el ✓ de cada color ya mirado.
+- **Una acción principal (ley 2):** mientras el aviso de lugar pregunta, el «Guardar» del pie baja a secundario, y el aviso dice «Guárdalo y
+  sigue con el piso, o descártalo.».

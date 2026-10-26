@@ -3,7 +3,7 @@
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, ArrowLeftRight, Bandage, BookOpen, Check, ChevronRight, History, ShoppingBag, SignpostBig, Tag, Truck, Warehouse, ZoomIn } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -18,6 +18,7 @@ import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { navegacionSinEspera } from "@/components/ui/Espera";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { BandaAjustar, ListoDelAjuste, PieDelAjuste, PlanillaDelAjuste, TalonDelAjuste } from "@/components/existencias/AjusteDelModelo";
 import { useAjusteDelModelo, type AjusteGuardado } from "@/components/existencias/useAjusteDelModelo";
 import { anchoDelModalAlAjustar, lugarInicial } from "@/lib/existencias-ajuste-modelo";
@@ -230,6 +231,12 @@ export function PanelTalla({
   // Con la planilla a la vista, la hoja no se desliza: solo la planilla (ronda 2 de la «Planilla rápida», Felipe 2026-10-26). Las
   // etiquetas de lo que entró vuelven a la hoja de siempre.
   const planillaFija = modoAjuste && !listoAjuste;
+  // Pasar a la planilla es un cambio de VISTA, no un bloque que se encogió: se suelta <PaginaEstable> antes de pintar (ADR-0185, como
+  // los pasos de Nuevo producto). Sin esto, quien bajó la hoja de la talla y tocó «Ajustar stock» la encontraba con 862 px de relleno
+  // dentro de la hoja de alto fijo: la planilla aplastada y el pie encima de «Dónde» (/chaos 2026-10-26, H1).
+  useLayoutEffect(() => {
+    if (planillaFija) soltarPaginaEstable();
+  }, [planillaFija]);
   const prendaDeAhora = colores.find((c) => c.clave === clave) ?? colores[0];
   const filaDeAhora = prendaDeAhora?.tallas.find((t) => t.varianteId === varianteId) ?? prendaDeAhora?.tallas[0];
   const ajuste = useAjusteDelModelo({
@@ -251,6 +258,9 @@ export function PanelTalla({
   });
   // «Guardar y pasar a almacén» (ronda 2 de la «Planilla rápida»): tras guardar se sigue en el otro lugar, no se vuelve a la talla.
   const [pasarDespues, setPasarDespues] = useState<"piso" | "almacen" | null>(null);
+  // El lugar en el que el aviso «¿Qué hacemos con lo que contaste?» se abrió: mientras sigue ahí, el «Guardar» del pie es secundario. Se guarda
+  // el lugar y no un sí/no: al cambiar de lugar (la planilla empieza de nuevo) deja de valer solo.
+  const [avisoLugarEn, setAvisoLugarEn] = useState<string | null>(null);
   const ajusteSucio = modoAjuste && (ajuste.lineas.length > 0 || ajuste.enviando || ajuste.incierto);
   const { pedirAccion, retirarYa, aviso } = useSalidaSinGuardar(
     ajusteSucio || (Boolean(flujo) && !modoAjuste && pasoSucio),
@@ -889,6 +899,7 @@ export function PanelTalla({
                       if (f) onAjustarCompleto(f);
                     }}
                     onGuardarYPasar={(u) => void guardarAjuste(u)}
+                    onAvisoLugar={(abierto) => setAvisoLugarEn(abierto ? ajuste.ubicado : null)}
                     sedeNombre={sedeNombre}
                     sellados={sellando?.lineas.map((l) => l.variante.varianteId)}
                   />
@@ -1241,7 +1252,10 @@ export function PanelTalla({
               </section>
             </div>
             {modoAjuste && !listoAjuste && !sellando && (
-              <PieDelAjuste control={ajuste} onCancelar={() => (ajuste.lineas.length > 0 ? ajuste.descartar() : volverDeAjuste())} onGuardar={() => void guardarAjuste()} />
+              <PieDelAjuste
+                control={ajuste}
+                secundario={avisoLugarEn === ajuste.ubicado && ajuste.lineas.length > 0}
+                onCancelar={() => (ajuste.lineas.length > 0 ? ajuste.descartar() : volverDeAjuste())} onGuardar={() => void guardarAjuste()} />
             )}
           </div>
         )}

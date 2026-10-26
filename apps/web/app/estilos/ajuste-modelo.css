@@ -82,7 +82,6 @@
 }
 /* El lugar que se pidió y todavía no se puede (hay cambios sin guardar): queda marcado mientras el aviso pregunta qué hacer. */
 .ajuste-opcion.pildora-cayla[data-pide="si"] { border-color: var(--color-ambar); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-ambar) 30%, transparent); }
-.ajuste-opcion-cuenta { padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, currentColor 14%, transparent); font-size: 11.5px; font-variant-numeric: tabular-nums; }
 .ajuste-banda-pie { display: grid; gap: 2px; margin-left: calc(5.5rem + 10px); font-size: 12.5px; color: var(--color-taupe); }
 .ajuste-banda-info { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-pizarra); }
 
@@ -114,9 +113,6 @@
 .ajuste-planilla-lugar { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--color-tinta); }
 .ajuste-pista { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
 .ajuste-pista kbd { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border: 1px solid var(--color-sand); border-radius: 5px; background: var(--color-papel); font: inherit; font-size: 10.5px; }
-.ajuste-avance { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
-.ajuste-avance b { font-weight: 600; color: var(--color-tinta); }
-.ajuste-avance-barra { width: 90px; }
 .ajuste-desliza { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; background: var(--color-papel); border-top: 1px solid color-mix(in srgb, var(--color-tinta) 14%, transparent); }
 
 /* Cada fila pinta su fondo OPACO (mezclado con papel, nunca semitransparente): la columna del color, que se queda fija al deslizar de
@@ -155,7 +151,7 @@
 .ajuste-delta { padding: 1px 7px; border-radius: 999px; font-size: 12.5px; font-weight: 700; animation: ajuste-late 240ms var(--ease-cayla) 1; }
 .ajuste-delta[data-tono="entra"] { background: color-mix(in srgb, var(--color-verde) 14%, transparent); color: var(--color-verde-profundo); }
 .ajuste-delta[data-tono="sale"] { background: color-mix(in srgb, var(--color-ambar) 14%, transparent); color: var(--color-ambar-profundo); }
-/* «Revisaste»: el visto de un color que ya miraste entero. */
+/* El visto de un color que ya miraste entero en esta visita. */
 .ajuste-revisado { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-left: 6px; vertical-align: middle; color: var(--color-verde); opacity: 0; transition: opacity 240ms var(--ease-cayla); }
 .ajuste-revisado[data-on="si"] { opacity: 1; }
 .ajuste-talla {
@@ -263,8 +259,7 @@
   .ajuste-color b { white-space: nowrap; }
   .ajuste-tabla[data-tallas="una"] :is(.ajuste-hoy, .ajuste-relleno) { display: none; }
   .ajuste-tabla[data-tallas="una"] .ajuste-hoy-movil { display: block; }
-  .ajuste-pista,
-  .ajuste-avance-barra { display: none; }
+  .ajuste-pista { display: none; }
 }
 
 /* ---- El talón: lo que se va a guardar ---- */

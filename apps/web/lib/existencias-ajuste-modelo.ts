@@ -335,18 +335,6 @@ export function siguienteDelRecorrido(orden: readonly string[], actual: string):
   return i === -1 ? null : (orden[i + 1] ?? null);
 }
 
-/** «Revisaste 3 de 7 colores»: lo que la persona ya miró en esta visita (tocó, escribió o confirmó con Enter). Con una talla cuenta
- *  colores; con varias, tallas. Solo vive en la pantalla: no se guarda. */
-export function avanceDeLaRevision(modelo: ModeloDeAjuste, vistas: ReadonlySet<string>): { hechos: number; total: number; unidad: "colores" | "tallas" } {
-  if (modelo.tallas.length > 1) {
-    const ids = [...modelo.celdas.values()].map((v) => v.varianteId);
-    return { hechos: ids.filter((id) => vistas.has(id)).length, total: ids.length, unidad: "tallas" };
-  }
-  const delColor = (c: string | null) => [...modelo.celdas.values()].filter((v) => v.color === c);
-  const hechos = modelo.colores.filter((c) => delColor(c.color).every((v) => vistas.has(v.varianteId))).length;
-  return { hechos, total: modelo.colores.length, unidad: "colores" };
-}
-
 /** El aviso de la carga inicial nombra el motivo de la ventana completa de Ajustar («Encontré prendas»); en la planilla ese botón se llama
  *  «Encontré unidades» (`MOTIVOS_PLANILLA`): se nombra el botón que la persona tiene delante. */
 export function avisoCargaDeLaPlanilla(texto: string | null): string | null {

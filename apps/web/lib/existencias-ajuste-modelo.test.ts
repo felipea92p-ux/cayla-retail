@@ -5,7 +5,6 @@ import {
   anchoDeLaPlanilla,
   anchoDelModalAlAjustar,
   armarModelo,
-  avanceDeLaRevision,
   avisoCargaDeLaPlanilla,
   cambiosAlContar,
   claveCelda,
@@ -254,11 +253,6 @@ describe("recorrer la planilla con Enter (ronda 2 de la Planilla rápida)", () =
     expect(siguienteDelRecorrido(orden, "c-s")).toBe("n-m");
     expect(siguienteDelRecorrido(orden, "v-m")).toBeNull();
     expect(siguienteDelRecorrido(orden, "otra")).toBeNull();
-  });
-  it("con varias tallas cuenta tallas; con una, colores enteros", () => {
-    expect(avanceDeLaRevision(modelo, new Set(["n-s", "v-m"]))).toEqual({ hechos: 2, total: 5, unidad: "tallas" });
-    const unica = armarModelo([v("a", "Arena", "Estándar"), v("b", "Blanco", "Estándar")], extras, ["Arena", "Blanco"]);
-    expect(avanceDeLaRevision(unica, new Set(["a"]))).toEqual({ hechos: 1, total: 2, unidad: "colores" });
   });
 });
 
