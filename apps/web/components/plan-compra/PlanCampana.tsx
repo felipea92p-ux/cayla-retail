@@ -17,20 +17,11 @@ import { SinCampana } from "@/components/plan-compra/SinCampana";
 import { usePlanDerivado } from "@/components/plan-compra/usePlanDerivado";
 import type { AccionDelAviso } from "@/lib/plan-compra-avisos";
 import { ExportarPlan } from "@/components/plan-compra/ExportarPlan";
-import { fraseDelRecupero } from "@/lib/plan-compra-propuesta";
-import { numeroDeOrden } from "@/lib/plan-compra-pedido";
 import { fraseDelConteoAntesDelPlazo } from "@/lib/plan-compra-plazo";
-import Link from "next/link";
-import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
-import { SimuladorPlan } from "@/components/plan-compra/SimuladorPlan";
-import { RepartoModal } from "@/components/plan-compra/RepartoModal";
-import { fraseDeLosMinimos } from "@/lib/plan-compra-reparto";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
 import {
-  enteroES,
-  solesES,
   diasEntre,
   siguienteSinPlan,
   vistaDeLaUrl,
@@ -66,7 +57,6 @@ export function PlanCampana({
   preparacion,
   campanas,
   puedeContar,
-  veAnalisis = false,
   esLider,
   planPedidoNoExiste = false,
   propuesta: propuestaCruda = null,
@@ -81,8 +71,6 @@ export function PlanCampana({
   preparacion: LecturaMotor;
   campanas: CampanasLeidas | null;
   puedeContar: boolean;
-  /** Ve Análisis: el simulador ofrece el acceso a «Qué pedir», prenda por prenda. */
-  veAnalisis?: boolean;
   /** Solo para «Campaña nueva»: escribe en Catálogo ▸ Insignias y sigue siendo de un líder. El resto del plan, el mínimo por tienda
    *  incluido, es de quien tiene el módulo (ADR-0387; ADR-0362, decisión 64). */
   esLider: boolean;
@@ -102,7 +90,7 @@ export function PlanCampana({
   // Lo derivado de lo que la base manda (filas, momento, plazo, avisos) lo comparten las pestañas del Plan: ver `usePlanDerivado`. La cabecera, las
   // pestañas, el centro de avisos y las hojas de la campaña también: ver `MarcoPlan`.
   const derivado = usePlanDerivado({ datos, descuentos: descuentosCrudos, propuesta: propuestaCruda, historia: historiaCruda, pedido: pedidoCrudo, plazo: plazoCrudo, preparacion, puedeContar });
-  const { pedido, filas } = derivado;
+  const { filas } = derivado;
   const params = useSearchParams();
   const vista: VistaPlan = vistaDeLaUrl(params.get("vista"));
   // Otra pestaña (Presupuesto) puede mandar aquí a abrir el resumen o una categoría: `?hoja=resumen` o `?hoja=categoria:<id>`. Se lee al montar y se retira de la URL.
@@ -130,9 +118,7 @@ export function PlanCampana({
   const [sinMovAbiertas, setSinMovAbiertas] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [editandoTope, setEditandoTope] = useState(false);
-  const [editandoRecupero, setEditandoRecupero] = useState(false);
   const [resumenAbierto, setResumenAbierto] = useState(hojaPedida === "resumen");
-  const [editandoReparto, setEditandoReparto] = useState(false);
   const [pasoSucio, setPasoSucio] = useState(false);
   const salidaPaso = useSalidaSinGuardar(
     vista === "guiado" && pasoSucio,
@@ -168,7 +154,6 @@ export function PlanCampana({
   if (derivado.plan === null) return <SinCampana activa="plan" campanas={campanas} falla={falla} esLider={esLider} />;
 
   const { plan, momento, totales, plazo, confianza } = derivado;
-  const hechos = derivado.hechos;
   const filaAbierta = abierta ? (filas.find((f) => f.c.id === abierta.id) ?? null) : null;
   const siguiente = abierta ? (siguienteSinPlan(filas, [...hechas, abierta.id])?.c ?? null) : null;
   // La acción principal de la pantalla: la categoría que más vende y todavía no tiene plan. Una sola, arriba (antes: hasta 10 «Armar plan» negros).
@@ -284,8 +269,8 @@ export function PlanCampana({
             })()}
 
           {/* El cajón de «Resumen» (antes «Resumen y avisos»; Felipe 2026-10-12, opción D del spike docs/maquetas/plan-campana-rediseno-2026-10/): sin velo, la tabla
-              sigue viva detrás (tocar una cifra que filtra, filtra la tabla). De arriba abajo: lo que avisa, las cifras de toda CAYLA, lo que
-              sobra, el reparto entre tiendas y, antes de la campaña, el simulador. */}
+              sigue viva detrás (tocar una cifra que filtra, filtra la tabla). De arriba abajo: lo que avisa y las cifras de toda CAYLA. Lo que se
+              supone para toda la campaña (lo que sobra, lo ya pedido, el reparto) y el simulador viven en Presupuesto. */}
           {resumenAbierto && (
             <Cajon
               onCerrar={() => setResumenAbierto(false)}
@@ -298,74 +283,6 @@ export function PlanCampana({
               <AvisoStock confianza={confianza} puedeContar={puedeContar} frasePlazo={fraseDelConteoAntesDelPlazo(plazo)} />
 
               <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={() => setEditandoTope(true)} />
-
-              {pedido && (
-                // Lo ya pedido en órdenes de compra que llegan dentro de las fechas de la campaña (Felipe 2026-10-12). Lo que todavía no llegó a ninguna
-                // tienda se resta de «Comprar»; lo que llegó ya está en «Hay hoy» (Felipe 2026-10-13). Con una base que no manda `porLlegar`, solo se muestra.
-                <section data-guia="plan.pedido" className="space-y-2 rounded-xl bg-hueso px-4 py-3 text-[13px] text-tinta/80">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">Ya pedido en órdenes de compra</p>
-                  {pedido.ordenes.length === 0 ? (
-                    <p>Ninguna orden llega entre el {plan.plan.desde.slice(8)}/{plan.plan.desde.slice(5, 7)} y el {plan.plan.hasta.slice(8)}/{plan.plan.hasta.slice(5, 7)}.</p>
-                  ) : (
-                    <>
-                      <p>
-                        <b className="font-display text-xl text-tinta">{solesES(pedido.total)}</b> · {enteroES.format(pedido.unidades)} prendas en {pedido.ordenes.length}{" "}
-                        {pedido.ordenes.length === 1 ? "orden" : "órdenes"}
-                        {pedido.porLlegar !== null ? ` · ${enteroES.format(pedido.porLlegar)} todavía por llegar` : ""}
-                        {totales.inversion > 0 ? ` (el plan pide ${solesES(totales.inversion)})` : ""}
-                      </p>
-                      <ul className="divide-y divide-sand/80">
-                        {pedido.ordenes.map((o) => (
-                          <li key={o.id} className="flex items-baseline justify-between gap-3 py-1.5">
-                            <Link href={`/compras/ordenes/ver/${o.id}`} className="min-w-0 truncate underline-offset-2 hover:underline">
-                              <b className="font-semibold text-tinta">{numeroDeOrden(o.numero)}</b> · {o.proveedor} · {o.destino}
-                            </Link>
-                            <span className="whitespace-nowrap tabular-nums">
-                              {enteroES.format(o.unidades)}
-                              {o.porLlegar !== null ? (o.porLlegar === 0 ? " · ya llegaron" : ` · ${enteroES.format(o.porLlegar)} por llegar`) : ""} · {solesES(o.total)}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                  <p className="text-xs text-tinta/65">
-                    {pedido.porLlegar !== null
-                      ? "Cuentan las órdenes que llegan dentro de las fechas de la campaña. Lo que todavía no llegó a ninguna tienda ya se resta de «Comprar»; lo que llegó está en «Hay hoy»."
-                      : "Cuentan las órdenes que llegan dentro de las fechas de la campaña. No se restan de «Comprar» hasta que la orden sepa que ya llegó."}
-                  </p>
-                </section>
-              )}
-
-              {hechos && hechos.planId === plan.plan.id && (
-                // C5: de dónde sale el % de lo que sobra con que arranca cada categoría nueva, y el botón para fijarlo (quien tiene el módulo, ADR-0387).
-                <div data-guia="plan.recupero" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-[13px] text-tinta/80">
-                  <span className="min-w-0 basis-full">{fraseDelRecupero(hechos.recupero)}</span>
-                  <Boton peso="discreto" onClick={() => setEditandoRecupero(true)}>
-                    {hechos.recupero.pct === null || hechos.recupero.heredado ? "Fijar el % de CAYLA" : "Cambiar el %"}
-                  </Boton>
-                </div>
-              )}
-
-              {hechos && hechos.planId === plan.plan.id && hechos.tiendasActivas.length > 1 && (
-                // El reparto entre tiendas (Felipe 2026-10-12): según lo que vende cada una; el mínimo de la que vende poco (Lima) lo fija quien
-                // tiene el módulo, sea o no líder (ADR-0362, decisión 64; la base lo exige también).
-                <div data-guia="plan.reparto" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-[13px] text-tinta/80">
-                  <span className="min-w-0 basis-full">
-                    Lo que conviene tener se reparte entre las tiendas según lo que vende cada una
-                    {fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos) ? `; con mínimo: ${fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos)}` : ""}. El
-                    detalle, en la hoja de cada categoría.
-                  </span>
-                  <Boton peso="discreto" onClick={() => setEditandoReparto(true)}>
-                    {hechos.minimos.size > 0 ? "Cambiar los mínimos" : "Fijar un mínimo"}
-                  </Boton>
-                </div>
-              )}
-
-              {/* Antes de la campaña, el simulador (Felipe 2026-10-12): mover supuestos y ver la compra contra el tope, sin guardar. */}
-              {momento.estado === "antes" && (
-                <SimuladorPlan filas={filas} tope={plan.tope.valor} recuperoDefecto={hechos?.recupero.pct ?? null} veAnalisis={veAnalisis} />
-              )}
             </Cajon>
           )}
 
@@ -412,12 +329,6 @@ export function PlanCampana({
           {salidaPaso.aviso}
 
           {editandoTope && <TopeModal planId={plan.plan.id} planNombre={plan.plan.nombre} topeActual={plan.tope.valor} onClose={() => setEditandoTope(false)} />}
-          {editandoReparto && hechos && (
-            <RepartoModal planId={plan.plan.id} planNombre={plan.plan.nombre} tiendas={hechos.tiendasActivas} minimos={hechos.minimos} onClose={() => setEditandoReparto(false)} />
-          )}
-          {editandoRecupero && hechos && (
-            <RecuperoModal planId={plan.plan.id} planNombre={plan.plan.nombre} actual={hechos.recupero.pct} heredado={hechos.recupero.heredado} onClose={() => setEditandoRecupero(false)} />
-          )}
 
           {exportando && <ExportarPlan planNombre={plan.plan.nombre} filas={filas} confianza={confianza} onClose={() => setExportando(false)} />}
 

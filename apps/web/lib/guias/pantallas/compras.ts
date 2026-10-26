@@ -969,8 +969,8 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       id: "vistas",
       ancla: "plan.vistas",
       opcional: true,
-      titulo: "Plan, Resultados e Historial",
-      texto: "Aquí armas el plan. «Resultados» muestra lo que se vendió de verdad en la campaña y «Historial», lo que vendió cada tienda en cada campaña, año por año. Cada una tiene su demo.",
+      titulo: "Plan, Presupuesto y más",
+      texto: "Aquí armas el plan. «Presupuesto» dice cuánto cuesta y si cabe en tu tope; «Resultados», lo que se vendió de verdad en la campaña y «Historial», lo que vendió cada tienda en cada campaña, año por año. Cada una tiene su demo.",
     },
     {
       id: "sin-plan",
@@ -1030,7 +1030,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Resumen",
-      texto: "Lo que no es la tabla vive aquí: el detalle del stock por tienda, las cifras de toda CAYLA, lo que sobra, el reparto entre tiendas y el simulador. Los avisos tienen su propio ícono, junto a las pestañas. Te lo abrimos.",
+      texto: "Lo que no es la tabla vive aquí: el detalle del stock por tienda y las cifras de toda CAYLA. Lo que supones para toda la campaña (lo que sobra, lo ya pedido, el reparto) y el simulador están en Presupuesto. Te lo abrimos.",
     },
     {
       id: "stock",
@@ -1046,34 +1046,6 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.cifras",
       titulo: "El plan en cifras",
       texto: "Toda CAYLA: cuántas categorías ya tienen plan, cuántas prendas comprar, cuánto cuesta al costo contra el tope y lo vendido. El plan es uno para todas las tiendas. Una cifra que filtra (las que siguen sin plan) filtra la tabla de atrás.",
-    },
-    {
-      id: "pedido",
-      ancla: "plan.pedido",
-      opcional: true,
-      titulo: "Ya pedido en órdenes de compra",
-      texto: "Las órdenes de compra que llegan dentro de las fechas de la campaña, con su total. Lo que todavía no llegó a ninguna tienda ya se resta de «Comprar»; lo que llegó está en «Hay hoy». En la tabla, cada categoría dice cuántas se pidieron y cuántas faltan llegar.",
-    },
-    {
-      id: "recupero-cayla",
-      ancla: "plan.recupero",
-      opcional: true,
-      titulo: "Lo que sobra, para toda CAYLA",
-      texto: "A qué % del precio se vende lo que sobra de la campaña, y de dónde sale ese número. Cada categoría nueva arranca con él. Un líder lo fija o lo cambia con el botón de al lado, en una ventana con su responsable.",
-    },
-    {
-      id: "reparto",
-      ancla: "plan.reparto",
-      opcional: true,
-      titulo: "Cuánto le toca a cada tienda",
-      texto: "Lo que conviene tener se reparte según lo que vendió cada tienda en 90 días y se manda todo al inicio. A una tienda que vende poco (como Lima al empezar) le fijas un mínimo con el botón de al lado.",
-    },
-    {
-      id: "simulador",
-      ancla: "plan.simulador",
-      opcional: true,
-      titulo: "¿Y si vendemos más o menos?",
-      texto: "Mueve cuántas veces lo normal crees que se venderá y a qué % sale lo que sobra, y mira cuánto comprarías y si pasas el tope. No guarda nada: es para pensar antes de llenar.",
     },
     {
       id: "herramientas",
@@ -1709,13 +1681,87 @@ export const GUIA_ENVIO_ORDEN: Guia = {
   ],
 };
 
-/** Las tres vistas del Plan de campaña (Plan · Resultados · Historial): la misma pieza en las tres pantallas. */
+/** Las vistas del Plan de campaña (Plan · Presupuesto · Resultados · Historial): la misma pieza en todas las pantallas. */
 const VISTAS_DEL_PLAN = (cual: string): PasoGuia => ({
   id: "vistas",
   ancla: "plan.vistas",
-  titulo: "Plan, Resultados e Historial",
-  texto: `Estás en ${cual}. «Plan» arma cuánto comprar de cada categoría; «Resultados», lo que se vendió de verdad en una campaña; «Historial», lo que vendió cada tienda en cada campaña, año por año.`,
+  titulo: "Plan, Presupuesto y más",
+  texto: `Estás en ${cual}. «Plan» arma cuánto comprar de cada categoría; «Presupuesto», cuánto cuesta y si cabe en tu tope; «Resultados», lo que se vendió de verdad en una campaña; «Historial», lo que vendió cada tienda en cada campaña, año por año.`,
 });
+
+export const GUIA_PLAN_PRESUPUESTO: Guia = {
+  id: "compras.plan.presupuesto",
+  ruta: "/compras/plan/presupuesto",
+  titulo: "Presupuesto del plan",
+  resumen: "Cuánto cuesta lo que el plan pide comprar, si cabe en tu tope y qué rinde cada sol.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Cuánto cuesta el plan",
+      texto: "Aquí ves, al costo, lo que el plan pide comprar y si cabe en tu tope. El plan se arma en la pestaña Plan; aquí no se compra nada. Es una demo: no se guarda nada.",
+    },
+    VISTAS_DEL_PLAN("Presupuesto"),
+    {
+      id: "cifras",
+      ancla: "presupuesto.cifras",
+      titulo: "Las cuatro cifras",
+      texto: "Cuánto cuesta el plan, tu tope y cuánto te pasas o te queda, lo que se espera ganar con lo que compras y lo que ganas por cada sol. «Editar el tope» abre la ventana para fijarlo; el «!» explica lo que se espera ganar.",
+    },
+    {
+      id: "donde",
+      ancla: "presupuesto.donde",
+      titulo: "Dónde se va la plata",
+      texto: "La barra reparte lo que cuesta el plan entre las categorías: la más oscura es la que más pesa. Si hay tope, la barra se mide contra él: lo que queda vacío es lo que te queda para comprar.",
+    },
+    {
+      id: "tope",
+      ancla: "presupuesto.tope",
+      titulo: "Plan con tu tope",
+      texto: "Mueve el tope y el sistema te dice qué plan cabe: cuánto compraría de cada categoría y cuánto dejas de ganar por recortar. Baja cuánta seguridad quiere tener de todas a la vez, empezando por donde cada sol rinde menos. Solo simula: no guarda nada.",
+    },
+    {
+      id: "resultado",
+      ancla: "presupuesto.resultado",
+      opcional: true,
+      titulo: "Qué cambia con ese tope",
+      texto: "Cuántas prendas comprarías, cuánto costaría y cuánto esperas ganar, cada una con su diferencia contra el plan de hoy. Debajo, cuánto dejas de ganar por cada sol que ahorras: te sirve para ver si recortar vale la pena.",
+    },
+    {
+      id: "comparacion",
+      ancla: "presupuesto.comparacion",
+      opcional: true,
+      titulo: "Hoy contra con tope",
+      texto: "Una fila por categoría: cuánto compraría hoy, cuánto con ese tope y cuánto cambia, con su barrita. Así ves dónde duele el recorte (o dónde se sumaría).",
+    },
+    {
+      id: "simulador",
+      ancla: "presupuesto.simulador",
+      opcional: true,
+      titulo: "¿Y si vendemos más o menos?",
+      texto: "Mueve cuántas veces lo normal crees que se venderá y a qué % sale lo que sobra, y mira cuánto comprarías y si pasas el tope. No guarda nada: es para pensar antes de llenar. Solo antes de que empiece la campaña.",
+    },
+    {
+      id: "costos",
+      ancla: "presupuesto.costos",
+      opcional: true,
+      titulo: "Cuánto cuesta cada categoría",
+      texto: "Lo que compra cada categoría, su costo por prenda, lo que invierte, qué parte del total es y cuánto ganas por cada sol. «Datos» dice cuánto creerle: Orientativo (pocos días de ventas), Aproximado, Exacto o Sin ventas.",
+    },
+    {
+      id: "supuestos",
+      ancla: "presupuesto.supuestos",
+      titulo: "Supuestos de toda la campaña",
+      texto: "A qué % se vende lo que sobra, el descuento, lo ya pedido en órdenes, los días que tarda en llegar y cómo se reparte entre tiendas. Cada uno se cambia con su botón (o desde la hoja de cada categoría). Antes estaban en el Resumen.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer cuánto cuesta el plan y si cabe en tu tope. Para repasarlo: Mi perfil ▸ Demo ▸ Presupuesto del plan.",
+    },
+  ],
+};
 
 export const GUIA_PLAN_RESULTADOS: Guia = {
   id: "compras.plan.resultados",

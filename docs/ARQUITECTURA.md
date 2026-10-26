@@ -2021,6 +2021,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `puedeVerImpuestos`— e `igvEnRiesgo`, `lib/gastos-reglas.ts`) y `fn_gastos_panel` (clave `igv_perdido`, en el mes del pago →
     `PanelGastos.igvPerdido` / `igvDescontable`; la tarjeta con `igvParaLaTarjeta`, que nunca es negativa, y `bajadaIgvDelMes`, que con
     `perdidoEnOtroMes` dice el IGV de la lista que se pierde en otro mes).
+  - `/compras/plan/presupuesto` («Presupuesto», ADR-0523, mismo módulo `plan_compra`, **sin RPC propia**: lee lo mismo que el Plan por `getPlanCompra`) → `components/plan-compra/PresupuestoPlan.tsx`
+    (cifras, «Dónde se va la plata», tabla de costos), `PlanConTope.tsx` (el deslizador y el plan que cabe), `SupuestosDelPlan.tsx` (lo que sobra, descuento, lo ya pedido, días para llegar y reparto: antes en el
+    cajón «Resumen») + `lib/plan-compra-tope.ts` (el precio de la plata λ, la bisección, lo que se espera ganar) y `lib/plan-compra-presupuesto.ts` (lo que se dice). La cabecera, las pestañas y el centro de avisos de
+    las pestañas del Plan son `components/plan-compra/MarcoPlan.tsx`; lo derivado de una campaña, `usePlanDerivado.ts`.
   - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`.
   - `/compras/plan/historial` (ADR-0372 C3) → `getHistorialPlan` → `fn_historial_ventas` (Sinatra en `retail.ventas_historicas` antes del ERP) + `lib/plan-compra-historial.ts`; pantalla `components/plan-compra/HistorialCampanas.tsx`.
   - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;

@@ -193,7 +193,7 @@ function avisoDelTope(e: EntradaDeAvisos): AvisoDelPlan | null {
     titulo: `Te pasas ${solesES(excede)} de tu tope`,
     texto: `El plan cuesta ${solesES(e.inversion)} al costo y tu tope es ${solesES(e.tope)}.`,
     huella: String(Math.round(excede)),
-    acciones: [{ tipo: "ver-resumen", texto: "Ver el resumen" }],
+    acciones: [{ tipo: "ir-presupuesto", texto: "Ver Presupuesto" }],
   };
 }
 

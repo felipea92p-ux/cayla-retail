@@ -1,11 +1,8 @@
 import { BarraApilada } from "@/components/ui/BarraApilada";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { TONOS_DE_INVERSION as TONOS_TOPE } from "@/components/plan-compra/tonos-de-inversion";
 import { enteroES, segmentosDelTope, solesES, type EstadoCampana, type FilaPlan, type FiltroPlan, type TotalesPlan } from "@/lib/plan-compra-reglas";
-
-// Un tono por tramo de la barra del tope: de la categoría que más cuesta a las demás, siempre tinta (nunca un color nuevo; debajo de /50 no llega a
-// 3:1, por eso lo que dice la barra también se dice en texto).
-const TONOS_TOPE = ["bg-tinta", "bg-tinta/85", "bg-tinta/70", "bg-tinta/60", "bg-tinta/50", "bg-tinta/35"];
 
 // Las cifras del plan de campaña (ADR-0349): cuántas categorías ya tienen plan (y filtra la tabla), cuántas prendas comprar y cuánto
 // cuesta y, la cuarta, la que cambia con el momento: antes, cuántas de las que más venden faltan por llenar; durante y después, lo que

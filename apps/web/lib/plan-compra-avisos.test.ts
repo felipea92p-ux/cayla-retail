@@ -198,6 +198,8 @@ describe("el tope", () => {
     expect(a.nivel).toBe("pendiente");
     expect(a.titulo).toBe("Te pasas S/ 1,200.00 de tu tope");
     expect(a.texto).toBe("El plan cuesta S/ 29,200.00 al costo y tu tope es S/ 28,000.00.");
+    // El camino a recortar está en la pestaña Presupuesto: ahí se ve el plan que cabe (Felipe 2026-10-26).
+    expect(a.acciones).toEqual([{ tipo: "ir-presupuesto", texto: "Ver Presupuesto" }]);
   });
   it("dentro del tope, o sin tope, no hay aviso", () => {
     expect(ids(avisosDelPlan(base({ tope: 28000, inversion: 28000 }), sinDatos))).not.toContain("tope");

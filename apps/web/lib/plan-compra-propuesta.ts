@@ -226,12 +226,6 @@ export function problemaDelRecupero(texto: string): string | null {
 /** Los argumentos de `guardar_plan_compra_recupero`; `null` lo quita (cada categoría vuelve a escribirlo sola). */
 export const argsGuardarRecupero = (planId: string, texto: string | null) => ({ p_plan_id: planId, p_pct: texto === null ? null : Number(texto.trim()) });
 
-/** La frase de la pantalla sobre lo que sobra: de dónde sale el % que traen las categorías nuevas. */
-export function fraseDelRecupero(r: LecturaPropuesta["recupero"]): string {
-  if (r.pct === null) return "Nadie fijó todavía a qué % del precio se vende lo que sobra en esta campaña: cada categoría lo escribe.";
-  return `Lo que sobra se vende al ${r.pct} % del precio${r.heredado ? " (el de la campaña anterior)" : ""}: con eso arranca cada categoría nueva, y cada una puede cambiarlo.`;
-}
-
 // ---------------------------------------------------------------------------------------------------------------------
 // El simulador (Felipe 2026-10-12, lo rescatado de Toolio e Increff): mover supuestos y ver la compra al instante, sin guardar nada
 // ---------------------------------------------------------------------------------------------------------------------

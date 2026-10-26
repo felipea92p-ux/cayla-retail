@@ -158,10 +158,25 @@
     background: color-mix(in srgb, var(--color-rojo) 15%, transparent);
     color: var(--color-rojo-profundo);
   }
+  /* «nuevo»: una vista recién llegada. Pizarra con letra crema fija (el color de dato no se invierte); sobre la píldora oscura, al revés. */
+  .pestana-cayla__cuenta[data-tono="nuevo"] {
+    background: var(--color-pizarra);
+    color: var(--color-crema-fija);
+    padding: 0 7px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
   .pestana-cayla[aria-selected="true"] .pestana-cayla__cuenta,
   .pestana-cayla[aria-current="page"] .pestana-cayla__cuenta {
     background: color-mix(in srgb, var(--color-crema) 15%, transparent);
     color: var(--color-crema);
+  }
+  .pestana-cayla[aria-selected="true"] .pestana-cayla__cuenta[data-tono="nuevo"],
+  .pestana-cayla[aria-current="page"] .pestana-cayla__cuenta[data-tono="nuevo"] {
+    background: var(--color-crema);
+    color: var(--color-tinta);
   }
 
   /* ---------- 2 · Píldora de filtro y de período ----------

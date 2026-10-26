@@ -214,11 +214,15 @@ export function leerPlan(v: unknown): LecturaPlan | null {
  * menos el costo. Lo que sobra se recupera después de la campaña, sobre el precio de lista: el descuento no entra en Co. Si el descuento se
  * come todo el margen, Cu = 0 y el cuantil es 0: comprar cerca del flojo.
  */
-export function cuantilCritico(precio: number, costo: number, recuperoPct: number, descuentoPct = 0): number {
+export function cuantilCritico(precio: number, costo: number, recuperoPct: number, descuentoPct = 0, precioDeLaPlata = 0): number {
   const cu = Math.max(precioEnCampana(precio, descuentoPct) - costo, 0);
   const co = Math.max(costo - (precio * recuperoPct) / 100, 0);
   if (cu + co === 0) return 0.5;
-  return cu / (cu + co);
+  // El precio de la plata (λ, Hadley y Whitin 1963; ver `lib/plan-compra-tope.ts`): cada sol que se inmoviliza en mercadería cuesta λ soles de
+  // lo que esa plata rendiría en otra parte, así que lo que se deja de ganar por quedarse corto baja en λ × el costo de la prenda. Con 0 (el
+  // plan de siempre) es exactamente Cu ÷ (Cu + Co); positivo aprieta la compra de todas las categorías a la vez, negativo la afloja.
+  const lambda = Number.isFinite(precioDeLaPlata) ? precioDeLaPlata : 0;
+  return Math.min(Math.max((cu - lambda * costo) / (cu + co), 0), 1);
 }
 
 /** El precio al que se vende en la campaña: el de lista menos el descuento, a centavos. */
@@ -288,8 +292,8 @@ export type Calculo = {
   inversion: number;
 };
 
-export function calcular(l: Pick<LineaPlan, "flojo" | "normal" | "bueno" | "precio" | "costo" | "recuperoPct" | "descuentoPct">, stock: number): Calculo {
-  const cuantil = cuantilCritico(l.precio, l.costo, l.recuperoPct, l.descuentoPct ?? 0);
+export function calcular(l: Pick<LineaPlan, "flojo" | "normal" | "bueno" | "precio" | "costo" | "recuperoPct" | "descuentoPct">, stock: number, precioDeLaPlata = 0): Calculo {
+  const cuantil = cuantilCritico(l.precio, l.costo, l.recuperoPct, l.descuentoPct ?? 0, precioDeLaPlata);
   const objetivo = Math.ceil(cuantilTriangular(l.flojo, l.normal, l.bueno, cuantil) - 1e-9);
   const comprar = Math.max(0, objetivo - stock);
   return { cuantil, objetivo, stock, comprar, inversion: Math.round(comprar * l.costo * 100) / 100 };

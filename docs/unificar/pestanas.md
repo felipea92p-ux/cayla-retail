@@ -34,6 +34,10 @@ mismos conteos —«Se está acabando» en rojo si hay prendas—, el chip de co
    `data-mas-izq` / `data-mas-der` (la regla pura es `lib/fila-desliza-reglas.ts`, con su prueba), y `pestanas-y-segmentos.css` dibuja la
    máscara. Solo existe mientras la fila se desliza (nunca en escritorio, donde cabe entera). No cambia qué hace ninguna pestaña.
 
+4. **2026-10-26, la marca «nuevo».** La maqueta del Presupuesto del Plan (spike ④, Felipe la eligió mirando) pone una palabra «nuevo» en pizarra pegada al nombre de una pestaña recién llegada.
+   Es una variante de la píldora de conteo, no una pieza nueva: `<Pestanas>` acepta `conteo: "nuevo"` con `tono: "nuevo"` (pizarra con letra crema fija; sobre la píldora oscura, al revés). Quien monta
+   las pestañas decide hasta cuándo sale (`PestanasPlan`: hasta el 2026-12-31): una marca de «nuevo» que no caduca es ruido.
+
 ## Qué es cada pieza
 
 - **`Pestanas`**: contenedor de vidrio (`vidrio-cayla`) con 4 px de aire y radio 14; la píldora en tinta de radio 10 viaja bajo la elegida

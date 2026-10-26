@@ -2,7 +2,7 @@
   "guia": "compras.plan",
   "ruta": "/compras/plan",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 97,
+  "total": 82,
   "controles": {
     "components/plan-compra/AvisoStock.tsx": [
       "BotonVer «Ir a Conteo»"
@@ -92,10 +92,7 @@
       "BotonEnlace «{aviso.verResultados}»",
       "BotonEnlace «Planificar»",
       "Boton «Planificar»",
-      "Boton «Campaña nueva»",
-      "Link «{numeroDeOrden(o.numero)}»",
-      "Boton «→() => setEditandoRecupero(true)»",
-      "Boton «→() => setEditandoReparto(true)»"
+      "Boton «Campaña nueva»"
     ],
     "components/plan-compra/PlanCategoriaModal.tsx": [
       "Boton «Cancelar»",
@@ -109,26 +106,8 @@
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
-    "components/plan-compra/RecuperoModal.tsx": [
-      "CampoTexto «Lo que sobra, en % del precio»",
-      "ComboResponsable «{responsable}»",
-      "Boton «{responsable.motivo ?? undefined}»",
-      "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
-    ],
-    "components/plan-compra/RepartoModal.tsx": [
-      "CampoTexto «{`Mínimo de ${t.nombre}»",
-      "ComboResponsable «{responsable}»",
-      "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
-    ],
     "components/plan-compra/SelectorCampana.tsx": [
       "Desplegable «{actual ? actualId : \"\"}»"
-    ],
-    "components/plan-compra/SimuladorPlan.tsx": [
-      "input «{mult}»",
-      "input «{rec}»",
-      "Link «Qué pedir, prenda por prenda, en Análisis»"
     ],
     "components/plan-compra/SinCampana.tsx": [
       "Boton «Armar el plan de»",
