@@ -8,6 +8,7 @@ import { SinCampana } from "@/components/plan-compra/SinCampana";
 import { usePlanDerivado } from "@/components/plan-compra/usePlanDerivado";
 import { Aviso } from "@/components/ui/Aviso";
 import { leerPagado, leerPagos } from "@/lib/plan-compra-inversion";
+import type { FlujoDelPlan } from "@/lib/plan-compra-pagar";
 import type { CampanasLeidas } from "@/lib/plan-compra-reglas";
 import type { LecturaMotor } from "@/lib/motor-demanda";
 
@@ -30,6 +31,7 @@ export function PagosPlan({
   pagos = null,
   pagado = null,
   pagosFallo = false,
+  flujo = null,
 }: {
   datos: unknown;
   falla: string | null;
@@ -50,6 +52,8 @@ export function PagosPlan({
   pagado?: unknown;
   /** La lectura de los pagos FALLÓ (no es que la base no los tenga): no se ofrece guardar a ciegas. */
   pagosFallo?: boolean;
+  /** La caja de las próximas 12 semanas (de Finanzas) o por qué no hay; null = no se pidió. */
+  flujo?: FlujoDelPlan | null;
 }) {
   const derivado = usePlanDerivado({ datos, descuentos, propuesta, historia, pedido, plazo, versiones, preparacion, puedeContar, campanas });
   if (derivado.plan === null) return <SinCampana activa="presupuesto" campanas={campanas} falla={falla} />;
@@ -90,7 +94,7 @@ export function PagosPlan({
               La base aún no sabe guardar cómo se paga una campaña. Tu plan sigue igual y Finanzas cuenta lo que falta pedir sin fechas de pago.
             </Aviso>
           ) : (
-            <CuandoSePaga key={`${derivado.plan.plan.id}|${lectura.guardado?.version ?? 0}`} derivado={derivado} lectura={lectura} pagado={leerPagado(pagado)} />
+            <CuandoSePaga key={`${derivado.plan.plan.id}|${lectura.guardado?.version ?? 0}`} derivado={derivado} lectura={lectura} pagado={leerPagado(pagado)} flujo={flujo} />
           )}
         </>
       )}

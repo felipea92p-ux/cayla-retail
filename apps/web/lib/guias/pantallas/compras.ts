@@ -1945,6 +1945,20 @@ export const GUIA_PLAN_PAGOS: Guia = {
       texto: "Marca las categorías cuyo costo ya incluye el IGV; a las demás se les suma el 18 %. Así sabes cuánto le pagas al proveedor, cuánto es IGV y cuánto sale de tu caja. La marca es de esta campaña: no cambia el costo de la ficha.",
     },
     {
+      id: "caja",
+      ancla: "pagos.caja",
+      titulo: "Así quedaría tu caja",
+      opcional: true,
+      texto: "La caja de las próximas 12 semanas que Finanzas ya proyecta, con los pagos de esta compra restados el día en que caen, tu mínimo de caja y el último día para pedir. Se mueve con lo que armas a la izquierda y la alerta de abajo dice si aguanta. Solo la ve un líder de equipo.",
+    },
+    {
+      id: "formas",
+      ancla: "pagos.formas",
+      titulo: "Cómo pagarla",
+      opcional: true,
+      texto: "Compara cinco formas de pagar tus mismas tandas contra esa caja: al contado, a 30 o 60 días, con anticipo. Dice si aguantas al contado y, si no, cuánto crédito necesitas. No predice ventas: mira también «si se cobra 20 % menos». «Usar» cambia tus tandas, sin guardar.",
+    },
+    {
       id: "visibilidad",
       ancla: "pagos.visibilidad",
       titulo: "¿Lo ve Finanzas?",

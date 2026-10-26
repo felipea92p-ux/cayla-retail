@@ -231,6 +231,11 @@ Cada tarea lleva su clase —**Urgente** (pierde algo cada día o vence pronto),
 - **DECIDÍ:** comparar calendarios de pago contra un rango de entradas por sede sacado de Sinatra, con el colchón escrito por el empresario. **DESCARTÉ:** predecir ganancias por campaña con un modelo ajustado (no hay costo histórico y son 6 puntos por mes: el modelo sería ruido con cara de ciencia). **SE ROMPE SI:** la sede no tiene historia propia y se usa la curva de otra (Lima con la de Trujillo); o el rango sale de los 26 días del ERP en vez de los 6 años de Sinatra; o un proveedor figura con crédito que en realidad no da y el calendario recomendado deja un pago vencido.
 - **Lo que esto toca de IGV:** el IGV de la factura de compra baja lo que se paga a SUNAT el mes siguiente (crédito fiscal): mueve la caja de enero, no la de diciembre. Confirmarlo con el contador antes de que el calendario lo cuente.
 
+- **Estado (2026-10-26, noche):** construida y probada en local (C9, ADR-0527 «actualización: la caja», **sin migración nueva**). Dos piezas en «Presupuesto ▸ Cuándo se paga»: **«Así quedaría tu caja»** (la caja de 12 semanas de Finanzas con
+  los pagos de la compra, el mínimo y el último día para pedir) y **«Cómo pagarla»** (cinco formas de pagar las mismas tandas contra esa caja, con lo esperado y con 20 % menos de cobros). **No predice** (Sinatra solo trae soles
+  por día; sin costo ni margen): compara contra la caja que Finanzas ya proyecta, y **ninguna forma con crédito se recomienda sola** (hoy 0 de 119 proveedores tienen su crédito cargado). El crédito del proveedor «al Enviar a Compras»
+  (7b) sigue pendiente. Solo un líder de equipo ve la caja (la base se la da solo a él).
+
 ## 8 · Estrategia alternativa
 | | Pantalla por campaña (hoy + parches) | Programa del año (propuesta) |
 |---|---|---|

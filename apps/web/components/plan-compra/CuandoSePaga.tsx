@@ -3,6 +3,8 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CajaConLaCompra } from "@/components/plan-compra/CajaConLaCompra";
+import { ComoPagarLaCampana } from "@/components/plan-compra/ComoPagarLaCampana";
 import { CostoEIgv } from "@/components/plan-compra/CostoEIgv";
 import { TandaDePago } from "@/components/plan-compra/TandaDePago";
 import { QuePasaEnFinanzas, SelectorDeVisibilidad } from "@/components/plan-compra/VisibilidadEnFinanzas";
@@ -33,11 +35,13 @@ import {
   salidaPorMes,
   semanasDePedido,
   tandasPorDefecto,
+  type FormaDePago,
   type LecturaPagado,
   type LecturaPagos,
   type Tanda,
   type VisibilidadFinanzas,
 } from "@/lib/plan-compra-inversion";
+import { leerLaCaja, type FlujoDelPlan } from "@/lib/plan-compra-pagar";
 import { diasConQueSeCuenta } from "@/lib/plan-compra-plazo";
 import { solesEnterosES } from "@/lib/plan-compra-presupuesto";
 import { enteroES, fechaCortaES, solesES } from "@/lib/plan-compra-reglas";
@@ -50,7 +54,7 @@ import { enteroES, fechaCortaES, solesES } from "@/lib/plan-compra-reglas";
 // CAÍDA EXTERNA. Si la base no responde al guardar, la pantalla lo dice y lo armado sigue aquí; volver a guardar lo mismo no duplica nada (lo idéntico no crea otra foto). Si otra persona guardó
 // mientras se editaba, lo de esta persona no pisa a la otra: se dice quién y se ofrece ver lo que guardó.
 
-export function CuandoSePaga({ derivado, lectura, pagado }: { derivado: PlanConPlan; lectura: LecturaPagos; pagado: LecturaPagado | null }) {
+export function CuandoSePaga({ derivado, lectura, pagado, flujo }: { derivado: PlanConPlan; lectura: LecturaPagos; pagado: LecturaPagado | null; /** La caja de las próximas 12 semanas (de Finanzas) o por qué no hay; null = no se pidió. */ flujo: FlujoDelPlan | null }) {
   const router = useRouter();
   const responsable = useResponsable();
   const { plan, filas, plazo, plazoFijado, totales } = derivado;
@@ -82,6 +86,12 @@ export function CuandoSePaga({ derivado, lectura, pagado }: { derivado: PlanConP
   const meses = useMemo(() => salidaPorMes(pagos, costos.saleDeCaja, hoy), [pagos, costos.saleDeCaja, hoy]);
   const porTanda = useMemo(() => categoriasPorTanda(costos.filas, tandas), [costos.filas, tandas]);
   const semanas = useMemo(() => semanasDePedido(hoy, limite), [hoy, limite]);
+  // La forma de pago que tienen TODAS las tandas con compra, si es la misma (para que el comparador diga «la que tienes ahora»).
+  const formaActual = useMemo(() => {
+    const formas = new Set(tandas.filter((t) => t.pct > 0).map((t) => t.forma));
+    return formas.size === 1 ? [...formas][0]! : null;
+  }, [tandas]);
+  const hayCaja = useMemo(() => leerLaCaja(flujo) !== null, [flujo]);
 
   const foto = (t: readonly Tanda[], i: ReadonlySet<string> | readonly string[]) => JSON.stringify([t.map((x) => [x.pedido, x.pct, x.forma]), [...i].sort()]);
   const cambio = foto(tandas, incluidas) !== foto(baseTandas, baseIgv);
@@ -96,6 +106,8 @@ export function CuandoSePaga({ derivado, lectura, pagado }: { derivado: PlanConP
       // Lo que ya se eligió de cada tanda que sigue existiendo (su semana y su forma) se conserva; el % vuelve al de siempre.
       return nuevas.map((t, i) => (prev[i] ? { ...t, pedido: prev[i]!.pedido, forma: prev[i]!.forma } : t));
     });
+  // «Usar» una forma del comparador: todas las tandas pasan a pagarse así. Solo cambia la pantalla; nada se guarda hasta «Guardar cómo se paga».
+  const usarForma = (forma: FormaDePago) => setTandas((prev) => prev.map((t) => ({ ...t, forma })));
   const marcar = (clave: string, incluido: boolean) =>
     setIncluidas((s) => {
       const n = new Set(s);
@@ -300,9 +312,29 @@ export function CuandoSePaga({ derivado, lectura, pagado }: { derivado: PlanConP
         </div>
 
         <div className="min-w-0 space-y-6">
+          {!sinNadaPorComprar && flujo !== null && (
+            <section>
+              <TituloSeccion dato="próximas 12 semanas" className="mb-3">
+                Así quedaría tu caja
+              </TituloSeccion>
+              <div className="card-cayla p-5">
+                <CajaConLaCompra flujo={flujo} pagos={pagos} saleDeCaja={costos.saleDeCaja} limite={limite} />
+              </div>
+            </section>
+          )}
+          {!sinNadaPorComprar && hayCaja && (
+            <section>
+              <TituloSeccion dato="una forma contra otra" className="mb-3">
+                Cómo pagarla
+              </TituloSeccion>
+              <div className="card-cayla p-5">
+                <ComoPagarLaCampana flujo={flujo} tandas={tandas} saleDeCaja={costos.saleDeCaja} formaActual={formaActual} onUsar={usarForma} deshabilitado={guardando} />
+              </div>
+            </section>
+          )}
           <section>
-            <TituloSeccion dato="qué ve Finanzas" className="mb-3">
-              Así se ve en Finanzas
+            <TituloSeccion dato="se guarda al elegir" className="mb-3">
+              Qué ve Finanzas
             </TituloSeccion>
             <div className="card-cayla space-y-4 p-5">
               <SelectorDeVisibilidad valor={mostradaVis} onCambio={(v) => void cambiarVisibilidad(v)} cambiando={cambiandoVis} por={lectura.visibilidadPor} en={lectura.visibilidadEn} />

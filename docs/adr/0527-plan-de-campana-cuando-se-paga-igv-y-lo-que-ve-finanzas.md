@@ -64,13 +64,39 @@ SE ROMPE SI: se anota una orden de compra con IGV en una categoría que NO está
 
 **Hoy solo el Resumen de Finanzas lee la compra** (y su «Tu caja», dentro del Resumen). El flujo de caja de Reportes y Escenarios **todavía no la leen**: sumar la compra planeada a `fn_flujo_caja_proyeccion` es un
 cambio de Finanzas, con su propia migración y su propio riesgo de contarla dos veces. La pantalla **no promete lo que no existe**: la lista «Qué pasa en Finanzas» dice «Todavía no la leen: se conectarán» y las frases de
-cada estado (`TEXTO_DE_VISIBILIDAD`) hablan solo del Resumen. Cuando se conecten, esas frases son lo único que cambia aquí. También queda para la siguiente actividad la **gráfica de la caja de las próximas 12 semanas**
-del spike ⑤ y el recomendador «Cómo pagar la campaña».
+cada estado (`TEXTO_DE_VISIBILIDAD`) hablan solo del Resumen. Cuando se conecten, esas frases son lo único que cambia aquí.
 
+## Actualización (misma fecha) — la caja y «Cómo pagar la campaña» (#13)
+
+Dos piezas más en la columna derecha de «Cuándo se paga», sin migración nueva (leen la caja que Finanzas ya proyecta):
+
+1. **«Así quedaría tu caja»**: la caja de las próximas 12 semanas (`fn_flujo_caja_proyeccion`, la misma que lee Dinero ▸ Flujo) con los pagos de esta compra restados el día en que caen (con IGV), el mínimo de caja que el dueño
+   ya escribió en Finanzas y una raya en el último día para pedir. **Es la misma cuenta y la misma gráfica que «Pagar la compra» del Resumen** (`cajaConCompra`, `Linea`). Se mueve con lo que se arma a la izquierda,
+   sin guardar. Abajo, una alerta que dice si la caja se queda sin plata, baja del mínimo o aguanta; y si la caja **ya** venía mal antes de la compra, lo dice (la compra no es la culpable). Si Finanzas marca su caja
+   «provisional» (faltan saldos de arranque, días de ventas o facturas), la gráfica lo dice con lo que falta.
+2. **«Cómo pagarla»**: compara **cinco formas de pagar** —al contado, 50 % de anticipo y el resto a 30 días, a 30, 30 % de anticipo y el resto a 60, a 60— aplicadas a las MISMAS tandas, contra esa caja, **con lo que Finanzas
+   espera cobrar y si se cobra 20 % menos**. Responde lo útil: «¿aguanto al contado? Si no, ¿cuánto crédito necesito?». «Aguanta» quiere decir que la caja no baja del mínimo (ni de cero) en ningún momento. «Usar»
+   pasa todas las tandas a esa forma, sin guardar.
+
+```
+DECIDÍ:     comparar formas de PAGAR (contado, anticipo, 30 y 60 días) sobre las mismas tandas, contra la caja que Finanzas ya proyecta, con lo esperado y con 20 % menos de cobros, y recomendar solo el
+            contado: el crédito se muestra con lo que hay que confirmar y nunca se recomienda solo.
+DESCARTÉ:   (a) un modelo de predicción de ganancias o ventas por campaña con Sinatra: solo trae soles por día y sede, sin costo ni margen, con unos 6 puntos por mes, y el ERP lleva semanas: sería ruido con
+            cara de ciencia (el «20 % menos» se pone a la vista como un «¿y si me va peor?», no como una estadística); (b) comparar «1, 2 o 3 tandas» como recomendación: pedir lo más tarde que llega a
+            tiempo ya es lo mejor para la caja y cada tanda de más paga ANTES, así que nunca ganan en caja (cuántas tandas es una decisión de operación, no de caja); (c) inventar un colchón: se usa el mínimo de
+            caja que el dueño ya escribió; (d) leer la caja con una función nueva: no hace falta, y duplicar la cuenta de `fn_flujo_caja_proyeccion` sería una segunda fuente de verdad.
+SE ROMPE SI: un proveedor figura con un crédito que en realidad no da (por eso las formas con crédito jamás se recomiendan solas y dicen qué confirmar; hoy ningún proveedor tiene `plazo_credito_dias`); la
+            caja de Finanzas está incompleta (la pantalla hereda su «provisional» y lo dice); o quien mira no es líder de equipo (`fn_flujo_caja_proyeccion` exige líder: la pieza lo dice y el plan de pagos sigue).
+```
+
+## Lo que cambió en la web
 ## Lo que cambió en la web
 
 - **Pantalla:** `PagosPlan.tsx` (el marco) → `CuandoSePaga.tsx` (las cifras, las tandas, mes a mes, IGV, visibilidad y guardar) + `TandaDePago.tsx` + `CostoEIgv.tsx` + `VisibilidadEnFinanzas.tsx` +
   `PartesDelPresupuesto.tsx` (el selector, también en «Costos y tope»). Lee con `getPlanCompra(plan, { conPagos: true })`; las demás pestañas no piden las dos lecturas nuevas.
+- **La caja y las formas de pagar** (actualización): `CajaConLaCompra.tsx` + `ComoPagarLaCampana.tsx`, con la cuenta en `lib/plan-compra-pagar.ts` (24 pruebas: la caja con 20 % menos de cobros, los pagos que suman EXACTO,
+  cada veredicto —el contado aguanta, es justo, pide crédito (la forma que MENOS crédito pide), no cabe, la caja ya venía apretada, fuera de lo que se ve— y que una forma con crédito jamás se recomiende sola). `getPlanCompra(…, { conPagos: true })`
+  lee también `fn_flujo_caja_proyeccion` (12 semanas): `sin_permiso` si no es líder, `falla` si no responde.
 - **La cuenta es de `lib/plan-compra-inversion.ts`** (52 pruebas: las tandas por defecto, cada forma de pago, que los pagos sumen EXACTO 100 con cualquier mezcla, el IGV de las dos maneras, mes a mes, lo guardado leído,
   y el contrato con Finanzas pasando por `leerInversion` con cada sol en una sola etapa) y **la política de la lectura**, de `lib/plan-compra-inversion-lectura.ts` (18 pruebas con una base de mentira: cuáles campañas, y
   qué se dice cuando algo se cae). `plan-compra-inversion-servidor.ts` solo le entrega el cliente real.
@@ -122,6 +148,10 @@ pegarla dos veces, y **cuatro personas a la vez** dejan una sola foto y cuatro c
 3. **Quien mira el Resumen necesita también el módulo «Plan de campaña».** La compra se lee con las funciones del Plan, que piden ese módulo: una cuenta de Finanzas sin él **no ve el bloque** (se degrada sin avisar,
    porque «no te corresponde» no es una falla). Si el contador debe verlo sin ver el Plan, hace falta una función propia para Finanzas con su permiso: decisión de permisos, tuya.
 4. **El flujo de caja de Reportes y Escenarios no leen la compra** (ver arriba): hoy el estado «Solo en Escenarios» no tiene dónde verse.
+5. **«Cómo pagarla» no es una predicción.** El «20 % menos de cobros» es un «¿y si me va peor?» puesto a la vista, no una estadística; la historia de Sinatra (solo soles por día, sin costo) no alcanza para un rango
+   honesto. Si Felipe quiere un rango sacado de la historia de cada tienda, hay que decidir con qué años y qué hacer con las tiendas sin historia (Lima no tiene).
+6. **El crédito de los proveedores no está cargado** (`proveedores.plazo_credito_dias` vacío en los 119): las formas a plazo se muestran pero ninguna se recomienda sola. Cargarlo (por ejemplo al «Enviar a Compras») es lo que
+   haría la recomendación realmente útil.
 
 ## Cómo se verifica
 

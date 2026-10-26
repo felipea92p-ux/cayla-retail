@@ -2,7 +2,7 @@
   "guia": "compras.plan.pagos",
   "ruta": "/compras/plan/presupuesto/pagos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 46,
+  "total": 47,
   "controles": {
     "components/plan-compra/CampanasArchivadasModal.tsx": [
       "BotonEnlace «Ver»",
@@ -15,6 +15,9 @@
       "button «{aviso.nivel === \"pendiente\" ? \"Deja de contarlo hasta que cambie\" : undefined}»",
       "button «{`${urgente.corto}»",
       "button «{etiqueta}»"
+    ],
+    "components/plan-compra/ComoPagarLaCampana.tsx": [
+      "Boton «Usar»"
     ],
     "components/plan-compra/CostoEIgv.tsx": [
       "Boton «Marcar todas»",

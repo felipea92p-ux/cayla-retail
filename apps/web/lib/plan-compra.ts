@@ -10,6 +10,7 @@ import { RPC_PLAZO } from "@/lib/plan-compra-plazo";
 import { RPC_VERSIONES } from "@/lib/plan-compra-versiones";
 import { RPC_PASOS_2 } from "@/lib/plan-compra-modelos";
 import { RPC_PAGADO, RPC_PAGOS } from "@/lib/plan-compra-inversion";
+import type { FlujoDelPlan } from "@/lib/plan-compra-pagar";
 import { esFirmaDesconocida } from "@/lib/plan-compra-propuesta-guardada";
 import { RPC_RESULTADOS, campanaParaResultados } from "@/lib/plan-compra-resultados";
 import { SIN_EVIDENCIA, leerYMedirLaHistoria } from "@/lib/plan-compra-historia-servidor";
@@ -74,6 +75,9 @@ export async function getPlanCompra(
   pagado: unknown;
   /** Se pidió leer los pagos y la lectura FALLÓ (no es que la base todavía no los tenga): la pantalla lo dice y no ofrece guardar a ciegas. */
   pagosFallo: boolean;
+  /** La caja de las próximas 12 semanas (`fn_flujo_caja_proyeccion`, de Finanzas), para ver cómo queda con la compra: null si no se pidió (`conPagos`). `sin_permiso`: la caja es de CAYLA entera y la
+   *  base se la da solo a un líder de equipo; `falla`: no respondió (la pantalla lo dice y el plan de pagos sigue igual). */
+  flujo: FlujoDelPlan | null;
 }> {
   const supabase = await createClient();
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
@@ -108,7 +112,7 @@ export async function getPlanCompra(
   const nombres = familias.error ? [] : (familias.data ?? []);
   if (plan.error) {
     console.error(`${RPC_PLAN}: ${plan.error.message}`);
-    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null, historia: null, descuentos: null, plazo: null, versiones: null, versionesFallo: false, pasos2: null, calendarioFallo, pagos: null, pagado: null, pagosFallo: false };
+    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null, historia: null, descuentos: null, plazo: null, versiones: null, versionesFallo: false, pasos2: null, calendarioFallo, pagos: null, pagado: null, pagosFallo: false, flujo: null };
   }
   // La propuesta (C4) es una ayuda: si falla o la base todavía no la tiene, cada categoría se llena a mano, como antes.
   const abierto = (plan.data as { plan?: { id?: unknown } } | null)?.plan?.id;
@@ -123,7 +127,7 @@ export async function getPlanCompra(
     return { propuesta, historia };
   };
   // Lo pedido en órdenes (ADR-0372 act. (e)) también es una ayuda: sin ella, el Plan no lo muestra.
-  const [leida, ordenes, descuento, plazo, versiones, pasos2, pagos, pagado] =
+  const [leida, ordenes, descuento, plazo, versiones, pasos2, pagos, pagado, flujo] =
     typeof abierto === "string"
       ? await Promise.all([
           leerPropuestaYSuHistoria(abierto),
@@ -139,8 +143,10 @@ export async function getPlanCompra(
           // Cómo se paga y cuánto ya se pagó (ADR-0527): solo la pantalla «Cuándo se paga» los pide.
           opciones.conPagos ? supabase.rpc(RPC_PAGOS as never, { p_plan_id: abierto } as never) : Promise.resolve(null),
           opciones.conPagos ? supabase.rpc(RPC_PAGADO as never, { p_plan_id: abierto } as never) : Promise.resolve(null),
+          // La caja de las próximas 12 semanas (de Finanzas): para ver si el plan de pagos la aguanta. Una ayuda: sin ella la pantalla sigue.
+          opciones.conPagos ? supabase.rpc("fn_flujo_caja_proyeccion" as never, { p_semanas: 12 } as never) : Promise.resolve(null),
         ])
-      : [null, null, null, null, null, null, null, null];
+      : [null, null, null, null, null, null, null, null, null];
   const propuesta = leida?.propuesta ?? null;
   const historia = leida?.historia ?? null;
   if (propuesta?.error) console.error(`${RPC_PROPUESTA}: ${propuesta.error.message}`);
@@ -152,6 +158,7 @@ export async function getPlanCompra(
   if (pasos2?.error && !esFirmaDesconocida(pasos2.error)) console.error(`${RPC_PASOS_2}: ${pasos2.error.message}`);
   if (pagos?.error && !esFirmaDesconocida(pagos.error)) console.error(`${RPC_PAGOS}: ${pagos.error.message}`);
   if (pagado?.error && !esFirmaDesconocida(pagado.error)) console.error(`${RPC_PAGADO}: ${pagado.error.message}`);
+  if (flujo?.error && flujo.error.code !== "42501") console.error(`fn_flujo_caja_proyeccion (plan): ${flujo.error.message}`);
   return {
     datos: plan.data,
     falla: null,
@@ -173,6 +180,7 @@ export async function getPlanCompra(
     pagado: pagado && !pagado.error ? pagado.data : null,
     // Una base que todavía no tiene las funciones (la web se publicó antes que la migración) NO es un fallo: simplemente no se ofrece.
     pagosFallo: (!!pagos?.error && !esFirmaDesconocida(pagos.error)) || (!!pagado?.error && !esFirmaDesconocida(pagado.error)),
+    flujo: !flujo ? null : flujo.error ? (flujo.error.code === "42501" ? { estado: "sin_permiso" } : { estado: "falla" }) : { estado: "ok", datos: flujo.data },
   };
 }
 
