@@ -1,6 +1,6 @@
 # ADR-0513 — La ficha de consumo del modelo: una hoja, tres puertas
 
-**Estado:** aceptada, **web y base en su PR; las 4 migraciones `20261026150000`…`20261026153000` esperan el OK de Felipe para pegarse en producción (en ese orden, y después de `20261026035000`, ADR-0510)** · **Fecha:** 2026-10-26 ·
+**Estado:** aceptada, **web y base en el PR #1343; las 4 migraciones `20261026150000`…`20261026153000` se pegaron en producción el 2026-10-26 (Felipe)** · **Fecha:** 2026-10-26 ·
 **Decidió:** Felipe («ok hazlo» a la recomendación C del README de las maquetas, con sus valores por defecto; lista de 8 actividades aprobada con «ok avancemos») ·
 **Sigue a:** ADR-0400 (decisión 6: la tela de la orden), ADR-0510 (editar la tela y los avíos de una orden abierta) · **Maquetas:** `docs/maquetas/consumo-modelo-2026-10/`
 
@@ -62,6 +62,6 @@ Contrato (Liskov), en el encabezado de cada migración. Lo que NO hace: no toca 
 
 ## Pendiente
 
-- **Pegar las 4 migraciones en producción** (Felipe), en orden, cada una como una sola parte; después `pnpm datos:generar:produccion` para sumar `producto_avios` y `producto_consumo_medido` al diccionario.
+- Refrescar el diccionario: `pnpm datos:generar:produccion` para sumar `producto_avios` y `producto_consumo_medido`.
 - `/formidable` de la hoja (la califica Felipe con un agente ciego) y `/chaos` completo; aquí solo se probaron el doble clic y la edición simultánea.
 - Avío por talla (una etiqueta de la S y otra de la M): hoy son dos avíos de Insumos.
