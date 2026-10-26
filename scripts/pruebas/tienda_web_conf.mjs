@@ -10,6 +10,9 @@
  *   ACTIVIDAD 3 · el mapa: `guardar_mapa_tienda_web` acepta solo enlaces de Google Maps (los de «Compartir», los largos y los viejos), nada
  *      de `http`, otros sitios, `javascript:`, espacios ni más de 400 letras; vacío lo quita; la web y el ERP lo traen; si nada cambió no
  *      anota; la tabla también lo exige por fuera; solo el líder o quien tenga el módulo.
+ *   ACTIVIDAD 4 · la foto: el almacén `retail-tiendas` (público, 1 MB, JPG y WebP), `guardar_foto_tienda_web` solo acepta una ruta de SU
+ *      carpeta con nombre de uuid y JPG o WebP; vacío la quita; la web y el ERP la traen; si nada cambió no anota; la tabla también lo exige;
+ *      el líder o quien tenga el módulo sube al almacén (y solo a ese) y nadie borra lo subido.
  *   La migración se puede pegar dos veces.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK y mete la migración DENTRO de ella: nunca se commitea nada en el Postgres
@@ -251,6 +254,85 @@ select pg_temp.intento('select retail.guardar_mapa_tienda_web(gen_random_uuid(),
     esperar("no guarda el mapa del Taller ni de una tienda que no existe", (taller ?? "").includes("tienda abierta") && (ajena ?? "").includes("no existe"), r);
     esperar("una colaboradora sin el módulo no cambia el mapa", (sinModulo ?? "").includes("necesita el módulo"), r);
     esperar("un visitante anónimo tampoco", (anonimo ?? "").includes("permission denied"), r);
+  }
+
+  console.log("— La foto de la fachada —");
+  const FOTO = (t, ruta) => `select retail.guardar_foto_tienda_web(:'${t}', ${ruta === null ? "null" : `format('tiendas/%s/%s', :'${t}', '${ruta}')`}) as _f \\gset\n`;
+  const ARCHIVO = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
+  {
+    const r = correr(`${ESCENA}select concat_ws('|', public, file_size_limit, allowed_mime_types::text) from storage.buckets where id = 'retail-tiendas';`);
+    esperar("existe el almacén público retail-tiendas: 1 MB, JPG y WebP", r.ok && r.salida === "t|1048576|{image/jpeg,image/webp}", r);
+  }
+  {
+    const r = correr(`${ESCENA}${FOTO("t1", `${ARCHIVO}.webp`)}
+select s ->> 'foto' from jsonb_array_elements(retail.tienda_sedes() -> 'sedes') s where s ->> 'id' = :'t1';
+select s ->> 'foto_ruta' from jsonb_array_elements(retail.fn_configuracion_tienda_web() -> 'sedes') s where s ->> 'id' = :'t1';
+select 'tiendas/' || :'t1' || '/${ARCHIVO}.webp';`);
+    const [web, erp, esperada] = lineas(r);
+    esperar("guarda la foto de su carpeta y la traen la web y el ERP", r.ok && web === esperada && erp === esperada, r);
+  }
+  {
+    const r = correr(`${ESCENA}${FOTO("t1", `${ARCHIVO}.jpg`)}select count(*) from retail.ubicacion_datos_web where foto_ruta like '%.jpg';`);
+    esperar("acepta una foto JPG", r.ok && r.salida === "1", r);
+  }
+  {
+    const r = correr(`${ESCENA}
+select pg_temp.intento(format('select retail.guardar_foto_tienda_web(%L, %L)', :'t1', 'tiendas/' || :'t2' || '/${ARCHIVO}.webp'));
+select pg_temp.intento(format('select retail.guardar_foto_tienda_web(%L, %L)', :'t1', 'campanas/' || :'t1' || '/${ARCHIVO}.webp'));
+select pg_temp.intento(format('select retail.guardar_foto_tienda_web(%L, %L)', :'t1', 'tiendas/' || :'t1' || '/../${ARCHIVO}.webp'));
+select pg_temp.intento(format('select retail.guardar_foto_tienda_web(%L, %L)', :'t1', 'https://evil.com/${ARCHIVO}.webp'));
+select pg_temp.intento(format('select retail.guardar_foto_tienda_web(%L, %L)', :'t1', 'tiendas/' || :'t1' || '/${ARCHIVO.toUpperCase()}.webp'));
+select pg_temp.intento(format('select retail.guardar_foto_tienda_web(%L, %L)', :'t1', 'tiendas/' || :'t1' || '/${ARCHIVO}.png'));
+select pg_temp.intento(format('select retail.guardar_foto_tienda_web(%L, %L)', :'t1', 'tiendas/' || :'t1' || '/fachada.webp'));`);
+    const m = lineas(r);
+    esperar("no guarda la foto de otra tienda, de otro almacén, con «..», una dirección completa, mayúsculas, un PNG ni un nombre cualquiera", m.length === 7 && m.every((x) => x.includes("no es de esta tienda")), r);
+  }
+  {
+    const r = correr(`${ESCENA}${FOTO("t1", `${ARCHIVO}.webp`)}${FOTO("t1", null)}
+select coalesce((select foto_ruta from retail.ubicacion_datos_web where ubicacion_id = :'t1'), 'sin foto');
+select jsonb_typeof(retail.tienda_sedes() #> '{sedes,0,foto}');`);
+    const [fila, web] = lineas(r);
+    esperar("vacío quita la foto (vuelve el dibujo de la fachada)", fila === "sin foto" && web === "null", r);
+  }
+  {
+    const r = correr(`${ESCENA}${FOTO("t1", `${ARCHIVO}.webp`)}${FOTO("t1", `${ARCHIVO}.webp`)}${FOTO("t2", null)}
+select count(*) from retail.configuracion_historial where que = 'tienda_web_foto';`);
+    esperar("solo se anota el cambio de verdad", r.ok && r.salida === "1", r);
+  }
+  {
+    const r = correr(`${ESCENA}reset role;
+select pg_temp.intento(format('update retail.ubicacion_datos_web set foto_ruta = %L where ubicacion_id = %L', 'tiendas/' || :'t2' || '/${ARCHIVO}.webp', :'t1'));`);
+    esperar("ni quien administra la base puede dejar en una tienda la foto de otra (CHECK de la fila)", r.ok && r.salida.includes("ubicacion_datos_web_foto_valida"), r);
+  }
+  {
+    const r = correr(`${ESCENA}
+select pg_temp.intento(format('select retail.guardar_foto_tienda_web(%L, %L)', :'taller', 'tiendas/' || :'taller' || '/${ARCHIVO}.webp'));
+${como(MICAELA)}
+select pg_temp.intento(format('select retail.guardar_foto_tienda_web(%L, %L)', :'t1', 'tiendas/' || :'t1' || '/${ARCHIVO}.webp'));
+reset role;
+set local role anon;
+select pg_temp.intento('select retail.guardar_foto_tienda_web(gen_random_uuid(), null)');`);
+    const [taller, sinModulo, anonimo] = lineas(r);
+    esperar("no guarda la foto del Taller", (taller ?? "").includes("tienda abierta"), r);
+    esperar("una colaboradora sin el módulo no cambia la foto", (sinModulo ?? "").includes("necesita el módulo"), r);
+    esperar("un visitante anónimo tampoco", (anonimo ?? "").includes("permission denied"), r);
+  }
+  {
+    // Subir el archivo al almacén: el líder sí, quien no tiene el módulo no, y nadie borra ni cambia lo subido.
+    const subir = (como_, nombre) => `${como_}set local role authenticated;
+select pg_temp.intento(format('insert into storage.objects (bucket_id, name, owner) values (%L, %L, auth.uid())', 'retail-tiendas', ${nombre}));`;
+    const lider = correr(`${ESCENA}${subir("", "'tiendas/x/y.webp'")}`);
+    esperar("el líder sube una foto al almacén", lider.ok && lider.salida === "SIN_ERROR", lider);
+    const sin = correr(`${ESCENA}${subir(como(MICAELA), "'tiendas/x/y.webp'")}`);
+    esperar("quien no tiene el módulo no sube nada al almacén", sin.ok && sin.salida.includes("row-level security"), sin);
+    const pol = correr(`${ESCENA}reset role;
+select p.cmd || '|' || p.roles::text || '|' || (p.with_check like '%retail-tiendas%') || '|' || (p.with_check like '%fn_puede_ajustes_tienda_web%')
+  from pg_policies p where p.schemaname = 'storage' and p.tablename = 'objects' and p.policyname = 'retail_tiendas_insert';
+select count(*) from pg_policies p where p.schemaname = 'storage' and p.tablename = 'objects'
+  and p.cmd in ('UPDATE', 'DELETE', 'ALL') and (coalesce(p.qual, '') || coalesce(p.with_check, '')) like '%retail-tiendas%';`);
+    const [insert, otras] = lineas(pol);
+    esperar("la política de subida es solo de retail-tiendas y pide el módulo (la misma llave de las funciones)", insert === "INSERT|{authenticated}|true|true", pol);
+    esperar("y no hay política de borrar ni de cambiar lo subido: nadie lo toca desde el ERP", otras === "0", pol);
   }
 
   console.log("— La migración —");

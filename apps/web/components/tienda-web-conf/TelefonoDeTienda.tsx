@@ -8,7 +8,7 @@ import { colorDeSede, errorDeMapa, limpiarTexto, type BorradorSede } from "@/lib
  * Así lo ve el cliente (maqueta de Conf. Tienda, ADR-0518): la tarjeta de esta tienda dentro de un teléfono, con lo que está escrito AHORA
  * en el taller. Apagada, se ve atenuada (el cliente no la ve). Solo dibuja: no guarda nada.
  */
-export function TelefonoDeTienda({ nombreSede, borrador, enWeb }: { nombreSede: string; borrador: BorradorSede; enWeb: boolean }) {
+export function TelefonoDeTienda({ nombreSede, borrador, enWeb, fotoUrl }: { nombreSede: string; borrador: BorradorSede; enWeb: boolean; fotoUrl?: string | null }) {
   const nombre = limpiarTexto(borrador.nombreWeb) ?? "Sin nombre en la web";
   const direccion = limpiarTexto(borrador.direccion);
   const horario = limpiarTexto(borrador.horario);
@@ -24,7 +24,7 @@ export function TelefonoDeTienda({ nombreSede, borrador, enWeb }: { nombreSede: 
             Cayla
           </div>
           <div className="twc-tarjeta" data-oculta={enWeb ? undefined : ""}>
-            <Fachada color={colorDeSede(nombreSede)} />
+            <Fachada color={colorDeSede(nombreSede)} fotoUrl={fotoUrl} />
             <div className="twc-tarjeta-c">
               <h3>{nombre}</h3>
               <div className="twc-dato" data-falta={direccion ? undefined : ""}>

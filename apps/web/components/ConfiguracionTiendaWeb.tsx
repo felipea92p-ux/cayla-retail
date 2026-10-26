@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { CheckCircle2, MapPin, ShoppingBag, Store, Wallet } from "lucide-react";
+import { CheckCircle2, ImagePlus, MapPin, ShoppingBag, Store, Wallet, X } from "lucide-react";
 import { PuertaDeTienda } from "@/components/tienda-web-conf/PuertaDeTienda";
 import { TelefonoDeTienda } from "@/components/tienda-web-conf/TelefonoDeTienda";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { direccionDeFotoDeTienda, prepararFotoDeTienda, subirFotoDeTienda } from "@/lib/foto-de-tienda";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
@@ -88,6 +89,8 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
   // El orden de las puertas (los ids): la base ya las manda en orden; al mover una, se ve al instante y se guarda enseguida.
   const [ordenIds, setOrdenIds] = useState(() => datos.sedes.map((x) => x.id));
   const [arrastrandoId, setArrastrandoId] = useState<string | null>(null);
+  // La tienda cuya foto se está preparando y subiendo (la ruta queda en el borrador; recién «Guardar» la manda a la base).
+  const [subiendoFotoId, setSubiendoFotoId] = useState<string | null>(null);
   const [encimaId, setEncimaId] = useState<string | null>(null);
   const [vista, setVista] = useState(datos);
   if (vista !== datos) {
@@ -127,6 +130,24 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     return true;
   };
 
+  /** La dirección pública de la foto que está puesta (armarla no llama a la red). */
+  const fotoUrlDe = (ruta: string) => (ruta ? direccionDeFotoDeTienda(createClient(), ruta) : null);
+
+  /** Elegir o soltar una foto: se reduce aquí, se sube al almacén y su ruta queda en el borrador; «Guardar» la manda a la base. */
+  async function elegirFoto(s: SedeWeb, archivo: File) {
+    setSubiendoFotoId(s.id);
+    try {
+      const lista = await prepararFotoDeTienda(archivo);
+      if ("error" in lista) return avisar.error(lista.error);
+      const subida = await subirFotoDeTienda(createClient(), s.id, lista.archivo);
+      if ("error" in subida) return avisar.error(subida.error);
+      escribir(s.id, "foto", subida.ruta);
+      if (lista.aviso) avisar.aviso(lista.aviso);
+    } finally {
+      setSubiendoFotoId(null);
+    }
+  }
+
   /** Mover una puerta: se ve al instante y se guarda enseguida (es el orden, no un dato de la tienda). Si la base no lo acepta, vuelve al de antes. */
   async function ordenar(nuevo: string[]) {
     const antes = ordenIds;
@@ -163,7 +184,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     const base = bases[s.id];
     if (!b || !base) return false;
     const texto = (["nombreWeb", "direccion", "horario"] as const).some((k) => limpiarTexto(b[k]) !== limpiarTexto(base[k]));
-    return texto || b.whatsapp !== base.whatsapp || b.mapa.trim() !== base.mapa.trim() || (mostrar[s.id] ?? s.mostrar) !== s.mostrar;
+    return texto || b.whatsapp !== base.whatsapp || b.mapa.trim() !== base.mapa.trim() || b.foto !== base.foto || (mostrar[s.id] ?? s.mostrar) !== s.mostrar;
   };
 
   /** El botón «Guardar» de una tienda: valida todo antes de escribir nada, guarda el WhatsApp (su propia función, la del QR del club) y
@@ -223,6 +244,14 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
         listo: b.mapa.trim() ? `${s.nombre}: mapa guardado. «Cómo llegar» abre ese lugar.` : `${s.nombre}: mapa quitado. «Cómo llegar» busca la dirección.`,
       });
     }
+    const cambioFoto = b.foto !== base.foto;
+    if (cambioFoto) {
+      pasos.push({
+        que: "guardar la foto de la tienda",
+        hacer: () => createClient().rpc("guardar_foto_tienda_web" as never, { p_ubicacion_id: s.id, p_foto_ruta: b.foto || null } as never),
+        listo: b.foto ? `${s.nombre}: foto guardada.` : `${s.nombre}: foto quitada. Se ve el dibujo de la fachada.`,
+      });
+    }
     // Con varias cosas, un solo aviso que las junta; la tienda que se enciende o se apaga lo dice primero, porque es lo que el cliente nota.
     const aviso = enWeb !== s.mostrar || pasos.length === 1 ? pasos.find((x) => x.que.startsWith("guardar la tienda"))?.listo ?? pasos[0]?.listo : `${s.nombre}: cambios guardados.`;
     setGuardandoEn(s.id);
@@ -265,6 +294,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
             indice={i}
             bloqueada={guardando || guardandoEn !== null}
             guiaInterruptor={i === 0 ? "config.tienda-web-mostrar" : undefined}
+            fotoUrl={fotoUrlDe(borradores[s.id]?.foto ?? "")}
             ordenable={puertas.length > 1 && guardandoEn === null && !guardando}
             arrastrando={arrastrandoId === s.id}
             encima={encimaId === s.id}
@@ -289,6 +319,9 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
         pendientes={pendientes}
         sucio={tieneCambios(elegida)}
         guardando={guardandoEn === elegida.id}
+        fotoUrl={fotoUrlDe(borradores[elegida.id]?.foto ?? "")}
+        subiendoFoto={subiendoFotoId === elegida.id}
+        onFoto={(archivo) => void elegirFoto(elegida, archivo)}
         onEscribir={(campo, valor) => escribir(elegida.id, campo, valor)}
         onRevertir={(campo) => revertir(elegida.id, campo)}
         onGuardar={() => guardarTarjeta(elegida)}
@@ -317,6 +350,9 @@ function TallerDeTienda({
   pendientes,
   sucio,
   guardando,
+  fotoUrl,
+  subiendoFoto,
+  onFoto,
   onEscribir,
   onRevertir,
   onGuardar,
@@ -328,10 +364,15 @@ function TallerDeTienda({
   pendientes: ReadonlySet<string>;
   sucio: boolean;
   guardando: boolean;
+  /** La foto de la fachada puesta ahora (con lo sin guardar). */
+  fotoUrl: string | null;
+  subiendoFoto: boolean;
+  onFoto: (archivo: File) => void;
   onEscribir: (campo: keyof BorradorSede, valor: string) => void;
   onRevertir: (campo: keyof BorradorSede) => void;
   onGuardar: () => void;
 }) {
+  const [sobreFoto, setSobreFoto] = useState(false);
   const falta = faltaParaMostrar(b);
   const paraLaFrase = limpiarTexto(b.nombreWeb) ?? nombreCorto(s.nombre);
   // La marca de la guía solo en los datos que llegaron vacíos al abrir (una tienda completa no se llena de marcas).
@@ -429,6 +470,54 @@ function TallerDeTienda({
           </span>
         </CampoFin>
 
+        <CampoFin etiqueta="Foto de la fachada" htmlFor={`tw-${s.id}-foto`} ayuda="Opcional. Horizontal, con la fachada al centro: se reduce sola. Sin foto se ve el dibujo de la fachada.">
+          <label
+            className="twc-foto"
+            data-sobre={sobreFoto || undefined}
+            data-con-foto={fotoUrl ? "" : undefined}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setSobreFoto(true);
+            }}
+            onDragLeave={() => setSobreFoto(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setSobreFoto(false);
+              const archivo = e.dataTransfer.files[0];
+              if (archivo && !subiendoFoto) onFoto(archivo);
+            }}
+          >
+            {fotoUrl && (
+              // La foto ya viene reducida por el ERP y está en el almacén público: no pasa por el optimizador.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={fotoUrl} alt={`Fachada de ${paraLaFrase}`} />
+            )}
+            <span className="twc-foto-texto">
+              <span className="twc-foto-pildora">
+                <ImagePlus aria-hidden />
+                {subiendoFoto ? "Subiendo…" : fotoUrl ? "Cambiar foto" : "Suelta o elige la fachada"}
+              </span>
+            </span>
+            <input
+              id={`tw-${s.id}-foto`}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              disabled={subiendoFoto}
+              onChange={(e) => {
+                const archivo = e.target.files?.[0];
+                e.target.value = "";
+                if (archivo) onFoto(archivo);
+              }}
+            />
+          </label>
+          {fotoUrl && !subiendoFoto && (
+            <button type="button" className="btn-cayla btn-enlace mt-1.5" onClick={() => onEscribir("foto", "")}>
+              <X aria-hidden className="h-3.5 w-3.5" /> Quitar foto
+            </button>
+          )}
+        </CampoFin>
+
         <CampoGuiado id={idCampo(s.id, "horario")} guia={guia}>
           <CampoFin etiqueta={etiqueta("horario", "Horario")} htmlFor={`tw-${s.id}-horario`} ayuda="Opcional. El cliente lo lee tal cual lo escribes.">
             {caja("horario", EJEMPLO_HORARIO, TOPES_SEDE.horario)}
@@ -456,7 +545,7 @@ function TallerDeTienda({
         </div>
       </Superficie>
 
-      <TelefonoDeTienda nombreSede={s.nombre} borrador={b} enWeb={enWeb} />
+      <TelefonoDeTienda nombreSede={s.nombre} borrador={b} enWeb={enWeb} fotoUrl={fotoUrl} />
     </div>
   );
 }

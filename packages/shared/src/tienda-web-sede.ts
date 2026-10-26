@@ -15,3 +15,36 @@ export function enlaceMapaValido(url: string | null | undefined): url is string 
   const t = url.trim();
   return t.length > 0 && t.length <= LARGO_MAXIMO_ENLACE_MAPA && t === url && PATRON_ENLACE_MAPA.test(t);
 }
+
+// ---------------------------------------------------------------- La foto de la fachada
+
+/** El almacén público donde el ERP sube la foto de cada tienda (migración 20261026162000). Solo se sube: cada foto nueva lleva un nombre nuevo. */
+export const BUCKET_DE_TIENDAS = "retail-tiendas";
+
+/** Lo que pesa a lo más una foto ya reducida (WebP) y el lado mayor con que se reduce. La tarjeta la muestra horizontal y recortada al centro. */
+export const MAX_BYTES_FOTO_TIENDA = 200 * 1024;
+export const FOTO_TIENDA = { ancho: 1200, alto: 800 } as const;
+
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+/** La ruta de una foto nueva dentro del almacén: `tiendas/<tienda>/<archivo>.webp`, siempre con un nombre que no existía (nunca se pisa). */
+export const rutaDeFotoDeTienda = (tiendaId: string, archivoId: string, extension: "webp" | "jpg" = "webp"): string =>
+  `tiendas/${tiendaId.toLowerCase()}/${archivoId.toLowerCase()}.${extension}`;
+
+/** ¿Es una ruta que el ERP pudo haber subido (y, con `tiendaId`, a la carpeta de ESA tienda)? Lo único que la tienda deja pasar: nada de otros
+ *  almacenes, de `..` ni de direcciones completas. La base repite la regla (`ubicacion_datos_web_foto_valida`). */
+export function esRutaDeFotoDeTienda(v: unknown, tiendaId?: string): v is string {
+  if (typeof v !== "string") return false;
+  const patron = tiendaId ? new RegExp(`^tiendas/${tiendaId.toLowerCase()}/${UUID}\\.(webp|jpg)$`) : new RegExp(`^tiendas/${UUID}/${UUID}\\.(webp|jpg)$`);
+  return patron.test(v);
+}
+
+/** La dirección pública de la foto de una tienda, o `null` si la ruta no es válida o no se sabe el origen del almacén. */
+export function urlDeFotoDeTienda(origen: string | null | undefined, ruta: unknown): string | null {
+  if (!origen || !esRutaDeFotoDeTienda(ruta)) return null;
+  try {
+    return `${new URL(origen).origin}/storage/v1/object/public/${BUCKET_DE_TIENDAS}/${ruta}`;
+  } catch {
+    return null;
+  }
+}

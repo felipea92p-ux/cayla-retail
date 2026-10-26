@@ -10,6 +10,9 @@
 --   ACTIVIDAD 2 · ORDEN. `ubicacion_datos_web.orden` y `guardar_orden_tiendas_web(uuid[])`: la web lista las tiendas en ese orden.
 --   ACTIVIDAD 3 · MAPA. `ubicacion_datos_web.mapa_url` (solo enlaces de Google Maps) y `guardar_mapa_tienda_web(uuid, text)`: con él, el
 --      botón «Cómo llegar» de la web abre ese lugar exacto; sin él, la web sigue buscando la dirección escrita, como hasta hoy.
+--   ACTIVIDAD 4 · FOTO. El almacén público `retail-tiendas` (1 MB, JPG y WebP; el ERP sube la foto ya reducida a 200 KB o menos),
+--      `ubicacion_datos_web.foto_ruta` (solo una ruta `tiendas/<tienda>/<archivo>`) y `guardar_foto_tienda_web(uuid, text)`. La base guarda la
+--      RUTA; la web arma la dirección. Solo se SUBE: cada foto nueva lleva un nombre nuevo (nunca se pisa ni se borra desde el ERP).
 --
 -- LECTURAS. `fn_configuracion_tienda_web()` (el ERP) y `tienda_sedes()` (la web) se reescriben UNA vez, al final, con todo lo nuevo.
 --   Solo AGREGAN claves al JSON: ninguna que ya leyera una pantalla o una función cambia de nombre ni de forma.
@@ -22,8 +25,10 @@
 --     ser cualquier dirección ni un `javascript:`. La misma regla vive en `@cayla-retail/shared/tienda-web-sede` para decirlo antes.
 --   · Dos personas ordenando a la vez se turnan (`pg_advisory_xact_lock`): gana la última, nunca queda un orden mezclado.
 --
--- PRODUCCIÓN. NO está aplicada. Cada sección se pega entera en el SQL Editor; solo la política de subida de la foto (actividad 4) va
--- sola y al final (ADR-0195). `lock_timeout` corta a los 3 s si algo retiene la tabla; se puede volver a correr.
+-- PRODUCCIÓN. NO está aplicada. Se pega en DOS partes, por separado y en orden (ADR-0195): TODO hasta la línea «PARTE FINAL» primero, y
+-- «PARTE FINAL · la política de subida de la foto» sola y al final, fuera del horario de tienda (en Supabase, crear una política toma en
+-- exclusiva las tablas de `auth` y `storage` hasta el final de la transacción). `lock_timeout` corta a los 3 s si algo retiene una tabla;
+-- las dos se pueden volver a correr. En un Postgres sin Storage (el local) la parte del almacén avisa y sigue.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
@@ -178,6 +183,95 @@ comment on function retail.guardar_mapa_tienda_web(uuid, text) is
 revoke all on function retail.guardar_mapa_tienda_web(uuid, text) from public, anon;
 grant execute on function retail.guardar_mapa_tienda_web(uuid, text) to authenticated;
 
+-- ============================== ACTIVIDAD 4 · la foto de la fachada ==============================
+
+do $$
+begin
+  if to_regclass('storage.buckets') is null then
+    raise notice 'tienda_web_conf: sin schema storage en este Postgres (Storage local apagado); el almacén retail-tiendas se crea solo en producción.';
+    return;
+  end if;
+
+  insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('retail-tiendas', 'retail-tiendas', true, 1024 * 1024, array['image/jpeg', 'image/webp'])
+  on conflict (id) do update
+    set public = excluded.public,
+        file_size_limit = excluded.file_size_limit,
+        allowed_mime_types = excluded.allowed_mime_types;
+end
+$$;
+
+alter table retail.ubicacion_datos_web add column if not exists foto_ruta text;
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'ubicacion_datos_web_foto_valida' and conrelid = 'retail.ubicacion_datos_web'::regclass) then
+    alter table retail.ubicacion_datos_web add constraint ubicacion_datos_web_foto_valida check (
+      foto_ruta is null or foto_ruta ~ ('^tiendas/' || ubicacion_id::text || '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(webp|jpg)$')
+    );
+  end if;
+end
+$$;
+
+comment on column retail.ubicacion_datos_web.foto_ruta is
+  'Tienda web ▸ Conf. Tienda (ADR-0518): la ruta de la foto de la fachada dentro del almacén retail-tiendas («tiendas/<tienda>/<archivo>.webp»). Solo por guardar_foto_tienda_web.';
+
+-- PROMETE: guarda la foto de una tienda abierta (la ruta que subió el ERP a SU carpeta del almacén); vacío la quita (vuelve el dibujo de la
+--   fachada). Una ruta de otra tienda, de otro almacén o con `..` no pasa. Si nada cambió, no escribe ni anota. La foto anterior queda en el
+--   almacén (solo se sube), así que volver a una es guardar su ruta.
+create or replace function retail.guardar_foto_tienda_web(p_ubicacion_id uuid, p_foto_ruta text)
+returns void
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_actor uuid;
+  v_tipo text;
+  v_activo boolean;
+  v_foto text := nullif(btrim(coalesce(p_foto_ruta, '')), '');
+  v_antes retail.ubicacion_datos_web;
+begin
+  if not retail.fn_puede_ajustes_tienda_web() then
+    raise exception 'Cambiar la foto de la tienda web necesita el módulo «Datos y plazos de la tienda web» en tu rol.' using errcode = 'P0001';
+  end if;
+  v_actor := retail.fn_actor_persona_id(true);
+
+  select u.tipo, u.activo into v_tipo, v_activo from retail.ubicaciones u where u.id = p_ubicacion_id;
+  if not found then
+    raise exception 'Esa tienda no existe.' using errcode = 'P0001';
+  end if;
+  if v_tipo is distinct from 'tienda' or not v_activo then
+    raise exception 'Solo una tienda abierta aparece en la web.' using errcode = 'P0001';
+  end if;
+  if v_foto is not null and v_foto !~ ('^tiendas/' || p_ubicacion_id::text || '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(webp|jpg)$') then
+    raise exception 'Esa foto no es de esta tienda: súbela de nuevo desde aquí.' using errcode = 'P0001', hint = 'foto_invalida';
+  end if;
+
+  select * into v_antes from retail.ubicacion_datos_web w where w.ubicacion_id = p_ubicacion_id for update;
+  if found then
+    if v_antes.foto_ruta is not distinct from v_foto then
+      return;
+    end if;
+  elsif v_foto is null then
+    return;
+  end if;
+
+  insert into retail.ubicacion_datos_web (ubicacion_id, foto_ruta, actualizado_en)
+  values (p_ubicacion_id, v_foto, now())
+  on conflict (ubicacion_id) do update set foto_ruta = excluded.foto_ruta, actualizado_en = excluded.actualizado_en;
+
+  insert into retail.configuracion_historial (que, detalle, hecho_por)
+  values ('tienda_web_foto', jsonb_build_object('ubicacion_id', p_ubicacion_id, 'antes', v_antes.foto_ruta, 'despues', v_foto), v_actor);
+end
+$$;
+
+comment on function retail.guardar_foto_tienda_web(uuid, text) is
+  'Tienda web ▸ Conf. Tienda (ADR-0518): la ruta de la foto de fachada de una tienda abierta (vacío la quita). Líder o módulo «Datos y plazos de la tienda web»; firma el responsable; deja rastro.';
+
+revoke all on function retail.guardar_foto_tienda_web(uuid, text) from public, anon;
+grant execute on function retail.guardar_foto_tienda_web(uuid, text) to authenticated;
+
 -- ============================== LAS LECTURAS (se reescriben una vez, con todo lo nuevo) ==============================
 
 -- El ERP lee: cada tienda abierta, en el orden de la web, con lo que la pantalla muestra. Mismo permiso que antes.
@@ -203,7 +297,8 @@ begin
           'horario', w.horario,
           'mostrar', coalesce(w.mostrar, false),
           'orden', w.orden,
-          'mapa_url', w.mapa_url)
+          'mapa_url', w.mapa_url,
+          'foto_ruta', w.foto_ruta)
         order by coalesce(w.orden, 2147483647), u.nombre, u.id)
       from retail.ubicaciones u
       left join retail.ubicacion_datos_web w on w.ubicacion_id = u.id
@@ -234,7 +329,8 @@ as $$
       'direccion', w.direccion,
       'horario', w.horario,
       'whatsapp', u.whatsapp_numero,
-      'mapa', w.mapa_url)
+      'mapa', w.mapa_url,
+      'foto', w.foto_ruta)
     order by coalesce(w.orden, 2147483647), lower(w.nombre_web), u.id), '[]'::jsonb))
   from retail.ubicacion_datos_web w
   join retail.ubicaciones u on u.id = w.ubicacion_id
@@ -242,6 +338,31 @@ as $$
     and u.tipo = 'tienda'
     and u.activo
     and cardinality(retail.fn_sede_web_falta(w.nombre_web, w.direccion, u.whatsapp_numero)) = 0;
+$$;
+
+reset lock_timeout;
+
+-- ============================== PARTE FINAL · la política de subida de la foto (SOLA, al final) ==============================
+-- Quien sube a `retail-tiendas` es quien tiene «Datos y plazos de la tienda web» (o el líder): la misma llave de las funciones de arriba. Leer no
+-- pide política: el almacén es público. Sin política de borrar ni de actualizar.
+
+set lock_timeout = '3s';
+
+do $$
+begin
+  if to_regclass('storage.objects') is null then
+    raise notice 'tienda_web_conf: sin schema storage en este Postgres; la política de subida se crea solo en producción.';
+    return;
+  end if;
+
+  if not exists (
+    select 1 from pg_policies p where p.schemaname = 'storage' and p.tablename = 'objects' and p.policyname = 'retail_tiendas_insert'
+  ) then
+    create policy retail_tiendas_insert on storage.objects
+      for insert to authenticated
+      with check (bucket_id = 'retail-tiendas' and (select retail.fn_puede_ajustes_tienda_web()));
+  end if;
+end
 $$;
 
 reset lock_timeout;

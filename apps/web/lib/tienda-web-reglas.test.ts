@@ -34,6 +34,7 @@ const sede = (s: Partial<SedeWeb> = {}): SedeWeb => ({
   mostrar: false,
   orden: null,
   mapaUrl: null,
+  fotoRuta: null,
   ...s,
 });
 const completa = { nombreWeb: "Trujillo", whatsapp: "987654321", direccion: "Jr. Pizarro 512" };
@@ -44,7 +45,7 @@ describe("leer lo que devuelve fn_configuracion_tienda_web", () => {
       sedes: [{ id: "u1", nombre: "Tienda TRU", nombre_web: "Trujillo", whatsapp: "987654321", direccion: " ", horario: null, mostrar: true }],
       parametros: { horas_para_confirmar: 24, horas_aviso_sin_pagar: 48, dias_aviso_sin_recoger: 7, quedan_pocas_desde: 3 },
     });
-    expect(c.sedes).toEqual([{ id: "u1", nombre: "Tienda TRU", nombreWeb: "Trujillo", whatsapp: "987654321", direccion: null, horario: null, mostrar: true, orden: null, mapaUrl: null }]);
+    expect(c.sedes).toEqual([{ id: "u1", nombre: "Tienda TRU", nombreWeb: "Trujillo", whatsapp: "987654321", direccion: null, horario: null, mostrar: true, orden: null, mapaUrl: null, fotoRuta: null }]);
     expect(c.parametros).toEqual({ horasParaConfirmar: 24, horasAvisoSinPagar: 48, diasAvisoSinRecoger: 7, quedanPocasDesde: 3 });
   });
   it("sin datos (o sin la migración) no se cae: sin tiendas y sin plazos", () => {
@@ -250,5 +251,23 @@ describe("el mapa de una tienda (maqueta de Conf. Tienda)", () => {
     const nueva = borradorDe(sede({ mapaUrl: "https://maps.app.goo.gl/de-otro" }));
     expect(fusionarBorrador(escrito, base, nueva).mapa).toBe("https://maps.app.goo.gl/nuevo");
     expect(fusionarBorrador(base, base, nueva).mapa).toBe("https://maps.app.goo.gl/de-otro");
+  });
+});
+
+describe("la foto de la fachada (maqueta de Conf. Tienda)", () => {
+  const ruta = "tiendas/u1/0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d.webp";
+  it("la base manda la ruta y solo se acepta la de su propia tienda", () => {
+    const bien = leerConfiguracionTiendaWeb({ sedes: [{ id: "f775651f-62c8-4ff4-a414-b5614026d0cd", nombre: "Tienda TRU", foto_ruta: "tiendas/f775651f-62c8-4ff4-a414-b5614026d0cd/0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d.webp" }] });
+    expect(bien.sedes[0]?.fotoRuta).toContain("tiendas/f775651f");
+    const ajena = leerConfiguracionTiendaWeb({ sedes: [{ id: "f775651f-62c8-4ff4-a414-b5614026d0cd", nombre: "Tienda TRU", foto_ruta: "tiendas/2d97d322-8a0a-4cd5-99c4-70e52b9c01db/0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d.webp" }] });
+    expect(ajena.sedes[0]?.fotoRuta).toBeNull();
+  });
+  it("el borrador lleva la foto guardada, y un refresco no pisa la que se acaba de subir", () => {
+    expect(borradorDe(sede({ fotoRuta: ruta })).foto).toBe(ruta);
+    expect(borradorDe(sede()).foto).toBe("");
+    const base = borradorDe(sede());
+    const subida = { ...base, foto: ruta };
+    expect(fusionarBorrador(subida, base, borradorDe(sede({ fotoRuta: "otra" }))).foto).toBe(ruta);
+    expect(fusionarBorrador(base, base, borradorDe(sede({ fotoRuta: "otra" }))).foto).toBe("otra");
   });
 });

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { columnasDeTiendas, enlaceMapa, enlaceWhatsapp, interpretarSedes, SEDES_SIN_DATOS, whatsappLegible } from "./tiendas";
 
-const TRUJILLO = { id: "f775651f-62c8-4ff4-a414-b5614026d0cd", nombre: "Trujillo", direccion: "Jr. Pizarro 512, Centro", horario: "Lunes a sábado, de 10 a. m. a 9 p. m.", whatsapp: "987654321", mapa: null };
-const LIMA = { id: "2d97d322-8a0a-4cd5-99c4-70e52b9c01db", nombre: "Lima", direccion: "Av. Larco 345, Miraflores", horario: null, whatsapp: "912345678", mapa: null };
+const TRUJILLO = { id: "f775651f-62c8-4ff4-a414-b5614026d0cd", nombre: "Trujillo", direccion: "Jr. Pizarro 512, Centro", horario: "Lunes a sábado, de 10 a. m. a 9 p. m.", whatsapp: "987654321", mapa: null, foto: null };
+const LIMA = { id: "2d97d322-8a0a-4cd5-99c4-70e52b9c01db", nombre: "Lima", direccion: "Av. Larco 345, Miraflores", horario: null, whatsapp: "912345678", mapa: null, foto: null };
 
 describe("interpretarSedes", () => {
   it("acepta lo que devuelve retail.tienda_sedes(), en su orden y con el horario opcional", () => {
@@ -72,6 +72,21 @@ describe("«Cómo llegar» con el mapa que pegó la tienda", () => {
     expect(t?.mapa).toBe("https://maps.app.goo.gl/AbC123");
     expect(l?.mapa).toBeNull();
     expect(interpretarSedes({ sedes: [{ id: LIMA.id, nombre: "Lima", direccion: "Av. Larco 345", whatsapp: "912345678" }] })[0]?.mapa).toBeNull();
+  });
+});
+
+describe("la foto de la fachada de cada tienda", () => {
+  const ORIGEN = "https://abc.supabase.co";
+  const RUTA = `tiendas/${TRUJILLO.id}/0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d.webp`;
+  it("con la ruta que subió el ERP y el origen del almacén, sale su dirección pública", () => {
+    const [t] = interpretarSedes({ sedes: [{ ...TRUJILLO, foto: RUTA }] }, ORIGEN);
+    expect(t?.foto).toBe(`${ORIGEN}/storage/v1/object/public/retail-tiendas/${RUTA}`);
+  });
+  it("sin foto, sin origen o con una ruta que el ERP no pudo subir, la tarjeta sale sin foto (la tienda no se cae)", () => {
+    expect(interpretarSedes({ sedes: [TRUJILLO] }, ORIGEN)[0]?.foto).toBeNull();
+    expect(interpretarSedes({ sedes: [{ ...TRUJILLO, foto: RUTA }] })[0]?.foto).toBeNull();
+    expect(interpretarSedes({ sedes: [{ ...TRUJILLO, foto: "https://evil.com/x.png" }] }, ORIGEN)[0]?.foto).toBeNull();
+    expect(interpretarSedes({ sedes: [{ ...TRUJILLO, foto: "tiendas/../../x" }] }, ORIGEN)[0]?.foto).toBeNull();
   });
 });
 

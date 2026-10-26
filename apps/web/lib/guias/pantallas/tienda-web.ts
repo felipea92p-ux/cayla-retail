@@ -1067,7 +1067,7 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
       id: "sedes",
       ancla: "config.tienda-web-sedes",
       titulo: "Cada tienda es una puerta",
-      texto: "Cada puerta es una tienda: dice si el cliente la ve, cuántos de sus 3 datos tiene (el anillo) y, con una palabra, lo que le falta. Toca una para escribir sus datos y su mapa abajo. Arrástralas (o Alt + flechas) para cambiar el orden en la web: se guarda al soltar.",
+      texto: "Cada puerta es una tienda: dice si el cliente la ve, cuántos de sus 3 datos tiene (el anillo) y, con una palabra, lo que le falta. Toca una para escribir sus datos, mapa y foto abajo. Arrástralas (o Alt + flechas) para cambiar el orden en la web: se guarda al soltar.",
     },
     {
       id: "mostrar",

@@ -33,6 +33,7 @@ export function PuertaDeTienda({
   indice,
   bloqueada,
   guiaInterruptor,
+  fotoUrl,
   ordenable,
   arrastrando,
   encima,
@@ -53,6 +54,8 @@ export function PuertaDeTienda({
   /** Mientras algo se guarda, el interruptor espera. */
   bloqueada: boolean;
   guiaInterruptor?: string;
+  /** La foto de la fachada que está puesta ahora (con lo sin guardar); sin ella, el dibujo. */
+  fotoUrl?: string | null;
   /** Hay más de una tienda: se pueden ordenar (arrastrar, Alt + flechas, o los botones del celular). */
   ordenable: boolean;
   arrastrando: boolean;
@@ -116,7 +119,7 @@ export function PuertaDeTienda({
             : undefined
         }
       >
-        <Fachada color={colorDeSede(sede.nombre)} />
+        <Fachada color={colorDeSede(sede.nombre)} fotoUrl={fotoUrl} />
         <span className="twc-cara-texto">
           <span className="twc-nombre">{nombre}</span>
           <span className="flex flex-wrap items-center gap-2">

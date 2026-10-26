@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { enlaceMapaValido } from "@cayla-retail/shared/tienda-web-sede";
+import { enlaceMapaValido, urlDeFotoDeTienda } from "@cayla-retail/shared/tienda-web-sede";
 
 // Las tiendas que la web muestra (ADR-0408, actividad 6). Las arma la base en `retail.tienda_sedes()`: solo las que el ERP
 // encendió en Configuración ▸ Tienda web y tienen nombre, dirección y WhatsApp. Aquí solo se valida la forma y se preparan
@@ -16,6 +16,9 @@ const esquemaSede = z.object({
   // El enlace de Google Maps que pegó el ERP (Conf. Tienda ▸ Mapa). Opcional: sin él, o si llega algo que no es de Google Maps (la base ya
   // lo impide, pero esto es un botón en la cara del cliente), «Cómo llegar» busca la dirección.
   mapa: z.string().refine(enlaceMapaValido).nullable().catch(null),
+  // La foto de la fachada que subió el ERP. La base manda la RUTA dentro del almacén; `interpretarSedes` la vuelve dirección pública. Sin
+  // foto (o con una ruta que el ERP no pudo subir) la tarjeta se queda como estaba.
+  foto: z.string().nullable().catch(null),
 });
 
 export type Sede = z.infer<typeof esquemaSede>;
@@ -24,12 +27,12 @@ export type Sede = z.infer<typeof esquemaSede>;
 export const SEDES_SIN_DATOS: Sede[] = [];
 
 /** Lo que devuelve `tienda_sedes()`. Una tienda que llega mal formada se deja fuera; las demás se muestran igual. */
-export function interpretarSedes(dato: unknown): Sede[] {
+export function interpretarSedes(dato: unknown, origenDeFotos?: string | null): Sede[] {
   const lista = z.object({ sedes: z.array(z.unknown()) }).safeParse(dato);
   if (!lista.success) return SEDES_SIN_DATOS;
   return lista.data.sedes.flatMap((s) => {
     const sede = esquemaSede.safeParse(s);
-    return sede.success ? [sede.data] : [];
+    return sede.success ? [{ ...sede.data, foto: urlDeFotoDeTienda(origenDeFotos, sede.data.foto) }] : [];
   });
 }
 
