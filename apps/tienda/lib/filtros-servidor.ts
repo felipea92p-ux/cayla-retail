@@ -3,6 +3,8 @@ import { cache } from "react";
 import { SEGUNDOS_DEL_CATALOGO } from "./catalogo-servidor";
 import { db, lecturaCompartida } from "./compartido-servidor";
 import { interpretarFiltros, type DatosDeFiltros } from "./filtros-color-talla";
+import { sedeDeLaUrl, sedesEnOrden } from "./sede-elegida";
+import { leerSedes } from "./tiendas-servidor";
 
 // Qué hay por color y talla (ADR-0512, actividad 3) es igual para todos los que miran la misma tienda: qué variantes de cada prenda tienen
 // unidades. Se comparte entre visitas el mismo medio minuto que el catálogo, con el que se junta en la página, para que la prenda que se ve
@@ -24,3 +26,10 @@ export const leerFiltros = cache(async (sedeId: string | null): Promise<DatosDeF
     return null;
   }
 });
+
+/** Lo mismo, pidiendo la tienda por su clave de la dirección (`?sede=trujillo`), como llega al navegador. No confía en lo que llega: la busca
+ *  entre las tiendas de la web (`sedeDeLaUrl`); una que no existe es «Todas». */
+export async function leerFiltrosDeLaSede(sede: string | null): Promise<DatosDeFiltros | null> {
+  const sedes = sedesEnOrden(await leerSedes());
+  return leerFiltros((sede ? sedeDeLaUrl(sede, sedes) : null)?.id ?? null);
+}

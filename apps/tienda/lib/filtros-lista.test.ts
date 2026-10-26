@@ -92,17 +92,20 @@ describe("prendasQuePasan", () => {
 });
 
 describe("elegidoEnElDestino", () => {
-  it("el enlace a otro grupo o categoría sale ya sin lo que allá no existe", () => {
+  it("el enlace a otro grupo o categoría sale ya sin lo que allá no existe, y dice qué se quita", () => {
     const f = filtrosDeLaLista(datos, negroM, prendas);
     const faldas = prendas.filter((p) => [CARLA, LUNA].includes(p.id));
     const bolsos = prendas.filter((p) => p.id === ANA);
-    expect(elegidoEnElDestino(f, faldas)).toEqual(negroM);
-    expect(elegidoEnElDestino(f, bolsos)).toEqual({ color: ["negro"], talla: [] });
-    expect(elegidoEnElDestino(f, [])).toEqual(NADA_ELEGIDO);
+    expect(elegidoEnElDestino(f, faldas, "Faldas")).toEqual({ elegido: negroM, quita: null });
+    expect(elegidoEnElDestino(f, bolsos, "Bolsos/Cinturones")).toEqual({
+      elegido: { color: ["negro"], talla: [] },
+      quita: "En Bolsos/Cinturones no hay talla M: quitamos esa talla.",
+    });
+    expect(elegidoEnElDestino(f, [], null)).toEqual({ elegido: NADA_ELEGIDO, quita: "En esta lista no hay Negro ni talla M: quitamos ese color y esa talla." });
   });
 
-  it("sin filtros no hay nada que llevar", () => {
-    expect(elegidoEnElDestino(filtrosDeLaLista(null, negroM, prendas), prendas)).toEqual(NADA_ELEGIDO);
+  it("sin filtros no hay nada que llevar ni que decir", () => {
+    expect(elegidoEnElDestino(filtrosDeLaLista(null, negroM, prendas), prendas, "Todo")).toEqual({ elegido: NADA_ELEGIDO, quita: null });
   });
 });
 

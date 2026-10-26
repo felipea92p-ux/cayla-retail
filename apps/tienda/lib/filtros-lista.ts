@@ -3,7 +3,9 @@ import {
   alCambiarDeNivel,
   escribirElegido,
   hayElegido,
+  huboSoltado,
   indexar,
+  mensajeDeLoSoltado,
   NADA_ELEGIDO,
   prendaPasa,
   type DatosDeFiltros,
@@ -38,11 +40,20 @@ export function prendasQuePasan(filtros: FiltrosDeLaLista, prendas: readonly Pre
   return indice && hayElegido(elegido) ? prendas.filter((p) => prendaPasa(indice, p.id, elegido)) : [...prendas];
 }
 
-/** Lo elegido llevado a otro grupo o categoría (`destino`: sus prendas, sin filtrar): lo que allá no existe se suelta, y el enlace ya sale así
- *  escrito, sin pasar por la corrección de la página. */
-export function elegidoEnElDestino(filtros: FiltrosDeLaLista, destino: readonly Prenda[]): Elegido {
+/** Adónde lleva un enlace de la lista: lo elegido ya sin lo que allá no existe y, si se soltó algo, lo que se le dice a la persona. */
+export type DestinoDeFiltros = { elegido: Elegido; quita: string | null };
+
+/**
+ * Lo elegido llevado a otro grupo o categoría (`destino`: sus prendas, sin filtrar; `donde`: cómo se llama): lo que allá no existe se
+ * suelta, y el enlace ya sale así escrito, sin pasar por la corrección de la página. `quita` es el aviso que verá quien llegue («En
+ * Pantalones no hay talla M: la quitamos»); sin nada soltado, `null`.
+ */
+export function elegidoEnElDestino(filtros: FiltrosDeLaLista, destino: readonly Prenda[], donde: string | null): DestinoDeFiltros {
   const { indice, elegido } = filtros;
-  return indice && hayElegido(elegido) ? alCambiarDeNivel(indice, destino.map((p) => p.id), elegido).elegido : NADA_ELEGIDO;
+  if (!indice || !hayElegido(elegido)) return { elegido: NADA_ELEGIDO, quita: null };
+  const ids = destino.map((p) => p.id);
+  const cambio = alCambiarDeNivel(indice, ids, elegido);
+  return { elegido: cambio.elegido, quita: huboSoltado(cambio.soltado) ? mensajeDeLoSoltado(indice, ids, cambio.soltado, donde) : null };
 }
 
 type Direccion = { color?: string | string[]; talla?: string | string[] };

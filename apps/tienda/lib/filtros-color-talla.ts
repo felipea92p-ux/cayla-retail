@@ -58,6 +58,11 @@ export function interpretarFiltros(crudo: unknown): DatosDeFiltros | null {
   return { sede: typeof sede === "string" ? sede : null, variantes: buenas, colores: dichos };
 }
 
+/** Lo contrario de `interpretarFiltros`: lo que viaja de la tienda al navegador (`GET /api/filtros`), con la misma forma compacta que manda la base. */
+export function compactarFiltros(datos: DatosDeFiltros): { sede: string | null; variantes: [string, string | null, string][]; colores: Record<string, string | null> } {
+  return { sede: datos.sede, variantes: datos.variantes.map((v) => [v.prenda, v.color, v.talla]), colores: { ...datos.colores } };
+}
+
 // ---------------------------------------------------------------- Las tallas
 
 /** La talla «Estándar / única»: para quien compra, una sola opción (en la base son dos: «Estándar» y «Única»). */
@@ -153,6 +158,22 @@ export function escribirElegido(e: Elegido): { color?: string; talla?: string } 
   if (o.color.length > 0) salida.color = o.color.join(",");
   if (o.talla.length > 0) salida.talla = o.talla.join(",");
   return salida;
+}
+
+/**
+ * Lo elegido como las partes de una dirección (`color=negro,blanco`, `talla=S,M`): las comas que separan se quedan como comas (son legales
+ * en una dirección y se leen mejor que `%2C`); cada valor, escapado. Es la ÚNICA forma de escribirlo: la usan la lista, los enlaces y el panel.
+ */
+export function parametrosDeFiltros(e: Elegido): string[] {
+  return Object.entries(escribirElegido(e)).map(([faceta, valores]) => `${faceta}=${valores.split(",").map(encodeURIComponent).join(",")}`);
+}
+
+/** La consulta de la dirección actual con lo elegido cambiado: se queda todo lo demás (tienda, grupo, categoría, orden…) menos la página,
+ *  que ya no vale (la lista filtrada tiene otras prendas). */
+export function consultaConFiltros(consulta: string, e: Elegido): string {
+  const q = new URLSearchParams(consulta);
+  for (const clave of ["color", "talla", "pagina"]) q.delete(clave);
+  return [q.toString(), ...parametrosDeFiltros(e)].filter(Boolean).join("&");
 }
 
 // ---------------------------------------------------------------- El índice
@@ -318,6 +339,35 @@ export function alCambiarDeNivel(indice: Indice, delNuevoNivel: readonly string[
       talla: e.talla.filter((t) => !elegido.talla.includes(t)),
     },
   };
+}
+
+/** La talla escrita en una frase: «talla M», «talla estándar / única». */
+export const fraseDeTalla = (clave: string): string => (clave === UNICA ? "talla estándar / única" : `talla ${clave}`);
+
+/** Cómo se llama una familia de color para quien compra («Negro», «Beige y arena»). */
+export const nombreDeFamilia = (id: FamiliaDeColorId): string => FAMILIAS_DE_COLOR.find((f) => f.id === id)?.nombre ?? id;
+/** Una lista en una frase: «A», «A y B», «A, B y C» (con `ni` u `o` en lugar de `y`, si se pide). */
+export const unir = (partes: readonly string[], y: string): string =>
+  partes.length <= 1 ? partes.join("") : `${partes.slice(0, -1).join(", ")} ${y} ${partes[partes.length - 1]}`;
+
+/**
+ * Lo que se le dice a quien cambió de grupo o de categoría y por eso se soltó algo (`alCambiarDeNivel`), en una frase de tienda:
+ * «En Pantalones no hay talla M: la quitamos.» si lo soltado NO existe en el nivel nuevo, o «Ninguna prenda reúne todo lo que elegiste: quitamos
+ * esa talla.» si existe pero ninguna prenda junta lo elegido. `donde`: cómo se llama el nivel nuevo («Pantalones», «Blusas/Tops»…).
+ */
+export function mensajeDeLoSoltado(indice: Indice, delNivel: readonly string[], soltado: Soltado, donde: string | null): string {
+  const hay = opcionesDelNivel(indice, delNivel);
+  const familias = new Set(hay.familias.map((f) => f.id));
+  const tallas = new Set(hay.tallas);
+  const faltaTodo = soltado.color.every((f) => !familias.has(f)) && soltado.talla.every((t) => !tallas.has(t));
+  const partes: string[] = [];
+  if (soltado.color.length > 0) partes.push(soltado.color.length === 1 ? "ese color" : "esos colores");
+  if (soltado.talla.length > 0) partes.push(soltado.talla.length === 1 ? "esa talla" : "esas tallas");
+  if (partes.length === 0) return ""; // nada se soltó: no hay nada que decir
+  const quitamos = `quitamos ${partes.join(" y ")}.`;
+  if (!faltaTodo) return `Ninguna prenda reúne todo lo que elegiste: ${quitamos}`;
+  const cosas = [...soltado.color.map(nombreDeFamilia), ...soltado.talla.map(fraseDeTalla)];
+  return `En ${donde ?? "esta lista"} no hay ${unir(cosas, "ni")}: ${quitamos}`;
 }
 
 /** Quita lo elegido de una faceta o, sin faceta, todo. */

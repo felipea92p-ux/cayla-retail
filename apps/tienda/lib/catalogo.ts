@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { insigniasDeLaTarjeta, leerInsignias, type Insignia, type InsigniasDeLaTarjeta } from "./insignias";
-import { escribirElegido, type Elegido } from "./filtros-color-talla";
+import { parametrosDeFiltros, type Elegido } from "./filtros-color-talla";
 import { pctTexto } from "./portada";
 import { esquemaStockModelo, type StockModelo } from "./stock";
 import type { Lista } from "./listas";
@@ -378,10 +378,7 @@ export function hrefLista({
   else if (grupo) q.set("grupo", grupo);
   if (lista === "ofertas" && campana) q.set("campana", campana);
   if (orden !== "destacado") q.set("orden", orden);
-  // Las comas de la lista se quedan como comas (son legales en una dirección y se leen mejor que `%2C`); lo demás, escapado.
-  const elegido = colorTalla && lista !== "favoritos" ? escribirElegido(colorTalla) : {};
-  const filtros = Object.entries(elegido).map(([faceta, valores]) => `${faceta}=${valores.split(",").map(encodeURIComponent).join(",")}`);
-  const s = [q.toString(), ...filtros].filter(Boolean).join("&");
+  const s = [q.toString(), ...(colorTalla && lista !== "favoritos" ? parametrosDeFiltros(colorTalla) : [])].filter(Boolean).join("&");
   return s ? `/catalogo?${s}` : "/catalogo";
 }
 

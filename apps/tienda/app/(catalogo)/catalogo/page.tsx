@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { SigueMirando } from "@/components/bolsa/SigueMirando";
 import { BotonBuscarCatalogo } from "@/components/BotonBuscarCatalogo";
 import { ElegidoALaVista } from "@/components/ElegidoALaVista";
+import { FichasDeFiltros } from "@/components/filtros/FichasDeFiltros";
+import { PalabrasDeFiltros } from "@/components/filtros/PalabrasDeFiltros";
+import { ProveedorFiltros } from "@/components/filtros/ProveedorFiltros";
 import { FiltrosDeLista } from "@/components/FiltrosDeLista";
 import { Icono } from "@/components/Icono";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
@@ -59,6 +62,7 @@ import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerPagina, paginaDe, POR_PAGINA } from "@/lib/paginas";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "@/app/estilos/campana.css";
+import "@/app/estilos/filtros.css";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -214,7 +218,13 @@ export default async function Catalogo({ searchParams }: Props) {
   }) => hrefLista({ sede, categoria, orden, lista, campana, grupo: grupoPedido?.clave ?? null, menu: claveMenu, colorTalla, ...cambios });
   // El enlace a otro grupo o categoría: lleva lo elegido de color y talla ya soltado de lo que allá no existe. (Los de otra tienda, otra
   // campaña o el menú llevan lo elegido tal cual: ahí la página, al llegar, lo corrige.)
-  const hrefA = (destino: readonly Prenda[], cambios: Parameters<typeof href>[0]) => href({ ...cambios, colorTalla: elegidoEnElDestino(filtros, destino) });
+  // Y la frase de lo que se suelta (`quita`), que viaja con el toque: quien llega la ve como aviso, con «Deshacer» (`FiltrosDeLista`).
+  const hrefA = (destino: readonly Prenda[], cambios: Parameters<typeof href>[0], donde: string | null) => {
+    const ir = elegidoEnElDestino(filtros, destino, donde);
+    return { href: href({ ...cambios, colorTalla: ir.elegido }), quita: ir.quita ?? undefined };
+  };
+  // Los filtros de color y talla (ADR-0512) van en todas las listas menos «Tus favoritos»: lo guardado se ve entero.
+  const conFiltros = !esFavoritos;
   // Una dirección que no trae lo elegido como lo escribe la tienda (escrita a mano, con una talla que aquí no hay, con un `?color=` vacío o
   // en los favoritos) manda a la que sí: hay UNA dirección por lista filtrada. Si la base no respondió, no se corrige nada y se ve la lista
   // entera, sin filtrar.
@@ -258,6 +268,39 @@ export default async function Catalogo({ searchParams }: Props) {
       nota={(p) => notaDeStock(p.stock, elegida, sedes)}
     />
   );
+
+  // Las categorías en una sola fila (cuando son pocas o hay un solo grupo).
+  const pildorasDeCategorias =
+    categorias.length > 1 ? (
+      <nav className="t-pildoras" aria-label="Categoría">
+        {(() => {
+          const ir = hrefA(deLaLista, { categoria: null, grupo: null }, "Toda la tienda");
+          return (
+            <Link className="t-pildora" href={ir.href} data-quita={ir.quita} aria-current={categoria === null ? "true" : undefined} scroll={false}>
+              Todas <small>{deLaListaFiltrada.length}</small>
+              <PendienteDelEnlace />
+            </Link>
+          );
+        })()}
+        {categorias.map((c) => {
+          const ir = hrefA(prendasDeLaCategoria(c.clave), { categoria: c.clave }, c.nombre);
+          return (
+            <Link
+              key={c.clave}
+              className="t-pildora"
+              href={ir.href}
+              data-quita={ir.quita}
+              aria-current={categoria === c.clave ? "true" : undefined}
+              data-cero={hayFiltros && c.cuantas === 0 ? "true" : undefined}
+              scroll={false}
+            >
+              {c.nombre} <small>{c.cuantas}</small>
+              <PendienteDelEnlace />
+            </Link>
+          );
+        })}
+      </nav>
+    ) : null;
 
   return (
     <MarcoCatalogo
@@ -350,103 +393,111 @@ export default async function Catalogo({ searchParams }: Props) {
                 ))}
               </nav>
             ) : null}
-            {/* Los filtros: al tocar uno con la barra ya pegada arriba, la vista vuelve al comienzo de la lista (`FiltrosDeLista`). */}
-            <FiltrosDeLista>
-              {porGrupos ? (
-                <div className="t-filtros-niveles">
-                  <nav className="t-pildoras" aria-label="Qué ver">
-                    <Link
-                      className="t-pildora"
-                      href={hrefA(deLaLista, { grupo: null, categoria: null })}
-                      aria-current={grupoActivo === null ? "true" : undefined}
-                      scroll={false}
-                    >
-                      Todo <small>{deLaListaFiltrada.length}</small>
-                      <PendienteDelEnlace />
-                    </Link>
-                    {grupos.map((g) => (
-                      <Link
-                        key={g.clave}
-                        className="t-pildora"
-                        href={hrefA(prendasDelGrupo(g.clave), { grupo: g.clave, categoria: null })}
-                        aria-current={grupoActivo?.clave === g.clave ? "true" : undefined}
-                        data-cero={hayFiltros && g.cuantas === 0 ? "true" : undefined}
-                        scroll={false}
-                      >
-                        {g.nombre} <small>{g.cuantas}</small>
-                        <PendienteDelEnlace />
-                      </Link>
-                    ))}
-                  </nav>
-                  {delActivo && delActivo.categorias.length > 1 && (
-                    <nav className="t-subcats" aria-label={`Categorías de ${delActivo.nombre}`}>
-                      <Link
-                        className="t-subcat"
-                        href={hrefA(prendasDelGrupo(delActivo.clave), { grupo: delActivo.clave, categoria: null })}
-                        aria-current={categoria === null ? "true" : undefined}
-                        scroll={false}
-                      >
-                        Todo
-                        <PendienteDelEnlace />
-                      </Link>
-                      {delActivo.categorias.map((c) => (
-                        <Link
-                          key={c.clave}
-                          className="t-subcat"
-                          href={hrefA(prendasDeLaCategoria(c.clave), { categoria: c.clave })}
-                          aria-current={categoria === c.clave ? "true" : undefined}
-                          data-cero={hayFiltros && c.cuantas === 0 ? "true" : undefined}
-                          scroll={false}
-                        >
-                          {c.nombre} <small>{c.cuantas}</small>
-                          <PendienteDelEnlace />
-                        </Link>
-                      ))}
+            {/* Los filtros: al tocar uno con la barra ya pegada arriba, la vista vuelve al comienzo de la lista (`FiltrosDeLista`). Color y
+                talla (ADR-0512) son una fila más de la barra, con sus dos paneles y sus fichas: la lista misma la arma el servidor desde la
+                dirección y el panel solo lleva hasta ella lo que la persona toca. Una tienda distinta es otro proveedor (otras variantes). */}
+            <ProveedorFiltros key={sede ?? "todas"} sede={sede} ids={delNivel.map((p) => p.id)} elegido={colorTalla}>
+              <FiltrosDeLista>
+                {porGrupos ? (
+                  <div className="t-filtros-niveles">
+                    <nav className="t-pildoras" aria-label="Qué ver">
+                      {(() => {
+                        const ir = hrefA(deLaLista, { grupo: null, categoria: null }, "Toda la tienda");
+                        return (
+                          <Link
+                            className="t-pildora"
+                            href={ir.href}
+                            data-quita={ir.quita}
+                            aria-current={grupoActivo === null ? "true" : undefined}
+                            scroll={false}
+                          >
+                            Todo <small>{deLaListaFiltrada.length}</small>
+                            <PendienteDelEnlace />
+                          </Link>
+                        );
+                      })()}
+                      {grupos.map((g) => {
+                        const ir = hrefA(prendasDelGrupo(g.clave), { grupo: g.clave, categoria: null }, g.nombre);
+                        return (
+                          <Link
+                            key={g.clave}
+                            className="t-pildora"
+                            href={ir.href}
+                            data-quita={ir.quita}
+                            aria-current={grupoActivo?.clave === g.clave ? "true" : undefined}
+                            data-cero={hayFiltros && g.cuantas === 0 ? "true" : undefined}
+                            scroll={false}
+                          >
+                            {g.nombre} <small>{g.cuantas}</small>
+                            <PendienteDelEnlace />
+                          </Link>
+                        );
+                      })}
                     </nav>
-                  )}
-                </div>
-              ) : categorias.length > 1 ? (
-                <nav className="t-pildoras" aria-label="Categoría">
+                    {delActivo && delActivo.categorias.length > 1 && (
+                      <nav className="t-subcats" aria-label={`Categorías de ${delActivo.nombre}`}>
+                        {(() => {
+                          const ir = hrefA(prendasDelGrupo(delActivo.clave), { grupo: delActivo.clave, categoria: null }, delActivo.nombre);
+                          return (
+                            <Link className="t-subcat" href={ir.href} data-quita={ir.quita} aria-current={categoria === null ? "true" : undefined} scroll={false}>
+                              Todo
+                              <PendienteDelEnlace />
+                            </Link>
+                          );
+                        })()}
+                        {delActivo.categorias.map((c) => {
+                          const ir = hrefA(prendasDeLaCategoria(c.clave), { categoria: c.clave }, c.nombre);
+                          return (
+                            <Link
+                              key={c.clave}
+                              className="t-subcat"
+                              href={ir.href}
+                              data-quita={ir.quita}
+                              aria-current={categoria === c.clave ? "true" : undefined}
+                              data-cero={hayFiltros && c.cuantas === 0 ? "true" : undefined}
+                              scroll={false}
+                            >
+                              {c.nombre} <small>{c.cuantas}</small>
+                              <PendienteDelEnlace />
+                            </Link>
+                          );
+                        })}
+                      </nav>
+                    )}
+                    {conFiltros && <PalabrasDeFiltros />}
+                  </div>
+                ) : categorias.length > 1 ? (
+                  conFiltros ? (
+                    <div className="t-filtros-niveles">
+                      {pildorasDeCategorias}
+                      <PalabrasDeFiltros />
+                    </div>
+                  ) : (
+                    pildorasDeCategorias
+                  )
+                ) : conFiltros ? (
+                  <div className="t-filtros-niveles">
+                    <PalabrasDeFiltros />
+                  </div>
+                ) : (
+                  <span className="t-esp" />
+                )}
+                <BotonBuscarCatalogo />
+                <div className="t-orden">
                   <Link
-                    className="t-pildora"
-                    href={hrefA(deLaLista, { categoria: null, grupo: null })}
-                    aria-current={categoria === null ? "true" : undefined}
+                    href={href({ orden: siguienteOrden(orden) })}
+                    aria-label={`Orden: ${nombreOrden(orden, lista)}. Cambiar a ${nombreOrden(siguienteOrden(orden), lista)}`}
                     scroll={false}
                   >
-                    Todas <small>{deLaListaFiltrada.length}</small>
+                    <Icono nombre="flechas" />
+                    <span className="t-orden-rot">Orden:</span>
+                    <span className="t-orden-nombre">{nombreOrden(orden, lista)}</span>
                     <PendienteDelEnlace />
                   </Link>
-                  {categorias.map((c) => (
-                    <Link
-                      key={c.clave}
-                      className="t-pildora"
-                      href={hrefA(prendasDeLaCategoria(c.clave), { categoria: c.clave })}
-                      aria-current={categoria === c.clave ? "true" : undefined}
-                      data-cero={hayFiltros && c.cuantas === 0 ? "true" : undefined}
-                      scroll={false}
-                    >
-                      {c.nombre} <small>{c.cuantas}</small>
-                      <PendienteDelEnlace />
-                    </Link>
-                  ))}
-                </nav>
-              ) : (
-                <span className="t-esp" />
-              )}
-              <BotonBuscarCatalogo />
-              <div className="t-orden">
-                <Link
-                  href={href({ orden: siguienteOrden(orden) })}
-                  aria-label={`Orden: ${nombreOrden(orden, lista)}. Cambiar a ${nombreOrden(siguienteOrden(orden), lista)}`}
-                  scroll={false}
-                >
-                  <Icono nombre="flechas" />
-                  <span className="t-orden-rot">Orden:</span>
-                  <span className="t-orden-nombre">{nombreOrden(orden, lista)}</span>
-                  <PendienteDelEnlace />
-                </Link>
-              </div>
-            </FiltrosDeLista>
+                </div>
+              </FiltrosDeLista>
+              {conFiltros && <FichasDeFiltros />}
+            </ProveedorFiltros>
             <ElegidoALaVista selector=".t-filtros .t-pildoras, .t-filtros .t-subcats" />
             {/* Sin prendas, el vacío de abajo dice lo que pasa: un «0 prendas» encima solo lo repetía. */}
             {vista.length > 0 && (

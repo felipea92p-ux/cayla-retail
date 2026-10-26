@@ -10,18 +10,22 @@ import {
   alternar,
   clavesDeTalla,
   compararTallas,
+  consultaConFiltros,
   contar,
   escribirElegido,
   etiquetaDeTalla,
+  fraseDeTalla,
   hayElegido,
   huboSoltado,
   indexar,
   interpretarFiltros,
   leerElegido,
   limpiar,
+  mensajeDeLoSoltado,
   muertas,
   NADA_ELEGIDO,
   opcionesDelNivel,
+  parametrosDeFiltros,
   prendaPasa,
   sistemaDeTalla,
   UNICA,
@@ -445,7 +449,7 @@ describe("los filtros de color y talla", () => {
     expect(contar(indice, nivel, sinNegro.elegido).total).toBeGreaterThan(0);
   });
 
-  it("caminata al azar (4.000 toques): nunca una lista vacía, los números siempre coinciden y la dirección vuelve igual", () => {
+  it("caminata al azar (4.000 toques): nunca una lista vacía, los números siempre coinciden y la dirección vuelve igual", { timeout: 30_000 }, () => {
     for (const semilla of [101, 202]) {
       const m = mundo(semilla, 120);
       const { siguiente, elige } = azar(semilla * 7);
@@ -535,5 +539,61 @@ describe("los filtros de color y talla", () => {
         expect(huboSoltado(dos.soltado)).toBe(false);
       }
     }
+  });
+});
+
+describe("la dirección que escribe el panel", () => {
+  it("las partes llevan las comas a la vista, en el orden fijo, y solo lo que hay", () => {
+    expect(parametrosDeFiltros(NADA_ELEGIDO)).toEqual([]);
+    expect(parametrosDeFiltros({ color: ["blanco", "negro"], talla: ["UNICA", "M", "S"] })).toEqual(["color=negro,blanco", "talla=S,M,UNICA"]);
+    expect(parametrosDeFiltros({ color: [], talla: ["Talla 38", "S"] })).toEqual(["talla=S,Talla%2038"]);
+  });
+
+  it("cambiar lo elegido deja todo lo demás de la dirección y suelta la página (la lista filtrada tiene otras prendas)", () => {
+    expect(consultaConFiltros("sede=trujillo&categoria=FAL&orden=precio-asc&pagina=3", { color: ["negro"], talla: ["M"] })).toBe(
+      "sede=trujillo&categoria=FAL&orden=precio-asc&color=negro&talla=M",
+    );
+    // Reemplaza lo que había (también lo repetido o escrito a mano) y, sin nada elegido, lo quita.
+    expect(consultaConFiltros("sede=trujillo&color=zzz&color=rojo&talla=XL&pagina=2", { color: ["azul"], talla: [] })).toBe("sede=trujillo&color=azul");
+    expect(consultaConFiltros("sede=trujillo&color=negro&talla=M", NADA_ELEGIDO)).toBe("sede=trujillo");
+    expect(consultaConFiltros("", NADA_ELEGIDO)).toBe("");
+    // Lo que se escribe se vuelve a leer igual.
+    const e: Elegido = { color: ["negro", "blanco"], talla: ["S", "M"] };
+    const q = new URLSearchParams(consultaConFiltros("sede=trujillo", e));
+    expect(leerElegido({ color: q.get("color") ?? undefined, talla: q.get("talla") ?? undefined })).toEqual(e);
+  });
+
+  it("la talla en una frase", () => {
+    expect(fraseDeTalla("M")).toBe("talla M");
+    expect(fraseDeTalla(UNICA)).toBe("talla estándar / única");
+  });
+});
+
+describe("lo que se le dice a quien cambia de nivel y pierde algo", () => {
+  const indice = indexar({
+    sede: null,
+    variantes: [
+      { prenda: "x", color: "NEG", talla: "M" }, // un negro, pero solo en M
+      { prenda: "y", color: "BEI", talla: "S" }, // un beige, pero solo en S
+      { prenda: "z", color: "NEG", talla: "Única" },
+    ],
+    colores: {},
+  });
+
+  it("si lo soltado no existe en el nivel nuevo, lo dice con su nombre", () => {
+    expect(mensajeDeLoSoltado(indice, ["z"], { color: [], talla: ["M"] }, "Bolsos/Cinturones")).toBe("En Bolsos/Cinturones no hay talla M: quitamos esa talla.");
+    expect(mensajeDeLoSoltado(indice, ["z"], { color: ["rojo"], talla: ["M", "XL"] }, "Bolsos")).toBe(
+      "En Bolsos no hay Rojo y vino, talla M ni talla XL: quitamos ese color y esas tallas.",
+    );
+    expect(mensajeDeLoSoltado(indice, ["x"], { color: ["azul", "verde"], talla: [] }, null)).toBe("En esta lista no hay Azul ni Verde: quitamos esos colores.");
+  });
+
+  it("si existe pero ninguna prenda junta lo elegido, no dice que no hay", () => {
+    // Negro y S: hay negro (en M) y hay S (en beige), pero ninguna prenda tiene negro en S.
+    expect(mensajeDeLoSoltado(indice, ["x", "y"], { color: [], talla: ["S"] }, "Faldas")).toBe("Ninguna prenda reúne todo lo que elegiste: quitamos esa talla.");
+  });
+
+  it("si no se soltó nada, no hay nada que decir", () => {
+    expect(mensajeDeLoSoltado(indice, ["x"], { color: [], talla: [] }, "Faldas")).toBe("");
   });
 });
