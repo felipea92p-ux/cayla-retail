@@ -82,9 +82,12 @@ describe("tokens de color: claro, oscuro y papel fijo dicen lo mismo", () => {
     for (const n of FIJOS) expect(oscuro[n], `--color-${n} no va en el bloque oscuro`).toBeUndefined();
   });
 
-  it("el oscuro es el claro con `tinta` y `crema` intercambiadas (la idea que hace que 5.600 usos se inviertan solos)", () => {
-    expect(oscuro.crema).toBe(claro.tinta); // el fondo es la tinta de siempre: #1a1a18, la que aprobó Felipe en el Observatorio
-    expect(oscuro.tinta).toBe(claro.crema); // y el texto, la crema
+  it("el oscuro invierte los papeles del claro: el texto es la crema y el fondo ocupa el lugar de la tinta (la idea que hace que 5.600 usos se inviertan solos)", () => {
+    expect(oscuro.tinta).toBe(claro.crema); // el texto, la crema
+    // El fondo era la tinta de siempre (#1a1a18, la que aprobó Felipe en el Observatorio). Desde el 2026-10-26 (P1 de la familia CAYLA,
+    // opción C) es un negro cálido con la MISMA claridad: no se distingue de la tinta por luminancia, solo por el matiz.
+    expect(Math.abs(luminancia(oscuro.crema) - luminancia(claro.tinta))).toBeLessThan(0.002);
+    expect(oscuro.crema).not.toBe(claro.tinta);
   });
 
   it("las superficies oscuras suben en orden: crema < papel < hueso < sand (elevado = más claro)", () => {

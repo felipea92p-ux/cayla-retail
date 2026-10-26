@@ -21,8 +21,11 @@ El contrato completo, legible por una máquina, es [`contrato.json`](contrato.js
 
 Comparado el 2026-10-25 contra los artifacts «CAYLA Retail» y «CAYLA Dynamic», valor por valor:
 
-- **Los 13 colores del tema claro**, al hex: `crema #f5f0e8`, `papel #fbf8f2`, `hueso #eae1d2`, `sand #e8e0d0`, `tinta #1a1a18`, `taupe #805c4c`,
+- **Los colores de los DOS temas.** Claro (13 colores), al hex: `crema #f5f0e8`, `papel #fbf8f2`, `hueso #eae1d2`, `sand #e8e0d0`, `tinta #1a1a18`, `taupe #805c4c`,
   `rojo #b8412d`, `rojo-profundo #8b2a1f`, `verde #48603f`, `ámbar #74501a`, `pizarra #4c5d6e`, y los dos fijos (`tinta-fija`, `crema-fija`).
+  **Oscuro (decidido el 2026-10-26, P1 opción C: «gris cálido»):** `crema #1c1a17`, `papel #26241f`, `hueso #33302a`, `sand #403b34`, y el texto, el rojo y el
+  semáforo de Retail (`tinta #f5f0e8`, `taupe #c4a898`, `rojo #e8806a`, `rojo-profundo #f29a86`, `verde #9ccb8d`, `ámbar #e4b968`, `pizarra #a2b8cd`). Retail ya lo aplica; **Dynamic
+  todavía no** (ver abajo).
 - **Las letras:** DM Sans (el sistema) y EB Garamond (el alma), las dos de Google Fonts.
 - **Los radios:** 8 px (control), 16 px (superficie), 20 px (flotante) y píldora.
 - **El tema:** el atributo `data-tema` con los valores `claro` y `oscuro`.
@@ -30,11 +33,10 @@ Comparado el 2026-10-25 contra los artifacts «CAYLA Retail» y «CAYLA Dynamic�
 
 ## Lo que hoy NO es igual y falta decidir
 
-Nueve pendientes, cada uno con lo que dice cada aplicación y cómo decidirlo (están en `contrato.json`, `pendientes`):
+Ocho pendientes (P1, el oscuro, se decidió el 2026-10-26), cada uno con lo que dice cada aplicación y cómo decidirlo (están en `contrato.json`, `pendientes`):
 
 | | Tema | Retail | Dynamic |
 |---|---|---|---|
-| **P1** | Tema oscuro (lámina para elegir mirando: `docs/maquetas/familia-oscuro-2026-10/`) | gris `#1a1a18`; los campos más CLAROS que la página | café `#1c1a16`; los campos más NEGROS que la página |
 | **P2** | Borde de un control | `sand` (1.2:1) | `taupe` (5.6:1), por WCAG 1.4.11 |
 | **P3** | Anillo de foco | tinta | rojo |
 | **P4** | Vocabulario | «cliente», «encargado de sede» | «clienta», nunca «encargada» |
@@ -44,17 +46,41 @@ Nueve pendientes, cada uno con lo que dice cada aplicación y cómo decidirlo (e
 | **P8** | «¡» y mayúsculas | «¡» en el recibo y las guías | sin exclamación, mayúscula solo al inicio |
 | **P9** | Tokens de capas (z-index) | z-50 y z-[60] sueltos | `z-sticky` 10, `z-overlay` 40, `z-toast` 60 |
 
-Mientras uno de estos siga abierto, **el contrato congela el valor de cada aplicación** (por ejemplo, `oscuro.retail` y `oscuro.dynamic`):
-nada cambia sin que alguien lo decida, y al decidirlo el pendiente pasa a `decidido` y el valor sube a la capa «marca».
+Mientras uno de estos siga abierto, cada aplicación conserva su valor y nadie lo cambia sin decidirlo; al decidirlo, el pendiente pasa a `decidido`, el valor
+sube a la capa «marca» (como pasó con el oscuro) y lo que falte aplicar en la otra aplicación queda anotado en `aplicacion_pendiente`.
 
 ## Qué prueba qué
 
 | Qué | Dónde | Cuándo corre |
 |---|---|---|
-| Que el código de Retail diga lo que el contrato dice (13 colores claros, el oscuro congelado, los radios, las letras, el atributo del tema) | `apps/web/lib/familia.test.ts` | En cada PR, con `pnpm test` |
+| Que el código de Retail diga lo que el contrato dice (los colores de los dos temas, los radios, las letras, el atributo del tema) | `apps/web/lib/familia.test.ts` | En cada PR, con `pnpm test` |
 | Que el propio detector no esté ciego | la misma prueba, con `scripts/familia/comparar.mjs --autoprueba` | En cada PR |
 | Que los dos repositorios guarden **el mismo contrato** | `pnpm familia:comparar contrato <ruta al contrato de Dynamic>` | A mano, cuando se toca la marca (ningún CI de un solo repo ve el otro) |
 | Que el `tokens.json` de un artifact «Design System» cumpla el contrato | `pnpm familia:comparar tokens <tokens.json> --como retail\|dynamic` | A mano, tras publicar o sincronizar un artifact |
+
+## Lo que falta aplicar en Dynamic (P1 = C)
+
+El oscuro quedó decidido el 2026-10-26 y Retail ya lo usa. Dynamic debe cambiar su tema `oscuro` a estos valores (el contrato, versión 2, los guarda en
+`marca.colores_oscuro`; los de hoy de Dynamic están en `oscuro_anterior.dynamic`):
+
+| Token | Dynamic hoy | Oscuro de la familia |
+|---|---|---|
+| `crema` (la página) | `#1c1a16` | `#1c1a17` |
+| `papel` (tarjeta, tabla, hoja) | `#26221d` | `#26241f` |
+| `hueso` (campo) | `#15110d` — más NEGRO que la página | `#33302a` — más CLARO que la página |
+| `sand` (la línea) | `#332e27` | `#403b34` |
+| `tinta` | `#ede7db` | `#f5f0e8` |
+| `taupe` | `#ab9080` | `#c4a898` |
+| `rojo` | `#d4634a` | `#e8806a` |
+| `rojo-profundo` | `#e8836b` | `#f29a86` |
+| `verde` | `#8fae80` | `#9ccb8d` |
+| `ámbar` | `#c99a4a` | `#e4b968` |
+| `pizarra` | `#9db0c2` | `#a2b8cd` |
+
+Lo que cambia para quien usa Dynamic: el campo deja de ser «hundido» y pasa a ser «elevado» (más claro que la página, como en el ERP), y el rojo sobre la tarjeta
+sube de 4.28:1 a 5.70:1 (hoy no pasa el 4.5 de los textos). Lo que pide revisar en su código: todo lo que dependa de que `hueso` sea más oscuro que `papel`
+(los campos, la casilla de una cifra activa) y los tintes de las insignias, que se miden otra vez. Después: copiar `contrato.json` a su repositorio, poner allí la misma
+prueba, quitar su `aplicacion_pendiente` del contrato en los dos repositorios, y correr `pnpm familia:comparar tokens <su tokens.json> --como dynamic` (debe quedar sin avisos).
 
 ## Cómo se cambia la marca (el orden importa)
 

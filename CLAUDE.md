@@ -236,7 +236,7 @@ es deuda, solo baja, y `lib/ancho-completo.test.ts` falla si una ruta nueva entr
 **El ERP tiene modo oscuro, y una pantalla que usa solo tokens lo alcanza sin hacer nada.** Es una preferencia del APARATO
 (`localStorage["cayla-tema"]`, arranca en claro, un script en el `<head>` pone `data-tema` antes de pintar), con su botón entre
 «Actividad» y la sede; lo ve toda cuenta y **no es un módulo** (ADR-0306). Los MISMOS tokens se redefinen bajo
-`:root[data-tema="oscuro"]` en `apps/web/app/estilos/tema.css`, con `tinta` y `crema` intercambiados (fondo `#1a1a18`, texto `#f5f0e8`):
+`:root[data-tema="oscuro"]` en `apps/web/app/estilos/tema.css`, con `tinta` y `crema` intercambiados (texto `#f5f0e8` y un fondo de negro cálido, `#1c1a17`, el oscuro de la familia CAYLA que comparte con Dynamic: ADR-0336, act. 2026-10-26):
 `bg-papel`, `text-tinta` y `border-sand` se invierten solos. Imprimir sale SIEMPRE en claro (el oscuro vive en `@media screen`).
 
 Lo que se exige a toda pantalla, modal o pieza nueva o editada:

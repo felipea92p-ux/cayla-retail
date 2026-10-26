@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "actualizado": "2026-10-25",
+  "version": 2,
+  "actualizado": "2026-10-26",
   "nota": "El contrato de la familia CAYLA. Este archivo es IDÉNTICO en CAYLA Retail (ERP) y en CAYLA Dynamic (asistencia y planilla): cada repositorio lo guarda en docs/familia/contrato.json y prueba su propio código contra él. Si cambia un valor de la capa «marca», cambia aquí en los dos repositorios el mismo día.",
   "miembros": {
     "retail": "CAYLA Retail · el ERP de tiendas y taller",
@@ -27,6 +27,19 @@
       "tinta-fija": "#1a1a18",
       "crema-fija": "#f5f0e8"
     },
+    "colores_oscuro": {
+      "crema": "#1c1a17",
+      "papel": "#26241f",
+      "hueso": "#33302a",
+      "sand": "#403b34",
+      "tinta": "#f5f0e8",
+      "taupe": "#c4a898",
+      "rojo": "#e8806a",
+      "rojo-profundo": "#f29a86",
+      "verde": "#9ccb8d",
+      "ambar": "#e4b968",
+      "pizarra": "#a2b8cd"
+    },
     "tipografia": {
       "sans": "DM Sans",
       "serif": "EB Garamond",
@@ -41,8 +54,8 @@
     "tema": { "atributo": "data-tema", "claro": "claro", "oscuro": "oscuro" },
     "isotipo": "El colibrí de una línea del manual de marca v3.0, en un solo color plano; nunca se redibuja ni se aproxima."
   },
-  "oscuro": {
-    "nota": "HOY NO SON IGUALES (pendiente P1). Cada aplicación congela su propio oscuro aquí para que no cambie sin que alguien lo decida; cuando se elija uno solo, estas dos listas pasan a ser una y entran a la capa «marca».",
+  "oscuro_anterior": {
+    "nota": "Los dos oscuros que había antes de decidir P1 (2026-10-26). Sirven para migrar: la familia usa marca.colores_oscuro. Retail ya está migrado; Dynamic todavía tiene el suyo (ver aplicacion_pendiente).",
     "retail": {
       "crema": "#1a1a18",
       "papel": "#242422",
@@ -88,8 +101,11 @@
     { "id": "D4", "tema": "Con qué tema arranca", "retail": "Siempre en claro; solo cambia cuando alguien pulsa el botón (ADR-0336).", "dynamic": "Sin atributo, sigue prefers-color-scheme del aparato.", "motivo": "Retail: tablets compartidas por tienda y nadie debe encontrar el ERP distinto el día del despliegue.", "estado": "propuesto" },
     { "id": "D5", "tema": "Color de dato propio", "retail": "metodo-*, sede-*, grafico-* (relleno de gráficos y medios de pago).", "dynamic": "azul y ceniza, solo para el estado de cada integrante en el terminal de marcaje.", "motivo": "Cada aplicación tiene datos que la otra no tiene.", "estado": "propuesto" }
   ],
+  "aplicacion_pendiente": [
+    { "miembro": "dynamic", "tema": "oscuro", "que": "Pasar su tema oscuro a marca.colores_oscuro (P1 = C): crema, papel, hueso y sand nuevos, y el texto, el rojo, el verde, el ámbar y la pizarra de la tabla.", "desde": "2026-10-26" }
+  ],
   "pendientes": [
-    { "id": "P1", "tema": "Tema oscuro", "retail": "Gris neutro (crema #1a1a18); los campos (hueso) son MÁS CLAROS que la página: elevado = más claro.", "dynamic": "Café cálido (crema #1c1a16); los campos (hueso #15110d) son MÁS NEGROS que la página: hundido = más oscuro.", "por_que_importa": "Quien usa las dos aplicaciones en la misma jornada ve dos negros distintos y dos formas de leer un campo.", "como_decidir": "Una lámina con los dos oscuros lado a lado, elegida mirando.", "estado": "abierto" },
+    {"id": "P1", "tema": "Tema oscuro", "retail": "Gris neutro (crema #1a1a18); los campos (hueso) son MÁS CLAROS que la página: elevado = más claro.", "dynamic": "Café cálido (crema #1c1a16); los campos (hueso #15110d) son MÁS NEGROS que la página: hundido = más oscuro.", "por_que_importa": "Quien usa las dos aplicaciones en la misma jornada ve el mismo negro y la misma forma de leer un campo.", "como_decidir": "Una lámina con los dos oscuros lado a lado, elegida mirando.", "estado": "decidido", "decision": "C · gris cálido (Felipe, 2026-10-26): las claridades del oscuro de Retail con el matiz del café de Dynamic. Ver marca.colores_oscuro."},
     { "id": "P2", "tema": "Borde de un control", "retail": "Borde sand sobre papel (1.24:1), caja de campo hueso sobre papel (1.22:1) y casilla (2.18:1).", "dynamic": "borde-control = taupe (5.6:1 sobre papel); lo usan Campo, CampoSelect, AreaTexto y Boton secundario.", "por_que_importa": "WCAG 1.4.11 pide 3:1 para identificar un control; sand da 1.2:1.", "como_decidir": "Mirar el antes y el después en Retail (Campo, Boton secundario y Casilla) y elegir.", "estado": "abierto" },
     { "id": "P3", "tema": "Anillo de foco de teclado", "retail": "Tinta, 2 px con 2 px de separación (ADR-0351: el rojo es escaso y el foco aparece en cada Tab).", "dynamic": "Rojo, 2 px con 2 px de separación.", "por_que_importa": "El foco es lo que más se ve al navegar con teclado; hoy cambia de color al pasar de una aplicación a otra.", "como_decidir": "Decide Felipe; tinta pasa 15:1 sobre crema, rojo 4.8:1.", "estado": "abierto" },
     { "id": "P4", "tema": "Vocabulario", "retail": "«cliente» (en el club, «miembro»); «encargado de sede»; nunca «clienta» ni «socia».", "dynamic": "«clienta», y nunca «encargada»: «líder de equipo».", "por_que_importa": "El CLAUDE.md global todavía dice «clienta»: un agente que trabaja en Dynamic escribe lo que Retail prohíbe.", "como_decidir": "Una sola lista, escrita en los dos repositorios y en el CLAUDE.md global.", "estado": "abierto" },

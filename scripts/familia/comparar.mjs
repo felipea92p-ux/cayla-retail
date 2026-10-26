@@ -8,8 +8,9 @@
 //       Es la comparación que ningún CI de un solo repo puede hacer: se corre a mano (o la corre /familia) cuando se toca la marca.
 //
 //   node scripts/familia/comparar.mjs tokens <tokens.json> --como retail|dynamic
-//       Un `tokens.json` de un artifact «Design System» (el de CAYLA Retail o el de CAYLA Dynamic) contra el contrato: colores claros,
-//       el oscuro congelado de esa aplicación, los radios y las dos letras. Sale con código 1 si algo de la capa «marca» no coincide.
+//       Un `tokens.json` de un artifact «Design System» (el de CAYLA Retail o el de CAYLA Dynamic) contra el contrato: los colores de los
+//       dos temas, los radios y las dos letras. Sale con código 1 si algo de la capa «marca» no coincide, salvo lo que el contrato declara en
+//       `aplicacion_pendiente` para esa aplicación (se dice como aviso: está decidido y falta aplicarlo).
 //
 //   node scripts/familia/comparar.mjs --autoprueba
 //       Comprueba que este detector no esté ciego: arma unos tokens que cumplen el contrato, le cambia una cosa a la vez y exige que cada
@@ -80,13 +81,17 @@ export function compararTokens(contrato, tokens, como) {
   }
   if (malos === 0) ok(`claro · los ${Object.keys(contrato.marca.colores_claro).length} colores coinciden al hex`);
 
-  // Oscuro de esa aplicación: congelado en el contrato. Cambiarlo sin tocar el contrato es un desfase.
-  let congelado = 0;
-  for (const [nombre, hex] of Object.entries(contrato.oscuro[como])) {
+  // Capa marca · colores oscuros (P1, decidido: el mismo oscuro en las dos aplicaciones). Si el contrato dice que esta aplicación todavía
+  // no lo aplica, la diferencia se avisa en vez de fallar: está decidido y falta hacerlo, y el aviso no se calla.
+  const pendiente = (contrato.aplicacion_pendiente ?? []).find((a) => a.miembro === como && a.tema === "oscuro");
+  const malosOscuro = [];
+  for (const [nombre, hex] of Object.entries(contrato.marca.colores_oscuro)) {
     const v = valorColor(colores, nombre, idOscuro);
-    if (v !== hex.toLowerCase()) { falla(`oscuro · ${nombre}: tiene ${v ?? "nada"}, el contrato guarda ${hex} para ${como}`); congelado++; }
+    if (v !== hex.toLowerCase()) malosOscuro.push(`oscuro · ${nombre}: tiene ${v ?? "nada"}, la familia dice ${hex}`);
   }
-  if (congelado === 0) ok(`oscuro · los ${Object.keys(contrato.oscuro[como]).length} colores son los que el contrato congela para ${como}`);
+  if (malosOscuro.length === 0) ok(`oscuro · los ${Object.keys(contrato.marca.colores_oscuro).length} colores coinciden al hex`);
+  else if (pendiente) aviso(`oscuro · ${malosOscuro.length} de ${Object.keys(contrato.marca.colores_oscuro).length} colores difieren; pendiente de aplicar en ${como} (decidido el ${pendiente.desde})`);
+  else for (const m of malosOscuro) falla(m);
 
   // Radios y letras.
   const radios = tokens.radius?.tokens ?? [];
@@ -106,10 +111,6 @@ export function compararTokens(contrato, tokens, como) {
     else ok(`letra · ${clave} es ${esperado}`);
   }
 
-  // Lo abierto: el oscuro de la otra aplicación frente al de esta.
-  const otra = como === "retail" ? "dynamic" : "retail";
-  const distintos = Object.keys(contrato.oscuro[como]).filter((n) => contrato.oscuro[como][n] !== contrato.oscuro[otra][n]);
-  if (distintos.length) aviso(`oscuro · ${distintos.length} de ${Object.keys(contrato.oscuro[como]).length} colores difieren de ${otra} (pendiente P1, abierto)`);
   return out;
 }
 
@@ -117,7 +118,7 @@ export function compararTokens(contrato, tokens, como) {
 function tokensQueCumplen(contrato, como) {
   const colores = Object.entries(contrato.marca.colores_claro).map(([name, claro]) => ({
     name,
-    value: { claro, oscuro: contrato.oscuro[como][name] ?? claro },
+    value: { claro, oscuro: contrato.marca.colores_oscuro[name] ?? claro },
   }));
   return {
     color: { themes: [{ id: "claro" }, { id: "oscuro" }], tokens: colores },
@@ -139,9 +140,18 @@ function autoprueba(contrato) {
   let t = base(); t.color.tokens.find((c) => c.name === "rojo").value.claro = "#b8412e"; debeFallar("un rojo claro distinto por un solo dígito", t);
   t = base(); t.color.tokens.splice(t.color.tokens.findIndex((c) => c.name === "taupe"), 1); debeFallar("un color de marca que falta", t);
   t = base(); t.color.tokens.find((c) => c.name === "papel").value.oscuro = "#242423"; debeFallar("un oscuro que cambió sin tocar el contrato", t);
+  t = base(); t.color.tokens.find((c) => c.name === "hueso").value.oscuro = "#15110d"; debeFallar("el oscuro viejo de Dynamic en una aplicación que ya debería tenerlo", t);
   t = base(); t.radius.tokens[0].value = "10px"; debeFallar("un radio de control distinto", t);
   t = base(); t.type.families.serif = "Georgia, serif"; debeFallar("la serif cambiada", t);
   t = base(); t.color.themes = [{ id: "claro" }]; debeFallar("un tokens.json con un solo tema", t);
+
+  // Lo decidido y todavía sin aplicar se AVISA (no falla) y no se calla: ni se oculta ni rompe a quien aún no migró.
+  const viejo = base(); viejo.color.tokens.find((c) => c.name === "papel").value.oscuro = "#26221d";
+  const conPendiente = structuredClone(contrato);
+  conPendiente.aplicacion_pendiente = [{ miembro: "retail", tema: "oscuro", que: "x", desde: "2026-10-26" }];
+  const r = compararTokens(conPendiente, viejo, "retail");
+  if (r.some((x) => x.nivel === "falla")) fallos.push("un oscuro pendiente de aplicar declarado en el contrato no debería fallar");
+  if (!r.some((x) => x.nivel === "aviso" && /pendiente de aplicar/.test(x.texto))) fallos.push("un oscuro pendiente de aplicar debería salir como aviso");
 
   const a = structuredClone(contrato);
   const b = structuredClone(contrato);

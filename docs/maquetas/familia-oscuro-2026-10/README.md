@@ -1,5 +1,7 @@
 # El oscuro de la familia CAYLA · una lámina para elegir mirando (2026-10-25)
 
+> **Decidido el 2026-10-26: Felipe eligió la C (gris cálido).** Retail ya la aplica (`tema.css`, ADR-0336 act. 2026-10-26) y el contrato la guarda en `marca.colores_oscuro`. Falta aplicarla en Dynamic. La lámina queda como constancia de lo que se miró.
+
 Pendiente **P1** de `docs/familia/contrato.json`: Retail y Dynamic tienen dos oscuros distintos (un gris y un café) y el tema claro es idéntico en
 las dos. Felipe elige mirando (la regla de `/unificar`), así que esta lámina pone **la misma pantalla** en tres oscuros, con exactamente los mismos
 componentes: lo único que cambia entre columnas son los colores. **Nada toca `apps/web` ni la base.**

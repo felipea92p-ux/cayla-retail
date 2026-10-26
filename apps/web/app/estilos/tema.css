@@ -1,11 +1,12 @@
 /* =====================================================================
    MODO OSCURO (ADR-0336, Felipe 2026-10-05).
 
-   LA IDEA. El oscuro NO es otra paleta: es la misma con `tinta` y `crema` en los papeles cambiados (el fondo es la tinta
-   de siempre y el texto, la crema), y el resto de los tokens aclarados para leerse sobre ese fondo. Así los ~5.600 usos de
-   `tinta` —3.917 con opacidad— se invierten solos: `text-tinta/65`, `bg-tinta/5`, `border-tinta/10`, un botón `bg-tinta
+   LA IDEA. El oscuro NO es otra paleta: es la misma con `tinta` y `crema` en los papeles cambiados (el texto es la crema y el
+   fondo un negro cálido que ocupa el lugar de la tinta), y el resto de los tokens aclarados para leerse sobre ese fondo. Así los ~5.600
+   usos de `tinta` —3.917 con opacidad— se invierten solos: `text-tinta/65`, `bg-tinta/5`, `border-tinta/10`, un botón `bg-tinta
    text-crema`… todos conservan su relación sin tocar una pantalla. Lo aprobó Felipe en el Observatorio (ADR-0322): fondo
-   #1a1a18, superficies un 7 % y un 14 % más claras, texto crema. El nombre del atributo lo reservó ADR-0169.
+   #1a1a18, superficies un 7 % y un 14 % más claras, texto crema; desde el 2026-10-26 ese fondo y sus superficies llevan el matiz
+   cálido de la familia (ver el bloque de abajo). El nombre del atributo lo reservó ADR-0169.
 
    REGLAS.
    1. Los valores viven ACÁ y en el `@theme` de globals.css, con los MISMOS nombres. `lib/tema-tokens.test.ts` falla si un
@@ -21,14 +22,18 @@
     color-scheme: dark; /* barras de scroll, selectores de fecha, autocompletado: los nativos también se oscurecen */
 
     /* Superficies: elevado = más claro. crema (página) < papel (tarjeta, tabla, hoja) < hueso (campo, zebra) < sand (línea). */
-    --color-crema: #1a1a18;
-    --color-papel: #242422; /* 2 niveles menos que el #262624 inicial: así `tinta` al 50 % (el texto de apoyo más usado del ERP; Tailwind lo mezcla en oklab) pasa de 4.46 a 4.5+:1 */
-    --color-hueso: #31302d;
-    --color-sand: #3d3c38;
+    /* Desde el 2026-10-26 (P1 de la familia CAYLA, Felipe eligió la opción C): las MISMAS claridades de siempre (#1a1a18, #242422, #31302d,
+       #3d3c38) teñidas del matiz del café de Dynamic (H 36°, S 10 %), calculadas para tener la misma luminancia: los contrastes no cambian
+       —el papel sigue dos niveles bajo el #262624 inicial para que `tinta` al 50 % (el texto de apoyo más usado del ERP; Tailwind lo mezcla
+       en oklab) pase de 4.46 a 4.5+:1— y CAYLA Retail y CAYLA Dynamic comparten el mismo oscuro (`docs/familia/contrato.json`). */
+    --color-crema: #1c1a17;
+    --color-papel: #26241f;
+    --color-hueso: #33302a;
+    --color-sand: #403b34;
 
-    /* Sombra y vidrio: dos colores que antes eran blanco y tinta escritos a mano en el CSS (ver `@theme` de globals.css). */
+    /* Sombra y vidrio: dos colores que antes eran blanco y tinta escritos a mano en el CSS (ver `@theme` de globals.css). El vidrio es el hueso. */
     --color-sombra: #000000;
-    --color-vidrio: #31302d;
+    --color-vidrio: #33302a;
 
     /* Texto. Todos ≥ 4.5:1 sobre crema, papel y hueso (la prueba lo mide). */
     --color-tinta: #f5f0e8;
