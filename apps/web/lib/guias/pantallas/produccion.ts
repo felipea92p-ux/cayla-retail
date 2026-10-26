@@ -310,7 +310,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.tela",
       opcional: true,
       titulo: "La tela de la orden",
-      texto: "Por cada color eliges la tela del estante y cuántos metros lleva cada prenda (el modelo ya lo sugiere si se escribió una vez). La orden te dice cuántos metros pedir y si alcanza con lo que hay. Es opcional: sin tela la orden se abre igual.",
+      texto: "Por cada color eliges la tela del estante y cuántos metros lleva cada prenda (el modelo ya lo sugiere). La orden te dice cuántos pedir y si alcanza. Abajo, «+ Agregar avío» (botones, hilo…): para toda la orden o un color. Es opcional: sin tela la orden se abre igual.",
     },
     {
       id: "consumo-modelo",
@@ -506,8 +506,8 @@ export const GUIA_PROD_ORDEN: Guia = {
       id: "tela",
       ancla: "prod-orden.tela",
       preparar: [{ tipo: "escape" }],
-      titulo: "La tela",
-      texto: "Por cada tela y color: cuánta pide el plan, cuánta se usó y cuánta hay en el estante. «Alcanza» o «Faltan N m» te dice si se puede terminar la orden con lo que hay.",
+      titulo: "La tela y los avíos",
+      texto: "Por cada tela y avío: cuánto pide el plan, cuánto se usó y cuánto hay en el estante. «Alcanza» o «Faltan N» te dice si se puede terminar la orden con lo que hay. Los avíos llevan su etiqueta «Avío».",
     },
     {
       id: "editar-tela",

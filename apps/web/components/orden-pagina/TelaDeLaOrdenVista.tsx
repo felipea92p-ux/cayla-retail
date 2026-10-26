@@ -32,14 +32,14 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, 
   const puedeAnotar = datos.permisos.puedeOperar && datos.orden.estado === "en_proceso" && telas.length > 0;
   const hayQueDevolver = telas.some((t) => t.usado > 0);
   return (
-    <section data-guia="prod-orden.tela" aria-label="Tela de la orden" className="@container op-bloque">
+    <section data-guia="prod-orden.tela" aria-label="Tela y avíos de la orden" className="@container op-bloque">
       <TituloSeccion dato={datos.orden.producto.tejidoNombre ?? undefined} accion={edicion && filas.length > 0 ? <BotonEditar chico guia="prod-orden.editar-tela" onClick={() => setEditando(true)}>Editar</BotonEditar> : undefined}>
-        Tela
+        Tela y avíos
       </TituloSeccion>
       {filas.length === 0 ? (
         <div className="card-cayla">
           <Vacio tamano="chico" icono={<Scissors />}>
-            Esta orden no declaró qué tela lleva.
+            Esta orden no declaró qué tela ni qué avíos lleva.
           </Vacio>
           {edicion && (
             <div className="flex justify-center px-4 pb-4">
@@ -57,7 +57,14 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, 
           {filas.map((f, i) => (
             <div key={f.id} className={fila(PLANTILLA)}>
               <span className={celda("izq", "whitespace-normal")}>
-                <span className="block text-tinta">{f.nombre}</span>
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-tinta">
+                  {f.nombre}
+                  {f.tipo === "avio" && (
+                    <Chip versalitas={false} title="Un avío: botones, cierres, etiquetas o hilo">
+                      Avío
+                    </Chip>
+                  )}
+                </span>
                 {f.detalle && <span className="op-sub">{f.detalle}</span>}
                 <span className="mt-1.5 flex flex-wrap items-center gap-2">
                   {f.alcanza && f.conLoQueViene ? (

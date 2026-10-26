@@ -11,13 +11,13 @@ import { Boton, CampoSelect, CampoTexto, type Opcion } from "@/components/ui/cam
 import { campoEtiqueta } from "@/components/ui/Modal";
 import { UNIDADES_INSUMO, cantidadTexto, type UnidadInsumo } from "@/lib/insumos-reglas";
 import { soles } from "@/lib/orden-ficha-reglas";
-import { consumoSugerido, metrosAPedir, veredictoTela, type InsumoDelTaller, type OfertaDeConsumo, type ProblemaTela, type TelaBorrador } from "@/lib/orden-tela-reglas";
+import { cantidadAPedir, consumoSugerido, metrosAPedir, prendasDeLaFila, veredictoTela, type InsumoDelTaller, type OfertaDeConsumo, type ProblemaTela, type TelaBorrador } from "@/lib/orden-tela-reglas";
 
 // «Tela de la orden», el bloque de la hoja «Nueva orden de producción» (ADR-0400, decisión 6; «Pantallas» punto 3). Una FILA por color que la orden
 // fabrica: la muestra del color y cuántas prendas son, la tela del estante (primero las del tejido del modelo, las demás bajo «Otras telas»), cuánto
 // lleva cada prenda (el modelo lo dice: `producto_consumos`) y, derivado, los metros a pedir con «Alcanza» o «Faltan N m» contra lo que queda libre
 // en el estante (saldo − lo que otras órdenes abiertas ya comprometieron − lo que otra fila de ESTA orden pide de la misma tela). Debajo, los avíos
-// (botones, cierres, etiquetas, hilo) para toda la orden, plegados bajo «+ Agregar avío». Es opcional: una orden sin tela declarada se abre igual.
+// (botones, cierres, etiquetas, hilo), de toda la orden o de UN color (el hilo del beige: «Para»), plegados bajo «+ Agregar avío». Es opcional: una orden sin tela declarada se abre igual.
 //
 // No tiene estado de negocio: el formulario es el dueño de `telas` (nace con `telasSugeridas`), lee las faltas con `problemasTela` y las pasa en
 // `problemas` (por índice de fila); acá solo se dibuja lo que dice `lib/orden-tela-reglas.ts` y se llama a `onTelas` con la lista entera. Una fila de
@@ -114,7 +114,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
   const totalPrendas = colores.reduce((s, c) => s + c.prendas, 0);
   const planPorIndice = new Map<number, number>();
   for (const f of porColor) if (f.indice !== null) planPorIndice.set(f.indice, planDe(f.tela, f.color.prendas) ?? 0);
-  for (const a of avios) planPorIndice.set(a.indice, planDe(a.tela, totalPrendas) ?? 0);
+  for (const a of avios) planPorIndice.set(a.indice, planDe(a.tela, prendasDeLaFila(a.tela.colorCodigo, colores)) ?? 0);
   const comprometidoDe = (insumoId: string, indice: number | null) => {
     let otras = 0;
     for (const [i, plan] of planPorIndice) if (i !== indice && telas[i]?.insumoId === insumoId) otras += plan;
@@ -162,6 +162,11 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
     if (elegida && !opciones.some((o) => o.valor === elegida.id)) opciones.unshift({ valor: elegida.id, texto: `${elegida.nombre} · archivada`, deshabilitada: true });
     return opciones;
   }
+  /** A quién va un avío: a toda la orden, o a las prendas de UN color (el hilo del beige). Solo se ofrece si la orden fabrica más de un color. */
+  const opcionesPara: Opcion<string>[] = [
+    { valor: "todas", texto: `Toda la orden · ${totalPrendas} prendas` },
+    ...colores.filter((c) => c.codigo !== null).map((c) => ({ valor: c.codigo as string, texto: `${c.nombre} · ${c.prendas} prendas` })),
+  ];
   function opcionesAvio(tela: TelaBorrador): Opcion<string>[] {
     const opciones: Opcion<string>[] = aviosDelEstante.map((i) => ({ valor: i.id, texto: `${i.nombre} · hay ${cantidad(i.saldo, i.unidad)}` }));
     const elegido = tela.insumoId ? porId.get(tela.insumoId) : undefined;
@@ -270,7 +275,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
             </div>
           )}
 
-          {/* Los avíos van para toda la orden (sin color), plegados: casi siempre la pregunta es solo la tela. */}
+          {/* Los avíos van para toda la orden o para un color (si la orden fabrica más de uno), plegados: casi siempre la pregunta es solo la tela. */}
           {(avios.length > 0 || aviosDelEstante.length > 0) && (
             <div className="space-y-3 px-3.5 py-3">
               {avios.map(({ tela, indice }) => {
@@ -308,6 +313,17 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                         <QuitarColor nombre={insumo?.nombre ?? "este avío"} onQuitar={() => quitarAvio(indice)} />
                       </div>
                     </div>
+                    {insumo && colores.length > 1 && (
+                      <div className="max-w-xs">
+                        <CampoSelect
+                          id={`avio-${indice}-para`}
+                          etiqueta="Para"
+                          valor={tela.colorCodigo ?? "todas"}
+                          onValor={(v) => ponerAvio(indice, { colorCodigo: v === "todas" ? null : v })}
+                          opciones={opcionesPara}
+                        />
+                      </div>
+                    )}
                     {insumo && plan > 0 && veredicto && <Derivado plan={plan} unidad={insumo.unidad} veredicto={veredicto} costo={costo !== undefined ? plan * costo : null} />}
                     {insumo && plan > 0 && usado > 0 && <YaUsado plan={plan} usado={usado} unidad={insumo.unidad} />}
                   </div>
@@ -333,7 +349,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
 function YaUsado({ plan, usado, unidad }: { plan: number; usado: number; unidad: string }) {
   return (
     <p className="text-[13px] tabular-nums text-taupe">
-      Plan {cantidad(plan, unidad)} · ya {usado === 1 ? "se usó" : "se usaron"} {cantidad(usado, unidad)}
+      Plan {porPrenda(plan, unidad)} · ya {usado === 1 ? "se usó" : "se usaron"} {porPrenda(usado, unidad)}
     </p>
   );
 }
@@ -343,10 +359,10 @@ function Derivado({ plan, unidad, veredicto, costo }: { plan: number; unidad: st
   return (
     <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] tabular-nums">
       <span className="text-tinta">
-        Pedir <b className="font-semibold">{cantidad(plan, unidad)}</b>
+        Pedir <b className="font-semibold">{cantidad(cantidadAPedir(plan, unidad), unidad)}</b>
       </span>
       <Chip tono={veredicto.alcanza && !veredicto.conLoQueViene ? "verde" : "ambar"}>
-        {veredicto.alcanza ? (veredicto.conLoQueViene ? "Alcanza si llega lo pedido" : "Alcanza") : `Faltan ${cantidad(veredicto.faltan, unidad)}`}
+        {veredicto.alcanza ? (veredicto.conLoQueViene ? "Alcanza si llega lo pedido" : "Alcanza") : `Faltan ${cantidad(cantidadAPedir(veredicto.faltan, unidad), unidad)}`}
       </Chip>
       {costo !== null && <span className="text-taupe">≈ {soles(costo)}</span>}
     </div>

@@ -2,7 +2,7 @@ import { compararTallas } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
 import { soles } from "./orden-ficha-reglas";
 import { FASES, type FaseClave, type Posicion, type Quien } from "./orden-fases-reglas";
-import { veredictoTela } from "./orden-tela-reglas";
+import { cantidadAPedir, veredictoTela } from "./orden-tela-reglas";
 
 // La página de UNA orden de producción (ADR-0400, actividad 3; «D · Página propia», elegida por Felipe el 2026-10-14): las reglas puras. Sin React ni Supabase, para que
 // las importen la página (servidor) y sus piezas (cliente), y para probar cada frase que la persona lee sin abrir el navegador.
@@ -694,6 +694,8 @@ export function cuandoTerminoLaFase(clave: FaseClave, linea: readonly EventoTiem
 
 export type FilaDeTela = {
   id: string;
+  /** Una tela o un avío (botones, cierres, hilo): la sección los muestra juntos, la tela primero, y dice cuál es cuál. */
+  tipo: "tela" | "avio";
   nombre: string;
   detalle: string;
   plan: string;
@@ -750,14 +752,15 @@ export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false
           : "";
     return {
       id: base.insumoId,
+      tipo: base.tipo,
       nombre: unColor && !base.nombre.toLocaleLowerCase("es").includes(color(base) as string) ? `${base.nombre} · ${color(base)}` : base.nombre,
       detalle,
       plan: cantidadConUnidad(plan, base.unidad),
       usado: cantidadConUnidad(usado, base.unidad),
       saldo: cantidadConUnidad(base.saldo, base.unidad),
       alcanza: v.alcanza,
-      faltan: v.alcanza ? null : cantidadConUnidad(v.faltan, base.unidad),
-      faltanNumero: v.alcanza ? null : v.faltan,
+      faltan: v.alcanza ? null : cantidadConUnidad(cantidadAPedir(v.faltan, base.unidad), base.unidad),
+      faltanNumero: v.alcanza ? null : cantidadAPedir(v.faltan, base.unidad),
       reservadoPorOtras: comprometida > 0 ? `Otras órdenes ya reservan ${cantidadConUnidad(comprometida, base.unidad)}` : null,
       enCamino: enCamino > 0 ? cantidadConUnidad(enCamino, base.unidad) : null,
       atrasado: atrasado > 0 ? cantidadConUnidad(atrasado, base.unidad) : null,
@@ -765,7 +768,7 @@ export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false
       yaCortada,
       pedidos: base.pedidos.map(textoDePedido),
     };
-  });
+  }).sort((a, b) => Number(a.tipo === "avio") - Number(b.tipo === "avio"));
 }
 
 // ---------- El costo ----------
