@@ -36,10 +36,15 @@ const ESCENARIO = `
 begin;
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 -- Una prenda con dos variantes y sin compras con costo.
-select p.id as p1 from retail.productos p
- where (select count(*) from retail.variantes v where v.producto_id = p.id) >= 2
-   and not exists (select 1 from retail.costo_historial ch join retail.variantes v on v.id = ch.variante_id where v.producto_id = p.id)
- order by p.referencia limit 1 \\gset
+-- La prenda de la prueba se crea aquí (dos variantes, sin compras): no depende de lo que dejen otras pruebas en la base.
+with p as (
+  insert into retail.productos (categoria_id, referencia, descripcion)
+  select id, 'Prueba costo ' || substr(gen_random_uuid()::text, 1, 8), 'prenda propia de la prueba' from retail.categorias order by nombre limit 1
+  returning id)
+insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
+select p.id, (select codigo from retail.colores where activo order by codigo limit 1), t.id, 'PRUEBA-COSTO-' || substr(gen_random_uuid()::text, 1, 8), 59.90, 18
+  from p cross join (select id from retail.tallas where activo and estado = 'aprobado' order by valor limit 2) t;
+select producto_id as p1 from retail.variantes where sku like 'PRUEBA-COSTO-%' order by created_at desc limit 1 \\gset
 select id as v1 from retail.variantes where producto_id = :'p1' order by sku limit 1 \\gset
 select id as v2 from retail.variantes where producto_id = :'p1' order by sku offset 1 limit 1 \\gset
 -- Costo declarado S/ 18.00 en todas sus variantes, y stock en cero antes de 2030.
