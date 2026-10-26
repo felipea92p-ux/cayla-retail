@@ -23,7 +23,7 @@
     "components/tienda-web-conf/PuertaDeTienda.tsx": [
       "button «{`Mover ${nombre}»",
       "button «{`Mover ${nombre}» #2",
-      "button «{nombre}»"
+      "button «{ordenable ? \"Arrastra para ordenar, o Alt + ← →\" : undefined}»"
     ],
     "components/tienda-web-conf/RelojDelPedido.tsx": [
       "button «{n}»"

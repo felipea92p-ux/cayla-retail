@@ -516,6 +516,12 @@ migración `20261026163000`, rama `prenda-para-despues-save-613e8c`): no se repi
 De paso, la fila de lo separado baja sus acciones bajo el nombre según el ancho de la LISTA (`.rc-filas-sep`, contenedor de 700 px), no el de la
 ventana: junto a «Los papeles de la compra» la lista queda de ~400 px aun en un monitor ancho y el nombre se aplastaba.
 
+### Actualización 2026-10-26: «Abrir el fardo» vuelve a ser «Empezar a recibir»
+
+Con varios fardos por envío, que se reciben por partes (hoy uno, mañana otro), «Abrir el fardo» ya no decía qué hace el botón: empieza la recepción del
+envío, no abre «el» fardo. Vuelve «Empezar a recibir» (con «Seguir recibiendo» al día siguiente) y la hoja «Detalle» dice cuántos fardos vienen. La
+frase al contar pasa a «Abre un fardo y cuenta…». Detalle y por qué: ADR-0480, «Actualización 2026-10-26 (d)».
+
 ### Las categorías se despliegan: lo que se anotó al comprar, de un toque a «¿Qué … son?» (2026-10-26)
 
 Cada categoría de la lista que trae prendas anotadas en la compra (`prendaElegida` o la descripción de la línea, ADR-0480) tiene una flecha que
