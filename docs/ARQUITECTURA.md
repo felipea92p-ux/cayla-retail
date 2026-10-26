@@ -2024,7 +2024,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   - `/compras/plan/presupuesto` («Presupuesto», ADR-0523, mismo módulo `plan_compra`, **sin RPC propia**: lee lo mismo que el Plan por `getPlanCompra`) → `components/plan-compra/PresupuestoPlan.tsx`
     (cifras, «Dónde se va la plata», tabla de costos), `PlanConTope.tsx` (el deslizador y el plan que cabe), `SupuestosDelPlan.tsx` (lo que sobra, descuento, lo ya pedido, días para llegar y reparto: antes en el
     cajón «Resumen») + `lib/plan-compra-tope.ts` (el precio de la plata λ, la bisección, lo que se espera ganar) y `lib/plan-compra-presupuesto.ts` (lo que se dice). La cabecera, las pestañas y el centro de avisos de
-    las pestañas del Plan son `components/plan-compra/MarcoPlan.tsx`; lo derivado de una campaña, `usePlanDerivado.ts`.
+    las pestañas del Plan son `components/plan-compra/MarcoPlan.tsx`; lo derivado de una campaña, `usePlanDerivado.ts`. Guardar el plan con tope y las versiones (ADR-0523; migración `20261026184000`, solo en local):
+    `getPlanCompra` lee además `fn_plan_compra_versiones` (el λ de la campaña, su tope, la huella de hoy y la lista de versiones SIN fotos; `lib/plan-compra-versiones.ts`) y lo aplica en `armarFilas`/`calcular`; las que escriben son
+    `guardar_plan_compra_version`, `usar_plan_compra_con_tope` y `restaurar_plan_compra_version` (la hoja es `NotaDeVersionModal.tsx`, la lista `VersionesDelPlan.tsx`, que trae una foto con `fn_plan_compra_version` al pedir «qué cambió»).
   - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`.
   - `/compras/plan/historial` (ADR-0372 C3) → `getHistorialPlan` → `fn_historial_ventas` (Sinatra en `retail.ventas_historicas` antes del ERP) + `lib/plan-compra-historial.ts`; pantalla `components/plan-compra/HistorialCampanas.tsx`.
   - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;

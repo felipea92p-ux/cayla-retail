@@ -27,6 +27,7 @@ export function PlanCategoriaModal({
   inversionDeLasDemas,
   conVersion,
   versionConocida,
+  precioDeLaPlata = 0,
   siguiente,
   enSerie,
   onGuardado,
@@ -45,6 +46,8 @@ export function PlanCategoriaModal({
   conVersion: boolean;
   /** La versión que devolvió un guardado de esta tanda para esta categoría, si lo hubo. */
   versionConocida?: number;
+  /** El precio de la plata del plan con tope que la campaña usa (0 = el plan de siempre). */
+  precioDeLaPlata?: number;
   /** La que sigue si se guarda con «Guardar y seguir»; null si no queda ninguna (el botón no se dibuja). */
   siguiente: CategoriaPlan | null;
   /** Ya se guardó alguna en esta tanda: esta llegó por «Guardar y seguir» y el cursor va a su primer campo. */
@@ -69,6 +72,7 @@ export function PlanCategoriaModal({
             inversionDeLasDemas={inversionDeLasDemas}
             conVersion={conVersion}
             versionConocida={versionConocida}
+            precioDeLaPlata={precioDeLaPlata}
             irAlMontar={enSerie}
             onCambios={setSucio}
             antesDeRefrescar={salida.retirarYa}

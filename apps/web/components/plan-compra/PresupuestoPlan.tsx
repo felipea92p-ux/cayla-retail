@@ -9,6 +9,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { MarcoPlan, type DelMarco } from "@/components/plan-compra/MarcoPlan";
+import { NotaDeVersionModal, type AccionDeVersion } from "@/components/plan-compra/NotaDeVersionModal";
 import { PlanConTope } from "@/components/plan-compra/PlanConTope";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
 import { RepartoModal } from "@/components/plan-compra/RepartoModal";
@@ -17,11 +18,13 @@ import { SinCampana } from "@/components/plan-compra/SinCampana";
 import { SupuestosDelPlan } from "@/components/plan-compra/SupuestosDelPlan";
 import { TONOS_DE_INVERSION } from "@/components/plan-compra/tonos-de-inversion";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
+import { VersionesDelPlan } from "@/components/plan-compra/VersionesDelPlan";
 import { usePlanDerivado, type PlanConPlan } from "@/components/plan-compra/usePlanDerivado";
 import { diasConQueSeCuenta } from "@/lib/plan-compra-plazo";
 import { cifrasDelPresupuesto, filasDeCosto, solesEnterosES, tramosDeLaPlata } from "@/lib/plan-compra-presupuesto";
 import { enteroES, solesES, type CampanasLeidas } from "@/lib/plan-compra-reglas";
 import { lineasDeTope, planConGanancia } from "@/lib/plan-compra-tope";
+import { RPC_GUARDAR_VERSION, RPC_RESTAURAR_VERSION, RPC_USAR_CON_TOPE, notaSugerida, planDeLaFoto, type VersionConFoto } from "@/lib/plan-compra-versiones";
 import type { LecturaMotor } from "@/lib/motor-demanda";
 
 // Compras ▸ Plan de campaña ▸ Presupuesto (Felipe 2026-10-26, spike ④ de «la visión»): cuánto cuesta lo que el plan pide comprar, si cabe en el tope,
@@ -63,6 +66,8 @@ export function PresupuestoPlan({
   historia = null,
   descuentos = null,
   plazo = null,
+  versiones = null,
+  versionesFallo = false,
 }: {
   datos: unknown;
   falla: string | null;
@@ -79,8 +84,12 @@ export function PresupuestoPlan({
   historia?: unknown;
   descuentos?: unknown;
   plazo?: unknown;
+  /** El precio de la plata, el tope y las versiones (`fn_plan_compra_versiones`, ADR-0523), crudo; null = la base no lo manda (sin versiones ni «Usar el plan con tope»). */
+  versiones?: unknown;
+  /** La lectura de versiones falló (no es que la base no la tenga): el plan se calculó sin el tope aplicado y hay que decirlo. */
+  versionesFallo?: boolean;
 }) {
-  const derivado = usePlanDerivado({ datos, descuentos, propuesta, historia, pedido, plazo, preparacion, puedeContar });
+  const derivado = usePlanDerivado({ datos, descuentos, propuesta, historia, pedido, plazo, versiones, preparacion, puedeContar });
   if (derivado.plan === null) return <SinCampana activa="presupuesto" campanas={campanas} falla={falla} esLider={esLider} />;
   return (
     <MarcoPlan
@@ -89,6 +98,7 @@ export function PresupuestoPlan({
       campanas={campanas}
       esLider={esLider}
       planPedidoNoExiste={planPedidoNoExiste}
+      versionesFallo={versionesFallo}
       subtitulo={
         <>
           {derivado.plan.plan.nombre}: cuánto cuesta lo que vas a comprar y si cabe en tu tope.{" "}
@@ -112,19 +122,63 @@ export function PresupuestoPlan({
 }
 
 function ContenidoDelPresupuesto({ derivado, marco, veAnalisis }: { derivado: PlanConPlan; marco: DelMarco; veAnalisis: boolean }) {
-  const { plan, filas, hechosDelPlan, pedido, plazoFijado, momento } = derivado;
+  const { plan, filas, hechosDelPlan, pedido, plazoFijado, momento, versiones, precioDeLaPlata } = derivado;
   const [editandoTope, setEditandoTope] = useState(false);
+  // La hoja de la nota de una versión: guardar una, usar el plan con tope o volver a una (las tres con el mismo camino; ver `NotaDeVersionModal`).
+  const [hojaDeVersion, setHojaDeVersion] = useState<AccionDeVersion | null>(null);
   const [editandoRecupero, setEditandoRecupero] = useState(false);
   const [editandoReparto, setEditandoReparto] = useState(false);
   const lineas = useMemo(() => lineasDeTope(filas), [filas]);
-  // El plan de hoy: el que ya cuenta la pantalla Plan. Cuando la base guarde el precio de la plata de la campaña, será el de ese precio.
-  const precioGuardado = 0;
-  const hoy = useMemo(() => planConGanancia(lineas, precioGuardado), [lineas]);
+  // El plan de hoy: el que cuenta la pantalla Plan, con el precio de la plata que la campaña usa (0 = el de siempre).
+  const precioGuardado = precioDeLaPlata;
+  const hoy = useMemo(() => planConGanancia(lineas, precioGuardado), [lineas, precioGuardado]);
   const cifras = cifrasDelPresupuesto(hoy, plan.tope.valor);
   const tramos = useMemo(() => tramosDeLaPlata(hoy), [hoy]);
   const costos = useMemo(() => filasDeCosto(hoy, filas), [hoy, filas]);
   const hrefPlan = `/compras/plan?plan=${plan.plan.id}`;
   const pasaDelTope = cifras.pasa !== null && cifras.pasa > 0;
+
+  // Lo que ve la base de lo de hoy, para la versión automática que guarda ANTES de un cambio grande (lo que la pantalla mostraba).
+  const antes = { p_prendas_antes: hoy.prendas, p_inversion_antes: hoy.inversion };
+  const guardarVersion = () =>
+    setHojaDeVersion({
+      titulo: "Guardar una versión",
+      subtitulo: "Queda como un punto al que puedes volver.",
+      textoBoton: "Guardar versión",
+      notaInicial: "",
+      rpc: RPC_GUARDAR_VERSION,
+      args: (nota) => ({ p_plan_id: plan.plan.id, p_nota: nota || null, p_prendas: hoy.prendas, p_inversion: hoy.inversion }),
+      exito: "Versión guardada",
+      intento: "guardar la versión",
+      aclaracion: "Guarda el plan como está hoy: tus categorías, el tope y si usa el plan con tope. Nada se compra.",
+    });
+  const usarElPlanConTope = (x: { tope: number; precioDeLaPlata: number; prendas: number; inversion: number }) =>
+    setHojaDeVersion({
+      titulo: "Usar el plan con tope",
+      subtitulo: `${enteroES.format(x.prendas)} prendas · ${solesEnterosES(x.inversion)}. Queda como una versión nueva.`,
+      textoBoton: "Usar el plan con tope",
+      notaInicial: notaSugerida("plan_con_tope", x.tope, null),
+      rpc: RPC_USAR_CON_TOPE,
+      args: (nota) => ({ p_plan_id: plan.plan.id, p_precio_de_la_plata: x.precioDeLaPlata, p_tope: x.tope, p_nota: nota || null, p_prendas: x.prendas, p_inversion: x.inversion, ...antes }),
+      exito: "Plan con tope guardado",
+      intento: "usar el plan con tope",
+      aclaracion: "El tope pasa a ser el que elegiste y el plan compra lo que cabe en él. Lo que tenías hoy queda guardado como una versión, para volver. Nada se compra.",
+    });
+  const volverAUnaVersion = (foto: VersionConFoto) => {
+    const n = foto.version.numero;
+    const deLaFoto = planDeLaFoto(foto.lineas, foto.version.precioDeLaPlata, filas);
+    setHojaDeVersion({
+      titulo: `Volver a la versión ${n}`,
+      subtitulo: `No borra nada: crea una versión nueva con lo mismo que tenía la ${n}. Las versiones de después siguen en la lista.`,
+      textoBoton: "Volver a esta versión",
+      notaInicial: notaSugerida("restauracion", null, n),
+      rpc: RPC_RESTAURAR_VERSION,
+      args: (nota) => ({ p_plan_id: plan.plan.id, p_numero: n, p_nota: nota || null, p_prendas: deLaFoto.prendas, p_inversion: deLaFoto.inversion, ...antes }),
+      exito: `Volviste a la versión ${n}`,
+      intento: "volver a esa versión",
+      aclaracion: "Las categorías que armaste después de esa versión no se tocan.",
+    });
+  };
 
   return (
     <>
@@ -208,11 +262,11 @@ function ContenidoDelPresupuesto({ derivado, marco, veAnalisis }: { derivado: Pl
             <TituloSeccion dato="el sistema ajusta cuánta seguridad quiere en cada categoría" className="mb-3">
               Plan con tu tope
             </TituloSeccion>
-            <PlanConTope key={`${plan.plan.id}|${plan.tope.valor ?? "sin"}`} lineas={lineas} precioGuardado={precioGuardado} topeGuardado={plan.tope.valor} hrefPlan={hrefPlan} />
+            <PlanConTope key={`${plan.plan.id}|${plan.tope.valor ?? "sin"}|${precioGuardado}`} lineas={lineas} precioGuardado={precioGuardado} topeGuardado={plan.tope.valor} hrefPlan={hrefPlan} onUsar={versiones ? usarElPlanConTope : undefined} />
           </section>
 
           {/* Antes de la campaña, el simulador (Felipe 2026-10-12): mover supuestos y ver la compra contra el tope, sin guardar. Estaba en el cajón «Resumen»; aquí está junto al tope. */}
-          {momento.estado === "antes" && <SimuladorPlan filas={filas} tope={plan.tope.valor} recuperoDefecto={hechosDelPlan?.recupero.pct ?? null} veAnalisis={veAnalisis} />}
+          {momento.estado === "antes" && <SimuladorPlan filas={filas} tope={plan.tope.valor} recuperoDefecto={hechosDelPlan?.recupero.pct ?? null} veAnalisis={veAnalisis} precioDeLaPlata={precioDeLaPlata} />}
 
           <section>
             <TituloSeccion className="mb-3">Cuánto cuesta cada categoría</TituloSeccion>
@@ -267,6 +321,23 @@ function ContenidoDelPresupuesto({ derivado, marco, veAnalisis }: { derivado: Pl
         </div>
 
         <div className="min-w-0 space-y-6">
+          {versiones && (
+            <section>
+              <TituloSeccion dato={`${versiones.versiones.length} ${versiones.versiones.length === 1 ? "guardada" : "guardadas"}`} className="mb-3">
+                Versiones del plan
+              </TituloSeccion>
+              <VersionesDelPlan
+                lectura={versiones}
+                planId={plan.plan.id}
+                filas={filas}
+                tope={plan.tope.valor}
+                precioDeLaPlata={precioDeLaPlata}
+                conCategorias={lineas.length > 0}
+                onGuardar={guardarVersion}
+                onVolver={volverAUnaVersion}
+              />
+            </section>
+          )}
           <section>
             <TituloSeccion dato="de toda la campaña" className="mb-3">
               Supuestos
@@ -285,6 +356,7 @@ function ContenidoDelPresupuesto({ derivado, marco, veAnalisis }: { derivado: Pl
         </div>
       </div>
 
+      {hojaDeVersion && <NotaDeVersionModal key={hojaDeVersion.titulo} accion={hojaDeVersion} planNombre={plan.plan.nombre} onClose={() => setHojaDeVersion(null)} />}
       {editandoTope && <TopeModal planId={plan.plan.id} planNombre={plan.plan.nombre} topeActual={plan.tope.valor} onClose={() => setEditandoTope(false)} />}
       {editandoRecupero && hechosDelPlan && (
         <RecuperoModal planId={plan.plan.id} planNombre={plan.plan.nombre} actual={hechosDelPlan.recupero.pct} heredado={hechosDelPlan.recupero.heredado} onClose={() => setEditandoRecupero(false)} />

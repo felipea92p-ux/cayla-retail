@@ -352,6 +352,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // en la cabecera de la pantalla, fuera del cajón.
   "components/plan-compra/CampanasArchivadasModal.tsx": { estado: "no-aplica", motivo: "Una lista de campañas archivadas con «Ver» y «Restaurar» en cada fila y un solo control (quién restaura): no se llenan campos ni hay pasos." },
   "components/plan-compra/TopeModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/TopeModal.tsx"] },
+  "components/plan-compra/NotaDeVersionModal.tsx": { estado: "no-aplica", motivo: "Una nota opcional de hasta 120 letras y quién lo hace: no hay nada que falte ni pasos que completar. Sirve a tres caminos (guardar una versión, usar el plan con tope y volver a una) y nunca bloquea: la base solo se niega si el plan no cambió." },
   "components/plan-compra/PlazoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/PlazoModal.tsx"] },
   "components/plan-compra/RecuperoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RecuperoModal.tsx"] },
   "components/plan-compra/RepartoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RepartoModal.tsx"] },

@@ -1,7 +1,8 @@
 # ADR-0523 — Plan de campaña ▸ Presupuesto: cuánto cuesta el plan y el plan que cabe en tu tope
 
-- **Fecha:** 2026-10-26 · **Estado:** la pestaña, la cuenta y la simulación están construidas y probadas en local (**sin migración**: no toca la base). Lo que sigue —guardar el plan con tope
-  y las versiones— llega en su propia migración (sección «Lo que viene»). El número está reservado para la rama `claude/campaign-plan-audit-652032` (`pnpm reservar`).
+- **Fecha:** 2026-10-26 · **Estado:** construido y probado en local. La pestaña, la cuenta y la simulación **no tocan la base**; guardar el plan con tope y las versiones sí, con la migración
+  `20261026184000_plan_compra_versiones_y_precio_de_la_plata.sql`, que está **solo en local** (no en producción): espera el OK puntual de Felipe (ver «Pegarla en producción»).
+  El número de este ADR y el de la migración están reservados para la rama `claude/campaign-plan-audit-652032` (`pnpm reservar`).
 - **Continúa a:** [ADR-0349](0349-plan-de-campana.md) (el modelo del vendedor de diarios), [ADR-0499](0499-plan-de-campana-descuento-y-fecha-limite.md) (el descuento y el plazo,
   ahora también entre los supuestos) y [ADR-0522](0522-plan-de-campana-centro-de-avisos.md) (el aviso «Te pasas de tu tope» ahora lleva aquí).
 - **Relacionados:** ADR-0358 (una función, una pieza: ver «Lo que se aparta de ella»), ADR-0389 (guías interactivas), ADR-0185.
@@ -66,11 +67,56 @@ SE ROMPE SI: lo que sobra vale MÁS que lo que se cobra en la campaña (un descu
   Se cruzó contra la maqueta con los mismos datos: mismas prendas, misma inversión y misma ganancia (33,481.72, 1,135 prendas, 13,196) para λ = 0, 0.2, 0.5 y −0.3. La maqueta redondeaba λ al más cercano y
   a veces se pasaba del tope (S/ 20,036 con un tope de 20,000); aquí nunca.
 
+## Guardar el plan con tope y las versiones (la migración `20261026184000`, solo en local)
+
+Hasta aquí la pestaña solo simula. Para **usar** el plan con tope hay que guardar el precio de la plata en el plan (si no, cada pantalla recalcularía con λ = 0 y el plan «con tope» desaparecería al recargar),
+y guardar sin querer, o usar un plan con tope y arrepentirse, no se deshacía. Lo que se decidió:
+
+1. **`planes_compra.precio_de_la_plata`** (λ, entre −1 y 50, de fábrica 0 = el plan de siempre): lo único que cambia de una tabla que ya existe. La web lo aplica en `calcular` (la tabla del Plan, la hoja de cada
+   categoría, el paso a paso, el simulador y la exportación cuentan con él, así que ninguna pantalla enseña un número distinto). La base no calcula nada: guarda el λ que la web halló.
+2. **`planes_compra_versiones`** (solo se agrega; un disparador impide editarla o borrarla): una **foto** del plan (las categorías con sus supuestos, λ y el tope), quién, cuándo, la nota, de dónde salió
+   (a mano · plan con tope · restauración · automática) y lo que la pantalla mostró (prendas, inversión), más su **huella** (md5 de la foto). La numera la base bajo el bloqueo de la fila del plan: sin huecos ni repetidos.
+3. **Cinco funciones públicas** (todas piden el módulo «Plan de campaña» y firman con el responsable del combo): `fn_plan_compra_versiones` (la lista SIN las fotos —pesan— con el λ y el tope de hoy y la
+   huella de hoy), `fn_plan_compra_version` (una foto), `guardar_plan_compra_version`, `usar_plan_compra_con_tope` y `restaurar_plan_compra_version`. Cuatro internas (la foto, su huella, la fila nueva
+   y «proteger lo de hoy»): ni la tienda ni nadie de afuera las ejecuta.
+4. **«La de hoy» es la versión cuya huella es la del plan.** Si el plan cambió después de la última versión (alguien guardó una categoría), ninguna coincide y la lista lo dice arriba —«Sin guardar como
+   versión»— y ofrece guardarlo. La versión no es «lo último que se guardó»: es un punto de control, y lo vivo es el plan.
+5. **Volver NO borra nada.** `restaurar_plan_compra_version` pone las categorías, el λ y el tope como los tenía la versión elegida (solo reescribe lo que cambió, y deja el historial de cada categoría) y
+   crea una versión NUEVA que dice de cuál volvió. Las versiones de después siguen en la lista; las categorías que se armaron DESPUÉS de esa versión no estaban en su foto y no se tocan.
+6. **«La actual queda guardada para volver» es verdad:** antes de usar el plan con tope o de volver, si el plan de hoy tiene algo que ninguna versión recuerda, la base lo guarda como versión
+   **automática** («Antes de usar el plan con tope»). Todo en la misma transacción que el cambio: o quedan las dos cosas o ninguna.
+7. **Una versión idéntica a la última no se guarda** (la base se niega: «el plan no cambió»): un doble clic no deja dos, y quien reintenta tras un corte de red recibe una respuesta clara en vez de un duplicado.
+8. **Las categorías no se borran en ningún caso** (no existe una función que las borre): por eso una versión nunca queda huérfana ni hace falta cambiar `quitar_plan_compra`, que ya archiva toda campaña con categorías.
+
+```
+DECIDÍ:     guardar el λ en el plan y las versiones como fotos que solo se agregan, con una huella para saber cuál es la de hoy, y que volver cree una versión nueva en vez de reescribir la historia.
+DESCARTÉ:   (a) versiones como «un contador en cada línea» (lo que ya hay): dice cuántas veces se guardó, no deja volver a nada; (b) restaurar borrando las versiones posteriores: «nada se borra» es lo que
+            hace seguro volver, y el costo de guardar 50 fotos de 5 KB por campaña es cero; (c) guardar prendas e inversión calculadas en la base: duplicaría `calcular` en SQL (dos fuentes de verdad); la
+            base guarda lo que la pantalla MOSTRÓ, y «qué cambió» se vuelve a calcular en la web con el stock de hoy en los dos lados.
+SE ROMPE SI: dos personas editan el plan a la vez y una vuelve a una versión mientras la otra guarda una categoría: se ponen en fila (la fila del plan se bloquea) y el plan queda con lo último, pero la versión
+            de volver se tomó antes del guardado de la otra, así que «la de hoy» deja de coincidir y la lista lo dice (es lo correcto: hay algo sin versionar); o si alguien escribe `planes_compra` con
+            `precio_de_la_plata` por fuera de estas funciones (la base lo permite al dueño: sin versión, la lista mostrará «sin guardar» y nada más).
+```
+
+**Pegarla en producción (con el OK de Felipe).** Una sola parte (columna con valor constante, una tabla nueva, un disparador con `create or replace trigger` y funciones, sin políticas), idempotente, con
+`lock_timeout` de 3 s, DESPUÉS de `20261026171000` (la guarda lo comprueba y se niega si falta). Se comprueba con: `select column_name from information_schema.columns where table_schema = 'retail' and
+table_name = 'planes_compra' and column_name = 'precio_de_la_plata'` (una fila) y `select proname from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('fn_plan_compra_versiones',
+'fn_plan_compra_version', 'guardar_plan_compra_version', 'usar_plan_compra_con_tope', 'restaurar_plan_compra_version')` (cinco). Después, refrescar el diccionario de datos (`pnpm datos:generar:produccion`).
+**Con la base vieja la web no se rompe:** la lectura de versiones falla con «no existe esa función», la pantalla la toma como «la base no lo sabe» y esconde las versiones y «Usar el plan con tope»; el plan se
+calcula con λ = 0 y se simula. **Con la web vieja y la base nueva** nada cambia: no sabe de λ ni de versiones.
+
+**Caída externa.** Nada llama a la red. Si la base todavía no tiene la función (la web se publicó antes que la migración), la pantalla lo toma como «no hay plan con tope que guardar»: esconde las versiones y
+«Usar el plan con tope» y calcula con λ = 0. Si la lectura FALLA por otra razón (la base lenta o caída) pasa algo peor: el plan con tope que guardaste dejaría de aplicarse y las cifras de compra cambiarían
+sin que nadie lo vea. Por eso el servidor distingue las dos cosas (`esFirmaDesconocida`) y, ante un fallo, el marco muestra «No se pudo leer si tu plan usa un tope: las cifras pueden no ser las del plan con tope que
+guardaste» (y la falla va al log del servidor). Se degrada así, y no pierde ningún dato: lo guardado sigue en la base.
+
+**Probado (`pnpm pruebas:plan-compra-versiones`, 45 casos, ROLLBACK):** guardar sin cambios se rechaza; la numeración no salta; «usar» guarda la automática solo si hacía falta; volver no borra, no toca lo armado después
+y solo reescribe lo que cambió; un fallo al escribir la versión deshace el λ, el tope y las categorías; la tabla no se edita ni con el dueño; las cinco funciones responden al rol de la tienda y no a `anon`;
+pegarla dos veces deja lo mismo; y **cuatro «usar el plan con tope» a la vez** (cuatro sesiones reales) entran en fila: 1 automática + 4 versiones, numeradas 1 a 5 sin repetir.
+
 ## Lo que viene (no está en este cambio)
 
-- **Guardar el plan con tope** (`planes_compra.precio_de_la_plata`) y las **versiones del plan** (cada «Usar» y cada «Guardar una versión» es un punto al que volver): llegan con su migración, que queda
-  solo en local hasta que Felipe diga. Mientras la base no lo guarde, el botón «Usar el plan con tope» no se ofrece y la pestaña simula.
-- El Calendario, el Paso 2 por colores y tallas, el ranking de modelos y «Enviar a Compras» son las siguientes pestañas de la misma visión.
+El Calendario, el Paso 2 por colores y tallas, el ranking de modelos, «Enviar a Compras» y Finanzas ▸ Inversión en mercadería son las siguientes pestañas de la misma visión.
 
 ## Cómo se verifica
 

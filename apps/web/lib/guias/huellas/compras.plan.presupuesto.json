@@ -2,7 +2,7 @@
   "guia": "compras.plan.presupuesto",
   "ruta": "/compras/plan/presupuesto",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 60,
+  "total": 67,
   "controles": {
     "components/plan-compra/CampanasArchivadasModal.tsx": [
       "BotonEnlace «Ver»",
@@ -29,6 +29,12 @@
     ],
     "components/plan-compra/MarcoPlan.tsx": [
       "Boton «Restaurar…»"
+    ],
+    "components/plan-compra/NotaDeVersionModal.tsx": [
+      "CampoTexto «¿Qué cambiaste? (opcional)»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/plan-compra/NuevaCampanaModal.tsx": [
       "CampoTexto «{<span className=\"sr-only\">{nueva ? \"Nombre de la campaña\" : \"Nombre del plan\"}»",
@@ -93,6 +99,11 @@
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/plan-compra/VersionesDelPlan.tsx": [
+      "Boton «{abierta === v.numero ? \"Ocultar cambios\" : \"Ver qué cambió\"}»",
+      "Boton «Volver a esta versión»",
+      "Boton «→onGuardar»"
     ]
   }
 }

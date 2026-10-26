@@ -64,6 +64,8 @@ export function PlanCampana({
   historia: historiaCruda = null,
   descuentos: descuentosCrudos = null,
   plazo: plazoCrudo = null,
+  versiones: versionesDelPlanCrudas = null,
+  versionesFallo = false,
 }: {
   datos: unknown;
   falla: string | null;
@@ -86,10 +88,14 @@ export function PlanCampana({
   descuentos?: unknown;
   /** Los días para llegar fijados para esta campaña (`fn_plan_compra_plazo`, ADR-0499), crudo; null = la base no lo manda: se cuenta con el supuesto y no se ofrece cambiarlo. */
   plazo?: unknown;
+  /** El precio de la plata del plan, el tope y las versiones (`fn_plan_compra_versiones`, ADR-0523), crudo; null = la base no lo manda: el plan se calcula como siempre. */
+  versiones?: unknown;
+  /** La lectura de versiones falló (no es que la base no la tenga): el plan se calculó sin el tope aplicado y hay que decirlo. */
+  versionesFallo?: boolean;
 }) {
   // Lo derivado de lo que la base manda (filas, momento, plazo, avisos) lo comparten las pestañas del Plan: ver `usePlanDerivado`. La cabecera, las
   // pestañas, el centro de avisos y las hojas de la campaña también: ver `MarcoPlan`.
-  const derivado = usePlanDerivado({ datos, descuentos: descuentosCrudos, propuesta: propuestaCruda, historia: historiaCruda, pedido: pedidoCrudo, plazo: plazoCrudo, preparacion, puedeContar });
+  const derivado = usePlanDerivado({ datos, descuentos: descuentosCrudos, propuesta: propuestaCruda, historia: historiaCruda, pedido: pedidoCrudo, plazo: plazoCrudo, versiones: versionesDelPlanCrudas, preparacion, puedeContar });
   const { filas } = derivado;
   const params = useSearchParams();
   const vista: VistaPlan = vistaDeLaUrl(params.get("vista"));
@@ -184,6 +190,7 @@ export function PlanCampana({
       campanas={campanas}
       esLider={esLider}
       planPedidoNoExiste={planPedidoNoExiste}
+      versionesFallo={versionesFallo}
       onAccionDelAviso={alAccionarAviso}
       subtitulo={
         <>
@@ -317,6 +324,7 @@ export function PlanCampana({
                 familias={familias}
                 conVersion={plan.conVersion}
                 versiones={versiones}
+                precioDeLaPlata={derivado.precioDeLaPlata}
                 onGuardado={recordar}
                 onCambios={setPasoSucio}
                 pedirSalida={salidaPaso.pedirAccion}
@@ -343,6 +351,7 @@ export function PlanCampana({
               inversionDeLasDemas={totales.inversion - (filaAbierta.calculo?.inversion ?? 0)}
               conVersion={plan.conVersion}
               versionConocida={versiones[abierta.id]}
+              precioDeLaPlata={derivado.precioDeLaPlata}
               siguiente={siguiente}
               enSerie={hechas.length > 0}
               onGuardado={(seguir, version) => {

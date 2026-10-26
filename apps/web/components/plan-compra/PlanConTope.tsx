@@ -174,12 +174,12 @@ export function PlanConTope({
             ))}
           </div>
 
-          <div className="pie-acciones">
+          <div className="pie-acciones" data-guia={onUsar ? "presupuesto.usar" : undefined}>
             <Boton peso="fantasma" onClick={() => setTope(topeEnElRango(topeGuardado ?? hoy.inversion, rango))}>
               Dejarlo como está
             </Boton>
             {onUsar && ajuste.cabe && (
-              <Boton peso="primario" onClick={() => onUsar({ tope, precioDeLaPlata: ajuste.precioDeLaPlata, prendas: propuesto.prendas, inversion: propuesto.inversion })}>
+              <Boton peso="primario" aria-haspopup="dialog" onClick={() => onUsar({ tope, precioDeLaPlata: ajuste.precioDeLaPlata, prendas: propuesto.prendas, inversion: propuesto.inversion })}>
                 Usar el plan con tope
               </Boton>
             )}

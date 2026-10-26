@@ -17,7 +17,7 @@ Informe y tareas: `docs/pantallas/compras-plan.md` (12 tareas + 7b enviar a Comp
 
 ## Pendiente
 
-1. **Pegar la migración `20261026171000` en producción** (Felipe, tras el OK puntual): ver el ADR-0520, «Pegarla y comprobarla». Después, refrescar el diccionario de datos (`pnpm datos:generar:produccion`, `docs/datos/generado/COMO-REFRESCAR.md`) y mirar el check «SQL pegado» del PR.
+1. **Pegar las migraciones en producción** (`20261026171000` y, después, `20261026184000` —el precio de la plata y las versiones del plan, ADR-0523—): **la `20261026171000`** (Felipe, tras el OK puntual): ver el ADR-0520, «Pegarla y comprobarla». Después, refrescar el diccionario de datos (`pnpm datos:generar:produccion`, `docs/datos/generado/COMO-REFRESCAR.md`) y mirar el check «SQL pegado» del PR.
 2. **Abrir el PR con `/abrir-pr`** (Felipe). Trae `main`, revisa reservas y choques, y escribe los choques probables.
 3. **Tareas #5 a #13 del informe**, cada una con su OK de Felipe (**#5 ya construida en local, ADR-0523**: falta guardar el plan con tope, que llega con #6): #5 pestaña Presupuesto y plan con tope · #6 versiones del plan (sobre el historial de A2) · #7 calendario del plan · #8 historia por campaña · #9 paso 2 por modelos, colores y tallas · #10 Inversión en mercadería en Finanzas (**varios módulos; contrato con la sesión del Resumen aprobado, falta avisarle cuando exista la función de lectura**) · #11 pulido · #12 decidir «programa del año» · 7b enviar a Compras · #13 cómo pagar la campaña (después de #10).
 4. **Que nada lea el historial todavía:** ni la pantalla ni una función lo lee; leerlo es la tarea #6 y la de medir aciertos.

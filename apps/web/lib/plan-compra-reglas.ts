@@ -613,8 +613,9 @@ function porVentas(a: FilaPlan, b: FilaPlan): number {
  * Una fila por categoría activa, con su cuenta hecha, ordenada por lo que más vende (la que más vende primero; a igual venta, la de más
  * stock; a igual stock, por nombre). El orden es estable: dos lecturas iguales dan la misma tabla. `ordenarFilas` la reordena.
  * `pedido` (lo pedido en órdenes, por categoría): lo que falta llegar se cuenta como si ya estuviera, así «Comprar» no lo pide dos veces.
+ * `precioDeLaPlata` (ADR-0523): el del plan con tope que la campaña USA hoy; 0 = el plan de siempre.
  */
-export function armarFilas(plan: LecturaPlan, pedido?: ReadonlyMap<string, PedidoCategoria> | null): FilaPlan[] {
+export function armarFilas(plan: LecturaPlan, pedido?: ReadonlyMap<string, PedidoCategoria> | null, precioDeLaPlata = 0): FilaPlan[] {
   const filas = plan.categorias
     .map((c): FilaPlan => {
       const linea = plan.lineas.get(c.id);
@@ -625,7 +626,7 @@ export function armarFilas(plan: LecturaPlan, pedido?: ReadonlyMap<string, Pedid
         c,
         linea,
         stock,
-        calculo: linea ? calcular(linea, stock + enCamino) : null,
+        calculo: linea ? calcular(linea, stock + enCamino, precioDeLaPlata) : null,
         pedido: delPedido,
         enCamino,
         conDescuento: plan.conDescuento,

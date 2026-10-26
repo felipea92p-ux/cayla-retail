@@ -51,6 +51,7 @@ export function MarcoPlan({
   campanas,
   esLider,
   planPedidoNoExiste,
+  versionesFallo = false,
   subtitulo,
   accionesAntes,
   accionesDespues,
@@ -65,6 +66,8 @@ export function MarcoPlan({
   esLider: boolean;
   /** La URL pedía una campaña que no existe (vieja o escrita a mano): se muestra la más reciente y se dice. */
   planPedidoNoExiste: boolean;
+  /** La lectura del tope del plan falló (la base lenta o caída): las cifras de compra se calcularon sin él y la persona tiene que saberlo, no verlas cambiar en silencio. */
+  versionesFallo?: boolean;
   /** La frase bajo el título: la de cada pestaña. */
   subtitulo: ReactNode;
   /** Botones de la cabecera de ESTA pestaña, antes del selector de campaña (el Resumen del Plan). */
@@ -180,6 +183,12 @@ export function MarcoPlan({
         <Aviso tono="atencion" titulo="No encontramos esa campaña">
           El enlace pedía una campaña que no existe (puede ser viejo). Te mostramos {plan.plan.nombre}
           {campanas && campanas.planes.length > 1 ? "; elige otra en el selector de arriba." : "."}
+        </Aviso>
+      )}
+
+      {versionesFallo && (
+        <Aviso tono="atencion" titulo="No se pudo leer si tu plan usa un tope">
+          Las cifras de compra pueden no ser las del plan con tope que guardaste. Recarga la página; si sigue, avísale a tu líder.
         </Aviso>
       )}
 

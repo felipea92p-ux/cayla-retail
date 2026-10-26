@@ -8,7 +8,7 @@ export default async function PlanCompraPage({ searchParams }: { searchParams: P
   // Se repite aquí además del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("plan_compra");
   const { plan } = await searchParams;
-  const { datos, falla, familias, preparacion, campanas, planPedidoNoExiste, propuesta, pedido, historia, descuentos, plazo } = await getPlanCompra(plan);
+  const { datos, falla, familias, preparacion, campanas, planPedidoNoExiste, propuesta, pedido, historia, descuentos, plazo, versiones, versionesFallo } = await getPlanCompra(plan);
   return (
     <PlanCampana
       datos={datos}
@@ -26,6 +26,8 @@ export default async function PlanCompraPage({ searchParams }: { searchParams: P
       historia={historia}
       descuentos={descuentos}
       plazo={plazo}
+      versiones={versiones}
+      versionesFallo={versionesFallo}
     />
   );
 }

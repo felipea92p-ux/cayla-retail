@@ -22,7 +22,7 @@ import { exactitudDeLosDatos } from "./plan-compra-periodo";
 import { diaMes } from "./fechas-lima";
 
 export type NivelDelAviso = "urgente" | "pendiente" | "info" | "ok";
-export type IdDelAviso = "plazo" | "stock" | "sin-plan" | "deriva" | "tope" | "datos";
+export type IdDelAviso = "plazo" | "stock" | "sin-plan" | "deriva" | "tope" | "plan-con-tope" | "datos";
 
 /** Lo que el botón de un aviso hace; la pantalla lo traduce a abrir una hoja, el cajón o ir a otra pantalla. */
 export type AccionDelAviso =
@@ -68,10 +68,12 @@ export type EntradaDeAvisos = {
   tope: number | null;
   /** Lo que cuesta el plan al costo. */
   inversion: number;
+  /** El precio de la plata del plan con tope que la campaña USA (ADR-0523); 0 o ausente = el plan de siempre. */
+  precioDeLaPlata?: number;
 };
 
 const RANGO: Record<NivelDelAviso, number> = { urgente: 0, pendiente: 1, info: 2, ok: 3 };
-const ORDEN: IdDelAviso[] = ["plazo", "stock", "sin-plan", "deriva", "tope", "datos"];
+const ORDEN: IdDelAviso[] = ["plazo", "stock", "sin-plan", "deriva", "tope", "plan-con-tope", "datos"];
 
 const enLista = (nombres: readonly string[]) => (nombres.length <= 1 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`);
 const pct = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 2 });
@@ -197,6 +199,25 @@ function avisoDelTope(e: EntradaDeAvisos): AvisoDelPlan | null {
   };
 }
 
+/**
+ * El plan compra con un precio de la plata distinto de 0 (se usó «el plan con tope»): cada categoría compra con menos (o más) seguridad que la que pedían
+ * sus escenarios, y quien mira «Comprar» en la tabla debe saberlo. Solo informa y lleva a Presupuesto, donde se cambia.
+ */
+function avisoDelPlanConTope(e: EntradaDeAvisos): AvisoDelPlan | null {
+  const l = e.precioDeLaPlata ?? 0;
+  if (!(Math.abs(l) >= 0.0005)) return null;
+  const sube = l < 0;
+  return {
+    id: "plan-con-tope",
+    nivel: "info",
+    corto: null,
+    titulo: sube ? "El plan compra con más seguridad de la que pedían tus escenarios" : "El plan está ajustado a tu tope",
+    texto: `${sube ? "Sube" : "Baja"} cuánta seguridad se quiere de cada categoría: «Comprar» no es lo que pedirían los escenarios solos. Precio de la plata: ${l.toLocaleString("es-PE", { maximumFractionDigits: 3 })}. Se cambia en Presupuesto.`,
+    huella: `${l.toFixed(3)}|${e.tope ?? "-"}`,
+    acciones: [{ tipo: "ir-presupuesto", texto: "Ver Presupuesto" }],
+  };
+}
+
 /** «Los datos todavía no son exactos…»: el mismo dato y las mismas palabras que la línea de la hoja de cada categoría. Solo se lee, no se cuenta. */
 function avisoDeLosDatos(dias: number | undefined, conCampanaAnterior: boolean): AvisoDelPlan | null {
   const x = exactitudDeLosDatos(dias, conCampanaAnterior);
@@ -205,7 +226,7 @@ function avisoDeLosDatos(dias: number | undefined, conCampanaAnterior: boolean):
 
 /** Todos los avisos del Plan, de lo más urgente a lo que solo informa; a igual nivel, en un orden fijo. */
 export function avisosDelPlan(e: EntradaDeAvisos, datos: { diasDeVentas: number | undefined; conCampanaAnterior: boolean }): AvisoDelPlan[] {
-  return [avisoDelPlazo(e), avisoDelStock(e), avisoSinPlan(e), avisoDeLaDeriva(e), avisoDelTope(e), avisoDeLosDatos(datos.diasDeVentas, datos.conCampanaAnterior)]
+  return [avisoDelPlazo(e), avisoDelStock(e), avisoSinPlan(e), avisoDeLaDeriva(e), avisoDelTope(e), avisoDelPlanConTope(e), avisoDeLosDatos(datos.diasDeVentas, datos.conCampanaAnterior)]
     .filter((a): a is AvisoDelPlan => a !== null)
     .sort((a, b) => RANGO[a.nivel] - RANGO[b.nivel] || ORDEN.indexOf(a.id) - ORDEN.indexOf(b.id));
 }

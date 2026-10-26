@@ -151,6 +151,9 @@ Cada tarea lleva su clase —**Urgente** (pierde algo cada día o vence pronto),
 - **Por qué:** guardar sin querer hoy no se deshace (solo `version` +1).
 - **Cómo lo verificas tú:** vuelves a la versión 2: aparece la versión 6 con lo mismo que la 2 y las demás siguen.
 - **Esfuerzo / dependencias:** M · después de #1.
+- **Estado (2026-10-26):** construida y probada en local (C2, ADR-0523, **migración `20261026184000` solo en local**; falta el OK de Felipe para producción). Además de lo que decía aquí: el λ del plan con tope se guarda en el plan
+  (`planes_compra.precio_de_la_plata`) y todas las cuentas del Plan lo aplican; la versión es una foto con su huella (así «La de hoy» se sabe, y si el plan tiene cambios sin versión la lista lo dice); y antes de usar el plan con tope o de volver, lo que ninguna versión
+  recordaba se guarda solo como versión automática. «Volver» crea una versión NUEVA, no borra las de después ni las categorías armadas después. Probada con 45 casos, incluidas cuatro personas a la vez.
 
 ### #7 · [Reconstruir · Importante] Calendario del plan: con cuáles campañas me quedo
 - **Dónde:** nueva tabla `retail.plan_calendario`, RPC de lectura/escritura, `SelectorCampana.tsx`, `NuevaCampanaModal.tsx` (que deja de crear una insignia salvo que lo marques).

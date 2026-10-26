@@ -207,6 +207,34 @@ describe("el tope", () => {
   });
 });
 
+describe("el plan con tope", () => {
+  it("con el precio de la plata en 0 (o sin él) no hay aviso", () => {
+    expect(ids(avisosDelPlan(base({ precioDeLaPlata: 0 }), sinDatos))).not.toContain("plan-con-tope");
+    expect(ids(avisosDelPlan(base(), sinDatos))).not.toContain("plan-con-tope");
+  });
+  it("con tope aplicado, avisa que «Comprar» no es lo que pedirían los escenarios solos, y lleva a Presupuesto; solo informa (no suma al número)", () => {
+    const l = avisosDelPlan(base({ precioDeLaPlata: 0.1, tope: 28000 }), sinDatos);
+    const a = l.find((x) => x.id === "plan-con-tope")!;
+    expect(a.nivel).toBe("info");
+    expect(a.titulo).toBe("El plan está ajustado a tu tope");
+    expect(a.texto).toContain("Baja cuánta seguridad");
+    expect(a.texto).toContain("0.1");
+    expect(a.acciones).toEqual([{ tipo: "ir-presupuesto", texto: "Ver Presupuesto" }]);
+    expect(porAtender(l, {})).toBe(porAtender(l.filter((x) => x.id !== "plan-con-tope"), {}));
+  });
+  it("un precio negativo (se afloja) lo dice con sus palabras", () => {
+    const a = avisosDelPlan(base({ precioDeLaPlata: -0.2, tope: 40000 }), sinDatos).find((x) => x.id === "plan-con-tope")!;
+    expect(a.titulo).toBe("El plan compra con más seguridad de la que pedían tus escenarios");
+    expect(a.texto).toContain("Sube cuánta seguridad");
+  });
+  it("su huella cambia con el precio y con el tope: «ya lo vi» no calla un plan distinto", () => {
+    const h = (l: number, t: number | null) => avisosDelPlan(base({ precioDeLaPlata: l, tope: t }), sinDatos).find((x) => x.id === "plan-con-tope")!.huella;
+    expect(h(0.1, 28000)).not.toBe(h(0.2, 28000));
+    expect(h(0.1, 28000)).not.toBe(h(0.1, 30000));
+    expect(h(0.1, 28000)).toBe(h(0.1, 28000));
+  });
+});
+
 describe("los datos: se leen, no se cuentan", () => {
   it("con menos de 90 días, informa y usa las mismas palabras que la hoja de cada categoría", () => {
     const a = avisosDelPlan(base(), { diasDeVentas: 26, conCampanaAnterior: false }).find((x) => x.id === "datos")!;

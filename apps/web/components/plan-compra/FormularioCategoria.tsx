@@ -116,6 +116,7 @@ export function FormularioCategoria({
   pie,
   enPantalla = false,
   irAlMontar = false,
+  precioDeLaPlata = 0,
 }: {
   planId: string;
   /** La campaña que se planifica: su nombre (los textos hablan de ELLA, no de «diciembre») y sus días (el normal de respaldo). */
@@ -144,6 +145,8 @@ export function FormularioCategoria({
   enPantalla?: boolean;
   /** Al aparecer, lleva el cursor al primer campo: se pasó a la siguiente categoría y el botón que se tocó ya no existe. */
   irAlMontar?: boolean;
+  /** El precio de la plata del plan con tope que la campaña usa (ADR-0523; 0 = el plan de siempre): la misma cuenta que la fila de la tabla. */
+  precioDeLaPlata?: number;
 }) {
   const { c: categoria, linea, stock, enCamino, ventas, ventas30, sedes, catalogo } = fila;
   const router = useRouter();
@@ -182,7 +185,7 @@ export function FormularioCategoria({
   }, [irAlMontar]);
   const lineaViva = lineaDeBorrador(b, tallas);
   // Lo que ya viene en órdenes de compra se cuenta como lo que hay: la misma cuenta que la fila de la tabla (`armarFilas`).
-  const calculo = lineaViva ? calcular(lineaViva, stock + enCamino) : null;
+  const calculo = lineaViva ? calcular(lineaViva, stock + enCamino, precioDeLaPlata) : null;
   const porTalla = calculo ? comprarPorTalla(calculo.comprar, tallas, lineaViva!.curva) : null;
   const sumaCurva = tallas.reduce((s, t) => s + (Number(b.curva[t.id] || "0") || 0), 0);
   const cambiar = (k: keyof Omit<Borrador, "curva">) => (v: string) => setB((x) => ({ ...x, [k]: v }));
@@ -191,7 +194,7 @@ export function FormularioCategoria({
   const descuento = leerDescuento(b.descuento) ?? 0;
   const frase = lineaViva ? fraseDelMargen(lineaViva.precio, lineaViva.costo, descuento) : null;
   const pierdeMargen = lineaViva ? (margenPorPrenda(lineaViva.precio, lineaViva.costo, descuento)?.pierde ?? false) : false;
-  const sinDescuento = lineaViva && descuento > 0 ? calcular({ ...lineaViva, descuentoPct: 0 }, stock + enCamino) : null;
+  const sinDescuento = lineaViva && descuento > 0 ? calcular({ ...lineaViva, descuentoPct: 0 }, stock + enCamino, precioDeLaPlata) : null;
   const sugeridoDeCampana = fila.descuentoSugerido ?? null;
 
   // La propuesta de los tres escenarios (C4) si la base la manda; si no (base vieja), la de antes: solo el normal.
@@ -510,6 +513,12 @@ export function FormularioCategoria({
               )}
               . {porQue(calculo)}
             </p>
+            {precioDeLaPlata !== 0 && (
+              <p className="mt-1 text-[13px] text-tinta/80">
+                Tu campaña usa el plan con tope: {precioDeLaPlata > 0 ? "baja" : "sube"} cuánta seguridad se quiere de cada categoría para que la compra{" "}
+                {precioDeLaPlata > 0 ? "quepa en" : "aproveche"} el tope. Se cambia en Presupuesto.
+              </p>
+            )}
             {sinDescuento && (
               <p className="mt-1 text-[13px] text-tinta/80">
                 {sinDescuento.comprar > calculo.comprar

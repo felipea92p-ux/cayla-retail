@@ -8,6 +8,7 @@ import { leerPedido, type LecturaPedido } from "@/lib/plan-compra-pedido";
 import { diasDeVentasDelErp } from "@/lib/plan-compra-periodo";
 import { diasConQueSeCuenta, fraseDeLosDias, fraseDelConteoAntesDelPlazo, leerPlazoFijado, plazoDePedido, type PlazoDePedido, type PlazoFijado } from "@/lib/plan-compra-plazo";
 import { conHistorial, leerPropuesta, proponer, type LecturaPropuesta } from "@/lib/plan-compra-propuesta";
+import { leerVersiones, versionDeHoy, type LecturaVersiones, type VersionDelPlan } from "@/lib/plan-compra-versiones";
 import { tiendasParaRepartir } from "@/lib/plan-compra-reparto";
 import {
   armarFilas,
@@ -40,6 +41,8 @@ export type EntradaDelPlan = {
   pedido?: unknown;
   /** Los días para llegar fijados (`fn_plan_compra_plazo`), crudo. */
   plazo?: unknown;
+  /** El precio de la plata, el tope y las versiones (`fn_plan_compra_versiones`), crudo. */
+  versiones?: unknown;
   preparacion: LecturaMotor;
   puedeContar: boolean;
 };
@@ -61,24 +64,33 @@ export type PlanConPlan = {
   porPedir: number;
   confianza: ConfianzaDelStock;
   avisos: AvisoDelPlan[];
+  /** Las versiones del plan; null = la base no las manda (no se ofrecen ni «Usar el plan con tope»). */
+  versiones: LecturaVersiones | null;
+  /** El precio de la plata con que se calculan las filas (0 = el plan de siempre). */
+  precioDeLaPlata: number;
+  /** La versión que ES el plan de hoy; null = hay cambios que ninguna versión recuerda (o no hay versiones). */
+  versionDeHoy: VersionDelPlan | null;
 };
 
 export type PlanDerivado = { plan: null; hechos: LecturaPropuesta | null; pedido: LecturaPedido | null; filas: FilaPlan[] } | PlanConPlan;
 
 export function usePlanDerivado(e: EntradaDelPlan): PlanDerivado {
-  const { datos, descuentos = null, propuesta = null, historia = null, pedido: pedidoCrudo = null, plazo: plazoCrudo = null, preparacion, puedeContar } = e;
+  const { datos, descuentos = null, propuesta = null, historia = null, pedido: pedidoCrudo = null, plazo: plazoCrudo = null, versiones: versionesCrudas = null, preparacion, puedeContar } = e;
   const plan = useMemo(() => conDescuentos(leerPlan(datos), leerDescuentos(descuentos)), [datos, descuentos]);
   const hechos = useMemo(() => {
     const leida = leerPropuesta(propuesta);
     return leida ? conHistorial(leida, leerHistorial(historia)) : null;
   }, [propuesta, historia]);
   const pedido = useMemo(() => leerPedido(pedidoCrudo), [pedidoCrudo]);
+  const versiones = useMemo(() => leerVersiones(versionesCrudas), [versionesCrudas]);
+  // El precio de la plata del plan con tope que la campaña USA: cada cuenta del Plan (la tabla, la hoja de cada categoría, el simulador) lo aplica.
+  const precioDeLaPlata = versiones?.precioDeLaPlata ?? 0;
 
   // Cada fila lleva lo que propone el sistema (C4) y el % de lo que sobra de la campaña (C5), si la base los manda para ESTA campaña.
   const filas = useMemo(() => {
     if (!plan) return [];
     // Lo ya pedido en órdenes va en cada fila haya o no propuesta, y lo que falta llegar se resta de «Comprar» (ADR-0372 act. (e) y 2026-10-13 b).
-    const base = armarFilas(plan, pedido?.porCategoria);
+    const base = armarFilas(plan, pedido?.porCategoria, precioDeLaPlata);
     if (!hechos || hechos.planId !== plan.plan.id) return base;
     return base.map((f) => ({
       ...f,
@@ -93,7 +105,7 @@ export function usePlanDerivado(e: EntradaDelPlan): PlanDerivado {
           ? tiendasParaRepartir(hechos, f.c.id, (nombre) => f.sedes?.find((s) => s.ubicacion === nombre)?.unidades ?? 0)
           : undefined,
     }));
-  }, [plan, hechos, pedido]);
+  }, [plan, hechos, pedido, precioDeLaPlata]);
 
   if (!plan) return { plan: null, hechos, pedido, filas };
 
@@ -121,8 +133,9 @@ export function usePlanDerivado(e: EntradaDelPlan): PlanDerivado {
       filas,
       tope: plan.tope.valor,
       inversion: totales.inversion,
+      precioDeLaPlata,
     },
     { diasDeVentas: diasDeVentasDelErp(hechosDelPlan?.tiendas), conCampanaAnterior: hechosDelPlan?.tiendas.some((t) => t.previaDisponible) ?? false },
   );
-  return { plan, hechos, hechosDelPlan, pedido, filas, momento, totales, plazoFijado, plazo, porPedir, confianza, avisos };
+  return { plan, hechos, hechosDelPlan, pedido, filas, momento, totales, plazoFijado, plazo, porPedir, confianza, avisos, versiones, precioDeLaPlata, versionDeHoy: versiones ? versionDeHoy(versiones) : null };
 }

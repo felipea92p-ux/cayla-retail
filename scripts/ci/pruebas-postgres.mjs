@@ -1322,6 +1322,7 @@ export const PRUEBAS = [
   // que mostró la pantalla) en la misma transacción; un guardado rechazado o un historial que no puede escribir no dejan nada; la fila no se edita
   // ni se borra ni con la tabla directo; responde al rol de la tienda; y la migración se pega dos veces y se niega si la función ya no es la leída.
   "pruebas:plan-compra-historial-lineas",
+  "pruebas:plan-compra-versiones",
 
   // El plazo de pedido del Plan (ADR-0499): `dias_para_llegar` por campaña (1 a 365, nunca sin autor, ni con la tabla directo), quitarlo deja anotado
   // quién, solo con el módulo (42501 si no) y responde al rol de la tienda. ROLLBACK siempre.

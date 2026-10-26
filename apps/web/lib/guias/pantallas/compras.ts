@@ -1735,6 +1735,27 @@ export const GUIA_PLAN_PRESUPUESTO: Guia = {
       texto: "Una fila por categoría: cuánto compraría hoy, cuánto con ese tope y cuánto cambia, con su barrita. Así ves dónde duele el recorte (o dónde se sumaría).",
     },
     {
+      id: "usar",
+      ancla: "presupuesto.usar",
+      opcional: true,
+      titulo: "Usar el plan con tope",
+      texto: "«Dejarlo como está» devuelve el deslizador a tu tope. «Usar el plan con tope» lo guarda: el Plan compra con él y lo que tenías queda guardado como una versión, para volver. Nada se compra. En la demo no lo tocamos.",
+    },
+    {
+      id: "versiones",
+      ancla: "presupuesto.versiones",
+      opcional: true,
+      titulo: "Versiones del plan",
+      texto: "Cada cambio grande queda como una versión a la que puedes volver: las que guardas, la de «usar el plan con tope» y la que se guarda sola antes de un cambio. «Ver qué cambió» la compara con hoy; «Volver a esta versión» NO borra nada: crea una nueva con lo mismo.",
+    },
+    {
+      id: "version-de-hoy",
+      ancla: "presupuesto.version-de-hoy",
+      opcional: true,
+      titulo: "La versión de hoy",
+      texto: "La marcada «La de hoy» es la que coincide con tu plan. Si cambias algo después, la lista lo dice arriba («Sin guardar como versión») y te deja guardarlo, para tener adónde volver.",
+    },
+    {
       id: "simulador",
       ancla: "presupuesto.simulador",
       opcional: true,

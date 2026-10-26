@@ -6,6 +6,8 @@ import { RPC_PROPUESTA, leerPropuesta } from "@/lib/plan-compra-propuesta";
 import { RPC_PEDIDO } from "@/lib/plan-compra-pedido";
 import { RPC_DESCUENTO } from "@/lib/plan-compra-descuento";
 import { RPC_PLAZO } from "@/lib/plan-compra-plazo";
+import { RPC_VERSIONES } from "@/lib/plan-compra-versiones";
+import { esFirmaDesconocida } from "@/lib/plan-compra-propuesta-guardada";
 import { RPC_RESULTADOS, campanaParaResultados } from "@/lib/plan-compra-resultados";
 import { RPC_HISTORIAL, rangoDeCampana, rangoDelAnio, sumarDias, type EtiquetaHistorial } from "@/lib/plan-compra-historial";
 import { getPreparacionMotor, type LecturaMotor } from "@/lib/motor-demanda";
@@ -48,6 +50,11 @@ export async function getPlanCompra(planId?: string): Promise<{
   descuentos: unknown;
   /** Los días que tarda un pedido en llegar, fijados para esta campaña (`fn_plan_compra_plazo`, ADR-0499), crudo; null si no se pudo leer (el plan usa el supuesto). */
   plazo: unknown;
+  /** El precio de la plata del plan, el tope y las versiones guardadas (`fn_plan_compra_versiones`, ADR-0523), crudo; null si no se pudo leer (base sin la migración o
+   *  caída): el plan se calcula con el precio de la plata en 0 y no se ofrecen las versiones ni «Usar el plan con tope». */
+  versiones: unknown;
+  /** La lectura de versiones FALLÓ (la base lenta o caída), no es que la base todavía no la tenga: el plan se calculó con el precio de la plata en 0 y la pantalla lo dice. */
+  versionesFallo: boolean;
 }> {
   const supabase = await createClient();
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
@@ -77,7 +84,7 @@ export async function getPlanCompra(planId?: string): Promise<{
   const nombres = familias.error ? [] : (familias.data ?? []);
   if (plan.error) {
     console.error(`${RPC_PLAN}: ${plan.error.message}`);
-    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null, historia: null, descuentos: null, plazo: null };
+    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null, historia: null, descuentos: null, plazo: null, versiones: null, versionesFallo: false };
   }
   // La propuesta (C4) es una ayuda: si falla o la base todavía no la tiene, cada categoría se llena a mano, como antes.
   const abierto = (plan.data as { plan?: { id?: unknown } } | null)?.plan?.id;
@@ -92,7 +99,7 @@ export async function getPlanCompra(planId?: string): Promise<{
     return { propuesta, historia };
   };
   // Lo pedido en órdenes (ADR-0372 act. (e)) también es una ayuda: sin ella, el Plan no lo muestra.
-  const [leida, ordenes, descuento, plazo] =
+  const [leida, ordenes, descuento, plazo, versiones] =
     typeof abierto === "string"
       ? await Promise.all([
           leerPropuestaYSuHistoria(abierto),
@@ -101,8 +108,10 @@ export async function getPlanCompra(planId?: string): Promise<{
           supabase.rpc(RPC_DESCUENTO as never, { p_plan_id: abierto } as never),
           // El plazo fijado (ADR-0499) también: sin él, la fecha límite usa el supuesto de 14 días y lo dice.
           supabase.rpc(RPC_PLAZO as never, { p_plan_id: abierto } as never),
+          // El precio de la plata y las versiones (ADR-0523) también: sin ellos, el plan se calcula como siempre y no se ofrece guardar el plan con tope.
+          supabase.rpc(RPC_VERSIONES as never, { p_plan_id: abierto } as never),
         ])
-      : [null, null, null, null];
+      : [null, null, null, null, null];
   const propuesta = leida?.propuesta ?? null;
   const historia = leida?.historia ?? null;
   if (propuesta?.error) console.error(`${RPC_PROPUESTA}: ${propuesta.error.message}`);
@@ -110,6 +119,7 @@ export async function getPlanCompra(planId?: string): Promise<{
   if (ordenes?.error) console.error(`${RPC_PEDIDO}: ${ordenes.error.message}`);
   if (descuento?.error) console.error(`${RPC_DESCUENTO}: ${descuento.error.message}`);
   if (plazo?.error) console.error(`${RPC_PLAZO}: ${plazo.error.message}`);
+  if (versiones?.error) console.error(`${RPC_VERSIONES}: ${versiones.error.message}`);
   return {
     datos: plan.data,
     falla: null,
@@ -122,6 +132,9 @@ export async function getPlanCompra(planId?: string): Promise<{
     historia: historia && !historia.error ? historia.data : null,
     descuentos: descuento && !descuento.error ? descuento.data : null,
     plazo: plazo && !plazo.error ? plazo.data : null,
+    versiones: versiones && !versiones.error ? versiones.data : null,
+    // Una base que todavía no tiene la función (la web se publicó antes que la migración) NO es un fallo: no hay plan con tope que perder de vista.
+    versionesFallo: !!versiones?.error && !esFirmaDesconocida(versiones.error),
   };
 }
 
