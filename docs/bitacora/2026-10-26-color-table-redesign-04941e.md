@@ -6,5 +6,7 @@
   «Revisaste N de M» y un aviso que se nota con «Guardar y pasar» / «Descartar y pasar». Solo web; ADR-0494, actualización 2026-10-26.
 - **Cómo se verificó:** ERP local a 1280, 1024 (oscuro) y 375 px; tipos, lint, knip y las 645 pruebas de la web en verde; la huella de la guía
   `inventario` aceptada tras poner al día su texto.
-- **Pendiente:** «Guardar y pasar» no se probó guardando de verdad en la base local (compartida); `/chaos` y `/formidable` de la pantalla
-  nueva, sin correr.
+- **/chaos (semilla 1026) y /formidable, el mismo día:** 17 ataques en un navegador sin pantalla, 0 estados imposibles; doble clic,
+  recargar, red cortada y «Guardar y pasar» escriben una vez. Abierto (g3, de esta rama): llegar con la hoja bajada deja la planilla
+  aplastada y corrida (`PaginaEstable` reserva el alto en la hoja de alto fijo). Formidable: leyes 6,8 (ley 9: 4), oficio 6; ciega en 4
+  toques con 14 dudas. Los arreglos y los 3 cambios esperan el OK de Felipe (`docs/formidable/inventario-existencias-ajustar-stock.md`).
