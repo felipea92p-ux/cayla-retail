@@ -2,12 +2,14 @@
 // en `respuesta.test.ts`. La llamada vive en `app/api/asistente/route.ts`.
 //
 // La regla de oro del ADR: la IA NO describe pantallas de memoria. Recibe las pocas guías que la preselección local ya encontró
-// (`preseleccionar`) y solo puede ELEGIR una de ellas, y un paso de esa guía, por su id. Lo que conteste se revisa aquí: una guía o un
-// paso que no estaban en la lista no llega a la pantalla, y la persona ve la búsqueda sin IA (`basico`).
+// (`preseleccionar`) y solo puede ELEGIR de ellas: de 1 a 3 TRAMOS en orden (actividad 3), cada uno una guía y un paso de esa guía, por
+// su id. Lo que conteste se revisa aquí: una guía o un paso que no estaban en la lista no llegan a la pantalla, y si ni la primera
+// sirve, la persona ve la búsqueda sin IA (`basico`).
 
 import * as z from "zod/v4";
-import type { Guia, PasoGuia } from "../guias/tipos";
+import type { Guia } from "../guias/tipos";
 import type { Sugerencia } from "./preseleccion";
+import { MAXIMO_DE_TRAMOS, type Tramo } from "./recorrido";
 
 /** El modelo que responde (ADR-0529: rápido, porque la persona está parada en la tienda). */
 export const MODELO_RESPUESTA = "claude-haiku-5-5";
@@ -27,16 +29,21 @@ export const RespuestaDeLaIA = z.object({
   tipo: z.enum(["guia", "no_existe", "fuera_de_tema"]),
   /** Una o dos frases para la persona, en lenguaje de tienda. */
   texto: z.string(),
-  /** El id de la guía elegida, tal cual vino en la lista. Vacío si no es `guia`. */
-  guia_id: z.string(),
-  /** El id del paso que responde, de esa guía. Vacío si no hay uno en particular. */
-  paso_id: z.string(),
+  /** Las pantallas por las que hay que pasar, en orden (casi siempre una). Vacío si no es `guia`. */
+  tramos: z.array(
+    z.object({
+      /** El id de la guía, tal cual vino en la lista. */
+      guia_id: z.string(),
+      /** El id del paso que responde, de esa guía. Vacío si no hay uno en particular. */
+      paso_id: z.string(),
+    }),
+  ),
 });
 export type RespuestaDeLaIA = z.infer<typeof RespuestaDeLaIA>;
 
 /** Lo que recibe el cajón. `basico`: no hubo IA (o no se pudo creerle) y se muestran las guías de la búsqueda local. */
 export type ResultadoAsistente =
-  | { tipo: "guia"; texto: string; guiaId: string; pasoId: string | null }
+  | { tipo: "guia"; texto: string; tramos: Tramo[] }
   | { tipo: "no_existe" | "fuera_de_tema"; texto: string }
   | { tipo: "basico"; motivo: MotivoBasico };
 
@@ -56,9 +63,10 @@ Recibes su pregunta y una lista cerrada de GUÍAS: cada guía es la demostració
 
 Reglas:
 - Elige SOLO entre las guías y los pasos de la lista, por su id exacto. Nunca inventes una pantalla, un botón, un menú ni un paso que no esté en la lista.
-- Si una guía responde: tipo "guia", su id en guia_id y, si un paso en particular responde, su id en paso_id (si no, paso_id vacío).
-- Si la pregunta es sobre el sistema pero ninguna guía de la lista la responde: tipo "no_existe", guia_id y paso_id vacíos, y dile con calma que eso todavía no se puede hacer o que no lo encontraste, sin prometer nada.
-- Si la pregunta no tiene que ver con el sistema ni con el trabajo en la tienda: tipo "fuera_de_tema", con una frase amable.
+- Si una guía responde: tipo "guia" y en tramos UN tramo con su guia_id y, si un paso en particular responde, su paso_id (si no, paso_id vacío).
+- Solo si la tarea de verdad pasa por más de una pantalla, en orden (por ejemplo, crear una prenda y después imprimir su etiqueta), pon un tramo por pantalla, tres como máximo. Casi siempre basta uno.
+- Si la pregunta es sobre el sistema pero ninguna guía de la lista la responde: tipo "no_existe", tramos vacío, y dile con calma que eso todavía no se puede hacer o que no lo encontraste, sin prometer nada.
+- Si la pregunta no tiene que ver con el sistema ni con el trabajo en la tienda: tipo "fuera_de_tema", tramos vacío, con una frase amable.
 - El texto: UNA frase corta (25 palabras como máximo) que diga a qué pantalla la llevas y qué va a ver; la guía muestra el resto. Español neutro de Perú, de «tú», sin jerga técnica. No repitas la pregunta.
 - Di siempre «cliente» (nunca «clienta») y «miembro» para el club, aunque la persona escriba otra palabra.
 - No inventes reglas del negocio (plazos, montos, políticas). Si la pregunta es sobre eso, di que eso lo decide su líder de tienda.
@@ -89,20 +97,26 @@ function recortar(texto: string): string {
 }
 
 /**
- * ¿Se le puede creer a la IA? Solo si eligió una guía DE LA LISTA que se le pasó, y un paso DE ESA guía. Un paso que no existe se
- * descarta (la guía sirve igual, desde el principio); una guía que no estaba manda al modo básico, porque ya no se sabe qué quiso
- * decir. Un texto vacío tampoco se muestra.
+ * ¿Se le puede creer a la IA? Solo en lo que eligió DE LA LISTA que se le pasó. Cada tramo tiene que ser una guía de la lista y su paso,
+ * uno de esa guía: un paso que no existe se descarta (el tramo sirve igual, con la guía entera); un tramo con una guía que no estaba se
+ * cae, y los que vienen después también (sin él, el orden ya no se sabe). Si ni el primero sirve, a la búsqueda sin IA. Cada tramo
+ * llega a su pantalla por la entrada del menú; la de la pantalla donde está la persona (sin entrada, como una factura), por `rutaActual`.
  */
-export function revisarRespuesta(cruda: RespuestaDeLaIA | null, sugerencias: readonly Sugerencia[]): ResultadoAsistente {
+export function revisarRespuesta(cruda: RespuestaDeLaIA | null, sugerencias: readonly Sugerencia[], rutaActual: string): ResultadoAsistente {
   if (!cruda) return { tipo: "basico", motivo: "respuesta_invalida" };
   const texto = recortar(cruda.texto);
   if (!texto) return { tipo: "basico", motivo: "respuesta_invalida" };
   if (cruda.tipo !== "guia") return { tipo: cruda.tipo, texto };
 
-  const elegida = sugerencias.find((s) => s.guia.id === cruda.guia_id);
-  if (!elegida) return { tipo: "basico", motivo: "respuesta_invalida" };
-  const paso: PasoGuia | undefined = elegida.guia.pasos.find((p) => p.id === cruda.paso_id && p.ancla !== null);
-  return { tipo: "guia", texto, guiaId: elegida.guia.id, pasoId: paso?.id ?? null };
+  const tramos: Tramo[] = [];
+  for (const t of cruda.tramos.slice(0, MAXIMO_DE_TRAMOS)) {
+    const elegida = sugerencias.find((s) => s.guia.id === t.guia_id);
+    if (!elegida) break;
+    const paso = elegida.guia.pasos.find((p) => p.id === t.paso_id && p.ancla !== null);
+    tramos.push({ guiaId: elegida.guia.id, pasoId: paso?.id ?? null, href: elegida.href ?? rutaActual });
+  }
+  if (tramos.length === 0) return { tipo: "basico", motivo: "respuesta_invalida" };
+  return { tipo: "guia", texto, tramos };
 }
 
 /**

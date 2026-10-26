@@ -170,6 +170,21 @@ igual, marcada «sin IA», y cuenta en el informe. Es el principio 9: se pierde 
 - **Que la gente no pregunte por miedo** → se guarda quién pregunta (decisión 8) para poder capacitar, pero la pantalla del informe muestra
   persona solo al líder, y nunca se usa para calificar a nadie. Si eso cambia, lo decide Felipe.
 
+## Lo que decidí al construir (Felipe puede cambiarlo)
+
+- **Atajo: «?» fuera de un campo y ⌘/ (Ctrl+/) desde cualquier lado** (actividad 1). ⌘K ya era del buscador de la cabecera.
+- **La búsqueda sin IA recorta las terminaciones de las palabras** («anulo», «anular», «anulada» son la misma) en vez de comparar las
+  primeras letras: con cuatro letras, «talla» empataba con «taller» y «compras» con «comprobante» (`lib/asistente/preseleccion.ts`).
+- **La IA piensa al esfuerzo más bajo** (`effort: "low"`), sin reintentos y con 8 s de tope. Medido en local el 2026-10-26 con 10
+  preguntas: ~2 s (la primera, 4–5 s) y **~US$0,0013 por pregunta** (~11 000 tokens de entrada, ~100 de salida). Con el tope de US$30
+  alcanzan unas 23 000 preguntas al mes.
+- **Un tramo muestra UN paso, el que responde**, con lo que necesita abierto: su propio `preparar` o, si no tiene, el del último paso
+  de antes que lo tenía (el que abrió la hoja donde vive). Al terminarlo, el recorrido sigue en la pantalla del siguiente tramo o
+  termina; si la persona sale, lo que faltaba se olvida. La demo entera de la pantalla sigue en «Demo» y en «Otras demos» del cajón.
+- **Un tramo espera hasta 8 s a que su pieza esté a la vista** antes de arrancar: una guía entera empieza con la bienvenida y le da
+  tiempo a la pantalla; un tramo salta directo y, en una pantalla recién abierta, el botón todavía no estaba.
+- **Un tramo no cuenta como demo vista entera**: la guía queda como ofrecida y su oferta de la primera vez no vuelve a salir.
+
 ## Producción
 
 Nada todavía. Cuando toque: las migraciones esperan el OK de Felipe (cambio de esquema en producción), la `ANTHROPIC_API_KEY` la pone Felipe en

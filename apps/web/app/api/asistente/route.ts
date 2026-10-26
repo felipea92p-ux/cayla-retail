@@ -19,10 +19,10 @@ import { GUIAS } from "@/lib/guias/registro";
 import { hojasDe, menuPara, permisosDe } from "@/lib/menu";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 
-// POST /api/asistente  { pregunta, ruta }  →  { resultado, href }
+// POST /api/asistente  { pregunta, ruta }  →  { resultado }
 //
-// «Pregúntale a CAYLA» (ADR-0529, actividad 2): la pregunta va a la IA con las pocas guías que la búsqueda local encontró, y vuelve una
-// guía elegida DE ESA LISTA (o «no existe» / «fuera de tema»).
+// «Pregúntale a CAYLA» (ADR-0529, actividades 2 y 3): la pregunta va a la IA con las pocas guías que la búsqueda local encontró, y vuelve
+// un recorrido de 1 a 3 tramos elegidos DE ESA LISTA, cada uno con la dirección para llegar (o «no existe» / «fuera de tema»).
 //
 // CONTRATO
 //   PROMETE: responder siempre 200 con algo que mostrar. Si la IA no está (falta la clave, no contesta en 8 s, falla, declina o dice
@@ -57,7 +57,7 @@ function excedeTope(cuenta: string): boolean {
 }
 
 /** La IA no estuvo: el cajón muestra la búsqueda sin ella (ADR-0529, «Modo básico»). */
-const basico = (motivo: Extract<ResultadoAsistente, { tipo: "basico" }>["motivo"]) => Response.json({ resultado: { tipo: "basico", motivo }, href: null });
+const basico = (motivo: Extract<ResultadoAsistente, { tipo: "basico" }>["motivo"]) => Response.json({ resultado: { tipo: "basico", motivo } });
 
 export async function POST(request: Request) {
   const cuerpo = Cuerpo.safeParse(await request.json().catch(() => null));
@@ -78,7 +78,8 @@ export async function POST(request: Request) {
     .map((h) => h.href);
 
   const pregunta = limpiarDatosPersonales(cuerpo.data.pregunta);
-  const sugerencias = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu, rutaActual: sinConsulta(cuerpo.data.ruta), cuantas: GUIAS_PARA_LA_IA });
+  const rutaActual = sinConsulta(cuerpo.data.ruta);
+  const sugerencias = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu, rutaActual, cuantas: GUIAS_PARA_LA_IA });
 
   if (!process.env.ANTHROPIC_API_KEY) return basico("sin_clave");
 
@@ -104,9 +105,7 @@ export async function POST(request: Request) {
     }
     if (respuesta.stop_reason === "refusal") return basico("rechazo");
 
-    const resultado = revisarRespuesta(respuesta.parsed_output ?? null, sugerencias);
-    const href = resultado.tipo === "guia" ? (sugerencias.find((s) => s.guia.id === resultado.guiaId)?.href ?? null) : null;
-    return Response.json({ resultado, href });
+    return Response.json({ resultado: revisarRespuesta(respuesta.parsed_output ?? null, sugerencias, rutaActual) });
   } catch (error) {
     // Lo que se anota lleva el tipo de error y su código, nunca la pregunta (ADR-0424).
     console.error(`[asistente] sin respuesta de la IA: ${error instanceof Anthropic.APIError ? `${error.constructor.name} ${error.status ?? ""}` : error instanceof Error ? error.name : "desconocido"}`);

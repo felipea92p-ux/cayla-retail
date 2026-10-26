@@ -4,6 +4,7 @@ import { ChevronRight, MessageCircleQuestion, PlayCircle, SearchX } from "lucide
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { abrirGuiaAqui } from "@/components/guias/MotorGuias";
+import { guardarRestantes, marcaDeVez, olvidarRecorrido } from "@/components/guias/recorrido";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
 import { Boton } from "@/components/ui/campos";
@@ -12,13 +13,15 @@ import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { esAtajoDelAsistente } from "@/lib/asistente/atajo";
 import { preseleccionar, type Sugerencia } from "@/lib/asistente/preseleccion";
+import { direccionDelTramo, esDeEstaPantalla, type Tramo } from "@/lib/asistente/recorrido";
 import { LARGO_MAXIMO_PREGUNTA, type ResultadoAsistente } from "@/lib/asistente/respuesta";
 import { GUIAS } from "@/lib/guias/registro";
 import { guiaDeRuta } from "@/lib/guias/reglas";
 
 // «Pregúntale a CAYLA» (ADR-0529): el botón de la cabecera y su cajón. Mientras la persona escribe, busca sin IA las guías interactivas
 // (ADR-0389) de las pantallas que su rol ve (`preseleccionar`); al apretar «Preguntar» (o Enter), la pregunta va a la IA
-// (`/api/asistente`, actividad 2), que elige la guía y el paso que responden, y «Muéstrame» la arranca en la pantalla de verdad. Si la IA
+// (`/api/asistente`, actividad 2), que elige el recorrido (hasta 3 pantallas, cada una con el paso que responde), y «Muéstrame» lo arranca
+// en la pantalla de verdad, desde ese paso (actividad 3: `components/guias/recorrido.ts` y `MotorGuias`). Si la IA
 // no está, queda la búsqueda sin ella (el «modo básico» del ADR): nunca se cae. Lo ve toda cuenta, también una terminal: no es un
 // módulo, es una ayuda, como «Demo» (ADR-0306). Se abre con el botón, con «?» fuera de un campo o con ⌘/ (Ctrl+/) desde cualquier lado.
 
@@ -73,10 +76,22 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
   const vigente = respuesta && respuesta.pregunta === pregunta.trim() ? respuesta : null;
   const ultima = useRef(0);
 
+  /** La demo entera de una pantalla (las «demos que pueden ayudarte»). */
   function llevar(s: Pick<Sugerencia, "href">, cerrar: () => void) {
+    olvidarRecorrido();
     cerrar();
     if (s.href === null) setTimeout(abrirGuiaAqui, TRAS_CERRAR_MS);
     else router.push(`${s.href}${s.href.includes("?") ? "&" : "?"}demo=1`);
+  }
+
+  /** «Muéstrame»: el recorrido que contestó la IA, desde el paso que responde (ADR-0529, actividad 3). */
+  function recorrer(tramos: readonly Tramo[], cerrar: () => void) {
+    const [primero, ...resto] = tramos;
+    if (!primero) return;
+    guardarRestantes(resto);
+    cerrar();
+    if (esDeEstaPantalla(primero, pathname)) setTimeout(() => abrirGuiaAqui({ pasoId: primero.pasoId }), TRAS_CERRAR_MS);
+    else router.push(direccionDelTramo(primero, marcaDeVez()));
   }
 
   async function preguntar(e: FormEvent) {
@@ -85,7 +100,7 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
     if (texto.length < 2 || preguntando) return;
     const esta = ++ultima.current;
     setPreguntando(true);
-    let resultado: Respondida = { pregunta: texto, resultado: { tipo: "basico", motivo: "sin_respuesta" }, href: null };
+    let resultado: Respondida = { pregunta: texto, resultado: { tipo: "basico", motivo: "sin_respuesta" } };
     try {
       // `x-espera: no`: pensar no bloquea la pantalla con el loader general (ADR-0149); el botón dice «Pensando…».
       const r = await fetch("/api/asistente", {
@@ -94,8 +109,8 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
         body: JSON.stringify({ pregunta: texto, ruta: pathname }),
       });
       if (r.ok) {
-        const json = (await r.json()) as { resultado?: ResultadoAsistente; href?: string | null };
-        if (json.resultado) resultado = { pregunta: texto, resultado: json.resultado, href: json.href ?? null };
+        const json = (await r.json()) as { resultado?: ResultadoAsistente };
+        if (json.resultado) resultado = { pregunta: texto, resultado: json.resultado };
       }
     } catch {
       // Sin red: queda la búsqueda sin IA, que ya está a la vista.
@@ -106,8 +121,10 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
   }
 
   const contestada = vigente?.resultado;
-  const elegida = contestada?.tipo === "guia" ? (GUIAS.find((g) => g.id === contestada.guiaId) ?? null) : null;
-  const otras = elegida ? sugerencias.filter((s) => s.guia.id !== elegida.id) : sugerencias;
+  const tramos = contestada?.tipo === "guia" ? contestada.tramos : [];
+  // Las pantallas del recorrido, por su nombre, para decir por dónde va a pasar si son varias.
+  const pantallas = tramos.map((t) => GUIAS.find((g) => g.id === t.guiaId)?.titulo ?? "");
+  const otras = sugerencias.filter((s) => !tramos.some((t) => t.guiaId === s.guia.id));
 
   return (
     <Cajon
@@ -141,11 +158,12 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
 
           {vigente ? (
             <section aria-live="polite" className="space-y-5">
-              {vigente.resultado.tipo === "guia" && elegida ? (
+              {vigente.resultado.tipo === "guia" ? (
                 <div className="rounded-xl border border-sand bg-papel p-4">
                   <p className="text-[15px] leading-snug text-tinta">{vigente.resultado.texto}</p>
+                  {pantallas.length > 1 ? <p className="mt-2 text-xs text-tinta/65">Pasa por {pantallas.join(" → ")}.</p> : null}
                   <div className="mt-3 flex justify-end">
-                    <Boton peso="primario" onClick={() => llevar({ href: vigente.href }, cerrar)}>
+                    <Boton peso="primario" onClick={() => recorrer(tramos, cerrar)}>
                       <span className="inline-flex items-center gap-2">
                         <PlayCircle className="h-4 w-4" aria-hidden />
                         Muéstrame
@@ -164,7 +182,7 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
               )}
               {otras.length > 0 ? (
                 <div>
-                  <TituloGrupo className="mb-2">{elegida ? "Otras demos que pueden ayudarte" : "Demos que pueden ayudarte"}</TituloGrupo>
+                  <TituloGrupo className="mb-2">{tramos.length > 0 ? "Otras demos que pueden ayudarte" : "Demos que pueden ayudarte"}</TituloGrupo>
                   <ListaDemos sugerencias={otras} onElegir={(s) => llevar(s, cerrar)} />
                 </div>
               ) : null}
@@ -195,7 +213,7 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
 }
 
 /** La respuesta de la IA a una pregunta: vale mientras la persona no cambie lo que escribió. */
-type Respondida = { pregunta: string; resultado: ResultadoAsistente; href: string | null };
+type Respondida = { pregunta: string; resultado: ResultadoAsistente };
 
 function ListaDemos({ sugerencias, onElegir }: { sugerencias: readonly Sugerencia[]; onElegir: (s: Sugerencia) => void }) {
   return (

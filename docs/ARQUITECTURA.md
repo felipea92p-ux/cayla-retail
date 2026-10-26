@@ -2119,7 +2119,9 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   guía y un paso DE ESA LISTA (`lib/asistente/respuesta.ts`: instrucciones, salida estructurada, `revisarRespuesta`, `costoEnDolares`). La clave
   (`ANTHROPIC_API_KEY`) nunca sale del servidor y la pregunta pasa por `limpiarDatosPersonales`. Siempre 200: si la IA no está, no responde en 8 s,
   declina o contesta algo fuera de la lista, `resultado.tipo = "basico"` y el cajón (`components/asistente/Asistente.tsx`, botón de la cabecera)
-  muestra la búsqueda sin IA. Tope de 20 preguntas por minuto y cuenta, por instancia.
+  muestra la búsqueda sin IA. Tope de 20 preguntas por minuto y cuenta, por instancia. La respuesta es un recorrido de 1 a 3 tramos
+  (`lib/asistente/recorrido.ts`): «Muéstrame» lleva a `?demo=1&paso=…&vez=…` y `MotorGuias` corre la guía corta que arranca en ese paso;
+  los tramos que faltan viven en `sessionStorage` (`components/guias/recorrido.ts`) mientras se pasa de pantalla.
 - `/api/observatorio` y `/api/observatorio/tienda?u=<id>` → `GET`, solo lectura y solo Admin (403 si no): lo que el Observatorio vuelve a leer
   cada 30 s (`getDatosObservatorio`) y el panel de una tienda (`getDatosTienda`; la tienda se valida contra `getUbicaciones`). Si la base no responde,
   500 y la pantalla conserva lo que tenía. ADR-0322.

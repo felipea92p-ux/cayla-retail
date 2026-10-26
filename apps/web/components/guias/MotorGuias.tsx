@@ -1,13 +1,16 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Boton } from "@/components/ui/campos";
+import { anclaDeArranque, direccionDelTramo, esDeEstaPantalla, guiaDelTramo } from "@/lib/asistente/recorrido";
 import { crearArranqueDemo } from "@/lib/guias/arranque-demo";
 import { GUIAS } from "@/lib/guias/registro";
 import { debeOfrecer, esEntradaDelMenu, guiaDeRuta } from "@/lib/guias/reglas";
 import type { Guia } from "@/lib/guias/tipos";
 import { GuiaInteractiva, type FinDeGuia } from "./GuiaInteractiva";
+import { esperarAncla } from "./piloto";
+import { marcaDeVez, olvidarRecorrido, tomarSiguiente } from "./recorrido";
 import { leerVistas, marcarVista } from "./vistas";
 
 // El que decide CUÁNDO corre una guía (ADR-0389). Montado una vez en `AppShell`; una pantalla no tiene que hacer nada.
@@ -15,23 +18,35 @@ import { leerVistas, marcarVista } from "./vistas";
 //     una sola vez por persona y por pantalla (Felipe, 2026-10-07), diga que sí o que no.
 //   · `?demo=1` en la URL (lo pone «Demo» de Mi perfil al llevarte a otra pantalla) la arranca sola.
 //   · El evento `cayla:abrir-guia` (el mismo «Demo», si ya estás en esa pantalla) también.
+//   · «Pregúntale a CAYLA» (ADR-0529, actividad 3) arranca un TRAMO: la guía corta que empieza en el paso que responde
+//     (`?demo=1&paso=…&vez=…`, o el mismo evento con el paso). Al terminarlo, si el recorrido sigue, lleva a la pantalla del
+//     siguiente (`components/guias/recorrido.ts`); si la persona sale, lo que faltaba se olvida.
 
 export const EVENTO_ABRIR_GUIA = "cayla:abrir-guia";
 
-/** Arranca la guía de la pantalla abierta (desde «Demo» de Mi perfil, sin navegar). */
-export function abrirGuiaAqui() {
-  window.dispatchEvent(new Event(EVENTO_ABRIR_GUIA));
+/** Lo que lleva el evento cuando lo dispara el asistente: el paso donde arranca el tramo. Sin detalle, la guía entera. */
+type PedidoDeTramo = { pasoId: string | null };
+
+/** Arranca la guía de la pantalla abierta (desde «Demo» de Mi perfil, sin navegar). Con `tramo`, solo desde ese paso (el asistente). */
+export function abrirGuiaAqui(tramo?: PedidoDeTramo) {
+  window.dispatchEvent(tramo ? new CustomEvent<PedidoDeTramo>(EVENTO_ABRIR_GUIA, { detail: tramo }) : new Event(EVENTO_ABRIR_GUIA));
 }
+
+/** Cuánto espera un tramo del asistente a que aparezca su pieza, en una pantalla recién abierta, antes de arrancar igual. */
+const ESPERA_TRAMO_MS = 8000;
 
 /** Cuánto espera la oferta tras llegar: que la pantalla termine de dibujarse y el loader se vaya. */
 const ESPERA_OFERTA_MS = 1400;
 
 export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas del menú de esta persona: solo ahí se ofrece sola. */ entradas: readonly string[] }) {
   const pathname = usePathname();
+  const router = useRouter();
   const params = useSearchParams();
   const guia = guiaDeRuta(pathname, GUIAS);
   const [vistas, setVistas] = useState<{ quien: string; ids: Set<string> } | null>(null);
   const [corriendo, setCorriendo] = useState<Guia | null>(null);
+  // ¿Lo que corre es un tramo del asistente? Al terminar no cuenta como demo vista entera, y puede seguir en otra pantalla.
+  const [enRecorrido, setEnRecorrido] = useState(false);
   const [ofrecida, setOfrecida] = useState<Guia | null>(null);
 
   // Qué se le ofreció ya (una sola lectura por persona; si la base no responde, lo del navegador).
@@ -45,6 +60,17 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
     };
   }, [quien]);
 
+  // Un tramo arranca cuando su pieza está a la vista (o pasados 8 s, y la tarjeta lo dice). Si mientras tanto la persona se fue a otra
+  // pantalla, ya no arranca: explicaría piezas que no están.
+  const arrancarTramo = useCallback((tramo: Guia) => {
+    const ancla = anclaDeArranque(tramo);
+    void (ancla ? esperarAncla(ancla, ESPERA_TRAMO_MS) : Promise.resolve(null)).then(() => {
+      if (guiaDeRuta(window.location.pathname, GUIAS)?.id !== tramo.id) return;
+      setEnRecorrido(true);
+      setCorriendo(tramo);
+    });
+  }, []);
+
   const anotar = useCallback(
     (id: string, completa: boolean) => {
       setVistas((v) => (v ? { ...v, ids: new Set(v.ids).add(id) } : v));
@@ -57,6 +83,8 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
   // un temporizador que NO se cancela al limpiar la URL (si dependiera de `params`, limpiarla lo cancelaría); si la demo de
   // esta guía ya corre o arrancó hace poco, solo se limpia la URL (`lib/guias/arranque-demo.ts`).
   const pideDemo = params.get("demo") === "1";
+  const pasoPedido = params.get("paso");
+  const vez = params.get("vez");
   const [arranque] = useState(crearArranqueDemo);
   const corriendoRef = useRef<string | null>(null);
   useEffect(() => {
@@ -66,26 +94,35 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
     if (!pideDemo || !guia) return;
     const limpio = new URLSearchParams(params.toString());
     limpio.delete("demo");
+    limpio.delete("paso");
+    limpio.delete("vez");
     // `history.replaceState` y no `router.replace`: en una ruta interceptada (el Historial de un producto, `@modal/(.)[id]`)
     // el router volvía a resolver la intercepción, Next respondía 500 y recargaba la página, y la guía se perdía.
     window.history.replaceState(window.history.state, "", limpio.size ? `${pathname}?${limpio}` : pathname);
-    arranque.pedir(guia.id, corriendoRef.current, () => {
+    // Un tramo del asistente trae su `vez`: pedirlo de nuevo es otra vez, no un `?demo=1` que volvió con un enlace.
+    const esTramo = vez !== null;
+    arranque.pedir(esTramo ? `${guia.id}#${vez}` : guia.id, corriendoRef.current, () => {
       setOfrecida(null);
+      if (esTramo) return arrancarTramo(guiaDelTramo(guia, pasoPedido));
+      setEnRecorrido(false);
       setCorriendo(guia);
     });
-  }, [pideDemo, guia, params, pathname, arranque]);
+  }, [pideDemo, guia, params, pathname, arranque, vez, pasoPedido, arrancarTramo]);
   useEffect(() => () => arranque.desmontar(), [arranque]);
 
   // «Demo» estando ya en la pantalla.
   useEffect(() => {
-    const abrir = () => {
+    const abrir = (e: Event) => {
       if (!guia) return;
+      const tramo = e instanceof CustomEvent ? (e.detail as PedidoDeTramo | null) : null;
       setOfrecida(null);
+      if (tramo) return arrancarTramo(guiaDelTramo(guia, tramo.pasoId));
+      setEnRecorrido(false);
       setCorriendo(guia);
     };
     window.addEventListener(EVENTO_ABRIR_GUIA, abrir);
     return () => window.removeEventListener(EVENTO_ABRIR_GUIA, abrir);
-  }, [guia]);
+  }, [guia, arrancarTramo]);
 
   // La oferta de la primera vez. Se anota como ofrecida en cuanto se muestra: si la persona se va sin responder, igual ya
   // se le ofreció (no se le insiste).
@@ -108,8 +145,16 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
   }, [guia]);
 
   function alTerminar(fin: FinDeGuia) {
-    if (corriendo) anotar(corriendo.id, fin === "completa");
+    // Un tramo enseña un paso, no la pantalla: la guía queda como ofrecida, no como vista entera.
+    if (corriendo) anotar(corriendo.id, fin === "completa" && !enRecorrido);
     setCorriendo(null);
+    if (!enRecorrido) return;
+    setEnRecorrido(false);
+    if (fin !== "completa") return olvidarRecorrido();
+    const siguiente = tomarSiguiente();
+    if (!siguiente) return;
+    if (!esDeEstaPantalla(siguiente, pathname)) return router.push(direccionDelTramo(siguiente, marcaDeVez()));
+    if (guia) arrancarTramo(guiaDelTramo(guia, siguiente.pasoId));
   }
 
   return (
@@ -142,7 +187,8 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
           <p className="mt-2.5 text-[11.5px] text-tinta/55">Siempre la encuentras en Mi perfil ▸ Demo.</p>
         </aside>
       )}
-      {corriendo && <GuiaInteractiva key={corriendo.id} guia={corriendo} onTerminar={alTerminar} />}
+      {/* La clave lleva el primer paso: dos tramos seguidos de la misma pantalla son dos guías, y la segunda arranca de cero. */}
+      {corriendo && <GuiaInteractiva key={`${corriendo.id}#${corriendo.pasos[0]?.id ?? ""}`} guia={corriendo} onTerminar={alTerminar} />}
     </>
   );
 }

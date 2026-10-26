@@ -13,37 +13,58 @@ const guia: Guia = {
     { id: "lista", ancla: "comprobantes.lista", titulo: "Cada comprobante", texto: "Toca uno para ver su detalle y anularlo." },
   ],
 };
-const sugerencias: Sugerencia[] = [{ guia, href: "/vender/comprobantes", paso: guia.pasos[1] ?? null, puntos: 6 }];
-const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", guia_id: guia.id, paso_id: "lista", ...r });
+const factura: Guia = { id: "compras.id", ruta: "/compras/[id]", titulo: "Una compra", resumen: "Su detalle.", pasos: [{ id: "anular", ancla: "compra.anular", titulo: "Anular", texto: "." }] };
+const sugerencias: Sugerencia[] = [
+  { guia, href: "/vender/comprobantes", paso: guia.pasos[1] ?? null, puntos: 6 },
+  { guia: factura, href: null, paso: null, puntos: 3 },
+];
+const AQUI = "/compras/9f3a";
+const tramo = (guia_id: string, paso_id = "") => ({ guia_id, paso_id });
+const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", tramos: [tramo(guia.id, "lista")], ...r });
+const revisar = (r: RespuestaDeLaIA | null, s: readonly Sugerencia[] = sugerencias) => revisarRespuesta(r, s, AQUI);
 
 describe("revisarRespuesta: solo se le cree a la IA lo que estaba en la lista", () => {
   it("una guía y un paso de la lista pasan tal cual", () => {
-    expect(revisarRespuesta(ia({}), sugerencias)).toEqual({ tipo: "guia", texto: "Te llevo a Comprobantes.", guiaId: guia.id, pasoId: "lista" });
+    expect(revisar(ia({}))).toEqual({ tipo: "guia", texto: "Te llevo a Comprobantes.", tramos: [{ guiaId: guia.id, pasoId: "lista", href: "/vender/comprobantes" }] });
   });
 
   it("una guía que no estaba en la lista manda a la búsqueda sin IA", () => {
-    expect(revisarRespuesta(ia({ guia_id: "finanzas.inventada" }), sugerencias)).toEqual({ tipo: "basico", motivo: "respuesta_invalida" });
+    expect(revisar(ia({ tramos: [tramo("finanzas.inventada")] }))).toEqual({ tipo: "basico", motivo: "respuesta_invalida" });
+    expect(revisar(ia({ tramos: [] }))).toEqual({ tipo: "basico", motivo: "respuesta_invalida" });
   });
 
   it("un paso inventado (o la bienvenida, que no se puede señalar) se descarta, y la guía sirve igual", () => {
-    expect(revisarRespuesta(ia({ paso_id: "boton-anular" }), sugerencias)).toMatchObject({ tipo: "guia", pasoId: null });
-    expect(revisarRespuesta(ia({ paso_id: "hola" }), sugerencias)).toMatchObject({ tipo: "guia", pasoId: null });
-    expect(revisarRespuesta(ia({ paso_id: "" }), sugerencias)).toMatchObject({ tipo: "guia", pasoId: null });
+    for (const paso of ["boton-anular", "hola", ""]) {
+      expect(revisar(ia({ tramos: [tramo(guia.id, paso)] }))).toMatchObject({ tipo: "guia", tramos: [{ pasoId: null }] });
+    }
   });
 
   it("«no existe» y «fuera de tema» pasan con su texto, sin guía", () => {
-    expect(revisarRespuesta(ia({ tipo: "no_existe", texto: "Eso todavía no se puede hacer.", guia_id: "", paso_id: "" }), [])).toEqual({ tipo: "no_existe", texto: "Eso todavía no se puede hacer." });
-    expect(revisarRespuesta(ia({ tipo: "fuera_de_tema", texto: "Solo te ayudo con el sistema." }), sugerencias)).toEqual({ tipo: "fuera_de_tema", texto: "Solo te ayudo con el sistema." });
+    expect(revisar(ia({ tipo: "no_existe", texto: "Eso todavía no se puede hacer.", tramos: [] }), [])).toEqual({ tipo: "no_existe", texto: "Eso todavía no se puede hacer." });
+    expect(revisar(ia({ tipo: "fuera_de_tema", texto: "Solo te ayudo con el sistema." }))).toEqual({ tipo: "fuera_de_tema", texto: "Solo te ayudo con el sistema." });
+  });
+
+  it("varios tramos en orden; uno inventado se cae con los que vienen después; como mucho tres", () => {
+    const dos = revisar(ia({ tramos: [tramo(guia.id, "lista"), tramo(factura.id, "anular")] }));
+    expect(dos).toMatchObject({ tramos: [{ guiaId: guia.id }, { guiaId: factura.id, pasoId: "anular" }] });
+    const cortado = revisar(ia({ tramos: [tramo(guia.id), tramo("inventada"), tramo(factura.id)] }));
+    expect(cortado.tipo === "guia" && cortado.tramos.map((t) => t.guiaId)).toEqual([guia.id]);
+    const muchos = revisar(ia({ tramos: [tramo(guia.id), tramo(guia.id), tramo(guia.id), tramo(guia.id)] }));
+    expect(muchos.tipo === "guia" && muchos.tramos.length).toBe(3);
+  });
+
+  it("la pantalla donde está la persona (sin entrada del menú) se llega por donde está", () => {
+    expect(revisar(ia({ tramos: [tramo(factura.id, "anular")] }))).toMatchObject({ tramos: [{ href: AQUI }] });
   });
 
   it("sin respuesta o con un texto vacío, búsqueda sin IA", () => {
-    expect(revisarRespuesta(null, sugerencias)).toEqual({ tipo: "basico", motivo: "respuesta_invalida" });
-    expect(revisarRespuesta(ia({ texto: "   " }), sugerencias)).toEqual({ tipo: "basico", motivo: "respuesta_invalida" });
+    expect(revisar(null)).toEqual({ tipo: "basico", motivo: "respuesta_invalida" });
+    expect(revisar(ia({ texto: "   " }))).toEqual({ tipo: "basico", motivo: "respuesta_invalida" });
   });
 
   it("un texto largo se corta en una frase, nunca a media palabra", () => {
     const largo = `${"Primero ve a Comprobantes y busca la boleta del cliente. ".repeat(8)}Fin`;
-    const r = revisarRespuesta(ia({ texto: largo }), sugerencias);
+    const r = revisar(ia({ texto: largo }), sugerencias);
     expect(r.tipo === "guia" && r.texto.length <= 320 && r.texto.endsWith(".")).toBe(true);
   });
 });
