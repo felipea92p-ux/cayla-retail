@@ -195,6 +195,16 @@ Cada tarea lleva su clase —**Urgente** (pierde algo cada día o vence pronto),
 - **Estados imposibles que la base debe cerrar:** un `pedido` sin orden; un `rectificado` de algo ya pedido; dos envíos activos de la misma línea del plan.
 - **Con Finanzas:** lo pendiente sigue siendo «falta pedir»; al confirmar pasa a «pedido sin pagar» (la regla de una sola etapa por sol, de la sesión del Resumen).
 
+### 7c · Pedido posterior (2026-10-26) · #13 Recomendar cómo pagar la campaña (todo de una, en cuotas, desde qué mes)
+- **Qué pediste:** una recomendación de cómo pagarla —todo de una o en meses, y desde qué mes— basada en tus ganancias y en cómo te fue otros años, como «inteligencia de predicción, análisis, estadística y probabilidad» con los datos de Sinatra y lo que se vende en el sistema.
+- **Lo que los datos sostienen hoy `[producción, 2026-10-26]`:** Sinatra (`retail.ventas_historicas`) trae **solo `soles` por día y sede** (`ubicacion_id, fecha, soles, fuente`): **no trae costo ni margen**, así que «tus ganancias de otros años» no existe; el costo y el margen del ERP empiezan el 30-sep. Lo que sí dice es **cuándo entra la plata**. Tienda Trujillo, 6 años completos (2018, 2019 y 2022–2025; sin 2017 incompleto ni 2020–21): diciembre pesa **13,4 a 18,5 % del año (mediana 14,2)**, octubre y noviembre 5,3 a 8,0 %, enero 4,7 a 7,8 %. Arequipa tiene solo 2 años (diciembre ≈10 %). Lima no tiene historia. **De 119 proveedores, 0 tiene cargado el plazo de crédito** (`proveedores.plazo_credito_dias` vacío): hoy el sistema no sabe si «en meses» es posible.
+- **Objeción:** una recomendación «de predicción» sobre ganancias sería inventar precisión: 6 puntos por mes y ningún costo. Lo honesto es **comparar calendarios de pago contra un rango de entradas** (flojo / normal / bueno sacado de esos 6 años, encogido hacia lo parejo por tener tan pocos), decir «basado en 6 años de Trujillo» y no prometer una probabilidad. Y casi todo el valor está en el crédito del proveedor, que es un dato que el empresario sabe y el sistema no.
+- **Cómo funcionaría (después de #10):** al enviar a Compras (spike ⑦) cada grupo de proveedor pregunta una vez «¿te da crédito? ¿a cuántos días?» (se guarda en el proveedor). El Plan arma 2 o 3 calendarios posibles (todo antes del 17-nov / mitad y mitad / según el crédito) y para cada uno dibuja la caja mes a mes con el rango de ventas de la sede, junto con lo demás que sale (el flujo de Finanzas). Recomienda **el más barato que no baja de un colchón que tú escribes** (no se adivina), y dice el mes más apretado: «Pagar 50 % antes del 17-nov y 50 % en enero: en el caso flojo tu caja más baja es S/ X en diciembre». Sin crédito cargado dice «solo se puede pagar de una» y no inventa cuotas.
+- **Cómo lo verificas tú:** con un crédito de 30/60 días y ventas «flojas» la recomendación cambia a cuotas; sin crédito cargado solo ofrece «de una»; la sede sin historia (Lima) lo dice en vez de usar la curva de otra.
+- **Esfuerzo / dependencias:** M · **después de #10** (necesita las tandas y el flujo de Finanzas) · toca varios módulos (Plan, Proveedores, Finanzas): pide tu OK.
+- **DECIDÍ:** comparar calendarios de pago contra un rango de entradas por sede sacado de Sinatra, con el colchón escrito por el empresario. **DESCARTÉ:** predecir ganancias por campaña con un modelo ajustado (no hay costo histórico y son 6 puntos por mes: el modelo sería ruido con cara de ciencia). **SE ROMPE SI:** la sede no tiene historia propia y se usa la curva de otra (Lima con la de Trujillo); o el rango sale de los 26 días del ERP en vez de los 6 años de Sinatra; o un proveedor figura con crédito que en realidad no da y el calendario recomendado deja un pago vencido.
+- **Lo que esto toca de IGV:** el IGV de la factura de compra baja lo que se paga a SUNAT el mes siguiente (crédito fiscal): mueve la caja de enero, no la de diciembre. Confirmarlo con el contador antes de que el calendario lo cuente.
+
 ## 8 · Estrategia alternativa
 | | Pantalla por campaña (hoy + parches) | Programa del año (propuesta) |
 |---|---|---|
@@ -223,6 +233,7 @@ Recomiendo el programa, pero **en orden**: #1–#3 ya, luego #4–#6 (sin tocar 
 - [ ] `[pantalla:compras-plan]` #11 Pulido de Formidable pendiente — S
 - [ ] `[pantalla:compras-plan]` #12 Decidir: programa del año — decisión
 - [ ] `[pantalla:compras-plan]` 7b Enviar lo elegido a Compras como «Pendiente de campaña» (con fecha y rectificar) — L
+- [ ] `[pantalla:compras-plan]` 7c #13 Recomendar cómo pagar la campaña (calendarios de pago contra un rango de entradas de Sinatra; crédito del proveedor y colchón escritos por el empresario) — M, después de #10
 
 ## Historial
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
