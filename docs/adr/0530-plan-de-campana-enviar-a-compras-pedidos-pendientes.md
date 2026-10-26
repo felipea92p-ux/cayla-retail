@@ -42,6 +42,11 @@ numeración (el número se toma al guardar), su PDF, el envío al proveedor y `f
    de campaña cuya orden sigue generada —una anulada vuelve a sumar a lo que falta— y confirmados DESPUÉS de guardar ese paso 2) y la lista y la pestaña las suman a «Comprar» antes de decir «por revisar»
    (`paso2PorRevisar`). Si de verdad se tocó el plan, o entró otra orden a mano, sí se pide revisar. El paso 3 se queda a la vista aunque ya no falte pedir nada: ahí se ve en qué quedó cada pedido.
 
+10. **Una segunda tanda al mismo proveedor es posible, y nace de un paso 2 nuevo.** Después de confirmar una orden, «Comprar» baja y el paso 2 se vuelve a guardar para lo que FALTA: ese reparto nuevo puede traer
+   al mismo proveedor otra vez. Por eso la base impide **dos pedidos pendientes** del mismo proveedor (se rectifica el viejo antes de enviar el nuevo) y **dos ya pedidos de la misma versión del paso 2**, pero NO
+   impide enviar a un proveedor cuyo pedido anterior, de un paso 2 anterior, ya es una orden. La tabla lo dice («Ya se pidió antes (OC-…): esto es una segunda tanda»). Solo un pedido PENDIENTE puede estar
+   «desactualizado»; uno ya pedido es historia. (La primera idea —un solo pedido «activo» por proveedor y categoría— impedía esa segunda tanda: salió del recorrido en el navegador, no de una prueba.)
+
 ```
 DECIDÍ:     una tabla propia de pedidos pendientes de campaña (estado, cuándo y foto de líneas) cuya única salida a una orden de compra es una función que la crea con las reglas de siempre y deja el pedido ligado a
             ella en la misma transacción.
@@ -50,7 +55,7 @@ DESCARTÉ:   (a) un estado «borrador» en `ordenes_compra`: rompe la numeració
             proveedor y no se puede confirmar a medias; (d) guardar solo las celdas y volver a leer el paso 2 al confirmar: si el plan cambió, se pediría algo que nadie envió; (e) dejar rectificar un pedido ya
             confirmado: la orden existe, se anula en Órdenes (otro módulo, otras reglas) y dos pantallas no deben poder deshacer lo mismo de dos formas.
 SE ROMPE SI: dos personas confirman el mismo pedido a la vez (lo cierra el bloqueo de la fila: la segunda recibe la MISMA orden y el índice único de la orden lo respalda); alguien rectifica mientras otra confirma
-            (se turnan: gana una, la otra recibe su razón); el costo del plan se edita después de enviar (el pedido pide al costo que tenía al enviar; el Plan ya lo marca «desactualizado» solo si cambia el paso 2, no el
+            (se turnan: gana una, la otra recibe su razón); el paso 2 se vuelve a guardar con un reparto que NO es «lo que faltaba» sino otra cosa (la segunda tanda repetiría lo ya pedido); el costo del plan se edita después de enviar (el pedido pide al costo que tenía al enviar; el Plan ya lo marca «desactualizado» solo si cambia el paso 2, no el
             costo: ver «Objeciones»); o la campaña empieza dentro de más de un año (la entrega se topa a un año y el Plan no la contaría como pedida de esa campaña).
 ```
 
@@ -68,7 +73,7 @@ SE ROMPE SI: dos personas confirman el mismo pedido a la vez (lo cierra el bloqu
 
 ## Cómo se prueba que no se rompe (todo-o-nada, concurrencia y caídas)
 
-- **Estados imposibles, en el esquema y no en la pantalla** (`pruebas:plan-compra-envio`, 52 casos): un «pedido» sin orden, un «rectificado» sin motivo, «ya» con fecha, dos envíos activos de lo mismo, una orden ligada a
+- **Estados imposibles, en el esquema y no en la pantalla** (`pruebas:plan-compra-envio`, 55 casos): un «pedido» sin orden, un «rectificado» sin motivo, «ya» con fecha, dos envíos activos de lo mismo, una orden ligada a
   dos pedidos, una línea repetida o de 0 prendas, un pedido que cambia después de pedido o de rectificado, que se borra o cuyo plan, proveedor, prendas o costo se editan: **los rechaza la tabla** aunque nadie pase por
   las funciones. Las tablas no se leen ni se escriben desde la web (RLS encendido, **sin políticas** y sin permisos de tabla).
 - **Todo-o-nada:** un lote de envíos con UNO inválido no deja ninguno; si la orden de compra rechaza algo que nada más ve (un modelo con más de 99 999 prendas), el pedido **sigue pendiente y no nace orden**.

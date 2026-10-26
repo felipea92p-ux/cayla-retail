@@ -254,6 +254,19 @@ describe("el estado de cada grupo", () => {
     expect(porEnviar(e).map((x) => x.grupo.proveedorId)).toEqual(["b"]);
   });
 
+  it("una segunda tanda: lo ya pedido de un paso 2 ANTERIOR no impide enviar el nuevo; un pendiente (de cualquier versión) sí; lo ya pedido de ESTA versión, tampoco", () => {
+    const b = base([grupo("a"), grupo("b"), grupo("c")], { version: 3 });
+    const ya = (id: string, prov: string, version: number, estado: PedidoEnviado["estado"] = "pedido") => ({ ...pedido(id, prov, estado), version });
+    const e = estadoDeLosGrupos(b, [ya("1", "a", 2), ya("2", "b", 2, "pendiente"), ya("3", "c", 3)]);
+    expect(e.map((x) => [x.grupo.proveedorId, x.vigente?.id ?? null, x.anterior?.id ?? null])).toEqual([
+      ["a", null, "1"],
+      ["b", "2", null],
+      ["c", "3", null],
+    ]);
+    // «a» ya se pidió con el paso 2 anterior y se puede volver a enviar con el nuevo; «b» tiene un pendiente viejo (se rectifica primero) y «c» ya se pidió con ESTE paso 2.
+    expect(porEnviar(e).map((x) => x.grupo.proveedorId)).toEqual(["a"]);
+  });
+
   it("un proveedor o una marca inactivos bloquean el envío con su razón", () => {
     expect(bloqueoDelGrupo(grupo("a"))).toBeNull();
     expect(bloqueoDelGrupo(grupo("a", { proveedorActivo: false }))).toMatch(/proveedor está inactivo/);

@@ -21,7 +21,8 @@
 --   · Un pedido ya confirmado NO se rectifica desde aquí: es una orden, y se anula en Órdenes (para que la orden y el plan no queden contradiciéndose).
 --   · No toca `ordenes_compra`, `fn_plan_compra_pedido` ni la numeración: la orden que crea es una más, igual a la que se crea a mano.
 --
--- CONTRATO. PROMETE: a lo más un envío ACTIVO (pendiente o pedido) por campaña, categoría y proveedor; que un pedido solo pase de pendiente a pedido o a rectificado y de ahí no se mueva; que un
+-- CONTRATO. PROMETE: a lo más UN pedido pendiente por campaña, categoría y proveedor, y a lo más uno ya pedido por cada versión del paso 2 (una segunda tanda al mismo proveedor nace de un paso 2 NUEVO,
+--   que reparte lo que faltaba después de la primera orden); que un pedido solo pase de pendiente a pedido o a rectificado y de ahí no se mueva; que un
 --   pedido «pedido» tenga SIEMPRE su orden de compra y que una orden no cubra dos pedidos; que lo enviado (las líneas) no se edite ni se borre; que confirmar dos veces el mismo pedido cree UNA
 --   sola orden; y que lo que se manda sale del paso 2 GUARDADO, con la versión que la persona vio (si otra persona guardó otro paso 2 entre medio, se rechaza con `PT409`). ASUME: que el producto
 --   de cada línea trae su marca y su proveedor (los que no, no se envían: la lectura dice cuántas prendas) y que el proveedor «CAYLA SAC» es el Taller.
@@ -29,7 +30,7 @@
 -- ESTADOS QUE NUNCA DEBEN EXISTIR (los cierra el esquema, no la pantalla):
 --   · un pedido con «ya» y una fecha, o con una fecha prevista sin decir «fecha» (CHECK `pedidos_campana_cuando_coherente`);
 --   · un pedido `pedido` sin orden de compra, o uno `pendiente`/`rectificado` con una orden (CHECK `pedidos_campana_estado_coherente`); un `rectificado` sin motivo ni quién;
---   · dos envíos activos de lo mismo (índice único parcial) o una orden ligada a dos pedidos (UNIQUE);
+--   · dos pedidos pendientes de lo mismo, o dos ya pedidos de la misma versión del paso 2 (índices únicos parciales), o una orden ligada a dos pedidos (UNIQUE);
 --   · un pedido que cambia después de pedido o de rectificado, o que se borra, o cuyo plan, categoría, proveedor, versión, prendas o costo se editan (disparador `pedidos_campana_guardia`);
 --   · una línea editada o borrada (disparador `pedidos_campana_lineas_inmutable`, el mismo del historial del plan);
 --   · nadie lee ni escribe las tablas desde la web (RLS sin políticas y sin permisos de tabla).
@@ -87,9 +88,12 @@ create table if not exists retail.pedidos_campana (
   constraint pedidos_campana_una_orden unique (orden_compra_id)
 );
 comment on table retail.pedidos_campana is
-  'Lo que el Plan de campaña manda a Compras: un pedido PENDIENTE por (campaña, categoría, proveedor) con la fecha en que la persona piensa pedirlo. Solo pasa de pendiente a pedido (nace la orden de compra) o a rectificado (cambió de decisión antes de pedir). Enviar no pide nada.';
--- Un solo envío activo de lo mismo (los rectificados son historia y pueden repetirse).
-create unique index if not exists pedidos_campana_uno_activo on retail.pedidos_campana (plan_id, categoria_id, proveedor_id) where estado in ('pendiente', 'pedido');
+  'Lo que el Plan de campaña manda a Compras: un pedido PENDIENTE por (campaña, categoría, proveedor), con la fecha en que la persona piensa pedirlo. Solo pasa de pendiente a pedido (nace la orden de compra) o a rectificado (cambió de decisión antes de pedir). Enviar no pide nada.';
+-- Un solo pedido PENDIENTE de lo mismo, y uno solo ya pedido por versión del paso 2 (los rectificados son historia y pueden repetirse; una segunda tanda al mismo proveedor viene de un paso 2 nuevo).
+-- (El índice de una primera idea —uno solo «activo»— impedía esa segunda tanda: se quita.)
+drop index if exists retail.pedidos_campana_uno_activo;
+create unique index if not exists pedidos_campana_un_pendiente on retail.pedidos_campana (plan_id, categoria_id, proveedor_id) where estado = 'pendiente';
+create unique index if not exists pedidos_campana_un_pedido_por_version on retail.pedidos_campana (plan_id, categoria_id, proveedor_id, paso_2_version) where estado = 'pedido';
 create index if not exists pedidos_campana_pendientes on retail.pedidos_campana (fecha_prevista nulls first, enviado_en) where estado = 'pendiente';
 alter table retail.pedidos_campana enable row level security;
 revoke all on retail.pedidos_campana from public, anon, authenticated;
@@ -291,7 +295,8 @@ begin
                  count(*) filter (where pe.estado = 'pendiente')::integer as pendientes,
                  count(*) filter (where pe.estado = 'pedido')::integer as pedidos,
                  count(*) filter (where pe.estado = 'rectificado')::integer as rectificados,
-                 coalesce(bool_or(pe.estado in ('pendiente', 'pedido')
+                 -- Solo un pedido PENDIENTE puede estar desactualizado (lo de Compras es de un paso 2 anterior): uno ya pedido es historia, no hay nada que corregir en él.
+                 coalesce(bool_or(pe.estado = 'pendiente'
                                   and pe.paso_2_version <> (select max(f.version) from retail.planes_compra_paso_2 f where f.plan_id = pe.plan_id and f.categoria_id = pe.categoria_id)), false) as desactualizado,
                  -- Las prendas que ya son orden desde que se guardó el último paso 2 (ver `fn_plan_compra_envio_base`): la lista del Plan las suma a «Comprar» para saber si el paso 2 sigue siendo lo que se compra.
                  coalesce(sum(pe.unidades) filter (where pe.estado = 'pedido'
@@ -407,17 +412,23 @@ begin
       raise exception 'La marca «%» está inactiva: reactívala antes de enviar este pedido', v_grupo -> 'marcas_inactivas' ->> 0 using hint = 'pedido_campana_marca_inactiva';
     end if;
 
-    -- Ya enviado: si es lo mismo (un doble clic, un reintento tras un corte de red) no se hace nada; si no, se dice.
+    -- Ya enviado: si es lo mismo (un doble clic, un reintento tras un corte de red) no se hace nada; si no, se dice. Lo que impide enviar: un pedido PENDIENTE de este proveedor (de cualquier versión del paso 2:
+    -- se rectifica antes) o uno ya pedido de ESTA misma versión. Un pedido ya confirmado de un paso 2 ANTERIOR no impide nada: el paso 2 nuevo reparte lo que faltaba después de esa orden (segunda tanda).
     v_activo := null;
     for v_activo in select pe.id, pe.estado, pe.cuando, pe.fecha_prevista, pe.paso_2_version from retail.pedidos_campana pe
-                     where pe.plan_id = p_plan_id and pe.categoria_id = p_categoria_id and pe.proveedor_id = v_proveedor and pe.estado in ('pendiente', 'pedido') loop exit; end loop;
+                     where pe.plan_id = p_plan_id and pe.categoria_id = p_categoria_id and pe.proveedor_id = v_proveedor
+                       and (pe.estado = 'pendiente' or (pe.estado = 'pedido' and pe.paso_2_version = v_version))
+                     order by (pe.estado = 'pendiente') desc loop exit; end loop;
     if v_activo.id is not null then
       if v_activo.estado = 'pendiente' and v_activo.paso_2_version = v_version and v_activo.cuando = v_cuando and v_activo.fecha_prevista is not distinct from v_fecha then
         v_ya := v_ya + 1;
         continue;
       end if;
+      if v_activo.estado = 'pendiente' and v_activo.paso_2_version <> v_version then
+        raise exception 'Ese proveedor ya tiene un pedido pendiente de un paso 2 anterior: rectifícalo para enviar lo nuevo' using hint = 'pedido_campana_pendiente_anterior';
+      end if;
       raise exception 'Ese proveedor ya está %: para cambiarlo, cambia la fecha o rectifícalo desde Compras ▸ Órdenes',
-          case v_activo.estado when 'pendiente' then 'enviado a Compras' else 'pedido' end using hint = 'pedido_campana_ya_enviado';
+          case v_activo.estado when 'pendiente' then 'enviado a Compras' else 'pedido con este mismo paso 2' end using hint = 'pedido_campana_ya_enviado';
     end if;
 
     insert into retail.pedidos_campana (plan_id, categoria_id, proveedor_id, cuando, fecha_prevista, paso_2_version, unidades, costo_unitario, enviado_por)
@@ -671,7 +682,7 @@ begin
                'proveedor', jsonb_build_object('id', pv.id, 'nombre', pv.nombre),
                'unidades', pe.unidades, 'modelos', (select count(distinct l.producto_id) from retail.pedidos_campana_lineas l where l.pedido_id = pe.id)::integer,
                'costo_unitario', pe.costo_unitario, 'paso_2_version', pe.paso_2_version,
-               'desactualizado', pe.estado in ('pendiente', 'pedido')
+               'desactualizado', pe.estado = 'pendiente'
                                  and pe.paso_2_version <> coalesce((select max(f.version) from retail.planes_compra_paso_2 f where f.plan_id = pe.plan_id and f.categoria_id = pe.categoria_id), pe.paso_2_version),
                -- Un modelo del pedido ya es de otro proveedor: confirmar se rechazaría; mejor decirlo antes de que la persona apriete el botón.
                'cambio_el_proveedor', pe.estado = 'pendiente' and exists (select 1 from retail.pedidos_campana_lineas l join retail.productos pr on pr.id = l.producto_id

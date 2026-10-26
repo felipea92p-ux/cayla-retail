@@ -144,10 +144,10 @@ create function pg_temp.grupo(p_prov text) returns jsonb language sql as $$
 -- Cuántos pedidos hay en la categoría (en un estado, o todos).
 create function pg_temp.cuantos(p_estado text default null) returns integer language sql as $$
   select count(*)::integer from retail.pedidos_campana where plan_id = current_setting('pe.plan')::uuid and categoria_id = current_setting('pe.cat')::uuid and (p_estado is null or estado = p_estado) $$;
--- El pedido vigente (pendiente o pedido) de un proveedor.
+-- El pedido vigente (pendiente o pedido) de un proveedor: el pendiente si lo hay y, si no, el último ya pedido (con una segunda tanda hay dos).
 create function pg_temp.pedido(p_prov text) returns uuid language sql as $$
   select id from retail.pedidos_campana where plan_id = current_setting('pe.plan')::uuid and categoria_id = current_setting('pe.cat')::uuid
-     and proveedor_id = current_setting('pe.' || p_prov)::uuid and estado in ('pendiente', 'pedido') $$;
+     and proveedor_id = current_setting('pe.' || p_prov)::uuid and estado in ('pendiente', 'pedido') order by (estado = 'pendiente') desc, enviado_en desc limit 1 $$;
 -- Una columna del pedido de un proveedor: el vigente, y si no hay, el último rectificado.
 create function pg_temp.col(p_prov text, p_col text) returns text language sql as $$
   select to_jsonb(pe) ->> p_col from retail.pedidos_campana pe
@@ -495,6 +495,30 @@ caso(
 );
 
 caso(
+  "C11 una SEGUNDA TANDA al mismo proveedor es posible: tras confirmar la primera orden y guardar un paso 2 nuevo (que reparte lo que faltaba), el mismo proveedor se vuelve a enviar y a confirmar, y ese paso 2 ya pedido no se puede enviar dos veces; el pedido ya hecho de la versión anterior no cuenta como «desactualizado»",
+  `${CON_PASO_2}
+   ${ENVIA_A}
+   select (${CONFIRMAR("pg_temp.pedido('pa')")} ->> 'orden_id') as o1 \\gset
+   select pg_temp.ok(pg_temp.guarda_p2(26, jsonb_build_array(pg_temp.celda('uno', 'NEG', 't1', 6), pg_temp.celda('dos', 'ROS', 't3', 4)), 1)) as _p \\gset
+   select (${ENVIOS} -> 'categorias' -> 0 ->> 'desactualizado') as desact \\gset
+   select pg_temp.codigo(pg_temp.envia(2, jsonb_build_array(pg_temp.envio('pa')))) as envio2 \\gset
+   select (${CONFIRMAR("pg_temp.pedido('pa')")} ->> 'orden_id') as o2 \\gset
+   select pg_temp.pista(pg_temp.envia(2, jsonb_build_array(pg_temp.envio('pa')))) as otra_vez \\gset
+   select :'desact' || ',' || :'envio2' || ',' || (:'o1' <> :'o2')::text || ',' || :'otra_vez' || ',' || pg_temp.cuantos('pedido') || ',' || pg_temp.ordenes();`,
+  "false,SIN_ERROR,true,pedido_campana_ya_enviado,2,2",
+);
+caso(
+  "C12 un pedido PENDIENTE de un paso 2 anterior impide enviar lo nuevo al mismo proveedor (se rectifica primero); rectificado, se envía lo nuevo",
+  `${CON_PASO_2}
+   ${ENVIA_A}
+   select pg_temp.pedido('pa') as ped \\gset
+   select pg_temp.ok(pg_temp.guarda_p2(26, jsonb_build_array(pg_temp.celda('uno', 'NEG', 't1', 6)), 1)) as _p \\gset
+   select pg_temp.pista(pg_temp.envia(2, jsonb_build_array(pg_temp.envio('pa')))) as bloqueado \\gset
+   select pg_temp.ok(pg_temp.rect(:'ped', 'El plan cambió')) as _r \\gset
+   select :'bloqueado' || ',' || pg_temp.codigo(pg_temp.envia(2, jsonb_build_array(pg_temp.envio('pa')))) || ',' || pg_temp.col('pa', 'paso_2_version') || ',' || pg_temp.cuantos('pendiente');`,
+  "pedido_campana_pendiente_anterior,SIN_ERROR,2,1",
+);
+caso(
   "C10 las prendas que YA son orden desde que se guardó el paso 2 se dicen aparte (la lista del Plan las suma a «Comprar» para no llamar «por revisar» a un paso 2 que solo se confirmó): una orden generada cuenta; si se anula deja de contar; y una orden anterior a un paso 2 nuevo ya está descontada de su total",
   `${CON_PASO_2}
    ${ENVIA_A}
@@ -597,11 +621,22 @@ caso(
   "ok,ok,ok,ok,ok,ok",
 );
 caso(
-  "S3 dos envíos activos de lo mismo (campaña, categoría y proveedor) no pueden existir; un rectificado y un pendiente del mismo sí (el rectificado es historia)",
+  "S3 dos pedidos PENDIENTES de lo mismo (campaña, categoría y proveedor) no pueden existir; un rectificado y un pendiente del mismo sí (el rectificado es historia)",
   `select pg_temp.ok(pg_temp.intento($q$${INS()}$q$)) as _a \\gset
-   select ${FALLA(INS(), "23505", "pedidos_campana_uno_activo")} as dos \\gset
+   select ${FALLA(INS(), "23505", "pedidos_campana_un_pendiente")} as dos \\gset
    select pg_temp.intento($q$${INS({ estado: "rectificado", rect: true, motivo: "'Cambié de idea'" })}$q$) as hist \\gset
    select :'dos' || ',' || :'hist' || ',' || pg_temp.cuantos();`,
+  "ok,SIN_ERROR,2",
+);
+caso(
+  "S3b dos pedidos YA PEDIDOS de la misma versión del paso 2 (mismo proveedor) no pueden existir; el mismo proveedor ya pedido de OTRA versión sí (la segunda tanda)",
+  `insert into retail.ordenes_compra (proveedor_id, fecha_emision, estado, creada_por) values (current_setting('pe.pa')::uuid, current_date, 'generada', current_setting('pe.persona')::uuid) returning id as o1 \\gset
+   insert into retail.ordenes_compra (proveedor_id, fecha_emision, estado, creada_por) values (current_setting('pe.pa')::uuid, current_date, 'generada', current_setting('pe.persona')::uuid) returning id as o2 \\gset
+   insert into retail.ordenes_compra (proveedor_id, fecha_emision, estado, creada_por) values (current_setting('pe.pa')::uuid, current_date, 'generada', current_setting('pe.persona')::uuid) returning id as o3 \\gset
+   select pg_temp.ok(pg_temp.intento(format($q$${INS({ estado: "pedido", pedido: true, orden: "%L::uuid" })}$q$, :'o1'))) as _a \\gset
+   select pg_temp.falla(format($q$${INS({ estado: "pedido", pedido: true, orden: "%L::uuid" })}$q$, :'o2'), '23505', 'pedidos_campana_un_pedido_por_version') as misma \\gset
+   select pg_temp.intento(format($q$${INS({ estado: "pedido", pedido: true, orden: "%L::uuid" }).replace(", 1, ", ", 2, ")}$q$, :'o3')) as otra \\gset
+   select :'misma' || ',' || :'otra' || ',' || pg_temp.cuantos('pedido');`,
   "ok,SIN_ERROR,2",
 );
 caso(
@@ -731,14 +766,15 @@ caso(
 
 console.log("\n— La migración —");
 caso(
-  "M1 pegarla dos veces deja lo mismo: sin error, una sola de cada función, un solo disparador por tabla, una sola de cada tabla y de cada índice",
+  "M1 pegarla dos veces deja lo mismo: sin error, una sola de cada función, un solo disparador por tabla, una sola de cada tabla y de cada índice (y ninguno del índice que impedía la segunda tanda)",
   `${MIGRACION}
    select (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('fn_plan_compra_envio', 'fn_plan_compra_envios', 'enviar_plan_compra_a_compras', 'cambiar_fecha_pedido_campana',
              'rectificar_pedido_campana', 'confirmar_pedido_campana', 'fn_pedidos_campana', 'fn_pedido_campana_lineas', 'fn_plan_compra_envio_base', 'fn_es_proveedor_taller', 'fn_pedido_campana_guardia')) || ',' ||
           (select count(*) from pg_trigger where tgrelid in ('retail.pedidos_campana'::regclass, 'retail.pedidos_campana_lineas'::regclass) and not tgisinternal) || ',' ||
           (select count(*) from pg_class where relname in ('pedidos_campana', 'pedidos_campana_lineas') and relnamespace = 'retail'::regnamespace) || ',' ||
-          (select count(*) from pg_indexes where schemaname = 'retail' and indexname in ('pedidos_campana_uno_activo', 'pedidos_campana_pendientes', 'pedidos_campana_lineas_unica'));`,
-  "11,2,2,3",
+          (select count(*) from pg_indexes where schemaname = 'retail' and indexname in ('pedidos_campana_un_pendiente', 'pedidos_campana_un_pedido_por_version', 'pedidos_campana_pendientes', 'pedidos_campana_lineas_unica')) || ',' ||
+          (select count(*) from pg_indexes where schemaname = 'retail' and indexname = 'pedidos_campana_uno_activo');`,
+  "11,2,2,4,0",
 );
 
 // Concurrencia con sesiones reales. Se crean los datos de verdad (con commit), se corre y se borra todo al terminar.

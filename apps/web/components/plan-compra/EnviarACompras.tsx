@@ -156,7 +156,8 @@ function EnvioConBase({
   const porRevisar = filaPlan.calculo ? paso2PorRevisar(base.total, filaPlan.calculo.comprar, base.confirmadas) : false;
   const hayPendientes = estados.some((e) => e.vigente?.estado === "pendiente");
   const hayVigentes = estados.some((e) => e.vigente !== null);
-  const cambioElPlan = estados.some((e) => e.vigente !== null && e.vigente.version !== base.version);
+  // Solo un pedido PENDIENTE puede tener lo de antes: uno ya pedido es historia (la orden existe y se descontó de lo que falta).
+  const cambioElPlan = estados.some((e) => e.vigente?.estado === "pendiente" && e.vigente.version !== base.version);
   const noSeEnvia = queNoSeEnvia(base);
   const puedeEnviar = candidatos.length > 0 && problemas.every((p) => p === null) && !porRevisar && costo !== null;
   const unidadesPorEnviar = candidatos.reduce((s, e) => s + e.grupo.unidades, 0);
@@ -192,10 +193,16 @@ function EnvioConBase({
       if (esFalloDeRed(error)) return void avisar.error(`Se cortó la conexión mientras se enviaba ${filaPlan.c.nombre} a Compras: no sabemos si llegó. Vuelve a pulsar «Enviar»; si ya se había enviado, no se duplica.`);
       return void avisar.error(traducirError(error, "enviar a Compras"));
     }
-    const creados = Number((data as { creados?: unknown } | null)?.creados ?? 0);
-    avisar.exito(creados === 1 ? "1 pedido quedó pendiente de confirmar en Compras" : `${creados} pedidos quedaron pendientes de confirmar en Compras`, {
-      detalle: "Nada se ha pedido todavía: quien compra lo confirma en Compras ▸ Órdenes.",
-    });
+    const resultado = data as { creados?: unknown; ya_enviados?: unknown } | null;
+    const creados = Number(resultado?.creados ?? 0);
+    if (creados === 0 && Number(resultado?.ya_enviados ?? 0) > 0) {
+      // Un reintento (se cortó la red, un doble clic en otra pestaña): lo mismo ya estaba enviado y no se duplicó nada.
+      avisar.exito("Ya estaba enviado a Compras", { detalle: "Un envío igual ya existía: no se duplicó nada. Nada se ha pedido todavía." });
+    } else {
+      avisar.exito(creados === 1 ? "1 pedido quedó pendiente de confirmar en Compras" : `${creados} pedidos quedaron pendientes de confirmar en Compras`, {
+        detalle: "Nada se ha pedido todavía: quien compra lo confirma en Compras ▸ Órdenes.",
+      });
+    }
     // La lectura vuelve a pedirse (los grupos pasan a «pendiente») y la lista de atrás marca la categoría.
     recargar();
     router.refresh();
@@ -429,7 +436,7 @@ function FilaDeProveedor({
                 Llega tarde: después del {fechaCortaES(limite)}
               </Chip>
             )}
-            {v.version !== baseVersion && (
+            {v.estado === "pendiente" && v.version !== baseVersion && (
               <Chip tono="ambar" versalitas={false} title="El paso 2 se guardó otra vez después de enviar este pedido">
                 Cambió el plan
               </Chip>
@@ -467,6 +474,11 @@ function FilaDeProveedor({
               <Chip tono="ambar" versalitas={false} title="Con esa fecha, la mercadería llega a las tiendas después de que empiece la campaña">
                 Llega tarde: después del {fechaCortaES(limite)}
               </Chip>
+            )}
+            {e.anterior && (
+              <span className="basis-full text-xs text-taupe">
+                Ya se pidió antes{e.anterior.ordenTexto ? ` (${e.anterior.ordenTexto}, ${enteroES.format(e.anterior.unidades)} prendas)` : ""}: esto es una segunda tanda.
+              </span>
             )}
             {e.rectificado && (
               <span className="basis-full text-xs text-taupe">

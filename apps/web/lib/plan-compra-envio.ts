@@ -228,8 +228,10 @@ export function fraseDeCuando(cuando: Cuando, fecha: string | null): string {
 
 export type EstadoDelGrupo = {
   grupo: GrupoDeEnvio;
-  /** El pedido vigente (pendiente o ya orden) de este proveedor, si lo hay. */
+  /** El pedido vigente de este proveedor, si lo hay: el PENDIENTE (de cualquier versión del paso 2: se rectifica antes de enviar otro) o el ya pedido de ESTA versión del paso 2. */
   vigente: PedidoEnviado | null;
+  /** El último pedido ya hecho de una versión ANTERIOR del paso 2 (la primera tanda), si lo hay: es historia, no impide enviar la segunda. */
+  anterior: PedidoEnviado | null;
   /** El último pedido rectificado de este proveedor, si lo hay (es historia: no impide volver a enviar). */
   rectificado: PedidoEnviado | null;
   /** Por qué este grupo no se puede enviar ahora, si no se puede. null = se puede (o ya se envió). */
@@ -249,9 +251,11 @@ export function estadoDeLosGrupos(base: BaseDeEnvio, pedidos: readonly PedidoEnv
     .filter((g) => !g.esTaller)
     .map((grupo) => {
       const suyos = pedidos.filter((p) => p.proveedorId === grupo.proveedorId);
-      const vigente = suyos.find((p) => p.estado === "pendiente" || p.estado === "pedido") ?? null;
+      // Una segunda tanda al mismo proveedor nace de un paso 2 nuevo: lo ya pedido de una versión anterior no impide enviarla; un pendiente sí (se rectifica primero).
+      const vigente = suyos.find((p) => p.estado === "pendiente") ?? suyos.find((p) => p.estado === "pedido" && p.version === base.version) ?? null;
+      const anterior = suyos.find((p) => p.estado === "pedido" && p.version !== base.version) ?? null;
       const rectificado = suyos.find((p) => p.estado === "rectificado") ?? null;
-      return { grupo, vigente, rectificado, bloqueo: vigente ? null : bloqueoDelGrupo(grupo) };
+      return { grupo, vigente, anterior, rectificado, bloqueo: vigente ? null : bloqueoDelGrupo(grupo) };
     });
 }
 
