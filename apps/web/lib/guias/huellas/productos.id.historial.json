@@ -2,7 +2,7 @@
   "guia": "productos.id.historial",
   "ruta": "/productos/[id]/historial",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 12,
+  "total": 14,
   "controles": {
     "app/(app)/productos/[id]/historial/page.tsx": [
       "Volver «{vueltaAProductos(desde)}»"
@@ -12,6 +12,8 @@
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/historial-prenda/CostoPrenda.tsx": [
+      "button «Por qué es un estimado»",
+      "button «{cuerpo}»",
       "button «{`Compra ${numero}»",
       "button «Cómo se calcula»"
     ],

@@ -211,6 +211,13 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "Cuántas llegaron y a cuánto, cuántas ya tenías y a cuánto, y en cuánto quedó cada prenda al juntarlas. El «?» muestra la cuenta.",
     },
     {
+      id: "vr-costo-hoy",
+      ancla: "historial-prenda.costo-hoy",
+      opcional: true,
+      titulo: "Las prendas de hoy",
+      texto: "Cuántas prendas hay hoy y de qué compra son. Es un estimado: suponemos que se vende primero lo que llegó antes. Tocar un tramo marca su compra en la tabla.",
+    },
+    {
       id: "vr-costo-errores",
       ancla: "historial-prenda.costo-errores",
       opcional: true,
@@ -534,6 +541,13 @@ export const GUIA_HISTORIAL_PRENDA: Guia = {
       opcional: true,
       titulo: "Una fila por compra",
       texto: "Cuántas llegaron y a cuánto, cuántas ya tenías y a cuánto, y en cuánto quedó cada prenda al juntarlas. El «?» muestra la cuenta.",
+    },
+    {
+      id: "costo-hoy",
+      ancla: "historial-prenda.costo-hoy",
+      opcional: true,
+      titulo: "Las prendas de hoy",
+      texto: "Cuántas prendas hay hoy y de qué compra son. Es un estimado: suponemos que se vende primero lo que llegó antes. Tocar un tramo marca su compra en la tabla.",
     },
     {
       id: "costo-errores",

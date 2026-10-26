@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, CircleHelp, Equal, Pencil } from "lucide-react";
+import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
 import {
   Encabezado,
@@ -17,12 +18,14 @@ import {
   diaCorto,
   fraseDeRespuesta,
   graficoDelCosto,
+  lotesDeHoy,
   movidaDeCompra,
   respuestaCosto,
   textoDeMovida,
   type CompraCosto,
   type CostoPrenda as Costo,
   type ErrorArreglado,
+  type LoteDeHoy,
   type Movida,
 } from "@/lib/costo-prenda-reglas";
 import { soles } from "@/lib/historial-prenda-reglas";
@@ -35,6 +38,7 @@ import { soles } from "@/lib/historial-prenda-reglas";
  * El gráfico de escalera lleva un número por compra: tocar el número enciende su fila y tocar la fila enciende el número.
  * Los costos que alguien arregló a mano van aparte, en «Errores arreglados», y en el gráfico solo como un lápiz sobre su fecha: no
  * mueven la línea (el gráfico ya usa el número bueno).
+ * «Hoy: N prendas» reparte lo que hay en stock entre las compras, como ESTIMADO: se supone que se vende primero lo que llegó antes.
  */
 
 // La tabla decide su forma por el ancho de su tarjeta (en la vista rápida es angosta aunque la pantalla sea ancha): desde 560 px
@@ -95,6 +99,7 @@ export function CostoPrenda({
     setDestello(id);
     window.setTimeout(() => setDestello((d) => (d === id ? null : d)), 1400);
   };
+  const lotes = useMemo(() => lotesDeHoy(costo), [costo]);
   const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(new Set());
   const alternar = (k: string) =>
     setAbiertas((prev) => {
@@ -219,49 +224,171 @@ export function CostoPrenda({
         </section>
       )}
 
-      {errores.length > 0 && (
-        <section
-          data-guia="historial-prenda.costo-errores"
-          ref={lista}
-          className="card-cayla px-5 py-3"
+      {(lotes.length > 0 || errores.length > 0) && (
+        <div
+          className={`grid items-start gap-3 ${lotes.length > 0 && errores.length > 0 ? "lg:grid-cols-2" : ""}`}
         >
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-            <TituloSeccion nivel={3} cuenta={errores.length}>
-              Errores arreglados
-            </TituloSeccion>
-            <span className="text-[12.5px] text-tinta/65">
-              no cambian el costo
-            </span>
-          </div>
-          <ul className="mt-1">
-            {errores.map((e) => (
-              <li
-                key={e.id}
-                data-error={e.id}
-                aria-current={destello === e.id ? "true" : undefined}
-                className={`grid grid-cols-[24px_52px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-0.5 rounded-lg border-t border-dashed border-sand px-1 py-2 text-[13px] transition-colors duration-300 first:border-t-0 sm:grid-cols-[24px_52px_auto_minmax(0,1fr)] ${destello === e.id ? "bg-hueso" : ""}`}
-              >
-                <span className="grid h-6 w-6 place-items-center rounded-full border border-dashed border-pizarra text-pizarra">
-                  <Pencil aria-hidden className="h-3 w-3" /> {/* unificar-fijo: marca de un costo arreglado, no la acción de editar */}
-                </span>
-                <span className="text-[12.5px] text-tinta/65 tabular-nums">
-                  {diaCorto(e.cuando)}
-                </span>
-                <span className="whitespace-nowrap tabular-nums">
-                  <s className="text-tinta/55">{soles(e.antes)}</s> →{" "}
-                  <b className="font-semibold">{soles(e.despues)}</b>
-                </span>
-                <span className="col-start-3 text-[12px] text-tinta/65 sm:col-start-auto sm:text-right">
-                  costo declarado
-                  {e.variantes > 1 ? ` · en ${e.variantes} variantes` : ""}
-                  {e.persona ? ` · ${e.persona}` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+          {lotes.length > 0 && (
+            <HoyPorCompra
+              lotes={lotes}
+              activa={activa}
+              onElegir={(n) => elegir(n, true)}
+            />
+          )}
+          {errores.length > 0 && (
+          <section
+            data-guia="historial-prenda.costo-errores"
+            ref={lista}
+            className="card-cayla px-5 py-3"
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+              <TituloSeccion nivel={3} cuenta={errores.length}>
+                Errores arreglados
+              </TituloSeccion>
+              <span className="text-[12.5px] text-tinta/65">
+                no cambian el costo
+              </span>
+            </div>
+            <ul className="mt-1">
+              {errores.map((e) => (
+                <li
+                  key={e.id}
+                  data-error={e.id}
+                  aria-current={destello === e.id ? "true" : undefined}
+                  className={`grid grid-cols-[24px_52px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-0.5 rounded-lg border-t border-dashed border-sand px-1 py-2 text-[13px] transition-colors duration-300 first:border-t-0 sm:grid-cols-[24px_52px_auto_minmax(0,1fr)] ${destello === e.id ? "bg-hueso" : ""}`}
+                >
+                  <span className="grid h-6 w-6 place-items-center rounded-full border border-dashed border-pizarra text-pizarra">
+                    <Pencil aria-hidden className="h-3 w-3" /> {/* unificar-fijo: marca de un costo arreglado, no la acción de editar */}
+                  </span>
+                  <span className="text-[12.5px] text-tinta/65 tabular-nums">
+                    {diaCorto(e.cuando)}
+                  </span>
+                  <span className="whitespace-nowrap tabular-nums">
+                    <s className="text-tinta/55">{soles(e.antes)}</s> →{" "}
+                    <b className="font-semibold">{soles(e.despues)}</b>
+                  </span>
+                  <span className="col-start-3 text-[12px] text-tinta/65 sm:col-start-auto sm:text-right">
+                    costo declarado
+                    {e.variantes > 1 ? ` · en ${e.variantes} variantes` : ""}
+                    {e.persona ? ` · ${e.persona}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        </div>
       )}
     </div>
+  );
+}
+
+// Del más viejo al más nuevo: cada tramo un poco más oscuro, así se lee «lo más nuevo es lo más fuerte». Las clases van enteras
+// (Tailwind solo genera lo que lee) y ninguna baja de /50: debajo, un tinta no llega a 3:1 contra el hilo de arena. Lo que dice la
+// barra se dice también en la leyenda, en texto.
+const TONOS_LOTE = ["bg-tinta/50", "bg-tinta/65", "bg-tinta/80", "bg-tinta"] as const;
+
+function HoyPorCompra({
+  lotes,
+  activa,
+  onElegir,
+}: {
+  lotes: readonly LoteDeHoy[];
+  activa: number | null;
+  onElegir: (n: number) => void;
+}) {
+  const total = lotes.reduce((a, l) => a + l.cantidad, 0);
+  const [explicado, setExplicado] = useState(false);
+  // Los más nuevos toman el tono más fuerte aunque haya menos tramos que tonos.
+  const clase = (i: number) =>
+    TONOS_LOTE[Math.max(0, TONOS_LOTE.length - lotes.length) + (i % TONOS_LOTE.length)] ??
+    TONOS_LOTE[TONOS_LOTE.length - 1];
+  const dice = (l: LoteDeHoy) =>
+    `${l.cantidad} ${l.cantidad === 1 ? "prenda" : "prendas"} a ${soles(l.costo)}`;
+  return (
+    <section
+      data-guia="historial-prenda.costo-hoy"
+      className="card-cayla px-5 py-3"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <TituloSeccion nivel={3}>
+          Hoy: {total} {total === 1 ? "prenda" : "prendas"}
+        </TituloSeccion>
+        <span className="flex items-center gap-1">
+          <Chip tono="neutro">estimado</Chip>
+          <button
+            type="button"
+            onClick={() => setExplicado((v) => !v)}
+            aria-expanded={explicado}
+            aria-label="Por qué es un estimado"
+            title="Por qué es un estimado"
+            className="grid h-6 w-6 place-items-center rounded-full text-tinta/65 transition-colors hover:text-tinta"
+          >
+            <CircleHelp aria-hidden className="h-4 w-4" />
+          </button>
+        </span>
+      </div>
+      {explicado && (
+        <p className="anim-revelar mt-1 text-[12.5px] text-tinta/75">
+          Suponemos que se vende primero lo que llegó antes. Por eso las que
+          quedan son las de las compras más nuevas. Es una cuenta, no un
+          conteo: el sistema no marca de qué compra sale cada venta.
+        </p>
+      )}
+      <BarraApilada
+        className="mt-2.5"
+        unidad="prendas"
+        etiqueta={`Hoy ${total} ${total === 1 ? "prenda" : "prendas"}, estimado: ${lotes.map(dice).join(", ")}`}
+        segmentos={lotes.map((l, i) => ({
+          clave: l.clave,
+          nombre: dice(l),
+          valor: l.cantidad,
+          clase: clase(i),
+          inerte: l.compra === null,
+          etiqueta: `${dice(l)}${l.compra ? `, de la compra ${l.compra}` : ", de antes de la primera compra"}`,
+        }))}
+        respuesta={{
+          onElegir: (k) => {
+            const l = lotes.find((x) => x.clave === k);
+            if (l?.compra) onElegir(l.compra);
+          },
+          elegida: activa === null ? null : `c${activa}`,
+          accion: "Ver esa compra",
+        }}
+      />
+      <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 text-[12.5px] tabular-nums">
+        {lotes.map((l, i) => {
+          const cuerpo = (
+            <>
+              <MuestraTramo clase={clase(i)} />
+              <b className="font-semibold">{l.cantidad}</b> a {soles(l.costo)}
+              <span className="text-tinta/65">
+                {" "}
+                · {l.compra ? `de la compra ${l.compra}` : "de antes"}
+              </span>
+            </>
+          );
+          return (
+            <li key={l.clave}>
+              {l.compra ? (
+                <button
+                  type="button"
+                  onClick={() => onElegir(l.compra!)}
+                  aria-pressed={activa === l.compra}
+                  className={`inline-flex min-h-6 items-center gap-1.5 rounded-md px-1 transition-colors ${activa === l.compra ? "bg-hueso" : ""}`}
+                >
+                  {cuerpo}
+                </button>
+              ) : (
+                <span className="inline-flex min-h-6 items-center gap-1.5 px-1">
+                  {cuerpo}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

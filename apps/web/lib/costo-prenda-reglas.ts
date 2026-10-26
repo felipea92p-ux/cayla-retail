@@ -192,6 +192,43 @@ export function textoDeMovida(m: Movida): string {
   return m.tipo === "igual" ? "igual" : "primera";
 }
 
+export type LoteDeHoy = {
+  clave: string;
+  /** El número de la compra en la tabla y el gráfico (①②③), o null para «lo que había antes de la primera compra». */
+  compra: number | null;
+  cantidad: number;
+  costo: number;
+};
+
+/**
+ * De qué compra es cada prenda que hay HOY, como ESTIMADO (Felipe, 2026-10-24): se supone que se vende primero lo que llegó
+ * antes (PEPS), así que lo que queda es lo más nuevo. Se recorre de la compra más nueva hacia atrás repartiendo el stock de hoy;
+ * lo que sobre llega hasta lo que había antes de la primera compra. Si el stock de hoy es MAYOR que todo lo comprado (un ajuste
+ * de entrada sin costo, un conteo), el sobrante se anota en ese primer tramo, a su costo: así la suma da SIEMPRE el stock de hoy,
+ * que es lo que la pantalla promete. Del más viejo al más nuevo; sin tramos vacíos; sin compras no hay qué repartir.
+ */
+export function lotesDeHoy(c: CostoPrenda): LoteDeHoy[] {
+  const stock = Math.max(0, Math.floor(c.hoy.stock));
+  const primera = c.compras[0];
+  if (stock === 0 || !primera) return [];
+  const antes = primera.yaHabia > 0 && primera.costoAntes !== null ? { cantidad: primera.yaHabia, costo: primera.costoAntes } : null;
+  const lotes: LoteDeHoy[] = [
+    { clave: "antes", compra: null, cantidad: antes?.cantidad ?? 0, costo: antes?.costo ?? c.inicio.costo ?? primera.costoLlegaron },
+    ...c.compras.map((x, i) => ({ clave: `c${i + 1}`, compra: i + 1, cantidad: x.llegaron, costo: x.costoLlegaron })),
+  ];
+  const comprado = lotes.reduce((a, l) => a + l.cantidad, 0);
+  if (stock > comprado) lotes[0]!.cantidad += stock - comprado;
+  let falta = stock;
+  const vivos: LoteDeHoy[] = [];
+  for (let i = lotes.length - 1; i >= 0 && falta > 0; i--) {
+    const l = lotes[i]!;
+    const queda = Math.min(l.cantidad, falta);
+    falta -= queda;
+    if (queda > 0) vivos.unshift({ ...l, cantidad: queda });
+  }
+  return vivos;
+}
+
 export type ErrorArreglado = {
   id: string;
   cuando: string;

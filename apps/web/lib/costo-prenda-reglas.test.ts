@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Evento } from "./historial-prenda-reglas";
-import { cuentaDeCompra, fraseDeRespuesta, erroresArreglados, graficoDelCosto, leerCostoPrenda, movidaDeCompra, respuestaCosto, textoDeMovida } from "./costo-prenda-reglas";
+import { cuentaDeCompra, fraseDeRespuesta, erroresArreglados, graficoDelCosto, leerCostoPrenda, lotesDeHoy, movidaDeCompra, respuestaCosto, textoDeMovida } from "./costo-prenda-reglas";
 
 // El ejemplo de la maqueta (docs/maquetas/costo-historial-2026-10/v2-escalera-amigable.html), tal como lo devuelve la base.
 const BASE = {
@@ -145,5 +145,52 @@ describe("erroresArreglados", () => {
       evento("a", "2026-09-12T15:00:00Z", [{ k: "costo", antes: 19, despues: 18, variantes: [v], declarado: true }]),
     ]);
     expect(e.map((x) => x.id)).toEqual(["a-0", "b-0"]);
+  });
+});
+
+describe("lotesDeHoy", () => {
+  const suma = (l: { cantidad: number }[]) => l.reduce((a, x) => a + x.cantidad, 0);
+
+  it("el ejemplo de la maqueta: 47 prendas son 23 de la compra ② y 24 de la ③", () => {
+    const l = lotesDeHoy(leerCostoPrenda(BASE)!);
+    expect(l.map((x) => [x.compra, x.cantidad, x.costo])).toEqual([[2, 23, 20.5], [3, 24, 19.5]]);
+  });
+
+  it("con mucho stock llegan las prendas de antes de la primera compra, a su costo", () => {
+    const c = leerCostoPrenda({ ...BASE, hoy: { stock: 100, costo: 19 } })!;
+    const l = lotesDeHoy(c);
+    expect(l.map((x) => [x.clave, x.cantidad, x.costo])).toEqual([["antes", 6, 18], ["c1", 30, 18], ["c2", 40, 20.5], ["c3", 24, 19.5]]);
+    expect(suma(l)).toBe(100);
+  });
+
+  it("si hay más stock que todo lo comprado, el sobrante se anota en el primer tramo y la suma sigue cerrando", () => {
+    const c = leerCostoPrenda({ ...BASE, hoy: { stock: 120, costo: 19 } })!;
+    const l = lotesDeHoy(c);
+    expect(l[0]).toMatchObject({ clave: "antes", cantidad: 26, costo: 18 });
+    expect(suma(l)).toBe(120);
+  });
+
+  it("sin prendas antes de la primera compra y con sobrante, el primer tramo usa el costo de partida", () => {
+    const c = leerCostoPrenda({ compras: [{ fecha: "2026-10-05", llegaron: 5, costo_llegaron: 10, ya_habia: 0, costo_despues: 10 }], hoy: { stock: 8, costo: 10 }, inicio: { fecha: null, costo: 9 } })!;
+    expect(lotesDeHoy(c).map((x) => [x.clave, x.cantidad, x.costo])).toEqual([["antes", 3, 9], ["c1", 5, 10]]);
+  });
+
+  it("sin stock o sin compras no hay nada que repartir", () => {
+    expect(lotesDeHoy(leerCostoPrenda({ ...BASE, hoy: { stock: 0, costo: null } })!)).toEqual([]);
+    expect(lotesDeHoy(leerCostoPrenda({ compras: [], hoy: { stock: 4, costo: 5 }, inicio: { fecha: null, costo: 5 } })!)).toEqual([]);
+  });
+
+  it("siempre suma el stock de hoy, para cualquier stock y cualquier historia (barrido determinista)", () => {
+    let semilla = 7;
+    const azar = (n: number) => ((semilla = (semilla * 1103515245 + 12345) % 2147483648), semilla % n);
+    for (let caso = 0; caso < 400; caso++) {
+      const compras = Array.from({ length: 1 + azar(5) }, (_, i) => ({
+        fecha: `2026-10-${String(1 + i).padStart(2, "0")}T12:00:00+00:00`, llegaron: 1 + azar(40), costo_llegaron: 5 + azar(30), ya_habia: i === 0 ? azar(30) : 0, costo_antes: 5 + azar(30), costo_despues: 5 + azar(30),
+      }));
+      const stock = azar(200);
+      const l = lotesDeHoy(leerCostoPrenda({ compras, hoy: { stock, costo: 10 }, inicio: { fecha: null, costo: 8 } })!);
+      expect(suma(l)).toBe(stock);
+      expect(l.every((x) => x.cantidad > 0)).toBe(true);
+    }
   });
 });
