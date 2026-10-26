@@ -1927,6 +1927,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     RPC `guardar_sede_tienda_web`, `guardar_whatsapp_tienda` (el WhatsApp es el mismo del QR del club) y
     `guardar_parametros_tienda_web`, firmadas con el responsable. Tablas `ubicacion_datos_web` y `configuracion_tienda_web`
     (**sin pegar en producción**). La tienda las lee con `tienda_sedes()` (§3.y).
+    **Desde el 2026-10-26 (ADR-0518, «Conf. Tienda»):** la pantalla es una fila de puertas (`components/tienda-web-conf/PuertaDeTienda.tsx`, `Fachada.tsx`) y el taller
+    de la tienda abierta con su teléfono en vivo (`TelefonoDeTienda.tsx`); el horario por días (`HorarioSemanal.tsx`, gestos en `lib/horario-edicion-reglas.ts`), los
+    cierres (`CierresDeTienda.tsx`) y el reloj del pedido con la escala de stock (`RelojDelPedido.tsx`) son piezas propias. RPC nuevas, todas del módulo `ajustes_web`:
+    `guardar_orden_tiendas_web`, `guardar_mapa_tienda_web`, `guardar_foto_tienda_web` (sube antes al almacén `retail-tiendas` con `lib/foto-de-tienda.ts`),
+    `guardar_horario_tienda_web` y `guardar_cierres_tienda_web`; tablas `ubicacion_horario_web` y `ubicacion_cierres_web` y columnas `orden`, `mapa_url`,
+    `foto_ruta` (migración `20261026162000`, **sin pegar en producción**). Las reglas compartidas con la tienda online viven en
+    `packages/shared/src/tienda-web-sede.ts` y `horario-de-tienda.ts`; la tienda las lee en `apps/tienda/lib/tiendas.ts` y dice «Abierta ahora» en
+    `apps/tienda/components/EstadoDeTienda.tsx` (calculado en el navegador, hora de Lima).
 - **Rendimiento con meta por persona** (ADR-0219, ADR-0325; módulo `rendimiento`, sin módulo nuevo — D-157):
   - `/rendimiento` (`?vista=hoy|semana|mes`, `?sede=`) → `lib/rendimiento.ts` (`leerPantallaRendimiento`: `fn_rendimiento_equipo` para los rankings, y `fn_metas_equipo`, `fn_rendimiento_serie`,
     `fn_metas_historial` para el panel; el panel es una lectura secundaria: si la base no lo tiene la pantalla sigue con los rankings y lo dice) + `lib/rendimiento-meta-reglas.ts` (puro: ventanas Hoy/Semana/Mes,

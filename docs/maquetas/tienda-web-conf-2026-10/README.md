@@ -1,7 +1,7 @@
 # Tienda web ▸ Conf. Tienda: maqueta (2026-10-26)
 
-Prototipo tocable (`index.html`, sin base ni código real) de cómo quedaría `/tienda-web/ajustes` con lo que le falta. **No cambia el ERP:
-nada de esto existe en `apps/web` ni en la base.** Solo usa los tokens de `globals.css` y `tema.css` (claro y oscuro).
+Prototipo tocable (`index.html`, sin base ni código real) de cómo quedaría `/tienda-web/ajustes` con lo que le falta. **La maqueta no cambia el ERP por sí sola;
+el 2026-10-26 se construyó en `apps/web` (ADR-0518, migración `20261026162000`, sin pegar en producción).** Solo usa los tokens de `globals.css` y `tema.css` (claro y oscuro).
 
 ## Lo que ya existe y se conserva
 Nombre en la web, WhatsApp, dónde recoger, horario, «Visible en la web», la regla de qué falta (nombre, WhatsApp, dónde), la vista
@@ -19,6 +19,7 @@ previa en vivo, el responsable, los plazos (confirmar, pagar, recoger) y desde c
 ## Datos
 Real: los tres nombres de sede. **Inventado:** direcciones, teléfonos, horarios, enlaces y la hora de prueba.
 
-## Si se aprueba, lo que pide la base (no está hecho)
+## Lo que pidió la base (construido el 2026-10-26)
 `ubicacion_datos_web` ya tiene nombre, dirección, horario (texto) y visible. Faltarían: enlace de mapa, foto, horario por días,
-cierres por fecha y posición. Es migración nueva; dinero, stock y permisos no se tocan.
+cierres por fecha y posición. Una migración nueva; dinero, stock y permisos no se tocan. Lo que se apartó de la maqueta al construir: los cierres no llevan motivo
+(«Feriado»), y la escala de stock dice «Quedan 2» como la tarjeta de la prenda.
