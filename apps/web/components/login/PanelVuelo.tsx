@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useId, useRef } from "react";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import {
   COLA_DEL_AVE,
   LINEA_DE_TIEMPO,
@@ -176,7 +177,7 @@ export function PanelVuelo() {
   return (
     <div ref={panelRef} className="login-panel" aria-hidden>
       <p className="login-panel-marca">
-        <span>CAYLA</span>
+        <LogoCayla tinta="actual" className="login-panel-logo" />
         <small>Retail</small>
       </p>
 
@@ -189,7 +190,7 @@ export function PanelVuelo() {
         <path ref={hiloRef} className="login-hilo-trazo" mask={`url(#${mascaraId})`} />
       </svg>
 
-      {/* El colibrí de la marca (los trazos de IsotipoCayla); el ala son los dos primeros y aletea. */}
+      {/* El colibrí de la marca (los trazos del colibrí de antes del logo oficial); el ala son los dos primeros y aletea. */}
       <svg ref={aveRef} className="login-ave" viewBox="0 0 223 150">
         <path ref={alaRef} d={TRAZOS_DEL_AVE[0]} pathLength={1} />
         <path ref={alaBajoRef} d={TRAZOS_DEL_AVE[1]} pathLength={1} />
