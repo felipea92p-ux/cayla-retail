@@ -4,32 +4,30 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Send } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { RectificarPedidos } from "@/components/plan-compra/RectificarPedidos";
 import { useEnvioDeLaCategoria } from "@/components/plan-compra/useEnvioDeLaCategoria";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { BotonVer } from "@/components/ui/BotonDescargar";
-import { Boton, CampoSelect } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Chip } from "@/components/ui/Chip";
-import { Modal } from "@/components/ui/Modal";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
-import { esFalloDeRed, esVersionCambiada, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
+import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable } from "@/lib/useResponsable";
 import {
-  MOTIVOS_DE_RECTIFICACION,
   PEDIR_YA,
   RPC_ENVIAR,
-  RPC_RECTIFICAR_PEDIDO,
   argsEnviar,
-  argsRectificar,
   conCuando,
   fraseDeCuando,
   llegaTarde,
+  paso2PorRevisar,
   porEnviar,
   problemaDeLaFecha,
   queNoSeEnvia,
@@ -38,7 +36,6 @@ import {
   type Elegido,
   type EstadoDelGrupo,
   type LecturaEnvio,
-  type MotivoDeRectificacion,
 } from "@/lib/plan-compra-envio";
 import { enteroES, fechaCortaES, solesES, type FilaPlan } from "@/lib/plan-compra-reglas";
 
@@ -156,7 +153,7 @@ function EnvioConBase({
   const problemas = candidatos.map((e) => problemaDeLaFecha(elegidoDe(e.grupo.proveedorId), hoy));
   const costo = base.costo;
   // El total del paso 1 cambió después de guardar el paso 2: lo repartido ya no es lo que se compra. Primero se revisa el paso 2.
-  const porRevisar = filaPlan.calculo ? base.total !== filaPlan.calculo.comprar : false;
+  const porRevisar = filaPlan.calculo ? paso2PorRevisar(base.total, filaPlan.calculo.comprar, base.confirmadas) : false;
   const hayPendientes = estados.some((e) => e.vigente?.estado === "pendiente");
   const hayVigentes = estados.some((e) => e.vigente !== null);
   const cambioElPlan = estados.some((e) => e.vigente !== null && e.vigente.version !== base.version);
@@ -357,10 +354,10 @@ function EnvioConBase({
       </div>
 
       {rectificando && (
-        <RectificarEnvio
-          categoria={filaPlan.c.nombre}
-          pendientes={estados.filter((e) => e.vigente?.estado === "pendiente")}
-          yaSonOrden={estados.filter((e) => e.vigente?.estado === "pedido")}
+        <RectificarPedidos
+          titulo={`Rectificar el envío de ${filaPlan.c.nombre}`}
+          pendientes={estados.flatMap((e) => (e.vigente?.estado === "pendiente" ? [{ id: e.vigente.id, proveedor: e.grupo.proveedor }] : []))}
+          yaSonOrden={estados.filter((e) => e.vigente?.estado === "pedido").map((e) => e.grupo.proveedor)}
           onClose={() => setRectificando(false)}
           onHecho={() => {
             recargar();
@@ -480,91 +477,5 @@ function FilaDeProveedor({
         )}
       </span>
     </div>
-  );
-}
-
-// Rectificar el envío (spike ⑦): cambiar de decisión ANTES de pedir. Retira de Compras los pedidos pendientes (no se pide nada: vuelven al Plan como «por enviar») y deja anotado quién, cuándo y por qué. Los que
-// ya son orden de compra no se rectifican desde aquí: se anulan en Compras ▸ Órdenes, para que la orden y el plan no queden contradiciéndose.
-function RectificarEnvio({
-  categoria,
-  pendientes,
-  yaSonOrden,
-  onClose,
-  onHecho,
-}: {
-  categoria: string;
-  pendientes: EstadoDelGrupo[];
-  yaSonOrden: EstadoDelGrupo[];
-  onClose: () => void;
-  onHecho: () => void;
-}) {
-  const responsable = useResponsable();
-  const [motivo, setMotivo] = useState<MotivoDeRectificacion>("Cambié de idea");
-  const [guardando, setGuardando] = useState(false);
-  const rectificando = useRef(false);
-
-  async function rectificar(cerrar: () => void) {
-    if (rectificando.current || pendientes.length === 0) return;
-    if (!responsable.listo) return void avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
-    rectificando.current = true;
-    setGuardando(true);
-    const firma = responsable.firma();
-    let hechos = 0;
-    let falla: ErrorEscritura = null;
-    // Uno por uno: cada rectificación es independiente y repetible (rectificar lo ya rectificado no cambia nada), así que si una falla las demás no se pierden ni se duplican.
-    for (const p of pendientes) {
-      if (!p.vigente) continue;
-      const r = await firmar(createClient().rpc(RPC_RECTIFICAR_PEDIDO as never, argsRectificar(p.vigente.id, motivo) as never), firma);
-      if (r.error) {
-        falla = r.error;
-        break;
-      }
-      hechos++;
-    }
-    responsable.despues(falla);
-    setGuardando(false);
-    rectificando.current = false;
-    if (hechos > 0) onHecho();
-    if (falla) {
-      if (esFalloDeRed(falla)) return void avisar.error("Se cortó la conexión mientras se rectificaba: no sabemos si llegó. Vuelve a pulsar «Rectificar»; rectificar dos veces no cambia nada.");
-      return void avisar.error(traducirError(falla, "rectificar el envío"));
-    }
-    avisar.exito(hechos === 1 ? "Rectificado: vuelve al Plan como «por enviar»" : `Rectificados ${hechos} pedidos: vuelven al Plan como «por enviar»`, { detalle: `Motivo: ${motivo}.` });
-    cerrar();
-  }
-
-  return (
-    <Modal titulo={`Rectificar el envío de ${categoria}`} subtitulo="Rectificar es cambiar de decisión antes de pedir." onClose={onClose} variante="hoja" tamano="angosta">
-      {(cerrar) => (
-        <div className="space-y-4">
-          {pendientes.length > 0 && (
-            <p className="nota-cayla">
-              <b className="font-semibold">Se retiran de Compras ({pendientes.length}):</b> {pendientes.map((p) => p.grupo.proveedor).join(", ")}. No se pide nada: vuelven al Plan como «por enviar» y queda anotado quién y cuándo.
-            </p>
-          )}
-          {yaSonOrden.length > 0 && (
-            <Aviso tono="atencion" titulo={yaSonOrden.length === 1 ? `${yaSonOrden[0].grupo.proveedor} ya es una orden` : `${yaSonOrden.length} ya son órdenes: ${yaSonOrden.map((p) => p.grupo.proveedor).join(", ")}`}>
-              Lo pedido no se rectifica desde el Plan: se anula en Compras ▸ Órdenes, para que la orden y el plan no queden contradiciéndose.
-            </Aviso>
-          )}
-          {pendientes.length > 0 && (
-            <>
-              <CampoSelect etiqueta="¿Por qué rectificas?" valor={motivo} onValor={setMotivo} opciones={MOTIVOS_DE_RECTIFICACION.map((m) => ({ valor: m, texto: m }))} />
-              <ComboResponsable control={responsable} deshabilitado={guardando} />
-            </>
-          )}
-          <PieAcciones>
-            <Boton type="button" onClick={cerrar}>
-              Cancelar
-            </Boton>
-            {pendientes.length > 0 && (
-              <Boton type="button" peso="primario" cargando={guardando} textoCargando="Rectificando…" onClick={() => void rectificar(cerrar)}>
-                {pendientes.length > 1 ? `Rectificar los ${pendientes.length}` : "Rectificar este pedido"}
-              </Boton>
-            )}
-          </PieAcciones>
-        </div>
-      )}
-    </Modal>
   );
 }

@@ -57,6 +57,8 @@ export type BaseDeEnvio = {
   version: number;
   /** El total del paso 1 con que se guardó ese paso 2. */
   total: number;
+  /** Las prendas que YA son orden de compra desde que se guardó ese paso 2 (de pedidos de campaña): «Comprar» del Plan baja con cada orden, y esto explica esa baja. */
+  confirmadas: number;
   /** Lo repartido en modelos que ya existen. */
   unidades: number;
   por: string | null;
@@ -102,6 +104,7 @@ export function leerEnvio(v: unknown): LecturaEnvio | null {
       ? {
           version: p2.version as number,
           total: entero(p2.total),
+          confirmadas: entero(b.confirmadas),
           unidades: entero(p2.unidades),
           por: texto(p2.por),
           en: texto(p2.en),
@@ -163,15 +166,17 @@ export function leerEnvio(v: unknown): LecturaEnvio | null {
   return { base, pedidos };
 }
 
-/** El resumen de una categoría para su fila de la lista del Plan. */
-export type ResumenDeEnvio = { categoriaId: string; pendientes: number; pedidos: number; rectificados: number; desactualizado: boolean };
+/** El resumen de una categoría para su fila de la lista del Plan. `confirmadas`: las prendas que ya son orden desde que se guardó su último paso 2. */
+export type ResumenDeEnvio = { categoriaId: string; pendientes: number; pedidos: number; rectificados: number; desactualizado: boolean; confirmadas: number };
 
 /** Lo que devuelve `fn_plan_compra_envios`: por categoría, cuántos pedidos hay en cada estado. null si la base no lo sabe. */
 export function leerEnvios(v: unknown): ResumenDeEnvio[] | null {
   if (!esObjeto(v) || v.soportado !== true) return null;
   return lista(v.categorias).flatMap((c): ResumenDeEnvio[] => {
     const categoriaId = texto(c.categoria_id);
-    return categoriaId ? [{ categoriaId, pendientes: entero(c.pendientes), pedidos: entero(c.pedidos), rectificados: entero(c.rectificados), desactualizado: c.desactualizado === true }] : [];
+    return categoriaId
+      ? [{ categoriaId, pendientes: entero(c.pendientes), pedidos: entero(c.pedidos), rectificados: entero(c.rectificados), desactualizado: c.desactualizado === true, confirmadas: entero(c.confirmadas) }]
+      : [];
   });
 }
 
@@ -293,6 +298,12 @@ export const argsRectificar = (pedidoId: string, motivo: MotivoDeRectificacion) 
 // ---------------------------------------------------------------------------------------------------------------------
 // Lo que dice la lista del Plan
 // ---------------------------------------------------------------------------------------------------------------------
+
+/**
+ * ¿El paso 2 guardado ya no es lo que se compra? «Comprar» del Plan es lo que FALTA pedir: baja con cada orden de compra. Un paso 2 se guardó con el total que faltaba entonces; si lo que falta hoy, más lo que ya
+ * se confirmó desde entonces, no suma ese total, el plan cambió (se tocaron los escenarios, entró otra orden a mano) y conviene revisarlo. Confirmar un pedido de campaña NO lo cambia: esa baja la explica `confirmadas`.
+ */
+export const paso2PorRevisar = (totalGuardado: number, comprarHoy: number, confirmadas: number): boolean => totalGuardado !== comprarHoy + confirmadas;
 
 /** El resumen de una categoría, si lo hay y tiene algo que decir (algo pendiente o ya pedido). Los rectificados son historia: no ocupan la fila. */
 export function resumenParaLaFila(resumenes: readonly ResumenDeEnvio[] | null | undefined, categoriaId: string): ResumenDeEnvio | null {

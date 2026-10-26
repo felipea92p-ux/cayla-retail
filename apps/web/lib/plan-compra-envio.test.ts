@@ -14,6 +14,7 @@ import {
   leerEnvio,
   leerEnvios,
   llegaTarde,
+  paso2PorRevisar,
   porEnviar,
   problemaDeLaFecha,
   queNoSeEnvia,
@@ -53,6 +54,7 @@ const respuesta = (extra: Record<string, unknown> = {}) => ({
     paso_2: { version: 3, total: 40, unidades: 32, por: "Felipe", en: "2026-10-26T15:00:00Z" },
     costo: 40,
     grupos: [grupoCrudo("pa", "Prov A"), grupoCrudo("pb", "Prov B", { modelos: 1, unidades: 6 }), grupoCrudo("pt", "CAYLA SAC", { es_taller: true, unidades: 7 })],
+    confirmadas: 0,
     sin_proveedor: 2,
     sin_marca: 3,
     modelos_nuevos: 8,
@@ -64,7 +66,7 @@ const respuesta = (extra: Record<string, unknown> = {}) => ({
 describe("leerEnvio", () => {
   it("lee lo que manda la base", () => {
     const r = leerEnvio(respuesta())!;
-    expect(r.base).toMatchObject({ version: 3, total: 40, unidades: 32, costo: 40, sinProveedor: 2, sinMarca: 3, modelosNuevos: 8, por: "Felipe" });
+    expect(r.base).toMatchObject({ version: 3, total: 40, confirmadas: 0, unidades: 32, costo: 40, sinProveedor: 2, sinMarca: 3, modelosNuevos: 8, por: "Felipe" });
     expect(r.base!.grupos.map((g) => [g.proveedor, g.esTaller, g.unidades])).toEqual([
       ["Prov A", false, 14],
       ["Prov B", false, 6],
@@ -132,8 +134,8 @@ describe("leerEnvio", () => {
 describe("leerEnvios", () => {
   it("lee el resumen por categoría", () => {
     expect(
-      leerEnvios({ soportado: true, categorias: [{ categoria_id: "c1", pendientes: 2, pedidos: 1, rectificados: 0, desactualizado: true }, { pendientes: 1 }] }),
-    ).toEqual([{ categoriaId: "c1", pendientes: 2, pedidos: 1, rectificados: 0, desactualizado: true }]);
+      leerEnvios({ soportado: true, categorias: [{ categoria_id: "c1", pendientes: 2, pedidos: 1, rectificados: 0, desactualizado: true, confirmadas: 9 }, { pendientes: 1 }] }),
+    ).toEqual([{ categoriaId: "c1", pendientes: 2, pedidos: 1, rectificados: 0, desactualizado: true, confirmadas: 9 }]);
   });
   it("sin soporte o con basura, null; sin categorías, vacío", () => {
     expect(leerEnvios(null)).toBeNull();
@@ -205,6 +207,7 @@ const grupo = (id: string, extra: Partial<GrupoDeEnvio> = {}): GrupoDeEnvio => (
 const base = (grupos: GrupoDeEnvio[], extra: Partial<BaseDeEnvio> = {}): BaseDeEnvio => ({
   version: 1,
   total: 20,
+  confirmadas: 0,
   unidades: 15,
   por: null,
   en: null,
@@ -311,11 +314,26 @@ describe("lo que se manda a la base", () => {
   });
 });
 
+describe("el paso 2 «por revisar»", () => {
+  it("sin órdenes, el paso 2 vale mientras lo que falta comprar sea el total con que se guardó", () => {
+    expect(paso2PorRevisar(30, 30, 0)).toBe(false);
+    expect(paso2PorRevisar(30, 21, 0)).toBe(true);
+  });
+  it("confirmar un pedido de campaña baja «Comprar» pero no cambia el plan: lo confirmado se suma", () => {
+    expect(paso2PorRevisar(30, 21, 9)).toBe(false);
+    expect(paso2PorRevisar(30, 0, 30)).toBe(false);
+  });
+  it("si además se tocó el plan (otro total) o entró otra orden a mano, sí hay que revisarlo", () => {
+    expect(paso2PorRevisar(30, 25, 9)).toBe(true);
+    expect(paso2PorRevisar(30, 10, 9)).toBe(true);
+  });
+});
+
 describe("lo que dice la lista del Plan", () => {
   const resumenes = [
-    { categoriaId: "c1", pendientes: 2, pedidos: 0, rectificados: 0, desactualizado: false },
-    { categoriaId: "c2", pendientes: 0, pedidos: 0, rectificados: 3, desactualizado: false },
-    { categoriaId: "c3", pendientes: 1, pedidos: 1, rectificados: 0, desactualizado: true },
+    { categoriaId: "c1", pendientes: 2, pedidos: 0, rectificados: 0, desactualizado: false, confirmadas: 0 },
+    { categoriaId: "c2", pendientes: 0, pedidos: 0, rectificados: 3, desactualizado: false, confirmadas: 0 },
+    { categoriaId: "c3", pendientes: 1, pedidos: 1, rectificados: 0, desactualizado: true, confirmadas: 14 },
   ];
   it("una categoría con algo pendiente o ya pedido tiene resumen; una con solo rectificados (historia) o sin nada, no", () => {
     expect(resumenParaLaFila(resumenes, "c1")?.pendientes).toBe(2);

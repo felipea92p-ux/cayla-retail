@@ -74,7 +74,8 @@ export function PlanCategoriaModal({
   // El paso 2 reparte lo que el paso 1 decidió: hace falta el paso 1 guardado y que pida comprar algo.
   const conPaso2 = fila.linea !== undefined && (fila.calculo?.comprar ?? 0) > 0;
   // El paso 3 envía a Compras lo que el paso 2 dejó GUARDADO (ADR-0530): hace falta que el paso 2 exista (null = todavía no se hizo; undefined = la base no lo sabe).
-  const conPaso3 = conPaso2 && fila.paso2 !== undefined && fila.paso2 !== null;
+  // Se queda aunque ya no falte pedir nada (todo se confirmó): ahí está en qué quedó cada pedido y el «Ver en Compras».
+  const conPaso3 = fila.linea !== undefined && fila.paso2 !== undefined && fila.paso2 !== null && (conPaso2 || (fila.envio ?? null) !== null);
   const salida = useSalidaSinGuardar(sucio || sucioPaso2, `Escribiste parte del plan de ${fila.c.nombre} y todavía no se guardó. Si sales ahora, se pierde lo que escribiste.`);
   const irAPaso = (destino: "1" | "2" | "3") => {
     if (destino === paso) return;

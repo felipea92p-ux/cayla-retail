@@ -43,11 +43,7 @@
       "Boton «Cancelar»",
       "Boton «Enviar como pendientes de campaña»",
       "SegmentoDeslizante «{`Cuándo pedir a ${g.proveedor}»",
-      "CampoFecha «{<span className=\"sr-only\">Fecha en que pedir a {g.proveedor}»",
-      "CampoSelect «¿Por qué rectificas?»",
-      "ComboResponsable «{responsable}» #2",
-      "Boton «Cancelar» #2",
-      "Boton «{pendientes.length > 1 ? `Rectificar los ${pendientes.length}»"
+      "CampoFecha «{<span className=\"sr-only\">Fecha en que pedir a {g.proveedor}»"
     ],
     "components/plan-compra/ExportarPlan.tsx": [
       "BotonImprimir «Imprimir la lista»",
@@ -139,6 +135,12 @@
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/plan-compra/RectificarPedidos.tsx": [
+      "CampoSelect «¿Por qué rectificas?»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{pendientes.length > 1 ? `Rectificar los ${pendientes.length}»"
     ],
     "components/plan-compra/SelectorCampana.tsx": [
       "Desplegable «{actual ? actualId : \"\"}»"

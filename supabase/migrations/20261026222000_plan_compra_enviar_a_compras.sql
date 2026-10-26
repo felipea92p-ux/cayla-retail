@@ -168,11 +168,17 @@ declare
   v_grupos jsonb;
   v_sin_proveedor integer;
   v_sin_marca integer;
+  v_confirmadas integer;
 begin
   for v_foto in select f.* from retail.planes_compra_paso_2 f where f.plan_id = p_plan_id and f.categoria_id = p_categoria_id order by f.version desc limit 1 loop exit; end loop;
   if v_foto.id is null then
     return null;
   end if;
+  -- Las prendas que YA son orden de compra desde que se guardó este paso 2. «Comprar» del Plan baja con cada orden (es lo que FALTA pedir), así que el total con que se guardó el paso 2 ya no es igual a lo que
+  -- falta: sin esto, confirmar un pedido haría ver el paso 2 «por revisar» y no dejaría enviar el resto. Solo cuentan las órdenes que siguen generadas (una anulada vuelve a sumar a lo que falta) y las
+  -- confirmadas DESPUÉS de guardar el paso 2 (las anteriores ya están descontadas del total con que se guardó).
+  v_confirmadas := coalesce((select sum(pe.unidades) from retail.pedidos_campana pe join retail.ordenes_compra o on o.id = pe.orden_compra_id and o.estado = 'generada'
+                              where pe.plan_id = p_plan_id and pe.categoria_id = p_categoria_id and pe.estado = 'pedido' and pe.pedido_en >= v_foto.en), 0);
   for v_costo in select l.costo from retail.planes_compra_lineas l where l.plan_id = p_plan_id and l.categoria_id = p_categoria_id loop exit; end loop;
 
   with items as (
@@ -213,6 +219,7 @@ begin
     'paso_2', jsonb_build_object('version', v_foto.version, 'total', v_foto.total, 'unidades', v_foto.unidades, 'por', v_foto.por, 'en', v_foto.en),
     'costo', v_costo,
     'grupos', v_grupos,
+    'confirmadas', v_confirmadas,
     'sin_proveedor', v_sin_proveedor,
     'sin_marca', v_sin_marca,
     -- Lo que el paso 2 dejó «por elegir»: no hay un producto que pedir todavía.
@@ -278,14 +285,18 @@ begin
     'categorias', coalesce((
       select jsonb_agg(jsonb_build_object(
                'categoria_id', x.categoria_id, 'pendientes', x.pendientes, 'pedidos', x.pedidos, 'rectificados', x.rectificados,
-               'desactualizado', x.desactualizado))
+               'desactualizado', x.desactualizado, 'confirmadas', x.confirmadas))
         from (
           select pe.categoria_id,
                  count(*) filter (where pe.estado = 'pendiente')::integer as pendientes,
                  count(*) filter (where pe.estado = 'pedido')::integer as pedidos,
                  count(*) filter (where pe.estado = 'rectificado')::integer as rectificados,
                  coalesce(bool_or(pe.estado in ('pendiente', 'pedido')
-                                  and pe.paso_2_version <> (select max(f.version) from retail.planes_compra_paso_2 f where f.plan_id = pe.plan_id and f.categoria_id = pe.categoria_id)), false) as desactualizado
+                                  and pe.paso_2_version <> (select max(f.version) from retail.planes_compra_paso_2 f where f.plan_id = pe.plan_id and f.categoria_id = pe.categoria_id)), false) as desactualizado,
+                 -- Las prendas que ya son orden desde que se guardó el último paso 2 (ver `fn_plan_compra_envio_base`): la lista del Plan las suma a «Comprar» para saber si el paso 2 sigue siendo lo que se compra.
+                 coalesce(sum(pe.unidades) filter (where pe.estado = 'pedido'
+                                                     and exists (select 1 from retail.ordenes_compra o where o.id = pe.orden_compra_id and o.estado = 'generada')
+                                                     and pe.pedido_en >= (select max(f.en) from retail.planes_compra_paso_2 f where f.plan_id = pe.plan_id and f.categoria_id = pe.categoria_id)), 0)::integer as confirmadas
             from retail.pedidos_campana pe
            where pe.plan_id = p_plan_id
            group by pe.categoria_id

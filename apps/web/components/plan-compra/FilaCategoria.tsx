@@ -1,6 +1,6 @@
 import { celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
-import { frasesDeEnCompras } from "@/lib/plan-compra-envio";
+import { frasesDeEnCompras, paso2PorRevisar } from "@/lib/plan-compra-envio";
 import { fraseDelPedido } from "@/lib/plan-compra-pedido";
 import { periodoDeVentas } from "@/lib/plan-compra-periodo";
 import { BarraRango } from "@/components/plan-compra/BarraRango";
@@ -126,8 +126,8 @@ export function FilaCategoria({
               <span className="mt-1 block font-normal" data-guia="plan.paso2-marca">
                 {f.paso2 === null ? (
                   <span className="text-xs text-taupe-profundo">Paso 2 por hacer</span>
-                ) : f.paso2.total !== calculo.comprar ? (
-                  <Chip tono="ambar" versalitas={false} title={`El total del paso 1 cambió de ${f.paso2.total} a ${calculo.comprar} desde que se guardó el paso 2`}>
+                ) : paso2PorRevisar(f.paso2.total, calculo.comprar, f.envio?.confirmadas ?? 0) ? (
+                  <Chip tono="ambar" versalitas={false} title={`El total del paso 1 cambió de ${f.paso2.total} a ${calculo.comprar + (f.envio?.confirmadas ?? 0)} desde que se guardó el paso 2`}>
                     Paso 2 por revisar
                   </Chip>
                 ) : (
@@ -137,7 +137,7 @@ export function FilaCategoria({
                 )}
               </span>
             )}
-            {f.envio && calculo && calculo.comprar > 0 && (
+            {f.envio && (
               // Lo que esta categoría tiene en Compras (ADR-0530): pedidos pendientes de confirmar, ya pedidos, y si el plan cambió desde que se enviaron.
               <span className="mt-1 flex flex-wrap items-center justify-end gap-1 font-normal" data-guia="plan.en-compras">
                 {(() => {

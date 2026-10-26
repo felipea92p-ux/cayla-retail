@@ -494,6 +494,24 @@ caso(
   "1/202/true/5050.00",
 );
 
+caso(
+  "C10 las prendas que YA son orden desde que se guardó el paso 2 se dicen aparte (la lista del Plan las suma a «Comprar» para no llamar «por revisar» a un paso 2 que solo se confirmó): una orden generada cuenta; si se anula deja de contar; y una orden anterior a un paso 2 nuevo ya está descontada de su total",
+  `${CON_PASO_2}
+   ${ENVIA_A}
+   select (${CONFIRMAR("pg_temp.pedido('pa')")} ->> 'orden_id') as oid \\gset
+   select (pg_temp.lee() -> 'base' ->> 'confirmadas') || '/' || (${ENVIOS} -> 'categorias' -> 0 ->> 'confirmadas') as con_orden \\gset
+   update retail.ordenes_compra set estado = 'anulada', anulada_por = current_setting('pe.persona')::uuid, anulada_en = now(), motivo_anulacion = 'ZZ prueba de envío' where id = :'oid';
+   select (pg_temp.lee() -> 'base' ->> 'confirmadas') || '/' || (${ENVIOS} -> 'categorias' -> 0 ->> 'confirmadas') as anulada \\gset
+   update retail.ordenes_compra set estado = 'generada', anulada_por = null, anulada_en = null, motivo_anulacion = null where id = :'oid';
+   -- Dentro de una transacción «ahora» es el mismo para todo: la orden se confirmó ANTES del paso 2 nuevo, así que se retrocede una hora.
+   set local session_replication_role = replica;
+   update retail.pedidos_campana set pedido_en = now() - interval '1 hour' where id = pg_temp.pedido('pa');
+   set local session_replication_role = origin;
+   select pg_temp.ok(pg_temp.guarda_p2(26, jsonb_build_array(pg_temp.celda('uno', 'NEG', 't1', 6)), 1)) as _p \\gset
+   select :'con_orden' || ',' || :'anulada' || ',' || (pg_temp.lee() -> 'base' ->> 'confirmadas') || '/' || (${ENVIOS} -> 'categorias' -> 0 ->> 'confirmadas');`,
+  "14/14,0/0,0/0",
+);
+
 console.log("\n— Lo que lee Compras —");
 caso(
   "P1 los pendientes van primero, cada pedido con su campaña, categoría, proveedor, prendas y modelos; el pedido trae su orden y la persona que lo envió",

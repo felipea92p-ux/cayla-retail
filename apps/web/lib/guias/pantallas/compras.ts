@@ -1335,6 +1335,20 @@ export const GUIA_ORDENES: Guia = {
       texto: "«+ Gasto del viaje» anota lo que pagaste para traer la compra (flete, agencia, cargador, embalaje) o en el viaje (pasaje, hotel, comida, taxi), y a qué órdenes va. Sale de tu fondo o de una cuenta de siempre y nunca entra al costo de la prenda. En la demo no lo guardamos.",
     },
     {
+      id: "pendientes-de-campana",
+      ancla: "ordenes.pendientes-campana",
+      opcional: true,
+      titulo: "Lo que el Plan de campaña te mandó",
+      texto: "Cuando alguien envía una categoría desde el Plan de campaña, sus pedidos llegan aquí «pendientes»: cada uno con su proveedor, las prendas, lo que cuestan y cuándo piensan pedirlo. Nada se ha pedido todavía: eso lo decides tú.",
+    },
+    {
+      id: "confirmar-pendiente",
+      ancla: "ordenes.pendiente-confirmar",
+      opcional: true,
+      titulo: "Confirmar y pedir",
+      texto: "Es el único paso que de verdad pide: crea la orden de compra con esas líneas, a nombre del proveedor. «Cambiar fecha» solo cambia cuándo piensas pedir y «Rectificar» lo devuelve al Plan, con su razón. Una orden ya creada no se rectifica: se anula. En la demo no confirmamos nada.",
+    },
+    {
       id: "cifras",
       ancla: "ordenes.cifras",
       opcional: true,
