@@ -7,6 +7,7 @@ import {
   descripcionParaGuardar,
   errorDeVitrina,
   esEmpaque,
+  avisoDeLote,
   esEncendidoSinPrecio,
   filtrarVitrina,
   filtrosDeLaUrl,
@@ -234,6 +235,39 @@ describe("la lista de la Vitrina llega de 40 en 40", () => {
   it("un filtro que deja pocos cabe en una página, y una página que ya no existe vuelve a la última", () => {
     expect(paginar(filtrarVitrina(muchos, "todos", "Modelo 5"), 1, MODELOS_POR_PAGINA).totalPaginas).toBe(1);
     expect(paginar(muchos, 9, MODELOS_POR_PAGINA).pagina).toBe(2);
+  });
+});
+
+describe("el aviso del lote cuando ocultar deja la tienda online casi vacía", () => {
+  const visibles = (n: number) => Array.from({ length: n }, (_, i) => modelo({ id: `v${i}`, nombre: `Modelo ${i}` }));
+  const apagado = modelo({ id: "x", vitrina: { ...emma.vitrina!, publicado: false } });
+
+  it("mostrar nunca avisa, y ocultar poco tampoco", () => {
+    expect(avisoDeLote("mostrar", visibles(50), 50)).toBeNull();
+    expect(avisoDeLote("ocultar", visibles(5), 50)).toBeNull();
+    expect(avisoDeLote("ocultar", visibles(20), 50)).toBeNull();
+  });
+
+  it("ocultar la mitad o más de lo que se ve (desde 10 modelos) avisa cuántos quedarían", () => {
+    expect(avisoDeLote("ocultar", visibles(25), 50)).toEqual({
+      titulo: "Vas a ocultar la mitad o más de la tienda online",
+      texto: "Hoy se ven 50 modelos; con esto quedarían 25. Los vuelves a mostrar cuando quieras.",
+    });
+    expect(avisoDeLote("ocultar", visibles(40), 50)?.texto).toContain("quedarían 10");
+    // Ocultar 2 de 3 no es un descuido: es poca cosa en absoluto.
+    expect(avisoDeLote("ocultar", visibles(2), 3)).toBeNull();
+  });
+
+  it("dejar la vitrina sin ningún modelo avisa siempre, aunque sean pocos", () => {
+    expect(avisoDeLote("ocultar", visibles(383), 383)?.titulo).toBe("Con esto la tienda online se queda sin modelos");
+    expect(avisoDeLote("ocultar", visibles(1), 1)?.texto).toContain("es el que dejas");
+    expect(avisoDeLote("ocultar", visibles(3), 3)?.texto).toContain("todos dejarían");
+  });
+
+  it("solo cuenta lo que hoy se ve: los ya apagados o el empaque elegidos no cambian lo que queda", () => {
+    expect(avisoDeLote("ocultar", [apagado, ...visibles(3)], 50)).toBeNull();
+    expect(avisoDeLote("ocultar", [apagado], 50)).toBeNull();
+    expect(avisoDeLote("ocultar", visibles(5), 0)).toBeNull();
   });
 });
 

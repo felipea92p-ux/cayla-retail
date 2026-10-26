@@ -346,6 +346,30 @@ export function queLePasa(m: ModeloVitrina, modo: ModoLote): { texto: string; ca
   return { texto: "Se verá en la web", cambia: true };
 }
 
+/** El aviso de la hoja cuando OCULTAR deja la tienda online casi vacía: es reversible («nada se borra»), pero mientras no se vuelva a mostrar el
+ *  cliente encuentra una tienda sin modelos. Avisa si lo elegido deja a la vitrina sin ninguno, o si oculta la mitad o más de lo que se ve (y
+ *  son 10 o más: ocultar 2 de 3 no es un descuido). `seVenAhora` es lo que se ve en la web hoy, de TODA la lista, no solo lo elegido. */
+export function avisoDeLote(modo: ModoLote, elegidos: readonly ModeloVitrina[], seVenAhora: number): { titulo: string; texto: string } | null {
+  if (modo !== "ocultar" || seVenAhora <= 0) return null;
+  const dejanDeVerse = elegidos.filter(seVeEnLaWeb).length;
+  if (dejanDeVerse === 0) return null;
+  const quedan = Math.max(0, seVenAhora - dejanDeVerse);
+  const modelos = (n: number) => `${n} ${n === 1 ? "modelo" : "modelos"}`;
+  if (quedan === 0) {
+    return {
+      titulo: "Con esto la tienda online se queda sin modelos",
+      texto: `Hoy se ${seVenAhora === 1 ? "ve" : "ven"} ${modelos(seVenAhora)} y ${seVenAhora === 1 ? "es el que dejas" : "todos dejarían"} de verse: el cliente encontraría la tienda vacía. Los vuelves a mostrar cuando quieras.`,
+    };
+  }
+  if (dejanDeVerse >= 10 && dejanDeVerse / seVenAhora >= 0.5) {
+    return {
+      titulo: "Vas a ocultar la mitad o más de la tienda online",
+      texto: `Hoy se ven ${modelos(seVenAhora)}; con esto quedarían ${quedan}. Los vuelves a mostrar cuando quieras.`,
+    };
+  }
+  return null;
+}
+
 /* ---------------- Lo que dice la base ---------------- */
 
 /** Los rechazos de la vitrina en palabras de tienda; `releer`: la pantalla está vieja y conviene recargar. `null` si no es de aquí. */

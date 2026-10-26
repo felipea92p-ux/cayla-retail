@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -12,7 +13,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { traducirError } from "@/lib/error-escritura";
 import { camposDeLoteMostrar } from "@/lib/vitrina-guia";
-import { errorDeVitrina, queLePasa, type ModeloVitrina, type ModoLote } from "@/lib/vitrina-reglas";
+import { avisoDeLote, errorDeVitrina, queLePasa, type ModeloVitrina, type ModoLote } from "@/lib/vitrina-reglas";
 
 /**
  * Mostrar u ocultar en la web uno o varios modelos (maqueta v4, «Mostrar», «Ocultar»): la hoja dice qué le pasa a cada uno (el que ya
@@ -23,11 +24,14 @@ import { errorDeVitrina, queLePasa, type ModeloVitrina, type ModoLote } from "@/
 export function VitrinaLoteHoja({
   modo,
   modelos,
+  seVenAhora,
   onClose,
   onHecho,
 }: {
   modo: ModoLote;
   modelos: ModeloVitrina[];
+  /** Cuántos modelos se ven hoy en la web (toda la lista, no solo los elegidos): para avisar si ocultar la deja casi vacía. */
+  seVenAhora: number;
   onClose: () => void;
   onHecho: () => void;
 }) {
@@ -37,6 +41,7 @@ export function VitrinaLoteHoja({
 
   const quePasa = modelos.map((m) => ({ m, ...queLePasa(m, modo) }));
   const cambian = quePasa.filter((q) => q.cambia).length;
+  const aviso = avisoDeLote(modo, modelos, seVenAhora);
   const guia = useGuiaCampos(camposDeLoteMostrar({ responsableListo: responsable.listo, responsableMotivo: responsable.motivo }));
 
   async function aplicar(e: React.FormEvent) {
@@ -78,6 +83,7 @@ export function VitrinaLoteHoja({
   return (
     <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose} variante="hoja" tamano="angosta" bloqueado={guardando} conCerrar>
       <form onSubmit={aplicar} className="space-y-5">
+        {aviso && <Aviso tono="atencion" titulo={aviso.titulo}>{aviso.texto}</Aviso>}
         <ul className="max-h-72 divide-y divide-sand overflow-y-auto rounded-xl border border-sand bg-papel text-[13px]" data-guia="vitrina-lote.lista">
           {quePasa.map((q) => (
             <li key={q.m.id} className="flex items-baseline justify-between gap-3 px-3.5 py-2">

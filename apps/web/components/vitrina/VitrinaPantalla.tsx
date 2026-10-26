@@ -474,6 +474,7 @@ export function VitrinaPantalla({
         <VitrinaLoteHoja
           modo={lote.modo}
           modelos={delLote}
+          seVenAhora={cifras.seVen}
           onClose={() => setLote(null)}
           onHecho={() => {
             setLote(null);
