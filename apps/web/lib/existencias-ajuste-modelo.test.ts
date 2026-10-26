@@ -5,6 +5,7 @@ import {
   anchoDeLaPlanilla,
   anchoDelModalAlAjustar,
   armarModelo,
+  avisoCargaDeLaPlanilla,
   cambiosAlContar,
   claveCelda,
   conStockDeAhora,
@@ -15,11 +16,13 @@ import {
   motivoCerrado,
   MOTIVOS_PLANILLA,
   notaLista,
+  ordenDeRecorrido,
   paraLaBase,
   porQueNoBaja,
   porQueNoSube,
   problemaDelLote,
   resumenDelLote,
+  siguienteDelRecorrido,
   textoCambiosAlContar,
   viajaConLoQueHabia,
 } from "./existencias-ajuste-modelo";
@@ -177,8 +180,8 @@ describe("el ancho justo del modal", () => {
     }
   });
   it("con una sola talla no hay columna de total", () => {
-    expect(anchoDeLaPlanilla(1)).toBe(168 + 112);
-    expect(anchoDeLaPlanilla(2)).toBe(168 + 224 + 72);
+    expect(anchoDeLaPlanilla(1)).toBe(160 + 104);
+    expect(anchoDeLaPlanilla(2)).toBe(160 + 208 + 64);
   });
   it("tiene un tope: con muchas tallas, la planilla se desliza", () => {
     expect(anchoDelModalAlAjustar(20)).toBe(ANCHOS_DEL_MODAL[ANCHOS_DEL_MODAL.length - 1]);
@@ -235,5 +238,29 @@ describe("contar con la tienda abierta (ADR-0494, /chaos CON-06)", () => {
     ).toBe(
       "Mientras contabas cambiaron Beige S (había 6, ahora hay 5) y Negro M (había 3, ahora hay 4). No se guardó nada: lo que contaste sigue escrito. Revisa esas tallas y vuelve a guardar."
     );
+  });
+});
+
+describe("recorrer la planilla con Enter (ronda 2 de la Planilla rápida)", () => {
+  const extras = new Map<string, { hex: string | null; activa: boolean }>();
+  const v = (id: string, color: string, talla: string) => variante({ varianteId: id, color, talla });
+  const modelo = armarModelo([v("n-s", "Negro", "S"), v("n-m", "Negro", "M"), v("v-s", "Vino", "S"), v("v-m", "Vino", "M"), v("c-s", "Crema", "S")], extras, ["Negro", "Vino", "Crema"]);
+  it("baja por los colores de una talla y después pasa a la siguiente talla; se salta lo que no existe", () => {
+    expect(ordenDeRecorrido(modelo)).toEqual(["n-s", "v-s", "c-s", "n-m", "v-m"]);
+  });
+  it("la siguiente de la última es ninguna", () => {
+    const orden = ordenDeRecorrido(modelo);
+    expect(siguienteDelRecorrido(orden, "c-s")).toBe("n-m");
+    expect(siguienteDelRecorrido(orden, "v-m")).toBeNull();
+    expect(siguienteDelRecorrido(orden, "otra")).toBeNull();
+  });
+});
+
+describe("el aviso de la carga inicial en la planilla", () => {
+  it("nombra el botón que la persona tiene delante", () => {
+    expect(avisoCargaDeLaPlanilla("La carga inicial de Tienda TRU se cerró el 18-oct. Lo que encuentres entra por «Encontré prendas».")).toBe(
+      "La carga inicial de Tienda TRU se cerró el 18-oct. Lo que encuentres entra por «Encontré unidades»."
+    );
+    expect(avisoCargaDeLaPlanilla(null)).toBeNull();
   });
 });
