@@ -25,8 +25,10 @@
 -- ERP como respaldo de un color que el código todavía no conozca. (4) NO toca ninguna tabla: sin `alter`, sin políticas, sin
 -- disparadores (ADR-0195: se pega en UNA sola parte).
 --
--- SI NO RESPONDE. La tienda la pide solo cuando la dirección trae `?color=` o `?talla=`, o cuando se abre el panel (activos 3 y 4 de
--- la lista); si falla, la lista se ve SIN filtros y la persona no pierde nada (principio 9). Nada depende de ella para vender.
+-- SI NO RESPONDE. La tienda la pide cuando la dirección trae `?color=` o `?talla=` y, desde el navegador (`GET /api/filtros`), poco
+-- después de abrir una lista, para que los números del panel de COLOR y TALLA estén listos; 30 s por tienda, compartidos entre visitas.
+-- La base la corta a los 2 s (la tienda lo pide con `statement_timeout` de la transacción) y la lista no espera más: si falla, se
+-- ve SIN filtros y lo dice, y la persona no pierde nada (principio 9). Nada depende de ella para vender.
 --
 -- PRODUCCIÓN. No se pega hasta que Felipe lo diga (2026-10-26: «sin tocar producción»). Una sola parte, idempotente
 -- (`create or replace`; los permisos se repiten sin daño); no lleva políticas, `drop trigger` ni `alter` de tablas en uso.
