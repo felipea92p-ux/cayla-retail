@@ -246,6 +246,10 @@ export const PRUEBAS = [
   // tienda_sedes. ROLLBACK.
   "pruebas:tienda-web-configuracion",
 
+  // Tienda web ▸ Conf. Tienda (ADR-0518): el orden de las tiendas en la web (la primera de la lista es la primera, sin repetir, solo
+  // tiendas abiertas, sin escribir si nada cambió), y lo que se agregue por actividad (mapa, foto, horario por días, cierres). ROLLBACK.
+  "pruebas:tienda-web-conf",
+
   // Las cuentas de la tienda online (ADR-0408, actividad 2): correo y DNI únicos, los topes del cartel (club_intento) al
   // consultar y al registrar, la cuenta que se une a la ficha del Club sin pisar sus datos, el menor de 18 y el cumpleaños
   // imposible rechazados sin escribir nada, y `cuentas_web` cerrada a todos. ROLLBACK.

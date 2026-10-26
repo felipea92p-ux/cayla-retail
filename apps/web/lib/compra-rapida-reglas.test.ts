@@ -11,6 +11,10 @@ import {
   nuevoVacio,
   opcionesCategoriaNueva,
   opcionesMarcaNueva,
+  chipsDeLoHabitual,
+  prendasDeLaCompra,
+  totalesPorTienda,
+  TOPE_CHIPS_NUEVA,
   PROVEEDORES_POR_TANDA,
   tandaDeLista,
   habitualParecido,
@@ -22,6 +26,8 @@ import {
   marcasDeHabituales,
   prendasDeLineas,
   textoAvance,
+  lineaDeAvance,
+  PASOS_DE_LA_COMPRA,
   problemaPagado,
   pagoParaBase,
   textoLoQueFalta,
@@ -206,6 +212,14 @@ describe("la barra de avance: siempre 3 pasos", () => {
     expect(textoAvance("habituales")).toBe("Paso 2 de 3 · las prendas");
     expect(textoAvance("papel")).toBe("Paso 3 de 3 · el papel");
   });
+
+  it("los tres tramos tienen nombre y la línea de arriba dice a quién le compra cuando ya lo eligió", () => {
+    expect(PASOS_DE_LA_COMPRA).toEqual(["El proveedor", "Las prendas", "Papel y pago"]);
+    expect(lineaDeAvance("proveedor", null)).toBe("Paso 1 de 3");
+    expect(lineaDeAvance("habituales", "Textiles Rosa")).toBe("Textiles Rosa · paso 2 de 3");
+    expect(lineaDeAvance("revisar", "Textiles Rosa")).toBe("Textiles Rosa · paso 2 de 3");
+    expect(lineaDeAvance("papel", "Textiles Rosa")).toBe("Textiles Rosa · paso 3 de 3");
+  });
 });
 
 describe("algo nuevo de este proveedor", () => {
@@ -227,6 +241,43 @@ describe("algo nuevo de este proveedor", () => {
       ["sud", undefined],
       ["jeans", undefined],
       ["nueva", undefined],
+    ]);
+  });
+  it("los chips son solo lo habitual del proveedor, hasta 4; lo elegido en «Otra…» queda aparte", () => {
+    const todas = [..."abcdefgh"].map((id) => ({ id, nombre: id.toUpperCase() }));
+    expect(TOPE_CHIPS_NUEVA).toBe(4);
+    // Con pocas habituales, todas; nada elegido, nada «fuera».
+    expect(chipsDeLoHabitual(todas, ["b", "d"], null)).toEqual({ chips: [todas[1], todas[3]], fuera: "" });
+    // Elegida una de los chips: sigue siendo chip, «Otra…» no la toma.
+    expect(chipsDeLoHabitual(todas, ["b", "d"], "d").fuera).toBe("");
+    // Elegida una de la lista completa: «Otra…» la muestra.
+    expect(chipsDeLoHabitual(todas, ["b", "d"], "g").fuera).toBe("g");
+    // Con más de 4 habituales, solo 4 chips; la quinta, si se elige, también es «fuera» (se ve en «Otra…», no se pierde).
+    const seis = chipsDeLoHabitual(todas, ["a", "b", "c", "d", "e", "f"], "e");
+    expect(seis.chips.map((c) => c.id)).toEqual(["a", "b", "c", "d"]);
+    expect(seis.fuera).toBe("e");
+    // Un habitual que ya no está en la lista (una categoría borrada) no rompe nada.
+    expect(chipsDeLoHabitual(todas, ["zz", "a"], null).chips).toEqual([todas[0]]);
+    // Proveedor nuevo, sin historial: ningún chip.
+    expect(chipsDeLoHabitual(todas, [], "c")).toEqual({ chips: [], fuera: "c" });
+  });
+  it("«¿Está bien así?»: una prenda repartida entre dos tiendas es UNA fila, con cuántas va a cada una", () => {
+    const base = { productoId: null, categoriaId: "c", marcaId: null, categoria: "Blusas", marca: null, venta: 60 };
+    const lineas = [
+      { ...base, clave: "a", nombre: "Blusa Aurora", cantidad: 2, costo: 14, destinoId: "tru" },
+      { ...base, clave: "b", nombre: "Polo Tito", cantidad: 1, costo: 10, destinoId: "lim" },
+      { ...base, clave: "a", nombre: "Blusa Aurora", cantidad: 1, costo: 14, destinoId: "lim" },
+    ];
+    const prendas = prendasDeLaCompra(lineas);
+    expect(prendas.map((p) => [p.clave, p.indice, p.cantidad, p.total, p.tiendas])).toEqual([
+      ["a", 0, 3, 42, [{ destinoId: "tru", cantidad: 2 }, { destinoId: "lim", cantidad: 1 }]],
+      ["b", 1, 1, 10, [{ destinoId: "lim", cantidad: 1 }]],
+    ]);
+    expect(prendasDeLaCompra([])).toEqual([]);
+    // Lo mismo, por tienda y en el orden en que se anotaron.
+    expect(totalesPorTienda(lineas)).toEqual([
+      { destinoId: "tru", prendas: 2, total: 28 },
+      { destinoId: "lim", prendas: 2, total: 24 },
     ]);
   });
   it("el nombre: de 3 a 80 letras, sin contar los espacios de más", () => {
@@ -387,9 +438,11 @@ describe("la hoja de la prenda (rediseño)", () => {
     expect(textoAgregarPrenda({ cantidad: "", costo: "1" }, false)).toBe("Agregar");
   });
   it("la barra negra suma prendas, plata y modelos", () => {
-    const r = resumenCarrito([{ cantidad: 12, costo: 17.5 }, { cantidad: 20, costo: 9 }]);
+    const r = resumenCarrito([{ clave: "a", cantidad: 12, costo: 17.5 }, { clave: "b", cantidad: 20, costo: 9 }]);
     expect([plano(r.titulo), r.detalle]).toEqual(["32 prendas · S/ 390.00", "2 modelos"]);
-    expect(resumenCarrito([{ cantidad: 1, costo: 5 }]).detalle).toBe("1 modelo");
+    expect(resumenCarrito([{ clave: "a", cantidad: 1, costo: 5 }]).detalle).toBe("1 modelo");
+    // Un mismo modelo repartido entre dos tiendas (dos líneas, una clave) sigue siendo 1 modelo.
+    expect(resumenCarrito([{ clave: "a", cantidad: 2, costo: 14 }, { clave: "a", cantidad: 1, costo: 14 }]).detalle).toBe("1 modelo");
   });
 });
 

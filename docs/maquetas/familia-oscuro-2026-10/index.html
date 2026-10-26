@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El oscuro de la familia CAYLA — elige mirando</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* La hoja que rodea (no es parte de ninguna app): crema del tema claro, que es idéntico en Retail y en Dynamic. */
+  :root { --c-crema: #f5f0e8; --c-papel: #fbf8f2; --c-sand: #e8e0d0; --c-tinta: #1a1a18; --c-taupe: #805c4c; --c-rojo: #b8412d; --sans: "DM Sans", ui-sans-serif, system-ui, sans-serif; --serif: "EB Garamond", ui-serif, Georgia, serif; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--c-crema); color: var(--c-tinta); font-family: var(--sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  .hoja { max-width: 1320px; margin: 0 auto; padding: 36px 24px 72px; }
+  .kick { display: inline-flex; align-items: center; gap: 10px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; font-weight: 600; color: var(--c-taupe); }
+  .kick::before { content: ""; width: 30px; height: 1px; background: var(--c-taupe); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 5vw, 52px); line-height: 1.05; margin: 8px 0 10px; letter-spacing: -.01em; }
+  .lead { max-width: 760px; color: color-mix(in srgb, var(--c-tinta) 72%, transparent); }
+  .lead b { color: var(--c-tinta); font-weight: 600; }
+  .eleccion { position: sticky; top: 0; z-index: 20; margin: 22px -24px 0; padding: 12px 24px; background: color-mix(in srgb, var(--c-papel) 94%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--c-sand); display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; font-size: 14px; }
+  .eleccion strong { font-weight: 600; }
+  .eleccion .copia { margin-left: auto; padding: 7px 14px; border: 1px solid var(--c-taupe); border-radius: 8px; font-size: 13px; font-weight: 500; }
+  .eleccion .copia:hover { background: color-mix(in srgb, var(--c-sand) 50%, transparent); }
+  .tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 22px; align-items: start; }
+  @media (max-width: 1000px) { .tres { grid-template-columns: 1fr; } }
+  .col { border: 2px solid transparent; border-radius: 22px; padding: 14px; background: color-mix(in srgb, var(--c-sand) 45%, transparent); transition: border-color .25s; }
+  .col[data-elegida] { border-color: var(--c-tinta); }
+  .cab { display: grid; gap: 4px; padding: 2px 4px 12px; }
+  .cab .letra { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--c-taupe); }
+  .cab h2 { font-family: var(--serif); font-weight: 500; font-size: 26px; line-height: 1.1; }
+  .cab p { font-size: 13.5px; color: color-mix(in srgb, var(--c-tinta) 72%, transparent); }
+  .cab .elegir { justify-self: start; margin-top: 6px; padding: 9px 16px; border-radius: 8px; background: var(--c-tinta); color: var(--c-crema); font-size: 13.5px; font-weight: 500; transition: background .2s; }
+  .cab .elegir:hover { background: #8b2a1f; }
+  .col[data-elegida] .elegir { background: transparent; color: var(--c-tinta); border: 1px solid var(--c-tinta); }
+  .muestras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 0 12px; }
+  .muestras span { display: grid; gap: 1px; padding: 8px 8px 7px; border-radius: 10px; font-size: 10.5px; line-height: 1.25; border: 1px solid color-mix(in srgb, #fff 14%, transparent); }
+  .muestras b { font-weight: 600; letter-spacing: .04em; text-transform: uppercase; font-size: 10px; }
+
+  /* ---------- La mini pantalla, pintada solo con los tokens de la columna ---------- */
+  .p { background: var(--crema); color: var(--tinta); border-radius: 18px; padding: 18px; font-size: 13.5px; display: grid; gap: 16px; }
+  .p .linea { display: flex; align-items: center; gap: 10px; font-size: 10.5px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
+  .p .linea::before { content: ""; width: 28px; height: 1px; background: var(--taupe); }
+  .p h3 { font-family: var(--serif); font-weight: 600; font-size: 34px; line-height: 1; letter-spacing: -.02em; margin-top: 8px; }
+  .p .frase { margin-top: 6px; color: color-mix(in srgb, var(--tinta) 70%, transparent); font-size: 14px; }
+  .p .cifras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .p .cifra { background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 11px 12px; }
+  .p .cifra small { display: block; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); }
+  .p .cifra small i { display: inline-block; width: 6px; height: 6px; border-radius: 99px; margin-right: 6px; vertical-align: 1px; }
+  .p .cifra b { display: block; font-family: var(--serif); font-weight: 600; font-size: 24px; line-height: 1.2; font-variant-numeric: lining-nums tabular-nums; }
+  .p .pildoras { display: flex; flex-wrap: wrap; gap: 6px; }
+  .p .pil { padding: 5px 12px; border: 1px solid var(--sand); border-radius: 99px; font-size: 12.5px; font-weight: 600; color: var(--taupe); transition: background .15s, color .15s; }
+  .p .pil:hover { background: color-mix(in srgb, var(--sand) 45%, transparent); color: var(--tinta); }
+  .p .pil[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+  .p .buscador { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border-radius: 10px; background: var(--hueso); border: 1px solid var(--sand); color: color-mix(in srgb, var(--tinta) 64%, transparent); font-size: 13px; }
+  .p .tabla { background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; overflow: hidden; }
+  .p .fila { display: grid; grid-template-columns: 1.6fr .8fr .5fr auto; gap: 10px; align-items: center; padding: 10px 14px; transition: background .15s; }
+  .p .fila + .fila { border-top: 1px solid var(--sand); }
+  .p .fila.enc { background: color-mix(in srgb, var(--sand) 70%, transparent); font-size: 12px; color: var(--taupe); padding-block: 7px; }
+  .p .fila:not(.enc):hover { background: color-mix(in srgb, var(--crema) 60%, transparent); }
+  .p .fila span:nth-child(3) { text-align: right; font-variant-numeric: tabular-nums; }
+  .p .chip { display: inline-flex; align-items: center; gap: 6px; padding: 1px 10px; border-radius: 99px; font-size: 12px; line-height: 20px; white-space: nowrap; }
+  .p .chip::before { content: ""; width: 6px; height: 6px; border-radius: 99px; background: currentColor; }
+  .p .aviso { display: grid; gap: 1px; padding: 10px 12px; border-radius: 6px 14px 14px 6px; border: 1px solid color-mix(in srgb, var(--ambar) 32%, transparent); border-left: 3px solid var(--ambar); background: color-mix(in srgb, var(--ambar) 6%, var(--papel)); }
+  .p .aviso b { color: var(--ambar); font-size: 13.5px; }
+  .p .aviso span { color: color-mix(in srgb, var(--tinta) 78%, transparent); font-size: 13px; }
+  .p .nota { padding: 12px 14px; border-radius: 16px; background: color-mix(in srgb, var(--hueso) 85%, transparent); color: var(--taupe); font-size: 12.5px; line-height: 1.55; }
+  .p .nota b { color: var(--tinta); font-weight: 600; }
+  .p .campos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+  .p .campo label { display: block; margin-bottom: 5px; font-size: 10.5px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: color-mix(in srgb, var(--tinta) 62%, transparent); }
+  .p .caja { position: relative; display: flex; align-items: center; min-height: 38px; padding: 0 11px; border-radius: 8px; background: var(--hueso); border: 1px solid var(--sand); font-size: 13.5px; }
+  .p .caja.enc { background: var(--papel); border-color: color-mix(in srgb, var(--tinta) 38%, transparent); }
+  .p .caja.enc::after { content: ""; position: absolute; left: 9px; right: 9px; bottom: 0; height: 2px; border-radius: 2px 2px 0 0; background: var(--rojo); }
+  .p .caja.mal { border-color: color-mix(in srgb, var(--rojo) 55%, transparent); }
+  .p .pie-error { margin-top: 4px; font-size: 12px; color: var(--rojop); }
+  .p .ayuda { margin-top: 4px; font-size: 12px; color: var(--taupe); }
+  .p .controles { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+  .p .cas { width: 20px; height: 20px; border-radius: 6px; background: var(--tinta); display: grid; place-items: center; color: var(--crema); font-size: 13px; font-weight: 700; }
+  .p .cas.vacia { background: var(--papel); border: 1.5px solid color-mix(in srgb, var(--tinta) 35%, transparent); }
+  .p .int { position: relative; width: 38px; height: 22px; border-radius: 99px; background: var(--tinta); }
+  .p .int::after { content: ""; position: absolute; top: 3px; left: 19px; width: 16px; height: 16px; border-radius: 99px; background: var(--papel); }
+  .p .botones { display: flex; flex-wrap: wrap; gap: 8px; }
+  .p .btn { padding: 8px 16px; border-radius: 8px; border: 1px solid transparent; font-size: 13.5px; font-weight: 500; transition: background .15s, border-color .15s; }
+  .p .btn.pri { background: var(--tinta); color: var(--crema); }
+  .p .btn.pri:hover { background: var(--rojop); color: var(--crema); }
+  .p .btn.sec { border-color: var(--sand); }
+  .p .btn.sec:hover { border-color: color-mix(in oklab, var(--taupe) 40%, transparent); background: color-mix(in oklab, var(--sand) 50%, transparent); }
+  .p .btn.pel { color: var(--rojo); border-color: color-mix(in oklab, var(--rojo) 30%, transparent); }
+  .p .escena { position: relative; border-radius: 14px; overflow: hidden; background: var(--crema); padding: 14px; min-height: 150px; }
+  .p .velo { position: absolute; inset: 0; background: rgba(0, 0, 0, .6); }
+  .p .hojita { position: relative; margin: 6px auto 0; max-width: 270px; padding: 16px; border-radius: 18px; background: var(--papel); border: 1px solid var(--sand); }
+  .p .hojita h4 { font-family: var(--serif); font-weight: 600; font-size: 20px; line-height: 1.2; }
+  .p .hojita p { margin: 3px 0 12px; font-size: 12.5px; color: var(--taupe); }
+
+  /* ---------- La tabla de medidas ---------- */
+  .med { margin-top: 12px; padding: 12px 14px 8px; border-radius: 16px; background: var(--c-papel); border: 1px solid var(--c-sand); }
+  .med h5 { font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--c-taupe); margin-bottom: 6px; }
+  .med table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .med td { padding: 4px 0; border-top: 1px solid var(--c-sand); vertical-align: baseline; }
+  .med td:first-child { padding-right: 8px; color: color-mix(in srgb, var(--c-tinta) 80%, transparent); }
+  .med td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .med .ok { color: #48603f; } .med .no { color: #8b2a1f; } .med .ref { color: var(--c-taupe); font-weight: 500; }
+  .med .pie { margin: 6px 0 2px; font-size: 11.5px; color: var(--c-taupe); }
+
+  .lectura { margin-top: 28px; padding: 22px 24px; border-radius: 20px; background: var(--c-papel); border: 1px solid var(--c-sand); display: grid; gap: 10px; max-width: 900px; }
+  .lectura h2 { font-family: var(--serif); font-weight: 500; font-size: 26px; }
+  .lectura ul { margin-left: 18px; display: grid; gap: 4px; }
+  .lectura b { font-weight: 600; }
+  .quien { display: inline-block; padding: 1px 8px; border-radius: 99px; background: var(--c-sand); font-size: 12px; font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="hoja">
+  <p class="kick">Familia CAYLA · pendiente P1</p>
+  <h1>El oscuro de CAYLA: elige mirando</h1>
+  <p class="lead">Hoy Retail y Dynamic tienen <b>dos oscuros distintos</b> (un gris y un café). El tema claro es idéntico en las dos. Esta lámina pone la <b>misma pantalla</b> en tres oscuros, con exactamente los mismos componentes: lo único que cambia entre columnas son los colores. Toca las píldoras, pasa el mouse por las filas y los botones, y mira los campos: ahí es donde más se distinguen. Abajo de cada columna están las medidas.</p>
+
+  <div class="eleccion" id="eleccion" aria-live="polite">
+    <span>Todavía no elegiste.</span>
+  </div>
+
+  <div class="tres" id="tres"></div>
+
+  <section class="lectura">
+    <h2>Mi lectura (tuya es la decisión)</h2>
+    <ul>
+      <li><b>A y B difieren en dos cosas a la vez:</b> el <i>matiz</i> (gris contra café) y el <i>orden de las claridades</i> (en A el campo es más claro que la página; en B es más negro). C separa las dos: toma las claridades de A y el matiz de B.</li>
+      <li><b>B tiene un texto bajo 4.5:1:</b> el rojo sobre la tarjeta (4.28:1; por eso Dynamic usa el rojo profundo para sus errores). Además el campo casi no se separa de la página (1.08:1, contra 1.32:1 en A).</li>
+      <li><b>C conserva los contrastes de A</b> (mismas claridades: los textos cambian menos de 0.05 en la medida) <b>y recupera la calidez de B</b>. Para Retail es casi invisible: solo se tiñe el matiz de cuatro superficies. Para Dynamic cambia el orden del campo y sube el rojo.</li>
+      <li>Si te gusta más el café de B, la decisión es también válida: costaría subir ese rojo y revisar los chips (4.77–4.91:1, justos).</li>
+    </ul>
+    <p>Elige abajo y copia el mensaje para Claude: <span class="quien">P1 = A</span>, <span class="quien">P1 = B</span> o <span class="quien">P1 = C</span>. Se guarda en este navegador.</p>
+  </section>
+</main>
+
+<script>
+  // Los tres oscuros. A y B son los de hoy (docs/familia/contrato.json); C es nuevo: la claridad de A con el matiz de B.
+  const COMUN = { tinta: "#f5f0e8", taupe: "#c4a898", rojo: "#e8806a", rojop: "#f29a86", verde: "#9ccb8d", ambar: "#e4b968", pizarra: "#a2b8cd" };
+  const OPCIONES = [
+    { id: "A", nombre: "Gris", sub: "El de Retail hoy", texto: "La crema y la tinta intercambiadas. Elevado = más claro: el campo es más claro que la página.",
+      t: { crema: "#1a1a18", papel: "#242422", hueso: "#31302d", sand: "#3d3c38", tinta: "#f5f0e8", taupe: "#c4a898", rojo: "#e8806a", rojop: "#f29a86", verde: "#9ccb8d", ambar: "#e4b968", pizarra: "#a2b8cd" } },
+    { id: "B", nombre: "Café", sub: "El de Dynamic hoy", texto: "Papel sobre tinta cálida. Hundido = más oscuro: el campo es más negro que la página.",
+      t: { crema: "#1c1a16", papel: "#26221d", hueso: "#15110d", sand: "#332e27", tinta: "#ede7db", taupe: "#ab9080", rojo: "#d4634a", rojop: "#e8836b", verde: "#8fae80", ambar: "#c99a4a", pizarra: "#9db0c2" } },
+    { id: "C", nombre: "Gris cálido", sub: "Nuevo: la claridad de A, el matiz de B", texto: "Mismas claridades que A (campo más claro que la página), teñidas del café de B. Los textos son los de A.",
+      t: { crema: "#1c1a17", papel: "#26241f", hueso: "#33302a", sand: "#403b34", ...COMUN } },
+  ];
+
+  const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const lum = (h) => { const [r, g, b] = hex(h).map(lin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const cr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const mezcla = (fg, bg, a) => "#" + hex(fg).map((v, i) => Math.round(v * a + hex(bg)[i] * (1 - a)).toString(16).padStart(2, "0")).join("");
+  const sat = (h) => { const [r, g, b] = hex(h).map((v) => v / 255); const M = Math.max(r, g, b), m = Math.min(r, g, b), l = (M + m) / 2; return M === m ? 0 : Math.round(((M - m) / (l > 0.5 ? 2 - M - m : M + m)) * 100); };
+
+  const PANTALLA = `
+    <div class="p">
+      <div><p class="linea">Trujillo · Sáb 25 oct</p><h3>Existencias</h3><p class="frase">Cuántas prendas hay en cada lugar de la sede.</p></div>
+      <div class="cifras">
+        <div class="cifra"><small><i style="background:var(--verde)"></i>En el piso</small><b>1,284</b></div>
+        <div class="cifra"><small><i style="background:var(--ambar)"></i>Por reponer</small><b>37</b></div>
+        <div class="cifra"><small><i style="background:var(--pizarra)"></i>En camino</small><b>3</b></div>
+      </div>
+      <div class="pildoras"><button class="pil" aria-pressed="true">Todas</button><button class="pil" aria-pressed="false">Piso</button><button class="pil" aria-pressed="false">Almacén</button><button class="pil" aria-pressed="false">Sin stock</button></div>
+      <div class="buscador"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Buscar por nombre, código o color</div>
+      <div class="tabla">
+        <div class="fila enc"><span>Prenda</span><span>Lugar</span><span>Unid.</span><span></span></div>
+        <div class="fila"><span>Blusa Emma · M · Marfil</span><span style="color:var(--taupe)">Piso</span><span>12</span><span class="chip" style="background:color-mix(in oklab,var(--verde) 15%,transparent);color:var(--verde)">Hay</span></div>
+        <div class="fila"><span>Casaca Aurora · S · Negro</span><span style="color:var(--taupe)">Almacén</span><span>2</span><span class="chip" style="background:color-mix(in oklab,var(--ambar) 15%,transparent);color:var(--ambar)">Al filo</span></div>
+        <div class="fila"><span>Pantalón Lía · 38 · Arena</span><span style="color:var(--taupe)">Piso</span><span>0</span><span class="chip" style="background:color-mix(in oklab,var(--rojo) 10%,transparent);color:var(--rojop)">Sin stock</span></div>
+      </div>
+      <div class="aviso"><b>Faltan 3 prendas por contar</b><span>El conteo de Trujillo no se puede cerrar hasta que se cuenten.</span></div>
+      <p class="nota"><b>Registro transparente:</b> cada cambio de stock queda con quien lo hizo y la hora. Nada se borra.</p>
+      <div class="campos">
+        <div class="campo"><label>Nombre de la prenda</label><div class="caja">Ej. Casaca Aurora</div><p class="ayuda">Campo en reposo.</p></div>
+        <div class="campo"><label>Costo (S/)</label><div class="caja enc">48.50</div><p class="ayuda">Encendido: papel y el hilo.</p></div>
+        <div class="campo"><label>Cantidad</label><div class="caja mal">-3</div><p class="pie-error">La cantidad no puede ser negativa.</p></div>
+        <div class="campo"><label>Sede</label><div class="caja">Lima</div><p class="ayuda">Un combo.</p></div>
+      </div>
+      <div class="controles"><span class="cas">✓</span><span class="cas vacia"></span><span class="int"></span><span style="color:var(--taupe);font-size:12.5px">casillas e interruptor</span></div>
+      <div class="botones"><button class="btn pri">Registrar factura</button><button class="btn sec">Cancelar</button><button class="btn pel">Anular venta</button></div>
+      <div class="escena"><div class="velo"></div><div class="hojita"><h4>Registrar gasto</h4><p>Queda anotado en Caja de hoy.</p><div class="caja" style="margin-bottom:10px">45.00</div><div class="botones" style="justify-content:flex-end"><button class="btn sec">Cancelar</button><button class="btn pri">Registrar</button></div></div></div>
+    </div>`;
+
+  function medidas(t) {
+    const filas = [
+      ["Texto sobre la tarjeta", cr(t.tinta, t.papel), 4.5],
+      ["Texto secundario sobre la tarjeta", cr(t.taupe, t.papel), 4.5],
+      ["Texto secundario sobre un campo", cr(t.taupe, t.hueso), 4.5],
+      ["Rojo como texto sobre la tarjeta", cr(t.rojo, t.papel), 4.5],
+      ["Rojo profundo sobre la tarjeta", cr(t.rojop, t.papel), 4.5],
+      ["Chip «Hay» (verde sobre su tinte)", cr(t.verde, mezcla(t.verde, t.papel, 0.15)), 4.5],
+      ["Chip «Al filo» (ámbar sobre su tinte)", cr(t.ambar, mezcla(t.ambar, t.papel, 0.15)), 4.5],
+    ];
+    const refs = [
+      ["La línea contra la tarjeta", cr(t.sand, t.papel)],
+      ["La tarjeta contra la página", cr(t.papel, t.crema)],
+      ["El campo contra la página", cr(t.hueso, t.crema)],
+      ["El campo contra la tarjeta", cr(t.hueso, t.papel)],
+    ];
+    const f = (n) => n.toFixed(2) + ":1";
+    return `<div class="med"><h5>Medidas</h5><table>
+      ${filas.map(([n, v, min]) => `<tr><td>${n}</td><td class="${v >= min ? "ok" : "no"}">${f(v)} ${v >= min ? "✓" : "✗"}</td></tr>`).join("")}
+      ${refs.map(([n, v]) => `<tr><td>${n}</td><td class="ref">${f(v)}</td></tr>`).join("")}
+      <tr><td>Saturación de la página / tarjeta</td><td class="ref">${sat(t.crema)} % / ${sat(t.papel)} %</td></tr>
+    </table><p class="pie">✓ = pasa el 4.5:1 de los textos. Las separaciones de superficies no tienen mínimo: se miran.</p></div>`;
+  }
+
+  const raiz = document.getElementById("tres");
+  raiz.innerHTML = OPCIONES.map((o) => `
+    <article class="col" data-id="${o.id}">
+      <header class="cab"><span class="letra">Opción ${o.id} · ${o.sub}</span><h2>${o.nombre}</h2><p>${o.texto}</p><button class="elegir" type="button">Elegir la ${o.id}</button></header>
+      <div class="muestras">${["crema", "papel", "hueso", "sand"].map((k) => `<span style="background:${o.t[k]};color:${o.t.tinta}"><b>${k}</b>${o.t[k]}</span>`).join("")}</div>
+      <div class="tema" style="${Object.entries(o.t).map(([k, v]) => `--${k}:${v}`).join(";")}">${PANTALLA}</div>
+      ${medidas(o.t)}
+    </article>`).join("");
+
+  // Las píldoras son tocables, cada una en su columna.
+  raiz.addEventListener("click", (e) => {
+    const p = e.target.closest(".pil");
+    if (p) { p.parentElement.querySelectorAll(".pil").forEach((x) => x.setAttribute("aria-pressed", String(x === p))); return; }
+    const b = e.target.closest(".elegir");
+    if (b) elegir(b.closest(".col").dataset.id);
+  });
+
+  const barra = document.getElementById("eleccion");
+  function elegir(id) {
+    try { localStorage.setItem("familia-oscuro-p1", id); } catch (_) {}
+    pintar(id);
+  }
+  function pintar(id) {
+    raiz.querySelectorAll(".col").forEach((c) => c.toggleAttribute("data-elegida", c.dataset.id === id));
+    const o = OPCIONES.find((x) => x.id === id);
+    if (!o) { barra.innerHTML = "<span>Todavía no elegiste.</span>"; return; }
+    barra.innerHTML = `<span>Elegiste <strong>la opción ${o.id} · ${o.nombre}</strong>.</span><span style="color:#805c4c">Dile a Claude: <strong>P1 = ${o.id}</strong></span><button class="copia" type="button">Copiar «P1 = ${o.id}»</button>`;
+    barra.querySelector(".copia").onclick = async (e) => { try { await navigator.clipboard.writeText("P1 = " + o.id); e.target.textContent = "Copiado ✓"; } catch (_) { e.target.textContent = "P1 = " + o.id; } };
+  }
+  try { pintar(localStorage.getItem("familia-oscuro-p1")); } catch (_) {}
+</script>
+</body>
+</html>
