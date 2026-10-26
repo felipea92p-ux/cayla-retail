@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { ArrowLeft, ArrowRight, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Minus, Plus } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
@@ -19,7 +19,9 @@ import { leerObservacionesDelEnvio } from "@/lib/recepcion-conteo-acciones";
 import { deLaLinea, type ObservacionDeEnvio } from "@/lib/observaciones-envio-reglas";
 import type { CatalogoParaRecibir, DetalleEnvio, PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import {
+  anotadasSinSeparar,
   camposDelConteo,
+  cantidadAlSepararAnotada,
   contadasDe,
   diferenciaDe,
   idCampoConteo,
@@ -27,13 +29,17 @@ import {
   leerContadas,
   lineasALaVista,
   ponerTallas,
+  prendasAnotadasDe,
+  separarAnotada,
   textoPrendas,
   totalSeparado,
   veredictoDe,
   type ClaveLinea,
   type ConteosDelEnvio,
   type LineaParaContar,
+  type PrendaAnotada,
   type PrendaSeparada,
+  type Separado,
   SIN_MARCA,
   marcaDeLinea,
 } from "@/lib/recepcion-conteo-reglas";
@@ -107,15 +113,38 @@ export function ContarEnvio({
     };
   }, [detalle.id]);
   const [errorHoja, setErrorHoja] = useState<string | null>(null);
+  // Las categorías desplegadas en la lista de la izquierda (con las prendas que se anotaron al comprar).
+  const [abiertas, setAbiertas] = useState<ReadonlySet<ClaveLinea>>(new Set());
   const linea = visibles.find((l) => l.clave === foco) ?? visibles[0] ?? null;
   const i = linea ? visibles.indexOf(linea) : -1;
   const siguiente = i >= 0 ? (visibles[i + 1] ?? null) : null;
   const anterior = i > 0 ? visibles[i - 1] : null;
   const yaUsadas = new Set(visibles.map((l) => `${l.categoria?.id}|${l.marca?.id ?? SIN_MARCA}`));
   const proveedores = conteos?.proveedores ?? [];
+  // La guía interactiva explica la flecha de la primera categoría que la trae (un solo ancla por pantalla).
+  const primeraConAnotadas = visibles.find((l) => prendasAnotadasDe(l).length > 0)?.clave ?? null;
 
   function elegir(l: LineaParaContar) {
     setFoco(l.clave);
+  }
+
+  function alternar(clave: ClaveLinea) {
+    setAbiertas((a) => {
+      const n = new Set(a);
+      if (!n.delete(clave)) n.add(clave);
+      return n;
+    });
+  }
+
+  /** Lo separado de una línea, con lo contado que sube si se separó más (lo mismo para «¿Qué … son?» y para el «+» de la lista). */
+  function escribirSeparado(l: LineaParaContar, s: Separado) {
+    onEscribir(l, { separado: s, contadas: Math.max(contadasDe(l), (l.conteo?.enStock ?? 0) + totalSeparado(s)) });
+  }
+
+  /** El «+» de una prenda anotada al comprar: pasa a «¿Qué … son?» con las que se esperaban, como si se hubiera elegido desde el buscador. */
+  function separarAnotadaDe(l: LineaParaContar, p: PrendaAnotada) {
+    setFoco(l.clave);
+    escribirSeparado(l, separarAnotada(l.conteo?.separado ?? { prendas: [], nuevas: [] }, p, cantidadAlSepararAnotada(l, p)));
   }
 
   async function prendaCompleta(p: PrendaSeparada, l: LineaParaContar): Promise<PrendaRecepcion | null> {
@@ -185,33 +214,86 @@ export function ContarEnvio({
                   : sinSep === 0
                     ? "todas separadas"
                     : [sep > 0 ? `${sep} ${sep === 1 ? "separada" : "separadas"}` : null, `${sinSep} sin separar`].filter(Boolean).join(" · ");
+              // Las prendas exactas que se anotaron al comprar: la categoría se despliega para verlas y pasarlas a «¿Qué … son?» con el «+».
+              const hayAnotadas = prendasAnotadasDe(l).length > 0;
+              const abierta = hayAnotadas && abiertas.has(l.clave);
+              const porSeparar = abierta ? anotadasSinSeparar(l) : [];
+              const idAnotadas = `rc-anotadas-${l.clave.replace(":", "-")}`;
+              const nombreCategoria = l.categoria?.nombre.toLowerCase() ?? "prendas";
               return (
-                <button
-                  key={l.clave}
-                  type="button"
-                  data-campo={l.linea ? idCampoConteo(l.clave) : undefined}
-                  aria-current={linea?.clave === l.clave ? "true" : undefined}
-                  onClick={() => elegir(l)}
-                  className="rc-cat-item"
-                >
-                  <span className="rc-cat-marca">
-                    <MarcaCampo estado={estado} />
-                  </span>
-                  <BaldosaCategoria categoria={l.categoria} />
-                  <span className="min-w-0 flex-1">
-                    <b className="block truncate text-sm text-tinta">{l.categoria?.nombre ?? "Categoría"}</b>
-                    <small className="block text-xs leading-snug text-taupe">{sub}</small>
-                    {dif != null && dif !== 0 && l.conteo && (
-                      <span className="mt-1 inline-block">
-                        <Chip tono="ambar">{dif > 0 ? `+${dif}` : dif}</Chip>
+                <div key={l.clave} className="rc-cat-grupo" data-actual={linea?.clave === l.clave ? "" : undefined}>
+                  <div className="rc-cat-fila">
+                    <button
+                      type="button"
+                      data-campo={l.linea ? idCampoConteo(l.clave) : undefined}
+                      aria-current={linea?.clave === l.clave ? "true" : undefined}
+                      data-desplegable={hayAnotadas ? "" : undefined}
+                      onClick={() => elegir(l)}
+                      className="rc-cat-item"
+                    >
+                      <span className="rc-cat-marca">
+                        <MarcaCampo estado={estado} />
                       </span>
+                      <BaldosaCategoria categoria={l.categoria} />
+                      <span className="min-w-0 flex-1">
+                        <b className="block truncate text-sm text-tinta">{l.categoria?.nombre ?? "Categoría"}</b>
+                        <small className="block text-xs leading-snug text-taupe">{sub}</small>
+                        {dif != null && dif !== 0 && l.conteo && (
+                          <span className="mt-1 inline-block">
+                            <Chip tono="ambar">{dif > 0 ? `+${dif}` : dif}</Chip>
+                          </span>
+                        )}
+                      </span>
+                      <span className="whitespace-nowrap text-right tabular-nums">
+                        <b className="text-lg text-tinta">{l.conteo ? contadasDe(l) : 0}</b>
+                        {l.dijeron != null && <span className="text-xs text-taupe">/{l.dijeron}</span>}
+                      </span>
+                    </button>
+                    {hayAnotadas && (
+                      <button
+                        type="button"
+                        className="rc-cat-desplegar"
+                        aria-expanded={abierta}
+                        aria-controls={idAnotadas}
+                        aria-label={`${abierta ? "Ocultar" : "Ver"} las prendas anotadas en la compra de ${nombreCategoria}`}
+                        title={abierta ? "Ocultar lo anotado en la compra" : "Ver lo anotado en la compra"}
+                        onClick={() => alternar(l.clave)}
+                        data-guia={primeraConAnotadas === l.clave ? "recepcion.desplegar" : undefined}
+                      >
+                        <ChevronDown aria-hidden className="h-4 w-4" />
+                      </button>
                     )}
-                  </span>
-                  <span className="whitespace-nowrap text-right tabular-nums">
-                    <b className="text-lg text-tinta">{l.conteo ? contadasDe(l) : 0}</b>
-                    {l.dijeron != null && <span className="text-xs text-taupe">/{l.dijeron}</span>}
-                  </span>
-                </button>
+                  </div>
+                  {abierta && (
+                    <div id={idAnotadas} className="rc-anotadas">
+                      <p className="label-cayla text-[10.5px] text-taupe">Anotado en la compra</p>
+                      {porSeparar.length === 0 ? (
+                        <p className="text-xs text-taupe">Todo pasó a «¿Qué {nombreCategoria} son?».</p>
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {porSeparar.map((p) => (
+                            <li key={p.productoId ?? `nueva:${p.nombre}`} className="rc-anotada">
+                              <span className="min-w-0">
+                                <b className="block truncate text-[13.5px] text-tinta">{p.nombre}</b>
+                                <small className="block truncate text-[11.5px] text-taupe">{p.codigo ?? (p.productoId ? "Del catálogo" : "Nueva: no está en el catálogo")}</small>
+                              </span>
+                              <span className="rc-anotada-n">× {p.cantidad}</span>
+                              <button
+                                type="button"
+                                className="rc-anotada-mas"
+                                aria-label={`Pasar ${p.nombre} (${cantidadAlSepararAnotada(l, p)}) a «¿Qué ${nombreCategoria} son?»`}
+                                title={`Pasar a «¿Qué ${nombreCategoria} son?»`}
+                                onClick={() => separarAnotadaDe(l, p)}
+                              >
+                                <Plus aria-hidden className="h-4 w-4" />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
               );
             })}
             <button
@@ -260,7 +342,7 @@ export function ContarEnvio({
                     marca={marcaDeLinea(linea)}
                     separado={linea.conteo?.separado ?? { prendas: [], nuevas: [] }}
                     tope={Math.max(0, contadasDe(linea) - (linea.conteo?.enStock ?? 0))}
-                    onSeparado={(s) => onEscribir(linea, { separado: s, contadas: Math.max(contadasDe(linea), (linea.conteo?.enStock ?? 0) + totalSeparado(s)) })}
+                    onSeparado={(s) => escribirSeparado(linea, s)}
                     onTallas={(p) => void abrirTallas(linea, p)}
                     onPrendaVista={onPrendaVista}
                     elegida={linea.linea?.prendaElegida ?? null}

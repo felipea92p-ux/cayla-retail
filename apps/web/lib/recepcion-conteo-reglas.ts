@@ -273,6 +273,9 @@ export function conteoDeVariantes(vs: readonly VarianteSeparada[] | null): Conte
   return { cantidades, danadas, conDanadas: Object.keys(danadas).length > 0, arreglo };
 }
 
+/** Lo que se escribe de una nueva, como se guarda: sin espacios de más y con el tope. Dos escrituras iguales dan la misma. */
+const limpiarDescripcion = (d: string): string => d.trim().replace(/\s+/g, " ").slice(0, TOPES_CONTEO.descripcionNueva);
+
 /** Cuántas nuevas sin describir (las que no tienen descripción se juntan en una sola fila «Nuevas»). */
 export const nuevasSinDescribir = (s: Separado): number => s.nuevas.filter((n) => !n.descripcion).reduce((a, n) => a + n.cantidad, 0);
 
@@ -289,7 +292,7 @@ export function cambiarNuevasSinDescribir(s: Separado, cantidad: number): Separa
  * junta; no se describen más de las que hay sin describir.
  */
 export function describirNuevas(s: Separado, descripcion: string, cantidad: number): Separado {
-  const texto = descripcion.trim().replace(/\s+/g, " ").slice(0, TOPES_CONTEO.descripcionNueva);
+  const texto = limpiarDescripcion(descripcion);
   const sin = nuevasSinDescribir(s);
   const n = Math.min(sin, Math.max(0, Math.trunc(cantidad)));
   if (!texto || n === 0) return s;
@@ -832,6 +835,63 @@ export function marcaDeLinea(l: { marca: { id: string; nombre: string } | null }
 export function nombreDeLinea(l: Pick<LineaParaContar, "categoria" | "marca" | "linea">): string {
   const base = [l.categoria?.nombre, l.categoria ? marcaDeLinea(l).nombre : null].filter(Boolean).join(" · ") || "esta línea";
   return l.linea?.descripcion ? `${base} · ${l.linea.descripcion}` : base;
+}
+
+// ---- Lo que anotó la compra: las prendas exactas de una línea, de un toque a «¿Qué blusas son?» ---------------------------------------
+
+/**
+ * Una prenda que se anotó al comprar, tal como la trae la línea del envío: la del catálogo que se eligió (`prendaElegida`) o, si se anotó
+ * «algo nuevo», la que se escribió por su nombre (`descripcion`). Cada línea del envío sale de UNA línea de la compra, así que trae una;
+ * la lista deja lugar para más sin cambiar a quien la dibuja.
+ */
+export type PrendaAnotada = {
+  /** La del catálogo; `null` si se anotó solo por su nombre (no está en el catálogo: pasa como «nueva»). */
+  productoId: string | null;
+  nombre: string;
+  codigo: string | null;
+  /** Cuántas dijeron que venían de esta prenda. */
+  cantidad: number;
+};
+
+/** Las prendas exactas que se anotaron al comprar para esta línea, con cuántas eran. Nada de lo que no venía en la guía. */
+export function prendasAnotadasDe(l: Pick<LineaParaContar, "linea" | "dijeron">): PrendaAnotada[] {
+  if (!l.linea || l.dijeron == null || l.dijeron <= 0) return [];
+  const elegida = l.linea.prendaElegida;
+  if (elegida) return [{ productoId: elegida.productoId, nombre: elegida.nombre ?? l.linea.descripcion ?? "Prenda del catálogo", codigo: elegida.codigo, cantidad: l.dijeron }];
+  const nombre = limpiarDescripcion(l.linea.descripcion ?? "");
+  return nombre ? [{ productoId: null, nombre, codigo: null, cantidad: l.dijeron }] : [];
+}
+
+/** ¿Ya está en «¿Qué blusas son?»? La del catálogo, por su prenda; la anotada solo por nombre, por su descripción (sin mayúsculas). */
+function estaSeparada(s: Separado, p: PrendaAnotada): boolean {
+  if (p.productoId) return s.prendas.some((x) => x.productoId === p.productoId);
+  const clave = p.nombre.toLocaleLowerCase("es");
+  return s.nuevas.some((n) => n.descripcion?.toLocaleLowerCase("es") === clave);
+}
+
+/** Las anotadas que todavía no pasaron a «¿Qué blusas son?». Si la persona la quita de ahí, vuelve a esta lista sola: no hay otro estado. */
+export function anotadasSinSeparar(l: Pick<LineaParaContar, "linea" | "dijeron" | "conteo">): PrendaAnotada[] {
+  const s = l.conteo?.separado ?? SEPARADO_VACIO;
+  return prendasAnotadasDe(l).filter((p) => !estaSeparada(s, p));
+}
+
+/**
+ * Con cuántas entra al tocar «+»: las que se esperaban. Si la línea ya se contó, no más de lo contado que sigue sin separar: lo que cuenta
+ * quien recibe es lo que vale (contar es certificar), un toque no lo pisa. Nunca menos de 1; en una línea que nadie contó todavía,
+ * lo esperado (como al separar de más a mano, lo contado sube).
+ */
+export function cantidadAlSepararAnotada(l: Pick<LineaParaContar, "conteo">, p: Pick<PrendaAnotada, "cantidad">): number {
+  const c = l.conteo;
+  if (!c) return p.cantidad;
+  const libres = Math.max(0, c.contadas - c.enStock - totalSeparado(c.separado));
+  return Math.max(1, Math.min(p.cantidad, libres));
+}
+
+/** Pasa una anotada a lo separado, como si se hubiera elegido desde el buscador: la del catálogo, como prenda conocida (sin tallas: queda por detallar); la que solo tiene nombre, como nueva ya descrita («por crear»). */
+export function separarAnotada(s: Separado, p: PrendaAnotada, cantidad: number): Separado {
+  const n = Math.max(1, Math.min(TOPES_CONTEO.contadas, Math.trunc(cantidad)));
+  if (p.productoId) return sumarPrenda(s, { productoId: p.productoId, nombre: p.nombre, codigo: p.codigo }, n);
+  return describirNuevas(cambiarNuevasSinDescribir(s, nuevasSinDescribir(s) + n), p.nombre, n);
 }
 
 /** El texto del botón principal: «Cerrar el envío · 40 contadas en Tienda TRU». */

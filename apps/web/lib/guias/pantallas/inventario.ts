@@ -1647,6 +1647,16 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Lo que dijeron que venía, por tipo de prenda, con cuántas. Tocas una para contarla; la que toca dice «Sigue aquí». Con su ✓ ya tiene su número, y abajo te dice cuántas separaste y cuántas quedan para después.",
     },
     {
+      // Solo si alguna categoría trae prendas anotadas al comprar. El «+» pasa la prenda a «¿Qué … son?»: es un cambio que se guarda solo,
+      // así que la demo explica la flecha sin tocarla.
+      id: "desplegar",
+      ancla: "recepcion.desplegar",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Lo que se anotó al comprar",
+      texto: "Si la compra anotó qué prendas eran, la flecha de la categoría las muestra con cuántas eran. Toca el «+» de una y pasa a «¿Qué prendas son?» con esa cantidad; si ya contaste menos, con lo que contaste. Allí puedes cambiar el número, también escribiéndolo.",
+    },
+    {
       id: "numero",
       ancla: "recepcion.numero",
       opcional: true,
@@ -1669,7 +1679,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "¿Qué prendas son? (opcional)",
-      texto: "Si te da tiempo: busca una prenda del catálogo y pon cuántas eran; con sus tallas y colores entra al stock al cerrar. De lo nuevo dices cuántas y, si quieres, qué son con «Describir ahora». Lo que no separes queda para después.",
+      texto: "Si te da tiempo: busca una prenda del catálogo y pon cuántas eran (con − y +, o escribiendo el número); con sus tallas y colores entra al stock al cerrar. De lo nuevo dices cuántas y, si quieres, qué son con «Describir ahora». Lo que no separes queda para después.",
     },
     {
       id: "elegida",

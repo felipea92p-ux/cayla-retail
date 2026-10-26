@@ -492,3 +492,19 @@ SE ROMPE SI: nace otra tabla de la recepción que cita a `productos` o `variante
 Probado sobre una base hecha de cero con todo `main`: `pruebas:eliminar-producto` 40/40, `pruebas:eliminar-producto-con-historia` 66/66 y
 `pruebas:pendientes-de-envio` 25/25 (E1 y E2 nuevos).
 **En producción el 2026-10-14** (con el OK de Felipe): la huella de `fn_producto_historia` coincide con la de la base hecha de cero.
+
+### Las categorías se despliegan: lo que se anotó al comprar, de un toque a «¿Qué … son?» (2026-10-26)
+
+Cada categoría de la lista que trae prendas anotadas en la compra (`prendaElegida` o la descripción de la línea, ADR-0480) tiene una flecha que
+muestra la prenda exacta con cuántas eran y un «+» redondo. Al tocarlo la prenda pasa a «¿Qué … son?» como si se hubiera elegido desde el
+buscador: la del catálogo, como prenda conocida; la que solo tiene nombre, como nueva ya descrita. No hay estado nuevo: lo que queda en la lista
+es lo anotado menos lo ya separado (`anotadasSinSeparar`), así que quitarla de «¿Qué … son?» la devuelve sola.
+
+DECIDÍ: la cantidad que entra es la esperada, pero en una línea ya contada nunca pasa de lo contado que sigue sin separar (`cantidadAlSepararAnotada`):
+contar es certificar (decisión 17 de ADR-0362) y un toque no lo pisa. En una línea sin contar entra la esperada y lo contado sube, igual que al
+separar de más a mano. La cantidad de una prenda separada también se escribe: se guarda al salir de la caja o con Enter, no con cada tecla,
+porque una prenda con tallas las suelta si su número cambia.
+DESCARTÉ: agrupar las líneas de una misma categoría en una sola desplegable: el conteo, los faltantes y los sobrantes son por línea y agrupar
+obliga a decidir cómo se reparte un número entre varias prendas.
+SE ROMPE SI: una línea del envío empieza a traer varias prendas (hoy trae una): `prendasAnotadasDe` ya devuelve una lista, pero la cantidad por
+prenda tendría que salir de la compra y no de `dijeron`.
