@@ -10,14 +10,20 @@
   /* Justo bajo la cabecera del ERP (61–62 px, `AppShell`): queda 1–2 px por debajo de ella, y la cabecera (z-30) tapa la unión. */
   top: calc(3.75rem + env(safe-area-inset-top));
   z-index: 20;
-  margin: -0.5rem -1rem 1.5rem;
+  /* Arriba, el margen negativo se come el aire que el `<main>` deja bajo la cabecera (5 rem en celular, 6 rem desde 640 px, menos los 3,75 rem
+     del `top` de arriba): la barra nace donde se queda fija y, al bajar la página, no salta ni deja un hueco vacío sobre ella (Felipe 2026-10-26). */
+  margin: -1.25rem -1rem 1rem;
   padding: 0.5rem 1rem 0.25rem;
   /* Opaca: con transparencia el contenido que pasa por detrás se leía a través de las pestañas. */
   background: var(--color-crema);
   border-bottom: 1px solid var(--color-sand);
+  /* Lo que cabe en la fila depende del ancho de la barra, no del de la ventana (el lateral y el padding del <main> se llevan una parte
+     distinta según el tamaño): las reglas «solo íconos» de más abajo preguntan por ella. */
+  container: mesa / inline-size;
 }
 @media (min-width: 640px) {
   .mesa-telar {
+    margin-top: -2.25rem;
     margin-inline: -1.25rem;
     padding-inline: 1.25rem;
   }
@@ -507,7 +513,14 @@ span.sede-telar { cursor: default; }
 }
 
 /* ---- Celular: líneas cortas (las sedes se deslizan · mes), para que la barra fija no se coma la pantalla ---- */
-@media (max-width: 1100px) {
+/* Medidas de la fila con texto (2026-10-26): sedes 513 + mes 211 + «Te toca» 127 + «Registrar gasto» 151 + 3 huecos de 12 = 1038 px. Por debajo,
+   solo íconos (si no, la barra baja a dos filas y se come 43 px); y el dicho necesita ~150 px propios, o se queda en un hilo de 40 px. */
+@container mesa (max-width: 1190px) {
+  .mesa-telar-dice {
+    display: none;
+  }
+}
+@container mesa (max-width: 1049px) {
   /* Solo el ícono a la vista; el texto queda para el lector de pantalla (es el nombre del botón). */
   .te-toca-telar-texto,
   .mesa-telar-registrar-texto {

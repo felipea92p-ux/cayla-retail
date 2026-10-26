@@ -51,7 +51,8 @@ async function subirFoto(archivo: File, carpeta: string): Promise<{ ruta: string
 }
 
 export function anotarPlata(
-  args: { p_medio: MedioPlata; p_monto: number; p_foto_ruta: string | null },
+  // `p_cuenta_indicada_id` solo viaja con una transferencia: sin él la llamada es la de siempre (la web puede publicarse antes que la base).
+  args: { p_medio: MedioPlata; p_monto: number; p_foto_ruta: string | null; p_cuenta_indicada_id?: string },
   firma: Firma | FirmaOmitida | null,
   token: string,
   senal: AbortSignal,
