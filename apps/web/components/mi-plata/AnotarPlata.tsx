@@ -160,7 +160,7 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
   return (
     <Modal
       titulo="Me dieron plata"
-      subtitulo="Anótala aquí: la puedes usar de una vez, y Compras la revisa."
+      subtitulo="La puedes usar de una vez. Compras la confirma después."
       onClose={onClose}
       variante="hoja"
       alCerrarEnfocar={volverA}
@@ -216,11 +216,11 @@ function AnotarPlataModal({ puedeYaTenia, onClose, volverA }: { puedeYaTenia: bo
               />
             </CampoGuiado>
             {!yaTenia && (
-              <CampoGuiado id="foto" guia={guia} titulo="Foto del voucher">
+              <CampoGuiado id="foto" guia={guia} titulo="Foto del voucher" ayuda="· opcional">
                 <TarjetaFoto
                   guia="mi-plata.foto"
                   titulo="Foto del voucher"
-                  ayuda="La captura del Yape o de la transferencia. Sin foto, igual se anota."
+                  ayuda="La captura del Yape o de la transferencia ayuda a Compras a confirmarla."
                   camara={false}
                   archivo={archivo}
                   deshabilitada={guardando}

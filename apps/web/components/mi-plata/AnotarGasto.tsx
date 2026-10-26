@@ -178,7 +178,7 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
               onChange={(e) => limpiar(setMonto)(e.target.value)}
             />
           </CampoGuiado>
-          <CampoGuiado id="foto" guia={guia} titulo="Foto del papel">
+          <CampoGuiado id="foto" guia={guia} titulo="Foto del papel" ayuda="· opcional">
             <TarjetaFoto
               titulo="Foto del papel, si te dieron"
               ayuda="Un taxi o un cargador pueden ir sin papel"
