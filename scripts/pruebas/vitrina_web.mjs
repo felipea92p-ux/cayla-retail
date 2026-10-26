@@ -24,6 +24,9 @@
  *   4d. Un producto nuevo nace visible (Felipe 2026-10-19, `20261019214000`): lo que da de alta un líder, o lo que se aprueba después,
  *      entra con «Se ve en la web» encendido y su línea en la Actividad; prueba y empaque no; esconderlo se respeta; lo que ya existía
  *      no se toca; y la tienda sigue pidiendo «se puede vender» (sin tallas con precio no sale).
+ *   4e. Con qué precio sale un modelo en cada tienda (`20261026191000`, la hoja del modelo): `fn_vitrina_precios_modelo` dice, por tienda de la
+ *      web y con «Todas», lo MISMO que lee la tienda (`tienda_catalogo`: precio de la talla más cara, precio con campaña, «Desde»), una
+ *      tienda sin precio dice que no lo ofrece, sin el módulo no se lee, y un mutante (preguntar siempre «Todas») lo ve.
  *   5. La migración se puede volver a correr, también sobre una base que tenía la versión vieja (con precio web).
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder) o Micaela (integrante de Trujillo): nunca se
@@ -919,6 +922,86 @@ rollback;`);
       r.ok ? r.salida : r.mensaje,
     );
   }
+
+  // ---------------------------------------------------------------- 4e. Con qué precio sale un modelo en cada tienda
+  // La hoja del modelo (`20261026191000_vitrina_precios_modelo.sql`) dice el precio de cada tienda de la web. No tiene regla propia: llama a
+  // `fn_tienda_precios`, la que lee la tienda. La prueba más importante es que dicen LO MISMO (una sola regla).
+  console.log("— Con qué precio sale un modelo en cada tienda —");
+  const PRECIOS_MODELO = (prod) => `retail.fn_vitrina_precios_modelo(:'${prod}')`;
+  /** «Tienda, se ofrece, precio, precio final, desde» de cada tienda de la web, por nombre. */
+  const POR_TIENDA = (prod) => `(select string_agg(concat_ws(',', s ->> 'nombre', s ->> 'se_ofrece', s ->> 'precio', s ->> 'precio_final', s ->> 'desde'), ';' order by s ->> 'nombre')
+      from jsonb_array_elements(${PRECIOS_MODELO(prod)} -> 'sedes') s)`;
+  /** «se ofrece | precio | precio final | desde» de «Todas». */
+  const DE_TODAS = (prod) => `(select concat_ws('|', t ->> 'se_ofrece', t ->> 'precio', t ->> 'precio_final', t ->> 'desde') from (select ${PRECIOS_MODELO(prod)} -> 'todas') x(t))`;
+  const ESPERADO_POR_TIENDA = "Tienda Lima,true,79.90,79.90,false;Tienda Trujillo,true,99.90,99.90,false";
+  // La base local la comparten los worktrees y su Blusa Emma puede tener una talla a otro precio: cada escenario fija el de su ficha.
+  const FICHA = (prod, precio = "79.90") => `update retail.variantes set precio = ${precio} where producto_id = :'${prod}';\n`;
+  esperarError("sin el módulo no se lee el precio de un modelo", correr(`${PREPARAR}${COMO_MICAELA}select ${PRECIOS_MODELO("emma")};\nrollback;`), "vitrina_web_sin_modulo");
+  esperarValor(
+    "con el módulo en su rol, la integrante lo lee",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${FICHA("emma")}${MODULO_A_INTEGRANTE}${COMO_MICAELA}select ${DE_TODAS("emma")};\nrollback;`),
+    "true|79.90|79.90|false",
+  );
+  esperarValor(
+    "cada tienda de la web con su precio: Trujillo con el propio (S/ 99.90), Lima con el de la ficha (S/ 79.90); y «Todas», el mayor",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${FICHA("emma")}${precioEnTienda("emma", "tru", "99.90")}
+      select ${POR_TIENDA("emma")};
+      select ${DE_TODAS("emma")};
+      rollback;`),
+    `${ESPERADO_POR_TIENDA}\ntrue|99.90|99.90|false`,
+  );
+  esperarValor(
+    "solo salen las tiendas que se ven en la web (Lima escondida: solo Trujillo)",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${FICHA("emma")}update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'lim';
+      select ${POR_TIENDA("emma")};
+      rollback;`),
+    "Tienda Trujillo,true,79.90,79.90,false",
+  );
+  esperarValor(
+    "una tienda donde el modelo no tiene precio dice que no lo ofrece, sin precio inventado (la falda en S/ 0, con precio solo en Lima)",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${enCero("falda")}${precioEnTienda("falda", "lim", "89.90")}
+      select ${POR_TIENDA("falda")};
+      select ${DE_TODAS("falda")};
+      rollback;`),
+    "Tienda Lima,true,89.90,89.90,false;Tienda Trujillo,false,false\ntrue|89.90|89.90|false",
+  );
+  esperarValor(
+    "un modelo sin precio en ninguna tienda: ninguna lo ofrece y «Todas» tampoco",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${enCero("emma")}
+      select ${POR_TIENDA("emma")};
+      select ${DE_TODAS("emma")};
+      rollback;`),
+    "Tienda Lima,false,false;Tienda Trujillo,false,false\nfalse|false",
+  );
+  esperarValor(
+    "dice LO MISMO que lee la tienda: precio, precio con campaña y «Desde», por tienda y con «Todas» (campaña del 20 % en el color BEI y precio propio en Trujillo)",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${FICHA("emma")}${precioEnTienda("emma", "tru", "99.90")}${guardar("emma", { version: VERSION("emma") })} \\gset
+      ${campana("ZZ Descuento", 20)}${aUnColor("emma", "BEI")}
+      select concat_ws('|',
+        (select concat_ws('|', s ->> 'precio', s ->> 'precio_final', s ->> 'desde') from jsonb_array_elements(${PRECIOS_MODELO("emma")} -> 'sedes') s where s ->> 'id' = :'tru') = ${PRECIOS("emma", "tru")},
+        (select concat_ws('|', s ->> 'precio', s ->> 'precio_final', s ->> 'desde') from jsonb_array_elements(${PRECIOS_MODELO("emma")} -> 'sedes') s where s ->> 'id' = :'lim') = ${PRECIOS("emma", "lim")},
+        (select concat_ws('|', t ->> 'precio', t ->> 'precio_final', t ->> 'desde') from (select ${PRECIOS_MODELO("emma")} -> 'todas') x(t)) = ${PRECIOS("emma")},
+        (select (s -> 'campana' ->> 'nombre') from jsonb_array_elements(${PRECIOS_MODELO("emma")} -> 'sedes') s where s ->> 'id' = :'tru'),
+        (select (s ->> 'desde') from jsonb_array_elements(${PRECIOS_MODELO("emma")} -> 'sedes') s where s ->> 'id' = :'tru'));
+      rollback;`),
+    "t|t|t|ZZ Descuento|true",
+  );
+  esperarValor(
+    "mutante: si la función ignora la tienda y pregunta siempre «Todas», la prueba lo ve (Lima saldría con S/ 99.90)",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${FICHA("emma")}${precioEnTienda("emma", "tru", "99.90")}
+      ${mutar("retail.fn_vitrina_precios_modelo(uuid)", "array[p_producto_id], s.id", "array[p_producto_id], null")}
+      select ${POR_TIENDA("emma")} = '${ESPERADO_POR_TIENDA}';
+      rollback;`),
+    "f",
+  );
+  esperarValor(
+    "es de solo lectura: no escribe en la Actividad ni en la vitrina",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${FICHA("emma")}select ${ACTIVIDAD} as antes \\gset
+      select ${DE_TODAS("emma")} is not null;
+      select ${ACTIVIDAD} = :antes, (select count(*) from retail.vitrina_productos where publicado) = 0;
+      rollback;`),
+    "t\nt|t",
+  );
 
   // ---------------------------------------------------------------- 5. La migración
   console.log("— La migración —");
