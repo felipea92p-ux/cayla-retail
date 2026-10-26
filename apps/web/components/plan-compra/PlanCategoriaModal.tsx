@@ -6,8 +6,13 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { FormularioCategoria } from "@/components/plan-compra/FormularioCategoria";
+import { PasoModelos } from "@/components/plan-compra/PasoModelos";
+import { Pestanas } from "@/components/ui/Pestanas";
 import type { CategoriaPlan, FilaPlan } from "@/lib/plan-compra-reglas";
 
+// Los dos pasos de una categoría (ADR-0526): ① cuánto comprar (el formulario de siempre) y ② qué modelos, colores y tallas (`PasoModelos`). El paso 2 solo se ofrece cuando el paso 1 ya está guardado y pide
+// comprar algo: reparte lo que el paso 1 decidió y nunca lo cambia. Cambiar de paso con algo escrito sin guardar pregunta antes de perderlo.
+//
 // La ventana de una categoría en el plan de campaña (ADR-0349): el formulario de la categoría (`FormularioCategoria`, el mismo que usa
 // el paso a paso) dentro de una hoja. Aquí solo vive lo propio de la hoja: el título, el pie y qué pasa al guardar. Con «Guardar y seguir
 // con …» la hoja NO se cierra: pasa a la siguiente categoría que más vende y no tiene plan (la elige `PlanCampana`, que ve toda la
@@ -57,11 +62,54 @@ export function PlanCategoriaModal({
   onClose: () => void;
 }) {
   const [sucio, setSucio] = useState(false);
-  const salida = useSalidaSinGuardar(sucio, `Escribiste parte del plan de ${fila.c.nombre} y todavía no se guardó. Si sales ahora, se pierde lo que escribiste.`);
+  const [sucioPaso2, setSucioPaso2] = useState(false);
+  const [paso, setPaso] = useState<"1" | "2">("1");
+  // El paso 2 reparte lo que el paso 1 decidió: hace falta el paso 1 guardado y que pida comprar algo.
+  const conPaso2 = fila.linea !== undefined && (fila.calculo?.comprar ?? 0) > 0;
+  const salida = useSalidaSinGuardar(sucio || sucioPaso2, `Escribiste parte del plan de ${fila.c.nombre} y todavía no se guardó. Si sales ahora, se pierde lo que escribiste.`);
+  const irAPaso = (destino: "1" | "2") => {
+    if (destino === paso) return;
+    salida.pedirAccion(() => {
+      setSucio(false);
+      setSucioPaso2(false);
+      setPaso(destino);
+    });
+  };
   return (
-    <Modal titulo={`Plan de ${fila.c.nombre}`} subtitulo={`${planNombre}.`} onClose={onClose} antesDeCerrar={salida.pedirAccion} variante="hoja" tamano="ancha">
+    <Modal
+      titulo={`Plan de ${fila.c.nombre}`}
+      subtitulo={`${planNombre}.`}
+      onClose={onClose}
+      antesDeCerrar={salida.pedirAccion}
+      variante="hoja"
+      tamano="ancha"
+      ancho={paso === "2" ? "max-w-5xl" : undefined} /* unificar-fijo: el paso 2 (modelos con sus colores y tallas) es de diseño propio y necesita más ancho que el formulario (ADR-0526, maqueta ⑥ elegida por Felipe) */
+    >
       {(cerrar) => (
         <>
+          {conPaso2 && (
+            <Pestanas
+              guia="plan-modal.pasos"
+              etiquetaAccesible={`Pasos del plan de ${fila.c.nombre}`}
+              activa={paso}
+              onCambio={(k) => irAPaso(k === "2" ? "2" : "1")}
+              items={[
+                { clave: "1", etiqueta: "1 · Cuánto compro" },
+                { clave: "2", etiqueta: "2 · Qué modelos, colores y tallas", guia: "plan-modal.paso-2" },
+              ]}
+              className="mb-5"
+            />
+          )}
+          {paso === "2" && conPaso2 ? (
+            <PasoModelos
+              planId={planId}
+              fila={fila}
+              vendidoPorTalla={vendidoPorTalla}
+              onCambios={setSucioPaso2}
+              onCancelar={() => salida.pedirAccion(cerrar)}
+              onIrAlPaso1={() => irAPaso("1")}
+            />
+          ) : (
           <FormularioCategoria
             key={fila.c.id}
             planId={planId}
@@ -99,6 +147,7 @@ export function PlanCategoriaModal({
               </div>
             )}
           />
+          )}
           {salida.aviso}
         </>
       )}

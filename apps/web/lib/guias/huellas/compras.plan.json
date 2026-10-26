@@ -2,7 +2,7 @@
   "guia": "compras.plan",
   "ruta": "/compras/plan",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 82,
+  "total": 93,
   "controles": {
     "components/plan-compra/AvisoStock.tsx": [
       "BotonVer «Ir a Conteo»"
@@ -36,6 +36,10 @@
     ],
     "components/plan-compra/FilaCategoria.tsx": [
       "button «plan.categoria»"
+    ],
+    "components/plan-compra/FilaDeModelo.tsx": [
+      "button «{m.nombre}»",
+      "Boton «Usar lo que propone»"
     ],
     "components/plan-compra/FormularioCategoria.tsx": [
       "button «Usar el del catálogo: S/&nbsp;»",
@@ -82,6 +86,16 @@
       "Boton «Saltar por ahora»",
       "Boton «{motivo}»"
     ],
+    "components/plan-compra/PasoModelos.tsx": [
+      "Boton «Reintentar»",
+      "Boton «Usar»",
+      "Boton «Usar lo que propone»",
+      "button «Ir al paso 1»",
+      "Boton «Ver lo que guardó»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{reparto.sePasa > 0 ? `Te pasaste ${reparto.sePasa}»"
+    ],
     "components/plan-compra/PestanasPlan.tsx": [
       "Pestanas «{[ { clave: \"plan\", etiqueta: \"Plan\", href: `/compras/plan${conPlan}»"
     ],
@@ -95,6 +109,7 @@
       "BotonEnlace «Elegir mis campañas»"
     ],
     "components/plan-compra/PlanCategoriaModal.tsx": [
+      "Pestanas «{[ { clave: \"1\", etiqueta: \"1 · Cuánto compro\"}»",
       "Boton «Cancelar»",
       "Boton «{motivo}»",
       "Boton «{motivo}» #2"

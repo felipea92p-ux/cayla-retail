@@ -65,6 +65,7 @@ export function PlanCampana({
   plazo: plazoCrudo = null,
   versiones: versionesDelPlanCrudas = null,
   versionesFallo = false,
+  pasos2 = null,
 }: {
   datos: unknown;
   falla: string | null;
@@ -88,10 +89,12 @@ export function PlanCampana({
   versiones?: unknown;
   /** La lectura de versiones falló (no es que la base no la tenga): el plan se calculó sin el tope aplicado y hay que decirlo. */
   versionesFallo?: boolean;
+  /** Qué categorías ya tienen su paso 2 guardado (`fn_plan_compra_pasos_2`, ADR-0526), crudo; null = la base no lo sabe. */
+  pasos2?: unknown;
 }) {
   // Lo derivado de lo que la base manda (filas, momento, plazo, avisos) lo comparten las pestañas del Plan: ver `usePlanDerivado`. La cabecera, las
   // pestañas, el centro de avisos y las hojas de la campaña también: ver `MarcoPlan`.
-  const derivado = usePlanDerivado({ datos, descuentos: descuentosCrudos, propuesta: propuestaCruda, historia: historiaCruda, pedido: pedidoCrudo, plazo: plazoCrudo, versiones: versionesDelPlanCrudas, preparacion, puedeContar, campanas });
+  const derivado = usePlanDerivado({ datos, descuentos: descuentosCrudos, propuesta: propuestaCruda, historia: historiaCruda, pedido: pedidoCrudo, plazo: plazoCrudo, versiones: versionesDelPlanCrudas, pasos2, preparacion, puedeContar, campanas });
   const { filas } = derivado;
   const params = useSearchParams();
   const vista: VistaPlan = vistaDeLaUrl(params.get("vista"));

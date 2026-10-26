@@ -86,7 +86,7 @@ insert into retail.productos (referencia, categoria_id) values ('Zz Modelo Dos',
 insert into retail.productos (referencia, categoria_id, es_prueba) values ('Zz Modelo Tres', :'cat1', true) returning id as tres \\gset
 insert into retail.productos (referencia, categoria_id) values ('Zz Modelo Cuatro', :'cat1') returning id as cuatro \\gset
 insert into retail.productos (referencia, categoria_id) values ('Zz Modelo Otro', :'cat2') returning id as otro \\gset
-select set_config('p2.uno', :'uno', true) as _1, set_config('p2.dos', :'dos', true) as _2, set_config('p2.tres', :'tres', true) as _3, set_config('p2.otro', :'otro', true) as _4 \\gset
+select set_config('p2.uno', :'uno', true) as _1, set_config('p2.dos', :'dos', true) as _2, set_config('p2.tres', :'tres', true) as _3, set_config('p2.otro', :'otro', true) as _4, set_config('p2.cuatro', :'cuatro', true) as _5 \\gset
 -- Las variantes: modelo × color × talla.
 create function pg_temp.variante(p_producto uuid, p_color text, p_talla text) returns uuid language plpgsql as $$
 declare v_id uuid;
@@ -207,6 +207,14 @@ caso(
    select pg_temp.ok(pg_temp.guarda('cat1', 60, 20, jsonb_build_array(pg_temp.celda('uno', 'NEG', 't2', 5)))) as _1 \\gset
    select :'a' || ',' || (${LEE("cat1")}->'guardado'->>'version') || ',' || (${LEE("cat1")}->'guardado'->>'unidades') || ',' || (${LEE("cat1")}->'guardado'->>'por' is not null);`,
   "true,1,5,true",
+);
+
+caso(
+  "L6 lo que ya se eligió aparece SIEMPRE, aunque ese modelo ya no tenga ventas en 90 días ni stock (si no, la pantalla no lo vería y al guardar de nuevo se perdería en silencio)",
+  `${como(FELIPE)}
+   select pg_temp.ok(pg_temp.guarda('cat1', 60, 20, jsonb_build_array(pg_temp.celda('cuatro', 'ROS', 't2', 3)))) as _1 \\gset
+   select (select string_agg((m->>'nombre') || ':' || (m->>'vendidas') || ':' || (m->>'hay'), ',' order by m->>'nombre') from jsonb_array_elements(${LEE("cat1")}->'modelos') m);`,
+  "Zz Modelo Cuatro:0:0,Zz Modelo Dos:1:3,Zz Modelo Uno:8:8",
 );
 
 console.log("\n— Guardar —");

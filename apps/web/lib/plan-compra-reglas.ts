@@ -600,6 +600,8 @@ export type FilaPlan = {
   conDescuento?: boolean;
   /** Lo que sugiere la campaña para esta categoría; null = la campaña no la alcanza; undefined = la base no lo manda. */
   descuentoSugerido?: SugeridoDescuento | null;
+  /** El paso 2 de esta categoría (ADR-0526: qué modelos, colores y tallas): el último reparto guardado; null = todavía no se hizo; undefined = la base no lo sabe. */
+  paso2?: { version: number; pct: number; total: number; unidades: number; por: string | null; en: string | null } | null;
 };
 
 const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);

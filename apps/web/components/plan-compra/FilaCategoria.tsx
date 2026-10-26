@@ -120,6 +120,22 @@ export function FilaCategoria({
             {fraseDelPedido(f.pedido, calculo ?? null) && (
               <span className="block text-xs font-normal text-taupe-profundo">{fraseDelPedido(f.pedido, calculo ?? null)}</span>
             )}
+            {f.paso2 !== undefined && calculo && calculo.comprar > 0 && (
+              // El paso 2 (ADR-0526): qué modelos, colores y tallas. Si el total del paso 1 cambió después de guardarlo, lo dice: lo repartido ya no es lo que se compra.
+              <span className="mt-1 block font-normal" data-guia="plan.paso2-marca">
+                {f.paso2 === null ? (
+                  <span className="text-xs text-taupe-profundo">Paso 2 por hacer</span>
+                ) : f.paso2.total !== calculo.comprar ? (
+                  <Chip tono="ambar" versalitas={false} title={`El total del paso 1 cambió de ${f.paso2.total} a ${calculo.comprar} desde que se guardó el paso 2`}>
+                    Paso 2 por revisar
+                  </Chip>
+                ) : (
+                  <Chip tono="verde" versalitas={false} title={`Guardado${f.paso2.por ? ` por ${f.paso2.por}` : ""}: ${f.paso2.unidades} prendas en modelos`}>
+                    Paso 2 hecho
+                  </Chip>
+                )}
+              </span>
+            )}
             {plazo && plazo.estado !== "termino" && calculo && calculo.comprar > 0 && (
               // La fecha límite para pedir (ADR-0499): solo donde hay algo por pedir.
               <span className="mt-1 block font-normal">

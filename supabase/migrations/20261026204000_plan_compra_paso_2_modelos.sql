@@ -103,7 +103,7 @@ begin
   return (
     -- Lo vendido y lo que hay, por modelo × color × talla. Las mismas reglas de `fn_plan_compra`: una venta completada y no de prueba (sin la prenda centinela), y el stock libre de
     -- apartados y sin Cuarentena en las ubicaciones activas.
-    with celdas as (
+    with con_datos as (
       select va.producto_id, va.color_codigo, va.talla_id,
              coalesce(sum(vv.unidades), 0)::integer as vendidas, coalesce(sum(sv.unidades), 0)::integer as hay
         from retail.variantes va
@@ -123,6 +123,19 @@ begin
        where pr.categoria_id = p_categoria_id and not pr.es_prueba and va.id <> c_centinela
        group by va.producto_id, va.color_codigo, va.talla_id
       having coalesce(sum(vv.unidades), 0) > 0 or coalesce(sum(sv.unidades), 0) > 0
+    ),
+    -- Lo que ya se eligió en el último paso 2 aparece SIEMPRE, aunque ese modelo ya no tenga ventas en 90 días ni stock: si no, la pantalla no lo vería y al guardar de nuevo se
+    -- perdería en silencio. (Entra con 0 vendidas y 0 que hay; si además tiene datos de verdad, se suman.)
+    guardadas as (
+      select x.p as producto_id, x.c as color_codigo, x.t as talla_id, 0 as vendidas, 0 as hay
+        from jsonb_to_recordset(coalesce((select r.items from retail.planes_compra_paso_2 r
+                                           where r.plan_id = p_plan_id and r.categoria_id = p_categoria_id
+                                           order by r.version desc limit 1), '[]'::jsonb)) as x(p uuid, c text, t uuid, n integer)
+    ),
+    celdas as (
+      select u.producto_id, u.color_codigo, u.talla_id, sum(u.vendidas)::integer as vendidas, sum(u.hay)::integer as hay
+        from (select * from con_datos union all select * from guardadas) u
+       group by u.producto_id, u.color_codigo, u.talla_id
     ),
     por_color as (
       select ce.producto_id, ce.color_codigo, sum(ce.vendidas)::integer as vendidas, sum(ce.hay)::integer as hay,

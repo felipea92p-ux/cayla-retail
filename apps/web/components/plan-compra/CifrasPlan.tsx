@@ -34,6 +34,10 @@ export function CifrasPlan({
   const excede = tope.valor !== null ? Math.max(0, Math.round((totales.inversion - tope.valor) * 100) / 100) : 0;
   const lasQueMasVenden = filas.filter((f) => f.puesto !== null);
   const faltan = lasQueMasVenden.filter((f) => !f.linea).length;
+  // El paso 2 (ADR-0526): de las categorías que piden comprar algo, cuántas ya dijeron qué modelos, colores y tallas. Solo se cuenta si la base sabe del paso 2.
+  const conCompra = filas.filter((f) => f.linea && (f.calculo?.comprar ?? 0) > 0);
+  const conPaso2 = filas.some((f) => f.paso2 !== undefined) && conCompra.length > 0;
+  const hechas = conCompra.filter((f) => f.paso2 && f.paso2.total === (f.calculo?.comprar ?? -1)).length;
   return (
     <div data-guia="plan.cifras" className="grid gap-3">
       {/* Las cifras cuentan una vez al entrar y cuando cambian (al guardar una categoría): el ojo nota qué se movió (maqueta, ADR-0136). */}
@@ -89,6 +93,18 @@ export function CifrasPlan({
         // «Por llenar primero» no se entendía (prueba ciega, 2026-10-10): la etiqueta dice qué se cuenta.
         <TarjetaCifra etiqueta="Las que más venden, sin plan" valor={<CifraQueCuenta valor={faltan} alMontar />} onClick={faltan > 0 ? onSeguirLlenando : undefined}>
           {faltan === 0 ? `Las ${lasQueMasVenden.length} ya tienen plan` : `de ${lasQueMasVenden.length} · llénalas una por una`}
+        </TarjetaCifra>
+      )}
+      {conPaso2 && (
+        <TarjetaCifra
+          etiqueta="Paso 2 hecho"
+          valor={
+            <>
+              <CifraQueCuenta valor={hechas} alMontar /> de {enteroES.format(conCompra.length)}
+            </>
+          }
+        >
+          {hechas === conCompra.length ? "Todas ya dicen qué modelos, colores y tallas" : "De qué modelos, colores y tallas comprar cada categoría"}
         </TarjetaCifra>
       )}
     </div>
