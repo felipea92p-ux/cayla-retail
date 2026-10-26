@@ -8,7 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useResponsable } from "@/lib/useResponsable";
-import { TEXTO_LA_RECIBE_OTRA, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
+import { TEXTO_COMPRASTE_Y_LO_RECIBES, TEXTO_LA_RECIBE_OTRA, TEXTO_LO_RECIBIO_QUIEN_COMPRO, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
 import {
   argsGuardarConteo,
   claveDe,
@@ -37,7 +37,6 @@ import { ContarEnvio } from "./ContarEnvio";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
-import { PreguntaDeLaCompra } from "./PreguntaDeLaCompra";
 import { siguienteAnotada } from "@/lib/recibir-papel-reglas";
 import { PasosConteo } from "@/components/conteo/PasosConteo";
 
@@ -153,6 +152,7 @@ export function RecibirContando({
           contadas: b.contadas,
           separado: b.separado,
           costoUnitario: null,
+          costosPrendas: {},
           version: 0,
           contadoPor: null,
           contadoEn: null,
@@ -164,8 +164,6 @@ export function RecibirContando({
     });
   }, [detalle, conteos, borradores]);
   const cifras = cifrasDelEnvio(lineas);
-  // Lo anotado que se dejó para después con «Es otra prenda» (rediseño de Compras simple): se cuenta a mano en el contador.
-  const [saltadas, setSaltadas] = useState<ReadonlySet<string>>(() => new Set());
 
   /** Guarda una línea en la base con lo último que se escribió. */
   const guardar = useCallback(
@@ -297,7 +295,8 @@ export function RecibirContando({
             </Aviso>
           ) : (
             <Aviso tono="atencion" guia="recepcion.quien-compro" titulo={TEXTO_LA_RECIBE_OTRA}>
-              Quien hace una orden no la cuenta ni la cierra, ni siquiera un líder: contar es certificar lo que llegó. Pídele a otra persona de la tienda que lo haga.
+              Quien hace una orden no la cuenta ni la cierra, ni siquiera un líder (solo un Admin recibe lo que él mismo compró): contar es certificar lo que llegó.
+              Pídele a otra persona de la tienda que lo haga.
             </Aviso>
           )}
           {detalle.lineas.length > 0 && (
@@ -307,6 +306,18 @@ export function RecibirContando({
             </section>
           )}
         </>
+      )}
+
+      {/* ADR-0517: un Admin sí recibe lo que él mismo compró. Antes de contar se le avisa; ya cerrado, lo ve cualquiera que mire el envío. */}
+      {porRecibir && !otraSede && !noLoRecibe && detalle.comproQuienMira && (
+        <Aviso tono="info" titulo={TEXTO_COMPRASTE_Y_LO_RECIBES}>
+          Al cerrar el conteo queda anotado que lo recibió quien hizo la compra, y quien revise las compras lo verá.
+        </Aviso>
+      )}
+      {estado === "cerrado" && detalle.recibioQuienCompro && (
+        <Aviso tono="atencion" titulo={TEXTO_LO_RECIBIO_QUIEN_COMPRO}>
+          La misma persona hizo la compra y cerró el conteo (un Admin puede recibir lo que él mismo compró), así que nadie más contó esta mercadería.
+        </Aviso>
       )}
 
       {(estado === "abierto" || estado === "cerrado") && !otraSede && !noLoRecibe && (
@@ -331,14 +342,10 @@ export function RecibirContando({
       <div className={conPapel ? "grid items-start gap-6 xl:grid-cols-[21.25rem_minmax(0,1fr)]" : "space-y-6"}>
       {conPapel && (
         <div className="xl:sticky xl:top-4">
-          <PapelesDeLaCompra papeles={papeles} lineas={lineas} siguiente={estado === "abierto" ? (siguienteAnotada(lineas, saltadas)?.clave ?? null) : null} />
+          <PapelesDeLaCompra papeles={papeles} lineas={lineas} siguiente={estado === "abierto" ? (siguienteAnotada(lineas)?.clave ?? null) : null} />
         </div>
       )}
       <div className={conPapel ? "min-w-0 space-y-6" : "space-y-6"}>
-
-      {estado === "abierto" && !otraSede && !noLoRecibe && paso !== 3 && conPapel && (
-        <PreguntaDeLaCompra lineas={lineas} saltadas={saltadas} onEscribir={escribir} onSaltar={(c) => setSaltadas((s) => new Set(s).add(c))} />
-      )}
 
       {estado === "en_camino" && !otraSede && !noLoRecibe && (
         <EmpezarARecibir

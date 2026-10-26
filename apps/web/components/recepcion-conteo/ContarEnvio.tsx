@@ -280,7 +280,6 @@ export function ContarEnvio({
                     onTallas={(p) => void abrirTallas(linea, p)}
                     onPrendaVista={onPrendaVista}
                     onCrearNueva={(nueva) => setHoja({ tipo: "crear", clave: linea.clave, nueva })}
-                    elegida={linea.linea?.prendaElegida ?? null}
                   />
                 )}
                 {errorHoja && (
