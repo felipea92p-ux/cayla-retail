@@ -1,7 +1,7 @@
 # ADR-0519 · Costo de compra por prenda al cerrar un envío
 
 - **Fecha:** 2026-10-26 · **Estado:** aceptado (Felipe, 2026-10-26: «mostrar el precio que costó cada prenda y permitir modificarlo»).
-  **Migración `20261026164000` aplicada en la base local; pendiente de pegar en producción con su OK.**
+  **Migración `20261026164000` aplicada en la base local y **pegada en producción el 2026-10-26** (a pedido de Felipe, después de la `20261026161000`, con las anclas comprobadas antes en solo lectura y los md5 de las funciones iguales a lo probado).**
 - **Pedido:** Felipe, 2026-10-26, mirando «Precio de venta» en el cierre de un envío: la compra sí guarda lo que costó cada prenda, pero la
   recepción solo muestra un «Precio de compra» único por categoría; quería ver el de cada prenda y poder corregirlo (por si hubo un fallo al
   comprar). Pidió también el título «Precio de venta» sobre cada campo.
@@ -70,12 +70,12 @@ línea, o prenda por prenda después, desde Catálogo.
 
 ## Cómo se pega en producción
 
-Con el OK de Felipe, **después de `20261026161000`** (ADR-0517). Una parte, sin políticas ni `drop trigger` (ADR-0195): un `alter table …
+**Pegada el 2026-10-26** con el OK de Felipe, **después de `20261026161000`** (ADR-0517). Una parte, sin políticas ni `drop trigger` (ADR-0195): un `alter table …
 add column` con valor por defecto (Postgres no reescribe la tabla), dos funciones nuevas y reemplazos anclados de cuatro (`fn_recepcion_entrar`,
 `cerrar_conteo_envio`, `resolver_pendiente_envio`, `fn_envio_conteo_json`), con `lock_timeout` y idempotente: si la definición viva no es
-la esperada, se detiene sin cambiar nada. Las anclas se verificaron en la base local, que tiene todas las migraciones; **falta
-comprobarlas contra producción** (solo lectura) antes de pegar. **La web puede publicarse antes que la base:** sin la migración el campo se
-dibuja pero la base ignora `costos_prendas` en silencio, así que conviene pegar la migración antes de publicar la pantalla.
+la esperada, se detiene sin cambiar nada. Las anclas se verificaron en la base local y, antes de pegar, **contra producción en solo lectura** (cada una existía exactamente una vez y ninguna
+estaba ya aplicada). **Ya está pegada, así que la web puede publicarse:** sin la migración el campo se dibujaba pero la base ignoraba
+`costos_prendas` en silencio.
 
 ## Cómo se verifica
 

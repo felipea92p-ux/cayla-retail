@@ -4,7 +4,7 @@
 - [x] Web: aviso al Admin antes de contar, aviso en el envío cerrado y chip en la ficha del papel de «Revisar compras»; textos del bloqueo y de la guía al día.
 - [x] `pnpm pruebas:recibir-lo-propio` (10 casos) y tres casos de suites viejas adaptados.
 - [x] «Precio de venta» del cierre del envío en una fila por prenda; el título «Contra factura» de «Ver todo lo recibido» ya no queda tapado.
-- [ ] **Pegar la migración en producción (con el OK de Felipe).** Antes, comprobar en solo lectura que las tres anclas existen una vez en las definiciones de producción.
+- [x] **Pegar la migración en producción (con el OK de Felipe).** Hecho el 2026-10-26 (`apply_migration` «admin_recibe_lo_que_compro», versión 20261026221730 en el historial); antes se comprobó en solo lectura que las tres anclas existían una vez, y después los md5 de las funciones salieron iguales a lo probado.
 - [ ] Ver renderizado el aviso de un envío cerrado por quien compró (la base local no tiene uno).
 - [ ] Decidir si el Taller (insumos) recibe la misma excepción (hoy conserva el bloqueo íntegro).
 - [ ] `/formidable` y `/chaos` de las pantallas de Recibir tocadas (no se corrieron).
@@ -15,7 +15,7 @@
 - [x] Migración `20261026164000_costo_por_prenda_en_la_recepcion.sql`: `despacho_conteos.costos_prendas`, el cierre lo valida y lo guarda, la puerta al stock usa el costo de cada variante, «Hacer ahora» entra con él y el conteo lo devuelve. **Aplicada en la base local.**
 - [x] Web: «Precio de compra» por prenda junto al de venta (con «Antes S/ …»), lo que se manda al cerrar, la confirmación y el frenado de un costo mal escrito; guía y huella al día.
 - [x] `pnpm pruebas:costo-por-prenda` (9 casos) y las reglas puras de la web probadas.
-- [ ] **Pegar en producción (con el OK de Felipe), después de `20261026161000`, y ANTES de publicar la pantalla.** Comprobar en solo lectura que las anclas existen una vez en las definiciones de producción.
+- [x] **Pegar en producción (con el OK de Felipe), después de `20261026161000`, y ANTES de publicar la pantalla.** Hecho el 2026-10-26 (`apply_migration` «costo_por_prenda_en_la_recepcion», versión 20261026221835); anclas comprobadas antes en solo lectura y md5 iguales a lo probado después.
 - [ ] Cerrar un envío real desde la pantalla con un costo propio y mirar `despacho_recibidos` (no se hizo para no mover datos de pruebas).
 - [ ] Decidir si las prendas «por crear» (sin producto todavía) también llevan costo propio: hoy entran con el de su línea.
 

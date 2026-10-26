@@ -1,7 +1,7 @@
 # ADR-0517 · Un Admin recibe lo que él mismo compró (y queda a la vista)
 
-- **Fecha:** 2026-10-26 · **Estado:** aceptado (Felipe, 2026-10-26: «solo Admin»). **Migración `20261026161000` aplicada en la base local;
-  pendiente de pegar en producción con su OK.**
+- **Fecha:** 2026-10-26 · **Estado:** aceptado (Felipe, 2026-10-26: «solo Admin»). **Migración `20261026161000` aplicada en la base local y
+  **pegada en producción el 2026-10-26** (a pedido de Felipe, con las anclas comprobadas antes en solo lectura y los md5 de las funciones iguales a lo probado).**
 - **Pedido:** Felipe, 2026-10-26, al registrar una compra en «Mis compras» y no poder recibirla: «Quiero poder recibir mis propias compras
   siendo líder». Pidió antes el análisis y la consecuencia de negocio; decidió «solo Admin, deja el rastro visible y no toques el Taller
   todavía».
@@ -65,10 +65,10 @@ su propio envío. Probando el flujo de punta a punta con una sola cuenta nunca s
 
 ## Cómo se pega en producción
 
-Con el OK de Felipe, después de `20261024235000`. **Una parte**, solo funciones y un disparador (`create or replace trigger`, nunca `drop
+**Pegada el 2026-10-26** con el OK de Felipe, después de `20261024235000`. **Una parte**, solo funciones y un disparador (`create or replace trigger`, nunca `drop
 trigger`: ADR-0195), sin tablas ni políticas, con `lock_timeout`. Es idempotente: tres reemplazos anclados (`recibir_orden_sin_envio`,
 `fn_envio_detalle`, `fn_revisar_compras`) que se detienen sin cambiar nada si la definición viva no es la esperada. Las anclas se verificaron
-en la base local, que tiene todas las migraciones; **falta comprobarlas contra producción** (en solo lectura) antes de pegar.
+en la base local y, antes de pegar, **contra producción en solo lectura** (cada una existía exactamente una vez y ninguna estaba ya aplicada).
 
 ## Cómo se verifica
 
