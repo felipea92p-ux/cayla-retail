@@ -7,6 +7,7 @@ import { alejarFondo, devolverFondo, moverFondo } from "@/components/ui/fondoDeL
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
 import { useHojaSobreElTeclado } from "@/components/ui/useHojaSobreElTeclado";
+import { useAtrasCierraLaHoja } from "@/components/ui/useAtrasCierraLaHoja";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
 const MS_SALIDA = 220;
@@ -73,6 +74,10 @@ type Props = {
       Solo desde 640 px: en el celular la hoja se desliza entera, como cualquier otra, con su pie pegado abajo (`pie-hoja-fijo`). Repartir
       90 dvh entre título, opciones, avisos y pie dejaba la tabla en una fila (Felipe 2026-10-26); lo de adentro se pone su propio tope. */
   altoFijo?: boolean;
+  /** «Atrás» del navegador (el botón o el gesto desde el borde del teléfono) cierra la hoja en vez de ir a la pantalla anterior,
+      por la misma puerta que la ✕ (pasa por `antesDeCerrar`). Quien la abre decide cuándo: hoy, la hoja de la prenda de Existencias
+      en el teléfono (Felipe 2026-10-26; `useAtrasCierraLaHoja`). Se lee al abrir: cambiarlo con la hoja abierta no pone ni quita nada. */
+  atrasCierra?: boolean;
   /** La cara de toda hoja es UNA desde el 2026-10-14 (ADR-0358, ronda 12, Felipe eligió P1): el panel en `papel` con borde fino y SIN
       sombra —la profundidad la da el velo—, el título serif de 24 px y la frase en taupe, la de Finanzas (spike 2026-09-24) y Gasto
       rápido. Antes había tres: crema con sombra y título de 18 px (la de fábrica), «hoja» (esta) y «papel» (esta con la ✕). `hoja` y
@@ -98,7 +103,7 @@ type Props = {
 export type TamanoHoja = "angosta" | "mediana" | "ancha";
 export const ANCHO_HOJA: Record<TamanoHoja, string> = { angosta: "max-w-md", mediana: "max-w-xl", ancha: "max-w-3xl" };
 
-export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta", ancho: anchoPropio, alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, arriba, variante, mediaAltura = false, altoFijo = false }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta", ancho: anchoPropio, alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, arriba, variante, mediaAltura = false, altoFijo = false, atrasCierra = false }: Props) {
   const ancho = anchoPropio ?? ANCHO_HOJA[tamano];
   // La cámara y el ticket dibujan su propia hoja; todas las demás tienen la misma cara (ronda 12).
   const deCara = variante !== "camara" && variante !== "ticket";
@@ -149,6 +154,15 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
   // Escape cierra la hoja solo si ningún control de adentro lo usó: con la lista de un combo abierta, el primer Escape
   // cierra la lista y lo escrito sigue ahí; el segundo cierra la hoja (useEscapeLibre.ts explica por qué Radix solo no
   // alcanza). El clic en el velo sigue por `onOpenChange`.
+  // «Atrás» cierra la hoja como la ✕; mientras guarda (`bloqueado`), no hace nada y la hoja sigue.
+  const [conAtras] = useState(atrasCierra);
+  useAtrasCierraLaHoja(
+    conAtras,
+    useCallback(() => {
+      if (!bloqueado) pedirCierreDesdeFuera();
+    }, [bloqueado, pedirCierreDesdeFuera])
+  );
+
   const alEscape = useEscapeLibre(() => {
     if (!bloqueado) pedirCierreDesdeFuera();
   });

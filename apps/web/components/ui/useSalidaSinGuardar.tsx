@@ -23,6 +23,8 @@ import { destinoQueSaleDeLaPantalla } from "@/lib/salida-sin-guardar";
 
    `{ soloAlCerrar: true }`: solo la puerta 3, para una hoja que vive dentro de una pantalla que ya cuida el «atrás» con su propia
    guardia (la hoja de la prenda de «Compré ropa»). Dos guardias en el historial a la vez preguntaban dos veces por el mismo gesto.
+   `{ sinAtras: true }`: todas menos la puerta 4, para una hoja que ya cierra con «atrás» (`<Modal atrasCierra>`, `useAtrasCierraLaHoja`):
+   ese «atrás» cierra la hoja y pregunta por la puerta 3, sin salir de la pantalla (la hoja de la prenda de Existencias en el teléfono).
    ==================================================================== */
 
 type Destino = { tipo: "ruta"; ruta: string } | { tipo: "atras" } | { tipo: "accion"; hacer: () => void };
@@ -65,10 +67,16 @@ if (typeof window !== "undefined") {
   );
 }
 
-export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_SE_PIERDE, { soloAlCerrar = false }: { soloAlCerrar?: boolean } = {}) {
+export function useSalidaSinGuardar(
+  conCambios: boolean,
+  mensaje: string = QUE_SE_PIERDE,
+  { soloAlCerrar = false, sinAtras = false }: { soloAlCerrar?: boolean; sinAtras?: boolean } = {}
+) {
   const router = useRouter();
   // Con `soloAlCerrar`, las puertas del historial, los enlaces y la pestaña no se instalan: no hay cambios que cuidar ahí.
   const vigilaSalidas = conCambios && !soloAlCerrar;
+  // Con `sinAtras`, «atrás» lo atiende la hoja (lo cierra por la puerta 3): sin guardia en el historial.
+  const vigilaAtras = vigilaSalidas && !sinAtras;
   const [pendiente, setPendiente] = useState<Destino | null>(null);
   // Refs y no estado: los escuchadores se registran una vez y leen siempre el valor del momento.
   const hayCambios = useRef(conCambios);
@@ -170,14 +178,14 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
   }, [retirarGuardia]);
   useEffect(() => {
     if (saliendo.current) return;
-    if (vigilaSalidas && !conGuardia.current) {
+    if (vigilaAtras && !conGuardia.current) {
       urlGuardia.current = window.location.href;
       window.history.pushState({ ...(window.history.state ?? {}), [MARCA]: true }, "", window.location.href);
       conGuardia.current = true;
-    } else if (!vigilaSalidas) {
+    } else if (!vigilaAtras) {
       retirarGuardia();
     }
-  }, [vigilaSalidas, retirarGuardia]);
+  }, [vigilaAtras, retirarGuardia]);
   useEffect(() => {
     const alVolver = () => {
       // Respaldo: el escuchador de captura ya corta este popstate; un navegador que no corra la captura primero lo deja pasar.

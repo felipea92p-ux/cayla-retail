@@ -14,6 +14,7 @@ import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { avisar } from "@/components/ui/Avisos";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { CELULAR } from "@/components/ui/useEnCelular";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { navegacionSinEspera } from "@/components/ui/Espera";
@@ -263,11 +264,15 @@ export function PanelTalla({
   // el lugar y no un sí/no: al cambiar de lugar (la planilla empieza de nuevo) deja de valer solo.
   const [avisoLugarEn, setAvisoLugarEn] = useState<string | null>(null);
   const ajusteSucio = modoAjuste && (ajuste.lineas.length > 0 || ajuste.enviando || ajuste.incierto);
+  // En el teléfono, «atrás» (el botón o el gesto desde el borde) cierra la hoja en vez de llevar a la pantalla anterior (Felipe
+  // 2026-10-26): la hoja lo atiende y, si hay algo sin guardar, pregunta como la ✕. Se decide al abrir.
+  const [atrasCierra] = useState(() => typeof window !== "undefined" && window.matchMedia(CELULAR).matches);
   const { pedirAccion, retirarYa, aviso } = useSalidaSinGuardar(
     ajusteSucio || (Boolean(flujo) && !modoAjuste && pasoSucio),
     modoAjuste
       ? "Tocaste el stock de este modelo y todavía no se guardó. Si sales ahora, se pierde lo que contaste."
-      : "Dejaste esta acción a medias y todavía no se guardó. Si sales ahora, se pierde lo que llenaste."
+      : "Dejaste esta acción a medias y todavía no se guardó. Si sales ahora, se pierde lo que llenaste.",
+    { sinAtras: atrasCierra }
   );
   // ↑ ↓ cambian el color (como la maqueta), por la pieza de los cajones (ADR-0128): ignora la flecha de un campo o de otro portal.
   const [pasoColor, setPasoColor] = useState<{ delta: 1 | -1; n: number } | null>(null);
@@ -677,6 +682,7 @@ export function PanelTalla({
         ancho={`max-w-[62rem] transition-[max-width] duration-[420ms] ease-[var(--ease-cayla)] ${modoAjuste ? anchoDelModalAlAjustar(ajuste.modelo?.tallas.length ?? tallasDeTodos.length).clase : ""}`} /* unificar-fijo: el modal de la prenda de Existencias es de diseño propio (ADR-0344); al ajustar crece solo si la planilla no cabe (ADR-0494) */
         conCerrar
         altoFijo={planillaFija}
+        atrasCierra={atrasCierra}
         titulo={
           modoAjuste ? (
             <>
