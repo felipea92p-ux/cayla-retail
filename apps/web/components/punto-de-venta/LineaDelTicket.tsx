@@ -3,6 +3,8 @@
 import { Percent, Trash2 } from "lucide-react";
 import { money, type ItemCarrito } from "@/components/PuntoDeVenta";
 import { filaDelTicket, type DetalleVariante, type TonoStock } from "@/lib/ticket-linea-reglas";
+import { textoDePrendaEnOtroTicket } from "@/lib/tickets-abiertos-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 const PUNTO: Record<TonoStock, string> = { verde: "bg-verde", ambar: "bg-ambar", excedido: "bg-rojo-profundo" };
@@ -16,6 +18,9 @@ type Props = {
   onCantidad: (claveLinea: string, valor: number) => void;
   /** Abre el apartado «Descuento» con solo esta prenda elegida (lo que hacía el botón «Desc.»). */
   onDescuento: (claveLinea: string) => void;
+  /** Los otros tickets abiertos que llevan esta misma prenda cuando no alcanza para todos (`ticketsQueDisputanLaPrenda`); vacío o
+   *  ausente = no hay nada que decir. Solo avisa: no reserva ni bloquea, el primero que cobra se la lleva. */
+  tambienEn?: readonly string[];
 };
 
 /**
@@ -34,7 +39,7 @@ type Props = {
  * Sin estado ni hooks: todo llega por props desde `PuntoDeVentaTicket`. Es hija directa de la lista (`listaRef`),
  * que el padre anima con `Flip`.
  */
-export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad, onDescuento }: Props) {
+export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad, onDescuento, tambienEn }: Props) {
   const f = filaDelTicket(linea, detalle);
   const nombre = linea.referencia;
   return (
@@ -110,6 +115,11 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
         </button>
       </div>
       {f.nota && <p className="mt-1 text-[11px] leading-snug text-rojo-profundo">{f.nota}</p>}
+      {tambienEn && tambienEn.length > 0 && (
+        <Aviso tono="atencion" chico className="mt-1.5">
+          {textoDePrendaEnOtroTicket(tambienEn, linea.stockAqui)}
+        </Aviso>
+      )}
     </article>
   );
 }
