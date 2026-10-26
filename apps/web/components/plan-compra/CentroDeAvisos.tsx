@@ -29,14 +29,14 @@ const ICONO: Record<NivelDelAviso, ReactNode> = {
 const ANCHO_PANEL = 460;
 const MARGEN = 12;
 
-function Acciones({ aviso, alAccionar, alVisto }: { aviso: AvisoDelPlan; alAccionar: (a: AccionDelAviso) => void; alVisto: () => void }) {
+function Acciones({ aviso, alAccionar, alVisto, hrefDe }: { aviso: AvisoDelPlan; alAccionar: (a: AccionDelAviso) => void; alVisto: () => void; hrefDe: (a: AccionDelAviso) => string | null }) {
   const marcable = aviso.nivel !== "urgente";
   if (aviso.acciones.length === 0 && !marcable) return null;
   return (
     <div className="ca-acc">
       {aviso.acciones.map((a) =>
-        a.tipo === "ir-conteo" ? (
-          <Link key={a.tipo} href="/inventario/conteo" className="ca-btn">
+        hrefDe(a) ? (
+          <Link key={a.tipo} href={hrefDe(a)!} className="ca-btn">
             {a.texto}
           </Link>
         ) : (
@@ -60,13 +60,16 @@ export function CentroDeAvisos({
   vistos,
   onVisto,
   onAccion,
+  hrefDe,
 }: {
   avisos: readonly AvisoDelPlan[];
   vistos: Vistos;
   /** La persona marcó un aviso como visto. */
   onVisto: (a: AvisoDelPlan) => void;
-  /** Eligió una acción que abre otra cosa (una hoja, el cajón): el centro se cierra antes. «Ir a Conteo» es un enlace y no pasa por aquí. */
+  /** Eligió una acción que abre otra cosa (una hoja, el cajón): el centro se cierra antes. Las que llevan a otra pantalla son enlaces (`hrefDe`) y no pasan por aquí. */
   onAccion: (a: AccionDelAviso) => void;
+  /** A dónde lleva una acción que es un enlace («Ir a Conteo», «Ver Presupuesto»); null = la acción abre algo aquí y es un botón. */
+  hrefDe: (a: AccionDelAviso) => string | null;
 }) {
   const [abierto, setAbierto] = useState(false);
   // El ancla es la caja que envuelve al botón: sirve para colocar la lista y para devolver el foco.
@@ -180,7 +183,7 @@ export function CentroDeAvisos({
                       </b>
                       <span className="ca-d">{a.texto}</span>
                     </div>
-                    <Acciones aviso={a} alAccionar={accionar} alVisto={() => onVisto(a)} />
+                    <Acciones aviso={a} alAccionar={accionar} alVisto={() => onVisto(a)} hrefDe={hrefDe} />
                   </div>
                 ))
               )}

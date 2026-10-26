@@ -62,6 +62,9 @@
       "Boton «{q.trim() ? \"Borrar la búsqueda\" : \"Limpiar filtros\"}»",
       "button «{plegadas.length}»"
     ],
+    "components/plan-compra/MarcoPlan.tsx": [
+      "Boton «Restaurar…»"
+    ],
     "components/plan-compra/NuevaCampanaModal.tsx": [
       "CampoTexto «{<span className=\"sr-only\">{nueva ? \"Nombre de la campaña\" : \"Nombre del plan\"}»",
       "CampoFecha «{<span className=\"sr-only\">Desde</span>}»",
@@ -83,18 +86,13 @@
       "Pestanas «{[ { clave: \"plan\", etiqueta: \"Plan\", href: `/compras/plan${conPlan}»"
     ],
     "components/plan-compra/PlanCampana.tsx": [
-      "Boton «Armar el plan de»",
-      "Boton «Campaña nueva»",
-      "Boton «Campaña nueva» #2",
-      "Boton «Ver campañas archivadas»",
       "Boton «plan.resumen»",
       "BotonDescargar «Descargar la lista»",
       "Boton «plan.empezar»",
-      "Boton «Restaurar…»",
       "BotonEnlace «{aviso.verResultados}»",
       "BotonEnlace «Planificar»",
       "Boton «Planificar»",
-      "Boton «Campaña nueva» #3",
+      "Boton «Campaña nueva»",
       "Link «{numeroDeOrden(o.numero)}»",
       "Boton «→() => setEditandoRecupero(true)»",
       "Boton «→() => setEditandoReparto(true)»"
@@ -131,6 +129,12 @@
       "input «{mult}»",
       "input «{rec}»",
       "Link «Qué pedir, prenda por prenda, en Análisis»"
+    ],
+    "components/plan-compra/SinCampana.tsx": [
+      "Boton «Armar el plan de»",
+      "Boton «Campaña nueva»",
+      "Boton «Campaña nueva» #2",
+      "Boton «Ver campañas archivadas»"
     ],
     "components/plan-compra/TopeModal.tsx": [
       "CampoMonto «{texto}»",

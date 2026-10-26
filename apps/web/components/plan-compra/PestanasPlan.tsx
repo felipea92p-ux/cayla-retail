@@ -1,8 +1,8 @@
 import { Pestanas } from "@/components/ui/Pestanas";
 
-// Las tres vistas del Plan de campaña (ADR-0372, C3 y C6 · Felipe 2026-10-12): armar el plan, ver lo que pasó en una campaña y la historia
-// de todas, año por año. Cada una vive en su URL: «Atrás» vuelve a la anterior.
-export type PestanaDelPlan = "plan" | "resultados" | "historial";
+// Las vistas del Plan de campaña (ADR-0372, C3 y C6 · Felipe 2026-10-12; Presupuesto, Felipe 2026-10-26): armar el plan, ver cuánto cuesta y si cabe
+// en el tope, ver lo que pasó en una campaña y la historia de todas, año por año. Cada una vive en su URL: «Atrás» vuelve a la anterior.
+export type PestanaDelPlan = "plan" | "presupuesto" | "resultados" | "historial";
 
 export function PestanasPlan({ activa, planId }: { activa: PestanaDelPlan; /** La campaña que se está mirando: Resultados abre esa. */ planId?: string }) {
   const conPlan = planId ? `?plan=${planId}` : "";

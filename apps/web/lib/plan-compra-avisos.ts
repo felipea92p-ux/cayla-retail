@@ -29,6 +29,8 @@ export type AccionDelAviso =
   | { tipo: "cambiar-dias"; texto: string }
   | { tipo: "ver-resumen"; texto: string }
   | { tipo: "ir-conteo"; texto: string }
+  /** Lleva a la pestaña Presupuesto de esta campaña: ahí está el plan que cabe en el tope. */
+  | { tipo: "ir-presupuesto"; texto: string }
   | { tipo: "abrir-categoria"; texto: string; categoriaId: string };
 
 export type AvisoDelPlan = {

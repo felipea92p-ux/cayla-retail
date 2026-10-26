@@ -44,25 +44,26 @@ export type EntradaDelPlan = {
   puedeContar: boolean;
 };
 
-export type PlanDerivado =
-  | { plan: null; hechos: LecturaPropuesta | null; pedido: LecturaPedido | null; filas: FilaPlan[] }
-  | {
-      plan: LecturaPlan;
-      /** Los hechos de la propuesta, aunque sean de otra campaña (la pantalla los descarta si `planId` no es el de este plan). */
-      hechos: LecturaPropuesta | null;
-      /** Los hechos, solo si son de ESTA campaña. */
-      hechosDelPlan: LecturaPropuesta | null;
-      pedido: LecturaPedido | null;
-      filas: FilaPlan[];
-      momento: Momento;
-      totales: TotalesPlan;
-      plazoFijado: PlazoFijado | null;
-      plazo: PlazoDePedido;
-      /** Categorías con algo por comprar. */
-      porPedir: number;
-      confianza: ConfianzaDelStock;
-      avisos: AvisoDelPlan[];
-    };
+/** Lo derivado de una campaña que SÍ existe. */
+export type PlanConPlan = {
+  plan: LecturaPlan;
+  /** Los hechos de la propuesta, aunque sean de otra campaña (la pantalla los descarta si `planId` no es el de este plan). */
+  hechos: LecturaPropuesta | null;
+  /** Los hechos, solo si son de ESTA campaña. */
+  hechosDelPlan: LecturaPropuesta | null;
+  pedido: LecturaPedido | null;
+  filas: FilaPlan[];
+  momento: Momento;
+  totales: TotalesPlan;
+  plazoFijado: PlazoFijado | null;
+  plazo: PlazoDePedido;
+  /** Categorías con algo por comprar. */
+  porPedir: number;
+  confianza: ConfianzaDelStock;
+  avisos: AvisoDelPlan[];
+};
+
+export type PlanDerivado = { plan: null; hechos: LecturaPropuesta | null; pedido: LecturaPedido | null; filas: FilaPlan[] } | PlanConPlan;
 
 export function usePlanDerivado(e: EntradaDelPlan): PlanDerivado {
   const { datos, descuentos = null, propuesta = null, historia = null, pedido: pedidoCrudo = null, plazo: plazoCrudo = null, preparacion, puedeContar } = e;
