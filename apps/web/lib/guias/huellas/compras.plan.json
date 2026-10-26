@@ -2,7 +2,7 @@
   "guia": "compras.plan",
   "ruta": "/compras/plan",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 86,
+  "total": 94,
   "controles": {
     "components/plan-compra/AvisoStock.tsx": [
       "BotonVer «Ir a Conteo»",
@@ -41,6 +41,8 @@
       "CampoMonto «{<span className=\"sr-only\">Precio de venta, promedio de la categoría</span>}»",
       "CampoMonto «{<span className=\"sr-only\">Costo por prenda, promedio</span>}»",
       "CampoTexto «Lo que sobre, en % del precio»",
+      "CampoTexto «Descuento en la campaña, en %»",
+      "button «Usar −»",
       "CampoTexto «{`Talla ${t.valor}»",
       "button «Volver a la que propone el sistema»",
       "CampoTexto «Nota (opcional)»",
@@ -82,6 +84,7 @@
       "Boton «plan.resumen»",
       "BotonDescargar «Descargar la lista»",
       "Boton «plan.empezar»",
+      "Boton «plan.plazo-cambiar»",
       "Boton «Restaurar…»",
       "BotonEnlace «{aviso.verResultados}»",
       "BotonEnlace «Planificar»",
@@ -95,6 +98,13 @@
       "Boton «Cancelar»",
       "Boton «{motivo}»",
       "Boton «{motivo}» #2"
+    ],
+    "components/plan-compra/PlazoModal.tsx": [
+      "CampoTexto «Días para llegar a las tiendas»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/plan-compra/RecuperoModal.tsx": [
       "CampoTexto «Lo que sobra, en % del precio»",

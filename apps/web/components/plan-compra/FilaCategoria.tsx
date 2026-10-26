@@ -2,7 +2,9 @@ import { celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { fraseDelPedido } from "@/lib/plan-compra-pedido";
 import { BarraRango } from "@/components/plan-compra/BarraRango";
-import { enteroES, esAgotada, fraseDeLoReal, solesES, type EstadoCampana, type FilaPlan } from "@/lib/plan-compra-reglas";
+import { enteroES, esAgotada, fraseDeLoReal, margenPorPrenda, solesES, type EstadoCampana, type FilaPlan } from "@/lib/plan-compra-reglas";
+import type { EstadoDelPlazo, PlazoDePedido } from "@/lib/plan-compra-plazo";
+import type { TonoChip } from "@/components/ui/Chip";
 import type { FormaTabla } from "@/lib/plan-compra-momento";
 
 // Una fila de la tabla del plan de campaña (ADR-0349): la categoría (con su puesto si es de las que más venden), su barra de rango, lo
@@ -32,22 +34,31 @@ export function columnasDelPlan(estado: EstadoCampana, forma: FormaTabla): Colum
   ];
 }
 
+/** El tono del chip de la fecha límite de una fila (ADR-0499): el mismo criterio que la franja de arriba. */
+const TONO_DEL_PLAZO: Record<EstadoDelPlazo, TonoChip> = { a_tiempo: "verde", justo: "ambar", tarde: "rojo", empezo: "pizarra", termino: "neutro" };
+
 export function FilaCategoria({
   f,
   forma,
   indice,
   recienGuardada = false,
+  plazo = null,
   onAbrir,
 }: {
   f: FilaPlan;
   forma: FormaTabla;
   indice: number;
   recienGuardada?: boolean;
+  /** La fecha límite para pedir: una fila con compra pendiente la dice. */
+  plazo?: PlazoDePedido | null;
   onAbrir: () => void;
 }) {
   const { c, linea, stock, calculo, vendido, ventas, puesto } = f;
   const plantilla = plantillaDelPlan(forma);
   const agotada = esAgotada(f);
+  // El descuento que se supuso (ADR-0499): con él, lo que se gana por prenda en la campaña; si se come el margen, la fila lo dice.
+  const descuento = linea?.descuentoPct ?? 0;
+  const margen = linea && descuento > 0 ? margenPorPrenda(linea.precio, linea.costo, descuento) : null;
   const paso = Math.min(indice, 8);
   return (
     <button
@@ -67,6 +78,16 @@ export function FilaCategoria({
         <span className={`block text-[13px] ${agotada ? "font-medium text-ambar-profundo" : "text-tinta/70"}`}>
           {agotada ? `Se agotó: vendía ${enteroES.format(ventas)} en 90 días` : ventas > 0 ? `Vendiste ${enteroES.format(ventas)} en 90 días` : "Sin ventas en 90 días"}
         </span>
+        {margen && (
+          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <Chip tono="ambar" versalitas={false}>
+              −{descuento.toLocaleString("es-PE", { maximumFractionDigits: 2 })} % en la campaña
+            </Chip>
+            <span className={`text-[12.5px] ${margen.pierde ? "font-medium text-rojo-profundo" : "text-tinta/70"}`}>
+              {margen.pierde ? "no deja ganancia" : `ganas ${solesES(margen.enCampana)} por prenda`}
+            </span>
+          </span>
+        )}
       </span>
       {forma.venta && (
         <span className={celda("izq", "min-w-0")}>
@@ -90,6 +111,14 @@ export function FilaCategoria({
             {calculo ? enteroES.format(calculo.comprar) : "—"}
             {fraseDelPedido(f.pedido, calculo ?? null) && (
               <span className="block text-xs font-normal text-taupe-profundo">{fraseDelPedido(f.pedido, calculo ?? null)}</span>
+            )}
+            {plazo && plazo.estado !== "termino" && calculo && calculo.comprar > 0 && (
+              // La fecha límite para pedir (ADR-0499): solo donde hay algo por pedir.
+              <span className="mt-1 block font-normal">
+                <Chip tono={TONO_DEL_PLAZO[plazo.estado]} versalitas={false} title={plazo.detalle}>
+                  {plazo.estado === "empezo" ? `Llega el ${plazo.llegariaEl.slice(8)}/${plazo.llegariaEl.slice(5, 7)}` : plazo.texto}
+                </Chip>
+              </span>
             )}
           </span>
           <span className={celda("der", "tabular-nums")}>

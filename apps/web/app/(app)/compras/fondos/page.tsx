@@ -16,7 +16,8 @@ import {
 } from "@/lib/fondos-reglas";
 import { diaCorto } from "@/lib/orden-pagina-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { CabeceraHistorialCompras } from "@/components/compras/CabeceraHistorialCompras";
+import { totalPorRevisar } from "@/lib/compras-pestanas-reglas";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -93,7 +94,7 @@ const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("
 const montoEnFrase = (n: number) => <span className="whitespace-nowrap">{soles(n)}</span>;
 
 export default async function FondosPage() {
-  const persona = await exigirModulo("fondos");
+  await exigirModulo("fondos");
   const [{ fondos, movimientos, opciones, rendiciones, rendicionesFalla, deudas: filasDeuda, deudasFalla, falla }, plataAnotada, revisar] = await Promise.all([
     getDatosFondos(),
     getPlataPorConfirmar(),
@@ -336,11 +337,18 @@ export default async function FondosPage() {
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina
-        sede={persona.ubicacionEtiqueta}
-        titulo="Revisar compras"
-        subtitulo="Lo que anotaron las compradoras desde el celular. Confírmalo y pásalo a los libros."
+      {/* La cabecera de las tres pestañas de «Historial de compras» (ADR-0504), con «Todas las tiendas»: antes decía la sede de quien
+          mira aunque esta pantalla muestra la plata de todas. Lo que cuenta su pestaña lo sabe ya esta pantalla (la bandeja): si una de
+          sus dos lecturas falló, el contador se calla en vez de decir 0. */}
+      <CabeceraHistorialCompras
+        activa="revisar"
         acciones={falla ? undefined : acciones}
+        conteos={{
+          revisar:
+            plataAnotada && revisar
+              ? totalPorRevisar({ plata: plataAnotada.length, papeles: revisar.papeles.length, gastos: revisar.gastos.length, cierres: revisar.cierres.length })
+              : null,
+        }}
       />
 
       {/* La bandeja (ADR-0480, actividades 2 y 7; rediseño 2026-10-23). Si una de sus dos lecturas falla (la base sin la migración, o
