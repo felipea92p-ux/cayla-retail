@@ -1,5 +1,15 @@
 # Backlog · 2026-10-26 · Recibir: «Crear ahora» deja la prenda creada en «Para después» (ADR-0393, 2026-10-26) — rama `claude/prenda-para-despues-save-613e8c`
 
+## POR PEGAR en producción (2026-10-26) — decide Felipe
+
+Se pegan **después de fusionar**: la web de este PR funciona sin ellas (sin `ligar_prenda_a_pendiente` el pendiente sigue «por crear» como hoy, sin aviso; sin la validación y sin el cambio de precio con el envío cerrado, la web dice «Todavía no se puede cambiar el precio desde aquí» y deja guardar sin cambiar el precio), así que pegarlas antes no hace falta y publicar la web primero no rompe nada. En este orden, cada una en UNA parte (re-pegable, sin tablas ni políticas), después de `20261024225000` y `20261013172000`/`173000`:
+
+1. `20261026163000_pendiente_crear_pasa_a_detalle.sql` (`ligar_prenda_a_pendiente` y el permiso puntual del disparador de los pendientes).
+2. `20261026180000_precio_de_venta_en_para_despues.sql` (`cambiar_precio_en_recepcion` con el envío cerrado y `validar_precio_en_recepcion`).
+
+Comprobación (debe dar `t | t | t | t`): `select to_regprocedure('retail.ligar_prenda_a_pendiente(uuid,uuid,uuid)') is not null, to_regprocedure('retail.validar_precio_en_recepcion(uuid,uuid,numeric,text)') is not null, position('retail.ligando_pendiente' in pg_get_functiondef('retail.fn_despacho_pendientes_fija()'::regprocedure)) > 0, position('retail.precio_validando' in pg_get_functiondef('retail.cambiar_precio_en_recepcion(uuid,uuid,numeric,text)'::regprocedure)) > 0;` Cada migración además termina con su propio bloque de comprobación: si algo no quedó, la pegada falla sin aplicarse. Después, `pnpm datos:generar:produccion` (`docs/datos/generado/COMO-REFRESCAR.md`).
+
+
 - [x] `ligar_prenda_a_pendiente` + permiso puntual en `fn_despacho_pendientes_fija` (migración `20261026163000`), `HacerAhora` la llama tras crear o «Usar esa prenda», y `EnvioCerrado` relee la lista al cerrar. Casos V1–V3 y F1 en `pruebas:pendientes-de-envio`; reglas con prueba; recorrido en el navegador con el caso real de Felipe (ENV-000253).
 - [ ] **PEGAR `20261026163000` en producción (lo decide Felipe).** Una sola parte, re-pegable, sin políticas ni `alter table`; el bloque final comprueba que quedó. Mientras no esté, la web responde PGRST202 y todo sigue como antes (sin avisos nuevos). Después, `pnpm datos:generar:produccion` (`docs/datos/generado/COMO-REFRESCAR.md`).
 - [ ] Un «crear» cuya prenda ya se había creado antes de esto no se arregla solo (nada las unía): al volver a «Crear ahora» y elegir «Usar esa prenda» se liga. Si en producción hay varios, se puede hacer un repaso a mano con Felipe (cruzar pendientes «crear» con prendas creadas el mismo día en la sede).
