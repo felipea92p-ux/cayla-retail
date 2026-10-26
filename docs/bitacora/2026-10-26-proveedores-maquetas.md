@@ -28,3 +28,10 @@ Qué hice:
 - Al cambiar prendas/dinero, los puntos, los rayos y las filas se deslizan a su lugar nuevo; al tocar un proveedor, su detalle (con tallas y sedes en celdas de color) reemplaza la columna derecha.
 - Revisadas a 1440 y 1920 px, claro y oscuro, y a 375 px sin desborde. La v3 queda marcada como descartada.
 Estado: solo maquetas, sin PR. Falta que Felipe elija.
+
+## 2026-10-26 (Proveedores v5: ranking visual e interactivo, sin extravagancia)
+Qué hice:
+- Felipe descartó la v4 («que sea un ranking más visual e interactivo pero sin ser demasiado extravagante»). Nueva carpeta `docs/maquetas/proveedores-v5-2026-10/` con tres rankings: **A · Podio y lista** (los 3 primeros en tarjetas grandes y el resto en filas con su barra), **B · Carriles** (barra grande que dice adentro lo vendido y lo que queda; el carril se abre ahí mismo con tallas, sedes y plata) y **C · Filas con su venta** (línea de ventas por día, anillo de vendido y comparar hasta 3 a la derecha).
+- En las tres, al cambiar entre prendas y dinero la lista se reacomoda deslizándose y cada proveedor dice cuántos puestos subió o bajó; el color sigue solo en la píldora del ritmo, y a la derecha va lo que no se ve a simple vista.
+- Revisadas a 1440 px en claro y oscuro y a 375 px sin desborde. La v4 queda marcada como descartada.
+Estado: solo maquetas, sin PR. Falta que Felipe elija.

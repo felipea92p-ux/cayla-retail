@@ -1,5 +1,8 @@
 # Proveedores v4 · tres formas visuales (2026-10-26)
 
+> **Descartada por Felipe el mismo día:** «que sea un ranking más visual e interactivo pero sin ser demasiado extravagante». La quinta
+> ronda está en `../proveedores-v5-2026-10/`.
+
 Cuarta ronda. Felipe, sobre la tercera (ranking en tabla): «No me gusta ninguna, elabora 3 más que sean innovadoras y visuales».
 
 ## Se mantiene de las rondas anteriores
