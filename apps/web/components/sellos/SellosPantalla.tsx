@@ -210,6 +210,7 @@ export function SellosPantalla({
         estilo,
         icono: dibujoElegido(datos.etiqueta.icono),
         imagen: null,
+        imagenSilueta: false,
         vigenteDesde: null,
         vigenteHasta: null,
         descuentoPct: null,
@@ -220,9 +221,11 @@ export function SellosPantalla({
       // quedó y se ve por su nombre; se dice, y se puede subir desde «Dibujo» en su pase.
       let avisoImagen: string | null = null;
       if (eleccion?.tipo === "imagen") {
-        const puesta = await subirYFijarImagen(nueva.id, eleccion.archivo);
-        if ("imagen" in puesta) nueva.imagen = puesta.imagen;
-        else avisoImagen = puesta.error;
+        const puesta = await subirYFijarImagen(nueva.id, eleccion.archivo, eleccion.silueta);
+        if ("imagen" in puesta) {
+          nueva.imagen = puesta.imagen;
+          nueva.imagenSilueta = eleccion.silueta;
+        } else avisoImagen = puesta.error;
       }
       setEtiquetas((actual) => ordenarEtiquetas([...actual, nueva]));
       abrir(nueva.id);
@@ -296,13 +299,13 @@ export function SellosPantalla({
 
   // La imagen propia: se sube al almacén (el navegador ya la dejó en 256 px y WebP) y SU RUTA se fija por la función de la base, con la firma del
   // combo. La subida va primero: si falla, la base no se toca; si la base rechaza la ruta, el archivo queda sin dueño (se acepta: pesa ≤ 100 KB).
-  async function subirYFijarImagen(etiquetaId: string, archivo: File): Promise<{ imagen: string } | { error: string }> {
+  async function subirYFijarImagen(etiquetaId: string, archivo: File, silueta: boolean): Promise<{ imagen: string } | { error: string }> {
     const subida = await subirImagenDeInsignia(createClient(), etiquetaId, archivo);
     if ("error" in subida) return { error: subida.error };
     const res = await fetch("/api/productos/etiquetas", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-      body: JSON.stringify({ id: etiquetaId, imagen: subida.ruta }),
+      body: JSON.stringify({ id: etiquetaId, imagen: subida.ruta, ...(silueta ? { silueta: true } : {}) }),
     });
     const datos = await res.json().catch(() => ({}));
     if (!res.ok) return { error: datos.error ?? "No se pudo guardar la imagen." };
@@ -316,14 +319,16 @@ export function SellosPantalla({
     try {
       let icono = e.icono;
       let imagen = e.imagen;
+      let imagenSilueta = e.imagenSilueta;
       if (nuevo.tipo === "imagen") {
-        const puesta = await subirYFijarImagen(e.id, nuevo.archivo);
+        const puesta = await subirYFijarImagen(e.id, nuevo.archivo, nuevo.silueta);
         if ("error" in puesta) {
           avisar.error(puesta.error);
           return;
         }
         icono = null;
         imagen = puesta.imagen;
+        imagenSilueta = nuevo.silueta;
       } else if (nuevo.tipo === "dibujo") {
         const res = await fetch("/api/productos/etiquetas", {
           method: "PATCH",
@@ -337,13 +342,14 @@ export function SellosPantalla({
         }
         icono = nuevo.clave;
         imagen = null;
+        imagenSilueta = false;
       } else {
         setCambiandoDibujo(null);
         return;
       }
-      setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, icono, imagen } : x)));
+      setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, icono, imagen, imagenSilueta } : x)));
       responsable.despues(null);
-      avisar.exito(`Dibujo de ${e.nombre} cambiado`, { detalle: nuevo.tipo === "dibujo" ? `Ahora lleva: ${NOMBRE_DEL_DIBUJO[nuevo.clave]}.` : "Ahora lleva tu imagen." });
+      avisar.exito(`Dibujo de ${e.nombre} cambiado`, { detalle: nuevo.tipo === "dibujo" ? `Ahora lleva: ${NOMBRE_DEL_DIBUJO[nuevo.clave]}.` : nuevo.tipo === "imagen" && nuevo.silueta ? "Ahora lleva tu imagen, pintada del color del sello." : "Ahora lleva tu imagen." });
       setCambiandoDibujo(null);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -406,7 +412,7 @@ export function SellosPantalla({
         style={{ "--i": indice } as CSSProperties}
       >
         <button type="button" className="sl-cab" aria-expanded={esAbierto} aria-controls={`pase-${e.id}`} onClick={() => abrir(e.id)}>
-          <SelloTinta nombre={e.nombre} icono={e.icono} imagen={e.imagen} estilo={e.estilo} anio={anio} tamano={44} giro={0} indice={indice} apagado={!e.activo} />
+          <SelloTinta nombre={e.nombre} icono={e.icono} imagen={e.imagen} imagenSilueta={e.imagenSilueta} estilo={e.estilo} anio={anio} tamano={44} giro={0} indice={indice} apagado={!e.activo} />
           <span className="min-w-0">
             <span className="sl-cab-nombre block truncate">{e.nombre}</span>
             <span className="sl-cab-bajada">
@@ -798,7 +804,7 @@ export function SellosPantalla({
       {cambiandoDibujo && (
         <CambiarDibujoModal
           nombre={cambiandoDibujo.nombre}
-          actual={eleccionDeLoGuardado(cambiandoDibujo)}
+          actual={eleccionDeLoGuardado({ nombre: cambiandoDibujo.nombre, icono: cambiandoDibujo.icono, imagen: cambiandoDibujo.imagen, silueta: cambiandoDibujo.imagenSilueta })}
           esDelNombre={!cambiandoDibujo.icono && !esRutaDeImagenDeInsignia(cambiandoDibujo.imagen)}
           esCampana={cambiandoDibujo.estilo === "campana"}
           responsable={responsable}

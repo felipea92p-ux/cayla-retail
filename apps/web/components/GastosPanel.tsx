@@ -195,8 +195,10 @@ export function GastosPanel({
       document.getElementById("fin-gastos-secciones")?.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" });
     });
   };
+  // Con varias sedes (Felipe 2026-10-24) la lista también lleva su columna «Sede», y lo nuevo arranca en la primera elegida.
   const verTodas = !ver.ubicacionId && !ver.soloEmpresa;
-  const ubicacionParaRegistrar = ver.soloEmpresa ? "empresa" : (ver.ubicacionId ?? ubicaciones[0]?.id ?? "empresa");
+  const ubicacionParaRegistrar = ver.soloEmpresa ? "empresa" : (ver.ubicacionId ?? ver.varias?.ubicacionIds[0] ?? ubicaciones[0]?.id ?? "empresa");
+  const ubicacionesVistas = ver.varias ? ver.varias.ubicacionIds.flatMap((id) => ubicaciones.filter((u) => u.id === id)) : ubicaciones;
   const enUso = activos.filter((a) => a.estado === "activo").length;
   const sedeDeLaCabecera = sedeDeLaCabeceraDe(ver, ubicaciones);
   const aHoy = prefijoALaFecha(mes, hoy);
@@ -367,7 +369,7 @@ export function GastosPanel({
 
       {pestana === "activos" && (
         <>
-          {verTodas && <ResumenActivosPorSede resumen={resumenActivosPorSede(activos, ubicaciones)} onVer={(id) => ir({ sede: id })} />}
+          {verTodas && <ResumenActivosPorSede resumen={resumenActivosPorSede(activos, ubicacionesVistas)} onVer={(id) => ir({ sede: id })} etiquetaTotal={ver.varias ? `Total de ${sedeDeLaCabecera}` : undefined} />}
           <TablaActivos activos={activos} verTodas={verTodas} onAbrir={setActivo} />
         </>
       )}

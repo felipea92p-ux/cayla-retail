@@ -207,7 +207,7 @@ importa desde ambos lados.
 ## Paleta y orden de pantalla (regla — ADR-0169, ADR-0220)
 
 **El ERP usa la guía oficial «CAYLA Dynamic»: los colores salen SOLO de los tokens de `apps/web/app/globals.css`**
-(crema, papel, tinta, rojo, rojo-profundo, sand, taupe, verde, ámbar, hueso, pizarra). Nunca un hex suelto. Pantalla nueva
+(crema, papel, tinta, rojo, rojo-profundo, sand, taupe, verde, ámbar, hueso, pizarra, `borde-control`). Nunca un hex suelto. **Lo que se toca o se escribe (campo, combo, botón secundario, casilla, interruptor) lleva `borde-control`, que pasa 3:1; `sand` es solo la línea decorativa** (tarjeta, tabla, píldora con texto): lo vigila `lib/tema-tokens.test.ts` y es el mismo valor en CAYLA Dynamic (ADR-0516 act. 2026-10-26 b). Pantalla nueva
 o rediseñada: cabecera → cifras (`TarjetaCifra`) → filtros y tabla en UNA tarjeta (`Tabla`, `caja` en los campos,
 `pildora-cayla`) → nota en hueso (`nota-cayla`). **La cabecera es una sola en todo el ERP menos Finanzas (Felipe 2026-10-14,
 `/unificar`, ADR-0358 y ADR-0220 act.):**
@@ -236,7 +236,7 @@ es deuda, solo baja, y `lib/ancho-completo.test.ts` falla si una ruta nueva entr
 **El ERP tiene modo oscuro, y una pantalla que usa solo tokens lo alcanza sin hacer nada.** Es una preferencia del APARATO
 (`localStorage["cayla-tema"]`, arranca en claro, un script en el `<head>` pone `data-tema` antes de pintar), con su botón entre
 «Actividad» y la sede; lo ve toda cuenta y **no es un módulo** (ADR-0306). Los MISMOS tokens se redefinen bajo
-`:root[data-tema="oscuro"]` en `apps/web/app/estilos/tema.css`, con `tinta` y `crema` intercambiados (fondo `#1a1a18`, texto `#f5f0e8`):
+`:root[data-tema="oscuro"]` en `apps/web/app/estilos/tema.css`, con `tinta` y `crema` intercambiados (texto `#f5f0e8` y un fondo de negro cálido, `#1c1a17`, el oscuro de la familia CAYLA que comparte con Dynamic: ADR-0336, act. 2026-10-26):
 `bg-papel`, `text-tinta` y `border-sand` se invierten solos. Imprimir sale SIEMPRE en claro (el oscuro vive en `@media screen`).
 
 Lo que se exige a toda pantalla, modal o pieza nueva o editada:

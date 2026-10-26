@@ -191,20 +191,6 @@ export function leerOrdenesDirectas(data: unknown): OrdenDirecta[] {
     .filter((o): o is OrdenDirecta => o !== null);
 }
 
-/** Lo que dice cada fila de la tarjeta de la puerta: «Textiles Andina · 32 prendas · guía 001-123». */
-export function detalleDeEnvioPorAbrir(e: EnvioPorAbrir): string {
-  const partes = [
-    e.proveedores.length > 0 ? e.proveedores.join(", ") : null,
-    `${e.unidades.toLocaleString("es-PE")} ${e.unidades === 1 ? "prenda" : "prendas"}`,
-    e.numeroGuia ? `guía ${e.numeroGuia}` : null,
-  ];
-  return partes.filter(Boolean).join(" · ");
-}
-
-export function detalleDeOrdenDirecta(o: OrdenDirecta): string {
-  return [o.proveedor, "llega sin guía", `${o.unidadesPorEnviar.toLocaleString("es-PE")} ${o.unidadesPorEnviar === 1 ? "prenda" : "prendas"}`].filter(Boolean).join(" · ");
-}
-
 /** Lo que se dice en vez del botón cuando quien mira hizo la orden (decisión 17). */
 export const TEXTO_LA_RECIBE_OTRA = "La recibe otra persona: tú hiciste la orden";
 

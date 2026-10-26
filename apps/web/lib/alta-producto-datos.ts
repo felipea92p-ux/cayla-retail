@@ -45,6 +45,8 @@ export type EtiquetaAlta = {
   icono: DibujoDeInsignia | null;
   /** Su imagen propia (la ruta en el almacén de insignias, ADR-0490); null = no tiene. Manda sobre `icono`. */
   imagen: string | null;
+  /** La imagen propia es un molde que se pinta con el color del lugar (ADR-0490 act. b). */
+  imagenSilueta: boolean;
   /** Descuento de campaña en % (20260918160000). Null = etiqueta informativa. */
   descuentoPct: number | null;
   /** Categorías donde la campaña rige SOLA sobre todas las prendas, sin etiquetarlas una por una. Vacío = solo las etiquetadas a mano. */
@@ -106,7 +108,7 @@ export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
       supabase.from("codigos_correlativos").select("prefijo, ultimo"),
       supabase
         .from("etiquetas")
-        .select("id, nombre, estilo, icono, icono_imagen, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
+        .select("id, nombre, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
         .eq("activo", true)
         .eq("estado", "aprobado")
         .order("nombre"),
@@ -157,6 +159,7 @@ export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
       categoriaIds: (e.etiqueta_categorias ?? []).map((c) => c.categoria_id),
       icono: dibujoElegido(e.icono),
       imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null,
+      imagenSilueta: esRutaDeImagenDeInsignia(e.icono_imagen) && e.icono_imagen_silueta === true,
       vigenteDesde: e.vigente_desde,
       vigenteHasta: e.vigente_hasta,
     }));
