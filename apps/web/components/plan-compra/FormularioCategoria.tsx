@@ -20,7 +20,7 @@ import { Check, Sparkles } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { explicarPropuesta } from "@/lib/plan-compra-propuesta";
 import { guardarConPropuesta, propuestaParaGuardar } from "@/lib/plan-compra-propuesta-guardada";
-import { hayUltimos30, periodoDeVentas, ultimosDeVentas } from "@/lib/plan-compra-periodo";
+import { exactitudDeLosDatos, hayUltimos30, periodoDeVentas, ultimosDeVentas } from "@/lib/plan-compra-periodo";
 import { fraseDelSugerido, sugeridoParcial } from "@/lib/plan-compra-descuento";
 import { RepartoTiendas } from "@/components/plan-compra/RepartoTiendas";
 import {
@@ -203,6 +203,8 @@ export function FormularioCategoria({
     return resto.charAt(0).toUpperCase() + resto.slice(1);
   };
   const propuesta = propuestaDeNormal(ventas, campana.dias, fila.diasDeVentas);
+  // Cuánto creerle a los números: una línea, sin controles (tarea #3 de la auditoría del Plan).
+  const exactitud = exactitudDeLosDatos(fila.diasDeVentas, fila.conCampanaAnterior === true);
   // Mientras el precio y el costo sean los que vinieron del catálogo, la ayuda lo dice: «revísalo» (no es una decisión de nadie todavía).
   const delCatalogo = !linea && catalogo !== null ? { precio: catalogo.precio.toFixed(2), costo: catalogo.costo.toFixed(2) } : null;
 
@@ -334,6 +336,12 @@ export function FormularioCategoria({
           </>
         )}
       </div>
+
+      {exactitud && (
+        <Aviso tono={exactitud.nivel === 1 ? "atencion" : "info"} chico titulo={exactitud.titulo}>
+          {exactitud.detalle}
+        </Aviso>
+      )}
 
       <fieldset data-guia="plan-modal.escenarios">
         <legend className="text-[13px] font-semibold text-tinta">¿Cuántas venderías en {campana.nombre}?</legend>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DIAS_DE_VENTAS, diasDeVentasDelErp, hayUltimos30, periodoDeVentas, ultimosDeVentas } from "./plan-compra-periodo";
+import { DIAS_DE_VENTAS, diasDeVentasDelErp, exactitudDeLosDatos, hayUltimos30, periodoDeVentas, ultimosDeVentas } from "./plan-compra-periodo";
 import { propuestaDeNormal } from "./plan-compra-reglas";
 import { explicarPropuesta, proponer, type LecturaPropuesta, type TiendaPropuesta } from "./plan-compra-propuesta";
 
@@ -86,5 +86,35 @@ describe("la propuesta dice con cuántos días se hizo", () => {
     const p = proponer(lectura([tienda("tru", 90)]), "polos")!;
     expect(p.diasDeVentas).toBe(90);
     expect(explicarPropuesta(p).normal).toContain("de los últimos 90 días");
+  });
+});
+
+describe("exactitudDeLosDatos: cuánto creerle a los números", () => {
+  it("con 26 de 90 días de ERP: todavía no son exactos, y dice cuántos días lleva", () => {
+    expect(exactitudDeLosDatos(26, false)).toEqual({
+      nivel: 1,
+      titulo: "Los datos todavía no son exactos",
+      detalle: "El ERP lleva 26 de 90 días de ventas. Las cifras son una guía: tú decides.",
+    });
+  });
+  it("tener la campaña del año pasado no arregla un ERP corto: manda lo corto", () => {
+    expect(exactitudDeLosDatos(26, true)?.nivel).toBe(1);
+  });
+  it("con 90 días pero sin la campaña del año pasado en el ERP: ya orientan, sin ser exactos", () => {
+    const e = exactitudDeLosDatos(90, false)!;
+    expect(e.nivel).toBe(2);
+    expect(e.titulo).toBe("Los datos ya orientan, sin ser exactos");
+    expect(e.detalle).toContain("la misma campaña del año pasado todavía no está en el ERP");
+  });
+  it("con 90 días y la campaña del año pasado: no hay nada que avisar", () => {
+    expect(exactitudDeLosDatos(90, true)).toBeNull();
+  });
+  it("sin saber los días (la base no manda la propuesta) no inventa una exactitud", () => {
+    expect(exactitudDeLosDatos(undefined, false)).toBeNull();
+    expect(exactitudDeLosDatos(undefined, true)).toBeNull();
+  });
+  it("el título no lleva punto final: el aviso de una línea lo pone él", () => {
+    expect(exactitudDeLosDatos(26, false)!.titulo.endsWith(".")).toBe(false);
+    expect(exactitudDeLosDatos(90, false)!.titulo.endsWith(".")).toBe(false);
   });
 });

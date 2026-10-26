@@ -168,6 +168,7 @@ export function PlanCampana({
       propuesta: proponer(hechos, f.c.id),
       propuestaLeidaEn: hechos.leidaEn,
       diasDeVentas: diasDeVentasDelErp(hechos.tiendas),
+      conCampanaAnterior: hechos.tiendas.some((t) => t.previaDisponible),
       recuperoDefecto: hechos.recupero.pct,
       // El reparto entre tiendas (Felipe 2026-10-12): todas las tiendas activas, con su venta de 90 días, su stock y su mínimo.
       reparto:

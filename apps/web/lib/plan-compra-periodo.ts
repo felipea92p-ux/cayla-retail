@@ -34,6 +34,33 @@ export function ultimosDeVentas(dias: number | undefined): string {
   return dias === undefined || dias >= DIAS_DE_VENTAS ? `los últimos ${DIAS_DE_VENTAS} días` : periodoDeVentas(dias);
 }
 
+export type ExactitudDeLosDatos = {
+  /** 1 = todavía no son exactos · 2 = ya orientan. Con la campaña del año pasado en el ERP no hay nada que avisar (null). */
+  nivel: 1 | 2;
+  titulo: string;
+  detalle: string;
+};
+
+/**
+ * Cuánto creerle a los números del Plan, en una línea que no agrega ningún control. Sale de dos hechos que el sistema ya sabe: cuántos días de
+ * ventas tiene el ERP (`dias`) y si la misma campaña del año pasado ya está en él (`conCampanaAnterior`, de las tiendas que la tienen).
+ *   · menos de 90 días → «todavía no son exactos» (la propuesta se apoya en un tramo corto; el bueno, en el historial de Sinatra donde lo hay);
+ *   · 90 días o más pero sin la campaña del año pasado en el ERP → «ya orientan, sin ser exactos»;
+ *   · con la campaña del año pasado en el ERP → null: no se avisa lo que no hace falta.
+ * undefined (la base no manda la propuesta) → null: no se inventa una exactitud que no se sabe.
+ */
+export function exactitudDeLosDatos(dias: number | undefined, conCampanaAnterior: boolean): ExactitudDeLosDatos | null {
+  if (dias === undefined) return null;
+  const guia = "Las cifras son una guía: tú decides.";
+  if (dias < DIAS_DE_VENTAS) {
+    return { nivel: 1, titulo: "Los datos todavía no son exactos", detalle: `El ERP lleva ${dias} de ${DIAS_DE_VENTAS} días de ventas. ${guia}` };
+  }
+  if (!conCampanaAnterior) {
+    return { nivel: 2, titulo: "Los datos ya orientan, sin ser exactos", detalle: `Ya hay ${DIAS_DE_VENTAS} días de ventas, pero la misma campaña del año pasado todavía no está en el ERP. ${guia}` };
+  }
+  return null;
+}
+
 /** ¿Tiene sentido decir «y M en los últimos 30»? Con menos de 30 días de ERP, los últimos 30 son TODO lo que hay: sería repetir la misma cifra. */
 export function hayUltimos30(dias: number | undefined): boolean {
   return dias === undefined || dias >= 30;

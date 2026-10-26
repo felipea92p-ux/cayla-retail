@@ -583,6 +583,8 @@ export type FilaPlan = {
   propuestaLeidaEn?: string;
   /** Los días de ventas que el ERP lleva de verdad dentro de la ventana de 90 (`lib/plan-compra-periodo.ts`); undefined = no se sabe. */
   diasDeVentas?: number;
+  /** La misma campaña del año pasado ya está en el ERP, en alguna tienda (`previaDisponible`); undefined = no se sabe. Con `diasDeVentas`, dice cuánto creerle a los números. */
+  conCampanaAnterior?: boolean;
   /** El % de lo que sobra de la campaña (C5): con él arranca una categoría sin plan. null = nadie lo fijó todavía. */
   recuperoDefecto?: number | null;
   /** Lo necesario para repartir el objetivo entre las tiendas (`lib/plan-compra-reparto.ts`); undefined = la base no lo manda. */

@@ -76,7 +76,8 @@ export function FilaCategoria({
           {puesto !== null && <Chip tono="pizarra">N.º {puesto}</Chip>}
           {c.nombre}
         </span>
-        <span className={`block text-[13px] ${agotada ? "font-medium text-ambar-profundo" : "text-tinta/70"}`}>
+        {/* «Vendiste 366 en los 26 días que lleva el ERP» es el doble de larga que «en 90 días»: la celda no envuelve y la cortaba a 980 px. */}
+        <span className={`block whitespace-normal text-[13px] ${agotada ? "font-medium text-ambar-profundo" : "text-tinta/70"}`}>
           {agotada
             ? `Se agotó: vendía ${enteroES.format(ventas)} en ${periodoDeVentas(diasDeVentas)}`
             : ventas > 0
