@@ -139,7 +139,7 @@ describe("la guía de foco: qué le falta a cada tienda, y solo lo que llegó va
       ["a:direccion", true, false, false],
       ["a:horario", false, true, false],
     ]);
-    expect(campos[0]!.nombre).toBe("Nombre en la web · TRU");
+    expect(campos[0]!.nombre).toBe("Nombre · TRU");
   });
   it("lo que se escribe se marca hecho con la misma regla que enciende la tienda (un WhatsApp de 8 dígitos no)", () => {
     const escrito = { ...borradorDe(sedes[0]!), nombreWeb: "Trujillo", whatsapp: "98765432" };
@@ -184,7 +184,7 @@ describe("la puerta de una tienda (maqueta de Conf. Tienda)", () => {
   });
   it("lo que falta se dice con una palabra por dato, la misma regla que la base", () => {
     const falta = faltaParaMostrar({ nombreWeb: "", whatsapp: "12", direccion: "" });
-    expect(falta.map((d) => PALABRA_FALTA[d])).toEqual(["Nombre", "WhatsApp", "Dónde"]);
+    expect(falta.map((d) => PALABRA_FALTA[d])).toEqual(["Nombre", "WhatsApp", "Dirección"]);
   });
   it.each([
     ["Tienda TRU", "tru"],

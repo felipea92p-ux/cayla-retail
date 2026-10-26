@@ -120,3 +120,12 @@ hacía el campo, y el botón quedaba más arriba que la caja (el campo de fecha 
 quedan a la misma altura (se oculta el renglón vacío cuando no hay error); entre los dos dice «u otro día»; el título lleva el chip «Un día que no abre: feriado, inventario»;
 «u otro día» y su caja bajan **juntas** si la fila no cabe; y tras agregar una fecha la caja vuelve a quedar vacía (antes se quedaba mostrando la fecha ya agregada). Solo
 cambia cómo se ve y cómo se siente.
+
+## Actualización 2026-10-26 (e) — los 3 cambios de `/formidable` y el candado de doble clic
+
+Felipe aprobó los tres cambios de `docs/formidable/tienda-web-conf-tienda.md` y el candado de `/chaos`. Solo web, sin migración ni RPC; no cambia qué guarda cada botón.
+1. **No perder lo escrito.** La pantalla usa `useSalidaSinGuardar` (el «¿Salir sin guardar?» de las demás): vigila las tiendas y los plazos (`Plazos` avisa su «sucio» al padre). Esc en un plazo revierte solo esa caja, no los cuatro.
+2. **Cómo se maneja.** El chip del horario sigue pidiendo arrastrar y agrega «la letra cierra el día»; la letra de cada día lleva su `title` («Cerrar el lunes»). El atajo del orden («Arrastra para ordenar, o Alt + ← →») pasa del agarre (que no recibe el puntero, así que su tooltip nunca salía) a la tarjeta.
+3. **Un solo nombre por dato:** «Nombre», «WhatsApp», «Dirección», «Horario» en la etiqueta, la puerta, «Faltan:» y el teléfono (`NOMBRE_DATO`, `PALABRA_FALTA`). El WhatsApp incompleto avisa bajo su caja al salir de ella («Son 9 dígitos y empieza en 9»), no mientras se escribe; el aviso flotante de «Guardar» queda de respaldo.
+4. **Candado de re-entrada** (`/chaos`): `guardarTarjeta` y `guardarPlazos` ignoran un segundo clic que llega antes de que el botón se apague. La base ya resistía (idempotente y con `pg_advisory_xact_lock`); solo evita los dos avisos «guardado».
+Verificado en el navegador local con la ruta temporal (guardia con una tienda y con solo los plazos; Esc por caja; aviso del WhatsApp; títulos). **Sin verificar:** el candado de doble clic (la ruta de prueba no tiene sesión y no llega a guardar).

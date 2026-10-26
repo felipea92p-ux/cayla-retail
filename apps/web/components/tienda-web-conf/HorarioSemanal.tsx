@@ -125,6 +125,7 @@ export function HorarioSemanal({
                 data-hoy={ahora?.dia === i ? "" : undefined}
                 aria-pressed={valor[i] !== null}
                 aria-label={`${DIAS_LARGOS[i]}: ${valor[i] ? "abierto, toca para cerrar" : "cerrado, toca para abrir"}`}
+                title={valor[i] ? `Cerrar el ${DIAS_LARGOS[i].toLocaleLowerCase("es")}` : `Abrir el ${DIAS_LARGOS[i].toLocaleLowerCase("es")}`}
                 disabled={deshabilitado}
                 onClick={() => poner(i, valor[i] ? null : tramoParaAbrir(rango))}
               >
