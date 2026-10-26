@@ -72,3 +72,72 @@ bucle** (salvo las señales que ADR-0136 ya admite) y con `prefers-reduced-motio
 tokens nuevos en los tres lugares) y las guías: las 14 de Finanzas explican la barra (`...TELAR`). En el navegador, a 1440 y a 375 px: elegir
 Lima en Gastos y pasar a Resumen la conserva, y Resumen muestra Tienda Lima; Te toca abre el cajón y «Clasificar» lleva a la pestaña de salidas
 de caja; «Registrar gasto» desde Resumen abre la hoja en Gastos.
+
+## Actualización 2026-10-24 — El Resumen contesta también «¿me alcanza?»
+
+Con el Resumen ya en El telar (#1311), Felipe pidió ver qué faltaba y qué sobraba (`docs/pantallas/finanzas-resumen.md`, spikes en
+`docs/maquetas/finanzas-v3-2026-10/resumen-siguiente/`). Se construyeron cinco piezas, solo web, sin migración, cada una en su commit:
+
+1. **«Tu caja en las próximas dos semanas»** (`lib/caja-proxima-reglas.ts`). La línea del saldo día por día contra el mínimo de caja y la frase de cuándo
+   baja o que aguanta; en celular, tres cifras y una barra. Mirando una sede solo separa lo que se separa (su efectivo, lo que se espera cobrar de ella y
+   lo que sale de ella). El saldo de cada día se arma con las mismas piezas con que la base arma sus bloques y **tiene que cuadrar con el de Dinero ▸ Flujo**;
+   si no cuadra, usa solo los bloques y lo dice. Lectura propia de `fn_flujo_caja_proyeccion` (`getFlujoProximo`): la de `fn_resumen_finanzas` recorta los
+   cobros (`- 'cobros'`) y solo trae el flujo mirando CAYLA entera.
+2. **«¿Puedo fiarme de este número?»** (`Confianza.tsx`). El medidor pasó de una tarjeta al fondo a una franja bajo la respuesta: «Seguro al N %» y, a un toque,
+   lo que falta. Se quitó el arco. La lista «no revisado» de «Hoy te toca» **se queda**: dice qué partes de la lista no pudo leer la cuenta, que es otra pregunta.
+3. **«¿Ya pagaste el mes?»** (`lib/equilibrio-mes-reglas.ts`). Reemplaza a «ventas contra la meta»: cuánto hay que vender para pagar TODO el mes (gastos ÷ margen),
+   cuánto va vendido y desde qué día se cubrió. Todo sin IGV; lo de Caja se convierte con la proporción del propio período.
+4. **«Lo que más se movió desde el mes pasado»** (`lib/resumen-cambios-reglas.ts`), rubro por rubro contra el mismo tramo del mes pasado; la lista suma exactamente
+   lo que cambió lo que te deja el mes.
+5. **«De cada S/ 100 que vendes»** (`lib/de-cada-cien-reglas.ts`): la frase va en la respuesta y los cien cuadros a un toque bajo el recorrido.
+
+**Un solo número para la caja (Felipe, 2026-10-26: «deja los dos, pero que digan el mismo número»).** El aviso «bajo tu mínimo de caja» de «Hoy te toca» y la tarjeta
+cuentan el mismo hecho con el mismo día y el mismo monto: el punto más bajo de las dos semanas (`masBajo`, `alinearAvisoDeCaja`). Antes el aviso miraba el cierre de cada
+bloque semanal (−S/ 36,467) y la tarjeta el día (−S/ 41,522); y una caída dentro de la semana, que el bloque no ve, tenía tarjeta pero no aviso. Ahora el aviso también nace.
+Mismo tono en los dos: rojo solo si la plata no alcanza (negativo), ámbar si baja del mínimo sin llegar a negativo.
+
+**DECIDÍ:** la caja vive también en el Resumen, con una lectura propia que usa el mismo cálculo de Dinero. **DESCARTÉ:** recalcular el saldo en el navegador con
+otra regla, porque habría dos números distintos para «cuánto me queda el 31»; y repartir los bancos por sede con un porcentaje, porque es inventar un dato (D-32).
+**SE ROMPE SI:** una cuenta ve el Resumen y no Dinero (la pieza se oculta, no muestra S/ 0), o si la base cambia cómo arma los bloques (la prueba de «cuadra con
+los bloques» pasa a usar solo los bloques y lo dice).
+
+**Lo que se descartó a propósito:** mostrar la meta por día de cada sede como la «meta del mes» (`fn_rendimiento_serie` termina en hoy, así que solo cubre hasta hoy; en
+el equilibrio solo entra la meta del mes del presupuesto) y un equilibrio sin gastos registrados (`motivoSinEquilibrio` lo corta y manda a Gastos). Los cien cuadros son
+una pieza nueva: si Felipe quiere que sea la de la familia «proporción de cien», entra a `docs/unificar/` en su ronda; hoy es local del Resumen.
+
+## Actualización 2026-10-26 (b) — La compra de una campaña en el Resumen (decidido por Felipe)
+
+Spike y contrato con el Plan de campaña en `docs/maquetas/finanzas-v3-2026-10/resumen-campana/`. Decidido:
+
+1. **La compra de una campaña NO es un gasto: es plata comprometida** (inventario hasta que se vende; NIC 2 y el Balance del ERP). Entra al Resumen por un bloque propio y por la caja, nunca dentro de «Te deja».
+   La publicidad de la campaña, la comisión de tarjeta y el descuento sí son gasto de campaña.
+2. **Se puede ocultar con un interruptor por campaña y uno general** (opción A). Por defecto todo se ve. Va firmado y no borra nada. Apagado el general, la caja no cuenta lo que aún no se pidió.
+3. **Se guarda en el plan cómo se piensa pagar: una lista de (fecha, %)**, con autor y hora; la base exige que sume 100 %. Se guardan los pagos y no las tandas con forma de pago, para que un cambio de la pantalla del Plan no mueva la caja.
+4. **En la caja la compra sale con IGV** (el crédito fiscal vuelve en la declaración siguiente). Lo vio primero la sesión del Plan; este spike no lo había contado.
+
+**DECIDÍ:** el Resumen lee la campaña a través de un contrato del Plan y no ofrece nada hasta que la base lo confirme (la «marca soportado» del ADR-0499). **DESCARTÉ:** que el Resumen calcule la compra por su cuenta desde
+las órdenes y el plan: dos fuentes para «cuánto vamos a comprar». **SE ROMPE SI:** el Plan y Finanzas llaman distinto al mismo concepto («Compromiso de compra» contra «Compras de campaña»): el nombre se elige mirando y es uno solo.
+
+## Actualización 2026-10-26 (c) — El Resumen abre con tres respuestas, sin huecos, y la inversión en mercadería (construido, tras bandera)
+
+Construido sobre la demo que Felipe aprobó (`docs/maquetas/finanzas-v3-2026-10/resumen-demo/`):
+
+1. **Tres respuestas arriba** (`lib/tres-respuestas-reglas.ts` → `TresRespuestas.tsx`, con `TarjetaCifra`): ¿cuánto tienes?, ¿cuánto debes pagar pronto? y ¿cuánto te deja este mes? Ninguna calcula plata: repiten la cifra de la caja (`cajaProxima`),
+   de `debesPronto` y de la respuesta del mes, y el estado de la caja se dice con las mismas palabras que «Tu caja» (`estadoDeCaja`, una sola fuente). **El Resumen ya no pone `RespuestaTelar` en su cabecera** (es la única
+   excepción de las seis pantallas: su respuesta ahora son tres tarjetas).
+2. **Ancho completo solo para el Resumen**, con el marcador `data-ancho-completo` de ADR-0462 y no sacando `/finanzas` de `CON_TOPE_DE_ANCHO`: las otras cinco pantallas se revisan a lo ancho una por una.
+   **Costo conocido:** al pasar del Resumen a otra pantalla de Finanzas la barra cambia de ancho (64 rem). Se arregla cuando las demás salgan de la lista.
+3. **Sin huecos:** la caja y «Hoy te toca» miden lo mismo; el recorrido, el equilibrio y los cambios van en columnas pegadas (`columns-[34rem]`; el navegador corta donde quedan más parejas) y en una columna en angosto.
+4. **Inversión en mercadería, tras bandera** (`lib/inversion-mercaderia-reglas.ts`, `lib/inversion-mercaderia.ts`, `InversionMercaderia.tsx`, `AjustesResumen.tsx`). No es un gasto: sale de la caja el día que se paga.
+   Cada sol del plan está en UNA etapa (pagado, pedido sin pagar, falta pedir) y la caja solo suma **lo que falta pedir** (lo pedido ya está en Por pagar: contarlo dos veces es el error). `cajaProxima` acepta la compra como capa
+   aparte y mira seis semanas cuando la hay. Las formas de pagar (tu plan, todo junto, dos tandas, a plazo) se comparan mirando la caja; **elegir una es mirar, no guarda nada**. «La mejor mezcla» solo la lleva una que no depende
+   del proveedor, no deja la caja en negativo y llega a tiempo con 70 % o más; si ninguna cumple, no recomienda (la caja cuenta «Todo junto» para mostrar el daño). Mirando una sola sede no se dibuja: es de CAYLA entera.
+5. **«Qué se ve»:** un ícono junto al mes (la barra ya es de una sola fila; no cabe «debajo»), solo en el Resumen, que abre una hoja con los interruptores. Visibilidad por campaña = **tres estados** (decidido por Felipe la tarde del 2026-10-26, y mandan en todo Finanzas): «se hará» (Resumen, flujo y Escenarios), «solo en Escenarios» y «no mostrarla».
+   El Resumen lee solo «se hará» (`seVeEnElResumen`); la columna la crea el Plan.
+
+**DECIDÍ:** que el lector de la inversión sea una sola función (`getInversionMercaderia`) que hoy devuelve «esta base aún no lo trae» y que, en desarrollo y con `?inversion=ejemplo`, devuelva cifras de ejemplo; **en producción el Resumen no ofrece nada**.
+**DESCARTÉ:** llamar a una función de la base que todavía no existe (daría un error en cada carga) y guardar las elecciones de «Qué se ve» en la base sin que el Plan tenga su columna. **SE ROMPE SI:** el Plan entrega la lista de pagos en otro formato
+(`leerInversion` descarta lo que no entiende, nunca inventa un monto) o si dos campañas se pagan el mismo día y alguien espera verlas por separado (la caja las suma).
+
+**Interino a propósito:** las elecciones de «Qué se ve» (interruptor general, por campaña, contar en la caja, IGV) viven en el navegador (`localStorage`), no en la base. Cuando el Plan guarde «se ve en el Resumen» y el interruptor general,
+`useAjustesResumen` cambia por esa lectura y las reglas no se tocan. **Las pestañas «Lo que dice la historia» y «Cuánto cuesta»** de la demo están construidas, pero **solo existen si el Plan entrega esos datos** (campos opcionales `historia` y `costos` de la campaña; `leerInversion` los descarta si vienen a medias). Sin ellos, el cuadro de la campaña muestra solo «Cuándo compro»; el Resumen no calcula nada de eso por su cuenta (solo suma «lo que te deja» con lo que el Plan entrega).
