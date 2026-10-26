@@ -70,9 +70,6 @@ import {
 type Guardar = (hacer: () => PromiseLike<{ error: unknown }>, que: string, listo: string | null) => Promise<boolean>;
 type CampoTexto = "nombreWeb" | "direccion";
 
-/** Cómo empieza un enlace de «Compartir» de Google Maps: igual para toda tienda. */
-const EJEMPLO_MAPA = "https://maps.app.goo.gl/…"; // sugerir-fijo: el formato de un enlace de Google Maps es el mismo en toda tienda
-
 const listaDe = (sedes: readonly SedeWeb[]) => Object.fromEntries(sedes.map((s) => [s.id, borradorDe(s)])) as Record<string, BorradorSede>;
 
 export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
@@ -294,11 +291,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <p className="max-w-md text-[13px] text-taupe">
-          Toca una tienda, escribe y guarda con su botón «Guardar», a nombre de quien figure como responsable; la web lo muestra en
-          unos minutos.
-        </p>
+      <div className="flex justify-end">
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando || guardandoEn !== null} />
         </div>
@@ -426,126 +419,125 @@ function TallerDeTienda({
       <Superficie pad className="anim-sube">
         <CabeceraBloque titulo={s.nombre} />
 
-        <CampoGuiado id={idCampo(s.id, "nombre_web")} guia={guia}>
-          <CampoFin
-            etiqueta={etiqueta("nombre_web", "Nombre que ve el cliente")}
-            htmlFor={`tw-${s.id}-nombreWeb`}
-            ayuda="La ciudad o el lugar, como lo diría el cliente; no el nombre de la sede en el sistema."
-          >
-            {caja("nombreWeb", sugerirNombreWeb(s.nombre), TOPES_SEDE.nombreWeb)}
-          </CampoFin>
-        </CampoGuiado>
+        <div className="twc-fila2">
+          <CampoGuiado id={idCampo(s.id, "nombre_web")} guia={guia}>
+            <CampoFin etiqueta={etiqueta("nombre_web", "Nombre que ve el cliente")} htmlFor={`tw-${s.id}-nombreWeb`}>
+              {caja("nombreWeb", sugerirNombreWeb(s.nombre), TOPES_SEDE.nombreWeb)}
+            </CampoFin>
+          </CampoGuiado>
 
-        <CampoGuiado id={idCampo(s.id, "whatsapp")} guia={guia}>
-          <CampoFin
-            etiqueta={etiqueta("whatsapp", "WhatsApp de la tienda")}
-            htmlFor={`tw-${s.id}-whatsapp`}
-            ayuda={`Aquí llegan los pedidos que separan para ${paraLaFrase}. Es el mismo número del QR del club.`}
-          >
-            <div className="fin-con-unidad">
-              <span>+51</span>
+          <CampoGuiado id={idCampo(s.id, "whatsapp")} guia={guia}>
+            <CampoFin etiqueta={etiqueta("whatsapp", "WhatsApp de la tienda")} htmlFor={`tw-${s.id}-whatsapp`}>
+              <div className="fin-con-unidad">
+                <span>+51</span>
+                <InputFin
+                  id={`tw-${s.id}-whatsapp`}
+                  value={b.whatsapp}
+                  inputMode="tel"
+                  autoComplete="off"
+                  placeholder="987 654 321"
+                  onChange={(e) => onEscribir("whatsapp", ajustarCelular(e.target.value))}
+                  onKeyDown={teclas("whatsapp")}
+                  className="fin-num"
+                />
+              </div>
+            </CampoFin>
+          </CampoGuiado>
+        </div>
+
+        <div className="twc-fila2">
+          <div className="twc-col">
+            <CampoGuiado id={idCampo(s.id, "direccion")} guia={guia}>
+              <CampoFin etiqueta={etiqueta("direccion", "Dirección para recoger")} htmlFor={`tw-${s.id}-direccion`}>
+                {caja("direccion", sugerirDireccion(s.nombre), TOPES_SEDE.direccion)}
+              </CampoFin>
+            </CampoGuiado>
+
+            <CampoFin etiqueta="Mapa" htmlFor={`tw-${s.id}-mapa`}>
               <InputFin
-                id={`tw-${s.id}-whatsapp`}
-                value={b.whatsapp}
-                inputMode="tel"
+                id={`tw-${s.id}-mapa`}
+                value={b.mapa}
+                inputMode="url"
+                maxLength={400}
+                placeholder="Pega el enlace de Google Maps"
                 autoComplete="off"
-                placeholder="987 654 321"
-                onChange={(e) => onEscribir("whatsapp", ajustarCelular(e.target.value))}
-                onKeyDown={teclas("whatsapp")}
-                className="fin-num"
+                onChange={(e) => onEscribir("mapa", e.target.value)}
+                onKeyDown={teclas("mapa")}
               />
-            </div>
-          </CampoFin>
-        </CampoGuiado>
-
-        <CampoGuiado id={idCampo(s.id, "direccion")} guia={guia}>
-          <CampoFin etiqueta={etiqueta("direccion", "Dirección para recoger")} htmlFor={`tw-${s.id}-direccion`} ayuda="Donde el cliente recoge lo que separó: la calle, el número y una referencia.">
-            {caja("direccion", sugerirDireccion(s.nombre), TOPES_SEDE.direccion)}
-          </CampoFin>
-        </CampoGuiado>
-
-        <CampoFin
-          etiqueta="Mapa"
-          htmlFor={`tw-${s.id}-mapa`}
-          ayuda="Opcional. Pega el enlace de Google Maps («Compartir» ▸ «Copiar enlace») y «Cómo llegar» abre ese lugar exacto."
-          tono={errorDeMapa(b.mapa) ? "aviso" : undefined}
-        >
-          <InputFin
-            id={`tw-${s.id}-mapa`}
-            value={b.mapa}
-            inputMode="url"
-            maxLength={400}
-            placeholder={EJEMPLO_MAPA}
-            autoComplete="off"
-            onChange={(e) => onEscribir("mapa", e.target.value)}
-            onKeyDown={teclas("mapa")}
-          />
-          <span className="twc-mapita" data-vacio={b.mapa.trim() === "" ? "" : undefined}>
-            <span className="twc-mapita-tile" aria-hidden>
-              <MapPin />
-            </span>
-            {errorDeMapa(b.mapa) ? (
-              <Chip tono="ambar" versalitas={false}>No es un enlace de Google Maps</Chip>
-            ) : b.mapa.trim() === "" ? (
-              <Chip tono="neutro" versalitas={false}>Sin enlace: «Cómo llegar» busca la dirección</Chip>
-            ) : (
-              <Chip tono="verde" versalitas={false}>«Cómo llegar» abre este lugar</Chip>
-            )}
-          </span>
-        </CampoFin>
-
-        <CampoFin etiqueta="Foto de la fachada" htmlFor={`tw-${s.id}-foto`} ayuda="Opcional. Horizontal, con la fachada al centro: se reduce sola. Sin foto se ve el dibujo de la fachada.">
-          <label
-            className="twc-foto"
-            data-sobre={sobreFoto || undefined}
-            data-con-foto={fotoUrl ? "" : undefined}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setSobreFoto(true);
-            }}
-            onDragLeave={() => setSobreFoto(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setSobreFoto(false);
-              const archivo = e.dataTransfer.files[0];
-              if (archivo && !subiendoFoto) onFoto(archivo);
-            }}
-          >
-            {fotoUrl && (
-              // La foto ya viene reducida por el ERP y está en el almacén público: no pasa por el optimizador.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={fotoUrl} alt={`Fachada de ${paraLaFrase}`} />
-            )}
-            <span className="twc-foto-texto">
-              <span className="twc-foto-pildora">
-                <ImagePlus aria-hidden />
-                {subiendoFoto ? "Subiendo…" : fotoUrl ? "Cambiar foto" : "Suelta o elige la fachada"}
+              <span className="twc-mapita" data-vacio={b.mapa.trim() === "" ? "" : undefined}>
+                <span className="twc-mapita-tile" aria-hidden>
+                  <MapPin />
+                </span>
+                {errorDeMapa(b.mapa) ? (
+                  <Chip tono="ambar" versalitas={false}>No es un enlace de Google Maps</Chip>
+                ) : b.mapa.trim() === "" ? (
+                  <Chip tono="neutro" versalitas={false}>Sin enlace: busca la dirección</Chip>
+                ) : (
+                  <Chip tono="verde" versalitas={false}>«Cómo llegar» abre este lugar</Chip>
+                )}
               </span>
-            </span>
-            <input
-              id={`tw-${s.id}-foto`}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="sr-only"
-              disabled={subiendoFoto}
-              onChange={(e) => {
-                const archivo = e.target.files?.[0];
-                e.target.value = "";
-                if (archivo) onFoto(archivo);
+            </CampoFin>
+          </div>
+
+          <CampoFin etiqueta="Foto" htmlFor={`tw-${s.id}-foto`} className="twc-campo-foto">
+            <label
+              className="twc-foto"
+              data-sobre={sobreFoto || undefined}
+              data-con-foto={fotoUrl ? "" : undefined}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setSobreFoto(true);
               }}
-            />
-          </label>
-          {fotoUrl && !subiendoFoto && (
-            <button type="button" className="btn-cayla btn-enlace mt-1.5" onClick={() => onEscribir("foto", "")}>
-              <X aria-hidden className="h-3.5 w-3.5" /> Quitar foto
-            </button>
-          )}
-        </CampoFin>
+              onDragLeave={() => setSobreFoto(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setSobreFoto(false);
+                const archivo = e.dataTransfer.files[0];
+                if (archivo && !subiendoFoto) onFoto(archivo);
+              }}
+            >
+              {fotoUrl && (
+                // La foto ya viene reducida por el ERP y está en el almacén público: no pasa por el optimizador.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={fotoUrl} alt={`Fachada de ${paraLaFrase}`} />
+              )}
+              <span className="twc-foto-texto">
+                <span className="twc-foto-pildora">
+                  <ImagePlus aria-hidden />
+                  {subiendoFoto ? "Subiendo…" : fotoUrl ? "Cambiar foto" : "Suelta o elige la fachada"}
+                </span>
+              </span>
+              <input
+                id={`tw-${s.id}-foto`}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                disabled={subiendoFoto}
+                onChange={(e) => {
+                  const archivo = e.target.files?.[0];
+                  e.target.value = "";
+                  if (archivo) onFoto(archivo);
+                }}
+              />
+            </label>
+            {fotoUrl && !subiendoFoto && (
+              <button type="button" className="btn-cayla btn-enlace mt-1.5" onClick={() => onEscribir("foto", "")}>
+                <X aria-hidden className="h-3.5 w-3.5" /> Quitar foto
+              </button>
+            )}
+          </CampoFin>
+        </div>
 
         <CampoGuiado id={idCampo(s.id, "horario")} guia={guia}>
           <CampoFin
-            etiqueta={etiqueta("horario", "Horario")}
-            ayuda="Opcional. Arrastra los bordes o la barra; toca un día para abrirlo o cerrarlo."
+            etiqueta={
+              <>
+                {etiqueta("horario", "Horario")}
+                <Chip tono="neutro" versalitas={false} className="ml-2">
+                  Arrastra los bordes o la barra
+                </Chip>
+              </>
+            }
             guia="config.tienda-web-horario"
           >
             <HorarioSemanal
@@ -558,7 +550,7 @@ function TallerDeTienda({
           </CampoFin>
         </CampoGuiado>
 
-        <CampoFin etiqueta="Cierres" ayuda="Opcional. Un día en que no abre aunque el horario diga que sí: un feriado, un inventario." guia="config.tienda-web-cierres">
+        <CampoFin etiqueta="Cierres" guia="config.tienda-web-cierres">
           <CierresDeTienda
             valor={cierresDeSerializados(b.cierres)}
             onCambio={(fechas) => onEscribir("cierres", serializarCierres(fechas))}

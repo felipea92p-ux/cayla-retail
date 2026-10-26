@@ -92,3 +92,12 @@ escala y sus flechas, el campo del mapa; y **la foto**: una JPG de 2,8 MB se red
 gestos con el mouse real y con el dedo: se probaron despachando eventos de puntero, y fue ahí donde apareció un fallo real (soltar el mouse antes de que React
 pintara dejaba el arrastre sin confirmar), ya corregido; falta ver el celular de verdad (arrastrar el horario, los dos botones de orden); (c) `pnpm guias:recorrer`
 de la guía nueva (pide la base local al día y una cuenta); (d) la migración contra producción; (e) `/formidable` y `/chaos`, que Felipe quiso al final.
+
+## Actualización 2026-10-26 (b) — el taller, compacto como la maqueta
+
+Felipe vio la pantalla construida y preguntó por qué no estaba compacta: **tenía razón, me aparté de la maqueta aprobada sin decirlo.** La construcción dejó los campos
+en una sola columna, cada uno con su párrafo de ayuda (heredados de la pantalla anterior), cuando la maqueta los ponía en dos columnas y casi sin texto. Se corrige:
+**nombre | WhatsApp** y **(dirección + mapa) | foto** van en dos columnas (una en el celular), el mapa se explica con su placeholder y su chip, y los párrafos bajo
+nombre, WhatsApp, dirección, mapa, foto, horario y cierres desaparecen (el horario conserva su chip «Arrastra los bordes o la barra»); también sale el párrafo de
+arriba del todo. Lo único que se queda dicho es lo que la pantalla de abajo ya repite en su nota. Solo cambia cómo se ve: ni la base ni lo que se guarda. Lección: una
+maqueta aprobada se compara con la pantalla construida, imagen contra imagen, ANTES de darla por terminada (ya lo pide CLAUDE.md para Finanzas; aquí no se hizo).

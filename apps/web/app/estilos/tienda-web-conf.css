@@ -102,6 +102,13 @@
   .twc-boton svg { width: 14px; height: 14px; }
   .twc-boton-claro { background: transparent; color: var(--color-tinta); }
 
+  /* Los campos del taller en dos columnas, como la maqueta: nombre | WhatsApp, y (dirección + mapa) | foto. Una sola columna en el celular. */
+  .twc-fila2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; align-items: start; }
+  .twc-col { min-width: 0; }
+  .twc-campo-foto { display: flex; flex-direction: column; }
+  .twc-campo-foto .twc-foto { flex: 1 1 auto; min-height: 104px; height: auto; }
+  @media (max-width: 700px) { .twc-fila2 { grid-template-columns: minmax(0, 1fr); } }
+
   /* La foto de la fachada: se suelta o se elige; con foto, ella es el fondo y el texto queda abajo. */
   .twc-foto {
     position: relative; display: block; height: 104px; overflow: hidden; cursor: pointer;
