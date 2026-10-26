@@ -498,7 +498,7 @@ export const GUIA_VITRINA: Guia = {
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "vitrina.desmarcar", siEsta: true }],
       prepararSoloAlAvanzar: true,
       titulo: "Qué precio ve el cliente",
-      texto: "Toca «¿Qué precio ve el cliente?» arriba: en la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto. El precio, las fotos, los colores y las tallas se cambian en la ficha del modelo, en Catálogo ▸ Productos.",
+      texto: "Toca «¿Qué precio ve el cliente?», a la derecha de las pestañas: en la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto. El precio, las fotos, los colores y las tallas se cambian en la ficha del modelo, en Catálogo ▸ Productos.",
     },
     {
       id: "fin",
@@ -645,7 +645,7 @@ export const GUIA_VITRINA_LOOKS: Guia = {
       preparar: [{ tipo: "clic", ancla: "looks.nuevo" }],
       prepararSoloAlAvanzar: true,
       titulo: "Su nombre y su frase",
-      texto: "Un nombre que diga para qué es y, si quieres, una frase que cuente cómo se lleva. El cliente los lee en la tienda. Mira, le ponemos uno.",
+      texto: "Un nombre que diga para qué es y, si quieres, una frase que cuente cómo se lleva. El cliente los lee en la tienda. Con dos prendas elegidas te damos ideas de nombre y de frase que no se parecen a las de otros looks. Mira, le ponemos uno.",
       demostrar: [{ tipo: "escribir", ancla: "look.nombre", texto: "Fin de semana en la ciudad" }],
     },
     {
@@ -653,7 +653,14 @@ export const GUIA_VITRINA_LOOKS: Guia = {
       ancla: "look.prendas",
       opcional: true,
       titulo: "De 2 a 4 prendas",
-      texto: "Busca cada prenda por su nombre y elige su color: solo salen las que se ven en la web. El orden es el de la lámina de la tienda; la ✕ la quita.",
+      texto: "Aquí queda lo que lleva el look, en el orden de la lámina de la tienda. Cambia el color de cada prenda; la ✕ la quita.",
+    },
+    {
+      id: "look-elegir",
+      ancla: "look.elegir",
+      opcional: true,
+      titulo: "Elige mirando las fotos",
+      texto: "Filtra por categoría o busca por nombre, y toca la foto de la prenda para agregarla (otro toque la quita). Solo salen las que se ven en la web.",
     },
     {
       id: "look-mostrar",

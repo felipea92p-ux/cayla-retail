@@ -7,7 +7,6 @@ import { CircleCheck, LayoutGrid, List, MonitorSmartphone, SearchX, Shirt, Spark
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
-import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { avisar } from "@/components/ui/Avisos";
 import { Casilla } from "@/components/ui/Casilla";
 import { Chip } from "@/components/ui/Chip";
@@ -129,8 +128,6 @@ export function VitrinaPantalla({
   const [elegidos, setElegidos] = useState<string[]>([]);
   const [abierto, setAbierto] = useState<string | null>(null);
   const [lote, setLote] = useState<{ modo: ModoLote; ids: string[] } | null>(null);
-  // La regla del precio (qué precio ve el cliente) se abre a un toque: antes era un subtítulo y una nota de tres frases siempre a la vista.
-  const [reglaAbierta, setReglaAbierta] = useState(false);
 
   const { tiendas } = lectura;
   const cifras = cifrasDe(modelos);
@@ -255,19 +252,6 @@ export function VitrinaPantalla({
 
   return (
     <div className="tw space-y-6">
-      {/* `mb-3` reemplaza el aire de 24 px del `space-y-6`: el enlace queda pegado a las cifras que explica. */}
-      <div className="mb-3">
-        <BotonVerMas forma="enlace" className="relative tw-toque" data-guia="vitrina.nota" abierto={reglaAbierta} onCambiar={setReglaAbierta} texto="¿Qué precio ve el cliente?" controla="vitrina-regla-precio" />
-        <FilasDeMas abierto={reglaAbierta} id="vitrina-regla-precio">
-          <div className="nota-cayla mt-2 space-y-2 text-[13px]">
-            <p>
-              En la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto entre ellas. Las campañas se
-              aplican encima con la misma regla de la caja. El precio, las fotos, los colores y las tallas se cambian en su ficha, en Catálogo ▸
-              Productos.
-            </p>
-          </div>
-        </FilasDeMas>
-      </div>
       <div className="grid gap-3 sm:grid-cols-3" data-guia="vitrina.cifras">
         <TarjetaCifra
           punto="verde"
