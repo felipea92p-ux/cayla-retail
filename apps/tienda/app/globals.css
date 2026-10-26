@@ -176,6 +176,15 @@
 .t-beneficios li > span:first-child { display: none; }
 .t-beneficios b { display: block; font-size: 15px; font-weight: 500; }
 .t-beneficios small { display: block; color: var(--taupe); font-size: 14px; line-height: 1.55; }
+/* Papel que se queda blanco en los dos temas (la invitación de «Separado»): dentro, los tokens vuelven a ser los del tema claro. */
+.t-papel-fijo {
+  --crema: var(--t-papel-fijo); --papel: var(--t-papel-fijo); --tinta: var(--t-tinta-fija);
+  --hueso: color-mix(in srgb, var(--t-tinta-fija) 6%, var(--t-papel-fijo));
+  --sand: color-mix(in srgb, var(--t-tinta-fija) 16%, var(--t-papel-fijo));
+  --taupe: color-mix(in srgb, var(--t-tinta-fija) 62%, var(--t-papel-fijo));
+  --tinta-60: color-mix(in srgb, var(--t-tinta-fija) 64%, transparent);
+  --verde: #1f6b44; --ambar: #8a5a00; --rojo: #b3261e; --rojo-profundo: #8f1d17;
+}
 /* La invitación con su sello: el descuento de cumpleaños que cobra la caja, como una etiqueta pegada a la invitación. */
 .t-club-tarjeta { position: relative; display: grid; place-items: center; }
 .t-club-sello { position: absolute; z-index: 2; right: max(0px, calc(50% - 232px)); bottom: 7%; display: flex; flex-direction: column; align-items: flex-start; padding: 10px 14px 11px; border-radius: 0; background: var(--t-hero); color: var(--t-hero-tinta); border: 1px solid var(--t-hero-filo); transform: rotate(5deg); }
