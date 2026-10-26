@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Clock,
+  EyeOff,
   Lightbulb,
   MonitorSmartphone,
   PackageCheck,
@@ -29,10 +30,10 @@ import { soles } from "@/lib/precio-sede-reglas";
 import {
   fraseSinPedidos,
   fraseVentana,
-  hayTiendasAMedias,
   lecturasCaidas,
   pendientesDe,
   sinPedidosAbiertos,
+  vacioDePendientes,
   type EntradaResumen,
   type IconoPendiente,
   type Pendiente,
@@ -65,20 +66,22 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
   const vitrina = entrada.vitrina.estado === "ok" ? entrada.vitrina.dato : null;
   const tiendasVisibles = sedes ? sedes.filter((s) => s.tono === "verde").length : null;
   const conVentana = entrada.vitrina.estado !== "sin_modulo";
-  // «Tiendas en la web» solo cuando una está a medias: con todas bien repetía el pie de la ventana, y el caso a medias ya es un pendiente.
-  const conTiendas = hayTiendasAMedias(sedes);
+  // «Tiendas en la web» siempre junto a la ventana (Felipe 2026-10-26): es la leyenda de en qué tiendas se ve y se recoge lo que separa el cliente.
+  const conTiendas = Boolean(sedes && sedes.length > 0);
 
   // Lo que no tiene nada que decir baja (Felipe 2026-10-26): «Todo al día» y «sin pedidos abiertos» no son lo primero que hay que ver. Si hay algo
   // que hacer o pedidos abiertos, esa sección sigue arriba; con todo en calma, lo primero es la vitrina como la ve el cliente.
-  const pendientesCalmos = pendientes.length === 0;
+  // «Todo al día» solo cuenta si se pudo leer todo: con una lectura caída o sin tienda elegida no es calma, es «no sé», y no baja (ver `vacioDePendientes`).
+  const vacio = vacioDePendientes(entrada);
+  const pendientesCalmos = pendientes.length === 0 && vacio.completo;
   const caminoCalmo = entrada.pedidos.estado === "ok" && sinPedidosAbiertos(entrada.pedidos.dato.cifras);
 
   const seccionPendientes = (
       <section className="space-y-3" data-guia="tienda-web.pendientes">
         <TituloSeccion cuenta={pendientes.length}>Lo que te pide hoy</TituloSeccion>
         {pendientes.length === 0 ? (
-          <Vacio icono={<CheckCircle2 />} titulo="Todo al día" tamano="chico" alinear="izquierda">
-            Nada de la tienda online espera por ti ahora. Si llega un pedido, aparece aquí y en el número del menú.
+          <Vacio icono={vacio.completo ? <CheckCircle2 /> : <EyeOff />} titulo={vacio.titulo} tamano="chico" alinear="izquierda">
+            {vacio.detalle}
           </Vacio>
         ) : (
           <ul className="tw-bandeja">
@@ -107,8 +110,7 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
       {(conVentana || conTiendas) && (
         <div className={`grid gap-5 ${conVentana && conTiendas ? "xl:grid-cols-[minmax(0,1fr)_19rem]" : ""}`}>
           {conVentana && (
-            // Sola (sin la tarjeta de tiendas al lado), la ventana conserva su tamaño de siempre: a todo el ancho sus prendas medían 225 px de alto.
-            <div className={`min-w-0 ${conTiendas ? "" : "max-w-3xl"}`}>
+            <div className="min-w-0">
             <MarcoWeb
               etiqueta="La vitrina de la tienda online, como la ve el cliente"
               i={0}

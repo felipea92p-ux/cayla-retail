@@ -875,8 +875,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   cada pantalla (`cifrasDe` de cada una, `cifrasEsperan`, `cifrasLooks`, `estadoSedeWeb`) → `lib/tienda-web-resumen.ts` (puro: lo que
   pide acción, de lo urgente a lo que informa; las prendas de la ventana; lo que no se pudo leer) → `components/tienda-web/
   ResumenTiendaWeb.tsx` (desde 2026-10-26, en este orden: la bandeja de lo que pide acción, el camino de los pedidos —una línea si
-  no hay ninguno abierto, `sinPedidosAbiertos`—, la ventana `MarcoWeb.tsx` con el mosaico y, solo si una tienda está a medias,
-  `hayTiendasAMedias`, la tarjeta de tiendas; lo que no tiene nada que decir baja debajo de la ventana; silueta propia en
+  no hay ninguno abierto, `sinPedidosAbiertos`—, la ventana `MarcoWeb.tsx` con el mosaico y, a su lado, la tarjeta de tiendas;
+  lo que no tiene nada que decir baja debajo de la ventana —«Todo al día» solo si se leyó todo, `vacioDePendientes`—; silueta propia en
   `tienda-web/loading.tsx`). Sin funciones propias en la base. Estilos y movimiento: `app/estilos/tienda-web.css` (vigilado por `lib/tienda-web-movimiento.test.ts`).
 - `/tienda-web/vitrina` (Tienda web ▸ Vitrina, módulo `vitrina_web`, ADR-0408 act. 3) → `page.tsx` lee `fn_vitrina_modelos` →
   `VitrinaPantalla.tsx` (cifras compactas, buscador, el botón «Filtros» con su panel flotante `components/ui/FiltrosFlotantes.tsx`,

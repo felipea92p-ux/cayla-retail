@@ -45,7 +45,7 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       ancla: "tienda-web.tiendas",
       opcional: true,
       titulo: "Las tiendas en la web",
-      texto: "Solo sale cuando una tienda está encendida pero le falta un dato y no se ve: el cliente no puede recoger ahí lo que separa. «Conf. Tienda» te lleva a completarla. Con todas bien no hace falta.",
+      texto: "En qué tiendas se ve la vitrina y se recoge lo que el cliente separa. Una encendida a la que le falta un dato dice qué falta y no se ve; «Conf. Tienda» te lleva a completarla.",
     },
     {
       id: "fin",

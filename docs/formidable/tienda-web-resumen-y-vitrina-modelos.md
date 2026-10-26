@@ -3,6 +3,7 @@
 - **Fecha / SHA:** 2026-10-26 · `8415f0354` (rama `claude/tienda-vitrina-resumenes-e27bbd`, después de la Ola 1 de ADR-0430) · **Dispositivo que manda:** escritorio (Mac mini); 375 px pesa menos (no es Vender, Cambios ni Devoluciones)
 - **Preguntas que deberían resolver:** Resumen, «¿qué me pide hoy la tienda online?» (protagonista: el pedido que espera) · Vitrina ▸ Modelos, «¿qué modelos ve el cliente en la web?» (protagonista: la prenda con su foto)
 - **Veredicto en una línea:** «Las dos se entienden a los 5 segundos y la Vitrina se termina sin manual (la ciega ocultó aretes y carteras en 11 clics, 0 retrocesos). Lo que más pesa no es el diseño sino honestidad: el Resumen dice "Todo al día" aunque no haya podido leer los pedidos, y la Vitrina esconde con letra chica o sin rótulo lo que más necesita (el stock por tienda, el porqué de cada chip) y deja objetivos de toque bajo 24 px.»
+- **Estado (2026-10-26, más tarde):** los 3 cambios del Resumen están hechos con el OK de Felipe y vistos en el navegador; los de la Vitrina esperan. Falta repetir la ciega del Resumen. A pedido de Felipe, «Tiendas en la web» vuelve siempre junto a la ventana, que recupera su ancho.
 - **Cómo se corrió:** medido en el navegador (1440, 1024 y 375 px, con 2 pedidos y 2 recomendaciones inventados que ya se retiraron) · 2 ciegas (Sonnet, sin acceso al repo) · revisor de las 9 leyes sobre código y capturas · escéptico que intentó refutar 11 hallazgos contra el código. **Real sin probar** (ninguna colaboradora de verdad).
 
 ## Notas (0–10)

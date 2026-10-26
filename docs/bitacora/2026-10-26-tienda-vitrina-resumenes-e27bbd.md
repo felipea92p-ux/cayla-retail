@@ -8,3 +8,8 @@ Qué hice: la hoja de ocultar avisa cuando el lote deja la tienda online sin nin
 Por qué así: «Elegir los N que coinciden» permite ocultar todo de un clic; es reversible, pero mientras tanto el cliente ve una tienda vacía, así que lo que se avisa es el impacto, no una pregunta de «¿seguro?». La función de la base ya traía todo o nada, orden de bloqueo e idempotencia.
 Felipe se lleva: no hay nada que arreglar en el lote. Quedan sin cubrir sesión vencida, atrás/adelante y entrar por URL sin el módulo (en el navegador), y el volumen real; la rama va 183 commits detrás de `main`, así que conviene repetir el caos después de ponerla al día.
 
+
+## 2026-10-26 (/formidable del Resumen: los 3 cambios, y la tarjeta de tiendas vuelve)
+Qué hice: el Resumen ya no dice «Todo al día» cuando no pudo leer los pedidos (lectura caída o cuenta fuera de una tienda: «Sin novedades en lo que se pudo leer», con el motivo); la fila de «por confirmar» no repite el plazo (vive en el camino de abajo) y su enlace dice «Revisar y confirmar». Por pedido de Felipe, «Tiendas en la web» vuelve siempre junto a la ventana, que recupera su ancho.
+Por qué así: «Todo al día» es una afirmación sobre lo que se leyó; sin leer, afirmar calma esconde pedidos que se cierran solos y se pierde la venta. El enlace lleva a la lista, y confirmar se hace dentro de cada pedido.
+Felipe se lleva: nada va a producción de la base. Los 3 cambios de la Vitrina de `/formidable` siguen esperando su OK (el 3 toca la firma del responsable, ADR-0161).

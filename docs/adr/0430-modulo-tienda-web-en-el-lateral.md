@@ -213,8 +213,14 @@ Sin migraciones ni funciones nuevas: solo la web. Medido en la pantalla real a 1
 
 **DECIDÍ 14 — El Resumen empieza por lo que pide acción, y lo que no tiene nada que decir baja.** «Lo que te pide hoy» pasó de 746 px a 250 px del tope;
 sigue el camino de los pedidos y al final la ventana de la vitrina. Con «Todo al día» y sin pedidos abiertos, esas dos líneas bajan, juntas, debajo de
-la ventana. El camino sin pedidos abiertos es una línea («sin pedidos abiertos · N cerrados en 30 días»; `sinPedidosAbiertos`). «Tiendas en la web» solo
-sale si una tienda está a medias (`hayTiendasAMedias`) y la nota del pie se fue. Loading propio con su silueta (`tienda-web/loading.tsx`).
+la ventana. El camino sin pedidos abiertos es una línea («sin pedidos abiertos · N cerrados en 30 días»; `sinPedidosAbiertos`). «Tiendas en la web» (la leyenda de en qué
+tiendas se ve) sigue siempre junto a la ventana, que conserva su ancho (Felipe, mismo día: un primer intento la escondía con todas bien); la nota del pie sí se fue. Loading propio con su silueta (`tienda-web/loading.tsx`).
+**Tres cambios que salieron de `/formidable` (2026-10-26, `docs/formidable/tienda-web-resumen-y-vitrina-modelos.md`):** (1) «Todo al día» solo se dice
+con todo leído (`vacioDePendientes`): con una lectura caída o parado fuera de una tienda dice «Sin novedades en lo que se pudo leer», con el motivo, y no
+baja con lo calmo (principio 9: se degrada, no engaña); (2) el reloj de «por confirmar» vive una sola vez, en el camino («El primero se cierra en 1 h»): la
+fila dice qué hace confirmar y qué pasa si nadie lo hace, sin horas; (3) el enlace de esa fila dice «Revisar y confirmar», porque lleva a la lista y se
+confirma dentro de cada pedido. **DESCARTÉ** atenuar las estaciones en cero del camino: la pieza la comparte Pedidos y ya van con punto neutro.
+**SE ROMPE SI** una lectura nueva del Resumen no se suma a `lecturasCaidas`/`vacioDePendientes`: volvería a decir «Todo al día» sin haberla leído.
 **DESCARTÉ** la propuesta B (ventana de una fila arriba): a 375 px dejaba los pendientes en el borde del pliegue. **SE ROMPE SI** una pantalla nueva del
 grupo no trae su `loading.tsx`: hereda la silueta del Resumen (el editor de campañas ya trae uno genérico).
 
