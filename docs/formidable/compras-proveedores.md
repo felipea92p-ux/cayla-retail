@@ -79,7 +79,38 @@ una migración que reemplaza las dos funciones y una prueba de Postgres que exig
 - **Caída externa:** sin `fn_proveedores_ventas_diarias` las filas van sin línea; sin el rendimiento, la pestaña vuelve al directorio. Probado en código (`.catch(() => null)`), no apagando la base.
 - **Persona sin contexto:** la ciega lo respondió (arriba). Colaboradora real: sin probar.
 
+## El después (2026-10-26, con el OK de Felipe: «Sí, haz los 3 cambios de Formidable en Proveedores»)
+
+Hechos los 3 y medidos en el navegador local a 1440, 1280, 1024 y 375 px. Ninguno cambia una cuenta: las cifras son las mismas, con otro nombre.
+1. **El dinero dice qué es.** Las tarjetas: «Prendas que te llegaron» y «Lo que te llegó, a su costo» (nota: «sin IGV, al costo de cada compra»); la
+   columna: «Te llegó · prendas / a su costo»; arriba de la tabla, a la vista: «Del que más te llegó al que menos. Toca uno para ver su detalle; marca
+   hasta 3 para compararlos.» En la comparación, «Le debes» lleva «todo vencido» y «de S/ 13,829.60 facturados, con IGV»; «Margen» pasó a «Ganas de
+   cada venta» y bajo 10 vendidas dice «pocas ventas para decirlo (6)». La columna derecha dice «te llegaron» / «te llega».
+2. **El porqué del ritmo a un toque.** **Me aparté de la propuesta en un punto:** el porqué no es un globo sobre la insignia (el ERP no tiene esa
+   pieza y la fila entera ya abre la vista rápida); es la sección **«Cómo se vende»** de la vista rápida: la insignia, «Frena las compras: primero vende
+   lo que tienes.» y los números («Vende 1.5 por semana (6 desde que llegó)», «Le quedan 578 en tus tiendas», «A ese ritmo, venderlo todo tardaría
+   unas 385 semanas»; `porqueDelRitmo`, con su prueba). Se llega con un toque en cualquier parte de la fila, insignia incluida. La insignia dice
+   «Frena compras», con las semanas arriba; la comparación, las semanas exactas («385 sem» y «202 sem», `semanasExactas`) y «vende 1.5 por semana».
+3. **Comparar sin perder lo urgente.** «Comparar» entra arriba de la columna y «Para hoy» se queda debajo (si no hay nada urgente, no se dibuja);
+   la columna entera se pega al bajar. La casilla tiene su etiqueta de 32 × 32 px: tocar 3 o 5 px al lado la marca y ya no abre la vista rápida
+   (medido con `elementFromPoint` y un clic real). **El título de su columna** no cabe en 20 px: lo dice la línea de arriba de la tabla («marca hasta 3
+   para compararlos»), que también avisa que marcar cambia la columna.
+
+De paso, por lo que estos cambios movían: en una tabla angosta (375 px y 1280 px) la insignia baja a la línea de la barra, porque «Frena compras»
+volvía a cortar el nombre del proveedor; y las dos tarjetas de medida pasaron de 17 a 19,5 rem para que sus nombres nuevos quepan en una línea.
+
+**Medido después:** casilla 32 × 32 (antes 20 × 20); sin desborde a 1024, 1280 ni 375; contraste claro y oscuro: ver la fila del historial. La primera
+fila del ranking quedó en y = 674 a 1440 × 900 (antes 638): los 36 px son la línea que explica el orden y la casilla. Queda «Le debes S/ …» de 20 px
+de alto (lista aparte) y los «Ver» de los avisos, de la pieza que ya existía.
+
+**Notas provisionales (sin repetir la ciega):** ley 2 → 7 (el orden se dice), 3 → 7 (las semanas exactas, el dinero con nombre), 4 → 7 («Frena
+compras», «Ganas de cada venta»), 6 → 7 (el porqué a un toque; la insignia aún explica su regla solo con el mouse), 9 → 7 (comparar ya no esconde lo
+vencido). Leyes ≈ 6,9 · oficio 8. Falta repetir la ciega sobre la pantalla nueva y la pasada con una colaboradora real.
+
+Capturas antes/después a 1440 × 900 en el informe al usuario (no se versionan).
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-26 | `ee9e61866` | 6,1 | 7 | — (3 propuestos, esperan OK) |
+| 2026-10-26 (b) | ver el commit del después | 6,9 (provisional) | 8 | los 3, con el OK de Felipe; la ciega sin repetir |

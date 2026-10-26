@@ -5,7 +5,7 @@ import { ArrowDown, ArrowUp, Banknote, Check, ChevronRight, Shirt } from "lucide
 import type { Proveedor } from "@/lib/proveedores";
 import { soles } from "@/lib/compras-reglas";
 import { solesRedondo } from "@/lib/gastos-reglas";
-import { RITMOS, DIAS_DE_VENTAS, FILAS_A_LA_VISTA, cambioDePuesto, esAproximado, semanaDeVentas, textoRitmo, type FilaRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
+import { RITMOS, DIAS_DE_VENTAS, FILAS_A_LA_VISTA, MAX_COMPARAR, cambioDePuesto, semanasCortas, esAproximado, semanaDeVentas, textoRitmo, type FilaRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
 import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { Tabla, Encabezado, fila, celda, type Columna } from "@/components/ui/Tabla";
 import { Anillo } from "@/components/ui/Anillo";
@@ -24,7 +24,7 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 // La fila entera abre la vista rápida que ya existía (decisión de Felipe, 2026-10-26): el botón del nombre se estira sobre la fila con `after:`
 // y el enlace a Por pagar queda por encima (`relative`), igual que en el directorio.
 
-// Columnas según el ANCHO DE LA TABLA (`@container`), como el directorio: angosta, casilla · puesto · proveedor · insignia y la barra debajo;
+// Columnas según el ANCHO DE LA TABLA (`@container`), como el directorio: angosta, casilla · puesto · proveedor y, debajo, la barra y la insignia;
 // desde 42 rem, todo en una línea (con la columna derecha al lado, la lista mide ~44 rem en una pantalla de 1440). La casilla marca al
 // proveedor para compararlo a la derecha (hasta 3).
 // Con la casilla son 8 columnas: en lo ancho van más juntas (12 px) y sus mínimos suman justo los 42 rem desde los que se ponen en fila, así
@@ -37,7 +37,7 @@ const columnas = (medida: MedidaRanking): Columna[] => [
   { titulo: "Proveedor" },
   { titulo: "Ventas", subtitulo: "por día, 4 semanas" },
   { titulo: "Vendido" },
-  { titulo: medida === "soles" ? "Le compraste · dinero" : "Le compraste · prendas", subtitulo: "lo oscuro ya se vendió" },
+  { titulo: medida === "soles" ? "Te llegó · a su costo" : "Te llegó · prendas", subtitulo: "lo oscuro ya se vendió" },
   { titulo: "Lo que queda se vende en" },
   { titulo: "" },
 ];
@@ -49,14 +49,18 @@ const SIN_VENTAS: number[] = Array.from({ length: DIAS_DE_VENTAS }, () => 0);
 // cifra del ranking para que nunca se confunda una medida con la otra.
 const ICONO_MEDIDA = { prendas: Shirt, soles: Banknote } as const;
 
-/** «Prendas compradas» / «Dinero gastado» como dos tarjetas de opción: el ícono, el nombre, el total de todos y qué quiere decir. Ordenan el ranking. */
+/**
+ * Las dos medidas como dos tarjetas de opción: el ícono, el nombre, el total de todos y qué quiere decir. Ordenan el ranking. Se llaman por lo que
+ * cuentan (Formidable 2026-10-26): lo que te LLEGÓ, al costo de la prenda y sin IGV. «Dinero gastado» se leía como la plata que salió, y se
+ * confundía con lo facturado (con IGV, haya llegado o no) y con lo que se debe.
+ */
 export function MedidaDelRanking({ medida, onMedida, prendas, gasto, cargaPct, proveedores }: { medida: MedidaRanking; onMedida: (m: MedidaRanking) => void; prendas: number; gasto: number; cargaPct: number; proveedores: number }) {
   const opciones = [
-    { m: "prendas" as const, titulo: "Prendas compradas", valor: prendas.toLocaleString("es-PE"), nota: `a ${proveedores} ${proveedores === 1 ? "proveedor" : "proveedores"}` },
-    { m: "soles" as const, titulo: "Dinero gastado", valor: `${cargaPct >= 50 ? "≈ " : ""}${solesRedondo(gasto)}`, nota: cargaPct >= 50 ? `aproximado: el ${Math.round(cargaPct)} % vino por la carga inicial` : "con el costo de cada compra" },
+    { m: "prendas" as const, titulo: "Prendas que te llegaron", valor: prendas.toLocaleString("es-PE"), nota: `de ${proveedores} ${proveedores === 1 ? "proveedor" : "proveedores"}` },
+    { m: "soles" as const, titulo: "Lo que te llegó, a su costo", valor: `${cargaPct >= 50 ? "≈ " : ""}${solesRedondo(gasto)}`, nota: cargaPct >= 50 ? `sin IGV · aproximado: el ${Math.round(cargaPct)} % vino por la carga inicial` : "sin IGV, al costo de cada compra" },
   ];
   return (
-    <div role="radiogroup" aria-label="Ordenar el ranking por" data-guia="proveedores.medida" className="grid grid-cols-2 gap-2.5 sm:inline-grid sm:grid-cols-[repeat(2,minmax(0,17rem))]">
+    <div role="radiogroup" aria-label="Ordenar el ranking por" data-guia="proveedores.medida" className="grid grid-cols-2 gap-2.5 sm:inline-grid sm:grid-cols-[repeat(2,minmax(0,19.5rem))]">
       {opciones.map((o) => {
         const Icono = ICONO_MEDIDA[o.m];
         const on = medida === o.m;
@@ -132,6 +136,11 @@ export function ProveedoresRanking({
   );
   return (
     <div className="space-y-3" data-guia="proveedores.lista">
+      {/* Lo que el orden quiere decir y que las filas se marcan, a la vista (Formidable 2026-10-26): el «#1» se leía como «el mejor» y nada
+          avisaba que marcar cambia la columna de la derecha. */}
+      <p className="text-sm text-tinta/70">
+        Del que más te llegó al que menos{medida === "soles" ? ", a su costo" : ""}. Toca uno para ver su detalle; marca hasta {MAX_COMPARAR} para compararlos.
+      </p>
       <Tabla className="@container anim-entra overflow-y-hidden" style={{ ["--i" as string]: 7 }}>
         <Encabezado plantilla={PLANTILLA} columnas={columnas(medida)} visible="hidden @2xl:grid" />
         {vista.map(filaDe)}
@@ -200,12 +209,13 @@ function FilaDelRanking({
         "anim-entra group relative items-center gap-y-2 transition-colors duration-200 data-[comparado]:bg-tinta/[0.05] before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded-full before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.03] hover:before:scale-y-100 sm:items-center",
       )}
     >
-      {/* Por encima del botón del nombre, que se estira sobre la fila: marcar no abre la vista rápida. */}
-      <span className="relative z-[1] flex" data-guia="proveedores.comparar">
+      {/* Por encima del botón del nombre, que se estira sobre la fila: marcar no abre la vista rápida. La etiqueta lleva la casilla de 20 px
+          a un blanco de 32 (Formidable 2026-10-26: errarle por 3 px abría la vista rápida). */}
+      <label className="relative z-[1] -m-1.5 flex cursor-pointer p-1.5" data-guia="proveedores.comparar">
         <Casilla marcada={comparado} onCambio={() => onComparar(f.proveedorId)} etiqueta={`Comparar ${f.nombre}`} />
-      </span>
+      </label>
       <span className={celda("der", "text-sm text-taupe")}>{f.puesto}</span>
-      <span className="min-w-0">
+      <span className="col-span-2 min-w-0 @2xl:col-span-1">
         <button
           type="button"
           onClick={() => onAbrir(f.proveedorId)}
@@ -246,7 +256,7 @@ function FilaDelRanking({
           <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(vendidoPct)}%</span>
         </Anillo>
       </span>
-      <span className="col-span-2 col-start-3 row-start-2 flex min-w-0 items-center gap-2.5 @2xl:col-span-1 @2xl:col-start-auto @2xl:row-start-auto">
+      <span className="col-start-3 row-start-2 flex min-w-0 items-center gap-2.5 @2xl:col-start-auto @2xl:row-start-auto">
         <BarraApilada
           alto={8}
           total={maxValor}
@@ -254,8 +264,8 @@ function FilaDelRanking({
           className="min-w-0 flex-1"
           etiqueta={
             enSoles
-              ? `${f.nombre}: ${valor} gastados; ${solesRedondo(f.costoVendido)} ya vendidos a su costo y ${solesRedondo(f.plataEnStock)} en tus tiendas`
-              : `${f.nombre}: ${f.unidadesCompradas} prendas compradas, ${f.unidadesVendidas} vendidas y ${f.unidadesEnEstantes} en tus tiendas`
+              ? `${f.nombre}: te llegó ${valor} a su costo; ${solesRedondo(f.costoVendido)} ya vendidos y ${solesRedondo(f.plataEnStock)} en tus tiendas`
+              : `${f.nombre}: te llegaron ${f.unidadesCompradas} prendas, ${f.unidadesVendidas} vendidas y ${f.unidadesEnEstantes} en tus tiendas`
           }
           segmentos={
             enSoles
@@ -274,12 +284,15 @@ function FilaDelRanking({
           {valor}
         </span>
       </span>
-      <span className="col-start-4 row-start-1 justify-self-end overflow-visible @2xl:col-start-auto @2xl:row-start-auto @2xl:justify-self-start">
-        <Chip tono={ritmo.tono} title={`${textoRitmo(f)}. ${ritmo.ayuda}. ${f.veredicto.porque}`}>
-          {/* En una tabla angosta (el teléfono) solo la palabra: con las semanas, el nombre del proveedor no se alcanzaba a leer. */}
-          <span className="@md:hidden">{ritmo.palabra}</span>
-          <span className="hidden @md:inline">{textoRitmo(f)}</span>
-        </Chip>
+      <span className="col-start-4 row-start-2 justify-self-end overflow-visible @2xl:col-start-auto @2xl:row-start-auto @2xl:justify-self-start">
+        {/* Las semanas arriba y la insignia con lo que toca hacer debajo («Frena compras» no cabía junto a «100+ sem»); en una tabla angosta
+            (el teléfono), solo la insignia. Su porqué, a un toque: la fila abre la vista rápida, que lo explica con los números. */}
+        <span className="flex flex-col items-end gap-0.5 @2xl:items-start">
+          {semanasCortas(f.ritmo) && <span className="hidden text-xs tabular-nums text-tinta/70 @md:block">{semanasCortas(f.ritmo)}</span>}
+          <Chip tono={ritmo.tono} title={`${textoRitmo(f)}. ${ritmo.ayuda}`}>
+            {ritmo.palabra}
+          </Chip>
+        </span>
       </span>
       <ChevronRight aria-hidden className="hidden h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-300 ease-cayla group-hover:translate-x-0 group-hover:opacity-100 @2xl:block" />
     </div>

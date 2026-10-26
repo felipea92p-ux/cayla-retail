@@ -31,6 +31,7 @@ export function ProveedorVistaRapida({
   onCerrar,
   onNavegar,
   onCambiarEstado,
+  ritmo = null,
 }: {
   proveedor: Proveedor;
   /** Marcas con que se conoce al proveedor (ADR-0140). Vacío si no tiene o no se pudieron leer. */
@@ -42,6 +43,11 @@ export function ProveedorVistaRapida({
   onCerrar: () => void;
   onNavegar: (delta: 1 | -1) => void;
   onCambiarEstado: () => void;
+  /**
+   * Cómo se vende lo que te llegó de él (el ranking de Mercadería, ADR-0521): la palabra de su insignia, qué toca hacer y los números con que
+   * se decidió. Es el «¿Por qué?» de la insignia a un toque (Formidable 2026-10-26: antes vivía solo al pasar el mouse). `null` fuera del ranking.
+   */
+  ritmo?: { palabra: string; tono: "verde" | "pizarra" | "ambar" | "neutro"; que: string; numeros: readonly string[] } | null;
 }) {
 
   const paso = siguientePaso(estadoDeProveedor(p));
@@ -102,6 +108,21 @@ export function ProveedorVistaRapida({
           <dd className={`font-display mt-1 text-lg leading-tight ${sinCompras90 && p.activo ? "text-ambar-profundo" : "text-tinta"}`}>{haceCuanto(p.dias_desde_ultima_compra)}</dd>
         </div>
       </dl>
+
+      {ritmo && (
+        <section className="mt-6">
+          <TituloGrupo className="mb-2.5">Cómo se vende</TituloGrupo>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+            <Chip tono={ritmo.tono}>{ritmo.palabra}</Chip>
+            <p className="text-sm font-semibold text-tinta">{ritmo.que}</p>
+          </div>
+          <ul className="mt-2 list-disc space-y-0.5 pl-4 text-sm text-tinta/80">
+            {ritmo.numeros.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {serie && serie.some((v) => v > 0) && (
         <section className="mt-6">

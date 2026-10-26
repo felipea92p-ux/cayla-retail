@@ -15,7 +15,7 @@ import { ProveedoresLoQueNoSeVe } from "@/components/ProveedoresLoQueNoSeVe";
 import { ProveedoresComparar } from "@/components/ProveedoresComparar";
 import { BarraDeAbajo, BarraDeAbajoResumen } from "@/components/ui/BarraDeAbajo";
 import type { Hallazgo } from "@/lib/proveedor-analisis-reglas";
-import { RITMOS, alternarComparar, contarPorRitmo, filasDelRanking, pasaFiltroRanking, totalesDelRanking, valorDe, type ClaseRitmo, type FiltroRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
+import { RITMOS, alternarComparar, porqueDelRitmo, contarPorRitmo, filasDelRanking, pasaFiltroRanking, totalesDelRanking, valorDe, type ClaseRitmo, type FiltroRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
 import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { clave } from "@/lib/buscar-prenda-v2";
@@ -192,6 +192,11 @@ export function ProveedoresPanel({
   // la búsqueda no los sacan: se comparan aunque la lista ya no los muestre.
   const comparados = comparar.map((id) => ranking?.filas.find((f) => f.proveedorId === id)).filter((f): f is NonNullable<typeof f> => !!f);
   const alComparar = (id: string) => setComparar((c) => alternarComparar(c, id));
+  // El porqué de la insignia, para la vista rápida: solo de quien está en el ranking (el Taller y los sin compras no tienen ritmo).
+  const ritmoDe = (id: string) => {
+    const f = ranking?.filas.find((x) => x.proveedorId === id);
+    return f ? { palabra: RITMOS[f.clase].palabra, tono: RITMOS[f.clase].tono, ...porqueDelRitmo(f) } : null;
+  };
   const conteoRitmo = contarPorRitmo(ranking?.filas ?? []);
   const totales = totalesDelRanking(ranking?.filas ?? []);
   // Cambiar de medida reordena: se guardan los puestos de antes para que cada fila diga cuántos subió o bajó (y las filas se deslizan con `useFlip`).
@@ -287,25 +292,31 @@ export function ProveedoresPanel({
 
       <ConLado
         lado={
-          enRanking && ranking && comparados.length > 0 ? (
-            <ProveedoresComparar
-              filas={comparados}
-              proveedores={porId}
-              medida={medida}
-              ventas={ventas}
-              onQuitar={alComparar}
-              onQuitarTodos={() => setComparar([])}
-              onAbrir={setAbiertoId}
-            />
-          ) : enRanking && ranking ? (
-            <ProveedoresLoQueNoSeVe
-              proveedores={proveedores.filter((p) => p.activo && p.tipo === "mercaderia")}
-              resumen={resumen ? resumenSoloMercaderia(resumen, proveedores) : null}
-              filas={ranking.filas}
-              medida={medida}
-              hallazgos={hallazgos ?? []}
-              onAbrir={setAbiertoId}
-            />
+          enRanking && ranking ? (
+            // Al comparar, «Comparar» entra arriba y «Para hoy» se queda debajo (Formidable 2026-10-26): lo vencido y las entregas atrasadas
+            // no se ven en otro lado de la pantalla. Más angosto que 1280 px, el margen de abajo deja ver lo último sobre la isla.
+            <div className={comparados.length > 0 ? "space-y-4 max-xl:pb-28" : undefined}>
+              {comparados.length > 0 && (
+                <ProveedoresComparar
+                  filas={comparados}
+                  proveedores={porId}
+                  medida={medida}
+                  ventas={ventas}
+                  onQuitar={alComparar}
+                  onQuitarTodos={() => setComparar([])}
+                  onAbrir={setAbiertoId}
+                />
+              )}
+              <ProveedoresLoQueNoSeVe
+                proveedores={proveedores.filter((p) => p.activo && p.tipo === "mercaderia")}
+                resumen={resumen ? resumenSoloMercaderia(resumen, proveedores) : null}
+                filas={ranking.filas}
+                medida={medida}
+                hallazgos={hallazgos ?? []}
+                onAbrir={setAbiertoId}
+                soloHoy={comparados.length > 0}
+              />
+            </div>
           ) : null
         }
       >
@@ -601,6 +612,7 @@ export function ProveedoresPanel({
           onCerrar={() => setAbiertoId(null)}
           onNavegar={vecino}
           onCambiarEstado={() => onCambiarEstado(abierto)}
+          ritmo={ritmoDe(abierto.id)}
         />
       )}
 
@@ -854,13 +866,14 @@ function EncabezadoOrdenable({ orden, onOrden }: { orden: Orden; onOrden: (c: Ca
   return <Encabezado plantilla={`${COLUMNAS_LIDER} @max-3xl:hidden!`} columnas={COLUMNAS_ENCABEZADO_LIDER} orden={orden} onOrden={(c) => onOrden(c as CampoOrden)} />;
 }
 
-// En el ranking, la lista y su columna derecha («Lo que no se ve a simple vista») lado a lado desde 1280 px; más angosto, la columna baja.
+// En el ranking, la lista y su columna derecha («Lo que no se ve a simple vista», o «Comparar» con «Para hoy») lado a lado desde 1280 px, la
+// columna pegada al bajar y con su propio scroll; más angosto, la columna baja.
 function ConLado({ lado, children }: { lado: ReactNode; children: ReactNode }) {
   if (!lado) return <>{children}</>;
   return (
     <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_23rem] 2xl:grid-cols-[minmax(0,1fr)_26rem]">
       <div className="min-w-0 space-y-6">{children}</div>
-      {lado}
+      <div className="xl:sticky xl:top-20 xl:max-h-[calc(100dvh-6rem)] xl:overflow-y-auto">{lado}</div>
     </div>
   );
 }

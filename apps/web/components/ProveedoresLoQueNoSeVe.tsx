@@ -18,8 +18,8 @@ import { LoQueQuizaNoVes } from "@/components/LoQueQuizaNoVes";
 
 const MAX_NOMBRES = 3;
 
-/** La caja de la columna derecha: la misma para «Lo que no se ve a simple vista» y para «Comparar», que la reemplaza. */
-export const CLASE_LADO = "card-cayla space-y-5 p-4 xl:sticky xl:top-20 xl:max-h-[calc(100dvh-6rem)] xl:overflow-y-auto";
+/** La caja de cada tarjeta de la columna derecha: «Lo que no se ve a simple vista» y «Comparar» (lo pegado al bajar lo pone `ConLado`). */
+export const CLASE_LADO = "card-cayla space-y-5 p-4";
 
 function Nombres({ lista, dato, onAbrir }: { lista: readonly Proveedor[]; dato: (p: Proveedor) => string; onAbrir: (id: string) => void }) {
   return (
@@ -44,6 +44,7 @@ export function ProveedoresLoQueNoSeVe({
   medida,
   hallazgos,
   onAbrir,
+  soloHoy = false,
 }: {
   /** Los proveedores de mercadería activos (lo de hoy se cuenta sobre ellos, tengan compras o no). */
   proveedores: readonly Proveedor[];
@@ -53,6 +54,11 @@ export function ProveedoresLoQueNoSeVe({
   medida: MedidaRanking;
   hallazgos: readonly Hallazgo[];
   onAbrir: (id: string) => void;
+  /**
+   * Mientras se compara, solo «Para hoy», debajo de «Comparar» (Formidable 2026-10-26: al marcar uno se perdían lo vencido y las entregas
+   * atrasadas, que no se ven en otro lado). Sin nada urgente, no dibuja nada.
+   */
+  soloHoy?: boolean;
 }) {
   const hoy = paraHoy(proveedores);
   const totales = totalesDelRanking(filas);
@@ -63,22 +69,27 @@ export function ProveedoresLoQueNoSeVe({
   const antes = hallazgos.filter((h) => h.tono === "atencion");
   const oportunidades = hallazgos.filter((h) => h.tono !== "atencion");
   const nada = hoy.vencidos.length === 0 && hoy.atrasados.length === 0 && hoy.aFavor.length === 0;
+  if (soloHoy && nada) return null;
 
   return (
-    <aside data-guia="proveedores.lado" className={CLASE_LADO}>
-      <TituloSeccion>Lo que no se ve a simple vista</TituloSeccion>
+    <aside data-guia={soloHoy ? undefined : "proveedores.lado"} aria-label={soloHoy ? "Para hoy" : undefined} className={CLASE_LADO}>
+      {!soloHoy && (
+        <>
+          <TituloSeccion>Lo que no se ve a simple vista</TituloSeccion>
 
-      <div className="flex items-center gap-3 rounded-xl bg-hueso/60 px-3 py-2.5 text-sm text-tinta">
-        <Anillo pct={vendidoPct} tamano="chico" decorativa>
-          <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(vendidoPct)}%</span>
-        </Anillo>
-        <p>
-          <b className="font-semibold tabular-nums">{totales.prendas.toLocaleString("es-PE")}</b> prendas compradas a {filas.length} {filas.length === 1 ? "proveedor" : "proveedores"};{" "}
-          <b className="font-semibold tabular-nums">{vendidas.toLocaleString("es-PE")}</b> ya se vendieron.
-        </p>
-      </div>
+          <div className="flex items-center gap-3 rounded-xl bg-hueso/60 px-3 py-2.5 text-sm text-tinta">
+            <Anillo pct={vendidoPct} tamano="chico" decorativa>
+              <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(vendidoPct)}%</span>
+            </Anillo>
+            <p>
+              Te llegaron <b className="font-semibold tabular-nums">{totales.prendas.toLocaleString("es-PE")}</b> prendas de {filas.length} {filas.length === 1 ? "proveedor" : "proveedores"};{" "}
+              <b className="font-semibold tabular-nums">{vendidas.toLocaleString("es-PE")}</b> ya se vendieron.
+            </p>
+          </div>
+        </>
+      )}
 
-      <section className="space-y-2.5" data-guia="proveedores.para-hoy">
+      <section className="space-y-2.5" data-guia={soloHoy ? undefined : "proveedores.para-hoy"}>
         <TituloGrupo>Para hoy</TituloGrupo>
         {hoy.vencidos.length > 0 && (
           <Aviso
@@ -121,37 +132,39 @@ export function ProveedoresLoQueNoSeVe({
         )}
       </section>
 
-      <section className="space-y-2.5">
-        <TituloGrupo>Antes de volver a comprar</TituloGrupo>
-        {filas.length > 0 && (
-          <div className="flex items-center gap-3 rounded-xl bg-hueso/60 px-3 py-2.5 text-sm text-tinta">
-            <Anillo pct={top10} tamano="chico" tono="tinta" decorativa>
-              <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(top10)}%</span>
-            </Anillo>
-            <p>
-              de lo que compras {medida === "soles" ? "(en dinero)" : "(en prendas)"} es de tus <b className="font-semibold">{Math.min(10, filas.length)}</b> primeros proveedores.
-            </p>
-          </div>
-        )}
-        {totales.cargaPct > 0 && (
-          <div className="flex items-center gap-3 rounded-xl bg-hueso/60 px-3 py-2.5 text-sm text-tinta">
-            <Anillo pct={totales.cargaPct} tamano="chico" tono="tinta" decorativa>
-              <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(totales.cargaPct)}%</span>
-            </Anillo>
-            <p>
-              de lo que compraste vino por la carga inicial: su costo y su margen están <b className="font-semibold">por confirmar</b>.
-            </p>
-          </div>
-        )}
-        {sin90 > 0 && (
-          <Aviso tono="info" chico>
-            {sin90 === 1 ? "1 proveedor no recibe" : `${sin90} proveedores no reciben`} una compra hace más de 90 días: ¿siguen siendo proveedores?
-          </Aviso>
-        )}
-        <LoQueQuizaNoVes guia="proveedores.analisis" hallazgos={antes} enColumna onVer={onAbrir} />
-      </section>
+      {!soloHoy && (
+        <section className="space-y-2.5">
+          <TituloGrupo>Antes de volver a comprar</TituloGrupo>
+          {filas.length > 0 && (
+            <div className="flex items-center gap-3 rounded-xl bg-hueso/60 px-3 py-2.5 text-sm text-tinta">
+              <Anillo pct={top10} tamano="chico" tono="tinta" decorativa>
+                <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(top10)}%</span>
+              </Anillo>
+              <p>
+                de lo que te llega {medida === "soles" ? "(a su costo)" : "(en prendas)"} es de tus <b className="font-semibold">{Math.min(10, filas.length)}</b> primeros proveedores.
+              </p>
+            </div>
+          )}
+          {totales.cargaPct > 0 && (
+            <div className="flex items-center gap-3 rounded-xl bg-hueso/60 px-3 py-2.5 text-sm text-tinta">
+              <Anillo pct={totales.cargaPct} tamano="chico" tono="tinta" decorativa>
+                <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(totales.cargaPct)}%</span>
+              </Anillo>
+              <p>
+                de lo que te llegó vino por la carga inicial: su costo y su margen están <b className="font-semibold">por confirmar</b>.
+              </p>
+            </div>
+          )}
+          {sin90 > 0 && (
+            <Aviso tono="info" chico>
+              {sin90 === 1 ? "1 proveedor no recibe" : `${sin90} proveedores no reciben`} una compra hace más de 90 días: ¿siguen siendo proveedores?
+            </Aviso>
+          )}
+          <LoQueQuizaNoVes guia="proveedores.analisis" hallazgos={antes} enColumna onVer={onAbrir} />
+        </section>
+      )}
 
-      {oportunidades.length > 0 && (
+      {!soloHoy && oportunidades.length > 0 && (
         <section className="space-y-2.5">
           <TituloGrupo>Oportunidades</TituloGrupo>
           <LoQueQuizaNoVes guia="proveedores.oportunidades" hallazgos={oportunidades} enColumna onVer={onAbrir} />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alternarComparar, cambioDePuesto, claseDeRitmo, concentracion, paraHoy, semanaDeVentas, seriesDeVentas, contarPorRitmo, esAproximado, filasDelRanking, pasaFiltroRanking, semanasCortas, textoRitmo, totalesDelRanking, valorDe } from "./proveedores-ranking-reglas";
+import { alternarComparar, porqueDelRitmo, porSemanaTexto, semanasExactas, cambioDePuesto, claseDeRitmo, concentracion, paraHoy, semanaDeVentas, seriesDeVentas, contarPorRitmo, esAproximado, filasDelRanking, pasaFiltroRanking, semanasCortas, textoRitmo, totalesDelRanking, valorDe } from "./proveedores-ranking-reglas";
 import { ritmoDeDatos } from "./proveedor-ritmo-reglas";
 import type { RendimientoProveedor } from "./proveedor-prendas-reglas";
 
@@ -44,14 +44,14 @@ describe("el ranking de la lista de Proveedores", () => {
     expect(filas.map((f) => f.proveedorId)).toEqual(["b", "a"]);
   });
 
-  it("dice el ritmo con la regla única: Deyner repón, Lasak frena, Anqori frena, Kero poco para medir", () => {
+  it("dice el ritmo con la regla única: Deyner repón, Lasak y Anqori frena compras, Kero poco para medir", () => {
     const { filas } = filasDelRanking([deyner, lasak, anqori, kero], activos, HOY);
     const de = (id: string) => filas.find((f) => f.proveedorId === id)!;
     expect(de("deyner").clase).toBe("rapido");
     expect(textoRitmo(de("deyner"))).toBe("3 sem · Repón");
     expect(de("lasak").clase).toBe("lento");
-    expect(textoRitmo(de("lasak"))).toBe("99 sem · Frena");
-    expect(textoRitmo(de("anqori"))).toBe("22 sem · Frena");
+    expect(textoRitmo(de("lasak"))).toBe("99 sem · Frena compras");
+    expect(textoRitmo(de("anqori"))).toBe("22 sem · Frena compras");
     expect(de("kero").clase).toBe("nomide");
     expect(textoRitmo(de("kero"))).toBe("Poco para medir");
   });
@@ -147,5 +147,26 @@ describe("el ranking de la lista de Proveedores", () => {
     expect(alternarComparar(["a", "b"], "a")).toEqual(["b"]);
     expect(alternarComparar(["a", "b", "c"], "d")).toEqual(["b", "c", "d"]);
     expect(alternarComparar(["a", "b", "c"], "b")).toEqual(["a", "c"]);
+  });
+
+  it("la comparación dice las semanas exactas (100+ ya no empata a 385 con 202) y la velocidad", () => {
+    const r = (vendidas: number, quedan: number) => ritmoDeDatos({ unidadesVendidas: vendidas, unidadesCompradas: vendidas + quedan, unidadesEnEstantes: quedan, primeraEntrada: antes(28) }, HOY);
+    expect(semanasExactas(r(6, 578))).toBe("385 sem");
+    expect(semanasExactas(r(6, 303))).toBe("202 sem");
+    expect(semanasCortas(r(6, 578))).toBe(semanasCortas(r(6, 303)));
+    expect(porSemanaTexto(r(6, 578))).toBe("1.5 por semana");
+    expect(semanasExactas(r(0, 40))).toBe("Sin ventas");
+    expect(semanasExactas(r(40, 0))).toBe("Agotado");
+    expect(semanasExactas(ritmoDeDatos({ unidadesVendidas: 2, unidadesCompradas: 10, unidadesEnEstantes: 8, primeraEntrada: antes(28) }, HOY))).toBeNull();
+  });
+
+  it("el porqué del ritmo: qué hacer y los números con que se decidió", () => {
+    const { filas } = filasDelRanking([lasak, kero, deyner], activos, HOY);
+    const de = (id: string) => filas.find((f) => f.proveedorId === id)!;
+    const l = porqueDelRitmo(de("lasak"));
+    expect(l.que).toBe("Frena las compras: primero vende lo que tienes.");
+    expect(l.numeros).toEqual(["Vende 1.8 por semana (6 desde que llegó).", "Le quedan 174 en tus tiendas.", "A ese ritmo, venderlo todo tardaría unas 99 semanas."]);
+    expect(porqueDelRitmo(de("deyner")).que).toMatch(/^Repón/);
+    expect(porqueDelRitmo(de("kero")).numeros[0]).toBe("Te llegaron 14 prendas suyas.");
   });
 });

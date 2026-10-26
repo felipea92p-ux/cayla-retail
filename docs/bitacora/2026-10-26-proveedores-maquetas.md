@@ -50,3 +50,11 @@ Qué hice:
 - Verificado con las pruebas (646 archivos de vitest, Knip, guías con su huella) y en el navegador local a 1008, 1024, 1280, 1440, 1920 y 375 px, en claro y en oscuro.
 Por qué así: Felipe no podía ver «a simple vista a quién le compro más o menos»; eligió la C mirando la quinta ronda de maquetas.
 Estado: commits locales, sin PR. **La migración no está en producción** (espera el OK de Felipe). Falta la actividad 6 (tallas y sedes en la vista rápida y en la comparación), que depende de la rama `claude/proveedores-module-analysis-c73c2c`, todavía fuera de `main`.
+
+## 2026-10-26 (Proveedores: Formidable y sus 3 cambios — ADR-0521 act. b)
+Qué hice:
+- **Formidable** del ranking: medición a tres anchos, contraste claro/oscuro, una prueba ciega (al primer intento, 9 dudas) y un escéptico. Leyes 6,1 · oficio 7.
+- **Con el OK de Felipe, los 3 cambios:** el dinero con nombre («Lo que te llegó, a su costo», lo facturado al lado de lo que se debe, «Ganas de cada venta» con su mínimo de ventas), el porqué del ritmo a un toque («Frena compras» y «Cómo se vende» en la vista rápida, las semanas exactas al comparar) y comparar con «Para hoy» debajo y una casilla de 32 px. Medido a 1440, 1280, 1024 y 375: leyes ≈ 6,9 (provisional) · oficio 8.
+Por qué así: la ciega dudó de qué dinero era cuál, no supo si «Frena» era una orden y perdió lo vencido al marcar uno.
+Estado: commits locales, sin PR. **Lo más grave que encontró el escéptico queda para Felipe:** las ventas de una prenda que trajeron dos proveedores se suman enteras a los dos (función de la base del ADR-0502, en producción).
+

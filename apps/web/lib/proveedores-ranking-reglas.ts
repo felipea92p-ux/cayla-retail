@@ -13,11 +13,13 @@ import { COSTO_REAL_MIN_PCT, rankingDeProveedores, type FilaDeRanking, type Rend
 /** Lo que dice el ritmo, en una palabra que la tienda entiende. */
 export type ClaseRitmo = "rapido" | "medio" | "lento" | "nomide";
 
-export const RITMOS: Record<ClaseRitmo, { palabra: string; tono: "verde" | "pizarra" | "ambar" | "neutro"; ayuda: string }> = {
-  rapido: { palabra: "Repón", tono: "verde", ayuda: "Lo que le queda se acaba en 6 semanas o menos" },
-  medio: { palabra: "A su ritmo", tono: "pizarra", ayuda: "Lo que le queda se vende en 6 a 16 semanas" },
-  lento: { palabra: "Frena", tono: "ambar", ayuda: "Vender lo que le queda tardaría 16 semanas o más" },
-  nomide: { palabra: "Poco para medir", tono: "neutro", ayuda: "Le compraste menos de 20 prendas o llegó hace menos de 3 semanas" },
+// «Frena compras», no «Frena» (Formidable 2026-10-26): sola, la palabra se leía igual como un estado del proveedor que como una orden para ti.
+// `que` es lo que toca hacer, en una frase: lo dice la vista rápida junto a los números.
+export const RITMOS: Record<ClaseRitmo, { palabra: string; tono: "verde" | "pizarra" | "ambar" | "neutro"; ayuda: string; que: string }> = {
+  rapido: { palabra: "Repón", tono: "verde", ayuda: "Lo que le queda se acaba en 6 semanas o menos", que: "Repón: lo que le queda se acaba pronto." },
+  medio: { palabra: "A su ritmo", tono: "pizarra", ayuda: "Lo que le queda se vende en 6 a 16 semanas", que: "Va a su ritmo: lo que le queda se vende en una temporada." },
+  lento: { palabra: "Frena compras", tono: "ambar", ayuda: "Vender lo que le queda tardaría 16 semanas o más", que: "Frena las compras: primero vende lo que tienes." },
+  nomide: { palabra: "Poco para medir", tono: "neutro", ayuda: "Te llegaron menos de 20 prendas o llegaron hace menos de 3 semanas", que: "Todavía es poco para decir cómo se vende." },
 };
 
 export function claseDeRitmo(r: Ritmo): ClaseRitmo {
@@ -72,6 +74,32 @@ export function semanasCortas(r: Ritmo): string | null {
   if (!Number.isFinite(r.semanasParaAgotar)) return "Sin ventas";
   if (r.semanasParaAgotar >= 100) return "100+ sem";
   return `${Math.max(1, Math.round(r.semanasParaAgotar))} sem`;
+}
+
+/** Las semanas exactas, para la comparación: ahí «100+ sem» empataba a 385 con 202. `null` si no se puede medir. */
+export function semanasExactas(r: Ritmo): string | null {
+  if (!r.juzgable) return null;
+  if (r.enEstantes === 0) return "Agotado";
+  if (!Number.isFinite(r.semanasParaAgotar)) return "Sin ventas";
+  return `${Math.max(1, Math.round(r.semanasParaAgotar)).toLocaleString("es-PE")} sem`;
+}
+
+/** Cuántas vende por semana, para leerse junto a las semanas («1.5 por semana», con el punto de los montos del ERP). */
+export const porSemanaTexto = (r: Ritmo) => `${(Math.round(r.porSemana * 10) / 10).toLocaleString("es-PE")} por semana`;
+
+/**
+ * El «¿Por qué?» de la insignia, para la vista rápida (Formidable 2026-10-26: antes vivía solo al pasar el mouse). Los números con los que se
+ * decidió, en palabras de tienda; los mismos de `ritmoDeDatos`, sin cuentas nuevas.
+ */
+export function porqueDelRitmo(f: Pick<FilaRanking, "ritmo" | "clase" | "unidadesCompradas">): { que: string; numeros: string[] } {
+  const r = f.ritmo;
+  const que = RITMOS[f.clase].que;
+  if (!r.juzgable) return { que, numeros: [`Te llegaron ${f.unidadesCompradas.toLocaleString("es-PE")} prendas suyas.`, "Se mide con 20 prendas o más que lleven 3 semanas en tus tiendas."] };
+  const numeros = [`Vende ${porSemanaTexto(r)} (${r.vendidas.toLocaleString("es-PE")} desde que llegó).`, `Le quedan ${r.enEstantes.toLocaleString("es-PE")} en tus tiendas.`];
+  if (r.enEstantes === 0) numeros.push("Ya se vendió todo lo que te llegó.");
+  else if (!Number.isFinite(r.semanasParaAgotar)) numeros.push("No ha vendido nada: no se puede decir cuándo se acaba.");
+  else numeros.push(`A ese ritmo, venderlo todo tardaría unas ${Math.max(1, Math.round(r.semanasParaAgotar)).toLocaleString("es-PE")} semanas.`);
+  return { que, numeros };
 }
 
 /** Lo que dice la insignia del ritmo: las semanas y la palabra («3 sem · Repón»), o «Poco para medir». */

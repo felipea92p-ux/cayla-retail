@@ -562,8 +562,8 @@ export const GUIA_PROVEEDORES: Guia = {
       ancla: "proveedores.medida",
       opcional: true,
       preparar: [{ tipo: "escape" }],
-      titulo: "Prendas o dinero",
-      texto: "Ordena el ranking por las prendas que le compraste o por el dinero que gastaste. Al cambiar, cada proveedor dice cuántos puestos subió o bajó. Con «≈» el dinero es aproximado: vino por la carga inicial.",
+      titulo: "Prendas o plata",
+      texto: "Ordena el ranking por las prendas que te llegaron de cada uno o por lo que te costaron, sin IGV (lo facturado y lo que debes van aparte). Al cambiar, cada proveedor dice cuántos puestos subió o bajó. Con «≈» es aproximado: vino por la carga inicial.",
     },
     {
       id: "buscador",
@@ -594,13 +594,13 @@ export const GUIA_PROVEEDORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "proveedores.buscador" }],
       titulo: "Por cómo se vende",
-      texto: "Repón: lo que le queda se acaba en 6 semanas o menos. A su ritmo: entre 6 y 16. Frena: tardaría 16 o más. Tócalo para ver solo a esos, o a los que tienen deuda vencida.",
+      texto: "Repón: lo que le queda se acaba en 6 semanas o menos. A su ritmo: entre 6 y 16. Frena compras: tardaría 16 o más. Tócalo para ver solo a esos, o a los que tienen deuda vencida.",
     },
     {
       id: "lista",
       ancla: "proveedores.lista",
       titulo: "A quién le compras más",
-      texto: "Del que más le compras al que menos. La línea dice cómo se vendió día a día y cuánto esta semana; el anillo, cuánto ya vendiste de lo que le compraste; la barra, cuánto le compraste (lo oscuro ya se vendió) y la insignia, en cuántas semanas se vende lo que queda.",
+      texto: "Del que más te llegó al que menos. La línea dice cómo se vendió día a día y cuánto esta semana; el anillo, cuánto ya vendiste; la barra, cuánto te llegó (lo oscuro ya se vendió); arriba de la insignia, en cuántas semanas se vende lo que queda, y la insignia, qué hacer.",
     },
     {
       id: "nombre",
@@ -619,7 +619,7 @@ export const GUIA_PROVEEDORES: Guia = {
       id: "comparar",
       ancla: "proveedores.comparar",
       titulo: "Compáralos",
-      texto: "Marca hasta 3 con su casilla y a la derecha se ponen lado a lado: cuánto le compraste, cuánto vendiste, en cuánto se vende lo que queda, sus ventas, su margen y lo que le debes. Al desmarcarlos, vuelve lo de siempre.",
+      texto: "Marca hasta 3 con su casilla y a la derecha se ponen lado a lado: cuánto te llegó, cuánto vendiste, en cuántas semanas se vende lo que queda, sus ventas, cuánto ganas de cada venta y lo que le debes. Lo de hoy sigue debajo.",
     },
     {
       id: "vista",
@@ -627,7 +627,7 @@ export const GUIA_PROVEEDORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "proveedores.nombre" }],
       titulo: "La vista rápida",
-      texto: "Qué conviene hacer con este proveedor, cuánto se le facturó, cuánto se le debe y cuándo fue la última compra.",
+      texto: "Qué conviene hacer con este proveedor, cuánto se le facturó, cuánto se le debe, cuándo fue la última compra y, en «Cómo se vende», el porqué de su insignia con los números.",
     },
     {
       id: "vista-acciones",

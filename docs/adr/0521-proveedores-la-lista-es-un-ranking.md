@@ -67,3 +67,21 @@ cambia la lista de excepciones del ADR-0136.
 `pnpm pruebas:proveedores-ventas-diarias` (7 casos contra Postgres, en las tandas del CI), `lib/guias.test.ts` (pasos «medida», «ritmo»,
 «lado», «para-hoy», «oportunidades» y «comparar», con su huella), y la pantalla en el navegador local a 1008, 1024, 1280, 1440, 1920 y 375 px,
 en claro y en oscuro. Con datos de producción se verá al pegar la migración: en local solo 2 proveedores tienen compras.
+
+## Actualización 2026-10-26 (b): Formidable — el dinero con nombre, el porqué a un toque y comparar sin perder lo urgente
+
+`/formidable` (informe: `docs/formidable/compras-proveedores.md`) encontró que tres cifras de dinero se leían como la misma, que el porqué de la
+insignia vivía solo al pasar el mouse y que comparar escondía lo vencido. Con el OK de Felipe («Sí, haz los 3 cambios de Formidable en
+Proveedores»), y sin tocar ninguna cuenta:
+1. **Las medidas se llaman por lo que cuentan:** «Prendas que te llegaron» y «Lo que te llegó, a su costo» (sin IGV), en vez de «Prendas compradas» y
+   «Dinero gastado». Lo facturado (con IGV, haya llegado o no) y lo que se debe van aparte y, en la comparación, juntos. «Margen» pasa a «Ganas de
+   cada venta» y respeta el mínimo de 10 vendidas del veredicto.
+2. **La palabra del ritmo lento es «Frena compras»** (una orden, no un estado) y su porqué está en la vista rápida, «Cómo se vende»
+   (`porqueDelRitmo`). La comparación dice las semanas exactas (`semanasExactas`), porque «100+ sem» empataba a 385 con 202.
+3. **Comparar entra arriba de la columna derecha y «Para hoy» se queda debajo;** la casilla tiene 32 px de blanco; una línea sobre la tabla dice el
+   orden y que se marca para comparar.
+
+**Lo que NO se arregló aquí y es lo más grave que encontró (decisión de Felipe):** `fn_proveedor_prendas_base` (ADR-0502, en producción) y
+`fn_proveedores_ventas_diarias` cruzan lo vendido y el stock solo por prenda, así que una prenda que trajeron dos proveedores les suma sus ventas
+enteras a los dos. Está en el backlog del día con la ruta propuesta.
+
