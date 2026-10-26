@@ -354,16 +354,24 @@
   .tw-carta-foto > :first-child { position: absolute; inset: 0; }
   /* Apagada: el cliente no la ve, así que la foto se apaga un poco (la tarjeta sigue legible). */
   .tw-carta[data-oculta] .tw-carta-foto { opacity: 0.5; transition: opacity 240ms var(--ease-cayla); }
-  .tw-carta-casilla { position: absolute; top: 8px; left: 8px; z-index: 1; padding: 3px; border-radius: 8px; background: color-mix(in srgb, var(--color-papel) 88%, transparent); }
+  /* La casilla es un <label>: el recuadro entero (32 px) la marca; el cuadrito sigue donde estaba (4 px + 6 px de relleno = 10 px). */
+  .tw-carta-casilla { position: absolute; top: 4px; left: 4px; z-index: 1; display: grid; padding: 6px; border-radius: 10px; cursor: pointer; background: color-mix(in srgb, var(--color-papel) 88%, transparent); }
   .tw-carta-cuerpo { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 12px; min-width: 0; }
-  .tw-carta-nombre { font-size: 13.5px; font-weight: 600; color: var(--color-tinta); line-height: 1.25; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* El relleno vertical (y su margen negativo) da 25 px de alto al botón del nombre sin mover nada: antes eran 17. */
+  .tw-carta-nombre { font-size: 13.5px; font-weight: 600; color: var(--color-tinta); line-height: 1.25; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-block: 4px; margin-block: -4px; }
   @media (hover: hover) {
     .tw-carta-nombre:hover { color: var(--color-rojo-profundo); }
   }
-  .tw-carta-stock { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 11.5px; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .tw-carta-stock { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .tw-carta-stock-rotulo { color: var(--color-taupe); }
   .tw-carta-stock span[data-cero] { color: var(--color-taupe); }
   .tw-carta-pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 4px; border-top: 1px solid var(--color-sand); }
-  .tw-carta-pie > span { font-size: 11.5px; font-weight: 600; color: var(--color-taupe); }
+  .tw-carta-pie > span { font-size: 12px; font-weight: 600; color: var(--color-taupe); }
+
+  /* Zona de toque de 24 px o más sin agrandar el dibujo (ADR-0351): el área que responde pasa de lo que se ve. El interruptor es de 38×22 y la
+     casilla de una fila, de 20; con el mouse o el dedo se acierta aunque el clic caiga cerca. */
+  .tw-toque::after { content: ""; position: absolute; inset: -6px -4px; }
+  .tw-toque-casilla { display: grid; place-items: center; min-width: 24px; min-height: 32px; margin-block: -6px; cursor: pointer; }
 
   /* ───────── Looks: la percha con sus prendas ───────── */
   .tw-looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; padding: 16px 20px 20px; }
