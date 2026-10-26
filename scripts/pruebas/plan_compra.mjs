@@ -82,6 +82,9 @@ ${sinControl(MIGRACION_B3)}
 set local search_path = retail, public, extensions;
 ${sinControl(MIGRACION_B4)}
 set local search_path = retail, public, extensions;
+-- Esta suite repasa la historia hasta B5: si la base ya trae la firma de 12 parámetros (ADR-0499, que sigue a B4), dos sobrecargas harían
+-- ambiguas las llamadas de abajo. El descuento tiene su propia suite (pruebas:plan-compra-descuento).
+drop function if exists retail.guardar_plan_compra_linea(uuid, uuid, integer, integer, integer, numeric, numeric, integer, jsonb, text, integer, numeric);
 ${sinControl(MIGRACION_B5)}
 set local search_path = retail, public, extensions;
 ${sinControl(MIGRACION_LLAVE)}

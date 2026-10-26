@@ -185,12 +185,6 @@ export function nombreMes(mes: string): string {
   return textoMes(mes).split(" ")[0]!;
 }
 
-/** «Ago», como la tabla del spike. */
-export function mesCorto(mes: string): string {
-  const n = nombreMes(mes);
-  return n.charAt(0).toUpperCase() + n.slice(1, 3);
-}
-
 // ---- Estado de cada mes en el historial ----------------------------------------------------------------------------------
 
 export type EstadoMesIgv = "en_curso" | "por_declarar" | "a_favor" | "sin_pago" | "sin_movimiento";

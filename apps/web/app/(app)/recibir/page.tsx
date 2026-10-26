@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 import { accionesDeCompraDe, puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
 import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, filtrosDesdeParams, getProveedoresActivos, type ParamsCompras } from "@/lib/compras";
 import type { CompraResumen } from "@/lib/compras-reglas";
 import { getResumenRecepciones, listarRecepcionesCompras, listarRecepcionesSinComprobante } from "@/lib/compras-indicadores";
@@ -222,7 +222,8 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     // «Llegó esta semana»: lo recibido en ESTA sede los últimos 7 días (hoy incluido, en días de Lima), con o sin factura.
     const haceUnaSemana = sumarDias(hoyLima(), -6);
     const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos, deOrdenes, contando] = await Promise.all([
-      getCatalogo(),
+      // Lo que se puede recibir AQUÍ (ADR-0505): en Trujillo no se sugiere la blusa de CLAURE que se parece a la de CAYLA.
+      getCatalogoDeLaSede(persona.ubicacionId),
       getProveedoresActivos(),
       // Las marcas de cada proveedor ordenan las sugerencias del buscador; si no se pudieron leer, la puerta funciona igual.
       getMarcasPorProveedor(),
@@ -372,7 +373,8 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     // tablas de dinero quedan cerradas para él en la base). Quien lo ve (P2) recibe además los montos de `compras_resumen`.
     // ADR-0139: solo los comprobantes que aún le faltan a ESTA tienda, con las cifras de ella.
     listarPorRecibir(filtros, cursor, { sinMontos: !verMontos, ubicacionId: ubicacionMirada }),
-    getCatalogo(),
+    // Lo que se ofrece AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima.
+    getCatalogoDeLaSede(ubicacionMirada),
     getProveedoresActivos(),
   ]);
   // Quien cuenta sin ver el dinero de Compras no ve montos: la base ya no se los entrega (ADR-0126) y, por si esa lectura

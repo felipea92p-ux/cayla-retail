@@ -349,3 +349,40 @@ export function datoHoyEnElTaller(filas: readonly FilaDeLista[]): string {
   if (abiertas.length === 0) return "ninguna orden abierta";
   return `${cuantas(abiertas.length, "orden abierta", "órdenes abiertas")} · ${piden === 0 ? "ninguna pide algo" : `${piden} ${piden === 1 ? "pide" : "piden"} algo`}`;
 }
+
+// ---------- La orden que se acaba de abrir (ADR-0509, actividad 1) ----------
+// `abrir_orden_produccion` ya devuelve (id, numero) y la pantalla lo tiraba: quien creaba una orden no veía dónde quedó (una muestra cae en otra pestaña) y dudaba si se guardó.
+
+export type OrdenCreada = { id: string; numero: number; numeroTexto: string; /** La página de la orden (`/produccion/ordenes/OP-000012`), la misma que lleva la fila de la lista. */ href: string };
+
+/**
+ * Lo que devuelve `abrir_orden_produccion` (`returns table (id uuid, numero integer)`: supabase-js lo entrega como una lista de una fila). Si no trae un id y un número entero positivo
+ * devuelve `null` y la pantalla sigue como siempre, sin «Ver la orden»: nunca se inventa un número.
+ */
+export function leerOrdenCreada(data: unknown): OrdenCreada | null {
+  const fila = Array.isArray(data) ? data[0] : data;
+  if (!fila || typeof fila !== "object") return null;
+  const { id, numero } = fila as Record<string, unknown>;
+  const n = typeof numero === "number" ? numero : typeof numero === "string" && /^\d+$/.test(numero) ? Number(numero) : Number.NaN;
+  if (typeof id !== "string" || id === "" || !Number.isInteger(n) || n < 1) return null;
+  const numeroTexto = `OP-${String(n).padStart(6, "0")}`;
+  return { id, numero: n, numeroTexto, href: `/produccion/ordenes/${numeroTexto}` };
+}
+
+/** La pestaña donde queda una orden recién abierta: siempre está en proceso, así que es «Muestras» o «En curso» (la misma regla de `pestanaDe`). */
+export function pestanaDeOrdenNueva(esMuestra: boolean): PestanaLista {
+  return esMuestra ? "muestras" : "en_curso";
+}
+
+/** Los parámetros con los que «Nueva orden» llega abierta desde el Resumen, Análisis o Nuevo producto (`lib/modelo-nuevo-orden-reglas.ts`). */
+const PARAMETROS_DE_NUEVA = ["nueva", "sugerida", "tipo"] as const;
+
+/**
+ * La dirección sin los parámetros con los que «Nueva orden» llegó abierta. La URL no cambia al cerrar ni al guardar, así que con F5 la hoja volvía a abrirse aunque la orden ya estuviera
+ * creada. Lo demás (`orden`, la ruta, el ancla) se conserva tal cual. Una dirección que no los trae vuelve igual.
+ */
+export function urlSinParametrosDeNueva(href: string): string {
+  const u = new URL(href, "http://cayla.local");
+  for (const p of PARAMETROS_DE_NUEVA) u.searchParams.delete(p);
+  return `${u.pathname}${u.search}${u.hash}`;
+}

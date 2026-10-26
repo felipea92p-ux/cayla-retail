@@ -1,7 +1,7 @@
 import { Banknote, CalendarDays, RefreshCw } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getVentasRecientes } from "@/lib/ventas-v2";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
 import { getPreciosDeLasTiendas, getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { apartadoEnPiso } from "@/lib/vender-stock-local";
@@ -35,7 +35,8 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
   const supabase = await createClient();
   const [lineas, catalogo, stock, resStockSedes, ubicaciones, estadisticas, tallasQueNoCalzan, caja, preciosSede, resAceptaQr] = await Promise.all([
     getVentasRecientes(persona.ubicacionId, { busqueda: q, todasLasSedes, ventaItemId: item }),
-    getCatalogo(),
+    // Lo que se ofrece AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima.
+    getCatalogoDeLaSede(persona.ubicacionId),
     getDisponibleEnSede(persona.ubicacionId),
     leerStockDeLasSedes(),
     getUbicaciones(),

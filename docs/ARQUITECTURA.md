@@ -247,8 +247,14 @@ flowchart TB
   posible y la línea «No ahora», el código copiable y la pestaña «Todas» —colgadas y guardadas por talla con totales y las casillas que filtran
   la tabla—; reemplazó al cajón lateral de ADR-0344; el ritmo lleva `existencias/AroSemanas.tsx`) con sus pasos `existencias/FlujoTalla.tsx`
   (`lib/existencias-panel-talla.ts`, `lib/existencias-flujos.ts`) → RPC `bajar_al_piso` (Colgar y Colgar varias), `retirar_del_piso` y
-  `subir_para_enviar` (Subir), `pedir_a_otra_sede` y `pedir_prenda_para_apartar` (Pedir), `ajustar_inventario` (Ajustar; la ventana completa
-  `AjustarInventarioModal.tsx` queda para enlazar con un conteo) y `reportar_danada` («Reportar dañada», en la Ficha del panel y desde Ajustar «Se dañó»:
+  `subir_para_enviar` (Subir), `pedir_a_otra_sede` y `pedir_prenda_para_apartar` (Pedir), `ajustar_inventario` (Ajustar: desde el
+  2026-10-23 es la **planilla de todo el modelo** dentro del mismo modal, ADR-0494 —la banda «¿No es lo que ves en la tienda?» o la tecla 6,
+  `existencias/AjusteDelModelo.tsx` con `existencias/useAjusteDelModelo.ts` y la lógica pura de `lib/existencias-ajuste-modelo.ts`; con «Conté»
+  cada línea lleva `esperado` y `ajustar_inventario` rechaza con `ajuste_cambio_al_contar` si cambió mientras se contaba; al guardar
+  lo que entró, «Etiquetas de lo que entró» de `ficha-producto/ImprimirLoQueEntro.tsx` lleva a `/etiquetas-de-precio?…&ajuste=1`—, que
+  reemplazó al recorrido de 4 pasos por talla; «Ajustar stock» de la cabecera, `existencias/BotonAjustarStock.tsx`, abre
+  `existencias/BuscarPrendaParaAjustar.tsx` con `lib/existencias-buscar-ajuste.ts`; la ventana completa `AjustarInventarioModal.tsx` queda
+  para enlazar con un conteo) y `reportar_danada` («Reportar dañada», en «Qué hago» de la talla:
   el paso «Reportar dañada» de `FlujoTalla`, con la validación de `lib/danadas-reglas.ts`; ADR-0328 act. 10; la ventana `ReportarDanadaModal.tsx` ya no existe). La lista de Dañadas
   (`ResolverDanadosModal.tsx`, «Para hoy» ▸ Decidir) lee `prendas_danadas` (`getPrendasDanadasPendientes`) y resuelve con
   `arreglar_prenda_danada` («Se arregló»: vuelve al almacén), `liquidar_prenda_danada` y `resolver_prenda_danada`. La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
@@ -1098,7 +1104,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     suma el chip «Nos debe» con `fn_ordenes_insumo_nos_debe` (lo anotado como «no llegará» × su costo).
 
 **Ventas / caja**
-- `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +
+- `/vender` → `lib/catalogo-v2.ts:getCatalogoDeLaSede` (el catálogo sin las prendas de una empresa que no opera en la sede —CLAURE
+  fuera de Lima— y con su insignia en Lima, `lib/empresas-de-sede-reglas.ts`, ADR-0505; lo mismo leen Apartados, Cambios, Buscar,
+  Recibir, Existencias, Contar y Cuadrar) + `lib/caja.ts:getCajaAbierta` +
   `stock` de todas las sedes que RLS deje ver (`lib/stock-por-sede.ts`: aquí + dónde más
   hay; la RPC `fn_stock_por_sede` para colaboradoras está escrita y sin aplicar; «Ventas
   de hoy» firma cada venta con la integrante vía `lib/nombre-integrante.ts`) →
@@ -1201,7 +1209,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `ComprasAgrupadas.tsx` (lista por día y compra) y `FlujoGuiado.tsx` (pasos, botones,
   validaciones, foco/Escape). Reglas puras compartidas —plazo R-38, `unidadesDisponibles`
   (descuenta lo cambiado y lo devuelto), validaciones— en `lib/cambios-reglas.ts`.
-- `/cambios` → `getVentasRecientes` + `getCatalogo` + stock del piso + `fn_stock_por_sede` +
+- `/cambios` → `getVentasRecientes` + `getCatalogoDeLaSede` + stock del piso + `fn_stock_por_sede` +
   `getCajaAbierta` + `lib/cambios-estadisticas.ts` (hoy / mes / valor cambiado; "tallas que no
   calzan" solo para líderes) → `CambiosPanel.tsx` (bloques "Iniciar un cambio" y "Actividad
   reciente", filas en `CambiosVentas.tsx`) → `CambiosFlujo.tsx` (Venta → Prenda → Reemplazo →
@@ -1452,9 +1460,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
-- **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en seis entradas: Plan de campaña, `/compras/mi-plata`
-  («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), `/compras/fondos` («Revisar
-  compras», módulo `fondos`), Proveedores, Facturas de proveedor y Por pagar. `/compras/ordenes` sigue en el código sin entrada en el menú.
+- **Historial de compras = una fila, tres pestañas (ADR-0504, 2026-10-24):** `/compras` (Historial), `/compras/fondos` (Revisar compras) y
+  `/compras/por-pagar` (Por pagar) comparten la cabecera `components/compras/CabeceraHistorialCompras.tsx` (qué pestañas trae la cuenta y sus
+  contadores; dibuja `CabeceraDeCompras.tsx`) → `lib/compras-pestanas-reglas.ts` (puro) + `lib/compras-pestanas.ts` (conteos: `fn_revisar_compras`,
+  `fn_plata_por_confirmar`, `resumen_compras`). El menú tiene UNA fila (`compras.comprobantes`, `modulo: facturas_compra` + `modulosAlternos`
+  `fondos` y `por_pagar`, sin `exige`); cada pantalla sigue pidiendo su módulo y `/compras` manda a quien no ve el Historial a su primera pestaña.
+- **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en cuatro entradas (ADR-0504; eran seis): Plan de campaña,
+  `/compras/mi-plata` («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), Proveedores e Historial
+  de compras (con `/compras/fondos`, «Revisar compras», módulo `fondos`, y Por pagar como pestañas). `/compras/ordenes` sigue en el código sin entrada en el menú.
   Actividad 2: `/compras/mi-plata` → `lib/mi-plata.ts` (`fn_mi_plata_compras`) + `lib/mi-plata-reglas.ts` (puro: lectura, cifras, qué falta,
   la cuenta sugerida) + `components/mi-plata/AnotarPlata.tsx` (`anotar_plata_compras`, la foto al depósito `retail-gastos-viaje/plata/`);
   `/compras/fondos` suma `getPlataPorConfirmar` (`fn_plata_por_confirmar`, vouchers firmados) + `components/mi-plata/PlataPorConfirmar.tsx`
@@ -1500,6 +1513,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   y `medio_pago`, lo que falta queda a crédito al completar); y la **ronda de compras** (`20261023183000`: `compra_rondas`, serie RC; RPC
   `abrir_ronda_compras` desde `AbrirRonda.tsx` vía `lib/mi-plata-acciones.ts`; `terminar_dia_compras` cierra la ronda; `fn_ronda_compras_de` dentro de
   `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres).
+  El 2026-10-24 «Algo nuevo» también se reparte entre tiendas y su marca se puede escribir con «+» (`HojaPrenda.tsx`); la marca escrita se crea al
+  guardar con la RPC `registrar_marca_de_compra` (`20261024214000`, vía `registrarMarcaDeCompra` de `lib/compra-rapida-acciones.ts`), unida al proveedor.
 - **Recibir mercadería: «Llegó mercadería» (ADR-0330, 2026-10-04)** — `/recibir` abre en la puerta única: `LlegoMercaderia.tsx`
   (lógica pura en `lib/llegada-reglas.ts`, con prueba) → RPC `recibir_lote` sin cambios (entra al almacén de la sede de la
   cabecera, token y cola sin conexión). Lee en el servidor el catálogo, los proveedores con sus marcas (`getMarcasPorProveedor`),
@@ -1896,7 +1911,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
-  - `/finanzas/resumen` → el tablero que junta lo anterior (F10).
+  - `/finanzas/resumen` → el tablero que junta lo anterior (F10). Desde El telar (2026-10-23, ADR-0493) lee, además de
+    `fn_resumen_finanzas` (los avisos de hoy) y `fn_finanzas_confianza` (del mes elegido), `fn_estado_resultados` del mes de la barra
+    y del tramo con que se compara (`lib/resultados.ts`), y `fn_rendimiento_serie` por tienda si la cuenta ve Rendimiento
+    (`lib/resumen-telar.ts`). Lo dibujan `lib/resumen-telar-reglas.ts` (la respuesta, el orillo y la línea de ventas contra la
+    meta) y `lib/recorrido-plata-reglas.ts` → `components/finanzas/RecorridoPlata.tsx` (el recorrido de la plata).
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
     Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
   - `/tienda-web/ajustes` (ADR-0408, actividad 6; fue la pestaña `/configuracion?tab=tienda-web` hasta ADR-0430; módulo `ajustes_web` «Datos y plazos de la tienda web» desde 20261016223000, antes `configuracion`) → `lib/configuracion.ts`
@@ -2683,3 +2702,9 @@ variables/funciones. Nunca "empleado/jefe/sucursal": se usa
 *Este documento es una fotografía del código al 2026-09-04. Para el estado
 vivo día a día ver `docs/BACKLOG.md` y `docs/BITACORA.md`; para el porqué
 de cada decisión estructural, `docs/adr/`.*
+
+## Proveedores: lo que le compré y «Lo que quizá no ves» (2026-10-24, ADR-0502)
+
+- `/compras/proveedores/[id]` (ficha) → `getProveedorPrendas` (`lib/proveedores.ts`, RPC `fn_proveedor_prendas`) → `components/ProveedorPrendas.tsx` (reglas `lib/proveedor-prendas-reglas.ts`) y `components/LoQueQuizaNoVes.tsx` (reglas `lib/proveedor-analisis-reglas.ts:hallazgosDeProveedor`).
+- `/compras/proveedores` (lista) → `getProveedoresRendimiento` (RPC `fn_proveedores_rendimiento`) → `components/ProveedoresRendimiento.tsx`; `getProveedoresPrendas` (RPC `fn_proveedores_prendas`) → `hallazgosDeCartera` → `LoQueQuizaNoVes`.
+- Las tres RPC leen `fn_proveedor_prendas_base` (migración `20261024221000`, sin permiso para nadie) y exigen `fn_ve_plata_de_proveedores()`.

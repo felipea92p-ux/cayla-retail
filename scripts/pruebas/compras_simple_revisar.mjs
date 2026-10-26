@@ -248,6 +248,25 @@ select c.condicion, c.pagado, c.saldo, (select string_agg(p.metodo || ':' || p.m
   "100.00|yape / credito|100.00|200.00|yape:100.00|-100.00",
 );
 
+// ADR-0504: «Historial de compras» junta Revisar, Historial y Por pagar en una fila. La cadena que las une, de punta a punta y leída con las
+// MISMAS consultas que usan las pantallas (`listar_compras` con saldo para Por pagar, sin filtro para el Historial, `resumen_compras` para las cifras):
+// completar un papel a crédito → Por pagar lo lee entero y con vencimiento → se paga → sale de Por pagar y el Historial lo da por pagado.
+caso(
+  "la cadena a crédito de punta a punta: completar el papel → Por pagar lo lee entero y con vencimiento → se paga → sale de Por pagar y el Historial lo da por pagado",
+  `${CON_PAGO(0, null)}
+${MANDA}${RECIBE}
+${REVISA("papel_completar")}
+select (retail.completar_papel_compra(:'papel', null, 'F001', '401') ->> 'compra_id') as compra \\gset
+${como(FELIPE)}
+select 'porPagar=' || count(*) || '/' || coalesce(sum(f.saldo), 0) || '/' || coalesce(bool_and(f.fecha_vencimiento is not null), false)
+  from retail.listar_compras(p_con_saldo => true, p_orden => 'vencimiento') f where f.id = :'compra';
+select 'cifras=' || (r.deuda >= 300) || '/' || (r.con_saldo >= 1) from retail.resumen_compras() r;
+select retail.registrar_pagos_compra(:'compra', jsonb_build_array(jsonb_build_object('monto', 300.00, 'metodo', 'transferencia', 'referencia', 'OP-401'))) \\g /dev/null
+select 'despues=' || count(*) from retail.listar_compras(p_con_saldo => true, p_orden => 'vencimiento') f where f.id = :'compra';
+select 'historial=' || f.estado_pago || '/' || f.saldo from retail.listar_compras(p_orden => 'emision') f where f.id = :'compra';`,
+  "porPagar=1/300.00/true / cifras=true/true / despues=0 / historial=pagada/0.00",
+);
+
 caso(
   "pagar ahora: de 0 al total, con 2 decimales y un método de los tres; sin pago no lleva método; un reintento con otro pago se rechaza",
   `${COMPRA.replace(/\$\{como\(SANDRA[\s\S]*$/, "")}
