@@ -7,6 +7,9 @@
  *      (`fn_configuracion_tienda_web`) la respetan, y una tienda sin orden va al final por nombre; no repite, no acepta una tienda
  *      cerrada ni el Taller ni una lista vacía; si nada cambió no escribe ni anota; solo el líder o quien tenga el módulo; firma
  *      el responsable y deja rastro.
+ *   ACTIVIDAD 3 · el mapa: `guardar_mapa_tienda_web` acepta solo enlaces de Google Maps (los de «Compartir», los largos y los viejos), nada
+ *      de `http`, otros sitios, `javascript:`, espacios ni más de 400 letras; vacío lo quita; la web y el ERP lo traen; si nada cambió no
+ *      anota; la tabla también lo exige por fuera; solo el líder o quien tenga el módulo.
  *   La migración se puede pegar dos veces.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK y mete la migración DENTRO de ella: nunca se commitea nada en el Postgres
@@ -87,6 +90,7 @@ ${como(FELIPE)}
 `;
 const NOMBRES_WEB = `select string_agg(s ->> 'nombre', ',' order by o) from jsonb_array_elements(retail.tienda_sedes() -> 'sedes') with ordinality as x (s, o);`;
 const NOMBRES_ERP = `select string_agg(s ->> 'nombre_web', ',' order by o) from jsonb_array_elements(retail.fn_configuracion_tienda_web() -> 'sedes') with ordinality as x (s, o);`;
+const MAPA = (t, url) => `select retail.guardar_mapa_tienda_web(:'${t}', '${url.replace(/'/g, "''")}') as _m \\gset\n`;
 const ORDEN = (...ids) => `select retail.guardar_orden_tiendas_web(array[${ids.map((i) => `:'${i}'::uuid`).join(", ")}]) as _o \\gset\n`;
 
 function main() {
@@ -172,6 +176,81 @@ select pg_temp.intento('select retail.guardar_orden_tiendas_web(array[gen_random
 set local role authenticated;
 select pg_temp.intento('select * from retail.ubicacion_datos_web');`);
     esperar("nadie lee la tabla directo, ni el líder: todo pasa por las funciones", r.ok && r.salida.includes("permission denied"), r);
+  }
+
+  console.log("— El mapa de cada tienda —");
+  {
+    const buenos = [
+      "https://maps.app.goo.gl/AbC123xyz",
+      "https://www.google.com/maps/place/Jr.+Pizarro+512,+Trujillo/@-8.1117,-79.0288,17z",
+      "https://google.com/maps?q=-8.1117,-79.0288",
+      "https://maps.google.com/?q=Trujillo",
+      "https://goo.gl/maps/abc123",
+      "HTTPS://WWW.GOOGLE.COM/MAPS/place/X",
+    ];
+    for (const url of buenos) {
+      const r = correr(`${ESCENA}${MAPA("t1", url)}select (s ->> 'mapa') from jsonb_array_elements(retail.tienda_sedes() -> 'sedes') s where s ->> 'id' = :'t1';`);
+      esperar(`acepta ${url.slice(0, 48)}…`, r.ok && r.salida === url, r);
+    }
+  }
+  {
+    const malos = [
+      ["http://maps.app.goo.gl/AbC123", "sin https"],
+      ["https://www.google.com.evil.com/maps/x", "otro sitio con google.com en el nombre"],
+      ["https://evil.com/?https://www.google.com/maps", "otro sitio"],
+      ["javascript:alert(1)", "un javascript:"],
+      ["https://maps.app.goo.gl/ab cd", "con un espacio"],
+      ["https://www.google.com/mapsx/abc", "otra carpeta que empieza igual"],
+      [`https://maps.app.goo.gl/${"a".repeat(400)}`, "más de 400 letras"],
+      ["https://www.facebook.com/tienda", "una red social"],
+    ];
+    for (const [url, que] of malos) {
+      const r = correr(`${ESCENA}select pg_temp.intento(format('select retail.guardar_mapa_tienda_web(%L, %L)', :'t1', '${url}'));`);
+      esperar(`rechaza ${que}`, r.ok && r.salida.includes("enlace de Google Maps"), r);
+    }
+  }
+  {
+    const r = correr(`${ESCENA}${MAPA("t1", "https://maps.app.goo.gl/AbC123")}${MAPA("t1", "   ")}
+select coalesce((select mapa_url from retail.ubicacion_datos_web where ubicacion_id = :'t1'), 'sin mapa');
+select jsonb_typeof(retail.tienda_sedes() #> '{sedes,0,mapa}');`);
+    const [fila, web] = lineas(r);
+    esperar("un enlace vacío lo quita (la web vuelve a buscar la dirección)", fila === "sin mapa" && web === "null", r);
+  }
+  {
+    const r = correr(`${ESCENA}${MAPA("t1", "https://maps.app.goo.gl/AbC123")}
+select s ->> 'mapa_url' from jsonb_array_elements(retail.fn_configuracion_tienda_web() -> 'sedes') s where s ->> 'id' = :'t1';`);
+    esperar("el ERP trae el mapa guardado de cada tienda", r.ok && r.salida === "https://maps.app.goo.gl/AbC123", r);
+  }
+  {
+    const r = correr(`${ESCENA}${MAPA("t1", "https://maps.app.goo.gl/AbC123")}${MAPA("t1", "https://maps.app.goo.gl/AbC123")}${MAPA("t2", "")}
+select count(*) from retail.configuracion_historial where que = 'tienda_web_mapa';
+select (detalle ->> 'despues') || '|' || (hecho_por is not null) from retail.configuracion_historial where que = 'tienda_web_mapa';`);
+    const [anotados, detalle] = lineas(r);
+    esperar("solo se anota el cambio de verdad (repetir el enlace o quitar uno que no hay, no)", anotados === "1" && detalle === "https://maps.app.goo.gl/AbC123|true", r);
+  }
+  {
+    const r = correr(`${ESCENA}set local role authenticated;
+select pg_temp.intento('update retail.ubicacion_datos_web set mapa_url = ''http://x.com''');`);
+    esperar("la tabla tampoco deja escribirlo por fuera (permiso)", r.ok && r.salida.includes("permission denied"), r);
+  }
+  {
+    const r = correr(`${ESCENA}reset role;
+select pg_temp.intento('update retail.ubicacion_datos_web set mapa_url = ''http://x.com'' where mostrar');`);
+    esperar("ni quien administra la base puede guardar un enlace que no sea de Google Maps (CHECK de la fila)", r.ok && r.salida.includes("ubicacion_datos_web_mapa_valido"), r);
+  }
+  {
+    const r = correr(`${ESCENA}
+select pg_temp.intento(format('select retail.guardar_mapa_tienda_web(%L, %L)', :'taller', 'https://maps.app.goo.gl/AbC123'));
+select pg_temp.intento(format('select retail.guardar_mapa_tienda_web(%L, %L)', gen_random_uuid(), 'https://maps.app.goo.gl/AbC123'));
+${como(MICAELA)}
+select pg_temp.intento(format('select retail.guardar_mapa_tienda_web(%L, %L)', :'t1', 'https://maps.app.goo.gl/AbC123'));
+reset role;
+set local role anon;
+select pg_temp.intento('select retail.guardar_mapa_tienda_web(gen_random_uuid(), null)');`);
+    const [taller, ajena, sinModulo, anonimo] = lineas(r);
+    esperar("no guarda el mapa del Taller ni de una tienda que no existe", (taller ?? "").includes("tienda abierta") && (ajena ?? "").includes("no existe"), r);
+    esperar("una colaboradora sin el módulo no cambia el mapa", (sinModulo ?? "").includes("necesita el módulo"), r);
+    esperar("un visitante anónimo tampoco", (anonimo ?? "").includes("permission denied"), r);
   }
 
   console.log("— La migración —");

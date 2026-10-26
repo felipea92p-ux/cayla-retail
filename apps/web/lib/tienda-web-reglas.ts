@@ -5,6 +5,7 @@
 // El WhatsApp de una tienda es `ubicaciones.whatsapp_numero`, el mismo número del QR del club (ADR-0288): esta pestaña lo
 // guarda con la misma función que Tiendas y caja (`guardar_whatsapp_tienda`) y con la misma regla (`celularValido`).
 
+import { enlaceMapaValido } from "@cayla-retail/shared/tienda-web-sede";
 import { celularValido } from "./club-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import type { Resultado } from "./configuracion-reglas";
@@ -22,6 +23,8 @@ export type SedeWeb = {
   mostrar: boolean;
   /** El lugar en la web (1 es la primera); `null` si todavía no se ordenó. La base ya las manda en orden. */
   orden: number | null;
+  /** El enlace de Google Maps del local; con él, «Cómo llegar» abre ese lugar. `null`: la web busca la dirección. */
+  mapaUrl: string | null;
 };
 
 export type ParametrosTiendaWeb = { horasParaConfirmar: number; horasAvisoSinPagar: number; diasAvisoSinRecoger: number; quedanPocasDesde: number };
@@ -45,6 +48,7 @@ export function leerConfiguracionTiendaWeb(data: unknown): ConfiguracionTiendaWe
       horario: texto(s.horario),
       mostrar: s.mostrar === true,
       orden: typeof s.orden === "number" ? s.orden : null,
+      mapaUrl: texto(s.mapa_url),
     })),
     parametros: p
       ? {
@@ -63,13 +67,14 @@ export function leerConfiguracionTiendaWeb(data: unknown): ConfiguracionTiendaWe
 export const TOPES_SEDE = { nombreWeb: 40, direccion: 160, horario: 120 } as const;
 
 /** Lo que se escribe en las cajas de una tienda, tal cual (sin limpiar). */
-export type BorradorSede = { nombreWeb: string; whatsapp: string; direccion: string; horario: string };
+export type BorradorSede = { nombreWeb: string; whatsapp: string; direccion: string; horario: string; mapa: string };
 
-export const borradorDe = (s: Pick<SedeWeb, "nombreWeb" | "whatsapp" | "direccion" | "horario">): BorradorSede => ({
+export const borradorDe = (s: Pick<SedeWeb, "nombreWeb" | "whatsapp" | "direccion" | "horario" | "mapaUrl">): BorradorSede => ({
   nombreWeb: s.nombreWeb ?? "",
   whatsapp: s.whatsapp ?? "",
   direccion: s.direccion ?? "",
   horario: s.horario ?? "",
+  mapa: s.mapaUrl ?? "",
 });
 
 /** Como lo guarda la base: sin espacios de más; vacío = sin dato. */
@@ -85,7 +90,7 @@ export function limpiarTexto(t: string): string | null {
 export function fusionarBorrador(actual: BorradorSede, baseAntes: BorradorSede, baseNueva: BorradorSede): BorradorSede {
   const tomar = (k: keyof BorradorSede) =>
     actual[k] === baseAntes[k] || limpiarTexto(actual[k]) === limpiarTexto(baseNueva[k]) ? baseNueva[k] : actual[k];
-  return { nombreWeb: tomar("nombreWeb"), whatsapp: tomar("whatsapp"), direccion: tomar("direccion"), horario: tomar("horario") };
+  return { nombreWeb: tomar("nombreWeb"), whatsapp: tomar("whatsapp"), direccion: tomar("direccion"), horario: tomar("horario"), mapa: tomar("mapa") };
 }
 
 /** Lo que le falta a una tienda para verse en la web. LA MISMA regla que `retail.fn_sede_web_falta`, en el mismo orden. */
@@ -177,6 +182,13 @@ export function colorDeSede(nombre: string): ColorDeSede {
   if (/\bLIM\b|LIMA/.test(n)) return "lim";
   if (/\bTAL\b|TALLER/.test(n)) return "tal";
   return "emp";
+}
+
+/** El mapa antes de ir a la base: vacío está bien («sin mapa»); si hay algo, tiene que ser un enlace de Google Maps. La misma frase que la base. */
+export function errorDeMapa(mapa: string): string | null {
+  const t = mapa.trim();
+  if (t === "") return null;
+  return enlaceMapaValido(t) ? null : "El mapa tiene que ser un enlace de Google Maps (el de «Compartir» sirve).";
 }
 
 /** Los largos, con la misma frase que la base. `null` si todo cabe. */

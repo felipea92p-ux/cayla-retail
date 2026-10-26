@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { CheckCircle2, ShoppingBag, Store, Wallet } from "lucide-react";
+import { CheckCircle2, MapPin, ShoppingBag, Store, Wallet } from "lucide-react";
 import { PuertaDeTienda } from "@/components/tienda-web-conf/PuertaDeTienda";
 import { TelefonoDeTienda } from "@/components/tienda-web-conf/TelefonoDeTienda";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
+import { Chip } from "@/components/ui/Chip";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraBloque, CampoFin, InputFin, Superficie } from "@/components/finanzas/kit";
@@ -29,6 +30,7 @@ import {
   borradorParametros,
   camposDeGuia,
   errorDeLargo,
+  errorDeMapa,
   faltaParaMostrar,
   fraseNiveles,
   fusionarBorrador,
@@ -63,6 +65,9 @@ type CampoTexto = "nombreWeb" | "direccion" | "horario";
 
 /** El horario se escribe igual en cualquier tienda: su ejemplo no depende de nada elegido antes. */
 const EJEMPLO_HORARIO = "Ej. Lunes a sábado, de 10 a. m. a 9 p. m."; // sugerir-fijo: la forma de escribir un horario es la misma en toda tienda
+
+/** Cómo empieza un enlace de «Compartir» de Google Maps: igual para toda tienda. */
+const EJEMPLO_MAPA = "https://maps.app.goo.gl/…"; // sugerir-fijo: el formato de un enlace de Google Maps es el mismo en toda tienda
 
 const listaDe = (sedes: readonly SedeWeb[]) => Object.fromEntries(sedes.map((s) => [s.id, borradorDe(s)])) as Record<string, BorradorSede>;
 
@@ -152,31 +157,13 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     setBorradores((b) => ({ ...b, [sedeId]: { ...(b[sedeId] as BorradorSede), [campo]: valor } }));
   const revertir = (sedeId: string, campo: keyof BorradorSede) => escribir(sedeId, campo, bases[sedeId]?.[campo] ?? "");
 
-  /** Lo que la base guarda de una tienda: lo escrito en sus cajas (limpio) y si se muestra. */
-  const guardarSede = (s: SedeWeb, b: BorradorSede, enWeb: boolean, que: string, listo: string) =>
-    guardar(
-      () =>
-        createClient().rpc(
-          "guardar_sede_tienda_web" as never,
-          {
-            p_ubicacion_id: s.id,
-            p_nombre_web: limpiarTexto(b.nombreWeb),
-            p_direccion: limpiarTexto(b.direccion),
-            p_horario: limpiarTexto(b.horario),
-            p_mostrar: enWeb,
-          } as never,
-        ),
-      que,
-      listo,
-    );
-
   /** ¿La tarjeta de esta tienda tiene algo escrito o encendido que la base todavía no tiene? */
   const tieneCambios = (s: SedeWeb) => {
     const b = borradores[s.id];
     const base = bases[s.id];
     if (!b || !base) return false;
     const texto = (["nombreWeb", "direccion", "horario"] as const).some((k) => limpiarTexto(b[k]) !== limpiarTexto(base[k]));
-    return texto || b.whatsapp !== base.whatsapp || (mostrar[s.id] ?? s.mostrar) !== s.mostrar;
+    return texto || b.whatsapp !== base.whatsapp || b.mapa.trim() !== base.mapa.trim() || (mostrar[s.id] ?? s.mostrar) !== s.mostrar;
   };
 
   /** El botón «Guardar» de una tienda: valida todo antes de escribir nada, guarda el WhatsApp (su propia función, la del QR del club) y
@@ -191,35 +178,58 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     if (b.whatsapp !== "" && !celularValido(b.whatsapp)) {
       return avisar.error(`WhatsApp de ${s.nombre}: tiene 9 dígitos y empieza en 9. Si la tienda no tiene uno, déjalo vacío.`);
     }
+    const mapaMal = errorDeMapa(b.mapa);
+    if (mapaMal) return avisar.error(`${s.nombre}: ${mapaMal}`);
     const falta = faltaParaMostrar(b);
     if (enWeb && falta.length > 0) {
       return avisar.error(`${s.nombre}: para mostrarla en la web falta ${falta.map((d) => NOMBRE_DATO[d].toLocaleLowerCase("es")).join(", ")}.`);
     }
     const cambioWhatsapp = b.whatsapp !== base.whatsapp;
     const cambioResto = (["nombreWeb", "direccion", "horario"] as const).some((k) => limpiarTexto(b[k]) !== limpiarTexto(base[k])) || enWeb !== s.mostrar;
+    const cambioMapa = b.mapa.trim() !== base.mapa.trim();
+    const nombre = limpiarTexto(b.nombreWeb) ?? nombreCorto(s.nombre);
+    // Cada cosa se guarda con su función, en este orden (el WhatsApp primero: encender la tienda lo exige). El aviso sale una sola vez, al final.
+    const pasos: { que: string; hacer: () => PromiseLike<{ error: unknown }>; listo: string }[] = [];
+    if (cambioWhatsapp) {
+      pasos.push({
+        que: "guardar el WhatsApp de la tienda",
+        hacer: () => createClient().rpc("guardar_whatsapp_tienda", { p_ubicacion_id: s.id, p_numero: b.whatsapp || undefined }),
+        listo: b.whatsapp
+          ? `${s.nombre}: WhatsApp ${b.whatsapp}. Es el mismo del QR del club.`
+          : `${s.nombre}: sin WhatsApp. No se ve en la web ni muestra el QR del club.`,
+      });
+    }
+    if (cambioResto) {
+      pasos.push({
+        que: `guardar la tienda ${s.nombre}`,
+        hacer: () =>
+          createClient().rpc(
+            "guardar_sede_tienda_web" as never,
+            {
+              p_ubicacion_id: s.id,
+              p_nombre_web: limpiarTexto(b.nombreWeb),
+              p_direccion: limpiarTexto(b.direccion),
+              p_horario: limpiarTexto(b.horario),
+              p_mostrar: enWeb,
+            } as never,
+          ),
+        listo: enWeb !== s.mostrar ? (enWeb ? `«${nombre}» ya se ve en la web.` : `«${nombre}» ya no se ve en la web.`) : `${s.nombre}: cambios guardados.`,
+      });
+    }
+    if (cambioMapa) {
+      pasos.push({
+        que: "guardar el mapa de la tienda",
+        hacer: () => createClient().rpc("guardar_mapa_tienda_web" as never, { p_ubicacion_id: s.id, p_mapa_url: b.mapa.trim() || null } as never),
+        listo: b.mapa.trim() ? `${s.nombre}: mapa guardado. «Cómo llegar» abre ese lugar.` : `${s.nombre}: mapa quitado. «Cómo llegar» busca la dirección.`,
+      });
+    }
+    // Con varias cosas, un solo aviso que las junta; la tienda que se enciende o se apaga lo dice primero, porque es lo que el cliente nota.
+    const aviso = enWeb !== s.mostrar || pasos.length === 1 ? pasos.find((x) => x.que.startsWith("guardar la tienda"))?.listo ?? pasos[0]?.listo : `${s.nombre}: cambios guardados.`;
     setGuardandoEn(s.id);
     try {
-      if (cambioWhatsapp) {
-        const ok = await guardar(
-          () => createClient().rpc("guardar_whatsapp_tienda", { p_ubicacion_id: s.id, p_numero: b.whatsapp || undefined }),
-          "guardar el WhatsApp de la tienda",
-          cambioResto
-            ? null
-            : b.whatsapp
-              ? `${s.nombre}: WhatsApp ${b.whatsapp}. Es el mismo del QR del club.`
-              : `${s.nombre}: sin WhatsApp. No se ve en la web ni muestra el QR del club.`,
-        );
+      for (let i = 0; i < pasos.length; i++) {
+        const ok = await guardar(pasos[i]!.hacer, pasos[i]!.que, i === pasos.length - 1 ? (aviso ?? null) : null);
         if (!ok) return;
-      }
-      if (cambioResto) {
-        const nombre = limpiarTexto(b.nombreWeb) ?? nombreCorto(s.nombre);
-        await guardarSede(
-          s,
-          b,
-          enWeb,
-          `guardar la tienda ${s.nombre}`,
-          enWeb !== s.mostrar ? (enWeb ? `«${nombre}» ya se ve en la web.` : `«${nombre}» ya no se ve en la web.`) : `${s.nombre}: cambios guardados.`,
-        );
       }
     } finally {
       setGuardandoEn(null);
@@ -388,6 +398,36 @@ function TallerDeTienda({
             {caja("direccion", sugerirDireccion(s.nombre), TOPES_SEDE.direccion)}
           </CampoFin>
         </CampoGuiado>
+
+        <CampoFin
+          etiqueta="Mapa"
+          htmlFor={`tw-${s.id}-mapa`}
+          ayuda="Opcional. Pega el enlace de Google Maps («Compartir» ▸ «Copiar enlace») y «Cómo llegar» abre ese lugar exacto."
+          tono={errorDeMapa(b.mapa) ? "aviso" : undefined}
+        >
+          <InputFin
+            id={`tw-${s.id}-mapa`}
+            value={b.mapa}
+            inputMode="url"
+            maxLength={400}
+            placeholder={EJEMPLO_MAPA}
+            autoComplete="off"
+            onChange={(e) => onEscribir("mapa", e.target.value)}
+            onKeyDown={teclas("mapa")}
+          />
+          <span className="twc-mapita" data-vacio={b.mapa.trim() === "" ? "" : undefined}>
+            <span className="twc-mapita-tile" aria-hidden>
+              <MapPin />
+            </span>
+            {errorDeMapa(b.mapa) ? (
+              <Chip tono="ambar" versalitas={false}>No es un enlace de Google Maps</Chip>
+            ) : b.mapa.trim() === "" ? (
+              <Chip tono="neutro" versalitas={false}>Sin enlace: «Cómo llegar» busca la dirección</Chip>
+            ) : (
+              <Chip tono="verde" versalitas={false}>«Cómo llegar» abre este lugar</Chip>
+            )}
+          </span>
+        </CampoFin>
 
         <CampoGuiado id={idCampo(s.id, "horario")} guia={guia}>
           <CampoFin etiqueta={etiqueta("horario", "Horario")} htmlFor={`tw-${s.id}-horario`} ayuda="Opcional. El cliente lo lee tal cual lo escribes.">

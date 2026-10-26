@@ -7,6 +7,7 @@ import {
   borradorParametros,
   camposDeGuia,
   errorDeLargo,
+  errorDeMapa,
   estadoSedeWeb,
   faltaParaMostrar,
   fraseNiveles,
@@ -32,6 +33,7 @@ const sede = (s: Partial<SedeWeb> = {}): SedeWeb => ({
   horario: null,
   mostrar: false,
   orden: null,
+  mapaUrl: null,
   ...s,
 });
 const completa = { nombreWeb: "Trujillo", whatsapp: "987654321", direccion: "Jr. Pizarro 512" };
@@ -42,7 +44,7 @@ describe("leer lo que devuelve fn_configuracion_tienda_web", () => {
       sedes: [{ id: "u1", nombre: "Tienda TRU", nombre_web: "Trujillo", whatsapp: "987654321", direccion: " ", horario: null, mostrar: true }],
       parametros: { horas_para_confirmar: 24, horas_aviso_sin_pagar: 48, dias_aviso_sin_recoger: 7, quedan_pocas_desde: 3 },
     });
-    expect(c.sedes).toEqual([{ id: "u1", nombre: "Tienda TRU", nombreWeb: "Trujillo", whatsapp: "987654321", direccion: null, horario: null, mostrar: true, orden: null }]);
+    expect(c.sedes).toEqual([{ id: "u1", nombre: "Tienda TRU", nombreWeb: "Trujillo", whatsapp: "987654321", direccion: null, horario: null, mostrar: true, orden: null, mapaUrl: null }]);
     expect(c.parametros).toEqual({ horasParaConfirmar: 24, horasAvisoSinPagar: 48, diasAvisoSinRecoger: 7, quedanPocasDesde: 3 });
   });
   it("sin datos (o sin la migración) no se cae: sin tiendas y sin plazos", () => {
@@ -228,5 +230,25 @@ describe("el orden de las tiendas (maqueta de Conf. Tienda)", () => {
   it("lo que lee de la base trae su lugar, o nada si no se ordenó", () => {
     const r = leerConfiguracionTiendaWeb({ sedes: [{ id: "a", nombre: "Tienda TRU", orden: 2 }, { id: "b", nombre: "Tienda AQP" }] });
     expect(r.sedes.map((x) => x.orden)).toEqual([2, null]);
+  });
+});
+
+describe("el mapa de una tienda (maqueta de Conf. Tienda)", () => {
+  it("sin mapa está bien; con mapa tiene que ser de Google Maps, con la misma frase que la base", () => {
+    expect(errorDeMapa("")).toBeNull();
+    expect(errorDeMapa("   ")).toBeNull();
+    expect(errorDeMapa("https://maps.app.goo.gl/AbC123")).toBeNull();
+    expect(errorDeMapa(" https://maps.app.goo.gl/AbC123 ")).toBeNull();
+    expect(errorDeMapa("https://www.facebook.com/tienda")).toBe("El mapa tiene que ser un enlace de Google Maps (el de «Compartir» sirve).");
+    expect(errorDeMapa("jr. pizarro 512")).toContain("enlace de Google Maps");
+  });
+  it("el borrador lleva el mapa guardado, o vacío, y un refresco no pisa lo que se está escribiendo", () => {
+    expect(borradorDe(sede({ mapaUrl: "https://maps.app.goo.gl/AbC123" })).mapa).toBe("https://maps.app.goo.gl/AbC123");
+    expect(borradorDe(sede()).mapa).toBe("");
+    const base = borradorDe(sede());
+    const escrito = { ...base, mapa: "https://maps.app.goo.gl/nuevo" };
+    const nueva = borradorDe(sede({ mapaUrl: "https://maps.app.goo.gl/de-otro" }));
+    expect(fusionarBorrador(escrito, base, nueva).mapa).toBe("https://maps.app.goo.gl/nuevo");
+    expect(fusionarBorrador(base, base, nueva).mapa).toBe("https://maps.app.goo.gl/de-otro");
   });
 });
