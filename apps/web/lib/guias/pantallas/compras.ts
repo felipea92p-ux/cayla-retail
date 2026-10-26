@@ -1919,6 +1919,13 @@ export const GUIA_PLAN_RESULTADOS: Guia = {
     },
     VISTAS_DEL_PLAN("Resultados"),
     {
+      id: "veredicto",
+      ancla: "plan-resultados.veredicto",
+      opcional: true,
+      titulo: "¿Subió la venta?",
+      texto: "Cuando la campaña termina, dice cuánto subió la venta de la tienda contra un día normal y lo compara con lo que subió otros años: rindió más, lo de siempre o menos que de costumbre. «Decidir en el Calendario» abre la hoja de esa campaña para quedarte con ella, pausarla o dejarla.",
+    },
+    {
       id: "cierre",
       ancla: "plan-resultados.cierre",
       opcional: true,

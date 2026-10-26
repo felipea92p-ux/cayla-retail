@@ -70,6 +70,13 @@ export function evidenciaDeCampana(
   return { mediana: mediana(porAnio.map((x) => x.multiplicador)), min: menor.multiplicador, max: mayor.multiplicador, anioDelMin: menor.anio, anioDelMax: mayor.anio, porAnio };
 }
 
+/** La mediana, el menor y el mayor de un grupo de años medidos; null si no hay ninguno. */
+export function resumenDeAnios(porAnio: readonly { multiplicador: number }[]): { mediana: number; min: number; max: number } | null {
+  if (porAnio.length === 0) return null;
+  const xs = porAnio.map((x) => x.multiplicador);
+  return { mediana: mediana(xs), min: Math.min(...xs), max: Math.max(...xs) };
+}
+
 /** La tienda con la que se mide: la que tiene más historia (la que empieza antes); a igual historia, la de nombre primero. null si ninguna tiene datos. */
 export function tiendaDeReferencia(l: Pick<LecturaHistorial, "tiendas">): TiendaHistorial | null {
   const con = l.tiendas.flatMap((t) => {

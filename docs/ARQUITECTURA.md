@@ -2034,7 +2034,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     Las que escriben (todas piden el módulo y firman con el responsable): `cambiar_uso_plan_compra_calendario` (el interruptor), `guardar_plan_compra_calendario` (la hoja), `quitar_plan_compra_calendario` /
     `restaurar_plan_compra_calendario` y `crear_plan_compra_propio` (el plan de una campaña propia, `planes_compra.calendario_id`). El campo `calendario` viaja dentro de `CampanasLeidas` (`conCalendario`), así que el selector,
     las ranuras «por armar» (`ranurasSinPlan`, `ranurasPorArmar`), los avisos y Resultados respetan la decisión; sin la función en la base la pestaña se esconde y todo se comporta como antes. `?hoja=nueva|<clave>` abre una hoja al llegar.
-  - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`.
+  - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`. Cuando la campaña terminó
+    (ADR-0525, actualización b) `getResultadosPlan` también trae `historia` (`HistoriaDelPlan`, de `lib/plan-compra-veredicto.ts`): lee la historia con `leerYMedirLaHistoria` (`lib/plan-compra-historia-servidor.ts`, la misma
+    lectura del Calendario) y la tarjeta «¿Subió la venta?» (`VeredictoDeLaCampana.tsx`) compara esta vez con los otros años (`veredictoAlCerrar`, `frasesDelVeredicto`). Sin RPC ni migración nueva.
   - `/compras/plan/historial` (ADR-0372 C3) → `getHistorialPlan` → `fn_historial_ventas` (Sinatra en `retail.ventas_historicas` antes del ERP) + `lib/plan-compra-historial.ts`; pantalla `components/plan-compra/HistorialCampanas.tsx`.
   - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;
     ve las de todas las sedes) → `lib/ordenes-compra.ts` (`fn_ordenes_compra`, `fn_ordenes_compra_resumen`, `getDestinosOrden`) +

@@ -168,8 +168,9 @@ Cada tarea lleva su clase —**Urgente** (pierde algo cada día o vence pronto),
   Probada con 32 casos de base (incluye cuatro interruptores a la vez) y 60 pruebas de la lógica.
 
 ### #8 · [Mejorar · Importante] Medir cada campaña con tu historia y dar un veredicto al cerrar
-- **Estado (2026-10-26) — a medias:** la mitad que decide #7 está construida en el Calendario (ADR-0525): «Qué dice tu historia» por campaña con la misma vara del Historial, en la tienda con más historia y con la mediana de los años que
-  se pudieron medir (veredictos «Pico claro», «Sube un poco», «No se nota», «No sube», «Sin historia propia»; «poca historia» con menos de tres años). **Falta el veredicto al cerrar la campaña en Resultados** («valió la pena»).
+- **Estado (2026-10-26):** construida y probada en local, **sin migración** (ADR-0525 y su «Actualización (b)»). En el Calendario: «Qué dice tu historia» por campaña con la misma vara del Historial, en la tienda con más historia y con
+  la mediana de los años que se pudieron medir (veredictos «Pico claro», «Sube un poco», «No se nota», «No sube», «Sin historia propia»; «poca historia» con menos de tres años). En Resultados, al terminar la campaña, la tarjeta
+  **«¿Subió la venta?»** compara esta vez con la mediana de los otros años («más / lo de siempre / menos que de costumbre») y lleva a la hoja de la campaña en el Calendario. Lo que no hace, y la tarjeta lo dice: no mide ganancia ni lo que sobró.
 - **Dónde:** columna «qué dice tu historia» en el calendario (reusa `fn_historial_ventas` y `medir`) y un veredicto en Resultados («valió la pena / no se nota»).
 - **Por qué:** es lo que te permite decidir #7 con datos.
 - **Cómo lo verificas tú:** Navidad dice ×2,0; Halloween ×0,85 «no sube»; AQP dice «1 año: poca historia».

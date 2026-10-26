@@ -10,6 +10,8 @@ import { RPC_PLAZO } from "@/lib/plan-compra-plazo";
 import { RPC_VERSIONES } from "@/lib/plan-compra-versiones";
 import { esFirmaDesconocida } from "@/lib/plan-compra-propuesta-guardada";
 import { RPC_RESULTADOS, campanaParaResultados } from "@/lib/plan-compra-resultados";
+import { SIN_EVIDENCIA, leerYMedirLaHistoria } from "@/lib/plan-compra-historia-servidor";
+import { historiaDelPlan, type HistoriaDelPlan } from "@/lib/plan-compra-veredicto";
 import { RPC_HISTORIAL, rangoDeCampana, rangoDelAnio, sumarDias, type EtiquetaHistorial } from "@/lib/plan-compra-historial";
 import { getPreparacionMotor, type LecturaMotor } from "@/lib/motor-demanda";
 
@@ -151,7 +153,7 @@ export async function getPlanCompra(planId?: string): Promise<{
  * Resultados (ADR-0372, C6): lo vendido en una campaña. Sin campaña válida en la URL, la que está en curso, si no la última terminada, si no la
  * próxima (`campanaParaResultados`). Si la base falla, lo dice.
  */
-export async function getResultadosPlan(planId?: string): Promise<{ datos: unknown; campanas: CampanasLeidas | null; falla: string | null; anterior: unknown; propuesta: unknown }> {
+export async function getResultadosPlan(planId?: string): Promise<{ datos: unknown; campanas: CampanasLeidas | null; falla: string | null; anterior: unknown; propuesta: unknown; historia: HistoriaDelPlan | null }> {
   const supabase = await createClient();
   const [planes, calendario] = await Promise.all([supabase.rpc(RPC_PLANES as never), supabase.rpc(RPC_CALENDARIO as never)]);
   if (planes.error) console.error(`${RPC_PLANES} (resultados): ${planes.error.message}`);
@@ -159,25 +161,36 @@ export async function getResultadosPlan(planId?: string): Promise<{ datos: unkno
   const campanas = planes.error ? null : conCalendario(leerCampanas(planes.data), calendario.error ? null : leerCalendario(calendario.data));
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
   const id = pedido ?? (campanas ? (campanaParaResultados(campanas.planes, hoyLima())?.id ?? null) : null);
-  if (!id) return { datos: null, campanas, falla: null, anterior: null, propuesta: null };
+  if (!id) return { datos: null, campanas, falla: null, anterior: null, propuesta: null, historia: null };
   // La misma campaña un año antes (Sinatra o ERP), en paralelo: da la forma de los días para «¿Cómo va?». Es una ayuda: si falla, los
   // días pesan igual. La propuesta (C4) trae lo que vendió cada categoría en esa campaña del año anterior, para el detalle de una fila:
   // también es una ayuda; si falla, el detalle dice que no hay con qué comparar.
   const fechas = campanas?.planes.find((p) => p.id === id);
-  const [r, anterior, propuesta] = await Promise.all([
+  // Solo una campaña TERMINADA tiene veredicto («¿subió la venta?», ADR-0525): leer toda la historia cuesta varias llamadas y mientras dura la campaña no hay nada que decir. Es una ayuda: si
+  // la lectura falla la pantalla lo dice y el resto de Resultados sigue igual.
+  const terminada = !!fechas && hoyLima() > fechas.hasta;
+  const [r, anterior, propuesta, lecturaHistoria] = await Promise.all([
     supabase.rpc(RPC_RESULTADOS as never, { p_plan_id: id } as never),
     fechas
       ? supabase.rpc(RPC_HISTORIAL as never, { p_desde: sumarDias(fechas.desde, -366), p_hasta: sumarDias(fechas.hasta, -365) } as never)
       : Promise.resolve({ data: null, error: null }),
     supabase.rpc(RPC_PROPUESTA as never, { p_plan_id: id } as never),
+    // Una ayuda nunca tumba la pantalla: si la lectura se cae del todo (no solo responde con error), el veredicto dice que no pudo medir.
+    terminada && campanas
+      ? leerYMedirLaHistoria(supabase, campanas).catch((e: unknown) => {
+          console.error(`historia de la campaña (resultados): ${e instanceof Error ? e.message : String(e)}`);
+          return SIN_EVIDENCIA;
+        })
+      : Promise.resolve(null),
   ]);
   if (r.error) {
     console.error(`${RPC_RESULTADOS}: ${r.error.message}`);
-    return { datos: null, campanas, falla: "No se pudieron leer los resultados de la campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", anterior: null, propuesta: null };
+    return { datos: null, campanas, falla: "No se pudieron leer los resultados de la campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", anterior: null, propuesta: null, historia: null };
   }
   if (anterior.error) console.error(`${RPC_HISTORIAL} (resultados): ${anterior.error.message}`);
   if (propuesta.error) console.error(`${RPC_PROPUESTA} (resultados): ${propuesta.error.message}`);
-  return { datos: r.data, campanas, falla: null, anterior: anterior.error ? null : anterior.data, propuesta: propuesta.error ? null : propuesta.data };
+  const historia = campanas && lecturaHistoria ? historiaDelPlan(campanas, id, lecturaHistoria) : null;
+  return { datos: r.data, campanas, falla: null, anterior: anterior.error ? null : anterior.data, propuesta: propuesta.error ? null : propuesta.data, historia };
 }
 
 /**

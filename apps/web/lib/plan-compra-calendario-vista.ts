@@ -46,6 +46,18 @@ export type CampanaDelCalendario = {
 export const claveDeCampana = (c: { etiquetaId: string | null; decisionId: string | null }): string => (c.etiquetaId !== null ? `e:${c.etiquetaId}` : `p:${c.decisionId}`);
 
 /**
+ * La llave de la campaña del calendario a la que pertenece un plan: la de su insignia o, si es de una campaña propia, la de su fila del calendario. null si el plan no es de ninguna
+ * (uno viejo, armado sin campaña): sin llave no hay historia que compararle.
+ */
+export function claveDeLaCampanaDelPlan(c: Pick<CampanasLeidas, "planes" | "calendario">, planId: string): string | null {
+  const plan = c.planes.find((p) => p.id === planId);
+  if (!plan) return null;
+  if (plan.etiquetaId) return claveDeCampana({ etiquetaId: plan.etiquetaId, decisionId: null });
+  const d = c.calendario?.decisiones.find((x) => x.etiquetaId === null && x.planes.some((p) => p.id === planId));
+  return d ? claveDeCampana({ etiquetaId: null, decisionId: d.id }) : null;
+}
+
+/**
  * Todas las campañas del calendario para un año, con lo que vale hoy de cada una. Sin calendario en las campañas (la base todavía no lo guarda), las de Insignias salen como
  * si no hubiera decisión y no hay propias: la pantalla dice que el calendario todavía no está disponible.
  */
@@ -108,7 +120,7 @@ export function campanasDelCalendario(c: CampanasLeidas, anio: number, hoy: stri
  * Lo que hace falta para medir la historia de cada campaña: su llave y cómo se lleva a cada año. Se mide con las fechas de VENTA (las de la insignia, con Día de la Madre
  * siguiendo a su domingo); una campaña que no las tiene (la insignia sin fechas, o una propia) usa las que le puso el calendario.
  */
-export function campanasAMedir(c: CampanasLeidas): { clave: string; fechasEn: (anio: number) => FechasDeCampana | null }[] {
+export function campanasAMedir(c: Pick<CampanasLeidas, "etiquetas" | "calendario">): { clave: string; fechasEn: (anio: number) => FechasDeCampana | null }[] {
   const decisiones = decisionesPorEtiqueta(c.calendario);
   return [
     ...c.etiquetas.map((e) => {

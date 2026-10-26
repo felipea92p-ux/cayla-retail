@@ -70,6 +70,66 @@
   font-weight: 650;
 }
 
+/* «¿Subió la venta?» de Resultados (ADR-0525, act. b): la misma barra de rango, sin el rótulo de la derecha y con ESTE año como un punto sobre la banda de los otros años. Debajo, tres
+   marcas de escala (×0.5, ×1 = un día normal, ×3) para leerla sin adivinar. */
+.cal-rng-este {
+  min-width: 0;
+}
+.cal-rng-punto {
+  position: absolute;
+  top: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--cal-c);
+  border: 3px solid var(--color-papel);
+  box-shadow: 0 0 0 1.5px var(--cal-c);
+  transform: translateX(-9px);
+}
+.cal-rng-escala {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 32px;
+  height: 14px;
+  font-size: 11px;
+  color: var(--color-taupe);
+  font-variant-numeric: tabular-nums;
+}
+.cal-rng-escala span {
+  position: absolute;
+  white-space: nowrap;
+}
+/* Lo mismo de la barra, en miniatura, para la leyenda: el punto de esta vez y la banda de los otros años. */
+.cal-leyenda-punto,
+.cal-leyenda-banda {
+  --cal-c: var(--color-taupe);
+  display: inline-block;
+  flex: none;
+}
+.cal-leyenda-punto[data-tono="verde"],
+.cal-leyenda-banda[data-tono="verde"] {
+  --cal-c: var(--color-verde);
+}
+.cal-leyenda-punto[data-tono="ambar"],
+.cal-leyenda-banda[data-tono="ambar"] {
+  --cal-c: var(--color-ambar);
+}
+.cal-leyenda-punto {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--cal-c);
+  border: 2px solid var(--color-papel);
+  box-shadow: 0 0 0 1px var(--cal-c);
+}
+.cal-leyenda-banda {
+  width: 22px;
+  height: 8px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--cal-c) 28%, transparent);
+}
+
 /* Una campaña que descansa: rayas suaves en su fila (lo dice también su chip: el color nunca es lo único). */
 .cal-fila[data-uso="pausada"] {
   background-image: repeating-linear-gradient(135deg, transparent 0 10px, color-mix(in srgb, var(--color-taupe) 7%, transparent) 10px 20px);

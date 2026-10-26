@@ -121,6 +121,38 @@ multiplicador hecho de datos a medias que parece verdadero. Se degrada así —e
 campaña que cruza el año, una pausada que regresa, «solo un año», quitar y restaurar con su autor, las puertas (el rol de la tienda ejecuta las seis, `anon` ninguna, quien no tiene el módulo recibe 42501 y
 no escribe), pegarla dos veces, y **cuatro interruptores a la vez** sobre la misma insignia con sesiones reales.
 
+## Actualización 2026-10-26 (b) — «¿Subió la venta?»: el veredicto de una campaña al cerrar (Resultados, tarea #8)
+
+**Lo que falta del #8.** El Calendario dice lo que dijo la historia de cada campaña; faltaba decir lo que pasó **ahora** al terminar una campaña. Resultados dice cuánto se vendió y cómo cerró el stock, pero
+no contesta lo que decide el año que viene: ¿esta campaña movió la venta o vendió lo de un día cualquiera?
+
+1. **Una tarjeta arriba del cierre, solo cuando la campaña terminó** (`VeredictoDeLaCampana.tsx`): «Día de la Madre 2026 vendió ×1.7 un día normal», el veredicto con las palabras del Calendario (Pico claro ·
+   Sube un poco · No se nota · No sube), lo que subió en los otros años (mediana, menor y mayor) y «Esta vez rindió más que de costumbre / lo de siempre / menos que de costumbre». Una barra muestra los otros años
+   como una banda con su mediana y **esta vez como un punto**. Un enlace «Decidir en el Calendario» abre la hoja de esa campaña (`?hoja=<clave>`) para quedarse con ella, pausarla o dejarla.
+2. **La misma cuenta, no una segunda:** este año es una de las filas de la historia que ya midió el Calendario (`porAnio`) y «los otros años» son las demás; las dos pantallas leen con un solo módulo
+   (`plan-compra-historia-servidor.ts`) y dicen el mismo número. Compara con la **mediana** de los otros años y con una franja de **15 %** («lo de siempre» dentro de ella): `UMBRAL_DE_COMPARACION`.
+3. **El año de la campaña sale de las fechas con que se toca el plan**, no solo de cuándo termina el plan: un plan que acomodó su ventana (11–25 de dic) de una insignia que cruza el año (1 dic – 6 ene)
+   se mide en la campaña de ese diciembre y no en la Navidad pasada (`historiaDelPlan`; probado).
+4. **Se lee solo para una campaña terminada** y en paralelo con el resto de Resultados (varias llamadas de hasta 1200 días: no se paga mientras la campaña dura). Un plan sin campaña (uno viejo, armado sin
+   insignia ni fila del calendario) no tiene historia que compararle y no muestra la tarjeta.
+
+```
+DECIDÍ:     un veredicto de UNA pregunta —¿subió la venta, y más o menos que de costumbre?— con la cuenta del Calendario, y que diga con todas sus letras lo que NO mide (ganancia, margen, lo que sobró).
+DESCARTÉ:   (a) un «valió la pena» de una sola palabra: mezclaría la venta, el stock que sobró y la rebaja en un número que no se puede discutir, y de las tres cosas solo la primera se compara con años anteriores;
+            (b) comparar con el promedio: un año de tiendas cerradas (2020) arrastraría la cuenta de los demás; (c) reusar el «×N un día normal» por tienda de Resultados: ese es en PRENDAS (alimenta la propuesta del
+            año que viene) y el del Calendario en SOLES de la tienda de más historia; dos números con el mismo nombre en una pantalla confunden, así que la tarjeta dice «en soles» y su «!» explica por qué pueden no coincidir.
+SE ROMPE SI: los 60 días de antes incluyen otra campaña (Black Friday antes de Navidad): «un día normal» sale más alto y el número más bajo (la «!» lo dice, pero la cuenta no lo corrige); o si el año
+            tuvo un evento que el sistema no ve (tiendas cerradas, un local nuevo): el número sale raro y la tarjeta solo puede señalarlo, no explicarlo; o si la tienda de referencia no tiene ventas
+            cargadas en las fechas (el ERP lleva pocas semanas y la historia previa se corta): dice «no se pudo medir» y no inventa.
+```
+
+**Caída externa.** Si la lectura de la historia falla —se cae del todo o una ventana responde con error—, la tarjeta lo dice («No se pudo leer tu historia ahora…») y el resto de Resultados sigue igual: una ayuda
+nunca tumba la pantalla. **Sin migración:** todo se calcula al leer.
+
+**Una objeción que queda en pie** (Brooks: dos partes resuelven lo mismo de dos formas): Resultados mide «×N un día normal» por tienda en **prendas** y el Historial y el Calendario en **soles**. Responden preguntas
+distintas (cuántas prendas pedir, cuánta plata mueve) y las dos son defendibles, pero se llaman igual. Esta tarjeta no las unifica: dice cuál es la suya. Unificarlas, o rotular la de Resultados «en prendas», es
+decisión de Felipe.
+
 ## Lo que viene (no está en este cambio)
 
 La historia por campaña **al cierre** (el veredicto de «¿valió la pena?» en Resultados, tarea #8), el Paso 2 por colores y tallas, el ranking de modelos, «Enviar a Compras» y Finanzas ▸ Inversión en mercadería
