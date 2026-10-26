@@ -7,4 +7,6 @@
 - [ ] **No está en producción:** pegar `supabase/migrations/20261026172000_proveedores_ventas_diarias.sql` (una parte, solo lectura, re-pegable) con el OK de Felipe, y refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`). Sin ella la web funciona, pero sin la línea de ventas.
 - [ ] **Actividad 6:** la talla que se acaba y la sede que rinde, en la vista rápida y en la fila «Talla que se acaba» de la comparación. Depende de `fn_proveedor_tallas_sedes` (rama `claude/proveedores-module-analysis-c73c2c`, sin PR).
 - [ ] **Sin probar con datos reales:** en local solo 2 proveedores tienen compras; el «↑ 2» al cambiar de medida, el «Ver los que faltan» (más de 20) y la comparación de 3 están cubiertos por pruebas, no vistos en pantalla.
-- [ ] `/formidable` y `/abrir-pr` al cerrar la obra.
+- [x] `/formidable` corrido (`docs/formidable/compras-proveedores.md`): leyes 6,1 · oficio 7; los 3 cambios esperan el OK de Felipe. Contraste claro/oscuro: 0 hallazgos en 5 estados.
+- [ ] **Ventas contadas dos veces (de Felipe):** `fn_proveedor_prendas_base` (`20261024231000`, en producción) y `fn_proveedores_ventas_diarias` cruzan lo vendido y el stock solo por prenda: una prenda que trajeron dos proveedores le suma sus ventas enteras a los dos. Propuesta: repartir por lo que entregó cada uno, con migración y prueba de Postgres.
+- [ ] `/abrir-pr` al cerrar la obra.
