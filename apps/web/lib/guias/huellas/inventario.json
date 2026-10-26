@@ -141,7 +141,7 @@
       "button «existencias.cajon-ajustar»",
       "Volver «→onVolver»",
       "button «→() => elegirLugar(u)»",
-      "button «{cerrado ?? x.ayuda}»",
+      "Desplegable «{control.motivo}»",
       "CampoTexto «{m.nota.etiqueta}»",
       "Boton «{control.problema ? (guia.frase ?? undefined) : undefined}»",
       "Boton «Descartar y pasar»",
