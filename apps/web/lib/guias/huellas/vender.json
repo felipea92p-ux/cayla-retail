@@ -196,7 +196,7 @@
       "button «{`Pasar a ${p.nombre}»",
       "button «{`Descartar el ticket de ${p.nombre}» #2",
       "button «Nueva cliente» #2",
-      "button «{p.nombre}»",
+      "button «(sin nombre)»",
       "button «{`Descartar el ticket de ${p.nombre}» #3",
       "Boton «Cancelar»",
       "Boton «Descartar ticket»",

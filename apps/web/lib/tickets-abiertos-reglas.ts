@@ -122,6 +122,20 @@ export function quitarDeLaEspera<T extends { id: string }>(
   return { espera: enEspera.filter((t) => t.id !== id), posActivo: posActivo === null ? null : i < p ? p - 1 : p };
 }
 
+/** Cuánto espera un ticket antes de que su pestaña pida que se acuerden de él (Felipe, 2026-10-25). Un probador tarda 5–10 min:
+ *  antes sería ruido (con varias clientas esperando, todas latiendo a la vez no avisan de ninguna). */
+const MINUTOS_PARA_RECORDAR = 5;
+
+/**
+ * ¿Lleva este ticket tanto rato esperando que conviene recordarlo? Solo cuenta el que ESPERA (`creadoEn` = cuándo se dejó): el de la
+ * caja lo está mirando la cajera. Una fecha ausente, rota o del futuro no recuerda nada: peor un aviso falso que ninguno.
+ */
+export function ticketOlvidado(creadoEn: string | null, ahora: number): boolean {
+  if (!creadoEn) return false;
+  const desde = Date.parse(creadoEn);
+  return Number.isFinite(desde) && ahora - desde >= MINUTOS_PARA_RECORDAR * 60_000;
+}
+
 /** ¿Puede abrirse otro ticket? El de la caja cuenta: con 9 abiertos no cabe uno más. */
 export function cabeOtroTicket(enEspera: number): boolean {
   return enEspera + 1 < TOPE_TICKETS_ABIERTOS;

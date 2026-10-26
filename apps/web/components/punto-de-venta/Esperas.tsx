@@ -5,7 +5,7 @@ import { Check, ChevronDown, CirclePause, Plus, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { Boton } from "@/components/ui/campos";
-import type { PestanaDeTicket } from "@/lib/tickets-abiertos-reglas";
+import { ticketOlvidado, type PestanaDeTicket } from "@/lib/tickets-abiertos-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { haceCuanto, NOMBRE_ESPERA_MAX, sugerenciasLibresDeEspera } from "@/lib/vender-hoy-reglas";
 
@@ -104,7 +104,11 @@ export function TiraDeTickets({
         >
           <b className="min-w-0 truncate font-semibold">{activa?.nombre}</b>
           <span className="shrink-0 tabular-nums text-tinta/60">S/{(activa?.total ?? 0).toFixed(2)}</span>
-          <span className="ml-auto shrink-0 text-tinta/60">
+          {/* Con la lista cerrada no se ve cuál espera: el punto del selector avisa que alguna lleva rato (late) o que hay quien espera. */}
+          {pestanas.some((p) => !p.esActivo) && (
+            <PuntoDeEspera olvidado={pestanas.some((p) => ticketOlvidado(p.creadoEn, ahora))} className="ml-auto" />
+          )}
+          <span className={`shrink-0 text-tinta/60 ${pestanas.some((p) => !p.esActivo) ? "" : "ml-auto"}`}>
             {indice + 1} de {pestanas.length}
           </span>
           <ChevronDown className="h-4 w-4 shrink-0 text-tinta/60" aria-hidden />
@@ -197,6 +201,7 @@ export function TiraDeTickets({
                 title={`Pasar a ${p.nombre}${p.creadoEn ? ` · lo dejaste ${haceCuanto(p.creadoEn, ahora)}` : ""}`}
                 className="inline-flex h-full max-w-[11rem] items-center gap-1.5 rounded-l-full pl-3 pr-1.5 transition-colors hover:bg-sand/40"
               >
+                <PuntoDeEspera olvidado={ticketOlvidado(p.creadoEn, ahora)} />
                 <b className="min-w-0 truncate font-semibold">{p.nombre}</b>
                 <span className="shrink-0 tabular-nums text-tinta/60">S/{p.total.toFixed(2)}</span>
               </button>
@@ -227,6 +232,20 @@ export function TiraDeTickets({
         {pestanas.length < 3 && "Nueva cliente"}
       </button>
     </div>
+  );
+}
+
+/**
+ * El punto de un ticket que ESPERA: fijo, ámbar, «aquí hay algo sin atender». Pasados 5 minutos (`ticketOlvidado`) late suave con la
+ * misma pieza del resto del ERP (`punto-vivo`: la de «Atrasadas»), que se detiene con movimiento reducido: es una señal, no adorno
+ * (ADR-0136). Solo late el que lleva rato: con todos latiendo a la vez ninguno avisaría de nada.
+ */
+function PuntoDeEspera({ olvidado, className = "" }: { olvidado: boolean; className?: string }) {
+  return (
+    <>
+      <span aria-hidden data-olvidado={olvidado ? "" : undefined} className={`h-1.5 w-1.5 shrink-0 rounded-full bg-ambar ${olvidado ? "punto-vivo" : ""} ${className}`} />
+      {olvidado && <span className="sr-only">lleva rato esperando</span>}
+    </>
   );
 }
 
@@ -264,6 +283,7 @@ function ListaDeTicketsModal({
                 }}
                 className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-2xl px-4 py-2 text-left"
               >
+                {!p.esActivo && <PuntoDeEspera olvidado={ticketOlvidado(p.creadoEn, ahora)} />}
                 <span className="min-w-0 flex-1">
                   <b className="block truncate text-sm font-semibold">{p.nombre}</b>
                   <span className={`block text-xs ${p.esActivo ? "text-crema/70" : "text-tinta/60"}`}>
