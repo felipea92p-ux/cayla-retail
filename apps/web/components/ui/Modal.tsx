@@ -69,7 +69,9 @@ type Props = {
       las opciones, abajo los botones— queda siempre a la vista y solo se desliza lo que el contenido decida (una tabla). Hoy: «Ajustar
       stock» en el modal de la prenda de Existencias (Felipe 2026-10-26, ronda 2 de la «Planilla rápida»). Lo de adentro pone su
       `min-h-0` y su `overflow-auto`; si nada lo hace, se corta. Es `overflow: clip` y no `hidden`: una caja `hidden` igual se deja desplazar
-      por código o cuando el navegador lleva un campo a la vista, y quedaba corrida sin forma de volver (/chaos 2026-10-26, H1). */
+      por código o cuando el navegador lleva un campo a la vista, y quedaba corrida sin forma de volver (/chaos 2026-10-26, H1).
+      Solo desde 640 px: en el celular la hoja se desliza entera, como cualquier otra, con su pie pegado abajo (`pie-hoja-fijo`). Repartir
+      90 dvh entre título, opciones, avisos y pie dejaba la tabla en una fila (Felipe 2026-10-26); lo de adentro se pone su propio tope. */
   altoFijo?: boolean;
   /** La cara de toda hoja es UNA desde el 2026-10-14 (ADR-0358, ronda 12, Felipe eligió P1): el panel en `papel` con borde fino y SIN
       sombra —la profundidad la da el velo—, el título serif de 24 px y la frase en taupe, la de Finanzas (spike 2026-09-24) y Gasto
@@ -243,7 +245,7 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
                     // que corre no arrastra a la página de atrás al llegar al final (`overscroll-contain`, ADR-0479). Con
                     // `viewport-fit=cover` la hoja llega a la barrita del iPhone: suma ese margen abajo y el pie pegado
                     // (`.pie-hoja-fijo`, que lee `--borde-abajo`) lo absorbe igual que absorbe el `p-6` (ADR-0479, actividad 9).
-                    `${altoFijo ? "flex flex-col overflow-clip" : "scroll-cayla overflow-y-auto"} max-h-[min(90dvh,90%)] rounded-t-2xl border border-sand bg-papel p-6 [--fondo-hoja:var(--color-papel)] max-sm:overscroll-contain max-sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-sm:[--borde-abajo:env(safe-area-inset-bottom)] sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
+                    `${altoFijo ? "scroll-cayla overflow-y-auto sm:flex sm:flex-col sm:overflow-clip" : "scroll-cayla overflow-y-auto"} max-h-[min(90dvh,90%)] rounded-t-2xl border border-sand bg-papel p-6 [--fondo-hoja:var(--color-papel)] max-sm:overscroll-contain max-sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-sm:[--borde-abajo:env(safe-area-inset-bottom)] sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
             } ${
               cerrando ? (salidaPropia ? "" : "anim-modal-sale") : "anim-modal-entra"
             } cascada-modal${lateral ? " hoja-con-lateral" : ""}`}
