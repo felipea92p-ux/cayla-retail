@@ -413,7 +413,7 @@ export const GUIA_VITRINA: Guia = {
       ancla: "vitrina.interruptor",
       opcional: true,
       titulo: "Mostrar u ocultar",
-      texto: "Préndelo para mostrar el modelo en la web y apágalo para ocultarlo. Antes te pide confirmar quién lo hace. Ocultar no borra nada. Las bolsas y el empaque no van en la web («Solo en la caja»): se venden desde el ticket.",
+      texto: "Préndelo para mostrar el modelo en la web y apágalo para ocultarlo. Si ya se sabe quién lo hace, se aplica al momento y el aviso trae «Deshacer»; si no, te pide quién. Ocultar no borra nada. Las bolsas y el empaque no van en la web («Solo en la caja»): se venden desde el ticket.",
     },
     {
       id: "abrir",

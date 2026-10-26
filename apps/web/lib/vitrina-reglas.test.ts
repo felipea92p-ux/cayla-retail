@@ -7,6 +7,7 @@ import {
   descripcionParaGuardar,
   errorDeVitrina,
   esEmpaque,
+  aplicaSinHoja,
   avisoDeLote,
   esEncendidoSinPrecio,
   filtrarVitrina,
@@ -321,6 +322,26 @@ describe("mostrar u ocultar: lo que le pasa a cada uno (lo mismo que hace `vitri
     expect(queLePasa(emma, "ocultar")).toEqual({ texto: "Deja de verse", cambia: true });
     expect(queLePasa(oculto, "ocultar")).toMatchObject({ cambia: false });
     expect(queLePasa(nunca, "ocultar")).toMatchObject({ cambia: false });
+  });
+});
+
+describe("el interruptor de un modelo: cuándo aplica sin hoja (ADR-0161, con «Deshacer»)", () => {
+  const nunca = modelo({ vitrina: null });
+  it("con responsable resuelto y un cambio real, aplica al momento (mostrar y ocultar)", () => {
+    expect(aplicaSinHoja(nunca, "mostrar", 10, true)).toBe(true);
+    expect(aplicaSinHoja(emma, "ocultar", 10, true)).toBe(true);
+  });
+  it("sin responsable resuelto abre la hoja, como siempre", () => {
+    expect(aplicaSinHoja(nunca, "mostrar", 10, false)).toBe(false);
+    expect(aplicaSinHoja(emma, "ocultar", 10, false)).toBe(false);
+  });
+  it("si no cambia nada, la hoja explica por qué (ya se ve, no se puede mostrar)", () => {
+    expect(aplicaSinHoja(emma, "mostrar", 10, true)).toBe(false);
+    expect(aplicaSinHoja(modelo({ publicable: false, vitrina: null }), "mostrar", 10, true)).toBe(false);
+  });
+  it("si ocultarlo deja la tienda online sin modelos, abre la hoja con su aviso", () => {
+    expect(aplicaSinHoja(emma, "ocultar", 1, true)).toBe(false);
+    expect(aplicaSinHoja(emma, "ocultar", 2, true)).toBe(true);
   });
 });
 

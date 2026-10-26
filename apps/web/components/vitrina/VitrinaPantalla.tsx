@@ -7,6 +7,7 @@ import { CircleCheck, LayoutGrid, List, MonitorSmartphone, SearchX, Shirt, Spark
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
+import { avisar } from "@/components/ui/Avisos";
 import { Casilla } from "@/components/ui/Casilla";
 import { Chip } from "@/components/ui/Chip";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
@@ -22,9 +23,12 @@ import { Encabezado, Tabla, fila } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { useAnchoDe } from "@/components/ui/useAnchoDe";
 import { paginar } from "@/lib/paginacion";
+import { useResponsable } from "@/lib/useResponsable";
+import { mostrarModelos } from "@/lib/vitrina-escritura";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { Vacio } from "@/components/ui/Vacio";
 import {
+  aplicaSinHoja,
   categoriasDe,
   cifrasDe,
   coloresSinFoto,
@@ -202,6 +206,44 @@ export function VitrinaPantalla({
 
   const alternarFiltro = (f: FiltroVitrina) => cambiarEstado(filtro === f ? "todos" : f);
   const alternar = (id: string) => setElegidos((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+
+  // El interruptor de un modelo (ADR-0161, Felipe 2026-10-26): si ya se sabe quién firma (`responsable.listo`: Admin, o la persona de la sesión
+  // que está de turno) se aplica al momento y el aviso trae «Deshacer»; si no, abre la hoja con el combo «Responsable», como antes. La hoja
+  // también sigue cuando el cambio no hace nada (ella explica por qué) o cuando deja la tienda sin modelos o casi (su aviso, `avisoDeLote`).
+  const responsable = useResponsable();
+  const enVuelo = useRef(new Set<string>());
+  const alInterruptor = (m: ModeloVitrina) => {
+    const modo: ModoLote = m.vitrina?.publicado ? "ocultar" : "mostrar";
+    if (!aplicaSinHoja(m, modo, cifras.seVen, responsable.listo)) {
+      setLote({ modo, ids: [m.id] });
+      return;
+    }
+    void aplicarSinHoja(m, modo);
+  };
+  const aplicarSinHoja = async (m: ModeloVitrina, modo: ModoLote) => {
+    if (enVuelo.current.has(m.id)) return;
+    enVuelo.current.add(m.id);
+    const r = await mostrarModelos(responsable, [m.id], modo === "mostrar");
+    enVuelo.current.delete(m.id);
+    if (!r.ok) {
+      avisar.error(r.titulo, r.detalle ? { detalle: r.detalle } : undefined);
+      return;
+    }
+    router.refresh();
+    avisar.exito(`${m.nombre} ${modo === "mostrar" ? "ya se ve en la web" : "ya no se ve en la web"}`, {
+      accion: { texto: "Deshacer", onClick: () => void deshacerSinHoja(m, modo) },
+    });
+  };
+  // Deshacer es volver a llamar con lo contrario (`vitrina_mostrar` es idempotente y firma con el mismo responsable).
+  const deshacerSinHoja = async (m: ModeloVitrina, modo: ModoLote) => {
+    const r = await mostrarModelos(responsable, [m.id], modo !== "mostrar");
+    if (!r.ok) {
+      avisar.error(r.titulo, r.detalle ? { detalle: r.detalle } : undefined);
+      return;
+    }
+    router.refresh();
+    avisar.exito(`${m.nombre} quedó como estaba`);
+  };
 
   const actualizar = (nuevo: ModeloVitrina) => {
     setModelos((ms) => ms.map((m) => (m.id === nuevo.id ? nuevo : m)));
@@ -382,7 +424,7 @@ export function VitrinaPantalla({
                 elegido={elegidos.includes(m.id)}
                 onElegir={() => alternar(m.id)}
                 onAbrir={() => setAbierto(m.id)}
-                onInterruptor={() => setLote({ modo: m.vitrina?.publicado ? "ocultar" : "mostrar", ids: [m.id] })}
+                onInterruptor={() => alInterruptor(m)}
               />
             ))}
           </ul>
@@ -420,7 +462,7 @@ export function VitrinaPantalla({
                 elegido: elegidos.includes(m.id),
                 onElegir: () => alternar(m.id),
                 onAbrir: () => setAbierto(m.id),
-                onInterruptor: () => setLote({ modo: m.vitrina?.publicado ? ("ocultar" as const) : ("mostrar" as const), ids: [m.id] }),
+                onInterruptor: () => alInterruptor(m),
               };
               return modoLista === "columnas" ? <FilaColumnas key={m.id} {...comunes} /> : <FilaModelo key={m.id} {...comunes} />;
             })}

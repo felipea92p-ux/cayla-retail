@@ -370,6 +370,13 @@ export function avisoDeLote(modo: ModoLote, elegidos: readonly ModeloVitrina[], 
   return null;
 }
 
+/** ¿El interruptor de UN modelo puede aplicarse sin abrir la hoja? Solo con un responsable ya resuelto (`responsable.listo`: ADR-0161, quien firma
+ *  es el Admin o la persona de la sesión que está de turno), si el cambio de verdad cambia algo (si no, la hoja explica por qué) y si no deja la
+ *  tienda online sin modelos o casi (el aviso de la hoja). Todo lo demás abre la hoja, como antes. Aplicar sin hoja trae «Deshacer». */
+export function aplicaSinHoja(m: ModeloVitrina, modo: ModoLote, seVenAhora: number, responsableListo: boolean): boolean {
+  return responsableListo && queLePasa(m, modo).cambia && avisoDeLote(modo, [m], seVenAhora) === null;
+}
+
 /* ---------------- Lo que dice la base ---------------- */
 
 /** Los rechazos de la vitrina en palabras de tienda; `releer`: la pantalla está vieja y conviene recargar. `null` si no es de aquí. */
