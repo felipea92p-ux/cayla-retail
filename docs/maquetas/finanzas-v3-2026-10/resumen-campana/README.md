@@ -27,14 +27,33 @@ Pedido de Felipe: que el Plan de campaña ayude a decidir **qué comprar, cuánt
 | Tope de inversión, firmado | sí (ADR-0372 B2) | — |
 | Cuánto va pedido (órdenes) y pagado | pedido sí (`plan_compra_lo_pedido_en_ordenes`) | pagado: leerlo de Por pagar |
 | Hasta cuándo pedir | sí (ADR-0499) | — |
-| **Cómo piensas pagarlo:** lista de (fecha, %) | no | **sí** (guardar con el plan, firmado) |
-| **¿Se ve en el Resumen?** | no | **sí** (por campaña, por defecto sí) |
+| **Cómo piensas pagarlo:** lista de (fecha, %), con IGV o sin él | no | **sí** (guardar con el plan, firmado; la base exige que sume 100 %) |
+| **¿Se ve en el Resumen?** | no | **sí** (por campaña, por defecto sí) + un interruptor general de Finanzas |
 
 **Regla anti doble conteo (lente de conjuntos):** cada sol del plan está en **una** sola etapa: `plan = pagado + pedido sin pagar + falta pedir`. Lo ya facturado vive en
 Por pagar y en el flujo de caja; la compra planificada solo cuenta lo que **aún no se pidió**. Al pedirse, sale del plan y entra al flujo, no en los dos a la vez.
 (Igual que el *open-to-buy* de SAP: el presupuesto de compra baja cuando se crea la orden.)
 
 **Si el Plan no responde:** el bloque dice «No se pudo leer el plan de campaña» y la caja sigue con lo que ya sabía; nunca un S/ 0 que parezca un dato.
+
+## Lo que aprendí del otro chat (sus spikes ya están en `docs/maquetas/plan-campana-vision-2026-10/`, sin commitear)
+
+Su spike ⑤ «Finanzas» y el mío llegaron al mismo punto sin hablar: **«No es un gasto: es un compromiso de compra»**, con interruptor «Mostrar esta campaña» y la compra en la caja. Diferencias a resolver:
+
+| | Este spike | El del Plan | Qué conviene |
+|---|---|---|---|
+| Nombre | «Compras de campaña» | «Compromiso de compra» | Mismo concepto; un solo nombre en las dos pantallas. «Compromiso» es exacto; «compras» se entiende más rápido. Lo elige Felipe mirando. |
+| Cómo se arma el pago | lista de pagos (fecha, %) | **tandas de pedido × forma de pago** (contado, 30, 60 días, anticipo) | Se guarda la lista de pagos (decidido); la pantalla del Plan la arma con tandas y formas. |
+| **IGV** | **no lo conté** | sí, con interruptor (18 %) | **Tienen razón:** de la caja sale el monto con IGV; ese IGV vuelve como crédito fiscal en la declaración siguiente. En el Resumen la compra se cuenta **con IGV** y lo dice. |
+| Dónde se ve | Resumen + caja | Reportes ▸ Flujo de caja (12 semanas) | Los dos: es la misma lista de pagos leída por dos pantallas. |
+
+## Reparto de trabajo (para no pisarnos)
+
+| De quién | Qué |
+|---|---|
+| **Plan de campaña** (el otro chat) | Guardar la lista de pagos y el «se ve en el Resumen» por campaña; la función que las lee; la pantalla donde se arma. |
+| **Finanzas ▸ Resumen** (este chat) | El bloque «Compras de campaña», la compra planificada en «Tu caja» (con IGV, como capa distinta de las facturas), y el interruptor general. Se construye contra un contrato y **no ofrece nada hasta que la base lo confirme** (la «marca soportado» del ADR-0499). |
+| De Felipe | Pegar en producción cualquier migración, y el nombre. |
 
 ## Decisiones (protocolo de `/decide`)
 
@@ -51,10 +70,16 @@ DESCARTÉ:   mostrarla como un gasto del mes: duplicaría el costo (se contaría
 SE ROMPE SI: una compra de campaña se paga en un mes y se vende en otro y la persona compara «Te deja» con lo que gastó: el bloque lo explica con «¿Por qué no es un gasto?» (pestaña 5).
 ```
 
-### Lo que hay que preguntarte
-1. **¿Quién se puede ocultar?** A) un interruptor por campaña **y** uno general (recomendado: es lo que pediste, y apagar Cyber no apaga Navidad); B) solo el general; C) solo por campaña.
-   *Si no respondes, ejecuto A.* Va firmado (quién y cuándo), como el tope de inversión. Ocultar no borra nada.
-2. **¿Se guarda cómo piensas pagar?** A) sí, como lista (fecha, %) dentro del plan (recomendado); B) no se guarda: solo se simula en pantalla. *Si no respondes, ejecuto B* (reversible; nada toca la base).
+### Decidido por Felipe (2026-10-26)
+1. **Opción A: un interruptor por campaña y uno general.** Va firmado (quién y cuándo), como el tope de inversión. Ocultar no borra nada: la campaña sigue en el Plan y en Compras.
+   Apagado el general, el bloque no aparece y la caja no cuenta lo que **aún no se pidió**; lo ya pedido y por pagar sigue en Por pagar. Por defecto, todo se ve.
+2. **Sí se guarda en el plan cómo se piensa pagar: una lista de (fecha, %).** Es lo que Finanzas lee para la caja. La interfaz puede ayudar a armarla (tandas de pedido, «a 30 días», anticipos),
+   pero lo que se guarda son los **pagos**, no la forma de armarlos: si mañana cambia la pantalla del Plan, Finanzas no se entera.
+   ```
+   DECIDÍ:     guardar la lista de pagos (fecha, %) con su autor y hora, dentro del plan.
+   DESCARTÉ:   guardar las «tandas con forma de pago» y calcular los pagos al leer: acopla a Finanzas con cómo está armada la pantalla del Plan; un cambio de allá movería la caja de acá.
+   SE ROMPE SI: la lista no suma 100 % o tiene una fecha anterior al pedido: la base lo rechaza (CHECK), no la pantalla.
+   ```
 
 ## Lo que cambió el diseño por `/rigor`
 

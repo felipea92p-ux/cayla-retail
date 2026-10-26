@@ -104,3 +104,17 @@ los bloques» pasa a usar solo los bloques y lo dice).
 **Lo que se descartó a propósito:** mostrar la meta por día de cada sede como la «meta del mes» (`fn_rendimiento_serie` termina en hoy, así que solo cubre hasta hoy; en
 el equilibrio solo entra la meta del mes del presupuesto) y un equilibrio sin gastos registrados (`motivoSinEquilibrio` lo corta y manda a Gastos). Los cien cuadros son
 una pieza nueva: si Felipe quiere que sea la de la familia «proporción de cien», entra a `docs/unificar/` en su ronda; hoy es local del Resumen.
+
+## Actualización 2026-10-26 (b) — La compra de una campaña en el Resumen (decidido por Felipe)
+
+Spike y contrato con el Plan de campaña en `docs/maquetas/finanzas-v3-2026-10/resumen-campana/`. Decidido:
+
+1. **La compra de una campaña NO es un gasto: es plata comprometida** (inventario hasta que se vende; NIC 2 y el Balance del ERP). Entra al Resumen por un bloque propio y por la caja, nunca dentro de «Te deja».
+   La publicidad de la campaña, la comisión de tarjeta y el descuento sí son gasto de campaña.
+2. **Se puede ocultar con un interruptor por campaña y uno general** (opción A). Por defecto todo se ve. Va firmado y no borra nada. Apagado el general, la caja no cuenta lo que aún no se pidió.
+3. **Se guarda en el plan cómo se piensa pagar: una lista de (fecha, %)**, con autor y hora; la base exige que sume 100 %. Se guardan los pagos y no las tandas con forma de pago, para que un cambio de la pantalla del Plan no mueva la caja.
+4. **En la caja la compra sale con IGV** (el crédito fiscal vuelve en la declaración siguiente). Lo vio primero la sesión del Plan; este spike no lo había contado.
+
+**DECIDÍ:** el Resumen lee la campaña a través de un contrato del Plan y no ofrece nada hasta que la base lo confirme (la «marca soportado» del ADR-0499). **DESCARTÉ:** que el Resumen calcule la compra por su cuenta desde
+las órdenes y el plan: dos fuentes para «cuánto vamos a comprar». **SE ROMPE SI:** el Plan y Finanzas llaman distinto al mismo concepto («Compromiso de compra» contra «Compras de campaña»): el nombre se elige mirando y es uno solo.
+
