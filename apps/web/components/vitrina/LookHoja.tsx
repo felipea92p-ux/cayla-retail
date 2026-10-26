@@ -6,10 +6,10 @@ import { X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, Campo, CampoSelect, CampoTexto, Desplegable, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
-import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { ElegirPrendasLook } from "@/components/vitrina/ElegirPrendasLook";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { createClient } from "@/lib/supabase/client";
@@ -17,6 +17,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { traducirError } from "@/lib/error-escritura";
 import { camposDeLook } from "@/lib/vitrina-looks-guia";
+import { ideasParaLook, ventanaDeIdeas } from "@/lib/vitrina-looks-ideas";
 import {
   colorInicial,
   errorDeLook,
@@ -27,7 +28,7 @@ import {
   MAX_FRASE_LOOK,
   MAX_NOMBRE_LOOK,
   MAX_PRENDAS_LOOK,
-  modelosParaAgregar,
+  MIN_PRENDAS_LOOK,
   nombreLimpio,
   opcionesDeLugar,
   piezasElegidasDe,
@@ -46,6 +47,7 @@ import {
 export function LookHoja({
   look,
   modelos,
+  looks,
   cuantos,
   onClose,
   onGuardado,
@@ -54,6 +56,8 @@ export function LookHoja({
   look: Look | null;
   /** Los modelos que se ven en la web: los únicos que se pueden agregar. */
   modelos: ModeloParaLook[];
+  /** Todos los looks de hoy: de ahí salen los nombres y las frases que las ideas no deben repetir. */
+  looks: Look[];
   /** Cuántos looks hay hoy (para los lugares que se pueden elegir). */
   cuantos: number;
   onClose: () => void;
@@ -68,9 +72,10 @@ export function LookHoja({
   const [piezas, setPiezas] = useState<PiezaElegida[]>(look ? piezasElegidasDe(look) : []);
   const lugarInicial = look ? look.lugar : cuantos + 1;
   const [lugar, setLugar] = useState(lugarInicial);
-  // Cada vez que se agrega una prenda, el combo vuelve a quedar vacío (se monta de nuevo).
-  const [vuelta, setVuelta] = useState(0);
   const [guardando, setGuardando] = useState(false);
+  // «Otras ideas»: cuántas veces se pidieron, para correr la ventana de tres.
+  const [vueltaNombre, setVueltaNombre] = useState(0);
+  const [vueltaFrase, setVueltaFrase] = useState(0);
   // Un doble clic no manda dos veces: el estado de React llega tarde dentro de un mismo clic.
   const enVuelo = useRef(false);
 
@@ -83,14 +88,28 @@ export function LookHoja({
     camposDeLook({ nombre, frase, prendas: piezas.length, publicado, noSeVen, responsableListo: responsable.listo, responsableMotivo: responsable.motivo }),
   );
   const sinCambios = lookSinCambios(look, { nombre, frase, publicado, piezas, lugar });
-  const paraAgregar = modelosParaAgregar(modelos, piezas);
+  const idsElegidos = new Set(piezas.map((p) => p.productoId));
+  // Ideas de nombre y de frase según lo elegido (`lib/vitrina-looks-ideas.ts`): sin repetir ni parecerse a lo de los demás looks.
+  const otros = looks.filter((l) => l.id !== look?.id);
+  const ideas = ideasParaLook(
+    piezas.map((pz) => {
+      const m = porId.get(pz.productoId);
+      const antes = guardadas.get(pz.productoId);
+      return {
+        clave: m?.prefijo ?? antes?.prefijo ?? m?.categoria ?? antes?.categoria ?? null,
+        familia: m?.familia ?? antes?.familia ?? null,
+        color: m?.colores.find((c) => c.codigo === pz.color)?.nombre ?? antes?.color.nombre ?? null,
+      };
+    }),
+    { nombres: otros.map((l) => l.nombre), frases: otros.map((l) => l.frase) },
+  );
 
   const agregar = (id: string) => {
     const m = porId.get(id);
     if (!m || piezas.length >= MAX_PRENDAS_LOOK || piezas.some((p) => p.productoId === id)) return;
     setPiezas((ps) => [...ps, { productoId: id, color: colorInicial(m) }]);
-    setVuelta((v) => v + 1);
   };
+  const quitarPorId = (id: string) => setPiezas((ps) => ps.filter((p) => p.productoId !== id));
   const cambiarColor = (i: number, color: string) => setPiezas((ps) => ps.map((p, k) => (k === i ? { ...p, color } : p)));
   const quitar = (i: number) => setPiezas((ps) => ps.filter((_, k) => k !== i));
 
@@ -137,11 +156,13 @@ export function LookHoja({
       subtitulo="El cliente lo ve armado y lo agrega completo eligiendo cada talla."
       onClose={onClose}
       variante="hoja"
-      tamano="mediana"
+      ancho="max-w-6xl" // unificar-fijo: hoja de diseño propio, elegir las prendas mirando su foto necesita una grilla ancha (Felipe 2026-10-26)
       bloqueado={guardando}
       conCerrar
     >
       <form onSubmit={guardar} className="space-y-5">
+        <div className="grid items-start gap-5 md:grid-cols-2">
+        <div>
         <CampoGuiado id="nombre" guia={guia}>
           <div data-guia="look.nombre">
             <CampoTexto
@@ -154,7 +175,10 @@ export function LookHoja({
             />
           </div>
         </CampoGuiado>
+        <IdeasDelLook titulo="Ideas de nombre" ideas={ideas.nombres} actual={nombre} vuelta={vueltaNombre} onOtras={() => setVueltaNombre((v) => v + 1)} onElegir={setNombre} deshabilitado={guardando} />
+        </div>
 
+        <div>
         <CampoGuiado id="frase" guia={guia} titulo="Frase" ayuda="Opcional · cómo se lleva, en una línea">
           <Campo etiqueta="Frase" etiquetaOculta pie={frase.length > MAX_FRASE_LOOK - 40 ? `Quedan ${Math.max(0, MAX_FRASE_LOOK - frase.length)} letras.` : undefined}>
             <div className="caja-cayla caja-campo caja-campo-texto-largo">
@@ -170,12 +194,16 @@ export function LookHoja({
             </div>
           </Campo>
         </CampoGuiado>
+        <IdeasDelLook titulo="Ideas de frase" ideas={ideas.frases} actual={frase} vuelta={vueltaFrase} onOtras={() => setVueltaFrase((v) => v + 1)} onElegir={setFrase} deshabilitado={guardando} />
+        </div>
+        </div>
 
         <CampoGuiado id="prendas" guia={guia} titulo="Prendas del look" ayuda={`${piezas.length} de ${MAX_PRENDAS_LOOK}`} retiene="fila">
-          <div className="space-y-2.5" data-guia="look.prendas">
-            {piezas.length === 0 ? (
-              <p className="text-[13px] text-taupe">Agrega de 2 a 4 prendas que se vean bien juntas. Salen en este orden en la lámina.</p>
-            ) : (
+          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+            {/* Lo que lleva el look, en el orden de la lámina: se queda a la vista mientras se recorre la grilla. */}
+            <div className="space-y-2.5 lg:sticky lg:top-0" data-guia="look.prendas">
+              <p className="text-[13px] text-taupe">De 2 a 4 prendas que se vean bien juntas. Salen en este orden en la lámina.</p>
+              {piezas.length > 0 && (
               <ol className="divide-y divide-sand rounded-xl border border-sand bg-papel">
                 {piezas.map((p, i) => {
                   const m = porId.get(p.productoId);
@@ -188,7 +216,7 @@ export function LookHoja({
                       <MiniaturaPrenda
                         fotoUrl={color?.foto ?? m?.foto ?? antes?.foto ?? null}
                         colorHex={color?.hex ?? antes?.color.hex ?? null}
-                        tamano="lg"
+                        tamano="xl"
                         prefijo={m?.prefijo ?? antes?.prefijo ?? null}
                         familia={m?.familia ?? antes?.familia ?? null}
                         categoria={m?.categoria ?? antes?.categoria ?? null}
@@ -224,23 +252,25 @@ export function LookHoja({
                   );
                 })}
               </ol>
-            )}
-            {piezas.length < MAX_PRENDAS_LOOK && (
-              <div>
-                <ComboBuscable
-                  key={vuelta}
-                  etiquetaAccesible="Agregar una prenda al look"
-                  marcador={paraAgregar.length > 0 ? "Busca por nombre" : "No quedan modelos que se vean en la web"}
-                  valor=""
-                  onValor={agregar}
-                  opciones={paraAgregar.map((m) => ({ valor: m.id, texto: m.nombre, detalle: m.categoria ?? undefined }))}
-                />
-              </div>
-            )}
+              )}
+              {Array.from({ length: Math.max(0, MIN_PRENDAS_LOOK - piezas.length) }, (_, k) => (
+                <div key={`falta-${k}`} className="grid h-[4.75rem] place-items-center rounded-xl border border-dashed border-borde-control px-3 text-center text-[13px] text-taupe">
+                  {`Elige la prenda ${piezas.length + k + 1} en la grilla`}
+                </div>
+              ))}
+            </div>
+            <ElegirPrendasLook
+              modelos={modelos}
+              elegidos={idsElegidos}
+              lleno={piezas.length >= MAX_PRENDAS_LOOK}
+              deshabilitado={guardando}
+              onElegir={agregar}
+              onQuitar={quitarPorId}
+            />
           </div>
         </CampoGuiado>
 
-        <div className="space-y-4 border-t border-sand pt-4">
+        <div className="grid items-start gap-4 border-t border-sand pt-4 md:grid-cols-2">
           <CampoGuiado id="mostrar" guia={guia}>
             <div data-guia="look.mostrar">
               <Interruptor
@@ -256,7 +286,7 @@ export function LookHoja({
               />
             </div>
           </CampoGuiado>
-          <div className="max-w-[18rem]" data-guia="look.lugar">
+          <div className="max-w-[18rem] md:justify-self-end md:w-full" data-guia="look.lugar">
             <CampoSelect
               etiqueta="Lugar en «Arma tu look»"
               valor={String(lugar)}
@@ -286,5 +316,46 @@ export function LookHoja({
         </div>
       </form>
     </Modal>
+  );
+}
+
+/** Tres ideas para el nombre o la frase, con «Otras ideas» para ver más. Aparece cuando hay al menos dos prendas elegidas y queda vacío si la tabla
+ *  no tiene nada que no se parezca a lo que ya existe. Elegir una la pone en el campo (se puede cambiar); la que ya está escrita no se repite. */
+function IdeasDelLook({
+  titulo,
+  ideas,
+  actual,
+  vuelta,
+  onOtras,
+  onElegir,
+  deshabilitado,
+}: {
+  titulo: string;
+  ideas: string[];
+  actual: string;
+  vuelta: number;
+  onOtras: () => void;
+  onElegir: (texto: string) => void;
+  deshabilitado: boolean;
+}) {
+  const posibles = ideas.filter((i) => i !== actual.trim());
+  const visibles = ventanaDeIdeas(posibles, vuelta);
+  if (visibles.length === 0) return null;
+  return (
+    <div className="mt-2 space-y-1.5">
+      <p className="text-[12px] text-taupe">{titulo}</p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {visibles.map((i) => (
+          <button key={i} type="button" disabled={deshabilitado} onClick={() => onElegir(i)} className="btn-cayla btn-sutil btn-chico h-auto whitespace-normal py-1.5 text-left">
+            {i}
+          </button>
+        ))}
+        {posibles.length > visibles.length && (
+          <button type="button" disabled={deshabilitado} onClick={onOtras} className="btn-cayla btn-enlace">
+            Otras ideas
+          </button>
+        )}
+      </div>
+    </div>
   );
 }

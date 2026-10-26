@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sePuedeConfirmar } from "./guia-campos";
 import { camposDeLook, camposDeMostrarLook } from "./vitrina-looks-guia";
 import {
+  categoriasParaLook,
   cifrasLooks,
   colorInicial,
   errorDeLook,
@@ -14,7 +15,7 @@ import {
   loQueImpideMostrar,
   lugarParaGuardar,
   MAX_NOMBRE_LOOK,
-  modelosParaAgregar,
+  modelosParaElegir,
   nombreLimpio,
   opcionesDeLugar,
   piezasElegidasDe,
@@ -136,10 +137,6 @@ describe("la hoja de un look", () => {
     expect(colorInicial(MODELOS[1])).toBe("NEG");
   });
 
-  it("se agregan solo los modelos que se ven en la web y todavía no están en el look", () => {
-    expect(modelosParaAgregar(MODELOS, [{ productoId: "p-Blusa Emma", color: "BEI" }]).map((m) => m.nombre)).toEqual(["Falda Renata"]);
-  });
-
   it("las prendas que no se ven: un modelo que ya no está en la web o un color que ya no muestra", () => {
     const nombres = new Map([["p-Vestido Sofía", "Vestido Sofía"]]);
     expect(
@@ -234,5 +231,43 @@ describe("lo que dice la base, en palabras de tienda", () => {
     expect(errorDeLook("vitrina_look_prenda_invalida")?.titulo).toBe("Una prenda ya no se puede usar");
     expect(errorDeLook("vitrina_look_datos_invalidos Un look lleva de 2 a 4 prendas.")?.detalle).toBe("Un look lleva de 2 a 4 prendas.");
     expect(errorDeLook("otra cosa")).toBeNull();
+  });
+});
+
+describe("elegir las prendas mirándolas: categorías y filtro del selector", () => {
+  const de = (id: string, nombre: string, categoria: string | null): ModeloParaLook => ({
+    id,
+    nombre,
+    categoria,
+    prefijo: null,
+    familia: null,
+    foto: null,
+    colores: [{ codigo: "NEG", nombre: "Negro", hex: "#000000", foto: null }],
+  });
+  const todos = [de("1", "Blusa Emma", "Camisas y Blusas"), de("2", "Casaca Luciana", "Casacas"), de("3", "Blusa Alba", "Camisas y Blusas"), de("4", "Pulsera Sol", null), de("5", "Blazer Liz", "Casacas")];
+
+  it("las categorías salen por nombre, con cuántos hay en cada una, y «Sin categoría» al final", () => {
+    expect(categoriasParaLook(todos)).toEqual([
+      { nombre: "Camisas y Blusas", modelos: 2 },
+      { nombre: "Casacas", modelos: 2 },
+      { nombre: "Sin categoría", modelos: 1 },
+    ]);
+    expect(categoriasParaLook([])).toEqual([]);
+  });
+
+  it("sin filtro salen todos, en su orden", () => {
+    expect(modelosParaElegir(todos, { categoria: null, texto: "" }).map((m) => m.id)).toEqual(["1", "2", "3", "4", "5"]);
+  });
+
+  it("por categoría salen solo los suyos; «Sin categoría» trae los que no tienen", () => {
+    expect(modelosParaElegir(todos, { categoria: "Casacas", texto: "" }).map((m) => m.id)).toEqual(["2", "5"]);
+    expect(modelosParaElegir(todos, { categoria: "Sin categoría", texto: "" }).map((m) => m.id)).toEqual(["4"]);
+  });
+
+  it("lo escrito busca en el nombre y en la categoría, sin tildes ni mayúsculas, y se suma a la categoría", () => {
+    expect(modelosParaElegir(todos, { categoria: null, texto: "BLUSA" }).map((m) => m.id)).toEqual(["1", "3"]);
+    expect(modelosParaElegir(todos, { categoria: null, texto: "casacas" }).map((m) => m.id)).toEqual(["2", "5"]);
+    expect(modelosParaElegir(todos, { categoria: "Casacas", texto: "liz" }).map((m) => m.id)).toEqual(["5"]);
+    expect(modelosParaElegir(todos, { categoria: "Casacas", texto: "emma" })).toEqual([]);
   });
 });
