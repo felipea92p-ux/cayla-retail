@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight, Check, ChevronRight, Plus, Store, Truck } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { FichasMedio } from "@/components/ui/FichasMedio";
-import { BarraAvance } from "@/components/ui/BarraAvance";
+import { CaminoDePasos } from "./CaminoDePasos";
 import { Boton, BotonEnlace, CampoMonto } from "@/components/ui/campos";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Buscador } from "@/components/ui/Buscador";
@@ -64,6 +64,8 @@ import {
   prendasDeLineas,
   resumenCarrito,
   textoAvance,
+  lineaDeAvance,
+  PASOS_DE_LA_COMPRA,
   textoHabitual,
   pagoParaBase,
   textoLoQueFalta,
@@ -412,24 +414,16 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   }
 
   const atras = ANTERIOR[paso];
-  // Arriba, como la maqueta: la flecha, a quién le compras y en qué paso vas, y la barra de 3 tramos (proveedor · prendas · papel): los
-  // hechos en tinta y el de ahora en rojo. Cada tramo es una barra de avance del sistema, llena o vacía.
+  // Arriba, como la maqueta (mis-compras-rediseno-2026-10): la flecha, a quién le compraste y en qué paso vas, y el camino de 3 tramos con
+  // nombre (El proveedor · Las prendas · Papel y pago): los hechos en verde con su ✓, el de ahora en tinta, el que falta en arena.
   const fase = faseDePaso(paso);
   const cabecera = paso !== "listo" && (
     <div className="flex flex-col gap-3" data-guia="compra.avance">
       <div className="flex items-center gap-3">
         {atras ? <Volver onClick={() => setPaso(atras)} a="el paso anterior" /> : <Volver href="/compras/mi-plata" a="Mis compras" />}
-        {/* «Compré ropa» ya es el título de la pantalla: aquí solo va a quién, una vez elegido. */}
-        <span className="min-w-0">
-          {proveedor && <span className="block truncate text-sm font-medium text-tinta">{nombreCorto}</span>}
-          <span className="block truncate text-xs text-taupe">{textoAvance(paso)}</span>
-        </span>
+        <span className="min-w-0 truncate text-xs text-taupe">{lineaDeAvance(paso, proveedor ? nombreCorto : null)}</span>
       </div>
-      <div className="grid grid-cols-3 gap-1" role="img" aria-label={textoAvance(paso)}>
-        {[1, 2, 3].map((i) => (
-          <BarraAvance key={i} pct={i <= fase ? 100 : 0} tono={i === fase ? "rojo" : "tinta"} alto="fina" decorativa />
-        ))}
-      </div>
+      <CaminoDePasos pasos={PASOS_DE_LA_COMPRA} ahora={fase - 1} etiqueta={textoAvance(paso)} />
     </div>
   );
 
@@ -898,7 +892,7 @@ function PasoProveedor({
   );
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="compra-pregunta">¿A quién le compras?</h2>
+      <h2 className="compra-pregunta">¿A quién le compraste?</h2>
       <Buscador
         valor={q}
         onCambio={setQ}

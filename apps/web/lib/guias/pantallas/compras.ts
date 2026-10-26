@@ -2132,7 +2132,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       id: "avance",
       ancla: "compra.avance",
       titulo: "En qué paso vas",
-      texto: "Arriba ves en qué paso vas (la barra tiene tres: proveedor, prendas y papel) y la flecha para volver. Nada se guarda hasta el final.",
+      texto: "Arriba ves en qué paso vas (el camino tiene tres: el proveedor, las prendas, y el papel y el pago; los que ya hiciste van en verde) y la flecha para volver. Nada se guarda hasta el final.",
     },
     {
       id: "buscador",
