@@ -17,20 +17,38 @@ import type { InsumoPagina } from "./orden-pagina-reglas";
 /** Una fila de la lista, ya sin formato: la llave es la misma que usa el índice único de la base (tela + color, con «sin color» = vacío). */
 const llave = (insumoId: string, colorCodigo: string | null) => `${insumoId}\u0000${colorCodigo ?? ""}`;
 
-/** Las filas con tela elegida y su consumo en milésimas (null = el consumo no se lee todavía: se trata como una fila distinta de cualquiera guardada). */
-function filasConTela(telas: readonly TelaBorrador[]): Map<string, { insumoId: string; consumo: number | null }> {
-  const filas = new Map<string, { insumoId: string; consumo: number | null }>();
+type FilaDeConsumo = { insumoId: string; consumo: number | null; forma: string | null };
+
+/**
+ * Las filas con tela elegida y su consumo en milésimas (null = el consumo no se lee todavía: se trata como una fila distinta de cualquiera guardada). Una fila por talla compara su
+ * FORMA («M=1500;S=1000») y no su promedio: la base corrige una fila cuando cambia su cifra por talla aunque el promedio quede igual.
+ */
+function filasConTela(telas: readonly TelaBorrador[]): Map<string, FilaDeConsumo> {
+  const filas = new Map<string, FilaDeConsumo>();
   for (const t of telas) {
     if (!t.insumoId) continue;
+    if (t.porTalla != null) {
+      const forma = Object.entries(t.porTalla)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([talla, v]) => `${talla}=${leerConsumo(v) === null ? "?" : aMilesimas(leerConsumo(v) as number)}`)
+        .join(";");
+      filas.set(llave(t.insumoId, t.colorCodigo), { insumoId: t.insumoId, consumo: null, forma });
+      continue;
+    }
     const consumo = leerConsumo(t.consumoPorPrenda);
-    filas.set(llave(t.insumoId, t.colorCodigo), { insumoId: t.insumoId, consumo: consumo === null ? null : aMilesimas(consumo) });
+    filas.set(llave(t.insumoId, t.colorCodigo), { insumoId: t.insumoId, consumo: consumo === null ? null : aMilesimas(consumo), forma: null });
   }
   return filas;
 }
 
 /** La lista de la orden tal como está guardada: primero la tela, luego los avíos (la hoja los acomoda sola por color). El consumo con tres decimales, como lo muestra «Nueva orden». */
 export function telasIniciales(insumos: readonly InsumoPagina[]): TelaBorrador[] {
-  const fila = (i: InsumoPagina): TelaBorrador => ({ insumoId: i.insumoId, colorCodigo: i.colorCodigo, consumoPorPrenda: i.consumoPorPrenda.toFixed(3) });
+  const fila = (i: InsumoPagina): TelaBorrador => ({
+    insumoId: i.insumoId,
+    colorCodigo: i.colorCodigo,
+    consumoPorPrenda: i.consumoPorPrenda.toFixed(3),
+    ...(i.consumoPorTalla && Object.keys(i.consumoPorTalla).length > 0 ? { porTalla: Object.fromEntries(Object.entries(i.consumoPorTalla).map(([talla, v]) => [talla, v.toFixed(3)])) } : {}),
+  });
   return [...insumos.filter((i) => i.tipo === "tela").map(fila), ...insumos.filter((i) => i.tipo === "avio").map(fila)];
 }
 
@@ -41,7 +59,7 @@ export function hayCambios(inicial: readonly TelaBorrador[], actual: readonly Te
   if (a.size !== b.size) return true;
   for (const [k, fila] of b) {
     const antes = a.get(k);
-    if (!antes || antes.consumo !== fila.consumo) return true;
+    if (!antes || antes.consumo !== fila.consumo || antes.forma !== fila.forma) return true;
   }
   return false;
 }
@@ -58,7 +76,7 @@ export function contarCambios(inicial: readonly TelaBorrador[], actual: readonly
   for (const [k, fila] of b) {
     const antes = a.get(k);
     if (!antes) agregadas += 1;
-    else if (antes.consumo !== fila.consumo) corregidas += 1;
+    else if (antes.consumo !== fila.consumo || antes.forma !== fila.forma) corregidas += 1;
   }
   for (const k of a.keys()) if (!b.has(k)) quitadas += 1;
   return { agregadas, corregidas, quitadas };

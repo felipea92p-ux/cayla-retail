@@ -3,16 +3,19 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type { MouseEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowRight, Truck } from "lucide-react";
+import { ArrowRight, Check, Truck } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Vacio } from "@/components/ui/Vacio";
 import { avisar } from "@/components/ui/Avisos";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { mandarATienda } from "@/lib/mi-plata-acciones";
+import { resumenDelEnvioSalido, type EnvioSalido } from "@/lib/mis-envios-reglas";
+import { AccionesDelCodigo, CodigoDeEnvio } from "./CodigoDeEnvio";
 import { EVENTO_MANDAR, detalleEnvio, resumenPrendas, siglaTienda, textoFaltaMandar, type PorMandar } from "@/lib/mi-plata-reglas";
 
 // Compras simple (ADR-0480, actividad 5): «Mandar a la tienda». Lo que la compradora compró para cada tienda y todavía no salió, en una
@@ -20,10 +23,15 @@ import { EVENTO_MANDAR, detalleEnvio, resumenPrendas, siglaTienda, textoFaltaMan
 // arma el envío con todo lo pendiente de esa tienda (`mandar_compras_a_tienda`): el mismo envío que Recibir ya entiende, y la tienda ve
 // que le llega.
 //
+// Apenas sale un envío, la hoja muestra su código grande (ENV-000118) con «Copiar» y «Compartir por WhatsApp»: es lo que la compradora le
+// avisa a la tienda para que lo busque en Recibir (maqueta docs/maquetas/mis-compras-envios-2026-10/). Sigue «Mandar a la siguiente tienda»
+// si queda otra, o «Ver mis envíos».
+//
 // Cada tienda tiene su marca de envío, que nace al abrir la hoja y se queda hasta que sale: si la conexión se corta y se vuelve a tocar, la
 // base devuelve el envío que ya salió en vez de armar otro. Solo con la cuenta de una persona (firma ella, sin combo).
 
-export function MandarATienda({ porMandar, abrirAlCargar = false }: { porMandar: PorMandar[]; abrirAlCargar?: boolean }) {
+// La pantalla que la usa la deja siempre montada (aunque no falte mandar nada): al salir el último envío, la hoja sigue abierta mostrando su código.
+export function MandarATienda({ porMandar, abrirAlCargar = false, className }: { porMandar: PorMandar[]; abrirAlCargar?: boolean; className?: string }) {
   const [abierta, setAbierta] = useState(abrirAlCargar && porMandar.length > 0);
   const origen = useRef<HTMLElement | null>(null);
   const router = useRouter();
@@ -42,14 +50,16 @@ export function MandarATienda({ porMandar, abrirAlCargar = false }: { porMandar:
   return (
     <>
       {falta && (
-        <FranjaFaltaMandar
-          falta={falta}
-          guia="mi-plata.mandar"
-          onClick={(e) => {
-            origen.current = e.currentTarget;
-            setAbierta(true);
-          }}
-        />
+        <div className={className}>
+          <FranjaFaltaMandar
+            falta={falta}
+            guia="mi-plata.mandar"
+            onClick={(e) => {
+              origen.current = e.currentTarget;
+              setAbierta(true);
+            }}
+          />
+        </div>
       )}
       {abierta && (
         <MandarModal
@@ -107,13 +117,15 @@ function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; 
   const marcas = useRef<Record<string, string>>({});
   const [mandando, setMandando] = useState<string | null>(null);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
+  // El envío que acaba de salir y la tienda a la que fue: mientras haya uno, la hoja muestra su código en vez de la lista de tiendas.
+  const [salio, setSalio] = useState<{ envio: EnvioSalido; tiendaId: string } | null>(null);
 
   async function mandar(t: PorMandar) {
     if (mandando) return;
     setRechazo(null);
     setMandando(t.tiendaId);
     const token = (marcas.current[t.tiendaId] ??= crypto.randomUUID());
-    const { error } = await mandarATienda({ p_destino_id: t.tiendaId, p_bultos: fardos[t.tiendaId] ?? 1, p_token: token }, firmaOmitida("compra_mandar"));
+    const { error, envio } = await mandarATienda({ p_destino_id: t.tiendaId, p_bultos: fardos[t.tiendaId] ?? 1, p_token: token }, firmaOmitida("compra_mandar"));
     setMandando(null);
     if (error) {
       return setRechazo(
@@ -124,15 +136,52 @@ function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; 
     }
     // Ya salió: si más tarde se compra otra cosa para esta tienda, ese será otro envío, con otra marca.
     delete marcas.current[t.tiendaId];
+    router.refresh();
+    // Con su código a la vista no hace falta el aviso; sin él (la base no lo devolvió), el aviso de siempre.
+    if (envio) return setSalio({ envio, tiendaId: t.tiendaId });
     avisar.exito(`Listo: ${t.tienda} ya sabe que le llega tu paquete`, { detalle: "Cuando llegue, la tienda lo cuenta en Recibir." });
     if (porMandar.length <= 1) onClose();
-    router.refresh();
+  }
+
+  if (salio) {
+    const quedan = porMandar.filter((t) => t.tiendaId !== salio.tiendaId);
+    return (
+      <Modal
+        titulo={`Salió el envío a ${salio.envio.destino.replace(/^Tienda /, "")}`}
+        onClose={onClose}
+        variante="hoja"
+        alCerrarEnfocar={volverA}
+        conCerrar
+      >
+        <div className="space-y-4">
+          <div className="flex justify-center">
+            <span className="grid h-14 w-14 place-items-center rounded-full bg-verde/15 text-verde" aria-hidden>
+              <Check className="h-6 w-6" />
+            </span>
+          </div>
+          <CodigoDeEnvio numero={salio.envio.numero} linea={resumenDelEnvioSalido(salio.envio)} />
+          <p className="text-center text-sm text-taupe">
+            Avísale a la tienda este código: lo busca en <b className="font-semibold text-tinta">Recibir</b> y lo cuenta.
+          </p>
+          <AccionesDelCodigo envio={salio.envio} />
+          {quedan.length > 0 ? (
+            <Boton peso="discreto" className="w-full" onClick={() => setSalio(null)}>
+              Mandar a la siguiente tienda ({quedan.length})
+            </Boton>
+          ) : (
+            <BotonVer href="/compras/mi-plata/envios" alNavegar={onClose}>
+              Ver mis envíos
+            </BotonVer>
+          )}
+        </div>
+      </Modal>
+    );
   }
 
   return (
     <Modal
       titulo="Mandar a la tienda"
-      subtitulo="Toca «Mandar» cuando entregues el paquete (el fardo) al transporte. La tienda ya sabe que le llega."
+      subtitulo="Toca «Mandar» cuando entregues el paquete (el fardo) al transporte. Te damos el código para avisar a la tienda."
       onClose={onClose}
       variante="hoja"
       alCerrarEnfocar={volverA}

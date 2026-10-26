@@ -92,7 +92,13 @@ function esFase(x: unknown): x is FaseBorrador {
 }
 
 function esTela(x: unknown): x is TelaBorrador {
-  return esObjeto(x) && esTextoONulo(x.insumoId) && esTextoONulo(x.colorCodigo) && esTexto(x.consumoPorPrenda);
+  return (
+    esObjeto(x) &&
+    esTextoONulo(x.insumoId) &&
+    esTextoONulo(x.colorCodigo) &&
+    esTexto(x.consumoPorPrenda) &&
+    (x.porTalla === undefined || x.porTalla === null || (esObjeto(x.porTalla) && Object.values(x.porTalla).every(esTexto)))
+  );
 }
 
 function esFoto(x: unknown): x is FotoDelBorrador {
