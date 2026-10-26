@@ -27,7 +27,7 @@ import { conHistorial, fraseDelRecupero, leerPropuesta, proponer } from "@/lib/p
 import { leerHistorial } from "@/lib/plan-compra-historial";
 import { leerPedido, numeroDeOrden } from "@/lib/plan-compra-pedido";
 import { conDescuentos, leerDescuentos } from "@/lib/plan-compra-descuento";
-import { diasConQueSeCuenta, fraseDeLosDias, leerPlazoFijado, plazoDePedido, type EstadoDelPlazo } from "@/lib/plan-compra-plazo";
+import { diasConQueSeCuenta, fraseDeLosDias, fraseDelConteoAntesDelPlazo, leerPlazoFijado, plazoDePedido, type EstadoDelPlazo } from "@/lib/plan-compra-plazo";
 import { PlazoModal } from "@/components/plan-compra/PlazoModal";
 import type { TonoAvisoLinea } from "@/components/ui/Aviso";
 import Link from "next/link";
@@ -464,7 +464,7 @@ export function PlanCampana({
           frase={<>{plan.plan.nombre} · toda CAYLA{sedesDelPlan.length > 0 ? ` (${sedesDelPlan.join(", ")})` : ""}. La sede elegida arriba no filtra esta pantalla.</>}
           claseCuerpo="space-y-5"
         >
-          <AvisoStock confianza={confianza} puedeContar={puedeContar} />
+          <AvisoStock confianza={confianza} puedeContar={puedeContar} frasePlazo={fraseDelConteoAntesDelPlazo(plazo)} />
 
           <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={() => setEditandoTope(true)} />
 
@@ -542,7 +542,7 @@ export function PlanCampana({
         filas={filas}
         estado={momento.estado}
         forma={forma}
-        avisoStock={<AvisoStockEnLinea confianza={confianza} onVer={() => setResumenAbierto(true)} />}
+        avisoStock={<AvisoStockEnLinea confianza={confianza} onVer={() => setResumenAbierto(true)} frasePlazo={fraseDelConteoAntesDelPlazo(plazo)} />}
         familias={familias}
         filtro={filtro}
         onFiltro={setFiltro}
