@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  celdaDeFila,
   curvaDelProveedor,
+  resumenTallasYSedes,
   hallazgosDeTallasYSedes,
   juntarHallazgos,
   MIN_TRASLADO,
@@ -144,5 +146,35 @@ describe("juntarHallazgos", () => {
     const h = (id: string, prioridad: number): Hallazgo => ({ id, tono: "info", titulo: id, texto: "", numeros: [], regla: "", prioridad });
     const r = juntarHallazgos([h("a", 10), h("b", 90), h("c", 50)], [h("d", 80), h("e", 20), h("f", 70)]);
     expect(r.map((x) => x.id)).toEqual(["b", "d", "f", "c", "e"].slice(0, MAX_AVISOS));
+  });
+});
+
+describe("resumenTallasYSedes (la lista: vista rápida y comparación)", () => {
+  it("dice en pocas palabras lo mismo que la ficha: la talla que sobra, la tienda que mejor vende y el traslado", () => {
+    const r = resumenTallasYSedes(ESCENARIO, HOY);
+    expect(r.tallas?.sobran).toContain("XL");
+    expect(r.tallas?.mide).toBe(true);
+    expect(r.tiendas.map((t) => t.sede)).toEqual(["Tienda Lima", "Tienda Trujillo"]);
+    expect(r.mejor).toEqual({ sede: "Tienda Lima", veredicto: "se-agota" });
+    expect(r.traslado).toMatchObject({ origen: "Tienda Trujillo", destino: "Tienda Lima" });
+    expect(r.traslado!.cantidad).toBeGreaterThanOrEqual(MIN_TRASLADO);
+  });
+
+  it(`con menos de ${MIN_VENDIDAS} vendidas no dice qué tallas pide, y con todo en talla única no hay tallas`, () => {
+    const pocas = resumenTallasYSedes([celda({ talla: "M", vendidas: 3, stock: 10 }), celda({ talla: "S", vendidas: 1, stock: 10 })], HOY);
+    expect(pocas.tallas?.mide).toBe(false);
+    expect(resumenTallasYSedes([celda({ talla: "Única", vendidas: 30, stock: 5 })], HOY).tallas).toBeNull();
+  });
+
+  it("una tienda recién llegada no es «la mejor»: aún no se mide", () => {
+    const r = resumenTallasYSedes([celda({ vendidas: 5, stock: 5, primeraLlegada: antes(DIAS_PARA_JUZGAR - 5) })], HOY);
+    expect(r.tiendas[0].veredicto).toBe("sin-medir");
+    expect(r.mejor).toBeNull();
+  });
+
+  it("convierte una fila de la base (los números pueden venir como texto)", () => {
+    expect(
+      celdaDeFila({ producto_id: "p", referencia: "Blusa", categoria: null, talla: "M", ubicacion_id: "u", sede: "Lima", sede_tipo: "tienda", vendidas: "4", stock: 6, primera_llegada: "2026-10-01" }),
+    ).toEqual({ productoId: "p", referencia: "Blusa", categoria: null, talla: "M", ubicacionId: "u", sede: "Lima", sedeTipo: "tienda", vendidas: 4, stock: 6, primeraLlegada: "2026-10-01" });
   });
 });

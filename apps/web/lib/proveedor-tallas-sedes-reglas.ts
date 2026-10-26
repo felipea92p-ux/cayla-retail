@@ -118,6 +118,15 @@ export function sedesDelProveedor(celdas: readonly CeldaTallaSede[], hoy: string
 /** La palabra de cada tienda, con la misma regla que el veredicto del ranking. */
 export type VeredictoSede = "agotada" | "se-agota" | "lenta" | "va-bien" | "sin-medir";
 
+/** Cómo se dice y de qué tono es cada palabra: la ficha y la lista (vista rápida y comparación) dicen lo mismo. */
+export const PALABRA_SEDE: Record<VeredictoSede, { tono: "rojo" | "verde" | "ambar" | "neutro" | "apagado"; texto: string }> = {
+  agotada: { tono: "rojo", texto: "Se agotó" },
+  "se-agota": { tono: "verde", texto: "Se agota" },
+  lenta: { tono: "ambar", texto: "Rota lento" },
+  "va-bien": { tono: "neutro", texto: "Va bien" },
+  "sin-medir": { tono: "apagado", texto: "Aún no se mide" },
+};
+
 export function veredictoDeSede(s: Pick<SedeDeProveedor, "ritmo">): VeredictoSede {
   if (!s.ritmo.juzgable) return "sin-medir";
   if (s.ritmo.enEstantes === 0 && s.ritmo.vendidas > 0) return "agotada";
@@ -184,6 +193,70 @@ export function trasladoSugerido(celdas: readonly CeldaTallaSede[], hoy: string)
   const cantidad = tope - quedan;
   if (cantidad < MIN_TRASLADO) return null;
   return { origen, destino, cantidad, lineas };
+}
+
+/* ───────── La lista: lo de tallas y sedes en pocas palabras ───────── */
+
+/** Una fila de `fn_proveedor_tallas_sedes` como la usan las reglas: la ficha la lee en el servidor y la lista, desde el navegador. */
+export function celdaDeFila(f: {
+  producto_id: string;
+  referencia: string;
+  categoria: string | null;
+  talla: string;
+  ubicacion_id: string;
+  sede: string;
+  sede_tipo: string;
+  vendidas: number | string;
+  stock: number | string;
+  primera_llegada: string | null;
+}): CeldaTallaSede {
+  return {
+    productoId: f.producto_id,
+    referencia: f.referencia,
+    categoria: f.categoria,
+    talla: f.talla,
+    ubicacionId: f.ubicacion_id,
+    sede: f.sede,
+    sedeTipo: f.sede_tipo,
+    vendidas: Number(f.vendidas),
+    stock: Number(f.stock),
+    primeraLlegada: f.primera_llegada,
+  };
+}
+
+export type ResumenTallasYSedes = {
+  /** Las tallas que pide más y las que sobran (la regla de Análisis); `null` si todo es talla única o no hay nada. */
+  tallas: { piden: string[]; sobran: string[]; vendidas: number; mide: boolean } | null;
+  /** Cada tienda con su palabra, de la que más vende por semana a la que menos. */
+  tiendas: { sede: string; veredicto: VeredictoSede }[];
+  /** La tienda que más vende por semana entre las que ya se miden; `null` si ninguna se mide. */
+  mejor: { sede: string; veredicto: VeredictoSede } | null;
+  traslado: { cantidad: number; origen: string; destino: string } | null;
+};
+
+/**
+ * Lo de tallas y sedes de UN proveedor en pocas palabras, para la vista rápida y la comparación de la lista (ADR-0521, actividad 6). Las mismas
+ * cuentas de la ficha, sin ninguna nueva: con menos de `MIN_VENDIDAS` vendidas, de tallas no se concluye nada (`mide: false`), como en sus avisos.
+ */
+export function resumenTallasYSedes(celdas: readonly CeldaTallaSede[], hoy: string): ResumenTallasYSedes {
+  const curva = curvaDelProveedor(celdas);
+  const tallas =
+    curva.tipo === "tallas"
+      ? {
+          piden: curva.columnas.filter((c) => c.pideMas).map((c) => c.talla),
+          sobran: curva.columnas.filter((c) => c.sobra).map((c) => c.talla),
+          vendidas: curva.vendidas,
+          mide: curva.vendidas >= MIN_VENDIDAS,
+        }
+      : null;
+  const tiendas = sedesDelProveedor(celdas, hoy).tiendas.map((t) => ({ sede: t.sede, veredicto: veredictoDeSede(t) }));
+  const t = trasladoSugerido(celdas, hoy);
+  return {
+    tallas,
+    tiendas,
+    mejor: tiendas.find((x) => x.veredicto !== "sin-medir") ?? null,
+    traslado: t ? { cantidad: t.cantidad, origen: t.origen.sede, destino: t.destino.sede } : null,
+  };
 }
 
 /* ───────── «Lo que quizá no ves» ───────── */

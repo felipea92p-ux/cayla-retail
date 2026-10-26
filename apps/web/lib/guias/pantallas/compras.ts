@@ -619,7 +619,7 @@ export const GUIA_PROVEEDORES: Guia = {
       id: "comparar",
       ancla: "proveedores.comparar",
       titulo: "Compáralos",
-      texto: "Marca hasta 3 con su casilla y a la derecha se ponen lado a lado: cuánto te llegó, cuánto vendiste, en cuántas semanas se vende lo que queda, sus ventas, cuánto ganas de cada venta y lo que le debes. Lo de hoy sigue debajo.",
+      texto: "Marca hasta 3 con su casilla y a la derecha se ponen lado a lado: cuánto te llegó y vendiste, en cuántas semanas se vende lo que queda, sus ventas, la talla que pide más, la tienda que más vende, cuánto ganas de cada venta y lo que le debes. Lo de hoy sigue debajo.",
     },
     {
       id: "vista",
@@ -627,7 +627,7 @@ export const GUIA_PROVEEDORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "proveedores.nombre" }],
       titulo: "La vista rápida",
-      texto: "Qué conviene hacer con este proveedor, cuánto se le facturó, cuánto se le debe, cuándo fue la última compra y, en «Cómo se vende», el porqué de su insignia con los números.",
+      texto: "Qué conviene hacer con este proveedor, cuánto se le facturó y se le debe, cuándo fue la última compra; en «Cómo se vende», el porqué de su insignia, y en «Tallas y sedes», qué tallas pedirle y cómo le va en cada tienda.",
     },
     {
       id: "vista-acciones",

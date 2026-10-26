@@ -58,3 +58,11 @@ Qué hice:
 Por qué así: la ciega dudó de qué dinero era cuál, no supo si «Frena» era una orden y perdió lo vencido al marcar uno.
 Estado: commits locales, sin PR. **Lo más grave que encontró el escéptico queda para Felipe:** las ventas de una prenda que trajeron dos proveedores se suman enteras a los dos (función de la base del ADR-0502, en producción).
 
+## 2026-10-26 (Proveedores: el reparto entre proveedores y las tallas y sedes en la lista — ADR-0521 act. c)
+Qué hice:
+- Mezclé la rama de tallas y sedes (`claude/proveedores-module-analysis-c73c2c`), con el OK de Felipe dado en la sesión de Proveedores.
+- **Una sola regla de reparto** (`fn_proveedor_reparto`, migración `20261026181000`): cada venta se reparte por lo que cada proveedor había traído hasta ese momento, cada prenda vendida es de uno solo y el stock va por lo que a cada uno le queda. Las tres lecturas de proveedor leen de ella. En local, la prenda que figuraba con sus 4 ventas en tres proveedores ahora las tiene en uno, y el stock dejó de triplicarse.
+- La vista rápida dice «Tallas y sedes» y la comparación, la talla que pide más y la tienda que más vende.
+- Verificado: `pruebas:proveedor-reparto` (10 casos, la suma cuadra en toda la base), las pruebas de ventas por día y de los dos orígenes al día, 647 archivos de vitest, Knip, y la lista, la vista rápida y la ficha en el navegador local.
+Estado: commits locales, sin PR. **Ninguna de las tres migraciones está en producción.** Felipe elige la regla del reparto (A, B o C); está armada la B, la recomendada.
+

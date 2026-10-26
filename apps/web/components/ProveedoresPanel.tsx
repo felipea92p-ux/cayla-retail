@@ -15,6 +15,7 @@ import { ProveedoresLoQueNoSeVe } from "@/components/ProveedoresLoQueNoSeVe";
 import { ProveedoresComparar } from "@/components/ProveedoresComparar";
 import { BarraDeAbajo, BarraDeAbajoResumen } from "@/components/ui/BarraDeAbajo";
 import type { Hallazgo } from "@/lib/proveedor-analisis-reglas";
+import { celdaDeFila, resumenTallasYSedes, type CeldaTallaSede } from "@/lib/proveedor-tallas-sedes-reglas";
 import { RITMOS, alternarComparar, porqueDelRitmo, contarPorRitmo, filasDelRanking, pasaFiltroRanking, totalesDelRanking, valorDe, type ClaseRitmo, type FiltroRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
 import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -192,6 +193,27 @@ export function ProveedoresPanel({
   // la búsqueda no los sacan: se comparan aunque la lista ya no los muestre.
   const comparados = comparar.map((id) => ranking?.filas.find((f) => f.proveedorId === id)).filter((f): f is NonNullable<typeof f> => !!f);
   const alComparar = (id: string) => setComparar((c) => alternarComparar(c, id));
+  // Las tallas y las sedes de cada proveedor que se abre o se compara (ADR-0521, actividad 6): se piden desde el navegador al abrirlo, una sola vez
+  // por proveedor. Sin la función en la base o sin respuesta, esas secciones no se dibujan (`null`); mientras llegan, `undefined`.
+  const [tallasDe, setTallasDe] = useState<ReadonlyMap<string, readonly CeldaTallaSede[] | null>>(new Map());
+  const tallasPedidas = useRef(new Set<string>());
+  useEffect(() => {
+    if (!enRanking) return;
+    const faltan = [...new Set([abiertoId, ...comparar])].filter((id): id is string => !!id && !tallasPedidas.current.has(id));
+    if (faltan.length === 0) return;
+    const supabase = createClient();
+    for (const id of faltan) {
+      tallasPedidas.current.add(id);
+      void supabase.rpc("fn_proveedor_tallas_sedes", { p_proveedor_id: id }).then(({ data, error }) => {
+        setTallasDe((m) => new Map(m).set(id, error || !data ? null : data.map(celdaDeFila)));
+      });
+    }
+  }, [enRanking, abiertoId, comparar]);
+  const tallasYSedesDe = (id: string) => {
+    if (!tallasDe.has(id)) return undefined;
+    const celdas = tallasDe.get(id);
+    return celdas ? resumenTallasYSedes(celdas, hoy) : null;
+  };
   // El porqué de la insignia, para la vista rápida: solo de quien está en el ranking (el Taller y los sin compras no tienen ritmo).
   const ritmoDe = (id: string) => {
     const f = ranking?.filas.find((x) => x.proveedorId === id);
@@ -305,6 +327,7 @@ export function ProveedoresPanel({
                   onQuitar={alComparar}
                   onQuitarTodos={() => setComparar([])}
                   onAbrir={setAbiertoId}
+                  tallasYSedesDe={tallasYSedesDe}
                 />
               )}
               <ProveedoresLoQueNoSeVe
@@ -613,6 +636,7 @@ export function ProveedoresPanel({
           onNavegar={vecino}
           onCambiarEstado={() => onCambiarEstado(abierto)}
           ritmo={ritmoDe(abierto.id)}
+          tallasYSedes={enRanking ? tallasYSedesDe(abierto.id) : null}
         />
       )}
 

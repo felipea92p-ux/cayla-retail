@@ -12,6 +12,7 @@ import { Cajon } from "@/components/ui/Cajon";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { PALABRA_SEDE, type ResumenTallasYSedes } from "@/lib/proveedor-tallas-sedes-reglas";
 
 // Vista rápida de un proveedor (ADR-0128, spike 2026-09-19): al tocar una fila se abre un cajón desde el
 // borde derecho en vez de saltar a la ficha. El problema que resuelve: comparar cinco proveedores
@@ -32,6 +33,7 @@ export function ProveedorVistaRapida({
   onNavegar,
   onCambiarEstado,
   ritmo = null,
+  tallasYSedes = null,
 }: {
   proveedor: Proveedor;
   /** Marcas con que se conoce al proveedor (ADR-0140). Vacío si no tiene o no se pudieron leer. */
@@ -48,6 +50,11 @@ export function ProveedorVistaRapida({
    * se decidió. Es el «¿Por qué?» de la insignia a un toque (Formidable 2026-10-26: antes vivía solo al pasar el mouse). `null` fuera del ranking.
    */
   ritmo?: { palabra: string; tono: "verde" | "pizarra" | "ambar" | "neutro"; que: string; numeros: readonly string[] } | null;
+  /**
+   * Las tallas que pide y cómo le va en cada tienda, en pocas palabras (ADR-0521, actividad 6; el detalle está en su ficha). `undefined` mientras
+   * llega; `null` fuera del ranking o si la base no lo tiene.
+   */
+  tallasYSedes?: ResumenTallasYSedes | null;
 }) {
 
   const paso = siguientePaso(estadoDeProveedor(p));
@@ -124,6 +131,8 @@ export function ProveedorVistaRapida({
         </section>
       )}
 
+      {tallasYSedes && (tallasYSedes.tallas || tallasYSedes.tiendas.length > 0) && <TallasYSedes r={tallasYSedes} />}
+
       {serie && serie.some((v) => v > 0) && (
         <section className="mt-6">
           <TituloGrupo className="mb-2.5">Facturado por mes</TituloGrupo>
@@ -133,3 +142,41 @@ export function ProveedorVistaRapida({
     </Cajon>
   );
 }
+
+const enLista = (xs: readonly string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`);
+
+// «Tallas y sedes» en pocas palabras (ADR-0521, actividad 6): las mismas cuentas que la ficha (`resumenTallasYSedes`); los números y la curva
+// completa siguen en «Abrir ficha completa».
+function TallasYSedes({ r }: { r: ResumenTallasYSedes }) {
+  const t = r.tallas;
+  return (
+    <section className="mt-6">
+      <TituloGrupo className="mb-2.5">Tallas y sedes</TituloGrupo>
+      {t && (
+        <p className="text-sm text-tinta">
+          {!t.mide
+            ? `Con ${t.vendidas} vendidas todavía es poco para decir qué tallas pide.`
+            : t.piden.length > 0 || t.sobran.length > 0
+              ? [t.piden.length > 0 ? `Pídele más ${enLista(t.piden)}` : null, t.sobran.length > 0 ? `${t.piden.length > 0 ? "y menos" : "Pídele menos"} ${enLista(t.sobran)}` : null].filter(Boolean).join(" ") + "."
+              : "Sus tallas se venden en la misma proporción en que las tienes."}
+        </p>
+      )}
+      {r.tiendas.length > 0 && (
+        <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-tinta">
+          {r.tiendas.map((s) => (
+            <li key={s.sede} className="flex items-center gap-1.5">
+              {s.sede}
+              <Chip tono={PALABRA_SEDE[s.veredicto].tono}>{PALABRA_SEDE[s.veredicto].texto}</Chip>
+            </li>
+          ))}
+        </ul>
+      )}
+      {r.traslado && (
+        <p className="mt-2.5 text-sm text-tinta/80">
+          Antes de pedirle más: lleva {r.traslado.cantidad} de {r.traslado.origen} a {r.traslado.destino}.
+        </p>
+      )}
+    </section>
+  );
+}
+

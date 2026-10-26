@@ -83,5 +83,33 @@ Proveedores»), y sin tocar ninguna cuenta:
 
 **Lo que NO se arregló aquí y es lo más grave que encontró (decisión de Felipe):** `fn_proveedor_prendas_base` (ADR-0502, en producción) y
 `fn_proveedores_ventas_diarias` cruzan lo vendido y el stock solo por prenda, así que una prenda que trajeron dos proveedores les suma sus ventas
-enteras a los dos. Está en el backlog del día con la ruta propuesta.
+enteras a los dos. Lo arregla la actualización (c).
+
+## Actualización 2026-10-26 (c): el reparto entre proveedores y las tallas y sedes en la lista
+
+Felipe aprobó, en la sesión de Proveedores: «Sí: que la sesión de maquetas mezcle mi rama de tallas y sedes, y arregle en una sola migración el
+reparto de ventas y stock según lo que trajo cada proveedor, en las tres funciones.» Se mezcló `claude/proveedores-module-analysis-c73c2c`
+(tallas y sedes en la ficha, ADR-0502 act. (e)).
+
+**El reparto, en un solo lugar** (migración `20261026181000`, NO pegada en producción): `fn_proveedor_reparto()` dice qué parte de cada variante
+es de cada proveedor, y las tres funciones (`fn_proveedor_prendas_base`, `fn_proveedores_ventas_diarias`, `fn_proveedor_tallas_sedes`) leen de
+ella; ninguna vuelve a cruzar ventas ni stock por su cuenta.
+- **Lo que trajo cada uno**, por variante: cada recepción con su hora (al proveedor de la factura o del lote) y la carga inicial del habitual «desde siempre».
+- **Cada venta, devolución o cambio se reparte por lo que cada uno había traído de esa variante hasta ese momento** (regla B). Felipe la está
+  eligiendo entre tres: A (por lo que entregó cada uno, sin fechas), B (la recomendada) y C (lo primero que llega es lo primero que se vende). La
+  regla vive en un solo bloque de la función («LA REGLA DE REPARTO»): cambiarla no toca nada más.
+- **Cada prenda vendida es de un solo proveedor:** las partes se acumulan en el tiempo y se redondean por el mayor resto sobre lo acumulado. Así la
+  suma entre proveedores es siempre lo vendido real (por día, por sede y en total) y ninguno se queda con todos los redondeos.
+- **El stock** de cada variante y sede se reparte por lo que a cada uno le queda (lo que trajo menos lo que se le vendió), con el mismo redondeo
+  sede tras sede: la suma es el stock real y el total de cada uno sale exacto.
+- **La plata** de lo vendido va con la misma parte que su venta.
+- Lo prueba `pnpm pruebas:proveedor-reparto` (en las tandas del CI): en toda la base la suma cuadra por variante, día y sede; y una prenda con la
+  carga de A (40), 36 vendidas, lo de B por Compras (40) y 4 vendidas más le da 38 a A y 2 a B, con 2 y 38 en tienda, en las tres funciones.
+- En la base local: la prenda que figuraba con 4 vendidas en tres proveedores ahora las tiene en uno solo, y el stock de 170 que los tres decían
+  tener (510 en total) se reparte 17 + 33 + 120.
+
+**Las tallas y sedes en la lista (actividad 6):** la vista rápida suma «Tallas y sedes» (qué tallas pedirle más o menos, cada tienda con su
+palabra y el traslado sugerido) y la comparación, «Talla que pide más» y «La tienda que más vende». Las mismas cuentas de la ficha
+(`resumenTallasYSedes`, con su prueba); se piden desde el navegador al abrir o marcar un proveedor, una sola vez; sin la función en la base, esas
+partes no se dibujan. Las palabras de cada tienda viven en un solo lugar (`PALABRA_SEDE`) para la ficha y la lista.
 

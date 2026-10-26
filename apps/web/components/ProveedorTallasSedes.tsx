@@ -4,6 +4,7 @@ import {
   sedesDelProveedor,
   trasladoSugerido,
   veredictoDeSede,
+  PALABRA_SEDE,
   SEMANAS_COBERTURA_TRASLADO,
   type CeldaTallaSede,
   type VeredictoSede,
@@ -102,13 +103,7 @@ const COLUMNAS_SEDES: Columna[] = [
   { titulo: "", alinear: "der" },
 ];
 
-const CHIP_SEDE: Record<VeredictoSede, { tono: TonoChip; texto: string }> = {
-  agotada: { tono: "rojo", texto: "Se agotó" },
-  "se-agota": { tono: "verde", texto: "Se agota" },
-  lenta: { tono: "ambar", texto: "Rota lento" },
-  "va-bien": { tono: "neutro", texto: "Va bien" },
-  "sin-medir": { tono: "apagado", texto: "Aún no se mide" },
-};
+const CHIP_SEDE: Record<VeredictoSede, { tono: TonoChip; texto: string }> = PALABRA_SEDE;
 
 function textoTarda(s: ReturnType<typeof sedesDelProveedor>["tiendas"][number]): string {
   const r = s.ritmo;

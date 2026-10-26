@@ -7,6 +7,7 @@ import { soles } from "@/lib/compras-reglas";
 import { solesRedondo } from "@/lib/gastos-reglas";
 import { MAX_COMPARAR, RITMOS, esAproximado, porSemanaTexto, semanaDeVentas, semanasExactas, valorDe, type FilaRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
 import { MIN_VENDIDAS_PARA_JUZGAR } from "@/lib/proveedor-prendas-reglas";
+import { PALABRA_SEDE, type ResumenTallasYSedes } from "@/lib/proveedor-tallas-sedes-reglas";
 import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
 import { Sparkline } from "@/components/ui/Sparkline";
@@ -27,6 +28,7 @@ export function ProveedoresComparar({
   onQuitar,
   onQuitarTodos,
   onAbrir,
+  tallasYSedesDe,
 }: {
   /** Los marcados, en el orden en que se marcaron. */
   filas: readonly FilaRanking[];
@@ -36,6 +38,8 @@ export function ProveedoresComparar({
   onQuitar: (id: string) => void;
   onQuitarTodos: () => void;
   onAbrir: (id: string) => void;
+  /** Sus tallas y sedes en pocas palabras (ADR-0521, actividad 6): `undefined` mientras llegan, `null` si la base no las tiene. */
+  tallasYSedesDe: (id: string) => ResumenTallasYSedes | null | undefined;
 }) {
   const n = filas.length;
   const Icono = ICONO_MEDIDA[medida];
@@ -160,6 +164,38 @@ export function ProveedoresComparar({
             },
             3,
           )}
+        {/* Las tallas y las tiendas (ADR-0521, actividad 6): las mismas cuentas que la ficha, en una palabra. Mientras llegan, la celda espera vacía. */}
+        {fila(
+          "Talla que pide más",
+          (f) => {
+            const t = tallasYSedesDe(f.proveedorId)?.tallas;
+            if (t === undefined) return <span className="text-xs text-tinta/70">—</span>;
+            if (t === null) return <span className="text-xs text-tinta/70">talla única</span>;
+            if (!t.mide) return <span className="text-xs text-tinta/70">pocas ventas para decirlo ({t.vendidas})</span>;
+            return (
+              <>
+                <b className="font-semibold">{t.piden.length > 0 ? t.piden.join(", ") : "ninguna"}</b>
+                {t.sobran.length > 0 && <span className="text-xs text-tinta/70">le sobra {t.sobran.join(", ")}</span>}
+              </>
+            );
+          },
+          4,
+        )}
+        {fila(
+          "La tienda que más vende",
+          (f) => {
+            const r = tallasYSedesDe(f.proveedorId);
+            if (!r) return <span className="text-xs text-tinta/70">—</span>;
+            if (!r.mejor) return <span className="text-xs text-tinta/70">aún no se mide</span>;
+            return (
+              <>
+                <span className="font-semibold">{r.mejor.sede.replace(/^Tienda /, "")}</span>
+                <Chip tono={PALABRA_SEDE[r.mejor.veredicto].tono}>{PALABRA_SEDE[r.mejor.veredicto].texto}</Chip>
+              </>
+            );
+          },
+          5,
+        )}
         {/* «Margen» no decía de qué (Formidable 2026-10-26): es lo que ganas de cada venta, sobre el precio cobrado (`margenDe`). Con menos de
             10 vendidas no se dice, la misma regla del veredicto (`MIN_VENDIDAS_PARA_JUZGAR`): un 60 % de 6 ventas no alcanza para elegir. */}
         {fila(
@@ -174,7 +210,7 @@ export function ProveedoresComparar({
             ) : (
               <b className={cifra}>{Math.round(f.margenPct)} %</b>
             ),
-          4,
+          6,
         )}
         {fila(
           "Le debes",
@@ -193,7 +229,7 @@ export function ProveedoresComparar({
               </>
             );
           },
-          5,
+          7,
         )}
       </div>
     </aside>
