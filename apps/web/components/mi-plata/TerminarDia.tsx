@@ -6,6 +6,7 @@ import { Flag } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
+import { Chip } from "@/components/ui/Chip";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { avisar } from "@/components/ui/Avisos";
 import { firmaOmitida } from "@/lib/responsable-omitido";
@@ -13,6 +14,8 @@ import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import { terminarDia } from "@/lib/mi-plata-acciones";
 import { EVENTO_MANDAR, decisionesCierre, puedeCerrarLaRonda, resumenRonda, textoCierre, textoFaltaMandar, type DecisionCierre, type MiPlata } from "@/lib/mi-plata-reglas";
+import { resumenDeEnvios, type EnvioMio } from "@/lib/mis-envios-reglas";
+import { FilaEnvio } from "./FilaEnvio";
 import { FranjaFaltaMandar } from "./MandarATienda";
 
 // Compras simple (ADR-0480): «Cerrar mi ronda» (antes «Terminé de comprar hoy», al que reemplaza desde 20261023183000; Felipe 2026-10-23).
@@ -30,7 +33,8 @@ const OPCIONES: Record<Exclude<DecisionCierre, "le_deben">, { nombre: string; de
   devuelve: { nombre: "Lo devuelvo hoy", detalle: "Lo entregas en caja y Compras lo recibe" },
 };
 
-export function TerminarDia({ plata }: { plata: Plata }) {
+/** `envios`: los de la ronda abierta, para verlos antes de cerrarla (Felipe 2026-10-26); `null` si no se pudieron leer. */
+export function TerminarDia({ plata, envios, hoy }: { plata: Plata; envios: EnvioMio[] | null; hoy?: string }) {
   const [abierta, setAbierta] = useState(false);
   const origen = useRef<HTMLElement | null>(null);
   const ronda = plata.ronda.abierta;
@@ -52,14 +56,14 @@ export function TerminarDia({ plata }: { plata: Plata }) {
           Cerrar mi ronda {ronda.texto}
         </span>
       </Boton>
-      {abierta && <TerminarModal plata={plata} onClose={() => setAbierta(false)} volverA={origen} />}
+      {abierta && <TerminarModal plata={plata} envios={envios} hoy={hoy} onClose={() => setAbierta(false)} volverA={origen} />}
     </section>
   );
 }
 
 type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 
-function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () => void; volverA: RefObject<HTMLElement | null> }) {
+function TerminarModal({ plata, envios, hoy, onClose, volverA }: { plata: Plata; envios: EnvioMio[] | null; hoy?: string; onClose: () => void; volverA: RefObject<HTMLElement | null> }) {
   const router = useRouter();
   const opciones = decisionesCierre(plata.tiene);
   const sinElegir = opciones.length === 1;
@@ -128,6 +132,9 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
               <span className="whitespace-nowrap tabular-nums">{soles(Math.abs(d.queda))}</span>
             </li>
           </ul>
+
+          {/* Los códigos a la vista antes de cerrar, por si hay que avisarle algo a una tienda. Uno «en camino» no frena el cierre. */}
+          {envios && <EnviosAntesDeCerrar envios={envios} hoy={hoy} />}
 
           {/* Con prendas por mandar no se cierra (Felipe 2026-10-26): la franja lleva a «Mandar a la tienda» y «Cerrar» queda apagado. */}
           {falta && (
@@ -206,5 +213,29 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
         </form>
       )}
     </Modal>
+  );
+}
+
+/** «Tus envíos de la ronda»: cada uno con su código y en qué va, y cómo va la ronda en un chip. Solo se lee. */
+function EnviosAntesDeCerrar({ envios, hoy }: { envios: EnvioMio[]; hoy?: string }) {
+  const resumen = resumenDeEnvios(envios, hoy);
+  return (
+    <div className="flex flex-col gap-1" data-guia="mi-plata.cerrar-envios">
+      <TituloSeccion nivel={3} cuenta={envios.length} accion={resumen.chip ? <Chip tono={resumen.chip.tono}>{resumen.chip.texto}</Chip> : undefined}>
+        Tus envíos de la ronda
+      </TituloSeccion>
+      {envios.length > 0 ? (
+        <>
+          <ul className="divide-y divide-sand">
+            {envios.map((e) => (
+              <FilaEnvio key={e.id} e={e} hoy={hoy} soloLeer />
+            ))}
+          </ul>
+          <p className="text-xs text-taupe">Los que sigan «en camino» los puedes seguir viendo en Mis envíos después de cerrar.</p>
+        </>
+      ) : (
+        <p className="text-sm text-taupe">No mandaste nada en esta ronda.</p>
+      )}
+    </div>
   );
 }

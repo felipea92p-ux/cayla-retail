@@ -14,6 +14,7 @@ import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } fro
 export type { EtapaClave, EstadoEtapa, EstadoOrden } from "@/lib/produccion-reglas";
 import { datosDeVariante, esProducible, type EtapaClave, type EstadoEtapa, type EstadoOrden, type PrecioMasBajo } from "@/lib/produccion-reglas";
 import { RPC_TELA_EN_CAMINO, leerTelaEnCamino } from "@/lib/tela-del-taller-reglas";
+import type { AvioDelModelo, ConsumoDelModelo } from "@/lib/orden-tela-reglas";
 
 export type LineaOrden = {
   varianteId: string;
@@ -249,7 +250,9 @@ export async function getVocabularioModeloNuevo(): Promise<Tolerado<VocabularioM
 export type OpcionesNuevaOrden = {
   proveedores: { id: string; nombre: string; rubro: string; activo: boolean; tarifas: { faseClave: string; tarifa: number; minimo: number | null; fijo: number; vigenteDesde: string }[] }[];
   /** Por modelo: metros de tela por prenda y de dónde sale el número. */
-  consumos: Record<string, { telaPorPrenda: number; fuente: "declarado" | "medido" }>;
+  consumos: Record<string, ConsumoDelModelo>;
+  /** Por modelo: los avíos que ya tiene (botones, hilo, etiquetas), para que Nueva orden los proponga sola (ADR-0513). */
+  aviosModelo: Record<string, AvioDelModelo[]>;
   /** Por tela: metros que las órdenes en proceso ya tienen comprometidos (plan − descontado). */
   comprometido: Record<string, number>;
   /** Por tela: lo que viene en camino (lo que falta recibir de los pedidos, sin los atrasados; `fn_tela_en_camino`, regla de Felipe del 2026-10-16). Sin ello, nada viene. */
@@ -258,11 +261,45 @@ export type OpcionesNuevaOrden = {
 
 type OpcionesLeidas = {
   proveedores?: { id: string; nombre: string; rubro: string; activo: boolean; tarifas?: { fase_clave: string; tarifa_prenda: number | string; cantidad_minima: number | null; fijo_orden: number | string; vigente_desde: string }[] }[];
-  consumos?: { producto_id: string; tela_por_prenda: number | string; fuente: "declarado" | "medido" }[];
+  consumos?: {
+    producto_id: string;
+    tela_por_prenda: number | string;
+    fuente: "declarado" | "medido";
+    por_talla?: Record<string, number | string> | null;
+    declarado_por_prenda?: number | string | null;
+    medido_por_prenda?: number | string | null;
+    ordenes_medidas?: number | string | null;
+  }[];
   comprometido?: { insumo_id: string; cantidad: number | string }[];
+  avios_modelo?: { producto_id: string; insumo_id: string; color_codigo: string | null; cantidad_por_prenda: number | string }[];
 };
 
 export const RPC_NUEVA_ORDEN_OPCIONES = "fn_nueva_orden_opciones";
+
+/** Los avíos vigentes de cada modelo, en el orden en que la base los entrega; una cantidad que no se lee no entra. */
+function aviosPorModelo(filas: NonNullable<OpcionesLeidas["avios_modelo"]>): Record<string, AvioDelModelo[]> {
+  const salida: Record<string, AvioDelModelo[]> = {};
+  for (const f of filas) {
+    const cantidad = Number(f.cantidad_por_prenda);
+    if (!Number.isFinite(cantidad) || cantidad <= 0) continue;
+    (salida[f.producto_id] ??= []).push({ insumoId: f.insumo_id, colorCodigo: f.color_codigo, cantidadPorPrenda: cantidad });
+  }
+  return salida;
+}
+
+/** Un consumo de `fn_nueva_orden_opciones` como lo usa la hoja: lo que manda, la forma por talla (si la hay) y de dónde sale (ADR-0513). Un campo que no llega queda sin dato, nunca en cero. */
+function consumoDelModelo(c: NonNullable<OpcionesLeidas["consumos"]>[number]): ConsumoDelModelo {
+  const numeroONulo = (v: number | string | null | undefined) => (v === null || v === undefined || Number.isNaN(Number(v)) ? null : Number(v));
+  const porTalla = c.por_talla && typeof c.por_talla === "object" ? Object.fromEntries(Object.entries(c.por_talla).flatMap(([t, v]) => (numeroONulo(v) !== null ? [[t, Number(v)] as const] : []))) : null;
+  return {
+    telaPorPrenda: Number(c.tela_por_prenda),
+    fuente: c.fuente,
+    porTalla: porTalla && Object.keys(porTalla).length > 0 ? porTalla : null,
+    declaradoPorPrenda: numeroONulo(c.declarado_por_prenda),
+    medidoPorPrenda: numeroONulo(c.medido_por_prenda),
+    ordenesMedidas: numeroONulo(c.ordenes_medidas) ?? 0,
+  };
+}
 
 export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<OpcionesNuevaOrden>> {
   const fallo = "No se pudieron cargar los servicios ni las telas para la orden. La orden igual se puede abrir con sus fases en el Taller.";
@@ -293,7 +330,8 @@ export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<
             vigenteDesde: t.vigente_desde,
           })),
         })),
-        consumos: Object.fromEntries((o.consumos ?? []).map((c) => [c.producto_id, { telaPorPrenda: Number(c.tela_por_prenda), fuente: c.fuente }])),
+        consumos: Object.fromEntries((o.consumos ?? []).map((c) => [c.producto_id, consumoDelModelo(c)])),
+        aviosModelo: aviosPorModelo(o.avios_modelo ?? []),
         comprometido: Object.fromEntries((o.comprometido ?? []).map((c) => [c.insumo_id, Number(c.cantidad)])),
         enCamino: Object.fromEntries([...(enCamino ?? [])].filter(([, c]) => c.cuenta > 0).map(([id, c]) => [id, c.cuenta])),
       } satisfies OpcionesNuevaOrden;
