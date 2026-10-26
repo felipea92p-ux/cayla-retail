@@ -20,6 +20,7 @@ describe("la planilla de Existencias no hereda la hoja corrida (H1)", () => {
 
   it("la hoja de alto fijo no se deja desplazar ni por código (`overflow: clip`, no `hidden`)", () => {
     const modal = leer("components/ui/Modal.tsx");
-    expect(modal).toMatch(/altoFijo \? "flex flex-col overflow-clip"/);
+    // Desde 640 px; en el celular la hoja se desliza entera (Felipe 2026-10-26: la tabla quedaba de una fila).
+    expect(modal).toMatch(/altoFijo \? "scroll-cayla overflow-y-auto sm:flex sm:flex-col sm:overflow-clip"/);
   });
 });

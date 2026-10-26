@@ -141,7 +141,7 @@ import {
   rechazoDelCupon,
   solesDelCupon,
 } from "@/lib/club-puntos-reglas";
-import { DejarEnEsperaModal, DescartarTicketModal, TicketsSinCobrarModal, TiraDeTickets } from "@/components/punto-de-venta/Esperas";
+import { DescartarTicketModal, TicketsSinCobrarModal } from "@/components/punto-de-venta/Esperas";
 import {
   abrirNuevoTicket,
   cabeOtroTicket,
@@ -497,12 +497,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const cuponClub = useCuponDelClub(clienta?.id ?? null, puedeBuscarClienta);
   const [hojaPuntos, setHojaPuntos] = useState(false);
   const [hojaCodigo, setHojaCodigo] = useState(false);
-  const [esperaAbierta, setEsperaAbierta] = useState(false);
   // Dónde se dibuja el ticket de la caja entre las pestañas (`lib/tickets-abiertos-reglas.ts`); `null` = al final, donde nace uno nuevo.
   const [posActivo, setPosActivo] = useState<number | null>(null);
-  // El ticket que se va a descartar, con lo que la hoja de confirmación dice (se guarda aparte: al descartarlo su pestaña desaparece
-  // y la hoja no puede leerla de ahí mientras sale). `id: null` es el de la caja.
-  const [porDescartar, setPorDescartar] = useState<{ id: string | null; nombre: string; prendas: number; total: number } | null>(null);
+  // El ticket que espera y se va a descartar, con lo que dice la hoja de confirmación (se guarda aparte: al descartarlo sale de
+  // la espera y la hoja no puede leerlo de ahí mientras se cierra).
+  const [porDescartar, setPorDescartar] = useState<{ id: string; nombre: string; prendas: number; total: number } | null>(null);
   // Se quiere cerrar la caja con tickets que tienen prendas: antes de abrir el cierre se dice cuáles se pierden.
   const [cierreConTickets, setCierreConTickets] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
@@ -758,7 +757,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || porDescartar !== null || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
+    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || porDescartar !== null || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -1483,8 +1482,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       cupon: cuponClub.cupon,
     };
   }
-  /** Abre el nombre del ticket antes de dejarlo en espera (spike 2026-09-26): «Dejar en espera» ya no es inmediato,
-   *  pero las sugerencias («Probador 1»…) y Enter lo dejan de un toque. El tope se revisa ANTES de preguntar. */
+  /** «Dejar en espera» de un clic, sin preguntar nombre (Felipe 2026-10-26: escribirlo era tedio; la hoja del nombre, del spike
+   *  2026-09-26, se fue). El ticket lleva el que ya tenía o el «Cliente N» libre, y en el celular la hoja se cierra para seguir. */
   function pedirDejarEnEspera() {
     if (carrito.length === 0) return;
     if (!cabeOtroTicket(enEspera.length)) {
@@ -1492,7 +1491,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       return;
     }
     setHojaTicket(false);
-    setEsperaAbierta(true);
+    dejarEnEspera(nombreTicket);
   }
   /** Más de 9 tickets abiertos no es atender a varias clientas, es un mostrador desbordado (Felipe, 2026-10-25): avisa en vez de dejar crecer la fila. */
   function avisarTopeDeTickets() {
@@ -1522,26 +1521,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (pestanas.some((p) => p.prendas > 0)) setCierreConTickets(true);
     else setModalCaja("cerrar");
   }
-  /** «Nuevo cliente» (Felipe, 2026-10-25): atender a otro sin perder este ticket, de un toque y con nombre automático. */
-  function nuevaCliente() {
-    dejarEnEspera(nombreActivo);
-  }
-  /** Descartar un ticket (pide confirmación: se pierden sus prendas). Sin `id`, el de la caja. */
-  function pedirDescartar(id: string | null) {
+  /** El basurero de «En espera»: pide confirmación, porque se pierden sus prendas. */
+  function pedirDescartar(id: string) {
     const p = pestanas.find((x) => x.id === id);
     if (p) setPorDescartar({ id, nombre: p.nombre, prendas: p.prendas, total: p.total });
   }
-  function descartarTicket(id: string | null) {
-    if (id === null) {
-      // Una proforma en cobro se suelta con su propio camino: sigue vigente en Proformas y no se cobra como venta suelta.
-      if (proformaActiva) soltarProforma();
-      else limpiarTicket();
-      buscador.current?.focus();
-      return;
-    }
+  function descartarDeLaEspera(id: string) {
     const sin = quitarDeLaEspera(enEspera, posActivo, id);
     persistirEspera(sin.espera);
     setPosActivo(sin.posActivo);
+    // Si era el último, ya no queda nada que ver en «En espera»: vuelve al ticket.
+    if (sin.espera.length === 0) setMomento("armar");
   }
   function retomar(id: string) {
     const ticket = enEspera.find((t) => t.id === id);
@@ -2296,6 +2286,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             enEspera={enEspera}
             onDejarEnEspera={pedirDejarEnEspera}
             onRetomar={retomar}
+            onIrAEspera={() => setMomento("espera")}
+            onDescartarEspera={pedirDescartar}
             total={total}
             prendas={prendas}
             vale={valeDelTicket}
@@ -2317,23 +2309,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           onCerrarHoja={() => setHojaTicket(false)}
           arriba={
             <>
-              <TiraDeTickets
-                pestanas={pestanas}
-                nombreEscrito={nombreTicket}
-                puedeNueva={carrito.length > 0 && cabeOtroTicket(enEspera.length)}
-                motivoNueva={
-                  carrito.length === 0
-                    ? "Agrega una prenda a este ticket para atender a otro cliente"
-                    : cabeOtroTicket(enEspera.length)
-                      ? null
-                      : `Ya hay ${TOPE_TICKETS_ABIERTOS} tickets abiertos: cobra o descarta uno`
-                }
-                bloqueado={bloqueado}
-                onIr={retomar}
-                onNueva={nuevaCliente}
-                onDescartar={pedirDescartar}
-                onRenombrar={setNombreTicket}
-              />
               {/* Cliente y bolsa en UNA fila (Felipe 2026-10-22): apiladas, las dos franjas le quitaban a la lista de prendas casi
                   70 px. Con un cliente elegido su caja crece y la bolsa queda en un ícono a su derecha. */}
               <div className="flex items-start gap-2 px-5 pt-3 empty:hidden">
@@ -2584,14 +2559,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         </Modal>
       )}
 
-      {esperaAbierta && (
-        <DejarEnEsperaModal
-          nombreInicial={nombreTicket}
-          // El ticket que está en la caja ocupa su nombre igual que los de la tira: si se retomó «Probador 1», ese
-          // chip no se vuelve a ofrecer (el campo ya lo trae escrito).
-          ocupados={[...enEspera.map((t) => t.nombre ?? ""), nombreTicket]}
-          onDejar={dejarEnEspera}
-          onClose={() => setEsperaAbierta(false)}
+
+      {porDescartar && (
+        <DescartarTicketModal
+          nombre={porDescartar.nombre}
+          prendas={porDescartar.prendas}
+          total={porDescartar.total}
+          onDescartar={() => descartarDeLaEspera(porDescartar.id)}
+          onClose={() => setPorDescartar(null)}
         />
       )}
 
@@ -2600,16 +2575,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           tickets={pestanas.filter((p) => p.prendas > 0)}
           onSeguir={() => setModalCaja("cerrar")}
           onClose={() => setCierreConTickets(false)}
-        />
-      )}
-
-      {porDescartar && (
-        <DescartarTicketModal
-          nombre={porDescartar.nombre}
-          prendas={porDescartar.prendas}
-          total={porDescartar.total}
-          onDescartar={() => descartarTicket(porDescartar.id)}
-          onClose={() => setPorDescartar(null)}
         />
       )}
 

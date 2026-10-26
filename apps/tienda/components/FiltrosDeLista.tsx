@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, type MouseEvent, type ReactNode } from "react";
+import { guardarAviso } from "@/lib/filtros-aviso";
 
 /**
  * La barra de filtros de una lista del catálogo (grupos, categorías y orden), que se queda pegada arriba al bajar. Si la persona toca un
@@ -15,7 +16,18 @@ export function FiltrosDeLista({ children }: { children: ReactNode }) {
   function alTocar(e: MouseEvent<HTMLDivElement>) {
     // Abrir en otra pestaña (o con el botón del medio) no cambia esta lista.
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    if (!(e.target instanceof Element) || !e.target.closest("a[href]") || !marca.current) return;
+    const enlace = e.target instanceof Element ? e.target.closest("a[href]") : null;
+    if (!enlace || !marca.current) return;
+    // Un grupo o una categoría que suelta lo elegido de color y talla manda su frase en el enlace (`data-quita`, ADR-0512): se guarda para que
+    // quien llega al otro lado vea qué se quitó, con «Deshacer» que vuelve a esta lista.
+    const quita = enlace.getAttribute("data-quita");
+    if (quita) {
+      try {
+        guardarAviso(window.sessionStorage, { texto: quita, destino: enlace.getAttribute("href") ?? "", volver: window.location.pathname + window.location.search });
+      } catch {
+        // Sin almacén (ventana privada): el aviso no cruza.
+      }
+    }
     const comienzo = marca.current.getBoundingClientRect().top + window.scrollY;
     if (window.scrollY > comienzo + 1) window.scrollTo({ top: comienzo, behavior: "instant" });
   }

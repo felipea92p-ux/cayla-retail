@@ -1564,7 +1564,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.quien-compro",
       opcional: true,
       titulo: "Tú hiciste la orden",
-      texto: "Hiciste una de las órdenes de este envío: ves lo que trae, pero lo recibe otra persona de la tienda. Es la regla para todos, también para un líder: nadie da por recibido lo que él mismo pidió.",
+      texto: "Hiciste una de las órdenes de este envío: ves lo que trae, pero lo recibe otra persona de la tienda. Es la regla para todos, también para un líder; solo un Admin puede recibir lo que él mismo compró, y entonces queda anotado.",
     },
     {
       id: "papeles",
@@ -1586,27 +1586,6 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       titulo: "Lo que anotó la compradora",
       texto: "Cada prenda que anotó al comprar, con cuántas: «Ahora» es la que sigue, «Contada» la que ya llegó completa.",
-    },
-    {
-      id: "pregunta",
-      ancla: "recepcion.pregunta",
-      opcional: true,
-      titulo: "¿Son estas?",
-      texto: "Arriba, cuánto llevas contado de lo que anotó. Debajo, la prenda que sigue: si es la que tienes en la mano, un toque y queda contada.",
-    },
-    {
-      id: "son-estas",
-      ancla: "recepcion.son-estas",
-      opcional: true,
-      titulo: "Son estas",
-      texto: "Pone en la prenda lo que anotó la compradora, igual que escribirlo en el contador. Se guarda solo. En la demo no lo tocamos.",
-    },
-    {
-      id: "es-otra",
-      ancla: "recepcion.es-otra",
-      opcional: true,
-      titulo: "Es otra prenda",
-      texto: "Si no coincide, la deja para después y la abre en el contador para que la cuentes a mano.",
     },
     // ---- En camino: se lee lo que trae y se abre ----
     {
@@ -1669,15 +1648,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "¿Qué prendas son? (opcional)",
-      texto: "Si te da tiempo: busca una prenda del catálogo y pon cuántas eran; con sus tallas y colores entra al stock al cerrar. De lo nuevo dices cuántas y, si quieres, qué son con «Describir ahora». Lo que no separes queda para después.",
-    },
-    {
-      id: "elegida",
-      ancla: "recepcion.elegida",
-      opcional: true,
-      requiere: ["recepcion.categorias"],
-      titulo: "La que anotó la compradora",
-      texto: "Si la compradora eligió la prenda al comprar, aquí te la dice. Si es la que llegó, toca «Son estas» y queda separada sin buscarla. Tú confirmas: lo que cuentas es lo que vale.",
+      texto: "Si te da tiempo: busca una prenda del catálogo y pon cuántas eran; con sus tallas y colores entra al stock al cerrar. De lo nuevo dices cuántas y, si quieres, qué son con «Describir ahora»; ya descrita, «Crear ahora» la crea y sigues con sus tallas. Lo que no separes queda para después.",
     },
     {
       id: "agregar",
@@ -1700,7 +1671,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por categoría: lo que dijeron, lo que contaste, cuántas se pueden vender ya y qué queda para después. Si no cuadró, eliges qué pasó. Al final, el precio de compra (corrígelo si la factura dice otro); al tocar la fila, el de venta de cada prenda identificada. En la demo no escribimos.",
+      texto: "Una fila por categoría: lo que dijeron, lo que contaste, cuántas se pueden vender ya y qué queda para después. Si no cuadró, eliges qué pasó. Al abrir la fila, el costo (viene de la orden: corrígelo si la factura dice otro) y el precio de venta de cada prenda. En la demo no escribimos.",
     },
     {
       // Felipe 2026-10-14: solo en un envío sin aviso que se abrió sin saber de quién es.
@@ -1847,7 +1818,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.para-despues",
       requiere: ["recepcion.para-despues"],
       titulo: "Para después",
-      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. «Hacer ahora» lo termina con la cantidad ya contada; lo puede hacer cualquiera que tenga Recibir. En la demo no lo tocamos.",
+      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. Cada fila trae su botón («Hacer ahora», «Tallas y colores ahora» o «+ Crear ahora») y lo termina con la cantidad ya contada; lo puede hacer cualquiera que tenga Recibir. En la demo no lo tocamos.",
     },
     {
       id: "reabrir",

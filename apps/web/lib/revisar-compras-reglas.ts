@@ -37,7 +37,8 @@ export type LineaPapel = {
   sobran: number;
 };
 
-export type EnvioPapel = { id: string; numero: number; estado: "en_camino" | "abierto" | "cerrado" };
+/** `recibioQuienCompro` (ADR-0517): el envío está cerrado y lo cerró quien hizo alguna de sus órdenes: un Admin recibió lo que él mismo compró. */
+export type EnvioPapel = { id: string; numero: number; estado: "en_camino" | "abierto" | "cerrado"; recibioQuienCompro: boolean };
 
 export type PapelPorCompletar = {
   id: string;
@@ -170,7 +171,7 @@ function leerPapel(x: unknown): PapelPorCompletar | null {
       const eid = texto(eo?.id);
       const n = numero(eo?.numero);
       const estado = ESTADOS_ENVIO.find((s) => s === eo?.estado);
-      return eid && n != null && estado ? [{ id: eid, numero: n, estado }] : [];
+      return eid && n != null && estado ? [{ id: eid, numero: n, estado, recibioQuienCompro: eo?.recibio_quien_compro === true }] : [];
     }),
     llego: o.llego === true,
   };
@@ -368,6 +369,11 @@ export function textoLlegada(p: Pick<PapelPorCompletar, "llego" | "lineas" | "en
   if (p.lineas.some((l) => l.mandadas < l.cantidad)) return "Falta mandarla a la tienda";
   if (p.envios.some((e) => e.estado === "abierto")) return "La tienda la está contando";
   return "En camino a la tienda";
+}
+
+/** ¿Algún envío de esta compra lo cerró quien la compró? (ADR-0517: un Admin recibe lo suyo; quien revisa lo ve en la ficha.) */
+export function recibioQuienCompro(p: Pick<PapelPorCompletar, "envios">): boolean {
+  return p.envios.some((e) => e.recibioQuienCompro);
 }
 
 /** Qué dijo la tienda de lo que faltó en una línea: «2 no vino: está en «Nos debe» del proveedor». */
