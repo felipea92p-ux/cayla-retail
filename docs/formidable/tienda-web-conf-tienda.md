@@ -66,4 +66,5 @@ Real (colaboradora de tienda): **sin probar.** Esto es «ciega: pasa con reparos
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
-| 2026-10-26 | `7998bdca4` | 6,3 | 6 | — (los 3 cambios esperan el OK de Felipe) |
+| 2026-10-26 | `7998bdca4` | 6,3 | 6 | — (los 3 cambios esperaban el OK de Felipe) |
+| 2026-10-26 | rama `claude/formidable-conf-tienda` | sin repetir la ciega | 6 (a 1440 px siguen fallando las mismas 6 de 8; ninguna es de lo cambiado) | **los 3 cambios hechos con el OK de Felipe** (aviso al salir + Esc por caja; la letra y el atajo del orden a la vista; un nombre por dato + WhatsApp bajo su caja) y el candado de doble clic de `/chaos`; falta repetir la ciega |
