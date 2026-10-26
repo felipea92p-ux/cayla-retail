@@ -467,6 +467,13 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       texto: "Cuántas hay de cada talla del color elegido, con una barra para ver de un vistazo cuál se está acabando. Con − y + lo corriges aquí mismo; se guarda con «Revisar y guardar».",
     },
     {
+      id: "ficha-consumo",
+      ancla: "editar.ficha-consumo",
+      opcional: true,
+      titulo: "La ficha de consumo",
+      texto: "Cuánta tela lleva una prenda de este modelo (por talla si hace falta) y qué avíos: botones, hilo, etiquetas. «Abrir la ficha» la muestra, con las órdenes cerradas; la edita el Taller. Con 3 órdenes manda lo que se gastó de verdad, y «Volver a Audaces» lo deshace.",
+    },
+    {
       id: "precio",
       ancla: "editar.precio",
       opcional: true,
