@@ -1,0 +1,220 @@
+@layer components {
+/* ====================================================================
+   Tienda web ▸ Conf. Tienda (ADR-0518; maqueta docs/maquetas/tienda-web-conf-2026-10/, aprobada por Felipe 2026-10-26).
+
+   Tres piezas propias, porque ninguna familia de /unificar dibuja «la tienda como un local»:
+   - la PUERTA (`.twc-puerta`): una tienda en la fila de arriba, con su fachada (toldo del color de su sede), su estado y su interruptor.
+   - el TELÉFONO (`.twc-cel`): la tarjeta de esa tienda tal como la lee el cliente, fija al lado del taller.
+   - la FACHADA (`.twc-fachada`): el toldo de rayas del color de la sede; si la tienda sube su foto, la foto la reemplaza.
+   Todo lo demás (chips, anillo, interruptor, botones, campos) son las piezas únicas del ERP.
+
+   Solo tokens (ADR-0169, ADR-0336): el toldo usa `--color-sede-*`, que ya existen en claro y en oscuro. Movimiento de ADR-0136: la puerta
+   sube 2 px al pasar el mouse y entra en cascada con `.tw-entra`; sin rebote ni bucle, y se apaga con `prefers-reduced-motion`.
+   ==================================================================== */
+
+  /* ───────── La fila de puertas ───────── */
+  .twc-calle { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+  @media (max-width: 900px) {
+    .twc-calle { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 78%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+    .twc-calle > * { scroll-snap-align: start; }
+  }
+
+  .twc-puerta {
+    position: relative;
+    display: grid;
+    overflow: hidden;
+    border: 1px solid var(--color-sand);
+    border-radius: 16px;
+    background: var(--color-papel);
+    transition: border-color 220ms var(--ease-cayla), transform 220ms var(--ease-cayla);
+  }
+  @media (hover: hover) {
+    .twc-puerta:hover { border-color: color-mix(in srgb, var(--color-taupe) 60%, transparent); transform: translateY(-2px); }
+  }
+  .twc-puerta[data-arrastrando] { opacity: 0.4; }
+  .twc-puerta[data-encima] { border-style: dashed; border-color: var(--color-tinta); }
+  .twc-puerta[draggable="true"] { cursor: grab; }
+  .twc-puerta[draggable="true"][data-arrastrando] { cursor: grabbing; }
+  .twc-puerta[data-activa] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
+  .twc-puerta[data-oculta] .twc-fachada { opacity: 0.55; filter: grayscale(1); }
+
+  /* El asa para arrastrar y los botones del celular flotan sobre la fachada, arriba a la derecha. */
+  .twc-asa {
+    position: absolute; top: 8px; right: 8px; z-index: 2; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
+    background: color-mix(in srgb, var(--color-papel) 82%, transparent); color: var(--color-taupe); pointer-events: none;
+  }
+  .twc-asa svg { width: 16px; height: 16px; }
+  .twc-mover { position: absolute; top: 8px; right: 8px; z-index: 3; display: none; gap: 4px; }
+  .twc-mover button {
+    display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px;
+    background: color-mix(in srgb, var(--color-papel) 88%, transparent); color: var(--color-tinta); border: 1px solid var(--color-sand);
+  }
+  .twc-mover svg { width: 16px; height: 16px; }
+  @media (pointer: coarse) {
+    .twc-asa { display: none; }
+    .twc-mover { display: flex; }
+  }
+  .twc-cara { display: grid; width: 100%; text-align: left; cursor: pointer; }
+  .twc-cara-texto { display: grid; gap: 8px; padding: 12px 14px 4px; justify-items: start; }
+  .twc-nombre { font-family: var(--font-serif); font-size: 22px; line-height: 1.1; color: var(--color-tinta); overflow-wrap: anywhere; }
+  .twc-pie { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 14px 12px; }
+  .twc-faltan { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; flex: 1; }
+  .twc-sw { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--color-taupe); }
+  .twc-sw svg { width: 14px; height: 14px; }
+  .twc-sin-guardar { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-taupe); }
+
+  /* ───────── La fachada: toldo de rayas del color de la sede ───────── */
+  .twc-fachada { position: relative; height: 96px; overflow: hidden; background: var(--color-hueso); transition: opacity 260ms var(--ease-cayla), filter 260ms var(--ease-cayla); }
+  .twc-fachada img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .twc-toldo {
+    position: absolute; inset: 0 0 auto 0; height: 34px;
+    background: repeating-linear-gradient(90deg, var(--c) 0 22px, color-mix(in srgb, var(--c) 55%, var(--color-papel)) 22px 44px);
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 96% 100%, 88% 70%, 80% 100%, 72% 70%, 64% 100%, 56% 70%, 48% 100%, 40% 70%, 32% 100%, 24% 70%, 16% 100%, 8% 70%, 0 100%);
+  }
+  .twc-puertita { position: absolute; left: 50%; bottom: 0; width: 34px; height: 46px; transform: translateX(-50%); background: var(--color-papel); border: 1px solid var(--color-sand); border-bottom: 0; border-radius: 6px 6px 0 0; }
+  .twc-puertita::after { content: ""; position: absolute; right: 6px; top: 24px; width: 3px; height: 3px; border-radius: 50%; background: var(--color-taupe); }
+
+  /* ───────── El taller y el teléfono ───────── */
+  .twc-taller { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .twc-taller { grid-template-columns: 1fr; } }
+  .twc-lado { position: sticky; top: 16px; display: grid; gap: 12px; justify-items: center; }
+  @media (max-width: 900px) { .twc-lado { position: static; } }
+  .twc-nota-en-vivo { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--color-taupe); }
+  .twc-nota-en-vivo svg { width: 14px; height: 14px; }
+
+  .twc-cel { width: 300px; max-width: 100%; border: 1px solid var(--color-sand); border-radius: 34px; padding: 10px; background: var(--color-papel); }
+  .twc-pant { display: grid; grid-template-rows: auto 1fr; min-height: 430px; overflow: hidden; border-radius: 26px; background: var(--color-crema); }
+  .twc-barra { display: flex; justify-content: center; padding: 10px 0 6px; font-family: var(--font-serif); font-size: 15px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-tinta); }
+  .twc-tarjeta { display: grid; margin: 6px 12px 14px; overflow: hidden; border: 1px solid var(--color-sand); border-radius: 18px; background: var(--color-papel); transition: opacity 300ms var(--ease-cayla); }
+  .twc-tarjeta[data-oculta] { opacity: 0.45; }
+  .twc-tarjeta .twc-fachada { height: 118px; }
+  .twc-tarjeta-c { display: grid; gap: 10px; padding: 14px; }
+  .twc-tarjeta h3 { font-family: var(--font-serif); font-size: 26px; font-weight: 500; line-height: 1.05; color: var(--color-tinta); overflow-wrap: anywhere; }
+  .twc-dato { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 13px; color: var(--color-tinta); overflow-wrap: anywhere; }
+  .twc-dato svg { width: 14px; height: 14px; margin-top: 2px; color: var(--color-taupe); }
+  .twc-dato[data-falta] { color: var(--color-taupe); font-style: italic; }
+  .twc-botones { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); margin-top: 2px; }
+  .twc-boton {
+    display: flex; align-items: center; justify-content: center; gap: 6px; height: 38px; border-radius: 999px;
+    border: 1px solid var(--color-tinta); background: var(--color-tinta); color: var(--color-crema);
+    font-size: 12.5px; font-weight: 700;
+  }
+  .twc-boton svg { width: 14px; height: 14px; }
+  .twc-boton-claro { background: transparent; color: var(--color-tinta); }
+
+  /* La foto de la fachada: se suelta o se elige; con foto, ella es el fondo y el texto queda abajo. */
+  .twc-foto {
+    position: relative; display: block; height: 104px; overflow: hidden; cursor: pointer;
+    border: 1.5px dashed color-mix(in srgb, var(--color-taupe) 55%, transparent); border-radius: 10px; background: var(--color-hueso); color: var(--color-taupe);
+    transition: border-color 220ms var(--ease-cayla), background-color 220ms var(--ease-cayla);
+  }
+  @media (hover: hover) { .twc-foto:hover { border-color: var(--color-tinta); background: var(--color-papel); } }
+  .twc-foto[data-sobre] { border-color: var(--color-tinta); background: var(--color-papel); }
+  .twc-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  /* El texto va centrado con posición absoluta: el `label` de este contenedor recibe estilos globales y no confío en su `display`. */
+  .twc-foto-texto { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .twc-foto[data-con-foto] .twc-foto-texto { inset: auto 0 8px 0; }
+  .twc-foto-pildora { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .twc-foto[data-con-foto] .twc-foto-pildora { background: color-mix(in srgb, var(--color-papel) 90%, transparent); color: var(--color-tinta); }
+  .twc-foto-pildora svg { width: 16px; height: 16px; }
+
+  /* El mapa de una tienda: una baldosa con calles y un pin, y lo que hará «Cómo llegar». */
+  .twc-mapita { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .twc-mapita-tile { position: relative; display: grid; place-items: center; flex: none; width: 56px; height: 40px; overflow: hidden; border: 1px solid var(--color-sand); border-radius: 8px; background: var(--color-hueso); color: var(--color-rojo); }
+  .twc-mapita-tile::before, .twc-mapita-tile::after { content: ""; position: absolute; background: var(--color-sand); }
+  .twc-mapita-tile::before { left: -4px; right: -4px; top: 16px; height: 6px; transform: rotate(-14deg); }
+  .twc-mapita-tile::after { top: -4px; bottom: -4px; left: 34px; width: 6px; transform: rotate(18deg); }
+  .twc-mapita-tile svg { position: relative; z-index: 1; width: 20px; height: 20px; transition: transform 300ms var(--ease-cayla); }
+  .twc-mapita[data-vacio] .twc-mapita-tile { color: var(--color-taupe); }
+  .twc-mapita[data-vacio] .twc-mapita-tile svg { opacity: 0.55; transform: translateY(3px); }
+  .twc-boton[data-apagado] { opacity: 0.35; }
+
+  /* «Abierta · cierra 9 p. m.»: el punto es verde si abre y ámbar si no (lleva la palabra escrita al lado). */
+  .twc-atencion { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--color-taupe); }
+  .twc-atencion::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--color-ambar); flex: none; }
+  .twc-atencion[data-abierta] { color: var(--color-verde); }
+  .twc-atencion[data-abierta]::before { background: var(--color-verde); }
+
+  /* ───────── Stock en la web: arriba lo que queda, abajo lo que lee el cliente ───────── */
+  .twc-escala-bloque { display: grid; gap: 10px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--color-sand); }
+  .twc-escala { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); grid-template-rows: 42px 36px; gap: 6px 10px; }
+  .twc-escala-t { align-self: center; font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-taupe); }
+  .twc-escala-opciones { grid-column: 2; grid-row: 1 / span 2; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 6px; }
+  .twc-celda { display: grid; grid-template-rows: 42px 36px; gap: 6px; padding: 0; text-align: center; }
+  .twc-celda b, .twc-celda span {
+    display: grid; place-items: center; padding: 0 4px;
+    transition: background-color 260ms var(--ease-cayla), color 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla);
+  }
+  .twc-celda b { border: 1.5px solid transparent; border-radius: 10px 10px 4px 4px; background: var(--color-hueso); font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--color-tinta); }
+  .twc-celda span { border-radius: 4px 4px 10px 10px; font-size: 12.5px; font-weight: 700; background: color-mix(in srgb, var(--color-verde) 14%, transparent); color: var(--color-verde); }
+  .twc-celda[data-poco] span { background: color-mix(in srgb, var(--color-ambar) 16%, transparent); color: var(--color-ambar); }
+  .twc-celda[data-tope] b { background: var(--color-tinta); color: var(--color-crema); }
+  button.twc-celda { cursor: pointer; }
+  @media (hover: hover) { button.twc-celda:hover b { border-color: var(--color-tinta); } }
+  /* El «4+» no se toca: borde punteado y sin relleno, para que no parezca un botón. */
+  .twc-celda-fija b { background: none; border: 1.5px dashed var(--color-sand); color: var(--color-taupe); }
+  @media (max-width: 520px) {
+    .twc-escala { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+    .twc-escala-t { display: none; }
+    .twc-escala-opciones { grid-column: 1; grid-row: auto; }
+    .twc-celda span { font-size: 11px; }
+  }
+
+  /* ───────── Los cierres por fecha: pastillas con su día y un ✕ ───────── */
+  .twc-cierres { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .twc-cierre {
+    display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 6px 0 12px; border-radius: 999px;
+    background: var(--color-hueso); font-size: 12.5px; font-weight: 600; color: var(--color-tinta);
+  }
+  .twc-cierre[data-hoy] { background: color-mix(in srgb, var(--color-ambar) 15%, transparent); color: var(--color-ambar); }
+  .twc-cierre button { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--color-taupe); transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
+  .twc-cierre button svg { width: 12px; height: 12px; }
+  @media (hover: hover) { .twc-cierre button:hover { background: var(--color-sand); color: var(--color-tinta); } }
+  .twc-cierres-fecha { width: 11rem; }
+
+  /* ───────── El horario por días: una barra por día, con asas ───────── */
+  .twc-horas { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 10px; align-items: center; user-select: none; -webkit-user-select: none; }
+  .twc-eje { position: relative; grid-column: 2; height: 16px; font-size: 11px; font-weight: 600; color: var(--color-taupe); }
+  .twc-eje span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .twc-dia {
+    height: 34px; display: grid; place-items: center; border-radius: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--color-tinta);
+    transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
+  }
+  @media (hover: hover) { .twc-dia:not(:disabled):hover { background: var(--color-hueso); } }
+  .twc-dia[aria-pressed="false"] { color: var(--color-taupe); opacity: 0.75; }
+  .twc-dia[data-hoy] { box-shadow: inset 0 0 0 1.5px var(--color-tinta); }
+  .twc-pista {
+    position: relative; height: 34px; overflow: hidden; border-radius: 8px; cursor: crosshair; touch-action: pan-y;
+    background: repeating-linear-gradient(90deg, var(--color-hueso) 0 calc(100% / 16 - 1px), var(--color-sand) calc(100% / 16 - 1px) calc(100% / 16));
+  }
+  .twc-pista[data-cerrado] { cursor: pointer; }
+  .twc-pista[data-cerrado]::after {
+    content: "Cerrado · toca para abrir"; position: absolute; inset: 0; display: grid; place-items: center;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-taupe); pointer-events: none;
+  }
+  .twc-pista[data-cierre] { cursor: not-allowed; background: repeating-linear-gradient(135deg, var(--color-hueso) 0 6px, var(--color-sand) 6px 12px); }
+  .twc-pista[data-cierre]::after { content: "Cerrado hoy"; color: var(--color-ambar); }
+  .twc-tramo {
+    position: absolute; top: 3px; bottom: 3px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px;
+    border-radius: 7px; background: var(--color-tinta); color: var(--color-crema); font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; cursor: grab;
+    transition: left 180ms var(--ease-cayla), width 180ms var(--ease-cayla);
+  }
+  .twc-tramo[data-moviendo] { transition: none; cursor: grabbing; }
+  .twc-asa-h { position: absolute; top: 0; bottom: 0; width: 16px; display: grid; place-items: center; cursor: ew-resize; }
+  .twc-asa-h[data-asa="abre"] { left: 0; }
+  .twc-asa-h[data-asa="cierra"] { right: 0; }
+  .twc-asa-h::before {
+    content: ""; width: 4px; height: 14px; transition: transform 200ms var(--ease-cayla);
+    border-left: 1.5px solid color-mix(in srgb, var(--color-crema) 70%, transparent); border-right: 1.5px solid color-mix(in srgb, var(--color-crema) 70%, transparent);
+  }
+  @media (hover: hover) { .twc-asa-h:hover::before { border-color: var(--color-crema); transform: scaleY(1.25); } }
+  /* La hora de ahora: un hilo rojo con su punto, sobre el día de hoy. */
+  .twc-ahora { position: absolute; top: 0; bottom: 0; z-index: 3; width: 2px; background: var(--color-rojo); pointer-events: none; }
+  .twc-ahora::before { content: ""; position: absolute; top: -3px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-rojo); }
+  .twc-horario-pie { display: flex; justify-content: flex-end; margin-top: 10px; }
+  @media (pointer: coarse) { .twc-dia, .twc-pista { height: 44px; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .twc-puerta, .twc-fachada, .twc-tarjeta, .twc-tramo, .twc-dia, .twc-asa-h::before, .twc-cierre button, .twc-celda b, .twc-celda span { transition: none; }
+  }
+}

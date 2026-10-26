@@ -20,7 +20,7 @@ import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { primerNombre, type CuentaOpcion } from "@/lib/fondos-reglas";
 import { confirmarPlata } from "@/lib/mi-plata-acciones";
-import { MEDIOS_PLATA, camposConfirmar, cuentaSugerida } from "@/lib/mi-plata-reglas";
+import { MEDIOS_PLATA, camposConfirmar, cuentaAlConfirmar, textoBancoIndicado } from "@/lib/mi-plata-reglas";
 import type { PlataPorConfirmarConFoto } from "@/lib/mi-plata";
 import { FichasCuenta } from "@/components/fondos/FichasCuenta";
 import { PanelDetalle } from "./PanelDetalle";
@@ -102,7 +102,8 @@ function VoucherGrande({ fila }: { fila: Fila }) {
 export function DetallePlata({ fila, cuentas, alTerminar }: { fila: Fila; cuentas: CuentaOpcion[]; alTerminar: () => void }) {
   const router = useRouter();
   const [monto, setMonto] = useState(fila.monto.toFixed(2));
-  const [cuentaId, setCuentaId] = useState(cuentaSugerida(cuentas) ?? "");
+  // Llega elegido el banco que dijo la compradora (si sigue disponible) o, si no, el BCP: Compras lo cambia si la transferencia salió de otro.
+  const [cuentaId, setCuentaId] = useState(cuentaAlConfirmar(fila, cuentas));
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
   const [guardando, setGuardando] = useState(false);
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
@@ -210,6 +211,7 @@ export function DetallePlata({ fila, cuentas, alTerminar }: { fila: Fila; cuenta
                   }}
                   deshabilitado={guardando}
                 />
+                {textoBancoIndicado(nombre, fila.cuentaIndicada) && <p className="mt-1.5 text-xs text-taupe">{textoBancoIndicado(nombre, fila.cuentaIndicada)}</p>}
               </CampoGuiado>
             )}
             {!esPersona && (

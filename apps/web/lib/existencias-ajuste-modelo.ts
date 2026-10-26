@@ -279,14 +279,15 @@ function listaEnFrase(partes: readonly string[]): string {
 
 /* ---------- El ancho justo del modal (Felipe 2026-10-23: «no debería ensancharse innecesariamente») ---------- */
 
-/** Las medidas de la planilla, las mismas que dibuja `AjusteDelModelo` (si una cambia allá, cambia aquí). */
+/** Las medidas de la planilla, las mismas que dibuja `ajuste-modelo.css` (si una cambia allá, cambia aquí). Desde la ronda 2 de la
+ *  «Planilla rápida» (Felipe 2026-10-26, `docs/maquetas/existencias-ajustar-tabla-2026-10/ronda-2.html`) el paso mide 36 px de alto. */
 export const PLANILLA = {
-  /** La columna del color, como mínimo (el círculo y el nombre). */
-  columnaColor: 168,
+  /** La columna del color con varias tallas, como mínimo (la franja y el nombre). */
+  columnaColor: 160,
   /** Cada talla: el paso de cantidad «planilla» con su aire. */
-  columnaTalla: 112,
+  columnaTalla: 104,
   /** El total del color (no va con una sola talla: repetiría el número). */
-  columnaTotal: 72,
+  columnaTotal: 64,
 } as const;
 
 /** Lo que rodea a la planilla dentro del modal al ajustar: los bordes de la hoja (24 + 24), la columna de la foto (14 rem) y el espacio
@@ -312,4 +313,30 @@ export const ANCHOS_DEL_MODAL = [
 export function anchoDelModalAlAjustar(tallas: number): (typeof ANCHOS_DEL_MODAL)[number] {
   const necesita = anchoDeLaPlanilla(tallas) + ALREDEDOR_DE_LA_PLANILLA;
   return ANCHOS_DEL_MODAL.find((a) => a.rem * 16 >= necesita) ?? ANCHOS_DEL_MODAL[ANCHOS_DEL_MODAL.length - 1];
+}
+
+/* ---------- Recorrer la planilla con el teclado (Felipe 2026-10-26, ronda 2 de la «Planilla rápida») ---------- */
+
+/** El orden en que Enter pasa de una cantidad a la siguiente: talla por talla, bajando por los colores, como se cuenta un estante (con
+ *  una sola talla, color tras color). Solo los cruces que existen. */
+export function ordenDeRecorrido(modelo: ModeloDeAjuste): string[] {
+  const ids: string[] = [];
+  for (const t of modelo.tallas)
+    for (const c of modelo.colores) {
+      const v = modelo.celdas.get(claveCelda(c.color, t));
+      if (v) ids.push(v.varianteId);
+    }
+  return ids;
+}
+
+/** La cantidad que sigue a `actual` en el recorrido, o `null` si era la última. */
+export function siguienteDelRecorrido(orden: readonly string[], actual: string): string | null {
+  const i = orden.indexOf(actual);
+  return i === -1 ? null : (orden[i + 1] ?? null);
+}
+
+/** El aviso de la carga inicial nombra el motivo de la ventana completa de Ajustar («Encontré prendas»); en la planilla ese botón se llama
+ *  «Encontré unidades» (`MOTIVOS_PLANILLA`): se nombra el botón que la persona tiene delante. */
+export function avisoCargaDeLaPlanilla(texto: string | null): string | null {
+  return texto ? texto.replace("«Encontré prendas»", `«${motivoPlanilla("encontre").texto}»`) : null;
 }
