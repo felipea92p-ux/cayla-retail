@@ -1516,8 +1516,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `AccionDelDia.tsx` y `ListaDelDia.tsx` (`movimientosDeLaCompradora`); «Compré ropa» abre `HojaPrenda.tsx` por prenda (`camposPrenda`,
   `lineaDeBorrador` en `lib/compra-rapida-reglas.ts`) y comparte `TarjetaFoto.tsx` con las hojas de Mi plata; `/compras/fondos` es una bandeja
   (`BandejaRevisar.tsx` + `PanelDetalle.tsx`; filas en `lib/revisar-compras-reglas.ts`) y sus cuatro detalles (`DetallePlata`, `DetallePapel`,
-  `DetalleGasto`, `DetalleCierre`) son las hojas de antes; `/recibir/envio/[id]` suma `PreguntaDeLaCompra.tsx` (`lib/recibir-papel-reglas.ts`)
-  y `PapelesDeLaCompra.tsx` pasa a columna fija con la foto en grande. En el mismo PR, tres migraciones: la foto del papel opcional
+  `DetalleGasto`, `DetalleCierre`) son las hojas de antes; `/recibir/envio/[id]` suma la tarjeta «¿Son estas?» (`PreguntaDeLaCompra.tsx`, **quitada el 2026-10-26**: ADR-0480, «Actualización 2026-10-26»; hoy
+  `lib/recibir-papel-reglas.ts` solo guarda `siguienteAnotada`) y `PapelesDeLaCompra.tsx` pasa a columna fija con la foto en grande. En el mismo PR, tres migraciones: la foto del papel opcional
   (`20261023180000`); pagar ahora o después y con qué (`20261023181000`: `registrar_compra_rapida` con `p_pagado`/`p_medio`, `compra_papeles.pagado`
   y `medio_pago`, lo que falta queda a crédito al completar); y la **ronda de compras** (`20261023183000`: `compra_rondas`, serie RC; RPC
   `abrir_ronda_compras` desde `AbrirRonda.tsx` vía `lib/mi-plata-acciones.ts`; `terminar_dia_compras` cierra la ronda; `fn_ronda_compras_de` dentro de
