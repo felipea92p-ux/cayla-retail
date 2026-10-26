@@ -110,6 +110,7 @@ import type { AccesoVenta } from "@/lib/vender-accesos";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import type { ClientaDelTicket as Clienta } from "@/lib/clienta-ticket-reglas";
 import { documentoParaComprobante, type TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
+import { cobroDeTicketGuardado, type CobroDelTicket } from "@/lib/ticket-cobro-reglas";
 import { CampoCelular } from "@/components/clientas/club-piezas";
 import { ajustarCelular } from "@/lib/club-reglas";
 import { problemaCelularOpcional } from "@/lib/club-caja-reglas";
@@ -289,6 +290,9 @@ export type TicketEnEspera = {
   /** La clienta que ya se había puesto en el ticket, para que vuelva con él. Uno guardado antes de la tanda 1a del club
    *  (ADR-0288) la trae con la forma vieja `{ id, nombre, dni, celular }`: se lee con `clientaDeTicketGuardado`. */
   clienta?: Clienta | null;
+  /** Lo del cobro que viaja con el ticket (2026-10-25): quién atendió, comprobante, documento, pagos y cupón. Un ticket guardado
+   *  antes no lo trae y vuelve con el cobro vacío; se lee con `cobroDeTicketGuardado`, nunca directo. */
+  cobro?: CobroDelTicket;
 };
 
 /** Más de esto no es «en espera», es un mostrador desbordado: el sexto avisa. */
@@ -1429,7 +1433,25 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setPagos([]);
     setDescuento(DESCUENTO_VACIO);
     responsable.limpiar();
+    // Lo del cobro viaja con el ticket que se deja en espera (`cobroParaEspera`): el ticket nuevo no hereda la boleta o factura,
+    // el documento escrito a mano ni el cupón del anterior (2026-10-25: antes se quedaban puestos al dejar en espera).
+    limpiarComprobante();
+    cuponClub.quitar();
     setMomento("armar");
+  }
+  /** Lo del cobro que viaja con el ticket al dejarlo en espera, para que al retomarlo no haya que rehacerlo
+   *  (`lib/ticket-cobro-reglas.ts`). Las DOS puertas a la espera lo piden: «Dejar en espera» y el intercambio de `retomar()`. */
+  function cobroParaEspera(): CobroDelTicket {
+    return {
+      responsableId: responsable.elegidoId,
+      comprobante: tipoComprobante,
+      docTipo: clienteDocIdentidad,
+      docNumero: clienteNumDoc,
+      clienteNombre,
+      celularBoleta,
+      pagos,
+      cupon: cuponClub.cupon,
+    };
   }
   /** Abre el nombre del ticket antes de dejarlo en espera (spike 2026-09-26): «Dejar en espera» ya no es inmediato,
    *  pero las sugerencias («Probador 1»…) y Enter lo dejan de un toque. El tope se revisa ANTES de preguntar. */
@@ -1449,7 +1471,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       return;
     }
     capturarFlip();
-    persistirEspera([...enEspera, ticketParaEspera({ carrito, nota, nombre, clienta }, crypto.randomUUID(), new Date().toISOString())]);
+    persistirEspera([...enEspera, ticketParaEspera({ carrito, nota, nombre, clienta, cobro: cobroParaEspera() }, crypto.randomUUID(), new Date().toISOString())]);
     limpiarTicket();
     buscador.current?.focus();
   }
@@ -1459,7 +1481,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // Si el ticket actual tiene líneas, se intercambian: el actual ocupa el lugar del retomado.
     const actual: TicketEnEspera | null =
       carrito.length > 0
-        ? ticketParaEspera({ carrito, nota, nombre: nombreTicket, clienta }, crypto.randomUUID(), new Date().toISOString())
+        ? ticketParaEspera({ carrito, nota, nombre: nombreTicket, clienta, cobro: cobroParaEspera() }, crypto.randomUUID(), new Date().toISOString())
         : null;
     persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
     // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
@@ -1481,12 +1503,30 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // El nombre viaja con el ticket: si se lo vuelve a dejar en espera, la hoja lo propone y la tira lo sigue
     // llamando igual.
     setNombreTicket(ticket.nombre ?? "");
-    // La clienta vuelve con su ticket (si la tenía); si no, el ticket retomado va sin clienta.
+    // Lo del cobro vuelve con el ticket (2026-10-25, «varias ventas a la vez»): quién atendió, comprobante, documento, pagos y
+    // cupón. Primero se vacía lo del ticket que estaba en la caja, para que uno viejo (guardado sin esto) no herede nada.
+    limpiarComprobante();
+    cuponClub.quitar();
+    const cobro = cobroDeTicketGuardado(ticket.cobro);
+    // La clienta vuelve con su ticket (si la tenía); si no, el ticket retomado va sin clienta. Su documento llena el
+    // comprobante; lo que se había escrito a mano encima (abajo) manda sobre él.
     if (ticket.clienta) elegirClienta(ticket.clienta);
     else quitarClienta();
-    // El responsable NO vuelve con el ticket: se elige en cada cobro (ADR-0161, A6).
-    responsable.limpiar();
-    setPagos([]);
+    if (ticket.cobro) {
+      setTipoComprobante(cobro.comprobante);
+      setClienteDocIdentidad(cobro.docTipo);
+      setClienteNumDoc(cobro.docNumero);
+      setClienteNombre(cobro.clienteNombre);
+      setCelularBoleta(cobro.celularBoleta);
+    }
+    // Quién atendió vuelve SOLO si se eligió a propósito para este ticket, y el combo lo muestra solo si esa persona sigue
+    // presente en la tienda (`responsableVigente`): nunca se hereda de la sesión ni del ticket anterior (ADR-0161, A6).
+    if (cobro.responsableId) responsable.elegir(cobro.responsableId);
+    else responsable.limpiar();
+    // El cupón es al portador y no se reservó mientras el ticket esperaba: si otra caja lo gastó, la base lo rechaza al
+    // cobrar y la pantalla lo quita y avisa (`rechazoDelCupon`), igual que hoy.
+    if (cobro.cupon) cuponClub.poner(cobro.cupon);
+    setPagos(cobro.pagos);
     setMomento("armar");
     // Lo que la pantalla sabe del stock (refrescado tras cada venta): si algo ya no alcanza,
     // se avisa por nombre y se deja seguir — la base tiene la última palabra al cobrar. Si lo que
