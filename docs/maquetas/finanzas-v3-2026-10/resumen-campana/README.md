@@ -144,3 +144,16 @@ SE ROMPE SI: una compra de campaña se paga en un mes y se vende en otro y la pe
 - «Pago a plazo» (opción C) supone crédito del proveedor: es un dato que hoy **no** vive en ninguna parte (el plazo del ADR-0499 es de entrega, no de pago). Hay que preguntarlo antes de contar con él.
 - La sugerencia por categoría usa rangos inventados que respetan la forma de la cuenta del plan (`cuantilCritico`); no la recalculan.
 - No se tocó código de la app, migraciones ni producción.
+
+## Precisiones del Plan de campaña (2026-10-26, sesión «Auditoría módulo plan de campaña»)
+
+Ninguna cambia el rumbo del Resumen; cambian lo que el contrato le pide al Plan:
+
+1. **IGV por categoría.** Algunos costos ya incluyen el IGV y otros no; el plan lo marca por categoría. Por eso el Plan debe exponer, por campaña, **valor sin IGV, IGV y lo que sale de caja**, ya calculados. El Resumen no recalcula el IGV: lo lee. (Referencia: `docs/maquetas/plan-campana-vision-2026-10/5-finanzas.html`, rama `claude/campaign-plan-audit-652032`.)
+2. **Pagos.** Se guarda la lista (fecha, %), con autor y hora y un CHECK de 100 %. Lo que se pide cada semana es otro dato del plan que usan Compras y la fecha límite: el Resumen no lo lee. Se decide en la tarea #10 del Plan.
+3. **Visibilidad.** El Plan propone 3 estados por campaña (flujo de caja y Escenarios / solo Escenarios / no mostrarla). Nuestro «se ve en el Resumen» es un booleano. Va **una sola columna**; Felipe elige entre booleano y 3 estados. Hasta entonces no se toca el esquema. La demo usa interruptores simples.
+4. **Nombre.** Felipe eligió «Inversión en mercadería» para el Resumen; el spike del Plan dice «Compromiso de compra» y Felipe elige mirando entre ese y «Compras de campaña». Hay que alinear un solo nombre en las dos pantallas.
+
+Tiempos: el Plan empieza por #1–#3 y luego #4–#6; lo de Finanzas (#10) viene después y necesita OK de Felipe. Hoy no existe ninguna tabla ni migración del Plan para esto: el lado del Resumen va tras bandera y no ofrece nada hasta que la base lo confirme.
+
+**Decidido por Felipe (2026-10-26): booleano.** Una campaña se ve o no se ve en el Resumen: una sola columna sí/no, por defecto «se ve». Los tres estados del Plan (flujo de caja y Escenarios / solo Escenarios / no mostrarla) quedan fuera por ahora; se pueden agregar después sin romper el booleano. El nombre sigue por elegir.
