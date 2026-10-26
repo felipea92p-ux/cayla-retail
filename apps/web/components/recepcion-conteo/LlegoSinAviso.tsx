@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, CircleHelp, PackageOpen, SearchX, Store } from "lucide-react";
@@ -63,6 +63,19 @@ export function LlegoSinAviso({
   const [token] = useState(() => crypto.randomUUID());
   const [abriendo, setAbriendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // El formulario no ocupa la pantalla hasta que alguien lo pide con «Sin Aviso». El enlace «Recibir sin aviso» de un envío
+  // (`/recibir#sin-aviso`) también lo abre.
+  const [abierto, setAbierto] = useState(false);
+  useEffect(() => {
+    const segunLaDireccion = () => {
+      if (window.location.hash !== "#sin-aviso") return;
+      setAbierto(true);
+      requestAnimationFrame(() => document.getElementById("sin-aviso")?.scrollIntoView({ block: "start" }));
+    };
+    segunLaDireccion();
+    window.addEventListener("hashchange", segunLaDireccion);
+    return () => window.removeEventListener("hashchange", segunLaDireccion);
+  }, []);
   const susFacturas = facturas.filter((f) => f.proveedorId === proveedorId && f.pendientes > 0);
   // «¿No está? + Agregar proveedor»: lo que llega sin aviso a veces es de un proveedor que todavía no está en el directorio. El recién
   // guardado se suma a la lista y queda elegido, sin esperar a que la página relea el directorio.
@@ -118,8 +131,23 @@ export function LlegoSinAviso({
 
   return (
     <>
-    <div id="sin-aviso" className="grid scroll-mt-6 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <section className="card-cayla grid gap-6 overflow-hidden p-5 sm:grid-cols-[200px_minmax(0,1fr)] sm:p-6" aria-label="Llegó sin aviso" data-guia="recibir.sin-aviso">
+    <div id="sin-aviso" data-guia="recibir.sin-aviso" className="scroll-mt-6 space-y-4">
+    <div className="flex flex-wrap items-center gap-3">
+      <Boton type="button" peso="fantasma" aria-expanded={abierto} aria-controls="sin-aviso-formulario" onClick={() => setAbierto((a) => !a)}>
+        <span className="inline-flex items-center gap-2">
+          <PackageOpen aria-hidden className="h-4 w-4" />
+          Sin Aviso
+        </span>
+      </Boton>
+      {!abierto && (
+        <p className="text-[13.5px] text-taupe">
+          {hayListaArriba ? "¿Llegó algo que no está en la lista de arriba? Ábrelo aquí." : "¿Llegó algo que nadie despachó desde el sistema? Ábrelo aquí."}
+        </p>
+      )}
+    </div>
+    {abierto && (
+    <div id="sin-aviso-formulario" className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <section className="card-cayla grid gap-6 overflow-hidden p-5 sm:grid-cols-[200px_minmax(0,1fr)] sm:p-6" aria-label="Llegó sin aviso">
         <div className="grid place-items-start justify-center pt-1.5">
           <CajaFardo />
         </div>
@@ -268,6 +296,8 @@ export function LlegoSinAviso({
           por aquí: se recibe en <b className="text-tinta">Traslados</b>.
         </p>
       </aside>
+    </div>
+    )}
     </div>
     {/* Fuera del <form> (ADR-0128): un `submit` del alta no debe llegar a «Empezar a contar». */}
     {alta.modal}

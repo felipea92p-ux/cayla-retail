@@ -1373,7 +1373,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-oc",
       opcional: true,
       titulo: "Lo que viene de una orden de compra",
-      texto: "Arriba, lo que Compras mandó a tu sede: toca la fila de tu envío o su botón «Recibir» («Seguir recibiendo» si ya se abrió, también uno que llegó sin aviso); cada orden que llegó sin guía va con «Llegó esta orden», que arma su envío para contarlo. Si tú hiciste la orden, la recibe otra persona.",
+      texto: "Arriba, en una tabla, lo que Compras mandó a tu sede; con muchos, usa el buscador (número, guía o proveedor). Toca la fila o «Recibir» («Seguir recibiendo» si ya se abrió); cada orden sin guía va con «Llegó esta orden». Si tú hiciste la orden, la recibe otra persona.",
     },
     {
       // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene algo por terminar.
@@ -1389,7 +1389,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.sin-aviso",
       opcional: true,
       titulo: "¿Llegó algo sin aviso?",
-      texto: "Lo que vino directo del proveedor se recibe igual: eliges de quién es (si no está y tu cuenta puede, «+ Agregar proveedor»; o «No sé de quién es»), la guía y quién recibe, y se cuenta por categoría. Si ese proveedor tiene una factura por recibir aquí, te ofrece recibir contra ella. En la demo no lo abrimos.",
+      texto: "Lo que vino directo del proveedor: toca «Sin Aviso» para abrir el formulario, elige de quién es (o «+ Agregar proveedor», o «No sé de quién es»), la guía y quién recibe, y se cuenta por categoría. Con factura por recibir, te ofrece usarla. En la demo no lo abrimos.",
     },
     {
       id: "proveedor",
@@ -1677,7 +1677,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por categoría: el costo (corrígelo si la factura dice otro), lo que dijeron, lo que contaste, cuántas se pueden vender ya y qué queda para después. Si no cuadró, eliges qué pasó: queda anotado para Compras.",
+      texto: "Una fila por categoría: lo que dijeron, lo que contaste, cuántas se pueden vender ya y qué queda para después. Si no cuadró, eliges qué pasó. Al final, el precio de compra (corrígelo si la factura dice otro); al tocar la fila, el de venta de cada prenda identificada. En la demo no escribimos.",
     },
     {
       // Felipe 2026-10-14: solo en un envío sin aviso que se abrió sin saber de quién es.

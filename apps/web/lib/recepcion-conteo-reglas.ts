@@ -40,6 +40,8 @@ export const RPC_PENDIENTES_SEDE = "fn_recepcion_pendientes";
 /** Escrituras. `guardar_conteo_envio` se llama con `x-espera: no`: contar una línea no tapa la pantalla. */
 export const RPC_GUARDAR_CONTEO = "guardar_conteo_envio";
 export const RPC_CERRAR_CONTEO = "cerrar_conteo_envio";
+/** Cambiar el precio de venta de una prenda de este envío, desde la recepción (20261024225000). */
+export const RPC_PRECIO_RECEPCION = "cambiar_precio_en_recepcion";
 export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_envio";
 export const RPC_REABRIR_ENVIO = "reabrir_envio";
 export const RPC_SIN_AVISO = "abrir_envio_sin_aviso";
@@ -623,6 +625,43 @@ export function leerCostoCierre(t: string): { valor: number | null; problema: st
   if (l.tipo === "mal") return { valor: null, problema: l.motivo === "negativo" ? "El costo no puede ser negativo" : "Escribe el costo solo con números (ej. 25.50)" };
   if (l.escalado > 9999999) return { valor: null, problema: "El costo va de S/\u00a00 a S/\u00a099 999.99" };
   return { valor: l.escalado / 100, problema: null };
+}
+
+/** Lee el precio de venta escrito: obligatorio, mayor que cero y hasta S/ 5 000 (el tope de la base). Vacío no es un problema todavía: aún no se pidió. */
+export function leerPrecioNuevo(t: string): { valor: number | null; problema: string | null } {
+  const l = leerNumero(t, 2);
+  if (l.tipo === "vacio") return { valor: null, problema: null };
+  if (l.tipo === "mal") return { valor: null, problema: "Escribe el precio solo con números (ej. 79.90)" };
+  if (l.escalado <= 0) return { valor: null, problema: "El precio tiene que ser mayor que cero" };
+  if (l.escalado > 500000) return { valor: null, problema: "El precio va hasta S/\u00a05\u00a0000" };
+  return { valor: l.escalado / 100, problema: null };
+}
+
+/** Un cambio de precio que quien cierra va a confirmar: de compra (la línea) o de venta (la prenda). */
+export type CambioDePrecio = { tipo: "compra" | "venta"; nombre: string; antes: number | null; despues: number; alcance: "todas" | "sede" | null };
+
+/** «Precio de compra · Camisas y Blusas · S/ 18.50 → S/ 19.80» o, de venta, con dónde vale. */
+export function textoCambioDePrecio(c: CambioDePrecio, sede: string): string {
+  const monto = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const donde = c.tipo === "venta" ? (c.alcance === "sede" ? ` · solo ${sede}` : " · todas las sedes") : "";
+  return `${c.antes != null ? `${monto(c.antes)} → ` : "sin precio → "}${monto(c.despues)}${donde}`;
+}
+
+/** El precio de compra de una línea cambió: lo escrito (válido) contra lo que traía. Sin cambio, o con algo mal escrito (eso lo dice el campo), `null`. */
+export function cambioDePrecioDeCompra(nombre: string, antes: string, ahora: string): CambioDePrecio | null {
+  const nuevo = leerCostoCierre(ahora);
+  if (nuevo.problema || nuevo.valor == null) return null;
+  const previo = leerCostoCierre(antes).valor;
+  return previo === nuevo.valor ? null : { tipo: "compra", nombre, antes: previo, despues: nuevo.valor, alcance: null };
+}
+
+/** El precio de venta de una prenda cambió: lo escrito (válido) contra su precio de hoy. Con precios distintos entre tallas (un rango) cualquier
+ *  precio escrito es un cambio; vacío o igual al de hoy, no. */
+export function cambioDePrecioDeVenta(nombre: string, actual: { desde: number; hasta: number } | null | undefined, escrito: string, alcance: "todas" | "sede"): CambioDePrecio | null {
+  const nuevo = leerPrecioNuevo(escrito);
+  if (nuevo.problema || nuevo.valor == null || actual === undefined) return null;
+  const hoy = actual && actual.desde === actual.hasta ? actual.desde : null;
+  return hoy === nuevo.valor ? null : { tipo: "venta", nombre, antes: hoy, despues: nuevo.valor, alcance };
 }
 
 export type FaltaCierre = { clave: "contar" | "causa" | "costo" | "responsable"; linea: ClaveLinea | null; texto: string };

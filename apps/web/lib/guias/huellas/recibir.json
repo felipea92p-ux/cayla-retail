@@ -141,6 +141,7 @@
       "Boton «Confirmar y recibir»"
     ],
     "components/recepcion-conteo/LlegoSinAviso.tsx": [
+      "Boton «Sin Aviso»",
       "button «→() => setProveedorId(p.id)»",
       "button «No sé de quién es»",
       "button «+ Agregar proveedor»",
@@ -154,7 +155,7 @@
     ],
     "components/recepcion-envio/EnviosParaRecibir.tsx": [
       "Link «{`/recibir/envio/${e.id}»",
-      "BotonEnlace «{e.estado === \"abierto\" ? \"Seguir recibiendo\" : \"Recibir\"}»"
+      "BotonEnlace «{`${e.estado === \"abierto\" ? \"Seguir recibiendo\" : \"Recibir\"}»"
     ],
     "components/recepcion-envio/RecibirSinGuia.tsx": [
       "Boton «Llegó esta orden»",
