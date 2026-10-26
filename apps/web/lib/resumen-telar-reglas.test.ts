@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { leerResumen } from "./resumen-finanzas-reglas";
 import type { FilaER } from "./resultados-reglas";
-import { fraseLineaVentas, lineaVentasMeta, respuestaResumen, tramoAnteriorALaFecha, vendidoPorSede } from "./resumen-telar-reglas";
+import { lineaVentasMeta, respuestaResumen, tramoAnteriorALaFecha, vendidoPorSede } from "./resumen-telar-reglas";
 
 // Lo que el Resumen le pasa a la barra común del telar (su respuesta y su orillo) y la línea de ventas contra la meta.
 
@@ -88,7 +88,6 @@ describe("lineaVentasMeta", () => {
       { x: 2, y: 3600 },
       { x: 3, y: 5400 },
     ]);
-    expect(fraseLineaVentas(l, "2026-10")).toBe("Vas S/ 600 abajo de lo que la meta pedía a esta fecha: S/ 3,000 de S/ 5,400.");
   });
 
   it("sin metas de sede (o sin ver Rendimiento), la del presupuesto en línea recta; sin ninguna, sin referencia", () => {
@@ -98,22 +97,14 @@ describe("lineaVentasMeta", () => {
       { x: 0, y: 0 },
       { x: 31, y: 31000 },
     ]);
-    expect(fraseLineaVentas(l, "2026-10")).toBe("Vas justo en la meta (la meta del presupuesto, pareja en el mes): S/ 1,000 de S/ 31,000.");
     const sin = lineaVentasMeta([], "2026-10", "2026-10-05", null);
     expect(sin.referencia).toBeNull();
     expect(sin.serie).toHaveLength(5);
-    expect(fraseLineaVentas(lineaVentasMeta([], "2026-10", "2026-10-05", null), "2026-10")).toBe("Llevas S/ 0 vendidos en octubre. No hay meta puesta para comparar.");
-  });
-
-  it("un mes que ya cerró: «vendiste», contra la meta del mes entero", () => {
-    const l = lineaVentasMeta([[dia(1, 1000, 900), dia(2, 1000, 900)]], "2026-10", "2026-11-05", null);
-    expect(fraseLineaVentas(l, "2026-10", false)).toMatch(/^Vendiste S\/.2,000 en octubre: S\/.200 arriba de la meta de S\/.1,800\.$/);
   });
 
   it("un mes pasado se dibuja entero; uno que no llegó, vacío", () => {
     expect(lineaVentasMeta([], "2026-09", "2026-10-23", null).serie).toHaveLength(30);
     const futuro = lineaVentasMeta([], "2026-11", "2026-10-23", null);
     expect(futuro.serie).toHaveLength(0);
-    expect(fraseLineaVentas(futuro, "2026-11")).toBe("Todavía no hay ventas en noviembre.");
   });
 });

@@ -350,12 +350,73 @@ export function textoPrendaEnCompra(lineas: readonly LineaCompra[], nombres: Rea
   return `${prendasDeLineas(lineas)} × ${soles(primera.costo)} · ${tiendas}`;
 }
 
+/**
+ * «¿Está bien así?» (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-26: «esto también podría mejorar bastante»): UNA fila por prenda,
+ * no una por tienda. Una prenda repartida entre dos tiendas son dos líneas con la misma clave; aquí vuelven a ser una, con cuántas va a cada
+ * tienda. `indice`: la primera de sus líneas, para corregirla (corregir y quitar mueven todas las de esa clave a la vez).
+ */
+export type PrendaDeLaCompra = {
+  clave: string;
+  indice: number;
+  productoId: string | null;
+  nombre: string;
+  categoria: string;
+  categoriaId: string;
+  cantidad: number;
+  /** Lo que costó cada una (en una prenda, todas cuestan lo mismo). */
+  costo: number;
+  total: number;
+  tiendas: { destinoId: string; cantidad: number }[];
+};
+
+export function prendasDeLaCompra(lineas: readonly LineaCompra[]): PrendaDeLaCompra[] {
+  const porClave = new Map<string, PrendaDeLaCompra>();
+  lineas.forEach((l, i) => {
+    const antes = porClave.get(l.clave);
+    if (!antes) {
+      porClave.set(l.clave, {
+        clave: l.clave,
+        indice: i,
+        productoId: l.productoId,
+        nombre: l.nombre,
+        categoria: l.categoria,
+        categoriaId: l.categoriaId,
+        cantidad: l.cantidad,
+        costo: l.costo,
+        total: Math.round(l.cantidad * l.costo * 100) / 100,
+        tiendas: [{ destinoId: l.destinoId, cantidad: l.cantidad }],
+      });
+      return;
+    }
+    antes.cantidad += l.cantidad;
+    antes.total = Math.round((antes.total + l.cantidad * l.costo) * 100) / 100;
+    const t = antes.tiendas.find((x) => x.destinoId === l.destinoId);
+    if (t) t.cantidad += l.cantidad;
+    else antes.tiendas.push({ destinoId: l.destinoId, cantidad: l.cantidad });
+  });
+  return [...porClave.values()];
+}
+
+/** Lo que va a cada tienda: cuántas prendas y cuánto cuestan, en el orden en que se anotaron. Para decir «Lima 1 prenda · S/ 14.00». */
+export function totalesPorTienda(lineas: readonly LineaCompra[]): { destinoId: string; prendas: number; total: number }[] {
+  const por = new Map<string, { destinoId: string; prendas: number; total: number }>();
+  for (const l of lineas) {
+    const t = por.get(l.destinoId) ?? { destinoId: l.destinoId, prendas: 0, total: 0 };
+    t.prendas += l.cantidad;
+    t.total = Math.round((t.total + l.cantidad * l.costo) * 100) / 100;
+    por.set(l.destinoId, t);
+  }
+  return [...por.values()];
+}
+
 /** La barra negra de abajo: «12 prendas · S/ 210.00» y «2 modelos». */
-export function resumenCarrito(lineas: readonly Pick<LineaCompra, "cantidad" | "costo">[]): { titulo: string; detalle: string } {
+export function resumenCarrito(lineas: readonly Pick<LineaCompra, "cantidad" | "costo" | "clave">[]): { titulo: string; detalle: string } {
   const n = prendasDeLineas(lineas);
+  // Un modelo repartido entre dos tiendas son dos líneas con la misma clave: cuenta como uno (antes decía «2 modelos» con una sola prenda).
+  const modelos = new Set(lineas.map((l) => l.clave)).size;
   return {
     titulo: `${n === 1 ? "1 prenda" : `${n} prendas`} · ${soles(totalDeLineas(lineas))}`,
-    detalle: lineas.length === 1 ? "1 modelo" : `${lineas.length} modelos`,
+    detalle: modelos === 1 ? "1 modelo" : `${modelos} modelos`,
   };
 }
 
@@ -484,6 +545,12 @@ export function textoAvance(p: PasoCompra): string {
   const fase = faseDePaso(p);
   return `Paso ${fase} de 3 · ${fase === 1 ? "el proveedor" : fase === 2 ? "las prendas" : "el papel"}`;
 }
+/** Los tres tramos de la barra, con nombre (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-24). */
+export const PASOS_DE_LA_COMPRA = ["El proveedor", "Las prendas", "Papel y pago"] as const;
+/** La línea chica bajo «Compré ropa» en la cabecera compacta: «Paso 1 de 3» y, ya elegido el proveedor, «CAYLA · paso 2 de 3». */
+export function lineaDeAvance(p: PasoCompra, proveedor: string | null): string {
+  return proveedor ? `${proveedor} · paso ${faseDePaso(p)} de 3` : `Paso ${faseDePaso(p)} de 3`;
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // «Algo nuevo de este proveedor»: una prenda que todavía no le compraste, en UNA hoja, la misma de las de siempre (Felipe 2026-10-23):
@@ -509,6 +576,28 @@ function enDosGrupos<T extends { id: string; nombre: string }>(lista: readonly T
 /** «¿Qué es?»: primero las categorías que ya se le compran a este proveedor, después las demás. El combo las busca sin tildes. */
 export function opcionesCategoriaNueva(categorias: readonly CategoriaParaComprar[], suyas: ReadonlySet<string>): OpcionConGrupo[] {
   return enDosGrupos(categorias, (c) => suyas.has(c.id), ["Ya le compras", "Otras"]);
+}
+
+/** Cuántos chips caben a la vista antes de «Otra…» (Felipe 2026-10-26: «con muchas categorías o marcas la hoja se alargaría»). */
+export const TOPE_CHIPS_NUEVA = 4;
+
+/**
+ * «¿Qué es?» y «¿De qué marca?» de una prenda nueva (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-26): como chips solo lo
+ * HABITUAL de este proveedor (hasta `tope`), y «Otra…» abre la lista completa con buscador. Un proveedor sin nada habitual no tiene
+ * chips: elige de la lista, con un campo que se llama «Elige una categoría» / «Elige una marca» (no «Otra…», que sin chips al lado no
+ * diría de qué es otra). `fuera`: lo elegido que no está entre los chips (vino de «Otra…»): es lo que muestra ese control.
+ */
+export function chipsDeLoHabitual<T extends { id: string }>(
+  todas: readonly T[],
+  habituales: readonly string[],
+  elegida: string | null,
+  tope = TOPE_CHIPS_NUEVA,
+): { chips: T[]; fuera: string } {
+  const chips = habituales
+    .map((id) => todas.find((x) => x.id === id))
+    .filter((x): x is T => x !== undefined)
+    .slice(0, tope);
+  return { chips, fuera: elegida && !chips.some((c) => c.id === elegida) ? elegida : "" };
 }
 
 /** «¿De qué marca?»: primero las que trae este proveedor, después todas las del catálogo. */

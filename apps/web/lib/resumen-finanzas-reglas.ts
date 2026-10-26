@@ -386,6 +386,10 @@ const RANGO: Record<Aviso["tono"], number> = { rojo: 0, ambar: 1, pizarra: 2 };
  *  egresos sin clasificar, lo que no tiene cuenta y el límite del régimen. */
 const CLASE = { vencida: 0, minimo: 1, vencen: 2, pierde: 3, fijo: 4, ppto: 5, campana: 6, cierre: 7, raro: 8, egresos: 9, sin_cuenta: 10, umbral: 11 } as const;
 const MAX_POR_TIPO = 3;
+/** El lugar del aviso «bajo tu mínimo de caja» en el orden: `alinearAvisoDeCaja` (caja-proxima-reglas) lo crea cuando la tarjeta ve una caída que el bloque semanal no ve. */
+export const ORDEN_AVISO_CAJA = CLASE.minimo;
+/** El lugar de «te falta pedir» (la inversión en mercadería de una campaña): entre las campañas que vienen. */
+export const ORDEN_AVISO_CAMPANA = CLASE.campana;
 
 /** «Primero lo que más cuesta si se deja pasar»: rojo, ámbar, informativo; dentro de cada tono, la clase (el orden del
  *  spike) y, dentro de la clase, más soles primero. */
