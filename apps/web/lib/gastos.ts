@@ -26,6 +26,10 @@ import {
   type Ver,
 } from "@/lib/gastos-reglas";
 import { leerResumenFicha, type ResumenFicha } from "@/lib/gasto-fijo-ficha-reglas";
+import { dentroDeVer, juntarPaneles, juntarRecientes, partesDeVer } from "@/lib/gastos-varias-sedes";
+
+/** Todo lo que la cuenta ve: con varias sedes, lo que trae su sede en cada fila se lee así y se filtra con `dentroDeVer`. */
+const TODO: Ver = { clave: "todas", ubicacionId: null, soloEmpresa: false };
 
 // Finanzas ▸ Gastos (ADR-0195 F2, 20260924235100). Todo sale de funciones que ya miran solo lo que la cuenta ve
 // (`fn_gastos_ubicaciones`): el líder, todas y «la empresa»; con el módulo Gastos, su tienda. Si una lectura falla, la
@@ -72,6 +76,13 @@ const LIMITE_LISTA_GASTOS = 50_000;
 const ORDEN_GASTOS = ["fecha desc", "creado_en desc", "id"] as const;
 
 export async function getPanelGastos(desde: string, hasta: string, ver: Ver): Promise<Lectura<PanelGastos | null>> {
+  // Varias sedes (Felipe 2026-10-24): la base suma una sede (o la empresa) a la vez; se pide cada parte y se juntan.
+  if (ver.varias) {
+    const partes = await Promise.all(partesDeVer(ver).map((p) => getPanelGastos(desde, hasta, p)));
+    const falla = partes.find((x) => x.falla)?.falla;
+    if (falla) return { datos: null, falla };
+    return { datos: juntarPaneles(partes.flatMap((x) => (x.datos ? [x.datos] : []))), falla: null };
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_gastos_panel" as never, { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ver.ubicacionId, p_solo_empresa: ver.soloEmpresa } as never);
   if (error) return { datos: null, falla: falla("el resumen de gastos", error) };
@@ -79,6 +90,10 @@ export async function getPanelGastos(desde: string, hasta: string, ver: Ver): Pr
 }
 
 export async function getGastos(desde: string, hasta: string, ver: Ver): Promise<Lectura<GastoFila[]>> {
+  if (ver.varias) {
+    const todo = await getGastos(desde, hasta, TODO);
+    return { ...todo, datos: todo.datos.filter((g) => dentroDeVer(ver, g.ubicacionId)) };
+  }
   const supabase = await createClient();
   const rango = { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ver.ubicacionId, p_solo_empresa: ver.soloEmpresa };
   const [lista, perdido] = await Promise.all([
@@ -94,6 +109,11 @@ export async function getGastos(desde: string, hasta: string, ver: Ver): Promise
 }
 
 export async function getEgresosPorClasificar(ver: Ver): Promise<Lectura<EgresoPorClasificar[]>> {
+  // La base corta en 300 por pedido: con varias sedes, cada una trae las suyas y se juntan con el mismo tope.
+  if (ver.varias) {
+    const partes = await Promise.all(partesDeVer(ver).map((p) => getEgresosPorClasificar(p)));
+    return { datos: juntarRecientes(partes.map((x) => x.datos), (e) => e.creadoEn, 300), falla: partes.find((x) => x.falla)?.falla ?? null };
+  }
   if (ver.soloEmpresa) return { datos: [], falla: null }; // la empresa no tiene cajón
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_egresos_sin_clasificar" as never, { p_ubicacion_id: ver.ubicacionId, p_limite: 300 } as never);
@@ -102,6 +122,8 @@ export async function getEgresosPorClasificar(ver: Ver): Promise<Lectura<EgresoP
 }
 
 export async function getMarcasNoGasto(ver: Ver): Promise<MarcaNoGasto[]> {
+  // La fila no trae su sede: con varias, se pide cada una y se juntan con el mismo tope.
+  if (ver.varias) return juntarRecientes(await Promise.all(partesDeVer(ver).map((p) => getMarcasNoGasto(p))), (m) => m.revisadoEn, 100);
   if (ver.soloEmpresa) return [];
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_egresos_no_gasto_lista" as never, { p_ubicacion_id: ver.ubicacionId, p_limite: 100 } as never);
@@ -192,6 +214,10 @@ export async function getTiposActivo(): Promise<TipoActivo[]> {
 
 /** Los activos de lo que se mira, con su depreciación a hoy. La empresa no tiene activos (cada uno está en un lugar). */
 export async function getActivos(ver: Ver): Promise<Lectura<ActivoFila[]>> {
+  if (ver.varias) {
+    const todo = await getActivos(TODO);
+    return { ...todo, datos: todo.datos.filter((a) => dentroDeVer(ver, a.ubicacionId)) };
+  }
   if (ver.soloEmpresa) return { datos: [], falla: null };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_activos_lista" as never, { p_ubicacion_id: ver.ubicacionId } as never);
@@ -201,6 +227,10 @@ export async function getActivos(ver: Ver): Promise<Lectura<ActivoFila[]>> {
 
 /** Los gastos fijos de un mes: registrado, viene o falta. */
 export async function getFijosMes(desde: string, ver: Ver): Promise<Lectura<GastoFijoMes[]>> {
+  if (ver.varias) {
+    const todo = await getFijosMes(desde, TODO);
+    return { ...todo, datos: todo.datos.filter((f) => dentroDeVer(ver, f.ubicacionId)) };
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_gastos_fijos_mes" as never, { p_mes: desde, p_ubicacion_id: ver.ubicacionId, p_solo_empresa: ver.soloEmpresa } as never);
   if (error) return { datos: [], falla: falla("los gastos fijos", error) };
@@ -214,6 +244,6 @@ export async function getFijosSugeridos(ver: Ver): Promise<FijoSugerido[]> {
   if (error) return [];
   return ((data ?? []) as Record<string, unknown>[])
     .map(leerSugerido)
-    .filter((f) => (ver.soloEmpresa ? f.ubicacionId === null : ver.ubicacionId ? f.ubicacionId === ver.ubicacionId : true));
+    .filter((f) => dentroDeVer(ver, f.ubicacionId));
 }
 

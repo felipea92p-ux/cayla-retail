@@ -378,14 +378,16 @@ export function dibujoDeLaCampana(f: Pick<Ficha, "insignias">, c: Campana): Dibu
   return dibujoDeLaInsignia(c.nombre, c.id ? f.insignias.find((i) => i.id === c.id)?.icono : null);
 }
 
-/** La imagen propia de ESA campaña (la ruta en el almacén de insignias), o null: si la tiene, el chip del descuento la dibuja en lugar del dibujo. */
-export function imagenDeLaCampana(f: Pick<Ficha, "insignias">, c: Campana): string | null {
-  return (c.id ? f.insignias.find((i) => i.id === c.id)?.imagen : null) ?? null;
+/** La imagen propia de ESA campaña (la ruta en el almacén de insignias y si se pinta como silueta), o null: si la tiene, el chip del descuento la dibuja en
+ *  lugar del dibujo. */
+export function imagenDeLaCampana(f: Pick<Ficha, "insignias">, c: Campana): { ruta: string; silueta: boolean } | null {
+  const i = c.id ? f.insignias.find((x) => x.id === c.id) : null;
+  return i?.imagen ? { ruta: i.imagen, silueta: i.silueta } : null;
 }
 
 /** Un chip de arriba del nombre: «nuevo» es el de la llegada reciente; «insignia» (la misma cara) es el de una insignia de Catálogo ▸
  *  Insignias, con su dibujo. */
-export type ChipFicha = { texto: string; tono?: "nuevo" | "insignia"; icono?: DibujoDeInsignia; imagen?: string };
+export type ChipFicha = { texto: string; tono?: "nuevo" | "insignia"; icono?: DibujoDeInsignia; imagen?: string; silueta?: boolean };
 
 /** Los chips de arriba del nombre (ADR-0408 act. 5 y ADR-0489): «Nuevo · llegó hace 4 días» (o «Nuevo», si está fijado en la Vitrina), las
  *  insignias que se le asignaron a la prenda en Catálogo ▸ Insignias —en el mismo dibujo—, y «N.º 3 en más vendidos». La insignia «Nuevo» no
@@ -393,7 +395,7 @@ export type ChipFicha = { texto: string; tono?: "nuevo" | "insignia"; icono?: Di
  *  dato. Las insignias con descuento no vienen aquí: su descuento es el chip de la campaña (`chipCampana`). */
 export function chipsDelCatalogo(
   p: { nuevo: { dias: number | null } | null; vendidos: number | null } | null,
-  insignias: readonly { nombre: string; icono?: DibujoDeInsignia | null; imagen?: string | null; descuento?: boolean }[] = [],
+  insignias: readonly { nombre: string; icono?: DibujoDeInsignia | null; imagen?: string | null; silueta?: boolean; descuento?: boolean }[] = [],
 ): ChipFicha[] {
   const chips: ChipFicha[] = [];
   if (p?.nuevo) {
@@ -409,7 +411,7 @@ export function chipsDelCatalogo(
       texto: insignia.nombre.trim(),
       tono: "insignia",
       icono: dibujoDeLaInsignia(insignia.nombre, insignia.icono),
-      ...(insignia.imagen ? { imagen: insignia.imagen } : {}),
+      ...(insignia.imagen ? { imagen: insignia.imagen, ...(insignia.silueta ? { silueta: true } : {}) } : {}),
     });
   }
   if (p && p.vendidos !== null) chips.push({ texto: `N.º ${p.vendidos} en más vendidos` });
