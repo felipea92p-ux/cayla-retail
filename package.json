@@ -46,6 +46,7 @@
     "pruebas:costo-corregir-compra": "node scripts/pruebas/costo_corregir_compra.mjs",
     "pruebas:precio-sede": "node scripts/pruebas/precio_sede.mjs",
     "pruebas:precio-desde-recepcion": "node scripts/pruebas/precio_desde_recepcion.mjs",
+    "pruebas:precio-terminal": "node scripts/pruebas/precio_terminal.mjs",
     "pruebas:actividad-gestion": "node scripts/pruebas/actividad_gestion.mjs",
     "pruebas:frescura-vara-cayla": "node scripts/pruebas/frescura_vara_cayla.mjs",
     "pruebas:concurrencia-linea-venta": "node scripts/pruebas/concurrencia_linea_de_venta.mjs",

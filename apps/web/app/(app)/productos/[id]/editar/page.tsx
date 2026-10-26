@@ -207,6 +207,8 @@ export default async function EditarProductoPage({
           general: precioPrenda,
           ubicacionId: persona.ubicacionId,
           sede: persona.ubicacionEtiqueta,
+          // Una terminal está fija en su tienda: el bloque habla solo de ella (Felipe 2026-10-26).
+          soloAqui: persona.terminal,
         }}
         producto={producto}
         volverA={volverA}

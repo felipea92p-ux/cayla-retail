@@ -81,6 +81,7 @@ export function RecibirContando({
   lotes,
   veExistencias,
   veDinero,
+  soloSede = false,
   proveedoresParaElegir = [],
   papeles = [],
 }: {
@@ -93,6 +94,8 @@ export function RecibirContando({
   veExistencias: boolean;
   /** Ve el dinero de Compras: en un envío sin aviso, solo así escribe el costo (ADR-0330). */
   veDinero: boolean;
+  /** Una terminal: el precio de venta que se cambia al cerrar vale solo en su sede («Todas las sedes» no se ofrece). */
+  soloSede?: boolean;
   /** Un envío sin aviso que llegó sin saber de quién (Felipe 2026-10-14): los proveedores para elegir al cerrar. */
   proveedoresParaElegir?: readonly { id: string; nombre: string }[];
   /** Los papeles de lo comprado desde el celular, con su foto (ADR-0480): se cuenta mirándolos. */
@@ -388,6 +391,7 @@ export function RecibirContando({
           sede={sedeActual.etiqueta}
           responsable={responsable}
           veDinero={veDinero}
+          soloSede={soloSede}
           proveedorPorConfirmar={base?.proveedorPorConfirmar ?? false}
           proveedores={proveedoresParaElegir}
           esperandoGuardar={pendientesDeGuardar}

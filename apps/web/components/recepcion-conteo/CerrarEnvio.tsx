@@ -80,6 +80,7 @@ export function CerrarEnvio({
   sede,
   responsable,
   veDinero,
+  soloSede = false,
   proveedorPorConfirmar = false,
   proveedores = [],
   esperandoGuardar,
@@ -95,6 +96,8 @@ export function CerrarEnvio({
   sede: string;
   responsable: ControlResponsable;
   veDinero: boolean;
+  /** Una terminal (Felipe 2026-10-26): el precio de venta vale solo en su sede; la base no le deja cambiar el de todas. */
+  soloSede?: boolean;
   /** Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): antes de cerrar se elige el proveedor (`poner_proveedor_envio`). */
   proveedorPorConfirmar?: boolean;
   proveedores?: readonly { id: string; nombre: string }[];
@@ -110,6 +113,7 @@ export function CerrarEnvio({
   const [costoInicial] = useState<Record<string, string>>(() => Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l).costo])));
   // El precio de venta de cada prenda ya identificada (por producto): su precio de hoy, lo escrito y dónde vale. Se aplica al cerrar.
   const [ventas, setVentas] = useState<Record<string, PrecioEditado>>({});
+  const alcanceDeFabrica: PrecioEditado["alcance"] = soloSede ? "sede" : "todas";
   // Lo que cambia (de compra y de venta), para confirmarlo antes de guardar: `null` = no se está confirmando.
   const [porConfirmar, setPorConfirmar] = useState<CambioDePrecio[] | null>(null);
   // Las filas con los precios de venta de sus prendas a la vista (el precio de compra, que es de toda la línea, vive en la fila misma).
@@ -161,11 +165,11 @@ export function CerrarEnvio({
       const hay = v[productoId];
       if (hay && hay.actual !== undefined) return v;
       const hoy = actual && actual.desde === actual.hasta ? actual.desde.toFixed(2) : "";
-      return { ...v, [productoId]: { actual, valor: hay?.valor ? hay.valor : hoy, alcance: hay?.alcance ?? "todas" } };
+      return { ...v, [productoId]: { actual, valor: hay?.valor ? hay.valor : hoy, alcance: hay?.alcance ?? alcanceDeFabrica } };
     });
   const cambiarVenta = (productoId: string, cambio: Partial<PrecioEditado>) =>
     setVentas((v) => {
-      const base: PrecioEditado = v[productoId] ?? { actual: undefined, valor: "", alcance: "todas" };
+      const base: PrecioEditado = v[productoId] ?? { actual: undefined, valor: "", alcance: alcanceDeFabrica };
       return { ...v, [productoId]: { ...base, ...cambio } };
     });
 
@@ -239,7 +243,7 @@ export function CerrarEnvio({
     // El precio de venta de lo que cambió, antes de cerrar (la base lo pide con el envío abierto). Cada uno que queda aplicado deja de ser un cambio:
     // si el cierre falla y se reintenta, no se vuelve a mandar.
     for (const c of cambiosDeVenta()) {
-      const { error: epv } = await cambiarPrecioEnRecepcion({ p_despacho_id: detalle.id, p_producto_id: c.productoId, p_precio: c.despues, p_alcance: c.alcance ?? "todas" }, responsable.firma());
+      const { error: epv } = await cambiarPrecioEnRecepcion({ p_despacho_id: detalle.id, p_producto_id: c.productoId, p_precio: c.despues, p_alcance: c.alcance ?? alcanceDeFabrica }, responsable.firma());
       responsable.despues(epv);
       if (epv) {
         setGuardando(false);
@@ -480,6 +484,7 @@ export function CerrarEnvio({
                               key={`${l.clave}-${pr.productoId}`}
                               prenda={pr}
                               sede={sede}
+                              soloSede={soloSede}
                               editado={ventas[pr.productoId]}
                               onActual={(a) => ponerActual(pr.productoId, a)}
                               onValor={(valor) => cambiarVenta(pr.productoId, { valor })}

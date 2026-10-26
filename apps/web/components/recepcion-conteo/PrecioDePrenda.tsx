@@ -7,7 +7,7 @@ import { leerPrecioNuevo, type PrendaSeparada } from "@/lib/recepcion-conteo-reg
 import { leerPrecioDePrenda } from "@/lib/recepcion-conteo-acciones";
 
 // El precio de venta de una prenda que ya se identificó en este envío (Felipe 2026-10-24). El campo viene con el precio de hoy; quien recibe lo
-// cambia y elige si vale para todas las sedes o solo para la suya. NO guarda aquí: el cambio se aplica al cerrar el envío, después de una
+// cambia y elige si vale para todas las sedes o solo para la suya (una terminal, solo la suya: 2026-10-26). NO guarda aquí: el cambio se aplica al cerrar el envío, después de una
 // confirmación que lista todo lo que cambia (`CerrarEnvio`). Rige hacia adelante: lo ya vendido guarda su precio y el cambio queda en el
 // historial de la prenda (Catálogo ▸ Productos ▸ Historial).
 
@@ -19,6 +19,7 @@ export type PrecioEditado = { actual: { desde: number; hasta: number } | null | 
 export function PrecioDePrenda({
   prenda,
   sede,
+  soloSede = false,
   editado,
   onActual,
   onValor,
@@ -27,6 +28,8 @@ export function PrecioDePrenda({
   prenda: PrendaSeparada;
   /** El nombre de la sede que recibe: «Solo Tienda Lima». */
   sede: string;
+  /** Una terminal: el precio vale solo en su sede. No se ofrece «Todas las sedes»; se dice dónde vale. */
+  soloSede?: boolean;
   editado: PrecioEditado | undefined;
   /** El precio de hoy ya se leyó: la pantalla lo guarda y, si no hay nada escrito, lo pone en el campo. */
   onActual: (actual: { desde: number; hasta: number } | null) => void;
@@ -70,16 +73,20 @@ export function PrecioDePrenda({
             className="text-right font-semibold tabular-nums"
           />
         </div>
-        <ElegirOpcion
-          chico
-          etiqueta={`Dónde vale el precio de venta de ${nombre}`}
-          opciones={[
-            { valor: "todas", texto: "Todas las sedes" },
-            { valor: "sede", texto: `Solo ${sede}` },
-          ]}
-          valor={editado?.alcance ?? "todas"}
-          onValor={(v) => onAlcance(v as "todas" | "sede")}
-        />
+        {soloSede ? (
+          <p className="self-center text-xs text-taupe">Vale solo en {sede}: las otras sedes no cambian.</p>
+        ) : (
+          <ElegirOpcion
+            chico
+            etiqueta={`Dónde vale el precio de venta de ${nombre}`}
+            opciones={[
+              { valor: "todas", texto: "Todas las sedes" },
+              { valor: "sede", texto: `Solo ${sede}` },
+            ]}
+            valor={editado?.alcance ?? "todas"}
+            onValor={(v) => onAlcance(v as "todas" | "sede")}
+          />
+        )}
       </div>
     </div>
   );
