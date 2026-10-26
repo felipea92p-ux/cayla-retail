@@ -25,3 +25,16 @@ export function coincideConBusqueda(textoBuscable: string, busqueda: string): bo
   const palabras = normalizarBusqueda(busqueda).split(/\s+/).filter(Boolean);
   return palabras.every((p) => textoBuscable.includes(p));
 }
+
+export type FilaPorRecibir = { tipo: "envio"; envio: EnvioPorAbrir } | { tipo: "orden"; orden: OrdenDirecta };
+
+/** El orden de la lista de envíos por recibir, en una sola lista: primero lo que hay que SEGUIR recibiendo (abiertos por alguien y que esta
+ *  cuenta puede continuar), después los envíos en camino, después las órdenes sin guía, y AL ÚLTIMO lo que esta cuenta no puede recibir
+ *  (hizo la orden). Dentro de cada grupo, el orden en que llegó de la base. */
+export function ordenarFilasPorRecibir(envios: readonly EnvioPorAbrir[], ordenes: readonly OrdenDirecta[]): FilaPorRecibir[] {
+  const filas: { fila: FilaPorRecibir; rango: number }[] = [
+    ...envios.map((envio) => ({ fila: { tipo: "envio" as const, envio }, rango: envio.creadoPorMi ? 3 : envio.estado === "abierto" ? 0 : 1 })),
+    ...ordenes.map((orden) => ({ fila: { tipo: "orden" as const, orden }, rango: orden.creadaPorMi ? 4 : 2 })),
+  ];
+  return filas.map((f, i) => ({ ...f, i })).sort((a, b) => a.rango - b.rango || a.i - b.i).map((f) => f.fila);
+}

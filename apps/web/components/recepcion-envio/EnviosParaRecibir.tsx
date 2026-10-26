@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { BotonEnlace } from "@/components/ui/campos";
@@ -12,8 +12,9 @@ import { Vacio } from "@/components/ui/Vacio";
 import { ESTADO_ENVIO } from "@/lib/ordenes-compra-reglas";
 import { TEXTO_LA_RECIBE_OTRA, type EnvioPorAbrir, type OrdenDirecta } from "@/lib/recepcion-envio-reglas";
 import { esEnvioSinAviso } from "@/lib/recepcion-conteo-reglas";
-import { coincideConBusqueda, textoBuscableDeEnvio, textoBuscableDeOrden } from "@/lib/recepcion-envio-busqueda";
+import { coincideConBusqueda, ordenarFilasPorRecibir, textoBuscableDeEnvio, textoBuscableDeOrden } from "@/lib/recepcion-envio-busqueda";
 import { RecibirSinGuia } from "./RecibirSinGuia";
+import { DetalleEnvioPorRecibir } from "./DetalleEnvioPorRecibir";
 
 // La tarjeta de la puerta de Recibir (ADR-0362, fase 4): arriba del formulario «Sin Aviso», lo que viene de una orden de compra para ESTA sede,
 // en una tabla (número, estado, proveedor, guía, prendas y la acción) con un buscador para hallar uno entre muchos. Cada envío en camino (o
@@ -41,6 +42,7 @@ export function EnviosParaRecibir({
   sede,
   porCategoria = false,
   proveedoresSinAviso = {},
+  accionTitulo,
 }: {
   envios: EnvioPorAbrir[];
   ordenes: OrdenDirecta[];
@@ -49,21 +51,26 @@ export function EnviosParaRecibir({
   porCategoria?: boolean;
   /** ADR-0393: de quién es cada envío sin aviso abierto (por id): su proveedor o «proveedor por confirmar». */
   proveedoresSinAviso?: Readonly<Record<string, string | null>>;
+  /** A la derecha del título: «Sin Aviso», lo que llegó y no está en la lista. */
+  accionTitulo?: ReactNode;
 }) {
   const [buscar, setBuscar] = useState("");
   if (envios.length === 0 && ordenes.length === 0) return null;
-  const losEnvios = envios.filter((e) => coincideConBusqueda(textoBuscableDeEnvio(e, proveedoresSinAviso[e.id] ?? null), buscar));
-  const lasOrdenes = ordenes.filter((o) => coincideConBusqueda(textoBuscableDeOrden(o), buscar));
+  const filas = ordenarFilasPorRecibir(envios, ordenes).filter((f) =>
+    coincideConBusqueda(f.tipo === "envio" ? textoBuscableDeEnvio(f.envio, proveedoresSinAviso[f.envio.id] ?? null) : textoBuscableDeOrden(f.orden), buscar),
+  );
   const total = envios.length + ordenes.length;
-  const coinciden = losEnvios.length + lasOrdenes.length;
+  const coinciden = filas.length;
   return (
     <section data-guia="recibir.envios-oc" className="space-y-3" aria-labelledby="recibir-envios-oc">
-      <TituloSeccion
-        id="recibir-envios-oc"
-        dato={porCategoria ? <>Se cuentan por categoría y entran al almacén de {sede}.</> : <>Se cuentan talla por talla y entran al almacén de {sede}.</>}
-      >
-        {porCategoria ? "Envíos por recibir en esta sede" : "Envíos de órdenes de compra para esta sede"}
-      </TituloSeccion>
+      {/* Dos columnas en la misma fila: a la izquierda, el título con su leyenda; a la derecha, la pregunta con su botón. */}
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0 space-y-1">
+          <TituloSeccion id="recibir-envios-oc">{porCategoria ? "Envíos por recibir en esta sede" : "Envíos de órdenes de compra para esta sede"}</TituloSeccion>
+          <p className="text-[13.5px] text-taupe">{porCategoria ? <>Se cuentan por categoría y entran al almacén de {sede}.</> : <>Se cuentan talla por talla y entran al almacén de {sede}.</>}</p>
+        </div>
+        {accionTitulo}
+      </div>
       <Buscador
         valor={buscar}
         onCambio={setBuscar}
@@ -73,7 +80,27 @@ export function EnviosParaRecibir({
       />
       <Tabla className="@container">
         <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS} />
-        {losEnvios.map((e) => {
+        {filas.map((f) => {
+          if (f.tipo === "orden") {
+            const o = f.orden;
+            return (
+          <div key={o.ordenId} className={fila(PLANTILLA, "sm:items-center")}>
+            <span className={celda("izq", "text-sm font-semibold tabular-nums text-tinta")}>{o.numero}</span>
+            <span className={celda("izq", "overflow-visible")}>
+              <Chip tono="neutro">Sin guía</Chip>
+            </span>
+            <span className={celda("izq", "text-sm text-tinta")} title={o.proveedor ?? undefined}>
+              {o.proveedor ?? "—"}
+            </span>
+            <span className={celda("izq", "hidden text-sm text-taupe @3xl:block")}>—</span>
+            <span className={celda("der", "text-sm text-tinta")}>{prendas(o.unidadesPorEnviar)}</span>
+            <span className={celda("der", "overflow-visible whitespace-normal sm:flex sm:justify-end")}>
+              {o.creadaPorMi ? <span className="whitespace-normal text-right text-[12.5px] leading-snug text-taupe">{TEXTO_LA_RECIBE_OTRA}</span> : <RecibirSinGuia orden={o} sede={sede} />}
+            </span>
+          </div>
+            );
+          }
+          const e = f.envio;
           const sinAviso = porCategoria && esEnvioSinAviso(e);
           const proveedor = sinAviso ? (proveedoresSinAviso[e.id] ?? "Por confirmar") : e.proveedores.length > 0 ? e.proveedores.join(", ") : "—";
           return (
@@ -98,30 +125,19 @@ export function EnviosParaRecibir({
                 {e.creadoPorMi ? (
                   <span className="whitespace-normal text-right text-[12.5px] leading-snug text-taupe">{TEXTO_LA_RECIBE_OTRA}</span>
                 ) : (
-                  <BotonEnlace href={`/recibir/envio/${e.id}`} peso={e.estado === "abierto" ? "fantasma" : "primario"} aria-label={`${e.estado === "abierto" ? "Seguir recibiendo" : "Recibir"} ${e.numero}`}>
-                    {e.estado === "abierto" ? "Seguir recibiendo" : "Recibir"}
-                  </BotonEnlace>
+                  e.estado === "abierto" ? (
+                    <BotonEnlace href={`/recibir/envio/${e.id}`} peso="fantasma" aria-label={`Seguir recibiendo ${e.numero}`}>
+                      Seguir recibiendo
+                    </BotonEnlace>
+                  ) : (
+                    // En camino: «Detalle» abre la hoja con lo que trae y, ahí, «Abrir el fardo» (salta a contar).
+                    <DetalleEnvioPorRecibir envio={e} sede={sede} />
+                  )
                 )}
               </span>
             </div>
           );
         })}
-        {lasOrdenes.map((o) => (
-          <div key={o.ordenId} className={fila(PLANTILLA, "sm:items-center")}>
-            <span className={celda("izq", "text-sm font-semibold tabular-nums text-tinta")}>{o.numero}</span>
-            <span className={celda("izq", "overflow-visible")}>
-              <Chip tono="neutro">Sin guía</Chip>
-            </span>
-            <span className={celda("izq", "text-sm text-tinta")} title={o.proveedor ?? undefined}>
-              {o.proveedor ?? "—"}
-            </span>
-            <span className={celda("izq", "hidden text-sm text-taupe @3xl:block")}>—</span>
-            <span className={celda("der", "text-sm text-tinta")}>{prendas(o.unidadesPorEnviar)}</span>
-            <span className={celda("der", "overflow-visible whitespace-normal sm:flex sm:justify-end")}>
-              {o.creadaPorMi ? <span className="whitespace-normal text-right text-[12.5px] leading-snug text-taupe">{TEXTO_LA_RECIBE_OTRA}</span> : <RecibirSinGuia orden={o} sede={sede} />}
-            </span>
-          </div>
-        ))}
         {coinciden === 0 && (
           <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setBuscar("") }}>
             Ningún envío coincide con «{buscar}».

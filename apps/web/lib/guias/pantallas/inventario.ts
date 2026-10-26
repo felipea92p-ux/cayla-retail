@@ -1387,7 +1387,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-oc",
       opcional: true,
       titulo: "Lo que viene de una orden de compra",
-      texto: "Arriba, en una tabla, lo que Compras mandó a tu sede; con muchos, usa el buscador (número, guía o proveedor). Toca la fila o «Recibir» («Seguir recibiendo» si ya se abrió); cada orden sin guía va con «Llegó esta orden». Si tú hiciste la orden, la recibe otra persona.",
+      texto: "Arriba, en una tabla, lo que Compras mandó a tu sede; con muchos, usa el buscador (número, guía o proveedor). «Detalle» abre lo que trae y ahí, «Abrir el fardo» te lleva a contar («Seguir recibiendo» si ya se abrió). Cada orden sin guía va con «Llegó esta orden». Si tú hiciste la orden, la recibe otra persona.",
     },
     {
       // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene algo por terminar.
@@ -1653,6 +1653,15 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       titulo: "Cuántas llegaron",
       texto: "Cuenta las de esa categoría y escribe el número, o súmalas con + y −, +5 y +10. «Llegaron las N» pone lo que dijeron de un toque. Se guarda solo, al dejar de tocar. Si no coincide, no pasa nada: al cerrar dirás por qué.",
+    },
+    {
+      // ADR-0507: «Anotar observación» abre una hoja que guarda; la guía la explica sin tocarla.
+      id: "observaciones",
+      ancla: "recepcion.observaciones",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Lo que viste al abrir la caja",
+      texto: "Si una prenda llegó rota, manchada o distinta, o faltó alguna, toca «Anotar observación»: eliges qué pasó, lo cuentas en una línea y queda en el envío a tu nombre. Compras lo lee para reclamar. No cambia lo que contaste.",
     },
     {
       id: "separar",

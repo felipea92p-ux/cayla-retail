@@ -1,4 +1,4 @@
-import { createElement, type ReactElement } from "react";
+import { createElement, useId, type ReactElement } from "react";
 import { DIBUJOS_DE_INSIGNIA, dibujoDeInsignia, type ColorDeInsignia, type DibujoDeInsignia, type PiezaDeInsignia } from "@cayla-retail/shared/insignias-visual";
 import { urlDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 
@@ -65,11 +65,28 @@ const ICONOS = Object.fromEntries(
  *  Insignias (`components/sellos/SelloTinta.tsx`). Manda su imagen propia (`imagen`, la ruta en el almacén), luego el dibujo que se eligió
  *  (`icono`, ADR-0490) y, si no hay ninguno, el de su nombre. Centrado en (0,0) dentro de ±14; `a` es el color de su trazo (una imagen propia
  *  lleva sus propios colores: no lo usa). */
-export function dibujoDeEtiqueta(nombre: string, icono?: DibujoDeInsignia | null, imagen?: string | null): DibujoIcono {
+export function dibujoDeEtiqueta(nombre: string, icono?: DibujoDeInsignia | null, imagen?: string | null, silueta?: boolean): DibujoIcono {
   const url = urlDeImagenDeInsignia(process.env.NEXT_PUBLIC_SUPABASE_URL, imagen);
   // Un poco más chica que el cuadrado de ±14 de los dibujos: la imagen es un cuadrado lleno y sus esquinas no deben pasar del anillo del sello.
+  // Como silueta (ADR-0490 act. b) la imagen es un molde: toma el color `a` del lugar, que en el sello es `currentColor` (tinta en claro, crema en oscuro).
+  if (url && silueta) return function SiluetaDeLaImagen(a: string) { return <SiluetaPropia url={url} color={a} />; };
   if (url) return function ImagenPropia() { return <image href={url} x={-13} y={-13} width={26} height={26} preserveAspectRatio="xMidYMid meet" />; };
   return ICONOS[dibujoDeInsignia({ nombre, icono })];
+}
+
+/** La imagen propia de una insignia como SILUETA dentro de un SVG: un rectángulo del color del lugar recortado con la forma de la imagen (una máscara
+ *  de transparencia). Es un componente, no una función de dibujo, para que cada copia tenga su propio id de máscara (`useId`: el mismo en el servidor y
+ *  en el navegador): el sello y la tarjeta (con sus dos ecos) la dibujan varias veces en la misma página. */
+function SiluetaPropia({ url, color }: { url: string; color: string }) {
+  const id = `sil${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  return (
+    <>
+      <mask id={id} maskUnits="userSpaceOnUse" x={-13} y={-13} width={26} height={26} style={{ maskType: "alpha" }}>
+        <image href={url} x={-13} y={-13} width={26} height={26} preserveAspectRatio="xMidYMid meet" />
+      </mask>
+      <rect x={-13} y={-13} width={26} height={26} fill={color} mask={`url(#${id})`} />
+    </>
+  );
 }
 
 /**
@@ -86,6 +103,7 @@ export function MuestraEtiqueta({
   nombre,
   icono,
   imagen,
+  imagenSilueta,
   estilo,
   className = "aspect-[3/1] w-full",
 }: {
@@ -94,13 +112,15 @@ export function MuestraEtiqueta({
   icono?: DibujoDeInsignia | null;
   /** Su imagen propia (la ruta en el almacén de insignias); manda sobre `icono`. */
   imagen?: string | null;
+  /** La imagen es un molde que se pinta del color de la tarjeta (ADR-0490 act. b). */
+  imagenSilueta?: boolean;
   estilo: Estilo;
   className?: string;
 }) {
   const { fondo, acento } = TONOS[estilo];
   return (
     <MuestraIcono
-      dibujo={dibujoDeEtiqueta(nombre, icono, imagen)}
+      dibujo={dibujoDeEtiqueta(nombre, icono, imagen, imagenSilueta)}
       fondo={fondo}
       acento={acento}
       etiqueta={`Ilustración de la etiqueta ${nombre}`}
