@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as KeyboardEventReact, type ReactNode, type RefObject } from "react";
-import { Archive, Check, ClipboardCheck, Info, PencilLine, PenLine, ReceiptText, SearchCheck, SearchX, Store } from "lucide-react";
+import { Archive, Check, Info, PencilLine } from "lucide-react";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { Volver } from "@/components/ui/Volver";
@@ -28,7 +28,6 @@ import {
   MOTIVOS_PLANILLA,
   ordenDeRecorrido,
   siguienteDelRecorrido,
-  type ClaveMotivoPlanilla,
 } from "@/lib/existencias-ajuste-modelo";
 import { nombreDeCelda, type AjusteGuardado, type ControlAjuste, type LineaDelLote } from "./useAjusteDelModelo";
 
@@ -109,16 +108,6 @@ export function useTopeDeLaPlanilla(raiz: RefObject<HTMLElement | null>, activo:
 const DONDE = { piso: "en piso", almacen: "en almacén", sede: "en la sede" } as const;
 const NOMBRE_LUGAR = { piso: "piso", almacen: "almacén" } as const;
 
-/** El ícono de cada motivo en la banda: se reconoce el botón sin leerlo entero. */
-const ICONO_MOTIVO: Record<ClaveMotivoPlanilla, ReactNode> = {
-  conte: <ClipboardCheck aria-hidden className="h-4 w-4" />,
-  encontre: <SearchCheck aria-hidden className="h-4 w-4" />,
-  no_aparece: <SearchX aria-hidden className="h-4 w-4" />,
-  error_cobro: <ReceiptText aria-hidden className="h-4 w-4" />,
-  uso_interno: <Store aria-hidden className="h-4 w-4" />,
-  otro: <PenLine aria-hidden className="h-4 w-4" />,
-};
-
 /** Lo que una cantidad tiene que decir además de su número: cambió mientras se contaba, nunca estuvo aquí o tiene apartadas. */
 function notaDeCelda(v: VarianteAjuste, control: ControlAjuste): { texto: string; tono: "nueva" | "dato" | "ajeno" } | null {
   const ajeno = control.cambioAjeno(v);
@@ -130,7 +119,7 @@ function notaDeCelda(v: VarianteAjuste, control: ControlAjuste): { texto: string
 }
 
 /* La planilla del modelo entero («Planilla rápida», ronda 2: Felipe 2026-10-26, docs/maquetas/existencias-ajustar-tabla-2026-10/ronda-2.html).
-   Arriba, la banda con «Dónde» y «Qué pasó», siempre en el mismo lugar; debajo, el aviso, y la planilla, lo único que se desliza. Con una
+   Arriba, la banda con «Dónde» y «Qué pasó» (un combo), siempre en el mismo lugar; debajo, el aviso, y la planilla, lo único que se desliza. Con una
    talla, columnas Hoy · Contaste · Cambio y lo del otro lugar; con varias, colores × tallas. La cantidad de la que se viene lleva el cursor y
    un filo, y nada se apaga: todo el modelo se toca igual. Enter pasa a la siguiente cantidad (talla por talla, bajando por los colores), y
    un ✓ marca cada color ya mirado. «Dónde» no lleva conteos: eran del modelo entero y chocaban con los de la talla (/formidable 2026-10-26). */
@@ -179,19 +168,8 @@ export function PlanillaDelAjuste({
   const varianteFoco = modelo && foco ? [...modelo.celdas.values()].find((v) => v.varianteId === foco) : undefined;
   const raiz = useRef<HTMLDivElement>(null);
   const caja = useRef<HTMLDivElement>(null);
-  const motivos = useRef<HTMLDivElement>(null);
   const orden = modelo ? ordenDeRecorrido(modelo) : [];
   const avisoCarga = avisoCargaDeLaPlanilla(control.avisoCarga);
-
-  // En el celular «Qué pasó» va en una fila que se desliza: el motivo elegido queda a la vista (solo se mueve esa fila, nunca la hoja).
-  useEffect(() => {
-    const fila = motivos.current;
-    const elegido = fila?.querySelector<HTMLElement>('[aria-pressed="true"]');
-    if (!fila || !elegido || fila.scrollWidth <= fila.clientWidth) return;
-    const f = fila.getBoundingClientRect();
-    const b = elegido.getBoundingClientRect();
-    if (b.left < f.left || b.right > f.right) fila.scrollLeft += b.left - f.left - 8;
-  }, [control.motivo]);
 
   /** Lleva una cantidad a la vista DENTRO de la planilla, sin mover la hoja ni la página. */
   function verEnLaPlanilla(el: Element) {
@@ -334,28 +312,23 @@ export function PlanillaDelAjuste({
           </div>
         )}
         <CampoGuiado id="motivo" guia={guia} retiene="fila" className="ajuste-banda-fila">
-          <span className="ajuste-banda-tit">
-            <ConMarca estado={guia.estado("motivo")}>Qué pasó</ConMarca>
+          <span id="ajuste-motivo-tit" className="ajuste-banda-tit">
+            <ConMarca estado={guia.estado("motivo")} sinAhora>
+              Qué pasó
+            </ConMarca>
           </span>
-          <div ref={motivos} role="group" aria-label="Qué pasó" className="ajuste-opciones ajuste-opciones-desliza">
-            {MOTIVOS_PLANILLA.map((x) => {
+          {/* Un combo y no seis píldoras: en dos filas se leían desordenadas (Felipe 2026-10-26). Elegir uno que no va (Encontré en
+              el piso, o con un guardado que quedó en duda) sigue pasando por `cambiarMotivo`, que dice por qué en el aviso. */}
+          <Desplegable
+            idEtiqueta="ajuste-motivo-tit"
+            valor={control.motivo}
+            onValor={(v) => avisar(control.cambiarMotivo(v))}
+            opciones={MOTIVOS_PLANILLA.map((x) => {
               const cerrado = motivoCerrado(x.clave, control.ubicado, control.separa);
-              return (
-                <button
-                  key={x.clave}
-                  type="button"
-                  aria-pressed={control.motivo === x.clave}
-                  aria-disabled={cerrado ? true : undefined}
-                  title={cerrado ?? x.ayuda}
-                  onClick={() => avisar(control.cambiarMotivo(x.clave))}
-                  className="pildora-cayla ajuste-opcion"
-                >
-                  {ICONO_MOTIVO[x.clave]}
-                  {x.texto}
-                </button>
-              );
+              return { valor: x.clave, texto: cerrado ? `${x.texto} · solo en almacén` : x.texto, deshabilitada: Boolean(cerrado) };
             })}
-          </div>
+            className="ajuste-motivo"
+          />
         </CampoGuiado>
         {m.nota && (
           <CampoGuiado id="nota" guia={guia} className="ajuste-banda-pie">

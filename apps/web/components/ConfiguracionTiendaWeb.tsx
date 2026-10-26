@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ImagePlus, MapPin, X } from "lucide-react";
 import { PuertaDeTienda } from "@/components/tienda-web-conf/PuertaDeTienda";
 import { TelefonoDeTienda } from "@/components/tienda-web-conf/TelefonoDeTienda";
@@ -10,6 +10,7 @@ import { direccionDeFotoDeTienda, prepararFotoDeTienda, subirFotoDeTienda } from
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { Chip } from "@/components/ui/Chip";
 import { CierresDeTienda } from "@/components/tienda-web-conf/CierresDeTienda";
 import { HorarioSemanal } from "@/components/tienda-web-conf/HorarioSemanal";
@@ -92,6 +93,10 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
   // La tienda cuya foto se está preparando y subiendo (la ruta queda en el borrador; recién «Guardar» la manda a la base).
   const [subiendoFotoId, setSubiendoFotoId] = useState<string | null>(null);
   const [encimaId, setEncimaId] = useState<string | null>(null);
+  // Los plazos viven en su propia tarjeta: avisa si tienen algo sin guardar, para que salir de la pantalla también lo cuide.
+  const [plazosSucios, setPlazosSucios] = useState(false);
+  // El guardado de una tarjeta no se repite si llegan dos clics en el mismo instante (el botón se apaga recién al volver a dibujar).
+  const guardandoTarjeta = useRef(false);
   const [vista, setVista] = useState(datos);
   if (vista !== datos) {
     setOrdenIds(datos.sedes.map((x) => x.id));
@@ -187,9 +192,24 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     return texto || b.whatsapp !== base.whatsapp || b.mapa.trim() !== base.mapa.trim() || b.foto !== base.foto || b.dias !== base.dias || b.cierres !== base.cierres || (mostrar[s.id] ?? s.mostrar) !== s.mostrar;
   };
 
+  // Salir con algo sin guardar (menú, «atrás», recargar) pregunta antes: lo arrastrado en el horario o escrito en una tienda no se pierde en silencio.
+  const salida = useSalidaSinGuardar(
+    plazosSucios || datos.sedes.some((s) => tieneCambios(s)),
+    "Hiciste cambios en Conf. Tienda que todavía no se guardaron. Si sales ahora, se pierden.",
+  );
+
   /** El botón «Guardar» de una tienda: valida todo antes de escribir nada, guarda el WhatsApp (su propia función, la del QR del club) y
    *  después el resto, con un solo aviso al final. Si algo falla, lo escrito se queda para corregirlo y volver a guardar. */
   async function guardarTarjeta(s: SedeWeb) {
+    if (guardandoTarjeta.current) return;
+    guardandoTarjeta.current = true;
+    try {
+      await guardarTarjetaSola(s);
+    } finally {
+      guardandoTarjeta.current = false;
+    }
+  }
+  async function guardarTarjetaSola(s: SedeWeb) {
     const b = borradores[s.id];
     const base = bases[s.id];
     if (!b || !base) return;
@@ -344,7 +364,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
       />
 
       {datos.parametros ? (
-        <Plazos parametros={datos.parametros} guardar={guardar} />
+        <Plazos parametros={datos.parametros} guardar={guardar} onSucio={setPlazosSucios} />
       ) : (
         <p className="nota-cayla">Falta pegar en la base la migración de la tienda web (20261014231000) para ajustar los plazos.</p>
       )}
@@ -353,6 +373,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
         El WhatsApp de cada tienda es el mismo del QR del club: cambiarlo aquí también lo cambia en Tiendas y caja y en el cartel del
         mostrador. Por ahora no hay envíos: todo pedido web se recoge en la tienda que eligió el cliente.
       </div>
+      {salida.aviso}
     </>
   );
 }
@@ -389,6 +410,8 @@ function TallerDeTienda({
   onGuardar: () => void;
 }) {
   const [sobreFoto, setSobreFoto] = useState(false);
+  // El WhatsApp avisa que está incompleto al salir de la caja (no mientras se escribe), bajo la propia caja.
+  const [whatsappTocado, setWhatsappTocado] = useState(false);
   const ahora = useAhoraEnLima();
   const falta = faltaParaMostrar(b);
   const paraLaFrase = limpiarTexto(b.nombreWeb) ?? nombreCorto(s.nombre);
@@ -421,13 +444,18 @@ function TallerDeTienda({
 
         <div className="twc-fila2">
           <CampoGuiado id={idCampo(s.id, "nombre_web")} guia={guia}>
-            <CampoFin etiqueta={etiqueta("nombre_web", "Nombre que ve el cliente")} htmlFor={`tw-${s.id}-nombreWeb`}>
+            <CampoFin etiqueta={etiqueta("nombre_web", "Nombre")} htmlFor={`tw-${s.id}-nombreWeb`}>
               {caja("nombreWeb", sugerirNombreWeb(s.nombre), TOPES_SEDE.nombreWeb)}
             </CampoFin>
           </CampoGuiado>
 
           <CampoGuiado id={idCampo(s.id, "whatsapp")} guia={guia}>
-            <CampoFin etiqueta={etiqueta("whatsapp", "WhatsApp de la tienda")} htmlFor={`tw-${s.id}-whatsapp`}>
+            <CampoFin
+              etiqueta={etiqueta("whatsapp", "WhatsApp")}
+              htmlFor={`tw-${s.id}-whatsapp`}
+              ayuda={whatsappTocado && b.whatsapp !== "" && !celularValido(b.whatsapp) ? "Son 9 dígitos y empieza en 9." : undefined}
+              tono="aviso"
+            >
               <div className="fin-con-unidad">
                 <span>+51</span>
                 <InputFin
@@ -437,6 +465,7 @@ function TallerDeTienda({
                   autoComplete="off"
                   placeholder="987 654 321"
                   onChange={(e) => onEscribir("whatsapp", ajustarCelular(e.target.value))}
+                  onBlur={() => setWhatsappTocado(true)}
                   onKeyDown={teclas("whatsapp")}
                   className="fin-num"
                 />
@@ -448,7 +477,7 @@ function TallerDeTienda({
         <div className="twc-fila2">
           <div className="twc-col">
             <CampoGuiado id={idCampo(s.id, "direccion")} guia={guia}>
-              <CampoFin etiqueta={etiqueta("direccion", "Dirección para recoger")} htmlFor={`tw-${s.id}-direccion`}>
+              <CampoFin etiqueta={etiqueta("direccion", "Dirección")} htmlFor={`tw-${s.id}-direccion`}>
                 {caja("direccion", sugerirDireccion(s.nombre), TOPES_SEDE.direccion)}
               </CampoFin>
             </CampoGuiado>
@@ -534,7 +563,7 @@ function TallerDeTienda({
               <>
                 {etiqueta("horario", "Horario")}
                 <Chip tono="neutro" versalitas={false} className="ml-2">
-                  Arrastra los bordes o la barra
+                  Arrastra los bordes o la barra · la letra cierra el día
                 </Chip>
               </>
             }
@@ -596,7 +625,7 @@ function TallerDeTienda({
 }
 
 /** Para todas las sedes: los plazos de los pedidos web y desde cuántas unidades el cliente ve el número. */
-function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guardar: Guardar }) {
+function Plazos({ parametros, guardar, onSucio }: { parametros: ParametrosTiendaWeb; guardar: Guardar; onSucio: (sucio: boolean) => void }) {
   const [b, setB] = useState<BorradorParametros>(() => borradorParametros(parametros));
   const [base, setBase] = useState<BorradorParametros>(() => borradorParametros(parametros));
   if (JSON.stringify(borradorParametros(parametros)) !== JSON.stringify(base)) {
@@ -605,12 +634,18 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
   }
 
   const sucio = JSON.stringify(b) !== JSON.stringify(base);
+  useEffect(() => {
+    onSucio(sucio);
+  }, [sucio, onSucio]);
   const [guardando, setGuardando] = useState(false);
+  const guardandoYa = useRef(false);
 
   async function guardarPlazos() {
+    if (guardandoYa.current) return;
     const v = validarParametrosTiendaWeb(b);
     if (!v.ok) return avisar.error(v.error);
     const p = v.valor;
+    guardandoYa.current = true;
     setGuardando(true);
     try {
       await guardar(
@@ -628,6 +663,7 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
         `Plazos guardados: se confirma en ${p.horasParaConfirmar} h, se anula sin pago a las ${p.horasAvisoSinPagar} h y se avisa a los ${p.diasAvisoSinRecoger} días sin recoger.`,
       );
     } finally {
+      guardandoYa.current = false;
       setGuardando(false);
     }
   }
@@ -642,7 +678,7 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
       <RelojDelPedido
         valor={b}
         onCambiar={(clave, texto) => setB((x) => ({ ...x, [clave]: texto }))}
-        onRevertir={() => setB(base)}
+        onRevertir={(clave) => setB((x) => ({ ...x, [clave]: base[clave] }))}
       />
       <EscalaDeStock valor={Number(b.quedanPocasDesde)} onValor={(n) => setB((x) => ({ ...x, quedanPocasDesde: String(n) }))} />
       <PieAcciones>
