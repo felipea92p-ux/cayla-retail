@@ -79,6 +79,46 @@ Una sola parte: una tabla **nueva**, un disparador con `create or replace trigge
 `20261024215000` (ya en producción desde el 2026-10-24: la función viva tiene md5 `b8a8be791f596c9bd87767935fe08a98`, la misma que local). Ensayo revertido con `set local role authenticated`
 y huella completa antes y después (ver `docs/pantallas/compras-plan.md`, A4).
 
+### Pegarla y comprobarla (lo que se hace el día que Felipe da el OK)
+
+1. **Antes:** la propia migración comprueba su punto de partida (md5 del cuerpo de la función que reemplaza, `b8a8be791f596c9bd87767935fe08a98`, verificado en producción el 2026-10-26 con una sola
+   sobrecarga, 0 líneas guardadas y 5 planes). Si no coincide, no aplica nada y lo dice: no hace falta otra comprobación previa.
+2. **Pegar** en el SQL Editor de `cayla-dynamic` el archivo `supabase/migrations/20261026171000_plan_compra_historial_de_lineas.sql` **entero y tal cual** (ya lleva `retail.` y su
+   `set search_path`). Si responde `lock_timeout`, no se aplicó nada: se vuelve a pegar.
+3. **Después**, con estas consultas (solo leen). Lo esperado y la huella de local (la misma de la prueba) van en el comentario:
+
+```sql
+-- 1 | 13 | true | true   (UNA función, de 13 parámetros, security definer, con search_path fijo)
+select count(*), max(pronargs), bool_and(prosecdef), bool_and(proconfig::text like '%search_path%')
+  from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'guardar_plan_compra_linea';
+
+-- true | 1 | false | false   (RLS puesto, un disparador, y ni la tienda ni anon leen la tabla)
+select (select relrowsecurity from pg_class where oid = 'retail.planes_compra_lineas_historial'::regclass),
+       (select count(*) from pg_trigger where tgrelid = 'retail.planes_compra_lineas_historial'::regclass and not tgisinternal),
+       has_table_privilege('authenticated', 'retail.planes_compra_lineas_historial', 'select'),
+       has_table_privilege('anon', 'retail.planes_compra_lineas_historial', 'select');
+
+-- false | false | false | true   (la interna no se ejecuta desde afuera; guardar: la tienda sí, anon no)
+select has_function_privilege('anon', 'retail.fn_plan_compra_linea_al_historial(uuid,jsonb)', 'execute'),
+       has_function_privilege('authenticated', 'retail.fn_plan_compra_linea_al_historial(uuid,jsonb)', 'execute'),
+       has_function_privilege('anon', 'retail.guardar_plan_compra_linea(uuid,uuid,integer,integer,integer,numeric,numeric,integer,jsonb,text,integer,numeric,jsonb)', 'execute'),
+       has_function_privilege('authenticated', 'retail.guardar_plan_compra_linea(uuid,uuid,integer,integer,integer,numeric,numeric,integer,jsonb,text,integer,numeric,jsonb)', 'execute');
+
+-- La huella: los tres md5 tienen que ser IGUALES a los de local
+--   fn_plan_compra_historial_inmutable  d990bbf83d7f867fad402611ecadc2d8
+--   fn_plan_compra_linea_al_historial   abf1f7cad8bce59aaacf489a44b3fad3
+--   guardar_plan_compra_linea           2da5d3aad10795061977ff9611049206
+select proname, md5(prosrc) from pg_proc
+ where pronamespace = 'retail'::regnamespace
+   and proname in ('guardar_plan_compra_linea', 'fn_plan_compra_linea_al_historial', 'fn_plan_compra_historial_inmutable')
+ order by 1;
+```
+
+4. **Y la prueba de verdad:** guardar una categoría desde Compras ▸ Plan y comprobar que la tabla tiene su fila (`select version, normal, propuesta from retail.planes_compra_lineas_historial`).
+   Es una escritura real en un plan de verdad: se hace con una categoría que se iba a guardar de todas formas, no con una de prueba (la fila no se puede borrar, ni a propósito).
+
+Los md5 de local valen mientras el archivo de la migración no cambie: si se edita, se vuelven a calcular. El check «SQL pegado» del PR compara la misma huella con producción (`huellas-del-pr.mjs`).
+
 ## Lo que NO cubre
 
 - **Leer el historial.** Ni la pantalla ni ninguna función lo lee todavía: eso es la tarea #6 (versiones del plan) y la de medir aciertos.
