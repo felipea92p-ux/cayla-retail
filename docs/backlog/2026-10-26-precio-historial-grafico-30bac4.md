@@ -7,10 +7,16 @@ Maqueta elegida: `docs/maquetas/costo-historial-2026-10/v2-escalera-amigable.htm
       `components/historial-prenda/CostoPrenda.tsx`; `pnpm pruebas:costo-de-la-prenda` en el CI).
 - [x] 2 · Gráfico de escalera con números (`<Linea>` gana `escalones` y `marcas`; registro en `docs/unificar/grafico.linea.md`).
 - [x] 3 · Errores arreglados del costo declarado (`erroresArreglados`; `<Linea>` gana `arreglos`).
-- [ ] 4 · «Hoy: N prendas»: cuántas quedan de cada compra, estimado PEPS, con prueba de que siempre suma el stock real.
-- [ ] 5 · Corregir el costo de la última compra: RPC solo líder, motivo obligatorio, tabla nueva de correcciones (append-only,
-      nunca editar `costo_historial`), hoja con guía de foco, prueba de base, `/chaos`, ADR. Necesita reservar ADR y migración.
-- [ ] 6 · Cierre: recorrer la guía (`guias:recorrer`), `/formidable`, `tema:auditar`, sacar el PR de borrador.
+- [x] 4 · «Hoy: N prendas»: cuántas quedan de cada compra, estimado PEPS (`lotesDeHoy`, barrido de 400 casos: siempre suma el stock).
+- [x] 5 · Corregir el costo de la última compra (ADR-0515, `20261026160000`): `corregir_costo_de_compra` solo líder con motivo y banda de ADR-0298,
+      `costo_correcciones` (solo agrega), `fn_costo_historial_efectivo`, vista previa; hoja `CorregirCostoModal` con guía de foco; `pnpm pruebas:costo-corregir-compra`;
+      `/chaos` semilla 515 (1 hallazgo g2, arreglado) y prueba de punta a punta (1 defecto de la web, arreglado).
+- [x] 6 · Cierre: `guias:recorrer` a 1440, 375 y en oscuro, `tema:auditar` (0 solo en oscuro), `/formidable` (informe; 3 cambios esperan OK de Felipe).
+- [ ] **POR PEGAR en producción: `20261026160000_corregir_costo_de_compra.sql`** (una parte; crea la tabla `costo_correcciones` sin políticas y las funciones; no hace `alter` de tablas en uso). Comprobación: `select to_regprocedure('retail.corregir_costo_de_compra(uuid,timestamptz,numeric,text,boolean)') is not null, to_regclass('retail.costo_correcciones') is not null;` → t | t. Después: refrescar el diccionario de datos (`costo_correcciones`).
+- [ ] Los 3 cambios de Formidable (`docs/formidable/catalogo-costo-correccion.md`): el pie no repite «Guardar» con el aviso de costo raro, párrafo de arriba más corto, aviso sobre el pie fijo.
+- [ ] **El gráfico de escalera se pisa con compras cercanas en el tiempo** (6 compras en 2 días: los números y las etiquetas «primera/igual» quedan encimados y no se pueden tocar). Es de la actividad 2: `components/ui/Linea.tsx` (`marcas`) y `graficoDelCosto` en `lib/costo-prenda-reglas.ts`.
+- [ ] Confirmar con Felipe que el costo de una compra es «sin IGV» en Recibir (la hoja lo promete).
+- [ ] `docs/datos/generado/`: el diccionario no tiene todavía `costo_correcciones` (entra al aplicar la migración en producción).
 - [x] **Pegada en producción** 20261024223000 el 2026-10-26, con el OK de Felipe: md5(prosrc) = cdbef27edac56c0e830b07821b9cecca (igual que en local); anon no la ejecuta; con un líder lee las compras de una prenda real.
 - [ ] **Sin probar con una cuenta real:** se verificó con datos de ejemplo sacados de la base local, sin sesión.
 - [ ] Los arreglos de costo hechos entre el 23 y el 26-sep quedaron anotados como `costo` (antes de 20260927190000) y no salen
