@@ -82,6 +82,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   if (!resumen) {
     return (
       <div className="space-y-6">
+        <span hidden data-ancho-completo />
         <EncabezadoPagina sede="Finanzas" titulo="Resumen" subtitulo={FRASE} />
         <Aviso tono="error" titulo="El Resumen no respondió">
           {falla ?? "No se pudo leer el resumen. Vuelve a cargar la página; si sigue igual, avisa a Felipe."}
@@ -117,6 +118,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
 
   return (
     <div className="space-y-6">
+        <span hidden data-ancho-completo />
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE}>
         <RespuestaTelar pregunta={resp.pregunta} valor={resp.valor} chips={cien ? [...resp.chips, { texto: cien.chip, tono: "pizarra" as const }] : resp.chips} motivo={resp.motivo} />
       </EncabezadoPagina>
