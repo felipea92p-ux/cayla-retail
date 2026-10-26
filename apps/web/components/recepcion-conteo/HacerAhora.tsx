@@ -239,7 +239,6 @@ export function HacerAhora({
       guardando={guardando}
       error={error}
       onPrendaVista={onPrendaVista}
-      elegida={linea.linea?.prendaElegida ?? null}
       onSeparado={setSeparado}
       onTallas={async (p) => {
         const ya = prendas.get(p.productoId);
@@ -266,7 +265,6 @@ function SepararAhora({
   guardando,
   error,
   onPrendaVista,
-  elegida,
   onSeparado,
   onTallas,
   onGuardar,
@@ -279,7 +277,6 @@ function SepararAhora({
   guardando: boolean;
   error: string | null;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
-  elegida: { productoId: string; nombre: string | null; codigo: string | null } | null;
   onPrendaVista: (p: PrendaRecepcion) => void;
   onSeparado: (s: Separado) => void;
   onTallas: (p: PrendaSeparada) => void;
@@ -316,7 +313,6 @@ function SepararAhora({
               separado={separado}
               tope={item.cantidad}
               enHacerAhora
-              elegida={elegida}
               onSeparado={onSeparado}
               onTallas={onTallas}
               onPrendaVista={onPrendaVista}

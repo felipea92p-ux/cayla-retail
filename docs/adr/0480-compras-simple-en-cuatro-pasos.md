@@ -139,9 +139,9 @@ Se le sumó lo que faltaba:
 - **El papel con su foto** («Lo que anotó Marisol al comprar»): de quién es, qué papel y quién compró, y la foto, que se abre en grande. Sin
   montos: la tienda no ve el dinero de Compras por tener Recibir. `fn_envio_detalle` trae `papeles`, y la regla del depósito
   (`fn_puede_ver_foto_gasto_viaje`) deja leer la carpeta `papeles/` a quien tiene Recibir; los vouchers y los gastos siguen siendo de Compras.
-- **La prenda que eligió la compradora** (`orden_compra_items.producto_id`): cada línea la trae, y al contar «¿Qué … son?» la ofrece de un
+- **La prenda que eligió la compradora** (`orden_compra_items.producto_id`): cada línea la trae, y al contar «¿Qué … son?» la ofrecía de un
   toque («La compradora anotó Blusa Emma. ¿Son estas? · Son estas (6)»), también en «Hacer ahora». No se separa sola: lo que llegó lo
-  certifica quien cuenta (decisión 17 de ADR-0362).
+  certifica quien cuenta (decisión 17 de ADR-0362). **Retirado el 2026-10-26** (ver «Actualización 2026-10-26»): la pantalla ya no lo ofrece.
 - **El nombre que anotó** pasa a la hoja de la prenda nueva («En la orden dice «Polera capucha oversize». Usar ese nombre») también cuando lo
   nuevo no se describió al contar.
 
@@ -279,6 +279,19 @@ nota de venta o sin comprobante.
 - Lo que sigue en el detalle de una compra: recibir, pagar, adjuntar y anular (una compra sin pagos ni recepciones). No es registrar.
 - **Actualización (rama `claude/compras-simple-rediseno`, mismo día):** el crédito vuelve por Compras simple. Con «Pagar después» o pagando una parte
   (`20261023181000`, ver «Lo que Felipe pidió mirando»), completar el papel deja el comprobante a crédito por lo que falta, y entra a «Por pagar».
+
+## Actualización 2026-10-26: Recibir ya no tiene la tarjeta «Llevas contadas»
+
+Felipe pidió quitar de `/recibir/envio/[id]` la tarjeta de la derecha del paso Contar: «Llevas contadas N de M» y su pregunta **«La compradora
+anotó X × N. ¿Son estas?»** con «Son estas» / «Es otra prenda» (`PreguntaDeLaCompra.tsx`, decisión de «Rediseño visual…» de arriba). Se borró el
+componente y `avanceAnotado` de `lib/recibir-papel-reglas.ts`; `siguienteAnotada` ya no recibe las líneas saltadas (esa memoria era de la tarjeta),
+y la guía pierde sus tres pasos (`pregunta`, `son-estas`, `es-otra`). **Después, mirando «¿Qué polos son?» (el mismo día), Felipe pidió quitar
+también el «La compradora anotó X · ¿Son estas?» con su botón «Son estas (N)» de `SepararPrendas.tsx`** (en Contar y en «Hacer ahora»): se quitó
+la prop `elegida` de ese componente, su paso de la guía (`elegida`) y lo que la pasaba desde `ContarEnvio.tsx` y `HacerAhora.tsx`. Con eso la
+**actividad 6 de arriba («La prenda que eligió la compradora… de un toque») ya no vale en la pantalla:** quien cuenta separa buscando la prenda por
+su nombre, como antes de ADR-0480. La prenda que anotó la compradora sigue viajando en cada línea (`prendaElegida`) y se usa como nombre en la
+lista «Lo que anotó X»; solo se retiró el atajo que la separaba. No cambia qué se puede hacer: es lo mismo que buscarla y ponerle el número.
+En el cierre, el detalle de una fila tampoco lleva el título «Costos y precios» (ADR-0519).
 
 ## Cómo se ve mal hecho
 

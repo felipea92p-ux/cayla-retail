@@ -56,6 +56,10 @@ const como = (auth) =>
 // Micaela elige en el combo «Responsable» a ella misma, en Trujillo (marcó su entrada en el preludio).
 const EN_TIENDA = `select set_config('request.headers', json_build_object('x-responsable', :'micaela_p', 'x-ubicacion', :'tru')::text, true) \\g /dev/null\n`;
 const SIN_ENCABEZADOS = `select set_config('request.headers', '', true) \\g /dev/null\n`;
+// ADR-0517: un Admin recibe lo que él mismo compró. Para probar que quien compra sigue frenado, Felipe baja a «integrante» en Dynamic (sigue
+// siendo líder aquí) y firma por el combo «Responsable» como cualquier cuenta que no es Admin: se elige a sí mismo, de turno.
+const FELIPE_SIN_SER_ADMIN = `reset role;\nupdate public.personas set rol = 'integrante' where auth_user_id = '${FELIPE}';\n`;
+const FELIPE_EN_TIENDA = `select set_config('request.headers', json_build_object('x-responsable', :'felipe_p', 'x-ubicacion', :'tru')::text, true) \\g /dev/null\n`;
 
 // Cada llamada devuelve su respuesta (jsonb) o {error, hint, msg, detail}.
 const atrapa = (nombre, firma, llamada) => `
@@ -144,7 +148,8 @@ create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo 
   fecha_jornada date, anulada_at timestamptz);
 create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
 insert into public.marcajes (persona_id, sede_id, tipo, timestamp_marca, fecha_jornada)
-  values (:'micaela_p', :'sede_tru', 'entrada', now() - interval '1 second', (now() at time zone 'America/Lima')::date);
+  values (:'micaela_p', :'sede_tru', 'entrada', now() - interval '1 second', (now() at time zone 'America/Lima')::date),
+         (:'felipe_p', :'sede_tru', 'entrada', now() - interval '1 second', (now() at time zone 'America/Lima')::date);
 -- Una prenda del catálogo de esa categoría y marca (talla S activa, L inactiva) y una de otra categoría.
 insert into retail.marca_proveedores (marca_id, proveedor_id) values (:'marca', :'prov');
 insert into retail.productos (categoria_id, referencia, marca_id, proveedor_id) values (:'cat', 'Chompa Catálogo Conteo', :'marca', :'prov')
@@ -278,10 +283,10 @@ caso(
   (o) => o.startsWith("42501|recibir_otra_sede|") && o.includes("precio_envio_no_abierto"),
 );
 caso(
-  "P2b quien hizo la orden no cambia el precio de su propio envío",
+  "P2b quien hizo la orden (un líder que no es Admin: el Admin sí puede, ADR-0517) no cambia el precio de su propio envío",
   `${ENVIO}
    reset role;
-   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   ${FELIPE_SIN_SER_ADMIN}${como(FELIPE)}${FELIPE_EN_TIENDA}
    select pg_temp.e(${cambia("d1", "prod_p", 99.9, "todas")});`,
   QUIEN_COMPRO,
 );

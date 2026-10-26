@@ -213,6 +213,16 @@ export const PRUEBAS = [
   // bajo el costo no; el guardián de Productos sigue cerrado. ROLLBACK.
   "pruebas:precio-desde-recepcion",
 
+  // Un Admin recibe lo que él mismo compró (ADR-0517, Felipe 2026-10-26): el Admin abre y cierra su envío y recibe «sin guía» su orden;
+  // el líder que no es Admin y quien compra sin ser líder siguen frenados; queda en Actividad y en el detalle; la excepción se pregunta a
+  // la cuenta; el Taller conserva su bloqueo. ROLLBACK.
+  "pruebas:recibir-lo-propio",
+
+  // El costo propio por prenda al cerrar un envío (ADR-0519, Felipe 2026-10-26): la prenda con tallas entra con su costo y las demás con el de
+  // su línea; lo pendiente se detalla después con el costo de su prenda; se valida como el de la línea; un costo fuera de lo normal pide
+  // confirmar; sin costos propios todo sigue igual. ROLLBACK.
+  "pruebas:costo-por-prenda",
+
   // Actividad de Colaboradores, Roles, Configuración y Regularizar (ADR-0207, act. 2026-10-03): cada operación en la
   // sede correcta, las formas de producción dan frases legibles, sin el dinero de la empresa. ROLLBACK.
   "pruebas:actividad-gestion",

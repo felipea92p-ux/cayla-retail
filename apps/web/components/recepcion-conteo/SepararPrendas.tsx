@@ -68,7 +68,6 @@ export function SepararPrendas({
   onSeparado,
   onTallas,
   onPrendaVista,
-  elegida = null,
 }: {
   categoria: CategoriaDeLinea;
   marca: MarcaDeLinea;
@@ -79,8 +78,6 @@ export function SepararPrendas({
   onTallas: (p: PrendaSeparada) => void;
   /** Una prenda elegida en la búsqueda (con sus tallas y colores): la pantalla la guarda para la hoja de tallas. */
   onPrendaVista: (p: PrendaRecepcion) => void;
-  /** La prenda que eligió la compradora al comprar desde el celular (ADR-0480): se ofrece de un toque, sin buscarla. */
-  elegida?: { productoId: string; nombre: string | null; codigo: string | null } | null;
 }) {
   const [describiendo, setDescribiendo] = useState(false);
   const total = totalSeparado(separado);
@@ -98,23 +95,6 @@ export function SepararPrendas({
         </p>
         {tope > 0 && (sinSeparar > 0 ? <Chip tono="neutro">{sinSeparar} sin separar</Chip> : <Chip tono="verde">Todas separadas</Chip>)}
       </div>
-
-      {elegida && sinSeparar > 0 && !separado.prendas.some((p) => p.productoId === elegida.productoId) && (
-        // ADR-0480 (actividad 6): lo que eligió la compradora. Quien cuenta lo confirma (contar es certificar): no se separa solo.
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-hueso px-3 py-2.5" data-guia="recepcion.elegida">
-          <span className="min-w-0 text-sm text-tinta">
-            La compradora anotó <span className="font-medium">{elegida.nombre ?? "una prenda del catálogo"}</span>
-            {elegida.codigo ? <span className="text-taupe"> · {elegida.codigo}</span> : null}. ¿Son estas?
-          </span>
-          <button
-            type="button"
-            className="btn-cayla btn-sutil btn-chico mov-boton"
-            onClick={() => onSeparado(sumarPrenda(separado, elegida, sinSeparar))}
-          >
-            Son estas ({sinSeparar})
-          </button>
-        </div>
-      )}
 
       <BuscarPrendaEnLinea
         categoria={categoria}
