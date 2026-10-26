@@ -10,6 +10,9 @@ import type { Proveedor, ResumenProveedores } from "@/lib/proveedores";
 import { ProveedorModal, BORRADOR_VACIO, type Borrador } from "@/components/ProveedorModal";
 import { ProveedorVistaRapida } from "@/components/ProveedorVistaRapida";
 import { ProveedoresIndicadores } from "@/components/ProveedoresIndicadores";
+import { ProveedoresRanking } from "@/components/ProveedoresRanking";
+import { RITMOS, contarPorRitmo, filasDelRanking, pasaFiltroRanking, type ClaseRitmo, type FiltroRanking } from "@/lib/proveedores-ranking-reglas";
+import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { ETIQUETA_TIPO_PROVEEDOR, chipEntregas, haceCuanto, marcasParaMostrar, ordenarProveedores, repartoDeuda, rubrosConConteo, siguienteOrden, resumenSoloMercaderia, sinDatosDePago, textoBuscableProveedor, tieneRubro, type CampoOrden, type MarcasDeProveedor, type Orden, type TipoProveedor } from "@/lib/proveedores-reglas";
@@ -25,6 +28,7 @@ import { Buscador } from "@/components/ui/Buscador";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { Vacio } from "@/components/ui/Vacio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // La tabla de líder gana columnas según el ANCHO DE LA TABLA, no el de la ventana (container queries de
 // Tailwind: `@3xl`, `@5xl`, `@7xl` miden el contenedor `@container` de <Tabla>). Con el menú lateral abierto
@@ -81,6 +85,11 @@ const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 //  · `puedeEditar` (el módulo Proveedores, `editarCuentasProveedor` = `fn_puede_gestionar_proveedores`): registrar, abrir la
 //    ficha (datos, cuentas, devoluciones, editar y desactivar) y el aviso «Sin datos de pago».
 // Quien tiene Proveedores sin los montos ve el directorio y entra a la ficha, sin una sola cifra de dinero.
+//
+// Ranking (dirección «C», elegida por Felipe el 2026-10-26; docs/maquetas/proveedores-v5-2026-10/): con los montos y el rendimiento a mano, la
+// pestaña Mercadería deja de ser el directorio y pasa a ser un ranking (`ProveedoresRanking`): del que más le compras al que menos, con cuánto se
+// vendió y en cuántas semanas se vende lo que queda, filtrable por ese ritmo. Los activos sin compras van al final («Sin compras todavía», con las
+// filas del directorio), los desactivados como siempre, y tocar una fila abre la misma vista rápida. Servicios sigue siendo el directorio.
 export function ProveedoresPanel({
   proveedores,
   verMontos,
@@ -88,6 +97,8 @@ export function ProveedoresPanel({
   resumen,
   series,
   marcas,
+  rendimiento = null,
+  hoy,
 }: {
   proveedores: Proveedor[];
   verMontos: boolean;
@@ -98,6 +109,10 @@ export function ProveedoresPanel({
   series: Record<string, number[]> | null;
   /** Marcas de cada proveedor (ADR-0140); `null` si no se pudieron leer → sin marcas ni búsqueda por marca. */
   marcas: MarcasDeProveedor | null;
+  /** Lo comprado y vendido de cada proveedor (`fn_proveedores_rendimiento`); `null` sin los montos o si la base no lo tiene → el directorio de siempre. */
+  rendimiento?: RendimientoProveedor[] | null;
+  /** La fecha de Lima de hoy (la pone el servidor): desde cuándo se mide el ritmo. */
+  hoy: string;
 }) {
   const router = useRouter();
   const [borrador, setBorrador] = useState<Borrador | null>(null);
@@ -109,6 +124,8 @@ export function ProveedoresPanel({
   const [soloSinPago, setSoloSinPago] = useState(false);
   const [orden, setOrden] = useState<Orden>({ campo: "saldo", dir: "desc" });
   const [abiertoId, setAbiertoId] = useState<string | null>(null); // el proveedor de la vista rápida
+  const [filtroRitmo, setFiltroRitmo] = useState<FiltroRanking>(null); // el ranking: por ritmo o con deuda vencida
+  const [verTodos, setVerTodos] = useState(false); // el ranking: más allá de las primeras 20 filas
   const [foco, setFoco] = useState<string | null>(null); // el tramo de la barra de concentración al que se apunta
   const [recientes, setRecientes] = useState<ReadonlySet<string>>(new Set());
   const pendienteScroll = useRef<string | null>(null);
@@ -142,10 +159,29 @@ export function ProveedoresPanel({
   const filtrando = !!k || !!rubro || filtrarSinPago;
   const reparto = useMemo(() => repartoDeuda(proveedores.filter((p) => p.activo).map((p) => ({ id: p.id, nombre: p.nombre, saldo: p.saldo }))), [proveedores]);
   const maxSaldo = Math.max(1, ...proveedores.filter((p) => p.activo).map((p) => p.saldo ?? 0));
-  const refFila = useFlip(activos.map((p) => p.id).join("|"));
+  // El ranking: solo en Mercadería, con los montos y el rendimiento a mano. Los mismos filtros del directorio (búsqueda, rubro, sin datos de pago)
+  // más el del ritmo; los activos sin compras van al final y no tienen ritmo, así que un filtro de ritmo los esconde.
+  const enRanking = verMontos && tipo === "mercaderia" && !!rendimiento;
+  const porId = useMemo(() => new Map(proveedores.map((p) => [p.id, p])), [proveedores]);
+  const ranking = useMemo(
+    () => (enRanking && rendimiento ? filasDelRanking(rendimiento, new Set(proveedores.filter((p) => p.activo && p.tipo === "mercaderia").map((p) => p.id)), hoy) : null),
+    [enRanking, rendimiento, proveedores, hoy],
+  );
+  // Con compras = en el ranking o el Taller (que va aparte en su propia línea): ninguno de los dos va a «Sin compras todavía».
+  const conCompras = new Set([...(ranking?.filas.map((f) => f.proveedorId) ?? []), ...(ranking?.taller ? [ranking.taller.proveedorId] : [])]);
+  const vencidoDe = (id: string) => (porId.get(id)?.saldo_vencido ?? 0) > 0;
+  const filasRanking = (ranking?.filas ?? []).filter((f) => {
+    const p = porId.get(f.proveedorId);
+    return !!p && coincide(p) && pasaFiltroRanking(f, filtroRitmo, vencidoDe(f.proveedorId));
+  });
+  const sinCompras = enRanking ? activos.filter((p) => p.tipo === "mercaderia" && !conCompras.has(p.id) && (!filtroRitmo || (filtroRitmo === "vencido" && vencidoDe(p.id)))) : [];
+  const conteoRitmo = contarPorRitmo(ranking?.filas ?? []);
+  // Con algo escrito, el directorio busca en los dos tipos; el ranking es de Mercadería, así que avisa si coincide alguno de Servicios.
+  const enServicios = enRanking && k ? proveedores.filter((p) => p.activo && p.tipo === "servicios" && clave(textoBuscableProveedor(p, marcasDe(p.id))).includes(k)).length : 0;
+  const refFila = useFlip((enRanking ? [...filasRanking.map((f) => f.proveedorId), ...sinCompras.map((p) => p.id)] : activos.map((p) => p.id)).join("|"));
 
-  // Lo que se recorre con ↑ ↓ en la vista rápida: las filas que se ven, activos primero.
-  const navegables = [...activos, ...desactivados];
+  // Lo que se recorre con ↑ ↓ en la vista rápida: las filas que se ven, activos primero (en el ranking, en su orden).
+  const navegables = enRanking ? [...filasRanking.map((f) => porId.get(f.proveedorId)).filter((p): p is Proveedor => !!p), ...sinCompras, ...desactivados] : [...activos, ...desactivados];
   const abierto = abiertoId ? (proveedores.find((p) => p.id === abiertoId) ?? null) : null;
   const indiceAbierto = abierto ? navegables.findIndex((p) => p.id === abierto.id) : -1;
 
@@ -194,6 +230,15 @@ export function ProveedoresPanel({
   }
 
   const Fila = verMontos ? FilaLider : FilaBase;
+  const filtrandoTodo = filtrando || (enRanking && !!filtroRitmo);
+  const nVisibles = enRanking ? filasRanking.length + sinCompras.length + desactivados.length : activos.length + desactivados.length;
+  const etiquetaFiltroRitmo = filtroRitmo === "vencido" ? "Con deuda vencida" : filtroRitmo ? RITMOS[filtroRitmo].palabra : "";
+  // Las píldoras del ritmo, con su cuenta; las que no tienen a nadie no se dibujan.
+  const opcionesRitmo: { c: FiltroRanking; texto: string; n: number; ayuda?: string }[] = [
+    { c: null, texto: "Todos", n: ranking?.filas.length ?? 0 },
+    ...(["rapido", "medio", "lento", "nomide"] as ClaseRitmo[]).map((c) => ({ c, texto: RITMOS[c].palabra, n: conteoRitmo[c], ayuda: RITMOS[c].ayuda })),
+    { c: "vencido" as const, texto: "Con deuda vencida", n: (ranking?.filas ?? []).filter((f) => vencidoDe(f.proveedorId)).length },
+  ].filter((o) => o.c === null || o.n > 0);
   const rubrosSugeridos = rubros.map((r) => r.etiqueta);
 
   return (
@@ -242,7 +287,7 @@ export function ProveedoresPanel({
             atajo
             placeholder={hayMarcas ? "Nombre, marca, RUC o contacto" : "Nombre, RUC o contacto"}
             etiqueta="Buscar proveedor"
-            conteo={filtrando ? `${activos.length + desactivados.length} de ${k ? proveedores.length : delTipo.length}` : undefined}
+            conteo={filtrandoTodo ? `${nVisibles} de ${k ? proveedores.length : delTipo.length}` : undefined}
             className="min-w-[14rem] flex-1"
           />
           {rubros.length > 0 && (
@@ -271,6 +316,17 @@ export function ProveedoresPanel({
         </div>
       )}
 
+      {hayProveedores && enRanking && ranking && ranking.filas.length > 0 && (
+        // El ritmo deja menos proveedores en la misma lista: la píldora de filtro del sistema (ADR-0358), con su cuenta.
+        <div role="group" aria-label="Filtrar por ritmo de venta" data-guia="proveedores.ritmo" className="anim-entra -mt-3 flex flex-wrap items-center gap-2" style={{ ["--i" as string]: 6 }}>
+          {opcionesRitmo.map((o) => (
+            <button key={o.c ?? "todos"} type="button" aria-pressed={filtroRitmo === o.c} title={o.ayuda} onClick={() => setFiltroRitmo(filtroRitmo === o.c ? null : o.c)} className="pildora-cayla">
+              {o.texto} <span className="pildora-cayla__n">{o.n}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {!hayProveedores ? (
         <div className="card-cayla">
           <Vacio
@@ -287,9 +343,9 @@ export function ProveedoresPanel({
             Un proveedor tiene que estar aquí antes de poder registrar su comprobante.
           </Vacio>
         </div>
-      ) : activos.length === 0 && desactivados.length === 0 ? (
+      ) : nVisibles === 0 ? (
         <div className="card-cayla">
-          {!filtrando ? (
+          {!filtrandoTodo ? (
             <Vacio
               icono={<Truck />}
               titulo={tipo === "servicios" ? "Todavía no hay proveedores de servicios" : "Todavía no hay proveedores de mercadería"}
@@ -332,6 +388,7 @@ export function ProveedoresPanel({
               filtros={[
                 ...(rubro ? [{ texto: rubros.find((r) => r.clave === rubro)?.etiqueta ?? "Rubro", onQuitar: () => setRubro(null) }] : []),
                 ...(filtrarSinPago ? [{ texto: "Sin datos de pago", onQuitar: () => setSoloSinPago(false) }] : []),
+                ...(enRanking && filtroRitmo ? [{ texto: etiquetaFiltroRitmo, onQuitar: () => setFiltroRitmo(null) }] : []),
               ]}
               acciones={
                 <Boton
@@ -339,6 +396,7 @@ export function ProveedoresPanel({
                   onClick={() => {
                     setRubro(null);
                     setSoloSinPago(false);
+                    setFiltroRitmo(null);
                   }}
                 >
                   Limpiar filtros
@@ -349,6 +407,58 @@ export function ProveedoresPanel({
             </Vacio>
           )}
         </div>
+      ) : enRanking && ranking ? (
+        <>
+          {filasRanking.length > 0 && (
+            <ProveedoresRanking
+              filas={filasRanking}
+              proveedores={porId}
+              maxCompradas={ranking.filas[0]?.unidadesCompradas ?? 1}
+              busqueda={busqueda}
+              verTodos={verTodos || !!k}
+              onVerTodos={setVerTodos}
+              onAbrir={setAbiertoId}
+              refFila={refFila}
+              taller={filtrandoTodo ? null : ranking.taller}
+            />
+          )}
+          {enServicios > 0 && (
+            <p className="text-sm text-tinta/75">
+              También {enServicios === 1 ? "hay 1 proveedor" : `hay ${enServicios} proveedores`} de Servicios con «{busqueda.trim()}».{" "}
+              <button type="button" className="btn-enlace" onClick={() => setTipo("servicios")}>
+                Ver en Servicios
+              </button>
+            </p>
+          )}
+          {sinCompras.length > 0 && (
+            // Los activos a los que todavía no se les compró nada: con las filas del directorio, porque lo que se sabe de ellos es eso.
+            <section className="anim-entra space-y-2" style={{ ["--i" as string]: 8 }}>
+              <TituloSeccion cuenta={sinCompras.length} dato="aún no hay prendas suyas en tus tiendas">
+                Sin compras todavía
+              </TituloSeccion>
+              <Tabla className="@container overflow-y-hidden">
+                {sinCompras.map((p, indice) => (
+                  <Fila
+                    key={p.id}
+                    p={p}
+                    indice={indice}
+                    busqueda={busqueda}
+                    marcas={marcasDe(p.id)}
+                    serie={series?.[p.id] ?? null}
+                    maxSaldo={maxSaldo}
+                    cambiando={cambiandoId === p.id}
+                    reciente={recientes.has(p.id)}
+                    enfoque={foco === null ? "neutro" : foco === p.id ? "foco" : "tenue"}
+                    refFila={refFila(p.id)}
+                    onAbrir={() => setAbiertoId(p.id)}
+                    onReactivar={() => onCambiarEstado(p)}
+                    abreFicha={puedeEditar}
+                  />
+                ))}
+              </Tabla>
+            </section>
+          )}
+        </>
       ) : activos.length === 0 ? null : (
         // `overflow-y-hidden`: mientras las filas se deslizan (FLIP) algunas pasan un instante fuera de la
         // tarjeta; sin esto, `overflow-x-auto` les da a las dos direcciones scroll y parpadea una barra vertical.

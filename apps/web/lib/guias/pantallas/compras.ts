@@ -581,16 +581,24 @@ export const GUIA_PROVEEDORES: Guia = {
       texto: "Los proveedores a los que les falta su cuenta, CCI o Yape. Tócalo para verlos y completa sus datos antes del próximo pago.",
     },
     {
+      id: "ritmo",
+      ancla: "proveedores.ritmo",
+      opcional: true,
+      preparar: [{ tipo: "vaciar", ancla: "proveedores.buscador" }],
+      titulo: "Por cómo se vende",
+      texto: "Repón: lo que le queda se acaba en 6 semanas o menos. A su ritmo: entre 6 y 16. Frena: tardaría 16 o más. Tócalo para ver solo a esos, o a los que tienen deuda vencida.",
+    },
+    {
       id: "lista",
       ancla: "proveedores.lista",
-      titulo: "Todos los proveedores",
-      texto: "Cada uno con lo facturado en el año, lo que se le debe, lo que te debe a ti y si tiene entregas atrasadas. Los títulos de arriba ordenan la lista.",
+      titulo: "A quién le compras más",
+      texto: "Del que más le compras al que menos. El anillo dice cuánto ya vendiste de lo que le compraste; la barra, cuánto le compraste (lo oscuro ya se vendió) y la insignia, en cuántas semanas se vende lo que queda y qué hacer.",
     },
     {
       id: "nombre",
       ancla: "proveedores.nombre",
       titulo: "Cada proveedor",
-      texto: "Su nombre, contacto y rubros. Al tocarlo se abre su vista rápida (te la abrimos en un momento).",
+      texto: "Su nombre y, debajo, lo que se le debe (en rojo si algo ya venció). Al tocarlo se abre su vista rápida (te la abrimos en un momento).",
     },
     {
       id: "saldo",
@@ -620,14 +628,6 @@ export const GUIA_PROVEEDORES: Guia = {
       opcional: true,
       titulo: "Lo que quizá no ves",
       texto: "Avisos que compara a tus proveedores entre sí: a quién frenar porque vende lento, a quién le queda poco margen, quién se agota pronto y a quién conviene volver a comprarle. «¿Por qué?» abre los números y la regla.",
-    },
-    {
-      id: "rendimiento",
-      ancla: "proveedores.rendimiento",
-      opcional: true,
-      preparar: [{ tipo: "escape" }],
-      titulo: "A quién le compro y qué me deja",
-      texto: "Cada proveedor con lo que gastaste, cuánto ya vendiste, su margen y la plata parada en prendas sin vender. La última columna lo resume en una palabra; pasa el mouse para ver por qué.",
     },
     {
       id: "fin",

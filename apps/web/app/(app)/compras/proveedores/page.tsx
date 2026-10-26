@@ -2,7 +2,6 @@ import { exigirModulo, puede } from "@/lib/persona-actual";
 import { usaModulo } from "@/lib/modulos";
 import { getMarcasPorProveedor, getProveedores, getProveedoresPrendas, getProveedoresRendimiento, getProveedoresResumen, getProveedoresSerie } from "@/lib/proveedores";
 import { ProveedoresPanel } from "@/components/ProveedoresPanel";
-import { ProveedoresRendimiento } from "@/components/ProveedoresRendimiento";
 import { LoQueQuizaNoVes } from "@/components/LoQueQuizaNoVes";
 import { hallazgosDeCartera } from "@/lib/proveedor-analisis-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -46,9 +45,9 @@ export default async function ProveedoresPage() {
 
   return (
     <div className="space-y-6">
-      <ProveedoresPanel proveedores={proveedores} verMontos={verMontos} puedeEditar={puedeEditar} resumen={resumen} series={series} marcas={marcas} />
+      {/* Mercadería es el ranking (dirección «C», Felipe 2026-10-26): reemplaza a la tabla «A quién le compro y qué me deja», que contaba lo mismo. */}
+      <ProveedoresPanel proveedores={proveedores} verMontos={verMontos} puedeEditar={puedeEditar} resumen={resumen} series={series} marcas={marcas} rendimiento={rendimiento} hoy={hoyLima()} />
       {prendas && <LoQueQuizaNoVes guia="proveedores.analisis" hallazgos={hallazgosDeCartera(prendas, hoyLima())} />}
-      {rendimiento && <ProveedoresRendimiento filas={rendimiento} />}
     </div>
   );
 }
