@@ -114,6 +114,7 @@ Cada tarea lleva su clase —**Urgente** (pierde algo cada día o vence pronto),
 - **Por qué en este puesto:** Navidad 2026 es la primera campaña completa en el ERP. La propuesta depende del día (cambian las ventas de 90 días): si hoy no se guarda, **no se puede reconstruir** después, y es el único dato que permite medir si el sistema acierta mejor que la persona.
 - **Cómo lo verificas tú:** arma Tops dos veces con distinto normal; la base muestra dos filas con lo propuesto, lo guardado, quién y cuándo; una prueba SQL cubre el doble clic.
 - **Esfuerzo / dependencias:** M · sin dependencias; base de #6.
+- **Estado (2026-10-26):** construida y probada en local con `/construir` (A2–A4, ADR-0520, migración `20261026171000`, 22 casos + concurrencia real con dos sesiones); **falta pegar la migración en producción (OK de Felipe)** y que algo lea el historial (#6).
 - **DECIDÍ:** historial append-only, una fila por guardado, con la propuesta en ese instante. **DESCARTÉ:** reconstruir la propuesta con las ventas de después: da otro número. Y descarté guardar solo `version`: ya existe y no dice qué había antes. **SE ROMPE SI:** el historial se escribe desde la web y no desde la RPC (dos pestañas guardan a la vez y falta una fila).
 
 ### #2 · [Corregir · **Urgente**] Cuadrar el stock de las 3 tiendas antes de fijar compras
@@ -121,12 +122,14 @@ Cada tarea lleva su clase —**Urgente** (pierde algo cada día o vence pronto),
 - **Por qué:** «Hay hoy» incompleto infla «Comprar»; el paso 2 y el presupuesto heredarían el error. Vence la fecha límite para pedir Navidad: **17 de noviembre**.
 - **Cómo lo verificas tú:** el aviso del `3` desaparece y el centro de avisos queda sin «stock sin cuadrar».
 - **Esfuerzo / dependencias:** S (de las tiendas) · antes de #9.
+- **Estado (2026-10-26):** el aviso ya dice hasta cuándo contarlo (A1: «Cuéntalo antes del 27/11: es el último día para pedir»). Cuadrar el stock sigue siendo trabajo de las tiendas.
 
 ### #3 · [Corregir · **Urgente**] Decir «en 26 días» y cuánto creerle a los números
 - **Dónde:** `FilaCategoria.tsx:79`, `FormularioCategoria.tsx:238,263,318,471`, `plan-compra-reglas.ts:744-752` (arreglar el fallback).
 - **Por qué:** hoy dice 90 con 26 días de datos. Sin esto, la gente cree que la propuesta tiene tres meses detrás. Con el mensaje chico y el rango (spike ③).
 - **Cómo lo verificas tú:** la fila de Polos dice «Vendiste 366 en los 26 días que lleva el ERP»; una prueba cubre `propuestaDeNormal` con menos de 90 días.
 - **Esfuerzo / dependencias:** S · ninguna.
+- **Estado (2026-10-26):** hecha (A5–A6): «Vendiste 3 en los 30 días que lleva el ERP» y una línea en la hoja con cuánto creerle a los números. **Corrección a lo que escribí arriba:** `propuestaDeNormal` solo corre con una base sin la propuesta de C4 (producción la tiene), así que la cuenta que mueve plata ya dividía por los días reales de cada tienda (`dias_90`); lo que decía «90 días» era el texto. Se corrigieron las dos cosas.
 
 ### #4 · [Mejorar · Importante] Centro de avisos compacto
 - **Dónde:** `PlanCampana.tsx:284,313-338,378-446`, `AvisoStock.tsx`, nuevo `CentroDeAvisos.tsx`; lógica pura `lib/plan-compra-avisos.ts` con su prueba (qué es urgente, qué cuenta).
@@ -239,3 +242,4 @@ Recomiendo el programa, pero **en orden**: #1–#3 ya, luego #4–#6 (sin tocar 
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
 | 2026-10-26 | completo | 6,8 | 7,2 | — (primer análisis de `/pantalla` sobre esta ruta; antes: `docs/pantallas/compras-plan-prompt-maestro.md`, 2026-10-13, con 12 hipótesis de las que se cerraron S1–S6, V1, V3, V5) |
+| 2026-10-26 (tarde) | construcción | — | — | #1 (en local), #2 (el aviso con fecha) y #3 hechas con `/construir`; ver `docs/backlog/2026-10-26-campaign-plan-audit-652032.md` |
