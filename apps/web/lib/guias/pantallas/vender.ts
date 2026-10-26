@@ -160,6 +160,14 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       texto: "Lo que el cliente se lleva. Cada prenda que agregas entra aquí; puedes cambiar la cantidad, quitarla o tocar su importe para darle un descuento solo a ella.",
     },
     {
+      id: "tickets",
+      ancla: "vender.tickets",
+      solo: "escritorio",
+      ...CAJA_ABIERTA,
+      titulo: "Varios clientes a la vez",
+      texto: "Cada cliente tiene su pestaña: la marcada está en la caja y las demás esperan, con su monto. «Nuevo cliente» deja este ticket como está y abre otro; toca una pestaña para volver a ella y su ✕ la descarta. Toca el nombre del ticket para cambiarlo. En la demo no abrimos ninguna.",
+    },
+    {
       id: "cliente",
       ancla: "vender.cliente",
       opcional: true,

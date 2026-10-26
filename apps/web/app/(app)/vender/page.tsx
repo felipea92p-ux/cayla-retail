@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { accesosVisibles } from "@/lib/vender-accesos";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
 import { leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { getCajaAbierta, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -64,7 +64,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
   const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas] = await Promise.all([
-    getCatalogo(),
+    // Lo que se puede vender AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima, y en Lima con su insignia.
+    getCatalogoDeLaSede(persona.ubicacionId),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
     getUbicaciones(),
@@ -154,6 +155,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       categoriaFamilia: v.categoriaFamilia ?? null,
       fueraDeMotores: v.categoriaFamilia ? familiasFueraDeMotores.has(v.categoriaFamilia) : false,
       marca: v.marca,
+      empresa: v.empresa ?? null,
       precio: preciosDeEstaSede.get(v.varianteId) ?? v.precio,
       precioDeSede: preciosDeEstaSede.has(v.varianteId),
       campana: campanaPorVariante.get(v.varianteId) ?? null,

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
 import { alcanceDeRespuesta, arranqueDeRespuesta, type AlcanceConteo, type ArranqueConteo } from "@/lib/conteo-inicio-reglas";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogo, getCatalogoDeLaSede } from "@/lib/catalogo-v2";
 import { codigosDeConteo, conteoResumenDesdeFila, detalleDesdeJson, type ConteoResumen, type DetalleConteo, type PrendaConteo } from "@/lib/conteo-reglas";
 
 // Lecturas del Conteo rediseñado (2026-09-29). Este archivo solo LEE, y por funciones de la base (con UNA excepción, la última de la lista):
@@ -108,10 +108,14 @@ export async function getArranqueConteo(ubicacionId: string): Promise<ArranqueCo
  * `categoriaId` sale de `categorias` cruzando por nombre —`VarianteCatalogo` solo trae el nombre, y el nombre es único
  * (`categorias_nombre_clave_unica`)—. Es una ayuda para avisar «no pertenece al conteo» antes de guardar: si falla, va
  * `null` y la base igual rechaza la prenda fuera de alcance (hint `fuera_de_alcance`), que la pantalla ya sabe leer.
+ *
+ * Con `sedeId` (contar, cuadrar), sin las prendas de una empresa que no opera en esa sede (ADR-0505): una prenda de CLAURE escaneada
+ * en Trujillo no se reconoce, en vez de entrar al conteo y hacer fallar su cierre entero (la base no la deja entrar allí). Sin
+ * `sedeId` (revisar o confirmar lo ya contado), el catálogo entero: solo se buscan nombres de lo que ya está en el conteo.
  */
-export async function getCatalogoConteo(): Promise<PrendaConteo[]> {
+export async function getCatalogoConteo(sedeId?: string): Promise<PrendaConteo[]> {
   const supabase = await createClient();
-  const [catalogo, categorias] = await Promise.all([getCatalogo(), supabase.from("categorias").select("id, nombre")]);
+  const [catalogo, categorias] = await Promise.all([sedeId ? getCatalogoDeLaSede(sedeId) : getCatalogo(), supabase.from("categorias").select("id, nombre")]);
   const { datos, fallo } = tolerar(categorias, "las categorías del conteo");
   if (fallo) console.error(fallo);
   const idPorNombre = new Map((datos ?? []).map((c) => [c.nombre, c.id]));

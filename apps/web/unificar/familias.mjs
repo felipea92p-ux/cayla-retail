@@ -1079,9 +1079,7 @@ export const DECISIONES = {
       "\\btituloGrande\\b"
     ],
     "deuda": [],
-    "excepciones": [
-      { "archivo": "components/NuevaOrdenProduccionForm.tsx", "motivo": "Nueva orden de producción es de diseño propio (la matriz y la barra de la ficha): conserva su ancho" }
-    ]
+    "excepciones": []
   },
   "grafico.barra": {
     "fecha": "2026-10-09",

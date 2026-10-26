@@ -1104,7 +1104,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     suma el chip «Nos debe» con `fn_ordenes_insumo_nos_debe` (lo anotado como «no llegará» × su costo).
 
 **Ventas / caja**
-- `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +
+- `/vender` → `lib/catalogo-v2.ts:getCatalogoDeLaSede` (el catálogo sin las prendas de una empresa que no opera en la sede —CLAURE
+  fuera de Lima— y con su insignia en Lima, `lib/empresas-de-sede-reglas.ts`, ADR-0505; lo mismo leen Apartados, Cambios, Buscar,
+  Recibir, Existencias, Contar y Cuadrar) + `lib/caja.ts:getCajaAbierta` +
   `stock` de todas las sedes que RLS deje ver (`lib/stock-por-sede.ts`: aquí + dónde más
   hay; la RPC `fn_stock_por_sede` para colaboradoras está escrita y sin aplicar; «Ventas
   de hoy» firma cada venta con la integrante vía `lib/nombre-integrante.ts`) →
@@ -1207,7 +1209,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `ComprasAgrupadas.tsx` (lista por día y compra) y `FlujoGuiado.tsx` (pasos, botones,
   validaciones, foco/Escape). Reglas puras compartidas —plazo R-38, `unidadesDisponibles`
   (descuenta lo cambiado y lo devuelto), validaciones— en `lib/cambios-reglas.ts`.
-- `/cambios` → `getVentasRecientes` + `getCatalogo` + stock del piso + `fn_stock_por_sede` +
+- `/cambios` → `getVentasRecientes` + `getCatalogoDeLaSede` + stock del piso + `fn_stock_por_sede` +
   `getCajaAbierta` + `lib/cambios-estadisticas.ts` (hoy / mes / valor cambiado; "tallas que no
   calzan" solo para líderes) → `CambiosPanel.tsx` (bloques "Iniciar un cambio" y "Actividad
   reciente", filas en `CambiosVentas.tsx`) → `CambiosFlujo.tsx` (Venta → Prenda → Reemplazo →
@@ -1458,9 +1460,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
-- **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en seis entradas: Plan de campaña, `/compras/mi-plata`
-  («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), `/compras/fondos` («Revisar
-  compras», módulo `fondos`), Proveedores, Facturas de proveedor y Por pagar. `/compras/ordenes` sigue en el código sin entrada en el menú.
+- **Historial de compras = una fila, tres pestañas (ADR-0504, 2026-10-24):** `/compras` (Historial), `/compras/fondos` (Revisar compras) y
+  `/compras/por-pagar` (Por pagar) comparten la cabecera `components/compras/CabeceraHistorialCompras.tsx` (qué pestañas trae la cuenta y sus
+  contadores; dibuja `CabeceraDeCompras.tsx`) → `lib/compras-pestanas-reglas.ts` (puro) + `lib/compras-pestanas.ts` (conteos: `fn_revisar_compras`,
+  `fn_plata_por_confirmar`, `resumen_compras`). El menú tiene UNA fila (`compras.comprobantes`, `modulo: facturas_compra` + `modulosAlternos`
+  `fondos` y `por_pagar`, sin `exige`); cada pantalla sigue pidiendo su módulo y `/compras` manda a quien no ve el Historial a su primera pestaña.
+- **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en cuatro entradas (ADR-0504; eran seis): Plan de campaña,
+  `/compras/mi-plata` («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), Proveedores e Historial
+  de compras (con `/compras/fondos`, «Revisar compras», módulo `fondos`, y Por pagar como pestañas). `/compras/ordenes` sigue en el código sin entrada en el menú.
   Actividad 2: `/compras/mi-plata` → `lib/mi-plata.ts` (`fn_mi_plata_compras`) + `lib/mi-plata-reglas.ts` (puro: lectura, cifras, qué falta,
   la cuenta sugerida) + `components/mi-plata/AnotarPlata.tsx` (`anotar_plata_compras`, la foto al depósito `retail-gastos-viaje/plata/`);
   `/compras/fondos` suma `getPlataPorConfirmar` (`fn_plata_por_confirmar`, vouchers firmados) + `components/mi-plata/PlataPorConfirmar.tsx`
@@ -1904,7 +1911,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
-  - `/finanzas/resumen` → el tablero que junta lo anterior (F10).
+  - `/finanzas/resumen` → el tablero que junta lo anterior (F10). Desde El telar (2026-10-23, ADR-0493) lee, además de
+    `fn_resumen_finanzas` (los avisos de hoy) y `fn_finanzas_confianza` (del mes elegido), `fn_estado_resultados` del mes de la barra
+    y del tramo con que se compara (`lib/resultados.ts`), y `fn_rendimiento_serie` por tienda si la cuenta ve Rendimiento
+    (`lib/resumen-telar.ts`). Lo dibujan `lib/resumen-telar-reglas.ts` (la respuesta, el orillo y la línea de ventas contra la
+    meta) y `lib/recorrido-plata-reglas.ts` → `components/finanzas/RecorridoPlata.tsx` (el recorrido de la plata).
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
     Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
   - `/tienda-web/ajustes` (ADR-0408, actividad 6; fue la pestaña `/configuracion?tab=tienda-web` hasta ADR-0430; módulo `ajustes_web` «Datos y plazos de la tienda web» desde 20261016223000, antes `configuracion`) → `lib/configuracion.ts`
