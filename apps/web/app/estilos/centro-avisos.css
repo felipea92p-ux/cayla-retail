@@ -59,7 +59,8 @@
   font-size: 11.5px;
   font-weight: 700;
   background: var(--color-ambar);
-  color: var(--color-crema-fija);
+  /* La letra se invierte junto con el relleno (ámbar oscuro con letra crema en claro; ámbar claro con letra oscura en oscuro): con `crema-fija` pasaba 1,6:1 en oscuro. */
+  color: var(--color-crema);
 }
 .ca-boton[data-urgente] .ca-n {
   background: var(--color-rojo);

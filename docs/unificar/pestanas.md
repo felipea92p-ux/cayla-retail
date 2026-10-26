@@ -35,8 +35,10 @@ mismos conteos —«Se está acabando» en rojo si hay prendas—, el chip de co
    máscara. Solo existe mientras la fila se desliza (nunca en escritorio, donde cabe entera). No cambia qué hace ninguna pestaña.
 
 4. **2026-10-26, la marca «nuevo».** La maqueta del Presupuesto del Plan (spike ④, Felipe la eligió mirando) pone una palabra «nuevo» en pizarra pegada al nombre de una pestaña recién llegada.
-   Es una variante de la píldora de conteo, no una pieza nueva: `<Pestanas>` acepta `conteo: "nuevo"` con `tono: "nuevo"` (pizarra con letra crema fija; sobre la píldora oscura, al revés). Quien monta
+   Es una variante de la píldora de conteo, no una pieza nueva: `<Pestanas>` acepta `conteo: "nuevo"` con `tono: "nuevo"` (pizarra con letra crema; sobre la píldora oscura, al revés). Quien monta
    las pestañas decide hasta cuándo sale (`PestanasPlan`: hasta el 2026-12-31): una marca de «nuevo» que no caduca es ruido.
+   **Corrección del mismo día:** la letra era `crema-fija` y en oscuro, donde la pizarra se aclara, pasaba 1,8:1; ahora es `--color-crema`, que se invierte junto con el relleno (la regla del oscuro: el relleno y su
+   letra se invierten juntos; un color «fijo» es para el dato, no para un relleno del sistema). Lo mismo se corrigió en el «1» ámbar de la campana de avisos del Plan.
 
 ## Qué es cada pieza
 

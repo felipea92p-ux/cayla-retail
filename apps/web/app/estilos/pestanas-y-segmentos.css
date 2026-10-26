@@ -158,10 +158,11 @@
     background: color-mix(in srgb, var(--color-rojo) 15%, transparent);
     color: var(--color-rojo-profundo);
   }
-  /* «nuevo»: una vista recién llegada. Pizarra con letra crema fija (el color de dato no se invierte); sobre la píldora oscura, al revés. */
+  /* «nuevo»: una vista recién llegada. Pizarra con letra crema: el relleno y la letra se invierten juntos con el tema (pizarra oscura con letra clara en claro;
+     pizarra clara con letra oscura en oscuro, donde `crema-fija` pasaba 1,8:1); sobre la píldora oscura, al revés. */
   .pestana-cayla__cuenta[data-tono="nuevo"] {
     background: var(--color-pizarra);
-    color: var(--color-crema-fija);
+    color: var(--color-crema);
     padding: 0 7px;
     font-size: 10px;
     font-weight: 700;
