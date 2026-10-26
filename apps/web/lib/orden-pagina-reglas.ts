@@ -33,6 +33,7 @@ export const RPC_ANULAR_VUELTA = "anular_vuelta";
 export const RPC_CERRAR_PRODUCCION = "cerrar_produccion";
 export const RPC_ANULAR_PRODUCCION = "anular_produccion";
 export const RPC_REVERTIR_PRODUCCION = "revertir_produccion";
+export const RPC_GUARDAR_INSUMOS_ORDEN = "guardar_insumos_orden";
 
 /** Días sin que nadie anote nada para que la orden pida atención (ADR-0400, «Pantallas» punto 1). */
 export const DIAS_SIN_MOVERSE = 4;

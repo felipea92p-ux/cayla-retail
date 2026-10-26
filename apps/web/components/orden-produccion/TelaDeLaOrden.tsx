@@ -63,6 +63,15 @@ export type PropsTelaDeLaOrden = {
   puedeCorregirConsumo: boolean;
   fijarConsumo: boolean;
   onFijarConsumo: (v: boolean) => void;
+  /** Editar una orden que ya está abierta (ADR-0510): lo que cambia respecto a Nueva orden. Sin esto, el bloque es el de siempre. */
+  edicion?: {
+    /** Lo ya usado en la orden, por tela: con consumo anotado el «Alcanza» no se dice aquí (el estante ya bajó) y se muestra cuánto se usó. */
+    usado: ReadonlyMap<string, number>;
+    /** Una fila de color puede quedarse sin tela (la tela de un color mal elegido se quita con la ×). */
+    puedeQuitarTela: boolean;
+  };
+  /** El nombre del bloque; en la hoja de edición no es el de «Nueva orden». */
+  titulo?: string;
 };
 
 /** «44 m», «12 unid.»: la unidad corta del catálogo de Insumos; una unidad que el catálogo no conoce sale tal cual. */
@@ -78,7 +87,7 @@ const porPrenda = (n: number, unidad: string) => `${n.toLocaleString("es-PE", { 
 const SIN_CAMINO = new Map<string, number>();
 const FILA_VACIA = (colorCodigo: string | null): TelaBorrador => ({ insumoId: null, colorCodigo, consumoPorPrenda: "" });
 
-export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre, colores, comprometido, enCamino = SIN_CAMINO, consumoDeclarado, conCostos, costoPorMetro, guia, problemas, ofertaConsumo, puedeCorregirConsumo, fijarConsumo, onFijarConsumo }: PropsTelaDeLaOrden) {
+export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre, colores, comprometido, enCamino = SIN_CAMINO, consumoDeclarado, conCostos, costoPorMetro, guia, problemas, ofertaConsumo, puedeCorregirConsumo, fijarConsumo, onFijarConsumo, edicion, titulo = "Tela de la orden" }: PropsTelaDeLaOrden) {
   const porId = new Map(insumos.map((i) => [i.id, i] as const));
   const esAvio = (t: TelaBorrador) => (t.insumoId ? porId.get(t.insumoId)?.tipo === "avio" : false);
 
@@ -161,10 +170,10 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
   }
 
   return (
-    <section aria-label="Tela de la orden" data-guia="prod-orden-nueva.tela">
+    <section aria-label={titulo} data-guia="prod-orden-nueva.tela">
       <CampoGuiado id="tela" guia={guia} retiene="fila" className="space-y-2">
         <span className={`${campoEtiqueta} block`}>
-          {guia.etiqueta("tela", "Tela de la orden")} <span className="font-normal normal-case text-tinta/45">· opcional</span>
+          {guia.etiqueta("tela", titulo)} {!edicion && <span className="font-normal normal-case text-tinta/45">· opcional</span>}
         </span>
 
         {!algunaElegida && telasDelEstante.length > 0 && (
@@ -185,7 +194,8 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
           {porColor.map((fila) => {
             const insumo = fila.tela.insumoId ? porId.get(fila.tela.insumoId) : undefined;
             const plan = fila.indice !== null ? (planPorIndice.get(fila.indice) ?? 0) : 0;
-            const veredicto = insumo && plan > 0 ? veredictoTela(plan, insumo.saldo, comprometidoDe(insumo.id, fila.indice), enCamino.get(insumo.id) ?? 0) : null;
+            const usado = insumo ? (edicion?.usado.get(insumo.id) ?? 0) : 0;
+            const veredicto = insumo && plan > 0 && usado === 0 ? veredictoTela(plan, insumo.saldo, comprometidoDe(insumo.id, fila.indice), enCamino.get(insumo.id) ?? 0) : null;
             const costo = conCostos && insumo && plan > 0 ? costoPorMetro.get(insumo.id) : undefined;
             const pies = piesDe(problemasDe(fila.indice), fila.tela);
             const opciones = opcionesTela(fila);
@@ -203,8 +213,9 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                     </div>
                   </div>
                   {insumo && plan > 0 && veredicto && <Derivado plan={plan} unidad={insumo.unidad} veredicto={veredicto} costo={costo !== undefined ? plan * costo : null} />}
+                  {insumo && plan > 0 && usado > 0 && <YaUsado plan={plan} usado={usado} unidad={insumo.unidad} />}
                 </div>
-                <div className="grid grid-cols-[minmax(0,1fr)_8.5rem] gap-x-3 gap-y-1">
+                <div className={edicion?.puedeQuitarTela ? "grid grid-cols-[minmax(0,1fr)_8.5rem_auto] gap-x-3 gap-y-1" : "grid grid-cols-[minmax(0,1fr)_8.5rem] gap-x-3 gap-y-1"}>
                   <CampoSelect
                     id={`tela-${fila.color.codigo ?? "sin-color"}`}
                     etiqueta="Tela"
@@ -225,6 +236,11 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                     onChange={(e) => ponerColor(fila, { consumoPorPrenda: e.target.value })}
                     {...(pies.consumo.pie ? pies.consumo : { pie: pieDelConsumo(consumoDeclarado), tono: "neutro" as const })}
                   />
+                  {edicion?.puedeQuitarTela && (
+                    <div className="w-6 pt-[1.625rem]">
+                      {fila.tela.insumoId && <QuitarColor nombre={insumo?.nombre ?? "esta tela"} onQuitar={() => ponerColor(fila, { insumoId: null, consumoPorPrenda: "" })} />}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -260,7 +276,8 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
               {avios.map(({ tela, indice }) => {
                 const insumo = tela.insumoId ? porId.get(tela.insumoId) : undefined;
                 const plan = planPorIndice.get(indice) ?? 0;
-                const veredicto = insumo && plan > 0 ? veredictoTela(plan, insumo.saldo, comprometidoDe(insumo.id, indice), enCamino.get(insumo.id) ?? 0) : null;
+                const usado = insumo ? (edicion?.usado.get(insumo.id) ?? 0) : 0;
+                const veredicto = insumo && plan > 0 && usado === 0 ? veredictoTela(plan, insumo.saldo, comprometidoDe(insumo.id, indice), enCamino.get(insumo.id) ?? 0) : null;
                 const costo = conCostos && insumo && plan > 0 ? costoPorMetro.get(insumo.id) : undefined;
                 const pies = piesDe(problemasDe(indice), tela);
                 const opciones = opcionesAvio(tela);
@@ -292,6 +309,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                       </div>
                     </div>
                     {insumo && plan > 0 && veredicto && <Derivado plan={plan} unidad={insumo.unidad} veredicto={veredicto} costo={costo !== undefined ? plan * costo : null} />}
+                    {insumo && plan > 0 && usado > 0 && <YaUsado plan={plan} usado={usado} unidad={insumo.unidad} />}
                   </div>
                 );
               })}
@@ -308,6 +326,15 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
         </div>
       </CampoGuiado>
     </section>
+  );
+}
+
+/** «Plan 37.8 m · ya se usaron 10 m»: lo de una tela con consumo anotado. No se dice «Alcanza» aquí: el estante ya bajó con lo usado, y la sección Tela de la orden lo dice con la cuenta de lo que falta. */
+function YaUsado({ plan, usado, unidad }: { plan: number; usado: number; unidad: string }) {
+  return (
+    <p className="text-[13px] tabular-nums text-taupe">
+      Plan {cantidad(plan, unidad)} · ya {usado === 1 ? "se usó" : "se usaron"} {cantidad(usado, unidad)}
+    </p>
   );
 }
 

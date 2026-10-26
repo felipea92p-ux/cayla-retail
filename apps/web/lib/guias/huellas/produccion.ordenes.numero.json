@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 100,
+  "total": 111,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -95,6 +95,11 @@
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
+    "components/orden-pagina/EditarTelaModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
     "components/orden-pagina/LineaDeTiempo.tsx": [
       "Boton «{primeraAnulable === e ? \"prod-orden.anular\" : undefined}»",
       "BotonDeshacer «→() => setDeshaciendo(e)»"
@@ -127,6 +132,8 @@
       "button «{fase.id === idDeLaQueCambia ? \"prod-orden.cambiar-quien\" : undefined}»"
     ],
     "components/orden-pagina/TelaDeLaOrdenVista.tsx": [
+      "BotonEditar «Editar»",
+      "Boton «prod-orden.editar-tela»",
       "BotonEnlace «{i === 0 ? \"prod-orden.pedir-tela\" : undefined}»",
       "Boton «prod-orden.anotar-tela»",
       "Boton «prod-orden.devolver-tela»"
@@ -155,6 +162,14 @@
       "CampoFecha «Prometido para» #2",
       "CampoMonto «Fijo por orden»",
       "button «+ fijo por orden (ponchado, matriz)»"
+    ],
+    "components/orden-produccion/TelaDeLaOrden.tsx": [
+      "CampoSelect «Tela»",
+      "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"m\"}»",
+      "Casilla «Dejar este consumo como el del modelo»",
+      "CampoSelect «Avío»",
+      "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"unid.\"}»",
+      "Boton «+ Agregar avío»"
     ]
   }
 }
