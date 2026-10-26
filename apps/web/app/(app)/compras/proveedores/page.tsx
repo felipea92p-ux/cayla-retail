@@ -1,6 +1,7 @@
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { usaModulo } from "@/lib/modulos";
-import { getMarcasPorProveedor, getProveedores, getProveedoresPrendas, getProveedoresRendimiento, getProveedoresResumen, getProveedoresSerie } from "@/lib/proveedores";
+import { getMarcasPorProveedor, getProveedores, getProveedoresPrendas, getProveedoresRendimiento, getProveedoresResumen, getProveedoresSerie, getProveedoresVentasDiarias } from "@/lib/proveedores";
+import { seriesDeVentas } from "@/lib/proveedores-ranking-reglas";
 import { ProveedoresPanel } from "@/components/ProveedoresPanel";
 import { LoQueQuizaNoVes } from "@/components/LoQueQuizaNoVes";
 import { hallazgosDeCartera } from "@/lib/proveedor-analisis-reglas";
@@ -33,7 +34,7 @@ export default async function ProveedoresPage() {
   const persona = await exigirModulo("proveedores");
   const verMontos = puede(persona, "verDineroCompras") || usaModulo(persona.rol, persona.modulos, "proveedores");
   const puedeEditar = puede(persona, "editarCuentasProveedor");
-  const [proveedores, resumen, series, marcas, rendimiento, prendas] = await Promise.all([
+  const [proveedores, resumen, series, marcas, rendimiento, prendas, ventasDiarias] = await Promise.all([
     getProveedores(),
     verMontos ? getProveedoresResumen() : null,
     verMontos ? getProveedoresSerie() : null,
@@ -41,14 +42,17 @@ export default async function ProveedoresPage() {
     // Qué le deja cada proveedor (2026-10-24): plata, así que con la misma llave que las cifras. Opcional: si la base no tiene la función, la lista sale como antes.
     verMontos ? getProveedoresRendimiento().catch(() => null) : null,
     verMontos ? getProveedoresPrendas().catch(() => null) : null,
+    // La línea de ventas de cada fila del ranking (ADR-0521): opcional como el rendimiento; sin la función en la base, las filas van sin línea.
+    verMontos ? getProveedoresVentasDiarias().catch(() => null) : null,
   ]);
 
   const hallazgos = prendas ? hallazgosDeCartera(prendas, hoyLima()) : null;
+  const ventas = ventasDiarias ? seriesDeVentas(ventasDiarias, hoyLima()) : null;
   return (
     <div className="space-y-6">
       {/* Mercadería es el ranking (dirección «C», Felipe 2026-10-26): reemplaza a la tabla «A quién le compro y qué me deja», que contaba lo mismo. */}
       {/* Con el ranking, los avisos van a su columna derecha; sin él (la base todavía sin el rendimiento), debajo como antes. */}
-      <ProveedoresPanel proveedores={proveedores} verMontos={verMontos} puedeEditar={puedeEditar} resumen={resumen} series={series} marcas={marcas} rendimiento={rendimiento} hoy={hoyLima()} hallazgos={hallazgos} />
+      <ProveedoresPanel proveedores={proveedores} verMontos={verMontos} puedeEditar={puedeEditar} resumen={resumen} series={series} marcas={marcas} rendimiento={rendimiento} hoy={hoyLima()} hallazgos={hallazgos} ventas={ventas} />
       {hallazgos && !rendimiento && <LoQueQuizaNoVes guia="proveedores.analisis" hallazgos={hallazgos} />}
     </div>
   );

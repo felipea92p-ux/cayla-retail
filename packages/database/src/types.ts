@@ -8108,6 +8108,14 @@ export type Database = {
           proveedor_id: string
         }[]
       }
+      fn_proveedores_ventas_diarias: {
+        Args: { p_dias?: number }
+        Returns: {
+          dia: string
+          proveedor_id: string
+          vendidas: number
+        }[]
+      }
       fn_puede_operar_ubicacion: {
         Args: { p_ubicacion_id: string }
         Returns: boolean

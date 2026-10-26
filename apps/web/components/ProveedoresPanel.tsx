@@ -102,6 +102,7 @@ export function ProveedoresPanel({
   rendimiento = null,
   hoy,
   hallazgos = null,
+  ventas = null,
 }: {
   proveedores: Proveedor[];
   verMontos: boolean;
@@ -118,6 +119,8 @@ export function ProveedoresPanel({
   hoy: string;
   /** Los avisos de compra de toda la cartera (`hallazgosDeCartera`): en el ranking van a la columna derecha. */
   hallazgos?: Hallazgo[] | null;
+  /** Lo vendido por día en los últimos 28 días de cada proveedor (`seriesDeVentas`); `null` si la base no lo tiene → filas sin línea. */
+  ventas?: Record<string, number[]> | null;
 }) {
   const router = useRouter();
   const [borrador, setBorrador] = useState<Borrador | null>(null);
@@ -450,6 +453,7 @@ export function ProveedoresPanel({
               maxValor={Math.max(1, ...ranking.filas.map((f) => valorDe(f, medida)))}
               medida={medida}
               antes={puestosAntes}
+              ventas={ventas}
               busqueda={busqueda}
               verTodos={verTodos || !!k}
               onVerTodos={setVerTodos}

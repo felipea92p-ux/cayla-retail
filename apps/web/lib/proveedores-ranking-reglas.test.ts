@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cambioDePuesto, claseDeRitmo, concentracion, paraHoy, contarPorRitmo, esAproximado, filasDelRanking, pasaFiltroRanking, semanasCortas, textoRitmo, totalesDelRanking, valorDe } from "./proveedores-ranking-reglas";
+import { cambioDePuesto, claseDeRitmo, concentracion, paraHoy, semanaDeVentas, seriesDeVentas, contarPorRitmo, esAproximado, filasDelRanking, pasaFiltroRanking, semanasCortas, textoRitmo, totalesDelRanking, valorDe } from "./proveedores-ranking-reglas";
 import { ritmoDeDatos } from "./proveedor-ritmo-reglas";
 import type { RendimientoProveedor } from "./proveedor-prendas-reglas";
 
@@ -115,5 +115,30 @@ describe("el ranking de la lista de Proveedores", () => {
     expect(concentracion(filas, "prendas", 2)).toBe(75);
     expect(Math.round(concentracion(filas, "soles", 1))).toBe(73);
     expect(concentracion([], "prendas")).toBe(0);
+  });
+
+  it("las ventas por día: 28 valores del más viejo a hoy, con cero los días sin ventas", () => {
+    const filas = [
+      { proveedor_id: "deyner", dia: HOY, vendidas: 5 },
+      { proveedor_id: "deyner", dia: antes(1), vendidas: 3 },
+      { proveedor_id: "deyner", dia: antes(27), vendidas: 2 },
+      { proveedor_id: "deyner", dia: antes(28), vendidas: 9 }, // fuera de la ventana
+      { proveedor_id: "lasak", dia: antes(10), vendidas: 1 },
+    ];
+    const s = seriesDeVentas(filas, HOY);
+    expect(s.deyner).toHaveLength(28);
+    expect(s.deyner[27]).toBe(5);
+    expect(s.deyner[26]).toBe(3);
+    expect(s.deyner[0]).toBe(2);
+    expect(s.deyner.reduce((a, v) => a + v, 0)).toBe(10);
+    expect(s.lasak[17]).toBe(1);
+    expect(s.kero).toBeUndefined();
+  });
+
+  it("esta semana contra la anterior", () => {
+    const serie = [...Array(14).fill(0), 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2];
+    expect(semanaDeVentas(serie)).toEqual({ estaSemana: 14, anterior: 7, tendencia: "sube" });
+    expect(semanaDeVentas([...serie].reverse()).tendencia).toBe("igual");
+    expect(semanaDeVentas([0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0]).tendencia).toBe("baja");
   });
 });

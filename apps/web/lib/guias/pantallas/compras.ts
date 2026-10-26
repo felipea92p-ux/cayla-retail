@@ -600,7 +600,7 @@ export const GUIA_PROVEEDORES: Guia = {
       id: "lista",
       ancla: "proveedores.lista",
       titulo: "A quién le compras más",
-      texto: "Del que más le compras al que menos. El anillo dice cuánto ya vendiste de lo que le compraste; la barra, cuánto le compraste (lo oscuro ya se vendió) y la insignia, en cuántas semanas se vende lo que queda y qué hacer.",
+      texto: "Del que más le compras al que menos. La línea dice cómo se vendió día a día y cuánto esta semana; el anillo, cuánto ya vendiste de lo que le compraste; la barra, cuánto le compraste (lo oscuro ya se vendió) y la insignia, en cuántas semanas se vende lo que queda.",
     },
     {
       id: "nombre",

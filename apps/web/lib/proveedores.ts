@@ -427,6 +427,14 @@ export async function getProveedorPrendas(id: string): Promise<PrendaDeProveedor
 }
 
 // El ranking de la lista (fn_proveedores_rendimiento): lo comprado, lo vendido y lo parado de cada proveedor al que se le compró algo.
+// Las ventas por día de cada proveedor (fn_proveedores_ventas_diarias, 20261026172000, ADR-0521): la línea chica de cada fila del ranking. Solo
+// los días con ventas; la web rellena el resto con cero (`seriesDeVentas`). Misma llave que el rendimiento.
+export async function getProveedoresVentasDiarias(dias = 28): Promise<{ proveedor_id: string; dia: string; vendidas: number }[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedores_ventas_diarias", { p_dias: dias }), "las ventas por día de los proveedores");
+  return filas.map((f) => ({ proveedor_id: f.proveedor_id, dia: f.dia, vendidas: Number(f.vendidas) }));
+}
+
 export async function getProveedoresRendimiento(): Promise<RendimientoProveedor[]> {
   const supabase = await createClient();
   const filas = exigir(await supabase.rpc("fn_proveedores_rendimiento"), "el rendimiento de los proveedores");

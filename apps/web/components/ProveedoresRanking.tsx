@@ -5,12 +5,13 @@ import { ArrowDown, ArrowUp, Banknote, Check, ChevronRight, Shirt } from "lucide
 import type { Proveedor } from "@/lib/proveedores";
 import { soles } from "@/lib/compras-reglas";
 import { solesRedondo } from "@/lib/gastos-reglas";
-import { RITMOS, FILAS_A_LA_VISTA, cambioDePuesto, esAproximado, textoRitmo, type FilaRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
+import { RITMOS, DIAS_DE_VENTAS, FILAS_A_LA_VISTA, cambioDePuesto, esAproximado, semanaDeVentas, textoRitmo, type FilaRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
 import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { Tabla, Encabezado, fila, celda, type Columna } from "@/components/ui/Tabla";
 import { Anillo } from "@/components/ui/Anillo";
 import { BarraApilada } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
+import { Sparkline } from "@/components/ui/Sparkline";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 
@@ -25,15 +26,19 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 // Columnas según el ANCHO DE LA TABLA (`@container`), como el directorio: angosta, puesto · proveedor · insignia y la barra debajo; desde 42 rem,
 // todo en una línea (con la columna derecha al lado, la lista mide ~44 rem en una pantalla de 1440).
 const PLANTILLA =
-  "grid-cols-[1.75rem_minmax(0,1fr)_auto] @2xl:grid-cols-[2rem_minmax(9rem,1.2fr)_2.75rem_minmax(9rem,1.4fr)_9.75rem_1rem]";
+  "grid-cols-[1.75rem_minmax(0,1fr)_auto] @2xl:grid-cols-[2rem_minmax(9.5rem,1.6fr)_5.75rem_2.75rem_minmax(6.5rem,1fr)_9.5rem_1rem]";
 const columnas = (medida: MedidaRanking): Columna[] => [
   { titulo: "#", alinear: "der" },
   { titulo: "Proveedor" },
+  { titulo: "Ventas", subtitulo: "por día, 4 semanas" },
   { titulo: "Vendido" },
   { titulo: medida === "soles" ? "Le compraste · dinero" : "Le compraste · prendas", subtitulo: "lo oscuro ya se vendió" },
   { titulo: "Lo que queda se vende en" },
   { titulo: "" },
 ];
+
+// Un proveedor sin ventas en las 4 semanas no viene en la lectura: su serie es todo cero (la fila dice «0 esta semana»).
+const SIN_VENTAS: number[] = Array.from({ length: DIAS_DE_VENTAS }, () => 0);
 
 // Las dos medidas, cada una con su ícono (Felipe 2026-10-26): el polo para las prendas, el billete para el dinero. El mismo ícono va junto a cada
 // cifra del ranking para que nunca se confunda una medida con la otra.
@@ -85,6 +90,7 @@ export function ProveedoresRanking({
   maxValor,
   medida,
   antes,
+  ventas,
   busqueda,
   verTodos,
   onVerTodos,
@@ -100,6 +106,8 @@ export function ProveedoresRanking({
   medida: MedidaRanking;
   /** Los puestos de antes de cambiar de medida: cada fila dice cuántos subió o bajó. `null` mientras no se cambie. */
   antes: ReadonlyMap<string, number> | null;
+  /** Lo vendido por día (28 días) de cada proveedor; `null` si la base no lo tiene. */
+  ventas: Record<string, number[]> | null;
   busqueda: string;
   verTodos: boolean;
   onVerTodos: (v: boolean) => void;
@@ -110,7 +118,7 @@ export function ProveedoresRanking({
   const vista = filas.slice(0, FILAS_A_LA_VISTA);
   const resto = filas.slice(FILAS_A_LA_VISTA);
   const filaDe = (f: FilaRanking, i: number) => (
-    <FilaDelRanking key={f.proveedorId} f={f} p={proveedores.get(f.proveedorId)} indice={i} maxValor={maxValor} medida={medida} cambio={cambioDePuesto(antes, f)} busqueda={busqueda} onAbrir={onAbrir} refFila={refFila(f.proveedorId)} />
+    <FilaDelRanking key={f.proveedorId} f={f} p={proveedores.get(f.proveedorId)} indice={i} maxValor={maxValor} medida={medida} cambio={cambioDePuesto(antes, f)} serie={ventas ? (ventas[f.proveedorId] ?? SIN_VENTAS) : null} busqueda={busqueda} onAbrir={onAbrir} refFila={refFila(f.proveedorId)} />
   );
   return (
     <div className="space-y-3" data-guia="proveedores.lista">
@@ -143,6 +151,7 @@ function FilaDelRanking({
   maxValor,
   medida,
   cambio,
+  serie,
   busqueda,
   onAbrir,
   refFila,
@@ -153,6 +162,7 @@ function FilaDelRanking({
   maxValor: number;
   medida: MedidaRanking;
   cambio: number;
+  serie: number[] | null;
   busqueda: string;
   onAbrir: (id: string) => void;
   refFila: (el: HTMLElement | null) => void;
@@ -211,6 +221,7 @@ function FilaDelRanking({
           )}
         </span>
       </span>
+      <VentasDeLaSemana serie={serie} indice={indice} />
       <span className="hidden @2xl:block">
         <Anillo pct={vendidoPct} tamano="chico" indice={indice} etiqueta={`${f.nombre}: vendiste el ${Math.round(vendidoPct)} % de lo que le compraste`}>
           <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(vendidoPct)}%</span>
@@ -251,5 +262,22 @@ function FilaDelRanking({
       </span>
       <ChevronRight aria-hidden className="hidden h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-300 ease-cayla group-hover:translate-x-0 group-hover:opacity-100 @2xl:block" />
     </div>
+  );
+}
+
+// La línea de lo vendido por día (4 semanas) y lo de esta semana contra la anterior. Sin la lectura de la base, la celda queda vacía; con la
+// lectura y sin ventas, lo dice. La línea es la pieza de una fila (`<Sparkline>`, ADR-0358).
+function VentasDeLaSemana({ serie, indice }: { serie: number[] | null; indice: number }) {
+  if (!serie) return <span className="hidden @2xl:block" />;
+  const s = semanaDeVentas(serie);
+  return (
+    <span className="hidden min-w-0 flex-col gap-0.5 @2xl:flex" title={`${s.estaSemana} vendidas en los últimos 7 días; ${s.anterior} los 7 de antes`}>
+      <Sparkline serie={serie} indice={indice} />
+      <span className="flex items-center gap-1 text-xs text-tinta/70">
+        <b className="font-semibold tabular-nums text-tinta">{s.estaSemana}</b> esta semana
+        {s.tendencia === "sube" && <ArrowUp aria-label="sube" className="h-3 w-3" />}
+        {s.tendencia === "baja" && <ArrowDown aria-label="baja" className="h-3 w-3" />}
+      </span>
+    </span>
   );
 }

@@ -214,6 +214,7 @@
     "pruebas:pagos-compras-endurecimiento": "node scripts/pruebas/pagos_compras_endurecimiento.mjs",
     "pruebas:compras-candados-y-token": "node scripts/pruebas/compras_candados_y_token.mjs",
     "pruebas:proveedor-prendas-origen": "node scripts/pruebas/proveedor_prendas_origen.mjs",
+    "pruebas:proveedores-ventas-diarias": "node scripts/pruebas/proveedores_ventas_diarias.mjs",
     "pruebas:notas-credito": "node scripts/pruebas/notas_credito_modulo.mjs",
     "pruebas:arreglos-en-vivo": "node scripts/pruebas/arreglos_en_vivo.mjs",
     "pruebas:candado-lider": "node scripts/pruebas/candado_lider_caja_y_ajuste.mjs",

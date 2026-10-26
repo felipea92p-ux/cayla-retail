@@ -6,6 +6,7 @@
 // regla única de `proveedor-ritmo-reglas.ts`, la que ya usan el aviso «frenar» y el veredicto del ranking. Así la lista, los avisos y la ficha no
 // se contradicen.
 
+import { diasEntreFechas } from "./fechas-lima";
 import { ritmoDeDatos, type Ritmo } from "./proveedor-ritmo-reglas";
 import { COSTO_REAL_MIN_PCT, rankingDeProveedores, type FilaDeRanking, type RendimientoProveedor } from "./proveedor-prendas-reglas";
 
@@ -144,4 +145,33 @@ export function concentracion(filas: readonly Pick<FilaRanking, "unidadesComprad
   const valores = filas.map((f) => valorDe(f, medida)).sort((a, b) => b - a);
   const total = valores.reduce((a, v) => a + v, 0);
   return total > 0 ? (valores.slice(0, n).reduce((a, v) => a + v, 0) / total) * 100 : 0;
+}
+
+// ---------------------------------------------------------------------------
+// Las ventas por día de cada proveedor (`fn_proveedores_ventas_diarias`, 20261026172000): la línea chica de cada fila y «N esta semana».
+// ---------------------------------------------------------------------------
+
+/** Cuántos días mira la línea de cada fila. */
+export const DIAS_DE_VENTAS = 28;
+
+/**
+ * La serie de cada proveedor: `dias` valores, del más viejo al de hoy, con cero los días sin ventas (la base no los manda). Un día fuera de la
+ * ventana se ignora.
+ */
+export function seriesDeVentas(filas: readonly { proveedor_id: string; dia: string; vendidas: number }[], hoy: string, dias = DIAS_DE_VENTAS): Record<string, number[]> {
+  const out: Record<string, number[]> = {};
+  for (const f of filas) {
+    const atras = diasEntreFechas(f.dia, hoy);
+    if (atras < 0 || atras >= dias) continue;
+    (out[f.proveedor_id] ??= Array.from({ length: dias }, () => 0))[dias - 1 - atras] += f.vendidas;
+  }
+  return out;
+}
+
+/** Lo vendido los últimos 7 días contra los 7 de antes: lo que dice la fila («19 esta semana ↑»). */
+export function semanaDeVentas(serie: readonly number[]): { estaSemana: number; anterior: number; tendencia: "sube" | "baja" | "igual" } {
+  const suma = (xs: readonly number[]) => xs.reduce((a, v) => a + v, 0);
+  const estaSemana = suma(serie.slice(-7));
+  const anterior = suma(serie.slice(-14, -7));
+  return { estaSemana, anterior, tendencia: estaSemana > anterior ? "sube" : estaSemana < anterior ? "baja" : "igual" };
 }
