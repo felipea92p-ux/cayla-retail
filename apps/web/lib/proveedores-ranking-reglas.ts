@@ -98,6 +98,18 @@ export function pasaFiltroRanking(f: Pick<FilaRanking, "clase">, filtro: FiltroR
 /** Cuántas filas se ven antes de «Ver los que faltan». */
 export const FILAS_A_LA_VISTA = 20;
 
+/** Cuántos proveedores se comparan a la vez en la columna derecha (la maqueta C). */
+export const MAX_COMPARAR = 3;
+
+/**
+ * Marca o desmarca un proveedor para compararlo. Con 3 ya marcados, el cuarto entra y sale el primero que se marcó: perdona en vez de
+ * preguntar (ADR-0350, ley 7), y la comparación a la vista dice quién quedó.
+ */
+export function alternarComparar(lista: readonly string[], id: string): string[] {
+  if (lista.includes(id)) return lista.filter((x) => x !== id);
+  return [...lista.slice(-(MAX_COMPARAR - 1)), id];
+}
+
 /** Cuánto le compras a un proveedor en la medida elegida. */
 export const valorDe = (f: Pick<FilaRanking, "unidadesCompradas" | "gasto">, medida: MedidaRanking) => (medida === "soles" ? f.gasto : f.unidadesCompradas);
 

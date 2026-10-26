@@ -616,6 +616,12 @@ export const GUIA_PROVEEDORES: Guia = {
       texto: "El saldo con ese proveedor; en rojo si algo ya venció. Tócalo para ir a pagarle en Por pagar.",
     },
     {
+      id: "comparar",
+      ancla: "proveedores.comparar",
+      titulo: "Compáralos",
+      texto: "Marca hasta 3 con su casilla y a la derecha se ponen lado a lado: cuánto le compraste, cuánto vendiste, en cuánto se vende lo que queda, sus ventas, su margen y lo que le debes. Al desmarcarlos, vuelve lo de siempre.",
+    },
+    {
       id: "vista",
       ancla: "proveedor-vista.resumen",
       opcional: true,

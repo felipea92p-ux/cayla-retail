@@ -18,6 +18,9 @@ import { LoQueQuizaNoVes } from "@/components/LoQueQuizaNoVes";
 
 const MAX_NOMBRES = 3;
 
+/** La caja de la columna derecha: la misma para «Lo que no se ve a simple vista» y para «Comparar», que la reemplaza. */
+export const CLASE_LADO = "card-cayla space-y-5 p-4 xl:sticky xl:top-20 xl:max-h-[calc(100dvh-6rem)] xl:overflow-y-auto";
+
 function Nombres({ lista, dato, onAbrir }: { lista: readonly Proveedor[]; dato: (p: Proveedor) => string; onAbrir: (id: string) => void }) {
   return (
     <ul className="mt-1.5 space-y-0.5 text-sm">
@@ -62,7 +65,7 @@ export function ProveedoresLoQueNoSeVe({
   const nada = hoy.vencidos.length === 0 && hoy.atrasados.length === 0 && hoy.aFavor.length === 0;
 
   return (
-    <aside data-guia="proveedores.lado" className="card-cayla space-y-5 p-4 xl:sticky xl:top-20 xl:max-h-[calc(100dvh-6rem)] xl:overflow-y-auto">
+    <aside data-guia="proveedores.lado" className={CLASE_LADO}>
       <TituloSeccion>Lo que no se ve a simple vista</TituloSeccion>
 
       <div className="flex items-center gap-3 rounded-xl bg-hueso/60 px-3 py-2.5 text-sm text-tinta">

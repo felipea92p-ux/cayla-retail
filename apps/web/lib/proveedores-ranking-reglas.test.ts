@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cambioDePuesto, claseDeRitmo, concentracion, paraHoy, semanaDeVentas, seriesDeVentas, contarPorRitmo, esAproximado, filasDelRanking, pasaFiltroRanking, semanasCortas, textoRitmo, totalesDelRanking, valorDe } from "./proveedores-ranking-reglas";
+import { alternarComparar, cambioDePuesto, claseDeRitmo, concentracion, paraHoy, semanaDeVentas, seriesDeVentas, contarPorRitmo, esAproximado, filasDelRanking, pasaFiltroRanking, semanasCortas, textoRitmo, totalesDelRanking, valorDe } from "./proveedores-ranking-reglas";
 import { ritmoDeDatos } from "./proveedor-ritmo-reglas";
 import type { RendimientoProveedor } from "./proveedor-prendas-reglas";
 
@@ -140,5 +140,12 @@ describe("el ranking de la lista de Proveedores", () => {
     expect(semanaDeVentas(serie)).toEqual({ estaSemana: 14, anterior: 7, tendencia: "sube" });
     expect(semanaDeVentas([...serie].reverse()).tendencia).toBe("igual");
     expect(semanaDeVentas([0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0]).tendencia).toBe("baja");
+  });
+
+  it("comparar: marca y desmarca, y con 3 marcados el cuarto saca al primero que se marcó", () => {
+    expect(alternarComparar([], "a")).toEqual(["a"]);
+    expect(alternarComparar(["a", "b"], "a")).toEqual(["b"]);
+    expect(alternarComparar(["a", "b", "c"], "d")).toEqual(["b", "c", "d"]);
+    expect(alternarComparar(["a", "b", "c"], "b")).toEqual(["a", "c"]);
   });
 });

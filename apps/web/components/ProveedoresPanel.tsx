@@ -12,8 +12,10 @@ import { ProveedorVistaRapida } from "@/components/ProveedorVistaRapida";
 import { ProveedoresIndicadores } from "@/components/ProveedoresIndicadores";
 import { MedidaDelRanking, ProveedoresRanking } from "@/components/ProveedoresRanking";
 import { ProveedoresLoQueNoSeVe } from "@/components/ProveedoresLoQueNoSeVe";
+import { ProveedoresComparar } from "@/components/ProveedoresComparar";
+import { BarraDeAbajo, BarraDeAbajoResumen } from "@/components/ui/BarraDeAbajo";
 import type { Hallazgo } from "@/lib/proveedor-analisis-reglas";
-import { RITMOS, contarPorRitmo, filasDelRanking, pasaFiltroRanking, totalesDelRanking, valorDe, type ClaseRitmo, type FiltroRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
+import { RITMOS, alternarComparar, contarPorRitmo, filasDelRanking, pasaFiltroRanking, totalesDelRanking, valorDe, type ClaseRitmo, type FiltroRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
 import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { clave } from "@/lib/buscar-prenda-v2";
@@ -136,6 +138,7 @@ export function ProveedoresPanel({
   const [verTodos, setVerTodos] = useState(false); // el ranking: más allá de las primeras 20 filas
   const [medida, setMedida] = useState<MedidaRanking>("prendas"); // el ranking: por prendas compradas o por dinero gastado
   const [puestosAntes, setPuestosAntes] = useState<ReadonlyMap<string, number> | null>(null); // los puestos de antes de cambiar de medida
+  const [comparar, setComparar] = useState<readonly string[]>([]); // el ranking: hasta 3 marcados para compararlos a la derecha
   const [foco, setFoco] = useState<string | null>(null); // el tramo de la barra de concentración al que se apunta
   const [recientes, setRecientes] = useState<ReadonlySet<string>>(new Set());
   const pendienteScroll = useRef<string | null>(null);
@@ -185,6 +188,10 @@ export function ProveedoresPanel({
     return !!p && coincide(p) && pasaFiltroRanking(f, filtroRitmo, vencidoDe(f.proveedorId));
   });
   const sinCompras = enRanking ? activos.filter((p) => p.tipo === "mercaderia" && !conCompras.has(p.id) && (!filtroRitmo || (filtroRitmo === "vencido" && vencidoDe(p.id)))) : [];
+  // Los marcados para comparar, en el orden en que se marcaron; uno que ya no está en el ranking (lo desactivaron) se cae solo. Un filtro o
+  // la búsqueda no los sacan: se comparan aunque la lista ya no los muestre.
+  const comparados = comparar.map((id) => ranking?.filas.find((f) => f.proveedorId === id)).filter((f): f is NonNullable<typeof f> => !!f);
+  const alComparar = (id: string) => setComparar((c) => alternarComparar(c, id));
   const conteoRitmo = contarPorRitmo(ranking?.filas ?? []);
   const totales = totalesDelRanking(ranking?.filas ?? []);
   // Cambiar de medida reordena: se guardan los puestos de antes para que cada fila diga cuántos subió o bajó (y las filas se deslizan con `useFlip`).
@@ -280,7 +287,17 @@ export function ProveedoresPanel({
 
       <ConLado
         lado={
-          enRanking && ranking ? (
+          enRanking && ranking && comparados.length > 0 ? (
+            <ProveedoresComparar
+              filas={comparados}
+              proveedores={porId}
+              medida={medida}
+              ventas={ventas}
+              onQuitar={alComparar}
+              onQuitarTodos={() => setComparar([])}
+              onAbrir={setAbiertoId}
+            />
+          ) : enRanking && ranking ? (
             <ProveedoresLoQueNoSeVe
               proveedores={proveedores.filter((p) => p.activo && p.tipo === "mercaderia")}
               resumen={resumen ? resumenSoloMercaderia(resumen, proveedores) : null}
@@ -458,6 +475,8 @@ export function ProveedoresPanel({
               verTodos={verTodos || !!k}
               onVerTodos={setVerTodos}
               onAbrir={setAbiertoId}
+              comparar={comparar}
+              onComparar={alComparar}
               refFila={refFila}
               taller={filtrandoTodo ? null : ranking.taller}
             />
@@ -554,6 +573,23 @@ export function ProveedoresPanel({
       )}
 
       </ConLado>
+
+      {enRanking && comparados.length > 0 && (
+        // Más angosto que 1280 px la comparación baja hasta debajo de la lista: la isla oscura dice cuántos llevas marcados y lleva a verlos.
+        // En escritorio va al centro y a su medida, como la de lo marcado en Existencias (el lateral no la tapa).
+        <BarraDeAbajo tono="tinta" role="region" aria-label="Proveedores para comparar" className="sm:inset-x-auto sm:left-1/2 sm:w-max sm:max-w-[min(36rem,calc(100vw-2rem))] sm:-translate-x-1/2 xl:hidden">
+          <BarraDeAbajoResumen cifra={comparados.length === 1 ? "1 marcado" : `${comparados.length} marcados`} detalle={comparados.map((f) => f.nombre).join(" · ")} />
+          <div className="barra-abajo-acciones">
+            <button
+              type="button"
+              className="btn-cayla btn-primario"
+              onClick={() => document.getElementById("proveedores-comparacion")?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" })}
+            >
+              Ver la comparación
+            </button>
+          </div>
+        </BarraDeAbajo>
+      )}
 
       {verMontos && abierto && (
         <ProveedorVistaRapida

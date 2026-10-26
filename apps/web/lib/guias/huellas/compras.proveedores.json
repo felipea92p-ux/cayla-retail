@@ -2,7 +2,7 @@
   "guia": "compras.proveedores",
   "ruta": "/compras/proveedores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 47,
+  "total": 52,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -36,6 +36,11 @@
       "Boton «{p.activo ? \"Desactivar\" : \"Reactivar\"}»",
       "BotonVer «Abrir ficha completa»"
     ],
+    "components/ProveedoresComparar.tsx": [
+      "button «Quitar todos»",
+      "button «Abrir su vista rápida»",
+      "button «{`Quitar ${f.nombre}»"
+    ],
     "components/ProveedoresLoQueNoSeVe.tsx": [
       "button «{p.nombre}»",
       "Link «Ir a pagar»",
@@ -53,6 +58,7 @@
       "Boton «Registrarlo»",
       "Boton «Limpiar filtros»",
       "button «Ver en Servicios»",
+      "button «Ver la comparación»",
       "Link «{`${p.nombre}»",
       "button «proveedores.nombre»",
       "Link «{soles(saldo)}»",
@@ -62,6 +68,7 @@
     "components/ProveedoresRanking.tsx": [
       "button «→() => onMedida(o.m)»",
       "BotonVerMas «{`Ver los ${resto.length}»",
+      "Casilla «{`Comparar ${f.nombre}»",
       "button «proveedores.nombre»",
       "Link «proveedores.saldo»"
     ]

@@ -10,6 +10,7 @@ import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { Tabla, Encabezado, fila, celda, type Columna } from "@/components/ui/Tabla";
 import { Anillo } from "@/components/ui/Anillo";
 import { BarraApilada } from "@/components/ui/BarraApilada";
+import { Casilla } from "@/components/ui/Casilla";
 import { Chip } from "@/components/ui/Chip";
 import { Sparkline } from "@/components/ui/Sparkline";
 import { Resaltado } from "@/components/ui/Resaltado";
@@ -23,11 +24,15 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 // La fila entera abre la vista rápida que ya existía (decisión de Felipe, 2026-10-26): el botón del nombre se estira sobre la fila con `after:`
 // y el enlace a Por pagar queda por encima (`relative`), igual que en el directorio.
 
-// Columnas según el ANCHO DE LA TABLA (`@container`), como el directorio: angosta, puesto · proveedor · insignia y la barra debajo; desde 42 rem,
-// todo en una línea (con la columna derecha al lado, la lista mide ~44 rem en una pantalla de 1440).
+// Columnas según el ANCHO DE LA TABLA (`@container`), como el directorio: angosta, casilla · puesto · proveedor · insignia y la barra debajo;
+// desde 42 rem, todo en una línea (con la columna derecha al lado, la lista mide ~44 rem en una pantalla de 1440). La casilla marca al
+// proveedor para compararlo a la derecha (hasta 3).
+// Con la casilla son 8 columnas: en lo ancho van más juntas (12 px) y sus mínimos suman justo los 42 rem desde los que se ponen en fila, así
+// ningún ancho las desborda (a 1024 la tabla mide ~43 rem; a 1440, con la columna derecha, ~45).
 const PLANTILLA =
-  "grid-cols-[1.75rem_minmax(0,1fr)_auto] @2xl:grid-cols-[2rem_minmax(9.5rem,1.6fr)_5.75rem_2.75rem_minmax(6.5rem,1fr)_9.5rem_1rem]";
+  "grid-cols-[1.25rem_1.5rem_minmax(0,1fr)_auto] @2xl:grid-cols-[1.25rem_1.5rem_minmax(8rem,1.6fr)_5.75rem_2.75rem_minmax(5.5rem,1fr)_8.5rem_1rem] @2xl:gap-x-3";
 const columnas = (medida: MedidaRanking): Columna[] => [
+  { titulo: "", ayuda: "Marca hasta 3 para compararlos a la derecha" },
   { titulo: "#", alinear: "der" },
   { titulo: "Proveedor" },
   { titulo: "Ventas", subtitulo: "por día, 4 semanas" },
@@ -95,6 +100,8 @@ export function ProveedoresRanking({
   verTodos,
   onVerTodos,
   onAbrir,
+  comparar,
+  onComparar,
   refFila,
   taller,
 }: {
@@ -112,13 +119,16 @@ export function ProveedoresRanking({
   verTodos: boolean;
   onVerTodos: (v: boolean) => void;
   onAbrir: (id: string) => void;
+  /** Los proveedores marcados para comparar, en el orden en que se marcaron. */
+  comparar: readonly string[];
+  onComparar: (id: string) => void;
   refFila: (id: string) => (el: HTMLElement | null) => void;
   taller: (RendimientoProveedor & { pesoPct: number }) | null;
 }) {
   const vista = filas.slice(0, FILAS_A_LA_VISTA);
   const resto = filas.slice(FILAS_A_LA_VISTA);
   const filaDe = (f: FilaRanking, i: number) => (
-    <FilaDelRanking key={f.proveedorId} f={f} p={proveedores.get(f.proveedorId)} indice={i} maxValor={maxValor} medida={medida} cambio={cambioDePuesto(antes, f)} serie={ventas ? (ventas[f.proveedorId] ?? SIN_VENTAS) : null} busqueda={busqueda} onAbrir={onAbrir} refFila={refFila(f.proveedorId)} />
+    <FilaDelRanking key={f.proveedorId} f={f} p={proveedores.get(f.proveedorId)} indice={i} maxValor={maxValor} medida={medida} cambio={cambioDePuesto(antes, f)} serie={ventas ? (ventas[f.proveedorId] ?? SIN_VENTAS) : null} busqueda={busqueda} onAbrir={onAbrir} comparado={comparar.includes(f.proveedorId)} onComparar={onComparar} refFila={refFila(f.proveedorId)} />
   );
   return (
     <div className="space-y-3" data-guia="proveedores.lista">
@@ -154,6 +164,8 @@ function FilaDelRanking({
   serie,
   busqueda,
   onAbrir,
+  comparado,
+  onComparar,
   refFila,
 }: {
   f: FilaRanking;
@@ -165,6 +177,8 @@ function FilaDelRanking({
   serie: number[] | null;
   busqueda: string;
   onAbrir: (id: string) => void;
+  comparado: boolean;
+  onComparar: (id: string) => void;
   refFila: (el: HTMLElement | null) => void;
 }) {
   const vendidoPct = f.vendidoPct ?? 0;
@@ -179,12 +193,17 @@ function FilaDelRanking({
     <div
       ref={refFila}
       data-proveedor-id={f.proveedorId}
+      data-comparado={comparado || undefined}
       style={{ ["--i" as string]: 8 + Math.min(indice, 10) }}
       className={fila(
         PLANTILLA,
-        "anim-entra group relative items-center gap-y-2 transition-colors duration-200 before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded-full before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.03] hover:before:scale-y-100 sm:items-center",
+        "anim-entra group relative items-center gap-y-2 transition-colors duration-200 data-[comparado]:bg-tinta/[0.05] before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded-full before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.03] hover:before:scale-y-100 sm:items-center",
       )}
     >
+      {/* Por encima del botón del nombre, que se estira sobre la fila: marcar no abre la vista rápida. */}
+      <span className="relative z-[1] flex" data-guia="proveedores.comparar">
+        <Casilla marcada={comparado} onCambio={() => onComparar(f.proveedorId)} etiqueta={`Comparar ${f.nombre}`} />
+      </span>
       <span className={celda("der", "text-sm text-taupe")}>{f.puesto}</span>
       <span className="min-w-0">
         <button
@@ -227,7 +246,7 @@ function FilaDelRanking({
           <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(vendidoPct)}%</span>
         </Anillo>
       </span>
-      <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 items-center gap-2.5 @2xl:col-span-1 @2xl:col-start-auto @2xl:row-start-auto">
+      <span className="col-span-2 col-start-3 row-start-2 flex min-w-0 items-center gap-2.5 @2xl:col-span-1 @2xl:col-start-auto @2xl:row-start-auto">
         <BarraApilada
           alto={8}
           total={maxValor}
@@ -255,9 +274,11 @@ function FilaDelRanking({
           {valor}
         </span>
       </span>
-      <span className="col-start-3 row-start-1 justify-self-end overflow-visible @2xl:col-start-auto @2xl:row-start-auto @2xl:justify-self-start">
-        <Chip tono={ritmo.tono} title={`${ritmo.ayuda}. ${f.veredicto.porque}`}>
-          {textoRitmo(f)}
+      <span className="col-start-4 row-start-1 justify-self-end overflow-visible @2xl:col-start-auto @2xl:row-start-auto @2xl:justify-self-start">
+        <Chip tono={ritmo.tono} title={`${textoRitmo(f)}. ${ritmo.ayuda}. ${f.veredicto.porque}`}>
+          {/* En una tabla angosta (el teléfono) solo la palabra: con las semanas, el nombre del proveedor no se alcanzaba a leer. */}
+          <span className="@md:hidden">{ritmo.palabra}</span>
+          <span className="hidden @md:inline">{textoRitmo(f)}</span>
         </Chip>
       </span>
       <ChevronRight aria-hidden className="hidden h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-300 ease-cayla group-hover:translate-x-0 group-hover:opacity-100 @2xl:block" />
