@@ -174,6 +174,8 @@ type Props = {
   /** Color y talla de cada variante (por `varianteId`), para la fila de cada prenda. La línea del carrito no los
    *  guarda; sin ellos la fila muestra el código de la etiqueta, como antes. */
   detalles?: ReadonlyMap<string, DetalleVariante>;
+  /** Por `claveLinea`: los otros tickets abiertos que llevan esa prenda cuando no alcanza para todos (solo avisa). */
+  tambienEn?: ReadonlyMap<string, readonly string[]>;
   /** Ref de la lista de líneas: el padre le captura la posición para el reflujo `Flip`. */
   listaRef: RefObject<HTMLDivElement | null>;
   onQuitar: (claveLinea: string) => void;
@@ -254,6 +256,7 @@ export function PuntoDeVentaTicket({
   bloqueado,
   carrito,
   detalles,
+  tambienEn,
   listaRef,
   onQuitar,
   onCantidad,
@@ -817,6 +820,7 @@ export function PuntoDeVentaTicket({
                     key={it.claveLinea}
                     linea={it}
                     detalle={detalles?.get(it.varianteId)}
+                    tambienEn={tambienEn?.get(it.claveLinea)}
                     bloqueado={bloqueado || cobrando}
                     onQuitar={onQuitar}
                     onCantidad={onCantidad}

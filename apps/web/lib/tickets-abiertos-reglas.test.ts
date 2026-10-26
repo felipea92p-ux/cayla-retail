@@ -9,6 +9,8 @@ import {
   quitarDeLaEspera,
   siguienteNombreDeCliente,
   ticketOlvidado,
+  textoDePrendaEnOtroTicket,
+  ticketsQueDisputanLaPrenda,
   TOPE_TICKETS_ABIERTOS,
 } from "./tickets-abiertos-reglas";
 
@@ -154,6 +156,54 @@ describe("el ticket que lleva rato esperando", () => {
   it("una fecha rota o del futuro no inventa un aviso", () => {
     expect(ticketOlvidado("no es una fecha", pasados(60))).toBe(false);
     expect(ticketOlvidado(dejado, pasados(-10))).toBe(false);
+  });
+});
+
+describe("la misma prenda en dos tickets", () => {
+  const con = (nombre: string | undefined, ...lineas: [string, number][]) => ({ nombre, carrito: lineas.map(([varianteId, cantidad]) => ({ varianteId, cantidad })) });
+
+  it("si ningún otro ticket la lleva, no hay nada que decir", () => {
+    expect(ticketsQueDisputanLaPrenda("blusa-m", 1, 1, [con("Cliente 1", ["falda-s", 1])])).toEqual([]);
+    expect(ticketsQueDisputanLaPrenda("blusa-m", 1, 1, [])).toEqual([]);
+  });
+
+  it("si hay para todos, tampoco: repetir una prenda en dos tickets es normal", () => {
+    expect(ticketsQueDisputanLaPrenda("blusa-m", 1, 2, [con("Cliente 1", ["blusa-m", 1])])).toEqual([]);
+  });
+
+  it("si entre todos piden más de lo que hay, avisa con el nombre del otro ticket", () => {
+    expect(ticketsQueDisputanLaPrenda("blusa-m", 1, 1, [con("Cliente 1", ["blusa-m", 1])])).toEqual(["Cliente 1"]);
+  });
+
+  it("con varios tickets que la llevan, los nombra a todos, en el orden de la fila", () => {
+    const espera = [con("Cliente 1", ["blusa-m", 1]), con("Cliente 2", ["falda-s", 1]), con("María", ["blusa-m", 1])];
+    expect(ticketsQueDisputanLaPrenda("blusa-m", 1, 2, espera)).toEqual(["Cliente 1", "María"]);
+  });
+
+  it("suma lo que cada ticket lleva: dos unidades en otro ticket más una aquí piden 3", () => {
+    expect(ticketsQueDisputanLaPrenda("blusa-m", 1, 2, [con("Cliente 1", ["blusa-m", 2])])).toEqual(["Cliente 1"]);
+    expect(ticketsQueDisputanLaPrenda("blusa-m", 1, 3, [con("Cliente 1", ["blusa-m", 2])])).toEqual([]);
+  });
+
+  it("un ticket viejo sin nombre se llama «Ticket N» según su lugar, como en las pestañas", () => {
+    expect(ticketsQueDisputanLaPrenda("blusa-m", 1, 1, [con("Cliente 1", ["falda-s", 1]), con(undefined, ["blusa-m", 1])])).toEqual(["Ticket 2"]);
+  });
+
+  it("si ya no queda ninguna (hay 0), avisa igual que con una sola", () => {
+    expect(ticketsQueDisputanLaPrenda("blusa-m", 1, 0, [con("Cliente 1", ["blusa-m", 1])])).toEqual(["Cliente 1"]);
+  });
+});
+
+describe("lo que dice el aviso de la prenda repetida", () => {
+  it("con un solo otro ticket, en singular y con lo que queda", () => {
+    expect(textoDePrendaEnOtroTicket(["Cliente 1"], 1)).toBe("Ya está en el ticket de Cliente 1, y solo queda 1.");
+  });
+  it("con varios, los junta con «y»", () => {
+    expect(textoDePrendaEnOtroTicket(["Cliente 1", "María"], 2)).toBe("Ya está en los tickets de Cliente 1 y María, y solo quedan 2.");
+    expect(textoDePrendaEnOtroTicket(["A", "B", "C"], 2)).toBe("Ya está en los tickets de A, B y C, y solo quedan 2.");
+  });
+  it("si ya no queda, lo dice sin «solo queda 0»", () => {
+    expect(textoDePrendaEnOtroTicket(["Cliente 1"], 0)).toBe("Ya está en el ticket de Cliente 1, y ya no queda.");
   });
 });
 

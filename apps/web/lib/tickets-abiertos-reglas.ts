@@ -136,6 +136,36 @@ export function ticketOlvidado(creadoEn: string | null, ahora: number): boolean 
   return Number.isFinite(desde) && ahora - desde >= MINUTOS_PARA_RECORDAR * 60_000;
 }
 
+/**
+ * Los nombres de los tickets que ESPERAN y llevan la misma prenda que una línea del ticket de la caja, pero solo cuando entre todos
+ * piden más de lo que hay (Felipe, 2026-10-25, pregunta 9: «el primero que cobra se la lleva»; no se reserva nada). Con stock para
+ * todos no hay nada que decir: avisar de cada prenda repetida sería ruido, y repetir una prenda en dos tickets es normal (dos clientas
+ * piden la misma blusa). Vacío = nada que avisar.
+ *
+ * `hay` es lo que la pantalla sabe del piso de esta sede para esa prenda (`stockAqui`); la base tiene la última palabra al cobrar.
+ */
+export function ticketsQueDisputanLaPrenda(
+  varianteId: string,
+  cantidadAqui: number,
+  hay: number,
+  enEspera: readonly { nombre?: string; carrito: readonly { varianteId: string; cantidad: number }[] }[],
+): string[] {
+  const otros = enEspera.flatMap((t, i) => {
+    const cantidad = t.carrito.filter((l) => l.varianteId === varianteId).reduce((acc, l) => acc + l.cantidad, 0);
+    return cantidad > 0 ? [{ nombre: nombreDeEspera(t.nombre, i), cantidad }] : [];
+  });
+  if (otros.length === 0) return [];
+  const pedido = cantidadAqui + otros.reduce((acc, o) => acc + o.cantidad, 0);
+  return pedido > hay ? otros.map((o) => o.nombre) : [];
+}
+
+/** Lo que dice el aviso de la línea: dónde más está la prenda y cuánto queda. «Ya está en el ticket de Cliente 1, y solo queda 1.» */
+export function textoDePrendaEnOtroTicket(nombres: readonly string[], hay: number): string {
+  const donde = nombres.length === 1 ? `el ticket de ${nombres[0]}` : `los tickets de ${new Intl.ListFormat("es", { style: "long", type: "conjunction" }).format(nombres)}`;
+  const queda = hay <= 0 ? "y ya no queda" : hay === 1 ? "y solo queda 1" : `y solo quedan ${hay}`;
+  return `Ya está en ${donde}, ${queda}.`;
+}
+
 /** ¿Puede abrirse otro ticket? El de la caja cuenta: con 9 abiertos no cabe uno más. */
 export function cabeOtroTicket(enEspera: number): boolean {
   return enEspera + 1 < TOPE_TICKETS_ABIERTOS;

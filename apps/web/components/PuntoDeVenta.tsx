@@ -149,6 +149,7 @@ import {
   pasarAlTicket,
   pestanasDeTickets,
   quitarDeLaEspera,
+  ticketsQueDisputanLaPrenda,
   TOPE_TICKETS_ABIERTOS,
 } from "@/lib/tickets-abiertos-reglas";
 import { ticketParaEspera } from "@/lib/vender-hoy-reglas";
@@ -696,6 +697,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Color y talla de cada variante, solo para DIBUJAR la fila de cada prenda del ticket (`LineaDelTicket`): la línea del
   // carrito no los guarda. Sale de `variantes` (lo que llegó del servidor), no del stock en vivo: no cambia con él.
   const detallesDelTicket = useMemo(() => new Map(variantes.map((v) => [v.varianteId, { color: v.color, talla: v.talla }])), [variantes]);
+  // Las prendas de este ticket que también están en otro abierto cuando no alcanza para todos (Felipe, 2026-10-25): solo avisa, no reserva.
+  const prendasEnOtrosTickets = useMemo(
+    () =>
+      new Map(
+        carritoConPiso.flatMap((it) => {
+          const nombres = ticketsQueDisputanLaPrenda(it.varianteId, it.cantidad, it.stockAqui, enEspera);
+          return nombres.length > 0 ? [[it.claveLinea, nombres] as const] : [];
+        }),
+      ),
+    [carritoConPiso, enEspera],
+  );
 
   const categorias = useMemo(() => {
     const vistas = new Set<string>();
@@ -2259,6 +2271,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             bloqueado={bloqueado}
             carrito={carritoConPiso}
             detalles={detallesDelTicket}
+            tambienEn={prendasEnOtrosTickets}
             listaRef={listaTicket}
             onQuitar={quitar}
             onCantidad={cambiarCantidad}
