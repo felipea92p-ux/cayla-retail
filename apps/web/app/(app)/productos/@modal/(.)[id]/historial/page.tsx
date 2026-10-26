@@ -24,6 +24,7 @@ export default async function HistorialProductoModal({ params }: { params: Promi
   return (
     <ModalRuta titulo="Historial" subtitulo={`«${prenda.referencia}» · lo que cambió en esta prenda, quién lo hizo y cuándo`} ancho="max-w-4xl" /* unificar-fijo: la página «Historial» de la vista rápida es de diseño propio (ADR-0354) */>
       <HistorialPrenda
+        productoId={productoId}
         lectura={lectura}
         nombre={prenda.referencia}
         totalVariantes={prenda.variantes}
