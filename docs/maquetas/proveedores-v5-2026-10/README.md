@@ -10,7 +10,7 @@ Las tres vuelven a ser **una lista ordenada** (lo que pidió en la tercera ronda
 
 ## Lo común a las tres
 
-- **El orden:** se ordena por **prendas compradas** o **dinero gastado**, con un botón grande.
+- **El orden:** se ordena por **prendas compradas** o **dinero gastado**, con dos tarjetas de opción con su ícono (ver «El ajuste de la C»).
 - **Al cambiar el orden, la lista se reacomoda deslizándose**, y cada proveedor dice cuántos puestos subió o bajó (↑3, ↓1).
 - **Barras neutras:**
   - tinta = lo que ya vendiste;
