@@ -53,7 +53,7 @@ export function MarcoPlan({
   planPedidoNoExiste,
   versionesFallo = false,
   subtitulo,
-  accionesAntes,
+  alLadoDeLosAvisos,
   accionesDespues,
   accionPrincipal,
   onAccionDelAviso,
@@ -70,9 +70,9 @@ export function MarcoPlan({
   versionesFallo?: boolean;
   /** La frase bajo el título: la de cada pestaña. */
   subtitulo: ReactNode;
-  /** Botones de la cabecera de ESTA pestaña, antes del selector de campaña (el Resumen del Plan). */
-  accionesAntes?: ReactNode;
-  /** ...y después (descargar la lista). */
+  /** El botón de ESTA pestaña que va pegado a la derecha de la campana de los avisos, en la fila de las pestañas (el Resumen del Plan; Felipe 2026-10-26). */
+  alLadoDeLosAvisos?: ReactNode;
+  /** Botones de la cabecera de ESTA pestaña, después del selector de campaña (descargar la lista). */
   accionesDespues?: ReactNode;
   /** La acción principal de la pestaña, al final de la cabecera («Empezar por …»). */
   accionPrincipal?: ReactNode;
@@ -124,10 +124,9 @@ export function MarcoPlan({
         acciones={
           <>
             <TooltipProvider delayDuration={150}>
-              {/* Resumen, campaña y Exportar en UNA fila también en el celular (Felipe 2026-10-12): ahí la campaña ocupa lo que sobra y su
+              {/* Campaña y Exportar en UNA fila también en el celular (Felipe 2026-10-12): ahí la campaña ocupa lo que sobra y su
                   nombre se corta con «…»; antes cada uno caía en su propia fila y la tabla quedaba a media pantalla. */}
               <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:gap-3">
-                {accionesAntes}
                 {campanas && (
                   <SelectorCampana
                     estirarEnCelular
@@ -156,10 +155,14 @@ export function MarcoPlan({
         }
       />
 
-      {/* Las pestañas y, a su derecha, el centro de avisos: un ícono con su número; lo urgente asoma una línea (spike ②, Felipe 2026-10-26). */}
+      {/* Las pestañas y, a su derecha, el centro de avisos: un ícono con su número; lo urgente asoma una línea (spike ②, Felipe 2026-10-26). Pegado a la
+          derecha de la campana va el botón de la pestaña (el Resumen del Plan): los dos son «lo que se mira aparte de la tabla» y quedan juntos. */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <PestanasPlan activa={activa} planId={plan.plan.id} />
-        <CentroDeAvisos avisos={avisosDeLaPestana} vistos={vistos} onVisto={marcarAvisoVisto} onAccion={alAccionarAviso} hrefDe={hrefDe} />
+        <div className="ml-auto flex items-center gap-3">
+          <CentroDeAvisos avisos={avisosDeLaPestana} vistos={vistos} onVisto={marcarAvisoVisto} onAccion={alAccionarAviso} hrefDe={hrefDe} />
+          {alLadoDeLosAvisos && <TooltipProvider delayDuration={150}>{alLadoDeLosAvisos}</TooltipProvider>}
+        </div>
       </div>
 
       {plan.plan.archivado && (

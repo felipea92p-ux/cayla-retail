@@ -211,13 +211,14 @@ export function PlanCampana({
           </span>
         </>
       }
-      accionesAntes={
+      alLadoDeLosAvisos={
         // El resumen, en un cajón (Felipe 2026-10-12): la tabla queda justo bajo las pestañas. Solo el ícono, con su nombre al pasar el
-        // mouse (y para el lector de pantalla). Los avisos tienen su propio ícono con su número, junto a las pestañas (2026-10-26).
+        // mouse (y para el lector de pantalla). Los avisos tienen su propio ícono con su número, junto a las pestañas (2026-10-26), y el Resumen va
+        // pegado a su derecha (Felipe 2026-10-26: «resumen que esté al lado derecho de notificaciones»); de 40 px como la campana.
         <span className="relative inline-flex">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Boton peso="fantasma" data-guia="plan.resumen" className="w-10 justify-center px-0!" onClick={() => setResumenAbierto(true)} aria-expanded={resumenAbierto} aria-label="Resumen">
+              <Boton peso="fantasma" data-guia="plan.resumen" className="h-10 w-10 justify-center px-0!" onClick={() => setResumenAbierto(true)} aria-expanded={resumenAbierto} aria-label="Resumen">
                 <PanelRightOpen aria-hidden className="h-4 w-4" />
               </Boton>
             </TooltipTrigger>
