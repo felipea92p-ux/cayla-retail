@@ -149,6 +149,7 @@ import {
   pasarAlTicket,
   pestanasDeTickets,
   quitarDeLaEspera,
+  siguienteNombreDeCliente,
   ticketsQueDisputanLaPrenda,
   TOPE_TICKETS_ABIERTOS,
 } from "@/lib/tickets-abiertos-reglas";
@@ -1511,6 +1512,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     persistirEspera(nueva.espera);
     setPosActivo(nueva.posActivo);
     limpiarTicket();
+    // El ticket nuevo nace CON su nombre («Cliente 3»), no se deja derivado: uno derivado cambia solo si otro se descarta (el «Cliente 2»
+    // pasaba a llamarse «Cliente 1»), y la cajera reconoce a cada cliente por ese nombre.
+    setNombreTicket(siguienteNombreDeCliente(nueva.espera.map((t) => t.nombre)));
     buscador.current?.focus();
   }
   /** Cerrar la caja: con tickets que tienen prendas (los que esperan y el de la caja) primero se dice cuáles se pierden; sin ellos, directo. */
