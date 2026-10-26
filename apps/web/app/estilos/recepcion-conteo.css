@@ -83,7 +83,11 @@ button.rc-parada:disabled { cursor: default; }
 .rc-fila-sep { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; padding: 8px 12px; border: 1px solid var(--color-sand); border-radius: 16px; background: var(--color-papel); }
 .rc-fila-sep[data-nueva] { border-style: dashed; border-color: color-mix(in srgb, var(--color-pizarra) 45%, transparent); }
 .rc-fila-sep .rc-fila-fin { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
-@media (max-width: 639px) { .rc-fila-sep { grid-template-columns: auto minmax(0, 1fr); } .rc-fila-sep .rc-fila-fin { grid-column: 1 / -1; } }
+/* Las acciones de la fila (un botón, su insignia, el paso de cantidad y la ×) bajan bajo el nombre cuando la LISTA es angosta, no solo
+   cuando la ventana lo es: al lado de «Los papeles de la compra» la lista queda de ~400 px aun en un monitor ancho, y el nombre se
+   aplastaba contra el borde (con «Crear ahora» y «Tallas y colores ahora» a la derecha). */
+.rc-filas-sep { container: filas-sep / inline-size; }
+@container filas-sep (max-width: 700px) { .rc-fila-sep { grid-template-columns: auto minmax(0, 1fr); } .rc-fila-sep .rc-fila-fin { grid-column: 1 / -1; } }
 
 /* ---- La balanza «Dijeron / Contaste» ---- */
 .rc-balanza { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: center; gap: 8px 14px; padding: 14px 18px; border: 1px solid var(--color-sand); border-radius: 20px; background: var(--color-papel); }
