@@ -4,6 +4,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { marcasPorProveedor, rubrosConConteo, serie12Meses, esDeServicios, type MarcasDeProveedor, type TipoProveedor } from "@/lib/proveedores-reglas";
 import type { PrendaDeProveedor, RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import type { PrendaConProveedor } from "@/lib/proveedor-analisis-reglas";
+import { celdaDeFila, type CeldaTallaSede } from "@/lib/proveedor-tallas-sedes-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -426,7 +427,23 @@ export async function getProveedorPrendas(id: string): Promise<PrendaDeProveedor
   }));
 }
 
+// Las tallas y las sedes de un proveedor (fn_proveedor_tallas_sedes, 20261026193000): una fila por prenda, talla y sede. Las cuentas las hace
+// `proveedor-tallas-sedes-reglas.ts`.
+export async function getProveedorTallasSedes(id: string): Promise<CeldaTallaSede[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedor_tallas_sedes", { p_proveedor_id: id }), "las tallas y las sedes del proveedor");
+  return filas.map(celdaDeFila);
+}
+
 // El ranking de la lista (fn_proveedores_rendimiento): lo comprado, lo vendido y lo parado de cada proveedor al que se le compró algo.
+// Las ventas por día de cada proveedor (fn_proveedores_ventas_diarias, 20261026172000, ADR-0521): la línea chica de cada fila del ranking. Solo
+// los días con ventas; la web rellena el resto con cero (`seriesDeVentas`). Misma llave que el rendimiento.
+export async function getProveedoresVentasDiarias(dias = 28): Promise<{ proveedor_id: string; dia: string; vendidas: number }[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedores_ventas_diarias", { p_dias: dias }), "las ventas por día de los proveedores");
+  return filas.map((f) => ({ proveedor_id: f.proveedor_id, dia: f.dia, vendidas: Number(f.vendidas) }));
+}
+
 export async function getProveedoresRendimiento(): Promise<RendimientoProveedor[]> {
   const supabase = await createClient();
   const filas = exigir(await supabase.rpc("fn_proveedores_rendimiento"), "el rendimiento de los proveedores");
