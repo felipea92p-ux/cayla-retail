@@ -9,12 +9,12 @@
 // su pantalla, el error está aquí.
 
 import type { CifrasPedidosWeb, PlazosPedidosWeb } from "./pedidos-web-reglas";
-import { plazoCorto, URGENTE_MS } from "./pedidos-web-reglas";
+import { URGENTE_MS } from "./pedidos-web-reglas";
 import type { CifrasRecomendaciones } from "./recomendaciones-reglas";
 import type { CifrasEsperan } from "./vitrina-esperan-reglas";
 import type { CifrasLooks } from "./vitrina-looks-reglas";
 import type { CifrasVitrina, ModeloVitrina } from "./vitrina-reglas";
-import { seVeEnLaWeb } from "./vitrina-reglas";
+import { esEncendidoSinPrecio, hrefVitrina, seVeEnLaWeb } from "./vitrina-reglas";
 
 /** Cómo llegó cada lectura: leída, sin el módulo (no se pide ni se muestra) o caída (se dice, y el resto de la pantalla sigue). */
 export type Lectura<T> = { estado: "ok"; dato: T } | { estado: "sin_modulo" } | { estado: "fallo" };
@@ -82,12 +82,11 @@ export function pendientesDe(e: EntradaResumen): Pendiente[] {
         cifra: c.porConfirmar,
         formato: "entero",
         titulo: `${plural(c.porConfirmar, "pedido espera", "pedidos esperan")} que lo${c.porConfirmar === 1 ? "" : "s"} confirmes`,
-        detalle:
-          vence !== null
-            ? `El primero se cierra solo en ${plazoCorto(vence)} si nadie lo confirma.`
-            : `Un pedido sin confirmar se cierra solo a las ${plazos.horasParaConfirmar} horas.`,
+        // Qué hace confirmar y qué pasa si nadie lo hace, SIN el plazo: el reloj vive una sola vez, en el camino que está debajo («El primero se
+        // cierra en 1 h»). El enlace lleva a la lista (se confirma dentro de cada pedido), por eso dice «Revisar y confirmar» y no solo «Confirmar».
+        detalle: "Al confirmar, sus prendas quedan reservadas para el cliente; si nadie lo hace, se cierra solo.",
         href: "/tienda-web/pedidos?pestana=confirmar",
-        accion: "Confirmar",
+        accion: "Revisar y confirmar",
       });
     }
     if (c.porDevolver > 0) {
@@ -188,7 +187,7 @@ export function pendientesDe(e: EntradaResumen): Pendiente[] {
         formato: "entero",
         titulo: `${plural(n, "modelo encendido no se ve", "modelos encendidos no se ven")}: sin precio`,
         detalle: "Ninguna tienda de la web les pone precio. Se arregla en su ficha, en Catálogo ▸ Productos.",
-        href: "/tienda-web/vitrina",
+        href: hrefVitrina("sin_precio"),
         accion: "Revisar",
       });
     }
@@ -216,7 +215,7 @@ export function pendientesDe(e: EntradaResumen): Pendiente[] {
         formato: "entero",
         titulo: `${plural(n, "modelo se ve", "modelos se ven")} sin nada que separar`,
         detalle: "Se ven en la web, pero no queda libre en ninguna tienda.",
-        href: "/tienda-web/vitrina",
+        href: hrefVitrina("sin_stock"),
         accion: "Ver",
       });
     }
@@ -241,6 +240,39 @@ export function pendientesDe(e: EntradaResumen): Pendiente[] {
 
   // Estable: dentro de un mismo tono queda el orden de arriba.
   return p.map((x, i) => ({ x, i })).sort((a, b) => ORDEN_TONO[a.x.tono] - ORDEN_TONO[b.x.tono] || a.i - b.i).map(({ x }) => x);
+}
+
+/** Ningún pedido abierto (por confirmar, por cobrar o por entregar), nada por devolver y nada cobrado hoy: el camino no tiene qué contar
+ *  y el Resumen lo dice en una línea en vez de dibujar cuatro tarjetas en cero (Felipe 2026-10-26, propuesta A). Lo cerrado no cuenta: son
+ *  pedidos que ya no piden nada. */
+export const sinPedidosAbiertos = (c: CifrasPedidosWeb): boolean =>
+  c.porConfirmar === 0 && c.confirmados === 0 && c.porEntregar === 0 && c.porDevolver === 0 && c.cobradoHoy === 0;
+
+/** La línea que reemplaza al camino cuando no hay pedidos abiertos: «Sin pedidos abiertos en Tienda Lima · 12 cerrados en los últimos 30 días». */
+export function fraseSinPedidos(tienda: string, cerrados: number): string {
+  const cerradosTxt = cerrados === 0 ? "ninguno cerrado" : `${cerrados} ${plural(cerrados, "cerrado", "cerrados")}`;
+  return `En ${tienda}: sin pedidos abiertos · ${cerradosTxt} en los últimos 30 días`;
+}
+
+/** «Todo al día» es una afirmación sobre lo que se leyó: solo vale si se pudieron leer los pedidos y lo demás que pide algo. Lo que la
+ *  cuenta no ve (`sin_modulo`) no cuenta: no es suyo. Lo que se cayó o no se puede leer parada fuera de una tienda, sí (principio 9: se
+ *  degrada, no engaña). */
+export type VacioDePendientes = { completo: boolean; titulo: string; detalle: string };
+
+export function vacioDePendientes(e: EntradaResumen): VacioDePendientes {
+  const caidas = lecturasCaidas(e);
+  const sinTienda = e.pedidos.estado === "no_tienda";
+  if (caidas.length === 0 && !sinTienda) {
+    return {
+      completo: true,
+      titulo: "Todo al día",
+      detalle: "Nada de la tienda online espera por ti ahora. Si llega un pedido, aparece aquí y en el número del menú.",
+    };
+  }
+  const partes: string[] = [];
+  if (caidas.length > 0) partes.push(`No se pudo leer ${new Intl.ListFormat("es", { type: "conjunction" }).format(caidas)}: no es lo mismo que estar al día.`);
+  if (sinTienda) partes.push("Los pedidos se ven desde una tienda: elige una en el selector de arriba.");
+  return { completo: false, titulo: "Sin novedades en lo que se pudo leer", detalle: partes.join(" ") };
 }
 
 /** Lo que no se pudo leer, para decirlo en una línea (y que la persona sepa que el Resumen está incompleto, no que todo va bien). */
@@ -292,8 +324,7 @@ export function teselasDe(modelos: readonly ModeloVitrina[], cuantas = TESELAS):
 }
 
 /** Los encendidos que la web no muestra porque ninguna tienda les pone precio (`razonNoSeMuestra`, el chip «Sin precio: no se ve»). */
-export const encendidosSinPrecio = (modelos: readonly ModeloVitrina[]): number =>
-  modelos.filter((m) => m.vitrina?.publicado && !m.publicable && m.porQueNo === "sin_precio").length;
+export const encendidosSinPrecio = (modelos: readonly ModeloVitrina[]): number => modelos.filter(esEncendidoSinPrecio).length;
 
 /** Lo que sigue al número de la ventana: «modelos en la web · se recoge en 2 tiendas» (el número va aparte, contando). */
 export function fraseVentana(seVen: number, tiendasVisibles: number | null): string {

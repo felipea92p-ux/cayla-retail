@@ -1,0 +1,86 @@
+/* Dirección B · El reloj del ritmo. Prefijo b-. Solo var(--…) de base.css. */
+
+.b-bloque{display:flex;flex-direction:column;gap:12px;min-width:0}
+
+/* ---------- El mapa ---------- */
+.b-mapa{padding:20px 22px 16px;display:flex;flex-direction:column;gap:6px}
+.b-mapa-cab{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 24px;flex-wrap:wrap}
+.b-mapa-cab h2{font-size:clamp(24px,2.6vw,32px);line-height:1.1;margin:2px 0 4px}
+.b-mapa-cab p{font-size:13.5px}
+.b-lienzo{overflow-x:auto;margin:0 -6px}
+.b-lienzo svg{display:block;width:100%;min-width:760px;height:auto}
+.b-zona.v{fill:color-mix(in srgb,var(--verde) 9%,transparent)}
+.b-zona.a{fill:color-mix(in srgb,var(--ambar) 9%,transparent)}
+.b-zt{font-size:11px;letter-spacing:.12em;font-weight:700;fill:var(--taupe)}
+.b-zt.v{fill:var(--verde)} .b-zt.a{fill:var(--ambar)}
+.b-eje{stroke:var(--taupe);stroke-width:1.5}
+.b-tick{stroke:var(--taupe)}
+.b-tt{font-size:12px;fill:var(--taupe);font-family:var(--sans)}
+.b-burbuja{cursor:pointer;outline:none;transition:opacity .25s var(--ease-cayla)}
+.b-burbuja circle{stroke:var(--c);stroke-width:2;transition:stroke-width .2s,fill .2s}
+.b-burbuja circle.lleno{fill:color-mix(in srgb,var(--c) 26%,var(--papel))}
+.b-burbuja circle.hueco{fill:var(--papel);stroke-dasharray:4 3}
+.b-bn{font-family:var(--serif);font-size:17px;fill:var(--tinta)}
+.b-nom{font-size:13.5px;font-weight:600;fill:var(--tinta);font-family:var(--sans)}
+.b-sub{font-size:11.5px;fill:var(--taupe);font-family:var(--sans)}
+.b-lienzo svg:has(.encendido) .b-burbuja:not(.encendido){opacity:.32}
+.b-burbuja.encendido circle,.b-burbuja:focus-visible circle{stroke-width:3.5}
+@media (hover:hover){.b-burbuja:hover circle{stroke-width:3.5}}
+@keyframes corre{from{transform:translateX(var(--dx));opacity:0}35%{opacity:1}to{transform:none;opacity:1}}
+.b-corre{opacity:0}
+.b-corre.listo{animation:corre 1.25s var(--ease-cayla) both;animation-delay:calc(var(--i,0) * 90ms + 450ms)}
+.b-ley{align-items:center}
+.b-mue{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-2px;border:2px solid var(--tinta)}
+.b-mue.lleno{background:color-mix(in srgb,var(--tinta) 26%,var(--papel))}
+.b-mue.hueco{border-style:dashed}
+.b-nojuz{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:color-mix(in srgb,var(--tinta) 72%,transparent);padding-top:8px;border-top:1px dashed var(--sand)}
+
+/* ---------- La regla chica ---------- */
+.b-regla{position:relative;display:block;height:14px;min-width:90px}
+.b-regla::before{content:"";position:absolute;left:0;right:0;top:6px;height:2px;border-radius:2px;background:var(--hueso)}
+.b-z{position:absolute;top:6px;height:2px;border-radius:2px}
+.b-z.v{left:0;background:color-mix(in srgb,var(--verde) 55%,transparent)}
+.b-z.a{right:0;background:color-mix(in srgb,var(--ambar) 55%,transparent)}
+.b-p{position:absolute;top:1px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px var(--papel)}
+.b-semtxt{font-size:13px;font-weight:600;white-space:nowrap}
+
+/* ---------- Lista: tabla y lado ---------- */
+.b-dos{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(320px,1fr);gap:22px;align-items:start}
+@media (max-width:1180px){.b-dos{grid-template-columns:minmax(0,1fr)}}
+.b-avisos{display:flex;flex-direction:column;gap:10px}
+.b-tabla .tabla-fila.encendido{background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.b-tabla .tabla-fila.encendido::before{transform:scaleY(1)}
+@media (max-width:860px){.b-tabla .tabla-fila{--cols:minmax(0,1fr) 7rem 4rem!important}.b-tabla .tabla-fila>:nth-child(7),.b-tabla .tabla-fila>:nth-child(8){display:none}}
+
+/* ---------- Ficha: la curva ---------- */
+.b-heroe{display:grid;grid-template-columns:minmax(0,2.4fr) minmax(240px,1fr);gap:14px;align-items:stretch}
+@media (max-width:1100px){.b-heroe{grid-template-columns:minmax(0,1fr)}}
+.b-lado-cifras{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+@media (max-width:1100px) and (min-width:600px){.b-lado-cifras{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.b-curva{padding:20px 22px 16px;display:flex;flex-direction:column;gap:8px}
+.b-curva-cab h2{font-size:clamp(24px,2.6vw,34px);line-height:1.1;margin:2px 0 4px}
+.b-curva-cab p{font-size:14px;max-width:70ch}
+.b-curva svg{width:100%;height:auto;display:block}
+.b-guia{stroke:var(--sand);stroke-dasharray:2 4}
+.b-area{fill:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.b-linea{fill:none;stroke:var(--tinta);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.b-proy{stroke:color-mix(in srgb,var(--tinta) 45%,transparent);stroke-width:2.5;stroke-dasharray:7 6;stroke-linecap:round}
+.b-hoy{stroke:var(--taupe);stroke-dasharray:3 3}
+.b-hoyt{font-weight:600;fill:var(--tinta)}
+.b-punto{fill:var(--tinta);stroke:var(--papel);stroke-width:3}
+.b-fin{fill:var(--papel);stroke:var(--tinta);stroke-width:2.5}
+.b-cifra{font-family:var(--serif);font-size:17px;fill:var(--tinta)}
+.b-mue-proy{background:none!important;border-top:2.5px dashed color-mix(in srgb,var(--tinta) 45%,transparent);height:0!important;width:18px!important;border-radius:0!important;vertical-align:3px!important}
+
+/* ---------- Relojes por talla y por sede ---------- */
+.b-par{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.b-par{grid-template-columns:minmax(0,1fr)}}
+.b-relojes{padding:18px 20px;display:flex;flex-direction:column;gap:6px}
+.b-relojes h3{font-size:21px;padding-right:170px}
+@media (max-width:520px){.b-relojes h3{padding-right:0;margin-top:22px}}
+.b-filas{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.b-rfila{display:grid;grid-template-columns:6.5rem minmax(0,1fr) 4.5rem 8.5rem;gap:12px;align-items:center;font-size:13.5px}
+@media (max-width:520px){.b-rfila{grid-template-columns:5.5rem minmax(0,1fr) 4rem}.b-rdet{display:none}}
+.b-rnom{display:inline-flex;align-items:center;gap:8px;font-weight:500}
+.b-rnom i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.b-rdet{font-size:12px;text-align:right}
