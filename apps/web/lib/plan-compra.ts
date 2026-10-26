@@ -9,6 +9,7 @@ import { RPC_DESCUENTO } from "@/lib/plan-compra-descuento";
 import { RPC_PLAZO } from "@/lib/plan-compra-plazo";
 import { RPC_VERSIONES } from "@/lib/plan-compra-versiones";
 import { RPC_PASOS_2 } from "@/lib/plan-compra-modelos";
+import { RPC_ENVIOS } from "@/lib/plan-compra-envio";
 import { RPC_PAGADO, RPC_PAGOS } from "@/lib/plan-compra-inversion";
 import type { FlujoDelPlan } from "@/lib/plan-compra-pagar";
 import { esFirmaDesconocida } from "@/lib/plan-compra-propuesta-guardada";
@@ -67,6 +68,9 @@ export async function getPlanCompra(
   versionesFallo: boolean;
   /** Qué categorías ya tienen su paso 2 guardado (`fn_plan_compra_pasos_2`, ADR-0526), crudo; null si no se pudo leer (base sin la migración o caída): las filas no dicen nada del paso 2. */
   pasos2: unknown;
+  /** Qué tiene cada categoría en Compras: pedidos pendientes, ya pedidos y si el plan cambió desde que se enviaron (`fn_plan_compra_envios`, ADR-0530), crudo; null si no se pudo leer (base sin la migración o
+   *  caída): las filas no dicen nada de Compras. */
+  envios: unknown;
   /** La lectura del calendario del plan (ADR-0525) FALLÓ (no es que la base todavía no lo tenga): el selector ofrece todas las campañas, como antes, y el Calendario lo dice. */
   calendarioFallo: boolean;
   /** Cómo se paga la campaña y si Finanzas la ve (`fn_plan_compra_pagos`, ADR-0527), crudo; null si no se pidió (`conPagos`), la base todavía no lo tiene o falló. */
@@ -112,7 +116,7 @@ export async function getPlanCompra(
   const nombres = familias.error ? [] : (familias.data ?? []);
   if (plan.error) {
     console.error(`${RPC_PLAN}: ${plan.error.message}`);
-    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null, historia: null, descuentos: null, plazo: null, versiones: null, versionesFallo: false, pasos2: null, calendarioFallo, pagos: null, pagado: null, pagosFallo: false, flujo: null };
+    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null, historia: null, descuentos: null, plazo: null, versiones: null, versionesFallo: false, pasos2: null, envios: null, calendarioFallo, pagos: null, pagado: null, pagosFallo: false, flujo: null };
   }
   // La propuesta (C4) es una ayuda: si falla o la base todavía no la tiene, cada categoría se llena a mano, como antes.
   const abierto = (plan.data as { plan?: { id?: unknown } } | null)?.plan?.id;
@@ -127,7 +131,7 @@ export async function getPlanCompra(
     return { propuesta, historia };
   };
   // Lo pedido en órdenes (ADR-0372 act. (e)) también es una ayuda: sin ella, el Plan no lo muestra.
-  const [leida, ordenes, descuento, plazo, versiones, pasos2, pagos, pagado, flujo] =
+  const [leida, ordenes, descuento, plazo, versiones, pasos2, pagos, pagado, flujo, envios] =
     typeof abierto === "string"
       ? await Promise.all([
           leerPropuestaYSuHistoria(abierto),
@@ -145,8 +149,10 @@ export async function getPlanCompra(
           opciones.conPagos ? supabase.rpc(RPC_PAGADO as never, { p_plan_id: abierto } as never) : Promise.resolve(null),
           // La caja de las próximas 12 semanas (de Finanzas): para ver si el plan de pagos la aguanta. Una ayuda: sin ella la pantalla sigue.
           opciones.conPagos ? supabase.rpc("fn_flujo_caja_proyeccion" as never, { p_semanas: 12 } as never) : Promise.resolve(null),
+          // Lo que cada categoría tiene en Compras (ADR-0530) también es una ayuda: sin ello, la lista no dice nada de los pedidos pendientes.
+          supabase.rpc(RPC_ENVIOS as never, { p_plan_id: abierto } as never),
         ])
-      : [null, null, null, null, null, null, null, null, null];
+      : [null, null, null, null, null, null, null, null, null, null];
   const propuesta = leida?.propuesta ?? null;
   const historia = leida?.historia ?? null;
   if (propuesta?.error) console.error(`${RPC_PROPUESTA}: ${propuesta.error.message}`);
@@ -156,6 +162,7 @@ export async function getPlanCompra(
   if (plazo?.error) console.error(`${RPC_PLAZO}: ${plazo.error.message}`);
   if (versiones?.error) console.error(`${RPC_VERSIONES}: ${versiones.error.message}`);
   if (pasos2?.error && !esFirmaDesconocida(pasos2.error)) console.error(`${RPC_PASOS_2}: ${pasos2.error.message}`);
+  if (envios?.error && !esFirmaDesconocida(envios.error)) console.error(`${RPC_ENVIOS}: ${envios.error.message}`);
   if (pagos?.error && !esFirmaDesconocida(pagos.error)) console.error(`${RPC_PAGOS}: ${pagos.error.message}`);
   if (pagado?.error && !esFirmaDesconocida(pagado.error)) console.error(`${RPC_PAGADO}: ${pagado.error.message}`);
   if (flujo?.error && flujo.error.code !== "42501") console.error(`fn_flujo_caja_proyeccion (plan): ${flujo.error.message}`);
@@ -175,6 +182,7 @@ export async function getPlanCompra(
     // Una base que todavía no tiene la función (la web se publicó antes que la migración) NO es un fallo: no hay plan con tope que perder de vista.
     versionesFallo: !!versiones?.error && !esFirmaDesconocida(versiones.error),
     pasos2: pasos2 && !pasos2.error ? pasos2.data : null,
+    envios: envios && !envios.error ? envios.data : null,
     calendarioFallo,
     pagos: pagos && !pagos.error ? pagos.data : null,
     pagado: pagado && !pagado.error ? pagado.data : null,

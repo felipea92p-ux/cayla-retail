@@ -1,5 +1,6 @@
 import { celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
+import { frasesDeEnCompras } from "@/lib/plan-compra-envio";
 import { fraseDelPedido } from "@/lib/plan-compra-pedido";
 import { periodoDeVentas } from "@/lib/plan-compra-periodo";
 import { BarraRango } from "@/components/plan-compra/BarraRango";
@@ -134,6 +135,33 @@ export function FilaCategoria({
                     Paso 2 hecho
                   </Chip>
                 )}
+              </span>
+            )}
+            {f.envio && calculo && calculo.comprar > 0 && (
+              // Lo que esta categoría tiene en Compras (ADR-0530): pedidos pendientes de confirmar, ya pedidos, y si el plan cambió desde que se enviaron.
+              <span className="mt-1 flex flex-wrap items-center justify-end gap-1 font-normal" data-guia="plan.en-compras">
+                {(() => {
+                  const frases = frasesDeEnCompras(f.envio);
+                  return (
+                    <>
+                      {frases.pendientes && (
+                        <Chip tono="ambar" versalitas={false} title="Enviado desde el Plan: falta confirmarlo en Compras ▸ Órdenes. Nada se ha pedido todavía.">
+                          {frases.pendientes}
+                        </Chip>
+                      )}
+                      {frases.pedidos && (
+                        <Chip tono="verde" versalitas={false} title="Ya es una orden de compra">
+                          {frases.pedidos}
+                        </Chip>
+                      )}
+                      {frases.cambio && (
+                        <Chip tono="ambar" versalitas={false} title="El paso 2 se guardó otra vez después de enviar: lo que está en Compras tiene lo de antes">
+                          {frases.cambio}
+                        </Chip>
+                      )}
+                    </>
+                  );
+                })()}
               </span>
             )}
             {plazo && plazo.estado !== "termino" && calculo && calculo.comprar > 0 && (

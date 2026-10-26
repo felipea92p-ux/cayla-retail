@@ -2,7 +2,7 @@
   "guia": "compras.plan",
   "ruta": "/compras/plan",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 93,
+  "total": 110,
   "controles": {
     "components/plan-compra/AvisoStock.tsx": [
       "BotonVer «Ir a Conteo»"
@@ -29,6 +29,25 @@
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? (cambio ? undefined : \"No cambiaste nada\")}»"
+    ],
+    "components/plan-compra/EnviarACompras.tsx": [
+      "Boton «Reintentar»",
+      "Boton «Ir al paso 2»",
+      "Boton «Ir al paso 2» #2",
+      "Boton «Todos: pedir ya»",
+      "Boton «Todos: el»",
+      "Boton «Ver lo que guardó»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Rectificar el envío»",
+      "BotonVer «Ver en Compras»",
+      "Boton «Cancelar»",
+      "Boton «Enviar como pendientes de campaña»",
+      "SegmentoDeslizante «{`Cuándo pedir a ${g.proveedor}»",
+      "CampoFecha «{<span className=\"sr-only\">Fecha en que pedir a {g.proveedor}»",
+      "CampoSelect «¿Por qué rectificas?»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cancelar» #2",
+      "Boton «{pendientes.length > 1 ? `Rectificar los ${pendientes.length}»"
     ],
     "components/plan-compra/ExportarPlan.tsx": [
       "BotonImprimir «Imprimir la lista»",

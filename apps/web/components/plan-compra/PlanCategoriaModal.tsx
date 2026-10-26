@@ -5,13 +5,15 @@ import { ArrowRight } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { EnviarACompras } from "@/components/plan-compra/EnviarACompras";
 import { FormularioCategoria } from "@/components/plan-compra/FormularioCategoria";
 import { PasoModelos } from "@/components/plan-compra/PasoModelos";
 import { Pestanas } from "@/components/ui/Pestanas";
 import type { CategoriaPlan, FilaPlan } from "@/lib/plan-compra-reglas";
 
-// Los dos pasos de una categoría (ADR-0526): ① cuánto comprar (el formulario de siempre) y ② qué modelos, colores y tallas (`PasoModelos`). El paso 2 solo se ofrece cuando el paso 1 ya está guardado y pide
-// comprar algo: reparte lo que el paso 1 decidió y nunca lo cambia. Cambiar de paso con algo escrito sin guardar pregunta antes de perderlo.
+// Los tres pasos de una categoría (ADR-0526, ADR-0530): ① cuánto comprar (el formulario de siempre), ② qué modelos, colores y tallas (`PasoModelos`) y ③ enviar a Compras lo que el paso 2 nombró (`EnviarACompras`).
+// El paso 2 solo se ofrece cuando el paso 1 ya está guardado y pide comprar algo: reparte lo que el paso 1 decidió y nunca lo cambia. El paso 3 solo se ofrece cuando el paso 2 ya está guardado: envía lo
+// guardado, no lo que se está escribiendo. Cambiar de paso con algo escrito sin guardar pregunta antes de perderlo.
 //
 // La ventana de una categoría en el plan de campaña (ADR-0349): el formulario de la categoría (`FormularioCategoria`, el mismo que usa
 // el paso a paso) dentro de una hoja. Aquí solo vive lo propio de la hoja: el título, el pie y qué pasa al guardar. Con «Guardar y seguir
@@ -26,6 +28,8 @@ export function PlanCategoriaModal({
   planId,
   planNombre,
   planDias,
+  hoy,
+  limite,
   fila,
   vendidoPorTalla,
   tope,
@@ -42,6 +46,9 @@ export function PlanCategoriaModal({
   planNombre: string;
   /** Los días de la campaña (el normal de respaldo de la hoja). */
   planDias: number;
+  /** Hoy en Lima y el último día para pedir (null = la campaña ya empezó): el paso 3 avisa si una fecha de pedido llegaría tarde. */
+  hoy: string;
+  limite: string | null;
   fila: FilaPlan;
   vendidoPorTalla: ReadonlyMap<string, number> | undefined;
   /** El tope de la campaña (null = sin tope) y lo que cuestan las otras categorías con plan. */
@@ -63,11 +70,13 @@ export function PlanCategoriaModal({
 }) {
   const [sucio, setSucio] = useState(false);
   const [sucioPaso2, setSucioPaso2] = useState(false);
-  const [paso, setPaso] = useState<"1" | "2">("1");
+  const [paso, setPaso] = useState<"1" | "2" | "3">("1");
   // El paso 2 reparte lo que el paso 1 decidió: hace falta el paso 1 guardado y que pida comprar algo.
   const conPaso2 = fila.linea !== undefined && (fila.calculo?.comprar ?? 0) > 0;
+  // El paso 3 envía a Compras lo que el paso 2 dejó GUARDADO (ADR-0530): hace falta que el paso 2 exista (null = todavía no se hizo; undefined = la base no lo sabe).
+  const conPaso3 = conPaso2 && fila.paso2 !== undefined && fila.paso2 !== null;
   const salida = useSalidaSinGuardar(sucio || sucioPaso2, `Escribiste parte del plan de ${fila.c.nombre} y todavía no se guardó. Si sales ahora, se pierde lo que escribiste.`);
-  const irAPaso = (destino: "1" | "2") => {
+  const irAPaso = (destino: "1" | "2" | "3") => {
     if (destino === paso) return;
     salida.pedirAccion(() => {
       setSucio(false);
@@ -83,7 +92,7 @@ export function PlanCategoriaModal({
       antesDeCerrar={salida.pedirAccion}
       variante="hoja"
       tamano="ancha"
-      ancho={paso === "2" ? "max-w-5xl" : undefined} /* unificar-fijo: el paso 2 (modelos con sus colores y tallas) es de diseño propio y necesita más ancho que el formulario (ADR-0526, maqueta ⑥ elegida por Felipe) */
+      ancho={paso === "2" ? "max-w-5xl" : paso === "3" ? "max-w-4xl" : undefined} /* unificar-fijo: el paso 2 (modelos con sus colores y tallas) y el 3 (la tabla de proveedores con su «cuándo») son de diseño propio y necesitan más ancho que el formulario (ADR-0526 y ADR-0530, maquetas ⑥ y ⑦ elegidas por Felipe) */
     >
       {(cerrar) => (
         <>
@@ -92,15 +101,26 @@ export function PlanCategoriaModal({
               guia="plan-modal.pasos"
               etiquetaAccesible={`Pasos del plan de ${fila.c.nombre}`}
               activa={paso}
-              onCambio={(k) => irAPaso(k === "2" ? "2" : "1")}
+              onCambio={(k) => irAPaso(k === "3" ? "3" : k === "2" ? "2" : "1")}
               items={[
                 { clave: "1", etiqueta: "1 · Cuánto compro" },
                 { clave: "2", etiqueta: "2 · Qué modelos, colores y tallas", guia: "plan-modal.paso-2" },
+                ...(conPaso3 ? [{ clave: "3", etiqueta: "3 · Enviar a Compras", guia: "plan-modal.paso-3" }] : []),
               ]}
               className="mb-5"
             />
           )}
-          {paso === "2" && conPaso2 ? (
+          {paso === "3" && conPaso3 ? (
+            <EnviarACompras
+              planId={planId}
+              planNombre={planNombre}
+              fila={fila}
+              hoy={hoy}
+              limite={limite}
+              onIrAlPaso2={() => irAPaso("2")}
+              onCancelar={() => salida.pedirAccion(cerrar)}
+            />
+          ) : paso === "2" && conPaso2 ? (
             <PasoModelos
               planId={planId}
               fila={fila}

@@ -250,6 +250,7 @@ begin
                'id', pe.id, 'proveedor_id', pe.proveedor_id, 'estado', pe.estado, 'cuando', pe.cuando, 'fecha_prevista', pe.fecha_prevista,
                'paso_2_version', pe.paso_2_version, 'unidades', pe.unidades, 'enviado_por', retail.fn_actividad_nombre(pe.enviado_por), 'enviado_en', pe.enviado_en,
                'orden_numero', (select o.numero from retail.ordenes_compra o where o.id = pe.orden_compra_id),
+               'orden_texto', (select retail.fn_orden_compra_numero_texto(o.numero) from retail.ordenes_compra o where o.id = pe.orden_compra_id),
                'motivo', pe.motivo, 'rectificado_en', pe.rectificado_en)
              order by (pe.estado = 'rectificado'), pe.enviado_en desc)
         from retail.pedidos_campana pe where pe.plan_id = p_plan_id and pe.categoria_id = p_categoria_id), '[]'::jsonb));
@@ -667,6 +668,7 @@ begin
                'enviado_por', retail.fn_actividad_nombre(pe.enviado_por), 'enviado_en', pe.enviado_en,
                'orden', case when pe.orden_compra_id is null then null
                              else jsonb_build_object('id', pe.orden_compra_id, 'numero', (select o.numero from retail.ordenes_compra o where o.id = pe.orden_compra_id),
+                                                     'texto', (select retail.fn_orden_compra_numero_texto(o.numero) from retail.ordenes_compra o where o.id = pe.orden_compra_id),
                                                      'por', retail.fn_actividad_nombre(pe.pedido_por), 'en', pe.pedido_en) end,
                'rectificado', case when pe.estado <> 'rectificado' then null
                                    else jsonb_build_object('por', retail.fn_actividad_nombre(pe.rectificado_por), 'en', pe.rectificado_en, 'motivo', pe.motivo) end)

@@ -5,6 +5,7 @@ import { avisosDelPlan, type AvisoDelPlan } from "@/lib/plan-compra-avisos";
 import { conDescuentos, leerDescuentos } from "@/lib/plan-compra-descuento";
 import { leerHistorial } from "@/lib/plan-compra-historial";
 import { leerPasos2 } from "@/lib/plan-compra-modelos";
+import { leerEnvios, resumenParaLaFila } from "@/lib/plan-compra-envio";
 import { leerPedido, type LecturaPedido } from "@/lib/plan-compra-pedido";
 import { diasDeVentasDelErp } from "@/lib/plan-compra-periodo";
 import { diasConQueSeCuenta, fraseDeLosDias, fraseDelConteoAntesDelPlazo, leerPlazoFijado, plazoDePedido, type PlazoDePedido, type PlazoFijado } from "@/lib/plan-compra-plazo";
@@ -48,6 +49,8 @@ export type EntradaDelPlan = {
   versiones?: unknown;
   /** Qué categorías ya tienen su paso 2 guardado (`fn_plan_compra_pasos_2`, ADR-0526), crudo; null = la base no lo sabe. */
   pasos2?: unknown;
+  /** Qué tiene cada categoría en Compras (`fn_plan_compra_envios`, ADR-0530), crudo; null = la base no lo sabe: las filas no dicen nada de Compras. */
+  envios?: unknown;
   preparacion: LecturaMotor;
   puedeContar: boolean;
   /** Las campañas con el calendario del plan pegado: de ahí salen las que empiezan pronto y no tienen plan (aviso «por armar», ADR-0525). */
@@ -82,7 +85,7 @@ export type PlanConPlan = {
 export type PlanDerivado = { plan: null; hechos: LecturaPropuesta | null; pedido: LecturaPedido | null; filas: FilaPlan[] } | PlanConPlan;
 
 export function usePlanDerivado(e: EntradaDelPlan): PlanDerivado {
-  const { datos, descuentos = null, propuesta = null, historia = null, pedido: pedidoCrudo = null, plazo: plazoCrudo = null, versiones: versionesCrudas = null, pasos2: pasos2Crudos = null, preparacion, puedeContar, campanas = null } = e;
+  const { datos, descuentos = null, propuesta = null, historia = null, pedido: pedidoCrudo = null, plazo: plazoCrudo = null, versiones: versionesCrudas = null, pasos2: pasos2Crudos = null, envios: enviosCrudos = null, preparacion, puedeContar, campanas = null } = e;
   const plan = useMemo(() => conDescuentos(leerPlan(datos), leerDescuentos(descuentos)), [datos, descuentos]);
   const hechos = useMemo(() => {
     const leida = leerPropuesta(propuesta);
@@ -92,6 +95,8 @@ export function usePlanDerivado(e: EntradaDelPlan): PlanDerivado {
   const versiones = useMemo(() => leerVersiones(versionesCrudas), [versionesCrudas]);
   // Las categorías con su paso 2 guardado (ADR-0526); null = la base todavía no lo sabe: las filas no dicen nada del paso 2.
   const pasos2 = useMemo(() => leerPasos2(pasos2Crudos), [pasos2Crudos]);
+  // Lo que cada categoría tiene en Compras (ADR-0530); null = la base todavía no lo sabe: las filas no dicen nada de Compras.
+  const envios = useMemo(() => leerEnvios(enviosCrudos), [enviosCrudos]);
   // El precio de la plata del plan con tope que la campaña USA: cada cuenta del Plan (la tabla, la hoja de cada categoría, el simulador) lo aplica.
   const precioDeLaPlata = versiones?.precioDeLaPlata ?? 0;
 
@@ -100,7 +105,8 @@ export function usePlanDerivado(e: EntradaDelPlan): PlanDerivado {
     if (!plan) return [];
     // Lo ya pedido en órdenes va en cada fila haya o no propuesta, y lo que falta llegar se resta de «Comprar» (ADR-0372 act. (e) y 2026-10-13 b).
     const armadas = armarFilas(plan, pedido?.porCategoria, precioDeLaPlata);
-    const base = pasos2 ? armadas.map((f): FilaPlan => ({ ...f, paso2: pasos2.find((x) => x.categoriaId === f.c.id) ?? null })) : armadas;
+    const conPaso2 = pasos2 ? armadas.map((f): FilaPlan => ({ ...f, paso2: pasos2.find((x) => x.categoriaId === f.c.id) ?? null })) : armadas;
+    const base = envios ? conPaso2.map((f): FilaPlan => ({ ...f, envio: resumenParaLaFila(envios, f.c.id) })) : conPaso2;
     if (!hechos || hechos.planId !== plan.plan.id) return base;
     return base.map((f) => ({
       ...f,
@@ -115,7 +121,7 @@ export function usePlanDerivado(e: EntradaDelPlan): PlanDerivado {
           ? tiendasParaRepartir(hechos, f.c.id, (nombre) => f.sedes?.find((s) => s.ubicacion === nombre)?.unidades ?? 0)
           : undefined,
     }));
-  }, [plan, hechos, pedido, precioDeLaPlata, pasos2]);
+  }, [plan, hechos, pedido, precioDeLaPlata, pasos2, envios]);
 
   if (!plan) return { plan: null, hechos, pedido, filas };
 

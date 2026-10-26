@@ -29,6 +29,7 @@ import { compararTallas } from "./tallas";
 import { proyectarCampana } from "./plan-compra-historial";
 import { cuentaEnElAnio, decisionesPorEtiqueta, fechasDeLaDecision, propiasQueSeOfrecen, seOfrece, type DecisionDeCampana, type LecturaCalendario } from "./plan-compra-calendario";
 import type { SugeridoDescuento } from "./plan-compra-descuento";
+import type { ResumenDeEnvio } from "./plan-compra-envio";
 import { DIAS_DE_VENTAS } from "./plan-compra-periodo";
 
 export const RPC_PLAN = "fn_plan_compra";
@@ -602,6 +603,8 @@ export type FilaPlan = {
   descuentoSugerido?: SugeridoDescuento | null;
   /** El paso 2 de esta categoría (ADR-0526: qué modelos, colores y tallas): el último reparto guardado; null = todavía no se hizo; undefined = la base no lo sabe. */
   paso2?: { version: number; pct: number; total: number; unidades: number; por: string | null; en: string | null } | null;
+  /** Lo que esta categoría tiene en Compras (ADR-0530): cuántos pedidos pendientes o ya pedidos y si el plan cambió desde que se enviaron; null/undefined = nada que decir (no se envió, o la base no lo sabe). */
+  envio?: ResumenDeEnvio | null;
 };
 
 const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);
