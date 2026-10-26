@@ -165,6 +165,7 @@ export function PlanCampana({
     return base.map((f) => ({
       ...f,
       propuesta: proponer(hechos, f.c.id),
+      propuestaLeidaEn: hechos.leidaEn,
       recuperoDefecto: hechos.recupero.pct,
       // El reparto entre tiendas (Felipe 2026-10-12): todas las tiendas activas, con su venta de 90 días, su stock y su mínimo.
       reparto:

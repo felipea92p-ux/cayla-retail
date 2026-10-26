@@ -59,6 +59,8 @@ export type LecturaPropuesta = {
   minimos: Map<string, number>;
   /** Se pudo leer el historial de la campaña anterior: sin él, «× 3» no puede decir que la campaña no está en el historial. */
   historialLeido: boolean;
+  /** Cuándo recibió la pantalla esta lectura (ISO). Una pestaña abierta desde ayer lo dice: se guarda junto a la propuesta (ADR-0520). */
+  leidaEn?: string;
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -70,8 +72,8 @@ const num = (v: unknown): number | null => {
 const lista = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v.filter(esObjeto) : []);
 const fechaIso = (v: unknown): string | null => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 
-/** Lo que devuelve `fn_plan_compra_propuesta`; null si no se entiende (la hoja sigue sin propuesta, como antes). */
-export function leerPropuesta(v: unknown): LecturaPropuesta | null {
+/** Lo que devuelve `fn_plan_compra_propuesta`; null si no se entiende (la hoja sigue sin propuesta, como antes). `ahora`: cuándo llegó (se inyecta en las pruebas). */
+export function leerPropuesta(v: unknown, ahora: Date = new Date()): LecturaPropuesta | null {
   if (!esObjeto(v)) return null;
   const planId = texto(v.plan_id);
   const diasCampana = num(v.dias_campana);
@@ -109,6 +111,7 @@ export function leerPropuesta(v: unknown): LecturaPropuesta | null {
       }),
     ),
     historialLeido: false,
+    leidaEn: ahora.toISOString(),
   };
 }
 

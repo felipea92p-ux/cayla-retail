@@ -22,6 +22,7 @@
 
 import type { PreparacionSede } from "./motor-demanda-reglas";
 import type { PropuestaCategoria } from "./plan-compra-propuesta";
+import type { PropuestaGuardada } from "./plan-compra-propuesta-guardada";
 import type { TiendaReparto } from "./plan-compra-reparto";
 import { enCaminoDe, type PedidoCategoria } from "./plan-compra-pedido";
 import { compararTallas } from "./tallas";
@@ -459,6 +460,9 @@ export function argsGuardar(
   versionEsperada?: number,
   /** Solo si la base ya guarda el descuento (`LecturaPlan.conDescuento`): una función que no conoce el parámetro rechazaría la llamada. */
   conDescuento = false,
+  /** Lo que la pantalla propuso al guardar (ADR-0520, `propuestaParaGuardar`): la base lo deja en el historial. Una base que todavía no conoce el
+   *  parámetro lo rechaza; por eso se guarda con `guardarConPropuesta`, que repite sin él. */
+  propuesta?: PropuestaGuardada | null,
 ) {
   const curva: Record<string, number> = {};
   if (tallas.some((t) => (b.curva[t.id] ?? "").trim() !== "")) for (const t of tallas) curva[t.id] = Number((b.curva[t.id] ?? "0").trim() || "0");
@@ -475,6 +479,7 @@ export function argsGuardar(
     p_nota: nota.trim() === "" ? null : nota.trim(),
     ...(versionEsperada !== undefined ? { p_version_esperada: versionEsperada } : {}),
     ...(conDescuento ? { p_descuento_pct: leerDescuento(b.descuento) ?? 0 } : {}),
+    ...(propuesta ? { p_propuesta: propuesta } : {}),
   };
 }
 
@@ -573,6 +578,8 @@ export type FilaPlan = {
   catalogo: { precio: number; costo: number } | null;
   /** Flojo, normal y bueno que propone el sistema (C4, `lib/plan-compra-propuesta.ts`); null = no vendió; undefined = la base no lo manda. */
   propuesta?: PropuestaCategoria | null;
+  /** Cuándo leyó la pantalla los datos de los que salió `propuesta` (ISO). Se guarda junto al plan (ADR-0520). */
+  propuestaLeidaEn?: string;
   /** El % de lo que sobra de la campaña (C5): con él arranca una categoría sin plan. null = nadie lo fijó todavía. */
   recuperoDefecto?: number | null;
   /** Lo necesario para repartir el objetivo entre las tiendas (`lib/plan-compra-reparto.ts`); undefined = la base no lo manda. */

@@ -19,6 +19,7 @@ import { camposDelPlan } from "@/lib/plan-compra-guia";
 import { Check, Sparkles } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { explicarPropuesta } from "@/lib/plan-compra-propuesta";
+import { guardarConPropuesta, propuestaParaGuardar } from "@/lib/plan-compra-propuesta-guardada";
 import { fraseDelSugerido, sugeridoParcial } from "@/lib/plan-compra-descuento";
 import { RepartoTiendas } from "@/components/plan-compra/RepartoTiendas";
 import {
@@ -211,8 +212,19 @@ export function FormularioCategoria({
     const seguir = ((e.nativeEvent as SubmitEvent).submitter as HTMLElement | null)?.dataset.seguir === "1";
     enviando.current = true;
     setGuardando(true);
-    const args = argsGuardar(planId, categoria.id, b, tallas, nota, versionParaGuardar(conVersion, versionLeida, versionConocida), fila.conDescuento === true);
-    const { data, error } = await firmar(createClient().rpc(RPC_GUARDAR_LINEA as never, args as never), responsable.firma());
+    // Lo que la pantalla propuso al guardar queda en el historial de la base (ADR-0520). Si la base todavía no conoce ese parámetro, se repite sin él.
+    const args = argsGuardar(
+      planId,
+      categoria.id,
+      b,
+      tallas,
+      nota,
+      versionParaGuardar(conVersion, versionLeida, versionConocida),
+      fila.conDescuento === true,
+      propuestaParaGuardar(fila.propuesta, fila.propuestaLeidaEn),
+    );
+    const firma = responsable.firma();
+    const { data, error } = await guardarConPropuesta((a) => firmar(createClient().rpc(RPC_GUARDAR_LINEA as never, a as never), firma), args);
     responsable.despues(error);
     setGuardando(false);
     enviando.current = false;

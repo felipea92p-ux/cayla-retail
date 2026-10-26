@@ -1,8 +1,8 @@
 # ADR-0520 — Plan de campaña: la base recuerda lo que el sistema propuso junto a lo que se guardó
 
-- **Fecha:** 2026-10-26 · **Estado:** actividad A2 de la tarea #1 construida y probada **solo en local** (migración `20261026171000`, 22 casos en
-  `pnpm pruebas:plan-compra-historial-lineas`, y las dos suites vecinas ajustadas). **No está en producción** ni la web la manda todavía (A3). Producción espera el OK puntual de Felipe
-  tras el ensayo revertido (A4). El número de este ADR y la versión de la migración están reservados para la rama `claude/campaign-plan-audit-652032` (`pnpm reservar`).
+- **Fecha:** 2026-10-26 · **Estado:** actividades A2 (base) y A3 (web) de la tarea #1 construidas y probadas **solo en local** (migración `20261026171000`, 22 casos en
+  `pnpm pruebas:plan-compra-historial-lineas`, las dos suites vecinas ajustadas y `lib/plan-compra-propuesta-guardada.test.ts`). Verificado de punta a punta en el navegador local: guardar
+  «Vestidos» desde la hoja dejó su fila con la propuesta tal como se veía. **No está en producción**; producción espera el OK puntual de Felipe tras el ensayo revertido (A4). El número de este ADR y la versión de la migración están reservados para la rama `claude/campaign-plan-audit-652032` (`pnpm reservar`).
 - **Continúa a:** [ADR-0349](0349-plan-de-campana.md) (el modelo), [ADR-0372](0372-plan-de-campana-barra-de-rango-paso-a-paso-y-exportar.md) (la versión de cada línea, B4) y
   [ADR-0499](0499-plan-de-campana-descuento-y-fecha-limite.md) (el descuento, de cuya función de guardado parte esta).
 - **Relacionados:** ADR-0193 (la versión sube en cada escritura), ADR-0195 (políticas y deadlocks: nada de `drop trigger` ni políticas en la misma parte), ADR-0496 (se prueba con el rol de la tienda, no solo como dueño).
@@ -83,7 +83,9 @@ y huella completa antes y después (ver `docs/pantallas/compras-plan.md`, A4).
 
 - **Leer el historial.** Ni la pantalla ni ninguna función lo lee todavía: eso es la tarea #6 (versiones del plan) y la de medir aciertos.
 - **Dinero, stock y comprobantes.** El historial no mueve nada; es solo memoria.
-- **La web:** A3 manda la propuesta que mostró la pantalla; hasta entonces la columna queda en `null`.
+- **Lo que la web manda (A3, `lib/plan-compra-propuesta-guardada.ts`):** `{v: 1, calculada_en, dias_campana, flojo, normal, bueno, historial_leido, tiendas: [{tienda, normal, flojo,
+  bueno, como, multiplicador, previa}]}`; si no cabe en 8 KB, sin el detalle por tienda; si la categoría no vendió en 90 días, `{v, calculada_en, sin_ventas: true}`; si la base no manda
+  propuestas, nada (`null`). `calculada_en` es cuándo recibió la pantalla la lectura (una pestaña abierta desde ayer dice «ayer»). Con la base vieja repite el guardado sin la propuesta.
 
 ## Qué suites tocó
 
