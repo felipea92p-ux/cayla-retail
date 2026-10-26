@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ficha de consumo del modelo · tres direcciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<style>
+  .pagina{max-width:1180px;margin:0 auto;padding:36px 32px 80px}
+  .pagina h1{font:400 40px/1.05 var(--font-serif);margin:6px 0 8px}
+  .tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:26px 0}
+  @media (max-width:980px){.tres{grid-template-columns:1fr}}
+  .dir{display:flex;flex-direction:column;gap:10px}
+  .dir h2{font:400 24px/1.15 var(--font-serif)}
+  .dir .letra{font:400 15px/1 var(--font-serif);width:30px;height:30px;border-radius:999px;display:grid;place-items:center;background:var(--color-tinta);color:var(--color-crema)}
+  .dir .ent{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:6px}
+  .matriz th:first-child,.matriz td:first-child{width:21%}
+  .matriz td{vertical-align:top;font-size:13.5px}
+  .matriz td b{display:block;margin-bottom:2px}
+  .pie{margin-top:26px}
+  a.btn{text-decoration:none}
+</style>
+</head>
+<body>
+<div class="pagina">
+  <p class="eyebrow">Producción · maqueta para decidir · 26 oct 2026</p>
+  <h1>Ficha de consumo del modelo</h1>
+  <p class="tt60" style="max-width:74ch">Hoy una orden usa <b>un solo número</b> de tela por color y los avíos se reescriben en cada orden. Tres maneras de arreglarlo, con datos del <b>Chaleco de Prueba</b> (CHA-0001: 4 colores, tallas S y M, S/ 59; lo demás es inventado). Cada una es tocable, en claro y oscuro, y se ve bien a 1024 y a 1440. <b>No es la implementación</b> y no escribe nada.</p>
+
+  <section class="tres" aria-label="Las tres direcciones">
+    <article class="tarjeta pad dir"><span class="letra">A</span><h2>La ficha vive en el modelo</h2>
+      <p class="tt60">Una sección «Ficha de consumo» en <b>Editar producto</b>. Se escribe una vez, como el precio. Nueva orden solo la lee; si esta orden es distinta, se ajusta <i>solo esa orden</i>.</p>
+      <div class="ent"><a class="btn prim chico" href="a-en-el-modelo.html#ficha">Abrir A</a><a class="btn sec chico" href="a-en-el-modelo.html#una-cifra">Solo un número</a><a class="btn sec chico" href="a-en-el-modelo.html#medido">Lo medido</a><a class="btn sec chico" href="a-en-el-modelo.html#orden">Nueva orden</a></div></article>
+    <article class="tarjeta pad dir"><span class="letra">B</span><h2>La orden propone y guarda</h2>
+      <p class="tt60">Sin pantalla nueva. La tela por talla y los avíos se escriben en <b>Nueva orden</b> y se dejan en el modelo con el interruptor que ya existe. Lo medido se pregunta al <b>pasar al stock</b>.</p>
+      <div class="ent"><a class="btn prim chico" href="b-en-la-orden.html#primera">Abrir B</a><a class="btn sec chico" href="b-en-la-orden.html#aproximado">Solo un número</a><a class="btn sec chico" href="b-en-la-orden.html#propone">Propone la ficha</a><a class="btn sec chico" href="b-en-la-orden.html#cierre">Al cerrar</a></div></article>
+    <article class="tarjeta pad dir"><span class="letra">C</span><h2>Una hoja, tres puertas</h2>
+      <p class="tt60">Una sola hoja «Ficha de consumo» que se abre desde <b>Editar producto</b>, <b>Nueva orden</b> y la <b>orden abierta</b>. Quien guarda elige: <i>solo esta orden</i> o <i>también el modelo</i>. Lo medido manda solo desde la 3.ª orden.</p>
+      <div class="ent"><a class="btn prim chico" href="c-una-hoja-tres-puertas.html#nueva">Abrir C</a><a class="btn sec chico" href="c-una-hoja-tres-puertas.html#aproximado">Solo un número</a><a class="btn sec chico" href="c-una-hoja-tres-puertas.html#medido">Lo medido</a><a class="btn sec chico" href="c-una-hoja-tres-puertas.html#producto">Desde Editar producto</a></div></article>
+  </section>
+
+  <h2 class="serif" style="font:400 24px/1.15 var(--font-serif);margin-bottom:10px">Las cuatro preguntas, contestadas por cada una</h2>
+  <div class="tarjeta" style="overflow:auto"><table class="tabla matriz">
+    <thead><tr><th></th><th>A · En el modelo</th><th>B · En la orden</th><th>C · Una hoja, tres puertas</th></tr></thead>
+    <tbody>
+      <tr><td><b>¿Dónde se escribe?</b></td><td>Solo en Editar producto (Catálogo).</td><td>Solo en Nueva orden y «Editar tela y avíos» (Taller).</td><td>En una hoja que se abre desde las tres pantallas. Un solo editor.</td></tr>
+      <tr><td><b>¿Quién lo edita?</b></td><td>Quien edita el catálogo (líder, Productos, Atributos). El Taller ajusta solo su orden.</td><td>Quien abre la orden, si el modelo no tiene ficha. Corregir una ficha que ya existe sigue siendo de Catálogo (regla de hoy).</td><td>Quien tiene Producción parado en el Taller. Catálogo la ve en solo lectura. <i>Cambia una regla de ADR-0400: pide tu OK.</i></td></tr>
+      <tr><td><b>Si solo se sabe un número aproximado</b></td><td>Interruptor «Una cifra | Por talla»; la cifra única lleva la insignia «Aproximado» y un aviso con lo que pediría.</td><td>Escribes una talla y la otra la <b>copia</b> (celda punteada, «≈»); al escribir la otra se afina.</td><td>Escalones «Estimado → Audaces → Medido» a la vista; un número para todas las tallas es «Estimado».</td></tr>
+      <tr><td><b>Cuando lo medido corrige lo declarado</b></td><td>Llega una <b>bandeja en Catálogo</b> con las 3 órdenes: alguien acepta o descarta («Usar lo medido»).</td><td>Se <b>pregunta al pasar al stock</b>: «¿Usar lo que se gastó?». Desde la 3.ª orden se puede aceptar.</td><td><b>Manda solo desde la 3.ª orden</b> (regla del 16 oct), a la vista, con «Volver a Audaces». Sin pregunta.</td></tr>
+      <tr><td><b>Lo que cuesta</b></td><td>Una sección nueva dentro de un formulario de otro módulo + una bandeja.</td><td>Lo más barato: extiende lo que ya existe. Pero la ficha nace tarde y según quién abrió la primera orden.</td><td>Una pieza nueva y tres puertas. Más trabajo, una sola forma de hacerlo.</td></tr>
+    </tbody></table></div>
+  <p class="pie tt60" style="max-width:80ch">La recomendación, el costo de cada una y la lista de actividades para construir están en <a class="enlace" href="README.md">README.md</a>. Barra de arriba de cada maqueta: estados de la pantalla, claro/oscuro y ancho 1024/1440.</p>
+</div>
+<script>
+  /* El índice también respeta el tema por la URL (#oscuro). */
+  if (location.hash.includes('oscuro')) document.documentElement.dataset.tema = 'oscuro';
+</script>
+</body>
+</html>

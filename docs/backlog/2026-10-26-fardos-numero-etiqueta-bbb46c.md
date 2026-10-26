@@ -1,4 +1,4 @@
-## 📦 Fardos del envío y «Empezar a recibir» (2026-10-26, ADR-0480 «Actualización 2026-10-26 (c)») — migración `20261026214000` solo en local; rama `claude/fardos-numero-etiqueta-bbb46c`
+## 📦 Fardos del envío y «Empezar a recibir» (2026-10-26, ADR-0480 «Actualización 2026-10-26 (d)») — migración `20261026214000` solo en local; rama `claude/fardos-numero-etiqueta-bbb46c`
 
 - [x] `fn_envio_detalle` trae `bultos` (reemplazo anclado, idempotente; se detiene si falta la columna `despachos.bultos`). `compras_simple_recibir.mjs` 6/6.
 - [x] La hoja «Detalle» y `/recibir/envio/[id]` dicen «Vienen N fardos» (`VienenFardos`); sin dato no dibujan nada. Lector `leerDetalleEnvio` con su prueba.

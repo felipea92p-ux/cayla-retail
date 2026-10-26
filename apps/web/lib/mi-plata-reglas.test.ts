@@ -388,6 +388,14 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     expect([taxi.titulo, taxi.icono, taxi.detalle, taxi.estado.texto]).toEqual(["Taxi", "taxi", "Sin papel", "Compras lo revisa"]);
   });
 
+  it("una compra ya enviada dice su código (Mis envíos); si falta mandar algo, sigue diciendo a qué tienda", () => {
+    const codigos = new Map([["c1", ["ENV-000118", "ENV-000119"]], ["c2", ["ENV-000120"]]]);
+    const { actuales } = movimientosDeLaCompradora(p, codigos);
+    const [andina, , rosa] = actuales;
+    expect(rosa.detalle).toBe("35 prendas · Factura · enviada · ENV-000118, ENV-000119");
+    expect(andina.detalle).toBe("1 prenda · Boleta · falta mandar a LIM");
+  });
+
   it("sin ronda: lo anotado después del último cierre va arriba; sin ningún cierre, lo de hoy; sin el día de la base, todo", () => {
     const sinRonda = { ...p, compras: p.compras.map((c) => ({ ...c, rondaId: null })), gastos: p.gastos.map((g) => ({ ...g, rondaId: null })), anotada: p.anotada.map((a) => ({ ...a, rondaId: null })) };
     const r = (abierta: typeof p.ronda.abierta, cerradaEn: string | null) => ({ abierta, ultimaCerrada: cerradaEn ? { ...p.ronda.ultimaCerrada!, cerradaEn } : null });

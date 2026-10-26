@@ -290,7 +290,10 @@ nota de venta o sin comprobante.
   indica el banco de la empresa del que salió la plata (`fondo_plata_anotada.cuenta_indicada_id`; BCP de fábrica o Interbank); «Revisar compras» lo trae
   elegido y Compras lo confirma o lo cambia. **La indicación no mueve plata:** lo que baja en Finanzas sigue siendo `confirmar_plata_compras(p_cuenta_origen_id)`.
 
-## Actualización 2026-10-26 (c): la tienda ve cuántos fardos vienen, y el botón es «Empezar a recibir» (rama `claude/fardos-numero-etiqueta-bbb46c`, migración `20261026214000`)
+## Actualización 2026-10-26 (c): «Mis envíos» — el código de cada envío y su historial por ronda
+Felipe notó que al mandar a la tienda el código del envío (ENV-…) no se veía: la compradora no podía avisarle a la sede qué buscar en Recibir ni volver a verlo. Maqueta aprobada: `docs/maquetas/mis-compras-envios-2026-10/`. Decisiones: (1) el código sale en grande apenas se manda, con copiar y compartir por WhatsApp; (2) los envíos se leen con `retail.fn_mis_envios()` (20261026174000, solo lectura, sin tablas nuevas): los que despachó quien mira, con su ronda leída de las compras que llevan; (3) «Mis envíos» agrupa por ronda («Esta ronda» / «Rondas anteriores»), busca en todas las rondas y filtra por cómo van; (4) en el inicio, «Envíos de esta ronda» va pegado a «Falta mandar» —el mismo paso, «Manda»— y el cierre de la ronda muestra sus envíos antes de cerrar. Un envío «en camino» no frena el cierre (lo frena solo lo que falta mandar). (5) en escritorio, la propuesta «A» de la maqueta de PC (Inicio en tres columnas, Mis envíos en tabla con cajón, Compré ropa con «Tu compra» a la derecha, hojas de dos columnas): solo desde 1024 px, el celular no cambia. Detalle y SQL por pegar: `docs/bitacora/2026-10-26-mis-compras-envios-por-ronda.md`.
+
+## Actualización 2026-10-26 (d): la tienda ve cuántos fardos vienen, y el botón es «Empezar a recibir» (rama `claude/fardos-numero-etiqueta-bbb46c`, migración `20261026214000`)
 
 **El problema.** La compradora dice cuántos fardos entrega al transporte (`despachos.bultos`, actividad 5), pero la tienda no lo veía: la hoja «Detalle»
 de Recibir mostraba las prendas por categoría y nada de cuántos paquetes eran. Y el botón de esa hoja decía «Abrir el fardo», que supone UN fardo que se
