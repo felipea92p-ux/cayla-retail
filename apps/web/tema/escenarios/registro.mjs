@@ -759,6 +759,44 @@ ESCENARIOS.push(
       await esperar(pagina, 2500);
     },
   },
+  // ADR-0515: la pestaña «Costo» del Historial (con «Hoy: N prendas» estimado) y la hoja «Corregir el costo» de la última compra. Solo
+  // quien ve el dinero de compras: el admin. `abre` exige la tarjeta o la hoja, no solo la ventana.
+  {
+    id: "productos.historial-costo",
+    ruta: "/productos",
+    cuentas: ["admin"],
+    abre: '[role=dialog] [data-guia="historial-prenda.costo-hoy"]',
+    nombre: "Productos · el historial de una prenda ▸ Costo (Hoy: N prendas, errores arreglados)",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="productos.buscador"] input').first().fill("Pantalón Carla");
+      await esperar(pagina, 1800);
+      await pagina.locator(".card-cayla button").first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.locator("[data-ir-historial]").click({ timeout: 8000 });
+      await esperar(pagina, 2500);
+      await pagina.locator('[data-guia="historial-prenda.costo"]').click({ timeout: 8000 });
+      await esperar(pagina, 1500);
+    },
+  },
+  {
+    id: "productos.historial-costo-corregir",
+    ruta: "/productos",
+    cuentas: ["admin"],
+    abre: '[data-guia="historial-prenda.corregir-costo"]',
+    nombre: "Productos · la hoja «Corregir el costo» de la última compra",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="productos.buscador"] input').first().fill("Pantalón Carla");
+      await esperar(pagina, 1800);
+      await pagina.locator(".card-cayla button").first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.locator("[data-ir-historial]").click({ timeout: 8000 });
+      await esperar(pagina, 2500);
+      await pagina.locator('[data-guia="historial-prenda.costo"]').click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.locator('[data-guia="historial-prenda.costo-corregir"]').click({ timeout: 8000 });
+      await esperar(pagina, 1500);
+    },
+  },
   {
     id: "productos.vista-rapida-talla",
     ruta: "/productos",

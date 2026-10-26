@@ -265,6 +265,7 @@ export function VistaRapidaProducto({
       {pagina === "historial" ? (
         <div className={paso}>
           <HistorialPrenda
+            productoId={producto.productoId}
             lectura={historial.lectura}
             nombre={producto.referencia}
             totalVariantes={nVariantes}
