@@ -4,21 +4,12 @@ import { describe, expect, it } from "vitest";
 import { categoriaDe } from "./categoria-de-prenda";
 
 // Candado de la regla «una prenda sin foto se dice de UNA sola manera» (ADR-0333, Felipe 2026-10-04): el ícono de su categoría sobre
-// su color (`MosaicoPrenda`). El isotipo de CAYLA (`/cayla-isotipo.png`) es la MARCA —tickets, etiquetas, loader, cartel del club—;
+// su color (`MosaicoPrenda`). El isotipo de CAYLA (`/cayla-isotipo.png`) es la MARCA, y desde el 2026-10-26 la marca es el logo oficial (`LogoCayla`);
 // puesto como relleno de una miniatura decía «sin foto» igual en 25 prendas y no distinguía una de otra. Una regla que solo vive en un
 // documento se olvida: esta prueba falla si un archivo nuevo dibuja el isotipo, así que dibujarlo ahí tiene que ser una decisión a la vista.
 
-/** Los únicos archivos que dibujan el isotipo, y para qué: todos son marca, ninguno es relleno de una prenda. */
-const USOS_DE_MARCA: Readonly<Record<string, string>> = {
-  "components/BoletaA4.tsx": "encabezado de la boleta impresa",
-  "components/CambioTicket.tsx": "logo del ticket de cambio",
-  "components/EtiquetaPrecio.tsx": "comentario: el colibrí de la etiqueta va en vector",
-  "components/ProformaA4.tsx": "encabezado de la proforma impresa",
-  "components/ReciboTermico.tsx": "logo del recibo térmico",
-  "components/clientas/CartelClub.tsx": "cartel del club",
-  "components/ui/Espera.tsx": "el loader a pantalla completa (ADR-0149)",
-  "components/ui/IsotipoCayla.tsx": "comentario: el color de marca se muestreó del PNG",
-};
+/** Los únicos archivos que pueden dibujar el isotipo viejo, y para qué. Hoy ninguno: tickets, etiquetas, cartel y loader usan `LogoCayla`. */
+const USOS_DE_MARCA: Readonly<Record<string, string>> = {};
 
 function archivos(dir: string, salida: string[] = []): string[] {
   for (const nombre of readdirSync(dir)) {

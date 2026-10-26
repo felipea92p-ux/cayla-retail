@@ -53,7 +53,7 @@ export const MAX_PRENDAS_PARA_RECIBIR = 30;
 
 /** El aviso de costo atípico de la recepción (`recibir_despacho`): el detalle viene en JSON en `details`. */
 export const HINT_COSTO_ATIPICO_RECEPCION = "recepcion_costo_atipico";
-/** Decisión 17: quien hizo una de las órdenes del envío no lo recibe (ni el líder). */
+/** Decisión 17: quien hizo una de las órdenes del envío no lo recibe (ni el líder; solo un Admin, ADR-0517). */
 export const HINT_QUIEN_COMPRO = "recibir_quien_compro";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -194,6 +194,11 @@ export function leerOrdenesDirectas(data: unknown): OrdenDirecta[] {
 /** Lo que se dice en vez del botón cuando quien mira hizo la orden (decisión 17). */
 export const TEXTO_LA_RECIBE_OTRA = "La recibe otra persona: tú hiciste la orden";
 
+/** ADR-0517: un Admin sí recibe lo que él mismo compró; antes de contar se le avisa que va a quedar anotado. */
+export const TEXTO_COMPRASTE_Y_LO_RECIBES = "Compraste esto tú: lo puedes recibir porque eres Admin";
+/** ADR-0517: lo que ve cualquiera en un envío cerrado por quien hizo la compra (y quien revisa las compras, en su ficha). */
+export const TEXTO_LO_RECIBIO_QUIEN_COMPRO = "Lo recibió quien hizo la compra";
+
 // ---- Un envío por dentro (`fn_envio_detalle`) ---------------------------------------------------------------------------------------
 
 export type CategoriaDeLinea = { id: string; nombre: string; prefijo: string | null; familia: string | null };
@@ -288,8 +293,12 @@ export type DetalleEnvio = {
   lotes: string[];
   /** En un envío cerrado: el resumen de cómo se cerró (`recepcion`, el mismo que devuelve `recibir_despacho`). */
   recepcion: ResultadoRecepcion | null;
-  /** Si la base lo dice: quien mira hizo alguna de sus órdenes (decisión 17). */
+  /** Si la base lo dice: a quien mira, Recibir le cierra este envío porque hizo alguna de sus órdenes (decisión 17). Un Admin no queda aquí. */
   creadoPorMi: boolean | null;
+  /** ADR-0517: quien mira hizo alguna de sus órdenes, sea Admin (la puede recibir) o no. `null` = la base todavía no lo dice. */
+  comproQuienMira: boolean | null;
+  /** ADR-0517: el envío está cerrado y lo cerró quien hizo alguna de sus órdenes (un Admin recibió lo que él mismo compró). */
+  recibioQuienCompro: boolean | null;
   /** Lo que los proveedores del envío deben por reponer, por categoría y marca (fase 5a, `deudas_del_proveedor`): con esto se ofrece «Es la
    *  reposición de lo que faltó». `null` = la base todavía no lo dice (la recepción sigue sin esa opción). */
   deudas: DeudaDelEnvio[] | null;
@@ -454,6 +463,8 @@ export function leerDetalleEnvio(data: unknown): DetalleEnvio | null {
     ],
     recepcion,
     creadoPorMi: booleano(d.creado_por_mi),
+    comproQuienMira: booleano(d.compro_quien_mira),
+    recibioQuienCompro: booleano(d.recibio_quien_compro),
     deudas: leerDeudasDelEnvio(d.deudas_del_proveedor ?? d.deudas),
     papeles: lista(d.papeles).map(leerPapel).filter((x): x is PapelDelEnvio => x !== null),
   };

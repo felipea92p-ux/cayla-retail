@@ -1238,10 +1238,11 @@ caso(
    select concat_ws(' / ', ${CLAVES(":'det'::jsonb")}, ${CLAVES(":'det'::jsonb -> 'lineas' -> 0")},
      (:'det'::jsonb -> 'lineas' -> 0 ->> 'deuda_pendiente') || ':' || (:'det'::jsonb ->> 'deudas_del_proveedor'));`,
   [
-    "abierto_en,abierto_por,anulado_en,anulado_por,bultos,cerrado_en,cerrado_por,creado_por_mi,despachado_en,despachado_por,deudas_del_proveedor," +
+    "abierto_en,abierto_por,anulado_en,anulado_por,bultos,cerrado_en,cerrado_por,compro_quien_mira,creado_por_mi,despachado_en,despachado_por,deudas_del_proveedor," +
       // `papeles` y `producto` (por línea): ADR-0480, actividad 6 (20261023121000), lo comprado desde el celular.
       // `bultos`: ADR-0480, 2026-10-26 (20261026214000), cuántos fardos mandó la compradora.
-      "diferencias,estado,id,lineas,motivo_anulacion,nota,nota_recepcion,numero,numero_guia,papeles,proveedores,recepcion,recibidos,sede,unidades,version",
+      // `compro_quien_mira` y `recibio_quien_compro`: el rastro de que un Admin recibe lo que él mismo compró (ADR-0517, 20261026161000).
+      "diferencias,estado,id,lineas,motivo_anulacion,nota,nota_recepcion,numero,numero_guia,papeles,proveedores,recepcion,recibidos,recibio_quien_compro,sede,unidades,version",
     "cantidad,categoria,categoria_id,compra_item_id,descripcion,deuda_pendiente,id,marca,marca_id,orden,orden_compra_id,orden_compra_item_id," +
       "posicion,precio_unitario,precio_venta_sugerido,producto,proveedor",
     "0:[]",

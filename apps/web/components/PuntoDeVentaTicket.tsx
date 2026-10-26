@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, MessageSquareText, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Tag, Ticket, Wallet, X } from "lucide-react";
+import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, MessageSquareText, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Tag, Ticket, Trash2, Wallet, X } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
@@ -195,6 +195,8 @@ type Props = {
   onDejarEnEspera: () => void;
   onRetomar: (id: string) => void;
   onIrAEspera: () => void;
+  /** El basurero de una fila de «En espera»: pide confirmación y lo saca de la espera. */
+  onDescartarEspera: (id: string) => void;
   // Totales — ya calculados en el padre
   /** Lo que se cobra: con el cupón del Club, ya sin su parte. */
   total: number;
@@ -272,6 +274,7 @@ export function PuntoDeVentaTicket({
   onDejarEnEspera,
   onRetomar,
   onIrAEspera,
+  onDescartarEspera,
   total,
   prendas,
   vale = null,
@@ -589,6 +592,18 @@ export function PuntoDeVentaTicket({
                         >
                           <Play className={ICONO_CHICO} aria-hidden />
                           Retomar
+                        </button>
+                        {/* El mismo basurero rojo que quita una prenda del ticket: aquí tira el ticket entero que ya no se va a
+                            cobrar (Felipe 2026-10-26). Pide confirmación antes, porque no se deshace. */}
+                        <button
+                          type="button"
+                          onClick={() => onDescartarEspera(t.id)}
+                          disabled={bloqueado}
+                          aria-label={`Descartar el ticket de ${nombreDeEspera(t.nombre, i)}`}
+                          title="Descartar este ticket"
+                          className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden />
                         </button>
                       </div>
                     );

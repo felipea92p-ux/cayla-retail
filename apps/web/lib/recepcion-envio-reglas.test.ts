@@ -266,6 +266,16 @@ describe("leer un envío por dentro (fn_envio_detalle)", () => {
     expect(d.diferencias).toEqual([{ despachoItemId: "di-1", extra: null, tipo: "faltante", causa: "no_vino", cantidad: 2, categoria: null, marca: null }]);
   });
 
+  it("ADR-0517: lee si quien mira compró (aunque pueda recibirlo) y si lo cerró quien compró; una base sin las claves dice null", () => {
+    const d = leerDetalleEnvio({ ...DETALLE_FASE4, creado_por_mi: false, compro_quien_mira: true, recibio_quien_compro: true })!;
+    expect(d.creadoPorMi).toBe(false);
+    expect(d.comproQuienMira).toBe(true);
+    expect(d.recibioQuienCompro).toBe(true);
+    const sin = leerDetalleEnvio({ ...DETALLE_FASE4, compro_quien_mira: undefined, recibio_quien_compro: "si" })!;
+    expect(sin.comproQuienMira).toBeNull();
+    expect(sin.recibioQuienCompro).toBeNull();
+  });
+
   it("sin envío (no existe o la respuesta no se entiende) es null", () => {
     expect(leerDetalleEnvio(null)).toBeNull();
     expect(leerDetalleEnvio({ id: "x", numero: "ENV-1" })).toBeNull();

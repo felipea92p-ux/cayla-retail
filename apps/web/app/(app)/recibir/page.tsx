@@ -152,7 +152,9 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           <RecepcionesRecientes recepciones={sinFactura} costos={costosSinFactura} vacio={`Todavía no llegó nada sin factura a ${nombreMirada}.`} />
         </section>
 
-        <TituloSeccion className="-mb-3">Contra factura</TituloSeccion>
+        {/* `space-y-6` deja 24 px como margen INFERIOR del título (Tailwind 4): `mb-3` los baja a 12. Con `-mb-3` el título quedaba
+            12 px debajo de las tarjetas y se veía cortado por la mitad. */}
+        <TituloSeccion className="mb-3">Contra factura</TituloSeccion>
         <div data-guia="recibidas.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <TarjetaCifra className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
             últimos 90 días · {resumen.recepciones.toLocaleString("es-PE")} {resumen.recepciones === 1 ? "recepción" : "recepciones"}

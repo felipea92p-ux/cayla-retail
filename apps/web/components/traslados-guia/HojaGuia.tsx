@@ -1,4 +1,5 @@
 import { QRCodeSVG } from "qrcode.react";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import type { FormatoGuia, GuiaTraslado } from "@/lib/traslados-guia-reglas";
 
 /**
@@ -10,7 +11,9 @@ export function HojaGuia({ guia, formato, urlQr }: { guia: GuiaTraslado; formato
   return (
     <article className="guia-traslado papel-fijo" data-formato={formato} aria-label={`Guía de la caja Nº ${guia.numero}`}>
       <header className="gt-cab">
-        <p className="gt-marca">CAYLA</p>
+        {/* El logo oficial en negro (ADR-0446), en la térmica y en A4. */}
+        <LogoCayla tinta="negro" className="gt-marca" />
+        <span className="sr-only">CAYLA</span>
         <p className="gt-titulo">Guía de traslado</p>
         <p className="gt-numero">Nº {guia.numero}</p>
       </header>

@@ -125,6 +125,7 @@ export default async function FichaDePrenda(props: Props) {
             ficha={ficha}
             sedeElegida={elegida?.id ?? null}
             colorPedido={unValor(sp.color)}
+            tallaPedida={unValor(sp.talla)}
             origenFotos={origenFotos}
             chips={chips}
             esperas={guardados ? [...guardados.esperas.keys()] : []}
