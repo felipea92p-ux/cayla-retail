@@ -90,8 +90,9 @@ import {
 // tienda va —la tienda, por prenda—; la barra negra de abajo suma; al final, revisar) → 3 · el papel (qué le dieron, la foto y cuánto
 // pagó, que viene con el total anotado).
 //
-// Pagar ahora o después (Felipe 2026-10-23, 20261023181000): de fábrica paga ahora todo lo del papel, por Yape. Puede bajar el monto (lo
-// que falta queda en Por pagar) o dejarle todo a Compras («Pagar después»). Los tres métodos salen de su plata para compras.
+// Quién paga (Felipe 2026-10-23, 20261023181000; rótulos de la maqueta mis-compras-rediseno-2026-10): de fábrica «Pagué ahora» todo lo del
+// papel, por Yape. «Pagué solo una parte» (escondido hasta tocarlo) baja el monto (lo que falta queda en Por pagar); o «Paga Compras» y
+// le deja todo. Los tres métodos salen de su plata para compras.
 //
 // Guardar no mueve plata en los libros (Felipe 2026-10-22): en su plata baja al instante, y los libros la mueven cuando Compras completa
 // el papel. Lo que falta en el paso del papel es lo mismo que rechaza la base (`camposPapel`). La compra lleva su identificador desde que se
@@ -170,6 +171,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const [pago, setPago] = useState<PagoCompra>(PAGO_DE_FABRICA);
   // Lo pagado sigue a lo que dice el papel hasta que la persona lo cambia: así «Pagar ahora» de fábrica es todo.
   const [pagadoPropio, setPagadoPropio] = useState(false);
+  // «Pagué solo una parte» está escondido hasta tocarlo (maqueta mis-compras-rediseno-2026-10): lo normal es pagar todo lo del papel.
+  const [pagoParcial, setPagoParcial] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<{ titulo: string; texto: string; tono: "error" | "atencion" } | null>(null);
   // `tieneAntes`: lo que tenía al guardar. Después de guardar, la pantalla se refresca y `datos.tiene` ya trae esta compra descontada:
@@ -206,13 +209,35 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const total = totalDeLineas(lineas);
   const ganancia = gananciaDeCompra(lineas);
   const pagoAhora: PagoCompra = { ...pago, pagado: pagadoPropio ? pago.pagado : monto };
+  // Con el monto escondido, lo pagado es todo lo del papel: no hay nada que la guía pida ahí.
+  const verParte = pagoParcial || pagadoPropio;
   const guia = useGuiaCampos(
-    camposPapel({ tipo, conFoto: archivo !== null, monto, pago: pagoAhora }, { esPersona, listo: responsable.listo, motivo: responsable.motivo }),
+    camposPapel({ tipo, conFoto: archivo !== null, monto, pago: pagoAhora }, { esPersona, listo: responsable.listo, motivo: responsable.motivo }).filter(
+      (c) => c.id !== "pagado" || verParte,
+    ),
   );
   const montoLeido = leerMontoPlata(monto);
   const pagadoLeido = pago.forma === "despues" ? 0 : leerMontoPlata(pagoAhora.pagado);
   const cuadra = cuadraElPapel(montoLeido, totalDeLineas(lineas));
   const nombreCorto = proveedor ? proveedor.nombre.replace(/\s+(s\.?a\.?c\.?|e\.?i\.?r\.?l\.?|s\.?r\.?l\.?)$/i, "") : "";
+  /** Una prenda de la compra, en su fila (la de «¿Está bien así?» se toca para corregirla; la del papel solo se lee). */
+  const filaDeLinea = (l: LineaCompra) => {
+    const c = deCategoria.get(l.categoriaId);
+    return (
+      <span className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-3">
+        <MiniaturaPrenda fotoUrl={(l.productoId && fotos.get(l.productoId)) || null} tamano="md" prefijo={c?.prefijo} familia={c?.familia} categoria={l.categoria} />
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium text-tinta">
+            {l.cantidad} · {l.nombre}
+          </span>
+          <span className="block truncate text-xs tabular-nums text-taupe">
+            {l.cantidad} × {soles(l.costo)} · va a {nombresTienda.get(l.destinoId) ?? "una tienda"}
+          </span>
+        </span>
+        <span className="whitespace-nowrap text-sm tabular-nums text-tinta">{soles(l.cantidad * l.costo)}</span>
+      </span>
+    );
+  };
 
   // El último proveedor elegido: con el internet lento del celular, quien elegía uno, volvía y elegía otro recibía las prendas del PRIMERO
   // si su respuesta llegaba después (y hasta su hoja de «Algo nuevo»). Solo cuenta la respuesta del último.
@@ -408,6 +433,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     setMonto("");
     setPago(PAGO_DE_FABRICA);
     setPagadoPropio(false);
+    setPagoParcial(false);
     setGuardada(null);
     setRechazo(null);
     setPaso("proveedor");
@@ -532,25 +558,13 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             </Vacio>
           ) : (
             <ul className="divide-y divide-sand" data-guia="compra.lineas">
-              {lineas.map((l, i) => {
-                const c = deCategoria.get(l.categoriaId);
-                return (
-                  <li key={`${l.clave}-${i}`}>
-                    <button type="button" onClick={() => corregir(i)} className="grid w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-3 text-left">
-                      <MiniaturaPrenda fotoUrl={(l.productoId && fotos.get(l.productoId)) || null} tamano="md" prefijo={c?.prefijo} familia={c?.familia} categoria={l.categoria} />
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-tinta">
-                          {l.cantidad} · {l.nombre}
-                        </span>
-                        <span className="block truncate text-xs tabular-nums text-taupe">
-                          {l.cantidad} × {soles(l.costo)} · va a {nombresTienda.get(l.destinoId) ?? "una tienda"}
-                        </span>
-                      </span>
-                      <span className="whitespace-nowrap text-sm tabular-nums text-tinta">{soles(l.cantidad * l.costo)}</span>
-                    </button>
-                  </li>
-                );
-              })}
+              {lineas.map((l, i) => (
+                <li key={`${l.clave}-${i}`}>
+                  <button type="button" onClick={() => corregir(i)} className="w-full text-left">
+                    {filaDeLinea(l)}
+                  </button>
+                </li>
+              ))}
             </ul>
           )}
           <button type="button" className="btn-cayla btn-enlace self-start" onClick={() => setPaso("habituales")}>
@@ -594,8 +608,14 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             void guardar();
           }}
         >
-          <h2 className="compra-pregunta">¿Qué papel te dieron?</h2>
-          <CampoGuiado id="tipo" guia={guia} titulo="El papel">
+          <h2 className="compra-pregunta">El papel y el pago</h2>
+          {/* Lo que llevas, para revisarlo de un vistazo antes de contestar (maqueta mis-compras-rediseno-2026-10). */}
+          <ul className="-mt-2 divide-y divide-sand rounded-[18px] border border-sand bg-papel px-3" data-guia="compra.llevas">
+            {lineas.map((l, i) => (
+              <li key={`${l.clave}-${i}`}>{filaDeLinea(l)}</li>
+            ))}
+          </ul>
+          <CampoGuiado id="tipo" guia={guia} titulo="¿Qué papel te dieron?">
             <div role="group" aria-label="¿Qué te dio el proveedor?" className="grid grid-cols-2 gap-2" data-guia="compra.tipo">
               {(Object.keys(TIPOS_PAPEL) as TipoPapel[]).map((k) => (
                 <button
@@ -618,13 +638,13 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               ))}
             </div>
           </CampoGuiado>
-          {tipo !== "sin_comprobante" && (
-            <CampoGuiado id="foto" guia={guia} titulo="La foto del papel" ayuda="· opcional">
+          {tipo !== null && tipo !== "sin_comprobante" && (
+            <CampoGuiado id="foto" guia={guia} titulo="Foto del papel" ayuda="· opcional">
               <TarjetaFoto
                 guia="compra.foto"
                 archivo={archivo}
                 deshabilitada={guardando}
-                ayuda="Que se lea el total y el número. Sin foto, igual se guarda"
+                ayuda="Opcional: ayuda a Compras a copiar el número"
                 onArchivo={(f) => {
                   setRechazo(null);
                   setArchivo(f);
@@ -632,9 +652,9 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               />
             </CampoGuiado>
           )}
-          <CampoGuiado id="monto" guia={guia} titulo="¿Cuánto dice el papel?">
+          <CampoGuiado id="monto" guia={guia} titulo={tipo === "sin_comprobante" ? "¿Cuánto dice lo que pagaste?" : "¿Cuánto dice el papel?"}>
             <CampoMonto
-              etiqueta="¿Cuánto dice el papel?"
+              etiqueta={tipo === "sin_comprobante" ? "¿Cuánto dice lo que pagaste?" : "¿Cuánto dice el papel?"}
               etiquetaOculta
               inputMode="decimal"
               autoComplete="off"
@@ -654,12 +674,12 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             )}
           </CampoGuiado>
           <div className="flex flex-col gap-2" data-guia="compra.pago">
-            <span className="campo-etiqueta">¿Cuándo le pagas?</span>
-            <div role="group" aria-label="¿Cuándo le pagas?" className="grid grid-cols-2 gap-2">
+            <span className="campo-etiqueta">¿Quién paga?</span>
+            <div role="group" aria-label="¿Quién paga?" className="grid grid-cols-2 gap-2">
               {(
                 [
-                  { forma: "ahora", nombre: "Pagar ahora", ayuda: "Sale de tu plata para compras" },
-                  { forma: "despues", nombre: "Pagar después", ayuda: "Compras le paga al proveedor" },
+                  { forma: "ahora", nombre: "Pagué ahora", ayuda: "Sale de tu plata" },
+                  { forma: "despues", nombre: "Paga Compras", ayuda: "Después, desde Por pagar" },
                 ] as const
               ).map((o) => (
                 <button
@@ -684,26 +704,9 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           </div>
           {pago.forma === "ahora" && (
             <>
-              <CampoGuiado id="pagado" guia={guia} titulo="¿Cuánto le pagas ahora?">
-                <CampoMonto
-                  etiqueta="¿Cuánto le pagas ahora?"
-                  etiquetaOculta
-                  inputMode="decimal"
-                  autoComplete="off"
-                  value={pagoAhora.pagado}
-                  disabled={guardando}
-                  data-guia="compra.pagado"
-                  onChange={(e) => {
-                    setRechazo(null);
-                    setPagadoPropio(true);
-                    setPago((p) => ({ ...p, pagado: e.target.value }));
-                  }}
-                />
-                {textoLoQueFalta(montoLeido, pagadoLeido) && <p className="mt-2 text-[13px] text-taupe">{textoLoQueFalta(montoLeido, pagadoLeido)}</p>}
-              </CampoGuiado>
-              <CampoGuiado id="medio" guia={guia} titulo="¿Con qué le pagaste?">
+              <CampoGuiado id="medio" guia={guia} titulo="¿Con qué pagaste?">
                 <FichasMedio
-                  etiqueta="¿Con qué le pagaste?"
+                  etiqueta="¿Con qué pagaste?"
                   opciones={MEDIOS_PAGO_COMPRA}
                   valor={pago.medio}
                   onValor={(m) => {
@@ -714,6 +717,40 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                   deshabilitado={guardando}
                 />
               </CampoGuiado>
+              {/* «Pagué solo una parte»: escondido hasta tocarlo. Al volver a «Pagué todo», lo pagado vuelve a seguir al papel. */}
+              {verParte ? (
+                <CampoGuiado id="pagado" guia={guia} titulo="¿Cuánto pagaste?">
+                  <CampoMonto
+                    etiqueta="¿Cuánto pagaste?"
+                    etiquetaOculta
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={pagoAhora.pagado}
+                    disabled={guardando}
+                    data-guia="compra.pagado"
+                    onChange={(e) => {
+                      setRechazo(null);
+                      setPagadoPropio(true);
+                      setPago((p) => ({ ...p, pagado: e.target.value }));
+                    }}
+                  />
+                  {textoLoQueFalta(montoLeido, pagadoLeido) && <p className="mt-2 text-[13px] text-taupe">{textoLoQueFalta(montoLeido, pagadoLeido)}</p>}
+                  <button
+                    type="button"
+                    className="btn-cayla btn-enlace mt-1 self-start"
+                    onClick={() => {
+                      setPagoParcial(false);
+                      setPagadoPropio(false);
+                    }}
+                  >
+                    Pagué todo
+                  </button>
+                </CampoGuiado>
+              ) : (
+                <button type="button" className="btn-cayla btn-enlace -mt-2 self-start" data-guia="compra.parte" onClick={() => setPagoParcial(true)}>
+                  Pagué solo una parte
+                </button>
+              )}
             </>
           )}
           {!esPersona && (
