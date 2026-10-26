@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 192,
+  "total": 194,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -199,6 +199,8 @@
       "button «(sin nombre)»",
       "button «{`Descartar el ticket de ${p.nombre}» #3",
       "Boton «Cancelar»",
+      "Boton «Seguir con el cierre»",
+      "Boton «Cancelar» #2",
       "Boton «Descartar ticket»",
       "input «Ej. Probador 2, señora del abrigo…»",
       "button «{s}»",

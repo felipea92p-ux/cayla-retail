@@ -141,7 +141,7 @@ import {
   rechazoDelCupon,
   solesDelCupon,
 } from "@/lib/club-puntos-reglas";
-import { DejarEnEsperaModal, DescartarTicketModal, TiraDeTickets } from "@/components/punto-de-venta/Esperas";
+import { DejarEnEsperaModal, DescartarTicketModal, TicketsSinCobrarModal, TiraDeTickets } from "@/components/punto-de-venta/Esperas";
 import {
   abrirNuevoTicket,
   cabeOtroTicket,
@@ -502,6 +502,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // El ticket que se va a descartar, con lo que la hoja de confirmación dice (se guarda aparte: al descartarlo su pestaña desaparece
   // y la hoja no puede leerla de ahí mientras sale). `id: null` es el de la caja.
   const [porDescartar, setPorDescartar] = useState<{ id: string | null; nombre: string; prendas: number; total: number } | null>(null);
+  // Se quiere cerrar la caja con tickets que tienen prendas: antes de abrir el cierre se dice cuáles se pierden.
+  const [cierreConTickets, setCierreConTickets] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
   // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
   // no sale hasta que las filas cubran el total al centavo: lo frena `motivoBloqueo`.
@@ -755,7 +757,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || porDescartar !== null || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
+    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || porDescartar !== null || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -1511,7 +1513,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     limpiarTicket();
     buscador.current?.focus();
   }
-  /** «Nuevo cliente» (Felipe, 2026-10-25): atender a otra sin perder este ticket, de un toque y con nombre automático. */
+  /** Cerrar la caja: con tickets que tienen prendas (los que esperan y el de la caja) primero se dice cuáles se pierden; sin ellos, directo. */
+  function abrirCierreDeCaja() {
+    if (pestanas.some((p) => p.prendas > 0)) setCierreConTickets(true);
+    else setModalCaja("cerrar");
+  }
+  /** «Nuevo cliente» (Felipe, 2026-10-25): atender a otro sin perder este ticket, de un toque y con nombre automático. */
   function nuevaCliente() {
     dejarEnEspera(nombreActivo);
   }
@@ -2400,7 +2407,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                         type="button"
                         onClick={() => {
                           cerrar();
-                          setModalCaja("cerrar");
+                          abrirCierreDeCaja();
                         }}
                         className="btn-cayla btn-secundario mt-4 flex h-11 w-full items-center justify-center"
                       >
@@ -2581,6 +2588,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           ocupados={[...enEspera.map((t) => t.nombre ?? ""), nombreTicket]}
           onDejar={dejarEnEspera}
           onClose={() => setEsperaAbierta(false)}
+        />
+      )}
+
+      {cierreConTickets && (
+        <TicketsSinCobrarModal
+          tickets={pestanas.filter((p) => p.prendas > 0)}
+          onSeguir={() => setModalCaja("cerrar")}
+          onClose={() => setCierreConTickets(false)}
         />
       )}
 
