@@ -851,7 +851,26 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
 
       </div>
       {conPanel && (
-        <TuCompra proveedor={proveedor ? nombreCorto : null} prendas={prendasDeLaCompra(lineas)} nombresTienda={nombresTienda} total={total} unidades={prendasDeLineas(lineas)} />
+        <TuCompra
+          proveedor={proveedor ? proveedor.nombre : null}
+          paso={fase}
+          prendas={prendasDeLaCompra(lineas)}
+          nombresTienda={nombresTienda}
+          fotos={fotos}
+          categorias={deCategoria}
+          total={total}
+          unidades={prendasDeLineas(lineas)}
+          ganancia={ganancia}
+          siguiente={
+            paso === "proveedor"
+              ? "Sigue: elegir a quién le compraste"
+              : paso === "habituales"
+                ? lineas.length > 0
+                  ? "Sigue: revisar las prendas"
+                  : "Sigue: elegir qué le compraste"
+                : "Sigue: guardar la compra"
+          }
+        />
       )}
       </div>
 
