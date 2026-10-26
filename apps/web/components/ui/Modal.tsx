@@ -8,6 +8,7 @@ import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
 import { useHojaSobreElTeclado } from "@/components/ui/useHojaSobreElTeclado";
 import { useAtrasCierraLaHoja } from "@/components/ui/useAtrasCierraLaHoja";
+import { CELULAR } from "@/components/ui/useEnCelular";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
 const MS_SALIDA = 220;
@@ -15,7 +16,6 @@ const MS_SALIDA = 220;
 const MS_SALIDA_CELULAR = 300;
 /** Y llega desde el borde en lo mismo que `cayla-hoja-movil-entra`: lo de atrás se aleja a su ritmo. */
 const MS_ENTRADA_CELULAR = 460;
-const CELULAR = "(max-width: 639.98px)";
 
 type Props = {
   titulo: ReactNode;
@@ -75,8 +75,9 @@ type Props = {
       90 dvh entre título, opciones, avisos y pie dejaba la tabla en una fila (Felipe 2026-10-26); lo de adentro se pone su propio tope. */
   altoFijo?: boolean;
   /** «Atrás» del navegador (el botón o el gesto desde el borde del teléfono) cierra la hoja en vez de ir a la pantalla anterior,
-      por la misma puerta que la ✕ (pasa por `antesDeCerrar`). Quien la abre decide cuándo: hoy, la hoja de la prenda de Existencias
-      en el teléfono (Felipe 2026-10-26; `useAtrasCierraLaHoja`). Se lee al abrir: cambiarlo con la hoja abierta no pone ni quita nada. */
+      por la misma puerta que la ✕ (pasa por `antesDeCerrar`; mientras guarda, `bloqueado`, no la cierra). Es lo de fábrica en el
+      teléfono (bajo 640 px) en TODA hoja; desde 640 px, no (ADR-0528, `useAtrasCierraLaHoja`). `false` lo apaga: solo `<ModalRuta>`,
+      que ya vive en la URL y cierra con el «atrás» de la navegación. Se lee al abrir: girar el teléfono con la hoja abierta no lo cambia. */
   atrasCierra?: boolean;
   /** La cara de toda hoja es UNA desde el 2026-10-14 (ADR-0358, ronda 12, Felipe eligió P1): el panel en `papel` con borde fino y SIN
       sombra —la profundidad la da el velo—, el título serif de 24 px y la frase en taupe, la de Finanzas (spike 2026-09-24) y Gasto
@@ -103,7 +104,7 @@ type Props = {
 export type TamanoHoja = "angosta" | "mediana" | "ancha";
 export const ANCHO_HOJA: Record<TamanoHoja, string> = { angosta: "max-w-md", mediana: "max-w-xl", ancha: "max-w-3xl" };
 
-export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta", ancho: anchoPropio, alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, arriba, variante, mediaAltura = false, altoFijo = false, atrasCierra = false }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta", ancho: anchoPropio, alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, arriba, variante, mediaAltura = false, altoFijo = false, atrasCierra }: Props) {
   const ancho = anchoPropio ?? ANCHO_HOJA[tamano];
   // La cámara y el ticket dibujan su propia hoja; todas las demás tienen la misma cara (ronda 12).
   const deCara = variante !== "camara" && variante !== "ticket";
@@ -154,10 +155,11 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
   // Escape cierra la hoja solo si ningún control de adentro lo usó: con la lista de un combo abierta, el primer Escape
   // cierra la lista y lo escrito sigue ahí; el segundo cierra la hoja (useEscapeLibre.ts explica por qué Radix solo no
   // alcanza). El clic en el velo sigue por `onOpenChange`.
-  // «Atrás» cierra la hoja como la ✕; mientras guarda (`bloqueado`), no hace nada y la hoja sigue.
-  const [conAtras] = useState(atrasCierra);
+  // «Atrás» cierra la hoja como la ✕; mientras guarda (`bloqueado`), no hace nada y la hoja sigue. Sale de la pila apenas empieza a
+  // cerrarse: su entrada se retira mientras anima la salida y el próximo «atrás» ya es de la hoja de abajo (o de la pantalla).
+  const [conAtras] = useState(() => atrasCierra ?? (typeof window !== "undefined" && window.matchMedia?.(CELULAR).matches === true));
   useAtrasCierraLaHoja(
-    conAtras,
+    conAtras && !cerrando,
     useCallback(() => {
       if (!bloqueado) pedirCierreDesdeFuera();
     }, [bloqueado, pedirCierreDesdeFuera])
