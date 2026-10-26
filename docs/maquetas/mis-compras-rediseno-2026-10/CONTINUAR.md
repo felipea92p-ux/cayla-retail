@@ -68,3 +68,26 @@ de hoy; sin migraciones ni cambios de negocio. Usa /construir con una actividad 
 Cada pantalla de la tabla, capturada a 375 px en el ERP local al lado de la misma pantalla de la maqueta: si no se parecen, no está
 terminada. Y el recorrido completo funcionando de verdad contra la base local: abrir la ronda, anotar plata, una compra repartida en dos
 tiendas con «Algo nuevo», guardarla, mandarla, un gasto y cerrar la ronda.
+
+## Ajustes de Felipe a la maqueta (2026-10-26, después de la aprobación)
+
+La maqueta `index.html` se ajustó mirándola; **manda sobre lo de arriba** donde difieran:
+
+- **Algo nuevo · qué es y marca:** chips solo con lo habitual del proveedor (hasta 4) + «Otra…» que abre el combo de hoy (buscador desde 8
+  opciones, grupos «Ya le compras / Otras»). Proveedor sin historial: nada de chips, un solo campo «Elige una categoría» / «Elige una
+  marca» que abre la lista; «Otra…» no existe sin chips. Si el proveedor trae una sola marca, ya llega puesta.
+- **Algo nuevo · tienda:** una o varias, con «¿Cuántas a cada una?» y «Cuadra: N de N», igual que la hoja de una prenda.
+- **Compra · 2 prendas:** «Algo nuevo, o no la encuentras aquí» va FIJO abajo, sobre la barra negra (como el ERP de hoy, Felipe 2026-10-23),
+  no como tarjeta al final de la grilla. Las prendas del proveedor son un atajo: 6 a la vista, «Ver todos los suyos (N)», chips de categoría.
+- **Me dieron plata · banco (PIDE DECISIÓN ANTES DE CONSTRUIR):** con «Transferencia» pregunta «¿De qué banco salió?» (la cuenta de la empresa de donde salió la plata, ligada a Finanzas) con BCP (de
+  fábrica) e Interbank (los dos bancos de `retail.cuentas_dinero`, verificado en producción el 2026-10-26). **Hoy la base no guarda eso al
+  anotar:** `anotar_plata_compras(p_medio, p_monto, p_foto_ruta, p_token)` no recibe cuenta y es Compras quien la elige al confirmar
+  (`confirmar_plata_compras.p_cuenta_origen_id`, sugerida BCP por `cuentaSugerida`). Construirlo exige una columna y un parámetro nuevos
+  (migración, y que la hoja de confirmar traiga el banco ya elegido): es cambio de negocio y de RPC, así que va como actividad aparte con el
+  OK de Felipe; hasta entonces la actividad 6 construye la hoja SIN esa pregunta.
+- **Cabecera de «Compré ropa» (opción B, elegida el 2026-10-26 de `docs/maquetas/mis-compras-cabecera-2026-10/`):** mientras la compra está en marcha no se
+  dibuja la cabecera del ERP (sede, fecha, título de 46 px y frase): una sola caja fija bajo la barra de arriba con la flecha, «Compré ropa» en 28 px,
+  «CAYLA · paso 2 de 3» y el camino de 3 tramos. Sin pasos (no cargó, o falta abrir la ronda) vuelve la cabecera del ERP. −129 px en el celular.
+- **«Algo nuevo» y «¿Está bien así?»:** «Algo nuevo» es la fila punteada con «+» en tinta; «¿Está bien así?» es una tarjeta por prenda (con sus tiendas en
+  chips), la cuenta de la compra y la barra negra de abajo.
+

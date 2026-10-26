@@ -304,6 +304,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/CotizacionesMaquilaPanel.tsx": PENDIENTE, // 6 controles
   "components/DetalleMuestraModal.tsx": { estado: "no-aplica", motivo: "Es el detalle de un tejido o patrón: se mira la foto y las prendas que lo usan, y subir una foto, generar un dibujo o quitar la imagen son acciones opcionales de un clic; no hay campo obligatorio ni pasos." },
   "components/EditarMarcaModal.tsx": { estado: "aplicada", evidencia: ["components/EditarMarcaModal.tsx"] },
+  "components/historial-prenda/CorregirCostoModal.tsx": { estado: "aplicada", evidencia: ["components/historial-prenda/CorregirCostoModal.tsx"] },
   "components/EliminarProductoModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el texto ya dice qué se borra y por qué; no hay camino que indicar." },
   "components/EtiquetasLista.tsx": { estado: "aplicada", evidencia: ["components/EtiquetasLista.tsx"] },
   "components/sellos/CambiarDibujoModal.tsx": { estado: "aplicada", evidencia: ["components/sellos/CambiarDibujoModal.tsx"] },

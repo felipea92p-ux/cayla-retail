@@ -1,15 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
+  categoriasDe,
   cifrasDe,
   coloresSinFoto,
+  contarPorEstado,
   descripcionParaGuardar,
   errorDeVitrina,
   esEmpaque,
+  aplicaSinHoja,
+  avisoDeLote,
+  esEncendidoSinPrecio,
   filtrarVitrina,
+  filtrosDeLaUrl,
+  hrefVitrina,
   interruptorEncendido,
   leerVitrina,
   libreEnTiendas,
+  MODELOS_POR_PAGINA,
   modeloDeJson,
+  modoDeLista,
   queLePasa,
   razonNoSeMuestra,
   seVeEnLaWeb,
@@ -17,6 +26,7 @@ import {
   textoLoNuevo,
   type ModeloVitrina,
 } from "./vitrina-reglas";
+import { paginar } from "./paginacion";
 import { camposDeLoteMostrar, camposDeModelo } from "./vitrina-guia";
 
 // Un modelo tal como lo devuelve `retail.fn_vitrina_modelos()` (20261014225000). Sin precio ni costo: el precio es el de cada tienda.
@@ -140,6 +150,153 @@ describe("cifras y filtros", () => {
   });
 });
 
+describe("filtros por estado, categoría y Lo nuevo (Ola 1 de Tienda web)", () => {
+  const sinPrecio = modelo({ id: "p", nombre: "Collar Perla", categoria: "Collares", publicable: false, porQueNo: "sin_precio" });
+  const sinPrecioApagado = modelo({ id: "pa", nombre: "Collar Luna", categoria: "Collares", publicable: false, porQueNo: "sin_precio", vitrina: { ...emma.vitrina!, publicado: false } });
+  const apagado = modelo({ id: "a", nombre: "Falda Renata", categoria: "Faldas", vitrina: { ...emma.vitrina!, publicado: false, enLoNuevo: "quitado" } });
+  const nunca = modelo({ id: "n", nombre: "Vestido Sofía", categoria: "Vestidos", vitrina: null });
+  const bolsa = modelo({ id: "b", nombre: "Bolsa Kraft", categoria: "Bolsas", publicable: false, porQueNo: "empaque", vitrina: { ...emma.vitrina!, publicado: false } });
+  const sinStock = modelo({ id: "s", nombre: "Polo Abril", categoria: "Camisas y Blusas", stock: [{ ubicacionId: "lim", cantidad: 0 }], vitrina: { ...emma.vitrina!, enLoNuevo: "automatico" } });
+  const todos = [emma, sinPrecio, sinPrecioApagado, apagado, nunca, bolsa, sinStock];
+  const ids = (ms: ModeloVitrina[]) => ms.map((m) => m.id);
+
+  it("«sin precio» es lo mismo que cuenta el Resumen: encendidos que no se ven, no los apagados ni el empaque", () => {
+    expect(ids(filtrarVitrina(todos, "sin_precio", ""))).toEqual(["p"]);
+    expect(todos.filter(esEncendidoSinPrecio).map((m) => m.id)).toEqual(["p"]);
+  });
+
+  it("«ocultos» es lo que alguien apagó o nunca encendió; el empaque no, porque no se puede prender", () => {
+    expect(ids(filtrarVitrina(todos, "ocultos", ""))).toEqual(["pa", "a", "n"]);
+  });
+
+  it("la categoría y Lo nuevo se suman al estado y al texto", () => {
+    expect(ids(filtrarVitrina(todos, "todos", "", { categoria: "Collares" }))).toEqual(["p", "pa"]);
+    expect(ids(filtrarVitrina(todos, "ocultos", "", { categoria: "Collares" }))).toEqual(["pa"]);
+    expect(ids(filtrarVitrina(todos, "todos", "", { loNuevo: "fijo" }))).toEqual(["e1", "p", "pa"]);
+    expect(ids(filtrarVitrina(todos, "todos", "", { loNuevo: "quitado" }))).toEqual(["a"]);
+    expect(ids(filtrarVitrina(todos, "todos", "luna", { categoria: "Collares" }))).toEqual(["pa"]);
+    // «Todos» no trae el empaque (queda uno menos). Sin la ficha de la vitrina, Lo nuevo es automático.
+    expect(ids(filtrarVitrina(todos, "todos", "", { loNuevo: "todos" }))).toHaveLength(todos.length - 1);
+  });
+
+  it("cuenta cada estado para la lista de la píldora, ya con la categoría y Lo nuevo puestas", () => {
+    expect(contarPorEstado(todos)).toEqual({ todos: 6, en_la_web: 2, sin_stock: 1, sin_precio: 1, ocultos: 3, empaque: 1 });
+    expect(contarPorEstado(todos, { categoria: "Collares" })).toEqual({ todos: 2, en_la_web: 0, sin_stock: 0, sin_precio: 1, ocultos: 1, empaque: 0 });
+  });
+
+  it("«todos» es solo ropa: el empaque no ocupa la lista y se ve con su propio filtro", () => {
+    expect(ids(filtrarVitrina(todos, "todos", ""))).not.toContain("b");
+    expect(ids(filtrarVitrina(todos, "empaque", ""))).toEqual(["b"]);
+    expect(ids(filtrarVitrina(todos, "empaque", "kraft"))).toEqual(["b"]);
+    expect(ids(filtrarVitrina(todos, "empaque", "", { categoria: "Collares" }))).toEqual([]);
+    // La búsqueda de ropa no encuentra una bolsa: sin el filtro Empaque no hay forma de verla por error en un lote.
+    expect(filtrarVitrina(todos, "todos", "kraft")).toEqual([]);
+    // «De N modelos» no cuenta el empaque.
+    expect(cifrasDe(todos).total).toBe(6);
+  });
+
+  it("las categorías, de la A a la Z y con su cuenta; sin categoría no entra", () => {
+    expect(categoriasDe([...todos, modelo({ id: "x", categoria: null })])).toEqual([
+      { nombre: "Bolsas", modelos: 1 },
+      { nombre: "Camisas y Blusas", modelos: 2 },
+      { nombre: "Collares", modelos: 2 },
+      { nombre: "Faldas", modelos: 1 },
+      { nombre: "Vestidos", modelos: 1 },
+    ]);
+  });
+
+  it("lee los filtros de la dirección y un valor raro abre la lista completa", () => {
+    expect(filtrosDeLaUrl({ filtro: "sin_precio", categoria: "Blusas", lonuevo: "fijo" })).toEqual({ estado: "sin_precio", categoria: "Blusas", loNuevo: "fijo" });
+    expect(filtrosDeLaUrl({})).toEqual({ estado: "todos", categoria: null, loNuevo: "todos" });
+    expect(filtrosDeLaUrl({ filtro: "cualquier-cosa", lonuevo: "siempre", categoria: "  " })).toEqual({ estado: "todos", categoria: null, loNuevo: "todos" });
+    expect(filtrosDeLaUrl({ filtro: ["sin_stock", "ocultos"] }).estado).toBe("sin_stock");
+  });
+
+  it("los enlaces del Resumen llevan a la Vitrina ya filtrada, y lo que arman se lee igual al llegar", () => {
+    expect(hrefVitrina("todos")).toBe("/tienda-web/vitrina");
+    expect(hrefVitrina("sin_precio")).toBe("/tienda-web/vitrina?filtro=sin_precio");
+    for (const f of ["en_la_web", "sin_stock", "sin_precio", "ocultos"] as const) {
+      expect(filtrosDeLaUrl({ filtro: new URL(hrefVitrina(f), "http://x").searchParams.get("filtro") ?? undefined }).estado).toBe(f);
+    }
+  });
+});
+
+describe("la lista de la Vitrina llega de 40 en 40", () => {
+  const muchos = Array.from({ length: 59 }, (_, i) => modelo({ id: `m${i}`, nombre: `Modelo ${i}` }));
+
+  it("40 por página: dos páginas para 59, con lo que se ve de cada una", () => {
+    expect(MODELOS_POR_PAGINA).toBe(40);
+    const p1 = paginar(filtrarVitrina(muchos, "todos", ""), 1, MODELOS_POR_PAGINA);
+    expect(p1).toMatchObject({ pagina: 1, totalPaginas: 2, desde: 1, hasta: 40 });
+    const p2 = paginar(filtrarVitrina(muchos, "todos", ""), 2, MODELOS_POR_PAGINA);
+    expect(p2).toMatchObject({ pagina: 2, desde: 41, hasta: 59 });
+    expect(p2.filas.at(-1)!.id).toBe("m58");
+  });
+
+  it("un filtro que deja pocos cabe en una página, y una página que ya no existe vuelve a la última", () => {
+    expect(paginar(filtrarVitrina(muchos, "todos", "Modelo 5"), 1, MODELOS_POR_PAGINA).totalPaginas).toBe(1);
+    expect(paginar(muchos, 9, MODELOS_POR_PAGINA).pagina).toBe(2);
+  });
+});
+
+describe("el aviso del lote cuando ocultar deja la tienda online casi vacía", () => {
+  const visibles = (n: number) => Array.from({ length: n }, (_, i) => modelo({ id: `v${i}`, nombre: `Modelo ${i}` }));
+  const apagado = modelo({ id: "x", vitrina: { ...emma.vitrina!, publicado: false } });
+
+  it("mostrar nunca avisa, y ocultar poco tampoco", () => {
+    expect(avisoDeLote("mostrar", visibles(50), 50)).toBeNull();
+    expect(avisoDeLote("ocultar", visibles(5), 50)).toBeNull();
+    expect(avisoDeLote("ocultar", visibles(20), 50)).toBeNull();
+  });
+
+  it("ocultar la mitad o más de lo que se ve (desde 10 modelos) avisa cuántos quedarían", () => {
+    expect(avisoDeLote("ocultar", visibles(25), 50)).toEqual({
+      titulo: "Vas a ocultar la mitad o más de la tienda online",
+      texto: "Hoy se ven 50 modelos; con esto quedarían 25. Los vuelves a mostrar cuando quieras.",
+    });
+    expect(avisoDeLote("ocultar", visibles(40), 50)?.texto).toContain("quedarían 10");
+    // Ocultar 2 de 3 no es un descuido: es poca cosa en absoluto.
+    expect(avisoDeLote("ocultar", visibles(2), 3)).toBeNull();
+  });
+
+  it("dejar la vitrina sin ningún modelo avisa siempre, aunque sean pocos", () => {
+    expect(avisoDeLote("ocultar", visibles(383), 383)?.titulo).toBe("Con esto la tienda online se queda sin modelos");
+    expect(avisoDeLote("ocultar", visibles(1), 1)?.texto).toContain("es el que dejas");
+    expect(avisoDeLote("ocultar", visibles(3), 3)?.texto).toContain("todos dejarían");
+  });
+
+  it("solo cuenta lo que hoy se ve: los ya apagados o el empaque elegidos no cambian lo que queda", () => {
+    expect(avisoDeLote("ocultar", [apagado, ...visibles(3)], 50)).toBeNull();
+    expect(avisoDeLote("ocultar", [apagado], 50)).toBeNull();
+    expect(avisoDeLote("ocultar", visibles(5), 0)).toBeNull();
+  });
+});
+
+describe("la Lista: una columna por tienda en pantalla grande, las filas de siempre si no cabe", () => {
+  /** El ancho más chico de la tarjeta con el que la Lista pasa a columnas, para esas tiendas. */
+  const umbral = (tiendas: number) => Array.from({ length: 3000 }, (_, w) => w).find((w) => modoDeLista(w, tiendas) === "columnas");
+
+  it("sin medir todavía (ancho 0) o angosta, son las filas de siempre", () => {
+    expect(modoDeLista(0, 3)).toBe("filas");
+    expect(modoDeLista(700, 3)).toBe("filas");
+  });
+
+  it("con 3 tiendas pasa a columnas desde ~1030 px de tarjeta: una laptop de 1366 sí (1052 px) y una de 1280 no (968 px)", () => {
+    expect(umbral(3)).toBeGreaterThan(900);
+    expect(umbral(3)).toBeLessThanOrEqual(1052);
+    expect(modoDeLista(1052, 3)).toBe("columnas");
+    expect(modoDeLista(968, 3)).toBe("filas");
+    expect(modoDeLista(1600, 3)).toBe("columnas");
+  });
+
+  it("cada tienda de más pide más ancho, y con más de 8 tiendas son filas aunque la pantalla sea enorme", () => {
+    for (let n = 1; n < 8; n++) expect(umbral(n + 1)!).toBeGreaterThan(umbral(n)!);
+    expect(modoDeLista(1700, 8)).toBe("columnas");
+    expect(modoDeLista(5000, 9)).toBe("filas");
+    expect(modoDeLista(5000, 0)).toBe("filas");
+  });
+});
+
 describe("la hoja de un modelo", () => {
   it("la descripción: limpia, y vacía si es la del catálogo", () => {
     expect(descripcionParaGuardar("  Lino   liviano ", "Otra")).toBe("Lino liviano");
@@ -165,6 +322,26 @@ describe("mostrar u ocultar: lo que le pasa a cada uno (lo mismo que hace `vitri
     expect(queLePasa(emma, "ocultar")).toEqual({ texto: "Deja de verse", cambia: true });
     expect(queLePasa(oculto, "ocultar")).toMatchObject({ cambia: false });
     expect(queLePasa(nunca, "ocultar")).toMatchObject({ cambia: false });
+  });
+});
+
+describe("el interruptor de un modelo: cuándo aplica sin hoja (ADR-0161, con «Deshacer»)", () => {
+  const nunca = modelo({ vitrina: null });
+  it("con responsable resuelto y un cambio real, aplica al momento (mostrar y ocultar)", () => {
+    expect(aplicaSinHoja(nunca, "mostrar", 10, true)).toBe(true);
+    expect(aplicaSinHoja(emma, "ocultar", 10, true)).toBe(true);
+  });
+  it("sin responsable resuelto abre la hoja, como siempre", () => {
+    expect(aplicaSinHoja(nunca, "mostrar", 10, false)).toBe(false);
+    expect(aplicaSinHoja(emma, "ocultar", 10, false)).toBe(false);
+  });
+  it("si no cambia nada, la hoja explica por qué (ya se ve, no se puede mostrar)", () => {
+    expect(aplicaSinHoja(emma, "mostrar", 10, true)).toBe(false);
+    expect(aplicaSinHoja(modelo({ publicable: false, vitrina: null }), "mostrar", 10, true)).toBe(false);
+  });
+  it("si ocultarlo deja la tienda online sin modelos, abre la hoja con su aviso", () => {
+    expect(aplicaSinHoja(emma, "ocultar", 1, true)).toBe(false);
+    expect(aplicaSinHoja(emma, "ocultar", 2, true)).toBe(true);
   });
 });
 
@@ -245,7 +422,7 @@ describe("solo ropa en la web (Felipe 2026-10-15): el empaque se vende en la caj
   });
 
   it("la cifra «se ven en la web» no cuenta el empaque, aunque haya quedado encendido", () => {
-    expect(cifrasDe([emma, bolsa, bolsaDeAntes])).toMatchObject({ seVen: 1, total: 3 });
+    expect(cifrasDe([emma, bolsa, bolsaDeAntes])).toMatchObject({ seVen: 1, total: 1 });
     expect(filtrarVitrina([emma, bolsa, bolsaDeAntes], "en_la_web", "").map((m) => m.id)).toEqual(["e1"]);
   });
 });

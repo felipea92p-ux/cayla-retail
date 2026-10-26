@@ -16,15 +16,20 @@ export default async function CompraRapidaPage() {
   const persona = await exigirModulo("ordenes_compra");
   const [datos, plata] = await Promise.all([getDatosCompraRapida(), getMiPlata()]);
   const sinRonda = Boolean(plata?.persona && !plata.ronda.abierta);
+  // Con la compra en marcha, la cabecera es la compacta de `RegistrarCompra` (Felipe 2026-10-26, opción B): la del ERP, con su título de
+  // 46 px y su frase, ocupaba un tercio del celular antes de la primera pregunta. Sin pasos (no cargó, o falta abrir la ronda) vuelve la del ERP.
+  const enMarcha = !datos.falla && !sinRonda;
   return (
     <div className="flex flex-col gap-6">
-      <EncabezadoPagina
-        sede={persona.ubicacionEtiqueta}
-        titulo="Compré ropa"
-        subtitulo="A quién le compraste, qué prendas y el papel que te dieron."
-        // Sin los pasos (no cargó, o falta abrir la ronda) no hay flecha del paso: sin esta, la única salida era el menú.
-        volver={datos.falla || sinRonda ? <Volver href="/compras/mi-plata" a="Mis compras" /> : undefined}
-      />
+      {!enMarcha && (
+        <EncabezadoPagina
+          sede={persona.ubicacionEtiqueta}
+          titulo="Compré ropa"
+          subtitulo="A quién le compraste, qué prendas y el papel que te dieron."
+          // Sin los pasos (no cargó, o falta abrir la ronda) no hay flecha del paso: sin esta, la única salida era el menú.
+          volver={<Volver href="/compras/mi-plata" a="Mis compras" />}
+        />
+      )}
       {datos.falla ? (
         <Aviso tono="error" titulo="No se pudo abrir la compra">
           {datos.falla}
