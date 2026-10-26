@@ -882,7 +882,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `VitrinaPantalla.tsx` (la regla del precio tras «¿Qué precio ve el cliente?», cifras compactas, buscador, el botón «Filtros» con su panel flotante `components/ui/FiltrosFlotantes.tsx`,
   la lista de 40 en 40 —ropa; el empaque, en Estado ▸ Empaque— en cartas o en «Lista», que según el ancho y las tiendas dibuja una
   columna por tienda o las filas de siempre, `modoDeLista`; barra fija de los elegidos) + `VitrinaModeloHoja.tsx`
-  (`vitrina_guardar_modelo`: mostrar, Lo nuevo y descripción) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`: mostrar u ocultar uno o
+  (`vitrina_guardar_modelo`: mostrar, Lo nuevo y descripción; y, solo de lectura, «Precio en la web» por tienda con `fn_vitrina_precios_modelo` →
+  `lib/vitrina-precios-reglas.ts`: la cuenta la hace `fn_tienda_precios`, la regla que lee la tienda, `20261026191000`) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`: mostrar u ocultar uno o
   varios; las dos hojas cargan bajo demanda con `next/dynamic`; la llamada vive en `lib/vitrina-escritura.ts` y el interruptor de UN modelo la usa
   sin hoja, con «Deshacer», cuando `responsable.listo`: `aplicaSinHoja`); reglas en `lib/vitrina-reglas.ts`, guía de foco en `lib/vitrina-guia.ts`. Sin precio web (Felipe, 2026-10-14): en la web
   vale el de cada tienda (`fn_precio_en_sede`). Solo ropa en la web (Felipe, 2026-10-15, `20261015122000`): la regla es

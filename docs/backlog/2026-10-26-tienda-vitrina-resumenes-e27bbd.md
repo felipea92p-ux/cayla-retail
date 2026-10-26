@@ -11,7 +11,7 @@
 - [x] Los 3 cambios de Vitrina ▸ Modelos de `/formidable` (rótulo «Libre:» y zonas de toque, regla del precio a un toque con «¿Por qué?», interruptor sin hoja con `responsable.listo` y «Deshacer»).
 - [x] Ciega repetida del Resumen y de la Vitrina (2026-10-26): Resumen 7,3, Vitrina 7,4 (`docs/formidable/tienda-web-resumen-y-vitrina-modelos.md`, «Segunda pasada»).
 - [ ] Prueba con una colaboradora real; repetir la medición completa del oficio; ver «¿Por qué?» con un modelo sin precio de verdad (la base local no tiene uno).
-- [ ] Decisiones de Felipe que salieron de la segunda pasada: que las cifras no se queden en 0 mientras no corre su animación (`CifraQueCuenta alMontar`, ADR-0136) y que la hoja del modelo diga con qué precio sale en cada tienda.
+- [ ] Decisiones de Felipe que salieron de la segunda pasada: que las cifras no se queden en 0 mientras no corre su animación (`CifraQueCuenta alMontar`, ADR-0136) (hecho: la hoja del modelo ya dice con qué precio sale en cada tienda).
 - [ ] A 375 px, «Filtros» mide 36 px y «Vista» 40 px (piezas del sistema, `/unificar`); «Desmarcar todos» mide 23 px de alto.
 - [ ] Repetir el `/chaos` del lote cuando la rama esté al día con `main` (hoy va 183 commits detrás) y cubrir lo que quedó fuera: sesión vencida, atrás/adelante y entrar por URL con una cuenta sin el módulo.
 - [ ] Ver con datos reales lo que el banco local no tiene: modelos «sin precio» y «ocultos», una tienda a medias, y la Lista con 3 tiendas (debe pasar a columnas desde ~1050 px de tarjeta, una laptop de 1366 px).
@@ -19,3 +19,7 @@
 - [ ] **Felipe:** ¿filtrar «Lo nuevo» automático? Pide que `fn_vitrina_modelos` traiga cuándo llegó cada modelo a una tienda.
 - [ ] Ideas medidas, sin hacer: ordenar la Lista por el stock de cada tienda (el encabezado de columnas ya lo permite); el Resumen deja la mitad derecha vacía a 1920 px (ADR-0462); «Abrir la tienda» mide 14 px de alto y 4,48:1 de contraste (viene de `EnlaceVer`); Looks y Esperan una talla no paginan.
 - [ ] Publicar: el PR se abre con `/abrir-pr` (todavía no hay PR). Si se publica, nada se pega en la base.
+- [x] Hoja del modelo ▸ «Precio en la web», por tienda y solo de lectura (`fn_vitrina_precios_modelo`, `20261026191000`; /construir, 4 actividades).
+- [ ] **Pegar `20261026191000_vitrina_precios_modelo.sql` en producción** (necesita el OK de Felipe; una sola parte, función nueva con `revoke`/`grant`; antes, `pnpm abrir-pr:choques`). Mientras no esté, la hoja dice «No se pudo leer el precio».
+- [ ] Ver «Precio en la web» con una campaña activa y con un precio propio por tienda (la base local no los tiene hoy).
+- [ ] Refrescar el volcado de producción (`datos:generar:produccion`) cuando la función esté aplicada: `pnpm datos:comparar` la marca hasta entonces.

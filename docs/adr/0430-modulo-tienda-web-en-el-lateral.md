@@ -230,7 +230,17 @@ cuando su caja mide 144 px o más (`MosaicoPrenda`, por su propio ancho: `@conta
 frase de `razonNoSeMuestra`; (3) el interruptor de UN modelo aplica sin hoja cuando `responsable.listo` (Admin, o la persona de la sesión que está de
 turno), con «Deshacer» en el aviso (`aplicaSinHoja`, `lib/vitrina-escritura.ts`; el rastro queda firmado igual: la misma `vitrina_mostrar`, ADR-0161
 regla 3). Si el responsable no está resuelto, el cambio no cambia nada o ocultarlo dejaría la tienda sin modelos o casi, abre la hoja como antes (la hoja
-y los lotes siguen con su combo y su aviso). **DESCARTÉ** tocar la casilla y el interruptor del sistema para subirlos a 24 px: es una decisión de
+y los lotes siguen con su combo y su aviso). **DECIDÍ 16 — La hoja del modelo dice con qué precio sale en cada tienda (Felipe, 2026-10-26, «igual a lo que es hoy, separado por tiendas»).** Sección «Precio en la
+web» (`PrecioEnLaWeb`): una fila por tienda que se ve en la web, con lo que el cliente ve hoy en la tarjeta de la tienda —el precio de la talla más cara; con
+campaña, el que paga, el de lista tachado y la campaña con su % y su último día; «Desde» si la campaña no toca a todas las tallas por igual— o «No se ofrece:
+sin precio en esta tienda». Una línea aparte, «Sin elegir tienda, el cliente ve el mayor», solo cuando ese precio difiere del de alguna tienda. La cuenta no
+se rehace en la pantalla: la hace `retail.fn_vitrina_precios_modelo(uuid)` (`20261026191000`, solo lectura, módulo `vitrina_web`), que llama a `fn_tienda_precios`,
+la regla única que lee la tienda (esa función es solo de la tienda online: el ERP no podía llamarla). **DESCARTÉ** armar el precio en TypeScript con
+`fn_precios_sede_producto` + `variantes.precio` (duplica la regla, no ve campañas ni «Todas») y sumarlo a `fn_vitrina_modelos` (la lista de ~300 modelos
+pagaría el cálculo de cada uno por un dato que se mira en una hoja). **SE ROMPE SI** el código sale a producción antes que la migración: la hoja dice «No se
+pudo leer el precio» y todo lo demás funciona (se degrada); o si alguien cambia `fn_tienda_precios` de firma (lo vigila `pnpm pruebas:vitrina-web`, sección 4e,
+que compara esta función contra lo que lee `tienda_catalogo` y trae un mutante). La migración está solo en local: **producción espera el OK de Felipe**.
+**DESCARTÉ** tocar la casilla y el interruptor del sistema para subirlos a 24 px: es una decisión de
 `/unificar`. **SE ROMPE SI** «Deshacer» corre después de que otra persona cambió el mismo modelo: vuelve a llamar con lo contrario y lo pisa (7 s de ventana).
 **DESCARTÉ** la propuesta B (ventana de una fila arriba): a 375 px dejaba los pendientes en el borde del pliegue. **SE ROMPE SI** una pantalla nueva del
 grupo no trae su `loading.tsx`: hereda la silueta del Resumen (el editor de campañas ya trae uno genérico).

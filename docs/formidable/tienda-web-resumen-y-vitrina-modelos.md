@@ -115,7 +115,7 @@ Datos de la prueba: 2 pedidos por confirmar (W-0792 vence en ~1 h, W-0793 en ~21
 
 ### Lista aparte (lo que apareció en esta pasada)
 - `CifraQueCuenta alMontar` deja «0 pedidos esperan que los confirmes» mientras no corre la animación (pestaña en segundo plano, o mientras carga): pieza del sistema (ADR-0136), decisión de Felipe.
-- La hoja del modelo no dice con qué precio sale en cada tienda; hoy hay que ir a Catálogo ▸ Productos.
+- ✓ La hoja del modelo dice con qué precio sale en cada tienda (hecho 2026-10-26, con /construir: «Precio en la web», `fn_vitrina_precios_modelo`; la migración espera el OK de Felipe para producción). Falta repetir la ciega con la pregunta del precio.
 - «Ocultar» de la barra de los elegidos no dice que abre una hoja de confirmación; en la Lista, el nombre del modelo no parece un botón.
 - «Bolsos y Carteras» junta bolsos y carteras: la colaboradora eligió los tres modelos para ocultar «carteras».
 - «Eres admin. No necesitas autorización» sigue en la hoja (es de `ComboResponsable`, compartido).
