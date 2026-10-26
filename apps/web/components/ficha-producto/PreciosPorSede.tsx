@@ -36,6 +36,7 @@ export function PreciosPorSede({
   tiendas,
   ubicacionActual,
   costoMaximo = null,
+  soloAqui = false,
   deshabilitado,
 }: {
   productoId: string;
@@ -54,6 +55,9 @@ export function PreciosPorSede({
   /** Lo que cuesta la talla activa que MÁS cuesta (lo guardado), si esta cuenta ve costos; null si no. Con él, un precio de tienda que
    *  hoy queda por debajo del costo se marca. La base solo frena al ponerlo (Felipe 2026-10-11): después el costo puede cambiar. */
   costoMaximo?: number | null;
+  /** Una terminal (Felipe 2026-10-26): está fija en su tienda, así que el bloque habla SOLO de ella —ni «todas las tiendas» ni las filas
+   *  de las demás— y dice que lo que cambie ahí no toca a las otras. Sin tienda propia (la terminal de un almacén), no se dibuja. */
+  soloAqui?: boolean;
   deshabilitado?: boolean;
 }) {
   const router = useRouter();
@@ -76,6 +80,118 @@ export function PreciosPorSede({
     router.refresh();
   };
   const dePrenda = precioPrenda !== null ? `a ${soles(precioPrenda)}` : "al precio de cada talla";
+
+  // La ficha es un <form>: los eventos de la hoja (un portal) suben por el árbol de React (ADR-0128). Sin esto, «Guardar precio»
+  // abriría «Revisa y guarda» del producto, y Enter en el precio no guardaría (la ficha lo frena).
+  const hojas = (
+    <span
+      className="contents"
+      onSubmit={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      {hoja?.k === "poner" && (
+        <PonerPrecioSedeModal
+          productoId={productoId}
+          tiendas={hoja.actual ? tiendas : libres}
+          tiendaInicial={hoja.tiendaId}
+          general={precioPrenda}
+          costoMaximo={costoMaximo}
+          precioAntesEn={precioEn}
+          ubicacionActual={ubicacionActual}
+          actual={hoja.actual}
+          onClose={() => setHoja(null)}
+          onGuardado={cerrarYLeer}
+        />
+      )}
+      {hoja?.k === "quitar" && (
+        <QuitarPrecioSedeModal
+          productoId={productoId}
+          precio={hoja.precio}
+          general={precioPrenda}
+          ubicacionActual={ubicacionActual}
+          onClose={() => setHoja(null)}
+          onGuardado={cerrarYLeer}
+        />
+      )}
+    </span>
+  );
+
+  if (soloAqui) {
+    // La terminal solo ve su tienda: el precio al que se vende ahí y lo que puede hacer con él. Las demás tiendas no se nombran.
+    const aqui = tiendas[0];
+    if (!aqui) return null;
+    const fila = filas.find((f) => f.ubicacionId === aqui.id) ?? { ubicacionId: aqui.id, sede: aqui.nombre, precio: precioPrenda, propio: null };
+    const bajoCosto = fila.propio !== null && quedaBajoElCosto(fila.propio.precio, costoMaximo);
+    return (
+      <div
+        className="mt-4 rounded-sm border border-sand bg-papel px-3.5 py-3"
+        data-campo="precio-por-tienda"
+        data-guia="editar.precio-tienda"
+      >
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <Store
+            aria-hidden
+            className="h-4 w-4 shrink-0 text-taupe"
+          />
+          <p className="text-[13px] font-semibold text-tinta">Precio en {aqui.nombre}</p>
+          <span className="font-mono text-[14px] font-semibold text-tinta">
+            {fila.precio !== null ? soles(fila.precio) : "Según la talla"}
+          </span>
+          {fila.propio ? (
+            <Chip tono="ambar">Precio propio</Chip>
+          ) : (
+            <span className="text-[12.5px] text-tinta/60">El de la prenda</span>
+          )}
+          {bajoCosto && <Chip tono="rojo">Bajo el costo</Chip>}
+          {fila.propio ? (
+            <span className="ml-auto flex gap-2">
+              <Boton
+                type="button"
+                peso="discreto"
+                disabled={deshabilitado}
+                aria-label={`Cambiar el precio de ${aqui.nombre}`}
+                onClick={() => setHoja({ k: "poner", actual: fila.propio ?? undefined })}
+              >
+                Cambiar
+              </Boton>
+              {/* Quitar es lo peligroso: rojo desde el principio (pieza única, ADR-0358). */}
+              <Boton
+                type="button"
+                peso="peligro"
+                disabled={deshabilitado}
+                aria-label={`Quitar el precio de ${aqui.nombre}`}
+                onClick={() => fila.propio && setHoja({ k: "quitar", precio: fila.propio })}
+              >
+                Quitar
+              </Boton>
+            </span>
+          ) : (
+            <Boton
+              type="button"
+              peso="discreto"
+              className="ml-auto"
+              disabled={deshabilitado}
+              aria-label={`Poner un precio propio en ${aqui.nombre}`}
+              onClick={() => setHoja({ k: "poner", tiendaId: aqui.id })}
+            >
+              Cambiar precio aquí
+            </Boton>
+          )}
+          {/* Lo mismo que dice cada fila de la lista completa: desde cuándo, por qué y quién, y el aviso del costo bajo su dato. */}
+          {fila.propio && (
+            <span className="basis-full text-[12.5px] text-tinta/70">
+              {desdeHace(fila.propio.desde)} · «{fila.propio.motivo}»{fila.propio.creadoPor ? ` · ${fila.propio.creadoPor}` : ""}
+            </span>
+          )}
+          {bajoCosto && (
+            <span className="basis-full text-[12.5px] text-rojo-profundo">Hoy queda por debajo de lo que cuesta la prenda. Súbelo o quítalo.</span>
+          )}
+        </div>
+        <p className="mt-1.5 text-[12.5px] text-tinta/65">Este precio solo vale en {aqui.nombre}: las otras tiendas no cambian.</p>
+        {hojas}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -183,38 +299,7 @@ export function PreciosPorSede({
         </ul>
       )}
 
-      {/* La ficha es un <form>: los eventos de la hoja (un portal) suben por el árbol de React (ADR-0128). Sin esto, «Guardar
-          precio» abriría «Revisa y guarda» del producto, y Enter en el precio no guardaría (la ficha lo frena). */}
-      <span
-        className="contents"
-        onSubmit={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
-      >
-        {hoja?.k === "poner" && (
-          <PonerPrecioSedeModal
-            productoId={productoId}
-            tiendas={hoja.actual ? tiendas : libres}
-            tiendaInicial={hoja.tiendaId}
-            general={precioPrenda}
-            costoMaximo={costoMaximo}
-            precioAntesEn={precioEn}
-            ubicacionActual={ubicacionActual}
-            actual={hoja.actual}
-            onClose={() => setHoja(null)}
-            onGuardado={cerrarYLeer}
-          />
-        )}
-        {hoja?.k === "quitar" && (
-          <QuitarPrecioSedeModal
-            productoId={productoId}
-            precio={hoja.precio}
-            general={precioPrenda}
-            ubicacionActual={ubicacionActual}
-            onClose={() => setHoja(null)}
-            onGuardado={cerrarYLeer}
-          />
-        )}
-      </span>
+      {hojas}
     </div>
   );
 }

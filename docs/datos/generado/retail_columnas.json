@@ -9798,6 +9798,15 @@
    "ordinal_position": 13,
    "table_name": "despacho_conteos",
    "table_schema": "retail"
+  },
+  {
+   "column_default": "'{}'::jsonb",
+   "column_name": "costos_prendas",
+   "data_type": "jsonb",
+   "is_nullable": "NO",
+   "ordinal_position": 14,
+   "table_name": "despacho_conteos",
+   "table_schema": "retail"
   }
  ],
  "despacho_diferencias": [

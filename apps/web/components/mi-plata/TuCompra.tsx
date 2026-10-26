@@ -1,51 +1,106 @@
-import type { PrendaDeLaCompra } from "@/lib/compra-rapida-reglas";
-import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { ArrowRight } from "lucide-react";
+import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { soles } from "@/lib/compras-reglas";
+import { inicialesProveedor, type PrendaDeLaCompra } from "@/lib/compra-rapida-reglas";
 
-// «Tu compra» (maqueta docs/maquetas/mis-compras-envios-pc-2026-10/, «A», Felipe 2026-10-26): en PC, a la derecha de cada paso de «Compré
-// ropa», lo que lleva la compra hasta ahora: el proveedor, cada prenda con sus tiendas y el total. Solo se lee; los botones de seguir
-// siguen en cada paso. En el celular no se dibuja (la barra negra de abajo ya dice lo mismo).
+// «Tu compra» (maqueta docs/maquetas/tu-compra-pc-2026-10/, «C · tarjeta oscura de resumen», Felipe 2026-10-26): en PC, a la derecha de cada
+// paso de «Compré ropa», lo que lleva la compra hasta ahora: el total grande, el proveedor, cuántas prendas y modelos y a qué tiendas van,
+// cada prenda con su foto y su subtotal, lo que se gana si se vende todo y qué sigue. Es de papel, como cualquier tarjeta: blanca en modo
+// claro y oscura en modo oscuro (Felipe 2026-10-26: «que no se invierta»; «Tienes para comprar», la de tinta, es la única que se invierte).
+// Solo se lee; los botones de seguir siguen en cada paso. En el celular no se dibuja (la barra negra de abajo ya dice lo mismo).
+type Categoria = { prefijo: string | null; familia: string | null };
+
 export function TuCompra({
   proveedor,
+  paso,
   prendas,
   nombresTienda,
+  fotos,
+  categorias,
   total,
   unidades,
+  ganancia,
+  siguiente,
 }: {
   proveedor: string | null;
+  /** En qué tramo va: 1 el proveedor, 2 las prendas, 3 el papel. */
+  paso: 1 | 2 | 3;
   prendas: PrendaDeLaCompra[];
   nombresTienda: ReadonlyMap<string, string>;
+  fotos: ReadonlyMap<string, string>;
+  categorias: ReadonlyMap<string, Categoria>;
   total: number;
   unidades: number;
+  ganancia: { vendes: number; ganas: number } | null;
+  /** Qué sigue, en palabras de tienda («Sigue: revisar las prendas»). */
+  siguiente: string;
 }) {
+  // Cuántas van a cada tienda, de la que más recibe a la que menos.
+  const porTienda = new Map<string, number>();
+  for (const p of prendas) for (const t of p.tiendas) porTienda.set(t.destinoId, (porTienda.get(t.destinoId) ?? 0) + t.cantidad);
+  const tiendas = [...porTienda.entries()].sort((a, b) => b[1] - a[1]);
   return (
-    <aside aria-label="Tu compra" className="card-cayla sticky top-40 hidden flex-col gap-3 p-4 lg:flex" data-guia="compra.tu-compra">
-      <TituloSeccion nivel={3}>Tu compra</TituloSeccion>
-      <div className="flex items-baseline justify-between gap-3 border-t border-sand pt-2.5 text-sm">
-        <span className="text-taupe">Proveedor</span>
-        <b className="min-w-0 truncate text-right font-medium text-tinta">{proveedor ?? "—"}</b>
-      </div>
+    <aside
+      aria-label="Tu compra"
+      data-guia="compra.tu-compra"
+      className="card-cayla sticky top-40 hidden flex-col gap-3 rounded-[22px] px-5 pb-4 pt-[18px] lg:flex"
+    >
+      <span className="flex items-baseline justify-between gap-3">
+        <span className="label-cayla text-[11px] text-taupe">Tu compra</span>
+        <span className="text-xs tabular-nums text-taupe">Paso {paso} de 3</span>
+      </span>
+      <p className="font-serif text-[46px] leading-none tabular-nums text-tinta">
+        <span className="mr-1 align-[0.35em] text-2xl text-taupe">S/</span>
+        {soles(total).slice(3)}
+      </p>
+      <p className="flex min-w-0 items-center gap-2.5 text-[13.5px] text-tinta">
+        <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] bg-sand font-serif text-[13px] text-tinta">
+          {proveedor ? inicialesProveedor(proveedor) : "—"}
+        </span>
+        <span className="min-w-0">{proveedor ?? "Aún sin proveedor"}</span>
+      </p>
       {prendas.length === 0 ? (
-        <p className="text-sm text-taupe">{proveedor ? "Cuando elijas las prendas, aparecen aquí." : "Elige primero a quién le compraste."}</p>
+        <p className="text-[13.5px] text-taupe">{proveedor ? "Cuando elijas las prendas, aparecen aquí." : "Elige primero a quién le compraste."}</p>
       ) : (
-        <ul className="flex flex-col gap-2 border-t border-sand pt-2.5 text-sm">
-          {prendas.map((p) => (
-            <li key={p.clave} className="flex justify-between gap-3">
-              <span className="min-w-0">
-                <span className="block truncate text-tinta">{p.nombre}</span>
-                <span className="block truncate text-xs text-taupe">{p.tiendas.map((t) => `${nombresTienda.get(t.destinoId) ?? "Tienda"} ${t.cantidad}`).join(" · ")}</span>
+        <>
+          <div className="flex flex-wrap gap-1.5 text-[12.5px]">
+            <span className="rounded-full bg-hueso px-2.5 py-0.5 text-taupe">{unidades === 1 ? "1 prenda" : `${unidades} prendas`}</span>
+            <span className="rounded-full bg-hueso px-2.5 py-0.5 text-taupe">{prendas.length === 1 ? "1 modelo" : `${prendas.length} modelos`}</span>
+            {tiendas.map(([id, n]) => (
+              <span key={id} className="rounded-full bg-hueso px-2.5 py-0.5 tabular-nums text-taupe">
+                {nombresTienda.get(id) ?? "Tienda"} {n}
               </span>
-              <span className="whitespace-nowrap tabular-nums text-tinta">× {p.cantidad}</span>
-            </li>
-          ))}
-        </ul>
+            ))}
+          </div>
+          <ul className="flex flex-col border-t border-sand">
+            {prendas.map((p) => {
+              const c = categorias.get(p.categoriaId);
+              return (
+                <li key={p.clave} className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-sand py-2 text-[13.5px] text-tinta">
+                  <MiniaturaPrenda fotoUrl={(p.productoId && fotos.get(p.productoId)) || null} prefijo={c?.prefijo} familia={c?.familia} categoria={p.categoria} />
+                  <span className="min-w-0">
+                    <span className="block truncate">{p.nombre}</span>
+                    <span className="block text-[11.5px] tabular-nums text-taupe">
+                      {p.cantidad} × {soles(p.costo)}
+                    </span>
+                  </span>
+                  <b className="whitespace-nowrap font-semibold tabular-nums">{soles(p.total)}</b>
+                </li>
+              );
+            })}
+          </ul>
+          {ganancia && (
+            <p className="flex items-baseline justify-between gap-3 text-[13px]">
+              <span className="text-tinta">Si se vende todo, ganas</span>
+              <b className="tabular-nums text-verde">{soles(ganancia.ganas)}</b>
+            </p>
+          )}
+        </>
       )}
-      {prendas.length > 0 && (
-        <div className="flex items-baseline justify-between gap-3 border-t border-sand pt-2.5">
-          <span className="text-sm text-taupe">{unidades === 1 ? "1 prenda" : `${unidades} prendas`}</span>
-          <span className="font-serif text-3xl tabular-nums text-tinta">{soles(total)}</span>
-        </div>
-      )}
+      <p className="flex items-center gap-2 rounded-[10px] bg-hueso px-2.5 py-2 text-[13px] text-tinta">
+        <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        {siguiente}
+      </p>
     </aside>
   );
 }

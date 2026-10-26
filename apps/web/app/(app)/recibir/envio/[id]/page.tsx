@@ -89,6 +89,8 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
         lotes={datos.lotes}
         veExistencias={veModulo(persona, "existencias")}
         veDinero={puede(persona, "verDineroCompras")}
+        // Una terminal cambia el precio de venta solo en su sede (Felipe 2026-10-26; la base lo exige: 20261026224000).
+        soloSede={persona.terminal}
         proveedoresParaElegir={proveedoresParaElegir}
         papeles={datos.papeles}
       />

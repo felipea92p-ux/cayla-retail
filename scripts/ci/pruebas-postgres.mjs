@@ -232,6 +232,10 @@ export const PRUEBAS = [
   // confirmar; sin costos propios todo sigue igual. ROLLBACK.
   "pruebas:costo-por-prenda",
 
+  // Una terminal no cambia el precio de la prenda (Felipe 2026-10-26): vale en todas las tiendas; pone el de SU tienda. El mismo
+  // precio, otra columna y una talla nueva sí pasan; el líder, una integrante y sin sesión, igual que antes. ROLLBACK.
+  "pruebas:precio-terminal",
+
   // Actividad de Colaboradores, Roles, Configuración y Regularizar (ADR-0207, act. 2026-10-03): cada operación en la
   // sede correcta, las formas de producción dan frases legibles, sin el dinero de la empresa. ROLLBACK.
   "pruebas:actividad-gestion",
