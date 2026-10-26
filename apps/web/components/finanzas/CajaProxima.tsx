@@ -20,15 +20,15 @@ const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as stri
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const diaYMes = (iso: string) => `${Number(iso.slice(8, 10))} ${MESES_CORTOS[Number(iso.slice(5, 7)) - 1]}`;
 
-export function CajaProximaPieza({ caja, hrefFlujo }: { caja: CajaProxima; hrefFlujo: string }) {
+export function CajaProximaPieza({ caja, hrefFlujo, className = "" }: { caja: CajaProxima; hrefFlujo: string; className?: string }) {
   if (caja.tipo === "oculta") return null;
   if (caja.tipo === "falla")
     return (
-      <Superficie pad guia="fin-resumen.caja">
+      <Superficie pad guia="fin-resumen.caja" className={className}>
         <CabeceraBloque titulo={TITULO} bajada="No se pudo leer la caja. Vuelve a cargar la página en un rato: el resto del Resumen sigue igual." />
       </Superficie>
     );
-  return caja.tipo === "sede" ? <CajaDeSede caja={caja} hrefFlujo={hrefFlujo} /> : <CajaDeCayla caja={caja} hrefFlujo={hrefFlujo} />;
+  return caja.tipo === "sede" ? <CajaDeSede caja={caja} hrefFlujo={hrefFlujo} className={className} /> : <CajaDeCayla caja={caja} hrefFlujo={hrefFlujo} className={className} />;
 }
 
 /** Lo que más pesa en el horizonte, con la misma lista de montos del resto de Finanzas. */
@@ -66,7 +66,7 @@ function Estados({ c, estado, className }: { c: CajaCayla; estado: string | null
   );
 }
 
-function CajaDeCayla({ caja: c, hrefFlujo }: { caja: CajaCayla; hrefFlujo: string }) {
+function CajaDeCayla({ caja: c, hrefFlujo, className }: { caja: CajaCayla; hrefFlujo: string; className: string }) {
   const ultimo = c.puntos.at(-1)!;
   const menor = Math.min(...c.puntos.map((p) => p.saldo));
   const minY = menor < 0 ? -topeRedondo(-menor) : 0;
@@ -81,7 +81,7 @@ function CajaDeCayla({ caja: c, hrefFlujo }: { caja: CajaCayla; hrefFlujo: strin
   const etiqueta = `${TITULO}. ${c.titular} Hoy tienes ${soles(c.saldoHoy)}; hasta el ${fechaEnPalabras(c.hasta)} sale ${soles(c.sale)} y te quedan ${soles(c.queda)}.`;
 
   return (
-    <Superficie pad guia="fin-resumen.caja">
+    <Superficie pad guia="fin-resumen.caja" className={className}>
       <CabeceraBloque titulo={TITULO} bajada={c.titular}>
         <Estados c={c} estado={estado} className="hidden sm:flex" />
       </CabeceraBloque>
@@ -169,9 +169,9 @@ function CajaDeCayla({ caja: c, hrefFlujo }: { caja: CajaCayla; hrefFlujo: strin
   );
 }
 
-function CajaDeSede({ caja: c, hrefFlujo }: { caja: CajaSede; hrefFlujo: string }) {
+function CajaDeSede({ caja: c, hrefFlujo, className }: { caja: CajaSede; hrefFlujo: string; className: string }) {
   return (
-    <Superficie pad guia="fin-resumen.caja">
+    <Superficie pad guia="fin-resumen.caja" className={className}>
       <CabeceraBloque titulo={TITULO} bajada={c.titular} />
       <div className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra etiqueta={c.vende ? `Efectivo en ${c.nombre}` : "Efectivo"} valor={c.efectivo === null ? null : soles(c.efectivo)} {...entra(1)}>

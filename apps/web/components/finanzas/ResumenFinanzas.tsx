@@ -41,7 +41,10 @@ import {
 // final, qué tan seguro es el número (ADR-0417). La sede y el mes los pone la barra común; esta pantalla no tiene selector propio.
 // No calcula plata: lo arman `recorrido-plata-reglas`, `resumen-telar-reglas` y `resumen-finanzas-reglas` con lo que lee la página.
 
-const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
+/** La entrada escalonada de cada pieza; esta llena su celda: dos tarjetas lado a lado miden lo mismo. */
+const alto = (i: number) => ({ className: "anim-entra h-full", style: { ["--i" as string]: i } as CSSProperties });
+/** Una tarjeta de las columnas: no se parte entre dos y deja 1 rem hasta la de abajo. */
+const columna = (i: number) => ({ className: "anim-entra mb-4 break-inside-avoid", style: { ["--i" as string]: i } as CSSProperties });
 
 type Props = {
   resumen: ResumenFinanzas | null;
@@ -135,10 +138,35 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
       <Orillo porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} que="vendido" hoy={hoy} />
       {dock}
 
-      {/* «Hoy te toca» va al lado del recorrido solo cuando cabe (desde 1280 px y con 20 rem de piso); antes, a 1024 px quedaba tan
-          angosta que partía el texto palabra por palabra. Más angosto, baja bajo el recorrido, a todo el ancho. */}
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(20rem,1fr)]">
-        <div {...entra(2)}>
+      {/* La caja y «Hoy te toca» van lado a lado y a la misma altura (desde 1280 px, con 20 rem de piso para «Hoy te toca»: antes, a 1024 px
+          quedaba tan angosta que partía el texto palabra por palabra). Más angosto, una bajo la otra. Sin huecos (Felipe 2026-10-26). */}
+      <section className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(20rem,1fr)]">
+        <div {...alto(2)}>
+          <CajaProximaPieza caja={caja} hrefFlujo={ir("/finanzas/reportes/flujo")} className="h-full" />
+        </div>
+
+        <div {...alto(3)} data-guia="fin-resumen.decidir">
+          <Superficie pad className="h-full">
+            <CabeceraBloque
+              titulo="Hoy te toca"
+              bajada={enCurso ? "Primero lo que más cuesta si se deja pasar." : `Es de hoy, aunque mires ${mesNombre(mes)}. Primero lo que más cuesta si se deja pasar.`}
+            />
+            <ResumenDecidir avisos={avisos} parcial={faltan.length > 0} />
+            {faltan.length > 0 && (
+              <ul className="fin-no-revisado">
+                {faltan.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            )}
+          </Superficie>
+        </div>
+      </section>
+
+      {/* Lo demás, en columnas que se llenan una tras otra: cada tarjeta queda pegada a la de arriba, sin aire. Con ancho para dos
+          columnas de 34 rem se reparten (el navegador corta donde las deja más parejas); con menos, van en una sola (Felipe 2026-10-26). */}
+      <div className="columns-[34rem] gap-4">
+        <div {...columna(4)}>
           <Superficie pad guia="fin-resumen.recorrido">
             <CabeceraBloque
               titulo="Por dónde pasa la plata"
@@ -161,34 +189,13 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
           </Superficie>
         </div>
 
-        <div {...entra(3)} data-guia="fin-resumen.decidir">
-          <Superficie pad>
-            <CabeceraBloque
-              titulo="Hoy te toca"
-              bajada={enCurso ? "Primero lo que más cuesta si se deja pasar." : `Es de hoy, aunque mires ${mesNombre(mes)}. Primero lo que más cuesta si se deja pasar.`}
-            />
-            <ResumenDecidir avisos={avisos} parcial={faltan.length > 0} />
-            {faltan.length > 0 && (
-              <ul className="fin-no-revisado">
-                {faltan.map((t) => (
-                  <li key={t}>{t}</li>
-                ))}
-              </ul>
-            )}
-          </Superficie>
+        <div {...columna(5)}>
+          <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso })} provisional={provisional} />
         </div>
-      </section>
 
-      <div {...entra(4)}>
-        <CajaProximaPieza caja={caja} hrefFlujo={ir("/finanzas/reportes/flujo")} />
-      </div>
-
-      <div {...entra(5)}>
-        <CambiosDelMesPieza cambios={cambiosDelMes({ r, ahora: filas, antes: estadoAntes, enCurso })} />
-      </div>
-
-      <div {...entra(6)}>
-        <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso })} provisional={provisional} />
+        <div {...columna(6)}>
+          <CambiosDelMesPieza cambios={cambiosDelMes({ r, ahora: filas, antes: estadoAntes, enCurso })} />
+        </div>
       </div>
     </div>
   );
