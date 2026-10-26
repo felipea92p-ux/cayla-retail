@@ -96,7 +96,9 @@ export function FilaCategoria({
         )}
       </span>
       {forma.venta && (
-        <span className={celda("izq", "min-w-0")}>
+        // El botón «Armar plan» sube 2 px al pasar el mouse (`.mov-boton`) y la celda recorta lo que se sale (`truncate`): le cortaba el borde de
+        // arriba. Sin plan no hay nada que truncar, así que esa celda deja ver el botón entero; la barra de rango sí se queda recortada.
+        <span className={celda("izq", linea && calculo ? "min-w-0" : "min-w-0 overflow-visible!")}>
           {linea && calculo ? (
             <BarraRango linea={linea} calculo={calculo} vendido={forma.real ? vendido : 0} retraso={paso} enCamino={f.enCamino} />
           ) : (
