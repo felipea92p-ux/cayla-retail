@@ -9,7 +9,7 @@ import { textoCambioDePrecio, type CambioDePrecio } from "@/lib/recepcion-conteo
 // «Vas a cambiar precios»: lo que cambia, antes de guardar (el cierre del envío, y «Hacer ahora» en «Para después»). Es dinero, así que
 // se lee y se confirma. Va FUERA del <form> de quien la abre (ADR-0128): un clic o una tecla de la hoja no debe llegar al envío.
 
-const AVISO_CIERRE = "El precio de compra cambia el costo de lo que entra en este envío. El de venta rige desde ahora: lo ya vendido no cambia. Los dos quedan en el historial.";
+const AVISO_CIERRE = "El costo cambia lo que cuesta lo que entra en este envío. El precio de venta rige desde ahora: lo ya vendido no cambia. Los dos quedan en el historial.";
 
 export function ConfirmarPrecios({
   cambios,
@@ -34,14 +34,14 @@ export function ConfirmarPrecios({
   onConfirmar: () => void;
 }) {
   return (
-    <Modal titulo="Vas a cambiar precios" subtitulo={subtitulo} onClose={onCancelar} bloqueado={cargando} tamano="mediana">
+    <Modal titulo={cambios.some((c) => c.tipo === "compra") ? "Vas a cambiar costos y precios" : "Vas a cambiar precios"} subtitulo={subtitulo} onClose={onCancelar} bloqueado={cargando} tamano="mediana">
       <div className="space-y-4">
         {(["compra", "venta"] as const).map((tipo) => {
           const lista = cambios.filter((c) => c.tipo === tipo);
           if (lista.length === 0) return null;
           return (
             <div key={tipo} className="space-y-1.5">
-              <p className="text-xs font-semibold text-tinta">{tipo === "compra" ? "Precio de compra" : "Precio de venta"}</p>
+              <p className="text-xs font-semibold text-tinta">{tipo === "compra" ? "Costo" : "Precio de venta"}</p>
               <ul className="divide-y divide-sand rounded-xl border border-sand">
                 {lista.map((c) => (
                   <li key={`${tipo}-${c.nombre}`} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 px-3 py-2 text-sm">

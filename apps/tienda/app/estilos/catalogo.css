@@ -69,6 +69,9 @@
 .t-subcat[aria-current="true"] { color: var(--tinta); font-weight: 500; }
 .t-subcat[aria-current="true"]::after { transform: scaleX(1); }
 .t-subcat:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 2px; }
+/* Con color o talla elegidos, el grupo o la categoría que ahí da 0 se queda en su lugar, apagado (se sigue pudiendo tocar: lleva allá sin
+   lo que no existe). El que está encendido nunca se apaga. */
+.t-pildora[data-cero="true"]:not([aria-current="true"]), .t-subcat[data-cero="true"]:not([aria-current="true"]) { opacity: .6; }
 @keyframes t-subcats { from { opacity: 0; transform: translateY(-4px); } }
 @media (prefers-reduced-motion: reduce) { .t-subcats { animation: none; } .t-subcat::after { transition: none; } }
 

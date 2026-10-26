@@ -1523,8 +1523,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `AccionDelDia.tsx` y `ListaDelDia.tsx` (`movimientosDeLaCompradora`); «Compré ropa» abre `HojaPrenda.tsx` por prenda (`camposPrenda`,
   `lineaDeBorrador` en `lib/compra-rapida-reglas.ts`) y comparte `TarjetaFoto.tsx` con las hojas de Mi plata; `/compras/fondos` es una bandeja
   (`BandejaRevisar.tsx` + `PanelDetalle.tsx`; filas en `lib/revisar-compras-reglas.ts`) y sus cuatro detalles (`DetallePlata`, `DetallePapel`,
-  `DetalleGasto`, `DetalleCierre`) son las hojas de antes; `/recibir/envio/[id]` suma `PreguntaDeLaCompra.tsx` (`lib/recibir-papel-reglas.ts`)
-  y `PapelesDeLaCompra.tsx` pasa a columna fija con la foto en grande. En el mismo PR, tres migraciones: la foto del papel opcional
+  `DetalleGasto`, `DetalleCierre`) son las hojas de antes; `/recibir/envio/[id]` suma la tarjeta «¿Son estas?» (`PreguntaDeLaCompra.tsx`, **quitada el 2026-10-26**: ADR-0480, «Actualización 2026-10-26»; hoy
+  `lib/recibir-papel-reglas.ts` solo guarda `siguienteAnotada`) y `PapelesDeLaCompra.tsx` pasa a columna fija con la foto en grande. En el mismo PR, tres migraciones: la foto del papel opcional
   (`20261023180000`); pagar ahora o después y con qué (`20261023181000`: `registrar_compra_rapida` con `p_pagado`/`p_medio`, `compra_papeles.pagado`
   y `medio_pago`, lo que falta queda a crédito al completar); y la **ronda de compras** (`20261023183000`: `compra_rondas`, serie RC; RPC
   `abrir_ronda_compras` desde `AbrirRonda.tsx` vía `lib/mi-plata-acciones.ts`; `terminar_dia_compras` cierra la ronda; `fn_ronda_compras_de` dentro de
@@ -2217,6 +2217,17 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   tienda de la web y en todas (`stock`: «hay», 3, 2, 1 o 0, nunca la cifra de 4 o más; `fn_tienda_nivel` con el umbral de
   `configuracion_tienda_web`): con una tienda elegida, la lista deja solo lo que hay en ella («N más en otras tiendas») y cada tarjeta
   dice su nota (`lib/stock.ts` `notaDeStock`: «Quedan 2 en Lima», «Solo en Trujillo», «Quedan pocas»).
+- Los filtros de COLOR y TALLA de `/catalogo` (ADR-0512, 2026-10-26): `?color=negro,blanco&talla=M` en la dirección → `app/(catalogo)/catalogo/page.tsx` los lee
+  (`lib/filtros-color-talla.ts` `leerElegido`: la regla pura, la misma en el servidor y el navegador) y, solo si se pidieron, pide `lib/filtros-servidor.ts` `leerFiltros(sede)` →
+  `retail.tienda_filtros(p_sede)` (`20261026145000`, sin pegar en producción: las variantes `[prenda, color, talla]` que la tienda ofrece, `fn_tienda_precios`, con unidades libres,
+  `fn_tienda_disponible`, más `colores{código: familia_color}`; sin cifras ni niveles; solo `tienda_web`; 30 s por tienda como el catálogo; la base la corta a los 2 s y la lista no
+  espera más: si falla, la lista se ve entera y lo dice). `lib/filtros-lista.ts` filtra POR VARIANTE (`prendasQuePasan`), rehace los números de grupos y categorías sin moverlos,
+  lleva lo elegido al grupo o categoría de cada enlace (`elegidoEnElDestino`, con su frase `data-quita`) y corrige una dirección que no está escrita como la escribe la tienda
+  (`esLaDireccionCanonica` → redirección estable). Las 13 familias de color para quien compra: `packages/shared/src/colores-de-la-tienda.ts`. En el navegador, `components/filtros/`:
+  `ProveedorFiltros` (lo elegido, `GET /api/filtros` con las variantes —50,8 kB, 7,8 kB con gzip—, la lista nueva 300 ms después del último toque con `router.replace`),
+  `PalabrasDeFiltros` + `PanelDeFiltro` (computadora), `BotonDeFiltros` + `HojaDeFiltros` (celular, sobre `components/instalar/HojaNativa.tsx`), `ZonaDeFiltro` (las opciones, de los dos),
+  `FichasDeFiltros` (lo elegido y el aviso con «Deshacer», `lib/filtros-aviso.ts`); estilos en `app/estilos/filtros.css`. La tarjeta (`lib/filtros-lista.ts` `coincidenciaDe`) dice «En Negro · talla M»
+  y su enlace lleva `?color=&talla=`, que la ficha lee (`lib/ficha.ts` `tallaInicial`). Pruebas: `pnpm pruebas:tienda-filtros` (la función, con mutantes) y los `lib/filtros-*.test.ts`.
 - `/catalogo/[id]` (la ficha, actividad 4) → `lib/ficha-servidor.ts` `leerFicha(id, sede)` → `retail.tienda_ficha(p_producto, p_sede)`:
   el modelo publicado con su precio y campaña, colores, tallas en el orden de la tienda, sus fotos del almacén público y, por talla, su
   precio en la tienda elegida y su nivel en cada tienda (lo libre de `fn_existencias_base`: piso + almacén, sin Cuarentena ni lo apartado,
