@@ -8066,12 +8066,14 @@ export type Database = {
           nombre: string
           plata_en_stock: number
           plata_sin_venta: number
+          primera_entrada: string | null
           prendas: number
           prendas_sin_venta: number
           proveedor_id: string
           unidades_carga: number
           unidades_compradas: number
           unidades_compras: number
+          unidades_en_estantes: number
           unidades_estimadas: number
           unidades_sin_factura: number
           unidades_vendidas: number

@@ -82,40 +82,52 @@ describe("agruparPorMarca", () => {
   });
 });
 
+const HOY = "2026-11-30";
+const antes = (dias: number) => new Date(Date.parse(`${HOY}T00:00:00Z`) - dias * 86_400_000).toISOString().slice(0, 10);
+
 const prov = (o: Partial<RendimientoProveedor>): RendimientoProveedor => ({
   proveedorId: "x", nombre: "Textil", esTaller: false, prendas: 5, unidadesCompradas: 100, unidadesCompras: 100, unidadesSinFactura: 0, unidadesCarga: 0,
   unidadesEstimadas: 0, gasto: 3000, gastoCompras: 3000, gastoCarga: 0, unidadesVendidas: 50, ingresoVendido: 3000, costoVendido: 1500,
-  plataEnStock: 1500, prendasSinVenta: 0, plataSinVenta: 0, ...o,
+  plataEnStock: 1500, prendasSinVenta: 0, plataSinVenta: 0, primeraEntrada: antes(30), unidadesEnEstantes: 50, ...o,
 });
 
 describe("veredictoDe", () => {
-  it("con pocas ventas no concluye nada", () => {
-    expect(veredictoDe(prov({ unidadesVendidas: 4 })).texto).toBe("Pocas ventas");
+  it("con pocas ventas y buen ritmo no concluye nada", () => {
+    expect(veredictoDe(prov({ unidadesVendidas: 4, unidadesEnEstantes: 6, unidadesCompradas: 30 }), HOY).texto).toBe("Pocas ventas");
   });
   it("con la carga inicial como mayoría dice «Costo por confirmar», no un veredicto de dinero", () => {
-    expect(veredictoDe(prov({ unidadesCompras: 20, unidadesCarga: 80, plataSinVenta: 2000 })).texto).toBe("Costo por confirmar");
-  });
-  it("marca la plata parada cuando pasa del 40 % de lo gastado por Compras", () => {
-    expect(veredictoDe(prov({ plataSinVenta: 1500 })).texto).toBe("Plata parada");
+    expect(veredictoDe(prov({ unidadesCompras: 20, unidadesCarga: 80 }), HOY).texto).toBe("Costo por confirmar");
   });
   it("marca el margen bajo", () => {
-    expect(veredictoDe(prov({ costoVendido: 2400 })).texto).toBe("Margen bajo");
+    expect(veredictoDe(prov({ costoVendido: 2400 }), HOY).texto).toBe("Margen bajo");
   });
   it("si vende y deja margen con costo real, rinde", () => {
-    expect(veredictoDe(prov({})).texto).toBe("Rinde");
+    expect(veredictoDe(prov({}), HOY).texto).toBe("Rinde");
+  });
+  it("CASO LASAK: 6 vendidas de 183, 99 semanas para vender lo que queda → «Rota lento», no «Pocas ventas»", () => {
+    const v = veredictoDe(prov({ unidadesCompradas: 183, unidadesCompras: 0, unidadesCarga: 183, unidadesVendidas: 6, unidadesEnEstantes: 177, primeraEntrada: antes(30) }), HOY);
+    expect(v.texto).toBe("Rota lento");
+    expect(v.tono).toBe("ambar");
+  });
+  it("si no vendió nada y lleva más de 21 días, rota lento; si llegó hace poco, no se juzga", () => {
+    expect(veredictoDe(prov({ unidadesVendidas: 0, unidadesEnEstantes: 100, primeraEntrada: antes(30) }), HOY).texto).toBe("Rota lento");
+    expect(veredictoDe(prov({ unidadesVendidas: 0, unidadesEnEstantes: 100, primeraEntrada: antes(5) }), HOY).texto).toBe("Pocas ventas");
+  });
+  it("sin la fecha de la primera entrada (la base de antes) no mide el ritmo y cae a lo demás", () => {
+    expect(veredictoDe(prov({ unidadesVendidas: 4, primeraEntrada: null }), HOY).texto).toBe("Pocas ventas");
   });
 });
 
 describe("rankingDeProveedores", () => {
   it("ordena por gasto, reparte el peso y deja el Taller aparte, fuera del ranking", () => {
-    const r = rankingDeProveedores([prov({ proveedorId: "a", gasto: 1000 }), prov({ proveedorId: "b", gasto: 3000 }), prov({ proveedorId: "t", nombre: "CAYLA SAC", esTaller: true, gasto: 6000 })]);
+    const r = rankingDeProveedores([prov({ proveedorId: "a", gasto: 1000 }), prov({ proveedorId: "b", gasto: 3000 }), prov({ proveedorId: "t", nombre: "CAYLA SAC", esTaller: true, gasto: 6000 })], HOY);
     expect(r.ranking.map((x) => x.proveedorId)).toEqual(["b", "a"]);
     expect(r.ranking[0].pesoPct).toBeCloseTo(30);
     expect(r.taller?.proveedorId).toBe("t");
     expect(r.taller?.pesoPct).toBeCloseTo(60);
   });
   it("no muestra margen de un proveedor cuyo costo es de la carga", () => {
-    const r = rankingDeProveedores([prov({ unidadesCompras: 0, unidadesCarga: 100 })]);
+    const r = rankingDeProveedores([prov({ unidadesCompras: 0, unidadesCarga: 100 })], HOY);
     expect(r.ranking[0].margenPct).toBeNull();
   });
 });
