@@ -2,12 +2,31 @@
   "guia": "tienda-web.ajustes",
   "ruta": "/tienda-web/ajustes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 3,
+  "total": 14,
   "controles": {
     "components/ConfiguracionTiendaWeb.tsx": [
       "ComboResponsable «{responsable}»",
+      "input «{`tw-${s.id}»",
+      "button «Quitar foto»",
       "Boton «Guardar»",
       "Boton «Guardar» #2"
+    ],
+    "components/tienda-web-conf/CierresDeTienda.tsx": [
+      "button «{`Quitar el cierre del ${hoy ? etiquetaDeCierre(fecha, hoy) : fecha}»",
+      "button «Cerrar hoy»",
+      "CampoFecha «Cerrar otro día»"
+    ],
+    "components/tienda-web-conf/HorarioSemanal.tsx": [
+      "button «{`${DIAS_LARGOS[i]}»",
+      "button «Copiar lunes a todos»"
+    ],
+    "components/tienda-web-conf/PuertaDeTienda.tsx": [
+      "button «{`Mover ${nombre}»",
+      "button «{`Mover ${nombre}» #2",
+      "button «{nombre}»"
+    ],
+    "components/tienda-web-conf/RelojDelPedido.tsx": [
+      "button «{n}»"
     ]
   }
 }

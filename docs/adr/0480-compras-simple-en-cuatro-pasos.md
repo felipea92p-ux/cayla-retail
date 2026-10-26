@@ -279,6 +279,16 @@ nota de venta o sin comprobante.
 - Lo que sigue en el detalle de una compra: recibir, pagar, adjuntar y anular (una compra sin pagos ni recepciones). No es registrar.
 - **Actualización (rama `claude/compras-simple-rediseno`, mismo día):** el crédito vuelve por Compras simple. Con «Pagar después» o pagando una parte
   (`20261023181000`, ver «Lo que Felipe pidió mirando»), completar el papel deja el comprobante a crédito por lo que falta, y entra a «Por pagar».
+- **Actualización 2026-10-26 (rama `claude/mis-compras-rediseno-65f92b`, solo diseño, sin migraciones):** «Mis compras» se redibuja como la maqueta
+  aprobada el 24 (`docs/maquetas/mis-compras-rediseno-2026-10/`; ajustes de Felipe en su `CONTINUAR.md`): el camino de la ronda y de los 3 pasos
+  de «Compré ropa» es una sola pieza (`CaminoDePasos`); «Algo nuevo» ofrece como chips solo lo habitual del proveedor (hasta 4) y «Otra…» abre el
+  combo de ADR-0209; «Algo nuevo» va fijo abajo; «Pagué solo una parte» se esconde hasta tocarlo. **Una regla cambia, con el OK de Felipe:** con
+  prendas por mandar, «Cerrar mi ronda» queda apagado (`puedeCerrarLaRonda`, solo la pantalla: `terminar_dia_compras` no lo exige). **Pendiente,
+  aparte y con migración:** que la compradora diga «¿De qué banco salió?» al anotar plata por transferencia (BCP de fábrica o Interbank): hoy el
+  banco lo elige Compras al confirmar (`confirmar_plata_compras.p_cuenta_origen_id`).
+- **Actualización 2026-10-26 (b) (rama `claude/mis-compras-banco-de-la-plata`, migración `20261026165000` + `20261026170000`):** con una transferencia, la compradora
+  indica el banco de la empresa del que salió la plata (`fondo_plata_anotada.cuenta_indicada_id`; BCP de fábrica o Interbank); «Revisar compras» lo trae
+  elegido y Compras lo confirma o lo cambia. **La indicación no mueve plata:** lo que baja en Finanzas sigue siendo `confirmar_plata_compras(p_cuenta_origen_id)`.
 
 ## Actualización 2026-10-26: Recibir ya no tiene la tarjeta «Llevas contadas»
 

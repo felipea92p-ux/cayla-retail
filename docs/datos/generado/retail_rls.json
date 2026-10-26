@@ -89,6 +89,26 @@
   "relkind": "r",
   "rls": true
  },
+ "campana_regla_categorias": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_regla_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_regla_sedes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_reglas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "campana_sedes": {
   "forzado": false,
   "relkind": "r",
@@ -354,6 +374,11 @@
   "relkind": "r",
   "rls": true
  },
+ "compra_rondas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "compradores_de_tienda": {
   "forzado": false,
   "relkind": "r",
@@ -430,6 +455,11 @@
   "rls": true
  },
  "conteos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "costo_correcciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -520,6 +550,11 @@
   "rls": false
  },
  "despacho_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "despacho_observaciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1044,7 +1079,17 @@
   "relkind": "r",
   "rls": true
  },
+ "producto_avios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "producto_color_temporadas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "producto_consumo_medido": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1239,6 +1284,11 @@
   "relkind": "r",
   "rls": true
  },
+ "tickets_abiertos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "tienda_push_envios": {
   "forzado": false,
   "relkind": "r",
@@ -1250,6 +1300,11 @@
   "rls": true
  },
  "tipos_activo": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "trafico_web": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1274,12 +1329,22 @@
   "relkind": "r",
   "rls": true
  },
+ "ubicacion_cierres_web": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "ubicacion_datos_fiscales": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
  "ubicacion_datos_web": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ubicacion_horario_web": {
   "forzado": false,
   "relkind": "r",
   "rls": true

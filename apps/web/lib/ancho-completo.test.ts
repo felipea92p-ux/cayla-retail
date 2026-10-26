@@ -15,13 +15,13 @@ import { ARBOL, type Nodo } from "./menu";
 // componente lo escribe (una pantalla nueva que necesite ancho completo lo decide con Felipe y lo agrega acá a propósito); y que
 // «/» no entró a `SIN_TOPE_DE_ANCHO`. El Observatorio (el Inicio del Admin, ADR-0322) entró así el 2026-10-03: Felipe pidió que el
 // mapa llene la pantalla. La pantalla de Aventurero («Sin acceso» y las barreras de error) entró el 2026-10-15: Felipe pidió que la foto
-// y el mensaje «ocupen todo el espacio»; su tarjeta se topa sola en 72rem. NO PROMETE: que el diseño se vea bien a cada ancho (eso se mira en el navegador: 1920, 2560,
+// y el mensaje «ocupen todo el espacio»; su tarjeta se topa sola en 72rem. Finanzas entera salió de `CON_TOPE_DE_ANCHO` el 2026-10-26 (Felipe: «que todos usen la pantalla al completo»): el Resumen había entrado antes con el marcador y ya no lo necesita. NO PROMETE: que el diseño se vea bien a cada ancho (eso se mira en el navegador: 1920, 2560,
 // 3840, 1280, 768 y 375 px).
 
 const RAIZ = join(__dirname, "..");
 const MARCADOR = "data-ancho-completo";
 /** Las rutas que llevaban el tope el 2026-10-20, cuando se invirtió la regla. Al revisar una a lo ancho, se saca de AppShell y de aquí. */
-const CON_TOPE_HOY = ["/actividad", "/buscar", "/comercial", "/configuracion", "/finanzas", "/global", "/movimientos", "/pedidos-no-atendidos", "/rendimiento", "/sin-acceso"];
+const CON_TOPE_HOY = ["/actividad", "/buscar", "/comercial", "/configuracion", "/global", "/movimientos", "/pedidos-no-atendidos", "/rendimiento", "/sin-acceso"];
 const QUIEN_PIDE_ANCHO_COMPLETO = ["components/inicio-almacen/InicioAlmacen.tsx", "components/observatorio/Observatorio.tsx", "components/ui/Aventurero.tsx"];
 
 function archivos(dir: string): string[] {
@@ -65,8 +65,8 @@ describe("el ancho de las pantallas (ADR-0462)", () => {
 
   // Producción entró entera el 2026-09-22, y «Órdenes de insumos» (`/ordenes-insumos`, su ruta NO cuelga de `/produccion` a propósito:
   // ADR-0362) quedó con el tope hasta la Formidable del 2026-10-15: al pasar de Proveedores a Órdenes de insumos el título saltaba 32 px.
-  // Clientes (Fichas, Avisos, Beneficios) entró el 2026-10-20 (Felipe: «no ocupan todo el espacio»); Tienda web (Resumen, Pedidos, Vitrina, Recomendaciones, Datos y plazos) el 2026-10-21. Cada grupo comparte un solo ancho.
-  for (const grupo of ["produccion", "clientas", "tiendaWeb"]) {
+  // Clientes (Fichas, Avisos, Beneficios) entró el 2026-10-20 (Felipe: «no ocupan todo el espacio»); Tienda web (Resumen, Pedidos, Vitrina, Recomendaciones, Datos y plazos) el 2026-10-21; Finanzas (Resumen, Gastos, Cuentas y dinero, Reportes, Impuestos, Cierre de mes) el 2026-10-26. Cada grupo comparte un solo ancho.
+  for (const grupo of ["produccion", "clientas", "tiendaWeb", "finanzas"]) {
     it(`toda pantalla del grupo «${grupo}» va sin tope: pasar de una a otra no mueve el título`, () => {
       const nodo = ARBOL.find((n) => n.id === grupo);
       expect(nodo).toBeDefined();
@@ -76,7 +76,7 @@ describe("el ancho de las pantallas (ADR-0462)", () => {
 });
 
 describe("ancho completo del Inicio de almacén", () => {
-  it("solo el Inicio de almacén, el Observatorio y la pantalla de Aventurero escriben el marcador", () => {
+  it("solo el Inicio de almacén, el Observatorio y Aventurero escriben el marcador", () => {
     const quienes = archivos(RAIZ)
       .filter((f) => readFileSync(f, "utf8").includes(MARCADOR))
       .map((f) => f.slice(RAIZ.length + 1).replaceAll("\\", "/"))

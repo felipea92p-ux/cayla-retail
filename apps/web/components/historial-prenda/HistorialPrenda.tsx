@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Banknote,
@@ -35,6 +36,8 @@ import {
   type Persona,
 } from "@/lib/historial-prenda-reglas";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
+import { CostoPrenda } from "@/components/historial-prenda/CostoPrenda";
+import { erroresDelCosto } from "@/lib/costo-prenda-reglas";
 import { horaLima, hoyLima } from "@/lib/fechas-lima";
 import type { LecturaHistorial } from "@/lib/historial-prenda-reglas";
 
@@ -88,6 +91,7 @@ function Swatch({ hex, tam = 16, titulo }: { hex: string | null; tam?: number; t
 }
 
 export function HistorialPrenda({
+  productoId,
   lectura,
   nombre,
   totalVariantes,
@@ -95,6 +99,8 @@ export function HistorialPrenda({
   onVolver,
   onReintentar,
 }: {
+  /** La prenda: la hoja de corregir su costo la necesita para hablarle a la base. */
+  productoId: string;
   lectura: LecturaHistorial;
   /** El nombre de HOY de la prenda: es el texto de «← Volver». */
   nombre: string;
@@ -107,10 +113,17 @@ export function HistorialPrenda({
   onReintentar?: () => void;
 }) {
   const hoy = hoyLima();
+  const router = useRouter();
+  // Tras corregir el costo de una compra la prenda se lee otra vez: la vista rápida vuelve a leer ella misma; la página recarga lo suyo.
+  const alCorregirCosto = () => (onReintentar ? onReintentar() : router.refresh());
   const eventos = useMemo(() => (lectura.estado === "ok" ? lectura.eventos : []), [lectura]);
-  const [familia, setFamilia] = useState<Familia | "todo">("todo");
+  // «costo» no es una familia de cambios: es la pestaña que cuenta las compras que movieron el costo (CostoPrenda).
+  const [familia, setFamilia] = useState<Familia | "todo" | "costo">("todo");
   const [persona, setPersona] = useState<string | null>(null);
-  const lista = useMemo(() => filtrarEventos(eventos, familia, persona), [eventos, familia, persona]);
+  const lista = useMemo(() => (familia === "costo" ? [] : filtrarEventos(eventos, familia, persona)), [eventos, familia, persona]);
+  // La pestaña aparece si hay compras que movieron el costo o costos que alguien arregló a mano.
+  const errores = useMemo(() => erroresDelCosto(eventos, lectura.estado === "ok" ? (lectura.costo ?? null) : null), [eventos, lectura]);
+  const costo = lectura.estado === "ok" && lectura.costo && (lectura.costo.compras.length > 0 || errores.length > 0) ? lectura.costo : null;
   const cuenta = (f: Familia) => eventos.filter((e) => e.familia === f).length;
   const gente = useMemo(() => personasDe(eventos.filter((e) => e.familia !== "alta")), [eventos]);
   const recien = eventos.length > 0 && eventos.every((e) => e.familia === "alta");
@@ -127,28 +140,42 @@ export function HistorialPrenda({
         {lectura.estado === "ok" && <p className="hp-resumen">{resumenHistorial(eventos, hoy)}</p>}
       </div>
 
-      {lectura.estado === "ok" && !recien && eventos.length > 0 && (
+      {lectura.estado === "ok" && ((!recien && eventos.length > 0) || costo) && (
         <div data-guia="historial-prenda.filtros" className="hp-barra">
           <div className="hp-pildoras" role="group" aria-label="Qué cambios ver">
             <button type="button" className="hp-pil" aria-pressed={familia === "todo"} onClick={() => setFamilia("todo")}>
               Todo <span className="hp-n">{eventos.filter((e) => e.familia !== "alta").length}</span>
             </button>
             {FAMILIAS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className="hp-pil"
-                aria-pressed={familia === f.id}
-                disabled={cuenta(f.id) === 0}
-                onClick={() => setFamilia(f.id)}
-                style={{ ["--hp-tono" as string]: TONO[f.id] }}
-              >
-                <span className="hp-pt" />
-                {f.nombre} <span className="hp-n">{cuenta(f.id)}</span>
-              </button>
+              <Fragment key={f.id}>
+                <button
+                  type="button"
+                  className="hp-pil"
+                  aria-pressed={familia === f.id}
+                  disabled={cuenta(f.id) === 0}
+                  onClick={() => setFamilia(f.id)}
+                  style={{ ["--hp-tono" as string]: TONO[f.id] }}
+                >
+                  <span className="hp-pt" />
+                  {f.nombre} <span className="hp-n">{cuenta(f.id)}</span>
+                </button>
+                {f.id === "precio" && costo && (
+                  <button
+                    type="button"
+                    className="hp-pil"
+                    aria-pressed={familia === "costo"}
+                    onClick={() => setFamilia("costo")}
+                    style={{ ["--hp-tono" as string]: "var(--color-tinta)" }}
+                    data-guia="historial-prenda.costo"
+                  >
+                    <span className="hp-pt" />
+                    Costo <span className="hp-n">{costo.compras.length + errores.length}</span>
+                  </button>
+                )}
+              </Fragment>
             ))}
           </div>
-          {gente.length > 0 && (
+          {gente.length > 0 && familia !== "costo" && (
             <div className="hp-gente" role="group" aria-label="Quién lo hizo" data-filtrando={persona ? "" : undefined}>
               <span className="label-cayla text-[10.5px] text-tinta/45">Quién</span>
               {gente.map((g) => (
@@ -189,7 +216,8 @@ export function HistorialPrenda({
           )}
         </div>
       )}
-      {lectura.estado === "ok" && (
+      {lectura.estado === "ok" && familia === "costo" && costo && <CostoPrenda costo={costo} errores={errores} productoId={productoId} nombre={nombre} onCorregido={alCorregirCosto} />}
+      {lectura.estado === "ok" && familia !== "costo" && (
         <Hilo key={`${familia}|${persona}`} eventos={lista} hoy={hoy} total={totalVariantes} recien={recien} hrefMovimientos={hrefMovimientos} />
       )}
     </div>

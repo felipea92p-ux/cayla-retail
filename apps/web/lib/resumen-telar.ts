@@ -1,5 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import type { FlujoProximo } from "@/lib/caja-proxima-reglas";
+import { leerProyeccion } from "@/lib/flujo-caja-reglas";
 import type { DiaVenta } from "@/lib/resumen-telar-reglas";
 
 /**
@@ -30,4 +32,24 @@ export async function getVentasPorDia(tiendas: readonly string[], desde: string,
     );
   }
   return { series, incompleta };
+}
+
+/**
+ * La proyección de caja con sus cobros y salidas por día (`fn_flujo_caja_proyeccion`, 6 bloques de 7 días), para «Tu caja en las próximas
+ * dos semanas». Es la MISMA que lee Dinero ▸ Flujo, así que el saldo de un bloque es el mismo en las dos pantallas. `fn_resumen_finanzas`
+ * no sirve para esto: recorta los cobros y solo trae el flujo mirando CAYLA entera. Solo lee. Una cuenta a la que la base le niega el flujo
+ * (42501) no ve la pieza; cualquier otra falla se dice sin cifras, nunca un 0 en lugar de un dato que falta (principio 9).
+ */
+export async function getFlujoProximo(): Promise<FlujoProximo> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_flujo_caja_proyeccion" as never, { p_semanas: 6 } as never);
+  if (error) {
+    if (error.code === "42501") return { estado: "sin_permiso" };
+    return { estado: "falla", mensaje: "No se pudo leer lo que viene en la caja." };
+  }
+  try {
+    return { estado: "ok", datos: leerProyeccion(data) };
+  } catch {
+    return { estado: "falla", mensaje: "La caja llegó en un formato que no se entiende." };
+  }
 }

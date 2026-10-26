@@ -141,13 +141,13 @@
   /* ---------- <Buscador> de una lista ---------- */
   .buscador {
     position: relative; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 12px; border-radius: 10px;
-    background: var(--color-hueso); border: 1px solid var(--color-sand); overflow: hidden;
+    background: var(--color-hueso); border: 1px solid var(--color-borde-control); overflow: hidden; /* P2 de la familia: se escribe en él, lleva el borde de control (3:1) */
     transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
   }
   @media (hover: hover) {
-    .buscador:hover { border-color: color-mix(in srgb, var(--color-taupe) 45%, var(--color-sand)); }
+    .buscador:hover { border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
   }
-  .buscador:focus-within { background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); }
+  .buscador:focus-within { background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
   .buscador:has(input:focus-visible) { outline: var(--foco-ancho) solid var(--foco-color); outline-offset: var(--foco-separacion); }
   /* La sombra de predicción (opt-in, `sombra`): el campo y la sombra comparten caja para que su texto empiece en el mismo punto. La
      sombra solo se ve con el cursor adentro; lo ya escrito va invisible para que lo único que se vea sea lo que falta. */
