@@ -1,0 +1,81 @@
+/* ── 4 · MANTEQUILLA ─ crema de mantequilla y negro cálido. La más amable: todo es redondo (píldoras, tarjetas blandas), el titular
+   lleva fotos adentro como pastillas, y abajo un abanico de tarjetas ladeadas con un sello. El precio es una etiqueta. ── */
+#lienzo[data-d="mantequilla"] {
+  --bg: #fbf6e2; --surface: #f2e8b8; --surface-2: #e8db9a; --luz: #f8f0cc; --ink: #1f1b10; --mute: #675f4a; --line: #e4dab0;
+  --btn-bg: #1f1b10; --btn-ink: #fbf6e2; --logo: #d13730; --band: #f2e49b; --band-ink: #1f1b10;
+  --band-fondo: radial-gradient(120% 140% at 0% 0%, #f8ecab 0%, #f2e49b 55%, #ecd780 100%);
+  --look-fondo: var(--band);
+  --f-display: "Bricolage Grotesque", system-ui, sans-serif; --f-body: "Figtree", system-ui, sans-serif;
+  --w-display: 600; --ls-display: -.045em; --lh-display: .98;
+  --r: 28px; --r-foto: 24px; --r-btn: 999px; --logo-h: 24px; --pad-foto: 9%;
+  --ls-cap: .08em; --grano: .05;
+}
+[data-d="mantequilla"] .anu { background: var(--ink); color: var(--bg); letter-spacing: .02em; }
+[data-d="mantequilla"] .cab { border-bottom: 0; }
+[data-d="mantequilla"] .cab a:not(.logo-a):not(.cab-bolsa) { padding: 10px 14px; border-radius: 999px; border-bottom: 0; }
+[data-d="mantequilla"] .cab a.cab-bolsa { padding: 10px 18px; border-radius: 999px; background: var(--ink); color: var(--bg); border-bottom: 0; }
+@media (hover: hover) { [data-d="mantequilla"] .cab a:not(.logo-a):not(.cab-bolsa):hover { background: var(--surface); } }
+[data-d="mantequilla"] .cab-nav, [data-d="mantequilla"] .cab-acc { gap: 4px; }
+[data-d="mantequilla"] .btn { font-weight: 600; }
+[data-d="mantequilla"] .btn-sec { border-width: 1.5px; }
+[data-d="mantequilla"] .link { border-bottom-color: var(--ink); }
+/* El precio como etiqueta, y «Ver precio» como etiqueta vacía. */
+[data-d="mantequilla"] .tj-precio { padding: 3px 12px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 600; }
+[data-d="mantequilla"] .tj-precio.mute { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); font-weight: 500; }
+[data-d="mantequilla"] .tj-nombre { font-weight: 600; font-size: 17px; letter-spacing: -.02em; }
+[data-d="mantequilla"] .tj-info { padding: 0 6px; align-items: center; }
+[data-d="mantequilla"] .cat-nom { font-weight: 600; letter-spacing: -.02em; padding-inline: 6px; }
+[data-d="mantequilla"] .cat-tile small { padding-inline: 6px; }
+[data-d="mantequilla"] .filtros { border-color: transparent; padding: 4px 0; }
+[data-d="mantequilla"] .filtros button { padding: 0 18px; border-radius: 999px; border: 0; background: var(--surface); }
+[data-d="mantequilla"] .filtros > div { gap: 8px; }
+[data-d="mantequilla"] .filtros button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+[data-d="mantequilla"] .talla, [data-d="mantequilla"] .color { border-radius: 999px; }
+[data-d="mantequilla"] .tienda { background: var(--surface); border: 0; padding: 32px; }
+[data-d="mantequilla"] .pasos { border-top: 0; gap: 12px; }
+[data-d="mantequilla"] .paso, [data-d="mantequilla"] .paso + .paso { padding: 24px; border: 0; border-radius: 28px; background: var(--surface); }
+[data-d="mantequilla"] .paso:nth-child(2) { background: var(--band); }
+[data-d="mantequilla"] .club { border-radius: 36px; }
+[data-d="mantequilla"] .club .btn { --btn-bg: var(--ink); --btn-ink: var(--bg); }
+[data-d="mantequilla"] .club li { border-top-color: rgba(31, 27, 16, .2); }
+[data-d="mantequilla"] .op-tienda { border-radius: 20px; border-color: transparent; }
+[data-d="mantequilla"] .listo { border-width: 1.5px; }
+[data-d="mantequilla"] .look-fondo { border-radius: 48px 0 0 48px; }
+[data-d="mantequilla"] .tj-ver { font-weight: 600; }
+
+/* Portada: el titular enorme con pastillas de foto adentro y, abajo, un abanico de tarjetas ladeadas con su sello. */
+[data-d="mantequilla"] .h-pildoras { padding: clamp(40px, 6cqi, 88px) var(--gutter) 0; overflow: hidden; }
+[data-d="mantequilla"] .h-tit { font-size: clamp(42px, 7.4cqi, 120px); line-height: 1.04; }
+[data-d="mantequilla"] .pill { display: inline-block; vertical-align: middle; width: 1.75em; height: .82em; margin: 0 .06em; border-radius: 999px; overflow: hidden; background: var(--surface); transform: translateY(-.05em); box-shadow: 0 .12em .2em -.08em rgba(31, 27, 16, .35); }
+[data-d="mantequilla"] .pill img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 28%; mix-blend-mode: multiply; transform: scale(1.5); }
+[data-d="mantequilla"] .pill-3 { width: 1.5em; }
+[data-d="mantequilla"] .h-fila { display: grid; grid-template-columns: minmax(0, 36ch) minmax(0, 1fr); gap: 24px clamp(24px, 4cqi, 64px); align-items: start; padding: clamp(24px, 3cqi, 40px) 0 0; }
+[data-d="mantequilla"] .h-fila-izq { display: grid; gap: 22px; align-content: start; }
+[data-d="mantequilla"] .h-fila p { margin: 0; font-size: 16px; }
+[data-d="mantequilla"] .h-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+[data-d="mantequilla"] .h-chips span { display: inline-flex; align-items: center; min-height: 36px; padding: 0 16px; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 500; }
+[data-d="mantequilla"] .h-abanico { position: relative; height: clamp(250px, 25cqi, 400px); }
+[data-d="mantequilla"] .carta { position: absolute; display: block; width: clamp(120px, 15cqi, 232px); padding: 10px; background: #fffdf3; border-radius: 24px; box-shadow: 0 32px 46px -26px rgba(31, 27, 16, .6), 0 0 0 1px var(--line); text-decoration: none; }
+[data-d="mantequilla"] .c1 { left: 4%; bottom: 4%; rotate: -8deg; }
+[data-d="mantequilla"] .c2 { left: 30%; bottom: 14%; rotate: 2deg; z-index: 2; }
+[data-d="mantequilla"] .c3 { left: 56%; bottom: 2%; rotate: 9deg; }
+[data-d="mantequilla"] .carta .foto { border-radius: 16px; }
+[data-d="mantequilla"] .carta .tj-nombre { display: block; padding: 8px 4px 2px; font-size: 13px; }
+[data-d="mantequilla"] .sello { position: absolute; right: 1%; top: -4%; z-index: 3; width: clamp(92px, 10cqi, 150px); rotate: -12deg; filter: drop-shadow(0 10px 12px rgba(31, 27, 16, .25)); }
+[data-d="mantequilla"] .sello-fondo { fill: var(--band); stroke: var(--ink); stroke-width: 1.2; }
+[data-d="mantequilla"] .sello-txt { font: 700 9.4px var(--f-body); letter-spacing: .1em; fill: var(--ink); }
+[data-d="mantequilla"] .sello-estrella { fill: var(--ink); }
+@media (prefers-reduced-motion: no-preference) { [data-d="mantequilla"] .sello { animation: giro 1.6s var(--ease) .5s both; } @keyframes giro { from { rotate: -140deg; opacity: 0; } } }
+
+@container lienzo (max-width: 760px) {
+  [data-d="mantequilla"] .h-fila { grid-template-columns: 1fr; }
+  [data-d="mantequilla"] .h-tit { font-size: clamp(40px, 12.5cqi, 64px); }
+  [data-d="mantequilla"] .cab a.cab-bolsa { padding: 8px 14px; }
+  [data-d="mantequilla"] .paso, [data-d="mantequilla"] .paso + .paso { padding: 18px 20px; }
+  [data-d="mantequilla"] .tj-precio { font-size: 12px; justify-self: start; }
+  [data-d="mantequilla"] .h-abanico { height: 56cqi; }
+  [data-d="mantequilla"] .carta { width: 32cqi; translate: none; }
+  [data-d="mantequilla"] .c2 { left: 34%; }
+  [data-d="mantequilla"] .c3 { left: 62%; }
+  [data-d="mantequilla"] .sello { width: 24cqi; }
+}
