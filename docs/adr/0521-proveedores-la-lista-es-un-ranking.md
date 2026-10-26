@@ -95,9 +95,11 @@ reparto de ventas y stock según lo que trajo cada proveedor, en las tres funcio
 es de cada proveedor, y las tres funciones (`fn_proveedor_prendas_base`, `fn_proveedores_ventas_diarias`, `fn_proveedor_tallas_sedes`) leen de
 ella; ninguna vuelve a cruzar ventas ni stock por su cuenta.
 - **Lo que trajo cada uno**, por variante: cada recepción con su hora (al proveedor de la factura o del lote) y la carga inicial del habitual «desde siempre».
-- **Cada venta, devolución o cambio se reparte por lo que cada uno había traído de esa variante hasta ese momento** (regla B). Felipe la está
-  eligiendo entre tres: A (por lo que entregó cada uno, sin fechas), B (la recomendada) y C (lo primero que llega es lo primero que se vende). La
-  regla vive en un solo bloque de la función («LA REGLA DE REPARTO»): cambiarla no toca nada más.
+- **Cada venta, devolución o cambio se reparte por lo que cada uno había traído de esa variante hasta ese momento** (regla B, elegida por
+  Felipe el 2026-10-26 entre tres, con el ejemplo de una talla: A trajo 40 en la carga, se vendieron 36, B trajo 40 por Compras y se vendieron 4
+  más). A (por lo que entregó cada uno, sin fechas) daba 20 y 20: B heredaba ventas de antes de llegar y le salía «Repón» sin merecerlo. C (lo
+  primero que llega es lo primero que se vende) daba 40 y 0: B salía «Sin ventas» aunque su talla se vendiera. B da 38 y 2. La regla vive en un
+  solo bloque de la función («LA REGLA DE REPARTO»): cambiarla no toca nada más.
 - **Cada prenda vendida es de un solo proveedor:** las partes se acumulan en el tiempo y se redondean por el mayor resto sobre lo acumulado. Así la
   suma entre proveedores es siempre lo vendido real (por día, por sede y en total) y ninguno se queda con todos los redondeos.
 - **El stock** de cada variante y sede se reparte por lo que a cada uno le queda (lo que trajo menos lo que se le vendió), con el mismo redondeo

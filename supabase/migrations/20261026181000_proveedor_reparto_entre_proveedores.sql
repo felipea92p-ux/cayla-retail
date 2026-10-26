@@ -12,7 +12,8 @@
 --     lote, como antes) y la carga inicial de su proveedor habitual «desde siempre» (con la misma estimación de antes).
 --   · CADA VENTA, DEVOLUCIÓN O CAMBIO se reparte por lo que cada proveedor había traído de esa variante HASTA ESE MOMENTO, sobre lo que habían traído
 --     todos: nadie hereda ventas de antes de que llegara su ropa. Una venta anterior a toda llegada registrada se reparte por lo que trajo cada uno.
---     [REGLA B: la recomendada; pendiente de que Felipe la elija entre A (por lo que entregó, sin fechas), B y C (lo primero que llega, primero se vende).]
+--     Felipe la eligió el 2026-10-26 entre tres: A (por lo que entregó cada uno, sin fechas: B heredaba ventas de antes de llegar y le salía
+--     «Repón» sin merecerlo), B (esta) y C (lo primero que llega es lo primero que se vende: B salía «Sin ventas» aunque su talla se vendiera).
 --   · CADA PRENDA VENDIDA ES DE UN SOLO PROVEEDOR: las partes se acumulan en el tiempo y se redondean por el mayor resto sobre lo acumulado. Así la
 --     suma entre proveedores es SIEMPRE lo vendido real (por día, por sede y en total) y ninguno se queda con todos los redondeos.
 --   · EL STOCK de cada variante y sede se reparte por lo que a cada uno le queda (lo que trajo menos lo que se le vendió), con el mismo redondeo:
