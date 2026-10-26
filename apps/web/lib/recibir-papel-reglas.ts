@@ -2,8 +2,8 @@ import { contadasDe, type LineaParaContar } from "./recepcion-conteo-reglas";
 
 // Recibir mirando el papel de la compra (rediseño de Compras simple, maqueta docs/maquetas/compras-formidable-2026-10/, Felipe 2026-10-23).
 // Lo que la compradora anotó al comprar viene en las líneas del envío: la tienda las ve al lado de la foto
-// del papel, con su estado, y la pregunta principal es «La compradora anotó Blusa × 12. ¿Son estas?». Contestar «Son estas» pone ese
-// número en la línea, igual que escribirlo; nada de esto cambia qué se guarda ni cómo se cierra el envío.
+// del papel, con su estado (la que sigue, la contada). Se cuenta en el contador de siempre; nada de esto cambia qué se guarda ni cómo se
+// cierra el envío. (La tarjeta «Llevas contadas / ¿Son estas?» se quitó el 2026-10-26, a pedido de Felipe.)
 
 export type EstadoAnotada = "contada" | "a-medias" | "pendiente";
 
@@ -27,13 +27,7 @@ export function nombreAnotado(l: LineaParaContar): string {
   return l.linea?.prendaElegida?.nombre ?? l.linea?.descripcion ?? l.categoria?.nombre ?? "Prenda";
 }
 
-/** La que sigue: la primera por contar que no se dejó para después con «Es otra prenda». */
-export function siguienteAnotada(lineas: readonly LineaParaContar[], saltadas: ReadonlySet<string>): LineaParaContar | null {
-  return lineasAnotadas(lineas).find((l) => estadoAnotada(l) === "pendiente" && !saltadas.has(l.clave)) ?? null;
-}
-
-/** «Llevas contadas 12 de 35»: lo contado de lo anotado contra lo que dijeron. */
-export function avanceAnotado(lineas: readonly LineaParaContar[]): { contadas: number; total: number } {
-  const anotadas = lineasAnotadas(lineas);
-  return { contadas: anotadas.reduce((s, l) => s + contadasDe(l), 0), total: anotadas.reduce((s, l) => s + (l.dijeron ?? 0), 0) };
+/** La que sigue: la primera anotada que todavía no se cuenta. */
+export function siguienteAnotada(lineas: readonly LineaParaContar[]): LineaParaContar | null {
+  return lineasAnotadas(lineas).find((l) => estadoAnotada(l) === "pendiente") ?? null;
 }

@@ -558,6 +558,14 @@ export const GUIA_PROVEEDORES: Guia = {
       texto: "La lista se separa en dos: los proveedores de ropa, a quienes les compras, y los de servicios (Entel, luz, agua, alquiler), a quienes les pagas. Si buscas por nombre, el buscador mira en los dos.",
     },
     {
+      id: "medida",
+      ancla: "proveedores.medida",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Prendas o plata",
+      texto: "«Ordenar por» elige si el ranking va por las prendas que te llegaron de cada uno o por lo que te costaron, sin IGV (lo facturado y lo que debes van aparte). Cada opción trae el total de todos. Al cambiar, cada proveedor dice cuántos puestos subió o bajó. Con «≈» es aproximado: vino por la carga inicial.",
+    },
+    {
       id: "buscador",
       ancla: "proveedores.buscador",
       titulo: "Buscar un proveedor",
@@ -570,7 +578,7 @@ export const GUIA_PROVEEDORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "proveedores.buscador" }],
       titulo: "Por rubro",
-      texto: "Deja solo a los que venden un tipo de cosa: prendas, telas, accesorios…",
+      texto: "Ábrelo para dejar solo a los que venden un tipo de cosa: polos, blusas, jeans… Cada rubro dice cuántos proveedores tiene.",
     },
     {
       id: "sin-pago",
@@ -578,19 +586,27 @@ export const GUIA_PROVEEDORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "proveedores.buscador" }],
       titulo: "Sin datos de pago",
-      texto: "Los proveedores a los que les falta su cuenta, CCI o Yape. Tócalo para verlos y completa sus datos antes del próximo pago.",
+      texto: "Ábrelo y elige «Sin datos de pago» para ver a los que les falta su cuenta, CCI o Yape, y completa sus datos antes del próximo pago.",
+    },
+    {
+      id: "ritmo",
+      ancla: "proveedores.ritmo",
+      opcional: true,
+      preparar: [{ tipo: "vaciar", ancla: "proveedores.buscador" }],
+      titulo: "Por cómo se vende",
+      texto: "Ábrelo para ver solo a un grupo. Repón: lo que le queda se acaba en 6 semanas o menos. A su ritmo: entre 6 y 16. Frena compras: tardaría 16 o más. También, los que tienen deuda vencida. Cada opción dice cuántos son.",
     },
     {
       id: "lista",
       ancla: "proveedores.lista",
-      titulo: "Todos los proveedores",
-      texto: "Cada uno con lo facturado en el año, lo que se le debe, lo que te debe a ti y si tiene entregas atrasadas. Los títulos de arriba ordenan la lista.",
+      titulo: "A quién le compras más",
+      texto: "Del que más te llegó al que menos. La línea dice cómo se vendió día a día y cuánto esta semana; el anillo, cuánto ya vendiste; la barra, cuánto te llegó (lo oscuro ya se vendió); arriba de la insignia, en cuántas semanas se vende lo que queda, y la insignia, qué hacer.",
     },
     {
       id: "nombre",
       ancla: "proveedores.nombre",
       titulo: "Cada proveedor",
-      texto: "Su nombre, contacto y rubros. Al tocarlo se abre su vista rápida (te la abrimos en un momento).",
+      texto: "Su nombre y, debajo, lo que se le debe (en rojo si algo ya venció). Al tocarlo se abre su vista rápida (te la abrimos en un momento).",
     },
     {
       id: "saldo",
@@ -600,12 +616,18 @@ export const GUIA_PROVEEDORES: Guia = {
       texto: "El saldo con ese proveedor; en rojo si algo ya venció. Tócalo para ir a pagarle en Por pagar.",
     },
     {
+      id: "comparar",
+      ancla: "proveedores.comparar",
+      titulo: "Compáralos",
+      texto: "Marca hasta 3 con su casilla y a la derecha se ponen lado a lado: cuánto te llegó y vendiste, en cuántas semanas se vende lo que queda, sus ventas, la talla que pide más, la tienda que más vende, cuánto ganas de cada venta y lo que le debes. Lo de hoy sigue debajo.",
+    },
+    {
       id: "vista",
       ancla: "proveedor-vista.resumen",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "proveedores.nombre" }],
       titulo: "La vista rápida",
-      texto: "Qué conviene hacer con este proveedor, cuánto se le facturó, cuánto se le debe y cuándo fue la última compra.",
+      texto: "Qué conviene hacer con este proveedor, cuánto se le facturó y se le debe, cuándo fue la última compra; en «Cómo se vende», el porqué de su insignia, y en «Tallas y sedes», qué tallas pedirle y cómo le va en cada tienda.",
     },
     {
       id: "vista-acciones",
@@ -615,19 +637,26 @@ export const GUIA_PROVEEDORES: Guia = {
       texto: "Registra una factura suya, desactívalo si ya no le compras (no se borra: deja de aparecer al registrar) o abre su ficha completa. En la demo no tocamos nada.",
     },
     {
+      id: "lado",
+      ancla: "proveedores.lado",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Qué hacer",
+      texto: "A la derecha, lo que te toca hacer con tus proveedores, lo urgente primero y en rojo. Cada tarea lleva su número: tócala y te lleva a pagar o a recibir, o deja en la tabla solo a los que debes frenar o reponer.",
+    },
+    {
+      id: "para-hoy",
+      ancla: "proveedores.para-hoy",
+      opcional: true,
+      titulo: "Una tarea, un toque",
+      texto: "Paga lo vencido, reclama entregas atrasadas, frena compras a los que rotan lento o repón a los que se agotan. Al pie, en gris, lo que solo hay que saber: cuánto se vendió y si los costos están por confirmar.",
+    },
+    {
       id: "analisis",
       ancla: "proveedores.analisis",
       opcional: true,
       titulo: "Lo que quizá no ves",
-      texto: "Avisos que compara a tus proveedores entre sí: a quién frenar porque vende lento, a quién le queda poco margen, quién se agota pronto y a quién conviene volver a comprarle. «¿Por qué?» abre los números y la regla.",
-    },
-    {
-      id: "rendimiento",
-      ancla: "proveedores.rendimiento",
-      opcional: true,
-      preparar: [{ tipo: "escape" }],
-      titulo: "A quién le compro y qué me deja",
-      texto: "Cada proveedor con lo que gastaste, cuánto ya vendiste, su margen y la plata parada en prendas sin vender. La última columna lo resume en una palabra; pasa el mouse para ver por qué.",
+      texto: "Si la lista no puede armar el ranking, los avisos de compra salen aquí: prendas que no rotan, margen bajo o lo que mejor rinde. «¿Por qué?» abre los números y la regla.",
     },
     {
       id: "fin",
@@ -767,6 +796,28 @@ export const GUIA_PROVEEDOR: Guia = {
       opcional: true,
       titulo: "Lo que le compré",
       texto: "Cuántas prendas le compraste, cuánta plata gastaste (al costo de cada prenda) y cuánto de eso ya vendiste, marca por marca. El margen es el de lo ya vendido.",
+    },
+    // Tallas y sedes (ADR-0502, act. 2026-10-26 (e)): solo lectura; el traslado sugerido se explica, no se hace.
+    {
+      id: "tallas",
+      ancla: "proveedor-ficha.tallas",
+      opcional: true,
+      titulo: "Las tallas que se llevan",
+      texto: "Por talla, qué parte de lo que vendes de este proveedor y qué parte de lo que tienes. Si vendes más de una talla de lo que tienes, «Pide más»; si tienes de más, «Sobra». Úsalo para repartir las tallas del próximo pedido.",
+    },
+    {
+      id: "sedes",
+      ancla: "proveedor-ficha.sedes",
+      opcional: true,
+      titulo: "Cómo le va en cada sede",
+      texto: "En qué tienda se venden más rápido sus prendas: cuántas vende por semana y cuánto tardaría en vender lo que le queda. «Rota lento» o «Se agota» con la misma regla que el ranking de proveedores.",
+    },
+    {
+      id: "traslado",
+      ancla: "proveedor-ficha.traslado",
+      opcional: true,
+      titulo: "Llevarlas a donde se venden",
+      texto: "Si una tienda va lenta y otra se queda sin nada, te dice cuántas llevar y de qué prendas y tallas empezar. Solo es una sugerencia: el traslado lo haces tú en Traslados.",
     },
     // «Nos debe» (ADR-0362, fase 5a): las prendas por reponer, encima del saldo a favor. Solo la ve quien ve los montos de la ficha. El piloto
     // abre la hoja «Llegó la reposición» para mostrarla y la cierra sin anotar nada.
@@ -2068,7 +2119,22 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.mandar-uno",
       opcional: true,
       titulo: "Mandar a la tienda",
-      texto: "Al tocarlo, sale todo lo que compraste para esa tienda y la tienda ve que le llega. En la demo no mandamos nada.",
+      texto: "Al tocarlo, sale todo lo que compraste para esa tienda y la tienda ve que le llega. Te mostramos el código del envío (ENV-…) para que se lo avises: la tienda lo busca en Recibir. En la demo no mandamos nada.",
+    },
+    {
+      id: "mis-envios",
+      ancla: "mi-plata.mis-envios",
+      opcional: true,
+      titulo: "Mis envíos",
+      texto: "Con tu ronda cerrada, aquí arriba: todos los paquetes que mandaste, de esta ronda y de las anteriores, con su código. Con la ronda abierta, lo encuentras en «Envíos de esta ronda».",
+    },
+    {
+      id: "envios",
+      ancla: "mi-plata.envios",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Envíos de esta ronda",
+      texto: "Lo que ya mandaste en esta ronda, cada paquete con su código y en qué va: en camino, la tienda lo cuenta o recibido. Tócalo para ver el detalle y copiar el código. «Ver todos» abre Mis envíos, con las rondas anteriores y un buscador.",
     },
     {
       id: "termine",
@@ -2086,6 +2152,15 @@ export const GUIA_MI_PLATA: Guia = {
       prepararSoloAlAvanzar: true,
       titulo: "La cuenta de la ronda",
       texto: "Lo que tenías al abrirla, lo que te dieron, lo que compraste y lo que gastaste: abajo, lo que te queda.",
+    },
+    {
+      id: "cerrar-envios",
+      ancla: "mi-plata.cerrar-envios",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "mi-plata.termine" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "Tus envíos de la ronda",
+      texto: "Los códigos a la vista antes de cerrar, por si hay que avisarle algo a una tienda. Un envío que sigue «en camino» no frena el cierre: lo sigues viendo en Mis envíos.",
     },
     {
       id: "decision",
@@ -2114,13 +2189,71 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.antes",
       opcional: true,
       titulo: "Rondas anteriores",
-      texto: "Plegadas hasta que las necesites («Ver 4»): la plata que te dieron antes, lo que devolviste en caja y cada ronda que cerraste. Toca una ronda para ver lo que compraste y gastaste en ella.",
+      texto: "Plegadas hasta que las necesites («Ver 4»): la plata que te dieron antes, lo que devolviste en caja y cada ronda que cerraste. Toca una ronda para ver lo que compraste y gastaste en ella y los envíos que mandaste, con su código.",
     },
     {
       id: "fin",
       ancla: null,
       titulo: "Listo",
       texto: "Abre tu ronda al salir a comprar, anota cada plata, compra y gasto, y al terminar, «Cerrar mi ronda».",
+    },
+  ],
+};
+
+// Compras ▸ Mis compras ▸ Mis envíos (ADR-0480): los paquetes que mandó, con su código y por ronda. Solo se lee: la demo cambia de vista y
+// escribe un ejemplo; nunca abre ni manda nada.
+export const GUIA_MIS_ENVIOS: Guia = {
+  id: "compras.mi-plata.envios",
+  ruta: "/compras/mi-plata/envios",
+  titulo: "Mis envíos",
+  resumen: "Los paquetes que mandaste a las tiendas, con su código y en qué van.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Tus envíos",
+      texto: "Cada vez que mandas un paquete a una tienda, queda aquí con su código (ENV-…). Es lo que le avisas a la tienda para que lo busque en Recibir. Es una demo: no se manda ni se cambia nada.",
+    },
+    {
+      id: "alcance",
+      ancla: "mis-envios.alcance",
+      titulo: "Esta ronda o anteriores",
+      texto: "«Esta ronda» son los paquetes de tu ronda abierta. «Rondas anteriores» guarda, por ronda, los que mandaste antes: un código de hace dos semanas sigue aquí.",
+    },
+    {
+      id: "esta",
+      ancla: "mis-envios.esta",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "mis-envios.tab-esta" }],
+      titulo: "Lo de tu ronda abierta",
+      texto: "Cada envío con su código, cuándo salió, cuántas prendas y fardos llevaba y en qué va. En la computadora es una tabla; al tocar una fila se abre su detalle a la derecha. Si falta mandar algo, la franja de abajo lo dice.",
+    },
+    {
+      id: "anteriores",
+      ancla: "mis-envios.anteriores",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "mis-envios.tab-anteriores" }],
+      titulo: "Las rondas ya cerradas",
+      texto: "Una tarjeta por ronda, plegada: cuántos envíos y prendas tuvo y cómo quedó («Todo recibido», «1 con diferencias» o «2 sin recibir»). Tócala para abrirla.",
+    },
+    {
+      id: "buscador",
+      ancla: "mis-envios.buscador",
+      titulo: "Busca un código",
+      texto: "Escribe un código, una tienda o una ronda: busca en todas las rondas, así encuentras un código viejo sin saber en cuál salió.",
+      demostrar: [{ tipo: "escribir", ancla: "mis-envios.buscador", texto: "ENV" }],
+    },
+    {
+      id: "filtros",
+      ancla: "mis-envios.filtros",
+      titulo: "Cómo van",
+      texto: "«Sin recibir» deja los que la tienda todavía no abre o no termina de contar; «Recibidos», los que ya contó. Sirven en las dos vistas.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "Listo",
+      texto: "Toca un envío para ver su detalle, copiar el código o compartirlo por WhatsApp. Si salió hace días y la tienda no lo abrió, el detalle te lo avisa.",
     },
   ],
 };
@@ -2275,6 +2408,13 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       opcional: true,
       titulo: "Lo que llevas",
       texto: "La barra negra suma lo que llevas: cuántas prendas, cuánto suman y cuántos modelos.",
+    },
+    {
+      id: "tu-compra",
+      ancla: "compra.tu-compra",
+      opcional: true,
+      titulo: "Tu compra",
+      texto: "En la computadora, a la derecha va quedando lo que llevas: el proveedor, cada prenda con sus tiendas y el total. Solo se lee.",
     },
     {
       id: "revisar",

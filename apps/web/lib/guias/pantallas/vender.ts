@@ -160,14 +160,6 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       texto: "Lo que el cliente se lleva. Cada prenda que agregas entra aquí; puedes cambiar la cantidad, quitarla o tocar su importe para darle un descuento solo a ella.",
     },
     {
-      id: "tickets",
-      ancla: "vender.tickets",
-      solo: "escritorio",
-      ...CAJA_ABIERTA,
-      titulo: "Varios clientes a la vez",
-      texto: "Cada cliente tiene su pestaña: la marcada está en la caja y las demás esperan, con su monto. «Nuevo cliente» deja este ticket como está y abre otro; toca una pestaña para volver a ella y su ✕ la descarta. Toca el nombre del ticket para cambiarlo. En la demo no abrimos ninguna.",
-    },
-    {
       id: "cliente",
       ancla: "vender.cliente",
       opcional: true,
@@ -189,7 +181,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       solo: "escritorio",
       ...CAJA_ABIERTA,
       titulo: "Descuento, espera y quién atiende",
-      texto: "«Aplicar descuento» rebaja el ticket o solo unas prendas, en % o en soles, con su motivo; el % deja el precio sin céntimos. «Código de cupón» canjea un cupón del Club. «Dejar en espera», arriba junto al título, guarda el ticket para atender a otro cliente. Sobre «Cobrar» eliges quién atiende.",
+      texto: "«Aplicar descuento» rebaja el ticket o unas prendas, en % o en soles, con su motivo. «Código de cupón» canjea un cupón del Club. «Dejar en espera» guarda el ticket para atender a otro; «En espera · N» muestra los guardados para retomarlos o descartarlos. Sobre «Cobrar» eliges quién atiende.",
     },
     {
       id: "codigo-cupon",

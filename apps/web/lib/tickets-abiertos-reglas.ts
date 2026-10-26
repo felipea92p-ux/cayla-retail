@@ -72,7 +72,7 @@ export function pestanasDeTickets<T extends { id: string; nombre?: string; cread
   return pestanas;
 }
 
-/** «+ Nuevo cliente»: el ticket de la caja se queda en su lugar y la caja abre uno vacío al final. */
+/** «Dejar en espera»: el ticket de la caja se queda en su lugar y la caja abre uno vacío al final. */
 export function abrirNuevoTicket<T>(enEspera: readonly T[], posActivo: number | null, actual: T): { espera: T[]; posActivo: null } {
   const espera = [...enEspera];
   espera.splice(posicionDelActivo(posActivo, enEspera.length), 0, actual);
@@ -110,7 +110,7 @@ export function pasarAlTicket<T extends { id: string }>(
   };
 }
 
-/** Descartar uno que espera: sale de la fila y la caja conserva su hueco. */
+/** Descartar uno que espera (el basurero de «En espera»): sale de la fila y la caja conserva su hueco. */
 export function quitarDeLaEspera<T extends { id: string }>(
   enEspera: readonly T[],
   posActivo: number | null,
@@ -120,20 +120,6 @@ export function quitarDeLaEspera<T extends { id: string }>(
   if (i < 0) return { espera: [...enEspera], posActivo };
   const p = posicionDelActivo(posActivo, enEspera.length);
   return { espera: enEspera.filter((t) => t.id !== id), posActivo: posActivo === null ? null : i < p ? p - 1 : p };
-}
-
-/** Cuánto espera un ticket antes de que su pestaña pida que se acuerden de él (Felipe, 2026-10-25). Un probador tarda 5–10 min:
- *  antes sería ruido (con varias clientas esperando, todas latiendo a la vez no avisan de ninguna). */
-const MINUTOS_PARA_RECORDAR = 5;
-
-/**
- * ¿Lleva este ticket tanto rato esperando que conviene recordarlo? Solo cuenta el que ESPERA (`creadoEn` = cuándo se dejó): el de la
- * caja lo está mirando la cajera. Una fecha ausente, rota o del futuro no recuerda nada: peor un aviso falso que ninguno.
- */
-export function ticketOlvidado(creadoEn: string | null, ahora: number): boolean {
-  if (!creadoEn) return false;
-  const desde = Date.parse(creadoEn);
-  return Number.isFinite(desde) && ahora - desde >= MINUTOS_PARA_RECORDAR * 60_000;
 }
 
 /**

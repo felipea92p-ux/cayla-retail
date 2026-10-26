@@ -139,9 +139,9 @@ Se le sumó lo que faltaba:
 - **El papel con su foto** («Lo que anotó Marisol al comprar»): de quién es, qué papel y quién compró, y la foto, que se abre en grande. Sin
   montos: la tienda no ve el dinero de Compras por tener Recibir. `fn_envio_detalle` trae `papeles`, y la regla del depósito
   (`fn_puede_ver_foto_gasto_viaje`) deja leer la carpeta `papeles/` a quien tiene Recibir; los vouchers y los gastos siguen siendo de Compras.
-- **La prenda que eligió la compradora** (`orden_compra_items.producto_id`): cada línea la trae, y al contar «¿Qué … son?» la ofrece de un
+- **La prenda que eligió la compradora** (`orden_compra_items.producto_id`): cada línea la trae, y al contar «¿Qué … son?» la ofrecía de un
   toque («La compradora anotó Blusa Emma. ¿Son estas? · Son estas (6)»), también en «Hacer ahora». No se separa sola: lo que llegó lo
-  certifica quien cuenta (decisión 17 de ADR-0362).
+  certifica quien cuenta (decisión 17 de ADR-0362). **Retirado el 2026-10-26** (ver «Actualización 2026-10-26»): la pantalla ya no lo ofrece.
 - **El nombre que anotó** pasa a la hoja de la prenda nueva («En la orden dice «Polera capucha oversize». Usar ese nombre») también cuando lo
   nuevo no se describió al contar.
 
@@ -289,6 +289,22 @@ nota de venta o sin comprobante.
 - **Actualización 2026-10-26 (b) (rama `claude/mis-compras-banco-de-la-plata`, migración `20261026165000` + `20261026170000`):** con una transferencia, la compradora
   indica el banco de la empresa del que salió la plata (`fondo_plata_anotada.cuenta_indicada_id`; BCP de fábrica o Interbank); «Revisar compras» lo trae
   elegido y Compras lo confirma o lo cambia. **La indicación no mueve plata:** lo que baja en Finanzas sigue siendo `confirmar_plata_compras(p_cuenta_origen_id)`.
+
+## Actualización 2026-10-26: Recibir ya no tiene la tarjeta «Llevas contadas»
+
+Felipe pidió quitar de `/recibir/envio/[id]` la tarjeta de la derecha del paso Contar: «Llevas contadas N de M» y su pregunta **«La compradora
+anotó X × N. ¿Son estas?»** con «Son estas» / «Es otra prenda» (`PreguntaDeLaCompra.tsx`, decisión de «Rediseño visual…» de arriba). Se borró el
+componente y `avanceAnotado` de `lib/recibir-papel-reglas.ts`; `siguienteAnotada` ya no recibe las líneas saltadas (esa memoria era de la tarjeta),
+y la guía pierde sus tres pasos (`pregunta`, `son-estas`, `es-otra`). **Después, mirando «¿Qué polos son?» (el mismo día), Felipe pidió quitar
+también el «La compradora anotó X · ¿Son estas?» con su botón «Son estas (N)» de `SepararPrendas.tsx`** (en Contar y en «Hacer ahora»): se quitó
+la prop `elegida` de ese componente, su paso de la guía (`elegida`) y lo que la pasaba desde `ContarEnvio.tsx` y `HacerAhora.tsx`. Con eso la
+**actividad 6 de arriba («La prenda que eligió la compradora… de un toque») ya no vale en la pantalla:** quien cuenta separa buscando la prenda por
+su nombre, como antes de ADR-0480. La prenda que anotó la compradora sigue viajando en cada línea (`prendaElegida`) y se usa como nombre en la
+lista «Lo que anotó X»; solo se retiró el atajo que la separaba. No cambia qué se puede hacer: es lo mismo que buscarla y ponerle el número.
+En el cierre, el detalle de una fila tampoco lleva el título «Costos y precios» (ADR-0519).
+
+## Actualización 2026-10-26 (c): «Mis envíos» — el código de cada envío y su historial por ronda
+Felipe notó que al mandar a la tienda el código del envío (ENV-…) no se veía: la compradora no podía avisarle a la sede qué buscar en Recibir ni volver a verlo. Maqueta aprobada: `docs/maquetas/mis-compras-envios-2026-10/`. Decisiones: (1) el código sale en grande apenas se manda, con copiar y compartir por WhatsApp; (2) los envíos se leen con `retail.fn_mis_envios()` (20261026174000, solo lectura, sin tablas nuevas): los que despachó quien mira, con su ronda leída de las compras que llevan; (3) «Mis envíos» agrupa por ronda («Esta ronda» / «Rondas anteriores»), busca en todas las rondas y filtra por cómo van; (4) en el inicio, «Envíos de esta ronda» va pegado a «Falta mandar» —el mismo paso, «Manda»— y el cierre de la ronda muestra sus envíos antes de cerrar. Un envío «en camino» no frena el cierre (lo frena solo lo que falta mandar). (5) en escritorio, la propuesta «A» de la maqueta de PC (Inicio en tres columnas, Mis envíos en tabla con cajón, Compré ropa con «Tu compra» a la derecha, hojas de dos columnas): solo desde 1024 px, el celular no cambia. Detalle y SQL por pegar: `docs/bitacora/2026-10-26-mis-compras-envios-por-ronda.md`.
 
 ## Cómo se ve mal hecho
 

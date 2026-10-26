@@ -161,6 +161,21 @@
 
 /* La cabecera «Una línea» (A · Muro): la tienda es una palabra («LIMA ▾»); la cuenta y la bolsa son íconos, con el número de la bolsa en su globo. */
 .t-sel-tienda .t-nav-b { white-space: nowrap; min-height: 44px; }
+/* El escudo de la tienda (Felipe 2026-10-26: en lugar del nombre, su escudo; el nombre aparece al pasar el mouse). Alto fijo y un ancho mínimo
+   (cada escudo tiene su proporción: el de Lima es casi cuadrado) para que la cabecera no se corra cuando la imagen llega; sin escudo, la cabecera dice el nombre como siempre. */
+.t-escudo { display: block; flex: none; height: 28px; width: auto; min-width: 24px; max-width: 32px; object-fit: contain; }
+.t-persona-op .t-escudo { height: 22px; }
+.t-escudo-hueco { visibility: hidden; width: 22px; }
+/* Con escudo, el subrayado que dibuja el resto de la navegación cruzaría el dibujo: aquí la señal es el nombre que sale. */
+.t-sel-tienda .t-nav-b:has(.t-escudo)::after { display: none; }
+/* El nombre en letras: a la izquierda del escudo, fuera del flujo (la cabecera no se mueve), sube un poco al aparecer. Solo existe a la vista si
+   lo que hay es el escudo (`:has`); con el nombre ya escrito no se repetiría. En el celular no hay «pasar el mouse»: la lista dice los nombres. */
+.t-sel-nombre { position: absolute; right: calc(100% + 10px); top: 50%; opacity: 0; transform: translate(6px, -50%); pointer-events: none; white-space: nowrap; transition: opacity .25s var(--ease), transform .25s var(--ease); }
+.t-sel-tienda .t-nav-b:has(.t-escudo):focus-visible .t-sel-nombre { opacity: 1; transform: translate(0, -50%); }
+@media (hover: hover) {
+  .t-sel-tienda .t-nav-b:has(.t-escudo):hover .t-sel-nombre { opacity: 1; transform: translate(0, -50%); }
+}
+@media (prefers-reduced-motion: reduce) { .t-sel-nombre { transition: none; transform: translate(0, -50%); } }
 /* El nombre de la tienda que rueda (ADR-0466): el de antes sube y se va, el nuevo sube desde abajo, como la cédula de un museo. Los dos
    comparten el lugar, alineados a la derecha (junto a la flecha): el nombre más corto no se corre al terminar. */
 .t-sede-caja { display: inline-grid; justify-items: end; overflow: hidden; }
