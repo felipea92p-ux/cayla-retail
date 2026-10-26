@@ -685,10 +685,18 @@ const TITULO_PLATA: Record<MedioPlata, string> = {
   ya_tenia: "Plata que ya tenías",
 };
 
-function detalleCompra(c: CompraAnotada): string {
+function detalleCompra(c: CompraAnotada, codigos: ReadonlyMap<string, readonly string[]>): string {
   const papel = TIPOS_PAPEL[c.tipo as TipoPapel]?.nombre ?? "Papel";
   const prendas = c.prendas === 1 ? "1 prenda" : `${c.prendas} prendas`;
-  const tiendas = c.porMandar.length ? `falta mandar a ${c.porMandar.join(", ")}` : c.tiendas.length ? c.tiendas.join(", ") : null;
+  // Ya enviada, lo que se busca es el código para avisar a la tienda («enviada · ENV-000118»); sin código (no se pudo leer «Mis envíos»), las tiendas.
+  const enviada = codigos.get(c.id);
+  const tiendas = c.porMandar.length
+    ? `falta mandar a ${c.porMandar.join(", ")}`
+    : enviada?.length
+      ? `enviada · ${enviada.join(", ")}`
+      : c.tiendas.length
+        ? c.tiendas.join(", ")
+        : null;
   // Lo que no pagó ella lo paga Compras desde Por pagar: se dice, para que no crea que le falta plata. Va pegado a las prendas: en el
   // celular la línea se corta al final.
   const falta = Math.round((c.monto - c.pagado) * 100) / 100;
@@ -702,7 +710,11 @@ function detalleCompra(c: CompraAnotada): string {
  * arriba si es de después de la última ronda cerrada. Sin ninguna cerrada todavía, lo sin ronda es de antes de las rondas: arriba solo
  * mientras no haya una abierta, y si es de hoy (como antes de las rondas).
  */
-export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gastos" | "anotada" | "hoy" | "ronda">): {
+export function movimientosDeLaCompradora(
+  plata: Pick<MiPlata, "compras" | "gastos" | "anotada" | "hoy" | "ronda">,
+  /** Los códigos de envío de cada compra (`codigosPorCompra`, de «Mis envíos»): la fila de una compra ya mandada dice cuál. */
+  codigos: ReadonlyMap<string, readonly string[]> = new Map(),
+): {
   actuales: MovimientoCompradora[];
   antes: MovimientoCompradora[];
 } {
@@ -714,7 +726,7 @@ export function movimientosDeLaCompradora(plata: Pick<MiPlata, "compras" | "gast
         tipo: "compra",
         icono: "compra",
         titulo: `Compra a ${c.proveedor}`,
-        detalle: detalleCompra(c),
+        detalle: detalleCompra(c, codigos),
         entra: false,
         // Baja de su plata solo lo que pagó: «− S/ 0.00» si se la dejó toda a Compras.
         monto: soles(c.pagado),

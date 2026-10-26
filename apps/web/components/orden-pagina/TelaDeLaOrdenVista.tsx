@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Scissors } from "lucide-react";
 import { EditarTelaModal } from "@/components/orden-pagina/EditarTelaModal";
+import { FichaDeConsumoHoja } from "@/components/orden-produccion/FichaDeConsumoHoja";
 import { TelaUsadaModal } from "@/components/orden-pagina/TelaUsadaModal";
 import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { BotonEditar } from "@/components/ui/BotonEditar";
@@ -28,12 +29,26 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, 
   const filas = filasDeTela(datos.insumos, corteTerminado(datos));
   const [hoja, setHoja] = useState<ModoDeTela | null>(null);
   const [editando, setEditando] = useState(false);
+  const [fichaAbierta, setFichaAbierta] = useState(false);
   const telas = telasDeLaOrden(datos.insumos);
   const puedeAnotar = datos.permisos.puedeOperar && datos.orden.estado === "en_proceso" && telas.length > 0;
   const hayQueDevolver = telas.some((t) => t.usado > 0);
   return (
     <section data-guia="prod-orden.tela" aria-label="Tela y avíos de la orden" className="@container op-bloque">
-      <TituloSeccion dato={datos.orden.producto.tejidoNombre ?? undefined} accion={edicion && filas.length > 0 ? <BotonEditar chico guia="prod-orden.editar-tela" onClick={() => setEditando(true)}>Editar</BotonEditar> : undefined}>
+      <TituloSeccion dato={datos.orden.producto.tejidoNombre ?? undefined} accion={
+          edicion ? (
+            <span className="flex flex-wrap items-center gap-2">
+              <Boton peso="fantasma" aria-haspopup="dialog" data-guia="prod-orden.ficha-modelo" onClick={() => setFichaAbierta(true)}>
+                Ficha del modelo
+              </Boton>
+              {filas.length > 0 && (
+                <BotonEditar chico guia="prod-orden.editar-tela" onClick={() => setEditando(true)}>
+                  Editar
+                </BotonEditar>
+              )}
+            </span>
+          ) : undefined
+        }>
         Tela y avíos
       </TituloSeccion>
       {filas.length === 0 ? (
@@ -118,6 +133,9 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, 
       )}
       {hoja && <TelaUsadaModal datos={datos} modo={hoja} onClose={() => setHoja(null)} />}
       {editando && edicion && <EditarTelaModal datos={datos} edicion={edicion} onClose={() => setEditando(false)} />}
+      {fichaAbierta && edicion && (
+        <FichaDeConsumoHoja tallerId={datos.orden.ubicacionId} tallerNombre={datos.orden.ubicacionNombre} productoId={datos.orden.producto.id} referencia={datos.orden.producto.referencia} insumos={edicion.insumos} onClose={() => setFichaAbierta(false)} />
+      )}
     </section>
   );
 }

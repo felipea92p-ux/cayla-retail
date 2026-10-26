@@ -80,3 +80,70 @@
     min-height: 2.5rem;
   }
 }
+
+/* «Mis envíos» (maqueta docs/maquetas/mis-compras-envios-2026-10/, Felipe 2026-10-26): el código del envío es lo más grande de su
+   hoja, en la serif, porque es lo que la compradora le dicta o le escribe a la tienda. */
+.envio-codigo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--color-hueso);
+  text-align: center;
+}
+.envio-codigo-numero {
+  font-family: var(--font-serif);
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+}
+/* El código en una fila de la lista: la misma serif, chica, sin partirse. */
+.envio-codigo-fila {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* La historia del envío en tres pasos: un punto por paso (verde si ya pasó, tinta el que está pasando, arena el que falta). */
+.envio-tiempo {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.envio-tiempo > li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  font-size: 13.5px;
+  color: var(--color-taupe);
+}
+.envio-tiempo > li::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--color-sand);
+}
+.envio-tiempo > li[data-paso="hecho"] {
+  color: var(--color-tinta);
+}
+.envio-tiempo > li[data-paso="hecho"]::before {
+  background: var(--color-verde);
+}
+.envio-tiempo > li[data-paso="ahora"] {
+  color: var(--color-tinta);
+  font-weight: 600;
+}
+.envio-tiempo > li[data-paso="ahora"]::before {
+  background: var(--color-tinta);
+}

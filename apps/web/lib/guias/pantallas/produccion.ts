@@ -310,7 +310,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.tela",
       opcional: true,
       titulo: "La tela de la orden",
-      texto: "Por cada color eliges la tela del estante y cuántos metros lleva cada prenda (el modelo ya lo sugiere). La orden te dice cuántos pedir y si alcanza. Abajo, «+ Agregar avío» (botones, hilo…): para toda la orden o un color. Es opcional: sin tela la orden se abre igual.",
+      texto: "Por cada color eliges la tela y cuántos metros lleva cada prenda (el modelo ya lo sugiere). «Separar por talla» deja escribir cada talla; con una sola cifra el pedido sale «Aproximado». La orden te dice cuántos pedir y si alcanza. «Ficha del modelo» guarda tela y avíos para las próximas; «+ Agregar avío» suma otro.",
     },
     {
       id: "consumo-modelo",
@@ -517,12 +517,19 @@ export const GUIA_PROD_ORDEN: Guia = {
       texto: "Si la orden se abrió sin tela, o el consumo salió mal calculado, aquí lo arreglas: agregas, corriges o quitas la tela y los avíos. Lo que ya se usó se queda: no se quita, solo se corrige cuánto lleva cada prenda.",
     },
     {
+      id: "ficha-modelo",
+      ancla: "prod-orden.ficha-modelo",
+      opcional: true,
+      titulo: "La ficha del modelo",
+      texto: "«Ficha del modelo» guarda lo que lleva el modelo en general: la tela de cada talla y los avíos. Las órdenes nuevas lo proponen solas; esta orden no cambia (para eso, «Editar»). Con 3 órdenes cerradas manda lo que se gastó de verdad; «Volver a Audaces» lo deshace.",
+    },
+    {
       id: "editar-tela-lista",
       ancla: "prod-orden-editar-tela.lista",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.editar-tela" }],
       titulo: "Tela por color y avíos",
-      texto: "Por cada color eliges la tela y cuánto lleva cada prenda; la hoja calcula cuántos metros pedir y si alcanzan. Abajo, «+ Agregar avío» para botones, cierres, etiquetas o hilo. En la demo no guardamos nada.",
+      texto: "Por cada color eliges la tela y cuánto lleva cada prenda, por talla si quieres («Separar por talla»); la hoja calcula cuántos metros pedir y si alcanzan. Abajo, «+ Agregar avío» para botones, cierres, etiquetas o hilo. En la demo no guardamos nada.",
     },
     {
       id: "editar-tela-cierre",
