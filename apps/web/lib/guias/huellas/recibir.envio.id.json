@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 117,
+  "total": 126,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -51,14 +51,17 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/CerrarEnvio.tsx": [
-      "CampoTexto «{`Costo por prenda de ${nombreDeLinea(l)}»",
       "Boton «Contarla»",
+      "CampoTexto «{`Precio de compra de ${nombreDeLinea(l)}»",
+      "button «{`${abierta ? \"Esconder\" : \"Ver\"}»",
       "CampoTexto «{guia.etiqueta(\"guia\", \"Número de guía\")}»",
       "CampoTexto «Nota (opcional)»",
       "CampoSelect «{guia.etiqueta(\"proveedor\", \"¿De quién llegó?\")}»",
       "ComboResponsable «{responsable}»",
       "Volver «→onVolver»",
-      "Boton «recepcion.cerrar-boton»"
+      "Boton «recepcion.cerrar-boton»",
+      "Boton «Cancelar»",
+      "Boton «Confirmar y cerrar»"
     ],
     "components/recepcion-conteo/ContarEnvio.tsx": [
       "ComboResponsable «{responsable}»",
@@ -97,9 +100,19 @@
       "Boton «Dejar para después»",
       "Boton «{guia.frase ?? undefined}»"
     ],
+    "components/recepcion-conteo/ObservacionesDeLinea.tsx": [
+      "Boton «Anotar observación»",
+      "button «{t.nombre}»",
+      "textarea «Mensaje de la observación»",
+      "Boton «Cancelar»",
+      "Boton «{problema ?? undefined}»"
+    ],
     "components/recepcion-conteo/PapelesDeLaCompra.tsx": [
       "a «Abrir el PDF del papel»",
       "button «recepcion.papel-foto»"
+    ],
+    "components/recepcion-conteo/PrecioDePrenda.tsx": [
+      "CampoTexto «{`Precio de venta de ${nombre}»"
     ],
     "components/recepcion-conteo/PreguntaDeLaCompra.tsx": [
       "Boton «recepcion.son-estas»",

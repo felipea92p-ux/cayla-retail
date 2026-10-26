@@ -78,6 +78,9 @@ export type PiezaATocar = {
   /** ¿Declara `aria-haspopup` (dialog, menu, listbox…)? Un botón que abre una ventana o un menú no guarda: se puede tocar aunque
    *  se llame «Dar acceso» o «Pedir a otra sede». Lo que guarda es el botón de ADENTRO de esa ventana, y ese sigue prohibido. */
   abreVentana?: boolean;
+  /** ¿Declara `aria-expanded`? Es un pliegue («Ver y cambiar», «Ver 3 más»): solo muestra u oculta lo que ya está en la pantalla, no
+   *  escribe nada, aunque su texto lleve un verbo. Lo que guarda es un control de ADENTRO de lo desplegado, y ese sigue prohibido. */
+  esPliegue?: boolean;
   /** El `role` ARIA del control («tab», «switch»…), o null. Una pestaña solo cambia de vista: se puede tocar aunque se llame
    *  «Apartar» o «Entregar». */
   rol: string | null;

@@ -58,7 +58,7 @@ export default async function EditarProductoPage({
     // regla de la caja (marcada a mano o por su categoría).
     supabase
       .from("etiquetas")
-      .select("id, nombre, estilo, icono, icono_imagen, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
+      .select("id, nombre, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
       .eq("activo", true)
       .eq("estado", "aprobado")
       .order("nombre"),
@@ -95,7 +95,7 @@ export default async function EditarProductoPage({
   const vocabulario = exigir(resEtiquetas, "las etiquetas del vocabulario");
   const etiquetas = vocabulario
     .filter((e) => (!e.vigente_desde || e.vigente_desde <= hoy) && (!e.vigente_hasta || e.vigente_hasta >= hoy))
-    .map((e) => ({ id: e.id, texto: e.nombre, estilo: e.estilo ?? "neutral", icono: dibujoElegido(e.icono), imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null }));
+    .map((e) => ({ id: e.id, texto: e.nombre, estilo: e.estilo ?? "neutral", icono: dibujoElegido(e.icono), imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null, imagenSilueta: esRutaDeImagenDeInsignia(e.icono_imagen) && e.icono_imagen_silueta === true }));
   // Las que bajan el precio (ADR-0472): la ficha calcula con ellas lo que cobra la caja, también mientras se cambian etiquetas.
   const sedesDeCampana = new Map<string, string[]>();
   for (const f of resSedesCampanas.error ? [] : (resSedesCampanas.data ?? [])) {

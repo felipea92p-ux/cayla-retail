@@ -25,15 +25,6 @@ export const TIPOS_QUE_SE_AGREGAN: readonly { tipo: TipoCuenta; texto: string }[
   { tipo: "tarjeta_credito", texto: "Tarjeta de crédito de CAYLA (451)" },
 ];
 
-/** Cómo agrupa el spike las cuentas (`vistaCuentas`): cada grupo con su cuenta contable. */
-export const GRUPOS_CUENTAS: readonly { clave: string; tipos: readonly TipoCuenta[]; titulo: string; cuenta: string }[] = [
-  { clave: "bancos", tipos: ["banco"], titulo: "Bancos", cuenta: "104" },
-  { clave: "por_abonar", tipos: ["por_abonar"], titulo: "Por depositar", cuenta: "105" },
-  { clave: "cajones", tipos: ["cajon"], titulo: "Cajones y fondo fijo", cuenta: "101" },
-  { clave: "fuertes", tipos: ["caja_fuerte", "por_rendir"], titulo: "Cajas fuertes y efectivo por rendir", cuenta: "101" },
-  { clave: "tarjetas", tipos: ["tarjeta_credito"], titulo: "Tarjetas de crédito de CAYLA · lo que se debe", cuenta: "451" },
-];
-
 export type TipoMovimiento = "aporte" | "prestamo" | "retiro" | "devolucion_prestamo" | "deposito" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat";
 export const TEXTO_MOVIMIENTO: Record<TipoMovimiento, string> = {
   aporte: "Aporte del dueño",
@@ -344,10 +335,6 @@ export function leerEfectivo(f: Fila): EfectivoFila {
     fondo: numONull(f.fondo),
   };
 }
-/** Lo que entra y sale del cajón que no es venta ni egreso: ingresos, devoluciones y cambios en efectivo. */
-export function otrosDelCajon(f: Pick<EfectivoFila, "ingresos" | "reembolsos" | "cambios">): number {
-  return Math.round((f.ingresos - f.reembolsos + f.cambios) * 100) / 100;
-}
 
 export type CierreConDiferencia = { cajaId: string; ubicacionNombre: string; cerradaEn: string; diferencia: number; cerradaPor: string | null };
 export function leerCierre(c: Fila): CierreConDiferencia {
@@ -451,11 +438,6 @@ export function nombreCorto(nombre: string): string {
  *  cualquier «Ver»; el cajón y la caja fuerte, solo los de la sede que se mira. Las archivadas y las «solo destino» no. */
 export function cuentasVisibles(cuentas: readonly CuentaDinero[], ubicacionId: string | null): CuentaDinero[] {
   return cuentas.filter((c) => !c.archivada && !c.soloDestino && (c.ubicacionId === null || ubicacionId === null || c.ubicacionId === ubicacionId));
-}
-
-/** Los grupos del spike con sus cuentas (los vacíos no salen). */
-export function agruparCuentas(cuentas: readonly CuentaDinero[]) {
-  return GRUPOS_CUENTAS.map((g) => ({ ...g, cuentas: cuentas.filter((c) => g.tipos.includes(c.tipo)) })).filter((g) => g.cuentas.length > 0);
 }
 
 /** «Yape de TRU y AQP · transferencias»: qué cobros entran hoy a una cuenta, dicho en palabras (sale de `medios_de_cobro`). */
@@ -801,13 +783,6 @@ export function cuentaParaConciliar(cuentas: readonly ConciliacionCuenta[], pedi
   const bancos = cuentas.filter((c) => c.tipo === "banco");
   const lista = bancos.length ? bancos : [...cuentas];
   return [...lista].sort((a, b) => (a.ultimaFecha ?? "0000").localeCompare(b.ultimaFecha ?? "0000"))[0] ?? null;
-}
-
-/** «Hoy, jueves 24»: el título de Efectivo por tienda. */
-export function hoyEnPalabras(hoy: string): string {
-  const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-  const d = new Date(`${hoy}T12:00:00Z`);
-  return `Hoy, ${dias[d.getUTCDay()]} ${d.getUTCDate()}`;
 }
 
 /** «martes 22»: el día de un cierre, en hora de Lima (cinco horas detrás de UTC todo el año, como `diaYHoraLima`). */
