@@ -386,7 +386,7 @@ export const GUIA_VITRINA: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "vitrina.buscador" }],
       titulo: "Todos los modelos que se venden",
-      texto: "Cada modelo con su foto, lo libre en cada tienda y si se ve en la web. El precio no se pone aquí: en la web vale lo mismo que en la tienda que el cliente elige. El que está apagado se ve atenuado, porque el cliente no lo ve.",
+      texto: "Cada modelo con su foto, lo libre en cada tienda y si se ve en la web. El precio no se pone aquí: en la web vale lo mismo que en la tienda que el cliente elige. El que está apagado se ve atenuado, porque el cliente no lo ve. Un aviso ámbar trae «¿Por qué?».",
     },
     {
       id: "vista",
@@ -490,8 +490,8 @@ export const GUIA_VITRINA: Guia = {
       ancla: "vitrina.nota",
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "vitrina.desmarcar", siEsta: true }],
       prepararSoloAlAvanzar: true,
-      titulo: "De dónde sale cada cosa",
-      texto: "En la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto. El precio, las fotos, los colores y las tallas se cambian en la ficha del modelo, en Catálogo ▸ Productos.",
+      titulo: "Qué precio ve el cliente",
+      texto: "Toca «¿Qué precio ve el cliente?» arriba: en la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto. El precio, las fotos, los colores y las tallas se cambian en la ficha del modelo, en Catálogo ▸ Productos.",
     },
     {
       id: "fin",

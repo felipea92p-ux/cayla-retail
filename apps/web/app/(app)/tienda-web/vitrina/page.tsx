@@ -27,7 +27,7 @@ export default async function VitrinaPage({ searchParams }: { searchParams: Prom
         sede={persona.ubicacionEtiqueta}
         detalle="Tienda web"
         titulo="Vitrina"
-        subtitulo="Qué modelos se ven en la tienda online. El cliente los ve al precio de la tienda que elige y con lo que hay en cada una."
+        subtitulo="Elige qué modelos ve el cliente en la tienda online."
       />
       <VitrinaPestanas activa="modelos" />
       {error ? (

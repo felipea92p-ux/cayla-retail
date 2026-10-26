@@ -7,6 +7,7 @@ import { CircleCheck, LayoutGrid, List, MonitorSmartphone, SearchX, Shirt, Spark
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { avisar } from "@/components/ui/Avisos";
 import { Casilla } from "@/components/ui/Casilla";
 import { Chip } from "@/components/ui/Chip";
@@ -128,6 +129,8 @@ export function VitrinaPantalla({
   const [elegidos, setElegidos] = useState<string[]>([]);
   const [abierto, setAbierto] = useState<string | null>(null);
   const [lote, setLote] = useState<{ modo: ModoLote; ids: string[] } | null>(null);
+  // La regla del precio (qué precio ve el cliente) se abre a un toque: antes era un subtítulo y una nota de tres frases siempre a la vista.
+  const [reglaAbierta, setReglaAbierta] = useState(false);
 
   const { tiendas } = lectura;
   const cifras = cifrasDe(modelos);
@@ -252,6 +255,19 @@ export function VitrinaPantalla({
 
   return (
     <div className="tw space-y-6">
+      {/* `mb-3` reemplaza el aire de 24 px del `space-y-6`: el enlace queda pegado a las cifras que explica. */}
+      <div className="mb-3">
+        <BotonVerMas forma="enlace" className="relative tw-toque" data-guia="vitrina.nota" abierto={reglaAbierta} onCambiar={setReglaAbierta} texto="¿Qué precio ve el cliente?" controla="vitrina-regla-precio" />
+        <FilasDeMas abierto={reglaAbierta} id="vitrina-regla-precio">
+          <div className="nota-cayla mt-2 space-y-2 text-[13px]">
+            <p>
+              En la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto entre ellas. Las campañas se
+              aplican encima con la misma regla de la caja. El precio, las fotos, los colores y las tallas se cambian en su ficha, en Catálogo ▸
+              Productos.
+            </p>
+          </div>
+        </FilasDeMas>
+      </div>
       <div className="grid gap-3 sm:grid-cols-3" data-guia="vitrina.cifras">
         <TarjetaCifra
           punto="verde"
@@ -476,14 +492,6 @@ export function VitrinaPantalla({
         )}
       </section>
 
-      <div className="nota-cayla space-y-2 text-[13px]" data-guia="vitrina.nota">
-        <p>
-          En la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto entre ellas. Las campañas se
-          aplican encima con la misma regla de la caja. El precio, las fotos, los colores y las tallas se cambian en su ficha, en Catálogo ▸
-          Productos.
-        </p>
-      </div>
-
       {/* Lo elegido: abajo, pegado al borde, a la vista aunque la lista sea larga (la misma barra de «Pagar juntos»). El aire de abajo es
           para que no tape la última fila. */}
       {elegidos.length > 0 && <div aria-hidden className="h-20" />}
@@ -529,6 +537,22 @@ export function VitrinaPantalla({
   );
 }
 
+/** La insignia de por qué un modelo no se ve. Si es un problema que se arregla (ámbar), lleva un «¿Por qué?» que abre la frase completa con un toque:
+ *  antes el motivo solo vivía en la hoja del modelo. El empaque («Solo en la caja») no es un problema: va sin él. Un clic aquí no abre la hoja. */
+function RazonDelChip({ razon }: { razon: NonNullable<ReturnType<typeof razonNoSeMuestra>> }) {
+  const [abierta, setAbierta] = useState(false);
+  if (razon.tono !== "ambar") return <Chip tono={razon.tono}>{razon.chip}</Chip>;
+  return (
+    <>
+      <Chip tono={razon.tono}>{razon.chip}</Chip>
+      <button type="button" className="btn-cayla btn-enlace text-[12px]" aria-expanded={abierta} onClick={() => setAbierta((a) => !a)}>
+        ¿Por qué?
+      </button>
+      {abierta && <span className="basis-full text-[12px] leading-snug text-taupe">{razon.frase}</span>}
+    </>
+  );
+}
+
 /** Una fila: la casilla para elegir varios, el modelo (que abre su hoja), lo libre en cada tienda y el interruptor. La fila entera
  *  también abre la hoja con el mouse; la casilla y el interruptor no la disparan. */
 function FilaModelo({
@@ -562,9 +586,9 @@ function FilaModelo({
       }}
       className={`${fila(PLANTILLA, "cursor-pointer items-center sm:items-center")} ${elegido ? "bg-rojo/[0.045]" : ""}`}
     >
-      <span data-guia="vitrina.casilla" className="row-span-2 pt-0.5 sm:row-span-1">
+      <label data-guia="vitrina.casilla" className="tw-toque-casilla row-span-2 sm:row-span-1">
         <Casilla marcada={elegido} onCambio={onElegir} etiqueta={`Elegir ${m.nombre}`} />
-      </span>
+      </label>
       <span className="flex min-w-0 items-center gap-3">
         <MiniaturaPrenda
           fotoUrl={m.foto ?? m.colores.find((c) => c.foto)?.foto ?? null}
@@ -585,7 +609,7 @@ function FilaModelo({
           </span>
           {(razon || (v && v.enLoNuevo !== "automatico")) && (
             <span className="mt-1 flex flex-wrap gap-1.5">
-              {razon && <Chip tono={razon.tono}>{razon.chip}</Chip>}
+              {razon && <RazonDelChip razon={razon} />}
               {v?.enLoNuevo === "fijo" && <Chip tono="verde">Fijado en Lo nuevo</Chip>}
               {v?.enLoNuevo === "quitado" && <Chip tono="neutro">Fuera de Lo nuevo</Chip>}
             </span>
@@ -609,7 +633,7 @@ function FilaModelo({
           // El empaque no va en la web: el interruptor no se puede prender (la insignia dice por qué).
           disabled={empaque}
           onClick={onInterruptor}
-          className="interruptor disabled:opacity-50"
+          className="interruptor tw-toque disabled:opacity-50"
         >
           <span aria-hidden className="interruptor-perilla" />
         </button>
@@ -650,9 +674,9 @@ function FilaColumnas({
       }}
       className={`${fila(PLANTILLA_COLUMNAS[tiendas.length]!, "cursor-pointer items-center sm:items-center")} ${elegido ? "bg-rojo/[0.045]" : ""}`}
     >
-      <span data-guia="vitrina.casilla">
+      <label data-guia="vitrina.casilla" className="tw-toque-casilla">
         <Casilla marcada={elegido} onCambio={onElegir} etiqueta={`Elegir ${m.nombre}`} />
-      </span>
+      </label>
       <span className="flex min-w-0 items-center gap-3">
         <MiniaturaPrenda fotoUrl={m.foto ?? m.colores.find((c) => c.foto)?.foto ?? null} colorHex={m.colores[0]?.hex ?? null} tamano="md" prefijo={m.prefijo} familia={m.familia} categoria={m.categoria} />
         <span className="min-w-0">
@@ -662,7 +686,7 @@ function FilaColumnas({
           {sinFoto > 0 && <span className="block truncate text-[12px] text-taupe">{sinFoto} sin foto propia</span>}
           {(razon || (v && v.enLoNuevo !== "automatico")) && (
             <span className="mt-1 flex flex-wrap gap-1.5">
-              {razon && <Chip tono={razon.tono}>{razon.chip}</Chip>}
+              {razon && <RazonDelChip razon={razon} />}
               {v?.enLoNuevo === "fijo" && <Chip tono="verde">Fijado en Lo nuevo</Chip>}
               {v?.enLoNuevo === "quitado" && <Chip tono="neutro">Fuera de Lo nuevo</Chip>}
             </span>
@@ -685,7 +709,7 @@ function FilaColumnas({
           aria-label={`${m.nombre} en la web`}
           disabled={empaque}
           onClick={onInterruptor}
-          className="interruptor disabled:opacity-50"
+          className="interruptor tw-toque disabled:opacity-50"
         >
           <span aria-hidden className="interruptor-perilla" />
         </button>
@@ -727,9 +751,10 @@ function CartaModelo({
       data-elegida={elegido ? "" : undefined}
       data-oculta={encendido ? undefined : ""}
     >
-      <span className="tw-carta-casilla" data-guia="vitrina.casilla">
+      {/* Un <label>: todo el recuadro (32 px) marca la casilla, no solo su cuadrito de 20 px. */}
+      <label className="tw-carta-casilla" data-guia="vitrina.casilla">
         <Casilla marcada={elegido} onCambio={onElegir} etiqueta={`Elegir ${m.nombre}`} />
-      </span>
+      </label>
       <button type="button" onClick={onAbrir} className="tw-carta-foto" aria-label={`Abrir ${m.nombre}`} tabIndex={-1}>
         <span>{foto ? <ImagenDePrenda src={foto} alt="" fill sizes="200px" className="object-cover" fondo={m.colores[0]?.hex ?? null} fallback={sinFoto} /> : sinFoto}</span>
       </button>
@@ -737,7 +762,9 @@ function CartaModelo({
         <button type="button" onClick={onAbrir} data-guia="vitrina.abrir" className="tw-carta-nombre">
           <span data-guia="vitrina.modelo">{m.nombre}</span>
         </button>
-        <span className="tw-carta-stock" aria-label="Libre en cada tienda">
+        {/* «Libre:» a la vista: sin ese rótulo, «Lima 24 · Trujillo 18» eran números sueltos (la Lista ya dice «Libre en tiendas»). */}
+        <span className="tw-carta-stock">
+          <span className="tw-carta-stock-rotulo">Libre:</span>
           {stockEnTiendas(m, tiendas).map((s) => (
             <span key={s.sede} data-cero={s.cantidad === 0 ? "" : undefined}>
               {s.sede} {s.cantidad}
@@ -746,7 +773,7 @@ function CartaModelo({
         </span>
         {(razon || (v && v.enLoNuevo !== "automatico")) && (
           <span className="flex flex-wrap gap-1.5">
-            {razon && <Chip tono={razon.tono}>{razon.chip}</Chip>}
+            {razon && <RazonDelChip razon={razon} />}
             {v?.enLoNuevo === "fijo" && <Chip tono="verde">Fijado en Lo nuevo</Chip>}
             {v?.enLoNuevo === "quitado" && <Chip tono="neutro">Fuera de Lo nuevo</Chip>}
           </span>
@@ -760,7 +787,7 @@ function CartaModelo({
             aria-label={`${m.nombre} en la web`}
             disabled={empaque}
             onClick={onInterruptor}
-            className="interruptor disabled:opacity-50"
+            className="interruptor tw-toque disabled:opacity-50"
           >
             <span aria-hidden className="interruptor-perilla" />
           </button>
