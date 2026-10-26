@@ -13,3 +13,8 @@ Felipe se lleva: no hay nada que arreglar en el lote. Quedan sin cubrir sesión 
 Qué hice: el Resumen ya no dice «Todo al día» cuando no pudo leer los pedidos (lectura caída o cuenta fuera de una tienda: «Sin novedades en lo que se pudo leer», con el motivo); la fila de «por confirmar» no repite el plazo (vive en el camino de abajo) y su enlace dice «Revisar y confirmar». Por pedido de Felipe, «Tiendas en la web» vuelve siempre junto a la ventana, que recupera su ancho.
 Por qué así: «Todo al día» es una afirmación sobre lo que se leyó; sin leer, afirmar calma esconde pedidos que se cierran solos y se pierde la venta. El enlace lleva a la lista, y confirmar se hace dentro de cada pedido.
 Felipe se lleva: nada va a producción de la base. Los 3 cambios de la Vitrina de `/formidable` siguen esperando su OK (el 3 toca la firma del responsable, ADR-0161).
+
+## 2026-10-26 (/formidable de la Vitrina: los 3 cambios)
+Qué hice: el interruptor de un modelo muestra u oculta al momento cuando ya se sabe quién firma (Admin o la persona de turno), con «Deshacer»; si no, abre la hoja como antes. El stock de cada carta dice «Libre:», lo que se toca responde en 24 px o más, la regla del precio se abre con «¿Qué precio ve el cliente?» y los avisos ámbar traen «¿Por qué?».
+Por qué así: ocultar es reversible y pedir «¿quién eres?» en cada interruptor cobraba un paso que el sistema ya sabía; la hoja se queda donde sí protege (lotes, tienda que quedaría vacía, responsable sin resolver). La firma sigue en la base: la misma `vitrina_mostrar`.
+Felipe se lleva: nada va a producción de la base. Quedan en 375 px «Filtros» (36 px) y «Vista» (40 px), que son piezas del sistema (`/unificar`), y «¿Por qué?» sin ver con un modelo sin precio real (la base local no tiene uno).

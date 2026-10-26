@@ -221,6 +221,17 @@ baja con lo calmo (principio 9: se degrada, no engaña); (2) el reloj de «por c
 fila dice qué hace confirmar y qué pasa si nadie lo hace, sin horas; (3) el enlace de esa fila dice «Revisar y confirmar», porque lleva a la lista y se
 confirma dentro de cada pedido. **DESCARTÉ** atenuar las estaciones en cero del camino: la pieza la comparte Pedidos y ya van con punto neutro.
 **SE ROMPE SI** una lectura nueva del Resumen no se suma a `lecturasCaidas`/`vacioDePendientes`: volvería a decir «Todo al día» sin haberla leído.
+
+**Los 3 cambios de Vitrina ▸ Modelos de `/formidable` (2026-10-26, Felipe aprobó el 3 con condición):** (1) el stock de la carta dice «Libre:» (antes eran
+números sueltos) y lo que se toca responde en 24 px o más sin agrandar el dibujo —la casilla es un `<label>` de 32 px, el interruptor y el enlace
+llevan `.tw-toque` (un `::after` invisible), el nombre pasa de 17 a 25 px de alto—; el rótulo de categoría de una prenda sin foto pasa de 8 a 11 px
+cuando su caja mide 144 px o más (`MosaicoPrenda`, por su propio ancho: `@container`, sin tocar las miniaturas); (2) la regla del precio vive tras
+«¿Qué precio ve el cliente?» (`BotonVerMas`, antes un subtítulo y una nota de tres frases siempre abiertos) y los avisos ámbar traen «¿Por qué?» con la
+frase de `razonNoSeMuestra`; (3) el interruptor de UN modelo aplica sin hoja cuando `responsable.listo` (Admin, o la persona de la sesión que está de
+turno), con «Deshacer» en el aviso (`aplicaSinHoja`, `lib/vitrina-escritura.ts`; el rastro queda firmado igual: la misma `vitrina_mostrar`, ADR-0161
+regla 3). Si el responsable no está resuelto, el cambio no cambia nada o ocultarlo dejaría la tienda sin modelos o casi, abre la hoja como antes (la hoja
+y los lotes siguen con su combo y su aviso). **DESCARTÉ** tocar la casilla y el interruptor del sistema para subirlos a 24 px: es una decisión de
+`/unificar`. **SE ROMPE SI** «Deshacer» corre después de que otra persona cambió el mismo modelo: vuelve a llamar con lo contrario y lo pisa (7 s de ventana).
 **DESCARTÉ** la propuesta B (ventana de una fila arriba): a 375 px dejaba los pendientes en el borde del pliegue. **SE ROMPE SI** una pantalla nueva del
 grupo no trae su `loading.tsx`: hereda la silueta del Resumen (el editor de campañas ya trae uno genérico).
 

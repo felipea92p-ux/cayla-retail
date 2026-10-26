@@ -879,11 +879,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   lo que no tiene nada que decir baja debajo de la ventana —«Todo al día» solo si se leyó todo, `vacioDePendientes`—; silueta propia en
   `tienda-web/loading.tsx`). Sin funciones propias en la base. Estilos y movimiento: `app/estilos/tienda-web.css` (vigilado por `lib/tienda-web-movimiento.test.ts`).
 - `/tienda-web/vitrina` (Tienda web ▸ Vitrina, módulo `vitrina_web`, ADR-0408 act. 3) → `page.tsx` lee `fn_vitrina_modelos` →
-  `VitrinaPantalla.tsx` (cifras compactas, buscador, el botón «Filtros» con su panel flotante `components/ui/FiltrosFlotantes.tsx`,
+  `VitrinaPantalla.tsx` (la regla del precio tras «¿Qué precio ve el cliente?», cifras compactas, buscador, el botón «Filtros» con su panel flotante `components/ui/FiltrosFlotantes.tsx`,
   la lista de 40 en 40 —ropa; el empaque, en Estado ▸ Empaque— en cartas o en «Lista», que según el ancho y las tiendas dibuja una
   columna por tienda o las filas de siempre, `modoDeLista`; barra fija de los elegidos) + `VitrinaModeloHoja.tsx`
   (`vitrina_guardar_modelo`: mostrar, Lo nuevo y descripción) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`: mostrar u ocultar uno o
-  varios; las dos hojas cargan bajo demanda con `next/dynamic`); reglas en `lib/vitrina-reglas.ts`, guía de foco en `lib/vitrina-guia.ts`. Sin precio web (Felipe, 2026-10-14): en la web
+  varios; las dos hojas cargan bajo demanda con `next/dynamic`; la llamada vive en `lib/vitrina-escritura.ts` y el interruptor de UN modelo la usa
+  sin hoja, con «Deshacer», cuando `responsable.listo`: `aplicaSinHoja`); reglas en `lib/vitrina-reglas.ts`, guía de foco en `lib/vitrina-guia.ts`. Sin precio web (Felipe, 2026-10-14): en la web
   vale el de cada tienda (`fn_precio_en_sede`). Solo ropa en la web (Felipe, 2026-10-15, `20261015122000`): la regla es
   `fn_vitrina_por_que_no` (empaque, sin precio, no se vende; `fn_vitrina_publicable` = «no hay porqué»), lo de una familia fuera de los
   motores (bolsas, cajas) no se muestra ni se guarda y la tienda no lo ve aunque haya quedado publicado; la fila dice «Solo en la caja»
