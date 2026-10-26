@@ -29,7 +29,9 @@ const arg = (nombre, porDefecto) => {
   return i > 0 ? process.argv[i + 1] : porDefecto;
 };
 const CONTENEDOR = arg("--contenedor", process.env.RETAIL_CONTENEDOR_PG ?? "supabase_db_cayla-retail");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261026172000_proveedores_ventas_diarias.sql"), "utf8").replace(/^set lock_timeout.*$/gm, "");
+// La función nació en 20261026172000 y el reparto entre proveedores (20261026181000) la reemplazó: se pegan las dos, en orden.
+const leer = (archivo) => readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8").replace(/^set lock_timeout.*$/gm, "");
+const MIGRACION = `${leer("20261026172000_proveedores_ventas_diarias.sql")}\n${leer("20261026181000_proveedor_reparto_entre_proveedores.sql")}`;
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const ARGS = ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 
@@ -50,27 +52,34 @@ function esperar(nombre, ok, detalle) {
   }
 }
 
-// Todo sale del seed por su nombre o su código (los ids cambian en cada base). La prenda es de un proveedor que ya tiene compras en el seed.
+// Todo sale del seed por su nombre o su código (los ids cambian en cada base). La talla es de UN solo proveedor (con dos, la venta se reparte:
+// eso lo prueba proveedor_reparto.mjs). La prueba mueve el stock como la tienda: lo que entra llega por una recepción suya y la venta lo baja; si
+// no, la carga estimada le inventaría prendas al proveedor habitual y la talla pasaría a tener dos.
 const PREPARAR = `
 begin;
 ${MIGRACION}
 set local request.jwt.claim.sub = '${FELIPE}';
 select id as yo from public.personas where auth_user_id = '${FELIPE}' \\gset
 select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
-select b.proveedor_id as prov, v.id as vid
-  from retail.fn_proveedor_prendas_base(null) b
-  join retail.variantes v on v.producto_id = b.producto_id
-  where not retail.fn_proveedor_es_taller(b.proveedor_id)
-  order by b.unidades_compradas desc, v.sku limit 1 \\gset
+with aportes as (select distinct r.proveedor_id, r.variante_id from retail.fn_proveedor_reparto() r where r.clase in ('compra', 'carga'))
+select a.proveedor_id as prov, a.variante_id as vid
+  from aportes a join retail.variantes v on v.id = a.variante_id
+  where not retail.fn_proveedor_es_taller(a.proveedor_id)
+    and (select count(*) from aportes b where b.variante_id = a.variante_id) = 1
+  order by v.sku limit 1 \\gset
 select coalesce((select vendidas from retail.fn_proveedores_ventas_diarias(28) where proveedor_id = :'prov' and dia = retail.fn_hoy_lima()), 0) as antes \\gset
 `;
 
 // 1. Una venta de hoy suma; una devolución resta.
 const r = correr(`${PREPARAR}
-insert into retail.movimientos (variante_id, ubicacion_id, tipo, cantidad, motivo, usuario_id, nota) values (:'vid', :'lima', 'entrada', 5, 'ajuste', :'yo', 'stock para la prueba');
+insert into retail.lotes (ubicacion_id, proveedor_id) values (:'lima', :'prov') returning id as lote \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, tipo, cantidad, motivo, usuario_id, nota, lote_id) values (:'vid', :'lima', 'entrada', 5, 'recepcion', :'yo', 'llegó para la prueba', :'lote');
 insert into retail.movimientos (variante_id, ubicacion_id, tipo, cantidad, motivo, usuario_id, nota) values (:'vid', :'lima', 'salida', 3, 'venta', :'yo', 'venta de prueba');
+insert into retail.stock (variante_id, ubicacion_id, cantidad) values (:'vid', :'lima', 2)
+  on conflict (variante_id, ubicacion_id, sububicacion_id) do update set cantidad = retail.stock.cantidad + excluded.cantidad;
 select 'tras-venta|' || (coalesce((select vendidas from retail.fn_proveedores_ventas_diarias(28) where proveedor_id = :'prov' and dia = retail.fn_hoy_lima()), 0) - :antes);
 insert into retail.movimientos (variante_id, ubicacion_id, tipo, cantidad, motivo, usuario_id, nota) values (:'vid', :'lima', 'entrada', 1, 'devolucion', :'yo', 'devolución de prueba');
+update retail.stock set cantidad = cantidad + 1 where variante_id = :'vid' and ubicacion_id = :'lima' and sububicacion_id is null;
 select 'tras-devolucion|' || (coalesce((select vendidas from retail.fn_proveedores_ventas_diarias(28) where proveedor_id = :'prov' and dia = retail.fn_hoy_lima()), 0) - :antes);
 `);
 esperar("una venta de 3 de hoy suma 3 en el día de hoy de su proveedor", r.ok && r.salida.includes("tras-venta|3"), r.salida || r.error);

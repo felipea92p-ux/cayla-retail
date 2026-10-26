@@ -28,7 +28,10 @@ const arg = (nombre, porDefecto) => {
   return i > 0 ? process.argv[i + 1] : porDefecto;
 };
 const CONTENEDOR = arg("--contenedor", process.env.RETAIL_CONTENEDOR_PG ?? "supabase_db_cayla-retail");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261024231000_proveedor_prendas_origen_compras_y_carga.sql"), "utf8").replace(/^set lock_timeout.*$/gm, "");
+// La de los dos orígenes y, encima, la del reparto entre proveedores (20261026181000), que reemplaza la base: lo que esta prueba promete
+// (los orígenes, el costo de la factura, lo sin factura aparte) tiene que seguir valiendo con el reparto.
+const leer = (archivo) => readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8").replace(/^set lock_timeout.*$/gm, "");
+const MIGRACION = `${leer("20261024231000_proveedor_prendas_origen_compras_y_carga.sql")}\n${leer("20261026181000_proveedor_reparto_entre_proveedores.sql")}`;
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const ARGS = ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 
