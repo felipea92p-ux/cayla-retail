@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { FAMILIAS_DE_COLOR } from "@cayla-retail/shared/colores-de-la-tienda";
 import { fraseDeTalla, nombreDeFamilia, type Faceta } from "@/lib/filtros-color-talla";
-import { useFiltros } from "./ProveedorFiltros";
+import { textoDeQuitar, useFiltros } from "./ProveedorFiltros";
 
 // Lo elegido a la vista, bajo la barra: una ficha por color y por talla («Negro ✕», «Talla M ✕») que se quita de un toque, y el aviso de lo que
 // el sistema quitó solo («En Pantalones no hay talla M: la quitamos · Deshacer»). Una ficha de una opción «muerta» (elegida, pero con lo otro ya no
@@ -39,7 +39,8 @@ export function FichasDeFiltros() {
     f?.tocar(ficha.faceta, ficha.valor);
     requestAnimationFrame(() => {
       const siguiente = claveVecina ? lista.current?.querySelector<HTMLElement>(`.fp-ficha[data-clave="${claveVecina}"]`) : null;
-      (siguiente ?? f?.colorRef.current)?.focus({ preventScroll: true });
+      if (siguiente) siguiente.focus({ preventScroll: true });
+      else f?.enfocar("color");
     });
   }
 
@@ -55,7 +56,7 @@ export function FichasDeFiltros() {
                 const hacer = aviso.deshacer;
                 f.descartarAviso();
                 hacer();
-                f.colorRef.current?.focus({ preventScroll: true });
+                f.enfocar("color");
               }}
             >
               Deshacer
@@ -87,6 +88,21 @@ export function FichasDeFiltros() {
                   </li>
                 );
               })}
+              {/* Solo en el celular (ahí no está la palabra «Quitar» de la barra): quita todo lo elegido de un toque. */}
+              {fichas.length > 0 && (
+                <li className="fp-quitar-li">
+                  <button
+                    type="button"
+                    className="fp-qt fp-etq"
+                    onClick={() => {
+                      f.quitar();
+                      f.enfocar("filtros", "color");
+                    }}
+                  >
+                    {textoDeQuitar(elegido)}
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
         </div>

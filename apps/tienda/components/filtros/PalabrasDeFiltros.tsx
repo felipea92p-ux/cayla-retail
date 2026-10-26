@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent } from "react";
 import type { Faceta } from "@/lib/filtros-color-talla";
 import { PanelDeFiltro } from "./PanelDeFiltro";
-import { useFiltros } from "./ProveedorFiltros";
+import { textoDeQuitar, useFiltros } from "./ProveedorFiltros";
 
 // La fila COLOR · TALLA de la barra de la lista y los dos paneles que abre (maqueta «Opción 1 · Filtros que se abren», ADR-0512 actividad 4).
 // Va como una fila más de la barra pegada (`.t-filtros-niveles`); los paneles cuelgan de la barra (`.t-filtros`, que es posicionada): se
@@ -143,7 +143,6 @@ export function PalabrasDeFiltros() {
 
   if (!f) return null;
   const hay = nC + nT > 0;
-  const quitaTxt = nC && nT ? "Quitar color y talla" : nC ? (nC > 1 ? "Quitar colores" : "Quitar color") : nT ? (nT > 1 ? "Quitar tallas" : "Quitar talla") : "Quitar color y talla";
 
   function alTeclearPalabra(e: KeyboardEvent<HTMLButtonElement>, faceta: Faceta) {
     if (e.key === "ArrowDown") {
@@ -162,7 +161,7 @@ export function PalabrasDeFiltros() {
             key={faceta}
             ref={(el) => {
               palabras.current[faceta] = el;
-              if (faceta === "color" && f) f.colorRef.current = el;
+              if (faceta === "color") f.registrar("color", el);
             }}
             type="button"
             className="t-pildora fp-pal"
@@ -201,7 +200,7 @@ export function PalabrasDeFiltros() {
           palabras.current.color?.focus({ preventScroll: true }); // el botón se oculta: el foco no se queda en el aire
         }}
       >
-        {quitaTxt}
+        {textoDeQuitar(f.elegido)}
       </button>
       {FACETAS.map((faceta) => (
         <PanelDeFiltro

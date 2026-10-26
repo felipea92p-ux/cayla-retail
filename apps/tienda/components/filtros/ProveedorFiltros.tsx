@@ -40,6 +40,7 @@ const AVISO_MS = 12000;
 
 type Lectura = { estado: "nada" | "cargando" | "caida" } | { estado: "lista"; datos: DatosDeFiltros };
 export type Aviso = { texto: string; deshacer: () => void };
+type SitioDelFoco = "color" | "filtros";
 
 export type FiltrosVivos = {
   /** Lo elegido ahora: lo que la persona tocó, aunque la lista nueva todavía no haya llegado. */
@@ -48,9 +49,12 @@ export type FiltrosVivos = {
   estado: Lectura["estado"];
   /** Con la lectura lista: lo que hay en este nivel, cuántas prendas daría cada opción y qué elegidas quedaron sin prendas. */
   vivo: { opciones: Opciones; conteos: Conteos; muertas: Soltado } | null;
-  /** El panel abierto, si hay uno. */
+  /** El panel abierto, si hay uno (la computadora). */
   abierto: Faceta | null;
   abrir: (faceta: Faceta | null) => void;
+  /** ¿Está abierta la hoja «Filtros»? (el celular) */
+  hoja: boolean;
+  abrirHoja: (abierta: boolean) => void;
   /** Pide la lectura (una vez; si cayó, otra vez). */
   cargar: () => void;
   /** Suma o quita una opción. `false`: no se pudo (daría 0 prendas, o no se pide talla aquí). */
@@ -58,10 +62,21 @@ export type FiltrosVivos = {
   quitar: (faceta?: Faceta) => void;
   aviso: Aviso | null;
   descartarAviso: () => void;
-  /** La palabra COLOR de esta lista (la pone `PalabrasDeFiltros`): adonde vuelve el foco cuando lo que lo tenía se quita. Sirve para no buscarla en
-   *  el documento: con las páginas anteriores que Next deja guardadas (ocultas) puede haber más de una. */
-  colorRef: { current: HTMLElement | null };
+  /** Las dos cosas que pueden recibir el foco cuando lo que lo tenía se quita: la palabra COLOR (la computadora) y el botón «Filtros» (el celular).
+   *  Se registran aquí en vez de buscarlas en el documento: Next deja guardadas, ocultas, las listas anteriores, y puede haber más de una. */
+  registrar: (cual: SitioDelFoco, el: HTMLElement | null) => void;
+  /** Da el foco al primero de esos sitios que se vea. */
+  enfocar: (...cuales: SitioDelFoco[]) => void;
 };
+
+/** Lo que dice el botón que quita lo elegido, según qué hay elegido («Quitar color y talla», «Quitar tallas»…). */
+export function textoDeQuitar(e: Elegido): string {
+  const [c, t] = [e.color.length, e.talla.length];
+  if (c && t) return "Quitar color y talla";
+  if (c) return c > 1 ? "Quitar colores" : "Quitar color";
+  if (t) return t > 1 ? "Quitar tallas" : "Quitar talla";
+  return "Quitar color y talla";
+}
 
 const Contexto = createContext<FiltrosVivos | null>(null);
 
@@ -81,12 +96,25 @@ export function ProveedorFiltros({ sede, ids, elegido: delServidor, children }: 
   const [elegido, setElegido] = useState<Elegido>(delServidor);
   const [esperando, setEsperando] = useState(false);
   const [abierto, setAbierto] = useState<Faceta | null>(null);
+  const [hoja, setHoja] = useState(false);
   const [lectura, setLectura] = useState<Lectura>({ estado: "nada" });
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const temporizador = useRef(0);
   const pedida = useRef(false);
   const nivel = useRef<string | null>(null);
-  const colorRef = useRef<HTMLElement | null>(null);
+  const sitios = useRef<Record<SitioDelFoco, HTMLElement | null>>({ color: null, filtros: null });
+  const registrar = useCallback((cual: SitioDelFoco, el: HTMLElement | null) => {
+    sitios.current[cual] = el;
+  }, []);
+  const enfocar = useCallback((...cuales: SitioDelFoco[]) => {
+    for (const cual of cuales) {
+      const el = sitios.current[cual];
+      if (el && el.offsetParent !== null) {
+        el.focus({ preventScroll: true });
+        return;
+      }
+    }
+  }, []);
 
   // ---- La lectura de las variantes (una vez por tienda; el navegador la guarda 30 s)
   const cargar = useCallback(() => {
@@ -196,14 +224,17 @@ export function ProveedorFiltros({ sede, ids, elegido: delServidor, children }: 
       vivo,
       abierto,
       abrir: setAbierto,
+      hoja,
+      abrirHoja: setHoja,
       cargar,
       tocar,
       quitar,
       aviso,
       descartarAviso: () => setAviso(null),
-      colorRef,
+      registrar,
+      enfocar,
     }),
-    [abierto, aviso, cargar, elegido, lectura.estado, quitar, tocar, vivo],
+    [abierto, aviso, cargar, elegido, enfocar, hoja, lectura.estado, quitar, registrar, tocar, vivo],
   );
 
   return (

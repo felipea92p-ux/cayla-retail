@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { SigueMirando } from "@/components/bolsa/SigueMirando";
 import { BotonBuscarCatalogo } from "@/components/BotonBuscarCatalogo";
 import { ElegidoALaVista } from "@/components/ElegidoALaVista";
+import { BotonDeFiltros } from "@/components/filtros/BotonDeFiltros";
 import { FichasDeFiltros } from "@/components/filtros/FichasDeFiltros";
+import { HojaDeFiltros } from "@/components/filtros/HojaDeFiltros";
 import { PalabrasDeFiltros } from "@/components/filtros/PalabrasDeFiltros";
 import { ProveedorFiltros } from "@/components/filtros/ProveedorFiltros";
 import { FiltrosDeLista } from "@/components/FiltrosDeLista";
@@ -482,6 +484,7 @@ export default async function Catalogo({ searchParams }: Props) {
                 ) : (
                   <span className="t-esp" />
                 )}
+                {conFiltros && <BotonDeFiltros />}
                 <BotonBuscarCatalogo />
                 <div className="t-orden">
                   <Link
@@ -496,7 +499,12 @@ export default async function Catalogo({ searchParams }: Props) {
                   </Link>
                 </div>
               </FiltrosDeLista>
-              {conFiltros && <FichasDeFiltros />}
+              {conFiltros && (
+                <>
+                  <FichasDeFiltros />
+                  <HojaDeFiltros />
+                </>
+              )}
             </ProveedorFiltros>
             <ElegidoALaVista selector=".t-filtros .t-pildoras, .t-filtros .t-subcats" />
             {/* Sin prendas, el vacío de abajo dice lo que pasa: un «0 prendas» encima solo lo repetía. */}
