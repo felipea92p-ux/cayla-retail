@@ -57,6 +57,12 @@ lee el valor del último punto que pasó) y `marcas` (①②③ sobre la línea,
 resto en taupe; se tocan con el mouse, el dedo o Enter, y el elegido se llena de tinta). Y `arreglos`: un lápiz punteado en pizarra sobre la raya del piso, en la fecha de algo que se corrigió (un costo mal anotado); no
 mueve la línea y se toca para ir a su detalle. Maqueta: `docs/maquetas/costo-historial-2026-10/`.
 
+**Números que se pisan (2026-10-26).** Con varias compras casi juntas (6 en 2 días) los números quedaban encimados y no se podía tocar ninguno.
+Ahora `marcas` los separa a 26 px como mínimo (`lib/linea-marcas-reglas.ts`: mínimos cuadrados con separación mínima, en el mismo orden y dentro del
+gráfico): el escalón de la línea no se mueve, solo el número, unido a su punto por un hilo fino cuando se corrió más de 14 px. Al número apretado
+no se le dibuja el texto («↑ subió S/ 1.61»): lo dicen la tabla de abajo, su `<title>` y el lector de pantalla; el elegido lo muestra siempre, y el
+blanco de toque se achica a la mitad de la distancia al vecino (mínimo 12 px). Quien tiene sus números separados no ve ningún cambio.
+
 ## Firmas
 
 Una `<polyline>` o un `<path>` armado con su propia función de trazo (`d={trazo(…)}`, `camino`, `linea`) fuera de la pieza. Con el código de

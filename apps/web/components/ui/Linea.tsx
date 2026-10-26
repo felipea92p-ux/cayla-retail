@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { radioDeToque, separarMarcas, textosQueCaben } from "@/lib/linea-marcas-reglas";
 
 /* ====================================================================
    La línea — una sola pieza (ADR-0358, ronda 14, Felipe eligió P1 el 2026-10-15)
@@ -166,6 +167,9 @@ export function Linea({
   const Y = (v: number) => T + (H - T - B) * (1 - (v - minY) / Math.max(techo - minY, 1e-9));
   const camino = (ps: readonly PuntoLinea[], escalon = false) =>
     ps.map((p, i) => (i === 0 ? `M${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}` : escalon ? `H${X(p.x).toFixed(1)} V${Y(p.y).toFixed(1)}` : `L${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`)).join(" ");
+  // Los números de `marcas` se separan cuando caen casi juntos (seis compras en dos días): el número se corre, el escalón no.
+  const lugarMarcas = separarMarcas(marcas.map((m) => X(m.x)), 26, L + 12, W - R);
+  const textoCabe = textosQueCaben(lugarMarcas, marcas.map((m) => m.texto));
   const ultimo = serie.at(-1) ?? null;
   const finRef = referencia?.at(-1) ?? null;
 
@@ -279,33 +283,45 @@ export function Linea({
                   </g>
                 );
               })}
-              {marcas.map((m, i) => (
-                <g
-                  key={m.n}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={m.etiqueta}
-                  aria-pressed={!!m.activa}
-                  className={`linea-marca linea-marca-${m.tono ?? "neutro"} ${m.activa ? "linea-marca-activa" : ""}`}
-                  style={{ "--i": i } as CSSProperties}
-                  onClick={m.onElegir}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      m.onElegir?.();
-                    }
-                  }}
-                >
-                  <circle cx={X(m.x)} cy={Y(m.y)} r={20} className="linea-marca-toque" />
-                  <circle cx={X(m.x)} cy={Y(m.y)} r={12} className="linea-marca-fondo" />
-                  <text x={X(m.x)} y={Y(m.y) + 4} textAnchor="middle" className="linea-marca-n">
-                    {m.n}
-                  </text>
-                  <text x={X(m.x)} y={m.tono === "baja" ? Y(m.y) + 30 : Y(m.y) - 20} textAnchor="middle" className="linea-marca-texto">
-                    {m.texto}
-                  </text>
-                </g>
-              ))}
+              {/* En su orden: mover un nodo de lugar reinicia su animación de entrada. Separados a 26 px no se tapan entre sí. */}
+              {marcas.map((m, i) => {
+                  const cx = lugarMarcas[i]!;
+                  const real = X(m.x);
+                  const cy = Y(m.y);
+                  const verTexto = textoCabe[i] || !!m.activa;
+                  return (
+                    <g
+                      key={m.n}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={m.etiqueta}
+                      aria-pressed={!!m.activa}
+                      className={`linea-marca linea-marca-${m.tono ?? "neutro"} ${m.activa ? "linea-marca-activa" : ""}`}
+                      style={{ "--i": i } as CSSProperties}
+                      onClick={m.onElegir}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          m.onElegir?.();
+                        }
+                      }}
+                    >
+                      <title>{m.etiqueta}</title>
+                      {/* Un hilo une el número corrido con el punto de la línea donde de verdad pasó (el empujoncito del borde izquierdo no lo lleva). */}
+                      {Math.abs(cx - real) > 14 && <line x1={real} y1={cy} x2={cx} y2={cy} className="linea-marca-hilo" />}
+                      <circle cx={cx} cy={cy} r={radioDeToque(lugarMarcas, i)} className="linea-marca-toque" />
+                      <circle cx={cx} cy={cy} r={12} className="linea-marca-fondo" />
+                      <text x={cx} y={cy + 4} textAnchor="middle" className="linea-marca-n">
+                        {m.n}
+                      </text>
+                      {verTexto && (
+                        <text x={cx} y={m.tono === "baja" ? cy + 30 : cy - 20} textAnchor="middle" className="linea-marca-texto">
+                          {m.texto}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
             </>
           ) : (
             vacio && (
