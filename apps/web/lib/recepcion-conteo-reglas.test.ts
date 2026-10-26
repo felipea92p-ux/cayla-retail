@@ -58,7 +58,6 @@ import {
   leerContadas,
   mensajeAlGuardar,
   esEnvioSinAviso,
-  detalleDeEnvioSinAviso,
   marcaDeLinea,
   nombreDeLinea,
   guardadoDesde,
@@ -373,9 +372,6 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(esEnvioSinAviso({ lineas: 0, ordenes: [] })).toBe(true);
     expect(esEnvioSinAviso({ lineas: 2, ordenes: [] })).toBe(false);
     expect(esEnvioSinAviso({ lineas: 0, ordenes: ["OC-000465"] })).toBe(false);
-    expect(detalleDeEnvioSinAviso({ numeroGuia: "T001-9" })).toBe("Llegó sin aviso: se sigue contando · guía T001-9");
-    expect(detalleDeEnvioSinAviso({ numeroGuia: null })).toBe("Llegó sin aviso: se sigue contando");
-    expect(detalleDeEnvioSinAviso({ numeroGuia: "T001-9" }, "Textiles Andina SAC")).toBe("Llegó sin aviso: se sigue contando · Textiles Andina SAC · guía T001-9");
     expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true }))).toBe("proveedor por confirmar");
     expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV] }))).toBe(PROV.nombre);
     expect(proveedorDelSinAviso(null)).toBeNull();

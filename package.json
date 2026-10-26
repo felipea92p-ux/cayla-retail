@@ -240,6 +240,7 @@
     "pruebas:ordenes-compra-sin-comprobante": "node scripts/pruebas/ordenes_compra_sin_comprobante.mjs",
     "pruebas:recepcion-de-envio": "node scripts/pruebas/recepcion_de_envio.mjs",
     "pruebas:conteo-de-envio": "node scripts/pruebas/conteo_de_envio.mjs",
+    "pruebas:observaciones-de-envio": "node scripts/pruebas/observaciones_de_envio.mjs",
     "pruebas:pendientes-de-envio": "node scripts/pruebas/pendientes_de_envio.mjs",
     "pruebas:reabrir-envio": "node scripts/pruebas/reabrir_envio.mjs",
     "pruebas:envio-sin-aviso": "node scripts/pruebas/envio_sin_aviso.mjs",
