@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hallazgosDeCartera, hallazgosDeProveedor, ritmoDe, DIAS_PARA_JUZGAR, MIN_COMPRADAS, SEMANAS_AGOTA, SEMANAS_STOCK_LARGO, type PrendaConProveedor } from "./proveedor-analisis-reglas";
-import type { PrendaDeProveedor } from "./proveedor-prendas-reglas";
+import { totalesDePrendas, veredictoDe, type PrendaDeProveedor, type RendimientoProveedor } from "./proveedor-prendas-reglas";
 
 const HOY = "2026-11-30";
 const antes = (dias: number) => new Date(Date.parse(`${HOY}T00:00:00Z`) - dias * 86_400_000).toISOString().slice(0, 10);
@@ -164,4 +164,33 @@ describe("hallazgosDeCartera", () => {
     expect(h.length).toBeLessThanOrEqual(5);
     expect(h.every((x) => x.regla.length > 10 && x.numeros.length > 0)).toBe(true);
   });
+});
+
+describe("UNA SOLA REGLA: el aviso de frenar y el veredicto del ranking nunca se contradicen", () => {
+  // El ranking recibe, de la base, lo mismo que se calcula con las prendas: así que el mismo conjunto de prendas debe dar el mismo ritmo.
+  const comoRendimiento = (ps: PrendaDeProveedor[]): RendimientoProveedor => {
+    const t = totalesDePrendas(ps);
+    return {
+      proveedorId: "x", nombre: "X", esTaller: false, prendas: ps.length, unidadesCompradas: t.unidadesCompradas, unidadesCompras: t.unidadesCompras, unidadesSinFactura: t.unidadesSinFactura,
+      unidadesCarga: t.unidadesCarga, unidadesEstimadas: t.unidadesEstimadas, gasto: t.gasto, gastoCompras: t.gastoCompras, gastoCarga: t.gastoCarga, unidadesVendidas: t.unidadesVendidas,
+      ingresoVendido: t.ingresoVendido, costoVendido: t.costoVendido, plataEnStock: t.plataEnStock, prendasSinVenta: t.prendasSinVenta, plataSinVenta: t.plataSinVenta,
+      primeraEntrada: ps.map((p) => p.primeraEntrada).filter((d): d is string => !!d).sort()[0] ?? null, unidadesEnEstantes: t.unidadesEnEstantes,
+    };
+  };
+  const CASOS: [string, PrendaDeProveedor[]][] = [
+    ["Lasak: 183 compradas, 6 vendidas", [carga({ unidadesCompradas: 183, unidadesCarga: 183, unidadesEstimadas: 183, unidadesVendidas: 6, stockActual: 177 })]],
+    ["no vendió nada, más de 21 días", [carga({ unidadesVendidas: 0, stockActual: 100 })]],
+    ["llegó hace poco", [carga({ unidadesVendidas: 0, stockActual: 100, primeraEntrada: antes(5) })]],
+    ["vende rápido", [prenda({ unidadesVendidas: 80, stockActual: 20, ingresoVendido: 6000, costoVendido: 2400 })]],
+    ["ritmo justo en el umbral", [carga({ unidadesVendidas: 25, stockActual: 75, primeraEntrada: antes(42) })]],
+    ["poca mercadería", [carga({ unidadesCompradas: 10, unidadesCarga: 10, unidadesEstimadas: 10, stockActual: 10 })]],
+  ];
+  for (const [nombre, ps] of CASOS) {
+    it(`${nombre}: el aviso de la lista sale si y solo si el veredicto dice «Rota lento»`, () => {
+      const enLista = hallazgosDeCartera(ps.map((p) => de("x", p)), HOY).some((h) => h.id === "frenar-x");
+      const enRanking = veredictoDe(comoRendimiento(ps), HOY).texto === "Rota lento";
+      expect(enRanking).toBe(enLista);
+      expect(enRanking).toBe(ritmoDe(ps, HOY).lento);
+    });
+  }
 });

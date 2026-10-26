@@ -68,3 +68,13 @@ Felipe aprobó las recomendaciones de umbrales de una sesión hermana («Sí: p�
 **Pruebas** (`lib/proveedor-analisis-reglas.test.ts`): el caso Lasak (carga inicial, avisa «frenar» sin exigir 10 ventas y sin nombrar plata), el caso Jacard (S/ 825 con costo real avisa en plata; los mismos 33 sin vender con costo de carga avisan en unidades, desde 30), el caso Deyner (406 compradas, 193 vendidas, 204 en estantes: «se agota pronto» con el costo por confirmar y «vuelve a comprarle» con costo real y margen ≥ promedio), la unión de la ficha y la lista en una sola regla, y el mínimo de 20 unidades.
 
 **Lo que no cambió:** el veredicto de una palabra del ranking («Plata parada» a partir del 40 % de lo gastado por Compras, «Margen bajo», «Rinde») conserva sus umbrales; solo los avisos de «Lo que quizá no ves» cambiaron.
+
+## Actualización 2026-10-24 (d): el ranking y el aviso de «frenar» usan la misma regla de ritmo
+
+**El problema (Felipe lo vio con Lasak Store, 6 vendidas de 183):** el aviso de la lista decía «frena: vender lo que le queda tardaría unas 99 semanas» mientras el veredicto del ranking decía «Pocas ventas». Eran dos reglas distintas para lo mismo: el veredicto miraba solo cuántas unidades se habían vendido (menos de 10) y el aviso, el ritmo.
+
+**Lo que se decidió:**
+1. **Una sola regla de ritmo** en `lib/proveedor-ritmo-reglas.ts` (`ritmoDeDatos`, pura): semanas que tardaría en venderse lo que queda, al ritmo actual. La usan el aviso «ritmo» de la ficha, el aviso «frenar» de la lista y el veredicto del ranking. Sus umbrales (21 días, 20 unidades compradas, 16 semanas, 6 semanas para agotar) viven ahí y se cambian en un solo lugar.
+2. **El veredicto del ranking** (`veredictoDe(r, hoy)`) lo evalúa primero: si el ritmo es lento dice **«Rota lento»** (ámbar), aunque haya vendido poco; si no, «Pocas ventas» (menos de 10 vendidas), «Costo por confirmar», «Margen bajo» o «Rinde». **Se elimina el veredicto «Plata parada»** (y `PARADO_PCT`): lo cubre «Rota lento», y la plata sin vender sigue a la vista en su columna.
+3. **`fn_proveedores_rendimiento` devuelve dos columnas más** (migración `20261024234000_proveedores_rendimiento_con_ritmo.sql`): `primera_entrada` y `unidades_en_estantes`, que son lo que necesita el ritmo. Solo lectura, misma llave. Con la web nueva y la base de antes, esas dos columnas no llegan y el veredicto no mide el ritmo (cae a lo demás): nada se rompe.
+4. **Prueba de que no se contradicen** (`lib/proveedor-analisis-reglas.test.ts`, «UNA SOLA REGLA»): para seis conjuntos de prendas (Lasak, sin ventas, recién llegado, vende rápido, justo en el umbral, poca mercadería), el aviso «frenar» sale si y solo si el veredicto dice «Rota lento».
