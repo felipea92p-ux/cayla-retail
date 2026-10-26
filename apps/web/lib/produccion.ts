@@ -14,7 +14,7 @@ import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } fro
 export type { EtapaClave, EstadoEtapa, EstadoOrden } from "@/lib/produccion-reglas";
 import { datosDeVariante, esProducible, type EtapaClave, type EstadoEtapa, type EstadoOrden, type PrecioMasBajo } from "@/lib/produccion-reglas";
 import { RPC_TELA_EN_CAMINO, leerTelaEnCamino } from "@/lib/tela-del-taller-reglas";
-import type { ConsumoDelModelo } from "@/lib/orden-tela-reglas";
+import type { AvioDelModelo, ConsumoDelModelo } from "@/lib/orden-tela-reglas";
 
 export type LineaOrden = {
   varianteId: string;
@@ -251,6 +251,8 @@ export type OpcionesNuevaOrden = {
   proveedores: { id: string; nombre: string; rubro: string; activo: boolean; tarifas: { faseClave: string; tarifa: number; minimo: number | null; fijo: number; vigenteDesde: string }[] }[];
   /** Por modelo: metros de tela por prenda y de dónde sale el número. */
   consumos: Record<string, ConsumoDelModelo>;
+  /** Por modelo: los avíos que ya tiene (botones, hilo, etiquetas), para que Nueva orden los proponga sola (ADR-0513). */
+  aviosModelo: Record<string, AvioDelModelo[]>;
   /** Por tela: metros que las órdenes en proceso ya tienen comprometidos (plan − descontado). */
   comprometido: Record<string, number>;
   /** Por tela: lo que viene en camino (lo que falta recibir de los pedidos, sin los atrasados; `fn_tela_en_camino`, regla de Felipe del 2026-10-16). Sin ello, nada viene. */
@@ -269,9 +271,21 @@ type OpcionesLeidas = {
     ordenes_medidas?: number | string | null;
   }[];
   comprometido?: { insumo_id: string; cantidad: number | string }[];
+  avios_modelo?: { producto_id: string; insumo_id: string; color_codigo: string | null; cantidad_por_prenda: number | string }[];
 };
 
 export const RPC_NUEVA_ORDEN_OPCIONES = "fn_nueva_orden_opciones";
+
+/** Los avíos vigentes de cada modelo, en el orden en que la base los entrega; una cantidad que no se lee no entra. */
+function aviosPorModelo(filas: NonNullable<OpcionesLeidas["avios_modelo"]>): Record<string, AvioDelModelo[]> {
+  const salida: Record<string, AvioDelModelo[]> = {};
+  for (const f of filas) {
+    const cantidad = Number(f.cantidad_por_prenda);
+    if (!Number.isFinite(cantidad) || cantidad <= 0) continue;
+    (salida[f.producto_id] ??= []).push({ insumoId: f.insumo_id, colorCodigo: f.color_codigo, cantidadPorPrenda: cantidad });
+  }
+  return salida;
+}
 
 /** Un consumo de `fn_nueva_orden_opciones` como lo usa la hoja: lo que manda, la forma por talla (si la hay) y de dónde sale (ADR-0513). Un campo que no llega queda sin dato, nunca en cero. */
 function consumoDelModelo(c: NonNullable<OpcionesLeidas["consumos"]>[number]): ConsumoDelModelo {
@@ -317,6 +331,7 @@ export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<
           })),
         })),
         consumos: Object.fromEntries((o.consumos ?? []).map((c) => [c.producto_id, consumoDelModelo(c)])),
+        aviosModelo: aviosPorModelo(o.avios_modelo ?? []),
         comprometido: Object.fromEntries((o.comprometido ?? []).map((c) => [c.insumo_id, Number(c.cantidad)])),
         enCamino: Object.fromEntries([...(enCamino ?? [])].filter(([, c]) => c.cuenta > 0).map(([id, c]) => [id, c.cuenta])),
       } satisfies OpcionesNuevaOrden;

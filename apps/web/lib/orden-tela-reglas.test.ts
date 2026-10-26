@@ -7,6 +7,7 @@ import {
   HINTS_TELA,
   admitePorTalla,
   aMilesimas,
+  aviosSugeridos,
   cantidadAPedir,
   coloresDeLaOrden,
   consumoPorTallaSugerido,
@@ -15,6 +16,7 @@ import {
   insumosParaRpc,
   leerConsumo,
   metrosAPedir,
+  ofertaDeAviosDelModelo,
   ofertaDeConsumoDelModelo,
   planDeFila,
   prendasDeLaFila,
@@ -26,6 +28,7 @@ import {
   unirEnUnaCifra,
   usaPorTalla,
   veredictoTela,
+  type AvioDelModelo,
   type HintTela,
   type InsumoDelTaller,
   type InsumoRpc,
@@ -581,5 +584,69 @@ describe("paridad con la migración 20261026151000 (consumo por talla)", () => {
     expect(SQL_TALLA).toContain("v_plan := round(v_suma * (1 + coalesce(v_merma, 0)), 3);");
     expect(SQL_TALLA).toContain("round(v_suma / v_peso, 3)");
     expect(SQL_TALLA).toContain(`v_consumo > ${CONSUMO_MAXIMO}`);
+  });
+});
+
+
+// ---------- Los avíos del modelo (ADR-0513, actividad 3) ----------
+// Las mismas cifras que `scripts/pruebas/produccion_avios_modelo.mjs` comprueba contra Postgres: botones 4 para toda la orden y un hilo del color de la orden.
+
+describe("los avíos que el modelo ya tiene", () => {
+  const BOTON = tela("boton", { tipo: "avio", unidad: "unidad", tejidoId: null, colorCodigo: null });
+  const HILO_NEG = tela("hilo-neg", { tipo: "avio", unidad: "cono", tejidoId: null, colorCodigo: "NEG" });
+  const HILO_ROJO = tela("hilo-rojo", { tipo: "avio", unidad: "cono", tejidoId: null, colorCodigo: "ROJ" });
+  const VIEJO = tela("boton-viejo", { tipo: "avio", unidad: "unidad", tejidoId: null, colorCodigo: null, archivado: true });
+  const ESTANTE = [...INSUMOS, BOTON, HILO_NEG, HILO_ROJO, VIEJO];
+  const delModelo: AvioDelModelo[] = [
+    { insumoId: "boton", colorCodigo: null, cantidadPorPrenda: 4 },
+    { insumoId: "hilo-neg", colorCodigo: "NEG", cantidadPorPrenda: 0.03 },
+  ];
+
+  it("se proponen como filas de la hoja, en el orden del modelo, con tres decimales", () => {
+    expect(aviosSugeridos({ avios: delModelo, colores: COLORES, insumos: ESTANTE })).toEqual([
+      { insumoId: "boton", colorCodigo: null, consumoPorPrenda: "4.000" },
+      { insumoId: "hilo-neg", colorCodigo: "NEG", consumoPorPrenda: "0.030" },
+    ]);
+  });
+  it("se salta lo que no sirve para esta orden, sin preguntar: avío archivado o que ya no está, uno que no es avío, el de un color que la orden no fabrica, y repetidos", () => {
+    const avios: AvioDelModelo[] = [
+      { insumoId: "boton-viejo", colorCodigo: null, cantidadPorPrenda: 4 },
+      { insumoId: "no-existe", colorCodigo: null, cantidadPorPrenda: 4 },
+      { insumoId: LINO_NEG.id, colorCodigo: null, cantidadPorPrenda: 4 },
+      { insumoId: "hilo-rojo", colorCodigo: "ROJ", cantidadPorPrenda: 0.03 },
+      { insumoId: "boton", colorCodigo: null, cantidadPorPrenda: 4 },
+      { insumoId: "boton", colorCodigo: null, cantidadPorPrenda: 9 },
+    ];
+    expect(aviosSugeridos({ avios, colores: COLORES, insumos: ESTANTE })).toEqual([{ insumoId: "boton", colorCodigo: null, consumoPorPrenda: "4.000" }]);
+    expect(aviosSugeridos({ avios: [], colores: COLORES, insumos: ESTANTE })).toEqual([]);
+  });
+  it("lo que se propone pasa la validación de la base (no trae faltas)", () => {
+    const filas = [fila(), ...aviosSugeridos({ avios: delModelo, colores: COLORES, insumos: ESTANTE })];
+    expect(problemasTela(filas, { insumos: ESTANTE, colores: COLORES })).toEqual([]);
+  });
+  it("la hoja pone los avíos del modelo detrás de la tela mientras nadie toca nada; al tocar, manda lo que la persona dejó (lo que quitó no vuelve)", () => {
+    const sugeridas = telasSugeridas({ tejidoId: LINO, colores: COLORES, insumos: ESTANTE });
+    const avios = aviosSugeridos({ avios: delModelo, colores: COLORES, insumos: ESTANTE });
+    const sinTocar = telasDeLaHoja({ sugeridas, manual: null, insumos: ESTANTE, avios });
+    expect(sinTocar.map((t) => t.insumoId)).toEqual([LINO_NEG.id, LINO_SIN.id, "boton", "hilo-neg"]);
+    // Tocó la tela y quitó el hilo: la lista que quedó (`manual`) ya no lo trae y no vuelve.
+    const manual = sinTocar.filter((t) => t.insumoId !== "hilo-neg");
+    expect(telasDeLaHoja({ sugeridas, manual, insumos: ESTANTE, avios }).map((t) => t.insumoId)).toEqual([LINO_NEG.id, LINO_SIN.id, "boton"]);
+  });
+  it("la oferta de dejarlos como los del modelo: primera vez, igual, otros, o ninguno", () => {
+    const filaAvio = (insumoId: string, colorCodigo: string | null, consumoPorPrenda: string): TelaBorrador => ({ insumoId, colorCodigo, consumoPorPrenda });
+    const iguales = [fila(), filaAvio("boton", null, "4"), filaAvio("hilo-neg", "NEG", "0.03")];
+    // El modelo no tiene avíos: la primera orden los anota sola.
+    expect(ofertaDeAviosDelModelo(iguales, ESTANTE, [])).toEqual({ tipo: "primera", cuantos: 2 });
+    // Lo mismo que el modelo, escrito de otra forma («4» y «4.000»): nada que ofrecer.
+    expect(ofertaDeAviosDelModelo(iguales, ESTANTE, delModelo)).toEqual({ tipo: "ninguna" });
+    // Otra cantidad, un avío de más o de menos: se ofrece corregir.
+    expect(ofertaDeAviosDelModelo([fila(), filaAvio("boton", null, "6"), filaAvio("hilo-neg", "NEG", "0.03")], ESTANTE, delModelo)).toEqual({ tipo: "corregir", cuantos: 2, delModelo: 2 });
+    expect(ofertaDeAviosDelModelo([fila(), filaAvio("boton", null, "4")], ESTANTE, delModelo)).toEqual({ tipo: "corregir", cuantos: 1, delModelo: 2 });
+    // Sin avíos en la orden (o con una fila sin leer) no hay nada que ofrecer, tenga o no el modelo.
+    expect(ofertaDeAviosDelModelo([fila()], ESTANTE, delModelo)).toEqual({ tipo: "ninguna" });
+    expect(ofertaDeAviosDelModelo([filaAvio("boton", null, "")], ESTANTE, [])).toEqual({ tipo: "ninguna" });
+    // La tela no cuenta como avío.
+    expect(ofertaDeAviosDelModelo([fila()], ESTANTE, [])).toEqual({ tipo: "ninguna" });
   });
 });

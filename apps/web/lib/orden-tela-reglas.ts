@@ -129,6 +129,54 @@ export type ConsumoDelModelo = {
   ordenesMedidas?: number;
 };
 
+// ---------- Los avíos del modelo (ADR-0513, actividad 3) ----------
+
+/** Una fila de `producto_avios`: lo que el modelo dice que lleva de ese avío (para toda la orden si `colorCodigo` es null, o para las prendas de UN color). */
+export type AvioDelModelo = { insumoId: string; colorCodigo: string | null; cantidadPorPrenda: number };
+
+/**
+ * Los avíos que el modelo ya tiene, como filas de la hoja. Se salta lo que no sirve para ESTA orden (nunca una pregunta, nunca un rechazo de la base): un avío que ya no está
+ * en el estante o está archivado, uno que no es avío, y el de un color que la orden no fabrica. Conserva el orden del modelo y no repite (avío, color).
+ */
+export function aviosSugeridos(o: { avios: readonly AvioDelModelo[]; colores: readonly ColorDeLaOrden[]; insumos: readonly InsumoDelTaller[] }): TelaBorrador[] {
+  const fabrica = new Set(o.colores.filter((c) => c.cantidad > 0).map((c) => c.colorCodigo).filter((c): c is string => c !== null));
+  const vistas = new Set<string>();
+  const salida: TelaBorrador[] = [];
+  for (const a of o.avios) {
+    const insumo = o.insumos.find((i) => i.id === a.insumoId);
+    if (!insumo || insumo.tipo !== "avio" || insumo.archivado) continue;
+    if (a.colorCodigo !== null && !fabrica.has(a.colorCodigo)) continue;
+    const llave = `${a.insumoId}\u0000${a.colorCodigo ?? ""}`;
+    if (vistas.has(llave)) continue;
+    vistas.add(llave);
+    salida.push({ insumoId: a.insumoId, colorCodigo: a.colorCodigo, consumoPorPrenda: aMilesimas(a.cantidadPorPrenda).toFixed(3) });
+  }
+  return salida;
+}
+
+/**
+ * Los avíos de la orden contra los del modelo, para el interruptor «Dejar estos avíos como los del modelo»:
+ *  · `ninguna`: la orden no lleva avíos, o llevan lo mismo que el modelo (insumo, color y cantidad): no hay nada que ofrecer.
+ *  · `primera`: el modelo todavía no tiene avíos; esta orden los deja anotados sola (sin interruptor ni permiso).
+ *  · `corregir`: el modelo tiene otros. Corregirlos es de quien edita el catálogo; a los demás se les dice que solo esta orden usa los suyos.
+ */
+export type OfertaDeAvios = { tipo: "ninguna" } | { tipo: "primera"; cuantos: number } | { tipo: "corregir"; cuantos: number; delModelo: number };
+
+export function ofertaDeAviosDelModelo(telas: readonly TelaBorrador[], insumos: readonly InsumoDelTaller[], delModelo: readonly AvioDelModelo[]): OfertaDeAvios {
+  const filas = telas.flatMap((t) => {
+    const insumo = t.insumoId ? insumos.find((i) => i.id === t.insumoId) : undefined;
+    const consumo = leerConsumo(t.consumoPorPrenda);
+    return insumo?.tipo === "avio" && consumo !== null ? [{ insumoId: insumo.id, colorCodigo: colorLimpio(t.colorCodigo), consumo: aMilesimas(consumo) }] : [];
+  });
+  if (filas.length === 0) return { tipo: "ninguna" };
+  if (delModelo.length === 0) return { tipo: "primera", cuantos: filas.length };
+  const clave = (i: string, c: string | null, n: number) => `${i}|${c ?? ""}|${n}`;
+  const aqui = new Set(filas.map((f) => clave(f.insumoId, f.colorCodigo, f.consumo)));
+  const alla = new Set(delModelo.map((a) => clave(a.insumoId, a.colorCodigo, aMilesimas(a.cantidadPorPrenda))));
+  const igual = aqui.size === alla.size && [...aqui].every((k) => alla.has(k));
+  return igual ? { tipo: "ninguna" } : { tipo: "corregir", cuantos: filas.length, delModelo: delModelo.length };
+}
+
 /** Lo que el modelo dice que lleva (`producto_consumos`), listo para la caja: «1.200». Vacío si el modelo todavía no lo sabe. */
 export function consumoSugerido(declarado: ConsumoDelModelo | null): string {
   if (!declarado || !Number.isFinite(declarado.telaPorPrenda) || declarado.telaPorPrenda <= 0) return "";
@@ -375,8 +423,9 @@ const esAvioElegido = (t: TelaBorrador, insumos: readonly InsumoDelTaller[]): bo
  * del beige), y una fila de avío todavía sin elegir (`insumoId` nulo, recién agregada) sigue ahí para que la persona la llene. Una fila que no es de ningún color de la orden
  * (la tela de un color que ya no se fabrica) se descarta, como una de avío cuyo color ya no se fabrica.
  */
-export function telasDeLaHoja(o: { sugeridas: readonly TelaBorrador[]; manual: readonly TelaBorrador[] | null; insumos: readonly InsumoDelTaller[] }): TelaBorrador[] {
-  if (o.manual === null) return [...o.sugeridas];
+export function telasDeLaHoja(o: { sugeridas: readonly TelaBorrador[]; manual: readonly TelaBorrador[] | null; insumos: readonly InsumoDelTaller[]; avios?: readonly TelaBorrador[] }): TelaBorrador[] {
+  // Mientras la persona no toca nada, los avíos que el modelo ya tiene (`aviosSugeridos`) van detrás de la tela. Al tocar, `manual` los trae ya copiados: lo que quitó no vuelve.
+  if (o.manual === null) return [...o.sugeridas, ...(o.avios ?? [])];
   const filasDeColor = o.sugeridas.map((s) => o.manual?.find((p) => !esAvioElegido(p, o.insumos) && p.colorCodigo === s.colorCodigo) ?? s);
   const elegidas = new Set<TelaBorrador>(filasDeColor);
   const coloresDeLaOrden = new Set(o.sugeridas.map((s) => s.colorCodigo));

@@ -50,10 +50,12 @@ import { NivelDos } from "@/components/orden-produccion/NivelDos";
 import { esDeNivelDos, nivelDosPideAbrirse, resumenNivelDos } from "@/lib/orden-nivel-dos-reglas";
 import { costoServiciosEstimado, fasesIniciales, fasesParaRpc, problemasFases, proveedoresQueSirven, serviciosConCosto, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
 import {
+  aviosSugeridos,
   coloresDeLaOrden,
   consumoPorTallaSugerido,
   consumoSugerido,
   insumosParaRpc,
+  ofertaDeAviosDelModelo,
   ofertaDeConsumoDelModelo,
   planDeFila,
   prendasDeLaFila,
@@ -241,6 +243,7 @@ export function NuevaOrdenProduccionForm({
   const [telasManual, setTelasManual] = useState<TelaBorrador[] | null>(inicio?.telasManual ?? null);
   // «Dejar este consumo como el del modelo»: apagado de fábrica; solo vale si el modelo ya dice otra cosa y quien abre edita el catálogo (`ofertaConsumo`).
   const [fijarConsumo, setFijarConsumo] = useState(false);
+  const [fijarAvios, setFijarAvios] = useState(false);
   const [fechaEntrega, setFechaEntrega] = useState(inicio?.fechaEntrega ?? "");
   const [nota, setNota] = useState(inicio?.nota ?? "");
   const [cargando, setCargando] = useState(false);
@@ -373,11 +376,19 @@ export function NuevaOrdenProduccionForm({
     [tejidoId, coloresOrden, insumosDelTaller, consumoDeclaradoTexto, consumoDeclarado]
   );
   const telasTocadas = telasManual !== null;
-  const telas = useMemo<TelaBorrador[]>(() => telasDeLaHoja({ sugeridas: telasSugeridasAhora, manual: telasManual, insumos: insumosDelTaller }), [telasManual, telasSugeridasAhora, insumosDelTaller]);
+  // Los avíos que el modelo ya tiene (ADR-0513): se proponen solos mientras la persona no toque la tela, y quedan como suyos en cuanto toca.
+  const aviosDelModelo = useMemo(() => (!esNuevo && modeloExistente ? (opcionesDatos?.aviosModelo[modeloExistente.productoId] ?? []) : []), [esNuevo, modeloExistente, opcionesDatos]);
+  const aviosSugeridosAhora = useMemo(() => aviosSugeridos({ avios: aviosDelModelo, colores: coloresOrden, insumos: insumosDelTaller }), [aviosDelModelo, coloresOrden, insumosDelTaller]);
+  const telas = useMemo<TelaBorrador[]>(
+    () => telasDeLaHoja({ sugeridas: telasSugeridasAhora, manual: telasManual, insumos: insumosDelTaller, avios: aviosSugeridosAhora }),
+    [telasManual, telasSugeridasAhora, insumosDelTaller, aviosSugeridosAhora]
+  );
   const problemasDeFases = useMemo(() => problemasFases(fases, { hoy, proveedores: proveedoresServicio, lista: listaDePrecios }), [fases, hoy, proveedoresServicio, listaDePrecios]);
   const problemasDeTela = useMemo(() => problemasTela(telas, { insumos: insumosDelTaller, colores: coloresOrden }), [telas, insumosDelTaller, coloresOrden]);
   const ofertaConsumo = useMemo(() => ofertaDeConsumoDelModelo(telas, insumosDelTaller, consumoDeclarado, coloresOrden), [telas, insumosDelTaller, consumoDeclarado, coloresOrden]);
   const fijarElConsumo = fijarConsumo && !esNuevo && ofertaConsumo.tipo === "corregir" && puedeEditarCatalogo;
+  const ofertaAvios = useMemo(() => ofertaDeAviosDelModelo(telas, insumosDelTaller, aviosDelModelo), [telas, insumosDelTaller, aviosDelModelo]);
+  const fijarLosAvios = fijarAvios && !esNuevo && ofertaAvios.tipo === "corregir" && puedeEditarCatalogo;
   // Los costos ya no se teclean: la tela sale de los metros a pedir × el costo del lote que se usaría (solo quien ve costos), y los servicios de la tarifa congelada.
   const conCostos = decision !== null;
   const costoPorMetro = useMemo(
@@ -738,6 +749,7 @@ export function NuevaOrdenProduccionForm({
             token: token.actual(),
             // Solo cuando se marcó a propósito: la base lo vuelve a comprobar (corregir lo que el modelo ya dice es de quien edita el catálogo).
             ...(fijarElConsumo ? { fijar_consumo_modelo: true } : {}),
+            ...(fijarLosAvios ? { fijar_avios_modelo: true } : {}),
           },
           p_fases: fasesParaRpc(fases, listaDePrecios, hoy),
           p_insumos: insumosParaRpc(telas, coloresOrden),
@@ -919,6 +931,11 @@ export function NuevaOrdenProduccionForm({
               ofertaConsumo={ofertaConsumo}
               puedeCorregirConsumo={puedeEditarCatalogo}
               fijarConsumo={fijarElConsumo}
+              ofertaAvios={ofertaAvios}
+              puedeCorregirAvios={puedeEditarCatalogo}
+              fijarAvios={fijarLosAvios}
+              onFijarAvios={setFijarAvios}
+              aviosDelModelo={aviosDelModelo.length}
               onFijarConsumo={setFijarConsumo}
             />
             {opciones?.fallo && (

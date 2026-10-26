@@ -25,6 +25,7 @@ import {
   type ColorDeLaOrden,
   type ConsumoDelModelo,
   type InsumoDelTaller,
+  type OfertaDeAvios,
   type OfertaDeConsumo,
   type ProblemaTela,
   type TallaDeLaOrden,
@@ -83,6 +84,14 @@ export type PropsTelaDeLaOrden = {
   puedeCorregirConsumo: boolean;
   fijarConsumo: boolean;
   onFijarConsumo: (v: boolean) => void;
+  /** Los avíos de la orden contra los del modelo (`ofertaDeAviosDelModelo`, ADR-0513): decide si se ofrece dejarlos como los del modelo, se avisa o no se dice nada. Sin esto, no hay oferta. */
+  ofertaAvios?: OfertaDeAvios;
+  /** Corregir los avíos que el modelo YA tiene es de quien edita el catálogo (la base lo vuelve a comprobar). */
+  puedeCorregirAvios?: boolean;
+  fijarAvios?: boolean;
+  onFijarAvios?: (v: boolean) => void;
+  /** Cuántos avíos tiene ya el modelo (los que la orden propone sola mientras nadie toque nada). */
+  aviosDelModelo?: number;
   /** Editar una orden que ya está abierta (ADR-0510): lo que cambia respecto a Nueva orden. Sin esto, el bloque es el de siempre. */
   edicion?: {
     /** Lo ya usado en la orden, por tela: con consumo anotado el «Alcanza» no se dice aquí (el estante ya bajó) y se muestra cuánto se usó. */
@@ -107,7 +116,7 @@ const porPrenda = (n: number, unidad: string) => `${n.toLocaleString("es-PE", { 
 const SIN_CAMINO = new Map<string, number>();
 const FILA_VACIA = (colorCodigo: string | null): TelaBorrador => ({ insumoId: null, colorCodigo, consumoPorPrenda: "" });
 
-export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre, colores, comprometido, enCamino = SIN_CAMINO, consumoDeclarado, conCostos, costoPorMetro, guia, problemas, ofertaConsumo, puedeCorregirConsumo, fijarConsumo, onFijarConsumo, edicion, titulo = "Tela de la orden" }: PropsTelaDeLaOrden) {
+export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre, colores, comprometido, enCamino = SIN_CAMINO, consumoDeclarado, conCostos, costoPorMetro, guia, problemas, ofertaConsumo, puedeCorregirConsumo, fijarConsumo, onFijarConsumo, ofertaAvios = { tipo: "ninguna" }, puedeCorregirAvios = false, fijarAvios = false, onFijarAvios, aviosDelModelo = 0, edicion, titulo = "Tela de la orden" }: PropsTelaDeLaOrden) {
   const porId = new Map(insumos.map((i) => [i.id, i] as const));
   const esAvio = (t: TelaBorrador) => (t.insumoId ? porId.get(t.insumoId)?.tipo === "avio" : false);
 
@@ -398,6 +407,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                   </div>
                 );
               })}
+              {aviosDelModelo > 0 && avios.length > 0 && <p className="text-[12.5px] text-tinta/70">Estos avíos los lleva ya el modelo: quita o cambia los que esta orden no use.</p>}
               {aviosDelEstante.length > 0 && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <Boton type="button" peso="fantasma" onClick={agregarAvio}>
@@ -406,6 +416,23 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
                   {avios.length === 0 && <span className="text-[12.5px] text-tinta/70">Botones, cierres, etiquetas o hilo, si quieres que la orden los cuente.</span>}
                 </div>
               )}
+              {ofertaAvios.tipo === "primera" && (
+                <p className="text-[12.5px] text-tinta/70">Es la primera orden de este modelo con avíos: quedan anotados como los del modelo y la próxima orden los propone sola.</p>
+              )}
+              {ofertaAvios.tipo === "corregir" &&
+                (puedeCorregirAvios && onFijarAvios ? (
+                  <div className="space-y-1.5">
+                    <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-tinta">
+                      <Casilla marcada={fijarAvios} onCambio={() => onFijarAvios(!fijarAvios)} etiqueta="Dejar estos avíos como los del modelo" />
+                      Dejar estos avíos como los del modelo
+                    </label>
+                    <p className="pl-[34px] text-[12.5px] text-tinta/70">
+                      Hoy el modelo lleva {ofertaAvios.delModelo} {ofertaAvios.delModelo === 1 ? "avío" : "avíos"}. Sin marcar, solo esta orden usa los suyos y el modelo sigue igual.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-[12.5px] text-tinta/70">El modelo ya tiene sus avíos y cambiaste algunos: solo esta orden usa los tuyos. Para cambiar los del modelo, pídeselo a quien edita el catálogo.</p>
+                ))}
             </div>
           )}
         </div>
