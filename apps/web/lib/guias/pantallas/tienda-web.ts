@@ -1066,15 +1066,15 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
     {
       id: "sedes",
       ancla: "config.tienda-web-sedes",
-      titulo: "Cada tienda en la tienda web",
-      texto: "Arriba de cada tienda ves su tarjeta tal como la verá el cliente, y cambia mientras escribes: el nombre (Trujillo, no Tienda TRU), la dirección para recoger, el horario y el WhatsApp donde llegan sus pedidos. Mientras falte algo, la tarjeta dice qué y te lleva a la casilla.",
+      titulo: "Cada tienda es una puerta",
+      texto: "Cada puerta es una tienda, con el color de su sede. Dice si el cliente la ve hoy, cuántos de sus 3 datos tiene (el anillo) y, con una palabra, lo que le falta. Toca una para abrirla abajo y escribir su nombre (Trujillo, no Tienda TRU), WhatsApp, dirección y horario.",
     },
     {
       id: "mostrar",
       ancla: "config.tienda-web-mostrar",
       opcional: true,
       titulo: "Se ve en la web",
-      texto: "Con nombre, WhatsApp y dirección, la tienda se puede encender: el cliente la ve y puede recoger ahí lo que separa. Apagada, no la ve. En la demo no la tocamos.",
+      texto: "El interruptor de cada puerta. Con nombre, WhatsApp y dirección se puede encender: el cliente la ve y puede recoger ahí lo que separa. Si falta algo, queda con candado. En la demo no lo tocamos.",
     },
     {
       id: "guardar",
@@ -1082,6 +1082,12 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
       opcional: true,
       titulo: "Guardar la tienda",
       texto: "Lo que escribes y el interruptor quedan como borrador: la web no cambia hasta que aprietas «Guardar» al pie de la tarjeta. Mientras tanto te avisa «Tienes cambios sin guardar». En la demo no lo apretamos.",
+    },
+    {
+      id: "telefono",
+      ancla: "config.tienda-web-telefono",
+      titulo: "Así lo ve el cliente",
+      texto: "El teléfono de la derecha es la tienda que tienes abierta, tal como la lee el cliente, y cambia mientras escribes. Si la tienda está apagada se ve atenuada.",
     },
     {
       id: "plazos",

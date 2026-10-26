@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  PALABRA_FALTA,
+  avanceDeSede,
   borradorDe,
+  colorDeSede,
   borradorParametros,
   camposDeGuia,
   errorDeLargo,
@@ -170,5 +173,27 @@ describe("la ayuda del umbral dice lo que el cliente vería (ADR-0408, DECIDÍ 6
   it("fuera de rango, mientras se escribe, no promete nada", () => {
     expect(fraseNiveles(0)).toBe(fraseNiveles(9));
     expect(fraseNiveles(Number.NaN)).toContain("«Hay»");
+  });
+});
+
+describe("la puerta de una tienda (maqueta de Conf. Tienda)", () => {
+  it("el anillo cuenta los tres datos obligatorios", () => {
+    expect(avanceDeSede({ nombreWeb: "", whatsapp: "", direccion: "" })).toEqual({ listos: 0, total: 3, pct: 0 });
+    expect(avanceDeSede({ ...completa, whatsapp: "" })).toEqual({ listos: 2, total: 3, pct: 67 });
+    expect(avanceDeSede(completa)).toEqual({ listos: 3, total: 3, pct: 100 });
+  });
+  it("lo que falta se dice con una palabra por dato, la misma regla que la base", () => {
+    const falta = faltaParaMostrar({ nombreWeb: "", whatsapp: "12", direccion: "" });
+    expect(falta.map((d) => PALABRA_FALTA[d])).toEqual(["Nombre", "WhatsApp", "Dónde"]);
+  });
+  it.each([
+    ["Tienda TRU", "tru"],
+    ["Tienda AQP", "aqp"],
+    ["Tienda LIM", "lim"],
+    ["Taller Lima", "lim"],
+    ["Taller", "tal"],
+    ["Tienda Cusco", "emp"],
+  ])("%s lleva el toldo %s", (nombre, color) => {
+    expect(colorDeSede(nombre)).toBe(color);
   });
 });

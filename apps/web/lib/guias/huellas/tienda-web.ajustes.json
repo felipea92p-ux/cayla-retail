@@ -2,12 +2,15 @@
   "guia": "tienda-web.ajustes",
   "ruta": "/tienda-web/ajustes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 3,
+  "total": 4,
   "controles": {
     "components/ConfiguracionTiendaWeb.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «Guardar»",
       "Boton «Guardar» #2"
+    ],
+    "components/tienda-web-conf/PuertaDeTienda.tsx": [
+      "button «{nombre}»"
     ]
   }
 }

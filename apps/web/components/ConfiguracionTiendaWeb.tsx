@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { CheckCircle2, Clock, MapPin, MessageCircle, ShoppingBag, Store, Wallet } from "lucide-react";
-import { MarcoWeb } from "@/components/tienda-web/MarcoWeb";
+import { CheckCircle2, ShoppingBag, Store, Wallet } from "lucide-react";
+import { PuertaDeTienda } from "@/components/tienda-web-conf/PuertaDeTienda";
+import { TelefonoDeTienda } from "@/components/tienda-web-conf/TelefonoDeTienda";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
-import { Chip } from "@/components/ui/Chip";
-import { Boton, Interruptor } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraBloque, CampoFin, InputFin, Superficie } from "@/components/finanzas/kit";
@@ -29,7 +29,6 @@ import {
   borradorParametros,
   camposDeGuia,
   errorDeLargo,
-  estadoSedeWeb,
   faltaParaMostrar,
   fraseNiveles,
   fusionarBorrador,
@@ -62,8 +61,6 @@ type CampoTexto = "nombreWeb" | "direccion" | "horario";
 /** El horario se escribe igual en cualquier tienda: su ejemplo no depende de nada elegido antes. */
 const EJEMPLO_HORARIO = "Ej. Lunes a sábado, de 10 a. m. a 9 p. m."; // sugerir-fijo: la forma de escribir un horario es la misma en toda tienda
 
-const DATO_DE: Record<CampoTexto, DatoWeb | "horario"> = { nombreWeb: "nombre_web", direccion: "direccion", horario: "horario" };
-
 const listaDe = (sedes: readonly SedeWeb[]) => Object.fromEntries(sedes.map((s) => [s.id, borradorDe(s)])) as Record<string, BorradorSede>;
 
 export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
@@ -72,6 +69,8 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
   const [guardando, setGuardando] = useState(false);
   // La tienda cuya tarjeta se está guardando: su botón espera la respuesta.
   const [guardandoEn, setGuardandoEn] = useState<string | null>(null);
+  // La tienda abierta en el taller (la fila de puertas de arriba elige cuál).
+  const [elegidaId, setElegidaId] = useState<string | null>(datos.sedes[0]?.id ?? null);
 
   // Lo escrito en cada tienda. Cuando la base trae datos nuevos (otro guardado, un refresco), cada caja toma lo nuevo salvo la
   // que la persona tiene escrita distinto (`fusionarBorrador`): un refresco no le borra a nadie lo que lleva escrito.
@@ -87,14 +86,12 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     setMostrar((m) => Object.fromEntries(datos.sedes.map((s) => [s.id, m[s.id] === vista.sedes.find((x) => x.id === s.id)?.mostrar ? s.mostrar : (m[s.id] ?? s.mostrar)])));
     setVista(datos);
   }
+  const elegida = datos.sedes.find((x) => x.id === elegidaId) ?? datos.sedes[0];
 
-  // Guía de foco: qué le falta a cada tienda para verse en la web. Solo llevan marca los datos que llegaron vacíos al abrir.
+  // Guía de foco: qué le falta a la tienda abierta para verse en la web. Solo llevan marca los datos que llegaron vacíos al abrir.
   const [pendientes] = useState(() => pendientesDe(datos.sedes));
   const guia = useGuiaCampos(
-    camposDeGuia(
-      datos.sedes.map((s) => ({ id: s.id, nombre: s.nombre, borrador: borradores[s.id] ?? borradorDe(s) })),
-      pendientes,
-    ),
+    camposDeGuia(elegida ? [{ id: elegida.id, nombre: elegida.nombre, borrador: borradores[elegida.id] ?? borradorDe(elegida) }] : [], pendientes),
     { enModal: false },
   );
 
@@ -147,7 +144,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     return texto || b.whatsapp !== base.whatsapp || (mostrar[s.id] ?? s.mostrar) !== s.mostrar;
   };
 
-  /** El botón «Guardar» de una tarjeta: valida todo antes de escribir nada, guarda el WhatsApp (su propia función, la del QR del club) y
+  /** El botón «Guardar» de una tienda: valida todo antes de escribir nada, guarda el WhatsApp (su propia función, la del QR del club) y
    *  después el resto, con un solo aviso al final. Si algo falla, lo escrito se queda para corregirlo y volver a guardar. */
   async function guardarTarjeta(s: SedeWeb) {
     const b = borradores[s.id];
@@ -194,7 +191,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     }
   }
 
-  if (!datos.sedes.length) {
+  if (!elegida) {
     return <div className="nota-cayla">No hay tiendas abiertas para mostrar en la web.</div>;
   }
 
@@ -202,34 +199,50 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <p className="max-w-md text-[13px] text-taupe">
-          Escribe los cambios y guarda cada tarjeta con su botón «Guardar», a nombre de quien figure como responsable; la web lo muestra en
-          unos minutos. Arriba de cada tienda ves cómo la verá el cliente mientras escribes.
+          Toca una tienda, escribe y guarda con su botón «Guardar», a nombre de quien figure como responsable; la web lo muestra en
+          unos minutos.
         </p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando || guardandoEn !== null} />
         </div>
       </div>
 
-      <section className="fin-sedes-fila" data-guia="config.tienda-web-sedes">
+      <section className="twc-calle" role="group" aria-label="Tiendas" data-guia="config.tienda-web-sedes">
         {datos.sedes.map((s, i) => (
-          <TarjetaSede
+          <PuertaDeTienda
             key={s.id}
             sede={s}
             borrador={borradores[s.id] ?? borradorDe(s)}
-            enWeb={mostrar[s.id] ?? false}
-            primera={i === 0}
-            guia={guia}
-            pendientes={pendientes}
             guardado={{ mostrar: s.mostrar, ...(bases[s.id] ?? borradorDe(s)) }}
-            sucio={tieneCambios(s)}
-            guardando={guardandoEn === s.id}
-            onEscribir={(campo, valor) => escribir(s.id, campo, valor)}
-            onRevertir={(campo) => revertir(s.id, campo)}
-            onMostrar={(v) => setMostrar((m) => ({ ...m, [s.id]: v }))}
-            onGuardar={() => guardarTarjeta(s)}
+            enWeb={mostrar[s.id] ?? false}
+            activa={s.id === elegida.id}
+            sucia={tieneCambios(s)}
+            indice={i}
+            bloqueada={guardando || guardandoEn !== null}
+            guiaInterruptor={i === 0 ? "config.tienda-web-mostrar" : undefined}
+            onElegir={() => setElegidaId(s.id)}
+            // El interruptor es del borrador: abre esa tienda para que su botón «Guardar» quede a la vista.
+            onMostrar={(v) => {
+              setMostrar((m) => ({ ...m, [s.id]: v }));
+              setElegidaId(s.id);
+            }}
           />
         ))}
       </section>
+
+      <TallerDeTienda
+        key={elegida.id}
+        sede={elegida}
+        borrador={borradores[elegida.id] ?? borradorDe(elegida)}
+        enWeb={mostrar[elegida.id] ?? false}
+        guia={guia}
+        pendientes={pendientes}
+        sucio={tieneCambios(elegida)}
+        guardando={guardandoEn === elegida.id}
+        onEscribir={(campo, valor) => escribir(elegida.id, campo, valor)}
+        onRevertir={(campo) => revertir(elegida.id, campo)}
+        onGuardar={() => guardarTarjeta(elegida)}
+      />
 
       {datos.parametros ? (
         <Plazos parametros={datos.parametros} guardar={guardar} />
@@ -245,42 +258,35 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
   );
 }
 
-function TarjetaSede({
+/** La tienda abierta: sus campos a la izquierda y, fijo a la derecha, cómo la verá el cliente mientras se escribe. */
+function TallerDeTienda({
   sede: s,
   borrador: b,
   enWeb,
-  primera,
   guia,
   pendientes,
-  guardado,
   sucio,
   guardando,
   onEscribir,
   onRevertir,
-  onMostrar,
   onGuardar,
 }: {
   sede: SedeWeb;
   borrador: BorradorSede;
   enWeb: boolean;
-  primera: boolean;
   guia: GuiaCampos;
   pendientes: ReadonlySet<string>;
-  /** Lo que la base ya tiene de esta tienda: el chip de arriba dice lo que ve el cliente hoy, no lo que está escrito sin guardar. */
-  guardado: { mostrar: boolean } & BorradorSede;
   sucio: boolean;
   guardando: boolean;
   onEscribir: (campo: keyof BorradorSede, valor: string) => void;
   onRevertir: (campo: keyof BorradorSede) => void;
-  onMostrar: (valor: boolean) => void;
   onGuardar: () => void;
 }) {
   const falta = faltaParaMostrar(b);
-  const estado = estadoSedeWeb(guardado);
   const paraLaFrase = limpiarTexto(b.nombreWeb) ?? nombreCorto(s.nombre);
   // La marca de la guía solo en los datos que llegaron vacíos al abrir (una tienda completa no se llena de marcas).
   const etiqueta = (dato: DatoWeb | "horario", texto: string): ReactNode => (pendientes.has(idCampo(s.id, dato)) ? guia.etiqueta(idCampo(s.id, dato), texto) : texto);
-  // El pie de la tarjeta dice, con la regla real, qué le falta para verse en la web; cada cosa lleva a su caja.
+  // El pie dice, con la regla real, qué le falta para verse en la web; cada cosa lleva a su caja.
   const faltan: CampoDeGuia[] = [
     ...falta.map((dato) => ({ id: idCampo(s.id, dato), nombre: NOMBRE_DATO[dato], requerido: true, hecho: false, pendiente: "" })),
     ...(limpiarTexto(b.horario) === null ? [{ id: idCampo(s.id, "horario"), nombre: NOMBRE_DATO.horario, requerido: false, sugerido: true, hecho: false, pendiente: "" }] : []),
@@ -301,110 +307,77 @@ function TarjetaSede({
   );
 
   return (
-    <Superficie pad className="anim-sube">
-      <CabeceraBloque titulo={s.nombre}>
-        <Chip tono={estado.tono}>{estado.texto}</Chip>
-      </CabeceraBloque>
+    <div className="twc-taller">
+      <Superficie pad className="anim-sube">
+        <CabeceraBloque titulo={s.nombre} />
 
-      {/* Así la ve el cliente (ADR-0430): la tarjeta de esta tienda en la tienda online, con lo que está escrito ahora mismo. Cambia
-          mientras escribes; apagada, se ve atenuada (el cliente no la ve). Solo dibuja: no guarda nada. */}
-      <MarcoWeb ruta="/tiendas" etiqueta={`Así ve el cliente la tienda ${paraLaFrase} en la web`} className="!rounded-xl">
-        <div className="tw-previa" data-apagada={enWeb ? undefined : ""}>
-          <span className="tw-previa-nombre">{limpiarTexto(b.nombreWeb) ?? "Sin nombre en la web"}</span>
-          <span className="tw-previa-dato" data-falta={limpiarTexto(b.direccion) ? undefined : ""}>
-            <MapPin aria-hidden />
-            {limpiarTexto(b.direccion) ?? "Falta la dirección para recoger"}
-          </span>
-          <span className="tw-previa-dato" data-falta={limpiarTexto(b.horario) ? undefined : ""}>
-            <Clock aria-hidden />
-            {limpiarTexto(b.horario) ?? "Sin horario"}
-          </span>
-          <span className="tw-previa-boton" data-apagado={celularValido(b.whatsapp) ? undefined : ""} aria-hidden>
-            <MessageCircle />
-            {celularValido(b.whatsapp) ? "Escribir por WhatsApp" : "Sin WhatsApp"}
-          </span>
-        </div>
-      </MarcoWeb>
+        <CampoGuiado id={idCampo(s.id, "nombre_web")} guia={guia}>
+          <CampoFin
+            etiqueta={etiqueta("nombre_web", "Nombre que ve el cliente")}
+            htmlFor={`tw-${s.id}-nombreWeb`}
+            ayuda="La ciudad o el lugar, como lo diría el cliente; no el nombre de la sede en el sistema."
+          >
+            {caja("nombreWeb", sugerirNombreWeb(s.nombre), TOPES_SEDE.nombreWeb)}
+          </CampoFin>
+        </CampoGuiado>
 
-      <CampoGuiado id={idCampo(s.id, "nombre_web")} guia={guia}>
-        <CampoFin
-          etiqueta={etiqueta("nombre_web", "Nombre que ve el cliente")}
-          htmlFor={`tw-${s.id}-nombreWeb`}
-          ayuda="La ciudad o el lugar, como lo diría el cliente; no el nombre de la sede en el sistema."
-        >
-          {caja("nombreWeb", sugerirNombreWeb(s.nombre), TOPES_SEDE.nombreWeb)}
-        </CampoFin>
-      </CampoGuiado>
+        <CampoGuiado id={idCampo(s.id, "whatsapp")} guia={guia}>
+          <CampoFin
+            etiqueta={etiqueta("whatsapp", "WhatsApp de la tienda")}
+            htmlFor={`tw-${s.id}-whatsapp`}
+            ayuda={`Aquí llegan los pedidos que separan para ${paraLaFrase}. Es el mismo número del QR del club.`}
+          >
+            <div className="fin-con-unidad">
+              <span>+51</span>
+              <InputFin
+                id={`tw-${s.id}-whatsapp`}
+                value={b.whatsapp}
+                inputMode="tel"
+                autoComplete="off"
+                placeholder="987 654 321"
+                onChange={(e) => onEscribir("whatsapp", ajustarCelular(e.target.value))}
+                onKeyDown={teclas("whatsapp")}
+                className="fin-num"
+              />
+            </div>
+          </CampoFin>
+        </CampoGuiado>
 
-      <CampoGuiado id={idCampo(s.id, "whatsapp")} guia={guia}>
-        <CampoFin
-          etiqueta={etiqueta("whatsapp", "WhatsApp de la tienda")}
-          htmlFor={`tw-${s.id}-whatsapp`}
-          ayuda={`Aquí llegan los pedidos que separan para ${paraLaFrase}. Es el mismo número del QR del club.`}
-        >
-          <div className="fin-con-unidad">
-            <span>+51</span>
-            <InputFin
-              id={`tw-${s.id}-whatsapp`}
-              value={b.whatsapp}
-              inputMode="tel"
-              autoComplete="off"
-              placeholder="987 654 321"
-              onChange={(e) => onEscribir("whatsapp", ajustarCelular(e.target.value))}
-              onKeyDown={teclas("whatsapp")}
-              className="fin-num"
-            />
-          </div>
-        </CampoFin>
-      </CampoGuiado>
+        <CampoGuiado id={idCampo(s.id, "direccion")} guia={guia}>
+          <CampoFin etiqueta={etiqueta("direccion", "Dirección para recoger")} htmlFor={`tw-${s.id}-direccion`} ayuda="Donde el cliente recoge lo que separó: la calle, el número y una referencia.">
+            {caja("direccion", sugerirDireccion(s.nombre), TOPES_SEDE.direccion)}
+          </CampoFin>
+        </CampoGuiado>
 
-      <CampoGuiado id={idCampo(s.id, "direccion")} guia={guia}>
-        <CampoFin etiqueta={etiqueta("direccion", "Dirección para recoger")} htmlFor={`tw-${s.id}-direccion`} ayuda="Donde el cliente recoge lo que separó: la calle, el número y una referencia.">
-          {caja("direccion", sugerirDireccion(s.nombre), TOPES_SEDE.direccion)}
-        </CampoFin>
-      </CampoGuiado>
+        <CampoGuiado id={idCampo(s.id, "horario")} guia={guia}>
+          <CampoFin etiqueta={etiqueta("horario", "Horario")} htmlFor={`tw-${s.id}-horario`} ayuda="Opcional. El cliente lo lee tal cual lo escribes.">
+            {caja("horario", EJEMPLO_HORARIO, TOPES_SEDE.horario)}
+          </CampoFin>
+        </CampoGuiado>
 
-      <CampoGuiado id={idCampo(s.id, "horario")} guia={guia}>
-        <CampoFin etiqueta={etiqueta("horario", "Horario")} htmlFor={`tw-${s.id}-horario`} ayuda="Opcional. El cliente lo lee tal cual lo escribes.">
-          {caja("horario", EJEMPLO_HORARIO, TOPES_SEDE.horario)}
-        </CampoFin>
-      </CampoGuiado>
-
-      <div className="space-y-3 border-t border-sand pt-3">
-        {faltan.length > 0 ? (
-          <FaltanDelPaso faltan={faltan} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} />
-        ) : (
-          <p role="status" className="text-[12.5px] text-verde">
-            Todo listo para mostrarla en la web.
-          </p>
-        )}
-        <div data-guia={primera ? "config.tienda-web-mostrar" : undefined}>
-          <Interruptor
-            activo={enWeb}
-            onActivo={onMostrar}
-            disabled={guardando || (!enWeb && falta.length > 0)}
-            etiqueta="Se ve en la web"
-            pie={
-              enWeb
-                ? `El cliente ve ${paraLaFrase} en la web y puede recoger ahí lo que separa.`
-                : falta.length > 0
-                  ? "Para encenderla, completa lo que falta."
-                  : `Apagada: el cliente no ve ${paraLaFrase} ni puede recoger ahí.`
-            }
-          />
-        </div>
-        <PieAcciones guia={primera ? "config.tienda-web-guardar" : undefined}>
-          {sucio && !guardando && (
-            <span role="status" className="mr-auto self-center text-[12.5px] text-taupe">
-              Tienes cambios sin guardar.
-            </span>
+        <div className="space-y-3 border-t border-sand pt-3">
+          {faltan.length > 0 ? (
+            <FaltanDelPaso faltan={faltan} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} />
+          ) : (
+            <p role="status" className="text-[12.5px] text-verde">
+              Todo listo para mostrarla en la web.
+            </p>
           )}
-          <Boton peso="primario" cargando={guardando} disabled={!sucio} onClick={onGuardar}>
-            Guardar
-          </Boton>
-        </PieAcciones>
-      </div>
-    </Superficie>
+          <PieAcciones guia="config.tienda-web-guardar">
+            {sucio && !guardando && (
+              <span role="status" className="mr-auto self-center text-[12.5px] text-taupe">
+                Tienes cambios sin guardar.
+              </span>
+            )}
+            <Boton peso="primario" cargando={guardando} disabled={!sucio} onClick={onGuardar}>
+              Guardar
+            </Boton>
+          </PieAcciones>
+        </div>
+      </Superficie>
+
+      <TelefonoDeTienda nombreSede={s.nombre} borrador={b} enWeb={enWeb} />
+    </div>
   );
 }
 

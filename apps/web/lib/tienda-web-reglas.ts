@@ -124,6 +124,28 @@ export function estadoSedeWeb(s: { mostrar: boolean } & Pick<BorradorSede, "nomb
   return { tono: "verde", texto: "Se ve en la web" };
 }
 
+/** La palabra suelta con que la puerta de una tienda dice lo que le falta (sin frases: la maqueta de Conf. Tienda, 2026-10-26). */
+export const PALABRA_FALTA: Record<DatoWeb, string> = { nombre_web: "Nombre", whatsapp: "WhatsApp", direccion: "Dónde" };
+
+/** Cuántos de los tres datos obligatorios tiene una tienda: el anillo de su puerta. */
+export function avanceDeSede(b: Pick<BorradorSede, "nombreWeb" | "whatsapp" | "direccion">): { listos: number; total: number; pct: number } {
+  const total = 3;
+  const listos = total - faltaParaMostrar(b).length;
+  return { listos, total, pct: Math.round((listos / total) * 100) };
+}
+
+/** El color de datos de la sede para su toldo (los hilos de sede, `--color-sede-*`). Una sede nueva cae al neutro (`emp`). */
+export type ColorDeSede = "tru" | "aqp" | "lim" | "tal" | "emp";
+
+export function colorDeSede(nombre: string): ColorDeSede {
+  const n = nombre.toUpperCase();
+  if (/\bTRU\b|TRUJILLO/.test(n)) return "tru";
+  if (/\bAQP\b|AREQUIPA/.test(n)) return "aqp";
+  if (/\bLIM\b|LIMA/.test(n)) return "lim";
+  if (/\bTAL\b|TALLER/.test(n)) return "tal";
+  return "emp";
+}
+
 /** Los largos, con la misma frase que la base. `null` si todo cabe. */
 export function errorDeLargo(b: Pick<BorradorSede, "nombreWeb" | "direccion" | "horario">): string | null {
   if ((limpiarTexto(b.nombreWeb) ?? "").length > TOPES_SEDE.nombreWeb) return `El nombre en la web va hasta ${TOPES_SEDE.nombreWeb} letras.`;
