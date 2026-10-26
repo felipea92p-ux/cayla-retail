@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./padron": "./src/padron.ts",
     "./categorias-de-la-tienda": "./src/categorias-de-la-tienda.ts",
+    "./colores-de-la-tienda": "./src/colores-de-la-tienda.ts",
     "./marca": "./src/marca.ts",
     "./insignias-visual": "./src/insignias-visual.ts",
     "./insignia-imagen": "./src/insignia-imagen.ts"
