@@ -101,3 +101,14 @@ en una sola columna, cada uno con su párrafo de ayuda (heredados de la pantalla
 nombre, WhatsApp, dirección, mapa, foto, horario y cierres desaparecen (el horario conserva su chip «Arrastra los bordes o la barra»); también sale el párrafo de
 arriba del todo. Lo único que se queda dicho es lo que la pantalla de abajo ya repite en su nota. Solo cambia cómo se ve: ni la base ni lo que se guarda. Lección: una
 maqueta aprobada se compara con la pantalla construida, imagen contra imagen, ANTES de darla por terminada (ya lo pide CLAUDE.md para Finanzas; aquí no se hizo).
+
+## Actualización 2026-10-26 (c) — el horario va de a 15 minutos
+
+Felipe: «si quiero colocar 8:15 no se puede». La construcción dejó el horario de a media hora, y ese límite estaba también **en la base** (el CHECK
+`ubicacion_horario_web_horas` y la validación de `guardar_horario_tienda_web`, ambos «múltiplo de 30»), así que no era solo de pantalla. Migración nueva
+**`20261026205000_tienda_web_horario_de_a_15_minutos.sql`** (la de `162000` ya está pegada en producción y no se edita): el CHECK pasa a «múltiplo de 15» y la función
+valida de a 15 con la frase «de a 15 minutos» (mismo cuerpo, misma firma, mismo permiso). Lo que ya está guardado de a 30 sigue valiendo (lo prueba
+`pruebas:tienda-web-conf`, que pega la migración nueva SOBRE filas viejas). En código, `PASO_DE_HORA` pasa de 30 a 15 en `packages/shared` y el borde, la barra y las flechas
+caen al cuarto de hora; **una barra sigue sin poder quedar a menos de media hora** (`MINIMO_DE_TRAMO`): la base aceptaría 15 minutos, pero una barra de 15 es un error
+de dedo. En el celular cada cuarto de hora mide ~4 px: con el dedo cuesta clavarlo y las flechas del teclado (←/→, 15 minutos) son la salida; si hace falta, se agranda la pista.
+**Orden de publicación: primero pegar esta migración, después publicar la web** (con la web nueva y la base vieja, guardar un 8:15 falla con la frase vieja).
