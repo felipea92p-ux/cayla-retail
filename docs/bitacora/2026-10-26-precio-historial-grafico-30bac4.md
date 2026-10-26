@@ -8,3 +8,7 @@ Qué hice: actividades 4–6. «Hoy: N prendas» (estimado, se vende primero lo 
 Por qué así: solo la última compra porque las anteriores ya están mezcladas con lo que llegó después; un costo para todas las variantes y las ventas ya hechas no se tocan (Felipe, 2026-10-26); el costo del Taller sale de su orden y se corrige allá.
 Felipe se lleva: pegar `20261026160000` en producción solo con su OK (una parte, sin políticas ni `alter` de tablas en uso); 3 cambios de Formidable esperando su OK (`docs/formidable/catalogo-costo-correccion.md`); el gráfico de escalera se pisa con compras cercanas (aparte).
 
+## 2026-10-26 (c) (Los números del gráfico del costo ya no se pisan)
+Qué hice: con varias compras casi juntas los números ①–⑥ del gráfico quedaban encimados. `<Linea marcas>` los separa a 26 px como mínimo (lógica pura `separarMarcas`, con prueba y barrido de 400 casos): el escalón no se mueve, solo el número, unido por un hilo; el texto solo se dibuja si cabe y el elegido siempre lo muestra.
+Por qué así: el dato (cuándo cambió el costo) no se toca; lo que se corre es la marca, para poder leerla y tocarla. Sin cambios si ya estaban separados.
+Felipe se lleva: lo único que sigue esperando su OK es el SQL de `20261026160000` y los 3 cambios de Formidable.
