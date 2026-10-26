@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { AJUSTES_DE_FABRICA, cambiaAlgo, campanasQueSeVen, conCampana, leerAjustes } from "./ajustes-resumen-reglas";
 import type { CampanaInversion } from "./inversion-mercaderia-reglas";
 
-const c = (id: string, visible = true): CampanaInversion => ({ id, nombre: id, desde: "2026-12-01", hasta: "2026-12-24", planSinIgv: 100, igv: 18, tope: null, pedido: 0, pagado: 0, fechaLimite: null, pagos: [], visible, hrefPlan: null });
+const c = (id: string, visible = true): CampanaInversion => ({ id, nombre: id, desde: "2026-12-01", hasta: "2026-12-24", planSinIgv: 100, igv: 18, tope: null, pedido: 0, pagado: 0, fechaLimite: null, pagos: [], visible, hrefPlan: null, historia: null, costos: null });
 
 describe("«Qué se ve» en el Resumen", () => {
   it("por defecto se ve todo", () => {

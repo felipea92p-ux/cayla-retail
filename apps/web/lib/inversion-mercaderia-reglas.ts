@@ -16,6 +16,25 @@ import { ORDEN_AVISO_CAMPANA, type Aviso } from "./resumen-finanzas-reglas";
 
 export type PagoPlan = { fecha: string; pct: number };
 
+/** Lo que pasó en la campaña anterior con una categoría, y lo que el Plan sugiere pedir ahora (un rango, no un número). OPCIONAL: lo entrega el Plan si puede. */
+export type CategoriaHistoria = { nombre: string; compradas: number; vendidas: number; agotadaDia: number | null; sugeridas: { min: number; tipico: number; max: number } };
+export type HistoriaCampana = {
+  /** «Navidad 2025»: de qué campaña habla. */
+  anterior: string;
+  /** Cuántas campañas parecidas hay en la historia (con pocas, lo que se sugiere es un rango). */
+  campanasPrevias: number;
+  categorias: CategoriaHistoria[];
+};
+
+/** Cuánto costará la campaña y qué se espera de ella. OPCIONAL, igual que la historia. Montos sin IGV. */
+export type CostosCampana = {
+  porCategoria: { nombre: string; monto: number }[];
+  ventasEsperadas: number;
+  costoDeLoVendido: number;
+  publicidad: number;
+  comision: number;
+};
+
 /** Una campaña con compra, como la entrega el Plan. Los montos de `plan*`, `pedido` y `pagado` son SIN IGV; `igv` es lo que se suma al pagar. */
 export type CampanaInversion = {
   id: string;
@@ -36,12 +55,75 @@ export type CampanaInversion = {
   visible: boolean;
   /** Dónde se arma en el Plan de campaña. */
   hrefPlan: string | null;
+  /** Lo que dice la historia de campañas pasadas; `null` si el Plan no lo entrega (entonces la pestaña no existe). */
+  historia: HistoriaCampana | null;
+  /** Cuánto cuesta y cuánto deja; `null` si el Plan no lo entrega. */
+  costos: CostosCampana | null;
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const noNegativo = (n: number) => (n > 0 ? n : 0);
 const num = (v: unknown, defecto = 0): number => (typeof v === "number" && Number.isFinite(v) ? v : defecto);
 const fechaIso = (v: unknown): string | null => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null);
+
+const fila = (v: unknown): Record<string, unknown> => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
+const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
+
+/** La historia, solo si viene entera: una categoría sin nombre o sin sugerencia se descarta; sin ninguna, no hay historia (nunca una tabla a medias). */
+function leerHistoria(v: unknown): HistoriaCampana | null {
+  const h = fila(v);
+  const anterior = texto(h.anterior);
+  const categorias = (Array.isArray(h.categorias) ? h.categorias : []).flatMap((c): CategoriaHistoria[] => {
+    const x = fila(c);
+    const sug = fila(x.sugeridas);
+    const nombre = texto(x.nombre);
+    const [min, tipico, max] = [num(sug.min, NaN), num(sug.tipico, NaN), num(sug.max, NaN)];
+    if (!nombre || [min, tipico, max].some((n) => !Number.isFinite(n)) || min > tipico || tipico > max) return [];
+    const dia = num(x.agotada_dia, NaN);
+    return [{ nombre, compradas: noNegativo(num(x.compradas)), vendidas: noNegativo(num(x.vendidas)), agotadaDia: Number.isFinite(dia) && dia > 0 ? dia : null, sugeridas: { min, tipico, max } }];
+  });
+  return anterior && categorias.length ? { anterior, campanasPrevias: Math.max(0, Math.round(num(h.campanas_previas))), categorias } : null;
+}
+
+function leerCostos(v: unknown): CostosCampana | null {
+  const c = fila(v);
+  const porCategoria = (Array.isArray(c.por_categoria) ? c.por_categoria : []).flatMap((x) => {
+    const f = fila(x);
+    const nombre = texto(f.nombre);
+    return nombre && num(f.monto, NaN) >= 0 ? [{ nombre, monto: num(f.monto) }] : [];
+  });
+  const ventas = num(c.ventas_esperadas, NaN);
+  if (!porCategoria.length || !Number.isFinite(ventas)) return null;
+  return { porCategoria, ventasEsperadas: ventas, costoDeLoVendido: noNegativo(num(c.costo_de_lo_vendido)), publicidad: noNegativo(num(c.publicidad)), comision: noNegativo(num(c.comision)) };
+}
+
+/** Qué parte de lo comprado se vendió (0–100, tope 100); `null` si no se compró nada (no hay con qué comparar). */
+export function porcentajeVendido(c: CategoriaHistoria): number | null {
+  return c.compradas > 0 ? Math.min(100, Math.round((c.vendidas / c.compradas) * 100)) : null;
+}
+
+/** De la que más se vendió a la que menos; las que no tienen con qué comparar, al final. Estable: no mezcla las empatadas. */
+export function ordenarHistoria(cs: readonly CategoriaHistoria[]): CategoriaHistoria[] {
+  return cs
+    .map((c, i) => ({ c, i, p: porcentajeVendido(c) }))
+    .sort((a, b) => (b.p ?? -1) - (a.p ?? -1) || a.i - b.i)
+    .map((x) => x.c);
+}
+
+/** Lo sugerido contra lo que se compró la vez pasada, en %: +25 pide más, −7 menos; `null` si antes no se compró nada. */
+export function cambioSugerido(c: CategoriaHistoria): number | null {
+  return c.compradas > 0 ? Math.round((c.sugeridas.tipico / c.compradas - 1) * 100) : null;
+}
+
+/** Con menos de tres campañas parecidas, lo sugerido es un rango con poca historia: se dice. */
+export function pocosDatos(h: HistoriaCampana): boolean {
+  return h.campanasPrevias < 3;
+}
+
+/** Lo que deja la campaña: lo que se espera vender menos lo que costaron las prendas vendidas, la publicidad y la comisión. La mercadería sin vender NO se resta (sigue siendo inventario). */
+export function cuantoDejaLaCampana(c: CostosCampana): number {
+  return r2(c.ventasEsperadas - c.costoDeLoVendido - c.publicidad - c.comision);
+}
 
 /**
  * ¿El Plan deja ver esta campaña en el Resumen? Es el ÚNICO lugar que conoce cómo lo dice la base. Felipe decidió (2026-10-26) tres estados, que mandan en
@@ -87,6 +169,8 @@ export function leerInversion(data: unknown): CampanaInversion[] {
         pagos: Math.abs(suma - 100) < 0.01 ? pagos : [],
         visible: seVeEnElResumen(f),
         hrefPlan: typeof f.href_plan === "string" ? f.href_plan : null,
+        historia: leerHistoria(f.historia),
+        costos: leerCostos(f.costos),
       },
     ];
   });

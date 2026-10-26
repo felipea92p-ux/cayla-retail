@@ -5,6 +5,11 @@ import {
   formaEfectiva,
   pagosDeLaCompra,
   cajaConCompra,
+  cambioSugerido,
+  cuantoDejaLaCampana,
+  ordenarHistoria,
+  pocosDatos,
+  porcentajeVendido,
   diasParaPedir,
   evaluarFormas,
   formasDePago,
@@ -27,7 +32,7 @@ import {
 const HOY = "2026-10-26";
 const camp = (extra: Partial<CampanaInversion> = {}): CampanaInversion => ({
   id: "nav", nombre: "Navidad", desde: "2026-12-01", hasta: "2026-12-24", planSinIgv: 18400, igv: 3312, tope: 20000, pedido: 9200, pagado: 3000,
-  fechaLimite: "2026-11-12", pagos: [], visible: true, hrefPlan: "/compras/plan", ...extra,
+  fechaLimite: "2026-11-12", pagos: [], visible: true, hrefPlan: "/compras/plan", historia: null, costos: null, ...extra,
 });
 const sem = (hasta: string, saldo: number) => ({ desde: hasta, hasta, entra: 0, sale: 0, saldo, bajoMinimo: false });
 const proy = (extra: Partial<Proyeccion> = {}): Proyeccion =>
@@ -294,5 +299,50 @@ describe("qué forma de pago cuenta la caja", () => {
     const pagos = pagosDeLaCompra([a, b], justa, true, { a: "junto", b: "junto" });
     expect(pagos.map((x) => x.fecha)).toEqual(["2026-11-05", "2026-11-20"]);
     expect(suma(pagos)).toBe(9440);
+  });
+});
+
+describe("la historia y el costo de la campaña (opcionales)", () => {
+  const cat = (nombre: string, compradas: number, vendidas: number, tipico = 100, agotadaDia: number | null = null) => ({ nombre, compradas, vendidas, agotada_dia: agotadaDia, sugeridas: { min: tipico - 10, tipico, max: tipico + 10 } });
+  const base = { id: "a", nombre: "A", desde: "2026-12-01", hasta: "2026-12-24", plan_sin_igv: 100, igv: 18 };
+
+  it("sin historia ni costos vienen en null: las pestañas no existen", () => {
+    const [c] = leerInversion([base]);
+    expect(c!.historia).toBeNull();
+    expect(c!.costos).toBeNull();
+  });
+
+  it("la historia se lee entera o no se lee: una categoría con un rango al revés se descarta, y sin ninguna no hay historia", () => {
+    const mala = { nombre: "Rara", compradas: 10, vendidas: 5, sugeridas: { min: 50, tipico: 20, max: 30 } };
+    const [c] = leerInversion([{ ...base, historia: { anterior: "Navidad 2025", campanas_previas: 1, categorias: [cat("Casacas", 120, 120, 150, 9), mala] } }]);
+    expect(c!.historia!.categorias.map((x) => x.nombre)).toEqual(["Casacas"]);
+    expect(c!.historia!.categorias[0]!.agotadaDia).toBe(9);
+    expect(leerInversion([{ ...base, historia: { anterior: "x", categorias: [mala] } }])[0]!.historia).toBeNull();
+    expect(leerInversion([{ ...base, historia: { categorias: [cat("A", 1, 1)] } }])[0]!.historia).toBeNull();
+  });
+
+  it("qué parte se vendió, de la que más a la que menos, sin tocar a las que no tienen con qué comparar", () => {
+    const h = leerInversion([{ ...base, historia: { anterior: "N", campanas_previas: 1, categorias: [cat("Polos", 220, 90), cat("Nueva", 0, 0), cat("Casacas", 120, 120), cat("Blusas", 200, 164)] } }])[0]!.historia!;
+    expect(porcentajeVendido(h.categorias[0]!)).toBe(41);
+    expect(porcentajeVendido(h.categorias[1]!)).toBeNull();
+    expect(ordenarHistoria(h.categorias).map((c) => c.nombre)).toEqual(["Casacas", "Blusas", "Polos", "Nueva"]);
+  });
+
+  it("lo sugerido se compara con lo que se compró: +25 pide más; sin compra anterior no hay porcentaje", () => {
+    expect(cambioSugerido({ nombre: "C", compradas: 120, vendidas: 120, agotadaDia: 9, sugeridas: { min: 130, tipico: 150, max: 170 } })).toBe(25);
+    expect(cambioSugerido({ nombre: "N", compradas: 0, vendidas: 0, agotadaDia: null, sugeridas: { min: 1, tipico: 2, max: 3 } })).toBeNull();
+  });
+
+  it("con menos de tres campañas parecidas se avisa que hay pocos datos", () => {
+    const h = { anterior: "N", campanasPrevias: 1, categorias: [] };
+    expect(pocosDatos(h)).toBe(true);
+    expect(pocosDatos({ ...h, campanasPrevias: 3 })).toBe(false);
+  });
+
+  it("los costos piden categorías y ventas esperadas; lo que deja NO resta la mercadería sin vender", () => {
+    const [c] = leerInversion([{ ...base, costos: { por_categoria: [{ nombre: "Casacas", monto: 5400 }], ventas_esperadas: 52000, costo_de_lo_vendido: 21000, publicidad: 2500, comision: 900 } }]);
+    expect(cuantoDejaLaCampana(c!.costos!)).toBe(27600);
+    expect(leerInversion([{ ...base, costos: { por_categoria: [], ventas_esperadas: 1 } }])[0]!.costos).toBeNull();
+    expect(leerInversion([{ ...base, costos: { por_categoria: [{ nombre: "A", monto: 1 }] } }])[0]!.costos).toBeNull();
   });
 });

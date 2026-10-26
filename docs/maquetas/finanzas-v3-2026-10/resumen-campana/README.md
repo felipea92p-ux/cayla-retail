@@ -169,3 +169,12 @@ Tiempos: el Plan empieza por #1–#3 y luego #4–#6; lo de Finanzas (#10) viene
 El Resumen lee **solo `todo`**. Lo lee una sola función (`seVeEnElResumen`, `apps/web/lib/inversion-mercaderia-reglas.ts`), que ya entiende los tres valores y también un booleano: cuando el Plan cree la columna (su tarea #10, que espera el OK de Felipe; nombre propuesto `visibilidad_finanzas`, texto con CHECK y por defecto `todo`), solo cambia esa función si el nombre es otro. Por defecto, sin dato, la campaña se ve.
 **Lo que NO es del Resumen:** que `todo` también entre al flujo de caja de Reportes y a Escenarios. Hoy el flujo (`fn_flujo_caja_proyeccion`) no suma la compra del plan; eso lo construye el Plan junto con la base, y cuando exista, la caja del Resumen no debe contarla dos veces (la capa de inversión del Resumen suma solo lo que falta pedir). Nombre: «Inversión en mercadería», confirmado por el Plan y por Felipe.
 
+## Dos datos OPCIONALES más (2026-10-26): historia y costos de la campaña
+
+El Resumen dibuja las pestañas «Lo que dice la historia» y «Cuánto cuesta» **solo si el Plan las entrega**; no calcula nada de eso. Si no vienen, la pestaña no existe. Forma que lee `leerInversion`:
+
+- `historia`: `{ anterior: «Navidad 2025», campanas_previas, categorias: [{ nombre, compradas, vendidas, agotada_dia | null, sugeridas: { min, tipico, max } }] }`. Con menos de 3 campañas previas se avisa «pocos datos». Una categoría con el rango al revés se descarta.
+- `costos`: `{ por_categoria: [{ nombre, monto }], ventas_esperadas, costo_de_lo_vendido, publicidad, comision }` (sin IGV). El Resumen solo resta: «te deja» = ventas − costo de lo vendido − publicidad − comisión; la mercadería sin vender **no** se resta (sigue siendo inventario).
+
+Vistas con cifras de ejemplo (solo en desarrollo): `/finanzas/resumen?inversion=ejemplo`.
+

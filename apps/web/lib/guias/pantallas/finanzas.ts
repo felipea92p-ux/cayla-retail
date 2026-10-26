@@ -197,8 +197,22 @@ export const GUIA_FIN_RESUMEN: Guia = {
       id: "inversion-pagos",
       ancla: "fin-resumen.inversion-pagos",
       opcional: true,
-      titulo: "Cuándo pagar lo que falta pedir",
+      titulo: "Cuándo compro",
       texto: "Compara pagar todo junto, en dos tandas o a plazo y mira cómo queda tu caja con cada una. Mirar no guarda nada: la forma de pago se deja escrita en el Plan de campaña. Lo que elijas se cuenta en «Tu caja».",
+    },
+    {
+      id: "inversion-historia",
+      ancla: "fin-resumen.inversion-historia",
+      opcional: true,
+      titulo: "Lo que dice la historia",
+      texto: "Cuánto de lo que compraste la vez pasada se vendió, y qué se acabó antes de tiempo. A la derecha, qué conviene pedir ahora: un rango, no un número exacto, porque con pocas campañas parecidas hay poca historia.",
+    },
+    {
+      id: "inversion-costos",
+      ancla: "fin-resumen.inversion-costos",
+      opcional: true,
+      titulo: "Cuánto cuesta y cuánto deja",
+      texto: "La plata que pones en prendas, por categoría, y cuánto te deja la campaña: lo que esperas vender menos lo que costaron las prendas vendidas, la publicidad y la comisión. La mercadería sin vender no se resta: sigue siendo inventario.",
     },
     {
       id: "ajustes",

@@ -12,5 +12,5 @@
 - **Qué:** el Resumen abre con tres respuestas, usa todo el ancho (solo él), va sin huecos (la caja y «Hoy te toca» parejas, el resto en columnas pegadas) y trae «Inversión en mercadería» **tras bandera** con su ícono «Qué se ve».
 - **Por qué:** una persona sin formación de finanzas contesta de un vistazo lo que tiene, lo que debe y lo que gana; y la compra de una campaña es plata comprometida que sale de la caja al pagar, no un gasto: dentro de «Te deja» haría ver una pérdida el día de comprar.
 - **Lo que falta:** la base no entrega la inversión (la construye la sesión del Plan de campaña; visibilidad decidida: tres estados, el Resumen lee solo «se hará») → hoy no se ve nada en producción; con `?inversion=ejemplo` solo en desarrollo. Las elecciones de «Qué se ve» viven en el navegador hasta entonces.
-  Pestañas «historia» y «cuánto cuesta» de la demo: fuera del contrato. `tema:auditar` y `/formidable` sin correr sobre las piezas nuevas. Las otras cinco pantallas de Finanzas siguen con tope de ancho.
+  Pestañas «historia» y «cuánto cuesta»: construidas, existen solo si el Plan entrega `historia` y `costos` (opcionales). `tema:auditar` y `/formidable` sin correr sobre las piezas nuevas. Las otras cinco pantallas de Finanzas siguen con tope de ancho.
 
