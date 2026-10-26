@@ -330,7 +330,7 @@ export function veredictoTela(plan: number, saldo: number, comprometido: number,
 export const HINTS_TELA = ["insumo_invalido", "insumo_archivado", "insumo_color_ajeno", "insumo_consumo_invalido", "insumo_repetido"] as const;
 export type HintTela = (typeof HINTS_TELA)[number];
 
-/** Los `hint` que la base dice pero la hoja nunca provoca: `insumo_talla_ajena` (una cifra de una talla que la orden no fabrica) no pasa porque `insumosParaRpc` manda solo las tallas de la fila. */
+/** @internal La prueba la cruza con la migración 20261026151000: sin ella nadie sabría que la base conoce un motivo que la hoja nunca provoca. Los `hint` que la base dice pero la hoja nunca provoca: `insumo_talla_ajena` (una cifra de una talla que la orden no fabrica) no pasa porque `insumosParaRpc` manda solo las tallas de la fila. */
 export const HINTS_SOLO_BASE = ["insumo_talla_ajena"] as const;
 
 /** `indice` es la posición de la fila en `telas` (una fila no tiene otra identidad hasta que se guarda). */
