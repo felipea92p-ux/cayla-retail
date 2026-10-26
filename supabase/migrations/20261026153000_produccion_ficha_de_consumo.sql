@@ -288,10 +288,11 @@ declare
   v_n integer;
 begin
   v_def := pg_get_functiondef(p_firma::regprocedure);
-  if position(p_nuevo in v_def) > 0 then
+  v_n := (length(v_def) - length(replace(v_def, p_viejo, ''))) / length(p_viejo);
+  -- Ya aplicado = el ancla no está y el texto nuevo sí. (Si una migración anterior vuelve a escribir el ancla —al repetir la cadena entera—, se reemplaza otra vez.)
+  if v_n = 0 and position(p_nuevo in v_def) > 0 then
     return;
   end if;
-  v_n := (length(v_def) - length(replace(v_def, p_viejo, ''))) / length(p_viejo);
   if v_n <> 1 then
     raise exception '% cambió desde que se escribió esta migración: el ancla aparece % veces (se esperaba 1). Regenera el reemplazo desde su definición real.',
       p_firma, v_n;
@@ -299,6 +300,20 @@ begin
   execute replace(v_def, p_viejo, p_nuevo);
 end;
 $f$;
+
+-- La ficha de un modelo es configuración suya (como sus fotos), no historia: con la ficha ya escrita sin órdenes, eliminar el modelo (que no tiene órdenes ni movimientos) no debe
+-- chocar con ella. `producto_consumos` nació sin cascada porque solo lo escribía una orden (y una orden frena el borrado); ahora también lo escribe la ficha. Una sola vez; `alter` sin políticas.
+do $v$
+declare
+  v_nombre text;
+begin
+  for v_nombre in select c.conname::text from pg_constraint c
+    where c.conrelid = 'retail.producto_consumos'::regclass and c.contype = 'f' and c.confrelid = 'retail.productos'::regclass and c.confdeltype <> 'c' loop
+    execute format('alter table retail.producto_consumos drop constraint %I', v_nombre);
+    alter table retail.producto_consumos add constraint producto_consumos_producto_id_fkey foreign key (producto_id) references retail.productos (id) on delete cascade;
+  end loop;
+end;
+$v$;
 
 -- «Dejar como el del modelo» ya no pide el permiso de catálogo: quien abre la orden en el Taller edita la ficha (`fn_produccion_exigir_operar` ya se comprobó arriba).
 select pg_temp.reemplazar_anclado(

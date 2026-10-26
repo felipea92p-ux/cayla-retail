@@ -409,6 +409,14 @@ caso(
   "t,t,f,t,f"
 );
 
+caso(
+  "F2 la ficha se va con su modelo: producto_consumos y producto_avios tienen su llave a productos con borrado en cascada (un modelo sin órdenes con la ficha escrita se puede eliminar)",
+  `reset role;
+   select concat_ws(',', (select confdeltype from pg_constraint where conrelid = 'retail.producto_consumos'::regclass and contype = 'f' and confrelid = 'retail.productos'::regclass),
+     (select confdeltype from pg_constraint where conrelid = 'retail.producto_avios'::regclass and contype = 'f' and confrelid = 'retail.productos'::regclass));`,
+  "c,c"
+);
+
 // M. LA MIGRACIÓN ---------------------------------------------------------------------------------------------------------------
 caso(
   "M1 la migración se puede pegar otra vez sin error y la ficha sigue guardándose",

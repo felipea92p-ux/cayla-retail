@@ -39,7 +39,8 @@ set lock_timeout = '3s';
 
 create table if not exists retail.producto_avios (
   id uuid primary key default gen_random_uuid(),
-  producto_id uuid not null references retail.productos (id),
+  -- Con cascada: la ficha es configuración del modelo (como sus fotos), no historia; un modelo sin órdenes ni movimientos se puede eliminar aunque ya tenga su ficha (ADR-0513).
+  producto_id uuid not null references retail.productos (id) on delete cascade,
   insumo_id uuid not null references retail.insumos (id),
   -- Nulo = para toda la orden (el botón, la etiqueta); un color = solo para las prendas de ese color (el hilo del beige).
   color_codigo text references retail.colores (codigo),
