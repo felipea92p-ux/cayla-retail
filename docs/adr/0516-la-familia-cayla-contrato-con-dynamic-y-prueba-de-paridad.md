@@ -1,7 +1,7 @@
 # ADR-0516 — La familia CAYLA: un contrato con Dynamic y una prueba que impide el desfase en silencio
 
-**Estado:** aceptada, **en su PR (solo documentos, una prueba y un script; sin migración, nada en producción que pegar)**; **falta aplicar el oscuro en Dynamic** (ver «Lo que falta») ·
-**Fecha:** 2026-10-26 · **Decidió:** Felipe (opción A, «la tabla de familia y la prueba de paridad», el 2026-10-25; y «P1 = C», el oscuro de la familia, el 2026-10-26) ·
+**Estado:** aceptada, **en su PR (solo documentos, una prueba y un script; sin migración, nada en producción que pegar)**; **falta aplicar el oscuro y el borde de control en Dynamic** (ver «Lo que falta») ·
+**Fecha:** 2026-10-26 · **Decidió:** Felipe (opción A, «la tabla de familia y la prueba de paridad», el 2026-10-25; «P1 = C», el oscuro de la familia, y «P2 = C», el borde de un control, el 2026-10-26) ·
 **Sigue a:** ADR-0169 (la paleta oficial «CAYLA Dynamic» en todo el ERP) y ADR-0336 (el modo oscuro; su actualización del 2026-10-26 aplica el oscuro de la familia)
 
 ## Contexto
@@ -47,7 +47,7 @@ exige que el detector lo note. Es lo único que ve los dos repositorios a la vez
 
 **6. Los desacuerdos se deciden mirando.** Hay nueve pendientes (P1 a P9), cada uno con lo que dice cada aplicación, por qué importa y cómo decidirlo. **P1, el oscuro, se decidió el
 2026-10-26** con una lámina de tres opciones (`docs/maquetas/familia-oscuro-2026-10/`): Felipe eligió la C, el «gris cálido» (las claridades del gris de Retail con el matiz del café de
-Dynamic), y subió a la capa «marca». P2, el borde de un control, ya tiene su lámina (`docs/maquetas/familia-borde-control-2026-10/`) y espera la decisión. Cambiar un valor de la marca
+Dynamic), y subió a la capa «marca». **P2, el borde de un control, se decidió el mismo día** con su lámina (`docs/maquetas/familia-borde-control-2026-10/`): ver «Actualización 2026-10-26 (b)». Cambiar un valor de la marca
 es siempre el mismo orden: se decide mirando; se cambia en el contrato y se sube su versión; se cambia Retail con su prueba en verde; el mismo día se copia el contrato a Dynamic y se
 cambia su código; se comprueba que los dos repositorios guardan el mismo contrato y se republican los dos artifacts.
 
@@ -67,8 +67,8 @@ prueba que exige que el contrato guarde el oscuro de TODO color de marca lo cubr
 
 ## Qué NO cambia
 
-Ninguna pantalla, ninguna función de la base y ningún permiso. El único cambio visible es el del oscuro (un negro apenas más cálido; los contrastes casi no se mueven: texto 13,71:1 →
-13,67:1, rojo sobre tarjeta 5,72:1 → 5,70:1), que vive en ADR-0336, actualización 2026-10-26. El tema claro no cambia.
+Ninguna función de la base y ningún permiso. Los cambios visibles son dos: el oscuro (un negro apenas más cálido; los contrastes casi no se mueven: texto 13,71:1 → 13,67:1, rojo sobre tarjeta
+5,72:1 → 5,70:1), que vive en ADR-0336, actualización 2026-10-26, y el borde de los controles (abajo). Los colores del tema claro no cambian.
 
 ## Verificación
 
@@ -83,15 +83,31 @@ Ninguna pantalla, ninguna función de la base y ningún permiso. El único cambi
 
 ## Lo que falta
 
-1. **Aplicar el oscuro en Dynamic** (la tabla de valores antes y después está en `docs/familia/README.md`), copiarle el contrato, poner allí la misma prueba y quitar
+1. **Aplicar en Dynamic el oscuro y el borde de control** (las tablas de valores antes y después están en `docs/familia/README.md`), copiarle el contrato, poner allí la misma prueba y quitar
    `aplicacion_pendiente` en los dos repositorios. Revisar lo que dependa de que su campo (`hueso`) sea más oscuro que su tarjeta.
-2. **Decidir P2 a P9.** P2 tiene su lámina; P6 también la pedirá. P4 (vocabulario) choca con el `CLAUDE.md` global de Felipe y el README de Dynamic, que todavía dicen «clienta» y
+2. **Decidir P3 a P9.** P6 pedirá su lámina. P4 (vocabulario) choca con el `CLAUDE.md` global de Felipe y el README de Dynamic, que todavía dicen «clienta» y
    «encargada», mientras Retail dice «cliente» y «encargado de sede» desde el 2026-10-02 (ADR-0288, act. k).
-3. **Mirar el ERP real en oscuro** con `tema:auditar` en una máquina con la pila local.
+3. **Mirar el ERP real en oscuro** con `tema:auditar` en una máquina con la pila local, y las pantallas con muchos campos juntos (la matriz de tallas, las celdas de una fila) ahora que llevan el borde de control.
 4. **Limpiar `packages/shared/src/design-tokens.ts`**, que sigue desfasado y nadie importa (solo `MAX_ROJO_POR_PANTALLA` se usa).
+
+## Actualización 2026-10-26 (b) — P2 = C: el borde de un control tiene su propio color
+
+Felipe eligió la opción C de la lámina de P2: un color de marca nuevo, **`borde-control`** (claro `#96786a`, oscuro `#8d7a6e`), en el contrato (versión 3) y en Retail (`@theme` de `globals.css`,
+bloque oscuro y `.papel-fijo` de `tema.css`). Lo llevan **lo que se toca o se escribe**: `.caja-cayla` y `.caja-campo-input` (campo, combo, monto, fecha, área de texto), `.btn-secundario`, `.casilla-input` y el interruptor apagado
+(`.interruptor`, un aro de 1,5 px). `sand` sigue siendo la línea **decorativa** (tarjeta, tabla, píldora con texto, separadores): la regla que ya aplicaba Dynamic.
+
+- **Por qué:** `sand` da 1.2:1 contra la tarjeta y no identifica un control (WCAG 1.4.11 pide 3:1). Hoy las cuatro piezas fallaban en los dos temas (campo y botón 1.2:1, interruptor apagado 1.6:1, casilla 2.2:1 en claro).
+  `borde-control` se calculó mezclando taupe con papel hasta pasar 3:1 sobre la página, la tarjeta **y** el campo (`hueso`) en los dos temas (3.6 / 3.8 / 3.1:1 en claro; 4.3 / 3.8 / 3.2:1 en oscuro); `lib/tema-tokens.test.ts` lo mide.
+- **Los estados suben un escalón.** Con el reposo ya a 3:1, el hover antiguo (taupe al 60 %) y el foco antiguo (tinta al 38 %) quedaban más débiles que el reposo: hover y campo encendido usan ahora una mezcla de tinta al 65 %
+  (`campos-y-casillas.css`, `alta-guia.css`, `globals.css`). El foco **no** quedó en tinta plena (como mostraba la lámina): en el ERP real se suma al anillo de foco de 2 px, y un borde negro además se leía como un doble marco.
+- **DESCARTÉ:** B (taupe pleno, como Dynamic), porque en oscuro da 6,9:1 y cada borde queda tan claro como el texto secundario; y A (dejar `sand`), porque Dynamic ya cumple 1.4.11 y la familia habría quedado dividida justo en lo que más se toca.
+- **SE ROMPE SI:** una pantalla dibuja a mano un campo con `border-sand` (no recibe el cambio; una búsqueda de `<input … border-sand>` en `components/` y `app/` no encontró ninguno, pero un campo armado con un contenedor y `border-sand` no se vería así); si Dynamic no cambia su alias `borde-control = taupe` (el comparador lo avisa mientras esté en `aplicacion_pendiente`);
+  o si las pantallas con muchos campos juntos (la matriz de tallas, las celdas de una fila de tabla) se ven pesadas con un borde de 3:1 en cada celda (no se miró: falta `tema:auditar` y una pasada por esas pantallas).
+- **Verificación:** las piezas reales (`CampoMonto`, `CampoSelect`, `CampoTexto`, `Casilla`, `Interruptor`, `Boton`) en una página temporal bajo `/login`, en claro y oscuro: bordes `#96786a` y `#8d7a6e`, `sand` intacto en tarjeta y píldora, interruptor
+  apagado con su aro y prendido sin él, foco con borde un escalón arriba, anillo y hilo. La página se borró al terminar. 176 pruebas de tema, familia, colores y foco en verde. No se corrió `tema:auditar`.
 
 ## Piezas
 
 `docs/familia/contrato.json`, `docs/familia/README.md`, `apps/web/lib/familia.test.ts`, `scripts/familia/comparar.mjs` (y su entrada `familia:comparar` en `package.json`),
 `docs/maquetas/familia-oscuro-2026-10/` y `docs/maquetas/familia-borde-control-2026-10/` (las láminas para decidir mirando). El oscuro cambia en `apps/web/app/estilos/tema.css`,
-`app/global-error.tsx`, `public/sin-conexion.html` y `unificar/fotos.mjs`, con su prueba en `lib/tema-tokens.test.ts`.
+`app/global-error.tsx`, `public/sin-conexion.html` y `unificar/fotos.mjs`, con su prueba en `lib/tema-tokens.test.ts`; el borde de control, en `app/globals.css`, `app/estilos/campos-y-casillas.css` y `app/estilos/alta-guia.css`.

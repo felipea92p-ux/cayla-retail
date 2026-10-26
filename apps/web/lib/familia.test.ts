@@ -138,6 +138,27 @@ describe("el oscuro de la familia: P1 está decidido y Retail ya lo aplica", () 
   });
 });
 
+describe("el borde de un control: P2 está decidido y Retail ya lo aplica", () => {
+  it("P2 está decidido y dice cuál se eligió", () => {
+    const p2 = contrato.pendientes.find((p) => p.id === "P2");
+    expect(p2?.estado).toBe("decidido");
+    expect(p2?.decision).toMatch(/^C\b/);
+  });
+
+  it("`borde-control` es un color de marca de los dos temas, y es otro color que `sand` (la línea decorativa) y que `taupe`", () => {
+    for (const tema of ["colores_claro", "colores_oscuro"] as const) {
+      const c = contrato.marca[tema];
+      expect(c["borde-control"], `${tema}.borde-control`).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(c["borde-control"]).not.toBe(c.sand);
+      expect(c["borde-control"]).not.toBe(c.taupe);
+    }
+  });
+
+  it("Retail no tiene nada pendiente de aplicar (todo lo que falta es de Dynamic)", () => {
+    expect(contrato.aplicacion_pendiente.filter((a) => a.miembro === "retail")).toEqual([]);
+  });
+});
+
 describe("el detector de la paridad entre las dos aplicaciones", () => {
   it("no está ciego: cada cambio de la capa «marca» se nota (scripts/familia/comparar.mjs --autoprueba)", () => {
     const salida = execFileSync(process.execPath, [join(raiz, "scripts/familia/comparar.mjs"), "--autoprueba"], { encoding: "utf8" });

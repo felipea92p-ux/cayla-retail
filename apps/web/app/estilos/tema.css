@@ -40,6 +40,8 @@
     --color-tinta-60: #b9b2a7;
     --color-taupe: #c4a898;
     --color-taupe-profundo: #c4a898;
+    /* El borde de un control (P2 de la familia): 4.3:1 sobre crema, 3.8:1 sobre papel y 3.2:1 sobre hueso. */
+    --color-borde-control: #8d7a6e;
 
     /* El acento y los dos rojos: el de marca sube de tono para leerse sobre oscuro; el profundo (hover, texto sobre tinte)
        queda por encima de él, como en el claro. */
@@ -110,6 +112,7 @@
     --color-rojo-profundo: #8b2a1f;
     --color-sand: #e8e0d0;
     --color-taupe: #805c4c;
+    --color-borde-control: #96786a;
     --color-papel: #fbf8f2;
     --color-hueso: #eae1d2;
     --color-sombra: #1a1a18;

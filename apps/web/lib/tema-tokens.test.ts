@@ -242,6 +242,22 @@ describe("modo oscuro: contraste medido", () => {
   });
 });
 
+// P2 de la familia CAYLA (2026-10-26, Felipe eligió la opción C): el borde de lo que se toca o se escribe tiene que identificar al control
+// (WCAG 1.4.11: 3:1 contra lo que lo rodea), y la línea decorativa (`sand`) no. Se mide sobre las tres superficies donde vive un campo, en los dos temas.
+describe("el borde de un control (`borde-control`): 3:1 sobre crema, papel y hueso, en claro y en oscuro", () => {
+  for (const [nombre, t] of [["claro", claro], ["oscuro", oscuro]] as const) {
+    for (const s of ["crema", "papel", "hueso"] as const) {
+      it(`${nombre}: borde-control sobre ${s}: ≥ 3`, () => {
+        expect(contraste(t["borde-control"], t[s])).toBeGreaterThanOrEqual(3);
+      });
+    }
+    it(`${nombre}: la línea decorativa (sand) NO identifica un control: < 3 sobre papel, y borde-control es otro color`, () => {
+      expect(contraste(t.sand, t.papel)).toBeLessThan(3);
+      expect(t["borde-control"]).not.toBe(t.sand);
+    });
+  }
+});
+
 describe("texto hecho de tinta en los CSS: por debajo del 64 % dice qué es y sobre qué fondo vive, y se mide", () => {
   // Nació el 2026-10-14: la nota de <TituloGrupo> y otros 18 textos escritos a mano en un CSS (`color: color-mix(in srgb,
   // var(--color-tinta) N%, transparent)`) no llegaban al mínimo y nada los medía, porque el piso del texto tenue de `tema.css` solo sube

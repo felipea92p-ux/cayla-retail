@@ -33,11 +33,10 @@ Comparado el 2026-10-25 contra los artifacts «CAYLA Retail» y «CAYLA Dynamic�
 
 ## Lo que hoy NO es igual y falta decidir
 
-Ocho pendientes (P1, el oscuro, se decidió el 2026-10-26), cada uno con lo que dice cada aplicación y cómo decidirlo (están en `contrato.json`, `pendientes`):
+Siete pendientes (P1, el oscuro, y P2, el borde de un control, se decidieron el 2026-10-26), cada uno con lo que dice cada aplicación y cómo decidirlo (están en `contrato.json`, `pendientes`):
 
 | | Tema | Retail | Dynamic |
 |---|---|---|---|
-| **P2** | Borde de un control | `sand` (1.2:1) | `taupe` (5.6:1), por WCAG 1.4.11 |
 | **P3** | Anillo de foco | tinta | rojo |
 | **P4** | Vocabulario | «cliente», «encargado de sede» | «clienta», nunca «encargada» |
 | **P5** | Número de una cifra | se puede pintar | siempre tinta; el significado va en un punto y la etiqueta |
@@ -46,7 +45,7 @@ Ocho pendientes (P1, el oscuro, se decidió el 2026-10-26), cada uno con lo que 
 | **P8** | «¡» y mayúsculas | «¡» en el recibo y las guías | sin exclamación, mayúscula solo al inicio |
 | **P9** | Tokens de capas (z-index) | z-50 y z-[60] sueltos | `z-sticky` 10, `z-overlay` 40, `z-toast` 60 |
 
-P2 ya tiene su lámina para elegir mirando: `docs/maquetas/familia-borde-control-2026-10/index.html` (tres bordes, controles tocables, claro y oscuro, con las medidas).
+P2 se decidió con una lámina (`docs/maquetas/familia-borde-control-2026-10/index.html`: tres bordes, controles tocables, claro y oscuro, con las medidas) y P6 también pedirá la suya.
 
 Mientras uno de estos siga abierto, cada aplicación conserva su valor y nadie lo cambia sin decidirlo; al decidirlo, el pendiente pasa a `decidido`, el valor
 sube a la capa «marca» (como pasó con el oscuro) y lo que falte aplicar en la otra aplicación queda anotado en `aplicacion_pendiente`.
@@ -83,6 +82,19 @@ Lo que cambia para quien usa Dynamic: el campo deja de ser «hundido» y pasa a 
 sube de 4.28:1 a 5.70:1 (hoy no pasa el 4.5 de los textos). Lo que pide revisar en su código: todo lo que dependa de que `hueso` sea más oscuro que `papel`
 (los campos, la casilla de una cifra activa) y los tintes de las insignias, que se miden otra vez. Después: copiar `contrato.json` a su repositorio, poner allí la misma
 prueba, quitar su `aplicacion_pendiente` del contrato en los dos repositorios, y correr `pnpm familia:comparar tokens <su tokens.json> --como dynamic` (debe quedar sin avisos).
+
+## Lo que falta aplicar en Dynamic (P2 = C)
+
+El borde de un control quedó decidido el 2026-10-26 y Retail ya lo usa. Es **un color de marca nuevo**, `borde-control` (el contrato, versión 3, lo guarda en `marca.colores_claro` y `marca.colores_oscuro`):
+
+| | Claro | Oscuro | Contraste sobre la tarjeta (papel) |
+|---|---|---|---|
+| Dynamic hoy (alias de `taupe`) | `#805c4c` | `#ab9080` (su taupe oscuro de hoy; `#c4a898` al aplicar P1) | 5.6:1 / 5.3:1 hoy (6.9:1 con P1) |
+| **El de la familia** | **`#96786a`** | **`#8d7a6e`** | **3.8:1 / 3.8:1** |
+
+Dynamic cambia su alias `borde-control = {taupe}` por estos dos valores. Lo usan allí Campo, CampoSelect, AreaTexto y Botón secundario (y el terminal); sus campos y botones se suavizan un poco, con margen sobre los 3:1 de WCAG 1.4.11. Siguen en `sand` lo
+decorativo y lo que lleva un texto que lo identifica (Filtro, BotónÍcono, Botón sutil, las pastillas), como ya hace hoy. En Retail también lo llevan la casilla (antes tinta al 35 %, 2.2:1) y el interruptor apagado (antes solo su relleno, 1.6:1), y el borde sube un escalón
+(una mezcla de tinta, 65 %) al pasar el mouse o al encender el campo. Después: copiar `contrato.json` a su repositorio, quitar su `aplicacion_pendiente` del contrato en los dos repositorios y correr `pnpm familia:comparar tokens <su tokens.json> --como dynamic` (debe quedar sin avisos).
 
 ## Cómo se cambia la marca (el orden importa)
 

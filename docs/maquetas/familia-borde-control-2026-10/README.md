@@ -1,5 +1,7 @@
 # El borde de un control de la familia CAYLA · una lámina para elegir mirando (2026-10-26)
 
+> **Decidido el 2026-10-26: Felipe eligió la C (un tono propio).** Retail ya la aplica (`borde-control` en `globals.css` y `tema.css`; ADR-0516, actualización 2026-10-26) y el contrato la guarda en `marca.colores_*`. Falta aplicarla en Dynamic. La lámina queda como constancia de lo que se miró.
+
 Pendiente **P2** de `docs/familia/contrato.json`: en Retail el borde de un campo, un botón secundario y una casilla es `sand` (1.2:1 contra la
 tarjeta); en Dynamic es `taupe` (5.6:1). WCAG 1.4.11 pide 3:1 para que un control se reconozca sin leerlo. Felipe elige mirando (la regla de
 `/unificar`), así que esta lámina pone **la misma pantalla** (un formulario de gasto con búsqueda, filtros, campos, combo, área de texto, casillas,
@@ -25,7 +27,8 @@ de las tres superficies).
 
 **Los estados del borde** (calcados de `campos-y-casillas.css`, con el escalón que hace falta si el reposo ya es oscuro): en A, como hoy (hover taupe al
 60 %, foco tinta al 38 %); en B y C, el reposo es el borde del control, el hover sube a una mezcla de tinta y el foco es tinta (si el foco quedara en tinta
-al 38 %, sería más débil que el reposo).
+al 38 %, sería más débil que el reposo). **Al aplicarlo en el ERP, el foco no quedó en tinta plena** (la lámina no dibuja el anillo de foco de 2 px y, con el anillo, un
+borde negro se leía como un doble marco): hover y foco usan la misma mezcla de tinta al 65 %, y el foco se nota por el anillo, el papel y el hilo rojo.
 
 **Elegir:** el botón «Elegir la A/B/C» guarda la elección en este navegador y da el mensaje para Claude (`P2 = A`, `P2 = B` o `P2 = C`).
 
