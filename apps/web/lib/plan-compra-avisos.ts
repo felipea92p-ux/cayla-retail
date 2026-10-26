@@ -19,6 +19,7 @@ import { solesES } from "./plan-compra-reglas";
 import type { PlazoDePedido } from "./plan-compra-plazo";
 import { sugeridoParcial } from "./plan-compra-descuento";
 import { exactitudDeLosDatos } from "./plan-compra-periodo";
+import { diaMes } from "./fechas-lima";
 
 export type NivelDelAviso = "urgente" | "pendiente" | "info" | "ok";
 export type IdDelAviso = "plazo" | "stock" | "sin-plan" | "deriva" | "tope" | "datos";
@@ -107,15 +108,23 @@ function avisoDelPlazo(e: EntradaDeAvisos): AvisoDelPlan | null {
     : e.conPlan > 0
       ? "Ninguna categoría tiene compra pendiente. "
       : "";
-  const corto =
-    nivel !== "urgente" ? null
-    : plazo.estado === "tarde" ? "Ya no llega a tiempo"
-    : `${plazo.texto}${plazo.diasParaElLimite !== null ? ` · ${dias(Math.max(0, plazo.diasParaElLimite))}` : ""}`;
+  // Los títulos son los de la maqueta: «Pide antes del 27/11 · faltan 32 días», y «Ya no llega a tiempo» cuando ya no llega.
+  const fecha = plazo.limite ? diaMes(plazo.limite) : null;
+  const faltan = plazo.diasParaElLimite === null ? null : Math.max(0, plazo.diasParaElLimite);
+  const cuanto = faltan === null ? null : faltan === 0 ? "hoy" : dias(faltan);
+  const pideAntes = fecha ? `Pide antes del ${fecha}` : plazo.texto;
+  const llegaTarde = plazo.estado === "tarde" && nivel === "urgente";
+  const titulo =
+    llegaTarde ? "Ya no llega a tiempo"
+    : plazo.estado === "empezo" || plazo.estado === "tarde" || !fecha ? plazo.texto
+    : nivel === "urgente" || cuanto === null ? pideAntes
+    : `${pideAntes} · ${faltan === 0 ? "es hoy" : `faltan ${cuanto}`}`;
+  const corto = nivel !== "urgente" ? null : llegaTarde ? "Ya no llega a tiempo" : `${pideAntes}${cuanto ? ` · ${cuanto}` : ""}`;
   return {
     id: "plazo",
     nivel,
     corto,
-    titulo: plazo.texto,
+    titulo,
     texto: `${antes}${plazo.detalle} ${e.fraseDeLosDias}`.trim(),
     huella: `${plazo.estado}|${plazo.limite ?? "-"}|${e.porPedir}`,
     acciones: e.puedeCambiarDias ? [{ tipo: "cambiar-dias", texto: "Cambiar los días" }] : [],

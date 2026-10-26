@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Globito } from "@/components/ui/Globito";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, CalendarDays, PanelRightOpen } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -15,7 +14,10 @@ import { Vacio } from "@/components/ui/Vacio";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { CifrasPlan } from "@/components/plan-compra/CifrasPlan";
 import { ListaCategorias, type VistaPlan } from "@/components/plan-compra/ListaCategorias";
-import { AvisoStock, AvisoStockEnLinea } from "@/components/plan-compra/AvisoStock";
+import { AvisoStock } from "@/components/plan-compra/AvisoStock";
+import { CentroDeAvisos } from "@/components/plan-compra/CentroDeAvisos";
+import { useAvisosVistos } from "@/components/plan-compra/useAvisosVistos";
+import { avisosDelPlan, marcarVisto, vistosVigentes, type AccionDelAviso, type AvisoDelPlan } from "@/lib/plan-compra-avisos";
 import { ExportarPlan } from "@/components/plan-compra/ExportarPlan";
 import { NuevaCampanaModal } from "@/components/plan-compra/NuevaCampanaModal";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -28,9 +30,8 @@ import { diasDeVentasDelErp } from "@/lib/plan-compra-periodo";
 import { leerHistorial } from "@/lib/plan-compra-historial";
 import { leerPedido, numeroDeOrden } from "@/lib/plan-compra-pedido";
 import { conDescuentos, leerDescuentos } from "@/lib/plan-compra-descuento";
-import { diasConQueSeCuenta, fraseDeLosDias, fraseDelConteoAntesDelPlazo, leerPlazoFijado, plazoDePedido, type EstadoDelPlazo } from "@/lib/plan-compra-plazo";
+import { diasConQueSeCuenta, fraseDeLosDias, fraseDelConteoAntesDelPlazo, leerPlazoFijado, plazoDePedido } from "@/lib/plan-compra-plazo";
 import { PlazoModal } from "@/components/plan-compra/PlazoModal";
-import type { TonoAvisoLinea } from "@/components/ui/Aviso";
 import Link from "next/link";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
 import { SimuladorPlan } from "@/components/plan-compra/SimuladorPlan";
@@ -41,7 +42,6 @@ import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
 import {
   armarFilas,
-  avisosDelResumen,
   enteroES,
   solesES,
   campanasArchivadas,
@@ -80,8 +80,6 @@ import { BotonDescargar } from "@/components/ui/BotonDescargar";
 const MARCA_VISTA = "__planVistaPaso";
 
 /** El tono de la franja de la fecha límite: verde si va a tiempo, ámbar si ya es justo, rojo si ya no llega; informativa si la campaña empezó. */
-const TONO_DEL_PLAZO: Record<EstadoDelPlazo, TonoAvisoLinea> = { a_tiempo: "exito", justo: "atencion", tarde: "error", empezo: "info", termino: "info" };
-
 export function PlanCampana({
   datos,
   falla,
@@ -153,6 +151,8 @@ export function PlanCampana({
   const [editandoCampana, setEditandoCampana] = useState(false);
   const [verArchivadas, setVerArchivadas] = useState(false);
   const [pasoSucio, setPasoSucio] = useState(false);
+  // Los avisos que esta persona marcó como «ya lo vi» en esta campaña (recordados en el navegador; ver `useAvisosVistos`).
+  const [vistos, ponerVistos] = useAvisosVistos(plan?.plan.id ?? null);
   const salidaPaso = useSalidaSinGuardar(
     vista === "guiado" && pasoSucio,
     "Escribiste parte del plan de esta categoría y todavía no se guardó. Si sales ahora, se pierde lo que escribiste.",
@@ -285,7 +285,34 @@ export function PlanCampana({
   const forma = formaDeLaTabla(momento.estado, totales.conPlan);
   const toca = queTocaHoy(momento.estado, totales.conPlan, campanas ? proximaCampana(campanas, plan.hoy, plan.plan.id) : null);
   const campanaActual = campanas?.planes.find((c) => c.id === plan.plan.id) ?? null;
-  const avisos = avisosDelResumen(confianza);
+  // El centro de avisos (Felipe 2026-10-26, spike ②): UNA lista en vez de franjas sueltas, con su número y lo urgente a la vista.
+  const hechosDelPlan = hechos && hechos.planId === plan.plan.id ? hechos : null;
+  const avisos = avisosDelPlan(
+    {
+      estado: momento.estado,
+      plazo,
+      porPedir,
+      conPlan: totales.conPlan,
+      fraseDeLosDias: fraseDeLosDias(plazoFijado),
+      puedeCambiarDias: !!plazoFijado,
+      confianza,
+      puedeContar,
+      fraseDelConteo: fraseDelConteoAntesDelPlazo(plazo),
+      filas,
+      tope: plan.tope.valor,
+      inversion: totales.inversion,
+    },
+    { diasDeVentas: diasDeVentasDelErp(hechosDelPlan?.tiendas), conCampanaAnterior: hechosDelPlan?.tiendas.some((t) => t.previaDisponible) ?? false },
+  );
+  const marcarAvisoVisto = (a: AvisoDelPlan) => ponerVistos(vistosVigentes(marcarVisto(vistos, a), avisos));
+  const alAccionarAviso = (a: AccionDelAviso) => {
+    if (a.tipo === "cambiar-dias") setEditandoPlazo(true);
+    else if (a.tipo === "ver-resumen") setResumenAbierto(true);
+    else if (a.tipo === "abrir-categoria") {
+      const c = filas.find((f) => f.c.id === a.categoriaId)?.c;
+      if (c) setAbierta(c);
+    }
+  };
   const sedesDelPlan = [...new Set(filas.flatMap((f) => f.sedes?.map((s) => s.ubicacion) ?? []))].sort((a, b) => a.localeCompare(b, "es"));
 
   return (
@@ -314,14 +341,12 @@ export function PlanCampana({
         }
         acciones={
           <>
-            {/* El resumen y los avisos, en un cajón (Felipe 2026-10-12): la tabla queda justo bajo las pestañas. Solo el ícono, con su nombre
-                al pasar el mouse (y para el lector de pantalla); el número dice cuántas tiendas tienen el stock sin cuadrar, para que el aviso
-                no se olvide aunque no se vea. */}
+            {/* El resumen, en un cajón (Felipe 2026-10-12): la tabla queda justo bajo las pestañas. Solo el ícono, con su nombre al pasar el
+                mouse (y para el lector de pantalla). Los avisos tienen su propio ícono con su número, junto a las pestañas (2026-10-26). */}
             <TooltipProvider delayDuration={150}>
               {/* Resumen, campaña y Exportar en UNA fila también en el celular (Felipe 2026-10-12): ahí la campaña ocupa lo que sobra y su
                   nombre se corta con «…»; antes cada uno caía en su propia fila y la tabla quedaba a media pantalla. */}
               <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:gap-3">
-              {/* El número va FUERA del botón, encima de su esquina (Felipe 2026-10-12): el botón recorta lo que se le sale (su onda). */}
               <span className="relative inline-flex">
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -331,14 +356,13 @@ export function PlanCampana({
                       className="w-10 justify-center px-0!"
                       onClick={() => setResumenAbierto(true)}
                       aria-expanded={resumenAbierto}
-                      aria-label={avisos > 0 ? `Resumen y avisos: ${avisos} ${avisos === 1 ? "aviso" : "avisos"}` : "Resumen y avisos"}
+                      aria-label="Resumen"
                     >
                       <PanelRightOpen aria-hidden className="h-4 w-4" />
                     </Boton>
                   </TooltipTrigger>
-                  <TooltipContent sideOffset={6}>Resumen y avisos</TooltipContent>
+                  <TooltipContent sideOffset={6}>Resumen</TooltipContent>
                 </Tooltip>
-                <Globito n={avisos} pide esquina className="absolute -right-2 -top-2" />
               </span>
             {campanas && (
               <SelectorCampana
@@ -355,8 +379,11 @@ export function PlanCampana({
               />
             )}
               {totales.conPlan > 0 && (
-                // La lista de compra para imprimir o bajar (abre su hoja): la pieza de descargar con su texto, nunca solo un ícono (ADR-0358, ronda 10).
-                <BotonDescargar onClick={() => setExportando(true)}>Descargar la lista</BotonDescargar>
+                // La lista de compra para imprimir o bajar (abre su hoja): la pieza de descargar, solo el ícono con su nombre al pasar el mouse, como
+                // el Resumen de al lado (Felipe 2026-10-26; la ronda 10 de ADR-0358 la había puesto con texto).
+                <BotonDescargar soloIcono onClick={() => setExportando(true)}>
+                  Descargar la lista
+                </BotonDescargar>
               )}
               </div>
             </TooltipProvider>
@@ -377,32 +404,11 @@ export function PlanCampana({
         }
       />
 
-      <PestanasPlan activa="plan" planId={plan.plan.id} />
-
-      {plazo.estado !== "termino" && (
-        // La fecha límite para pedir (ADR-0499): una franja con el tono de lo urgente que es. Con nada por pedir, solo informa.
-        <Aviso
-          guia="plan.plazo"
-          tono={porPedir === 0 && plazo.estado !== "tarde" ? "info" : TONO_DEL_PLAZO[plazo.estado]}
-          titulo={plazo.texto}
-          // Cambiar los días (quien tiene el módulo; la base lo exige también). Solo si la base ya guarda el plazo. Solo abre su hoja
-          // (nada se guarda hasta «Guardar plazo»): `aria-haspopup` lo dice al lector y deja que la guía la abra.
-          accion={
-            plazoFijado ? (
-              <Boton type="button" peso="fantasma" aria-haspopup="dialog" data-guia="plan.plazo-cambiar" onClick={() => setEditandoPlazo(true)}>
-                Cambiar los días
-              </Boton>
-            ) : undefined
-          }
-        >
-          {porPedir > 0
-            ? `${porPedir} ${porPedir === 1 ? "categoría tiene" : "categorías tienen"} compra pendiente. `
-            : totales.conPlan > 0
-              ? "Ninguna categoría tiene compra pendiente. "
-              : ""}
-          {plazo.detalle} {fraseDeLosDias(plazoFijado)}
-        </Aviso>
-      )}
+      {/* Las pestañas y, a su derecha, el centro de avisos: un ícono con su número; lo urgente asoma una línea (spike ②, Felipe 2026-10-26). */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <PestanasPlan activa="plan" planId={plan.plan.id} />
+        <CentroDeAvisos avisos={avisos} vistos={vistos} onVisto={marcarAvisoVisto} onAccion={alAccionarAviso} />
+      </div>
 
       {plan.plan.archivado && (
         <Aviso
@@ -456,7 +462,7 @@ export function PlanCampana({
         </Aviso>
       )}
 
-      {/* El cajón de «Resumen y avisos» (Felipe 2026-10-12, opción D del spike docs/maquetas/plan-campana-rediseno-2026-10/): sin velo, la tabla
+      {/* El cajón de «Resumen» (antes «Resumen y avisos»; Felipe 2026-10-12, opción D del spike docs/maquetas/plan-campana-rediseno-2026-10/): sin velo, la tabla
           sigue viva detrás (tocar una cifra que filtra, filtra la tabla). De arriba abajo: lo que avisa, las cifras de toda CAYLA, lo que
           sobra, el reparto entre tiendas y, antes de la campaña, el simulador. */}
       {resumenAbierto && (
@@ -464,7 +470,7 @@ export function PlanCampana({
           onCerrar={() => setResumenAbierto(false)}
           clave="resumen"
           sinFocoInicial
-          titulo="Resumen y avisos"
+          titulo="Resumen"
           frase={<>{plan.plan.nombre} · toda CAYLA{sedesDelPlan.length > 0 ? ` (${sedesDelPlan.join(", ")})` : ""}. La sede elegida arriba no filtra esta pantalla.</>}
           claseCuerpo="space-y-5"
         >
@@ -546,7 +552,6 @@ export function PlanCampana({
         filas={filas}
         estado={momento.estado}
         forma={forma}
-        avisoStock={<AvisoStockEnLinea confianza={confianza} onVer={() => setResumenAbierto(true)} frasePlazo={fraseDelConteoAntesDelPlazo(plazo)} />}
         familias={familias}
         filtro={filtro}
         onFiltro={setFiltro}

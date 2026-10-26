@@ -1,0 +1,261 @@
+/* ====================================================================
+   El centro de avisos del Plan de campaña (tarea #4 de la auditoría, Felipe 2026-10-26: «que se vea tal cual en la maqueta»).
+   Maqueta: docs/maquetas/plan-campana-vision-2026-10/2-avisos.html (y su base.css). Componente: components/plan-compra/CentroDeAvisos.tsx.
+
+   Es la maqueta traducida a los tokens del sistema (claro y oscuro salen solos): el ícono de campana en una píldora de 40 px con su número al
+   lado (ámbar; rojo si hay algo urgente), la línea roja que asoma junto a él, y el panel que flota debajo con su lista y su propia barra.
+   Cada aviso: franja de 5 px a la izquierda con el color de su nivel, el ícono, la etiqueta del nivel y el título en negrita, la frase debajo y
+   los botones en una columna a la derecha. Un solo bucle, el punto de la línea que asoma (una señal de «esto urge», como el de «Vencida»); se
+   apaga con `prefers-reduced-motion`. Los `:hover` van dentro de `@media (hover: hover)`.
+   ==================================================================== */
+
+.ca-centro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ca-ancla {
+  position: relative;
+}
+
+/* El botón: campana + número. Abierto se invierte y dice «Ocultar»; cerrado va sin palabra. */
+.ca-boton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0 12px;
+  border-radius: 99px;
+  border: 1px solid var(--color-borde-control);
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 200ms var(--ease-cayla),
+    background-color 200ms var(--ease-cayla),
+    border-color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .ca-boton:hover {
+    transform: translateY(-2px);
+    background: var(--color-hueso);
+  }
+}
+.ca-boton svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.ca-n {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 99px;
+  display: grid;
+  place-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--color-ambar);
+  color: var(--color-crema-fija);
+}
+.ca-boton[data-urgente] .ca-n {
+  background: var(--color-rojo);
+}
+.ca-boton[data-vacio] .ca-n {
+  display: none;
+}
+.ca-boton[aria-expanded="true"] {
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  border-color: var(--color-tinta);
+}
+.ca-boton[aria-expanded="true"] .ca-n {
+  background: var(--color-crema);
+  color: var(--color-tinta);
+}
+.ca-txt {
+  display: none;
+  font-size: 12.5px;
+}
+.ca-boton[aria-expanded="true"] .ca-txt {
+  display: inline;
+}
+
+/* Lo urgente asoma una línea junto al ícono aunque el centro esté cerrado. */
+.ca-asoma {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--color-rojo) 12%, var(--color-papel));
+  border: 1px solid color-mix(in srgb, var(--color-rojo) 45%, transparent);
+  color: var(--color-rojo-profundo);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ca-asoma::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-rojo);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ca-asoma {
+    animation: cayla-revelar 350ms var(--ease-cayla) both;
+  }
+  .ca-asoma::before {
+    animation: ca-late 1600ms ease-in-out infinite;
+  }
+}
+@keyframes ca-late {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* El panel: flota debajo del botón, no mueve la página y su lista corre por dentro con su barra. */
+.ca-panel {
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 8px 12px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--color-sand);
+  background: var(--color-papel);
+  box-shadow: 0 18px 40px -18px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  outline: none;
+}
+.ca-titulo {
+  padding: 2px 4px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-tinta-60);
+}
+.ca-lista {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 6px 2px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-taupe) transparent;
+}
+.ca-lista:focus-visible {
+  outline: 2px solid var(--color-rojo);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+.ca-lista::-webkit-scrollbar {
+  width: 8px;
+}
+.ca-lista::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-taupe) 55%, transparent);
+  border-radius: 99px;
+}
+.ca-vacia {
+  padding: 14px;
+  text-align: center;
+  color: var(--color-tinta-60);
+}
+
+/* Cada aviso: franja de su nivel, ícono, etiqueta + título, frase, y los botones a la derecha. */
+.ca-aviso {
+  --c: var(--color-pizarra);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border-left: 5px solid var(--c);
+  border-top: 1px solid var(--color-sand);
+  border-right: 1px solid var(--color-sand);
+  border-bottom: 1px solid var(--color-sand);
+  background: var(--color-papel);
+}
+.ca-aviso[data-nivel="urgente"] {
+  --c: var(--color-rojo);
+}
+.ca-aviso[data-nivel="pendiente"] {
+  --c: var(--color-ambar);
+}
+.ca-aviso[data-nivel="info"] {
+  --c: var(--color-pizarra);
+}
+.ca-aviso[data-nivel="ok"] {
+  --c: var(--color-verde);
+}
+.ca-ic {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  color: var(--c);
+}
+.ca-ic svg {
+  width: 22px;
+  height: 22px;
+}
+.ca-aviso b {
+  display: block;
+  font-weight: 650;
+}
+.ca-etiqueta {
+  margin-right: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--c);
+}
+.ca-d {
+  font-size: 13px;
+  color: var(--color-tinta-60);
+}
+.ca-acc {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* Los botones de un aviso: píldoras chicas; «Ya lo vi» y «Entendido» van como texto subrayado. */
+.ca-btn {
+  padding: 4px 11px;
+  border-radius: 99px;
+  border: 1px solid var(--color-borde-control);
+  background: transparent;
+  color: var(--color-tinta);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 200ms var(--ease-cayla),
+    background-color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .ca-btn:hover {
+    transform: translateY(-2px);
+    background: var(--color-hueso);
+  }
+}
+.ca-btn-texto {
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* fin del centro de avisos */

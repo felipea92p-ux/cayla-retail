@@ -74,7 +74,6 @@ import {
   problemasDeLaCampana,
   problemasDelBorrador,
   propuestaDeNormal,
-  avisosDelResumen,
   repartir,
   rotuloDeCampana,
   segmentosDelTope,
@@ -1038,19 +1037,6 @@ describe("la lista de campañas por año (C1)", () => {
     expect(campanasDelSelector([diciembre], "2026-12-01")[0].grupo).toBe("En curso");
     expect(campanasDelSelector([diciembre], "2026-12-31")[0].grupo).toBe("En curso");
     expect(campanasDelSelector([diciembre], "2027-01-01")[0].grupo).toBe("Terminadas");
-  });
-});
-
-describe("el número del botón «Resumen y avisos»", () => {
-  const sede = (nombre: string, alDia: boolean) => ({ nombre, alDia, falta: alDia ? "" : "piso sin cuadrar" });
-  it("cuántas tiendas no tienen su stock al día", () => {
-    expect(avisosDelResumen({ estado: "incompleto", sedes: [sede("AQP", false), sede("LIM", false), sede("TRU", true)] as never })).toBe(2);
-  });
-  it("todo al día: sin número", () => {
-    expect(avisosDelResumen({ estado: "confiable", sedes: [sede("TRU", true)] as never })).toBe(0);
-  });
-  it("si no se pudo comprobar, uno: no se dice «todo bien» por un error", () => {
-    expect(avisosDelResumen({ estado: "sin-dato", sedes: [] })).toBe(1);
   });
 });
 

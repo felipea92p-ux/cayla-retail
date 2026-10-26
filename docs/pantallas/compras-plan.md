@@ -136,6 +136,7 @@ Cada tarea lleva su clase —**Urgente** (pierde algo cada día o vence pronto),
 - **Por qué:** hoy el número no cuenta el plazo y hay cinco franjas; el aviso de deriva del descuento tiene que vivir en algún sitio (ADR-0499, paso 4).
 - **Cómo lo verificas tú:** con la campaña en «plazo justo» el ícono es rojo y asoma una línea aunque esté cerrado; con todo en orden, el número es 0.
 - **Esfuerzo / dependencias:** M · pieza nueva de `/unificar` (la eliges mirando: spike ②); `/focus` no aplica (no guarda), `/guia` sí.
+- **Estado (2026-10-26):** construida y probada en local (B1–B4, ADR-0522, sin migración). Se ve **tal cual la maqueta** (Felipe lo pidió así): campana con su número dentro, línea roja que asoma, panel flotante con su barra, avisos con su etiqueta y botones a la derecha. Entra el **aviso de deriva del descuento** (ADR-0499, paso 4); salen la franja del plazo y la línea del stock sobre la tabla; el cajón pasa a «Resumen». A pedido de Felipe, «Descargar la lista» pasó a ser solo el ícono con su nombre al pasar el mouse. **Costo conocido:** el stock sin cuadrar ya no tiene su línea sobre la tabla; solo lo urgente asoma.
 
 ### #5 · [Mejorar · Importante] Pestaña «Presupuesto» y plan con tope
 - **Dónde:** nueva ruta `compras/plan/presupuesto`, `lib/plan-compra-tope.ts` (el recorte, con su prueba contra `calcular`), mueve a ella las cifras, el simulador y los supuestos del cajón.

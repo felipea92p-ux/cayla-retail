@@ -13,12 +13,13 @@ Informe y tareas: `docs/pantallas/compras-plan.md` (12 tareas + 7b enviar a Comp
 | A4 · #1 | Paso a paso y consultas de huella para pegar en producción (en el ADR) | escrito; **producción espera el OK de Felipe** |
 | A5 · #3 | «Los N días que lleva el ERP» en la fila, la hoja y la explicación (`lib/plan-compra-periodo.ts`); `propuestaDeNormal` con los días reales | listo |
 | A6 · #3 | Una línea en la hoja de cada categoría: cuánto creerle a los números (`exactitudDeLosDatos`) | listo |
+| B1–B4 · #4 | El centro de avisos del Plan como la maqueta (campana con número, línea que asoma, panel flotante), con el aviso de deriva del descuento; sale la franja del plazo y la línea del stock; «Descargar la lista» es solo ícono | listo, probado en local (ADR-0522) |
 
 ## Pendiente
 
 1. **Pegar la migración `20261026171000` en producción** (Felipe, tras el OK puntual): ver el ADR-0520, «Pegarla y comprobarla». Después, refrescar el diccionario de datos (`pnpm datos:generar:produccion`, `docs/datos/generado/COMO-REFRESCAR.md`) y mirar el check «SQL pegado» del PR.
 2. **Abrir el PR con `/abrir-pr`** (Felipe). Trae `main`, revisa reservas y choques, y escribe los choques probables.
-3. **Tareas #4 a #13 del informe**, cada una con su OK de Felipe: #4 centro de avisos compacto · #5 pestaña Presupuesto y plan con tope · #6 versiones del plan (sobre el historial de A2) · #7 calendario del plan · #8 historia por campaña · #9 paso 2 por modelos, colores y tallas · #10 Inversión en mercadería en Finanzas (**varios módulos; contrato con la sesión del Resumen aprobado, falta avisarle cuando exista la función de lectura**) · #11 pulido · #12 decidir «programa del año» · 7b enviar a Compras · #13 cómo pagar la campaña (después de #10).
+3. **Tareas #5 a #13 del informe**, cada una con su OK de Felipe: #5 pestaña Presupuesto y plan con tope · #6 versiones del plan (sobre el historial de A2) · #7 calendario del plan · #8 historia por campaña · #9 paso 2 por modelos, colores y tallas · #10 Inversión en mercadería en Finanzas (**varios módulos; contrato con la sesión del Resumen aprobado, falta avisarle cuando exista la función de lectura**) · #11 pulido · #12 decidir «programa del año» · 7b enviar a Compras · #13 cómo pagar la campaña (después de #10).
 4. **Que nada lea el historial todavía:** ni la pantalla ni una función lo lee; leerlo es la tarea #6 y la de medir aciertos.
 
 ## Lo que quedó fuera de esto (por si se pregunta)

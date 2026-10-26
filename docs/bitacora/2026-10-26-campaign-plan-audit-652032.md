@@ -7,3 +7,11 @@
 - **Migración:** `20261026171000` **solo en local; no está en producción**. El paso a paso y las consultas de huella están en el ADR-0520. Espera el OK puntual de Felipe. La conexión de solo lectura a producción perdió permiso a mitad de la sesión: la comprobación previa de producción (md5 `b8a8be79…`, una sola sobrecarga, 0 líneas) es del 2026-10-26 por la mañana.
 - **Falta:** tareas #4–#13 del informe (cada una con su OK), refrescar el diccionario de datos cuando se pegue la migración, y que Felipe abra el PR con `/abrir-pr`. Ver `docs/backlog/2026-10-26-campaign-plan-audit-652032.md`.
 - **Estado:** rama `claude/campaign-plan-audit-652032`, commits locales sin push.
+
+## Cierre de la tarea #4 (misma rama, 2026-10-26, tarde)
+
+- **Qué se hizo:** el centro de avisos del Plan (tarea #4), como la maqueta del spike ②: una campana con su número, una línea roja que asoma si el plazo es urgente, un panel flotante con su barra y los avisos con su etiqueta y sus botones (ADR-0522). Entra el aviso de deriva del descuento (ADR-0499, paso 4); salen la franja del plazo y la línea del stock sobre la tabla. De paso, a pedido de Felipe: el borde de arriba de «Armar plan» ya no se corta al pasar el mouse, y «Descargar la lista» es solo el ícono con su nombre al pasar el mouse.
+- **Por qué así:** el número contaba solo las tiendas sin stock al día y el plazo para pedir, lo que cuesta plata si se ignora, no sumaba; lo urgente tenía que asomar aunque el centro esté cerrado. «Ya lo vi» solo vale hasta que cambie el dato.
+- **Qué se rompería sin esto:** un plazo vencido sin que nadie lo vea, y un plan armado con un descuento que ya no es el de la campaña.
+- **Verificado:** 37 pruebas de la lógica (`lib/plan-compra-avisos.test.ts`), suite web completa, `guias:recorrer compras.plan` (29 pasos), y en el navegador local —urgente, pendientes, deriva, acciones que abren hoja, claro, oscuro y 375 px— con datos de prueba que se devolvieron como estaban. El servidor de desarrollo del puerto 3013 quedó desfasado y no recompila un CSS nuevo hasta que su contenido cambia; reiniciarlo lo arregla.
+

@@ -2,16 +2,22 @@
   "guia": "compras.plan",
   "ruta": "/compras/plan",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 94,
+  "total": 97,
   "controles": {
     "components/plan-compra/AvisoStock.tsx": [
-      "BotonVer «Ir a Conteo»",
-      "Boton «Ver qué falta»"
+      "BotonVer «Ir a Conteo»"
     ],
     "components/plan-compra/CampanasArchivadasModal.tsx": [
       "BotonEnlace «Ver»",
       "Boton «{responsable.motivo ?? undefined}»",
       "ComboResponsable «{responsable}»"
+    ],
+    "components/plan-compra/CentroDeAvisos.tsx": [
+      "Link «{a.texto}»",
+      "button «{a.tipo === \"cambiar-dias\" ? \"plan.plazo-cambiar\" : undefined}»",
+      "button «{aviso.nivel === \"pendiente\" ? \"Deja de contarlo hasta que cambie\" : undefined}»",
+      "button «{`${urgente.corto}»",
+      "button «{etiqueta}»"
     ],
     "components/plan-compra/EditarCampanaModal.tsx": [
       "CampoTexto «Nombre del plan»",
@@ -84,7 +90,6 @@
       "Boton «plan.resumen»",
       "BotonDescargar «Descargar la lista»",
       "Boton «plan.empezar»",
-      "Boton «plan.plazo-cambiar»",
       "Boton «Restaurar…»",
       "BotonEnlace «{aviso.verResultados}»",
       "BotonEnlace «Planificar»",

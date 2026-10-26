@@ -71,15 +71,22 @@ describe("el plazo: lo único cuyo costo de ignorarlo es plata", () => {
     const [a] = avisosDelPlan(base({ plazo: plazo({ estado: "justo", diasParaElLimite: 5 }), porPedir: 7, conPlan: 7 }), sinDatos);
     expect(a.id).toBe("plazo");
     expect(a.nivel).toBe("urgente");
-    expect(a.corto).toBe("Pedir antes del 27/11 · 5 días");
+    expect(a.corto).toBe("Pide antes del 27/11 · 5 días");
+    expect(a.titulo).toBe("Pide antes del 27/11");
     expect(a.texto).toContain("7 categorías tienen compra pendiente.");
   });
   it("tarde con algo por pedir es urgente: «Ya no llega a tiempo»", () => {
     const a = avisosDelPlan(base({ plazo: plazo({ estado: "tarde", limite: null, diasParaElLimite: null }), porPedir: 3, conPlan: 3 }), sinDatos)[0];
     expect([a.nivel, a.corto]).toEqual(["urgente", "Ya no llega a tiempo"]);
   });
-  it("tarde sin nada por pedir ya no urge: solo informa", () => {
-    expect(avisosDelPlan(base({ plazo: plazo({ estado: "tarde" }), porPedir: 0, conPlan: 3 }), sinDatos)[0].nivel).toBe("info");
+  it("tarde sin nada por pedir ya no urge: solo informa, con la frase de siempre", () => {
+    const a = avisosDelPlan(base({ plazo: plazo({ estado: "tarde", texto: "Si pides hoy, llega el 12/12" }), porPedir: 0, conPlan: 3 }), sinDatos)[0];
+    expect([a.nivel, a.titulo, a.corto]).toEqual(["info", "Si pides hoy, llega el 12/12", null]);
+  });
+  it("el título dice «faltan N días» con tiempo y «es hoy» el último día", () => {
+    expect(avisosDelPlan(base({ porPedir: 0, conPlan: 0 }), sinDatos)[0].titulo).toBe("Pide antes del 27/11 · faltan 32 días");
+    expect(avisosDelPlan(base({ plazo: plazo({ estado: "justo", diasParaElLimite: 0 }), porPedir: 0, conPlan: 2 }), sinDatos)[0].titulo).toBe("Pide antes del 27/11 · es hoy");
+    expect(avisosDelPlan(base({ plazo: plazo({ estado: "justo", diasParaElLimite: 0 }), porPedir: 2, conPlan: 2 }), sinDatos)[0].corto).toBe("Pide antes del 27/11 · hoy");
   });
   it("con tiempo es informativo; con todo planeado y nada pendiente, «en orden»; sin plan todavía, informativo", () => {
     expect(avisosDelPlan(base({ porPedir: 5, conPlan: 5 }), sinDatos)[0].nivel).toBe("info");
