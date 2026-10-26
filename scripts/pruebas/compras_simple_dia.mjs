@@ -46,6 +46,11 @@ const RONDA = readFileSync(join(RAIZ, "supabase", "migrations", "20261023183000_
   /^set lock_timeout.*$/gm,
   "",
 );
+// «Mis envíos» (20261026174000): lo que mandó cada compradora, con su código y su ronda. Solo lectura.
+const ENVIOS = readFileSync(join(RAIZ, "supabase", "migrations", "20261026174000_mis_compras_mis_envios.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
 const RONDAS_ABIERTAS = `
 insert into retail.compra_rondas (persona_id, abierta_por)
 select distinct c.persona_id, c.persona_id from retail.colaboradores c
@@ -69,6 +74,8 @@ ${MIGRACION}
 ${MIGRACION}
 ${RONDA}
 ${RONDA}
+${ENVIOS}
+${ENVIOS}
 ${RONDAS_ABIERTAS}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
@@ -318,6 +325,38 @@ ${como(FELIPE, null)}
 select (k -> 'cuaderno' ->> 'gastaste') || '|' || (k -> 'cuaderno' ->> 'dieron'), (select count(*) from jsonb_array_elements(retail.fn_revisar_compras() -> 'rondas_abiertas') r where r ->> 'persona_id' = :'micaela')
   from jsonb_array_elements(retail.fn_revisar_compras() -> 'cierres') k where k ->> 'persona_id' = :'micaela';`,
   "1|18.00|40.00|true / t / 18.00|40.00|0",
+);
+
+caso(
+  "Mis envíos: cada compradora ve los que mandó, con su código, su tienda, lo que llevaba y su ronda (también cerrada); otra persona no los ve (20261026174000)",
+  `${COMPRA}
+${como(MICAELA, "compra_mandar")}
+${MANDAR()} \\g /dev/null
+${como(MICAELA, "compra_terminar_dia")}
+select retail.terminar_dia_compras('se_queda') \\g /dev/null
+select jsonb_array_length(retail.fn_mis_envios()),
+       retail.fn_mis_envios() -> 0 ->> 'numero' ~ '^ENV-[0-9]{6}$',
+       retail.fn_mis_envios() -> 0 ->> 'estado', retail.fn_mis_envios() -> 0 ->> 'destino',
+       retail.fn_mis_envios() -> 0 ->> 'bultos', retail.fn_mis_envios() -> 0 ->> 'unidades', retail.fn_mis_envios() -> 0 ->> 'contadas',
+       retail.fn_mis_envios() -> 0 ->> 'ronda' ~ '^RC-[0-9]{6}$', (retail.fn_mis_envios() -> 0 ->> 'ronda_cerrada_en') is not null,
+       jsonb_array_length(retail.fn_mis_envios() -> 0 -> 'lineas');
+reset role;
+select id as envio from retail.despachos where token_cliente = '${TOKEN}' \\gset
+${como(FELIPE, null)}
+select count(*) from jsonb_array_elements(retail.fn_mis_envios()) e where e ->> 'id' = :'envio';`,
+  "1|t|en_camino|Tienda Trujillo|2|6|0|t|t|1 / 0",
+);
+
+caso(
+  "Mis envíos pide el módulo (42501) y anon no lo ejecuta",
+  `reset role;
+delete from retail.rol_modulos where rol_id = :'rol';
+insert into retail.rol_modulos (rol_id, modulo) values (:'rol', 'existencias');
+${como(MICAELA, null)}
+select left(${intento("select retail.fn_mis_envios()")}, 5);
+reset role;
+select has_function_privilege('anon', 'retail.fn_mis_envios()', 'execute');`,
+  "42501 / f",
 );
 
 caso(

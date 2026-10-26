@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { EMISOR } from "@/lib/emisor";
 import { LEY_REDONDEO_TICKET, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { money } from "@/components/PuntoDeVenta";
@@ -74,7 +75,8 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
   const cuerpo = (
     <div id="comprobante-print">
       <header className="rt-centro">
-        <p className="rt-marca">{EMISOR.nombreComercial}</p>
+        <LogoCayla tinta="negro" className="rt-logo" />
+        <p className="sr-only">{EMISOR.nombreComercial}</p>
         <p className="rt-negrita">
           {EMISOR.razonSocial} · RUC {EMISOR.ruc}
         </p>

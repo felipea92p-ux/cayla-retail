@@ -1,39 +1,75 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { ChevronRight, CircleCheck, CircleMinus, HandCoins, RefreshCw, TrendingDown, TriangleAlert, Truck, Users } from "lucide-react";
 import type { Proveedor, ResumenProveedores } from "@/lib/proveedores";
 import type { Hallazgo } from "@/lib/proveedor-analisis-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { concentracion, paraHoy, totalesDelRanking, type FilaRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
-import { Anillo } from "@/components/ui/Anillo";
-import { Aviso } from "@/components/ui/Aviso";
-import { TituloSeccion, TituloGrupo } from "@/components/ui/TituloSeccion";
-import { LoQueQuizaNoVes } from "@/components/LoQueQuizaNoVes";
+import { contarPorRitmo, paraHoy, totalesDelRanking, type FilaRanking, type FiltroRanking } from "@/lib/proveedores-ranking-reglas";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
-// La columna derecha del ranking (dirección «C», Felipe 2026-10-26): «Lo que no se ve a simple vista», en tres bloques por urgencia —
-// Para hoy (lo vencido, las entregas atrasadas, lo que te deben), Antes de volver a comprar (cuánto dependes de pocos, el costo por confirmar,
-// quién no recibe una compra hace 90 días y los avisos de frenar, plata parada o margen) y Oportunidades (a quién reponer). Reemplaza a las
-// cifras de arriba y a «Lo que quizá no ves» de la lista: lo mismo, ordenado por lo que pide actuar primero (INVESTIGACION.md, «manejo por
-// excepción»). Las cuentas viven en `proveedores-ranking-reglas.ts` y `proveedor-analisis-reglas.ts`.
+// La columna derecha del ranking: «Qué hacer» (forma «B», elegida por Felipe el 2026-10-26 mirando la maqueta
+// docs/maquetas/proveedores-lado-2026-10/). Antes eran tarjetas con párrafos («hay demasiado texto… no me dan ganas ni de leer»): ahora es una
+// lista de tareas, cada una con un verbo, un número y una flecha, y tocarla HACE algo: lleva a pagar o a recibir, filtra la tabla por ritmo o
+// abre al proveedor. Lo urgente va arriba y en rojo. Lo que no pide hacer nada (cuánto se vendió, el costo por confirmar, los que no reciben
+// compras) queda en una línea gris al pie. Las cuentas siguen en `proveedores-ranking-reglas.ts` y `proveedor-analisis-reglas.ts`.
 
-const MAX_NOMBRES = 3;
-
-/** La caja de cada tarjeta de la columna derecha: «Lo que no se ve a simple vista» y «Comparar» (lo pegado al bajar lo pone `ConLado`). */
+/** La caja de cada tarjeta de la columna derecha: «Qué hacer» y «Comparar» (lo pegado al bajar lo pone `ConLado`). */
 export const CLASE_LADO = "card-cayla space-y-5 p-4";
 
-function Nombres({ lista, dato, onAbrir }: { lista: readonly Proveedor[]; dato: (p: Proveedor) => string; onAbrir: (id: string) => void }) {
+type Tono = "urgente" | "bien" | "normal";
+
+type Tarea = {
+  clave: string;
+  tono: Tono;
+  icono: ReactNode;
+  /** El verbo en negrita y lo que sigue. */
+  verbo: string;
+  resto: string;
+  cifra: string;
+  ayuda: string;
+} & ({ href: string; onClick?: never } | { onClick: () => void; href?: never } | { href?: never; onClick?: never });
+
+const ICONO = "h-4 w-4";
+const TONO_ICONO: Record<Tono, string> = { urgente: "text-rojo-profundo", bien: "text-verde", normal: "text-tinta/70" };
+
+function FilaTarea({ t, i }: { t: Tarea; i: number }) {
+  const cuerpo = (
+    <>
+      <span aria-hidden className={`grid place-items-center ${TONO_ICONO[t.tono]}`}>
+        {t.icono}
+      </span>
+      <span className="min-w-0 text-[14.5px] leading-snug text-tinta">
+        <b className="font-semibold">{t.verbo}</b> {t.resto}
+      </span>
+      <span className={`text-sm font-semibold tabular-nums ${t.tono === "urgente" ? "text-rojo-profundo" : "text-tinta"}`}>{t.cifra}</span>
+      {t.href || t.onClick ? (
+        <ChevronRight aria-hidden className="h-4 w-4 text-taupe transition-transform duration-300 ease-cayla group-hover:translate-x-[3px]" />
+      ) : (
+        <span aria-hidden />
+      )}
+    </>
+  );
+  const clase =
+    "group anim-entra grid w-full grid-cols-[1.5rem_minmax(0,1fr)_auto_1rem] items-center gap-2.5 rounded-[10px] px-2.5 py-2.5 text-left transition-colors duration-200 hover:bg-hueso/70";
+  const estilo = { ["--i" as string]: i };
+  if (t.href)
+    return (
+      <Link href={t.href} className={clase} style={estilo} title={t.ayuda}>
+        {cuerpo}
+      </Link>
+    );
+  if (t.onClick)
+    return (
+      <button type="button" onClick={t.onClick} className={clase} style={estilo} title={t.ayuda}>
+        {cuerpo}
+      </button>
+    );
   return (
-    <ul className="mt-1.5 space-y-0.5 text-sm">
-      {lista.slice(0, MAX_NOMBRES).map((p) => (
-        <li key={p.id} className="flex items-baseline justify-between gap-3">
-          <button type="button" className="btn-enlace min-w-0 truncate text-left" onClick={() => onAbrir(p.id)}>
-            {p.nombre}
-          </button>
-          <span className="shrink-0 tabular-nums text-tinta">{dato(p)}</span>
-        </li>
-      ))}
-      {lista.length > MAX_NOMBRES && <li className="text-tinta/65">y {lista.length - MAX_NOMBRES} más</li>}
-    </ul>
+    <div className={clase.replace(" hover:bg-hueso/70", "")} style={estilo} title={t.ayuda}>
+      {cuerpo}
+    </div>
   );
 }
 
@@ -41,21 +77,22 @@ export function ProveedoresLoQueNoSeVe({
   proveedores,
   resumen,
   filas,
-  medida,
   hallazgos,
   onAbrir,
+  onFiltrar,
   soloHoy = false,
 }: {
   /** Los proveedores de mercadería activos (lo de hoy se cuenta sobre ellos, tengan compras o no). */
   proveedores: readonly Proveedor[];
   resumen: ResumenProveedores | null;
-  /** Todas las filas del ranking, sin filtrar: la concentración y los totales son de todos. */
+  /** Todas las filas del ranking, sin filtrar: los totales y la cuenta por ritmo son de todos. */
   filas: readonly FilaRanking[];
-  medida: MedidaRanking;
   hallazgos: readonly Hallazgo[];
   onAbrir: (id: string) => void;
+  /** Deja la tabla con un ritmo: el mismo filtro «Ritmo» de la barra. */
+  onFiltrar: (f: FiltroRanking) => void;
   /**
-   * Mientras se compara, solo «Para hoy», debajo de «Comparar» (Formidable 2026-10-26: al marcar uno se perdían lo vencido y las entregas
+   * Mientras se compara, solo lo de hoy, debajo de «Comparar» (Formidable 2026-10-26: al marcar uno se perdían lo vencido y las entregas
    * atrasadas, que no se ven en otro lado). Sin nada urgente, no dibuja nada.
    */
   soloHoy?: boolean;
@@ -63,113 +100,62 @@ export function ProveedoresLoQueNoSeVe({
   const hoy = paraHoy(proveedores);
   const totales = totalesDelRanking(filas);
   const vendidas = filas.reduce((a, f) => a + f.unidadesVendidas, 0);
-  const vendidoPct = totales.prendas > 0 ? (vendidas / totales.prendas) * 100 : 0;
-  const top10 = concentracion(filas, medida);
+  const vendidoPct = totales.prendas > 0 ? Math.round((vendidas / totales.prendas) * 100) : 0;
+  const ritmo = contarPorRitmo(filas);
   const sin90 = resumen?.sinCompras90d ?? 0;
-  const antes = hallazgos.filter((h) => h.tono === "atencion");
-  const oportunidades = hallazgos.filter((h) => h.tono !== "atencion");
-  const nada = hoy.vencidos.length === 0 && hoy.atrasados.length === 0 && hoy.aFavor.length === 0;
-  if (soloHoy && nada) return null;
+  const nombres = (xs: readonly Proveedor[]) => xs.slice(0, 3).map((p) => p.nombre).join(", ") + (xs.length > 3 ? ` y ${xs.length - 3} más` : "");
+
+  // Lo de hoy: pide actuar ya.
+  const urgentes: Tarea[] = [];
+  if (hoy.vencidos.length > 0)
+    urgentes.push({ clave: "vencido", tono: "urgente", icono: <TriangleAlert className={ICONO} />, verbo: "Paga", resto: "lo vencido", cifra: soles(hoy.vencido), href: "/compras/por-pagar", ayuda: `Vencido con ${nombres(hoy.vencidos)}. Págalo antes de pedirles más.` });
+  if (hoy.atrasados.length > 0)
+    urgentes.push({ clave: "atrasadas", tono: "urgente", icono: <Truck className={ICONO} />, verbo: "Reclama", resto: hoy.atrasadas === 1 ? "la entrega atrasada" : "las entregas atrasadas", cifra: String(hoy.atrasadas), href: "/compras/recibir", ayuda: `De ${nombres(hoy.atrasados)}.` });
+  if (hoy.aFavor.length > 0)
+    urgentes.push({ clave: "favor", tono: "bien", icono: <HandCoins className={ICONO} />, verbo: "Descuenta", resto: "lo que te deben", cifra: soles(hoy.favor), href: "/compras/por-pagar", ayuda: `Notas de crédito de ${nombres(hoy.aFavor)}: se descuentan al pagarles.` });
+  if (soloHoy && urgentes.length === 0) return null;
+
+  // Antes de volver a comprar: lo que pide una decisión, no hoy.
+  const decisiones: Tarea[] = [];
+  if (ritmo.lento > 0)
+    decisiones.push({ clave: "frena", tono: "normal", icono: <CircleMinus className={`${ICONO} text-ambar`} />, verbo: "Frena", resto: "compras", cifra: String(ritmo.lento), onClick: () => onFiltrar("lento"), ayuda: "Vender lo que les queda tardaría 16 semanas o más. Toca para verlos en la tabla." });
+  if (ritmo.rapido > 0)
+    decisiones.push({ clave: "repon", tono: "normal", icono: <RefreshCw className={`${ICONO} text-verde`} />, verbo: "Repón", resto: "a los que se agotan", cifra: String(ritmo.rapido), onClick: () => onFiltrar("rapido"), ayuda: "Lo que les queda se acaba en 6 semanas o menos. Toca para verlos en la tabla." });
+  // Los avisos de dinero que la tabla no dice (solo salen con costo real): margen bajo y depender de uno solo. Abren al proveedor.
+  for (const h of hallazgos) {
+    if (!h.proveedorId) continue;
+    const nombre = proveedores.find((p) => p.id === h.proveedorId)?.nombre ?? "";
+    if (h.id.startsWith("margen-"))
+      decisiones.push({ clave: h.id, tono: "normal", icono: <TrendingDown className={ICONO} />, verbo: "Pide mejor costo", resto: `a ${nombre}`, cifra: "", onClick: () => onAbrir(h.proveedorId!), ayuda: h.titulo });
+    else if (h.id === "dependencia")
+      decisiones.push({ clave: h.id, tono: "normal", icono: <Users className={ICONO} />, verbo: "Ten otro proveedor", resto: `además de ${nombre}`, cifra: "", onClick: () => onAbrir(h.proveedorId!), ayuda: h.titulo });
+  }
+
+  const tareas = soloHoy
+    ? urgentes
+    : [
+        ...(urgentes.length > 0 ? urgentes : [{ clave: "al-dia", tono: "bien" as const, icono: <CircleCheck className={ICONO} />, verbo: "Al día:", resto: "nada vencido ni atrasado", cifra: "", ayuda: "Ningún comprobante vencido ni entrega atrasada." }]),
+        ...decisiones,
+      ];
+
+  // Lo que no pide hacer nada: una línea gris, al pie.
+  const pie = [
+    totales.prendas > 0 ? `${vendidoPct} % vendido de ${totales.prendas.toLocaleString("es-PE")} prendas` : null,
+    totales.cargaPct >= 1 ? `costos por confirmar: el ${Math.round(totales.cargaPct)} % vino en la carga inicial` : null,
+    sin90 > 0 ? `${sin90} sin compra en 90 días` : null,
+  ].filter(Boolean);
 
   return (
-    <aside data-guia={soloHoy ? undefined : "proveedores.lado"} aria-label={soloHoy ? "Para hoy" : undefined} className={CLASE_LADO}>
-      {!soloHoy && (
-        <>
-          <TituloSeccion>Lo que no se ve a simple vista</TituloSeccion>
-
-          <div className="flex items-center gap-3 rounded-xl bg-hueso/60 px-3 py-2.5 text-sm text-tinta">
-            <Anillo pct={vendidoPct} tamano="chico" decorativa>
-              <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(vendidoPct)}%</span>
-            </Anillo>
-            <p>
-              Te llegaron <b className="font-semibold tabular-nums">{totales.prendas.toLocaleString("es-PE")}</b> prendas de {filas.length} {filas.length === 1 ? "proveedor" : "proveedores"};{" "}
-              <b className="font-semibold tabular-nums">{vendidas.toLocaleString("es-PE")}</b> ya se vendieron.
-            </p>
-          </div>
-        </>
-      )}
-
-      <section className="space-y-2.5" data-guia={soloHoy ? undefined : "proveedores.para-hoy"}>
-        <TituloGrupo>Para hoy</TituloGrupo>
-        {hoy.vencidos.length > 0 && (
-          <Aviso
-            tono="atencion"
-            titulo={`${soles(hoy.vencido)} ya vencieron con ${hoy.vencidos.length} ${hoy.vencidos.length === 1 ? "proveedor" : "proveedores"}`}
-            accion={
-              <Link href="/compras/por-pagar" className="btn-enlace">
-                Ir a pagar
-              </Link>
-            }
-          >
-            <p>Págalo antes de pedirles más.</p>
-            <Nombres lista={hoy.vencidos} dato={(p) => soles(p.saldo_vencido ?? 0)} onAbrir={onAbrir} />
-          </Aviso>
-        )}
-        {hoy.atrasados.length > 0 && (
-          <Aviso
-            tono="atencion"
-            titulo={`${hoy.atrasadas} ${hoy.atrasadas === 1 ? "entrega atrasada" : "entregas atrasadas"}`}
-            accion={
-              <Link href="/compras/recibir" className="btn-enlace">
-                Ir a recibir
-              </Link>
-            }
-          >
-            <p>Reclámalas antes de que se acumulen.</p>
-            <Nombres lista={hoy.atrasados} dato={(p) => `${p.facturas_atrasadas} ${p.facturas_atrasadas === 1 ? "entrega" : "entregas"}`} onAbrir={onAbrir} />
-          </Aviso>
-        )}
-        {hoy.aFavor.length > 0 && (
-          <Aviso tono="exito" titulo={`Te deben ${soles(hoy.favor)}`}>
-            <p>Notas de crédito a tu favor: se descuentan al pagarles.</p>
-            <Nombres lista={hoy.aFavor} dato={(p) => soles(p.saldo_favor ?? 0)} onAbrir={onAbrir} />
-          </Aviso>
-        )}
-        {nada && (
-          <Aviso tono="exito" chico>
-            Nada vencido, nada atrasado.
-          </Aviso>
-        )}
-      </section>
-
-      {!soloHoy && (
-        <section className="space-y-2.5">
-          <TituloGrupo>Antes de volver a comprar</TituloGrupo>
-          {filas.length > 0 && (
-            <div className="flex items-center gap-3 rounded-xl bg-hueso/60 px-3 py-2.5 text-sm text-tinta">
-              <Anillo pct={top10} tamano="chico" tono="tinta" decorativa>
-                <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(top10)}%</span>
-              </Anillo>
-              <p>
-                de lo que te llega {medida === "soles" ? "(a su costo)" : "(en prendas)"} es de tus <b className="font-semibold">{Math.min(10, filas.length)}</b> primeros proveedores.
-              </p>
-            </div>
-          )}
-          {totales.cargaPct > 0 && (
-            <div className="flex items-center gap-3 rounded-xl bg-hueso/60 px-3 py-2.5 text-sm text-tinta">
-              <Anillo pct={totales.cargaPct} tamano="chico" tono="tinta" decorativa>
-                <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(totales.cargaPct)}%</span>
-              </Anillo>
-              <p>
-                de lo que te llegó vino por la carga inicial: su costo y su margen están <b className="font-semibold">por confirmar</b>.
-              </p>
-            </div>
-          )}
-          {sin90 > 0 && (
-            <Aviso tono="info" chico>
-              {sin90 === 1 ? "1 proveedor no recibe" : `${sin90} proveedores no reciben`} una compra hace más de 90 días: ¿siguen siendo proveedores?
-            </Aviso>
-          )}
-          <LoQueQuizaNoVes guia="proveedores.analisis" hallazgos={antes} enColumna onVer={onAbrir} />
-        </section>
-      )}
-
-      {!soloHoy && oportunidades.length > 0 && (
-        <section className="space-y-2.5">
-          <TituloGrupo>Oportunidades</TituloGrupo>
-          <LoQueQuizaNoVes guia="proveedores.oportunidades" hallazgos={oportunidades} enColumna onVer={onAbrir} />
-        </section>
-      )}
+    <aside data-guia={soloHoy ? undefined : "proveedores.lado"} aria-label={soloHoy ? "Para hoy" : undefined} className="card-cayla p-3">
+      <div className="px-2.5 pb-1 pt-1">
+        <TituloSeccion>{soloHoy ? "Para hoy" : "Qué hacer"}</TituloSeccion>
+      </div>
+      <div className="divide-y divide-sand/70" data-guia={soloHoy ? undefined : "proveedores.para-hoy"}>
+        {tareas.map((t, i) => (
+          <FilaTarea key={t.clave} t={t} i={i} />
+        ))}
+      </div>
+      {!soloHoy && pie.length > 0 && <p className="mx-2.5 mt-2 border-t border-sand pt-2.5 text-xs leading-relaxed text-taupe">{pie.join(" · ")}</p>}
     </aside>
   );
 }

@@ -368,6 +368,8 @@ export type ConteoDeLinea = {
   contadas: number;
   separado: Separado;
   costoUnitario: number | null;
+  /** ADR-0519: el costo propio de las prendas separadas de esta línea que no cuestan lo que la línea ({producto: costo}); las demás, el de la línea. */
+  costosPrendas: Readonly<Record<string, number>>;
   version: number;
   contadoPor: Persona | null;
   contadoEn: string | null;
@@ -435,6 +437,18 @@ function leerPendiente(v: unknown): PendienteDeLinea | null {
   };
 }
 
+/** `costos_prendas` del conteo: `{ producto: costo }`. Lo que no es un monto se descarta (la base lo valida al escribirlo). */
+function leerCostosPrendas(v: unknown): Record<string, number> {
+  const o = objeto(v);
+  const r: Record<string, number> = {};
+  if (!o) return r;
+  for (const [producto, costo] of Object.entries(o)) {
+    const n = cifra(costo);
+    if (producto && n != null && n >= 0) r[producto] = n;
+  }
+  return r;
+}
+
 function leerConteoDeLinea(v: unknown): ConteoDeLinea | null {
   const r = objeto(v);
   if (!r) return null;
@@ -451,6 +465,7 @@ function leerConteoDeLinea(v: unknown): ConteoDeLinea | null {
     contadas: entero(r.contadas),
     separado: leerSeparado(r.separado),
     costoUnitario: cifra(r.costo_unitario),
+    costosPrendas: leerCostosPrendas(r.costos_prendas),
     version: Math.max(1, entero(r.version)),
     contadoPor: persona(r.contado_por),
     contadoEn: texto(r.contado_en),
@@ -759,11 +774,82 @@ export type LineaParaCerrar = {
   faltante_causa: CausaFaltante | null;
   sobrante_causa: CausaSobrante | null;
   nota: string | null;
+  /** ADR-0519: el costo propio de las prendas separadas de esta línea que cuestan distinto de la línea ({producto: costo}). Sin nada propio, no va. */
+  costos_prendas?: Record<string, number>;
 };
+
+/** El costo propio de cada prenda de una línea, como se escribe: `{ clave: "55.50" }`. Solo lo que quien cierra tocó. La clave es el producto de la
+ *  prenda ya identificada, o `nueva:<descripción>` para una prenda nueva descrita que todavía no se crea (la base la nombra igual). */
+export type CostosDePrendas = Readonly<Record<string, string>>;
+
+/** La clave del costo de una prenda nueva descrita (ADR-0519): su descripción tal cual quedó en el conteo. */
+export const claveCostoDeNueva = (descripcion: string): string => `nueva:${descripcion}`;
+
+/** Lo que dice el campo de costo de una prenda: lo suyo si lo tocó (aunque lo haya dejado vacío); si no, el costo de su línea. */
+export const costoDePrendaTexto = (textoLinea: string, propios: CostosDePrendas | undefined, clave: string): string =>
+  propios && Object.hasOwn(propios, clave) ? (propios[clave] ?? "") : textoLinea;
+
+/** Cada prenda de una línea que se puede costear: las identificadas (con producto) y las nuevas ya descritas. Lo que no tiene nombre todavía no
+ *  está aquí (Felipe 2026-10-26: no se cambia el costo de algo que no se sabe qué es). */
+export type PrendaConCosto = { clave: string; nombre: string; unidades: number; nueva: boolean; producto: PrendaSeparada | null };
+
+export function prendasConCosto(l: Pick<LineaParaContar, "conteo">): PrendaConCosto[] {
+  const sep = l.conteo?.separado;
+  if (!sep) return [];
+  return [
+    ...sep.prendas.map((p): PrendaConCosto => ({ clave: p.productoId, nombre: p.nombre ?? p.codigo ?? "la prenda", unidades: p.cantidad, nueva: false, producto: p })),
+    ...sep.nuevas.flatMap((n): PrendaConCosto[] =>
+      n.descripcion ? [{ clave: claveCostoDeNueva(n.descripcion), nombre: n.descripcion, unidades: n.cantidad, nueva: true, producto: null }] : [],
+    ),
+  ];
+}
+
+/** Cuántas unidades contadas de la línea todavía no son una prenda con nombre (ni identificada ni descrita): entran con el costo de la línea. */
+export function unidadesSinIdentificar(l: Pick<LineaParaContar, "conteo">): number {
+  const contadas = l.conteo?.contadas ?? 0;
+  return Math.max(0, contadas - prendasConCosto(l).reduce((a, p) => a + p.unidades, 0));
+}
+
+/** Lo que cada prenda cuesta de verdad al cerrar: su costo propio si es un monto y distinto del de la línea; vacío o igual al de la línea, el de la línea. */
+export function costosPropiosParaCerrar(l: LineaParaContar, textoLinea: string, propios: CostosDePrendas | undefined): Record<string, number> {
+  const r: Record<string, number> = {};
+  if (!propios) return r;
+  const deLinea = leerCostoCierre(textoLinea).valor;
+  for (const p of prendasConCosto(l)) {
+    if (!Object.hasOwn(propios, p.clave)) continue;
+    const c = leerCostoCierre(propios[p.clave] ?? "");
+    if (c.problema || c.valor == null || c.valor === deLinea) continue;
+    r[p.clave] = c.valor;
+  }
+  return r;
+}
+
+/** Los costos propios que están mal escritos, para frenar «Cerrar» antes de ir a la base (la base los rechaza con las mismas reglas). */
+export function costosDePrendaConProblema(
+  lineas: readonly LineaParaContar[],
+  propios: Readonly<Record<string, CostosDePrendas>>,
+): { linea: ClaveLinea; productoId: string; nombre: string; problema: string }[] {
+  const r: { linea: ClaveLinea; productoId: string; nombre: string; problema: string }[] = [];
+  for (const l of lineas) {
+    const t = propios[l.clave];
+    if (!t) continue;
+    for (const p of prendasConCosto(l)) {
+      if (!Object.hasOwn(t, p.clave)) continue;
+      const c = leerCostoCierre(t[p.clave] ?? "");
+      if (c.problema) r.push({ linea: l.clave, productoId: p.clave, nombre: p.nombre, problema: c.problema });
+    }
+  }
+  return r;
+}
 
 /** `p_lineas` de `cerrar_conteo_envio`: una por conteo, con la versión que se vio. Las causas que ya no aplican se sueltan (la base las
  *  rechaza: «De … no falta nada»). */
-export function lineasParaCerrar(lineas: readonly LineaParaContar[], decisiones: Readonly<Record<string, DecisionCierre>>, sinAviso: boolean): LineaParaCerrar[] {
+export function lineasParaCerrar(
+  lineas: readonly LineaParaContar[],
+  decisiones: Readonly<Record<string, DecisionCierre>>,
+  sinAviso: boolean,
+  costosPrendas: Readonly<Record<string, CostosDePrendas>> = {},
+): LineaParaCerrar[] {
   return lineas
     .filter((l) => l.conteo !== null)
     .map((l) => {
@@ -772,6 +858,7 @@ export function lineasParaCerrar(lineas: readonly LineaParaContar[], decisiones:
       const dif = diferenciaDe(l);
       const fuera = !l.linea;
       const costo = leerCostoCierre(d.costo).valor;
+      const propios = costosPropiosParaCerrar(l, d.costo, costosPrendas[l.clave]);
       return {
         ...(l.linea ? { despacho_item_id: l.linea.id } : { extra_posicion: c.extraPosicion ?? 0 }),
         version: c.version,
@@ -780,6 +867,7 @@ export function lineasParaCerrar(lineas: readonly LineaParaContar[], decisiones:
         faltante_causa: dif != null && dif < 0 ? d.faltanteCausa : null,
         sobrante_causa: (dif != null && dif > 0) || (fuera && !sinAviso && c.contadas > 0) ? d.sobranteCausa : null,
         nota: d.nota.trim() ? d.nota.trim().slice(0, TOPES_CONTEO.nota) : null,
+        ...(Object.keys(propios).length > 0 ? { costos_prendas: propios } : {}),
       };
     });
 }

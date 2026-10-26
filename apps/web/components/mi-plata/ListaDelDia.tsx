@@ -5,10 +5,13 @@ import { ChevronRight, Flag, HandCoins, ShoppingBag, Undo2, type LucideIcon } fr
 import { ICONO_GASTO } from "./iconos";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { diaMes } from "@/lib/fechas-lima";
+import { resumenDeEnvios, type EnvioMio, type RondaConEnvios } from "@/lib/mis-envios-reglas";
+import { FilaEnvio } from "./FilaEnvio";
 import { horaDeMovimiento, queHaraCompras, type EntradaHistorial, type MovimientoCompradora } from "@/lib/mi-plata-reglas";
 
 // La lista de Mis compras (maqueta docs/maquetas/mis-compras-rediseno-2026-10/, Felipe 2026-10-24): lo que compró, gastó y anotó en UNA
@@ -114,7 +117,7 @@ function DetalleDeFila({ m, onClose, volverA }: { m: MovimientoCompradora; onClo
 
 /** Una ronda cerrada: la fila se toca y abre una hoja con lo que compró y gastó en ella (Felipe 2026-10-23: «que se cargue un modal»,
  *  no que se despliegue en la lista). La hoja solo se lee: se cierra con la ×. */
-function FilaRonda({ e }: { e: Extract<EntradaHistorial, { tipo: "ronda" }> }) {
+function FilaRonda({ e, envios, hoy }: { e: Extract<EntradaHistorial, { tipo: "ronda" }>; envios: EnvioMio[]; hoy?: string }) {
   const [abierta, setAbierta] = useState(false);
   const origen = useRef<HTMLButtonElement>(null);
   return (
@@ -153,6 +156,8 @@ function FilaRonda({ e }: { e: Extract<EntradaHistorial, { tipo: "ronda" }> }) {
               <span className="font-serif text-2xl tabular-nums text-tinta">{e.monto}</span>
             </p>
             {e.cierre && <p className="nota-cayla text-sm">{e.cierre}</p>}
+            {/* Los envíos de esa ronda con su código (Felipe 2026-10-26): un código de hace dos semanas está a dos toques del inicio. */}
+            {envios.length > 0 && <EnviosDeUnaRonda envios={envios} hoy={hoy} />}
           </div>
         </Modal>
       )}
@@ -160,9 +165,28 @@ function FilaRonda({ e }: { e: Extract<EntradaHistorial, { tipo: "ronda" }> }) {
   );
 }
 
-function FilaHistorial({ e }: { e: EntradaHistorial }) {
+/** «Envíos de esta ronda» dentro de la hoja de una ronda cerrada: cada uno con su código y en qué quedó. No se abren aquí (una hoja sobre
+ *  otra): su detalle, con copiar y compartir, está en Mis envíos. */
+function EnviosDeUnaRonda({ envios, hoy }: { envios: EnvioMio[]; hoy?: string }) {
+  const resumen = resumenDeEnvios(envios, hoy);
+  return (
+    <div className="space-y-1">
+      <TituloSeccion nivel={3} cuenta={envios.length} accion={resumen.chip ? <Chip tono={resumen.chip.tono}>{resumen.chip.texto}</Chip> : undefined}>
+        Envíos de esta ronda
+      </TituloSeccion>
+      <ul className="divide-y divide-sand">
+        {envios.map((x) => (
+          <FilaEnvio key={x.id} e={x} hoy={hoy} soloLeer />
+        ))}
+      </ul>
+      <EnlaceVer href="/compras/mi-plata/envios">Abrirlos en Mis envíos</EnlaceVer>
+    </div>
+  );
+}
+
+function FilaHistorial({ e, envios, hoy }: { e: EntradaHistorial; envios: EnvioMio[]; hoy?: string }) {
   if (e.tipo === "plata") return <Fila m={e.mov} prefijo={[e.mov.ronda, e.mov.fecha ? diaMes(e.mov.fecha) : null]} conDetalle />;
-  if (e.tipo === "ronda") return <FilaRonda e={e} />;
+  if (e.tipo === "ronda") return <FilaRonda e={e} envios={envios} hoy={hoy} />;
   return (
     <li className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5 py-2.5">
       <Cara icono={e.decision === "devuelve" ? Undo2 : HandCoins} titulo={e.titulo} detalle={e.detalle} entra={e.entra} monto={e.monto} estado={e.estado} />
@@ -192,8 +216,15 @@ export function ListaDelDia({ actuales, titulo, desde }: { actuales: MovimientoC
   );
 }
 
+/** Los envíos de una fila de ronda del historial: su clave es `ronda-<id>` (`ronda-sin-ronda` para lo de antes de las rondas). */
+function enviosDeLaFila(rondas: RondaConEnvios[] | null, clave: string): EnvioMio[] | null {
+  if (!rondas) return null;
+  const id = clave.replace(/^ronda-/, "");
+  return rondas.find((r) => (r.rondaId ?? "sin-ronda") === id)?.envios ?? null;
+}
+
 /** «Rondas anteriores», plegadas: el título y «Ver N» (cuántas filas hay); al abrir, cada ronda cerrada y la plata anotada de antes. */
-export function RondasAnteriores({ historial }: { historial: EntradaHistorial[] }) {
+export function RondasAnteriores({ historial, envios, hoy }: { historial: EntradaHistorial[]; envios: RondaConEnvios[] | null; hoy?: string }) {
   const [abierto, setAbierto] = useState(false);
   if (historial.length === 0) return null;
   return (
@@ -206,7 +237,7 @@ export function RondasAnteriores({ historial }: { historial: EntradaHistorial[] 
       <FilasDeMas abierto={abierto} id="mi-plata-antes">
         <ul className="divide-y divide-sand border-t border-sand">
           {historial.map((e) => (
-            <FilaHistorial key={e.clave} e={e} />
+            <FilaHistorial key={e.clave} e={e} envios={e.tipo === "ronda" ? (enviosDeLaFila(envios, e.clave) ?? []) : []} hoy={hoy} />
           ))}
         </ul>
       </FilasDeMas>

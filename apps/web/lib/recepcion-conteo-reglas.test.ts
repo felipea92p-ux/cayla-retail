@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   SEPARADO_VACIO,
+  claveCostoDeNueva,
+  costoDePrendaTexto,
+  costosDePrendaConProblema,
+  prendasConCosto,
+  unidadesSinIdentificar,
+  costosPropiosParaCerrar,
   argsGuardarConteo,
   argsResolverPendiente,
   cambiarCantidadPrenda,
@@ -842,5 +848,89 @@ describe("lo que anotó la compra: las prendas exactas de una línea, de un toqu
     // Nunca menos de una.
     expect(separarAnotada(SEPARADO_VACIO, { productoId: "pa", nombre: "Chompa Aurora", codigo: null, cantidad: 12 }, 0).prendas[0].cantidad).toBe(1);
   });
+});
 
+describe("ADR-0519: el costo propio de cada prenda al cerrar", () => {
+  // Una línea de 10 contadas con dos prendas ya identificadas: Sofía (6) y Antonella (4); el costo de la línea, S/ 58.
+  const sofia = { producto_id: "p-sofia", nombre: "Vestido Sofía", codigo: "VES-1", cantidad: 6 };
+  const antonella = { producto_id: "p-antonella", nombre: "Vestido Antonella", codigo: "VES-2", cantidad: 4 };
+  const lineaCon = (extraCrudo: Record<string, unknown> = {}): LineaParaContar => {
+    const c = leerConteosDelEnvio({
+      despacho_id: "d",
+      conteos: [conteoCrudo({ despacho_item_id: "i1", contadas: 10, costo_unitario: 58, separado: { prendas: [sofia, antonella], nuevas: [] }, ...extraCrudo })],
+    })?.conteos[0] ?? null;
+    return { clave: "item:i1", linea: linea("i1", 10), conteo: c, categoria: CAT, marca: MARCA, proveedor: PROV, dijeron: 10 };
+  };
+  const dec = (o: Partial<DecisionCierre> = {}): DecisionCierre => ({ costo: "58.00", confirmaCosto: false, faltanteCausa: null, sobranteCausa: null, nota: "", ...o });
+
+  it("la lectura del conteo trae el costo propio de las prendas; sin él (o con basura), nada", () => {
+    expect(lineaCon({ costos_prendas: { "p-sofia": 55.5, "p-antonella": "x", vacio: null } }).conteo?.costosPrendas).toEqual({ "p-sofia": 55.5 });
+    expect(lineaCon().conteo?.costosPrendas).toEqual({});
+    expect(lineaCon({ costos_prendas: [1, 2] }).conteo?.costosPrendas).toEqual({});
+  });
+
+  it("lo que dice el campo de una prenda: lo suyo si lo tocó (aunque sea vacío); si no, el de su línea", () => {
+    expect(costoDePrendaTexto("58.00", undefined, "p-sofia")).toBe("58.00");
+    expect(costoDePrendaTexto("58.00", { "p-sofia": "55.50" }, "p-sofia")).toBe("55.50");
+    expect(costoDePrendaTexto("58.00", { "p-sofia": "55.50" }, "p-antonella")).toBe("58.00");
+    expect(costoDePrendaTexto("58.00", { "p-sofia": "" }, "p-sofia")).toBe("");
+  });
+
+  it("lo que se manda: solo lo que cuesta distinto de la línea y es un monto; vacío, igual a la línea o mal escrito, no", () => {
+    const l = lineaCon();
+    expect(costosPropiosParaCerrar(l, "58.00", { "p-sofia": "55.5", "p-antonella": "58" })).toEqual({ "p-sofia": 55.5 });
+    expect(costosPropiosParaCerrar(l, "58.00", { "p-sofia": "", "p-antonella": "doce" })).toEqual({});
+    expect(costosPropiosParaCerrar(l, "58.00", undefined)).toEqual({});
+    // Una prenda que ya no está separada en la línea no se manda (la base también la ignora).
+    expect(costosPropiosParaCerrar(l, "58.00", { "p-otra": "10" })).toEqual({});
+  });
+
+  it("p_lineas lleva costos_prendas solo si hay algo propio, y no cambia lo demás", () => {
+    const l = lineaCon();
+    const sin = lineasParaCerrar([l], { "item:i1": dec() }, false);
+    expect(sin[0]).not.toHaveProperty("costos_prendas");
+    const con = lineasParaCerrar([l], { "item:i1": dec() }, false, { "item:i1": { "p-sofia": "55.50" } });
+    expect(con[0]).toMatchObject({ despacho_item_id: "i1", costo_unitario: 58, costos_prendas: { "p-sofia": 55.5 } });
+    // Si la línea cambia de costo, lo propio sigue siendo lo propio y las demás siguen a la línea.
+    const nueva = lineasParaCerrar([l], { "item:i1": dec({ costo: "60" }) }, false, { "item:i1": { "p-sofia": "55.50", "p-antonella": "60" } });
+    expect(nueva[0]).toMatchObject({ costo_unitario: 60, costos_prendas: { "p-sofia": 55.5 } });
+  });
+
+  it("solo se costea lo que tiene nombre: las prendas identificadas y las nuevas ya descritas; lo demás se cuenta aparte como «sin identificar»", () => {
+    // 12 contadas: Sofía 6 + Antonella 4 identificadas, «holaa» 2 nuevas descritas, 0 sin describir… y 0 sueltas.
+    const l = lineaCon({ contadas: 12, separado: { prendas: [sofia, antonella], nuevas: [{ cantidad: 2, descripcion: "holaa" }] } });
+    expect(prendasConCosto(l).map((p) => [p.clave, p.nombre, p.unidades, p.nueva])).toEqual([
+      ["p-sofia", "Vestido Sofía", 6, false],
+      ["p-antonella", "Vestido Antonella", 4, false],
+      [claveCostoDeNueva("holaa"), "holaa", 2, true],
+    ]);
+    expect(unidadesSinIdentificar(l)).toBe(0);
+    // Las nuevas sin describir y lo sin separar NO tienen fila: entran con el costo de la línea y se avisan como «sin identificar».
+    const sueltas = lineaCon({ contadas: 14, separado: { prendas: [sofia], nuevas: [{ cantidad: 4, descripcion: "holaa" }, { cantidad: 2, descripcion: null }] } });
+    expect(prendasConCosto(sueltas).map((p) => p.nombre)).toEqual(["Vestido Sofía", "holaa"]);
+    expect(unidadesSinIdentificar(sueltas)).toBe(4);
+    expect(unidadesSinIdentificar(lineaCon({ contadas: 7, separado: { prendas: [], nuevas: [] } }))).toBe(7);
+    expect(unidadesSinIdentificar({ conteo: null })).toBe(0);
+  });
+
+  it("el costo de una prenda nueva descrita viaja por su descripción, igual que lo lee la base", () => {
+    const l = lineaCon({ contadas: 10, separado: { prendas: [sofia], nuevas: [{ cantidad: 4, descripcion: "Chompa con capucha" }] } });
+    expect(costosPropiosParaCerrar(l, "58.00", { [claveCostoDeNueva("Chompa con capucha")]: "41.5", "p-sofia": "58" })).toEqual({ "nueva:Chompa con capucha": 41.5 });
+    // Una descripción que ya no está en la línea no se manda.
+    expect(costosPropiosParaCerrar(l, "58.00", { "nueva:Otra": "10" })).toEqual({});
+    const sin = lineasParaCerrar([l], { "item:i1": dec() }, false, { "item:i1": { "nueva:Chompa con capucha": "41.50" } });
+    expect(sin[0]).toMatchObject({ costos_prendas: { "nueva:Chompa con capucha": 41.5 } });
+    const malos = costosDePrendaConProblema([l], { "item:i1": { "nueva:Chompa con capucha": "mucho" } });
+    expect(malos).toHaveLength(1);
+    expect(malos[0]).toMatchObject({ productoId: "nueva:Chompa con capucha", nombre: "Chompa con capucha" });
+  });
+
+  it("un costo mal escrito se avisa antes de ir a la base, con el nombre de la prenda", () => {
+    const l = lineaCon();
+    expect(costosDePrendaConProblema([l], { "item:i1": { "p-sofia": "55.50" } })).toEqual([]);
+    const malos = costosDePrendaConProblema([l], { "item:i1": { "p-antonella": "-3", "p-sofia": "" } });
+    expect(malos).toHaveLength(1);
+    expect(malos[0]).toMatchObject({ linea: "item:i1", productoId: "p-antonella", nombre: "Vestido Antonella" });
+    expect(malos[0].problema).toMatch(/negativo/);
+  });
 });

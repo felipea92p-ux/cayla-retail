@@ -1,0 +1,210 @@
+/* =====================================================================
+   Maqueta · Ficha de consumo del modelo (2026-10-26) — la parte que comparten A, B y C.
+   TOKENS: los nombres y valores son los de apps/web/app/globals.css (@theme) y estilos/tema.css (oscuro). Ningún otro color,
+   salvo el color de DATO de las cuatro prendas del Chaleco (hex de la base: BLA, GRP, GRM, BEI), que no cambia con el tema.
+   Datos inventados salvo modelo, colores, tallas y precio. NO es la implementación.
+   ===================================================================== */
+:root {
+  --color-rojo: #b8412d; --color-rojo-profundo: #8b2a1f;
+  --color-crema: #f5f0e8; --color-papel: #fbf8f2; --color-hueso: #eae1d2; --color-sand: #e8e0d0;
+  --color-tinta: #1a1a18; --color-tinta-60: #5b544c; --color-taupe: #805c4c;
+  --color-verde: #48603f; --color-verde-profundo: #44583a; --color-ambar: #74501a; --color-ambar-profundo: #734f15;
+  --color-pizarra: #4c5d6e; --color-sombra: #1a1a18; --color-tinta-fija: #1a1a18; --color-crema-fija: #f5f0e8;
+  --ease-cayla: cubic-bezier(.32,.72,.24,1);
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "EB Garamond", ui-serif, Georgia, serif;
+  color-scheme: light;
+}
+:root[data-tema="oscuro"] {
+  --color-rojo: #e8806a; --color-rojo-profundo: #f29a86;
+  --color-crema: #1a1a18; --color-papel: #242422; --color-hueso: #31302d; --color-sand: #3d3c38;
+  --color-tinta: #f5f0e8; --color-tinta-60: #b9b2a7; --color-taupe: #c4a898;
+  --color-verde: #9ccb8d; --color-verde-profundo: #a8d49a; --color-ambar: #e4b968; --color-ambar-profundo: #ecc676;
+  --color-pizarra: #a2b8cd; --color-sombra: #000000;
+  color-scheme: dark;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--color-crema);color:var(--color-tinta);font-family:var(--font-sans);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,ul{margin:0}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid color-mix(in srgb,var(--color-rojo) 55%,transparent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-3px}
+.ic.s{width:14px;height:14px} .ic.g{width:20px;height:20px}
+.tt60{color:var(--color-tinta-60)} .tp{color:var(--color-taupe)}
+.num{font-variant-numeric:tabular-nums}
+.serif{font-family:var(--font-serif)}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--color-tinta-60)}
+
+/* ── barra de la maqueta (no es del ERP) ── */
+.spk{position:sticky;top:0;z-index:80;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 20px;background:color-mix(in srgb,var(--color-crema) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--color-sand)}
+.spk b{font-size:12px;letter-spacing:.04em}
+.spk .grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.spk .sep{width:1px;height:20px;background:var(--color-sand)}
+.spk a{color:var(--color-taupe);font-size:13px;text-decoration:none;font-weight:600}
+.spk a:hover{color:var(--color-rojo-profundo)}
+.pil{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--color-sand);background:transparent;padding:4px 12px;font-size:12.5px;font-weight:600;color:var(--color-taupe);white-space:nowrap;transition:all .2s var(--ease-cayla)}
+.pil:hover{color:var(--color-tinta);background:color-mix(in srgb,var(--color-sand) 40%,transparent)}
+.pil[aria-pressed="true"]{background:var(--color-tinta);border-color:var(--color-tinta);color:var(--color-crema)}
+.pil.dash{border-style:dashed}
+
+/* ── el marco que imita al ERP: lateral + contenido ── */
+.marco{display:grid;grid-template-columns:208px minmax(0,1fr);min-height:calc(100vh - 53px);margin:0 auto}
+body[data-ancho="1024"] .marco{max-width:1024px;border-inline:1px dashed var(--color-sand)}
+body[data-ancho="1440"] .marco{max-width:1440px;border-inline:1px dashed var(--color-sand)}
+.lateral{border-right:1px solid var(--color-sand);padding:18px 14px;background:var(--color-crema);font-size:13px}
+.lateral .logo{font:400 22px/1 var(--font-serif);letter-spacing:.02em;margin:2px 8px 18px}
+.lateral .grupo{margin:14px 8px 4px}
+.lateral .it{display:block;padding:6px 8px;border-radius:8px;color:var(--color-tinta-60)}
+.lateral .it.on{background:var(--color-hueso);color:var(--color-tinta);font-weight:600}
+.lateral .it.sub{padding-left:22px}
+.contenido{min-width:0;padding:28px 32px 120px}
+@media (max-width:1100px){.contenido{padding:24px 22px 120px}}
+
+/* ── cabecera de pantalla (EncabezadoPagina) ── */
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.cab .linea{display:flex;align-items:center;gap:10px}
+.cab h1{font:400 40px/1.05 var(--font-serif);margin:6px 0 4px}
+.cab .frase{color:var(--color-tinta-60);max-width:60ch}
+.volver{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:999px;border:1px solid var(--color-sand);background:transparent;color:var(--color-tinta)}
+.volver:hover{background:color-mix(in srgb,var(--color-sand) 50%,transparent)}
+
+/* ── tarjeta, título de sección, nota, aviso ── */
+.tarjeta{background:var(--color-papel);border:1px solid var(--color-sand);border-radius:16px}
+.tarjeta.pad{padding:20px 22px}
+.titulo-sec{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.titulo-sec h2{font:400 21px/1.2 var(--font-serif)}
+.titulo-sec .dato{font-size:12.5px;color:var(--color-tinta-60)}
+.nota{display:flex;gap:10px;align-items:flex-start;background:color-mix(in srgb,var(--color-hueso) 70%,transparent);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--color-tinta-60)}
+.nota .ic{margin-top:2px;color:var(--color-taupe)}
+.aviso{display:flex;gap:10px;align-items:flex-start;border-left:3px solid var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 10%,transparent);border-radius:0 10px 10px 0;padding:9px 12px;font-size:13px}
+.aviso.info{border-left-color:var(--color-pizarra);background:color-mix(in srgb,var(--color-pizarra) 10%,transparent)}
+.aviso.exito{border-left-color:var(--color-verde);background:color-mix(in srgb,var(--color-verde) 10%,transparent)}
+.aviso .ic{margin-top:2px}
+.aviso .acc{margin-left:auto;flex:none}
+
+/* ── botones ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:8px;border:1px solid transparent;padding:0 14px;height:36px;font-size:13.5px;font-weight:500;white-space:nowrap;background:transparent;transition:background .2s var(--ease-cayla),color .2s,border-color .2s,transform .2s var(--ease-cayla)}
+.btn:disabled{cursor:not-allowed;opacity:.5}
+.btn.prim{background:var(--color-tinta);color:var(--color-crema)}
+.btn.prim:hover:not(:disabled){background:var(--color-rojo-profundo);color:var(--color-crema-fija)}
+.btn.sec{border-color:var(--color-sand);color:var(--color-tinta)}
+.btn.sec:hover:not(:disabled){border-color:color-mix(in srgb,var(--color-taupe) 40%,transparent);background:color-mix(in srgb,var(--color-sand) 50%,transparent)}
+.btn.sut{color:var(--color-tinta);background:color-mix(in srgb,var(--color-sand) 55%,transparent)}
+.btn.sut:hover:not(:disabled){background:var(--color-sand)}
+.btn.chico{height:30px;padding:0 11px;font-size:12.5px}
+.enlace{background:none;border:0;padding:0;font-size:13px;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--color-tinta) 30%,transparent);text-underline-offset:3px;color:var(--color-tinta)}
+.enlace:hover{color:var(--color-rojo-profundo);text-decoration-color:var(--color-rojo-profundo)}
+
+/* ── chips (Chip tono) ── */
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;font-size:11.5px;font-weight:600;white-space:nowrap;background:color-mix(in srgb,var(--color-tinta) 8%,transparent);color:var(--color-tinta-60)}
+.chip::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.chip.sin::before{display:none}
+.chip.verde{background:color-mix(in srgb,var(--color-verde) 14%,transparent);color:var(--color-verde-profundo)}
+.chip.ambar{background:color-mix(in srgb,var(--color-ambar) 14%,transparent);color:var(--color-ambar-profundo)}
+.chip.pizarra{background:color-mix(in srgb,var(--color-pizarra) 14%,transparent);color:var(--color-pizarra)}
+.chip.rojo{background:color-mix(in srgb,var(--color-rojo) 12%,transparent);color:var(--color-rojo-profundo)}
+.chip.hueco::before{background:transparent;box-shadow:inset 0 0 0 1.5px currentColor}
+
+/* ── segmentos y pestañas ── */
+.seg{display:inline-flex;background:var(--color-hueso);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:8px;padding:5px 14px;font-size:13px;font-weight:500;color:var(--color-tinta-60);transition:all .2s var(--ease-cayla)}
+.seg button[aria-pressed="true"]{background:var(--color-papel);color:var(--color-tinta);box-shadow:0 1px 0 color-mix(in srgb,var(--color-sombra) 10%,transparent)}
+.pest{display:inline-flex;gap:2px;background:color-mix(in srgb,var(--color-sand) 55%,transparent);border-radius:999px;padding:3px}
+.pest button{border:0;background:transparent;border-radius:999px;padding:6px 16px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--color-tinta-60)}
+.pest button[aria-pressed="true"]{background:var(--color-tinta);color:var(--color-crema)}
+
+/* ── campos: la caja que se enciende ── */
+.campo{display:grid;gap:4px;min-width:0}
+.campo > label,.etq{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--color-tinta-60)}
+.caja{height:40px;display:flex;align-items:center;gap:8px;background:var(--color-hueso);border:1px solid transparent;border-radius:10px;padding:0 12px;min-width:0;transition:background .2s var(--ease-cayla),border-color .2s}
+.caja:focus-within{background:var(--color-papel);border-color:color-mix(in srgb,var(--color-rojo) 55%,transparent)}
+.caja input{all:unset;flex:1;min-width:0;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+.caja.mono input{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:13.5px}
+.caja .suf{font-size:12px;color:var(--color-tinta-60);flex:none}
+.caja.sel{justify-content:space-between;cursor:default}
+.caja.sel .ic{color:var(--color-tinta-60)}
+.caja.copiado{background:transparent;border:1px dashed color-mix(in srgb,var(--color-taupe) 55%,transparent)}
+.caja.copiado input{color:var(--color-tinta-60);font-style:italic}
+.caja.lectura{background:transparent;border-color:var(--color-sand)}
+.caja.bloqueada{opacity:.7}
+.caja.mal{border-color:var(--color-rojo)}
+
+/* ── puntos de color (DATO: no cambia con el tema) ── */
+.punto{display:inline-block;width:14px;height:14px;border-radius:999px;background:var(--hex);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-tinta-fija) 22%,transparent);flex:none;vertical-align:-2px}
+.punto.g{width:20px;height:20px}
+
+/* ── tabla simple ── */
+.tabla{width:100%;border-collapse:collapse;font-size:13.5px}
+.tabla th{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--color-tinta-60);text-align:left;padding:8px 10px;border-bottom:1px solid var(--color-sand);white-space:nowrap}
+.tabla td{padding:10px;border-bottom:1px solid var(--color-sand);vertical-align:middle}
+.tabla tr:last-child td{border-bottom:0}
+.tabla .r{text-align:right}
+
+/* ── barra de avance ── */
+.barra{height:6px;border-radius:999px;background:var(--color-sand);overflow:hidden}
+.barra i{display:block;height:100%;background:var(--color-tinta);border-radius:inherit;transition:width .5s var(--ease-cayla)}
+.barra.ok i{background:var(--color-verde)} .barra.mal i{background:var(--color-ambar)}
+
+/* ── la hoja (Modal) y el velo ── */
+.velo{position:fixed;inset:0;z-index:60;background:color-mix(in srgb,var(--color-sombra) 28%,transparent);backdrop-filter:blur(3px);animation:vela .24s var(--ease-cayla) both}
+:root[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--color-sombra) 55%,transparent)}
+.hoja-wrap{position:fixed;inset:0;z-index:61;display:flex;justify-content:center;align-items:flex-start;padding:calc(var(--spk-h,64px) + 14px) 20px 0;pointer-events:none}
+.hoja{pointer-events:auto;position:relative;width:min(var(--ancho,760px),100%);max-height:calc(100vh - var(--spk-h,64px) - 32px);overflow:auto;background:var(--color-papel);border:1px solid var(--color-sand);border-radius:20px;padding:26px 28px 22px;animation:sube .34s var(--ease-cayla) both}
+.hoja h2{font:400 24px/1.15 var(--font-serif)}
+.hoja .bajada{color:var(--color-tinta-60);margin-top:2px}
+.hoja .cerrar{position:absolute;top:16px;right:16px;width:32px;height:32px;display:grid;place-items:center;border-radius:999px;border:0;background:transparent;color:var(--color-tinta-60)}
+.hoja .cerrar:hover{background:color-mix(in srgb,var(--color-sand) 60%,transparent);color:var(--color-tinta)}
+.pie-acciones{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:18px}
+.pie-acciones .izq{margin-right:auto}
+@keyframes vela{from{opacity:0}to{opacity:1}}
+@keyframes sube{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ── la barra de guardar de Editar producto ── */
+.guardar{position:sticky;bottom:12px;margin-top:18px;display:flex;align-items:center;gap:12px;background:var(--color-tinta);color:var(--color-crema);border-radius:14px;padding:10px 12px 10px 18px;animation:sube .3s var(--ease-cayla) both}
+.guardar .btn.prim{background:var(--color-crema);color:var(--color-tinta)}
+.guardar .btn.prim:hover{background:var(--color-sand)}
+
+/* ── el bloque «Tela y avíos» de una orden (lo comparten A, B y C) ── */
+.bt{display:grid;gap:10px}
+.bt-lista{border:1px solid var(--color-sand);border-radius:16px;background:var(--color-crema);overflow:hidden}
+.bt-fila{display:grid;grid-template-columns:minmax(170px,.9fr) minmax(180px,1.3fr) auto minmax(150px,auto);gap:10px 16px;align-items:end;padding:12px 14px;border-bottom:1px solid var(--color-sand)}
+.bt-fila:last-child{border-bottom:0}
+.bt-color{display:flex;align-items:center;gap:10px;align-self:center;min-width:0}
+.bt-color b{display:block;font:400 16px/1.15 var(--font-serif)}
+.bt-color small{display:block;font-size:12px;color:var(--color-tinta-60);white-space:nowrap}
+.bt-cons{display:flex;gap:8px}
+.bt-cons .campo{width:96px}
+.bt-res{align-self:center;text-align:right;font-size:13px;display:grid;gap:3px;justify-items:end}
+.bt-res b{font:400 17px/1 var(--font-serif)}
+.bt-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.bt-cab .etq{margin:0}
+.bt-avio{display:grid;grid-template-columns:minmax(170px,1.2fr) 190px minmax(130px,1fr) minmax(130px,auto);grid-template-areas:"nom cant info res" "sub sub sub sub";gap:10px 16px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--color-sand)}
+.bt-avio .nom{grid-area:nom}.bt-avio .cant{grid-area:cant}.bt-avio .info{grid-area:info}.bt-avio .res{grid-area:res}.bt-avio .bt-sub{grid-area:sub}
+.bt-avio:last-child{border-bottom:0}
+.bt-avio .nom b{display:block;font-weight:600}
+.bt-avio .nom small{font-size:12px;color:var(--color-tinta-60)}
+.bt-avio .res{text-align:right;font-size:13px}
+.bt-avio .res b{font:400 17px/1 var(--font-serif)}
+.bt-sub{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--color-tinta-60);padding-left:2px}
+.bt-sub span{display:inline-flex;gap:6px;align-items:center}
+.bt-sub .falta{color:var(--color-ambar-profundo);font-weight:600}
+@media (max-width:1180px){
+  .bt-fila{grid-template-columns:1fr 1fr;align-items:center}
+  .bt-res{justify-items:start;text-align:left}
+  .bt-avio{grid-template-columns:minmax(0,1fr) 190px;grid-template-areas:"nom cant" "info res" "sub sub"}
+}
+
+/* ── una hoja de la orden: pieza de fondo ── */
+.dos-col{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+@media (max-width:1180px){.dos-col{grid-template-columns:1fr}}
+.stack{display:grid;gap:16px}
+.fila-flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sutil{font-size:12.5px;color:var(--color-tinta-60)}
+.cifra{background:var(--color-papel);border:1px solid var(--color-sand);border-radius:14px;padding:12px 16px}
+.cifra .n{font:400 28px/1 var(--font-serif);margin-top:6px}
+.cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}

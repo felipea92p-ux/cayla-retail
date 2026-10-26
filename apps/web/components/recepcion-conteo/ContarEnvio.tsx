@@ -280,7 +280,6 @@ export function ContarEnvio({
                     <button
                       type="button"
                       data-campo={p.linea ? idCampoConteo(p.clave) : undefined}
-                      data-lineas={g.lineas.map((l) => l.clave).join(" ")}
                       aria-current={grupo?.clave === g.clave ? "true" : undefined}
                       data-desplegable={hayAnotadas ? "" : undefined}
                       onClick={() => elegir(g)}
@@ -401,8 +400,6 @@ export function ContarEnvio({
                     onTallas={(p) => void abrirTallas(grupo, p)}
                     onPrendaVista={onPrendaVista}
                     onCrearNueva={(nueva) => setHoja({ tipo: "crear", grupo: grupo.clave, nueva })}
-                    // La que eligió la compradora se ofrece de un toque solo si la categoría trae una (con varias, cada una tiene su «+»).
-                    elegida={grupo.lineas.length === 1 ? (grupo.principal.linea?.prendaElegida ?? null) : null}
                   />
                 )}
                 {errorHoja && (
