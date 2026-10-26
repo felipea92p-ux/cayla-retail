@@ -7965,6 +7965,21 @@ export type Database = {
         Args: { p_proveedor_id: string }
         Returns: Json
       }
+      fn_proveedor_tallas_sedes: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          categoria: string | null
+          primera_llegada: string | null
+          producto_id: string
+          referencia: string
+          sede: string
+          sede_tipo: string
+          stock: number
+          talla: string
+          ubicacion_id: string
+          vendidas: number
+        }[]
+      }
       fn_proveedor_produccion_metricas: {
         Args: { p_proveedor_id: string }
         Returns: {

@@ -804,6 +804,28 @@ export const GUIA_PROVEEDOR: Guia = {
       titulo: "Lo que le compré",
       texto: "Cuántas prendas le compraste, cuánta plata gastaste (al costo de cada prenda) y cuánto de eso ya vendiste, marca por marca. El margen es el de lo ya vendido.",
     },
+    // Tallas y sedes (ADR-0502, act. 2026-10-26 (e)): solo lectura; el traslado sugerido se explica, no se hace.
+    {
+      id: "tallas",
+      ancla: "proveedor-ficha.tallas",
+      opcional: true,
+      titulo: "Las tallas que se llevan",
+      texto: "Por talla, qué parte de lo que vendes de este proveedor y qué parte de lo que tienes. Si vendes más de una talla de lo que tienes, «Pide más»; si tienes de más, «Sobra». Úsalo para repartir las tallas del próximo pedido.",
+    },
+    {
+      id: "sedes",
+      ancla: "proveedor-ficha.sedes",
+      opcional: true,
+      titulo: "Cómo le va en cada sede",
+      texto: "En qué tienda se venden más rápido sus prendas: cuántas vende por semana y cuánto tardaría en vender lo que le queda. «Rota lento» o «Se agota» con la misma regla que el ranking de proveedores.",
+    },
+    {
+      id: "traslado",
+      ancla: "proveedor-ficha.traslado",
+      opcional: true,
+      titulo: "Llevarlas a donde se venden",
+      texto: "Si una tienda va lenta y otra se queda sin nada, te dice cuántas llevar y de qué prendas y tallas empezar. Solo es una sugerencia: el traslado lo haces tú en Traslados.",
+    },
     // «Nos debe» (ADR-0362, fase 5a): las prendas por reponer, encima del saldo a favor. Solo la ve quien ve los montos de la ficha. El piloto
     // abre la hoja «Llegó la reposición» para mostrarla y la cierra sin anotar nada.
     {

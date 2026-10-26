@@ -59,6 +59,9 @@
       "Boton «Cancelar»",
       "Boton «(sin nombre)»"
     ],
+    "components/ProveedorTallasSedes.tsx": [
+      "BotonVer «Ir a Traslados»"
+    ],
     "components/SaldoFavorAcciones.tsx": [
       "CampoTexto «Monto devuelto»",
       "CampoFecha «Fecha»",
