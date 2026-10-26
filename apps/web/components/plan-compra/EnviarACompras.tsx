@@ -353,9 +353,12 @@ function EnvioConBase({
                   ? "No hay nada nuevo que enviar"
                   : (problemas.find((p) => p !== null) ?? `Envía ${enteroES.format(unidadesPorEnviar)} prendas de ${candidatos.length} ${candidatos.length === 1 ? "proveedor" : "proveedores"}`)
             }
+            aria-label="Enviar como pendientes de campaña"
             onClick={() => void enviar()}
           >
-            Enviar como pendientes de campaña
+            {/* En el celular el pie reparte la fila en mitades y la frase entera se cortaba («como pendientes de car»): ahí dice lo corto, y el lector de pantalla y el `title` dicen lo entero. */}
+            <span className="sm:hidden">Enviar a Compras</span>
+            <span className="max-sm:hidden">Enviar como pendientes de campaña</span>
           </Boton>
         </PieAcciones>
       </div>
