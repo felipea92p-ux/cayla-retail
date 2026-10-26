@@ -162,7 +162,14 @@ Cada tarea lleva su clase —**Urgente** (pierde algo cada día o vence pronto),
 - **Esfuerzo / dependencias:** L · migración (con tu OK) · pieza nueva de `/unificar`.
 - **DECIDÍ:** tabla propia con estado (activa / pausada / archivada), «cada año / un año» y `pausa_hasta`; sin fechas propias para las que vienen de Insignias. **DESCARTÉ:** columnas en `etiquetas`: Tienda web, Insignias y la meta de caja las leen; pausar una compra apagaría un banner o la meta del día. **SE ROMPE SI:** el programa guarda una copia de fechas y la etiqueta cambia las suyas (dos fuentes). Por eso solo las campañas que no existen en Insignias tienen fechas propias.
 
+- **Estado (2026-10-26):** construida y probada en local (C3, ADR-0525, **migración `20261026190000` solo en local**; falta el OK de Felipe para producción). Se hizo como la tabla `plan_compra_calendario` (no `plan_calendario`; el nombre
+  lleva el módulo) con `uso` activa · pausada · no (la «archivada» es `quitada_en`: nada se borra), cada año / solo un año, `pausa_hasta`, fechas propias en «mes-día» y campañas **propias** sin insignia (`planes_compra.calendario_id`).
+  Pestaña «Calendario» con lista y «La línea del año»; el selector, las ranuras «por armar», los avisos y Resultados leen la decisión. Cambia algo al pegarla: las campañas de Insignias que nunca tuvieron plan dejan de ofrecerse solas.
+  Probada con 32 casos de base (incluye cuatro interruptores a la vez) y 60 pruebas de la lógica.
+
 ### #8 · [Mejorar · Importante] Medir cada campaña con tu historia y dar un veredicto al cerrar
+- **Estado (2026-10-26) — a medias:** la mitad que decide #7 está construida en el Calendario (ADR-0525): «Qué dice tu historia» por campaña con la misma vara del Historial, en la tienda con más historia y con la mediana de los años que
+  se pudieron medir (veredictos «Pico claro», «Sube un poco», «No se nota», «No sube», «Sin historia propia»; «poca historia» con menos de tres años). **Falta el veredicto al cerrar la campaña en Resultados** («valió la pena»).
 - **Dónde:** columna «qué dice tu historia» en el calendario (reusa `fn_historial_ventas` y `medir`) y un veredicto en Resultados («valió la pena / no se nota»).
 - **Por qué:** es lo que te permite decidir #7 con datos.
 - **Cómo lo verificas tú:** Navidad dice ×2,0; Halloween ×0,85 «no sube»; AQP dice «1 año: poca historia».

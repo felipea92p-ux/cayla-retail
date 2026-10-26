@@ -59,7 +59,6 @@ export function PresupuestoPlan({
   campanas,
   puedeContar,
   veAnalisis = false,
-  esLider,
   planPedidoNoExiste = false,
   propuesta = null,
   pedido = null,
@@ -76,8 +75,6 @@ export function PresupuestoPlan({
   puedeContar: boolean;
   /** Ve Análisis: el simulador ofrece el acceso a «Qué pedir», prenda por prenda. */
   veAnalisis?: boolean;
-  /** Solo para «Campaña nueva» (escribe en Catálogo ▸ Insignias): sigue siendo de un líder. */
-  esLider: boolean;
   planPedidoNoExiste?: boolean;
   propuesta?: unknown;
   pedido?: unknown;
@@ -89,14 +86,13 @@ export function PresupuestoPlan({
   /** La lectura de versiones falló (no es que la base no la tenga): el plan se calculó sin el tope aplicado y hay que decirlo. */
   versionesFallo?: boolean;
 }) {
-  const derivado = usePlanDerivado({ datos, descuentos, propuesta, historia, pedido, plazo, versiones, preparacion, puedeContar });
-  if (derivado.plan === null) return <SinCampana activa="presupuesto" campanas={campanas} falla={falla} esLider={esLider} />;
+  const derivado = usePlanDerivado({ datos, descuentos, propuesta, historia, pedido, plazo, versiones, preparacion, puedeContar, campanas });
+  if (derivado.plan === null) return <SinCampana activa="presupuesto" campanas={campanas} falla={falla} />;
   return (
     <MarcoPlan
       activa="presupuesto"
       derivado={derivado}
       campanas={campanas}
-      esLider={esLider}
       planPedidoNoExiste={planPedidoNoExiste}
       versionesFallo={versionesFallo}
       subtitulo={

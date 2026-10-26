@@ -3,22 +3,22 @@
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
-import { calendarioDelSelector, campanasArchivadas, rotuloDeCampana, type CampanasLeidas, type RanuraCalendario } from "@/lib/plan-compra-reglas";
+import { calendarioDelSelector, campanasArchivadas, claveDeRanura, rotuloDeCampana, type CampanasLeidas, type EtiquetaCampana, type RanuraCalendario } from "@/lib/plan-compra-reglas";
 
 // El selector de campaña del plan (ADR-0372, B3 y B5): pasa entre las campañas activas (`?plan=<id>`) y, donde se gestionan (el Plan, no
 // Resultados), ofrece «+ Nueva campaña…», «Editar o quitar esta campaña…» y «Campañas archivadas (N)…», que abren su hoja. Las archivadas
 // no salen en la lista: se ven desde su hoja. Con una sola campaña y nada más que ofrecer, no se dibuja: un control sin nada que elegir es ruido.
 // Desde C1 (Felipe 2026-10-12) la lista va por momento y por año: «En curso», «Por venir · 2026», «Por venir · 2027»… y «Terminadas» (solo las
 // del último año; las más viejas se miran en el Historial). Las acciones van al final, en su propio grupo.
-// Desde la act. 2026-10-12 f (Felipe: «opción A») el selector ES el calendario de Catálogo ▸ Etiquetas: además de los planes, cada campaña que
-// todavía no tiene plan este año o el que viene. Tocarla abre su hoja ya llena para armarlo (`onArmar`); quien no es líder la ve, apagada. Las
-// campañas sin fechas salen al final, solo para el líder, para que se las ponga en Etiquetas. «+ Campaña que no está en el calendario» crea una
-// nueva en Etiquetas con su plan.
+// Desde la act. 2026-10-12 f (Felipe: «opción A») el selector ES el calendario: además de los planes, cada campaña que todavía no tiene plan este año o el que viene
+// y que está «en mi plan» (ADR-0525: las que prendes en la pestaña Calendario). Tocarla abre su hoja ya llena para armarlo (`onArmar`). Las campañas sin fechas salen al final
+// y llevan al Calendario a ponérselas (`onSinFechas`). «+ Campaña nueva…» lleva al Calendario, donde se decide qué campañas hay (`onNueva`).
 
 const NUEVA = "__nueva";
 const EDITAR = "__editar";
 const ARCHIVADAS = "__archivadas";
 const DEL_CALENDARIO = "cal:";
+const SIN_FECHAS = "sin-fechas:";
 
 export function SelectorCampana({
   campanas,
@@ -26,9 +26,9 @@ export function SelectorCampana({
   hoy,
   ruta = "/compras/plan",
   puedeCrear,
-  puedeCrearNueva = false,
   onNueva,
   onArmar,
+  onSinFechas,
   onEditar,
   onArchivadas,
   estirarEnCelular = false,
@@ -42,12 +42,12 @@ export function SelectorCampana({
   /** Ofrece crear, editar, quitar y restaurar campañas (el Plan sí; Resultados no tiene sus hojas). Las hace quien tiene el módulo, sea
    *  líder o no (ADR-0387); la base lo vuelve a comprobar. */
   puedeCrear: boolean;
-  /** «+ Campaña que no está en el calendario»: crea la campaña en Catálogo ▸ Etiquetas, así que sigue siendo de un líder
-   *  (`crear_campana_con_plan` lo exige también), aunque el resto del selector sea de quien tiene el módulo. */
-  puedeCrearNueva?: boolean;
+  /** «+ Campaña nueva…»: lleva al Calendario, donde se decide qué campañas hay. */
   onNueva: () => void;
   /** Tocar una campaña del calendario que aún no tiene plan: abre su hoja para armarlo (quien tiene el módulo, ADR-0387). */
   onArmar?: (ranura: RanuraCalendario) => void;
+  /** Tocar una campaña que está en mi plan pero no tiene fechas: lleva al Calendario a ponérselas. */
+  onSinFechas?: (etiqueta: EtiquetaCampana) => void;
   onEditar: () => void;
   onArchivadas: () => void;
   /** En el celular ocupa lo que sobra de su fila y corta el nombre con «…» (la cabecera del Plan, junto a sus dos íconos). */
@@ -65,17 +65,18 @@ export function SelectorCampana({
         ? { valor: x.campana.id, texto: rotuloDeCampana(x.campana), grupo: x.grupo }
         : x.tipo === "calendario"
           ? // Sin plan todavía: el líder la arma con un toque; los demás la ven, apagada, para saber que viene.
-            { valor: `${DEL_CALENDARIO}${x.ranura.etiquetaId}|${x.ranura.anio}`, texto: `${rotuloDeCampana(x.ranura)} · ${armar ? "armar plan" : "sin plan"}`, grupo: x.grupo, deshabilitada: !armar }
-          : { valor: `sin-fechas:${x.etiqueta.id}`, texto: `${x.etiqueta.nombre} · ponle fechas en Etiquetas`, grupo: x.grupo, deshabilitada: true },
+            { valor: `${DEL_CALENDARIO}${claveDeRanura(x.ranura)}`, texto: `${rotuloDeCampana(x.ranura)} · ${armar ? "armar plan" : "sin plan"}`, grupo: x.grupo, deshabilitada: !armar }
+          : // En mi plan pero sin fechas: el Calendario es donde se le ponen.
+            { valor: `${SIN_FECHAS}${x.etiqueta.id}`, texto: `${x.etiqueta.nombre} · ponle fechas en el Calendario`, grupo: x.grupo, deshabilitada: !onSinFechas },
     );
     if (actual && !enLista.some((x) => x.tipo === "plan" && x.campana.id === actual.id)) planes.push({ valor: actual.id, texto: rotuloDeCampana(actual), grupo: "Terminadas" });
     if (!puedeCrear) return planes;
-    const acciones: Opcion<string>[] = puedeCrearNueva ? [{ valor: NUEVA, texto: "+ Campaña que no está en el calendario…", grupo: "Acciones" }] : [];
+    const acciones: Opcion<string>[] = [{ valor: NUEVA, texto: "+ Campaña nueva…", grupo: "Acciones" }];
     // Editar y archivar existen desde B5: si la base todavía no lo sabe, no se ofrece.
     if (campanas.edicion && actual) acciones.push({ valor: EDITAR, texto: "Editar o quitar esta campaña…", grupo: "Acciones" });
     if (campanas.edicion && archivadas.length > 0) acciones.push({ valor: ARCHIVADAS, texto: `Campañas archivadas (${archivadas.length})…`, grupo: "Acciones" });
     return [...planes, ...acciones];
-  }, [enLista, actual, archivadas, campanas.edicion, puedeCrear, puedeCrearNueva, onArmar]);
+  }, [enLista, actual, archivadas, campanas.edicion, puedeCrear, onArmar, onSinFechas]);
   if (opciones.length < 2) return null;
   return (
     // La caja solo lleva el ancla de la guía (ADR-0389): el desplegable no recibe atributos sueltos.
@@ -87,8 +88,13 @@ export function SelectorCampana({
           if (v === EDITAR) return onEditar();
           if (v === ARCHIVADAS) return onArchivadas();
           if (v.startsWith(DEL_CALENDARIO)) {
-            const x = enLista.find((e) => e.tipo === "calendario" && `${DEL_CALENDARIO}${e.ranura.etiquetaId}|${e.ranura.anio}` === v);
+            const x = enLista.find((e) => e.tipo === "calendario" && `${DEL_CALENDARIO}${claveDeRanura(e.ranura)}` === v);
             if (x?.tipo === "calendario") onArmar?.(x.ranura);
+            return;
+          }
+          if (v.startsWith(SIN_FECHAS)) {
+            const x = enLista.find((e) => e.tipo === "sin-fechas" && `${SIN_FECHAS}${e.etiqueta.id}` === v);
+            if (x?.tipo === "sin-fechas") onSinFechas?.(x.etiqueta);
             return;
           }
           if (v !== actualId) router.push(`${ruta}?plan=${v}`);

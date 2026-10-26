@@ -17,8 +17,6 @@ export default async function PresupuestoPlanPage({ searchParams }: { searchPara
       campanas={campanas}
       puedeContar={veModulo(persona, "conteos")}
       veAnalisis={veModulo(persona, "analisis")}
-      // Solo para «Campaña nueva»: escribe en Etiquetas y sigue pidiendo ser líder en la base (igual que en el Plan).
-      esLider={persona.rol === "lider"}
       planPedidoNoExiste={planPedidoNoExiste}
       propuesta={propuesta}
       pedido={pedido}

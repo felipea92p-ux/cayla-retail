@@ -27,6 +27,37 @@ export const ESCENARIOS = [
     },
     abre: '[data-guia="plan.avisos-panel"]',
   },
+  // ---------- Compras ▸ Plan de campaña ▸ Calendario (ADR-0525, 2026-10-26): la línea del año y la hoja de una campaña, nueva y existente ----------
+  {
+    id: "compras.plan-calendario-linea",
+    ruta: "/compras/plan/calendario",
+    nombre: "Calendario del plan: «La línea del año»",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="calendario.vista-linea"]').first().click();
+      await esperar(pagina, 700);
+    },
+    abre: '[data-guia="calendario.linea"]',
+  },
+  {
+    id: "compras.plan-calendario-hoja-nueva",
+    ruta: "/compras/plan/calendario",
+    nombre: "Calendario del plan: la hoja de una campaña nueva",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="calendario.nueva"]').first().click();
+      await esperar(pagina, 900);
+    },
+    abre: "[role=dialog]",
+  },
+  {
+    id: "compras.plan-calendario-hoja-campana",
+    ruta: "/compras/plan/calendario",
+    nombre: "Calendario del plan: la hoja de una campaña con su historia",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="calendario.en-mi-plan"] button[aria-label^="Editar"]').first().click();
+      await esperar(pagina, 900);
+    },
+    abre: '[data-guia="calendario-hoja.historia"]',
+  },
   // ---------- Estructura: lo que ve toda cuenta (actividad 4) ----------
   {
     id: "estructura.lateral-plegado",

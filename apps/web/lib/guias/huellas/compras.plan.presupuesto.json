@@ -37,7 +37,7 @@
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/plan-compra/NuevaCampanaModal.tsx": [
-      "CampoTexto «{<span className=\"sr-only\">{nueva ? \"Nombre de la campaña\" : \"Nombre del plan\"}»",
+      "CampoTexto «{<span className=\"sr-only\">Nombre del plan</span>}»",
       "CampoFecha «{<span className=\"sr-only\">Desde</span>}»",
       "CampoFecha «{<span className=\"sr-only\">Hasta</span>}»",
       "ComboResponsable «{responsable}»",
@@ -83,8 +83,8 @@
     ],
     "components/plan-compra/SinCampana.tsx": [
       "Boton «Armar el plan de»",
-      "Boton «Campaña nueva»",
-      "Boton «Campaña nueva» #2",
+      "BotonEnlace «Elegir mis campañas»",
+      "BotonEnlace «Ver mi calendario»",
       "Boton «Ver campañas archivadas»"
     ],
     "components/plan-compra/SupuestosDelPlan.tsx": [

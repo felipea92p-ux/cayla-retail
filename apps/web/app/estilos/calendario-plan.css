@@ -1,0 +1,265 @@
+/* ====================================================================
+   Plan de campaña ▸ Calendario (Felipe 2026-10-26: «que se vea tal cual en la maqueta»).
+   Maqueta: docs/maquetas/plan-campana-vision-2026-10/1-calendario.html (y su base.css). Componentes: components/plan-compra/CalendarioPlan.tsx,
+   ListaDelCalendario.tsx, LineaDelAnio.tsx, RangoDeVentas.tsx y HojaDeCampanaCalendario.tsx.
+
+   Es la maqueta traducida a los tokens del sistema (el modo oscuro sale solo). Lo que ya tiene pieza (la tabla, los chips, los títulos, el interruptor,
+   el segmento de vista, las píldoras de año) se dibuja con su pieza; aquí solo vive lo que la maqueta tiene y el sistema no: la barra de rango de
+   «cuánto sube la venta», «La línea del año» con sus barras y su «hoy», las opciones en tarjeta de la hoja y el recuadro de «qué dice tu historia».
+   Sin movimiento propio (ADR-0136: sin rebote ni bucle); los `:hover` van dentro de `@media (hover: hover)`. Rojo: solo la barra «que más pesa» y la 
+   raya de «hoy» (máximo dos por pantalla, ADR-0169).
+   ==================================================================== */
+
+/* La barra de rango: dónde cae un día de la campaña contra un día normal (×1), con el menor y el mayor de los años medidos y la mediana. */
+.cal-rng {
+  --cal-c: var(--color-taupe);
+  position: relative;
+  height: 30px;
+  min-width: 150px;
+}
+.cal-rng[data-tono="verde"] {
+  --cal-c: var(--color-verde);
+}
+.cal-rng[data-tono="ambar"] {
+  --cal-c: var(--color-ambar);
+}
+.cal-rng-pista {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 13px;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--color-sand);
+}
+/* La marca de «un día normal» (×1). */
+.cal-rng-uno {
+  position: absolute;
+  top: 13px;
+  width: 1px;
+  height: 4px;
+  background: var(--color-taupe);
+  opacity: 0.5;
+}
+.cal-rng-rango {
+  position: absolute;
+  top: 11px;
+  height: 8px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--cal-c) 28%, transparent);
+}
+.cal-rng-med {
+  position: absolute;
+  top: 7px;
+  width: 4px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--cal-c);
+  transform: translateX(-2px);
+}
+.cal-rng-lbl {
+  position: absolute;
+  right: 0;
+  top: -6px;
+  font-size: 12px;
+  color: var(--color-taupe);
+  font-variant-numeric: tabular-nums;
+}
+.cal-rng-lbl b {
+  color: var(--color-tinta);
+  font-weight: 650;
+}
+
+/* Una campaña que descansa: rayas suaves en su fila (lo dice también su chip: el color nunca es lo único). */
+.cal-fila[data-uso="pausada"] {
+  background-image: repeating-linear-gradient(135deg, transparent 0 10px, color-mix(in srgb, var(--color-taupe) 7%, transparent) 10px 20px);
+}
+.cal-fila[data-uso="no"] .cal-nombre {
+  color: var(--color-taupe);
+}
+.cal-nombre small {
+  display: block;
+  font-weight: 400;
+  color: var(--color-taupe);
+}
+
+/* «La línea del año»: una fila por campaña con su barra sobre doce meses; se desplaza de lado en una pantalla angosta. */
+.cal-linea {
+  position: relative;
+  padding: 14px 16px 6px;
+  overflow-x: auto;
+}
+.cal-linea-meses {
+  display: grid;
+  grid-template-columns: 200px repeat(12, minmax(48px, 1fr));
+  min-width: 900px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-taupe);
+}
+.cal-linea-cuerpo {
+  position: relative;
+  min-width: 900px;
+}
+.cal-linea-fila {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  align-items: center;
+  width: 100%;
+  min-height: 36px;
+  border-top: 1px solid var(--color-sand);
+  text-align: left;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .cal-linea-fila:hover {
+    background: var(--color-hueso);
+  }
+}
+.cal-linea-nombre {
+  padding-right: 10px;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cal-linea-fila[data-uso="no"] .cal-linea-nombre {
+  color: var(--color-taupe);
+}
+.cal-linea-pista {
+  position: relative;
+  height: 36px;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(100% / 12 - 1px), var(--color-sand) calc(100% / 12 - 1px) calc(100% / 12));
+}
+.cal-barra {
+  position: absolute;
+  top: 10px;
+  height: 16px;
+  min-width: 8px;
+  border-radius: 99px;
+  background: var(--color-tinta);
+}
+.cal-barra[data-uso="no"] {
+  border: 1px dashed var(--color-borde-control);
+  background: transparent;
+}
+.cal-barra[data-uso="pausada"] {
+  background: repeating-linear-gradient(135deg, var(--color-taupe) 0 4px, transparent 4px 8px);
+  opacity: 0.75;
+}
+.cal-barra[data-ancla] {
+  background: var(--color-rojo);
+}
+/* La raya de hoy: cruza todas las filas, sobre la zona de las barras (a la derecha de los 200 px de los nombres). */
+.cal-hoy-zona {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 200px;
+  right: 0;
+  pointer-events: none;
+}
+.cal-hoy {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-rojo);
+  opacity: 0.8;
+}
+.cal-hoy::after {
+  content: "hoy";
+  position: absolute;
+  top: -14px;
+  left: -10px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-rojo-profundo);
+}
+.cal-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-sand);
+  font-size: 12px;
+  color: var(--color-taupe);
+}
+.cal-leyenda i {
+  display: inline-block;
+  width: 22px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-radius: 99px;
+  background: var(--color-tinta);
+}
+.cal-leyenda i[data-uso="ancla"] {
+  background: var(--color-rojo);
+}
+.cal-leyenda i[data-uso="pausada"] {
+  background: repeating-linear-gradient(135deg, var(--color-taupe) 0 4px, transparent 4px 8px);
+}
+.cal-leyenda i[data-uso="no"] {
+  border: 1px dashed var(--color-borde-control);
+  background: transparent;
+}
+
+/* La hoja: las opciones en tarjeta («¿Se repite?») y el recuadro de «qué dice tu historia». */
+.cal-opciones {
+  display: grid;
+  gap: 8px;
+}
+.cal-op {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-borde-control);
+  border-radius: 12px;
+  background: var(--color-crema);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 200ms var(--ease-cayla),
+    box-shadow 200ms var(--ease-cayla),
+    background-color 200ms var(--ease-cayla);
+}
+.cal-op[aria-checked="true"] {
+  border-color: var(--color-tinta);
+  background: var(--color-papel);
+  box-shadow: 0 0 0 1px var(--color-tinta);
+}
+.cal-op b {
+  display: block;
+  font-weight: 650;
+}
+.cal-op span {
+  display: block;
+  font-size: 12.5px;
+  color: var(--color-taupe);
+}
+.cal-ev {
+  padding: 12px 14px;
+  border: 1px solid var(--color-sand);
+  border-radius: 12px;
+  background: var(--color-crema);
+}
+.cal-ev-g {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.cal-ev p {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--color-taupe);
+}

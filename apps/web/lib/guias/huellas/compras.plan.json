@@ -66,7 +66,7 @@
       "Boton «Restaurar…»"
     ],
     "components/plan-compra/NuevaCampanaModal.tsx": [
-      "CampoTexto «{<span className=\"sr-only\">{nueva ? \"Nombre de la campaña\" : \"Nombre del plan\"}»",
+      "CampoTexto «{<span className=\"sr-only\">Nombre del plan</span>}»",
       "CampoFecha «{<span className=\"sr-only\">Desde</span>}»",
       "CampoFecha «{<span className=\"sr-only\">Hasta</span>}»",
       "ComboResponsable «{responsable}»",
@@ -92,7 +92,7 @@
       "BotonEnlace «{aviso.verResultados}»",
       "BotonEnlace «Planificar»",
       "Boton «Planificar»",
-      "Boton «Campaña nueva»"
+      "BotonEnlace «Elegir mis campañas»"
     ],
     "components/plan-compra/PlanCategoriaModal.tsx": [
       "Boton «Cancelar»",
@@ -111,8 +111,8 @@
     ],
     "components/plan-compra/SinCampana.tsx": [
       "Boton «Armar el plan de»",
-      "Boton «Campaña nueva»",
-      "Boton «Campaña nueva» #2",
+      "BotonEnlace «Elegir mis campañas»",
+      "BotonEnlace «Ver mi calendario»",
       "Boton «Ver campañas archivadas»"
     ],
     "components/plan-compra/TopeModal.tsx": [

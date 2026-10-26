@@ -963,7 +963,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.selector",
       opcional: true,
       titulo: "Qué campaña planificas",
-      texto: "Es el calendario de Catálogo ▸ Insignias: las campañas de este año y el que viene. Las que dicen «armar plan» todavía no tienen el suyo; tócala y se arma con sus fechas. Al final, un líder crea una campaña que no está en el calendario, edita o quita la abierta y ve las archivadas.",
+      texto: "Es tu calendario de campañas: las que prendiste en la pestaña Calendario, de este año y el que viene. Las que dicen «armar plan» todavía no tienen el suyo; tócala y se arma con sus fechas. Al final, «+ Campaña nueva…» te lleva al Calendario, y puedes editar o quitar la abierta y ver las archivadas.",
     },
     {
       id: "vistas",
@@ -991,7 +991,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.avisos",
       opcional: true,
       titulo: "Los avisos del Plan",
-      texto: "Un ícono con el número de lo que hay por hacer: hasta cuándo pedir, el stock sin cuadrar, las que más venden sin plan, un descuento que ya no es el de la campaña y si te pasas del tope. Si algo es urgente, asoma una línea al lado.",
+      texto: "Un ícono con el número de lo que hay por hacer: hasta cuándo pedir, el stock sin cuadrar, las que más venden sin plan, las campañas de tu calendario que empiezan pronto y no tienen plan, un descuento que ya no es el de la campaña y si te pasas del tope. Si algo es urgente, asoma una línea al lado.",
     },
     {
       id: "avisos-lista",
@@ -1686,7 +1686,7 @@ const VISTAS_DEL_PLAN = (cual: string): PasoGuia => ({
   id: "vistas",
   ancla: "plan.vistas",
   titulo: "Plan, Presupuesto y más",
-  texto: `Estás en ${cual}. «Plan» arma cuánto comprar de cada categoría; «Presupuesto», cuánto cuesta y si cabe en tu tope; «Resultados», lo que se vendió de verdad en una campaña; «Historial», lo que vendió cada tienda en cada campaña, año por año.`,
+  texto: `Estás en ${cual}. «Plan» arma cuánto comprar de cada categoría; «Presupuesto», cuánto cuesta y si cabe en tu tope; «Calendario», con cuáles campañas te quedas el año; «Resultados», lo que se vendió de verdad en una campaña; «Historial», lo que vendió cada tienda en cada campaña, año por año.`,
 });
 
 export const GUIA_PLAN_PRESUPUESTO: Guia = {
@@ -1782,6 +1782,120 @@ export const GUIA_PLAN_PRESUPUESTO: Guia = {
       texto: "Ya sabes leer cuánto cuesta el plan y si cabe en tu tope. Para repasarlo: Mi perfil ▸ Demo ▸ Presupuesto del plan.",
     },
   ],
+};
+
+export const GUIA_PLAN_CALENDARIO: Guia = {
+  id: "compras.plan.calendario",
+  ruta: "/compras/plan/calendario",
+  titulo: "Calendario del plan",
+  resumen: "Con cuáles campañas te quedas el año, cuáles se repiten y cuáles descansan, con lo que dijo tu historia de cada una.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Tus campañas del año",
+      texto: "Aquí decides con cuáles campañas te quedas, cuáles se repiten cada año y cuáles descansan. Lo que cambies aquí es de tu plan de compra: no toca la insignia, la tienda web ni la meta de caja. Es una demo: no se guarda nada.",
+    },
+    VISTAS_DEL_PLAN("Calendario"),
+    {
+      id: "resumen",
+      ancla: "calendario.resumen",
+      titulo: "Tu calendario",
+      texto: "Cuántas campañas tienes en tu plan este año, cuántas descansan y cuántas fechas del sistema no compras. «+ Campaña nueva» agrega una que solo vive en tu plan de compra (el Día del Padre, por ejemplo).",
+    },
+    {
+      id: "anios",
+      ancla: "calendario.anios",
+      titulo: "Este año o el que viene",
+      texto: "El calendario se arma de a un año. Si una campaña es «solo un año», solo sale en el suyo; las que se repiten salen en los dos.",
+    },
+    {
+      id: "vista",
+      ancla: "calendario.vista",
+      titulo: "Lista o línea del año",
+      texto: "La lista es para decidir; «Línea del año» muestra todas sobre los doce meses, para ver de un vistazo qué se junta con qué.",
+    },
+    {
+      id: "en-mi-plan",
+      ancla: "calendario.en-mi-plan",
+      titulo: "En mi plan",
+      texto: "Las campañas que compras. El interruptor la prende o la apaga en un toque; una que descansa, o que no tiene fechas, abre su hoja para reactivarla o ponérselas. Cuando faltan 90 días, aquí te ofrece armar su plan.",
+    },
+    {
+      id: "rango",
+      ancla: "calendario.rango",
+      titulo: "Qué dice tu historia",
+      texto: "Cuánto sube la venta de la tienda con más años de ventas en esas fechas, contra un día normal (×1). La banda va del año que menos subió al que más; la marca gruesa es el del medio. Si no hay historia, lo dice.",
+    },
+    {
+      id: "pausadas",
+      ancla: "calendario.pausadas",
+      opcional: true,
+      titulo: "Pausadas",
+      texto: "Las que descansan. No se ofrecen para armar su plan hasta su fecha de regreso; ese día vuelven solas a «En mi plan». Lo que ya armaste se conserva.",
+    },
+    {
+      id: "no-las-compro",
+      ancla: "calendario.no-las-compro",
+      titulo: "Otras fechas — no las compro",
+      texto: "Las fechas que vienen de Catálogo ▸ Insignias y las que apagaste. Sirven para publicar, pocas veces para comprar. Prende una cuando decidas sumarla; las que tienen historia salen primero.",
+    },
+    {
+      id: "quitadas",
+      ancla: "calendario.quitadas",
+      opcional: true,
+      titulo: "Quitadas",
+      texto: "Las que quitaste del calendario. Nada se borra: «Restaurar» las devuelve tal como estaban.",
+    },
+    {
+      id: "hoja",
+      ancla: "calendario.nueva",
+      preparar: [{ tipo: "clic", ancla: "calendario.nueva" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "La hoja de una campaña",
+      texto: "«+ Campaña nueva» y el lápiz de cada fila abren la misma hoja: su nombre (si es tuya), las fechas de tu plan —pueden ser más anchas que las de la venta: una compra empieza antes—, si se repite y su estado. Te la abrimos.",
+    },
+    {
+      id: "repite",
+      ancla: "calendario-hoja.repite",
+      titulo: "¿Se repite?",
+      texto: "«Cada año» vuelve sola al calendario y te ofrece armar su plan cuando faltan 90 días. «Solo este año» se arma una vez y después desaparece; lo vendido queda en el Historial.",
+    },
+    {
+      id: "estado",
+      ancla: "calendario-hoja.estado",
+      titulo: "Activa, pausada o no la compro",
+      texto: "«Activa» entra a tu plan. «Pausada» descansa: eliges hasta cuándo (un mes, tres, fin de año, un año) o hasta que tú la reactives. «No compro» la deja como una fecha más del sistema.",
+    },
+    {
+      id: "historia",
+      ancla: "calendario-hoja.historia",
+      titulo: "Qué dice tu historia",
+      texto: "Cuánto vendió un día de esta campaña contra un día normal, año por año. Mide los soles de toda la tienda, no una categoría: si vendes con descuento, vendes más prendas por menos soles. Con menos de tres años de historia dice que es poca.",
+    },
+    {
+      id: "quitar",
+      ancla: "calendario-hoja.quitar",
+      opcional: true,
+      titulo: "Quitar del calendario",
+      texto: "Archiva la campaña: deja de salir en el calendario y en el selector, y se puede restaurar cuando quieras. Su plan y sus ventas se conservan. En la demo no lo tocamos.",
+    },
+    {
+      id: "linea",
+      ancla: "calendario.linea",
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "calendario.vista-linea" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "La línea del año",
+      texto: "Una barra por campaña: oscura si está en tu plan, rayada si descansa y punteada si no la compras. La que más pesa va en rojo y «hoy» cae con su raya. Tocar una fila abre su hoja.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes decidir con cuáles campañas te quedas. El selector del Plan solo te ofrece armar las que están «en mi plan». Para repasarlo: Mi perfil ▸ Demo ▸ Calendario del plan.",
+    },
+  ],
+  alSalir: [{ tipo: "escape" }, { tipo: "clic", ancla: "calendario.vista-lista", siEsta: true }],
 };
 
 export const GUIA_PLAN_RESULTADOS: Guia = {

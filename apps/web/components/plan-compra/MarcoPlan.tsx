@@ -17,10 +17,10 @@ import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import type { PlanConPlan } from "@/components/plan-compra/usePlanDerivado";
 import { useAvisosVistos } from "@/components/plan-compra/useAvisosVistos";
 import { marcarVisto, vistosVigentes, type AccionDelAviso, type AvisoDelPlan } from "@/lib/plan-compra-avisos";
-import { campanasArchivadas, type CampanasLeidas, type RanuraCalendario } from "@/lib/plan-compra-reglas";
+import { campanasArchivadas, claveDeRanura, type CampanasLeidas, type RanuraCalendario } from "@/lib/plan-compra-reglas";
 
 // El marco de las pestañas del Plan de campaña (Plan, Presupuesto, Calendario…): la cabecera con su campaña, las pestañas, el centro de avisos y las
-// hojas que son de la CAMPAÑA y no de una pestaña (crearla, editarla, ver las archivadas, los días para llegar). Antes vivía dentro de `PlanCampana`;
+// hojas que son de la CAMPAÑA y no de una pestaña (armar su plan, editarla, ver las archivadas, los días para llegar). Antes vivía dentro de `PlanCampana`;
 // sale de ahí para que cada pestaña ponga solo lo suyo y todas muestren la misma campaña y los mismos avisos (Brooks: una sola mente; Beck: primero se
 // vuelve fácil el cambio, después se hace el cambio).
 //
@@ -32,24 +32,26 @@ import { campanasArchivadas, type CampanasLeidas, type RanuraCalendario } from "
 
 /** Lo que el marco deja hacer a una pestaña sin que lo reimplemente: abrir las hojas de la campaña. */
 export type DelMarco = {
-  /** La hoja de una campaña: una del calendario para armar su plan (`ranura`) o una nueva (`null`). */
-  abrirHojaDeCampana: (ranura: RanuraCalendario | null) => void;
+  /** La hoja de armar el plan de una campaña del calendario (`ranura`). */
+  abrirHojaDeCampana: (ranura: RanuraCalendario) => void;
+  /** Una campaña nueva se decide en el Calendario (ADR-0525): lleva ahí, con su hoja abierta. */
+  irACampanaNueva: () => void;
   abrirArchivadas: () => void;
   /** «Cambiar los días» para llegar. No hace nada si la base todavía no guarda el plazo. */
   abrirPlazo: () => void;
 };
 
 /** A qué ruta lleva cada pestaña del marco: elegir otra campaña en el selector vuelve a la misma pestaña. */
-const RUTA_DE_LA_PESTANA: Record<Extract<PestanaDelPlan, "plan" | "presupuesto">, string> = {
+const RUTA_DE_LA_PESTANA: Record<Extract<PestanaDelPlan, "plan" | "presupuesto" | "calendario">, string> = {
   plan: "/compras/plan",
   presupuesto: "/compras/plan/presupuesto",
+  calendario: "/compras/plan/calendario",
 };
 
 export function MarcoPlan({
   activa,
   derivado,
   campanas,
-  esLider,
   planPedidoNoExiste,
   versionesFallo = false,
   subtitulo,
@@ -59,11 +61,9 @@ export function MarcoPlan({
   onAccionDelAviso,
   children,
 }: {
-  activa: Extract<PestanaDelPlan, "plan" | "presupuesto">;
+  activa: Extract<PestanaDelPlan, "plan" | "presupuesto" | "calendario">;
   derivado: PlanConPlan;
   campanas: CampanasLeidas | null;
-  /** Solo para «Campaña nueva»: escribe en Catálogo ▸ Insignias y sigue siendo de un líder. */
-  esLider: boolean;
   /** La URL pedía una campaña que no existe (vieja o escrita a mano): se muestra la más reciente y se dice. */
   planPedidoNoExiste: boolean;
   /** La lectura del tope del plan falló (la base lenta o caída): las cifras de compra se calcularon sin él y la persona tiene que saberlo, no verlas cambiar en silencio. */
@@ -84,15 +84,16 @@ export function MarcoPlan({
   const { plan, momento, plazoFijado, avisos } = derivado;
   // Los avisos que esta persona marcó como «ya lo vi» en esta campaña (recordados en el navegador; ver `useAvisosVistos`).
   const [vistos, ponerVistos] = useAvisosVistos(plan.plan.id);
-  // La hoja de una campaña: una del calendario para armar su plan (`ranura`) o una nueva (`ranura: null`). Act. 2026-10-12 f.
-  const [hojaCampana, setHojaCampana] = useState<{ ranura: RanuraCalendario | null } | null>(null);
+  // La hoja de armar el plan de una campaña del calendario (`ranura`). Act. 2026-10-12 f.
+  const [hojaCampana, setHojaCampana] = useState<RanuraCalendario | null>(null);
   const [editandoCampana, setEditandoCampana] = useState(false);
   const [verArchivadas, setVerArchivadas] = useState(false);
   const [editandoPlazo, setEditandoPlazo] = useState(false);
   const campanaActual = campanas?.planes.find((c) => c.id === plan.plan.id) ?? null;
 
   const marco: DelMarco = {
-    abrirHojaDeCampana: (ranura) => setHojaCampana({ ranura }),
+    abrirHojaDeCampana: (ranura) => setHojaCampana(ranura),
+    irACampanaNueva: () => router.push(`${RUTA_DE_LA_PESTANA.calendario}?plan=${plan.plan.id}&hoja=nueva`),
     abrirArchivadas: () => setVerArchivadas(true),
     abrirPlazo: () => {
       if (plazoFijado) setEditandoPlazo(true);
@@ -101,6 +102,7 @@ export function MarcoPlan({
 
   const alAccionarAviso = (a: AccionDelAviso) => {
     if (a.tipo === "cambiar-dias") return marco.abrirPlazo();
+    if (a.tipo === "armar-campana") return marco.abrirHojaDeCampana(a.ranura);
     if (onAccionDelAviso?.(a)) return;
     // Esta pestaña no sabe abrirlo: el Plan sí, y lo abre al llegar.
     const hoja = a.tipo === "ver-resumen" ? "resumen" : a.tipo === "abrir-categoria" ? `categoria:${a.categoriaId}` : null;
@@ -135,9 +137,9 @@ export function MarcoPlan({
                     actualId={plan.plan.id}
                     hoy={plan.hoy}
                     puedeCrear
-                    puedeCrearNueva={esLider}
-                    onNueva={() => marco.abrirHojaDeCampana(null)}
+                    onNueva={() => marco.irACampanaNueva()}
                     onArmar={(ranura) => marco.abrirHojaDeCampana(ranura)}
+                    onSinFechas={(e) => router.push(`${RUTA_DE_LA_PESTANA.calendario}?plan=${plan.plan.id}&hoja=e:${e.id}`)}
                     onEditar={() => setEditandoCampana(true)}
                     onArchivadas={() => marco.abrirArchivadas()}
                   />
@@ -199,10 +201,11 @@ export function MarcoPlan({
 
       {hojaCampana && campanas && (
         <NuevaCampanaModal
-          key={hojaCampana.ranura ? `${hojaCampana.ranura.etiquetaId}|${hojaCampana.ranura.anio}` : "nueva"}
+          key={claveDeRanura(hojaCampana)}
           etiquetas={campanas.etiquetas}
           nombresEnUso={campanas.planes.map((c) => c.nombre)}
-          ranura={hojaCampana.ranura}
+          propias={campanas.calendario?.decisiones ?? []}
+          ranura={hojaCampana}
           onClose={() => setHojaCampana(null)}
         />
       )}

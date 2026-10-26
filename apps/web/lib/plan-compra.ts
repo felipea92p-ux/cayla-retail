@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { RPC_PLAN, RPC_PLANES, campanaQueAbre, esIdDePlan, leerCampanas, type CampanaPlan, type CampanasLeidas } from "@/lib/plan-compra-reglas";
+import { RPC_PLAN, RPC_PLANES, campanaQueAbre, conCalendario, esIdDePlan, leerCampanas, type CampanaPlan, type CampanasLeidas } from "@/lib/plan-compra-reglas";
+import { RPC_CALENDARIO, leerCalendario } from "@/lib/plan-compra-calendario";
 import { hoyLima } from "@/lib/fechas-lima";
 import { RPC_PROPUESTA, leerPropuesta } from "@/lib/plan-compra-propuesta";
 import { RPC_PEDIDO } from "@/lib/plan-compra-pedido";
@@ -55,6 +56,8 @@ export async function getPlanCompra(planId?: string): Promise<{
   versiones: unknown;
   /** La lectura de versiones FALLÓ (la base lenta o caída), no es que la base todavía no la tenga: el plan se calculó con el precio de la plata en 0 y la pantalla lo dice. */
   versionesFallo: boolean;
+  /** La lectura del calendario del plan (ADR-0525) FALLÓ (no es que la base todavía no lo tenga): el selector ofrece todas las campañas, como antes, y el Calendario lo dice. */
+  calendarioFallo: boolean;
 }> {
   const supabase = await createClient();
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
@@ -66,10 +69,12 @@ export async function getPlanCompra(planId?: string): Promise<{
     const primera = await supabase.rpc(RPC_PLAN as never, (abre ? { p_plan_id: abre } : {}) as never);
     return { planes, primera };
   };
-  const [{ planes, primera }, familias, preparacion] = await Promise.all([
+  const [{ planes, primera }, familias, preparacion, calendario] = await Promise.all([
     leerPlanYCampanas(),
     supabase.from("familias").select("codigo, nombre").order("orden"),
     getPreparacionMotor(),
+    // El calendario del plan (ADR-0525) decide cuáles campañas se ofrecen: es una ayuda; sin él, se ofrecen todas, como antes.
+    supabase.rpc(RPC_CALENDARIO as never),
   ]);
   let plan = primera;
   // `fn_plan_compra` devuelve null si el id no es de ninguna campaña: se vuelve a leer sin id (la más reciente).
@@ -79,12 +84,15 @@ export async function getPlanCompra(planId?: string): Promise<{
   }
   // Las campañas (B3) son una ayuda: si la base todavía no las manda (la web se publicó antes que la migración) o falla, no hay selector y el plan se ve igual.
   if (planes.error) console.error(`${RPC_PLANES}: ${planes.error.message}`);
-  const campanas = planes.error ? null : leerCampanas(planes.data);
+  if (calendario.error) console.error(`${RPC_CALENDARIO}: ${calendario.error.message}`);
+  const campanas = planes.error ? null : conCalendario(leerCampanas(planes.data), calendario.error ? null : leerCalendario(calendario.data));
+  // Una base que todavía no tiene la función (la web se publicó antes que la migración) NO es un fallo: no hay decisiones que perder de vista.
+  const calendarioFallo = !!calendario.error && !esFirmaDesconocida(calendario.error);
   if (familias.error) console.error(`familias (plan de campaña): ${familias.error.message}`);
   const nombres = familias.error ? [] : (familias.data ?? []);
   if (plan.error) {
     console.error(`${RPC_PLAN}: ${plan.error.message}`);
-    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null, historia: null, descuentos: null, plazo: null, versiones: null, versionesFallo: false };
+    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null, historia: null, descuentos: null, plazo: null, versiones: null, versionesFallo: false, calendarioFallo };
   }
   // La propuesta (C4) es una ayuda: si falla o la base todavía no la tiene, cada categoría se llena a mano, como antes.
   const abierto = (plan.data as { plan?: { id?: unknown } } | null)?.plan?.id;
@@ -135,6 +143,7 @@ export async function getPlanCompra(planId?: string): Promise<{
     versiones: versiones && !versiones.error ? versiones.data : null,
     // Una base que todavía no tiene la función (la web se publicó antes que la migración) NO es un fallo: no hay plan con tope que perder de vista.
     versionesFallo: !!versiones?.error && !esFirmaDesconocida(versiones.error),
+    calendarioFallo,
   };
 }
 
@@ -144,9 +153,10 @@ export async function getPlanCompra(planId?: string): Promise<{
  */
 export async function getResultadosPlan(planId?: string): Promise<{ datos: unknown; campanas: CampanasLeidas | null; falla: string | null; anterior: unknown; propuesta: unknown }> {
   const supabase = await createClient();
-  const planes = await supabase.rpc(RPC_PLANES as never);
+  const [planes, calendario] = await Promise.all([supabase.rpc(RPC_PLANES as never), supabase.rpc(RPC_CALENDARIO as never)]);
   if (planes.error) console.error(`${RPC_PLANES} (resultados): ${planes.error.message}`);
-  const campanas = planes.error ? null : leerCampanas(planes.data);
+  if (calendario.error) console.error(`${RPC_CALENDARIO} (resultados): ${calendario.error.message}`);
+  const campanas = planes.error ? null : conCalendario(leerCampanas(planes.data), calendario.error ? null : leerCalendario(calendario.data));
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
   const id = pedido ?? (campanas ? (campanaParaResultados(campanas.planes, hoyLima())?.id ?? null) : null);
   if (!id) return { datos: null, campanas, falla: null, anterior: null, propuesta: null };

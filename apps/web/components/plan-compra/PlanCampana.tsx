@@ -57,7 +57,6 @@ export function PlanCampana({
   preparacion,
   campanas,
   puedeContar,
-  esLider,
   planPedidoNoExiste = false,
   propuesta: propuestaCruda = null,
   pedido: pedidoCrudo = null,
@@ -73,9 +72,6 @@ export function PlanCampana({
   preparacion: LecturaMotor;
   campanas: CampanasLeidas | null;
   puedeContar: boolean;
-  /** Solo para «Campaña nueva»: escribe en Catálogo ▸ Insignias y sigue siendo de un líder. El resto del plan, el mínimo por tienda
-   *  incluido, es de quien tiene el módulo (ADR-0387; ADR-0362, decisión 64). */
-  esLider: boolean;
   /** La URL pedía una campaña que no existe (vieja o escrita a mano): se muestra la más reciente y se dice. */
   planPedidoNoExiste?: boolean;
   /** Los hechos para proponer flojo, normal y bueno y el % de lo que sobra (C4–C5), crudos; null = sin propuesta. */
@@ -95,7 +91,7 @@ export function PlanCampana({
 }) {
   // Lo derivado de lo que la base manda (filas, momento, plazo, avisos) lo comparten las pestañas del Plan: ver `usePlanDerivado`. La cabecera, las
   // pestañas, el centro de avisos y las hojas de la campaña también: ver `MarcoPlan`.
-  const derivado = usePlanDerivado({ datos, descuentos: descuentosCrudos, propuesta: propuestaCruda, historia: historiaCruda, pedido: pedidoCrudo, plazo: plazoCrudo, versiones: versionesDelPlanCrudas, preparacion, puedeContar });
+  const derivado = usePlanDerivado({ datos, descuentos: descuentosCrudos, propuesta: propuestaCruda, historia: historiaCruda, pedido: pedidoCrudo, plazo: plazoCrudo, versiones: versionesDelPlanCrudas, preparacion, puedeContar, campanas });
   const { filas } = derivado;
   const params = useSearchParams();
   const vista: VistaPlan = vistaDeLaUrl(params.get("vista"));
@@ -157,7 +153,7 @@ export function PlanCampana({
     });
   };
 
-  if (derivado.plan === null) return <SinCampana activa="plan" campanas={campanas} falla={falla} esLider={esLider} />;
+  if (derivado.plan === null) return <SinCampana activa="plan" campanas={campanas} falla={falla} />;
 
   const { plan, momento, totales, plazo, confianza } = derivado;
   const filaAbierta = abierta ? (filas.find((f) => f.c.id === abierta.id) ?? null) : null;
@@ -188,7 +184,6 @@ export function PlanCampana({
       activa="plan"
       derivado={derivado}
       campanas={campanas}
-      esLider={esLider}
       planPedidoNoExiste={planPedidoNoExiste}
       versionesFallo={versionesFallo}
       onAccionDelAviso={alAccionarAviso}
@@ -268,8 +263,8 @@ export function PlanCampana({
                         Planificar {toca.proxima.nombre}
                       </Boton>
                     ) : (
-                      // «Campaña nueva», para lo que no está en el calendario, sigue siendo de un líder (escribe en Etiquetas).
-                      esLider && campanas && <Boton onClick={() => marco.abrirHojaDeCampana(null)}>Campaña nueva</Boton>
+                      // Ninguna otra campaña en tu plan: se eligen en el Calendario (ADR-0525).
+                      <BotonEnlace href="/compras/plan/calendario">Elegir mis campañas</BotonEnlace>
                     )}
                   </span>
                 </Aviso>

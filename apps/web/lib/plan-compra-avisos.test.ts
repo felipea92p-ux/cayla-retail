@@ -13,7 +13,7 @@ import {
   type AvisoDelPlan,
   type EntradaDeAvisos,
 } from "./plan-compra-avisos";
-import type { FilaPlan, LineaPlan } from "./plan-compra-reglas";
+import type { FilaPlan, LineaPlan, RanuraCalendario } from "./plan-compra-reglas";
 import type { PlazoDePedido } from "./plan-compra-plazo";
 import type { SugeridoDescuento } from "./plan-compra-descuento";
 
@@ -204,6 +204,41 @@ describe("el tope", () => {
   it("dentro del tope, o sin tope, no hay aviso", () => {
     expect(ids(avisosDelPlan(base({ tope: 28000, inversion: 28000 }), sinDatos))).not.toContain("tope");
     expect(ids(avisosDelPlan(base({ tope: null, inversion: 99999 }), sinDatos))).not.toContain("tope");
+  });
+});
+
+describe("las campañas de tu calendario que empiezan pronto y no tienen plan (ADR-0525)", () => {
+  const ranura = (nombre: string, etiquetaId = "e1"): RanuraCalendario => ({ etiquetaId, calendarioId: null, anio: 2026, nombre, desde: "2026-11-09", hasta: "2026-11-30" });
+  const pronto = (nombre: string, dias: number, etiquetaId?: string) => ({ ranura: ranura(nombre, etiquetaId), dias });
+  it("una sola: dice cuándo empieza y ofrece armar su plan; sin ninguna, no hay aviso", () => {
+    expect(ids(avisosDelPlan(base(), sinDatos))).not.toContain("por-armar");
+    expect(ids(avisosDelPlan(base({ porArmar: [] }), sinDatos))).not.toContain("por-armar");
+    const a = avisosDelPlan(base({ porArmar: [pronto("Black Friday 2026", 14)] }), sinDatos).find((x) => x.id === "por-armar")!;
+    expect(a.titulo).toBe("Black Friday 2026 empieza en 14 días y no tiene plan");
+    expect(a.acciones).toEqual([{ tipo: "armar-campana", texto: "Armar el plan de Black Friday 2026", ranura: ranura("Black Friday 2026") }]);
+    expect(avisosDelPlan(base({ porArmar: [pronto("Navidad 2026", 1)] }), sinDatos).find((x) => x.id === "por-armar")!.titulo).toBe("Navidad 2026 empieza mañana y no tiene plan");
+  });
+  it("con más de un mes por delante solo informa; dentro del mes cuenta como algo por atender", () => {
+    expect(avisosDelPlan(base({ porArmar: [pronto("San Valentín 2027", 85)] }), sinDatos).find((x) => x.id === "por-armar")!.nivel).toBe("info");
+    expect(avisosDelPlan(base({ porArmar: [pronto("Black Friday 2026", 31)] }), sinDatos).find((x) => x.id === "por-armar")!.nivel).toBe("info");
+    expect(avisosDelPlan(base({ porArmar: [pronto("Black Friday 2026", 30)] }), sinDatos).find((x) => x.id === "por-armar")!.nivel).toBe("pendiente");
+    // Basta una dentro del mes para que cuente.
+    expect(avisosDelPlan(base({ porArmar: [pronto("Black Friday 2026", 20), pronto("Navidad 2026", 60)] }), sinDatos).find((x) => x.id === "por-armar")!.nivel).toBe("pendiente");
+  });
+  it("varias: cuenta, nombra hasta tres con sus días, dice cuántas más y ofrece la más cercana", () => {
+    const l = [pronto("A", 10, "a"), pronto("B", 20, "b"), pronto("C", 30, "c"), pronto("D", 40, "d"), pronto("E", 50, "e")];
+    const a = avisosDelPlan(base({ porArmar: l }), sinDatos).find((x) => x.id === "por-armar")!;
+    expect(a.titulo).toBe("5 campañas de tu plan empiezan pronto y no tienen plan");
+    expect(a.texto).toBe("A (en 10 días), B (en 20 días) y C (en 30 días) y 2 más. Empieza por la más cercana.");
+    expect(a.acciones.map((x) => x.texto)).toEqual(["Armar el plan de A"]);
+  });
+  it("«ya lo vi» solo vale mientras sean las mismas campañas: si cambian, vuelve a contar", () => {
+    const una = avisosDelPlan(base({ porArmar: [pronto("A", 10, "a")] }), sinDatos).find((x) => x.id === "por-armar")!;
+    const otra = avisosDelPlan(base({ porArmar: [pronto("A", 10, "a"), pronto("B", 20, "b")] }), sinDatos).find((x) => x.id === "por-armar")!;
+    expect(marcarVisto({}, una)[una.id]).not.toBe(otra.huella);
+    // Los días que faltan no cambian la huella: mañana sigue siendo la misma campaña.
+    const mismaMasTarde = avisosDelPlan(base({ porArmar: [pronto("A", 9, "a")] }), sinDatos).find((x) => x.id === "por-armar")!;
+    expect(mismaMasTarde.huella).toBe(una.huella);
   });
 });
 

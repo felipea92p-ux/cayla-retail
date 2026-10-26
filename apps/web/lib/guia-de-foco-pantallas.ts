@@ -81,6 +81,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/por-pagar": PENDIENTE,
   // Plan de campaña (ADR-0349): lo que se llena (escenarios, precio, costo, lo que sobra, curva) vive en `FormularioCategoria`, el mismo formulario de la hoja de cada categoría y del paso a paso, con su guía de foco hecha. `PlanCategoriaModal` ya no tiene campos propios: por eso no figura entre los modales.
   "/compras/plan": { estado: "aplicada", evidencia: ["components/plan-compra/FormularioCategoria.tsx"] },
+  "/compras/plan/calendario": { estado: "no-aplica", motivo: "Se lee y se prende o apaga: la lista no tiene campos; sus interruptores guardan en un toque y los lápices abren la hoja de cada campaña, que sí lleva su guía en este registro (HojaDeCampanaCalendario). No hay campos que llenar en la pantalla misma." },
   "/compras/plan/presupuesto": { estado: "no-aplica", motivo: "Se lee y se simula: un deslizador para mover el tope y botones que abren las hojas de siempre (el tope, lo que sobra, el reparto, los días), cada una con su guía en este registro. No hay campos que llenar ni pasos que completar." },
   "/compras/plan/resultados": { estado: "no-aplica", motivo: "Solo lectura (ADR-0372, C6): lo vendido en una campaña por tienda, prenda y color; elegir la tienda es una píldora y la campaña, el selector." },
   "/compras/plan/historial": { estado: "no-aplica", motivo: "Solo lectura (ADR-0372, C3): lo vendido por tienda en cada campaña, un año a la vez; elegir el año es una píldora, no un campo." },
@@ -347,6 +348,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/CorregirPagoModal.tsx": { estado: "aplicada", evidencia: ["components/CorregirPagoModal.tsx"] },
   "components/RevisarProductoHoja.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el título dice qué prenda se aprueba o se rechaza y la nota qué pasa después; cuando el rechazo está bloqueado (orden en proceso o stock) la hoja no pide nada, dice qué lo frena y a dónde ir. No hay camino que indicar (ADR-0371)." },
   "components/plan-compra/NuevaCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/NuevaCampanaModal.tsx"] },
+  "components/plan-compra/HojaDeCampanaCalendario.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/HojaDeCampanaCalendario.tsx"] },
   "components/plan-compra/EditarCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/EditarCampanaModal.tsx"] },
   // El cajón «Resumen y avisos» del Plan de compra (Felipe 2026-10-12). El campo que ve el detector es el selector de campaña, que vive
   // en la cabecera de la pantalla, fuera del cajón.

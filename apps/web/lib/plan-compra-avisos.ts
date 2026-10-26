@@ -14,15 +14,15 @@
 //   NO HACE: no decide qué es una campaña en plazo (eso es `plazoDePedido`), ni cuánto creerle a los números (`exactitudDeLosDatos`), ni calcula la
 //            confianza del stock (`confianzaDelStock`): las recibe hechas. No dibuja nada ni guarda nada.
 
-import type { ConfianzaDelStock, EstadoCampana, FilaPlan } from "./plan-compra-reglas";
-import { solesES } from "./plan-compra-reglas";
+import type { ConfianzaDelStock, EstadoCampana, FilaPlan, RanuraCalendario } from "./plan-compra-reglas";
+import { claveDeRanura, solesES } from "./plan-compra-reglas";
 import type { PlazoDePedido } from "./plan-compra-plazo";
 import { sugeridoParcial } from "./plan-compra-descuento";
 import { exactitudDeLosDatos } from "./plan-compra-periodo";
 import { diaMes } from "./fechas-lima";
 
 export type NivelDelAviso = "urgente" | "pendiente" | "info" | "ok";
-export type IdDelAviso = "plazo" | "stock" | "sin-plan" | "deriva" | "tope" | "plan-con-tope" | "datos";
+export type IdDelAviso = "plazo" | "stock" | "sin-plan" | "por-armar" | "deriva" | "tope" | "plan-con-tope" | "datos";
 
 /** Lo que el botón de un aviso hace; la pantalla lo traduce a abrir una hoja, el cajón o ir a otra pantalla. */
 export type AccionDelAviso =
@@ -31,6 +31,8 @@ export type AccionDelAviso =
   | { tipo: "ir-conteo"; texto: string }
   /** Lleva a la pestaña Presupuesto de esta campaña: ahí está el plan que cabe en el tope. */
   | { tipo: "ir-presupuesto"; texto: string }
+  /** Abre la hoja de armar el plan de una campaña de tu calendario que empieza pronto y no tiene plan. */
+  | { tipo: "armar-campana"; texto: string; ranura: RanuraCalendario }
   | { tipo: "abrir-categoria"; texto: string; categoriaId: string };
 
 export type AvisoDelPlan = {
@@ -70,10 +72,12 @@ export type EntradaDeAvisos = {
   inversion: number;
   /** El precio de la plata del plan con tope que la campaña USA (ADR-0523); 0 o ausente = el plan de siempre. */
   precioDeLaPlata?: number;
+  /** Las campañas de tu calendario que empiezan pronto y no tienen plan (`ranurasPorArmar`), de la más cercana a la más lejana; ausente o vacío = ninguna (ADR-0525). */
+  porArmar?: readonly { ranura: RanuraCalendario; dias: number }[];
 };
 
 const RANGO: Record<NivelDelAviso, number> = { urgente: 0, pendiente: 1, info: 2, ok: 3 };
-const ORDEN: IdDelAviso[] = ["plazo", "stock", "sin-plan", "deriva", "tope", "plan-con-tope", "datos"];
+const ORDEN: IdDelAviso[] = ["plazo", "stock", "sin-plan", "por-armar", "deriva", "tope", "plan-con-tope", "datos"];
 
 const enLista = (nombres: readonly string[]) => (nombres.length <= 1 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`);
 const pct = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 2 });
@@ -167,6 +171,32 @@ function avisoSinPlan(e: EntradaDeAvisos): AvisoDelPlan | null {
   };
 }
 
+/** Hasta cuántos días faltan para que el aviso de una campaña sin plan deje de ser «para saber» y pase a «por atender» (el plazo para pedir se acerca). */
+const DIAS_PARA_ATENDER_PLAN = 30;
+
+/**
+ * Las campañas de tu calendario que empiezan pronto y todavía no tienen plan (ADR-0525, spike ①: «te ofrece armarlo cuando faltan 90 días»). Con más de un mes por delante solo avisa
+ * (para saber); dentro del mes, cuenta como algo por atender: el plazo para pedir se come los días. El botón abre la hoja de armar el plan de la más cercana.
+ */
+function avisoPorArmar(e: EntradaDeAvisos): AvisoDelPlan | null {
+  const l = e.porArmar ?? [];
+  if (l.length === 0) return null;
+  const cuando = (d: number) => (d === 1 ? "mañana" : `en ${d} días`);
+  const primera = l[0];
+  const uno = l.length === 1;
+  return {
+    id: "por-armar",
+    nivel: l.some((x) => x.dias <= DIAS_PARA_ATENDER_PLAN) ? "pendiente" : "info",
+    corto: null,
+    titulo: uno ? `${primera.ranura.nombre} empieza ${cuando(primera.dias)} y no tiene plan` : `${l.length} campañas de tu plan empiezan pronto y no tienen plan`,
+    texto: uno
+      ? "Armar su plan toma unos minutos: elige cuánto comprar de cada categoría antes de que llegue la fecha para pedir."
+      : `${enLista(l.slice(0, 3).map((x) => `${x.ranura.nombre} (${cuando(x.dias)})`))}${l.length > 3 ? ` y ${l.length - 3} más` : ""}. Empieza por la más cercana.`,
+    huella: l.map((x) => claveDeRanura(x.ranura)).join("|"),
+    acciones: [{ tipo: "armar-campana", texto: `Armar el plan de ${primera.ranura.nombre}`, ranura: primera.ranura }],
+  };
+}
+
 function avisoDeLaDeriva(e: EntradaDeAvisos): AvisoDelPlan | null {
   const d = derivaDelDescuento(e.filas);
   if (d.length === 0) return null;
@@ -226,7 +256,7 @@ function avisoDeLosDatos(dias: number | undefined, conCampanaAnterior: boolean):
 
 /** Todos los avisos del Plan, de lo más urgente a lo que solo informa; a igual nivel, en un orden fijo. */
 export function avisosDelPlan(e: EntradaDeAvisos, datos: { diasDeVentas: number | undefined; conCampanaAnterior: boolean }): AvisoDelPlan[] {
-  return [avisoDelPlazo(e), avisoDelStock(e), avisoSinPlan(e), avisoDeLaDeriva(e), avisoDelTope(e), avisoDelPlanConTope(e), avisoDeLosDatos(datos.diasDeVentas, datos.conCampanaAnterior)]
+  return [avisoDelPlazo(e), avisoDelStock(e), avisoSinPlan(e), avisoPorArmar(e), avisoDeLaDeriva(e), avisoDelTope(e), avisoDelPlanConTope(e), avisoDeLosDatos(datos.diasDeVentas, datos.conCampanaAnterior)]
     .filter((a): a is AvisoDelPlan => a !== null)
     .sort((a, b) => RANGO[a.nivel] - RANGO[b.nivel] || ORDEN.indexOf(a.id) - ORDEN.indexOf(b.id));
 }

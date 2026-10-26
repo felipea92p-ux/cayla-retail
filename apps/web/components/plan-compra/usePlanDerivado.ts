@@ -15,7 +15,9 @@ import {
   confianzaDelStock,
   leerPlan,
   momentoDeLaCampana,
+  ranurasPorArmar,
   totalesDelPlan,
+  type CampanasLeidas,
   type ConfianzaDelStock,
   type FilaPlan,
   type LecturaPlan,
@@ -45,6 +47,8 @@ export type EntradaDelPlan = {
   versiones?: unknown;
   preparacion: LecturaMotor;
   puedeContar: boolean;
+  /** Las campañas con el calendario del plan pegado: de ahí salen las que empiezan pronto y no tienen plan (aviso «por armar», ADR-0525). */
+  campanas?: CampanasLeidas | null;
 };
 
 /** Lo derivado de una campaña que SÍ existe. */
@@ -75,7 +79,7 @@ export type PlanConPlan = {
 export type PlanDerivado = { plan: null; hechos: LecturaPropuesta | null; pedido: LecturaPedido | null; filas: FilaPlan[] } | PlanConPlan;
 
 export function usePlanDerivado(e: EntradaDelPlan): PlanDerivado {
-  const { datos, descuentos = null, propuesta = null, historia = null, pedido: pedidoCrudo = null, plazo: plazoCrudo = null, versiones: versionesCrudas = null, preparacion, puedeContar } = e;
+  const { datos, descuentos = null, propuesta = null, historia = null, pedido: pedidoCrudo = null, plazo: plazoCrudo = null, versiones: versionesCrudas = null, preparacion, puedeContar, campanas = null } = e;
   const plan = useMemo(() => conDescuentos(leerPlan(datos), leerDescuentos(descuentos)), [datos, descuentos]);
   const hechos = useMemo(() => {
     const leida = leerPropuesta(propuesta);
@@ -134,6 +138,7 @@ export function usePlanDerivado(e: EntradaDelPlan): PlanDerivado {
       tope: plan.tope.valor,
       inversion: totales.inversion,
       precioDeLaPlata,
+      porArmar: campanas ? ranurasPorArmar(campanas, plan.hoy) : [],
     },
     { diasDeVentas: diasDeVentasDelErp(hechosDelPlan?.tiendas), conCampanaAnterior: hechosDelPlan?.tiendas.some((t) => t.previaDisponible) ?? false },
   );
