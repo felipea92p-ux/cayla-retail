@@ -217,6 +217,11 @@ export const PRUEBAS = [
   // sin el módulo Productos nada, se archiva y nunca se borra ni se edita. ROLLBACK.
   "pruebas:precio-sede",
 
+  // El precio de venta desde la recepción (Felipe 2026-10-24): quien recibe cambia el precio de una prenda de SU envío (todas las
+  // sedes o solo la suya) sin Productos; otra sede, quien hizo la orden, un envío sin abrir, una prenda ajena y un precio malo o
+  // bajo el costo no; el guardián de Productos sigue cerrado. ROLLBACK.
+  "pruebas:precio-desde-recepcion",
+
   // Actividad de Colaboradores, Roles, Configuración y Regularizar (ADR-0207, act. 2026-10-03): cada operación en la
   // sede correcta, las formas de producción dan frases legibles, sin el dinero de la empresa. ROLLBACK.
   "pruebas:actividad-gestion",
@@ -1386,6 +1391,7 @@ export const PRUEBAS = [
   // lo separado no pasa de lo contado ni trae prendas ajenas; lo de fuera de la guía; el formulario de la fase 4 deja su conteo; un
   // envío cerrado no se cuenta. ROLLBACK siempre.
   "pruebas:conteo-de-envio",
+  "pruebas:observaciones-de-envio",
 
   // Cerrar lo contado con pendientes y «Hacer ahora» (ADR-0393, actividad 3): entra solo lo que tiene talla y color; lo demás queda
   // pendiente («detalle», «crear») o sin separar; lo que faltó se mide con lo contado; quien cierra firma lo que vio; «Hacer ahora» entra
@@ -1474,6 +1480,11 @@ export const PRUEBAS = [
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,
   // lo anotado inmutable y las puertas (módulo + Taller). ROLLBACK.
   "pruebas:produccion-fases",
+
+  // Editar la tela y los avíos de una orden ya abierta (ADR-0510, actividad 1): la lista que llega REEMPLAZA a la declarada con la misma validación que al abrir,
+  // el plan se recalcula con la merma, lo que no cambió no se mueve, una tela con consumo anotado no se quita, una lista rota no vacía el plan, todo o nada y las
+  // puertas (módulo + Taller). La carrera con «Anotar lo que usaste» se comprueba por su forma (el mismo `for update`). ROLLBACK.
+  "pruebas:produccion-editar-tela",
 
   // Las fases nuevas de la orden, «expandir» (ADR-0400 act. k y l, R1, actividad 1): la base acepta la ruta nueva (Ploteo · Corte · Habilitado · Costura ·
   // Ojales y botones · Limpiar hilos y revisar · Planchado · Etiquetar y embolsar) sin dejar de aceptar la anterior; mezclarlas se rechaza; «Cambiar quién»

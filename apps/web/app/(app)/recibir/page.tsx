@@ -32,6 +32,7 @@ import { RecepcionesRecientes } from "@/components/RecepcionesRecientes";
 import { FunnelX, Receipt } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
+import { AccionSinAviso, SinAvisoProvider } from "@/components/recepcion-conteo/SinAvisoContexto";
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
 import { getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
 import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
@@ -294,8 +295,9 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           {conEncabezado(`Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
           {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} guia="recibir.pendientes" />}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
+          <SinAvisoProvider>
           {deOrdenes && (
-            <EnviosParaRecibir envios={deOrdenes.envios} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} />
+            <EnviosParaRecibir envios={deOrdenes.envios} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} accionTitulo={<AccionSinAviso />} />
           )}
           <LlegoSinAviso
             key={claveDeLaRecepcion(persona.ubicacionId)}
@@ -307,6 +309,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             facturas={facturasDeLaSede}
             hayListaArriba={(deOrdenes?.envios.length ?? 0) + (deOrdenes?.ordenes.length ?? 0) > 0}
           />
+          </SinAvisoProvider>
           {llegoEstaSemana}
         </div>
       );
