@@ -1,6 +1,6 @@
 ## 🎭 La tienda online pasa a «G · Pasarela» (ADR-0524, 2026-10-26)
 
-**En curso (10 actividades, un commit cada una):** 0 terreno y papeles ✅ · 1 el sistema ✅ (tokens claro y oscuro, Bodoni Moda y Public Sans, botones con cortina) · 2 cabecera, anuncio y pie · 3 Inicio con el desfile · 4 catálogo y tarjeta de prenda · 5 la ficha · 6 bolsa, Separar y «Separado» · 7 entrar, cuenta, perfil y Club · 8 el movimiento (la raya que viaja, el velo re-vestido, esqueletos) · 9 cierre (barrido de anchos y temas, contraste, peso de la portada, pruebas y PR).
+**En curso (10 actividades, un commit cada una):** 0 terreno y papeles ✅ · 1 el sistema ✅ (tokens claro y oscuro, Bodoni Moda y Public Sans, botones con cortina) · 2 cabecera, anuncio y pie ✅ · 3 Inicio con el desfile · 4 catálogo y tarjeta de prenda · 5 la ficha · 6 bolsa, Separar y «Separado» · 7 entrar, cuenta, perfil y Club · 8 el movimiento (la raya que viaja, el velo re-vestido, esqueletos) · 9 cierre (barrido de anchos y temas, contraste, peso de la portada, pruebas y PR).
 
 **Para hacer (Felipe):**
 - [ ] **Ver cada actividad en captura antes de la siguiente** (la tienda real tiene ~30 pantallas y la maqueta dibujó 5: insignias, ofertas, favoritos, filtros y campanita se diseñan con la misma lengua y nadie los ha visto).

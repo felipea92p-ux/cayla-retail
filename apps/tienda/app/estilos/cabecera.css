@@ -22,8 +22,10 @@
   .t-cab-fila > .t-ico.t-solo-movil { order: -3; }
 }
 .t-nav-b { border: 0; background: none; height: 100%; padding: 0; font: inherit; font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; position: relative; color: var(--tinta); display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
-.t-nav-b::after { content: ""; position: absolute; left: 0; right: 0; bottom: 22px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform .4s var(--ease); }
-.t-nav-b:hover::after, .t-nav-b[aria-current="page"]::after { transform: scaleX(1); }
+/* La raya de la Pasarela: al pasar el mouse entra por la izquierda y, al salir, se va por la derecha. */
+.t-nav-b::after { content: ""; position: absolute; left: 0; right: 0; bottom: 22px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: 100% 50%; transition: transform .6s var(--ease-cortina); }
+@media (hover: hover) { .t-nav-b:hover::after { transform: scaleX(1); transform-origin: 0 50%; } }
+.t-nav-b[aria-current="page"]::after { transform: scaleX(1); transform-origin: 0 50%; }
 .t-nav-b.oferta { color: var(--rojo); }
 .t-nav-b .ic { width: 12px; height: 12px; }
 
@@ -43,11 +45,11 @@
 .t-mega h4 a { color: inherit; overflow-wrap: break-word; }
 .t-mega h4 a:hover { color: var(--tinta); }
 .t-mega ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.t-mega-cat { display: grid; grid-template-columns: minmax(0, max-content) 1fr; align-items: baseline; gap: 12px; margin-left: -6px; padding: 7px 12px 7px 6px; border-radius: 0; font-size: 14px; color: var(--tinta); transition: background-color .3s var(--ease); }
+.t-mega-cat { display: grid; grid-template-columns: minmax(0, max-content) 1fr; align-items: baseline; gap: 12px; margin-left: -6px; padding: 7px 12px 7px 6px; border-radius: 0; font-family: var(--display); font-size: 21px; line-height: 1.15; color: var(--tinta); transition: padding-left .6s var(--ease); }
 .t-mega-cat-nom { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .2s; }
-.t-mega-cat small { justify-self: start; color: var(--tinta-60); font-size: 11.5px; font-variant-numeric: tabular-nums; }
-.t-mega-cat:hover { background: var(--hueso); }
-.t-mega-cat:hover .t-mega-cat-nom { text-decoration: underline; text-underline-offset: 4px; }
+.t-mega-cat small { justify-self: start; color: var(--tinta-60); font-family: var(--sans); font-size: 12px; font-variant-numeric: tabular-nums; }
+/* Como la lista del programa: al pasar el mouse, el nombre se corre y se hace cursiva. */
+@media (hover: hover) { .t-mega-cat:hover { padding-left: 16px; } .t-mega-cat:hover .t-mega-cat-nom { font-style: italic; } }
 .t-mega-cat:focus-visible, .t-mega h4 a:focus-visible, .t-mega-prenda:focus-visible, .t-mega-recien-cab a:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 2px; }
 /* Lo último que llegó: una vitrina que se apaga sola si no le queda lugar (menos de 2 prendas). */
 .t-mega-recien { min-width: 0; container-type: inline-size; }
@@ -88,7 +90,7 @@
 .t-buscador-fila { display: flex; align-items: center; gap: 8px; }
 .t-buscador-caja { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; border-radius: 0; background: transparent; border: 1px solid var(--sand); transition: border-color .3s; }
 .t-buscador-caja:focus-within { border-color: var(--tinta); }
-.t-buscador-caja input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 16px; color: var(--tinta); outline: none; }
+.t-buscador-caja input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-family: var(--display); font-size: 22px; color: var(--tinta); outline: none; }
 .t-buscador-caja input::placeholder { color: var(--taupe); }
 .t-buscador-caja input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
 .t-buscador-caja .ic { color: var(--taupe); }
@@ -240,3 +242,6 @@
 /* Un punto sobre «Cuenta» cuando los avisos que viven dentro del menú tienen algo sin ver (el menú puede estar cerrado). */
 .t-persona:has([data-avisos-pendientes]) > .t-ico::after { content: ""; position: absolute; top: 8px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--rojo); }
 .t-persona-menu[hidden] { display: none; }
+
+/* El selector de tienda (ADR-0524): los nombres de las tiendas en la Didone, como las salidas del programa. */
+.t-sel-tienda .t-persona-op { font-family: var(--display); font-size: 20px; line-height: 1.2; }
