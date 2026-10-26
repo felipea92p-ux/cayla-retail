@@ -1066,15 +1066,29 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
     {
       id: "sedes",
       ancla: "config.tienda-web-sedes",
-      titulo: "Cada tienda en la tienda web",
-      texto: "Arriba de cada tienda ves su tarjeta tal como la verá el cliente, y cambia mientras escribes: el nombre (Trujillo, no Tienda TRU), la dirección para recoger, el horario y el WhatsApp donde llegan sus pedidos. Mientras falte algo, la tarjeta dice qué y te lleva a la casilla.",
+      titulo: "Cada tienda es una puerta",
+      texto: "Cada puerta es una tienda: dice si el cliente la ve, cuántos de sus 3 datos tiene (el anillo) y, con una palabra, lo que le falta. Toca una para escribir sus datos, mapa y foto abajo. Arrástralas (o Alt + flechas) para cambiar el orden en la web: se guarda al soltar.",
     },
     {
       id: "mostrar",
       ancla: "config.tienda-web-mostrar",
       opcional: true,
       titulo: "Se ve en la web",
-      texto: "Con nombre, WhatsApp y dirección, la tienda se puede encender: el cliente la ve y puede recoger ahí lo que separa. Apagada, no la ve. En la demo no la tocamos.",
+      texto: "El interruptor de cada puerta. Con nombre, WhatsApp y dirección se puede encender: el cliente la ve y puede recoger ahí lo que separa. Si falta algo, queda con candado. En la demo no lo tocamos.",
+    },
+    {
+      id: "horario",
+      ancla: "config.tienda-web-horario",
+      opcional: true,
+      titulo: "El horario, día por día",
+      texto: "Cada día es una barra: arrastra un borde para cambiar esa hora, la barra para correrla, o toca la letra del día para abrirlo o cerrarlo. De media en media hora. La tienda online dirá «Abierta · cierra 9 p. m.» sola.",
+    },
+    {
+      id: "cierres",
+      ancla: "config.tienda-web-cierres",
+      opcional: true,
+      titulo: "Un día que no abre",
+      texto: "«Cerrar hoy» o «Cerrar otra fecha» apagan ese día aunque el horario diga que abre: un feriado, un inventario. La web dice «Cerrada hoy» y, al contar cuándo vuelve, salta esos días. Se quitan con su ✕.",
     },
     {
       id: "guardar",
@@ -1084,10 +1098,16 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
       texto: "Lo que escribes y el interruptor quedan como borrador: la web no cambia hasta que aprietas «Guardar» al pie de la tarjeta. Mientras tanto te avisa «Tienes cambios sin guardar». En la demo no lo apretamos.",
     },
     {
+      id: "telefono",
+      ancla: "config.tienda-web-telefono",
+      titulo: "Así lo ve el cliente",
+      texto: "El teléfono de la derecha es la tienda que tienes abierta, tal como la lee el cliente, y cambia mientras escribes. Si la tienda está apagada se ve atenuada.",
+    },
+    {
       id: "plazos",
       ancla: "config.tienda-web-plazos",
-      titulo: "Para todas las sedes",
-      texto: "La línea de arriba es la vida de un pedido: el cliente separa, tú confirmas, paga y recoge, con el plazo de cada paso. Debajo se cambian esos plazos, y desde cuántas prendas el cliente ve el número en vez de «Hay»; se guardan con su propio botón «Guardar».",
+      titulo: "El reloj del pedido",
+      texto: "Es la vida de un pedido web: separa, confirmas, paga, recoge. Bajo cada paso sube o baja las horas o los días con − y +. Abajo eliges desde cuántas prendas el cliente ve el número («Quedan 2») en vez de «Hay». Es para todas las tiendas y se guarda con su botón.",
     },
     {
       id: "nota",
